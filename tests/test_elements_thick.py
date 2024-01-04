@@ -276,8 +276,10 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
 
     # Finish the test here if we are not using knobs
     if not with_knobs:
-        assert line.vars is None
+        assert 'knob_a' not in line.vars
         return
+    else:
+        assert 'knob_a' in line.vars
 
     # Change the knob values
     line.vars['knob_a'] = 2.0
@@ -348,8 +350,10 @@ def test_import_thick_quad_from_madx(with_knobs):
 
     # Finish the test here if we are not using knobs
     if not with_knobs:
-        assert line.vars is None
+        assert 'knob_a' not in line.vars
         return
+    else:
+        assert 'knob_a' in line.vars
 
     # Change the knob values
     line.vars['knob_a'] = 1.0
@@ -416,8 +420,10 @@ def test_import_thick_bend_from_madx_and_slice(
 
     # Finish the test here if we are not using knobs
     if not with_knobs:
-        assert line.vars is None
+        'knob_a' not in line.vars
         return
+    else:
+        assert 'knob_a' in line.vars
 
     # Change the knob values
     line.vars['knob_a'] = 2.0
@@ -477,8 +483,10 @@ def test_import_thick_quad_from_madx_and_slice(with_knobs):
 
     # Finish the test here if we are not using knobs
     if not with_knobs:
-        assert line.vars is None
+        assert 'knob_a' not in line.vars
         return
+    else:
+        assert 'knob_a' in line.vars
 
     # Change the knob values
     line.vars['knob_a'] = 2.0
