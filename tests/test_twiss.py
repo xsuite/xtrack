@@ -1642,3 +1642,27 @@ def test_adaptive_steps_for_rmatrix(test_context):
     assert np.isclose(tw.lhcb1.steps_r_matrix['dy'], expected_dy_b1, atol=0, rtol=1e-4)
     assert np.isclose(tw.lhcb2.steps_r_matrix['dx'], expected_dx_b2, atol=0, rtol=1e-4)
     assert np.isclose(tw.lhcb2.steps_r_matrix['dy'], expected_dy_b2, atol=0, rtol=1e-4)
+
+@for_all_test_contexts
+def test_longitudinal_beam_sizes(test_context):
+
+    # Load a line and build tracker
+    line = xt.Line.from_json(test_data_folder /
+        'hllhc15_noerrors_nobb/line_and_particle.json')
+    line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, energy0=7e12)
+    line.build_tracker(_context=test_context)
+
+    tw = line.twiss()
+
+    nemitt_x = 2.5e-6
+    nemitt_y = 2.5e-6
+
+    sigma_pzeta = 2e-4
+    gemitt_zeta = sigma_pzeta**2 * tw.bets0
+
+    beam_sizes = tw.get_beam_covariance(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                                        gemitt_zeta=gemitt_zeta)
+
+    assert np.allclose(beam_sizes.sigma_pzeta, 2e-4, atol=0, rtol=2e-5)
+    assert np.allclose(
+        beam_sizes.sigma_zeta / beam_sizes.sigma_pzeta, tw.bets0, atol=0, rtol=5e-5)

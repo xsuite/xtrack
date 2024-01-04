@@ -25,7 +25,7 @@ gemitt_zeta = sigma_pzeta**2 * tw.bets0
 # similarly, if the bunch length is known, the emittance can be computed as
 # gemitt_zeta = sigma_zeta**2 / tw.bets0
 
-# Compute beam sized
+# Compute beam sizes
 beam_sizes = tw.get_beam_covariance(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                                     gemitt_zeta=gemitt_zeta)
 
@@ -79,3 +79,8 @@ spbet.set_xlim(tw['s', 'ip5'] - 2000, tw['s', 'ip5'] + 2000)
 
 fig1.subplots_adjust(left=.15, right=.92, hspace=.27)
 plt.show()
+
+#!end-doc-part
+assert np.allclose(beam_sizes.sigma_pzeta, 2e-4, atol=0, rtol=2e-5)
+assert np.allclose(
+    beam_sizes.sigma_zeta / beam_sizes.sigma_pzeta, tw.bets0, atol=0, rtol=5e-5)
