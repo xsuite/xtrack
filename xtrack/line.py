@@ -428,7 +428,7 @@ class Line:
         replace_in_expr=None,
         classes=(),
         ignored_madtypes=(),
-        allow_thick=True,
+        allow_thick=None,
         use_compound_elements=True,
         name_prefix=None,
     ):
