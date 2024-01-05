@@ -2468,7 +2468,7 @@ class Line:
 
         '''
 
-        if self._var_management is not None:
+        if not _vars_unused(self):
             raise NotImplementedError('`remove_inactive_multipoles` not'
                                       ' available when deferred expressions are'
                                       ' used')
