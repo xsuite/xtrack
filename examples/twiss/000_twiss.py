@@ -15,7 +15,13 @@ line.build_tracker()
 # Twiss
 tw = line.twiss()
 
-# Plot
+# Inspect tunes and chromaticities
+tw.qx # Horizontal tune
+tw.qy # Vertical tune
+tw.dqx # Horizontal chromaticity
+tw.dqy # Vertical chromaticity
+
+# Plot closed orbit and lattice functions
 import matplotlib.pyplot as plt
 plt.close('all')
 
