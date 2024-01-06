@@ -913,6 +913,20 @@ class CombinedFunctionMagnet(BeamElement):
         _unregister_if_preset(ref)
 
 class Sextupole(BeamElement):
+
+    """
+    Sextupole element.
+
+    Parameters
+    ----------
+    k2 : float
+        Strength of the sextupole component in m^-3.
+    k2s : float
+        Strength of the skew sextupole component in m^-3.
+    length : float
+        Length of the element in meters.
+    """
+
     isthick = True
     has_backtrack = True
 
@@ -999,6 +1013,9 @@ class Quadrupole(BeamElement):
         ksl : array_like, optional
             Integrated strength of the high-order skew multipolar components
             (ksl[0] and ksl[1] should not be used).
+        num_multipole_kicks : int, optional
+            Number of multipole kicks used to model high order multipolar
+            components.
         """
 
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
