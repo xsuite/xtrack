@@ -1570,7 +1570,7 @@ class Line:
                         turn_by_turn_monitor=True)
         mon = self.record_last_track
 
-        arr2ctx = particles._arr2ctx
+        arr2ctx = particles._context.nparray_from_context_array
         assert np.all(arr2ctx(particles.state) > 0)
 
         qx = np.zeros(4)
