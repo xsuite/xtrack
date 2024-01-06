@@ -41,6 +41,7 @@ setup(
     include_package_data=True,
     install_requires=[
         'numpy>=1.0',
+        "pandas>=2.0",
         'scipy',
         'xobjects',
         'xpart',
