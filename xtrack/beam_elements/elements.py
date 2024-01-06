@@ -1206,6 +1206,9 @@ class Bend(BeamElement):
         model: str, optional
             Model used for the computation. It can be 'expanded' or 'full'.
             Default is 'expanded'.
+        num_multipole_kicks : int
+            Number of multipole kicks used to model high order multipolar
+            components.
         """
 
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
