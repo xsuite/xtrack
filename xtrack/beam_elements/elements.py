@@ -1149,7 +1149,7 @@ class Solenoid(BeamElement):
             Length of the element in meters.
         ks : float
             Strength of the solenoid component in rad / m. Only to be specified
-            when the element is thin, i.e. when `length` == 0.
+            when the element is thin, i.e. when `length` is 0.
         ksi : float
             Integrated strength of the solenoid component in rad.
         """
