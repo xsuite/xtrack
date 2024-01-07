@@ -118,17 +118,17 @@ tw.rows['ip5%%-3':'ip5%%2']
 
 # Columns can be selected as well (and defined on the fly with simple mathematical
 # expressions)
-tw.cols['betx sqrt(betx)/2/bety']
+tw.cols['betx dx/sqrt(betx)']
 # returns:
 #
 # TwissTable: 30699 rows, 3 cols
 # TwissTable: 10 rows, 3 cols
-# name                        betx sqrt(betx)/2/bety
-# ip7                      120.813          0.036778
-# drift_0                  120.813          0.036778
-# tcsg.a4r7.b1_entry       119.542         0.0362468
-# tcsg.a4r7.b1             119.542         0.0362468
-# tcsg.a4r7.b1_exit        117.031         0.0352083
+# name                        betx dx/sqrt(betx)
+# ip7                      120.813    -0.0185459
+# drift_0                  120.813    -0.0185459
+# tcsg.a4r7.b1_entry       119.542    -0.0186442
+# tcsg.a4r7.b1             119.542    -0.0186442
+# tcsg.a4r7.b1_exit        117.031    -0.0188431
 # ...
 
 # Each of the selection methods above returns a valid table, hence selections
