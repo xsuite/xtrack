@@ -124,14 +124,12 @@ eps_x_expected = emit_x[0] * np.exp(-damping_rate_x * turns)
 eps_y_expected = emit_y[0] * np.exp(-damping_rate_y * turns)
 eps_s_expected = emit_s[0] * np.exp(-damping_rate_s * turns)
 
-
 print(
     emit_x_0 / equ_emit_x,
     emit_y_0 / equ_emit_y,
     emit_s_0 / equ_emit_s,
     length_0 / equ_length,
 )
-
 
 plt.figure(10)
 sp1 = plt.subplot(311)
@@ -141,7 +139,6 @@ plt.plot(turns, eps_x_expected, "--r", label="expected")
 plt.plot([turns[0], turns[-1]], [emit_x_0, emit_x_0], "--g", label="equilibrium")
 plt.ylabel(r"$\epsilon_x$ [m]")
 plt.legend()
-
 
 plt.subplot(312, sharex=sp1)
 plt.plot(turns, emit_y)
