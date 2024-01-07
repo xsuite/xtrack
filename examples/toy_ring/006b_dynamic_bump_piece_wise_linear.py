@@ -52,18 +52,19 @@ line.element_refs['bumper_2'].k0 = -line.vars['bumper_strength']
 
 #!start-doc-part
 
-# Control the bumpers with a linear ramp function over time
-line.functions['ramp'] = xt.FunctionPieceWiseLinear(
-    x=np.array([10, 100, 150]) * 1e-6, # s
-    y=np.array([0,   1,   1])         # knob value
+# Control the bumpers with a piece-wise linear function of time
+# (outside the defined time interval, first and last point are held constant)
+line.functions['my_fun'] = xt.FunctionPieceWiseLinear(
+    x=np.array([10,    40,     70,   100]) * 1e-6, # time in s
+    y=np.array([0,    0.5,    0.5,   1.0])        # value
 )
-line.vars['bumper_strength'] = 0.1 * line.functions['ramp'](line.vars['t_turn_s'])
+line.vars['bumper_strength'] = 0.1 * line.functions['my_fun'](line.vars['t_turn_s'])
 
 #!end-doc-part
 
 # --- Probe behavior with twiss at different t_turn_s ---
 
-t_test = np.linspace(0, 100e-6, 15)
+t_test = np.linspace(0, 120e-6, 15)
 tw_list = []
 bumper_0_list = []
 for tt in t_test:
