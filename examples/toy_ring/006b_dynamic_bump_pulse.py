@@ -50,11 +50,16 @@ line.element_refs['bumper_0'].k0 = -line.vars['bumper_strength']
 line.element_refs['bumper_1'].k0 = 2 * line.vars['bumper_strength']
 line.element_refs['bumper_2'].k0 = -line.vars['bumper_strength']
 
-# Drive the correctors with a sinusoidal function
-T_sin = 100e-6
-sin = line.functions.sin
-line.vars['bumper_strength'] = (0.1 * sin(2 * np.pi / T_sin * line.vars['t_turn_s']))
+#!start-doc-part
 
+# Control the bumpers with a linear ramp function over time
+line.functions['ramp'] = xt.FunctionPieceWiseLinear(
+    x=np.array([10, 100, 150]) * 1e-6, # s
+    y=np.array([0,   1,   1])         # knob value
+)
+line.vars['bumper_strength'] = 0.1 * line.functions['ramp'](line.vars['t_turn_s'])
+
+#!end-doc-part
 
 # --- Probe behavior with twiss at different t_turn_s ---
 
