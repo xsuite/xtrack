@@ -15,7 +15,7 @@ elements = {
     'd3.1':  xt.Drift(length=1),
     'mb2.1': xt.Bend(length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
 
-    # 'd4.1':  xt.Drift(length=1),
+    # Three dipoles to make a closed orbit bump
     'd4.1':  xt.Drift(length=0.05),
     'bumper_0':  xt.Bend(length=0.05, k0=0, h=0),
     'd5.1':  xt.Drift(length=0.3),
@@ -23,7 +23,6 @@ elements = {
     'd6.1':  xt.Drift(length=0.3),
     'bumper_2':  xt.Bend(length=0.05, k0=0, h=0),
     'd7.1':  xt.Drift(length=0.2),
-
 
     'mqf.2': xt.Quadrupole(length=0.3, k1=0.1),
     'd1.2':  xt.Drift(length=1),

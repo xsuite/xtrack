@@ -15,7 +15,7 @@ elements = {
     'd3.1':  xt.Drift(length=1),
     'mb2.1': xt.Bend(length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
 
-    # 'd4.1':  xt.Drift(length=1),
+    # Three dipoles to make a closed orbit bump
     'd4.1':  xt.Drift(length=0.05),
     'bumper_0':  xt.Bend(length=0.05, k0=0, h=0),
     'd5.1':  xt.Drift(length=0.3),
@@ -23,7 +23,6 @@ elements = {
     'd6.1':  xt.Drift(length=0.3),
     'bumper_2':  xt.Bend(length=0.05, k0=0, h=0),
     'd7.1':  xt.Drift(length=0.2),
-
 
     'mqf.2': xt.Quadrupole(length=0.3, k1=0.1),
     'd1.2':  xt.Drift(length=1),
@@ -81,13 +80,11 @@ for ii, tt, in enumerate(t_test):
              color=plt.cm.jet(ii / len(t_test)), lw=2)
 
 ax2.set_xlim(tw_tt['s', 'bumper_0'] - 1, tw_tt['s', 'bumper_2'] + 1)
-plt.show()
 
 for cc in ['bumper_0', 'bumper_1', 'bumper_2']:
     l_corr = line[cc].length
     ax2.axvspan(tw_tt['s', cc], (tw_tt['s', cc] + l_corr),
                 color='k', alpha=0.2)
-ptttt
 # --- Track particles with time-dependent bumpers ---
 num_particles = 100
 num_turns = 1000
@@ -111,9 +108,7 @@ line.enable_time_dependent_vars = True
 # Track
 line.track(particles, num_turns=num_turns, with_progress=True)
 
-import matplotlib.pyplot as plt
-plt.close('all')
-
+plt.figure(2)
 plt.plot(1e6 * monitor.at_turn.T * tw.T_rev0, 1e3 * monitor.x.T,
          lw=1, color='r', alpha=0.05)
 plt.plot(1e6 * monitor.at_turn[0, :] * tw.T_rev0, 1e3 * monitor.x.mean(axis=0),
