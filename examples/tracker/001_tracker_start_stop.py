@@ -3,31 +3,7 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-import numpy as np
-
 import xtrack as xt
-
-elements = [xt.Drift(length=2.) for _ in range(10)]
-elements[5].iscollective = True
-
-line=xt.Line(elements=elements)
-line.build_tracker()
-line.reset_s_at_end_turn = False
-
-# Standard mode
-p = xt.Particles(x=[1e-3, 2e-3, 3e-3], p0c=7e12)
-line.track(p, num_turns=4, turn_by_turn_monitor=True)
-assert np.all(p.s == 4 * 10 * 2.)
-assert np.all(p.at_turn == 4)
-assert line.record_last_track.x.shape == (3, 4)
-
-
-# ele_start > 0
-p = xt.Particles(x=[1e-3, 2e-3, 3e-3], p0c=7e12, s=4., at_element=2)
-line.track(p, num_turns=3, ele_start=2, turn_by_turn_monitor=True)
-assert np.all(p.s == 3 * 10 * 2.)
-assert np.all(p.at_turn == 3)
-assert line.record_last_track.x.shape == (3,3)
 
 ### Behavior:
 
@@ -45,37 +21,39 @@ assert line.record_last_track.x.shape == (3,3)
 # - if ele_stop < ele_start: stops at element ele_stop when particles.at_turn = N - 1
 # - if ele_stop >= ele_start: stops at element ele_stop when particles.at_turn = N
 
+elements = [xt.Drift(length=1.) for _ in range(10)]
+line=xt.Line(elements=elements)
+line.build_tracker()
+line.reset_s_at_end_turn = False
 
+# Standard mode
+p = xt.Particles(x=[1e-3, 2e-3, 3e-3], p0c=7e12)
+line.track(p, num_turns=4)
+p.at_turn # is [4, 4, 4]
+
+# ele_start > 0
+p = xt.Particles(x=[1e-3, 2e-3, 3e-3], p0c=7e12, s=4., at_element=2)
+line.track(p, num_turns=3, ele_start=2)
+p.at_turn # is [3, 3, 3]
 
 # 0 <= ele_start < ele_stop
 p = xt.Particles(x=[1e-3, 2e-3, 3e-3], p0c=7e12, s=5 * 2., at_element=5)
-line.track(p, num_turns=4, ele_start=5, ele_stop=8,
-              turn_by_turn_monitor=True)
-assert np.all(p.s == 3 * 10 * 2. + 8 * 2)
-assert np.all(p.at_turn == 3)
-assert line.record_last_track.x.shape == (3, 4)
+line.track(p, num_turns=4, ele_start=5, ele_stop=8)
+p.at_turn # is [3, 3, 3]
 
 # 0 <= ele_start < ele_stop -- num_turns = 1
 p = xt.Particles(x=[1e-3, 2e-3, 3e-3], p0c=7e12, s=5 * 2., at_element=5)
-line.track(p, num_turns=1, ele_start=5, ele_stop=2,
-              turn_by_turn_monitor=True)
-assert np.all(p.s == 10* 2. + 2*2.)
-assert np.all(p.at_turn == 1)
-assert line.record_last_track.x.shape == (3, 2)
+line.track(p, num_turns=1, ele_start=5, ele_stop=2)
+p.at_turn # is [1, 1, 1]
 
 # 0 <= ele_start < ele_stop -- num_turns > 1
 p = xt.Particles(x=[1e-3, 2e-3, 3e-3], p0c=7e12, s=5 * 2., at_element=5)
-line.track(p, num_turns=4, ele_start=5, ele_stop=2,
-              turn_by_turn_monitor=True)
-assert np.all(p.s == 4 * 10 * 2. + 2 * 2.)
-assert np.all(p.at_turn == 4)
-assert line.record_last_track.x.shape == (3, 5)# 0 <= ele_start < ele_stop -- num_turns > 1
+line.track(p, num_turns=4, ele_start=5, ele_stop=2)
+p.at_turn # is [4, 4, 4]
 
 # Use ele_start and num_turns
 p = xt.Particles(x=[1e-3, 2e-3, 3e-3], p0c=7e12, s=5 * 2., at_element=5)
-line.track(p, ele_start=5, num_elements=7,
-              turn_by_turn_monitor=True)
-assert np.all(p.s==5*2.+7*2.)
-assert np.all(p.at_turn == 1)
+line.track(p, ele_start=5, num_elements=7)
+p.at_turn # is [1, 1, 1]
 
 

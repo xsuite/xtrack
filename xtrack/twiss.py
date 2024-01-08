@@ -497,9 +497,6 @@ def twiss_line(line, particle_ref=None, method=None,
             raise ValueError(f'init={init} not anymore supported')
         assert init == 'periodic'
 
-
-
-
     if periodic:
 
         assert not _keep_initial_particles
@@ -2068,6 +2065,8 @@ def compute_one_turn_matrix_finite_differences(
         num_turns=1,
         element_by_element=False,
         only_markers=False):
+
+    import pdb; pdb.set_trace()
 
     if steps_r_matrix is None:
         steps_r_matrix = {}
