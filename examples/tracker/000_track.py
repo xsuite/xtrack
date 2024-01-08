@@ -40,7 +40,7 @@ particles = line.build_particles(
 n_turns = 100
 line.track(particles, num_turns=n_turns)
 
-particles.state # 0 for alive, 1 for lost
+particles.state # > 0 for particles still alive
 particles.at_turn # turn number (for lost particles, it is the turn of loss)
 particles.x # x position after tracking
 particles.px # x momentum after tracking
