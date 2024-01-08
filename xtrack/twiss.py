@@ -2066,8 +2066,6 @@ def compute_one_turn_matrix_finite_differences(
         element_by_element=False,
         only_markers=False):
 
-    import pdb; pdb.set_trace()
-
     if steps_r_matrix is None:
         steps_r_matrix = {}
 
