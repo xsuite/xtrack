@@ -1070,7 +1070,7 @@ def test_insert_thin_elements_at_s_lhc(test_context):
     assert np.isclose(line.get_length(), tw0.s[-1], atol=1e-6)
 
     tw1 = line.twiss()
-    np.isclose(tw1.qx, tw0.qx, atol=1e-9, rtol=0)
+    assert np.isclose(tw1.qx, tw0.qx, atol=1e-9, rtol=0)
 
 
 @pytest.mark.parametrize('compound_type', [SlicedCompound, Compound])
