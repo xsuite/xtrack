@@ -1592,9 +1592,9 @@ class DipoleEdge(BeamElement):
     fint : float
         Fringe integral.
     e1_fd : float
-        Term added to e1 only of for the linear mode and only in the vertical
+        Term added to e1 only for the linear mode and only in the vertical
         plane to acconut for non zero angle in the closed orbit when entering
-        the finger field (feed down effect).
+        the fringe field (feed down effect).
     model : str
         Model to be used for the edge. It can be 'linear', 'full' or 'suppress'.
         Default is 'linear'.
