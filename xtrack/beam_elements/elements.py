@@ -1948,28 +1948,40 @@ class LineSegmentMap(BeamElement):
             Horizontal chromaticity of the segment.
         dqy : float
             Vertical chromaticity of the segment.
-        detx_x : float
-            Anharmonicity xx coefficient. Optional, default is ``0``.
-        detx_y : float
-            Anharmonicity xy coefficient. Optional, default is ``0``.
-        dety_y : float
-            Anharmonicity yy coefficient. Optional, default is ``0``.
+        det_xx : float
+            Anharmonicity xx coefficient (i.e. dqx / dJx, where Jx is the horizontal
+            action). Optional, default is ``0``.
+        det_xy : float
+            Anharmonicity xy coefficient (i.e. dqx / dJy, where Jy is the vertical
+            action). Optional, default is ``0``.
+        det_yx : float
+            Anharmonicity yx coefficient (i.e. dqy / dJx, where Jx is the horizontal
+            action). Optional, default is ``0``.
+        det_yy : float
+            Anharmonicity yy coefficient (i.e. dqy / dJy, where Jy is the vertical
+            action). Optional, default is ``0``.
         energy_increment : float
             Energy increment of the segment in eV.
         energy_ref_increment : float
             Increment of the reference energy in eV.
         damping_rate_x : float
-            Horizontal damping rate on the particles motion. Optional, default is ``0``.
+            Horizontal damping rate on the particles motion defined such that
+            emit_x = emit_x(n=0) * exp(-damping_rate_x * n) where n is the turn
+            number. Optional, default is ``0``.
         damping_rate_y : float
-            Vertical damping rate on the particles motion. Optional, default is ``0``.
+            Vertical damping rate on the particles motion defined such that
+            emit_y = emit_y(n=0) * exp(-damping_rate_y * n) where n is the turn
+            number. Optional, default is ``0``.
         damping_rate_s : float
-            Longitudinal damping rate on the particles motion. Optional, default is ``0``.
+            Longitudinal damping rate on the particles motion defined such that
+            emit_s = emit_s(n=0) * exp(-damping_rate_s * n) where n is the turn
+            number. Optional, default is ``0``.
         equ_emit_x : float
-            Horizontal equilibrium emittance. Optional.
+            Horizontal equilibrium emittance (geometric). Optional.
         equ_emit_y : float
-            Vertical equilibrium emittance. Optional.
+            Vertical equilibrium emittance (geometric). Optional.
         equ_emit_s : float
-            Longitudinal equilibrium emittance. Optional.
+            Longitudinal equilibrium emittance (geometric). Optional.
         gauss_noise_ampl_x : float
             Amplitude of Gaussian noise on the horizontal position. Optional, default is ``0``.
         gauss_noise_ampl_px : float
