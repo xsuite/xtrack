@@ -11,6 +11,7 @@ mad.call(folder + '/highenergy.beam')
 
 mad.use('elena')
 mad.input('twiss, chrom, table=twchr;')
+mad.input('twiss, chrom=false, table=twnochr;')
 
 seq = mad.sequence.elena
 line = xt.Line.from_madx_sequence(seq)
@@ -80,8 +81,16 @@ plt.legend(loc='best')
 plt.xlabel('s [m]')
 plt.ylabel(r'$\beta_{x,y}$ [m]')
 
+plt.figure(4, figsize=(4.8*1.8, 4.8))
+ax4 = plt.subplot(1, 1, 1)
+plt.plot(tw_ff.s, tw_ff.wx_chrom, label='wx')
+plt.plot(tw_ff.s, tw_ff.wy_chrom, label='wy')
+plt.legend(loc='best')
+plt.xlabel('s [m]')
+plt.ylabel(r'$W_{x,y}$ [m]')
 
-for ax in [ax1, ax2, ax3]:
+
+for ax in [ax1, ax2, ax3, ax4]:
     tt = line.get_table()
     tbends = tt.rows[tt.element_type == 'Bend']
     tquads = tt.rows[tt.element_type == 'Quadrupole']
@@ -91,7 +100,6 @@ for ax in [ax1, ax2, ax3]:
     for nn in tquads.name:
         ax.axvspan(tquads['s', nn], tquads['s', nn] + line[nn].length, color='r',
                     alpha=0.2, lw=0)
-
 
 
 plt.show()
