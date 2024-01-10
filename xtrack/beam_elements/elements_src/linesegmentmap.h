@@ -353,7 +353,6 @@ void uncorrelated_gaussian_noise(LocalParticle *part0,
 /*gpufun*/
 void LineSegmentMap_track_local_particle(LineSegmentMapData el, LocalParticle* part0){
 
-
     remove_closed_orbit(part0,
         LineSegmentMapData_get_x_ref(el, 0),
         LineSegmentMapData_get_px_ref(el, 0),

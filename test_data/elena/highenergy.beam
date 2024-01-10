@@ -1,0 +1,15 @@
+/*******************************************************************************
+ * Beam
+ *******************************************************************************/
+! Beam, particle=POSITRON, MASS=0.51099906E-3, ENERGY=1.0,PC=0.99999986944, GAMMA=1.956950762297E3;
+! Beam, particle=PROTON,pc=20,exn=(12.0E-6)*4.0,eyn=(6.0E-6)*4.0, sige=1E-3;
+beam_p_GeV_c = 0.100;
+beam_beta  = 0.1059786;
+beam_gamma = 1.0056635;
+!beam_p_GeV_c = 0.035;
+!beam_beta  = 0.0372767;
+!beam_gamma = 1.0006955;
+!beam_p_GeV_c = 0.0137;
+!beam_beta  = 0.0145998;
+!beam_gamma = 1.0001066;
+Beam, particle=ANTIPROTON, pc:=beam_p_GeV_c,ex=5.0E-6,ey=5.0E-6, sige=1E-3, NPART=3e7;
