@@ -60,11 +60,14 @@ ay_ptc = d_alfy - alfy * by_ptc
 
 import matplotlib.pyplot as plt
 plt.close('all')
+
 plt.figure(1, figsize=(6.4, 4.8 * 1.5))
+
 ax1 = plt.subplot(4,1,1)
-plt.plot(tptc.s, ax_ptc)
-plt.plot(tw.s, tw.ax_chrom)
+plt.plot(tptc.s, ax_ptc, label='ptc')
+plt.plot(tw.s, tw.ax_chrom, label='xsuite')
 plt.ylabel(r'$A_x$')
+plt.legend(loc='best')
 
 plt.subplot(4,1,2, sharex=ax1)
 plt.plot(tptc.s, bx_ptc)
@@ -81,6 +84,32 @@ plt.plot(tptc.s, by_ptc)
 plt.plot(tw.s, tw.by_chrom)
 plt.ylabel(r'$B_y$')
 plt.xlabel('s [m]')
+
+# Same for beta and orbit
+plt.figure(2, figsize=(6.4, 4.8 * 1.5))
+
+ax1 = plt.subplot(4,1,1)
+plt.plot(tptc.s, tptc.beta11, label='ptc')
+plt.plot(tw.s, tw.betx, label='xsuite')
+plt.ylabel(r'$\beta_x$')
+plt.legend(loc='best')
+
+plt.subplot(4,1,2, sharex=ax1)
+plt.plot(tptc.s, tptc.beta22)
+plt.plot(tw.s, tw.bety)
+plt.ylabel(r'$\beta_y$')
+
+plt.subplot(4,1,3, sharex=ax1)
+plt.plot(tptc.s, tptc.x)
+plt.plot(tw.s, tw.x)
+plt.ylabel(r'$x$')
+
+plt.subplot(4,1,4, sharex=ax1)
+plt.plot(tptc.s, tptc.y)
+plt.plot(tw.s, tw.y)
+plt.ylabel(r'$y$')
+plt.xlabel('s [m]')
+
 
 plt.show()
 
