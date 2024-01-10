@@ -56,7 +56,7 @@ plt.plot(twmad.s, twmad.wx*tw_ff.beta0, '--', label='madx', color='r', alpha=0.9
 plt.ylim(0, 14)
 plt.legend(loc='best')
 plt.xlabel('s [m]')
-plt.ylabel(r'$W_x$ [m]')
+plt.ylabel(r'$W_x$')
 
 # Same for betx
 plt.figure(2, figsize=(4.8*1.8, 4.8))
@@ -86,8 +86,8 @@ ax4 = plt.subplot(1, 1, 1)
 plt.plot(tw_ff.s, tw_ff.wx_chrom, label='wx')
 plt.plot(tw_ff.s, tw_ff.wy_chrom, label='wy')
 plt.legend(loc='best')
-plt.xlabel('s [m]')
-plt.ylabel(r'$W_{x,y}$ [m]')
+plt.xlabel('s')
+plt.ylabel(r'$W_{x,y}$')
 
 
 for ax in [ax1, ax2, ax3, ax4]:
@@ -101,5 +101,41 @@ for ax in [ax1, ax2, ax3, ax4]:
         ax.axvspan(tquads['s', nn], tquads['s', nn] + line[nn].length, color='r',
                     alpha=0.2, lw=0)
 
+
+mad.input('twiss, chrom=false, table=twnochr;')
+twmad_nc = mad.table.twnochr
+
+delta_chrom = 1e-4
+mad.input(f'''
+  ptc_create_universe;
+  !ptc_create_layout, time=false, model=2, exact=true, method=6, nst=10;
+  ptc_create_layout, time=false, model=1, exact=true, method=6, nst=10;
+    select, flag=ptc_twiss, clear;
+    select, flag=ptc_twiss, column=name,keyword,s,l,x,px,y,py,beta11,beta22,disp1,k1l;
+    ptc_twiss, closed_orbit, icase=56, no=2, deltap=0, table=ptc_twiss,
+               summary_table=ptc_twiss_summary, slice_magnets=true;
+    ptc_twiss, closed_orbit, icase=56, no=2, deltap={delta_chrom:e}, table=ptc_twiss_pdp,
+               summary_table=ptc_twiss_summary_pdp, slice_magnets=true;
+    ptc_twiss, closed_orbit, icase=56, no=2, deltap={-delta_chrom:e}, table=ptc_twiss_mdp,
+               summary_table=ptc_twiss_summary_mdp, slice_magnets=true;
+  ptc_end;
+''')
+qx_ptc = mad.table.ptc_twiss.mu1[-1]
+qy_ptc = mad.table.ptc_twiss.mu2[-1]
+dq1_ptc = (mad.table.ptc_twiss_pdp.mu1[-1] - mad.table.ptc_twiss_mdp.mu1[-1]) / (2 * delta_chrom)
+dq2_ptc = (mad.table.ptc_twiss_pdp.mu2[-1] - mad.table.ptc_twiss_mdp.mu2[-1]) / (2 * delta_chrom)
+
+print(f'qx xsuite:          {tw_ff.qx}')
+print(f'qx ptc:             {qx_ptc}')
+print(f'qx mad (chrom=F):   {twmad_nc.summary.q1}')
+print(f'qy xsuite:          {tw_ff.qy}')
+print(f'qy ptc:             {qy_ptc}')
+print(f'qy mad (chrom=F):   {twmad_nc.summary.q2}')
+print(f'dqx xsuite:         {tw_ff.dqx}')
+print(f'dqx ptc:            {dq1_ptc}')
+print(f'dqx mad (chrom=F):  {twmad_nc.summary.dq1 * seq.beam.beta}')
+print(f'dqy xsuite:         {tw_ff.dqy}')
+print(f'dqy ptc:            {dq2_ptc}')
+print(f'dqy mad (chrom=F):  {twmad_nc.summary.dq2 * seq.beam.beta}')
 
 plt.show()
