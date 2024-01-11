@@ -304,8 +304,6 @@ void energy_and_reference_increments(LocalParticle *part0,
         // both the position and the momentum are scaled,
         // rather than only the momentum.
         if (energy_ref_increment != 0){
-            printf("px = %e\n", LocalParticle_get_px(part));
-            printf("py = %e\n", LocalParticle_get_py(part));
             double const old_px = LocalParticle_get_px(part);
             double const old_py = LocalParticle_get_py(part);
             double const new_energy0 = LocalParticle_get_mass0(part)
@@ -321,9 +319,6 @@ void energy_and_reference_increments(LocalParticle *part0,
             LocalParticle_set_py(part, old_py * geo_emit_factor);
             LocalParticle_scale_x(part, geo_emit_factor);
             LocalParticle_scale_y(part, geo_emit_factor);
-            printf("geo emit factor = %e\n", geo_emit_factor);
-            printf("px = %e\n", LocalParticle_get_px(part));
-            printf("py = %e\n", LocalParticle_get_py(part));
         }
     //end_per_particle_block
 

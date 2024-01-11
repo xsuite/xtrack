@@ -741,8 +741,6 @@ class LinearTransferMatrix(Element):
 
             p.p0c = new_p0c
 
-            import pdb; pdb.set_trace()
-
             p.x *= geo_emit_factor
             p.px = old_px * geo_emit_factor
             p.y *= geo_emit_factor
