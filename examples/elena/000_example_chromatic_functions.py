@@ -35,6 +35,9 @@ line['lnr.mbhek.0135_den'].model # is 'linear'
 # switch to the full description for the core and the edge
 line.configure_bend_model(core='full', edge='full')
 
+# It is also possible to switch from the expanded drift to the exact one
+line.config.XTRACK_USE_EXACT_DRIFTS = True
+
 line['lnr.mbhek.0135'].model # is 'full'
 line['lnr.mbhek.0135_den'].model # is 'full'
 
@@ -50,6 +53,7 @@ tw = line.twiss(method='4d')
 
 # Switch back to the default model
 line.configure_bend_model(core='expanded', edge='linear')
+line.config.XTRACK_USE_EXACT_DRIFTS = False
 
 # Twiss with the default model
 tw_simpl = line.twiss(method='4d')
