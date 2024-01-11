@@ -607,7 +607,6 @@ def test_simplified_accelerator_segment(test_context):
     beta_s = 856.9
     Q_s = 0.001
     energy_ref_increment = 1.2E9
-    energy_ref_increment = 0.0 # There seems to be a bug for non-zero values
     energy_increment = 4.8E8
     x_ref_0 = -5E-3
     px_ref_0 = 6E-4
