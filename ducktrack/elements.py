@@ -731,6 +731,8 @@ class LinearTransferMatrix(Element):
         #  both the position and the momentum are scaled,
         #  rather than only the momentum.
         if self.energy_ref_increment != 0:
+            old_px = p.px.copy()
+            old_py = p.py.copy()
             new_energy0 = p.mass0*p.gamma0 + self.energy_ref_increment
             new_p0c = sqrt(new_energy0*new_energy0-p.mass0*p.mass0)
             new_beta0 = new_p0c / new_energy0
@@ -739,10 +741,12 @@ class LinearTransferMatrix(Element):
 
             p.p0c = new_p0c
 
+            import pdb; pdb.set_trace()
+
             p.x *= geo_emit_factor
-            p.px *= geo_emit_factor
+            p.px = old_px * geo_emit_factor
             p.y *= geo_emit_factor
-            p.py *= geo_emit_factor
+            p.py = old_py * geo_emit_factor
 
         if self.damping_rate_x < 0.0 or self.damping_rate_y < 0.0 or self.damping_rate_s < 0.0:
             raise ValueError("Damping rates cannot be negative")
