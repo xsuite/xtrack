@@ -232,7 +232,6 @@ two = line.twiss(method='4d', start=line.element_names[0], end='_end_point',
                  compute_chromatic_properties=True)
 
 twp = line.twiss(method='4d', delta0=delta_chrom)
-tptc_p_o = mad.table.ptc_twiss_pdp_o
 
 # Same for beta and orbit
 plt.figure(102, figsize=(6.4, 4.8 * 1.5))

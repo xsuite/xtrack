@@ -34,7 +34,7 @@ line.slice_thick_elements(
         ])
 
 line.configure_bend_model(core='full', edge='full')
-line.config.XTRACK_USE_EXACT_DRIFTS = True
+line.config.XTRACK_USE_EXACT_DRIFTS = False
 tw0 = line.twiss(method='4d')
 tw1 = line.twiss(method='4d', delta0=1e-3)
 tw0_sp = line.twiss(method='4d', start=line.element_names[0], end='_end_point',
@@ -94,6 +94,7 @@ plt.plot(tw1.s, tw1.x, label='xsuite')
 plt.figure(2)
 plt.plot(tp1.s, tp1.betx/tp0.betx-1, label='ptc')
 plt.plot(tw1.s, tw1.betx/tw0.betx-1, label='xsuite')
+plt.legend(loc='best')
 
 plt.figure(3)
 plt.plot(tp1_sp.s, tp1_sp.x, label='ptc')
@@ -102,5 +103,11 @@ plt.plot(tw1_sp.s, tw1_sp.x, label='xsuite')
 plt.figure(4)
 plt.plot(tp1_sp.s, tp1_sp.betx/tp0_sp.betx-1, label='ptc')
 plt.plot(tw1_sp.s, tw1_sp.betx/tw0_sp.betx-1, label='xsuite')
+plt.legend(loc='best')
+
+plt.figure(5)
+plt.plot(tp1_sp.s, tp1_sp.betx**2, label='ptc')
+plt.plot(tw1_sp.s, tw1_sp.betx**2, label='xsuite')
+plt.legend(loc='best')
 
 plt.show()
