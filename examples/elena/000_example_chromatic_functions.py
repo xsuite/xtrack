@@ -31,6 +31,13 @@ tt.rows['lnr.mbhek.0135_entry':'lnr.mbhek.0135_exit'].show()
 line['lnr.mbhek.0135'].model # is 'expanded'
 line['lnr.mbhek.0135_den'].model # is 'linear'
 
+# For small machines (bends with large bending angles) it is more appropriate to
+# switch to the full description for the core and the edge
+line.configure_bend_model(core='full', edge='full')
+
+line['lnr.mbhek.0135'].model # is 'full'
+line['lnr.mbhek.0135_den'].model # is 'full'
+
 # Slice the bends to see the behavior of the optics functions within them
 line.slice_thick_elements(
     slicing_strategies=[
@@ -38,14 +45,14 @@ line.slice_thick_elements(
         xt.Strategy(slicing=xt.Uniform(10, mode='thick'), element_type=xt.Bend)
     ])
 
+# Twiss
+tw = line.twiss(method='4d')
 
-tw0 = line.twiss(method='4d')
+# Switch back to the default model
+line.configure_bend_model(core='expanded', edge='linear')
 
-# For small machines (bends with large bending angles) it is more appropriate to
-# switch to the full description for the core and the edge
-line.configure_bend_model(core='full', edge='full')
-
-tw1 = line.twiss(method='4d')
+# Twiss with the default model
+tw_simpl = line.twiss(method='4d')
 
 # Compare beta functions and chromatic properties
 
@@ -53,24 +60,24 @@ import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1, figsize=(6.4, 4.8 * 1.5))
 ax1 = plt.subplot(4,1,1)
-plt.plot(tw0.s, tw0.betx, label='simplified')
-plt.plot(tw1.s, tw1.betx, label='full')
+plt.plot(tw.s, tw.betx, label='full')
+plt.plot(tw_simpl.s, tw_simpl.betx, '--', label='simplified')
 plt.ylabel(r'$\beta_x$')
 plt.legend(loc='best')
 
 ax2 = plt.subplot(4,1,2, sharex=ax1)
-plt.plot(tw0.s, tw0.bety)
-plt.plot(tw1.s, tw1.bety)
+plt.plot(tw.s, tw.bety)
+plt.plot(tw_simpl.s, tw_simpl.bety, '--')
 plt.ylabel(r'$\beta_y$')
 
 ax3 = plt.subplot(4,1,3, sharex=ax1)
-plt.plot(tw0.s, tw0.wx_chrom)
-plt.plot(tw1.s, tw1.wx_chrom)
+plt.plot(tw.s, tw.wx_chrom)
+plt.plot(tw_simpl.s, tw_simpl.wx_chrom, '--')
 plt.ylabel(r'$W_x$')
 
 ax4 = plt.subplot(4,1,4, sharex=ax1)
-plt.plot(tw0.s, tw0.wy_chrom)
-plt.plot(tw1.s, tw1.wy_chrom)
+plt.plot(tw.s, tw.wy_chrom)
+plt.plot(tw_simpl.s, tw_simpl.wy_chrom, '--')
 plt.ylabel(r'$W_y$')
 plt.xlabel('s [m]')
 
