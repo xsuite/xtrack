@@ -32,7 +32,7 @@ line['lnr.mbhek.0135'].model # is 'expanded'
 line['lnr.mbhek.0135_den'].model # is 'linear'
 
 # For small machines (bends with large bending angles) it is more appropriate to
-# switch to the full description for the core and the edge
+# switch to the `full` model for the core and the edge
 line.configure_bend_model(core='full', edge='full')
 
 # It is also possible to switch from the expanded drift to the exact one
