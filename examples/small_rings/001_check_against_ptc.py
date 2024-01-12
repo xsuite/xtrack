@@ -3,8 +3,9 @@ import numpy as np
 
 import xtrack as xt
 
-machine = 'ps'
+# machine = 'ps'
 # machine = 'elena'
+machine = 'leir'
 
 test_data_folder = '../../test_data/'
 mad = Madx()
@@ -32,7 +33,7 @@ else:
     raise ValueError(f'Unknown machine `{machine}`')
 
 
-line = xt.Line.from_madx_sequence(seq, deferred_expressions=True)
+line = xt.Line.from_madx_sequence(seq)#, deferred_expressions=True)
 line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
                                  mass0=seq.beam.mass * 1e9,
                                  q0=seq.beam.charge)
@@ -42,7 +43,7 @@ line.slice_thick_elements(
     slicing_strategies=[
         xt.Strategy(slicing=None), # don't touch other elements
         xt.Strategy(slicing=xt.Uniform(10, mode='thick'), element_type=xt.Bend),
-        xt.Strategy(slicing=xt.Uniform(5, mode='thick'), element_type=xt.Quadrupole),
+        # xt.Strategy(slicing=xt.Uniform(5, mode='thick'), element_type=xt.Quadrupole),
         xt.Strategy(slicing=xt.Uniform(5, mode='thick'), element_type=xt.CombinedFunctionMagnet),
         xt.Strategy(slicing=xt.Uniform(5), element_type=xt.Sextupole),
     ])
@@ -222,7 +223,6 @@ tt = line.get_table()
 tbends = tt.rows[tt.element_type == 'Bend']
 tquads = tt.rows[tt.element_type == 'Quadrupole']
 tcombined = tt.rows[tt.element_type == 'CombinedFunctionMagnet']
-tsext = tt.rows[tt.element_type == 'Sextupole']
 for ax in [ax1, ax2, ax3, ax4, ax21, ax22, ax23, ax24, ax31, ax32, ax41, ax42]:
     for nn in tbends.name:
         ax.axvspan(tbends['s', nn], tbends['s', nn] + line[nn].length, color='b',
@@ -232,9 +232,6 @@ for ax in [ax1, ax2, ax3, ax4, ax21, ax22, ax23, ax24, ax31, ax32, ax41, ax42]:
                     alpha=0.2, lw=0)
     for nn in tcombined.name:
         ax.axvspan(tcombined['s', nn], tcombined['s', nn] + line[nn].length, color='g',
-                    alpha=0.2, lw=0)
-    for nn in tsext.name:
-        ax.axvspan(tsext['s', nn], tsext['s', nn] + line[nn].length, color='m',
                     alpha=0.2, lw=0)
 
 title = f'{machine.upper()}' + r' - $\beta_0$' + f' = {tw.beta0:.4f}'
