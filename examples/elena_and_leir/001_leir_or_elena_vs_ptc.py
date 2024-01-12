@@ -3,7 +3,7 @@ import numpy as np
 
 import xtrack as xt
 
-machine = 'leir'
+machine = 'ps'
 # machine = 'elena'
 
 test_data_folder = '../../test_data/'
@@ -22,6 +22,12 @@ elif machine == 'elena':
     mad.call(test_data_folder + 'elena/highenergy.beam')
     mad.use('elena')
     seq = mad.sequence.elena
+elif machine == 'ps':
+    mad.call(test_data_folder + 'ps_sftpro/ps.seq')
+    mad.call(test_data_folder + 'ps_sftpro/ps_hs_sftpro.str')
+    mad.input('beam, particle=proton, pc = 14.0; BRHO = BEAM->PC * 3.3356;')
+    mad.use('ps')
+    seq = mad.sequence.ps
 else:
     raise ValueError(f'Unknown machine `{machine}`')
 
@@ -36,7 +42,9 @@ line.slice_thick_elements(
     slicing_strategies=[
         xt.Strategy(slicing=None), # don't touch other elements
         xt.Strategy(slicing=xt.Uniform(10, mode='thick'), element_type=xt.Bend),
-        xt.Strategy(slicing=xt.Uniform(5, mode='thick'), element_type=xt.Quadrupole)
+        xt.Strategy(slicing=xt.Uniform(5, mode='thick'), element_type=xt.Quadrupole),
+        xt.Strategy(slicing=xt.Uniform(5, mode='thick'), element_type=xt.CombinedFunctionMagnet),
+        xt.Strategy(slicing=xt.Uniform(5), element_type=xt.Sextupole),
     ])
 
 line.configure_bend_model(core='full', edge='full')
