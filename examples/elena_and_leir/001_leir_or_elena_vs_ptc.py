@@ -4,6 +4,7 @@ import numpy as np
 import xtrack as xt
 
 machine = 'leir'
+# machine = 'elena'
 
 test_data_folder = '../../test_data/'
 mad = Madx()
@@ -29,6 +30,13 @@ line = xt.Line.from_madx_sequence(seq)
 line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
                                  mass0=seq.beam.mass * 1e9,
                                  q0=seq.beam.charge)
+
+line.slice_thick_elements(
+    slicing_strategies=[
+        xt.Strategy(slicing=None), # don't touch other elements
+        xt.Strategy(slicing=xt.Uniform(10, mode='thick'), element_type=xt.Bend),
+        xt.Strategy(slicing=xt.Uniform(5, mode='thick'), element_type=xt.Quadrupole)
+    ])
 
 line.configure_bend_model(core='full', edge='full')
 tw = line.twiss(method='4d')
@@ -118,7 +126,7 @@ import matplotlib.pyplot as plt
 plt.close('all')
 figsize = (6.4*1.3, 4.8*1.3)
 
-plt.figure(101, figsize=figsize)
+fig_abx = plt.figure(101, figsize=figsize)
 
 ax1 = plt.subplot(2,1,1)
 plt.plot(tw.s, tw.ax_chrom, label='xsuite')
@@ -131,7 +139,7 @@ plt.plot(tw.s, tw.bx_chrom)
 plt.plot(tptc.s, bx_ptc, '--')
 plt.ylabel(r'$B_x$')
 
-plt.figure(111, figsize=figsize)
+fig_aby = plt.figure(111, figsize=figsize)
 ax3 = plt.subplot(2,1,1, sharex=ax1)
 plt.plot(tw.s, tw.ay_chrom)
 plt.plot(tptc.s, ay_ptc, '--')
@@ -145,7 +153,7 @@ plt.ylabel(r'$B_y$')
 plt.xlabel('s [m]')
 
 # Same for beta and Wxy
-plt.figure(102, figsize=figsize)
+fig_bet = plt.figure(102, figsize=figsize)
 
 ax21 = plt.subplot(2,1,1, sharex=ax1)
 plt.plot(tw.s, tw.betx, label='xsuite')
@@ -161,7 +169,7 @@ plt.plot(tptc.s, tptc.beta22, '--')
 plt.ylabel(r'$\beta_y$')
 plt.xlabel('s [m]')
 
-plt.figure(112, figsize=figsize)
+fig_w = plt.figure(112, figsize=figsize)
 ax23 = plt.subplot(2,1,1, sharex=ax1)
 plt.plot(tw.s, tw.wx_chrom)
 plt.plot(tptc.s, wx_ptc, '--')
@@ -176,7 +184,7 @@ plt.ylabel(r'$W_y$')
 plt.xlabel('s [m]')
 
 # Same for orbit
-plt.figure(103, figsize=figsize)
+fig_co = plt.figure(103, figsize=figsize)
 ax31 = plt.subplot(2,1,1, sharex=ax1)
 plt.plot(tw.s, tw.x * 1e3, label='xsuite')
 plt.plot(tptc.s, tptc.x * 1e3, '--', label='ptc')
@@ -189,7 +197,7 @@ plt.ylabel('y [mm]')
 plt.xlabel('s [m]')
 
 # Same for dispersion
-plt.figure(104, figsize=figsize)
+fig_disp = plt.figure(104, figsize=figsize)
 ax41 = plt.subplot(2,1,1, sharex=ax1)
 plt.plot(tw.s, tw.dx, label='xsuite')
 plt.plot(tptc.s, dx_ptc, '--', label='ptc')
@@ -201,8 +209,6 @@ plt.plot(tptc.s, dy_ptc, '--')
 plt.ylabel(r'$D_y$ [m]')
 plt.xlabel('s [m]')
 
-
-
 for ax in [ax1, ax2, ax3, ax4, ax21, ax22, ax23, ax24, ax31, ax32, ax41, ax42]:
     tt = line.get_table()
     tbends = tt.rows[tt.element_type == 'Bend']
@@ -213,5 +219,9 @@ for ax in [ax1, ax2, ax3, ax4, ax21, ax22, ax23, ax24, ax31, ax32, ax41, ax42]:
     for nn in tquads.name:
         ax.axvspan(tquads['s', nn], tquads['s', nn] + line[nn].length, color='r',
                     alpha=0.2, lw=0)
+
+title = f'{machine.upper()}' + r' - $\beta_0$' + f' = {tw.beta0:.4f}'
+for fig in [fig_abx, fig_aby, fig_bet, fig_w, fig_co, fig_disp]:
+    fig.suptitle(title)
 
 plt.show()
