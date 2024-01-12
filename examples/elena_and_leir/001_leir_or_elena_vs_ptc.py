@@ -38,7 +38,7 @@ twmad_ch = mad.table.twchr
 mad.input('twiss, chrom=false, table=twnochr;')
 twmad_nc = mad.table.twnochr
 
-delta_chrom = 1e-4
+delta_chrom = 1e-5
 mad.input(f'''
   ptc_create_universe;
   !ptc_create_layout, time=false, model=2, exact=true, method=6, nst=10;
@@ -77,6 +77,9 @@ alfa11_p = tptc_p.alfa11
 alfa11_m = tptc_m.alfa11
 alfa22_p = tptc_p.alfa22
 alfa22_m = tptc_m.alfa22
+
+dx_ptc = (tptc_p.x - tptc_m.x) / (2 * delta_chrom)
+dy_ptc = (tptc_p.y - tptc_m.y) / (2 * delta_chrom)
 
 betx = 0.5 * (beta11_p + beta11_m)
 bety = 0.5 * (beta22_p + beta22_m)
@@ -145,14 +148,14 @@ plt.figure(102, figsize=(6.4, 4.8))
 ax21 = plt.subplot(2,1,1)
 plt.plot(tw.s, tw.betx, label='xsuite')
 plt.plot(tptc.s, tptc.beta11, '--', label='ptc')
-plt.plot(twmad_ch.s, twmad_ch.betx, 'r--', label='mad')
+# plt.plot(twmad_ch.s, twmad_ch.betx, 'r--', label='mad')
 plt.ylabel(r'$\beta_x$')
 plt.legend(loc='best')
 
 ax22 = plt.subplot(2,1,2, sharex=ax1)
 plt.plot(tw.s, tw.bety)
 plt.plot(tptc.s, tptc.beta22, '--')
-plt.plot(twmad_ch.s, twmad_ch.bety, 'r--')
+# plt.plot(twmad_ch.s, twmad_ch.bety, 'r--')
 plt.ylabel(r'$\beta_y$')
 plt.xlabel('s [m]')
 
@@ -160,17 +163,43 @@ plt.figure(112, figsize=(6.4, 4.8))
 ax23 = plt.subplot(2,1,1, sharex=ax1)
 plt.plot(tw.s, tw.wx_chrom)
 plt.plot(tptc.s, wx_ptc, '--')
-plt.plot(twmad_ch.s, twmad_ch.wx * tw.beta0, 'r--')
+# plt.plot(twmad_ch.s, twmad_ch.wx * tw.beta0, 'r--')
 plt.ylabel(r'$W_x$')
 
 ax24 = plt.subplot(2,1,2, sharex=ax1)
 plt.plot(tw.s, tw.wy_chrom)
 plt.plot(tptc.s, wy_ptc, '--')
-plt.plot(twmad_ch.s, twmad_ch.wy * tw.beta0, 'r--')
+# plt.plot(twmad_ch.s, twmad_ch.wy * tw.beta0, 'r--')
 plt.ylabel(r'$W_y$')
 plt.xlabel('s [m]')
 
-for ax in [ax1, ax2, ax3, ax4, ax21, ax22, ax23, ax24]:
+# Same for orbit
+plt.figure(103, figsize=(6.4, 4.8))
+ax31 = plt.subplot(2,1,1)
+plt.plot(tw.s, tw.x, label='xsuite')
+plt.plot(tptc.s, tptc.x, '--', label='ptc')
+plt.ylabel('x [m]')
+
+ax32 = plt.subplot(2,1,2, sharex=ax1)
+plt.plot(tw.s, tw.y)
+plt.plot(tptc.s, tptc.y, '--')
+plt.ylabel('y [m]')
+plt.xlabel('s [m]')
+
+# Same for dispersion
+plt.figure(104, figsize=(6.4, 4.8))
+ax41 = plt.subplot(2,1,1)
+plt.plot(tw.s, tw.dx, label='xsuite')
+plt.plot(tptc.s, dx_ptc, '--', label='ptc')
+
+ax42 = plt.subplot(2,1,2, sharex=ax1)
+plt.plot(tw.s, tw.dy)
+plt.plot(tptc.s, dy_ptc, '--')
+plt.ylabel('y [m]')
+plt.xlabel('s [m]')
+
+
+for ax in [ax1, ax2, ax3, ax4, ax21, ax22, ax23, ax24, ax31, ax32, ax41, ax42]:
     tt = line.get_table()
     tbends = tt.rows[tt.element_type == 'Bend']
     tquads = tt.rows[tt.element_type == 'Quadrupole']
