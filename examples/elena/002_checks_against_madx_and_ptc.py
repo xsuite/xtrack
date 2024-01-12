@@ -137,11 +137,6 @@ mad.input(f'''
                summary_table=ptc_twiss_summary_pdp, slice_magnets=true;
     ptc_twiss, closed_orbit, icase=56, no=2, deltap={-delta_chrom:e}, table=ptc_twiss_mdp,
                summary_table=ptc_twiss_summary_mdp, slice_magnets=true;
-
-    #### TEEEEST
-    ptc_twiss, closed_orbit, icase=56, no=2, deltap={delta_chrom:e}, table=ptc_twiss_pdp_o,
-               alfx=0, betx=1, alfy=0, bety=1, betz=1, dx=0, dy=0, dpx=0, dpy=0,
-               summary_table=ptc_twiss_summary_pdp_o, slice_magnets=true;
   ptc_end;
 ''')
 
@@ -157,10 +152,22 @@ tptc_m = mad.table.ptc_twiss_mdp
 fp = 1 + delta_chrom
 fm = 1 - delta_chrom
 
-betx = 0.5 * (tptc_p.beta11 / fp + tptc_m.beta11 / fm)
-alfx = 0.5 * (tptc_p.alfa11 + tptc_m.alfa11)
-d_betx = (tptc_p.beta11 / fp - tptc_m.beta11 / fm)/ (2 * delta_chrom)
-d_alfx = (tptc_p.alfa11 - tptc_m.alfa11)/ (2 * delta_chrom)
+# The MAD-X PTC interface rescales the beta functions with (1 + deltap)
+# see: https://github.com/MethodicalAcceleratorDesign/MAD-X/blob/eb495b4f926db53f3cd05133638860f910f42fe2/src/madx_ptc_twiss.f90#L1982
+# We need to undo that
+beta11_p = tptc_p.beta11 / fp
+beta11_m = tptc_m.beta11 / fm
+beta22_p = tptc_p.beta22 / fp
+beta22_m = tptc_m.beta22 / fm
+alfa11_p = tptc_p.alfa11
+alfa11_m = tptc_m.alfa11
+alfa22_p = tptc_p.alfa22
+alfa22_m = tptc_m.alfa22
+
+betx = 0.5 * (beta11_p + beta11_m)
+alfx = 0.5 * (alfa11_p + alfa11_m)
+d_betx = (beta11_p - beta11_m) / (2 * delta_chrom)
+d_alfx = (alfa11_p - alfa11_m) / (2 * delta_chrom)
 
 bx_ptc = d_betx / betx
 ax_ptc = d_alfx - d_betx * alfx / betx
@@ -224,17 +231,6 @@ for ax in [ax1, ax2, ax3, ax4]:
     for nn in tquads.name:
         ax.axvspan(tquads['s', nn], tquads['s', nn] + line[nn].length, color='r',
                     alpha=0.2, lw=0)
-
-two = line.twiss(method='4d', start=line.element_names[0], end='_end_point',
-                 betx=tptc.beta11[0], bety=tptc.beta22[0],
-                 alfx=tptc.alfa11[0], alfy=tptc.alfa22[0],
-                 dx=tptc.dx[0], dy=tptc.dy[0],
-                 dpx=tptc.dpx[0], dpy=tptc.dpy[0],
-                 ax_chrom=ax_ptc[0], bx_chrom=bx_ptc[0],
-                 ay_chrom=ay_ptc[0], by_chrom=by_ptc[0],
-                 compute_chromatic_properties=True)
-
-twp = line.twiss(method='4d', delta0=delta_chrom)
 
 # Same for beta and orbit
 plt.figure(102, figsize=(6.4, 4.8 * 1.5))
