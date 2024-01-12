@@ -59,31 +59,17 @@ mad.input(f'''
     ptc_twiss, closed_orbit, icase=56, no=2, deltap=0, table=ttt_p
                x={tw1.x[0]}, px={tw1.px[0]}, y={tw1.y[0]}, py={tw1.py[0]},
                pt={tw1.delta[0]}, !!!!! NB pt is delta in PTC
-               betx={tw1.betx[0]}, alfx={tw1.alfx[0]}, bety={tw1.bety[0]}, alfy={tw1.alfy[0]},
+               betx={tw1.betx[0] * (1 + tw1.delta[1])},
+               bety={tw1.bety[0] * (1 + tw1.delta[1])},
+               alfx={tw1.alfx[0]}, alfy={tw1.alfy[0]},
                betz=1,
                dx={tw1.dx[0]}, dpx={tw1.dpx[0]}, dy={tw1.dy[0]}, dpy={tw1.dpy[0]},
                summary_table=ttt_summ_p, slice_magnets=true;
-    ptc_twiss, closed_orbit, icase=56, no=2, deltap=0, table=ttt_sp
-                x={tw0_sp.x[0]}, px={tw0_sp.px[0]}, y={tw0_sp.y[0]}, py={tw0_sp.py[0]},
-                pt={tw0_sp.delta[0]}, !!!!! NB pt is delta in PTC
-                betx={tw0_sp.betx[0]}, alfx={tw0_sp.alfx[0]}, bety={tw0_sp.bety[0]}, alfy={tw0_sp.alfy[0]},
-                betz=1,
-                dx={tw0_sp.dx[0]}, dpx={tw0_sp.dpx[0]}, dy={tw0_sp.dy[0]}, dpy={tw0_sp.dpy[0]},
-                summary_table=ttt_summ_sp, slice_magnets=true;
-    ptc_twiss, closed_orbit, icase=56, no=2, deltap=0, table=ttt_sp_p
-                x={tw1_sp.x[0]}, px={tw1_sp.px[0]}, y={tw1_sp.y[0]}, py={tw1_sp.py[0]},
-                pt={tw1_sp.delta[0]}, !!!!! NB pt is delta in PTC
-                betx={tw1_sp.betx[0]}, alfx={tw1_sp.alfx[0]}, bety={tw1_sp.bety[0]}, alfy={tw1_sp.alfy[0]},
-                betz=1,
-                dx={tw1_sp.dx[0]}, dpx={tw1_sp.dpx[0]}, dy={tw1_sp.dy[0]}, dpy={tw1_sp.dpy[0]},
-                summary_table=ttt_summ_sp_p, slice_magnets=true;
   ptc_end;
 ''')
 
 tp0 = mad.table.ttt
 tp1 = mad.table.ttt_p
-tp0_sp = mad.table.ttt_sp
-tp1_sp = mad.table.ttt_sp_p
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -92,22 +78,9 @@ plt.plot(tp1.s, tp1.x, label='ptc')
 plt.plot(tw1.s, tw1.x, label='xsuite')
 
 plt.figure(2)
-plt.plot(tp1.s, tp1.betx/tp0.betx-1, label='ptc')
+betx_1_ptc = tp1.betx / (1 + tp1.pt)
+plt.plot(tp1.s, betx_1_ptc/tp0.betx-1, label='ptc')
 plt.plot(tw1.s, tw1.betx/tw0.betx-1, label='xsuite')
-plt.legend(loc='best')
-
-plt.figure(3)
-plt.plot(tp1_sp.s, tp1_sp.x, label='ptc')
-plt.plot(tw1_sp.s, tw1_sp.x, label='xsuite')
-
-plt.figure(4)
-plt.plot(tp1_sp.s, tp1_sp.betx/tp0_sp.betx-1, label='ptc')
-plt.plot(tw1_sp.s, tw1_sp.betx/tw0_sp.betx-1, label='xsuite')
-plt.legend(loc='best')
-
-plt.figure(5)
-plt.plot(tp1_sp.s, tp1_sp.betx**2, label='ptc')
-plt.plot(tw1_sp.s, tw1_sp.betx**2, label='xsuite')
 plt.legend(loc='best')
 
 plt.show()
