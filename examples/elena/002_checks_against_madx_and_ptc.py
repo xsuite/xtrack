@@ -165,23 +165,20 @@ alfa22_p = tptc_p.alfa22
 alfa22_m = tptc_m.alfa22
 
 betx = 0.5 * (beta11_p + beta11_m)
+bety = 0.5 * (beta22_p + beta22_m)
 alfx = 0.5 * (alfa11_p + alfa11_m)
+alfy = 0.5 * (alfa22_p + alfa22_m)
 d_betx = (beta11_p - beta11_m) / (2 * delta_chrom)
+d_bety = (beta22_p - beta22_m) / (2 * delta_chrom)
 d_alfx = (alfa11_p - alfa11_m) / (2 * delta_chrom)
+d_alfy = (alfa22_p - alfa22_m) / (2 * delta_chrom)
 
 bx_ptc = d_betx / betx
-ax_ptc = d_alfx - d_betx * alfx / betx
-wx_ptc = np.sqrt(ax_ptc**2 + bx_ptc**2)
-
-bety = 0.5 * (tptc_p.beta22 / fp  + tptc_m.beta22 / fm)
-alfy = 0.5 * (tptc_p.alfa22 + tptc_m.alfa22)
-d_bety = (tptc_p.beta22 / fp - tptc_m.beta22 / fm)/ (2 * delta_chrom)
-d_alfy = (tptc_p.alfa22 - tptc_m.alfa22)/ (2 * delta_chrom)
-
 by_ptc = d_bety / bety
-ay_ptc = d_alfy - alfy * by_ptc
+ax_ptc = d_alfx - d_betx * alfx / betx
+ay_ptc = d_alfy - d_bety * alfy / bety
+wx_ptc = np.sqrt(ax_ptc**2 + bx_ptc**2)
 wy_ptc = np.sqrt(ay_ptc**2 + by_ptc**2)
-
 
 print(f'qx xsuite:          {tw_ff.qx}')
 print(f'qx ptc:             {qx_ptc}')
