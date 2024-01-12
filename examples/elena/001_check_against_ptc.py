@@ -116,28 +116,53 @@ plt.close('all')
 plt.figure(101, figsize=(6.4, 4.8 * 1.5))
 
 ax1 = plt.subplot(4,1,1)
-plt.plot(tptc.s, ax_ptc, label='ptc')
 plt.plot(tw.s, tw.ax_chrom, label='xsuite')
+plt.plot(tptc.s, ax_ptc, '--', label='ptc')
 plt.ylabel(r'$A_x$')
 plt.legend(loc='best')
 
 ax2 = plt.subplot(4,1,2, sharex=ax1)
-plt.plot(tptc.s, bx_ptc)
 plt.plot(tw.s, tw.bx_chrom)
+plt.plot(tptc.s, bx_ptc, '--')
 plt.ylabel(r'$B_x$')
 
 ax3 = plt.subplot(4,1,3, sharex=ax1)
-plt.plot(tptc.s, ay_ptc)
 plt.plot(tw.s, tw.ay_chrom)
+plt.plot(tptc.s, ay_ptc, '--')
 plt.ylabel(r'$A_y$')
 
 ax4 = plt.subplot(4,1,4, sharex=ax1)
-plt.plot(tptc.s, by_ptc)
 plt.plot(tw.s, tw.by_chrom)
+plt.plot(tptc.s, by_ptc, '--')
 plt.ylabel(r'$B_y$')
 plt.xlabel('s [m]')
 
-for ax in [ax1, ax2, ax3, ax4]:
+# Same for beta and Wxy
+plt.figure(102, figsize=(6.4, 4.8 * 1.5))
+
+ax21 = plt.subplot(4,1,1)
+plt.plot(tw.s, tw.betx, label='xsuite')
+plt.plot(tptc.s, tptc.beta11, '--', label='ptc')
+plt.ylabel(r'$\beta_x$')
+plt.legend(loc='best')
+
+ax22 = plt.subplot(4,1,2, sharex=ax1)
+plt.plot(tw.s, tw.bety)
+plt.plot(tptc.s, tptc.beta22, '--')
+plt.ylabel(r'$\beta_y$')
+
+ax23 = plt.subplot(4,1,3, sharex=ax1)
+plt.plot(tw.s, tw.wx_chrom)
+plt.plot(tptc.s, wx_ptc, '--')
+plt.ylabel(r'$W_x$')
+
+ax24 = plt.subplot(4,1,4, sharex=ax1)
+plt.plot(tw.s, tw.wy_chrom)
+plt.plot(tptc.s, wy_ptc, '--')
+plt.ylabel(r'$W_y$')
+plt.xlabel('s [m]')
+
+for ax in [ax1, ax2, ax3, ax4, ax21, ax22, ax23, ax24]:
     tt = line.get_table()
     tbends = tt.rows[tt.element_type == 'Bend']
     tquads = tt.rows[tt.element_type == 'Quadrupole']
@@ -147,30 +172,5 @@ for ax in [ax1, ax2, ax3, ax4]:
     for nn in tquads.name:
         ax.axvspan(tquads['s', nn], tquads['s', nn] + line[nn].length, color='r',
                     alpha=0.2, lw=0)
-
-# Same for beta and orbit
-plt.figure(102, figsize=(6.4, 4.8 * 1.5))
-
-ax1 = plt.subplot(4,1,1)
-plt.plot(tptc.s, tptc.beta11, label='ptc')
-plt.plot(tw.s, tw.betx, label='xsuite')
-plt.ylabel(r'$\beta_x$')
-plt.legend(loc='best')
-
-plt.subplot(4,1,2, sharex=ax1)
-plt.plot(tptc.s, tptc.beta22)
-plt.plot(tw.s, tw.bety)
-plt.ylabel(r'$\beta_y$')
-
-plt.subplot(4,1,3, sharex=ax1)
-plt.plot(tptc.s, tptc.x)
-plt.plot(tw.s, tw.x)
-plt.ylabel(r'$x$')
-
-plt.subplot(4,1,4, sharex=ax1)
-plt.plot(tptc.s, tptc.y)
-plt.plot(tw.s, tw.y)
-plt.ylabel(r'$y$')
-plt.xlabel('s [m]')
 
 plt.show()
