@@ -31,6 +31,7 @@ line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
                                  mass0=seq.beam.mass * 1e9,
                                  q0=seq.beam.charge)
 
+# To see functions inside thick elements, we need to slice them
 line.slice_thick_elements(
     slicing_strategies=[
         xt.Strategy(slicing=None), # don't touch other elements
