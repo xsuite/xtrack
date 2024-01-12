@@ -116,7 +116,9 @@ print(f'dqy mad (chrom=F):  {twmad_nc.summary.dq2 * seq.beam.beta}')
 
 import matplotlib.pyplot as plt
 plt.close('all')
-plt.figure(101, figsize=(6.4, 4.8))
+figsize = (6.4*1.3, 4.8*1.3)
+
+plt.figure(101, figsize=figsize)
 
 ax1 = plt.subplot(2,1,1)
 plt.plot(tw.s, tw.ax_chrom, label='xsuite')
@@ -129,7 +131,7 @@ plt.plot(tw.s, tw.bx_chrom)
 plt.plot(tptc.s, bx_ptc, '--')
 plt.ylabel(r'$B_x$')
 
-plt.figure(111, figsize=(6.4, 4.8))
+plt.figure(111, figsize=figsize)
 ax3 = plt.subplot(2,1,1, sharex=ax1)
 plt.plot(tw.s, tw.ay_chrom)
 plt.plot(tptc.s, ay_ptc, '--')
@@ -143,9 +145,9 @@ plt.ylabel(r'$B_y$')
 plt.xlabel('s [m]')
 
 # Same for beta and Wxy
-plt.figure(102, figsize=(6.4, 4.8))
+plt.figure(102, figsize=figsize)
 
-ax21 = plt.subplot(2,1,1)
+ax21 = plt.subplot(2,1,1, sharex=ax1)
 plt.plot(tw.s, tw.betx, label='xsuite')
 plt.plot(tptc.s, tptc.beta11, '--', label='ptc')
 # plt.plot(twmad_ch.s, twmad_ch.betx, 'r--', label='mad')
@@ -159,7 +161,7 @@ plt.plot(tptc.s, tptc.beta22, '--')
 plt.ylabel(r'$\beta_y$')
 plt.xlabel('s [m]')
 
-plt.figure(112, figsize=(6.4, 4.8))
+plt.figure(112, figsize=figsize)
 ax23 = plt.subplot(2,1,1, sharex=ax1)
 plt.plot(tw.s, tw.wx_chrom)
 plt.plot(tptc.s, wx_ptc, '--')
@@ -174,29 +176,31 @@ plt.ylabel(r'$W_y$')
 plt.xlabel('s [m]')
 
 # Same for orbit
-plt.figure(103, figsize=(6.4, 4.8))
-ax31 = plt.subplot(2,1,1)
-plt.plot(tw.s, tw.x, label='xsuite')
-plt.plot(tptc.s, tptc.x, '--', label='ptc')
-plt.ylabel('x [m]')
+plt.figure(103, figsize=figsize)
+ax31 = plt.subplot(2,1,1, sharex=ax1)
+plt.plot(tw.s, tw.x * 1e3, label='xsuite')
+plt.plot(tptc.s, tptc.x * 1e3, '--', label='ptc')
+plt.ylabel('x [mm]')
 
 ax32 = plt.subplot(2,1,2, sharex=ax1)
-plt.plot(tw.s, tw.y)
-plt.plot(tptc.s, tptc.y, '--')
-plt.ylabel('y [m]')
+plt.plot(tw.s, tw.y * 1e3)
+plt.plot(tptc.s, tptc.y * 1e3, '--')
+plt.ylabel('y [mm]')
 plt.xlabel('s [m]')
 
 # Same for dispersion
-plt.figure(104, figsize=(6.4, 4.8))
-ax41 = plt.subplot(2,1,1)
+plt.figure(104, figsize=figsize)
+ax41 = plt.subplot(2,1,1, sharex=ax1)
 plt.plot(tw.s, tw.dx, label='xsuite')
 plt.plot(tptc.s, dx_ptc, '--', label='ptc')
+plt.ylabel(r'$D_x$ [m]')
 
 ax42 = plt.subplot(2,1,2, sharex=ax1)
 plt.plot(tw.s, tw.dy)
 plt.plot(tptc.s, dy_ptc, '--')
-plt.ylabel('y [m]')
+plt.ylabel(r'$D_y$ [m]')
 plt.xlabel('s [m]')
+
 
 
 for ax in [ax1, ax2, ax3, ax4, ax21, ax22, ax23, ax24, ax31, ax32, ax41, ax42]:
