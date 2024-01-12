@@ -3,7 +3,7 @@ import numpy as np
 
 import xtrack as xt
 
-machine = 'elena'
+machine = 'leir'
 
 test_data_folder = '../../test_data/'
 mad = Madx()
@@ -113,53 +113,57 @@ print(f'dqy mad (chrom=F):  {twmad_nc.summary.dq2 * seq.beam.beta}')
 
 import matplotlib.pyplot as plt
 plt.close('all')
-plt.figure(101, figsize=(6.4, 4.8 * 1.5))
+plt.figure(101, figsize=(6.4, 4.8))
 
-ax1 = plt.subplot(4,1,1)
+ax1 = plt.subplot(2,1,1)
 plt.plot(tw.s, tw.ax_chrom, label='xsuite')
 plt.plot(tptc.s, ax_ptc, '--', label='ptc')
 plt.ylabel(r'$A_x$')
 plt.legend(loc='best')
 
-ax2 = plt.subplot(4,1,2, sharex=ax1)
+ax2 = plt.subplot(2,1,2, sharex=ax1)
 plt.plot(tw.s, tw.bx_chrom)
 plt.plot(tptc.s, bx_ptc, '--')
 plt.ylabel(r'$B_x$')
 
-ax3 = plt.subplot(4,1,3, sharex=ax1)
+plt.figure(111, figsize=(6.4, 4.8))
+ax3 = plt.subplot(2,1,1, sharex=ax1)
 plt.plot(tw.s, tw.ay_chrom)
 plt.plot(tptc.s, ay_ptc, '--')
 plt.ylabel(r'$A_y$')
+plt.xlabel('s [m]')
 
-ax4 = plt.subplot(4,1,4, sharex=ax1)
+ax4 = plt.subplot(2,1,2, sharex=ax1)
 plt.plot(tw.s, tw.by_chrom)
 plt.plot(tptc.s, by_ptc, '--')
 plt.ylabel(r'$B_y$')
 plt.xlabel('s [m]')
 
 # Same for beta and Wxy
-plt.figure(102, figsize=(6.4, 4.8 * 1.5))
+plt.figure(102, figsize=(6.4, 4.8))
 
-ax21 = plt.subplot(4,1,1)
+ax21 = plt.subplot(2,1,1)
 plt.plot(tw.s, tw.betx, label='xsuite')
 plt.plot(tptc.s, tptc.beta11, '--', label='ptc')
 plt.plot(twmad_ch.s, twmad_ch.betx, 'r--', label='mad')
 plt.ylabel(r'$\beta_x$')
 plt.legend(loc='best')
 
-ax22 = plt.subplot(4,1,2, sharex=ax1)
+ax22 = plt.subplot(2,1,2, sharex=ax1)
 plt.plot(tw.s, tw.bety)
 plt.plot(tptc.s, tptc.beta22, '--')
 plt.plot(twmad_ch.s, twmad_ch.bety, 'r--')
 plt.ylabel(r'$\beta_y$')
+plt.xlabel('s [m]')
 
-ax23 = plt.subplot(4,1,3, sharex=ax1)
+plt.figure(112, figsize=(6.4, 4.8))
+ax23 = plt.subplot(2,1,1, sharex=ax1)
 plt.plot(tw.s, tw.wx_chrom)
 plt.plot(tptc.s, wx_ptc, '--')
 plt.plot(twmad_ch.s, twmad_ch.wx * tw.beta0, 'r--')
 plt.ylabel(r'$W_x$')
 
-ax24 = plt.subplot(4,1,4, sharex=ax1)
+ax24 = plt.subplot(2,1,2, sharex=ax1)
 plt.plot(tw.s, tw.wy_chrom)
 plt.plot(tptc.s, wy_ptc, '--')
 plt.plot(twmad_ch.s, twmad_ch.wy * tw.beta0, 'r--')
