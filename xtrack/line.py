@@ -3292,7 +3292,7 @@ class Line:
         ele_name_insertions = []
         for s_insert, ee in progress(elements_to_insert, desc="Locate insertion points"):
             # Find element_name for insertion
-            ii_ins = np.where(tt_after_cut['s'] >= s_insert)[0][0]
+            ii_ins = np.where(tt_after_cut['s'] >= s_insert - s_tol)[0][0]
             ele_name_insertions.append(tt_after_cut['name'][ii_ins])
             assert np.abs(s_insert - tt_after_cut['s'][ii_ins]) < s_tol
 

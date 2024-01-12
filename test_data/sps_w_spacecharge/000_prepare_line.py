@@ -58,8 +58,7 @@ xf.install_spacecharge_frozen(
             longitudinal_profile=lprofile,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y,
             sigma_z=sigma_z,
-            num_spacecharge_interactions=540,
-            tol_spacecharge_position=0)
+            num_spacecharge_interactions=540)
 
 with open('line_with_spacecharge_and_particle.json', 'w') as fid:
     json.dump({

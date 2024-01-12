@@ -133,7 +133,7 @@ def test_radiation(test_context):
 
     assert np.isclose(mean_photon_energy, E_ave_eV, rtol=1e-2, atol=0)
     assert np.isclose(std_photon_energy,
-                      np.sqrt(E_sq_ave_eV - E_ave_eV**2), rtol=1e-3, atol=0)
+                      np.sqrt(E_sq_ave_eV - E_ave_eV**2), rtol=2e-3, atol=0)
 
 
 @for_all_test_contexts

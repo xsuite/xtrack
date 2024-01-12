@@ -40,7 +40,6 @@ nemitt_y=2.5e-6
 n_part=int(1e4)
 num_turns=2
 num_spacecharge_interactions = 540
-tol_spacecharge_position = 1e-2
 
 # mode = 'frozen'
 mode = 'pic'
@@ -122,7 +121,7 @@ xf.install_spacecharge_frozen(line=line,
                   nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                   sigma_z=sigma_z,
                   num_spacecharge_interactions=num_spacecharge_interactions,
-                  tol_spacecharge_position=tol_spacecharge_position)
+                  )
 
 # Switch to PIC or quasi-frozen
 if mode == 'frozen':
