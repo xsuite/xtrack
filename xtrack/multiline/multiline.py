@@ -470,6 +470,17 @@ class Multiline:
 
         '''
 
+        # Check that the context in which the trackers are built is on CPU
+        for nn in ["clockwise", "anticlockwise"]:
+            if self._bb_config[f"{nn}_line"] is None:
+                continue
+            line = self.lines[self._bb_config[f"{nn}_line"]]
+            if not isinstance(line.tracker._context, xo.ContextCpu):
+                raise ValueError(
+                    "The trackers need to be built on CPU before "
+                    "configuring the beam-beam elements."
+                )
+
         if self._bb_config['dataframes']['clockwise'] is not None:
             bb_df_cw = self._bb_config['dataframes']['clockwise'].copy()
         else:
