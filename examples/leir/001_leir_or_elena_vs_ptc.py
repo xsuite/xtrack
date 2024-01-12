@@ -3,20 +3,28 @@ import numpy as np
 
 import xtrack as xt
 
-folder = '../../test_data/leir'
+machine = 'elena'
+
+test_data_folder = '../../test_data/'
 mad = Madx()
 
-mad.call(folder + '/leir_inj_nominal.beam')
-mad.input('BRHO = BEAM->PC * 3.3356 * (208./54.)')
-mad.call(folder + '/leir.seq')
-mad.call(folder + '/leir_inj_nominal.str')
+if machine == 'leir':
+    mad.call(test_data_folder + 'leir/leir_inj_nominal.beam')
+    mad.input('BRHO = BEAM->PC * 3.3356 * (208./54.)')
+    mad.call(test_data_folder + 'leir/leir.seq')
+    mad.call(test_data_folder + 'leir/leir_inj_nominal.str')
+    mad.use('leir')
+    seq = mad.sequence.leir
+elif machine == 'elena':
+    mad.call(test_data_folder + 'elena/elena.seq')
+    mad.call(test_data_folder + 'elena/highenergy.str')
+    mad.call(test_data_folder + 'elena/highenergy.beam')
+    mad.use('elena')
+    seq = mad.sequence.elena
+else:
+    raise ValueError(f'Unknown machine `{machine}`')
 
-mad.use('leir')
-mad.input('twiss, chrom, table=twchr;')
 
-import xtrack as xt
-
-seq = mad.sequence.leir
 line = xt.Line.from_madx_sequence(seq)
 line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
                                  mass0=seq.beam.mass * 1e9,
@@ -25,11 +33,7 @@ line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
 line.configure_bend_model(core='full', edge='full')
 tw = line.twiss(method='4d')
 
-
-line.configure_bend_model(core='full', edge='full')
-tw = line.twiss(method='4d')
-
-
+mad.input('twiss, chrom, table=twchr;')
 twmad_ch = mad.table.twchr
 mad.input('twiss, chrom=false, table=twnochr;')
 twmad_nc = mad.table.twnochr
