@@ -32,7 +32,7 @@ else:
     raise ValueError(f'Unknown machine `{machine}`')
 
 
-line = xt.Line.from_madx_sequence(seq)
+line = xt.Line.from_madx_sequence(seq, deferred_expressions=True)
 line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
                                  mass0=seq.beam.mass * 1e9,
                                  q0=seq.beam.charge)
@@ -218,15 +218,23 @@ plt.plot(tptc.s, dy_ptc, '--')
 plt.ylabel(r'$D_y$ [m]')
 plt.xlabel('s [m]')
 
+tt = line.get_table()
+tbends = tt.rows[tt.element_type == 'Bend']
+tquads = tt.rows[tt.element_type == 'Quadrupole']
+tcombined = tt.rows[tt.element_type == 'CombinedFunctionMagnet']
+tsext = tt.rows[tt.element_type == 'Sextupole']
 for ax in [ax1, ax2, ax3, ax4, ax21, ax22, ax23, ax24, ax31, ax32, ax41, ax42]:
-    tt = line.get_table()
-    tbends = tt.rows[tt.element_type == 'Bend']
-    tquads = tt.rows[tt.element_type == 'Quadrupole']
     for nn in tbends.name:
         ax.axvspan(tbends['s', nn], tbends['s', nn] + line[nn].length, color='b',
                     alpha=0.2, lw=0)
     for nn in tquads.name:
         ax.axvspan(tquads['s', nn], tquads['s', nn] + line[nn].length, color='r',
+                    alpha=0.2, lw=0)
+    for nn in tcombined.name:
+        ax.axvspan(tcombined['s', nn], tcombined['s', nn] + line[nn].length, color='g',
+                    alpha=0.2, lw=0)
+    for nn in tsext.name:
+        ax.axvspan(tsext['s', nn], tsext['s', nn] + line[nn].length, color='m',
                     alpha=0.2, lw=0)
 
 title = f'{machine.upper()}' + r' - $\beta_0$' + f' = {tw.beta0:.4f}'
