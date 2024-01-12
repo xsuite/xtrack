@@ -154,18 +154,21 @@ tptc = mad.table.ptc_twiss
 tptc_p = mad.table.ptc_twiss_pdp
 tptc_m = mad.table.ptc_twiss_mdp
 
-betx = 0.5 * (tptc_p.beta11 + tptc_m.beta11)
+fp = 1 + delta_chrom
+fm = 1 - delta_chrom
+
+betx = 0.5 * (tptc_p.beta11 / fp + tptc_m.beta11 / fm)
 alfx = 0.5 * (tptc_p.alfa11 + tptc_m.alfa11)
-d_betx = (tptc_p.beta11 - tptc_m.beta11)/ (2 * delta_chrom)
+d_betx = (tptc_p.beta11 / fp - tptc_m.beta11 / fm)/ (2 * delta_chrom)
 d_alfx = (tptc_p.alfa11 - tptc_m.alfa11)/ (2 * delta_chrom)
 
 bx_ptc = d_betx / betx
 ax_ptc = d_alfx - d_betx * alfx / betx
 wx_ptc = np.sqrt(ax_ptc**2 + bx_ptc**2)
 
-bety = 0.5 * (tptc_p.beta22 + tptc_m.beta22)
+bety = 0.5 * (tptc_p.beta22 / fp  + tptc_m.beta22 / fm)
 alfy = 0.5 * (tptc_p.alfa22 + tptc_m.alfa22)
-d_bety = (tptc_p.beta22 - tptc_m.beta22)/ (2 * delta_chrom)
+d_bety = (tptc_p.beta22 / fp - tptc_m.beta22 / fm)/ (2 * delta_chrom)
 d_alfy = (tptc_p.alfa22 - tptc_m.alfa22)/ (2 * delta_chrom)
 
 by_ptc = d_bety / bety
