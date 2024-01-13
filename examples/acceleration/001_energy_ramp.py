@@ -24,8 +24,41 @@ E_kin_GeV = np.array([0.16000000,0.16000000,
 # Attach energy program
 line.energy_program = xt.EnergyProgram(t_s=t_s, kinetic_energy0=E_kin_GeV*1e9)
 
-# Plot momentum, momentum increase per turn, revolution frequency vs time
+# Plot energy and revolution frequency vs time
 t_plot = np.linspace(0, 3e-3, 20)
+E_kin_plot = line.energy_program.get_kinetic_energy0_at_t_s(t_plot)
+f_rev_plot = line.energy_program.get_frev_at_t_s(t_plot)
+
+import matplotlib.pyplot as plt
+plt.close('all')
+plt.figure(1)
+ax1 = plt.subplot(2,1,1)
+plt.plot(t_plot * 1e3, E_kin_plot * 1e-6)
+plt.ylabel(r'$E_{kin}$ [MeV]')
+ax2 = plt.subplot(2,1,2, sharex=ax1)
+plt.plot(t_plot * 1e3, f_rev_plot * 1e-3)
+plt.ylabel(r'$f_{rev}$ [kHz]')
+plt.xlabel('t [ms]')
+
+# Setup an RF cavity with a frequency program staying on the second harmonic
+# of the revolution frequency during the beam acceleration
+
+t_rf = np.linspace(0, 3e-3, 100) # time samples for the frequency program
+f_rev = line.energy_program.get_frev_at_t_s(t_rf)
+h_rf = 2 # harmonic number
+f_rf = h_rf * f_rev # frequency program
+
+# Build a function with these samples and link it to the cavity
+line.functions['fun_f_rf'] = xt.FunctionInterpolated(t=t_rf, y=f_rf)
+line.element_refs['br1.acwf7l1.1'].frequency = line.functions['fun_f_rf'](
+                                                        line.vars['t_turn_s'])
+line.element_refs['br1.acwf7l1.1'].voltage = 3000
+line.element_refs['br1.acwf7l1.1'].lag = 0 # degrees (below transition energy)
+
+
+
+
+
 
 
 prrr
