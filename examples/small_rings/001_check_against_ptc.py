@@ -33,7 +33,7 @@ else:
     raise ValueError(f'Unknown machine `{machine}`')
 
 
-line = xt.Line.from_madx_sequence(seq)#, deferred_expressions=True)
+line = xt.Line.from_madx_sequence(seq) #, deferred_expressions=True)
 line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
                                  mass0=seq.beam.mass * 1e9,
                                  q0=seq.beam.charge)
@@ -43,7 +43,7 @@ line.slice_thick_elements(
     slicing_strategies=[
         xt.Strategy(slicing=None), # don't touch other elements
         xt.Strategy(slicing=xt.Uniform(10, mode='thick'), element_type=xt.Bend),
-        # xt.Strategy(slicing=xt.Uniform(5, mode='thick'), element_type=xt.Quadrupole),
+        xt.Strategy(slicing=xt.Uniform(5, mode='thick'), element_type=xt.Quadrupole),
         xt.Strategy(slicing=xt.Uniform(5, mode='thick'), element_type=xt.CombinedFunctionMagnet),
         xt.Strategy(slicing=xt.Uniform(5), element_type=xt.Sextupole),
     ])
