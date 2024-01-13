@@ -4228,6 +4228,17 @@ class EnergyProgram:
         else:
             return p.beta0
 
+    def get_kinetic_energy0_at_t_s(self, t_s):
+        p0c = self.get_p0c_at_t_s(t_s)
+        # I use a particle to make the conversions
+        p = xt.Particles(p0c=p0c, mass0=self.line.particle_ref.mass0)
+        energy0 = p.energy0
+        kinetic_energy0 = energy0 - self.line.particle_ref.mass0
+        if np.isscalar(t_s):
+            return kinetic_energy0[0]
+        else:
+            return kinetic_energy0
+
     def get_frev_at_t_s(self, t_s):
         beta0 = self.get_beta0_at_t_s(t_s)
         circumference = self.line.get_length()
