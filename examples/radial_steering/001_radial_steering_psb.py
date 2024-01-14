@@ -35,7 +35,7 @@ line.build_tracker()
 tw_6d_offmom = line.twiss()
 
 print(f'delta closed orbit: {tw_6d_offmom.delta[0]:.3e}')
-# prints: delta closed orbit: -1.288e-03
+# prints: delta closed orbit: 2.848e-04
 
 # Checks
 import numpy as np
