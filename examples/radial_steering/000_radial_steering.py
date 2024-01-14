@@ -18,7 +18,7 @@ df_hz = 50 # Frequency trim
 # Twiss
 tw0 = line.twiss()
 
-# Compute correspoding delay to be introduced in the line:
+# Compute corresponding delay to be introduced in the line:
 #
 # T_rev = h_rf/f_rf
 # dt = h_rf/(f_rf + df_hz) - h_rf/f_rf = h_rf/f_rf (1/(1+df_hz/f_rf) - 1)
