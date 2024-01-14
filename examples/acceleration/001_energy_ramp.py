@@ -42,8 +42,8 @@ plt.plot(t_plot * 1e3, f_rev_plot * 1e-3)
 plt.ylabel(r'$f_{rev}$ [kHz]')
 plt.xlabel('t [ms]')
 
-# Setup an RF cavity with a frequency program to stay on the second harmonic
-# of the revolution frequency during the beam acceleration
+# Setup frequency of the RF cavity  to stay on the second harmonic of the
+# revolution frequency during the acceleration
 
 t_rf = np.linspace(0, 3e-3, 100) # time samples for the frequency program
 f_rev = line.energy_program.get_frev_at_t_s(t_rf)
