@@ -4210,6 +4210,8 @@ class EnergyProgram:
     def get_t_s_at_turn(self, i_turn):
         assert not self.needs_complete, 'EnergyProgram not complete'
         assert self.line is not None, 'EnergyProgram not associated to a line'
+        if i_turn > self.t_at_turn_interpolator.x[-1]:
+            raise ValueError('`i_turn` outside program range not yet supported')
         out = self.t_at_turn_interpolator(i_turn)
 
         return out
