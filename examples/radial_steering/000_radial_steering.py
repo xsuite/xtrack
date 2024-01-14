@@ -70,5 +70,6 @@ plt.xlabel(r'$\zeta$ [m]')
 plt.ylabel('$\delta$ [$10^{-4}$]')
 plt.xlim(-.8, .8)
 plt.ylim(delta_expected * 1e4 - 4, delta_expected * 1e4 + 4)
-plt.axhline(delta_expected * 1e4, color='r', linestyle='--', label='$\delta$ expected')
+plt.axhline(delta_expected * 1e4, color='r', linestyle='--',
+            label='$\delta$ expected')
 plt.show()
