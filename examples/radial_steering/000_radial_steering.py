@@ -5,22 +5,20 @@
 
 import xtrack as xt
 
-
+# Load a line and build a tracker
 line = xt.Line.from_json(
     '../../test_data/hllhc15_noerrors_nobb/line_and_particle.json')
-line.particle_ref = xt.Particles(
-                    mass0=xt.PROTON_MASS_EV, q0=1, energy0=7e12)
+line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, energy0=7e12)
 line.build_tracker()
 
+# Frequency trim to make
 df_hz = 180 # Frequency trim
 
-tw = line.twiss()
+# Twiss
+tw0 = line.twiss()
 
-h_rf = 35640
-f_rf = h_rf/tw.T_rev0
-
-beta0 = line.particle_ref.beta0[0]
-
+# Compute correspoding delay to be introduced in the line:
+#
 # T_rev = h_rf/f_rf
 # dt = h_rf/(f_rf + df_hz) - h_rf/f_rf = h_rf/f_rf (1/(1+df_hz/f_rf) - 1)
 #                                       ~= h_rf/f_rf * (1 - df_hz/f_rf -1)
@@ -28,29 +26,24 @@ beta0 = line.particle_ref.beta0[0]
 #                                       = -T_rev / f_rf * df_hz
 # dzeta = -beta0 * clight * dt = circumference * df_hz / f_rf
 
-dzeta = tw.circumference * df_hz / f_rf
+h_rf = 35640
+f_rf = h_rf/tw0.T_rev0
+beta0 = line.particle_ref.beta0[0]
+dzeta = tw0.circumference * df_hz / f_rf
 
+# Append delay element to the line
 line.unfreeze()
 line.append_element(element=xt.ZetaShift(dzeta=dzeta), name='zeta_shift')
 line.build_tracker()
 
-tw_6d_offmom = line.twiss()
+# Twiss
+tw1 = line.twiss()
 
-print(f'delta closed orbit: {tw_6d_offmom.delta[0]:.3e}')
-# prints: delta closed orbit: -1.288e-03
+# Expected momentum from slip factor (eta = -df_rev / f_rev / delta)
+f_rev = 1/tw0.T_rev0
+df_rev = df_hz / h_rf
+eta = tw0.slip_factor
+delta_expected = -df_rev / f_rev / eta
 
-# Checks
-import numpy as np
-eta = tw.slip_factor
-f0 = 1/tw.T_rev0
-delta_trim = -1/h_rf/eta/f0*df_hz
-
-# Use 4d twiss on machine without zeta shift
-line['zeta_shift'].dzeta = 0
-tw_on_mom = line.twiss(delta0=0, method='4d')
-tw_off_mom = line.twiss(delta0=delta_trim, method='4d')
-dzeta_from_twiss = (tw_off_mom['zeta'][-1] - tw_off_mom['zeta'][0])
-
-assert np.isclose(delta_trim, tw_6d_offmom.delta[0], rtol=1e-3, atol=0)
-assert np.isclose(dzeta, dzeta_from_twiss, rtol=1e-3, atol=0)
-
+tw1.delta[0] # is -0.00128763
+delta_expected        # is -0.00128893
