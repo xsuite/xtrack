@@ -2,7 +2,7 @@ import numpy as np
 from cpymad.madx import Madx
 import xtrack as xt
 
-# Import a line
+# Import a line and build a tracker
 mad = Madx()
 mad.call('../../test_data/psb_chicane/psb.seq')
 mad.call('../../test_data/psb_chicane/psb_fb_lhc.str')
@@ -15,7 +15,7 @@ line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1.,
                                  energy0=xt.PROTON_MASS_EV + e_kin_start_eV)
 line.build_tracker()
 
-# Ramp function samples
+# User-defined energy ramp
 t_s = np.array([0., 0.0006, 0.0008, 0.001 , 0.0012, 0.0014, 0.0016, 0.0018,
                 0.002 , 0.0022, 0.0024, 0.0026, 0.0028, 0.003, 0.01])
 E_kin_GeV = np.array([0.16000000,0.16000000,
@@ -23,7 +23,7 @@ E_kin_GeV = np.array([0.16000000,0.16000000,
     0.16019791, 0.16025666, 0.16032262, 0.16039552, 0.16047524, 0.16056165,
     0.163586])
 
-# Attach energy program
+# Attach energy program to the line
 line.energy_program = xt.EnergyProgram(t_s=t_s, kinetic_energy0=E_kin_GeV*1e9)
 
 # Plot energy and revolution frequency vs time
@@ -42,7 +42,7 @@ plt.plot(t_plot * 1e3, f_rev_plot * 1e-3)
 plt.ylabel(r'$f_{rev}$ [kHz]')
 plt.xlabel('t [ms]')
 
-# Setup an RF cavity with a frequency program staying on the second harmonic
+# Setup an RF cavity with a frequency program to stay on the second harmonic
 # of the revolution frequency during the beam acceleration
 
 t_rf = np.linspace(0, 3e-3, 100) # time samples for the frequency program
@@ -72,13 +72,18 @@ line['br1.acwf7l1.1'].frequency # is 1986669.0559674294
 # Back to zero for tracking!
 line.vars['t_turn_s'] = 0
 
-# Test tracking
+# Track a few particles to visualize the longitudinal phase space
 p_test = line.build_particles(x_norm=0, zeta=np.linspace(0, line.get_length(), 101))
 
+# Enable time-dependent variables (t_turn_s and all the variables that depend on
+# it are automatically updated at each turn)
 line.enable_time_dependent_vars = True
+
+# Track
 line.track(p_test, num_turns=9000, turn_by_turn_monitor=True, with_progress=True)
 mon = line.record_last_track
 
+# Plot
 plt.subplot2grid((2,2), (0,1), rowspan=2)
 plt.plot(mon.zeta[:, -2000:].T, mon.delta[:, -2000:].T, color='C0')
 plt.xlabel(r'$\zeta$ [m]')
