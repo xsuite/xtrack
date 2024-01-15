@@ -6,6 +6,7 @@ import xtrack as xt
 # machine = 'ps'
 # machine = 'elena'
 machine = 'leir'
+machine = 'pimms'
 
 test_data_folder = '../../test_data/'
 mad = Madx()
@@ -29,6 +30,12 @@ elif machine == 'ps':
     mad.input('beam, particle=proton, pc = 14.0; BRHO = BEAM->PC * 3.3356;')
     mad.use('ps')
     seq = mad.sequence.ps
+elif machine == 'pimms':
+    mad.call(test_data_folder + 'pimms/PIMM.seq')
+    mad.call(test_data_folder + 'pimms/betatron.str')
+    mad.beam(particle='proton', gamma=1.05)
+    mad.use('pimms')
+    seq = mad.sequence.pimms
 else:
     raise ValueError(f'Unknown machine `{machine}`')
 
