@@ -2975,7 +2975,8 @@ class Line:
             smap = xt.SecondOrderTaylorMap.from_line(
                                     self, start=ele_cut_sorted[ii],
                                     end=ele_cut_sorted[ii+1],
-                                    twiss_table=tw)
+                                    twiss_table=tw,
+                                    _buffer=self._buffer)
             names_map_line.append(f'map_{ii}')
             elements_map_line.append(smap)
 
