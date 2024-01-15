@@ -543,7 +543,7 @@ class YRotation(BeamElement):
 
 
 class ZetaShift(BeamElement):
-    '''Beam element modeling a time delat.
+    '''Beam element modeling a time delay.
 
     Parameters
     ----------
