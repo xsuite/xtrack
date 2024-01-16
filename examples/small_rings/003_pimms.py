@@ -50,5 +50,5 @@ mon = line.record_last_track
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
-plt.plot(mon.x.flatten(), mon.px.flatten(), '.', markersize=1)
+plt.plot(mon.x.T, mon.px.T, '.', markersize=1)
 plt.show()
