@@ -13,11 +13,17 @@ mad.use('pimms')
 seq = mad.sequence.pimms
 def_expr = True
 
+
 line = xt.Line.from_madx_sequence(seq, deferred_expressions=def_expr)
 line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
                                  mass0=seq.beam.mass * 1e9,
                                  q0=seq.beam.charge)
 line.configure_bend_model(core='full', edge='full')
+
+# line.insert_element(
+#             'septum',
+#             xt.LimitRect(min_x=-0.02, max_x=0.015, min_y=-1, max_y=1),
+#             index='pimms_start')
 
 line.vars['k2xrr'] = 0
 opt = line.match(
@@ -28,8 +34,9 @@ opt = line.match(
         xt.VaryList(['k2xcf', 'k2xcd'], step=1e-3),
     ],
     targets=[
-        xt.TargetSet(qx=1.665, qy=1.72),
+        xt.TargetSet(qx=1.6665, qy=1.72),
         xt.TargetSet(dqx=-4, dqy=-1, tol=1e-3),
+        # xt.Target(dx=0, at='pimms_start'),
     ]
 )
 opt.step(10)
@@ -51,4 +58,8 @@ import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
 plt.plot(mon.x.T, mon.px.T, '.', markersize=1)
+
+plt.figure(2)
+plt.plot(p.x[p.state<=0], p.px[p.state<=0], '.', markersize=2)
 plt.show()
+
