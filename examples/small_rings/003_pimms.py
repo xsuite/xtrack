@@ -20,6 +20,11 @@ line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
                                  q0=seq.beam.charge)
 line.configure_bend_model(core='full', edge='full')
 
+line.insert_element('mysext', xt.Sextupole(length=0.2), at_s=36.)
+
+line.vars['k2mysext'] = 0
+line.element_refs['mysext'].k2 = line.vars['k2mysext']
+
 # line.insert_element(
 #             'septum',
 #             xt.LimitRect(min_x=-0.02, max_x=0.015, min_y=-1, max_y=1),
@@ -51,15 +56,32 @@ p = line.build_particles(
     px_norm=r0*np.sin(np.pi/20.),
     nemitt_x=1e-6, nemitt_y=1e-6)
 
-line.track(p, num_turns=100000, turn_by_turn_monitor=True)
+line.track(p, num_turns=100000, turn_by_turn_monitor=True, time=True)
 mon = line.record_last_track
 
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
 plt.plot(mon.x.T, mon.px.T, '.', markersize=1)
+plt.xlim(-0.02, 0.02)
+plt.ylim(-1e-3, 1e-3)
 
+line.vars['k2xrr'] = 0
+line.vars['k2mysext'] = 10
+r0 = np.linspace(0, 2, 50)
+p = line.build_particles(
+    method='4d',
+    x_norm=r0*np.cos(np.pi/20.),
+    px_norm=r0*np.sin(np.pi/20.),
+    nemitt_x=1e-6, nemitt_y=1e-6)
+
+line.track(p, num_turns=100000, turn_by_turn_monitor=True, time=True)
+mon = line.record_last_track
 plt.figure(2)
-plt.plot(p.x[p.state<=0], p.px[p.state<=0], '.', markersize=2)
+plt.plot(mon.x.T, mon.px.T, '.', markersize=1)
+plt.xlim(-0.02, 0.02)
+plt.ylim(-1e-3, 1e-3)
+
+
 plt.show()
 
