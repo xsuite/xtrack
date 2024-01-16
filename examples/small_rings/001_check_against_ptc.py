@@ -18,29 +18,33 @@ if machine == 'leir':
     mad.call(test_data_folder + 'leir/leir_inj_nominal.str')
     mad.use('leir')
     seq = mad.sequence.leir
+    def_expr = False
 elif machine == 'elena':
     mad.call(test_data_folder + 'elena/elena.seq')
     mad.call(test_data_folder + 'elena/highenergy.str')
     mad.call(test_data_folder + 'elena/highenergy.beam')
     mad.use('elena')
     seq = mad.sequence.elena
+    def_expr = False
 elif machine == 'ps':
     mad.call(test_data_folder + 'ps_sftpro/ps.seq')
     mad.call(test_data_folder + 'ps_sftpro/ps_hs_sftpro.str')
     mad.input('beam, particle=proton, pc = 14.0; BRHO = BEAM->PC * 3.3356;')
     mad.use('ps')
     seq = mad.sequence.ps
+    def_expr = False
 elif machine == 'pimms':
     mad.call(test_data_folder + 'pimms/PIMM.seq')
     mad.call(test_data_folder + 'pimms/betatron.str')
-    mad.beam(particle='proton', gamma=1.05)
+    mad.beam(particle='proton', gamma=1.05328945) # 50 MeV
     mad.use('pimms')
     seq = mad.sequence.pimms
+    def_expr = True
 else:
     raise ValueError(f'Unknown machine `{machine}`')
 
 
-line = xt.Line.from_madx_sequence(seq) #, deferred_expressions=True)
+line = xt.Line.from_madx_sequence(seq, deferred_expressions=def_expr)
 line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
                                  mass0=seq.beam.mass * 1e9,
                                  q0=seq.beam.charge)
@@ -52,7 +56,6 @@ line.slice_thick_elements(
         xt.Strategy(slicing=xt.Uniform(10, mode='thick'), element_type=xt.Bend),
         xt.Strategy(slicing=xt.Uniform(5, mode='thick'), element_type=xt.Quadrupole),
         xt.Strategy(slicing=xt.Uniform(5, mode='thick'), element_type=xt.CombinedFunctionMagnet),
-        xt.Strategy(slicing=xt.Uniform(5), element_type=xt.Sextupole),
     ])
 
 line.configure_bend_model(core='full', edge='full')
