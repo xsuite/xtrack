@@ -58,7 +58,7 @@ class ActionSeparatrix(xt.Action):
         line = self.line
         tw = line.twiss(method='4d')
 
-        p_test = line.build_particles(x=1e-2, px=0)
+        p_test = line.build_particles(x=5e-3, px=0)
         line.track(p_test, num_turns=10000, turn_by_turn_monitor=True)
         mon_test = line.record_last_track
         norm_coord_test = tw.get_normalized_coordinates(mon_test)
