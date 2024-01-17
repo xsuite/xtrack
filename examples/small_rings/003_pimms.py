@@ -47,36 +47,67 @@ opt = line.match(
 opt.solve()
 
 line.vars['k2xrr'] = 1
-tw = line.twiss(method='4d')
 
-p = line.build_particles(
-    method='4d', x=np.linspace(0, 1e-2, 20), px=0, y=0, py=0)
 
-line.track(p, num_turns=10000, turn_by_turn_monitor=True, time=True)
-mon = line.record_last_track
+class ActionSeparatrix(xt.Action):
 
-p_test = line.build_particles(x=5e-3, px=0)
-line.track(p_test, num_turns=10000, turn_by_turn_monitor=True, time=True)
-mon_test = line.record_last_track
+    def __init__(self, line):
+        self.line = line
 
-norm_coord = tw.get_normalized_coordinates(mon)
-norm_coord_test = tw.get_normalized_coordinates(mon_test)
+    def run(self):
+        line = self.line
+        tw = line.twiss(method='4d')
 
-x_t = mon_test.x[:]
-px_t = mon_test.px[:]
-x_norm_t = norm_coord_test.x_norm[:]
-px_norm_t = norm_coord_test.px_norm[:]
+        p_test = line.build_particles(x=5e-3, px=0)
+        line.track(p_test, num_turns=10000, turn_by_turn_monitor=True)
+        mon_test = line.record_last_track
+        norm_coord_test = tw.get_normalized_coordinates(mon_test)
 
-# Select branch closer to the x-axis
-mask_branch = (x_norm_t > 0) & (px_norm_t > -2 * x_norm_t) & (px_norm_t < 2 * x_norm_t)
-x_branch = x_t[mask_branch]
-px_branch = px_t[mask_branch]
-x_norm_branch = x_norm_t[mask_branch]
-px_norm_branch = px_norm_t[mask_branch]
+        x_t = mon_test.x[:]
+        px_t = mon_test.px[:]
+        x_norm_t = norm_coord_test.x_norm[:]
+        px_norm_t = norm_coord_test.px_norm[:]
 
-mask_fit = (x_branch > 0.02) & (x_branch < 0.04)
-poly_geom = np.polyfit(x_branch[mask_fit], px_branch[mask_fit], 1)
-poly_norm = np.polyfit(x_norm_branch[mask_fit], px_norm_branch[mask_fit], 1)
+        # Select branch closer to the x-axis
+        mask_branch = (x_norm_t > 0) & (px_norm_t > -2 * x_norm_t) & (px_norm_t < 2 * x_norm_t)
+        x_branch = x_t[mask_branch]
+        px_branch = px_t[mask_branch]
+        x_norm_branch = x_norm_t[mask_branch]
+        px_norm_branch = px_norm_t[mask_branch]
+
+        mask_fit = (x_branch > 0.02) & (x_branch < 0.04)
+        poly_geom = np.polyfit(x_branch[mask_fit], px_branch[mask_fit], 1)
+        poly_norm = np.polyfit(x_norm_branch[mask_fit], px_norm_branch[mask_fit], 1)
+
+        r_sep_norm = np.abs(poly_norm[1]) / np.sqrt(poly_norm[0]**2 + 1)
+
+        out = {
+            'poly_geom': poly_geom,
+            'poly_norm': poly_norm,
+            'r_sep_norm': r_sep_norm,
+            'slope': poly_geom[0],
+        }
+
+        return out
+
+action_sep = ActionSeparatrix(line)
+res0 = action_sep.run()
+
+opt = line.match(
+    solve=False,
+    vary=xt.VaryList(['k2xrr', 'k2mysext'], step=1e-2),
+    targets=[
+        action_sep.target('r_sep_norm', 1e-3, tol=1e-4),
+        action_sep.target('slope', 0, tol=1e-5),
+    ]
+)
+opt.solve()
+
+
+res = action_sep.run()
+
+poly_geom = res['poly_geom']
+poly_norm = res['poly_norm']
 
 x_fit_geom = np.linspace(-0.1, 0.1, 10)
 px_fit_geom = poly_geom[0] * x_fit_geom + poly_geom[1]
@@ -97,19 +128,27 @@ px_fit_norm = poly_norm[0] * x_fit_norm + poly_norm[1]
 # x_circle = r_sep * np.cos(theta_circle)
 # px_circle = r_sep * np.sin(theta_circle)
 
+tw = line.twiss(method='4d')
+
+p = line.build_particles(
+    method='4d', x=np.linspace(0, 1e-2, 20), px=0, y=0, py=0)
+
+line.track(p, num_turns=10000, turn_by_turn_monitor=True, time=True)
+mon = line.record_last_track
+norm_coord = tw.get_normalized_coordinates(mon)
 
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(100)
 plt.plot(mon.x.T, mon.px.T, '.', markersize=1)
-plt.plot(x_branch, px_branch, '.k', markersize=3)
+# plt.plot(x_branch, px_branch, '.k', markersize=3)
 plt.plot(x_fit_geom, px_fit_geom, 'grey')
 plt.ylabel(r'$p_x$')
 plt.xlabel(r'$x$ [m]')
 
 plt.figure(101)
 plt.plot(norm_coord.x_norm.T, norm_coord.px_norm.T, '.', markersize=1)
-plt.plot(x_norm_branch, px_norm_branch, '.k', markersize=3)
+# plt.plot(x_norm_branch, px_norm_branch, '.k', markersize=3)
 plt.plot(x_fit_norm, px_fit_norm, 'grey')
 plt.axis('equal')
 
