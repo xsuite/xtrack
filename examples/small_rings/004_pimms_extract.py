@@ -52,7 +52,7 @@ optq.solve()
 
 optq.solve()
 
-line.vars['k2xrr'] = 1
+line.vars['k2xrr'] = 1.1
 tw = line.twiss(method='4d')
 
 
@@ -82,7 +82,7 @@ class ActionSeparatrix(xt.Action):
         x_norm_branch = x_norm_t[mask_branch]
         px_norm_branch = px_norm_t[mask_branch]
 
-        mask_fit = (x_branch > 0.03) & (x_branch < 0.04)
+        mask_fit = (x_branch > 0.05) & (x_branch < 0.06)
         if mask_fit.any():
             poly_geom = np.polyfit(x_branch[mask_fit], px_branch[mask_fit], 1)
             poly_norm = np.polyfit(x_norm_branch[mask_fit], px_norm_branch[mask_fit], 1)
@@ -108,12 +108,12 @@ class ActionSeparatrix(xt.Action):
 action_sep = ActionSeparatrix(line)
 res = action_sep.run()
 
-num_particles = 10000
+num_particles = 5000
 x_norm = np.random.normal(size=num_particles)
 px_norm = np.random.normal(size=num_particles)
 y_norm = np.random.normal(size=num_particles)
 py_norm = np.random.normal(size=num_particles)
-delta = 5e-4 * np.random.normal(size=num_particles) *0
+delta = 5e-4 * np.random.normal(size=num_particles) * 0 #!!!!
 particles = line.build_particles(
     weight=1e10/num_particles,
     method='4d',
@@ -163,6 +163,8 @@ plt.plot(norm_coord.x_norm.T, norm_coord.px_norm.T, '.', markersize=1)
 plt.plot(x_fit_norm, px_fit_norm, 'grey')
 plt.axis('equal')
 
+plt.show()
+
 line.discard_tracker()
 
 class SpillExcitation:
@@ -171,7 +173,7 @@ class SpillExcitation:
         self.amplitude = 5e-6
         self.gain = 0.001
         self.amplitude_max = 100e-6
-        self.target_rate = 0.5e10/ 10000
+        self.target_rate = 0.8e10/ 20000
         self.n_ave = 20
         self._i_turn = 0
 
@@ -211,7 +213,7 @@ line.element_refs['spill_exc'].gain = line.vars['gain']
 line['septum'].max_x = 0.02
 
 line.enable_time_dependent_vars = True
-line.track(particles, num_turns=10000, with_progress=True)
+line.track(particles, num_turns=20000, with_progress=True)
 
 plt.figure(1000)
 ax1 = plt.subplot(4,1,1)
@@ -219,6 +221,7 @@ plt.plot(line['spill_exc']._amplitude_log)
 
 ax2 = plt.subplot(4,1,2, sharex=ax1)
 plt.plot(line['spill_exc'].intensity)
+plt.ylim(bottom=0)
 
 ax3 = plt.subplot(4,1,3, sharex=ax1)
 plt.plot(line['spill_exc']._rate_log)
@@ -229,6 +232,7 @@ ax4b = ax4.twinx()
 plt.plot(line['spill_exc']._gain_log)
 
 plt.figure(1001)
-plt.plot(particles.x, particles.px, '.', markersize=1)
-
+plt.plot(mon.x.T, mon.px.T, '.', markersize=1, color='k', alpha=0.3)
+plt.plot(particles.x, particles.px, '.', markersize=2)
+plt.plot(x_fit_geom, px_fit_geom, 'grey')
 plt.show()
