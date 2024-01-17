@@ -38,7 +38,7 @@ optq = line.match(
         xt.VaryList(['k2xcf', 'k2xcd'], step=1e-3, tag='chromaticity'),
     ],
     targets=[
-        xt.TargetSet(qx=1.6662, qy=1.72, tol=1e-6, tag='tune'),
+        xt.TargetSet(qx=1.6661, qy=1.72, tol=1e-6, tag='tune'),
         xt.TargetSet(dqx=-4, dqy=-1, tol=1e-3, tag='chromaticity'),
         # xt.Target(dx=0, at='pimms_start'),
     ]
