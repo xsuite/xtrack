@@ -95,14 +95,24 @@ res0 = action_sep.run()
 
 opt = line.match(
     solve=False,
-    vary=xt.VaryList(['k2xrr', 'k2mysext'], step=1e-2),
+    method='4d',
+    vary=[
+        xt.VaryList(['k2xrr', 'k2mysext'], step=1e-2, tag='resonance'),
+        xt.VaryList(['k2xcf', 'k2xcd'], step=1e-3, tag='chromaticity'),
+    ],
     targets=[
-        action_sep.target('r_sep_norm', 1e-3, tol=1e-4),
-        action_sep.target('slope', 0, tol=1e-5),
+        action_sep.target('r_sep_norm', 1e-3, tol=1e-4, tag='resonance'),
+        action_sep.target('slope', 0, tol=1e-5, tag='resonance'),
+        xt.TargetSet(dqx=-4, dqy=-1, tol=1e-3, tag='chromaticity'),
     ]
 )
+opt.disable_targets(tag='chromaticity')
+opt.disable_vary(tag='chromaticity')
 opt.solve()
 
+opt.enable_all_targets()
+opt.enable_all_vary()
+opt.solve()
 
 res = action_sep.run()
 
