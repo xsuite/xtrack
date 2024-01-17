@@ -106,13 +106,13 @@ opt = line.match(
         xt.TargetSet(dqx=-4, dqy=-1, tol=1e-3, tag='chromaticity'),
     ]
 )
-opt.disable_targets(tag='chromaticity')
-opt.disable_vary(tag='chromaticity')
-opt.solve()
+# opt.disable_targets(tag='chromaticity')
+# opt.disable_vary(tag='chromaticity')
+# opt.solve()
 
-opt.enable_all_targets()
-opt.enable_all_vary()
-opt.solve()
+# opt.enable_all_targets()
+# opt.enable_all_vary()
+# opt.solve()
 
 res = action_sep.run()
 
@@ -123,20 +123,6 @@ x_fit_geom = np.linspace(-0.1, 0.1, 10)
 px_fit_geom = poly_geom[0] * x_fit_geom + poly_geom[1]
 x_fit_norm = np.linspace(-0.1, 0.1, 10)
 px_fit_norm = poly_norm[0] * x_fit_norm + poly_norm[1]
-
-# x_fit = mon_test.x[:, ::3].flatten()
-# px_fit = mon_test.px[:, ::3].flatten()
-# mask = (np.abs(x_fit) > 0.02) & (np.abs(x_fit) < 0.04)
-# poly = np.polyfit(x_fit[mask], px_fit[mask], 1)
-# x_poly = np.linspace(-0.05, 0.05, 10)
-# px_poly = np.polyval(poly, x_poly)
-
-# a = -poly[0] * tw.betx[0]
-# c = -poly[1] * tw.betx[0]
-# r_sep = c / np.sqrt(a**2 + 1)
-# theta_circle = np.linspace(0, 2*np.pi, 100)
-# x_circle = r_sep * np.cos(theta_circle)
-# px_circle = r_sep * np.sin(theta_circle)
 
 tw = line.twiss(method='4d')
 

@@ -38,7 +38,7 @@ opt = line.match(
         xt.VaryList(['k2xcf', 'k2xcd'], step=1e-3),
     ],
     targets=[
-        xt.TargetSet(qx=1.665, qy=1.72),
+        xt.TargetSet(qx=1.6665, qy=1.72),
         xt.TargetSet(dqx=-4, dqy=-1, tol=1e-3),
         # xt.Target(dx=0, at='pimms_start'),
     ]
@@ -132,6 +132,27 @@ plt.xlabel(r'$x$ [m]')
 plt.figure(101)
 plt.plot(x_fit_norm, px_fit_norm, 'grey')
 plt.plot(tab.x_norm, tab.px_norm, '.', markersize=1)
+plt.axis('equal')
+
+
+p = line.build_particles(
+    method='4d', x=np.linspace(0, 1e-2, 20), px=0, y=0, py=0)
+
+line.track(p, num_turns=10000, turn_by_turn_monitor=True, time=True)
+mon = line.record_last_track
+norm_coord = tw.get_normalized_coordinates(mon)
+
+plt.figure(200)
+plt.plot(mon.x.T, mon.px.T, '.', markersize=1)
+# plt.plot(x_branch, px_branch, '.k', markersize=3)
+plt.plot(x_fit_geom, px_fit_geom, 'grey')
+plt.ylabel(r'$p_x$')
+plt.xlabel(r'$x$ [m]')
+
+plt.figure(201)
+plt.plot(norm_coord.x_norm.T, norm_coord.px_norm.T, '.', markersize=1)
+# plt.plot(x_norm_branch, px_norm_branch, '.k', markersize=3)
+plt.plot(x_fit_norm, px_fit_norm, 'grey')
 plt.axis('equal')
 
 plt.show()
