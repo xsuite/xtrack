@@ -2827,7 +2827,7 @@ class TwissTable(Table):
             XX[3, :] = ctx2np(particles.py)[mask_at_ele] - self.py[at_ele]
             XX[4, :] = ctx2np(particles.zeta)[mask_at_ele] - self.zeta[at_ele]
             XX[5, :] = ((ctx2np(particles.ptau)[mask_at_ele] - self.ptau[at_ele])
-                        / particles._xobject.beta0[0])
+                        / self.particle_on_co._xobject.beta0[0])
 
             XX_norm = np.dot(W_inv, XX)
 
