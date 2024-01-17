@@ -65,7 +65,7 @@ class ActionSeparatrix(xt.Action):
         line = self.line
         tw = line.twiss(method='4d')
 
-        p_test = line.build_particles(x=1.3e-2, px=0)
+        p_test = line.build_particles(x=15e-3, px=0)
         line.track(p_test, num_turns=10000, turn_by_turn_monitor=True)
         mon_test = line.record_last_track
         norm_coord_test = tw.get_normalized_coordinates(mon_test)
@@ -82,7 +82,7 @@ class ActionSeparatrix(xt.Action):
         x_norm_branch = x_norm_t[mask_branch]
         px_norm_branch = px_norm_t[mask_branch]
 
-        mask_fit = (x_branch > 0.02) & (x_branch < 0.04)
+        mask_fit = (x_branch > 0.03) & (x_branch < 0.04)
         if mask_fit.any():
             poly_geom = np.polyfit(x_branch[mask_fit], px_branch[mask_fit], 1)
             poly_norm = np.polyfit(x_norm_branch[mask_fit], px_norm_branch[mask_fit], 1)
@@ -113,7 +113,7 @@ x_norm = np.random.normal(size=num_particles)
 px_norm = np.random.normal(size=num_particles)
 y_norm = np.random.normal(size=num_particles)
 py_norm = np.random.normal(size=num_particles)
-delta = 5e-4 * np.random.normal(size=num_particles)
+delta = 5e-4 * np.random.normal(size=num_particles) *0
 particles = line.build_particles(
     method='4d',
     nemitt_x=1e-6, nemitt_y=1e-6,
@@ -167,25 +167,28 @@ line.discard_tracker()
 class SpillExcitation:
     def __init__(self):
         self.intensity = []
-        self.amplitude = 1e-6
-        self.amplitude_max = 1000e-6
-        self.target_rate = 1000 / 5000
-        self.n_ave = 100
+        self.amplitude = 20e-6
+        self.gain = 0.001
+        self.amplitude_max = 100e-6
+        self.target_rate = 1000 / 8000
+        self.n_ave = 50
         self._i_turn = 0
-        self.gain = 0.0000001
+
         self._amplitude_log = []
+        self._rate_log = []
 
     def track(self, p):
         self.intensity.append(np.sum(p.weight[p.state > 0]))
         i_turn_0 = self._i_turn - self.n_ave
         if i_turn_0 < 0:
             i_turn_0 = 0
+        rate = -(self.intensity[self._i_turn] - self.intensity[i_turn_0]) / (self._i_turn - i_turn_0)
         if self._i_turn > 10:
-            rate = (self.intensity[self._i_turn] - self.intensity[i_turn_0]) / (self._i_turn - i_turn_0)
-            self.amplitude -= self.gain * (rate - self.target_rate)/self.target_rate
+            self.amplitude -= self.amplitude * self.gain * (rate - self.target_rate)/self.target_rate
         if self.amplitude > self.amplitude_max:
             self.amplitude = self.amplitude_max
         self._amplitude_log.append(self.amplitude)
+        self._rate_log.append(rate)
         p.px[p.state > 0] += self.amplitude * np.random.normal(size=np.sum(p.state > 0))
         self._i_turn += 1
 
@@ -193,13 +196,20 @@ line.insert_element('spill_exc', SpillExcitation(), at_s=0)
 line.build_tracker()
 
 line['septum'].max_x = 0.02
-line.track(particles, num_turns=5000, with_progress=True)
+line.track(particles, num_turns=10000, with_progress=True)
 
 plt.figure(1000)
-ax1 = plt.subplot(2,1,1)
+ax1 = plt.subplot(3,1,1)
 plt.plot(line['spill_exc']._amplitude_log)
 
-ax2 = plt.subplot(2,1,2, sharex=ax1)
+ax2 = plt.subplot(3,1,2, sharex=ax1)
 plt.plot(line['spill_exc'].intensity)
+
+ax3 = plt.subplot(3,1,3, sharex=ax1)
+plt.plot(line['spill_exc']._rate_log)
+plt.axhline(line['spill_exc'].target_rate, color='grey')
+
+plt.figure(1001)
+plt.plot(particles.x, particles.px, '.', markersize=1)
 
 plt.show()
