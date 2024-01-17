@@ -108,13 +108,14 @@ class ActionSeparatrix(xt.Action):
 action_sep = ActionSeparatrix(line)
 res = action_sep.run()
 
-num_particles = 1000
+num_particles = 10000
 x_norm = np.random.normal(size=num_particles)
 px_norm = np.random.normal(size=num_particles)
 y_norm = np.random.normal(size=num_particles)
 py_norm = np.random.normal(size=num_particles)
 delta = 5e-4 * np.random.normal(size=num_particles) *0
 particles = line.build_particles(
+    weight=1e10/num_particles,
     method='4d',
     nemitt_x=1e-6, nemitt_y=1e-6,
     x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_norm=py_norm,
@@ -170,8 +171,8 @@ class SpillExcitation:
         self.amplitude = 20e-6
         self.gain = 0.001
         self.amplitude_max = 100e-6
-        self.target_rate = 1000 / 8000
-        self.n_ave = 50
+        self.target_rate = 0.5e10/ 10000
+        self.n_ave = 20
         self._i_turn = 0
 
         self._amplitude_log = []
@@ -183,7 +184,7 @@ class SpillExcitation:
         if i_turn_0 < 0:
             i_turn_0 = 0
         rate = -(self.intensity[self._i_turn] - self.intensity[i_turn_0]) / (self._i_turn - i_turn_0)
-        if self._i_turn > 10:
+        if self._i_turn > 1000:
             self.amplitude -= self.amplitude * self.gain * (rate - self.target_rate)/self.target_rate
         if self.amplitude > self.amplitude_max:
             self.amplitude = self.amplitude_max
@@ -193,7 +194,8 @@ class SpillExcitation:
         self._i_turn += 1
 
 line.insert_element('spill_exc', SpillExcitation(), at_s=0)
-line.build_tracker()
+import xobjects as xo
+line.build_tracker(_context=xo.ContextCpu('auto'))
 
 line['septum'].max_x = 0.02
 line.track(particles, num_turns=10000, with_progress=True)
