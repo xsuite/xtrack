@@ -168,7 +168,7 @@ line.discard_tracker()
 class SpillExcitation:
     def __init__(self):
         self.intensity = []
-        self.amplitude = 20e-6
+        self.amplitude = 5e-6
         self.gain = 0.001
         self.amplitude_max = 100e-6
         self.target_rate = 0.5e10/ 10000
@@ -177,6 +177,7 @@ class SpillExcitation:
 
         self._amplitude_log = []
         self._rate_log = []
+        self._gain_log = []
 
     def track(self, p):
         self.intensity.append(np.sum(p.weight[p.state > 0]))
@@ -184,12 +185,15 @@ class SpillExcitation:
         if i_turn_0 < 0:
             i_turn_0 = 0
         rate = -(self.intensity[self._i_turn] - self.intensity[i_turn_0]) / (self._i_turn - i_turn_0)
-        if self._i_turn > 1000:
+        if self._i_turn > 10:
             self.amplitude -= self.amplitude * self.gain * (rate - self.target_rate)/self.target_rate
         if self.amplitude > self.amplitude_max:
             self.amplitude = self.amplitude_max
+        if self.amplitude < 0:
+            self.amplitude = 1e-7
         self._amplitude_log.append(self.amplitude)
         self._rate_log.append(rate)
+        self._gain_log.append(self.gain)
         p.px[p.state > 0] += self.amplitude * np.random.normal(size=np.sum(p.state > 0))
         self._i_turn += 1
 
@@ -197,19 +201,32 @@ line.insert_element('spill_exc', SpillExcitation(), at_s=0)
 import xobjects as xo
 line.build_tracker(_context=xo.ContextCpu('auto'))
 
+line.functions['fun_xsext'] = xt.FunctionPieceWiseLinear(x=[0, 0.5e-3], y=[0, 1.1])
+line.vars['k2xrr'] = line.functions['fun_xsext'](line.vars['t_turn_s'])
+
+line.functions['fun_gain'] = xt.FunctionPieceWiseLinear(x=[0, 0.25e-3, 0.5e-3], y=[0, 0, .001])
+line.vars['gain'] = line.functions['fun_gain'](line.vars['t_turn_s'])
+line.element_refs['spill_exc'].gain = line.vars['gain']
+
 line['septum'].max_x = 0.02
+
+line.enable_time_dependent_vars = True
 line.track(particles, num_turns=10000, with_progress=True)
 
 plt.figure(1000)
-ax1 = plt.subplot(3,1,1)
+ax1 = plt.subplot(4,1,1)
 plt.plot(line['spill_exc']._amplitude_log)
 
-ax2 = plt.subplot(3,1,2, sharex=ax1)
+ax2 = plt.subplot(4,1,2, sharex=ax1)
 plt.plot(line['spill_exc'].intensity)
 
-ax3 = plt.subplot(3,1,3, sharex=ax1)
+ax3 = plt.subplot(4,1,3, sharex=ax1)
 plt.plot(line['spill_exc']._rate_log)
 plt.axhline(line['spill_exc'].target_rate, color='grey')
+
+ax4 = plt.subplot(4,1,4, sharex=ax1)
+ax4b = ax4.twinx()
+plt.plot(line['spill_exc']._gain_log)
 
 plt.figure(1001)
 plt.plot(particles.x, particles.px, '.', markersize=1)
