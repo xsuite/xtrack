@@ -39,7 +39,7 @@ opt = line.match(
         xt.VaryList(['k2xcf', 'k2xcd'], step=1e-3),
     ],
     targets=[
-        xt.TargetSet(qx=1.665, qy=1.72),
+        xt.TargetSet(qx=1.6665, qy=1.72),
         xt.TargetSet(dqx=-4, dqy=-1, tol=1e-3),
         # xt.Target(dx=0, at='pimms_start'),
     ]
@@ -93,26 +93,26 @@ class ActionSeparatrix(xt.Action):
 action_sep = ActionSeparatrix(line)
 res0 = action_sep.run()
 
-# opt = line.match(
-#     solve=False,
-#     method='4d',
-#     vary=[
-#         xt.VaryList(['k2xrr', 'k2mysext'], step=1e-2, tag='resonance'),
-#         xt.VaryList(['k2xcf', 'k2xcd'], step=1e-3, tag='chromaticity'),
-#     ],
-#     targets=[
-#         action_sep.target('r_sep_norm', 1e-3, tol=1e-4, tag='resonance'),
-#         action_sep.target('slope', 0, tol=1e-5, tag='resonance'),
-#         xt.TargetSet(dqx=-4, dqy=-1, tol=1e-3, tag='chromaticity'),
-#     ]
-# )
-# opt.disable_targets(tag='chromaticity')
-# opt.disable_vary(tag='chromaticity')
-# opt.solve()
+opt = line.match(
+    solve=False,
+    method='4d',
+    vary=[
+        xt.VaryList(['k2xrr', 'k2mysext'], step=1e-2, tag='resonance'),
+        xt.VaryList(['k2xcf', 'k2xcd'], step=1e-3, tag='chromaticity'),
+    ],
+    targets=[
+        action_sep.target('r_sep_norm', 1e-3, tol=1e-4, tag='resonance'),
+        action_sep.target('slope', 0, tol=1e-5, tag='resonance'),
+        xt.TargetSet(dqx=-4, dqy=-1, tol=1e-3, tag='chromaticity'),
+    ]
+)
+opt.disable_targets(tag='chromaticity')
+opt.disable_vary(tag='chromaticity')
+opt.solve()
 
-# opt.enable_all_targets()
-# opt.enable_all_vary()
-# opt.solve()
+opt.enable_all_targets()
+opt.enable_all_vary()
+opt.solve()
 
 res = action_sep.run()
 
