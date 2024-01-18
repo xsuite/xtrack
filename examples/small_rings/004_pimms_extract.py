@@ -43,7 +43,7 @@ opt = line.match(
     targets=[
         xt.TargetSet(qx=1.661, qy=1.72, tol=1e-6, tag='tunes'),
         xt.TargetSet(dqx=-0.1, dqy=-0.1, tol=1e-3, tag="chrom"),
-        xt.Target(dx=0, tol=1e-3, at='ms', tag='disp'),
+        xt.Target(dx=0, tol=1e-3, at='es', tag='disp'),
     ]
 )
 opt.disable_targets(tag='chrom')
@@ -74,7 +74,7 @@ ax2=plt.subplot(2, 1, 2, sharex=ax1)
 plt.plot(tw0.s, tw0.dx, '.-')
 plt.plot(tw1.s, tw1.dx, '.-')
 
-plt.axvline(x=tw2['s', 'xrr'], color='green', linestyle='--')
+# plt.axvline(x=tw2['s', 'xrr'], color='green', linestyle='--')
 
 tw = line.twiss(method='4d')
 p = line.build_particles(

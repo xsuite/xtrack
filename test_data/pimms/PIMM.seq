@@ -9,19 +9,20 @@ XCd1: SEXTUPOLE, L=0.2, K2:=k2xcd;
 XCf1: SEXTUPOLE, L=0.2, K2:=k2xcf;
 XCd2: SEXTUPOLE, L=0.2, K2:=k2xcd;
 XCf2: SEXTUPOLE, L=0.2, K2:=k2xcf;
-XRr : SEXTUPOLE, L=0.2, K2:=k2xrr;
+XRrA : SEXTUPOLE, L=0.2, K2:=k2xrr_a;
+XRrB : SEXTUPOLE, L=0.2, K2:=k2xrr_b;
+
+k2xrr_a := k2xrr;
+k2xrr_b := 0;
 
 ES_injection: marker;
 ES_marker: marker;
-MS_marker: marker;
 BETkick: marker;
 RFKOkick: marker;
 PIMMS_START: marker;
 
 ES_KICK = 0;
-MS_KICK = 0;
 ES: HKICKER, L=4*0.2   , KICK:= ES_KICK;
-MS: HKICKER, L=4*0.1625, KICK:= MS_KICK;
 
 PIMMS_cavity: RFCAVITY, L:= 0.0001, VOLT:= 0, HARMON = 1, LAG:= 0.0, no_cavity_totalpath;
 
@@ -54,7 +55,7 @@ PIMMS:SEQUENCE,REFER=centre,L=75.24;
               QD, AT=32.1525;
               MB, AT=33.8075;
               QF1, AT=35.0575;
-              XRr, AT=39.055-0.93;
+              XRra, AT=35.0575 + 0.3;
               QF1, AT=40.0075;
               MB, AT=41.4325;
               QD, AT=42.9125;
@@ -72,13 +73,11 @@ PIMMS:SEQUENCE,REFER=centre,L=75.24;
               XCf2, AT=61.665;
               MB, AT=63.1075;
               QF2, AT=64.3875;
-              ES, AT=65;
-              ES_marker, AT=65.4;
               QF1, AT=66.7375;
               MB, AT=68.1925;
               QD, AT=69.7725;
               MB, AT=71.4275;
               QF1, AT=72.6775;
-              MS_marker, at=73.25225;
-              MS, AT=73.57725;
+              ES_marker, at=73.25225;
+              ES, AT=73.25225 + 0.4;
 ENDSEQUENCE;
