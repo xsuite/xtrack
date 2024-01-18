@@ -41,7 +41,7 @@ opt = line.match(
         xt.VaryList(['k2xcf', 'k2xcd'], step=1e-3, tag='sext'),
     ],
     targets=[
-        xt.TargetSet(qx=1.6655, qy=1.72, tol=1e-6, tag='tunes'),
+        xt.TargetSet(qx=1.665, qy=1.72, tol=1e-6, tag='tunes'),
         xt.TargetSet(dqx=-0.1, dqy=-0.1, tol=1e-3, tag="chrom"),
         xt.Target(dx=0, tol=1e-3, at='pimms_start', tag='disp'),
     ]
@@ -219,7 +219,7 @@ line.functions['fun_gain'] = xt.FunctionPieceWiseLinear(x=[0, 0.25e-3, 0.5e-3], 
 line.vars['gain'] = line.functions['fun_gain'](line.vars['t_turn_s'])
 line.element_refs['spill_exc'].gain = line.vars['gain']
 
-line['septum'].max_x = 0.03
+line['septum'].max_x = 0.02
 
 line.enable_time_dependent_vars = True
 line.track(particles, num_turns=15000, with_progress=True)
