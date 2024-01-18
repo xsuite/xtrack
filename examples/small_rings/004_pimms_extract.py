@@ -41,7 +41,7 @@ opt = line.match(
         xt.VaryList(['k2xcf', 'k2xcd'], step=1e-3, tag='sext'),
     ],
     targets=[
-        xt.TargetSet(qx=1.665, qy=1.72, tol=1e-6, tag='tunes'),
+        xt.TargetSet(qx=1.6655, qy=1.72, tol=1e-6, tag='tunes'),
         xt.TargetSet(dqx=-0.1, dqy=-0.1, tol=1e-3, tag="chrom"),
         xt.Target(dx=0, tol=1e-3, at='pimms_start', tag='disp'),
     ]
@@ -55,8 +55,8 @@ opt.solve()
 
 tw1 = line.twiss(method='4d')
 
-line.vars['k2xrr'] = 8.65
-
+line.vars['k2xrr_extr'] = 8.65
+line.vars['k2xrr'] = line.vars['k2xrr_extr']
 tw2 = line.twiss(method='4d')
 
 
@@ -128,7 +128,7 @@ delta = 5e-4 * np.random.normal(size=num_particles) * 0 #!!!!
 particles = line.build_particles(
     weight=1e10/num_particles,
     method='4d',
-    nemitt_x=1e-6, nemitt_y=1e-6,
+    nemitt_x=1e-6/10, nemitt_y=1e-6/10, # !!!!! 
     x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_norm=py_norm,
     delta=delta)
 tab = tw.get_normalized_coordinates(particles)
@@ -181,7 +181,7 @@ class SpillExcitation:
         self.intensity = []
         self.amplitude = 7e-6
         self.gain = 0.
-        self.amplitude_max = 100e-6
+        self.amplitude_max = 0#100e-6
         self.target_rate = 0.9e10/ 15000
         self.n_ave = 100
         self._i_turn = 0
@@ -212,14 +212,14 @@ line.insert_element('spill_exc', SpillExcitation(), at_s=0)
 import xobjects as xo
 line.build_tracker(_context=xo.ContextCpu('auto'))
 
-line.functions['fun_xsext'] = xt.FunctionPieceWiseLinear(x=[0, 0.5e-3], y=[0, 1.1])
-line.vars['k2xrr'] = line.functions['fun_xsext'](line.vars['t_turn_s'])
+line.functions['fun_xsext'] = xt.FunctionPieceWiseLinear(x=[0, 0.5e-3], y=[0, 1.])
+line.vars['k2xrr'] = line.vars['k2xrr_extr'] * line.functions['fun_xsext'](line.vars['t_turn_s'])
 
 line.functions['fun_gain'] = xt.FunctionPieceWiseLinear(x=[0, 0.25e-3, 0.5e-3], y=[0, 0, .001])
 line.vars['gain'] = line.functions['fun_gain'](line.vars['t_turn_s'])
 line.element_refs['spill_exc'].gain = line.vars['gain']
 
-line['septum'].max_x = 0.02
+line['septum'].max_x = 0.03
 
 line.enable_time_dependent_vars = True
 line.track(particles, num_turns=15000, with_progress=True)
