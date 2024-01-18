@@ -112,7 +112,10 @@ class ActionSeparatrix(xt.Action):
         line.track(p_test, num_turns=2000, turn_by_turn_monitor=True)
         mon_test = line.record_last_track
 
-        i_part = np.where(mon_test.x.max(axis=1) > 0.02)[0][0] # first unstable particle
+        # i_part = np.where(mon_test.x.max(axis=1) > 0.02)[0][0] # first unstable particle
+        # range_fit = (0.015, 0.025)
+        i_part = len(p_test.x) - 1
+        range_fit = (0.03, 0.04)
         norm_coord_test = tw.get_normalized_coordinates(mon_test)
 
         x_t = mon_test.x[i_part, :]
@@ -127,7 +130,7 @@ class ActionSeparatrix(xt.Action):
         x_norm_branch = x_norm_t[mask_branch]
         px_norm_branch = px_norm_t[mask_branch]
 
-        mask_fit = (x_branch > 0.015) & (x_branch < 0.025)
+        mask_fit = (x_branch > range_fit[0]) & (x_branch < range_fit[1])
         poly_geom = np.polyfit(x_branch[mask_fit], px_branch[mask_fit], 1)
         poly_norm = np.polyfit(x_norm_branch[mask_fit], px_norm_branch[mask_fit], 1)
 
@@ -147,6 +150,20 @@ class ActionSeparatrix(xt.Action):
 
 action_sep = ActionSeparatrix(line)
 res = action_sep.run()
+
+opt = line.match(
+    solve=False,
+    method='4d',
+    vary=xt.VaryList(['k2xrr_a', 'k2xrr_b'], step=5e-2, tag='resonance'),
+    targets=[
+        action_sep.target('r_sep_norm', 2.7e-3, tol=1e-4, tag='resonance'),
+        action_sep.target('slope', 0.0, tol=1e-5, tag='resonance'),
+    ]
+)
+opt.solve()
+
+
+
 tw = line.twiss(method='4d')
 
 num_particles = 5000
