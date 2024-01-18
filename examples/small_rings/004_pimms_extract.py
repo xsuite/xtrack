@@ -21,6 +21,12 @@ line.configure_bend_model(core='full', edge='full')
 
 line.insert_element('mysext', xt.Sextupole(length=0.2), at_s=36.)
 
+line.insert_element(
+            'septum',
+            xt.LimitRect(min_x=-0.1, max_x=0.1, min_y=-0.1, max_y=0.1),
+            index='pimms_start')
+
+
 line.vars['k2mysext'] = 0
 line.element_refs['mysext'].k2 = line.vars['k2mysext']
 
@@ -35,7 +41,7 @@ opt = line.match(
         xt.VaryList(['k2xcf', 'k2xcd'], step=1e-3, tag='sext'),
     ],
     targets=[
-        xt.TargetSet(qx=1.66, qy=1.72, tol=1e-6, tag='tunes'),
+        xt.TargetSet(qx=1.665, qy=1.72, tol=1e-6, tag='tunes'),
         xt.TargetSet(dqx=-0.1, dqy=-0.1, tol=1e-3, tag="chrom"),
         xt.Target(dx=0, tol=1e-3, at='pimms_start', tag='disp'),
     ]
@@ -68,9 +74,6 @@ plt.subplot(2, 1, 2, sharex=ax1)
 plt.plot(tw0.s, tw0.dx, '.-')
 plt.plot(tw1.s, tw1.dx, '.-')
 
-plt.show()
-
-
 class ActionSeparatrix(xt.Action):
 
     def __init__(self, line):
@@ -80,7 +83,7 @@ class ActionSeparatrix(xt.Action):
         line = self.line
         tw = line.twiss(method='4d')
 
-        p_test = line.build_particles(x=15e-3, px=0)
+        p_test = line.build_particles(x=5e-3, px=0)
         line.track(p_test, num_turns=10000, turn_by_turn_monitor=True)
         mon_test = line.record_last_track
         norm_coord_test = tw.get_normalized_coordinates(mon_test)
@@ -97,31 +100,24 @@ class ActionSeparatrix(xt.Action):
         x_norm_branch = x_norm_t[mask_branch]
         px_norm_branch = px_norm_t[mask_branch]
 
-        mask_fit = (x_branch > 0.05) & (x_branch < 0.06)
-        if mask_fit.any():
-            poly_geom = np.polyfit(x_branch[mask_fit], px_branch[mask_fit], 1)
-            poly_norm = np.polyfit(x_norm_branch[mask_fit], px_norm_branch[mask_fit], 1)
-            r_sep_norm = np.abs(poly_norm[1]) / np.sqrt(poly_norm[0]**2 + 1)
-            slope = poly_geom[0]
-        else:
-            poly_geom = None
-            poly_norm = None
-            r_sep_norm = None
-            slope = None
+        mask_fit = (x_branch > 0.01) & (x_branch < 0.02)
+        poly_geom = np.polyfit(x_branch[mask_fit], px_branch[mask_fit], 1)
+        poly_norm = np.polyfit(x_norm_branch[mask_fit], px_norm_branch[mask_fit], 1)
+
+        r_sep_norm = np.abs(poly_norm[1]) / np.sqrt(poly_norm[0]**2 + 1)
 
         out = {
-            'x_branch': x_branch,
-            'px_branch': px_branch,
             'poly_geom': poly_geom,
             'poly_norm': poly_norm,
             'r_sep_norm': r_sep_norm,
-            'slope': slope,
+            'slope': poly_geom[0],
         }
 
         return out
 
 action_sep = ActionSeparatrix(line)
 res = action_sep.run()
+tw = line.twiss(method='4d')
 
 num_particles = 5000
 x_norm = np.random.normal(size=num_particles)
