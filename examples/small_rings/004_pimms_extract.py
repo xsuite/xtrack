@@ -41,7 +41,7 @@ opt = line.match(
         xt.VaryList(['k2xcf', 'k2xcd'], step=1e-3, tag='sext'),
     ],
     targets=[
-        xt.TargetSet(qx=1.66, qy=1.72, tol=1e-6, tag='tunes'),
+        xt.TargetSet(qx=1.661, qy=1.72, tol=1e-6, tag='tunes'),
         xt.TargetSet(dqx=-0.1, dqy=-0.1, tol=1e-3, tag="chrom"),
         xt.Target(dx=0, tol=1e-3, at='pimms_start', tag='disp'),
     ]
@@ -83,7 +83,7 @@ class ActionSeparatrix(xt.Action):
         line = self.line
         tw = line.twiss(method='4d')
 
-        p_test = line.build_particles(x=15e-3, px=0)
+        p_test = line.build_particles(x=12e-3, px=0)
         line.track(p_test, num_turns=10000, turn_by_turn_monitor=True)
         mon_test = line.record_last_track
         norm_coord_test = tw.get_normalized_coordinates(mon_test)
@@ -100,7 +100,7 @@ class ActionSeparatrix(xt.Action):
         x_norm_branch = x_norm_t[mask_branch]
         px_norm_branch = px_norm_t[mask_branch]
 
-        mask_fit = (x_branch > 0.03) & (x_branch < 0.04)
+        mask_fit = (x_branch > 0.02) & (x_branch < 0.04)
         poly_geom = np.polyfit(x_branch[mask_fit], px_branch[mask_fit], 1)
         poly_norm = np.polyfit(x_norm_branch[mask_fit], px_norm_branch[mask_fit], 1)
 
@@ -111,6 +111,7 @@ class ActionSeparatrix(xt.Action):
             'poly_norm': poly_norm,
             'r_sep_norm': r_sep_norm,
             'slope': poly_geom[0],
+            'n_fit': np.sum(mask_fit),
         }
 
         return out
