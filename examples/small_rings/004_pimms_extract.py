@@ -74,6 +74,30 @@ plt.subplot(2, 1, 2, sharex=ax1)
 plt.plot(tw0.s, tw0.dx, '.-')
 plt.plot(tw1.s, tw1.dx, '.-')
 
+tw = line.twiss(method='4d')
+p = line.build_particles(
+    method='4d', x=np.linspace(0, 2e-2, 30), px=0, y=0, py=0)
+
+line.track(p, num_turns=2000, turn_by_turn_monitor=True, time=True)
+mon = line.record_last_track
+norm_coord = tw.get_normalized_coordinates(mon)
+
+import matplotlib.pyplot as plt
+plt.close('all')
+plt.figure(200)
+ax_geom = plt.subplot(1, 1, 1)
+plt.plot(mon.x.T, mon.px.T, '.', markersize=1)
+# plt.plot(x_branch, px_branch, '.k', markersize=3)
+
+plt.ylabel(r'$p_x$')
+plt.xlabel(r'$x$ [m]')
+
+plt.figure(201)
+ax_norm = plt.subplot(1, 1, 1)
+plt.plot(norm_coord.x_norm.T, norm_coord.px_norm.T, '.', markersize=1)
+# plt.plot(x_norm_branch, px_norm_branch, '.k', markersize=3)
+plt.axis('equal')
+
 class ActionSeparatrix(xt.Action):
 
     def __init__(self, line):
@@ -83,15 +107,17 @@ class ActionSeparatrix(xt.Action):
         line = self.line
         tw = line.twiss(method='4d')
 
-        p_test = line.build_particles(x=12e-3, px=0)
-        line.track(p_test, num_turns=10000, turn_by_turn_monitor=True)
+        p_test = line.build_particles(x=np.linspace(0, 1e-2, 20), px=0)
+        line.track(p_test, num_turns=2000, turn_by_turn_monitor=True)
         mon_test = line.record_last_track
+
+        i_part = np.where(mon_test.x.max(axis=1) > 0.02)[0][0] # first unstable particle
         norm_coord_test = tw.get_normalized_coordinates(mon_test)
 
-        x_t = mon_test.x[:]
-        px_t = mon_test.px[:]
-        x_norm_t = norm_coord_test.x_norm[:]
-        px_norm_t = norm_coord_test.px_norm[:]
+        x_t = mon_test.x[i_part, :]
+        px_t = mon_test.px[i_part, :]
+        x_norm_t = norm_coord_test.x_norm[i_part, :]
+        px_norm_t = norm_coord_test.px_norm[i_part, :]
 
         # Select branch closer to the x-axis
         mask_branch = (x_norm_t > 0) & (px_norm_t > -2 * x_norm_t) & (px_norm_t < 2 * x_norm_t)
@@ -100,7 +126,7 @@ class ActionSeparatrix(xt.Action):
         x_norm_branch = x_norm_t[mask_branch]
         px_norm_branch = px_norm_t[mask_branch]
 
-        mask_fit = (x_branch > 0.02) & (x_branch < 0.04)
+        mask_fit = (x_branch > 0.015) & (x_branch < 0.025)
         poly_geom = np.polyfit(x_branch[mask_fit], px_branch[mask_fit], 1)
         poly_norm = np.polyfit(x_norm_branch[mask_fit], px_norm_branch[mask_fit], 1)
 
@@ -112,6 +138,8 @@ class ActionSeparatrix(xt.Action):
             'r_sep_norm': r_sep_norm,
             'slope': poly_geom[0],
             'n_fit': np.sum(mask_fit),
+            'mon' : mon_test,
+            'i_part': i_part,
         }
 
         return out
@@ -141,8 +169,10 @@ px_fit_geom = poly_geom[0] * x_fit_geom + poly_geom[1]
 x_fit_norm = np.linspace(-0.2, 0.2, 10)
 px_fit_norm = poly_norm[0] * x_fit_norm + poly_norm[1]
 
-import matplotlib.pyplot as plt
-plt.close('all')
+ax_geom.plot(x_fit_geom, px_fit_geom, 'grey')
+ax_norm.plot(x_fit_norm, px_fit_norm, 'grey')
+
+
 plt.figure(100)
 plt.plot(x_fit_geom, px_fit_geom, 'grey')
 plt.plot(particles.x, particles.px, '.', markersize=1)
@@ -158,7 +188,7 @@ plt.axis('equal')
 p = line.build_particles(
     method='4d', x=np.linspace(0, 2e-2, 30), px=0, y=0, py=0)
 
-line.track(p, num_turns=10000, turn_by_turn_monitor=True, time=True)
+line.track(p, num_turns=2000, turn_by_turn_monitor=True, time=True)
 mon = line.record_last_track
 norm_coord = tw.get_normalized_coordinates(mon)
 
