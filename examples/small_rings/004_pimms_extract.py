@@ -8,7 +8,7 @@ mad = Madx()
 
 mad.call(test_data_folder + 'pimms/PIMM.seq')
 mad.call(test_data_folder + 'pimms/betatron.str')
-mad.beam(particle='proton', gamma=1.15)
+mad.beam(particle='proton', gamma=1.21315778) # 200 MeV
 mad.use('pimms')
 seq = mad.sequence.pimms
 def_expr = True
@@ -24,36 +24,51 @@ line.insert_element('mysext', xt.Sextupole(length=0.2), at_s=36.)
 line.vars['k2mysext'] = 0
 line.element_refs['mysext'].k2 = line.vars['k2mysext']
 
-line.insert_element(
-            'septum',
-            xt.LimitRect(min_x=-1, max_x=1, min_y=-1, max_y=1),
-            index='pimms_start')
+tw0 = line.twiss(method='4d')
 
 line.vars['k2xrr'] = 0
-optq = line.match(
+opt = line.match(
     solve=False,
     method='4d',
     vary=[
-        xt.VaryList(['qf1k1', 'qd1k1', 'qf2k1'], step=1e-3, tag='tune'),
-        xt.VaryList(['k2xcf', 'k2xcd'], step=1e-3, tag='chromaticity'),
+        xt.VaryList(['qf1k1', 'qd1k1', 'qf2k1'], step=1e-3, tag='quad'),
+        xt.VaryList(['k2xcf', 'k2xcd'], step=1e-3, tag='sext'),
     ],
     targets=[
-        xt.TargetSet(qx=1.6661, qy=1.72, tol=1e-6, tag='tune'),
-        xt.TargetSet(dqx=-4, dqy=-1, tol=1e-3, tag='chromaticity'),
-        # xt.Target(dx=0, at='pimms_start'),
+        xt.TargetSet(qx=1.66, qy=1.72, tol=1e-6, tag='tunes'),
+        xt.TargetSet(dqx=-0.1, dqy=-0.1, tol=1e-3, tag="chrom"),
+        xt.Target(dx=0, tol=1e-3, at='pimms_start', tag='disp'),
     ]
 )
-optq.disable_targets(tag='chromaticity')
-optq.disable_vary(tag='chromaticity')
-optq.solve()
-optq.enable_targets(tag='chromaticity')
-optq.enable_vary(tag='chromaticity')
-optq.solve()
+opt.disable_targets(tag='chrom')
+opt.disable_vary(tag='sext')
+opt.solve()
+opt.enable_all_targets()
+opt.enable_all_vary()
+opt.solve()
 
-optq.solve()
+tw1 = line.twiss(method='4d')
 
-line.vars['k2xrr'] = 1.1
-tw = line.twiss(method='4d')
+line.vars['k2xrr'] = 8.65
+
+tw2 = line.twiss(method='4d')
+
+
+import matplotlib.pyplot as plt
+plt.close('all')
+plt.figure(33)
+ax1 = plt.subplot(2, 1, 1)
+plt.plot(tw0.s, tw0.betx, '.-')
+plt.plot(tw1.s, tw1.betx, '.-')
+plt.plot(tw0.s, tw0.bety, '.-')
+plt.plot(tw1.s, tw1.bety, '.-')
+plt.ylabel(r'$\beta$ [m]')
+
+plt.subplot(2, 1, 2, sharex=ax1)
+plt.plot(tw0.s, tw0.dx, '.-')
+plt.plot(tw1.s, tw1.dx, '.-')
+
+plt.show()
 
 
 class ActionSeparatrix(xt.Action):

@@ -8,11 +8,10 @@ mad = Madx()
 
 mad.call(test_data_folder + 'pimms/PIMM.seq')
 mad.call(test_data_folder + 'pimms/betatron.str')
-mad.beam(particle='proton', gamma=1.05328945) # 50 MeV
+mad.beam(particle='proton', gamma=1.21315778) # 200 MeV
 mad.use('pimms')
 seq = mad.sequence.pimms
 def_expr = True
-
 
 line = xt.Line.from_madx_sequence(seq, deferred_expressions=def_expr)
 line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
@@ -21,6 +20,12 @@ line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
 line.configure_bend_model(core='full', edge='full')
 
 line.insert_element('mysext', xt.Sextupole(length=0.2), at_s=36.)
+
+line.insert_element(
+            'septum',
+            xt.LimitRect(min_x=-0.1, max_x=0.1, min_y=-0.1, max_y=0.1),
+            index='pimms_start')
+
 
 line.vars['k2mysext'] = 0
 line.element_refs['mysext'].k2 = line.vars['k2mysext']
@@ -36,7 +41,7 @@ opt = line.match(
         xt.VaryList(['k2xcf', 'k2xcd'], step=1e-3, tag='sext'),
     ],
     targets=[
-        xt.TargetSet(qx=1.66, qy=1.72, tol=1e-6, tag='tunes'),
+        xt.TargetSet(qx=1.665, qy=1.72, tol=1e-6, tag='tunes'),
         xt.TargetSet(dqx=-0.1, dqy=-0.1, tol=1e-3, tag="chrom"),
         xt.Target(dx=0, tol=1e-3, at='pimms_start', tag='disp'),
     ]
@@ -69,18 +74,6 @@ plt.subplot(2, 1, 2, sharex=ax1)
 plt.plot(tw0.s, tw0.dx, '.-')
 plt.plot(tw1.s, tw1.dx, '.-')
 
-plt.show()
-
-
-
-# line.insert_element(
-#             'septum',
-#             xt.LimitRect(min_x=-0.02, max_x=0.015, min_y=-1, max_y=1),
-#             index='pimms_start')
-
-
-
-
 class ActionSeparatrix(xt.Action):
 
     def __init__(self, line):
@@ -107,7 +100,7 @@ class ActionSeparatrix(xt.Action):
         x_norm_branch = x_norm_t[mask_branch]
         px_norm_branch = px_norm_t[mask_branch]
 
-        mask_fit = (x_branch > 0.02) & (x_branch < 0.04)
+        mask_fit = (x_branch > 0.01) & (x_branch < 0.02)
         poly_geom = np.polyfit(x_branch[mask_fit], px_branch[mask_fit], 1)
         poly_norm = np.polyfit(x_norm_branch[mask_fit], px_norm_branch[mask_fit], 1)
 
