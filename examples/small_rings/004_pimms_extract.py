@@ -124,7 +124,7 @@ x_norm = np.random.normal(size=num_particles)
 px_norm = np.random.normal(size=num_particles)
 y_norm = np.random.normal(size=num_particles)
 py_norm = np.random.normal(size=num_particles)
-delta = 5e-4 * np.random.normal(size=num_particles) * 0 #!!!!
+delta = 5e-4 * np.random.normal(size=num_particles)
 particles = line.build_particles(
     weight=1e10/num_particles,
     method='4d',
