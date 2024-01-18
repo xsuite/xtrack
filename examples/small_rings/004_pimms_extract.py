@@ -43,7 +43,7 @@ opt = line.match(
     targets=[
         xt.TargetSet(qx=1.661, qy=1.72, tol=1e-6, tag='tunes'),
         xt.TargetSet(dqx=-0.1, dqy=-0.1, tol=1e-3, tag="chrom"),
-        xt.Target(dx=0, tol=1e-3, at='pimms_start', tag='disp'),
+        xt.Target(dx=0, tol=1e-3, at='ms', tag='disp'),
     ]
 )
 opt.disable_targets(tag='chrom')
@@ -70,9 +70,11 @@ plt.plot(tw0.s, tw0.bety, '.-')
 plt.plot(tw1.s, tw1.bety, '.-')
 plt.ylabel(r'$\beta$ [m]')
 
-plt.subplot(2, 1, 2, sharex=ax1)
+ax2=plt.subplot(2, 1, 2, sharex=ax1)
 plt.plot(tw0.s, tw0.dx, '.-')
 plt.plot(tw1.s, tw1.dx, '.-')
+
+plt.axvline(x=tw2['s', 'xrr'], color='green', linestyle='--')
 
 tw = line.twiss(method='4d')
 p = line.build_particles(
@@ -82,8 +84,7 @@ line.track(p, num_turns=2000, turn_by_turn_monitor=True, time=True)
 mon = line.record_last_track
 norm_coord = tw.get_normalized_coordinates(mon)
 
-import matplotlib.pyplot as plt
-plt.close('all')
+
 plt.figure(200)
 ax_geom = plt.subplot(1, 1, 1)
 plt.plot(mon.x.T, mon.px.T, '.', markersize=1)
