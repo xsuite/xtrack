@@ -168,11 +168,11 @@ line.discard_tracker()
 class SpillExcitation:
     def __init__(self):
         self.intensity = []
-        self.amplitude = 3e-6
+        self.amplitude = 7e-6
         self.gain = 0.
         self.amplitude_max = 100e-6
         self.target_rate = 0.9e10/ 15000
-        self.n_ave = 20
+        self.n_ave = 100
         self._i_turn = 0
 
         self._amplitude_log = []
