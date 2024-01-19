@@ -93,7 +93,7 @@ class ActionSeparatrix(xt.Action):
 
         return out
 
-def plot_res(res):
+def plot_res(res, title=None):
     mon = res['mon']
     norm_coord = res['norm_coord']
 
@@ -119,6 +119,9 @@ def plot_res(res):
 
     ax_geom.plot(x_fit_geom, px_fit_geom, 'grey')
     ax_norm.plot(x_fit_norm, px_fit_norm, 'grey')
+
+    if title is not None:
+        plt.suptitle(title)
 
 # -----------------------------------------------------------------------------
 
@@ -174,7 +177,8 @@ optq.solve()
 
 tw1 = line.twiss(method='4d')
 
-line.vars['k2xrr_a_extr'] = 7.5
+line.vars['k2xrr_a_extr'] = 0
+line.vars['k2xrr_b_extr'] = 7.5
 tw2 = line.twiss(method='4d')
 
 import matplotlib.pyplot as plt
@@ -191,7 +195,7 @@ ax2=plt.subplot(2, 1, 2, sharex=ax1)
 plt.plot(tw0.s, tw0.dx, '.-')
 plt.plot(tw1.s, tw1.dx, '.-')
 
-act_show= ActionSeparatrix(line, range_test=(0e-3, 2e-2), range_fit=(1e-2, 2e-2),
+act_show= ActionSeparatrix(line, range_test=(0e-3, 2e-2), range_fit=(1.5e-2, 2.5e-2),
                                 n_test=30)
 res0 = act_show.run()
 
@@ -220,7 +224,7 @@ opt = line.match(
 res_m0 = act_match.run()
 
 
-while opt.targets[1].value < 0.7:
+while opt.targets[1].value < 0.9:
     opt.targets[1].value += 0.02
     opt.step(40)
     opt.target_status()
@@ -236,10 +240,16 @@ optq.solve()
 res1 = act_show.run()
 
 plt.figure(1)
-plot_res(res0)
+plot_res(res0, 'before')
 
 plt.figure(2)
-plot_res(res1)
+plot_res(res1, 'after')
+
+plt.figure(3)
+plot_res(res_m0, 'match - first point')
+
+plt.figure(4)
+plot_res(res_m1, 'match - last point')
 
 tw = line.twiss(method='4d')
 
