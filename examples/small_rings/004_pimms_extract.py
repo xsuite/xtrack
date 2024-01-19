@@ -120,6 +120,8 @@ def plot_res(res):
     ax_geom.plot(x_fit_geom, px_fit_geom, 'grey')
     ax_norm.plot(x_fit_norm, px_fit_norm, 'grey')
 
+# -----------------------------------------------------------------------------
+
 test_data_folder = '../../test_data/'
 mad = Madx()
 
@@ -175,7 +177,6 @@ tw1 = line.twiss(method='4d')
 line.vars['k2xrr_a_extr'] = 7.5
 tw2 = line.twiss(method='4d')
 
-
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(33)
@@ -189,6 +190,10 @@ plt.ylabel(r'$\beta$ [m]')
 ax2=plt.subplot(2, 1, 2, sharex=ax1)
 plt.plot(tw0.s, tw0.dx, '.-')
 plt.plot(tw1.s, tw1.dx, '.-')
+
+act_show= ActionSeparatrix(line, range_test=(0e-3, 2e-2), range_fit=(1e-2, 2e-2),
+                                n_test=30)
+res0 = act_show.run()
 
 
 
@@ -212,8 +217,8 @@ opt = line.match(
     ]
 )
 
-res = act_match.run()
-plot_res(res)
+res_m0 = act_match.run()
+
 
 while opt.targets[1].value < 0.7:
     opt.targets[1].value += 0.02
@@ -221,15 +226,14 @@ while opt.targets[1].value < 0.7:
     opt.target_status()
     opt.vary_status()
 
-act_show0= ActionSeparatrix(line, range_test=(0e-3, 2e-2), range_fit=(1e-2, 2e-2),
-                                n_test=30)
-res0 = act_show0.run()
+res_m1 = act_match.run()
+
 
 # Tune closer to resonance for separatrix matching
 optq.targets[0].value = 1.661
 optq.solve()
 
-res1 = act_show0.run()
+res1 = act_show.run()
 
 plt.figure(1)
 plot_res(res0)
@@ -338,5 +342,5 @@ plt.plot(line['spill_exc']._gain_log)
 
 plt.figure(1001)
 plt.plot(particles.x, particles.px, '.', markersize=2)
-plt.plot(x_fit_geom, px_fit_geom, 'grey')
+# plt.plot(x_fit_geom, px_fit_geom, 'grey')
 plt.show()
