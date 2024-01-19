@@ -221,7 +221,7 @@ opt = line.match(
     ]
 )
 
-while opt.targets[1].value > 0.5:
+while opt.targets[1].value > 0.3:
     opt.targets[1].value -= 0.02
     opt.step(40)
     opt.target_status()
