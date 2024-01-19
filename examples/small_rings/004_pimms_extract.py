@@ -24,6 +24,7 @@ class ActionSeparatrix(xt.Action):
         line.track(p_test, num_turns=2000, turn_by_turn_monitor=True)
         mon_test = line.record_last_track
 
+        message = 'all ok'
         try:
             if self.i_part_fit is None:
                 i_part = np.where(mon_test.x.max(axis=1) > 0.02)[0][0] # first unstable particle
@@ -39,12 +40,16 @@ class ActionSeparatrix(xt.Action):
 
             # Select branch closer to the x-axis
             mask_branch = (x_norm_t > 0) & (px_norm_t > -2 * x_norm_t) & (px_norm_t < 2 * x_norm_t)
+            if not mask_branch.any():
+                message = 'no branch'
             x_branch = x_t[mask_branch]
             px_branch = px_t[mask_branch]
             x_norm_branch = x_norm_t[mask_branch]
             px_norm_branch = px_norm_t[mask_branch]
 
             mask_fit = (x_branch > self.range_fit[0]) & (x_branch < self.range_fit[1])
+            if not mask_fit.any():
+                message = 'no fit'
             poly_geom = np.polyfit(x_branch[mask_fit], px_branch[mask_fit], 1)
             poly_norm = np.polyfit(x_norm_branch[mask_fit], px_norm_branch[mask_fit], 1)
 
@@ -59,6 +64,7 @@ class ActionSeparatrix(xt.Action):
                 'mon' : mon_test,
                 'norm_coord': norm_coord_test,
                 'i_part': i_part,
+                'message': message,
             }
         except:
             out = {
@@ -70,6 +76,7 @@ class ActionSeparatrix(xt.Action):
                 'mon' : mon_test,
                 'norm_coord': norm_coord_test,
                 'i_part': 0,
+                'message': message,
             }
 
         return out
@@ -153,8 +160,9 @@ optq.solve()
 
 # plt.axvline(x=tw2['s', 'xrr'], color='green', linestyle='--')
 
-act_res = ActionSeparatrix(line)
-res = act_res.run()
+act_match = ActionSeparatrix(line, range_test=(0e-3, 2e-3), range_fit=(3e-3, 4e-3),
+                                n_test=30, i_part_fit=29)
+res = act_match.run()
 mon = res['mon']
 norm_coord = res['norm_coord']
 
@@ -182,8 +190,7 @@ px_fit_norm = poly_norm[0] * x_fit_norm + poly_norm[1]
 ax_geom.plot(x_fit_geom, px_fit_geom, 'grey')
 ax_norm.plot(x_fit_norm, px_fit_norm, 'grey')
 
-act_match = ActionSeparatrix(line, range_test=(0e-3, 3e-3), range_fit=(10e-3, 15e-3),
-                                n_test=30, i_part_fit=4)
+
 res0 = act_match.run()
 
 
