@@ -207,7 +207,7 @@ optq.solve()
 
 # plt.axvline(x=tw2['s', 'xrr'], color='green', linestyle='--')
 
-act_match = ActionSeparatrix(line, range_test=(0e-3, 2e-3), range_fit=(3e-3, 4e-3),
+act_match = ActionSeparatrix(line, range_test=(0e-3, 2e-3), range_fit=(2.5e-3, 3.e-3),
                                 n_test=5, i_part_fit=4)
 res_m0 = act_match.run()
 
