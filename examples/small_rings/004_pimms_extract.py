@@ -5,12 +5,14 @@ import xtrack as xt
 
 class ActionSeparatrix(xt.Action):
 
-    def __init__(self, line, n_tast=20, range_test=(0, 1e-2),
-                             range_fit=(0.015, 0.025)):
+    def __init__(self, line, n_test=20, range_test=(0, 1e-2),
+                             range_fit=(0.015, 0.025),
+                             i_part_fit=None):
         self.line = line
-        self.n_tast = n_tast
+        self.n_test = n_test
         self.range_test = range_test
         self.range_fit = range_fit
+        self.i_part_fit = i_part_fit
 
     def run(self):
         line = self.line
@@ -18,12 +20,15 @@ class ActionSeparatrix(xt.Action):
 
         p_test = line.build_particles(x=np.linspace(self.range_test[0],
                                                     self.range_test[1],
-                                                    self.n_tast), px=0)
+                                                    self.n_test), px=0)
         line.track(p_test, num_turns=2000, turn_by_turn_monitor=True)
         mon_test = line.record_last_track
 
         try:
-            i_part = np.where(mon_test.x.max(axis=1) > 0.02)[0][0] # first unstable particle
+            if self.i_part_fit is None:
+                i_part = np.where(mon_test.x.max(axis=1) > 0.02)[0][0] # first unstable particle
+            else:
+                i_part = self.i_part_fit
             # i_part = len(p_test.x) - 1
             norm_coord_test = tw.get_normalized_coordinates(mon_test)
 
@@ -101,7 +106,7 @@ line.vars['k2xrr_b_extr'] = 0
 line.vars['k2xrr_a'] = line.vars['k2xrr_a_extr']
 line.vars['k2xrr_b'] = line.vars['k2xrr_b_extr']
 
-opt = line.match(
+optq = line.match(
     solve=False,
     method='4d',
     vary=[
@@ -114,12 +119,12 @@ opt = line.match(
         xt.Target(dx=0, tol=1e-3, at='es', tag='disp'),
     ]
 )
-opt.disable_targets(tag='chrom')
-opt.disable_vary(tag='sext')
-opt.solve()
-opt.enable_all_targets()
-opt.enable_all_vary()
-opt.solve()
+optq.disable_targets(tag='chrom')
+optq.disable_vary(tag='sext')
+optq.solve()
+optq.enable_all_targets()
+optq.enable_all_vary()
+optq.solve()
 
 tw1 = line.twiss(method='4d')
 
@@ -141,9 +146,12 @@ ax2=plt.subplot(2, 1, 2, sharex=ax1)
 plt.plot(tw0.s, tw0.dx, '.-')
 plt.plot(tw1.s, tw1.dx, '.-')
 
+
+# Tune closer to resonance for separatrix matching
+optq.targets[0].value = 1.667
+optq.solve()
+
 # plt.axvline(x=tw2['s', 'xrr'], color='green', linestyle='--')
-
-
 
 act_res = ActionSeparatrix(line)
 res = act_res.run()
@@ -164,21 +172,36 @@ plt.plot(norm_coord.x_norm.T, norm_coord.px_norm.T, '.', markersize=1)
 # plt.plot(x_norm_branch, px_norm_branch, '.k', markersize=3)
 plt.axis('equal')
 
+poly_geom = res['poly_geom']
+poly_norm = res['poly_norm']
+x_fit_geom = np.linspace(-0.2, 0.2, 10)
+px_fit_geom = poly_geom[0] * x_fit_geom + poly_geom[1]
+x_fit_norm = np.linspace(-0.2, 0.2, 10)
+px_fit_norm = poly_norm[0] * x_fit_norm + poly_norm[1]
+
+ax_geom.plot(x_fit_geom, px_fit_geom, 'grey')
+ax_norm.plot(x_fit_norm, px_fit_norm, 'grey')
+
+act_match = ActionSeparatrix(line, range_test=(0e-3, 3e-3), range_fit=(10e-3, 15e-3),
+                                n_test=30, i_part_fit=4)
+res0 = act_match.run()
 
 
-action_sep = ActionSeparatrix(line)
-res = action_sep.run()
+opt = line.match(
+    solve=False,
+    method='4d',
+    vary=xt.VaryList(['k2xrr_a_extr', 'k2xrr_b_extr'], step=1e-3, tag='resonance'),
+    targets=[
+        act_match.target('r_sep_norm', res0['r_sep_norm'], tol=1e-6, tag='resonance', weight=100),
+        act_match.target('slope', 0.0, tol=1e-5, tag='resonance'),
+    ]
+)
 
-# opt = line.match(
-#     solve=False,
-#     method='4d',
-#     vary=xt.VaryList(['k2xrr_a', 'k2xrr_b'], step=5e-2, tag='resonance'),
-#     targets=[
-#         action_sep.target('r_sep_norm', 2.7e-3, tol=1e-4, tag='resonance'),
-#         action_sep.target('slope', 0.0, tol=1e-5, tag='resonance'),
-#     ]
-# )
-# opt.solve()
+prrrrr
+opt.solve()
+
+
+
 
 
 
@@ -198,15 +221,7 @@ particles = line.build_particles(
     delta=delta)
 tab = tw.get_normalized_coordinates(particles)
 
-poly_geom = res['poly_geom']
-poly_norm = res['poly_norm']
-x_fit_geom = np.linspace(-0.2, 0.2, 10)
-px_fit_geom = poly_geom[0] * x_fit_geom + poly_geom[1]
-x_fit_norm = np.linspace(-0.2, 0.2, 10)
-px_fit_norm = poly_norm[0] * x_fit_norm + poly_norm[1]
 
-ax_geom.plot(x_fit_geom, px_fit_geom, 'grey')
-ax_norm.plot(x_fit_norm, px_fit_norm, 'grey')
 
 
 plt.figure(100)
