@@ -55,7 +55,7 @@ opt.solve()
 
 tw1 = line.twiss(method='4d')
 
-line.vars['k2xrr_a_extr'] = 8.65
+line.vars['k2xrr_a_extr'] = 7.5
 tw2 = line.twiss(method='4d')
 
 
@@ -111,9 +111,9 @@ class ActionSeparatrix(xt.Action):
         line.track(p_test, num_turns=2000, turn_by_turn_monitor=True)
         mon_test = line.record_last_track
 
-        # i_part = np.where(mon_test.x.max(axis=1) > 0.02)[0][0] # first unstable particle
-        # range_fit = (0.015, 0.025)
-        i_part = len(p_test.x) - 1
+        i_part = np.where(mon_test.x.max(axis=1) > 0.02)[0][0] # first unstable particle
+        range_fit = (0.015, 0.025)
+        # i_part = len(p_test.x) - 1
         range_fit = (0.03, 0.04)
         norm_coord_test = tw.get_normalized_coordinates(mon_test)
 
