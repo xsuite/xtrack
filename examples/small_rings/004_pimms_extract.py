@@ -19,7 +19,6 @@ line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
                                  q0=seq.beam.charge)
 line.configure_bend_model(core='full', edge='full')
 
-line.insert_element('mysext', xt.Sextupole(length=0.2), at_s=36.)
 
 line.insert_element(
             'septum',
@@ -27,12 +26,13 @@ line.insert_element(
             index='pimms_start')
 
 
-line.vars['k2mysext'] = 0
-line.element_refs['mysext'].k2 = line.vars['k2mysext']
-
 tw0 = line.twiss(method='4d')
 
-line.vars['k2xrr'] = 0
+line.vars['k2xrr_a_extr'] = 0
+line.vars['k2xrr_b_extr'] = 0
+line.vars['k2xrr_a'] = line.vars['k2xrr_a_extr']
+line.vars['k2xrr_b'] = line.vars['k2xrr_b_extr']
+
 opt = line.match(
     solve=False,
     method='4d',
@@ -55,8 +55,7 @@ opt.solve()
 
 tw1 = line.twiss(method='4d')
 
-line.vars['k2xrr_extr'] = 8.65
-line.vars['k2xrr'] = line.vars['k2xrr_extr']
+line.vars['k2xrr_a_extr'] = 8.65
 tw2 = line.twiss(method='4d')
 
 
@@ -151,16 +150,16 @@ class ActionSeparatrix(xt.Action):
 action_sep = ActionSeparatrix(line)
 res = action_sep.run()
 
-opt = line.match(
-    solve=False,
-    method='4d',
-    vary=xt.VaryList(['k2xrr_a', 'k2xrr_b'], step=5e-2, tag='resonance'),
-    targets=[
-        action_sep.target('r_sep_norm', 2.7e-3, tol=1e-4, tag='resonance'),
-        action_sep.target('slope', 0.0, tol=1e-5, tag='resonance'),
-    ]
-)
-opt.solve()
+# opt = line.match(
+#     solve=False,
+#     method='4d',
+#     vary=xt.VaryList(['k2xrr_a', 'k2xrr_b'], step=5e-2, tag='resonance'),
+#     targets=[
+#         action_sep.target('r_sep_norm', 2.7e-3, tol=1e-4, tag='resonance'),
+#         action_sep.target('slope', 0.0, tol=1e-5, tag='resonance'),
+#     ]
+# )
+# opt.solve()
 
 
 
@@ -262,7 +261,8 @@ import xobjects as xo
 line.build_tracker(_context=xo.ContextCpu('auto'))
 
 line.functions['fun_xsext'] = xt.FunctionPieceWiseLinear(x=[0, 0.5e-3], y=[0, 1.])
-line.vars['k2xrr'] = line.vars['k2xrr_extr'] * line.functions['fun_xsext'](line.vars['t_turn_s'])
+line.vars['k2xrr_a'] = line.vars['k2xrr_a_extr'] * line.functions['fun_xsext'](line.vars['t_turn_s'])
+line.vars['k2xrr_b'] = line.vars['k2xrr_b_extr'] * line.functions['fun_xsext'](line.vars['t_turn_s'])
 
 line.functions['fun_gain'] = xt.FunctionPieceWiseLinear(x=[0, 0.25e-3, 0.5e-3], y=[0, 0, .001])
 line.vars['gain'] = line.functions['fun_gain'](line.vars['t_turn_s'])
