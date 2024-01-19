@@ -166,16 +166,15 @@ res = act_match.run()
 mon = res['mon']
 norm_coord = res['norm_coord']
 
-plt.figure(200)
-ax_geom = plt.subplot(1, 1, 1)
+plt.figure(200, figsize=(10, 5))
+ax_geom = plt.subplot(1, 2, 1)
 plt.plot(mon.x.T, mon.px.T, '.', markersize=1)
 # plt.plot(x_branch, px_branch, '.k', markersize=3)
 
 plt.ylabel(r'$p_x$')
 plt.xlabel(r'$x$ [m]')
 
-plt.figure(201)
-ax_norm = plt.subplot(1, 1, 1)
+ax_norm = plt.subplot(1, 2, 2)
 plt.plot(norm_coord.x_norm.T, norm_coord.px_norm.T, '.', markersize=1)
 # plt.plot(x_norm_branch, px_norm_branch, '.k', markersize=3)
 plt.axis('equal')
