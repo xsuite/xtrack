@@ -195,7 +195,7 @@ ax2=plt.subplot(2, 1, 2, sharex=ax1)
 plt.plot(tw0.s, tw0.dx, '.-')
 plt.plot(tw1.s, tw1.dx, '.-')
 
-act_show= ActionSeparatrix(line, range_test=(0e-3, 2e-2), range_fit=(1.5e-2, 2.5e-2),
+act_show= ActionSeparatrix(line, range_test=(0e-3, 2e-2), range_fit=(2e-2, 3e-2),
                                 n_test=30)
 res0 = act_show.run()
 
