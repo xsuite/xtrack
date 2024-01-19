@@ -81,7 +81,32 @@ class ActionSeparatrix(xt.Action):
 
         return out
 
+def plot_res(res):
+    mon = res['mon']
+    norm_coord = res['norm_coord']
 
+    plt.figure(figsize=(10, 5))
+    ax_geom = plt.subplot(1, 2, 1)
+    plt.plot(mon.x.T, mon.px.T, '.', markersize=1)
+    # plt.plot(x_branch, px_branch, '.k', markersize=3)
+
+    plt.ylabel(r'$p_x$')
+    plt.xlabel(r'$x$ [m]')
+
+    ax_norm = plt.subplot(1, 2, 2)
+    plt.plot(norm_coord.x_norm.T, norm_coord.px_norm.T, '.', markersize=1)
+    # plt.plot(x_norm_branch, px_norm_branch, '.k', markersize=3)
+    plt.axis('equal')
+
+    poly_geom = res['poly_geom']
+    poly_norm = res['poly_norm']
+    x_fit_geom = np.linspace(-0.2, 0.2, 10)
+    px_fit_geom = poly_geom[0] * x_fit_geom + poly_geom[1]
+    x_fit_norm = np.linspace(-0.2, 0.2, 10)
+    px_fit_norm = poly_norm[0] * x_fit_norm + poly_norm[1]
+
+    ax_geom.plot(x_fit_geom, px_fit_geom, 'grey')
+    ax_norm.plot(x_fit_norm, px_fit_norm, 'grey')
 
 test_data_folder = '../../test_data/'
 mad = Madx()
@@ -162,36 +187,7 @@ optq.solve()
 
 act_match = ActionSeparatrix(line, range_test=(0e-3, 2e-3), range_fit=(3e-3, 4e-3),
                                 n_test=30, i_part_fit=29)
-res = act_match.run()
-mon = res['mon']
-norm_coord = res['norm_coord']
-
-plt.figure(200, figsize=(10, 5))
-ax_geom = plt.subplot(1, 2, 1)
-plt.plot(mon.x.T, mon.px.T, '.', markersize=1)
-# plt.plot(x_branch, px_branch, '.k', markersize=3)
-
-plt.ylabel(r'$p_x$')
-plt.xlabel(r'$x$ [m]')
-
-ax_norm = plt.subplot(1, 2, 2)
-plt.plot(norm_coord.x_norm.T, norm_coord.px_norm.T, '.', markersize=1)
-# plt.plot(x_norm_branch, px_norm_branch, '.k', markersize=3)
-plt.axis('equal')
-
-poly_geom = res['poly_geom']
-poly_norm = res['poly_norm']
-x_fit_geom = np.linspace(-0.2, 0.2, 10)
-px_fit_geom = poly_geom[0] * x_fit_geom + poly_geom[1]
-x_fit_norm = np.linspace(-0.2, 0.2, 10)
-px_fit_norm = poly_norm[0] * x_fit_norm + poly_norm[1]
-
-ax_geom.plot(x_fit_geom, px_fit_geom, 'grey')
-ax_norm.plot(x_fit_norm, px_fit_norm, 'grey')
-
-
 res0 = act_match.run()
-
 
 opt = line.match(
     solve=False,
@@ -203,13 +199,15 @@ opt = line.match(
     ]
 )
 
-prrrrr
-opt.solve()
+res = act_match.run()
+plot_res(res)
 
+# prrrrr
+# opt.solve()
 
-
-
-
+# Tune closer to resonance for separatrix matching
+optq.targets[0].value = 1.661
+optq.solve()
 
 tw = line.twiss(method='4d')
 
@@ -230,16 +228,16 @@ tab = tw.get_normalized_coordinates(particles)
 
 
 
-plt.figure(100)
-plt.plot(x_fit_geom, px_fit_geom, 'grey')
-plt.plot(particles.x, particles.px, '.', markersize=1)
-plt.ylabel(r'$p_x$')
-plt.xlabel(r'$x$ [m]')
+# plt.figure(100)
+# plt.plot(x_fit_geom, px_fit_geom, 'grey')
+# plt.plot(particles.x, particles.px, '.', markersize=1)
+# plt.ylabel(r'$p_x$')
+# plt.xlabel(r'$x$ [m]')
 
-plt.figure(101)
-plt.plot(x_fit_norm, px_fit_norm, 'grey')
-plt.plot(tab.x_norm, tab.px_norm, '.', markersize=1)
-plt.axis('equal')
+# plt.figure(101)
+# plt.plot(x_fit_norm, px_fit_norm, 'grey')
+# plt.plot(tab.x_norm, tab.px_norm, '.', markersize=1)
+# plt.axis('equal')
 
 line.discard_tracker()
 
