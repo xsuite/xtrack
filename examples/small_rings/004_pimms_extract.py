@@ -3,6 +3,74 @@ import numpy as np
 
 import xtrack as xt
 
+class ActionSeparatrix(xt.Action):
+
+    def __init__(self, line, n_tast=20, range_test=(0, 1e-2),
+                             range_fit=(0.015, 0.025)):
+        self.line = line
+        self.n_tast = n_tast
+        self.range_test = range_test
+        self.range_fit = range_fit
+
+    def run(self):
+        line = self.line
+        tw = line.twiss(method='4d')
+
+        p_test = line.build_particles(x=np.linspace(self.range_test[0],
+                                                    self.range_test[1],
+                                                    self.n_tast), px=0)
+        line.track(p_test, num_turns=2000, turn_by_turn_monitor=True)
+        mon_test = line.record_last_track
+
+        try:
+            i_part = np.where(mon_test.x.max(axis=1) > 0.02)[0][0] # first unstable particle
+            # i_part = len(p_test.x) - 1
+            norm_coord_test = tw.get_normalized_coordinates(mon_test)
+
+            x_t = mon_test.x[i_part, :]
+            px_t = mon_test.px[i_part, :]
+            x_norm_t = norm_coord_test.x_norm[i_part, :]
+            px_norm_t = norm_coord_test.px_norm[i_part, :]
+
+            # Select branch closer to the x-axis
+            mask_branch = (x_norm_t > 0) & (px_norm_t > -2 * x_norm_t) & (px_norm_t < 2 * x_norm_t)
+            x_branch = x_t[mask_branch]
+            px_branch = px_t[mask_branch]
+            x_norm_branch = x_norm_t[mask_branch]
+            px_norm_branch = px_norm_t[mask_branch]
+
+            mask_fit = (x_branch > self.range_fit[0]) & (x_branch < self.range_fit[1])
+            poly_geom = np.polyfit(x_branch[mask_fit], px_branch[mask_fit], 1)
+            poly_norm = np.polyfit(x_norm_branch[mask_fit], px_norm_branch[mask_fit], 1)
+
+            r_sep_norm = np.abs(poly_norm[1]) / np.sqrt(poly_norm[0]**2 + 1)
+
+            out = {
+                'poly_geom': poly_geom,
+                'poly_norm': poly_norm,
+                'r_sep_norm': r_sep_norm,
+                'slope': poly_geom[0],
+                'n_fit': np.sum(mask_fit),
+                'mon' : mon_test,
+                'norm_coord': norm_coord_test,
+                'i_part': i_part,
+            }
+        except:
+            out = {
+                'poly_geom': [0, 0],
+                'poly_norm': [0, 0],
+                'r_sep_norm': 0,
+                'slope': 0,
+                'n_fit': 0,
+                'mon' : mon_test,
+                'norm_coord': norm_coord_test,
+                'i_part': 0,
+            }
+
+        return out
+
+
+
 test_data_folder = '../../test_data/'
 mad = Madx()
 
@@ -75,71 +143,7 @@ plt.plot(tw1.s, tw1.dx, '.-')
 
 # plt.axvline(x=tw2['s', 'xrr'], color='green', linestyle='--')
 
-class ActionSeparatrix(xt.Action):
 
-    def __init__(self, line, n_tast=20, range_test=(0, 1e-2),
-                             range_fit=(0.015, 0.025)):
-        self.line = line
-        self.n_tast = n_tast
-        self.range_test = range_test
-        self.range_fit = range_fit
-
-    def run(self):
-        line = self.line
-        tw = line.twiss(method='4d')
-
-        p_test = line.build_particles(x=np.linspace(self.range_test[0],
-                                                    self.range_test[1],
-                                                    self.n_tast), px=0)
-        line.track(p_test, num_turns=2000, turn_by_turn_monitor=True)
-        mon_test = line.record_last_track
-
-        try:
-            i_part = np.where(mon_test.x.max(axis=1) > 0.02)[0][0] # first unstable particle
-            # i_part = len(p_test.x) - 1
-            norm_coord_test = tw.get_normalized_coordinates(mon_test)
-
-            x_t = mon_test.x[i_part, :]
-            px_t = mon_test.px[i_part, :]
-            x_norm_t = norm_coord_test.x_norm[i_part, :]
-            px_norm_t = norm_coord_test.px_norm[i_part, :]
-
-            # Select branch closer to the x-axis
-            mask_branch = (x_norm_t > 0) & (px_norm_t > -2 * x_norm_t) & (px_norm_t < 2 * x_norm_t)
-            x_branch = x_t[mask_branch]
-            px_branch = px_t[mask_branch]
-            x_norm_branch = x_norm_t[mask_branch]
-            px_norm_branch = px_norm_t[mask_branch]
-
-            mask_fit = (x_branch > self.range_fit[0]) & (x_branch < self.range_fit[1])
-            poly_geom = np.polyfit(x_branch[mask_fit], px_branch[mask_fit], 1)
-            poly_norm = np.polyfit(x_norm_branch[mask_fit], px_norm_branch[mask_fit], 1)
-
-            r_sep_norm = np.abs(poly_norm[1]) / np.sqrt(poly_norm[0]**2 + 1)
-
-            out = {
-                'poly_geom': poly_geom,
-                'poly_norm': poly_norm,
-                'r_sep_norm': r_sep_norm,
-                'slope': poly_geom[0],
-                'n_fit': np.sum(mask_fit),
-                'mon' : mon_test,
-                'norm_coord': norm_coord_test,
-                'i_part': i_part,
-            }
-        except:
-            out = {
-                'poly_geom': [0, 0],
-                'poly_norm': [0, 0],
-                'r_sep_norm': 0,
-                'slope': 0,
-                'n_fit': 0,
-                'mon' : mon_test,
-                'norm_coord': norm_coord_test,
-                'i_part': 0,
-            }
-
-        return out
 
 act_res = ActionSeparatrix(line)
 res = act_res.run()
