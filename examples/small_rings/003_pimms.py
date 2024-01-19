@@ -6,7 +6,7 @@ import xtrack as xt
 test_data_folder = '../../test_data/'
 mad = Madx()
 
-mad.call(test_data_folder + 'pimms/PIMM.seq')
+mad.call(test_data_folder + 'pimms/PIMM_orig.seq')
 mad.call(test_data_folder + 'pimms/betatron.str')
 mad.beam(particle='proton', gamma=1.21315778) # 200 MeV
 mad.use('pimms')

@@ -215,13 +215,11 @@ opt = line.match(
 res = act_match.run()
 plot_res(res)
 
-while opt.targets[1].value < 1.1:
+while opt.targets[1].value < 0.7:
     opt.targets[1].value += 0.02
     opt.step(40)
     opt.target_status()
     opt.vary_status()
-
-import pdb; pdb.set_trace()
 
 act_show0= ActionSeparatrix(line, range_test=(0e-3, 2e-2), range_fit=(1e-2, 2e-2),
                                 n_test=30)
@@ -233,7 +231,11 @@ optq.solve()
 
 res1 = act_show0.run()
 
-prrrr
+plt.figure(1)
+plot_res(res0)
+
+plt.figure(2)
+plot_res(res1)
 
 tw = line.twiss(method='4d')
 
