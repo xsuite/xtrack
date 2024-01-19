@@ -7,12 +7,14 @@ class ActionSeparatrix(xt.Action):
 
     def __init__(self, line, n_test=20, range_test=(0, 1e-2),
                              range_fit=(0.015, 0.025),
-                             i_part_fit=None):
+                             i_part_fit=None,
+                             num_turns=2000):
         self.line = line
         self.n_test = n_test
         self.range_test = range_test
         self.range_fit = range_fit
         self.i_part_fit = i_part_fit
+        self.num_turns = num_turns
 
     def run(self):
         line = self.line
@@ -21,8 +23,9 @@ class ActionSeparatrix(xt.Action):
         p_test = line.build_particles(x=np.linspace(self.range_test[0],
                                                     self.range_test[1],
                                                     self.n_test), px=0)
-        line.track(p_test, num_turns=2000, turn_by_turn_monitor=True)
+        line.track(p_test, num_turns=self.num_turns, turn_by_turn_monitor=True)
         mon_test = line.record_last_track
+        norm_coord_test = tw.get_normalized_coordinates(mon_test)
 
         message = 'all ok'
         try:
@@ -31,7 +34,6 @@ class ActionSeparatrix(xt.Action):
             else:
                 i_part = self.i_part_fit
             # i_part = len(p_test.x) - 1
-            norm_coord_test = tw.get_normalized_coordinates(mon_test)
 
             x_t = mon_test.x[i_part, :]
             px_t = mon_test.px[i_part, :]
@@ -39,7 +41,8 @@ class ActionSeparatrix(xt.Action):
             px_norm_t = norm_coord_test.px_norm[i_part, :]
 
             # Select branch closer to the x-axis
-            mask_branch = (x_norm_t > 0) & (px_norm_t > -2 * x_norm_t) & (px_norm_t < 2 * x_norm_t)
+            # mask_branch = (x_norm_t > 0) & (px_norm_t > -2 * x_norm_t) & (px_norm_t < 2 * x_norm_t)
+            mask_branch = (x_norm_t > 0) & (px_norm_t > 0)
             if not mask_branch.any():
                 message = 'no branch'
             x_branch = x_t[mask_branch]
@@ -47,7 +50,11 @@ class ActionSeparatrix(xt.Action):
             x_norm_branch = x_norm_t[mask_branch]
             px_norm_branch = px_norm_t[mask_branch]
 
+            # for when separatrix makes a closed loop
+            i_first_loop = np.where(x_branch>self.range_fit[1])[0][0]
+
             mask_fit = (x_branch > self.range_fit[0]) & (x_branch < self.range_fit[1])
+            mask_fit[i_first_loop:] = False
             if not mask_fit.any():
                 message = 'no fit'
             poly_geom = np.polyfit(x_branch[mask_fit], px_branch[mask_fit], 1)
@@ -59,19 +66,24 @@ class ActionSeparatrix(xt.Action):
                 'poly_geom': poly_geom,
                 'poly_norm': poly_norm,
                 'r_sep_norm': r_sep_norm,
-                'slope': poly_geom[0],
+                'slope_geom': poly_geom[0],
+                'slope_norm': poly_norm[0],
                 'n_fit': np.sum(mask_fit),
                 'mon' : mon_test,
                 'norm_coord': norm_coord_test,
                 'i_part': i_part,
                 'message': message,
+                'x_fit': x_branch[mask_fit],
+                'px_fit': px_branch[mask_fit],
             }
-        except:
+        except Exception as err:
+            print(err)
             out = {
                 'poly_geom': [0, 0],
                 'poly_norm': [0, 0],
-                'r_sep_norm': 0,
-                'slope': 0,
+                'r_sep_norm': 999.,
+                'slope_geom': 999.,
+                'slope_norm': 999.,
                 'n_fit': 0,
                 'mon' : mon_test,
                 'norm_coord': norm_coord_test,
@@ -179,6 +191,7 @@ plt.plot(tw0.s, tw0.dx, '.-')
 plt.plot(tw1.s, tw1.dx, '.-')
 
 
+
 # Tune closer to resonance for separatrix matching
 optq.targets[0].value = 1.667
 optq.solve()
@@ -186,7 +199,7 @@ optq.solve()
 # plt.axvline(x=tw2['s', 'xrr'], color='green', linestyle='--')
 
 act_match = ActionSeparatrix(line, range_test=(0e-3, 2e-3), range_fit=(3e-3, 4e-3),
-                                n_test=30, i_part_fit=29)
+                                n_test=5, i_part_fit=4)
 res0 = act_match.run()
 
 opt = line.match(
@@ -194,20 +207,33 @@ opt = line.match(
     method='4d',
     vary=xt.VaryList(['k2xrr_a_extr', 'k2xrr_b_extr'], step=1e-3, tag='resonance'),
     targets=[
-        act_match.target('r_sep_norm', res0['r_sep_norm'], tol=1e-6, tag='resonance', weight=100),
-        act_match.target('slope', 0.0, tol=1e-5, tag='resonance'),
+        act_match.target('r_sep_norm', res0['r_sep_norm'], tol=2e-5, tag='resonance', weight=1e4),
+        act_match.target('slope_norm', res0['slope_norm'], tol=0.05, tag='resonance'),
     ]
 )
 
 res = act_match.run()
 plot_res(res)
 
-# prrrrr
-# opt.solve()
+while opt.targets[1].value < 1.1:
+    opt.targets[1].value += 0.02
+    opt.step(40)
+    opt.target_status()
+    opt.vary_status()
+
+import pdb; pdb.set_trace()
+
+act_show0= ActionSeparatrix(line, range_test=(0e-3, 2e-2), range_fit=(1e-2, 2e-2),
+                                n_test=30)
+res0 = act_show0.run()
 
 # Tune closer to resonance for separatrix matching
 optq.targets[0].value = 1.661
 optq.solve()
+
+res1 = act_show0.run()
+
+prrrr
 
 tw = line.twiss(method='4d')
 
@@ -272,6 +298,8 @@ class SpillExcitation:
         self._gain_log.append(self.gain)
         p.px[p.state > 0] += self.amplitude * np.random.normal(size=np.sum(p.state > 0))
         self._i_turn += 1
+
+
 
 line.insert_element('spill_exc', SpillExcitation(), at_s=0)
 import xobjects as xo
