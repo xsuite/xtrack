@@ -209,23 +209,20 @@ optq.solve()
 
 act_match = ActionSeparatrix(line, range_test=(0e-3, 2e-3), range_fit=(3e-3, 4e-3),
                                 n_test=5, i_part_fit=4)
-res0 = act_match.run()
+res_m0 = act_match.run()
 
 opt = line.match(
     solve=False,
     method='4d',
     vary=xt.VaryList(['k2xrr_a_extr', 'k2xrr_b_extr'], step=1e-3, tag='resonance'),
     targets=[
-        act_match.target('r_sep_norm', res0['r_sep_norm'], tol=2e-5, tag='resonance', weight=1e4),
-        act_match.target('slope_norm', res0['slope_norm'], tol=0.05, tag='resonance'),
+        act_match.target('r_sep_norm', res_m0['r_sep_norm'], tol=2e-5, tag='resonance', weight=1e4),
+        act_match.target('slope_norm', res_m0['slope_norm'], tol=0.05, tag='resonance'),
     ]
 )
 
-res_m0 = act_match.run()
-
-
-while opt.targets[1].value < 0.9:
-    opt.targets[1].value += 0.02
+while opt.targets[1].value > 0.5:
+    opt.targets[1].value -= 0.02
     opt.step(40)
     opt.target_status()
     opt.vary_status()
@@ -239,16 +236,9 @@ optq.solve()
 
 res1 = act_show.run()
 
-plt.figure(1)
 plot_res(res0, 'before')
-
-plt.figure(2)
 plot_res(res1, 'after')
-
-plt.figure(3)
 plot_res(res_m0, 'match - first point')
-
-plt.figure(4)
 plot_res(res_m1, 'match - last point')
 
 tw = line.twiss(method='4d')
