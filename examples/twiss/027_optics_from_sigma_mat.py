@@ -44,23 +44,34 @@ dummy_R = eivec @ dummy_lam @ np.linalg.inv(eivec)
 dummy_line = xt.Line(elements=[xt.Drift(length=1e-12)])
 p_dummy = line.build_particles(x=0)
 
-tw_from_sigmas = xt.Line(elements=xt.Drift(length=1e-12)).twiss(
-                                  particle_on_co=p_dummy,
-                                  R_matrix=dummy_R,
-                                  compute_chromatic_properties=False)
+tw_from_sigmas = dummy_line.twiss(
+                        particle_on_co=p_dummy,
+                        R_matrix=dummy_R,
+                        compute_chromatic_properties=False)
 
-print(f'betx (from line)   = {tw.betx[0]}')
-print(f'betx (from sigmas) = {tw_from_sigmas.betx[0]}')
-print(f'bety (from line)   = {tw.bety[0]}')
-print(f'bety (from sigmas) = {tw_from_sigmas.bety[0]}')
-print(f'alfx (from line)   = {tw.alfx[0]}')
-print(f'alfx (from sigmas) = {tw_from_sigmas.alfx[0]}')
-print(f'alfy (from line)   = {tw.alfy[0]}')
-print(f'alfy (from sigmas) = {tw_from_sigmas.alfy[0]}')
-print(f'betx2 (from line)  = {tw.betx2[0]}')
-print(f'betx2 (from sigmas)= {tw_from_sigmas.betx2[0]}')
-print(f'bety2 (from line)  = {tw.bety2[0]}')
-print(f'bety2 (from sigmas)= {tw_from_sigmas.bety2[0]}')
+print('betx/bety')
+print(f'betx (from line)    = {tw.betx[0]}')
+print(f'betx (from sigmas)  = {tw_from_sigmas.betx[0]}')
+print(f'bety (from line)    = {tw.bety[0]}')
+print(f'bety (from sigmas)  = {tw_from_sigmas.bety[0]}')
+print()
+print('alfx/alfy')
+print(f'alfx (from line)    = {tw.alfx[0]}')
+print(f'alfx (from sigmas)  = {tw_from_sigmas.alfx[0]}')
+print(f'alfy (from line)    = {tw.alfy[0]}')
+print(f'alfy (from sigmas)  = {tw_from_sigmas.alfy[0]}')
+print()
+print('dx/dy')
+print(f'dx (from line)      = {tw.dx[0]}')
+print(f'dx (from sigmas)    = {tw_from_sigmas.dx[0]}')
+print(f'dy (from line)      = {tw.dy[0]}')
+print(f'dy (from sigmas)    = {tw_from_sigmas.dy[0]}')
+print()
+print('coupled betas')
+print(f'betx2 (from line)   = {tw.betx2[0]}')
+print(f'betx2 (from sigmas) = {tw_from_sigmas.betx2[0]}')
+print(f'bety2 (from line)   = {tw.bety2[0]}')
+print(f'bety2 (from sigmas) = {tw_from_sigmas.bety2[0]}')
 
 
 
