@@ -72,15 +72,18 @@ class ActionSeparatrix(xt.Action):
                              - mon_test.x[i_first_unstable, i_closest])
                 dpx_spiral = (mon_test.px[i_first_unstable, i_closest + 3]
                              - mon_test.px[i_first_unstable, i_closest])
-                dax_spiral = (
+                djx_spiral = (
                     norm_coord_test.x_norm[i_first_unstable, i_closest + 3]**2
                   + norm_coord_test.px_norm[i_first_unstable, i_closest + 3]**2
                   - norm_coord_test.x_norm[i_first_unstable, i_closest]**2
                   - norm_coord_test.px_norm[i_first_unstable, i_closest]**2)
+                slope_norm_spiral = (norm_coord_test.px_norm[i_first_unstable, i_closest]
+                                     / norm_coord_test.x_norm[i_first_unstable, i_closest])
             else:
                 dx_spiral = 999.
                 dpx_spiral = 999.
-                dax_spiral = 999.
+                djx_spiral = 999.
+                slope_norm_spiral = 999.
 
             out = {
                 'poly_geom': poly_geom,
@@ -97,7 +100,8 @@ class ActionSeparatrix(xt.Action):
                 'px_fit': px_branch[mask_fit],
                 'dx_spiral': dx_spiral,
                 'dpx_spiral': dpx_spiral,
-                'dax_spiral': dax_spiral,
+                'djx_spiral': djx_spiral,
+                'slope_norm_spiral': slope_norm_spiral,
             }
         except Exception as err:
             print(err)
