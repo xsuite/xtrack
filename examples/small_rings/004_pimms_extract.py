@@ -8,13 +8,15 @@ class ActionSeparatrix(xt.Action):
     def __init__(self, line, n_test=20, range_test=(0, 1e-2),
                              range_fit=(0.015, 0.025),
                              i_part_fit=None,
-                             num_turns=2000):
+                             num_turns=2000,
+                             x_spiral_meas=None):
         self.line = line
         self.n_test = n_test
         self.range_test = range_test
         self.range_fit = range_fit
         self.i_part_fit = i_part_fit
         self.num_turns = num_turns
+        self.x_spiral_meas = x_spiral_meas
 
     def run(self):
         line = self.line
@@ -29,8 +31,9 @@ class ActionSeparatrix(xt.Action):
 
         message = 'all ok'
         try:
+            i_first_unstable = np.where(mon_test.x.max(axis=1) > 0.02)[0][0] # first unstable particle
             if self.i_part_fit is None:
-                i_part = np.where(mon_test.x.max(axis=1) > 0.02)[0][0] # first unstable particle
+                i_part = i_first_unstable # first unstable particle
             else:
                 i_part = self.i_part_fit
             # i_part = len(p_test.x) - 1
@@ -62,6 +65,23 @@ class ActionSeparatrix(xt.Action):
 
             r_sep_norm = np.abs(poly_norm[1]) / np.sqrt(poly_norm[0]**2 + 1)
 
+            if self.x_spiral_meas is not None:
+                x_first_unstable = mon_test.x[i_first_unstable, :]
+                i_closest = np.argmin(np.abs(x_first_unstable - self.x_spiral_meas))
+                dx_spiral = (mon_test.x[i_first_unstable, i_closest + 3]
+                             - mon_test.x[i_first_unstable, i_closest])
+                dpx_spiral = (mon_test.px[i_first_unstable, i_closest + 3]
+                             - mon_test.px[i_first_unstable, i_closest])
+                dax_spiral = (
+                    norm_coord_test.x_norm[i_first_unstable, i_closest + 3]**2
+                  + norm_coord_test.px_norm[i_first_unstable, i_closest + 3]**2
+                  - norm_coord_test.x_norm[i_first_unstable, i_closest]**2
+                  - norm_coord_test.px_norm[i_first_unstable, i_closest]**2)
+            else:
+                dx_spiral = 999.
+                dpx_spiral = 999.
+                dax_spiral = 999.
+
             out = {
                 'poly_geom': poly_geom,
                 'poly_norm': poly_norm,
@@ -75,6 +95,9 @@ class ActionSeparatrix(xt.Action):
                 'message': message,
                 'x_fit': x_branch[mask_fit],
                 'px_fit': px_branch[mask_fit],
+                'dx_spiral': dx_spiral,
+                'dpx_spiral': dpx_spiral,
+                'dax_spiral': dax_spiral,
             }
         except Exception as err:
             print(err)
@@ -196,7 +219,7 @@ plt.plot(tw0.s, tw0.dx, '.-')
 plt.plot(tw1.s, tw1.dx, '.-')
 
 act_show= ActionSeparatrix(line, range_test=(0e-3, 2e-2), range_fit=(2e-2, 3e-2),
-                                n_test=30)
+                                n_test=30, x_spiral_meas=0.02)
 res0 = act_show.run()
 
 
@@ -304,8 +327,6 @@ class SpillExcitation:
         self._gain_log.append(self.gain)
         p.px[p.state > 0] += self.amplitude * np.random.normal(size=np.sum(p.state > 0))
         self._i_turn += 1
-
-
 
 line.insert_element('spill_exc', SpillExcitation(), at_s=0)
 import xobjects as xo
