@@ -473,7 +473,9 @@ def twiss_line(line, particle_ref=None, method=None,
             use_full_inverse = True
 
     if particle_ref is None:
-        if co_guess is None and hasattr(line, 'particle_ref'):
+        if particle_on_co is not None:
+            particle_ref = particle_on_co.copy()
+        elif co_guess is None and hasattr(line, 'particle_ref'):
             particle_ref = line.particle_ref
 
     if line.iscollective:
@@ -1694,6 +1696,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
         else:
             eigenvals = np.linalg.eigvals(RR)
         lnf._assert_matrix_stability(eigenvals, matrix_stability_tol)
+        RR_ebe = None
 
 
     if method == '4d' and W_matrix is None: # the matrix was not provided by the user
