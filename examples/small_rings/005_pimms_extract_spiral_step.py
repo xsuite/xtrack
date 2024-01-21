@@ -8,7 +8,7 @@ class ActionSeparatrix(xt.Action):
     def __init__(self, line, n_test=20, range_test=(0, 1e-2),
                              range_fit=(0.015, 0.025),
                              i_part_fit=None,
-                             num_turns=2000,
+                             num_turns=5000,
                              x_spiral_meas=None):
         self.line = line
         self.n_test = n_test
@@ -17,7 +17,7 @@ class ActionSeparatrix(xt.Action):
         self.i_part_fit = i_part_fit
         self.num_turns = num_turns
         self.x_spiral_meas = x_spiral_meas
-        self.x_septum = 0.02
+        self.x_septum = 0.04
 
     def run(self):
         line = self.line
@@ -57,7 +57,7 @@ class ActionSeparatrix(xt.Action):
 
         message = 'all ok'
         try:
-            i_first_unstable = np.where(mon_test.x.max(axis=1) > 0.02)[0][0] # first unstable particle
+            i_first_unstable = np.where(mon_test.x.max(axis=1) > self.x_septum)[0][0] # first unstable particle
             if self.i_part_fit is None:
                 i_part = i_first_unstable # first unstable particle
             else:
@@ -192,7 +192,7 @@ class ActionSeparatrix(xt.Action):
                 'px_norm_fixed_point': px_norm_fixed_point,
                 'j_fixed_point': j_fixed_point,
             }
-        except NotImplementedError as err:
+        except Exception as err:
             print(err)
             out = {
                 'poly_geom': [0, 0],
@@ -205,6 +205,8 @@ class ActionSeparatrix(xt.Action):
                 'norm_coord': norm_coord_test,
                 'i_part': 0,
                 'message': message,
+                'slope_norm_spiral': 999.,
+                'j_fixed_point': 999.,
             }
 
         return out
@@ -360,7 +362,7 @@ opt = line.match(
 # plt.plot([res['slo'] for res in vv])
 
 def err_fun(x):
-    out = opt._err(x)
+    out = opt._err(x, check_limits=False)
     print(f'x = {x}, out = {out}')
     return out
 
@@ -369,10 +371,12 @@ bounds = np.array([vv.limits for vv in opt._err.vary])
 opt._err.return_scalar = True
 import pybobyqa
 soln = pybobyqa.solve(err_fun, x0=opt.log().vary[0, :], bounds=bounds.T,
-            rhobeg=10, rhoend=1e-4, maxfun=40, objfun_has_noise=True,
+            rhobeg=10, rhoend=1e-4, maxfun=60, objfun_has_noise=True,
             seek_global_minimum=True)
 err_fun(soln.x) # set it to the best solution
 opt.tag('pybobyqa')
+opt.target_status()
+
 
 # import scipy
 # soln = scipy.optimize.dual_annealing(opt._err, bounds=bounds, maxiter=50)
@@ -409,8 +413,6 @@ particles = line.build_particles(
     delta=delta)
 tab = tw.get_normalized_coordinates(particles)
 
-
-prrrr
 
 # plt.figure(100)
 # plt.plot(x_fit_geom, px_fit_geom, 'grey')
@@ -469,7 +471,7 @@ line.functions['fun_gain'] = xt.FunctionPieceWiseLinear(x=[0, 0.25e-3, 0.5e-3], 
 line.vars['gain'] = line.functions['fun_gain'](line.vars['t_turn_s'])
 line.element_refs['spill_exc'].gain = line.vars['gain']
 
-line['septum'].max_x = 0.02
+line['septum'].max_x = 0.04
 
 line.enable_time_dependent_vars = True
 line.track(particles, num_turns=15000, with_progress=True)
