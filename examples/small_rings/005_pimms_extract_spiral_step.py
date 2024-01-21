@@ -17,6 +17,7 @@ class ActionSeparatrix(xt.Action):
         self.i_part_fit = i_part_fit
         self.num_turns = num_turns
         self.x_spiral_meas = x_spiral_meas
+        self.x_septum = 0.02
 
     def run(self):
         line = self.line
@@ -28,6 +29,25 @@ class ActionSeparatrix(xt.Action):
         line.track(p_test, num_turns=self.num_turns, turn_by_turn_monitor=True)
         mon_test = line.record_last_track
         norm_coord_test = tw.get_normalized_coordinates(mon_test)
+
+        p0 = line.build_particles(x=0, px=0)
+        x_stable = 0
+        x_unstable = 2e-2
+        while x_unstable - x_stable > 10e-6:
+            x_test = (x_stable + x_unstable) / 2
+            p = p0.copy()
+            p.x = x_test
+            line.track(p, num_turns=self.num_turns, turn_by_turn_monitor=True)
+            mon = line.record_last_track
+            if (mon.x > self.x_septum).any():
+                x_unstable = x_test
+            else:
+                x_stable = x_test
+        p = p0.copy()
+        p.x = x_unstable
+        line.track(p, num_turns=self.num_turns, turn_by_turn_monitor=True)
+        mon_separatrix = line.record_last_track
+        norm_coord_separatrix = tw.get_normalized_coordinates(mon_separatrix)
 
         message = 'all ok'
         try:
@@ -74,35 +94,42 @@ class ActionSeparatrix(xt.Action):
 
 
             if self.x_spiral_meas is not None:
-                x_first_unstable = mon_test.x[i_first_unstable, :].copy()
-                px_first_unstable = mon_test.px[i_first_unstable, :].copy()
+                # x_first_unstable = mon_test.x[i_first_unstable, :].copy()
+                # px_first_unstable = mon_test.px[i_first_unstable, :].copy()
+                i_separatrix = 0
+                x_first_unstable = mon_separatrix.x[i_separatrix, :].copy()
+                px_first_unstable = mon_separatrix.px[i_separatrix, :].copy()
 
                 # To be generalized
                 x_first_unstable[px_first_unstable < 0] = 9999999.
 
                 i_closest = np.argmin(np.abs(x_first_unstable - self.x_spiral_meas))
-                dx_spiral = (mon_test.x[i_first_unstable, i_closest + 3]
-                             - mon_test.x[i_first_unstable, i_closest])
-                dpx_spiral = (mon_test.px[i_first_unstable, i_closest + 3]
-                             - mon_test.px[i_first_unstable, i_closest])
+                dx_spiral = (mon_separatrix.x[i_separatrix, i_closest + 3]
+                             - mon_separatrix.x[i_separatrix, i_closest])
+                dpx_spiral = (mon_separatrix.px[i_separatrix, i_closest + 3]
+                             - mon_separatrix.px[i_separatrix, i_closest])
                 djx_spiral = (
-                    norm_coord_test.x_norm[i_first_unstable, i_closest + 3]**2
-                  + norm_coord_test.px_norm[i_first_unstable, i_closest + 3]**2
-                  - norm_coord_test.x_norm[i_first_unstable, i_closest]**2
-                  - norm_coord_test.px_norm[i_first_unstable, i_closest]**2)
+                    norm_coord_separatrix.x_norm[i_separatrix, i_closest + 3]**2
+                  + norm_coord_separatrix.px_norm[i_separatrix, i_closest + 3]**2
+                  - norm_coord_separatrix.x_norm[i_separatrix, i_closest]**2
+                  - norm_coord_separatrix.px_norm[i_separatrix, i_closest]**2)
                 slope_norm_spiral = (
-                    (norm_coord_test.px_norm[i_first_unstable, i_closest + 3]
-                     - norm_coord_test.px_norm[i_first_unstable, i_closest])
-                   / (norm_coord_test.x_norm[i_first_unstable, i_closest + 3]
-                     - norm_coord_test.x_norm[i_first_unstable, i_closest]))
-                x0 = mon_test.x[i_first_unstable, i_closest]
-                px0 = mon_test.px[i_first_unstable, i_closest]
-                x1 = mon_test.x[i_first_unstable, i_closest + 3]
-                px1 = mon_test.px[i_first_unstable, i_closest + 3]
-                x_norm0 = norm_coord_test.x_norm[i_first_unstable, i_closest]
-                px_norm0 = norm_coord_test.px_norm[i_first_unstable, i_closest]
-                x_norm1 = norm_coord_test.x_norm[i_first_unstable, i_closest + 3]
-                px_norm1 = norm_coord_test.px_norm[i_first_unstable, i_closest + 3]
+                    (norm_coord_separatrix.px_norm[i_separatrix, i_closest + 3]
+                     - norm_coord_separatrix.px_norm[i_separatrix, i_closest])
+                   / (norm_coord_separatrix.x_norm[i_separatrix, i_closest + 3]
+                     - norm_coord_separatrix.x_norm[i_separatrix, i_closest]))
+                x0 = mon_separatrix.x[i_separatrix, i_closest]
+                px0 = mon_separatrix.px[i_separatrix, i_closest]
+                x1 = mon_separatrix.x[i_separatrix, i_closest + 3]
+                px1 = mon_separatrix.px[i_separatrix, i_closest + 3]
+                x_norm0 = norm_coord_separatrix.x_norm[i_separatrix, i_closest]
+                px_norm0 = norm_coord_separatrix.px_norm[i_separatrix, i_closest]
+                x_norm1 = norm_coord_separatrix.x_norm[i_separatrix, i_closest + 3]
+                px_norm1 = norm_coord_separatrix.px_norm[i_separatrix, i_closest + 3]
+
+                poly_separatrix = np.polyfit(mon_separatrix.x[i_separatrix, i_closest-3*3:i_closest+1: 3],
+                                             mon_separatrix.px[i_separatrix, i_closest-3*3:i_closest+1: 3],
+                                             1)
             else:
                 dx_spiral = 999.
                 dpx_spiral = 999.
@@ -142,6 +169,9 @@ class ActionSeparatrix(xt.Action):
                 'px_norm0': px_norm0,
                 'x_norm1': x_norm1,
                 'px_norm1': px_norm1,
+                'x_first_unstable': mon_separatrix.x[i_separatrix, :].copy(),
+                'px_first_unstable': mon_separatrix.px[i_separatrix, :].copy(),
+                'slope_separatrix': poly_separatrix[0],
             }
         except NotImplementedError as err:
             print(err)
@@ -188,8 +218,9 @@ def plot_res(res, title=None):
     ax_norm.plot(x_fit_norm, px_fit_norm, 'grey')
 
     if 'x0' in res:
-        ax_geom.plot([res['x0'], res['x1']], [res['px0'], res['px1']], 'x-r')
-        ax_norm.plot([res['x_norm0'], res['x_norm1']], [res['px_norm0'], res['px_norm1']], 'x-r')
+        # ax_geom.plot([res['x0'], res['x1']], [res['px0'], res['px1']], 'x-r')
+        # ax_norm.plot([res['x_norm0'], res['x_norm1']], [res['px_norm0'], res['px_norm1']], 'x-r')
+        ax_geom.plot(res['x_first_unstable'], res['px_first_unstable'], 'o')
 
     if title is not None:
         plt.suptitle(title)
@@ -278,20 +309,30 @@ res_m0 = act_match.run()
 opt = line.match(
     solve=False,
     method='4d',
-    vary=xt.VaryList(['k2xrr_a_extr', 'k2xrr_b_extr'], step=5e-2, tag='resonance'),
+    vary=xt.VaryList(['k2xrr_a_extr', 'k2xrr_b_extr'], step=5e-2, tag='resonance',
+                     limits=[-20, 20]),
     targets=[
         act_match.target('dx_spiral', res_m0['dx_spiral'], tol=2e-5, tag='resonance', weight=1e4),
-        act_match.target('slope_norm_spiral', res_m0['slope_norm_spiral'], tol=0.01, tag='resonance'),
+        act_match.target('slope_norm_spiral', 0.43, tol=0.01, tag='resonance'),
     ]
 )
 
-k_test = np.linspace(0, 10., 50)
+k_test = np.linspace(1, 10., 50)
 vv = []
 for kk in k_test:
     print(f'kk = {kk}')
     line.vars['k2xrr_a_extr'] = kk
     res = act_match.run()
     vv.append(res)
+
+# bounds = np.array([vv.limits for vv in opt._err.vary])
+# opt._err.return_scalar = True
+# import pybobyqa
+# soln = pybobyqa.solve(opt._err, x0=opt.log().vary[0, :], bounds=bounds.T,
+#             rhobeg=10, rhoend=1e-4, maxfun=100, objfun_has_noise=True)
+
+# import scipy
+# soln = scipy.optimize.dual_annealing(opt._err, bounds=bounds, maxiter=50)
 
 # while opt.targets[1].value > 1.:
 #     opt.targets[1].value -= 0.02
