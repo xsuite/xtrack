@@ -335,8 +335,9 @@ opt = line.match(
     vary=xt.VaryList(['k2xrr_a_extr', 'k2xrr_b_extr'], step=0.5, tag='resonance',
                      limits=[-20, 20]),
     targets=[
-        act_match.target('j_fixed_point', res_m0['j_fixed_point'], tol=2e-5, tag='resonance'),
-        act_match.target('px_fixed_point',  1e-3 , tol=1e-5, tag='resonance'),
+        act_match.target('j_fixed_point', res_m0['j_fixed_point'], tol=2e-5, tag='resonance', weight=1e2),
+        # act_match.target('px_fixed_point',  1e-3 , tol=1e-5, tag='resonance'),
+        act_match.target('slope_norm_spiral', 0.05, tol=0.01)
     ]
 )
 
@@ -350,6 +351,7 @@ opt = line.match(
 #     vv.append(res)
 # opt.reload(0)
 
+# prrrr
 # plt.figure(100)
 # plt.subplot(2, 1, 1)
 # plt.plot([res['j_fixed_point'] for res in vv])
@@ -367,9 +369,10 @@ bounds = np.array([vv.limits for vv in opt._err.vary])
 opt._err.return_scalar = True
 import pybobyqa
 soln = pybobyqa.solve(err_fun, x0=opt.log().vary[0, :], bounds=bounds.T,
-            rhobeg=10, rhoend=1e-4, maxfun=30, objfun_has_noise=True,
+            rhobeg=10, rhoend=1e-4, maxfun=100, objfun_has_noise=True,
             seek_global_minimum=True)
 err_fun(soln.x) # set it to the best solution
+opt.tag('pybobyqa')
 
 # import scipy
 # soln = scipy.optimize.dual_annealing(opt._err, bounds=bounds, maxiter=50)
@@ -407,7 +410,7 @@ particles = line.build_particles(
 tab = tw.get_normalized_coordinates(particles)
 
 
-
+prrrr
 
 # plt.figure(100)
 # plt.plot(x_fit_geom, px_fit_geom, 'grey')
