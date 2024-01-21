@@ -337,7 +337,7 @@ opt = line.match(
     targets=[
         act_match.target('j_fixed_point', res_m0['j_fixed_point'], tol=2e-5, tag='resonance', weight=1e2),
         # act_match.target('px_fixed_point',  1e-3 , tol=1e-5, tag='resonance'),
-        act_match.target('slope_norm_spiral', -0.1, tol=0.01)
+        act_match.target('slope_norm_spiral', -0.2, tol=0.01)
     ]
 )
 
@@ -369,7 +369,7 @@ bounds = np.array([vv.limits for vv in opt._err.vary])
 opt._err.return_scalar = True
 import pybobyqa
 soln = pybobyqa.solve(err_fun, x0=opt.log().vary[0, :], bounds=bounds.T,
-            rhobeg=10, rhoend=1e-4, maxfun=100, objfun_has_noise=True,
+            rhobeg=10, rhoend=1e-4, maxfun=40, objfun_has_noise=True,
             seek_global_minimum=True)
 err_fun(soln.x) # set it to the best solution
 opt.tag('pybobyqa')
