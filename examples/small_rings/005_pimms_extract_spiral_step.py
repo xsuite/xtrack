@@ -337,7 +337,7 @@ opt = line.match(
     targets=[
         act_match.target('j_fixed_point', res_m0['j_fixed_point'], tol=2e-5, tag='resonance', weight=1e2),
         # act_match.target('px_fixed_point',  1e-3 , tol=1e-5, tag='resonance'),
-        act_match.target('slope_norm_spiral', 0.05, tol=0.01)
+        act_match.target('slope_norm_spiral', -0.1, tol=0.01)
     ]
 )
 
