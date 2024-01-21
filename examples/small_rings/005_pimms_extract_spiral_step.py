@@ -33,7 +33,7 @@ class ActionSeparatrix(xt.Action):
         p0 = line.build_particles(x=0, px=0)
         x_stable = 0
         x_unstable = 2e-2
-        while x_unstable - x_stable > 10e-6:
+        while x_unstable - x_stable > 1e-6:
             x_test = (x_stable + x_unstable) / 2
             p = p0.copy()
             p.x = x_test
@@ -43,11 +43,17 @@ class ActionSeparatrix(xt.Action):
                 x_unstable = x_test
             else:
                 x_stable = x_test
-        p = p0.copy()
-        p.x = x_unstable
+        p = line.build_particles(x=[x_unstable, x_stable], px=0)
         line.track(p, num_turns=self.num_turns, turn_by_turn_monitor=True)
         mon_separatrix = line.record_last_track
         norm_coord_separatrix = tw.get_normalized_coordinates(mon_separatrix)
+        j_stable = np.sqrt(norm_coord_separatrix.x_norm[1, :]**2 + norm_coord_separatrix.px_norm[1, :]**2)
+        i_fixed_point = np.argmax(j_stable)
+        x_fixed_point = mon_separatrix.x[1, i_fixed_point]
+        px_fixed_point = mon_separatrix.px[1, i_fixed_point]
+        x_norm_fixed_point = norm_coord_separatrix.x_norm[1, i_fixed_point]
+        px_norm_fixed_point = norm_coord_separatrix.px_norm[1, i_fixed_point]
+        j_fixed_point = j_stable[i_fixed_point]
 
         message = 'all ok'
         try:
@@ -127,9 +133,13 @@ class ActionSeparatrix(xt.Action):
                 x_norm1 = norm_coord_separatrix.x_norm[i_separatrix, i_closest + 3]
                 px_norm1 = norm_coord_separatrix.px_norm[i_separatrix, i_closest + 3]
 
-                poly_separatrix = np.polyfit(mon_separatrix.x[i_separatrix, i_closest-3*3:i_closest+1: 3],
-                                             mon_separatrix.px[i_separatrix, i_closest-3*3:i_closest+1: 3],
-                                             1)
+                # poly_separatrix = np.polyfit(mon_separatrix.x[i_separatrix, i_closest-3*3:i_closest+1: 3],
+                #                              mon_separatrix.px[i_separatrix, i_closest-3*3:i_closest+1: 3],
+                #                              1)
+                # poly_norm_separatrix = np.polyfit(
+                #     norm_coord_separatrix.x_norm[i_separatrix, i_closest-3*3:i_closest+1: 3],
+                #     norm_coord_separatrix.px_norm[i_separatrix, i_closest-3*3:i_closest+1: 3],
+                #     1)
             else:
                 dx_spiral = 999.
                 dpx_spiral = 999.
@@ -171,7 +181,16 @@ class ActionSeparatrix(xt.Action):
                 'px_norm1': px_norm1,
                 'x_first_unstable': mon_separatrix.x[i_separatrix, :].copy(),
                 'px_first_unstable': mon_separatrix.px[i_separatrix, :].copy(),
-                'slope_separatrix': poly_separatrix[0],
+                # 'slope_separatrix': poly_separatrix[0],
+                # 'r_sep_norm_separatrix': np.abs(poly_norm_separatrix[1]) / np.sqrt(poly_norm_separatrix[0]**2 + 1),
+                # 'poly_geom_separatrix': poly_separatrix,
+                # 'poly_norm_separatrix': poly_norm_separatrix,
+                'mon_separatrix': mon_separatrix,
+                'x_fixed_point': x_fixed_point,
+                'px_fixed_point': px_fixed_point,
+                'x_norm_fixed_point': x_norm_fixed_point,
+                'px_norm_fixed_point': px_norm_fixed_point,
+                'j_fixed_point': j_fixed_point,
             }
         except NotImplementedError as err:
             print(err)
@@ -207,20 +226,24 @@ def plot_res(res, title=None):
     # plt.plot(x_norm_branch, px_norm_branch, '.k', markersize=3)
     plt.axis('equal')
 
-    poly_geom = res['poly_geom']
-    poly_norm = res['poly_norm']
-    x_fit_geom = np.linspace(-0.2, 0.2, 10)
-    px_fit_geom = poly_geom[0] * x_fit_geom + poly_geom[1]
-    x_fit_norm = np.linspace(-0.2, 0.2, 10)
-    px_fit_norm = poly_norm[0] * x_fit_norm + poly_norm[1]
+    # poly_geom = res['poly_geom_separatrix']
+    # poly_norm = res['poly_norm_separatrix']
+    # x_fit_geom = np.linspace(-0.2, 0.2, 10)
+    # px_fit_geom = poly_geom[0] * x_fit_geom + poly_geom[1]
+    # x_fit_norm = np.linspace(-0.2, 0.2, 10)
+    # px_fit_norm = poly_norm[0] * x_fit_norm + poly_norm[1]
 
-    ax_geom.plot(x_fit_geom, px_fit_geom, 'grey')
-    ax_norm.plot(x_fit_norm, px_fit_norm, 'grey')
+    # ax_geom.plot(x_fit_geom, px_fit_geom, 'grey')
+    # ax_norm.plot(x_fit_norm, px_fit_norm, 'grey')
+
+    # Fixed point
+    ax_geom.plot(res['x_fixed_point'], res['px_fixed_point'], 'o')
+    ax_norm.plot(res['x_norm_fixed_point'], res['px_norm_fixed_point'], 'o')
 
     if 'x0' in res:
         # ax_geom.plot([res['x0'], res['x1']], [res['px0'], res['px1']], 'x-r')
         # ax_norm.plot([res['x_norm0'], res['x_norm1']], [res['px_norm0'], res['px_norm1']], 'x-r')
-        ax_geom.plot(res['x_first_unstable'], res['px_first_unstable'], 'o')
+        ax_geom.plot(res['x_first_unstable'], res['px_first_unstable'], '.k')
 
     if title is not None:
         plt.suptitle(title)
@@ -309,27 +332,44 @@ res_m0 = act_match.run()
 opt = line.match(
     solve=False,
     method='4d',
-    vary=xt.VaryList(['k2xrr_a_extr', 'k2xrr_b_extr'], step=5e-2, tag='resonance',
+    vary=xt.VaryList(['k2xrr_a_extr', 'k2xrr_b_extr'], step=0.5, tag='resonance',
                      limits=[-20, 20]),
     targets=[
-        act_match.target('dx_spiral', res_m0['dx_spiral'], tol=2e-5, tag='resonance', weight=1e4),
-        act_match.target('slope_norm_spiral', 0.43, tol=0.01, tag='resonance'),
+        act_match.target('j_fixed_point', res_m0['j_fixed_point'], tol=2e-5, tag='resonance'),
+        act_match.target('px_fixed_point',  1e-3 , tol=1e-5, tag='resonance'),
     ]
 )
 
-k_test = np.linspace(1, 10., 50)
-vv = []
-for kk in k_test:
-    print(f'kk = {kk}')
-    line.vars['k2xrr_a_extr'] = kk
-    res = act_match.run()
-    vv.append(res)
 
-# bounds = np.array([vv.limits for vv in opt._err.vary])
-# opt._err.return_scalar = True
-# import pybobyqa
-# soln = pybobyqa.solve(opt._err, x0=opt.log().vary[0, :], bounds=bounds.T,
-#             rhobeg=10, rhoend=1e-4, maxfun=100, objfun_has_noise=True)
+# k_test = np.linspace(1, 10., 50)
+# vv = []
+# for kk in k_test:
+#     print(f'kk = {kk}')
+#     line.vars['k2xrr_a_extr'] = kk
+#     res = act_match.run()
+#     vv.append(res)
+# opt.reload(0)
+
+# plt.figure(100)
+# plt.subplot(2, 1, 1)
+# plt.plot([res['j_fixed_point'] for res in vv])
+
+# plt.subplot(2, 1, 2)
+# plt.plot([res['slo'] for res in vv])
+
+def err_fun(x):
+    out = opt._err(x)
+    print(f'x = {x}, out = {out}')
+    return out
+
+
+bounds = np.array([vv.limits for vv in opt._err.vary])
+opt._err.return_scalar = True
+import pybobyqa
+soln = pybobyqa.solve(err_fun, x0=opt.log().vary[0, :], bounds=bounds.T,
+            rhobeg=10, rhoend=1e-4, maxfun=30, objfun_has_noise=True,
+            seek_global_minimum=True)
+err_fun(soln.x) # set it to the best solution
 
 # import scipy
 # soln = scipy.optimize.dual_annealing(opt._err, bounds=bounds, maxiter=50)
@@ -340,7 +380,6 @@ for kk in k_test:
 #     opt.target_status()
 #     opt.vary_status()
 
-prrrr
 
 res_m1 = act_match.run()
 
