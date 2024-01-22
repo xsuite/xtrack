@@ -2,42 +2,42 @@ from cpymad.madx import Madx
 import xtrack as xt
 import xdeps as xd
 
-mad = Madx()
-# Element definitions
-mad.input("""
-
-a = 1.;
-b := sin(3*a) + cos(2*a);
-
-cav1: rfcavity, freq:=a*10, lag:=a*0.5, volt:=a*6;
-cav2: rfcavity, freq:=10, lag:=0.5, volt:=6;
-testseq: sequence, l=10;
-c1: cav1, at=0.2, apertype=circle, aperture=0.01;
-c2: cav2, at=0.5, apertype=circle, aperture=0.01;
-endsequence;
-"""
-)
-# Beam
-mad.input("""
-beam, particle=proton, gamma=1.05, sequence=testseq;
-""")
-mad.use('testseq')
-seq = mad.sequence['testseq']
-line = xt.Line.from_madx_sequence(sequence=seq, deferred_expressions=True)
-
 # mad = Madx()
-# folder = ('../../test_data/elena')
-# mad.call(folder + '/elena.seq')
-# mad.call(folder + '/highenergy.str')
-# mad.call(folder + '/highenergy.beam')
-# mad.use('elena')
+# # Element definitions
+# mad.input("""
 
-# # Build xsuite line
-# seq = mad.sequence.elena
-# line = xt.Line.from_madx_sequence(seq)
-# line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
-#                                     mass0=seq.beam.mass * 1e9,
-#                                     q0=seq.beam.charge)
+# a = 1.;
+# b := sin(3*a) + cos(2*a);
+
+# cav1: rfcavity, freq:=a*10, lag:=a*0.5, volt:=a*6;
+# cav2: rfcavity, freq:=10, lag:=0.5, volt:=6;
+# testseq: sequence, l=10;
+# c1: cav1, at=0.2, apertype=circle, aperture=0.01;
+# c2: cav2, at=0.5, apertype=circle, aperture=0.01;
+# endsequence;
+# """
+# )
+# # Beam
+# mad.input("""
+# beam, particle=proton, gamma=1.05, sequence=testseq;
+# """)
+# mad.use('testseq')
+# seq = mad.sequence['testseq']
+# line = xt.Line.from_madx_sequence(sequence=seq, deferred_expressions=True)
+
+mad = Madx()
+folder = ('../../test_data/elena')
+mad.call(folder + '/elena.seq')
+mad.call(folder + '/highenergy.str')
+mad.call(folder + '/highenergy.beam')
+mad.use('elena')
+
+# Build xsuite line
+seq = mad.sequence.elena
+line = xt.Line.from_madx_sequence(seq)
+line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
+                                    mass0=seq.beam.mass * 1e9,
+                                    q0=seq.beam.charge)
 
 def expr_to_mad_str(expr):
 
@@ -113,7 +113,6 @@ def drift_to_madx_str(name, container):
     drift = container[name]
     tokens = []
     tokens.append('drift')
-    import pdb; pdb.set_trace()
     tokens.append(mad_assignment('l', _ge(drift.length)))
     return ', '.join(tokens)
 
@@ -122,6 +121,10 @@ def multipole_to_madx_str(name, container):
 
     # correctors are not handled correctly!!!!
     # https://github.com/MethodicalAcceleratorDesign/MAD-X/issues/911
+    assert _ge(mult.hxl) == 0
+    assert _ge(mult.hyl) == 0
+    assert mult.knl[0]._value == 0
+    assert mult.ksl[0]._value == 0
 
     tokens = []
     tokens.append('multipole')
@@ -139,6 +142,51 @@ def multipole_to_madx_str(name, container):
 
     return ', '.join(tokens)
 
+def bend_to_madx_str(name, container):
+    bend = container[name]
+
+    tokens = []
+    tokens.append('sbend')
+    tokens.append(mad_assignment('l', _ge(bend.length)))
+    tokens.append(mad_assignment('angle', _ge(bend.h) * _ge(bend.length)))
+    tokens.append(mad_assignment('k0', _ge(bend.k0)))
+    # k1, k2, knl, ksl need to be implemented
+    if nn + '_den' in container._owner.keys():
+        edg_entry = container[nn + '_den']
+        tokens.append(mad_assignment('e1', _ge(edg_entry.e1)))
+        tokens.append(mad_assignment('fint', _ge(edg_entry.fint)))
+        tokens.append(mad_assignment('hgap', _ge(edg_entry.hgap)))
+    if nn + '_dex' in container._owner.keys():
+        edg_exit = container[nn + '_dex']
+        tokens.append(mad_assignment('e2', _ge(edg_exit.e1)))
+    return ', '.join(tokens)
+
+def sextupole_to_madx_str(name, container):
+    sext = container[name]
+    tokens = []
+    tokens.append('sextupole')
+    tokens.append(mad_assignment('l', _ge(sext.length)))
+    tokens.append(mad_assignment('k2', _ge(sext.k2)))
+    tokens.append(mad_assignment('k2s', _ge(sext.k2s)))
+    return ', '.join(tokens)
+
+def quadrupole_to_madx_str(name, container):
+    quad = container[name]
+    tokens = []
+    tokens.append('quadrupole')
+    tokens.append(mad_assignment('l', _ge(quad.length)))
+    tokens.append(mad_assignment('k1', _ge(quad.k1)))
+    return ', '.join(tokens)
+
+def solenoid_to_madx_str(name, container):
+    sol = container[name]
+    tokens = []
+    tokens.append('solenoid')
+    tokens.append(mad_assignment('l', _ge(sol.length)))
+    tokens.append(mad_assignment('ks', _ge(sol.ks)))
+    tokens.append(mad_assignment('ksi', _ge(sol.ksi)))
+    return ', '.join(tokens)
+
 
 
 
@@ -147,6 +195,11 @@ xsuite_to_mad_conveters={
     xt.Marker: marker_to_madx_str,
     xt.Drift: drift_to_madx_str,
     xt.Multipole: multipole_to_madx_str,
+    xt.DipoleEdge: marker_to_madx_str,
+    xt.Bend: bend_to_madx_str,
+    xt.Sextupole: sextupole_to_madx_str,
+    xt.Quadrupole: quadrupole_to_madx_str,
+    xt.Solenoid: solenoid_to_madx_str,
 }
 
 elements_str = ""
