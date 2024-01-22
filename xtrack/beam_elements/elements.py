@@ -1787,9 +1787,9 @@ class LineSegmentMap(BeamElement):
         'dqx': xo.Float64,
         'dqy': xo.Float64,
         'det_xx': xo.Float64,
-        'detx_y': xo.Float64,
-        'dety_y': xo.Float64,
-        'dety_x': xo.Float64,
+        'det_xy': xo.Float64,
+        'det_yy': xo.Float64,
+        'det_yx': xo.Float64,
 
         'betx': xo.Float64[2],
         'bety': xo.Float64[2],
@@ -1854,7 +1854,7 @@ class LineSegmentMap(BeamElement):
             slippage_length=None,
             voltage_rf=None, frequency_rf=None, lag_rf=None,
             dqx=0.0, dqy=0.0,
-            det_xx=0.0, detx_y=0.0, dety_y=0.0, dety_x=0.0,
+            det_xx=0.0, det_xy=0.0, det_yy=0.0, det_yx=0.0,
             energy_increment=0.0, energy_ref_increment=0.0,
             damping_rate_x = 0.0, damping_rate_y = 0.0, damping_rate_s = 0.0,
             equ_emit_x = 0.0, equ_emit_y = 0.0, equ_emit_s = 0.0,
@@ -2009,9 +2009,9 @@ class LineSegmentMap(BeamElement):
         nargs['dqx'] = dqx
         nargs['dqy'] = dqy
         nargs['det_xx'] = det_xx
-        nargs['detx_y'] = detx_y
-        nargs['dety_y'] = dety_y
-        nargs['dety_x'] = dety_x
+        nargs['det_xy'] = det_xy
+        nargs['det_yy'] = det_yy
+        nargs['det_yx'] = det_yx
         nargs['length'] = length
 
         if longitudinal_mode is None:
@@ -2271,7 +2271,7 @@ class LinearTransferMatrix(BeamElement):
                      disp_x_0=0.0, disp_x_1=0.0, disp_y_0=0.0, disp_y_1=0.0,
                      Q_s=0.0, beta_s=1.0,
                      chroma_x=0.0, chroma_y=0.0,
-                     det_xx=0.0, detx_y=0.0, dety_y=0.0, dety_x=0.0,
+                     det_xx=0.0, det_xy=0.0, det_yy=0.0, det_yx=0.0,
                      energy_increment=0.0, energy_ref_increment=0.0,
                      x_ref_0 = 0.0, px_ref_0 = 0.0, x_ref_1 = 0.0, px_ref_1 = 0.0,
                      y_ref_0 = 0.0, py_ref_0 = 0.0, y_ref_1 = 0.0, py_ref_1 = 0.0,

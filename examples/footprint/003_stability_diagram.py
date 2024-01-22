@@ -19,12 +19,12 @@ Q_x = .28
 Q_y = .31
 Q_s = 1E-3
 det_xx = 1E6
-detx_y = -7E5
-dety_y = -5E5
-dety_x = 1E5
+det_xy = -7E5
+det_yy = -5E5
+det_yx = 1E5
 element = xt.LineSegmentMap(_context=context,
-        qx=Q_x, det_xx = det_xx, detx_y = detx_y,
-        qy=Q_y, dety_y = dety_y, dety_x = dety_x,
+        qx=Q_x, det_xx = det_xx, det_xy = det_xy,
+        qy=Q_y, det_yy = det_yy, det_yx = det_yx,
         qs = Q_s,bets=1.0)
 line = xt.Line(elements = [element])
 line.particle_ref = xt.Particles(p0c=7000e9, mass0=xt.PROTON_MASS_EV)

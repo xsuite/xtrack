@@ -638,7 +638,7 @@ def test_simplified_accelerator_segment(test_context):
         Q_x=Q_x, Q_y=Q_y,
         beta_s=beta_s, Q_s=Q_s,
         chroma_x=0.0, chroma_y=0.0,
-        det_xx=0.0, detx_y=0.0, dety_y=0.0, dety_x=0.0,
+        det_xx=0.0, det_xy=0.0, det_yy=0.0, det_yx=0.0,
         energy_ref_increment=energy_ref_increment,energy_increment=energy_increment,
         x_ref_0 = x_ref_0, px_ref_0 = px_ref_0, x_ref_1 = x_ref_1, px_ref_1 = px_ref_1,
         y_ref_0 = y_ref_0, py_ref_0 = py_ref_0, y_ref_1 = y_ref_1, py_ref_1 = py_ref_1)
@@ -703,9 +703,9 @@ def test_simplified_accelerator_segment_chroma_detuning(test_context):
     chroma_x=8.0
     chroma_y=-5.0
     det_xx = 1E-3
-    detx_y = -2E-4
-    dety_y = -6E-4
-    dety_x = 3E-3
+    det_xy = -2E-4
+    det_yy = -6E-4
+    det_yx = 3E-3
 
     arc = xt.LineSegmentMap(_context=test_context,
         alfx=(alpha_x_0, alpha_x_1), betx=(beta_x_0, beta_x_1),
@@ -718,7 +718,7 @@ def test_simplified_accelerator_segment_chroma_detuning(test_context):
         x_ref=(x_ref_0, x_ref_1), px_ref=(px_ref_0, px_ref_1),
         y_ref=(y_ref_0, y_ref_1), py_ref=(py_ref_0, py_ref_1),
         dqx=chroma_x, dqy=chroma_y,
-        det_xx=det_xx, detx_y=detx_y, dety_y=dety_y, dety_x=dety_x)
+        det_xx=det_xx, det_xy=det_xy, det_yy=det_yy, det_yx=det_yx)
     arc.track(particles)
 
     dtk_arc = dtk.elements.LinearTransferMatrix(alpha_x_0=alpha_x_0, beta_x_0=beta_x_0, disp_x_0=disp_x_0,
@@ -728,7 +728,7 @@ def test_simplified_accelerator_segment_chroma_detuning(test_context):
         Q_x=Q_x, Q_y=Q_y,
         beta_s=beta_s, Q_s=Q_s,
         chroma_x=chroma_x, chroma_y=chroma_y,
-        det_xx=det_xx, detx_y=detx_y, dety_y=dety_y, dety_x=dety_x,
+        det_xx=det_xx, det_xy=det_xy, det_yy=det_yy, det_yx=det_yx,
         energy_ref_increment=energy_ref_increment,energy_increment=energy_increment,
         x_ref_0 = x_ref_0, px_ref_0 = px_ref_0, x_ref_1 = x_ref_1, px_ref_1 = px_ref_1,
         y_ref_0 = y_ref_0, py_ref_0 = py_ref_0, y_ref_1 = y_ref_1, py_ref_1 = py_ref_1)
@@ -817,7 +817,7 @@ def test_simplified_accelerator_segment_uncorrelated_damping(test_context):
     Q_x=Q_x, Q_y=Q_y,
     beta_s=beta_s, Q_s=Q_s,
     chroma_x=0.0, chroma_y=0.0,
-    det_xx=0.0, detx_y=0.0, dety_y=0.0, dety_x=0.0,
+    det_xx=0.0, det_xy=0.0, det_yy=0.0, det_yx=0.0,
     energy_ref_increment=energy_ref_increment,energy_increment=energy_increment,
     x_ref_0 = x_ref_0, px_ref_0 = px_ref_0, x_ref_1 = x_ref_1, px_ref_1 = px_ref_1,
     y_ref_0 = y_ref_0, py_ref_0 = py_ref_0, y_ref_1 = y_ref_1, py_ref_1 = py_ref_1,

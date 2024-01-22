@@ -70,7 +70,7 @@ damper.needs_cpu = True
 damper.needs_hidden_lost_particles = True
 i_oct = 15.
 det_xx = 1.4e5 * i_oct / 550.0  # from PTC with ATS optics, telescopic factor 1.0
-detx_y = -1.0e5 * i_oct / 550.0
+det_xy = -1.0e5 * i_oct / 550.0
 
 # expected octupole threshold with damper is 273A according to https://indico.cern.ch/event/902528/contributions/3798807/attachments/2010534/3359300/20200327_RunIII_stability_NMounet.pdf
 # expected growth rate with damper but without octupole is ~0.3 [$10^{-4}$/turn] (also according to Nicolas' presentation)
@@ -107,8 +107,8 @@ chromatic_detuner = ChromaticitySegment(dQp_x=chroma, dQp_y=0.0)
 transverse_detuner = AmplitudeDetuningSegment(
     dapp_x=det_xx * p0,
     dapp_y=det_xx * p0,
-    dapp_xy=detx_y * p0,
-    dapp_yx=detx_y * p0,
+    dapp_xy=det_xy * p0,
+    dapp_yx=det_xy * p0,
     alpha_x=0.0,
     beta_x=beta_x,
     alpha_y=0.0,
@@ -215,9 +215,9 @@ arc = xt.LineSegmentMap(
     qs=Q_s,
     dqx=chroma,
     det_xx=det_xx,
-    detx_y=detx_y,
-    dety_y=det_xx,
-    dety_x=detx_y,
+    det_xy=det_xy,
+    det_yy=det_xx,
+    det_yx=det_xy,
     energy_ref_increment=0.0,
     energy_increment=0,
 )
