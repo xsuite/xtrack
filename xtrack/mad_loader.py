@@ -606,6 +606,12 @@ class MadLoader:
         if enable_align_errors is None:
             enable_align_errors = False
 
+        if allow_thick is None:
+            if enable_field_errors:
+                allow_thick = False
+            else:
+                allow_thick = True
+
         if allow_thick and enable_field_errors:
             raise NotImplementedError(
                 "Field errors are not yet supported for thick elements"

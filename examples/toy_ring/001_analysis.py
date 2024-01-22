@@ -12,11 +12,12 @@ line_sliced.slice_thick_elements(
     slicing_strategies=[
         xtsl.Strategy(slicing=None), # default
         xtsl.Strategy(slicing=xtsl.Teapot(100, mode='thick'), element_type=xt.Bend),
+        xtsl.Strategy(slicing=xtsl.Teapot(100, mode='thick'), element_type=xt.Quadrupole),
     ]
 )
 
 # tw = line.twiss(
-#     ele_start='mqf.1', ele_stop=len(line)-1, twiss_init=xt.TwissInit(betx=1, bety=1))
+#     start='mqf.1', end=len(line)-1, init=xt.TwissInit(betx=1, bety=1))
 tw = line_sliced.twiss(method='4d')
 
 tt = line.get_table(attr=True)

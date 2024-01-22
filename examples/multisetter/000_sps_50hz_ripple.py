@@ -16,7 +16,7 @@ mad.use(seq_name)
 madtw = mad.twiss()
 
 line = xt.Line.from_madx_sequence(mad.sequence[seq_name])
-line.particle_ref = xp.Particles(p0c=400e9, mass0=xp.PROTON_MASS_EV)
+line.particle_ref = xt.Particles(p0c=400e9, mass0=xt.PROTON_MASS_EV)
 line.build_tracker(_context=ctx)
 
 # Switch on RF and twiss
@@ -25,10 +25,11 @@ line['acta.31637'].lag = 180.
 twxt = line.twiss()
 
 # Get revolution period
-T_rev = twxt['T_rev']
+T_rev = twxt['T_rev0']
 
 # Extract list of elements to trim (all focusing quads)
-elements_to_trim = [nn for nn in line.element_names if nn.startswith('qf.')]
+tt = line.get_table()
+elements_to_trim = tt.rows[tt.element_type == 'Multipole'].rows['qf.*'].name
 # => contains ['qf.52010', 'qf.52210', 'qf.52410', 'qf.52610', 'qf.52810',
 #              'qf.53010', 'qf.53210', 'qf.53410', 'qf.60010', 'qf.60210', ...]
 

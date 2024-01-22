@@ -2,7 +2,6 @@ import numpy as np
 from cpymad.madx import Madx
 
 import xtrack as xt
-import xpart as xp
 
 mad = Madx()
 mad.call('../../test_data/hllhc15_noerrors_nobb/sequence.madx')
@@ -16,7 +15,7 @@ mad.sequence.lhcb1.expanded_elements[7].ksl = [0,1e-4]
 tw_mad_coupling = mad.twiss(ripken=True).dframe()
 
 line = xt.Line.from_madx_sequence(mad.sequence.lhcb1)
-line.particle_ref = xp.Particles(p0c=7000e9, mass0=xp.PROTON_MASS_EV)
+line.particle_ref = xt.Particles(p0c=7000e9, mass0=xt.PROTON_MASS_EV)
 line.build_tracker()
 
 tw = line.twiss()

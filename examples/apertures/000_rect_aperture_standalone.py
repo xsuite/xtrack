@@ -7,13 +7,10 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
-import xpart as xp
 
 import ducktrack as dtk
 
 context = xo.ContextCpu()
-context = xo.ContextCupy()
-#context = xo.ContextPyopencl()
 
 x_aper_min = -0.1
 x_aper_max = 0.2
@@ -31,7 +28,7 @@ test_part = dtk.TestParticles(
         py = np.zeros(n_part),
         )
 
-particles = xp.Particles.from_dict(test_part.to_dict(), _context=context)
+particles = xt.Particles.from_dict(test_part.to_dict(), _context=context)
 
 aper_test = dtk.elements.LimitRect(min_x=x_aper_min,
                                           max_x=x_aper_max,
@@ -51,7 +48,7 @@ part_y = context.nparray_from_context_array(particles.y)
 
 id_alive = part_id[part_state>0]
 
-assert np.allclose(test_part.particle_id, id_alive)
+assert np.allclose(test_part.particle_id, np.sort(id_alive))
 
 import matplotlib.pyplot as plt
 plt.close('all')

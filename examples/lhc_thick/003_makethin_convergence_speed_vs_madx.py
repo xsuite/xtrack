@@ -1,7 +1,6 @@
 import numpy as np
 from cpymad.madx import Madx
 import xtrack as xt
-import xpart as xp
 
 from xtrack.slicing import Teapot, Strategy
 
@@ -42,7 +41,7 @@ for ii, mq_sl in enumerate(mq_slice_list):
     if ii == 0:
         line0 = xt.Line.from_madx_sequence(
             mad.sequence.lhcb1, allow_thick=True, deferred_expressions=True)
-        line0.particle_ref = xp.Particles(mass0=seq.beam.mass*1e9, gamma0=seq.beam.gamma)
+        line0.particle_ref = xt.Particles(mass0=seq.beam.mass*1e9, gamma0=seq.beam.gamma)
         line0.twiss_default['method'] = '4d'
         line0.twiss_default['matrix_stability_tol'] = 100
         line0.build_tracker()
@@ -60,6 +59,7 @@ for ii, mq_sl in enumerate(mq_slice_list):
 
     slicing_strategies = [
         Strategy(slicing=Teapot(1)),  # Default catch-all as in MAD-X
+        Strategy(slicing=None, element_type=xt.Solenoid),
         Strategy(slicing=Teapot(n_slice_bends), element_type=xt.Bend),
         Strategy(slicing=Teapot(n_slice_quads), element_type=xt.Quadrupole),
         Strategy(slicing=Teapot(n_slice_mb), name=r'^mb\..*'),

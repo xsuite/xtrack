@@ -340,7 +340,7 @@ def test_slicing_thick_bend_into_thick_bends_simple(element_type):
     assert np.allclose(bend1.ksl, expected_ksl, atol=1e-16)
 
     # Make sure the order and the inverse factorial make sense:
-    _fact = np.math.factorial
+    _fact = math.factorial
     assert np.isclose(_fact(bend0.order) * bend0.inv_factorial_order, 1, atol=1e-16)
     assert np.isclose(_fact(bend1.order) * bend0.inv_factorial_order, 1, atol=1e-16)
 

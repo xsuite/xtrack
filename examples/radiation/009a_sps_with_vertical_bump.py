@@ -5,7 +5,6 @@ from scipy.constants import epsilon_0
 
 from cpymad.madx import Madx
 import xtrack as xt
-import xpart as xp
 import xobjects as xo
 
 mad = Madx()
@@ -46,7 +45,7 @@ mad.emit()
 
 line = xt.Line.from_madx_sequence(mad.sequence.sps, allow_thick=True,
                                   deferred_expressions=True)
-line.particle_ref = xp.Particles(mass0=xp.ELECTRON_MASS_EV,
+line.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV,
                                     q0=-1, gamma0=mad.sequence.sps.beam.gamma)
 line.cycle('bpv.11706_entry', inplace=True)
 
@@ -111,10 +110,12 @@ line.element_refs['lsd.53505..0'].knl[2] = 0
 line.element_refs['lsf.53605..0'].knl[2] = 0
 line.element_refs['lsd.60105..0'].knl[2] = 0
 
+tw0 = line.twiss()
 opt_bump = line.match(
     solve=False,
     method='4d',
-    ele_start='mdv.52707', ele_stop='mdv.60107', twiss_init='preserve_start',
+    start='mdv.52707', end='mdv.60107',
+    init_at=xt.START, init=tw0,
     vary=[
         xt.VaryList(['mdv.52907.ksl0', 'mdv.53107.ksl0',
                      'mdv.53307.ksl0', 'mdv.53507.ksl0'], step=1e-5),

@@ -9,7 +9,6 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
-import xpart as xp
 
 import ducktrack as dtk
 
@@ -66,7 +65,7 @@ line.reset_s_at_end_turn = False
 ######################
 # Get some particles #
 ######################
-particles = xp.Particles(_context=context, **input_data['particle'])
+particles = xt.Particles(_context=context, **input_data['particle'])
 
 # To test off momentum one can do the following:
 # #particles.delta = 1e-3
@@ -138,7 +137,7 @@ diffs = []
 s_coord = []
 for ii, (eedtk, nn) in enumerate(zip(testline.elements, testline.element_names)):
     vars_before = {vv: getattr(dtk_part, vv)[0] for vv in vars_to_check}
-    particles = xp.Particles.from_dict(dtk_part.to_dict(), _context=context)
+    particles = xt.Particles.from_dict(dtk_part.to_dict(), _context=context)
 
     line.track(particles, ele_start=ii, num_elements=1)
 

@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import xtrack as xt
-import xobjects as xo
 
 line = xt.Line.from_json('psb_04_with_chicane_corrected_thin.json')
 line.build_tracker()

@@ -16,7 +16,7 @@ import xfields as xf
 # Enable pyheadtail interface #
 ###############################
 
-xp.enable_pyheadtail_interface()
+xt.enable_pyheadtail_interface()
 
 ############
 # Settings #
@@ -81,7 +81,7 @@ line = xt.Line.from_madx_sequence(sequence=mad.sequence[seq_name],
            deferred_expressions=True, install_apertures=True,
            apply_madx_errors=False)
 # Define reference particle
-line.particle_ref = xp.Particles(p0c=p0c,mass0=xp.PROTON_MASS_EV)
+line.particle_ref = xt.Particles(p0c=p0c,mass0=xt.PROTON_MASS_EV)
 
 ################
 # Switch on RF #

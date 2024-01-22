@@ -978,8 +978,8 @@ def test_insert_thin_elements_at_s_lhc(test_context):
 
     line.build_tracker(_context=test_context)
 
-    Strategy = xt.slicing.Strategy
-    Teapot = xt.slicing.Teapot
+    Strategy = xt.Strategy
+    Teapot = xt.Teapot
     slicing_strategies = [
         Strategy(slicing=Teapot(1)),  # Default catch-all as in MAD-X
         Strategy(slicing=Teapot(4), element_type=xt.Bend),

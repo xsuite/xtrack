@@ -3,9 +3,6 @@ import numpy as np
 from cpymad.madx import Madx
 
 import xtrack as xt
-import xpart as xp
-import xdeps as xd
-import xobjects as xo
 
 import matplotlib.pyplot as plt
 

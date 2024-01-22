@@ -7,7 +7,6 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
-import xpart as xp
 
 context = xo.ContextCpu()
 
@@ -68,7 +67,7 @@ beam_interaction = xt.BeamInteraction(
 # Go through the collimator multiple times #
 ############################################
 
-particles = xp.Particles(_capacity=200,
+particles = xt.Particles(_capacity=200,
         p0c=7000, x=np.linspace(-1e-3, 1e-3, 10))
 
 for _ in range(10):

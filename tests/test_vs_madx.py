@@ -176,11 +176,11 @@ def test_twiss_and_survey(
                                     at_element=range_for_partial_twiss[0])
         tw4d_init = line.twiss(method='4d').get_twiss_init(
                                     at_element=range_for_partial_twiss[0])
-        tw_part = line.twiss(ele_start=range_for_partial_twiss[0],
-                ele_stop=range_for_partial_twiss[1], twiss_init=tw_init)
+        tw_part = line.twiss(start=range_for_partial_twiss[0],
+                end=range_for_partial_twiss[1], init=tw_init)
         tw4d_part = line.twiss(method='4d',
-                ele_start=range_for_partial_twiss[0],
-                ele_stop=range_for_partial_twiss[1], twiss_init=tw4d_init)
+                start=range_for_partial_twiss[0],
+                end=range_for_partial_twiss[1], init=tw4d_init)
         if reverse:
             tw_part = tw_part.reverse()
             tw4d_part = tw4d_part.reverse()
@@ -336,6 +336,8 @@ def test_twiss_and_survey(
                 # Check sigma_x, sigma_y
                 assert np.isclose(Sigmas.sigma_x[ixt], np.sqrt(Sigmas.Sigma11[ixt]), atol=1e-16)
                 assert np.isclose(Sigmas.sigma_y[ixt], np.sqrt(Sigmas.Sigma33[ixt]), atol=1e-16)
+                assert np.isclose(Sigmas.sigma_px[ixt], np.sqrt(Sigmas.Sigma22[ixt]), atol=1e-16)
+                assert np.isclose(Sigmas.sigma_py[ixt], np.sqrt(Sigmas.Sigma44[ixt]), atol=1e-16)
 
                 if not(is_part): # We don't have survey on a part of the machine
                     # Check survey
@@ -618,4 +620,4 @@ def test_low_beta_twiss(test_context):
                         atol=1e-6)
     assert np.isclose(mad.table.summ['dq2'][0]*beta0, tw['dqy'], rtol=0,
                         atol=1e-6)
-    assert np.isclose(tw.qs, emitdf.qs[0], rtol=0, atol=1e-8)
+    assert np.isclose(tw.qs, emitdf.qs.iloc[0], rtol=0, atol=1e-8)

@@ -9,7 +9,6 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
-import xpart as xp
 
 
 fname_line = '../../test_data/lhc_no_bb/line_and_particle.json'
@@ -41,7 +40,7 @@ line.build_tracker(_context=context)
 ######################
 # Get some particles #
 ######################
-particles = xp.Particles(_context=context,
+particles = xt.Particles(_context=context,
                          p0c=6500e9,
                          x=np.random.uniform(-1e-3, 1e-3, n_part),
                          px=np.random.uniform(-1e-5, 1e-5, n_part),
