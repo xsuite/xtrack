@@ -66,7 +66,7 @@ def mad_str_or_value(var):
 
 def mad_assignment(lhs, rhs):
     if _is_ref(rhs):
-        return f"{lhs} := {mad_str_or_value(rhs)}"
+        rhs = mad_str_or_value(rhs)
     if isinstance(rhs, str):
         return f"{lhs} := {rhs}"
     else:
