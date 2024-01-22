@@ -53,3 +53,4 @@ while "vars[" in expr_str:
     expr_str = before + "(" + after[:ii] + ")" + after[ii+1:]
 
 
+_get_expr = xt.elements._get_expr
