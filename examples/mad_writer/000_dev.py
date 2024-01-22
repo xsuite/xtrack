@@ -60,7 +60,9 @@ def expr_to_mad_str(expr):
 def mad_str_or_value(var):
     vv = _get_expr(var)
     if _is_ref(vv):
-        return expr_to_mad_str(vv)
+        out = expr_to_mad_str(vv)
+        out = out.strip('._expr')
+        return out
     else:
         return vv
 
@@ -82,3 +84,47 @@ for vv in line.vars.keys():
     if vv == '__vary_default':
         continue
     vars_str += mad_assignment(vv, line.vars[vv]) + ";\n"
+
+
+def cavity_to_madx_str(cav):
+    tokens = []
+    tokens.append('rfcavity')
+    tokens.append(mad_assignment('freq', cav.frequency._expr * 1e-6))
+    tokens.append(mad_assignment('volt', cav.voltage._expr * 1e-6))
+    tokens.append(mad_assignment('lag', cav.lag._expr / 360.))
+
+    return ', '.join(tokens)
+
+def marker_to_madx_str(marker):
+    return 'marker'
+
+def drift_to_madx_str(drift):
+    tokens = []
+    tokens.append('drift')
+    tokens.append(mad_assignment('l', drift.length._expr))
+    return ', '.join(tokens)
+
+
+xsuite_to_mad_conveters={
+    xt.Cavity: cavity_to_madx_str,
+    xt.Marker: marker_to_madx_str,
+    xt.Drift: drift_to_madx_str,
+}
+
+elements_str = ""
+for nn in line.element_names:
+    eref = line.element_refs[nn]
+    el = line[nn]
+    el_str = xsuite_to_mad_conveters[type(el)](eref)
+    elements_str += f"{nn}: {el_str};\n"
+
+print(elements_str)
+
+line_str = 'myseq: line=(' + ', '.join(line.element_names) + ');'
+
+mad_input = vars_str + '\n' + elements_str + '\n' + line_str
+
+mad2 = Madx()
+mad2.input(mad_input)
+mad2.beam()
+mad2.use('myseq')
