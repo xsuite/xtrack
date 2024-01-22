@@ -126,6 +126,12 @@ def test_energy_program(test_context):
                         line.particle_ref.mass0 * gamma_at_turn * beta_at_turn)
     assert np.allclose(p0c_check, p0c_ref, atol=0, rtol=1e-3)
 
+    kinetic_energy0_check = line.energy_program.get_kinetic_energy0_at_t_s(t_check)
+    kinetic_energy0_ref = np.interp(t_check,
+                        t_turn_check,
+                        line.particle_ref.mass0 * (gamma_at_turn - 1))
+    assert np.allclose(kinetic_energy0_check, kinetic_energy0_ref, atol=0, rtol=2e-3)
+
     beta0_check = line.energy_program.get_beta0_at_t_s(t_check)
     beta0_ref = np.interp(t_check, t_turn_check, beta_at_turn)
     assert np.allclose(beta0_check, beta0_ref, atol=0, rtol=1e-3)
@@ -148,6 +154,8 @@ def test_energy_program(test_context):
     E_tot_expected = E_kin_expected + line.particle_ref.mass0
     assert np.isclose(
         E_tot_expected, line.particle_ref.energy0[0], rtol=1e-4, atol=0)
+    assert np.isclose(
+        E_kin_expected, line.particle_ref.kinetic_energy0[0], rtol=1e-4, atol=0)
 
     tw = line.twiss(method='6d')
     # To check that it does not change
