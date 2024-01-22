@@ -90,7 +90,7 @@ void add_dispersion(
 void transverse_motion(LocalParticle *part0,
     double const qx, double const qy,
     double const dqx, double const dqy,
-    double const detx_x, double const detx_y, double const dety_x, double const dety_y,
+    double const det_xx, double const detx_y, double const dety_x, double const dety_y,
     double const alfx_0, double const betx_0, double const alfy_0, double const bety_0,
     double const alfx_1, double const betx_1, double const alfy_1, double const bety_1){
 
@@ -100,7 +100,7 @@ void transverse_motion(LocalParticle *part0,
     double sin_y = 0;
     double cos_y = 0;
     if (dqx != 0.0 || dqy != 0.0 ||
-        detx_x != 0.0 || detx_y != 0.0 || dety_x != 0.0 || dety_y != 0.0){
+        det_xx != 0.0 || detx_y != 0.0 || dety_x != 0.0 || dety_y != 0.0){
         detuning = 1;
     }
     else{
@@ -135,7 +135,7 @@ void transverse_motion(LocalParticle *part0,
                 + bety_0
                     * LocalParticle_get_py(part)*LocalParticle_get_py(part));
             double phase = 2*PI*(qx + dqx * LocalParticle_get_delta(part)
-                                +detx_x * J_x + detx_y * J_y);
+                                +det_xx * J_x + detx_y * J_y);
             cos_x = cos(phase);
             sin_x = sin(phase);
             phase = 2*PI*(qy + dqy * LocalParticle_get_delta(part)

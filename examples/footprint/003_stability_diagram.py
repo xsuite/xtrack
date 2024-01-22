@@ -18,12 +18,12 @@ context = xo.ContextCpu()
 Q_x = .28
 Q_y = .31
 Q_s = 1E-3
-detx_x = 1E6
+det_xx = 1E6
 detx_y = -7E5
 dety_y = -5E5
 dety_x = 1E5
 element = xt.LineSegmentMap(_context=context,
-        qx=Q_x, detx_x = detx_x, detx_y = detx_y,
+        qx=Q_x, det_xx = det_xx, detx_y = detx_y,
         qy=Q_y, dety_y = dety_y, dety_x = dety_x,
         qs = Q_s,bets=1.0)
 line = xt.Line(elements = [element])

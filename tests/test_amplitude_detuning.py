@@ -5,7 +5,7 @@ from xobjects.test_helpers import for_all_test_contexts
 @for_all_test_contexts
 def test_amplitude_detuning(test_context):
     line = xt.Line(elements=[xt.LineSegmentMap(qx=62.31, qy=60.32,
-                            detx_x=1000, detx_y=10, dety_x=20, dety_y=2000)])
+                            det_xx=1000, detx_y=10, dety_x=20, dety_y=2000)])
     line.particle_ref = xt.Particles(p0c=7e9)
     line.build_tracker(_context=test_context)
 
