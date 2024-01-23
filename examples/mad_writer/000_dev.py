@@ -53,8 +53,8 @@ import xdeps as xd
 #     ])
 
 # ----- LHC (thick) -----
-# line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
-# line.build_tracker()
+line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
+line.build_tracker()
 
 # ----- LHC (thin) -----
 # line = xt.Line.from_json('../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
@@ -62,14 +62,14 @@ import xdeps as xd
 # line.build_tracker()
 
 # ----- LHC (thin) -----
-mad1 = Madx()
-mad1.call('../../test_data/hllhc15_noerrors_nobb/sequence_with_crabs.madx')
-mad1.use('lhcb1')
-seq = mad1.sequence.lhcb1
-line = xt.Line.from_madx_sequence(seq, deferred_expressions=True)
-line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
-                                    mass0=seq.beam.mass * 1e9,
-                                    q0=seq.beam.charge)
+# mad1 = Madx()
+# mad1.call('../../test_data/hllhc15_noerrors_nobb/sequence_with_crabs.madx')
+# mad1.use('lhcb1')
+# seq = mad1.sequence.lhcb1
+# line = xt.Line.from_madx_sequence(seq, deferred_expressions=True)
+# line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
+#                                     mass0=seq.beam.mass * 1e9,
+#                                     q0=seq.beam.charge)
 
 
 # Build xsuite line
@@ -239,13 +239,13 @@ def bend_to_madx_str(name, line):
     tokens.append(mad_assignment('angle', _ge(bend.h) * _ge(bend.length)))
     tokens.append(mad_assignment('k0', _ge(bend.k0)))
     # k1, k2, knl, ksl need to be implemented
-    if nn + '_den' in line.element_dict.keys():
-        edg_entry = line[nn + '_den']
+    if name + '_den' in line.element_dict.keys():
+        edg_entry = line[name + '_den']
         tokens.append(mad_assignment('e1', _ge(edg_entry.e1)))
         tokens.append(mad_assignment('fint', _ge(edg_entry.fint)))
         tokens.append(mad_assignment('hgap', _ge(edg_entry.hgap)))
-    if nn + '_dex' in line.element_dict.keys():
-        edg_exit = line[nn + '_dex']
+    if name + '_dex' in line.element_dict.keys():
+        edg_exit = line[name + '_dex']
         tokens.append(mad_assignment('e2', _ge(edg_exit.e1)))
     return ', '.join(tokens)
 
@@ -296,27 +296,27 @@ xsuite_to_mad_conveters={
     xt.RFMultipole: rfmultipole_to_madx_str,
 }
 
-elements_str = ""
-for nn in line.element_names:
-    el = line[nn]
-    el_str = xsuite_to_mad_conveters[type(el)](nn, line)
-    elements_str += f"{nn}: {el_str};\n"
+def to_madx_sequence(line, name='seq'):
+    elements_str = ""
+    for nn in line.element_names:
+        el = line[nn]
+        el_str = xsuite_to_mad_conveters[type(el)](nn, line)
+        elements_str += f"{nn}: {el_str};\n"
 
-beam_str = (f"beam, mass={line.particle_ref.mass0*1e-9}, "
-            f"charge={line.particle_ref.q0}, "
-            f"gamma={line.particle_ref.gamma0[0]};\n")
+    beam_str = (f"beam, mass={line.particle_ref.mass0*1e-9}, "
+                f"charge={line.particle_ref.q0}, "
+                f"gamma={line.particle_ref.gamma0[0]};\n")
 
-print(elements_str)
+    line_str = f'{name}: line=(' + ', '.join(line.element_names) + ');'
 
-line_str = 'myseq: line=(' + ', '.join(line.element_names) + ');'
-
-mad_input = vars_str + '\n' + elements_str + '\n' + line_str + '\n' + beam_str
+    mad_input = vars_str + '\n' + elements_str + '\n' + line_str + '\n' + beam_str
+    return mad_input
 
 mad2 = Madx()
-mad2.input(mad_input)
-mad2.use('myseq')
+mad2.input(to_madx_sequence(line, name='seq'))
+mad2.use('seq')
 
 tw = line.twiss(method='4d')
 twmad2 = mad2.twiss()
 
-line2 = xt.Line.from_madx_sequence(mad2.sequence.myseq, deferred_expressions=True)
+line2 = xt.Line.from_madx_sequence(mad2.sequence.seq, deferred_expressions=True)
