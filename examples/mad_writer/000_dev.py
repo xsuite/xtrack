@@ -34,17 +34,17 @@ import os
 # line = xt.Line.from_madx_sequence(sequence=seq, deferred_expressions=True)
 
 # ----- Elena -----
-# mad = Madx()
-# folder = ('../../test_data/elena')
-# mad.call(folder + '/elena.seq')
-# mad.call(folder + '/highenergy.str')
-# mad.call(folder + '/highenergy.beam')
-# mad.use('elena')
-# seq = mad.sequence.elena
-# line = xt.Line.from_madx_sequence(seq)
-# line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
-#                                     mass0=seq.beam.mass * 1e9,
-#                                     q0=seq.beam.charge)
+mad = Madx()
+folder = ('../../test_data/elena')
+mad.call(folder + '/elena.seq')
+mad.call(folder + '/highenergy.str')
+mad.call(folder + '/highenergy.beam')
+mad.use('elena')
+seq = mad.sequence.elena
+line = xt.Line.from_madx_sequence(seq)
+line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
+                                    mass0=seq.beam.mass * 1e9,
+                                    q0=seq.beam.charge)
 
 # line.slice_thick_elements(
 #     slicing_strategies=[
@@ -57,9 +57,9 @@ import os
 # line.build_tracker()
 
 # ----- LHC (thin) -----
-line = xt.Line.from_json('../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
-line.particle_ref = xt.Particles(mass=xt.PROTON_MASS_EV, p0c=7000e9)
-line.build_tracker()
+# line = xt.Line.from_json('../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
+# line.particle_ref = xt.Particles(mass=xt.PROTON_MASS_EV, p0c=7000e9)
+# line.build_tracker()
 
 # ----- LHC (thin) -----
 # mad1 = Madx()
@@ -73,59 +73,50 @@ line.build_tracker()
 
 mad_seq = line.to_madx_sequence(sequence_name='myseq')
 
-# mad_seq = """
-# squad: quadrupole, k1s:=0.5, l=1, at=0.5;
-# testseq: sequence, l=1;
-# squad1: squad, at=0.5;
-# r
-# endsequence;
-
-# """
-
-temp_fname = 'temp4madng'
-with open(temp_fname+'.madx', 'w') as fid:
-    fid.write(mad_seq)
-
-from pymadng import MAD
-mad = MAD()
-mad.MADX.load(f'"{temp_fname}.madx"', f"'{temp_fname}.madng'")
-mad["myseq"] = mad.MADX.myseq
-mad.myseq.beam = mad.beam()
-mad["mytwtable", 'mytwflow'] = mad.twiss(
-    sequence=mad.myseq, method=4, mapdef=2, implicit=True, nslice=3, save="'atbody'")
-
 mad2 = Madx()
 mad2.input(mad_seq)
 mad2.beam()
 mad2.use('myseq')
 
-mad.send('''
-        local track in MAD  -- like "from MAD import track"
-        local mytrktable, mytrkflow = MAD.track{sequence=MADX.myseq, method=4,
-                                                mapdef=4, nslice=3}
+temp_fname = 'temp4madng'
+with open(temp_fname+'.madx', 'w') as fid:
+    fid.write(mad_seq)
 
-         -- print(MAD.typeid.is_damap(mytrkflow[1]))
+# MAD-NG stuff
 
-        local normal in MAD.gphys  -- like "from MAD.gphys import normal"
-        local my_norm_for = normal(mytrkflow[1]):analyse('anh') -- anh stands for anharmonicity
+# from pymadng import MAD
+# mad = MAD()
+# mad.MADX.load(f'"{temp_fname}.madx"', f"'{temp_fname}.madng'")
+# mad["myseq"] = mad.MADX.myseq
+# mad.myseq.beam = mad.beam()
+# mad["mytwtable", 'mytwflow'] = mad.twiss(
+#     sequence=mad.myseq, method=4, mapdef=2, implicit=True, nslice=3, save="'atbody'")
 
-        local nf = my_norm_for
-        py:send({
-                nf:q1{1}, -- qx from the normal form (fractional part)
-                nf:q2{1}, -- qy
-                nf:dq1{1}, -- dqx / d delta
-                nf:dq2{1}, -- dqy / d delta
-                nf:dq1{2}, -- d2 qx / d delta2
-                nf:dq2{2}, -- d2 qy / d delta2
-                nf:anhx{1, 0}, -- dqx / djx
-                nf:anhy{0, 1}, -- dqy / djy
-                nf:anhx{0, 1}, -- dqx / djy
-                nf:anhy{1, 0}, -- dqy / djx
-             })
-    ''')
+# mad.send('''
+#         local track in MAD  -- like "from MAD import track"
+#         local mytrktable, mytrkflow = MAD.track{sequence=MADX.myseq, method=4,
+#                                                 mapdef=4, nslice=3}
 
-out = mad.recv()
+#          -- print(MAD.typeid.is_damap(mytrkflow[1]))
 
-# # tw = line.twiss(method='4d')
-# # twmad2 = mad2.twiss()
+#         local normal in MAD.gphys  -- like "from MAD.gphys import normal"
+#         local my_norm_for = normal(mytrkflow[1]):analyse('anh') -- anh stands for anharmonicity
+
+#         local nf = my_norm_for
+#         py:send({
+#                 nf:q1{1}, -- qx from the normal form (fractional part)
+#                 nf:q2{1}, -- qy
+#                 nf:dq1{1}, -- dqx / d delta
+#                 nf:dq2{1}, -- dqy / d delta
+#                 nf:dq1{2}, -- d2 qx / d delta2
+#                 nf:dq2{2}, -- d2 qy / d delta2
+#                 nf:anhx{1, 0}, -- dqx / djx
+#                 nf:anhy{0, 1}, -- dqy / djy
+#                 nf:anhx{0, 1}, -- dqx / djy
+#                 nf:anhy{1, 0}, -- dqy / djx
+#              })
+#     ''')
+
+# out = mad.recv()
+
 
