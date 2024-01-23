@@ -546,7 +546,7 @@ class Line:
 
         return out
 
-    def to_madx_sequence(self, sequence_name):
+    def to_madx_sequence(self, sequence_name, mode='sequence'):
         '''
         Return a MAD-X sequence corresponding to the line.
 
@@ -560,7 +560,7 @@ class Line:
         madx_sequence : str
             MAD-X sequence.
         '''
-        return to_madx_sequence(self, sequence_name)
+        return to_madx_sequence(self, sequence_name, mode=mode)
 
     def __getstate__(self):
         out = self.__dict__.copy()

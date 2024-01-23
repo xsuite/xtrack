@@ -219,7 +219,7 @@ xsuite_to_mad_conveters={
     xt.RFMultipole: rfmultipole_to_madx_str,
 }
 
-def to_madx_sequence(line, name='seq'):
+def to_madx_sequence(line, name='seq', mode='sequence'):
     # build variables part
     vars_str = ""
     for vv in line.vars.keys():
@@ -227,17 +227,27 @@ def to_madx_sequence(line, name='seq'):
             continue
         vars_str += mad_assignment(vv, line.vars[vv]) + ";\n"
 
-    elements_str = ""
-    for nn in line.element_names:
-        el = line[nn]
-        el_str = xsuite_to_mad_conveters[type(el)](nn, line)
-        elements_str += f"{nn}: {el_str};\n"
+    if mode =='line':
+        elements_str = ""
+        for nn in line.element_names:
+            el = line[nn]
+            el_str = xsuite_to_mad_conveters[type(el)](nn, line)
+            elements_str += f"{nn}: {el_str};\n"
+        line_str = f'{name}: line=(' + ', '.join(line.element_names) + ');'
+        machine_str = elements_str + line_str
+    elif mode == 'sequence':
+        tt = line.get_table()
+        line_length = tt['s', -1]
+        seq_str = f'{name}: sequence, l={line_length}, refer=entry;\n'
+        s_dict = {nn:ss for nn, ss in zip(tt.name, tt.s)}
+        for nn in line.element_names:
+            el = line[nn]
+            if isinstance(el, xt.Drift):
+                continue
+            el_str = xsuite_to_mad_conveters[type(el)](nn, line)
+            seq_str += f"{nn}: {el_str}, at={s_dict[nn]};\n"
+        seq_str += 'endsequence;'
+        machine_str = seq_str
 
-    beam_str = (f"beam, mass={line.particle_ref.mass0*1e-9}, "
-                f"charge={line.particle_ref.q0}, "
-                f"gamma={line.particle_ref.gamma0[0]};\n")
-
-    line_str = f'{name}: line=(' + ', '.join(line.element_names) + ');'
-
-    mad_input = vars_str + '\n' + elements_str + '\n' + line_str + '\n' + beam_str
+    mad_input = vars_str + '\n' + machine_str + '\n'
     return mad_input

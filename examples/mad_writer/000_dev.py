@@ -81,11 +81,17 @@ with open(temp_fname+'.madx', 'w') as fid:
 from pymadng import MAD
 mad = MAD()
 mad.MADX.load(f'"{temp_fname}.madx"', f"'{temp_fname}.madng'")
+mad.beam("'proton'", energy=7000)
+
+mad["twb1", 'mytwflow'] = mad.twiss(sequence=mad.seq, method=4, mapdef=2, implicit=True, nslice=3, save="'atbody'")
+
+
 # os.remove(temp_fname)
 
-# mad2 = Madx()
-# mad2.input(mad_seq)
-# mad2.use('seq')
+mad2 = Madx()
+mad2.input(mad_seq)
+mad2.beam()
+mad2.use('seq')
 
 # tw = line.twiss(method='4d')
 # twmad2 = mad2.twiss()
