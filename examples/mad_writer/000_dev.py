@@ -129,12 +129,23 @@ def drift_to_madx_str(name, line):
 def multipole_to_madx_str(name, line):
     mult = _get_eref(line, name)
 
+    if name == 'mcbxfbh.a2l1':
+        import pdb; pdb.set_trace()
+
+    if (len(mult.knl._value) == 1 and len(mult.ksl._value) == 1
+        and mult.hxl._value == 0 and mult.hyl._value == 0):
+        # It is a dipole corrector
+        tokens = []
+        tokens.append('kicker')
+        tokens.append(mad_assignment('hkick', -1 * _ge(mult.knl[0])))
+        tokens.append(mad_assignment('vkick', _ge(mult.ksl[0])))
+        tokens.append(mad_assignment('lrad', _ge(mult.length)))
+        return ', '.join(tokens)
+
+
     # correctors are not handled correctly!!!!
     # https://github.com/MethodicalAcceleratorDesign/MAD-X/issues/911
-    assert _ge(mult.hxl) == 0
-    assert _ge(mult.hyl) == 0
-    assert mult.knl[0]._value == 0
-    assert mult.ksl[0]._value == 0
+    assert mult.hyl._value == 0
 
     tokens = []
     tokens.append('multipole')
@@ -149,6 +160,7 @@ def multipole_to_madx_str(name, line):
     tokens.append('knl:={' + ','.join(knl_mad) + '}')
     tokens.append('ksl:={' + ','.join(ksl_mad) + '}')
     tokens.append(mad_assignment('lrad', _ge(mult.length)))
+    tokens.append(mad_assignment('angle', _ge(mult.hxl)))
 
     return ', '.join(tokens)
 
