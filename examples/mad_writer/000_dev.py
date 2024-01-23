@@ -7,6 +7,7 @@ import xdeps as xd
 # - handle thick slicing of bends (edges!)
 # - handle isolated dipole edges
 # - crab cavities
+# - rbarc (sps)
 
 # ----- Test sequence -----
 # mad = Madx()
@@ -33,23 +34,23 @@ import xdeps as xd
 # line = xt.Line.from_madx_sequence(sequence=seq, deferred_expressions=True)
 
 # ----- Elena -----
-mad = Madx()
-folder = ('../../test_data/elena')
-mad.call(folder + '/elena.seq')
-mad.call(folder + '/highenergy.str')
-mad.call(folder + '/highenergy.beam')
-mad.use('elena')
-seq = mad.sequence.elena
-line = xt.Line.from_madx_sequence(seq)
-line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
-                                    mass0=seq.beam.mass * 1e9,
-                                    q0=seq.beam.charge)
+# mad = Madx()
+# folder = ('../../test_data/elena')
+# mad.call(folder + '/elena.seq')
+# mad.call(folder + '/highenergy.str')
+# mad.call(folder + '/highenergy.beam')
+# mad.use('elena')
+# seq = mad.sequence.elena
+# line = xt.Line.from_madx_sequence(seq)
+# line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
+#                                     mass0=seq.beam.mass * 1e9,
+#                                     q0=seq.beam.charge)
 
-line.slice_thick_elements(
-    slicing_strategies=[
-        xt.Strategy(slicing=None), # don't touch other elements
-        xt.Strategy(slicing=xt.Uniform(10, mode='thick'), element_type=xt.Bend)
-    ])
+# line.slice_thick_elements(
+#     slicing_strategies=[
+#         xt.Strategy(slicing=None), # don't touch other elements
+#         xt.Strategy(slicing=xt.Uniform(10, mode='thick'), element_type=xt.Bend)
+#     ])
 
 # ----- LHC (thick) -----
 # line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
@@ -61,14 +62,14 @@ line.slice_thick_elements(
 # line.build_tracker()
 
 # ----- LHC (thin) -----
-# mad1 = Madx()
-# mad1.call('../../test_data/hllhc15_noerrors_nobb/sequence.madx')
-# mad1.use('lhcb1')
-# seq = mad1.sequence.lhcb1
-# line = xt.Line.from_madx_sequence(seq)
-# line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
-#                                     mass0=seq.beam.mass * 1e9,
-#                                     q0=seq.beam.charge)
+mad1 = Madx()
+mad1.call('../../test_data/hllhc15_noerrors_nobb/sequence_with_crabs.madx')
+mad1.use('lhcb1')
+seq = mad1.sequence.lhcb1
+line = xt.Line.from_madx_sequence(seq, deferred_expressions=True)
+line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
+                                    mass0=seq.beam.mass * 1e9,
+                                    q0=seq.beam.charge)
 
 
 # Build xsuite line
@@ -98,6 +99,8 @@ def expr_to_mad_str(expr):
                 break
 
         expr_str = before + "(" + after[:ii] + ")" + after[ii+1:]
+
+        expr_str = expr_str.replace("**", "^")
 
     return expr_str
 
@@ -165,7 +168,6 @@ def multipole_to_madx_str(name, line):
         tokens.append(mad_assignment('lrad', _ge(mult.length)))
         return ', '.join(tokens)
 
-
     # correctors are not handled correctly!!!!
     # https://github.com/MethodicalAcceleratorDesign/MAD-X/issues/911
     assert mult.hyl._value == 0
@@ -184,6 +186,38 @@ def multipole_to_madx_str(name, line):
     tokens.append('ksl:={' + ','.join(ksl_mad) + '}')
     tokens.append(mad_assignment('lrad', _ge(mult.length)))
     tokens.append(mad_assignment('angle', _ge(mult.hxl)))
+
+    return ', '.join(tokens)
+
+def rfmultipole_to_madx_str(name, line):
+    rfmult = _get_eref(line, name)
+
+    tokens = []
+    tokens.append('rfmultipole')
+    knl_mad = []
+    ksl_mad = []
+    for kl, klmad in zip([rfmult.knl, rfmult.ksl], [knl_mad, ksl_mad]):
+        for ii in range(len(kl._value)):
+            item = mad_str_or_value(_ge(kl[ii]))
+            if not isinstance(item, str):
+                item = str(item)
+            klmad.append(item)
+    pnl_mad = []
+    psl_mad = []
+    for pp, plmad in zip([rfmult.pn, rfmult.ps], [pnl_mad, psl_mad]):
+        for ii in range(len(pp._value)):
+            item = mad_str_or_value(_ge(pp[ii]) / 360)
+            if not isinstance(item, str):
+                item = str(item)
+            plmad.append(item)
+
+    tokens.append('knl:={' + ','.join(knl_mad) + '}')
+    tokens.append('ksl:={' + ','.join(ksl_mad) + '}')
+    tokens.append('pnl:={' + ','.join(pnl_mad) + '}')
+    tokens.append('psl:={' + ','.join(psl_mad) + '}')
+    tokens.append(mad_assignment('freq', _ge(rfmult.frequency) * 1e-6))
+    tokens.append(mad_assignment('volt', _ge(rfmult.voltage) * 1e-6))
+    tokens.append(mad_assignment('lag', _ge(rfmult.lag) / 360.))
 
     return ', '.join(tokens)
 
@@ -259,6 +293,7 @@ xsuite_to_mad_conveters={
     xt.Quadrupole: quadrupole_to_madx_str,
     xt.Solenoid: solenoid_to_madx_str,
     xt.SRotation: srotation_to_madx_str,
+    xt.RFMultipole: rfmultipole_to_madx_str,
 }
 
 elements_str = ""
@@ -283,3 +318,5 @@ mad2.use('myseq')
 
 tw = line.twiss(method='4d')
 twmad2 = mad2.twiss()
+
+line2 = xt.Line.from_madx_sequence(mad2.sequence.myseq, deferred_expressions=True)
