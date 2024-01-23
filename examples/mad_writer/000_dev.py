@@ -95,9 +95,11 @@ for vv in line.vars.keys():
         continue
     vars_str += mad_assignment(vv, line.vars[vv]) + ";\n"
 
+def _get_eref(line, name):
+    return line.element_refs[name]
 
-def cavity_to_madx_str(name, container):
-    cav = container[name]
+def cavity_to_madx_str(name, line):
+    cav = _get_eref(line, name)
     tokens = []
     tokens.append('rfcavity')
     tokens.append(mad_assignment('freq', _ge(cav.frequency) * 1e-6))
@@ -106,18 +108,18 @@ def cavity_to_madx_str(name, container):
 
     return ', '.join(tokens)
 
-def marker_to_madx_str(name, container):
+def marker_to_madx_str(name, line):
     return 'marker'
 
-def drift_to_madx_str(name, container):
-    drift = container[name]
+def drift_to_madx_str(name, line):
+    drift = _get_eref(line, name)
     tokens = []
     tokens.append('drift')
     tokens.append(mad_assignment('l', _ge(drift.length)))
     return ', '.join(tokens)
 
-def multipole_to_madx_str(name, container):
-    mult = container[name]
+def multipole_to_madx_str(name, line):
+    mult = _get_eref(line, name)
 
     # correctors are not handled correctly!!!!
     # https://github.com/MethodicalAcceleratorDesign/MAD-X/issues/911
@@ -142,8 +144,8 @@ def multipole_to_madx_str(name, container):
 
     return ', '.join(tokens)
 
-def bend_to_madx_str(name, container):
-    bend = container[name]
+def bend_to_madx_str(name, line):
+    bend = _get_eref(line, name)
 
     tokens = []
     tokens.append('sbend')
@@ -151,18 +153,18 @@ def bend_to_madx_str(name, container):
     tokens.append(mad_assignment('angle', _ge(bend.h) * _ge(bend.length)))
     tokens.append(mad_assignment('k0', _ge(bend.k0)))
     # k1, k2, knl, ksl need to be implemented
-    if nn + '_den' in container._owner.keys():
-        edg_entry = container[nn + '_den']
+    if nn + '_den' in line.element_dict.keys():
+        edg_entry = line[nn + '_den']
         tokens.append(mad_assignment('e1', _ge(edg_entry.e1)))
         tokens.append(mad_assignment('fint', _ge(edg_entry.fint)))
         tokens.append(mad_assignment('hgap', _ge(edg_entry.hgap)))
-    if nn + '_dex' in container._owner.keys():
-        edg_exit = container[nn + '_dex']
+    if nn + '_dex' in line.element_dict.keys():
+        edg_exit = line[nn + '_dex']
         tokens.append(mad_assignment('e2', _ge(edg_exit.e1)))
     return ', '.join(tokens)
 
-def sextupole_to_madx_str(name, container):
-    sext = container[name]
+def sextupole_to_madx_str(name, line):
+    sext = _get_eref(line, name)
     tokens = []
     tokens.append('sextupole')
     tokens.append(mad_assignment('l', _ge(sext.length)))
@@ -170,16 +172,16 @@ def sextupole_to_madx_str(name, container):
     tokens.append(mad_assignment('k2s', _ge(sext.k2s)))
     return ', '.join(tokens)
 
-def quadrupole_to_madx_str(name, container):
-    quad = container[name]
+def quadrupole_to_madx_str(name, line):
+    quad = _get_eref(line, name)
     tokens = []
     tokens.append('quadrupole')
     tokens.append(mad_assignment('l', _ge(quad.length)))
     tokens.append(mad_assignment('k1', _ge(quad.k1)))
     return ', '.join(tokens)
 
-def solenoid_to_madx_str(name, container):
-    sol = container[name]
+def solenoid_to_madx_str(name, line):
+    sol = _get_eref(line, name)
     tokens = []
     tokens.append('solenoid')
     tokens.append(mad_assignment('l', _ge(sol.length)))
@@ -205,7 +207,7 @@ xsuite_to_mad_conveters={
 elements_str = ""
 for nn in line.element_names:
     el = line[nn]
-    el_str = xsuite_to_mad_conveters[type(el)](nn, line.element_refs)
+    el_str = xsuite_to_mad_conveters[type(el)](nn, line)
     elements_str += f"{nn}: {el_str};\n"
 
 print(elements_str)
