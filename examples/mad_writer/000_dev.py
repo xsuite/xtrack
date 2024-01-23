@@ -45,6 +45,11 @@ line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
                                     mass0=seq.beam.mass * 1e9,
                                     q0=seq.beam.charge)
 
+line.slice_thick_elements(
+    slicing_strategies=[
+        xt.Strategy(slicing=None), # don't touch other elements
+        xt.Strategy(slicing=xt.Uniform(10, mode='thick'), element_type=xt.Bend)
+    ])
 
 # ----- LHC (thick) -----
 # line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
@@ -182,8 +187,17 @@ def multipole_to_madx_str(name, line):
 
     return ', '.join(tokens)
 
+def dipoleedge_to_madx_str(name, line):
+    if line.get_compound_for_element(name) is None:
+        raise NotImplementedError("isolated dipole edges are not yet supported")
+    return 'marker'
+
 def bend_to_madx_str(name, line):
     bend = _get_eref(line, name)
+
+    if isinstance(line.get_compound_by_name(line.get_compound_for_element(name)),
+                                            xt.slicing.SlicedCompound):
+        raise NotImplementedError("thick slicing of bends is not yet supported")
 
     tokens = []
     tokens.append('sbend')
