@@ -41,9 +41,25 @@ import xdeps as xd
 #                                     q0=seq.beam.charge)
 
 
-# ----- LHC -----
-line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
+# ----- LHC (thick) -----
+# line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
+# line.build_tracker()
+
+# ----- LHC (thin) -----
+line = xt.Line.from_json('../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
+line.particle_ref = xt.Particles(mass=xt.PROTON_MASS_EV, p0c=7000e9)
 line.build_tracker()
+
+# ----- LHC (thin) -----
+# mad1 = Madx()
+# mad1.call('../../test_data/hllhc15_noerrors_nobb/sequence.madx')
+# mad1.use('lhcb1')
+# seq = mad1.sequence.lhcb1
+# line = xt.Line.from_madx_sequence(seq)
+# line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
+#                                     mass0=seq.beam.mass * 1e9,
+#                                     q0=seq.beam.charge)
+
 
 # Build xsuite line
 
@@ -128,9 +144,6 @@ def drift_to_madx_str(name, line):
 
 def multipole_to_madx_str(name, line):
     mult = _get_eref(line, name)
-
-    if name == 'mcbxfbh.a2l1':
-        import pdb; pdb.set_trace()
 
     if (len(mult.knl._value) == 1 and len(mult.ksl._value) == 1
         and mult.hxl._value == 0 and mult.hyl._value == 0):
@@ -244,5 +257,9 @@ mad_input = vars_str + '\n' + elements_str + '\n' + line_str
 
 mad2 = Madx()
 mad2.input(mad_input)
-mad2.beam()
+mad2.beam(mass=line.particle_ref.mass0 * 1e-9, charge=line.particle_ref.q0,
+          gamma=line.particle_ref.gamma0[0])
 mad2.use('myseq')
+
+tw = line.twiss()
+twmad2 = mad2.twiss()
