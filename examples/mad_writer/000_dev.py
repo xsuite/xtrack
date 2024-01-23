@@ -202,7 +202,6 @@ def srotation_to_madx_str(name, line):
     tokens = []
     tokens.append('srotation')
     tokens.append(mad_assignment('angle', _ge(srot.angle)*np.pi/180.))
-    import pdb; pdb.set_trace()
     return ', '.join(tokens)
 
 
