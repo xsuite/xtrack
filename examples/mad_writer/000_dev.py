@@ -1,7 +1,9 @@
+import numpy as np
 from cpymad.madx import Madx
 import xtrack as xt
 import xdeps as xd
 
+# ----- Test sequence -----
 # mad = Madx()
 # # Element definitions
 # mad.input("""
@@ -25,19 +27,25 @@ import xdeps as xd
 # seq = mad.sequence['testseq']
 # line = xt.Line.from_madx_sequence(sequence=seq, deferred_expressions=True)
 
-mad = Madx()
-folder = ('../../test_data/elena')
-mad.call(folder + '/elena.seq')
-mad.call(folder + '/highenergy.str')
-mad.call(folder + '/highenergy.beam')
-mad.use('elena')
+# ----- Elena -----
+# mad = Madx()
+# folder = ('../../test_data/elena')
+# mad.call(folder + '/elena.seq')
+# mad.call(folder + '/highenergy.str')
+# mad.call(folder + '/highenergy.beam')
+# mad.use('elena')
+# seq = mad.sequence.elena
+# line = xt.Line.from_madx_sequence(seq)
+# line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
+#                                     mass0=seq.beam.mass * 1e9,
+#                                     q0=seq.beam.charge)
+
+
+# ----- LHC -----
+line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
+line.build_tracker()
 
 # Build xsuite line
-seq = mad.sequence.elena
-line = xt.Line.from_madx_sequence(seq)
-line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
-                                    mass0=seq.beam.mass * 1e9,
-                                    q0=seq.beam.charge)
 
 def expr_to_mad_str(expr):
 
@@ -189,7 +197,13 @@ def solenoid_to_madx_str(name, line):
     tokens.append(mad_assignment('ksi', _ge(sol.ksi)))
     return ', '.join(tokens)
 
-
+def srotation_to_madx_str(name, line):
+    srot = _get_eref(line, name)
+    tokens = []
+    tokens.append('srotation')
+    tokens.append(mad_assignment('angle', _ge(srot.angle)*np.pi/180.))
+    import pdb; pdb.set_trace()
+    return ', '.join(tokens)
 
 
 xsuite_to_mad_conveters={
@@ -202,6 +216,7 @@ xsuite_to_mad_conveters={
     xt.Sextupole: sextupole_to_madx_str,
     xt.Quadrupole: quadrupole_to_madx_str,
     xt.Solenoid: solenoid_to_madx_str,
+    xt.SRotation: srotation_to_madx_str,
 }
 
 elements_str = ""

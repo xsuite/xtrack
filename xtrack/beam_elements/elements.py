@@ -319,6 +319,7 @@ class SRotation(BeamElement):
     has_backtrack = True
 
     _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/track_srotation.h'),
         _pkg_root.joinpath('beam_elements/elements_src/srotation.h')]
 
     _store_in_to_dict = ['angle']
@@ -977,6 +978,7 @@ class Quadrupole(BeamElement):
 
     _xofields={
         'k1': xo.Float64,
+        'k1s': xo.Float64,
         'length': xo.Float64,
         'knl': xo.Float64[5],
         'ksl': xo.Float64[5],
@@ -992,6 +994,7 @@ class Quadrupole(BeamElement):
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_srotation.h'),
         _pkg_root.joinpath('beam_elements/elements_src/multipolar_kick.h'),
         _pkg_root.joinpath('beam_elements/elements_src/quadrupole.h'),
     ]
@@ -1005,6 +1008,8 @@ class Quadrupole(BeamElement):
         ----------
         k1 : float
             Strength of the quadrupole component in m^-2.
+        k1s : float
+            Strength of the skew quadrupole component in m^-2.
         length : float
             Length of the element in meters.
         knl : array_like, optional
@@ -1069,6 +1074,8 @@ class Quadrupole(BeamElement):
         ref.knl[0] = 0.
         ref.knl[1] = (_get_expr(self_or_ref.k1) * _get_expr(self_or_ref.length)
                       + _get_expr(self_or_ref.knl[1])) * weight
+        ref.ksl[1] = (_get_expr(self_or_ref.k1s) * _get_expr(self_or_ref.length)
+                        + _get_expr(self_or_ref.ksl[1])) * weight
 
         order = 1
         for ii in range(2, 5):
@@ -1077,7 +1084,7 @@ class Quadrupole(BeamElement):
             if _nonzero(ref.knl[ii]):
                 order = max(order, ii)
 
-        for ii in range(5):
+        for ii in range(2, 5):
             ref.ksl[ii] = _get_expr(self_or_ref.ksl[ii]) * weight
 
             if _nonzero(self_or_ref.ksl[ii]):  # update in the same way for ksl
@@ -1101,6 +1108,7 @@ class Quadrupole(BeamElement):
         ref.num_multipole_kicks = _get_expr(self_or_ref.num_multipole_kicks)
         ref.order = _get_expr(self_or_ref.order)
         ref.k1 = _get_expr(self_or_ref.k1)
+        ref.k1s = _get_expr(self_or_ref.k1s)
 
         for ii in range(5):
             ref.knl[ii] = _get_expr(self_or_ref.knl[ii]) * weight
@@ -1117,7 +1125,7 @@ class Quadrupole(BeamElement):
 
         # Remove the scalar fields
         for field in [
-            'k1', 'length', 'num_multipole_kicks', 'order', 'inv_factorial_order',
+            'k1', 'k1s', 'length', 'num_multipole_kicks', 'order', 'inv_factorial_order',
         ]:
             _unregister_if_preset(getattr(ref, field))
 

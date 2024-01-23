@@ -12,12 +12,28 @@ void Quadrupole_track_local_particle(
         LocalParticle* part0
 ) {
     double length = QuadrupoleData_get_length(el);
+    const double k1 = QuadrupoleData_get_k1(el);
+    const double k1s = QuadrupoleData_get_k1s(el);
+    double sin_rot=0;
+    double cos_rot=0;
+
+    const int needs_rotation = k1s != 0.0;
+    if (needs_rotation) {
+        double angle_rot = -atan2(k1s, k1) / 2.;
+        sin_rot = sin(angle_rot);
+        cos_rot = cos(angle_rot);
+    }
 
     #ifdef XSUITE_BACKTRACK
         length = -length;
+        sin_rot = -sin_rot;
     #endif
 
-    const double k1 = QuadrupoleData_get_k1(el);
+    if (needs_rotation) {
+        //start_per_particle_block (part0->part)
+            SRotation_single_particle(part, sin_rot, cos_rot);
+        //end_per_particle_block
+    }
 
     const int64_t num_multipole_kicks = QuadrupoleData_get_num_multipole_kicks(el);
     const int64_t order = QuadrupoleData_get_order(el);
@@ -37,6 +53,12 @@ void Quadrupole_track_local_particle(
             track_thick_cfd(part, slice_length, 0, k1, 0);
         }
     //end_per_particle_block
+
+    if (needs_rotation) {
+        //start_per_particle_block (part0->part)
+            SRotation_single_particle(part, -sin_rot, cos_rot);
+        //end_per_particle_block
+    }
 }
 
 #endif // XTRACK_QUADRUPOLE_H
