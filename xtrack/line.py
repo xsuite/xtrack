@@ -25,7 +25,7 @@ import xdeps as xd
 from .compounds import CompoundContainer, CompoundType, Compound, SlicedCompound
 from .progress_indicator import progress
 from .slicing import Slicer
-
+from .mad_writer import to_madx_sequence
 
 from .survey import survey_from_line
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
@@ -545,6 +545,22 @@ class Line:
         out["metadata"] = deepcopy(self.metadata)
 
         return out
+
+    def to_madx_sequence(self, sequence_name):
+        '''
+        Return a MAD-X sequence corresponding to the line.
+
+        Parameters
+        ----------
+        sequence_name : str
+            Name of the sequence.
+
+        Returns
+        -------
+        madx_sequence : str
+            MAD-X sequence.
+        '''
+        return to_madx_sequence(self, sequence_name)
 
     def __getstate__(self):
         out = self.__dict__.copy()
