@@ -3,6 +3,11 @@ from cpymad.madx import Madx
 import xtrack as xt
 import xdeps as xd
 
+# TODO:
+# - handle thick slicing of bends (edges!)
+# - handle isolated dipole edges
+# - crab cavities
+
 # ----- Test sequence -----
 # mad = Madx()
 # # Element definitions
@@ -228,7 +233,6 @@ def srotation_to_madx_str(name, line):
     tokens.append('srotation')
     tokens.append(mad_assignment('angle', _ge(srot.angle)*np.pi/180.))
     return ', '.join(tokens)
-
 
 xsuite_to_mad_conveters={
     xt.Cavity: cavity_to_madx_str,

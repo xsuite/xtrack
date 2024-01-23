@@ -1,6 +1,10 @@
 from cpymad.madx import Madx
 import xtrack as xt
 
+# Things to check:
+# - backtracking
+# - mulitpole kisck need to be backtilted
+
 mad = Madx()
 mad.input("""
 
