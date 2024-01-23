@@ -53,13 +53,13 @@ import os
 #     ])
 
 # ----- LHC (thick) -----
-line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
-line.build_tracker()
+# line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
+# line.build_tracker()
 
 # ----- LHC (thin) -----
-# line = xt.Line.from_json('../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
-# line.particle_ref = xt.Particles(mass=xt.PROTON_MASS_EV, p0c=7000e9)
-# line.build_tracker()
+line = xt.Line.from_json('../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
+line.particle_ref = xt.Particles(mass=xt.PROTON_MASS_EV, p0c=7000e9)
+line.build_tracker()
 
 # ----- LHC (thin) -----
 # mad1 = Madx()
@@ -71,7 +71,17 @@ line.build_tracker()
 #                                     mass0=seq.beam.mass * 1e9,
 #                                     q0=seq.beam.charge)
 
-mad_seq = line.to_madx_sequence(sequence_name='seq')
+mad_seq = line.to_madx_sequence(sequence_name='sps')
+
+# mad_seq = """
+# squad: quadrupole, k1s:=0.5, l=1, at=0.5;
+# testseq: sequence, l=1;
+# squad1: squad, at=0.5;
+# r
+# endsequence;
+
+# """
+
 
 
 temp_fname = 'temp4madng'
@@ -81,18 +91,18 @@ with open(temp_fname+'.madx', 'w') as fid:
 from pymadng import MAD
 mad = MAD()
 mad.MADX.load(f'"{temp_fname}.madx"', f"'{temp_fname}.madng'")
-mad.beam("'proton'", energy=7000)
+mad["sps"] = mad.MADX.sps
+mad.sps.beam = mad.beam()
+mad["mytwtable", 'mytwflow'] = mad.twiss(sequence=mad.sps, method=4, mapdef=2, implicit=True, nslice=3, save="'atbody'")
 
-mad["twb1", 'mytwflow'] = mad.twiss(sequence=mad.seq, method=4, mapdef=2, implicit=True, nslice=3, save="'atbody'")
 
-
-# os.remove(temp_fname)
+# # os.remove(temp_fname)
 
 mad2 = Madx()
 mad2.input(mad_seq)
 mad2.beam()
-mad2.use('seq')
+mad2.use('sps')
 
-# tw = line.twiss(method='4d')
-# twmad2 = mad2.twiss()
+# # tw = line.twiss(method='4d')
+# # twmad2 = mad2.twiss()
 
