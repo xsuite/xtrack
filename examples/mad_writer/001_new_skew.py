@@ -27,3 +27,7 @@ tw = line.twiss(betx=1, bety=2, start=line.element_names[0],
 
 twmad = mad.twiss(betx=1, bety=2, ripken=True)
 
+print('betx2 mad:    ', twmad.beta12[-1])
+print('betx2 xtrack: ', tw.betx2[-1])
+print('bety2 mad:    ', twmad.beta22[-1])
+print('bety2 xtrack: ', tw.bety2[-1])
