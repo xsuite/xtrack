@@ -1,7 +1,7 @@
 import numpy as np
 from cpymad.madx import Madx
 import xtrack as xt
-import xdeps as xd
+import os
 
 # TODO:
 # - handle thick slicing of bends (edges!)
@@ -73,11 +73,20 @@ line.build_tracker()
 
 mad_seq = line.to_madx_sequence(sequence_name='seq')
 
-mad2 = Madx()
-mad2.input(mad_seq)
-mad2.use('seq')
 
-tw = line.twiss(method='4d')
-twmad2 = mad2.twiss()
+temp_fname = 'temp4madng'
+with open(temp_fname+'.madx', 'w') as fid:
+    fid.write(mad_seq)
 
-line2 = xt.Line.from_madx_sequence(mad2.sequence.seq, deferred_expressions=True)
+from pymadng import MAD
+mad = MAD()
+mad.MADX.load(f'"{temp_fname}.madx"', f"'{temp_fname}.madng'")
+# os.remove(temp_fname)
+
+# mad2 = Madx()
+# mad2.input(mad_seq)
+# mad2.use('seq')
+
+# tw = line.twiss(method='4d')
+# twmad2 = mad2.twiss()
+
