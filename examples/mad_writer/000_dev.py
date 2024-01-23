@@ -28,17 +28,17 @@ import xdeps as xd
 # line = xt.Line.from_madx_sequence(sequence=seq, deferred_expressions=True)
 
 # ----- Elena -----
-# mad = Madx()
-# folder = ('../../test_data/elena')
-# mad.call(folder + '/elena.seq')
-# mad.call(folder + '/highenergy.str')
-# mad.call(folder + '/highenergy.beam')
-# mad.use('elena')
-# seq = mad.sequence.elena
-# line = xt.Line.from_madx_sequence(seq)
-# line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
-#                                     mass0=seq.beam.mass * 1e9,
-#                                     q0=seq.beam.charge)
+mad = Madx()
+folder = ('../../test_data/elena')
+mad.call(folder + '/elena.seq')
+mad.call(folder + '/highenergy.str')
+mad.call(folder + '/highenergy.beam')
+mad.use('elena')
+seq = mad.sequence.elena
+line = xt.Line.from_madx_sequence(seq)
+line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
+                                    mass0=seq.beam.mass * 1e9,
+                                    q0=seq.beam.charge)
 
 
 # ----- LHC (thick) -----
@@ -46,9 +46,9 @@ import xdeps as xd
 # line.build_tracker()
 
 # ----- LHC (thin) -----
-line = xt.Line.from_json('../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
-line.particle_ref = xt.Particles(mass=xt.PROTON_MASS_EV, p0c=7000e9)
-line.build_tracker()
+# line = xt.Line.from_json('../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
+# line.particle_ref = xt.Particles(mass=xt.PROTON_MASS_EV, p0c=7000e9)
+# line.build_tracker()
 
 # ----- LHC (thin) -----
 # mad1 = Madx()
@@ -249,17 +249,19 @@ for nn in line.element_names:
     el_str = xsuite_to_mad_conveters[type(el)](nn, line)
     elements_str += f"{nn}: {el_str};\n"
 
+beam_str = (f"beam, mass={line.particle_ref.mass0*1e-9}, "
+            f"charge={line.particle_ref.q0}, "
+            f"gamma={line.particle_ref.gamma0[0]};\n")
+
 print(elements_str)
 
 line_str = 'myseq: line=(' + ', '.join(line.element_names) + ');'
 
-mad_input = vars_str + '\n' + elements_str + '\n' + line_str
+mad_input = vars_str + '\n' + elements_str + '\n' + line_str + '\n' + beam_str
 
 mad2 = Madx()
 mad2.input(mad_input)
-mad2.beam(mass=line.particle_ref.mass0 * 1e-9, charge=line.particle_ref.q0,
-          gamma=line.particle_ref.gamma0[0])
 mad2.use('myseq')
 
-tw = line.twiss()
+tw = line.twiss(method='4d')
 twmad2 = mad2.twiss()
