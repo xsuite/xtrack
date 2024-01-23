@@ -26,7 +26,8 @@ dft.set_aperture(0.08, 0.02, 'rectangular')
 pi = np.pi
 lbend = 3
 elements = {
-    'd1':  xt.Drift(length=Ld),
+    'a1': xt.LimitRect(min_x=-0.02, max_x=0.02, min_y=-0.08, max_y=0.08),
+    'd1': xt.Drift(length=Ld),
     'd2': xt.RFT_Element(element=dft),
 }
 
@@ -45,29 +46,29 @@ context = xo.ContextCpu()         # For CPU
 line.build_tracker(_context=context)
 
 ## Build particle object on context
-n_part = 1000
+n_part = 10000
 
-rng = np.random.default_rng(2021)
+rng = np.random.default_rng(12345)
 
 particles = xp.Particles(p0c=p0c, #eV
-                        q0=1, mass0=xp.PROTON_MASS_EV,
-                        x=rng.uniform(-0.10, 0.10, n_part),
-                        y=rng.uniform(-0.10, 0.10, n_part),
-                        px=np.zeros(n_part),
-                        py=np.zeros(n_part),
-                        zeta=np.zeros(n_part),
-                        delta=np.zeros(n_part),
-                        _context=context)
+                         q0=1, mass0=xp.PROTON_MASS_EV,
+                         x=rng.uniform(-0.10, 0.10, n_part),
+                         y=rng.uniform(-0.10, 0.10, n_part),
+                         px=np.zeros(n_part),
+                         py=np.zeros(n_part),
+                         zeta=np.zeros(n_part),
+                         delta=np.zeros(n_part),
+                         _context=context)
 
 print('tracking starts')
 line.track(particles)
 print('tracking ends')
 
 plt.figure(1)
-plt.scatter(particles.x*1e3, particles.y*1e3, s=100, facecolors='none', edgecolors='b')
+plt.scatter(particles.x*1e3, particles.y*1e3, s=10, facecolors='none', edgecolors='b')
 plt.xlabel("$x$ [mm]")
 plt.ylabel("$y$ [mm]")
-plt.xlim([-100, 100])
-plt.ylim([-100, 100])
+plt.xlim([-80, 80])
+plt.ylim([-80, 80])
 plt.show()
 
