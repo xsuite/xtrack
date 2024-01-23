@@ -16,12 +16,14 @@ void Quadrupole_track_local_particle(
     const double k1s = QuadrupoleData_get_k1s(el);
     double sin_rot=0;
     double cos_rot=0;
+    double k_rotated = k1;
 
     const int needs_rotation = k1s != 0.0;
     if (needs_rotation) {
         double angle_rot = -atan2(k1s, k1) / 2.;
         sin_rot = sin(angle_rot);
         cos_rot = cos(angle_rot);
+        k_rotated = sqrt(k1*k1 + k1s*k1s);
     }
 
     #ifdef XSUITE_BACKTRACK
@@ -29,7 +31,10 @@ void Quadrupole_track_local_particle(
         sin_rot = -sin_rot;
     #endif
 
+    printf("needs_rotation = %d\n", needs_rotation);
     if (needs_rotation) {
+        printf("sin_rot = %e\n", sin_rot);
+        printf("cos_rot = %e\n", cos_rot);
         //start_per_particle_block (part0->part)
             SRotation_single_particle(part, sin_rot, cos_rot);
         //end_per_particle_block
@@ -46,11 +51,11 @@ void Quadrupole_track_local_particle(
     const double kick_weight = 1. / num_multipole_kicks;
 
     //start_per_particle_block (part0->part)
-        track_thick_cfd(part, slice_length, 0, k1, 0);
+        track_thick_cfd(part, slice_length, 0, k_rotated, 0);
 
         for (int ii = 0; ii < num_multipole_kicks; ii++) {
             multipolar_kick(part, order, inv_factorial_order, knl, ksl, kick_weight);
-            track_thick_cfd(part, slice_length, 0, k1, 0);
+            track_thick_cfd(part, slice_length, 0, k_rotated, 0);
         }
     //end_per_particle_block
 

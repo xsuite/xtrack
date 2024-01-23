@@ -836,24 +836,18 @@ class MadLoader:
             )
 
     def _convert_quadrupole_thick(self, mad_el):
-        if mad_el.k1s:
-            tilt = -self.math.atan2(mad_el.k1s, mad_el.k1) / 2
-            k1 = self.math.sqrt(mad_el.k1s ** 2 + mad_el.k1 ** 2)
-        else:
-            tilt = None
-            k1 = mad_el.k1
 
         return self.make_compound_elem(
             [
                 self.Builder(
                     mad_el.name,
                     self.classes.Quadrupole,
-                    k1=k1,
+                    k1=mad_el.k1,
+                    k1s=mad_el.k1s,
                     length=mad_el.l,
                 ),
             ],
             mad_el,
-            custom_tilt=tilt,
         )
 
     def convert_rbend(self, mad_el):
