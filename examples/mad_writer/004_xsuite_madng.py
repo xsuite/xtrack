@@ -68,14 +68,14 @@ replace_until = 'mcosx.3l2' # OK
 replace_until = 'mqxa.1l2' # OK
 replace_until = 'mbwmd.1l2' # OK
 replace_until = 'mbls2.1l2'
-# replace_until = 'ip2'
+replace_until = 'ip2'
 
 
 
 
 for i_end_replace_forng in range(i_start_seq_forng, i_end_seq_forng):
     ln = formadng[i_end_replace_forng]
-    if replace_until in ln:
+    if replace_until+':' in ln:
         break
 assert i_end_replace_forng > i_start_seq_forng
 assert i_end_replace_forng < i_end_seq_forng-1
