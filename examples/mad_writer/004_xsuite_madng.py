@@ -34,10 +34,18 @@ import os
 # madx2.use("lhcb1")
 # tmx2 = madx2.twiss()
 
+with open('formadn.seq', 'r') as fid:
+    formadng = fid.readlines()
+
+
+with open('testseq.seq', 'w') as fid:
+    fid.write('\n'.join(formadng))
+
 from pymadng import MAD
 mng2 = MAD()
 # mng2.MADX.load('"xsuite_to_mad.madx"', f"'mad2.madng'")
-mng2.MADX.load('"manual.seq"', f"'mad2.madng'")
+# mng2.MADX.load('"manual.seq"', f"'mad2.madng'")
+mng2.MADX.load('"testseq.seq"', f"'mad2.madng'")
 mng2["lhcb1"] = mng2.MADX.lhcb1
 mng2.lhcb1.beam = mng2.beam(particle='proton', energy=7000)
 mng2["mytwtable", 'mytwflow'] = mng2.twiss(
