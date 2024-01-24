@@ -67,8 +67,9 @@ replace_until = 'dfbxc.3l2' # OK
 replace_until = 'mcosx.3l2' # OK
 replace_until = 'mqxa.1l2' # OK
 replace_until = 'mbwmd.1l2' # OK
-replace_until = 'mbls2.1l2'
-replace_until = 'ip2'
+replace_until = 'mbls2.1l2' # OK
+replace_until = 'ip2' # OK
+replace_until = 'ip3' # OK
 
 
 
