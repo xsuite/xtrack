@@ -26,23 +26,7 @@ line.particle_ref = xt.Particles(p0c=7000e9, mass0=xt.PROTON_MASS_EV)
 
 tw = line.twiss(method='4d')
 
-def to_madng(line, sequence_name='seq', temp_fname=None):
-
-    if temp_fname is None:
-        temp_fname = 'temp_madng_' + str(uuid.uuid4())
-
-    madx_seq = line.to_madx_sequence(sequence_name=sequence_name)
-    with open(f'{temp_fname}.madx', 'w') as fid:
-        fid.write(madx_seq)
-
-    from pymadng import MAD
-    mng = MAD()
-    mng.MADX.load(f'"{temp_fname}.madx"', f'"{temp_fname}"')
-    mng._init_madx_data = madx_seq
-
-    return mng
-
-mng2 = to_madng(line, sequence_name='lhcb1')
+mng2 = line.to_madng(sequence_name='lhcb1')
 
 mng2["lhcb1"] = mng2.MADX.lhcb1
 mng2.lhcb1.beam = mng2.beam(particle="'proton'", energy=7000)

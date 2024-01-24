@@ -7,6 +7,7 @@ import io
 import math
 import logging
 import json
+import uuid
 from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
@@ -561,6 +562,38 @@ class Line:
             MAD-X sequence.
         '''
         return to_madx_sequence(self, sequence_name, mode=mode)
+
+    def to_madng(self, sequence_name='seq', temp_fname=None):
+
+        '''
+        Build a MAD NG instance from present state of the line.
+
+        Parameters
+        ----------
+        sequence_name : str
+            Name of the sequence.
+        temp_fname : str
+            Name of the temporary file to be used for the MAD NG instance.
+
+        Returns
+        -------
+        mng : MAD
+            MAD NG instance.
+        '''
+
+        if temp_fname is None:
+            temp_fname = 'temp_madng_' + str(uuid.uuid4())
+
+        madx_seq = self.to_madx_sequence(sequence_name=sequence_name)
+        with open(f'{temp_fname}.madx', 'w') as fid:
+            fid.write(madx_seq)
+
+        from pymadng import MAD
+        mng = MAD()
+        mng.MADX.load(f'"{temp_fname}.madx"', f'"{temp_fname}"')
+        mng._init_madx_data = madx_seq
+
+        return mng
 
     def __getstate__(self):
         out = self.__dict__.copy()
