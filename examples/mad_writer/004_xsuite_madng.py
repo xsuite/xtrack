@@ -57,7 +57,8 @@ for i_end_seq_xsmad, ln in enumerate(xsmad):
         break
 
 # replace_until = 's.ds.r1.b1'
-replace_until = 's.arc.12.b1'
+# replace_until = 's.arc.12.b1'
+replace_until = 'e.ds.r1.b1'
 
 for i_end_replace_forng in range(i_start_seq_forng, i_end_seq_forng):
     ln = formadng[i_end_replace_forng]
