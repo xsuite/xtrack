@@ -72,7 +72,7 @@ replace_until = 'ip2' # OK
 replace_until = 'ip3' # OK
 replace_until = 'e.ds.l4.b1' # OK
 replace_until = 'bpmwa.a5l4.b1' # OK
-# replace_until = 'apwl.5r4.b1'
+replace_until = 's.ds.r4.b1'
 
 
 
@@ -93,18 +93,25 @@ assert i_end_replace_xsmad < i_end_seq_xsmad-1
 # replace
 formadng[i_start_seq_forng:i_end_replace_forng+1] = xsmad[i_start_seq_xsmad:i_end_replace_xsmad+1]
 
+insequence = False
+for ii in range(len(formadng)):
+    if 'sequence, ' in formadng[ii]:
+        insequence = True
+    if ' kicker' in formadng[ii] or ' rfcavity' in formadng[ii]:
+        formadng[ii] = '_' + formadng[ii]
+
 out = ''.join(formadng)
-out = out.replace(': kicker' , '_: kicker')
-# out = out.replace(': rfcavity' , '_: rfcavity')
+# out = out.replace(': kicker' , '_: kicker')
+# # out = out.replace(': rfcavity' , '_: rfcavity')
 
 with open('testseq.seq', 'w') as fid:
     fid.write(out)
 
 from pymadng import MAD
 mng2 = MAD()
-# mng2.MADX.load('"xsuite_to_mad.madx"', f"'mad2.madng'")
+mng2.MADX.load('"xsuite_to_mad.madx"', f"'mad2.madng'")
 # mng2.MADX.load('"manual.seq"', f"'mad2.madng'")
-mng2.MADX.load('"testseq.seq"', f"'mad2.madng'")
+# mng2.MADX.load('"testseq.seq"', f"'mad2.madng'")
 mng2["lhcb1"] = mng2.MADX.lhcb1
 mng2.lhcb1.beam = mng2.beam(particle='proton', energy=7000)
 mng2["mytwtable", 'mytwflow'] = mng2.twiss(
