@@ -2,7 +2,7 @@ import numpy as np
 from cpymad.madx import Madx
 from pymadng import MAD
 import xtrack as xt
-import os
+import uuid
 
 madx1 = Madx()
 madx1.call("../../test_data/hllhc15_thick/lhc.seq")
@@ -26,22 +26,26 @@ line.particle_ref = xt.Particles(p0c=7000e9, mass0=xt.PROTON_MASS_EV)
 
 tw = line.twiss(method='4d')
 
+def to_madng(line, sequence_name='seq', temp_fname=None):
 
-with open('xsuite_to_mad.madx', 'w') as fid:
-    fid.write(line.to_madx_sequence(sequence_name='lhcb1'))
+    if temp_fname is None:
+        temp_fname = 'temp_madng_' + str(uuid.uuid4())
 
-madx2 = Madx()
-madx2.call("xsuite_to_mad.madx")
-madx2.beam(particle='proton', energy=7000)
-madx2.use("lhcb1")
-tmx2 = madx2.twiss()
+    madx_seq = line.to_madx_sequence(sequence_name=sequence_name)
+    with open(f'{temp_fname}.madx', 'w') as fid:
+        fid.write(madx_seq)
 
-from pymadng import MAD
-mng2 = MAD()
-mng2.MADX.load('"xsuite_to_mad.madx"', f"'mad2.madng'")
+    from pymadng import MAD
+    mng = MAD()
+    mng.MADX.load(f'"{temp_fname}.madx"', f'"{temp_fname}"')
+    mng._init_madx_data = madx_seq
+
+    return mng
+
+mng2 = to_madng(line, sequence_name='lhcb1')
+
 mng2["lhcb1"] = mng2.MADX.lhcb1
-
-mng2.lhcb1.beam = mng2.beam(particle='proton', energy=7000)
+mng2.lhcb1.beam = mng2.beam(particle="'proton'", energy=7000)
 mng2["mytwtable", 'mytwflow'] = mng2.twiss(
     sequence=mng2.lhcb1, method=4, mapdef=2, implicit=True, nslice=3, save="'atbody'")
 
@@ -75,6 +79,12 @@ mng2.send('''
 ''')
 
 out = mng2.recv()
+
+madx2 = Madx()
+madx2.call("xsuite_to_mad.madx")
+madx2.beam(particle='proton', energy=7000)
+madx2.use("lhcb1")
+tmx2 = madx2.twiss()
 
 dp = 1e-5
 twp = line.twiss(method='4d', delta0=dp)
