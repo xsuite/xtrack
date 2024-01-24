@@ -71,8 +71,7 @@ replace_until = 'mbls2.1l2' # OK
 replace_until = 'ip2' # OK
 replace_until = 'ip3' # OK
 replace_until = 'e.ds.l4.b1' # OK
-
-
+replace_until = 'bpmwa.a5l4.b1' # OK
 
 
 
