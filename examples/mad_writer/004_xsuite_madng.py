@@ -59,18 +59,27 @@ for i_end_seq_xsmad, ln in enumerate(xsmad):
 # replace_until = 's.ds.r1.b1'
 # replace_until = 's.arc.12.b1'
 # replace_until = 'e.ds.r1.b1'
-replace_until = 'mqt.14r1.b1'
-# replace_until = 'mqs.23r1.b1'
+# replace_until = 'mqt.14r1.b1'
+# replace_until = 'mcs.b14r1.b1'
+replace_until = 'mq.14r1.b1'
+replace_until = 'mq.15r1.b1'
+replace_until = 'mq.16r1.b1'
+replace_until = 'mq.17r1.b1'
+replace_until = 'mq.18r1.b1'
+replace_until = 'mq.20r1.b1'
+replace_until = 'mq.21r1.b1'
+
+
 
 for i_end_replace_forng in range(i_start_seq_forng, i_end_seq_forng):
     ln = formadng[i_end_replace_forng]
-    if replace_until in ln:
+    if replace_until+':' in ln:
         break
 assert i_end_replace_forng < i_end_seq_forng-1
 
 for i_end_replace_xsmad in range(i_start_seq_xsmad, i_end_seq_xsmad):
     ln = xsmad[i_end_replace_xsmad]
-    if replace_until in ln:
+    if replace_until+':' in ln:
         break
 
 # replace
@@ -93,4 +102,4 @@ mng2["mytwtable", 'mytwflow'] = mng2.twiss(
     sequence=mng2.lhcb1, method=4, mapdef=2, implicit=True, nslice=3, save="'atbody'")
 
 print(mng2["mytwtable"].mu1[-1])
-np.isclose(mng2["mytwtable"].mu1[-1][0], 62.31, atol=1e-6)
+assert np.isclose(mng2["mytwtable"].mu1[-1][0], 62.31, atol=1e-6)
