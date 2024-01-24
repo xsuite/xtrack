@@ -1121,7 +1121,7 @@ class MadLoader:
             self.classes.Multipole,
             knl=hkick,
             ksl=vkick,
-            length=mad_el.lrad,
+            length=(mad_el.l or mad_el.lrad),
             hxl=0,
             hyl=0,
         )
@@ -1154,7 +1154,7 @@ class MadLoader:
             self.classes.Multipole,
             knl=hkick,
             ksl=vkick,
-            length=mad_el.lrad,
+            length=(mad_el.l or mad_el.lrad),
             hxl=0,
             hyl=0,
         )
@@ -1185,7 +1185,7 @@ class MadLoader:
             self.classes.Multipole,
             knl=hkick,
             ksl=vkick,
-            length=mad_el.lrad,
+            length=(mad_el.l or mad_el.lrad),
             hxl=0,
             hyl=0,
         )
