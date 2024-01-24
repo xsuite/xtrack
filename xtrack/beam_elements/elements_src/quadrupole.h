@@ -51,12 +51,28 @@ void Quadrupole_track_local_particle(
 
     //start_per_particle_block (part0->part)
         track_thick_cfd(part, slice_length, 0, k_rotated, 0);
-
-        for (int ii = 0; ii < num_multipole_kicks; ii++) {
-            multipolar_kick(part, order, inv_factorial_order, knl, ksl, kick_weight);
-            track_thick_cfd(part, slice_length, 0, k_rotated, 0);
-        }
     //end_per_particle_block
+
+    for (int ii = 0; ii < num_multipole_kicks; ii++) {
+        // Multipole kick are defined in the original frame
+        if (needs_rotation) {
+            //start_per_particle_block (part0->part)
+                SRotation_single_particle(part, -sin_rot, cos_rot);
+            //end_per_particle_block
+        }
+        //start_per_particle_block (part0->part)
+        multipolar_kick(part, order, inv_factorial_order, knl, ksl, kick_weight);
+        //end_per_particle_block
+        if (needs_rotation) {
+            //start_per_particle_block (part0->part)
+                SRotation_single_particle(part, sin_rot, cos_rot);
+            //end_per_particle_block
+        }
+        //start_per_particle_block (part0->part)
+        track_thick_cfd(part, slice_length, 0, k_rotated, 0);
+        //end_per_particle_block
+    }
+
 
     if (needs_rotation) {
         //start_per_particle_block (part0->part)
