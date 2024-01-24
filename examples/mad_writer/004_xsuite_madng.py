@@ -4,13 +4,13 @@ from pymadng import MAD
 import xtrack as xt
 import os
 
-# madx1 = Madx()
-# madx1.call("../../test_data/hllhc15_thick/lhc.seq")
-# madx1.call("../../test_data/hllhc15_thick/hllhc_sequence.madx")
-# madx1.call("../../test_data/hllhc15_thick/opt_round_150_1500.madx")
-# madx1.beam(particle='proton', energy=7000e9)
-# madx1.use("lhcb1")
-# madx1.input('save, sequence=lhcb1, file="formadn.seq";')
+madx1 = Madx()
+madx1.call("../../test_data/hllhc15_thick/lhc.seq")
+madx1.call("../../test_data/hllhc15_thick/hllhc_sequence.madx")
+madx1.call("../../test_data/hllhc15_thick/opt_round_150_1500.madx")
+madx1.beam(particle='proton', energy=7000e9)
+madx1.use("lhcb1")
+madx1.input('save, sequence=lhcb1, file="formadn.seq";')
 
 # mng1 = MAD()
 # mng1.MADX.load('"formadn.seq"', f"'mad1.madng'")
@@ -61,27 +61,47 @@ for i_end_seq_xsmad, ln in enumerate(xsmad):
 # replace_until = 'e.ds.r1.b1'
 # replace_until = 'mqt.14r1.b1'
 # replace_until = 'mcs.b14r1.b1'
-replace_until = 'mq.14r1.b1'
-replace_until = 'mq.15r1.b1'
-replace_until = 'mq.16r1.b1'
-replace_until = 'mq.17r1.b1'
-replace_until = 'mq.18r1.b1'
-replace_until = 'mq.20r1.b1'
+# replace_until = 'mq.14r1.b1'
+# replace_until = 'mq.15r1.b1'
+# replace_until = 'mq.16r1.b1'
+# replace_until = 'mq.17r1.b1'
+# replace_until = 'mq.18r1.b1'
+# replace_until = 'mq.20r1.b1'
+# replace_until = 'mq.21r1.b1'
+# replace_until = 'mq.22r1.b1'
+
 replace_until = 'mq.21r1.b1'
-replace_until = 'mq.22r1.b1'
+# replace_until = 'ms.21r1.b1'
+# replace_until = 'mcbh.21r1.b1'
+# replace_until = 'mco.a22r1.b1'
+# replace_until = 'mcd.a22r1.b1'
+# replace_until = 'mb.a22r1.b1'
+# replace_until = 'mcs.a22r1.b1'
+# replace_until = 'mb.b22r1.b1'
+replace_until = 'mcs.b22r1.b1'
+# replace_until = 'mco.b22r1.b1'
+# replace_until = 'mcd.b22r1.b1'
+# replace_until = 'mb.c22r1.b1'
+# replace_until = 'mcs.c22r1.b1'
+# replace_until = 'bpm.22r1.b1'
+replace_until = 'mo.22r1.b1'
+# replace_until = 'mq.22r1.b1'
 
 
 
 for i_end_replace_forng in range(i_start_seq_forng, i_end_seq_forng):
     ln = formadng[i_end_replace_forng]
-    if replace_until+':' in ln:
+    if replace_until in ln:
         break
+assert i_end_replace_forng > i_start_seq_forng
 assert i_end_replace_forng < i_end_seq_forng-1
 
 for i_end_replace_xsmad in range(i_start_seq_xsmad, i_end_seq_xsmad):
     ln = xsmad[i_end_replace_xsmad]
-    if replace_until+':' in ln:
+    if replace_until+':' in ln or replace_until+'_exit' in ln:
         break
+assert i_end_replace_xsmad > i_start_seq_xsmad
+assert i_end_replace_xsmad < i_end_seq_xsmad-1
 
 # replace
 formadng[i_start_seq_forng:i_end_replace_forng+1] = xsmad[i_start_seq_xsmad:i_end_replace_xsmad+1]
