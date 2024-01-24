@@ -972,6 +972,67 @@ class Sextupole(BeamElement):
         _unregister_if_preset(ref)
 
 
+class Octupole(BeamElement):
+
+    """
+    Octupole element.
+
+    Parameters
+    ----------
+    k3 : float
+        Strength of the octupole component in m^-3.
+    k3s : float
+        Strength of the skew octupole component in m^-3.
+    length : float
+        Length of the element in meters.
+    """
+
+    isthick = True
+    has_backtrack = True
+
+    _xofields={
+        'k3': xo.Float64,
+        'k3s': xo.Float64,
+        'length': xo.Float64,
+    }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/octupole.h'),
+    ]
+
+    @staticmethod
+    def add_slice(weight, container, thick_name, slice_name, _buffer=None):
+        self_or_ref = container[thick_name]
+
+        container[slice_name] = Multipole(knl=np.zeros(4), ksl=np.zeros(4),
+                                          _buffer=_buffer)
+        ref = container[slice_name]
+
+        ref.knl[0] = 0.
+        ref.knl[1] = 0.
+        ref.knl[2] = 0.
+        ref.knl[3] = weight * (
+            _get_expr(self_or_ref.k3) * _get_expr(self_or_ref.length))
+
+        ref.ksl[0] = 0.
+        ref.ksl[1] = 0.
+        ref.ksl[2] = 0.
+        ref.ksl[2] = weight * (
+            _get_expr(self_or_ref.k3s) * _get_expr(self_or_ref.length))
+
+        ref.order = 3
+
+    @staticmethod
+    def delete_element_ref(ref):
+        # Remove the scalar fields
+        for field in ['k3', 'k3s', 'length']:
+            _unregister_if_preset(getattr(ref, field))
+
+        # Remove the ref to the element itself
+        _unregister_if_preset(ref)
+
+
 class Quadrupole(BeamElement):
     isthick = True
     has_backtrack = True
