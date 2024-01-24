@@ -3,69 +3,38 @@ from cpymad.madx import Madx
 import xtrack as xt
 import os
 
-madx1 = Madx()
-madx1.call("../../test_data/hllhc15_thick/lhc.seq")
-madx1.call("../../test_data/hllhc15_thick/hllhc_sequence.madx")
-madx1.call("../../test_data/hllhc15_thick/opt_round_150_1500.madx")
-madx1.beam(particle='proton', energy=7000e9)
-madx1.use("lhcb1")
-madx1.input('save, sequence=lhcb1, file="formadn.seq";')
+# madx1 = Madx()
+# madx1.call("../../test_data/hllhc15_thick/lhc.seq")
+# madx1.call("../../test_data/hllhc15_thick/hllhc_sequence.madx")
+# madx1.call("../../test_data/hllhc15_thick/opt_round_150_1500.madx")
+# madx1.beam(particle='proton', energy=7000e9)
+# madx1.use("lhcb1")
+# madx1.input('save, sequence=lhcb1, file="formadn.seq";')
+
+# from pymadng import MAD
+# mng1 = MAD()
+# mng1.MADX.load('"formadn.seq"', f"'mad1.madng'")
+# mng1["lhcb1"] = mng1.MADX.lhcb1
+# mng1.lhcb1.beam = mng1.beam()
+# mng1["mytwtable", 'mytwflow'] = mng1.twiss(
+#     sequence=mng1.lhcb1, method=4, mapdef=2, implicit=True, nslice=3, save="'atbody'")
+
+
+# line = xt.Line.from_madx_sequence(sequence=madx1.sequence.lhcb1,
+#                                     deferred_expressions=True)
+# line.particle_ref = xt.Particles(p0c=7000e9, mass0=xt.PROTON_MASS_EV)
+
+# with open('xsuite_to_mad.madx', 'w') as fid:
+#     fid.write(line.to_madx_sequence(sequence_name='lhcb1'))
 
 from pymadng import MAD
-mad = MAD()
-mad.MADX.load('"formadn.seq"', f"'mad1.madng'")
-mad["lhcb1"] = mad.MADX.lhcb1
-mad.lhcb1.beam = mad.beam()
-mad["mytwtable", 'mytwflow'] = mad.twiss(
-    sequence=mad.lhcb1, method=4, mapdef=2, implicit=True, nslice=3, save="'atbody'")
+mng2 = MAD()
+# mng2.MADX.load('"xsuite_to_mad.madx"', f"'mad2.madng'")
+mng2.MADX.load('"manual.seq"', f"'mad2.madng'")
+mng2["lhcb1"] = mng2.MADX.lhcb1
+mng2.lhcb1.beam = mng2.beam()
+mng2["mytwtable", 'mytwflow'] = mng2.twiss(
+    sequence=mng2.lhcb1, method=4, mapdef=2, implicit=True, nslice=3, save="'atbody'",
+    betx=1., bety=2.)
 
-prrrrr
-
-# tt = line.get_table()
-# for nn in tt.rows[tt.element_type=='SRotation'].name:
-#     tt.angle = 0
-
-# mad_seq = line.to_madx_sequence(sequence_name='myseq')
-
-# mad2 = Madx()
-# mad2.input(mad_seq)
-# mad2.beam()
-# mad2.use('myseq')
-
-# temp_fname = 'temp4madng'
-# with open(temp_fname+'.madx', 'w') as fid:
-#     fid.write(mad_seq)
-
-# # MAD-NG stuff
-
-
-
-
-# mad.send('''
-#         local track in MAD  -- like "from MAD import track"
-#         local mytrktable, mytrkflow = MAD.track{sequence=MADX.myseq, method=4,
-#                                                 mapdef=4, nslice=3}
-
-#          -- print(MAD.typeid.is_damap(mytrkflow[1]))
-
-#         local normal in MAD.gphys  -- like "from MAD.gphys import normal"
-#         local my_norm_for = normal(mytrkflow[1]):analyse() -- 'anh') -- anh stands for anharmonicity
-
-#         local nf = my_norm_for
-#         py:send({
-#                 nf:q1{1}, -- qx from the normal form (fractional part)
-#                 nf:q2{1}, -- qy
-#                 nf:dq1{1}, -- dqx / d delta
-#                 nf:dq2{1}, -- dqy / d delta
-#                 nf:dq1{2}, -- d2 qx / d delta2
-#                 nf:dq2{2}, -- d2 qy / d delta2
-#                  -- nf:anhx{1, 0}, -- dqx / djx
-#                  -- nf:anhy{0, 1}, -- dqy / djy
-#                  -- nf:anhx{0, 1}, -- dqx / djy
-#                  -- nf:anhy{1, 0}, -- dqy / djx
-#              })
-#     ''')
-
-# out = mad.recv()
-
-
+mng2["mytwtable"].mu1[-1]
