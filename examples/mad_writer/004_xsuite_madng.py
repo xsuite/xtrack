@@ -38,6 +38,8 @@ from pymadng import MAD
 mng2 = MAD()
 mng2.MADX.load('"xsuite_to_mad.madx"', f"'mad2.madng'")
 mng2["lhcb1"] = mng2.MADX.lhcb1
+
+
 mng2.lhcb1.beam = mng2.beam(particle='proton', energy=7000)
 mng2["mytwtable", 'mytwflow'] = mng2.twiss(
     sequence=mng2.lhcb1, method=4, mapdef=2, implicit=True, nslice=3, save="'atbody'")
