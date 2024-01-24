@@ -24,6 +24,8 @@ line = xt.Line.from_madx_sequence(sequence=madx1.sequence.lhcb1,
                                     deferred_expressions=True)
 line.particle_ref = xt.Particles(p0c=7000e9, mass0=xt.PROTON_MASS_EV)
 
+tw = line.twiss(method='4d')
+
 
 with open('xsuite_to_mad.madx', 'w') as fid:
     fid.write(line.to_madx_sequence(sequence_name='lhcb1'))
@@ -74,3 +76,11 @@ mng2.send('''
 ''')
 
 out = mng2.recv()
+
+dp = 1e-5
+twp = line.twiss(method='4d', delta0=dp)
+twm = line.twiss(method='4d', delta0=-dp)
+
+ddqx = (twp.dqx - twm.dqx) / (2*dp)
+
+
