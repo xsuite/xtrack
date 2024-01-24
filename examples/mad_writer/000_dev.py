@@ -75,48 +75,24 @@ mad_seq = line.to_madx_sequence(sequence_name='myseq')
 
 mad2 = Madx()
 mad2.input(mad_seq)
-mad2.beam()
+mad2.beam(particle='proton', energy=7000e9) #!!!!!
 mad2.use('myseq')
+
+line2 = xt.Line.from_madx_sequence(mad2.sequence.myseq, deferred_expressions=True)
 
 temp_fname = 'temp4madng'
 with open(temp_fname+'.madx', 'w') as fid:
     fid.write(mad_seq)
 
-# MAD-NG stuff
+# Use open twiss to compare
+tm1 = xt.Table(mad1.twiss(betx=1, bety=1,x=1e-3, y=1e-3))
+tm2 = xt.Table(mad2.twiss(betx=1, bety=1,x=1e-3, y=1e-3))
 
-# from pymadng import MAD
-# mad = MAD()
-# mad.MADX.load(f'"{temp_fname}.madx"', f"'{temp_fname}.madng'")
-# mad["myseq"] = mad.MADX.myseq
-# mad.myseq.beam = mad.beam()
-# mad["mytwtable", 'mytwflow'] = mad.twiss(
-#     sequence=mad.myseq, method=4, mapdef=2, implicit=True, nslice=3, save="'atbody'")
+# tx1 = line.twiss(method='4d')
+# tx2 = line2.twiss(method='4d')
 
-# mad.send('''
-#         local track in MAD  -- like "from MAD import track"
-#         local mytrktable, mytrkflow = MAD.track{sequence=MADX.myseq, method=4,
-#                                                 mapdef=4, nslice=3}
+tm1 = xt.Table(mad1.twiss())
+tm2 = xt.Table(mad2.twiss())
 
-#          -- print(MAD.typeid.is_damap(mytrkflow[1]))
-
-#         local normal in MAD.gphys  -- like "from MAD.gphys import normal"
-#         local my_norm_for = normal(mytrkflow[1]):analyse('anh') -- anh stands for anharmonicity
-
-#         local nf = my_norm_for
-#         py:send({
-#                 nf:q1{1}, -- qx from the normal form (fractional part)
-#                 nf:q2{1}, -- qy
-#                 nf:dq1{1}, -- dqx / d delta
-#                 nf:dq2{1}, -- dqy / d delta
-#                 nf:dq1{2}, -- d2 qx / d delta2
-#                 nf:dq2{2}, -- d2 qy / d delta2
-#                 nf:anhx{1, 0}, -- dqx / djx
-#                 nf:anhy{0, 1}, -- dqy / djy
-#                 nf:anhx{0, 1}, -- dqx / djy
-#                 nf:anhy{1, 0}, -- dqy / djx
-#              })
-#     ''')
-
-# out = mad.recv()
-
-
+mux2_interp = np.interp(tm1.s, tm2.s, tm2.mux)
+dx2_interp = np.interp(tm1.s, tm2.s, tm2.dx)
