@@ -34,17 +34,17 @@ import os
 # line = xt.Line.from_madx_sequence(sequence=seq, deferred_expressions=True)
 
 # ----- Elena -----
-mad = Madx()
-folder = ('../../test_data/elena')
-mad.call(folder + '/elena.seq')
-mad.call(folder + '/highenergy.str')
-mad.call(folder + '/highenergy.beam')
-mad.use('elena')
-seq = mad.sequence.elena
-line = xt.Line.from_madx_sequence(seq)
-line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
-                                    mass0=seq.beam.mass * 1e9,
-                                    q0=seq.beam.charge)
+# mad = Madx()
+# folder = ('../../test_data/elena')
+# mad.call(folder + '/elena.seq')
+# mad.call(folder + '/highenergy.str')
+# mad.call(folder + '/highenergy.beam')
+# mad.use('elena')
+# seq = mad.sequence.elena
+# line = xt.Line.from_madx_sequence(seq)
+# line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
+#                                     mass0=seq.beam.mass * 1e9,
+#                                     q0=seq.beam.charge)
 
 # line.slice_thick_elements(
 #     slicing_strategies=[
@@ -62,14 +62,14 @@ line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
 # line.build_tracker()
 
 # ----- LHC (thin) -----
-# mad1 = Madx()
-# mad1.call('../../test_data/hllhc15_noerrors_nobb/sequence_with_crabs.madx')
-# mad1.use('lhcb1')
-# seq = mad1.sequence.lhcb1
-# line = xt.Line.from_madx_sequence(seq, deferred_expressions=True)
-# line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
-#                                     mass0=seq.beam.mass * 1e9,
-#                                     q0=seq.beam.charge)
+mad1 = Madx()
+mad1.call('../../test_data/hllhc15_noerrors_nobb/sequence_with_crabs.madx')
+mad1.use('lhcb1')
+seq = mad1.sequence.lhcb1
+line = xt.Line.from_madx_sequence(seq, deferred_expressions=True)
+line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
+                                    mass0=seq.beam.mass * 1e9,
+                                    q0=seq.beam.charge)
 
 mad_seq = line.to_madx_sequence(sequence_name='myseq')
 
