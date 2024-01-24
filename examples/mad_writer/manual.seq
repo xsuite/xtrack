@@ -1330,9 +1330,9 @@ tclpx.4r1.b1: tclpx,mech_sep:= 0.1745;
 mbrd: rbend,l:=l.mbrd ;
 mbrd.4r1.b1: mbrd,polarity:= 1,angle:=ad2.r1 ,k0:=kd2.r1 ,mech_sep:= 0.188;
 mcbrdv: vkicker,l:=l.mcbrd ;
-mcbrdv.4r1.b1: mcbrdv,kick:=acbrdv4.r1b1 * bv_aux ,mech_sep:= 0.188;
+! mcbrdv.4r1.b1: mcbrdv,kick:=acbrdv4.r1b1 * bv_aux ,mech_sep:= 0.188;
 mcbrdh: hkicker,l:=l.mcbrd ;
-mcbrdh.4r1.b1: mcbrdh,kick:=acbrdh4.r1b1 ,mech_sep:= 0.188;
+! mcbrdh.4r1.b1: mcbrdh,kick:=acbrdh4.r1b1 ,mech_sep:= 0.188;
 bpmqbczb: monitor,lrad:=l.bpmqbczb ;
 bpmqbczb.4r1.b1: bpmqbczb,mech_sep:= 0.194;
 vacfga.4ar1.b1: marker,mech_sep:= 0.194;
@@ -1348,8 +1348,8 @@ mcbyh: hcorrector,l:=l.mcbyh ,calib:=kmax_mcbyh_4.5k / imax_mcbyh_4.5k ;
 mcbyh.a4r1.b1: mcbyh,polarity:= 1,kick:=acbyhs4.r1b1 ,mech_sep:= 0.194;
 vcorrector: vkicker;
 mcbyv: vcorrector,l:=l.mcbyv ,calib:=kmax_mcbyv_4.5k / imax_mcbyv_4.5k ;
-mcbyv.4r1.b1: mcbyv,polarity:= 1,kick:=acbyvs4.r1b1 ,mech_sep:= 0.194;
-mcbyh.b4r1.b1: mcbyh,polarity:= 1,kick:=acbyh4.r1b1 ,mech_sep:= 0.194;
+! mcbyv.4r1.b1: mcbyv,polarity:= 1,kick:=acbyvs4.r1b1 ,mech_sep:= 0.194;
+! mcbyh.b4r1.b1: mcbyh,polarity:= 1,kick:=acbyh4.r1b1 ,mech_sep:= 0.194;
 mqy: quadrupole,l:=l.mqy ,calib:=kmax_mqy_4.5k / imax_mqy_4.5k ;
 mqy.4r1.b1: mqy,kmax:=kmax_mqy_4.5k ,kmin:=kmin_mqy_4.5k ,calib:=kmax_mqy_4.5k / imax_mqy_4.5k ,polarity:= -1,k1:=kq4.r1b1 ,mech_sep:= 0.194,slot_id:= 241907,assembly_id:= 102111;
 bpmya: monitor,l:=l.bpmya ;
@@ -8235,7 +8235,6 @@ mqxfb.a2r1: quadrupole, l = 7.15, k1 := ((-(kqx2a.r1)) * (bv_aux)), at=39.126999
 mqxfb.a2r1_exit: marker, at=42.702;
 bpmqstzb.b2r1.b1_entry: marker, at=43.892999999999994;
 bpmqstzb.b2r1.b1_exit: marker, at=43.892999999999994;
-
 mqxfb.b2r1_entry: marker, at=44.81399999999999;
 mqxfb.b2r1: quadrupole, l = 7.15, k1 := ((-(kqx2b.r1)) * (bv_aux)), at=48.388999999999996;
 mqxfb.b2r1_exit: marker, at=51.96399999999999;
@@ -8290,7 +8289,6 @@ mcssxf.3r1: multipole, knl:={0.0,0.0,0.0}, ksl:={0.0,0.0,(((kcssx3.r1) * (bv_aux
 mcssxf.3r1_exit: marker, at=72.85200000000005;
 bpmqstzb.4r1.b1_entry: marker, at=73.72300000000001;
 bpmqstzb.4r1.b1_exit: marker, at=73.72300000000001;
-
 mbxf.4r1_entry: marker, at=74.39900000000002;
 mbxf.4r1_den: marker, at=74.39900000000002;
 mbxf.4r1: sbend, l = 6.27, angle := (((-(ad1.lr1)) / (l.mbxf)) * (l.mbxf)), k0 := (-(kd1.lr1)), e1 = -0.0007512269559932846, fint = 0.0, hgap = 0.0, e2 = -0.0007512269559932846, at=77.53400000000002;
@@ -8301,7 +8299,6 @@ vmbxfa.4r1: marker, at=81.83599999999998;
 vmbxfb.4r1: marker, at=82.38599999999998;
 bpmqstzw.4r1.b1_entry: marker, at=83.65400000000001;
 bpmqstzw.4r1.b1_exit: marker, at=83.65400000000001;
-
 vmbxfc.4r1: marker, at=83.86899999999999;
 dfxj.4r1_entry: marker, at=91.25549999999998;
 dfxj.4r1_exit: marker, at=91.25549999999998;
@@ -8318,7 +8315,6 @@ vtctpxh.4r1.a.b1: marker, at=133.52799999999993;
 vtctpxh.4r1.b.b1: marker, at=134.52799999999993;
 tclpx.4r1.b1_entry: marker, at=135.11399999999995;
 tclpx.4r1.b1_exit: marker, at=136.11399999999995;
-
 mbrd.4r1.b1_entry: marker, at=138.20599999999996;
 mbrd.4r1.b1_den: marker, at=138.20599999999996;
 mbrd.4r1.b1: sbend, l = 7.778, angle := (((ad2.r1) / (l.mbrd)) * (l.mbrd)), k0 := ((ad2.r1) / (l.mbrd)), e1 = 0.0007512269559932846, fint = 0.0, hgap = 0.0, e2 = 0.0007512269559932846, at=142.09499999999997;
@@ -8326,24 +8322,43 @@ mbrd.4r1.b1_dex: marker, at=145.98399999999995;
 mbrd.4r1.b1_exit: marker, at=145.98399999999995;
 
 mcbrdv.4r1.b1_entry: marker, at=146.34099999999995;
-mcbrdv.4r1.b1: kicker, hkick = -0.0, vkick := ((acbrdv4.r1b1) * (bv_aux)), l = 1.93, at=147.30599999999995;
+mcbrdv.4r1.b1: kicker, hkick = -0.0, vkick := ((acbrdv4.r1b1) * (bv_aux)), lrad = 1.93, at=147.30599999999995;
 mcbrdv.4r1.b1_exit: marker, at=148.27099999999996;
 
-mcbrdh.4r1.b1, at = 149.53, from = ip1;
+mcbrdh.4r1.b1_entry: marker, at=148.56499999999997;
+mcbrdh.4r1.b1: kicker, hkick := (-1 * (-(acbrdh4.r1b1))), vkick = 0.0, lrad = 1.93, at=149.52999999999997;
+mcbrdh.4r1.b1_exit: marker, at=150.49499999999998;
 
-bpmqbczb.4r1.b1, at = 151.878, from = ip1;
+bpmqbczb.4r1.b1_entry: marker, at=151.87799999999993;
+bpmqbczb.4r1.b1_exit: marker, at=151.87799999999993;
 
-vacfga.4ar1.b1, at = 155.885, from = ip1;
-vacfga.4br1.b1, at = 157.005, from = ip1;
-acfga.4ar1.b1, at = 159.921, from = ip1;
-acfga.4br1.b1, at = 161.041, from = ip1;
-apwl.4r1.b1, at = 165.102, from = ip1;
-tclmb.4r1.b1, at = 171.478, from = ip1;
-mcbyh.a4r1.b1, at = 174.939, from = ip1;
-mcbyv.4r1.b1, at = 176.235, from = ip1;
-mcbyh.b4r1.b1, at = 177.531, from = ip1;
-mqy.4r1.b1: mqy, at = 180.053, from = ip1,kmax:=kmax_mqy_4.5k ,kmin:=kmin_mqy_4.5k ,calib:=kmax_mqy_4.5k / imax_mqy_4.5k ,polarity:= -1,k1:=kq4.r1b1 ,mech_sep:= 0.194,slot_id:= 241907,assembly_id:= 102111;
-bpmya.4r1.b1, at = 182.727, from = ip1;
+vacfga.4ar1.b1: marker, at=155.88499999999993;
+vacfga.4br1.b1: marker, at=157.00499999999994;
+acfga.4ar1.b1_entry: marker, at=159.92099999999994;
+acfga.4ar1.b1: kicker, hkick := (-1 * (-(((((on_crab1) * (ahcrab_r1b1)) / 2.0) * (sin_crab_r1b1)) * (cosi1)))), vkick := ((((((on_crab1) * (avcrab_r1b1)) / 2.0) * (sin_crab_r1b1)) * (sinu1)) * (bv_aux)), lrad = 0.0, at=159.92099999999994;
+acfga.4ar1.b1_exit: marker, at=159.92099999999994;
+acfga.4br1.b1_entry: marker, at=161.04099999999994;
+acfga.4br1.b1: kicker, hkick := (-1 * (-(((((on_crab1) * (ahcrab_r1b1)) / 2.0) * (sin_crab_r1b1)) * (cosi1)))), vkick := ((((((on_crab1) * (avcrab_r1b1)) / 2.0) * (sin_crab_r1b1)) * (sinu1)) * (bv_aux)), lrad = 0.0, at=161.04099999999994;
+acfga.4br1.b1_exit: marker, at=161.04099999999994;
+apwl.4r1.b1_entry: marker, at=165.10199999999995;
+apwl.4r1.b1_exit: marker, at=165.10199999999995;
+tclmb.4r1.b1_entry: marker, at=170.97799999999992;
+tclmb.4r1.b1_exit: marker, at=171.97799999999992;
+mcbyh.a4r1.b1_entry: marker, at=174.48899999999995;
+mcbyh.a4r1.b1: kicker, hkick := (-1 * (-(acbyhs4.r1b1))), vkick = 0.0, lrad = 0.9, at=174.93899999999994;
+mcbyh.a4r1.b1_exit: marker, at=175.38899999999992;
+mcbyv.4r1.b1_entry: marker, at=175.78499999999994;
+mcbyv.4r1.b1_: kicker, hkick = -0.0, vkick := ((((((((0.0 * (on_x1vs)) + (3.123334593058989e-07 * (on_x1vl))) + (3.644363580690516e-06 * (on_sep1v))) + (1.435994256660013e-05 * (on_o1v))) + (0.0 * (on_a1v))) - (1.739865701073772e-05 * (on_ccpr1v))) - (1.739865701073772e-05 * (on_ccmr1v))) - (0.0001094521841036501 * (on_ccsr1vb1))), lrad = 0.9, at=176.23499999999993;
+mcbyv.4r1.b1_exit: marker, at=176.68499999999992;
+mcbyh.b4r1.b1_entry: marker, at=177.08099999999996;
+mcbyh.b4r1.b1: kicker, hkick := (-1 * (-(acbyh4.r1b1))), vkick = 0.0, lrad = 0.9, at=177.53099999999995;
+mcbyh.b4r1.b1_exit: marker, at=177.98099999999994;
+mqy.4r1.b1_entry: marker, at=178.35299999999995;
+mqy.4r1.b1: quadrupole, l = 3.4, k1 = -0.001222216425340269, at=180.05299999999994;
+mqy.4r1.b1_exit: marker, at=181.75299999999996;
+bpmya.4r1.b1_entry: marker, at=182.72699999999995;
+bpmya.4r1.b1_exit: marker, at=182.72699999999995;
+
 bblr.4r1.b1, at = 188.07, from = ip1;
 tcl.5r1.b1, at = 199.018, from = ip1;
 tclmc.5r1.b1, at = 201.167, from = ip1;
@@ -8360,6 +8375,8 @@ mqm.a7r1.b1: mqm, at = 261.704,polarity:= 1,k1:=kq7.r1b1 ,mech_sep:= 0.194,slot_
 mqm.b7r1.b1: mqm, at = 265.471,polarity:= 1,k1:=kq7.r1b1 ,mech_sep:= 0.194,slot_id:= 377908,assembly_id:= 102115;
 mcbch.7r1.b1: mcbch, at = 267.812,polarity:= 1,kick:=acbch7.r1b1 ,slot_id:= 378077,assembly_id:= 102115,mech_sep:= 0.194;
 s.ds.r1.b1: omk, at = 268.904;
+
+
 mco.8r1.b1: mco, at = 269.248,polarity:= 1,knl:={ 0, 0, 0,kco.a12b1 * l.mco },slot_id:= 249472,assembly_id:= 102116,mech_sep:= 0.194;
 mcd.8r1.b1: mcd, at = 269.2495,polarity:= 1,knl:={ 0, 0, 0, 0,kcd.a12b1 * l.mcd },slot_id:= 249473,assembly_id:= 102116,mech_sep:= 0.194;
 mb.a8r1.b1: mb, at = 276.7342473,polarity:= 1,angle:=ab.a12 ,k0:=kb.a12 ,mech_sep:= 0.194,slot_id:= 241926,assembly_id:= 102116;
