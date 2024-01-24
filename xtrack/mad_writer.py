@@ -181,6 +181,15 @@ def sextupole_to_madx_str(name, line):
     tokens.append(mad_assignment('k2s', _ge(sext.k2s)))
     return ', '.join(tokens)
 
+def octupole_to_madx_str(name, line):
+    octup = _get_eref(line, name)
+    tokens = []
+    tokens.append('octupole')
+    tokens.append(mad_assignment('l', _ge(octup.length)))
+    tokens.append(mad_assignment('k3', _ge(octup.k3)))
+    tokens.append(mad_assignment('k3s', _ge(octup.k3s)))
+    return ', '.join(tokens)
+
 def quadrupole_to_madx_str(name, line):
     quad = _get_eref(line, name)
     tokens = []
@@ -213,6 +222,7 @@ xsuite_to_mad_conveters={
     xt.DipoleEdge: marker_to_madx_str,
     xt.Bend: bend_to_madx_str,
     xt.Sextupole: sextupole_to_madx_str,
+    xt.Octupole: octupole_to_madx_str,
     xt.Quadrupole: quadrupole_to_madx_str,
     xt.Solenoid: solenoid_to_madx_str,
     xt.SRotation: srotation_to_madx_str,
