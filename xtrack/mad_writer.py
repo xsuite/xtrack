@@ -60,13 +60,11 @@ def _get_eref(line, name):
 
 def cavity_to_madx_str(name, line):
     cav = _get_eref(line, name)
-    return 'marker'
     tokens = []
     tokens.append('rfcavity')
     tokens.append(mad_assignment('freq', _ge(cav.frequency) * 1e-6))
     tokens.append(mad_assignment('volt', _ge(cav.voltage) * 1e-6))
     tokens.append(mad_assignment('lag', _ge(cav.lag) / 360.))
-    tokens.append(mad_assignment('l', 1.)) # TEEEEEEEEEEEEEEEEEEEEEEEST
 
     return ', '.join(tokens)
 

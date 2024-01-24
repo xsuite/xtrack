@@ -4,35 +4,35 @@ from pymadng import MAD
 import xtrack as xt
 import os
 
-madx1 = Madx()
-madx1.call("../../test_data/hllhc15_thick/lhc.seq")
-madx1.call("../../test_data/hllhc15_thick/hllhc_sequence.madx")
-madx1.call("../../test_data/hllhc15_thick/opt_round_150_1500.madx")
-madx1.beam(particle='proton', energy=7000e9)
-madx1.use("lhcb1")
-madx1.input('save, sequence=lhcb1, file="formadn.seq";')
+# madx1 = Madx()
+# madx1.call("../../test_data/hllhc15_thick/lhc.seq")
+# madx1.call("../../test_data/hllhc15_thick/hllhc_sequence.madx")
+# madx1.call("../../test_data/hllhc15_thick/opt_round_150_1500.madx")
+# madx1.beam(particle='proton', energy=7000e9)
+# madx1.use("lhcb1")
+# madx1.input('save, sequence=lhcb1, file="formadn.seq";')
 
-mng1 = MAD()
-mng1.MADX.load('"formadn.seq"', f"'mad1.madng'")
-mng1["lhcb1"] = mng1.MADX.lhcb1
-mng1.lhcb1.beam = mng1.beam()
-mng1["mytwtable", 'mytwflow'] = mng1.twiss(
-    sequence=mng1.lhcb1, method=4, mapdef=2, implicit=True, nslice=3, save="'atbody'")
-
-
-line = xt.Line.from_madx_sequence(sequence=madx1.sequence.lhcb1,
-                                    deferred_expressions=True)
-line.particle_ref = xt.Particles(p0c=7000e9, mass0=xt.PROTON_MASS_EV)
+# mng1 = MAD()
+# mng1.MADX.load('"formadn.seq"', f"'mad1.madng'")
+# mng1["lhcb1"] = mng1.MADX.lhcb1
+# mng1.lhcb1.beam = mng1.beam()
+# mng1["mytwtable", 'mytwflow'] = mng1.twiss(
+#     sequence=mng1.lhcb1, method=4, mapdef=2, implicit=True, nslice=3, save="'atbody'")
 
 
-with open('xsuite_to_mad.madx', 'w') as fid:
-    fid.write(line.to_madx_sequence(sequence_name='lhcb1'))
+# line = xt.Line.from_madx_sequence(sequence=madx1.sequence.lhcb1,
+#                                     deferred_expressions=True)
+# line.particle_ref = xt.Particles(p0c=7000e9, mass0=xt.PROTON_MASS_EV)
 
-madx2 = Madx()
-madx2.call("xsuite_to_mad.madx")
-madx2.beam(particle='proton', energy=7000)
-madx2.use("lhcb1")
-tmx2 = madx2.twiss()
+
+# with open('xsuite_to_mad.madx', 'w') as fid:
+#     fid.write(line.to_madx_sequence(sequence_name='lhcb1'))
+
+# madx2 = Madx()
+# madx2.call("xsuite_to_mad.madx")
+# madx2.beam(particle='proton', energy=7000)
+# madx2.use("lhcb1")
+# tmx2 = madx2.twiss()
 
 with open('formadn.seq', 'r') as fid:
     formadng = fid.readlines()
@@ -72,7 +72,7 @@ replace_until = 'ip2' # OK
 replace_until = 'ip3' # OK
 replace_until = 'e.ds.l4.b1' # OK
 replace_until = 'bpmwa.a5l4.b1' # OK
-replace_until = 'acsca.d5l4.b1'
+# replace_until = 'apwl.5r4.b1'
 
 
 
@@ -95,6 +95,7 @@ formadng[i_start_seq_forng:i_end_replace_forng+1] = xsmad[i_start_seq_xsmad:i_en
 
 out = ''.join(formadng)
 out = out.replace(': kicker' , '_: kicker')
+# out = out.replace(': rfcavity' , '_: rfcavity')
 
 with open('testseq.seq', 'w') as fid:
     fid.write(out)
