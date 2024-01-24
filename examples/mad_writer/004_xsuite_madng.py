@@ -110,4 +110,4 @@ mng2["mytwtable", 'mytwflow'] = mng2.twiss(
     sequence=mng2.lhcb1, method=4, mapdef=2, implicit=True, nslice=3, save="'atbody'")
 
 print(mng2["mytwtable"].mu1[-1])
-assert np.isclose(mng2["mytwtable"].mu1[-1][0], 62.31, atol=1e-6)
+assert np.isclose(mng2["mytwtable"].mu1[-1][0], 62.31, atol=1e-6, rtol=0)
