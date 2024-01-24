@@ -37,9 +37,46 @@ import os
 with open('formadn.seq', 'r') as fid:
     formadng = fid.readlines()
 
+with open('xsuite_to_mad.madx', 'r') as fid:
+    xsmad = fid.readlines()
+
+for i_start_seq_forng, ln in enumerate(formadng):
+    if 'sequence, ' in ln:
+        break
+
+for i_end_seq_forng, ln in enumerate(formadng):
+    if 'endsequence' in ln:
+        break
+
+for i_start_seq_xsmad, ln in enumerate(xsmad):
+    if 'sequence, ' in ln:
+        break
+
+for i_end_seq_xsmad, ln in enumerate(xsmad):
+    if 'endsequence' in ln:
+        break
+
+replace_until = 's.ds.r1.b1'
+
+for i_end_replace_forng in range(i_start_seq_forng, i_end_seq_forng):
+    ln = formadng[i_end_replace_forng]
+    if replace_until in ln:
+        break
+assert i_end_replace_forng < i_end_seq_forng-1
+
+for i_end_replace_xsmad in range(i_start_seq_xsmad, i_end_seq_xsmad):
+    ln = xsmad[i_end_replace_xsmad]
+    if replace_until in ln:
+        break
+
+# replace
+formadng[i_start_seq_forng:i_end_replace_forng+1] = xsmad[i_start_seq_xsmad:i_end_replace_xsmad+1]
+
+out = '\n'.join(formadng)
+out = out.replace(': kicker' , '_: kicker')
 
 with open('testseq.seq', 'w') as fid:
-    fid.write('\n'.join(formadng))
+    fid.write(out)
 
 from pymadng import MAD
 mng2 = MAD()
