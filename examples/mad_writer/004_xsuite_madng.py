@@ -56,7 +56,8 @@ for i_end_seq_xsmad, ln in enumerate(xsmad):
     if 'endsequence' in ln:
         break
 
-replace_until = 's.ds.r1.b1'
+# replace_until = 's.ds.r1.b1'
+replace_until = 's.arc.12.b1'
 
 for i_end_replace_forng in range(i_start_seq_forng, i_end_seq_forng):
     ln = formadng[i_end_replace_forng]
@@ -72,7 +73,7 @@ for i_end_replace_xsmad in range(i_start_seq_xsmad, i_end_seq_xsmad):
 # replace
 formadng[i_start_seq_forng:i_end_replace_forng+1] = xsmad[i_start_seq_xsmad:i_end_replace_xsmad+1]
 
-out = '\n'.join(formadng)
+out = ''.join(formadng)
 out = out.replace(': kicker' , '_: kicker')
 
 with open('testseq.seq', 'w') as fid:
