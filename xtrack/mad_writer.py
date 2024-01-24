@@ -208,11 +208,14 @@ def solenoid_to_madx_str(name, line):
     return ', '.join(tokens)
 
 def srotation_to_madx_str(name, line):
-    srot = _get_eref(line, name)
-    tokens = []
-    tokens.append('srotation')
-    tokens.append(mad_assignment('angle', _ge(srot.angle)*np.pi/180.))
-    return ', '.join(tokens)
+    if line.get_compound_for_element(name) is None:
+        raise NotImplementedError("isolated rotations are not yet supported")
+    return 'marker'
+    # srot = _get_eref(line, name)
+    # tokens = []
+    # tokens.append('srotation')
+    # tokens.append(mad_assignment('angle', _ge(srot.angle)*np.pi/180.))
+    # return ', '.join(tokens)
 
 xsuite_to_mad_conveters={
     xt.Cavity: cavity_to_madx_str,
@@ -267,6 +270,10 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
             if isinstance(el, xt.Drift):
                 continue
             el_str = xsuite_to_mad_conveters[type(el)](nn, line)
+            if nn + '_tilt_entry' in line.element_dict:
+                el_str += ", " + mad_assignment('tilt',
+                            _ge(line.element_refs[nn + '_tilt_entry'].angle) / 180. * np.pi)
+
             seq_str += f"{nn}: {el_str}, at={s_dict[nn]};\n"
         seq_str += 'endsequence;'
         machine_str = seq_str
