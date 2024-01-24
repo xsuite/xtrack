@@ -238,8 +238,20 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
     elif mode == 'sequence':
         tt = line.get_table()
         line_length = tt['s', -1]
-        seq_str = f'{name}: sequence, l={line_length}, refer=entry;\n'
-        s_dict = {nn:ss for nn, ss in zip(tt.name, tt.s)}
+        seq_str = f'{name}: sequence, l={line_length};\n' #, refer=entry;\n'
+        # s_dict = {nn:ss for nn, ss in zip(tt.name, tt.s)}
+
+        s_dict = {}
+        tt_name = tt.name
+        tt_s = tt.s
+        tt_isthick = tt.isthick
+        for ii in range(len(tt.name)):
+            nn = tt_name[ii]
+            if not(tt_isthick[ii]):
+                s_dict[nn] = tt_s[ii]
+            else:
+                s_dict[nn] = 0.5 * (tt_s[ii] + tt_s[ii+1])
+
         for nn in line.element_names:
             el = line[nn]
             if isinstance(el, xt.Drift):
