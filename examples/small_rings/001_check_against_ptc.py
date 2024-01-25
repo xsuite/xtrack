@@ -52,19 +52,21 @@ line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
                                  q0=seq.beam.charge)
 
 # To see functions inside thick elements, we need to slice them
-line.slice_thick_elements(
-    slicing_strategies=[
-        xt.Strategy(slicing=None), # don't touch other elements
-        xt.Strategy(slicing=xt.Uniform(10, mode='thick'), element_type=xt.Bend),
-        xt.Strategy(slicing=xt.Uniform(5, mode='thick'), element_type=xt.Quadrupole),
-        xt.Strategy(slicing=xt.Uniform(5, mode='thick'), element_type=xt.CombinedFunctionMagnet),
-    ])
+# line.slice_thick_elements(
+#     slicing_strategies=[
+#         xt.Strategy(slicing=None), # don't touch other elements
+#         xt.Strategy(slicing=xt.Uniform(10, mode='thick'), element_type=xt.Bend),
+#         xt.Strategy(slicing=xt.Uniform(5, mode='thick'), element_type=xt.Quadrupole),
+#         xt.Strategy(slicing=xt.Uniform(5, mode='thick'), element_type=xt.CombinedFunctionMagnet),
+#     ])
 
 tt = line.get_table()
 tt_cf = tt.rows[tt.element_type == 'CombinedFunctionMagnet']
 for nn in tt_cf.name:
-    line[nn].model = 'full'
-    line[nn].num_multipole_kicks = 10
+    # line[nn].model = 'full'
+    # line[nn].num_multipole_kicks = 10
+    line[nn]._model = 3
+    line[nn].num_multipole_kicks = 100
 
 line.configure_bend_model(core='full', edge='full')
 tw = line.twiss(method='4d')
