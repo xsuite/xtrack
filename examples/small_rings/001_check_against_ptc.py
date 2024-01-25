@@ -44,6 +44,8 @@ else:
     raise ValueError(f'Unknown machine `{machine}`')
 
 
+
+
 line = xt.Line.from_madx_sequence(seq, deferred_expressions=def_expr)
 line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
                                  mass0=seq.beam.mass * 1e9,
@@ -57,6 +59,12 @@ line.slice_thick_elements(
         xt.Strategy(slicing=xt.Uniform(5, mode='thick'), element_type=xt.Quadrupole),
         xt.Strategy(slicing=xt.Uniform(5, mode='thick'), element_type=xt.CombinedFunctionMagnet),
     ])
+
+tt = line.get_table()
+tt_cf = tt.rows[tt.element_type == 'CombinedFunctionMagnet']
+for nn in tt_cf.name:
+    line[nn].model = 'full'
+    line[nn].num_multipole_kicks = 10
 
 line.configure_bend_model(core='full', edge='full')
 tw = line.twiss(method='4d')
