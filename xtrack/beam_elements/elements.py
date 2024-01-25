@@ -761,14 +761,17 @@ class CombinedFunctionMagnet(BeamElement):
         'num_multipole_kicks': xo.Int64,
         'order': xo.Int64,
         'inv_factorial_order': xo.Float64,
+        'model': xo.Int64,
     }
 
     _rename = {
         'order': '_order',
+        'model': '_model'
     }
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_thick_bend.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
         _pkg_root.joinpath('beam_elements/elements_src/multipolar_kick.h'),
         _pkg_root.joinpath('beam_elements/elements_src/combinedfunctionmagnet.h'),
@@ -809,6 +812,8 @@ class CombinedFunctionMagnet(BeamElement):
         if kwargs.get('length', 0.0) == 0.0 and not '_xobject' in kwargs:
             raise ValueError("A thick element must have a length.")
 
+        model = kwargs.pop('model', None)
+
         knl = kwargs.get('knl', np.array([]))
         ksl = kwargs.get('ksl', np.array([]))
         order_from_kl = max(len(knl), len(ksl)) - 1
@@ -822,6 +827,8 @@ class CombinedFunctionMagnet(BeamElement):
 
         self.xoinitialize(**kwargs)
 
+        if model is not None:
+            self.model = model
         self.order = order
 
     @property
@@ -832,6 +839,23 @@ class CombinedFunctionMagnet(BeamElement):
     def order(self, value):
         self._order = value
         self.inv_factorial_order = 1.0 / factorial(value, exact=True)
+
+    @property
+    def model(self):
+        return {
+            0: 'expanded',
+            1: 'full',
+            2: 'full no k1h correction'
+        }[self._model]
+
+    @model.setter
+    def model(self, value):
+        assert value in ['expanded', 'full']
+        self._model = {
+            'expanded': 0,
+            'full': 1,
+            'full no k1h correction': 2
+        }[value]
 
     @property
     def hxl(self): return self.h * self.length
@@ -888,6 +912,7 @@ class CombinedFunctionMagnet(BeamElement):
         ref.k0 = _get_expr(self_or_ref.k0)
         ref.h = _get_expr(self_or_ref.h)
         ref.k1 = _get_expr(self_or_ref.k1)
+        ref.model = _get_expr(self_or_ref.model)
 
         for ii in range(5):
             ref.knl[ii] = _get_expr(self_or_ref.knl[ii]) * weight

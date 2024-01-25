@@ -2207,7 +2207,8 @@ class Line:
             raise ValueError(f'Unknown bend edge model {edge}')
 
         for ee in self.elements:
-            if core is not None and isinstance(ee, xt.Bend):
+            if core is not None and isinstance(ee,
+                                (xt.Bend, xt.CombinedFunctionMagnet)):
                 ee.model = core
 
             if edge is not None and isinstance(ee, xt.DipoleEdge):
