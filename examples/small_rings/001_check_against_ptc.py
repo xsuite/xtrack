@@ -3,10 +3,10 @@ import numpy as np
 
 import xtrack as xt
 
-# machine = 'ps'
+machine = 'ps'
 # machine = 'elena'
-machine = 'leir'
-machine = 'pimms'
+# machine = 'leir'
+# machine = 'pimms'
 
 test_data_folder = '../../test_data/'
 mad = Madx()
@@ -50,13 +50,27 @@ line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
                                  q0=seq.beam.charge)
 
 # To see functions inside thick elements, we need to slice them
-line.slice_thick_elements(
-    slicing_strategies=[
-        xt.Strategy(slicing=None), # don't touch other elements
-        xt.Strategy(slicing=xt.Uniform(10, mode='thick'), element_type=xt.Bend),
-        xt.Strategy(slicing=xt.Uniform(5, mode='thick'), element_type=xt.Quadrupole),
-        xt.Strategy(slicing=xt.Uniform(5, mode='thick'), element_type=xt.CombinedFunctionMagnet),
-    ])
+# line.slice_thick_elements(
+#     slicing_strategies=[
+#         xt.Strategy(slicing=None), # don't touch other elements
+#         xt.Strategy(slicing=xt.Uniform(1, mode='thick'), element_type=xt.Bend),
+#         xt.Strategy(slicing=xt.Uniform(5, mode='thick'), element_type=xt.Quadrupole),
+#         xt.Strategy(slicing=xt.Uniform(5, mode='thick'), element_type=xt.CombinedFunctionMagnet),
+#     ])
+
+
+tt = line.get_table()
+tt_cf = tt.rows[tt.element_type == 'CombinedFunctionMagnet']
+for nn in tt_cf.name:
+    old_elem = line.element_dict[nn]
+    line.element_dict[nn] = xt.Bend(
+        k0=old_elem.k0,
+        h=old_elem.h,
+        length=old_elem.length,
+        knl=[0, old_elem.k1 * old_elem.length],
+        num_multipole_kicks=1000
+    )
+line.build_tracker()
 
 line.configure_bend_model(core='full', edge='full')
 tw = line.twiss(method='4d')
