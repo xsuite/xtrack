@@ -50,14 +50,6 @@ void Bend_track_local_particle(
             track_thick_bend(part, slice_length, k0, h);
 
             for (int ii = 0; ii < num_multipole_kicks; ii++) {
-                if ((fabs(h) > 0) && (fabs(knl[1])) > 0) {
-                    double const x = LocalParticle_get_x(part);
-                    double const y = LocalParticle_get_y(part);
-                    double const k1lslice = knl[1] / num_multipole_kicks;
-                    LocalParticle_add_to_px(part, h * k1lslice * (-x * x + 0.5 * y * y));
-                    LocalParticle_add_to_py(part, h * k1lslice * x * y);
-
-                }
                 multipolar_kick(part, order, inv_factorial_order, knl, ksl, kick_weight);
                 track_thick_bend(part, slice_length, k0, h);
             }
