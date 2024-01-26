@@ -6,16 +6,16 @@ line = xt.Line.from_json(
 
 tw = line.twiss(method='4d')
 
-mng2 = line.to_madng(sequence_name='lhcb1')
+mng = line.to_madng(sequence_name='lhcb1')
 
-mng2["mytwtable", 'mytwflow'] = mng2.twiss(
-    sequence=mng2.lhcb1, method=4, mapdef=2, implicit=True, nslice=3, save="'atbody'")
+mng["mytwtable", 'mytwflow'] = mng.twiss(
+    sequence=mng.lhcb1, method=4, mapdef=2, implicit=True, nslice=3, save="'atbody'")
 
-print(mng2["mytwtable"].mu1[-1])
-assert np.isclose(mng2["mytwtable"].mu1[-1][0], 62.31, atol=1e-6, rtol=0)
+print(mng["mytwtable"].mu1[-1])
+assert np.isclose(mng["mytwtable"].mu1[-1][0], 62.31, atol=1e-6, rtol=0)
 
 
-mng2.send('''
+mng.send('''
     local track in MAD  -- like "from MAD import track"
     local mytrktable, mytrkflow = MAD.track{sequence=MADX.lhcb1, method=4,
                                             mapdef=4, nslice=3}
@@ -40,7 +40,7 @@ mng2.send('''
             })
 ''')
 
-out = mng2.recv()
+out = mng.recv()
 
 print(f'''
     q1: {out[0]}
