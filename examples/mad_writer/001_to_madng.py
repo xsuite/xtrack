@@ -35,10 +35,10 @@ mng2.send('''
             nf:dq2{1}, -- dqy / d delta
             nf:dq1{2}, -- d2 qx / d delta2
             nf:dq2{2}, -- d2 qy / d delta2
-            nf:anhx{1, 0}, -- dqx / djx
-            nf:anhy{0, 1}, -- dqy / djy
-            nf:anhx{0, 1}, -- dqx / djy
-            nf:anhy{1, 0}, -- dqy / djx
+            nf:anhx{1, 0}, -- dqx / d(2 jx)
+            nf:anhy{0, 1}, -- dqy / d(2 jy)
+            nf:anhx{0, 1}, -- dqx / d(2 jy)
+            nf:anhy{1, 0}, -- dqy / d(2 jx)
             })
 ''')
 

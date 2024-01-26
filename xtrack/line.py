@@ -8,6 +8,7 @@ import math
 import logging
 import json
 import uuid
+import os
 from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
@@ -592,6 +593,14 @@ class Line:
         mng = MAD()
         mng.MADX.load(f'"{temp_fname}.madx"', f'"{temp_fname}"')
         mng._init_madx_data = madx_seq
+
+        mng[sequence_name] = mng.MADX[sequence_name]
+
+        os.remove(temp_fname + '.madx')
+        os.remove(temp_fname + '.mad')
+
+        # mng[sequence_name].beam = mng.beam(particle="'proton'", energy=7000)
+
 
         return mng
 
