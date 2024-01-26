@@ -582,22 +582,24 @@ class Line:
             MAD NG instance.
         '''
 
-        if temp_fname is None:
-            temp_fname = 'temp_madng_' + str(uuid.uuid4())
+        try:
+            if temp_fname is None:
+                temp_fname = 'temp_madng_' + str(uuid.uuid4())
 
-        madx_seq = self.to_madx_sequence(sequence_name=sequence_name)
-        with open(f'{temp_fname}.madx', 'w') as fid:
-            fid.write(madx_seq)
+            madx_seq = self.to_madx_sequence(sequence_name=sequence_name)
+            with open(f'{temp_fname}.madx', 'w') as fid:
+                fid.write(madx_seq)
 
-        from pymadng import MAD
-        mng = MAD()
-        mng.MADX.load(f'"{temp_fname}.madx"', f'"{temp_fname}"')
-        mng._init_madx_data = madx_seq
+            from pymadng import MAD
+            mng = MAD()
+            mng.MADX.load(f'"{temp_fname}.madx"', f'"{temp_fname}"')
+            mng._init_madx_data = madx_seq
 
-        mng[sequence_name] = mng.MADX[sequence_name]
-
-        os.remove(temp_fname + '.madx')
-        os.remove(temp_fname + '.mad')
+            mng[sequence_name] = mng.MADX[sequence_name] # this ensures that the file has been read
+        finally:
+            for nn in [temp_fname + '.madx', temp_fname + '.mad']:
+                if os.path.isfile(nn):
+                    os.remove(nn)
 
         # mng[sequence_name].beam = mng.beam(particle="'proton'", energy=7000)
 
