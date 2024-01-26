@@ -596,6 +596,10 @@ class Line:
             mng._init_madx_data = madx_seq
 
             mng[sequence_name] = mng.MADX[sequence_name] # this ensures that the file has been read
+            mng[sequence_name].beam = mng.beam(particle="'custom'",
+                            mass=self.particle_ref.mass0 * 1e9,
+                            charge=self.particle_ref.q0,
+                            betgam=self.particle_ref.beta0[0] * self.particle_ref.gamma0[0])
         finally:
             for nn in [temp_fname + '.madx', temp_fname + '.mad']:
                 if os.path.isfile(nn):
