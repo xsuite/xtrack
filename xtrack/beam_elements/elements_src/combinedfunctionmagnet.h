@@ -107,10 +107,8 @@ void CombinedFunctionMagnet_track_local_particle(
         #endif
     }
     else{
-        double slice_length = length;
-        double kick_weight = 1.0;
-
-                   double const k1lslice = k1 * length / num_multipole_kicks;
+    const double slice_length = length / (num_multipole_kicks + 1);
+    const double kick_weight = 1. / num_multipole_kicks;
 
             //start_per_particle_block (part0->part)
                 track_thick_bend(part, slice_length, k0, h);
