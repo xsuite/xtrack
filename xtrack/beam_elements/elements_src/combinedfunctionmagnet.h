@@ -11,6 +11,28 @@
 // model = 2: thick combined function dipole (exact bend + quadrupole kicks, no k1h correction)
 
 /*gpufun*/
+void track_multipolar_kick_bend(
+    LocalParticle* part, int64_t order, double inv_factorial_order,
+    /*gpuglmem*/ const double* knl,
+    /*gpuglmem*/ const double* ksl,
+    double kick_weight, double k1, double h, double length){
+
+    double const k1l = k1 * length * kick_weight;
+
+    double const x = LocalParticle_get_x(part);
+    double const y = LocalParticle_get_y(part);
+    double dpx = -k1l * x;
+    double dpy =  k1l * y;
+    dpx += h * k1l * (-x * x + 0.5 * y * y);
+    dpy += h * k1l * x * y;
+    LocalParticle_add_to_px(part, dpx);
+    LocalParticle_add_to_py(part, dpy);
+
+    multipolar_kick(part, order, inv_factorial_order, knl, ksl, kick_weight);
+}
+
+
+/*gpufun*/
 void CombinedFunctionMagnet_track_local_particle(
         CombinedFunctionMagnetData el,
         LocalParticle* part0
@@ -85,39 +107,32 @@ void CombinedFunctionMagnet_track_local_particle(
         #endif
     }
     else{
-        #ifdef XSUITE_BACKTRACK
-                LocalParticle_kill_particle(part, -30);
-        #else
-
-            if (fabs(k1) > 0 && num_multipole_kicks == 0) {
-                num_multipole_kicks = 5; // default value
-            }
-            double const k1lslice = k1 * length / num_multipole_kicks;
-
-            //start_per_particle_block (part0->part)
-                track_thick_bend(part, slice_length, k0, h);
-            //end_per_particle_block
-
-            for (int ii = 0; ii < num_multipole_kicks; ii++) {
-                if ((fabs(h) > 0) && (fabs(k1) > 0)) {
-                    //start_per_particle_block (part0->part)
-                        double const x = LocalParticle_get_x(part);
-                        double const y = LocalParticle_get_y(part);
-                        double dpx = -k1lslice * x;
-                        double dpy =  k1lslice * y;
-                        if (model == 1){
-                            dpx += h * k1lslice * (-x * x + 0.5 * y * y);
-                            dpy += h * k1lslice * x * y;
-                        }
-                        LocalParticle_add_to_px(part, dpx);
-                        LocalParticle_add_to_py(part, dpy);
-                    //end_per_particle_block
-                }
-                //start_per_particle_block (part0->part)
-                    multipolar_kick(part, order, inv_factorial_order, knl, ksl, kick_weight);
-                    track_thick_bend(part, slice_length, k0, h);
-                //end_per_particle_block
-            }
+        double slice_length = length;
+        double kick_weight = 1.0;
+        //start_per_particle_block (part0->part)
+            track_thick_bend(part, slice_length, k0, h); // 4
+            track_multipolar_kick_bend(
+                part, order, inv_factorial_order, knl, ksl, kick_weight, k1, h, length);
+            track_thick_bend(part, slice_length, k0, h); // 3
+            track_multipolar_kick_bend(
+                part, order, inv_factorial_order, knl, ksl, kick_weight, k1, h, length);
+            track_thick_bend(part, slice_length, k0, h); // 2
+            track_multipolar_kick_bend(
+                part, order, inv_factorial_order, knl, ksl, kick_weight, k1, h, length);
+            track_thick_bend(part, slice_length, k0, h); // 1
+            track_multipolar_kick_bend(                  // middle
+                part, order, inv_factorial_order, knl, ksl, kick_weight, k1, h, length);
+            track_thick_bend(part, slice_length, k0, h); // 1
+            track_multipolar_kick_bend(
+                part, order, inv_factorial_order, knl, ksl, kick_weight, k1, h, length);
+            track_thick_bend(part, slice_length, k0, h); // 2
+            track_multipolar_kick_bend(
+                part, order, inv_factorial_order, knl, ksl, kick_weight, k1, h, length);
+            track_thick_bend(part, slice_length, k0, h); // 3
+            track_multipolar_kick_bend(
+                part, order, inv_factorial_order, knl, ksl, kick_weight, k1, h, length);
+            track_thick_bend(part, slice_length, k0, h); // 4
+        //end_per_particle_block
 
     }
 
