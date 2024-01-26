@@ -63,7 +63,8 @@ line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
 tt = line.get_table()
 tt_cf = tt.rows[tt.element_type == 'CombinedFunctionMagnet']
 for nn in tt_cf.name:
-    line[nn].model = 'full'
+    # line[nn].model = 'full'
+    line[nn]._model = 3
     line[nn].num_multipole_kicks = 1000
 
 line.configure_bend_model(core='full', edge='full')
