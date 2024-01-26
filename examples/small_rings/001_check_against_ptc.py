@@ -44,8 +44,6 @@ else:
     raise ValueError(f'Unknown machine `{machine}`')
 
 
-
-
 line = xt.Line.from_madx_sequence(seq, deferred_expressions=def_expr)
 line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
                                  mass0=seq.beam.mass * 1e9,
@@ -66,7 +64,7 @@ tt_cf = tt.rows[tt.element_type == 'CombinedFunctionMagnet']
 for nn in tt_cf.name:
     # line[nn].model = 'full'
     line[nn]._model = 3
-    line[nn].num_multipole_kicks = 1000
+    line[nn].num_multipole_kicks = 5
 
 tw = line.twiss(method='4d')
 

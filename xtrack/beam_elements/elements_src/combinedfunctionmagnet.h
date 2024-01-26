@@ -107,18 +107,48 @@ void CombinedFunctionMagnet_track_local_particle(
         #endif
     }
     else{
-    const double slice_length = length / (num_multipole_kicks + 1);
+    const double slice_length = length / (num_multipole_kicks);
     const double kick_weight = 1. / num_multipole_kicks;
-
-            //start_per_particle_block (part0->part)
-                track_thick_bend(part, slice_length, k0, h);
-            //end_per_particle_block
+            const double d_yoshida[] =
+                         {0x1.91abc4988937bp-2, 0x1.052468fb75c74p-1,
+                         -0x1.e25bd194051b9p-2, 0x1.199cec1241558p-4 };
+                        //  {1/8.0, 1/8.0, 1/8.0, 1/8.0}; // Uniform, for debugging
+            const double k_yoshida[] =
+                         {0x1.91abc4988937bp-1, 0x1.e2743579895b4p-3,
+                         -0x1.2d7c6f7933b93p+0, 0x1.50b00cfb7be3ep+0 };
+                        //  {1/7.0, 1/7.0, 1/7.0, 1/7.0}; // Uniform, for debugging
 
             for (int ii = 0; ii < num_multipole_kicks; ii++) {
                 //start_per_particle_block (part0->part)
+                    track_thick_bend(part, slice_length * d_yoshida[0], k0, h);
                     track_multipolar_kick_bend(
-                        part, order, inv_factorial_order, knl, ksl, kick_weight, k1, h, length);
-                    track_thick_bend(part, slice_length, k0, h);
+                        part, order, inv_factorial_order, knl, ksl,
+                        kick_weight * k_yoshida[0], k1, h, length);
+                    track_thick_bend(part, slice_length * d_yoshida[1], k0, h);
+                    track_multipolar_kick_bend(
+                        part, order, inv_factorial_order, knl, ksl,
+                        kick_weight * k_yoshida[1], k1, h, length);
+                    track_thick_bend(part, slice_length * d_yoshida[2], k0, h);
+                    track_multipolar_kick_bend(
+                        part, order, inv_factorial_order, knl, ksl,
+                        kick_weight * k_yoshida[2], k1, h, length);
+                    track_thick_bend(part, slice_length * d_yoshida[3], k0, h);
+                    track_multipolar_kick_bend(
+                        part, order, inv_factorial_order, knl, ksl,
+                        kick_weight * k_yoshida[3], k1, h, length);
+                    track_thick_bend(part, slice_length * d_yoshida[3], k0, h);
+                    track_multipolar_kick_bend(
+                        part, order, inv_factorial_order, knl, ksl,
+                        kick_weight * k_yoshida[2], k1, h, length);
+                    track_thick_bend(part, slice_length * d_yoshida[2], k0, h);
+                    track_multipolar_kick_bend(
+                        part, order, inv_factorial_order, knl, ksl,
+                        kick_weight * k_yoshida[1], k1, h, length);
+                    track_thick_bend(part, slice_length * d_yoshida[1], k0, h);
+                    track_multipolar_kick_bend(
+                        part, order, inv_factorial_order, knl, ksl,
+                        kick_weight * k_yoshida[0], k1, h, length);
+                    track_thick_bend(part, slice_length * d_yoshida[0], k0, h);
                 //end_per_particle_block
             }
 
