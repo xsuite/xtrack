@@ -112,7 +112,7 @@ void CombinedFunctionMagnet_track_local_particle(
                 num_slices = 1;
             }
             else{
-                num_slices = num_multipole_kicks / 8 + 1;
+                num_slices = num_multipole_kicks / 7 + 1;
             }
 
             const double slice_length = length / (num_slices);
