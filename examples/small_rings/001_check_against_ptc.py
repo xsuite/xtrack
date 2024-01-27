@@ -63,7 +63,7 @@ line.configure_bend_model(core='full', edge='full')
 tt_cf = tt.rows[tt.element_type == 'CombinedFunctionMagnet']
 for nn in tt_cf.name:
     line[nn].model = 'full'
-    line[nn].num_multipole_kicks = 1
+    line[nn].num_multipole_kicks = 8
 
 tw = line.twiss(method='4d')
 

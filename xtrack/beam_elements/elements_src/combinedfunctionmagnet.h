@@ -107,7 +107,13 @@ void CombinedFunctionMagnet_track_local_particle(
     }
     else{
 
-            int64_t num_slices = num_multipole_kicks;
+            int64_t num_slices;
+            if (num_multipole_kicks < 8) {
+                num_slices = 1;
+            }
+            else{
+                num_slices = num_multipole_kicks / 8 + 1;
+            }
 
             const double slice_length = length / (num_slices);
             const double kick_weight = 1. / num_slices;
