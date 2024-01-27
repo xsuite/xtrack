@@ -31,6 +31,7 @@ from .survey import survey_from_line
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
                           find_closed_orbit_line, twiss_line,
                           compute_T_matrix_line,
+                          get_non_linear_chromaticity,
                           DEFAULT_MATRIX_STABILITY_TOL,
                           DEFAULT_MATRIX_RESPONSIVENESS_TOL)
 from .match import match_line, closed_orbit_correction, match_knob_line, Action
@@ -1634,6 +1635,30 @@ class Line:
                         num_turns=num_turns,
                         element_by_element=element_by_element,
                         only_markers=only_markers)
+
+    def get_non_linear_chromaticity(self,
+                        delta0_range=(-1e-3, 1e-3), num_delta=5, fit_order=3, **kwargs):
+
+        '''Get non-linear chromaticity for given range of delta values
+
+        Parameters
+        ----------
+        delta0_range : tuple of float
+            Range of delta values for chromaticity computation.
+        num_delta : int
+            Number of delta values for chromaticity computation.
+        kwargs : dict
+            Additional arguments to be passed to the twiss.
+
+        Returns
+        -------
+        chromaticity : Table
+            Table containing the non-linear chromaticity information.
+
+        '''
+
+        return get_non_linear_chromaticity(self, delta0_range, num_delta,
+                                           fit_order, **kwargs)
 
     def get_length(self):
 
