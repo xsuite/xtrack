@@ -2249,7 +2249,7 @@ class Line:
             self.config[f'FREEZE_VAR_{name}'] = False
 
 
-    def configure_bend_model(self, core=None, edge=None):
+    def configure_bend_model(self, core=None, edge=None, num_multipole_kicks=None):
 
         """
         Configure the method used to track bends.
@@ -2271,11 +2271,15 @@ class Line:
             raise ValueError(f'Unknown bend edge model {edge}')
 
         for ee in self.elements:
-            if core is not None and isinstance(ee, xt.Bend):
+            if core is not None and isinstance(ee,
+                                (xt.Bend, xt.CombinedFunctionMagnet)):
                 ee.model = core
 
             if edge is not None and isinstance(ee, xt.DipoleEdge):
                 ee.model = edge
+
+            if num_multipole_kicks is not None:
+                ee.num_multipole_kicks = num_multipole_kicks
 
     def configure_radiation(self, model=None, model_beamstrahlung=None,
                             model_bhabha=None, mode='deprecated'):
