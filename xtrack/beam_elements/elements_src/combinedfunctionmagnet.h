@@ -69,12 +69,11 @@ void CombinedFunctionMagnet_track_local_particle(
             }
         //end_per_particle_block
     }
-    else if (model==1 || model==2){
+    else if (model==10){
 
         #ifdef XSUITE_BACKTRACK
                 LocalParticle_kill_particle(part, -30);
         #else
-
             if (fabs(k1) > 0 && num_multipole_kicks == 0) {
                 num_multipole_kicks = 5; // default value
             }
@@ -91,7 +90,7 @@ void CombinedFunctionMagnet_track_local_particle(
                         double const y = LocalParticle_get_y(part);
                         double dpx = -k1lslice * x;
                         double dpy =  k1lslice * y;
-                        if (model == 1){
+                        if (model == 10){
                             dpx += h * k1lslice * (-x * x + 0.5 * y * y);
                             dpy += h * k1lslice * x * y;
                         }
@@ -107,8 +106,11 @@ void CombinedFunctionMagnet_track_local_particle(
         #endif
     }
     else{
-    const double slice_length = length / (num_multipole_kicks);
-    const double kick_weight = 1. / num_multipole_kicks;
+
+            int64_t num_slices = num_multipole_kicks;
+
+            const double slice_length = length / (num_slices);
+            const double kick_weight = 1. / num_slices;
             const double d_yoshida[] =
                          {0x1.91abc4988937bp-2, 0x1.052468fb75c74p-1,
                          -0x1.e25bd194051b9p-2, 0x1.199cec1241558p-4 };
@@ -118,7 +120,7 @@ void CombinedFunctionMagnet_track_local_particle(
                          -0x1.2d7c6f7933b93p+0, 0x1.50b00cfb7be3ep+0 };
                         //  {1/7.0, 1/7.0, 1/7.0, 1/7.0}; // Uniform, for debugging
 
-            for (int ii = 0; ii < num_multipole_kicks; ii++) {
+            for (int ii = 0; ii < num_slices; ii++) {
                 //start_per_particle_block (part0->part)
                     track_thick_bend(part, slice_length * d_yoshida[0], k0, h);
                     track_multipolar_kick_bend(
@@ -151,29 +153,6 @@ void CombinedFunctionMagnet_track_local_particle(
                     track_thick_bend(part, slice_length * d_yoshida[0], k0, h);
                 //end_per_particle_block
             }
-
-            // track_thick_bend(part, slice_length, k0, h); // 4
-            // track_multipolar_kick_bend(
-            //     part, order, inv_factorial_order, knl, ksl, kick_weight, k1, h, length);
-            // track_thick_bend(part, slice_length, k0, h); // 3
-            // track_multipolar_kick_bend(
-            //     part, order, inv_factorial_order, knl, ksl, kick_weight, k1, h, length);
-            // track_thick_bend(part, slice_length, k0, h); // 2
-            // track_multipolar_kick_bend(
-            //     part, order, inv_factorial_order, knl, ksl, kick_weight, k1, h, length);
-            // track_thick_bend(part, slice_length, k0, h); // 1
-            // track_multipolar_kick_bend(                  // middle
-            //     part, order, inv_factorial_order, knl, ksl, kick_weight, k1, h, length);
-            // track_thick_bend(part, slice_length, k0, h); // 1
-            // track_multipolar_kick_bend(
-            //     part, order, inv_factorial_order, knl, ksl, kick_weight, k1, h, length);
-            // track_thick_bend(part, slice_length, k0, h); // 2
-            // track_multipolar_kick_bend(
-            //     part, order, inv_factorial_order, knl, ksl, kick_weight, k1, h, length);
-            // track_thick_bend(part, slice_length, k0, h); // 3
-            // track_multipolar_kick_bend(
-            //     part, order, inv_factorial_order, knl, ksl, kick_weight, k1, h, length);
-            // track_thick_bend(part, slice_length, k0, h); // 4
 
     }
 
