@@ -68,7 +68,7 @@ twmad_ch = mad.table.twchr
 mad.input('twiss, chrom=false, table=twnochr;')
 twmad_nc = mad.table.twnochr
 
-delta_chrom = 1e-5
+delta_chrom = 1e-4
 mad.input(f'''
   ptc_create_universe;
   !ptc_create_layout, time=false, model=2, exact=true, method=6, nst=10;
@@ -88,6 +88,11 @@ qx_ptc = mad.table.ptc_twiss.mu1[-1]
 qy_ptc = mad.table.ptc_twiss.mu2[-1]
 dq1_ptc = (mad.table.ptc_twiss_pdp.mu1[-1] - mad.table.ptc_twiss_mdp.mu1[-1]) / (2 * delta_chrom)
 dq2_ptc = (mad.table.ptc_twiss_pdp.mu2[-1] - mad.table.ptc_twiss_mdp.mu2[-1]) / (2 * delta_chrom)
+
+ddq1_ptc = (mad.table.ptc_twiss_pdp.mu1[-1] + mad.table.ptc_twiss_mdp.mu1[-1]
+            - 2 * mad.table.ptc_twiss.mu1[-1]) / delta_chrom**2
+ddq2_ptc = (mad.table.ptc_twiss_pdp.mu2[-1] + mad.table.ptc_twiss_mdp.mu2[-1]
+            - 2 * mad.table.ptc_twiss.mu2[-1]) / delta_chrom**2
 
 tptc = mad.table.ptc_twiss
 tptc_p = mad.table.ptc_twiss_pdp
@@ -126,6 +131,43 @@ ax_ptc = d_alfx - d_betx * alfx / betx
 ay_ptc = d_alfy - d_bety * alfy / bety
 wx_ptc = np.sqrt(ax_ptc**2 + bx_ptc**2)
 wy_ptc = np.sqrt(ay_ptc**2 + by_ptc**2)
+
+mad.input('''
+  ptc_create_universe;
+  ptc_create_layout, time=false, model=1, exact=true, method=6, nst=10;
+  ptc_twiss, closed_orbit, icase=56, no=2, deltap=0, table=ptc_twiss,
+              summary_table=ptc_twiss_summary, slice_magnets=true;
+''')
+delta_arr = np.linspace(-0.7e-3, 0.7e-3, 9)
+tw_arr_ptc = []
+for delta_chrom in delta_arr:
+    mad.input(f'''
+
+        select, flag=ptc_twiss, clear;
+        select, flag=ptc_twiss, column=name,keyword,s,l,x,px,y,py,beta11,beta22,disp1,k1l;
+
+        ptc_twiss, closed_orbit, icase=56, no=2, deltap={delta_chrom:e}, table=ptc_twiss_pdp,
+                summary_table=ptc_twiss_summary_pdp, slice_magnets=true;
+    ''')
+    tw_arr_ptc.append(mad.table.ptc_twiss_pdp.dframe())
+
+mad.input('''
+  ptc_end;
+''')
+
+# Same for xsuite
+tw_arr_xs = []
+for delta_chrom in delta_arr:
+    tw_arr_xs.append(line.twiss(method='4d', delta0=delta_chrom))
+
+qx_ptc = mad.table.ptc_twiss.mu1[-1]
+qy_ptc = mad.table.ptc_twiss.mu2[-1]
+
+qx_vs_delta_ptc = np.array([tt.mu1[-1] for tt in tw_arr_ptc])
+qy_vs_delta_ptc = np.array([tt.mu2[-1] for tt in tw_arr_ptc])
+
+qx_vs_delta_xs = np.array([tt.mux[-1] for tt in tw_arr_xs])
+qy_vs_delta_xs = np.array([tt.muy[-1] for tt in tw_arr_xs])
 
 print(f'qx xsuite:          {tw.qx}')
 print(f'qx ptc:             {qx_ptc}')
@@ -245,6 +287,24 @@ for ax in [ax1, ax2, ax3, ax4, ax21, ax22, ax23, ax24, ax31, ax32, ax41, ax42]:
     for nn in tcombined.name:
         ax.axvspan(tcombined['s', nn], tcombined['s', nn] + line[nn].length, color='g',
                     alpha=0.2, lw=0)
+
+
+plt.figure(2, figsize=(6.4*1.4, 4.8*1.4))
+ax1 = plt.subplot(211)
+plt.plot(delta_arr*1e3, qx_vs_delta_ptc - dq1_ptc * delta_arr - qx_ptc, label='ptc')
+plt.plot(delta_arr*1e3, qx_vs_delta_xs - tw.dqx * delta_arr - tw.qx, label='xsuite')
+plt.ylabel(r'$\Delta Q_x$')
+plt.legend()
+
+ax2 = plt.subplot(212, sharex=ax1)
+plt.plot(delta_arr*1e3, qy_vs_delta_ptc - dq2_ptc * delta_arr - qy_ptc)
+plt.plot(delta_arr*1e3, qy_vs_delta_xs - tw.dqy * delta_arr - tw.qy)
+plt.xlabel(r'$\delta$ [1e-3]')
+plt.ylabel(r'$\Delta Q_y$')
+
+plt.suptitle(f"PTC:    Qx = {qx_ptc:.4f}, Qy = {qy_ptc:.4f} Q'x={dq1_ptc:.4f}, Q'y={dq2_ptc:.4f}\n"
+             f"Xsuite: Qx = {tw.qx:.4f}, Qy = {tw.qy:.4f} Q'x={tw.dqx:.4f}, Q'y={tw.dqy:.4f}\n"
+             "Linear chromaticity removed from the plot")
 
 title = f'{machine.upper()}' + r' - $\beta_0$' + f' = {tw.beta0:.4f}'
 for fig in [fig_abx, fig_aby, fig_bet, fig_w, fig_co, fig_disp]:
