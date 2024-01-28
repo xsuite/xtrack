@@ -845,14 +845,18 @@ class CombinedFunctionMagnet(BeamElement):
         return {
             0: 'expanded',
             1: 'full',
+            2: 'bend-kick-bend',
+            3: 'drift-kick-drift',
         }[self._model]
 
     @model.setter
     def model(self, value):
-        assert value in ['expanded', 'full']
+        assert value in ['expanded', 'full', 'bend-kick-bend', 'drift-kick-drift']
         self._model = {
             'expanded': 0,
             'full': 1,
+            'bend-kick-bend': 2,
+            'drift-kick-drift': 3,
         }[value]
 
     @property

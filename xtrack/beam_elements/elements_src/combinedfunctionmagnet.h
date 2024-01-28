@@ -119,7 +119,7 @@ void CombinedFunctionMagnet_track_local_particle(
             //end_per_particle_block
         }
     }
-    else{
+    else if (model==1 || model==2 || model==3){
 
             int64_t num_slices;
             if (num_multipole_kicks < 8) {
@@ -140,12 +140,29 @@ void CombinedFunctionMagnet_track_local_particle(
                          -0x1.2d7c6f7933b93p+0, 0x1.50b00cfb7be3ep+0 };
                         //  {1/7.0, 1/7.0, 1/7.0, 1/7.0}; // Uniform, for debugging
 
-            // double const k0_kick = 0;
-            // double const k0_drift = k0;
-
-            //TEEEEEST
-            double const k0_kick = k0;
-            double const k0_drift = 0;
+            double k0_kick, k0_drift;
+            if (model==1){
+                if (h * slice_length > 1e-2){
+                    // Slice is long w.r.t. bending radius
+                    k0_kick = 0;
+                    k0_drift = k0;
+                }
+                else{
+                    // Slice is short w.r.t. bending radius
+                    k0_kick = k0;
+                    k0_drift = 0;
+                }
+            }
+            else if (model==2){
+                // Force bend-kick-bend
+                k0_kick = 0;
+                k0_drift = k0;
+            }
+            else if (model==3){
+                // Force drift-kick-driftxxw
+                k0_kick = k0;
+                k0_drift = 0;
+            }
 
             for (int ii = 0; ii < num_slices; ii++) {
                 //start_per_particle_block (part0->part)
