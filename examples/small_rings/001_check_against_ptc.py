@@ -138,7 +138,7 @@ mad.input('''
   ptc_twiss, closed_orbit, icase=56, no=2, deltap=0, table=ptc_twiss,
               summary_table=ptc_twiss_summary, slice_magnets=true;
 ''')
-delta_arr = np.linspace(-0.7e-3, 0.7e-3, 9)
+delta_arr = np.linspace(-0.7e-3, 0.7e-3, 5)
 tw_arr_ptc = []
 for delta_chrom in delta_arr:
     mad.input(f'''
