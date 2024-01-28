@@ -56,6 +56,7 @@ void track_thick_bend(
         delta_ell = ((one_plus_delta * s * h) / k) + (one_plus_delta / k) * D;
     }
     else if (fabs(h) > 1e-8 && fabs(k) < 1e-8){
+        // Based on SUBROUTINE Sprotr in PTC and curex_drift in MAD-NG
         // Polar drift
         double const rho = 1/h;
         const double ca = cos(h*s);
