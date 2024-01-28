@@ -845,7 +845,6 @@ class CombinedFunctionMagnet(BeamElement):
         return {
             0: 'expanded',
             1: 'full',
-            2: 'full no k1h correction'
         }[self._model]
 
     @model.setter
@@ -854,7 +853,6 @@ class CombinedFunctionMagnet(BeamElement):
         self._model = {
             'expanded': 0,
             'full': 1,
-            'full no k1h correction': 2
         }[value]
 
     @property

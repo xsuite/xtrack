@@ -71,39 +71,35 @@ void CombinedFunctionMagnet_track_local_particle(
     }
     else if (model==10){
 
-        #ifdef XSUITE_BACKTRACK
-                LocalParticle_kill_particle(part, -30);
-        #else
-            if (fabs(k1) > 0 && num_multipole_kicks == 0) {
-                num_multipole_kicks = 5; // default value
-            }
-            double const k1lslice = k1 * length / num_multipole_kicks;
+        if (fabs(k1) > 0 && num_multipole_kicks == 0) {
+            num_multipole_kicks = 5; // default value
+        }
+        double const k1lslice = k1 * length / num_multipole_kicks;
 
-            //start_per_particle_block (part0->part)
-                track_thick_bend(part, slice_length, k0, h);
-            //end_per_particle_block
+        //start_per_particle_block (part0->part)
+            track_thick_bend(part, slice_length, k0, h);
+        //end_per_particle_block
 
-            for (int ii = 0; ii < num_multipole_kicks; ii++) {
-                if ((fabs(h) > 0) && (fabs(k1) > 0)) {
-                    //start_per_particle_block (part0->part)
-                        double const x = LocalParticle_get_x(part);
-                        double const y = LocalParticle_get_y(part);
-                        double dpx = -k1lslice * x;
-                        double dpy =  k1lslice * y;
-                        if (model == 10){
-                            dpx += h * k1lslice * (-x * x + 0.5 * y * y);
-                            dpy += h * k1lslice * x * y;
-                        }
-                        LocalParticle_add_to_px(part, dpx);
-                        LocalParticle_add_to_py(part, dpy);
-                    //end_per_particle_block
-                }
+        for (int ii = 0; ii < num_multipole_kicks; ii++) {
+            if ((fabs(h) > 0) && (fabs(k1) > 0)) {
                 //start_per_particle_block (part0->part)
-                    multipolar_kick(part, order, inv_factorial_order, knl, ksl, kick_weight);
-                    track_thick_bend(part, slice_length, k0, h);
+                    double const x = LocalParticle_get_x(part);
+                    double const y = LocalParticle_get_y(part);
+                    double dpx = -k1lslice * x;
+                    double dpy =  k1lslice * y;
+                    if (model == 10){
+                        dpx += h * k1lslice * (-x * x + 0.5 * y * y);
+                        dpy += h * k1lslice * x * y;
+                    }
+                    LocalParticle_add_to_px(part, dpx);
+                    LocalParticle_add_to_py(part, dpy);
                 //end_per_particle_block
             }
-        #endif
+            //start_per_particle_block (part0->part)
+                multipolar_kick(part, order, inv_factorial_order, knl, ksl, kick_weight);
+                track_thick_bend(part, slice_length, k0, h);
+            //end_per_particle_block
+        }
     }
     else{
 
