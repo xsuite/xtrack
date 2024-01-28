@@ -48,9 +48,9 @@ ddq1_ptc = (mad.table.ptc_twiss_pdp.mu1[-1] + mad.table.ptc_twiss_mdp.mu1[-1]
 ddq2_ptc = (mad.table.ptc_twiss_pdp.mu2[-1] + mad.table.ptc_twiss_mdp.mu2[-1]
             - 2 * mad.table.ptc_twiss.mu2[-1]) / delta_chrom**2
 
-tptc = mad.table.ptc_twiss
-tptc_p = mad.table.ptc_twiss_pdp
-tptc_m = mad.table.ptc_twiss_mdp
+tptc = xt.Table(mad.table.ptc_twiss)
+tptc_p = xt.Table(mad.table.ptc_twiss_pdp)
+tptc_m = xt.Table(mad.table.ptc_twiss_mdp)
 
 fp = 1 + delta_chrom
 fm = 1 - delta_chrom
@@ -86,18 +86,6 @@ ay_ptc = d_alfy - d_bety * alfy / bety
 wx_ptc = np.sqrt(ax_ptc**2 + bx_ptc**2)
 wy_ptc = np.sqrt(ay_ptc**2 + by_ptc**2)
 
-print(f'qx xsuite:          {tw.qx}')
-print(f'qx ptc:             {qx_ptc}')
-print()
-print(f'qy xsuite:          {tw.qy}')
-print(f'qy ptc:             {qy_ptc}')
-print()
-print(f'dqx xsuite:         {tw.dqx}')
-print(f'dqx ptc:            {dq1_ptc}')
-print()
-print(f'dqy xsuite:         {tw.dqy}')
-print(f'dqy ptc:            {dq2_ptc}')
-
 assert np.isclose(tw.qx, qx_ptc, atol=1e-4, rtol=0)
 assert np.isclose(tw.qy, qy_ptc, atol=1e-4, rtol=0)
 
@@ -111,109 +99,26 @@ nlchr = line.get_non_linear_chromaticity(method='4d')
 assert np.isclose(nlchr['ddqx'], ddq1_ptc, atol=0, rtol=5e-3)
 assert np.isclose(nlchr['ddqy'], ddq2_ptc, atol=0, rtol=5e-3)
 
+assert np.isclose(nlchr['dqx'], dq1_ptc, atol=0, rtol=5e-3)
+assert np.isclose(nlchr['dqy'], dq2_ptc, atol=0, rtol=5e-3)
 
-import matplotlib.pyplot as plt
-plt.close('all')
-figsize = (6.4*1.3, 4.8*1.3)
+assert np.allclose(nlchr.dnqx[:3], [tw.qx, nlchr.dqx, nlchr.ddqx], atol=0, rtol=1e-6)
+assert np.allclose(nlchr.dnqy[:3], [tw.qy, nlchr.dqy, nlchr.ddqy], atol=0, rtol=1e-6)
 
-fig_abx = plt.figure(101, figsize=figsize)
+markers_ptc = tptc.rows[tptc.keyword == 'marker']
+markers_common_ptc = [nn for nn in markers_ptc.name if nn.split(':')[0] in tw.name]
+markers_common_xs = [nn.split(':')[0] for nn in markers_common_ptc]
+mask_ptc = tptc.mask[markers_common_ptc]
+mask_xs = tw.mask[markers_common_xs]
 
-ax1 = plt.subplot(2,1,1)
-plt.plot(tw.s, tw.ax_chrom, label='xsuite')
-plt.plot(tptc.s, ax_ptc, '--', label='ptc')
-plt.ylabel(r'$A_x$')
-plt.legend(loc='best')
+assert np.allclose(tw.ax_chrom[mask_xs], ax_ptc[mask_ptc], atol=1e-2, rtol=0)
+assert np.allclose(tw.bx_chrom[mask_xs], bx_ptc[mask_ptc], atol=1e-2, rtol=0)
+assert np.allclose(tw.ay_chrom[mask_xs], ay_ptc[mask_ptc], atol=1e-2, rtol=0)
+assert np.allclose(tw.by_chrom[mask_xs], by_ptc[mask_ptc], atol=1e-2, rtol=0)
+assert np.allclose(tw.wx_chrom[mask_xs], wx_ptc[mask_ptc], atol=1e-2, rtol=0)
+assert np.allclose(tw.wy_chrom[mask_xs], wy_ptc[mask_ptc], atol=1e-2, rtol=0)
 
-ax2 = plt.subplot(2,1,2, sharex=ax1)
-plt.plot(tw.s, tw.bx_chrom)
-plt.plot(tptc.s, bx_ptc, '--')
-plt.ylabel(r'$B_x$')
-
-fig_aby = plt.figure(111, figsize=figsize)
-ax3 = plt.subplot(2,1,1, sharex=ax1)
-plt.plot(tw.s, tw.ay_chrom)
-plt.plot(tptc.s, ay_ptc, '--')
-plt.ylabel(r'$A_y$')
-plt.xlabel('s [m]')
-
-ax4 = plt.subplot(2,1,2, sharex=ax1)
-plt.plot(tw.s, tw.by_chrom)
-plt.plot(tptc.s, by_ptc, '--')
-plt.ylabel(r'$B_y$')
-plt.xlabel('s [m]')
-
-# Same for beta and Wxy
-fig_bet = plt.figure(102, figsize=figsize)
-
-ax21 = plt.subplot(2,1,1, sharex=ax1)
-plt.plot(tw.s, tw.betx, label='xsuite')
-plt.plot(tptc.s, tptc.beta11, '--', label='ptc')
-# plt.plot(twmad_ch.s, twmad_ch.betx, 'r--', label='mad')
-plt.ylabel(r'$\beta_x$')
-plt.legend(loc='best')
-
-ax22 = plt.subplot(2,1,2, sharex=ax1)
-plt.plot(tw.s, tw.bety)
-plt.plot(tptc.s, tptc.beta22, '--')
-# plt.plot(twmad_ch.s, twmad_ch.bety, 'r--')
-plt.ylabel(r'$\beta_y$')
-plt.xlabel('s [m]')
-
-fig_w = plt.figure(112, figsize=figsize)
-ax23 = plt.subplot(2,1,1, sharex=ax1)
-plt.plot(tw.s, tw.wx_chrom)
-plt.plot(tptc.s, wx_ptc, '--')
-# plt.plot(twmad_ch.s, twmad_ch.wx * tw.beta0, 'r--')
-plt.ylabel(r'$W_x$')
-
-ax24 = plt.subplot(2,1,2, sharex=ax1)
-plt.plot(tw.s, tw.wy_chrom)
-plt.plot(tptc.s, wy_ptc, '--')
-# plt.plot(twmad_ch.s, twmad_ch.wy * tw.beta0, 'r--')
-plt.ylabel(r'$W_y$')
-plt.xlabel('s [m]')
-
-# Same for orbit
-fig_co = plt.figure(103, figsize=figsize)
-ax31 = plt.subplot(2,1,1, sharex=ax1)
-plt.plot(tw.s, tw.x * 1e3, label='xsuite')
-plt.plot(tptc.s, tptc.x * 1e3, '--', label='ptc')
-plt.ylabel('x [mm]')
-
-ax32 = plt.subplot(2,1,2, sharex=ax1)
-plt.plot(tw.s, tw.y * 1e3)
-plt.plot(tptc.s, tptc.y * 1e3, '--')
-plt.ylabel('y [mm]')
-plt.xlabel('s [m]')
-
-# Same for dispersion
-fig_disp = plt.figure(104, figsize=figsize)
-ax41 = plt.subplot(2,1,1, sharex=ax1)
-plt.plot(tw.s, tw.dx, label='xsuite')
-plt.plot(tptc.s, dx_ptc, '--', label='ptc')
-plt.ylabel(r'$D_x$ [m]')
-
-ax42 = plt.subplot(2,1,2, sharex=ax1)
-plt.plot(tw.s, tw.dy)
-plt.plot(tptc.s, dy_ptc, '--')
-plt.ylabel(r'$D_y$ [m]')
-plt.xlabel('s [m]')
-
-tt = line.get_table()
-tbends = tt.rows[tt.element_type == 'Bend']
-tquads = tt.rows[tt.element_type == 'Quadrupole']
-tcombined = tt.rows[tt.element_type == 'CombinedFunctionMagnet']
-for ax in [ax1, ax2, ax3, ax4, ax21, ax22, ax23, ax24, ax31, ax32, ax41, ax42]:
-    for nn in tbends.name:
-        ax.axvspan(tbends['s', nn], tbends['s', nn] + line[nn].length, color='b',
-                    alpha=0.2, lw=0)
-    for nn in tquads.name:
-        ax.axvspan(tquads['s', nn], tquads['s', nn] + line[nn].length, color='r',
-                    alpha=0.2, lw=0)
-    for nn in tcombined.name:
-        ax.axvspan(tcombined['s', nn], tcombined['s', nn] + line[nn].length, color='g',
-                    alpha=0.2, lw=0)
-
-
-
-plt.show()
+assert np.allclose(tw.betx[mask_xs], betx[mask_ptc], rtol=1e-4, atol=0)
+assert np.allclose(tw.bety[mask_xs], bety[mask_ptc], rtol=1e-4, atol=0)
+assert np.allclose(tw.dx[mask_xs], dx_ptc[mask_ptc], rtol=1e-4, atol=0)
+assert np.allclose(tw.dy[mask_xs], dy_ptc[mask_ptc], rtol=1e-4, atol=0)
