@@ -7,8 +7,10 @@
 #define XTRACK_THICKCOMBINEDFUNCTIONDIPOLE_H
 
 // model = 0: thick combined function dipole (expanded hamiltonian)
-// model = 1: thick combined function dipole (exact bend + quadrupole kicks + k1h correction)
-// model = 2: thick combined function dipole (exact bend + quadrupole kicks, no k1h correction)
+// model = 1: thick combined function dipole (exact bend + quadrupole kicks
+//                                            + k1h correction, yoshida integration)
+//
+
 
 /*gpufun*/
 void track_multipolar_kick_bend(
@@ -19,10 +21,16 @@ void track_multipolar_kick_bend(
 
     double const k1l = k1 * length * kick_weight;
 
+    // quadrupole kick
     double const x = LocalParticle_get_x(part);
     double const y = LocalParticle_get_y(part);
     double dpx = -k1l * x;
     double dpy =  k1l * y;
+
+    // k1h correction can be computed from this term in the hamiltonian
+    // H = 1/3 hk1 x^3 - 1/2 hk1 xy^2
+    // (see MAD 8 physics manual, eq. 5.15, and apply Hamilton's eq. dp/ds = -dH/dx)
+
     dpx += h * k1l * (-x * x + 0.5 * y * y);
     dpy += h * k1l * x * y;
     LocalParticle_add_to_px(part, dpx);
