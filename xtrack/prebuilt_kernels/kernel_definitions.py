@@ -54,7 +54,6 @@ NO_SYNRAD_ELEMENTS = [
     Bend,
     Quadrupole,
     Sextupole,
-    CombinedFunctionMagnet,
     Solenoid,
 ]
 

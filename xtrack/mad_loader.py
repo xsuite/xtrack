@@ -884,15 +884,8 @@ class MadLoader:
 
         # Convert bend core
         num_multipole_kicks = 0
-        if mad_el.k2:
-            num_multipole_kicks = DEFAULT_BEND_N_MULT_KICKS
-        if mad_el.k1:
-            cls = self.classes.CombinedFunctionMagnet
-            kwargs = dict(k1=mad_el.k1)
-        else:
-            # cls = self.classes.Bend
-            cls = self.classes.CombinedFunctionMagnet ##### EXPERIMENTAL!!!!
-            kwargs = {}
+        cls = self.classes.Bend
+        kwargs = {}
         bend_core = self.Builder(
             mad_el.name,
             cls,
