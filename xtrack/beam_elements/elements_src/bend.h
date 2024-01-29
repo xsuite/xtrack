@@ -87,7 +87,7 @@ void Bend_track_local_particle(
                 }
                 else{
                     double b_circum = 2 * 3.14159 / fabs(h);
-                    num_multipole_kicks = length / b_circum / 1e-4; // 0.1 mrad per kick (on average)
+                    num_multipole_kicks = fabs(length) / b_circum / 1e-4; // 0.1 mrad per kick (on average)
                 }
             }
 

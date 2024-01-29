@@ -530,6 +530,7 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
         alfx=1e-8, alfy=1e-8,
         dzeta=1e-4, dx=1e-4, dy=1e-4, dpx=1e-5, dpy=1e-5,
         nuzeta=1e-5, dx_zeta=2e-8, dy_zeta=2e-8,
+        nux=1e-8, nuy=1e-8,
     )
 
     rtols = dict(

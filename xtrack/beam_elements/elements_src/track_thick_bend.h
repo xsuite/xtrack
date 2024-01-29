@@ -70,7 +70,7 @@ void track_thick_bend(
         new_x  = (x + rho*(2*sa2*sa2 + sa*pxt))*_ptt;
         new_px = ca*px + sa*pz;
         new_y  = y + pst*py;
-        delta_ell = one_plus_delta * (new_x + rho) * sa / ca / pz
+        delta_ell = one_plus_delta * (x + rho) * sa / ca / pz
                     / (1 - px * sa / ca / pz);
 
     }
