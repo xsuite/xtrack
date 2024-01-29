@@ -28,12 +28,9 @@ def test_ps_against_ptc(test_context):
                                     q0=seq.beam.charge)
     line.build_tracker(_context=test_context)
 
-    tt = line.get_table()
-    line.configure_bend_model(core='full', edge='full', num_multipole_kicks=10)
-
-    assert isinstance(line['pr.bhr00.f'], xt.CombinedFunctionMagnet)
-    assert line['pr.bhr00.f'].model == 'full'
-    assert line['pr.bhr00.f'].num_multipole_kicks == 10
+    assert isinstance(line['pr.bhr00.f'], xt.Bend)
+    assert line['pr.bhr00.f'].model == 'adaptive'
+    assert line['pr.bhr00.f'].num_multipole_kicks == 0
 
     tw = line.twiss(method='4d')
 
