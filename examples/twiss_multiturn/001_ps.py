@@ -28,14 +28,13 @@ opt = line.match(
 )
 opt.solve()
 
-
 r0 = np.linspace(0, 100, 50)
 p = line.build_particles(
     x_norm=r0*np.cos(np.pi/20.),
     px_norm=r0*np.sin(np.pi/20.),
     nemitt_x=1e-6, nemitt_y=1e-6)
 
-line.track(p, num_turns=1000, turn_by_turn_monitor=True)
+line.track(p, num_turns=1000, turn_by_turn_monitor=True, with_progress=True)
 mon = line.record_last_track
 
 tw_mt = line.twiss(co_guess={'x': 0.025}, num_turns=4)

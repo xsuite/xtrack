@@ -891,6 +891,7 @@ class MadLoader:
             cls,
             k0=k0,
             h=h,
+            k1=mad_el.k1,
             length=l_curv,
             knl=[0, 0, mad_el.k2 * l_curv],
             num_multipole_kicks=num_multipole_kicks,
