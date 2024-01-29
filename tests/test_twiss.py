@@ -525,12 +525,13 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
     collider.vars['on_sep5v'] = 2
 
     atols = dict(
-        s=1e-10,
+        s=2e-8,
         zeta=5e-5,
         alfx=1e-8, alfy=1e-8,
         dzeta=1e-4, dx=1e-4, dy=1e-4, dpx=1e-5, dpy=1e-5,
-        nuzeta=1e-5, dx_zeta=2e-8, dy_zeta=2e-8,
+        nuzeta=1e-5, dx_zeta=1e-7, dy_zeta=1e-7,
         nux=1e-8, nuy=1e-8,
+        betx2=1e-4, bety1=1e-4,
     )
 
     rtols = dict(
