@@ -4,7 +4,7 @@ import numpy as np
 import xtrack as xt
 
 machine = 'psb'
-# machine = 'elena'
+machine = 'elena'
 # machine = 'leir'
 # machine = 'pimms'
 
@@ -66,7 +66,9 @@ line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
 #     ])
 
 tt = line.get_table()
-line.configure_bend_model(core='adaptive', edge='full', num_multipole_kicks=1)
+# line.configure_bend_model(core='adaptive', edge='full', num_multipole_kicks=1)
+line.configure_bend_model(core='bend-kick-bend', edge='full')
+line.configure_bend_model(core='adaptive', edge='full')
 
 tw = line.twiss(method='4d')
 
