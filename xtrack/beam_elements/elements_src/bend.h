@@ -113,7 +113,6 @@ void Bend_track_local_particle(
             // printf("slice_length = %e\n", slice_length);
             // printf("check = %d\n", check);
 
-
             double k0_kick = 0;
             double k0_drift = 0;
             if (model ==0 || model==1 || model==3){

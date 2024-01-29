@@ -27,6 +27,11 @@ void multipolar_kick(
     double dpx = knl[index] * inv_factorial;
     double dpy = ksl[index] * inv_factorial;
 
+    #ifdef XSUITE_BACKTRACK
+    dpx = -dpx;
+    dpy = -dpy;
+    #endif
+
     double const x   = LocalParticle_get_x(part);
     double const y   = LocalParticle_get_y(part);
     double const chi = LocalParticle_get_chi(part);
@@ -39,8 +44,16 @@ void multipolar_kick(
         inv_factorial *= index;
         index -= 1;
 
-        dpx = knl[index] * inv_factorial + zre;
-        dpy = ksl[index] * inv_factorial + zim;
+        double this_knl = knl[index];
+        double this_ksl = ksl[index];
+
+        #ifdef XSUITE_BACKTRACK
+        this_knl = -this_knl;
+        this_ksl = -this_ksl;
+        #endif
+
+        dpx = this_knl * inv_factorial + zre;
+        dpy = this_ksl * inv_factorial + zim;
     }
 
     dpx = -chi * dpx; // rad
