@@ -59,7 +59,7 @@ line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
 #     ])
 
 tt = line.get_table()
-line.configure_bend_model(core='bend-kick-bend', edge='full', num_multipole_kicks=30)
+line.configure_bend_model(core='drift-kick-drift', edge='full', num_multipole_kicks=30)
 
 tw = line.twiss(method='4d')
 
