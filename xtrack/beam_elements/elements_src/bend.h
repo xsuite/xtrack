@@ -91,7 +91,7 @@ void Bend_track_local_particle(
                 }
             }
 
-            if (num_multipole_kicks < 8) {
+            if (num_multipole_kicks <= N_KICKS_YOSHIDA) {
                 num_slices = 1;
             }
             else{
