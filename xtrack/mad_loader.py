@@ -890,7 +890,8 @@ class MadLoader:
             cls = self.classes.CombinedFunctionMagnet
             kwargs = dict(k1=mad_el.k1)
         else:
-            cls = self.classes.Bend
+            # cls = self.classes.Bend
+            cls = self.classes.CombinedFunctionMagnet ##### EXPERIMENTAL!!!!
             kwargs = {}
         bend_core = self.Builder(
             mad_el.name,

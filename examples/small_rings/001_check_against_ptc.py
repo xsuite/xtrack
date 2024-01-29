@@ -59,7 +59,7 @@ line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
 #     ])
 
 tt = line.get_table()
-line.configure_bend_model(core='drift-kick-drift', edge='full', num_multipole_kicks=30)
+line.configure_bend_model(core='adaptive', edge='full', num_multipole_kicks=10)
 
 tw = line.twiss(method='4d')
 
@@ -138,7 +138,7 @@ mad.input('''
   ptc_twiss, closed_orbit, icase=56, no=2, deltap=0, table=ptc_twiss,
               summary_table=ptc_twiss_summary, slice_magnets=true;
 ''')
-delta_arr = np.linspace(-0.7e-4, 0.7e-4, 9)
+delta_arr = np.linspace(-0.7e-4, 0.7e-4, 5)
 tw_arr_ptc = []
 for delta_chrom in delta_arr:
     mad.input(f'''

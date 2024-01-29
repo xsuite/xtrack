@@ -843,20 +843,23 @@ class CombinedFunctionMagnet(BeamElement):
     @property
     def model(self):
         return {
-            0: 'expanded',
-            1: 'full',
+            0: 'adaptive',
+            1: 'full', # same as adaptive (for backward compatibility)
             2: 'bend-kick-bend',
             3: 'drift-kick-drift',
+            4: 'expanded'
         }[self._model]
 
     @model.setter
     def model(self, value):
-        assert value in ['expanded', 'full', 'bend-kick-bend', 'drift-kick-drift']
+        assert value in ['adaptive', 'full', 'bend-kick-bend',
+                            'drift-kick-drift', 'expanded']
         self._model = {
-            'expanded': 0,
+            'adaptive': 0,
             'full': 1,
             'bend-kick-bend': 2,
             'drift-kick-drift': 3,
+            'expanded': 4
         }[value]
 
     @property

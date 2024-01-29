@@ -6,11 +6,11 @@
 #ifndef XTRACK_THICKCOMBINEDFUNCTIONDIPOLE_H
 #define XTRACK_THICKCOMBINEDFUNCTIONDIPOLE_H
 
-// model = 0: thick combined function dipole (expanded hamiltonian)
-// model = 1: thick combined function dipole (exact bend + quadrupole kicks
-//                                            + k1h correction, yoshida integration)
-//
-
+// model = 0: adaptive
+// model = 1: full (for backward compatibility)
+// model = 2: bend-kick-bend
+// model = 3: rot-kick-rot
+// model = 4: expanded
 
 /*gpufun*/
 void track_multipolar_kick_bend(
@@ -77,49 +77,8 @@ void CombinedFunctionMagnet_track_local_particle(
     const double slice_length = length / (num_multipole_kicks + 1);
     const double kick_weight = 1. / num_multipole_kicks;
 
-    if (model==0){
-        //start_per_particle_block (part0->part)
-            track_thick_cfd(part, slice_length, k0, k1, h);
 
-            for (int ii = 0; ii < num_multipole_kicks; ii++) {
-                multipolar_kick(part, order, inv_factorial_order, knl, ksl, kick_weight);
-                track_thick_cfd(part, slice_length, k0, k1, h);
-            }
-        //end_per_particle_block
-    }
-    else if (model==10){
-
-        if (fabs(k1) > 0 && num_multipole_kicks == 0) {
-            num_multipole_kicks = 5; // default value
-        }
-        double const k1lslice = k1 * length / num_multipole_kicks;
-
-        //start_per_particle_block (part0->part)
-            track_thick_bend(part, slice_length, k0, h);
-        //end_per_particle_block
-
-        for (int ii = 0; ii < num_multipole_kicks; ii++) {
-            if ((fabs(h) > 0) && (fabs(k1) > 0)) {
-                //start_per_particle_block (part0->part)
-                    double const x = LocalParticle_get_x(part);
-                    double const y = LocalParticle_get_y(part);
-                    double dpx = -k1lslice * x;
-                    double dpy =  k1lslice * y;
-                    if (model == 10){
-                        dpx += h * k1lslice * (-x * x + 0.5 * y * y);
-                        dpy += h * k1lslice * x * y;
-                    }
-                    LocalParticle_add_to_px(part, dpx);
-                    LocalParticle_add_to_py(part, dpy);
-                //end_per_particle_block
-            }
-            //start_per_particle_block (part0->part)
-                multipolar_kick(part, order, inv_factorial_order, knl, ksl, kick_weight);
-                track_thick_bend(part, slice_length, k0, h);
-            //end_per_particle_block
-        }
-    }
-    else if (model==1 || model==2 || model==3){
+    if (model==0 || model==1 || model==2 || model==3){
 
             int64_t num_slices;
             if (num_multipole_kicks < 8) {
@@ -141,9 +100,10 @@ void CombinedFunctionMagnet_track_local_particle(
                         //  {1/7.0, 1/7.0, 1/7.0, 1/7.0}; // Uniform, for debugging
 
             double k0_kick, k0_drift;
-            if (model==1){
-                if (h * slice_length > 1e-2){
+            if (model ==0 || model==1){
+                if (h / 6.28 * slice_length > 2e-2){
                     // Slice is long w.r.t. bending radius
+                    //(more than 2 % of bending circumference)
                     k0_kick = 0;
                     k0_drift = k0;
                 }
@@ -159,7 +119,7 @@ void CombinedFunctionMagnet_track_local_particle(
                 k0_drift = k0;
             }
             else if (model==3){
-                // Force drift-kick-driftxxw
+                // Force drift-kick-drift
                 k0_kick = k0;
                 k0_drift = 0;
             }
@@ -198,6 +158,16 @@ void CombinedFunctionMagnet_track_local_particle(
                 //end_per_particle_block
             }
 
+    }
+    if (model==4){
+        //start_per_particle_block (part0->part)
+            track_thick_cfd(part, slice_length, k0, k1, h);
+
+            for (int ii = 0; ii < num_multipole_kicks; ii++) {
+                multipolar_kick(part, order, inv_factorial_order, knl, ksl, kick_weight);
+                track_thick_cfd(part, slice_length, k0, k1, h);
+            }
+        //end_per_particle_block
     }
 
 }

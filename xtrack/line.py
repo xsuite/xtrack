@@ -2225,7 +2225,8 @@ class Line:
             or 'suppressed'.
         """
 
-        if core not in [None, 'expanded', 'full', 'bend-kick-bend', 'drift-kick-drift']:
+        if core not in [None, 'adaptive', 'full', 'bend-kick-bend',
+                              'drift-kick-drift', 'expanded']:
             raise ValueError(f'Unknown bend model {core}')
 
         if edge not in [None, 'linear', 'full', 'suppressed']:
