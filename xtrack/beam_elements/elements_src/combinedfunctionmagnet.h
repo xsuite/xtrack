@@ -101,7 +101,7 @@ void CombinedFunctionMagnet_track_local_particle(
 
             double k0_kick, k0_drift;
             if (model ==0 || model==1){
-                if (h / 6.28 * slice_length > 2e-2){
+                if (fabs(h) / 6.28 * slice_length > 2e-2){
                     // Slice is long w.r.t. bending radius
                     //(more than 2 % of bending circumference)
                     k0_kick = 0;

@@ -3,7 +3,7 @@ import numpy as np
 
 import xtrack as xt
 
-machine = 'ps'
+machine = 'psb'
 # machine = 'elena'
 # machine = 'leir'
 # machine = 'pimms'
@@ -25,6 +25,13 @@ elif machine == 'elena':
     mad.call(test_data_folder + 'elena/highenergy.beam')
     mad.use('elena')
     seq = mad.sequence.elena
+    def_expr = False
+elif machine == 'psb':
+    mad.call(test_data_folder + 'psb_chicane/psb.seq')
+    mad.call(test_data_folder + 'psb_chicane/psb_fb_lhc.str')
+    mad.input('beam, sequence=psb1, particle=proton, energy=1.098')
+    mad.use('psb1')
+    seq = mad.sequence.psb1
     def_expr = False
 elif machine == 'ps':
     mad.call(test_data_folder + 'ps_sftpro/ps.seq')
