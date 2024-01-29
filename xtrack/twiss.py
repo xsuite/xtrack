@@ -178,12 +178,12 @@ def twiss_line(line, particle_ref=None, method=None,
             - dx: horizontal dispersion (d x / d delta) in meters
             - dy: vertical dispersion (d y / d delta) in meters
             - dzeta: longitudinal dispersion (d zeta / d delta) in meters
-            - dpx: horizontal dispersion (d px / d delta)
-            - dpy: vertical dispersion (d y / d delta)
+            - dpx: higher order horizontal dispersion (d px / d delta)
+            - dpy: higher order vertical dispersion (d py / d delta)
             - dx_zeta: horizontal crab dispersion (d x / d zeta)
             - dy_zeta: vertical crab dispersion (d y / d zeta)
-            - dpx_zeta: horizontal crab dispersion (d px / d zeta)
-            - dpy_zeta: vertical crab dispersion (d py / d zeta)
+            - dpx_zeta: higher order horizontal crab dispersion (d px / d zeta)
+            - dpy_zeta: higher order vertical crab dispersion (d py / d zeta)
             - ax_chrom: chromatic function (d alfx / d delta - alfx / betx d betx / d delta)
             - ay_chrom: chromatic function (d alfy / d delta - alfy / bety d bety / d delta)
             - bx_chrom: chromatic function (d betx / d delta)
@@ -1039,11 +1039,17 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
     muy = np.unwrap(temp_phiy) / 2  /np.pi
     muzeta = np.unwrap(phizeta) / 2 / np.pi
 
+    # Crab dispersion
     dx_zeta = (Ws[:, 0, 4] - Ws[:, 0, 5] * Ws[:, 5, 4] / Ws[:, 5, 5]) / (
                Ws[:, 4, 4] - Ws[:, 4, 5] * Ws[:, 5, 4] / Ws[:, 5, 5])
     dy_zeta = (Ws[:, 2, 4] - Ws[:, 2, 5] * Ws[:, 5, 4] / Ws[:, 5, 5]) / (
                 Ws[:, 4, 4] - Ws[:, 4, 5] * Ws[:, 5, 4] / Ws[:, 5, 5])
+    dpx_zeta = (Ws[:, 1, 4] - Ws[:, 1, 5] * Ws[:, 5, 4] / Ws[:, 5, 5]) / (
+                Ws[:, 4, 4] - Ws[:, 4, 5] * Ws[:, 5, 4] / Ws[:, 5, 5])
+    dpy_zeta = (Ws[:, 3, 4] - Ws[:, 3, 5] * Ws[:, 5, 4] / Ws[:, 5, 5]) / (
+                Ws[:, 4, 4] - Ws[:, 4, 5] * Ws[:, 5, 4] / Ws[:, 5, 5])
 
+    # Dispersion
     dx_pzeta = (Ws[:, 0, 5] - Ws[:, 0, 4] * Ws[:, 4, 5] / Ws[:, 4, 4]) / (
                 Ws[:, 5, 5] - Ws[:, 5, 4] * Ws[:, 4, 5] / Ws[:, 4, 4])
     dpx_pzeta = (Ws[:, 1, 5] - Ws[:, 1, 4] * Ws[:, 4, 5] / Ws[:, 4, 4]) / (
@@ -1069,7 +1075,9 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
         'dy': dy_pzeta,
         'dpy': dpy_pzeta,
         'dx_zeta': dx_zeta,
+        'dpx_zeta': dpx_zeta,
         'dy_zeta': dy_zeta,
+        'dpy_zeta': dpy_zeta,
         'betx1': betx1,
         'bety1': bety1,
         'betx2': betx2,
