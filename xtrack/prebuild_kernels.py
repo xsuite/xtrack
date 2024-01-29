@@ -28,9 +28,6 @@ BEAM_ELEMENTS_INIT_DEFAULTS = {
     'Quadrupole': {
         'length': 1.,
     },
-    'CombinedFunctionMagnet': {
-        'length': 1.,
-    },
     'Solenoid': {
         'length': 1.,
     },
