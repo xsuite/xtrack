@@ -107,7 +107,7 @@ for ii, (mon, element_mon, label) in enumerate(
     spz.axhline(
         tw_rad2.eq_beam_covariance_matrix['sigma_zeta', element_mon],
         color='green')
-    spz.axhline(np.sqrt(ez * tw_rad.betz0), color='red')
+    spz.axhline(np.sqrt(ez * tw_rad.bets0), color='red')
     spz.set_ylabel(r'$\sigma_{z}$ [m]')
     spz.set_ylim(bottom=0)
 

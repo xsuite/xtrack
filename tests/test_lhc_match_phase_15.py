@@ -144,11 +144,11 @@ def test_lhc_match_phase_15(test_context, config):
         dpx_ip8 = collider.varval[f'dpxip8{bn}']
 
         tw_sq_a81_ip1_a12 = lm.propagate_optics_from_beta_star(collider, ip_name='ip1',
-                line_name=f'lhc{bn}', ele_start=f's.ds.r8.{bn}', ele_stop=f'e.ds.l2.{bn}',
+                line_name=f'lhc{bn}', start=f's.ds.r8.{bn}', end=f'e.ds.l2.{bn}',
                 beta_star_x=betx_ip1, beta_star_y=bety_ip1)
 
         tw_sq_a45_ip5_a56 = lm.propagate_optics_from_beta_star(collider, ip_name='ip5',
-                line_name=f'lhc{bn}', ele_start=f's.ds.r4.{bn}', ele_stop=f'e.ds.l6.{bn}',
+                line_name=f'lhc{bn}', start=f's.ds.r4.{bn}', end=f'e.ds.l6.{bn}',
                 beta_star_x=betx_ip5, beta_star_y=bety_ip5)
 
         (mux_ir2_target, muy_ir2_target, mux_ir4_target, muy_ir4_target,
@@ -243,7 +243,7 @@ def test_lhc_match_phase_15(test_context, config):
     optimizers['orbit_knobs'] = opt
 
     # Generate madx optics file
-    lm.gen_madx_optics_file_auto(collider, 'opt_round_150_1500_xs.madx')
+    lm.gen_madx_optics_file_auto(collider, f'opt_round_150_1500_xs_{config}.madx')
 
     tw = collider.twiss()
 
@@ -525,7 +525,7 @@ def test_lhc_match_phase_15(test_context, config):
     mad.use('lhcb1')
     mad.input('beam, sequence=lhcb2, particle=proton, energy=7000, bv=-1;')
     mad.use('lhcb2')
-    mad.call("opt_round_150_1500_xs.madx")
+    mad.call(f"opt_round_150_1500_xs_{config}.madx")
 
     mad.input('twiss, sequence=lhcb1, table=twb1')
     mad.input('twiss, sequence=lhcb2, table=twb2')

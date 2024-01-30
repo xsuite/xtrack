@@ -8,7 +8,6 @@ from scipy.constants import e as qe
 from scipy.constants import c as clight
 from scipy.constants import epsilon_0
 
-import xpart as xp
 import xtrack as xt
 import xobjects as xo
 
@@ -27,13 +26,13 @@ for factor in [0.2, 0.5, 1, 2, 5, 10, 20, 100]:
     dipole_rnd = xt.Multipole(knl=[theta_bend], length=L_bend, hxl=theta_bend,
                               radiation_flag=2, _context=context)
 
-    particles_ave = xp.Particles(
+    particles_ave = xt.Particles(
             _context=context,
             p0c=5e9, # 5 GeV
             x=np.zeros(1000000),
             px=1e-4,
             py=-1e-4,
-            mass0=xp.ELECTRON_MASS_EV)
+            mass0=xt.ELECTRON_MASS_EV)
     particles_rnd = particles_ave.copy()
 
     dct_ave_before = particles_ave.to_dict()

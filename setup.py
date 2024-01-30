@@ -41,12 +41,13 @@ setup(
     include_package_data=True,
     install_requires=[
         'numpy>=1.0',
+        "pandas>=2.0",
         'scipy',
         'xobjects',
         'xpart',
         'xdeps'
         ],
     extras_require={
-        'tests': ['cpymad', 'PyHEADTAIL', 'pytest', 'pytest-mock'],
+        'tests': ['cpymad', 'NAFFlib', 'PyHEADTAIL', 'pytest', 'pytest-mock'],
         },
     )

@@ -26,7 +26,7 @@ mad.sequence.sps.elements['actcse.31632'].lag = 0.5
 
 line = xt.Line.from_madx_sequence(mad.sequence.sps, allow_thick=True,
                                   deferred_expressions=True)
-line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV,
+line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV,
                                     q0=1, gamma0=mad.sequence.sps.beam.gamma)
 
 # # Optionally thin

@@ -3,42 +3,30 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-import json
-import numpy as np
-
-import xobjects as xo
 import xtrack as xt
-import xpart as xp
 
-#####################################
-# Load a line and build the tracker #
-#####################################
-
-fname_line_particles = '../../test_data/hllhc15_noerrors_nobb/line_and_particle.json'
-#fname_line_particles = '../../test_data/sps_w_spacecharge/line_no_spacecharge_and_particle.json' #!skip-doc
-
-with open(fname_line_particles, 'r') as fid:
-    input_data = json.load(fid)
-line = xt.Line.from_dict(input_data['line'])
-line.particle_ref = xp.Particles.from_dict(input_data['particle'])
-
+# Load a line and build tracker
+line = xt.Line.from_json(
+    '../../test_data/hllhc15_noerrors_nobb/line_and_particle.json')
+line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, energy0=7e12)
 line.build_tracker()
 
 # We consider a case in which all RF cavities are off
-for ee in line.elements:
-    if isinstance(ee, xt.Cavity):
-        ee.voltage = 0
+tab = line.get_table()
+tab_cav = tab.rows[tab.element_type == 'Cavity']
+for nn in tab_cav.name:
+    line[nn].voltage = 0
 
-##################
-# Twiss(4d mode) #
-##################
-
-# For this configuration, `line.twiss()` gives an exception because the
+# For this configuration, `line.twiss()` gives an error because the
 # longitudinal motion is not stable.
 # In this case, the '4d' method of `line.twiss()` can be used to compute the
 # twiss parameters.
 
 tw = line.twiss(method='4d')
+
+#!end-doc-part
+
+import numpy as np
 
 ###########################################
 # Match a particle distribution (4d mode) #
@@ -83,3 +71,5 @@ fig1.suptitle(
 
 fig1.subplots_adjust(left=.15, right=.92, hspace=.27)
 plt.show()
+
+#!end-doc-part

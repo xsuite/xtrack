@@ -7,7 +7,6 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
-import xpart as xp
 
 import ducktrack as dtk
 
@@ -28,7 +27,7 @@ dtk_particles = dtk.TestParticles(
         y=np.random.uniform(-part_gen_range, part_gen_range, n_part),
         py = np.zeros(n_part))
 
-particles = xp.Particles.from_dict(_context=context, dct=dtk_particles.to_dict())
+particles = xt.Particles.from_dict(_context=context, dct=dtk_particles.to_dict())
 
 aper_test = dtk.LimitRect(min_x=x_aper_min,
                                           max_x=x_aper_max,

@@ -6,7 +6,6 @@
 import numpy as np
 
 import xtrack as xt
-import xpart as xp
 import xobjects as xo
 
 context = xo.ContextCpu()
@@ -14,7 +13,7 @@ context = xo.ContextCpu()
 part_gen_range = 0.11
 n_part=100000
 
-particles = xp.Particles(_context=context,
+particles = xt.Particles(_context=context,
         p0c=6500e9,
         x=np.random.uniform(-part_gen_range, part_gen_range, n_part),
         y=np.random.uniform(-part_gen_range, part_gen_range, n_part))
@@ -53,7 +52,7 @@ xy_in = np.array([
 
 xy_all = np.concatenate([xy_out, xy_in], axis=0)
 
-particles = xp.Particles(_context=context,
+particles = xt.Particles(_context=context,
         p0c=6500e9,
         x=xy_all[:, 0],
         y=xy_all[:, 1])

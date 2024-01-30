@@ -2,21 +2,19 @@ import numpy as np
 
 from cpymad.madx import Madx
 import xtrack as xt
-import xpart as xp
 import xdeps as xd
 
-mad = Madx()
-mad.call('../../test_data/hllhc15_noerrors_nobb/sequence.madx')
-mad.use(sequence="lhcb1")
-
-line = xt.Line.from_madx_sequence(mad.sequence['lhcb1'], deferred_expressions=True)
-line.cycle('ip1', inplace=True)
-line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1,
-                                 gamma0=mad.sequence.lhcb1.beam.gamma)
+# Load a line and build a tracker
+line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
+line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, p0c=7e12)
 line.build_tracker()
-tw = line.twiss()
+
+# Cycle the line to the middle of the bump
+line.cycle('ip1', inplace=True)
+line.build_tracker()
 
 line.vars['on_x1'] = 0
+tw = line.twiss(method='4d')
 
 # Define the function
 line.functions['f_on_sep1'] = xd.FunctionPieceWiseLinear(

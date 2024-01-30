@@ -37,10 +37,10 @@ for i_case, (configuration, longitudinal_mode) in enumerate(
     if machine == 'sps':
         if configuration == 'above transition':
             line[cavity_name].lag = 180.
-            line.particle_ref = xp.Particles(p0c=450e9, q0=1.0)
+            line.particle_ref = xt.Particles(p0c=450e9, q0=1.0)
         else:
             line[cavity_name].lag = 0.
-            line.particle_ref = xp.Particles(p0c=16e9, q0=1.0)
+            line.particle_ref = xt.Particles(p0c=16e9, q0=1.0)
 
     # Build corresponding matrix
     tw = line.twiss()
@@ -126,13 +126,13 @@ for i_case, (configuration, longitudinal_mode) in enumerate(
     tw_matrix = line_matrix.twiss()
 
     if configuration == 'above transition':
-        assert tw_line.betz0 > 0
-        assert tw_matrix.betz0 > 0
+        assert tw_line.bets0 > 0
+        assert tw_matrix.bets0 > 0
         assert tw_line.slip_factor > 0
         assert tw_matrix.slip_factor > 0
     elif configuration == 'below transition':
-        assert tw_line.betz0 < 0
-        assert tw_matrix.betz0 < 0
+        assert tw_line.bets0 < 0
+        assert tw_matrix.bets0 < 0
         assert tw_line.slip_factor < 0
         assert tw_matrix.slip_factor < 0
     else:
@@ -156,7 +156,7 @@ for i_case, (configuration, longitudinal_mode) in enumerate(
 
     assert tw_matrix.s[0] == 0
     assert np.isclose(tw_matrix.s[-1], tw_line.circumference, rtol=0, atol=1e-6)
-    assert np.allclose(tw_matrix.betz0, tw_line.betz0, rtol=1e-2, atol=0)
+    assert np.allclose(tw_matrix.bets0, tw_line.bets0, rtol=1e-2, atol=0)
 
     assert np.allclose(np.squeeze(mon.zeta), np.squeeze(mon_matrix.zeta),
                        rtol=0, atol=2e-2*np.max(np.squeeze(mon.zeta)))

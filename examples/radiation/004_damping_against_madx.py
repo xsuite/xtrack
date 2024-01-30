@@ -9,7 +9,6 @@ import numpy as np
 from cpymad.madx import Madx
 
 import xtrack as xt
-import xpart as xp
 import xobjects as xo
 
 # Import thick sequence
@@ -19,7 +18,7 @@ mad = Madx()
 mad.call('../../test_data/clic_dr/sequence.madx')
 
 # # ELETTRA
-# np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode3'][0]*tw['betz0'])# ELETTRA
+# np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode3'][0]*tw['bets0'])# ELETTRA
 # mad.globals.update({'ON_SEXT': 1, 'ON_OCT': 1, 'ON_RF': 1, 'NRJ_GeV': 2.4,
 #                    'SAVE_FIGS': False, 'SAVE_TWISS': False})
 # mad.call("../../../elettra/elettra2_v15_VADER_2.3T.madx")
@@ -49,8 +48,8 @@ mad.twiss()
 # Build xtrack line
 print('Build xtrack line...')
 line = xt.Line.from_madx_sequence(mad.sequence['RING'])
-line.particle_ref = xp.Particles(
-        mass0=xp.ELECTRON_MASS_EV,
+line.particle_ref = xt.Particles(
+        mass0=xt.ELECTRON_MASS_EV,
         q0=-1,
         gamma0=mad.sequence.ring.beam.gamma)
 
@@ -148,7 +147,7 @@ print(f'Track time: {(t2-t1)/num_turns:.2e} s/turn')
 mon = line.record_last_track
 
 assert np.isclose(np.std(mon.zeta[:, 750:]),
-    np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode3'][0]*tw['betz0']),
+    np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode3'][0]*tw['bets0']),
     rtol=0.2, atol=0
     )
 
