@@ -45,7 +45,6 @@ def test_constructor(test_context):
                    sampling_frequency=1e3),
         xt.Bend(_context=test_context, length=1.),
         xt.Quadrupole(_context=test_context, length=1.),
-        xt.CombinedFunctionMagnet(_context=test_context, length=1.),
     ]
 
     # test to_dict / from_dict
