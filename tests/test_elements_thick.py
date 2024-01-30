@@ -15,19 +15,23 @@ from xtrack.slicing import Strategy, Uniform
 
 
 @pytest.mark.parametrize(
-    'k0, k1, length', 'k2',
+    'k0, k1, length, k2, use_multipole',
     [
-        (-0.1, 0, 0.9, 0.3),
-        (0, 0, 0.9, 0.3),
-        (-0.1, 0.012, 0.9, 0.3),
-        (0, 0.012, 0.8, 0.3),
-        (0.15, -0.023, 0.9, 0.3),
-        (0, 0.013, 1.7, 0.3),
+        (-0.1, 0, 0.9, 0, False),
+        (0, 0, 0.9, 0, False),
+        (-0.1, 0.012, 0.9, 0, False),
+        (0, 0.012, 0.8, 0, False),
+        (0.15, -0.023, 0.9, 0, False),
+        (0, 0.013, 1.7, 0, False),
+        (0, 0, 0.9, 0.1, False),
+        (-0.1, 0.003, 0.9, 0.02, False),
+        (-0.1, 0.003, 0.9, 0.02, True),
     ]
 )
 @pytest.mark.parametrize('model', ['adaptive', 'full', 'bend-kick-bend', 'rot-kick-rot'])
 @for_all_test_contexts
-def test_combined_function_dipole_against_ptc(test_context, k0, k1, length, model):
+def test_combined_function_dipole_against_ptc(test_context, k0, k1, k2, length,
+                                              use_multipole,  model):
 
     p0 = xp.Particles(
         mass0=xp.PROTON_MASS_EV,
@@ -51,8 +55,15 @@ def test_combined_function_dipole_against_ptc(test_context, k0, k1, length, mode
 
     ml = MadLoader(mad.sequence.ss, allow_thick=True)
     line_thick = ml.make_line()
+    line_thick.config.XTRACK_USE_EXACT_DRIFTS = True # to be consistent with mad
     line_thick.build_tracker(_context=test_context)
     line_thick.configure_bend_model(core=model, edge='full')
+
+    if use_multipole:
+        line_thick['b'].knl[1] = k1 * length
+        line_thick['b'].knl[2] = k2 * length
+        line_thick['b'].k1 = 0
+        line_thick['b'].k2 = 0
 
     for ii in range(len(p0.x)):
         mad.input(f"""
@@ -77,15 +88,15 @@ def test_combined_function_dipole_against_ptc(test_context, k0, k1, length, mode
 
         xt_tau = part.zeta/part.beta0
         assert np.allclose(part.x[ii], mad_results.x, rtol=0,
-                           atol=(1e-11 if k1 == 0 else 5e-9))
+                           atol=(1e-11 if k1 == 0 and k2 == 0 else 5e-9))
         assert np.allclose(part.px[ii], mad_results.px, rtol=0,
-                           atol=(1e-11 if k1 == 0 else 5e-9))
+                           atol=(1e-11 if k1 == 0 and k2 == 0 else 5e-9))
         assert np.allclose(part.y[ii], mad_results.y, rtol=0,
-                           atol=(1e-11 if k1 == 0 else 5e-9))
+                           atol=(1e-11 if k1 == 0 and k2 == 0 else 5e-9))
         assert np.allclose(part.py[ii], mad_results.py, rtol=0,
-                           atol=(1e-11 if k1 == 0 else 5e-9))
+                           atol=(1e-11 if k1 == 0 and k2 == 0 else 5e-9))
         assert np.allclose(xt_tau[ii], mad_results.t, rtol=0,
-                           atol=(1e-10 if k1 == 0 else 5e-9))
+                           atol=(1e-10 if k1 == 0 and k2 == 0 else 5e-9))
         assert np.allclose(part.ptau[ii], mad_results.pt, atol=1e-11, rtol=0)
 
         line_core_only = xt.Line(elements=[line_thick['b']])
