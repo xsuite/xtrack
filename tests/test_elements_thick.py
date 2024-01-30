@@ -15,14 +15,14 @@ from xtrack.slicing import Strategy, Uniform
 
 
 @pytest.mark.parametrize(
-    'k0, k1, length',
+    'k0, k1, length', 'k2',
     [
-        (-0.1, 0, 0.9),
-        (0, 0, 0.9),
-        (-0.1, 0.012, 0.9),
-        (0, 0.012, 0.8),
-        (0.15, -0.023, 0.9),
-        (0, 0.013, 1.7),
+        (-0.1, 0, 0.9, 0.3),
+        (0, 0, 0.9, 0.3),
+        (-0.1, 0.012, 0.9, 0.3),
+        (0, 0.012, 0.8, 0.3),
+        (0.15, -0.023, 0.9, 0.3),
+        (0, 0.013, 1.7, 0.3),
     ]
 )
 @pytest.mark.parametrize('model', ['adaptive', 'full', 'bend-kick-bend', 'rot-kick-rot'])
@@ -43,7 +43,7 @@ def test_combined_function_dipole_against_ptc(test_context, k0, k1, length, mode
     mad = Madx()
     mad.input(f"""
     ss: sequence, l={length};
-        b: sbend, at={length / 2}, angle={k0 * length}, k1={k1}, l={length};
+        b: sbend, at={length / 2}, angle={k0 * length}, k1={k1}, k2={k2}, l={length};
     endsequence;
     beam;
     use, sequence=ss;
