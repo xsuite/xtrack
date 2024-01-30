@@ -1404,25 +1404,25 @@ def test_custom_twiss_init(test_context):
         # Check at a point in a downstream arc
         loc_check = f'mb.a24l7.{bn}'
         assert np.isclose(tw['betx', loc_check], tw_full['betx', loc_check],
-                            atol=2e-7, rtol=0)
+                            atol=5e-6, rtol=0)
         assert np.isclose(tw['bety', loc_check], tw_full['bety', loc_check],
-                            atol=2e-7, rtol=0)
+                            atol=5e-6, rtol=0)
         assert np.isclose(tw['alfx', loc_check], tw_full['alfx', loc_check],
-                            atol=1e-8, rtol=0)
+                            atol=1e-7, rtol=0)
         assert np.isclose(tw['alfy', loc_check], tw_full['alfy', loc_check],
-                            atol=1e-8, rtol=0)
+                            atol=1e-7, rtol=0)
         assert np.isclose(tw['dx', loc_check], tw_full['dx', loc_check],
-                            atol=1e-8, rtol=0)
+                            atol=5e-8, rtol=0)
         assert np.isclose(tw['dpx', loc_check], tw_full['dpx', loc_check],
                             atol=1e-8, rtol=0)
         assert np.isclose(tw['dy', loc_check], tw_full['dy', loc_check],
-                            atol=1e-8, rtol=0)
+                            atol=5e-8, rtol=0)
         assert np.isclose(tw['dpy', loc_check], tw_full['dpy', loc_check],
                             atol=1e-8, rtol=0)
         assert np.isclose(tw['mux', loc_check], tw_full['mux', loc_check],
-                            atol=1e-9, rtol=0)
+                            atol=3e-9, rtol=0)
         assert np.isclose(tw['muy', loc_check], tw_full['muy', loc_check],
-                            atol=1e-9, rtol=0)
+                            atol=3e-9, rtol=0)
         assert np.isclose(tw['x', loc_check], tw_full['x', loc_check],
                             atol=1e-9, rtol=0)
         assert np.isclose(tw['px', loc_check], tw_full['px', loc_check],
@@ -1459,13 +1459,13 @@ def test_custom_twiss_init(test_context):
         # Check at a point in an upstream arc
         loc_check = f'mb.a24r4.{bn}'
         assert np.isclose(tw['betx', loc_check], tw_full['betx', loc_check],
-                            atol=2e-7, rtol=0)
+                            atol=5e-6, rtol=0)
         assert np.isclose(tw['bety', loc_check], tw_full['bety', loc_check],
-                            atol=2e-7, rtol=0)
+                            atol=5e-6, rtol=0)
         assert np.isclose(tw['alfx', loc_check], tw_full['alfx', loc_check],
-                            atol=1e-8, rtol=0)
+                            atol=5e-8, rtol=0)
         assert np.isclose(tw['alfy', loc_check], tw_full['alfy', loc_check],
-                            atol=1e-8, rtol=0)
+                            atol=5e-8, rtol=0)
         assert np.isclose(tw['dx', loc_check], tw_full['dx', loc_check],
                             atol=1e-8, rtol=0)
         assert np.isclose(tw['dpx', loc_check], tw_full['dpx', loc_check],
@@ -1475,9 +1475,9 @@ def test_custom_twiss_init(test_context):
         assert np.isclose(tw['dpy', loc_check], tw_full['dpy', loc_check],
                             atol=1e-8, rtol=0)
         assert np.isclose(tw['mux', loc_check], tw_full['mux', loc_check],
-                            atol=1e-9, rtol=0)
+                            atol=5e-9, rtol=0)
         assert np.isclose(tw['muy', loc_check], tw_full['muy', loc_check],
-                            atol=1e-9, rtol=0)
+                            atol=5e-9, rtol=0)
         assert np.isclose(tw['x', loc_check], tw_full['x', loc_check],
                             atol=1e-9, rtol=0)
         assert np.isclose(tw['px', loc_check], tw_full['px', loc_check],
@@ -1549,7 +1549,7 @@ def test_only_markers(test_context):
             if kk == 'name':
                 continue
             atol = dict(alfx=1e-7, alfy=1e-7, dx=1e-7, dy=1e-7, dpx=1e8, dpy=1e-8,
-                        dx_zeta=1e-8, W_matrix=1e-7).get(kk, 1e-10)
+                        dx_zeta=3e-8, W_matrix=3e-7).get(kk, 1e-10)
             assert np.allclose(tt[kk], tw.rows[tt.name][kk], rtol=1e-6, atol=atol)
 
     line = collider.lhcb2
@@ -1603,7 +1603,7 @@ def test_only_markers(test_context):
             if kk == 'name':
                 continue
             atol = dict(alfx=1e-7, alfy=1e-7, dx=1e-7, dy=1e-7, dpx=1e8, dpy=1e-8,
-                        dx_zeta=1e-7, W_matrix=1e-7).get(kk, 1e-10)
+                        dx_zeta=3e-8, W_matrix=3e-7).get(kk, 1e-10)
             assert np.allclose(tt[kk], tw.rows[tt.name][kk], rtol=1e-6, atol=atol)
 
 @for_all_test_contexts

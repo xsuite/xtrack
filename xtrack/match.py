@@ -9,7 +9,7 @@ from .general import _print
 import xtrack as xt
 import xdeps as xd
 
-XTRACK_DEFAULT_TOL = 1e-10
+XTRACK_DEFAULT_TOL = 1e-9
 XTRACK_DEFAULT_SIGMA_REL = 0.01
 
 XTRACK_DEFAULT_WEIGHTS = {

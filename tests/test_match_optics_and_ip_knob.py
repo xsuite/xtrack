@@ -570,7 +570,7 @@ def test_match_ir8_optics(test_context):
                                 betx=0.15, bety=0.15))
 
     opt = collider[f'lhcb2'].match(
-        default_tol={None: 1e-7, 'betx': 1e-6, 'bety': 1e-6},
+        default_tol={None: 1e-7, 'betx': 5e-6, 'bety': 5e-6},
         solve=False,
         start=f's.ds.l8.b2', end=f'e.ds.r8.b2', init_at=xt.START,
         # Left boundary

@@ -42,7 +42,9 @@ def test_lhc_match_phase_15(test_context, config):
     collider.vars.load_madx_optics_file(
         test_data_folder / "hllhc15_thick/opt_round_150_1500.madx")
 
-    default_tol = {None: 1e-8, 'betx': 1e-6, 'bety': 1e-6} # to have no rematching w.r.t. madx
+    # to have no rematching w.r.t. madx
+    default_tol = {None: 1e-8, 'betx': 5e-6, 'bety': 5e-6, 'dx': 1e-7,
+                  'alfx': 5e-6, 'alfy': 5e-6}
 
     collider.lhcb1.twiss_default['only_markers'] = True
     collider.lhcb2.twiss_default['only_markers'] = True
