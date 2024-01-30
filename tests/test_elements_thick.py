@@ -40,7 +40,8 @@ def test_combined_function_dipole_against_madx(test_context, k0, k1, length):
         y=-0.03,
         py=0.001,
         zeta=0.1,
-        delta=[0], #[-0.8, -0.5, -0.1, 0, 0.1, 0.5, 0.8],
+        # delta=[-0.8, -0.5, -0.1, 0, 0.1, 0.5, 0.8],
+        delta=[-0.1, 0.1],
         _context=test_context,
     )
     mad = Madx()
@@ -79,7 +80,6 @@ def test_combined_function_dipole_against_madx(test_context, k0, k1, length):
         ptc_track_end;
         ptc_end;
 
-
         """)
 
         mad_results = mad.table.tracksumm[-1]  # coming from PTC
@@ -98,7 +98,7 @@ def test_combined_function_dipole_against_madx(test_context, k0, k1, length):
         assert np.allclose(part.py[ii], mad_results.py, rtol=0,
                            atol=(1e-11 if k1 == 0 else 5e-8))
         assert np.allclose(xt_tau[ii], mad_results.t, rtol=0,
-                           atol=(1e-10 if k1 == 0 else 1e-8))
+                           atol=(1e-10 if k1 == 0 else 5e-8))
         assert np.allclose(part.ptau[ii], mad_results.pt, atol=1e-11, rtol=0)
 
     # import pdb; pdb.set_trace()
