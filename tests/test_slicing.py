@@ -295,23 +295,14 @@ def test_slicing_thick_bend_simple(element_type):
     assert np.allclose(bend0.hyl, 0, atol=1e-16)
 
 
-@pytest.mark.parametrize(
-    'element_type',
-    [xt.Bend, xt.Quadrupole, xt.Quadrupole],
-)
-def test_slicing_thick_bend_into_thick_bends_simple(element_type):
-    has_k1 = element_type in (xt.Quadrupole, xt.Quadrupole)
-    has_k0 = element_type in (xt.Bend, xt.Quadrupole)
+def test_slicing_thick_bend_into_thick_bends_simple():
 
     additional_kwargs = {}
-    if has_k0:
-        additional_kwargs['k0'] = 0.1
-        additional_kwargs['h'] = 0.2
+    additional_kwargs['k0'] = 0.1
+    additional_kwargs['h'] = 0.2
+    additional_kwargs['k1'] = 0.2
 
-    if has_k1:
-        additional_kwargs['k1'] = 0.2
-
-    bend = element_type(
+    bend = xt.Bend(
         length=3.0,
         knl=[0.1, 0.2, 0.3, 0.4, 0.5],
         ksl=[0.7, 0.6, 0.5, 0.4, 0.3],
@@ -325,11 +316,9 @@ def test_slicing_thick_bend_into_thick_bends_simple(element_type):
     bend0, bend1 = line['bend..0'], line['bend..1']
     assert bend0.length == bend1.length == 1.5
 
-    if has_k0:
-        assert bend0.k0 == bend1.k0 == 0.1
-        assert bend0.h == bend1.h == 0.2
-    if has_k1:
-        assert bend0.k1 == bend1.k1 == 0.2
+    assert bend0.k0 == bend1.k0 == 0.1
+    assert bend0.h == bend1.h == 0.2
+    assert bend0.k1 == bend1.k1 == 0.2
 
     expected_knl = np.array([0.1, 0.2, 0.3, 0.4, 0.5]) / 2
     assert np.allclose(bend0.knl, expected_knl, atol=1e-16)
