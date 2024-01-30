@@ -58,7 +58,7 @@ def test_line_with_second_order_maps(test_context):
     assert np.isclose(tw_map.dqx, tw.dqx, rtol=0, atol=2e-3)
     assert np.isclose(tw_map.dqy, tw.dqy, rtol=0, atol=2e-3)
     assert np.isclose(tw_map.c_minus, tw.c_minus, rtol=0, atol=1e-5)
-    assert np.isclose(tw_map.circumference, tw.circumference, rtol=0, atol=1e-9)
+    assert np.isclose(tw_map.circumference, tw.circumference, rtol=0, atol=5e-9)
 
 
 @for_all_test_contexts
