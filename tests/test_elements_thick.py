@@ -40,8 +40,7 @@ def test_combined_function_dipole_against_madx(test_context, k0, k1, length):
         y=-0.03,
         py=0.001,
         zeta=0.1,
-        # delta=[-0.8, -0.5, -0.1, 0, 0.1, 0.5, 0.8],
-        delta=[-0.1, 0.1],
+        delta=[-0.1, -0.05, 0, 0.05, 0.1],
         _context=test_context,
     )
     mad = Madx()
