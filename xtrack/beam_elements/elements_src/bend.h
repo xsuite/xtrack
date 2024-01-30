@@ -37,14 +37,16 @@ void track_multipolar_kick_bend(
     // k0h correction can be computed from this term in the hamiltonian
     // H = 1/2 h k0 x^2
     // (see MAD 8 physics manual, eq. 5.15, and apply Hamilton's eq. dp/ds = -dH/dx)
-    dpx += -k0l * h * x;
+    double const k0l_mult = knl[0] * factor_knl_ksl * kick_weight;
+    dpx += -(k0l + k0l_mult) * h * x;
 
     // k1h correction can be computed from this term in the hamiltonian
     // H = 1/3 hk1 x^3 - 1/2 hk1 xy^2
     // (see MAD 8 physics manual, eq. 5.15, and apply Hamilton's eq. dp/ds = -dH/dx)
+    double const k1l_mult = knl[1] * factor_knl_ksl * kick_weight;
+    dpx += h * (k1l + k1l_mult) * (-x * x + 0.5 * y * y);
+    dpy += h * (k1l + k1l_mult) * x * y;
 
-    dpx += h * k1l * (-x * x + 0.5 * y * y);
-    dpy += h * k1l * x * y;
     LocalParticle_add_to_px(part, dpx);
     LocalParticle_add_to_py(part, dpy);
 
