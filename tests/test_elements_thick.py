@@ -62,12 +62,6 @@ def test_combined_function_dipole_against_madx(test_context, k0, k1, length):
         mad.input(f"""
         beam, particle=proton, pc={p0.p0c[ii] / 1e9}, sequence=ss, radiate=FALSE;
 
-        track, onepass, onetable;
-        start, x={p0.x[ii]}, px={p0.px[ii]}, y={p0.y[ii]}, py={p0.py[ii]},
-            t={p0.zeta[ii]/p0.beta0[ii]}, pt={p0.ptau[ii]};
-        run, turns=1;
-        endtrack;
-
         ptc_create_universe;
         ptc_create_layout, time=true, model=1, exact=true, method=6, nst=10000;
 
@@ -98,7 +92,6 @@ def test_combined_function_dipole_against_madx(test_context, k0, k1, length):
                            atol=(1e-10 if k1 == 0 else 5e-8))
         assert np.allclose(part.ptau[ii], mad_results.pt, atol=1e-11, rtol=0)
 
-    # import pdb; pdb.set_trace()
 
 
 def test_thick_bend_survey():

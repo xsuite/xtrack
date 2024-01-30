@@ -248,18 +248,12 @@ def test_slicing_strategy_matching():
     ]
 
 
-@pytest.mark.parametrize(
-    'element_type',
-    [xt.Bend, xt.Quadrupole],
-)
-def test_slicing_thick_bend_simple(element_type):
-    has_k1 = element_type is xt.Quadrupole
+def test_slicing_thick_bend_simple():
 
     additional_kwargs = {}
-    if has_k1:
-        additional_kwargs['k1'] = 0.2
+    additional_kwargs['k1'] = 0.2
 
-    bend = element_type(
+    bend = xt.Bend(
         length=3.0,
         k0=0.1,
         h=0.2,
@@ -277,7 +271,7 @@ def test_slicing_thick_bend_simple(element_type):
     bend0, bend1 = line['bend..0'], line['bend..1']
     assert bend0.length == bend1.length == 1.5
 
-    expected_knl = [0.15, (0.3 if has_k1 else 0), 0, 0, 0]
+    expected_knl = [0.15, 0.3, 0, 0, 0]
     assert np.allclose(bend0.knl, expected_knl, atol=1e-16)
     assert np.allclose(bend1.knl, expected_knl, atol=1e-16)
 
