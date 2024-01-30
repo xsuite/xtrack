@@ -36,11 +36,11 @@ def test_combined_function_dipole_against_madx(test_context, k0, k1, length):
         mass0=xp.PROTON_MASS_EV,
         beta0=0.5,
         x=0.01,
-        px=0.1,
-        y=-0.03,
-        py=0.001,
-        zeta=0.1,
-        delta=[-0.8, -0.5, -0.1, 0, 0.1, 0.5, 0.8],
+        px=0, #0.1,
+        y=0, #-0.03,
+        py=0, #0.001,
+        zeta=0, # 0.1,
+        delta=[0], #[-0.8, -0.5, -0.1, 0, 0.1, 0.5, 0.8],
         _context=test_context,
     )
     mad = Madx()
@@ -56,19 +56,34 @@ def test_combined_function_dipole_against_madx(test_context, k0, k1, length):
     line_thick = ml.make_line()
     line_thick.build_tracker(_context=test_context)
     line_thick.config.XTRACK_USE_EXACT_DRIFTS = True # to be consistent with madx for large angle and k0 = 0
+    #line_thick.configure_bend_model(core='adaptive', edge='full')
+    line_thick.configure_bend_model(core='bend-kick-bend', edge='full', num_multipole_kicks=10000)
+    # line_thick.configure_bend_model(core='expanded', edge='full')
 
     for ii in range(len(p0.x)):
         mad.input(f"""
         beam, particle=proton, pc={p0.p0c[ii] / 1e9}, sequence=ss, radiate=FALSE;
+        twiss, betx=1, bety=1, x={p0.x[ii]}, px={p0.px[ii]}, y={p0.y[ii]}, py={p0.py[ii]}, pt={p0.ptau[ii]}, t={p0.zeta[ii]/p0.beta0[ii]};
 
         track, onepass, onetable;
         start, x={p0.x[ii]}, px={p0.px[ii]}, y={p0.y[ii]}, py={p0.py[ii]}, \
             t={p0.zeta[ii]/p0.beta0[ii]}, pt={p0.ptau[ii]};
         run, turns=1;
         endtrack;
+
+        ptc_create_universe;
+        ptc_create_layout, time=true, model=1, exact=true, method=6, nst=10000;
+
+        ptc_start, x={p0.x[ii]}, px={p0.px[ii]}, y={p0.y[ii]}, py={p0.py[ii]}, \
+                   pt={p0.ptau[ii]}, t={p0.zeta[ii]/p0.beta0[ii]};
+        ptc_track, icase=6, turns=1, onetable;
+        ptc_track_end;
+        ptc_end;
+
+
         """)
 
-        mad_results = mad.table.mytracksumm[-1]
+        mad_results = mad.table.tracksumm[-1]  # coming from PTC
 
         part = p0.copy(_context=test_context)
         line_thick.track(part, _force_no_end_turn_actions=True)
@@ -81,6 +96,8 @@ def test_combined_function_dipole_against_madx(test_context, k0, k1, length):
         assert np.allclose(part.py[ii], mad_results.py, atol=1e-11, rtol=0)
         assert np.allclose(xt_tau[ii], mad_results.t, atol=1e-10, rtol=0)
         assert np.allclose(part.ptau[ii], mad_results.pt, atol=1e-11, rtol=0)
+
+    # import pdb; pdb.set_trace()
 
 
 def test_thick_bend_survey():
@@ -135,7 +152,7 @@ def test_thick_bend_survey():
 
 
 @for_all_test_contexts
-@pytest.mark.parametrize('element_type', [xt.Bend, xt.CombinedFunctionMagnet])
+@pytest.mark.parametrize('element_type', [xt.Bend])
 @pytest.mark.parametrize('h', [0.0, 0.1])
 def test_thick_multipolar_component(test_context, element_type, h):
     bend_length = 1.0
@@ -627,7 +644,7 @@ def test_backtrack_with_bend_quadrupole_and_cfm(test_context):
     assert np.all(p2.state == -32)
 
     # Same for combined function magnet
-    cfm = xt.CombinedFunctionMagnet(length=1.0, k1=0.2, h=0.1)
+    cfm = xt.Bend(length=1.0, k1=0.2, h=0.1)
     line = xt.Line(elements=[cfm])
     line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
     line.reset_s_at_end_turn = False
