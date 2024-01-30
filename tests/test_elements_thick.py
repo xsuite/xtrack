@@ -25,8 +25,9 @@ from xtrack.slicing import Strategy, Uniform
         (0, 0.013, 1.7),
     ]
 )
+@pytest.mark.parametrize('model', ['adaptive', 'full', 'bend-kick-bend', 'rot-kick-rot'])
 @for_all_test_contexts
-def test_combined_function_dipole_against_ptc(test_context, k0, k1, length):
+def test_combined_function_dipole_against_ptc(test_context, k0, k1, length, model):
 
     p0 = xp.Particles(
         mass0=xp.PROTON_MASS_EV,
@@ -51,8 +52,7 @@ def test_combined_function_dipole_against_ptc(test_context, k0, k1, length):
     ml = MadLoader(mad.sequence.ss, allow_thick=True)
     line_thick = ml.make_line()
     line_thick.build_tracker(_context=test_context)
-    line_thick.config.XTRACK_USE_EXACT_DRIFTS = True # to be consistent with madx for large angle and k0 = 0
-    line_thick.configure_bend_model(core='adaptive', edge='full')
+    line_thick.configure_bend_model(core=model, edge='full')
 
     for ii in range(len(p0.x)):
         mad.input(f"""
