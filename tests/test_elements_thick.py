@@ -57,8 +57,6 @@ def test_combined_function_dipole_against_madx(test_context, k0, k1, length):
     line_thick.build_tracker(_context=test_context)
     line_thick.config.XTRACK_USE_EXACT_DRIFTS = True # to be consistent with madx for large angle and k0 = 0
     line_thick.configure_bend_model(core='adaptive', edge='full')
-    # line_thick.configure_bend_model(core='bend-kick-bend', edge='full', num_multipole_kicks=10000)
-    # line_thick.configure_bend_model(core='expanded', edge='full')
 
     for ii in range(len(p0.x)):
         mad.input(f"""
@@ -111,7 +109,7 @@ def test_thick_bend_survey():
 
     p0 = xp.Particles(p0c=7e12, mass0=xp.PROTON_MASS_EV, x=0.7, px=-0.4, delta=0.0)
 
-    el = xt.Bend(k0=k, h=h, length=circumference, num_multipole_kicks=0, model='full')
+    el = xt.Bend(k0=k, h=h, length=circumference, num_multipole_kicks=0, model='bend-kick-bend')
     line = xt.Line(elements=[el])
     line.reset_s_at_end_turn = False
     line.build_tracker()
