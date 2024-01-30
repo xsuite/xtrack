@@ -72,7 +72,7 @@ def test_combined_function_dipole_against_ptc(test_context, k0, k1, length):
         mad_results = mad.table.tracksumm[-1]  # coming from PTC
 
         part = p0.copy(_context=test_context)
-        line_thick.track(part, _force_no_end_turn_actions=True)
+        line_thick.track(part)
         part.move(_context=xo.context_default)
 
         xt_tau = part.zeta/part.beta0
@@ -88,6 +88,19 @@ def test_combined_function_dipole_against_ptc(test_context, k0, k1, length):
                            atol=(1e-10 if k1 == 0 else 5e-9))
         assert np.allclose(part.ptau[ii], mad_results.pt, atol=1e-11, rtol=0)
 
+        line_core_only = xt.Line(elements=[line_thick['b']])
+        line_core_only.build_tracker(_context=test_context)
+
+        part = p0.copy(_context=test_context)
+        line_core_only.track(part)
+        line_core_only.track(part, backtrack=True)
+        part.move(_context=xo.context_default)
+        assert np.allclose(part.x[ii], p0.x[ii], atol=1e-11, rtol=0)
+        assert np.allclose(part.px[ii], p0.px[ii], atol=1e-11, rtol=0)
+        assert np.allclose(part.y[ii], p0.y[ii], atol=1e-11, rtol=0)
+        assert np.allclose(part.py[ii], p0.py[ii], atol=1e-11, rtol=0)
+        assert np.allclose(part.zeta[ii], p0.zeta[ii], atol=1e-11, rtol=0)
+        assert np.allclose(part.ptau[ii], p0.ptau[ii], atol=1e-11, rtol=0)
 
 
 def test_thick_bend_survey():
