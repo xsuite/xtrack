@@ -188,6 +188,7 @@ def test_thick_multipolar_component(test_context, element_type, h):
         elements=[bend_with_mult],
         element_names=['bend_with_mult'],
     )
+    line_no_slices.configure_bend_model(core='expanded')
     line_with_slices = xt.Line(
         elements={'bend_no_mult': bend_no_mult, 'multipole': multipole},
         element_names=(['bend_no_mult', 'multipole'] * num_kicks) + ['bend_no_mult'],
@@ -203,6 +204,7 @@ def test_thick_multipolar_component(test_context, element_type, h):
 
     p_with_slices = p0.copy()
     line_with_slices.build_tracker(_context=test_context)
+    line_with_slices.configure_bend_model(core='expanded')
     line_with_slices.track(p_with_slices, turn_by_turn_monitor='ONE_TURN_EBE')
 
     p_no_slices.move(_context=xo.context_default)
