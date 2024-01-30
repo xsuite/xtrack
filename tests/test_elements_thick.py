@@ -26,18 +26,14 @@ from xtrack.slicing import Strategy, Uniform
     ]
 )
 @for_all_test_contexts
-def test_combined_function_dipole_against_madx(test_context, k0, k1, length):
-    """
-    Test the combined function dipole against madx. We import bends from madx
-    using use_true_thick_bend=False, and the true bend is not in madx.
-    """
+def test_combined_function_dipole_against_ptc(test_context, k0, k1, length):
 
     p0 = xp.Particles(
         mass0=xp.PROTON_MASS_EV,
         beta0=0.5,
         x=0.01,
-        px=0.1,
-        y=-0.03,
+        px=0.01,
+        y=-0.005,
         py=0.001,
         zeta=0.1,
         delta=[-0.1, -0.05, 0, 0.05, 0.1],
@@ -81,15 +77,15 @@ def test_combined_function_dipole_against_madx(test_context, k0, k1, length):
 
         xt_tau = part.zeta/part.beta0
         assert np.allclose(part.x[ii], mad_results.x, rtol=0,
-                           atol=(1e-11 if k1 == 0 else 5e-8))
+                           atol=(1e-11 if k1 == 0 else 5e-9))
         assert np.allclose(part.px[ii], mad_results.px, rtol=0,
-                           atol=(1e-11 if k1 == 0 else 5e-8))
+                           atol=(1e-11 if k1 == 0 else 5e-9))
         assert np.allclose(part.y[ii], mad_results.y, rtol=0,
-                           atol=(1e-11 if k1 == 0 else 5e-8))
+                           atol=(1e-11 if k1 == 0 else 5e-9))
         assert np.allclose(part.py[ii], mad_results.py, rtol=0,
-                           atol=(1e-11 if k1 == 0 else 5e-8))
+                           atol=(1e-11 if k1 == 0 else 5e-9))
         assert np.allclose(xt_tau[ii], mad_results.t, rtol=0,
-                           atol=(1e-10 if k1 == 0 else 5e-8))
+                           atol=(1e-10 if k1 == 0 else 5e-9))
         assert np.allclose(part.ptau[ii], mad_results.pt, atol=1e-11, rtol=0)
 
 
