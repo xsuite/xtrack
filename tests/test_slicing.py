@@ -84,15 +84,15 @@ def test_slicing_teapot_mode_thick():
 
 def test_slicing_strategy_matching():
     elements = [
-        ('keep_this', xt.CombinedFunctionMagnet(length=1.0)),
+        ('keep_this', xt.Quadrupole(length=1.0)),
         ('mb10', xt.Bend(length=1.0)),
         ('keep_drifts', xt.Drift(length=1.0)),
-        ('mb11', xt.CombinedFunctionMagnet(length=1.0)),
-        ('mq10', xt.CombinedFunctionMagnet(length=1.0)),
+        ('mb11', xt.Quadrupole(length=1.0)),
+        ('mq10', xt.Quadrupole(length=1.0)),
         ('something', xt.Bend(length=1.0)),
         ('mb20', xt.Bend(length=1.0)),
         ('keep_thin', xt.Multipole(length=1.0)),
-        ('mb21', xt.CombinedFunctionMagnet(length=1.0)),
+        ('mb21', xt.Quadrupole(length=1.0)),
     ]
 
     slicing_strategies = [
@@ -101,7 +101,7 @@ def test_slicing_strategy_matching():
         # All bends: two slices
         Strategy(slicing=Teapot(2), element_type=xt.Bend),
         # All CFDs: three slices
-        Strategy(slicing=Uniform(3), element_type=xt.CombinedFunctionMagnet),
+        Strategy(slicing=Uniform(3), element_type=xt.Quadrupole),
         # If the name starts with mb: five slices (the bend and the cfd 'mb11')
         Strategy(slicing=Teapot(5), name=r'mb1.*'),
         # If the name starts with some: four slices (the bend 'something')
@@ -121,7 +121,7 @@ def test_slicing_strategy_matching():
 
     # Check that the slices are as expected:
     expected_names = [
-        # Kept CFD:
+        # Kept Quadrupole:
         'keep_this',
         # 5 slices for mb10:
         'mb10_entry',  # Marker
@@ -153,7 +153,7 @@ def test_slicing_strategy_matching():
         'mb20_exit',  # Marker
         # Keep thin:
         'keep_thin',
-        # Three slices for 'mb21' (it's a CFD!):
+        # Three slices for 'mb21' (it's a Quadrupole!):
         'mb21_entry',  # Marker
         'drift_mb21..0', 'mb21..0', 'drift_mb21..1', 'mb21..1', 'drift_mb21..2',
         'mb21..2', 'drift_mb21..3',
@@ -164,7 +164,7 @@ def test_slicing_strategy_matching():
     # Check types:
     for name, element in line.element_dict.items():
         if name == 'keep_this':
-            assert isinstance(element, xt.CombinedFunctionMagnet)
+            assert isinstance(element, xt.Quadrupole)
         elif name == 'keep_drifts' or name.startswith('drift_'):
             assert isinstance(element, xt.Drift)
         elif name == 'keep_thin':
@@ -250,10 +250,10 @@ def test_slicing_strategy_matching():
 
 @pytest.mark.parametrize(
     'element_type',
-    [xt.Bend, xt.CombinedFunctionMagnet],
+    [xt.Bend, xt.Quadrupole],
 )
 def test_slicing_thick_bend_simple(element_type):
-    has_k1 = element_type is xt.CombinedFunctionMagnet
+    has_k1 = element_type is xt.Quadrupole
 
     additional_kwargs = {}
     if has_k1:
@@ -297,11 +297,11 @@ def test_slicing_thick_bend_simple(element_type):
 
 @pytest.mark.parametrize(
     'element_type',
-    [xt.Bend, xt.CombinedFunctionMagnet, xt.Quadrupole],
+    [xt.Bend, xt.Quadrupole, xt.Quadrupole],
 )
 def test_slicing_thick_bend_into_thick_bends_simple(element_type):
-    has_k1 = element_type in (xt.CombinedFunctionMagnet, xt.Quadrupole)
-    has_k0 = element_type in (xt.Bend, xt.CombinedFunctionMagnet)
+    has_k1 = element_type in (xt.Quadrupole, xt.Quadrupole)
+    has_k0 = element_type in (xt.Bend, xt.Quadrupole)
 
     additional_kwargs = {}
     if has_k0:
