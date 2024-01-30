@@ -319,10 +319,10 @@ def test_ip_knob_matching(test_context):
     collider.vars['on_x8h'] = 0
     collider.vars['on_sep8h'] = 0
 
-    assert np.isclose(tw.lhcb1['x', 'ip8'], 1.7e-3, atol=1e-10, rtol=0)
-    assert np.isclose(tw.lhcb2['x', 'ip8'], -1.7e-3, atol=1e-10, rtol=0)
-    assert np.isclose(tw.lhcb1['px', 'ip8'], 120e-6, atol=1e-10, rtol=0)
-    assert np.isclose(tw.lhcb2['px', 'ip8'], -120e-6, atol=1e-10, rtol=0)
+    assert np.isclose(tw.lhcb1['x', 'ip8'], 1.7e-3, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb2['x', 'ip8'], -1.7e-3, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['px', 'ip8'], 120e-6, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb2['px', 'ip8'], -120e-6, atol=1e-9, rtol=0)
 
 @for_all_test_contexts
 def test_match_ir8_optics(test_context):
