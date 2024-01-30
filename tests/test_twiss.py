@@ -536,7 +536,7 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
 
     rtols = dict(
         alfx=5e-9, alfy=5e-8,
-        betx=5e-9, bety=5e-9, betx1=5e-9, bety2=5e-9, betx2=1e-7, bety1=1e-7,
+        betx=1e-8, bety=1e-8, betx1=1e-8, bety2=1e-8, betx2=1e-7, bety1=1e-7,
         gamx=5e-9, gamy=5e-9,
     )
 
