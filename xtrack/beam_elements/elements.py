@@ -773,7 +773,6 @@ class Bend(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_bend.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/multipolar_kick.h'),
         _pkg_root.joinpath('beam_elements/elements_src/bend.h'),
     ]
 
