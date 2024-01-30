@@ -109,7 +109,7 @@ def test_thick_bend_survey():
 
     p0 = xp.Particles(p0c=7e12, mass0=xp.PROTON_MASS_EV, x=0.7, px=-0.4, delta=0.0)
 
-    el = xt.Bend(k0=k, h=h, length=circumference, num_multipole_kicks=0, model='bend-kick-bend')
+    el = xt.Bend(k0=k, h=h, length=circumference)
     line = xt.Line(elements=[el])
     line.reset_s_at_end_turn = False
     line.build_tracker()
@@ -126,7 +126,6 @@ def test_thick_bend_survey():
         p = p0.copy()
 
         el.length = s
-        el.knl = np.array([3e-4, 4e-4, 0, 0, 0]) * s / circumference
         line.track(p)
 
         theta = s / rho
