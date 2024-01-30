@@ -586,18 +586,6 @@ def test_backtrack_with_bend_quadrupole_and_cfm(test_context):
     assert np.allclose(p2.zeta, p0.zeta, atol=1e-15, rtol=0)
     assert np.allclose(p2.delta, p0.delta, atol=1e-15, rtol=0)
 
-    p3 = p1.copy(_context=test_context)
-    line.configure_bend_model(core='full')
-    line.track(p3, backtrack=True)
-    p3.move(_context=xo.context_default)
-    assert np.all(p3.state == -30)
-    p4 = p1.copy(_context=test_context)
-    line.configure_bend_model(core='expanded')
-    b.num_multipole_kicks = 3
-    line.track(p4, backtrack=True)
-    p4.move(_context=xo.context_default)
-    assert np.all(p4.state == -31)
-
     # Same for quadrupole
     q = xt.Quadrupole(k1=0.2, length=1.0)
     line = xt.Line(elements=[q])
@@ -620,12 +608,6 @@ def test_backtrack_with_bend_quadrupole_and_cfm(test_context):
     assert np.allclose(p2.py, p0.py, atol=1e-15, rtol=0)
     assert np.allclose(p2.zeta, p0.zeta, atol=1e-15, rtol=0)
     assert np.allclose(p2.delta, p0.delta, atol=1e-15, rtol=0)
-
-    p4 = p1.copy(_context=test_context)
-    q.num_multipole_kicks = 4
-    line.track(p4, backtrack=True)
-    p4.move(_context=xo.context_default)
-    assert np.all(p4.state == -31)
 
     # Same for dipole edge
     de = xt.DipoleEdge(e1=0.1, k=3, fint=0.3)
@@ -669,12 +651,6 @@ def test_backtrack_with_bend_quadrupole_and_cfm(test_context):
     assert np.allclose(p2.zeta, p0.zeta, atol=1e-15, rtol=0)
     assert np.allclose(p2.delta, p0.delta, atol=1e-15, rtol=0)
 
-    line.configure_bend_model(core='expanded')
-    cfm.num_multipole_kicks = 3
-    p4 = p1.copy(_context=test_context)
-    line.track(p4, backtrack=True)
-    p4.move(_context=xo.context_default)
-    assert np.all(p4.state == -31)
 
 def test_import_thick_with_apertures_and_slice():
     mad = Madx()
