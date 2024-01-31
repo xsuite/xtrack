@@ -1176,7 +1176,7 @@ def test_crab_dispersion(test_context):
     assert np.allclose(tw6d_rf_on['dy_zeta'], tw4d_rf_off['dy_zeta'], rtol=0, atol=1e-7)
 
 @for_all_test_contexts
-def test_higher_crab_dispersion(test_context):
+def test_higher_order_crab_dispersion(test_context):
 
     collider = xt.Multiline.from_json(test_data_folder /
                         'hllhc15_collider/collider_00_from_mad.json')
