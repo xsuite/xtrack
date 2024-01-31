@@ -1158,16 +1158,17 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
     tw_chrom_res = []
     for dd in [-delta_chrom, delta_chrom]:
         tw_init_chrom  = init.copy()
-        part_co = tw_init_chrom.particle_on_co
 
-        part_chrom = xp.build_particles(
-                _context=line._context,
-                x_norm=0,
-                zeta=tw_init_chrom.zeta,
-                delta=tw_init_chrom.delta+ dd,
-                particle_on_co=part_co,
-                nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                W_matrix=tw_init_chrom.W_matrix)
+        part_chrom = line.find_closed_orbit(delta0=dd)
+
+        # part_chrom = xp.build_particles(
+        #         _context=line._context,
+        #         x_norm=0,
+        #         zeta=tw_init_chrom.zeta,
+        #         delta=tw_init_chrom.delta+ dd,
+        #         particle_on_co=part_co,
+        #         nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+        #         W_matrix=tw_init_chrom.W_matrix)
         tw_init_chrom.particle_on_co = part_chrom
 
         if periodic:
@@ -1259,23 +1260,34 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
     dqx = dmux[-1]
     dqy = dmuy[-1]
 
-    if on_momentum_twiss_res is not None:
-        mux = on_momentum_twiss_res.mux
-        muy = on_momentum_twiss_res.muy
-        ddqx = (tw_chrom_res[1].mux[-1] - 2 * mux[-1] + tw_chrom_res[0].mux[-1]
-                ) / delta_chrom**2
-        ddqy = (tw_chrom_res[1].muy[-1] - 2 * muy[-1] + tw_chrom_res[0].muy[-1]
-                ) / delta_chrom**2
-    else:
-        ddqx = None
-        ddqy = None
-
     cols_chrom = {'dmux': dmux, 'dmuy': dmuy,
                   'bx_chrom': bx_chrom, 'by_chrom': by_chrom,
                   'ax_chrom': ax_chrom, 'ay_chrom': ay_chrom,
                   'wx_chrom': wx_chrom, 'wy_chrom': wy_chrom,
                   }
-    scalars_chrom = {'dqx': dqx, 'dqy': dqy, 'ddqx': ddqx, 'ddqy': ddqy}
+    scalars_chrom = {'dqx': dqx, 'dqy': dqy}
+
+    if on_momentum_twiss_res is not None:
+        mux = on_momentum_twiss_res.mux
+        muy = on_momentum_twiss_res.muy
+        x = on_momentum_twiss_res.x
+        px = on_momentum_twiss_res.px
+        y = on_momentum_twiss_res.y
+        py = on_momentum_twiss_res.py
+        ddqx = (tw_chrom_res[1].mux[-1] - 2 * mux[-1] + tw_chrom_res[0].mux[-1]
+                ) / delta_chrom**2
+        ddqy = (tw_chrom_res[1].muy[-1] - 2 * muy[-1] + tw_chrom_res[0].muy[-1]
+                ) / delta_chrom**2
+        ddx = (tw_chrom_res[1].x - 2 * x + tw_chrom_res[0].x) / delta_chrom**2
+        ddpx = (tw_chrom_res[1].px - 2 * px + tw_chrom_res[0].px) / delta_chrom**2
+        ddy = (tw_chrom_res[1].y - 2 * y + tw_chrom_res[0].y) / delta_chrom**2
+        ddpy = (tw_chrom_res[1].py - 2 * py + tw_chrom_res[0].py) / delta_chrom**2
+
+        cols_chrom.update({'ddx': ddx, 'ddpx': ddpx,
+                           'ddy': ddy, 'ddpy': ddpy})
+        scalars_chrom.update({'ddqx': ddqx, 'ddqy': ddqy})
+
+        import pdb; pdb.set_trace()
 
     return cols_chrom, scalars_chrom
 
