@@ -43,6 +43,7 @@ VARS_FOR_TWISS_INIT_GENERATION = [
     'dx', 'dpx', 'dy', 'dpy', 'dzeta',
     'mux', 'muy', 'muzeta',
     'ax_chrom', 'bx_chrom', 'ay_chrom', 'by_chrom',
+    'ddx', 'ddpx', 'ddy', 'ddpy',
 ]
 
 log = logging.getLogger(__name__)
@@ -83,6 +84,7 @@ def twiss_line(line, particle_ref=None, method=None,
         dx=None, dpx=None, dy=None, dpy=None, dzeta=None,
         mux=None, muy=None, muzeta=None,
         ax_chrom=None, bx_chrom=None, ay_chrom=None, by_chrom=None,
+        ddx=None, ddpx=None, ddy=None, ddpy=None,
         co_search_at=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
@@ -418,6 +420,7 @@ def twiss_line(line, particle_ref=None, method=None,
         dx, dpx, dy, dpy, dzeta,
         mux, muy, muzeta,
         ax_chrom, bx_chrom, ay_chrom, by_chrom,
+        ddx, ddpx, ddy, ddpy,
         )
 
     # clean quantities embedded in init
@@ -427,6 +430,7 @@ def twiss_line(line, particle_ref=None, method=None,
     dx=None; dpx=None; dy=None; dpy=None; dzeta=None
     mux=None; muy=None; muzeta=None
     ax_chrom=None; bx_chrom=None; ay_chrom=None; by_chrom=None
+    ddx=None; ddpx=None; ddy=None; ddpy=None
 
     # Twiss goes through the start of the line
     rv = (-1 if reverse else 1)
@@ -1159,10 +1163,9 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
     for dd in [-delta_chrom, delta_chrom]:
         tw_init_chrom  = init.copy()
 
-        part_chrom = line.find_closed_orbit(delta0=dd)
-        tw_init_chrom.particle_on_co = part_chrom
-
         if periodic:
+            part_chrom = line.find_closed_orbit(delta0=dd)
+            tw_init_chrom.particle_on_co = part_chrom
             RR_chrom = line.compute_one_turn_matrix_finite_differences(
                                         particle_on_co=tw_init_chrom.particle_on_co.copy(),
                                         steps_r_matrix=steps_r_matrix)['R_matrix']
@@ -1181,6 +1184,10 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
             dy = init.dy
             dpx = init.dpx
             dpy = init.dpy
+            ddx = init.ddx
+            ddpx = init.ddpx
+            ddy = init.ddy
+            ddpy = init.ddpy
             ax_chrom = init.ax_chrom
             bx_chrom = init.bx_chrom
             ay_chrom = init.ay_chrom
@@ -1191,15 +1198,20 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
             dalfx_dpzeta = ax_chrom + bx_chrom * alfx
             dalfy_dpzeta = ay_chrom + by_chrom * alfy
 
+            tw_init_chrom.particle_on_co.x += dx * dd + 1/2 * ddx * dd**2
+            tw_init_chrom.particle_on_co.px += dpx * dd + 1/2 * ddpx * dd**2
+            tw_init_chrom.particle_on_co.y += dy * dd + 1/2 * ddy * dd**2
+            tw_init_chrom.particle_on_co.py += dpy * dd + 1/2 * ddpy * dd**2
+
             twinit_aux = TwissInit(
                 alfx=alfx + dalfx_dpzeta * dd,
                 betx=betx + dbetx_dpzeta * dd,
                 alfy=alfy + dalfy_dpzeta * dd,
                 bety=bety + dbety_dpzeta * dd,
-                dx=dx,
-                dpx=dpx,
-                dy=dy,
-                dpy=dpy)
+                dx=dx + ddx * dd,
+                dpx=dpx + ddpx * dd,
+                dy=dy + ddy * dd,
+                dpy=dpy + ddpy * dd)
             twinit_aux._complete(line, element_name=init.element_name)
             tw_init_chrom.W_matrix = twinit_aux.W_matrix
 
@@ -1269,6 +1281,7 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                 ) / delta_chrom**2
         ddqy = (tw_chrom_res[1].muy[-1] - 2 * muy[-1] + tw_chrom_res[0].muy[-1]
                 ) / delta_chrom**2
+        __import__("IPython").embed()
         ddx = (tw_chrom_res[1].x - 2 * x + tw_chrom_res[0].x) / delta_chrom**2
         ddpx = (tw_chrom_res[1].px - 2 * px + tw_chrom_res[0].px) / delta_chrom**2
         ddy = (tw_chrom_res[1].y - 2 * y + tw_chrom_res[0].y) / delta_chrom**2
@@ -2286,6 +2299,7 @@ class TwissInit:
                 betx=None, alfx=None, bety=None, alfy=None, bets=None,
                 dx=None, dpx=None, dy=None, dpy=None, dzeta=None,
                 mux=None, muy=None, muzeta=None,
+                ddx=None, ddpx=None, ddy=None, ddpy=None, ddzeta=None,
                 ax_chrom=None, bx_chrom=None, ay_chrom=None, by_chrom=None,
                 reference_frame=None):
 
@@ -2346,6 +2360,10 @@ class TwissInit:
         self.bx_chrom = (bx_chrom or 0.)
         self.ay_chrom = (ay_chrom or 0.)
         self.by_chrom = (by_chrom or 0.)
+        self.ddx = (ddx or 0.)
+        self.ddpx = (ddpx or 0.)
+        self.ddy = (ddy or 0.)
+        self.ddpy = (ddpy or 0.)
         self.reference_frame = reference_frame
 
         if line is not None and element_name is not None:
@@ -2534,6 +2552,10 @@ class TwissInit:
             bx_chrom=self.bx_chrom,
             ay_chrom=self.ay_chrom,
             by_chrom=self.by_chrom,
+            ddx=self.ddx,
+            ddpx=self.ddpx,
+            ddy=self.ddy,
+            ddpy=self.ddpy,
             reference_frame=self.reference_frame)
 
         if self._temp_co_data is not None:
@@ -2551,7 +2573,12 @@ class TwissInit:
             ax_chrom=(-self.ax_chrom if self.ax_chrom is not None else None),
             ay_chrom=(-self.ay_chrom if self.ay_chrom is not None else None),
             bx_chrom=self.bx_chrom,
-            by_chrom=self.by_chrom,)
+            by_chrom=self.by_chrom,
+            ddx=(-self.ddx if self.ddx is not None else None),
+            ddpx=(self.ddpx if self.ddpx is not None else None),
+            ddy=(self.ddy if self.ddy is not None else None),
+            ddpy=(-self.ddpy if self.ddpy is not None else None),
+            )
         out.particle_on_co.x = -out.particle_on_co.x
         out.particle_on_co.py = -out.particle_on_co.py
         out.particle_on_co.zeta = -out.particle_on_co.zeta
@@ -2683,11 +2710,19 @@ class TwissTable(Table):
             bx_chrom = self.bx_chrom[at_element]
             ay_chrom = self.ay_chrom[at_element]
             by_chrom = self.by_chrom[at_element]
+            ddx = self.ddx[at_element]
+            ddpx = self.ddpx[at_element]
+            ddy = self.ddy[at_element]
+            ddpy = self.ddpy[at_element]
         else:
             ax_chrom = None
             bx_chrom = None
             ay_chrom = None
             by_chrom = None
+            ddx = None
+            ddpx = None
+            ddy = None
+            ddpy = None
 
         return TwissInit(particle_on_co=part, W_matrix=W,
                         element_name=str(self.name[at_element]),
@@ -2697,6 +2732,7 @@ class TwissTable(Table):
                         dzeta=self.dzeta[at_element],
                         ax_chrom=ax_chrom, bx_chrom=bx_chrom,
                         ay_chrom=ay_chrom, by_chrom=by_chrom,
+                        ddx=ddx, ddpx=ddpx, ddy=ddy, ddpy=ddpy,
                         reference_frame=self.reference_frame)
 
     def get_betatron_sigmas(self, nemitt_x, nemitt_y):
@@ -2942,6 +2978,8 @@ class TwissTable(Table):
         if 'ax_chrom' in out._col_names:
             out.ax_chrom = -out.ax_chrom
             out.ay_chrom = -out.ay_chrom
+            out.ddx = -out.ddx
+            out.ddpy = -out.ddpy
 
         if hasattr(out, 'R_matrix'): out.R_matrix = None # To be implemented
         if hasattr(out, 'particle_on_co'):
@@ -3043,6 +3081,7 @@ def _complete_twiss_init(start, end, init_at, init,
                         dx, dpx, dy, dpy, dzeta,
                         mux, muy, muzeta,
                         ax_chrom, bx_chrom, ay_chrom, by_chrom,
+                        ddpx, ddx, ddpy, ddy
                         ):
 
     if start is not None or end is not None:
@@ -3062,6 +3101,7 @@ def _complete_twiss_init(start, end, init_at, init,
                 mux=mux, muy=muy, muzeta=muzeta,
                 ax_chrom=ax_chrom, bx_chrom=bx_chrom,
                 ay_chrom=ay_chrom, by_chrom=by_chrom,
+                ddpx=ddpx, ddx=ddx, ddpy=ddpy, ddy=ddy,
                 )
         elif isinstance(init, TwissTable):
             init = init.get_twiss_init(at_element=init_at)
@@ -3076,6 +3116,7 @@ def _complete_twiss_init(start, end, init_at, init,
             assert mux is None and muy is None and muzeta is None
             assert ax_chrom is None and bx_chrom is None
             assert ay_chrom is None and by_chrom is None
+            assert ddpx is None and ddx is None and ddpy is None and ddy is None
 
     if init is not None and not isinstance(init, str):
         assert isinstance(init, TwissInit)
