@@ -27,12 +27,12 @@ tt.rows['lnr.mbhek.0135_entry':'lnr.mbhek.0135_exit'].show()
 # lnr.mbhek.0135_dex      5.46995 DipoleEdge     False
 # lnr.mbhek.0135_exit     5.46995 Marker         False
 
-# By default the expanded model is used for the core and the linearized model for the edge
-line['lnr.mbhek.0135'].model # is 'expanded'
+# By default the adaptive model is used for the core and the linearized model for the edge
+line['lnr.mbhek.0135'].model # is 'adaptive'
 line['lnr.mbhek.0135_den'].model # is 'linear'
 
 # For small machines (bends with large bending angles) it is more appropriate to
-# switch to the `full` model for the core and the edge
+# switch to the `full` model for the edge
 line.configure_bend_model(core='adaptive', edge='full')
 
 # It is also possible to switch from the expanded drift to the exact one
@@ -51,7 +51,7 @@ line.slice_thick_elements(
 # Twiss
 tw = line.twiss(method='4d')
 
-# Switch back to the default model
+# Switch to a simplified model
 line.configure_bend_model(core='expanded', edge='linear')
 line.config.XTRACK_USE_EXACT_DRIFTS = False
 
