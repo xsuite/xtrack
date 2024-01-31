@@ -106,6 +106,7 @@ def test_combined_function_dipole_against_ptc(test_context, k0, k1, k2, length,
         line_core_only.track(part)
         line_core_only.track(part, backtrack=True)
         part.move(_context=xo.context_default)
+        p0.move(_context=xo.context_default)
         assert np.allclose(part.x[ii], p0.x[ii], atol=1e-11, rtol=0)
         assert np.allclose(part.px[ii], p0.px[ii], atol=1e-11, rtol=0)
         assert np.allclose(part.y[ii], p0.y[ii], atol=1e-11, rtol=0)
@@ -156,6 +157,7 @@ def test_combined_function_dipole_expanded(test_context):
     p_test.move(_context=test_context)
     line_thick.track(p_test, backtrack=True)
     p_test.move(_context=xo.context_default)
+    p0.move(_context=xo.context_default)
 
     assert np.allclose(p_test.x, p0.x, atol=1e-11, rtol=0)
     assert np.allclose(p_test.px, p0.px, atol=1e-11, rtol=0)
