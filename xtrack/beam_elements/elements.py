@@ -798,6 +798,10 @@ class Bend(BeamElement):
         ksl : array
             Integrated strength of the high-order skew multipolar components
             (ksl[0] and ksl[1] should not be used).
+        model : str
+            Model used to simulate magnet, one of 'adaptive', 'bend-kick-bend',
+            'rot-kick-rot', 'expanded'. Default is 'adaptive'. Method 'full' is
+            kept for backward compatibility and is equivalent to 'adaptive'.
         num_multipole_kicks : int
             Number of multipole kicks used to model high order multipolar
             components.

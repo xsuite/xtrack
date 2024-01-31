@@ -2218,8 +2218,8 @@ class Line:
         Parameters
         ----------
         core: str
-            Medel to be used for the thick bend cores. Can be 'expanded' or '
-            full'.
+            Medel to be used for the thick bend cores. Can be 'adaptive',
+            'bend-kick-bend', 'rot-kick-rot' or 'expanded'.
         edge: str
             Model to be used for the bend edges. Can be 'linear', 'full'
             or 'suppressed'.
