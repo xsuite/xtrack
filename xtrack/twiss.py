@@ -1160,15 +1160,6 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
         tw_init_chrom  = init.copy()
 
         part_chrom = line.find_closed_orbit(delta0=dd)
-
-        # part_chrom = xp.build_particles(
-        #         _context=line._context,
-        #         x_norm=0,
-        #         zeta=tw_init_chrom.zeta,
-        #         delta=tw_init_chrom.delta+ dd,
-        #         particle_on_co=part_co,
-        #         nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-        #         W_matrix=tw_init_chrom.W_matrix)
         tw_init_chrom.particle_on_co = part_chrom
 
         if periodic:
@@ -1286,8 +1277,6 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
         cols_chrom.update({'ddx': ddx, 'ddpx': ddpx,
                            'ddy': ddy, 'ddpy': ddpy})
         scalars_chrom.update({'ddqx': ddqx, 'ddqy': ddqy})
-
-        import pdb; pdb.set_trace()
 
     return cols_chrom, scalars_chrom
 
