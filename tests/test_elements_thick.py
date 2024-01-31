@@ -113,13 +113,6 @@ def test_combined_function_dipole_against_ptc(test_context, k0, k1, k2, length,
         assert np.allclose(part.zeta[ii], p0.zeta[ii], atol=1e-11, rtol=0)
         assert np.allclose(part.ptau[ii], p0.ptau[ii], atol=1e-11, rtol=0)
 
-
-
-
-
-
-
-
 @for_all_test_contexts
 def test_combined_function_dipole_expanded(test_context):
 
@@ -149,34 +142,25 @@ def test_combined_function_dipole_expanded(test_context):
     p_ref = p0.copy(_context=test_context)
     line_thick.track(p_ref)
 
+    assert np.allclose(p_test.x, p_ref.x, rtol=0, atol=5e-9)
+    assert np.allclose(p_test.px, p_ref.px, rtol=0, atol=2e-9)
+    assert np.allclose(p_test.y, p_ref.y, rtol=0, atol=5e-9)
+    assert np.allclose(p_test.py, p_ref.py, rtol=0, atol=2e-9)
+    assert np.allclose(p_test.zeta, p_ref.zeta, rtol=0, atol=1e-11)
+    assert np.allclose(p_test.ptau, p_ref.ptau, atol=1e-11, rtol=0)
 
-    for ii in range(len(p0.x)):
+    # Check backtrack
+    line_thick.configure_bend_model(core='expanded')
+    p_test.move(_context=xo.context_default)
+    line_thick.track(p_test, backtrack=True)
+    p_test.move(_context=xo.context_default)
 
-        assert np.allclose(p_test.x[ii], p_ref.x[ii], rtol=0, atol=5e-9)
-        assert np.allclose(p_test.px[ii], p_ref.px[ii], rtol=0, atol=2e-9)
-        assert np.allclose(p_test.y[ii], p_ref.y[ii], rtol=0, atol=5e-9)
-        assert np.allclose(p_test.py[ii], p_ref.py[ii], rtol=0, atol=2e-9)
-        assert np.allclose(p_test.zeta[ii], p_ref.zeta[ii], rtol=0, atol=1e-11)
-        assert np.allclose(p_test.ptau[ii], p_ref.ptau[ii], atol=1e-11, rtol=0)
-
-        # part = p0.copy(_context=test_context)
-        # line_core_only.track(part)
-        # line_core_only.track(part, backtrack=True)
-        # part.move(_context=xo.context_default)
-        # assert np.allclose(part.x[ii], p0.x[ii], atol=1e-11, rtol=0)
-        # assert np.allclose(part.px[ii], p0.px[ii], atol=1e-11, rtol=0)
-        # assert np.allclose(part.y[ii], p0.y[ii], atol=1e-11, rtol=0)
-        # assert np.allclose(part.py[ii], p0.py[ii], atol=1e-11, rtol=0)
-        # assert np.allclose(part.zeta[ii], p0.zeta[ii], atol=1e-11, rtol=0)
-        # assert np.allclose(part.ptau[ii], p0.ptau[ii], atol=1e-11, rtol=0)
-
-
-
-
-
-
-
-
+    assert np.allclose(p_test.x, p0.x, atol=1e-11, rtol=0)
+    assert np.allclose(p_test.px, p0.px, atol=1e-11, rtol=0)
+    assert np.allclose(p_test.y, p0.y, atol=1e-11, rtol=0)
+    assert np.allclose(p_test.py, p0.py, atol=1e-11, rtol=0)
+    assert np.allclose(p_test.zeta, p0.zeta, atol=1e-11, rtol=0)
+    assert np.allclose(p_test.ptau, p0.ptau, atol=1e-11, rtol=0)
 
 def test_thick_bend_survey():
     circumference = 10
