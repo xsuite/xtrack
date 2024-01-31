@@ -34,6 +34,9 @@ ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau',
                         'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy',
                         'mux', 'muy', 'dx', 'dpx', 'dy', 'dpy',
                         'qx', 'qy', 'dqx', 'dqy',
+                        'ax_chrom', 'bx_chrom', 'ay_chrom', 'by_chrom',
+                        'wx_chrom', 'wy_chrom',
+                        'ddqx', 'ddqy', 'ddx', 'ddpx', 'ddy', 'ddpy',
                         'eq_gemitt_x', 'eq_gemitt_y', 'eq_gemitt_zeta',
                         'eq_nemitt_x', 'eq_nemitt_y', 'eq_nemitt_zeta']
 
