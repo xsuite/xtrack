@@ -1176,6 +1176,30 @@ def test_crab_dispersion(test_context):
     assert np.allclose(tw6d_rf_on['dy_zeta'], tw4d_rf_off['dy_zeta'], rtol=0, atol=1e-7)
 
 @for_all_test_contexts
+def test_higher_crab_dispersion(test_context):
+
+    collider = xt.Multiline.from_json(test_data_folder /
+                        'hllhc15_collider/collider_00_from_mad.json')
+    collider.build_trackers(_context=test_context)
+
+    collider.vars['vrf400'] = 16
+    collider.vars['on_crab1'] = -190
+    collider.vars['on_crab5'] = -190
+
+    line = collider.lhcb1
+
+    tw6d = line.twiss(method='6d')
+    dz = 1e-3
+    tw4d_plus = line.twiss(method='4d', zeta0=dz, freeze_longitudinal=True)
+    tw4d_minus = line.twiss(method='4d', zeta0=-dz, freeze_longitudinal=True)
+    dpx_dzeta_expected = (tw4d_plus.px -  tw4d_minus.px) / (2*dz)
+    dpy_dzeta_expected = (tw4d_plus.py -  tw4d_minus.py) / (2*dz)
+
+    assert np.allclose(tw6d['dpx_zeta'], dpx_dzeta_expected, rtol=0, atol=1e-7)
+    assert np.allclose(tw6d['dpy_zeta'], dpy_dzeta_expected, rtol=0, atol=1e-7)
+
+
+@for_all_test_contexts
 def test_twiss_group_compounds(test_context):
 
     mad = Madx()
