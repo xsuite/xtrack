@@ -136,11 +136,13 @@ def test_combined_function_dipole_expanded(test_context):
     assert line_thick['b'].model == 'expanded'
     p_test = p0.copy(_context=test_context)
     line_thick.track(p_test)
+    p_test.move(_context=xo.context_default)
 
     line_thick.configure_bend_model(core='rot-kick-rot', num_multipole_kicks=100)
     assert line_thick['b'].model == 'rot-kick-rot'
     p_ref = p0.copy(_context=test_context)
     line_thick.track(p_ref)
+    p_ref.move(_context=xo.context_default)
 
     assert np.allclose(p_test.x, p_ref.x, rtol=0, atol=5e-9)
     assert np.allclose(p_test.px, p_ref.px, rtol=0, atol=2e-9)
