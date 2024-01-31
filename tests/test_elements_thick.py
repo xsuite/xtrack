@@ -114,6 +114,70 @@ def test_combined_function_dipole_against_ptc(test_context, k0, k1, k2, length,
         assert np.allclose(part.ptau[ii], p0.ptau[ii], atol=1e-11, rtol=0)
 
 
+
+
+
+
+
+
+@for_all_test_contexts
+def test_combined_function_dipole_expanded(test_context):
+
+    p0 = xp.Particles(
+        mass0=xp.PROTON_MASS_EV,
+        beta0=0.5,
+        x=0.003,
+        px=0.001,
+        y=-0.005,
+        py=0.001,
+        zeta=0.1,
+        delta=[-1e-3, -0.05e-3, 0, 0.05e-3, 1e-3],
+        _context=test_context,
+    )
+
+    bend = xt.Bend(k0=1e-3, h=0.9e-3, length=1, k1=0.001, knl=[0, 0, 0.02])
+    line_thick = xt.Line(elements=[bend], element_names=['b'])
+    line_thick.build_tracker(_context=test_context)
+
+    line_thick.configure_bend_model(core='expanded', num_multipole_kicks=100)
+    assert line_thick['b'].model == 'expanded'
+    p_test = p0.copy(_context=test_context)
+    line_thick.track(p_test)
+
+    line_thick.configure_bend_model(core='rot-kick-rot', num_multipole_kicks=100)
+    assert line_thick['b'].model == 'rot-kick-rot'
+    p_ref = p0.copy(_context=test_context)
+    line_thick.track(p_ref)
+
+
+    for ii in range(len(p0.x)):
+
+        assert np.allclose(p_test.x[ii], p_ref.x[ii], rtol=0, atol=5e-9)
+        assert np.allclose(p_test.px[ii], p_ref.px[ii], rtol=0, atol=2e-9)
+        assert np.allclose(p_test.y[ii], p_ref.y[ii], rtol=0, atol=5e-9)
+        assert np.allclose(p_test.py[ii], p_ref.py[ii], rtol=0, atol=2e-9)
+        assert np.allclose(p_test.zeta[ii], p_ref.zeta[ii], rtol=0, atol=1e-11)
+        assert np.allclose(p_test.ptau[ii], p_ref.ptau[ii], atol=1e-11, rtol=0)
+
+        # part = p0.copy(_context=test_context)
+        # line_core_only.track(part)
+        # line_core_only.track(part, backtrack=True)
+        # part.move(_context=xo.context_default)
+        # assert np.allclose(part.x[ii], p0.x[ii], atol=1e-11, rtol=0)
+        # assert np.allclose(part.px[ii], p0.px[ii], atol=1e-11, rtol=0)
+        # assert np.allclose(part.y[ii], p0.y[ii], atol=1e-11, rtol=0)
+        # assert np.allclose(part.py[ii], p0.py[ii], atol=1e-11, rtol=0)
+        # assert np.allclose(part.zeta[ii], p0.zeta[ii], atol=1e-11, rtol=0)
+        # assert np.allclose(part.ptau[ii], p0.ptau[ii], atol=1e-11, rtol=0)
+
+
+
+
+
+
+
+
+
 def test_thick_bend_survey():
     circumference = 10
     rho = circumference / (2 * np.pi)
