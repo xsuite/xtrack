@@ -15,3 +15,4 @@ line.particle_ref = xt.Particles(mass0=mad.sequence.lhcb1.beam.mass*1e9,
                                     q0=mad.sequence.lhcb1.beam.charge,
                                     gamma0=mad.sequence.lhcb1.beam.gamma)
 
+tw = line.twiss(method='4d')

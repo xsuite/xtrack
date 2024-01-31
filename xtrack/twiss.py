@@ -587,8 +587,7 @@ def twiss_line(line, particle_ref=None, method=None,
             use_full_inverse=use_full_inverse,
             nemitt_x=nemitt_x,
             nemitt_y=nemitt_y,
-            mux=twiss_res._data.get('mux', None),
-            muy=twiss_res._data.get('muy', None),
+            on_momentum_twiss_res=twiss_res,
             r_sigma=r_sigma,
             delta_disp=delta_disp,
             zeta_disp=zeta_disp,
@@ -1149,7 +1148,7 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                     method='6d', use_full_inverse=False,
                     nemitt_x=None, nemitt_y=None,
                     r_sigma=1e-3, delta_disp=1e-3, zeta_disp=1e-3,
-                    mux=None, muy=None,
+                    on_momentum_twiss_res=None,
                     start=None, end=None,
                     hide_thin_groups=False,
                     group_compound_elements=False,
@@ -1260,7 +1259,9 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
     dqx = dmux[-1]
     dqy = dmuy[-1]
 
-    if mux is not None and muy is not None:
+    if on_momentum_twiss_res is not None:
+        mux = on_momentum_twiss_res.mux
+        muy = on_momentum_twiss_res.muy
         ddqx = (tw_chrom_res[1].mux[-1] - 2 * mux[-1] + tw_chrom_res[0].mux[-1]
                 ) / delta_chrom**2
         ddqy = (tw_chrom_res[1].muy[-1] - 2 * muy[-1] + tw_chrom_res[0].muy[-1]
