@@ -151,7 +151,7 @@ def test_combined_function_dipole_expanded(test_context):
 
     # Check backtrack
     line_thick.configure_bend_model(core='expanded')
-    p_test.move(_context=xo.context_default)
+    p_test.move(_context=test_context)
     line_thick.track(p_test, backtrack=True)
     p_test.move(_context=xo.context_default)
 
