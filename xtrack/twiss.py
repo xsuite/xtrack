@@ -1198,8 +1198,6 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
             dalfx_dpzeta = ax_chrom + bx_chrom * alfx
             dalfy_dpzeta = ay_chrom + by_chrom * alfy
 
-            import pdb; pdb.set_trace()
-
             tw_init_chrom.particle_on_co.x += dx * dd + 1/2 * ddx * dd**2
             tw_init_chrom.particle_on_co.px += dpx * dd + 1/2 * ddpx * dd**2
             tw_init_chrom.particle_on_co.y += dy * dd + 1/2 * ddy * dd**2

@@ -100,6 +100,11 @@ void Solenoid_thick_track_single_particle(
 ) {
     const double sk = ks / 2;  // todo?: flip sign to change beam direction
 
+    #ifdef XSUITE_BACKTRACK
+        length = -length;
+    #endif
+
+
     if (IS_ZERO(sk)) {
         Drift_single_particle(part, length);
         return;

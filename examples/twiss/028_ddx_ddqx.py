@@ -12,6 +12,11 @@ tw_chr = mad.twiss(chrom=True)
 
 line = xt.Line.from_madx_sequence(mad.sequence.lhcb1, deferred_expressions=True)
 
+# tt = line.get_table()
+# tt_sol = tt.rows[tt.element_type == 'Solenoid']
+# for nn in tt_sol.name:
+#     line.element_dict[nn] = xt.Drift(length=line[nn].length)
+
 line.particle_ref = xt.Particles(mass0=mad.sequence.lhcb1.beam.mass*1e9,
                                     q0=mad.sequence.lhcb1.beam.charge,
                                     gamma0=mad.sequence.lhcb1.beam.gamma)
@@ -31,13 +36,26 @@ tw_fw = line.twiss(start='ip4', end='ip6', init_at='ip4',
               ddpx=tw['ddpx', 'ip4'], ddpy=tw['ddpy', 'ip4'],
               compute_chromatic_properties=True)
 
+tw_bw = line.twiss(start='ip4', end='ip6', init_at='ip6',
+              x=tw['x', 'ip6'], px=tw['px', 'ip6'],
+              y=tw['y', 'ip6'], py=tw['py', 'ip6'],
+              betx=tw['betx', 'ip6'], bety=tw['bety', 'ip6'],
+              alfx=tw['alfx', 'ip6'], alfy=tw['alfy', 'ip6'],
+              dx=tw['dx', 'ip6'], dpx=tw['dpx', 'ip6'],
+              dy=tw['dy', 'ip6'], dpy=tw['dpy', 'ip6'],
+              ddx=tw['ddx', 'ip6'], ddy=tw['ddy', 'ip6'],
+              ddpx=tw['ddpx', 'ip6'], ddpy=tw['ddpy', 'ip6'],
+              compute_chromatic_properties=True)
+
+
 
 import matplotlib.pyplot as plt
 plt.figure(1)
 ax1 = plt.subplot(4, 1, 1)
-plt.plot(tw.s, tw.ddx / 2)
-plt.plot(tw_chr.s, tw_chr.ddx)
-# plt.plot(tw_fw.s, tw_fw.ddx)
+plt.plot(tw.s, tw.ddx)
+plt.plot(tw_chr.s, 2 * tw_chr.ddx) # in MAD-X ddx = 0.5 d2x/ddelta2
+plt.plot(tw_fw.s, tw_fw.ddx, '.')
+plt.plot(tw_bw.s, tw_bw.ddx, '-')
 plt.ylabel('ddx')
 plt.subplot(4, 1, 2, sharex=ax1)
 plt.plot(tw.s, tw.ddy / 2)
