@@ -413,14 +413,14 @@ def twiss_line(line, particle_ref=None, method=None,
         init_at = None
 
     init = _complete_twiss_init(
-        start, end, init_at, init,
-        line, reverse,
-        x, px, y, py, zeta, delta,
-        alfx, alfy, betx, bety, bets,
-        dx, dpx, dy, dpy, dzeta,
-        mux, muy, muzeta,
-        ax_chrom, bx_chrom, ay_chrom, by_chrom,
-        ddx, ddpx, ddy, ddpy,
+        start=start, end=end, init_at=init_at, init=init,
+        line=line, reverse=reverse,
+        x=x, px=px, y=y, py=py, zeta=zeta, delta=delta,
+        alfx=alfx, alfy=alfy, betx=betx, bety=bety, bets=bets,
+        dx=dx, dpx=dpx, dy=dy, dpy=dpy, dzeta=dzeta,
+        mux=mux, muy=muy, muzeta=muzeta,
+        ax_chrom=ax_chrom, bx_chrom=bx_chrom, ay_chrom=ay_chrom, by_chrom=by_chrom,
+        ddx=ddx, ddpx=ddpx, ddy=ddy, ddpy=ddpy,
         )
 
     # clean quantities embedded in init
@@ -1198,10 +1198,13 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
             dalfx_dpzeta = ax_chrom + bx_chrom * alfx
             dalfy_dpzeta = ay_chrom + by_chrom * alfy
 
+            import pdb; pdb.set_trace()
+
             tw_init_chrom.particle_on_co.x += dx * dd + 1/2 * ddx * dd**2
             tw_init_chrom.particle_on_co.px += dpx * dd + 1/2 * ddpx * dd**2
             tw_init_chrom.particle_on_co.y += dy * dd + 1/2 * ddy * dd**2
             tw_init_chrom.particle_on_co.py += dpy * dd + 1/2 * ddpy * dd**2
+            tw_init_chrom.particle_on_co.delta += dd
 
             twinit_aux = TwissInit(
                 alfx=alfx + dalfx_dpzeta * dd,
@@ -1281,7 +1284,6 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                 ) / delta_chrom**2
         ddqy = (tw_chrom_res[1].muy[-1] - 2 * muy[-1] + tw_chrom_res[0].muy[-1]
                 ) / delta_chrom**2
-        __import__("IPython").embed()
         ddx = (tw_chrom_res[1].x - 2 * x + tw_chrom_res[0].x) / delta_chrom**2
         ddpx = (tw_chrom_res[1].px - 2 * px + tw_chrom_res[0].px) / delta_chrom**2
         ddy = (tw_chrom_res[1].y - 2 * y + tw_chrom_res[0].y) / delta_chrom**2
@@ -3081,7 +3083,7 @@ def _complete_twiss_init(start, end, init_at, init,
                         dx, dpx, dy, dpy, dzeta,
                         mux, muy, muzeta,
                         ax_chrom, bx_chrom, ay_chrom, by_chrom,
-                        ddpx, ddx, ddpy, ddy
+                        ddx, ddpx, ddy, ddpy
                         ):
 
     if start is not None or end is not None:
