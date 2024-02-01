@@ -3,19 +3,21 @@ from cpymad.madx import Madx
 import xtrack as xt
 
 mad = Madx()
+
+
 mad.call('../../test_data/hllhc15_thick/lhc.seq')
 mad.call('../../test_data/hllhc15_thick/hllhc_sequence.madx')
 mad.call('../../test_data/hllhc15_thick/opt_round_150_1500.madx')
+
+# mad.call('../../test_data/hllhc14_no_errors_with_coupling_knobs/lhcb1_seq.madx')
+
 mad.input('beam, sequence=lhcb1, particle=proton, pc=7000;')
 mad.use(sequence='lhcb1')
 mad.globals['on_x5'] = 300
 tw_chr = mad.twiss(chrom=True)
-
 twm = xt.Table(tw_chr)
 
 line = xt.Line.from_madx_sequence(mad.sequence.lhcb1, deferred_expressions=True)
-line.config.XTRACK_USE_EXACT_DRIFTS = True
-line.configure_bend_model(core='expanded', edge='linear')
 
 # tt = line.get_table()
 # tt_sol = tt.rows[tt.element_type == 'Solenoid']
@@ -66,18 +68,44 @@ tw_fw_mad = line.twiss(start='ip4', end='ip6', init_at='ip4',
 ddy_mad = np.interp(tw_fw.s, twm.s, twm.ddy)
 ddx_mad = np.interp(tw_fw.s, twm.s, twm.ddx)
 
-nlchr = line.get_non_linear_chromaticity(delta0_range=(-1e-3, 1e-3),
+nlchr = line.get_non_linear_chromaticity(delta0_range=(-1e-4, 1e-4),
                                         num_delta=21, fit_order=1, method='4d')
 
 tw_mad = []
 for dd in nlchr.delta0:
     mad.input(f'twiss, deltap={dd};')
-    tw_mad.append(mad.table.twiss.dframe())
+    df = mad.table.twiss.dframe()
+    tw_mad.append(xt.Table({kk: df[kk].values for kk in df.columns}))
 
-x_mad = np.array([tw.x[0] for tw in tw_mad])
-y_mad = np.array([tw.y[0] for tw in tw_mad])
-x_xs = np.array([tw.x[0] for tw in nlchr.twiss])
-y_xs = np.array([tw.y[0] for tw in nlchr.twiss])
+location = 'ip3'
+
+x_mad = np.array([tt['x', location + ':1'] for tt in tw_mad])
+y_mad = np.array([tt['y', location + ':1'] for tt in tw_mad])
+x_xs = np.array([tt['x', location] for tt in nlchr.twiss])
+y_xs = np.array([tt['y', location] for tt in nlchr.twiss])
+delta = np.array([tt['delta', location] for tt in nlchr.twiss])
+
+pmad_x = np.polyfit(delta, x_mad, 3)
+pmad_y = np.polyfit(delta, y_mad, 3)
+
+pxs_x = np.polyfit(delta, x_xs, 3)
+pxs_y = np.polyfit(delta, y_xs, 3)
+
+assert np.allclose(delta, nlchr.delta0, atol=1e-6, rtol=0)
+assert np.allclose(tw['dx', location], pxs_x[-2], atol=0, rtol=1e-4)
+assert np.allclose(tw['dy', location], pxs_y[-2], atol=0, rtol=1e-4)
+assert np.allclose(tw['ddx', location], 2*pxs_x[-3], atol=0, rtol=1e-4)
+assert np.allclose(tw['ddy', location], 2*pxs_y[-3], atol=0, rtol=1e-4)
+
+tw_part = tw.rows['ip4':'ip6']
+assert np.allclose(tw_part['ddx'], tw_fw.rows[:-1]['ddx'], atol=1e-2, rtol=0)
+assert np.allclose(tw_part['ddy'], tw_fw.rows[:-1]['ddy'], atol=1e-2, rtol=0)
+assert np.allclose(tw_part['ddpx'], tw_fw.rows[:-1]['ddpx'], atol=1e-3, rtol=0)
+assert np.allclose(tw_part['ddpy'], tw_fw.rows[:-1]['ddpy'], atol=1e-3, rtol=0)
+assert np.allclose(tw_part['dx'], tw_bw.rows[:-1]['dx'], atol=1e-2, rtol=0)
+assert np.allclose(tw_part['dy'], tw_bw.rows[:-1]['dy'], atol=1e-2, rtol=0)
+assert np.allclose(tw_part['dpx'], tw_bw.rows[:-1]['dpx'], atol=1e-3, rtol=0)
+assert np.allclose(tw_part['dpy'], tw_bw.rows[:-1]['dpy'], atol=1e-3, rtol=0)
 
 import matplotlib.pyplot as plt
 plt.figure(1)
@@ -118,5 +146,8 @@ plt.plot(nlchr.delta0*1e3, y_mad, label='madx')
 plt.ylabel('y')
 plt.legend()
 plt.xlabel(r'$\delta$ [1e-3]')
+
+
+
 
 plt.show()
