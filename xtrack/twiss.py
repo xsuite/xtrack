@@ -1164,7 +1164,15 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
         tw_init_chrom  = init.copy()
 
         if periodic:
-            part_chrom = line.find_closed_orbit(delta0=dd)
+            part_guess = xp.build_particles(
+                _context=line._context,
+                x_norm=0,
+                zeta=tw_init_chrom.zeta,
+                delta=tw_init_chrom.delta+ dd,
+                particle_on_co=on_momentum_twiss_res.particle_on_co.copy(),
+                nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                W_matrix=tw_init_chrom.W_matrix)
+            part_chrom = line.find_closed_orbit(delta0=dd, co_guess=part_guess)
             tw_init_chrom.particle_on_co = part_chrom
             RR_chrom = line.compute_one_turn_matrix_finite_differences(
                                         particle_on_co=tw_init_chrom.particle_on_co.copy(),
