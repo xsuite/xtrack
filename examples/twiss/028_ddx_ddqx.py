@@ -69,7 +69,7 @@ ddy_mad = np.interp(tw_fw.s, twm.s, twm.ddy)
 ddx_mad = np.interp(tw_fw.s, twm.s, twm.ddx)
 
 nlchr = line.get_non_linear_chromaticity(delta0_range=(-1e-4, 1e-4),
-                                        num_delta=21, fit_order=1, method='4d')
+                                        num_delta=21, fit_order=2, method='4d')
 
 tw_mad = []
 for dd in nlchr.delta0:
@@ -114,9 +114,14 @@ assert np.allclose(tw['ddpx', location], 2*pxs_px[-3], atol=0, rtol=1e-4)
 assert np.allclose(tw['ddy', location], 2*pxs_y[-3], atol=0, rtol=1e-4)
 assert np.allclose(tw['ddpy', location], 2*pxs_py[-3], atol=0, rtol=1e-4)
 assert np.isclose(tw['dqx'], pxs_qx[-2], atol=0, rtol=1e-3)
-assert np.isclose(tw['dqy'], pxs_qy[-2], atol=0, rtol=1e-3)
 assert np.isclose(tw['ddqx'], pxs_qx[-3]*2, atol=0, rtol=1e-4)
+assert np.isclose(tw['dqy'], pxs_qy[-2], atol=0, rtol=1e-3)
 assert np.isclose(tw['ddqy'], pxs_qy[-3]*2, atol=0, rtol=1e-4)
+
+assert np.isclose(nlchr['dqx'], pxs_qx[-2], atol=0, rtol=2e-3)
+assert np.isclose(nlchr['dqy'], pxs_qy[-2], atol=0, rtol=2e-3)
+assert np.isclose(nlchr['ddqx'], pxs_qx[-3]*2, atol=0, rtol=1e-4)
+assert np.isclose(nlchr['ddqy'], pxs_qy[-3]*2, atol=0, rtol=1e-4)
 
 tw_part = tw.rows['ip4':'ip6']
 assert np.allclose(tw_part['ddx'], tw_fw.rows[:-1]['ddx'], atol=1e-2, rtol=0)
