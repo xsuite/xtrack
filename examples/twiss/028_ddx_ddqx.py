@@ -7,7 +7,7 @@ mad.call('../../test_data/hllhc15_thick/hllhc_sequence.madx')
 mad.call('../../test_data/hllhc15_thick/opt_round_150_1500.madx')
 mad.input('beam, sequence=lhcb1, particle=proton, pc=7000;')
 mad.use(sequence='lhcb1')
-mad.globals['on_x5'] = 100
+mad.globals['on_x5'] = 3000
 tw_chr = mad.twiss(chrom=True)
 
 line = xt.Line.from_madx_sequence(mad.sequence.lhcb1, deferred_expressions=True)
@@ -24,7 +24,6 @@ line.particle_ref = xt.Particles(mass0=mad.sequence.lhcb1.beam.mass*1e9,
 tw = line.twiss(method='4d')
 nlchr = line.get_non_linear_chromaticity(delta0_range=(-1e-4, 1e-4),
                                         num_delta=2, fit_order=1, method='4d')
-import pdb; pdb.set_trace()
 tw_fw = line.twiss(start='ip4', end='ip6', init_at='ip4',
               x=tw['x', 'ip4'], px=tw['px', 'ip4'],
               y=tw['y', 'ip4'], py=tw['py', 'ip4'],
@@ -58,16 +57,22 @@ plt.plot(tw_fw.s, tw_fw.ddx, '.')
 plt.plot(tw_bw.s, tw_bw.ddx, '-')
 plt.ylabel('ddx')
 plt.subplot(4, 1, 2, sharex=ax1)
-plt.plot(tw.s, tw.ddy / 2)
-plt.plot(tw_chr.s, tw_chr.ddy)
+plt.plot(tw.s, tw.ddy)
+plt.plot(tw_chr.s, tw_chr.ddy * 2)
+plt.plot(tw_fw.s, tw_fw.ddy, '.')
+plt.plot(tw_bw.s, tw_bw.ddy, '-')
 plt.ylabel('ddy')
 plt.subplot(4, 1, 3, sharex=ax1)
-plt.plot(tw.s, tw.ddpx / 2)
-plt.plot(tw_chr.s, tw_chr.ddpx)
+plt.plot(tw.s, tw.ddpx)
+plt.plot(tw_chr.s, tw_chr.ddpx * 2)
+plt.plot(tw_fw.s, tw_fw.ddpx, '.')
+plt.plot(tw_bw.s, tw_bw.ddpx, '-')
 plt.ylabel('ddpx')
 plt.subplot(4, 1, 4, sharex=ax1)
-plt.plot(tw.s, tw.ddpy / 2)
-plt.plot(tw_chr.s, tw_chr.ddpy)
+plt.plot(tw.s, tw.ddpy)
+plt.plot(tw_chr.s, tw_chr.ddpy * 2)
+plt.plot(tw_fw.s, tw_fw.ddpy, '.')
+plt.plot(tw_bw.s, tw_bw.ddpy, '-')
 plt.ylabel('ddpy')
 
 plt.show()
