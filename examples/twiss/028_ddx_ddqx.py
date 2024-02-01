@@ -88,6 +88,8 @@ x_xs = np.array([tt['x', location] for tt in nlchr.twiss])
 px_xs = np.array([tt['px', location] for tt in nlchr.twiss])
 y_xs = np.array([tt['y', location] for tt in nlchr.twiss])
 py_xs = np.array([tt['py', location] for tt in nlchr.twiss])
+qx_xs = np.array([tt['qx'] for tt in nlchr.twiss])
+qy_xs = np.array([tt['qy'] for tt in nlchr.twiss])
 delta = np.array([tt['delta', location] for tt in nlchr.twiss])
 
 pmad_x = np.polyfit(delta, x_mad, 3)
@@ -99,6 +101,8 @@ pxs_x = np.polyfit(delta, x_xs, 3)
 pxs_px = np.polyfit(delta, px_xs, 3)
 pxs_y = np.polyfit(delta, y_xs, 3)
 pxs_py = np.polyfit(delta, py_xs, 3)
+pxs_qx = np.polyfit(delta, qx_xs, 3)
+pxs_qy = np.polyfit(delta, qy_xs, 3)
 
 assert np.allclose(delta, nlchr.delta0, atol=1e-6, rtol=0)
 assert np.allclose(tw['dx', location], pxs_x[-2], atol=0, rtol=1e-4)
@@ -109,6 +113,10 @@ assert np.allclose(tw['ddx', location], 2*pxs_x[-3], atol=0, rtol=1e-4)
 assert np.allclose(tw['ddpx', location], 2*pxs_px[-3], atol=0, rtol=1e-4)
 assert np.allclose(tw['ddy', location], 2*pxs_y[-3], atol=0, rtol=1e-4)
 assert np.allclose(tw['ddpy', location], 2*pxs_py[-3], atol=0, rtol=1e-4)
+assert np.isclose(tw['dqx'], pxs_qx[-2], atol=0, rtol=1e-3)
+assert np.isclose(tw['dqy'], pxs_qy[-2], atol=0, rtol=1e-3)
+assert np.isclose(tw['ddqx'], pxs_qx[-3]*2, atol=0, rtol=1e-4)
+assert np.isclose(tw['ddqy'], pxs_qy[-3]*2, atol=0, rtol=1e-4)
 
 tw_part = tw.rows['ip4':'ip6']
 assert np.allclose(tw_part['ddx'], tw_fw.rows[:-1]['ddx'], atol=1e-2, rtol=0)
@@ -119,6 +127,7 @@ assert np.allclose(tw_part['dx'], tw_bw.rows[:-1]['dx'], atol=1e-2, rtol=0)
 assert np.allclose(tw_part['dy'], tw_bw.rows[:-1]['dy'], atol=1e-2, rtol=0)
 assert np.allclose(tw_part['dpx'], tw_bw.rows[:-1]['dpx'], atol=1e-3, rtol=0)
 assert np.allclose(tw_part['dpy'], tw_bw.rows[:-1]['dpy'], atol=1e-3, rtol=0)
+
 
 import matplotlib.pyplot as plt
 plt.figure(1)
