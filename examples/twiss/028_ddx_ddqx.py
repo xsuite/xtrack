@@ -80,16 +80,25 @@ for dd in nlchr.delta0:
 location = 'ip3'
 
 x_mad = np.array([tt['x', location + ':1'] for tt in tw_mad])
+px_mad = np.array([tt['px', location + ':1'] for tt in tw_mad])
 y_mad = np.array([tt['y', location + ':1'] for tt in tw_mad])
+py_mad = np.array([tt['py', location + ':1'] for tt in tw_mad])
+
 x_xs = np.array([tt['x', location] for tt in nlchr.twiss])
+px_xs = np.array([tt['px', location] for tt in nlchr.twiss])
 y_xs = np.array([tt['y', location] for tt in nlchr.twiss])
+py_xs = np.array([tt['py', location] for tt in nlchr.twiss])
 delta = np.array([tt['delta', location] for tt in nlchr.twiss])
 
 pmad_x = np.polyfit(delta, x_mad, 3)
+pmad_px = np.polyfit(delta, px_mad, 3)
 pmad_y = np.polyfit(delta, y_mad, 3)
+pmad_py = np.polyfit(delta, py_mad, 3)
 
 pxs_x = np.polyfit(delta, x_xs, 3)
+pxs_px = np.polyfit(delta, px_xs, 3)
 pxs_y = np.polyfit(delta, y_xs, 3)
+pxs_py = np.polyfit(delta, py_xs, 3)
 
 assert np.allclose(delta, nlchr.delta0, atol=1e-6, rtol=0)
 assert np.allclose(tw['dx', location], pxs_x[-2], atol=0, rtol=1e-4)
