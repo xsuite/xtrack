@@ -102,9 +102,13 @@ pxs_py = np.polyfit(delta, py_xs, 3)
 
 assert np.allclose(delta, nlchr.delta0, atol=1e-6, rtol=0)
 assert np.allclose(tw['dx', location], pxs_x[-2], atol=0, rtol=1e-4)
+assert np.allclose(tw['dpx', location], pxs_px[-2], atol=0, rtol=1e-4)
 assert np.allclose(tw['dy', location], pxs_y[-2], atol=0, rtol=1e-4)
+assert np.allclose(tw['dpy', location], pxs_py[-2], atol=0, rtol=1e-4)
 assert np.allclose(tw['ddx', location], 2*pxs_x[-3], atol=0, rtol=1e-4)
+assert np.allclose(tw['ddpx', location], 2*pxs_px[-3], atol=0, rtol=1e-4)
 assert np.allclose(tw['ddy', location], 2*pxs_y[-3], atol=0, rtol=1e-4)
+assert np.allclose(tw['ddpy', location], 2*pxs_py[-3], atol=0, rtol=1e-4)
 
 tw_part = tw.rows['ip4':'ip6']
 assert np.allclose(tw_part['ddx'], tw_fw.rows[:-1]['ddx'], atol=1e-2, rtol=0)
