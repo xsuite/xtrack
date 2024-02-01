@@ -42,7 +42,6 @@ ONLY_XTRACK_ELEMENTS = [
     SimpleThinBend,
     SimpleThinQuadrupole,
     LineSegmentMap,
-    LinearTransferMatrix,
     NonLinearLens,
     LimitEllipse,
     LimitRectEllipse,
@@ -55,7 +54,6 @@ NO_SYNRAD_ELEMENTS = [
     Bend,
     Quadrupole,
     Sextupole,
-    CombinedFunctionMagnet,
     Solenoid,
 ]
 

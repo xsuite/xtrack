@@ -7,7 +7,6 @@ import time                          #!skip-doc
 import numpy as np
 
 import xtrack as xt
-import xpart as xp
 
 ######################################
 # Create a dummy collimation process #
@@ -101,7 +100,7 @@ line.config.XTRACK_GLOBAL_XY_LIMIT = 1e3
 
 # We prepare empty slots to store the product particles that will be
 # generated during the tracking.
-particles = xp.Particles(
+particles = xt.Particles(
         _capacity=200000,
         x=np.zeros(100000))
 

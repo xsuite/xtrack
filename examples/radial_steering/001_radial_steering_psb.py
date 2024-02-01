@@ -4,12 +4,10 @@
 # ######################################### #
 
 import xtrack as xt
-import xpart as xp
-
 
 line = xt.Line.from_json(
     '../../test_data/psb_injection/line_and_particle.json')
-line.particle_ref = xp.Particles(mass0=(xp.PROTON_MASS_EV), q0=1, energy0=(2*160.+938.)*1.e6)
+line.particle_ref = xt.Particles(mass0=(xt.PROTON_MASS_EV), q0=1, energy0=(2*160.+938.)*1.e6)
 line.build_tracker()
 
 df_hz = 180 # Frequency trim
@@ -37,7 +35,7 @@ line.build_tracker()
 tw_6d_offmom = line.twiss()
 
 print(f'delta closed orbit: {tw_6d_offmom.delta[0]:.3e}')
-# prints: delta closed orbit: -1.288e-03
+# prints: delta closed orbit: 2.848e-04
 
 # Checks
 import numpy as np

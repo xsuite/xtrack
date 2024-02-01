@@ -2,8 +2,6 @@ import numpy as np
 from cpymad.madx import Madx
 
 import xtrack as xt
-import xpart as xp
-import xdeps as xd
 
 import matplotlib.pyplot as plt
 
@@ -38,7 +36,7 @@ line = xt.Line.from_madx_sequence(mad.sequence.psb1,
                                 allow_thick=True,
                                 enable_align_errors=True,
                                 deferred_expressions=True)
-line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV,
+line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV,
                             gamma0=mad.sequence.psb1.beam.gamma)
 line.configure_bend_model(core='full')
 line.twiss_default['method'] = '4d'
@@ -71,7 +69,7 @@ assert 'bi1.bsw1l1.2_exit' not in tw_comp.name
 assert tw_comp['name', -2] == tw['name', -2] == 'psb1$end'
 assert tw_comp['name', -1] == tw['name', -1] == '_end_point'
 
-assert np.isclose(tw_comp['px', 'br1.dhz16l1'],
+assert np.isclose(tw_comp['px', 'br1.dhz16l1_entry'],
                   tw['px', 'br1.dhz16l1'], rtol=0, atol=1e-15)
 
 assert np.allclose(tw_comp['W_matrix', 'bi1.bsw1l1.2_entry'],
@@ -86,12 +84,12 @@ assert np.isclose(tw_init_comp.mux, tw_init.mux, rtol=0, atol=1e-15)
 assert np.isclose(tw_init_comp.x, tw_init.x, rtol=0, atol=1e-15)
 
 tw_comp_local = line.twiss(group_compound_elements=True,
-                           twiss_init=tw_init_comp,
-                           ele_start='bi1.ksw16l1_entry',
-                           ele_stop='br.stscrap161')
-tw_local = line.twiss(twiss_init=tw_init,
-                        ele_start='bi1.ksw16l1_entry',
-                        ele_stop='br.stscrap161')
+                           init=tw_init_comp,
+                           start='bi1.ksw16l1_entry',
+                           end='br.stscrap161_entry')
+tw_local = line.twiss(init=tw_init,
+                        start='bi1.ksw16l1_entry',
+                        end='br.stscrap161_entry')
 
 for nn in tw_local._col_names:
     assert len(tw_local[nn]) == len(tw_local['name'])
@@ -109,10 +107,10 @@ assert 'br.bhz161' not in tw_comp_local.name
 assert 'br.bhz161_dex' not in tw_comp_local.name
 assert 'br.bhz161_exit' not in tw_comp_local.name
 
-assert tw_comp_local['name', -2] == tw_local['name', -2] == 'br.stscrap161'
+assert tw_comp_local['name', -2] == tw_local['name', -2] == 'br.stscrap161_entry'
 assert tw_comp_local['name', -1] == tw_local['name', -1] == '_end_point'
 
-assert np.isclose(tw_comp_local['px', 'br1.dhz16l1'],
+assert np.isclose(tw_comp_local['px', 'br1.dhz16l1_entry'],
                   tw_local['px', 'br1.dhz16l1'], rtol=0, atol=1e-15)
 
 

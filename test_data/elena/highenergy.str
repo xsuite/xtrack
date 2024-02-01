@@ -1,0 +1,47 @@
+! Values presently used in the machine, or at least in the 
+! 
+! Davide - Sep 2021
+
+! Desired transverse optics values
+desiredQH  = 2.37;
+desiredQV  = 1.4;
+desiredDEC = 1;
+
+!!!! Actual implemented strengths !!!!!!!
+
+! Quads !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+LNR_KQ1 =  2.7423;
+LNR_KQ2 = -1.9514;
+LNR_KQ3 =  0.6381;
+! To be compared with values taken from possibleOptics.str
+!!! Qx=2.37,Qy=1.39, gap=76mm, E1=E2=Pi*17/180, FINT=0.424, Lbm=0.927m
+!!!  betx=1.80m, bety=2.55m, Dx=1.0m, betx(max)=13.8m, bety(max)=4.6m
+!KQ1:= 2.89408e+00;
+!KQ2:= -1.98930e+00;
+!KQ3:=  7.11227e-01;
+
+! Simple on/off switch to enable additional effects like coupling and kicks from thoroids...
+enable_nonlin = 0;
+
+! Skew quads: !!!!!!!!!!!!!!!!!!!!!!!!!!!
+LNR_KSQ1 =  0.065 * enable_nonlin;
+LNR_KSQ2 = -0.08  * enable_nonlin;
+
+! Sextupoles: !!!!!!!!!!!!!!!!!!!!!!!!!!!
+LNR_KSF = 3  * enable_nonlin;
+LNR_KSD = 0  * enable_nonlin;
+
+! E-cooler !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! EC Solenoid: !!!!!!!!!!!!!!!!!!!!!!!!!!
+! Powered at 40 A; nominal 41.35 for 100 Gauss; Here modelled to be 1.3 m long
+LNR_KMSOL  := 40 * 0.01/41.35 * 1/(3.3356*beam_p_GeV_c) * enable_nonlin;
+!
+! Compensation Solenoids: !!!!!!!!!!!!!!!
+!  In principle powered such to compensate the integrated strength of the EC solenoid
+!    Now Powered at 11.54 A; modelled as 0.360 m long; Nominal 0.0225 Tm for 0.336 m Lm for 42 A;
+!    Seems to be more or less reasonable
+LNR_KSCOMP := 11.54 * (1/0.360) * (0.0225/42) * 1/(3.3356*beam_p_GeV_c) * enable_nonlin;
+
+! Kick from thoroids !!!!!!!!!!!!!!
+! 1.25 mTm for 28 A; powered indeed at 28A
+LNR_Tkick  := 28 * 1.25e-3/28 * 1/(3.3356*beam_p_GeV_c) * enable_nonlin;

@@ -2,7 +2,6 @@ import json
 
 import numpy as np
 import xtrack as xt
-import xobjects as xo
 
 with open('../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json',
             'r') as fid:
@@ -15,9 +14,9 @@ tw_before = line.twiss()
 
 line.match(
     # Portion of the beam line to be modified and initial conditions
-    ele_start='mq.33l8.b1',
-    ele_stop='mq.23l8.b1',
-    twiss_init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
+    start='mq.33l8.b1',
+    end='mq.23l8.b1',
+    init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
     # Dipole corrector strengths to be varied
     vary=[
         xt.Vary(name='acbv30.l8b1', step=1e-10),
@@ -86,9 +85,9 @@ line.vars['acbv26.l8b1'] = 0
 line.vars['acbv24.l8b1'] = 0
 
 line.match(
-    ele_start='mq.33l8.b1',
-    ele_stop='mq.23l8.b1',
-    twiss_init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
+    start='mq.33l8.b1',
+    end='mq.23l8.b1',
+    init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
     vary=[
         xt.Vary(name='acbv30.l8b1', step=1e-10),
         xt.Vary(name='acbv28.l8b1', step=1e-10),

@@ -10,7 +10,6 @@ from cpymad.madx import Madx
 
 import xtrack as xt
 import xpart as xp
-import xobjects as xo
 
 # Import a thick sequence
 mad = Madx()
@@ -29,8 +28,8 @@ mad.use('ring')
 # Build xtrack line
 print('Build xtrack line...')
 line = xt.Line.from_madx_sequence(mad.sequence['RING'])
-line.particle_ref = xp.Particles(
-        mass0=xp.ELECTRON_MASS_EV,
+line.particle_ref = xt.Particles(
+        mass0=xt.ELECTRON_MASS_EV,
         q0=-1,
         gamma0=mad.sequence.ring.beam.gamma)
 

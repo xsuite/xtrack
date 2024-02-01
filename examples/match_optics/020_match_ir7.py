@@ -1,7 +1,6 @@
 import time
 
 import xtrack as xt
-import xpart as xp
 
 from cpymad.madx import Madx
 
@@ -10,7 +9,7 @@ from cpymad.madx import Madx
 # Load the line
 line = xt.Line.from_json(
     '../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
-line.particle_ref = xp.Particles(p0c=7e12, mass=xp.PROTON_MASS_EV)
+line.particle_ref = xt.Particles(p0c=7e12, mass=xt.PROTON_MASS_EV)
 collider = xt.Multiline(lines={'lhcb1': line})
 collider.build_trackers()
 collider.vars.cache_active = True
@@ -94,12 +93,12 @@ for i_repeat in range(1):
         collider.vars[nn]= vv
 
     t_start = time.perf_counter()
+    tw0 = collider.twiss()
     opt = collider.match(
         solve=False,
-        ele_start=ele_start_match,
-        ele_stop=ele_end_match,
-        table_for_twiss_init=[tw_ref],
-        twiss_init='preserve',
+        start=ele_start_match,
+        end=ele_end_match,
+        init=tw_ref, init_at=xt.START,
         targets=[
             xt.TargetList(
                 ('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'),
@@ -126,7 +125,7 @@ tw_after = collider.lhcb1.twiss()
 
 
 _err = opt._err
-x_final = match_res['res']
+x_final = opt.solver._xbest
 
 n_repeat_err_call = 100
 t0 = time.perf_counter()
@@ -159,9 +158,9 @@ ele_index_start = line.element_names.index(ele_start_match)
 ele_index_end = line.element_names.index(ele_end_match)
 
 ttt = collider.twiss(
-        ele_start=[ele_index_start],
-        ele_stop=[ele_index_end],
-        twiss_init=tw_init,
+        start=[ele_index_start],
+        end=[ele_index_end],
+        init=tw_init,
         _keep_initial_particles=True,
         _keep_tracking_data=True,
         )
@@ -170,9 +169,9 @@ n_repeat_twiss = 100
 t0 = time.perf_counter()
 for _ in range(n_repeat_twiss):
     collider.twiss(
-        ele_start=[ele_index_start],
-        ele_stop=[ele_index_end],
-        twiss_init=tw_init,
+        start=[ele_index_start],
+        end=[ele_index_end],
+        init=tw_init,
         _ebe_monitor=[ttt.lhcb1.tracking_data],
         _initial_particles=[ttt.lhcb1._initial_particles]
         )
@@ -185,8 +184,8 @@ t0 = time.perf_counter()
 for ii in range(n_repeat_tracking):
     collider.lhcb1.track(
         p_test[ii],
-        ele_start=ele_index_start,
-        ele_stop=ele_index_end,
+        start=ele_index_start,
+        end=ele_index_end,
         turn_by_turn_monitor=ttt.lhcb1.tracking_data
         )
 t1 = time.perf_counter()

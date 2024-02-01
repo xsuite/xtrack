@@ -1,7 +1,6 @@
 import time
 
 import xtrack as xt
-import xpart as xp
 import xobjects as xo
 
 ctx=xo.ContextCpu()
@@ -20,7 +19,7 @@ for step in range(1,20):
 
     elements=mkbend(1,0.1,step)
     line=xt.Line(elements,
-                 particle_ref=xp.Particles(mass0=xp.ELECTRON_MASS_EV,p0c=100e9,_context=ctx))
+                 particle_ref=xt.Particles(mass0=xt.ELECTRON_MASS_EV,p0c=100e9,_context=ctx))
     line.build_tracker(_context=ctx)
     line.configure_radiation(model='mean')
     pp=line.build_particles()
@@ -34,7 +33,7 @@ print(f"Time: {t2-t1}")
 
 elements=mkbend(1,0.1, 2)
 line=xt.Line(elements,
-                particle_ref=xp.Particles(mass0=xp.ELECTRON_MASS_EV,p0c=100e9,_context=ctx))
+                particle_ref=xt.Particles(mass0=xt.ELECTRON_MASS_EV,p0c=100e9,_context=ctx))
 line.build_tracker(_context=ctx)
 line.configure_radiation(model='mean')
 

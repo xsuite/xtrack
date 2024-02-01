@@ -26,13 +26,15 @@ from .compounds import CompoundContainer, CompoundType, Compound, SlicedCompound
 from .progress_indicator import progress
 from .slicing import Slicer
 
+
 from .survey import survey_from_line
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
                           find_closed_orbit_line, twiss_line,
                           compute_T_matrix_line,
+                          get_non_linear_chromaticity,
                           DEFAULT_MATRIX_STABILITY_TOL,
                           DEFAULT_MATRIX_RESPONSIVENESS_TOL)
-from .match import match_line, closed_orbit_correction, match_knob_line
+from .match import match_line, closed_orbit_correction, match_knob_line, Action
 from .tapering import compensate_radiation_energy_loss
 from .mad_loader import MadLoader
 from .beam_elements import element_classes
@@ -44,8 +46,7 @@ from .internal_record import (start_internal_logging_for_elements_of_type,
 
 from .general import _print
 
-# For xdeps compatibility
-isref = (xd.refs.isref if hasattr(xd.refs, 'isref') else xd.refs._isref)
+isref = xd.refs.is_ref
 
 log = logging.getLogger(__name__)
 
@@ -138,8 +139,7 @@ class Line:
         if energy_program is not None:
             self.energy_program = energy_program # setter will take care of completing
 
-        self._var_management = None
-        self._line_vars = None
+        self._init_var_management()
         self.tracker = None
 
         self.metadata = {}
@@ -429,7 +429,7 @@ class Line:
         replace_in_expr=None,
         classes=(),
         ignored_madtypes=(),
-        allow_thick=False,
+        allow_thick=None,
         use_compound_elements=True,
         name_prefix=None,
     ):
@@ -823,7 +823,26 @@ class Line:
         Parameters
         ----------
         slicing_strategies : list
-            List of slicing Strategy objects.
+            List of slicing Strategy objects. In case multiple strategies
+            apply to the same element, the last one takes precedence)
+
+        Examples
+        --------
+
+        .. code-block:: python
+
+            line.slice_thick_elements(
+                slicing_strategies=[
+                    # Slicing with thin elements
+                    xt.Strategy(slicing=xt.Teapot(1)), # (1) Default applied to all elements
+                    xt.Strategy(slicing=xt.Uniform(2), element_type=xt.Bend), # (2) Selection by element type
+                    xt.Strategy(slicing=xt.Teapot(3), element_type=xt.Quadrupole),  # (4) Selection by element type
+                    xt.Strategy(slicing=xt.Teapot(4), name='mb1.*'), # (5) Selection by name pattern
+                    # Slicing with thick elements
+                    xt.Strategy(slicing=xt.Uniform(2, mode='thick'), name='mqf.*'), # (6) Selection by name pattern
+                    # Do not slice (leave untouched)
+                    xt.Strategy(slicing=None, name='mqd.1') # (7) Selection by name
+            ])
 
         """
 
@@ -985,7 +1004,7 @@ class Line:
         values_at_element_exit=None,
         radiation_method=None,
         eneloss_and_damping=None,
-        ele_start=None, ele_stop=None, twiss_init=None,
+        start=None, end=None, init=None,
         num_turns=None,
         skip_global_quantities=None,
         matrix_responsiveness_tol=None,
@@ -1002,24 +1021,34 @@ class Line:
         compute_R_element_by_element=None,
         compute_lattice_functions=None,
         compute_chromatic_properties=None,
-        ele_init=None,
+        init_at=None,
         x=None, px=None, y=None, py=None, zeta=None, delta=None,
         betx=None, alfx=None, bety=None, alfy=None, bets=None,
         dx=None, dpx=None, dy=None, dpy=None, dzeta=None,
         mux=None, muy=None, muzeta=None,
         ax_chrom=None, bx_chrom=None, ay_chrom=None, by_chrom=None,
-        ele_co_search=None,
+        co_search_at=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,
         _initial_particles=None,
         _ebe_monitor=None,
+        ele_start='__discontinued__',
+        ele_stop='__discontinued__',
+        ele_init='__discontinued__',
+        twiss_init='__discontinued__'
         ):
 
         if not self._has_valid_tracker():
             self.build_tracker()
 
         tw_kwargs = locals().copy()
+
+        for old, new in zip(['ele_start', 'ele_stop', 'ele_init', 'twiss_init'],
+                            ['start', 'end', 'init_at', 'init']):
+            if tw_kwargs[old] != '__discontinued__':
+                raise ValueError(f'`{old}` is deprecated. Please use `{new}`.')
+            tw_kwargs.pop(old)
 
         for kk, vv in self.twiss_default.items():
             if kk not in tw_kwargs.keys() or tw_kwargs[kk] is None:
@@ -1030,10 +1059,12 @@ class Line:
 
     twiss.__doc__ = twiss_line.__doc__
 
-    def match(self, vary, targets, solve=True, restore_if_fail=True, solver=None,
-                  verbose=False, n_steps_max=20,
+    def match(self, vary, targets, solve=True, assert_within_tol=True,
                   compensate_radiation_energy_loss=False,
-                  **kwargs):
+                  solver_options={}, allow_twiss_failure=True,
+                  restore_if_fail=True, verbose=False,
+                  n_steps_max=20, default_tol=None,
+                  solver=None, **kwargs):
         '''
         Change a set of knobs in the beamline in order to match assigned targets.
 
@@ -1045,24 +1076,41 @@ class Line:
             for the optimization.
         targets : list of Target objects
             List of targets to be matched.
-        restore_if_fail : bool
-            If True, the beamline is restored to its initial state if the matching
-            fails.
+        solve : bool
+            If True (default), the matching is performed immediately. If not an
+            Optimize object is returnd, which can be used for advanced matching.
+        assert_within_tol : bool
+            If True (default), an exception is raised if the matching fails.
         compensate_radiation_energy_loss : bool
             If True, the radiation energy loss is compensated at each step of the
             matching.
-        solver : str
-            Solver to be used for the matching. Available solvers are "fsolve"
-            and "bfgs".
+        solver_options : dict
+            Dictionary of options to be passed to the solver.
+        allow_twiss_failure : bool
+            If True (default), the matching continues if the twiss computation
+            computation fails at some of the steps.
+        restore_if_fail : bool
+            If True (default), the beamline is restored to its initial state if
+            the matching fails.
         verbose : bool
             If True, the matching steps are printed.
+        n_steps_max : int
+            Maximum number of steps for the matching before matching is stopped.
+        default_tol : float
+            Default tolerances used on the target. A dictionary can be provided
+            associating a tolerance to each target name. The tolerance provided
+            for `None` is used for all targets for which a tolerance is not
+            otherwise provided. Example: `default_tol={'betx': 1e-4, None: 1e-6}`.
+        solver : str
+            Solver to be used for the matching. Available solvers are `jacobian`
+            (default), and `fsolve`.
         **kwargs : dict
             Additional arguments to be passed to the twiss.
 
         Returns
         -------
-        result_info : dict
-            Dictionary containing information about the matching result.
+        optimizer : xdeps.Optimize
+            xdeps optimizer object used for the optimization.
 
         Examples
         --------
@@ -1084,16 +1132,15 @@ class Line:
                     xt.Target('dqy', 12.0, tol=0.05)]
             )
 
-
         .. code-block:: python
 
             # Match a local orbit bump
             tw_before = line.twiss()
 
             line.match(
-                ele_start='mq.33l8.b1',
-                ele_stop='mq.23l8.b1',
-                twiss_init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
+                start='mq.33l8.b1',
+                end='mq.23l8.b1',
+                init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
                 vary=[
                     xt.Vary(name='acbv30.l8b1', step=1e-10),
                     xt.Vary(name='acbv28.l8b1', step=1e-10),
@@ -1113,12 +1160,22 @@ class Line:
             )
 
         '''
-        return match_line(self, vary, targets, solve=solve,
-                          restore_if_fail=restore_if_fail,
-                          solver=solver, verbose=verbose,
-                          n_steps_max=n_steps_max,
-                          compensate_radiation_energy_loss=compensate_radiation_energy_loss,
-                          **kwargs)
+
+        for old, new in zip(['ele_start', 'ele_stop', 'ele_init', 'twiss_init'],
+                                ['start', 'end', 'init_at', 'init']):
+                if old in kwargs.keys():
+                    raise ValueError(f'`{old}` is deprecated. Please use `{new}`.')
+
+        return match_line(self,
+                        vary=vary, targets=targets, solve=solve,
+                        assert_within_tol=assert_within_tol,
+                        compensate_radiation_energy_loss=compensate_radiation_energy_loss,
+                        solver_options=solver_options,
+                        allow_twiss_failure=allow_twiss_failure,
+                        restore_if_fail=restore_if_fail,
+                        verbose=verbose, n_steps_max=n_steps_max,
+                        default_tol=default_tol, solver=solver, **kwargs)
+
 
     def match_knob(self, knob_name, vary, targets,
                    knob_value_start=0, knob_value_end=1,
@@ -1256,9 +1313,9 @@ class Line:
                           delta0=None, zeta0=None,
                           continue_on_closed_orbit_error=False,
                           freeze_longitudinal=False,
-                          ele_start=None, ele_stop=None,
+                          start=None, end=None,
                           num_turns=1,
-                          ele_co_search=None):
+                          co_search_at=None):
 
         """
         Find the closed orbit of the beamline.
@@ -1286,15 +1343,15 @@ class Line:
         freeze_longitudinal : bool
             If True, the longitudinal coordinates are frozen during the closed
             orbit search.
-        ele_start : int or str
+        start : int or str
             Optional. It can be provided to find the periodic solution for
             a portion of the beamline.
-        ele_stop : int or str
+        end : int or str
             Optional. It can be provided to find the periodic solution for
             a portion of the beamline.
         num_turns : int
             Number of turns to be used for the closed orbit search.
-        ele_co_search : int or str
+        co_search_at : int or str
             Element at which the closed orbit search is performed. If None,
             the closed orbit search is performed at the start of the line.
 
@@ -1330,10 +1387,10 @@ class Line:
                                  particle_ref=particle_ref, delta0=delta0, zeta0=zeta0,
                                  co_search_settings=co_search_settings, delta_zeta=delta_zeta,
                                  continue_on_closed_orbit_error=continue_on_closed_orbit_error,
-                                 ele_start=ele_start, ele_stop=ele_stop, num_turns=num_turns,
-                                 ele_co_search=ele_co_search)
+                                 start=start, end=end, num_turns=num_turns,
+                                 co_search_at=co_search_at)
 
-    def compute_T_matrix(self, ele_start=None, ele_stop=None,
+    def compute_T_matrix(self, start=None, end=None,
                          particle_on_co=None, steps_t_matrix=None):
 
         """
@@ -1341,9 +1398,9 @@ class Line:
 
         Parameters
         ----------
-        ele_start : int or str
+        start : int or str
             Element at which the computation starts.
-        ele_stop : int or str
+        end : int or str
             Element at which the computation stops.
         particle_on_co : Particle
             Particle at the closed orbit (optional).
@@ -1359,7 +1416,7 @@ class Line:
 
         self._check_valid_tracker()
 
-        return compute_T_matrix_line(self, ele_start=ele_start, ele_stop=ele_stop,
+        return compute_T_matrix_line(self, start=start, end=end,
                                 particle_on_co=particle_on_co,
                                 steps_t_matrix=steps_t_matrix)
 
@@ -1455,10 +1512,87 @@ class Line:
 
         return fp
 
+    def get_amplitude_detuning_coefficients(self, nemitt_x=1e-6, nemitt_y=1e-6,
+                num_turns=256, a0_sigmas=0.01, a1_sigmas=0.1, a2_sigmas=0.2):
+
+        '''
+        Compute the amplitude detuning coefficients (det_xx = dQx / dJx,
+        det_yy = dQy / dJy, det_xy = dQx / dJy, det_yx = dQy / dJx) using
+        tracking.
+
+        Parameters
+        ----------
+        nemitt_x : float
+            Normalized emittance in the x-plane. Default is 1e-6.
+        nemitt_y : float
+            Normalized emittance in the y-plane. Default is 1e-6.
+        num_turns : int
+            Number of turns for tracking. Default is 256.
+        a0_sigmas : float
+            Amplitude of the first particle (in sigmas). Default is 0.01.
+        a1_sigmas : float
+            Amplitude of the second particle (in sigmas). Default is 0.1.
+        a2_sigmas : float
+            Amplitude of the third particle (in sigmas). Default is 0.2.
+
+        Returns
+        -------
+        det_xx : float
+            Amplitude detuning coefficient dQx / dJx.
+        det_yy : float
+            Amplitude detuning coefficient dQy / dJy.
+        det_xy : float
+            Amplitude detuning coefficient dQx / dJy.
+        det_yx : float
+            Amplitude detuning coefficient dQy / dJx.
+        '''
+
+        import NAFFlib as nl
+
+        gemitt_x = (nemitt_x / self.particle_ref._xobject.beta0[0]
+                            / self.particle_ref._xobject.gamma0[0])
+        gemitt_y = (nemitt_y / self.particle_ref._xobject.beta0[0]
+                            / self.particle_ref._xobject.gamma0[0])
+
+        Jx_1 = a1_sigmas**2 * gemitt_x / 2
+        Jx_2 = a2_sigmas**2 * gemitt_x / 2
+        Jy_1 = a1_sigmas**2 * gemitt_y / 2
+        Jy_2 = a2_sigmas**2 * gemitt_y / 2
+
+        particles = self.build_particles(
+                            method='4d',
+                            zeta=0, delta=0,
+                            x_norm=[a1_sigmas, a2_sigmas, a0_sigmas, a0_sigmas],
+                            y_norm=[a0_sigmas, a0_sigmas, a1_sigmas, a2_sigmas],
+                            nemitt_x=nemitt_x, nemitt_y=nemitt_y)
+
+        self.track(particles,
+                        num_turns=num_turns, time=True,
+                        turn_by_turn_monitor=True)
+        mon = self.record_last_track
+
+        arr2ctx = particles._context.nparray_from_context_array
+        assert np.all(arr2ctx(particles.state) > 0)
+
+        qx = np.zeros(4)
+        qy = np.zeros(4)
+
+        for ii in range(len(qx)):
+            qx[ii] = nl.get_tune(mon.x[ii, :])
+            qy[ii] = nl.get_tune(mon.y[ii, :])
+
+        det_xx = (qx[1] - qx[0]) / (Jx_2 - Jx_1)
+        det_yy = (qy[3] - qy[2]) / (Jy_2 - Jy_1)
+        det_xy = (qx[3] - qx[2]) / (Jy_2 - Jy_1)
+        det_yx = (qy[1] - qy[0]) / (Jx_2 - Jx_1)
+
+        return {'det_xx': det_xx, 'det_yy': det_yy,
+                'det_xy': det_xy, 'det_yx': det_yx}
+
     def compute_one_turn_matrix_finite_differences(
             self, particle_on_co,
             steps_r_matrix=None,
-            ele_start=None, ele_stop=None,
+            start=None, end=None,
             num_turns=1,
             element_by_element=False, only_markers=False):
 
@@ -1471,10 +1605,10 @@ class Line:
         steps_r_matrix : float
             Step size for finite differences. In not given, default step sizes
             are used.
-        ele_start : str
+        start : str
             Optional. It can be used to find the periodic solution for a
             portion of the line.
-        ele_stop : str
+        end : str
             Optional. It can be used to find the periodic solution for a
             portion of the line.
 
@@ -1497,10 +1631,34 @@ class Line:
             line = self
 
         return compute_one_turn_matrix_finite_differences(line, particle_on_co,
-                        steps_r_matrix, ele_start=ele_start, ele_stop=ele_stop,
+                        steps_r_matrix, start=start, end=end,
                         num_turns=num_turns,
                         element_by_element=element_by_element,
                         only_markers=only_markers)
+
+    def get_non_linear_chromaticity(self,
+                        delta0_range=(-1e-3, 1e-3), num_delta=5, fit_order=3, **kwargs):
+
+        '''Get non-linear chromaticity for given range of delta values
+
+        Parameters
+        ----------
+        delta0_range : tuple of float
+            Range of delta values for chromaticity computation.
+        num_delta : int
+            Number of delta values for chromaticity computation.
+        kwargs : dict
+            Additional arguments to be passed to the twiss.
+
+        Returns
+        -------
+        chromaticity : Table
+            Table containing the non-linear chromaticity information.
+
+        '''
+
+        return get_non_linear_chromaticity(self, delta0_range, num_delta,
+                                           fit_order, **kwargs)
 
     def get_length(self):
 
@@ -2052,7 +2210,7 @@ class Line:
             self.config[f'FREEZE_VAR_{name}'] = False
 
 
-    def configure_bend_model(self, core=None, edge=None):
+    def configure_bend_model(self, core=None, edge=None, num_multipole_kicks=None):
 
         """
         Configure the method used to track bends.
@@ -2067,18 +2225,23 @@ class Line:
             or 'suppressed'.
         """
 
-        if core not in [None, 'expanded', 'full']:
+        if core not in [None, 'adaptive', 'full', 'bend-kick-bend',
+                              'rot-kick-rot', 'expanded']:
             raise ValueError(f'Unknown bend model {core}')
 
         if edge not in [None, 'linear', 'full', 'suppressed']:
             raise ValueError(f'Unknown bend edge model {edge}')
 
         for ee in self.elements:
-            if core is not None and isinstance(ee, xt.Bend):
+            if core is not None and isinstance(ee,
+                                (xt.Bend, xt.CombinedFunctionMagnet)):
                 ee.model = core
 
             if edge is not None and isinstance(ee, xt.DipoleEdge):
                 ee.model = edge
+
+            if num_multipole_kicks is not None:
+                ee.num_multipole_kicks = num_multipole_kicks
 
     def configure_radiation(self, model=None, model_beamstrahlung=None,
                             model_bhabha=None, mode='deprecated'):
@@ -2336,7 +2499,7 @@ class Line:
 
         '''
 
-        if self._var_management is not None:
+        if not _vars_unused(self):
             raise NotImplementedError('`remove_inactive_multipoles` not'
                                       ' available when deferred expressions are'
                                       ' used')
@@ -2386,7 +2549,7 @@ class Line:
 
         '''
 
-        if self._var_management is not None:
+        if not _vars_unused(self):
             raise NotImplementedError('`remove_zero_length_drifts` not'
                                       ' available when deferred expressions are'
                                       ' used')
@@ -2492,7 +2655,7 @@ class Line:
         # only separated by Drifts or Markers, this script removes the
         # middle apertures
         # TODO: this probably actually works, but better be safe than sorry
-        if self._var_management is not None:
+        if not _vars_unused(self):
             raise NotImplementedError('`remove_redundant_apertures` not'
                                       ' available when deferred expressions are'
                                       ' used')
@@ -2745,7 +2908,7 @@ class Line:
             The modified line.
         '''
 
-        if self._var_management is not None:
+        if not _vars_unused(self):
             raise NotImplementedError('`merge_consecutive_multipoles` not'
                                       ' available when deferred expressions are'
                                       ' used')
@@ -2840,9 +3003,10 @@ class Line:
             elements_map_line.append(self[ele_cut_sorted[ii]])
 
             smap = xt.SecondOrderTaylorMap.from_line(
-                                    self, ele_start=ele_cut_sorted[ii],
-                                    ele_stop=ele_cut_sorted[ii+1],
-                                    twiss_table=tw)
+                                    self, start=ele_cut_sorted[ii],
+                                    end=ele_cut_sorted[ii+1],
+                                    twiss_table=tw,
+                                    _buffer=self._buffer)
             names_map_line.append(f'map_{ii}')
             elements_map_line.append(smap)
 
@@ -2853,6 +3017,11 @@ class Line:
         line_maps.particle_ref = self.particle_ref.copy()
 
         return line_maps
+
+    def target(self, tar, value, **kwargs):
+
+        action = ActionLine(line=self)
+        return xt.Target(action=action, tar=tar, value=value, **kwargs)
 
     def _freeze(self):
         self.element_names = tuple(self.element_names)
@@ -2902,6 +3071,16 @@ class Line:
             raise RuntimeError(
                 "This line does not have a valid tracker. "
                 "Please build the tracke using `line.build_tracker(...)`.")
+
+    @property
+    def name(self):
+        '''Name of the line (if it is part of a `MultiLine`)'''
+        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+            for kk, vv in self._in_multiline.lines.items():
+                if vv is self:
+                    return kk
+        else:
+            return None
 
     @property
     def iscollective(self):
@@ -3540,7 +3719,14 @@ def _apertures_equal(ap1, ap2):
 
 
 def _lines_equal(line1, line2):
-    return _dicts_equal(line1.to_dict(), line2.to_dict())
+    d1 = line1.to_dict()
+    d2 = line2.to_dict()
+    d1.pop('_var_management_data', None)
+    d2.pop('_var_management_data', None)
+    d1.pop('_var_manager', None)
+    d2.pop('_var_manager', None)
+    out = _dicts_equal(d1, d2)
+    return out
 
 
 DEG2RAD = np.pi / 180.
@@ -3710,7 +3896,7 @@ class LineVars:
         if self.line._xdeps_vref is None:
             raise RuntimeError(
                 f'Cannot access variables as the line has no xdeps manager')
-        name = np.array(list(self.keys()))
+        name = np.array([kk for kk in list(self.keys()) if kk != '__vary_default'])
         value = np.array([self.line._xdeps_vref[kk]._value for kk in name])
 
         return xd.Table({'name': name, 'value': value})
@@ -3838,6 +4024,28 @@ class LineVars:
 
     def load_madx_optics_file(self, filename, mad_stdout=False):
         self.set_from_madx_file(filename, mad_stdout=mad_stdout)
+
+    def target(self, tar, value, **kwargs):
+        action = ActionVars(self.line)
+        return xt.Target(action=action, tar=tar, value=value, **kwargs)
+
+class ActionVars(Action):
+
+    def __init__(self, line):
+        self.line = line
+
+    def run(self, **kwargs):
+        assert not self.line.vars.cache_active, (
+            'Cannot run action when cache is active')
+        return self.line._xdeps_vref._owner
+
+class ActionLine(Action):
+
+    def __init__(self, line):
+        self.line = line
+
+    def run(self):
+        return self.line
 
 class VarValues:
 
@@ -4033,6 +4241,8 @@ class EnergyProgram:
     def get_t_s_at_turn(self, i_turn):
         assert not self.needs_complete, 'EnergyProgram not complete'
         assert self.line is not None, 'EnergyProgram not associated to a line'
+        if (i_turn > self.t_at_turn_interpolator.x[-1]).any():
+            raise ValueError('`i_turn` outside program range not yet supported')
         out = self.t_at_turn_interpolator(i_turn)
 
         return out
@@ -4050,6 +4260,17 @@ class EnergyProgram:
             return p.beta0[0]
         else:
             return p.beta0
+
+    def get_kinetic_energy0_at_t_s(self, t_s):
+        p0c = self.get_p0c_at_t_s(t_s)
+        # I use a particle to make the conversions
+        p = xt.Particles(p0c=p0c, mass0=self.line.particle_ref.mass0)
+        energy0 = p.energy0
+        kinetic_energy0 = energy0 - self.line.particle_ref.mass0
+        if np.isscalar(t_s):
+            return kinetic_energy0[0]
+        else:
+            return kinetic_energy0
 
     def get_frev_at_t_s(self, t_s):
         beta0 = self.get_beta0_at_t_s(t_s)
@@ -4091,3 +4312,12 @@ class EnergyProgram:
 
     def copy(self, _context=None, _buffer=None, _offeset=None):
         return self.from_dict(self.to_dict())
+
+def _vars_unused(line):
+    if line._xdeps_vref is None:
+        return True
+    if (len(line.vars.keys()) == 2
+        and '__vary_default' in line.vars.keys()
+        and 't_turn_s' in line.vars.keys()):
+        return True
+    return False

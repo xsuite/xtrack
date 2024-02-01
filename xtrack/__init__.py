@@ -36,15 +36,14 @@ from .footprint import Footprint, LinearRescale
 # Flags and test functions
 from .line import _is_drift, _behaves_like_drift, _is_aperture, _is_thick, _allow_backtrack
 from .line import _lines_equal, _apertures_equal
+
+from .slicing import Strategy, Uniform, Teapot
 from .loss_location_refinement import _skip_in_loss_location_refinement
 
-from xdeps import Table
+from xdeps import Table, FunctionPieceWiseLinear
 
 from ._version import __version__
 
-from xpart import Particles, PROTON_MASS_EV, ELECTRON_MASS_EV
+from xpart import(Particles, PROTON_MASS_EV, ELECTRON_MASS_EV,
+                  enable_pyheadtail_interface, disable_pyheadtail_interface)
 
-def enable_pyheadtail_interface(*args, **kwargs):
-    raise ValueError(
-    "\n`xtrack.enable_pyheadtail_interface` not available anymore,"
-    "\nplease use `xpart.enable_pyheadtail_interface`")

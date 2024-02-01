@@ -8,7 +8,6 @@ import numpy as np
 
 import xtrack as xt
 import xobjects as xo
-import xpart as xp
 
 # Display debug information .         #!skip-doc
 logger = logging.getLogger('xtrack')  #!skip-doc
@@ -71,7 +70,7 @@ line.build_tracker(_buffer=buf)
 num_elements = len(line.element_names)
 
 # Generate test particles
-particles = xp.Particles(_context=ctx,
+particles = xt.Particles(_context=ctx,
             px=np.random.uniform(-0.01, 0.01, 10000),
             py=np.random.uniform(-0.01, 0.01, 10000))
 
@@ -118,7 +117,7 @@ for ii, (ln, poly) in enumerate(
                          zip([line_aper_0, line_aper_1],
                              [polygon_0, polygon_1])):
     part_gen_range = 0.05
-    pp = xp.Particles(
+    pp = xt.Particles(
                     p0c=6500e9,
                     x=np.random.uniform(-part_gen_range, part_gen_range, 10000),
                     y=np.random.uniform(-part_gen_range, part_gen_range, 10000))

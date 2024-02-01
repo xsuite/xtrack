@@ -9,9 +9,8 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
-import xpart as xp
 
-xp.enable_pyheadtail_interface()
+xt.enable_pyheadtail_interface()
 
 fname_line = '../../test_data/lhc_no_bb/line_and_particle.json'
 
@@ -49,7 +48,7 @@ line.build_tracker(_context=context)
 ######################
 # Get some particles #
 ######################
-particles = xp.Particles(_context=context,
+particles = xt.Particles(_context=context,
                          p0c=6500e9,
                          x=np.random.uniform(-1e-3, 1e-3, n_part)+1e-3,
                          px=np.random.uniform(-1e-7, 1e-7, n_part),

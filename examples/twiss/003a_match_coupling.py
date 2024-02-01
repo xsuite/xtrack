@@ -1,6 +1,5 @@
 import json
 
-import numpy as np
 import xtrack as xt
 import xobjects as xo
 

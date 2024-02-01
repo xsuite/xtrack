@@ -1,7 +1,6 @@
 import numpy as np
 
 import xtrack as xt
-import xpart as xp
 
 x_co = [1e-3, 2e-3]
 px_co = [2e-6, -3e-6]
@@ -49,14 +48,14 @@ segm_2 = xt.LineSegmentMap(
         y_ref=[y_co[1], y_co[0]],
         py_ref=[py_co[1], py_co[0]])
 
-line = xt.Line(elements=[segm_1, segm_2], particle_ref=xp.Particles(p0c=1e9))
+line = xt.Line(elements=[segm_1, segm_2], particle_ref=xt.Particles(p0c=1e9))
 line.build_tracker()
 
 tw4d = line.twiss(method='4d')
 tw6d = line.twiss()
 
 assert np.isclose(tw6d.qs, 0.0004, atol=1e-7, rtol=0)
-assert np.isclose(tw6d.betz0, 1e-3, atol=1e-7, rtol=0)
+assert np.isclose(tw6d.bets0, 1e-3, atol=1e-7, rtol=0)
 
 for tw in [tw4d, tw6d]:
 

@@ -1,15 +1,12 @@
 import json
 
 import xtrack as xt
-import xpart as xp
-
-fname_line = '../../test_data/lhc_no_bb/line_and_particle.json'
 
 # import a line and add reference particle
-with open(fname_line) as fid:
-    line_dict = json.load(fid)
-line = xt.Line.from_dict(line_dict['line'])
-line.particle_ref = xp.Particles.from_dict(line_dict['particle'])
+# import a line and add reference particle
+line = xt.Line.from_json(
+    '../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
+line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7e12)
 
 # Build the tracker
 line.build_tracker()

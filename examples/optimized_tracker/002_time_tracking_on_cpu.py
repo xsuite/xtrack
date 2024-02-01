@@ -8,7 +8,6 @@ import time
 import numpy as np
 
 import xtrack as xt
-import xpart as xp
 import xobjects as xo
 
 num_turns = 100
@@ -23,12 +22,9 @@ context = xo.ContextCpu()                       # Serial single core
 # Load a line and build tracker #
 #################################
 
-fname_line_particles = '../../test_data/hllhc15_noerrors_nobb/line_and_particle.json'
-
-with open(fname_line_particles, 'r') as fid:
-    input_data = json.load(fid)
-line = xt.Line.from_dict(input_data['line'])
-line.particle_ref = xp.Particles.from_dict(input_data['particle'])
+line = xt.Line.from_json(
+    '../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
+line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7e12)
 
 line.build_tracker(_context=context, compile=False)
 

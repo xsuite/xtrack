@@ -8,7 +8,6 @@ from scipy.constants import e as qe
 from scipy.constants import c as clight
 from scipy.constants import epsilon_0, hbar
 
-import xpart as xp
 import xtrack as xt
 import xobjects as xo
 
@@ -18,14 +17,14 @@ L_bend = 1.
 B_T = 2
 
 delta = 0
-particles_ave = xp.Particles(
+particles_ave = xt.Particles(
         _context=context,
         p0c=5e9 / (1 + delta), # 5 GeV
         x=np.zeros(1000000),
         px=1e-4,
         py=-1e-4,
         delta=delta,
-        mass0=xp.ELECTRON_MASS_EV)
+        mass0=xt.ELECTRON_MASS_EV)
 particles_ave_0 = particles_ave.copy()
 gamma = (particles_ave.energy/particles_ave.mass0)[0]
 gamma0 = (particles_ave.gamma0[0])

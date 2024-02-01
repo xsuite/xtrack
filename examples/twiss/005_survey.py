@@ -1,7 +1,6 @@
 import numpy as np
 from cpymad.madx import Madx
 import xtrack as xt
-import xpart as xp
 
 mad = Madx()
 mad.call('../../test_data/hllhc15_noerrors_nobb/sequence.madx')

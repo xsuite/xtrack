@@ -10,12 +10,8 @@ import numpy as np
 
 import xtrack as xt
 import xobjects as xo
-import xpart as xp
 
 import ducktrack as dtk
-
-import time
-
 
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../../test_data').absolute()
@@ -85,12 +81,11 @@ line.reset_s_at_end_turn = False
 ######################
 
 print('Import particles')
-part_ref = xp.Particles(**input_data['particle'])
+line.particle_ref = xt.Particles(**input_data['particle'])
 
 # Go from one particle to many particles
 
-particles = xp.build_particles(_context=context,
-    particle_ref=part_ref,
+particles = line.build_particles(_context=context,
     x=np.arange(-1e-4, 1e-4, 2e-4/n_part),
     y=np.arange(-2e-4, 2e-4, 4e-4/n_part))
 
