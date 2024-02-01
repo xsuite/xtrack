@@ -162,6 +162,10 @@ class ActionTwiss(xd.Action):
                     bx_chrom=kwargs.get('bx_chrom', None),
                     ay_chrom=kwargs.get('ay_chrom', None),
                     by_chrom=kwargs.get('by_chrom', None),
+                    ddx=kwargs.get('ddx', None),
+                    ddy=kwargs.get('ddy', None),
+                    ddpx=kwargs.get('ddpx', None),
+                    ddpy=kwargs.get('ddpy', None),
                     )
             for kk in VARS_FOR_TWISS_INIT_GENERATION + ['init_at']:
                 if kk in kwargs:
