@@ -1,6 +1,4 @@
 from cpymad.madx import Madx
-import numpy as np
-
 import xtrack as xt
 
 test_data_folder = '../../test_data/'
