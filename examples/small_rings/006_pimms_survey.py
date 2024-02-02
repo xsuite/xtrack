@@ -18,12 +18,14 @@ line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
                                  mass0=seq.beam.mass * 1e9,
                                  q0=seq.beam.charge)
 
-
 sv = line.survey()
+
+tt = line.get_table()
+ttsext = tt.rows[tt.element_type == 'Sextupole']
 
 import xplt
 import matplotlib.pyplot as plt
 plt.close('all')
-xplt.FloorPlot(sv, line, labels='mb:14|mb:12')
+xplt.FloorPlot(sv, line, labels=ttsext.name)
 
 plt.show()
