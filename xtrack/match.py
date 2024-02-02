@@ -931,3 +931,39 @@ def _at_from_placeholder(tt_at, line, line_name, start, end):
         tt_at = this_line.element_names[tt_at]
 
     return tt_at
+
+def opt_from_callable(function, x0, steps, tar, tols):
+
+    '''Optimize a generic callable'''
+
+    x0 = np.array(x0)
+    x = x0.copy()
+    vary = [xt.Vary(ii, container=x, step=steps[ii]) for ii in range(len(x))]
+
+    line = xt.Line() # dummy line to get the match (to be cleaned up)
+    opt = line.match(
+        solve=False,
+        vary=vary,
+        targets=ActionCall(function, vary).get_targets(tar)
+    )
+
+    for ii, tt in enumerate(opt.targets):
+        tt.tol = tols[ii]
+
+    return opt
+
+class ActionCall(xt.Action):
+    def __init__(self, function, vary):
+        self.vary = vary
+        self.function = function
+
+    def run(self):
+        x = [vv.container[vv.name] for vv in self.vary]
+        return self.function(x)
+
+    def get_targets(self, ftar):
+        tars = []
+        for ii in range(len(ftar)):
+            tars.append(xt.Target(ii, ftar[ii], action=self))
+
+        return tars
