@@ -952,7 +952,7 @@ def opt_from_callable(function, x0, steps, tar, tols):
 
     return opt
 
-class ActionCall(xt.Action):
+class ActionCall(Action):
     def __init__(self, function, vary):
         self.vary = vary
         self.function = function
