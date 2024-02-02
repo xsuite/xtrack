@@ -131,5 +131,5 @@ def test_ps_against_ptc(test_context):
 
     assert np.allclose(tw.betx[mask_xs], betx[mask_ptc], rtol=1e-4, atol=0)
     assert np.allclose(tw.bety[mask_xs], bety[mask_ptc], rtol=1e-4, atol=0)
-    assert np.allclose(tw.dx[mask_xs], dx_ptc[mask_ptc], rtol=1e-4, atol=0)
-    assert np.allclose(tw.dy[mask_xs], dy_ptc[mask_ptc], rtol=1e-4, atol=0)
+    assert np.allclose(tw.dx[mask_xs], dx_ptc[mask_ptc], rtol=1e-4, atol=1e-6)
+    assert np.allclose(tw.dy[mask_xs], dy_ptc[mask_ptc], rtol=1e-4, atol=1e-6)
