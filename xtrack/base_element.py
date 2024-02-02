@@ -17,20 +17,20 @@ from .internal_record import RecordIdentifier, RecordIndex, generate_get_record
 
 start_per_part_block = """
     {
-    const int64_t start_idx = part0->ipart; //only_for_context cpu_openmp
-    const int64_t end_idx = part0->endpart; //only_for_context cpu_openmp
+    const int64_t XT_part_block_start_idx = part0->ipart; //only_for_context cpu_openmp
+    const int64_t XT_part_block_end_idx = part0->endpart; //only_for_context cpu_openmp
 
-    const int64_t start_idx = 0;                                            //only_for_context cpu_serial
-    const int64_t end_idx = LocalParticle_get__num_active_particles(part0); //only_for_context cpu_serial
+    const int64_t XT_part_block_start_idx = 0;                                            //only_for_context cpu_serial
+    const int64_t XT_part_block_end_idx = LocalParticle_get__num_active_particles(part0); //only_for_context cpu_serial
 
     //#pragma omp simd // TODO: currently does not work, needs investigating
-    for (int64_t ii=start_idx; ii<end_idx; ii++) { //only_for_context cpu_openmp cpu_serial
+    for (int64_t XT_part_block_ii=XT_part_block_start_idx; XT_part_block_ii<XT_part_block_end_idx; XT_part_block_ii++) { //only_for_context cpu_openmp cpu_serial
 
-        LocalParticle lpart = *part0;  //only_for_context cpu_serial cpu_openmp
-        LocalParticle* part = &lpart;  //only_for_context cpu_serial cpu_openmp
-        part->ipart = ii;              //only_for_context cpu_serial cpu_openmp
+        LocalParticle lpart = *part0;    //only_for_context cpu_serial cpu_openmp
+        LocalParticle* part = &lpart;    //only_for_context cpu_serial cpu_openmp
+        part->ipart = XT_part_block_ii;  //only_for_context cpu_serial cpu_openmp
 
-        LocalParticle* part = part0;   //only_for_context opencl cuda
+        LocalParticle* part = part0;     //only_for_context opencl cuda
 
         if (LocalParticle_get_state(part) > 0) {  //only_for_context cpu_openmp
 """

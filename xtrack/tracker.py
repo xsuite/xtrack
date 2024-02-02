@@ -1486,13 +1486,17 @@ def _element_classes_from_track_kernel(kernel):
 
 def _element_ref_data_class_from_element_classes(element_classes):
 
-    # exctrace XoStruct if needed
+    # extract XoStruct if needed
     element_classes_xostruct = []
     for cc in element_classes:
         if issubclass(cc, xo.Struct):
             element_classes_xostruct.append(cc)
         else:
             element_classes_xostruct.append(cc._XoStruct)
+
+    # We sort the element classes by name for consistency
+    # This is needed for reproducibility in Xboinc
+    element_classes_xostruct = sorted(element_classes_xostruct, key=lambda s: s._DressingClass.__name__)
 
     class ElementRefClass(xo.UnionRef):
         _reftypes = element_classes_xostruct
