@@ -940,11 +940,10 @@ def opt_from_callable(function, x0, steps, tar, tols):
     x = x0.copy()
     vary = [xt.Vary(ii, container=x, step=steps[ii]) for ii in range(len(x))]
 
-    line = xt.Line() # dummy line to get the match (to be cleaned up)
-    opt = line.match(
-        solve=False,
+    opt = xd.Optimize(
         vary=vary,
-        targets=ActionCall(function, vary).get_targets(tar)
+        targets=ActionCall(function, vary).get_targets(tar),
+        show_call_counter=False,
     )
 
     for ii, tt in enumerate(opt.targets):

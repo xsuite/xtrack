@@ -2009,15 +2009,21 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
             ier = 1
             break
 
-        (res, infodict, ier, mesg
-            ) = fsolve(lambda p: _error_for_co(p, co_guess, line,
-                    delta_zeta, delta0, zeta0, start=start,
-                    end=end, num_turns=num_turns),
-                x0=x0,
-                full_output=True,
-                **co_search_settings)
-        fsolve_info = {
-            'res': res, 'info': infodict, 'ier': ier, 'mesg': mesg}
+        opt = xt.match.opt_from_callable(
+            lambda p: _error_for_co(p, co_guess, line,
+                            delta_zeta, delta0, zeta0, start=start,
+                            end=end, num_turns=num_turns),
+                x0=x0, steps=[1e-8, 1e-9, 1e-8, 1e-9, 1e-7, 1e-8],
+                tar=[0., 0., 0., 0., 0., 0.],
+                tols=[1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12])
+        try:
+            opt.solve()
+            ier = 1
+        except Exception as e:
+            ier = -1
+        fsolve_info = opt
+
+        res = opt.vary[0].container
         if ier == 1:
             break
 
