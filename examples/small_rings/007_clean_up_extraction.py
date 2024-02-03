@@ -207,8 +207,8 @@ opt = line.match(
     vary=xt.VaryList(['k2xrr_a_extr', 'k2xrr_b_extr'], step=0.5, tag='resonance',
                      limits=[-10, 10]),
     targets=[
-        act_match.target('j_fixed_point', 6e-3, tol=2e-5, tag='resonance', weight=1e2),
-        act_match.target('slope_norm_spiral', 0.7, tol=0.01)
+        act_match.target('j_fixed_point', 7e-3, tol=5e-5, tag='resonance', weight=1e2),
+        act_match.target('slope_norm_spiral', 0.6, tol=0.01)
     ]
 )
 
@@ -240,7 +240,7 @@ bounds = np.array([vv.limits for vv in opt._err.vary])
 opt._err.return_scalar = True
 import pybobyqa
 soln = pybobyqa.solve(err_fun, x0=opt.log().vary[0, :], bounds=bounds.T,
-            rhobeg=10, rhoend=1e-4, maxfun=60, objfun_has_noise=True,
+            rhobeg=10, rhoend=1e-4, maxfun=80, objfun_has_noise=True,
             seek_global_minimum=True)
 err_fun(soln.x) # set it to the best solution
 opt.tag('pybobyqa')
