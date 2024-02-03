@@ -174,7 +174,7 @@ optq.solve()
 
 tw1 = line.twiss(method='4d')
 
-line.vars['k2xrr_a_extr'] = -4
+line.vars['k2xrr_a_extr'] = 1
 line.vars['k2xrr_b_extr'] = -7
 tw2 = line.twiss(method='4d')
 
@@ -208,6 +208,7 @@ opt = line.match(
                      limits=[-10, 10]),
     targets=[
         act_match.target('j_fixed_point', 7e-3, tol=5e-5, tag='resonance', weight=1e2),
+        # act_match.target('slope_norm_spiral', -0.3, tol=0.01)
         act_match.target('slope_norm_spiral', 0.6, tol=0.01)
     ]
 )
