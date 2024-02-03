@@ -174,8 +174,8 @@ optq.solve()
 
 tw1 = line.twiss(method='4d')
 
-line.vars['k2xrr_a_extr'] = 0
-line.vars['k2xrr_b_extr'] = 7.5
+line.vars['k2xrr_a_extr'] = 5
+line.vars['k2xrr_b_extr'] = -5
 tw2 = line.twiss(method='4d')
 
 import matplotlib.pyplot as plt
@@ -207,9 +207,9 @@ opt = line.match(
     vary=xt.VaryList(['k2xrr_a_extr', 'k2xrr_b_extr'], step=0.5, tag='resonance',
                      limits=[-20, 20]),
     targets=[
-        act_match.target('j_fixed_point', res_m0['j_fixed_point'], tol=2e-5, tag='resonance', weight=1e2),
+        act_match.target('j_fixed_point', 6e-3, tol=2e-5, tag='resonance', weight=1e2),
         # act_match.target('px_fixed_point',  1e-3 , tol=1e-5, tag='resonance'),
-        act_match.target('slope_norm_spiral', -0.2, tol=0.01)
+        act_match.target('slope_norm_spiral', 0.7, tol=0.01)
     ]
 )
 
@@ -247,8 +247,6 @@ err_fun(soln.x) # set it to the best solution
 opt.tag('pybobyqa')
 opt.target_status()
 
-
-
 opt.reload(0)
 res_m0 = act_match.run()
 plot_phase_space(res_m0, 'match - first point', line=line)
@@ -256,6 +254,9 @@ plot_phase_space(res_m0, 'match - first point', line=line)
 opt.reload(tag='pybobyqa')
 res_m1 = act_match.run()
 plot_phase_space(res_m1, 'match - last point',  line=line)
+
+plt.show()
+Prrrr
 
 tw = line.twiss(method='4d')
 
