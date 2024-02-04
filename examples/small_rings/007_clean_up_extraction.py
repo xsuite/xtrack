@@ -175,7 +175,7 @@ optq.solve()
 tw1 = line.twiss(method='4d')
 
 line.vars['k2xrr_a_extr'] = 1
-line.vars['k2xrr_b_extr'] = -7
+line.vars['k2xrr_b_extr'] = -8
 tw2 = line.twiss(method='4d')
 
 import matplotlib.pyplot as plt
