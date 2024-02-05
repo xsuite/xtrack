@@ -28,7 +28,7 @@ class RFT_Element:
         import RF_Track as rft
         self.length = element.get_length()
         self.lattice = rft.Lattice()
-        self.lattice.append(element)
+        self.lattice.append_ref(element)
         self.bunch_in = rft.Bunch6d()
         self.bunch_out = rft.Bunch6d()
         self.arr_for_rft = np.empty(0)
