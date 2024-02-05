@@ -8,7 +8,7 @@ import xpart as xp
 import RF_Track as RFT
 
 #############################################
-#######  Simulation input parameters  #######
+##########    Input parameters    ###########
 #############################################
 
 # Bunch parameters
@@ -90,11 +90,17 @@ particles = xp.Particles(
     py=rng.normal(scale=np.sqrt(geom_emitt_y/beta_y), size=n_part),
     p0c=P0c, mass0=xt.ELECTRON_MASS_EV, q0=q0)
 
+#############################################
+#########   Xsuite tracking    ##############
+#############################################
+
 print('tracking starts')
 line.track(particles)
 print('tracking ends')
 
-## Plot the Twiss parameters, computed by RF-Track
+#############################################
+## Retrieve Twiss from RF-Track and plot  ###
+#############################################
 
 # Retrieve the Twiss plot and the phase space
 T = FODO.get_transport_table('%S %beta_x %beta_y')
