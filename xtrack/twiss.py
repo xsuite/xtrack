@@ -183,6 +183,10 @@ def twiss_line(line, particle_ref=None, method=None,
             - dzeta: longitudinal dispersion (d zeta / d delta) in meters
             - dpx: horizontal dispersion (d px / d delta)
             - dpy: vertical dispersion (d y / d delta)
+            - ddx: horizontal second order dispersion (d^2 x / d delta^2) in meters
+            - ddy: vertical second order dispersion (d^2 y / d delta^2) in meters
+            - ddpx: horizontal second order dispersion (d^2 px / d delta^2)
+            - ddpy: vertical second order dispersion (d^2 py / d delta^2)
             - dx_zeta: horizontal crab dispersion (d x / d zeta)
             - dy_zeta: vertical crab dispersion (d y / d zeta)
             - dpx_zeta: horizontal crab dispersion (d px / d zeta)
@@ -204,6 +208,8 @@ def twiss_line(line, particle_ref=None, method=None,
             - qs: synchrotron tune
             - dqx: horizontal chromaticity (d qx / d delta)
             - dqy: vertical chromaticity (d qy / d delta)
+            - ddqx: horizontal second order chromaticity (d^2 qx / d delta^2)
+            - ddqy: vertical second order chromaticity (d^2 qy / d delta^2)
             - c_minus: closest tune approach coefficient
             - slip_factor: slip factor (-1 / f_ref * d f_ref / d delta) (positive above transition)
             - momentum_compaction_factor: momentum compaction factor (slip_factor + 1/gamma_0^2)
