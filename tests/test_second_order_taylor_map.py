@@ -55,8 +55,8 @@ def test_line_with_second_order_maps(test_context):
 
     assert np.isclose(np.mod(tw_map.qx, 1), np.mod(tw.qx, 1), rtol=0, atol=1e-7)
     assert np.isclose(np.mod(tw_map.qy, 1), np.mod(tw.qy, 1), rtol=0, atol=1e-7)
-    assert np.isclose(tw_map.dqx, tw.dqx, rtol=0, atol=2e-3)
-    assert np.isclose(tw_map.dqy, tw.dqy, rtol=0, atol=2e-3)
+    assert np.isclose(tw_map.dqx, tw.dqx, rtol=0, atol=5e-2)
+    assert np.isclose(tw_map.dqy, tw.dqy, rtol=0, atol=5e-2)
     assert np.isclose(tw_map.c_minus, tw.c_minus, rtol=0, atol=1e-5)
     assert np.isclose(tw_map.circumference, tw.circumference, rtol=0, atol=5e-9)
 

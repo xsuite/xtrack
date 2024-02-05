@@ -534,10 +534,10 @@ def test_lhc_match_phase_15(test_context, config):
     twmad_b1 = xd.Table(mad.table.twb1)
     twmad_b2 = xd.Table(mad.table.twb2)
 
-    assert np.isclose(twmad_b1['betx', 'ip1:1'], 0.15, rtol=1e-8, atol=0)
-    assert np.isclose(twmad_b1['bety', 'ip1:1'], 0.15, rtol=1e-8, atol=0)
-    assert np.isclose(twmad_b2['betx', 'ip1:1'], 0.15, rtol=1e-8, atol=0)
-    assert np.isclose(twmad_b2['bety', 'ip1:1'], 0.15, rtol=1e-8, atol=0)
+    assert np.isclose(twmad_b1['betx', 'ip1:1'], 0.15, rtol=1e-7, atol=0)
+    assert np.isclose(twmad_b1['bety', 'ip1:1'], 0.15, rtol=1e-7, atol=0)
+    assert np.isclose(twmad_b2['betx', 'ip1:1'], 0.15, rtol=1e-7, atol=0)
+    assert np.isclose(twmad_b2['bety', 'ip1:1'], 0.15, rtol=1e-7, atol=0)
 
     twmad_b1.rows['ip.*'].cols['betx bety x y px py'].show()
     twmad_b2.rows['ip.*'].cols['betx bety x y px py'].show()

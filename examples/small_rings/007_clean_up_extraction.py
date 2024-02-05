@@ -22,14 +22,6 @@ class ActionSeparatrix(xt.Action):
     def run(self):
         line = self.line
         tw = line.twiss(method='4d')
-
-        p_test = line.build_particles(x=np.linspace(self.range_test[0],
-                                                    self.range_test[1],
-                                                    self.n_test), px=0)
-        line.track(p_test, num_turns=self.num_turns, turn_by_turn_monitor=True)
-        mon_test = line.record_last_track
-        norm_coord_test = tw.get_normalized_coordinates(mon_test)
-
         p0 = line.build_particles(x=0, px=0)
         x_stable = 0
         x_unstable = 2e-2
@@ -47,6 +39,7 @@ class ActionSeparatrix(xt.Action):
         line.track(p, num_turns=self.num_turns, turn_by_turn_monitor=True)
         mon_separatrix = line.record_last_track
         norm_coord_separatrix = tw.get_normalized_coordinates(mon_separatrix)
+
         j_stable = np.sqrt(norm_coord_separatrix.x_norm[1, :]**2 + norm_coord_separatrix.px_norm[1, :]**2)
         i_fixed_point = np.argmax(j_stable)
         x_fixed_point = mon_separatrix.x[1, i_fixed_point]
@@ -55,165 +48,42 @@ class ActionSeparatrix(xt.Action):
         px_norm_fixed_point = norm_coord_separatrix.px_norm[1, i_fixed_point]
         j_fixed_point = j_stable[i_fixed_point]
 
-        message = 'all ok'
-        try:
-            i_first_unstable = np.where(mon_test.x.max(axis=1) > self.x_septum)[0][0] # first unstable particle
-            if self.i_part_fit is None:
-                i_part = i_first_unstable # first unstable particle
-            else:
-                i_part = self.i_part_fit
-            # i_part = len(p_test.x) - 1
+        i_separatrix = 0
+        x_first_unstable = mon_separatrix.x[i_separatrix, :].copy()
+        px_first_unstable = mon_separatrix.px[i_separatrix, :].copy()
 
-            x_t = mon_test.x[i_part, :]
-            px_t = mon_test.px[i_part, :]
-            x_norm_t = norm_coord_test.x_norm[i_part, :]
-            px_norm_t = norm_coord_test.px_norm[i_part, :]
+        # To be generalized
+        x_first_unstable[px_first_unstable < 0] = 9999999.
 
-            # Select branch closer to the x-axis
-            # mask_branch = (x_norm_t > 0) & (px_norm_t > -2 * x_norm_t) & (px_norm_t < 2 * x_norm_t)
-            # mask_branch = (x_norm_t > 0) & (px_norm_t > 0)
-            # if not mask_branch.any():
-            #     message = 'no branch'
-            # x_branch = x_t[mask_branch]
-            # px_branch = px_t[mask_branch]
-            # x_norm_branch = x_norm_t[mask_branch]
-            # px_norm_branch = px_norm_t[mask_branch]
+        i_closest = np.argmin(np.abs(x_first_unstable - self.x_spiral_meas))
+        slope_norm_spiral = (
+            (norm_coord_separatrix.px_norm[i_separatrix, i_closest + 3]
+                - norm_coord_separatrix.px_norm[i_separatrix, i_closest])
+            / (norm_coord_separatrix.x_norm[i_separatrix, i_closest + 3]
+                - norm_coord_separatrix.x_norm[i_separatrix, i_closest]))
 
-            # # for when separatrix makes a closed loop
-            # i_first_loop = np.where(x_branch>self.range_fit[1])[0][0]
-
-            # mask_fit = (x_branch > self.range_fit[0]) & (x_branch < self.range_fit[1])
-            # mask_fit[i_first_loop:] = False
-            # if not mask_fit.any():
-            #     message = 'no fit'
-            # poly_geom = np.polyfit(x_branch[mask_fit], px_branch[mask_fit], 1)
-            # poly_norm = np.polyfit(x_norm_branch[mask_fit], px_norm_branch[mask_fit], 1)
-
-            # r_sep_norm = np.abs(poly_norm[1]) / np.sqrt(poly_norm[0]**2 + 1)
-
-            poly_geom = [0, 0]
-            poly_norm = [0, 0]
-            r_sep_norm = 0
-            mask_fit = [0]
-            x_branch = None
-            px_branch = None
-
-
-            if self.x_spiral_meas is not None:
-                # x_first_unstable = mon_test.x[i_first_unstable, :].copy()
-                # px_first_unstable = mon_test.px[i_first_unstable, :].copy()
-                i_separatrix = 0
-                x_first_unstable = mon_separatrix.x[i_separatrix, :].copy()
-                px_first_unstable = mon_separatrix.px[i_separatrix, :].copy()
-
-                # To be generalized
-                x_first_unstable[px_first_unstable < 0] = 9999999.
-
-                i_closest = np.argmin(np.abs(x_first_unstable - self.x_spiral_meas))
-                dx_spiral = (mon_separatrix.x[i_separatrix, i_closest + 3]
-                             - mon_separatrix.x[i_separatrix, i_closest])
-                dpx_spiral = (mon_separatrix.px[i_separatrix, i_closest + 3]
-                             - mon_separatrix.px[i_separatrix, i_closest])
-                djx_spiral = (
-                    norm_coord_separatrix.x_norm[i_separatrix, i_closest + 3]**2
-                  + norm_coord_separatrix.px_norm[i_separatrix, i_closest + 3]**2
-                  - norm_coord_separatrix.x_norm[i_separatrix, i_closest]**2
-                  - norm_coord_separatrix.px_norm[i_separatrix, i_closest]**2)
-                slope_norm_spiral = (
-                    (norm_coord_separatrix.px_norm[i_separatrix, i_closest + 3]
-                     - norm_coord_separatrix.px_norm[i_separatrix, i_closest])
-                   / (norm_coord_separatrix.x_norm[i_separatrix, i_closest + 3]
-                     - norm_coord_separatrix.x_norm[i_separatrix, i_closest]))
-                x0 = mon_separatrix.x[i_separatrix, i_closest]
-                px0 = mon_separatrix.px[i_separatrix, i_closest]
-                x1 = mon_separatrix.x[i_separatrix, i_closest + 3]
-                px1 = mon_separatrix.px[i_separatrix, i_closest + 3]
-                x_norm0 = norm_coord_separatrix.x_norm[i_separatrix, i_closest]
-                px_norm0 = norm_coord_separatrix.px_norm[i_separatrix, i_closest]
-                x_norm1 = norm_coord_separatrix.x_norm[i_separatrix, i_closest + 3]
-                px_norm1 = norm_coord_separatrix.px_norm[i_separatrix, i_closest + 3]
-
-                # poly_separatrix = np.polyfit(mon_separatrix.x[i_separatrix, i_closest-3*3:i_closest+1: 3],
-                #                              mon_separatrix.px[i_separatrix, i_closest-3*3:i_closest+1: 3],
-                #                              1)
-                # poly_norm_separatrix = np.polyfit(
-                #     norm_coord_separatrix.x_norm[i_separatrix, i_closest-3*3:i_closest+1: 3],
-                #     norm_coord_separatrix.px_norm[i_separatrix, i_closest-3*3:i_closest+1: 3],
-                #     1)
-            else:
-                dx_spiral = 999.
-                dpx_spiral = 999.
-                djx_spiral = 999.
-                slope_norm_spiral = 999.
-                x0 = 999.
-                px0 = 999.
-                x1 = 999.
-                px1 = 999.
-                x_norm0 = 999.
-                px_norm0 = 999.
-                x_norm1 = 999.
-                px_norm1 = 999.
-
-            out = {
-                'poly_geom': poly_geom,
-                'poly_norm': poly_norm,
-                'r_sep_norm': r_sep_norm,
-                'slope_geom': poly_geom[0],
-                'slope_norm': poly_norm[0],
-                'n_fit': np.sum(mask_fit),
-                'mon' : mon_test,
-                'norm_coord': norm_coord_test,
-                'i_part': i_part,
-                'message': message,
-                # 'x_fit': x_branch[mask_fit],
-                # 'px_fit': px_branch[mask_fit],
-                'dx_spiral': dx_spiral,
-                'dpx_spiral': dpx_spiral,
-                'djx_spiral': djx_spiral,
-                'slope_norm_spiral': slope_norm_spiral,
-                'x0': x0,
-                'px0': px0,
-                'x1': x1,
-                'px1': px1,
-                'x_norm0': x_norm0,
-                'px_norm0': px_norm0,
-                'x_norm1': x_norm1,
-                'px_norm1': px_norm1,
-                'x_first_unstable': mon_separatrix.x[i_separatrix, :].copy(),
-                'px_first_unstable': mon_separatrix.px[i_separatrix, :].copy(),
-                # 'slope_separatrix': poly_separatrix[0],
-                # 'r_sep_norm_separatrix': np.abs(poly_norm_separatrix[1]) / np.sqrt(poly_norm_separatrix[0]**2 + 1),
-                # 'poly_geom_separatrix': poly_separatrix,
-                # 'poly_norm_separatrix': poly_norm_separatrix,
-                'mon_separatrix': mon_separatrix,
-                'x_fixed_point': x_fixed_point,
-                'px_fixed_point': px_fixed_point,
-                'x_norm_fixed_point': x_norm_fixed_point,
-                'px_norm_fixed_point': px_norm_fixed_point,
-                'j_fixed_point': j_fixed_point,
-            }
-        except Exception as err:
-            print(err)
-            out = {
-                'poly_geom': [0, 0],
-                'poly_norm': [0, 0],
-                'r_sep_norm': 999.,
-                'slope_geom': 999.,
-                'slope_norm': 999.,
-                'n_fit': 0,
-                'mon' : mon_test,
-                'norm_coord': norm_coord_test,
-                'i_part': 0,
-                'message': message,
-                'slope_norm_spiral': 999.,
-                'j_fixed_point': 999.,
-            }
+        out = {
+            'slope_norm_spiral': slope_norm_spiral,
+            'mon_separatrix': mon_separatrix,
+            'j_fixed_point': j_fixed_point,
+            'x_fixed_point': x_fixed_point,
+            'px_fixed_point': px_fixed_point,
+            'x_norm_fixed_point': x_norm_fixed_point,
+            'px_norm_fixed_point': px_norm_fixed_point,
+        }
 
         return out
 
-def plot_res(res, title=None):
-    mon = res['mon']
-    norm_coord = res['norm_coord']
+def plot_phase_space(res, title=None, range_test=(0, 1.5e-2), n_test=20,
+                     num_turns=5000, line=None):
+
+    tw = line.twiss(method='4d')
+    p_test = line.build_particles(
+        x=np.linspace(range_test[0], range_test[1], n_test), px=0)
+    line.track(p_test, num_turns=num_turns, turn_by_turn_monitor=True)
+    mon = line.record_last_track
+    norm_coord  = tw.get_normalized_coordinates(mon)
+
 
     plt.figure(figsize=(10, 5))
     ax_geom = plt.subplot(1, 2, 1)
@@ -304,8 +174,8 @@ optq.solve()
 
 tw1 = line.twiss(method='4d')
 
-line.vars['k2xrr_a_extr'] = 0
-line.vars['k2xrr_b_extr'] = 7.5
+line.vars['k2xrr_a_extr'] = 1
+line.vars['k2xrr_b_extr'] = -8
 tw2 = line.twiss(method='4d')
 
 import matplotlib.pyplot as plt
@@ -335,11 +205,11 @@ opt = line.match(
     solve=False,
     method='4d',
     vary=xt.VaryList(['k2xrr_a_extr', 'k2xrr_b_extr'], step=0.5, tag='resonance',
-                     limits=[-20, 20]),
+                     limits=[-10, 10]),
     targets=[
-        act_match.target('j_fixed_point', res_m0['j_fixed_point'], tol=2e-5, tag='resonance', weight=1e2),
-        # act_match.target('px_fixed_point',  1e-3 , tol=1e-5, tag='resonance'),
-        act_match.target('slope_norm_spiral', -0.2, tol=0.01)
+        act_match.target('j_fixed_point', 7e-3, tol=5e-5, tag='resonance', weight=1e2),
+        # act_match.target('slope_norm_spiral', -0.3, tol=0.01)
+        act_match.target('slope_norm_spiral', 0.6, tol=0.01)
     ]
 )
 
@@ -371,31 +241,19 @@ bounds = np.array([vv.limits for vv in opt._err.vary])
 opt._err.return_scalar = True
 import pybobyqa
 soln = pybobyqa.solve(err_fun, x0=opt.log().vary[0, :], bounds=bounds.T,
-            rhobeg=10, rhoend=1e-4, maxfun=60, objfun_has_noise=True,
+            rhobeg=10, rhoend=1e-4, maxfun=80, objfun_has_noise=True,
             seek_global_minimum=True)
 err_fun(soln.x) # set it to the best solution
 opt.tag('pybobyqa')
 opt.target_status()
 
+opt.reload(0)
+res_m0 = act_match.run()
+plot_phase_space(res_m0, 'match - first point', line=line)
 
-# import scipy
-# soln = scipy.optimize.dual_annealing(opt._err, bounds=bounds, maxiter=50)
-
-# while opt.targets[1].value > 1.:
-#     opt.targets[1].value -= 0.02
-#     opt.step(40)
-#     opt.target_status()
-#     opt.vary_status()
-
-
+opt.reload(tag='pybobyqa')
 res_m1 = act_match.run()
-
-res1 = act_show.run()
-
-plot_res(res0, 'before')
-plot_res(res1, 'after')
-plot_res(res_m0, 'match - first point')
-plot_res(res_m1, 'match - last point')
+plot_phase_space(res_m1, 'match - last point',  line=line)
 
 tw = line.twiss(method='4d')
 

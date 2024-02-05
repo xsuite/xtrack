@@ -1091,6 +1091,7 @@ class Quadrupole(BeamElement):
 
 class Solenoid(BeamElement):
     isthick = True
+    has_backtrack = True
 
     _xofields = {
         'length': xo.Float64,
