@@ -12,10 +12,8 @@ import RF_Track as RFT
 #############################################
 
 # Bunch parameters
-mass = xp.ELECTRON_MASS_EV # eV/c^2
 q0 = -1 # electrons
 P0c = 50e6 # reference momentum, eV/c
-P_over_q = P0c / q0 # V/c, reference rigidity
 
 # Solenoid parameters
 B0 = 0.5 # T, on-axis field
