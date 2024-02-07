@@ -1030,12 +1030,13 @@ class MadLoader:
         ]
 
     def convert_octagon(self, ee):
-        a0 = ee.aperture[0]
-        a1 = ee.aperture[1]
-        a2 = ee.aperture[2]
-        a3 = ee.aperture[3]
-        V1 = (a0, a0 * np.tan(a2))  # expression will fail
-        V2 = (a1 / np.tan(a3), a1)  # expression will fail
+        # MAD-X assumes X and Y symmetry, defines 2 points per quadrant
+        a0 = ee.aperture[0]  # half-width
+        a1 = ee.aperture[1]  # half-height
+        a2 = ee.aperture[2]  # angle between the lower point and the X axis
+        a3 = ee.aperture[3]  # angle between the other point and the X axis
+        V1 = (a0, a0 * self.math.tan(a2))
+        V2 = (a1 / self.math.tan(a3), a1)
         el = self.Builder(
             ee.name + "_aper",
             self.classes.LimitPolygon,

@@ -331,6 +331,7 @@ def test_mad_elements_import():
                 pnl:={a*0.3, a*0.4}, psl:={a*0.5, a*0.6};
     crab0: crabcavity, volt:=a*2, lag:=a*0.5, freq:=a*100.;
     crab1: crabcavity, volt:=a*2, lag:=a*0.5, freq:=a*100., tilt:=a*pi/2;
+    oct0: marker, apertype=octagon, aperture:={a * 3, a * 6, a * pi/6, a * pi/3};
     """)
 
     matrix_m0 = np.random.randn(6)*1E-6
@@ -377,6 +378,7 @@ def test_mad_elements_import():
     cb1: crab1, at=0.42;
     w: wire1, at=1;
     mat0:mat, at=2+0.003/2;
+    oct: oct0, at=3;
     endsequence;
     """
     )
@@ -393,7 +395,8 @@ def test_mad_elements_import():
 
     for test_expressions in [True, False]:
         line = xt.Line.from_madx_sequence(sequence=seq,
-                                          deferred_expressions=test_expressions)
+                                          deferred_expressions=test_expressions,
+                                          install_apertures=True)
         line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, gamma0=1.05)
 
         line = xt.Line.from_dict(line.to_dict()) # This calls the to_dict method fot all
@@ -525,6 +528,15 @@ def test_mad_elements_import():
         assert line.get_s_position('mat0') == 2
         assert np.allclose(line['mat0'].m0,matrix_m0,rtol=0.0,atol=1E-12)
         assert np.allclose(line['mat0'].m1,matrix_m1,rtol=0.0,atol=1E-12)
+
+        assert isinstance(line['oct_aper'], xt.LimitPolygon)
+        assert line.get_s_position('oct_aper') == 3
+        x_1, x_2, y_1, y_2 = 3, 2 * np.sqrt(3), np.sqrt(3), 6
+        expected_x_vertices = [x_1, x_2,  -x_2, -x_1, -x_1, -x_2, x_2, x_1]
+        expected_y_vertices = [y_1, y_2, y_2, y_1, -y_1, -y_2, -y_2, -y_1]
+        assert np.allclose(line['oct_aper'].x_vertices, expected_x_vertices)
+        assert np.allclose(line['oct_aper'].y_vertices, expected_y_vertices)
+
 
 def test_selective_expr_import_and_replace_in_expr():
 
