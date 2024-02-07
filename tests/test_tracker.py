@@ -551,22 +551,25 @@ def test_tracking_with_progress(test_context, with_progress, turns, collective):
 
 @for_all_test_contexts
 @pytest.mark.parametrize(
-    'ele_start,ele_stop,expected_x',
+    'ele_start,ele_stop,num_turns,expected_x',
     [
-        (None, None, [0, 0.005, 0.010, 0.015, 0.020, 0.025]),
-        (None, 3, [0, 0.005, 0.010, 0.015, 0.020, 0.023]),
-        (2, None, [0, 0.003, 0.008, 0.013, 0.018, 0.023]),
-        (2, 3, [0, 0.003, 0.008, 0.013, 0.018, 0.021]),
-        (3, 2, [0, 0.002, 0.007, 0.012, 0.017, 0.022, 0.024]),
+        (None, None, 5, [0, 0.005, 0.010, 0.015, 0.020, 0.025]),
+        (None, 3, 5, [0, 0.005, 0.010, 0.015, 0.020, 0.023]),
+        (2, None, 5, [0, 0.003, 0.008, 0.013, 0.018, 0.023]),
+        (2, 3, 5, [0, 0.003, 0.008, 0.013, 0.018, 0.021]),
+        (3, 2, 5, [0, 0.002, 0.007, 0.012, 0.017, 0.019]),
+        (2, 3, 1, [0, 0.001]),
+        (3, 2, 1, [0, 0.002, 0.004]),
     ],
 )
 @pytest.mark.parametrize('with_progress', [False, True, 1, 2, 3])
-def test_tbt_monitor_with_progress(test_context, ele_start, ele_stop, expected_x, with_progress):
+def test_tbt_monitor_with_progress(test_context, ele_start, ele_stop, num_turns, expected_x, with_progress):
     line = xt.Line(elements=[xt.Drift(length=1, _context=test_context)] * 5)
     line.build_tracker(_context=test_context)
 
     p = xt.Particles(px=0.001, _context=test_context)
-    line.track(p, num_turns=5, turn_by_turn_monitor=True, with_progress=with_progress, ele_start=ele_start, ele_stop=ele_stop)
+    line.track(p, num_turns=num_turns, turn_by_turn_monitor=True,
+               with_progress=with_progress, ele_start=ele_start, ele_stop=ele_stop)
     p.move(_context=xo.context_default)
 
     monitor_recorded_x = line.record_last_track.x
