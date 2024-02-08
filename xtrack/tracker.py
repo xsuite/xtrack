@@ -969,7 +969,7 @@ class Tracker:
                         else:
                             ff = log[kk]
                             self.line.log_last_track[kk].append(
-                                                    ff(self.line. particles))
+                                                    ff(self.line, particles))
 
             moveback_to_buffer = None
             moveback_to_offset = None
