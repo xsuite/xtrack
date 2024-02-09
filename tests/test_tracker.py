@@ -670,14 +670,18 @@ def test_track_log_and_merit_function(pimms_mad, test_context):
     # Define time-dependent behaviour of the quadrupoles
     line.functions['fun_kqfa'] = xt.FunctionPieceWiseLinear(
         x=[0, 0.5e-3],
-        y=[line.vars['kqfa']._value, 0.313],
+        y=[line.vv['kqfa'], 0.313],
     )
     line.vars['kqfa'] = line.functions['fun_kqfa'](line.vars['t_turn_s'])
     line.vars['kse2'] = 9
 
+    kqfa_before = line.vv['kqfa']
+
     def measure_intensity(_, particles):
         mask_alive = particles.state > 0
         return np.sum(particles.weight[mask_alive])
+
+    intensity_before = measure_intensity(None, particles)
 
     log = xt.Log('kqfa',  # vars to be logged
                  intensity=measure_intensity)  # user-defined function to be logged
@@ -688,12 +692,18 @@ def test_track_log_and_merit_function(pimms_mad, test_context):
     num_turns = 1000
     line.track(particles=particles, num_turns=num_turns, log=log)
 
+    intensity_after = measure_intensity(None, particles)
+
     # Check that kqfa is increasing linearly
     fit = np.polyfit(np.arange(num_turns), line.log_last_track['kqfa'], 1, full=True)
     (slope, _), residual, _, _, _ = fit
     assert slope > 0
     assert residual < 1e-29
+    assert np.isclose(line.log_last_track['kqfa'][0], kqfa_before, atol=1e-14, rtol=0)
+    assert np.isclose(line.log_last_track['kqfa'][-1], line.vv['kqfa'], atol=1e-14, rtol=0)
 
     # Check that intensity is decreasing
     intensity = np.array(line.log_last_track['intensity'])
     assert np.all(intensity[:-1] - intensity[1:] >= 0)
+    assert np.isclose(intensity[0], intensity_before, atol=1e-14, rtol=0)
+    assert np.isclose(intensity[-1], intensity_after, atol=1e-14, rtol=0)
