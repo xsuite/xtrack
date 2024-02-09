@@ -585,7 +585,7 @@ def pimms_mad():
 
 
 @for_all_test_contexts
-def test_track_with_log(pimms_mad, test_context):
+def test_track_log_and_merit_function(pimms_mad, test_context):
     line = xt.Line.from_madx_sequence(
         pimms_mad.sequence.pimms,
         deferred_expressions=True,
@@ -619,7 +619,7 @@ def test_track_with_log(pimms_mad, test_context):
         vary=[
             xt.VaryList(['ksf', 'ksd'], step=1e-3),
             xt.VaryList(['kqfa', 'kqfb'], limits=(0, 1), step=1e-3, tag='qf'),
-            xt.Vary('kqd', limits=(-1, 0), step=1e-3, tag='qd'),
+            xt.Vary('kqd', limits=(-1, 0), step=1e-3, tag='qd', weight=10),
         ],
         targets=[
             xt.TargetSet(dqx=-0.1, dqy=-0.1, tol=1e-3, tag="chrom"),
@@ -628,14 +628,25 @@ def test_track_with_log(pimms_mad, test_context):
         ]
     )
 
+    # Check that the merit function works correctly
     merit_function = opt.get_merit_function(return_scalar=True, check_limits=False)
 
     x_expected = [line.vars[kk]._value for kk in ['ksf', 'ksd', 'kqfa', 'kqfb', 'kqd']]
+    x_expected[4] /= 10  # include the weight
     x_start = merit_function.get_x()
     assert np.allclose(x_start, x_expected, atol=1e-14)
 
+    expected_limits = [
+        [-1e200, 1e200],  # default
+        [-1e200, 1e200],  # default
+        [0, 1],
+        [0, 1],
+        [-0.1, 0],
+    ]
+    assert np.allclose(merit_function.get_x_limits(), expected_limits, atol=1e-14)
+
     # Below numbers obtained by first only matching the tunes, then the above
-    x_optimized = [-1.40251213, 0.81823393, 0.31196667, 0.52478984, -0.52393429]
+    x_optimized = [-1.40251213, 0.81823393, 0.31196667, 0.52478984, -0.052393429]
     merit_function.set_x(x_optimized)
     assert np.all(opt.target_status(ret=True)['tol_met'])
 
