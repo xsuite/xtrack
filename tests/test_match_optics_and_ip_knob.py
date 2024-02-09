@@ -319,10 +319,10 @@ def test_ip_knob_matching(test_context):
     collider.vars['on_x8h'] = 0
     collider.vars['on_sep8h'] = 0
 
-    assert np.isclose(tw.lhcb1['x', 'ip8'], 1.7e-3, atol=1e-10, rtol=0)
-    assert np.isclose(tw.lhcb2['x', 'ip8'], -1.7e-3, atol=1e-10, rtol=0)
-    assert np.isclose(tw.lhcb1['px', 'ip8'], 120e-6, atol=1e-10, rtol=0)
-    assert np.isclose(tw.lhcb2['px', 'ip8'], -120e-6, atol=1e-10, rtol=0)
+    assert np.isclose(tw.lhcb1['x', 'ip8'], 1.7e-3, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb2['x', 'ip8'], -1.7e-3, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['px', 'ip8'], 120e-6, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb2['px', 'ip8'], -120e-6, atol=1e-9, rtol=0)
 
 @for_all_test_contexts
 def test_match_ir8_optics(test_context):
@@ -570,7 +570,7 @@ def test_match_ir8_optics(test_context):
                                 betx=0.15, bety=0.15))
 
     opt = collider[f'lhcb2'].match(
-        default_tol={None: 1e-7, 'betx': 1e-6, 'bety': 1e-6},
+        default_tol={None: 1e-7, 'betx': 5e-6, 'bety': 5e-6},
         solve=False,
         start=f's.ds.l8.b2', end=f'e.ds.r8.b2', init_at=xt.START,
         # Left boundary

@@ -31,6 +31,7 @@ from .survey import survey_from_line
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
                           find_closed_orbit_line, twiss_line,
                           compute_T_matrix_line,
+                          get_non_linear_chromaticity,
                           DEFAULT_MATRIX_STABILITY_TOL,
                           DEFAULT_MATRIX_RESPONSIVENESS_TOL)
 from .match import match_line, closed_orbit_correction, match_knob_line, Action
@@ -1026,6 +1027,7 @@ class Line:
         dx=None, dpx=None, dy=None, dpy=None, dzeta=None,
         mux=None, muy=None, muzeta=None,
         ax_chrom=None, bx_chrom=None, ay_chrom=None, by_chrom=None,
+        ddx=None, ddpx=None, ddy=None, ddpy=None,
         co_search_at=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
@@ -1635,6 +1637,30 @@ class Line:
                         element_by_element=element_by_element,
                         only_markers=only_markers)
 
+    def get_non_linear_chromaticity(self,
+                        delta0_range=(-1e-3, 1e-3), num_delta=5, fit_order=3, **kwargs):
+
+        '''Get non-linear chromaticity for given range of delta values
+
+        Parameters
+        ----------
+        delta0_range : tuple of float
+            Range of delta values for chromaticity computation.
+        num_delta : int
+            Number of delta values for chromaticity computation.
+        kwargs : dict
+            Additional arguments to be passed to the twiss.
+
+        Returns
+        -------
+        chromaticity : Table
+            Table containing the non-linear chromaticity information.
+
+        '''
+
+        return get_non_linear_chromaticity(self, delta0_range, num_delta,
+                                           fit_order, **kwargs)
+
     def get_length(self):
 
         '''Get total length of the line'''
@@ -2185,7 +2211,7 @@ class Line:
             self.config[f'FREEZE_VAR_{name}'] = False
 
 
-    def configure_bend_model(self, core=None, edge=None):
+    def configure_bend_model(self, core=None, edge=None, num_multipole_kicks=None):
 
         """
         Configure the method used to track bends.
@@ -2200,18 +2226,23 @@ class Line:
             or 'suppressed'.
         """
 
-        if core not in [None, 'expanded', 'full']:
+        if core not in [None, 'adaptive', 'full', 'bend-kick-bend',
+                              'rot-kick-rot', 'expanded']:
             raise ValueError(f'Unknown bend model {core}')
 
         if edge not in [None, 'linear', 'full', 'suppressed']:
             raise ValueError(f'Unknown bend edge model {edge}')
 
         for ee in self.elements:
-            if core is not None and isinstance(ee, xt.Bend):
+            if core is not None and isinstance(ee,
+                                (xt.Bend, xt.CombinedFunctionMagnet)):
                 ee.model = core
 
             if edge is not None and isinstance(ee, xt.DipoleEdge):
                 ee.model = edge
+
+            if num_multipole_kicks is not None:
+                ee.num_multipole_kicks = num_multipole_kicks
 
     def configure_radiation(self, model=None, model_beamstrahlung=None,
                             model_bhabha=None, mode='deprecated'):

@@ -37,7 +37,7 @@ void track_thick_bend(
     const double A = 1.0 / sqrt(POW2(one_plus_delta) - POW2(py));
     const double pz = sqrt(POW2(one_plus_delta) - POW2(px) - POW2(py));
 
-    if (fabs(h) > 1e-8) {
+    if (fabs(h) > 1e-8 && fabs(k) > 1e-8){
         // The case for non-zero curvature, s is arc length
         // Useful constants
         const double C = pz - k * ((1 / h) + x);
@@ -54,6 +54,25 @@ void track_thick_bend(
         new_y = y + ((py * s) / (k / h)) + (py / k) * D;
 
         delta_ell = ((one_plus_delta * s * h) / k) + (one_plus_delta / k) * D;
+    }
+    else if (fabs(h) > 1e-8 && fabs(k) < 1e-8){
+        // Based on SUBROUTINE Sprotr in PTC and curex_drift in MAD-NG
+        // Polar drift
+        double const rho = 1/h;
+        const double ca = cos(h*s);
+        const double sa = sin(h*s);
+        const double sa2 = sin(0.5*h*s);
+        const double _pz = 1/pz;
+        const double pxt = px*_pz;
+        const double _ptt = 1/(ca - sa*pxt);
+        const double pst = (x+rho)*sa*_pz*_ptt;
+
+        new_x  = (x + rho*(2*sa2*sa2 + sa*pxt))*_ptt;
+        new_px = ca*px + sa*pz;
+        new_y  = y + pst*py;
+        delta_ell = one_plus_delta * (x + rho) * sa / ca / pz
+                    / (1 - px * sa / ca / pz);
+
     }
     else {
         // The case for zero curvature -- straight bend, s is Cartesian length

@@ -28,4 +28,9 @@ line = xt.Line.from_madx_sequence(mad.sequence.lhcb1,
             allow_thick=True, deferred_expressions=True)
 line.particle_ref = xp.Particles(mass0=seq.beam.mass*1e9, gamma0=seq.beam.gamma)
 
+tt = line.get_table()
+for nn in tt.rows[tt.element_type=='Solenoid'].name:
+    ee_elen = line[nn].length
+    line.element_dict[nn] = xt.Drift(length=ee_elen)
+
 line.to_json('lhc_thick_with_knobs.json', include_var_management=True)

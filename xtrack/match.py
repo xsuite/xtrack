@@ -9,7 +9,7 @@ from .general import _print
 import xtrack as xt
 import xdeps as xd
 
-XTRACK_DEFAULT_TOL = 1e-10
+XTRACK_DEFAULT_TOL = 1e-9
 XTRACK_DEFAULT_SIGMA_REL = 0.01
 
 XTRACK_DEFAULT_WEIGHTS = {
@@ -34,6 +34,9 @@ ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau',
                         'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy',
                         'mux', 'muy', 'dx', 'dpx', 'dy', 'dpy',
                         'qx', 'qy', 'dqx', 'dqy',
+                        'ax_chrom', 'bx_chrom', 'ay_chrom', 'by_chrom',
+                        'wx_chrom', 'wy_chrom',
+                        'ddqx', 'ddqy', 'ddx', 'ddpx', 'ddy', 'ddpy',
                         'eq_gemitt_x', 'eq_gemitt_y', 'eq_gemitt_zeta',
                         'eq_nemitt_x', 'eq_nemitt_y', 'eq_nemitt_zeta']
 
@@ -159,6 +162,10 @@ class ActionTwiss(xd.Action):
                     bx_chrom=kwargs.get('bx_chrom', None),
                     ay_chrom=kwargs.get('ay_chrom', None),
                     by_chrom=kwargs.get('by_chrom', None),
+                    ddx=kwargs.get('ddx', None),
+                    ddy=kwargs.get('ddy', None),
+                    ddpx=kwargs.get('ddpx', None),
+                    ddpy=kwargs.get('ddpy', None),
                     )
             for kk in VARS_FOR_TWISS_INIT_GENERATION + ['init_at']:
                 if kk in kwargs:
@@ -924,3 +931,38 @@ def _at_from_placeholder(tt_at, line, line_name, start, end):
         tt_at = this_line.element_names[tt_at]
 
     return tt_at
+
+def opt_from_callable(function, x0, steps, tar, tols):
+
+    '''Optimize a generic callable'''
+
+    x0 = np.array(x0)
+    x = x0.copy()
+    vary = [xt.Vary(ii, container=x, step=steps[ii]) for ii in range(len(x))]
+
+    opt = xd.Optimize(
+        vary=vary,
+        targets=ActionCall(function, vary).get_targets(tar),
+        show_call_counter=False,
+    )
+
+    for ii, tt in enumerate(opt.targets):
+        tt.tol = tols[ii]
+
+    return opt
+
+class ActionCall(Action):
+    def __init__(self, function, vary):
+        self.vary = vary
+        self.function = function
+
+    def run(self):
+        x = [vv.container[vv.name] for vv in self.vary]
+        return self.function(x)
+
+    def get_targets(self, ftar):
+        tars = []
+        for ii in range(len(ftar)):
+            tars.append(xt.Target(ii, ftar[ii], action=self))
+
+        return tars

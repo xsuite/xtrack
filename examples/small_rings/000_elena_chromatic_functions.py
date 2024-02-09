@@ -27,18 +27,18 @@ tt.rows['lnr.mbhek.0135_entry':'lnr.mbhek.0135_exit'].show()
 # lnr.mbhek.0135_dex      5.46995 DipoleEdge     False
 # lnr.mbhek.0135_exit     5.46995 Marker         False
 
-# By default the expanded model is used for the core and the linearized model for the edge
-line['lnr.mbhek.0135'].model # is 'expanded'
+# By default the adaptive model is used for the core and the linearized model for the edge
+line['lnr.mbhek.0135'].model # is 'adaptive'
 line['lnr.mbhek.0135_den'].model # is 'linear'
 
 # For small machines (bends with large bending angles) it is more appropriate to
-# switch to the `full` model for the core and the edge
-line.configure_bend_model(core='full', edge='full')
+# switch to the `full` model for the edge
+line.configure_bend_model(core='adaptive', edge='full')
 
 # It is also possible to switch from the expanded drift to the exact one
 line.config.XTRACK_USE_EXACT_DRIFTS = True
 
-line['lnr.mbhek.0135'].model # is 'full'
+line['lnr.mbhek.0135'].model # is 'adaptive'
 line['lnr.mbhek.0135_den'].model # is 'full'
 
 # Slice the bends to see the behavior of the optics functions within them
@@ -51,7 +51,7 @@ line.slice_thick_elements(
 # Twiss
 tw = line.twiss(method='4d')
 
-# Switch back to the default model
+# Switch to a simplified model
 line.configure_bend_model(core='expanded', edge='linear')
 line.config.XTRACK_USE_EXACT_DRIFTS = False
 
@@ -64,7 +64,7 @@ import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1, figsize=(6.4, 4.8 * 1.5))
 ax1 = plt.subplot(4,1,1)
-plt.plot(tw.s, tw.betx, label='full')
+plt.plot(tw.s, tw.betx, label='adaptive')
 plt.plot(tw_simpl.s, tw_simpl.betx, '--', label='simplified')
 plt.ylabel(r'$\beta_x$')
 plt.legend(loc='best')

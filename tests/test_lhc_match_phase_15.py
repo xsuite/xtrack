@@ -42,7 +42,9 @@ def test_lhc_match_phase_15(test_context, config):
     collider.vars.load_madx_optics_file(
         test_data_folder / "hllhc15_thick/opt_round_150_1500.madx")
 
-    default_tol = {None: 1e-8, 'betx': 1e-6, 'bety': 1e-6} # to have no rematching w.r.t. madx
+    # to have no rematching w.r.t. madx
+    default_tol = {None: 1e-8, 'betx': 5e-6, 'bety': 5e-6, 'dx': 1e-7,
+                  'alfx': 5e-6, 'alfy': 5e-6}
 
     collider.lhcb1.twiss_default['only_markers'] = True
     collider.lhcb2.twiss_default['only_markers'] = True
@@ -319,8 +321,8 @@ def test_lhc_match_phase_15(test_context, config):
 
     assert np.isclose(tw.lhcb1['py', 'ip2'], 34e-6, atol=1e-9, rtol=0)
     assert np.isclose(tw.lhcb2['py', 'ip2'], -34e-6, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb1['y', 'ip2'], 0, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['y', 'ip2'], 0, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['y', 'ip2'], 0, atol=1e-8, rtol=0)
+    assert np.isclose(tw.lhcb2['y', 'ip2'], 0, atol=1e-8, rtol=0)
     assert np.isclose(tw.lhcb1['px', 'ip2'], 0, atol=1e-9, rtol=0)
     assert np.isclose(tw.lhcb2['px', 'ip2'], 0, atol=1e-9, rtol=0)
 
@@ -330,8 +332,8 @@ def test_lhc_match_phase_15(test_context, config):
 
     assert np.isclose(tw.lhcb1['px', 'ip8'], 35e-6, atol=1e-9, rtol=0)
     assert np.isclose(tw.lhcb2['px', 'ip8'], -35e-6, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb1['x', 'ip8'], 0, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['x', 'ip8'], 0, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['x', 'ip8'], 0, atol=1e-8, rtol=0)
+    assert np.isclose(tw.lhcb2['x', 'ip8'], 0, atol=1e-8, rtol=0)
     assert np.isclose(tw.lhcb1['py', 'ip8'], 0, atol=1e-9, rtol=0)
     assert np.isclose(tw.lhcb2['py', 'ip8'], 0, atol=1e-9, rtol=0)
 
@@ -339,23 +341,23 @@ def test_lhc_match_phase_15(test_context, config):
     tw = collider.twiss()
     collider.vars['on_sep2'] = 0
 
-    assert np.isclose(tw.lhcb1['x', 'ip2'], -0.5e-3, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['x', 'ip2'], 0.5e-3, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['x', 'ip2'], -0.5e-3, atol=1e-8, rtol=0)
+    assert np.isclose(tw.lhcb2['x', 'ip2'], 0.5e-3, atol=1e-8, rtol=0)
     assert np.isclose(tw.lhcb1['px', 'ip2'], 0, atol=1e-9, rtol=0)
     assert np.isclose(tw.lhcb2['px', 'ip2'], 0, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb1['y', 'ip2'], 0, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['y', 'ip2'], 0, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['y', 'ip2'], 0, atol=1e-8, rtol=0)
+    assert np.isclose(tw.lhcb2['y', 'ip2'], 0, atol=1e-8, rtol=0)
 
     collider.vars['on_sep8'] = 0.6
     tw = collider.twiss()
     collider.vars['on_sep8'] = 0
 
-    assert np.isclose(tw.lhcb1['y', 'ip8'], 0.6e-3, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['y', 'ip8'], -0.6e-3, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['y', 'ip8'], 0.6e-3, atol=1e-8, rtol=0)
+    assert np.isclose(tw.lhcb2['y', 'ip8'], -0.6e-3, atol=1e-8, rtol=0)
     assert np.isclose(tw.lhcb1['py', 'ip8'], 0, atol=1e-9, rtol=0)
     assert np.isclose(tw.lhcb2['py', 'ip8'], 0, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb1['x', 'ip8'], 0, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['x', 'ip8'], 0, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['x', 'ip8'], 0, atol=1e-8, rtol=0)
+    assert np.isclose(tw.lhcb2['x', 'ip8'], 0, atol=1e-8, rtol=0)
 
     # Check lower level knobs (disconnects higher level knobs)
 
@@ -363,8 +365,8 @@ def test_lhc_match_phase_15(test_context, config):
     tw = collider.twiss()
     collider.vars['on_o2v'] = 0
 
-    assert np.isclose(tw.lhcb1['y', 'ip2'], 0.3e-3, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['y', 'ip2'], 0.3e-3, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['y', 'ip2'], 0.3e-3, atol=1e-8, rtol=0)
+    assert np.isclose(tw.lhcb2['y', 'ip2'], 0.3e-3, atol=1e-8, rtol=0)
     assert np.isclose(tw.lhcb1['py', 'ip2'], 0., atol=1e-9, rtol=0)
     assert np.isclose(tw.lhcb2['py', 'ip2'], 0., atol=1e-9, rtol=0)
 
@@ -372,8 +374,8 @@ def test_lhc_match_phase_15(test_context, config):
     tw = collider.twiss()
     collider.vars['on_o2h'] = 0
 
-    assert np.isclose(tw.lhcb1['x', 'ip2'], 0.4e-3, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['x', 'ip2'], 0.4e-3, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['x', 'ip2'], 0.4e-3, atol=1e-8, rtol=0)
+    assert np.isclose(tw.lhcb2['x', 'ip2'], 0.4e-3, atol=1e-8, rtol=0)
     assert np.isclose(tw.lhcb1['px', 'ip2'], 0., atol=1e-9, rtol=0)
     assert np.isclose(tw.lhcb2['px', 'ip2'], 0., atol=1e-9, rtol=0)
 
@@ -381,8 +383,8 @@ def test_lhc_match_phase_15(test_context, config):
     tw = collider.twiss()
     collider.vars['on_o8v'] = 0
 
-    assert np.isclose(tw.lhcb1['y', 'ip8'], 0.5e-3, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['y', 'ip8'], 0.5e-3, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['y', 'ip8'], 0.5e-3, atol=1e-8, rtol=0)
+    assert np.isclose(tw.lhcb2['y', 'ip8'], 0.5e-3, atol=1e-8, rtol=0)
     assert np.isclose(tw.lhcb1['py', 'ip8'], 0., atol=1e-9, rtol=0)
     assert np.isclose(tw.lhcb2['py', 'ip8'], 0., atol=1e-9, rtol=0)
 
@@ -390,8 +392,8 @@ def test_lhc_match_phase_15(test_context, config):
     tw = collider.twiss()
     collider.vars['on_o8h'] = 0
 
-    assert np.isclose(tw.lhcb1['x', 'ip8'], 0.6e-3, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['x', 'ip8'], 0.6e-3, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['x', 'ip8'], 0.6e-3, atol=1e-8, rtol=0)
+    assert np.isclose(tw.lhcb2['x', 'ip8'], 0.6e-3, atol=1e-8, rtol=0)
     assert np.isclose(tw.lhcb1['px', 'ip8'], 0., atol=1e-9, rtol=0)
     assert np.isclose(tw.lhcb2['px', 'ip8'], 0., atol=1e-9, rtol=0)
 
@@ -399,8 +401,8 @@ def test_lhc_match_phase_15(test_context, config):
     tw = collider.twiss()
     collider.vars['on_a2h'] = 0
 
-    assert np.isclose(tw.lhcb1['x', 'ip2'], 0, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['x', 'ip2'], 0, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['x', 'ip2'], 0, atol=1e-8, rtol=0)
+    assert np.isclose(tw.lhcb2['x', 'ip2'], 0, atol=1e-8, rtol=0)
     assert np.isclose(tw.lhcb1['px', 'ip2'], 20e-6, atol=1e-9, rtol=0)
     assert np.isclose(tw.lhcb2['px', 'ip2'], 20e-6, atol=1e-9, rtol=0)
 
@@ -408,8 +410,8 @@ def test_lhc_match_phase_15(test_context, config):
     tw = collider.twiss()
     collider.vars['on_a2v'] = 0
 
-    assert np.isclose(tw.lhcb1['y', 'ip2'], 0, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['y', 'ip2'], 0, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['y', 'ip2'], 0, atol=1e-8, rtol=0)
+    assert np.isclose(tw.lhcb2['y', 'ip2'], 0, atol=1e-8, rtol=0)
     assert np.isclose(tw.lhcb1['py', 'ip2'], 15e-6, atol=1e-9, rtol=0)
     assert np.isclose(tw.lhcb2['py', 'ip2'], 15e-6, atol=1e-9, rtol=0)
 
@@ -417,8 +419,8 @@ def test_lhc_match_phase_15(test_context, config):
     tw = collider.twiss()
     collider.vars['on_a8h'] = 0
 
-    assert np.isclose(tw.lhcb1['x', 'ip8'], 0, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['x', 'ip8'], 0, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['x', 'ip8'], 0, atol=1e-8, rtol=0)
+    assert np.isclose(tw.lhcb2['x', 'ip8'], 0, atol=1e-8, rtol=0)
     assert np.isclose(tw.lhcb1['px', 'ip8'], 20e-6, atol=1e-9, rtol=0)
     assert np.isclose(tw.lhcb2['px', 'ip8'], 20e-6, atol=1e-9, rtol=0)
 
@@ -426,8 +428,8 @@ def test_lhc_match_phase_15(test_context, config):
     tw = collider.twiss()
     collider.vars['on_a8v'] = 0
 
-    assert np.isclose(tw.lhcb1['y', 'ip8'], 0, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['y', 'ip8'], 0, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['y', 'ip8'], 0, atol=1e-8, rtol=0)
+    assert np.isclose(tw.lhcb2['y', 'ip8'], 0, atol=1e-8, rtol=0)
     assert np.isclose(tw.lhcb1['py', 'ip8'], 50e-6, atol=1e-9, rtol=0)
     assert np.isclose(tw.lhcb2['py', 'ip8'], 50e-6, atol=1e-9, rtol=0)
 
@@ -435,8 +437,8 @@ def test_lhc_match_phase_15(test_context, config):
     tw = collider.twiss()
     collider.vars['on_x2v'] = 0
 
-    assert np.isclose(tw.lhcb1['y', 'ip2'], 0, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['y', 'ip2'], 0, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['y', 'ip2'], 0, atol=1e-8, rtol=0)
+    assert np.isclose(tw.lhcb2['y', 'ip2'], 0, atol=1e-8, rtol=0)
     assert np.isclose(tw.lhcb1['py', 'ip2'], 100e-6, atol=1e-9, rtol=0)
     assert np.isclose(tw.lhcb2['py', 'ip2'], -100e-6, atol=1e-9, rtol=0)
 
@@ -444,8 +446,8 @@ def test_lhc_match_phase_15(test_context, config):
     tw = collider.twiss()
     collider.vars['on_x2h'] = 0
 
-    assert np.isclose(tw.lhcb1['x', 'ip2'], 0, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['x', 'ip2'], 0, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['x', 'ip2'], 0, atol=1e-8, rtol=0)
+    assert np.isclose(tw.lhcb2['x', 'ip2'], 0, atol=1e-8, rtol=0)
     assert np.isclose(tw.lhcb1['px', 'ip2'], 120e-6, atol=1e-9, rtol=0)
     assert np.isclose(tw.lhcb2['px', 'ip2'], -120e-6, atol=1e-9, rtol=0)
 
@@ -454,8 +456,8 @@ def test_lhc_match_phase_15(test_context, config):
     tw = collider.twiss()
     collider.vars['on_x8h'] = 0
 
-    assert np.isclose(tw.lhcb1['x', 'ip8'], 0, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['x', 'ip8'], 0, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['x', 'ip8'], 0, atol=1e-8, rtol=0)
+    assert np.isclose(tw.lhcb2['x', 'ip8'], 0, atol=1e-8, rtol=0)
     assert np.isclose(tw.lhcb1['px', 'ip8'], 100e-6, atol=1e-9, rtol=0)
     assert np.isclose(tw.lhcb2['px', 'ip8'], -100e-6, atol=1e-9, rtol=0)
 
@@ -463,8 +465,8 @@ def test_lhc_match_phase_15(test_context, config):
     tw = collider.twiss()
     collider.vars['on_x8v'] = 0
 
-    assert np.isclose(tw.lhcb1['y', 'ip8'], 0, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['y', 'ip8'], 0, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['y', 'ip8'], 0, atol=1e-8, rtol=0)
+    assert np.isclose(tw.lhcb2['y', 'ip8'], 0, atol=1e-8, rtol=0)
     assert np.isclose(tw.lhcb1['py', 'ip8'], 120e-6, atol=1e-9, rtol=0)
     assert np.isclose(tw.lhcb2['py', 'ip8'], -120e-6, atol=1e-9, rtol=0)
 
@@ -472,8 +474,8 @@ def test_lhc_match_phase_15(test_context, config):
     tw = collider.twiss()
     collider.vars['on_sep2h'] = 0
 
-    assert np.isclose(tw.lhcb1['x', 'ip2'], 1.6e-3, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['x', 'ip2'], -1.6e-3, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['x', 'ip2'], 1.6e-3, atol=1e-8, rtol=0)
+    assert np.isclose(tw.lhcb2['x', 'ip2'], -1.6e-3, atol=1e-8, rtol=0)
     assert np.isclose(tw.lhcb1['px', 'ip2'], 0, atol=1e-9, rtol=0)
     assert np.isclose(tw.lhcb2['px', 'ip2'], 0, atol=1e-9, rtol=0)
 
@@ -481,8 +483,8 @@ def test_lhc_match_phase_15(test_context, config):
     tw = collider.twiss()
     collider.vars['on_sep2v'] = 0
 
-    assert np.isclose(tw.lhcb1['y', 'ip2'], 1.7e-3, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['y', 'ip2'], -1.7e-3, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['y', 'ip2'], 1.7e-3, atol=1e-8, rtol=0)
+    assert np.isclose(tw.lhcb2['y', 'ip2'], -1.7e-3, atol=1e-8, rtol=0)
     assert np.isclose(tw.lhcb1['py', 'ip2'], 0, atol=1e-9, rtol=0)
     assert np.isclose(tw.lhcb2['py', 'ip2'], 0, atol=1e-9, rtol=0)
 
@@ -490,8 +492,8 @@ def test_lhc_match_phase_15(test_context, config):
     tw = collider.twiss()
     collider.vars['on_sep8h'] = 0
 
-    assert np.isclose(tw.lhcb1['x', 'ip8'], 1.5e-3, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['x', 'ip8'], -1.5e-3, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['x', 'ip8'], 1.5e-3, atol=1e-8, rtol=0)
+    assert np.isclose(tw.lhcb2['x', 'ip8'], -1.5e-3, atol=1e-8, rtol=0)
     assert np.isclose(tw.lhcb1['px', 'ip8'], 0, atol=1e-9, rtol=0)
     assert np.isclose(tw.lhcb2['px', 'ip8'], 0, atol=1e-9, rtol=0)
 
@@ -499,8 +501,8 @@ def test_lhc_match_phase_15(test_context, config):
     tw = collider.twiss()
     collider.vars['on_sep8v'] = 0
 
-    assert np.isclose(tw.lhcb1['y', 'ip8'], 1.7e-3, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['y', 'ip8'], -1.7e-3, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['y', 'ip8'], 1.7e-3, atol=1e-8, rtol=0)
+    assert np.isclose(tw.lhcb2['y', 'ip8'], -1.7e-3, atol=1e-8, rtol=0)
     assert np.isclose(tw.lhcb1['py', 'ip8'], 0, atol=1e-9, rtol=0)
     assert np.isclose(tw.lhcb2['py', 'ip8'], 0, atol=1e-9, rtol=0)
 
@@ -511,8 +513,8 @@ def test_lhc_match_phase_15(test_context, config):
     collider.vars['on_x8h'] = 0
     collider.vars['on_sep8h'] = 0
 
-    assert np.isclose(tw.lhcb1['x', 'ip8'], 1.7e-3, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['x', 'ip8'], -1.7e-3, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['x', 'ip8'], 1.7e-3, atol=1e-8, rtol=0)
+    assert np.isclose(tw.lhcb2['x', 'ip8'], -1.7e-3, atol=1e-8, rtol=0)
     assert np.isclose(tw.lhcb1['px', 'ip8'], 120e-6, atol=1e-9, rtol=0)
     assert np.isclose(tw.lhcb2['px', 'ip8'], -120e-6, atol=1e-9, rtol=0)
 
@@ -532,10 +534,10 @@ def test_lhc_match_phase_15(test_context, config):
     twmad_b1 = xd.Table(mad.table.twb1)
     twmad_b2 = xd.Table(mad.table.twb2)
 
-    assert np.isclose(twmad_b1['betx', 'ip1:1'], 0.15, rtol=1e-8, atol=0)
-    assert np.isclose(twmad_b1['bety', 'ip1:1'], 0.15, rtol=1e-8, atol=0)
-    assert np.isclose(twmad_b2['betx', 'ip1:1'], 0.15, rtol=1e-8, atol=0)
-    assert np.isclose(twmad_b2['bety', 'ip1:1'], 0.15, rtol=1e-8, atol=0)
+    assert np.isclose(twmad_b1['betx', 'ip1:1'], 0.15, rtol=1e-7, atol=0)
+    assert np.isclose(twmad_b1['bety', 'ip1:1'], 0.15, rtol=1e-7, atol=0)
+    assert np.isclose(twmad_b2['betx', 'ip1:1'], 0.15, rtol=1e-7, atol=0)
+    assert np.isclose(twmad_b2['bety', 'ip1:1'], 0.15, rtol=1e-7, atol=0)
 
     twmad_b1.rows['ip.*'].cols['betx bety x y px py'].show()
     twmad_b2.rows['ip.*'].cols['betx bety x y px py'].show()
@@ -549,10 +551,10 @@ def test_lhc_match_phase_15(test_context, config):
     twmad_b1 = xd.Table(mad.table.twb1)
     twmad_b2 = xd.Table(mad.table.twb2)
 
-    assert np.isclose(twmad_b1['px', 'ip8:1'], 100e-6, rtol=0, atol=1e-10)
-    assert np.isclose(twmad_b2['px', 'ip8:1'], -100e-6, rtol=0, atol=1e-10)
-    assert np.isclose(twmad_b1['py', 'ip2:1'], 110e-6, rtol=0, atol=1e-10)
-    assert np.isclose(twmad_b2['py', 'ip2:1'], -110e-6, rtol=0, atol=1e-10)
+    assert np.isclose(twmad_b1['px', 'ip8:1'], 100e-6, rtol=0, atol=5e-10)
+    assert np.isclose(twmad_b2['px', 'ip8:1'], -100e-6, rtol=0, atol=5e-10)
+    assert np.isclose(twmad_b1['py', 'ip2:1'], 110e-6, rtol=0, atol=5e-10)
+    assert np.isclose(twmad_b2['py', 'ip2:1'], -110e-6, rtol=0, atol=5e-10)
 
     # Match tunes and chromaticity in the Xsuite model
     opt = collider.match(

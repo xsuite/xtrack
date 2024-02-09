@@ -266,7 +266,7 @@ line = xt.Line.from_madx_sequence(seq, deferred_expressions=def_expr)
 line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
                                  mass0=seq.beam.mass * 1e9,
                                  q0=seq.beam.charge)
-line.configure_bend_model(core='full', edge='full')
+line.configure_bend_model(core='bend-kick-bend', edge='full')
 
 
 line.insert_element(

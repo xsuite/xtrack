@@ -929,16 +929,16 @@ def test_line_attr():
             xt.Multipole(knl=[2, 3, 4], hxl=8),
             xt.Bend(k0=5, h=0.5, length=6, knl=[7, 8, 9]),
             xt.Drift(length=10),
-            xt.Quadrupole(k1=11, length=12, knl=[13]),
+            xt.Quadrupole(k1=11, length=12),
         ]
     )
 
     line.build_tracker()
 
     assert np.all(line.attr['length'] == [1, 0, 6, 10, 12])
-    assert np.all(line.attr['knl', 0] == [0, 2, 7, 0, 13])
+    assert np.all(line.attr['knl', 0] == [0, 2, 7, 0, 0])
     assert np.all(line.attr['k0'] == [0, 0, 5, 0, 0])
-    assert np.all(line.attr['k0l'] == [0, 2, 5 * 6 + 7, 0, 13])
+    assert np.all(line.attr['k0l'] == [0, 2, 5 * 6 + 7, 0, 0])
     assert np.all(line.attr['knl', 1] == [0, 3, 8, 0, 0])
     assert np.all(line.attr['k1'] == [0, 0, 0, 0, 11])
     assert np.all(line.attr['k1l'] == [0, 3, 8, 0, 11 * 12])

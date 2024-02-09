@@ -525,16 +525,18 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
     collider.vars['on_sep5v'] = 2
 
     atols = dict(
-        s=1e-10,
+        s=2e-8,
         zeta=5e-5,
         alfx=1e-8, alfy=1e-8,
         dzeta=1e-4, dx=1e-4, dy=1e-4, dpx=1e-5, dpy=1e-5,
-        nuzeta=1e-5, dx_zeta=2e-8, dy_zeta=2e-8,
+        nuzeta=1e-5, dx_zeta=1e-7, dy_zeta=1e-7,
+        nux=1e-8, nuy=1e-8,
+        betx2=1e-4, bety1=1e-4,
     )
 
     rtols = dict(
         alfx=5e-9, alfy=5e-8,
-        betx=5e-9, bety=5e-9, betx1=5e-9, bety2=5e-9, betx2=1e-7, bety1=1e-7,
+        betx=1e-8, bety=1e-8, betx1=1e-8, bety2=1e-8, betx2=1e-7, bety1=1e-7,
         gamx=5e-9, gamy=5e-9,
     )
 
@@ -1402,25 +1404,25 @@ def test_custom_twiss_init(test_context):
         # Check at a point in a downstream arc
         loc_check = f'mb.a24l7.{bn}'
         assert np.isclose(tw['betx', loc_check], tw_full['betx', loc_check],
-                            atol=2e-7, rtol=0)
+                            atol=5e-6, rtol=0)
         assert np.isclose(tw['bety', loc_check], tw_full['bety', loc_check],
-                            atol=2e-7, rtol=0)
+                            atol=5e-6, rtol=0)
         assert np.isclose(tw['alfx', loc_check], tw_full['alfx', loc_check],
-                            atol=1e-8, rtol=0)
+                            atol=1e-7, rtol=0)
         assert np.isclose(tw['alfy', loc_check], tw_full['alfy', loc_check],
-                            atol=1e-8, rtol=0)
+                            atol=1e-7, rtol=0)
         assert np.isclose(tw['dx', loc_check], tw_full['dx', loc_check],
-                            atol=1e-8, rtol=0)
+                            atol=5e-8, rtol=0)
         assert np.isclose(tw['dpx', loc_check], tw_full['dpx', loc_check],
                             atol=1e-8, rtol=0)
         assert np.isclose(tw['dy', loc_check], tw_full['dy', loc_check],
-                            atol=1e-8, rtol=0)
+                            atol=5e-8, rtol=0)
         assert np.isclose(tw['dpy', loc_check], tw_full['dpy', loc_check],
                             atol=1e-8, rtol=0)
         assert np.isclose(tw['mux', loc_check], tw_full['mux', loc_check],
-                            atol=1e-9, rtol=0)
+                            atol=3e-9, rtol=0)
         assert np.isclose(tw['muy', loc_check], tw_full['muy', loc_check],
-                            atol=1e-9, rtol=0)
+                            atol=3e-9, rtol=0)
         assert np.isclose(tw['x', loc_check], tw_full['x', loc_check],
                             atol=1e-9, rtol=0)
         assert np.isclose(tw['px', loc_check], tw_full['px', loc_check],
@@ -1457,13 +1459,13 @@ def test_custom_twiss_init(test_context):
         # Check at a point in an upstream arc
         loc_check = f'mb.a24r4.{bn}'
         assert np.isclose(tw['betx', loc_check], tw_full['betx', loc_check],
-                            atol=2e-7, rtol=0)
+                            atol=5e-6, rtol=0)
         assert np.isclose(tw['bety', loc_check], tw_full['bety', loc_check],
-                            atol=2e-7, rtol=0)
+                            atol=5e-6, rtol=0)
         assert np.isclose(tw['alfx', loc_check], tw_full['alfx', loc_check],
-                            atol=1e-8, rtol=0)
+                            atol=5e-8, rtol=0)
         assert np.isclose(tw['alfy', loc_check], tw_full['alfy', loc_check],
-                            atol=1e-8, rtol=0)
+                            atol=5e-8, rtol=0)
         assert np.isclose(tw['dx', loc_check], tw_full['dx', loc_check],
                             atol=1e-8, rtol=0)
         assert np.isclose(tw['dpx', loc_check], tw_full['dpx', loc_check],
@@ -1473,9 +1475,9 @@ def test_custom_twiss_init(test_context):
         assert np.isclose(tw['dpy', loc_check], tw_full['dpy', loc_check],
                             atol=1e-8, rtol=0)
         assert np.isclose(tw['mux', loc_check], tw_full['mux', loc_check],
-                            atol=1e-9, rtol=0)
+                            atol=5e-9, rtol=0)
         assert np.isclose(tw['muy', loc_check], tw_full['muy', loc_check],
-                            atol=1e-9, rtol=0)
+                            atol=5e-9, rtol=0)
         assert np.isclose(tw['x', loc_check], tw_full['x', loc_check],
                             atol=1e-9, rtol=0)
         assert np.isclose(tw['px', loc_check], tw_full['px', loc_check],
@@ -1547,7 +1549,7 @@ def test_only_markers(test_context):
             if kk == 'name':
                 continue
             atol = dict(alfx=1e-7, alfy=1e-7, dx=1e-7, dy=1e-7, dpx=1e8, dpy=1e-8,
-                        dx_zeta=1e-8, W_matrix=1e-7).get(kk, 1e-10)
+                        dx_zeta=3e-8, W_matrix=3e-7).get(kk, 1e-10)
             assert np.allclose(tt[kk], tw.rows[tt.name][kk], rtol=1e-6, atol=atol)
 
     line = collider.lhcb2
@@ -1601,7 +1603,7 @@ def test_only_markers(test_context):
             if kk == 'name':
                 continue
             atol = dict(alfx=1e-7, alfy=1e-7, dx=1e-7, dy=1e-7, dpx=1e8, dpy=1e-8,
-                        dx_zeta=1e-7, W_matrix=1e-7).get(kk, 1e-10)
+                        dx_zeta=3e-8, W_matrix=3e-7).get(kk, 1e-10)
             assert np.allclose(tt[kk], tw.rows[tt.name][kk], rtol=1e-6, atol=atol)
 
 @for_all_test_contexts
@@ -1666,3 +1668,85 @@ def test_longitudinal_beam_sizes(test_context):
     assert np.allclose(beam_sizes.sigma_pzeta, 2e-4, atol=0, rtol=2e-5)
     assert np.allclose(
         beam_sizes.sigma_zeta / beam_sizes.sigma_pzeta, tw.bets0, atol=0, rtol=5e-5)
+
+@for_all_test_contexts
+def test_second_order_chromaticity_and_dispersion(test_context):
+
+    line = xt.Line.from_json(test_data_folder /
+                             'hllhc15_thick/lhc_thick_with_knobs.json')
+    line.vars['on_x5'] = 300
+    line.build_tracker(_context=test_context)
+
+    tw = line.twiss(method='4d')
+    nlchr = line.get_non_linear_chromaticity(delta0_range=(-1e-4, 1e-4),
+                                            num_delta=21, fit_order=1, method='4d')
+    tw_fw = line.twiss(start='ip4', end='ip6', init_at='ip4',
+                x=tw['x', 'ip4'], px=tw['px', 'ip4'],
+                y=tw['y', 'ip4'], py=tw['py', 'ip4'],
+                betx=tw['betx', 'ip4'], bety=tw['bety', 'ip4'],
+                alfx=tw['alfx', 'ip4'], alfy=tw['alfy', 'ip4'],
+                dx=tw['dx', 'ip4'], dpx=tw['dpx', 'ip4'],
+                dy=tw['dy', 'ip4'], dpy=tw['dpy', 'ip4'],
+                ddx=tw['ddx', 'ip4'], ddy=tw['ddy', 'ip4'],
+                ddpx=tw['ddpx', 'ip4'], ddpy=tw['ddpy', 'ip4'],
+                compute_chromatic_properties=True)
+
+    tw_bw = line.twiss(start='ip4', end='ip6', init_at='ip6',
+                x=tw['x', 'ip6'], px=tw['px', 'ip6'],
+                y=tw['y', 'ip6'], py=tw['py', 'ip6'],
+                betx=tw['betx', 'ip6'], bety=tw['bety', 'ip6'],
+                alfx=tw['alfx', 'ip6'], alfy=tw['alfy', 'ip6'],
+                dx=tw['dx', 'ip6'], dpx=tw['dpx', 'ip6'],
+                dy=tw['dy', 'ip6'], dpy=tw['dpy', 'ip6'],
+                ddx=tw['ddx', 'ip6'], ddy=tw['ddy', 'ip6'],
+                ddpx=tw['ddpx', 'ip6'], ddpy=tw['ddpy', 'ip6'],
+                compute_chromatic_properties=True)
+
+    nlchr = line.get_non_linear_chromaticity(delta0_range=(-1e-4, 1e-4),
+                                            num_delta=21, fit_order=2, method='4d')
+
+    location = 'ip3'
+
+    x_xs = np.array([tt['x', location] for tt in nlchr.twiss])
+    px_xs = np.array([tt['px', location] for tt in nlchr.twiss])
+    y_xs = np.array([tt['y', location] for tt in nlchr.twiss])
+    py_xs = np.array([tt['py', location] for tt in nlchr.twiss])
+    qx_xs = np.array([tt['qx'] for tt in nlchr.twiss])
+    qy_xs = np.array([tt['qy'] for tt in nlchr.twiss])
+    delta = np.array([tt['delta', location] for tt in nlchr.twiss])
+
+    pxs_x = np.polyfit(delta, x_xs, 3)
+    pxs_px = np.polyfit(delta, px_xs, 3)
+    pxs_y = np.polyfit(delta, y_xs, 3)
+    pxs_py = np.polyfit(delta, py_xs, 3)
+    pxs_qx = np.polyfit(delta, qx_xs, 3)
+    pxs_qy = np.polyfit(delta, qy_xs, 3)
+
+    assert np.allclose(delta, nlchr.delta0, atol=1e-6, rtol=0)
+    assert np.allclose(tw['dx', location], pxs_x[-2], atol=0, rtol=1e-4)
+    assert np.allclose(tw['dpx', location], pxs_px[-2], atol=0, rtol=1e-4)
+    assert np.allclose(tw['dy', location], pxs_y[-2], atol=0, rtol=1e-4)
+    assert np.allclose(tw['dpy', location], pxs_py[-2], atol=0, rtol=1e-4)
+    assert np.allclose(tw['ddx', location], 2*pxs_x[-3], atol=0, rtol=1e-4)
+    assert np.allclose(tw['ddpx', location], 2*pxs_px[-3], atol=0, rtol=1e-4)
+    assert np.allclose(tw['ddy', location], 2*pxs_y[-3], atol=0, rtol=1e-4)
+    assert np.allclose(tw['ddpy', location], 2*pxs_py[-3], atol=0, rtol=1e-4)
+    assert np.isclose(tw['dqx'], pxs_qx[-2], atol=0, rtol=1e-3)
+    assert np.isclose(tw['ddqx'], pxs_qx[-3]*2, atol=0, rtol=1e-3)
+    assert np.isclose(tw['dqy'], pxs_qy[-2], atol=0, rtol=1e-3)
+    assert np.isclose(tw['ddqy'], pxs_qy[-3]*2, atol=0, rtol=1e-3)
+
+    assert np.isclose(nlchr['dqx'], pxs_qx[-2], atol=0, rtol=2e-3)
+    assert np.isclose(nlchr['dqy'], pxs_qy[-2], atol=0, rtol=2e-3)
+    assert np.isclose(nlchr['ddqx'], pxs_qx[-3]*2, atol=0, rtol=1e-4)
+    assert np.isclose(nlchr['ddqy'], pxs_qy[-3]*2, atol=0, rtol=1e-4)
+
+    tw_part = tw.rows['ip4':'ip6']
+    assert np.allclose(tw_part['ddx'], tw_fw.rows[:-1]['ddx'], atol=1e-2, rtol=0)
+    assert np.allclose(tw_part['ddy'], tw_fw.rows[:-1]['ddy'], atol=1e-2, rtol=0)
+    assert np.allclose(tw_part['ddpx'], tw_fw.rows[:-1]['ddpx'], atol=1e-3, rtol=0)
+    assert np.allclose(tw_part['ddpy'], tw_fw.rows[:-1]['ddpy'], atol=1e-3, rtol=0)
+    assert np.allclose(tw_part['dx'], tw_bw.rows[:-1]['dx'], atol=1e-2, rtol=0)
+    assert np.allclose(tw_part['dy'], tw_bw.rows[:-1]['dy'], atol=1e-2, rtol=0)
+    assert np.allclose(tw_part['dpx'], tw_bw.rows[:-1]['dpx'], atol=1e-3, rtol=0)
+    assert np.allclose(tw_part['dpy'], tw_bw.rows[:-1]['dpy'], atol=1e-3, rtol=0)

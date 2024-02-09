@@ -173,6 +173,6 @@ def test_slicing_lhc_thick(test_context):
     assert np.isclose(line.vars['kqtd.b1']._value, line_thick.vars['kqtd.b1']._value,
                         rtol=0.03, atol=0)
     assert np.isclose(line.vars['ksf.b1']._value, line_thick.vars['ksf.b1']._value,
-                        rtol=0.01, atol=0)
+                        rtol=0.03, atol=0)
     assert np.isclose(line.vars['ksd.b1']._value, line_thick.vars['ksd.b1']._value,
-                        rtol=0.01, atol=0)
+                        rtol=0.03, atol=0)

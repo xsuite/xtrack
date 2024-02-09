@@ -747,7 +747,7 @@ class SimpleThinQuadrupole(BeamElement):
     )
 
 
-class CombinedFunctionMagnet(BeamElement):
+class Bend(BeamElement):
     isthick = True
     has_backtrack = True
 
@@ -761,17 +761,19 @@ class CombinedFunctionMagnet(BeamElement):
         'num_multipole_kicks': xo.Int64,
         'order': xo.Int64,
         'inv_factorial_order': xo.Float64,
+        'model': xo.Int64,
     }
 
     _rename = {
         'order': '_order',
+        'model': '_model'
     }
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_thick_bend.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/multipolar_kick.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/combinedfunctionmagnet.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/bend.h'),
     ]
 
     def __init__(self, **kwargs):
@@ -809,6 +811,8 @@ class CombinedFunctionMagnet(BeamElement):
         if kwargs.get('length', 0.0) == 0.0 and not '_xobject' in kwargs:
             raise ValueError("A thick element must have a length.")
 
+        model = kwargs.pop('model', None)
+
         knl = kwargs.get('knl', np.array([]))
         ksl = kwargs.get('ksl', np.array([]))
         order_from_kl = max(len(knl), len(ksl)) - 1
@@ -822,6 +826,8 @@ class CombinedFunctionMagnet(BeamElement):
 
         self.xoinitialize(**kwargs)
 
+        if model is not None:
+            self.model = model
         self.order = order
 
     @property
@@ -832,6 +838,28 @@ class CombinedFunctionMagnet(BeamElement):
     def order(self, value):
         self._order = value
         self.inv_factorial_order = 1.0 / factorial(value, exact=True)
+
+    @property
+    def model(self):
+        return {
+            0: 'adaptive',
+            1: 'full', # same as adaptive (for backward compatibility)
+            2: 'bend-kick-bend',
+            3: 'rot-kick-rot',
+            4: 'expanded'
+        }[self._model]
+
+    @model.setter
+    def model(self, value):
+        assert value in ['adaptive', 'full', 'bend-kick-bend',
+                            'rot-kick-rot', 'expanded']
+        self._model = {
+            'adaptive': 0,
+            'full': 1,
+            'bend-kick-bend': 2,
+            'rot-kick-rot': 3,
+            'expanded': 4
+        }[value]
 
     @property
     def hxl(self): return self.h * self.length
@@ -888,6 +916,7 @@ class CombinedFunctionMagnet(BeamElement):
         ref.k0 = _get_expr(self_or_ref.k0)
         ref.h = _get_expr(self_or_ref.h)
         ref.k1 = _get_expr(self_or_ref.k1)
+        ref.model = _get_expr(self_or_ref.model)
 
         for ii in range(5):
             ref.knl[ii] = _get_expr(self_or_ref.knl[ii]) * weight
@@ -978,21 +1007,11 @@ class Quadrupole(BeamElement):
     _xofields={
         'k1': xo.Float64,
         'length': xo.Float64,
-        'knl': xo.Float64[5],
-        'ksl': xo.Float64[5],
-        'num_multipole_kicks': xo.Int64,
-        'order': xo.Int64,
-        'inv_factorial_order': xo.Float64,
-    }
-
-    _rename = {
-        'order': '_order',
     }
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/multipolar_kick.h'),
         _pkg_root.joinpath('beam_elements/elements_src/quadrupole.h'),
     ]
 
@@ -1007,15 +1026,6 @@ class Quadrupole(BeamElement):
             Strength of the quadrupole component in m^-2.
         length : float
             Length of the element in meters.
-        knl : array_like, optional
-            Integrated strength of the high-order normal multipolar components
-            (knl[0] and knl[1] should not be used).
-        ksl : array_like, optional
-            Integrated strength of the high-order skew multipolar components
-            (ksl[0] and ksl[1] should not be used).
-        num_multipole_kicks : int, optional
-            Number of multipole kicks used to model high order multipolar
-            components.
         """
 
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
@@ -1025,35 +1035,20 @@ class Quadrupole(BeamElement):
         if kwargs.get('length', 0.0) == 0.0 and not '_xobject' in kwargs:
             raise ValueError("A thick element must have a length.")
 
-        knl = kwargs.get('knl', np.array([]))
-        ksl = kwargs.get('ksl', np.array([]))
-        order_from_kl = max(len(knl), len(ksl)) - 1
-        order = kwargs.get('order', max(4, order_from_kl))
-
-        if order > 4:
-            raise NotImplementedError # Untested
-
-        kwargs['knl'] = np.pad(knl, (0, 5 - len(knl)), 'constant')
-        kwargs['ksl'] = np.pad(ksl, (0, 5 - len(ksl)), 'constant')
-
         self.xoinitialize(**kwargs)
 
-        self.order = order
+    @classmethod
+    def from_dict(cls, dct, **kwargs):
+        if 'num_multipole_kicks' in dct:
+            assert dct['num_multipole_kicks'] == 0
+            dct.pop('num_multipole_kicks')
+            dct.pop('knl', None)
+            dct.pop('ksl', None)
+            dct.pop('order', None)
+            dct.pop('inv_factorial_order', None)
 
-    @property
-    def order(self):
-        return self._order
+        return cls(**dct, **kwargs)
 
-    @order.setter
-    def order(self, value):
-        self._order = value
-        self.inv_factorial_order = 1.0 / factorial(value, exact=True)
-
-    @property
-    def hxl(self): return self.h * self.length
-
-    @property
-    def hyl(self): return 0.0
 
     @property
     def radiation_flag(self): return 0.0
@@ -1068,57 +1063,26 @@ class Quadrupole(BeamElement):
 
         ref.knl[0] = 0.
         ref.knl[1] = (_get_expr(self_or_ref.k1) * _get_expr(self_or_ref.length)
-                      + _get_expr(self_or_ref.knl[1])) * weight
+                        ) * weight
 
-        order = 1
-        for ii in range(2, 5):
-            ref.knl[ii] = _get_expr(self_or_ref.knl[ii]) * weight
-
-            if _nonzero(ref.knl[ii]):
-                order = max(order, ii)
-
-        for ii in range(5):
-            ref.ksl[ii] = _get_expr(self_or_ref.ksl[ii]) * weight
-
-            if _nonzero(self_or_ref.ksl[ii]):  # update in the same way for ksl
-                order = max(order, ii)
-
-        ref.hxl = 0
         ref.length = _get_expr(self_or_ref.length) * weight
-        ref.order = order
 
     @classmethod
     def add_thick_slice(cls, weight, container, name, slice_name, _buffer=None):
         self_or_ref = container[name]
         container[slice_name] = cls(
             length=999.,
-            order=4,
             _buffer=_buffer,
         )
         ref = container[slice_name]
 
         ref.length = _get_expr(self_or_ref.length) * weight
-        ref.num_multipole_kicks = _get_expr(self_or_ref.num_multipole_kicks)
-        ref.order = _get_expr(self_or_ref.order)
         ref.k1 = _get_expr(self_or_ref.k1)
-
-        for ii in range(5):
-            ref.knl[ii] = _get_expr(self_or_ref.knl[ii]) * weight
-
-        for ii in range(5):
-            ref.ksl[ii] = _get_expr(self_or_ref.ksl[ii]) * weight
 
     @staticmethod
     def delete_element_ref(ref):
-        # Remove the array fields
-        for field in ['knl', 'ksl']:
-            for ii in range(5):
-                _unregister_if_preset(getattr(ref, field)[ii])
-
         # Remove the scalar fields
-        for field in [
-            'k1', 'length', 'num_multipole_kicks', 'order', 'inv_factorial_order',
-        ]:
+        for field in ['k1', 'length']:
             _unregister_if_preset(getattr(ref, field))
 
         # Remove the ref to the element itself
@@ -1127,6 +1091,7 @@ class Quadrupole(BeamElement):
 
 class Solenoid(BeamElement):
     isthick = True
+    has_backtrack = True
 
     _xofields = {
         'length': xo.Float64,
@@ -1172,186 +1137,15 @@ class Solenoid(BeamElement):
         self.xoinitialize(length=length, ks=ks, ksi=ksi, **kwargs)
 
 
-class Bend(BeamElement):
-    isthick = True
-    has_backtrack = True
+class CombinedFunctionMagnet():
 
-    _xofields={
-        'k0': xo.Float64,
-        'h': xo.Float64,
-        'length': xo.Float64,
-        'knl': xo.Float64[5],
-        'ksl': xo.Float64[5],
-        'num_multipole_kicks': xo.Int64,
-        'order': xo.Int64,
-        'inv_factorial_order': xo.Float64,
-        'model': xo.Int64,
-    }
-
-    _rename = {
-        'order': '_order',
-        'model': '_model'
-    }
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_thick_bend.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/multipolar_kick.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/bend.h'),
-    ]
-
-    def __init__(self, **kwargs):
-
-        """
-        Bending magnet element.
-
-        Parameters
-        ----------
-        k0 : float
-            Strength of the dipole component in m^-1.
-        h : float
-            Curvature of the reference trajectory in m^-1.
-        length : float
-            Length of the element in m.
-        knl : array_like, optional
-            Integrated strength of the high-order normal multipolar components
-            (knl[0] and knl[1] should not be used).
-        ksl : array_like, optional
-            Integrated strength of the high-order skew multipolar components
-            (ksl[0] and ksl[1] should not be used).
-        model: str, optional
-            Model used for the computation. It can be 'expanded' or 'full'.
-            Default is 'expanded'.
-        num_multipole_kicks : int
-            Number of multipole kicks used to model high order multipolar
-            components.
-        """
-
-        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
-            self.xoinitialize(**kwargs)
-            return
-
-        if kwargs.get('length', 0.0) == 0.0 and not '_xobject' in kwargs:
-            raise ValueError("A thick element must have a length.")
-
-        model = kwargs.pop('model', None)
-
-        knl = kwargs.get('knl', np.array([]))
-        ksl = kwargs.get('ksl', np.array([]))
-        order_from_kl = max(len(knl), len(ksl)) - 1
-        order = kwargs.get('order', max(order_from_kl, 4))
-
-        if order > 4:
-            raise NotImplementedError # Untested
-
-        kwargs['knl'] = np.pad(knl, (0, 5 - len(knl)), 'constant')
-        kwargs['ksl'] = np.pad(ksl, (0, 5 - len(ksl)), 'constant')
-
-        self.xoinitialize(**kwargs)
-
-        if model is not None:
-            self.model = model
-        self.order = order
-
-    @property
-    def model(self):
-        return {
-            0: 'expanded',
-            1: 'full'
-        }[self._model]
-
-    @model.setter
-    def model(self, value):
-        assert value in ['expanded', 'full']
-        self._model = {
-            'expanded': 0,
-            'full': 1
-        }[value]
-
-    @property
-    def order(self):
-        return self._order
-
-    @order.setter
-    def order(self, value):
-        self._order = value
-        self.inv_factorial_order = 1.0 / factorial(value, exact=True)
-
-    @property
-    def hxl(self): return self.h * self.length
-
-    @property
-    def hyl(self): return 0.0
-
-    @property
-    def radiation_flag(self): return 0.0
-
-    @staticmethod
-    def add_slice(weight, container, thick_name, slice_name, _buffer=None):
-        self_or_ref = container[thick_name]
-
-        container[slice_name] = Multipole(knl=np.zeros(5), ksl=np.zeros(5),
-                                          _buffer=_buffer)
-        ref = container[slice_name]
-
-        ref.knl[0] = (_get_expr(self_or_ref.k0) * _get_expr(self_or_ref.length)
-                      + _get_expr(self_or_ref.knl[0])) * weight
-        order = 0
-        for ii in range(1, 5):
-            ref.knl[ii] = _get_expr(self_or_ref.knl[ii]) * weight
-
-            if _nonzero(self_or_ref.knl[ii]):  # order is max ii where knl[ii] is expr or nonzero
-                order = ii
-
-        for ii in range(5):
-            ref.ksl[ii] = _get_expr(self_or_ref.ksl[ii]) * weight
-
-            if _nonzero(self_or_ref.ksl[ii]):  # update in the same way for ksl
-                order = max(order, ii)
-
-        ref.hxl = _get_expr(self_or_ref.h) * _get_expr(self_or_ref.length) * weight
-        ref.length = _get_expr(self_or_ref.length) * weight
-        ref.order = order
+    def __init__(self, *args, **kwargs):
+        raise TypeError('`CombinedFunctionMagnet` is supported anymore. '
+                        'Use `Bend` instead.')
 
     @classmethod
-    def add_thick_slice(cls, weight, container, name, slice_name, _buffer=None):
-        self_or_ref = container[name]
-        container[slice_name] = cls(
-            length=999.,
-            order=4,
-            _buffer=_buffer,
-        )
-        ref = container[slice_name]
-
-        ref.length = _get_expr(self_or_ref.length) * weight
-        ref.num_multipole_kicks = _get_expr(self_or_ref.num_multipole_kicks)
-        ref.order = _get_expr(self_or_ref.order)
-        ref.k0 = _get_expr(self_or_ref.k0)
-        ref.h = _get_expr(self_or_ref.h)
-
-        for ii in range(5): # For now we hardcode 4
-            ref.knl[ii] = _get_expr(self_or_ref.knl[ii]) * weight
-
-        for ii in range(5): # For now we hardcode 4
-            ref.ksl[ii] = _get_expr(self_or_ref.ksl[ii]) * weight
-
-    @staticmethod
-    def delete_element_ref(ref):
-        # Remove the array fields
-        for field in ['knl', 'ksl']:
-            for ii in range(5):
-                _unregister_if_preset(getattr(ref, field)[ii])
-
-        # Remove the scalar fields
-        for field in [
-            'k0', 'h', 'length', 'num_multipole_kicks', 'order',
-            'inv_factorial_order',
-        ]:
-            _unregister_if_preset(getattr(ref, field))
-
-        # Remove the ref to the element itself
-        _unregister_if_preset(ref[field])
+    def from_dict(cls, dct):
+        return Bend(**dct)
 
 
 class Fringe(BeamElement):
