@@ -867,7 +867,7 @@ class Tracker:
                                       ' tracking')
 
         if log is not None:
-            if isinstance (log, str):
+            if isinstance(log, str):
                 log = [log]
             if isinstance(log, (list, tuple)):
                 log = Log(*log)
