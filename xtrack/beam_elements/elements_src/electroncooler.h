@@ -3,6 +3,7 @@
 // Copyright (c) CERN, 2021.                 //
 // ######################################### //
 #define POW2(X) ((X)*(X))
+#define POW3(X) ((X)*(X)*(X))
 #define POW4(X) ((X)*(X)*(X)*(X))
 #define POW1_5(X) ((X)*sqrt(X))
 #ifndef XTRACK_ELECTRONCOOLER_H
@@ -71,26 +72,26 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
     double Fx = 0.0; // initialize Fx to 0 by default
     double Fy = 0.0; // initialize Fy to 0 by default
     double Fl = 0.0; // initialize Fl to 0 by default
-
+    
     if (radius < radius_e_beam) {
 
     //radial_velocity_dependence due to space charge
     //equation 100b in Helmut Poth: Electron cooling. page 186
-    double A = RADIUS_ELECTRON / (QELEM * C_LIGHT) * (gamma0 + 1) / (gamma0 * gamma0); 
-    double dE_E = (A * current / (beta0 * beta0 * beta0)) * POW2((radius / radius_e_beam)); 
-    double E = (gamma0 - 1) * mass_electron_ev + offset_energy; 
-    double E_diff = dE_E * E; 
-    double E_tot = E + E_diff; 
+    double space_charge_coefficient = RADIUS_ELECTRON / (QELEM * C_LIGHT) * (gamma0 + 1) / (gamma0 * gamma0); //used for computation of the space charge energy offset
+    double dE_E = space_charge_coefficient * current * POW2(radius / radius_e_beam) / POW3(beta0); 
+    double Energy = (gamma0 - 1) * mass_electron_ev + offset_energy; 
+    double E_diff = dE_E * Energy; 
+    double E_tot = Energy + E_diff; 
     double gamma = 1 + (E_tot/mass_electron_ev);
     double beta2 = sqrt(1 - 1/(gamma*gamma));
     double beta_diff = beta2 - beta0;
-    
+       
     double Vi = delta*machine_v  - space_charge*C_LIGHT*beta_diff;
     double dVx = px*machine_v;
     double dVy = py*machine_v;
-    
-    dVx += space_charge*omega *radius* -sin(theta);
-    dVy += space_charge*omega *radius* +cos(theta);
+   
+    dVx -= space_charge*omega *radius* -sin(theta); //correct sign for rotation? in betacool it is positive.
+    dVy -= space_charge*omega *radius* +cos(theta);
     
     double Vi_abs = sqrt(dVx*dVx+dVy*dVy+Vi*Vi);
     double rhomin = Z*RADIUS_ELECTRON*C_LIGHT*C_LIGHT/(Vi_abs*Vi_abs + Vs*Vs);
