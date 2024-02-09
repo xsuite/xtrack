@@ -1548,7 +1548,7 @@ class Line:
             Amplitude detuning coefficient dQy / dJx.
         '''
 
-        import NAFFlib as nl
+        import nafflib as nl
 
         gemitt_x = (nemitt_x / self.particle_ref._xobject.beta0[0]
                             / self.particle_ref._xobject.gamma0[0])
@@ -1579,8 +1579,8 @@ class Line:
         qy = np.zeros(4)
 
         for ii in range(len(qx)):
-            qx[ii] = nl.get_tune(mon.x[ii, :])
-            qy[ii] = nl.get_tune(mon.y[ii, :])
+            qx[ii] = np.abs(nl.get_tune(mon.x[ii, :]))
+            qy[ii] = np.abs(nl.get_tune(mon.y[ii, :]))
 
         det_xx = (qx[1] - qx[0]) / (Jx_2 - Jx_1)
         det_yy = (qy[3] - qy[2]) / (Jy_2 - Jy_1)
