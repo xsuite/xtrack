@@ -1,6 +1,5 @@
 import numpy as np
 import math
-# import NAFFlib
 
 def get_amplitude_detuning(line, nemitt_x=1.e-6, nemitt_y=1.e-6, num_turns=100, zeropad=100000):
     '''
@@ -37,8 +36,6 @@ def get_amplitude_detuning(line, nemitt_x=1.e-6, nemitt_y=1.e-6, num_turns=100, 
     qy = [abs(frequency[np.argmax(np.abs(
         np.fft.fft(y[ii]*np.hanning(x.shape[1]), n=zeropad)))])
         for ii in range(x.shape[0])]
-    # qx = NAFFlib.multiparticle_tunes(x)
-    # qy = NAFFlib.multiparticle_tunes(y)
 
     axx = np.polyfit(JJ*egeom_x, qx, 1)[0]
     ayx = np.polyfit(JJ*egeom_x, qy, 1)[0]
@@ -55,8 +52,6 @@ def get_amplitude_detuning(line, nemitt_x=1.e-6, nemitt_y=1.e-6, num_turns=100, 
 
     qx = [abs(frequency[np.argmax(np.abs(np.fft.fft(x[ii]*np.hanning(x.shape[1]), n=zeropad)))]) for ii in range(x.shape[0])]
     qy = [abs(frequency[np.argmax(np.abs(np.fft.fft(y[ii]*np.hanning(x.shape[1]), n=zeropad)))]) for ii in range(x.shape[0])]
-    # qx = NAFFlib.multiparticle_tunes(x)
-    # qy = NAFFlib.multiparticle_tunes(y)
 
     axy = np.polyfit(JJ*egeom_y, qx, 1)[0]
     ayy = np.polyfit(JJ*egeom_y, qy, 1)[0]

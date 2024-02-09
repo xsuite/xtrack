@@ -48,6 +48,6 @@ setup(
         'xdeps'
         ],
     extras_require={
-        'tests': ['cpymad', 'NAFFlib', 'PyHEADTAIL', 'pytest', 'pytest-mock'],
+        'tests': ['cpymad', 'nafflib', 'PyHEADTAIL', 'pytest', 'pytest-mock'],
         },
     )

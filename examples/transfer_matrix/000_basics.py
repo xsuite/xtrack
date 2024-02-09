@@ -34,11 +34,11 @@ for chrm in [1e-5, 0]:
         z_record.append(part.zeta[0])
         el.track(part)
 
-    import NAFFlib
+    import nafflib
 
-    q_x_meas = NAFFlib.get_tune(np.array(x_record))
-    q_y_meas = NAFFlib.get_tune(np.array(y_record))
-    q_s_meas = NAFFlib.get_tune(np.array(z_record))
+    q_x_meas = nafflib.get_tune(np.array(x_record))
+    q_y_meas = nafflib.get_tune(np.array(y_record))
+    q_s_meas = nafflib.get_tune(np.array(z_record))
 
     assert np.isclose(q_x_meas, q_x_set, rtol=1e-10, atol=1e-6)
     assert np.isclose(q_y_meas, q_y_set, rtol=1e-10, atol=1e-6)
