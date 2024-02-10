@@ -157,7 +157,7 @@ tw = line_sc_off.twiss(at_elements=[0])
 # Frequency analysis #
 ######################
 
-import NAFFlib
+import nafflib
 
 xy_norm = np.zeros((N_r_footprint + 1, N_theta_footprint, 2), dtype=np.float64)
 xy_norm[:, :, 0] = x_norm_fp.reshape((N_r_footprint + 1, N_theta_footprint))
@@ -167,8 +167,8 @@ Qx = np.zeros(N_footprint)
 Qy = np.zeros(N_footprint)
 
 for i_part in range(N_footprint):
-    Qx[i_part] = NAFFlib.get_tune(x_tbt[i_part, :])
-    Qy[i_part] = NAFFlib.get_tune(y_tbt[i_part, :])
+    Qx[i_part] = nafflib.get_tune(x_tbt[i_part, :])
+    Qy[i_part] = nafflib.get_tune(y_tbt[i_part, :])
 
 Qxy_fp = np.zeros_like(xy_norm)
 

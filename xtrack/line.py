@@ -1548,7 +1548,7 @@ class Line:
             Amplitude detuning coefficient dQy / dJx.
         '''
 
-        import NAFFlib as nl
+        import nafflib as nl
 
         gemitt_x = (nemitt_x / self.particle_ref._xobject.beta0[0]
                             / self.particle_ref._xobject.gamma0[0])
@@ -1579,8 +1579,8 @@ class Line:
         qy = np.zeros(4)
 
         for ii in range(len(qx)):
-            qx[ii] = nl.get_tune(mon.x[ii, :])
-            qy[ii] = nl.get_tune(mon.y[ii, :])
+            qx[ii] = np.abs(nl.get_tune(mon.x[ii, :]))
+            qy[ii] = np.abs(nl.get_tune(mon.y[ii, :]))
 
         det_xx = (qx[1] - qx[0]) / (Jx_2 - Jx_1)
         det_yy = (qy[3] - qy[2]) / (Jy_2 - Jy_1)
@@ -1732,7 +1732,7 @@ class Line:
         else:
             return s
 
-    def insert_element(self, name, element=None, index=None, at_s=None,
+    def insert_element(self, name, element=None, at=None, index=None, at_s=None,
                        s_tol=1e-6):
 
         """Insert an element in the line.
@@ -1741,18 +1741,22 @@ class Line:
         ----------
         name: str
             Name of the element.
-        index: int, optional
-            Index of the element in the line. If `index` is provided, `at_s`
-            must be None.
         element: xline.Element, optional
             Element to be inserted. If not given, the element of the given name
             already present in the line is used.
+        at: int, optional
+            Index of the element in the line. If `index` is provided, `at_s`
+            must be None.
         at_s: float, optional
             Position of the element in the line in meters. If `at_s` is provided, `index`
             must be None.
         s_tol: float, optional
             Tolerance for the position of the element in the line in meters.
         """
+
+        if at is not None:
+            assert index is None
+            index = at
 
         if isinstance(index, str):
             assert index in self.element_names
@@ -2459,6 +2463,8 @@ class Line:
 
         if verbose: _print("Disable xdeps expressions")
         self._var_management = None # Disable expressions
+        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+            self._in_multiline._var_sharing = None
 
         buffer = self._buffer
         io_buffer = self.tracker.io_buffer

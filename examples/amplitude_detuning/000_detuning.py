@@ -1,6 +1,5 @@
 import numpy as np
 import xtrack as xt
-import NAFFlib as nl
 
 
 # Load a line and build a tracker

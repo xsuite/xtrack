@@ -43,11 +43,12 @@ setup(
         'numpy>=1.0',
         "pandas>=2.0",
         'scipy',
+        'tqdm',
         'xobjects',
         'xpart',
         'xdeps'
         ],
     extras_require={
-        'tests': ['cpymad', 'NAFFlib', 'PyHEADTAIL', 'pytest', 'pytest-mock'],
+        'tests': ['cpymad', 'nafflib', 'PyHEADTAIL', 'pytest', 'pytest-mock'],
         },
     )
