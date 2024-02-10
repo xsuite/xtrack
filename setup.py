@@ -43,6 +43,7 @@ setup(
         'numpy>=1.0',
         "pandas>=2.0",
         'scipy',
+        'tqdm',
         'xobjects',
         'xpart',
         'xdeps'
