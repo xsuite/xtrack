@@ -610,6 +610,8 @@ def test_track_log_and_merit_function(pimms_mad, test_context):
     line.vars['kqf_common'] = 2e-2
     line.vars['kqd'] = -2e-2
 
+    line.build_tracker(_context=test_context)
+
     # Prepare a match on the tunes, dispersion at electrostatic septum, and
     # correct the chromaticity. Don't run it, instead we will simulate an
     # external optimizer.
