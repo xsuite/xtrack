@@ -711,4 +711,5 @@ def test_track_log_and_merit_function(pimms_mad, test_context):
     intensity = np.array(line.log_last_track['intensity'])
     assert np.all(intensity[:-1] - intensity[1:] >= 0)
     assert np.isclose(intensity[0], intensity_before, atol=1e-14, rtol=0)
-    assert np.isclose(intensity[-1], intensity_after, atol=1e-14, rtol=0)
+    # The last log point is from the beginning of the last turn:
+    assert np.isclose(intensity[-1], intensity_after, atol=0, rtol=1e-2)
