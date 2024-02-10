@@ -680,8 +680,11 @@ def test_track_log_and_merit_function(pimms_mad, test_context):
     kqfa_before = line.vv['kqfa']
 
     def measure_intensity(_, particles):
-        mask_alive = particles.state > 0
-        return np.sum(particles.weight[mask_alive])
+        ctx2np = particles._context.nparray_from_context_array
+        state = ctx2np(particles.state)
+        weight = ctx2np(particles.weight)
+        mask_alive = state > 0
+        return np.sum(weight[mask_alive])
 
     intensity_before = measure_intensity(None, particles)
 
