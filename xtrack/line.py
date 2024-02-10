@@ -2370,6 +2370,8 @@ class Line:
 
         if verbose: _print("Disable xdeps expressions")
         self._var_management = None # Disable expressions
+        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+            self._in_multiline._var_sharing = None
 
         buffer = self._buffer
         io_buffer = self.tracker.io_buffer
