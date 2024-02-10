@@ -562,7 +562,7 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
         zeta=5e-5,
         alfx=1e-8, alfy=1e-8,
         dzeta=1e-4, dx=1e-4, dy=1e-4, dpx=1e-5, dpy=1e-5,
-        nuzeta=1e-5, dx_zeta=1e-7, dy_zeta=1e-7,
+        nuzeta=1e-5, dx_zeta=1e-7, dy_zeta=1e-7, dpx_zeta=1e-8, dpy_zeta=1e-8,
         nux=1e-8, nuy=1e-8,
         betx2=1e-4, bety1=1e-4,
     )
@@ -591,7 +591,9 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
         atols['nux'] = 1e-8
         atols['nuy'] = 1e-8
         atols['dx_zeta'] = 2e-5
+        atols['dpx_zeta'] = 2e-6
         atols['dy_zeta'] = 2e-5
+        atols['dpy_zeta'] = 2e-6
 
     atol_default = 1e-11
     rtol_default = 1e-9
@@ -1606,7 +1608,7 @@ def test_only_markers(test_context):
             if kk == 'name':
                 continue
             atol = dict(alfx=1e-7, alfy=1e-7, dx=1e-7, dy=1e-7, dpx=1e8, dpy=1e-8,
-                        dx_zeta=3e-8, W_matrix=3e-7).get(kk, 1e-10)
+                        dx_zeta=3e-8, dpx_zeta=1e-9, W_matrix=3e-7).get(kk, 1e-10)
             assert np.allclose(tt[kk], tw.rows[tt.name][kk], rtol=1e-6, atol=atol)
 
     line = collider.lhcb2
@@ -1660,7 +1662,7 @@ def test_only_markers(test_context):
             if kk == 'name':
                 continue
             atol = dict(alfx=1e-7, alfy=1e-7, dx=1e-7, dy=1e-7, dpx=1e8, dpy=1e-8,
-                        dx_zeta=3e-8, W_matrix=3e-7).get(kk, 1e-10)
+                        dx_zeta=3e-8, dpx_zeta=1e-9, W_matrix=3e-7).get(kk, 1e-10)
             assert np.allclose(tt[kk], tw.rows[tt.name][kk], rtol=1e-6, atol=atol)
 
 @for_all_test_contexts
