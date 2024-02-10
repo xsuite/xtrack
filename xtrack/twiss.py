@@ -603,6 +603,7 @@ def twiss_line(line, particle_ref=None, method=None,
             zeta_disp=zeta_disp,
             start=start,
             end=end,
+            num_turns=num_turns,
             hide_thin_groups=hide_thin_groups,
             group_compound_elements=group_compound_elements,
             only_markers=only_markers,
@@ -1167,7 +1168,7 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                     nemitt_x=None, nemitt_y=None,
                     r_sigma=1e-3, delta_disp=1e-3, zeta_disp=1e-3,
                     on_momentum_twiss_res=None,
-                    start=None, end=None,
+                    start=None, end=None, num_turns=None,
                     hide_thin_groups=False,
                     group_compound_elements=False,
                     only_markers=False,
@@ -1186,10 +1187,12 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                 particle_on_co=on_momentum_twiss_res.particle_on_co.copy(),
                 nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                 W_matrix=tw_init_chrom.W_matrix)
-            part_chrom = line.find_closed_orbit(delta0=dd, co_guess=part_guess)
+            part_chrom = line.find_closed_orbit(delta0=dd, co_guess=part_guess,
+                                    start=start, end=end, num_turns=num_turns)
             tw_init_chrom.particle_on_co = part_chrom
             RR_chrom = line.compute_one_turn_matrix_finite_differences(
                                         particle_on_co=tw_init_chrom.particle_on_co.copy(),
+                                        start=start, end=end, num_turns=num_turns,
                                         steps_r_matrix=steps_r_matrix)['R_matrix']
             (WW_chrom, _, _, _) = lnf.compute_linear_normal_form(RR_chrom,
                                     only_4d_block=method=='4d',

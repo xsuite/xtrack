@@ -478,6 +478,39 @@ def test_periodic_cell_twiss(test_context):
         assert np.isclose(mux_arc_from_cell, mux_arc_target, rtol=1e-6)
         assert np.isclose(muy_arc_from_cell, muy_arc_target, rtol=1e-6)
 
+
+        dp_test = 1e-4
+        tw_cell_periodic_plus = line.twiss(
+            method='4d',
+            delta0=dp_test,
+            start=start_cell,
+            end=end_cell,
+            init='periodic')
+        tw_cell_periodic_minus = line.twiss(
+            method='4d',
+            delta0=-dp_test,
+            start=start_cell,
+            end=end_cell,
+            init='periodic')
+
+        dqx_expected = (tw_cell_periodic_plus.mux[-1] - tw_cell_periodic_minus.mux[-1]
+                       - tw_cell_periodic_plus.mux[0] + tw_cell_periodic_minus.mux[0]
+                       ) / 2 / dp_test
+
+        dqy_expected = (tw_cell_periodic_plus.muy[-1] - tw_cell_periodic_minus.muy[-1]
+                          - tw_cell_periodic_plus.muy[0] + tw_cell_periodic_minus.muy[0]
+                            ) / 2 / dp_test
+
+        if beam_name == 'b1':
+            assert np.isclose(dqx_expected, 0.22855, rtol=0, atol=1e-4) # to catch regressions
+            assert np.isclose(dqy_expected, 0.26654, rtol=0, atol=1e-4) # to catch regressions
+        else:
+            assert np.isclose(dqx_expected, -0.479425, rtol=0, atol=1e-4)
+            assert np.isclose(dqy_expected, 0.543953, rtol=0, atol=1e-4)
+
+        assert np.isclose(tw_cell_periodic.dqx, dqx_expected, rtol=0, atol=1e-4)
+        assert np.isclose(tw_cell_periodic.dqy, dqy_expected, rtol=0, atol=1e-4)
+
 @pytest.fixture(scope='module')
 def collider_for_test_twiss_range():
 
