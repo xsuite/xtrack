@@ -418,19 +418,12 @@ def test_import_thick_quad_from_madx(with_knobs):
         deferred_expressions=with_knobs,
     )
 
-    elem_tilt_entry = line['elem_tilt_entry']
     elem = line['elem']
-    elem_tilt_exit = line['elem_tilt_exit']
 
     # Verify that the line has been imported correctly
     assert np.isclose(elem.length, 2.0, atol=1e-16)
-    assert np.isclose(elem.k1, np.sqrt(0.01 + 0.04), atol=1e-16)
-
-    expected_tilt_before = -np.arctan2(0.2, 0.1) / 2
-    tilt_entry = elem_tilt_entry.angle / 180 * np.pi  # rotation takes degrees
-    assert np.isclose(tilt_entry, expected_tilt_before, atol=1e-16)
-    tilt_exit = elem_tilt_exit.angle / 180 * np.pi  # ditto
-    assert np.isclose(-expected_tilt_before, tilt_exit, atol=1e-16)
+    assert np.isclose(elem.k1, 0.1, atol=1e-16)
+    assert np.isclose(elem.k1s, 0.2, atol=1e-16)
 
     # Finish the test here if we are not using knobs
     if not with_knobs:
@@ -445,13 +438,8 @@ def test_import_thick_quad_from_madx(with_knobs):
 
     # Verify that the line has been adjusted correctly
     assert np.isclose(elem.length, 3.0, atol=1e-16)
-    assert np.isclose(elem.k1, np.sqrt(1.21 + 1.44), atol=1e-16)
-
-    expected_tilt_after = -np.arctan2(1.2, 1.1) / 2
-    changed_tilt_entry = elem_tilt_entry.angle / 180 * np.pi  # rotation takes degrees
-    assert np.isclose(changed_tilt_entry, expected_tilt_after, atol=1e-16)
-    changed_tilt_exit = elem_tilt_exit.angle / 180 * np.pi  # ditto
-    assert np.isclose(-expected_tilt_after, changed_tilt_exit, atol=1e-16)
+    assert np.isclose(elem.k1, 1.1, atol=1e-16)
+    assert np.isclose(elem.k1s, 1.2, atol=1e-16)
 
 
 @pytest.mark.parametrize(
