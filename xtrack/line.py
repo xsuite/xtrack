@@ -7,6 +7,8 @@ import io
 import math
 import logging
 import json
+import uuid
+import os
 from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
@@ -25,7 +27,7 @@ import xdeps as xd
 from .compounds import CompoundContainer, CompoundType, Compound, SlicedCompound
 from .progress_indicator import progress
 from .slicing import Slicer
-
+from .mad_writer import to_madx_sequence
 
 from .survey import survey_from_line
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
@@ -546,6 +548,68 @@ class Line:
         out["metadata"] = deepcopy(self.metadata)
 
         return out
+
+    def to_madx_sequence(self, sequence_name, mode='sequence'):
+        '''
+        Return a MAD-X sequence corresponding to the line.
+
+        Parameters
+        ----------
+        sequence_name : str
+            Name of the sequence.
+
+        Returns
+        -------
+        madx_sequence : str
+            MAD-X sequence.
+        '''
+        return to_madx_sequence(self, sequence_name, mode=mode)
+
+    def to_madng(self, sequence_name='seq', temp_fname=None):
+
+        '''
+        Build a MAD NG instance from present state of the line.
+
+        Parameters
+        ----------
+        sequence_name : str
+            Name of the sequence.
+        temp_fname : str
+            Name of the temporary file to be used for the MAD NG instance.
+
+        Returns
+        -------
+        mng : MAD
+            MAD NG instance.
+        '''
+
+        try:
+            if temp_fname is None:
+                temp_fname = 'temp_madng_' + str(uuid.uuid4())
+
+            madx_seq = self.to_madx_sequence(sequence_name=sequence_name)
+            with open(f'{temp_fname}.madx', 'w') as fid:
+                fid.write(madx_seq)
+
+            from pymadng import MAD
+            mng = MAD()
+            mng.MADX.load(f'"{temp_fname}.madx"', f'"{temp_fname}"')
+            mng._init_madx_data = madx_seq
+
+            mng[sequence_name] = mng.MADX[sequence_name] # this ensures that the file has been read
+            mng[sequence_name].beam = mng.beam(particle="'custom'",
+                            mass=self.particle_ref.mass0 * 1e9,
+                            charge=self.particle_ref.q0,
+                            betgam=self.particle_ref.beta0[0] * self.particle_ref.gamma0[0])
+        finally:
+            for nn in [temp_fname + '.madx', temp_fname + '.mad']:
+                if os.path.isfile(nn):
+                    os.remove(nn)
+
+        # mng[sequence_name].beam = mng.beam(particle="'proton'", energy=7000)
+
+
+        return mng
 
     def __getstate__(self):
         out = self.__dict__.copy()

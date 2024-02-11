@@ -836,24 +836,18 @@ class MadLoader:
             )
 
     def _convert_quadrupole_thick(self, mad_el):
-        if mad_el.k1s:
-            tilt = -self.math.atan2(mad_el.k1s, mad_el.k1) / 2
-            k1 = self.math.sqrt(mad_el.k1s ** 2 + mad_el.k1 ** 2)
-        else:
-            tilt = None
-            k1 = mad_el.k1
 
         return self.make_compound_elem(
             [
                 self.Builder(
                     mad_el.name,
                     self.classes.Quadrupole,
-                    k1=k1,
+                    k1=mad_el.k1,
+                    k1s=mad_el.k1s,
                     length=mad_el.l,
                 ),
             ],
             mad_el,
-            custom_tilt=tilt,
         )
 
     def convert_rbend(self, mad_el):
@@ -954,27 +948,19 @@ class MadLoader:
         )
 
     def convert_octupole(self, mad_el):
-        thin_oct = self.Builder(
-            mad_el.name,
-            self.classes.Multipole,
-            knl=[0, 0, 0, mad_el.k3 * mad_el.l],
-            ksl=[0, 0, 0, mad_el.k3s * mad_el.l],
-            length=mad_el.l,
+        return self.make_compound_elem(
+            [
+                self.Builder(
+                    mad_el.name,
+                    self.classes.Octupole,
+                    k3=mad_el.k3,
+                    k3s=mad_el.k3s,
+                    length=mad_el.l,
+                ),
+            ],
+            mad_el,
         )
 
-        if value_if_expr(mad_el.l) != 0:
-            if not self.allow_thick:
-                self._assert_element_is_thin(mad_el)
-
-            sequence = [
-                self._make_drift_slice(mad_el, 0.5, "drift_{}..1"),
-                thin_oct,
-                self._make_drift_slice(mad_el, 0.5, "drift_{}..2"),
-            ]
-        else:
-            sequence = [thin_oct]
-
-        return self.make_compound_elem(sequence, mad_el)
 
     def convert_rectangle(self, mad_el):
         h, v = mad_el.aperture[:2]
@@ -1123,7 +1109,7 @@ class MadLoader:
             self.classes.Multipole,
             knl=hkick,
             ksl=vkick,
-            length=mad_el.lrad,
+            length=(mad_el.l or mad_el.lrad),
             hxl=0,
             hyl=0,
         )
@@ -1156,7 +1142,7 @@ class MadLoader:
             self.classes.Multipole,
             knl=hkick,
             ksl=vkick,
-            length=mad_el.lrad,
+            length=(mad_el.l or mad_el.lrad),
             hxl=0,
             hyl=0,
         )
@@ -1187,7 +1173,7 @@ class MadLoader:
             self.classes.Multipole,
             knl=hkick,
             ksl=vkick,
-            length=mad_el.lrad,
+            length=(mad_el.l or mad_el.lrad),
             hxl=0,
             hyl=0,
         )

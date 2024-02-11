@@ -319,6 +319,7 @@ class SRotation(BeamElement):
     has_backtrack = True
 
     _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/track_srotation.h'),
         _pkg_root.joinpath('beam_elements/elements_src/srotation.h')]
 
     _store_in_to_dict = ['angle']
@@ -1000,18 +1001,81 @@ class Sextupole(BeamElement):
         _unregister_if_preset(ref)
 
 
+class Octupole(BeamElement):
+
+    """
+    Octupole element.
+
+    Parameters
+    ----------
+    k3 : float
+        Strength of the octupole component in m^-3.
+    k3s : float
+        Strength of the skew octupole component in m^-3.
+    length : float
+        Length of the element in meters.
+    """
+
+    isthick = True
+    has_backtrack = True
+
+    _xofields={
+        'k3': xo.Float64,
+        'k3s': xo.Float64,
+        'length': xo.Float64,
+    }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/octupole.h'),
+    ]
+
+    @staticmethod
+    def add_slice(weight, container, thick_name, slice_name, _buffer=None):
+        self_or_ref = container[thick_name]
+
+        container[slice_name] = Multipole(knl=np.zeros(4), ksl=np.zeros(4),
+                                          _buffer=_buffer)
+        ref = container[slice_name]
+
+        ref.knl[0] = 0.
+        ref.knl[1] = 0.
+        ref.knl[2] = 0.
+        ref.knl[3] = weight * (
+            _get_expr(self_or_ref.k3) * _get_expr(self_or_ref.length))
+
+        ref.ksl[0] = 0.
+        ref.ksl[1] = 0.
+        ref.ksl[2] = 0.
+        ref.ksl[2] = weight * (
+            _get_expr(self_or_ref.k3s) * _get_expr(self_or_ref.length))
+
+        ref.order = 3
+
+    @staticmethod
+    def delete_element_ref(ref):
+        # Remove the scalar fields
+        for field in ['k3', 'k3s', 'length']:
+            _unregister_if_preset(getattr(ref, field))
+
+        # Remove the ref to the element itself
+        _unregister_if_preset(ref)
+
+
 class Quadrupole(BeamElement):
     isthick = True
     has_backtrack = True
 
     _xofields={
         'k1': xo.Float64,
+        'k1s': xo.Float64,
         'length': xo.Float64,
     }
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_srotation.h'),
         _pkg_root.joinpath('beam_elements/elements_src/quadrupole.h'),
     ]
 
@@ -1024,6 +1088,8 @@ class Quadrupole(BeamElement):
         ----------
         k1 : float
             Strength of the quadrupole component in m^-2.
+        k1s : float
+            Strength of the skew quadrupole component in m^-2.
         length : float
             Length of the element in meters.
         """
@@ -1063,8 +1129,29 @@ class Quadrupole(BeamElement):
 
         ref.knl[0] = 0.
         ref.knl[1] = (_get_expr(self_or_ref.k1) * _get_expr(self_or_ref.length)
+<<<<<<< HEAD
                         ) * weight
 
+=======
+                      + _get_expr(self_or_ref.knl[1])) * weight
+        ref.ksl[1] = (_get_expr(self_or_ref.k1s) * _get_expr(self_or_ref.length)
+                        + _get_expr(self_or_ref.ksl[1])) * weight
+
+        order = 1
+        for ii in range(2, 5):
+            ref.knl[ii] = _get_expr(self_or_ref.knl[ii]) * weight
+
+            if _nonzero(ref.knl[ii]):
+                order = max(order, ii)
+
+        for ii in range(2, 5):
+            ref.ksl[ii] = _get_expr(self_or_ref.ksl[ii]) * weight
+
+            if _nonzero(self_or_ref.ksl[ii]):  # update in the same way for ksl
+                order = max(order, ii)
+
+        ref.hxl = 0
+>>>>>>> feature/back_to_madx
         ref.length = _get_expr(self_or_ref.length) * weight
 
     @classmethod
@@ -1078,11 +1165,18 @@ class Quadrupole(BeamElement):
 
         ref.length = _get_expr(self_or_ref.length) * weight
         ref.k1 = _get_expr(self_or_ref.k1)
+        ref.k1s = _get_expr(self_or_ref.k1s)
 
     @staticmethod
     def delete_element_ref(ref):
         # Remove the scalar fields
+<<<<<<< HEAD
         for field in ['k1', 'length']:
+=======
+        for field in [
+            'k1', 'k1s', 'length', 'num_multipole_kicks', 'order', 'inv_factorial_order',
+        ]:
+>>>>>>> feature/back_to_madx
             _unregister_if_preset(getattr(ref, field))
 
         # Remove the ref to the element itself
