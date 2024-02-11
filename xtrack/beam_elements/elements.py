@@ -1129,29 +1129,11 @@ class Quadrupole(BeamElement):
 
         ref.knl[0] = 0.
         ref.knl[1] = (_get_expr(self_or_ref.k1) * _get_expr(self_or_ref.length)
-<<<<<<< HEAD
-                        ) * weight
-
-=======
-                      + _get_expr(self_or_ref.knl[1])) * weight
+                      ) * weight
         ref.ksl[1] = (_get_expr(self_or_ref.k1s) * _get_expr(self_or_ref.length)
-                        + _get_expr(self_or_ref.ksl[1])) * weight
-
-        order = 1
-        for ii in range(2, 5):
-            ref.knl[ii] = _get_expr(self_or_ref.knl[ii]) * weight
-
-            if _nonzero(ref.knl[ii]):
-                order = max(order, ii)
-
-        for ii in range(2, 5):
-            ref.ksl[ii] = _get_expr(self_or_ref.ksl[ii]) * weight
-
-            if _nonzero(self_or_ref.ksl[ii]):  # update in the same way for ksl
-                order = max(order, ii)
+                      ) * weight
 
         ref.hxl = 0
->>>>>>> feature/back_to_madx
         ref.length = _get_expr(self_or_ref.length) * weight
 
     @classmethod
@@ -1170,13 +1152,7 @@ class Quadrupole(BeamElement):
     @staticmethod
     def delete_element_ref(ref):
         # Remove the scalar fields
-<<<<<<< HEAD
-        for field in ['k1', 'length']:
-=======
-        for field in [
-            'k1', 'k1s', 'length', 'num_multipole_kicks', 'order', 'inv_factorial_order',
-        ]:
->>>>>>> feature/back_to_madx
+        for field in ['k1', 'k1s', 'length']:
             _unregister_if_preset(getattr(ref, field))
 
         # Remove the ref to the element itself

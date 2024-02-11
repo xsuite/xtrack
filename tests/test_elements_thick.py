@@ -556,9 +556,10 @@ def test_import_thick_quad_from_madx_and_slice(with_knobs):
     # Verify that the slices are correct
     for elem in elems:
         assert np.isclose(elem.length, 1.0, atol=1e-16)
-        expected_k1l = np.sqrt(0.1**2 + 0.2**2) * 2
+        expected_k1l = 0.1 * 2
+        expected_k1sl = 0.2 * 2
         assert np.allclose(elem.knl, [0, expected_k1l / 2, 0, 0, 0], atol=1e-16)
-        assert np.allclose(elem.ksl, 0, atol=1e-16)
+        assert np.allclose(elem.ksl, [0, expected_k1sl / 2, 0, 0, 0], atol=1e-16)
         assert np.isclose(elem.hxl, 0, atol=1e-16)
         assert np.isclose(elem.hyl, 0, atol=1e-16)
 
@@ -579,9 +580,10 @@ def test_import_thick_quad_from_madx_and_slice(with_knobs):
     # Verify that the line has been adjusted correctly
     for elem in elems:
         assert np.isclose(elem.length, 1.5, atol=1e-16)
-        expected_k1l = np.sqrt(2.2 ** 2 + 2.1 ** 2) * 3
+        expected_k1l = 2.1 * 3
+        expected_k1sl = 2.2 * 3
         assert np.allclose(elem.knl, [0, expected_k1l / 2, 0, 0, 0], atol=1e-16)
-        assert np.allclose(elem.ksl, 0, atol=1e-16)
+        assert np.allclose(elem.ksl, [0, expected_k1sl / 2, 0, 0, 0], atol=1e-16)
         assert np.isclose(elem.hxl, 0, atol=1e-16)
         assert np.isclose(elem.hyl, 0, atol=1e-16)
 
