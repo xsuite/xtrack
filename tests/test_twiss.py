@@ -531,7 +531,7 @@ def collider_for_test_twiss_range():
 @pytest.mark.parametrize('check', ['fw', 'bw', 'fw_kw', 'bw_kw', 'fw_table', 'bw_table'])
 @pytest.mark.parametrize('init_at_edge', [True, False], ids=['init_at_edge', 'init_inside'])
 @pytest.mark.parametrize('cycle_to',
-                         [None, ('s.ds.l6.b1', 's.ds.l6.b2'), ('ip6', 'ip6'), ('ip5', 'ip5')],
+                         [('ip3', 'ip3'), ('s.ds.l6.b1', 's.ds.l6.b2'), ('ip6', 'ip6'), ('ip5', 'ip5')],
                          ids=['no_cycle', 'cycle_arc', 'cycle_edge1', 'cycle_edge2'])
 def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, collider_for_test_twiss_range):
 
@@ -544,13 +544,12 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
         collider.lhcb2.twiss_default['method'] = '4d'
         collider.lhcb2.twiss_default['reverse'] = True
 
-    if cycle_to is not None:
-        if collider.lhcb1.element_names[0] != cycle_to[0]:
-            collider.lhcb1.cycle(cycle_to[0], inplace=True)
-        if collider.lhcb2.element_names[0] != cycle_to[1]:
-            collider.lhcb2.cycle(cycle_to[1], inplace=True)
+    if collider.lhcb1.element_names[0] != cycle_to[0]:
+        collider.lhcb1.cycle(cycle_to[0], inplace=True)
+    if collider.lhcb2.element_names[0] != cycle_to[1]:
+        collider.lhcb2.cycle(cycle_to[1], inplace=True)
 
-    loop_around = cycle_to is not None
+    loop_around = collider.lhcb1.element_names[0] != 'ip3'
 
     collider.vars['on_x5hs'] = 200
     collider.vars['on_x5vs'] = 123
