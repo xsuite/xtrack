@@ -565,7 +565,7 @@ class Line:
         '''
         return to_madx_sequence(self, sequence_name, mode=mode)
 
-    def to_madng(self, sequence_name='seq', temp_fname=None):
+    def to_madng(self, sequence_name='seq', temp_fname=None, keep_files=False):
 
         '''
         Build a MAD NG instance from present state of the line.
@@ -602,9 +602,10 @@ class Line:
                             charge=self.particle_ref.q0,
                             betgam=self.particle_ref.beta0[0] * self.particle_ref.gamma0[0])
         finally:
-            for nn in [temp_fname + '.madx', temp_fname + '.mad']:
-                if os.path.isfile(nn):
-                    os.remove(nn)
+            if not keep_files:
+                for nn in [temp_fname + '.madx', temp_fname + '.mad']:
+                    if os.path.isfile(nn):
+                        os.remove(nn)
 
         # mng[sequence_name].beam = mng.beam(particle="'proton'", energy=7000)
 
