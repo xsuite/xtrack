@@ -181,16 +181,16 @@ def twiss_line(line, particle_ref=None, method=None,
             - dx: horizontal dispersion (d x / d delta) in meters
             - dy: vertical dispersion (d y / d delta) in meters
             - dzeta: longitudinal dispersion (d zeta / d delta) in meters
-            - dpx: higher order horizontal dispersion (d px / d delta)
-            - dpy: higher order vertical dispersion (d py / d delta)
+            - dpx: horizontal momentum dispersion (d px / d delta)
+            - dpy: vertical momentum dispersion (d py / d delta)
             - ddx: horizontal second order dispersion (d^2 x / d delta^2) in meters
             - ddy: vertical second order dispersion (d^2 y / d delta^2) in meters
             - ddpx: horizontal second order dispersion (d^2 px / d delta^2)
             - ddpy: vertical second order dispersion (d^2 py / d delta^2)
             - dx_zeta: horizontal crab dispersion (d x / d zeta)
             - dy_zeta: vertical crab dispersion (d y / d zeta)
-            - dpx_zeta: higher order horizontal crab dispersion (d px / d zeta)
-            - dpy_zeta: higher order vertical crab dispersion (d py / d zeta)
+            - dpx_zeta: horizontal momentum crab dispersion (d px / d zeta)
+            - dpy_zeta: vertical momentum crab dispersion (d py / d zeta)
             - ax_chrom: chromatic function (d alfx / d delta - alfx / betx d betx / d delta)
             - ay_chrom: chromatic function (d alfy / d delta - alfy / bety d bety / d delta)
             - bx_chrom: chromatic function (d betx / d delta)
