@@ -84,15 +84,15 @@ temp_fname = 'temp4madng'
 with open(temp_fname+'.madx', 'w') as fid:
     fid.write(mad_seq)
 
-# Use open twiss to compare
-tm1 = xt.Table(mad1.twiss(betx=1, bety=1,x=1e-3, y=1e-3))
-tm2 = xt.Table(mad2.twiss(betx=1, bety=1,x=1e-3, y=1e-3))
+# # Use open twiss to compare
+# tm1 = xt.Table(mad1.twiss(betx=1, bety=1,x=1e-3, y=1e-3))
+# tm2 = xt.Table(mad2.twiss(betx=1, bety=1,x=1e-3, y=1e-3))
 
-# tx1 = line.twiss(method='4d')
-# tx2 = line2.twiss(method='4d')
+# # tx1 = line.twiss(method='4d')
+# # tx2 = line2.twiss(method='4d')
 
-tm1 = xt.Table(mad1.twiss())
-tm2 = xt.Table(mad2.twiss())
+# tm1 = xt.Table(mad1.twiss())
+# tm2 = xt.Table(mad2.twiss())
 
-mux2_interp = np.interp(tm1.s, tm2.s, tm2.mux)
-dx2_interp = np.interp(tm1.s, tm2.s, tm2.dx)
+# mux2_interp = np.interp(tm1.s, tm2.s, tm2.mux)
+# dx2_interp = np.interp(tm1.s, tm2.s, tm2.dx)

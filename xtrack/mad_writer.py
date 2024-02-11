@@ -69,6 +69,14 @@ def cavity_to_madx_str(name, line):
     return ', '.join(tokens)
 
 def marker_to_madx_str(name, line):
+    if name.endswith('_entry'):
+         parent_name = name.replace('_entry', '')
+         if (parent_name in line.element_dict):
+             return None
+    if name.endswith('_exit'):
+        parent_name = name.replace('_exit', '')
+        if (parent_name in line.element_dict):
+            return None
     return 'marker'
 
 def drift_to_madx_str(name, line):
@@ -147,7 +155,7 @@ def rfmultipole_to_madx_str(name, line):
 def dipoleedge_to_madx_str(name, line):
     if line.get_compound_for_element(name) is None:
         raise NotImplementedError("isolated dipole edges are not yet supported")
-    return 'marker'
+    return None
 
 def bend_to_madx_str(name, line):
     bend = _get_eref(line, name)
@@ -222,7 +230,7 @@ xsuite_to_mad_conveters={
     xt.Marker: marker_to_madx_str,
     xt.Drift: drift_to_madx_str,
     xt.Multipole: multipole_to_madx_str,
-    xt.DipoleEdge: marker_to_madx_str,
+    xt.DipoleEdge: dipoleedge_to_madx_str,
     xt.Bend: bend_to_madx_str,
     xt.Sextupole: sextupole_to_madx_str,
     xt.Octupole: octupole_to_madx_str,
@@ -273,6 +281,9 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
             if nn + '_tilt_entry' in line.element_dict:
                 el_str += ", " + mad_assignment('tilt',
                             _ge(line.element_refs[nn + '_tilt_entry'].angle) / 180. * np.pi)
+
+            if el_str is None:
+                continue
 
             seq_str += f"{nn}: {el_str}, at={s_dict[nn]};\n"
         seq_str += 'endsequence;'
