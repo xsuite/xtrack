@@ -24,6 +24,8 @@ def test_lumi_calculation():
             s=np.array([      0,       0,        0,          0,        0,             0]),
             dx_zeta=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
             dy_zeta=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            dpx_zeta=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            dpy_zeta=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
 
             zeta=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
             delta=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
@@ -55,6 +57,8 @@ def test_lumi_calculation():
             y=np.array([   0,       0,        0,          0,        0,             0]),
             dx_zeta=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
             dy_zeta=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            dpx_zeta=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            dpy_zeta=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
 
             # Just not to upset the reverse
             zeta=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
