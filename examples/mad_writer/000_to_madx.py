@@ -53,8 +53,8 @@ import os
 #     ])
 
 # ----- LHC (thick) -----
-# line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
-# line.build_tracker()
+line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
+line.build_tracker()
 
 # ----- LHC (thin) -----
 # line = xt.Line.from_json('../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
@@ -62,14 +62,14 @@ import os
 # line.build_tracker()
 
 # ----- LHC (thin) -----
-mad1 = Madx()
-mad1.call('../../test_data/hllhc15_noerrors_nobb/sequence_with_crabs.madx')
-mad1.use('lhcb1')
-seq = mad1.sequence.lhcb1
-line = xt.Line.from_madx_sequence(seq, deferred_expressions=True)
-line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
-                                    mass0=seq.beam.mass * 1e9,
-                                    q0=seq.beam.charge)
+# mad1 = Madx()
+# mad1.call('../../test_data/hllhc15_noerrors_nobb/sequence_with_crabs.madx')
+# mad1.use('lhcb1')
+# seq = mad1.sequence.lhcb1
+# line = xt.Line.from_madx_sequence(seq, deferred_expressions=True)
+# line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
+#                                     mass0=seq.beam.mass * 1e9,
+#                                     q0=seq.beam.charge)
 
 mad_seq = line.to_madx_sequence(sequence_name='myseq')
 
