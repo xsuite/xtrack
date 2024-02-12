@@ -7,15 +7,17 @@ import pytest
 import math
 
 import xtrack as xt
-from xtrack.slicing import Strategy, Teapot, Uniform
+from xtrack.slicing import Strategy, Teapot, Uniform, Custom
 
 
 def test_slicing_uniform():
     # Test for one slice
-    slicing_3 = Uniform(1)
-    assert slicing_3.element_weights() == [1.0]
-    assert slicing_3.drift_weights() == [0.5] * 2
-    assert [w for w in slicing_3] == [(0.5, True), (1.0, False), (0.5, True)]
+    slicing_1 = Uniform(1)
+    assert slicing_1.element_weights() == [1.0]
+    assert slicing_1.drift_weights() == [0.5] * 2
+    expected_1 = [w for w in slicing_1.iter_weights(None)]
+    result_1 = [(0.5, True), (1.0, False), (0.5, True)]
+    assert expected_1 == result_1
 
     # Test for three slices
     slicing_3 = Uniform(3)
@@ -23,12 +25,14 @@ def test_slicing_uniform():
     assert slicing_3.drift_weights() == [0.25] * 4
 
     elem_info, drift_info = (1./3., False), (0.25, True)
-    assert [w for w in slicing_3] == [
+    expected_3 = [
         drift_info, elem_info,
         drift_info, elem_info,
         drift_info, elem_info,
         drift_info,
     ]
+    result_3 = [w for w in slicing_3.iter_weights(None)]
+    assert expected_3 == result_3
 
     # Test error handling
     with pytest.raises(ValueError):
@@ -37,10 +41,12 @@ def test_slicing_uniform():
 
 def test_slicing_teapot():
     # Test for one slice
-    slicing_3 = Teapot(1)
-    assert slicing_3.element_weights() == [1.0]
-    assert slicing_3.drift_weights() == [0.5] * 2
-    assert [w for w in slicing_3] == [(0.5, True), (1.0, False), (0.5, True)]
+    slicing_1 = Teapot(1)
+    assert slicing_1.element_weights() == [1.0]
+    assert slicing_1.drift_weights() == [0.5] * 2
+    expected_1 = [(0.5, True), (1.0, False), (0.5, True)]
+    result_1 = [w for w in slicing_1.iter_weights()]
+    assert expected_1 == result_1
 
     # Test for three slices
     slicing_3 = Teapot(3)
@@ -48,12 +54,14 @@ def test_slicing_teapot():
     assert slicing_3.drift_weights() == [0.125, 0.375, 0.375, 0.125]
 
     elem_info = (1./3., False)
-    assert [w for w in slicing_3] == [
+    expected_3 = [
         (0.125, True), elem_info,
         (0.375, True), elem_info,
         (0.375, True), elem_info,
         (0.125, True),
     ]
+    result_3 = [w for w in slicing_3.iter_weights()]
+    assert expected_3 == result_3
 
     # Test error handling
     with pytest.raises(ValueError):
@@ -62,24 +70,80 @@ def test_slicing_teapot():
 
 def test_slicing_teapot_mode_thick():
     # Test for two slices
-    slicing_3 = Teapot(2, mode='thick')
-    assert slicing_3.drift_weights() == [0.5] * 2
-    assert [w for w in slicing_3] == [(0.5, True), (0.5, True)]
+    slicing_2 = Teapot(2, mode='thick')
+    assert slicing_2.drift_weights() == [0.5] * 2
+    expected_2 = [(0.5, True), (0.5, True)]
+    result_2 = [w for w in slicing_2.iter_weights()]
+    assert expected_2 == result_2
 
     # Test for four slices
     slicing_3 = Teapot(4, mode='thick')
     assert slicing_3.drift_weights() == [0.125, 0.375, 0.375, 0.125]
 
-    assert [w for w in slicing_3] == [
+    expected = [
         (0.125, True),
         (0.375, True),
         (0.375, True),
         (0.125, True),
     ]
+    result = [w for w in slicing_3.iter_weights()]
+    assert expected == result
 
     # Test error handling
     with pytest.raises(ValueError):
         Teapot(0)
+
+
+def test_slicing_custom():
+    elem_len_3 = 16
+    slicing_3 = Custom(at_s=[0.8, 2, 8], mode='thin')
+    expected_dr_3 = [0.8/16, 1.2/16, 6/16, 8/16]
+    result_dr_3 = slicing_3.drift_weights(element_length=elem_len_3)
+    assert np.allclose(expected_dr_3, result_dr_3, atol=1e-30)
+
+    expected_el_3 = [1/3] * 3
+    result_el_3 = slicing_3.element_weights(element_length=elem_len_3)
+    assert np.allclose(expected_el_3, result_el_3, atol=1e-30)
+
+    elem_info = (1/3, False)
+    expected_3 = [
+        (0.8/16, True), elem_info,
+        (1.2/16, True), elem_info,
+        (6/16, True), elem_info,
+        (8/16, True),
+    ]
+    result_3 = [w for w in slicing_3.iter_weights(element_length=elem_len_3)]
+    assert expected_3 == result_3  # ditto
+
+
+def test_slicing_custom_thick():
+    elem_len_1 = 1.1
+    slicing_1 = Custom(at_s=[0.3], mode='thick')
+    expected_dr_1 = [0.3 / 1.1, 0.8 / 1.1]
+    result_dr_1 = slicing_1.drift_weights(element_length=elem_len_1)
+    assert np.allclose(expected_dr_1, result_dr_1, atol=1e-30)
+
+    expected_1 = [
+        (0.3 / 1.1, True),
+        (0.8 / 1.1, True),
+    ]
+    result_1 = [w for w in slicing_1.iter_weights(element_length=elem_len_1)]
+    assert expected_1 == result_1  # for now exact comparison works
+
+    elem_len_3 = 16
+    slicing_3 = Custom(at_s=[0.8, 2, 8])
+    expected_dr_3 = [0.8/16, 1.2/16, 6/16, 8/16]
+    result_dr_3 = slicing_3.drift_weights(element_length=elem_len_3)
+    assert np.allclose(expected_dr_3, result_dr_3, atol=1e-30)
+
+    expected_3 = [
+        (0.8/16, True),
+        (1.2/16, True),
+        (6/16, True),
+        (8/16, True),
+    ]
+    result_3 = [w for w in slicing_3.iter_weights(element_length=elem_len_3)]
+    assert expected_3 == result_3  # ditto
 
 
 def test_slicing_strategy_matching():

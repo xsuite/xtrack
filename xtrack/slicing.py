@@ -5,9 +5,12 @@
 
 import abc
 import re
+from abc import ABC
 
 from itertools import zip_longest
 from typing import List, Tuple, Iterator, Optional, Literal
+
+import numpy as np
 
 from .compounds import SlicedCompound
 from .progress_indicator import progress
@@ -36,20 +39,21 @@ class ElementSlicingScheme(abc.ABC):
         self.slicing_order = slicing_order
 
     @abc.abstractmethod
-    def element_weights(self) -> List[float]:
+    def element_weights(self, element_length: float) -> List[float]:
         """Define a list of weights of length `self.slicing_order`, containing
          the weight of each element slice.
         """
-        pass
 
     @abc.abstractmethod
-    def drift_weights(self) -> List[float]:
+    def drift_weights(self, element_length: float) -> List[float]:
         """Define a list of weights of length `self.slicing_order + 1`,
         containing the weight of each drift slice.
         """
-        pass
 
-    def __iter__(self) -> Iterator[Tuple[float, bool]]:
+    def iter_weights(
+            self,
+            element_length: float = None,
+    ) -> Iterator[Tuple[float, bool]]:
         """
         Give an iterator for weights of slices and, assuming the first slice is
         a drift, followed by an element slice, and so on.
@@ -59,8 +63,8 @@ class ElementSlicingScheme(abc.ABC):
             Iterator of weights and whether the weight is for a drift.
         """
         for drift_weight, elem_weight in zip_longest(
-                self.drift_weights(),
-                self.element_weights(),
+                self.drift_weights(element_length),
+                self.element_weights(element_length),
                 fillvalue=None,
         ):
             yield drift_weight, True
@@ -76,19 +80,19 @@ class ElementSlicingScheme(abc.ABC):
 
 
 class Uniform(ElementSlicingScheme):
-    def element_weights(self):
+    def element_weights(self, element_length=None):
         return [1. / self.slicing_order] * self.slicing_order
 
-    def drift_weights(self):
+    def drift_weights(self, element_length=None):
         slices = self.slicing_order + 1
         return [1. / slices] * slices
 
 
 class Teapot(ElementSlicingScheme):
-    def element_weights(self):
+    def element_weights(self, element_length=None):
         return [1. / self.slicing_order] * self.slicing_order
 
-    def drift_weights(self):
+    def drift_weights(self, element_length=None):
         if self.slicing_order == 1:
             return [0.5, 0.5]
 
@@ -97,6 +101,49 @@ class Teapot(ElementSlicingScheme):
         middle_weights = [middle_weight] * (self.slicing_order - 1)
 
         return [edge_weight, *middle_weights, edge_weight]
+
+
+class Custom(ElementSlicingScheme):
+    """The custom slicing scheme slices the element at the fixed s coordinates.
+
+    Arguments
+    ---------
+    at_s
+        The s values at which the elements should be sliced. The beginning of
+        the element is assumed to be at zero.
+    mode:
+        Thick or thin slicing.
+    """
+    def __init__(
+            self,
+            at_s: List[float],
+            mode: Literal['thin', 'thick'] = 'thick',
+    ):
+        slicing_order = len(at_s)
+        if mode == 'thick':
+            # In thick number of slices is one more than cuts
+            slicing_order = len(at_s) + 1
+
+        super().__init__(slicing_order, mode)
+
+        # Precompute the known weights (all but the last slice, which depends
+        # on the weight of the element being sliced)
+        self.at_s = np.array([0.] + at_s)
+        self.section_lengths = self.at_s[1:] - self.at_s[:-1]
+
+    def element_weights(self, element_length=None):
+        return [1. / self.slicing_order] * self.slicing_order
+
+    def drift_weights(self, element_length: float) -> List[float]:
+        section_lengths = np.concatenate([
+            self.section_lengths,
+            [element_length - self.at_s[-1]],
+        ])
+        weights = section_lengths / element_length
+        return weights.tolist()
+
+    def __repr__(self):
+        return f'Custom(at_s={self.at_s.tolist()})'
 
 
 class Strategy:
@@ -293,7 +340,7 @@ class Slicer:
         drift_to_slice = xt.Drift(length=element.length)
         slices_to_append = []
 
-        for weight, is_drift in chosen_slicing:
+        for weight, is_drift in chosen_slicing.iter_weights(element):
             if is_drift and chosen_slicing.mode == 'thin':
                 slice_name = f'drift_{name}..{drift_idx}'
                 obj_to_slice = drift_to_slice
