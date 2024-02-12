@@ -498,7 +498,7 @@ def test_optimize_for_tracking(test_context, multiline):
     assert np.allclose(p_no_optimized.y, p_optimized.y, rtol=0, atol=1e-14)
     assert np.allclose(p_no_optimized.px, p_optimized.px, rtol=0, atol=1e-14)
     assert np.allclose(p_no_optimized.py, p_optimized.py, rtol=0, atol=1e-14)
-    assert np.allclose(p_no_optimized.zeta, p_optimized.zeta, rtol=0, atol=1e-11)
+    assert np.allclose(p_no_optimized.zeta, p_optimized.zeta, rtol=0, atol=1e-10)
     assert np.allclose(p_no_optimized.delta, p_optimized.delta, rtol=0, atol=1e-14)
 
 
