@@ -17,16 +17,29 @@ p1 = particle_ref1.copy()
 p1.x = 1e-3
 p1.y = 2e-3
 p1.zeta = 1e-2
+p1.delta = 0.5
+P_p1 = (1 + p1.delta) * p1.p0c / (p1.mass0 / particle_ref2.mass0)
 
 p1_ref2 = particle_ref2.copy()
-p1_ref2.x = p1.x
-p1_ref2.y = p1.y
-p1_ref2.zeta = p1.zeta
 p1_ref2_mass_ratio = p1.mass0 / p1_ref2.mass0
 p1_ref2_charge_ratio = p1.q0 / p1_ref2.q0
 
+
+
+p1_ref2.x = p1.x
+p1_ref2.y = p1.y
+p1_ref2.zeta = p1.zeta
 p1_ref2.charge_ratio = p1_ref2_charge_ratio
 p1_ref2.chi = p1_ref2_charge_ratio / p1_ref2_mass_ratio
+p1_ref2.delta = P_p1 * p1_ref2_mass_ratio / p1_ref2.p0c - 1
+
+
+
+
+
+prrrrr
+
+
 
 
 L_bend = 1.
