@@ -15,7 +15,7 @@ import RF_Track as RFT
 q0 = -1 # electrons
 P0c = 100e6 # reference momentum, eV/c
 
-# Load 1D field map of CLIC structure
+# Load the 1D field map of the CLIC RF structure
 T = np.loadtxt(fname='400_Ez_on-axis_TD26__vg1p8_r05_CC_EDMS.txt', delimiter='\t')
 Ez = np.complex64(T[:,1] + 1.j*T[:,2]) # take columns 1 and 2 and make a complex number
 hz = T[1,0] - T[0,0] # mm, mesh size
