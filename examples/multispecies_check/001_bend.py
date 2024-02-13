@@ -72,10 +72,10 @@ n_slices = 100
 
 dipole_ref1 = xt.Multipole(knl=[theta_bend_ref1/n_slices, k1l_ref1/n_slices],
                            ksl=[theta_skew_ref1/n_slices, k1sl_ref1/n_slices],
-                           length=L_bend/n_slices, hxl=0.2/n_slices)
-dipole_ref2 = xt.Multipole(knl=[theta_bend_ref2/n_slices, k1l_ref2/n_slices],
-                           ksl=[theta_skew_ref2/n_slices, k1sl_ref2/n_slices],
-                           length=L_bend/n_slices, hxl=0.2/n_slices)
+                           length=L_bend, hxl=0.2)
+dipole_ref2 = xt.Multipole(knl=[theta_bend_ref2, k1l_ref2],
+                           ksl=[theta_skew_ref2, k1sl_ref2],
+                           length=L_bend, hxl=0.2)
 
 ele_ref1 = []
 for ii in range(n_slices):
