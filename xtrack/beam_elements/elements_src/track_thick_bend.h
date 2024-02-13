@@ -17,12 +17,12 @@ void track_thick_bend(
         const double h        // curvature
 ) {
 
-    if(fabs(k) < 1e-8 && fabs(h) < 1e-8) {
+    double const k_chi = k * LocalParticle_get_chi(part);
+
+    if(fabs(k_chi) < 1e-8 && fabs(h) < 1e-8) {
         Drift_single_particle(part, length);
         return;
     }
-
-    double const k_chi = k * LocalParticle_get_chi(part);
 
     const double rvv = LocalParticle_get_rvv(part);
     // Particle coordinates

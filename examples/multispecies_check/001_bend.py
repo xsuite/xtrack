@@ -50,28 +50,32 @@ model = 'rot-kick-rot'
 model = 'expanded'
 L_bend = 1.
 B_T = 0.4
-hxl = 0 #0.2
-# G_Tm = 0.1
-# Gs_Tm = -0.05
+hxl = 0.2
+G_Tm = 0.1
+S_Tm2 = 0.05
+
 
 P0_J_ref1 = p_ref1.p0c[0] / clight * qe
 h_bend_ref1 = B_T * qe * p_ref1.charge[0] / P0_J_ref1 # This is brho
 theta_bend_ref1 = h_bend_ref1 * L_bend
-# k1l_ref1 = G_Tm * qe * p_ref1.charge[0] / P0_J_ref1
+k1l_ref1 = G_Tm * qe * p_ref1.charge[0] / P0_J_ref1
+k2l_ref1 = S_Tm2 * qe * p_ref1.charge[0] / P0_J_ref1
 
 
 P0_J_ref2 = p_ref2.p0c[0] / clight * qe
 h_bend_ref2 = B_T * qe * p_ref2.charge[0] / P0_J_ref2
 theta_bend_ref2 = h_bend_ref2 * L_bend
-# k1l_ref2 = G_Tm * qe * p_ref2.charge[0] / P0_J_ref2
+k1l_ref2 = G_Tm * qe * p_ref2.charge[0] / P0_J_ref2
+k2l_ref2 = S_Tm2 * qe * p_ref2.charge[0] / P0_J_ref2
 
 n_slices = 10
 
-
 dipole_ref1 = xt.Bend(k0=theta_bend_ref1/L_bend, length=L_bend / n_slices,
-                      h=hxl/L_bend)
+                      h=hxl/L_bend, k1 = k1l_ref1/L_bend,
+                      knl=[0, 0, k2l_ref1/L_bend])
 dipole_ref2 = xt.Bend(k0=theta_bend_ref2/L_bend, length=L_bend / n_slices,
-                      h=hxl/L_bend)
+                      h=hxl/L_bend, k1 = k1l_ref2/L_bend,
+                      knl=[0, 0, k2l_ref1/L_bend])
 
 ele_ref1 = []
 for ii in range(n_slices):
@@ -94,8 +98,8 @@ line_ref2.append_element(element=xt.Marker(), name='endmarker')
 line_ref1.configure_bend_model(core=model)
 line_ref2.configure_bend_model(core=model)
 
-line_ref1.config.XTRACK_USE_EXACT_DRIFTS = True
-line_ref2.config.XTRACK_USE_EXACT_DRIFTS = True
+# line_ref1.config.XTRACK_USE_EXACT_DRIFTS = True
+# line_ref2.config.XTRACK_USE_EXACT_DRIFTS = True
 
 line_ref1.build_tracker()
 line_ref2.build_tracker()
