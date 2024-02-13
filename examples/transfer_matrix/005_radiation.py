@@ -9,7 +9,6 @@ from scipy.stats import linregress
 
 import xobjects as xo
 import xtrack as xt
-import xpart as xp
 
 context = xo.ContextCpu()
 
@@ -37,20 +36,16 @@ equ_delta = 3.8e-4
 beta_s = equ_length / equ_delta
 equ_emit_s = equ_length * equ_delta
 
-el = xt.LinearTransferMatrix(
+el = xt.LineSegmentMap(
     _context=context,
-    Q_x=q_x_set,
-    Q_y=q_y_set,
-    Q_s=Q_s_set,
-    beta_s=beta_s,
-    beta_x_0=beta_x,
-    beta_y_0=beta_y,
-    beta_x_1=beta_x,
-    beta_y_1=beta_y,
-    alpha_x_0=alpha_x,
-    alpha_y_0=alpha_y,
-    alpha_x_1=alpha_x,
-    alpha_y_1=alpha_y,
+    qx=q_x_set,
+    qy=q_y_set,
+    qs=Q_s_set,
+    bets=beta_s,
+    betx=beta_x,
+    bety=beta_y,
+    alfx=alpha_x,
+    alfy=alpha_y,
     damping_rate_x=damping_rate_x,
     damping_rate_y=damping_rate_y,
     damping_rate_s=damping_rate_s,
@@ -59,7 +54,7 @@ el = xt.LinearTransferMatrix(
     equ_emit_s=equ_emit_s,
 )
 
-part = xp.Particles(
+part = xt.Particles(
     _context=context,
     x=[10 * np.sqrt(equ_emit_x * beta_x)],
     y=[10 * np.sqrt(equ_emit_y * beta_y)],
@@ -129,14 +124,12 @@ eps_x_expected = emit_x[0] * np.exp(-damping_rate_x * turns)
 eps_y_expected = emit_y[0] * np.exp(-damping_rate_y * turns)
 eps_s_expected = emit_s[0] * np.exp(-damping_rate_s * turns)
 
-
 print(
     emit_x_0 / equ_emit_x,
     emit_y_0 / equ_emit_y,
     emit_s_0 / equ_emit_s,
     length_0 / equ_length,
 )
-
 
 plt.figure(10)
 sp1 = plt.subplot(311)
@@ -146,7 +139,6 @@ plt.plot(turns, eps_x_expected, "--r", label="expected")
 plt.plot([turns[0], turns[-1]], [emit_x_0, emit_x_0], "--g", label="equilibrium")
 plt.ylabel(r"$\epsilon_x$ [m]")
 plt.legend()
-
 
 plt.subplot(312, sharex=sp1)
 plt.plot(turns, emit_y)

@@ -12,7 +12,7 @@ line_thick = line.copy()
 line_thick.build_tracker()
 
 slicing_strategies = [
-    Strategy(slicing=Teapot(1)),  # Default catch-all as in MAD-X
+    Strategy(slicing=Teapot(1)),  # Default
     Strategy(slicing=Teapot(4), element_type=xt.Bend),
     Strategy(slicing=Teapot(20), element_type=xt.Quadrupole),
     Strategy(slicing=Teapot(2), name=r'^mb\..*'),

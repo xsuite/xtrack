@@ -6,78 +6,141 @@
 import numpy as np
 
 import xtrack as xt
-import xpart as xp
 
 # Load a line and build tracker
 line = xt.Line.from_json(
-    '../../test_data/hllhc15_noerrors_nobb/line_and_particle.json')
-line.particle_ref = xp.Particles(
-                    mass0=xp.PROTON_MASS_EV, q0=1, energy0=7e12)
+    '../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
+line.particle_ref = xt.Particles(
+                    mass0=xt.PROTON_MASS_EV, q0=1, energy0=7e12)
 line.build_tracker()
 
 # Twiss
-tw = line.twiss()
+tw = line.twiss(method='4d')
 
-# Examples of access modes to the twiss table
+# Print table
+tw.show()
+# prints:
+#
+# name                       s x px y py zeta delta ptau    betx    bety    alfx ...
+# ip7                           0 0  0 0  0    0     0    0 120.813 149.431
+# drift_0                       0 0  0 0  0    0     0    0 120.813 149.431
+# tcsg.a4r7.b1_entry          0.5 0  0 0  0    0     0    0 119.542 150.821
+# tcsg.a4r7.b1                0.5 0  0 0  0    0     0    0 119.542 150.821
+# tcsg.a4r7.b1_exit           1.5 0  0 0  0    0     0    0 117.031  153.63
+# drift_1                     1.5 0  0 0  0    0     0    0 117.031  153.63
+# ...
+# tcsg.a4l7.b1             26655.4 0  0 0  0    0     0    0 130.019 139.974
+# tcsg.a4l7.b1_exit        26656.4 0  0 0  0    0     0    0 127.334 142.627
+# drift_6661               26656.4 0  0 0  0    0     0    0 127.334 142.627
+# lhcb1ip7_p_              26658.9 0  0 0  0    0     0    0 120.813 149.431
+# _end_point               26658.9 0  0 0  0    0     0    0 120.813 149.431
 
-tw['qx']
-# gives : 62.3100009
+# Access to scalar quantities
+tw.qx    # is : 62.31000
+tw['qx'] # is : 62.31000
 
-tw.qx
-# gives : 62.3100009
+# Access to a single column of the table
+tw['betx'] # is an array with the horizontal beta function at all elements
 
-tw['betx']
-# gives a numpy array with the beta horizontal beta function along the line
+# Access to a single element of the table of a vector quantity
+tw['betx', 'ip1'] # is 0.150000
 
-tw.betx
-# give the same as above
+# Regular expressions can be used to select elements by name
+tw.rows['ip.*']
+# returns:
+#
+# TwissTable: 9 rows, 41 cols
+# name                           s x px y py zeta delta ptau    betx    bety ...
+# ip7                            0 0  0 0  0    0     0    0 120.813 149.431
+# ip8                      3321.22 0  0 0  0    0     0    0     1.5     1.5
+# ip1.l1                   6664.72 0  0 0  0    0     0    0    0.15    0.15
+# ip1                      6664.72 0  0 0  0    0     0    0    0.15    0.15
+# ip2                      9997.16 0  0 0  0    0     0    0      10      10
+# ip3                      13329.4 0  0 0  0    0     0    0 121.567 218.584
+# ip4                      16661.7 0  0 0  0    0     0    0  236.18 306.197
+# ip5                        19994 0  0 0  0    0     0    0    0.15    0.15
+# ip6                      23326.4 0  0 0  0    0     0    0 273.434  183.74
 
-tw[:, 'ip1']
-# gives a table with all the columns at the element `ip1`
+# A section of the ring can be selected using names
+tw.rows['ip5':'mqxfa.a1r5_exit']
+# returns:
+#
+# TwissTable: 16 rows, 41 cols
+# name                           s x px y py zeta delta ptau    betx    bety ...
+# ip5                        19994 0  0 0  0    0     0    0    0.15    0.15
+# mbcs2.1r5_entry            19994 0  0 0  0    0     0    0    0.15    0.15
+# mbcs2.1r5                  19994 0  0 0  0    0     0    0    0.15    0.15
+# mbcs2.1r5_exit           20000.5 0  0 0  0    0     0    0 281.817 281.817
+# drift_5020               20000.5 0  0 0  0    0     0    0 281.817 281.817
+# taxs.1r5_entry           20013.1 0  0 0  0    0     0    0  2419.5  2419.5
+# taxs.1r5                 20013.1 0  0 0  0    0     0    0  2419.5  2419.5
+# taxs.1r5_exit            20014.9 0  0 0  0    0     0    0  2898.3  2898.3
+# drift_5021               20014.9 0  0 0  0    0     0    0  2898.3  2898.3
+# bpmqstza.1r5.b1_entry    20015.9 0  0 0  0    0     0    0 3189.09 3189.09
+# bpmqstza.1r5.b1          20015.9 0  0 0  0    0     0    0 3189.09 3189.09
+# bpmqstza.1r5.b1_exit     20015.9 0  0 0  0    0     0    0 3189.09 3189.09
+# drift_5022               20015.9 0  0 0  0    0     0    0 3189.09 3189.09
+# mqxfa.a1r5_entry         20016.9 0  0 0  0    0     0    0 3504.46 3504.47
+# mqxfa.a1r5               20016.9 0  0 0  0    0     0    0 3504.46 3504.47
+# mqxfa.a1r5_exit          20021.1 0  0 0  0    0     0    0 4478.55 5360.39
 
-tw[:, ['ip1', 'ip2']]
-# gives a table with all the columns at the elements `ip1` and `ip2`
+# A section of the ring can be selected using the s coordinate
+tw.rows[300:305:'s']
+# returns:
+#
+# TwissTable: 10 rows, 41 cols
+# name                           s x px y py zeta delta ptau    betx    bety ...
+# bpm.8r7.b1_entry         300.698 0  0 0  0    0     0    0 22.6944     174
+# bpm.8r7.b1               300.698 0  0 0  0    0     0    0 22.6944     174
+# bpm.8r7.b1_exit          300.698 0  0 0  0    0     0    0 22.6944     174
+# drift_52                 300.698 0  0 0  0    0     0    0 22.6944     174
+# mq.8r7.b1_entry          301.695 0  0 0  0    0     0    0 21.8586 178.331
+# mq.8r7.b1                301.695 0  0 0  0    0     0    0 21.8586 178.331
+# mq.8r7.b1_exit           304.795 0  0 0  0    0     0    0 21.6904 176.923
+# drift_53                 304.795 0  0 0  0    0     0    0 21.6904 176.923
+# mqtli.8r7.b1_entry       304.964 0  0 0  0    0     0    0 21.8057 176.036
+# mqtli.8r7.b1             304.964 0  0 0  0    0     0    0 21.8057 176.036
 
-tw['betx', 0]
-# gives the beta horizontal beta function at the first element
+# A section of the ring can be selected using indexes relative one element
+# (e.g. to get from three elements upstream of 'ip1' to two elements
+# downstream of 'ip1')
+tw.rows['ip5%%-3':'ip5%%2']
+# returns:
+#
+# TwissTable: 6 rows, 41 cols
+# name                           s x px y py zeta delta ptau    betx    bety ...
+# mbcs2.1l5_entry          19987.5 0  0 0  0    0     0    0 281.817 281.817
+# mbcs2.1l5                19987.5 0  0 0  0    0     0    0 281.817 281.817
+# mbcs2.1l5_exit             19994 0  0 0  0    0     0    0    0.15    0.15
+# ip5                        19994 0  0 0  0    0     0    0    0.15    0.15
+# mbcs2.1r5_entry            19994 0  0 0  0    0     0    0    0.15    0.15
+# mbcs2.1r5                  19994 0  0 0  0    0     0    0    0.15    0.15
 
-tw['betx', 'ip1']
-# gives the beta horizontal beta function at the element `ip1`
+# Columns can be selected as well (and defined on the fly with simple mathematical
+# expressions)
+tw.cols['betx dx/sqrt(betx)']
+# returns:
+#
+# TwissTable: 30699 rows, 3 cols
+# TwissTable: 10 rows, 3 cols
+# name                        betx dx/sqrt(betx)
+# ip7                      120.813    -0.0185459
+# drift_0                  120.813    -0.0185459
+# tcsg.a4r7.b1_entry       119.542    -0.0186442
+# tcsg.a4r7.b1             119.542    -0.0186442
+# tcsg.a4r7.b1_exit        117.031    -0.0188431
+# ...
 
-tw[:, 'ip.*']
-# gives a table with all the columns at all elements whose name matches the
+# Each of the selection methods above returns a valid table, hence selections
+# can be chained. For example we can get the beta functions at all the skew
+# quadrupoles between ip1 and ip2:
 
-tw['betx', 0:10]
-# gives the horizontal beta function at the first 10 elements
-
-tw['betx', 'ip1': 'ip2']
-# gives the horizontal beta function at all elements between `ip1` and
-# `ip2`
-
-tw[['s', 'betx', 'bety'], 'ip.*']
-# returns a table with the horizontal and vertical beta function at all
-# elements whose name matches the regular expression `ip.*`
-
-tw[['s', 'betx', 'bety'], 200:300:'s']
-# returns the selected columns all the elements between s=200 and s=300
-
-tw[:, 'ip1%%-5': 'ip1%%+5']
-# returns a table with all the columns at elements located between 5 elements
-# before and 5 elements after the element `ip1
-
-tw[['betx','sqrt(betx)/2/bety'], 'ip1': 'ip2']
-# returns a table including the required columns
-
-tw.cols['betx']
-# returns a table with the horizontal beta function along the line
-
-tw.cols['betx', 'sqrt(betx)/2/bety']
-# returns a table with the horizontal beta function and specified computation
-
-tw.rows['ip1':'ip2', 'mcb.*']
-# returns a table with the columns matching the regular expression `mcb.*`
-# at all elements between `ip1` and `ip2`
-
-tw.rows['ip1':'ip2', 'mcb.*'].cols['betx', 'sqrt(betx)/2/bety']
-# returns a table with the horizontal beta function and specified computation
-# at all elements between `ip1` and `ip2` matching the regular expression
+tw.rows['ip1':'ip2'].rows['mqs.*b1'].cols['betx bety']
+# returns:
+#
+# TwissTable: 4 rows, 3 cols
+# name                        betx    bety
+# mqs.23r1.b1              574.134 57.4386
+# mqs.27r1.b1              574.134 57.4386
+# mqs.27l2.b1              59.8967 62.0111
+# mqs.23l2.b1              59.8968  62.011

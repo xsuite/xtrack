@@ -352,11 +352,13 @@ class Tracker:
                     if remaining_turns == 0:
                         remaining_turns = batch_size
                     one_turn_kwargs['num_turns'] = remaining_turns
+                    one_turn_kwargs['_reset_log'] = False
                 elif not is_first_batch and not is_last_batch:
                     # A 'middle batch', track from first to last element
                     one_turn_kwargs['num_turns'] = batch_size
                     one_turn_kwargs['ele_start'] = None
                     one_turn_kwargs['ele_stop'] = None
+                    one_turn_kwargs['_reset_log'] = False
 
                 tracking_func(particles, *args, **one_turn_kwargs)
                 # particles.reorganize() # could be done in the future to optimize GPU usage
@@ -848,7 +850,9 @@ class Tracker:
         turn_by_turn_monitor=None,
         freeze_longitudinal=False,
         backtrack=False,
-        _session_to_resume=None
+        log=None,
+        _session_to_resume=None,
+        _reset_log=True,
     ):
 
         if ele_start is None:
@@ -861,6 +865,19 @@ class Tracker:
         if backtrack:
             raise NotImplementedError('backtrack not available for collective'
                                       ' tracking')
+
+        if log is not None:
+            if isinstance(log, str):
+                log = [log]
+            if isinstance(log, (list, tuple)):
+                log = Log(*log)
+        if log is not None and _reset_log:
+            if self.line.enable_time_dependent_vars:
+                self.line.log_last_track = {kk: [] for kk in log}
+            else:
+                raise NotImplementedError(
+                    'log can be used only when time-dependent variables are '
+                    'enabled in the line')
 
         self._check_invalidated()
 
@@ -944,6 +961,15 @@ class Tracker:
                     if self.line.energy_program is not None:
                         p0c = self.line.particle_ref._xobject.p0c[0]
                         particles.update_p0c_and_energy_deviations(p0c)
+
+                if log is not None:
+                    for kk in log:
+                        if log[kk] == None:
+                            self.line.log_last_track[kk].append(self.line.vv[kk])
+                        else:
+                            ff = log[kk]
+                            self.line.log_last_track[kk].append(
+                                                    ff(self.line, particles))
 
             moveback_to_buffer = None
             moveback_to_offset = None
@@ -1059,10 +1085,16 @@ class Tracker:
         turn_by_turn_monitor=None,
         freeze_longitudinal=False,
         backtrack=False,
+        log=None,
         _force_no_end_turn_actions=False,
+        _reset_log=True,
     ):
 
         self._check_invalidated()
+
+        if log is not None:
+            raise NotImplementedError(
+                'log can be set only when time-dependent variables are enabled')
 
         if backtrack != False:
             kwargs = locals().copy()
@@ -1486,13 +1518,17 @@ def _element_classes_from_track_kernel(kernel):
 
 def _element_ref_data_class_from_element_classes(element_classes):
 
-    # exctrace XoStruct if needed
+    # extract XoStruct if needed
     element_classes_xostruct = []
     for cc in element_classes:
         if issubclass(cc, xo.Struct):
             element_classes_xostruct.append(cc)
         else:
             element_classes_xostruct.append(cc._XoStruct)
+
+    # We sort the element classes by name for consistency
+    # This is needed for reproducibility in Xboinc
+    element_classes_xostruct = sorted(element_classes_xostruct, key=lambda s: s._DressingClass.__name__)
 
     class ElementRefClass(xo.UnionRef):
         _reftypes = element_classes_xostruct
@@ -1503,3 +1539,12 @@ def _element_ref_data_class_from_element_classes(element_classes):
             _overridable = False
 
     return ElementRefData
+
+
+class Log(dict):
+
+    def __init__(self, *args, **kwargs):
+        self.__dict__ = self
+        self.update(kwargs)
+        for arg in args:
+            self[arg] = None

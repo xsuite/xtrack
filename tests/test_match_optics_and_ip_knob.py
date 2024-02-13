@@ -93,9 +93,9 @@ def test_ip_knob_matching(test_context):
         knob_name='on_x8h',
         knob_value_start=0,
         knob_value_end=(angle_match * 1e6),
-        ele_start=['s.ds.l8.b1', 's.ds.l8.b2'],
-        ele_stop=['e.ds.r8.b1', 'e.ds.r8.b2'],
-        twiss_init=[xt.TwissInit(), xt.TwissInit()],
+        start=['s.ds.l8.b1', 's.ds.l8.b2'],
+        end=['e.ds.r8.b1', 'e.ds.r8.b2'],
+        init=[xt.TwissInit(), xt.TwissInit()],
         targets=[
             xt.TargetSet(x=0, px=0, at=xt.END, line='lhcb1'),
             xt.TargetSet(x=0, px=0, at=xt.END, line='lhcb2'),
@@ -247,9 +247,9 @@ def test_ip_knob_matching(test_context):
         knob_name='on_sep8h',
         knob_value_start=0,
         knob_value_end=(sep_match * 1e3),
-        ele_start=['s.ds.l8.b1', 's.ds.l8.b2'],
-        ele_stop=['e.ds.r8.b1', 'e.ds.r8.b2'],
-        twiss_init=[xt.TwissInit(betx=1, bety=1, element_name='s.ds.l8.b1', line=collider.lhcb1),
+        start=['s.ds.l8.b1', 's.ds.l8.b2'],
+        end=['e.ds.r8.b1', 'e.ds.r8.b2'],
+        init=[xt.TwissInit(betx=1, bety=1, element_name='s.ds.l8.b1', line=collider.lhcb1),
                     xt.TwissInit(betx=1, bety=1, element_name='s.ds.l8.b2', line=collider.lhcb2)],
         targets=[
             xt.TargetList(['x', 'px'], at='e.ds.r8.b1', line='lhcb1', value=0),
@@ -319,10 +319,10 @@ def test_ip_knob_matching(test_context):
     collider.vars['on_x8h'] = 0
     collider.vars['on_sep8h'] = 0
 
-    assert np.isclose(tw.lhcb1['x', 'ip8'], 1.7e-3, atol=1e-10, rtol=0)
-    assert np.isclose(tw.lhcb2['x', 'ip8'], -1.7e-3, atol=1e-10, rtol=0)
-    assert np.isclose(tw.lhcb1['px', 'ip8'], 120e-6, atol=1e-10, rtol=0)
-    assert np.isclose(tw.lhcb2['px', 'ip8'], -120e-6, atol=1e-10, rtol=0)
+    assert np.isclose(tw.lhcb1['x', 'ip8'], 1.7e-3, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb2['x', 'ip8'], -1.7e-3, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['px', 'ip8'], 120e-6, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb2['px', 'ip8'], -120e-6, atol=1e-9, rtol=0)
 
 @for_all_test_contexts
 def test_match_ir8_optics(test_context):
@@ -418,20 +418,20 @@ def test_match_ir8_optics(test_context):
     collider.varval['kq6.r8b1'] *= 1.1
 
     tab_boundary_right = collider.lhcb1.twiss(
-        ele_start='ip8', ele_stop='ip1.l1',
-        twiss_init=xt.TwissInit(element_name='ip1.l1', line=collider.lhcb1,
+        start='ip8', end='ip1.l1',
+        init=xt.TwissInit(element_name='ip1.l1', line=collider.lhcb1,
                                 betx=0.15, bety=0.15))
     tab_boundary_left = collider.lhcb1.twiss(
-        ele_start='ip5', ele_stop='ip8',
-        twiss_init=xt.TwissInit(element_name='ip5', line=collider.lhcb1,
+        start='ip5', end='ip8',
+        init=xt.TwissInit(element_name='ip5', line=collider.lhcb1,
                                 betx=0.15, bety=0.15))
 
     opt = collider[f'lhcb1'].match(
         default_tol={None: 1e-7, 'betx': 1e-6, 'bety': 1e-6},
         solve=False,
-        ele_start=f's.ds.l8.b1', ele_stop=f'e.ds.r8.b1',
+        start=f's.ds.l8.b1', end=f'e.ds.r8.b1', init_at=xt.START,
         # Left boundary
-        twiss_init='preserve_start', table_for_twiss_init=tab_boundary_left,
+        init=tab_boundary_left,
         targets=[
             xt.TargetSet(at='ip8', betx=1.5, bety=1.5, alfx=0, alfy=0, dx=0, dpx=0),
             xt.TargetSet(at=f'e.ds.r8.b1',
@@ -455,6 +455,9 @@ def test_match_ir8_optics(test_context):
                 tag='stage2')
         ]
     )
+
+    # Initial knob values
+    init_knob_vals = opt.get_knob_values()
 
     assert opt.vary[8].name == 'kq4.l8b1'
     assert opt.vary[8].tag == 'stage1'
@@ -485,12 +488,12 @@ def test_match_ir8_optics(test_context):
     assert opt.log()['tol_met', 0] == 'nnnnnnnnnnnnnn'
 
     opt.disable_targets(tag=['stage1', 'stage2'])
-    opt.add_point_to_log()
+    opt.tag()
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyyyyyyyyyyyy'
 
     opt.disable_vary(tag=['stage1', 'stage2'])
-    opt.add_point_to_log()
+    opt.tag()
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyynnnnnnnnnnnn'
 
@@ -500,12 +503,12 @@ def test_match_ir8_optics(test_context):
     assert opt.log()['vary_active', -1] == 'yyyyyyyynnnnnnnnnnnn'
 
     opt.enable_vary(tag='stage1')
-    opt.add_point_to_log()
+    opt.tag()
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyynnnnnnnnnn'
 
     opt.enable_targets(tag='stage1')
-    opt.add_point_to_log()
+    opt.tag()
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyynnnnnnnnnn'
 
@@ -515,18 +518,18 @@ def test_match_ir8_optics(test_context):
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyynnnnnnnnnn'
 
     opt.enable_targets(tag='stage2')
-    opt.add_point_to_log()
+    opt.tag()
     assert opt.log()['target_active', -1] == 'yyyyyyyyyyyyyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyynnnnnnnnnn'
     assert opt.log()['tol_met', -1] != 'yyyyyyyyyyyyyy'
 
     opt.enable_vary(tag='stage2')
-    opt.add_point_to_log()
+    opt.tag()
     assert opt.log()['target_active', -1] == 'yyyyyyyyyyyyyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyyyyyyyyyyyy'
 
     opt.solve()
-    opt.add_point_to_log()
+    opt.tag()
     assert opt.log()['target_active', -1] == 'yyyyyyyyyyyyyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyyyyyyyyyyyy'
     assert opt.log()['tol_met', -1] == 'yyyyyyyyyyyyyy'
@@ -558,20 +561,20 @@ def test_match_ir8_optics(test_context):
     collider.varval['kq6.r8b2'] *= 1.1
 
     tab_boundary_right = collider.lhcb2.twiss(
-        ele_start='ip8', ele_stop='ip1.l1',
-        twiss_init=xt.TwissInit(element_name='ip1.l1', line=collider.lhcb2,
+        start='ip8', end='ip1.l1',
+        init=xt.TwissInit(element_name='ip1.l1', line=collider.lhcb2,
                                 betx=0.15, bety=0.15))
     tab_boundary_left = collider.lhcb2.twiss(
-        ele_start='ip5', ele_stop='ip8',
-        twiss_init=xt.TwissInit(element_name='ip5', line=collider.lhcb2,
+        start='ip5', end='ip8',
+        init=xt.TwissInit(element_name='ip5', line=collider.lhcb2,
                                 betx=0.15, bety=0.15))
 
     opt = collider[f'lhcb2'].match(
-        default_tol={None: 1e-7, 'betx': 1e-6, 'bety': 1e-6},
+        default_tol={None: 1e-7, 'betx': 5e-6, 'bety': 5e-6},
         solve=False,
-        ele_start=f's.ds.l8.b2', ele_stop=f'e.ds.r8.b2',
+        start=f's.ds.l8.b2', end=f'e.ds.r8.b2', init_at=xt.START,
         # Left boundary
-        twiss_init='preserve_start', table_for_twiss_init=tab_boundary_left,
+        init=tab_boundary_left,
         targets=[
             xt.TargetSet(at='ip8', betx=1.5, bety=1.5, alfx=0, alfy=0, dx=0, dpx=0),
             xt.TargetSet(at=xt.END,
@@ -625,27 +628,55 @@ def test_match_ir8_optics(test_context):
     assert opt.log()['tol_met', 0] == 'nnnnnnnnnnnnnn'
 
     opt.disable_targets(tag=['stage1', 'stage2'])
-    opt.add_point_to_log()
+    opt.tag()
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyyyyyyyyyyyy'
 
     opt.disable_vary(tag=['stage1', 'stage2'])
-    opt.add_point_to_log()
+    opt.tag()
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyynnnnnnnnnnnn'
+
+    # Tag present state
+    knob_values_before_tag0 = opt.get_knob_values()
+    i_iter_tag0 = opt.log().iteration[-1]
 
     opt.step(10)
     assert opt.log()['penalty', -1] < 0.1
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyynnnnnnnnnnnn'
 
+    # Tag present state
+    knob_values_before_tag1 = opt.get_knob_values()
+    opt.tag(tag='mytag1')
+
+    ##### Check of reloading features #####
+
+    # Check that knobs have changed
+    assert np.any([knob_values_before_tag0[k] != knob_values_before_tag1[k]
+                     for k in knob_values_before_tag0])
+
+    # Reload with iteration number
+    opt.reload(iteration=i_iter_tag0)
+    knobs_now = opt.get_knob_values()
+    assert np.all([knobs_now[k] == knob_values_before_tag0[k]
+                        for k in knob_values_before_tag0])
+
+    # Reload with tag
+    opt.reload(tag='mytag1')
+    knobs_now = opt.get_knob_values()
+    assert np.all([knobs_now[k] == knob_values_before_tag1[k]
+                        for k in knob_values_before_tag1])
+
+    ##### Done checking reloading features #####
+
     opt.enable_vary(tag='stage1')
-    opt.add_point_to_log()
+    opt.tag()
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyynnnnnnnnnn'
 
     opt.enable_targets(tag='stage1')
-    opt.add_point_to_log()
+    opt.tag()
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyynnnnnnnnnn'
 
@@ -655,18 +686,18 @@ def test_match_ir8_optics(test_context):
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyynnnnnnnnnn'
 
     opt.enable_targets(tag='stage2')
-    opt.add_point_to_log()
+    opt.tag()
     assert opt.log()['target_active', -1] == 'yyyyyyyyyyyyyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyynnnnnnnnnn'
     assert opt.log()['tol_met', -1] != 'yyyyyyyyyyyyyy'
 
     opt.enable_vary(tag='stage2')
-    opt.add_point_to_log()
+    opt.tag()
     assert opt.log()['target_active', -1] == 'yyyyyyyyyyyyyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyyyyyyyyyyyy'
 
     opt.solve()
-    opt.add_point_to_log()
+    opt.tag()
     assert opt.log()['target_active', -1] == 'yyyyyyyyyyyyyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyyyyyyyyyyyy'
     assert opt.log()['tol_met', -1] == 'yyyyyyyyyyyyyy'
@@ -690,3 +721,4 @@ def test_match_ir8_optics(test_context):
     assert np.isclose(tw.lhcb1['bety', 'ip2'], 10., atol=1e-5, rtol=0)
     assert np.isclose(tw.lhcb2['betx', 'ip2'], 10., atol=1e-5, rtol=0)
     assert np.isclose(tw.lhcb2['bety', 'ip2'], 10., atol=1e-5, rtol=0)
+

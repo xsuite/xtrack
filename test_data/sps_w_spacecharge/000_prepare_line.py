@@ -37,14 +37,20 @@ line['acta.31637'].lag = 180.
 # A test particle
 part = xp.Particles(gamma0=mad.sequence[seq_name].beam.gamma,
                     mass0=xp.PROTON_MASS_EV)
+line.particle_ref = part.copy()
 part.x += 2e-3
 part.y += 3e-3
 part.zeta += 20e-2
+
+# old-style output
 with open('line_no_spacecharge_and_particle.json', 'w') as fid:
     json.dump({
         'line': line.to_dict(),
         'particle': part.to_dict()},
         fid, cls=xo.JEncoder, indent=4)
+
+# new-style output
+line.to_json('line_no_spacecharge.json')
 
 lprofile = xf.LongitudinalProfileQGaussian(
         number_of_particles=bunch_intensity,

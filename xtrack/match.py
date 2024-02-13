@@ -9,7 +9,7 @@ from .general import _print
 import xtrack as xt
 import xdeps as xd
 
-XTRACK_DEFAULT_TOL = 1e-10
+XTRACK_DEFAULT_TOL = 1e-9
 XTRACK_DEFAULT_SIGMA_REL = 0.01
 
 XTRACK_DEFAULT_WEIGHTS = {
@@ -34,6 +34,9 @@ ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau',
                         'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy',
                         'mux', 'muy', 'dx', 'dpx', 'dy', 'dpy',
                         'qx', 'qy', 'dqx', 'dqy',
+                        'ax_chrom', 'bx_chrom', 'ay_chrom', 'by_chrom',
+                        'wx_chrom', 'wy_chrom',
+                        'ddqx', 'ddqy', 'ddx', 'ddpx', 'ddy', 'ddpy',
                         'eq_gemitt_x', 'eq_gemitt_y', 'eq_gemitt_zeta',
                         'eq_nemitt_x', 'eq_nemitt_y', 'eq_nemitt_zeta']
 
@@ -50,12 +53,11 @@ END = _LOC('END')
 
 class ActionTwiss(xd.Action):
 
-    def __init__(self, line, allow_twiss_failure, table_for_twiss_init=None,
-                 compensate_radiation_energy_loss=True,
+    def __init__(self, line, allow_twiss_failure=False,
+                 compensate_radiation_energy_loss=False,
                  **kwargs):
         self.line = line
         self.kwargs = kwargs
-        self.table_for_twiss_init = table_for_twiss_init
         self.allow_twiss_failure = allow_twiss_failure
         self.compensate_radiation_energy_loss = compensate_radiation_energy_loss
 
@@ -65,7 +67,7 @@ class ActionTwiss(xd.Action):
 
         ismultiline = isinstance(line, xt.Multiline)
 
-        # Forbit specifying twiss_init through kwargs for Multiline
+        # Forbit specifying init through kwargs for Multiline
         if ismultiline:
             for kk in VARS_FOR_TWISS_INIT_GENERATION:
                 if kk in kwargs:
@@ -73,65 +75,68 @@ class ActionTwiss(xd.Action):
                         f'`{kk}` cannot be specified for a Multiline match. '
                         f'Please specify provide a TwissInit object for each line instead.')
 
-        # Handle twiss_init from table or preserve
+        # Handle init from table
         if ismultiline:
+
             line_names = kwargs.get('lines', line.line_names)
             none_list = [None] * len(line_names)
-            twinit_list = kwargs.get('twiss_init', none_list)
-            ele_start_list = kwargs.get('ele_start', none_list)
-            ele_stop_list = kwargs.get('ele_stop', none_list)
+            twinit_list = kwargs.get('init', none_list)
+            ele_start_list = kwargs.get('start', none_list)
+            ele_stop_list = kwargs.get('end', none_list)
+            ele_init_list = kwargs.get('init_at', none_list)
             line_list = [line[nn] for nn in line_names]
+
             assert isinstance(twinit_list, list)
             assert isinstance(ele_start_list, list)
             assert isinstance(ele_stop_list, list)
-            if self.table_for_twiss_init is not None:
-                if isinstance(self.table_for_twiss_init, xt.multiline.MultiTwiss):
-                    table_for_twinit_list = [self.table_for_twiss_init[nn] for nn in line_names]
-                else:
-                    assert isinstance(self.table_for_twiss_init, (list, tuple)), (
-                        'table_for_twiss_init for a Multiline match must be either a MultiTwiss, '
-                        'a list or a tuple')
-                    table_for_twinit_list = self.table_for_twiss_init
-            else:
-                table_for_twinit_list = [None] * len(twinit_list)
-        else:
-            twinit_list = [kwargs.get('twiss_init', None)]
-            ele_start_list = [kwargs.get('ele_start', None)]
-            ele_stop_list = [kwargs.get('ele_stop', None)]
-            line_list = [line]
-            table_for_twinit_list = [self.table_for_twiss_init]
 
-            for ii, (twinit, ele_start, ele_stop) in enumerate(zip(
-                    twinit_list, ele_start_list, ele_stop_list)):
+            for ii, twinit in enumerate(twinit_list):
+                if isinstance(twinit, xt.MultiTwiss):
+                    twinit_list[ii] = twinit[line_names[ii]]
+
+        else:
+            twinit_list = [kwargs.get('init', None)]
+            ele_start_list = [kwargs.get('start', None)]
+            ele_stop_list = [kwargs.get('end', None)]
+            ele_init_list = [kwargs.get('init_at', None)]
+            line_list = [line]
+
+            for ii, (twinit, start, end, init_at) in enumerate(
+                    zip(twinit_list, ele_start_list, ele_stop_list, ele_init_list)):
                 if isinstance(twinit, xt.TwissInit):
                     twinit_list[ii] = twinit.copy()
                 elif isinstance(twinit, str):
-                    assert twinit in (
-                        ['preserve', 'preserve_start', 'preserve_end', 'periodic'])
-                    if twinit in ['preserve', 'preserve_start', 'preserve_end']:
-                        full_twiss_kwargs = kwargs.copy()
-                        full_twiss_kwargs.pop('twiss_init')
-                        full_twiss_kwargs.pop('ele_start')
-                        full_twiss_kwargs.pop('ele_stop')
-                        if 'lines' in full_twiss_kwargs:
-                            full_twiss_kwargs.pop('lines')
-                        tab_twinit = table_for_twinit_list[ii]
-                        if tab_twinit is None:
-                            tab_twinit = line_list[ii].twiss(**full_twiss_kwargs)
-                        if (twinit == 'preserve' or twinit == 'preserve_start'):
-                            init_at = ele_start
-                        elif kwargs['twiss_init'] == 'preserve_end':
-                            init_at = ele_stop
-                        assert not isinstance(tab_twinit, xt.MultiTwiss)
-                        twinit_list[ii] = tab_twinit.get_twiss_init(at_element=init_at)
+                    assert twinit == 'periodic'
+
+        # Handle init_at as xt.START or xt.END
+        for ii, init_at in enumerate(ele_init_list):
+            if isinstance(init_at, _LOC):
+                if init_at.name == 'START':
+                    ele_init_list[ii] = ele_start_list[ii]
+                elif init_at.name == 'END':
+                    ele_init_list[ii] = ele_stop_list[ii]
+
+        # Handle init from table
+        for ii, (twinit, start, end, init_at) in enumerate(
+                zip(twinit_list, ele_start_list, ele_stop_list, ele_init_list)):
+            if isinstance(twinit, xt.TwissInit):
+                continue
+            elif isinstance(twinit, xt.TwissTable):
+                if init_at is None:
+                    init_at = start
+                init_at = init_at
+                twinit_list[ii] = twinit.get_twiss_init(at_element=init_at)
+                ele_init_list[ii] = None
+            else:
+                assert twinit is None or twinit == 'periodic'
 
         if not ismultiline:
             # Handle case in which twiss init is defined through kwargs
-            twiss_init = _complete_twiss_init(
-                    ele_start=kwargs.get('ele_start', None),
-                    ele_stop=kwargs.get('ele_stop', None),
-                    ele_init=kwargs.get('ele_init', None),
-                    twiss_init=twinit_list[0],
+            init = _complete_twiss_init(
+                    start=ele_start_list[0],
+                    end=ele_stop_list[0],
+                    init_at=ele_init_list[0],
+                    init=twinit_list[0],
                     line=line,
                     reverse=None, # will be handled by the twiss
                     x=kwargs.get('x', None),
@@ -157,11 +162,15 @@ class ActionTwiss(xd.Action):
                     bx_chrom=kwargs.get('bx_chrom', None),
                     ay_chrom=kwargs.get('ay_chrom', None),
                     by_chrom=kwargs.get('by_chrom', None),
+                    ddx=kwargs.get('ddx', None),
+                    ddy=kwargs.get('ddy', None),
+                    ddpx=kwargs.get('ddpx', None),
+                    ddpy=kwargs.get('ddpy', None),
                     )
-            for kk in VARS_FOR_TWISS_INIT_GENERATION:
+            for kk in VARS_FOR_TWISS_INIT_GENERATION + ['init_at']:
                 if kk in kwargs:
                     kwargs.pop(kk)
-            twinit_list[0] = twiss_init
+            twinit_list[0] = init
 
         _keep_ini_particles_list = []
         for tt in twinit_list:
@@ -177,10 +186,10 @@ class ActionTwiss(xd.Action):
                 twini._complete(line=ln, element_name=eest)
 
         if ismultiline:
-            kwargs['twiss_init'] = twinit_list
+            kwargs['init'] = twinit_list
             kwargs['_keep_initial_particles'] = _keep_ini_particles_list
         else:
-            kwargs['twiss_init'] = twinit_list[0]
+            kwargs['init'] = twinit_list[0]
             kwargs['_keep_initial_particles'] = _keep_ini_particles_list[0]
 
         tw0 = line.twiss(**kwargs)
@@ -342,9 +351,53 @@ class LessThan:
 
 
 class Target(xd.Target):
+
     def __init__(self, tar=None, value=None, at=None, tol=None, weight=None, scale=None,
                  line=None, action=None, tag='', optimize_log=False,
                  **kwargs):
+
+        """
+        Target object for matching. Usage examples:
+
+        .. code-block:: python
+
+            Target('betx', 0.15, at='ip1', tol=1e-3)
+            Target(betx=0.15, at='ip1', tol=1e-3)
+            Target('betx', LessThan(0.15), at='ip1', tol=1e-3)
+            Target('betx', GreaterThan(0.15), at='ip1', tol=1e-3)
+
+
+        Parameters
+        ----------
+        tar : str or callable
+            Name of the quantity to be matched or callable computing the
+            quantity to be matched from the output of the action (by default the
+            action is the Twiss action). Basic targets can also be specified
+            using keyword arguments.
+        value : float or xdeps.GreaterThan or xdeps.LessThan or xtrack.TwissTable
+            Value to be matched. Inequality constraints can also be specified.
+            If a TwissTable is specified, the value is obtained from the
+            table using the specified tar and at.
+        at : str, optional
+            Element at which the quantity is evaluated. Needs to be specified
+            if the quantity to be matched is not a scalar.
+        tol : float, optional
+            Tolerance below which the target is considered to be met.
+        weight : float, optional
+            Weight used for this target in the cost function.
+        line : Line, optional
+            Line in which the quantity is defined. Needs to be specified if the
+            match involves multiple lines.
+        action : Action, optional
+            Action used to compute the quantity to be matched. By default the
+            action is the Twiss action.
+        tag : str, optional
+            Tag associated to the target. Default is ''.
+        optimize_log : bool, optional
+            If True, the logarithm of the quantity is used in the cost function
+            instead of the quantity itself. Default is False.
+        """
+
 
         for kk in kwargs:
             assert kk in ALLOWED_TARGET_KWARGS, (
@@ -375,7 +428,13 @@ class Target(xd.Target):
     def __repr__(self):
         out = xd.Target.__repr__(self)
         if self.line is not None:
-            out = out.replace('Target(', f'Target(line={self.line}, ')
+            lname = self.line
+        elif hasattr(self.action, 'line') and hasattr(self.action.line , 'name'):
+            lname = self.action.line.name
+        else:
+            lname = None
+        if lname is not None:
+            out = out.replace('Target(', f'Target(line={lname}, ')
         return out
 
     def eval(self, data):
@@ -416,19 +475,57 @@ class Target(xd.Target):
     def unfreeze(self):
         self._freeze_value = None
 
-class Vary(xd.Vary):
-    def __init__(self, name, container=None, limits=None, step=None, weight=None,
-                 max_step=None, active=True, tag=''):
-        xd.Vary.__init__(self, name=name, container=container, limits=limits,
-                         step=step, weight=weight, max_step=max_step, tag=tag,
-                         active=active)
-
-class VaryList(xd.VaryList):
-    def __init__(self, vars, **kwargs):
-        self.vary_objects = [Vary(vv, **kwargs) for vv in vars]
-
 class TargetSet(xd.TargetList):
-    def __init__(self, tars=None, action=None, **kwargs):
+
+    def __init__(self, tars=None, value=None, at=None, tol=None, weight=None,
+                 scale=None, line=None, action=None, tag='', optimize_log=False,
+                 **kwargs):
+
+        """
+        TargetSet object for matching, specifying a set of targets to be matched.
+
+        Examples:
+
+        .. code-block:: python
+                TargetSet(['betx', 'bety'], 0.15, at='ip1', tol=1e-3)
+                TargetSet(betx=0.15, bety=0.2, at='ip1', tol=1e-3)
+
+        Parameters
+        ----------
+        tars : list, optional
+            List of quantities to be matched. Basic targets can also be
+            specified using keyword arguments.
+        value : float or xdeps.GreaterThan or xdeps.LessThan
+            Value to be matched. Inequality constraints can also be specified.
+        at : str, optional
+            Element at which the quantity is evaluated. Needs to be specified
+            if the quantity to be matched is not a scalar.
+        tol : float, optional
+            Tolerance below which the target is considered to be met.
+        weight : float, optional
+            Weight used for this target in the cost function.
+        line : Line, optional
+            Line in which the quantity is defined. Needs to be specified if the
+            match involves multiple lines.
+        action : Action, optional
+            Action used to compute the quantity to be matched. By default the
+            action is the Twiss action.
+        tag : str, optional
+            Tag associated to the target. Default is ''.
+        optimize_log : bool, optional
+            If True, the logarithm of the quantity is used in the cost function
+            instead of the quantity itself. Default is False.
+        """
+
+        if tars is not None and not isinstance(tars, (list, tuple)):
+            tars = [tars]
+
+        common_kwargs = locals().copy()
+        common_kwargs.pop('self')
+        common_kwargs.pop('kwargs')
+        common_kwargs.pop('tars')
+        common_kwargs.pop('value')
+
         vnames = []
         vvalues = []
         for kk in ALLOWED_TARGET_KWARGS:
@@ -436,15 +533,83 @@ class TargetSet(xd.TargetList):
                 vnames.append(kk)
                 vvalues.append(kwargs[kk])
                 kwargs.pop(kk)
+
         self.targets = []
         if tars is not None:
-            self.targets += [Target(tt, action=action, **kwargs) for tt in tars]
+            self.targets += [Target(tt, value=value, **common_kwargs) for tt in tars]
         self.targets += [
-            Target(tar=tar, value=val, action=action, **kwargs) for tar, val in zip(vnames, vvalues)]
+            Target(tar=tar, value=val, **common_kwargs) for tar, val in zip(vnames, vvalues)]
         if len(self.targets) == 0:
             raise ValueError('No targets specified')
 
 TargetList = TargetSet # for backward compatibility
+
+class Vary(xd.Vary):
+
+    def __init__(self, name, container=None, limits=None, step=None, weight=None,
+                 max_step=None, active=True, tag=''):
+        """
+        Vary object for matching.
+
+        Parameters
+        ----------
+        name : str
+            Name of the variable to be varied.
+        container : dict, optional
+            Container in which the variable is defined. If not specified,
+            line.vars is used.
+        limits : tuple or None, optional
+            Limits in which the variable is allowed to vary. Default is None.
+        step : float, optional
+            Step size used to compute the derivative of the cost function
+            with respect to the variable.
+        weight : float, optional
+            Weight used for this vary in the cost function.
+        max_step : float, optional
+            Maximum allowed change in the variable per iteration.
+        active : bool, optional
+            Whether the variable is active in the optimization. Default is True.
+        tag : str, optional
+            Tag associated to the variable. Default is ''.
+
+        """
+
+        xd.Vary.__init__(self, name=name, container=container, limits=limits,
+                         step=step, weight=weight, max_step=max_step, tag=tag,
+                         active=active)
+
+class VaryList(xd.VaryList):
+
+    def __init__(self, vars, container=None, limits=None, step=None, weight=None,
+                 max_step=None, active=True, tag=''):
+        """
+        VaryList object for matching specifying a list of variables to be varied.
+
+        Parameters
+        ----------
+        vars : list
+            List of variables to be varied.
+        container : dict, optional
+            Container in which the variables are defined. If not specified,
+            line.vars is used.
+        limits : tuple or None, optional
+            Limits in which the variables are allowed to vary. Default is None.
+        step : float, optional
+            Step size used to compute the derivative of the cost function
+            with respect to the variables.
+        weight : float, optional
+            Weight used for these variables in the cost function.
+        max_step : float, optional
+            Maximum allowed change in the variables per iteration.
+        active : bool, optional
+            Whether the variables are active in the optimization. Default is True.
+        tag : str, optional
+            Tag associated to the variables. Default is ''.
+        """
+
+        kwargs = dict(container=container, limits=limits, step=step,
+                      weight=weight, max_step=max_step, active=active, tag=tag)
+        self.vary_objects = [Vary(vv, **kwargs) for vv in vars]
 
 class TargetInequality(Target):
 
@@ -460,41 +625,74 @@ class TargetInequality(Target):
 
 class TargetRelPhaseAdvance(Target):
 
-    def __init__(self, tar, value, ele_stop=None, ele_start=None, tag='',  **kwargs):
+    def __init__(self, tar, value, end=None, start=None, tag='',  **kwargs):
+
+        """
+        Target object for matching the relative phase advance between two
+        elements in a line computed as mu(end) - mu(start).
+
+        Parameters
+        ----------
+        tar : str
+            Phase advance to be matched. Can be either 'mux' or 'muy'.
+        value : float or GreaterThan or LessThan or TwissTable
+            Value to be matched. Inequality constraints can also be specified.
+            If a TwissTable is specified, the target obtained from the table
+            using the specified tar and at.
+        end : str, optional
+            Final element at which the phase advance is evaluated. Default is the
+            last element of the line.
+        start : str, optional
+            Initali wlement at which the phase advance is evaluated. Default is the
+            first element of the line.
+        tol : float, optional
+            Tolerance below which the target is considered to be met.
+        weight : float, optional
+            Weight used for this target in the cost function.
+        line : Line, optional
+            Line in which the phase advance is defined. Needs to be specified if the
+            match involves multiple lines.
+        tag : str, optional
+            Tag associated to the target. Default is ''.
+        """
 
         Target.__init__(self, tar=self.compute, value=value, tag=tag, **kwargs)
 
         assert tar in ['mux', 'muy'], 'Only mux and muy are supported'
         self.var = tar
-        if ele_stop is None:
-            ele_stop = '__ele_stop__'
-        if ele_start is None:
-            ele_start = '__ele_start__'
-        self.ele_stop = ele_stop
-        self.ele_start = ele_start
+        if end is None:
+            end = '__ele_stop__'
+        if start is None:
+            start = '__ele_start__'
+        self.end = end
+        self.start = start
 
     def __repr__(self):
-        return f'TargetPhaseAdv({self.var}({self.ele_stop} - {self.ele_start}), val={self.value}, tol={self.tol}, weight={self.weight})'
+        return f'TargetPhaseAdv({self.var}({self.end} - {self.start}), val={self.value}, tol={self.tol}, weight={self.weight})'
 
     def compute(self, tw):
 
-        if self.ele_stop == '__ele_stop__':
+        if self.end == '__ele_stop__':
             mu_1 = tw[self.var, -1]
         else:
-            mu_1 = tw[self.var, self.ele_stop]
+            mu_1 = tw[self.var, self.end]
 
-        if self.ele_start == '__ele_start__':
+        if self.start == '__ele_start__':
             mu_0 = tw[self.var, 0]
         else:
-            mu_0 = tw[self.var, self.ele_start]
+            mu_0 = tw[self.var, self.start]
 
         return mu_1 - mu_0
 
-def match_line(line, vary, targets, restore_if_fail=True, solver=None,
-                  verbose=False, assert_within_tol=True,
+def match_line(line, vary, targets, solve=True, assert_within_tol=True,
+                  compensate_radiation_energy_loss=False,
                   solver_options={}, allow_twiss_failure=True,
+                  restore_if_fail=True, verbose=False,
                   n_steps_max=20, default_tol=None,
-                  solve=True, compensate_radiation_energy_loss=False,**kwargs):
+                  solver=None, **kwargs):
+
+    if not isinstance(targets, (list, tuple)):
+        targets = [targets]
 
     targets_flatten = []
     for tt in targets:
@@ -504,7 +702,6 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
         else:
             targets_flatten.append(tt.copy())
 
-    aux_vary_container = {}
     aux_vary = []
 
     action_twiss = None
@@ -527,13 +724,14 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
             tt_name = tt.tar
             tt_at = None
         if tt_at is not None and isinstance(tt_at, _LOC):
-            tt_at = _at_from_placeholder(tt_at, line=line, line_name=tt.line,
-                    ele_start=kwargs['ele_start'], ele_stop=kwargs['ele_stop'])
+            tt_at = _at_from_placeholder(tt_at, line=tt.action.line,
+                    line_name=tt.line, start=tt.action.kwargs['start'],
+                    end=tt.action.kwargs['end'])
             tt.tar = (tt_name, tt_at)
 
         # Handle value
         if isinstance(tt.value, xt.multiline.MultiTwiss):
-            tt.value=tt.value[line][tt.tar]
+            tt.value=tt.value[tt.line][tt.tar]
         if isinstance(tt.value, xt.TwissTable):
             tt.value=tt.value[tt.tar]
         if isinstance(tt.value, np.ndarray):
@@ -617,7 +815,7 @@ def closed_orbit_correction(line, line_co_ref, correction_config,
             restore_if_fail=restore_if_fail,
             vary=vary,
             targets=targets,
-            twiss_init=xt.TwissInit(
+            init=xt.TwissInit(
                 line=line,
                 element_name=corr['start'],
                 x=tw_ref['x', corr['start']],
@@ -627,7 +825,7 @@ def closed_orbit_correction(line, line_co_ref, correction_config,
                 zeta=tw_ref['zeta', corr['start']],
                 delta=tw_ref['delta', corr['start']],
             ),
-            ele_start=corr['start'], ele_stop=corr['end'])
+            start=corr['start'], end=corr['end'])
 
 def match_knob_line(line, knob_name, vary, targets, knob_value_start,
                     knob_value_end, run=True, **kwargs):
@@ -705,12 +903,12 @@ class KnobOptimizer:
 
         _print('Generated knob: ', self.knob_name)
 
-def _at_from_placeholder(tt_at, line, line_name, ele_start, ele_stop):
+def _at_from_placeholder(tt_at, line, line_name, start, end):
     assert isinstance(tt_at, _LOC)
     if isinstance(line, xt.Multiline):
         assert line is not None, (
             'For a Multiline, the line must be specified if the target '
-            'is `ele_start`')
+            'is `start`')
         assert line_name in line.line_names
         i_line = line.line_names.index(line_name)
         this_line = line[line_name]
@@ -719,17 +917,52 @@ def _at_from_placeholder(tt_at, line, line_name, ele_start, ele_stop):
         this_line = line
     if tt_at.name == 'START':
         if i_line is not None:
-            tt_at = ele_start[i_line]
+            tt_at = start[i_line]
         else:
-            tt_at = ele_start
+            tt_at = start
     elif tt_at.name == 'END':
         if i_line is not None:
-            tt_at = ele_stop[i_line]
+            tt_at = end[i_line]
         else:
-            tt_at = ele_stop
+            tt_at = end
     else:
         raise ValueError(f'Unknown location {tt_at.name}')
     if not isinstance(tt_at, str):
         tt_at = this_line.element_names[tt_at]
 
     return tt_at
+
+def opt_from_callable(function, x0, steps, tar, tols):
+
+    '''Optimize a generic callable'''
+
+    x0 = np.array(x0)
+    x = x0.copy()
+    vary = [xt.Vary(ii, container=x, step=steps[ii]) for ii in range(len(x))]
+
+    opt = xd.Optimize(
+        vary=vary,
+        targets=ActionCall(function, vary).get_targets(tar),
+        show_call_counter=False,
+    )
+
+    for ii, tt in enumerate(opt.targets):
+        tt.tol = tols[ii]
+
+    return opt
+
+class ActionCall(Action):
+    def __init__(self, function, vary):
+        self.vary = vary
+        self.function = function
+
+    def run(self):
+        x = [vv.container[vv.name] for vv in self.vary]
+        return self.function(x)
+
+    def get_targets(self, ftar):
+        tars = []
+        for ii in range(len(ftar)):
+            tars.append(xt.Target(ii, ftar[ii], action=self))
+
+        return tars

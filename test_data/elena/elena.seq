@@ -1,0 +1,296 @@
+! ELENA ring Sequence -> LNR
+!
+!
+! Changelog:
+! -  5/06/2018: started with Pavel''s optics
+!   - cleaned up some commented lines and added some markers
+!   - redefined randomly some names of the e-cool solenoids
+!   - TODO: 
+!      - cleanup useless lines. re-arrange markers "badly" used here and there.
+!      - rename non-existing quad 631 and 626 !!!
+! - 24/11/2020: adjusted structure to new standards. Still a lot of work to do to make it LDB compatible.
+! - Sep 2021: moving toward LDB-compatible model
+!
+! TODO: probably need to work on arc lenght for dipoles to match GEODE/drawings/LDB.
+
+
+/************************************************************************************/
+/*                       TYPES DEFINITION                                           */
+/************************************************************************************/
+
+/****************************************************************************************************
+! Parameters used for building dipoles.
+!
+! The bending radius of ELENA magnet is equal 0.927m, and its length is equal to rho*phi
+! From drawing AD_MBHEK0129 the yoke has faces has a total angle of 26 deg.
+! Each bend needs to make 60 deg, so the faces must be tilted of (60/2 - 26/2) = 17 deg.
+! The value of bending magnet edge angle has been modified after comparison of tracking particles 
+! through the manufactured magnet with OPERA program and tracking of particles through the designed 
+! bending magnet which is described with MADX. 
+! 
+! To compare these two magnets, many particles initially have been placed on ellipse well distanced 
+! from magnet to take into account extended fields. To fit ellipse inclination after tracking with MADX 
+! (Olav Berrig) to that after tracking with OPERA (Alexander Aloev,visitor from Moscow State University), 
+! edge angle has been varied, and then corrected from 17 degrees (which was design value) to 16.45 degrees.
+! 
+! In addition to that, tracking showed visible distortion of the ellipse shape, which was successfully 
+! corrected by introducing sextupolar component on both edge of magnet. It was resulted from the 
+! nonlinearities of edge field, which was derived analytically by Pavel Belochitskii) 
+! 
+! Note: Probably we should just fix the lenght of the dipoles arc to some value, 
+!       i.e. as in drawings:  970.8 mm. To be checked.
+******************************************************************************************************/
+LNR_LBMH := 0.927*PI/3;
+LNR_ABMH := PI*16.45/180.; ! From Pavel's files 
+!LNR_ABMH := PI*17/180.;   ! from geometric design of yoke
+!LNR_ABMH := PI*13.61/180.;! if we assume that gradient (?!?!) of dipole is 0.207 Tm/m - Lucio
+!LNR_ABMH := PI*8/180.;    ! from rough measurement of Btrain signals... 
+!
+LNR_BMH: SBEND, L=LNR_LBMH, ANGLE=PI/3, E1=LNR_ABMH,  E2=LNR_ABMH,  FINT=0.424, HGAP=0.076/2;
+
+/******************************************************************************************************
+! quadrupoles
+******************************************************************************************************/
+LNR_LQ = 0.250;
+LNR_Q1:  QUADRUPOLE, L=LNR_LQ, K1:=LNR_KQ1;
+LNR_Q2:  QUADRUPOLE, L=LNR_LQ, K1:=LNR_KQ2;
+LNR_Q3:  QUADRUPOLE, L=LNR_LQ, K1:=LNR_KQ3;
+
+
+/******************************************************************************************************
+! skew quadrupoles used for the residual coupling compensation
+******************************************************************************************************/
+LNR_LQS = 0.15;
+LNR_QSK1: QUADRUPOLE, L=LNR_LQS, K1S:=LNR_KSQ1;  
+LNR_QSK2: QUADRUPOLE, L=LNR_LQS, K1S:=LNR_KSQ2;  
+
+   
+/******************************************************************************************************
+!  Electron cooler solenoid is called MSOL,  two solenoids SCOMP used for coupling compensation. 
+******************************************************************************************************/
+! Not much info, but one can see in EDMS #1684925 that this magnet is specified to be 
+! 100 Gauss over 65 cm; then:
+! - Its actual mechanical length is about 1 meter
+! - Nominal current for 100 Gauss in the center should be 41.35A #1684925
+! - Toroids also have a longitudinal field component
+!   - Looking at fig 3.37 in EDMS #1684925, one also gets ~40*60 ~= 2.5 mTm B per thoroid
+! - One could probably conclude that integrated solenoidal field is about 0.0100 Tm (100 Gauss over 1 m)
+!   - TODO: CHECK THIS!!!
+! - According to drawing ad_lntml0039; the distance between gun and collector beam axis is 1500 mm
+! - Toroid bending radius is 250 mm
+! - DECISION (Sep 2021): let's keep the solenoid as a 0.650*2=1300 mm object, and add 
+!                        thin lens thoroids at the extremities as has been done by Pavel for the time being
+LNR_MSOL:  SOLENOID, L=1.300, KS:=LNR_KMSOL; 
+
+! Compensation solenoid type https://norma-db.web.cern.ch/magdesign/idcard/1066/
+! From https://edms.cern.ch/document/1703886/1.0:
+!  Nominal I 42A
+!  Magnetic length 0.336 m
+!  Nominal magnetic flux density 0.0225 Tm
+!  Iron length 0.360 m
+LNR_SCOMP: SOLENOID, L=0.360, KS:=LNR_KSCOMP;
+
+/******************************************************************************************************
+! kicks from toroid coils of electron cooler taken into account
+******************************************************************************************************/
+! Not much info, but one can see in EDMS #1684925
+! Apparently, at nominal current of 28A, one gets a 1.25 mTm By
+LNR_TOR1:  KICKER, L=0., HKICK:= LNR_Tkick, VKICK:=0;
+LNR_TOR2:  KICKER, L=0., HKICK:=-LNR_Tkick, VKICK:=0;
+
+
+/******************************************************************************************************
+! sextupoles used for chromaticity correction
+******************************************************************************************************/
+LNR_LSEX = 0.15;
+LNR_SF: SEXTUPOLE, L=LNR_LSEX, K2:=LNR_KSF;
+LNR_SD: SEXTUPOLE, L=LNR_LSEX, K2:=LNR_KSD;
+
+/******************************************************************************************************
+! dipoles for orbit correction
+******************************************************************************************************/
+! Type [PXMCCAYWIP](https://norma-db.web.cern.ch/magdesign/idcard/1064/#1)
+! https://edms.cern.ch/ui/file/1558321/1.1/LNA-MCCAY-ES-0002-10-10.pdf
+! Leff = 154/205 mm (V/H)
+! Bdl  = 2.5 mTm
+! Inom = 43/46 A
+! Overall length = 216 mm -> using this as value for length here
+LNR_LDHV = 0.216;
+LNR_DHV:   KICKER, L=LNR_LDHV, HKICK:=0., VKICK:=0.;
+
+/******************************************************************************************************
+! Kyoto-style correctors around electron cooler
+******************************************************************************************************/
+! Not much info, but one can see in EDMS #1684925
+! 1.728 mTm for 4.7 A 
+LNR_DHVEC: KICKER, L=0., HKICK:=0., VKICK:=0.;
+
+/******************************************************************************************************
+! injection kicker 
+******************************************************************************************************/
+LNR_KFI:  HKICKER, l=0.432, KICK:=0;
+
+/******************************************************************************************************
+! extraction kickers
+! In fact, both are electrostatic elements, and for simulations have to be treated in a proper way 
+! Length of 0.5 m is the length of the tank. When actually used (i.e. for transfer lines modeling) 
+!   a proper "electrostatic"-equivalent length is used by ABT (0.4 m for survey, 0.6 m for optics MATRIX)
+! ABT is using an SBAND of 0.4 m long, 0.22 rad angle for survey, while it uses a 0.6 meter long "MATRIX" when it comes to optics.
+******************************************************************************************************/   
+LNR_DFH:  HKICKER, L=0.5, KICK:=0.;
+   
+/******************************************************************************************************
+! RF cavity 
+******************************************************************************************************/
+LNR_RFC: RFCAVITY, L=0.3, VOLT:=LNR_RFvoltage;
+
+/***************************************************************************************************
+! Instrumentation  
+****************************************************************************************************/
+! Shoebox BPMs typically installed inside quads:
+LNR_BPM:    MONITOR,    L=0;
+! Longitudinal pickup (single model for both high and low frequency versions)
+LNR_USL:    INSTRUMENT, L=0.425;
+! Transverse scraper. 
+LNR_SCRAP:  INSTRUMENT, L=0.550;
+! BTV installed next to injection kicker.
+LNR_BTV:    INSTRUMENT, L=0.;
+! Tune meter (both excitation and measurement)
+LNR_Qmeter: INSTRUMENT, L=0.350;
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! Define here all BPMs
+! But not installed here as they require to split most elements in 2...
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+LNR.BPMEB.0110:   LNR_BPM; 
+LNR.BPMEB.0125:   LNR_BPM;
+LNR.BPMEA.0215:   LNR_BPM;
+LNR.BPMEA.0240:   LNR_BPM;
+LNR.BPMEA.0320:   LNR_BPM; 
+LNR.BPMEB.0407:   LNR_BPM; 
+LNR.BPMEC.0428:   LNR_BPM; 
+LNR.BPMEC.0432:   LNR_BPM; 
+LNR.BPMEB.0457:   LNR_BPM; 
+LNR.BPMEA.0520:   LNR_BPM;
+LNR.BPMEA.0555:   LNR_BPM;
+LNR.BPMEA.0625:   LNR_BPM;
+
+ 
+/***************************************************************************************************
+! Markers 
+****************************************************************************************************/
+MSS:      MARKER;
+KFISTART: MARKER;
+SMI:      MARKER;
+SMIENDM:  MARKER;
+SMIEND:   MARKER;
+BTV_MID:  MARKER;
+M10:      MARKER;
+M20:      MARKER;
+MAXBETX:  MARKER;
+
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! Building up of ELENA Sequence
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+! Note1: Sections **start** from the END of a bending magnet and **end** at the END of the next bending magnet 
+! Note2: Here the sequence is built as "thick" objects. In order to install BPMs, one has to split elements 
+!        (some correctors and some quads). This is typically done by split_elements.madx routine...
+
+! Description well compatible with https://edms.cern.ch/ui/file/1252808/AJ/ad_lm___0071-vAJ.pdf! 
+!   note, LNR_LBMH = 0.927*pi/3 = .9707521... = 0.9708. 
+SECTION1: SEQUENCE, REFER=CENTRE,   L = 4.4992  + LNR_LBMH; 
+   LNR.MCCAY.0105:   LNR_DHV,      at = 0.15035 + 0.17025;
+   LNR.VVGBF.0114:   PLACEHOLDER,  at = 0.15035 + 0.3405 + 1.25255 + 0.230 + 0.075/2;
+   LNR.MMIDINJ:      MARKER,       at = 2.2496;  ! the middle of injection **straight section 1**
+   LNR.MBMIE.0115:   MARKER,       at = 0.15035 + 2.27925;           ! placed inside of injection septum
+   LNR.BTVPA.0117:   LNR_BTV,      at = 0.15035 + 2.84815 - 0.09;    ! was 2.9984  - 0.392/4 (< Sep 2021)
+   LNR.MMIDBTV:      MARKER,       at = 0.15035 + 2.84815;           ! center of BTV tank as from drawings
+   LNR.BTVPA.0118:   LNR_BTV,      at = 0.15035 + 2.84815 + 0.07954; ! was 2.9984  + 0.392/4 (< Sep 2021) 
+   LNR.MKKFH.0120:   LNR_KFI,      at = 0.15035 + 3.44025;
+   LNR.MCCAY.0130:   LNR_DHV,      at = 0.15035 + 4.02825;
+   LNR.MBHEK.0135:   LNR_BMH,      at = 4.4992  + LNR_LBMH/2;
+ENDSEQUENCE; 
+
+SECTION2: SEQUENCE, REFER=CENTRE,   L = 3.8956  + LNR_LBMH;
+   LNR.MXNAD.0201:   LNR_SF,       at = 0.15035 + 0.12425;
+   LNR.MQNLG.0205:   LNR_Q1,       at = 0.15035 + 0.47425; !(0.97 - LNR_LBMH)/2 + 0.625;
+   LNR.MQNLG.0210:   LNR_Q2,       at = 0.15035 + 0.94745; !(0.97 - LNR_LBMH)/2 + 1.0982;
+   LNR.MXNAD.0220:   LNR_SD,       at = 0.15035 + 1.33745; !(0.97 - LNR_LBMH)/2 + 1.4132 + 0.150/2;
+   LNR.APULA.0225:   LNR_USL,      at = 0.15035 + 1.7312;  !(0.97 - LNR_LBMH)/2 + 1.88195;
+   LNR.APULB.0227:   LNR_USL,      at = 0.15035 + 2.2487;  !(0.97 - LNR_LBMH)/2 + 2.39945;
+   LNR.MCCAY.0230:   LNR_DHV,      at = 0.15035 + 2.93315; !(0.97 - LNR_LBMH)/2 + 3.1884 - 0.209/2; 
+   LNR.MQNLG.0235:   LNR_Q3,       at = 0.15035 + 3.32065; !(0.97 - LNR_LBMH)/2 + 3.4714; 
+   LNR.MBHEK.0245:   LNR_BMH,      at = 3.8956  + LNR_LBMH/2; !3.8964 - (LNR_LBMH - 0.97) + LNR_LBMH/2;
+ENDSEQUENCE; 
+
+SECTION3: SEQUENCE, REFER=CENTRE,   L = 3.8956  + LNR_LBMH; 
+   LNR.MQNLG.0305:   LNR_Q3,       at = 0.15035 + 0.27425;
+   LNR.VVGBH.0309:   PLACEHOLDER,  at = 0.15035 + 0.53925 + 0.085/2;
+   LNE.MAR.5000:     MARKER,       at = 0.15035 + 0.96425 - 0.3; !(0.97 - LNR_LBMH)/2 + 1.115 - 0.3; ! marker where LNE50 optics starts
+   LNR.ZDFHL.0310:   LNR_DFH,      at = 0.15035 + 0.96425; !(0.97 - LNR_LBMH)/2 + 1.115;
+   LNR.BQKMA.0312:   LNR_Qmeter,   at = 0.15035 + 1.85785; !(0.97 - LNR_LBMH)/2 + 2.0086;
+   LNR.MQNLG.0315:   LNR_Q2,       at = 0.15035 + 2.64745; !(0.97 - LNR_LBMH)/2 + 2.7982; 
+   LNR.MQNLG.0325:   LNR_Q1,       at = 0.15035 + 3.12065; !(0.97 - LNR_LBMH)/2 + 3.2714; 
+   LNR.MCCAY.0330:   LNR_DHV,      at = 0.15035 + 3.45515; !(0.97 - LNR_LBMH)/2 + 3.6059; 
+   LNR.MBHEK.0335:   LNR_BMH,      at = 3.8956  + LNR_LBMH/2; !3.8964 - (LNR_LBMH - 0.97) + LNR_LBMH/2;
+ENDSEQUENCE; 
+
+SECTION4: SEQUENCE, REFER=CENTRE,   L = 4.4992  + LNR_LBMH; !4.5-(LNR_LBMH-0.97) + LNR_LBMH;
+   LNR.MCCAY.0405:   LNR_DHV,      at = 0.15035 + 0.17025; ! (0.97 - LNR_LBMH)/2 + .32875;
+   LNR.MLNAF.0410:   LNR_SCOMP,    at = 0.15035 + 0.57425; ! (0.97-LNR_LBMH)/2 + 0.725;
+   LNR.VVGBH.0411:   PLACEHOLDER,  at = 0.15035 + 0.3405 + 0.50875 + 0.085/2;
+   LNR.MCCAY.0420:   LNR_DHV,      at = 0.15035 + 1.08543; ! (0.97 - LNR_LBMH)/2 + 2.25 - 1.01382;  
+   LNR.MCHAE.0425:   LNR_DHVEC,    at = 0.15035 + 1.22943; !(0.97 - LNR_LBMH)/2 + 2.25 - 0.8698 ;
+   LNR.ECTOR.0426x:  LNR_TOR1,     at = 0.15035 + 2.09925 - 0.650; !(0.97 - LNR_LBMH)/2 + 2.25 - 0.66;
+   LNR.ECSOL.0430:   LNR_MSOL,     at = 0.15035 + 2.09925; 
+   LNR.ECTOR.0434x:  LNR_TOR2,     at = 0.15035 + 2.09925 + 0.650; !(0.97 - LNR_LBMH)/2 + 2.25 + 0.66;
+   LNR.MCHAE.0435:   LNR_DHVEC,    at = 0.15035 + 2.96907; !(0.97 - LNR_LBMH)/2 + 2.25 + 0.8698;
+   LNR.MCCAY.0440:   LNR_DHV,      at = 0.15035 + 3.11307; !(0.97 - LNR_LBMH)/2 + 2.25 + 1.01382;  
+   LNR.VVGBH.0441:   PLACEHOLDER,  at = 0.15035 + 0.3405 + 0.50875 + 0.085 + 2.330 + 0.085/2;
+   LNR.MLNAF.0450:   LNR_SCOMP,    at = 0.15035 + 3.62425; !(0.97 - LNR_LBMH)/2 + 4.392 - 0.617;
+   LNR.MCCAY.0460:   LNR_DHV,      at = 0.15035 + 4.02825; !(0.97 - LNR_LBMH)/2 + 2.25 + 1.92125;
+   LNR.MBHEK.0470:   LNR_BMH,      at = 4.4992  + LNR_LBMH/2; !4.5 - (LNR_LBMH - 0.97) + LNR_LBMH/2;
+ENDSEQUENCE; 
+
+SECTION5: SEQUENCE, REFER=CENTRE,   L = 3.8956 + LNR_LBMH; ! 3.8964 - (LNR_LBMH - 0.97) + LNR_LBMH;
+   LNR.MXNAD.0505:   LNR_SF,       at = 0.15035 + 0.12425; !(0.97 - LNR_LBMH)/2 + 0.200 + 0.150/2;
+   LNR.MQNLG.0510:   LNR_Q1,       at = 0.15035 + 0.47425; !(0.97 - LNR_LBMH)/2 + 0.625;
+   LNR.MQNLG.0515:   LNR_Q2,       at = 0.15035 + 0.94745; !(0.97 - LNR_LBMH)/2 + 1.0982; 
+   LNR.MXNAD.0525:   LNR_SD,       at = 0.15035 + 1.33745; !(0.97 - LNR_LBMH)/2 + 1.4132 + 0.150/2;
+   LNR.ACWO2.0530:   LNR_RFC,      at = 0.15035 + 1.64645; !(0.97 - LNR_LBMH)/2 + 1.7972; 
+   LNR.MCCAY.0535:   LNR_DHV,      at = 0.15035 + 2.14645; !(0.97 - LNR_LBMH)/2 + 2.2972; 
+   LNR.MQSAB.0540:   LNR_QSK1,     at = 0.15035 + 2.43145; !(0.97 - LNR_LBMH)/2 + 2.5822; 
+   LNR.BSSHV.0545:   LNR_SCRAP,    at = 0.15035 + 2.8294; !(0.97 - LNR_LBMH)/2 + 2.98015;
+   LNR.MQNLG.0550:   LNR_Q3,       at = 0.15035 + 3.32065; !(0.97 - LNR_LBMH)/2 + 3.4714; 
+   LNR.MBHEK.0560:   LNR_BMH,      at = 3.8956 + LNR_LBMH/2; !3.8964 - (LNR_LBMH - 0.97) + LNR_LBMH/2;
+ ENDSEQUENCE; 
+
+SECTION6: SEQUENCE, REFER=CENTRE,   L = 3.8956  + LNR_LBMH; ! 3.8964 - (LNR_LBMH - 0.97) + LNR_LBMH;
+   LNR.MQNLG.0605:   LNR_Q3,       at = 0.15035 + 0.27425; !(0.97 - LNR_LBMH)/2 + 0.425; 
+   LNR.VVGBH.0606:   PLACEHOLDER,  at = 0.15035 + 0.53925 + 0.085/2;
+   LNE.MAR.0000:     MARKER,       at = 0.15035 + 0.96425 - 0.3; !(0.97 - LNR_LBMH)/2 + 1.115 - 0.3; ! marker where LNE00 optics starts
+   LNR.ZDFHL.0610:   LNR_DFH,      at = 0.15035 + 0.96425; !(0.97 - LNR_LBMH)/2 + 1.115;
+   LNR.BQKMA.0612:   LNR_Qmeter,   at = 0.15035 + 1.85785; !(0.97 - LNR_LBMH)/2 + 2.0086;
+   LNR.MCCAY.0615:   LNR_DHV,      at = 0.15035 + 2.23975; !(0.97 - LNR_LBMH)/2 + 2.286 + 0.209/2;
+   LNR.MQNLG.0620:   LNR_Q2,       at = 0.15035 + 2.64745; !(0.97 - LNR_LBMH)/2 + 2.7982 - 0.125/2; 
+   LNR.MQNLG.0630:   LNR_Q1,       at = 0.15035 + 3.12065; !(0.97 - LNR_LBMH)/2 + 3.2714 - 0.125/2; 
+   LNR.MQSAB.0635:   LNR_QSK2,     at = 0.15035 + 3.44025; !(0.97 - LNR_LBMH)/2 + 3.591;
+   LNR.MBHEK.0640:   LNR_BMH,      at = 3.8956  + LNR_LBMH/2; !3.8964 - (LNR_LBMH - 0.97) + LNR_LBMH/2;
+ENDSEQUENCE; 
+
+ELENA: SEQUENCE, REFER=ENTRY,  L = 2*4.4992 + 4*3.8956 + 6*LNR_LBMH;
+   LNR.STARTSURVEY: MARKER,   at = 0;
+   LNR.BEGIN: MARKER,         at = 0; 
+   SECTION1,                  at = 0;
+   SECTION2,                  at =   4.4992            +   LNR_LBMH;
+   SECTION3,                  at =   4.4992 +   3.8956 + 2*LNR_LBMH;
+   SECTION4,                  at =   4.4992 + 2*3.8956 + 3*LNR_LBMH; 
+   SECTION5,                  at = 2*4.4992 + 2*3.8956 + 4*LNR_LBMH;
+   SECTION6,                  at = 2*4.4992 + 3*3.8956 + 5*LNR_LBMH; 
+   LNR.END:   MARKER,         at = 2*4.4992 + 4*3.8956 + 6*LNR_LBMH; 
+ENDSEQUENCE;
+
+RETURN;

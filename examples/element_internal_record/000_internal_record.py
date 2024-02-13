@@ -6,7 +6,6 @@
 import numpy as np
 
 import xtrack as xt
-import xpart as xp
 import xobjects as xo
 
 ################################################################
@@ -107,7 +106,7 @@ line=xt.Line(elements = [
     xt.Drift(length=1.), TestElement(n_kicks=5)])
 line.build_tracker()
 line._needs_rng = True # Test elements use the random number generator
-part = xp.Particles(p0c=6.5e12, x=[1e-3,2e-3,3e-3])
+part = xt.Particles(p0c=6.5e12, x=[1e-3,2e-3,3e-3])
 
 # The record is by default disabled and can be enabled using the following
 # dedicated method of the line object. The argument `capacity` defines the

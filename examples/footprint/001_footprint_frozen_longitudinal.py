@@ -1,7 +1,6 @@
 import numpy as np
 
 import xtrack as xt
-import xpart as xp
 
 import matplotlib.pyplot as plt
 
@@ -11,7 +10,7 @@ nemitt_y = 1e-6
 
 line = xt.Line.from_json(
     '../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
-line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, p0c=7e12)
+line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7e12)
 line.build_tracker()
 
 # Some octupoles and chromaticity to see the footprint moving

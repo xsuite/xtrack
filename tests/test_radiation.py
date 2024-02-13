@@ -191,28 +191,28 @@ def test_ring_with_radiation(test_context):
         assert np.isclose(tw['eneloss_turn'], mad_emit_summ.u0[0]*1e9,
                         rtol=3e-3, atol=0)
         assert np.isclose(tw['damping_constants_s'][0],
-            met[met.loc[:, 'parameter']=='damping_constant']['mode1'][0],
+            met[met.loc[:, 'parameter']=='damping_constant']['mode1'].iloc[0],
             rtol=3e-3, atol=0
             )
         assert np.isclose(tw['damping_constants_s'][1],
-            met[met.loc[:, 'parameter']=='damping_constant']['mode2'][0],
+            met[met.loc[:, 'parameter']=='damping_constant']['mode2'].iloc[0],
             rtol=1e-3, atol=0
             )
         assert np.isclose(tw['damping_constants_s'][2],
-            met[met.loc[:, 'parameter']=='damping_constant']['mode3'][0],
+            met[met.loc[:, 'parameter']=='damping_constant']['mode3'].iloc[0],
             rtol=3e-3, atol=0
             )
 
         assert np.isclose(tw['partition_numbers'][0],
-            met[met.loc[:, 'parameter']=='damping_partion']['mode1'][0],
+            met[met.loc[:, 'parameter']=='damping_partion']['mode1'].iloc[0],
             rtol=3e-3, atol=0
             )
         assert np.isclose(tw['partition_numbers'][1],
-            met[met.loc[:, 'parameter']=='damping_partion']['mode2'][0],
+            met[met.loc[:, 'parameter']=='damping_partion']['mode2'].iloc[0],
             rtol=1e-3, atol=0
             )
         assert np.isclose(tw['partition_numbers'][2],
-            met[met.loc[:, 'parameter']=='damping_partion']['mode3'][0],
+            met[met.loc[:, 'parameter']=='damping_partion']['mode3'].iloc[0],
             rtol=3e-3, atol=0
             )
 
@@ -233,7 +233,7 @@ def test_ring_with_radiation(test_context):
 
     with flaky_assertions():
         assert np.isclose(np.std(mon.zeta[:, 750:]),
-            np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode3'][0] * np.abs(tw['betz0'])),
+            np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode3'][0] * np.abs(tw['bets0'])),
             rtol=0.2, atol=0
             )
 

@@ -1,6 +1,5 @@
 import numpy as np
 import xtrack as xt
-import xpart as xp
 import xobjects as xo
 from cpymad.madx import Madx
 
@@ -30,7 +29,7 @@ y_test = np.linspace(-3e-2, 1e-2, num_p_test)
 px_test = np.linspace(-2e-5, 4e-5, num_p_test)
 py_test = np.linspace(-4e-5, 2e-5, num_p_test)
 
-p0 = xp.Particles(p0c=2e9, x=x_test, px=px_test, y=y_test, py=py_test,
+p0 = xt.Particles(p0c=2e9, x=x_test, px=px_test, y=y_test, py=py_test,
                   zeta=.1, ptau=1e-3)
 
 part = p0.copy(_context=test_context)

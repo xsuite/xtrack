@@ -1,8 +1,6 @@
 import numpy as np
 
 import xtrack as xt
-import xpart as xp
-import xdeps as xd
 
 import matplotlib.pyplot as plt
 

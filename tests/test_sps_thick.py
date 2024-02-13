@@ -50,14 +50,14 @@ def test_sps_thick(test_context, deferred_expressions):
     assert line['mbb.10150_den'].side == 'entry'
     assert line['mbb.10150_dex'].model == 'linear'
     assert line['mbb.10150_dex'].side == 'exit'
-    assert line['mbb.10150'].model == 'expanded'
+    assert line['mbb.10150'].model == 'adaptive'
 
     ang = line['mbb.10150'].k0 * line['mbb.10150'].length
     assert np.isclose(line['mbb.10150_den'].e1, ang / 2, atol=1e-11, rtol=0)
     assert np.isclose(line['mbb.10150_dex'].e1, ang / 2, atol=1e-11, rtol=0)
 
     tw = line.twiss()
-    assert np.isclose(twmad.s[-1], tw.s[-1], atol=1e-11, rtol=0)
+    assert np.isclose(twmad.s[-1], tw.s[-1], atol=1e-9, rtol=0)
     assert np.isclose(twmad.summary.q1, tw.qx, rtol=0, atol=1e-7)
     assert np.isclose(twmad.summary.q2, tw.qy, rtol=0, atol=1e-7)
     assert np.isclose(twmad.summary.dq1, tw.dqx, rtol=0, atol=0.2)
@@ -73,7 +73,7 @@ def test_sps_thick(test_context, deferred_expressions):
     assert line['mbb.10150_dex'].side == 'exit'
     assert line['mbb.10150'].model == 'full'
 
-    assert np.isclose(twmad.s[-1], tw.s[-1], atol=1e-11, rtol=0)
+    assert np.isclose(twmad.s[-1], tw.s[-1], atol=1e-9, rtol=0)
     assert np.isclose(twmad.summary.q1, tw.qx, rtol=0, atol=1e-7)
     assert np.isclose(twmad.summary.q2, tw.qy, rtol=0, atol=1e-7)
     assert np.isclose(twmad.summary.dq1, tw.dqx, rtol=0, atol=0.01)

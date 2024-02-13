@@ -2,7 +2,6 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
-import xpart as xp
 
 ## Generate a simple line
 line = xt.Line(
@@ -14,8 +13,8 @@ line = xt.Line(
 
 ## Attach a reference particle to the line (optional)
 ## (defines the reference mass, charge and energy)
-line.particle_ref = xp.Particles(p0c=6500e9, #eV
-                                 q0=1, mass0=xp.PROTON_MASS_EV)
+line.particle_ref = xt.Particles(p0c=6500e9, #eV
+                                 q0=1, mass0=xt.PROTON_MASS_EV)
 
 line.twiss_default['method'] = '4d'
 

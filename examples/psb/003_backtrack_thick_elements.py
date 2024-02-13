@@ -1,12 +1,11 @@
 import numpy as np
 
 import xtrack as xt
-import xpart as xp
 
 b = xt.Bend(k0=0.2, h=0.1, length=1.0)
 
 line = xt.Line(elements=[b])
-line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
+line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, beta0=0.5)
 line.reset_s_at_end_turn = False
 line.build_tracker()
 
@@ -55,7 +54,7 @@ assert np.allclose(p2.zeta, p0.zeta, atol=1e-15, rtol=0)
 assert np.allclose(p2.delta, p0.delta, atol=1e-15, rtol=0)
 
 line = xt.Line(elements=[q])
-line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
+line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, beta0=0.5)
 line.reset_s_at_end_turn = False
 line.build_tracker()
 
@@ -80,7 +79,7 @@ assert np.all(p4.state == -31)
 
 de = xt.DipoleEdge(e1=0.1, k=3, fint=0.3)
 line = xt.Line(elements=[de])
-line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
+line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, beta0=0.5)
 line.reset_s_at_end_turn = False
 line.build_tracker()
 

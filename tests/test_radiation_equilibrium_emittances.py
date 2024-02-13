@@ -204,7 +204,7 @@ def test_eq_emitt(conf):
 
         sigma_x_eq = float(np.sqrt(ex * tw_rad.betx[0] + ey * tw_rad.betx2[0] + (np.std(p.delta) * tw_rad.dx[0])**2))
         sigma_y_eq = float(np.sqrt(ex * tw_rad.bety1[0] + ey * tw_rad.bety[0] + (np.std(p.delta) * tw_rad.dy[0])**2))
-        sigma_zeta_eq = float(np.sqrt(ez * tw_rad.betz0))
+        sigma_zeta_eq = float(np.sqrt(ez * tw_rad.bets0))
 
         sigma_x_track = np.std(mon.x, axis=0)[-200:]
         sigma_y_track = np.std(mon.y, axis=0)[-200:]

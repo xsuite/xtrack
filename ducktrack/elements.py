@@ -636,10 +636,10 @@ class LinearTransferMatrix(Element):
         ("Q_s","","",0.0),
         ("chroma_x","","",0.0),
         ("chroma_y","","",0.0),
-        ("detx_x","","",0.0),
-        ("detx_y","","",0.0),
-        ("dety_y","","",0.0),
-        ("dety_x","","",0.0),
+        ("det_xx","","",0.0),
+        ("det_xy","","",0.0),
+        ("det_yy","","",0.0),
+        ("det_yx","","",0.0),
         ("energy_ref_increment","","",0.0),
         ("energy_increment","","",0.0),
         ("x_ref_0","","",0.0),
@@ -694,10 +694,10 @@ class LinearTransferMatrix(Element):
                 (1.0 + self.alpha_y_0*self.alpha_y_0)/self.beta_y_0 * p.y*p.y
                 + 2*self.alpha_y_0 * p.y*p.py
                 + self.beta_y_0 * p.py*p.py)
-        phase = 2*np.pi*(self.Q_x+self.chroma_x*p.delta+self.detx_x*J_x+self.detx_y*J_y)
+        phase = 2*np.pi*(self.Q_x+self.chroma_x*p.delta+self.det_xx*J_x+self.det_xy*J_y)
         cos_x = cos(phase)
         sin_x = sin(phase)
-        phase = 2*np.pi*(self.Q_y+self.chroma_y*p.delta+self.dety_y*J_y+self.dety_x*J_x)
+        phase = 2*np.pi*(self.Q_y+self.chroma_y*p.delta+self.det_yy*J_y+self.det_yx*J_x)
         cos_y = cos(phase)
         sin_y = sin(phase)
 

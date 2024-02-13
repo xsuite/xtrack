@@ -230,6 +230,11 @@ class Multiline:
             A MultiTwiss object containing the twiss parameters for the lines.
         '''
 
+        for old, new in zip(['ele_start', 'ele_stop', 'ele_init', 'twiss_init'],
+                            ['start', 'end', 'init_at', 'init']):
+            if old in kwargs:
+                raise ValueError(f'`{old}` is deprecated. Please use `{new}`.')
+
         out = MultiTwiss()
         if lines is None:
             lines = self.line_names
@@ -277,6 +282,11 @@ class Multiline:
             Dictionary containing information about the matching result.
 
         '''
+
+        for old, new in zip(['ele_start', 'ele_stop', 'ele_init', 'twiss_init'],
+                            ['start', 'end', 'init_at', 'init']):
+            if old in kwargs:
+                raise ValueError(f'`{old}` is deprecated. Please use `{new}`.')
 
         line_names = kwargs.get('lines', self.line_names)
         kwargs, kwargs_per_twiss = _dispatch_twiss_kwargs(kwargs, line_names)
@@ -470,6 +480,17 @@ class Multiline:
 
         '''
 
+        # Check that the context in which the trackers are built is on CPU
+        for nn in ["clockwise", "anticlockwise"]:
+            if self._bb_config[f"{nn}_line"] is None:
+                continue
+            line = self.lines[self._bb_config[f"{nn}_line"]]
+            if not isinstance(line.tracker._context, xo.ContextCpu):
+                raise ValueError(
+                    "The trackers need to be built on CPU before "
+                    "configuring the beam-beam elements."
+                )
+
         if self._bb_config['dataframes']['clockwise'] is not None:
             bb_df_cw = self._bb_config['dataframes']['clockwise'].copy()
         else:
@@ -540,7 +561,7 @@ class MultiTwiss(dict):
 
 def _dispatch_twiss_kwargs(kwargs, lines):
     kwargs_per_twiss = {}
-    for arg_name in ['ele_start', 'ele_stop', 'twiss_init',
+    for arg_name in ['start', 'end', 'init_at', 'init',
                         '_keep_initial_particles',
                         '_initial_particles', '_ebe_monitor']:
         if arg_name not in kwargs:

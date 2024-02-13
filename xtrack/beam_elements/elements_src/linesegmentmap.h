@@ -90,7 +90,7 @@ void add_dispersion(
 void transverse_motion(LocalParticle *part0,
     double const qx, double const qy,
     double const dqx, double const dqy,
-    double const detx_x, double const detx_y, double const dety_x, double const dety_y,
+    double const det_xx, double const det_xy, double const det_yx, double const det_yy,
     double const alfx_0, double const betx_0, double const alfy_0, double const bety_0,
     double const alfx_1, double const betx_1, double const alfy_1, double const bety_1){
 
@@ -100,7 +100,7 @@ void transverse_motion(LocalParticle *part0,
     double sin_y = 0;
     double cos_y = 0;
     if (dqx != 0.0 || dqy != 0.0 ||
-        detx_x != 0.0 || detx_y != 0.0 || dety_x != 0.0 || dety_y != 0.0){
+        det_xx != 0.0 || det_xy != 0.0 || det_yx != 0.0 || det_yy != 0.0){
         detuning = 1;
     }
     else{
@@ -135,11 +135,11 @@ void transverse_motion(LocalParticle *part0,
                 + bety_0
                     * LocalParticle_get_py(part)*LocalParticle_get_py(part));
             double phase = 2*PI*(qx + dqx * LocalParticle_get_delta(part)
-                                +detx_x * J_x + detx_y * J_y);
+                                +det_xx * J_x + det_xy * J_y);
             cos_x = cos(phase);
             sin_x = sin(phase);
             phase = 2*PI*(qy + dqy * LocalParticle_get_delta(part)
-                            +dety_x * J_x + dety_y * J_y);
+                            +det_yx * J_x + det_yy * J_y);
             cos_y = cos(phase);
             sin_y = sin(phase);
         }
@@ -355,7 +355,6 @@ void uncorrelated_gaussian_noise(LocalParticle *part0,
 /*gpufun*/
 void LineSegmentMap_track_local_particle(LineSegmentMapData el, LocalParticle* part0){
 
-
     remove_closed_orbit(part0,
         LineSegmentMapData_get_x_ref(el, 0),
         LineSegmentMapData_get_px_ref(el, 0),
@@ -373,10 +372,10 @@ void LineSegmentMap_track_local_particle(LineSegmentMapData el, LocalParticle* p
         LineSegmentMapData_get_qy(el),
         LineSegmentMapData_get_dqx(el),
         LineSegmentMapData_get_dqy(el),
-        LineSegmentMapData_get_detx_x(el),
-        LineSegmentMapData_get_detx_y(el),
-        LineSegmentMapData_get_dety_x(el),
-        LineSegmentMapData_get_dety_y(el),
+        LineSegmentMapData_get_det_xx(el),
+        LineSegmentMapData_get_det_xy(el),
+        LineSegmentMapData_get_det_yx(el),
+        LineSegmentMapData_get_det_yy(el),
         LineSegmentMapData_get_alfx(el, 0),
         LineSegmentMapData_get_betx(el, 0),
         LineSegmentMapData_get_alfy(el, 0),

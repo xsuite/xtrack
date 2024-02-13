@@ -9,7 +9,6 @@
 
 import numpy as np
 import xtrack as xt
-import xpart as xp
 import xobjects as xo
 import matplotlib.pyplot as plt
 
@@ -131,7 +130,7 @@ line = xt.Line(
         "end",
     ],
 )
-line.particle_ref = xp.Particles(p0c=450e9, q0=1, mass0=xp.PROTON_MASS_EV)
+line.particle_ref = xt.Particles(p0c=450e9, q0=1, mass0=xt.PROTON_MASS_EV)
 
 context = xo.ContextCpu()
 line.build_tracker(_context=context)
@@ -213,14 +212,14 @@ print(
 
 #### check twiss ####
 tw1s = line.twiss(
-    ele_start="mq0",
-    ele_stop="mq3",
-    twiss_init=xt.TwissInit(betx=betMax1, bety=betMin1, element_name="mq0", line=line),
+    start="mq0",
+    end="mq3",
+    init=xt.TwissInit(betx=betMax1, bety=betMin1, element_name="mq0", line=line),
 )
 tw2s = line.twiss(
-    ele_start="mq4",
-    ele_stop="mq7",
-    twiss_init=xt.TwissInit(betx=betMax2, bety=betMin2, element_name="mq4", line=line),
+    start="mq4",
+    end="mq7",
+    init=xt.TwissInit(betx=betMax2, bety=betMin2, element_name="mq4", line=line),
 )
 print(tw1s.cols["s", "betx", "bety", "alfx", "alfy"])
 print(tw2s.cols["s", "betx", "bety", "alfx", "alfy"])
@@ -238,9 +237,9 @@ for i, kfd in enumerate(kfd_refs):
 opt = line.match(
     solve=False,
     default_tol={None: 5e-10},
-    twiss_init=tw1s.get_twiss_init("mq0"),
-    ele_start=("mq0"),
-    ele_stop=("end"),
+    init=tw1s.get_twiss_init("mq0"),
+    start=("mq0"),
+    end=("end"),
     targets=[
         xt.Target(tar="alfx", value=tw2s.rows["mq6"]["alfx"][0], at="mq6"),
         xt.Target(tar="alfy", value=tw2s.rows["mq6"]["alfy"][0], at="mq6"),
@@ -254,8 +253,8 @@ print(opt.log())
 
 #### cross-check the final twiss ####
 tw3s = line.twiss(
-    ele_start="mq0",
-    ele_stop="end",
-    twiss_init=xt.TwissInit(betx=betMax1, bety=betMin1, element_name="mq0", line=line),
+    start="mq0",
+    end="end",
+    init=xt.TwissInit(betx=betMax1, bety=betMin1, element_name="mq0", line=line),
 )
 print(tw3s.cols["s", "betx", "bety", "alfx", "alfy"])

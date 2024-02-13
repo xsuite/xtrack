@@ -606,6 +606,12 @@ class MadLoader:
         if enable_align_errors is None:
             enable_align_errors = False
 
+        if allow_thick is None:
+            if enable_field_errors:
+                allow_thick = False
+            else:
+                allow_thick = True
+
         if allow_thick and enable_field_errors:
             raise NotImplementedError(
                 "Field errors are not yet supported for thick elements"
@@ -878,19 +884,14 @@ class MadLoader:
 
         # Convert bend core
         num_multipole_kicks = 0
-        if mad_el.k2:
-            num_multipole_kicks = DEFAULT_BEND_N_MULT_KICKS
-        if mad_el.k1:
-            cls = self.classes.CombinedFunctionMagnet
-            kwargs = dict(k1=mad_el.k1)
-        else:
-            cls = self.classes.Bend
-            kwargs = {}
+        cls = self.classes.Bend
+        kwargs = {}
         bend_core = self.Builder(
             mad_el.name,
             cls,
             k0=k0,
             h=h,
+            k1=mad_el.k1,
             length=l_curv,
             knl=[0, 0, mad_el.k2 * l_curv],
             num_multipole_kicks=num_multipole_kicks,
@@ -1029,12 +1030,13 @@ class MadLoader:
         ]
 
     def convert_octagon(self, ee):
-        a0 = ee.aperture[0]
-        a1 = ee.aperture[1]
-        a2 = ee.aperture[2]
-        a3 = ee.aperture[3]
-        V1 = (a0, a0 * np.tan(a2))  # expression will fail
-        V2 = (a1 / np.tan(a3), a1)  # expression will fail
+        # MAD-X assumes X and Y symmetry, defines 2 points per quadrant
+        a0 = ee.aperture[0]  # half-width
+        a1 = ee.aperture[1]  # half-height
+        a2 = ee.aperture[2]  # angle between the lower point and the X axis
+        a3 = ee.aperture[3]  # angle between the other point and the X axis
+        V1 = (a0, a0 * self.math.tan(a2))
+        V2 = (a1 / self.math.tan(a3), a1)
         el = self.Builder(
             ee.name + "_aper",
             self.classes.LimitPolygon,

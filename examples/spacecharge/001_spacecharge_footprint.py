@@ -48,7 +48,7 @@ print(context)
 with open(fname_line, 'r') as fid:
      input_data = json.load(fid)
 line= xt.Line.from_dict(input_data['line'])
-line.particle_ref = xp.Particles.from_dict(input_data['particle'])
+line.particle_ref = xt.Particles.from_dict(input_data['particle'])
 line.build_tracker(_context=context, compile=False) # Move all elements in the same context
 
 #############################################
@@ -133,7 +133,7 @@ particles_gaussian = xp.generate_matched_gaussian_bunch(
          nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
          line=line_sc_off)
 
-particles = xp.Particles.merge(
+particles = xt.Particles.merge(
                           [particles_fp, particle_probe, particles_gaussian])
 
 particles_0 = particles.copy()
@@ -157,7 +157,7 @@ tw = line_sc_off.twiss(at_elements=[0])
 # Frequency analysis #
 ######################
 
-import NAFFlib
+import nafflib
 
 xy_norm = np.zeros((N_r_footprint + 1, N_theta_footprint, 2), dtype=np.float64)
 xy_norm[:, :, 0] = x_norm_fp.reshape((N_r_footprint + 1, N_theta_footprint))
@@ -167,8 +167,8 @@ Qx = np.zeros(N_footprint)
 Qy = np.zeros(N_footprint)
 
 for i_part in range(N_footprint):
-    Qx[i_part] = NAFFlib.get_tune(x_tbt[i_part, :])
-    Qy[i_part] = NAFFlib.get_tune(y_tbt[i_part, :])
+    Qx[i_part] = nafflib.get_tune(x_tbt[i_part, :])
+    Qy[i_part] = nafflib.get_tune(y_tbt[i_part, :])
 
 Qxy_fp = np.zeros_like(xy_norm)
 
