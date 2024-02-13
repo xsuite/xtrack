@@ -32,8 +32,6 @@ void Quadrupole_track_local_particle(
     #endif
 
     if (needs_rotation) {
-        printf("sin_rot = %e\n", sin_rot);
-        printf("cos_rot = %e\n", cos_rot);
         //start_per_particle_block (part0->part)
             SRotation_single_particle(part, sin_rot, cos_rot);
         //end_per_particle_block
