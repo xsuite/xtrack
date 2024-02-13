@@ -45,23 +45,23 @@ p1c = p1.p0c / p1.rpp * p1.mass_ratio
 p1c_ref2 = p1_ref2.p0c / p1_ref2.rpp * p1_ref2.mass_ratio
 assert np.isclose(p1c, p1c_ref2, atol=0, rtol=1e-14)
 
+model = 'bend-kick-bend'
 L_bend = 1.
-
 B_T = 0.2
 BsT = 0.1
-G_Tm = 0.1
-Gs_Tm = -0.05
+# G_Tm = 0.1
+# Gs_Tm = -0.05
 
 P0_J_ref1 = p_ref1.p0c[0] / clight * qe
 h_bend_ref1 = B_T * qe * p_ref1.charge[0] / P0_J_ref1 # This is brho
 theta_bend_ref1 = h_bend_ref1 * L_bend
-k1l_ref1 = G_Tm * qe * p_ref1.charge[0] / P0_J_ref1
+# k1l_ref1 = G_Tm * qe * p_ref1.charge[0] / P0_J_ref1
 
 
 P0_J_ref2 = p_ref2.p0c[0] / clight * qe
 h_bend_ref2 = B_T * qe * p_ref2.charge[0] / P0_J_ref2
 theta_bend_ref2 = h_bend_ref2 * L_bend
-k1l_ref2 = G_Tm * qe * p_ref2.charge[0] / P0_J_ref2
+# k1l_ref2 = G_Tm * qe * p_ref2.charge[0] / P0_J_ref2
 
 n_slices = 10
 
@@ -88,6 +88,9 @@ line_ref2 = xt.Line(elements=ele_ref2)
 
 line_ref1.append_element(element=xt.Marker(), name='endmarker')
 line_ref2.append_element(element=xt.Marker(), name='endmarker')
+
+line_ref1.configure_bend_model(core=model)
+line_ref2.configure_bend_model(core=model)
 
 line_ref1.config.XTRACK_USE_EXACT_DRIFTS = True
 line_ref2.config.XTRACK_USE_EXACT_DRIFTS = True

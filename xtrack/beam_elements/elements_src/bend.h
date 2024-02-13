@@ -135,6 +135,7 @@ void Bend_track_local_particle(
             const double slice_length = length / (num_slices);
             const double kick_weight = 1. / num_slices;
             const double d_yoshida[] =
+                         // From MAD-NG
                          {3.922568052387799819591407413100e-01,
                           5.100434119184584780271052295575e-01,
                           -4.710533854097565531482416645304e-01,
@@ -143,6 +144,7 @@ void Bend_track_local_particle(
                         //  -0x1.e25bd194051b9p-2, 0x1.199cec1241558p-4 };
                         //  {1/8.0, 1/8.0, 1/8.0, 1/8.0}; // Uniform, for debugging
             const double k_yoshida[] =
+                         // From MAD-NG
                          {7.845136104775599639182814826199e-01,
                           2.355732133593569921359289764951e-01,
                           -1.177679984178870098432412305556e+00,
