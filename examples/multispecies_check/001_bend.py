@@ -46,6 +46,8 @@ p1c_ref2 = p1_ref2.p0c / p1_ref2.rpp * p1_ref2.mass_ratio
 assert np.isclose(p1c, p1c_ref2, atol=0, rtol=1e-14)
 
 model = 'bend-kick-bend'
+model = 'rot-kick-rot'
+model = 'expanded'
 L_bend = 1.
 B_T = 0.4
 hxl = 0 #0.2

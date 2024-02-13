@@ -19,13 +19,7 @@ void track_thick_cfd(
         const double k1_,     // normal quadrupole strength
         const double h        // curvature
 ) {
-
-    // Check if it's a drift
-    if (k0_ == 0.0 && k1_ == 0.0) {
-        Drift_single_particle(part, length);
-        return;
-    }
-
+    // Particle coordinates
     const double x = LocalParticle_get_x(part);
     const double y = LocalParticle_get_y(part);
     const double px = LocalParticle_get_px(part);
@@ -35,9 +29,17 @@ void track_thick_cfd(
     // In MAD-X (delta + 1) is computed:
     // const double delta_plus_1 = sqrt(pt*pt + 2.0*pt*beti + 1.0);
     const double delta_plus_1 = LocalParticle_get_delta(part) + 1;
+    const double chi = LocalParticle_get_chi(part);
 
-    const double k0 = k0_ / delta_plus_1;
-    const double k1 = k1_ / delta_plus_1;
+    const double k0 = chi * k0_ / delta_plus_1;
+    const double k1 = chi * k1_ / delta_plus_1;
+
+    // Check if it's a drift
+    if (k0 == 0.0 && k1 == 0.0) {
+        Drift_single_particle(part, length);
+        return;
+    }
+
     const double Kx = k0 * h + k1;
     const double Ky = -k1;
 
