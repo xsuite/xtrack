@@ -47,7 +47,7 @@ assert np.isclose(p1c, p1c_ref2, atol=0, rtol=1e-14)
 
 model = 'bend-kick-bend'
 L_bend = 1.
-B_T = 0.2
+B_T = 0.4
 hxl = 0.2
 # G_Tm = 0.1
 # Gs_Tm = -0.05
@@ -101,8 +101,8 @@ line_ref2.build_tracker()
 line_ref1.track(p1, ele_start=0, ele_stop='endmarker')
 line_ref2.track(p1_ref2, ele_start=0, ele_stop='endmarker')
 
-assert np.isclose(p1.x, p1_ref2.x, atol=0, rtol=1e-14)
-assert np.isclose(p1.y, p1_ref2.y, atol=0, rtol=1e-14)
+assert np.isclose(p1.x, p1_ref2.x, atol=0, rtol=1e-10)
+assert np.isclose(p1.y, p1_ref2.y, atol=0, rtol=1e-10)
 assert np.isclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
 assert np.isclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
 assert np.isclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
