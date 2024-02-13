@@ -18,7 +18,7 @@ p_ref2 = xt.Particles(
 p1 = p_ref1.copy()
 p1.x = 1e-3
 p1.y = 2e-3
-p1.zeta = 1e-2
+p1.zeta = 1e-2 * 0 # TEEEEEST
 p1.delta = 0.5
 P_p1 = (1 + p1.delta) * p1.p0c
 
@@ -42,7 +42,9 @@ assert np.isclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1
 assert np.isclose(p1.rpp, 1 / (1 + p1.delta), atol=0, rtol=1e-14)
 assert np.isclose(p1_ref2.rpp, 1 / (1 + p1_ref2.delta), atol=0, rtol=1e-14)
 
-
+p1c = p1.p0c / p1.rpp * p1.mass_ratio
+p1c_ref2 = p1_ref2.p0c / p1_ref2.rpp * p1_ref2.mass_ratio
+assert np.isclose(p1c, p1c_ref2, atol=0, rtol=1e-14)
 
 L_bend = 1.
 B_T = 0.2
