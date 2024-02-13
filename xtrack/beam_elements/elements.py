@@ -1270,7 +1270,7 @@ class Wedge(BeamElement):
     ]
 
     def __init__(self, **kwargs):
-        raise NotImplementedError # Untested
+        # raise NotImplementedError # Untested
         self.xoinitialize(**kwargs)
 
 

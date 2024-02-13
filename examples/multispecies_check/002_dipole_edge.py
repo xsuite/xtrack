@@ -56,11 +56,14 @@ k_bend_ref1 = B_T * qe * p_ref1.charge[0] / P0_J_ref1 # This is brho
 P0_J_ref2 = p_ref2.p0c[0] / clight * qe
 k_bend_ref2 = B_T * qe * p_ref2.charge[0] / P0_J_ref2
 
-edge_ref1 = xt.DipoleEdge(k=k_bend_ref1, e1=e1, hgap=0.05, fint=0.5, side=side)
-edge_ref2 = xt.DipoleEdge(k=k_bend_ref2, e1=e1, hgap=0.05, fint=0.5, side=side)
+# edge_ref1 = xt.DipoleEdge(k=k_bend_ref1, e1=e1, hgap=0.05, fint=0.5, side=side)
+# edge_ref2 = xt.DipoleEdge(k=k_bend_ref2, e1=e1, hgap=0.05, fint=0.5, side=side)
 
-ele_ref1 = [xt.Drift(length=0), edge_ref1, xt.Drift(length=0)]
-ele_ref2 = [xt.Drift(length=0), edge_ref2, xt.Drift(length=0)]
+edge_ref1 = xt.Wedge(k=k_bend_ref1, angle=e1)
+edge_ref2 = xt.Wedge(k=k_bend_ref2, angle=e1)
+
+ele_ref1 = [xt.Drift(length=1), edge_ref1, xt.Drift(length=1)]
+ele_ref2 = [xt.Drift(length=1), edge_ref2, xt.Drift(length=1)]
 
 line_ref1 = xt.Line(elements=ele_ref1)
 line_ref2 = xt.Line(elements=ele_ref2)
