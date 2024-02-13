@@ -102,7 +102,6 @@ assert np.isclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
 assert np.isclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
 assert np.isclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
 
-
 # Check absolute time of arrival
 t0_ref1 = p1.s / (p1.beta0 * clight)           # Absolute reference time of arrival
 t0_ref2 = p1_ref2.s / (p1_ref2.beta0 * clight) # Absolute reference time of arrival
