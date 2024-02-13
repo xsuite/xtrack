@@ -48,7 +48,7 @@ assert np.isclose(p1c, p1c_ref2, atol=0, rtol=1e-14)
 model = 'bend-kick-bend'
 L_bend = 1.
 B_T = 0.4
-hxl = 0.2
+hxl = 0 #0.2
 # G_Tm = 0.1
 # Gs_Tm = -0.05
 

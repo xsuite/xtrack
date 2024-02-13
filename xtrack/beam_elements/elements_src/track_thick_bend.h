@@ -57,7 +57,7 @@ void track_thick_bend(
 
         delta_ell = ((one_plus_delta * s * h) / k_chi) + (one_plus_delta / k_chi) * D;
     }
-    else if (fabs(h) > 1e-8 && fabs(k) < 1e-8){
+    else if (fabs(h) > 1e-8 && fabs(k_chi) < 1e-8){
         // Based on SUBROUTINE Sprotr in PTC and curex_drift in MAD-NG
         // Polar drift
         double const rho = 1/h;
@@ -78,13 +78,13 @@ void track_thick_bend(
     }
     else {
         // The case for zero curvature -- straight bend, s is Cartesian length
-        new_px = px - k * s;
-        new_x = x + (sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py)) - pz) / k;
+        new_px = px - k_chi* s;
+        new_x = x + (sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py)) - pz) / k_chi;
 
         const double D = asin(A * px) - asin(A * new_px);
-        new_y = y + (py / k) * D;
+        new_y = y + (py / k_chi) * D;
 
-        delta_ell = (one_plus_delta / k) * D;
+        delta_ell = (one_plus_delta / k_chi) * D;
     }
 
     // Update Particles object
