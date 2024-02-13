@@ -16,8 +16,8 @@ p_ref2 = xt.Particles(
 
 # Build a particle referred to reference 1
 p1 = p_ref1.copy()
-p1.x = 1e-3
-p1.y = 2e-3
+p1.x = 1e-2
+p1.y = 2e-2
 p1.delta = 0.5
 P_p1 = (1 + p1.delta) * p1.p0c
 
@@ -45,36 +45,33 @@ p1c = p1.p0c / p1.rpp * p1.mass_ratio
 p1c_ref2 = p1_ref2.p0c / p1_ref2.rpp * p1_ref2.mass_ratio
 assert np.isclose(p1c, p1c_ref2, atol=0, rtol=1e-14)
 
-model = 'bend-kick-bend'
-model = 'rot-kick-rot'
-model = 'expanded'
 L_bend = 1.
-S_Tm2 = 0.01
-Ss_Tm3 = -0.05
+O_Tm3 = 1
+Os_Tm3 = -2
 
 P0_J_ref1 = p_ref1.p0c[0] / clight * qe
-k2_ref1 = S_Tm2 * qe * p_ref1.charge[0] / P0_J_ref1
-k2s_ref1 = S_Tm2 * qe * p_ref1.charge[0] / P0_J_ref1
+k3_ref1 = O_Tm3 * qe * p_ref1.charge[0] / P0_J_ref1
+k3s_ref1 = Os_Tm3 * qe * p_ref1.charge[0] / P0_J_ref1
 
 P0_J_ref2 = p_ref2.p0c[0] / clight * qe
-k2_ref2 = S_Tm2 * qe * p_ref2.charge[0] / P0_J_ref2
-k2s_ref2 = S_Tm2 * qe * p_ref2.charge[0] / P0_J_ref2
+k3_ref2 = O_Tm3 * qe * p_ref2.charge[0] / P0_J_ref2
+k3s_ref2 = O_Tm3 * qe * p_ref2.charge[0] / P0_J_ref2
 
 n_slices = 10
 
-sext_ref1 = xt.Sextupole(k2=k2_ref1, k2s=k2s_ref1, length=L_bend/n_slices)
-sext_ref2 = xt.Sextupole(k2=k2_ref2, k2s=k2s_ref2, length=L_bend/n_slices)
+oct_ref1 = xt.Octupole(k3=k3_ref1, k3s=k3s_ref1, length=L_bend/n_slices)
+oct_ref2 = xt.Octupole(k3=k3_ref2, k3s=k3s_ref2, length=L_bend/n_slices)
 
 ele_ref1 = []
 for ii in range(n_slices):
     ele_ref1.append(xt.Drift(length=L_bend/n_slices/2))
-    ele_ref1.append(sext_ref1)
+    ele_ref1.append(oct_ref1)
     ele_ref1.append(xt.Drift(length=L_bend/n_slices/2))
 
 ele_ref2 = []
 for ii in range(n_slices):
     ele_ref2.append(xt.Drift(length=L_bend/n_slices/2))
-    ele_ref2.append(sext_ref2)
+    ele_ref2.append(oct_ref2)
     ele_ref2.append(xt.Drift(length=L_bend/n_slices/2))
 
 line_ref1 = xt.Line(elements=ele_ref1)
@@ -82,9 +79,6 @@ line_ref2 = xt.Line(elements=ele_ref2)
 
 line_ref1.append_element(element=xt.Marker(), name='endmarker')
 line_ref2.append_element(element=xt.Marker(), name='endmarker')
-
-line_ref1.configure_bend_model(core=model)
-line_ref2.configure_bend_model(core=model)
 
 # line_ref1.config.XTRACK_USE_EXACT_DRIFTS = True
 # line_ref2.config.XTRACK_USE_EXACT_DRIFTS = True

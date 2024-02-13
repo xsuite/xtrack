@@ -50,15 +50,15 @@ model = 'rot-kick-rot'
 model = 'expanded'
 L_bend = 1.
 S_Tm2 = 0.01
-Ss_Tm3 = -0.05
+Ss_Tm2 = -0.05
 
 P0_J_ref1 = p_ref1.p0c[0] / clight * qe
 k2_ref1 = S_Tm2 * qe * p_ref1.charge[0] / P0_J_ref1
-k2s_ref1 = S_Tm2 * qe * p_ref1.charge[0] / P0_J_ref1
+k2s_ref1 = Ss_Tm2 * qe * p_ref1.charge[0] / P0_J_ref1
 
 P0_J_ref2 = p_ref2.p0c[0] / clight * qe
 k2_ref2 = S_Tm2 * qe * p_ref2.charge[0] / P0_J_ref2
-k2s_ref2 = S_Tm2 * qe * p_ref2.charge[0] / P0_J_ref2
+k2s_ref2 = Ss_Tm2 * qe * p_ref2.charge[0] / P0_J_ref2
 
 n_slices = 10
 
