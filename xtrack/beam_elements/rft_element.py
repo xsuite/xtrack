@@ -54,13 +54,19 @@ class RFT_Element:
         self.arr_for_rft[:,8] = p.weight
         self.arr_for_rft[p.state==1,9] = np.nan # nan == not lost
 
-        # Track using RF-Track
+        # Track the refernece particle
+        import RF_Track as rft
+        pref0 = rft.Bunch6d(np.array([0,0,0,0,0,p.p0c[0]/1e6,p.mass0/1e6,p.q0,p.weight.sum()]))
+        pref1 = self.lattice.track(pref0)
+
+        # Track the bunch
         self.bunch_in.set_phase_space(self.arr_for_rft)
         self.bunch_out = self.lattice.track(self.bunch_in)
         self.arr_for_xt = self.bunch_out.get_phase_space('%x %Px %y %Py %t %Pc %lost %id', 'all')
 
         # Update particles
         self.arr_for_xt = self.arr_for_xt[self.arr_for_xt[:,7].argsort()] # sort by particle id
+        p.p0c = pref1.get_phase_space('%Pc') * 1e6 # eV
         p.x  = self.arr_for_xt[:,0] / 1e3 # m
         p.px = self.arr_for_xt[:,1] * 1e6 / p.p0c # rad
         p.y  = self.arr_for_xt[:,2] / 1e3 # m
