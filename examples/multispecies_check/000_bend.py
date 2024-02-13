@@ -18,7 +18,6 @@ p_ref2 = xt.Particles(
 p1 = p_ref1.copy()
 p1.x = 1e-3
 p1.y = 2e-3
-p1.zeta = 1e-2 * 0 # TEEEEEST
 p1.delta = 0.5
 P_p1 = (1 + p1.delta) * p1.p0c
 
@@ -84,11 +83,17 @@ for ii in range(n_slices):
 line_ref1 = xt.Line(elements=ele_ref1)
 line_ref2 = xt.Line(elements=ele_ref2)
 
+line_ref1.append_element(element=xt.Marker(), name='endmarker')
+line_ref2.append_element(element=xt.Marker(), name='endmarker')
+
+line_ref1.config.XTRACK_USE_EXACT_DRIFTS = True
+line_ref2.config.XTRACK_USE_EXACT_DRIFTS = True
+
 line_ref1.build_tracker()
 line_ref2.build_tracker()
 
-line_ref1.track(p1)
-line_ref2.track(p1_ref2)
+line_ref1.track(p1, ele_start=0, ele_stop='endmarker')
+line_ref2.track(p1_ref2, ele_start=0, ele_stop='endmarker')
 
 assert np.isclose(p1.x, p1_ref2.x, atol=0, rtol=1e-14)
 assert np.isclose(p1.y, p1_ref2.y, atol=0, rtol=1e-14)
@@ -98,5 +103,10 @@ assert np.isclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
 assert np.isclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
 
 
-# rpp : array_like of float, optional
-#     m/m0 P0c / Pc = 1/(1+delta)
+# Check absolute time of arrival
+t0_ref1 = p1.s / (p1.beta0 * clight)           # Absolute reference time of arrival
+t0_ref2 = p1_ref2.s / (p1_ref2.beta0 * clight) # Absolute reference time of arrival
+dt_ref1 = -p1.zeta / (p1.beta0 * clight)           # Arrival time relative to reference
+dt_ref2 = -p1_ref2.zeta / (p1_ref2.beta0 * clight) # Arrival time relative to reference
+
+assert np.isclose(t0_ref1 + dt_ref1, t0_ref2 + dt_ref2, atol=1e-11, rtol=0)
