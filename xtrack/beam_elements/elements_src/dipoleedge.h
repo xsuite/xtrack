@@ -79,14 +79,14 @@ void DipoleEdge_track_local_particle(DipoleEdgeData el, LocalParticle* part0){
                     YRotation_single_particle(part, sin_, cos_, tan_);
                 //end_per_particle_block
             }
-            // //start_per_particle_block (part0->part)
-            //     Fringe_single_particle(part, fint, hgap, k);
-            // //end_per_particle_block
-            // if (sin_ > -99.){
-            //     //start_per_particle_block (part0->part)
-            //         Wedge_single_particle(part, -e1, k);
-            //     //end_per_particle_block
-            // }
+            //start_per_particle_block (part0->part)
+                Fringe_single_particle(part, fint, hgap, k);
+            //end_per_particle_block
+            if (sin_ > -99.){
+                //start_per_particle_block (part0->part)
+                    Wedge_single_particle(part, -e1, k);
+                //end_per_particle_block
+            }
         }
         else if (side == 1){ // exit
             if (sin_ > -99.){
