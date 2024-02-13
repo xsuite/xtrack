@@ -83,6 +83,15 @@ class Drift(BeamElement):
         container[slice_name] = Drift(_buffer=_buffer)
         container[slice_name].length = _get_expr(container[thick_name].length) * weight
 
+    @classmethod
+    def add_thick_slice(cls, weight, container, name, slice_name, _buffer=None):
+        cls.add_slice(weight, container, name, slice_name, _buffer=_buffer)
+
+    @staticmethod
+    def delete_element_ref(ref):
+        _unregister_if_preset(ref.length)
+        _unregister_if_preset(ref)
+
 
 class Cavity(BeamElement):
     '''Beam element modeling an RF cavity.

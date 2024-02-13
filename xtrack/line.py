@@ -7,11 +7,12 @@ import io
 import math
 import logging
 import json
+from collections import defaultdict
 from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
 from pathlib import Path
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Dict
 
 import numpy as np
 from scipy.constants import c as clight
@@ -24,7 +25,7 @@ import xtrack as xt
 import xdeps as xd
 from .compounds import CompoundContainer, CompoundType, Compound, SlicedCompound
 from .progress_indicator import progress
-from .slicing import Slicer
+from .slicing import Custom, Slicer, Strategy
 
 
 from .survey import survey_from_line
@@ -1731,6 +1732,64 @@ class Line:
                 return [s[self.element_names.index(nn)] for nn in at_elements]
         else:
             return s
+
+    def _get_elements_for_cutting(
+            self,
+            s: List[float],
+            tol=1e-16,
+    ) -> Dict[str, List[float]]:
+        cuts_for_element = defaultdict(list)
+
+        all_s_positions = self.get_s_elements()
+        all_s_iter = iter(zip(all_s_positions, self.element_names))
+        start, name = next(all_s_iter)
+
+        current_s_iter = iter(sorted(set(s)))
+        current_s = next(current_s_iter)
+
+        try:
+            while True:
+                element = self[name]
+                if not _is_thick(element):
+                    start, name = next(all_s_iter)
+                    continue
+
+                if np.isclose(current_s, start, atol=tol):
+                    current_s = next(current_s_iter)
+                    continue
+
+                end = start + element.length
+                if np.isclose(current_s, end, atol=tol):
+                    current_s = next(current_s_iter)
+                    continue
+
+                if start < current_s < end:
+                    cuts_for_element[name].append(current_s - start)
+                    current_s = next(current_s_iter)
+                    continue
+                if current_s < start:
+                    current_s = next(current_s_iter)
+                    continue
+                if end < current_s:
+                    start, name = next(all_s_iter)
+                    continue
+        except StopIteration:
+            # We have either exhausted `s` or the line
+            # Do we want to raise an error if `s` was not exhausted?
+            pass
+
+        return cuts_for_element
+
+    def cut_at_s(self, s: List[float]):
+        cuts_for_element = self._get_elements_for_cutting(s)
+        strategies = [Strategy(None, name=r'.*')]
+        for name, cuts in cuts_for_element.items():
+            scheme = Custom(at_s=cuts, mode='thick')
+            strategy = Strategy(scheme, name=name)
+            strategies.append(strategy)
+
+        slicer = Slicer(self, slicing_strategies=strategies)
+        slicer.slice_in_place()
 
     def insert_element(self, name, element=None, at=None, index=None, at_s=None,
                        s_tol=1e-6):

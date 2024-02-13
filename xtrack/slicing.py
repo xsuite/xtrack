@@ -273,25 +273,17 @@ class Slicer:
     def _slice_element(self, name, element) -> Optional[List[str]]:
         """Slice element and return slice names, or None if no slicing."""
         # Don't slice already thin elements and drifts
-        if not element.isthick or isinstance(element, xt.Drift):
+        if not element.isthick:
             return None
 
-        # Choose a slicing strategy for the element
-        slicing_found = False
-        chosen_slicing = None
-        for strategy in reversed(self.slicing_strategies):
-            if strategy.match_element(name, element):
-                slicing_found = True
-                chosen_slicing = strategy.slicing
-                break
-
-        if not slicing_found:
-            raise ValueError(f'No slicing strategy found for the element '
-                             f'{name}: {element}.')
+        chosen_slicing = self._scheme_for_element(element, name)
 
         # If the chosen slicing is explicitly None, then we keep the current
         # thick element and don't add any slices.
         if chosen_slicing is None:
+            return None
+
+        if isinstance(element, xt.Drift) and chosen_slicing.mode == 'thin':
             return None
 
         # Make the slices and add them to line.element_dict (so far inactive)
@@ -317,6 +309,20 @@ class Slicer:
 
         return slices_to_add
 
+    def _scheme_for_element(self, element, name):
+        """Choose a slicing strategy for the element"""
+        slicing_found = False
+        chosen_slicing = None
+        for strategy in reversed(self.slicing_strategies):
+            if strategy.match_element(name, element):
+                slicing_found = True
+                chosen_slicing = strategy.slicing
+                break
+        if not slicing_found:
+            raise ValueError(f'No slicing strategy found for the element '
+                             f'{name}: {element}.')
+        return chosen_slicing
+
     def _make_slices(self, element, chosen_slicing, name):
         """
         Add the slices to the line.element_dict. If the element has expressions
@@ -340,7 +346,7 @@ class Slicer:
         drift_to_slice = xt.Drift(length=element.length)
         slices_to_append = []
 
-        for weight, is_drift in chosen_slicing.iter_weights(element):
+        for weight, is_drift in chosen_slicing.iter_weights(element.length):
             if is_drift and chosen_slicing.mode == 'thin':
                 slice_name = f'drift_{name}..{drift_idx}'
                 obj_to_slice = drift_to_slice

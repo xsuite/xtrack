@@ -1133,3 +1133,83 @@ def test_compound_transformations(compound_type):
         assert len(line.get_compound_by_name('c').core) == 2
         assert len(line.get_compound_by_name('c').entry_transform) == 5
         assert len(line.get_compound_by_name('c').exit_transform) == 5
+
+
+def test_get_elements_intersected_by_s():
+    elements = {
+        'e1': xt.Drift(length=1),  # at 0
+        'e2': xt.Drift(length=2),  # at 1
+        'm1': xt.Marker(),         # at 3
+        'e3': xt.Drift(length=1),  # at 3
+        'm2': xt.Marker(),         # at 4
+        'm3': xt.Marker(),         # at 4
+        'e4': xt.Drift(length=1),  # at 4
+        'e5': xt.Drift(length=2),  # at 5
+        'e6': xt.Drift(length=1),  # at 7
+        'm4': xt.Marker(),         # at 8
+    }
+
+    line = xt.Line(
+        elements=elements,
+        element_names=list(elements.keys()),
+    )
+
+    cuts = [
+        0.5,  # e1
+        1,
+        1.1, 1.7,  # e2
+        4.5,  # e4
+        7.8, 7.9,  # e6
+        8,
+        8,
+    ]
+
+    expected = {
+        'e1': [0.5],
+        'e2': [0.1, 0.7],
+        'e4': [0.5],
+        'e6': [0.8, 0.9],
+    }
+    result = line._get_elements_for_cutting(cuts)
+    for kk in expected.keys() | result.keys():
+        assert np.allclose(expected[kk], result[kk], atol=1e-16)
+
+
+def test_slicing_at_custom_s():
+    elements = {
+        'e1': xt.Drift(length=1),  # at 0
+        'e2': xt.Drift(length=2),  # at 1
+        'm1': xt.Marker(),         # at 3
+        'e3': xt.Drift(length=1),  # at 3
+        'm2': xt.Marker(),         # at 4
+        'm3': xt.Marker(),         # at 4
+        'e4': xt.Drift(length=1),  # at 4
+        'e5': xt.Drift(length=2),  # at 5
+        'e6': xt.Drift(length=1),  # at 7
+        'm4': xt.Marker(),         # at 8
+    }
+
+    line = xt.Line(
+        elements=elements,
+        element_names=list(elements.keys()),
+    )
+
+    cuts = [
+        0.5,  # e1
+        1,
+        1.1, 1.7,  # e2
+        4.5,  # e4
+        7.8, 7.9,  # e6
+        8,
+        8,
+    ]
+
+    line.cut_at_s(cuts)
+
+    tab = line.get_table()
+    assert np.allclose(tab.rows[r'e1\.\.\d*'].s, [0, 0.5], atol=1e-16)
+    assert np.allclose(tab.rows[r'e2\.\.\d*'].s, [1, 1.1, 1.7], atol=1e-16)
+    assert np.allclose(tab.rows[r'e3\.\.\d*'].s, [3], atol=1e-16)
+    assert np.allclose(tab.rows[r'e4\.\.\d*'].s, [4, 4.5], atol=1e-16)
+    assert np.allclose(tab.rows[r'e5\.\.\d*'].s, [5], atol=1e-16)
+    assert np.allclose(tab.rows[r'e6\.\.\d*'].s, [7, 7.8, 7.9], atol=1e-16)
