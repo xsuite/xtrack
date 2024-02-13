@@ -29,7 +29,7 @@ p1_ref2_charge_ratio = p1.q0 / p1_ref2.q0
 
 p1_ref2.x = p1.x
 p1_ref2.y = p1.y
-p1_ref2.zeta = p1.zeta
+p1_ref2.zeta = p1.zeta / p1.beta0 * p1_ref2.beta0
 p1_ref2.charge_ratio = p1_ref2_charge_ratio
 p1_ref2.chi = p1_ref2_charge_ratio / p1_ref2_mass_ratio
 p1_ref2.delta = P_p1 / p1_ref2_mass_ratio / p1_ref2.p0c - 1
@@ -37,10 +37,15 @@ p1_ref2.delta = P_p1 / p1_ref2_mass_ratio / p1_ref2.p0c - 1
 assert np.isclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
 assert np.isclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
 assert np.isclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
+assert np.isclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
+
+assert np.isclose(p1.rpp, 1 / (1 + p1.delta), atol=0, rtol=1e-14)
+assert np.isclose(p1_ref2.rpp, 1 / (1 + p1_ref2.delta), atol=0, rtol=1e-14)
+
 
 
 L_bend = 1.
-B_T = 2
+B_T = 0.2
 
 P0_J_ref1 = p_ref1.p0c[0] / clight * qe
 h_bend_ref1 = B_T * qe * p_ref1.charge / P0_J_ref1 # This is brho
@@ -85,3 +90,11 @@ line_ref2.track(p1_ref2)
 
 assert np.isclose(p1.x, p1_ref2.x, atol=0, rtol=1e-14)
 assert np.isclose(p1.y, p1_ref2.y, atol=0, rtol=1e-14)
+assert np.isclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
+assert np.isclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
+assert np.isclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
+assert np.isclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
+
+
+# rpp : array_like of float, optional
+#     m/m0 P0c / Pc = 1/(1+delta)
