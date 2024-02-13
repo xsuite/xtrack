@@ -31,8 +31,8 @@ Sol = RFT.Solenoid(Lsol, B0, R)
 Vsol = RFT.Volume()
 Vsol.dt_mm = 1 # mm/c, integration step
 Vsol.odeint_algorithm = 'rk2' # integration algorithm, e.g., 'rk2', 'rkf45', 'leapfrog' 
-Vsol.set_s0(-0.75) # m, tracking start point
-Vsol.set_s1( 0.75) # m, tracking end point
+Vsol.set_s0(-0.75) # m, longitudinal start point
+Vsol.set_s1( 0.75) # m, longitudinal end point
 Vsol.add(Sol, 0, 0, 0, 'center');
 
 #############################################
