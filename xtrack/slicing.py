@@ -240,6 +240,12 @@ class Slicer:
         if not slicing_was_performed:
             return None
 
+        aperture = self._order_set_by_line(compound.aperture)
+        entry_transform = self._order_set_by_line(compound.entry_transform)
+        exit_transform = self._order_set_by_line(compound.exit_transform)
+        compound_entry = self._order_set_by_line(compound.entry)
+        compound_exit = self._order_set_by_line(compound.exit)
+
         updated_core = []
         slice_idx = 0
         for slice_name in sliced_core:
@@ -247,12 +253,6 @@ class Slicer:
             if isinstance(element, xt.Drift):
                 updated_core.append(slice_name)
                 continue
-
-            aperture = self._order_set_by_line(compound.aperture)
-            entry_transform = self._order_set_by_line(compound.entry_transform)
-            exit_transform = self._order_set_by_line(compound.exit_transform)
-            compound_entry = self._order_set_by_line(compound.entry)
-            compound_exit = self._order_set_by_line(compound.exit)
 
             # Copy the apertures and transformations with a new name
             updated_core += (

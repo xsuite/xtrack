@@ -999,6 +999,16 @@ class Sextupole(BeamElement):
 
         ref.order = 2
 
+    @classmethod
+    def add_thick_slice(cls, weight, container, name, slice_name, _buffer=None):
+        self_or_ref = container[name]
+        container[slice_name] = cls(_buffer=_buffer)
+        ref = container[slice_name]
+
+        ref.length = _get_expr(self_or_ref.length) * weight
+        ref.k2 = _get_expr(self_or_ref.k2)
+        ref.k2s = _get_expr(self_or_ref.k2s)
+
     @staticmethod
     def delete_element_ref(ref):
         # Remove the scalar fields
