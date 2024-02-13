@@ -47,7 +47,7 @@ assert np.isclose(p1c, p1c_ref2, atol=0, rtol=1e-14)
 
 L_bend = 1.
 
-B_T = 0.2
+B_T = 0.5
 BsT = 0.1
 G_Tm = 0.1
 Gs_Tm = -0.05
