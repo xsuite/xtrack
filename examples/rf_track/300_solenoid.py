@@ -85,7 +85,7 @@ print('tracking ends')
 ## Retrieve Twiss from RF-Track and plot  ###
 #############################################
 
-# Plot the transverse phase space
+# Plot the transverse plane
 plt.figure(1)
 plt.scatter(particles.x*1e3, particles.y*1e3, s=10, facecolors='none', edgecolors='b')
 plt.xlabel("$x$ [mm]")
