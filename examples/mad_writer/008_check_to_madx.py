@@ -25,7 +25,7 @@ line2.particle_ref = line.particle_ref
 for ll in [line, line2]:
     ll.vv['kqtf.b1'] += 1e-5
     ll.vv['ksf.b1'] += 1e-3
-    # ll.vv['kqs.l4b1'] += 1e-4
+    ll.vv['kqs.l4b1'] += 1e-4
 
 tw = line.twiss()
 tw2 = line2.twiss()

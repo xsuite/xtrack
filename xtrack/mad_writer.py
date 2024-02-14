@@ -204,6 +204,7 @@ def quadrupole_to_madx_str(name, line):
     tokens.append('quadrupole')
     tokens.append(mad_assignment('l', _ge(quad.length)))
     tokens.append(mad_assignment('k1', _ge(quad.k1)))
+    tokens.append(mad_assignment('k1s', _ge(quad.k1s)))
     return ', '.join(tokens)
 
 def solenoid_to_madx_str(name, line):
