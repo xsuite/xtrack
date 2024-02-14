@@ -7,7 +7,7 @@ import pytest
 import math
 
 import xtrack as xt
-from xtrack.slicing import Strategy, Teapot, Uniform, Custom
+from xtrack.slicing import Strategy, Teapot, Uniform, Custom, Slicer
 
 
 def test_slicing_uniform():
@@ -144,6 +144,48 @@ def test_slicing_custom_thick():
     ]
     result_3 = [w for w in slicing_3.iter_weights(element_length=elem_len_3)]
     assert expected_3 == result_3  # ditto
+
+
+def test_strategy_matching_good_order():
+    slicing_strategies = [
+        Strategy(slicing=Uniform(1)),
+        Strategy(element_type=xt.Drift, slicing=Uniform(2)),
+        Strategy(name='some.*', slicing=Uniform(3)),
+        Strategy(name='something', slicing=Uniform(4)),
+        Strategy(name='something', element_type=xt.Drift, slicing=Uniform(5)),
+    ]
+
+    dr = xt.Drift()
+    mk = xt.Marker()
+    line = xt.Line(elements=[dr, mk])
+    slicer = Slicer(slicing_strategies=slicing_strategies, line=line)
+
+    assert slicer._scheme_for_element(element=mk, name='else').slicing_order == 1
+    assert slicer._scheme_for_element(element=dr, name='what').slicing_order == 2
+    assert slicer._scheme_for_element(element=dr, name='somewhat').slicing_order == 3
+    assert slicer._scheme_for_element(element=mk, name='something').slicing_order == 4
+    assert slicer._scheme_for_element(element=dr, name='something').slicing_order == 5
+
+
+def test_strategy_matching_confusing_order():
+    slicing_strategies = [
+        Strategy(slicing=Uniform(1)),
+        Strategy(name='something', slicing=Uniform(2)),
+        Strategy(name='something', element_type=xt.Drift, slicing=Uniform(3)),
+        Strategy(name='some.*', slicing=Uniform(4)),
+        Strategy(name='some.*', element_type=xt.Drift, slicing=Uniform(5)),
+    ]
+
+    dr = xt.Drift()
+    mk = xt.Marker()
+    line = xt.Line(elements=[dr, mk])
+    slicer = Slicer(slicing_strategies=slicing_strategies, line=line)
+
+    assert slicer._scheme_for_element(element=mk, name='else').slicing_order == 1
+    assert slicer._scheme_for_element(element=mk, name='something').slicing_order == 4
+    assert slicer._scheme_for_element(element=dr, name='something').slicing_order == 5
+    assert slicer._scheme_for_element(element=mk, name='somewhat').slicing_order == 4
+    assert slicer._scheme_for_element(element=dr, name='somewhat').slicing_order == 5
 
 
 def test_slicing_strategy_matching():

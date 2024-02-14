@@ -1742,12 +1742,12 @@ class Line:
 
         all_s_positions = self.get_s_elements()
         all_s_iter = iter(zip(all_s_positions, self.element_names))
-        start, name = next(all_s_iter)
-
         current_s_iter = iter(sorted(set(s)))
-        current_s = next(current_s_iter)
 
         try:
+            start, name = next(all_s_iter)
+            current_s = next(current_s_iter)
+
             while True:
                 element = self[name]
                 if not _is_thick(element):
@@ -1782,10 +1782,10 @@ class Line:
 
     def cut_at_s(self, s: List[float]):
         cuts_for_element = self._get_elements_for_cutting(s)
-        strategies = [Strategy(None, name=r'.*')]
+        strategies = [Strategy(None)]  # catch-all, ignore unaffected elements
         for name, cuts in cuts_for_element.items():
             scheme = Custom(at_s=cuts, mode='thick')
-            strategy = Strategy(scheme, name=name)
+            strategy = Strategy(scheme, name=name, exact=True)
             strategies.append(strategy)
 
         slicer = Slicer(self, slicing_strategies=strategies)
