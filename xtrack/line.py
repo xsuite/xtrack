@@ -2039,6 +2039,8 @@ class Line:
             names_after = [_generate_name('tilt_exit')] + names_after
 
         # Commit the transformations to the line
+        self.compound_container.remove_compound(compound_name)
+
         for idx, element in enumerate(reversed(after)):
             new_name = names_after[-idx - 1]
             self.insert_element(index=idx_end, element=element, name=new_name)
@@ -2048,6 +2050,8 @@ class Line:
             new_name = names_before[-idx - 1]
             self.insert_element(index=idx_begin, element=element, name=new_name)
             compound.add_transform(new_name, side='entry')
+
+        self.compound_container.define_compound(compound_name, compound)
 
     def _enumerate_top_level(self):
         idx = 0
