@@ -1,0 +1,46 @@
+import numpy as np
+from cpymad.madx import Madx
+import xtrack as xt
+
+line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
+line.build_tracker()
+
+line.vars['vrf400'] = 16
+line.vars['lagrf400.b1'] = 0.52
+line.vars['on_x1'] = 100
+line.vars['on_sep2'] = 2
+line.vars['on_x5'] = 123
+
+
+mad_seq = line.to_madx_sequence(sequence_name='myseq')
+
+mad = Madx()
+mad.input(mad_seq)
+mad.beam(particle='proton', energy=7000e9) #!!!!!
+mad.use('myseq')
+
+line2 = xt.Line.from_madx_sequence(mad.sequence.myseq, deferred_expressions=True)
+line2.particle_ref = line.particle_ref
+
+for ll in [line, line2]:
+    ll.vv['kqtf.b1'] += 1e-5
+    ll.vv['ksf.b1'] += 1e-3
+    # ll.vv['kqs.l4b1'] += 1e-4
+
+tw = line.twiss()
+tw2 = line2.twiss()
+
+assert np.all(tw2.rows['ip.*'].name == tw.rows['ip.*'].name)
+
+assert np.allclose(tw2.rows['ip.*'].s, tw.rows['ip.*'].s, rtol=0, atol=2e-9)
+assert np.allclose(tw2.rows['ip.*'].x, tw.rows['ip.*'].x, rtol=0, atol=1e-9)
+assert np.allclose(tw2.rows['ip.*'].y, tw.rows['ip.*'].y, rtol=0, atol=1e-9)
+assert np.allclose(tw2.rows['ip.*'].px, tw.rows['ip.*'].px, rtol=0, atol=1e-9)
+assert np.allclose(tw2.rows['ip.*'].py, tw.rows['ip.*'].py, rtol=0, atol=1e-9)
+assert np.allclose(tw2.rows['ip.*'].mux, tw.rows['ip.*'].mux, rtol=0, atol=1e-9)
+assert np.allclose(tw2.rows['ip.*'].muy, tw.rows['ip.*'].muy, rtol=0, atol=1e-9)
+assert np.allclose(tw2.rows['ip.*'].betx, tw.rows['ip.*'].betx, rtol=1e-7, atol=0)
+assert np.allclose(tw2.rows['ip.*'].bety, tw.rows['ip.*'].bety, rtol=1e-7, atol=0)
+assert np.allclose(tw2.rows['ip.*'].ax_chrom, tw.rows['ip.*'].ax_chrom, rtol=1e-5, atol=0)
+
+assert np.isclose(tw2.qs, tw.qs, rtol=0, atol=1e-7)
