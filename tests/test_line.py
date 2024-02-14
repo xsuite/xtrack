@@ -1135,7 +1135,7 @@ def test_compound_transformations(compound_type):
         assert len(line.get_compound_by_name('c').exit_transform) == 5
 
 
-def test_get_elements_intersected_by_s():
+def test_elements_intersecting_s():
     elements = {
         'e1': xt.Drift(length=1),  # at 0
         'e2': xt.Drift(length=2),  # at 1
@@ -1170,7 +1170,7 @@ def test_get_elements_intersected_by_s():
         'e4': [0.5],
         'e6': [0.8, 0.9],
     }
-    result = line._get_elements_for_cutting(cuts)
+    result = line._elements_intersecting_s(cuts)
     for kk in expected.keys() | result.keys():
         assert np.allclose(expected[kk], result[kk], atol=1e-16)
 

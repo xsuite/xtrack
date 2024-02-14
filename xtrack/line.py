@@ -1733,11 +1733,28 @@ class Line:
         else:
             return s
 
-    def _get_elements_for_cutting(
+    def _elements_intersecting_s(
             self,
             s: List[float],
             tol=1e-16,
     ) -> Dict[str, List[float]]:
+        """Given a list of s positions, return a list of elements 'cut' by s.
+
+        Arguments
+        ---------
+        s
+            A list of s positions.
+        tol
+            Tolerance used when checking if s falls inside an element, or
+            at its edge. Defaults to 1e-16.
+
+        Returns
+        -------
+        A dictionary, where the keys are the names of the intersected elements,
+        and the value for each key is a list of s positions (offset to be
+        relative to the start of the element) corresponding to the 'cuts'.
+        The structure is ordered such that the cuts are sequential.
+        """
         cuts_for_element = defaultdict(list)
 
         all_s_positions = self.get_s_elements()
@@ -1781,7 +1798,8 @@ class Line:
         return cuts_for_element
 
     def cut_at_s(self, s: List[float]):
-        cuts_for_element = self._get_elements_for_cutting(s)
+        """Slice the line so that positions in s never fall inside an element."""
+        cuts_for_element = self._elements_intersecting_s(s)
         strategies = [Strategy(None)]  # catch-all, ignore unaffected elements
         for name, cuts in cuts_for_element.items():
             scheme = Custom(at_s=cuts, mode='thick')

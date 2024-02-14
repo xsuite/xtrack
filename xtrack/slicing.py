@@ -205,6 +205,9 @@ class Slicer:
         self._slicing_strategies = slicing_strategies
         self._has_expressions = line.vars is not None
 
+        # If all strategies are exact matches (no regex), instead of performing
+        # sequential matching against them all, we can use dictionary lookup to
+        # immediately find the right strategy.
         self._use_cache = True
         strategy_cache = {}
         for score, strategy in enumerate(reversed(slicing_strategies)):
