@@ -16,8 +16,8 @@ p_ref2 = xt.Particles(
 
 # Build a particle referred to reference 1
 p1 = p_ref1.copy()
-p1.x = 1e-3
-p1.y = 2e-3
+p1.x = 1e-2
+p1.y = 2e-2
 p1.delta = 0.5
 P_p1 = (1 + p1.delta) * p1.p0c
 

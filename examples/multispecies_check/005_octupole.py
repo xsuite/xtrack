@@ -55,7 +55,7 @@ k3s_ref1 = Os_Tm3 * qe * p_ref1.charge[0] / P0_J_ref1
 
 P0_J_ref2 = p_ref2.p0c[0] / clight * qe
 k3_ref2 = O_Tm3 * qe * p_ref2.charge[0] / P0_J_ref2
-k3s_ref2 = O_Tm3 * qe * p_ref2.charge[0] / P0_J_ref2
+k3s_ref2 = Os_Tm3 * qe * p_ref2.charge[0] / P0_J_ref2
 
 n_slices = 10
 
@@ -80,8 +80,8 @@ line_ref2 = xt.Line(elements=ele_ref2)
 line_ref1.append_element(element=xt.Marker(), name='endmarker')
 line_ref2.append_element(element=xt.Marker(), name='endmarker')
 
-# line_ref1.config.XTRACK_USE_EXACT_DRIFTS = True
-# line_ref2.config.XTRACK_USE_EXACT_DRIFTS = True
+line_ref1.config.XTRACK_USE_EXACT_DRIFTS = True
+line_ref2.config.XTRACK_USE_EXACT_DRIFTS = True
 
 line_ref1.build_tracker()
 line_ref2.build_tracker()
@@ -89,8 +89,8 @@ line_ref2.build_tracker()
 line_ref1.track(p1, ele_start=0, ele_stop='endmarker')
 line_ref2.track(p1_ref2, ele_start=0, ele_stop='endmarker')
 
-assert np.isclose(p1.x, p1_ref2.x, atol=0, rtol=1e-10)
-assert np.isclose(p1.y, p1_ref2.y, atol=0, rtol=1e-10)
+assert np.isclose(p1.x, p1_ref2.x, atol=0, rtol=1e-12)
+assert np.isclose(p1.y, p1_ref2.y, atol=0, rtol=1e-12)
 assert np.isclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
 assert np.isclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
 assert np.isclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
