@@ -48,17 +48,15 @@ assert np.isclose(p1c, p1c_ref2, atol=0, rtol=1e-14)
 s_cav = 100
 frequency = 400e6
 
-t0_ref1 = s_cav / (p1.beta0 * clight)           # Absolute reference time of arrival
-t0_ref2 = s_cav / (p1_ref2.beta0 * clight)      # Absolute reference time of arrival
 
-lag2 = -2 * np.pi * frequency * (t0_ref2 - t0_ref1)
+lag2 = 180 / np.pi *  2 * np.pi * frequency * s_cav / clight * (1/p1_ref2.beta0 - 1/p1.beta0)
 
 
 cav_ref1 = xt.Cavity(voltage=1e6, frequency=frequency)
 cav_ref2 = xt.Cavity(voltage=1e6, frequency=frequency, lag=lag2)
 
 ele_ref1 = [xt.Drift(length=s_cav), cav_ref1, xt.Drift(length=0)]
-ele_ref2 = [xt.Drift(length=s_cav), cav_ref1, xt.Drift(length=0)]
+ele_ref2 = [xt.Drift(length=s_cav), cav_ref2, xt.Drift(length=0)]
 
 line_ref1 = xt.Line(elements=ele_ref1)
 line_ref2 = xt.Line(elements=ele_ref2)
