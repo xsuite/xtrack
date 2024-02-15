@@ -56,26 +56,26 @@ S_Tm2 = 0.05
 
 
 P0_J_ref1 = p_ref1.p0c[0] / clight * qe
-h_bend_ref1 = B_T * qe * p_ref1.charge[0] / P0_J_ref1 # This is brho
+h_bend_ref1 = B_T * qe * p_ref1.charge[0] / P0_J_ref1 * L_bend # This is brho
 theta_bend_ref1 = h_bend_ref1 * L_bend
-k1l_ref1 = G_Tm * qe * p_ref1.charge[0] / P0_J_ref1
-k2l_ref1 = S_Tm2 * qe * p_ref1.charge[0] / P0_J_ref1
+k1l_ref1 = G_Tm * qe * p_ref1.charge[0] / P0_J_ref1 * L_bend
+k2l_ref1 = S_Tm2 * qe * p_ref1.charge[0] / P0_J_ref1 * L_bend
 
 
 P0_J_ref2 = p_ref2.p0c[0] / clight * qe
-h_bend_ref2 = B_T * qe * p_ref2.charge[0] / P0_J_ref2
+h_bend_ref2 = B_T * qe * p_ref2.charge[0] / P0_J_ref2 * L_bend
 theta_bend_ref2 = h_bend_ref2 * L_bend
-k1l_ref2 = G_Tm * qe * p_ref2.charge[0] / P0_J_ref2
-k2l_ref2 = S_Tm2 * qe * p_ref2.charge[0] / P0_J_ref2
+k1l_ref2 = G_Tm * qe * p_ref2.charge[0] / P0_J_ref2 * L_bend
+k2l_ref2 = S_Tm2 * qe * p_ref2.charge[0] / P0_J_ref2 * L_bend
 
 n_slices = 10
 
 dipole_ref1 = xt.Bend(k0=theta_bend_ref1/L_bend, length=L_bend / n_slices,
-                      h=hxl/L_bend, k1 = k1l_ref1/L_bend,
-                      knl=[0, 0, k2l_ref1/L_bend])
+                      h=hxl/L_bend, k1=k1l_ref1/n_slices/L_bend,
+                      knl=[0, 0, k2l_ref1/n_slices])
 dipole_ref2 = xt.Bend(k0=theta_bend_ref2/L_bend, length=L_bend / n_slices,
-                      h=hxl/L_bend, k1 = k1l_ref2/L_bend,
-                      knl=[0, 0, k2l_ref1/L_bend])
+                      h=hxl/L_bend, k1=k1l_ref1/n_slices/L_bend,
+                      knl=[0, 0, k2l_ref2/n_slices])
 
 ele_ref1 = []
 for ii in range(n_slices):
