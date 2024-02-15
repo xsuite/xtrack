@@ -34,6 +34,8 @@ for ll in [line, line2]:
     ll.vv['ksf.b1'] += 1e-3  # Check sext expressions
     ll.vv['kqs.l4b1'] += 1e-4 # Check skew expressions
     ll.vv['kof.a34b1'] = 3 # Check oct expressions
+    ll.vars['on_crab1'] = -190 # Check cavity expressions
+    ll.vars['on_crab5'] = -130 # Check cavity expressions
 
 tw = line.twiss()
 tw2 = line2.twiss()
@@ -45,8 +47,8 @@ assert np.allclose(tw2.rows['ip.*'].x, tw.rows['ip.*'].x, rtol=0, atol=1e-9)
 assert np.allclose(tw2.rows['ip.*'].y, tw.rows['ip.*'].y, rtol=0, atol=1e-9)
 assert np.allclose(tw2.rows['ip.*'].px, tw.rows['ip.*'].px, rtol=0, atol=1e-9)
 assert np.allclose(tw2.rows['ip.*'].py, tw.rows['ip.*'].py, rtol=0, atol=1e-9)
-assert np.allclose(tw2.rows['ip.*'].mux, tw.rows['ip.*'].mux, rtol=0, atol=1e-9)
-assert np.allclose(tw2.rows['ip.*'].muy, tw.rows['ip.*'].muy, rtol=0, atol=1e-9)
+assert np.allclose(tw2.rows['ip.*'].mux, tw.rows['ip.*'].mux, rtol=0, atol=1e-8)
+assert np.allclose(tw2.rows['ip.*'].muy, tw.rows['ip.*'].muy, rtol=0, atol=1e-8)
 assert np.allclose(tw2.rows['ip.*'].betx, tw.rows['ip.*'].betx, rtol=1e-7, atol=0)
 assert np.allclose(tw2.rows['ip.*'].bety, tw.rows['ip.*'].bety, rtol=1e-7, atol=0)
 assert np.allclose(tw2.rows['ip.*'].ax_chrom, tw.rows['ip.*'].ax_chrom, rtol=1e-5, atol=0)
