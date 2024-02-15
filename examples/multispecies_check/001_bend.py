@@ -49,9 +49,9 @@ assert np.isclose(p1c, p1c_ref2, atol=0, rtol=1e-14)
 model = 'rot-kick-rot'
 # model = 'expanded'
 L_bend = 1.
-B_T = 0# 0.4
-hxl = 0#0.2
-G_Tm = 0#0.1
+B_T = 0.4
+hxl = 0.2
+G_Tm = 0.1
 S_Tm2 = 0.05
 
 
@@ -74,7 +74,7 @@ dipole_ref1 = xt.Bend(k0=theta_bend_ref1/L_bend, length=L_bend / n_slices,
                       h=hxl/L_bend, k1=k1l_ref1/n_slices/L_bend,
                       knl=[0, 0, k2l_ref1/n_slices])
 dipole_ref2 = xt.Bend(k0=theta_bend_ref2/L_bend, length=L_bend / n_slices,
-                      h=hxl/L_bend, k1=k1l_ref1/n_slices/L_bend,
+                      h=hxl/L_bend, k1=k1l_ref2/n_slices/L_bend,
                       knl=[0, 0, k2l_ref2/n_slices])
 
 ele_ref1 = []
