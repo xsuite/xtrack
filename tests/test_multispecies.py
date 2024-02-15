@@ -118,9 +118,12 @@ def test_multispecies_multipole():
 
     assert np.isclose(t0_ref1 + dt_ref1, t0_ref2 + dt_ref2, atol=1e-11, rtol=0)
 
-@pytest.mark.parametrize('model', ['expanded'])
-def test_multispecies_bend(model):
-
+@pytest.mark.parametrize('model', ['expanded', 'bend-kick-bend', 'rot-kick-rot'])
+@pytest.mark.parametrize('B_T', [0.4, 0])
+@pytest.mark.parametrize('hxl', [0.2, 0])
+@pytest.mark.parametrize('G_Tm', [0.1, 0])
+@pytest.mark.parametrize('S_Tm2', [0.05, 0])
+def test_multispecies_bend(model, B_T, hxl, G_Tm, S_Tm2):
     p_ref1 = xt.Particles(
         mass0=xt.PROTON_MASS_EV,
         q0=2,
@@ -163,32 +166,32 @@ def test_multispecies_bend(model):
     assert np.isclose(p1c, p1c_ref2, atol=0, rtol=1e-14)
 
     L_bend = 1.
-    B_T = 0.4
-    hxl = 0.2
-    G_Tm = 0.1
-    S_Tm2 = 0.05
 
     P0_J_ref1 = p_ref1.p0c[0] / clight * qe
-    h_bend_ref1 = B_T * qe * p_ref1.charge[0] / P0_J_ref1 # This is brho
+    h_bend_ref1 = B_T * qe * p_ref1.charge[0] / P0_J_ref1 * L_bend # This is brho
     theta_bend_ref1 = h_bend_ref1 * L_bend
-    k1l_ref1 = G_Tm * qe * p_ref1.charge[0] / P0_J_ref1
-    k2l_ref1 = S_Tm2 * qe * p_ref1.charge[0] / P0_J_ref1
+    k1l_ref1 = G_Tm * qe * p_ref1.charge[0] / P0_J_ref1 * L_bend
+    k2l_ref1 = S_Tm2 * qe * p_ref1.charge[0] / P0_J_ref1 * L_bend
 
 
     P0_J_ref2 = p_ref2.p0c[0] / clight * qe
-    h_bend_ref2 = B_T * qe * p_ref2.charge[0] / P0_J_ref2
+    h_bend_ref2 = B_T * qe * p_ref2.charge[0] / P0_J_ref2 * L_bend
     theta_bend_ref2 = h_bend_ref2 * L_bend
-    k1l_ref2 = G_Tm * qe * p_ref2.charge[0] / P0_J_ref2
-    k2l_ref2 = S_Tm2 * qe * p_ref2.charge[0] / P0_J_ref2
+    k1l_ref2 = G_Tm * qe * p_ref2.charge[0] / P0_J_ref2 * L_bend
+    k2l_ref2 = S_Tm2 * qe * p_ref2.charge[0] / P0_J_ref2 * L_bend
 
     n_slices = 10
 
     dipole_ref1 = xt.Bend(k0=theta_bend_ref1/L_bend, length=L_bend / n_slices,
-                        h=hxl/L_bend, k1 = k1l_ref1/L_bend,
-                        knl=[0, 0, k2l_ref1/L_bend])
+                        h=hxl/L_bend, k1=k1l_ref1/n_slices/L_bend,
+                        knl=[0, 0, k2l_ref1/n_slices])
     dipole_ref2 = xt.Bend(k0=theta_bend_ref2/L_bend, length=L_bend / n_slices,
-                        h=hxl/L_bend, k1 = k1l_ref2/L_bend,
-                        knl=[0, 0, k2l_ref1/L_bend])
+                        h=hxl/L_bend, k1=k1l_ref2/n_slices/L_bend,
+                        knl=[0, 0, k2l_ref2/n_slices])
+
+    if model == 'expanded':
+        dipole_ref1.num_multipole_kicks = 5
+        dipole_ref2.num_multipole_kicks = 5
 
     ele_ref1 = []
     for ii in range(n_slices):
