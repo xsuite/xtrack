@@ -52,6 +52,8 @@ assert np.allclose(tw2.rows['ip.*'].muy, tw.rows['ip.*'].muy, rtol=0, atol=1e-8)
 assert np.allclose(tw2.rows['ip.*'].betx, tw.rows['ip.*'].betx, rtol=1e-7, atol=0)
 assert np.allclose(tw2.rows['ip.*'].bety, tw.rows['ip.*'].bety, rtol=1e-7, atol=0)
 assert np.allclose(tw2.rows['ip.*'].ax_chrom, tw.rows['ip.*'].ax_chrom, rtol=1e-5, atol=0)
+assert np.allclose(tw2.rows['ip.*'].dx_zeta, tw.rows['ip.*'].dx_zeta, rtol=2e-4, atol=0)
+assert np.allclose(tw2.rows['ip.*'].dy_zeta, tw.rows['ip.*'].dy_zeta, rtol=2e-4, atol=0)
 
 assert np.isclose(tw2.qs, tw.qs, rtol=0, atol=1e-7)
 assert np.isclose(tw2.ddqx, tw.ddqx, rtol=2e-4, atol=0)
