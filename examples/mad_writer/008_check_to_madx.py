@@ -2,10 +2,18 @@ import numpy as np
 from cpymad.madx import Madx
 import xtrack as xt
 
-line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
+# line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
+
+
+line = xt.Multiline.from_json(
+    '../../test_data/hllhc15_collider/collider_00_from_mad.json').lhcb1
+# Rotations not supported in thin
+for nn in list(line.element_names):
+    if (nn.startswith('mb') and
+       (nn.endswith('_tilt_entry') or nn.endswith('_tilt_exit'))):
+        line.element_names.remove(nn)
+
 line.build_tracker()
-
-
 mad_seq = line.to_madx_sequence(sequence_name='myseq')
 
 mad = Madx()
