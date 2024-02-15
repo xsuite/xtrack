@@ -33,13 +33,12 @@ def expr_to_mad_str(expr):
     return expr_str
 
 def mad_str_or_value(var):
-    vv = _ge(var)
-    if _is_ref(vv):
-        out = expr_to_mad_str(vv)
+    if _is_ref(var):
+        out = expr_to_mad_str(var)
         out = out.strip('._expr')
         return out
     else:
-        return vv
+        return var
 
 def mad_assignment(lhs, rhs):
     if _is_ref(rhs):
@@ -247,7 +246,7 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
     for vv in line.vars.keys():
         if vv == '__vary_default':
             continue
-        vars_str += mad_assignment(vv, line.vars[vv]) + ";\n"
+        vars_str += mad_assignment(vv, _ge(line.vars[vv])) + ";\n"
 
     if mode =='line':
         elements_str = ""
