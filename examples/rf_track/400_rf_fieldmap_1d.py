@@ -27,8 +27,8 @@ freq = 11.994e9 # Hz, RF frequency
 
 # Setup the element
 RF = RFT.RF_FieldMap_1d(Ez, hz/1e3, -1, freq, +1);
-RF.set_P_actual(10e6) # W, actual input power
 RF.set_P_map(4) # W, field map input power
+RF.set_P_actual(10e6) # W, actual input power
 RF.set_odeint_algorithm('rk2')
 RF.set_smooth(10)
 
