@@ -5,11 +5,7 @@ import xtrack as xt
 line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
 line.build_tracker()
 
-line.vars['vrf400'] = 16
-line.vars['lagrf400.b1'] = 0.52
-line.vars['on_x1'] = 100
-line.vars['on_sep2'] = 2
-line.vars['on_x5'] = 123
+
 
 
 mad_seq = line.to_madx_sequence(sequence_name='myseq')
@@ -23,6 +19,11 @@ line2 = xt.Line.from_madx_sequence(mad.sequence.myseq, deferred_expressions=True
 line2.particle_ref = line.particle_ref
 
 for ll in [line, line2]:
+    ll.vars['vrf400'] = 16 # Check voltage expressions
+    ll.vars['lagrf400.b1'] = 0.52 # Check lag expressions
+    ll.vars['on_x1'] = 100 # Check kicker expressions
+    ll.vars['on_sep2'] = 2 # Check kicker expressions
+    ll.vars['on_x5'] = 123 # Check kicker expressions
     ll.vv['kqtf.b1'] += 1e-5 # Check quad expressions
     ll.vv['ksf.b1'] += 1e-3  # Check sext expressions
     ll.vv['kqs.l4b1'] += 1e-4 # Check skew expressions
