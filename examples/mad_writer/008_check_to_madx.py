@@ -23,9 +23,10 @@ line2 = xt.Line.from_madx_sequence(mad.sequence.myseq, deferred_expressions=True
 line2.particle_ref = line.particle_ref
 
 for ll in [line, line2]:
-    ll.vv['kqtf.b1'] += 1e-5
-    ll.vv['ksf.b1'] += 1e-3
-    ll.vv['kqs.l4b1'] += 1e-4
+    ll.vv['kqtf.b1'] += 1e-5 # Check quad expressions
+    ll.vv['ksf.b1'] += 1e-3  # Check sext expressions
+    ll.vv['kqs.l4b1'] += 1e-4 # Check skew expressions
+    ll.vv['kof.a34b1'] = 3 # Check oct expressions
 
 tw = line.twiss()
 tw2 = line2.twiss()
@@ -44,3 +45,4 @@ assert np.allclose(tw2.rows['ip.*'].bety, tw.rows['ip.*'].bety, rtol=1e-7, atol=
 assert np.allclose(tw2.rows['ip.*'].ax_chrom, tw.rows['ip.*'].ax_chrom, rtol=1e-5, atol=0)
 
 assert np.isclose(tw2.qs, tw.qs, rtol=0, atol=1e-7)
+assert np.isclose(tw2.ddqx, tw.ddqx, rtol=2e-4, atol=0)
