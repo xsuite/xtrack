@@ -6,8 +6,6 @@ line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.jso
 line.build_tracker()
 
 
-
-
 mad_seq = line.to_madx_sequence(sequence_name='myseq')
 
 mad = Madx()
