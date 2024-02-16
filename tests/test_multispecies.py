@@ -722,7 +722,7 @@ def test_multispecies_cavity():
     dt_ref2 = -p1_ref2.zeta / (p1_ref2.beta0 * clight) # Arrival time relative to reference
 
     assert np.isclose(t0_ref1 + dt_ref1, t0_ref2 + dt_ref2, atol=1e-11, rtol=0)
-    assert np.isclose(p1_ref2.zeta, 
+    assert np.isclose(p1_ref2.zeta,
         (1 - p1_ref2.beta0 / p1.beta0) * p1.s + p1_ref2.beta0 / p1.beta0 * p1.zeta,
         atol=1e-11, rtol=0)
 
