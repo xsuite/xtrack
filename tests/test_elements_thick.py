@@ -418,19 +418,12 @@ def test_import_thick_quad_from_madx(with_knobs):
         deferred_expressions=with_knobs,
     )
 
-    elem_tilt_entry = line['elem_tilt_entry']
     elem = line['elem']
-    elem_tilt_exit = line['elem_tilt_exit']
 
     # Verify that the line has been imported correctly
     assert np.isclose(elem.length, 2.0, atol=1e-16)
-    assert np.isclose(elem.k1, np.sqrt(0.01 + 0.04), atol=1e-16)
-
-    expected_tilt_before = -np.arctan2(0.2, 0.1) / 2
-    tilt_entry = elem_tilt_entry.angle / 180 * np.pi  # rotation takes degrees
-    assert np.isclose(tilt_entry, expected_tilt_before, atol=1e-16)
-    tilt_exit = elem_tilt_exit.angle / 180 * np.pi  # ditto
-    assert np.isclose(-expected_tilt_before, tilt_exit, atol=1e-16)
+    assert np.isclose(elem.k1, 0.1, atol=1e-16)
+    assert np.isclose(elem.k1s, 0.2, atol=1e-16)
 
     # Finish the test here if we are not using knobs
     if not with_knobs:
@@ -445,13 +438,8 @@ def test_import_thick_quad_from_madx(with_knobs):
 
     # Verify that the line has been adjusted correctly
     assert np.isclose(elem.length, 3.0, atol=1e-16)
-    assert np.isclose(elem.k1, np.sqrt(1.21 + 1.44), atol=1e-16)
-
-    expected_tilt_after = -np.arctan2(1.2, 1.1) / 2
-    changed_tilt_entry = elem_tilt_entry.angle / 180 * np.pi  # rotation takes degrees
-    assert np.isclose(changed_tilt_entry, expected_tilt_after, atol=1e-16)
-    changed_tilt_exit = elem_tilt_exit.angle / 180 * np.pi  # ditto
-    assert np.isclose(-expected_tilt_after, changed_tilt_exit, atol=1e-16)
+    assert np.isclose(elem.k1, 1.1, atol=1e-16)
+    assert np.isclose(elem.k1s, 1.2, atol=1e-16)
 
 
 @pytest.mark.parametrize(
@@ -556,9 +544,10 @@ def test_import_thick_quad_from_madx_and_slice(with_knobs):
     # Verify that the slices are correct
     for elem in elems:
         assert np.isclose(elem.length, 1.0, atol=1e-16)
-        expected_k1l = np.sqrt(0.1**2 + 0.2**2) * 2
+        expected_k1l = 0.1 * 2
+        expected_k1sl = 0.2 * 2
         assert np.allclose(elem.knl, [0, expected_k1l / 2, 0, 0, 0], atol=1e-16)
-        assert np.allclose(elem.ksl, 0, atol=1e-16)
+        assert np.allclose(elem.ksl, [0, expected_k1sl / 2, 0, 0, 0], atol=1e-16)
         assert np.isclose(elem.hxl, 0, atol=1e-16)
         assert np.isclose(elem.hyl, 0, atol=1e-16)
 
@@ -579,9 +568,10 @@ def test_import_thick_quad_from_madx_and_slice(with_knobs):
     # Verify that the line has been adjusted correctly
     for elem in elems:
         assert np.isclose(elem.length, 1.5, atol=1e-16)
-        expected_k1l = np.sqrt(2.2 ** 2 + 2.1 ** 2) * 3
+        expected_k1l = 2.1 * 3
+        expected_k1sl = 2.2 * 3
         assert np.allclose(elem.knl, [0, expected_k1l / 2, 0, 0, 0], atol=1e-16)
-        assert np.allclose(elem.ksl, 0, atol=1e-16)
+        assert np.allclose(elem.ksl, [0, expected_k1sl / 2, 0, 0, 0], atol=1e-16)
         assert np.isclose(elem.hxl, 0, atol=1e-16)
         assert np.isclose(elem.hyl, 0, atol=1e-16)
 
@@ -1105,3 +1095,73 @@ def test_solenoid_thick_analytic(test_context, length, expected):
     assert np.allclose(delta_ell, expected[4], atol=1e-9)
     assert np.allclose(p_sol.delta, expected[5], atol=1e-9)
     assert np.allclose(p_sol.s, length, atol=1e-9)
+
+@for_all_test_contexts
+def test_skew_quadrupole(test_context):
+    k1 = 1.0
+    k1s = 2.0
+
+    length = 0.5
+
+    quad = xt.Quadrupole(k1=k1, k1s=k1s, length=length, _context=test_context)
+
+    n_slices = 1000
+    ele_thin = []
+    for ii in range(n_slices):
+        ele_thin.append(xt.Drift(length=length/n_slices/2))
+        ele_thin.append(xt.Multipole(knl=[0, k1 * length/n_slices],
+                                    ksl=[0, k1s * length/n_slices]))
+        ele_thin.append(xt.Drift(length=length/n_slices/2))
+    lref = xt.Line(ele_thin)
+    lref.build_tracker(_context=test_context)
+
+    p_test = xt.Particles(gamma0=1.2, x=0.1, y=0.2, delta=0.5,
+                          _context=test_context)
+    p_ref = p_test.copy()
+
+    quad.track(p_test)
+    lref.track(p_ref)
+
+    p_test.move(_context=xo.context_default)
+    p_ref.move(_context=xo.context_default)
+
+    assert np.isclose(p_test.x, p_ref.x, atol=1e-8, rtol=0)
+    assert np.isclose(p_test.px, p_ref.px, atol=5e-8, rtol=0)
+    assert np.isclose(p_test.y, p_ref.y, atol=1e-8, rtol=0)
+    assert np.isclose(p_test.py, p_ref.py, atol=5e-8, rtol=0)
+    assert np.isclose(p_test.zeta, p_ref.zeta, atol=1e-8, rtol=0)
+    assert np.isclose(p_test.delta, p_ref.delta, atol=5e-8, rtol=0)
+
+@for_all_test_contexts
+def test_octupole(test_context):
+
+    k3 = 1.0
+    k3s = 2.0
+
+    length = 0.5
+
+    oct = xt.Octupole(k3=k3, k3s=k3s, length=length, _context=test_context)
+
+    ele_thin = []
+    ele_thin.append(xt.Drift(length=length/2))
+    ele_thin.append(xt.Multipole(knl=[0, 0, 0, k3 * length],
+                                ksl=[0, 0, 0, k3s * length]))
+    ele_thin.append(xt.Drift(length=length/2))
+    lref = xt.Line(ele_thin)
+    lref.build_tracker(_context=test_context)
+
+    p_test = xt.Particles(gamma0=1.2, x=0.1, y=0.2, delta=0.5, _context=test_context)
+    p_ref = p_test.copy()
+
+    oct.track(p_test)
+    lref.track(p_ref)
+
+    p_test.move(_context=xo.context_default)
+    p_ref.move(_context=xo.context_default)
+
+    assert np.isclose(p_test.x, p_ref.x, atol=1e-12, rtol=0)
+    assert np.isclose(p_test.px, p_ref.px, atol=1e-12, rtol=0)
+    assert np.isclose(p_test.y, p_ref.y, atol=1e-12, rtol=0)
+    assert np.isclose(p_test.py, p_ref.py, atol=1e-12, rtol=0)
+    assert np.isclose(p_test.zeta, p_ref.zeta, atol=1e-12, rtol=0)
+    assert np.isclose(p_test.delta, p_ref.delta, atol=1e-12, rtol=0)

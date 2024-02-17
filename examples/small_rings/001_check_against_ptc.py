@@ -6,8 +6,8 @@ import xtrack as xt
 # machine = 'psb'
 machine = 'ps'
 # machine = 'elena'
-# machine = 'leir'
-# machine = 'pimms'
+machine = 'leir'
+machine = 'pimms'
 
 test_data_folder = '../../test_data/'
 mad = Madx()

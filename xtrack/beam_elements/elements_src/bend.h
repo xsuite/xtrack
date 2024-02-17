@@ -21,8 +21,10 @@ void track_multipolar_kick_bend(
     double const factor_knl_ksl,
     double kick_weight, double k0, double k1, double h, double length){
 
-    double const k1l = k1 * length * kick_weight;
-    double const k0l = k0 * length * kick_weight;
+    double const chi = LocalParticle_get_chi(part);
+
+    double const k1l = chi * k1 * length * kick_weight;
+    double const k0l = chi * k0 * length * kick_weight;
 
     // dipole kick
     double dpx = -k0l;
@@ -37,13 +39,13 @@ void track_multipolar_kick_bend(
     // k0h correction can be computed from this term in the hamiltonian
     // H = 1/2 h k0 x^2
     // (see MAD 8 physics manual, eq. 5.15, and apply Hamilton's eq. dp/ds = -dH/dx)
-    double const k0l_mult = knl[0] * factor_knl_ksl * kick_weight;
+    double const k0l_mult = chi * knl[0] * factor_knl_ksl * kick_weight;
     dpx += -(k0l + k0l_mult) * h * x;
 
     // k1h correction can be computed from this term in the hamiltonian
     // H = 1/3 hk1 x^3 - 1/2 hk1 xy^2
     // (see MAD 8 physics manual, eq. 5.15, and apply Hamilton's eq. dp/ds = -dH/dx)
-    double const k1l_mult = knl[1] * factor_knl_ksl * kick_weight;
+    double const k1l_mult = chi * knl[1] * factor_knl_ksl * kick_weight;
     dpx += h * (k1l + k1l_mult) * (-x * x + 0.5 * y * y);
     dpy += h * (k1l + k1l_mult) * x * y;
 
@@ -55,10 +57,8 @@ void track_multipolar_kick_bend(
     int64_t index = order;
     double inv_factorial = inv_factorial_order;
 
-    double dpx_mul = knl[index] * factor_knl_ksl * inv_factorial;
-    double dpy_mul = ksl[index] * factor_knl_ksl * inv_factorial;
-
-    double const chi = LocalParticle_get_chi(part);
+    double dpx_mul = chi * knl[index] * factor_knl_ksl * inv_factorial;
+    double dpy_mul = chi * ksl[index] * factor_knl_ksl * inv_factorial;
 
     while( index > 0 )
     {
@@ -68,15 +68,14 @@ void track_multipolar_kick_bend(
         inv_factorial *= index;
         index -= 1;
 
-        double this_knl = knl[index] * factor_knl_ksl;
-        double this_ksl = ksl[index] * factor_knl_ksl;
+        double this_knl = chi * knl[index] * factor_knl_ksl;
+        double this_ksl = chi * ksl[index] * factor_knl_ksl;
 
         dpx_mul = this_knl * inv_factorial + zre;
         dpy_mul = this_ksl * inv_factorial + zim;
     }
 
-    dpx_mul = -chi * dpx_mul; // rad
-    dpy_mul =  chi * dpy_mul; // rad
+    dpx_mul = -dpx_mul; // rad
 
     LocalParticle_add_to_px(part, kick_weight * dpx_mul);
     LocalParticle_add_to_py(part, kick_weight * dpy_mul);
@@ -136,6 +135,7 @@ void Bend_track_local_particle(
             const double slice_length = length / (num_slices);
             const double kick_weight = 1. / num_slices;
             const double d_yoshida[] =
+                         // From MAD-NG
                          {3.922568052387799819591407413100e-01,
                           5.100434119184584780271052295575e-01,
                           -4.710533854097565531482416645304e-01,
@@ -144,6 +144,7 @@ void Bend_track_local_particle(
                         //  -0x1.e25bd194051b9p-2, 0x1.199cec1241558p-4 };
                         //  {1/8.0, 1/8.0, 1/8.0, 1/8.0}; // Uniform, for debugging
             const double k_yoshida[] =
+                         // From MAD-NG
                          {7.845136104775599639182814826199e-01,
                           2.355732133593569921359289764951e-01,
                           -1.177679984178870098432412305556e+00,
