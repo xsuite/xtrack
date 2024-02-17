@@ -1133,3 +1133,9 @@ def test_compound_transformations(compound_type):
         assert len(line.get_compound_by_name('c').core) == 2
         assert len(line.get_compound_by_name('c').entry_transform) == 5
         assert len(line.get_compound_by_name('c').exit_transform) == 5
+
+    # Check that the table shows the compound correctly
+    subtable = line.get_table().rows['c_offset_entry_1':'c_offset_exit_1']
+    expected = ['c'] * 12
+    result = subtable.compound_name
+    np.all(expected == result)
