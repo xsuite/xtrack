@@ -1116,7 +1116,7 @@ def test_skew_quadrupole(test_context):
     lref.build_tracker(_context=test_context)
 
     p_test = xt.Particles(gamma0=1.2, x=0.1, y=0.2, delta=0.5,
-                           test_context=test_context)
+                          _context=test_context)
     p_ref = p_test.copy()
 
     quad.track(p_test)
