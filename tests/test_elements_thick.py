@@ -1156,6 +1156,9 @@ def test_octupole(test_context):
     oct.track(p_test)
     lref.track(p_ref)
 
+    p_test.move(_context=xo.context_default)
+    p_ref.move(_context=xo.context_default)
+
     assert np.isclose(p_test.x, p_ref.x, atol=1e-12, rtol=0)
     assert np.isclose(p_test.px, p_ref.px, atol=1e-12, rtol=0)
     assert np.isclose(p_test.y, p_ref.y, atol=1e-12, rtol=0)
