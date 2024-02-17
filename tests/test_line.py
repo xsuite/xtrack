@@ -1212,10 +1212,3 @@ def test_slicing_at_custom_s():
     assert np.allclose(tab.rows[r'e4\.\.\d*'].s, [4, 4.5], atol=1e-16)
     assert np.allclose(tab.rows[r'e5\.\.\d*'].s, [5], atol=1e-16)
     assert np.allclose(tab.rows[r'e6\.\.\d*'].s, [7, 7.8, 7.9], atol=1e-16)
-
-    # Check that the table shows the compound correctly
-    subtable = line.get_table().rows['c_offset_entry_1':'c_offset_exit_1']
-    expected = ['c'] * 12
-    result = subtable.compound_name
-    np.all(expected == result)
-
