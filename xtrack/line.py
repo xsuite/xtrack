@@ -46,7 +46,8 @@ from . import beam_elements
 from .beam_elements import Drift, BeamElement, Marker, Multipole
 from .footprint import Footprint, _footprint_with_linear_rescale
 from .internal_record import (start_internal_logging_for_elements_of_type,
-                              stop_internal_logging_for_elements_of_type)
+                              stop_internal_logging_for_elements_of_type,
+                              stop_internal_logging)
 
 from .general import _print
 
@@ -2678,6 +2679,22 @@ class Line:
         self._check_valid_tracker()
         return start_internal_logging_for_elements_of_type(self.tracker,
                                                     element_type, capacity)
+
+    def stop_internal_logging_for_all_elements(self, reinitialize_io_buffer=False):
+        """
+        Stop internal logging for all elements.
+
+        Parameters
+        ----------
+        reinitialize_io_buffer: bool
+            If True, the IO buffer is reinitialized (default: False).
+
+        """
+        self._check_valid_tracker()
+        stop_internal_logging(elements=self.elements)
+
+        if reinitialize_io_buffer:
+            self.tracker._init_io_buffer()
 
     def stop_internal_logging_for_elements_of_type(self, element_type):
 

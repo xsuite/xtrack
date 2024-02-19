@@ -160,15 +160,16 @@ def start_internal_logging(elements, record=None, io_buffer=None, capacity=None)
 
     return record
 
-def stop_internal_logging(elements):
+def stop_internal_logging(elements=None):
 
     if not isinstance (elements, (list, tuple)):
         elements = [elements]
 
     for ee in elements:
-        ee._internal_record_id.offset = 0
-        ee._internal_record_id.buffer_id = 0
-        ee.io_buffer = None
+        if hasattr(ee, 'io_buffer'):
+            ee._internal_record_id.offset = 0
+            ee._internal_record_id.buffer_id = 0
+            ee.io_buffer = None
 
 def start_internal_logging_for_elements_of_type(tracker, element_type, capacity):
 
