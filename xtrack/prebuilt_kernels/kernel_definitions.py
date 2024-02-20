@@ -114,3 +114,25 @@ try:
     }
 except ImportError:
     LOGGER.warning('Xfields not installed, skipping BB3D elements')
+
+try:
+    import xcoll as xc
+    kernel_definitions['default_xcoll_only_absorbers'] = {
+        'config': BASE_CONFIG,
+        'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
+                + [xc.BlackAbsorber]
+    }
+    kernel_definitions['default_xcoll'] = {
+        'config': BASE_CONFIG,
+        'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
+                + [xc.BlackAbsorber, xc.EverestBlock, \
+                   xc.EverestCollimator]
+    }
+    kernel_definitions['default_xcoll_crystals'] = {
+        'config': BASE_CONFIG,
+        'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
+                + [xc.BlackAbsorber, xc.EverestBlock, \
+                   xc.EverestCollimator, xc.EverestCrystal]
+    }
+except ImportError:
+    LOGGER.warning('Xcoll not installed, skipping collimator elements')

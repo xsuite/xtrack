@@ -57,6 +57,7 @@ BEAM_ELEMENTS_INIT_DEFAULTS = {
     },
 }
 
+
 # SpaceChargeBiGaussian is not included for now (different issues -
 # circular import, incompatible compilation flags)
 # try:
@@ -81,7 +82,13 @@ def get_element_class_by_name(name: str) -> type:
     except ModuleNotFoundError:
         xf_element_classes = ()
 
-    element_classes = xt.element_classes + xf_element_classes + (monitor_cls,)
+    try:
+        from xcoll import element_classes as xc_element_classes
+    except ModuleNotFoundError:
+        xc_element_classes = ()
+
+    element_classes = xt.element_classes + xf_element_classes \
+                      + xc_element_classes + (monitor_cls,)
 
     for cls in element_classes:
         if cls.__name__ == name:
@@ -103,12 +110,19 @@ def save_kernel_metadata(
     except ModuleNotFoundError:
         xf_version = None
 
+    try:
+        import xcoll
+        xc_version = xcoll.__version__
+    except ModuleNotFoundError:
+        xc_version = None
+
     kernel_metadata = {
         'config': config.data,
         'classes': [cls._DressingClass.__name__ for cls in kernel_element_classes],
         'versions': {
             'xtrack': xt.__version__,
             'xfields': xf_version,
+            'xcoll': xc_version,
             'xobjects': xo.__version__,
         }
     }
@@ -136,6 +150,12 @@ def enumerate_kernels() -> Iterator[Tuple[str, dict]]:
         except ModuleNotFoundError:
             xf_version = None
 
+        try:
+            import xcoll
+            xc_version = xcoll.__version__
+        except ModuleNotFoundError:
+            xc_version = None
+
         if kernel_metadata['versions']['xtrack'] != xt.__version__:
             continue
 
@@ -144,6 +164,10 @@ def enumerate_kernels() -> Iterator[Tuple[str, dict]]:
 
         if (kernel_metadata['versions']['xfields'] != xf_version
                 and xf_version is not None):
+            continue
+
+        if (kernel_metadata['versions']['xcoll'] != xc_version
+                and xc_version is not None):
             continue
 
         yield metadata_file.stem, kernel_metadata
@@ -212,14 +236,30 @@ def get_suitable_kernel(
         _print('==> No suitable precompiled kernel found.')
 
 
-def regenerate_kernels():
+def regenerate_kernels(kernels=None):
     """
     Use the kernel definitions in the `kernel_definitions.py` file to
     regenerate kernel shared objects using the current version of xsuite.
     """
     from xtrack.prebuilt_kernels.kernel_definitions import kernel_definitions
+    try:
+        import xcoll as xc
+        BEAM_ELEMENTS_INIT_DEFAULTS['EverestBlock'] = {
+                'material': xc.materials.Silicon
+            }
+        BEAM_ELEMENTS_INIT_DEFAULTS['EverestCollimator'] = {
+                'material': xc.materials.Silicon
+            }
+        BEAM_ELEMENTS_INIT_DEFAULTS['EverestCrystal'] = {
+                'material': xc.materials.SiliconCrystal
+            }
+    except ImportError:
+        pass
 
     for module_name, metadata in kernel_definitions.items():
+        if kernels is not None and module_name not in kernels:
+            continue
+
         config = metadata['config']
         element_classes = metadata['classes']
 
