@@ -87,8 +87,10 @@ def get_element_class_by_name(name: str) -> type:
     except ModuleNotFoundError:
         xc_element_classes = ()
 
+    # We force the xp.Particles class as that is the only one currently
+    # compatible with prebuilt kernels
     element_classes = xt.element_classes + xf_element_classes \
-                      + xc_element_classes + (monitor_cls,)
+                      + xc_element_classes + (monitor_cls, xp.Particles)
 
     for cls in element_classes:
         if cls.__name__ == name:
@@ -241,6 +243,12 @@ def regenerate_kernels(kernels=None):
     Use the kernel definitions in the `kernel_definitions.py` file to
     regenerate kernel shared objects using the current version of xsuite.
     """
+    if isinstance(kernels, str) or not hasattr(kernels, '__iter__'):
+        kernels = [kernels]
+
+    # Delete existing kernels to avoid accidentally loading in existing C code
+    clear_kernels(kernels)
+
     from xtrack.prebuilt_kernels.kernel_definitions import kernel_definitions
     try:
         import xcoll as xc
@@ -281,7 +289,10 @@ def regenerate_kernels(kernels=None):
             compile='force',
         )
 
-        kernel_classes = tracker._tracker_data_base.kernel_element_classes
+        # We force the xp.Particles class as that is the only one currently
+        # compatible with prebuilt kernels
+        kernel_classes = tracker._tracker_data_base.kernel_element_classes \
+                         + [tracker.particles_class._XoStruct]
         save_kernel_metadata(
             module_name=module_name,
             config=tracker.config,
@@ -289,11 +300,15 @@ def regenerate_kernels(kernels=None):
         )
 
 
-def clear_kernels(verbose=False):
+def clear_kernels(kernels=None, verbose=False):
+    if isinstance(kernels, str) or not hasattr(kernels, '__iter__'):
+        kernels = [kernels]
     for file in XT_PREBUILT_KERNELS_LOCATION.iterdir():
         if file.name.startswith('_'):
             continue
         if file.suffix not in ('.c', '.so', '.json'):
+            continue
+        if kernels is not None and file.stem.split('.')[0] not in kernels:
             continue
         file.unlink()
 
