@@ -679,8 +679,19 @@ class Tracker:
             )
         }
 
-        # Random number generator init kernel
+        # Kernel for random number generator init
+        # This also applies the correct Particles class definition
         kernel_descriptions.update(self.particles_class._kernels)
+
+        # Get all kernels in the elements
+        # The order is important; this should come after having declared
+        # the Particles class
+        for el in kernel_element_classes:
+            kernel_descriptions.update(el._kernels)
+
+        # Add any other kernels that are defined in the context
+        # TODO: need to add the source etc
+        # kernel_descriptions.update(self._context.kernels)
 
         return kernel_descriptions
 
