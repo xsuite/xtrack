@@ -198,6 +198,7 @@ class MetaBeamElement(xo.MetaHybridClass):
         # Define track kernel
         track_kernel_name = f'{name}_track_particles'
         kernels[track_kernel_name] = xo.Kernel(
+                    c_name=track_kernel_name,
                     args=[xo.Arg(xo.ThisClass, name='el'),
                         xo.Arg(xp.ParticlesBase._XoStruct, name='particles'),
                         xo.Arg(xo.Int64, name='flag_increment_at_element'),
