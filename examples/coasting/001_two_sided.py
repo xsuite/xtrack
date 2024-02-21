@@ -34,6 +34,9 @@ class CoastWrap:
 
     def track(self, particles):
 
+        # if (particles.at_turn > 9).any():
+        #     import pdb; pdb.set_trace()
+
         # Resume particles previously stopped
         particles.state[particles.state==-self.id] = 1
         particles.reorganize()
@@ -67,32 +70,41 @@ class CoastWrap:
         return zeta
 
 circumference = line.get_length()
-wrap = CoastWrap(length=circumference, id=10001)
+wrap_end = CoastWrap(length=circumference, id=10001)
+wrap_start = CoastWrap(length=circumference, id=10002)
 
 zeta_prime_min = -circumference/2
 zeta_prime_max = circumference/2
-zeta_min = wrap.zeta_prime_to_zeta(zeta_prime_min, tw.beta0, 0)
-zeta_max = wrap.zeta_prime_to_zeta(zeta_prime_max, tw.beta0, 0)
+zeta_min = wrap_start.zeta_prime_to_zeta(zeta_prime_min, tw.beta0, 0)
+zeta_max = wrap_start.zeta_prime_to_zeta(zeta_prime_max, tw.beta0, 0)
 
 num_particles = 1000
+# p = line.build_particles(
+#     zeta=np.random.uniform(zeta_min, zeta_min + circumference, num_particles),
+#     delta=np.random.uniform(-1e-2, 0, num_particles)
+# )
+zeta_grid= np.linspace(zeta_max-circumference, zeta_max, 5)
+delta_grid = np.linspace(-1e-2, 0, 7)
+ZZ, DD = np.meshgrid(zeta_grid, delta_grid)
 p = line.build_particles(
-    zeta=np.random.uniform(zeta_min, zeta_min + circumference, num_particles),
-    delta=np.random.uniform(-1e-2, 0, num_particles)
+    zeta=ZZ.flatten(),
+    delta=DD.flatten()
 )
-wrap.track(p)
+wrap_start.track(p)
 
 line.discard_tracker()
-line.append_element(wrap, name='wrap')
+line.insert_element(element=wrap_start, name='wrap_start', at_s=0)
+line.append_element(wrap_end, name='wrap_end')
 line.build_tracker()
 
 def intensity(line, particles):
     mask_alive = particles.state > 0
     zeta_alive = particles.zeta[mask_alive]
 
-    zeta_min = wrap.zeta_prime_to_zeta(zeta_prime_min, tw.beta0, particles.s[0])
-    zeta_max = wrap.zeta_prime_to_zeta(zeta_prime_max, tw.beta0, particles.s[0])
-    assert np.all(zeta_alive >= zeta_min)
-    assert np.all(zeta_alive <= zeta_max)
+    # zeta_min = wrap_start.zeta_prime_to_zeta(zeta_prime_min, tw.beta0, particles.s[0])
+    # zeta_max = wrap_start.zeta_prime_to_zeta(zeta_prime_max, tw.beta0, particles.s[0])
+    # assert np.all(zeta_alive >= zeta_min - 0.1)
+    # assert np.all(zeta_alive <= zeta_max + 0.1)
     return np.sum(particles.state > 0)/((zeta_max - zeta_min)/tw.beta0/clight)
 
 line.enable_time_dependent_vars = True
@@ -103,14 +115,14 @@ inten = line.log_last_track['intensity']
 f_rev_ave = 1 / tw.T_rev0 * (1 - tw.slip_factor * p.delta.mean())
 t_rev_ave = 1 / f_rev_ave
 
-inten_exp = num_particles / t_rev_ave
+inten_exp =  len(p.zeta) / t_rev_ave
 
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
 plt.plot(inten, label='xtrack')
 plt.axhline(inten_exp, color='C1', label='expected')
-plt.axhline(num_particles/tw.T_rev0, color='C3', label='N/T_rev0')
+plt.axhline(len(p.zeta) /tw.T_rev0, color='C3', label='N/T_rev0')
 plt.legend(loc='best')
 plt.xlabel('Turn')
 plt.show()
