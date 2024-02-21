@@ -34,10 +34,11 @@ class CoastWrap:
 
     def track(self, particles):
 
-        particles.sort(interleave_lost_particles=True)
-        particles.get_table().cols['zeta state delta s at_turn'].show()
-        import pdb; pdb.set_trace()
-        particles.reorganize()
+        # # ---- For debugging
+        # particles.sort(interleave_lost_particles=True)
+        # particles.get_table().cols['zeta state delta s at_turn'].show()
+        # import pdb; pdb.set_trace()
+        # particles.reorganize()
 
         # Resume particles previously stopped
         particles.state[particles.state==-self.id] = 1
@@ -67,10 +68,11 @@ class CoastWrap:
         # assert np.all(particles.zeta.max() - particles.zeta.min()
         #               < self.circumference * tw.beta0 / self.beta1)
 
-        particles.sort(interleave_lost_particles=True)
-        particles.get_table().cols['zeta state delta s at_turn'].show()
-        import pdb; pdb.set_trace()
-        particles.reorganize()
+        # # ---- For debugging
+        # particles.sort(interleave_lost_particles=True)
+        # particles.get_table().cols['zeta state delta s at_turn'].show()
+        # import pdb; pdb.set_trace()
+        # particles.reorganize()
 
     def zeta_to_zeta_prime(self, zeta, beta0, s, at_turn):
         S_capital = s + at_turn * self.circumference
@@ -94,17 +96,17 @@ zeta_min = wrap_start.zeta_prime_to_zeta(zeta_prime_min, tw.beta0, 0, 0)
 zeta_max = wrap_start.zeta_prime_to_zeta(zeta_prime_max, tw.beta0, 0, 0)
 
 num_particles = 1000
-# p = line.build_particles(
-#     zeta=np.random.uniform(zeta_min, zeta_min + circumference, num_particles),
-#     delta=np.random.uniform(-1e-2, 0, num_particles)
-# )
-zeta_grid= np.linspace(zeta_max-circumference, zeta_max, 5)
-delta_grid = np.linspace(-1e-2, 0, 3)
-ZZ, DD = np.meshgrid(zeta_grid, delta_grid)
 p = line.build_particles(
-    zeta=ZZ.flatten(),
-    delta=DD.flatten()
+    zeta=np.random.uniform(zeta_min, zeta_min + circumference, num_particles),
+    delta=np.random.uniform(0e-2, 5e-2, num_particles)
 )
+# zeta_grid= np.linspace(zeta_max-circumference, zeta_max, 5)
+# delta_grid = np.linspace(-1e-2, 0, 3)
+# ZZ, DD = np.meshgrid(zeta_grid, delta_grid)
+# p = line.build_particles(
+#     zeta=ZZ.flatten(),
+#     delta=DD.flatten()
+# )
 wrap_start.track(p)
 
 line.discard_tracker()
