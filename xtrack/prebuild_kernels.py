@@ -17,6 +17,7 @@ import xobjects as xo
 import xpart as xp
 import xtrack as xt
 
+
 LOGGER = logging.getLogger(__name__)
 
 XT_PREBUILT_KERNELS_LOCATION = Path(xt.__file__).parent / 'prebuilt_kernels'
@@ -73,10 +74,6 @@ BEAM_ELEMENTS_INIT_DEFAULTS = {
 
 
 def get_element_class_by_name(name: str) -> type:
-    # from xtrack.monitors import generate_monitor_class
-    # monitor_cls = generate_monitor_class(xp.Particles)
-    monitor_cls = xt.ParticlesMonitor
-
     try:
         from xfields import element_classes as xf_element_classes
     except ModuleNotFoundError:
@@ -87,10 +84,12 @@ def get_element_class_by_name(name: str) -> type:
     except ModuleNotFoundError:
         xc_element_classes = ()
 
-    # We force the xp.Particles class as that is the only one currently
-    # compatible with prebuilt kernels
+    # from xtrack.monitors import generate_monitor_class
+    # monitor_cls = generate_monitor_class(particles_cls)
+    monitor_cls = xt.ParticlesMonitor
+
     element_classes = xt.element_classes + xf_element_classes \
-                      + xc_element_classes + (monitor_cls, xp.Particles)
+                      + xc_element_classes + (monitor_cls, )
 
     for cls in element_classes:
         if cls.__name__ == name:
@@ -197,6 +196,10 @@ def get_suitable_kernel(
     requested_class_names = [
         cls._DressingClass.__name__ for cls in line_element_classes
     ]
+    # Hack: we don't select on particles class as prebuild kernels anyway only
+    #       work for xp.Particles
+    requested_class_names = [cls for cls in requested_class_names
+                             if 'Particles' not in cls]
 
     for module_name, kernel_metadata in enumerate_kernels():
         if verbose:
@@ -243,7 +246,8 @@ def regenerate_kernels(kernels=None):
     Use the kernel definitions in the `kernel_definitions.py` file to
     regenerate kernel shared objects using the current version of xsuite.
     """
-    if isinstance(kernels, str) or not hasattr(kernels, '__iter__'):
+    if kernels is not None and (
+    isinstance(kernels, str) or not hasattr(kernels, '__iter__')):
         kernels = [kernels]
 
     # Delete existing kernels to avoid accidentally loading in existing C code
@@ -270,6 +274,7 @@ def regenerate_kernels(kernels=None):
 
         config = metadata['config']
         element_classes = metadata['classes']
+        extra_classes = metadata.get('extra_classes', [])
 
         elements = []
         for cls in element_classes:
@@ -283,25 +288,41 @@ def regenerate_kernels(kernels=None):
         tracker = xt.Tracker(line=line, compile=False)
         tracker.config.clear()
         tracker.config.update(config)
+
+        # Get all kernels in the elements
+        extra_kernels = {}
+        extra_classes = [getattr(el, '_XoStruct', el) for el in extra_classes]
+        all_classes = tracker._tracker_data_base.kernel_element_classes + extra_classes
+        for el in all_classes:
+            extra_kernels.update(el._kernels)
+
+        # TODO: Add any other kernels that are defined in the context
+        #       Need to add the source etc
+        # kernel_descriptions.update(tracker._context.kernels)
+
+        # prebuilt kernels only work with xp.Particles, however, at the time of
+        # compilation a lot of kernels use xp.ParticlesBase as it is not known
+        # yet which will be used. So we fix this when reading the built kernel.
+        extra_kernels = _get_kernels_with_default_particles(extra_kernels)
+
         tracker._build_kernel(
             module_name=module_name,
             containing_dir=XT_PREBUILT_KERNELS_LOCATION,
             compile='force',
+            extra_classes=extra_classes,
+            extra_kernels=extra_kernels,
         )
 
-        # We force the xp.Particles class as that is the only one currently
-        # compatible with prebuilt kernels
-        kernel_classes = tracker._tracker_data_base.kernel_element_classes \
-                         + [tracker.particles_class._XoStruct]
         save_kernel_metadata(
             module_name=module_name,
             config=tracker.config,
-            kernel_element_classes=kernel_classes,
+            kernel_element_classes=all_classes,
         )
 
 
 def clear_kernels(kernels=None, verbose=False):
-    if isinstance(kernels, str) or not hasattr(kernels, '__iter__'):
+    if kernels is not None and (
+    isinstance(kernels, str) or not hasattr(kernels, '__iter__')):
         kernels = [kernels]
     for file in XT_PREBUILT_KERNELS_LOCATION.iterdir():
         if file.name.startswith('_'):
@@ -316,5 +337,38 @@ def clear_kernels(kernels=None, verbose=False):
             print(f'Removed `{file}`.')
 
 
+def _get_kernels_with_default_particles(kernel_descriptions):
+    import xobjects as xo
+    import xpart as xp
+    new_descriptions = {}
+    for name, ker in kernel_descriptions.items():
+        if not isinstance(ker, xo.Kernel):
+            raise ValueError(f"Kernel {name} of type {ker.__class__.__name__} "
+                           + f"currently not supported.")
+        new_args = []
+        for arg in ker.args:
+            new_arg = xo.Arg(atype=arg.atype,
+                             pointer=arg.pointer,
+                             name=arg.name,
+                             const=arg.const,
+                             factory=arg.factory)
+            if getattr(new_arg.atype, '_DressingClass', None) == xp.ParticlesBase:
+                new_arg.atype = xp.Particles._XoStruct
+            new_args.append(new_arg)
+        if ker.ret is None:
+            new_ret = None
+        else:
+            new_ret = xo.Arg(atype=ker.ret.atype,
+                             pointer=ker.ret.pointer,
+                             name=ker.ret.name,
+                             const=ker.ret.const,
+                             factory=ker.ret.factory)
+            if getattr(new_ret.atype, '_DressingClass', None) == xp.ParticlesBase:
+                new_ret.atype = xp.Particles._XoStruct
+        new_descriptions[name] = xo.Kernel(args=new_args, ret=new_ret, c_name=ker.c_name)
+    return new_descriptions
+
+
 if __name__ == '__main__':
     regenerate_kernels()
+

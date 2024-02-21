@@ -414,13 +414,12 @@ class Tracker:
             compile: Union[bool, Literal['force']],
             module_name=None,
             containing_dir='.',
+            extra_classes=[],
+            extra_kernels={},
     ):
         if compile == 'force':
             use_prebuilt_kernels = False
-        elif not isinstance(self._context, xo.ContextCpu):
-            use_prebuilt_kernels = False
-        elif (self._context.omp_num_threads == 'auto'  # CPU context, but OpenMP
-              or self._context.omp_num_threads > 1):
+        elif not self._context.allow_prebuilt_kernels: # only CPU serial
             use_prebuilt_kernels = False
         else:
             use_prebuilt_kernels = self.use_prebuilt_kernels
@@ -624,9 +623,10 @@ class Tracker:
         source_track = "\n".join(src_lines)
 
         kernels = self.get_kernel_descriptions(kernel_element_classes)
+        kernels.update(extra_kernels)
 
         # Compile!
-        if isinstance(self._context, xo.ContextCpu):
+        if self._context.allow_prebuilt_kernels:
             kwargs = {
                 'containing_dir': containing_dir,
                 'module_name': module_name,
@@ -639,7 +639,7 @@ class Tracker:
             sources=[source_track],
             kernel_descriptions=kernels,
             extra_headers=self._config_to_headers() + headers,
-            extra_classes=kernel_element_classes,
+            extra_classes=kernel_element_classes + extra_classes,
             apply_to_source=[
                 partial(_handle_per_particle_blocks,
                         local_particle_src=self.local_particle_src)],
@@ -679,19 +679,8 @@ class Tracker:
             )
         }
 
-        # Kernel for random number generator init
-        # This also applies the correct Particles class definition
+        # Random number generator init kernel
         kernel_descriptions.update(self.particles_class._kernels)
-
-        # Get all kernels in the elements
-        # The order is important; this should come after having declared
-        # the Particles class
-        for el in kernel_element_classes:
-            kernel_descriptions.update(el._kernels)
-
-        # Add any other kernels that are defined in the context
-        # TODO: need to add the source etc
-        # kernel_descriptions.update(self._context.kernels)
 
         return kernel_descriptions
 
