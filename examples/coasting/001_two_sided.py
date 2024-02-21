@@ -54,6 +54,7 @@ class CoastWrap:
 
         # Update zeta for particles that are stopped
         zeta_prime[mask_stop] += self.circumference
+        particles.at_turn[mask_stop] += 1
         zeta_stopped = self.zeta_prime_to_zeta(zeta_prime[mask_stop],
                                                particles.beta0[mask_stop],
                                                particles.s[mask_stop],
