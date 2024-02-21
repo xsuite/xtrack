@@ -106,6 +106,7 @@ p = line.build_particles(
 #     zeta=ZZ.flatten(),
 #     delta=DD.flatten()
 # )
+p.i_frame = 0
 wrap_start.track(p)
 
 line.discard_tracker()
@@ -121,6 +122,8 @@ def intensity(line, particles):
     # particles.get_table().cols['zeta state delta s'].show()
     # import pdb; pdb.set_trace()
     # particles.reorganize()
+
+    p.i_frame += 1 # HACK!!!!!
 
     return np.sum(particles.state > 0)/((zeta_max - zeta_min)/tw.beta0/clight)
 
