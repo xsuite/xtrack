@@ -55,6 +55,7 @@ class CoastWrap:
         # Update zeta for particles that are stopped
         zeta_prime[mask_stop] += self.circumference
         particles.at_turn[mask_stop] += 1
+        particles.pdg_id[mask_stop] += 1 # HACK!!!!!
         zeta_stopped = self.zeta_prime_to_zeta(zeta_prime[mask_stop],
                                                particles.beta0[mask_stop],
                                                particles.s[mask_stop],
@@ -148,5 +149,5 @@ plt.legend(loc='best')
 plt.xlabel('Turn')
 
 plt.figure(2)
-plt.plot(p.delta, p.at_turn, '.')
+plt.plot(p.delta, p.pdg_id, '.')
 plt.show()
