@@ -34,30 +34,50 @@ class CoastWrap:
 
     def track(self, particles):
 
+        # Resume particles previously stopped
         particles.state[particles.state==-self.id] = 1
         particles.reorganize()
 
-        beta0_beta1 = tw.beta0 / self.beta1
-        zeta_prime = particles.zeta * beta0_beta1 + (1 - beta0_beta1) * particles.s
+        zeta_prime = self.zeta_to_zeta_prime(particles.zeta,
+                                             particles.beta0, particles.s)
 
+        # Identify particles that need to be stopped
         mask_alive = particles.state > 0
+        mask_stop = mask_alive & (zeta_prime < -self.length / 2)
 
-        if np.any(zeta_prime[mask_alive] > self.length/2):
-            raise ValueError('zeta_prime > length/2')
+        # Update zeta for particles that are stopped
+        zeta_prime[mask_stop] += self.length
+        zeta_stopped = self.zeta_prime_to_zeta(zeta_prime[mask_stop],
+                                               particles.beta0[mask_stop],
+                                               particles.s[mask_stop])
+        particles.zeta[mask_stop] = zeta_stopped
 
-        mask_stop = mask_alive & (particles.zeta < -self.length / 2)
+        # Stop particles
         particles.state[mask_stop] = -self.id
         particles.at_turn[mask_stop] += 1
-        particles.zeta[mask_stop] += self.length
+
+    def zeta_to_zeta_prime(self, zeta, beta0, s):
+        beta1_beta0 = self.beta1 / beta0
+        zeta_prime =  zeta * beta1_beta0 + (1 - beta1_beta0) * s
+        return zeta_prime
+
+    def zeta_prime_to_zeta(self, zeta_prime, beta0, s):
+        beta0_beta1 = beta0 / self.beta1
+        zeta = zeta_prime * beta0_beta1 + (1 - beta0_beta1) * s
+        return zeta
 
 circumference = line.get_length()
-num_particles = 10000
+wrap = CoastWrap(length=circumference, id=10001)
+
+zeta_prime_min = -circumference/2
+zeta_min = wrap.zeta_prime_to_zeta(zeta_prime_min, tw.beta0, 0)
+
+num_particles = 1000
 p = line.build_particles(
-    zeta=np.random.uniform(-circumference/2, circumference/2, num_particles),
+    zeta=np.random.uniform(zeta_min, zeta_min + circumference, num_particles),
     delta=np.random.uniform(-1e-2, 0, num_particles)
 )
-
-wrap = CoastWrap(length=circumference, id=10001)
+wrap.track(p)
 
 line.discard_tracker()
 line.append_element(wrap, name='wrap')
