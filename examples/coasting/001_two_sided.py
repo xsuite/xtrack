@@ -70,7 +70,9 @@ circumference = line.get_length()
 wrap = CoastWrap(length=circumference, id=10001)
 
 zeta_prime_min = -circumference/2
+zeta_prime_max = circumference/2
 zeta_min = wrap.zeta_prime_to_zeta(zeta_prime_min, tw.beta0, 0)
+zeta_max = wrap.zeta_prime_to_zeta(zeta_prime_max, tw.beta0, 0)
 
 num_particles = 1000
 p = line.build_particles(
@@ -84,7 +86,14 @@ line.append_element(wrap, name='wrap')
 line.build_tracker()
 
 def intensity(line, particles):
-    return np.sum(particles.state > 0)/(circumference/tw.beta0/clight)
+    mask_alive = particles.state > 0
+    zeta_alive = particles.zeta[mask_alive]
+
+    zeta_min = wrap.zeta_prime_to_zeta(zeta_prime_min, tw.beta0, particles.s[0])
+    zeta_max = wrap.zeta_prime_to_zeta(zeta_prime_max, tw.beta0, particles.s[0])
+    assert np.all(zeta_alive >= zeta_min)
+    assert np.all(zeta_alive <= zeta_max)
+    return np.sum(particles.state > 0)/((zeta_max - zeta_min)/tw.beta0/clight)
 
 line.enable_time_dependent_vars = True
 line.track(p, num_turns=1000, log=xt.Log(intensity=intensity), with_progress=True)
