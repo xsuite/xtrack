@@ -87,14 +87,15 @@ def get_element_class_by_name(name: str) -> type:
     xt_rng_classes = tuple([getattr(xt, cls)
                             for cls in dir(xt.random)
                             if cls.startswith('Random')])
+    xt_multisetter = (xt.MultiSetter, )
 
     # from xtrack.monitors import generate_monitor_class
     # monitor_cls = generate_monitor_class(xp.Particles)
     xt_monitor_classes = (xt.ParticlesMonitor, )
 
     element_classes = xt.element_classes + xt_rng_classes \
-                      + xt_monitor_classes + xf_element_classes \
-                      + xc_element_classes
+                      + xt_monitor_classes + xt_multisetter \
+                      + xf_element_classes + xc_element_classes
 
     for cls in element_classes:
         if cls.__name__ == name:

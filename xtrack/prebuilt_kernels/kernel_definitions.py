@@ -6,6 +6,7 @@ import logging
 
 from xtrack.beam_elements import *
 from xtrack.random import *
+from xtrack.multisetter import MultiSetter
 
 LOGGER = logging.getLogger(__name__)
 
@@ -58,11 +59,12 @@ NO_SYNRAD_ELEMENTS = [
     Solenoid,
 ]
 
-RANDOM_ELEMENTS = [
+NON_TRACKING_ELEMENTS = [
     RandomUniform,
     RandomExponential,
     RandomNormal,
-    RandomRutherford
+    RandomRutherford,
+    MultiSetter
 ]
 
 # These will be enumerated in order of appearance in the dict, so in this case
@@ -72,10 +74,10 @@ kernel_definitions = {
         'config': BASE_CONFIG,
         'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS,
     },
-    'only_xtrack_with_random': {
+    'only_xtrack_non_tracking_kernels': {
         'config': BASE_CONFIG,
-        'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS,
-        'extra_classes': RANDOM_ELEMENTS
+        'classes': [],
+        'extra_classes': NON_TRACKING_ELEMENTS
     },
     'default_only_xtrack_backtrack': {
         'config': {**BASE_CONFIG, 'XSUITE_BACKTRACK': True},
@@ -148,13 +150,13 @@ try:
                 + [xc.BlackAbsorber, xc.EverestBlock, \
                    xc.EverestCollimator, xc.EverestCrystal]
     }
-    kernel_definitions['default_xcoll_backtrack': {
+    kernel_definitions['default_xcoll_backtrack'] = {
         'config': {**BASE_CONFIG, 'XSUITE_BACKTRACK': True},
         'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
                 + [xc.BlackAbsorber, xc.EverestBlock, \
                    xc.EverestCollimator, xc.EverestCrystal]
     }
-    kernel_definitions['default_xcoll_backtrack_frozen_energy': {
+    kernel_definitions['default_xcoll_backtrack_frozen_energy'] = {
         'config': {**BASE_CONFIG, **FREEZE_ENERGY, 'XSUITE_BACKTRACK': True},
         'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
                 + [xc.BlackAbsorber, xc.EverestBlock, \
