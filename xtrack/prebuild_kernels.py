@@ -85,7 +85,7 @@ def get_element_class_by_name(name: str) -> type:
         xc_element_classes = ()
 
     # from xtrack.monitors import generate_monitor_class
-    # monitor_cls = generate_monitor_class(particles_cls)
+    # monitor_cls = generate_monitor_class(xp.Particles)
     monitor_cls = xt.ParticlesMonitor
 
     element_classes = xt.element_classes + xf_element_classes \
@@ -199,7 +199,7 @@ def get_suitable_kernel(
     # Hack: we don't select on particles class as prebuild kernels anyway only
     #       work for xp.Particles
     requested_class_names = [cls for cls in requested_class_names
-                             if 'Particles' not in cls]
+                             if cls != 'Particles' and cls != 'ParticlesBase']
 
     for module_name, kernel_metadata in enumerate_kernels():
         if verbose:
@@ -253,17 +253,21 @@ def regenerate_kernels(kernels=None):
     # Delete existing kernels to avoid accidentally loading in existing C code
     clear_kernels(kernels)
 
+    import xpart as xp
     from xtrack.prebuilt_kernels.kernel_definitions import kernel_definitions
     try:
         import xcoll as xc
         BEAM_ELEMENTS_INIT_DEFAULTS['EverestBlock'] = {
-                'material': xc.materials.Silicon
+                'material': xc.materials.Silicon,
+                'use_prebuilt_kernels': False
             }
         BEAM_ELEMENTS_INIT_DEFAULTS['EverestCollimator'] = {
-                'material': xc.materials.Silicon
+                'material': xc.materials.Silicon,
+                'use_prebuilt_kernels': False
             }
         BEAM_ELEMENTS_INIT_DEFAULTS['EverestCrystal'] = {
-                'material': xc.materials.SiliconCrystal
+                'material': xc.materials.SiliconCrystal,
+                'use_prebuilt_kernels': False
             }
     except ImportError:
         pass
@@ -291,6 +295,7 @@ def regenerate_kernels(kernels=None):
 
         # Get all kernels in the elements
         extra_kernels = {}
+        extra_classes.append(xp.Particles)
         extra_classes = [getattr(el, '_XoStruct', el) for el in extra_classes]
         all_classes = tracker._tracker_data_base.kernel_element_classes + extra_classes
         for el in all_classes:
@@ -300,11 +305,6 @@ def regenerate_kernels(kernels=None):
         #       Need to add the source etc
         # kernel_descriptions.update(tracker._context.kernels)
 
-        # prebuilt kernels only work with xp.Particles, however, at the time of
-        # compilation a lot of kernels use xp.ParticlesBase as it is not known
-        # yet which will be used. So we fix this when reading the built kernel.
-        extra_kernels = _get_kernels_with_default_particles(extra_kernels)
-
         tracker._build_kernel(
             module_name=module_name,
             containing_dir=XT_PREBUILT_KERNELS_LOCATION,
@@ -313,6 +313,8 @@ def regenerate_kernels(kernels=None):
             extra_kernels=extra_kernels,
         )
 
+        all_classes = [cls for cls in all_classes
+                       if cls.__name__ != 'ParticlesData']
         save_kernel_metadata(
             module_name=module_name,
             config=tracker.config,
@@ -335,38 +337,6 @@ def clear_kernels(kernels=None, verbose=False):
 
         if verbose:
             print(f'Removed `{file}`.')
-
-
-def _get_kernels_with_default_particles(kernel_descriptions):
-    import xobjects as xo
-    import xpart as xp
-    new_descriptions = {}
-    for name, ker in kernel_descriptions.items():
-        if not isinstance(ker, xo.Kernel):
-            raise ValueError(f"Kernel {name} of type {ker.__class__.__name__} "
-                           + f"currently not supported.")
-        new_args = []
-        for arg in ker.args:
-            new_arg = xo.Arg(atype=arg.atype,
-                             pointer=arg.pointer,
-                             name=arg.name,
-                             const=arg.const,
-                             factory=arg.factory)
-            if getattr(new_arg.atype, '_DressingClass', None) == xp.ParticlesBase:
-                new_arg.atype = xp.Particles._XoStruct
-            new_args.append(new_arg)
-        if ker.ret is None:
-            new_ret = None
-        else:
-            new_ret = xo.Arg(atype=ker.ret.atype,
-                             pointer=ker.ret.pointer,
-                             name=ker.ret.name,
-                             const=ker.ret.const,
-                             factory=ker.ret.factory)
-            if getattr(new_ret.atype, '_DressingClass', None) == xp.ParticlesBase:
-                new_ret.atype = xp.Particles._XoStruct
-        new_descriptions[name] = xo.Kernel(args=new_args, ret=new_ret, c_name=ker.c_name)
-    return new_descriptions
 
 
 if __name__ == '__main__':

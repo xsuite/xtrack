@@ -142,7 +142,7 @@ try:
                    xc.EverestCollimator],
         'extra_classes': RANDOM_ELEMENTS
     }
-    kernel_definitions['default_xcoll_frozen_longitudina'] = {
+    kernel_definitions['default_xcoll_frozen_longitudinal'] = {
         'config': {**BASE_CONFIG, **FREEZE_LONGITUDINAL},
         'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
                 + [xc.BlackAbsorber, xc.EverestBlock, \
