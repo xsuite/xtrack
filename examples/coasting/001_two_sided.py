@@ -26,13 +26,19 @@ tw = line.twiss()
 beta1 = tw.beta0 * 1.1
 class CoastWrap:
 
-    def __init__(self, circumference, id, beta1):
+    def __init__(self, circumference, id, beta1, at_start=False):
         assert id > 10000
         self.id = id
         self.beta1 = beta1
         self.circumference = circumference
+        self.at_start = at_start
 
     def track(self, particles):
+
+        if self.at_start:
+            mask_alive = particles.state > 0
+            particles.zeta[mask_alive] -= (
+                self.circumference * (1 - tw.beta0 / self.beta1))
 
         # # ---- For debugging
         # particles.sort(interleave_lost_particles=True)
@@ -60,6 +66,7 @@ class CoastWrap:
                                                particles.beta0[mask_stop],
                                                particles.s[mask_stop],
                                                particles.at_turn[mask_stop])
+        # zeta_stopped -= self.circumference * (1 - tw.beta0 / self.beta1)
         particles.zeta[mask_stop] = zeta_stopped
 
         # Stop particles
@@ -78,25 +85,28 @@ class CoastWrap:
     def zeta_to_zeta_prime(self, zeta, beta0, s, at_turn):
         S_capital = s + at_turn * self.circumference
         beta1_beta0 = self.beta1 / beta0
-        zeta_prime =  zeta * beta1_beta0 + (1 - beta1_beta0) * S_capital
+        beta0_beta1 = beta0 / self.beta1
+        zeta_full = zeta + (1 - beta0_beta1) * self.circumference * at_turn
+        zeta_prime =  zeta_full * beta1_beta0 + (1 - beta1_beta0) * S_capital
         return zeta_prime
 
     def zeta_prime_to_zeta(self, zeta_prime, beta0, s, at_turn):
         S_capital = s + at_turn * self.circumference
         beta0_beta1 = beta0 / self.beta1
-        zeta = zeta_prime * beta0_beta1 + (1 - beta0_beta1) * S_capital
+        zeta_full = zeta_prime * beta0_beta1 + (1 - beta0_beta1) * S_capital
+        zeta = zeta_full - (1 - beta0_beta1) * self.circumference * at_turn
         return zeta
 
 circumference = line.get_length()
 wrap_end = CoastWrap(circumference=circumference, beta1=beta1, id=10001)
-wrap_start = CoastWrap(circumference=circumference, beta1=beta1, id=10002)
+wrap_start = CoastWrap(circumference=circumference, beta1=beta1, id=10002, at_start=True)
 
 zeta_prime_min = -circumference/2
 zeta_prime_max = circumference/2
 zeta_min = wrap_start.zeta_prime_to_zeta(zeta_prime_min, tw.beta0, 0, 0)
 zeta_max = wrap_start.zeta_prime_to_zeta(zeta_prime_max, tw.beta0, 0, 0)
 
-num_particles = 10000
+num_particles = 1000
 p = line.build_particles(
     zeta=np.random.uniform(zeta_min, zeta_min + circumference, num_particles),
     delta=np.random.uniform(0e-2, 5e-2, num_particles)
