@@ -186,24 +186,26 @@ class MetaBeamElement(xo.MetaHybridClass):
         if '_kernels' in data.keys():
             kernels.update(data['_kernels'])
 
-        # Generate track kernel
-        extra_c_source.append(
-            _generate_per_particle_kernel_from_local_particle_function(
-                element_name=name, kernel_name=name+'_track_particles',
-                local_particle_function_name=name+'_track_local_particle'))
-
         # Add dependency on Particles class
         depends_on.append(xp.ParticlesBase._XoStruct)
 
-        # Define track kernel
-        track_kernel_name = f'{name}_track_particles'
-        kernels[track_kernel_name] = xo.Kernel(
-                    c_name=track_kernel_name,
-                    args=[xo.Arg(xo.ThisClass, name='el'),
-                        xo.Arg(xp.ParticlesBase._XoStruct, name='particles'),
-                        xo.Arg(xo.Int64, name='flag_increment_at_element'),
-                        xo.Arg(xo.Int8, pointer=True, name="io_buffer")]
-                    )
+        track_kernel_name = None
+        if 'allow_track' not in data.keys() or data['allow_track']:
+            # Generate track kernel
+            extra_c_source.append(
+                _generate_per_particle_kernel_from_local_particle_function(
+                    element_name=name, kernel_name=name+'_track_particles',
+                    local_particle_function_name=name+'_track_local_particle'))
+
+            # Define track kernel
+            track_kernel_name = f'{name}_track_particles'
+            kernels[track_kernel_name] = xo.Kernel(
+                        c_name=track_kernel_name,
+                        args=[xo.Arg(xo.ThisClass, name='el'),
+                            xo.Arg(xp.ParticlesBase._XoStruct, name='particles'),
+                            xo.Arg(xo.Int64, name='flag_increment_at_element'),
+                            xo.Arg(xo.Int8, pointer=True, name="io_buffer")]
+                        )
 
         # Generate per-particle kernels
         if '_per_particle_kernels' in data.keys():
@@ -217,7 +219,9 @@ class MetaBeamElement(xo.MetaHybridClass):
                     depends_on.append(xp.ParticlesBase._XoStruct)
 
                 kernels.update(
-                    {nn: xo.Kernel(args=[
+                    {nn: xo.Kernel(
+                        c_name=nn,
+                        args=[
                         xo.Arg(xo.ThisClass, name='el'),
                         xo.Arg(xp.ParticlesBase._XoStruct, name='particles'),
                         *kk.args,
@@ -255,6 +259,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     iscollective = None
     isthick = False
     behaves_like_drift = False
+    allow_track = True
     has_backtrack = False
     allow_backtrack = False
     skip_in_loss_location_refinement = False
@@ -277,7 +282,13 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
                                        extra_classes=[particles_class._XoStruct],
                                        *args, **kwargs)
 
-    def track(self, particles, increment_at_element=False):
+    def track(self, particles=None, increment_at_element=False):
+        if not self.allow_track:
+            raise RuntimeError(f"BeamElement {self.__class__.__name__} "
+                             + f"has no valid track method.")
+        elif particles is None:
+            raise RuntimeError("Please provide particles to track!")
+
         context = self._buffer.context
 
         desired_classes = (
