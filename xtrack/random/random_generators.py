@@ -18,7 +18,6 @@ class RandomUniform(BeamElement):
         '_dummy': xo.UInt8,  # TODO: a hack for allocating empty struct on OCL
     }
 
-#     iscollective = True
     allow_track = False
 
     _extra_c_sources = [
@@ -41,9 +40,6 @@ class RandomUniform(BeamElement):
 
     def _sample(self, *args, **kwargs):
         self.sample_uniform(*args, **kwargs)
-
-#     def track(self, *args, **kwargs):
-#         raise RuntimeError("Random generators have no valid track method.")
 
     def generate(self, n_samples=1000, n_seeds=None, particles=None):
         context = self._context
@@ -81,7 +77,7 @@ class RandomExponential(RandomUniform):
         '_dummy': xo.UInt8,  # TODO: a hack for allocating an empty struct on OCL
     }
 
-    iscollective = True
+    allow_track = False
 
     _depends_on = [RandomUniform]
 
@@ -108,7 +104,7 @@ class RandomNormal(RandomUniform):
         '_dummy': xo.UInt8,  # TODO: a hack for allocating an empty struct on OCL
     }
 
-    iscollective = True
+    allow_track = False
 
     _depends_on = [RandomUniform]
 
@@ -139,7 +135,7 @@ class RandomRutherford(RandomUniform):
         'Newton_iterations': xo.Int8
     }
 
-    iscollective = True
+    allow_track = False
 
     _depends_on = [RandomUniform]
 
