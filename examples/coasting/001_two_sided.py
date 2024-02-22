@@ -36,18 +36,15 @@ class CoastWrap:
     def track(self, particles):
 
         # ---- For debugging
-        particles.sort(interleave_lost_particles=True)
-        particles.get_table().cols['zeta state delta s at_turn'].show()
-        import pdb; pdb.set_trace()
-        particles.reorganize()
+        # particles.sort(interleave_lost_particles=True)
+        # particles.get_table().cols['zeta state delta s at_turn'].show()
+        # import pdb; pdb.set_trace()
+        # particles.reorganize()
 
         if self.at_start:
             mask_alive = particles.state > 0
-            if not((particles.at_turn[mask_alive] == 0).any()): # not the first turn
-                particles.zeta[mask_alive] -= (
-                    self.circumference * (1 - tw.beta0 / self.beta1))
-
-
+            particles.zeta[mask_alive] -= (
+                self.circumference * (1 - tw.beta0 / self.beta1))
 
         # Resume particles previously stopped
         particles.state[particles.state==-self.id] = 1
@@ -114,7 +111,8 @@ zeta_max = wrap_start.zeta_prime_to_zeta(zeta_prime_max, tw.beta0, 0, 0)
 #     zeta=np.random.uniform(zeta_max-circumference, zeta_max, num_particles),
 #     delta=np.random.uniform(0e-2, 5e-2, num_particles)
 # )
-zeta_grid= np.linspace(zeta_max-circumference, zeta_max, 20)
+# zeta_grid= np.linspace(zeta_max-circumference, zeta_max, 20)
+zeta_grid= np.linspace(-circumference/2, circumference/2, 20)
 delta_grid = [1e-2] #np.linspace(0, 1e-2, 5)
 ZZ, DD = np.meshgrid(zeta_grid, delta_grid)
 p = line.build_particles(
@@ -125,9 +123,11 @@ p.i_frame = 0
 
 # import pdb; pdb.set_trace()
 
-wrap_start.at_start = False
-wrap_start.track(p)
-wrap_start.at_start = True
+# wrap_start.at_start = False
+# wrap_start.track(p)
+# wrap_start.at_start = True
+
+# p.at_turn[:] = 0
 
 line.discard_tracker()
 line.insert_element(element=wrap_start, name='wrap_start', at_s=0)
