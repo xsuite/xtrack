@@ -86,7 +86,7 @@ class CoastWrap:
         S_capital = s + at_turn * self.circumference
         beta1_beta0 = self.beta1 / beta0
         beta0_beta1 = beta0 / self.beta1
-        zeta_full = zeta + (1 - beta0_beta1) * self.circumference * (at_turn + 1)
+        zeta_full = zeta + (1 - beta0_beta1) * self.circumference * at_turn
         zeta_prime =  zeta_full * beta1_beta0 + (1 - beta1_beta0) * S_capital
         return zeta_prime
 
@@ -94,7 +94,7 @@ class CoastWrap:
         S_capital = s + at_turn * self.circumference
         beta0_beta1 = beta0 / self.beta1
         zeta_full = zeta_prime * beta0_beta1 + (1 - beta0_beta1) * S_capital
-        zeta = zeta_full - (1 - beta0_beta1) * self.circumference * (at_turn + 1)
+        zeta = zeta_full - (1 - beta0_beta1) * self.circumference * at_turn
         return zeta
 
 circumference = line.get_length()
@@ -106,23 +106,20 @@ zeta_prime_max = circumference/2
 zeta_min = wrap_start.zeta_prime_to_zeta(zeta_prime_min, tw.beta0, 0, 0)
 zeta_max = wrap_start.zeta_prime_to_zeta(zeta_prime_max, tw.beta0, 0, 0)
 
-num_particles = 1000
-p = line.build_particles(
-    zeta=np.random.uniform(-circumference/2, circumference/2, num_particles),
-    delta=np.random.uniform(0e-2, 5e-2, num_particles)
-)
-
-p.x[(p.zeta > 1) & (p.zeta < 2)] = 1e-3  # kick
-
-zeta_grid= np.linspace(zeta_max-circumference, zeta_max, 20)
-# zeta_grid= np.linspace(-circumference/2, circumference/2, 20)
-# delta_grid = [1e-2] #np.linspace(0, 1e-2, 5)
-# ZZ, DD = np.meshgrid(zeta_grid, delta_grid)
+# num_particles = 1000
 # p = line.build_particles(
-#     zeta=ZZ.flatten(),
-#     delta=DD.flatten()
+#     zeta=np.random.uniform(zeta_max-circumference, zeta_max, num_particles),
+#     delta=np.random.uniform(0e-2, 5e-2, num_particles)
 # )
-# p.i_frame = 0
+# zeta_grid= np.linspace(zeta_max-circumference, zeta_max, 20)
+zeta_grid= np.linspace(-circumference/2, circumference/2, 20)
+delta_grid = [1e-2] #np.linspace(0, 1e-2, 5)
+ZZ, DD = np.meshgrid(zeta_grid, delta_grid)
+p = line.build_particles(
+    zeta=ZZ.flatten(),
+    delta=DD.flatten()
+)
+p.i_frame = 0
 
 # import pdb; pdb.set_trace()
 
@@ -138,20 +135,21 @@ line.append_element(wrap_end, name='wrap_end')
 line.build_tracker()
 
 def intensity(line, particles):
+    mask_alive = particles.state > 0
+    # particles.sort(interleave_lost_particles=True)
+    # particles.get_table().cols['zeta state delta s'].show()
+    # import pdb; pdb.set_trace()
+    # particles.reorganize()
+
+
     return np.sum(particles.state > 0)/((zeta_max - zeta_min)/tw.beta0/clight)
 
 def z_range(line, particles):
     mask_alive = particles.state > 0
     return particles.zeta[mask_alive].min(), particles.zeta[mask_alive].max()
 
-def long_density(line, particles):
-    mask_alive = particles.state > 0
-    return np.histogram(particles.zeta[mask_alive], bins=100,
-                        range=(-circumference, circumference))
-
 line.enable_time_dependent_vars = True
 line.track(p, num_turns=1000, log=xt.Log(intensity=intensity,
-                                         long_density=long_density,
                                          z_range=z_range), with_progress=True)
 
 inten = line.log_last_track['intensity']
@@ -185,7 +183,5 @@ plt.plot(np.array([0.5*(zz[1] + zz[0]) for zz in line.log_last_track['z_range']]
 plt.plot()
 plt.ylabel('z range center [m]')
 plt.xlabel('Turn')
-
-hist_mat = np.array([rr[0] for rr in line.log_last_track['long_density']])
 
 plt.show()
