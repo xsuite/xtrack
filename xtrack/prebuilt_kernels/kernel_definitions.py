@@ -130,31 +130,32 @@ except ImportError:
 
 try:
     import xcoll as xc
-    kernel_definitions['default_xcoll_only_absorbers'] = {
-        'config': BASE_CONFIG,
-        'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
-                + [xc.BlackAbsorber],
-    }
     kernel_definitions['default_xcoll'] = {
         'config': BASE_CONFIG,
         'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
                 + [xc.BlackAbsorber, xc.EverestBlock, \
-                   xc.EverestCollimator]
+                   xc.EverestCollimator, xc.EverestCrystal]
     }
     kernel_definitions['default_xcoll_frozen_longitudinal'] = {
         'config': {**BASE_CONFIG, **FREEZE_LONGITUDINAL},
         'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
                 + [xc.BlackAbsorber, xc.EverestBlock, \
-                   xc.EverestCollimator]
+                   xc.EverestCollimator, xc.EverestCrystal]
     }
     kernel_definitions['default_xcoll_frozen_energy'] = {
         'config': {**BASE_CONFIG, **FREEZE_ENERGY},
         'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
                 + [xc.BlackAbsorber, xc.EverestBlock, \
-                   xc.EverestCollimator]
+                   xc.EverestCollimator, xc.EverestCrystal]
     }
-    kernel_definitions['default_xcoll_crystals'] = {
-        'config': BASE_CONFIG,
+    kernel_definitions['default_xcoll_backtrack': {
+        'config': {**BASE_CONFIG, 'XSUITE_BACKTRACK': True},
+        'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
+                + [xc.BlackAbsorber, xc.EverestBlock, \
+                   xc.EverestCollimator, xc.EverestCrystal]
+    }
+    kernel_definitions['default_xcoll_backtrack_frozen_energy': {
+        'config': {**BASE_CONFIG, **FREEZE_ENERGY, 'XSUITE_BACKTRACK': True},
         'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
                 + [xc.BlackAbsorber, xc.EverestBlock, \
                    xc.EverestCollimator, xc.EverestCrystal]
