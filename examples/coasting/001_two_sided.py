@@ -108,7 +108,7 @@ zeta_max = wrap_start.zeta_prime_to_zeta(zeta_prime_max, tw.beta0, 0, 0)
 
 num_particles = 1000
 p = line.build_particles(
-    zeta=np.random.uniform(zeta_min, zeta_min + circumference, num_particles),
+    zeta=np.random.uniform(zeta_max-circumference, zeta_max, num_particles),
     delta=np.random.uniform(0e-2, 5e-2, num_particles)
 )
 # zeta_grid= np.linspace(zeta_max-circumference, zeta_max, 5)
@@ -119,7 +119,12 @@ p = line.build_particles(
 #     delta=DD.flatten()
 # )
 p.i_frame = 0
+
+import pdb; pdb.set_trace()
+
+wrap_start.at_start = False
 wrap_start.track(p)
+wrap_start.at_start = True
 
 line.discard_tracker()
 line.insert_element(element=wrap_start, name='wrap_start', at_s=0)
@@ -171,9 +176,7 @@ plt.ylabel('z range [m]')
 plt.xlabel('Turn')
 
 plt.figure(4)
-plt.plot(
-    np.array([0.5*(zz[1] + zz[0]) for zz in line.log_last_track['z_range']])
-    - np.arange(1000) * circumference * (1 - tw.beta0/beta1))
+plt.plot(np.array([0.5*(zz[1] + zz[0]) for zz in line.log_last_track['z_range']]))
 plt.plot()
 plt.ylabel('z range center [m]')
 plt.xlabel('Turn')
