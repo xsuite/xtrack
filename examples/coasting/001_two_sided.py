@@ -96,7 +96,7 @@ zeta_prime_max = circumference/2
 zeta_min = wrap_start.zeta_prime_to_zeta(zeta_prime_min, tw.beta0, 0, 0)
 zeta_max = wrap_start.zeta_prime_to_zeta(zeta_prime_max, tw.beta0, 0, 0)
 
-num_particles = 1000
+num_particles = 10000
 p = line.build_particles(
     zeta=np.random.uniform(zeta_min, zeta_min + circumference, num_particles),
     delta=np.random.uniform(0e-2, 5e-2, num_particles)
@@ -158,6 +158,14 @@ plt.xlabel(r'\delta')
 plt.figure(3)
 plt.plot([zz[1]-zz[0] for zz in line.log_last_track['z_range']])
 plt.ylabel('z range [m]')
+plt.xlabel('Turn')
+
+plt.figure(4)
+plt.plot(
+    np.array([0.5*(zz[1] + zz[0]) for zz in line.log_last_track['z_range']])
+    - np.arange(1000) * circumference * (1 - tw.beta0/beta1))
+plt.plot()
+plt.ylabel('z range center [m]')
 plt.xlabel('Turn')
 
 plt.show()
