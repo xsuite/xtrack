@@ -152,4 +152,12 @@ plt.xlabel('Turn')
 
 plt.figure(2)
 plt.plot(p.delta, p.pdg_id, '.')
+plt.ylabel('Skipped turns')
+plt.xlabel(r'\delta')
+
+plt.figure(3)
+plt.plot([zz[1]-zz[0] for zz in line.log_last_track['z_range']])
+plt.ylabel('z range [m]')
+plt.xlabel('Turn')
+
 plt.show()
