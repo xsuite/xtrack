@@ -60,9 +60,4 @@ void RandomUniform_sample(RandomUniformData rng, LocalParticle* part0,
 }
 
 
-/*gpufun*/
-void RandomUniform_track_local_particle(RandomUniformData rng, LocalParticle* part0) {
-    kill_all_particles(part0, RNG_ERR_INVALID_TRACK);
-}
-
 #endif /* XTRACK_UNIFORM_RNG_H */

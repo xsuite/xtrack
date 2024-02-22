@@ -18,7 +18,8 @@ class RandomUniform(BeamElement):
         '_dummy': xo.UInt8,  # TODO: a hack for allocating empty struct on OCL
     }
 
-    iscollective = True
+#     iscollective = True
+    allow_track = False
 
     _extra_c_sources = [
         # The base (bitwise) rng is in xpart, as this is where the
@@ -41,23 +42,23 @@ class RandomUniform(BeamElement):
     def _sample(self, *args, **kwargs):
         self.sample_uniform(*args, **kwargs)
 
-    def track(self, *args, **kwargs):
-        raise RuntimeError("Random generators have no valid track method.")
+#     def track(self, *args, **kwargs):
+#         raise RuntimeError("Random generators have no valid track method.")
 
     def generate(self, n_samples=1000, n_seeds=None, particles=None):
         context = self._context
+        if n_seeds is None:
+            n_seeds = 1000
+        elif particles is not None:
+            _print("Warning: both 'particles' and 'n_seeds' are given, but "
+                  + "are not compatible. Ignoring 'n_seeds'...")
+        n_seeds = int(n_seeds)
         if particles is None:
             particles = xp.Particles(state=np.ones(n_seeds),
                                      x=np.ones(n_seeds), _context=context)
         else:
-            if n_seeds is not None:
-                _print("Warning: both 'particles' and 'n_seeds' are given, but "
-                      + "are not compatible. Ignoring 'n_seeds'...")
             particles.move(_context=context)
             n_seeds = len(particles._rng_s1)
-        if n_seeds is None:
-            n_seeds = 1000
-        n_seeds = int(n_seeds)
         if not particles._has_valid_rng_state():
             particles._init_random_number_generator()
 
@@ -187,7 +188,7 @@ class RandomRutherford(RandomUniform):
             raise ValueError('Rutherford random generator is not currently supported on GPU.')
 
     def set_parameters(self, A, B, lower_val, upper_val):
-        self.compile_kernels(only_if_needed=True)
+        self.compile_kernels(particles_class=xp.Particles, only_if_needed=True)
         context = self._buffer.context
         context.kernels.set_rutherford(rng=self, A=A, B=B, lower_val=lower_val, upper_val=upper_val)
 

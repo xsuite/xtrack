@@ -116,10 +116,4 @@ void RandomRutherford_sample(RandomRutherfordData rng, LocalParticle* part0,
 }
 
 
-/*gpufun*/
-void RandomRutherford_track_local_particle(RandomRutherfordData rng, LocalParticle* part0) {
-    kill_all_particles(part0, RNG_ERR_INVALID_TRACK);
-}
-
-
 #endif /* XTRACK_RUTHERFORD_RNG_H */

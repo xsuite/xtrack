@@ -59,10 +59,10 @@ NO_SYNRAD_ELEMENTS = [
 ]
 
 RANDOM_ELEMENTS = [
-#     RandomUniform,
-#     RandomExponential,
-#     RandomNormal,
-#     RandomRutherford
+    RandomUniform,
+    RandomExponential,
+    RandomNormal,
+    RandomRutherford
 ]
 
 # These will be enumerated in order of appearance in the dict, so in this case
@@ -139,29 +139,25 @@ try:
         'config': BASE_CONFIG,
         'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
                 + [xc.BlackAbsorber, xc.EverestBlock, \
-                   xc.EverestCollimator],
-        'extra_classes': RANDOM_ELEMENTS
+                   xc.EverestCollimator]
     }
     kernel_definitions['default_xcoll_frozen_longitudinal'] = {
         'config': {**BASE_CONFIG, **FREEZE_LONGITUDINAL},
         'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
                 + [xc.BlackAbsorber, xc.EverestBlock, \
-                   xc.EverestCollimator],
-        'extra_classes': RANDOM_ELEMENTS
+                   xc.EverestCollimator]
     }
     kernel_definitions['default_xcoll_frozen_energy'] = {
         'config': {**BASE_CONFIG, **FREEZE_ENERGY},
         'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
                 + [xc.BlackAbsorber, xc.EverestBlock, \
-                   xc.EverestCollimator],
-        'extra_classes': RANDOM_ELEMENTS
+                   xc.EverestCollimator]
     }
     kernel_definitions['default_xcoll_crystals'] = {
         'config': BASE_CONFIG,
         'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
                 + [xc.BlackAbsorber, xc.EverestBlock, \
-                   xc.EverestCollimator, xc.EverestCrystal],
-        'extra_classes': RANDOM_ELEMENTS
+                   xc.EverestCollimator, xc.EverestCrystal]
     }
 except ImportError:
     LOGGER.warning('Xcoll not installed, skipping collimator elements')

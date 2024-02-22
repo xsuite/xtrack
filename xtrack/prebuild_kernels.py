@@ -84,12 +84,17 @@ def get_element_class_by_name(name: str) -> type:
     except ModuleNotFoundError:
         xc_element_classes = ()
 
+    xt_rng_classes = tuple([getattr(xt, cls)
+                            for cls in dir(xt.random)
+                            if cls.startswith('Random')])
+
     # from xtrack.monitors import generate_monitor_class
     # monitor_cls = generate_monitor_class(xp.Particles)
-    monitor_cls = xt.ParticlesMonitor
+    xt_monitor_classes = (xt.ParticlesMonitor, )
 
-    element_classes = xt.element_classes + xf_element_classes \
-                      + xc_element_classes + (monitor_cls, )
+    element_classes = xt.element_classes + xt_rng_classes \
+                      + xt_monitor_classes + xf_element_classes \
+                      + xc_element_classes
 
     for cls in element_classes:
         if cls.__name__ == name:
