@@ -236,6 +236,9 @@ intensity_vs_t = np.fliplr(hist_mat).flatten()
 z_unwrapped = np.arange(0, len(y_vs_t)) * dz
 t_unwrapped = z_unwrapped / (tw.beta0 * clight)
 
+z_range_size = z_axis[-1] - z_axis[0]
+t_range_size = z_range_size / (tw.beta0 * clight)
+
 plt.figure(8)
 ax1 = plt.subplot(2, 1, 1)
 plt.plot(t_unwrapped*1e6, y_vs_t, '-')
@@ -245,6 +248,8 @@ ax2 = plt.subplot(2, 1, 2, sharex=ax1)
 plt.plot(t_unwrapped*1e6, intensity_vs_t, '-')
 plt.ylabel('intensity')
 plt.xlabel('t [us]')
+for tt in t_range_size * np.arange(0, hist_y.shape[0]):
+    ax1.axvline(x=tt*1e6, color='red', linestyle='--', alpha=0.5)
 
 
 plt.show()
