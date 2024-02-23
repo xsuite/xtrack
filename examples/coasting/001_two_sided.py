@@ -117,6 +117,7 @@ zeta_max = circumference/2*tw.beta0/beta1
 num_particles = 10000
 p = line.build_particles(
     zeta=np.random.uniform(-circumference/2, circumference/2, num_particles),
+    delta=np.random.uniform(-3e-2, 3e-2, num_particles),
     x_norm=0, y_norm=0
 )
 
@@ -195,7 +196,7 @@ plt.xlabel('Turn')
 
 plt.figure(2)
 plt.plot(p.delta, p.pdg_id, '.')
-plt.ylabel('Skipped turns')
+plt.ylabel('Missing turns')
 plt.xlabel(r'$\delta$')
 
 plt.figure(3)
