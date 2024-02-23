@@ -146,13 +146,13 @@ def z_range(line, particles):
 
 def long_density(line, particles):
     mask_alive = particles.state > 0
-    return np.histogram(particles.zeta[mask_alive], bins=100,
+    return np.histogram(particles.zeta[mask_alive], bins=200,
                         range=(-circumference, circumference))
 
 def x_mean_hist(line, particles):
     mask_alive = particles.state > 0
-    return np.histogram(particles.zeta[mask_alive], bins=100,
-                        range=(-0.01, 0.01), weights=particles.x[mask_alive])
+    return np.histogram(particles.zeta[mask_alive], bins=200,
+                        range=(-circumference, circumference), weights=particles.x[mask_alive])
 
 line.enable_time_dependent_vars = True
 line.track(p, num_turns=1000, log=xt.Log(intensity=intensity,
@@ -201,5 +201,7 @@ hist_x = np.array([rr[0] for rr in line.log_last_track['x_mean_hist']])
 plt.figure(6)
 plt.pcolormesh(line.log_last_track['long_density'][0][1], np.arange(0, 1000,1),
            hist_x[:-1,:])
+
+
 
 plt.show()
