@@ -36,12 +36,12 @@ tw = line.twiss()
 beta1 = tw.beta0 * 1.1
 class CoastWrap:
 
-    def __init__(self, circumference, id, beta1, at_start=False):
+    def __init__(self, circumference, id, beta1, at_end=False):
         assert id > 10000
         self.id = id
         self.beta1 = beta1
         self.circumference = circumference
-        self.at_start = at_start
+        self.at_end = at_end
 
     def track(self, particles):
 
@@ -51,7 +51,7 @@ class CoastWrap:
         # import pdb; pdb.set_trace()
         # particles.reorganize()
 
-        if self.at_start:
+        if not(self.at_end):
             mask_alive = particles.state > 0
             particles.zeta[mask_alive] -= (
                 self.circumference * (1 - tw.beta0 / self.beta1))
@@ -61,7 +61,8 @@ class CoastWrap:
         particles.reorganize()
 
         beta0_beta1 = tw.beta0 / self.beta1
-        zeta_min = particles.s * (1 - beta0_beta1) - beta0_beta1 * self.circumference / 2
+        # zeta_min = particles.s * (1 - beta0_beta1) - beta0_beta1 * self.circumference / 2
+        # zeta_min = particles.s * (1 - beta0_beta1) - beta0_beta1 * self.circumference / 2
 
         # Identify particles that need to be stopped
         mask_alive = particles.state > 0
@@ -101,8 +102,8 @@ class CoastWrap:
         return zeta
 
 circumference = line.get_length()
-wrap_end = CoastWrap(circumference=circumference, beta1=beta1, id=10001)
-wrap_start = CoastWrap(circumference=circumference, beta1=beta1, id=10002, at_start=True)
+wrap_end = CoastWrap(circumference=circumference, beta1=beta1, id=10001, at_end=True)
+wrap_start = CoastWrap(circumference=circumference, beta1=beta1, id=10002)
 
 zeta_min = -circumference/2*tw.beta0/beta1
 zeta_max = circumference/2*tw.beta0/beta1
@@ -110,7 +111,7 @@ zeta_max = circumference/2*tw.beta0/beta1
 num_particles = 10000
 p = line.build_particles(
     zeta=np.random.uniform(-circumference/2, circumference/2, num_particles),
-    delta=np.random.uniform(-3e-2, 3e-2, num_particles),
+    delta=0*np.random.uniform(-1, 1, num_particles),
     x_norm=0, y_norm=0
 )
 
@@ -127,10 +128,6 @@ p.y[(p.zeta > 1) & (p.zeta < 2)] = 1e-3  # kick
 # p.i_frame = 0
 
 # import pdb; pdb.set_trace()
-
-# wrap_start.at_start = False
-# wrap_start.track(p)
-# wrap_start.at_start = True
 
 # p.at_turn[:] = 0
 
