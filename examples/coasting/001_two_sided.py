@@ -5,19 +5,23 @@ import xtrack as xt
 from scipy.constants import c as clight
 
 # We get the model from MAD-X
-mad = Madx()
-folder = ('../../test_data/elena')
-mad.call(folder + '/elena.seq')
-mad.call(folder + '/highenergy.str')
-mad.call(folder + '/highenergy.beam')
-mad.use('elena')
+# mad = Madx()
+# folder = ('../../test_data/elena')
+# mad.call(folder + '/elena.seq')
+# mad.call(folder + '/highenergy.str')
+# mad.call(folder + '/highenergy.beam')
+# mad.use('elena')
+# seq = mad.sequence.elena
+# line = xt.Line.from_madx_sequence(seq)
+# line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
+#                                     mass0=seq.beam.mass * 1e9,
+#                                     q0=seq.beam.charge)
 
-# Build xsuite line
-seq = mad.sequence.elena
-line = xt.Line.from_madx_sequence(seq)
-line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
-                                    mass0=seq.beam.mass * 1e9,
-                                    q0=seq.beam.charge)
+
+line = xt.Line.from_json(
+    '../../test_data/psb_injection/line_and_particle.json')
+
+
 line.configure_bend_model(core='bend-kick-bend', edge='full')
 
 line.twiss_default['method'] = '4d'
@@ -107,13 +111,13 @@ zeta_max = circumference/2*tw.beta0/beta1
 num_particles = 1000
 p = line.build_particles(
     zeta=np.random.uniform(-circumference/2, circumference/2, num_particles),
-    delta=1e-2, #np.random.uniform(0e-2, 1e-2, num_particles)
+    delta=0, #np.random.uniform(0e-2, 1e-2, num_particles)
     x_norm=0, y_norm=0
 )
 
-p.x[(p.zeta > 1) & (p.zeta < 2)] = 1e-3  # kick
+p.y[(p.zeta > 1) & (p.zeta < 2)] = 1e-3  # kick
 
-zeta_grid= np.linspace(zeta_max-circumference, zeta_max, 20)
+# zeta_grid= np.linspace(zeta_max-circumference, zeta_max, 20)
 # zeta_grid= np.linspace(-circumference/2, circumference/2, 20)
 # delta_grid = [1e-2] #np.linspace(0, 1e-2, 5)
 # ZZ, DD = np.meshgrid(zeta_grid, delta_grid)
@@ -145,23 +149,28 @@ def z_range(line, particles):
 
 def long_density(line, particles):
     mask_alive = particles.state > 0
+    if not(np.any(particles.at_turn[mask_alive] == 0)): # don't check at the first turn
+        assert np.all(particles.zeta[mask_alive] > zeta_min)
+        assert np.all(particles.zeta[mask_alive] < zeta_max)
     return np.histogram(particles.zeta[mask_alive], bins=200,
-                        range=(-circumference, circumference))
+                        range=(zeta_min, zeta_max))
 
-def x_mean_hist(line, particles):
+def y_mean_hist(line, particles):
+
     mask_alive = particles.state > 0
+    if not(np.any(particles.at_turn[mask_alive] == 0)): # don't check at the first turn
+        assert np.all(particles.zeta[mask_alive] > zeta_min)
+        assert np.all(particles.zeta[mask_alive] < zeta_max)
     return np.histogram(particles.zeta[mask_alive], bins=200,
-                        range=(-circumference, circumference), weights=particles.x[mask_alive])
+                        range=(zeta_min, zeta_max), weights=particles.y[mask_alive])
 
-def particles(line, particles):
-    return particles.copy()
 
 line.enable_time_dependent_vars = True
-line.track(p, num_turns=1000, log=xt.Log(intensity=intensity,
+line.track(p, num_turns=200, log=xt.Log(intensity=intensity,
                                          long_density=long_density,
-                                         x_mean_hist=x_mean_hist,
+                                         y_mean_hist=y_mean_hist,
                                          z_range=z_range,
-                                         particles=particles), with_progress=True)
+                                         ), with_progress=True)
 
 inten = line.log_last_track['intensity']
 
@@ -195,22 +204,42 @@ plt.plot()
 plt.ylabel('z range center [m]')
 plt.xlabel('Turn')
 
+z_axis = line.log_last_track['long_density'][0][1]
+
 hist_mat = np.array([rr[0] for rr in line.log_last_track['long_density']])
 plt.figure(5)
-plt.pcolormesh(line.log_last_track['long_density'][0][1], np.arange(0, 1000,1),
+plt.pcolormesh(z_axis, np.arange(0, hist_mat.shape[0],1),
            hist_mat[:-1,:])
 
-hist_x = np.array([rr[0] for rr in line.log_last_track['x_mean_hist']])
+hist_y = np.array([rr[0] for rr in line.log_last_track['y_mean_hist']])
 plt.figure(6)
-plt.pcolormesh(line.log_last_track['long_density'][0][1], np.arange(0, 1000,1),
-           hist_x[:-1,:])
+plt.pcolormesh(z_axis, np.arange(0, hist_y.shape[0],1),
+           hist_y[:-1,:])
 
 plt.figure(7)
 mask_alive = p.state>0
-plt.plot(p.zeta[mask_alive], p.x[mask_alive], '.')
+plt.plot(p.zeta[mask_alive], p.y[mask_alive], '.')
 plt.axvline(x=circumference/2*tw.beta0/beta1, color='C1')
 plt.axvline(x=-circumference/2*tw.beta0/beta1, color='C1')
 plt.xlabel('z [m]')
 plt.ylabel('x [m]')
+
+dz = z_axis[1] - z_axis[0]
+y_vs_t = hist_y.flatten()
+intensity_vs_t = hist_mat.flatten()
+z_unwrapped = np.arange(0, len(y_vs_t)) * dz
+t_unwrapped = z_unwrapped / (tw.beta0 * clight)
+
+plt.figure(8)
+ax1 = plt.subplot(2, 1, 1)
+plt.plot(t_unwrapped*1e6, y_vs_t, '-')
+plt.ylabel('y mean [m]')
+plt.grid()
+ax2 = plt.subplot(2, 1, 2, sharex=ax1)
+plt.plot(t_unwrapped*1e6, intensity_vs_t, '-')
+plt.ylabel('intensity')
+plt.xlabel('t [us]')
+
+
 
 plt.show()
