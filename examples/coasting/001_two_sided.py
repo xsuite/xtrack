@@ -18,7 +18,7 @@ line = xt.Line.from_madx_sequence(seq)
 line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
                                     mass0=seq.beam.mass * 1e9,
                                     q0=seq.beam.charge)
-line.configure_bend_model(core='adaptive', edge='full', num_multipole_kicks=10)
+line.configure_bend_model(core='bend-kick-bend', edge='full')
 
 line.twiss_default['method'] = '4d'
 
@@ -109,7 +109,7 @@ zeta_max = wrap_start.zeta_prime_to_zeta(zeta_prime_max, tw.beta0, 0, 0)
 num_particles = 1000
 p = line.build_particles(
     zeta=np.random.uniform(-circumference/2, circumference/2, num_particles),
-    delta=np.random.uniform(0e-2, 5e-2, num_particles)
+    delta=0*np.random.uniform(0e-2, 5e-2, num_particles)
 )
 
 p.x[(p.zeta > 1) & (p.zeta < 2)] = 1e-3  # kick
@@ -149,9 +149,15 @@ def long_density(line, particles):
     return np.histogram(particles.zeta[mask_alive], bins=100,
                         range=(-circumference, circumference))
 
+def x_mean_hist(line, particles):
+    mask_alive = particles.state > 0
+    return np.histogram(particles.zeta[mask_alive], bins=100,
+                        range=(-0.01, 0.01), weights=particles.x[mask_alive])
+
 line.enable_time_dependent_vars = True
 line.track(p, num_turns=1000, log=xt.Log(intensity=intensity,
                                          long_density=long_density,
+                                         x_mean_hist=x_mean_hist,
                                          z_range=z_range), with_progress=True)
 
 inten = line.log_last_track['intensity']
@@ -187,5 +193,13 @@ plt.ylabel('z range center [m]')
 plt.xlabel('Turn')
 
 hist_mat = np.array([rr[0] for rr in line.log_last_track['long_density']])
+plt.figure(5)
+plt.pcolormesh(line.log_last_track['long_density'][0][1], np.arange(0, 1000,1),
+           hist_mat[:-1,:])
+
+hist_x = np.array([rr[0] for rr in line.log_last_track['x_mean_hist']])
+plt.figure(6)
+plt.pcolormesh(line.log_last_track['long_density'][0][1], np.arange(0, 1000,1),
+           hist_x[:-1,:])
 
 plt.show()
