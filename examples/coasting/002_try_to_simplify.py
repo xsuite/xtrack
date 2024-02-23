@@ -42,7 +42,6 @@ class CoastWrap:
 
         # Update zeta for particles that are stopped
         particles.zeta[mask_stop] += beta0_beta1 * self.circumference
-        particles.at_turn[mask_stop] += 1
         particles.pdg_id[mask_stop] += 1 # HACK!!!!!
 
         # Stop particles
@@ -123,8 +122,8 @@ plt.legend(loc='best')
 plt.xlabel('Turn')
 
 plt.figure(2)
-plt.plot(p.delta, p.pdg_id, '.')
-plt.ylabel('Missing turns')
+plt.plot(p.delta, p.at_turn, '.')
+plt.ylabel('Number of turns')
 plt.xlabel(r'$\delta$')
 
 plt.figure(3)
