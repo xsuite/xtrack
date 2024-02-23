@@ -21,6 +21,12 @@ from scipy.constants import c as clight
 line = xt.Line.from_json(
     '../../test_data/psb_injection/line_and_particle.json')
 
+# RF off!
+tt = line.get_table()
+ttcav = tt.rows[tt.element_type == 'Cavity']
+for nn in ttcav.name:
+    line.element_refs[nn].voltage=0
+
 
 line.configure_bend_model(core='bend-kick-bend', edge='full')
 
@@ -108,10 +114,9 @@ wrap_start = CoastWrap(circumference=circumference, beta1=beta1, id=10002, at_st
 zeta_min = -circumference/2*tw.beta0/beta1
 zeta_max = circumference/2*tw.beta0/beta1
 
-num_particles = 1000
+num_particles = 10000
 p = line.build_particles(
     zeta=np.random.uniform(-circumference/2, circumference/2, num_particles),
-    delta=0, #np.random.uniform(0e-2, 1e-2, num_particles)
     x_norm=0, y_norm=0
 )
 
@@ -170,7 +175,7 @@ line.track(p, num_turns=200, log=xt.Log(intensity=intensity,
                                          long_density=long_density,
                                          y_mean_hist=y_mean_hist,
                                          z_range=z_range,
-                                         ), with_progress=True)
+                                         ), with_progress=10)
 
 inten = line.log_last_track['intensity']
 
@@ -191,7 +196,7 @@ plt.xlabel('Turn')
 plt.figure(2)
 plt.plot(p.delta, p.pdg_id, '.')
 plt.ylabel('Skipped turns')
-plt.xlabel(r'\delta')
+plt.xlabel(r'$\delta$')
 
 plt.figure(3)
 plt.plot([zz[1]-zz[0] for zz in line.log_last_track['z_range']])
