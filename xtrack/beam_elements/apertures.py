@@ -6,7 +6,6 @@
 import numpy as np
 
 import xobjects as xo
-import xpart as xp
 
 from ..base_element import BeamElement
 from ..general import _pkg_root

@@ -7,7 +7,6 @@ import numpy as np
 from scipy.spatial import ConvexHull
 
 import xobjects as xo
-import xpart as xp
 import xtrack as xt
 
 from ..beam_elements import LimitPolygon, XYShift, SRotation, Drift, Marker
@@ -107,7 +106,7 @@ class LossLocationRefinement:
 
         Parameters
         ----------
-        particles : xpart.Particles
+        particles : xt.Particles
             Particles for which the loss location is refined.
         i_apertures : list (optional)
             List of indices of the apertures for which the loss location
@@ -225,7 +224,7 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_end_thin_0,
 
     mask_part = (particles.state == 0) & (particles.at_element == i_aper_1)
 
-    part_refine = xp.Particles(
+    part_refine = xt.Particles(
                     p0c=particles.p0c[mask_part],
                     mass0=particles.mass0,
                     q0=particles.q0,
@@ -500,7 +499,7 @@ def characterize_aperture(line, i_aperture, n_theta, r_max, dr,
 
         logger.info(f'iteration={iteration} num_part={x_test.shape[0]}')
 
-        ptest = xp.Particles(p0c=1,
+        ptest = xt.Particles(p0c=1,
                 x = x_test.copy(),
                 y = y_test.copy())
         with xt.line._preserve_config(line):

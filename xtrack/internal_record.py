@@ -5,7 +5,7 @@
 
 import numpy as np
 import xobjects as xo
-import xpart as xp
+from .particles import Particles
 
 
 _RecordIdentifier_getp_record_source = r'''
@@ -70,7 +70,7 @@ class RecordIdentifier(xo.Struct):
     offset = xo.Int64
 
     _extra_c_sources = [_RecordIdentifier_getp_record_source]
-    _depends_on = [xp.Particles._XoStruct]
+    _depends_on = [Particles._XoStruct]
 
 
 class RecordIndex(xo.Struct):

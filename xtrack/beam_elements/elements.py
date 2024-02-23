@@ -8,7 +8,6 @@ from numbers import Number
 from scipy.special import factorial
 
 import xobjects as xo
-import xpart as xp
 
 from ..base_element import BeamElement
 from ..random import RandomUniform, RandomExponential, RandomNormal

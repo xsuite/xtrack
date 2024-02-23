@@ -205,21 +205,21 @@ def test_get_normalized_coordinates(test_context):
     assert particles23._capacity == 20
     assert np.allclose(norm_coord23['x_norm'][:3], [-1, 0, 0.5], atol=1e-10, rtol=0)
     assert np.allclose(norm_coord23['x_norm'][3:6], [-1, 0, 0.5], atol=1e-10, rtol=0)
-    assert np.allclose(norm_coord23['x_norm'][6:], xp.particles.LAST_INVALID_STATE)
+    assert np.allclose(norm_coord23['x_norm'][6:], xt.particles.LAST_INVALID_STATE)
     assert np.allclose(norm_coord23['y_norm'][:3], [0.3, -0.2, 0.2], atol=1e-10, rtol=0)
     assert np.allclose(norm_coord23['y_norm'][3:6], [0.3, -0.2, 0.2], atol=1e-10, rtol=0)
-    assert np.allclose(norm_coord23['y_norm'][6:], xp.particles.LAST_INVALID_STATE)
+    assert np.allclose(norm_coord23['y_norm'][6:], xt.particles.LAST_INVALID_STATE)
     assert np.allclose(norm_coord23['px_norm'][:3], [0.1, 0.2, 0.3], atol=1e-10, rtol=0)
     assert np.allclose(norm_coord23['px_norm'][3:6], [0.1, 0.2, 0.3], atol=1e-10, rtol=0)
-    assert np.allclose(norm_coord23['px_norm'][6:], xp.particles.LAST_INVALID_STATE)
+    assert np.allclose(norm_coord23['px_norm'][6:], xt.particles.LAST_INVALID_STATE)
     assert np.allclose(norm_coord23['py_norm'][:3], [0.5, 0.6, 0.8], atol=1e-10, rtol=0)
     assert np.allclose(norm_coord23['py_norm'][3:6], [0.5, 0.6, 0.8], atol=1e-10, rtol=0)
-    assert np.allclose(norm_coord23['py_norm'][6:], xp.particles.LAST_INVALID_STATE)
+    assert np.allclose(norm_coord23['py_norm'][6:], xt.particles.LAST_INVALID_STATE)
 
     particles23.move(_context=xo.context_default)
     assert np.all(particles23.at_element[:3] == line.element_names.index('s.ds.r3.b1'))
     assert np.all(particles23.at_element[3:6] == line.element_names.index('s.ds.r7.b1'))
-    assert np.all(particles23.at_element[6:] == xp.particles.LAST_INVALID_STATE)
+    assert np.all(particles23.at_element[6:] == xt.particles.LAST_INVALID_STATE)
 
 @for_all_test_contexts
 def test_twiss_does_not_affect_monitors(test_context):

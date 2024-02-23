@@ -12,7 +12,6 @@ from scipy.constants import c as clight
 
 import numpy as np
 import xobjects as xo
-import xpart as xp
 import xtrack as xt
 
 from .base_element import _handle_per_particle_blocks
@@ -370,12 +369,12 @@ class Tracker:
         return out
 
     @property
-    def particle_ref(self) -> xp.Particles:
+    def particle_ref(self) -> xt.Particles:
         self._check_invalidated()
         return self.line.particle_ref
 
     @particle_ref.setter
-    def particle_ref(self, value: xp.Particles):
+    def particle_ref(self, value: xt.Particles):
         self.line.particle_ref = value
 
     @property

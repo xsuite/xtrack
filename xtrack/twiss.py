@@ -8,7 +8,6 @@ import logging
 import io
 import json
 import numpy as np
-from scipy.optimize import fsolve
 from scipy.constants import c as clight
 from scipy.constants import hbar
 from scipy.constants import epsilon_0
@@ -16,7 +15,6 @@ from scipy.constants import e as qe
 from scipy.special import factorial
 
 import xobjects as xo
-import xpart as xp
 from xdeps import Table
 
 from . import linear_normal_form as lnf
@@ -794,7 +792,8 @@ def _twiss_open(line, init,
     if _initial_particles is not None: # used in match
         part_for_twiss = _initial_particles.copy()
     else:
-        part_for_twiss = xp.build_particles(_context=context,
+        import xpart
+        part_for_twiss = xpart.build_particles(_context=context,
             particle_ref=particle_on_co, mode='shift',
             x     = [0] + list(W_matrix[0, :] * -scale_eigen) + list(W_matrix[0, :] * scale_eigen),
             px    = [0] + list(W_matrix[1, :] * -scale_eigen) + list(W_matrix[1, :] * scale_eigen),
@@ -1176,10 +1175,11 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
 
     tw_chrom_res = []
     for dd in [-delta_chrom, delta_chrom]:
-        tw_init_chrom  = init.copy()
+        tw_init_chrom = init.copy()
 
         if periodic:
-            part_guess = xp.build_particles(
+            import xpart
+            part_guess = xpart.build_particles(
                 _context=line._context,
                 x_norm=0,
                 zeta=tw_init_chrom.zeta,
@@ -2127,6 +2127,7 @@ def compute_one_turn_matrix_finite_differences(
         num_turns=1,
         element_by_element=False,
         only_markers=False):
+    import xpart
 
     if steps_r_matrix is None:
         steps_r_matrix = {}
@@ -2157,7 +2158,7 @@ def compute_one_turn_matrix_finite_differences(
     dpy = steps_r_matrix["dpy"]
     dzeta = steps_r_matrix["dzeta"]
     ddelta = steps_r_matrix["ddelta"]
-    part_temp = xp.build_particles(_context=context,
+    part_temp = xpart.build_particles(_context=context,
             particle_ref=particle_on_co, mode='shift',
             x  =    [dx,  0., 0.,  0.,    0.,     0., -dx,   0.,  0.,   0.,     0.,      0.],
             px =    [0., dpx, 0.,  0.,    0.,     0.,  0., -dpx,  0.,   0.,     0.,      0.],
@@ -2451,7 +2452,7 @@ class TwissInit:
             else:
                 numpy_dct[key] = value
 
-        numpy_dct['particle_on_co'] = xp.Particles.from_dict(dct['particle_on_co'])
+        numpy_dct['particle_on_co'] = xt.Particles.from_dict(dct['particle_on_co'])
 
         out = cls()
         out.__dict__.update(numpy_dct)
@@ -2494,6 +2495,7 @@ class TwissInit:
             input_reversed = False
 
         if self._temp_co_data is not None:
+            import xpart
             assert line is not None, (
                 "`line` must be provided if `particle_on_co` is None")
 
@@ -2508,7 +2510,7 @@ class TwissInit:
             else:
                 s_ele_twiss = s_ele_in_line
 
-            particle_on_co=xp.build_particles(
+            particle_on_co = xpart.build_particles(
                 x=self._temp_co_data['x'], px=self._temp_co_data['px'],
                 y=self._temp_co_data['y'], py=self._temp_co_data['py'],
                 delta=self._temp_co_data['delta'], zeta=self._temp_co_data['zeta'],
@@ -2877,8 +2879,8 @@ class TwissTable(Table):
         at_element_particles = ctx2np(particles.at_element)
 
         part_id = ctx2np(particles.particle_id).copy()
-        at_element = part_id.copy() * 0 + xp.particles.LAST_INVALID_STATE
-        x_norm = ctx2np(particles.x).copy() * 0 + xp.particles.LAST_INVALID_STATE
+        at_element = part_id.copy() * 0 + xt.particles.LAST_INVALID_STATE
+        x_norm = ctx2np(particles.x).copy() * 0 + xt.particles.LAST_INVALID_STATE
         px_norm = x_norm.copy()
         y_norm = x_norm.copy()
         py_norm = x_norm.copy()
@@ -2886,7 +2888,7 @@ class TwissTable(Table):
         pzeta_norm = x_norm.copy()
 
         at_element_no_rep = list(set(
-            at_element_particles[part_id > xp.particles.LAST_INVALID_STATE]))
+            at_element_particles[part_id > xt.particles.LAST_INVALID_STATE]))
 
         for at_ele in at_element_no_rep:
 
@@ -2899,7 +2901,7 @@ class TwissTable(Table):
             mask_at_ele = at_element_particles == at_ele
 
             if _force_at_element is not None:
-                mask_at_ele = ctx2np(particles.state) > xp.particles.LAST_INVALID_STATE
+                mask_at_ele = ctx2np(particles.state) > xt.particles.LAST_INVALID_STATE
 
             n_at_ele = np.sum(mask_at_ele)
 

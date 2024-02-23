@@ -4,7 +4,7 @@
 # ######################################### //
 
 import xobjects as xo
-import xpart as xp
+import xtrack as xt
 
 from ..base_element import BeamElement
 from ..general import _pkg_root, _print
@@ -21,11 +21,11 @@ class RandomUniform(BeamElement):
     iscollective = True
 
     _extra_c_sources = [
-        # The base (bitwise) rng is in xpart, as this is where the
+        # The base (bitwise) rng is in xtrack, as this is where the
         # seeds are stored. This is needed to avoid circular imports
-        # in xpart.Particles
-        xp._pkg_root.joinpath('rng_src','base_rng.h'),
-        _pkg_root.joinpath('random','random_src','uniform.h')
+        # in xtrack.Particles
+        _pkg_root.joinpath('particles', 'rng_src', 'base_rng.h'),
+        _pkg_root.joinpath('random', 'random_src', 'uniform.h')
     ]
 
     _per_particle_kernels = {
@@ -47,7 +47,7 @@ class RandomUniform(BeamElement):
     def generate(self, n_samples=1000, n_seeds=None, particles=None):
         context = self._context
         if particles is None:
-            particles = xp.Particles(state=np.ones(n_seeds),
+            particles = xt.Particles(state=np.ones(n_seeds),
                                      x=np.ones(n_seeds), _context=context)
         else:
             if n_seeds is not None:

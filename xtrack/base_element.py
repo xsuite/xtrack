@@ -8,12 +8,12 @@ import numpy as np
 from functools import partial
 
 import xobjects as xo
-import xpart as xp
 
 from xobjects.hybrid_class import _build_xofields_dict
 
 from .general import _pkg_root
 from .internal_record import RecordIdentifier, RecordIndex, generate_get_record
+from .particles import Particles
 
 start_per_part_block = """
     {
@@ -193,13 +193,13 @@ class MetaBeamElement(xo.MetaHybridClass):
                 local_particle_function_name=name+'_track_local_particle'))
 
         # Add dependency on Particles class
-        depends_on.append(xp.Particles._XoStruct)
+        depends_on.append(Particles._XoStruct)
 
         # Define track kernel
         track_kernel_name = f'{name}_track_particles'
         kernels[track_kernel_name] = xo.Kernel(
                     args=[xo.Arg(xo.ThisClass, name='el'),
-                        xo.Arg(xp.Particles._XoStruct, name='particles'),
+                        xo.Arg(Particles._XoStruct, name='particles'),
                         xo.Arg(xo.Int64, name='flag_increment_at_element'),
                         xo.Arg(xo.Int8, pointer=True, name="io_buffer")]
                     )
@@ -212,13 +212,13 @@ class MetaBeamElement(xo.MetaHybridClass):
                         element_name=name, kernel_name=nn,
                         local_particle_function_name=kk.c_name,
                         additional_args=kk.args))
-                if xp.Particles._XoStruct not in depends_on:
-                    depends_on.append(xp.Particles._XoStruct)
+                if Particles._XoStruct not in depends_on:
+                    depends_on.append(Particles._XoStruct)
 
                 kernels.update(
                     {nn: xo.Kernel(args=[
                         xo.Arg(xo.ThisClass, name='el'),
-                        xo.Arg(xp.Particles._XoStruct, name='particles'),
+                        xo.Arg(Particles._XoStruct, name='particles'),
                         *kk.args,
                         xo.Arg(xo.Int64, name='flag_increment_at_element'),
                         xo.Arg(xo.Int8, pointer=True, name="io_buffer"),
@@ -271,9 +271,9 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             kwargs['apply_to_source'] = []
         kwargs['apply_to_source'].append(
             partial(_handle_per_particle_blocks,
-                    local_particle_src=xp.Particles.gen_local_particle_api()))
+                    local_particle_src=Particles.gen_local_particle_api()))
         xo.HybridClass.compile_kernels(self,
-                                       extra_classes=[xp.Particles._XoStruct],
+                                       extra_classes=[Particles._XoStruct],
                                        *args, **kwargs)
 
     def track(self, particles, increment_at_element=False):

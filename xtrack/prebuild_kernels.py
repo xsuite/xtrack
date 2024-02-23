@@ -14,7 +14,6 @@ from .general import _print
 import numpy as np
 
 import xobjects as xo
-import xpart as xp
 import xtrack as xt
 
 LOGGER = logging.getLogger(__name__)
