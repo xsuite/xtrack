@@ -51,7 +51,6 @@ class Tracker:
         use_prebuilt_kernels=True,
         enable_pipeline_hold=False,
         track_kernel=None,
-        particles_class=xp.Particles,
         particles_monitor_class=None,
         extra_headers=(),
         local_particle_src=None,
@@ -72,17 +71,13 @@ class Tracker:
             raise NotImplementedError("Skip compilation is not implemented in "
                                       "collective mode")
 
-        if particles_class is None:
-            particles_class = xp.Particles
-
         if local_particle_src is None:
-            local_particle_src = particles_class.gen_local_particle_api()
+            local_particle_src = xt.Particles.gen_local_particle_api()
 
         if not particles_monitor_class:
             particles_monitor_class = self._get_default_monitor_class()
 
         self.line = line
-        self.particles_class = particles_class
         self.particles_monitor_class = particles_monitor_class
         self.extra_headers = extra_headers
         self.local_particle_src = local_particle_src
@@ -439,9 +434,7 @@ class Tracker:
                     containing_dir=XT_PREBUILT_KERNELS_LOCATION,
                     kernel_descriptions={'track_line': kernel_description},
                 )
-                classes = (self.particles_class._XoStruct,)
-
-                return kernels[('track_line', classes)]
+                return kernels['track_line']
 
         context = self._tracker_data_base._buffer.context
 
@@ -648,9 +641,7 @@ class Tracker:
             save_source_as=f'{module_name}.c' if module_name else None,
             **kwargs,
         )
-
-        classes = (self.particles_class._XoStruct,)
-        return out_kernels[('track_line', classes)]
+        return out_kernels['track_line']
 
     def get_kernel_descriptions(self, kernel_element_classes):
 
@@ -663,7 +654,7 @@ class Tracker:
                 args=[
                     xo.Arg(xo.Int8, pointer=True, name="buffer"),
                     xo.Arg(tdata_type, name="tracker_data"),
-                    xo.Arg(self.particles_class._XoStruct, name="particles"),
+                    xo.Arg(xt.Particles._XoStruct, name="particles"),
                     xo.Arg(xo.Int32, name="num_turns"),
                     xo.Arg(xo.Int32, name="ele_start"),
                     xo.Arg(xo.Int32, name="num_ele_track"),
@@ -680,7 +671,7 @@ class Tracker:
         }
 
         # Random number generator init kernel
-        kernel_descriptions.update(self.particles_class._kernels)
+        kernel_descriptions.update(xt.Particles._kernels)
 
         return kernel_descriptions
 
@@ -1111,13 +1102,6 @@ class Tracker:
                 self.config.XSUITE_BACKTRACK = True
                 return self._track_no_collective(**kwargs)
 
-        # Add the Particles class to the config, so the kernel is recompiled
-        # and stored if a new Particles class is given.
-        if type(particles) != xp.Particles:
-            self.config.particles_class_name = type(particles).__name__
-        else:
-            self.config.pop('particles_class_name', None)
-        self.particles_class = particles.__class__
         self.local_particle_src = particles.gen_local_particle_api()
 
         if freeze_longitudinal:
@@ -1536,7 +1520,6 @@ def _element_ref_data_class_from_element_classes(element_classes):
     class ElementRefData(xo.Struct):
             elements = ElementRefClass[:]
             names = xo.String[:]
-            _overridable = False
 
     return ElementRefData
 

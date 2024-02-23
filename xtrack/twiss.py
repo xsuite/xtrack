@@ -2312,7 +2312,6 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
         io_buffer=tracker.io_buffer,
         line=auxline,
         track_kernel=tracker.track_kernel,
-        particles_class=tracker.particles_class,
         particles_monitor_class=None,
         local_particle_src=tracker.local_particle_src
     )
