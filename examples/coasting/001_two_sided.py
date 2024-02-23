@@ -225,8 +225,8 @@ plt.xlabel('z [m]')
 plt.ylabel('x [m]')
 
 dz = z_axis[1] - z_axis[0]
-y_vs_t = hist_y.flatten()
-intensity_vs_t = hist_mat.flatten()
+y_vs_t = np.fliplr(hist_y).flatten() # need to flip because of the minus in z = -beta0 c t
+intensity_vs_t = np.fliplr(hist_mat).flatten()
 z_unwrapped = np.arange(0, len(y_vs_t)) * dz
 t_unwrapped = z_unwrapped / (tw.beta0 * clight)
 
@@ -239,7 +239,6 @@ ax2 = plt.subplot(2, 1, 2, sharex=ax1)
 plt.plot(t_unwrapped*1e6, intensity_vs_t, '-')
 plt.ylabel('intensity')
 plt.xlabel('t [us]')
-
 
 
 plt.show()
