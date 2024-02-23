@@ -63,7 +63,7 @@ zeta_max0 = circumference/2*tw.beta0/beta1
 num_particles = 10000
 p = line.build_particles(
     zeta=np.random.uniform(-circumference/2, circumference/2, num_particles),
-    delta=1e-2 + 0e-2*np.random.uniform(-1, 1, num_particles),
+    delta=3e-2*np.random.uniform(-1, 1, num_particles),
     x_norm=0, y_norm=0
 )
 
