@@ -101,15 +101,13 @@ circumference = line.get_length()
 wrap_end = CoastWrap(circumference=circumference, beta1=beta1, id=10001)
 wrap_start = CoastWrap(circumference=circumference, beta1=beta1, id=10002, at_start=True)
 
-zeta_prime_min = -circumference/2
-zeta_prime_max = circumference/2
-zeta_min = wrap_start.zeta_prime_to_zeta(zeta_prime_min, tw.beta0, 0, 0)
-zeta_max = wrap_start.zeta_prime_to_zeta(zeta_prime_max, tw.beta0, 0, 0)
+zeta_min = -circumference/2*tw.beta0/beta1
+zeta_max = circumference/2*tw.beta0/beta1
 
 num_particles = 1000
 p = line.build_particles(
     zeta=np.random.uniform(-circumference/2, circumference/2, num_particles),
-    delta=0*np.random.uniform(0e-2, 5e-2, num_particles)
+    delta=1e-2 #np.random.uniform(0e-2, 1e-2, num_particles)
 )
 
 p.x[(p.zeta > 1) & (p.zeta < 2)] = 1e-3  # kick
@@ -201,6 +199,16 @@ hist_x = np.array([rr[0] for rr in line.log_last_track['x_mean_hist']])
 plt.figure(6)
 plt.pcolormesh(line.log_last_track['long_density'][0][1], np.arange(0, 1000,1),
            hist_x[:-1,:])
+
+plt.figure(7)
+mask_alive = p.state>0
+plt.plot(p.zeta[mask_alive], p.x[mask_alive], '.')
+plt.axvline(x=circumference/2*tw.beta0/beta1, color='C1')
+plt.axvline(x=-circumference/2*tw.beta0/beta1, color='C1')
+plt.xlabel('z [m]')
+plt.ylabel('x [m]')
+
+
 
 
 
