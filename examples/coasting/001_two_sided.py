@@ -107,7 +107,8 @@ zeta_max = circumference/2*tw.beta0/beta1
 num_particles = 1000
 p = line.build_particles(
     zeta=np.random.uniform(-circumference/2, circumference/2, num_particles),
-    delta=1e-2 #np.random.uniform(0e-2, 1e-2, num_particles)
+    delta=1e-2, #np.random.uniform(0e-2, 1e-2, num_particles)
+    x_norm=0, y_norm=0
 )
 
 p.x[(p.zeta > 1) & (p.zeta < 2)] = 1e-3  # kick
@@ -152,11 +153,15 @@ def x_mean_hist(line, particles):
     return np.histogram(particles.zeta[mask_alive], bins=200,
                         range=(-circumference, circumference), weights=particles.x[mask_alive])
 
+def particles(line, particles):
+    return particles.copy()
+
 line.enable_time_dependent_vars = True
 line.track(p, num_turns=1000, log=xt.Log(intensity=intensity,
                                          long_density=long_density,
                                          x_mean_hist=x_mean_hist,
-                                         z_range=z_range), with_progress=True)
+                                         z_range=z_range,
+                                         particles=particles), with_progress=True)
 
 inten = line.log_last_track['intensity']
 
@@ -170,7 +175,7 @@ plt.close('all')
 plt.figure(1)
 plt.plot(inten, label='xtrack')
 plt.axhline(inten_exp, color='C1', label='expected')
-plt.axhline(len(p.zeta) /tw.T_rev0, color='C3', label='N/T_rev0')
+plt.axhline(len(p.zeta) / tw.T_rev0, color='C3', label='N/T_rev0')
 plt.legend(loc='best')
 plt.xlabel('Turn')
 
@@ -207,9 +212,5 @@ plt.axvline(x=circumference/2*tw.beta0/beta1, color='C1')
 plt.axvline(x=-circumference/2*tw.beta0/beta1, color='C1')
 plt.xlabel('z [m]')
 plt.ylabel('x [m]')
-
-
-
-
 
 plt.show()
