@@ -4,20 +4,6 @@ import xtrack as xt
 
 from scipy.constants import c as clight
 
-# We get the model from MAD-X
-# mad = Madx()
-# folder = ('../../test_data/elena')
-# mad.call(folder + '/elena.seq')
-# mad.call(folder + '/highenergy.str')
-# mad.call(folder + '/highenergy.beam')
-# mad.use('elena')
-# seq = mad.sequence.elena
-# line = xt.Line.from_madx_sequence(seq)
-# line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
-#                                     mass0=seq.beam.mass * 1e9,
-#                                     q0=seq.beam.charge)
-
-
 line = xt.Line.from_json(
     '../../test_data/psb_injection/line_and_particle.json')
 
@@ -27,9 +13,7 @@ ttcav = tt.rows[tt.element_type == 'Cavity']
 for nn in ttcav.name:
     line.element_refs[nn].voltage=0
 
-
 line.configure_bend_model(core='bend-kick-bend', edge='full')
-
 line.twiss_default['method'] = '4d'
 
 tw = line.twiss()
@@ -45,26 +29,14 @@ class CoastWrap:
 
     def track(self, particles):
 
-        # ---- For debugging
-        # particles.sort(interleave_lost_particles=True)
-        # particles.get_table().cols['zeta state delta s at_turn'].show()
-        # import pdb; pdb.set_trace()
-        # particles.reorganize()
-
-        if not(self.at_end):
-            mask_alive = particles.state > 0
-            particles.zeta[mask_alive] -= (
-                self.circumference * (1 - tw.beta0 / self.beta1))
-
         # Resume particles previously stopped
         particles.state[particles.state==-self.id] = 1
         particles.reorganize()
 
         beta0_beta1 = tw.beta0 / self.beta1
-        # zeta_min = particles.s * (1 - beta0_beta1) - beta0_beta1 * self.circumference / 2
-        # zeta_min = particles.s * (1 - beta0_beta1) - beta0_beta1 * self.circumference / 2
 
         # Identify particles that need to be stopped
+        zeta_min = -circumference/2*tw.beta0/beta1 + particles.s * (1 - beta0_beta1)
         mask_alive = particles.state > 0
         mask_stop = mask_alive & (particles.zeta < zeta_min)
 
@@ -76,60 +48,26 @@ class CoastWrap:
         # Stop particles
         particles.state[mask_stop] = -self.id
 
-
-        # assert np.all(particles.zeta.max() - particles.zeta.min()
-        #               < self.circumference * tw.beta0 / self.beta1)
-
-        # # ---- For debugging
-        # particles.sort(interleave_lost_particles=True)
-        # particles.get_table().cols['zeta state delta s at_turn'].show()
-        # import pdb; pdb.set_trace()
-        # particles.reorganize()
-
-    def zeta_to_zeta_prime(self, zeta, beta0, s, at_turn):
-        S_capital = s + at_turn * self.circumference
-        beta1_beta0 = self.beta1 / beta0
-        beta0_beta1 = beta0 / self.beta1
-        zeta_full = zeta + (1 - beta0_beta1) * self.circumference * (at_turn + 1)
-        zeta_prime =  zeta_full * beta1_beta0 + (1 - beta1_beta0) * S_capital
-        return zeta_prime
-
-    def zeta_prime_to_zeta(self, zeta_prime, beta0, s, at_turn):
-        S_capital = s + at_turn * self.circumference
-        beta0_beta1 = beta0 / self.beta1
-        zeta_full = zeta_prime * beta0_beta1 + (1 - beta0_beta1) * S_capital
-        zeta = zeta_full - (1 - beta0_beta1) * self.circumference * (at_turn + 1)
-        return zeta
+        if self.at_end:
+            mask_alive = particles.state > 0
+            particles.zeta[mask_alive] -= (
+                self.circumference * (1 - tw.beta0 / self.beta1))
 
 circumference = line.get_length()
 wrap_end = CoastWrap(circumference=circumference, beta1=beta1, id=10001, at_end=True)
 wrap_start = CoastWrap(circumference=circumference, beta1=beta1, id=10002)
 
-zeta_min = -circumference/2*tw.beta0/beta1
-zeta_max = circumference/2*tw.beta0/beta1
+zeta_min0 = -circumference/2*tw.beta0/beta1
+zeta_max0 = circumference/2*tw.beta0/beta1
 
 num_particles = 10000
 p = line.build_particles(
     zeta=np.random.uniform(-circumference/2, circumference/2, num_particles),
-    delta=0*np.random.uniform(-1, 1, num_particles),
+    delta=1e-2 + 0e-2*np.random.uniform(-1, 1, num_particles),
     x_norm=0, y_norm=0
 )
 
 p.y[(p.zeta > 1) & (p.zeta < 2)] = 1e-3  # kick
-
-# zeta_grid= np.linspace(zeta_max-circumference, zeta_max, 20)
-# zeta_grid= np.linspace(-circumference/2, circumference/2, 20)
-# delta_grid = [1e-2] #np.linspace(0, 1e-2, 5)
-# ZZ, DD = np.meshgrid(zeta_grid, delta_grid)
-# p = line.build_particles(
-#     zeta=ZZ.flatten(),
-#     delta=DD.flatten()
-# )
-# p.i_frame = 0
-
-# import pdb; pdb.set_trace()
-
-# p.at_turn[:] = 0
 
 line.discard_tracker()
 line.insert_element(element=wrap_start, name='wrap_start', at_s=0)
@@ -137,7 +75,7 @@ line.append_element(wrap_end, name='wrap_end')
 line.build_tracker()
 
 def intensity(line, particles):
-    return np.sum(particles.state > 0)/((zeta_max - zeta_min)/tw.beta0/clight)
+    return np.sum(particles.state > 0)/((zeta_max0 - zeta_min0)/tw.beta0/clight)
 
 def z_range(line, particles):
     mask_alive = particles.state > 0
@@ -145,20 +83,20 @@ def z_range(line, particles):
 
 def long_density(line, particles):
     mask_alive = particles.state > 0
-    # if not(np.any(particles.at_turn[mask_alive] == 0)): # don't check at the first turn
-    #     assert np.all(particles.zeta[mask_alive] > zeta_min)
-    #     assert np.all(particles.zeta[mask_alive] < zeta_max)
+    if not(np.any(particles.at_turn[mask_alive] == 0)): # don't check at the first turn
+        assert np.all(particles.zeta[mask_alive] > zeta_min0)
+        assert np.all(particles.zeta[mask_alive] < zeta_max0)
     return np.histogram(particles.zeta[mask_alive], bins=200,
-                        range=(zeta_min, zeta_max))
+                        range=(zeta_min0, zeta_max0))
 
 def y_mean_hist(line, particles):
 
     mask_alive = particles.state > 0
-    # if not(np.any(particles.at_turn[mask_alive] == 0)): # don't check at the first turn
-    #     assert np.all(particles.zeta[mask_alive] > zeta_min)
-    #     assert np.all(particles.zeta[mask_alive] < zeta_max)
+    if not(np.any(particles.at_turn[mask_alive] == 0)): # don't check at the first turn
+        assert np.all(particles.zeta[mask_alive] > zeta_min0)
+        assert np.all(particles.zeta[mask_alive] < zeta_max0)
     return np.histogram(particles.zeta[mask_alive], bins=200,
-                        range=(zeta_min, zeta_max), weights=particles.y[mask_alive])
+                        range=(zeta_min0, zeta_max0), weights=particles.y[mask_alive])
 
 
 line.enable_time_dependent_vars = True
