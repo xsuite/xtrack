@@ -12,7 +12,7 @@ import xtrack as xt
 from xtrack.prebuild_kernels import regenerate_kernels
 
 
-def test_prebuild_kernels(mocker, tmp_path):
+def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func):
     # Set up the temporary kernels directory
     kernel_definitions = {
         "test_module": {
