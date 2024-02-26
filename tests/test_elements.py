@@ -10,7 +10,6 @@ import xpart as xp
 from cpymad.madx import Madx
 from scipy.stats import linregress
 from xobjects.test_helpers import for_all_test_contexts
-from xpart.particles import Particles, ParticlesPurelyLongitudinal
 
 import ducktrack as dtk
 import xtrack as xt
@@ -537,12 +536,8 @@ void TestElement_track_local_particle(TestElementData el,
 """
 
 
-@pytest.mark.parametrize(
-    'particles_class',
-    [Particles, ParticlesPurelyLongitudinal],
-)
 @for_all_test_contexts
-def test_per_particle_kernel(test_context, particles_class):
+def test_per_particle_kernel(test_context):
     class TestElement(xt.BeamElement):
         _xofields = {
             'a': xo.Float64
@@ -560,12 +555,12 @@ def test_per_particle_kernel(test_context, particles_class):
 
     el = TestElement(_context=test_context, a=10)
 
-    p = Particles(p0c=1e9, s=[1, 2, 3], _context=test_context)
+    p = xt.Particles(p0c=1e9, s=[1, 2, 3], _context=test_context)
     el.track(p)
     p.move(_context=xo.ContextCpu())
     assert np.all(p.s == [10, 10, 10])
 
-    p = particles_class(p0c=1e9, s=[1, 2, 3], _context=test_context)
+    p = xt.Particles(p0c=1e9, s=[1, 2, 3], _context=test_context)
     b = p.s*0.5
     el.test_kernel(p, b=b)
     p.move(_context=xo.ContextCpu())

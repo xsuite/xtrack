@@ -8,12 +8,12 @@ import numpy as np
 from functools import partial
 
 import xobjects as xo
-import xpart as xp
 
 from xobjects.hybrid_class import _build_xofields_dict
 
 from .general import _pkg_root
 from .internal_record import RecordIdentifier, RecordIndex, generate_get_record
+from .particles import Particles
 
 start_per_part_block = """
     {
@@ -187,7 +187,7 @@ class MetaBeamElement(xo.MetaHybridClass):
             kernels.update(data['_kernels'])
 
         # Add dependency on Particles class
-        depends_on.append(xp.ParticlesBase._XoStruct)
+        depends_on.append(Particles._XoStruct)
 
         track_kernel_name = None
         if 'allow_track' not in data.keys() or data['allow_track']:
@@ -200,12 +200,11 @@ class MetaBeamElement(xo.MetaHybridClass):
             # Define track kernel
             track_kernel_name = f'{name}_track_particles'
             kernels[track_kernel_name] = xo.Kernel(
-                        c_name=track_kernel_name,
-                        args=[xo.Arg(xo.ThisClass, name='el'),
-                            xo.Arg(xp.ParticlesBase._XoStruct, name='particles'),
-                            xo.Arg(xo.Int64, name='flag_increment_at_element'),
-                            xo.Arg(xo.Int8, pointer=True, name="io_buffer")]
-                        )
+                args=[xo.Arg(xo.ThisClass, name='el'),
+                    xo.Arg(Particles._XoStruct, name='particles'),
+                    xo.Arg(xo.Int64, name='flag_increment_at_element'),
+                    xo.Arg(xo.Int8, pointer=True, name="io_buffer")]
+            )
 
         # Generate per-particle kernels
         if '_per_particle_kernels' in data.keys():
@@ -215,15 +214,15 @@ class MetaBeamElement(xo.MetaHybridClass):
                         element_name=name, kernel_name=nn,
                         local_particle_function_name=kk.c_name,
                         additional_args=kk.args))
-                if xp.ParticlesBase._XoStruct not in depends_on:
-                    depends_on.append(xp.ParticlesBase._XoStruct)
+                if Particles._XoStruct not in depends_on:
+                    depends_on.append(Particles._XoStruct)
 
                 kernels.update(
                     {nn: xo.Kernel(
                         c_name=nn,
                         args=[
                         xo.Arg(xo.ThisClass, name='el'),
-                        xo.Arg(xp.ParticlesBase._XoStruct, name='particles'),
+                        xo.Arg(Particles._XoStruct, name='particles'),
                         *kk.args,
                         xo.Arg(xo.Int64, name='flag_increment_at_element'),
                         xo.Arg(xo.Int8, pointer=True, name="io_buffer"),
@@ -272,14 +271,14 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         self.name = name
         self.partners_names = partners_names
 
-    def compile_kernels(self, particles_class, *args, **kwargs):
+    def compile_kernels(self, *args, **kwargs):
         if 'apply_to_source' not in kwargs.keys():
             kwargs['apply_to_source'] = []
         kwargs['apply_to_source'].append(
             partial(_handle_per_particle_blocks,
-                    local_particle_src=particles_class.gen_local_particle_api()))
+                    local_particle_src=Particles.gen_local_particle_api()))
         xo.HybridClass.compile_kernels(self,
-                                       extra_classes=[particles_class._XoStruct],
+                                       extra_classes=[Particles._XoStruct],
                                        *args, **kwargs)
 
     def track(self, particles=None, increment_at_element=False):
@@ -291,16 +290,10 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
         context = self._buffer.context
 
-        desired_classes = (
-            self._XoStruct,  # el
-            particles._XoStruct,  # particles
-        )
+        if self._track_kernel_name not in context.kernels:
+            self.compile_kernels()
 
-        if (self._track_kernel_name, desired_classes) not in context.kernels:
-            self.compile_kernels(particles_class=particles.__class__)
-
-        _track_kernel = context.kernels[(self._track_kernel_name,
-                                         desired_classes)]
+        _track_kernel = context.kernels[self._track_kernel_name]
 
         if hasattr(self, 'io_buffer') and self.io_buffer is not None:
             io_buffer_arr = self.io_buffer.buffer
@@ -346,13 +339,10 @@ class PerParticlePyMethod:
         instance = self.element
         context = instance.context
 
-        desired_classes = (self.element._XoStruct,  # el
-                           particles._XoStruct)  # part0
+        if self.kernel_name not in context.kernels:
+            instance.compile_kernels()
 
-        if (self.kernel_name, desired_classes) not in context.kernels:
-            instance.compile_kernels(particles_class=particles.__class__)
-
-        kernel = context.kernels[(self.kernel_name, desired_classes)]
+        kernel = context.kernels[self.kernel_name]
 
         if hasattr(self.element, 'io_buffer') and self.element.io_buffer is not None:
             io_buffer_arr = self.element.io_buffer.buffer

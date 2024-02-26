@@ -6,7 +6,6 @@
 import numpy as np
 
 import xobjects as xo
-import xpart as xp
 
 from ..base_element import BeamElement
 from ..general import _pkg_root
@@ -287,8 +286,7 @@ class LimitPolygon(BeamElement):
 
         if 'LimitPolygon_impact_point_and_normal' not in ctx.kernels.keys():
             # The tracking kernel requires the usual particle class
-            self.compile_kernels(particles_class=xp.Particles,
-                                 only_if_needed=True)
+            self.compile_kernels(only_if_needed=True)
 
         x_inters = ctx.zeros(shape=x_in.shape, dtype=np.float64)
         y_inters = ctx.zeros(shape=x_in.shape, dtype=np.float64)

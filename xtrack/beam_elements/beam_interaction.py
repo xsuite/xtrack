@@ -4,9 +4,9 @@
 # ######################################### #
 
 import numpy as np
-
 import xobjects as xo
-import xpart as xp
+
+import xtrack as xt
 
 
 class BeamInteraction:
@@ -39,7 +39,7 @@ class BeamInteraction:
         if products is None or products['x'].size == 0:
             particles.reorganize()
         else:
-            new_particles = xp.Particles(_context=particles._buffer.context,
+            new_particles = xt.Particles(_context=particles._buffer.context,
                     p0c = particles.p0c[0], # TODO: Should we check that 
                                             #       they are all the same?
                     mass0 = particles.mass0,
