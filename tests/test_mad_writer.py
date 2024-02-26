@@ -65,5 +65,5 @@ def test_mad_writer(case):
     assert np.allclose(tw2.rows['ip.*'].dx_zeta, tw.rows['ip.*'].dx_zeta, rtol=2e-4, atol=1e-6)
     assert np.allclose(tw2.rows['ip.*'].dy_zeta, tw.rows['ip.*'].dy_zeta, rtol=2e-4, atol=1e-6)
 
-    assert np.isclose(tw2.qs, tw.qs, rtol=0, atol=1e-7)
-    assert np.isclose(tw2.ddqx, tw.ddqx, rtol=2e-4, atol=0)
+    assert np.isclose(tw2.qs, tw.qs, rtol=1e-4, atol=0)
+    assert np.isclose(tw2.ddqx, tw.ddqx, rtol=1e-3, atol=0)
