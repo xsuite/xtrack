@@ -10,6 +10,7 @@ from functools import partial
 import xobjects as xo
 
 from xobjects.hybrid_class import _build_xofields_dict
+from xtrack.prebuild_kernels import XT_PREBUILT_KERNELS_LOCATION
 
 from .general import _pkg_root
 from .internal_record import RecordIdentifier, RecordIndex, generate_get_record
@@ -200,6 +201,7 @@ class MetaBeamElement(xo.MetaHybridClass):
             # Define track kernel
             track_kernel_name = f'{name}_track_particles'
             kernels[track_kernel_name] = xo.Kernel(
+                c_name=track_kernel_name,
                 args=[xo.Arg(xo.ThisClass, name='el'),
                     xo.Arg(Particles._XoStruct, name='particles'),
                     xo.Arg(xo.Int64, name='flag_increment_at_element'),
@@ -277,9 +279,13 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         kwargs['apply_to_source'].append(
             partial(_handle_per_particle_blocks,
                     local_particle_src=Particles.gen_local_particle_api()))
-        xo.HybridClass.compile_kernels(self,
-                                       extra_classes=[Particles._XoStruct],
-                                       *args, **kwargs)
+        xo.HybridClass.compile_kernels(
+            self,
+            prebuilt_kernels_path=XT_PREBUILT_KERNELS_LOCATION,
+            extra_classes=[Particles._XoStruct],
+            *args,
+            **kwargs,
+        )
 
     def track(self, particles=None, increment_at_element=False):
         if not self.allow_track:
