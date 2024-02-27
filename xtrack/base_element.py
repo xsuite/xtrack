@@ -8,6 +8,7 @@ import numpy as np
 from functools import partial
 
 import xobjects as xo
+from xobjects.general import Print
 
 from xobjects.hybrid_class import _build_xofields_dict
 from xtrack.prebuild_kernels import XT_PREBUILT_KERNELS_LOCATION
@@ -231,10 +232,10 @@ class MetaBeamElement(xo.MetaHybridClass):
                     ])}
                 )
 
-
         # Call HybridClass metaclass
         data['_depends_on'] = depends_on
         data['_extra_c_sources'] = extra_c_source
+        og_kernels = data.get('_kernels', {}).copy()
         data['_kernels'] = kernels
         new_class = xo.MetaHybridClass.__new__(cls, name, bases, data)
 
@@ -252,6 +253,13 @@ class MetaBeamElement(xo.MetaHybridClass):
                     additional_arg_names=tuple(arg.name for arg in desc.args),
                 ))
 
+        # Attach methods corresponding to kernels
+        for nn, desc in og_kernels.items():
+            setattr(new_class, nn, PyMethodDescriptor(
+                kernel_name=nn,
+                additional_arg_names=tuple(arg.name for arg in desc.args),
+            ))
+
         return new_class
 
 
@@ -264,6 +272,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     has_backtrack = False
     allow_backtrack = False
     skip_in_loss_location_refinement = False
+    prebuilt_kernels_path = XT_PREBUILT_KERNELS_LOCATION
 
     def __init__(self, *args, **kwargs):
         xo.HybridClass.__init__(self, *args, **kwargs)
@@ -273,15 +282,42 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         self.name = name
         self.partners_names = partners_names
 
-    def compile_kernels(self, *args, **kwargs):
+    def compile_kernels(self, extra_classes=(), *args, **kwargs):
         if 'apply_to_source' not in kwargs.keys():
             kwargs['apply_to_source'] = []
         kwargs['apply_to_source'].append(
             partial(_handle_per_particle_blocks,
                     local_particle_src=Particles.gen_local_particle_api()))
+        context = self._context
+        cls = type(self)
+        if context.allow_prebuilt_kernels:
+            import xtrack as xt
+            from xtrack.prebuild_kernels import (
+                get_suitable_kernel,
+                XT_PREBUILT_KERNELS_LOCATION
+            )
+            # Default config is empty (all flags default to not defined, which
+            # enables most behaviours). In the future this has to be looked at
+            # whenever a new flag is needed.
+            _default_config = {}
+            _print_state = Print.suppress
+            # Print.suppress = True
+            classes = (cls._XoStruct,) + tuple(extra_classes)
+            kernel_info = get_suitable_kernel(
+                _default_config, classes
+            )
+            # Print.suppress = _print_state
+            if kernel_info:
+                module_name, _ = kernel_info
+                kernels = context.kernels_from_file(
+                    module_name=module_name,
+                    containing_dir=XT_PREBUILT_KERNELS_LOCATION,
+                    kernel_descriptions=self._kernels,
+                )
+                context.kernels.update(kernels)
+                return
         xo.HybridClass.compile_kernels(
             self,
-            prebuilt_kernels_path=XT_PREBUILT_KERNELS_LOCATION,
             extra_classes=[Particles._XoStruct],
             *args,
             **kwargs,
@@ -342,6 +378,7 @@ class PerParticlePyMethod:
         self.additional_arg_names = additional_arg_names
 
     def __call__(self, particles, increment_at_element=False, **kwargs):
+        print(f'===> Calling PerParticlePyMethod {self.kernel_name}')
         instance = self.element
         context = instance.context
 
@@ -363,6 +400,7 @@ class PerParticlePyMethod:
                io_buffer=io_buffer_arr,
                **kwargs)
 
+
 class PerParticlePyMethodDescriptor:
     def __init__(self, kernel_name, additional_arg_names):
         self.kernel_name = kernel_name
@@ -372,3 +410,50 @@ class PerParticlePyMethodDescriptor:
         return PerParticlePyMethod(kernel_name=self.kernel_name,
                                    element=instance,
                                    additional_arg_names=self.additional_arg_names)
+
+
+class PyMethod:
+
+    def __init__(self, kernel_name, element, additional_arg_names, prebuilt_kernels_path=None):
+        self.kernel_name = kernel_name
+        self.element = element
+        self.additional_arg_names = additional_arg_names
+        self.prebuilt_kernels_path = prebuilt_kernels_path
+
+    def __call__(self, **kwargs):
+        instance = self.element
+        context = instance._context
+
+        only_if_needed = kwargs.pop('only_if_needed', True)
+        BeamElement.compile_kernels(
+            instance,
+            prebuilt_kernels_path=self.prebuilt_kernels_path,
+            only_if_needed=only_if_needed,
+
+        )
+        kernel = getattr(context.kernels, self.kernel_name)
+
+        el_var_name = None
+        for arg in instance._kernels[self.kernel_name].args:
+            if arg.atype == instance.__class__._XoStruct:
+                el_var_name = arg.name
+        if el_var_name is None:
+            raise ValueError(f"Kernel {self.kernel_name} does not depend "
+                           + f"on element type {instance.__class__._XoStruct} "
+                           + f"which it is attached to!")
+        kwargs[el_var_name] = instance._xobject
+
+        return kernel(**kwargs)
+
+
+class PyMethodDescriptor:
+    def __init__(self, kernel_name, additional_arg_names):
+        self.kernel_name = kernel_name
+        self.additional_arg_names = additional_arg_names
+
+    def __get__(self, instance, owner):
+        kernels_path = getattr(owner, 'prebuilt_kernels_path', None)
+        return PyMethod(kernel_name=self.kernel_name,
+                        element=instance,
+                        additional_arg_names=self.additional_arg_names,
+                        prebuilt_kernels_path=kernels_path)
