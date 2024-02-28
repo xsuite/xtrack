@@ -1,8 +1,10 @@
 import numpy as np
+from scipy.constants import c as clight
 
 import xtrack as xt
 import xpart as xp
 import xobjects as xo
+from functools import partial
 
 line = xt.Line.from_json(
     '../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json')
@@ -28,9 +30,10 @@ for nn in tt.rows[tt.element_type=='Cavity'].name:
     line.element_refs[nn].absolute_time = 1
     line.element_refs[nn].frequency = line.vars['f_rf']
 
-def merit_function(x):
+
+def merit_function(x, num_turns=10):
     p = line.build_particles(x=x[0], px=x[1], y=x[2], py=x[3], zeta=x[4], delta=x[5])
-    line.track(p, num_turns=10, turn_by_turn_monitor=True)
+    line.track(p, num_turns=num_turns, turn_by_turn_monitor=True)
     rec = line.record_last_track
     dx = rec.x[0, :] - rec.x[0, 0]
     dpx = rec.px[0, :] - rec.px[0, 0]
@@ -38,23 +41,19 @@ def merit_function(x):
     dpy = rec.py[0, :] - rec.py[0, 0]
     ddelta = rec.delta[0, :] - rec.delta[0, 0]
 
-    import pdb; pdb.set_trace()
     out = np.array(list(dx) + list(dpx) + list(dy) + list(dpy) + list(ddelta))
     # print(x, out)
     return out
 
-
-opt = xt.match.opt_from_callable(merit_function, np.array(6*[0.]),
+num_turns = 20
+opt = xt.match.opt_from_callable(partial(merit_function, num_turns=num_turns),
+                           x0=np.array(6*[0.]),
                            steps=[1e-9, 1e-10, 1e-9, 1e-10, 1e-4, 1e-7],
-                           tar=np.array(5*10*[0]),
-                           tols=np.array([1e-10]*5*10))
+                           tar=np.array(5*num_turns*[0.]),
+                           tols=np.array(5*num_turns*[1e-10]))
 # opt.targets[-1].weight = 1e4
 opt.step(5)
 
-# Refine 4d orbit at given delta
-opt.vary[-1].active = False
-opt.targets[-1].active = False
-opt.solve()
 
 x_sol = opt.get_knob_values()
 particle_on_co = line.build_particles(
@@ -62,6 +61,8 @@ particle_on_co = line.build_particles(
     delta=x_sol[5])
 
 tw1 = line.twiss(particle_on_co=particle_on_co)
+
+T_rev = tw1.T_rev0 - (tw1.zeta[-1] - tw1.zeta[0])/(tw.beta0*clight)
 
 import matplotlib.pyplot as plt
 plt.close('all')
