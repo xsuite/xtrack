@@ -6,7 +6,7 @@ import xobjects as xo
 
 line = xt.Line.from_json(
     '../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json')
-line.cycle('ip1')
+# line.cycle('ip1')
 line.build_tracker()
 
 for vv in line.vars.get_table().rows[
@@ -15,7 +15,7 @@ for vv in line.vars.get_table().rows[
 
 tw = line.twiss()
 
-df_hz = 1
+df_hz = 50
 h_rf = 35640
 f_rev = 1/tw.T_rev0
 df_rev = df_hz / h_rf
@@ -31,45 +31,8 @@ for nn in tt.rows[tt.element_type=='Cavity'].name:
 line.particle_ref.t_sim = tw.T_rev0
 
 
-# p = line.build_particles(delta=np.linspace(delta_expected-1e-5, delta_expected+1e-5, 111))
-p = line.build_particles(delta=delta_expected,
-                         zeta=np.linspace(-0.04 ,0.04, 200))
-p.t_sim = line.particle_ref.t_sim
-line.track(p, num_turns=100, with_progress=True, turn_by_turn_monitor=True)
-rec = line.record_last_track
-
-import matplotlib.pyplot as plt
-plt.close('all')
-plt.figure(1)
-plt.plot(rec.zeta.T, rec.delta.T)
-plt.axhline(delta_expected, color='C1', linestyle='--', label='expected')
-
-plt.show()
-
-# def merit_function(x):
-#     p = line.build_particles(x=x[0], px=x[1], y=x[2], py=x[3], zeta=x[4], delta=x[5])
-#     p.t_sim = line.particle_ref.t_sim
-#     line.track(p, num_turns=10, turn_by_turn_monitor=True)
-#     rec = line.record_last_track
-#     dx = rec.x[0, -1] - rec.x[0, 0]
-#     dpx = rec.px[0, -1] - rec.px[0, 0]
-#     dy = rec.y[0, -1] - rec.y[0, 0]
-#     dpy = rec.py[0, -1] - rec.py[0, 0]
-#     ddelta = rec.delta[0, -1] - rec.delta[0, 0]
-#     delta_rms = 100*np.std(rec.delta[0, :])
-
-#     out = np.array([dx, dpx, dy, dpy, delta_rms])
-#     return out
-
-
-# opt = xt.match.opt_from_callable(merit_function, np.array(6*[0]),
-#                            steps=[1e-6, 1e-7, 1e-6, 1e-7, 1e-3, 1e-5],
-#                            tar=np.array(5*[0]),
-#                            tols=[1e-8, 1e-10, 1e-8, 1e-10, 1e-10])
-
-
 def merit_function(x):
-    p = line.build_particles(zeta=x[0], delta=x[1])
+    p = line.build_particles(x=x[0], px=x[1], y=x[2], py=x[3], zeta=x[4], delta=x[5])
     p.t_sim = line.particle_ref.t_sim
     line.track(p, num_turns=10, turn_by_turn_monitor=True)
     rec = line.record_last_track
@@ -77,17 +40,42 @@ def merit_function(x):
     dpx = rec.px[0, -1] - rec.px[0, 0]
     dy = rec.y[0, -1] - rec.y[0, 0]
     dpy = rec.py[0, -1] - rec.py[0, 0]
-    ddelta = rec.delta[0, -1] - rec.delta[0, 0]
-    delta_rms = 100*np.std(rec.delta[0, :])
+    delta_rms = 1e4*np.std(rec.delta[0, :])
 
-    out = np.array([delta_rms])
-    print(x, out)
+    out = np.array([dx, dpx, dy, dpy, delta_rms])
+    # print(x, out)
     return out
 
 
-opt = xt.match.opt_from_callable(merit_function, np.array(2*[0.]),
-                           steps=[1e-3, 1e-7],
-                           tar=np.array([0]),
-                           tols=np.array([1e-7]))
+opt = xt.match.opt_from_callable(merit_function, np.array(6*[0.]),
+                           steps=[1e-7, 1e-8, 1e-7, 1e-8, 1e-3, 1e-7],
+                           tar=np.array(5*[0]),
+                           tols=np.array([1e-8, 1e-9, 1e-8, 1e-7, 1e-4]))
 
 opt.solve()
+x_sol = opt.get_knob_values()
+particle_on_co = line.build_particles(
+    x=x_sol[0], px=x_sol[1], y=x_sol[2], py=x_sol[3], zeta=x_sol[4],
+    delta=x_sol[5])
+particle_on_co.t_sim = line.particle_ref.t_sim
+
+tw1 = line.twiss(particle_on_co=particle_on_co)
+
+import matplotlib.pyplot as plt
+plt.close('all')
+plt.figure(1)
+ax1 = plt.subplot(2, 1, 1)
+plt.plot(tw1.s, tw1.x*1e3, label='x')
+plt.ylabel('x [mm]')
+plt.grid()
+ax2 = plt.subplot(2, 1, 2, sharex=ax1)
+plt.plot(tw1.s, tw1.delta*1e3, label='delta')
+plt.xlabel('s [m]')
+plt.ylabel(r'$\delta$ [$10^{-3}$]')
+plt.ylim(-0.5, 0.5)
+plt.grid()
+
+plt.suptitle(r'$\Delta f_{\mathrm{rf}}$ = ' +f'{df_hz} Hz, '
+             f'expexted $\delta$ = {delta_expected*1e3:.2f}e-3')
+
+plt.show()
