@@ -192,7 +192,8 @@ class Particles(xo.HybridClass):
             Identifier of the last element through which the particle has been
         parent_particle_id : array_like of int, optional
             Identifier of the parent particle (secondary production processes)
-
+        t_sim : float, optional
+            Simulation frame time (typically one revolution period)
         """
         if '_xobject' in kwargs.keys():
             # Initialize xobject
@@ -292,6 +293,7 @@ class Particles(xo.HybridClass):
         # Init scalar vars
         self.q0 = kwargs.get('q0', 1.0)
         self.mass0 = kwargs.get('mass0', PROTON_MASS_EV)
+        self.t_sim = kwargs.get('t_sim', 0)
         self.start_tracking_at_element = kwargs.get(
                             'start_tracking_at_element', -1)
 
@@ -362,7 +364,7 @@ class Particles(xo.HybridClass):
         if isinstance(self._context, xo.ContextCpu) and not _no_reorganize:
             self.reorganize()
 
- 
+
     @classmethod
     def from_dict(cls, dct, load_rng_state=True, **kwargs):
 

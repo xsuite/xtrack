@@ -33,7 +33,6 @@ line.particle_ref.t_sim = tw.T_rev0
 
 def merit_function(x):
     p = line.build_particles(x=x[0], px=x[1], y=x[2], py=x[3], zeta=x[4], delta=x[5])
-    p.t_sim = line.particle_ref.t_sim
     line.track(p, num_turns=10, turn_by_turn_monitor=True)
     rec = line.record_last_track
     dx = rec.x[0, -1] - rec.x[0, 0]
@@ -64,7 +63,6 @@ x_sol = opt.get_knob_values()
 particle_on_co = line.build_particles(
     x=x_sol[0], px=x_sol[1], y=x_sol[2], py=x_sol[3], zeta=x_sol[4],
     delta=x_sol[5])
-particle_on_co.t_sim = line.particle_ref.t_sim
 
 tw1 = line.twiss(particle_on_co=particle_on_co)
 
