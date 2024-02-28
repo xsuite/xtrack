@@ -28,9 +28,6 @@ for nn in tt.rows[tt.element_type=='Cavity'].name:
     line.element_refs[nn].absolute_time = 1
     line.element_refs[nn].frequency = line.vars['f_rf']
 
-line.particle_ref.t_sim = tw.T_rev0
-
-
 def merit_function(x):
     p = line.build_particles(x=x[0], px=x[1], y=x[2], py=x[3], zeta=x[4], delta=x[5])
     line.track(p, num_turns=10, turn_by_turn_monitor=True)

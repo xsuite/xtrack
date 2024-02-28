@@ -802,6 +802,17 @@ class Line:
 
         return self.tracker._tracker_data_base.cache['attr']
 
+    @property
+    def particle_ref(self):
+        return self._particle_ref
+
+    @particle_ref.setter
+    def particle_ref(self, particle_ref):
+        self._particle_ref = particle_ref
+        if self.particle_ref is not None and self.particle_ref.t_sim == 0:
+            self.particle_ref.t_sim = (
+                self.get_length() / self.particle_ref._xobject.beta0[0] / clight)
+
     def discard_tracker(self):
 
         """
