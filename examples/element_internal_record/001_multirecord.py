@@ -150,11 +150,13 @@ line.track(part, num_turns=10)
 # `record.table2.generated_rr`. The number of used slots in each can be found in
 # the corresponding index object e.g. record.table1._index.num_recorded.
 
-
-# The recording can be stopped with the following method:
-line.stop_internal_logging_for_elements_of_type(TestElement)
+# The recording can be stopped with the following method (optionally reinitializing
+# the internal buffers to free memot=ry):
+line.stop_internal_logging_for_all_elements(reinitialize_io_buffer=True)
 
 # Track more turns (without logging information in `record`)
 line.track(part, num_turns=10)
 
+
 #!end-doc-part
+
