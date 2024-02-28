@@ -44,9 +44,9 @@ def merit_function(x):
 
 
 opt = xt.match.opt_from_callable(merit_function, np.array(6*[0.]),
-                           steps=[1e-9, 1e-10, 1e-9, 1e-10, 1e-3, 1e-7],
+                           steps=[1e-9, 1e-10, 1e-9, 1e-10, 1e-4, 1e-7],
                            tar=np.array(5*[0]),
-                           tols=np.array([1e-8, 1e-9, 1e-8, 1e-7, 1e-4]
+                           tols=np.array([1e-8, 1e-9, 1e-8, 1e-9, 1e-6]
                            ))
 opt.targets[-1].weight = 1e4
 opt.step(5)
