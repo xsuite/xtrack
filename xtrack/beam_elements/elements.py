@@ -111,6 +111,7 @@ class Cavity(BeamElement):
         'frequency': xo.Float64,
         'lag': xo.Float64,
         'lag_taper': xo.Float64,
+        'absolute_time': xo.Int64,
         }
 
     _extra_c_sources = [

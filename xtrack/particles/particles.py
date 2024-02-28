@@ -36,6 +36,7 @@ class Particles(xo.HybridClass):
     scalar_vars = (
         (xo.Float64, 'q0'),
         (xo.Float64, 'mass0'),
+        (xo.Float64, 't_sim'),
     )
 
     part_energy_vars = (
