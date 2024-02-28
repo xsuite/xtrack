@@ -32,23 +32,23 @@ def merit_function(x):
     p = line.build_particles(x=x[0], px=x[1], y=x[2], py=x[3], zeta=x[4], delta=x[5])
     line.track(p, num_turns=10, turn_by_turn_monitor=True)
     rec = line.record_last_track
-    dx = rec.x[0, -1] - rec.x[0, 0]
-    dpx = rec.px[0, -1] - rec.px[0, 0]
-    dy = rec.y[0, -1] - rec.y[0, 0]
-    dpy = rec.py[0, -1] - rec.py[0, 0]
-    delta_rms = np.std(rec.delta[0, :])
+    dx = rec.x[0, :] - rec.x[0, 0]
+    dpx = rec.px[0, :] - rec.px[0, 0]
+    dy = rec.y[0, :] - rec.y[0, 0]
+    dpy = rec.py[0, :] - rec.py[0, 0]
+    ddelta = rec.delta[0, :] - rec.delta[0, 0]
 
-    out = np.array([dx, dpx, dy, dpy, delta_rms])
+    import pdb; pdb.set_trace()
+    out = np.array(list(dx) + list(dpx) + list(dy) + list(dpy) + list(ddelta))
     # print(x, out)
     return out
 
 
 opt = xt.match.opt_from_callable(merit_function, np.array(6*[0.]),
                            steps=[1e-9, 1e-10, 1e-9, 1e-10, 1e-4, 1e-7],
-                           tar=np.array(5*[0]),
-                           tols=np.array([1e-8, 1e-9, 1e-8, 1e-9, 1e-6]
-                           ))
-opt.targets[-1].weight = 1e4
+                           tar=np.array(5*10*[0]),
+                           tols=np.array([1e-10]*5*10))
+# opt.targets[-1].weight = 1e4
 opt.step(5)
 
 # Refine 4d orbit at given delta
