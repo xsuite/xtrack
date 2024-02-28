@@ -15,7 +15,7 @@ for vv in line.vars.get_table().rows[
 
 tw = line.twiss()
 
-df_hz = 50
+df_hz = -50
 h_rf = 35640
 f_rev = 1/tw.T_rev0
 df_rev = df_hz / h_rf
@@ -40,7 +40,7 @@ def merit_function(x):
     dpx = rec.px[0, -1] - rec.px[0, 0]
     dy = rec.y[0, -1] - rec.y[0, 0]
     dpy = rec.py[0, -1] - rec.py[0, 0]
-    delta_rms = 1e4*np.std(rec.delta[0, :])
+    delta_rms = np.std(rec.delta[0, :])
 
     out = np.array([dx, dpx, dy, dpy, delta_rms])
     # print(x, out)
@@ -48,11 +48,18 @@ def merit_function(x):
 
 
 opt = xt.match.opt_from_callable(merit_function, np.array(6*[0.]),
-                           steps=[1e-7, 1e-8, 1e-7, 1e-8, 1e-3, 1e-7],
+                           steps=[1e-9, 1e-10, 1e-9, 1e-10, 1e-3, 1e-7],
                            tar=np.array(5*[0]),
-                           tols=np.array([1e-8, 1e-9, 1e-8, 1e-7, 1e-4]))
+                           tols=np.array([1e-8, 1e-9, 1e-8, 1e-7, 1e-4]
+                           ))
+opt.targets[-1].weight = 1e4
+opt.step(5)
 
+# Refine 4d orbit at given delta
+opt.vary[-1].active = False
+opt.targets[-1].active = False
 opt.solve()
+
 x_sol = opt.get_knob_values()
 particle_on_co = line.build_particles(
     x=x_sol[0], px=x_sol[1], y=x_sol[2], py=x_sol[3], zeta=x_sol[4],
