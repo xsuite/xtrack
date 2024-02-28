@@ -9,9 +9,6 @@ import xtrack as xt
 from ..base_element import BeamElement
 from ..general import _pkg_root
 
-import xpart as xp
-
-
 def _monitor_init(
     self,
     _context=None,
@@ -156,7 +153,7 @@ class ParticlesMonitor(BeamElement):
         "n_repetitions": xo.Int64,
         "repetition_period": xo.Int64,
         "flag_auto_to_numpy": xo.Int64,
-        "data": xp.Particles,
+        "data": xt.Particles,
     }
 
     _extra_c_sources = [
@@ -166,7 +163,7 @@ class ParticlesMonitor(BeamElement):
     behaves_like_drift = True
     has_backtrack = True
     allow_backtrack = True
-    _ParticlesClass = xp.Particles
+    _ParticlesClass = xt.Particles
 
 
 ParticlesMonitor.__init__ = _monitor_init
@@ -175,7 +172,7 @@ ParticlesMonitor.from_dict = classmethod(monitor_from_dict)
 
 ParticlesMonitor.auto_to_numpy = property(auto_to_numpy, set_auto_to_numpy)
 
-per_particle_vars = xp.Particles.per_particle_vars
+per_particle_vars = xt.Particles.per_particle_vars
 for tt, nn in per_particle_vars:
     setattr(ParticlesMonitor, nn, _FieldOfMonitor(name=nn))
 

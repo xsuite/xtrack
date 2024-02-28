@@ -5,6 +5,9 @@
 
 from .general import _pkg_root, _print
 
+from .particles import (Particles, PROTON_MASS_EV, ELECTRON_MASS_EV,
+                        enable_pyheadtail_interface, disable_pyheadtail_interface)
+
 from .base_element import BeamElement
 from .beam_elements import *
 from .random import *
@@ -44,6 +47,4 @@ from xdeps import Table, FunctionPieceWiseLinear
 
 from ._version import __version__
 
-from xpart import(Particles, PROTON_MASS_EV, ELECTRON_MASS_EV,
-                  enable_pyheadtail_interface, disable_pyheadtail_interface)
 

@@ -23,7 +23,6 @@ from scipy.constants import c as clight
 from . import linear_normal_form as lnf
 
 import xobjects as xo
-import xpart as xp
 import xtrack as xt
 import xdeps as xd
 from .compounds import CompoundContainer, CompoundType, Compound, SlicedCompound
@@ -195,7 +194,7 @@ class Line:
         self = cls(elements=elements, element_names=dct['element_names'])
 
         if 'particle_ref' in dct.keys():
-            self.particle_ref = xp.Particles.from_dict(dct['particle_ref'],
+            self.particle_ref = xt.Particles.from_dict(dct['particle_ref'],
                                     _context=_buffer.context)
 
         if '_var_manager' in dct.keys():
@@ -931,7 +930,6 @@ class Line:
         W_matrix=None,
         method=None,
         scale_with_transverse_norm_emitt=None,
-        particles_class=None,
         _context=None, _buffer=None, _offset=None,
         _capacity=None,
         mode=None,
@@ -1036,8 +1034,8 @@ class Line:
             Particles object containing the generated particles.
 
         """
-
-        return xp.build_particles(
+        import xpart
+        return xpart.build_particles(
             line=self,
             particle_ref=particle_ref,
             num_particles=num_particles,
@@ -1052,7 +1050,6 @@ class Line:
             W_matrix=W_matrix,
             method=method,
             scale_with_transverse_norm_emitt=scale_with_transverse_norm_emitt,
-            particles_class=particles_class,
             _context=_context, _buffer=_buffer, _offset=_offset,
             _capacity=_capacity,
             mode=mode,
@@ -2390,12 +2387,12 @@ class Line:
             assert self.iscollective is False, ('Cannot freeze energy '
                             'in collective mode (not yet implemented)')
         if state:
-            self.freeze_vars(xp.Particles.part_energy_varnames())
+            self.freeze_vars(xt.Particles.part_energy_varnames())
         else:
-            self.unfreeze_vars(xp.Particles.part_energy_varnames())
+            self.unfreeze_vars(xt.Particles.part_energy_varnames())
 
     def _energy_is_frozen(self):
-        for vn in xp.Particles.part_energy_varnames():
+        for vn in xt.Particles.part_energy_varnames():
             flag_name = f'FREEZE_VAR_{vn}'
             if flag_name not in self.config or self.config[flag_name] == False:
                 return False
@@ -2417,9 +2414,9 @@ class Line:
         assert self.iscollective is False, ('Cannot freeze longitudinal '
                         'variables in collective mode (not yet implemented)')
         if state:
-            self.freeze_vars(xp.Particles.part_energy_varnames() + ['zeta'])
+            self.freeze_vars(xt.Particles.part_energy_varnames() + ['zeta'])
         else:
-            self.unfreeze_vars(xp.Particles.part_energy_varnames() + ['zeta'])
+            self.unfreeze_vars(xt.Particles.part_energy_varnames() + ['zeta'])
 
     def freeze_vars(self, variable_names):
 

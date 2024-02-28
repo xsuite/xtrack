@@ -5,6 +5,8 @@
 import logging
 
 from xtrack.beam_elements import *
+from xtrack.random import *
+from xtrack.multisetter import MultiSetter
 
 LOGGER = logging.getLogger(__name__)
 
@@ -58,6 +60,14 @@ NO_SYNRAD_ELEMENTS = [
     Solenoid,
 ]
 
+NON_TRACKING_ELEMENTS = [
+    RandomUniform,
+    RandomExponential,
+    RandomNormal,
+    RandomRutherford,
+    MultiSetter
+]
+
 # These will be enumerated in order of appearance in the dict, so in this case
 # (for optimization purposes) the order is important.
 kernel_definitions = {
@@ -65,8 +75,19 @@ kernel_definitions = {
         'config': BASE_CONFIG,
         'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS,
     },
+    'only_xtrack_non_tracking_kernels': {
+        'config': BASE_CONFIG,
+        'classes': [],
+        'extra_classes': NON_TRACKING_ELEMENTS
+    },
     'default_only_xtrack_backtrack': {
         'config': {**BASE_CONFIG, 'XSUITE_BACKTRACK': True},
+        'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS,
+    },
+    'default_only_xtrack_backtrack_no_limit': {
+        'config': {**{k: v for k,v in BASE_CONFIG.items()
+                      if k != 'XTRACK_GLOBAL_XY_LIMIT'},
+                   'XSUITE_BACKTRACK': True},
         'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS,
     },
     'only_xtrack_frozen_longitudinal': {
@@ -115,3 +136,46 @@ try:
     }
 except ImportError:
     LOGGER.warning('Xfields not installed, skipping BB3D elements')
+
+try:
+    import xcoll as xc
+    kernel_definitions['default_xcoll'] = {
+        'config': BASE_CONFIG,
+        'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
+                + [xc.BlackAbsorber, xc.EverestBlock, \
+                   xc.EverestCollimator, xc.EverestCrystal]
+    }
+    kernel_definitions['default_xcoll_frozen_longitudinal'] = {
+        'config': {**BASE_CONFIG, **FREEZE_LONGITUDINAL},
+        'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
+                + [xc.BlackAbsorber, xc.EverestBlock, \
+                   xc.EverestCollimator, xc.EverestCrystal]
+    }
+    kernel_definitions['default_xcoll_frozen_energy'] = {
+        'config': {**BASE_CONFIG, **FREEZE_ENERGY},
+        'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
+                + [xc.BlackAbsorber, xc.EverestBlock, \
+                   xc.EverestCollimator, xc.EverestCrystal]
+    }
+    kernel_definitions['default_xcoll_backtrack'] = {
+        'config': {**BASE_CONFIG, 'XSUITE_BACKTRACK': True},
+        'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
+                + [xc.BlackAbsorber, xc.EverestBlock, \
+                   xc.EverestCollimator, xc.EverestCrystal]
+    }
+    kernel_definitions['default_xcoll_backtrack_no_limit'] = {
+        'config': {**{k: v for k,v in BASE_CONFIG.items()
+                      if k != 'XTRACK_GLOBAL_XY_LIMIT'},
+                   'XSUITE_BACKTRACK': True},
+        'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
+                + [xc.BlackAbsorber, xc.EverestBlock, \
+                   xc.EverestCollimator, xc.EverestCrystal]
+    }
+    kernel_definitions['default_xcoll_backtrack_frozen_energy'] = {
+        'config': {**BASE_CONFIG, **FREEZE_ENERGY, 'XSUITE_BACKTRACK': True},
+        'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
+                + [xc.BlackAbsorber, xc.EverestBlock, \
+                   xc.EverestCollimator, xc.EverestCrystal]
+    }
+except ImportError:
+    LOGGER.warning('Xcoll not installed, skipping collimator elements')

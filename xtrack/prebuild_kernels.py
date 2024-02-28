@@ -14,8 +14,8 @@ from .general import _print
 import numpy as np
 
 import xobjects as xo
-import xpart as xp
 import xtrack as xt
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -57,6 +57,7 @@ BEAM_ELEMENTS_INIT_DEFAULTS = {
     },
 }
 
+
 # SpaceChargeBiGaussian is not included for now (different issues -
 # circular import, incompatible compilation flags)
 # try:
@@ -72,16 +73,28 @@ BEAM_ELEMENTS_INIT_DEFAULTS = {
 
 
 def get_element_class_by_name(name: str) -> type:
-    # from xtrack.monitors import generate_monitor_class
-    # monitor_cls = generate_monitor_class(xp.Particles)
-    monitor_cls = xt.ParticlesMonitor
-
     try:
         from xfields import element_classes as xf_element_classes
     except ModuleNotFoundError:
         xf_element_classes = ()
 
-    element_classes = xt.element_classes + xf_element_classes + (monitor_cls,)
+    try:
+        from xcoll import element_classes as xc_element_classes
+    except ModuleNotFoundError:
+        xc_element_classes = ()
+
+    xt_rng_classes = tuple([getattr(xt, cls)
+                            for cls in dir(xt.random)
+                            if cls.startswith('Random')])
+    xt_multisetter = (xt.MultiSetter, )
+
+    # from xtrack.monitors import generate_monitor_class
+    # monitor_cls = generate_monitor_class(xp.Particles)
+    xt_monitor_classes = (xt.ParticlesMonitor, )
+
+    element_classes = xt.element_classes + xt_rng_classes \
+                      + xt_monitor_classes + xt_multisetter \
+                      + xf_element_classes + xc_element_classes
 
     for cls in element_classes:
         if cls.__name__ == name:
@@ -103,12 +116,19 @@ def save_kernel_metadata(
     except ModuleNotFoundError:
         xf_version = None
 
+    try:
+        import xcoll
+        xc_version = xcoll.__version__
+    except ModuleNotFoundError:
+        xc_version = None
+
     kernel_metadata = {
         'config': config.data,
         'classes': [cls._DressingClass.__name__ for cls in kernel_element_classes],
         'versions': {
             'xtrack': xt.__version__,
             'xfields': xf_version,
+            'xcoll': xc_version,
             'xobjects': xo.__version__,
         }
     }
@@ -136,6 +156,12 @@ def enumerate_kernels() -> Iterator[Tuple[str, dict]]:
         except ModuleNotFoundError:
             xf_version = None
 
+        try:
+            import xcoll
+            xc_version = xcoll.__version__
+        except ModuleNotFoundError:
+            xc_version = None
+
         if kernel_metadata['versions']['xtrack'] != xt.__version__:
             continue
 
@@ -144,6 +170,10 @@ def enumerate_kernels() -> Iterator[Tuple[str, dict]]:
 
         if (kernel_metadata['versions']['xfields'] != xf_version
                 and xf_version is not None):
+            continue
+
+        if (kernel_metadata['versions']['xcoll'] != xc_version
+                and xc_version is not None):
             continue
 
         yield metadata_file.stem, kernel_metadata
@@ -171,6 +201,10 @@ def get_suitable_kernel(
     requested_class_names = [
         cls._DressingClass.__name__ for cls in line_element_classes
     ]
+    # Hack: we don't select on particles class as prebuild kernels anyway only
+    #       work for xp.Particles
+    requested_class_names = [cls for cls in requested_class_names
+                             if cls != 'Particles' and cls != 'ParticlesBase']
 
     for module_name, kernel_metadata in enumerate_kernels():
         if verbose:
@@ -212,16 +246,44 @@ def get_suitable_kernel(
         _print('==> No suitable precompiled kernel found.')
 
 
-def regenerate_kernels():
+def regenerate_kernels(kernels=None):
     """
     Use the kernel definitions in the `kernel_definitions.py` file to
     regenerate kernel shared objects using the current version of xsuite.
     """
+    if kernels is not None and (
+    isinstance(kernels, str) or not hasattr(kernels, '__iter__')):
+        kernels = [kernels]
+
+    # Delete existing kernels to avoid accidentally loading in existing C code
+    clear_kernels(kernels)
+
+    import xpart as xp
     from xtrack.prebuilt_kernels.kernel_definitions import kernel_definitions
+    try:
+        import xcoll as xc
+        BEAM_ELEMENTS_INIT_DEFAULTS['EverestBlock'] = {
+                'material': xc.materials.Silicon,
+                'use_prebuilt_kernels': False
+            }
+        BEAM_ELEMENTS_INIT_DEFAULTS['EverestCollimator'] = {
+                'material': xc.materials.Silicon,
+                'use_prebuilt_kernels': False
+            }
+        BEAM_ELEMENTS_INIT_DEFAULTS['EverestCrystal'] = {
+                'material': xc.materials.SiliconCrystal,
+                'use_prebuilt_kernels': False
+            }
+    except ImportError:
+        pass
 
     for module_name, metadata in kernel_definitions.items():
+        if kernels is not None and module_name not in kernels:
+            continue
+
         config = metadata['config']
         element_classes = metadata['classes']
+        extra_classes = metadata.get('extra_classes', [])
 
         elements = []
         for cls in element_classes:
@@ -235,25 +297,46 @@ def regenerate_kernels():
         tracker = xt.Tracker(line=line, compile=False)
         tracker.config.clear()
         tracker.config.update(config)
+
+        # Get all kernels in the elements
+        extra_kernels = {}
+        extra_classes.append(xp.Particles)
+        extra_classes = [getattr(el, '_XoStruct', el) for el in extra_classes]
+        all_classes = tracker._tracker_data_base.kernel_element_classes + extra_classes
+        for el in all_classes:
+            extra_kernels.update(el._kernels)
+
+        # TODO: Add any other kernels that are defined in the context
+        #       Need to add the source etc
+        # kernel_descriptions.update(tracker._context.kernels)
+
         tracker._build_kernel(
             module_name=module_name,
             containing_dir=XT_PREBUILT_KERNELS_LOCATION,
             compile='force',
+            extra_classes=extra_classes,
+            extra_kernels=extra_kernels,
         )
 
-        kernel_classes = tracker._tracker_data_base.kernel_element_classes
+        all_classes = [cls for cls in all_classes
+                       if cls.__name__ != 'ParticlesData']
         save_kernel_metadata(
             module_name=module_name,
             config=tracker.config,
-            kernel_element_classes=kernel_classes,
+            kernel_element_classes=all_classes,
         )
 
 
-def clear_kernels(verbose=False):
+def clear_kernels(kernels=None, verbose=False):
+    if kernels is not None and (
+    isinstance(kernels, str) or not hasattr(kernels, '__iter__')):
+        kernels = [kernels]
     for file in XT_PREBUILT_KERNELS_LOCATION.iterdir():
         if file.name.startswith('_'):
             continue
         if file.suffix not in ('.c', '.so', '.json'):
+            continue
+        if kernels is not None and file.stem.split('.')[0] not in kernels:
             continue
         file.unlink()
 
@@ -263,3 +346,4 @@ def clear_kernels(verbose=False):
 
 if __name__ == '__main__':
     regenerate_kernels()
+
