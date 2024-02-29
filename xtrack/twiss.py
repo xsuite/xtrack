@@ -1964,8 +1964,8 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
                       num_turns_search_t_rev=None):
 
     if search_for_t_rev:
+        assert line.particle_ref is not None
         assert co_guess is None, '`co_guess` not supported when `search_for_t_rev` is True'
-        # assert particle_ref is None, '`particle_ref` not supported when `search_for_t_rev` is True'
         assert co_search_settings is None, '`co_search_settings` not supported when `search_for_t_rev` is True'
         assert delta_zeta == 0, '`delta_zeta` not supported when `search_for_t_rev` is True'
         assert delta0 is None, '`delta0` not supported when `search_for_t_rev` is True'
