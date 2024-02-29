@@ -7,6 +7,7 @@ import logging
 
 import io
 import json
+from functools import partial
 import numpy as np
 from scipy.constants import c as clight
 from scipy.constants import hbar
@@ -1935,7 +1936,24 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
                       delta0=None, zeta0=None,
                       start=None, end=None, num_turns=1,
                       co_search_at=None,
+                      search_for_t_rev=False,
                       continue_on_closed_orbit_error=False):
+
+    if search_for_t_rev:
+        assert co_guess is None, 'Not yet implemented'
+        assert particle_ref is None, 'Not yet implemented'
+        assert co_search_settings is None, 'Not yet implemented'
+        assert delta_zeta == 0, 'Not yet implemented'
+        assert delta0 is None, 'Not yet implemented'
+        assert zeta0 is None, 'Not yet implemented'
+        assert start is None, 'Not yet implemented'
+        assert end is None, 'Not yet implemented'
+        assert num_turns == 1, 'Not yet implemented'
+        assert co_search_at is None, 'Not yet implemented'
+        assert continue_on_closed_orbit_error is False, 'Not yet implemented'
+
+        out = _find_closed_orbit_search_t_rev(line, num_turns=10)
+        return out
 
     if line.enable_time_dependent_vars:
         raise RuntimeError(
@@ -3502,7 +3520,34 @@ def get_non_linear_chromaticity(line, delta0_range, num_delta, fit_order=3, **kw
 
     return out
 
+def _merit_function_co_t_rec(x, line, num_turns):
+    p = line.build_particles(x=x[0], px=x[1], y=x[2], py=x[3], zeta=x[4], delta=x[5])
+    line.track(p, num_turns=num_turns, turn_by_turn_monitor=True)
+    rec = line.record_last_track
+    dx = rec.x[0, :] - rec.x[0, 0]
+    dpx = rec.px[0, :] - rec.px[0, 0]
+    dy = rec.y[0, :] - rec.y[0, 0]
+    dpy = rec.py[0, :] - rec.py[0, 0]
+    ddelta = rec.delta[0, :] - rec.delta[0, 0]
 
+    out = np.array(list(dx) + list(dpx) + list(dy) + list(dpy) + list(ddelta))
+    return out
+
+def _find_closed_orbit_search_t_rev(line, num_turns=10):
+
+    opt = xt.match.opt_from_callable(partial(_merit_function_co_t_rec,
+                                             line=line, num_turns=num_turns),
+                           x0=np.array(6*[0.]),
+                           steps=[1e-9, 1e-10, 1e-9, 1e-10, 1e-4, 1e-7],
+                           tar=np.array(5*num_turns*[0.]),
+                           tols=np.array(5*num_turns*[1e-10]))
+    opt.solve()
+    x_sol = opt.get_knob_values()
+    particle_on_co = line.build_particles(
+        x=x_sol[0], px=x_sol[1], y=x_sol[2], py=x_sol[3], zeta=x_sol[4],
+        delta=x_sol[5])
+
+    return particle_on_co
 
 
 
