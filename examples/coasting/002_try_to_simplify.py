@@ -74,6 +74,8 @@ for ii, ss in enumerate(s_wrap):
     line.insert_element(element=xt.Marker(), name=nn, at_s=ss)
     line[nn].iscollective = True
 
+tt = line.get_table()
+
 wrap_end = CoastWrap(circumference=circumference, beta1=beta1, id=1000001, at_end=True)
 wrap_start = CoastWrap(circumference=circumference, beta1=beta1, id=10002)
 wrap_mid = CoastWrap(circumference=circumference, beta1=beta1, id=10003)
