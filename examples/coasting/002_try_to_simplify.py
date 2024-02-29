@@ -16,12 +16,14 @@ for nn in ttcav.name:
 line.configure_bend_model(core='bend-kick-bend', edge='full')
 line.twiss_default['method'] = '4d'
 
+COAST_STATE_RANGE_START= 1000000
+
 tw = line.twiss()
 beta1 = tw.beta0 * 1.1
 class CoastWrap:
 
     def __init__(self, circumference, id, beta1, at_end=False):
-        assert id > 10000
+        assert id > COAST_STATE_RANGE_START
         self.id = id
         self.beta1 = beta1
         self.circumference = circumference
@@ -59,12 +61,27 @@ class CoastWrap:
             import pdb; pdb.set_trace()
 
         if self.at_end and particles.at_turn[0] == 0:
-            particles.state[particles.state==-10000] = 1
+            particles.state[particles.state==-COAST_STATE_RANGE_START] = 1
 
 circumference = line.get_length()
-wrap_end = CoastWrap(circumference=circumference, beta1=beta1, id=10001, at_end=True)
+
+line.discard_tracker()
+s_wrap = np.linspace(0, circumference, 10)
+line.cut_at_s(s_wrap)
+
+for ii, ss in enumerate(s_wrap):
+    nn = f'coast_sync_{ii}'
+    line.insert_element(element=xt.Marker(), name=nn, at_s=ss)
+    line[nn].iscollective = True
+
+wrap_end = CoastWrap(circumference=circumference, beta1=beta1, id=1000001, at_end=True)
 wrap_start = CoastWrap(circumference=circumference, beta1=beta1, id=10002)
 wrap_mid = CoastWrap(circumference=circumference, beta1=beta1, id=10003)
+
+line.insert_element(element=wrap_start, name='wrap_start', at_s=0)
+# line.insert_element(element=wrap_mid, name='wrap_mid', at_s=circumference/2)
+line.append_element(wrap_end, name='wrap_end')
+line.build_tracker()
 
 zeta_min0 = -circumference/2*tw.beta0/beta1
 zeta_max0 = circumference/2*tw.beta0/beta1
@@ -84,11 +101,8 @@ p.zeta[mask_stop] += circumference * tw.beta0 / beta1
 
 p0 = p.copy()
 
-line.discard_tracker()
-line.insert_element(element=wrap_start, name='wrap_start', at_s=0)
-# line.insert_element(element=wrap_mid, name='wrap_mid', at_s=circumference/2)
-line.append_element(wrap_end, name='wrap_end')
-line.build_tracker()
+
+
 
 def intensity(line, particles):
     return np.sum(particles.state > 0)/((zeta_max0 - zeta_min0)/tw.beta0/clight)

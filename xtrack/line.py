@@ -647,6 +647,7 @@ class Line:
         s_elements = np.array(list(self.get_s_elements()) + [self.get_length()])
         element_types = list(map(lambda e: e.__class__.__name__, elements)) + [""]
         isthick = np.array(list(map(_is_thick, elements)) + [False])
+        iscollective = np.array(list(map(xt.tracker._check_is_collective, elements)) + [False])
         compound_name = list(self.get_element_compound_names()) + [None]
         elements += [None]
 
@@ -659,6 +660,7 @@ class Line:
             'element_type': element_types,
             'name': list(self.element_names) + ['_end_point'],
             'isthick': isthick,
+            'iscollective': iscollective,
             'compound_name': compound_name,
             'element': elements
         }
