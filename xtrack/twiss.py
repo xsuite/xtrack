@@ -1940,17 +1940,17 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
                       continue_on_closed_orbit_error=False):
 
     if search_for_t_rev:
-        assert co_guess is None, 'Not yet implemented'
-        assert particle_ref is None, 'Not yet implemented'
-        assert co_search_settings is None, 'Not yet implemented'
-        assert delta_zeta == 0, 'Not yet implemented'
-        assert delta0 is None, 'Not yet implemented'
-        assert zeta0 is None, 'Not yet implemented'
-        assert start is None, 'Not yet implemented'
-        assert end is None, 'Not yet implemented'
-        assert num_turns == 1, 'Not yet implemented'
-        assert co_search_at is None, 'Not yet implemented'
-        assert continue_on_closed_orbit_error is False, 'Not yet implemented'
+        assert co_guess is None, '`co_guess` not supported when `search_for_t_rev` is True'
+        assert particle_ref is None, '`particle_ref` not supported when `search_for_t_rev` is True'
+        assert co_search_settings is None, '`co_search_settings` not supported when `search_for_t_rev` is True'
+        assert delta_zeta == 0, '`delta_zeta` not supported when `search_for_t_rev` is True'
+        assert delta0 is None, '`delta0` not supported when `search_for_t_rev` is True'
+        assert zeta0 is None, '`zeta0` not supported when `search_for_t_rev` is True'
+        assert start is None, '`start` not supported when `search_for_t_rev` is True'
+        assert end is None, '`end` not supported when `search_for_t_rev` is True'
+        assert num_turns == 1, '`num_turns` not supported when `search_for_t_rev` is True'
+        assert co_search_at is None, '`co_search_at` not supported when `search_for_t_rev` is True'
+        assert continue_on_closed_orbit_error is False, '`continue_on_closed_orbit_error` not supported when `search_for_t_rev` is True'
 
         out = _find_closed_orbit_search_t_rev(line, num_turns=10)
         return out
