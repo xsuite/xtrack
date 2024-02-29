@@ -70,18 +70,24 @@ s_wrap = np.linspace(0, circumference, 10)
 line.cut_at_s(s_wrap)
 
 for ii, ss in enumerate(s_wrap):
-    nn = f'coast_sync_{ii}'
+    nn = f'sync_here_{ii}'
     line.insert_element(element=xt.Marker(), name=nn, at_s=ss)
     line[nn].iscollective = True
 
-tt = line.get_table()
+ltab = line.get_table()
+tab_collective = ltab.rows[ltab.iscollective]
 
-wrap_end = CoastWrap(circumference=circumference, beta1=beta1, id=1000001, at_end=True)
-wrap_start = CoastWrap(circumference=circumference, beta1=beta1, id=10002)
-wrap_mid = CoastWrap(circumference=circumference, beta1=beta1, id=10003)
+for ii, nn in enumerate(tab_collective.name):
+    cc = x=CoastWrap(circumference=circumference, beta1=beta1,
+                     id=COAST_STATE_RANGE_START + ii + 1)
+    line.insert_element(element=cc, name=f'coast_sync_{ii}', at=nn)
+
+wrap_start = CoastWrap(circumference=circumference, beta1=beta1,
+                       id=COAST_STATE_RANGE_START + len(tab_collective)+1)
+wrap_end = CoastWrap(circumference=circumference, beta1=beta1,
+                     id=COAST_STATE_RANGE_START + len(tab_collective)+2, at_end=True)
 
 line.insert_element(element=wrap_start, name='wrap_start', at_s=0)
-# line.insert_element(element=wrap_mid, name='wrap_mid', at_s=circumference/2)
 line.append_element(wrap_end, name='wrap_end')
 line.build_tracker()
 
@@ -98,7 +104,7 @@ p = line.build_particles(
 p.y[(p.zeta > 1) & (p.zeta < 2)] = 1e-3  # kick
 
 mask_stop = p.zeta < zeta_min0
-p.state[mask_stop] = -10000
+p.state[mask_stop] = -COAST_STATE_RANGE_START
 p.zeta[mask_stop] += circumference * tw.beta0 / beta1
 
 p0 = p.copy()
