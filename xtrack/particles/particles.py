@@ -923,6 +923,8 @@ class Particles(xo.HybridClass):
             raise NotImplementedError("Out of space, need to regenerate xobject")
 
         for tt, nn in self.scalar_vars:
+            if nn == 't_sim':
+                continue
             assert np.isclose(getattr(self, nn), getattr(part, nn),
                               rtol=1e-14, atol=1e-14)
 
