@@ -29,6 +29,9 @@ class CoastWrap:
 
     def track(self, particles):
 
+        if (particles.state == 0).any():
+            import pdb; pdb.set_trace()
+
         # Resume particles previously stopped
         particles.state[particles.state==-self.id] = 1
         particles.reorganize()
@@ -52,9 +55,16 @@ class CoastWrap:
             particles.zeta[mask_alive] -= (
                 self.circumference * (1 - tw.beta0 / self.beta1))
 
+        if (particles.state == 0).any():
+            import pdb; pdb.set_trace()
+
+        if self.at_end and particles.at_turn[0] == 0:
+            particles.state[particles.state==-10000] = 1
+
 circumference = line.get_length()
 wrap_end = CoastWrap(circumference=circumference, beta1=beta1, id=10001, at_end=True)
 wrap_start = CoastWrap(circumference=circumference, beta1=beta1, id=10002)
+wrap_mid = CoastWrap(circumference=circumference, beta1=beta1, id=10003)
 
 zeta_min0 = -circumference/2*tw.beta0/beta1
 zeta_max0 = circumference/2*tw.beta0/beta1
@@ -62,21 +72,21 @@ zeta_max0 = circumference/2*tw.beta0/beta1
 num_particles = 10000
 p = line.build_particles(
     zeta=np.random.uniform(zeta_max0 - circumference, zeta_max0, num_particles),
-    delta=0*np.random.uniform(-1, 1, num_particles),
+    delta=1e-2*np.random.uniform(-1, 1, num_particles),
     x_norm=0, y_norm=0
 )
 
 p.y[(p.zeta > 1) & (p.zeta < 2)] = 1e-3  # kick
 
 mask_stop = p.zeta < zeta_min0
-p.state[mask_stop] = -10002
+p.state[mask_stop] = -10000
 p.zeta[mask_stop] += circumference * tw.beta0 / beta1
-p.zeta[mask_stop] += circumference * (1 - tw.beta0 / beta1)
 
 p0 = p.copy()
 
 line.discard_tracker()
 line.insert_element(element=wrap_start, name='wrap_start', at_s=0)
+# line.insert_element(element=wrap_mid, name='wrap_mid', at_s=circumference/2)
 line.append_element(wrap_end, name='wrap_end')
 line.build_tracker()
 
@@ -139,9 +149,13 @@ plt.ylabel('z range [m]')
 plt.xlabel('Turn')
 
 plt.figure(4)
-plt.plot(np.array([0.5*(zz[1] + zz[0]) for zz in line.log_last_track['z_range']]))
+plt.plot(np.array([0.5*(zz[1] + zz[0]) for zz in line.log_last_track['z_range']]),
+         label='z range center')
+plt.plot([zz[0] for zz in line.log_last_track['z_range']], color='C1', linestyle='--', label='z range min')
+plt.plot([zz[1] for zz in line.log_last_track['z_range']], color='C1', linestyle='--', label='z range max')
 plt.plot()
-plt.ylabel('z range center [m]')
+plt.ylabel('z range[m]')
+plt.legend(loc='best')
 plt.xlabel('Turn')
 
 z_axis = line.log_last_track['long_density'][0][1]
