@@ -61,12 +61,19 @@ zeta_max0 = circumference/2*tw.beta0/beta1
 
 num_particles = 10000
 p = line.build_particles(
-    zeta=np.random.uniform(-circumference/2, circumference/2, num_particles),
-    delta=3e-2*np.random.uniform(-1, 1, num_particles),
+    zeta=np.random.uniform(zeta_max0 - circumference, zeta_max0, num_particles),
+    delta=0*np.random.uniform(-1, 1, num_particles),
     x_norm=0, y_norm=0
 )
 
 p.y[(p.zeta > 1) & (p.zeta < 2)] = 1e-3  # kick
+
+mask_stop = p.zeta < zeta_min0
+p.state[mask_stop] = -10002
+p.zeta[mask_stop] += circumference * tw.beta0 / beta1
+p.zeta[mask_stop] += circumference * (1 - tw.beta0 / beta1)
+
+p0 = p.copy()
 
 line.discard_tracker()
 line.insert_element(element=wrap_start, name='wrap_start', at_s=0)
