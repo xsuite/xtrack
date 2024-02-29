@@ -7,9 +7,11 @@ import xobjects as xo
 from functools import partial
 
 line = xt.Line.from_json(
-    '../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json')
+    # '../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json')
+    '../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
 # line.cycle('ip1')
 line.build_tracker()
+line.vv['vrf400'] = 16
 
 for vv in line.vars.get_table().rows[
     'on_x.*|on_sep.*|on_crab.*|on_alice|on_lhcb|corr_.*'].name:
@@ -22,20 +24,26 @@ h_rf = 35640
 f_rev = 1/tw.T_rev0
 df_rev = df_hz / h_rf
 eta = tw.slip_factor
-delta_expected = -df_rev / f_rev / eta
 
-line.vars['f_rf'] = 400789598.9858259 + df_hz
+f_rf0 = 1/tw.T_rev0 * h_rf
+
+f_rf = f_rf0 + df_hz
+line.vars['f_rf'] = f_rf
 tt = line.get_table()
 for nn in tt.rows[tt.element_type=='Cavity'].name:
-    line.element_refs[nn].absolute_time = 1
+    line.element_refs[nn].absolute_time = 1 # Need property
     line.element_refs[nn].frequency = line.vars['f_rf']
-
-
-# particle_on_co = xt.twiss._find_closed_orbit_search_t_rev(line=line, num_turns=10)
 
 tw1 = line.twiss(search_for_t_rev=True)
 
-T_rev = tw1.T_rev0 - (tw1.zeta[-1] - tw1.zeta[0])/(tw.beta0*clight)
+f_rev_expected = f_rf / h_rf
+
+assert np.isclose(f_rev_expected, 1/tw1.T_rev, atol=1e-5, rtol=0)
+assert np.allclose(tw1.delta, tw1.delta[0], atol=1e-5, rtol=0) # Check that it is flat
+delta_expected = -df_rev / f_rev / eta
+assert np.allclose(tw1.delta, delta_expected, atol=2e-6, rtol=0)
+tw_off_mom = line.twiss(method='4d', delta0=tw1.delta[0])
+assert np.allclose(tw1.x, tw_off_mom.x, atol=1e-5, rtol=0)
 
 import matplotlib.pyplot as plt
 plt.close('all')

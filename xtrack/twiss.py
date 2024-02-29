@@ -725,6 +725,9 @@ def twiss_line(line, particle_ref=None, method=None,
                 twiss_res.mux += init.mux - twiss_res.mux[-1]
                 twiss_res.muy += init.muy - twiss_res.muy[-1]
 
+    if search_for_t_rev:
+        twiss_res._data['T_rev'] = twiss_res.T_rev0 - (
+            twiss_res.zeta[-1] - twiss_res.zeta[0])/(twiss_res.beta0*clight)
 
     if num_turns > 1:
 
@@ -1962,7 +1965,7 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
 
     if search_for_t_rev:
         assert co_guess is None, '`co_guess` not supported when `search_for_t_rev` is True'
-        assert particle_ref is None, '`particle_ref` not supported when `search_for_t_rev` is True'
+        # assert particle_ref is None, '`particle_ref` not supported when `search_for_t_rev` is True'
         assert co_search_settings is None, '`co_search_settings` not supported when `search_for_t_rev` is True'
         assert delta_zeta == 0, '`delta_zeta` not supported when `search_for_t_rev` is True'
         assert delta0 is None, '`delta0` not supported when `search_for_t_rev` is True'

@@ -25,13 +25,8 @@ void Cavity_track_local_particle(CavityData el, LocalParticle* part0){
 
         if (absolute_time == 1) {
             double const t_sim = LocalParticle_get_t_sim(part);
-            double const s = LocalParticle_get_s(part);
-            double const beta0 = LocalParticle_get_beta0(part);
             int64_t const at_turn = LocalParticle_get_at_turn(part);
             phase += 2 * PI * at_turn * freq * t_sim;
-            // phase += 2 * PI * fmod(freq * s / beta0 / C_LIGHT, 1);
-            // printf("phase from previous turn: %e\n", phase);
-            // printf("wrapped phase from previous turn: %e\n", fmod(phase, 2 * PI));
         }
 
         double const   beta0  = LocalParticle_get_beta0(part);
