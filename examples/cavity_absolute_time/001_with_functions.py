@@ -31,9 +31,9 @@ for nn in tt.rows[tt.element_type=='Cavity'].name:
     line.element_refs[nn].frequency = line.vars['f_rf']
 
 
-particle_on_co = xt.twiss._find_closed_orbit_search_t_rev(line=line, num_turns=10)
+# particle_on_co = xt.twiss._find_closed_orbit_search_t_rev(line=line, num_turns=10)
 
-tw1 = line.twiss(particle_on_co=particle_on_co)
+tw1 = line.twiss(search_for_t_rev=True)
 
 T_rev = tw1.T_rev0 - (tw1.zeta[-1] - tw1.zeta[0])/(tw.beta0*clight)
 

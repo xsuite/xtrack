@@ -1091,6 +1091,8 @@ class Line:
         strengths=None,
         hide_thin_groups=None,
         group_compound_elements=None,
+        search_for_t_rev=None,
+        num_turns_search_t_rev=None,
         only_twiss_init=None,
         only_markers=None,
         only_orbit=None,
@@ -1392,7 +1394,9 @@ class Line:
                           freeze_longitudinal=False,
                           start=None, end=None,
                           num_turns=1,
-                          co_search_at=None):
+                          co_search_at=None,
+                          search_for_t_rev=False,
+                          num_turns_search_t_rev=None):
 
         """
         Find the closed orbit of the beamline.
@@ -1465,7 +1469,9 @@ class Line:
                                  co_search_settings=co_search_settings, delta_zeta=delta_zeta,
                                  continue_on_closed_orbit_error=continue_on_closed_orbit_error,
                                  start=start, end=end, num_turns=num_turns,
-                                 co_search_at=co_search_at)
+                                 co_search_at=co_search_at,
+                                 search_for_t_rev=search_for_t_rev,
+                                 num_turns_search_t_rev=num_turns_search_t_rev)
 
     def compute_T_matrix(self, start=None, end=None,
                          particle_on_co=None, steps_t_matrix=None):

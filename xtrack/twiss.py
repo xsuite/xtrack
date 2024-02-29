@@ -33,6 +33,7 @@ DEFAULT_CO_SEARCH_TOL = [1e-11, 1e-11, 1e-11, 1e-11, 1e-5, 1e-9]
 
 DEFAULT_MATRIX_RESPONSIVENESS_TOL = 1e-15
 DEFAULT_MATRIX_STABILITY_TOL = 2e-3
+DEFAULT_NUM_TURNS_SEARCH_T_REV = 10
 
 AT_TURN_FOR_TWISS = -10 # # To avoid writing in monitors installed in the line
 
@@ -71,6 +72,8 @@ def twiss_line(line, particle_ref=None, method=None,
         strengths=None,
         hide_thin_groups=None,
         group_compound_elements=None,
+        search_for_t_rev=None,
+        num_turns_search_t_rev=None,
         only_twiss_init=None,
         only_markers=None,
         only_orbit=None,
@@ -139,6 +142,12 @@ def twiss_line(line, particle_ref=None, method=None,
         NaNs.
     group_compound_elements : bool, optional
         If True, elements in compounds are grouped together.
+    search_for_t_rev : bool, optional
+        If True, the revolution period is searched for, otherwise the revolution
+        period computed from the circumference is assumed.
+    num_turns_search_t_rev : int, optional
+        Number of turns used for the search of the revolution period. Used only
+        if `search_for_t_rev` is True.
     values_at_element_exit : bool, optional (False)
         If True, the Twiss parameters are computed at the exit of the
         elements. If False (default), the Twiss parameters are computed at the
@@ -293,6 +302,8 @@ def twiss_line(line, particle_ref=None, method=None,
     strengths=(strengths or False)
     hide_thin_groups=(hide_thin_groups or False)
     group_compound_elements=(group_compound_elements or False)
+    search_for_t_rev=(search_for_t_rev or False)
+    num_turns_search_t_rev=(num_turns_search_t_rev or None)
     only_twiss_init=(only_twiss_init or False)
     only_markers=(only_markers or False)
     only_orbit=(only_orbit or False)
@@ -529,6 +540,8 @@ def twiss_line(line, particle_ref=None, method=None,
             start=start, end=end,
             num_turns=num_turns,
             co_search_at=co_search_at,
+            search_for_t_rev=search_for_t_rev,
+            num_turns_search_t_rev=num_turns_search_t_rev,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y, r_sigma=r_sigma,
             compute_R_element_by_element=compute_R_element_by_element,
             only_markers=only_markers,
@@ -1658,6 +1671,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             start=None, end=None,
                             num_turns=1,
                             co_search_at=None,
+                            search_for_t_rev=False,
+                            num_turns_search_t_rev=1,
                             compute_R_element_by_element=False,
                             only_markers=False):
 
@@ -1677,6 +1692,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
     if particle_on_co is not None:
         part_on_co = particle_on_co
     else:
+        if search_for_t_rev:
+            assert method == '6d', 'search_for_t_rev possible when `method` is "6d"'
         part_on_co = line.find_closed_orbit(
                                 co_guess=co_guess,
                                 particle_ref=particle_ref,
@@ -1687,7 +1704,10 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                 start=start,
                                 end=end,
                                 num_turns=num_turns,
-                                co_search_at=co_search_at,)
+                                co_search_at=co_search_at,
+                                search_for_t_rev=search_for_t_rev,
+                                num_turns_search_t_rev=num_turns_search_t_rev,
+                                )
 
     if W_matrix is not None:
         W = W_matrix
@@ -1937,7 +1957,8 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
                       start=None, end=None, num_turns=1,
                       co_search_at=None,
                       search_for_t_rev=False,
-                      continue_on_closed_orbit_error=False):
+                      continue_on_closed_orbit_error=False,
+                      num_turns_search_t_rev=None):
 
     if search_for_t_rev:
         assert co_guess is None, '`co_guess` not supported when `search_for_t_rev` is True'
@@ -1952,7 +1973,7 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
         assert co_search_at is None, '`co_search_at` not supported when `search_for_t_rev` is True'
         assert continue_on_closed_orbit_error is False, '`continue_on_closed_orbit_error` not supported when `search_for_t_rev` is True'
 
-        out = _find_closed_orbit_search_t_rev(line, num_turns=10)
+        out = _find_closed_orbit_search_t_rev(line, num_turns_search_t_rev)
         return out
 
     if line.enable_time_dependent_vars:
@@ -3533,14 +3554,17 @@ def _merit_function_co_t_rec(x, line, num_turns):
     out = np.array(list(dx) + list(dpx) + list(dy) + list(dpy) + list(ddelta))
     return out
 
-def _find_closed_orbit_search_t_rev(line, num_turns=10):
+def _find_closed_orbit_search_t_rev(line, num_turns_search_t_rev=None):
+
+    if num_turns_search_t_rev is None:
+        num_turns_search_t_rev = DEFAULT_NUM_TURNS_SEARCH_T_REV
 
     opt = xt.match.opt_from_callable(partial(_merit_function_co_t_rec,
-                                             line=line, num_turns=num_turns),
-                           x0=np.array(6*[0.]),
-                           steps=[1e-9, 1e-10, 1e-9, 1e-10, 1e-4, 1e-7],
-                           tar=np.array(5*num_turns*[0.]),
-                           tols=np.array(5*num_turns*[1e-10]))
+                        line=line, num_turns=num_turns_search_t_rev),
+                        x0=np.array(6*[0.]),
+                        steps=[1e-9, 1e-10, 1e-9, 1e-10, 1e-4, 1e-7],
+                        tar=np.array(5*num_turns_search_t_rev*[0.]),
+                        tols=np.array(5*num_turns_search_t_rev*[1e-10]))
     opt.solve()
     x_sol = opt.get_knob_values()
     particle_on_co = line.build_particles(
