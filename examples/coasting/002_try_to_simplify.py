@@ -16,76 +16,9 @@ for nn in ttcav.name:
 line.configure_bend_model(core='bend-kick-bend', edge='full')
 line.twiss_default['method'] = '4d'
 
-COAST_STATE_RANGE_START= 1000000
-DEFAULT_FRAME_RELATIVE_LENGTH = 0.9
 
 tw = line.twiss()
-class SyncTime:
 
-    def __init__(self, circumference, id, frame_relative_length=None, at_end=False):
-        if frame_relative_length is None:
-            frame_relative_length = DEFAULT_FRAME_RELATIVE_LENGTH
-        assert id > COAST_STATE_RANGE_START
-        self.id = id
-        self.frame_relative_length = frame_relative_length
-        self.circumference = circumference
-        self.at_end = at_end
-
-    def track(self, particles):
-
-        beta1 = particles._xobject.beta0[0] / self.frame_relative_length
-
-        # Resume particles previously stopped
-        particles.state[particles.state==-self.id] = 1
-        particles.reorganize()
-
-        beta0_beta1 = tw.beta0 / beta1
-
-        # Identify particles that need to be stopped
-        zeta_min = -circumference/ 2 * beta0_beta1 + particles.s * (1 - beta0_beta1)
-        mask_alive = particles.state > 0
-        mask_stop = mask_alive & (particles.zeta < zeta_min)
-
-        mask_too_fast = mask_alive & (
-            particles.zeta > zeta_min + self.circumference * beta0_beta1)
-        if mask_too_fast.any():
-            raise ValueError('Some particles move faster than the time window')
-
-        # Update zeta for particles that are stopped
-        particles.zeta[mask_stop] += beta0_beta1 * self.circumference
-
-        # Stop particles
-        particles.state[mask_stop] = -self.id
-
-        if self.at_end:
-            mask_alive = particles.state > 0
-            particles.zeta[mask_alive] -= (
-                self.circumference * (1 - beta0_beta1))
-
-        if self.at_end and particles.at_turn[0] == 0:
-            particles.state[particles.state==-COAST_STATE_RANGE_START] = 1
-
-def install_sync_time_at_collective_elements(line, frame_relative_length=None):
-
-    circumference = line.get_length()
-
-    ltab = line.get_table()
-    tab_collective = ltab.rows[ltab.iscollective]
-    for ii, nn in enumerate(tab_collective.name):
-        cc = x=SyncTime(circumference=circumference,
-                        frame_relative_length=frame_relative_length,
-                        id=COAST_STATE_RANGE_START + ii + 1)
-        line.insert_element(element=cc, name=f'coast_sync_{ii}', at=nn)
-
-    wrap_start = SyncTime(circumference=circumference,
-                        frame_relative_length=frame_relative_length,
-                        id=COAST_STATE_RANGE_START + len(tab_collective)+1)
-    wrap_end = SyncTime(circumference=circumference,
-                        frame_relative_length=frame_relative_length,
-                        id=COAST_STATE_RANGE_START + len(tab_collective)+2, at_end=True)
-
-    line.insert_element(element=wrap_start, name='wrap_start', at_s=0)
-    line.append_element(wrap_end, name='wrap_end')
 
 line.discard_tracker()
 
@@ -97,7 +30,8 @@ for ii, ss in enumerate(s_sync):
     line.insert_element(element=xt.Marker(), name=nn, at_s=ss)
     line[nn].iscollective = True
 
-install_sync_time_at_collective_elements(line)
+import xtrack.synctime as st
+st.install_sync_time_at_collective_elements(line)
 line.build_tracker()
 
 beta1 = tw.beta0 / 0.9
@@ -116,7 +50,7 @@ p = line.build_particles(
 p.y[(p.zeta > 1) & (p.zeta < 2)] = 1e-3  # kick
 
 mask_stop = p.zeta < zeta_min0
-p.state[mask_stop] = -COAST_STATE_RANGE_START
+p.state[mask_stop] = -st.COAST_STATE_RANGE_START
 p.zeta[mask_stop] += circumference * tw.beta0 / beta1
 
 p0 = p.copy()
