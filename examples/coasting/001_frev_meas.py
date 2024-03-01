@@ -39,7 +39,7 @@ circumference = tw.circumference
 zeta_min0 = -circumference/2*tw.beta0/beta1
 zeta_max0 = circumference/2*tw.beta0/beta1
 
-num_particles = 1000000
+num_particles = 10000
 p = line.build_particles(
     zeta=np.random.uniform(zeta_max0 - circumference, zeta_max0, num_particles),
     delta=0*np.random.uniform(-1, 1, num_particles),
@@ -160,6 +160,7 @@ ax2 = plt.subplot(2, 1, 2, sharex=ax1)
 plt.plot(t_unwrapped*1e6, intensity_vs_t, '-')
 plt.ylabel('intensity')
 plt.xlabel('t [us]')
+plt.ylim(bottom=0)
 for tt in t_range_size * np.arange(0, hist_y.shape[0]):
     ax1.axvline(x=tt*1e6, color='red', linestyle='--', alpha=0.5)
 
