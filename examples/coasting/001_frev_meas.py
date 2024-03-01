@@ -42,7 +42,7 @@ circumference = tw.circumference
 zeta_min0 = -circumference/2*tw.beta0/beta1
 zeta_max0 = circumference/2*tw.beta0/beta1
 
-num_particles = 100000
+num_particles = 50000
 p = line.build_particles(
     delta=delta0 + 0 * np.random.uniform(-1, 1, num_particles),
     x_norm=0, y_norm=0
@@ -56,7 +56,7 @@ p.zeta = (np.random.uniform(0, circumference, num_particles) / p.rvv
 st.prepare_particles_for_sync_time(p, line)
 
 p.y[(p.zeta > 1) & (p.zeta < 2)] = 1e-3  # kick
-p.weight[(p.zeta > 5) & (p.zeta < 10)] += 2
+p.weight[(p.zeta > 5) & (p.zeta < 10)] *= 1.3
 
 initial_histogram, z_init_hist = np.histogram(p.zeta, bins=200,
                                   range=(zeta_max0 - circumference, zeta_max0),
@@ -107,7 +107,7 @@ inten = line.log_last_track['intensity']
 f_rev_ave = 1 / tw.T_rev0 * (1 - tw.slip_factor * p.delta.mean())
 t_rev_ave = 1 / f_rev_ave
 
-inten_exp =  len(p.zeta) / t_rev_ave
+inten_exp =  np.sum(p0.weight) / t_rev_ave
 
 z_axis = line.log_last_track['long_density'][0][1]
 hist_mat = np.array([rr[0] for rr in line.log_last_track['long_density']])
@@ -123,7 +123,7 @@ z_range_size = z_axis[-1] - z_axis[0]
 t_range_size = z_range_size / (tw.beta0 * clight)
 
 import nafflib
-f_harmons = nafflib.get_tunes(intensity_vs_t, N=20)[0] / (t_unwrapped[1] - t_unwrapped[0])
+f_harmons = nafflib.get_tunes(intensity_vs_t, N=50)[0] / (t_unwrapped[1] - t_unwrapped[0])
 f_nominal = 1 / tw.T_rev0
 dt_expected = -(twom.zeta[-1] - twom.zeta[0]) / tw.beta0 / clight
 f_expected = 1 / (tw.T_rev0 + dt_expected)
@@ -136,16 +136,17 @@ print('f_measured: ', f_measured, ' Hz')
 print('Error:      ', f_measured - f_expected, 'Hz')
 
 assert np.isclose(f_expected, f_measured, rtol=0, atol=1) # 1 Hz tolerance
-
+assert np.isclose(np.mean(inten), inten_exp, rtol=1e-2, atol=0)
 
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
 plt.plot(inten, label='xtrack')
 plt.axhline(inten_exp, color='C1', label='expected')
-plt.axhline(len(p.zeta) / tw.T_rev0, color='C3', label='N/T_rev0')
+plt.axhline(np.sum(p0.weight) / tw.T_rev0, color='C3', label='N/T_rev0')
 plt.legend(loc='best')
 plt.xlabel('Turn')
+plt.ylim(inten_exp*0.95, inten_exp*1.05)
 
 plt.figure(2)
 plt.plot(p.delta, p.at_turn, '.')

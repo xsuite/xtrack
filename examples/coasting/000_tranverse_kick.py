@@ -56,7 +56,8 @@ p.zeta[mask_stop] += circumference * tw.beta0 / beta1
 p0 = p.copy()
 
 def intensity(line, particles):
-    return np.sum(particles.state > 0)/((zeta_max0 - zeta_min0)/tw.beta0/clight)
+    return np.sum(particles.weight[particles.state > 0])/(
+        (zeta_max0 - zeta_min0)/tw.beta0/clight)
 
 def z_range(line, particles):
     mask_alive = particles.state > 0
@@ -92,14 +93,13 @@ inten = line.log_last_track['intensity']
 f_rev_ave = 1 / tw.T_rev0 * (1 - tw.slip_factor * p.delta.mean())
 t_rev_ave = 1 / f_rev_ave
 
-inten_exp =  len(p.zeta) / t_rev_ave
+inten_exp =  np.sum(p0.weight) / t_rev_ave
 
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
 plt.plot(inten, label='xtrack')
 plt.axhline(inten_exp, color='C1', label='expected')
-plt.axhline(len(p.zeta) / tw.T_rev0, color='C3', label='N/T_rev0')
 plt.legend(loc='best')
 plt.xlabel('Turn')
 
