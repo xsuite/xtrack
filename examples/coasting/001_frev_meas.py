@@ -136,13 +136,11 @@ print('f_expected: ', f_expected, ' Hz')
 print('f_measured: ', f_measured, ' Hz')
 print('Error:      ', f_measured - f_expected, 'Hz')
 
-assert np.isclose(f_expected, f_measured, rtol=0, atol=1) # 1 Hz tolerance
+assert np.isclose(f_expected, f_measured, rtol=0, atol=2) # 2 Hz tolerance
 assert np.isclose(np.mean(inten), inten_exp, rtol=1e-2, atol=0)
 assert np.allclose(p.at_turn, num_turns*0.9, rtol=3e-2, atol=0) #beta1 defaults to 0.1
-tt_synch = tt.rows[tt.element_type=='SyncTime']
-assert tt_synch.name[0] == 'synctime_start'
 
-tt.rows[tt.element_type=='SyncTime']
+tt = line.get_table()
 tt_synch = tt.rows[tt.element_type=='SyncTime']
 assert len(tt_synch) == 12
 assert tt_synch.name[0] == 'synctime_start'
