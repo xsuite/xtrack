@@ -4,7 +4,7 @@ import xtrack as xt
 
 from scipy.constants import c as clight
 
-delta0 = 1e-2
+delta0 = -1e-2
 
 line = xt.Line.from_json(
     '../../test_data/psb_injection/line_and_particle.json')
@@ -49,7 +49,7 @@ p = line.build_particles(
 )
 
 p.y[(p.zeta > 1) & (p.zeta < 2)] = 1e-3  # kick
-p.weight[(p.zeta > 5) & (p.zeta < 10)] += 2
+# p.weight[(p.zeta > 5) & (p.zeta < 10)] += 2
 
 initial_histogram, z_init_hist = np.histogram(p.zeta, bins=200,
                                   range=(zeta_max0 - circumference, zeta_max0),
