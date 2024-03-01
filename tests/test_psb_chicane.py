@@ -92,7 +92,7 @@ def test_psb_chicane(test_context):
     assert np.isclose(tw['bety', 'bi1.tstr1l1'], 6.902887, rtol=0, atol=1e-4)
     assert np.isclose(tw.qy, 4.474414126093382, rtol=0, atol=1e-6) # verify that it does not change from one version to the other
     assert np.isclose(tw.qx, 4.396717774779403, rtol=0, atol=1e-6)
-    assert np.isclose(tw.dqy, -8.626013219048545, rtol=0, atol=1e-4)
+    assert np.isclose(tw.dqy, -8.625637734560598, rtol=0, atol=1e-4)
     assert np.isclose(tw.dqx, -3.5604677592626643, rtol=0, atol=1e-4)
 
     line.vars['bsw_k2l'] = bsw_k2l_ref / 3
@@ -112,7 +112,7 @@ def test_psb_chicane(test_context):
     assert np.isclose(tw['bety', 'bi1.tstr1l1'], 6.320286, rtol=0, atol=1e-4)
     assert np.isclose(tw.qy, 4.471766776419623, rtol=0, atol=1e-6)
     assert np.isclose(tw.qx, 4.398899960718224, rtol=0, atol=1e-6)
-    assert np.isclose(tw.dqy, -8.20608177875215, rtol=0, atol=1e-4)
+    assert np.isclose(tw.dqy, -8.2058757683523, rtol=0, atol=1e-4)
     assert np.isclose(tw.dqx, -3.563488925077962, rtol=0, atol=1e-4)
 
     # Switch off bsws

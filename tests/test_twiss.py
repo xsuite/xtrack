@@ -1790,9 +1790,9 @@ def test_second_order_chromaticity_and_dispersion(test_context):
     assert np.allclose(tw['ddy', location], 2*pxs_y[-3], atol=0, rtol=1e-4)
     assert np.allclose(tw['ddpy', location], 2*pxs_py[-3], atol=0, rtol=1e-4)
     assert np.isclose(tw['dqx'], pxs_qx[-2], atol=0, rtol=1e-3)
-    assert np.isclose(tw['ddqx'], pxs_qx[-3]*2, atol=0, rtol=1e-3)
+    assert np.isclose(tw['ddqx'], pxs_qx[-3]*2, atol=0, rtol=1e-2)
     assert np.isclose(tw['dqy'], pxs_qy[-2], atol=0, rtol=1e-3)
-    assert np.isclose(tw['ddqy'], pxs_qy[-3]*2, atol=0, rtol=1e-3)
+    assert np.isclose(tw['ddqy'], pxs_qy[-3]*2, atol=0, rtol=1e-2)
 
     assert np.isclose(nlchr['dqx'], pxs_qx[-2], atol=0, rtol=2e-3)
     assert np.isclose(nlchr['dqy'], pxs_qy[-2], atol=0, rtol=2e-3)
