@@ -38,9 +38,14 @@ class SyncTime:
         beta0_beta1 = tw.beta0 / self.beta1
 
         # Identify particles that need to be stopped
-        zeta_min = -circumference/2*tw.beta0/beta1 + particles.s * (1 - beta0_beta1)
+        zeta_min = -circumference/ 2 * beta0_beta1 + particles.s * (1 - beta0_beta1)
         mask_alive = particles.state > 0
         mask_stop = mask_alive & (particles.zeta < zeta_min)
+
+        mask_too_fast = mask_alive & (
+            particles.zeta > zeta_min + self.circumference * beta0_beta1)
+        if mask_too_fast.any():
+            raise ValueError('Some particles move faster than the time window')
 
         # Update zeta for particles that are stopped
         particles.zeta[mask_stop] += beta0_beta1 * self.circumference
