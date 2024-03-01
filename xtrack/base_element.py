@@ -290,28 +290,25 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
                     local_particle_src=Particles.gen_local_particle_api()))
         context = self._context
         cls = type(self)
+        prebuilt_kernels_path = kwargs.pop('prebuilt_kernels_path')
         if context.allow_prebuilt_kernels:
-            import xtrack as xt
-            from xtrack.prebuild_kernels import (
-                get_suitable_kernel,
-                XT_PREBUILT_KERNELS_LOCATION
-            )
+            from xtrack.prebuild_kernels import get_suitable_kernel
             # Default config is empty (all flags default to not defined, which
             # enables most behaviours). In the future this has to be looked at
             # whenever a new flag is needed.
             _default_config = {}
             _print_state = Print.suppress
-            # Print.suppress = True
+            Print.suppress = True
             classes = (cls._XoStruct,) + tuple(extra_classes)
             kernel_info = get_suitable_kernel(
                 _default_config, classes
             )
-            # Print.suppress = _print_state
+            Print.suppress = _print_state
             if kernel_info:
                 module_name, _ = kernel_info
                 kernels = context.kernels_from_file(
                     module_name=module_name,
-                    containing_dir=XT_PREBUILT_KERNELS_LOCATION,
+                    containing_dir=prebuilt_kernels_path,
                     kernel_descriptions=self._kernels,
                 )
                 context.kernels.update(kernels)
@@ -372,20 +369,24 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
 class PerParticlePyMethod:
 
-    def __init__(self, kernel_name, element, additional_arg_names):
+    def __init__(self, kernel_name, element, additional_arg_names, prebuilt_kernels_path=None):
         self.kernel_name = kernel_name
         self.element = element
         self.additional_arg_names = additional_arg_names
+        self.prebuilt_kernels_path = prebuilt_kernels_path
 
     def __call__(self, particles, increment_at_element=False, **kwargs):
-        print(f'===> Calling PerParticlePyMethod {self.kernel_name}')
         instance = self.element
         context = instance.context
 
-        if self.kernel_name not in context.kernels:
-            instance.compile_kernels()
+        only_if_needed = kwargs.pop('only_if_needed', True)
+        BeamElement.compile_kernels(
+            instance,
+            prebuilt_kernels_path=self.prebuilt_kernels_path,
+            only_if_needed=only_if_needed,
 
-        kernel = context.kernels[self.kernel_name]
+        )
+        kernel = getattr(context.kernels, self.kernel_name)
 
         if hasattr(self.element, 'io_buffer') and self.element.io_buffer is not None:
             io_buffer_arr = self.element.io_buffer.buffer
@@ -407,9 +408,11 @@ class PerParticlePyMethodDescriptor:
         self.additional_arg_names = additional_arg_names
 
     def __get__(self, instance, owner):
+        kernels_path = getattr(owner, 'prebuilt_kernels_path', None)
         return PerParticlePyMethod(kernel_name=self.kernel_name,
                                    element=instance,
-                                   additional_arg_names=self.additional_arg_names)
+                                   additional_arg_names=self.additional_arg_names,
+                                   prebuilt_kernels_path=kernels_path)
 
 
 class PyMethod:
@@ -457,3 +460,4 @@ class PyMethodDescriptor:
                         element=instance,
                         additional_arg_names=self.additional_arg_names,
                         prebuilt_kernels_path=kernels_path)
+
