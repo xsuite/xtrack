@@ -39,19 +39,19 @@ circumference = tw.circumference
 zeta_min0 = -circumference/2*tw.beta0/beta1
 zeta_max0 = circumference/2*tw.beta0/beta1
 
-num_particles = 10000
+num_particles = 100000
 p = line.build_particles(
     zeta=np.random.uniform(zeta_max0 - circumference, zeta_max0, num_particles),
-    delta=0*np.random.uniform(-1, 1, num_particles),
+    delta=1e-2 + 0 * np.random.uniform(-1, 1, num_particles),
     x_norm=0, y_norm=0
 )
 
 p.y[(p.zeta > 1) & (p.zeta < 2)] = 1e-3  # kick
 p.weight[(p.zeta > 5) & (p.zeta < 10)] += 2
 
-mask_stop = p.zeta < zeta_min0
-p.state[mask_stop] = -st.COAST_STATE_RANGE_START
-p.zeta[mask_stop] += circumference * tw.beta0 / beta1
+# mask_stop = p.zeta < zeta_min0
+# p.state[mask_stop] = -st.COAST_STATE_RANGE_START
+# p.zeta[mask_stop] += circumference * tw.beta0 / beta1
 
 p0 = p.copy()
 
