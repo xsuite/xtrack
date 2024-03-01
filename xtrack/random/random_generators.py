@@ -21,9 +21,6 @@ class RandomUniform(BeamElement):
     allow_track = False
 
     _extra_c_sources = [
-        # The base (bitwise) rng is in xtrack, as this is where the
-        # seeds are stored. This is needed to avoid circular imports
-        # in xtrack.Particles
         _pkg_root.joinpath('particles', 'rng_src', 'base_rng.h'),
         _pkg_root.joinpath('random', 'random_src', 'uniform.h')
     ]

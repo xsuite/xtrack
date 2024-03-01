@@ -377,7 +377,7 @@ class PerParticlePyMethod:
 
     def __call__(self, particles, increment_at_element=False, **kwargs):
         instance = self.element
-        context = instance.context
+        context = instance._context
 
         only_if_needed = kwargs.pop('only_if_needed', True)
         BeamElement.compile_kernels(
@@ -386,12 +386,11 @@ class PerParticlePyMethod:
             only_if_needed=only_if_needed,
 
         )
-        kernel = getattr(context.kernels, self.kernel_name)
+        kernel = context.kernels[self.kernel_name]
 
         if hasattr(self.element, 'io_buffer') and self.element.io_buffer is not None:
             io_buffer_arr = self.element.io_buffer.buffer
         else:
-            context = kernel.context
             io_buffer_arr = context.zeros(1, dtype=np.int8)  # dummy
 
         kernel.description.n_threads = particles._capacity
@@ -434,7 +433,7 @@ class PyMethod:
             only_if_needed=only_if_needed,
 
         )
-        kernel = getattr(context.kernels, self.kernel_name)
+        kernel = context.kernels[self.kernel_name]
 
         el_var_name = None
         for arg in instance._kernels[self.kernel_name].args:
