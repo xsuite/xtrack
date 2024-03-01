@@ -4,7 +4,7 @@ import xtrack as xt
 
 from scipy.constants import c as clight
 
-delta0 = -1e-2
+delta0 = 1e-2
 
 line = xt.Line.from_json(
     '../../test_data/psb_injection/line_and_particle.json')
@@ -43,11 +43,11 @@ zeta_max0 = circumference/2*tw.beta0/beta1
 
 num_particles = 100000
 p = line.build_particles(
-    zeta=np.random.uniform(zeta_max0 - circumference, zeta_max0, num_particles),
     delta=delta0 + 0 * np.random.uniform(-1, 1, num_particles),
     x_norm=0, y_norm=0
 )
-
+p.zeta = (np.random.uniform(0, circumference, num_particles) / p.rvv
+          + zeta_max0 - circumference)
 p.y[(p.zeta > 1) & (p.zeta < 2)] = 1e-3  # kick
 # p.weight[(p.zeta > 5) & (p.zeta < 10)] += 2
 
@@ -88,7 +88,7 @@ def y_mean_hist(line, particles):
 
 
 line.enable_time_dependent_vars = True
-line.track(p, num_turns=200, log=xt.Log(intensity=intensity,
+line.track(p, num_turns=20, log=xt.Log(intensity=intensity,
                                          long_density=long_density,
                                          y_mean_hist=y_mean_hist,
                                          z_range=z_range,
