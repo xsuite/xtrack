@@ -273,6 +273,8 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     allow_backtrack = False
     skip_in_loss_location_refinement = False
     prebuilt_kernels_path = XT_PREBUILT_KERNELS_LOCATION
+    needs_rng = False
+
 
     def __init__(self, *args, **kwargs):
         xo.HybridClass.__init__(self, *args, **kwargs)
@@ -326,6 +328,9 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
                              + f"has no valid track method.")
         elif particles is None:
             raise RuntimeError("Please provide particles to track!")
+
+        if self.needs_rng and not particles._has_valid_rng_state():
+            particles._init_random_number_generator()
 
         context = self._buffer.context
 
