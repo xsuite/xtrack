@@ -3,29 +3,40 @@ DEFAULT_FRAME_RELATIVE_LENGTH = 0.9
 
 class SyncTime:
 
-    def __init__(self, circumference, id, frame_relative_length=None, at_end=False):
+    def __init__(self, circumference, id, frame_relative_length=None,
+                 at_start=False, at_end=False):
         if frame_relative_length is None:
             frame_relative_length = DEFAULT_FRAME_RELATIVE_LENGTH
         assert id > COAST_STATE_RANGE_START
         self.id = id
         self.frame_relative_length = frame_relative_length
         self.circumference = circumference
+        self.at_start = at_start
         self.at_end = at_end
 
     def track(self, particles):
 
         beta0 = particles._xobject.beta0[0]
         beta1 = beta0 / self.frame_relative_length
+        beta0_beta1 = beta0 / beta1
+
+        mask_alive = particles.state > 0
+
+        zeta_min = -self.circumference/ 2 * beta0_beta1 + particles.s * (
+                   1 - beta0_beta1)
+
+        if self.at_start and particles.at_turn[0] == 0:
+            mask_stop = mask_alive * (particles.zeta < zeta_min)
+            particles.state[mask_stop] = -COAST_STATE_RANGE_START
+            particles.zeta[mask_stop] += self.circumference * beta0 / beta1
 
         # Resume particles previously stopped
         particles.state[particles.state==-self.id] = 1
         particles.reorganize()
 
-        beta0_beta1 = beta0 / beta1
-
         # Identify particles that need to be stopped
         zeta_min = -self.circumference/ 2 * beta0_beta1 + particles.s * (1 - beta0_beta1)
-        mask_alive = particles.state > 0
+
         mask_stop = mask_alive & (particles.zeta < zeta_min)
 
         mask_too_fast = mask_alive & (
@@ -61,10 +72,12 @@ def install_sync_time_at_collective_elements(line, frame_relative_length=None):
 
     wrap_start = SyncTime(circumference=circumference,
                         frame_relative_length=frame_relative_length,
-                        id=COAST_STATE_RANGE_START + len(tab_collective)+1)
+                        id=COAST_STATE_RANGE_START + len(tab_collective)+1,
+                        at_start=True)
     wrap_end = SyncTime(circumference=circumference,
                         frame_relative_length=frame_relative_length,
-                        id=COAST_STATE_RANGE_START + len(tab_collective)+2, at_end=True)
+                        id=COAST_STATE_RANGE_START + len(tab_collective)+2,
+                        at_end=True)
 
     line.insert_element(element=wrap_start, name='wrap_start', at_s=0)
     line.append_element(wrap_end, name='wrap_end')
