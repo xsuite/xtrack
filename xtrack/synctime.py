@@ -36,9 +36,9 @@ class SyncTime:
 
         # Identify particles that need to be stopped
         zeta_min = -self.circumference/ 2 * beta0_beta1 + particles.s * (1 - beta0_beta1)
-
         mask_stop = mask_alive & (particles.zeta < zeta_min)
 
+        # Check if some particles are too fast
         mask_too_fast = mask_alive & (
             particles.zeta > zeta_min + self.circumference * beta0_beta1)
         if mask_too_fast.any():
