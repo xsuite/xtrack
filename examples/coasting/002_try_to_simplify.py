@@ -20,7 +20,7 @@ COAST_STATE_RANGE_START= 1000000
 
 tw = line.twiss()
 beta1 = tw.beta0 * 1.1
-class CoastWrap:
+class SyncTime:
 
     def __init__(self, circumference, id, beta1, at_end=False):
         assert id > COAST_STATE_RANGE_START
@@ -30,9 +30,6 @@ class CoastWrap:
         self.at_end = at_end
 
     def track(self, particles):
-
-        if (particles.state == 0).any():
-            import pdb; pdb.set_trace()
 
         # Resume particles previously stopped
         particles.state[particles.state==-self.id] = 1
@@ -47,7 +44,6 @@ class CoastWrap:
 
         # Update zeta for particles that are stopped
         particles.zeta[mask_stop] += beta0_beta1 * self.circumference
-        particles.pdg_id[mask_stop] += 1 # HACK!!!!!
 
         # Stop particles
         particles.state[mask_stop] = -self.id
@@ -56,9 +52,6 @@ class CoastWrap:
             mask_alive = particles.state > 0
             particles.zeta[mask_alive] -= (
                 self.circumference * (1 - tw.beta0 / self.beta1))
-
-        if (particles.state == 0).any():
-            import pdb; pdb.set_trace()
 
         if self.at_end and particles.at_turn[0] == 0:
             particles.state[particles.state==-COAST_STATE_RANGE_START] = 1
@@ -78,13 +71,13 @@ ltab = line.get_table()
 tab_collective = ltab.rows[ltab.iscollective]
 
 for ii, nn in enumerate(tab_collective.name):
-    cc = x=CoastWrap(circumference=circumference, beta1=beta1,
+    cc = x=SyncTime(circumference=circumference, beta1=beta1,
                      id=COAST_STATE_RANGE_START + ii + 1)
     line.insert_element(element=cc, name=f'coast_sync_{ii}', at=nn)
 
-wrap_start = CoastWrap(circumference=circumference, beta1=beta1,
+wrap_start = SyncTime(circumference=circumference, beta1=beta1,
                        id=COAST_STATE_RANGE_START + len(tab_collective)+1)
-wrap_end = CoastWrap(circumference=circumference, beta1=beta1,
+wrap_end = SyncTime(circumference=circumference, beta1=beta1,
                      id=COAST_STATE_RANGE_START + len(tab_collective)+2, at_end=True)
 
 line.insert_element(element=wrap_start, name='wrap_start', at_s=0)
