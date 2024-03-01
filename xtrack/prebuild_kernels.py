@@ -143,8 +143,11 @@ def enumerate_kernels() -> Iterator[Tuple[str, dict]]:
     xsuite. The first element of the tuple is the name of the kernel module
     and the second is a dictionary with the kernel metadata.
     """
-    for metadata_file in XT_PREBUILT_KERNELS_LOCATION.glob('*.json'):
-        if metadata_file.stem.startswith('_'):
+    from xtrack.prebuilt_kernels.kernel_definitions import kernel_definitions
+    for kernel_name, _ in kernel_definitions:
+        metadata_file = XT_PREBUILT_KERNELS_LOCATION / f'{kernel_name}.json'
+
+        if not metadata_file.exists():
             continue
 
         with metadata_file.open('r') as fd:
@@ -277,7 +280,7 @@ def regenerate_kernels(kernels=None):
     except ImportError:
         pass
 
-    for module_name, metadata in kernel_definitions.items():
+    for module_name, metadata in kernel_definitions:
         if kernels is not None and module_name not in kernels:
             continue
 
