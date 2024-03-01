@@ -17,11 +17,14 @@ line.configure_bend_model(core='bend-kick-bend', edge='full')
 line.twiss_default['method'] = '4d'
 
 COAST_STATE_RANGE_START= 1000000
+DEFAULT_FRAME_RELATIVE_LENGTH = 0.9
 
 tw = line.twiss()
 class SyncTime:
 
-    def __init__(self, circumference, id, frame_relative_length=0.9, at_end=False):
+    def __init__(self, circumference, id, frame_relative_length=None, at_end=False):
+        if frame_relative_length is None:
+            frame_relative_length = DEFAULT_FRAME_RELATIVE_LENGTH
         assert id > COAST_STATE_RANGE_START
         self.id = id
         self.frame_relative_length = frame_relative_length
@@ -62,36 +65,44 @@ class SyncTime:
         if self.at_end and particles.at_turn[0] == 0:
             particles.state[particles.state==-COAST_STATE_RANGE_START] = 1
 
-circumference = line.get_length()
+def install_sync_time_at_collective_elements(line, frame_relative_length=None):
+
+    circumference = line.get_length()
+
+    ltab = line.get_table()
+    tab_collective = ltab.rows[ltab.iscollective]
+    for ii, nn in enumerate(tab_collective.name):
+        cc = x=SyncTime(circumference=circumference,
+                        frame_relative_length=frame_relative_length,
+                        id=COAST_STATE_RANGE_START + ii + 1)
+        line.insert_element(element=cc, name=f'coast_sync_{ii}', at=nn)
+
+    wrap_start = SyncTime(circumference=circumference,
+                        frame_relative_length=frame_relative_length,
+                        id=COAST_STATE_RANGE_START + len(tab_collective)+1)
+    wrap_end = SyncTime(circumference=circumference,
+                        frame_relative_length=frame_relative_length,
+                        id=COAST_STATE_RANGE_START + len(tab_collective)+2, at_end=True)
+
+    line.insert_element(element=wrap_start, name='wrap_start', at_s=0)
+    line.append_element(wrap_end, name='wrap_end')
 
 line.discard_tracker()
-s_wrap = np.linspace(0, circumference, 10)
-line.cut_at_s(s_wrap)
 
-for ii, ss in enumerate(s_wrap):
+# Install dummy collective elements
+s_sync = np.linspace(0, tw.circumference, 10)
+line.cut_at_s(s_sync)
+for ii, ss in enumerate(s_sync):
     nn = f'sync_here_{ii}'
     line.insert_element(element=xt.Marker(), name=nn, at_s=ss)
     line[nn].iscollective = True
 
-ltab = line.get_table()
-tab_collective = ltab.rows[ltab.iscollective]
-
-for ii, nn in enumerate(tab_collective.name):
-    cc = x=SyncTime(circumference=circumference,
-                     id=COAST_STATE_RANGE_START + ii + 1)
-    line.insert_element(element=cc, name=f'coast_sync_{ii}', at=nn)
-
-wrap_start = SyncTime(circumference=circumference,
-                       id=COAST_STATE_RANGE_START + len(tab_collective)+1)
-wrap_end = SyncTime(circumference=circumference,
-                     id=COAST_STATE_RANGE_START + len(tab_collective)+2, at_end=True)
-
-line.insert_element(element=wrap_start, name='wrap_start', at_s=0)
-line.append_element(wrap_end, name='wrap_end')
+install_sync_time_at_collective_elements(line)
 line.build_tracker()
 
 beta1 = tw.beta0 / 0.9
 
+circumference = tw.circumference
 zeta_min0 = -circumference/2*tw.beta0/beta1
 zeta_max0 = circumference/2*tw.beta0/beta1
 
@@ -109,9 +120,6 @@ p.state[mask_stop] = -COAST_STATE_RANGE_START
 p.zeta[mask_stop] += circumference * tw.beta0 / beta1
 
 p0 = p.copy()
-
-
-
 
 def intensity(line, particles):
     return np.sum(particles.state > 0)/((zeta_max0 - zeta_min0)/tw.beta0/clight)
