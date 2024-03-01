@@ -25,7 +25,8 @@ class SyncTime:
         zeta_min = -self.circumference/ 2 * beta0_beta1 + particles.s * (
                    1 - beta0_beta1)
 
-        if self.at_start and particles.at_turn[0] == 0:
+        if (self.at_start and particles.at_turn[0] == 0
+                and not (particles.state == -COAST_STATE_RANGE_START).any()): # done by the user
             mask_stop = mask_alive * (particles.zeta < zeta_min)
             particles.state[mask_stop] = -COAST_STATE_RANGE_START
             particles.zeta[mask_stop] += self.circumference * beta0 / beta1
@@ -81,3 +82,15 @@ def install_sync_time_at_collective_elements(line, frame_relative_length=None):
 
     line.insert_element(element=wrap_start, name='wrap_start', at_s=0)
     line.append_element(wrap_end, name='wrap_end')
+
+def prepare_particles_for_sync_time(particles, line):
+    wrap_start = line['wrap_start']
+    beta0 = particles._xobject.beta0[0]
+    beta1 = beta0 / wrap_start.frame_relative_length
+    beta0_beta1 = beta0 / beta1
+    zeta_min = -wrap_start.circumference/ 2 * beta0_beta1 + particles.s * (
+                1 - beta0_beta1)
+    mask_alive = particles.state > 0
+    mask_stop = mask_alive * (particles.zeta < zeta_min)
+    particles.state[mask_stop] = -COAST_STATE_RANGE_START
+    particles.zeta[mask_stop] += wrap_start.circumference * beta0 / beta1

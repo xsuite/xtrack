@@ -48,7 +48,10 @@ p = line.build_particles(
     x_norm=0, y_norm=0
 )
 p.zeta = (np.random.uniform(0, circumference, num_particles) / p.rvv
-          + zeta_max0 - circumference)
+          + (zeta_max0 - circumference) / p.rvv)
+
+st.prepare_particles_for_sync_time(p, line)
+
 p.y[(p.zeta > 1) & (p.zeta < 2)] = 1e-3  # kick
 p.weight[(p.zeta > 5) & (p.zeta < 10)] += 2
 
