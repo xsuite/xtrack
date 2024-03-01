@@ -163,8 +163,6 @@ plt.legend(loc='best')
 plt.xlabel('Turn')
 plt.ylim(inten_exp*0.95, inten_exp*1.05)
 
-
-
 plt.figure(2)
 plt.plot(p.delta, p.at_turn, '.')
 plt.ylabel('Number of turns')
