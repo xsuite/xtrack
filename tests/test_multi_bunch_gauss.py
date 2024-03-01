@@ -87,7 +87,7 @@ def test_multi_bunch_gaussian_generation(test_context):
     filled_slots = filling_scheme.nonzero()[0]
     n_procs = 2
     bunche_numbers_per_rank = xp.split_scheme(filling_scheme=filling_scheme,
-                                            n_chunck=n_procs)
+                                            n_chunk=n_procs)
 
     arc_linear_fixed_qs = xt.LineSegmentMap(
         betx=beta_x,qx=Q_x,
