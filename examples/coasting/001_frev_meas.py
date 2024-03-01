@@ -47,6 +47,7 @@ p = line.build_particles(
 )
 
 p.y[(p.zeta > 1) & (p.zeta < 2)] = 1e-3  # kick
+p.weight[(p.zeta > 5) & (p.zeta < 10)] += 2
 
 mask_stop = p.zeta < zeta_min0
 p.state[mask_stop] = -st.COAST_STATE_RANGE_START
@@ -55,7 +56,8 @@ p.zeta[mask_stop] += circumference * tw.beta0 / beta1
 p0 = p.copy()
 
 def intensity(line, particles):
-    return np.sum(particles.state > 0)/((zeta_max0 - zeta_min0)/tw.beta0/clight)
+    return (np.sum(particles.weight[particles.state > 0])
+                  / ((zeta_max0 - zeta_min0)/tw.beta0/clight))
 
 def z_range(line, particles):
     mask_alive = particles.state > 0
@@ -67,7 +69,8 @@ def long_density(line, particles):
         assert np.all(particles.zeta[mask_alive] > zeta_min0)
         assert np.all(particles.zeta[mask_alive] < zeta_max0)
     return np.histogram(particles.zeta[mask_alive], bins=200,
-                        range=(zeta_min0, zeta_max0))
+                        range=(zeta_min0, zeta_max0),
+                        weights=particles.weight[mask_alive])
 
 def y_mean_hist(line, particles):
 
