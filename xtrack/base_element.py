@@ -292,7 +292,8 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
                     local_particle_src=Particles.gen_local_particle_api()))
         context = self._context
         cls = type(self)
-        prebuilt_kernels_path = kwargs.pop('prebuilt_kernels_path')
+        prebuilt_kernels_path = kwargs.pop('prebuilt_kernels_path',
+                                           XT_PREBUILT_KERNELS_LOCATION)
         if context.allow_prebuilt_kernels:
             from xtrack.prebuild_kernels import get_suitable_kernel
             # Default config is empty (all flags default to not defined, which
