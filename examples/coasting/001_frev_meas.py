@@ -19,6 +19,7 @@ line.configure_bend_model(core='bend-kick-bend', edge='full')
 line.twiss_default['method'] = '4d'
 
 tw = line.twiss()
+twom = line.twiss(delta0=delta0)
 line.discard_tracker()
 
 # Install dummy collective elements
@@ -49,7 +50,7 @@ p = line.build_particles(
 p.zeta = (np.random.uniform(0, circumference, num_particles) / p.rvv
           + zeta_max0 - circumference)
 p.y[(p.zeta > 1) & (p.zeta < 2)] = 1e-3  # kick
-# p.weight[(p.zeta > 5) & (p.zeta < 10)] += 2
+p.weight[(p.zeta > 5) & (p.zeta < 10)] += 2
 
 initial_histogram, z_init_hist = np.histogram(p.zeta, bins=200,
                                   range=(zeta_max0 - circumference, zeta_max0),
@@ -88,7 +89,7 @@ def y_mean_hist(line, particles):
 
 
 line.enable_time_dependent_vars = True
-line.track(p, num_turns=20, log=xt.Log(intensity=intensity,
+line.track(p, num_turns=200, log=xt.Log(intensity=intensity,
                                          long_density=long_density,
                                          y_mean_hist=y_mean_hist,
                                          z_range=z_range,
@@ -101,6 +102,35 @@ f_rev_ave = 1 / tw.T_rev0 * (1 - tw.slip_factor * p.delta.mean())
 t_rev_ave = 1 / f_rev_ave
 
 inten_exp =  len(p.zeta) / t_rev_ave
+
+z_axis = line.log_last_track['long_density'][0][1]
+hist_mat = np.array([rr[0] for rr in line.log_last_track['long_density']])
+hist_y = np.array([rr[0] for rr in line.log_last_track['y_mean_hist']])
+
+dz = z_axis[1] - z_axis[0]
+y_vs_t = np.fliplr(hist_y).flatten() # need to flip because of the minus in z = -beta0 c t
+intensity_vs_t = np.fliplr(hist_mat).flatten()
+z_unwrapped = np.arange(0, len(y_vs_t)) * dz
+t_unwrapped = z_unwrapped / (tw.beta0 * clight)
+
+z_range_size = z_axis[-1] - z_axis[0]
+t_range_size = z_range_size / (tw.beta0 * clight)
+
+import nafflib
+f_harmons = nafflib.get_tunes(intensity_vs_t, N=20)[0] / (t_unwrapped[1] - t_unwrapped[0])
+f_nominal = 1 / tw.T_rev0
+dt_expected = -(twom.zeta[-1] - twom.zeta[0]) / tw.beta0 / clight
+f_expected = 1 / (tw.T_rev0 + dt_expected)
+
+f_measured = f_harmons[np.argmin(np.abs(f_harmons - f_nominal))]
+
+print('f_nominal:  ', f_nominal, ' Hz')
+print('f_expected: ', f_expected, ' Hz')
+print('f_measured: ', f_measured, ' Hz')
+print('Error:      ', f_measured - f_expected, 'Hz')
+
+assert np.isclose(f_expected, f_measured, rtol=0, atol=1) # 1 Hz tolerance
+
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -131,14 +161,12 @@ plt.ylabel('z range[m]')
 plt.legend(loc='best')
 plt.xlabel('Turn')
 
-z_axis = line.log_last_track['long_density'][0][1]
 
-hist_mat = np.array([rr[0] for rr in line.log_last_track['long_density']])
 plt.figure(5)
 plt.pcolormesh(z_axis, np.arange(0, hist_mat.shape[0],1),
            hist_mat[:-1,:])
 
-hist_y = np.array([rr[0] for rr in line.log_last_track['y_mean_hist']])
+
 plt.figure(6)
 plt.pcolormesh(z_axis, np.arange(0, hist_y.shape[0],1),
            hist_y[:-1,:])
@@ -150,15 +178,6 @@ plt.axvline(x=circumference/2*tw.beta0/beta1, color='C1')
 plt.axvline(x=-circumference/2*tw.beta0/beta1, color='C1')
 plt.xlabel('z [m]')
 plt.ylabel('x [m]')
-
-dz = z_axis[1] - z_axis[0]
-y_vs_t = np.fliplr(hist_y).flatten() # need to flip because of the minus in z = -beta0 c t
-intensity_vs_t = np.fliplr(hist_mat).flatten()
-z_unwrapped = np.arange(0, len(y_vs_t)) * dz
-t_unwrapped = z_unwrapped / (tw.beta0 * clight)
-
-z_range_size = z_axis[-1] - z_axis[0]
-t_range_size = z_range_size / (tw.beta0 * clight)
 
 plt.figure(8)
 ax1 = plt.subplot(2, 1, 1)
