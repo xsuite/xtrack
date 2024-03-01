@@ -69,28 +69,28 @@ def install_sync_time_at_collective_elements(line, frame_relative_length=None):
         cc = x=SyncTime(circumference=circumference,
                         frame_relative_length=frame_relative_length,
                         id=COAST_STATE_RANGE_START + ii + 1)
-        line.insert_element(element=cc, name=f'coast_sync_{ii}', at=nn)
+        line.insert_element(element=cc, name=f'synctime_{ii}', at=nn)
 
-    wrap_start = SyncTime(circumference=circumference,
+    synctime_start = SyncTime(circumference=circumference,
                         frame_relative_length=frame_relative_length,
                         id=COAST_STATE_RANGE_START + len(tab_collective)+1,
                         at_start=True)
-    wrap_end = SyncTime(circumference=circumference,
+    synctime_end = SyncTime(circumference=circumference,
                         frame_relative_length=frame_relative_length,
                         id=COAST_STATE_RANGE_START + len(tab_collective)+2,
                         at_end=True)
 
-    line.insert_element(element=wrap_start, name='wrap_start', at_s=0)
-    line.append_element(wrap_end, name='wrap_end')
+    line.insert_element(element=synctime_start, name='synctime_start', at_s=0)
+    line.append_element(synctime_end, name='synctime_end')
 
 def prepare_particles_for_sync_time(particles, line):
-    wrap_start = line['wrap_start']
+    synctime_start = line['synctime_start']
     beta0 = particles._xobject.beta0[0]
-    beta1 = beta0 / wrap_start.frame_relative_length
+    beta1 = beta0 / synctime_start.frame_relative_length
     beta0_beta1 = beta0 / beta1
-    zeta_min = -wrap_start.circumference/ 2 * beta0_beta1 + particles.s * (
+    zeta_min = -synctime_start.circumference/ 2 * beta0_beta1 + particles.s * (
                 1 - beta0_beta1)
     mask_alive = particles.state > 0
     mask_stop = mask_alive * (particles.zeta < zeta_min)
     particles.state[mask_stop] = -COAST_STATE_RANGE_START
-    particles.zeta[mask_stop] += wrap_start.circumference * beta0 / beta1
+    particles.zeta[mask_stop] += synctime_start.circumference * beta0 / beta1
