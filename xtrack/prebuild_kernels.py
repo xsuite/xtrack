@@ -206,10 +206,6 @@ def get_suitable_kernel(
     requested_class_names = [cls for cls in requested_class_names
                              if cls != 'Particles' and cls != 'ParticlesBase']
 
-    # Get a default config
-    if config == {}:
-        config  = xt.Line().config
-
     for module_name, kernel_metadata in enumerate_kernels():
         if verbose:
             _print(f"==> Considering the precompiled kernel `{module_name}`...")

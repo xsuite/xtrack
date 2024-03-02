@@ -71,12 +71,16 @@ NON_TRACKING_ELEMENTS = [
 # These will be enumerated in order of appearance in the dict, so in this case
 # (for optimization purposes) the order is important.
 kernel_definitions = {
+    'default_only_xtrack_no_config': {
+        'config': {},
+        'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS,
+    },
     'default_only_xtrack': {
         'config': BASE_CONFIG,
         'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS,
     },
     'only_xtrack_non_tracking_kernels': {
-        'config': BASE_CONFIG,
+        'config': {},
         'classes': [],
         'extra_classes': NON_TRACKING_ELEMENTS
     },
@@ -122,6 +126,7 @@ kernel_definitions = {
     }
 }
 
+
 try:
     import xfields as xf
     DEFAULT_BB3D_ELEMENTS = [
@@ -134,48 +139,55 @@ try:
         'config': BASE_CONFIG,
         'classes': [*DEFAULT_BB3D_ELEMENTS, LineSegmentMap],
     }
+    kernel_definitions['default_bb3d_no_config'] = {
+        'config': {},
+        'classes': [*DEFAULT_BB3D_ELEMENTS, LineSegmentMap],
+    }
 except ImportError:
     LOGGER.warning('Xfields not installed, skipping BB3D elements')
 
+
 try:
     import xcoll as xc
+    DEFAULT_XCOLL_ELEMENTS = [
+        *ONLY_XTRACK_ELEMENTS,
+        *NO_SYNRAD_ELEMENTS,
+        xc.BlackAbsorber,
+        xc.EverestBlock,
+        xc.EverestCollimator,
+        xc.EverestCrystal
+    ]
+
     kernel_definitions['default_xcoll'] = {
         'config': BASE_CONFIG,
-        'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
-                + [xc.BlackAbsorber, xc.EverestBlock, \
-                   xc.EverestCollimator, xc.EverestCrystal]
+        'classes': DEFAULT_XCOLL_ELEMENTS
+    }
+    kernel_definitions['default_xcoll_no_config'] = {
+        'config': {},
+        'classes': DEFAULT_XCOLL_ELEMENTS
     }
     kernel_definitions['default_xcoll_frozen_longitudinal'] = {
         'config': {**BASE_CONFIG, **FREEZE_LONGITUDINAL},
-        'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
-                + [xc.BlackAbsorber, xc.EverestBlock, \
-                   xc.EverestCollimator, xc.EverestCrystal]
+        'classes': DEFAULT_XCOLL_ELEMENTS
     }
     kernel_definitions['default_xcoll_frozen_energy'] = {
         'config': {**BASE_CONFIG, **FREEZE_ENERGY},
-        'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
-                + [xc.BlackAbsorber, xc.EverestBlock, \
-                   xc.EverestCollimator, xc.EverestCrystal]
+        'classes': DEFAULT_XCOLL_ELEMENTS
     }
     kernel_definitions['default_xcoll_backtrack'] = {
         'config': {**BASE_CONFIG, 'XSUITE_BACKTRACK': True},
-        'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
-                + [xc.BlackAbsorber, xc.EverestBlock, \
-                   xc.EverestCollimator, xc.EverestCrystal]
+        'classes': DEFAULT_XCOLL_ELEMENTS
     }
     kernel_definitions['default_xcoll_backtrack_no_limit'] = {
         'config': {**{k: v for k,v in BASE_CONFIG.items()
                       if k != 'XTRACK_GLOBAL_XY_LIMIT'},
                    'XSUITE_BACKTRACK': True},
-        'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
-                + [xc.BlackAbsorber, xc.EverestBlock, \
-                   xc.EverestCollimator, xc.EverestCrystal]
+        'classes': DEFAULT_XCOLL_ELEMENTS
     }
     kernel_definitions['default_xcoll_backtrack_frozen_energy'] = {
         'config': {**BASE_CONFIG, **FREEZE_ENERGY, 'XSUITE_BACKTRACK': True},
-        'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS \
-                + [xc.BlackAbsorber, xc.EverestBlock, \
-                   xc.EverestCollimator, xc.EverestCrystal]
+        'classes': DEFAULT_XCOLL_ELEMENTS
     }
 except ImportError:
     LOGGER.warning('Xcoll not installed, skipping collimator elements')
+
