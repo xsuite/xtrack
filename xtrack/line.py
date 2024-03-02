@@ -3660,7 +3660,7 @@ class Line:
         cache = LineAttr(
             line=self,
             fields=[
-                'hxl', 'hyl', 'length', 'radiation_flag', 'delta_taper',
+                'hxl', 'hyl', 'length', 'radiation_flag', 'delta_taper', 'ks',
                 'voltage', 'frequency', 'lag', 'lag_taper', 'k0', 'k1', 'k2','h',
                 ('knl', 0), ('ksl', 0), ('knl', 1), ('ksl', 1),
                 ('knl', 2), ('ksl', 2), ('knl', 3), ('ksl', 3),
