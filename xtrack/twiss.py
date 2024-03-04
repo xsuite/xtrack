@@ -1056,18 +1056,14 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
         bety1 = Ws[:, 2, 0]**2 + Ws[:, 2, 1]**2
         betx2 = Ws[:, 0, 2]**2 + Ws[:, 0, 3]**2
 
-        alfx2 = -Ws[:, 0, 2] * Ws[:, 1, 2] - Ws[:, 0, 3] * Ws[:, 1, 3]
-        alfy1 = -Ws[:, 2, 0] * Ws[:, 3, 0] - Ws[:, 2, 1] * Ws[:, 3, 1]
-
-        gamx2 = Ws[:, 1, 2]**2 + Ws[:, 1, 3]**2
-        gamy1 = Ws[:, 3, 0]**2 + Ws[:, 3, 1]**2
+        # Untested:
+        # alfx2 = -Ws[:, 0, 2] * Ws[:, 1, 2] - Ws[:, 0, 3] * Ws[:, 1, 3]
+        # alfy1 = -Ws[:, 2, 0] * Ws[:, 3, 0] - Ws[:, 2, 1] * Ws[:, 3, 1]
+        # gamx2 = Ws[:, 1, 2]**2 + Ws[:, 1, 3]**2
+        # gamy1 = Ws[:, 3, 0]**2 + Ws[:, 3, 1]**2
 
     betx1 = betx
-    alfx1 = alfx
-    gamx1 = gamx
     bety2 = bety
-    alfy2 = alfy
-    gamy2 = gamy
 
 
     temp_phix = phix.copy()
@@ -1122,14 +1118,6 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
         'bety1': bety1,
         'betx2': betx2,
         'bety2': bety2,
-        'alfx1': alfx1,
-        'alfx2': alfx2,
-        'alfy1': alfy1,
-        'alfy2': alfy2,
-        'gamx1': gamx1,
-        'gamx2': gamx2,
-        'gamy1': gamy1,
-        'gamy2': gamy2,
         'mux': mux,
         'muy': muy,
         'muzeta': muzeta,
@@ -3058,9 +3046,10 @@ class TwissTable(Table):
                 out.dy_zeta = -out.dy_zeta
                 out.dpy_zeta = out.dpy_zeta
 
-            if 'alfx2' in out._col_names:
-                out.alfx2 = -out.alfx2
-                out.alfy2 = -out.alfy2
+            # Untested:
+            # if 'alfx2' in out._col_names:
+            #     out.alfx2 = -out.alfx2
+            #     out.alfy2 = -out.alfy2
 
             out.W_matrix[:, 0, :] = -out.W_matrix[:, 0, :]
             out.W_matrix[:, 1, :] = out.W_matrix[:, 1, :]
