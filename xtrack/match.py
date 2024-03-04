@@ -644,10 +644,10 @@ class TargetRelPhaseAdvance(Target):
             using the specified tar and at.
         end : str, optional
             Final element at which the phase advance is evaluated. Default is the
-            last element of the line.
+            last element of selected twiss range.
         start : str, optional
             Initali wlement at which the phase advance is evaluated. Default is the
-            first element of the line.
+            first element of the selected twiss range.
         tol : float, optional
             Tolerance below which the target is considered to be met.
         weight : float, optional
@@ -686,6 +686,75 @@ class TargetRelPhaseAdvance(Target):
             mu_0 = tw[self.var, self.start]
 
         return mu_1 - mu_0
+
+
+class TargetRmatTerm(Target):
+
+    def __init__(self, tar, value, start=None, end=None, tag='',  **kwargs):
+
+        """
+        Target object for matching terms of the R-matrix between two
+        elements in a line.
+
+        Parameters
+        ----------
+        tar : str
+            Term to be matched. Can be "r11", "r12", "r21", "r22", etc
+        value : float or GreaterThan or LessThan or TwissTable
+            Value to be matched. Inequality constraints can also be specified.
+            If a TwissTable is specified, the target obtained from the table
+            using the specified tar and at.
+        start : str
+            First element of the range for which the R-matrix is computed.
+        end : str
+            End element of the range for which the R-matrix is computed.
+        tol : float, optional
+            Tolerance below which the target is considered to be met.
+        weight : float, optional
+            Weight used for this target in the cost function.
+        line : Line, optional
+            Line in which the R matrix is calculated. Needs to be specified if the
+            match involves multiple lines.
+        tag : str, optional
+            Tag associated to the target. Default is ''.
+        """
+
+        assert isinstance(tar, str), 'Only strings are supported for tar'
+        assert len(tar) == 3, (
+            'Only terms of the R-matrix in the form "r11", "r12", "r21", "r22", etc'
+            ' are supported')
+
+        Target.__init__(self, tar=self.compute, value=value, tag=tag, **kwargs)
+
+        self.term = tar
+        if end is None:
+            raise NotImplementedError('end cannot be None')
+            end = '__ele_stop__'
+        if start is None:
+            raise NotImplementedError('start cannot be None')
+            start = '__ele_start__'
+        self.end = end
+        self.start = start
+
+    def __repr__(self):
+        return f'{self.term}({self.start}, {self.end}, val={self.value}, tol={self.tol}, weight={self.weight})'
+
+    def compute(self, tw):
+
+        assert isinstance(self.term, str), 'Only strings are supported for tar'
+        assert len(self.term) == 3, (
+            'Only terms of the R-matrix in the form "r11", "r12", "r21", "r22", etc'
+            ' are supported')
+
+        rmat = tw.get_R_matrix(self.start, self.end)
+
+        ii = int(self.term[1]) - 1
+        jj = int(self.term[2]) - 1
+
+        assert ii >= 0 and ii < 6, 'Invalid R-matrix term'
+        assert jj >= 0 and jj < 6, 'Invalid R-matrix term'
+
+        return rmat[ii, jj]
 
 def match_line(line, vary, targets, solve=True, assert_within_tol=True,
                   compensate_radiation_energy_loss=False,
