@@ -4,17 +4,18 @@
 # ######################################### #
 
 import numpy as np
-import xobjects as xo
-
 from pathlib import Path
-
-from .constants import PROTON_MASS_EV
 
 from scipy.constants import e as qe
 from scipy.constants import c as clight
 from scipy.constants import epsilon_0
 
+import xobjects as xo
+from xobjects.general import Print
 from xobjects import BypassLinked
+from xtrack.prebuild_kernels import XT_PREBUILT_KERNELS_LOCATION
+
+from .constants import PROTON_MASS_EV
 
 
 LAST_INVALID_STATE = -999999999
@@ -98,6 +99,7 @@ class Particles(xo.HybridClass):
 
     _kernels = {
         'Particles_initialize_rand_gen': xo.Kernel(
+            c_name="Particles_initialize_rand_gen",
             args=[
                 xo.Arg(xo.ThisClass, name='particles'),
                 xo.Arg(xo.UInt32, pointer=True, name='seeds'),
@@ -995,6 +997,21 @@ class Particles(xo.HybridClass):
         Initialize state of the random number generator (possibility to providing
         a seed for each particle).
         """
+        context = self._buffer.context
+        if context.allow_prebuilt_kernels:
+            from xtrack.prebuild_kernels import get_suitable_kernel
+            _print_state = Print.suppress
+            Print.suppress = True
+            kernel_info = get_suitable_kernel({}, (self.__class__._XoStruct,))
+            Print.suppress = _print_state
+            if kernel_info:
+                module_name, _ = kernel_info
+                kernels = context.kernels_from_file(
+                    module_name=module_name,
+                    containing_dir=XT_PREBUILT_KERNELS_LOCATION,
+                    kernel_descriptions=self._kernels,
+                )
+                context.kernels.update(kernels)
         self.compile_kernels(only_if_needed=True)
 
         if seeds is None:
@@ -1005,7 +1022,6 @@ class Particles(xo.HybridClass):
             if not hasattr(seeds, 'dtype') or seeds.dtype != np.uint32:
                 seeds = np.array(seeds, dtype=np.uint32)
 
-        context = self._buffer.context
         seeds_dev = context.nparray_to_context_array(seeds)
         kernel = context.kernels['Particles_initialize_rand_gen']
         kernel(particles=self, seeds=seeds_dev, n_init=self._capacity)

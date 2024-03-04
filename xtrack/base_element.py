@@ -272,7 +272,8 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     has_backtrack = False
     allow_backtrack = False
     skip_in_loss_location_refinement = False
-    prebuilt_kernels_path = XT_PREBUILT_KERNELS_LOCATION
+    needs_rng = False
+
 
     def __init__(self, *args, **kwargs):
         xo.HybridClass.__init__(self, *args, **kwargs)
@@ -290,23 +291,20 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
                     local_particle_src=Particles.gen_local_particle_api()))
         context = self._context
         cls = type(self)
+
         if context.allow_prebuilt_kernels:
-            import xtrack as xt
-            from xtrack.prebuild_kernels import (
-                get_suitable_kernel,
-                XT_PREBUILT_KERNELS_LOCATION
-            )
+            from xtrack.prebuild_kernels import get_suitable_kernel
             # Default config is empty (all flags default to not defined, which
             # enables most behaviours). In the future this has to be looked at
             # whenever a new flag is needed.
             _default_config = {}
             _print_state = Print.suppress
-            # Print.suppress = True
+            Print.suppress = True
             classes = (cls._XoStruct,) + tuple(extra_classes)
             kernel_info = get_suitable_kernel(
                 _default_config, classes
             )
-            # Print.suppress = _print_state
+            Print.suppress = _print_state
             if kernel_info:
                 module_name, _ = kernel_info
                 kernels = context.kernels_from_file(
@@ -329,6 +327,9 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
                              + f"has no valid track method.")
         elif particles is None:
             raise RuntimeError("Please provide particles to track!")
+
+        if self.needs_rng and not particles._has_valid_rng_state():
+            particles._init_random_number_generator()
 
         context = self._buffer.context
 
@@ -378,19 +379,16 @@ class PerParticlePyMethod:
         self.additional_arg_names = additional_arg_names
 
     def __call__(self, particles, increment_at_element=False, **kwargs):
-        print(f'===> Calling PerParticlePyMethod {self.kernel_name}')
         instance = self.element
-        context = instance.context
+        context = instance._context
 
-        if self.kernel_name not in context.kernels:
-            instance.compile_kernels()
-
+        only_if_needed = kwargs.pop('only_if_needed', True)
+        BeamElement.compile_kernels(instance, only_if_needed=only_if_needed)
         kernel = context.kernels[self.kernel_name]
 
         if hasattr(self.element, 'io_buffer') and self.element.io_buffer is not None:
             io_buffer_arr = self.element.io_buffer.buffer
         else:
-            context = kernel.context
             io_buffer_arr = context.zeros(1, dtype=np.int8)  # dummy
 
         kernel.description.n_threads = particles._capacity
@@ -414,24 +412,18 @@ class PerParticlePyMethodDescriptor:
 
 class PyMethod:
 
-    def __init__(self, kernel_name, element, additional_arg_names, prebuilt_kernels_path=None):
+    def __init__(self, kernel_name, element, additional_arg_names):
         self.kernel_name = kernel_name
         self.element = element
         self.additional_arg_names = additional_arg_names
-        self.prebuilt_kernels_path = prebuilt_kernels_path
 
     def __call__(self, **kwargs):
         instance = self.element
         context = instance._context
 
         only_if_needed = kwargs.pop('only_if_needed', True)
-        BeamElement.compile_kernels(
-            instance,
-            prebuilt_kernels_path=self.prebuilt_kernels_path,
-            only_if_needed=only_if_needed,
-
-        )
-        kernel = getattr(context.kernels, self.kernel_name)
+        BeamElement.compile_kernels(instance, only_if_needed=only_if_needed)
+        kernel = context.kernels[self.kernel_name]
 
         el_var_name = None
         for arg in instance._kernels[self.kernel_name].args:
@@ -452,8 +444,7 @@ class PyMethodDescriptor:
         self.additional_arg_names = additional_arg_names
 
     def __get__(self, instance, owner):
-        kernels_path = getattr(owner, 'prebuilt_kernels_path', None)
         return PyMethod(kernel_name=self.kernel_name,
                         element=instance,
-                        additional_arg_names=self.additional_arg_names,
-                        prebuilt_kernels_path=kernels_path)
+                        additional_arg_names=self.additional_arg_names)
+
