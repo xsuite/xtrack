@@ -39,6 +39,7 @@ ONLY_XTRACK_ELEMENTS = [
     Elens,
     Wire,
     SRotation,
+    YRotation,
     RFMultipole,
     DipoleEdge,
     SimpleThinBend,
