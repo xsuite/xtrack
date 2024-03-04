@@ -39,6 +39,7 @@ ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau',
                         'ddqx', 'ddqy', 'ddx', 'ddpx', 'ddy', 'ddpy',
                         'betx1', 'bety1', 'betx2', 'bety2',
                         'alfx1', 'alfy1', 'alfx2', 'alfy2',
+                        'gamx1', 'gamy1', 'gamx2', 'gamy2',
                         'eq_gemitt_x', 'eq_gemitt_y', 'eq_gemitt_zeta',
                         'eq_nemitt_x', 'eq_nemitt_y', 'eq_nemitt_zeta']
 

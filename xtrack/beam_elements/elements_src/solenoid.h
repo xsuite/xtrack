@@ -18,9 +18,15 @@ void Solenoid_thick_track_single_particle(LocalParticle*, double, double);
 /*gpufun*/
 void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
     // Parameters
-    const double length = SolenoidData_get_length(el);
-    const double ks = SolenoidData_get_ks(el);
-    const double ksi = SolenoidData_get_ksi(el);
+    double length = SolenoidData_get_length(el);
+    double ks = SolenoidData_get_ks(el);
+    double ksi = SolenoidData_get_ksi(el);
+
+    #ifdef XSUITE_BACKTRACK
+        length = -length;
+    #endif
+
+
 
     if (IS_ZERO(length)) {
         //start_per_particle_block (part0->part)
@@ -99,10 +105,6 @@ void Solenoid_thick_track_single_particle(
     double ks
 ) {
     const double sk = ks / 2;  // todo?: flip sign to change beam direction
-
-    #ifdef XSUITE_BACKTRACK
-        length = -length;
-    #endif
 
 
     if (IS_ZERO(sk)) {
