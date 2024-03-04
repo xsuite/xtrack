@@ -79,6 +79,13 @@ def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_fun
                 xt.XYShift,
             ]
         },
+        "test_module_rand": {
+            "config": {},
+            "classes": [],
+            "extra_classes": [
+                xt.RandomNormal,
+            ]
+        },
     }
 
     patch_defs = 'xtrack.prebuilt_kernels.kernel_definitions.kernel_definitions'
@@ -88,6 +95,7 @@ def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_fun
                  tmp_path)
     mocker.patch('xtrack.tracker.XT_PREBUILT_KERNELS_LOCATION', tmp_path)
     mocker.patch('xtrack.base_element.XT_PREBUILT_KERNELS_LOCATION', tmp_path)
+    mocker.patch('xtrack.particles.particles.XT_PREBUILT_KERNELS_LOCATION', tmp_path)
 
     # Try regenerating the kernels
     regenerate_kernels()
@@ -115,4 +123,10 @@ def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_fun
 
     assert p.x == 6e-6
     assert p.y == 0.0
+
+    rng = xt.RandomNormal()
+    n_samples = 100
+    samples = rng.generate(n_samples=n_samples, n_seeds=n_samples)
+    assert len(samples) == n_samples
+
     cffi_compile.assert_not_called()

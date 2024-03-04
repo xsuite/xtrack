@@ -272,7 +272,6 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     has_backtrack = False
     allow_backtrack = False
     skip_in_loss_location_refinement = False
-    prebuilt_kernels_path = XT_PREBUILT_KERNELS_LOCATION
     needs_rng = False
 
 
@@ -292,8 +291,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
                     local_particle_src=Particles.gen_local_particle_api()))
         context = self._context
         cls = type(self)
-        prebuilt_kernels_path = kwargs.pop('prebuilt_kernels_path',
-                                           XT_PREBUILT_KERNELS_LOCATION)
+
         if context.allow_prebuilt_kernels:
             from xtrack.prebuild_kernels import get_suitable_kernel
             # Default config is empty (all flags default to not defined, which
@@ -311,7 +309,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
                 module_name, _ = kernel_info
                 kernels = context.kernels_from_file(
                     module_name=module_name,
-                    containing_dir=prebuilt_kernels_path,
+                    containing_dir=XT_PREBUILT_KERNELS_LOCATION,
                     kernel_descriptions=self._kernels,
                 )
                 context.kernels.update(kernels)
@@ -375,23 +373,17 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
 class PerParticlePyMethod:
 
-    def __init__(self, kernel_name, element, additional_arg_names, prebuilt_kernels_path=None):
+    def __init__(self, kernel_name, element, additional_arg_names):
         self.kernel_name = kernel_name
         self.element = element
         self.additional_arg_names = additional_arg_names
-        self.prebuilt_kernels_path = prebuilt_kernels_path
 
     def __call__(self, particles, increment_at_element=False, **kwargs):
         instance = self.element
         context = instance._context
 
         only_if_needed = kwargs.pop('only_if_needed', True)
-        BeamElement.compile_kernels(
-            instance,
-            prebuilt_kernels_path=self.prebuilt_kernels_path,
-            only_if_needed=only_if_needed,
-
-        )
+        BeamElement.compile_kernels(instance, only_if_needed=only_if_needed)
         kernel = context.kernels[self.kernel_name]
 
         if hasattr(self.element, 'io_buffer') and self.element.io_buffer is not None:
@@ -413,32 +405,24 @@ class PerParticlePyMethodDescriptor:
         self.additional_arg_names = additional_arg_names
 
     def __get__(self, instance, owner):
-        kernels_path = getattr(owner, 'prebuilt_kernels_path', None)
         return PerParticlePyMethod(kernel_name=self.kernel_name,
                                    element=instance,
-                                   additional_arg_names=self.additional_arg_names,
-                                   prebuilt_kernels_path=kernels_path)
+                                   additional_arg_names=self.additional_arg_names)
 
 
 class PyMethod:
 
-    def __init__(self, kernel_name, element, additional_arg_names, prebuilt_kernels_path=None):
+    def __init__(self, kernel_name, element, additional_arg_names):
         self.kernel_name = kernel_name
         self.element = element
         self.additional_arg_names = additional_arg_names
-        self.prebuilt_kernels_path = prebuilt_kernels_path
 
     def __call__(self, **kwargs):
         instance = self.element
         context = instance._context
 
         only_if_needed = kwargs.pop('only_if_needed', True)
-        BeamElement.compile_kernels(
-            instance,
-            prebuilt_kernels_path=self.prebuilt_kernels_path,
-            only_if_needed=only_if_needed,
-
-        )
+        BeamElement.compile_kernels(instance, only_if_needed=only_if_needed)
         kernel = context.kernels[self.kernel_name]
 
         el_var_name = None
@@ -460,9 +444,7 @@ class PyMethodDescriptor:
         self.additional_arg_names = additional_arg_names
 
     def __get__(self, instance, owner):
-        kernels_path = getattr(owner, 'prebuilt_kernels_path', None)
         return PyMethod(kernel_name=self.kernel_name,
                         element=instance,
-                        additional_arg_names=self.additional_arg_names,
-                        prebuilt_kernels_path=kernels_path)
+                        additional_arg_names=self.additional_arg_names)
 
