@@ -688,7 +688,7 @@ class TargetRelPhaseAdvance(Target):
         return mu_1 - mu_0
 
 
-class TargetRmatTerm(Target):
+class TargetRmatrixTerm(Target):
 
     def __init__(self, tar, value, start=None, end=None, tag='',  **kwargs):
 
