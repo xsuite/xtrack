@@ -120,7 +120,7 @@ void Solenoid_thick_track_single_particle(
     double ks,
     int64_t radiation_flag,
     double* dp_record_entry, double* dpx_record_entry, double* dpy_record_entry,
-    double* dp_record_exit, double* dpx_record_exit, double* dpy_record_exit);
+    double* dp_record_exit, double* dpx_record_exit, double* dpy_record_exit
 ) {
     const double sk = ks / 2;  // todo?: flip sign to change beam direction
 
@@ -175,11 +175,10 @@ void Solenoid_thick_track_single_particle(
     double const new_ay = 0.5 * Bz * new_x * q0 * QELEM / P0_J;
 
     #ifndef XTRACK_SOLENOID_NO_SYNRAD
-        double lpath, curv;
+        double l_path, curv;
         if (radiation_flag > 0 && length > 0){
             double const old_ax = LocalParticle_get_ax(part);
             double const old_ay = LocalParticle_get_ay(part);
-            double const old_zeta = LocalParticle_get_zeta(part);
 
             double const old_px_mech = px - old_ax;
             double const old_py_mech = py - old_ay;
