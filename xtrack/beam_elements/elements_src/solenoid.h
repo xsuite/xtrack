@@ -12,7 +12,9 @@
 void Solenoid_thin_track_single_particle(LocalParticle*, double, double, double);
 
 /*gpufun*/
-void Solenoid_thick_track_single_particle(LocalParticle*, double, double, int64_t);
+void Solenoid_thick_track_single_particle(LocalParticle*, double, double, int64_t,
+                                          double*, double*, double*,
+                                          double*, double*, double*);
 
 
 /*gpufun*/
@@ -27,6 +29,15 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
         length = -length;
     #endif
 
+    #ifndef XTRACK_SOLENOID_NO_SYNRAD
+    double dp_record_entry = 0.;
+    double dpx_record_entry = 0.;
+    double dpy_record_entry = 0.;
+    double dp_record_exit = 0.;
+    double dpx_record_exit = 0.;
+    double dpy_record_exit = 0.;
+    #endif
+
 
 
     if (IS_ZERO(length)) {
@@ -36,7 +47,9 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
     }
     else {
         //start_per_particle_block (part0->part)
-        Solenoid_thick_track_single_particle(part, length, ks, radiation_flag);
+        Solenoid_thick_track_single_particle(part, length, ks, radiation_flag,
+                        &dp_record_entry, &dpx_record_entry, &dpy_record_entry,
+                        &dp_record_exit, &dpx_record_exit, &dpy_record_exit);
         //end_per_particle_block
     }
 }
@@ -91,8 +104,6 @@ void Solenoid_thin_track_single_particle(
     const double new_py = pyf_;
     const double new_zeta = sigf + (x * new_py - y * new_px) * Z;
 
-
-
     LocalParticle_set_x(part, new_x);
     LocalParticle_set_px(part, new_px);
     LocalParticle_set_y(part, new_y);
@@ -107,7 +118,9 @@ void Solenoid_thick_track_single_particle(
     LocalParticle* part,
     double length,
     double ks,
-    int64_t radiation_flag
+    int64_t radiation_flag,
+    double* dp_record_entry, double* dpx_record_entry, double* dpy_record_entry,
+    double* dp_record_exit, double* dpx_record_exit, double* dpy_record_exit);
 ) {
     const double sk = ks / 2;  // todo?: flip sign to change beam direction
 
@@ -162,9 +175,11 @@ void Solenoid_thick_track_single_particle(
     double const new_ay = 0.5 * Bz * new_x * q0 * QELEM / P0_J;
 
     #ifndef XTRACK_SOLENOID_NO_SYNRAD
+        double lpath, curv;
         if (radiation_flag > 0 && length > 0){
             double const old_ax = LocalParticle_get_ax(part);
             double const old_ay = LocalParticle_get_ay(part);
+            double const old_zeta = LocalParticle_get_zeta(part);
 
             double const old_px_mech = px - old_ax;
             double const old_py_mech = py - old_ay;
@@ -175,17 +190,20 @@ void Solenoid_thick_track_single_particle(
             double const dpx = new_px_mech - old_px_mech;
             double const dpy = new_py_mech - old_py_mech;
 
-            // // Radiation at entrance
-            // double const curv = sqrt(dpx*dpx + dpy*dpy) / length;
+            curv = sqrt(dpx*dpx + dpy*dpy) / length;
 
-            // double const L_path = 0.5 * length * (1 + (hxl*x - hyl*y)/length);
-            // if (radiation_flag == 1){
-            //     synrad_average_kick(part, curv, L_path,
-            //             &dp_record_entry, &dpx_record_entry, &dpy_record_entry);
-            // }
-            // else if (radiation_flag == 2){
-            //     synrad_emit_photons(part, curv, L_path, record_index, record);
-            // }
+            // Path length for radiation
+            double const dzeta = add_to_zeta;
+            double const rvv = LocalParticle_get_rvv(part);
+            l_path = rvv * (length - dzeta);
+
+            if (radiation_flag == 1){
+                synrad_average_kick(part, curv, l_path / 2,
+                        dp_record_entry, dpx_record_entry, dpy_record_entry);
+            }
+            else if (radiation_flag == 2){
+                synrad_emit_photons(part, curv, l_path / 2, NULL, NULL);
+            }
         }
     #endif
 
@@ -197,6 +215,18 @@ void Solenoid_thick_track_single_particle(
     LocalParticle_add_to_s(part, length);
     LocalParticle_set_ax(part, new_ax);
     LocalParticle_set_ay(part, new_ay);
+
+    #ifndef XTRACK_SOLENOID_NO_SYNRAD
+        if (radiation_flag > 0 && length > 0){
+            if (radiation_flag == 1){
+                synrad_average_kick(part, curv, l_path / 2,
+                    dp_record_exit, dpx_record_exit, dpy_record_exit);
+            }
+            else if (radiation_flag == 2){
+                synrad_emit_photons(part, curv, l_path / 2, NULL, NULL);
+            }
+        }
+    #endif
 }
 
 #endif // XTRACK_SOLENOID_H
