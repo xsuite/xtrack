@@ -85,23 +85,23 @@ def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func, capsys):
 
 def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_func):
     # Set up the temporary kernels directory
-    kernel_definitions = {
-        "test_module": {
+    kernel_definitions = [
+        ("test_module", {
             "config": {},
             "classes": [
                 xt.Drift,
                 xt.Cavity,
                 xt.XYShift,
             ]
-        },
-        "test_module_rand": {
+        }),
+        ("test_module_rand", {
             "config": {},
             "classes": [],
             "extra_classes": [
                 xt.RandomNormal,
             ]
-        },
-    }
+        }),
+    ]
 
     patch_defs = 'xtrack.prebuilt_kernels.kernel_definitions.kernel_definitions'
     mocker.patch(patch_defs, kernel_definitions)
