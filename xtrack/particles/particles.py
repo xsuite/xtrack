@@ -63,6 +63,8 @@ class Particles(xo.HybridClass):
             (xo.Float64, 'chi'),
             (xo.Float64, 'charge_ratio'),
             (xo.Float64, 'weight'),
+            (xo.Float64, 'ax'),
+            (xo.Float64, 'ay'),
             (xo.Int64, 'pdg_id'),
             (xo.Int64, 'particle_id'),
             (xo.Int64, 'at_element'),
@@ -1829,6 +1831,8 @@ class Particles(xo.HybridClass):
         self.y = kwargs.get('y', 0)
         self.px = kwargs.get('px', 0)
         self.py = kwargs.get('py', 0)
+        self.ax = kwargs.get('ax', 0)
+        self.ay = kwargs.get('ay', 0)
 
         pdg_id = kwargs.get('pdg_id')
         try:

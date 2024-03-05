@@ -12,7 +12,7 @@
 void Solenoid_thin_track_single_particle(LocalParticle*, double, double, double);
 
 /*gpufun*/
-void Solenoid_thick_track_single_particle(LocalParticle*, double, double);
+void Solenoid_thick_track_single_particle(LocalParticle*, double, double, int64_t);
 
 
 /*gpufun*/
@@ -21,6 +21,7 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
     double length = SolenoidData_get_length(el);
     double ks = SolenoidData_get_ks(el);
     double ksi = SolenoidData_get_ksi(el);
+    int64_t radiation_flag = SolenoidData_get_radiation_flag(el);
 
     #ifdef XSUITE_BACKTRACK
         length = -length;
@@ -35,7 +36,7 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
     }
     else {
         //start_per_particle_block (part0->part)
-        Solenoid_thick_track_single_particle(part, length, ks);
+        Solenoid_thick_track_single_particle(part, length, ks, radiation_flag);
         //end_per_particle_block
     }
 }
@@ -48,7 +49,7 @@ void Solenoid_thin_track_single_particle(
     double ks,
     double ksi
 ) {
-    const double sk = ks / 2;  // todo?: flip sign to change beam direction
+    const double sk = ks / 2;
     const double skl = ksi / 2;
     const double beta0 = LocalParticle_get_beta0(part);
 
@@ -90,11 +91,14 @@ void Solenoid_thin_track_single_particle(
     const double new_py = pyf_;
     const double new_zeta = sigf + (x * new_py - y * new_px) * Z;
 
+
+
     LocalParticle_set_x(part, new_x);
     LocalParticle_set_px(part, new_px);
     LocalParticle_set_y(part, new_y);
     LocalParticle_set_py(part, new_py);
     LocalParticle_set_zeta(part, new_zeta);
+
 }
 
 
@@ -102,7 +106,8 @@ void Solenoid_thin_track_single_particle(
 void Solenoid_thick_track_single_particle(
     LocalParticle* part,
     double length,
-    double ks
+    double ks,
+    int64_t radiation_flag
 ) {
     const double sk = ks / 2;  // todo?: flip sign to change beam direction
 
@@ -147,12 +152,51 @@ void Solenoid_thick_track_single_particle(
     const double new_py = cosTh * rps[3] - sk * sinTh * rps[2];
     const double add_to_zeta = length * (1 - one_plus_delta / (pz * rvv));
 
+    // Update ax and ay (Wolsky Eq. 3.114 and Eq. 2.74)
+    double const p0c = LocalParticle_get_p0c(part);
+    double const q0 = LocalParticle_get_q0(part);
+    double const P0_J = p0c * QELEM / C_LIGHT;
+    double const brho = P0_J / QELEM / q0;
+    double const Bz = brho * ks;
+    double const new_ax = -0.5 * Bz * new_y * q0 * QELEM / P0_J;
+    double const new_ay = 0.5 * Bz * new_x * q0 * QELEM / P0_J;
+
+    #ifndef XTRACK_SOLENOID_NO_SYNRAD
+        if (radiation_flag > 0 && length > 0){
+            double const old_ax = LocalParticle_get_ax(part);
+            double const old_ay = LocalParticle_get_ay(part);
+
+            double const old_px_mech = px - old_ax;
+            double const old_py_mech = py - old_ay;
+
+            double const new_px_mech = new_px - new_ax;
+            double const new_py_mech = new_py - new_ay;
+
+            double const dpx = new_px_mech - old_px_mech;
+            double const dpy = new_py_mech - old_py_mech;
+
+            // // Radiation at entrance
+            // double const curv = sqrt(dpx*dpx + dpy*dpy) / length;
+
+            // double const L_path = 0.5 * length * (1 + (hxl*x - hyl*y)/length);
+            // if (radiation_flag == 1){
+            //     synrad_average_kick(part, curv, L_path,
+            //             &dp_record_entry, &dpx_record_entry, &dpy_record_entry);
+            // }
+            // else if (radiation_flag == 2){
+            //     synrad_emit_photons(part, curv, L_path, record_index, record);
+            // }
+        }
+    #endif
+
     LocalParticle_set_x(part, new_x);
     LocalParticle_set_px(part, new_px);
     LocalParticle_set_y(part, new_y);
     LocalParticle_set_py(part, new_py);
     LocalParticle_add_to_zeta(part, add_to_zeta);
     LocalParticle_add_to_s(part, length);
+    LocalParticle_set_ax(part, new_ax);
+    LocalParticle_set_ay(part, new_ay);
 }
 
 #endif // XTRACK_SOLENOID_H

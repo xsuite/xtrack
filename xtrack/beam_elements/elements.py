@@ -1186,12 +1186,17 @@ class Solenoid(BeamElement):
         'length': xo.Float64,
         'ks': xo.Float64,
         'ksi': xo.Float64,
+        'radiation_flag': xo.Int64,
     }
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/solenoid.h'),
     ]
+
+    _depends_on = [RandomUniform, RandomExponential]
+
+    _internal_record_class = SynchrotronRadiationRecord
 
     def __init__(self, length=0, ks=0, ksi=0, **kwargs):
         """
