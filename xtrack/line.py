@@ -2558,6 +2558,8 @@ class Line:
             self._bhabha_model = None
 
         for kk, ee in self.element_dict.items():
+            if isinstance (ee, (xt.Quadrupole, xt.Bend)):
+                continue
             if hasattr(ee, 'radiation_flag'):
                 ee.radiation_flag = radiation_flag
 
