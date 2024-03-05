@@ -756,6 +756,37 @@ class TargetRmatrixTerm(Target):
 
         return rmat[ii, jj]
 
+class TargetRmatrix(TargetSet):
+
+    def __init__(self, tars=None, value=None,start=None, end=None,
+        r11=None, r12=None, r13=None, r14=None, r15=None, r16=None,
+        r21=None, r22=None, r23=None, r24=None, r25=None, r26=None,
+        r31=None, r32=None, r33=None, r34=None, r35=None, r36=None,
+        r41=None, r42=None, r43=None, r44=None, r45=None, r46=None,
+        r51=None, r52=None, r53=None, r54=None, r55=None, r56=None,
+        r61=None, r62=None, r63=None, r64=None, r65=None, r66=None,
+        **kwargs):
+
+        if tars is not None:
+            raise NotImplementedError
+        if value is not None:
+            raise NotImplementedError
+
+        r_elems = {
+            'r11': r11, 'r12': r12, 'r13': r13, 'r14': r14, 'r15': r15, 'r16': r16,
+            'r21': r21, 'r22': r22, 'r23': r23, 'r24': r24, 'r25': r25, 'r26': r26,
+            'r31': r31, 'r32': r32, 'r33': r33, 'r34': r34, 'r35': r35, 'r36': r36,
+            'r41': r41, 'r42': r42, 'r43': r43, 'r44': r44, 'r45': r45, 'r46': r46,
+            'r51': r51, 'r52': r52, 'r53': r53, 'r54': r54, 'r55': r55, 'r56': r56,
+            'r61': r61, 'r62': r62, 'r63': r63, 'r64': r64, 'r65': r65, 'r66': r66,
+        }
+
+        self.targets = []
+        for kk, vv in r_elems.items():
+            if vv is not None:
+                self.targets.append(TargetRmatrixTerm(kk, vv, start=start, end=end, **kwargs))
+
+
 def match_line(line, vary, targets, solve=True, assert_within_tol=True,
                   compensate_radiation_energy_loss=False,
                   solver_options={}, allow_twiss_failure=True,
