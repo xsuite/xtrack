@@ -177,6 +177,10 @@ void Solenoid_thick_track_single_particle(
     #ifndef XTRACK_SOLENOID_NO_SYNRAD
         double l_path, curv;
         if (radiation_flag > 0 && length > 0){
+
+            double const old_ax = -0.5 * Bz * y * q0 * QELEM / P0_J;
+            double const old_ay = 0.5 * Bz * x * q0 * QELEM / P0_J;
+
             double const old_px_mech = px - old_ax;
             double const old_py_mech = py - old_ay;
 
@@ -208,9 +212,9 @@ void Solenoid_thick_track_single_particle(
     #endif
 
     LocalParticle_set_x(part, new_x);
-    LocalParticle_set_px(part, new_px);
+    LocalParticle_add_to_px(part, new_px - px);
     LocalParticle_set_y(part, new_y);
-    LocalParticle_set_py(part, new_py);
+    LocalParticle_add_to_py(part, new_py - py);
     LocalParticle_add_to_zeta(part, add_to_zeta);
     LocalParticle_add_to_s(part, length);
     LocalParticle_set_ax(part, new_ax);
