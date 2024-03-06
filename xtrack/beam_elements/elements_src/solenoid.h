@@ -177,27 +177,23 @@ void Solenoid_thick_track_single_particle(
     #ifndef XTRACK_SOLENOID_NO_SYNRAD
         double l_path, curv;
         if (radiation_flag > 0 && length > 0){
+
+            // Radiation edge only
+
             double const old_ax = LocalParticle_get_ax(part);
             double const old_ay = LocalParticle_get_ay(part);
 
-            double const old_px_mech = px - old_ax;
-            double const old_py_mech = py - old_ay;
+            double const old_ax_prime = -0.5 * Bz * y * q0 * QELEM / P0_J;
+            double const old_ay_prime = 0.5 * Bz * x * q0 * QELEM / P0_J;
 
-            double const new_px_mech = new_px - new_ax;
-            double const new_py_mech = new_py - new_ay;
-
-            double const dpx = new_px_mech - old_px_mech;
-            double const dpy = new_py_mech - old_py_mech;
+            double const dpx = old_ax_prime - old_ax;
+            double const dpy = old_ay_prime - old_ay;
 
             curv = sqrt(dpx*dpx + dpy*dpy) / length;
+            l_path = length;
 
-            // Path length for radiation
-            double const dzeta = add_to_zeta;
-            double const rvv = LocalParticle_get_rvv(part);
-            l_path = rvv * (length - dzeta);
-
-            // LocalParticle_add_to_px(part, -old_ax);
-            // LocalParticle_add_to_py(part, -old_ay);
+            LocalParticle_add_to_px(part, -old_ax);
+            LocalParticle_add_to_py(part, -old_ay);
 
             if (radiation_flag == 1){
                 synrad_average_kick(part, curv, l_path / 2,
@@ -206,6 +202,37 @@ void Solenoid_thick_track_single_particle(
             else if (radiation_flag == 2){
                 synrad_emit_photons(part, curv, l_path / 2, NULL, NULL);
             }
+            LocalParticle_add_to_px(part, old_ax);
+            LocalParticle_add_to_py(part, old_ay);
+
+
+
+            // double const old_px_mech = px - old_ax;
+            // double const old_py_mech = py - old_ay;
+
+            // double const new_px_mech = new_px - new_ax;
+            // double const new_py_mech = new_py - new_ay;
+
+            // double const dpx = new_px_mech - old_px_mech;
+            // double const dpy = new_py_mech - old_py_mech;
+
+            // curv = sqrt(dpx*dpx + dpy*dpy) / length;
+
+            // // Path length for radiation
+            // double const dzeta = add_to_zeta;
+            // double const rvv = LocalParticle_get_rvv(part);
+            // l_path = rvv * (length - dzeta);
+
+            // LocalParticle_add_to_px(part, -old_ax);
+            // LocalParticle_add_to_py(part, -old_ay);
+
+            // if (radiation_flag == 1){
+            //     synrad_average_kick(part, curv, l_path / 2,
+            //             dp_record_entry, dpx_record_entry, dpy_record_entry);
+            // }
+            // else if (radiation_flag == 2){
+            //     synrad_emit_photons(part, curv, l_path / 2, NULL, NULL);
+            // }
             // LocalParticle_add_to_px(part, old_ax);
             // LocalParticle_add_to_py(part, old_ay);
         }
