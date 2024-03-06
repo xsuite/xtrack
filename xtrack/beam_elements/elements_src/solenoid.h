@@ -178,8 +178,8 @@ void Solenoid_thick_track_single_particle(
         double l_path, curv;
         if (radiation_flag > 0 && length > 0){
 
-            double const old_ax = -0.5 * Bz * y * q0 * QELEM / P0_J;
-            double const old_ay = 0.5 * Bz * x * q0 * QELEM / P0_J;
+            double const old_ax = LocalParticle_get_ax(part);
+            double const old_ay = LocalParticle_get_ay(part);
 
             double const old_px_mech = px - old_ax;
             double const old_py_mech = py - old_ay;
@@ -226,7 +226,7 @@ void Solenoid_thick_track_single_particle(
             LocalParticle_add_to_px(part, -new_ax);
             LocalParticle_add_to_py(part, -new_ay);
             if (radiation_flag == 1){
-                synrad_average_kick(part, curv, l_path / 2,
+                synrad_average_kick(part, curv, l_path/2,
                     dp_record_exit, dpx_record_exit, dpy_record_exit);
             }
             else if (radiation_flag == 2){
