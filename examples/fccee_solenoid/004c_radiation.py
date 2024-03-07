@@ -3,15 +3,15 @@ import numpy as np
 from scipy.constants import c as clight
 from scipy.constants import e as qe
 
-line = xt.Line.from_json('fccee_z_thick_with_sol_corrected.json')
+line = xt.Line.from_json('fccee_z_with_sol_corrected.json')
 tw_no_rad = line.twiss(method='4d')
 line.configure_radiation(model='mean')
-
-# Radiation only in solenoid
 tt = line.get_table(attr=True)
-ttmult = tt.rows[tt.element_type == 'Multipole']
-for nn in ttmult.name:
-    line[nn].radiation_flag=0
+
+# # Radiation only in solenoid
+# ttmult = tt.rows[tt.element_type == 'Multipole']
+# for nn in ttmult.name:
+#     line[nn].radiation_flag=0
 
 # RF on
 line.vars['voltca1'] = 13.2

@@ -6,6 +6,7 @@ from scipy.constants import e as qe
 from cpymad.madx import Madx
 
 fname = 'fccee_z'; pc_gev = 45.6
+# fname = 'fccee_t'; pc_gev = 45.6
 
 mad = Madx()
 mad.call('../../test_data/fcc_ee/' + fname + '.seq')
@@ -370,7 +371,7 @@ tw_local_corr_back = line.twiss(start='ip.4', end='_end_point', init_at='ip.4',
                                 init=tw_local_corr)
 
 
-line.to_json('fccee_z_thick_with_sol_corrected.json')
+line.to_json('fccee_z_with_sol_corrected.json')
 
 
 # plot
