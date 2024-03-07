@@ -1,5 +1,6 @@
 import numpy as np
 import xtrack as xt
+import xobjects as xo
 from scipy.constants import c as clight
 from scipy.constants import e as qe
 
@@ -469,7 +470,5 @@ ax2 = plt.subplot(2, 1, 2, sharex=ax1)
 plt.plot(tw_sol_off.s, tw_sol_on.bety1, label='correction off')
 plt.plot(tw_sol_off.s, tw_sol_on_corrected.bety1, label='correction on')
 plt.ylabel(r'$\beta_{y,1}$ [m]')
-
-
 
 plt.show()

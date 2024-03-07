@@ -1,4 +1,5 @@
 import xtrack as xt
+import xobjects as xo
 import numpy as np
 from scipy.constants import c as clight
 from scipy.constants import e as qe
@@ -47,5 +48,77 @@ print('partition numbers: ', tw_rad.partition_numbers)
 print('gemit_x: ', tw_rad.eq_gemitt_x)
 print('gemit_y: ', tw_rad.eq_gemitt_y)
 
+
+
+tw_rad = line.twiss(eneloss_and_damping=True)
+
+ex = tw_rad.eq_gemitt_x
+ey = tw_rad.eq_gemitt_y
+ez = tw_rad.eq_gemitt_zeta
+
+num_particles_test = 300
+n_turns_track_test = 600
+
+line.configure_radiation(model='quantum')
+p = line.build_particles(num_particles=num_particles_test)
+
+# Switch to multithreaded
+line.discard_tracker()
+line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'),
+                   use_prebuilt_kernels=False)
+
+line.track(p, num_turns=n_turns_track_test, turn_by_turn_monitor=True, time=True,
+           with_progress=10)
+mon_at_start = line.record_last_track
+print(f'Tracking time: {line.time_last_track}')
+
+line.configure_radiation(model='mean')
+
+import matplotlib.pyplot as plt
+plt.close('all')
+
+mon = mon_at_start
+
+betx = tw_rad['betx', 0]
+bety = tw_rad['bety', 0]
+betx2 = tw_rad['betx2', 0]
+bety1 = tw_rad['bety1', 0]
+dx = tw_rad['dx', 0]
+dy = tw_rad['dy', 0]
+
+fig = plt.figure(100 + 1, figsize=(6.4, 4.8*1.3))
+spx = fig. add_subplot(3, 1, 1)
+spx.plot(np.std(mon.x, axis=0), label='track')
+# spx.axhline(
+#     tw_rad2.eq_beam_covariance_matrix['sigma_x', element_mon],
+#     color='green', label='twiss')
+spx.axhline(
+    np.sqrt(ex * betx + ey * betx2 + (np.std(p.delta) * dx)**2),
+    color='red', label='twiss')
+spx.legend(loc='lower right')
+spx.set_ylabel(r'$\sigma_{x}$ [m]')
+spx.set_ylim(bottom=0)
+
+spy = fig. add_subplot(3, 1, 2, sharex=spx)
+spy.plot(np.std(mon.y, axis=0), label='track')
+# spy.axhline(
+#     tw_rad2.eq_beam_covariance_matrix['sigma_y', element_mon],
+#     color='green', label='twiss')
+spy.axhline(
+    np.sqrt(ex * bety1 + ey * bety + (np.std(p.delta) * dy)**2),
+    color='red', label='twiss')
+spy.set_ylabel(r'$\sigma_{y}$ [m]')
+spy.set_ylim(bottom=0)
+
+spz = fig. add_subplot(3, 1, 3, sharex=spx)
+spz.plot(np.std(mon.zeta, axis=0))
+# spz.axhline(
+#     tw_rad2.eq_beam_covariance_matrix['sigma_zeta', element_mon],
+#     color='green')
+spz.axhline(np.sqrt(ez * tw_rad.bets0), color='red')
+spz.set_ylabel(r'$\sigma_{z}$ [m]')
+spz.set_ylim(bottom=0)
+
+plt.suptitle(r'$\varepsilon_y$ = ' f'{ey*1e12:.6f} pm')
 
 plt.show()
