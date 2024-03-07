@@ -6,6 +6,7 @@ from scipy.constants import e as qe
 line = xt.Line.from_json('fccee_z_with_sol_corrected.json')
 tw_no_rad = line.twiss(method='4d')
 line.configure_radiation(model='mean')
+line.compensate_radiation_energy_loss()
 tt = line.get_table(attr=True)
 
 # # Radiation only in solenoid
@@ -38,7 +39,12 @@ ax2 = plt.subplot(3, 1, 2, sharex=ax1)
 plt.plot(tw.s, tt.ks, '.-', label='ks')
 plt.xlabel('s [m]')
 ax3 = plt.subplot(3, 1, 3, sharex=ax1)
-plt.plot(tw.s[:-1], np.diff(tt.ks), '.-', label='ks')
+plt.plot(tw.s, tw_rad.delta, '.-', label='ks')
 plt.xlabel('s [m]')
+
+print('partition numbers: ', tw_rad.partition_numbers)
+print('gemit_x: ', tw_rad.eq_gemitt_x)
+print('gemit_y: ', tw_rad.eq_gemitt_y)
+
 
 plt.show()
