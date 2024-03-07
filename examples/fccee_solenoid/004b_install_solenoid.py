@@ -98,7 +98,7 @@ line.element_names = element_names
 line.element_dict.pop(ip_sol)
 line.insert_element(name=ip_sol, element=xt.Marker(), at_s=s_ip)
 
-
+line.vars['on_corr_ip.1'] = 0
 
 line.build_tracker()
 
@@ -112,6 +112,7 @@ tt = line.get_table()
 
 tt.rows['sol_start_ip.1':'sol_end_ip.1'].show()
 
+line.vars['on_corr_ip.1'] = 1
 line.vars['ks0.r1'] = 0
 line.vars['ks1.r1'] = 0
 line.vars['ks2.r1'] = 0
@@ -123,15 +124,14 @@ line.vars['ks2.l1'] = 0
 line.vars['ks3.l1'] = 0
 line.vars['ks4.l1'] = 0
 
-line.element_refs['qc1r1.1'].k1s = line.vars['ks0.r1']
-line.element_refs['qc2r1.1'].k1s = line.vars['ks1.r1']
-line.element_refs['qc2r2.1'].k1s = line.vars['ks2.r1']
-line.element_refs['qc1r2.1'].k1s = line.vars['ks3.r1']
-
-line.element_refs['qc1l1.4'].k1s = line.vars['ks0.l1']
-line.element_refs['qc2l1.4'].k1s = line.vars['ks1.l1']
-line.element_refs['qc2l2.4'].k1s = line.vars['ks2.l1']
-line.element_refs['qc1l2.4'].k1s = line.vars['ks3.l1']
+line.element_refs['qc1r1.1'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks0.r1']
+line.element_refs['qc2r1.1'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks1.r1']
+line.element_refs['qc2r2.1'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks2.r1']
+line.element_refs['qc1r2.1'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks3.r1']
+line.element_refs['qc1l1.4'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks0.l1']
+line.element_refs['qc2l1.4'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks1.l1']
+line.element_refs['qc2l2.4'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks2.l1']
+line.element_refs['qc1l2.4'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks3.l1']
 
 line.vars['corr_k0.r1'] = 0
 line.vars['corr_k1.r1'] = 0
@@ -144,14 +144,14 @@ line.vars['corr_k2.l1'] = 0
 line.vars['corr_k3.l1'] = 0
 line.vars['corr_k4.l1'] = 0
 
-line.element_refs['qc1r1.1'].k1 += line.vars['corr_k0.r1']
-line.element_refs['qc2r1.1'].k1 += line.vars['corr_k1.r1']
-line.element_refs['qc2r2.1'].k1 += line.vars['corr_k2.r1']
-line.element_refs['qc1r2.1'].k1 += line.vars['corr_k3.r1']
-line.element_refs['qc1l1.4'].k1 += line.vars['corr_k0.l1']
-line.element_refs['qc2l1.4'].k1 += line.vars['corr_k1.l1']
-line.element_refs['qc2l2.4'].k1 += line.vars['corr_k2.l1']
-line.element_refs['qc1l2.4'].k1 += line.vars['corr_k3.l1']
+line.element_refs['qc1r1.1'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k0.r1']
+line.element_refs['qc2r1.1'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k1.r1']
+line.element_refs['qc2r2.1'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k2.r1']
+line.element_refs['qc1r2.1'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k3.r1']
+line.element_refs['qc1l1.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k0.l1']
+line.element_refs['qc2l1.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k1.l1']
+line.element_refs['qc2l2.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k2.l1']
+line.element_refs['qc1l2.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k3.l1']
 
 
 Strategy = xt.Strategy
@@ -201,14 +201,14 @@ line.vars['acb1v.l1'] = 0
 line.vars['acb2h.l1'] = 0
 line.vars['acb2v.l1'] = 0
 
-line.element_refs['mcb1.r1'].knl[0] = line.vars['acb1h.r1']
-line.element_refs['mcb2.r1'].knl[0] = line.vars['acb2h.r1']
-line.element_refs['mcb1.r1'].ksl[0] = line.vars['acb1v.r1']
-line.element_refs['mcb2.r1'].ksl[0] = line.vars['acb2v.r1']
-line.element_refs['mcb1.l1'].knl[0] = line.vars['acb1h.l1']
-line.element_refs['mcb2.l1'].knl[0] = line.vars['acb2h.l1']
-line.element_refs['mcb1.l1'].ksl[0] = line.vars['acb1v.l1']
-line.element_refs['mcb2.l1'].ksl[0] = line.vars['acb2v.l1']
+line.element_refs['mcb1.r1'].knl[0] = line.vars['on_corr_ip.1']*line.vars['acb1h.r1']
+line.element_refs['mcb2.r1'].knl[0] = line.vars['on_corr_ip.1']*line.vars['acb2h.r1']
+line.element_refs['mcb1.r1'].ksl[0] = line.vars['on_corr_ip.1']*line.vars['acb1v.r1']
+line.element_refs['mcb2.r1'].ksl[0] = line.vars['on_corr_ip.1']*line.vars['acb2v.r1']
+line.element_refs['mcb1.l1'].knl[0] = line.vars['on_corr_ip.1']*line.vars['acb1h.l1']
+line.element_refs['mcb2.l1'].knl[0] = line.vars['on_corr_ip.1']*line.vars['acb2h.l1']
+line.element_refs['mcb1.l1'].ksl[0] = line.vars['on_corr_ip.1']*line.vars['acb1v.l1']
+line.element_refs['mcb2.l1'].ksl[0] = line.vars['on_corr_ip.1']*line.vars['acb2v.l1']
 
 tw_thick_no_rad = line.twiss(method='4d')
 

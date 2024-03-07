@@ -5,9 +5,14 @@ from scipy.constants import c as clight
 from scipy.constants import e as qe
 
 line = xt.Line.from_json('fccee_t_with_sol_corrected.json')
+line.cycle('ip.1')
 tw_no_rad = line.twiss(method='4d')
 line.configure_radiation(model='mean')
 tt = line.get_table(attr=True)
+
+line.vars['on_corr_ip.1'] = 1
+line.vars['on_sol_ip.1'] = 1
+
 
 # # Radiation only in solenoid
 # ttmult = tt.rows[tt.element_type == 'Multipole']
@@ -89,9 +94,9 @@ dy = tw_rad['dy', 0]
 fig = plt.figure(100 + 1, figsize=(6.4, 4.8*1.3))
 spx = fig. add_subplot(3, 1, 1)
 spx.plot(np.std(mon.x, axis=0), label='track')
-# spx.axhline(
-#     tw_rad2.eq_beam_covariance_matrix['sigma_x', element_mon],
-#     color='green', label='twiss')
+spx.axhline(
+    tw_rad2.eq_beam_covariance_matrix['sigma_x', 0],
+    color='green', label='twiss')
 spx.axhline(
     np.sqrt(ex * betx + ey * betx2 + (np.std(p.delta) * dx)**2),
     color='red', label='twiss')
@@ -112,9 +117,9 @@ spy.set_ylim(bottom=0)
 
 spz = fig. add_subplot(3, 1, 3, sharex=spx)
 spz.plot(np.std(mon.zeta, axis=0))
-# spz.axhline(
-#     tw_rad2.eq_beam_covariance_matrix['sigma_zeta', element_mon],
-#     color='green')
+spz.axhline(
+    tw_rad2.eq_beam_covariance_matrix['sigma_zeta', element_mon],
+    color='green')
 spz.axhline(np.sqrt(ez * tw_rad.bets0), color='red')
 spz.set_ylabel(r'$\sigma_{z}$ [m]')
 spz.set_ylim(bottom=0)
