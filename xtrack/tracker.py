@@ -120,6 +120,9 @@ class Tracker:
             _buffer=_buffer)
         line._freeze()
 
+        if np.any([hasattr(ee, 'needs_rng') and ee.needs_rng for ee in line.elements]):
+            line._needs_rng = True
+
         _buffer = tracker_data_base._buffer
 
         # Make a "marker" element to increase at_element
