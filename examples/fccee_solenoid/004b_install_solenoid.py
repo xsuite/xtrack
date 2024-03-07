@@ -1,13 +1,26 @@
-import xtrack as xt
 import numpy as np
+import xtrack as xt
 from scipy.constants import c as clight
 from scipy.constants import e as qe
 
-line = xt.Line.from_json('fccee_z_thick.json')
+from cpymad.madx import Madx
+
+fname = 'fccee_z'; pc_gev = 45.6
+
+mad = Madx()
+mad.call('../../test_data/fcc_ee/' + fname + '.seq')
+mad.beam(particle='positron', pc=pc_gev)
+mad.use('fccee_p_ring')
+
+line = xt.Line.from_madx_sequence(mad.sequence.fccee_p_ring, allow_thick=True,
+                                  deferred_expressions=True)
+line.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV,
+                                 gamma0=mad.sequence.fccee_p_ring.beam.gamma)
 line.cycle('ip.4', inplace=True)
+line.append_element(element=xt.Marker(), name='ip.4.l')
 
 tt = line.get_table()
-bz_data_file = './z_fieldmaps/Koratsinos_Bz_closed_before_quads.dat'
+bz_data_file = 'Bz_closed_before_quads.dat'
 
 line.vars['voltca1'] = 0
 
@@ -76,33 +89,7 @@ line.element_names = element_names
 line.element_dict.pop(ip_sol)
 line.insert_element(name=ip_sol, element=xt.Marker(), at_s=s_ip)
 
-# Add dipole correctors
-line.insert_element(name='mcb1.r1', element=xt.Multipole(knl=[0]),
-                    at='qc1r1.1_entry')
-line.insert_element(name='mcb2.r1', element=xt.Multipole(knl=[0]),
-                    at='qc1r1.1_exit')
-line.insert_element(name='mcb1.l1', element=xt.Multipole(knl=[0]),
-                    at='qc1l1.4_exit')
-line.insert_element(name='mcb2.l1', element=xt.Multipole(knl=[0]),
-                    at='qc1l1.4_entry')
 
-line.vars['acb1h.r1'] = 0
-line.vars['acb1v.r1'] = 0
-line.vars['acb2h.r1'] = 0
-line.vars['acb2v.r1'] = 0
-line.vars['acb1h.l1'] = 0
-line.vars['acb1v.l1'] = 0
-line.vars['acb2h.l1'] = 0
-line.vars['acb2v.l1'] = 0
-
-line.element_refs['mcb1.r1'].knl[0] = line.vars['acb1h.r1']
-line.element_refs['mcb2.r1'].knl[0] = line.vars['acb2h.r1']
-line.element_refs['mcb1.r1'].ksl[0] = line.vars['acb1v.r1']
-line.element_refs['mcb2.r1'].ksl[0] = line.vars['acb2v.r1']
-line.element_refs['mcb1.l1'].knl[0] = line.vars['acb1h.l1']
-line.element_refs['mcb2.l1'].knl[0] = line.vars['acb2h.l1']
-line.element_refs['mcb1.l1'].ksl[0] = line.vars['acb1v.l1']
-line.element_refs['mcb2.l1'].ksl[0] = line.vars['acb2v.l1']
 
 line.build_tracker()
 
@@ -115,15 +102,6 @@ for ii in range(len(s_sol_slices_entry)):
 tt = line.get_table()
 
 tt.rows['sol_start_ip.1':'sol_end_ip.1'].show()
-
-tw_sol_off = line.twiss(method='4d')
-line.vars['on_sol_ip.1'] = 1
-tw_sol_on = line.twiss(method='4d')
-
-tw_local = line.twiss(start='ip.7', end='ip.2', init_at='ip.1',
-                      init=tw_sol_off)
-
-
 
 line.vars['ks0.r1'] = 0
 line.vars['ks1.r1'] = 0
@@ -166,6 +144,88 @@ line.element_refs['qc2l1.4'].k1 += line.vars['corr_k1.l1']
 line.element_refs['qc2l2.4'].k1 += line.vars['corr_k2.l1']
 line.element_refs['qc1l2.4'].k1 += line.vars['corr_k3.l1']
 
+
+Strategy = xt.Strategy
+Teapot = xt.Teapot
+slicing_strategies = [
+    Strategy(slicing=None),  # Default catch-all as in MAD-X
+    Strategy(slicing=Teapot(3), element_type=xt.Bend),
+    Strategy(slicing=Teapot(3), element_type=xt.CombinedFunctionMagnet),
+    # Strategy(slicing=Teapot(50), element_type=xt.Quadrupole), # Starting point
+    Strategy(slicing=Teapot(5), name=r'^qf.*'),
+    Strategy(slicing=Teapot(5), name=r'^qd.*'),
+    Strategy(slicing=Teapot(5), name=r'^qfg.*'),
+    Strategy(slicing=Teapot(5), name=r'^qdg.*'),
+    Strategy(slicing=Teapot(5), name=r'^ql.*'),
+    Strategy(slicing=Teapot(5), name=r'^qs.*'),
+    Strategy(slicing=Teapot(10), name=r'^qb.*'),
+    Strategy(slicing=Teapot(10), name=r'^qg.*'),
+    Strategy(slicing=Teapot(10), name=r'^qh.*'),
+    Strategy(slicing=Teapot(10), name=r'^qi.*'),
+    Strategy(slicing=Teapot(10), name=r'^qr.*'),
+    Strategy(slicing=Teapot(10), name=r'^qu.*'),
+    Strategy(slicing=Teapot(10), name=r'^qy.*'),
+    Strategy(slicing=Teapot(50), name=r'^qa.*'),
+    Strategy(slicing=Teapot(50), name=r'^qc.*'),
+    Strategy(slicing=Teapot(20), name=r'^sy\..*'),
+    Strategy(slicing=Teapot(30), name=r'^mwi\..*'),
+]
+line.discard_tracker()
+line.slice_thick_elements(slicing_strategies=slicing_strategies)
+
+# Add dipole correctors
+line.insert_element(name='mcb1.r1', element=xt.Multipole(knl=[0]),
+                    at='qc1r1.1_entry')
+line.insert_element(name='mcb2.r1', element=xt.Multipole(knl=[0]),
+                    at='qc1r1.1_exit')
+line.insert_element(name='mcb1.l1', element=xt.Multipole(knl=[0]),
+                    at='qc1l1.4_exit')
+line.insert_element(name='mcb2.l1', element=xt.Multipole(knl=[0]),
+                    at='qc1l1.4_entry')
+
+line.vars['acb1h.r1'] = 0
+line.vars['acb1v.r1'] = 0
+line.vars['acb2h.r1'] = 0
+line.vars['acb2v.r1'] = 0
+line.vars['acb1h.l1'] = 0
+line.vars['acb1v.l1'] = 0
+line.vars['acb2h.l1'] = 0
+line.vars['acb2v.l1'] = 0
+
+line.element_refs['mcb1.r1'].knl[0] = line.vars['acb1h.r1']
+line.element_refs['mcb2.r1'].knl[0] = line.vars['acb2h.r1']
+line.element_refs['mcb1.r1'].ksl[0] = line.vars['acb1v.r1']
+line.element_refs['mcb2.r1'].ksl[0] = line.vars['acb2v.r1']
+line.element_refs['mcb1.l1'].knl[0] = line.vars['acb1h.l1']
+line.element_refs['mcb2.l1'].knl[0] = line.vars['acb2h.l1']
+line.element_refs['mcb1.l1'].ksl[0] = line.vars['acb1v.l1']
+line.element_refs['mcb2.l1'].ksl[0] = line.vars['acb2v.l1']
+
+tw_thick_no_rad = line.twiss(method='4d')
+
+assert line.element_names[-1] == 'ip.4.l'
+assert line.element_names[0] == 'ip.4'
+
+opt = line.match(
+    only_markers=True,
+    method='4d',
+    start='ip.4', end='ip.4.l',
+    init=tw_thick_no_rad,
+    vary=xt.VaryList(['k1qf4', 'k1qf2', 'k1qd3', 'k1qd1',], step=1e-8,
+    ),
+    targets=[
+        xt.TargetSet(at=xt.END, mux=tw_thick_no_rad.qx, muy=tw_thick_no_rad.qy, tol=1e-5),
+    ]
+)
+opt.solve()
+tw_thin_no_rad = line.twiss(method='4d')
+
+tw_sol_off = line.twiss(method='4d')
+line.vars['on_sol_ip.1'] = 1
+tw_sol_on = line.twiss(method='4d')
+tw_local = line.twiss(start='ip.7', end='ip.2', init_at='ip.1',
+                      init=tw_sol_off)
+
 opt_l = line.match(
     solve=False,
     method='4d',
@@ -173,6 +233,7 @@ opt_l = line.match(
     end='ip.1',
     init=tw_sol_off,
     init_at=xt.START,
+    n_steps_max=30,
     vary=[
         xt.VaryList(['acb1h.l1', 'acb2h.l1','acb1v.l1', 'acb2v.l1'], step=1e-8, tag='corr_l'),
         xt.VaryList(['ks1.l1', 'ks2.l1', 'ks3.l1', 'ks0.l1'], step=1e-7, tag='skew_l'),
@@ -185,7 +246,7 @@ opt_l = line.match(
         xt.TargetRmatrix(
                     r13=0, r14=0, r23=0, r24=0, # Y-X block
                     r31=0, r32=0, r41=0, r42=0, # X-Y block,
-                    start='pqc2le.4', end='ip.1', tol=1e-8, tag='coupl'),
+                    start='pqc2le.4', end='ip.1', tol=1e-7, tag='coupl'),
 
         xt.Target('mux', value=tw_sol_off, at='ip.1', tag='mu_ip', weight=0.1, tol=1e-6),
         xt.Target('muy', value=tw_sol_off, at='ip.1', tag='mu_ip', weight=0.1, tol=1e-6),
@@ -219,7 +280,7 @@ opt_l.solve()
 # Coupling alone
 opt_l.disable_all_targets(); opt_l.disable_all_vary()
 opt_l.enable_targets(tag='coupl'); opt_l.enable_vary(tag='skew_l')
-opt_l.step(25)
+opt_l.solve()
 
 # Combine phase, coupling and orbit
 opt_l.enable_targets(tag='coupl'); opt_l.enable_vary(tag='skew_l')
@@ -241,6 +302,7 @@ opt_r = line.match(
     end='pqc2re.1',
     init=tw_sol_off,
     init_at=xt.END,
+    n_steps_max=30,
     vary=[
         xt.VaryList(['acb1h.r1', 'acb2h.r1','acb1v.r1', 'acb2v.r1'], step=1e-8, tag='corr_r'),
         xt.VaryList(['ks1.r1', 'ks2.r1', 'ks3.r1', 'ks0.r1'], step=1e-7, tag='skew_r'),
@@ -252,7 +314,7 @@ opt_r = line.match(
 
         xt.TargetRmatrix(r13=0, r14=0, r23=0, r24=0, # Y-X block
                          r31=0, r32=0, r41=0, r42=0, # X-Y block,
-                         start='ip.1', end='pqc2re.1', tol=1e-8, tag='coupl'),
+                         start='ip.1', end='pqc2re.1', tol=1e-7, tag='coupl'),
 
         xt.Target('mux', value=tw_sol_off, at='ip.1', tag='mu_ip', weight=0.1, tol=1e-6),
         xt.Target('muy', value=tw_sol_off, at='ip.1', tag='mu_ip', weight=0.1, tol=1e-6),
@@ -272,7 +334,7 @@ opt_r.solve()
 # Coupling alone
 opt_r.disable_all_targets(); opt_r.disable_all_vary()
 opt_r.enable_targets(tag='coupl'); opt_r.enable_vary(tag='skew_r')
-opt_r.step(25)
+opt_r.solve()
 
 # Orbit and coupling
 opt_r.enable_targets(tag='orbit'); opt_r.enable_vary(tag='corr_r')
@@ -286,7 +348,7 @@ opt_r.solve()
 # Coupling alone
 opt_r.disable_all_targets(); opt_r.disable_all_vary()
 opt_r.enable_targets(tag='coupl'); opt_r.enable_vary(tag='skew_r')
-opt_r.step(25)
+opt_r.solve()
 
 # Combine phase, coupling and orbit
 opt_r.enable_targets(tag='coupl'); opt_r.enable_vary(tag='skew_r')
@@ -354,14 +416,14 @@ tw_sol_on_corrected = line.twiss(method='4d')
 
 plt.figure(5)
 ax1 = plt.subplot(2, 1, 1)
-plt.plot(tw_sol_off.s, tw_sol_on.betx2, label='betx2 off')
-plt.plot(tw_sol_off.s, tw_sol_on_corrected.betx2, label='betx2 on')
+plt.plot(tw_sol_off.s, tw_sol_on.betx2, label='correction off')
+plt.plot(tw_sol_off.s, tw_sol_on_corrected.betx2, label='correction on')
 plt.ylabel(r'$\beta_{x,2}$ [m]')
 plt.legend()
 
 ax2 = plt.subplot(2, 1, 2, sharex=ax1)
-plt.plot(tw_sol_off.s, tw_sol_on.bety1, label='bety1 off')
-plt.plot(tw_sol_off.s, tw_sol_on_corrected.bety1, label='bety1 on')
+plt.plot(tw_sol_off.s, tw_sol_on.bety1, label='correction off')
+plt.plot(tw_sol_off.s, tw_sol_on_corrected.bety1, label='correction on')
 plt.ylabel(r'$\beta_{y,1}$ [m]')
 
 
