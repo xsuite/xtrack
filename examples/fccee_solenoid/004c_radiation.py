@@ -53,8 +53,6 @@ print('partition numbers: ', tw_rad.partition_numbers)
 print('gemit_x: ', tw_rad.eq_gemitt_x)
 print('gemit_y: ', tw_rad.eq_gemitt_y)
 
-
-
 tw_rad = line.twiss(eneloss_and_damping=True)
 
 ex = tw_rad.eq_gemitt_x
@@ -62,7 +60,7 @@ ey = tw_rad.eq_gemitt_y
 ez = tw_rad.eq_gemitt_zeta
 
 num_particles_test = 300
-n_turns_track_test = 600
+n_turns_track_test = 350
 
 line.configure_radiation(model='quantum')
 p = line.build_particles(num_particles=num_particles_test)
@@ -95,10 +93,7 @@ fig = plt.figure(100 + 1, figsize=(6.4, 4.8*1.3))
 spx = fig. add_subplot(3, 1, 1)
 spx.plot(np.std(mon.x, axis=0), label='track')
 spx.axhline(
-    tw_rad2.eq_beam_covariance_matrix['sigma_x', 0],
-    color='green', label='twiss')
-spx.axhline(
-    np.sqrt(ex * betx + ey * betx2 + (np.std(p.delta) * dx)**2),
+    np.sqrt(ex * betx + ey * betx2 + (np.std(p.delta) * dy)**2),
     color='red', label='twiss')
 spx.legend(loc='lower right')
 spx.set_ylabel(r'$\sigma_{x}$ [m]')
@@ -106,9 +101,6 @@ spx.set_ylim(bottom=0)
 
 spy = fig. add_subplot(3, 1, 2, sharex=spx)
 spy.plot(np.std(mon.y, axis=0), label='track')
-# spy.axhline(
-#     tw_rad2.eq_beam_covariance_matrix['sigma_y', element_mon],
-#     color='green', label='twiss')
 spy.axhline(
     np.sqrt(ex * bety1 + ey * bety + (np.std(p.delta) * dy)**2),
     color='red', label='twiss')
@@ -117,9 +109,6 @@ spy.set_ylim(bottom=0)
 
 spz = fig. add_subplot(3, 1, 3, sharex=spx)
 spz.plot(np.std(mon.zeta, axis=0))
-spz.axhline(
-    tw_rad2.eq_beam_covariance_matrix['sigma_zeta', element_mon],
-    color='green')
 spz.axhline(np.sqrt(ez * tw_rad.bets0), color='red')
 spz.set_ylabel(r'$\sigma_{z}$ [m]')
 spz.set_ylim(bottom=0)
