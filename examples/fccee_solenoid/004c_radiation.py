@@ -6,13 +6,15 @@ from scipy.constants import e as qe
 line = xt.Line.from_json('fccee_z_thick_with_sol_corrected.json')
 tw_no_rad = line.twiss(method='4d')
 line.configure_radiation(model='mean')
+
+# Radiation only in solenoid
 tt = line.get_table(attr=True)
 ttmult = tt.rows[tt.element_type == 'Multipole']
+for nn in ttmult.name:
+    line[nn].radiation_flag=0
 
 # RF on
 line.vars['voltca1'] = 13.2
-
-
 tw = line.twiss()
 
 eloss = np.diff(tw.ptau) * line.particle_ref.energy0[0]
@@ -22,6 +24,8 @@ mask_ds = ds > 0
 
 dE_ds = eloss * 0
 dE_ds[mask_ds] = -eloss[mask_ds] / ds[mask_ds]
+
+tw_rad = line.twiss(eneloss_and_damping=True)
 
 import matplotlib.pyplot as plt
 plt.close('all')
