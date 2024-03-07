@@ -6,7 +6,7 @@ from scipy.constants import e as qe
 from cpymad.madx import Madx
 
 fname = 'fccee_z'; pc_gev = 45.6
-# fname = 'fccee_t'; pc_gev = 45.6
+fname = 'fccee_t'; pc_gev = 182.5
 
 mad = Madx()
 mad.call('../../test_data/fcc_ee/' + fname + '.seq')
@@ -23,7 +23,14 @@ line.append_element(element=xt.Marker(), name='ip.4.l')
 tt = line.get_table()
 bz_data_file = 'Bz_closed_before_quads.dat'
 
+line.vars['voltca1_ref'] = line.vv['voltca1']
+if 'voltca2' in line.vars.keys():
+    line.vars['voltca2_ref'] = line.vv['voltca2']
+else:
+    line.vars['voltca2_ref'] = 0
+
 line.vars['voltca1'] = 0
+line.vars['voltca2'] = 0
 
 import pandas as pd
 bz_df = pd.read_csv(bz_data_file, sep='\s+', skiprows=1, names=['z', 'Bz'])
@@ -252,12 +259,13 @@ opt_l = line.match(
         xt.Target('mux', value=tw_sol_off, at='ip.1', tag='mu_ip', weight=0.1, tol=1e-6),
         xt.Target('muy', value=tw_sol_off, at='ip.1', tag='mu_ip', weight=0.1, tol=1e-6),
         xt.Target('betx', value=tw_sol_off, at='ip.1', tag='bet_ip', weight=1, tol=1e-5),
-        xt.Target('bety', value=tw_sol_off, at='ip.1', tag='bet_ip', weight=10, tol=1e-7),
+        xt.Target('bety', value=tw_sol_off, at='ip.1', tag='bet_ip', weight=10, tol=1e-6),
         xt.Target('alfx', value=tw_sol_off, at='ip.1', tag='alf_ip', weight=0.1, tol=1e-4),
         xt.Target('alfy', value=tw_sol_off, at='ip.1', tag='alf_ip', weight=0.1, tol=1e-4),
 
     ]
 )
+
 
 # Orbit alone
 opt_l.disable_all_targets(); opt_l.disable_all_vary()
@@ -283,17 +291,30 @@ opt_l.disable_all_targets(); opt_l.disable_all_vary()
 opt_l.enable_targets(tag='coupl'); opt_l.enable_vary(tag='skew_l')
 opt_l.solve()
 
-# Combine phase, coupling and orbit
-opt_l.enable_targets(tag='coupl'); opt_l.enable_vary(tag='skew_l')
+# + phase advance
+opt_l.enable_targets(tag='mu_ip'); opt_l.enable_vary(tag='normal_l')
+opt_l.solve()
+
+# + orbit
 opt_l.enable_targets(tag='orbit'); opt_l.enable_vary(tag='corr_l')
 opt_l.solve()
 
-# Add targets on ip beta
-opt_l.enable_targets(tag='bet_ip')
+# IP beta alone
+opt_l.disable_all_targets(); opt_l.disable_all_vary()
+opt_l.enable_targets(tag='bet_ip'); opt_l.enable_vary(tag='normal_l')
 opt_l.solve()
 
-# Add targets on ip alfa (--> all targets active)
+# IP beta and phase
+opt_l.enable_targets(tag='mu_ip'); opt_l.enable_vary(tag='normal_l')
+opt_l.solve()
+
+# IP beta phase and alpha
 opt_l.enable_targets(tag='alf_ip')
+opt_l.solve()
+
+# Add targets on ip beta
+opt_l.enable_all_targets()
+opt_l.enable_all_vary()
 opt_l.solve()
 
 opt_r = line.match(
@@ -313,9 +334,18 @@ opt_r = line.match(
 
         xt.TargetSet(['x', 'px', 'y', 'py'], value=tw_sol_off, at='ip.1', tag='orbit'),
 
-        xt.TargetRmatrix(r13=0, r14=0, r23=0, r24=0, # Y-X block
-                         r31=0, r32=0, r41=0, r42=0, # X-Y block,
-                         start='ip.1', end='pqc2re.1', tol=1e-7, tag='coupl'),
+        xt.TargetRmatrix(r13=0, r31=0, tol=1e-6,
+                        start='ip.1', end='pqc2re.1', tag='coupl'),
+        xt.TargetRmatrix(r24=0, r42=0, tol=1e-6,
+                        start='ip.1', end='pqc2re.1', tag='coupl'),
+        xt.TargetRmatrix(r23=0, r41=0, tol=1e-7,
+                        start='ip.1', end='pqc2re.1', tag='coupl'),
+        xt.TargetRmatrix(r14=0, r32=0, tol=1e-5,
+                        start='ip.1', end='pqc2re.1', tag='coupl'),
+
+        # xt.TargetRmatrix(r13=0, r14=0, r23=0, r24=0, # Y-X block
+        #                  r31=0, r32=0, r41=0, r42=0, # X-Y block,
+        #                  start='ip.1', end='pqc2re.1', tol=1e-7, tag='coupl'),
 
         xt.Target('mux', value=tw_sol_off, at='ip.1', tag='mu_ip', weight=0.1, tol=1e-6),
         xt.Target('muy', value=tw_sol_off, at='ip.1', tag='mu_ip', weight=0.1, tol=1e-6),
@@ -351,17 +381,30 @@ opt_r.disable_all_targets(); opt_r.disable_all_vary()
 opt_r.enable_targets(tag='coupl'); opt_r.enable_vary(tag='skew_r')
 opt_r.solve()
 
-# Combine phase, coupling and orbit
-opt_r.enable_targets(tag='coupl'); opt_r.enable_vary(tag='skew_r')
+# + phase advance
+opt_r.enable_targets(tag='mu_ip'); opt_r.enable_vary(tag='normal_r')
+opt_r.solve()
+
+# + orbit
 opt_r.enable_targets(tag='orbit'); opt_r.enable_vary(tag='corr_r')
 opt_r.solve()
 
-# Add targets on ip beta
-opt_r.enable_targets(tag='bet_ip')
+# IP beta alone
+opt_r.disable_all_targets(); opt_r.disable_all_vary()
+opt_r.enable_targets(tag='bet_ip'); opt_r.enable_vary(tag='normal_r')
 opt_r.solve()
 
-# Add targets on ip alfa (--> all targets active)
+# IP beta and phase
+opt_r.enable_targets(tag='mu_ip'); opt_r.enable_vary(tag='normal_r')
+opt_r.solve()
+
+# IP beta phase and alpha
 opt_r.enable_targets(tag='alf_ip')
+opt_r.solve()
+
+# Add targets on ip beta
+opt_r.enable_all_targets()
+opt_r.enable_all_vary()
 opt_r.solve()
 
 tw_local_corr = line.twiss(start='ip.4', end='_end_point', init_at='ip.1',
@@ -371,7 +414,7 @@ tw_local_corr_back = line.twiss(start='ip.4', end='_end_point', init_at='ip.4',
                                 init=tw_local_corr)
 
 
-line.to_json('fccee_z_with_sol_corrected.json')
+line.to_json(fname + '_with_sol_corrected.json')
 
 
 # plot

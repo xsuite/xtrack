@@ -3,10 +3,9 @@ import numpy as np
 from scipy.constants import c as clight
 from scipy.constants import e as qe
 
-line = xt.Line.from_json('fccee_z_with_sol_corrected.json')
+line = xt.Line.from_json('fccee_t_with_sol_corrected.json')
 tw_no_rad = line.twiss(method='4d')
 line.configure_radiation(model='mean')
-line.compensate_radiation_energy_loss()
 tt = line.get_table(attr=True)
 
 # # Radiation only in solenoid
@@ -15,7 +14,9 @@ tt = line.get_table(attr=True)
 #     line[nn].radiation_flag=0
 
 # RF on
-line.vars['voltca1'] = 13.2
+line.vars['voltca1'] = line.vv['voltca1_ref']
+line.vars['voltca2'] = line.vv['voltca2_ref']
+line.compensate_radiation_energy_loss()
 tw = line.twiss()
 
 eloss = np.diff(tw.ptau) * line.particle_ref.energy0[0]
