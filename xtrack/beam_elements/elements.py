@@ -770,7 +770,6 @@ class Bend(BeamElement):
         components.
 
     """
-
     isthick = True
     has_backtrack = True
 
@@ -962,6 +961,7 @@ class Bend(BeamElement):
                 'edge_entry_angle_fdown', 'edge_exit_angle_fdown',
                 'edge_entry_fint', 'edge_exit_fint', 'edge_entry_hgap',
                 'edge_exit_hgap', 'shift_x', 'shift_y', 'rot_s_rad']
+
 
 
 class Sextupole(BeamElement):
@@ -1212,6 +1212,9 @@ class Quadrupole(BeamElement):
     ]
 
     def __init__(self, **kwargs):
+        length = kwargs.get('length', 0)
+        if kwargs.get('_xobject') is None and np.isclose(length, 0, atol=1e-13):
+            raise ValueError("A thick element must have a non-zero length.")
 
         knl = kwargs.get('knl', np.array([]))
         ksl = kwargs.get('ksl', np.array([]))
@@ -1223,7 +1226,7 @@ class Quadrupole(BeamElement):
         kwargs['ksl'] = np.pad(ksl,
                         (0, ALLOCATED_MULTIPOLE_ORDER + 1 - len(ksl)), 'constant')
 
-        self.xoinitialize(**kwargs)
+        super().__init__(**kwargs)
 
         self.order = order
 
@@ -1279,6 +1282,12 @@ class Solenoid(BeamElement):
     ksi : float
         Integrated strength of the solenoid component in rad. Only to be
         specified when the element is thin, i.e. when `length` is 0.
+    knl : array
+        Integrated strength of the high-order normal multipolar components.
+    ksl : array
+        Integrated strength of the high-order skew multipolar components.
+    order : int
+        Order of the multipole expansion.
     """
     isthick = True
     has_backtrack = True
@@ -1316,36 +1325,16 @@ class Solenoid(BeamElement):
 
     _internal_record_class = SynchrotronRadiationRecord
 
+
     def __init__(self, **kwargs):
-        """Solenoid element.
-
-        Parameters
-        ----------
-        length : float
-            Length of the element in meters.
-        ks : float
-            Strength of the solenoid component in rad / m. Only to be specified
-            when the element is thin, i.e. when `length` is 0.
-        ksi : float
-            Integrated strength of the solenoid component in rad.
-        knl : array
-            Integrated strength of the high-order normal multipolar components.
-        ksl : array
-            Integrated strength of the high-order skew multipolar components.
-        order : int
-            Order of the multipole expansion.
-        """
-        if kwargs.get('_xobject') is not None:
-            super().__init__(**kwargs)
-            return
-
-        if kwargs.get('ksi', 0) != 0:
+        if (kwargs.get('_xobject') is None
+                and np.isclose(kwargs.get('length'), 0, atol=1e-13)):
             # Fail when trying to create a thin solenoid, as these are not
             # tested yet
             raise NotImplementedError('Thin solenoids are not implemented yet.')
             # self.isthick = False
 
-        if kwargs.get('ksi') and kwargs.get('length'):
+        if not np.isclose(kwargs.get('ksi', 0), 0, atol=1e-13):
             raise ValueError(
                 "The parameter `ksi` can only be specified when `length` == 0."
             )
@@ -1441,7 +1430,6 @@ class Wedge(BeamElement):
 
 
 class SimpleThinBend(BeamElement):
-
     """A specialized version of Multipole to model a thin bend (ksl, hyl are all zero).
 
     Parameters
