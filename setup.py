@@ -10,7 +10,13 @@ from pathlib import Path
 # Prepare list of compiled extensions #
 #######################################
 
-extensions = []
+extensions = [
+    Extension(
+        "xtrack.xmad.xmad",
+        sources=["xtrack/xmad/xmad.py", "xtrack/xmad/xmad_lex.c", "xtrack/xmad/xmad_tab.c"],
+        language="c",
+    )
+]
 
 #########
 # Setup #
@@ -37,7 +43,7 @@ setup(
             "Source Code": "https://github.com/xsuite/xtrack",
         },
     packages=find_packages(),
-    ext_modules = extensions,
+    ext_modules=extensions,
     include_package_data=True,
     install_requires=[
         'numpy>=1.0',
