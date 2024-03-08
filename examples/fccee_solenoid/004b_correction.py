@@ -46,56 +46,26 @@ opt_l = line.match(
     ]
 )
 
-
 # Orbit alone
 opt_l.disable_all_targets(); opt_l.disable_all_vary()
-opt_l.enable_targets(tag='orbit'); opt_l.enable_vary(tag='corr_l')
-opt_l.solve()
+opt_l.enable_targets(tag='orbit'); opt_l.enable_vary(tag='corr_l'); opt_l.solve()
 
 # Coupling alone
 opt_l.disable_all_targets(); opt_l.disable_all_vary()
-opt_l.enable_targets(tag='coupl'); opt_l.enable_vary(tag='skew_l')
-opt_l.solve()
+opt_l.enable_targets(tag='coupl'); opt_l.enable_vary(tag='skew_l'); opt_l.solve()
 
-# Orbit and coupling
-opt_l.enable_targets(tag='orbit'); opt_l.enable_vary(tag='corr_l')
-opt_l.solve()
-
-# Phase advance alone
+# phase, beta and alpha alone
 opt_l.disable_all_targets(); opt_l.disable_all_vary()
-opt_l.enable_targets(tag='mu_ip'); opt_l.enable_vary(tag='normal_l')
-opt_l.solve()
+opt_l.enable_vary(tag='normal_l')
+opt_l.enable_targets(tag='mu_ip'); opt_l.solve()
+opt_l.enable_targets(tag='bet_ip'); opt_l.solve()
+opt_l.enable_targets(tag='alf_ip'); opt_l.solve()
 
-# Coupling alone
-opt_l.disable_all_targets(); opt_l.disable_all_vary()
-opt_l.enable_targets(tag='coupl'); opt_l.enable_vary(tag='skew_l')
-opt_l.solve()
-
-# + phase advance
-opt_l.enable_targets(tag='mu_ip'); opt_l.enable_vary(tag='normal_l')
-opt_l.solve()
-
-# + orbit
-opt_l.enable_targets(tag='orbit'); opt_l.enable_vary(tag='corr_l')
-opt_l.solve()
-
-# IP beta alone
-opt_l.disable_all_targets(); opt_l.disable_all_vary()
-opt_l.enable_targets(tag='bet_ip'); opt_l.enable_vary(tag='normal_l')
-opt_l.solve()
-
-# IP beta and phase
-opt_l.enable_targets(tag='mu_ip'); opt_l.enable_vary(tag='normal_l')
-opt_l.solve()
-
-# IP beta phase and alpha
-opt_l.enable_targets(tag='alf_ip')
-opt_l.solve()
-
-# Add targets on ip beta
+# All together
 opt_l.enable_all_targets()
 opt_l.enable_all_vary()
 opt_l.solve()
+
 
 opt_r = line.match(
     solve=False,
@@ -139,50 +109,20 @@ opt_r = line.match(
 
 # Orbit alone
 opt_r.disable_all_targets(); opt_r.disable_all_vary()
-opt_r.enable_targets(tag='orbit'); opt_r.enable_vary(tag='corr_r')
-opt_r.solve()
+opt_r.enable_targets(tag='orbit'); opt_r.enable_vary(tag='corr_r'); opt_r.solve()
 
 # Coupling alone
 opt_r.disable_all_targets(); opt_r.disable_all_vary()
-opt_r.enable_targets(tag='coupl'); opt_r.enable_vary(tag='skew_r')
-opt_r.solve()
+opt_r.enable_targets(tag='coupl'); opt_r.enable_vary(tag='skew_r'); opt_r.solve()
 
-# Orbit and coupling
-opt_r.enable_targets(tag='orbit'); opt_r.enable_vary(tag='corr_r')
-opt_r.solve()
-
-# Phase advance alone
+# phase, beta and alpha alone
 opt_r.disable_all_targets(); opt_r.disable_all_vary()
-opt_r.enable_targets(tag='mu_ip'); opt_r.enable_vary(tag='normal_r')
-opt_r.solve()
+opt_r.enable_vary(tag='normal_r')
+opt_r.enable_targets(tag='mu_ip'); opt_r.solve()
+opt_r.enable_targets(tag='bet_ip'); opt_r.solve()
+opt_r.enable_targets(tag='alf_ip'); opt_r.solve()
 
-# Coupling alone
-opt_r.disable_all_targets(); opt_r.disable_all_vary()
-opt_r.enable_targets(tag='coupl'); opt_r.enable_vary(tag='skew_r')
-opt_r.solve()
-
-# + phase advance
-opt_r.enable_targets(tag='mu_ip'); opt_r.enable_vary(tag='normal_r')
-opt_r.solve()
-
-# + orbit
-opt_r.enable_targets(tag='orbit'); opt_r.enable_vary(tag='corr_r')
-opt_r.solve()
-
-# IP beta alone
-opt_r.disable_all_targets(); opt_r.disable_all_vary()
-opt_r.enable_targets(tag='bet_ip'); opt_r.enable_vary(tag='normal_r')
-opt_r.solve()
-
-# IP beta and phase
-opt_r.enable_targets(tag='mu_ip'); opt_r.enable_vary(tag='normal_r')
-opt_r.solve()
-
-# IP beta phase and alpha
-opt_r.enable_targets(tag='alf_ip')
-opt_r.solve()
-
-# Add targets on ip beta
+# All together
 opt_r.enable_all_targets()
 opt_r.enable_all_vary()
 opt_r.solve()
