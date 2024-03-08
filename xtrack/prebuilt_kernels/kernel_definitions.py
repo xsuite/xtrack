@@ -166,6 +166,7 @@ try:
     DEFAULT_XCOLL_ELEMENTS = [
         *ONLY_XTRACK_ELEMENTS,
         *NO_SYNRAD_ELEMENTS,
+        ZetaShift,
         xc.BlackAbsorber,
         xc.EverestBlock,
         xc.EverestCollimator,
