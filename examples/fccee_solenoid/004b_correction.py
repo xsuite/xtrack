@@ -16,26 +16,19 @@ tw_local = line.twiss(start='ip.7', end='ip.2', init_at='ip.1',
 
 opt_l = line.match(
     solve=False,
-    method='4d',
-    start='pqc2le.4',
-    end='ip.1',
-    init=tw_sol_off,
-    init_at=xt.START,
-    n_steps_max=30,
+    method='4d', n_steps_max=30,
+    start='pqc2le.4', end='ip.1', init=tw_sol_off, init_at=xt.START,
     vary=[
         xt.VaryList(['acb1h.l1', 'acb2h.l1','acb1v.l1', 'acb2v.l1'], step=1e-8, tag='corr_l'),
         xt.VaryList(['ks1.l1', 'ks2.l1', 'ks3.l1', 'ks0.l1'], step=1e-7, tag='skew_l'),
         xt.VaryList(['corr_k1.l1', 'corr_k2.l1', 'corr_k3.l1', 'corr_k0.l1'], step=1e-6, tag='normal_l'),
     ],
     targets=[
-
         xt.TargetSet(['x', 'px', 'y', 'py'], value=tw_sol_off, at='ip.1', tag='orbit'),
-
         xt.TargetRmatrix(
                     r13=0, r14=0, r23=0, r24=0, # Y-X block
                     r31=0, r32=0, r41=0, r42=0, # X-Y block,
                     start='pqc2le.4', end='ip.1', tol=1e-5, tag='coupl'),
-
         xt.Target('mux', value=tw_sol_off, at='ip.1', tag='mu_ip', weight=0.1, tol=1e-6),
         xt.Target('muy', value=tw_sol_off, at='ip.1', tag='mu_ip', weight=0.1, tol=1e-6),
         xt.Target('betx', value=tw_sol_off, at='ip.1', tag='bet_ip', weight=1, tol=1e-5),
@@ -45,6 +38,7 @@ opt_l = line.match(
 
     ]
 )
+
 
 # Orbit alone
 opt_l.disable_all_targets(); opt_l.disable_all_vary()
@@ -69,25 +63,18 @@ opt_l.solve()
 
 opt_r = line.match(
     solve=False,
-    method='4d',
-    start='ip.1',
-    end='pqc2re.1',
-    init=tw_sol_off,
-    init_at=xt.END,
-    n_steps_max=30,
+    method='4d', n_steps_max=30,
+    start='ip.1', end='pqc2re.1', init=tw_sol_off, init_at=xt.END,
     vary=[
         xt.VaryList(['acb1h.r1', 'acb2h.r1','acb1v.r1', 'acb2v.r1'], step=1e-8, tag='corr_r'),
         xt.VaryList(['ks1.r1', 'ks2.r1', 'ks3.r1', 'ks0.r1'], step=1e-7, tag='skew_r'),
         xt.VaryList(['corr_k1.r1', 'corr_k2.r1', 'corr_k3.r1', 'corr_k0.r1'], step=1e-6, tag='normal_r'),
     ],
     targets=[
-
         xt.TargetSet(['x', 'px', 'y', 'py'], value=tw_sol_off, at='ip.1', tag='orbit'),
-
         xt.TargetRmatrix(r13=0, r14=0, r23=0, r24=0, # Y-X block
                          r31=0, r32=0, r41=0, r42=0, # X-Y block,
                          start='ip.1', end='pqc2re.1', tol=1e-5, tag='coupl'),
-
         xt.Target('mux', value=tw_sol_off, at='ip.1', tag='mu_ip', weight=0.1, tol=1e-6),
         xt.Target('muy', value=tw_sol_off, at='ip.1', tag='mu_ip', weight=0.1, tol=1e-6),
         xt.Target('betx', value=tw_sol_off, at='ip.1', tag='bet_ip', weight=1, tol=1e-5),

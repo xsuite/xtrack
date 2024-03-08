@@ -12,7 +12,7 @@ mng.send('''
 local damap in MAD
 local lhc = MADX.lhcb1
 
--- list of RDTs
+-- list of octupolar RDTs
 local rdts = {"f4000", "f3100", "f2020", "f1120"}
 
 -- create phase-space damap at 4th order
