@@ -37,10 +37,4 @@ void RandomNormal_sample(RandomNormalData rng, LocalParticle* part0,
 }
 
 
-/*gpufun*/
-void RandomNormal_track_local_particle(RandomNormalData rng, LocalParticle* part0) {
-    kill_all_particles(part0, RNG_ERR_INVALID_TRACK);
-}
-
-
 #endif /* XTRACK_NORMAL_RNG_H */

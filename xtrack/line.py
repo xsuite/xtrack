@@ -7,11 +7,15 @@ import io
 import math
 import logging
 import json
+import uuid
+import os
+from collections import defaultdict
+
 from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
 from pathlib import Path
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Dict
 
 import numpy as np
 from scipy.constants import c as clight
@@ -19,13 +23,12 @@ from scipy.constants import c as clight
 from . import linear_normal_form as lnf
 
 import xobjects as xo
-import xpart as xp
 import xtrack as xt
 import xdeps as xd
 from .compounds import CompoundContainer, CompoundType, Compound, SlicedCompound
 from .progress_indicator import progress
-from .slicing import Slicer
-
+from .slicing import Custom, Slicer, Strategy
+from .mad_writer import to_madx_sequence
 
 from .survey import survey_from_line
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
@@ -42,7 +45,8 @@ from . import beam_elements
 from .beam_elements import Drift, BeamElement, Marker, Multipole
 from .footprint import Footprint, _footprint_with_linear_rescale
 from .internal_record import (start_internal_logging_for_elements_of_type,
-                              stop_internal_logging_for_elements_of_type)
+                              stop_internal_logging_for_elements_of_type,
+                              stop_internal_logging)
 
 from .general import _print
 
@@ -191,7 +195,7 @@ class Line:
         self = cls(elements=elements, element_names=dct['element_names'])
 
         if 'particle_ref' in dct.keys():
-            self.particle_ref = xp.Particles.from_dict(dct['particle_ref'],
+            self.particle_ref = xt.Particles.from_dict(dct['particle_ref'],
                                     _context=_buffer.context)
 
         if '_var_manager' in dct.keys():
@@ -547,6 +551,69 @@ class Line:
 
         return out
 
+    def to_madx_sequence(self, sequence_name, mode='sequence'):
+        '''
+        Return a MAD-X sequence corresponding to the line.
+
+        Parameters
+        ----------
+        sequence_name : str
+            Name of the sequence.
+
+        Returns
+        -------
+        madx_sequence : str
+            MAD-X sequence.
+        '''
+        return to_madx_sequence(self, sequence_name, mode=mode)
+
+    def to_madng(self, sequence_name='seq', temp_fname=None, keep_files=False):
+
+        '''
+        Build a MAD NG instance from present state of the line.
+
+        Parameters
+        ----------
+        sequence_name : str
+            Name of the sequence.
+        temp_fname : str
+            Name of the temporary file to be used for the MAD NG instance.
+
+        Returns
+        -------
+        mng : MAD
+            MAD NG instance.
+        '''
+
+        try:
+            if temp_fname is None:
+                temp_fname = 'temp_madng_' + str(uuid.uuid4())
+
+            madx_seq = self.to_madx_sequence(sequence_name=sequence_name)
+            with open(f'{temp_fname}.madx', 'w') as fid:
+                fid.write(madx_seq)
+
+            from pymadng import MAD
+            mng = MAD()
+            mng.MADX.load(f'"{temp_fname}.madx"', f'"{temp_fname}"')
+            mng._init_madx_data = madx_seq
+
+            mng[sequence_name] = mng.MADX[sequence_name] # this ensures that the file has been read
+            mng[sequence_name].beam = mng.beam(particle="'custom'",
+                            mass=self.particle_ref.mass0 * 1e9,
+                            charge=self.particle_ref.q0,
+                            betgam=self.particle_ref.beta0[0] * self.particle_ref.gamma0[0])
+        finally:
+            if not keep_files:
+                for nn in [temp_fname + '.madx', temp_fname + '.mad']:
+                    if os.path.isfile(nn):
+                        os.remove(nn)
+
+        # mng[sequence_name].beam = mng.beam(particle="'proton'", energy=7000)
+
+
+        return mng
+
     def __getstate__(self):
         out = self.__dict__.copy()
         return out
@@ -864,7 +931,6 @@ class Line:
         W_matrix=None,
         method=None,
         scale_with_transverse_norm_emitt=None,
-        particles_class=None,
         _context=None, _buffer=None, _offset=None,
         _capacity=None,
         mode=None,
@@ -969,8 +1035,8 @@ class Line:
             Particles object containing the generated particles.
 
         """
-
-        return xp.build_particles(
+        import xpart
+        return xpart.build_particles(
             line=self,
             particle_ref=particle_ref,
             num_particles=num_particles,
@@ -985,7 +1051,6 @@ class Line:
             W_matrix=W_matrix,
             method=method,
             scale_with_transverse_norm_emitt=scale_with_transverse_norm_emitt,
-            particles_class=particles_class,
             _context=_context, _buffer=_buffer, _offset=_offset,
             _capacity=_capacity,
             mode=mode,
@@ -1732,6 +1797,82 @@ class Line:
         else:
             return s
 
+    def _elements_intersecting_s(
+            self,
+            s: List[float],
+            tol=1e-16,
+    ) -> Dict[str, List[float]]:
+        """Given a list of s positions, return a list of elements 'cut' by s.
+
+        Arguments
+        ---------
+        s
+            A list of s positions.
+        tol
+            Tolerance used when checking if s falls inside an element, or
+            at its edge. Defaults to 1e-16.
+
+        Returns
+        -------
+        A dictionary, where the keys are the names of the intersected elements,
+        and the value for each key is a list of s positions (offset to be
+        relative to the start of the element) corresponding to the 'cuts'.
+        The structure is ordered such that the cuts are sequential.
+        """
+        cuts_for_element = defaultdict(list)
+
+        all_s_positions = self.get_s_elements()
+        all_s_iter = iter(zip(all_s_positions, self.element_names))
+        current_s_iter = iter(sorted(set(s)))
+
+        try:
+            start, name = next(all_s_iter)
+            current_s = next(current_s_iter)
+
+            while True:
+                element = self[name]
+                if not _is_thick(element):
+                    start, name = next(all_s_iter)
+                    continue
+
+                if np.isclose(current_s, start, atol=tol):
+                    current_s = next(current_s_iter)
+                    continue
+
+                end = start + element.length
+                if np.isclose(current_s, end, atol=tol):
+                    current_s = next(current_s_iter)
+                    continue
+
+                if start < current_s < end:
+                    cuts_for_element[name].append(current_s - start)
+                    current_s = next(current_s_iter)
+                    continue
+                if current_s < start:
+                    current_s = next(current_s_iter)
+                    continue
+                if end < current_s:
+                    start, name = next(all_s_iter)
+                    continue
+        except StopIteration:
+            # We have either exhausted `s` or the line
+            # Do we want to raise an error if `s` was not exhausted?
+            pass
+
+        return cuts_for_element
+
+    def cut_at_s(self, s: List[float]):
+        """Slice the line so that positions in s never fall inside an element."""
+        cuts_for_element = self._elements_intersecting_s(s)
+        strategies = [Strategy(None)]  # catch-all, ignore unaffected elements
+        for name, cuts in cuts_for_element.items():
+            scheme = Custom(at_s=cuts, mode='thick')
+            strategy = Strategy(scheme, name=name, exact=True)
+            strategies.append(strategy)
+
+        slicer = Slicer(self, slicing_strategies=strategies)
+        slicer.slice_in_place()
+
     def insert_element(self, name, element=None, at=None, index=None, at_s=None,
                        s_tol=1e-6):
 
@@ -2039,6 +2180,8 @@ class Line:
             names_after = [_generate_name('tilt_exit')] + names_after
 
         # Commit the transformations to the line
+        self.compound_container.remove_compound(compound_name)
+
         for idx, element in enumerate(reversed(after)):
             new_name = names_after[-idx - 1]
             self.insert_element(index=idx_end, element=element, name=new_name)
@@ -2048,6 +2191,8 @@ class Line:
             new_name = names_before[-idx - 1]
             self.insert_element(index=idx_begin, element=element, name=new_name)
             compound.add_transform(new_name, side='entry')
+
+        self.compound_container.define_compound(compound_name, compound)
 
     def _enumerate_top_level(self):
         idx = 0
@@ -2243,12 +2388,12 @@ class Line:
             assert self.iscollective is False, ('Cannot freeze energy '
                             'in collective mode (not yet implemented)')
         if state:
-            self.freeze_vars(xp.Particles.part_energy_varnames())
+            self.freeze_vars(xt.Particles.part_energy_varnames())
         else:
-            self.unfreeze_vars(xp.Particles.part_energy_varnames())
+            self.unfreeze_vars(xt.Particles.part_energy_varnames())
 
     def _energy_is_frozen(self):
-        for vn in xp.Particles.part_energy_varnames():
+        for vn in xt.Particles.part_energy_varnames():
             flag_name = f'FREEZE_VAR_{vn}'
             if flag_name not in self.config or self.config[flag_name] == False:
                 return False
@@ -2270,9 +2415,9 @@ class Line:
         assert self.iscollective is False, ('Cannot freeze longitudinal '
                         'variables in collective mode (not yet implemented)')
         if state:
-            self.freeze_vars(xp.Particles.part_energy_varnames() + ['zeta'])
+            self.freeze_vars(xt.Particles.part_energy_varnames() + ['zeta'])
         else:
-            self.unfreeze_vars(xp.Particles.part_energy_varnames() + ['zeta'])
+            self.unfreeze_vars(xt.Particles.part_energy_varnames() + ['zeta'])
 
     def freeze_vars(self, variable_names):
 
@@ -2531,6 +2676,22 @@ class Line:
         self._check_valid_tracker()
         return start_internal_logging_for_elements_of_type(self.tracker,
                                                     element_type, capacity)
+
+    def stop_internal_logging_for_all_elements(self, reinitialize_io_buffer=False):
+        """
+        Stop internal logging for all elements.
+
+        Parameters
+        ----------
+        reinitialize_io_buffer: bool
+            If True, the IO buffer is reinitialized (default: False).
+
+        """
+        self._check_valid_tracker()
+        stop_internal_logging(elements=self.elements)
+
+        if reinitialize_io_buffer:
+            self.tracker._init_io_buffer()
 
     def stop_internal_logging_for_elements_of_type(self, element_type):
 

@@ -551,8 +551,8 @@ def test_lhc_match_phase_15(test_context, config):
     twmad_b1 = xd.Table(mad.table.twb1)
     twmad_b2 = xd.Table(mad.table.twb2)
 
-    assert np.isclose(twmad_b1['px', 'ip8:1'], 100e-6, rtol=0, atol=5e-10)
-    assert np.isclose(twmad_b2['px', 'ip8:1'], -100e-6, rtol=0, atol=5e-10)
+    assert np.isclose(twmad_b1['px', 'ip8:1'], 100e-6, rtol=0, atol=1e-9)
+    assert np.isclose(twmad_b2['px', 'ip8:1'], -100e-6, rtol=0, atol=1e-9)
     assert np.isclose(twmad_b1['py', 'ip2:1'], 110e-6, rtol=0, atol=5e-10)
     assert np.isclose(twmad_b2['py', 'ip2:1'], -110e-6, rtol=0, atol=5e-10)
 

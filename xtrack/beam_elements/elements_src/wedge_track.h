@@ -14,16 +14,17 @@ void Wedge_single_particle(
         const double theta,   // Angle of the wedge
         const double k0       // Dipole strength
 ) {
-    if (fabs(k0) < 10e-10) {
+
+    // Params
+    const double b1 = k0 * LocalParticle_get_chi(part);
+
+    if (fabs(b1) < 10e-10) {
         const double sin_ = sin(theta);
         const double cos_ = cos(theta);
         const double tan_ = tan(theta);
         YRotation_single_particle(part, sin_, cos_, tan_);
         return;
     }
-
-    // Params
-    const double b1 = k0;
 
     const double rvv = LocalParticle_get_rvv(part);
     // Particle coordinates

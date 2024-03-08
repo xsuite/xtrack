@@ -40,7 +40,7 @@ void Fringe_single_particle(
 
     const double fh = hgap * fint;
     const double fsad = (fh > 10e-10) ? 1./(72 * fh) : 0;
-    const double k0w = k0;
+    const double k0w = k0 * LocalParticle_get_chi(part);
 
     const double _beta = 1. / beta0 ;
     const double b0 = k0w; // MAD does something with the charge (to be checked)

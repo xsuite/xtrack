@@ -84,6 +84,7 @@ class MultiSetter(xo.HybridClass):
 
     _kernels = {
         'get_values_at_offsets_float64': xo.Kernel(
+            c_name='get_values_at_offsets_float64',
             args=[
                 xo.Arg(xo.ThisClass, name='data'),
                 xo.Arg(xo.Int8, pointer=True, name='buffer'),
@@ -91,6 +92,7 @@ class MultiSetter(xo.HybridClass):
             ],
         ),
         'get_values_at_offsets_int64': xo.Kernel(
+            c_name='get_values_at_offsets_int64',
             args=[
                 xo.Arg(xo.ThisClass, name='data'),
                 xo.Arg(xo.Int8, pointer=True, name='buffer'),
@@ -98,6 +100,7 @@ class MultiSetter(xo.HybridClass):
             ],
         ),
         'set_values_at_offsets_float64': xo.Kernel(
+            c_name='set_values_at_offsets_float64',
             args=[
                 xo.Arg(xo.ThisClass, name='data'),
                 xo.Arg(xo.Int8, pointer=True, name='buffer'),
@@ -105,6 +108,7 @@ class MultiSetter(xo.HybridClass):
             ],
         ),
         'set_values_at_offsets_int64': xo.Kernel(
+            c_name='set_values_at_offsets_int64',
             args=[
                 xo.Arg(xo.ThisClass, name='data'),
                 xo.Arg(xo.Int8, pointer=True, name='buffer'),

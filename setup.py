@@ -45,7 +45,6 @@ setup(
         'scipy',
         'tqdm',
         'xobjects',
-        'xpart',
         'xdeps'
         ],
     extras_require={

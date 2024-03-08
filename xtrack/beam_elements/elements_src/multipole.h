@@ -38,13 +38,15 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
     #endif
 
     //start_per_particle_block (part0->part)
+        double const chi = LocalParticle_get_chi(part);
+
         int64_t order = MultipoleData_get_order(el);
         int64_t index = order;
 
         double inv_factorial = MultipoleData_get_inv_factorial_order(el);
 
-        double dpx = MultipoleData_get_knl(el, index) * inv_factorial;
-        double dpy = MultipoleData_get_ksl(el, index) * inv_factorial;
+        double dpx = chi * MultipoleData_get_knl(el, index) * inv_factorial;
+        double dpy = chi * MultipoleData_get_ksl(el, index) * inv_factorial;
 
         #ifdef XSUITE_BACKTRACK
         dpx = -dpx;
@@ -59,7 +61,6 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 
         double const x   = LocalParticle_get_x(part);
         double const y   = LocalParticle_get_y(part);
-        double const chi = LocalParticle_get_chi(part);
 
         #ifndef XSUITE_BACKTRACK
         double const hxl = MultipoleData_get_hxl(el);
@@ -77,8 +78,8 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
             inv_factorial *= index;
             index -= 1;
 
-            double this_knl = MultipoleData_get_knl(el, index);
-            double this_ksl = MultipoleData_get_ksl(el, index);
+            double this_knl = chi * MultipoleData_get_knl(el, index);
+            double this_ksl = chi * MultipoleData_get_ksl(el, index);
 
             #ifdef XSUITE_BACKTRACK
             this_knl = -this_knl;
@@ -113,8 +114,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         }
         #endif
 
-        dpx = -chi * dpx; // rad
-        dpy =  chi * dpy; // rad
+        dpx = -dpx; // rad (sign definition)
 
         if( ( hxl > 0) || ( hyl > 0) || ( hxl < 0 ) || ( hyl < 0 ) )
         {
