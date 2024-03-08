@@ -781,10 +781,19 @@ class TargetRmatrix(TargetSet):
             'r61': r61, 'r62': r62, 'r63': r63, 'r64': r64, 'r65': r65, 'r66': r66,
         }
 
+        tol = kwargs.pop('tol', None)
+
         self.targets = []
         for kk, vv in r_elems.items():
+            thistol = tol
+            if thistol is not None:
+                if kk[1] in ['2', '4']:
+                    thistol *= 1e-2
+                if kk[2] in ['2', '4']:
+                    thistol *= 1e+2
             if vv is not None:
-                self.targets.append(TargetRmatrixTerm(kk, vv, start=start, end=end, **kwargs))
+                self.targets.append(TargetRmatrixTerm(kk, vv, start=start, end=end,
+                                                      tol=thistol, **kwargs))
 
 
 def match_line(line, vary, targets, solve=True, assert_within_tol=True,

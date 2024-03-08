@@ -34,7 +34,7 @@ opt_l = line.match(
         xt.TargetRmatrix(
                     r13=0, r14=0, r23=0, r24=0, # Y-X block
                     r31=0, r32=0, r41=0, r42=0, # X-Y block,
-                    start='pqc2le.4', end='ip.1', tol=1e-7, tag='coupl'),
+                    start='pqc2le.4', end='ip.1', tol=1e-5, tag='coupl'),
 
         xt.Target('mux', value=tw_sol_off, at='ip.1', tag='mu_ip', weight=0.1, tol=1e-6),
         xt.Target('muy', value=tw_sol_off, at='ip.1', tag='mu_ip', weight=0.1, tol=1e-6),
@@ -114,18 +114,18 @@ opt_r = line.match(
 
         xt.TargetSet(['x', 'px', 'y', 'py'], value=tw_sol_off, at='ip.1', tag='orbit'),
 
-        xt.TargetRmatrix(r13=0, r31=0, tol=1e-6,
-                        start='ip.1', end='pqc2re.1', tag='coupl'),
-        xt.TargetRmatrix(r24=0, r42=0, tol=1e-6,
-                        start='ip.1', end='pqc2re.1', tag='coupl'),
-        xt.TargetRmatrix(r23=0, r41=0, tol=1e-7,
-                        start='ip.1', end='pqc2re.1', tag='coupl'),
-        xt.TargetRmatrix(r14=0, r32=0, tol=1e-5,
-                        start='ip.1', end='pqc2re.1', tag='coupl'),
+        # xt.TargetRmatrix(r13=0, r31=0, tol=1e-6,
+        #                 start='ip.1', end='pqc2re.1', tag='coupl'),
+        # xt.TargetRmatrix(r24=0, r42=0, tol=1e-6,
+        #                 start='ip.1', end='pqc2re.1', tag='coupl'),
+        # xt.TargetRmatrix(r23=0, r41=0, tol=1e-7,
+        #                 start='ip.1', end='pqc2re.1', tag='coupl'),
+        # xt.TargetRmatrix(r14=0, r32=0, tol=1e-5,
+        #                 start='ip.1', end='pqc2re.1', tag='coupl'),
 
-        # xt.TargetRmatrix(r13=0, r14=0, r23=0, r24=0, # Y-X block
-        #                  r31=0, r32=0, r41=0, r42=0, # X-Y block,
-        #                  start='ip.1', end='pqc2re.1', tol=1e-7, tag='coupl'),
+        xt.TargetRmatrix(r13=0, r14=0, r23=0, r24=0, # Y-X block
+                         r31=0, r32=0, r41=0, r42=0, # X-Y block,
+                         start='ip.1', end='pqc2re.1', tol=1e-5, tag='coupl'),
 
         xt.Target('mux', value=tw_sol_off, at='ip.1', tag='mu_ip', weight=0.1, tol=1e-6),
         xt.Target('muy', value=tw_sol_off, at='ip.1', tag='mu_ip', weight=0.1, tol=1e-6),
