@@ -3663,7 +3663,8 @@ class Line:
             line=self,
             fields=[
                 'hxl', 'hyl', 'length', 'radiation_flag', 'delta_taper', 'ks',
-                'voltage', 'frequency', 'lag', 'lag_taper', 'k0', 'k1', 'k2','h',
+                'voltage', 'frequency', 'lag', 'lag_taper',
+                'k0', 'k1', 'k1s', 'k2', 'h',
                 ('knl', 0), ('ksl', 0), ('knl', 1), ('ksl', 1),
                 ('knl', 2), ('ksl', 2), ('knl', 3), ('ksl', 3),
             ],
@@ -3673,6 +3674,7 @@ class Line:
                 'k2l': lambda attr: attr['knl', 2] + attr['k2'] * attr['length'],
                 'k3l': lambda attr: attr['knl', 3],
                 'angle_x': lambda attr: attr['hxl'] + attr['h'] * attr['length'],
+                'k1sl': lambda attr: attr['ksl', 1] + attr['k1s'] * attr['length'],
             }
         )
         return cache
