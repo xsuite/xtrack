@@ -65,10 +65,10 @@ assert np.isclose(line2['mq.27l2.b2'].k1, line4['mq.27l2.b2'].k1, rtol=0, atol=1
 assert np.isclose(line2['mqs.27l3.b2'].k1s, line4['mqs.27l3.b2'].k1s, rtol=0, atol=1e-12)
 
 tt2 = line2.get_table()
-tw4 = line4.get_table()
+tt4 = line4.get_table()
 
 tt2nodr = tt2.rows[tt2.element_type != 'Drift']
-tt4nodr = tw4.rows[tw4.element_type != 'Drift']
+tt4nodr = tt4.rows[tt4.element_type != 'Drift']
 
 # Check s
 l2names = list(tt2nodr.name)
