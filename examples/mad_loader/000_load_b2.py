@@ -64,3 +64,42 @@ line4.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, p0c=7000e9)
 assert np.isclose(line2['mq.27l2.b2'].k1, line4['mq.27l2.b2'].k1, rtol=0, atol=1e-12)
 assert np.isclose(line2['mqs.27l3.b2'].k1s, line4['mqs.27l3.b2'].k1s, rtol=0, atol=1e-12)
 
+tt2 = line2.get_table()
+tw4 = line4.get_table()
+
+tt2nodr = tt2.rows[tt2.element_type != 'Drift']
+tt4nodr = tw4.rows[tw4.element_type != 'Drift']
+
+# Check s
+l2names = list(tt2nodr.name)
+l4names = list(tt4nodr.name)
+
+l2names.remove('lhcb2$start')
+l2names.remove('lhcb2$end')
+l4names.remove('lhcb2$start')
+l4names.remove('lhcb2$end')
+
+# They seem not to be in the same place?!?
+l2names.remove('tclia.4r2_entry')
+l2names.remove('tclia.4r2_exit')
+l4names.remove('tclia.4r2_entry')
+l4names.remove('tclia.4r2_exit')
+
+assert set(l2names) == set(l4names)
+
+assert np.allclose(
+    tt2nodr.rows[l2names].s, tt4nodr.rows[l2names].s, rtol=0, atol=1e-8)
+
+for nn in l2names:
+    print(nn+'              ', end='\r', flush=True)
+    if nn == '_end_point':
+        continue
+    e2 = line2[nn]
+    e4 = line4[nn]
+    d2 = e2.to_dict()
+    d4 = e4.to_dict()
+    for kk in d2.keys():
+        if kk == '__class__':
+            assert d2[kk] == d4[kk]
+            continue
+        assert np.allclose(d2[kk], d4[kk], rtol=1e-10, atol=1e-16)
