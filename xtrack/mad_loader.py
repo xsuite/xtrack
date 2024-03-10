@@ -1239,12 +1239,18 @@ class MadLoader:
             scale_voltage = 1./self.sequence.beam.charge
         else:
             scale_voltage = 1.
+        if self.bv == -1:
+            lag_deg = -ee.lag * 360 + 180
+        elif self.bv == 1:
+            lag_deg = ee.lag * 360
+        else:
+            raise ValueError(f"bv should be 1 or -1, not {self.bv}")
         el = self.Builder(
             ee.name,
             self.classes.Cavity,
             voltage=scale_voltage * ee.volt * 1e6,
             frequency=frequency,
-            lag=ee.lag * 360,
+            lag=lag_deg,
         )
 
         if value_if_expr(ee.l) != 0:

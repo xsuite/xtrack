@@ -25,7 +25,7 @@ mad4.twiss()
 
 for mad in [mad1, mad4]:
     mad.globals['vrf400'] = 16 # Check voltage expressions
-    mad.globals['lagrf400.b2'] = 0.52 # Check lag expressions
+    mad.globals['lagrf400.b2'] = 0.02 # Check lag expressions
     mad.globals['on_x1'] = 100 # Check kicker expressions
     mad.globals['on_sep2'] = 2 # Check kicker expressions
     mad.globals['on_x5'] = 123 # Check kicker expressions
@@ -37,7 +37,6 @@ for mad in [mad1, mad4]:
     mad.globals['on_crab5'] = -130 # Check cavity expressions
     mad.globals['on_sol_atlas'] = 1 # Check solenoid expressions
     mad.globals['kctx3.l1'] = 1e-5 # Check thin dodecapole expressions
-
 
 # line1=xt.Line.from_madx_sequence(mad1.sequence.lhcb1,
 #                                  allow_thick=True,
@@ -65,12 +64,3 @@ line4.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, p0c=7000e9)
 assert np.isclose(line2['mq.27l2.b2'].k1, line4['mq.27l2.b2'].k1, rtol=0, atol=1e-12)
 assert np.isclose(line2['mqs.27l3.b2'].k1s, line4['mqs.27l3.b2'].k1s, rtol=0, atol=1e-12)
 
-# Sext done
-
-# Octupole done
-
-# Kickers done
-
-# Solenoid done
-
-# Do not forget tilts and shifts
