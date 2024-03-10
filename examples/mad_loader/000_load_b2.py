@@ -35,6 +35,7 @@ for mad in [mad1, mad4]:
     mad.globals['kof.a34b2'] = 3 # Check oct expressions
     mad.globals['on_crab1'] = -190 # Check cavity expressions
     mad.globals['on_crab5'] = -130 # Check cavity expressions
+    mad.globals['on_sol_atlas'] = 1 # Check solenoid expressions
 
 
 # line1=xt.Line.from_madx_sequence(mad1.sequence.lhcb1,
@@ -66,5 +67,9 @@ assert np.isclose(line2['mqs.27l3.b2'].k1s, line4['mqs.27l3.b2'].k1s, rtol=0, at
 # Sext done
 
 # Octupole done
+
+# Kickers done
+
+# Solenoid done
 
 # Do not forget tilts and shifts
