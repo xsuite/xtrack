@@ -808,6 +808,8 @@ class MadLoader:
 
         aperture_seq = []
         if self.enable_apertures and mad_el.has_aperture():
+            if self.bv == -1:
+                raise NotImplementedError("Apertures for bv=-1 are not yet supported.")
             aper = Aperture(mad_el, self.enable_align_errors, self)
             aperture_seq = aper.entry() + aper.aperture() + aper.exit()
 
@@ -1093,7 +1095,7 @@ class MadLoader:
         )
         return self.make_compound_elem([el], mad_elem)
 
-    def convert_multipole(self, mad_elem):
+    def convert_multipole(self, mad_elem): # bv done
         self._assert_element_is_thin(mad_elem)
         # getting max length of knl and ksl
         if self.bv == -1:
@@ -1215,6 +1217,8 @@ class MadLoader:
         return self.make_compound_elem(sequence, mad_el)
 
     def convert_dipedge(self, mad_elem):
+        if self.bv == -1:
+            raise NotImplementedError("Dipole edges for bv=-1 are not yet supported.")
         # TODO LRAD
         el = self.Builder(
             mad_elem.name,
@@ -1226,7 +1230,7 @@ class MadLoader:
         )
         return self.make_compound_elem([el], mad_elem)
 
-    def convert_rfcavity(self, ee):
+    def convert_rfcavity(self, ee): # bv done
         # TODO LRAD
         if ee.freq == 0 and ee.harmon:
             frequency = (
@@ -1265,6 +1269,8 @@ class MadLoader:
         return self.make_compound_elem(sequence, ee)
 
     def convert_rfmultipole(self, ee):
+        if self.bv == -1:
+            raise NotImplementedError("RF multipole for bv=-1 are not yet supported.")
         self._assert_element_is_thin(ee)
         # TODO LRAD
         if ee.harmon:
@@ -1285,6 +1291,8 @@ class MadLoader:
         return self.make_compound_elem([el], ee)
 
     def convert_wire(self, ee):
+        if self.bv == -1:
+            raise NotImplementedError("Wire for bv=-1 are not yet supported.")
         self._assert_element_is_thin(ee)
         if len(ee.L_phy) == 1:
             # the index [0] is present because in MAD-X multiple wires can
@@ -1304,6 +1312,8 @@ class MadLoader:
             raise ValueError("Multiwire configuration not supported")
 
     def convert_crabcavity(self, ee):
+        if self.bv == -1:
+            raise NotImplementedError("Crab cavity for bv=-1 are not yet supported.")
         self._assert_element_is_thin(ee)
         # This has to be disabled, as it raises an error when l is assigned to an
         # expression:
@@ -1333,6 +1343,8 @@ class MadLoader:
         return self.make_compound_elem([el], ee)
 
     def convert_beambeam(self, ee):
+        if self.bv == -1:
+            raise NotImplementedError("BeamBeam for bv=-1 are not yet supported.")
         self._assert_element_is_thin(ee)
         import xfields as xf
 
@@ -1420,6 +1432,8 @@ class MadLoader:
         return self.make_compound_elem([el], ee)
 
     def convert_matrix(self, ee):
+        if self.bv == -1:
+            raise NotImplementedError("Matrix for bv=-1 are not yet supported.")
         length = ee.l
         m0 = np.zeros(6, dtype=object)
         for m0_i in range(6):
@@ -1438,6 +1452,8 @@ class MadLoader:
         return self.make_compound_elem([el], ee)
 
     def convert_srotation(self, ee):
+        if self.bv == -1:
+            raise NotImplementedError("SRotation for bv=-1 are not yet supported.")
         angle = ee.angle*180/np.pi
         el = self.Builder(
             ee.name, self.classes.SRotation, angle=angle
@@ -1445,6 +1461,8 @@ class MadLoader:
         return self.make_compound_elem([el], ee)
 
     def convert_xrotation(self, ee):
+        if self.bv == -1:
+            raise NotImplementedError("XRotation for bv=-1 are not yet supported.")
         angle = ee.angle*180/np.pi
         el = self.Builder(
             ee.name, self.classes.XRotation, angle=angle
@@ -1452,6 +1470,8 @@ class MadLoader:
         return self.make_compound_elem([el], ee)
 
     def convert_yrotation(self, ee):
+        if self.bv == -1:
+            raise NotImplementedError("YRotation for bv=-1 are not yet supported.")
         angle = ee.angle*180/np.pi
         el = self.Builder(
             ee.name, self.classes.YRotation, angle=angle
@@ -1459,6 +1479,8 @@ class MadLoader:
         return self.make_compound_elem([el], ee)
 
     def convert_translation(self, ee):
+        if self.bv == -1:
+            raise NotImplementedError("Translation for bv=-1 are not yet supported.")
         el_transverse = self.Builder(
             ee.name, self.classes.XYShift, dx=ee.dx, dy=ee.dy
         )
@@ -1470,6 +1492,8 @@ class MadLoader:
         return self.make_compound_elem([el_transverse], ee)
 
     def convert_nllens(self, mad_elem):
+        if self.bv == -1:
+            raise NotImplementedError("Non-linear lens for bv=-1 are not yet supported.")
         el = self.Builder(
             mad_elem.name,
             self.classes.NonLinearLens,
