@@ -57,6 +57,14 @@ line4=xt.Line.from_madx_sequence(mad4.sequence.lhcb2,
                                  replace_in_expr={'bv_aux':'bvaux_b2'})
 line4.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, p0c=7000e9)
 
+# Bend done
+
 # Quadrupole
 assert np.isclose(line2['mq.27l2.b2'].k1, line4['mq.27l2.b2'].k1, rtol=0, atol=1e-12)
 assert np.isclose(line2['mqs.27l3.b2'].k1s, line4['mqs.27l3.b2'].k1s, rtol=0, atol=1e-12)
+
+# Sext done
+
+# Octupole done
+
+# Do not forget tilts and shifts

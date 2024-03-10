@@ -860,10 +860,10 @@ class MadLoader:
             mad_el,
         )
 
-    def convert_rbend(self, mad_el):
+    def convert_rbend(self, mad_el): # bv done
         return self._convert_bend(mad_el)
 
-    def convert_sbend(self, mad_el):
+    def convert_sbend(self, mad_el): # bv done
         return self._convert_bend(mad_el)
 
     def _convert_bend( # bv done
@@ -946,27 +946,27 @@ class MadLoader:
 
         return self.make_compound_elem(sequence, mad_el)
 
-    def convert_sextupole(self, mad_el):
+    def convert_sextupole(self, mad_el): # bv done
         return self.make_compound_elem(
             [
                 self.Builder(
                     mad_el.name,
                     self.classes.Sextupole,
                     k2=mad_el.k2,
-                    k2s=mad_el.k2s,
+                    k2s=self.bv * mad_el.k2s,
                     length=mad_el.l,
                 ),
             ],
             mad_el,
         )
 
-    def convert_octupole(self, mad_el):
+    def convert_octupole(self, mad_el): # bv done
         return self.make_compound_elem(
             [
                 self.Builder(
                     mad_el.name,
                     self.classes.Octupole,
-                    k3=mad_el.k3,
+                    k3=self.bv*mad_el.k3,
                     k3s=mad_el.k3s,
                     length=mad_el.l,
                 ),
@@ -1104,6 +1104,7 @@ class MadLoader:
         el = self.Builder(mad_elem.name, self.classes.Multipole, order=lmax - 1)
         el.knl = knl[:lmax]
         el.ksl = ksl[:lmax]
+
         if (
             mad_elem.angle
         ):  # testing for non-zero (cannot use !=0 as it creates an expression)
@@ -1114,9 +1115,9 @@ class MadLoader:
         el.length = mad_elem.lrad
         return self.make_compound_elem([el], mad_elem)
 
-    def convert_kicker(self, mad_el):
+    def convert_kicker(self, mad_el): # bv done
         hkick = [-mad_el.hkick] if mad_el.hkick else []
-        vkick = [mad_el.vkick] if mad_el.vkick else []
+        vkick = [self.bv * mad_el.vkick] if mad_el.vkick else []
         thin_kicker = self.Builder(
             mad_el.name,
             self.classes.Multipole,
@@ -1143,7 +1144,7 @@ class MadLoader:
 
     convert_tkicker = convert_kicker
 
-    def convert_hkicker(self, mad_el):
+    def convert_hkicker(self, mad_el): # bv done
         if mad_el.hkick:
             raise ValueError(
                 "hkicker with hkick is not supported, please use kick instead")
@@ -1174,13 +1175,13 @@ class MadLoader:
 
         return self.make_compound_elem(sequence, mad_el)
 
-    def convert_vkicker(self, mad_el):
+    def convert_vkicker(self, mad_el): # bv done
         if mad_el.vkick:
             raise ValueError(
                 "vkicker with vkick is not supported, please use kick instead")
 
         hkick = []
-        vkick = [mad_el.kick] if mad_el.kick else []
+        vkick = [self.bv * mad_el.kick] if mad_el.kick else []
         thin_vkicker = self.Builder(
             mad_el.name,
             self.classes.Multipole,
