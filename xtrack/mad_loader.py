@@ -866,7 +866,7 @@ class MadLoader:
     def convert_sbend(self, mad_el):
         return self._convert_bend(mad_el)
 
-    def _convert_bend(
+    def _convert_bend( # bv done
         self,
         mad_el,
     ):
@@ -895,7 +895,7 @@ class MadLoader:
             cls,
             k0=k0,
             h=h,
-            k1=mad_el.k1,
+            k1=self.bv * mad_el.k1,
             length=l_curv,
             knl=[0, 0, mad_el.k2 * l_curv],
             num_multipole_kicks=num_multipole_kicks,
@@ -915,6 +915,9 @@ class MadLoader:
             raise NotImplementedError(
                 f'Unknown bend type {mad_el.type}.'
             )
+
+        if self.bv == -1:
+            e1, e2 = e2, e1
 
         dipedge_entry = self.Builder(
             mad_el.name + "_den",
