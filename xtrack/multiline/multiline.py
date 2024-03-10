@@ -80,7 +80,7 @@ class Multiline:
                     dct['_bb_config'][nn] = vv
 
         dct["metadata"] = deepcopy(self.metadata)
-            
+
         return dct
 
     @classmethod
@@ -121,7 +121,7 @@ class Multiline:
                     df = None
                 new_multiline._bb_config[
                     'dataframes'][nn] = df
-                
+
         if "metadata" in dct:
             new_multiline.metadata = dct["metadata"]
 
@@ -169,6 +169,46 @@ class Multiline:
                 dct = json.load(fid)
 
         return cls.from_dict(dct, **kwargs)
+
+    @classmethod
+    def from_madx(cls, file, stdout=None, **kwargs):
+        '''
+        Load a multiline from a MAD-X file.
+
+        Parameters
+        ----------
+        file: str
+            The MAD-X file to load from.
+        **kwargs: dict
+            Additional keyword arguments are passed to the `Line.from_madx_sequence`
+            method.
+
+        Returns
+        -------
+        new_multiline: Multiline
+            The multiline object.
+        '''
+        from cpymad.madx import Madx
+
+        mad = Madx(stdout=stdout)
+        mad.call(file)
+        lines = {}
+        for nn in mad.sequence.keys():
+            lines[nn] = xt.Line.from_madx_sequence(
+                mad.sequence[nn],
+                allow_thick=True,
+                deferred_expressions=True,
+                **kwargs)
+
+            lines[nn].particle_ref = xt.Particles(
+                mass0=mad.sequence[nn].beam.mass*1e9,
+                q0=mad.sequence[nn].beam.charge,
+                gamma0=mad.sequence[nn].beam.gamma)
+
+            if mad.sequence[nn].beam.bv == -1:
+                lines[nn].twiss_default['reverse'] = True
+
+        return cls(lines=lines)
 
     def copy(self):
         '''

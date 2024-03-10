@@ -1140,6 +1140,15 @@ class Line:
 
     twiss.__doc__ = twiss_line.__doc__
 
+    def twiss4d(self, **kwargs):
+
+        """
+        Compute the 4D Twiss parameters. Equivalent to `twiss` with `method='4d'`.
+        """
+
+        kwargs['method'] = '4d'
+        return self.twiss(**kwargs)
+
     def match(self, vary, targets, solve=True, assert_within_tol=True,
                   compensate_radiation_energy_loss=False,
                   solver_options={}, allow_twiss_failure=True,
