@@ -645,7 +645,13 @@ class MadLoader:
         if len(self.sequence.expanded_elements)==0:
             raise ValueError(f"{self.sequence} has no elements, please do {self.sequence}.use()")
         last_element = Dummy
-        for el in self.sequence.expanded_elements:
+        if self.bv == -1:
+            expanded_elements = list(self.sequence.expanded_elements)[::-1]
+        elif self.bv == 1:
+            expanded_elements = self.sequence.expanded_elements
+        else:
+            raise ValueError(f"bv should be 1 or -1, not {self.bv}")
+        for el in expanded_elements:
             madelem = MadElem(el.name, el, self.sequence, madeval,
                               name_prefix=self.name_prefix)
             if self.skip_markers and madelem.is_empty_marker():
@@ -691,6 +697,10 @@ class MadLoader:
         else:
             madeval = None
             self.Builder = ElementBuilder
+
+        bv = self.sequence.beam.bv
+        assert bv==1 or bv==-1, f"bv should be 1 or -1, not {bv}"
+        self.bv = bv
 
         # Avoid progress bar if there are few elements
         if len(self.sequence.expanded_elements) > 10:
@@ -835,14 +845,14 @@ class MadLoader:
                 "Quadrupole are not supported in thin mode."
             )
 
-    def _convert_quadrupole_thick(self, mad_el):
+    def _convert_quadrupole_thick(self, mad_el): # bv done
 
         return self.make_compound_elem(
             [
                 self.Builder(
                     mad_el.name,
                     self.classes.Quadrupole,
-                    k1=mad_el.k1,
+                    k1=self.bv * mad_el.k1,
                     k1s=mad_el.k1s,
                     length=mad_el.l,
                 ),
