@@ -36,6 +36,7 @@ for mad in [mad1, mad4]:
     mad.globals['on_crab1'] = -190 # Check cavity expressions
     mad.globals['on_crab5'] = -130 # Check cavity expressions
     mad.globals['on_sol_atlas'] = 1 # Check solenoid expressions
+    mad.globals['kctx3.l1'] = 1e-5 # Check thin dodecapole expressions
 
 
 # line1=xt.Line.from_madx_sequence(mad1.sequence.lhcb1,

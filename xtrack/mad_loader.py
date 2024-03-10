@@ -463,9 +463,10 @@ class Aperture:
 
 
 class Alignment:
-    def __init__(self, mad_el, enable_errors, classes, Builder, custom_tilt=None):
+    def __init__(self, mad_el, enable_errors, classes, Builder, bv, custom_tilt=None):
         self.mad_el = mad_el
-        self.tilt = mad_el.get("tilt", 0)  # some elements do not have tilt
+        self.bv = bv
+        self.tilt = bv * mad_el.get("tilt", 0)  # some elements do not have tilt
         if self.tilt:
             self.tilt = rad2deg(self.tilt)
         if custom_tilt is not None:
@@ -478,6 +479,8 @@ class Alignment:
             and hasattr(mad_el, "align_errors")
             and mad_el.align_errors is not None
         ):
+            if bv != 1:
+                raise NotImplementedError("Alignment errors not supported for bv=-1")
             self.align_errors = mad_el.align_errors
             self.dx = self.align_errors.dx
             self.dy = self.align_errors.dy
@@ -800,7 +803,8 @@ class MadLoader:
         # TODO: Implement permanent alignment
 
         align = Alignment(
-            mad_el, self.enable_align_errors, self.classes, self.Builder, custom_tilt)
+            mad_el, self.enable_align_errors, self.classes, self.Builder,
+            self.bv, custom_tilt)
 
         aperture_seq = []
         if self.enable_apertures and mad_el.has_aperture():
@@ -1092,8 +1096,12 @@ class MadLoader:
     def convert_multipole(self, mad_elem):
         self._assert_element_is_thin(mad_elem)
         # getting max length of knl and ksl
-        knl = mad_elem.knl
-        ksl = mad_elem.ksl
+        if self.bv == -1:
+            knl = [(-1)**ii * x for ii, x in enumerate(mad_elem.knl)]
+            ksl = [(-1)**(ii+1) * x for ii, x in enumerate(mad_elem.ksl)]
+        else:
+            knl = mad_elem.knl
+            ksl = mad_elem.ksl
         lmax = max(non_zero_len(knl), non_zero_len(ksl), 1)
         if mad_elem.field_errors is not None and self.enable_field_errors:
             dkn = mad_elem.field_errors.dkn
