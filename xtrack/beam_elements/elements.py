@@ -1080,6 +1080,25 @@ class Octupole(BeamElement):
         # Remove the ref to the element itself
         _unregister_if_preset(ref)
 
+    @classmethod
+    def add_thick_slice(cls, weight, container, name, slice_name, _buffer=None):
+        self_or_ref = container[name]
+        container[slice_name] = cls(_buffer=_buffer)
+        ref = container[slice_name]
+
+        ref.length = _get_expr(self_or_ref.length) * weight
+        ref.k3 = _get_expr(self_or_ref.k3)
+        ref.k3s = _get_expr(self_or_ref.k3s)
+
+    @staticmethod
+    def delete_element_ref(ref):
+        # Remove the scalar fields
+        for field in ['k3', 'k3s', 'length']:
+            _unregister_if_preset(getattr(ref, field))
+
+        # Remove the ref to the element itself
+        _unregister_if_preset(ref)
+
 
 class Quadrupole(BeamElement):
     isthick = True
@@ -1230,6 +1249,25 @@ class Solenoid(BeamElement):
             )
 
         self.xoinitialize(length=length, ks=ks, ksi=ksi, **kwargs)
+
+    @classmethod
+    def add_thick_slice(cls, weight, container, name, slice_name, _buffer=None):
+        self_or_ref = container[name]
+        container[slice_name] = cls(_buffer=_buffer, length=999)
+        ref = container[slice_name]
+
+        ref.length = _get_expr(self_or_ref.length) * weight
+        ref.ks = _get_expr(self_or_ref.ks)
+        ref.ksi = _get_expr(self_or_ref.ksi) * weight
+
+    @staticmethod
+    def delete_element_ref(ref):
+        # Remove the scalar fields
+        for field in ['ks', 'ksi', 'length']:
+            _unregister_if_preset(getattr(ref, field))
+
+        # Remove the ref to the element itself
+        _unregister_if_preset(ref)
 
 
 class CombinedFunctionMagnet():

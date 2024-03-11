@@ -436,6 +436,8 @@ class Line:
         allow_thick=None,
         use_compound_elements=True,
         name_prefix=None,
+        force_aper_offset=False,
+        enable_layout_data=False,
     ):
 
         """
@@ -480,6 +482,10 @@ class Line:
             in xtrack will be grouped together with a marker attached in front,
             and will be accessible through __getattr__. Otherwise, the line will
             be flattened.
+        enable_layout_data: bool, optional
+            If true, the layout data is imported.
+        force_aper_offset: 
+            force creation of offset elements around any aperture element
 
         Returns
         -------
@@ -507,7 +513,9 @@ class Line:
             replace_in_expr=replace_in_expr,
             allow_thick=allow_thick,
             use_compound_elements=use_compound_elements,
-            name_prefix=name_prefix
+            name_prefix=name_prefix,
+            force_aper_offset=force_aper_offset,
+            enable_layout_data=enable_layout_data,
         )
         line = loader.make_line()
         return line
