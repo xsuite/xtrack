@@ -690,10 +690,13 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res._data['values_at'] = 'entry'
 
     if strengths:
-        strengths = _extract_knl_ksl(line, twiss_res['name'])
-        twiss_res._data.update(strengths)
-        twiss_res._col_names = (list(twiss_res._col_names) +
-                                    list(strengths.keys()))
+        tt = line.get_table(attr=True).rows[twiss_res.name]
+        for kk in tt._col_names:
+            if kk not in twiss_res._col_names:
+                if isinstance(kk, tuple):
+                    continue
+                twiss_res._col_names.append(kk)
+                twiss_res._data[kk] = tt[kk]
 
     twiss_res._data['method'] = method
     twiss_res._data['radiation_method'] = radiation_method
