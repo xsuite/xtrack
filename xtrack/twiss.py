@@ -3046,11 +3046,6 @@ class TwissTable(Table):
                 out.dy_zeta = -out.dy_zeta
                 out.dpy_zeta = out.dpy_zeta
 
-            # Untested:
-            # if 'alfx2' in out._col_names:
-            #     out.alfx2 = -out.alfx2
-            #     out.alfy2 = -out.alfy2
-
             out.W_matrix[:, 0, :] = -out.W_matrix[:, 0, :]
             out.W_matrix[:, 1, :] = out.W_matrix[:, 1, :]
             out.W_matrix[:, 2, :] = out.W_matrix[:, 2, :]
@@ -3065,13 +3060,15 @@ class TwissTable(Table):
 
         for kk in NORMAL_STRENGTHS_FROM_ATTR:
             if kk in out._col_names:
-                ii = int(kk[1:-1])
-                out[kk] *= (-1)**ii
+                out[kk] = -out[kk] # Keeping same convention as MAD-X (to be understood)
+                # ii = int(kk[1:-1])
+                # out[kk] *= (-1)**ii # consistent with mad loader behavior
 
         for kk in SKEW_STRENGTHS_FROM_ATTR:
             if kk in out._col_names:
-                ii = int(kk[1:-2])
-                out[kk] *= (-1)**(ii + 1)
+                out[kk] = -out[kk] # Keeping same convention as MAD-X (to be understood)
+                # ii = int(kk[1:-2])
+                # out[kk] *= (-1)**(ii + 1) # consistent with mad loader behavior
 
         if 'ax_chrom' in out._col_names:
             out.ax_chrom = -out.ax_chrom
