@@ -413,7 +413,7 @@ class Aperture:
                     angle=self.aper_tilt,
                 )
             )
-        if self.dx or self.dy or loader.force_aper_offset:
+        if self.dx or self.dy or self.loader.force_aper_offset:
             out.append(
                 self.Builder(
                     self.name + "_aper_offset_entry",
@@ -426,7 +426,7 @@ class Aperture:
 
     def exit(self):
         out = []
-        if self.dx or self.dy:
+        if self.dx or self.dy or self.loader.force_aper_offset:
             out.append(
                 self.Builder(
                     self.name + "_aper_offset_exit",
@@ -596,7 +596,8 @@ class MadLoader:
         allow_thick=False,
         use_compound_elements=True,
         name_prefix=None,
-        force_aper_offset=False
+        force_aper_offset=False,
+        enable_layout_data=False,
     ):
 
         if enable_errors is not None:
@@ -641,6 +642,7 @@ class MadLoader:
         self.ignore_madtypes = ignore_madtypes
         self.name_prefix = name_prefix
         self.force_aper_offset = force_aper_offset
+        self.enable_layout_data = enable_layout_data
 
         self.allow_thick = allow_thick
         self.use_compound_elements = use_compound_elements
@@ -739,18 +741,19 @@ class MadLoader:
                 )
 
         # copy layout data
-        layout_data = {}
-        for compound_name in line.compound_container._compounds:
-            madel = mad.elements[compound_name]
-            # offset represent the offset of the assembly with respect to mid-beam
-            eldata={}
-            eldata['offset_x'] = madel.mech_sep / 2 * self.bv
-            eldata['offset_y'] = madel.v_pos
-            eldata['assembly_id'] = madel.assembly_id
-            eldata['slot_id'] = madel.slot_id
-            layout_data[compound_name] = eldata
+        if self.enable_layout_data:
+            layout_data = {}
+            for compound_name in line.compound_container._compounds:
+                madel = mad.elements[compound_name]
+                # offset represent the offset of the assembly with respect to mid-beam
+                eldata={}
+                eldata['offset_x'] = madel.mech_sep / 2 * self.bv
+                eldata['offset_y'] = madel.v_pos
+                eldata['assembly_id'] = madel.assembly_id
+                eldata['slot_id'] = madel.slot_id
+                layout_data[compound_name] = eldata
 
-        line.metadata['layout_data'] = layout_data
+            line.metadata['layout_data'] = layout_data
 
         return line
 
