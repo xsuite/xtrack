@@ -3058,17 +3058,22 @@ class TwissTable(Table):
             out.muzeta = out.muzeta[0] - out.muzeta
             out.dzeta = out.dzeta[0] - out.dzeta
 
+        # Reverse the strengths using thw following logic:
+        # k1l =  dpx / dx    * (c dt) -> ( 1 /  -1    * -1)   ->  1
+        # k2l =  dpx / dx**2 * (c dt) -> ( 1 / (-1)^2 * -1)   -> -1
+        # k1sl = dpy / dx    * (c dt) -> (-1 /  -1    * -1)   -> -1
+        # k2sl = dpy / dx**2 * (c dt) -> (-1 / (-1)^2 * -1)   ->  1
+        # ...
+
         for kk in NORMAL_STRENGTHS_FROM_ATTR:
             if kk in out._col_names:
-                out[kk] = -out[kk] # Keeping same convention as MAD-X (to be understood)
-                # ii = int(kk[1:-1])
-                # out[kk] *= (-1)**ii # consistent with mad loader behavior
+                ii = int(kk[1:-1])
+                out[kk] *= (-1)**(ii + 1) # consistent with mad twiss convention
 
         for kk in SKEW_STRENGTHS_FROM_ATTR:
             if kk in out._col_names:
-                out[kk] = -out[kk] # Keeping same convention as MAD-X (to be understood)
-                # ii = int(kk[1:-2])
-                # out[kk] *= (-1)**(ii + 1) # consistent with mad loader behavior
+                ii = int(kk[1:-2])
+                out[kk] *= (-1)**ii # consistent with mad twiss convention
 
         if 'ax_chrom' in out._col_names:
             out.ax_chrom = -out.ax_chrom
