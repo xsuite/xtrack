@@ -694,7 +694,7 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res._data['values_at'] = 'entry'
 
     if strengths:
-        tt = line.get_table(attr=True).rows[twiss_res.name]
+        tt = line.get_table(attr=True).rows[list(twiss_res.name)]
         for kk in (NORMAL_STRENGTHS_FROM_ATTR + SKEW_STRENGTHS_FROM_ATTR
                    + OTHER_FIELDS_FROM_ATTR):
             twiss_res._col_names.append(kk)
@@ -707,11 +707,6 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if reverse:
         twiss_res = twiss_res.reverse()
-
-    # twiss_res.mux += init.mux - twiss_res.mux[0]
-    # twiss_res.muy += init.muy - twiss_res.muy[0]
-    # twiss_res.muzeta += init.muzeta - twiss_res.muzeta[0]
-    # twiss_res.dzeta += init.dzeta - twiss_res.dzeta[0]
 
     if not periodic and not only_orbit:
         # Start phase advance with provided init
@@ -3003,14 +2998,14 @@ class TwissTable(Table):
             itake = slice(1, None, None)
 
         for kk in self._col_names:
-            if kk == 'name':
+            if (kk == 'name' or kk in NORMAL_STRENGTHS_FROM_ATTR
+                    or kk in SKEW_STRENGTHS_FROM_ATTR
+                    or kk in OTHER_FIELDS_FROM_ATTR):
                 new_data[kk][:-1] = new_data[kk][:-1][::-1]
-                new_data[kk][-1] = self.name[-1]
+                new_data[kk][-1] = self[kk][-1]
             elif kk == 'W_matrix':
                 new_data[kk][:-1, :, :] = new_data[kk][itake, :, :][::-1, :, :]
                 new_data[kk][-1, :, :] = self[kk][0, :, :]
-            elif kk.startswith('k') and kk.endswith('nl', 'sl'):
-                continue # Not yet implemented
             else:
                 new_data[kk][:-1] = new_data[kk][itake][::-1]
                 new_data[kk][-1] = self[kk][0]
@@ -3067,6 +3062,16 @@ class TwissTable(Table):
             out.muy = out.muy[0] - out.muy
             out.muzeta = out.muzeta[0] - out.muzeta
             out.dzeta = out.dzeta[0] - out.dzeta
+
+        for kk in NORMAL_STRENGTHS_FROM_ATTR:
+            if kk in out._col_names:
+                ii = int(kk[1:-1])
+                out[kk] *= (-1)**ii
+
+        for kk in SKEW_STRENGTHS_FROM_ATTR:
+            if kk in out._col_names:
+                ii = int(kk[1:-2])
+                out[kk] *= (-1)**(ii + 1)
 
         if 'ax_chrom' in out._col_names:
             out.ax_chrom = -out.ax_chrom
