@@ -164,7 +164,8 @@ Bz_axis = sf.get_field(0 * z_axis, 0 * z_axis, z_axis)[2]
 P0_J = p.p0c[0] * qe / clight
 brho = P0_J / qe / p.q0
 
-ks = 0.5 * (Bz_axis[:-1] + Bz_axis[1:]) / brho
+#ks = 0.5 * (Bz_axis[:-1] + Bz_axis[1:]) / brho
+ks = Bz_axis[:-1] / brho
 
 line = xt.Line(elements=[xt.Solenoid(length=z_axis[1]-z_axis[0], ks=ks[ii])
                             for ii in range(len(z_axis)-1)])
