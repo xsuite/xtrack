@@ -46,7 +46,7 @@ ctx.add_kernels(
 delta=np.array([0, 4])
 p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
                  energy0=45.6e9,
-                 x=[-1e-3, -1e-3], px=-1e-3*(1+delta), py=[0, 0],
+                 x=[-1e-3, -1e-3], px=-1e-3*(1+delta), y=1e-3,
                  delta=delta)
 
 p = p0.copy()
@@ -201,13 +201,44 @@ xp = px_mech / pz_mech
 yp = py_mech / pz_mech
 
 dx_ds = np.diff(mon.x, axis=1) / np.diff(mon.s, axis=1)
+dy_ds = np.diff(mon.y, axis=1) / np.diff(mon.s, axis=1)
+
+dE_ds = -np.diff(mon.ptau, axis=1)/np.diff(mon.s, axis=1) * p_xt.energy0[0]
+
+emitted_dpx = -(np.diff(mon.px, axis=1) - np.diff(mon_no_rad.px, axis=1))
+emitted_dpy = -(np.diff(mon.py, axis=1) - np.diff(mon_no_rad.py, axis=1))
+emitted_dp = -(np.diff(mon.delta, axis=1) - np.diff(mon_no_rad.delta, axis=1))
+
+z_check = sf.z0 + sf.L * np.linspace(-2, 2, 1001)
+
+i_part = 1
+this_s_boris = 0.5 * (z_log[:-1, i_part] + z_log[1:, i_part])
+dx_ds_boris = np.diff(x_log[:, i_part]) / np.diff(z_log[:, i_part])
+dy_ds_boris = np.diff(y_log[:, i_part]) / np.diff(z_log[:, i_part])
+
+s_xsuite = 0.5 * (mon.s[i_part, :-1] + mon.s[i_part, 1:])
+dx_ds_xsuite = np.diff(mon.x[i_part, :]) / np.diff(mon.s[i_part, :])
+dy_ds_xsuite = np.diff(mon.y[i_part, :]) / np.diff(mon.s[i_part, :])
+
+dx_ds_xsuite_check = np.interp(z_check, s_xsuite, dx_ds_xsuite)
+dy_ds_xsuite_check = np.interp(z_check, s_xsuite, dy_ds_xsuite)
+dx_ds_boris_check = np.interp(z_check, this_s_boris, dx_ds_boris)
+dy_ds_boris_check = np.interp(z_check, this_s_boris, dy_ds_boris)
+
+assert np.allclose(dx_ds_xsuite_check, dx_ds_boris_check, rtol=0,
+        atol=2.8e-2 * (np.max(dx_ds_boris_check) - np.min(dx_ds_boris_check)))
+assert np.allclose(dy_ds_xsuite_check, dy_ds_boris_check, rtol=0,
+        atol=2.8e-2 * (np.max(dy_ds_boris_check) - np.min(dy_ds_boris_check)))
+
+assert np.allclose(ax_ref, mon.ax, rtol=0, atol=np.max(np.abs(ax_ref)*3e-2))
+assert np.allclose(ay_ref, mon.ay, rtol=0, atol=np.max(np.abs(ay_ref)*3e-2))
 
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
 ax1 = plt.subplot(2, 1, 1)
 plt.plot(z_log, x_log, label='Boris')
-plt.plot(mon.s.T, mon.x.T, '.', label='xsuite')
+plt.plot(mon.s.T, mon.x.T, '--', label='xsuite')
 plt.ylabel('x [m]')
 plt.legend()
 
@@ -217,10 +248,30 @@ plt.ylabel(r'$B_{z}$ [T]')
 plt.xlabel('z [m]')
 
 plt.figure(2)
+dx_ds_log = np.diff(x_log, axis=0) / np.diff(z_log, axis=0)
+dy_ds_log = np.diff(y_log, axis=0) / np.diff(z_log, axis=0)
+ax1 = plt.subplot(2, 1, 1)
+plt.plot(0.5 * (z_log[:-1, :] + z_log[1:, :]), dx_ds_log, label='Boris')
+plt.plot(mon.s.T, xp.T, label="x'", color='C1', linestyle='-')
+plt.plot(mon.s[:, :-1].T, dx_ds.T, '--', color='C2',
+         label=r"$\Delta x / \Delta s$")
+plt.ylabel(r"$x'$")
+plt.legend()
 
-plt.plot(mon.s.T, xp.T, label="x'", color='C0', linestyle='-')
-plt.plot(mon.s[:, :-1].T, dx_ds.T, '.', label=r"$\Delta x / \Delta s$", color='C1')
-plt.plot(mon.s.T, mon.px.T, '--', label=r"$p_x$", color='C2')
+ax2 = plt.subplot(2, 1, 2, sharex=ax1)
+plt.plot(0.5 * (z_log[:-1] + z_log[1:]), dy_ds_log, label='Boris')
+plt.plot(mon.s.T, yp.T, label="y'", color='C1', linestyle='-')
+plt.plot(mon.s[:, :-1].T, dy_ds.T, '--', color='C2',
+         label=r"$\Delta y / \Delta s$")
+
+
+
+
+
+
+# plt.plot(mon.s.T, mon.px.T, '--', label=r"$p_x$", color='C2')
+
+# assert np.allclose(xp, dx_ds, rtol=0, atol=np.std(dx_ds) * 1e-3)
 plt.legend()
 
 # Compare ax and ay
@@ -230,16 +281,14 @@ plt.plot(mon.s.T, ay_ref.T, label="ay_ref", color='C1', linestyle='-')
 plt.plot(mon.s.T, mon.ax.T, label="ax", color='C2', linestyle='--')
 plt.plot(mon.s.T, mon.ay.T, label="ay", color='C3', linestyle='--')
 
-dE_ds = -np.diff(mon.ptau, axis=1)/np.diff(mon.s, axis=1) * p_xt.energy0[0]
+assert np.allclose(ax_ref, mon.ax, rtol=0, atol=np.max(np.abs(ax_ref)) * 1e-5)
 
 plt.figure(4)
 plt.plot(mon.s[:, :-1].T, dE_ds.T * 1e-2 * 1e-3, '.-', label='dE/ds')
 plt.plot(mon.s[:, :-1].T, dE_ds_boris_eV * 1e-2 * 1e-3, 'x-', label='dE/ds Boris')
 
 plt.figure(5)
-emitted_dpx = -(np.diff(mon.px, axis=1) - np.diff(mon_no_rad.px, axis=1))
-emitted_dpy = -(np.diff(mon.py, axis=1) - np.diff(mon_no_rad.py, axis=1))
-emitted_dp = -(np.diff(mon.delta, axis=1) - np.diff(mon_no_rad.delta, axis=1))
+
 
 plt.plot(mon.s[:, :-1].T, emitted_dpx.T, '-', label='dpx')
 plt.plot(mon.s[:, :-1].T, dE_ds.T * dx_ds.T*np.diff(mon.s, 1).T/p.p0c[0], '--')
