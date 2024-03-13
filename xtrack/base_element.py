@@ -26,7 +26,7 @@ start_per_part_block = """
     const int64_t XT_part_block_end_idx = LocalParticle_get__num_active_particles(part0); //only_for_context cpu_serial
 
     //#pragma omp simd // TODO: currently does not work, needs investigating
-    for (int64_t XT_part_block_ii=XT_part_block_start_idx; XT_part_block_ii<XT_part_block_end_idx; XT_part_block_ii++) { //only_for_context cpu_openmp cpu_serial
+    for (int64_t XT_part_block_ii = XT_part_block_start_idx; XT_part_block_ii<XT_part_block_end_idx; XT_part_block_ii++) { //only_for_context cpu_openmp cpu_serial
 
         LocalParticle lpart = *part0;    //only_for_context cpu_serial cpu_openmp
         LocalParticle* part = &lpart;    //only_for_context cpu_serial cpu_openmp
@@ -105,17 +105,37 @@ def _generate_per_particle_kernel_from_local_particle_function(
 '''
                              int64_t flag_increment_at_element,
                 /*gpuglmem*/ int8_t* io_buffer){
-            const int num_threads = omp_get_max_threads();                                     //only_for_context cpu_openmp
-            const int64_t capacity = ParticlesData_get__capacity(particles);                   //only_for_context cpu_openmp
-            const int64_t num_active = ParticlesData_get__num_active_particles(particles);     //only_for_context cpu_openmp
-            const int64_t chunk_size = (num_active + num_threads - 1)/num_threads; // ceil division //only_for_context cpu_openmp
+
+            #define CONTEXT_OPENMP  //only_for_context cpu_openmp
+            #ifdef CONTEXT_OPENMP
+                const int64_t capacity = ParticlesData_get__capacity(particles);
+                const int num_threads = omp_get_max_threads();
+
+                #ifndef XT_OMP_SKIP_REORGANIZE
+                    const int64_t num_particles_to_track = ParticlesData_get__num_active_particles(particles);
+
+                    {
+                        LocalParticle lpart;
+                        lpart.io_buffer = io_buffer;
+                        Particles_to_LocalParticle(particles, &lpart, 0, capacity);
+                        check_is_active(&lpart);
+                        count_reorganized_particles(&lpart);
+                        LocalParticle_to_Particles(&lpart, particles, 0, capacity);
+                    }
+                #else // When we skip reorganize, we cannot just batch active particles
+                    const int64_t num_particles_to_track = capacity;
+                #endif
+                
+                const int64_t chunk_size = (num_particles_to_track + num_threads - 1)/num_threads; // ceil division
+            #endif // CONTEXT_OPENMP
+
             #pragma omp parallel for                                                           //only_for_context cpu_openmp
             for (int64_t batch_id = 0; batch_id < num_threads; batch_id++) {                   //only_for_context cpu_openmp
                 LocalParticle lpart;
                 lpart.io_buffer = io_buffer;
                 int64_t part_id = batch_id * chunk_size;                                       //only_for_context cpu_openmp
                 int64_t end_id = (batch_id + 1) * chunk_size;                                  //only_for_context cpu_openmp
-                if (end_id > num_active) end_id = num_active;                                            //only_for_context cpu_openmp
+                if (end_id > num_particles_to_track) end_id = num_particles_to_track;          //only_for_context cpu_openmp
 
                 int64_t part_id = 0;                    //only_for_context cpu_serial
                 int64_t part_id = blockDim.x * blockIdx.x + threadIdx.x; //only_for_context cuda
