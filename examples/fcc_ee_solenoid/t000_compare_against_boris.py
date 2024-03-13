@@ -230,6 +230,12 @@ for i_part in range(z_log.shape[1]):
     dy_ds_boris_check = np.interp(z_check, this_s_boris, dy_ds_boris)
     dE_ds_boris_check = np.interp(z_check, z_log[:, i_part], dE_ds_boris_eV[:, i_part])
 
+    this_emitted_dpx = emitted_dpx[i_part, :]
+    this_emitted_dpy = emitted_dpy[i_part, :]
+    this_dE_ds = dE_ds[i_part, :]
+    this_dx_ds = dx_ds[i_part, :]
+    this_dy_ds = dy_ds[i_part, :]
+
     assert np.allclose(dx_ds_xsuite_check, dx_ds_boris_check, rtol=0,
             atol=2.8e-2 * (np.max(dx_ds_boris_check) - np.min(dx_ds_boris_check)))
     assert np.allclose(dy_ds_xsuite_check, dy_ds_boris_check, rtol=0,
@@ -237,17 +243,17 @@ for i_part in range(z_log.shape[1]):
     assert np.allclose(dE_ds_xsuite_check, dE_ds_boris_check, rtol=0,
             atol=1e-2 * (np.max(dE_ds_boris_check) - np.min(dE_ds_boris_check)))
 
-
     assert np.allclose(ax_ref[i_part, :], mon.ax[i_part, :],
                     rtol=0, atol=np.max(np.abs(ax_ref)*3e-2))
     assert np.allclose(ay_ref[i_part, :], mon.ay[i_part, :],
                     rtol=0, atol=np.max(np.abs(ay_ref)*3e-2))
 
-
-
-
-
-
+    assert np.allclose(this_emitted_dpx,
+            this_dE_ds * this_dx_ds * np.diff(mon.s[i_part, :])/p.p0c[0],
+            rtol=0, atol=1e-4 * (np.max(this_emitted_dpx) - np.min(this_emitted_dpx)))
+    assert np.allclose(this_emitted_dpy,
+            this_dE_ds * this_dy_ds * np.diff(mon.s[i_part, :])/p.p0c[0],
+            rtol=0, atol=2e-3 * (np.max(this_emitted_dpy) - np.min(this_emitted_dpy)))
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -303,15 +309,12 @@ plt.plot(z_log, dE_ds_boris_eV * 1e-2 * 1e-3, 'x-', label='dE/ds Boris')
 
 plt.figure(5)
 
-
+ax1 = plt.subplot(2, 1, 1)
 plt.plot(mon.s[:, :-1].T, emitted_dpx.T, '-', label='dpx')
 plt.plot(mon.s[:, :-1].T, dE_ds.T * dx_ds.T*np.diff(mon.s, 1).T/p.p0c[0], '--')
-# plt.plot(mon.s[:, :-1].T, emitted_dpy.T, ':', label='dpx')
-# plt.plot(mon.s[:, :-1].T, emitted_dp.T, '--', label='dp')
 
-# plt.plot(mon.s[:, :-1].T, emitted_dp.T, '-', label='dpx')
-# plt.plot(mon.s[:, :-1].T, dE_ds.T *np.diff(mon.s, 1).T/p.p0c[0], '--')
-
-# plt.plot(mon.s[:, :-1].T, px_log/pp_log, '--', label='dpx boris')
+ax2 = plt.subplot(2, 1, 2, sharex=ax1)
+plt.plot(mon.s[:, :-1].T, emitted_dpy.T, '-', label='dpy')
+plt.plot(mon.s[:, :-1].T, dE_ds.T * dy_ds.T*np.diff(mon.s, 1).T/p.p0c[0], '--')
 
 plt.show()
