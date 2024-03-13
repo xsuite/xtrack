@@ -888,6 +888,11 @@ def _twiss_open(line, init,
     delta_co = np.array(line.record_last_track.delta[0, i_start:i_stop+1].copy())
     ptau_co = np.array(line.record_last_track.ptau[0, i_start:i_stop+1].copy())
     s_co = line.record_last_track.s[0, i_start:i_stop+1].copy()
+    ax_co = line.record_last_track.ax[0, i_start:i_stop+1].copy()
+    ay_co = line.record_last_track.ay[0, i_start:i_stop+1].copy()
+    pz_co = np.sqrt((1 + delta_co)**2 - (px_co - ax_co)**2 - (py_co - ay_co)**2)
+    x_prime_co = (px_co - ax_co) / pz_co
+    y_prime_co = (py_co - ay_co) / pz_co
 
     Ws = np.zeros(shape=(len(s_co), 6, 6), dtype=np.float64)
     Ws[:, 0, :] = 0.5 * (line.record_last_track.x[1:7, i_start:i_stop+1] - x_co).T / scale_eigen
@@ -941,6 +946,10 @@ def _twiss_open(line, init,
         'delta': delta_co,
         'ptau': ptau_co,
         'W_matrix': Ws,
+        'x_prime': x_prime_co,
+        'y_prime': y_prime_co,
+        'ax': ax_co,
+        'ay': ay_co,
     })
 
     if not only_orbit and compute_lattice_functions:
