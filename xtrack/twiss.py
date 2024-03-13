@@ -930,6 +930,10 @@ def _twiss_open(line, init,
         zeta_co = zeta_co[mask_twiss]
         delta_co = delta_co[mask_twiss]
         ptau_co = ptau_co[mask_twiss]
+        x_prime_co = x_prime_co[mask_twiss]
+        y_prime_co = y_prime_co[mask_twiss]
+        ax_co = ax_co[mask_twiss]
+        ay_co = ay_co[mask_twiss]
         dzeta = dzeta[mask_twiss]
         Ws = Ws[mask_twiss, :, :]
 

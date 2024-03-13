@@ -46,6 +46,7 @@ theta_tilt = 15e-3 # rad
 s_sol_slices = np.linspace(-2.2, 2.2, 1001)
 bz_sol_slices = np.interp(s_sol_slices, bz_df.z, bz_df.Bz)
 bz_sol_slices[0] = 0
+bz_sol_slices[-1] = 0
 
 P0_J = line.particle_ref.p0c[0] * qe / clight
 brho = P0_J / qe / line.particle_ref.q0
