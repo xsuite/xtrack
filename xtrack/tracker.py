@@ -473,13 +473,15 @@ class Tracker:
 
                 #ifndef XT_OMP_SKIP_REORGANIZE
                     const int64_t num_particles_to_track = ParticlesData_get__num_active_particles(particles);
-
-                    LocalParticle lpart;
-                    lpart.io_buffer = io_buffer;
-                    Particles_to_LocalParticle(particles, &lpart, 0, capacity);
-                    check_is_active(&lpart);
-                    count_reorganized_particles(&lpart);
-                    LocalParticle_to_Particles(&lpart, particles, 0, capacity);
+                    
+                    {
+                        LocalParticle lpart;
+                        lpart.io_buffer = io_buffer;
+                        Particles_to_LocalParticle(particles, &lpart, 0, capacity);
+                        check_is_active(&lpart);
+                        count_reorganized_particles(&lpart);
+                        LocalParticle_to_Particles(&lpart, particles, 0, capacity);
+                    }
                 #else // When we skip reorganize, we cannot just batch active particles
                     const int64_t num_particles_to_track = capacity;
                 #endif
