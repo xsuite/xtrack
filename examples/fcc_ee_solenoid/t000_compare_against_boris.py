@@ -211,27 +211,41 @@ emitted_dp = -(np.diff(mon.delta, axis=1) - np.diff(mon_no_rad.delta, axis=1))
 
 z_check = sf.z0 + sf.L * np.linspace(-2, 2, 1001)
 
-i_part = 1
-this_s_boris = 0.5 * (z_log[:-1, i_part] + z_log[1:, i_part])
-dx_ds_boris = np.diff(x_log[:, i_part]) / np.diff(z_log[:, i_part])
-dy_ds_boris = np.diff(y_log[:, i_part]) / np.diff(z_log[:, i_part])
+for i_part in range(z_log.shape[1]):
 
-s_xsuite = 0.5 * (mon.s[i_part, :-1] + mon.s[i_part, 1:])
-dx_ds_xsuite = np.diff(mon.x[i_part, :]) / np.diff(mon.s[i_part, :])
-dy_ds_xsuite = np.diff(mon.y[i_part, :]) / np.diff(mon.s[i_part, :])
+    this_s_boris = 0.5 * (z_log[:-1, i_part] + z_log[1:, i_part])
+    dx_ds_boris = np.diff(x_log[:, i_part]) / np.diff(z_log[:, i_part])
+    dy_ds_boris = np.diff(y_log[:, i_part]) / np.diff(z_log[:, i_part])
 
-dx_ds_xsuite_check = np.interp(z_check, s_xsuite, dx_ds_xsuite)
-dy_ds_xsuite_check = np.interp(z_check, s_xsuite, dy_ds_xsuite)
-dx_ds_boris_check = np.interp(z_check, this_s_boris, dx_ds_boris)
-dy_ds_boris_check = np.interp(z_check, this_s_boris, dy_ds_boris)
+    s_xsuite = 0.5 * (mon.s[i_part, :-1] + mon.s[i_part, 1:])
+    dx_ds_xsuite = np.diff(mon.x[i_part, :]) / np.diff(mon.s[i_part, :])
+    dy_ds_xsuite = np.diff(mon.y[i_part, :]) / np.diff(mon.s[i_part, :])
+    dE_ds_xsuite = dE_ds[i_part, :]
 
-assert np.allclose(dx_ds_xsuite_check, dx_ds_boris_check, rtol=0,
-        atol=2.8e-2 * (np.max(dx_ds_boris_check) - np.min(dx_ds_boris_check)))
-assert np.allclose(dy_ds_xsuite_check, dy_ds_boris_check, rtol=0,
-        atol=2.8e-2 * (np.max(dy_ds_boris_check) - np.min(dy_ds_boris_check)))
+    dx_ds_xsuite_check = np.interp(z_check, s_xsuite, dx_ds_xsuite)
+    dy_ds_xsuite_check = np.interp(z_check, s_xsuite, dy_ds_xsuite)
+    dE_ds_xsuite_check = np.interp(z_check, s_xsuite, dE_ds_xsuite)
 
-assert np.allclose(ax_ref, mon.ax, rtol=0, atol=np.max(np.abs(ax_ref)*3e-2))
-assert np.allclose(ay_ref, mon.ay, rtol=0, atol=np.max(np.abs(ay_ref)*3e-2))
+    dx_ds_boris_check = np.interp(z_check, this_s_boris, dx_ds_boris)
+    dy_ds_boris_check = np.interp(z_check, this_s_boris, dy_ds_boris)
+    dE_ds_boris_check = np.interp(z_check, z_log[:, i_part], dE_ds_boris_eV[:, i_part])
+
+    assert np.allclose(dx_ds_xsuite_check, dx_ds_boris_check, rtol=0,
+            atol=2.8e-2 * (np.max(dx_ds_boris_check) - np.min(dx_ds_boris_check)))
+    assert np.allclose(dy_ds_xsuite_check, dy_ds_boris_check, rtol=0,
+            atol=2.8e-2 * (np.max(dy_ds_boris_check) - np.min(dy_ds_boris_check)))
+    assert np.allclose(dE_ds_xsuite_check, dE_ds_boris_check, rtol=0,
+            atol=1e-2 * (np.max(dE_ds_boris_check) - np.min(dE_ds_boris_check)))
+
+
+    assert np.allclose(ax_ref[i_part, :], mon.ax[i_part, :],
+                    rtol=0, atol=np.max(np.abs(ax_ref)*3e-2))
+    assert np.allclose(ay_ref[i_part, :], mon.ay[i_part, :],
+                    rtol=0, atol=np.max(np.abs(ay_ref)*3e-2))
+
+
+
+
 
 
 
@@ -285,7 +299,7 @@ plt.plot(mon.s.T, mon.ay.T, label="ay", color='C3', linestyle='--')
 
 plt.figure(4)
 plt.plot(mon.s[:, :-1].T, dE_ds.T * 1e-2 * 1e-3, '.-', label='dE/ds')
-plt.plot(mon.s[:, :-1].T, dE_ds_boris_eV * 1e-2 * 1e-3, 'x-', label='dE/ds Boris')
+plt.plot(z_log, dE_ds_boris_eV * 1e-2 * 1e-3, 'x-', label='dE/ds Boris')
 
 plt.figure(5)
 
