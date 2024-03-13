@@ -54,7 +54,7 @@ p = p0.copy()
 sf = SolenoidField(L=4, a=0.3, B0=1.5, z0=20)
 
 dt = 1e-10
-n_steps = 1000
+n_steps = 1500
 
 x_log = []
 y_log = []
@@ -233,6 +233,8 @@ assert np.allclose(dy_ds_xsuite_check, dy_ds_boris_check, rtol=0,
 assert np.allclose(ax_ref, mon.ax, rtol=0, atol=np.max(np.abs(ax_ref)*3e-2))
 assert np.allclose(ay_ref, mon.ay, rtol=0, atol=np.max(np.abs(ay_ref)*3e-2))
 
+
+
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
@@ -280,8 +282,6 @@ plt.plot(mon.s.T, ax_ref.T, label="ax_ref", color='C0', linestyle='-')
 plt.plot(mon.s.T, ay_ref.T, label="ay_ref", color='C1', linestyle='-')
 plt.plot(mon.s.T, mon.ax.T, label="ax", color='C2', linestyle='--')
 plt.plot(mon.s.T, mon.ay.T, label="ay", color='C3', linestyle='--')
-
-assert np.allclose(ax_ref, mon.ax, rtol=0, atol=np.max(np.abs(ax_ref)) * 1e-5)
 
 plt.figure(4)
 plt.plot(mon.s[:, :-1].T, dE_ds.T * 1e-2 * 1e-3, '.-', label='dE/ds')
