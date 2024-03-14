@@ -37,13 +37,13 @@ import pandas as pd
 bz_df = pd.read_csv(bz_data_file, sep='\s+', skiprows=1, names=['z', 'Bz'])
 
 l_solenoid = 4.4
-ds_sol_start = -2.2
-ds_sol_end = 2.2
+ds_sol_start = -l_solenoid / 2 * np.cos(15e-3)
+ds_sol_end = +l_solenoid / 2 * np.cos(15e-3)
 ip_sol = 'ip.1'
 
 theta_tilt = 15e-3 # rad
 
-s_sol_slices = np.linspace(-2.2, 2.2, 1001)
+s_sol_slices = np.linspace(ds_sol_start, ds_sol_end, 1001)
 bz_sol_slices = np.interp(s_sol_slices, bz_df.z, bz_df.Bz)
 bz_sol_slices[0] = 0
 bz_sol_slices[-1] = 0
@@ -102,7 +102,9 @@ line.element_names = element_names
 
 # re-insert the ip
 line.element_dict.pop(ip_sol)
-line.insert_element(name=ip_sol, element=xt.Marker(), at_s=s_ip)
+tt = line.get_table()
+line.insert_element(name=ip_sol, element=xt.Marker(),
+        at_s = 0.5 * (tt['s', 'sol_start_'+ip_sol] + tt['s', 'sol_end_'+ip_sol]))
 
 line.vars['on_corr_ip.1'] = 0
 

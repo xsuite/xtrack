@@ -32,7 +32,7 @@ opt_l = line.match(
         xt.TargetRmatrix(
                     r13=0, r14=0, r23=0, r24=0, # Y-X block
                     r31=0, r32=0, r41=0, r42=0, # X-Y block,
-                    start='pqc2le.4', end='ip.1', tol=1e-7, tag='coupl'),
+                    start='pqc2le.4', end='ip.1', tol=1e-6, tag='coupl'),
         xt.Target('mux', value=tw_sol_off, at='ip.1', tag='mu_ip', weight=0.1, tol=1e-6),
         xt.Target('muy', value=tw_sol_off, at='ip.1', tag='mu_ip', weight=0.1, tol=1e-6),
         xt.Target('betx', value=tw_sol_off, at='ip.1', tag='bet_ip', weight=1, tol=1e-5),
@@ -80,7 +80,7 @@ opt_r = line.match(
         xt.TargetSet(['px', 'py'], value=tw_sol_off, tol=1e-10, at='ip.1', tag='orbit'),
         xt.TargetRmatrix(r13=0, r14=0, r23=0, r24=0, # Y-X block
                          r31=0, r32=0, r41=0, r42=0, # X-Y block,
-                         start='ip.1', end='pqc2re.1', tol=1e-7, tag='coupl'),
+                         start='ip.1', end='pqc2re.1', tol=1e-6, tag='coupl'),
         xt.Target('mux', value=tw_sol_off, at='ip.1', tag='mu_ip', weight=0.1, tol=1e-6),
         xt.Target('muy', value=tw_sol_off, at='ip.1', tag='mu_ip', weight=0.1, tol=1e-6),
         xt.Target('betx', value=tw_sol_off, at='ip.1', tag='bet_ip', weight=1, tol=1e-5),
@@ -116,9 +116,32 @@ tw_local_corr = line.twiss(start='ip.4', end='_end_point', init_at='ip.1',
                             init=tw_sol_off)
 
 
+
+
 line.to_json(fname + '_with_sol_corrected.json')
 
 tw_sol_on_corrected = line.twiss(method='4d')
+tw_chk = tw_sol_on_corrected
+
+assert_isclose = np.testing.assert_allclose
+assert_isclose(tw_chk['x', 'ip.1'], 0, atol=1e-8, rtol=0)
+assert_isclose(tw_chk['y', 'ip.1'], 0, atol=1e-12, rtol=0)
+assert_isclose(tw_chk['x_prime', 'ip.1'], tw_sol_off['x_prime', 'ip.1'],  atol=1e-12, rtol=0)
+assert_isclose(tw_chk['y_prime', 'ip.1'], 0,  atol=1e-10, rtol=0)
+# assert_isclose(tw_chk['x', 'pqc2re.1'], 0, atol=1e-12, rtol=0)
+# assert_isclose(tw_chk['y', 'pqc2re.1'], 0, atol=1e-12, rtol=0)
+
+assert tw_chk.c_minus < 1e-6
+assert np.isclose(tw_chk['betx2', 'ip.1'] / tw_chk['betx', 'ip.1'], 0, atol=1e-12)
+assert np.isclose(tw_chk['bety1', 'ip.1'] / tw_chk['bety', 'ip.1'], 0, atol=1e-12)
+assert np.isclose(tw_chk['betx2', 'pqc2re.1'] / tw_chk['betx', 'pqc2re.1'], 0, atol=1e-12)
+assert np.isclose(tw_chk['bety1', 'pqc2re.1'] / tw_chk['bety', 'pqc2re.1'], 0, atol=1e-12)
+assert np.isclose(tw_chk['betx2', 'pqc2le.4'] / tw_chk['betx', 'pqc2le.4'], 0, atol=1e-12)
+assert np.isclose(tw_chk['bety1', 'pqc2le.4'] / tw_chk['bety', 'pqc2le.4'], 0, atol=1e-12)
+
+
+
+
 
 tt = line.get_table(attr=True)
 s_ip = tt['s', 'ip.1']
