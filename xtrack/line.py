@@ -54,6 +54,32 @@ isref = xd.refs.is_ref
 
 log = logging.getLogger(__name__)
 
+DEFAULT_ATTR_FIELDS=[
+    'hxl', 'hyl', 'length', 'radiation_flag', 'delta_taper',
+    'voltage', 'frequency', 'lag', 'lag_taper',
+    'h', 'k0', 'k1', 'k1s', 'k2', 'k2s', 'k3', 'k3s',
+    'ks',
+    ('knl', 0), ('ksl', 0), ('knl', 1), ('ksl', 1),
+    ('knl', 2), ('ksl', 2), ('knl', 3), ('ksl', 3),
+    ('knl', 4), ('ksl', 4), ('knl', 5), ('ksl', 5),
+]
+
+DEFAULT_ATTR_DERIVED_FIELDS={
+    'k0l': lambda attr: attr['knl', 0] + attr['k0'] * attr['length'],
+    'k1l': lambda attr: attr['knl', 1] + attr['k1'] * attr['length'],
+    'k2l': lambda attr: attr['knl', 2] + attr['k2'] * attr['length'],
+    'k3l': lambda attr: attr['knl', 3] + attr['k3'] * attr['length'],
+    'k4l': lambda attr: attr['knl', 4],
+    'k5l': lambda attr: attr['knl', 5],
+    'angle_x': lambda attr: attr['hxl'] + attr['h'] * attr['length'],
+    'k0sl': lambda attr: attr['ksl', 0],
+    'k1sl': lambda attr: attr['ksl', 1] + attr['k1s'] * attr['length'],
+    'k2sl': lambda attr: attr['ksl', 2] + attr['k2s'] * attr['length'],
+    'k3sl': lambda attr: attr['ksl', 3] + attr['k3s'] * attr['length'],
+    'k4sl': lambda attr: attr['ksl', 4],
+    'k5sl': lambda attr: attr['ksl', 5],
+}
+
 
 class Line:
 
@@ -3678,21 +3704,8 @@ class Line:
     def _get_attr_cache(self):
         cache = LineAttr(
             line=self,
-            fields=[
-                'hxl', 'hyl', 'length', 'radiation_flag', 'delta_taper', 'ks',
-                'voltage', 'frequency', 'lag', 'lag_taper',
-                'k0', 'k1', 'k1s', 'k2', 'h',
-                ('knl', 0), ('ksl', 0), ('knl', 1), ('ksl', 1),
-                ('knl', 2), ('ksl', 2), ('knl', 3), ('ksl', 3),
-            ],
-            derived_fields={
-                'k0l': lambda attr: attr['knl', 0] + attr['k0'] * attr['length'],
-                'k1l': lambda attr: attr['knl', 1] + attr['k1'] * attr['length'],
-                'k2l': lambda attr: attr['knl', 2] + attr['k2'] * attr['length'],
-                'k3l': lambda attr: attr['knl', 3],
-                'angle_x': lambda attr: attr['hxl'] + attr['h'] * attr['length'],
-                'k1sl': lambda attr: attr['ksl', 1] + attr['k1s'] * attr['length'],
-            }
+            fields=DEFAULT_ATTR_FIELDS,
+            derived_fields=DEFAULT_ATTR_DERIVED_FIELDS,
         )
         return cache
 
