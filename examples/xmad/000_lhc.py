@@ -2,7 +2,7 @@ from contextlib import contextmanager
 
 import xtrack as xt
 from xtrack.xmad.writer import XMadWriter
-from xtrack.xmad.xmad import parse_file
+from xtrack.xmad.xmad import Parser
 from time import time
 
 @contextmanager
@@ -13,7 +13,8 @@ def how_long(what):
     print(f'{what.capitalize()} took {elapsed} s')
 
 
-line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
+with how_long('reading json'):
+    line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
 
 writer = XMadWriter('lhcb1', line)
 
@@ -22,4 +23,5 @@ with how_long('writing'):
         writer.write(stream=f)
 
 with how_long('reading'):
-    out = parse_file('out.xmad')
+    p = Parser()
+    out = p.parse_file('out.xmad')

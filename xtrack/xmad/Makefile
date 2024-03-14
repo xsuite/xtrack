@@ -15,10 +15,10 @@ xmad.c: xmad.py xmad.pxd
 	cython xmad.py --embed -o xmad.c
 
 xmad_tab.c: xmad.y
-	bison xmad.y -k -d -o xmad_tab.c
+	bison xmad.y -t -k -d -Wcounterexamples -o xmad_tab.c
 
 xmad_lex.c: xmad.l xmad_tab.h
-	flex --header-file=xmad_lex.h -o xmad_lex.c xmad.l
+	flex -d --header-file=xmad_lex.h -o xmad_lex.c xmad.l
 
 clean:
 	rm xmad_tab.* xmad_lex.* xmad.c *.o

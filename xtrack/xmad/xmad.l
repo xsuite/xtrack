@@ -16,41 +16,49 @@
 #include <Python.h>
 
 #include "xmad_tab.h"
+#include "xmad.h"
 
-#define YY_USER_ACTION \
-    yylloc.first_line = yylloc.last_line; \
-    yylloc.first_column = yylloc.last_column; \
-    for(int i = 0; yytext[i] != '\0'; i++) { \
-        if(yytext[i] == '\n') { \
-            yylloc.last_line++; \
-            yylloc.last_column = 0; \
-        } \
-        else { \
-            yylloc.last_column++; \
-        } \
+// A common macro to keep track of token locations in `yylloc`
+#define YY_USER_ACTION                                                 \
+    yylloc->first_line = yylloc->last_line;                            \
+    yylloc->first_column = yylloc->last_column;                        \
+    if (yylloc->last_line == yylineno)                                 \
+        yylloc->last_column += yyleng;                                 \
+    else {                                                             \
+        yylloc->last_line = yylineno;                                  \
+        yylloc->last_column = yytext + yyleng - strrchr(yytext, '\n'); \
     }
 
-extern int yyerror(const char*);
-
-double parse_numeric() {
-    char* err;
-    double value = strtod(yytext, &err);
-    if (err == yytext) {
-        yyerror("tokeniser found an invalid numeric value");
+// Parse the current token value (in `yytext`) as a floating point value
+double parse_numeric(char* text, char* error) {
+    char* end_ptr;
+    double value = strtod(text, &end_ptr);
+    if (end_ptr == text) {
+        *error = 1;
     }
     return value;
 }
 
 %}
 
-%option noyywrap
-%option yylineno
+    /* Stop on end of file, and keep track of line numbers */
+%option noyywrap yylineno
+    /* We don't care for customising lexical analysis (feeding tokens, etc.) */
+%option noinput nounput
+    /* Make a re-entrant parser (thread safety!) */
+%option reentrant bison-bridge bison-locations
+    /* Hold a pointer to the python parser object within the scanner */
+%option extra-type="PyObject*"
 
+    /* Special exclusive states to enter to skip a bunch of input, see later */
 %x COMMENT
 %x LEXER_ERROR
+%x STRING_STATE
 
+    /* Define what identifiers and number literals look like */
 NUMERIC             [0-9]*(\.[0-9]|[0-9]\.|[0-9])[0-9]*(e[+-]?[0-9]+)?
 IDENTIFIER          [A-Za-z_$][A-Za-z0-9_\.$]*
+STRING_LITERAL      \"([^\n\"]|\\\")*\"
 
 %%
 
@@ -68,11 +76,15 @@ IDENTIFIER          [A-Za-z_$][A-Za-z0-9_\.$]*
 
     /* Values */
 {NUMERIC}           {
-        yylval.number = parse_numeric();
+        char error = 0;
+        yylval->number = parse_numeric(yytext, &error);
+        if (error) {
+            yyerror(yylloc, yyscanner, "an invalid numeric value encountered");
+        }
         return FLOAT;
     }
 {IDENTIFIER}        {
-        yylval.string = strdup(yytext);
+        yylval->string = strdup(yytext);
         return IDENTIFIER;
     }
 
@@ -108,9 +120,31 @@ IDENTIFIER          [A-Za-z_$][A-Za-z0-9_\.$]*
 <COMMENT>[^\n]      {}
 <COMMENT>"\n"       {}
 
+    /* Strings
+
+       This way of handling strings is a bit convoluted, but is night and day
+       in terms of error recovery when compared to a single regex solution.
+    */
+"\""                BEGIN(STRING_STATE);
+<STRING_STATE>"\""  {
+        BEGIN(INITIAL);
+        yylval->string = strndup(yytext, yyleng - 1);
+        return STRING_LITERAL;
+    }
+<STRING_STATE>"\\\"" { yymore(); }
+<STRING_STATE>"\n"  {
+        // Let's disallow line breaks in strings. Emit error, and try to recover.
+        yyerror(yylloc, yyscanner, "unfinished string literal");
+        BEGIN(INITIAL);
+    }
+<STRING_STATE>[^\"] { yymore(); }
 
     /* Handle invalid input */
 .                   { BEGIN(LEXER_ERROR); yyless(1); }
-<LEXER_ERROR>.+     { yyerror("tokeniser encountered invalid input"); }
+<LEXER_ERROR>.+     {
+        // Emits an error, gobbles the rest of the line, and attempts recovery
+        yyerror(yylloc, yyscanner, "tokeniser encountered invalid input");
+        BEGIN(INITIAL);
+    }
 
 %%

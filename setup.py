@@ -2,7 +2,7 @@
 # This file is part of the Xtrack Package.  #
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
-
+from Cython.Build import cythonize
 from setuptools import setup, find_packages, Extension
 from pathlib import Path
 
@@ -43,7 +43,7 @@ setup(
             "Source Code": "https://github.com/xsuite/xtrack",
         },
     packages=find_packages(),
-    ext_modules=extensions,
+    ext_modules=cythonize(extensions, gdb_debug=False),
     include_package_data=True,
     install_requires=[
         'numpy>=1.0',

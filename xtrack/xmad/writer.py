@@ -1,10 +1,14 @@
 import sys
+from collections import defaultdict
+from functools import reduce
+
 import numpy as np
-from typing import Any, Dict
+from typing import Any, Dict, Callable
 
 import xdeps as xd
 from xdeps.refs import XMadFormatter
 import xtrack as xt
+from xdeps.sorting import toposort, reverse_graph
 
 
 class XMadWriter:
@@ -17,21 +21,25 @@ class XMadWriter:
         previous_formatter = self.var_manager.formatter
         self.var_manager.formatter = XMadFormatter
 
-        for var_name in self.line.vars.keys():
+        for var_name in self._sorted_vars():
             if var_name.startswith('__'):
                 continue
 
             value = self.line.vars[var_name]
+
             if value._expr:
                 stream.write(f'{var_name:16} := {value._expr!r};\n')
             else:
                 value = value._value
                 if np.isscalar(value):
                     stream.write(f'{var_name:17} = {value};\n')
+                elif isinstance(value, Callable):
+                    continue
                 else:
                     raise ValueError(
                         f'Cannot write the variable `{var_name}`, as values of '
-                        f'type `{type(var_name)}` are not supported in XMad.')
+                        f'type `{type(value).__name__}` (here {value}) are '
+                        f'not supported in XMad.')
 
         stream.write('\n')
 
@@ -45,6 +53,12 @@ class XMadWriter:
             element_ref = self.line.element_refs[element_name]
             expressions = self.var_manager.structure[element_ref]
             for ref in expressions:
+                if ref._key not in element._xo_fnames:
+                    # This is not great! Some elements can apparently be imported
+                    # as drifts (solenoid), but their expressions (ks) are still
+                    # attached, making the definition of the element invalid.
+                    # TODO: We should fix this.
+                    continue
                 element_dict[ref._key] = ref._expr
 
             if element_dict:
@@ -65,6 +79,9 @@ class XMadWriter:
                 formatted_args.append(f'-{arg_name}')
             elif xd.refs.is_ref(arg_value):
                 formatted_args.append(f'{arg_name} := {arg_value!r}')
+            elif isinstance(arg_value, str):
+                escaped_value = arg_value.replace('"', '\\"')
+                formatted_args.append(f'{arg_name} = "{escaped_value}"')
             elif np.isscalar(arg_value):
                 arg_value = self.scalar_to_str(arg_value)
                 formatted_args.append(f'{arg_name} = {arg_value}')
@@ -83,3 +100,20 @@ class XMadWriter:
     def scalar_to_str(scalar):
         with np.printoptions(floatmode='unique'):
             return str(scalar)
+
+    def _sorted_vars(self):
+        var_graph = {}
+        for name in self.line.vars.keys():
+            ref = self.line.vars[name]
+            expr = self.line.vars[name]._expr
+            if expr is not None:
+                var_graph[ref] = expr._get_dependencies()
+            else:
+                var_graph[ref] = set()
+
+        initial = reduce(set.union, var_graph.values(), set(var_graph.keys()))
+
+        sorted_vars = toposort(var_graph, initial)
+        sorted_keys = [var._key for var in sorted_vars]
+
+        return sorted(self.line.vars.keys(), key=lambda k: -sorted_keys.index(k))
