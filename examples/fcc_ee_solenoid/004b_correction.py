@@ -133,7 +133,8 @@ line.compensate_radiation_energy_loss()
 tw_sol_on_corr_rad = line.twiss()
 mask_len = tt.length > 0
 dE = -(np.diff(tw_sol_on_corr_rad.ptau) * tw_sol_on_corr_rad.particle_on_co.energy0[0])
-dE_ds = dE[mask_len[:-1]] / tt.length[:-1][mask_len[:-1]]
+dE_ds = tt.s * 0
+dE_ds[mask_len] = dE[mask_len[:-1]] / tt.length[mask_len]
 
 # plot
 import matplotlib.pyplot as plt
@@ -243,5 +244,18 @@ plt.grid()
 for nn in tt.rows['mcb.*'].name:
     for ax in [ax2, ax3]:
         ax.axvline(tt['s', nn] - s_ip, color='k', linestyle='--', alpha=0.3)
+
+plt.figure(90, figsize=(6.4, 4.8))
+ax1 = plt.subplot(2, 1, 1, sharex=ax1)
+plt.plot(tt.s[~mask_ip] - s_ip, Bz[~mask_ip])
+plt.ylabel('Bz [T]')
+plt.grid()
+
+ax2 = plt.subplot(2, 1, 2, sharex=ax1)
+plt.plot(tw_sol_on.s - s_ip, dE_ds * 1e-2 * 1e-3, '-', label='dE/ds')
+plt.ylabel('dE/ds [keV/cm]')
+plt.xlim(-5, 5)
+plt.xlabel('s [m]')
+plt.grid()
 
 plt.show()
