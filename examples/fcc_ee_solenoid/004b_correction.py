@@ -137,6 +137,14 @@ assert_allclose(tw_chk['y', 'pqc2le.4'], 0, atol=5e-8, rtol=0)
 assert_allclose(tw_chk['x_prime', 'pqc2le.4'], 0, atol=1e-8, rtol=0)
 assert_allclose(tw_chk['y_prime', 'pqc2le.4'], 0, atol=1e-8, rtol=0)
 
+assert tw_chk['ax', 'pqc2le.4'] == 0
+assert tw_chk['ay', 'pqc2le.4'] == 0
+assert tw_chk['ax', 'pqc2re.1'] == 0
+assert tw_chk['ay', 'pqc2re.1'] == 0
+
+assert_allclose(tw_chk['betx', 'ip.1'], tw_sol_off['betx', 'ip.1'], atol=1e-5, rtol=0)
+assert_allclose(tw_chk['bety', 'ip.1'], tw_sol_off['bety', 'ip.1'], atol=1e-5, rtol=0)
+
 assert tw_chk.c_minus < 1e-6
 assert_allclose(tw_chk['betx2', 'ip.1'] / tw_chk['betx', 'ip.1'], 0, atol=1e-11)
 assert_allclose(tw_chk['bety1', 'ip.1'] / tw_chk['bety', 'ip.1'], 0, atol=1e-11)
@@ -144,6 +152,8 @@ assert_allclose(tw_chk['betx2', 'pqc2re.1'] / tw_chk['betx', 'pqc2re.1'], 0, ato
 assert_allclose(tw_chk['bety1', 'pqc2re.1'] / tw_chk['bety', 'pqc2re.1'], 0, atol=1e-11)
 assert_allclose(tw_chk['betx2', 'pqc2le.4'] / tw_chk['betx', 'pqc2le.4'], 0, atol=1e-11)
 assert_allclose(tw_chk['bety1', 'pqc2le.4'] / tw_chk['bety', 'pqc2le.4'], 0, atol=1e-11)
+
+assert_allclose(tw_sol_off['betx', 'ip.1'], tw_sol_on['betx', 'ip.1'], atol=1e-8, rtol=0)
 
 
 
