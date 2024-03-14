@@ -2,6 +2,8 @@ import xtrack as xt
 from scipy.constants import c as clight
 from scipy.constants import e as qe
 
+import numpy as np
+
 fname = 'fccee_z'; pc_gev = 45.6
 fname = 'fccee_t'; pc_gev = 182.5
 
@@ -113,47 +115,29 @@ opt_r.solve()
 tw_local_corr = line.twiss(start='ip.4', end='_end_point', init_at='ip.1',
                             init=tw_sol_off)
 
-tw_local_corr_back = line.twiss(start='ip.4', end='_end_point', init_at='ip.4',
-                                init=tw_local_corr)
-
 
 line.to_json(fname + '_with_sol_corrected.json')
 
+tw_sol_on_corrected = line.twiss(method='4d')
+
+tt = line.get_table(attr=True)
+s_ip = tt['s', 'ip.1']
+P0_J = line.particle_ref.p0c[0] * qe / clight
+brho = P0_J / qe / line.particle_ref.q0
+Bz = tt.ks * brho
+
+line.configure_radiation(model='mean')
+line.vars['voltca1'] = line.vv['voltca1_ref']
+line.vars['voltca2'] = line.vv['voltca2_ref']
+line.compensate_radiation_energy_loss()
+tw_sol_on_corr_rad = line.twiss()
+mask_len = tt.length > 0
+dE = -(np.diff(tw_sol_on_corr_rad.ptau) * tw_sol_on_corr_rad.particle_on_co.energy0[0])
+dE_ds = dE[mask_len[:-1]] / tt.length[:-1][mask_len[:-1]]
 
 # plot
 import matplotlib.pyplot as plt
 plt.close('all')
-
-plt.figure(2)
-ax1 = plt.subplot(2, 1, 1)
-plt.plot(tw_local.s, tw_local.x*1e3, label='x')
-plt.plot(tw_local_corr.s, tw_local_corr.x*1e3, label='x corr')
-plt.ylabel('x [mm]')
-
-ax2 = plt.subplot(2, 1, 2, sharex=ax1)
-plt.plot(tw_local.s, tw_local.y*1e3, label='y')
-plt.plot(tw_local_corr.s, tw_local_corr.y*1e3, label='y corr')
-
-plt.xlabel('s [m]')
-plt.ylabel('y [mm]')
-
-plt.figure(3)
-ax1 = plt.subplot(2, 1, 1)
-plt.plot(tw_local.s, tw_local.betx2)
-plt.plot(tw_local_corr.s, tw_local_corr.betx2)
-plt.plot(tw_local_corr_back.s, tw_local_corr_back.betx2)
-plt.ylabel(r'$\beta_{x,2}$ [m]')
-
-ax2 = plt.subplot(2, 1, 2, sharex=ax1)
-plt.plot(tw_local.s, tw_local.bety1)
-plt.plot(tw_local_corr.s, tw_local_corr.bety1)
-plt.plot(tw_local_corr_back.s, tw_local_corr_back.bety1)
-plt.ylabel(r'$\beta_{y,1}$ [m]')
-
-plt.xlabel('s [m]')
-
-
-tw_sol_on_corrected = line.twiss(method='4d')
 
 plt.figure(5)
 ax1 = plt.subplot(2, 1, 1)
@@ -207,13 +191,7 @@ plt.plot(tw_sol_on.s, tw_sol_on_corrected.y_prime  - tw_sol_off.y_prime, label='
 plt.ylabel("y'")
 plt.suptitle('Orbit with solenoid off is subtracted')
 
-tt = line.get_table(attr=True)
-P0_J = line.particle_ref.p0c[0] * qe / clight
-brho = P0_J / qe / line.particle_ref.q0
-Bz = tt.ks * brho
-
 plt.figure(70, figsize=(6.4, 4.8*1.5))
-s_ip = tt['s', 'ip.1']
 
 ax1 = plt.subplot(3, 1, 1)
 mask_ip = tt.name == 'ip.1'
