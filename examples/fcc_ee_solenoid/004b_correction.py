@@ -212,22 +212,52 @@ P0_J = line.particle_ref.p0c[0] * qe / clight
 brho = P0_J / qe / line.particle_ref.q0
 Bz = tt.ks * brho
 
-plt.figure(70)
+plt.figure(70, figsize=(6.4, 4.8*1.5))
+s_ip = tt['s', 'ip.1']
 
 ax1 = plt.subplot(3, 1, 1)
 mask_ip = tt.name == 'ip.1'
-plt.plot(tt.s[~mask_ip], Bz[~mask_ip])
+plt.plot(tt.s[~mask_ip] - s_ip, Bz[~mask_ip])
 plt.ylabel('Bz [T]')
 
 ax2 = plt.subplot(3, 1, 2, sharex=ax1)
-plt.plot(tw_sol_on.s, tw_sol_on_corrected.x  - tw_sol_off.x, label='correction on')
-plt.ylabel("x")
-plt.legend()
+plt.plot(tw_sol_on.s - s_ip, tw_sol_on_corrected.x  - tw_sol_off.x, label='correction on')
+plt.ylabel("x [m]")
 
-ax2 = plt.subplot(3, 1, 3, sharex=ax1)
-plt.plot(tw_sol_on.s, tw_sol_on_corrected.y  - tw_sol_off.y, label='correction on')
-plt.ylabel("y")
+ax3 = plt.subplot(3, 1, 3, sharex=ax1)
+plt.plot(tw_sol_on.s - s_ip, tw_sol_on_corrected.y  - tw_sol_off.y, label='correction on')
+plt.ylabel("y [m]")
 plt.suptitle('Orbit with solenoid off is subtracted')
+plt.subplots_adjust(hspace=0.2, top=0.9)
+plt.xlim(-5, 5)
+plt.xlabel('s [m]')
 
+for nn in tt.rows['mcb.*'].name:
+    for ax in [ax2, ax3]:
+        ax.axvline(tt['s', nn] - s_ip, color='k', linestyle='--', alpha=0.3)
+
+plt.figure(80, figsize=(6.4, 4.8*1.5))
+s_ip = tt['s', 'ip.1']
+
+ax1 = plt.subplot(3, 1, 1, sharex=ax1)
+mask_ip = tt.name == 'ip.1'
+plt.plot(tt.s[~mask_ip] - s_ip, Bz[~mask_ip])
+plt.ylabel('Bz [T]')
+
+ax2 = plt.subplot(3, 1, 2, sharex=ax1)
+plt.plot(tw_sol_on.s - s_ip, tw_sol_on_corrected.x_prime  - tw_sol_off.x_prime)
+plt.ylabel("x'")
+
+ax3 = plt.subplot(3, 1, 3, sharex=ax1)
+plt.plot(tw_sol_on.s - s_ip, tw_sol_on_corrected.y_prime  - tw_sol_off.y_prime)
+plt.ylabel("y'")
+plt.suptitle('Orbit with solenoid off is subtracted')
+plt.subplots_adjust(hspace=0.2, top=0.9)
+plt.xlim(-5, 5)
+plt.xlabel('s [m]')
+
+for nn in tt.rows['mcb.*'].name:
+    for ax in [ax2, ax3]:
+        ax.axvline(tt['s', nn] - s_ip, color='k', linestyle='--', alpha=0.3)
 
 plt.show()
