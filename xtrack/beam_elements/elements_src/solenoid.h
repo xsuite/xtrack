@@ -57,7 +57,7 @@ void Solenoid_thick_track_single_particle(
     double* dp_record_entry, double* dpx_record_entry, double* dpy_record_entry,
     double* dp_record_exit, double* dpx_record_exit, double* dpy_record_exit
 ) {
-    const double sk = ks / 2;  // todo?: flip sign to change beam direction
+    const double sk = ks / 2;
 
     if (IS_ZERO(sk)) {
         Drift_single_particle_exact(part, length);
