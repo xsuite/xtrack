@@ -2753,6 +2753,18 @@ class TwissTable(Table):
 
     _error_on_row_not_found = True
 
+    def plot(self,*args,**kwargs):
+        from pyoptics import optics
+        self._data['l']=self.length
+        t=optics(self)
+        return t.plot(*args,**kwargs)
+
+    def plotbeta(self,*args,**kwargs):
+        from pyoptics import optics
+        self._data['l']=self.length
+        t=optics(self)
+        return t.plotbeta(*args,**kwargs)
+
     def to_pandas(self, index=None, columns=None):
         if columns is None:
             columns = self._col_names
