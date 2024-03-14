@@ -60,7 +60,7 @@ void Solenoid_thick_track_single_particle(
     const double sk = ks / 2;  // todo?: flip sign to change beam direction
 
     if (IS_ZERO(sk)) {
-        Drift_single_particle(part, length);
+        Drift_single_particle_exact(part, length);
         LocalParticle_set_ax(part, 0);
         LocalParticle_set_ay(part, 0);
         return;
