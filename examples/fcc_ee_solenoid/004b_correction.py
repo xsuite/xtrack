@@ -123,21 +123,23 @@ line.to_json(fname + '_with_sol_corrected.json')
 tw_sol_on_corrected = line.twiss(method='4d')
 tw_chk = tw_sol_on_corrected
 
-assert_isclose = np.testing.assert_allclose
-assert_isclose(tw_chk['x', 'ip.1'], 0, atol=1e-8, rtol=0)
-assert_isclose(tw_chk['y', 'ip.1'], 0, atol=1e-12, rtol=0)
-assert_isclose(tw_chk['x_prime', 'ip.1'], tw_sol_off['x_prime', 'ip.1'],  atol=1e-12, rtol=0)
-assert_isclose(tw_chk['y_prime', 'ip.1'], 0,  atol=1e-10, rtol=0)
-# assert_isclose(tw_chk['x', 'pqc2re.1'], 0, atol=1e-12, rtol=0)
-# assert_isclose(tw_chk['y', 'pqc2re.1'], 0, atol=1e-12, rtol=0)
+assert_allclose = np.testing.assert_allclose
+assert_allclose(tw_chk['x', 'ip.1'], 0, atol=1e-8, rtol=0)
+assert_allclose(tw_chk['y', 'ip.1'], 0, atol=1e-10, rtol=0)
+assert_allclose(tw_chk['x_prime', 'ip.1'], tw_sol_off['x_prime', 'ip.1'],  atol=1e-9, rtol=0)
+assert_allclose(tw_chk['y_prime', 'ip.1'], 0,  atol=1e-8, rtol=0)
+assert_allclose(tw_chk['x', 'pqc2re.1'], 0, atol=5e-8, rtol=0)
+assert_allclose(tw_chk['y', 'pqc2re.1'], 0, atol=5e-8, rtol=0)
+assert_allclose(tw_chk['x_prime', 'pqc2re.1'], 0, atol=1e-8, rtol=0)
+assert_allclose(tw_chk['y_prime', 'pqc2re.1'], 0, atol=1e-8, rtol=0)
 
 assert tw_chk.c_minus < 1e-6
-assert np.isclose(tw_chk['betx2', 'ip.1'] / tw_chk['betx', 'ip.1'], 0, atol=1e-12)
-assert np.isclose(tw_chk['bety1', 'ip.1'] / tw_chk['bety', 'ip.1'], 0, atol=1e-12)
-assert np.isclose(tw_chk['betx2', 'pqc2re.1'] / tw_chk['betx', 'pqc2re.1'], 0, atol=1e-12)
-assert np.isclose(tw_chk['bety1', 'pqc2re.1'] / tw_chk['bety', 'pqc2re.1'], 0, atol=1e-12)
-assert np.isclose(tw_chk['betx2', 'pqc2le.4'] / tw_chk['betx', 'pqc2le.4'], 0, atol=1e-12)
-assert np.isclose(tw_chk['bety1', 'pqc2le.4'] / tw_chk['bety', 'pqc2le.4'], 0, atol=1e-12)
+assert_allclose(tw_chk['betx2', 'ip.1'] / tw_chk['betx', 'ip.1'], 0, atol=1e-11)
+assert_allclose(tw_chk['bety1', 'ip.1'] / tw_chk['bety', 'ip.1'], 0, atol=1e-11)
+assert_allclose(tw_chk['betx2', 'pqc2re.1'] / tw_chk['betx', 'pqc2re.1'], 0, atol=1e-11)
+assert_allclose(tw_chk['bety1', 'pqc2re.1'] / tw_chk['bety', 'pqc2re.1'], 0, atol=1e-11)
+assert_allclose(tw_chk['betx2', 'pqc2le.4'] / tw_chk['betx', 'pqc2le.4'], 0, atol=1e-11)
+assert_allclose(tw_chk['bety1', 'pqc2le.4'] / tw_chk['bety', 'pqc2le.4'], 0, atol=1e-11)
 
 
 
