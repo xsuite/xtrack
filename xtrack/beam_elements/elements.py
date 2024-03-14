@@ -1218,7 +1218,7 @@ class Solenoid(BeamElement):
             self.xoinitialize(**kwargs)
             return
 
-        if length == 0:
+        if ksi != 0:
             # Fail when trying to create a thin solenoid, as these are not
             # tested yet
             raise NotImplementedError('Thin solenoids are not implemented yet.')

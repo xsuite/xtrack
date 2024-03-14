@@ -76,12 +76,17 @@ line.element_dict['sol_end_tilt_'+ip_sol] = sol_end_tilt
 line.element_dict['sol_start_shift_'+ip_sol] = sol_start_shift
 line.element_dict['sol_end_shift_'+ip_sol] = sol_end_shift
 
+line.element_dict['sol_entry_'+ip_sol] = xt.Solenoid(length=0, ks=0)
+line.element_dict['sol_exit_'+ip_sol] = xt.Solenoid(length=0, ks=0)
+
 
 sol_slice_names = []
+sol_slice_names.append('sol_entry_'+ip_sol)
 for ii in range(len(s_sol_slices_entry)):
     nn = f'sol_slice_{ii}_{ip_sol}'
     line.element_dict[nn] = sol_slices[ii]
     sol_slice_names.append(nn)
+sol_slice_names.append('sol_exit_'+ip_sol)
 
 tt = line.get_table()
 names_upstream = list(tt.rows[:'sol_start_'+ip_sol].name)
