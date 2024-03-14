@@ -32,7 +32,7 @@ opt_l = line.match(
         xt.TargetRmatrix(
                     r13=0, r14=0, r23=0, r24=0, # Y-X block
                     r31=0, r32=0, r41=0, r42=0, # X-Y block,
-                    start='pqc2le.4', end='ip.1', tol=1e-5, tag='coupl'),
+                    start='pqc2le.4', end='ip.1', tol=1e-7, tag='coupl'),
         xt.Target('mux', value=tw_sol_off, at='ip.1', tag='mu_ip', weight=0.1, tol=1e-6),
         xt.Target('muy', value=tw_sol_off, at='ip.1', tag='mu_ip', weight=0.1, tol=1e-6),
         xt.Target('betx', value=tw_sol_off, at='ip.1', tag='bet_ip', weight=1, tol=1e-5),
@@ -80,7 +80,7 @@ opt_r = line.match(
         xt.TargetSet(['px', 'py'], value=tw_sol_off, tol=1e-10, at='ip.1', tag='orbit'),
         xt.TargetRmatrix(r13=0, r14=0, r23=0, r24=0, # Y-X block
                          r31=0, r32=0, r41=0, r42=0, # X-Y block,
-                         start='ip.1', end='pqc2re.1', tol=1e-5, tag='coupl'),
+                         start='ip.1', end='pqc2re.1', tol=1e-7, tag='coupl'),
         xt.Target('mux', value=tw_sol_off, at='ip.1', tag='mu_ip', weight=0.1, tol=1e-6),
         xt.Target('muy', value=tw_sol_off, at='ip.1', tag='mu_ip', weight=0.1, tol=1e-6),
         xt.Target('betx', value=tw_sol_off, at='ip.1', tag='bet_ip', weight=1, tol=1e-5),
@@ -126,11 +126,13 @@ P0_J = line.particle_ref.p0c[0] * qe / clight
 brho = P0_J / qe / line.particle_ref.q0
 Bz = tt.ks * brho
 
-line.configure_radiation(model='mean')
-line.vars['voltca1'] = line.vv['voltca1_ref']
-line.vars['voltca2'] = line.vv['voltca2_ref']
-line.compensate_radiation_energy_loss()
-tw_sol_on_corr_rad = line.twiss()
+line_rad = line.copy()
+line_rad.build_tracker()
+line_rad.configure_radiation(model='mean')
+line_rad.vars['voltca1'] = line.vv['voltca1_ref']
+line_rad.vars['voltca2'] = line.vv['voltca2_ref']
+line_rad.compensate_radiation_energy_loss()
+tw_sol_on_corr_rad = line_rad.twiss()
 mask_len = tt.length > 0
 dE = -(np.diff(tw_sol_on_corr_rad.ptau) * tw_sol_on_corr_rad.particle_on_co.energy0[0])
 dE_ds = tt.s * 0
@@ -177,7 +179,7 @@ ax2 = plt.subplot(2, 1, 2, sharex=ax1)
 plt.plot(tw_sol_on.s, tw_sol_on.y - tw_sol_off.y, label='correction off')
 plt.plot(tw_sol_on.s, tw_sol_on_corrected.y  - tw_sol_off.y, label='correction on')
 plt.ylabel("y")
-plt.suptitle('Orbit with solenoid off is subtracted')
+plt.suptitle('Solenoid tilt is subtracted')
 
 plt.figure(8)
 ax1 = plt.subplot(2, 1, 1)
@@ -190,7 +192,7 @@ ax2 = plt.subplot(2, 1, 2, sharex=ax1)
 plt.plot(tw_sol_on.s, tw_sol_on.y_prime - tw_sol_off.y_prime, label='correction off')
 plt.plot(tw_sol_on.s, tw_sol_on_corrected.y_prime  - tw_sol_off.y_prime, label='correction on')
 plt.ylabel("y'")
-plt.suptitle('Orbit with solenoid off is subtracted')
+plt.suptitle('Solenoid tilt is subtracted')
 
 plt.figure(70, figsize=(6.4, 4.8*1.5))
 
@@ -208,8 +210,8 @@ plt.grid()
 ax3 = plt.subplot(3, 1, 3, sharex=ax1)
 plt.plot(tw_sol_on.s - s_ip, tw_sol_on_corrected.y  - tw_sol_off.y, label='correction on')
 plt.ylabel("y [m]")
-plt.suptitle('Orbit with solenoid off is subtracted')
-plt.subplots_adjust(hspace=0.2, top=0.9)
+plt.suptitle('Closed orbit - Solenoid tilt is subtracted')
+plt.subplots_adjust(hspace=0.3, top=0.9)
 plt.xlim(-5, 5)
 plt.xlabel('s [m]')
 plt.grid()
@@ -235,8 +237,8 @@ plt.grid()
 ax3 = plt.subplot(3, 1, 3, sharex=ax1)
 plt.plot(tw_sol_on.s - s_ip, tw_sol_on_corrected.y_prime  - tw_sol_off.y_prime)
 plt.ylabel("y'")
-plt.suptitle('Orbit with solenoid off is subtracted')
-plt.subplots_adjust(hspace=0.2, top=0.9)
+plt.suptitle('Angles - Solenoid tilt is subtracted')
+plt.subplots_adjust(hspace=0.3, top=0.9)
 plt.xlim(-5, 5)
 plt.xlabel('s [m]')
 plt.grid()
@@ -257,5 +259,31 @@ plt.ylabel('dE/ds [keV/cm]')
 plt.xlim(-5, 5)
 plt.xlabel('s [m]')
 plt.grid()
+plt.suptitle('Radiated power')
+
+plt.figure(85, figsize=(6.4, 4.8*1.5))
+s_ip = tt['s', 'ip.1']
+
+ax1 = plt.subplot(3, 1, 1)
+mask_ip = tt.name == 'ip.1'
+plt.plot(tt.s[~mask_ip] - s_ip, Bz[~mask_ip])
+plt.ylabel('Bz [T]')
+plt.grid()
+
+ax2 = plt.subplot(3, 1, 2, sharex=ax1)
+plt.plot(tw_sol_on.s - s_ip, tw_sol_on_corrected.bety1)
+plt.ylabel(r"$\beta_{y,1}$")
+plt.grid()
+
+ax3 = plt.subplot(3, 1, 3, sharex=ax1)
+plt.plot(tw_sol_on.s - s_ip, tw_sol_on_corrected.betx2)
+plt.ylabel(r"$\beta_{x,2}$")
+plt.suptitle('Local coupling')
+plt.subplots_adjust(hspace=0.3, top=0.9)
+plt.xlim(-10, 10)
+plt.xlabel('s [m]')
+plt.grid()
+plt.suptitle('Local coupling')
+
 
 plt.show()
