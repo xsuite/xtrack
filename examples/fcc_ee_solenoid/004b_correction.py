@@ -219,10 +219,12 @@ ax1 = plt.subplot(3, 1, 1)
 mask_ip = tt.name == 'ip.1'
 plt.plot(tt.s[~mask_ip] - s_ip, Bz[~mask_ip])
 plt.ylabel('Bz [T]')
+plt.grid()
 
 ax2 = plt.subplot(3, 1, 2, sharex=ax1)
 plt.plot(tw_sol_on.s - s_ip, tw_sol_on_corrected.x  - tw_sol_off.x, label='correction on')
 plt.ylabel("x [m]")
+plt.grid()
 
 ax3 = plt.subplot(3, 1, 3, sharex=ax1)
 plt.plot(tw_sol_on.s - s_ip, tw_sol_on_corrected.y  - tw_sol_off.y, label='correction on')
@@ -231,6 +233,7 @@ plt.suptitle('Orbit with solenoid off is subtracted')
 plt.subplots_adjust(hspace=0.2, top=0.9)
 plt.xlim(-5, 5)
 plt.xlabel('s [m]')
+plt.grid()
 
 for nn in tt.rows['mcb.*'].name:
     for ax in [ax2, ax3]:
@@ -243,10 +246,12 @@ ax1 = plt.subplot(3, 1, 1, sharex=ax1)
 mask_ip = tt.name == 'ip.1'
 plt.plot(tt.s[~mask_ip] - s_ip, Bz[~mask_ip])
 plt.ylabel('Bz [T]')
+plt.grid()
 
 ax2 = plt.subplot(3, 1, 2, sharex=ax1)
 plt.plot(tw_sol_on.s - s_ip, tw_sol_on_corrected.x_prime  - tw_sol_off.x_prime)
 plt.ylabel("x'")
+plt.grid()
 
 ax3 = plt.subplot(3, 1, 3, sharex=ax1)
 plt.plot(tw_sol_on.s - s_ip, tw_sol_on_corrected.y_prime  - tw_sol_off.y_prime)
@@ -255,6 +260,7 @@ plt.suptitle('Orbit with solenoid off is subtracted')
 plt.subplots_adjust(hspace=0.2, top=0.9)
 plt.xlim(-5, 5)
 plt.xlabel('s [m]')
+plt.grid()
 
 for nn in tt.rows['mcb.*'].name:
     for ax in [ax2, ax3]:
