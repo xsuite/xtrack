@@ -2753,7 +2753,7 @@ class TwissTable(Table):
 
     _error_on_row_not_found = True
 
-    def plot(self,yl='betx beyy',yr='dx dy',x='s',
+    def plot(self,yl='betx bety',yr='dx dy',x='s',
             lattice=True,
             mask=None,
             labels=None,
