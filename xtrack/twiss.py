@@ -2753,17 +2753,40 @@ class TwissTable(Table):
 
     _error_on_row_not_found = True
 
-    def plot(self,*args,**kwargs):
-        from pyoptics import optics
-        self._data['l']=self.length
-        t=optics(self)
-        return t.plot(*args,**kwargs)
+    def plot(self,yl='betx beyy',yr='dx dy',x='s',
+            lattice=True,
+            mask=None,
+            labels=None,
+            clist="k r b g c m",
+            ax=None):
 
-    def plotbeta(self,*args,**kwargs):
         from pyoptics import optics
-        self._data['l']=self.length
+
+        if mask is not None:
+            if isinstance(mask,str):
+                idx=self.mask[mask]
+            else:
+                idx=mask
+        else:
+            idx=slice(None)
+        if ax is None:
+            newfig=True
+        else:
+            raise NotImplementedError
+
         t=optics(self)
-        return t.plotbeta(*args,**kwargs)
+        t.l=self.length
+        t._is_s_begin=True
+        pl=t.plot(yl=yl,yr=yr,x=x,idx=idx,clist=clist,lattice=lattice,newfig=newfig)._plot
+
+        if labels is not None:
+            mask=self.mask[labels]
+            labels=self[self._index][mask]
+            xs=self[x][mask]
+            pl.left.set_xticks(xs,labels)
+        return pl
+
+
 
     def to_pandas(self, index=None, columns=None):
         if columns is None:
