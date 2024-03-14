@@ -190,13 +190,13 @@ line.slice_thick_elements(slicing_strategies=slicing_strategies)
 
 # Add dipole correctors
 line.insert_element(name='mcb1.r1', element=xt.Multipole(knl=[0]),
-                    at='qc1r1.1_entry')
-line.insert_element(name='mcb2.r1', element=xt.Multipole(knl=[0]),
                     at='qc1r1.1_exit')
+line.insert_element(name='mcb2.r1', element=xt.Multipole(knl=[0]),
+                    at='qc1r2.1_exit')
 line.insert_element(name='mcb1.l1', element=xt.Multipole(knl=[0]),
-                    at='qc1l1.4_exit')
-line.insert_element(name='mcb2.l1', element=xt.Multipole(knl=[0]),
                     at='qc1l1.4_entry')
+line.insert_element(name='mcb2.l1', element=xt.Multipole(knl=[0]),
+                    at='qc1l2.4_entry')
 
 line.vars['acb1h.r1'] = 0
 line.vars['acb1v.r1'] = 0

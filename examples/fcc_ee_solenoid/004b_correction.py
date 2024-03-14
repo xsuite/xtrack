@@ -1,6 +1,6 @@
 import xtrack as xt
-
-from cpymad.madx import Madx
+from scipy.constants import c as clight
+from scipy.constants import e as qe
 
 fname = 'fccee_z'; pc_gev = 45.6
 fname = 'fccee_t'; pc_gev = 182.5
@@ -8,7 +8,6 @@ fname = 'fccee_t'; pc_gev = 182.5
 
 line = xt.Line.from_json(fname + '_with_sol.json')
 
-line.config.XTRACK_USE_EXACT_DRIFTS = True
 line.vars['on_sol_ip.1'] = 0
 tw_sol_off = line.twiss(method='4d')
 line.vars['on_sol_ip.1'] = 1
@@ -206,6 +205,28 @@ ax2 = plt.subplot(2, 1, 2, sharex=ax1)
 plt.plot(tw_sol_on.s, tw_sol_on.y_prime - tw_sol_off.y_prime, label='correction off')
 plt.plot(tw_sol_on.s, tw_sol_on_corrected.y_prime  - tw_sol_off.y_prime, label='correction on')
 plt.ylabel("y'")
+plt.suptitle('Orbit with solenoid off is subtracted')
+
+tt = line.get_table(attr=True)
+P0_J = line.particle_ref.p0c[0] * qe / clight
+brho = P0_J / qe / line.particle_ref.q0
+Bz = tt.ks * brho
+
+plt.figure(70)
+
+ax1 = plt.subplot(3, 1, 1)
+mask_ip = tt.name == 'ip.1'
+plt.plot(tt.s[~mask_ip], Bz[~mask_ip])
+plt.ylabel('Bz [T]')
+
+ax2 = plt.subplot(3, 1, 2, sharex=ax1)
+plt.plot(tw_sol_on.s, tw_sol_on_corrected.x  - tw_sol_off.x, label='correction on')
+plt.ylabel("x")
+plt.legend()
+
+ax2 = plt.subplot(3, 1, 3, sharex=ax1)
+plt.plot(tw_sol_on.s, tw_sol_on_corrected.y  - tw_sol_off.y, label='correction on')
+plt.ylabel("y")
 plt.suptitle('Orbit with solenoid off is subtracted')
 
 
