@@ -24,7 +24,8 @@ opt_l = line.match(
         xt.VaryList(['corr_k1.l1', 'corr_k2.l1', 'corr_k3.l1', 'corr_k0.l1'], step=1e-6, tag='normal_l'),
     ],
     targets=[
-        xt.TargetSet(['x', 'px', 'y', 'py'], value=tw_sol_off, at='ip.1', tag='orbit'),
+        xt.TargetSet(['x', 'y'], value=tw_sol_off, tol=1e-7, at='ip.1', tag='orbit'),
+        xt.TargetSet(['px', 'py'], value=tw_sol_off, tol=1e-10, at='ip.1', tag='orbit'),
         xt.TargetRmatrix(
                     r13=0, r14=0, r23=0, r24=0, # Y-X block
                     r31=0, r32=0, r41=0, r42=0, # X-Y block,
@@ -40,20 +41,21 @@ opt_l = line.match(
 )
 
 
-# Orbit alone
-opt_l.disable_all_targets(); opt_l.disable_all_vary()
-opt_l.enable_targets(tag='orbit'); opt_l.enable_vary(tag='corr_l'); opt_l.solve()
+for iter in range(2):
+    # Orbit alone
+    opt_l.disable_all_targets(); opt_l.disable_all_vary()
+    opt_l.enable_targets(tag='orbit'); opt_l.enable_vary(tag='corr_l'); opt_l.solve()
 
-# Coupling alone
-opt_l.disable_all_targets(); opt_l.disable_all_vary()
-opt_l.enable_targets(tag='coupl'); opt_l.enable_vary(tag='skew_l'); opt_l.solve()
+    # Coupling alone
+    opt_l.disable_all_targets(); opt_l.disable_all_vary()
+    opt_l.enable_targets(tag='coupl'); opt_l.enable_vary(tag='skew_l'); opt_l.solve()
 
-# phase, beta and alpha alone
-opt_l.disable_all_targets(); opt_l.disable_all_vary()
-opt_l.enable_vary(tag='normal_l')
-opt_l.enable_targets(tag='mu_ip'); opt_l.solve()
-opt_l.enable_targets(tag='bet_ip'); opt_l.solve()
-opt_l.enable_targets(tag='alf_ip'); opt_l.solve()
+    # phase, beta and alpha alone
+    opt_l.disable_all_targets(); opt_l.disable_all_vary()
+    opt_l.enable_vary(tag='normal_l')
+    opt_l.enable_targets(tag='mu_ip'); opt_l.solve()
+    opt_l.enable_targets(tag='bet_ip'); opt_l.solve()
+    opt_l.enable_targets(tag='alf_ip'); opt_l.solve()
 
 # All together
 opt_l.enable_all_targets()
@@ -71,7 +73,8 @@ opt_r = line.match(
         xt.VaryList(['corr_k1.r1', 'corr_k2.r1', 'corr_k3.r1', 'corr_k0.r1'], step=1e-6, tag='normal_r'),
     ],
     targets=[
-        xt.TargetSet(['x', 'px', 'y', 'py'], value=tw_sol_off, at='ip.1', tag='orbit'),
+        xt.TargetSet(['x', 'y'], value=tw_sol_off, tol=1e-7, at='ip.1', tag='orbit'),
+        xt.TargetSet(['px', 'py'], value=tw_sol_off, tol=1e-10, at='ip.1', tag='orbit'),
         xt.TargetRmatrix(r13=0, r14=0, r23=0, r24=0, # Y-X block
                          r31=0, r32=0, r41=0, r42=0, # X-Y block,
                          start='ip.1', end='pqc2re.1', tol=1e-5, tag='coupl'),
@@ -85,20 +88,21 @@ opt_r = line.match(
     ]
 )
 
-# Orbit alone
-opt_r.disable_all_targets(); opt_r.disable_all_vary()
-opt_r.enable_targets(tag='orbit'); opt_r.enable_vary(tag='corr_r'); opt_r.solve()
+for iter in range(2):
+    # Orbit alone
+    opt_r.disable_all_targets(); opt_r.disable_all_vary()
+    opt_r.enable_targets(tag='orbit'); opt_r.enable_vary(tag='corr_r'); opt_r.solve()
 
-# Coupling alone
-opt_r.disable_all_targets(); opt_r.disable_all_vary()
-opt_r.enable_targets(tag='coupl'); opt_r.enable_vary(tag='skew_r'); opt_r.solve()
+    # Coupling alone
+    opt_r.disable_all_targets(); opt_r.disable_all_vary()
+    opt_r.enable_targets(tag='coupl'); opt_r.enable_vary(tag='skew_r'); opt_r.solve()
 
-# phase, beta and alpha alone
-opt_r.disable_all_targets(); opt_r.disable_all_vary()
-opt_r.enable_vary(tag='normal_r')
-opt_r.enable_targets(tag='mu_ip'); opt_r.solve()
-opt_r.enable_targets(tag='bet_ip'); opt_r.solve()
-opt_r.enable_targets(tag='alf_ip'); opt_r.solve()
+    # phase, beta and alpha alone
+    opt_r.disable_all_targets(); opt_r.disable_all_vary()
+    opt_r.enable_vary(tag='normal_r')
+    opt_r.enable_targets(tag='mu_ip'); opt_r.solve()
+    opt_r.enable_targets(tag='bet_ip'); opt_r.solve()
+    opt_r.enable_targets(tag='alf_ip'); opt_r.solve()
 
 # All together
 opt_r.enable_all_targets()
@@ -164,14 +168,16 @@ plt.ylabel(r'$\beta_{y,1}$ [m]')
 
 plt.figure(6)
 ax1 = plt.subplot(2, 1, 1)
+plt.plot(tw_sol_on.s, tw_sol_off.x_prime, label='solenoid off')
 plt.plot(tw_sol_on.s, tw_sol_on.x_prime, label='correction off')
 plt.plot(tw_sol_on.s, tw_sol_on_corrected.x_prime, label='correction on')
-plt.ylabel(r'$\beta_{x,2}$ [m]')
+plt.ylabel("x'")
 plt.legend()
 
 ax2 = plt.subplot(2, 1, 2, sharex=ax1)
+plt.plot(tw_sol_on.s, tw_sol_off.y_prime, label='solenoid off')
 plt.plot(tw_sol_on.s, tw_sol_on.y_prime, label='correction off')
 plt.plot(tw_sol_on.s, tw_sol_on_corrected.y_prime, label='correction on')
-plt.ylabel(r'$\beta_{y,1}$ [m]')
+plt.ylabel("y'")
 
 plt.show()
