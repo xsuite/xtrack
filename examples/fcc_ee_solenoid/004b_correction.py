@@ -8,6 +8,8 @@ fname = 'fccee_t'; pc_gev = 182.5
 
 line = xt.Line.from_json(fname + '_with_sol.json')
 
+line.config.XTRACK_USE_EXACT_DRIFTS = True
+line.vars['on_sol_ip.1'] = 0
 tw_sol_off = line.twiss(method='4d')
 line.vars['on_sol_ip.1'] = 1
 tw_sol_on = line.twiss(method='4d')
@@ -179,5 +181,32 @@ plt.plot(tw_sol_on.s, tw_sol_off.y_prime, label='solenoid off')
 plt.plot(tw_sol_on.s, tw_sol_on.y_prime, label='correction off')
 plt.plot(tw_sol_on.s, tw_sol_on_corrected.y_prime, label='correction on')
 plt.ylabel("y'")
+
+plt.figure(7)
+ax1 = plt.subplot(2, 1, 1)
+plt.plot(tw_sol_on.s, tw_sol_on.x - tw_sol_off.x, label='correction off')
+plt.plot(tw_sol_on.s, tw_sol_on_corrected.x  - tw_sol_off.x, label='correction on')
+plt.ylabel("x")
+plt.legend()
+
+ax2 = plt.subplot(2, 1, 2, sharex=ax1)
+plt.plot(tw_sol_on.s, tw_sol_on.y - tw_sol_off.y, label='correction off')
+plt.plot(tw_sol_on.s, tw_sol_on_corrected.y  - tw_sol_off.y, label='correction on')
+plt.ylabel("y")
+plt.suptitle('Orbit with solenoid off is subtracted')
+
+plt.figure(8)
+ax1 = plt.subplot(2, 1, 1)
+plt.plot(tw_sol_on.s, tw_sol_on.x_prime - tw_sol_off.x_prime, label='correction off')
+plt.plot(tw_sol_on.s, tw_sol_on_corrected.x_prime  - tw_sol_off.x_prime, label='correction on')
+plt.ylabel("x'")
+plt.legend()
+
+ax2 = plt.subplot(2, 1, 2, sharex=ax1)
+plt.plot(tw_sol_on.s, tw_sol_on.y_prime - tw_sol_off.y_prime, label='correction off')
+plt.plot(tw_sol_on.s, tw_sol_on_corrected.y_prime  - tw_sol_off.y_prime, label='correction on')
+plt.ylabel("y'")
+plt.suptitle('Orbit with solenoid off is subtracted')
+
 
 plt.show()
