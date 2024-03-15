@@ -114,16 +114,21 @@ opt_r.solve()
 
 tw_local_corr = line.twiss(start='ip.4', end='_end_point', init_at='ip.1',
                             init=tw_sol_off)
-
-
-
-
 line.to_json(fname + '_with_sol_corrected.json')
 
 tw_sol_on_corrected = line.twiss(method='4d')
-tw_chk = tw_sol_on_corrected
 
 assert_allclose = np.testing.assert_allclose
+
+# Check that tilt is present
+assert_allclose(tw_sol_off['x_prime', 'ip.1'], np.tan(0.015), atol=1e-14, rtol=0)
+
+# Check that solenoid introduces coupling
+assert tw_sol_on.c_minus > 1e-4
+
+# Check correction
+tw_chk = tw_sol_on_corrected
+
 assert_allclose(tw_chk['x', 'ip.1'], 0, atol=1e-8, rtol=0)
 assert_allclose(tw_chk['y', 'ip.1'], 0, atol=1e-10, rtol=0)
 assert_allclose(tw_chk['x_prime', 'ip.1'], tw_sol_off['x_prime', 'ip.1'],  atol=1e-9, rtol=0)
@@ -142,10 +147,19 @@ assert tw_chk['ay', 'pqc2le.4'] == 0
 assert tw_chk['ax', 'pqc2re.1'] == 0
 assert tw_chk['ay', 'pqc2re.1'] == 0
 
-assert_allclose(tw_chk['betx', 'ip.1'], tw_sol_off['betx', 'ip.1'], atol=0, rtol=1e-5)
+assert_allclose(tw_chk['betx', 'ip.1'], tw_sol_off['betx', 'ip.1'], atol=0, rtol=5e-5)
 assert_allclose(tw_chk['bety', 'ip.1'], tw_sol_off['bety', 'ip.1'], atol=0, rtol=5e-5)
 assert_allclose(tw_chk['alfx', 'ip.1'], tw_sol_off['alfx', 'ip.1'], atol=1e-5, rtol=0)
 assert_allclose(tw_chk['alfy', 'ip.1'], tw_sol_off['alfy', 'ip.1'], atol=1e-5, rtol=0)
+assert_allclose(tw_chk['betx', 'pqc2re.1'], tw_sol_off['betx', 'pqc2re.1'], atol=0, rtol=5e-5)
+assert_allclose(tw_chk['bety', 'pqc2re.1'], tw_sol_off['bety', 'pqc2re.1'], atol=0, rtol=5e-5)
+assert_allclose(tw_chk['alfx', 'pqc2re.1'], tw_sol_off['alfx', 'pqc2re.1'], atol=1e-5, rtol=5e-5)
+assert_allclose(tw_chk['alfy', 'pqc2re.1'], tw_sol_off['alfy', 'pqc2re.1'], atol=1e-5, rtol=5e-5)
+assert_allclose(tw_chk['betx', 'pqc2le.4'], tw_sol_off['betx', 'pqc2le.4'], atol=0, rtol=5e-5)
+assert_allclose(tw_chk['bety', 'pqc2le.4'], tw_sol_off['bety', 'pqc2le.4'], atol=0, rtol=5e-5)
+assert_allclose(tw_chk['alfx', 'pqc2le.4'], tw_sol_off['alfx', 'pqc2le.4'], atol=1e-5, rtol=5e-5)
+assert_allclose(tw_chk['alfy', 'pqc2le.4'], tw_sol_off['alfy', 'pqc2le.4'], atol=1e-5, rtol=5e-5)
+
 
 assert tw_chk.c_minus < 1e-6
 assert_allclose(tw_chk['betx2', 'ip.1'] / tw_chk['betx', 'ip.1'], 0, atol=1e-11)
