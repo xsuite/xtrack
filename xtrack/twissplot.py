@@ -128,7 +128,7 @@ class TwissPlot(object):
 
         #    timeit('Setup')
         self.run()
-        if lattice is not None:
+        if lattice:
             self.lattice.set_autoscale_on(False)
         if yl:
             self.left.set_autoscale_on(False)
@@ -238,7 +238,7 @@ class TwissPlot(object):
     #    self.update()
 
     def _lattice(self, names, color, lbl):
-        print("start lattice %s" % names)
+        #print("start lattice %s" % names)
         #    timeit('start lattice %s' % names,1)
         vd = 0
         sp = self.lattice

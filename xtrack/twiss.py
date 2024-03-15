@@ -3221,12 +3221,7 @@ def _complete_twiss_init(start, end, init_at, init,
     if start is not None or end is not None:
         assert start is not None and end is not None, (
             'start and end must be provided together')
-        if init is None:
-
-            assert betx is not None and bety is not None, (
-                'betx and bety or init must be provided when start '
-                'and end are used')
-
+        if betx is not None and bety is not None:
             init = xt.TwissInit(
                 element_name=init_at,
                 x=x, px=px, y=y, py=py, zeta=zeta, delta=delta,
@@ -3240,17 +3235,20 @@ def _complete_twiss_init(start, end, init_at, init,
         elif isinstance(init, TwissTable):
             init = init.get_twiss_init(at_element=init_at)
         else:
-            assert init_at is None
-            assert x is None and px is None and y is None and py is None
-            assert zeta is None and delta is None
-            assert betx is None and alfx is None and bety is None and alfy is None
-            assert bets is None
-            assert dx is None and dpx is None and dy is None and dpy is None
-            assert dzeta is None
-            assert mux is None and muy is None and muzeta is None
-            assert ax_chrom is None and bx_chrom is None
-            assert ay_chrom is None and by_chrom is None
-            assert ddpx is None and ddx is None and ddpy is None and ddy is None
+            tw_closed=line.twiss(reverse=reverse)
+            init = tw_closed.get_twiss_init(tw_closed.name[0])
+        #else:
+        #    assert init_at is None
+        #    assert x is None and px is None and y is None and py is None
+        #    assert zeta is None and delta is None
+        #    assert betx is None and alfx is None and bety is None and alfy is None
+        #    assert bets is None
+        #    assert dx is None and dpx is None and dy is None and dpy is None
+        #    assert dzeta is None
+        #    assert mux is None and muy is None and muzeta is None
+        #    assert ax_chrom is None and bx_chrom is None
+        #    assert ay_chrom is None and by_chrom is None
+        #    assert ddpx is None and ddx is None and ddpy is None and ddy is None
 
     if init is not None and not isinstance(init, str):
         assert isinstance(init, TwissInit)
