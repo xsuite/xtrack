@@ -21,6 +21,8 @@ from xdeps import Table
 from . import linear_normal_form as lnf
 from .general import _print
 
+from .twissplot import TwissPlot
+
 import xtrack as xt  # To avoid circular imports
 
 DEFAULT_STEPS_R_MATRIX = {
@@ -2757,10 +2759,8 @@ class TwissTable(Table):
             lattice=True,
             mask=None,
             labels=None,
-            clist="k r b g c m",
+            clist="C1 C2 C3 C4 C5 C6 C7 C8 C9 C0",
             ax=None):
-
-        from pyoptics import optics
 
         if mask is not None:
             if isinstance(mask,str):
@@ -2774,10 +2774,9 @@ class TwissTable(Table):
         else:
             raise NotImplementedError
 
-        t=optics(self)
-        t.l=self.length
-        t._is_s_begin=True
-        pl=t.plot(yl=yl,yr=yr,x=x,idx=idx,clist=clist,lattice=lattice,newfig=newfig)._plot
+        self._is_s_begin=True
+
+        pl=TwissPlot(self, x=x, yl=yl, yr=yr, idx=idx, lattice=lattice, newfig=newfig, clist=clist)
 
         if labels is not None:
             mask=self.mask[labels]
