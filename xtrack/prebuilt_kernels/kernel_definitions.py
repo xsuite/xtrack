@@ -79,6 +79,13 @@ kernel_definitions = [
         'config': BASE_CONFIG,
         'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS,
     }),
+    ('default_only_xtrack_no_limit', {
+        'config': {
+            **{k: v for k, v in BASE_CONFIG.items()
+                if k != 'XTRACK_GLOBAL_XY_LIMIT'}
+        },
+        'classes': ONLY_XTRACK_ELEMENTS + NO_SYNRAD_ELEMENTS,
+    }),
     ('only_xtrack_non_tracking_kernels', {
         'config': BASE_CONFIG,
         'classes': [],
@@ -160,6 +167,7 @@ try:
     DEFAULT_XCOLL_ELEMENTS = [
         *ONLY_XTRACK_ELEMENTS,
         *NO_SYNRAD_ELEMENTS,
+        ZetaShift,
         xc.BlackAbsorber,
         xc.EverestBlock,
         xc.EverestCollimator,
@@ -173,6 +181,13 @@ try:
         }),
         ('default_xcoll_no_config', {
             'config': {},
+            'classes': DEFAULT_XCOLL_ELEMENTS,
+        }),
+        ('default_xcoll_no_limit', {
+            'config': {
+                **{k: v for k, v in BASE_CONFIG.items()
+                    if k != 'XTRACK_GLOBAL_XY_LIMIT'}
+            },
             'classes': DEFAULT_XCOLL_ELEMENTS,
         }),
         ('default_xcoll_frozen_longitudinal', {
