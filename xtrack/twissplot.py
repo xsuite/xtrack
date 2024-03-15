@@ -83,7 +83,7 @@ class TwissPlot(object):
         yl="",
         yr="",
         idx=slice(None),
-        clist="C1 C2 C3 C4 C5 C6 C7 C8",
+        clist="k r b g c m",
         lattice=None,
         newfig=True,
     ):
