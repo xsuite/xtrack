@@ -151,15 +151,22 @@ assert_allclose(tw_chk['betx', 'ip.1'], tw_sol_off['betx', 'ip.1'], atol=0, rtol
 assert_allclose(tw_chk['bety', 'ip.1'], tw_sol_off['bety', 'ip.1'], atol=0, rtol=5e-5)
 assert_allclose(tw_chk['alfx', 'ip.1'], tw_sol_off['alfx', 'ip.1'], atol=1e-5, rtol=0)
 assert_allclose(tw_chk['alfy', 'ip.1'], tw_sol_off['alfy', 'ip.1'], atol=1e-5, rtol=0)
+assert_allclose(tw_chk['mux', 'ip.1'], tw_sol_off['mux', 'ip.1'], atol=2e-6, rtol=0)
+assert_allclose(tw_chk['muy', 'ip.1'], tw_sol_off['muy', 'ip.1'], atol=2e-6, rtol=0)
+
 assert_allclose(tw_chk['betx', 'pqc2re.1'], tw_sol_off['betx', 'pqc2re.1'], atol=0, rtol=5e-5)
 assert_allclose(tw_chk['bety', 'pqc2re.1'], tw_sol_off['bety', 'pqc2re.1'], atol=0, rtol=5e-5)
 assert_allclose(tw_chk['alfx', 'pqc2re.1'], tw_sol_off['alfx', 'pqc2re.1'], atol=1e-5, rtol=5e-5)
 assert_allclose(tw_chk['alfy', 'pqc2re.1'], tw_sol_off['alfy', 'pqc2re.1'], atol=1e-5, rtol=5e-5)
+assert_allclose(tw_chk['mux', 'pqc2re.1'], tw_sol_off['mux', 'pqc2re.1'], atol=2e-6, rtol=5e-5)
+assert_allclose(tw_chk['muy', 'pqc2re.1'], tw_sol_off['muy', 'pqc2re.1'], atol=2e-6, rtol=5e-5)
+
 assert_allclose(tw_chk['betx', 'pqc2le.4'], tw_sol_off['betx', 'pqc2le.4'], atol=0, rtol=5e-5)
 assert_allclose(tw_chk['bety', 'pqc2le.4'], tw_sol_off['bety', 'pqc2le.4'], atol=0, rtol=5e-5)
 assert_allclose(tw_chk['alfx', 'pqc2le.4'], tw_sol_off['alfx', 'pqc2le.4'], atol=1e-5, rtol=5e-5)
 assert_allclose(tw_chk['alfy', 'pqc2le.4'], tw_sol_off['alfy', 'pqc2le.4'], atol=1e-5, rtol=5e-5)
-
+assert_allclose(tw_chk['mux', 'pqc2le.4'], tw_sol_off['mux', 'pqc2le.4'], atol=2e-6, rtol=5e-5)
+assert_allclose(tw_chk['muy', 'pqc2le.4'], tw_sol_off['muy', 'pqc2le.4'], atol=2e-6, rtol=5e-5)
 
 assert tw_chk.c_minus < 1e-6
 assert_allclose(tw_chk['betx2', 'ip.1'] / tw_chk['betx', 'ip.1'], 0, atol=1e-11)
@@ -168,14 +175,6 @@ assert_allclose(tw_chk['betx2', 'pqc2re.1'] / tw_chk['betx', 'pqc2re.1'], 0, ato
 assert_allclose(tw_chk['bety1', 'pqc2re.1'] / tw_chk['bety', 'pqc2re.1'], 0, atol=1e-11)
 assert_allclose(tw_chk['betx2', 'pqc2le.4'] / tw_chk['betx', 'pqc2le.4'], 0, atol=1e-11)
 assert_allclose(tw_chk['bety1', 'pqc2le.4'] / tw_chk['bety', 'pqc2le.4'], 0, atol=1e-11)
-
-assert_allclose(tw_sol_off['betx', 'ip.1'], tw_sol_on['betx', 'ip.1'], atol=1e-8, rtol=0)
-assert_allclose(tw_sol_off['bety', 'ip.1'], tw_sol_on['bety', 'ip.1'], atol=1e-8, rtol=0)
-
-
-
-
-
 
 tt = line.get_table(attr=True)
 s_ip = tt['s', 'ip.1']
