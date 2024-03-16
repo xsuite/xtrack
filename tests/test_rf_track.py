@@ -80,7 +80,7 @@ def test_rf_track_lattice():
                             y=rng.uniform(-2e-3, 2e-3, n_part),
                             py=rng.uniform(-3e-5, 3e-5, n_part),
                             zeta=rng.uniform(-1e-2, 1e-2, n_part),
-                            delta=rng.uniform(-1e-3, 1e-3, n_part))
+                            delta=rng.uniform(-1e-2, 1e-2, n_part))
 
     particles_rft = particles0.copy()
 
@@ -103,19 +103,20 @@ def test_rf_track_lattice():
     line_ref.track(particles_ref)
     print('Xtrack tracking ends')
 
+    assert_allclose = np.testing.assert_allclose
     assert np.all(particles_rft.particle_id == particles_ref.particle_id)
-    assert np.allclose(particles_rft.x,  particles_ref.x,  atol=6e-5, rtol=0)
-    assert np.allclose(particles_rft.px, particles_ref.px, atol=2e-5, rtol=0)
-    assert np.allclose(particles_rft.y,  particles_ref.y,  atol=6e-7, rtol=0)
-    assert np.allclose(particles_rft.py, particles_ref.py, atol=2e-6, rtol=0)
-    assert np.allclose(particles_rft.rpp, particles_ref.rpp, atol=3e-5, rtol=0)
-    assert np.allclose(particles_rft.rvv, particles_ref.rvv, atol=1e-5, rtol=0)
-    assert np.allclose(particles_rft.ptau, particles_ref.ptau, atol=2e-5, rtol=0)
-    assert np.allclose(particles_rft.delta, particles_ref.delta, atol=4e-5, rtol=0)
-    assert np.allclose(particles_rft.chi, particles_ref.chi, atol=1e-10, rtol=0)
-    assert np.allclose(particles_rft.p0c, particles_ref.p0c, atol=4e-5, rtol=0)
-    assert np.allclose(particles_rft.energy0, particles_ref.energy0, atol=4e-5, rtol=0)
-    assert np.allclose(particles_rft.zeta, particles_ref.zeta, atol=4e-5, rtol=0)
-    assert np.allclose(particles_rft.beta0, particles_ref.beta0, atol=1e-10, rtol=0)
-    assert np.allclose(particles_rft.mass0, particles_ref.mass0, atol=1e-10, rtol=0)
-    assert np.allclose(particles_rft.gamma0, particles_ref.gamma0, atol=1e-10, rtol=0)
+    assert_allclose(particles_rft.x,  particles_ref.x,  atol=6e-5, rtol=0)
+    assert_allclose(particles_rft.px, particles_ref.px, atol=2e-5, rtol=0)
+    assert_allclose(particles_rft.y,  particles_ref.y,  atol=6e-7, rtol=0)
+    assert_allclose(particles_rft.py, particles_ref.py, atol=2e-6, rtol=0)
+    assert_allclose(particles_rft.rpp, particles_ref.rpp, atol=3e-5, rtol=0)
+    assert_allclose(particles_rft.rvv, particles_ref.rvv, atol=1e-5, rtol=0)
+    assert_allclose(particles_rft.ptau, particles_ref.ptau, atol=2e-5, rtol=0)
+    assert_allclose(particles_rft.delta, particles_ref.delta, atol=4e-5, rtol=0)
+    assert_allclose(particles_rft.chi, particles_ref.chi, atol=1e-10, rtol=0)
+    assert_allclose(particles_rft.p0c, particles_ref.p0c, atol=4e-5, rtol=0)
+    assert_allclose(particles_rft.energy0, particles_ref.energy0, atol=4e-5, rtol=0)
+    assert_allclose(particles_rft.zeta, particles_ref.zeta, atol=4e-5, rtol=0)
+    assert_allclose(particles_rft.beta0, particles_ref.beta0, atol=1e-10, rtol=0)
+    assert_allclose(particles_rft.mass0, particles_ref.mass0, atol=1e-10, rtol=0)
+    assert_allclose(particles_rft.gamma0, particles_ref.gamma0, atol=1e-10, rtol=0)
