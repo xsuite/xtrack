@@ -18,7 +18,7 @@ class SyncTime:
 
     def track(self, particles):
 
-        assert isinstance(particles._context, xo.ContextCpu,
+        assert isinstance(particles._context, xo.ContextCpu), (
                           'SyncTime only available for CPU for now')
 
         beta0 = particles._xobject.beta0[0]
