@@ -199,7 +199,8 @@ def test_solenoid_bz_map_vs_boris(test_context):
     dx_ds = np.diff(mon.x, axis=1) / np.diff(mon.s, axis=1)
     dy_ds = np.diff(mon.y, axis=1) / np.diff(mon.s, axis=1)
 
-    dE_ds = -np.diff(mon.ptau, axis=1)/np.diff(mon.s, axis=1) * p_xt._xobject.energy0[0]
+    ctx2np = p_xt._context.nparray_from_context_array
+    dE_ds = -np.diff(mon.ptau, axis=1)/np.diff(mon.s, axis=1) * ctx2np(p_xt.energy0)[0]
 
     emitted_dpx = -(np.diff(mon.px, axis=1) - np.diff(mon_no_rad.px, axis=1))
     emitted_dpy = -(np.diff(mon.py, axis=1) - np.diff(mon_no_rad.py, axis=1))
