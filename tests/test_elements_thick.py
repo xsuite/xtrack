@@ -1036,7 +1036,9 @@ def test_solenoid_against_madx(test_context, ks, ksi, length):
 @for_all_test_contexts
 def test_solenoid_thick_drift_like(test_context):
     solenoid = xt.Solenoid(ks=1.001e-9, length=1, _context=test_context)
-    drift = xt.Drift(length=1, _context=test_context)
+    l_drift = xt.Line(elements=[xt.Drift(length=1)])
+    l_drift.config.XTRACK_USE_EXACT_DRIFTS = True
+    l_drift.build_tracker(_context=test_context)
 
     p0 = xp.Particles(
         x=0.1, px=0.2, y=0.3, py=0.4, zeta=0.5, delta=0.6,
@@ -1047,7 +1049,7 @@ def test_solenoid_thick_drift_like(test_context):
     solenoid.track(p_sol)
 
     p_drift = p0.copy()
-    drift.track(p_drift)
+    l_drift.track(p_drift)
 
     p_sol.move(_context=xo.context_default)
     p_drift.move(_context=xo.context_default)
