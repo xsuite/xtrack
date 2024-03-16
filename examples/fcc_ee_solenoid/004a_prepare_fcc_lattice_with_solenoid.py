@@ -22,7 +22,7 @@ line.cycle('ip.4', inplace=True)
 line.append_element(element=xt.Marker(), name='ip.4.l')
 
 tt = line.get_table()
-bz_data_file = 'Bz_closed_before_quads.dat'
+bz_data_file = '../../test_data/fcc_ee/Bz_closed_before_quads.dat'
 
 line.vars['voltca1_ref'] = line.vv['voltca1']
 if 'voltca2' in line.vars.keys():
