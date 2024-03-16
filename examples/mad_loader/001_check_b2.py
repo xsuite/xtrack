@@ -37,8 +37,12 @@ for mad in [mad1, mad4]:
     mad.globals['on_crab1'] = -190 # Check cavity expressions
     mad.globals['on_crab5'] = -130 # Check cavity expressions
     mad.globals['on_sol_atlas'] = 1 # Check solenoid expressions
-    mad.globals['kcdx3.r1']=1e-4 # Check thin decapole expressions
+    mad.globals['kcdx3.r1'] = 1e-4 # Check thin decapole expressions
+    mad.globals['kcdsx3.r1'] = 1e-4 # Check thin skew decapole expressions
     mad.globals['kctx3.l1'] = 1e-5 # Check thin dodecapole expressions
+    mad.globals['kctsx3.r1'] = 1e-5 # Check thin skew dodecapole expressions
+
+mad.globals['kctsx3.r1'] = 0.0
 
 line2=xt.Line.from_madx_sequence(mad1.sequence.lhcb2,
                                  allow_thick=True,
