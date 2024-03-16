@@ -32,6 +32,7 @@ for mad in [mad1, mad4]:
     mad.globals['kqtf.b2'] = 1e-5 # Check quad expressions
     mad.globals['ksf.b2'] = 1e-3  # Check sext expressions
     mad.globals['kqs.l3b2'] = 1e-4 # Check skew expressions
+    mad.globals['kss.a45b2'] = 1e-4 # Check skew sext expressions
     mad.globals['kof.a34b2'] = 3 # Check oct expressions
     mad.globals['on_crab1'] = -190 # Check cavity expressions
     mad.globals['on_crab5'] = -130 # Check cavity expressions
