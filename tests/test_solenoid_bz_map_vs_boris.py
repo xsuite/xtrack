@@ -175,7 +175,7 @@ def test_solenoid_bz_map_vs_boris(test_context):
     line.track(p_xt, turn_by_turn_monitor='ONE_TURN_EBE')
     mon = line.record_last_track
 
-    p_xt = p0.copy()
+    p_xt = p0.copy(_context=test_context)
     line.configure_radiation(model=None)
     line.track(p_xt, turn_by_turn_monitor='ONE_TURN_EBE')
     mon_no_rad = line.record_last_track
