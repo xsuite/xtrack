@@ -1,6 +1,5 @@
 import numpy as np
 import scipy
-import matplotlib.pyplot as plt
 
 # https://par.nsf.gov/servlets/purl/10220882
 
