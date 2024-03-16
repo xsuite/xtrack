@@ -4416,7 +4416,8 @@ class LineAttrItem:
 
     def get_full_array(self):
         full_array = np.zeros(len(self.mask), dtype=np.float64)
-        full_array[self.mask] = self.multisetter.get_values()
+        ctx2np = self.multisetter._context.nparray_from_context_array
+        full_array[self.mask] = ctx2np(self.multisetter.get_values())
         return full_array
 
 
