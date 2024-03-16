@@ -42,8 +42,6 @@ for mad in [mad1, mad4]:
     mad.globals['kctx3.l1'] = 1e-5 # Check thin dodecapole expressions
     mad.globals['kctsx3.r1'] = 1e-5 # Check thin skew dodecapole expressions
 
-mad.globals['kctsx3.r1'] = 0.0
-
 line2=xt.Line.from_madx_sequence(mad1.sequence.lhcb2,
                                  allow_thick=True,
                                  deferred_expressions=True,
