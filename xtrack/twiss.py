@@ -21,6 +21,8 @@ from xdeps import Table
 from . import linear_normal_form as lnf
 from .general import _print
 
+from .twissplot import TwissPlot
+
 import xtrack as xt  # To avoid circular imports
 
 DEFAULT_STEPS_R_MATRIX = {
@@ -45,6 +47,10 @@ VARS_FOR_TWISS_INIT_GENERATION = [
     'ax_chrom', 'bx_chrom', 'ay_chrom', 'by_chrom',
     'ddx', 'ddpx', 'ddy', 'ddpy',
 ]
+
+NORMAL_STRENGTHS_FROM_ATTR=['k0l', 'k1l', 'k2l', 'k3l', 'k4l', 'k5l']
+SKEW_STRENGTHS_FROM_ATTR=['k0sl', 'k1sl', 'k2sl', 'k3sl', 'k4sl', 'k5sl']
+OTHER_FIELDS_FROM_ATTR=['element_type', 'isthick', 'length', 'compound_name']
 
 log = logging.getLogger(__name__)
 
@@ -690,10 +696,11 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res._data['values_at'] = 'entry'
 
     if strengths:
-        strengths = _extract_knl_ksl(line, twiss_res['name'])
-        twiss_res._data.update(strengths)
-        twiss_res._col_names = (list(twiss_res._col_names) +
-                                    list(strengths.keys()))
+        tt = line.get_table(attr=True).rows[list(twiss_res.name)]
+        for kk in (NORMAL_STRENGTHS_FROM_ATTR + SKEW_STRENGTHS_FROM_ATTR
+                   + OTHER_FIELDS_FROM_ATTR):
+            twiss_res._col_names.append(kk)
+            twiss_res._data[kk] = tt[kk]
 
     twiss_res._data['method'] = method
     twiss_res._data['radiation_method'] = radiation_method
@@ -702,11 +709,6 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if reverse:
         twiss_res = twiss_res.reverse()
-
-    # twiss_res.mux += init.mux - twiss_res.mux[0]
-    # twiss_res.muy += init.muy - twiss_res.muy[0]
-    # twiss_res.muzeta += init.muzeta - twiss_res.muzeta[0]
-    # twiss_res.dzeta += init.dzeta - twiss_res.dzeta[0]
 
     if not periodic and not only_orbit:
         # Start phase advance with provided init
@@ -2766,6 +2768,38 @@ class TwissTable(Table):
 
     _error_on_row_not_found = True
 
+    def plot(self,yl='betx bety',yr='dx dy',x='s',
+            lattice=True,
+            mask=None,
+            labels=None,
+            clist="k r b g c m",
+            ax=None):
+
+        if mask is not None:
+            if isinstance(mask,str):
+                idx=self.mask[mask]
+            else:
+                idx=mask
+        else:
+            idx=slice(None)
+        if ax is None:
+            newfig=True
+        else:
+            raise NotImplementedError
+
+        self._is_s_begin=True
+
+        pl=TwissPlot(self, x=x, yl=yl, yr=yr, idx=idx, lattice=lattice, newfig=newfig, clist=clist)
+
+        if labels is not None:
+            mask=self.mask[labels]
+            labels=self[self._index][mask]
+            xs=self[x][mask]
+            pl.left.set_xticks(xs,labels)
+        return pl
+
+
+
     def to_pandas(self, index=None, columns=None):
         if columns is None:
             columns = self._col_names
@@ -3011,14 +3045,14 @@ class TwissTable(Table):
             itake = slice(1, None, None)
 
         for kk in self._col_names:
-            if kk == 'name':
+            if (kk == 'name' or kk in NORMAL_STRENGTHS_FROM_ATTR
+                    or kk in SKEW_STRENGTHS_FROM_ATTR
+                    or kk in OTHER_FIELDS_FROM_ATTR):
                 new_data[kk][:-1] = new_data[kk][:-1][::-1]
-                new_data[kk][-1] = self.name[-1]
+                new_data[kk][-1] = self[kk][-1]
             elif kk == 'W_matrix':
                 new_data[kk][:-1, :, :] = new_data[kk][itake, :, :][::-1, :, :]
                 new_data[kk][-1, :, :] = self[kk][0, :, :]
-            elif kk.startswith('k') and kk.endswith('nl', 'sl'):
-                continue # Not yet implemented
             else:
                 new_data[kk][:-1] = new_data[kk][itake][::-1]
                 new_data[kk][-1] = self[kk][0]
@@ -3059,11 +3093,6 @@ class TwissTable(Table):
                 out.dy_zeta = -out.dy_zeta
                 out.dpy_zeta = out.dpy_zeta
 
-            # Untested:
-            # if 'alfx2' in out._col_names:
-            #     out.alfx2 = -out.alfx2
-            #     out.alfy2 = -out.alfy2
-
             out.W_matrix[:, 0, :] = -out.W_matrix[:, 0, :]
             out.W_matrix[:, 1, :] = out.W_matrix[:, 1, :]
             out.W_matrix[:, 2, :] = out.W_matrix[:, 2, :]
@@ -3075,6 +3104,23 @@ class TwissTable(Table):
             out.muy = out.muy[0] - out.muy
             out.muzeta = out.muzeta[0] - out.muzeta
             out.dzeta = out.dzeta[0] - out.dzeta
+
+        # Reverse the strengths using thw following logic:
+        # k1l =  dpx / dx    * (c dt) -> ( 1 /  -1    * -1)   ->  1
+        # k2l =  dpx / dx**2 * (c dt) -> ( 1 / (-1)^2 * -1)   -> -1
+        # k1sl = dpy / dx    * (c dt) -> (-1 /  -1    * -1)   -> -1
+        # k2sl = dpy / dx**2 * (c dt) -> (-1 / (-1)^2 * -1)   ->  1
+        # ...
+
+        for kk in NORMAL_STRENGTHS_FROM_ATTR:
+            if kk in out._col_names:
+                ii = int(kk[1:-1])
+                out[kk] *= (-1)**(ii + 1) # consistent with mad twiss convention
+
+        for kk in SKEW_STRENGTHS_FROM_ATTR:
+            if kk in out._col_names:
+                ii = int(kk[1:-2])
+                out[kk] *= (-1)**ii # consistent with mad twiss convention
 
         if 'ax_chrom' in out._col_names:
             out.ax_chrom = -out.ax_chrom
@@ -3189,12 +3235,8 @@ def _complete_twiss_init(start, end, init_at, init,
         assert start is not None and end is not None, (
             'start and end must be provided together')
         if init is None:
-
-            assert betx is not None and bety is not None, (
-                'betx and bety or init must be provided when start '
-                'and end are used')
-
-            init = xt.TwissInit(
+            if betx is not None and bety is not None:
+              init = xt.TwissInit(
                 element_name=init_at,
                 x=x, px=px, y=y, py=py, zeta=zeta, delta=delta,
                 betx=betx, alfx=alfx, bety=bety, alfy=alfy, bets=bets,
@@ -3204,6 +3246,9 @@ def _complete_twiss_init(start, end, init_at, init,
                 ay_chrom=ay_chrom, by_chrom=by_chrom,
                 ddpx=ddpx, ddx=ddx, ddpy=ddpy, ddy=ddy,
                 )
+            else:
+                 tw_closed=line.twiss(reverse=reverse)
+                 init = tw_closed.get_twiss_init(tw_closed.name[0])
         elif isinstance(init, TwissTable):
             init = init.get_twiss_init(at_element=init_at)
         else:
