@@ -58,7 +58,8 @@ p = line.build_particles(num_particles=num_particles_test)
 line.discard_tracker()
 line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'), use_prebuilt_kernels=False)
 
-line.track(p, num_turns=n_turns_track_test, turn_by_turn_monitor=True, time=True)
+line.track(p, num_turns=n_turns_track_test, turn_by_turn_monitor=True, time=True,
+           with_progress=True)
 mon_at_start = line.record_last_track
 print(f'Tracking time: {line.time_last_track}')
 

@@ -28,7 +28,7 @@ def test_mad_writer(case):
 
     mad = Madx()
     mad.input(mad_seq)
-    mad.beam(particle='proton', energy=7000e9) #!!!!!
+    mad.beam(particle='proton', energy=7000e9)
     mad.use('myseq')
 
     line2 = xt.Line.from_madx_sequence(mad.sequence.myseq, deferred_expressions=True)

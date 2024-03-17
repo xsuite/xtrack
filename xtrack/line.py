@@ -647,6 +647,7 @@ class Line:
         s_elements = np.array(list(self.get_s_elements()) + [self.get_length()])
         element_types = list(map(lambda e: e.__class__.__name__, elements)) + [""]
         isthick = np.array(list(map(_is_thick, elements)) + [False])
+        iscollective = np.array(list(map(xt.tracker._check_is_collective, elements)) + [False])
         compound_name = list(self.get_element_compound_names()) + [None]
         elements += [None]
 
@@ -659,6 +660,7 @@ class Line:
             'element_type': element_types,
             'name': list(self.element_names) + ['_end_point'],
             'isthick': isthick,
+            'iscollective': iscollective,
             'compound_name': compound_name,
             'element': elements
         }
@@ -801,6 +803,17 @@ class Line:
             self.tracker._tracker_data_base.cache['attr'] = self._get_attr_cache()
 
         return self.tracker._tracker_data_base.cache['attr']
+
+    @property
+    def particle_ref(self):
+        return self._particle_ref
+
+    @particle_ref.setter
+    def particle_ref(self, particle_ref):
+        self._particle_ref = particle_ref
+        if self.particle_ref is not None and self.particle_ref.t_sim == 0:
+            self.particle_ref.t_sim = (
+                self.get_length() / self.particle_ref._xobject.beta0[0] / clight)
 
     def discard_tracker(self):
 
@@ -1080,6 +1093,8 @@ class Line:
         strengths=None,
         hide_thin_groups=None,
         group_compound_elements=None,
+        search_for_t_rev=None,
+        num_turns_search_t_rev=None,
         only_twiss_init=None,
         only_markers=None,
         only_orbit=None,
@@ -1124,6 +1139,15 @@ class Line:
         return twiss_line(self, **tw_kwargs)
 
     twiss.__doc__ = twiss_line.__doc__
+
+    def twiss4d(self, **kwargs):
+
+        """
+        Compute the 4D Twiss parameters. Equivalent to `twiss` with `method='4d'`.
+        """
+
+        kwargs['method'] = '4d'
+        return self.twiss(**kwargs)
 
     def match(self, vary, targets, solve=True, assert_within_tol=True,
                   compensate_radiation_energy_loss=False,
@@ -1381,7 +1405,9 @@ class Line:
                           freeze_longitudinal=False,
                           start=None, end=None,
                           num_turns=1,
-                          co_search_at=None):
+                          co_search_at=None,
+                          search_for_t_rev=False,
+                          num_turns_search_t_rev=None):
 
         """
         Find the closed orbit of the beamline.
@@ -1454,7 +1480,9 @@ class Line:
                                  co_search_settings=co_search_settings, delta_zeta=delta_zeta,
                                  continue_on_closed_orbit_error=continue_on_closed_orbit_error,
                                  start=start, end=end, num_turns=num_turns,
-                                 co_search_at=co_search_at)
+                                 co_search_at=co_search_at,
+                                 search_for_t_rev=search_for_t_rev,
+                                 num_turns_search_t_rev=num_turns_search_t_rev)
 
     def compute_T_matrix(self, start=None, end=None,
                          particle_on_co=None, steps_t_matrix=None):
@@ -2539,6 +2567,8 @@ class Line:
             self._bhabha_model = None
 
         for kk, ee in self.element_dict.items():
+            if isinstance (ee, (xt.Quadrupole, xt.Bend)):
+                continue
             if hasattr(ee, 'radiation_flag'):
                 ee.radiation_flag = radiation_flag
 
@@ -3641,8 +3671,9 @@ class Line:
         cache = LineAttr(
             line=self,
             fields=[
-                'hxl', 'hyl', 'length', 'radiation_flag', 'delta_taper',
-                'voltage', 'frequency', 'lag', 'lag_taper', 'k0', 'k1', 'k2','h',
+                'hxl', 'hyl', 'length', 'radiation_flag', 'delta_taper', 'ks',
+                'voltage', 'frequency', 'lag', 'lag_taper',
+                'k0', 'k1', 'k1s', 'k2', 'h',
                 ('knl', 0), ('ksl', 0), ('knl', 1), ('ksl', 1),
                 ('knl', 2), ('ksl', 2), ('knl', 3), ('ksl', 3),
             ],
@@ -3652,6 +3683,7 @@ class Line:
                 'k2l': lambda attr: attr['knl', 2] + attr['k2'] * attr['length'],
                 'k3l': lambda attr: attr['knl', 3],
                 'angle_x': lambda attr: attr['hxl'] + attr['h'] * attr['length'],
+                'k1sl': lambda attr: attr['ksl', 1] + attr['k1s'] * attr['length'],
             }
         )
         return cache
@@ -4384,7 +4416,8 @@ class LineAttrItem:
 
     def get_full_array(self):
         full_array = np.zeros(len(self.mask), dtype=np.float64)
-        full_array[self.mask] = self.multisetter.get_values()
+        ctx2np = self.multisetter._context.nparray_from_context_array
+        full_array[self.mask] = ctx2np(self.multisetter.get_values())
         return full_array
 
 

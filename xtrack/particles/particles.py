@@ -37,6 +37,7 @@ class Particles(xo.HybridClass):
     scalar_vars = (
         (xo.Float64, 'q0'),
         (xo.Float64, 'mass0'),
+        (xo.Float64, 't_sim'),
     )
 
     part_energy_vars = (
@@ -63,6 +64,8 @@ class Particles(xo.HybridClass):
             (xo.Float64, 'chi'),
             (xo.Float64, 'charge_ratio'),
             (xo.Float64, 'weight'),
+            (xo.Float64, 'ax'),
+            (xo.Float64, 'ay'),
             (xo.Int64, 'pdg_id'),
             (xo.Int64, 'particle_id'),
             (xo.Int64, 'at_element'),
@@ -193,7 +196,8 @@ class Particles(xo.HybridClass):
             Identifier of the last element through which the particle has been
         parent_particle_id : array_like of int, optional
             Identifier of the parent particle (secondary production processes)
-
+        t_sim : float, optional
+            Simulation frame time (typically one revolution period)
         """
         if '_xobject' in kwargs.keys():
             # Initialize xobject
@@ -293,6 +297,7 @@ class Particles(xo.HybridClass):
         # Init scalar vars
         self.q0 = kwargs.get('q0', 1.0)
         self.mass0 = kwargs.get('mass0', PROTON_MASS_EV)
+        self.t_sim = kwargs.get('t_sim', 0)
         self.start_tracking_at_element = kwargs.get(
                             'start_tracking_at_element', -1)
 
@@ -363,7 +368,7 @@ class Particles(xo.HybridClass):
         if isinstance(self._context, xo.ContextCpu) and not _no_reorganize:
             self.reorganize()
 
- 
+
     @classmethod
     def from_dict(cls, dct, load_rng_state=True, **kwargs):
 
@@ -922,6 +927,8 @@ class Particles(xo.HybridClass):
             raise NotImplementedError("Out of space, need to regenerate xobject")
 
         for tt, nn in self.scalar_vars:
+            if nn == 't_sim':
+                continue
             assert np.isclose(getattr(self, nn), getattr(part, nn),
                               rtol=1e-14, atol=1e-14)
 
@@ -1840,6 +1847,8 @@ class Particles(xo.HybridClass):
         self.y = kwargs.get('y', 0)
         self.px = kwargs.get('px', 0)
         self.py = kwargs.get('py', 0)
+        self.ax = kwargs.get('ax', 0)
+        self.ay = kwargs.get('ay', 0)
 
         pdg_id = kwargs.get('pdg_id')
         try:

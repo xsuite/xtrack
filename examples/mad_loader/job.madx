@@ -1,0 +1,7 @@
+call, file=../../test_data/hllhc15_thick/lhc.seq;
+call, file=../../test_data/hllhc15_thick/hllhc_sequence.madx;
+beam, sequence=lhcb1, particle=proton, energy=7000;
+use, sequence=lhcb1;
+beam, sequence=lhcb2, particle=proton, energy=7000, bv=-1;
+use, sequence=lhcb2;
+call, file=../../test_data/hllhc15_thick/opt_round_150_1500.madx;

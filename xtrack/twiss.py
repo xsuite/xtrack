@@ -7,6 +7,7 @@ import logging
 
 import io
 import json
+from functools import partial
 import numpy as np
 from scipy.constants import c as clight
 from scipy.constants import hbar
@@ -32,6 +33,7 @@ DEFAULT_CO_SEARCH_TOL = [1e-11, 1e-11, 1e-11, 1e-11, 1e-5, 1e-9]
 
 DEFAULT_MATRIX_RESPONSIVENESS_TOL = 1e-15
 DEFAULT_MATRIX_STABILITY_TOL = 2e-3
+DEFAULT_NUM_TURNS_SEARCH_T_REV = 10
 
 AT_TURN_FOR_TWISS = -10 # # To avoid writing in monitors installed in the line
 
@@ -70,6 +72,8 @@ def twiss_line(line, particle_ref=None, method=None,
         strengths=None,
         hide_thin_groups=None,
         group_compound_elements=None,
+        search_for_t_rev=None,
+        num_turns_search_t_rev=None,
         only_twiss_init=None,
         only_markers=None,
         only_orbit=None,
@@ -138,6 +142,12 @@ def twiss_line(line, particle_ref=None, method=None,
         NaNs.
     group_compound_elements : bool, optional
         If True, elements in compounds are grouped together.
+    search_for_t_rev : bool, optional
+        If True, the revolution period is searched for, otherwise the revolution
+        period computed from the circumference is assumed.
+    num_turns_search_t_rev : int, optional
+        Number of turns used for the search of the revolution period. Used only
+        if `search_for_t_rev` is True.
     values_at_element_exit : bool, optional (False)
         If True, the Twiss parameters are computed at the exit of the
         elements. If False (default), the Twiss parameters are computed at the
@@ -292,6 +302,8 @@ def twiss_line(line, particle_ref=None, method=None,
     strengths=(strengths or False)
     hide_thin_groups=(hide_thin_groups or False)
     group_compound_elements=(group_compound_elements or False)
+    search_for_t_rev=(search_for_t_rev or False)
+    num_turns_search_t_rev=(num_turns_search_t_rev or None)
     only_twiss_init=(only_twiss_init or False)
     only_markers=(only_markers or False)
     only_orbit=(only_orbit or False)
@@ -528,6 +540,8 @@ def twiss_line(line, particle_ref=None, method=None,
             start=start, end=end,
             num_turns=num_turns,
             co_search_at=co_search_at,
+            search_for_t_rev=search_for_t_rev,
+            num_turns_search_t_rev=num_turns_search_t_rev,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y, r_sigma=r_sigma,
             compute_R_element_by_element=compute_R_element_by_element,
             only_markers=only_markers,
@@ -711,6 +725,9 @@ def twiss_line(line, particle_ref=None, method=None,
                 twiss_res.mux += init.mux - twiss_res.mux[-1]
                 twiss_res.muy += init.muy - twiss_res.muy[-1]
 
+    if search_for_t_rev:
+        twiss_res._data['T_rev'] = twiss_res.T_rev0 - (
+            twiss_res.zeta[-1] - twiss_res.zeta[0])/(twiss_res.beta0*clight)
 
     if num_turns > 1:
 
@@ -871,6 +888,11 @@ def _twiss_open(line, init,
     delta_co = np.array(line.record_last_track.delta[0, i_start:i_stop+1].copy())
     ptau_co = np.array(line.record_last_track.ptau[0, i_start:i_stop+1].copy())
     s_co = line.record_last_track.s[0, i_start:i_stop+1].copy()
+    ax_co = line.record_last_track.ax[0, i_start:i_stop+1].copy()
+    ay_co = line.record_last_track.ay[0, i_start:i_stop+1].copy()
+    pz_co = np.sqrt((1 + delta_co)**2 - (px_co - ax_co)**2 - (py_co - ay_co)**2)
+    x_prime_co = (px_co - ax_co) / pz_co
+    y_prime_co = (py_co - ay_co) / pz_co
 
     Ws = np.zeros(shape=(len(s_co), 6, 6), dtype=np.float64)
     Ws[:, 0, :] = 0.5 * (line.record_last_track.x[1:7, i_start:i_stop+1] - x_co).T / scale_eigen
@@ -908,6 +930,10 @@ def _twiss_open(line, init,
         zeta_co = zeta_co[mask_twiss]
         delta_co = delta_co[mask_twiss]
         ptau_co = ptau_co[mask_twiss]
+        x_prime_co = x_prime_co[mask_twiss]
+        y_prime_co = y_prime_co[mask_twiss]
+        ax_co = ax_co[mask_twiss]
+        ay_co = ay_co[mask_twiss]
         dzeta = dzeta[mask_twiss]
         Ws = Ws[mask_twiss, :, :]
 
@@ -924,6 +950,10 @@ def _twiss_open(line, init,
         'delta': delta_co,
         'ptau': ptau_co,
         'W_matrix': Ws,
+        'x_prime': x_prime_co,
+        'y_prime': y_prime_co,
+        'ax': ax_co,
+        'ay': ay_co,
     })
 
     if not only_orbit and compute_lattice_functions:
@@ -1039,8 +1069,15 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
         bety1 = Ws[:, 2, 0]**2 + Ws[:, 2, 1]**2
         betx2 = Ws[:, 0, 2]**2 + Ws[:, 0, 3]**2
 
+        # Untested:
+        # alfx2 = -Ws[:, 0, 2] * Ws[:, 1, 2] - Ws[:, 0, 3] * Ws[:, 1, 3]
+        # alfy1 = -Ws[:, 2, 0] * Ws[:, 3, 0] - Ws[:, 2, 1] * Ws[:, 3, 1]
+        # gamx2 = Ws[:, 1, 2]**2 + Ws[:, 1, 3]**2
+        # gamy1 = Ws[:, 3, 0]**2 + Ws[:, 3, 1]**2
+
     betx1 = betx
     bety2 = bety
+
 
     temp_phix = phix.copy()
     temp_phiy = phiy.copy()
@@ -1657,6 +1694,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             start=None, end=None,
                             num_turns=1,
                             co_search_at=None,
+                            search_for_t_rev=False,
+                            num_turns_search_t_rev=1,
                             compute_R_element_by_element=False,
                             only_markers=False):
 
@@ -1676,6 +1715,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
     if particle_on_co is not None:
         part_on_co = particle_on_co
     else:
+        if search_for_t_rev:
+            assert method == '6d', 'search_for_t_rev possible when `method` is "6d"'
         part_on_co = line.find_closed_orbit(
                                 co_guess=co_guess,
                                 particle_ref=particle_ref,
@@ -1686,7 +1727,10 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                 start=start,
                                 end=end,
                                 num_turns=num_turns,
-                                co_search_at=co_search_at,)
+                                co_search_at=co_search_at,
+                                search_for_t_rev=search_for_t_rev,
+                                num_turns_search_t_rev=num_turns_search_t_rev,
+                                )
 
     if W_matrix is not None:
         W = W_matrix
@@ -1935,7 +1979,25 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
                       delta0=None, zeta0=None,
                       start=None, end=None, num_turns=1,
                       co_search_at=None,
-                      continue_on_closed_orbit_error=False):
+                      search_for_t_rev=False,
+                      continue_on_closed_orbit_error=False,
+                      num_turns_search_t_rev=None):
+
+    if search_for_t_rev:
+        assert line.particle_ref is not None
+        assert co_guess is None, '`co_guess` not supported when `search_for_t_rev` is True'
+        assert co_search_settings is None, '`co_search_settings` not supported when `search_for_t_rev` is True'
+        assert delta_zeta == 0, '`delta_zeta` not supported when `search_for_t_rev` is True'
+        assert delta0 is None, '`delta0` not supported when `search_for_t_rev` is True'
+        assert zeta0 is None, '`zeta0` not supported when `search_for_t_rev` is True'
+        assert start is None, '`start` not supported when `search_for_t_rev` is True'
+        assert end is None, '`end` not supported when `search_for_t_rev` is True'
+        assert num_turns == 1, '`num_turns` not supported when `search_for_t_rev` is True'
+        assert co_search_at is None, '`co_search_at` not supported when `search_for_t_rev` is True'
+        assert continue_on_closed_orbit_error is False, '`continue_on_closed_orbit_error` not supported when `search_for_t_rev` is True'
+
+        out = _find_closed_orbit_search_t_rev(line, num_turns_search_t_rev)
+        return out
 
     if line.enable_time_dependent_vars:
         raise RuntimeError(
@@ -2997,6 +3059,11 @@ class TwissTable(Table):
                 out.dy_zeta = -out.dy_zeta
                 out.dpy_zeta = out.dpy_zeta
 
+            # Untested:
+            # if 'alfx2' in out._col_names:
+            #     out.alfx2 = -out.alfx2
+            #     out.alfy2 = -out.alfy2
+
             out.W_matrix[:, 0, :] = -out.W_matrix[:, 0, :]
             out.W_matrix[:, 1, :] = out.W_matrix[:, 1, :]
             out.W_matrix[:, 2, :] = out.W_matrix[:, 2, :]
@@ -3502,8 +3569,34 @@ def get_non_linear_chromaticity(line, delta0_range, num_delta, fit_order=3, **kw
 
     return out
 
+def _merit_function_co_t_rec(x, line, num_turns):
+    p = line.build_particles(x=x[0], px=x[1], y=x[2], py=x[3], zeta=x[4], delta=x[5])
+    line.track(p, num_turns=num_turns, turn_by_turn_monitor=True)
+    rec = line.record_last_track
+    dx = rec.x[0, :] - rec.x[0, 0]
+    dpx = rec.px[0, :] - rec.px[0, 0]
+    dy = rec.y[0, :] - rec.y[0, 0]
+    dpy = rec.py[0, :] - rec.py[0, 0]
+    ddelta = rec.delta[0, :] - rec.delta[0, 0]
 
+    out = np.array(list(dx) + list(dpx) + list(dy) + list(dpy) + list(ddelta))
+    return out
 
+def _find_closed_orbit_search_t_rev(line, num_turns_search_t_rev=None):
 
+    if num_turns_search_t_rev is None:
+        num_turns_search_t_rev = DEFAULT_NUM_TURNS_SEARCH_T_REV
 
+    opt = xt.match.opt_from_callable(partial(_merit_function_co_t_rec,
+                        line=line, num_turns=num_turns_search_t_rev),
+                        x0=np.array(6*[0.]),
+                        steps=[1e-9, 1e-10, 1e-9, 1e-10, 1e-4, 1e-7],
+                        tar=np.array(5*num_turns_search_t_rev*[0.]),
+                        tols=np.array(5*num_turns_search_t_rev*[1e-10]))
+    opt.solve()
+    x_sol = opt.get_knob_values()
+    particle_on_co = line.build_particles(
+        x=x_sol[0], px=x_sol[1], y=x_sol[2], py=x_sol[3], zeta=x_sol[4],
+        delta=x_sol[5])
 
+    return particle_on_co

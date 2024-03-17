@@ -65,7 +65,8 @@ for nn in wigs:
     line.element_refs[nn].knl[0] = 0
 
 line.build_tracker()
-tw_thin_before = line.twiss(start=0, end=len(line)-1, method='4d',
+tw_thin_before = line.twiss(start=line.element_names[0], end=line.element_names[-1],
+                          method='4d',
                           init=tw_thick_no_rad.get_twiss_init(0))
 
 # Compare tunes
@@ -88,7 +89,7 @@ print('\n')
 opt = line.match(
     only_markers=True,
     method='4d',
-    start=0, end=len(line)-1,
+    start=line.element_names[0], end=line.element_names[-1],
     init=tw_thick_no_rad.get_twiss_init(0),
     vary=xt.VaryList(['k1qf4', 'k1qf2', 'k1qd3', 'k1qd1',], step=1e-8,
     ),
