@@ -79,7 +79,7 @@ line.element_dict['sol_end_shift_'+ip_sol] = sol_end_shift
 
 line.element_dict['sol_entry_'+ip_sol] = xt.Solenoid(length=0, ks=0)
 line.element_dict['sol_exit_'+ip_sol] = xt.Solenoid(length=0, ks=0)
-
+line.element_dict['sol_zeta_shift_'+ip_sol] = xt.ZetaShift(dzeta=-(l_beam - l_solenoid))
 
 sol_slice_names = []
 sol_slice_names.append('sol_entry_'+ip_sol)
@@ -97,6 +97,7 @@ element_names = (names_upstream
                  + ['sol_start_tilt_'+ip_sol, 'sol_start_shift_'+ip_sol]
                  + sol_slice_names
                  + ['sol_end_shift_'+ip_sol, 'sol_end_tilt_'+ip_sol]
+                 + ['sol_zeta_shift_'+ip_sol]
                  + names_downstream)
 
 line.element_names = element_names
@@ -249,6 +250,7 @@ line.build_tracker()
 line.configure_radiation(model='mean')
 line.compensate_radiation_energy_loss()
 
-tw = line.twiss(eneloss_and_damping=True, particle_on_co=line.particle_ref.copy())
+two = line.twiss(eneloss_and_damping=True, particle_on_co=line.particle_ref.copy())
+tw = line.twiss(eneloss_and_damping=True)
 
 print(tw.partition_numbers)
