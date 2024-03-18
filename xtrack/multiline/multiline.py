@@ -171,7 +171,7 @@ class Multiline:
         return cls.from_dict(dct, **kwargs)
 
     @classmethod
-    def from_madx(cls, file, stdout=None, **kwargs):
+    def from_madx(cls, file, stdout=None, return_lines=False, **kwargs):
         '''
         Load a multiline from a MAD-X file.
 
@@ -208,7 +208,10 @@ class Multiline:
             if mad.sequence[nn].beam.bv == -1:
                 lines[nn].twiss_default['reverse'] = True
 
-        return cls(lines=lines)
+        if return_lines:
+            return lines
+        else:
+            return cls(lines=lines)
 
     def copy(self):
         '''
