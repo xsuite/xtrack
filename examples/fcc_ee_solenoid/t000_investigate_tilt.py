@@ -50,6 +50,66 @@ line.discard_tracker()
 line.slice_thick_elements(slicing_strategies=slicing_strategies)
 line.build_tracker()
 
+l_solenoid = 4.4
+ds_sol_start = -l_solenoid / 2 * np.cos(15e-3)
+ds_sol_end = +l_solenoid / 2 * np.cos(15e-3)
+ip_sol = 'ip.1'
+theta_tilt = 15e-3 # rad
+
+tt = line.get_table(attr=True)
+
+s_ip = tt['s', ip_sol]
+
+line.discard_tracker()
+line.insert_element(name='sol_start_'+ip_sol, element=xt.Marker(),
+                    at_s=s_ip + ds_sol_start)
+line.insert_element(name='sol_end_'+ip_sol, element=xt.Marker(),
+                    at_s=s_ip + ds_sol_end)
+
+sol_start_tilt = xt.YRotation(angle=-theta_tilt * 180 / np.pi)
+sol_end_tilt = xt.YRotation(angle=+theta_tilt * 180 / np.pi)
+sol_start_shift = xt.XYShift(dx=l_solenoid/2 * np.sin(theta_tilt))
+sol_end_shift = xt.XYShift(dx=l_solenoid/2 * np.sin(theta_tilt))
+
+line.element_dict['sol_start_tilt_'+ip_sol] = sol_start_tilt
+line.element_dict['sol_end_tilt_'+ip_sol] = sol_end_tilt
+line.element_dict['sol_start_shift_'+ip_sol] = sol_start_shift
+line.element_dict['sol_end_shift_'+ip_sol] = sol_end_shift
+
+line.element_dict['sol_entry_'+ip_sol] = xt.Solenoid(length=0, ks=0)
+line.element_dict['sol_exit_'+ip_sol] = xt.Solenoid(length=0, ks=0)
+
+s_sol_slices = np.linspace(ds_sol_start, ds_sol_end, 1001)
+l_sol_slices = np.diff(s_sol_slices)
+s_sol_slices_entry = s_sol_slices[:-1]
+
+sol_slices = []
+for ii in range(len(s_sol_slices_entry)):
+    sol_slices.append(xt.Solenoid(length=l_sol_slices[ii], ks=0)) # Off for now
+
+sol_slice_names = []
+sol_slice_names.append('sol_entry_'+ip_sol)
+for ii in range(len(s_sol_slices_entry)):
+    nn = f'sol_slice_{ii}_{ip_sol}'
+    line.element_dict[nn] = sol_slices[ii]
+    sol_slice_names.append(nn)
+sol_slice_names.append('sol_exit_'+ip_sol)
+
+tt = line.get_table()
+names_upstream = list(tt.rows[:'sol_start_'+ip_sol].name)
+names_downstream = list(tt.rows['sol_end_'+ip_sol:].name[:-1]) # -1 to exclude '_end_point' added by the table
+
+element_names = (names_upstream
+                 + ['sol_start_tilt_'+ip_sol, 'sol_start_shift_'+ip_sol]
+                 + sol_slice_names
+                 + ['sol_end_shift_'+ip_sol, 'sol_end_tilt_'+ip_sol]
+                 + names_downstream)
+
+line.element_names = element_names
+
+
+line.build_tracker()
+
 line.configure_radiation(model='mean')
 line.compensate_radiation_energy_loss()
 
