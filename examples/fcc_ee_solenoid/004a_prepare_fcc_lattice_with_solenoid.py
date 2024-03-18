@@ -239,3 +239,16 @@ opt.solve()
 tw_thin_no_rad = line.twiss(method='4d')
 
 line.to_json(fname + '_with_sol.json')
+
+line.vars['voltca1'] = line.vars['voltca1_ref']
+line.vars['voltca2'] = line.vars['voltca2_ref']
+
+line.config.XTRACK_USE_EXACT_DRIFTS = True
+line.build_tracker()
+
+line.configure_radiation(model='mean')
+line.compensate_radiation_energy_loss()
+
+tw = line.twiss(eneloss_and_damping=True, particle_on_co=line.particle_ref.copy())
+
+print(tw.partition_numbers)
