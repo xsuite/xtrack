@@ -50,11 +50,12 @@ line.discard_tracker()
 line.slice_thick_elements(slicing_strategies=slicing_strategies)
 line.build_tracker()
 
-l_solenoid = 4.4
-ds_sol_start = -l_solenoid / 2 * np.cos(15e-3)
-ds_sol_end = +l_solenoid / 2 * np.cos(15e-3)
-ip_sol = 'ip.1'
 theta_tilt = 15e-3 # rad
+l_solenoid = 3
+ds_sol_start = -l_solenoid / 2 / np.cos(theta_tilt)
+ds_sol_end = +l_solenoid / 2 / np.cos(theta_tilt)
+ip_sol = 'ip.1'
+
 
 tt = line.get_table(attr=True)
 
@@ -68,17 +69,16 @@ line.insert_element(name='sol_end_'+ip_sol, element=xt.Marker(),
 
 sol_start_tilt = xt.YRotation(angle=-theta_tilt * 180 / np.pi)
 sol_end_tilt = xt.YRotation(angle=+theta_tilt * 180 / np.pi)
-sol_start_shift = xt.XYShift(dx=l_solenoid/2 * np.sin(theta_tilt))
-sol_end_shift = xt.XYShift(dx=l_solenoid/2 * np.sin(theta_tilt))
+sol_start_shift = xt.XYShift(dx=l_solenoid/2 * np.tan(theta_tilt))
+sol_end_shift = xt.XYShift(dx=l_solenoid/2 * np.tan(theta_tilt))
 
 line.element_dict['sol_start_tilt_'+ip_sol] = sol_start_tilt
 line.element_dict['sol_end_tilt_'+ip_sol] = sol_end_tilt
 line.element_dict['sol_start_shift_'+ip_sol] = sol_start_shift
 line.element_dict['sol_end_shift_'+ip_sol] = sol_end_shift
 
-line.element_dict['sol_entry_'+ip_sol] = xt.Solenoid(length=0, ks=0)
-line.element_dict['sol_exit_'+ip_sol] = xt.Solenoid(length=0, ks=0)
-
+line.element_dict['sol_entry_'+ip_sol] = xt.Marker()
+line.element_dict['sol_exit_'+ip_sol] = xt.Marker()
 s_sol_slices = np.linspace(ds_sol_start, ds_sol_end, 11)
 l_sol_slices = np.diff(s_sol_slices)
 s_sol_slices_entry = s_sol_slices[:-1]
