@@ -7,7 +7,7 @@ from scipy.constants import e as qe
 from cpymad.madx import Madx
 
 fname = 'fccee_z'; pc_gev = 45.6
-# fname = 'fccee_t'; pc_gev = 182.5
+fname = 'fccee_t'; pc_gev = 182.5
 
 mad = Madx()
 mad.call('../../test_data/fcc_ee/' + fname + '.seq')
@@ -239,6 +239,7 @@ opt = line.match(
 opt.solve()
 tw_thin_no_rad = line.twiss(method='4d')
 
+# Check partition numbers
 line.to_json(fname + '_with_sol.json')
 
 line.vars['voltca1'] = line.vars['voltca1_ref']

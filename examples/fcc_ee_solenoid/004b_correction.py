@@ -5,7 +5,7 @@ from scipy.constants import e as qe
 import numpy as np
 
 fname = 'fccee_z'; pc_gev = 45.6
-# fname = 'fccee_t'; pc_gev = 182.5
+fname = 'fccee_t'; pc_gev = 182.5
 
 
 line = xt.Line.from_json(fname + '_with_sol.json')
@@ -129,52 +129,52 @@ assert tw_sol_on.c_minus > 1e-4
 # Check correction
 tw_chk = tw_sol_on_corrected
 
-# assert_allclose(tw_chk['x', 'ip.1'], 0, atol=1e-8, rtol=0)
-# assert_allclose(tw_chk['y', 'ip.1'], 0, atol=1e-10, rtol=0)
-# assert_allclose(tw_chk['x_prime', 'ip.1'], tw_sol_off['x_prime', 'ip.1'],  atol=1e-9, rtol=0)
-# assert_allclose(tw_chk['y_prime', 'ip.1'], 0,  atol=1e-8, rtol=0)
-# assert_allclose(tw_chk['x', 'pqc2re.1'], 0, atol=5e-8, rtol=0)
-# assert_allclose(tw_chk['y', 'pqc2re.1'], 0, atol=5e-8, rtol=0)
-# assert_allclose(tw_chk['x_prime', 'pqc2re.1'], 0, atol=1e-8, rtol=0)
-# assert_allclose(tw_chk['y_prime', 'pqc2re.1'], 0, atol=1e-8, rtol=0)
-# assert_allclose(tw_chk['x', 'pqc2le.4'], 0, atol=5e-8, rtol=0)
-# assert_allclose(tw_chk['y', 'pqc2le.4'], 0, atol=5e-8, rtol=0)
-# assert_allclose(tw_chk['x_prime', 'pqc2le.4'], 0, atol=1e-8, rtol=0)
-# assert_allclose(tw_chk['y_prime', 'pqc2le.4'], 0, atol=1e-8, rtol=0)
+assert_allclose(tw_chk['x', 'ip.1'], 0, atol=1e-8, rtol=0)
+assert_allclose(tw_chk['y', 'ip.1'], 0, atol=1e-10, rtol=0)
+assert_allclose(tw_chk['x_prime', 'ip.1'], tw_sol_off['x_prime', 'ip.1'],  atol=1e-9, rtol=0)
+assert_allclose(tw_chk['y_prime', 'ip.1'], 0,  atol=1e-8, rtol=0)
+assert_allclose(tw_chk['x', 'pqc2re.1'], 0, atol=5e-8, rtol=0)
+assert_allclose(tw_chk['y', 'pqc2re.1'], 0, atol=5e-8, rtol=0)
+assert_allclose(tw_chk['x_prime', 'pqc2re.1'], 0, atol=1e-8, rtol=0)
+assert_allclose(tw_chk['y_prime', 'pqc2re.1'], 0, atol=1e-8, rtol=0)
+assert_allclose(tw_chk['x', 'pqc2le.4'], 0, atol=5e-8, rtol=0)
+assert_allclose(tw_chk['y', 'pqc2le.4'], 0, atol=5e-8, rtol=0)
+assert_allclose(tw_chk['x_prime', 'pqc2le.4'], 0, atol=1e-8, rtol=0)
+assert_allclose(tw_chk['y_prime', 'pqc2le.4'], 0, atol=1e-8, rtol=0)
 
-# assert tw_chk['ax', 'pqc2le.4'] == 0
-# assert tw_chk['ay', 'pqc2le.4'] == 0
-# assert tw_chk['ax', 'pqc2re.1'] == 0
-# assert tw_chk['ay', 'pqc2re.1'] == 0
+assert tw_chk['ax', 'pqc2le.4'] == 0
+assert tw_chk['ay', 'pqc2le.4'] == 0
+assert tw_chk['ax', 'pqc2re.1'] == 0
+assert tw_chk['ay', 'pqc2re.1'] == 0
 
-# assert_allclose(tw_chk['betx', 'ip.1'], tw_sol_off['betx', 'ip.1'], atol=0, rtol=5e-5)
-# assert_allclose(tw_chk['bety', 'ip.1'], tw_sol_off['bety', 'ip.1'], atol=0, rtol=5e-5)
-# assert_allclose(tw_chk['alfx', 'ip.1'], tw_sol_off['alfx', 'ip.1'], atol=1e-5, rtol=0)
-# assert_allclose(tw_chk['alfy', 'ip.1'], tw_sol_off['alfy', 'ip.1'], atol=1e-5, rtol=0)
-# assert_allclose(tw_chk['mux', 'ip.1'], tw_sol_off['mux', 'ip.1'], atol=2e-6, rtol=0)
-# assert_allclose(tw_chk['muy', 'ip.1'], tw_sol_off['muy', 'ip.1'], atol=2e-6, rtol=0)
+assert_allclose(tw_chk['betx', 'ip.1'], tw_sol_off['betx', 'ip.1'], atol=0, rtol=5e-4)
+assert_allclose(tw_chk['bety', 'ip.1'], tw_sol_off['bety', 'ip.1'], atol=0, rtol=5e-4)
+assert_allclose(tw_chk['alfx', 'ip.1'], tw_sol_off['alfx', 'ip.1'], atol=1e-4, rtol=0)
+assert_allclose(tw_chk['alfy', 'ip.1'], tw_sol_off['alfy', 'ip.1'], atol=1e-4, rtol=0)
+assert_allclose(tw_chk['mux', 'ip.1'], tw_sol_off['mux', 'ip.1'], atol=1e-5, rtol=0)
+assert_allclose(tw_chk['muy', 'ip.1'], tw_sol_off['muy', 'ip.1'], atol=1e-5, rtol=0)
 
-# assert_allclose(tw_chk['betx', 'pqc2re.1'], tw_sol_off['betx', 'pqc2re.1'], atol=0, rtol=5e-5)
-# assert_allclose(tw_chk['bety', 'pqc2re.1'], tw_sol_off['bety', 'pqc2re.1'], atol=0, rtol=5e-5)
-# assert_allclose(tw_chk['alfx', 'pqc2re.1'], tw_sol_off['alfx', 'pqc2re.1'], atol=1e-5, rtol=5e-5)
-# assert_allclose(tw_chk['alfy', 'pqc2re.1'], tw_sol_off['alfy', 'pqc2re.1'], atol=1e-5, rtol=5e-5)
-# assert_allclose(tw_chk['mux', 'pqc2re.1'], tw_sol_off['mux', 'pqc2re.1'], atol=2e-6, rtol=5e-5)
-# assert_allclose(tw_chk['muy', 'pqc2re.1'], tw_sol_off['muy', 'pqc2re.1'], atol=2e-6, rtol=5e-5)
+assert_allclose(tw_chk['betx', 'pqc2re.1'], tw_sol_off['betx', 'pqc2re.1'], atol=0, rtol=5e-4)
+assert_allclose(tw_chk['bety', 'pqc2re.1'], tw_sol_off['bety', 'pqc2re.1'], atol=0, rtol=5e-4)
+assert_allclose(tw_chk['alfx', 'pqc2re.1'], tw_sol_off['alfx', 'pqc2re.1'], atol=2e-4, rtol=5e-4)
+assert_allclose(tw_chk['alfy', 'pqc2re.1'], tw_sol_off['alfy', 'pqc2re.1'], atol=2e-4, rtol=5e-4)
+assert_allclose(tw_chk['mux', 'pqc2re.1'], tw_sol_off['mux', 'pqc2re.1'], atol=1e-5, rtol=5e-5)
+assert_allclose(tw_chk['muy', 'pqc2re.1'], tw_sol_off['muy', 'pqc2re.1'], atol=1e-5, rtol=5e-5)
 
-# assert_allclose(tw_chk['betx', 'pqc2le.4'], tw_sol_off['betx', 'pqc2le.4'], atol=0, rtol=5e-5)
-# assert_allclose(tw_chk['bety', 'pqc2le.4'], tw_sol_off['bety', 'pqc2le.4'], atol=0, rtol=5e-5)
-# assert_allclose(tw_chk['alfx', 'pqc2le.4'], tw_sol_off['alfx', 'pqc2le.4'], atol=1e-5, rtol=5e-5)
-# assert_allclose(tw_chk['alfy', 'pqc2le.4'], tw_sol_off['alfy', 'pqc2le.4'], atol=1e-5, rtol=5e-5)
-# assert_allclose(tw_chk['mux', 'pqc2le.4'], tw_sol_off['mux', 'pqc2le.4'], atol=2e-6, rtol=5e-5)
-# assert_allclose(tw_chk['muy', 'pqc2le.4'], tw_sol_off['muy', 'pqc2le.4'], atol=2e-6, rtol=5e-5)
+assert_allclose(tw_chk['betx', 'pqc2le.4'], tw_sol_off['betx', 'pqc2le.4'], atol=0, rtol=5e-4)
+assert_allclose(tw_chk['bety', 'pqc2le.4'], tw_sol_off['bety', 'pqc2le.4'], atol=0, rtol=5e-4)
+assert_allclose(tw_chk['alfx', 'pqc2le.4'], tw_sol_off['alfx', 'pqc2le.4'], atol=2e-4, rtol=5e-4)
+assert_allclose(tw_chk['alfy', 'pqc2le.4'], tw_sol_off['alfy', 'pqc2le.4'], atol=2e-4, rtol=5e-4)
+assert_allclose(tw_chk['mux', 'pqc2le.4'], tw_sol_off['mux', 'pqc2le.4'], atol=1e-5, rtol=5e-5)
+assert_allclose(tw_chk['muy', 'pqc2le.4'], tw_sol_off['muy', 'pqc2le.4'], atol=1e-5, rtol=5e-5)
 
-# assert tw_chk.c_minus < 1e-6
-# assert_allclose(tw_chk['betx2', 'ip.1'] / tw_chk['betx', 'ip.1'], 0, atol=1e-11)
-# assert_allclose(tw_chk['bety1', 'ip.1'] / tw_chk['bety', 'ip.1'], 0, atol=1e-11)
-# assert_allclose(tw_chk['betx2', 'pqc2re.1'] / tw_chk['betx', 'pqc2re.1'], 0, atol=1e-11)
-# assert_allclose(tw_chk['bety1', 'pqc2re.1'] / tw_chk['bety', 'pqc2re.1'], 0, atol=1e-11)
-# assert_allclose(tw_chk['betx2', 'pqc2le.4'] / tw_chk['betx', 'pqc2le.4'], 0, atol=1e-11)
-# assert_allclose(tw_chk['bety1', 'pqc2le.4'] / tw_chk['bety', 'pqc2le.4'], 0, atol=1e-11)
+assert tw_chk.c_minus < 1e-6
+assert_allclose(tw_chk['betx2', 'ip.1'] / tw_chk['betx', 'ip.1'], 0, atol=5e-11)
+assert_allclose(tw_chk['bety1', 'ip.1'] / tw_chk['bety', 'ip.1'], 0, atol=5e-11)
+assert_allclose(tw_chk['betx2', 'pqc2re.1'] / tw_chk['betx', 'pqc2re.1'], 0, atol=5e-11)
+assert_allclose(tw_chk['bety1', 'pqc2re.1'] / tw_chk['bety', 'pqc2re.1'], 0, atol=5e-11)
+assert_allclose(tw_chk['betx2', 'pqc2le.4'] / tw_chk['betx', 'pqc2le.4'], 0, atol=5e-11)
+assert_allclose(tw_chk['bety1', 'pqc2le.4'] / tw_chk['bety', 'pqc2le.4'], 0, atol=5e-11)
 
 tt = line.get_table(attr=True)
 s_ip = tt['s', 'ip.1']
