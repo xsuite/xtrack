@@ -7,7 +7,7 @@ from scipy.constants import e as qe
 from cpymad.madx import Madx
 
 fname = 'fccee_z'; pc_gev = 45.6
-fname = 'fccee_t'; pc_gev = 182.5
+# fname = 'fccee_t'; pc_gev = 182.5
 
 mad = Madx()
 mad.call('../../test_data/fcc_ee/' + fname + '.seq')
@@ -169,7 +169,7 @@ Teapot = xt.Teapot
 slicing_strategies = [
     Strategy(slicing=None),  # Default catch-all as in MAD-X
     Strategy(slicing=Teapot(3), element_type=xt.Bend),
-    Strategy(slicing=Teapot(3), element_type=xt.CombinedFunctionMagnet),
+    Strategy(slicing=Teapot(2), element_type=xt.Sextupole),
     # Strategy(slicing=Teapot(50), element_type=xt.Quadrupole), # Starting point
     Strategy(slicing=Teapot(5), name=r'^qf.*'),
     Strategy(slicing=Teapot(5), name=r'^qd.*'),
@@ -245,7 +245,6 @@ line.to_json(fname + '_with_sol.json')
 line.vars['voltca1'] = line.vars['voltca1_ref']
 line.vars['voltca2'] = line.vars['voltca2_ref']
 
-line.config.XTRACK_USE_EXACT_DRIFTS = True
 line.build_tracker()
 
 line.configure_radiation(model='mean')
