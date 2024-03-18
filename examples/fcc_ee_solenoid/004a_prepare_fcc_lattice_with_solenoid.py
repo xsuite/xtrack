@@ -7,7 +7,7 @@ from scipy.constants import e as qe
 from cpymad.madx import Madx
 
 fname = 'fccee_z'; pc_gev = 45.6
-fname = 'fccee_t'; pc_gev = 182.5
+# fname = 'fccee_t'; pc_gev = 182.5
 
 mad = Madx()
 mad.call('../../test_data/fcc_ee/' + fname + '.seq')
@@ -20,6 +20,7 @@ line.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV,
                                  gamma0=mad.sequence.fccee_p_ring.beam.gamma)
 line.cycle('ip.4', inplace=True)
 line.append_element(element=xt.Marker(), name='ip.4.l')
+line.build_tracker()
 
 tt = line.get_table()
 bz_data_file = '../../test_data/fcc_ee/Bz_closed_before_quads.dat'
@@ -36,14 +37,14 @@ line.vars['voltca2'] = 0
 import pandas as pd
 bz_df = pd.read_csv(bz_data_file, sep='\s+', skiprows=1, names=['z', 'Bz'])
 
-l_solenoid = 4.4
-ds_sol_start = -l_solenoid / 2 * np.cos(15e-3)
-ds_sol_end = +l_solenoid / 2 * np.cos(15e-3)
+theta_tilt = 15e-3 # rad
+l_beam = 4.4
+l_solenoid = l_beam * np.cos(theta_tilt)
+ds_sol_start = -l_beam / 2
+ds_sol_end = +l_beam / 2
 ip_sol = 'ip.1'
 
-theta_tilt = 15e-3 # rad
-
-s_sol_slices = np.linspace(ds_sol_start, ds_sol_end, 1001)
+s_sol_slices = np.linspace(-l_solenoid/2, l_solenoid/2, 1001)
 bz_sol_slices = np.interp(s_sol_slices, bz_df.z, bz_df.Bz)
 bz_sol_slices[0] = 0
 bz_sol_slices[-1] = 0
@@ -68,8 +69,8 @@ line.insert_element(name='sol_end_'+ip_sol, element=xt.Marker(),
 
 sol_start_tilt = xt.YRotation(angle=-theta_tilt * 180 / np.pi)
 sol_end_tilt = xt.YRotation(angle=+theta_tilt * 180 / np.pi)
-sol_start_shift = xt.XYShift(dx=l_solenoid/2 * np.sin(theta_tilt))
-sol_end_shift = xt.XYShift(dx=l_solenoid/2 * np.sin(theta_tilt))
+sol_start_shift = xt.XYShift(dx=l_solenoid/2 * np.tan(theta_tilt))
+sol_end_shift = xt.XYShift(dx=l_solenoid/2 * np.tan(theta_tilt))
 
 line.element_dict['sol_start_tilt_'+ip_sol] = sol_start_tilt
 line.element_dict['sol_end_tilt_'+ip_sol] = sol_end_tilt

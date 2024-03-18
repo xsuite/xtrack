@@ -50,8 +50,8 @@ line.discard_tracker()
 line.slice_thick_elements(slicing_strategies=slicing_strategies)
 line.build_tracker()
 
-theta_tilt = 0.1 #15e-3 # rad
-l_solenoid = 3
+theta_tilt = 15e-3 # rad
+l_solenoid = 4.4
 l_beam = l_solenoid / np.cos(theta_tilt)
 ds_sol_start = -l_beam / 2
 ds_sol_end = +l_beam / 2
