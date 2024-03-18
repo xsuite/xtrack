@@ -50,10 +50,11 @@ line.discard_tracker()
 line.slice_thick_elements(slicing_strategies=slicing_strategies)
 line.build_tracker()
 
-theta_tilt = 15e-3 # rad
+theta_tilt = 0.1 #15e-3 # rad
 l_solenoid = 3
-ds_sol_start = -l_solenoid / 2 / np.cos(theta_tilt)
-ds_sol_end = +l_solenoid / 2 / np.cos(theta_tilt)
+l_beam = l_solenoid / np.cos(theta_tilt)
+ds_sol_start = -l_beam / 2
+ds_sol_end = +l_beam / 2
 ip_sol = 'ip.1'
 
 
@@ -79,7 +80,7 @@ line.element_dict['sol_end_shift_'+ip_sol] = sol_end_shift
 
 line.element_dict['sol_entry_'+ip_sol] = xt.Marker()
 line.element_dict['sol_exit_'+ip_sol] = xt.Marker()
-s_sol_slices = np.linspace(ds_sol_start, ds_sol_end, 11)
+s_sol_slices = np.linspace(-l_solenoid/2, l_solenoid/2, 11)
 l_sol_slices = np.diff(s_sol_slices)
 s_sol_slices_entry = s_sol_slices[:-1]
 
@@ -108,12 +109,12 @@ element_names = (names_upstream
 
 line.element_names = element_names
 
-
+line.config.XTRACK_USE_EXACT_DRIFTS = True
 line.build_tracker()
 
 line.configure_radiation(model='mean')
 line.compensate_radiation_energy_loss()
 
-tw = line.twiss(eneloss_and_damping=True)
+tw = line.twiss(eneloss_and_damping=True, particle_on_co=line.particle_ref.copy())
 
 print(tw.partition_numbers)

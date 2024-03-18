@@ -34,11 +34,11 @@ line2.build_tracker()
 line.build_tracker()
 line.tracker.skip_end_turn_actions = True
 
-# p0 = xt.Particles(p0c=6500e9, x=np.linspace(-1e-3, 1e-3, 11),
-#                   px=0.1)
+
 # particle on the solenoid axis
 p0 = xt.Particles(p0c=6500e9, px=-np.sin(theta_tilt_rad),
-                  x=l_beam/2 * np.tan(theta_tilt_rad))
+                  x=l_beam/2 * np.tan(theta_tilt_rad),
+                  delta=0.1, py=0.1)
 p = p0.copy()
 line.track(p)
 
