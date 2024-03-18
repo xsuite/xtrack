@@ -79,13 +79,14 @@ line.element_dict['sol_end_shift_'+ip_sol] = sol_end_shift
 line.element_dict['sol_entry_'+ip_sol] = xt.Solenoid(length=0, ks=0)
 line.element_dict['sol_exit_'+ip_sol] = xt.Solenoid(length=0, ks=0)
 
-s_sol_slices = np.linspace(ds_sol_start, ds_sol_end, 1001)
+s_sol_slices = np.linspace(ds_sol_start, ds_sol_end, 11)
 l_sol_slices = np.diff(s_sol_slices)
 s_sol_slices_entry = s_sol_slices[:-1]
 
 sol_slices = []
 for ii in range(len(s_sol_slices_entry)):
-    sol_slices.append(xt.Solenoid(length=l_sol_slices[ii], ks=0)) # Off for now
+    # sol_slices.append(xt.Solenoid(length=l_sol_slices[ii], ks=0)) # Off for now
+    sol_slices.append(xt.Drift(length=l_sol_slices[ii])) # Off for now
 
 sol_slice_names = []
 sol_slice_names.append('sol_entry_'+ip_sol)
