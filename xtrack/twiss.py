@@ -1374,8 +1374,6 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
     # Damping constants and partition numbers
     energy0 = particle_on_co.mass0 * particle_on_co._xobject.gamma0[0]
 
-    energy_ave = np.mean(energy0 * (1 + ptau_co))
-
     damping_constants_turns = -np.log(np.abs(eigenvals))
     damping_constants_s = damping_constants_turns / T_rev0
 
