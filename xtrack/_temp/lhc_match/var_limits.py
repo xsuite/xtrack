@@ -1,7 +1,7 @@
 def set_var_limits_and_steps(collider):
 
     nrj = 7000.
-    scale = 23348.89927*0.9
+    scale = 23348.89927
     scmin = 0.03*7000./nrj
     qtlimitx28 = 1.0*225.0/scale
     qtlimitx15 = 1.0*205.0/scale
