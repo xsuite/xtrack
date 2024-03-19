@@ -284,7 +284,7 @@ t4 = time.time()
 optimizers['orbit_knobs'] = opt
 
 # Rematch tunes and chromaticities
-print('Rematching tunes and chromaticities')
+print('Rematching chromaticities')
 for ll in collider.line_names:
     line = collider[ll]
     beam_name = ll[-2:]
