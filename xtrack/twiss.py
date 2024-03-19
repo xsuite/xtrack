@@ -1360,7 +1360,8 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
                                        px_co, py_co, ptau_co, W_matrix,
                                        T_rev0, line, radiation_method):
     diff_ptau = np.diff(ptau_co)
-    eloss_turn = -sum(diff_ptau[diff_ptau<0]) * particle_on_co._xobject.p0c[0]
+    mask_loss = diff_ptau < 0
+    eloss_turn = -sum(diff_ptau[mask_loss]) * particle_on_co._xobject.p0c[0]
 
     # Get eigenvalues
     w0, v0 = np.linalg.eig(R_matrix)
@@ -1372,10 +1373,16 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
 
     # Damping constants and partition numbers
     energy0 = particle_on_co.mass0 * particle_on_co._xobject.gamma0[0]
+
+    energy_ave = np.mean(energy0 * (1 + ptau_co))
+
     damping_constants_turns = -np.log(np.abs(eigenvals))
     damping_constants_s = damping_constants_turns / T_rev0
+
+    # https://cds.cern.ch/record/175614 , Eq. 4.24
     partition_numbers = (
-        damping_constants_turns* 2 * energy0/eloss_turn)
+        damping_constants_turns * 2
+        / (-np.sum(diff_ptau[mask_loss] / (1 + ptau_co[:-1][mask_loss]))))
 
     eneloss_damp_res = {
         'eneloss_turn': eloss_turn,
