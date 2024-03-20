@@ -517,8 +517,13 @@ def test_selective_expr_import_and_replace_in_expr():
     # Load line with knobs on correctors only
     from cpymad.madx import Madx
     mad = Madx(stdout=False)
+<<<<<<< HEAD
     mad.call(str(test_data_folder /
                  'hllhc14_no_errors_with_coupling_knobs/lhcb1_seq.madx'))
+=======
+    mad.call(str( test_data_folder /
+                'hllhc14_no_errors_with_coupling_knobs/lhcb1_seq.madx'))
+>>>>>>> 692d9ef0 (kill stdout on all Madx in tests)
     mad.use(sequence='lhcb1')
     line = xt.Line.from_madx_sequence(mad.sequence.lhcb1,
                                       deferred_expressions=True,

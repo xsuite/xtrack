@@ -28,7 +28,7 @@ def test_mad_writer(case):
     line.build_tracker()
     mad_seq = line.to_madx_sequence(sequence_name='myseq')
 
-    mad = Madx(stdout=True)
+    mad = Madx(stdout=False)
     mad.input(mad_seq)
     mad.beam(particle='proton', energy=7000e9)
     mad.use('myseq')
