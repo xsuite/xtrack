@@ -39,7 +39,7 @@ def test_add_lists():
 
 def test_tilt_shift_and_errors():
 
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     src="""
     k1=0.2;
@@ -233,7 +233,7 @@ def test_tilt_shift_and_errors():
         line=list(ml.iter_elements())
 
 def test_matrix():
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     mad.input("""
     a11=1;
@@ -252,7 +252,7 @@ def test_matrix():
     assert line[2].m1[0,0]==line.vars['a11']._value
 
 def test_srotation():
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     mad.input("""
     angle=0.2;
@@ -270,7 +270,7 @@ def test_srotation():
     assert line[2].angle == line.vars['angle']._value*180/np.pi
 
 def test_xrotation():
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     mad.input("""
     angle=0.2;
@@ -288,7 +288,7 @@ def test_xrotation():
     assert line[2].angle == line.vars['angle']._value*180/np.pi
 
 def test_yrotation():
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     mad.input("""
     angle=0.2;
@@ -307,7 +307,7 @@ def test_yrotation():
 
 def test_mad_elements_import():
 
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     # Element definitions
     mad.input("""
@@ -542,7 +542,7 @@ def test_selective_expr_import_and_replace_in_expr():
 
     # Load line with knobs on correctors only
     from cpymad.madx import Madx
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.call(str( test_data_folder /
                 'hllhc14_no_errors_with_coupling_knobs/lhcb1_seq.madx'))
     mad.use(sequence='lhcb1')
@@ -661,7 +661,7 @@ def test_load_b2_with_bv_minus_one():
 
     test_data_folder_str = str(test_data_folder)
 
-    mad1=Madx()
+    mad1=Madx(stdout=False)
     mad1.call(test_data_folder_str + '/hllhc15_thick/lhc.seq')
     mad1.call(test_data_folder_str + '/hllhc15_thick/hllhc_sequence.madx')
     mad1.input('beam, sequence=lhcb1, particle=proton, energy=7000;')
@@ -671,7 +671,7 @@ def test_load_b2_with_bv_minus_one():
     mad1.call(test_data_folder_str + '/hllhc15_thick/opt_round_150_1500.madx')
     mad1.twiss()
 
-    mad4=Madx()
+    mad4=Madx(stdout=False)
     mad4.input('mylhcbeam=4')
     mad4.call(test_data_folder_str + '/hllhc15_thick/lhcb4.seq')
     mad4.call(test_data_folder_str + '/hllhc15_thick/hllhc_sequence.madx')

@@ -520,7 +520,7 @@ def test_lhc_match_phase_15(test_context, config):
 
     # Check generated optics in madx
 
-    mad=Madx()
+    mad=Madx(stdout=False)
     mad.call(str(test_data_folder / 'hllhc15_thick/lhc.seq'))
     mad.call(str(test_data_folder / 'hllhc15_thick/hllhc_sequence.madx'))
     mad.input('beam, sequence=lhcb1, particle=proton, energy=7000;')

@@ -14,7 +14,7 @@ test_data_folder = pathlib.Path(
 def test_fcc_ee_solenoid_correction():
     fname = 'fccee_t'; pc_gev = 182.5
 
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.call(str(test_data_folder) + '/fcc_ee/' + fname + '.seq')
     mad.beam(particle='positron', pc=pc_gev)
     mad.use('fccee_p_ring')

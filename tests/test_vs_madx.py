@@ -22,7 +22,7 @@ path = test_data_folder.joinpath('hllhc14_input_mad/')
 
 @pytest.fixture(scope='module')
 def mad_with_errors():
-    mad_with_errors = Madx()
+    mad_with_errors = Madx(stdout=False)
     mad_with_errors.call(str(path.joinpath("final_seq.madx")))
     mad_with_errors.use(sequence='lhcb1')
     mad_with_errors.twiss()
@@ -40,7 +40,7 @@ def mad_with_errors():
 
 @pytest.fixture(scope='module')
 def mad_b12_no_errors():
-    mad_b12_no_errors = Madx()
+    mad_b12_no_errors = Madx(stdout=False)
     mad_b12_no_errors.call(str(test_data_folder.joinpath(
                                    'hllhc15_noerrors_nobb/sequence.madx')))
     mad_b12_no_errors.globals['vrf400'] = 16
@@ -56,7 +56,7 @@ def mad_b12_no_errors():
 
 @pytest.fixture(scope='module')
 def mad_b4_no_errors():
-    mad_b4_no_errors = Madx()
+    mad_b4_no_errors = Madx(stdout=False)
     mad_b4_no_errors.call(str(test_data_folder.joinpath(
                                    'hllhc15_noerrors_nobb/sequence_b4.madx')))
     mad_b4_no_errors.globals['vrf400'] = 16
@@ -598,7 +598,7 @@ def test_low_beta_twiss(test_context):
 
     path_madseq = test_data_folder / 'psb_injection/psb_injection.seq'
 
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.call(str(path_madseq))
 
     mad.use(sequence='psb')

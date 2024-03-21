@@ -122,7 +122,7 @@ def test_line_compound_container():
 
 
 def test_slicing_preserve_thick_compound_if_unsliced():
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.options.rbarc = False
     mad.input(f"""
     ss: sequence, l:=2, refer=entry;

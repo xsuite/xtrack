@@ -17,7 +17,7 @@ def test_chromatic_functions_vs_madx(test_context):
     collider['lhcb2'].twiss_default['method'] = '4d'
     collider.build_trackers(_context=test_context)
 
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.input(f"""
     call,file="{str(test_data_folder)}/hllhc15_thick/lhc.seq";
     call,file="{str(test_data_folder)}/hllhc15_thick/hllhc_sequence.madx";
