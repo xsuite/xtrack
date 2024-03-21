@@ -134,7 +134,7 @@ def test_orbit_correction(test_context):
     input_line = xt.Line.from_dict(dct_b1)
 
     # Load line with knobs on correctors only
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.call(str(test_data_folder /
                  'hllhc14_no_errors_with_coupling_knobs/lhcb1_seq.madx'))
     mad.use(sequence='lhcb1')

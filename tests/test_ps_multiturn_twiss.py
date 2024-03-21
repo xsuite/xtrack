@@ -12,7 +12,7 @@ def test_ps_multiturn_twiss(test_context):
     test_data_folder = pathlib.Path(
             __file__).parent.joinpath('../test_data').absolute()
 
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.input("""
     beam, particle=proton, pc = 14.0;
     BRHO      = BEAM->PC * 3.3356;

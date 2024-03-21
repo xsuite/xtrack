@@ -143,7 +143,7 @@ def test_ring_with_radiation(test_context):
     from cpymad.madx import Madx
 
     # Import thick sequence
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     # CLIC-DR
     mad.call(str(test_data_folder.joinpath('clic_dr/sequence.madx')))

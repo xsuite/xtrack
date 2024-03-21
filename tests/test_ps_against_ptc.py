@@ -14,7 +14,7 @@ def test_ps_against_ptc(test_context):
 
     # Verify correct result with Yoshida integration in CombinedFunctionMagnet
 
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     mad.call(str(test_data_folder / 'ps_sftpro/ps.seq'))
     mad.call(str(test_data_folder / 'ps_sftpro/ps_hs_sftpro.str'))

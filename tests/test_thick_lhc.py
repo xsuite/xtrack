@@ -15,7 +15,7 @@ test_data_folder = pathlib.Path(
 
 @for_all_test_contexts
 def test_madloader_lhc_thick(test_context):
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     mad.input(f"""
     call,file="{str(test_data_folder)}/hllhc15_thick/lhc.seq";

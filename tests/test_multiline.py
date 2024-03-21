@@ -14,7 +14,7 @@ def test_multiline_metadata(test_context):
         dct_b1 = json.load(fid)
         input_line = xt.Line.from_dict(dct_b1)
 
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.call(str(test_data_folder / 'hllhc14_no_errors_with_coupling_knobs/lhcb1_seq.madx'))
     mad.use(sequence='lhcb1')
 

@@ -20,7 +20,7 @@ test_data_folder = pathlib.Path(
 
 @for_all_test_contexts
 def test_psb_chicane(test_context):
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     # Load mad model and apply element shifts
     mad.input(f'''

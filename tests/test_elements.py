@@ -905,7 +905,7 @@ def test_simplified_accelerator_segment_uncorrelated_damping_equilibrium(test_co
 
 @for_all_test_contexts
 def test_nonlinearlens(test_context):
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     dr_len = 1e-11
     mad.input(f"""

@@ -582,7 +582,7 @@ def test_tbt_monitor_with_progress(test_context, ele_start, ele_stop, expected_x
 @pytest.fixture
 def pimms_mad():
     pimms_path = test_data_folder / 'pimms/PIMMS.seq'
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.option(echo=False)
     mad.call(str(pimms_path))
     mad.beam()

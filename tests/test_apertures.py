@@ -120,7 +120,7 @@ def test_mad_import():
 
     from cpymad.madx import Madx
 
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     mad.input("""
         m_circle: marker, apertype="circle", aperture={.2};
