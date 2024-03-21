@@ -1205,19 +1205,22 @@ class Solenoid(BeamElement):
         ksi : float
             Integrated strength of the solenoid component in rad.
         """
-        if (kwargs.get('_xobject') is None
-                and np.isclose(kwargs.get('length'), 0, atol=1e-13)):
+        if kwargs.get('_xobject') is not None:
+            super().__init__(**kwargs)
+            return
+
+        if kwargs.get('ksi', 0) != 0:
             # Fail when trying to create a thin solenoid, as these are not
             # tested yet
             raise NotImplementedError('Thin solenoids are not implemented yet.')
             # self.isthick = False
 
-        if not np.isclose(kwargs.get('ksi', 0), 0, atol=1e-13):
+        if kwargs.get('ksi') and kwargs.get('length'):
             raise ValueError(
                 "The parameter `ksi` can only be specified when `length` == 0."
             )
 
-        super().__init__(**kwargs)
+        self.xoinitialize(**kwargs)
 
 
 class CombinedFunctionMagnet:
