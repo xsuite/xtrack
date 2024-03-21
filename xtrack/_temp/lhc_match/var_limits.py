@@ -186,7 +186,7 @@ def set_var_limits_and_steps(collider):
         'kq10.l6b1':   {'step': 1.0E-6, 'limits': (-qtlimit3, qtlimit3*scmin)},
         'kq9.l6b1':    {'step': 1.0E-6, 'limits': ( qtlimit3*scmin, qtlimit3)},
         'kq8.l6b1':    {'step': 1.0E-6, 'limits': (-qtlimit3, qtlimit3*scmin)},
-        'kq5.l6b1':    {'step': 1.0E-6, 'limits': ( qtlimit2*scmin, qtlimit2)},
+        'kq5.l6b1':    {'step': 1.0E-6, 'limits': ( qtlimit2*scmin, qtlimit2*1.05)}, # 5% more (used in the nominal optics...)
         'kq4.l6b1':    {'step': 1.0E-6, 'limits': (-qtlimit2, qtlimit2*scmin)},
         'kq4.r6b1':    {'step': 1.0E-6, 'limits': ( qtlimit2*scmin, qtlimit2)},
         'kq5.r6b1':    {'step': 1.0E-6, 'limits': (-qtlimit2, qtlimit2*scmin)},
