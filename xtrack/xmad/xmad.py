@@ -1,4 +1,5 @@
 import builtins
+import contextlib
 from typing import Tuple
 
 import cython as cy
@@ -171,12 +172,17 @@ class Parser:
         self.log.append(ParseLogEntry(yylloc_ptr[0], message, context=text))
 
     def get_identifier_ref(self, identifier):
-        identifier = identifier.decode()
-        if identifier not in self.vars:
-            self.handle_error(f'use of an undefined variable `{identifier}`')
-            return np.nan
+        try:
+            identifier = identifier.decode()
+            if identifier not in self.vars:
+                self.handle_error(f'use of an undefined variable `{identifier}`')
+                return np.nan
 
-        return self.var_refs[identifier]
+            return self.var_refs[identifier]
+        except Exception as e:
+            print(f'######## identifier = {identifier} type = {type(identifier)}')
+            traceback.print_exception(e)
+            return np.nan
 
     def set_defer(self, identifier, value):
         self.var_refs[identifier] = value
@@ -239,90 +245,143 @@ def yyerror(_, yyscanner, message):
     parser.handle_error(message.decode())
 
 
+@cy.exceptval(check=False)
 def py_float(value):
-    if KEEP_LITERAL_EXPRESSIONS:
-        return LiteralExpr(value)
-    return value
+    try:
+        if KEEP_LITERAL_EXPRESSIONS:
+            return LiteralExpr(value)
+        return value
+    except Exception as e:
+        traceback.print_exception(e)
 
 
+@cy.exceptval(check=False)
 def py_unary_op(op_string, value):
-    function = getattr(operator, op_string.decode())
-    return function(value)
+    try:
+        function = getattr(operator, op_string.decode())
+        return function(value)
+    except Exception as e:
+        traceback.print_exception(e)
 
 
+@cy.exceptval(check=False)
 def py_binary_op(op_string, left, right):
-    function = getattr(operator, op_string.decode())
-    return function(left, right)
+    try:
+        function = getattr(operator, op_string.decode())
+        return function(left, right)
+    except Exception as e:
+        traceback.print_exception(e)
 
 
+@cy.exceptval(check=False)
 def py_call_func(scanner, func_name, value):
-    normalized_name = func_name.decode().lower()
-    if normalized_name not in BUILTIN_FUNCTIONS:
-        parser_from_scanner(scanner).handle_error(
-            f'builtin function `{normalized_name}` is unknown',
-        )
-        return np.nan
+    try:
+        normalized_name = func_name.decode().lower()
+        if normalized_name not in BUILTIN_FUNCTIONS:
+            parser_from_scanner(scanner).handle_error(
+                f'builtin function `{normalized_name}` is unknown',
+            )
+            return np.nan
 
-    function = BUILTIN_FUNCTIONS[normalized_name]
-    return CallRef(function, (value,), {})
+        function = BUILTIN_FUNCTIONS[normalized_name]
+        return CallRef(function, (value,), {})
+    except Exception as e:
+        traceback.print_exception(e)
 
 
 def py_eq_value_scalar(identifier, value):
-    return identifier.decode(), value
+    try:
+        return identifier.decode(), value
+    except Exception as e:
+        traceback.print_exception(e)
 
 
 def py_eq_defer_scalar(identifier, value):
-    return identifier.decode(), value
+    try:
+        return identifier.decode(), value
+    except Exception as e:
+        traceback.print_exception(e)
 
 
 def py_arrow(scanner, source_name, field_name):
-    parser_from_scanner(scanner).handle_error(
-        'the arrow syntax is not yet implemented'
-    )
+    try:
+        parser_from_scanner(scanner).handle_error(
+            'the arrow syntax is not yet implemented'
+        )
+    except Exception as e:
+        traceback.print_exception(e)
 
 
 def py_identifier_atom(scanner, name):
-    normalized_name = name.decode().lower()
-    if name not in BUILTIN_CONSTANTS:
-        parser = parser_from_scanner(scanner)
-        return parser.get_identifier_ref(name)
+    try:
+        normalized_name = name.decode().lower()
+        if name not in BUILTIN_CONSTANTS:
+            parser = parser_from_scanner(scanner)
+            return parser.get_identifier_ref(name)
 
-    value = BUILTIN_CONSTANTS[normalized_name]
-    return py_float(value)
+        value = BUILTIN_CONSTANTS[normalized_name]
+        return py_float(value)
+    except Exception as e:
+        traceback.print_exception(e)
 
 
 def py_set_defer(scanner, assignment):
-    parser = parser_from_scanner(scanner)
-    parser.set_defer(*assignment)
+    try:
+        parser = parser_from_scanner(scanner)
+        parser.set_defer(*assignment)
+    except Exception as e:
+        traceback.print_exception(e)
 
 
+@cy.exceptval(check=False)
 def py_set_value(scanner, assignment):
-    parser = parser_from_scanner(scanner)
-    parser.set_value(*assignment)
+    try:
+        parser = parser_from_scanner(scanner)
+        parser.set_value(*assignment)
+    except Exception as e:
+        traceback.print_exception(e)
 
 
 def py_make_sequence(scanner, name, args, elements):
-    parser = parser_from_scanner(scanner)
-    parser.add_line(name.decode(), elements, dict(args))
+    try:
+        parser = parser_from_scanner(scanner)
+        parser.add_line(name.decode(), elements, dict(args))
+    except Exception as e:
+        traceback.print_exception(e)
 
 
 def py_clone(name, parent, args) -> Tuple[str, str, dict]:
-    return name.decode(), parent.decode(), args
+    try:
+        return name.decode(), parent.decode(), args
+    except Exception as e:
+        traceback.print_exception(e)
 
 
 def py_eq_value_sum(name, value) -> Tuple[str, object]:
-    if xd.refs.is_ref(value):
-        return name.decode(), value._get_value()
-    return name.decode(), value
+    try:
+        if xd.refs.is_ref(value):
+            return name.decode(), value._get_value()
+        return name.decode(), value
+    except Exception as e:
+        traceback.print_exception(e)
 
 
 def py_eq_defer_sum(name, value) -> Tuple[str, object]:
-    return name.decode(), value
+    try:
+        return name.decode(), value
+    except Exception as e:
+        traceback.print_exception(e)
 
 
 def py_eq_value_array(name, array):
-    return name.decode(), array
+    try:
+        return name.decode(), array
+    except Exception as e:
+        traceback.print_exception(e)
 
 
 def py_eq_defer_array(name, array):
-    return name.decode(), array
+    try:
+        return name.decode(), array
+    except Exception as e:
+        traceback.print_exception(e)

@@ -116,6 +116,8 @@
 
 // Clean up token values on error
 %destructor { free($$); } IDENTIFIER STRING_LITERAL
+// Clean up the python lists we create as part of grammar actions
+%destructor { Py_DECREF($$); } elements arguments array scalar_list
 
 // Associativity rules
 %left ADD SUB
@@ -196,12 +198,12 @@ sequence
 	  	}
 
 elements
-	: /* empty */			{ $$ = PyList_New(0); }
+	: clone				{ $$ = PyList_New(0); PyList_Append($$, $1); }
 	| elements clone		{ PyList_Append($1, $2); $$ = $1; }
 	| error SEMICOLON  		{
 			// Recover from a bad line without breaking the
 			// sequence (otherwise falls back to `statement`).
-			$$ = Py_None;
+			$$ = PyList_New(0);
 		}
 
 array

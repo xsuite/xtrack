@@ -45,6 +45,10 @@ class XMadWriter:
 
         stream.write(f'{self.name}: sequence;\n')
         for element_name, element in self.line.items():
+            # TODO: We should somehow import elements in a better way from
+            #   MAD-X to avoid this:
+            element_name = element_name.replace(':', '_')
+
             element_dict = element.to_dict()
             element_type = element_dict.pop('__class__')
 
