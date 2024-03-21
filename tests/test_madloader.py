@@ -752,7 +752,7 @@ def test_load_b2_with_bv_minus_one():
         d2 = e2.to_dict()
         d4 = e4.to_dict()
         for kk in d2.keys():
-            if kk == '__class__':
+            if kk in ('__class__', 'model', 'side'):
                 assert d2[kk] == d4[kk]
                 continue
             assert np.allclose(d2[kk], d4[kk], rtol=1e-10, atol=1e-16)
