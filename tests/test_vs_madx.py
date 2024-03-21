@@ -7,6 +7,7 @@ import pathlib
 import numpy as np
 import pytest
 
+import xobjects as xo
 import xtrack as xt
 import xpart as xp
 from xobjects.test_helpers import for_all_test_contexts
@@ -435,30 +436,33 @@ def test_line_import_from_madx(test_context, mad_with_errors):
         dtest = ee_test.to_dict()
         dref = ee_six.to_dict()
 
+        ee_test_cpu = ee_test.copy(_context=xo.ContextCpu())
+        ee_six_cpu = ee_six.copy(_context=xo.ContextCpu())
+
         skip_order = False
         if isinstance(ee_test, xt.Multipole):
             if ee_test._order != ee_six._order:
                 min_order = min(ee_test._order, ee_six._order)
-                if len(dtest['knl']) > min_order+1:
-                    assert np.all(dtest['knl'][min_order+1]  == 0)
-                    dtest['knl'] = dtest['knl'][:min_order+1]
-                if len(dref['knl']) > min_order+1:
-                    assert np.all(dref['knl'][min_order+1]  == 0)
-                    dref['knl'] = dref['knl'][:min_order+1]
-                if len(dtest['ksl']) > min_order+1:
-                    assert np.all(dtest['ksl'][min_order+1]  == 0)
-                    dtest['ksl'] = dtest['ksl'][:min_order+1]
-                if len(dref['ksl']) > min_order+1:
-                    assert np.all(dref['ksl'][min_order+1]  == 0)
-                    dref['ksl'] = dref['ksl'][:min_order+1]
+                assert np.allclose(
+                    ee_test.knl[:min_order+1],
+                    ee_six.knl[:min_order+1],
+                    atol=1e-16,
+                )
+                assert np.allclose(
+                    ee_test.ksl[:min_order+1],
+                    ee_six.ksl[:min_order+1],
+                    atol=1e-16,
+                )
+                assert np.allclose(ee_test.knl[min_order+1:], 0, atol=1e-16)
+                assert np.allclose(ee_test.ksl[min_order+1:], 0, atol=1e-16)
+                assert np.allclose(ee_six.knl[min_order+1:], 0, atol=1e-16)
+                assert np.allclose(ee_six.ksl[min_order+1:], 0, atol=1e-16)
+
                 skip_order = True
 
         for kk in dtest.keys():
 
-            if skip_order and kk == '_order':
-                continue
-
-            if skip_order and kk == 'inv_factorial_order':
+            if skip_order and kk in ('order', 'knl', 'ksl'):
                 continue
 
             # Check if they are identical

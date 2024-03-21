@@ -579,6 +579,8 @@ class Multipole(BeamElement):
         'order': '_order',
     }
 
+    _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
+
     _depends_on = [RandomUniform, RandomExponential]
 
     _extra_c_sources = [
@@ -641,9 +643,33 @@ class Multipole(BeamElement):
         self._order = value
         self.inv_factorial_order = 1.0 / factorial(value, exact=True)
 
+    def to_dict(self, copy_to_cpu=True):
+        out = super().to_dict(copy_to_cpu=copy_to_cpu)
+
+        # The constructor essentially overrides order if given knl or ksl
+        # imply a higher one to the one given. Otherwise, knl and ksl are
+        # resized, which at this stage means that the information about the
+        # order (by which we understand the desired size of knl/ksl, which can
+        # be different to the actual tracking order, as that can be changed
+        # later) is essentially encoded in knl/ksl.
+        # We should probably come up with a better way of handling this, but
+        # in the meantime let's produce a minimal dict that allows to
+        # reconstruct the xobject according to the rules outlined above.
+
+        if np.allclose(self.knl, 0, atol=1e-16):
+            del out['knl']
+
+        if np.allclose(self.ksl, 0, atol=1e-16):
+            del out['ksl']
+
+        if self.order != 0 and 'knl' not in out and 'ksl' not in out:
+            out['order'] = self.order
+
+        return out
+
 
 class SimpleThinQuadrupole(BeamElement):
-    """An specialized version of Multipole to model a thin quadrupole
+    """A specialized version of Multipole to model a thin quadrupole
     (knl[0], ksl, hxl, hyl are all zero).
 
     Parameters
@@ -785,6 +811,18 @@ class Bend(BeamElement):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
         out.pop('_model')
         out['model'] = self.model
+
+        # See the comment in Multiple.to_dict about knl/ksl/order dumping
+
+        if np.allclose(self.knl, 0, atol=1e-16):
+            out.pop('knl', None)
+
+        if np.allclose(self.ksl, 0, atol=1e-16):
+            out.pop('ksl', None)
+
+        if self.order != 0 and 'knl' not in out and 'ksl' not in out:
+            out['order'] = self.order
+
         return out
 
     @property
@@ -1398,7 +1436,7 @@ class DipoleEdge(BeamElement):
         Fringe integral.
     e1_fd : float
         Term added to e1 only for the linear mode and only in the vertical
-        plane to acconut for non-zero angle in the closed orbit when entering
+        plane to account for non-zero angle in the closed orbit when entering
         the fringe field (feed down effect).
     model : str
         Model to be used for the edge. It can be 'linear', 'full' or 'suppress'.
@@ -1497,6 +1535,9 @@ class DipoleEdge(BeamElement):
 
         if self._model != 0:
             out['model'] = self.model
+
+        if self._side != 0:
+            out['side'] = self.side
 
         return out
 
