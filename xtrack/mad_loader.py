@@ -490,14 +490,6 @@ class Alignment:
 
     def entry(self):
         out = []
-        if self.tilt:
-            out.append(
-                self.Builder(
-                    self.name + "_tilt_entry",
-                    self.classes.SRotation,
-                    angle=self.tilt,
-                )
-            )
         if self.dx or self.dy:
             out.append(
                 self.Builder(
@@ -507,10 +499,26 @@ class Alignment:
                     dy=self.dy,
                 )
             )
+        if self.tilt:
+            out.append(
+                self.Builder(
+                    self.name + "_tilt_entry",
+                    self.classes.SRotation,
+                    angle=self.tilt,
+                )
+            )
         return out
 
     def exit(self):
         out = []
+        if self.tilt:
+            out.append(
+                self.Builder(
+                    self.name + "_tilt_exit",
+                    self.classes.SRotation,
+                    angle=-self.tilt,
+                )
+            )
         if self.dx or self.dy:
             out.append(
                 self.Builder(
@@ -518,14 +526,6 @@ class Alignment:
                     self.classes.XYShift,
                     dx=-self.dx,
                     dy=-self.dy,
-                )
-            )
-        if self.tilt:
-            out.append(
-                self.Builder(
-                    self.name + "_tilt_exit",
-                    self.classes.SRotation,
-                    angle=-self.tilt,
                 )
             )
         return out
