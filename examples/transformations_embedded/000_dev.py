@@ -62,3 +62,9 @@ psandwitch.get_table().show()
 plinetilted.get_table().show()
 peletitled.get_table().show()
 
+elm.tilt = tilt_deg
+pprop = p0.copy()
+elm.track(pprop)
+
+pprop.get_table().show()
+
