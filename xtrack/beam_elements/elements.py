@@ -141,6 +141,7 @@ class XYShift(BeamElement):
 
     allow_backtrack = True
     has_backtrack = True
+    allow_tilt_and_shifts = False
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/xyshift.h')]
@@ -328,6 +329,7 @@ class SRotation(BeamElement):
 
     allow_backtrack = True
     has_backtrack = True
+    allow_tilt_and_shifts = False
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/track_srotation.h'),
