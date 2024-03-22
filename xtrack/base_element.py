@@ -99,8 +99,8 @@ def _generate_track_local_particle_with_transformations(
             f'double const _sin_tilt = {element_name}Data_get__sin_tilt(el);\n'
             'if (_sin_tilt > -2.) {\n'
             f'    double const _cos_tilt = {element_name}Data_get__cos_tilt(el);\n'
-            f'    double const shift_x = {element_name}Data_get_shift_x(el);\n'
-            f'    double const shift_y = {element_name}Data_get_shift_y(el);\n'
+            f'    double const shift_x = {element_name}Data_get__shift_x(el);\n'
+            f'    double const shift_y = {element_name}Data_get__shift_y(el);\n'
             '\n'
             '    //start_per_particle_block (part0->part)\n'
             '       LocalParticle_add_to_x(part, -shift_x);\n'
@@ -120,8 +120,8 @@ def _generate_track_local_particle_with_transformations(
             f'    printf("Transform to back to global frame {element_name}\\n");\n'
             'if (_sin_tilt > -2.) {\n'
             f'    double const _cos_tilt = {element_name}Data_get__cos_tilt(el);\n'
-            f'    double const shift_x = {element_name}Data_get_shift_x(el);\n'
-            f'    double const shift_y = {element_name}Data_get_shift_y(el);\n'
+            f'    double const shift_x = {element_name}Data_get__shift_x(el);\n'
+            f'    double const shift_y = {element_name}Data_get__shift_y(el);\n'
             '\n'
             '    SRotation_single_particle(part0, -_sin_tilt, _cos_tilt);\n'
             '    //start_per_particle_block (part0->part)\n'
@@ -219,6 +219,15 @@ def _generate_per_particle_kernel_from_local_particle_function(
 ''')
     return source
 
+def _tranformations_active(self):
+    if (self.shift_x == 0 and self.shift_y == 0
+        and self._sin_tilt == 0 and self._cos_tilt >= 0):
+        return False
+    elif self._sin_tilt < -2.:
+        return False
+    else:
+        return True
+
 def _tilt_property(self):
     if self._sin_tilt < -2.:
         return 0.
@@ -227,6 +236,24 @@ def _tilt_property(self):
 def _set_tilt_property_setter(self, value):
     self._sin_tilt = np.sin(value * np.pi / 180.)
     self._cos_tilt = np.cos(value * np.pi / 180.)
+    if not _tranformations_active(self):
+        self._sin_tilt = -999.
+
+def _shiftx_property(self):
+    return self._shift_x
+
+def _set_shiftx_property_setter(self, value):
+    self._shift_x = value
+    if not _tranformations_active(self):
+        self._sin_tilt = -999.
+
+def _shifty_property(self):
+    return self._shift_y
+
+def _set_shifty_property_setter(self, value):
+    self._shift_y = value
+    if not _tranformations_active(self):
+        self._sin_tilt = -999.
 
 class MetaBeamElement(xo.MetaHybridClass):
 
@@ -241,8 +268,8 @@ class MetaBeamElement(xo.MetaHybridClass):
         if allow_tilt_and_shifts:
             xofields['_sin_tilt'] = xo.Field(xo.Float64, default=-999.)
             xofields['_cos_tilt'] = xo.Field(xo.Float64, default=-999.)
-            xofields['shift_x'] = xo.Field(xo.Float64, 0)
-            xofields['shift_y'] = xo.Field(xo.Float64, 0)
+            xofields['_shift_x'] = xo.Field(xo.Float64, 0)
+            xofields['_shift_y'] = xo.Field(xo.Float64, 0)
 
         data = data.copy()
         data['_xofields'] = xofields
@@ -361,6 +388,8 @@ class MetaBeamElement(xo.MetaHybridClass):
 
         if allow_tilt_and_shifts:
             new_class.tilt = property(_tilt_property, _set_tilt_property_setter)
+            new_class.shift_x = property(_shiftx_property, _set_shiftx_property_setter)
+            new_class.shift_y = property(_shifty_property, _set_shifty_property_setter)
 
         return new_class
 
@@ -474,11 +503,19 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
     def xoinitialize(self, **kwargs):
         tilt = kwargs.pop('tilt', None)
+        shift_x = kwargs.pop('shift_x', None)
+        shift_y = kwargs.pop('shift_y', None)
 
         xo.HybridClass.xoinitialize(self, **kwargs)
 
         if tilt is not None:
             self.tilt = tilt
+
+        if shift_x is not None:
+            self.shift_x = shift_x
+
+        if shift_y is not None:
+            self.shift_y = shift_y
 
 
 class PerParticlePyMethod:
