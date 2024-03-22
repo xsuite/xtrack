@@ -34,9 +34,6 @@ void DipoleEdge_track_local_particle(DipoleEdgeData el, LocalParticle* part0){
         #endif
 
         //start_per_particle_block (part0->part)
-            double const chi = LocalParticle_get_chi(part);
-            double const x = LocalParticle_get_x(part);
-            double const y = LocalParticle_get_y(part);
 
             #ifdef XTRACK_DIPOLEEDGE_TAPER
                 double const delta_taper = LocalParticle_get_delta(part);
@@ -44,8 +41,7 @@ void DipoleEdge_track_local_particle(DipoleEdgeData el, LocalParticle* part0){
                 r43 = r43 * (1 + delta_taper);
             #endif
 
-            LocalParticle_add_to_px(part, chi * r21*x);
-            LocalParticle_add_to_py(part, chi * r43*y);
+            DipoleEdgeLinear_single_particle(part, r21, r43);
 
         //end_per_particle_block
 
