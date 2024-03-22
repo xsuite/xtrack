@@ -90,7 +90,7 @@ def _generate_track_local_particle_with_transformations(
     source = ('''
             /*gpufun*/
             '''
-            f'void {local_particle_function_name}_with_transformations({element_name}Data el, LocalParticle* part)'
+            f'void {local_particle_function_name}_with_transformations({element_name}Data el, LocalParticle* part0)'
             '{\n')
     if allow_tilt_and_shifts:
         source += (
@@ -102,12 +102,16 @@ def _generate_track_local_particle_with_transformations(
             f'    double const shift_x = {element_name}Data_get_shift_x(el);\n'
             f'    double const shift_y = {element_name}Data_get_shift_y(el);\n'
             '\n'
-            '    SRotation_single_particle(part, _sin_tilt, _cos_tilt);\n'
+            '    //start_per_particle_block (part0->part)\n'
+            '       LocalParticle_add_to_x(part, -shift_x);\n'
+            '       LocalParticle_add_to_y(part, -shift_y);\n'
+            '    //end_per_particle_block\n'
+            '    SRotation_single_particle(part0, _sin_tilt, _cos_tilt);\n'
             '}\n'
         )
 
     source += (
-            f'    {local_particle_function_name}(el, part);\n'
+            f'    {local_particle_function_name}(el, part0);\n'
     )
 
     if allow_tilt_and_shifts:
@@ -119,7 +123,11 @@ def _generate_track_local_particle_with_transformations(
             f'    double const shift_x = {element_name}Data_get_shift_x(el);\n'
             f'    double const shift_y = {element_name}Data_get_shift_y(el);\n'
             '\n'
-            '    SRotation_single_particle(part, -_sin_tilt, _cos_tilt);\n'
+            '    SRotation_single_particle(part0, -_sin_tilt, _cos_tilt);\n'
+            '    //start_per_particle_block (part0->part)\n'
+            '       LocalParticle_add_to_x(part, shift_x);\n'
+            '       LocalParticle_add_to_y(part, shift_y);\n'
+            '    //end_per_particle_block\n'
             '}\n'
         )
     source += '}\n'
