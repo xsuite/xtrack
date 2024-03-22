@@ -235,6 +235,7 @@ class MetaBeamElement(xo.MetaHybridClass):
         # Add dependency on Particles class
         depends_on.append(Particles._XoStruct)
 
+
         track_kernel_name = None
         if 'allow_track' not in data.keys() or data['allow_track']:
 
@@ -243,11 +244,12 @@ class MetaBeamElement(xo.MetaHybridClass):
                     element_name=name,
                     local_particle_function_name=name+'_track_local_particle'))
 
+
             # Generate track kernel
             extra_c_source.append(
                 _generate_per_particle_kernel_from_local_particle_function(
                     element_name=name, kernel_name=name+'_track_particles',
-                    local_particle_function_name=name+'_track_local_particle'))
+                    local_particle_function_name=name+'_track_local_particle_with_transformations'))
 
             # Define track kernel
             track_kernel_name = f'{name}_track_particles'
