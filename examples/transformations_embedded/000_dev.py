@@ -62,9 +62,20 @@ psandwitch.get_table().show()
 plinetilted.get_table().show()
 peletitled.get_table().show()
 
+assert elm.tilt == 0
 elm.tilt = tilt_deg
 pprop = p0.copy()
 elm.track(pprop)
 
 pprop.get_table().show()
 
+pref = psandwitch
+
+assert_allclose = np.testing.assert_allclose
+for pp in [plinetilted, pmad, peletitled, pprop]:
+    assert_allclose(pp.x, pref.x, rtol=0, atol=1e-12)
+    assert_allclose(pp.px, pref.px, rtol=0, atol=1e-12)
+    assert_allclose(pp.y, pref.y, rtol=0, atol=1e-12)
+    assert_allclose(pp.py, pref.py, rtol=0, atol=1e-12)
+    assert_allclose(pp.zeta, pref.zeta, rtol=0, atol=1e-12)
+    assert_allclose(pp.delta, pref.delta, rtol=0, atol=1e-12)

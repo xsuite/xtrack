@@ -212,6 +212,8 @@ def _generate_per_particle_kernel_from_local_particle_function(
     return source
 
 def _tilt_property(self):
+    if self._sin_tilt < -2.:
+        return 0.
     return np.arctan2(self._sin_tilt, self._cos_tilt) * 180. / np.pi
 
 def _set_tilt_property_setter(self, value):
