@@ -82,6 +82,25 @@ def _handle_per_particle_blocks(sources, local_particle_src):
 
     return out
 
+def _generate_track_local_particle_with_transformations(
+                                                element_name,
+                                                local_particle_function_name):
+
+    source = ('''
+            /*gpufun*/
+            '''
+            f'void {local_particle_function_name}_with_transformations({element_name}Data el, LocalParticle* part)'
+            '{\n'
+
+            '    // Transform to local frame\n'
+            '    printf("Transform to local frame\\n");\n'
+            f'    {local_particle_function_name}(el, part);\n'
+            '    // Transform back to global frame\n'
+            '    printf("Transform back to global frame\\n");\n'
+            '}\n'
+    )
+    return source
+
 def _generate_per_particle_kernel_from_local_particle_function(
                                                 element_name, kernel_name,
                                                 local_particle_function_name,
@@ -125,7 +144,7 @@ def _generate_per_particle_kernel_from_local_particle_function(
                 #else // When we skip reorganize, we cannot just batch active particles
                     const int64_t num_particles_to_track = capacity;
                 #endif
-                
+
                 const int64_t chunk_size = (num_particles_to_track + num_threads - 1)/num_threads; // ceil division
             #endif // CONTEXT_OPENMP
 
@@ -175,6 +194,10 @@ class MetaBeamElement(xo.MetaHybridClass):
 
         # Take xofields from data['_xofields'] or from bases
         xofields = _build_xofields_dict(bases, data)
+
+        xofields['_sin_tilt'] = xo.Float64
+        xofields['_cos_tilt'] = xo.Float64
+
         data = data.copy()
         data['_xofields'] = xofields
 
@@ -214,6 +237,12 @@ class MetaBeamElement(xo.MetaHybridClass):
 
         track_kernel_name = None
         if 'allow_track' not in data.keys() or data['allow_track']:
+
+            extra_c_source.append(
+                _generate_track_local_particle_with_transformations(
+                    element_name=name,
+                    local_particle_function_name=name+'_track_local_particle'))
+
             # Generate track kernel
             extra_c_source.append(
                 _generate_per_particle_kernel_from_local_particle_function(
@@ -294,7 +323,6 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     allow_backtrack = False
     skip_in_loss_location_refinement = False
     needs_rng = False
-
 
     def __init__(self, *args, **kwargs):
         xo.HybridClass.__init__(self, *args, **kwargs)
