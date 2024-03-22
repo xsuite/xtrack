@@ -462,6 +462,14 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         else:
             raise ValueError("Invalid array type")
 
+    def xoinitialize(self, **kwargs):
+        tilt = kwargs.pop('tilt', None)
+
+        xo.HybridClass.xoinitialize(self, **kwargs)
+
+        if tilt is not None:
+            self.tilt = tilt
+
 
 class PerParticlePyMethod:
 
