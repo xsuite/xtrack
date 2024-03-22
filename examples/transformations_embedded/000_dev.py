@@ -39,7 +39,7 @@ ealign, dx={shift_x}, dy={shift_y};
 
 elm = xt.Quadrupole(k1=k1, length=1)
 
-elm_tilted = xt.Quadrupole(k1=k1, length=1, tilt=tilt_deg,
+elm_tilted = xt.Quadrupole(k1=k1, length=1, rot_s=tilt_deg,
                            shift_x=shift_x, shift_y=shift_y)
 
 lsandwitch = xt.Line(elements=[
@@ -76,8 +76,8 @@ psandwitch.get_table().show()
 plinetilted.get_table().show()
 peletitled.get_table().show()
 
-assert elm.tilt == 0
-elm.tilt = tilt_deg
+assert elm.rot_s == 0
+elm.rot_s = tilt_deg
 elm.shift_x = shift_x
 elm.shift_y = shift_y
 pprop = p0.copy()

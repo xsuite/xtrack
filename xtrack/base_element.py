@@ -84,7 +84,7 @@ def _handle_per_particle_blocks(sources, local_particle_src):
 
 def _generate_track_local_particle_with_transformations(
                                                 element_name,
-                                                allow_tilt_and_shifts,
+                                                allow_rot_and_shift,
                                                 local_particle_function_name):
 
     source = ('''
@@ -92,13 +92,13 @@ def _generate_track_local_particle_with_transformations(
             '''
             f'void {local_particle_function_name}_with_transformations({element_name}Data el, LocalParticle* part0)'
             '{\n')
-    if allow_tilt_and_shifts:
+    if allow_rot_and_shift:
         source += (
             '    // Transform to local frame\n'
             f'    printf("Transform to local frame {element_name}\\n");\n'
-            f'double const _sin_tilt = {element_name}Data_get__sin_tilt(el);\n'
-            'if (_sin_tilt > -2.) {\n'
-            f'    double const _cos_tilt = {element_name}Data_get__cos_tilt(el);\n'
+            f'double const _sin_rot_s = {element_name}Data_get__sin_rot_s(el);\n'
+            'if (_sin_rot_s > -2.) {\n'
+            f'    double const _cos_rot_s = {element_name}Data_get__cos_rot_s(el);\n'
             f'    double const shift_x = {element_name}Data_get__shift_x(el);\n'
             f'    double const shift_y = {element_name}Data_get__shift_y(el);\n'
             '\n'
@@ -106,7 +106,7 @@ def _generate_track_local_particle_with_transformations(
             '       LocalParticle_add_to_x(part, -shift_x);\n'
             '       LocalParticle_add_to_y(part, -shift_y);\n'
             '    //end_per_particle_block\n'
-            '    SRotation_single_particle(part0, _sin_tilt, _cos_tilt);\n'
+            '    SRotation_single_particle(part0, _sin_rot_s, _cos_rot_s);\n'
             '}\n'
         )
 
@@ -114,16 +114,16 @@ def _generate_track_local_particle_with_transformations(
             f'    {local_particle_function_name}(el, part0);\n'
     )
 
-    if allow_tilt_and_shifts:
+    if allow_rot_and_shift:
         source += (
             '    // Transform back to global frame\n'
             f'    printf("Transform to back to global frame {element_name}\\n");\n'
-            'if (_sin_tilt > -2.) {\n'
-            f'    double const _cos_tilt = {element_name}Data_get__cos_tilt(el);\n'
+            'if (_sin_rot_s > -2.) {\n'
+            f'    double const _cos_rot_s = {element_name}Data_get__cos_rot_s(el);\n'
             f'    double const shift_x = {element_name}Data_get__shift_x(el);\n'
             f'    double const shift_y = {element_name}Data_get__shift_y(el);\n'
             '\n'
-            '    SRotation_single_particle(part0, -_sin_tilt, _cos_tilt);\n'
+            '    SRotation_single_particle(part0, -_sin_rot_s, _cos_rot_s);\n'
             '    //start_per_particle_block (part0->part)\n'
             '       LocalParticle_add_to_x(part, shift_x);\n'
             '       LocalParticle_add_to_y(part, shift_y);\n'
@@ -221,23 +221,23 @@ def _generate_per_particle_kernel_from_local_particle_function(
 
 def _tranformations_active(self):
     if (self.shift_x == 0 and self.shift_y == 0
-        and self._sin_tilt == 0 and self._cos_tilt >= 0):
+        and self._sin_rot_s == 0 and self._cos_rot_s >= 0):
         return False
-    elif self._sin_tilt < -2.:
+    elif self._sin_rot_s < -2.:
         return False
     else:
         return True
 
-def _tilt_property(self):
-    if self._sin_tilt < -2.:
+def _rot_s_property(self):
+    if self._sin_rot_s < -2.:
         return 0.
-    return np.arctan2(self._sin_tilt, self._cos_tilt) * 180. / np.pi
+    return np.arctan2(self._sin_rot_s, self._cos_rot_s) * 180. / np.pi
 
-def _set_tilt_property_setter(self, value):
-    self._sin_tilt = np.sin(value * np.pi / 180.)
-    self._cos_tilt = np.cos(value * np.pi / 180.)
+def _set_rot_s_property_setter(self, value):
+    self._sin_rot_s = np.sin(value * np.pi / 180.)
+    self._cos_rot_s = np.cos(value * np.pi / 180.)
     if not _tranformations_active(self):
-        self._sin_tilt = -999.
+        self._sin_rot_s = -999.
 
 def _shiftx_property(self):
     return self._shift_x
@@ -245,7 +245,7 @@ def _shiftx_property(self):
 def _set_shiftx_property_setter(self, value):
     self._shift_x = value
     if not _tranformations_active(self):
-        self._sin_tilt = -999.
+        self._sin_rot_s = -999.
 
 def _shifty_property(self):
     return self._shift_y
@@ -253,7 +253,7 @@ def _shifty_property(self):
 def _set_shifty_property_setter(self, value):
     self._shift_y = value
     if not _tranformations_active(self):
-        self._sin_tilt = -999.
+        self._sin_rot_s = -999.
 
 class MetaBeamElement(xo.MetaHybridClass):
 
@@ -263,11 +263,11 @@ class MetaBeamElement(xo.MetaHybridClass):
         # Take xofields from data['_xofields'] or from bases
         xofields = _build_xofields_dict(bases, data)
 
-        allow_tilt_and_shifts = data.get('allow_tilt_and_shifts', True)
+        allow_rot_and_shift = data.get('allow_rot_and_shift', True)
 
-        if allow_tilt_and_shifts:
-            xofields['_sin_tilt'] = xo.Field(xo.Float64, default=-999.)
-            xofields['_cos_tilt'] = xo.Field(xo.Float64, default=-999.)
+        if allow_rot_and_shift:
+            xofields['_sin_rot_s'] = xo.Field(xo.Float64, default=-999.)
+            xofields['_cos_rot_s'] = xo.Field(xo.Float64, default=-999.)
             xofields['_shift_x'] = xo.Field(xo.Float64, 0)
             xofields['_shift_y'] = xo.Field(xo.Float64, 0)
 
@@ -315,7 +315,7 @@ class MetaBeamElement(xo.MetaHybridClass):
             extra_c_source.append(
                 _generate_track_local_particle_with_transformations(
                     element_name=name,
-                    allow_tilt_and_shifts=allow_tilt_and_shifts,
+                    allow_rot_and_shift=allow_rot_and_shift,
                     local_particle_function_name=name+'_track_local_particle'))
 
 
@@ -386,8 +386,8 @@ class MetaBeamElement(xo.MetaHybridClass):
                 additional_arg_names=tuple(arg.name for arg in desc.args),
             ))
 
-        if allow_tilt_and_shifts:
-            new_class.tilt = property(_tilt_property, _set_tilt_property_setter)
+        if allow_rot_and_shift:
+            new_class.rot_s = property(_rot_s_property, _set_rot_s_property_setter)
             new_class.shift_x = property(_shiftx_property, _set_shiftx_property_setter)
             new_class.shift_y = property(_shifty_property, _set_shifty_property_setter)
 
@@ -402,7 +402,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     allow_track = True
     has_backtrack = False
     allow_backtrack = False
-    allow_tilt_and_shifts = True
+    allow_rot_and_shift = True
     skip_in_loss_location_refinement = False
     needs_rng = False
 
@@ -502,14 +502,14 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             raise ValueError("Invalid array type")
 
     def xoinitialize(self, **kwargs):
-        tilt = kwargs.pop('tilt', None)
+        rot_s = kwargs.pop('rot_s', None)
         shift_x = kwargs.pop('shift_x', None)
         shift_y = kwargs.pop('shift_y', None)
 
         xo.HybridClass.xoinitialize(self, **kwargs)
 
-        if tilt is not None:
-            self.tilt = tilt
+        if rot_s is not None:
+            self.rot_s = rot_s
 
         if shift_x is not None:
             self.shift_x = shift_x
