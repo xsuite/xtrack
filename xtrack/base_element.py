@@ -96,6 +96,14 @@ def _generate_track_local_particle_with_transformations(
         source += (
             '    // Transform to local frame\n'
             f'    printf("Transform to local frame {element_name}\\n");\n'
+            f'double const _sin_tilt = {element_name}Data_get__sin_tilt(el);\n'
+            'if (_sin_tilt > -2.) {\n'
+            f'    double const _cos_tilt = {element_name}Data_get__cos_tilt(el);\n'
+            f'    double const shift_x = {element_name}Data_get_shift_x(el);\n'
+            f'    double const shift_y = {element_name}Data_get_shift_y(el);\n'
+            '\n'
+            '    SRotation_single_particle(part, -_sin_tilt, _cos_tilt);\n'
+            '}\n'
         )
 
     source += (
@@ -106,6 +114,13 @@ def _generate_track_local_particle_with_transformations(
         source += (
             '    // Transform back to global frame\n'
             f'    printf("Transform to back to global frame {element_name}\\n");\n'
+            'if (_sin_tilt > -2.) {\n'
+            f'    double const _cos_tilt = {element_name}Data_get__cos_tilt(el);\n'
+            f'    double const shift_x = {element_name}Data_get_shift_x(el);\n'
+            f'    double const shift_y = {element_name}Data_get_shift_y(el);\n'
+            '\n'
+            '    SRotation_single_particle(part, _sin_tilt, _cos_tilt);\n'
+            '}\n'
         )
     source += '}\n'
     return source
@@ -207,8 +222,10 @@ class MetaBeamElement(xo.MetaHybridClass):
         allow_tilt_and_shifts = data.get('allow_tilt_and_shifts', True)
 
         if allow_tilt_and_shifts:
-            xofields['_sin_tilt'] = xo.Float64
-            xofields['_cos_tilt'] = xo.Float64
+            xofields['_sin_tilt'] = xo.Field(xo.Float64, default=-999.)
+            xofields['_cos_tilt'] = xo.Field(xo.Float64, default=-999.)
+            xofields['shift_x'] = xo.Field(xo.Float64, 0)
+            xofields['shift_y'] = xo.Field(xo.Float64, 0)
 
         data = data.copy()
         data['_xofields'] = xofields
@@ -217,7 +234,8 @@ class MetaBeamElement(xo.MetaHybridClass):
         extra_c_source = [
             _pkg_root.joinpath('headers','constants.h'),
             _pkg_root.joinpath('headers','checks.h'),
-            _pkg_root.joinpath('headers','particle_states.h')
+            _pkg_root.joinpath('headers','particle_states.h'),
+            _pkg_root.joinpath('beam_elements', 'elements_src', 'track_srotation.h'),
         ]
         kernels = {}
 
