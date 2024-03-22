@@ -46,6 +46,7 @@ class Marker(BeamElement):
     behaves_like_drift = True
     allow_backtrack = True
     has_backtrack = True
+    allow_tilt_and_shifts = False
 
     _extra_c_sources = [
         "/*gpufun*/\n"
@@ -71,6 +72,7 @@ class Drift(BeamElement):
     behaves_like_drift = True
     has_backtrack = True
     allow_backtrack = True
+    allow_tilt_and_shifts = False
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),

@@ -84,21 +84,30 @@ def _handle_per_particle_blocks(sources, local_particle_src):
 
 def _generate_track_local_particle_with_transformations(
                                                 element_name,
+                                                allow_tilt_and_shifts,
                                                 local_particle_function_name):
 
     source = ('''
             /*gpufun*/
             '''
             f'void {local_particle_function_name}_with_transformations({element_name}Data el, LocalParticle* part)'
-            '{\n'
-
+            '{\n')
+    if allow_tilt_and_shifts:
+        source += (
             '    // Transform to local frame\n'
-            '    printf("Transform to local frame\\n");\n'
+            f'    printf("Transform to local frame {element_name}\\n");\n'
+        )
+
+    source += (
             f'    {local_particle_function_name}(el, part);\n'
-            '    // Transform back to global frame\n'
-            '    printf("Transform back to global frame\\n");\n'
-            '}\n'
     )
+
+    if allow_tilt_and_shifts:
+        source += (
+            '    // Transform back to global frame\n'
+            f'    printf("Transform to back to global frame {element_name}\\n");\n'
+        )
+    source += '}\n'
     return source
 
 def _generate_per_particle_kernel_from_local_particle_function(
@@ -195,8 +204,11 @@ class MetaBeamElement(xo.MetaHybridClass):
         # Take xofields from data['_xofields'] or from bases
         xofields = _build_xofields_dict(bases, data)
 
-        xofields['_sin_tilt'] = xo.Float64
-        xofields['_cos_tilt'] = xo.Float64
+        allow_tilt_and_shifts = data.get('allow_tilt_and_shifts', True)
+
+        if allow_tilt_and_shifts:
+            xofields['_sin_tilt'] = xo.Float64
+            xofields['_cos_tilt'] = xo.Float64
 
         data = data.copy()
         data['_xofields'] = xofields
@@ -235,13 +247,13 @@ class MetaBeamElement(xo.MetaHybridClass):
         # Add dependency on Particles class
         depends_on.append(Particles._XoStruct)
 
-
         track_kernel_name = None
         if 'allow_track' not in data.keys() or data['allow_track']:
 
             extra_c_source.append(
                 _generate_track_local_particle_with_transformations(
                     element_name=name,
+                    allow_tilt_and_shifts=allow_tilt_and_shifts,
                     local_particle_function_name=name+'_track_local_particle'))
 
 
@@ -323,6 +335,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     allow_track = True
     has_backtrack = False
     allow_backtrack = False
+    allow_tilt_and_shifts = True
     skip_in_loss_location_refinement = False
     needs_rng = False
 
