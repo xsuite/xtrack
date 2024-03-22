@@ -211,6 +211,13 @@ def _generate_per_particle_kernel_from_local_particle_function(
 ''')
     return source
 
+def _tilt_property(self):
+    return np.arctan2(self._sin_tilt, self._cos_tilt) * 180. / np.pi
+
+def _set_tilt_property_setter(self, value):
+    self._sin_tilt = np.sin(value * np.pi / 180.)
+    self._cos_tilt = np.cos(value * np.pi / 180.)
+
 class MetaBeamElement(xo.MetaHybridClass):
 
     def __new__(cls, name, bases, data):
@@ -341,6 +348,9 @@ class MetaBeamElement(xo.MetaHybridClass):
                 kernel_name=nn,
                 additional_arg_names=tuple(arg.name for arg in desc.args),
             ))
+
+        if allow_tilt_and_shifts:
+            new_class.tilt = property(_tilt_property, _set_tilt_property_setter)
 
         return new_class
 
