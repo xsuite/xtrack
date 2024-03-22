@@ -106,7 +106,10 @@ def _generate_track_local_particle_with_transformations(
             '       LocalParticle_add_to_x(part, -shift_x);\n'
             '       LocalParticle_add_to_y(part, -shift_y);\n'
             '    //end_per_particle_block\n'
-            '    SRotation_single_particle(part0, _sin_rot_s, _cos_rot_s);\n'
+            '\n'
+            '     //start_per_particle_block (part0->part)\n'
+            '          SRotation_single_particle(part, _sin_rot_s, _cos_rot_s);\n'
+            '     //end_per_particle_block\n'
             '}\n'
         )
 
@@ -123,7 +126,10 @@ def _generate_track_local_particle_with_transformations(
             f'    double const shift_x = {element_name}Data_get__shift_x(el);\n'
             f'    double const shift_y = {element_name}Data_get__shift_y(el);\n'
             '\n'
-            '    SRotation_single_particle(part0, -_sin_rot_s, _cos_rot_s);\n'
+            '    //start_per_particle_block (part0->part)\n'
+            '       SRotation_single_particle(part, -_sin_rot_s, _cos_rot_s);\n'
+            '    //end_per_particle_block\n'
+            '\n'
             '    //start_per_particle_block (part0->part)\n'
             '       LocalParticle_add_to_x(part, shift_x);\n'
             '       LocalParticle_add_to_y(part, shift_y);\n'
