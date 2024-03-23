@@ -222,6 +222,66 @@ def test_get_normalized_coordinates(test_context):
     assert np.all(particles23.at_element[6:] == xt.particles.LAST_INVALID_STATE)
 
 @for_all_test_contexts
+def test_get_normalized_coordinates_twiss_init(test_context):
+
+    path_line_particles = test_data_folder / 'hllhc15_noerrors_nobb/line_and_particle.json'
+
+    with open(path_line_particles, 'r') as fid:
+        input_data = json.load(fid)
+    line = xt.Line.from_dict(input_data['line'])
+    line.particle_ref = xp.Particles.from_dict(input_data['particle'])
+
+    line.build_tracker(_context=test_context)
+
+
+    # Introduce a non-zero closed orbit
+    line['mqwa.a4r3.b1..1'].knl[0] = 10e-6
+    line['mqwa.a4r3.b1..1'].ksl[0] = 5e-6
+
+    particles1 = line.build_particles(
+        nemitt_x=2.5e-6, nemitt_y=1e-6,
+        x_norm=[-1, 0, 0.5], y_norm=[0.3, -0.2, 0.2],
+        px_norm=[0.1, 0.2, 0.3], py_norm=[0.5, 0.6, 0.8],
+        zeta=[0, 0.1, -0.1], delta=[1e-4, 0., -1e-4])
+    
+    particles2 = line.build_particles(at_element='s.ds.r3.b1',
+        # _capacity=10,
+        nemitt_x=2.5e-6, nemitt_y=1e-6,
+        x_norm=[-1, 0, 0.5], y_norm=[0.3, -0.2, 0.2],
+        px_norm=[0.1, 0.2, 0.3], py_norm=[0.5, 0.6, 0.8],
+        zeta=[0, 0.1, -0.1], delta=[1e-4, 0., -1e-4])
+
+    particles3 = line.build_particles(at_element='s.ds.r7.b1',
+        # _capaci/ty=10,
+        nemitt_x=2.5e-6, nemitt_y=1e-6,
+        x_norm=[-1, 0, 0.5], y_norm=[0.3, -0.2, 0.2],
+        px_norm=[0.1, 0.2, 0.3], py_norm=[0.5, 0.6, 0.8],
+        zeta=[0, 0.1, -0.1], delta=[1e-4, 0., -1e-4])
+
+
+    particles4 = line.build_particles(at_element='s.ds.r7.b1',
+        # _capaci/ty=10,
+        nemitt_x=2.5e-6, nemitt_y=1e-6,
+        x_norm=[-1, 0, 0.5], y_norm=[0.3, -0.2, 0.2],
+        px_norm=[0.1, 0.2, 0.3], py_norm=[0.5, 0.6, 0.8],
+        zeta_norm=[0, 0.1, -0.1], pzeta_norm=[1e-4, 0., -1e-4])
+
+    tw = line.twiss()
+
+    for part in [particles1,particles2,particles3,particles4]:
+        tw = line.twiss()
+        tw_init = tw.get_twiss_init(at_element=line.element_names[part.at_element[0]])
+
+        norm_coord = tw_init.get_normalized_coordinates(part, nemitt_x=2.5e-6,
+                                                nemitt_y=1e-6)
+
+        assert np.allclose(norm_coord['x_norm'], [-1, 0, 0.5], atol=1e-10, rtol=0)
+        assert np.allclose(norm_coord['y_norm'], [0.3, -0.2, 0.2], atol=1e-10, rtol=0)
+        assert np.allclose(norm_coord['px_norm'], [0.1, 0.2, 0.3], atol=1e-10, rtol=0)
+        assert np.allclose(norm_coord['py_norm'], [0.5, 0.6, 0.8], atol=1e-10, rtol=0)
+
+
+@for_all_test_contexts
 def test_twiss_does_not_affect_monitors(test_context):
 
     path_line_particles = test_data_folder / 'hllhc15_noerrors_nobb/line_and_particle.json'
