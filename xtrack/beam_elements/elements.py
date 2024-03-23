@@ -776,6 +776,16 @@ class Bend(BeamElement):
         'order': xo.Int64,
         'inv_factorial_order': xo.Float64,
         'model': xo.Int64,
+        'edge_entry_active': xo.Int64,
+        'edge_exit_active': xo.Int64,
+        'edge_entry_model': xo.Int64,
+        'edge_exit_model': xo.Int64,
+        'edge_entry_angle': xo.Float64,
+        'edge_exit_angle': xo.Float64,
+        'edge_entry_fint': xo.Float64,
+        'edge_exit_fint': xo.Float64,
+        'edge_entry_hgap': xo.Float64,
+        'edge_exit_hgap': xo.Float64,
     }
 
     _rename = {
