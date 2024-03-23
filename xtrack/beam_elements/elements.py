@@ -777,6 +777,8 @@ class Bend(BeamElement):
         'edge_exit_model': xo.Int64,
         'edge_entry_angle': xo.Float64,
         'edge_exit_angle': xo.Float64,
+        'edge_entry_angle_fdown': xo.Float64,
+        'edge_exit_angle_fdown': xo.Float64,
         'edge_entry_fint': xo.Float64,
         'edge_exit_fint': xo.Float64,
         'edge_entry_hgap': xo.Float64,
@@ -797,6 +799,11 @@ class Bend(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_bend.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/wedge_track.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/fringe_track.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_nonlinear.h'),
         _pkg_root.joinpath('beam_elements/elements_src/bend.h'),
     ]
 
