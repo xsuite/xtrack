@@ -1515,6 +1515,7 @@ class DipoleEdge(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/wedge_track.h'),
         _pkg_root.joinpath('beam_elements/elements_src/fringe_track.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_nonlinear.h'),
         _pkg_root.joinpath('beam_elements/elements_src/dipoleedge.h')]
 
     has_backtrack = True
