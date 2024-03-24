@@ -792,7 +792,9 @@ class Bend(BeamElement):
 
     _rename = {
         'order': '_order',
-        'model': '_model'
+        'model': '_model',
+        'edge_entry_model': '_edge_entry_model',
+        'edge_exit_model': '_edge_exit_model',
     }
 
     _extra_c_sources = [
@@ -887,6 +889,40 @@ class Bend(BeamElement):
             'bend-kick-bend': 2,
             'rot-kick-rot': 3,
             'expanded': 4
+        }[value]
+
+    @property
+    def edge_entry_model(self):
+        return {
+            0: 'linear',
+            1: 'full',
+           -1: 'suppressed',
+        }[self._model]
+
+    @edge_entry_model.setter
+    def edge_entry_model(self, value):
+        assert value in ['linear', 'full', 'suppressed']
+        self._model = {
+            'linear': 0,
+            'full': 1,
+            'suppressed': -1,
+        }[value]
+
+    @property
+    def edge_exit_model(self):
+        return {
+            0: 'linear',
+            1: 'full',
+           -1: 'suppressed',
+        }[self._model]
+
+    @edge_exit_model.setter
+    def edge_exit_model(self, value):
+        assert value in ['linear', 'full', 'suppressed']
+        self._model = {
+            'linear': 0,
+            'full': 1,
+            'suppressed': -1,
         }[value]
 
     @property
