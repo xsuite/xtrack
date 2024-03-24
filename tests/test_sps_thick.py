@@ -34,27 +34,23 @@ def test_sps_thick(test_context, deferred_expressions):
     line.twiss_default['method'] = '4d'
 
     # Check a bend
-    # assert line.element_names[58] == 'mbb.10150_entry'
-    # assert line.element_names[59] == 'mbb.10150_den'
-    # assert line.element_names[60] == 'mbb.10150'
-    # assert line.element_names[61] == 'mbb.10150_dex'
-    # assert line.element_names[62] == 'mbb.10150_exit'
+    assert line.element_names[48] == 'mbb.10150_entry'
+    assert line.element_names[49] == 'mbb.10150'
+    assert line.element_names[50] == 'mbb.10150_exit'
 
-    # assert isinstance(line['mbb.10150_entry'], xt.Marker)
-    # assert isinstance(line['mbb.10150_den'], xt.DipoleEdge)
-    # assert isinstance(line['mbb.10150'], xt.Bend)
-    # assert isinstance(line['mbb.10150_den'], xt.DipoleEdge)
-    # assert isinstance(line['mbb.10150_exit'], xt.Marker)
+    assert isinstance(line['mbb.10150_entry'], xt.Marker)
+    assert isinstance(line['mbb.10150'], xt.Bend)
+    assert isinstance(line['mbb.10150_exit'], xt.Marker)
 
-    # assert line['mbb.10150_den'].model == 'linear'
-    # assert line['mbb.10150_den'].side == 'entry'
-    # assert line['mbb.10150_dex'].model == 'linear'
-    # assert line['mbb.10150_dex'].side == 'exit'
-    # assert line['mbb.10150'].model == 'adaptive'
+    assert line['mbb.10150_den'].model == 'linear'
+    assert line['mbb.10150_den'].side == 'entry'
+    assert line['mbb.10150_dex'].model == 'linear'
+    assert line['mbb.10150_dex'].side == 'exit'
+    assert line['mbb.10150'].model == 'adaptive'
 
-    # ang = line['mbb.10150'].k0 * line['mbb.10150'].length
-    # assert np.isclose(line['mbb.10150_den'].e1, ang / 2, atol=1e-11, rtol=0)
-    # assert np.isclose(line['mbb.10150_dex'].e1, ang / 2, atol=1e-11, rtol=0)
+    ang = line['mbb.10150'].k0 * line['mbb.10150'].length
+    assert np.isclose(line['mbb.10150_den'].e1, ang / 2, atol=1e-11, rtol=0)
+    assert np.isclose(line['mbb.10150_dex'].e1, ang / 2, atol=1e-11, rtol=0)
 
     tw = line.twiss()
     assert np.isclose(twmad.s[-1], tw.s[-1], atol=1e-9, rtol=0)

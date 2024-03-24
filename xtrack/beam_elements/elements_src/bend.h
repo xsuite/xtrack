@@ -123,7 +123,6 @@ void Bend_track_local_particle(
                 r21 = -r21;
                 r43 = -r43;
             #endif
-            printf("r21 = %e, r43 = %e\n", r21, r43);
             //start_per_particle_block (part0->part)
                 DipoleEdgeLinear_single_particle(part, r21, r43);
             //end_per_particle_block
