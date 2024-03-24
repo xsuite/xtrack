@@ -1,4 +1,7 @@
 import xtrack as xt
+import xobjects as xo
+
+xo.context_default.kernels.clear()
 
 bend_only_e1 = xt.Bend(
     length=0, k0=0.1,
@@ -6,6 +9,7 @@ bend_only_e1 = xt.Bend(
     edge_exit_active=False)
 
 edge_e1 = xt.DipoleEdge(
+    k=0.1,
     model='linear', side='entry',
     e1=0.05)
 
