@@ -61,10 +61,8 @@ def test_sps_thick(test_context, deferred_expressions):
 
     tw = line.twiss()
 
-    assert line['mbb.10150_den'].model == 'full'
-    assert line['mbb.10150_den'].side == 'entry'
-    assert line['mbb.10150_dex'].model == 'full'
-    assert line['mbb.10150_dex'].side == 'exit'
+    assert line['mbb.10150'].edge_entry_model == 'full'
+    assert line['mbb.10150'].edge_exit_model == 'full'
     assert line['mbb.10150'].model == 'full'
 
     assert np.isclose(twmad.s[-1], tw.s[-1], atol=1e-9, rtol=0)

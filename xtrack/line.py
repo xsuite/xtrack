@@ -2504,12 +2504,15 @@ class Line:
             raise ValueError(f'Unknown bend edge model {edge}')
 
         for ee in self.elements:
-            if core is not None and isinstance(ee,
-                                (xt.Bend, xt.CombinedFunctionMagnet)):
+            if core is not None and isinstance(ee, xt.Bend):
                 ee.model = core
 
             if edge is not None and isinstance(ee, xt.DipoleEdge):
                 ee.model = edge
+
+            if edge is not None and isinstance(ee, xt.Bend):
+                ee.edge_entry_model = edge
+                ee.edge_exit_model = edge
 
             if num_multipole_kicks is not None:
                 ee.num_multipole_kicks = num_multipole_kicks
