@@ -893,25 +893,7 @@ class MadLoader:
         else:
             k0 = mad_el.k0
 
-        # Convert bend core
-        num_multipole_kicks = 0
-        cls = self.classes.Bend
-        kwargs = {}
-        bend_core = self.Builder(
-            mad_el.name,
-            cls,
-            k0=k0,
-            h=h,
-            k1=self.bv * mad_el.k1,
-            length=l_curv,
-            knl=[0, 0, mad_el.k2 * l_curv],
-            num_multipole_kicks=num_multipole_kicks,
-            **kwargs,
-        )
-
-        sequence = [bend_core]
-
-        # Convert dipedge
+        # Edge angles
         if mad_el.type == 'sbend':
             e1 = mad_el.e1
             e2 = mad_el.e2
@@ -926,30 +908,59 @@ class MadLoader:
         if self.bv == -1:
             e1, e2 = e2, e1
 
-        dipedge_entry = self.Builder(
-            mad_el.name + "_den",
-            self.classes.DipoleEdge,
-            e1=e1,
-            e1_fd = (k0 - h) * l_curv / 2,
-            fint=mad_el.fint,
-            hgap=mad_el.hgap,
-            k=k0,
-            side='entry'
+        # Convert bend core
+        num_multipole_kicks = 0
+        cls = self.classes.Bend
+        kwargs = {}
+        bend_core = self.Builder(
+            mad_el.name,
+            cls,
+            k0=k0,
+            h=h,
+            k1=self.bv * mad_el.k1,
+            length=l_curv,
+            edge_entry_angle=e1,
+            edge_exit_angle=e2,
+            edge_entry_angle_fdown=(k0 - h) * l_curv / 2,
+            edge_exit_angle_fdown=(k0 - h) * l_curv / 2,
+            edge_entry_fint=mad_el.fint,
+            edge_exit_fint=(
+                mad_el.fintx if value_if_expr(mad_el.fintx) >= 0 else mad_el.fint),
+            edge_entry_hgap=mad_el.hgap,
+            edge_exit_hgap=mad_el.hgap,
+            knl=[0, 0, mad_el.k2 * l_curv],
+            num_multipole_kicks=num_multipole_kicks,
+            **kwargs,
         )
-        sequence = [dipedge_entry] + sequence
 
-        # For the sbend edge import we assume k0l = angle
-        dipedge_exit = self.Builder(
-            mad_el.name + "_dex",
-            self.classes.DipoleEdge,
-            e1=e2,
-            e1_fd = (k0 - h) * l_curv / 2,
-            fint=mad_el.fintx if value_if_expr(mad_el.fintx) >= 0 else mad_el.fint,
-            hgap=mad_el.hgap,
-            k=k0,
-            side='exit'
-        )
-        sequence = sequence + [dipedge_exit]
+        sequence = [bend_core]
+
+
+
+        # dipedge_entry = self.Builder(
+        #     mad_el.name + "_den",
+        #     self.classes.DipoleEdge,
+        #     e1=e1,
+        #     e1_fd = (k0 - h) * l_curv / 2,
+        #     fint=mad_el.fint,
+        #     hgap=mad_el.hgap,
+        #     k=k0,
+        #     side='entry'
+        # )
+        # sequence = [dipedge_entry] + sequence
+
+        # # For the sbend edge import we assume k0l = angle
+        # dipedge_exit = self.Builder(
+        #     mad_el.name + "_dex",
+        #     self.classes.DipoleEdge,
+        #     e1=e2,
+        #     e1_fd = (k0 - h) * l_curv / 2,
+        #     fint=mad_el.fintx if value_if_expr(mad_el.fintx) >= 0 else mad_el.fint,
+        #     hgap=mad_el.hgap,
+        #     k=k0,
+        #     side='exit'
+        # )
+        # sequence = sequence + [dipedge_exit]
 
         return self.make_compound_elem(sequence, mad_el)
 
