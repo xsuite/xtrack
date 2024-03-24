@@ -897,12 +897,12 @@ class Bend(BeamElement):
             0: 'linear',
             1: 'full',
            -1: 'suppressed',
-        }[self._model]
+        }[self._edge_entry_model]
 
     @edge_entry_model.setter
     def edge_entry_model(self, value):
         assert value in ['linear', 'full', 'suppressed']
-        self._model = {
+        self._edge_entry_model = {
             'linear': 0,
             'full': 1,
             'suppressed': -1,
@@ -914,12 +914,12 @@ class Bend(BeamElement):
             0: 'linear',
             1: 'full',
            -1: 'suppressed',
-        }[self._model]
+        }[self._edge_exit_model]
 
     @edge_exit_model.setter
     def edge_exit_model(self, value):
         assert value in ['linear', 'full', 'suppressed']
-        self._model = {
+        self._edge_exit_model = {
             'linear': 0,
             'full': 1,
             'suppressed': -1,

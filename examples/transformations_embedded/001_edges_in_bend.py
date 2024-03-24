@@ -13,6 +13,9 @@ edge_e1 = xt.DipoleEdge(
     model='linear', side='entry',
     e1=0.05)
 
+edge_e1.model = 'full'
+bend_only_e1.edge_entry_model = 'full'
+
 p1 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03)
 p2 = p1.copy()
 
