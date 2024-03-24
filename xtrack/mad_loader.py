@@ -935,8 +935,6 @@ class MadLoader:
 
         sequence = [bend_core]
 
-
-
         # dipedge_entry = self.Builder(
         #     mad_el.name + "_den",
         #     self.classes.DipoleEdge,
@@ -945,7 +943,7 @@ class MadLoader:
         #     fint=mad_el.fint,
         #     hgap=mad_el.hgap,
         #     k=k0,
-        #     side='entry'
+        #     side='entry',
         # )
         # sequence = [dipedge_entry] + sequence
 
@@ -958,7 +956,7 @@ class MadLoader:
         #     fint=mad_el.fintx if value_if_expr(mad_el.fintx) >= 0 else mad_el.fint,
         #     hgap=mad_el.hgap,
         #     k=k0,
-        #     side='exit'
+        #     side='exit',
         # )
         # sequence = sequence + [dipedge_exit]
 

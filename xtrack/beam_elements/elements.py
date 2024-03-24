@@ -839,9 +839,6 @@ class Bend(BeamElement):
             self.xoinitialize(**kwargs)
             return
 
-        if kwargs.get('length', 0.0) == 0.0 and not '_xobject' in kwargs:
-            raise ValueError("A thick element must have a length.")
-
         model = kwargs.pop('model', None)
 
         knl = kwargs.get('knl', np.array([]))
