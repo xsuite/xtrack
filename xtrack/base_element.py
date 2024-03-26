@@ -85,6 +85,7 @@ def _handle_per_particle_blocks(sources, local_particle_src):
 def _generate_track_local_particle_with_transformations(
                                                 element_name,
                                                 allow_rot_and_shift,
+                                                rot_and_shift_from_parent,
                                                 local_particle_function_name):
 
     source = ('''
@@ -92,15 +93,22 @@ def _generate_track_local_particle_with_transformations(
             '''
             f'void {local_particle_function_name}_with_transformations({element_name}Data el, LocalParticle* part0)'
             '{\n')
+
+    if rot_and_shift_from_parent:
+        add_to_call = '_parent'
+    else:
+        add_to_call = ''
+
     if allow_rot_and_shift:
+
         source += (
             '    // Transform to local frame\n'
             f'    printf("Transform to local frame {element_name}\\n");\n'
-            f'double const _sin_rot_s = {element_name}Data_get__sin_rot_s(el);\n'
+            f'double const _sin_rot_s = {element_name}Data_get{add_to_call}__sin_rot_s(el);\n'
             'if (_sin_rot_s > -2.) {\n'
-            f'    double const _cos_rot_s = {element_name}Data_get__cos_rot_s(el);\n'
-            f'    double const shift_x = {element_name}Data_get__shift_x(el);\n'
-            f'    double const shift_y = {element_name}Data_get__shift_y(el);\n'
+            f'    double const _cos_rot_s = {element_name}Data_get{add_to_call}__cos_rot_s(el);\n'
+            f'    double const shift_x = {element_name}Data_get{add_to_call}__shift_x(el);\n'
+            f'    double const shift_y = {element_name}Data_get{add_to_call}__shift_y(el);\n'
             '\n'
             '    //start_per_particle_block (part0->part)\n'
             '       LocalParticle_add_to_x(part, -shift_x);\n'
@@ -122,9 +130,9 @@ def _generate_track_local_particle_with_transformations(
             '    // Transform back to global frame\n'
             f'    printf("Transform to back to global frame {element_name}\\n");\n'
             'if (_sin_rot_s > -2.) {\n'
-            f'    double const _cos_rot_s = {element_name}Data_get__cos_rot_s(el);\n'
-            f'    double const shift_x = {element_name}Data_get__shift_x(el);\n'
-            f'    double const shift_y = {element_name}Data_get__shift_y(el);\n'
+            f'    double const _cos_rot_s = {element_name}Data_get{add_to_call}__cos_rot_s(el);\n'
+            f'    double const shift_x = {element_name}Data_get{add_to_call}__shift_x(el);\n'
+            f'    double const shift_y = {element_name}Data_get{add_to_call}__shift_y(el);\n'
             '\n'
             '    //start_per_particle_block (part0->part)\n'
             '       SRotation_single_particle(part, -_sin_rot_s, _cos_rot_s);\n'
@@ -315,15 +323,18 @@ class MetaBeamElement(xo.MetaHybridClass):
         # Add dependency on Particles class
         depends_on.append(Particles._XoStruct)
 
+        # For now I assume that when there is a parent, the element inherits the parent's transformations
+        rot_and_shift_from_parent = 'parent' in xofields.keys()
+
         track_kernel_name = None
-        if 'allow_track' not in data.keys() or data['allow_track']:
+        if ('allow_track' not in data.keys() or data['allow_track']):
 
             extra_c_source.append(
                 _generate_track_local_particle_with_transformations(
                     element_name=name,
-                    allow_rot_and_shift=allow_rot_and_shift,
+                    allow_rot_and_shift=(allow_rot_and_shift or rot_and_shift_from_parent),
+                    rot_and_shift_from_parent=rot_and_shift_from_parent,
                     local_particle_function_name=name+'_track_local_particle'))
-
 
             # Generate track kernel
             extra_c_source.append(
