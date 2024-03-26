@@ -23,10 +23,6 @@ void multipole_compute_dpx_dpy_single_particle(LocalParticle* part,
         double dpx = backtrack_sign * chi * knl[index] * inv_factorial;
         double dpy = backtrack_sign * chi * ksl[index] * inv_factorial;
 
-        #ifdef XTRACK_MULTIPOLE_TAPER
-            delta_tap = LocalParticle_get_delta(part);
-        #endif
-
         dpx = dpx * (1 + delta_tap);
         dpy = dpy * (1 + delta_tap);
 
@@ -84,9 +80,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
     #ifdef XTRACK_MULTIPOLE_NO_SYNRAD
     #define delta_taper (0)
     #else
-        #ifndef XTRACK_MULTIPOLE_TAPER
-        double const delta_taper = MultipoleData_get_delta_taper(el);
-        #endif
+        double delta_taper = MultipoleData_get_delta_taper(el);
     #endif
 
     int64_t const order = MultipoleData_get_order(el);
@@ -111,51 +105,24 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         double const backtrack_sign = -1;
     #endif
 
-
-
     //start_per_particle_block (part0->part)
-        double const chi = LocalParticle_get_chi(part);
-
-        int64_t index = order;
-        double inv_factorial = inv_factorial_order_0;
-
-        double dpx = backtrack_sign * chi * knl[index] * inv_factorial;
-        double dpy = backtrack_sign * chi * ksl[index] * inv_factorial;
 
         #ifdef XTRACK_MULTIPOLE_TAPER
-        double const delta_taper = LocalParticle_get_delta(part);
+            delta_taper = LocalParticle_get_delta(part);
         #endif
-        dpx = dpx * (1 + delta_taper);
-        dpy = dpy * (1 + delta_taper);
 
-        double const x   = LocalParticle_get_x(part);
-        double const y   = LocalParticle_get_y(part);
-
-        while( index > 0 )
-        {
-            double const zre = dpx * x - dpy * y;
-            double const zim = dpx * y + dpy * x;
-
-            inv_factorial *= index;
-            index -= 1;
-
-            double this_knl = chi * knl[index];
-            double this_ksl = chi * ksl[index];
-
-            this_knl = this_knl * backtrack_sign;
-            this_ksl = this_ksl * backtrack_sign;
-
-            this_knl = this_knl * (1 + delta_taper);
-            this_ksl = this_ksl * (1 + delta_taper);
-
-            dpx = this_knl*inv_factorial + zre;
-            dpy = this_ksl*inv_factorial + zim;
-        }
+        double dpx, dpy;
+        multipole_compute_dpx_dpy_single_particle(part, knl, ksl,
+            order, inv_factorial_order_0,
+            delta_taper, backtrack_sign,
+            &dpx, &dpy);
 
         #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
         // Radiation at entrance
         double const curv = sqrt(dpx*dpx + dpy*dpy) / length;
         if (radiation_flag > 0 && length > 0){
+            double const x      = LocalParticle_get_x(part);
+            double const y      = LocalParticle_get_y(part);
             double const L_path = 0.5 * length * (1 + (hxl*x - hyl*y)/length);
             if (radiation_flag == 1){
                 synrad_average_kick(part, curv, L_path,
@@ -167,11 +134,12 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         }
         #endif
 
-        dpx = -dpx; // rad (sign definition)
-
         if( ( hxl > 0) || ( hyl > 0) || ( hxl < 0 ) || ( hyl < 0 ) )
         {
             double const delta  = LocalParticle_get_delta(part);
+            double const chi    = LocalParticle_get_chi(part);
+            double const x      = LocalParticle_get_x(part);
+            double const y      = LocalParticle_get_y(part);
 
             double const hxlx   = x * hxl;
             double const hyly   = y * hyl;
@@ -202,6 +170,8 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         // Radiation at exit
         #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
         if (radiation_flag > 0 && length > 0){
+            double const x      = LocalParticle_get_x(part);
+            double const y      = LocalParticle_get_y(part);
             double const L_path = 0.5*length * (1 + (hxl*x - hyl*y)/length);
             if (radiation_flag == 1){
                 synrad_average_kick(part, curv, L_path,
