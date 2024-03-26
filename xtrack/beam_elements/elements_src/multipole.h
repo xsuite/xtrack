@@ -51,6 +51,12 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
     /*gpuglmem*/ double const* knl = MultipoleData_getp1_knl(el, 0);
     /*gpuglmem*/ double const* ksl = MultipoleData_getp1_ksl(el, 0);
 
+    #ifndef XSUITE_BACKTRACK
+        double const length = MultipoleData_get_length(el); // m
+    #else
+        double const length = -MultipoleData_get_length(el); // m
+    #endif
+
     //start_per_particle_block (part0->part)
         double const chi = LocalParticle_get_chi(part);
 
@@ -97,11 +103,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
             dpy = this_ksl*inv_factorial + zim;
         }
 
-        #ifndef XSUITE_BACKTRACK
-        double const length = MultipoleData_get_length(el); // m
-        #else
-        double const length = -MultipoleData_get_length(el); // m
-        #endif
+
 
         #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
         // Radiation at entrance
