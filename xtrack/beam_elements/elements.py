@@ -111,6 +111,7 @@ class Cavity(BeamElement):
         'frequency': xo.Float64,
         'lag': xo.Float64,
         'lag_taper': xo.Float64,
+        'absolute_time': xo.Int64,
         }
 
     _extra_c_sources = [
@@ -1185,12 +1186,18 @@ class Solenoid(BeamElement):
         'length': xo.Float64,
         'ks': xo.Float64,
         'ksi': xo.Float64,
+        'radiation_flag': xo.Int64,
     }
 
     _extra_c_sources = [
+        _pkg_root.joinpath('headers/synrad_spectrum.h'),
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/solenoid.h'),
     ]
+
+    _depends_on = [RandomUniform, RandomExponential]
+
+    _internal_record_class = SynchrotronRadiationRecord
 
     def __init__(self, length=0, ks=0, ksi=0, **kwargs):
         """
@@ -1211,7 +1218,7 @@ class Solenoid(BeamElement):
             self.xoinitialize(**kwargs)
             return
 
-        if length == 0:
+        if ksi != 0:
             # Fail when trying to create a thin solenoid, as these are not
             # tested yet
             raise NotImplementedError('Thin solenoids are not implemented yet.')

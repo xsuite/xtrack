@@ -28,7 +28,6 @@ void Quadrupole_track_local_particle(
 
     #ifdef XSUITE_BACKTRACK
         length = -length;
-        sin_rot = -sin_rot;
     #endif
 
     if (needs_rotation) {
