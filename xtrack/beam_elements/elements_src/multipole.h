@@ -53,9 +53,13 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 
     #ifndef XSUITE_BACKTRACK
         double const length = MultipoleData_get_length(el); // m
+        double const backtrack_sign = 1;
     #else
         double const length = -MultipoleData_get_length(el); // m
+        double const backtrack_sign = -1;
     #endif
+
+
 
     //start_per_particle_block (part0->part)
         double const chi = LocalParticle_get_chi(part);
@@ -63,13 +67,8 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         int64_t index = order;
         double inv_factorial = inv_factorial_order_0;
 
-        double dpx = chi * knl[index] * inv_factorial;
-        double dpy = chi * ksl[index] * inv_factorial;
-
-        #ifdef XSUITE_BACKTRACK
-        dpx = -dpx;
-        dpy = -dpy;
-        #endif
+        double dpx = backtrack_sign * chi * knl[index] * inv_factorial;
+        double dpy = backtrack_sign * chi * ksl[index] * inv_factorial;
 
         #ifdef XTRACK_MULTIPOLE_TAPER
         double const delta_taper = LocalParticle_get_delta(part);
@@ -91,10 +90,8 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
             double this_knl = chi * knl[index];
             double this_ksl = chi * ksl[index];
 
-            #ifdef XSUITE_BACKTRACK
-            this_knl = -this_knl;
-            this_ksl = -this_ksl;
-            #endif
+            this_knl = this_knl * backtrack_sign;
+            this_ksl = this_ksl * backtrack_sign;
 
             this_knl = this_knl * (1 + delta_taper);
             this_ksl = this_ksl * (1 + delta_taper);
@@ -102,8 +99,6 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
             dpx = this_knl*inv_factorial + zre;
             dpy = this_ksl*inv_factorial + zim;
         }
-
-
 
         #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
         // Radiation at entrance
@@ -136,13 +131,8 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 
             if( length != 0)
             {
-                double b1l = chi * knl[0];
-                double a1l = chi * ksl[0];
-
-                #ifdef XSUITE_BACKTRACK
-                b1l = -b1l;
-                a1l = -a1l;
-                #endif
+                double b1l = backtrack_sign * chi * knl[0];
+                double a1l = backtrack_sign * chi * ksl[0];
 
                 b1l = b1l * (1 + delta_taper);
                 a1l = a1l * (1 + delta_taper);
