@@ -6,6 +6,58 @@
 #ifndef XTRACK_MULTIPOLE_H
 #define XTRACK_MULTIPOLE_H
 
+
+/*gpufun*/
+void multipole_compute_dpx_dpy_single_particle(LocalParticle* part,
+    /*gpuglmem*/ double const* knl,
+    /*gpuglmem*/ double const* ksl,
+    int64_t order, double inv_factorial_order_0,
+    double delta_tap, double const backtrack_sign,
+    double* dpx_out, double* dpy_out){
+
+        double const chi = LocalParticle_get_chi(part);
+
+        int64_t index = order;
+        double inv_factorial = inv_factorial_order_0;
+
+        double dpx = backtrack_sign * chi * knl[index] * inv_factorial;
+        double dpy = backtrack_sign * chi * ksl[index] * inv_factorial;
+
+        #ifdef XTRACK_MULTIPOLE_TAPER
+            delta_tap = LocalParticle_get_delta(part);
+        #endif
+
+        dpx = dpx * (1 + delta_tap);
+        dpy = dpy * (1 + delta_tap);
+
+        double const x   = LocalParticle_get_x(part);
+        double const y   = LocalParticle_get_y(part);
+
+        while( index > 0 )
+        {
+            double const zre = dpx * x - dpy * y;
+            double const zim = dpx * y + dpy * x;
+
+            inv_factorial *= index;
+            index -= 1;
+
+            double this_knl = chi * knl[index];
+            double this_ksl = chi * ksl[index];
+
+            this_knl = this_knl * backtrack_sign;
+            this_ksl = this_ksl * backtrack_sign;
+
+            this_knl = this_knl * (1 + delta_tap);
+            this_ksl = this_ksl * (1 + delta_tap);
+
+            dpx = this_knl*inv_factorial + zre;
+            dpy = this_ksl*inv_factorial + zim;
+        }
+
+        *dpx_out = -dpx;
+        *dpy_out = dpy;
+}
+
 /*gpufun*/
 void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 
