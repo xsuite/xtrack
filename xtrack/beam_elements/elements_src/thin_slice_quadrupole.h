@@ -3,8 +3,8 @@
 // Copyright (c) CERN, 2023.                 //
 // ######################################### //
 
-#ifndef XTRACK_QUADRUPOLE_THIN_SLICE_H
-#define XTRACK_QUADRUPOLE_THIN_SLICE_H
+#ifndef XTRACK_THIN_SLICE_QUADRUPOLE_H
+#define XTRACK_THIN_SLICE_QUADRUPOLE_H
 
 void ThinSliceQuadrupole_track_local_particle(
         ThinSliceQuadrupoleData el,

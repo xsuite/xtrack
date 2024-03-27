@@ -7,6 +7,7 @@ from .elements import *
 from .exciter import Exciter
 from .apertures import *
 from .beam_interaction import BeamInteraction, ParticlesInjectionSample
+from .slice_elements import ThinSliceQuadrupole
 from .rft_element import RFT_Element
 from ..base_element import BeamElement
 
