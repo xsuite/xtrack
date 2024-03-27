@@ -70,9 +70,9 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         #endif
 
         Multipole_track_single_particle(part,
-            hxl, hyl, length,
+            hxl, hyl, length, 1, //weight 1
             knl, ksl, order, inv_factorial_order_0,
-            NULL, NULL, -1, -1.,
+            NULL, NULL, -1, -1., // second tap unused
             backtrack_sign,
             delta_taper, radiation_flag,
             &dp_record_entry, &dpx_record_entry, &dpy_record_entry,

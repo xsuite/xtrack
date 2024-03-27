@@ -56,7 +56,7 @@ void multipole_compute_dpx_dpy_single_particle(LocalParticle* part,
 
 /*gpuglmem*/
 void Multipole_track_single_particle(LocalParticle* part,
-    double hxl, double hyl, double length,
+    double hxl, double hyl, double length, double weight,
     double const* knl, double const* ksl,
     int64_t const order, double const inv_factorial_order_0,
     double const* knl_2, double const* ksl_2,
@@ -76,8 +76,8 @@ void Multipole_track_single_particle(LocalParticle* part,
                 order, inv_factorial_order_0,
                 delta_tap, backtrack_sign,
                 &dpx1, &dpy1);
-            dpx += dpx1;
-            dpy += dpy1;
+            dpx += dpx1 * weight;
+            dpy += dpy1 * weight;
         }
 
         if (knl_2){
@@ -86,8 +86,8 @@ void Multipole_track_single_particle(LocalParticle* part,
                 order_2, inv_factorial_order_2_0,
                 delta_tap, backtrack_sign,
                 &dpx2, &dpy2);
-            dpx += dpx2;
-            dpy += dpy2;
+            dpx += dpx2 * weight;
+            dpy += dpy2 * weight;
         }
 
         #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
@@ -137,8 +137,8 @@ void Multipole_track_single_particle(LocalParticle* part,
                     ksl0 += ksl_2[0];
                 }
 
-                double b1l = backtrack_sign * chi * knl0;
-                double a1l = backtrack_sign * chi * ksl0;
+                double b1l = backtrack_sign * chi * knl0 * weight;
+                double a1l = backtrack_sign * chi * ksl0 * weight;
 
                 b1l = b1l * (1 + delta_tap);
                 a1l = a1l * (1 + delta_tap);
