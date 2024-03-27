@@ -6,24 +6,24 @@
 #ifndef XTRACK_QUADRUPOLE_THIN_SLICE_H
 #define XTRACK_QUADRUPOLE_THIN_SLICE_H
 
-void QuadrupoleThinSlice_track_local_particle(
-        QuadrupoleThinSliceData el,
+void ThinSliceQuadrupole_track_local_particle(
+        ThinSliceQuadrupoleData el,
         LocalParticle* part0
 ) {
 
-    double weight = QuadrupoleThinSliceData_get_weight(el);
-    const double k1 = QuadrupoleThinSliceData_get_parent_k1(el);
-    const double k1s = QuadrupoleThinSliceData_get_parent_k1s(el);
+    double weight = ThinSliceQuadrupoleData_get_weight(el);
+    const double k1 = ThinSliceQuadrupoleData_get_parent_k1(el);
+    const double k1s = ThinSliceQuadrupoleData_get_parent_k1s(el);
 
     SynchrotronRadiationRecordData record = NULL;
     RecordIndex record_index = NULL;
 
     #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
-    int64_t radiation_flag = QuadrupoleThinSliceData_get_radiation_flag(el);
+    int64_t radiation_flag = ThinSliceQuadrupoleData_get_radiation_flag(el);
 
     // Extract record and record_index
     if (radiation_flag==2){
-        record = (SynchrotronRadiationRecordData) QuadrupoleThinSliceData_getp_internal_record(el, part0);
+        record = (SynchrotronRadiationRecordData) ThinSliceQuadrupoleData_getp_internal_record(el, part0);
         if (record){
             record_index = SynchrotronRadiationRecordData_getp__index(record);
         }
@@ -43,15 +43,15 @@ void QuadrupoleThinSlice_track_local_particle(
     #ifdef XTRACK_MULTIPOLE_NO_SYNRAD
     #define delta_taper (0)
     #else
-        double delta_taper = QuadrupoleThinSliceData_get_delta_taper(el);
+        double delta_taper = ThinSliceQuadrupoleData_get_delta_taper(el);
     #endif
 
 
     #ifndef XSUITE_BACKTRACK
-        double const length = QuadrupoleThinSliceData_get_length(el); // m
+        double const length = ThinSliceQuadrupoleData_get_length(el); // m
         double const backtrack_sign = 1;
     #else
-        double const length = -QuadrupoleThinSliceData_get_length(el); // m
+        double const length = -ThinSliceQuadrupoleData_get_length(el); // m
         double const backtrack_sign = -1;
     #endif
 
