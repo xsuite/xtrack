@@ -12,7 +12,6 @@ xo.context_default.kernels.clear()
 class ThinSliceQuadrupole(BeamElement):
     allow_rot_and_shift = False
     _xofields = {
-        'length': xo.Float64,
         'parent': xo.Ref(Quadrupole),
         'radiation_flag': xo.Int64,
         'delta_taper': xo.Float64,

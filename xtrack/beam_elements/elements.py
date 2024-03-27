@@ -8,6 +8,7 @@ from numbers import Number
 from scipy.special import factorial
 
 import xobjects as xo
+import xtrack as xt
 
 from ..base_element import BeamElement
 from ..random import RandomUniform, RandomExponential, RandomNormal

@@ -48,10 +48,10 @@ void ThinSliceQuadrupole_track_local_particle(
 
 
     #ifndef XSUITE_BACKTRACK
-        double const length = ThinSliceQuadrupoleData_get_length(el); // m
+        double const length = weight * ThinSliceQuadrupoleData_get_parent_length(el); // m
         double const backtrack_sign = 1;
     #else
-        double const length = -ThinSliceQuadrupoleData_get_length(el); // m
+        double const length = -weight * ThinSliceQuadrupoleData_get_parent_length(el); // m
         double const backtrack_sign = -1;
     #endif
 
