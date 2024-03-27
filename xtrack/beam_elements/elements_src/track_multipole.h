@@ -124,8 +124,21 @@ void Multipole_track_single_particle(LocalParticle* part,
 
             if( length != 0)
             {
-                double b1l = backtrack_sign * chi * knl[0];
-                double a1l = backtrack_sign * chi * ksl[0];
+                double knl0 = 0;
+                double ksl0 = 0;
+
+                if (knl){
+                    knl0 += knl[0];
+                    ksl0 += ksl[0];
+                }
+
+                if (knl_2){
+                    knl0 += knl_2[0];
+                    ksl0 += ksl_2[0];
+                }
+
+                double b1l = backtrack_sign * chi * knl0;
+                double a1l = backtrack_sign * chi * ksl0;
 
                 b1l = b1l * (1 + delta_tap);
                 a1l = a1l * (1 + delta_tap);
