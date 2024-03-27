@@ -56,18 +56,39 @@ void multipole_compute_dpx_dpy_single_particle(LocalParticle* part,
 
 /*gpuglmem*/
 void Multipole_track_single_particle(LocalParticle* part,
-    double hxl, double hyl, double length, double const* knl, double const* ksl,
-    int64_t const order, double const inv_factorial_order_0, double const backtrack_sign,
+    double hxl, double hyl, double length,
+    double const* knl, double const* ksl,
+    int64_t const order, double const inv_factorial_order_0,
+    double const* knl_2, double const* ksl_2,
+    int64_t const order_2, double const inv_factorial_order_2_0,
+    double const backtrack_sign,
     double const delta_tap, int64_t const radiation_flag,
     double* dp_record_entry, double* dpx_record_entry, double* dpy_record_entry,
     double* dp_record_exit, double* dpx_record_exit, double* dpy_record_exit,
     SynchrotronRadiationRecordData record, RecordIndex record_index){
 
-        double dpx, dpy;
-        multipole_compute_dpx_dpy_single_particle(part, knl, ksl,
-            order, inv_factorial_order_0,
-            delta_tap, backtrack_sign,
-            &dpx, &dpy);
+        double dpx = 0.;
+        double dpy = 0.;
+
+        if (knl){
+            double dpx1, dpy1;
+            multipole_compute_dpx_dpy_single_particle(part, knl, ksl,
+                order, inv_factorial_order_0,
+                delta_tap, backtrack_sign,
+                &dpx1, &dpy1);
+            dpx += dpx1;
+            dpy += dpy1;
+        }
+
+        if (knl_2){
+            double dpx2, dpy2;
+            multipole_compute_dpx_dpy_single_particle(part, knl_2, ksl_2,
+                order_2, inv_factorial_order_2_0,
+                delta_tap, backtrack_sign,
+                &dpx2, &dpy2);
+            dpx += dpx2;
+            dpy += dpy2;
+        }
 
         #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
         // Radiation at entrance
@@ -200,8 +221,10 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         #endif
 
         Multipole_track_single_particle(part,
-            hxl, hyl, length, knl, ksl,
-            order, inv_factorial_order_0, backtrack_sign,
+            hxl, hyl, length,
+            knl, ksl, order, inv_factorial_order_0,
+            NULL, NULL, -1, -1.,
+            backtrack_sign,
             delta_taper, radiation_flag,
             &dp_record_entry, &dpx_record_entry, &dpy_record_entry,
             &dp_record_exit, &dpx_record_exit, &dpy_record_exit,
