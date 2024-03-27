@@ -57,11 +57,11 @@ void multipole_compute_dpx_dpy_single_particle(LocalParticle* part,
 /*gpuglmem*/
 void Multipole_track_single_particle(LocalParticle* part,
     double hxl, double hyl, double length, double* knl, double* ksl,
-    int64_t order, double inv_factorial_order_0, double delta_tap,
-    double backtrack_sign,
+    int64_t order, double inv_factorial_order_0, double backtrack_sign,
+    double delta_tap, int64_t radiation_flag,
     double dp_record_entry, double dpx_record_entry, double dpy_record_entry,
     double dp_record_exit, double dpx_record_exit, double dpy_record_exit,
-    SynchrotronRadiationRecordData record){
+    SynchrotronRadiationRecordData record, RecordIndex record_index){
 
         delta_tap = LocalParticle_get_delta(part);
 

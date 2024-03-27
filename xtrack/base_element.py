@@ -103,7 +103,7 @@ def _generate_track_local_particle_with_transformations(
 
         source += (
             '    // Transform to local frame\n'
-            f'    printf("Transform to local frame {element_name}\\n");\n'
+            #f'    printf("Transform to local frame {element_name}\\n");\n'
             f'double const _sin_rot_s = {element_name}Data_get{add_to_call}__sin_rot_s(el);\n'
             'if (_sin_rot_s > -2.) {\n'
             f'    double const _cos_rot_s = {element_name}Data_get{add_to_call}__cos_rot_s(el);\n'
@@ -128,7 +128,7 @@ def _generate_track_local_particle_with_transformations(
     if allow_rot_and_shift:
         source += (
             '    // Transform back to global frame\n'
-            f'    printf("Transform to back to global frame {element_name}\\n");\n'
+            #f'    printf("Transform to back to global frame {element_name}\\n");\n'
             'if (_sin_rot_s > -2.) {\n'
             f'    double const _cos_rot_s = {element_name}Data_get{add_to_call}__cos_rot_s(el);\n'
             f'    double const shift_x = {element_name}Data_get{add_to_call}__shift_x(el);\n'
