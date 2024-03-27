@@ -19,3 +19,7 @@ p_slice = p0.copy()
 
 quad_mult.track(p_ref)
 quad_slice.track(p_slice)
+
+line = xt.Line(elements=[quad])
+line.slice_thick_elements(
+    slicing_strategies=[xt.Strategy(xt.Teapot(5))])
