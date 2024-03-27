@@ -55,8 +55,8 @@ void QuadrupoleThinSlice_track_local_particle(
         double const backtrack_sign = -1;
     #endif
 
-    double const knl_quad[2] = {0., k1 * length};
-    double const ksl_quad[2] = {0., k1s * length};
+    double const knl_quad[2] = {0., k1 * length / weight}; // the length is supposed to be already scaled by the weight
+    double const ksl_quad[2] = {0., k1s * length / weight};
 
     //start_per_particle_block (part0->part)
 
