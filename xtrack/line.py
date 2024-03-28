@@ -148,7 +148,7 @@ class Line:
 
         self.metadata = {}
 
-        self._line_before_slicing = None
+        self._line_before_slicing_cache = None
         self._compound_container_before_slicing = None
         self._element_names_before_slicing = None
 
@@ -947,6 +947,7 @@ class Line:
 
         self._frozen_check()
 
+        self._line_before_slicing_cache = None
         self._compound_container_before_slicing = self.compound_container.copy()
         self._element_names_before_slicing = list(self.element_names).copy()
 
@@ -3842,6 +3843,21 @@ class Line:
 
                 if insert_at is not None:
                     insert_at += 1
+
+    @property
+    def _line_before_slicing(self):
+        if self._element_names_before_slicing is None:
+            return None
+
+        if self._line_before_slicing_cache is None:
+            # Shallow copy of the line
+            out = Line.__new__(Line)
+            out.__dict__.update(self.__dict__)
+            out._element_names = self._element_names_before_slicing
+            out.compound_container = self._compound_container_before_slicing
+            self._line_before_slicing_cache = out
+
+        return self._line_before_slicing_cache
 
 def frac(x):
     return x % 1
