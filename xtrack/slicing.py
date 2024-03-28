@@ -320,18 +320,15 @@ class Slicer:
             name=name,
         )
 
-        # Remove the thick element and its expressions
-        if self._has_expressions:
-            type(element).delete_element_ref(self._line.element_refs[name])
-        del self._line.element_dict[name]
-
         entry_marker, exit_marker = f'{name}_entry', f'{name}_exit'
         if entry_marker not in self._line.element_dict:
-            self._line.element_dict[entry_marker] = xt.Marker()
+            self._line.element_dict[entry_marker] = xt.Marker(
+                                                    _buffer=element._buffer)
             slices_to_add = [entry_marker] + slices_to_add
 
         if exit_marker not in self._line.element_dict:
-            self._line.element_dict[exit_marker] = xt.Marker()
+            self._line.element_dict[exit_marker] = xt.Marker(
+                                                    _buffer=element._buffer)
             slices_to_add += [exit_marker]
 
         return slices_to_add

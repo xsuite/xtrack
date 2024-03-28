@@ -89,11 +89,6 @@ class Drift(BeamElement):
     def add_thick_slice(cls, weight, container, name, slice_name, _buffer=None):
         cls.add_slice(weight, container, name, slice_name, _buffer=_buffer)
 
-    @staticmethod
-    def delete_element_ref(ref):
-        _unregister_if_preset(ref.length)
-        _unregister_if_preset(ref)
-
 
 class Cavity(BeamElement):
     '''Beam element modeling an RF cavity.
@@ -990,22 +985,6 @@ class Bend(BeamElement):
         for ii in range(5):
             ref.ksl[ii] = _get_expr(self_or_ref.ksl[ii]) * weight
 
-    @staticmethod
-    def delete_element_ref(ref):
-        # Remove the array fields
-        for field in ['knl', 'ksl']:
-            for ii in range(5):
-                _unregister_if_preset(getattr(ref, field)[ii])
-
-        # Remove the scalar fields
-        for field in [
-            'k0', 'k1', 'h', 'length', 'num_multipole_kicks', 'order',
-            'inv_factorial_order',
-        ]:
-            _unregister_if_preset(getattr(ref, field))
-
-        # Remove the ref to the element itself
-        _unregister_if_preset(ref)
 
 class Sextupole(BeamElement):
 
@@ -1066,15 +1045,6 @@ class Sextupole(BeamElement):
         ref.k2 = _get_expr(self_or_ref.k2)
         ref.k2s = _get_expr(self_or_ref.k2s)
 
-    @staticmethod
-    def delete_element_ref(ref):
-        # Remove the scalar fields
-        for field in ['k2', 'k2s', 'length']:
-            _unregister_if_preset(getattr(ref, field))
-
-        # Remove the ref to the element itself
-        _unregister_if_preset(ref)
-
 
 class Octupole(BeamElement):
 
@@ -1126,15 +1096,6 @@ class Octupole(BeamElement):
             _get_expr(self_or_ref.k3s) * _get_expr(self_or_ref.length))
 
         ref.order = 3
-
-    @staticmethod
-    def delete_element_ref(ref):
-        # Remove the scalar fields
-        for field in ['k3', 'k3s', 'length']:
-            _unregister_if_preset(getattr(ref, field))
-
-        # Remove the ref to the element itself
-        _unregister_if_preset(ref)
 
 
 class Quadrupole(BeamElement):
@@ -1217,16 +1178,6 @@ class Quadrupole(BeamElement):
         ref.length = _get_expr(self_or_ref.length) * weight
         ref.k1 = _get_expr(self_or_ref.k1)
         ref.k1s = _get_expr(self_or_ref.k1s)
-
-    @staticmethod
-    def delete_element_ref(ref):
-        # Remove the scalar fields
-        for field in ['k1', 'k1s', 'length']:
-            _unregister_if_preset(getattr(ref, field))
-
-        # Remove the ref to the element itself
-        _unregister_if_preset(ref)
-
 
 class Solenoid(BeamElement):
     isthick = True
