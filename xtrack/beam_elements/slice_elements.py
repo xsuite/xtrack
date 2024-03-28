@@ -18,6 +18,8 @@ class ThinSliceQuadrupole(BeamElement):
         'weight': xo.Float64,
     }
 
+    _skip_in_to_dict = ['parent']
+
     _depends_on = [RandomUniform, RandomExponential]
 
     _extra_c_sources = [
@@ -30,3 +32,14 @@ class ThinSliceQuadrupole(BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     has_backtrack = True
+
+    def to_dict(self):
+        dct = BeamElement.to_dict(self)
+        dct['parent_name'] = self.parent_name
+        return dct
+
+    @classmethod
+    def from_dict(cls, dct):
+        obj = BeamElement.from_dict(dct)
+        obj.parent_name = dct['parent_name']
+        return obj

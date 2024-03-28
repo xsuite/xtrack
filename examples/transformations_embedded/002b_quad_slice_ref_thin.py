@@ -27,6 +27,7 @@ line.discard_tracker()
 line.slice_thick_elements(
     slicing_strategies=[xt.Strategy(xt.Teapot(1000))])
 line.build_tracker()
+assert line['e0..995'].parent_name == 'e0'
 assert line['e0..995'].parent is line['e0']
 
 p0 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03)
