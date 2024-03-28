@@ -3855,6 +3855,7 @@ class Line:
             out.__dict__.update(self.__dict__)
             out._element_names = self._element_names_before_slicing
             out.compound_container = self._compound_container_before_slicing
+            out.tracker = None
             self._line_before_slicing_cache = out
 
         return self._line_before_slicing_cache
