@@ -933,33 +933,10 @@ class Bend(BeamElement):
 
     @staticmethod
     def add_slice(weight, container, thick_name, slice_name, _buffer=None):
-        self_or_ref = container[thick_name]
-
-        container[slice_name] = Multipole(knl=np.zeros(5), ksl=np.zeros(5),
-                                          _buffer=_buffer)
-        ref = container[slice_name]
-
-        ref.knl[0] = (_get_expr(self_or_ref.k0) * _get_expr(self_or_ref.length)
-                      + _get_expr(self_or_ref.knl[0])) * weight
-        ref.knl[1] = (_get_expr(self_or_ref.k1) * _get_expr(self_or_ref.length)
-                      + _get_expr(self_or_ref.knl[1])) * weight
-
-        order = 1
-        for ii in range(2, 5):
-            ref.knl[ii] = _get_expr(self_or_ref.knl[ii]) * weight
-
-            if _nonzero(ref.knl[ii]):
-                order = max(order, ii)
-
-        for ii in range(5):
-            ref.ksl[ii] = _get_expr(self_or_ref.ksl[ii]) * weight
-
-            if _nonzero(self_or_ref.ksl[ii]):  # update in the same way for ksl
-                order = max(order, ii)
-
-        ref.hxl = _get_expr(self_or_ref.h) * _get_expr(self_or_ref.length) * weight
-        ref.length = _get_expr(self_or_ref.length) * weight
-        ref.order = order
+        self = container[thick_name]
+        if hasattr(self, '_value'): self = self._value
+        container[slice_name] = xt.ThinSliceBend(
+                                    _parent=self, weight=weight, _buffer=_buffer)
 
     @classmethod
     def add_thick_slice(cls, weight, container, name, slice_name, _buffer=None):
@@ -1159,10 +1136,7 @@ class Quadrupole(BeamElement):
     @staticmethod
     def add_slice(weight, container, thick_name, slice_name, _buffer=None):
         self = container[thick_name]
-
-        if hasattr(self, '_value'):
-            self = self._value
-
+        if hasattr(self, '_value'): self = self._value
         container[slice_name] = xt.ThinSliceQuadrupole(
                                     _parent=self, weight=weight, _buffer=_buffer)
 

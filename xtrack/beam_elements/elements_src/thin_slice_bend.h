@@ -3,28 +3,33 @@
 // Copyright (c) CERN, 2023.                 //
 // ######################################### //
 
-#ifndef XTRACK_THIN_SLICE_QUADRUPOLE_H
-#define XTRACK_THIN_SLICE_QUADRUPOLE_H
+#ifndef XTRACK_THIN_SLICE_BEND_H
+#define XTRACK_THIN_SLICE_BEND_H
 
-void ThinSliceQuadrupole_track_local_particle(
-        ThinSliceQuadrupoleData el,
+void ThinSliceBend_track_local_particle(
+        ThinSliceBendData el,
         LocalParticle* part0
 ) {
 
-    double weight = ThinSliceQuadrupoleData_get_weight(el);
+    double weight = ThinSliceBendData_get_weight(el);
 
-    const double k1 = ThinSliceQuadrupoleData_get__parent_k1(el);
-    const double k1s = ThinSliceQuadrupoleData_get__parent_k1s(el);
+    const double k0 = ThinSliceBendData_get__parent_k0(el);
+    const double k1 = ThinSliceBendData_get__parent_k1(el);
+    const double h = ThinSliceBendData_get__parent_h(el);
+    const double order = ThinSliceBendData_get__parent_order(el);
+    const double inv_factorial_order = ThinSliceBendData_get__parent_inv_factorial_order(el);
+    const double* knl = ThinSliceBendData_getp1__parent_knl(el, 0);
+    const double* ksl = ThinSliceBendData_getp1__parent_ksl(el, 0);
 
     SynchrotronRadiationRecordData record = NULL;
     RecordIndex record_index = NULL;
 
     #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
-    int64_t radiation_flag = ThinSliceQuadrupoleData_get_radiation_flag(el);
+    int64_t radiation_flag = ThinSliceBendData_get_radiation_flag(el);
 
     // Extract record and record_index
     if (radiation_flag==2){
-        record = (SynchrotronRadiationRecordData) ThinSliceQuadrupoleData_getp_internal_record(el, part0);
+        record = (SynchrotronRadiationRecordData) ThinSliceBendData_getp_internal_record(el, part0);
         if (record){
             record_index = SynchrotronRadiationRecordData_getp__index(record);
         }
@@ -44,20 +49,21 @@ void ThinSliceQuadrupole_track_local_particle(
     #ifdef XTRACK_MULTIPOLE_NO_SYNRAD
     #define delta_taper (0)
     #else
-        double delta_taper = ThinSliceQuadrupoleData_get_delta_taper(el);
+        double delta_taper = ThinSliceBendData_get_delta_taper(el);
     #endif
 
 
     #ifndef XSUITE_BACKTRACK
-        double const length = weight * ThinSliceQuadrupoleData_get__parent_length(el); // m
+        double const length = weight * ThinSliceBendData_get__parent_length(el); // m
         double const backtrack_sign = 1;
     #else
-        double const length = -weight * ThinSliceQuadrupoleData_get__parent_length(el); // m
+        double const length = -weight * ThinSliceBendData_get__parent_length(el); // m
         double const backtrack_sign = -1;
     #endif
 
-    double const knl_quad[2] = {0., k1 * length / weight}; // the length is supposed to be already scaled by the weight
-    double const ksl_quad[2] = {0., k1s * length / weight};
+    double const knl_bend[2] = {k0 * length / weight, k1 * length / weight}; // the length is supposed to be already scaled by the weight
+    double const ksl_bend[2] = {0., 0.};
+    double const hxl_bend = h * length / weight;
 
     //start_per_particle_block (part0->part)
 
@@ -66,9 +72,9 @@ void ThinSliceQuadrupole_track_local_particle(
         #endif
 
         Multipole_track_single_particle(part,
-            0., 0., length, weight, // weight 1
-            NULL, NULL, -1, -1, // first tap unused
-            knl_quad, ksl_quad, 1, 1,
+            hxl_bend, 0., length, weight, // weight 1
+            knl, ksl, order, inv_factorial_order, // first tap unused
+            knl_bend, ksl_bend, 1, 1,
             backtrack_sign,
             delta_taper, radiation_flag,
             &dp_record_entry, &dpx_record_entry, &dpy_record_entry,
@@ -78,5 +84,6 @@ void ThinSliceQuadrupole_track_local_particle(
     //end_per_particle_block
 
 }
+
 
 #endif
