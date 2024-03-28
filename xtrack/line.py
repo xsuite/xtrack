@@ -2528,7 +2528,7 @@ class Line:
         if edge not in [None, 'linear', 'full', 'suppressed']:
             raise ValueError(f'Unknown bend edge model {edge}')
 
-        for ee in self.elements:
+        for ee in self.element_dict.values():
             if core is not None and isinstance(ee, xt.Bend):
                 ee.model = core
 

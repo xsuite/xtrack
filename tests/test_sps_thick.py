@@ -118,23 +118,23 @@ def test_sps_thick(test_context, deferred_expressions):
 
     # Check a bend
     assert line.element_names[112] == 'mbb.10150_entry'
-    assert line.element_names[113] == 'mbb.10150_den'
+    assert line.element_names[113] == 'mbb.10150..entry_map'
     assert line.element_names[114] == 'drift_mbb.10150..0'
     assert line.element_names[115] == 'mbb.10150..0'
     assert line.element_names[116] == 'drift_mbb.10150..1'
     assert line.element_names[117] == 'mbb.10150..1'
     assert line.element_names[118] == 'drift_mbb.10150..2'
-    assert line.element_names[119] == 'mbb.10150_dex'
+    assert line.element_names[119] == 'mbb.10150..exit_map'
     assert line.element_names[120] == 'mbb.10150_exit'
 
     assert isinstance(line['mbb.10150_entry'], xt.Marker)
-    assert isinstance(line['mbb.10150_den'], xt.DipoleEdge)
+    assert isinstance(line['mbb.10150..entry_map'], xt.ThinSliceBendEntry)
     assert isinstance(line['drift_mbb.10150..0'], xt.Drift)
-    assert isinstance(line['mbb.10150..0'], xt.Multipole)
+    assert isinstance(line['mbb.10150..0'], xt.ThinSliceBend)
     assert isinstance(line['drift_mbb.10150..1'], xt.Drift)
-    assert isinstance(line['mbb.10150..1'], xt.Multipole)
+    assert isinstance(line['mbb.10150..1'], xt.ThinSliceBend)
     assert isinstance(line['drift_mbb.10150..2'], xt.Drift)
-    assert isinstance(line['mbb.10150_dex'], xt.DipoleEdge)
+    assert isinstance(line['mbb.10150..exit_map'], xt.ThinSliceBendExit)
     assert isinstance(line['mbb.10150_exit'], xt.Marker)
 
     # Check a quadrupole
@@ -158,24 +158,20 @@ def test_sps_thick(test_context, deferred_expressions):
     assert line.element_names[175] == 'drift_qf.10210..8'
     assert line.element_names[176] == 'qf.10210_exit'
 
-    assert line['mbb.10150_den'].model == 'full'
-    assert line['mbb.10150_den'].side == 'entry'
-    assert line['mbb.10150_dex'].model == 'full'
-    assert line['mbb.10150_dex'].side == 'exit'
+    assert isinstance(line['qf.10210..7'], xt.ThinSliceQuadrupole)
+
+    assert line['mbb.10150..entry_map']._parent.model == 'full'
+    assert line['mbb.10150..exit_map']._parent.model == 'full'
 
     line.configure_bend_model(edge='linear')
 
-    assert line['mbb.10150_den'].model == 'linear'
-    assert line['mbb.10150_den'].side == 'entry'
-    assert line['mbb.10150_dex'].model == 'linear'
-    assert line['mbb.10150_dex'].side == 'exit'
+    assert line['mbb.10150..entry_map']._parent.edge_entry_model == 'linear'
+    assert line['mbb.10150..exit_map']._parent.edge_exit_model == 'linear'
 
     line.configure_bend_model(edge='full')
 
-    assert line['mbb.10150_den'].model == 'full'
-    assert line['mbb.10150_den'].side == 'entry'
-    assert line['mbb.10150_dex'].model == 'full'
-    assert line['mbb.10150_dex'].side == 'exit'
+    assert line['mbb.10150..entry_map']._parent.edge_entry_model == 'full'
+    assert line['mbb.10150..exit_map']._parent.edge_exit_model == 'full'
 
     tw = line.twiss()
 
