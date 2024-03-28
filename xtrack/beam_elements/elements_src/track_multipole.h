@@ -152,6 +152,9 @@ void Multipole_track_single_particle(LocalParticle* part,
             LocalParticle_add_to_zeta(part, rv0v*chi * ( hyly - hxlx ) );
         }
 
+        printf("dpx = %e\n", dpx);
+        printf("dpy = %e\n", dpy);
+
         LocalParticle_add_to_px(part, dpx);
         LocalParticle_add_to_py(part, dpy);
 
