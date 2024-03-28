@@ -4,8 +4,6 @@ import numpy as np
 sext = xt.Sextupole(k2=0.1, length=1)
 
 line = xt.Line(elements=[sext])
-line.build_tracker() # Put everything in the same buffer
-line.discard_tracker()
 
 line.slice_thick_elements(
     slicing_strategies=[xt.Strategy(xt.Teapot(1))])

@@ -4,8 +4,6 @@ import numpy as np
 oct = xt.Octupole(k3=0.1, length=1)
 
 line = xt.Line(elements=[oct])
-line.build_tracker() # Put everything in the same buffer
-line.discard_tracker()
 
 line.slice_thick_elements(
     slicing_strategies=[xt.Strategy(xt.Teapot(1))])

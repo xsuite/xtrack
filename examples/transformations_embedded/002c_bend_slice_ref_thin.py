@@ -4,8 +4,6 @@ import numpy as np
 bend = xt.Bend(k0=0.4, h=0.3, k1=0.1, length=1)
 
 line = xt.Line(elements=[bend])
-line.build_tracker() # Put everything in the same buffer
-line.discard_tracker()
 
 line.configure_bend_model(edge='full', core='expanded')
 

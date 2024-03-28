@@ -945,7 +945,8 @@ class Line:
 
         """
 
-        self._frozen_check()
+        self.build_tracker(compile=False) # ensure elements are in the same buffer
+        self.discard_tracker()
 
         self._line_before_slicing_cache = None
         self._compound_container_before_slicing = self.compound_container.copy()
