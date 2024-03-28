@@ -1008,23 +1008,10 @@ class Sextupole(BeamElement):
 
     @staticmethod
     def add_slice(weight, container, thick_name, slice_name, _buffer=None):
-        self_or_ref = container[thick_name]
-
-        container[slice_name] = Multipole(knl=np.zeros(3), ksl=np.zeros(3),
-                                          _buffer=_buffer)
-        ref = container[slice_name]
-
-        ref.knl[0] = 0.
-        ref.knl[1] = 0.
-        ref.knl[2] = weight * (
-            _get_expr(self_or_ref.k2) * _get_expr(self_or_ref.length))
-
-        ref.ksl[0] = 0.
-        ref.ksl[1] = 0.
-        ref.ksl[2] = weight * (
-            _get_expr(self_or_ref.k2s) * _get_expr(self_or_ref.length))
-
-        ref.order = 2
+        self = container[thick_name]
+        if hasattr(self, '_value'): self = self._value
+        container[slice_name] = xt.ThinSliceSextupole(
+                                    _parent=self, weight=weight, _buffer=_buffer)
 
     @classmethod
     def add_thick_slice(cls, weight, container, name, slice_name, _buffer=None):

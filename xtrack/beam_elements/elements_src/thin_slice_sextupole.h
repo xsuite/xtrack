@@ -68,7 +68,7 @@ void ThinSliceSextupole_track_local_particle(
         Multipole_track_single_particle(part,
             0., 0., length, weight, // weight 1
             NULL, NULL, -1, -1, // first tap unused
-            knl_sext, ksl_sext, 1, 1,
+            knl_sext, ksl_sext, 2, 0.5,
             backtrack_sign,
             delta_taper, radiation_flag,
             &dp_record_entry, &dpx_record_entry, &dpy_record_entry,
