@@ -15,7 +15,7 @@ void ThinSliceBendExit_track_local_particle(
 
     if (edge_exit_active){
 
-        double const edge_exit_model = ThinSliceBendExitData_get__parent_edge_exit_model(el);
+        int64_t const edge_exit_model = ThinSliceBendExitData_get__parent_edge_exit_model(el);
         double const edge_exit_angle = ThinSliceBendExitData_get__parent_edge_exit_angle(el);
         double const edge_exit_angle_fdown = ThinSliceBendExitData_get__parent_edge_exit_angle_fdown(el);
         double const edge_exit_fint = ThinSliceBendExitData_get__parent_edge_exit_fint(el);

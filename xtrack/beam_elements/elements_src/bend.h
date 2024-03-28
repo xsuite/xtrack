@@ -101,13 +101,13 @@ void Bend_track_local_particle(
     #endif
     if (edge_entry_active){
         #ifdef XSUITE_BACKTRACK
-            double const edge_entry_model = BendData_get_edge_exit_model(el);
+            int64_t const edge_entry_model = BendData_get_edge_exit_model(el);
             double const edge_entry_angle = BendData_get_edge_exit_angle(el);
             double const edge_entry_angle_fdown = BendData_get_edge_exit_angle_fdown(el);
             double const edge_entry_fint = BendData_get_edge_exit_fint(el);
             double const edge_entry_hgap = BendData_get_edge_exit_hgap(el);
         #else
-            double const edge_entry_model = BendData_get_edge_entry_model(el);
+            int64_t const edge_entry_model = BendData_get_edge_entry_model(el);
             double const edge_entry_angle = BendData_get_edge_entry_angle(el);
             double const edge_entry_angle_fdown = BendData_get_edge_entry_angle_fdown(el);
             double const edge_entry_fint = BendData_get_edge_entry_fint(el);
@@ -305,13 +305,13 @@ void Bend_track_local_particle(
     #endif
     if (edge_exit_active){
         #ifdef XSUITE_BACKTRACK
-            double const edge_exit_model = BendData_get_edge_entry_model(el);
+            int64_t const edge_exit_model = BendData_get_edge_entry_model(el);
             double const edge_exit_angle = BendData_get_edge_entry_angle(el);
             double const edge_exit_angle_fdown = BendData_get_edge_entry_angle_fdown(el);
             double const edge_exit_fint = BendData_get_edge_entry_fint(el);
             double const edge_exit_hgap = BendData_get_edge_entry_hgap(el);
         #else
-            double const edge_exit_model = BendData_get_edge_exit_model(el);
+            int64_t const edge_exit_model = BendData_get_edge_exit_model(el);
             double const edge_exit_angle = BendData_get_edge_exit_angle(el);
             double const edge_exit_angle_fdown = BendData_get_edge_exit_angle_fdown(el);
             double const edge_exit_fint = BendData_get_edge_exit_fint(el);

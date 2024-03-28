@@ -15,14 +15,16 @@ void ThinSliceBendEntry_track_local_particle(
 
     if (edge_entry_active){
 
-        double const edge_entry_model = ThinSliceBendEntryData_get__parent_edge_entry_model(el);
+        int64_t const edge_entry_model = ThinSliceBendEntryData_get__parent_edge_entry_model(el);
         double const edge_entry_angle = ThinSliceBendEntryData_get__parent_edge_entry_angle(el);
         double const edge_entry_angle_fdown = ThinSliceBendEntryData_get__parent_edge_entry_angle_fdown(el);
         double const edge_entry_fint = ThinSliceBendEntryData_get__parent_edge_entry_fint(el);
         double const edge_entry_hgap = ThinSliceBendEntryData_get__parent_edge_entry_hgap(el);
         double const k0 = ThinSliceBendEntryData_get__parent_k0(el);
 
+        printf("Edge entry model: %lld\n", edge_entry_model);
         if (edge_entry_model==0){
+            printf("Edge entry model 0\n");
             double r21, r43;
             compute_dipole_edge_linear_coefficients(k0, edge_entry_angle,
                     edge_entry_angle_fdown, edge_entry_hgap, edge_entry_fint,
@@ -36,6 +38,7 @@ void ThinSliceBendEntry_track_local_particle(
             //end_per_particle_block
         }
         else if (edge_entry_model==1){
+            printf("Edge entry model 1\n");
             #ifdef XSUITE_BACKTRACK
                 //start_per_particle_block (part0->part)
                     LocalParticle_kill_particle(part, -32);
