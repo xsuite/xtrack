@@ -63,7 +63,7 @@ void ThinSliceBend_track_local_particle(
 
     double const knl_bend[2] = {k0 * length / weight, k1 * length / weight}; // the length is supposed to be already scaled by the weight
     double const ksl_bend[2] = {0., 0.};
-    double const hxl_bend = h * length;
+    double const hxl_bend = backtrack_sign * h * length;
 
     //start_per_particle_block (part0->part)
 

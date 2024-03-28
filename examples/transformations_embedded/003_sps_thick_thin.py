@@ -114,71 +114,82 @@ slicing_strategies = [
 line.slice_thick_elements(slicing_strategies)
 line.build_tracker(_context=test_context)
 
-# # Check a bend
-# assert line.element_names[112] == 'mbb.10150_entry'
-# assert line.element_names[113] == 'mbb.10150..entry_map'
-# assert line.element_names[114] == 'drift_mbb.10150..0'
-# assert line.element_names[115] == 'mbb.10150..0'
-# assert line.element_names[116] == 'drift_mbb.10150..1'
-# assert line.element_names[117] == 'mbb.10150..1'
-# assert line.element_names[118] == 'drift_mbb.10150..2'
-# assert line.element_names[119] == 'mbb.10150_dex'
-# assert line.element_names[120] == 'mbb.10150_exit'
+# Check a bend
+assert line.element_names[112] == 'mbb.10150_entry'
+assert line.element_names[113] == 'mbb.10150..entry_map'
+assert line.element_names[114] == 'drift_mbb.10150..0'
+assert line.element_names[115] == 'mbb.10150..0'
+assert line.element_names[116] == 'drift_mbb.10150..1'
+assert line.element_names[117] == 'mbb.10150..1'
+assert line.element_names[118] == 'drift_mbb.10150..2'
+assert line.element_names[119] == 'mbb.10150..exit_map'
+assert line.element_names[120] == 'mbb.10150_exit'
 
-# assert isinstance(line['mbb.10150_entry'], xt.Marker)
-# assert isinstance(line['mbb.10150..entry_map'], xt.DipoleEdge)
-# assert isinstance(line['drift_mbb.10150..0'], xt.Drift)
-# assert isinstance(line['mbb.10150..0'], xt.Multipole)
-# assert isinstance(line['drift_mbb.10150..1'], xt.Drift)
-# assert isinstance(line['mbb.10150..1'], xt.Multipole)
-# assert isinstance(line['drift_mbb.10150..2'], xt.Drift)
-# assert isinstance(line['mbb.10150_dex'], xt.DipoleEdge)
-# assert isinstance(line['mbb.10150_exit'], xt.Marker)
+assert isinstance(line['mbb.10150_entry'], xt.Marker)
+assert isinstance(line['mbb.10150..entry_map'], xt.ThinSliceBendEntry)
+assert isinstance(line['drift_mbb.10150..0'], xt.Drift)
+assert isinstance(line['mbb.10150..0'], xt.ThinSliceBend)
+assert isinstance(line['drift_mbb.10150..1'], xt.Drift)
+assert isinstance(line['mbb.10150..1'], xt.ThinSliceBend)
+assert isinstance(line['drift_mbb.10150..2'], xt.Drift)
+assert isinstance(line['mbb.10150..exit_map'], xt.ThinSliceBendExit)
+assert isinstance(line['mbb.10150_exit'], xt.Marker)
 
-# # Check a quadrupole
-# assert line.element_names[158] == 'qf.10210_entry'
-# assert line.element_names[159] == 'drift_qf.10210..0'
-# assert line.element_names[160] == 'qf.10210..0'
-# assert line.element_names[161] == 'drift_qf.10210..1'
-# assert line.element_names[162] == 'qf.10210..1'
-# assert line.element_names[163] == 'drift_qf.10210..2'
-# assert line.element_names[164] == 'qf.10210..2'
-# assert line.element_names[165] == 'drift_qf.10210..3'
-# assert line.element_names[166] == 'qf.10210..3'
-# assert line.element_names[167] == 'drift_qf.10210..4'
-# assert line.element_names[168] == 'qf.10210..4'
-# assert line.element_names[169] == 'drift_qf.10210..5'
-# assert line.element_names[170] == 'qf.10210..5'
-# assert line.element_names[171] == 'drift_qf.10210..6'
-# assert line.element_names[172] == 'qf.10210..6'
-# assert line.element_names[173] == 'drift_qf.10210..7'
-# assert line.element_names[174] == 'qf.10210..7'
-# assert line.element_names[175] == 'drift_qf.10210..8'
-# assert line.element_names[176] == 'qf.10210_exit'
+# Check a quadrupole
+assert line.element_names[158] == 'qf.10210_entry'
+assert line.element_names[159] == 'drift_qf.10210..0'
+assert line.element_names[160] == 'qf.10210..0'
+assert line.element_names[161] == 'drift_qf.10210..1'
+assert line.element_names[162] == 'qf.10210..1'
+assert line.element_names[163] == 'drift_qf.10210..2'
+assert line.element_names[164] == 'qf.10210..2'
+assert line.element_names[165] == 'drift_qf.10210..3'
+assert line.element_names[166] == 'qf.10210..3'
+assert line.element_names[167] == 'drift_qf.10210..4'
+assert line.element_names[168] == 'qf.10210..4'
+assert line.element_names[169] == 'drift_qf.10210..5'
+assert line.element_names[170] == 'qf.10210..5'
+assert line.element_names[171] == 'drift_qf.10210..6'
+assert line.element_names[172] == 'qf.10210..6'
+assert line.element_names[173] == 'drift_qf.10210..7'
+assert line.element_names[174] == 'qf.10210..7'
+assert line.element_names[175] == 'drift_qf.10210..8'
+assert line.element_names[176] == 'qf.10210_exit'
 
-# assert line['mbb.10150..entry_map'].model == 'full'
-# assert line['mbb.10150..entry_map'].side == 'entry'
-# assert line['mbb.10150_dex'].model == 'full'
-# assert line['mbb.10150_dex'].side == 'exit'
+assert isinstance(line['qf.10210..7'], xt.ThinSliceQuadrupole)
 
-# line.configure_bend_model(edge='linear')
+assert line['mbb.10150..entry_map']._parent.model == 'full'
+assert line['mbb.10150..exit_map']._parent.model == 'full'
 
-# assert line['mbb.10150..entry_map'].model == 'linear'
-# assert line['mbb.10150..entry_map'].side == 'entry'
-# assert line['mbb.10150_dex'].model == 'linear'
-# assert line['mbb.10150_dex'].side == 'exit'
+line.configure_bend_model(edge='linear')
 
-# line.configure_bend_model(edge='full')
+assert line['mbb.10150..entry_map']._parent.edge_entry_model == 'linear'
+assert line['mbb.10150..exit_map']._parent.edge_exit_model == 'linear'
 
-# assert line['mbb.10150..entry_map'].model == 'full'
-# assert line['mbb.10150..entry_map'].side == 'entry'
-# assert line['mbb.10150_dex'].model == 'full'
-# assert line['mbb.10150_dex'].side == 'exit'
+line.configure_bend_model(edge='full')
 
-tw = line.twiss()
+assert line['mbb.10150..entry_map']._parent.edge_entry_model == 'full'
+assert line['mbb.10150..exit_map']._parent.edge_exit_model == 'full'
 
-assert np.isclose(twmad.s[-1], tw.s[-1], atol=1e-9, rtol=0)
-assert np.isclose(twmad.summary.q1, tw.qx, rtol=0, atol=0.5e-3)
-assert np.isclose(twmad.summary.q2, tw.qy, rtol=0, atol=0.5e-3)
-assert np.isclose(twmad.summary.dq1, tw.dqx, rtol=0, atol=0.2)
-assert np.isclose(twmad.summary.dq2, tw.dqy, rtol=0, atol=0.2)
+tw_edge_full = line.twiss()
+
+assert np.isclose(twmad.s[-1], tw_edge_full.s[-1], atol=1e-9, rtol=0)
+assert np.isclose(twmad.summary.q1, tw_edge_full.qx, rtol=0, atol=0.5e-3)
+assert np.isclose(twmad.summary.q2, tw_edge_full.qy, rtol=0, atol=0.5e-3)
+assert np.isclose(twmad.summary.dq1, tw_edge_full.dqx, rtol=0, atol=0.2)
+assert np.isclose(twmad.summary.dq2, tw_edge_full.dqy, rtol=0, atol=0.2)
+
+line.configure_bend_model(edge='linear')
+tw_edge_linear = line.twiss()
+assert np.isclose(twmad.s[-1], tw_edge_linear.s[-1], atol=1e-9, rtol=0)
+assert np.isclose(twmad.summary.q1, tw_edge_linear.qx, rtol=0, atol=0.5e-3)
+assert np.isclose(twmad.summary.q2, tw_edge_linear.qy, rtol=0, atol=0.5e-3)
+assert np.isclose(twmad.summary.dq1, tw_edge_linear.dqx, rtol=0, atol=0.2)
+assert np.isclose(twmad.summary.dq2, tw_edge_linear.dqy, rtol=0, atol=0.2)
+
+tw_backwards = line.twiss(start=line.element_names[0],
+            end=line.element_names[-1],
+            init=tw_edge_linear.get_twiss_init(line.element_names[-1]),
+            _continue_if_lost=True)
+
+prrrr
