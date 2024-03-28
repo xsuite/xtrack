@@ -173,10 +173,24 @@ def test_sps_thick(test_context, deferred_expressions):
     assert line['mbb.10150..entry_map']._parent.edge_entry_model == 'full'
     assert line['mbb.10150..exit_map']._parent.edge_exit_model == 'full'
 
-    tw = line.twiss()
+    tw_edge_full = line.twiss()
 
-    assert np.isclose(twmad.s[-1], tw.s[-1], atol=1e-9, rtol=0)
-    assert np.isclose(twmad.summary.q1, tw.qx, rtol=0, atol=0.5e-3)
-    assert np.isclose(twmad.summary.q2, tw.qy, rtol=0, atol=0.5e-3)
-    assert np.isclose(twmad.summary.dq1, tw.dqx, rtol=0, atol=0.2)
-    assert np.isclose(twmad.summary.dq2, tw.dqy, rtol=0, atol=0.2)
+    assert np.isclose(twmad.s[-1], tw_edge_full.s[-1], atol=1e-9, rtol=0)
+    assert np.isclose(twmad.summary.q1, tw_edge_full.qx, rtol=0, atol=0.5e-3)
+    assert np.isclose(twmad.summary.q2, tw_edge_full.qy, rtol=0, atol=0.5e-3)
+    assert np.isclose(twmad.summary.dq1, tw_edge_full.dqx, rtol=0, atol=0.2)
+    assert np.isclose(twmad.summary.dq2, tw_edge_full.dqy, rtol=0, atol=0.2)
+
+    line.configure_bend_model(edge='linear')
+    tw_edge_linear = line.twiss()
+    assert np.isclose(twmad.s[-1], tw_edge_linear.s[-1], atol=1e-9, rtol=0)
+    assert np.isclose(twmad.summary.q1, tw_edge_linear.qx, rtol=0, atol=0.5e-3)
+    assert np.isclose(twmad.summary.q2, tw_edge_linear.qy, rtol=0, atol=0.5e-3)
+    assert np.isclose(twmad.summary.dq1, tw_edge_linear.dqx, rtol=0, atol=0.2)
+    assert np.isclose(twmad.summary.dq2, tw_edge_linear.dqy, rtol=0, atol=0.2)
+
+    tw_backwards = line.twiss(start=line.element_names[0],
+                end=line.element_names[-1],
+                init=tw_edge_linear.get_twiss_init(line.element_names[-1]))
+
+    prrrr

@@ -103,7 +103,7 @@ void Bend_track_local_particle(
         #ifdef XSUITE_BACKTRACK
             double const edge_entry_model = BendData_get_edge_exit_model(el);
             double const edge_entry_angle = BendData_get_edge_exit_angle(el);
-            double const edge_entry_angle_fdown = BendData_get_exit_angle_fdown(el);
+            double const edge_entry_angle_fdown = BendData_get_edge_exit_angle_fdown(el);
             double const edge_entry_fint = BendData_get_edge_exit_fint(el);
             double const edge_entry_hgap = BendData_get_edge_exit_hgap(el);
         #else
@@ -307,7 +307,7 @@ void Bend_track_local_particle(
         #ifdef XSUITE_BACKTRACK
             double const edge_exit_model = BendData_get_edge_entry_model(el);
             double const edge_exit_angle = BendData_get_edge_entry_angle(el);
-            double const edge_exit_angle_fdown = BendData_get_entry_angle_fdown(el);
+            double const edge_exit_angle_fdown = BendData_get_edge_entry_angle_fdown(el);
             double const edge_exit_fint = BendData_get_edge_entry_fint(el);
             double const edge_exit_hgap = BendData_get_edge_entry_hgap(el);
         #else
