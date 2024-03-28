@@ -71,3 +71,28 @@ class ThinSliceBend(BeamElement):
         obj = super().from_dict(dct, **kwargs)
         obj._parent_name = dct['_parent_name']
         return obj
+
+_thin_slice_bend_entry_xofields = {
+    '_parent': xo.Ref(Bend)}
+_thin_slice_bend_entry_xofields.update(_common_xofields)
+class ThinSliceBendEntry(BeamElement):
+    allow_rot_and_shift = False
+    _skip_in_to_dict = ['_parent']
+    has_backtrack = True
+
+    _xofields = _thin_slice_bend_entry_xofields
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('headers/constants.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_bend_entry.h')]
+
+    def to_dict(self, **kwargs):
+        dct = BeamElement.to_dict(self, **kwargs)
+        dct['_parent_name'] = self._parent_name
+        return dct
+
+    @classmethod
+    def from_dict(cls, dct, **kwargs):
+        obj = super().from_dict(dct, **kwargs)
+        obj._parent_name = dct['_parent_name']
+        return obj

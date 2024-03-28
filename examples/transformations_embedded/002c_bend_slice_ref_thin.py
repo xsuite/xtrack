@@ -7,16 +7,10 @@ line = xt.Line(elements=[bend])
 line.build_tracker() # Put everything in the same buffer
 line.discard_tracker()
 
-# Shallow copy
-line_before_slicing = xt.Line.__new__(xt.Line)
-line_before_slicing.__dict__.update(line.__dict__)
-# Deep copy of element_names and comoupound_container
-line_before_slicing.element_names = line.element_names.copy()
-line_before_slicing.compound_container = line.compound_container.copy()
-
 line.slice_thick_elements(
     slicing_strategies=[xt.Strategy(xt.Teapot(10000))])
 line.build_tracker()
+line._line_before_slicing.build_tracker()
 assert line['e0..995']._parent_name == 'e0'
 assert line['e0..995']._parent is line['e0']
 
@@ -25,7 +19,7 @@ p_ref = p0.copy()
 p_slice = p0.copy()
 
 line.track(p_slice)
-bend.track(p_ref)
+line._line_before_slicing.track(p_ref)
 
 assert_allclose = np.testing.assert_allclose
 assert_allclose = np.testing.assert_allclose
@@ -38,12 +32,12 @@ assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-10)
 
 line.to_json('ttt.json')
 line2 = xt.Line.from_json('ttt.json')
-assert isinstance(line2['e0..995'], xt.ThinSliceQuadrupole)
+assert isinstance(line2['e0..995'], xt.ThinSliceBend)
 assert line2['e0..995']._parent_name == 'e0'
 assert line2['e0..995']._parent is None
 
 line2.build_tracker()
-assert isinstance(line2['e0..995'], xt.ThinSliceQuadrupole)
+assert isinstance(line2['e0..995'], xt.ThinSliceBend)
 assert line2['e0..995']._parent_name == 'e0'
 assert line2['e0..995']._parent is line2['e0']
 
