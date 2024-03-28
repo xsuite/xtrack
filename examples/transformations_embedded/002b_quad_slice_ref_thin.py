@@ -42,3 +42,8 @@ line2 = xt.Line.from_json('ttt.json')
 assert isinstance(line2['e0..995'], xt.ThinSliceQuadrupole)
 assert line2['e0..995']._parent_name == 'e0'
 assert line2['e0..995']._parent is None
+
+line2.build_tracker()
+assert isinstance(line2['e0..995'], xt.ThinSliceQuadrupole)
+assert line2['e0..995']._parent_name == 'e0'
+assert line2['e0..995']._parent is line2['e0']

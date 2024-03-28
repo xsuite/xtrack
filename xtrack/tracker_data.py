@@ -121,6 +121,11 @@ class TrackerData:
                                             kernel_element_classes)
         self._element_ref_data = self.build_ref_data(_buffer, ElementRefDataClass)
 
+        for nn in element_names:
+            if hasattr(self._element_dict[nn], '_parent'):
+                self._element_dict[nn]._parent = self._element_dict[
+                    self._element_dict[nn]._parent_name]
+
     def common_buffer_for_elements(self):
         """If all `self.elements` elements are in the same buffer,
         returns said buffer, otherwise returns `None`."""
