@@ -10,6 +10,13 @@ line = xt.Line(elements=[quad])
 line.build_tracker() # Put everything in the same buffer
 line.discard_tracker()
 
+# Shallow copy
+line_before_slicing = xt.Line.__new__(xt.Line)
+line_before_slicing.__dict__.update(line.__dict__)
+# Deep copy of element_names and comoupound_container
+line_before_slicing.element_names = line.element_names.copy()
+line_before_slicing.compound_container = line.compound_container.copy()
+
 line.slice_thick_elements(
     slicing_strategies=[xt.Strategy(xt.Teapot(1000))])
 line.build_tracker()

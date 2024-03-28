@@ -148,6 +148,10 @@ class Line:
 
         self.metadata = {}
 
+        self._line_before_slicing = None
+        self._compound_container_before_slicing = None
+        self._element_names_before_slicing = None
+
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
 
@@ -213,6 +217,14 @@ class Line:
 
         if 'metadata' in dct.keys():
             self.metadata = dct['metadata']
+
+        self._element_names_before_slicing = dct.get(
+            '_element_names_before_slicing', None)
+        _compound_container_before_slicing_dct = dct.get(
+            '_compound_container_before_slicing', None)
+        if _compound_container_before_slicing_dct is not None:
+            self._compound_container_before_slicing = CompoundContainer.from_dict(
+                            _compound_container_before_slicing_dct)
 
         if ('energy_program' in self.element_dict
              and self.element_dict['energy_program'] is not None):
@@ -535,6 +547,13 @@ class Line:
         out['config'] = self.config.data.copy()
         out['_extra_config'] = self._extra_config.copy()
         out['compound_container'] = self.compound_container.to_dict()
+
+        if self._compound_container_before_slicing is not None:
+            out['_compound_container_before_slicing'] = self._compound_container_before_slicing.to_dict()
+
+        if self._element_names_before_slicing is not None:
+            out['_element_names_before_slicing'] = self._element_names_before_slicing
+
         if self.particle_ref is not None:
             out['particle_ref'] = self.particle_ref.to_dict()
         if self._var_management is not None and include_var_management:
@@ -927,6 +946,10 @@ class Line:
         """
 
         self._frozen_check()
+
+        self._compound_container_before_slicing = self.compound_container.copy()
+        self._element_names_before_slicing = list(self.element_names).copy()
+
         slicer = Slicer(self, slicing_strategies)
         return slicer.slice_in_place()
 
