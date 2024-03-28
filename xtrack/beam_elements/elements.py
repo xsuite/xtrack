@@ -938,6 +938,20 @@ class Bend(BeamElement):
         container[slice_name] = xt.ThinSliceBend(
                                     _parent=self, weight=weight, _buffer=_buffer)
 
+    @staticmethod
+    def add_entry_slice(container, thick_name, slice_name, _buffer=None):
+        self = container[thick_name]
+        if hasattr(self, '_value'): self = self._value
+        container[slice_name] = xt.ThinSliceBendEntry(
+                                            _parent=self, _buffer=_buffer)
+
+    @staticmethod
+    def add_exit_slice(container, thick_name, slice_name, _buffer=None):
+        self = container[thick_name]
+        if hasattr(self, '_value'): self = self._value
+        container[slice_name] = xt.ThinSliceBendExit(
+                                            _parent=self, _buffer=_buffer)
+
     @classmethod
     def add_thick_slice(cls, weight, container, name, slice_name, _buffer=None):
         self_or_ref = container[name]

@@ -390,6 +390,15 @@ class Slicer:
         drift_to_slice = xt.Drift(length=element.length)
         slices_to_append = []
 
+        if hasattr(type(element), 'add_entry_slice'):
+            type(element).add_entry_slice(
+                container=self._line.element_dict,
+                thick_name=name,
+                slice_name=f'{name}_entry_map',
+                _buffer=element._buffer,
+            )
+            slices_to_append.append(f'{name}_entry_map')
+
         for weight, is_drift in chosen_slicing.iter_weights(element.length):
             if is_drift and chosen_slicing.mode == 'thin':
                 slice_name = f'drift_{name}..{drift_idx}'
@@ -422,7 +431,18 @@ class Slicer:
                     _buffer=self._line.element_dict[name]._buffer,
                 )
             slices_to_append.append(slice_name)
-            self._line.element_dict[slice_name]._parent_name = name
+
+        if hasattr(type(element), 'add_exit_slice'):
+            type(element).add_exit_slice(
+                container=self._line.element_dict,
+                thick_name=name,
+                slice_name=f'{name}_exit_map',
+                _buffer=element._buffer,
+            )
+            slices_to_append.append(f'{name}_exit_map')
+
+        for nn in slices_to_append:
+            self._line.element_dict[nn]._parent_name = name
 
         return slices_to_append
 
