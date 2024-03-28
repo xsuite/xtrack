@@ -394,10 +394,10 @@ class Slicer:
             type(element).add_entry_slice(
                 container=self._line.element_dict,
                 thick_name=name,
-                slice_name=f'{name}_entry_map',
+                slice_name=f'{name}..entry_map',
                 _buffer=element._buffer,
             )
-            slices_to_append.append(f'{name}_entry_map')
+            slices_to_append.append(f'{name}..entry_map')
 
         for weight, is_drift in chosen_slicing.iter_weights(element.length):
             if is_drift and chosen_slicing.mode == 'thin':
@@ -436,10 +436,10 @@ class Slicer:
             type(element).add_exit_slice(
                 container=self._line.element_dict,
                 thick_name=name,
-                slice_name=f'{name}_exit_map',
+                slice_name=f'{name}..exit_map',
                 _buffer=element._buffer,
             )
-            slices_to_append.append(f'{name}_exit_map')
+            slices_to_append.append(f'{name}..exit_map')
 
         for nn in slices_to_append:
             self._line.element_dict[nn]._parent_name = name
