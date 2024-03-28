@@ -7,6 +7,8 @@ line = xt.Line(elements=[bend])
 line.build_tracker() # Put everything in the same buffer
 line.discard_tracker()
 
+line.configure_bend_model(edge='suppressed', core='expanded')
+
 line.slice_thick_elements(
     slicing_strategies=[xt.Strategy(xt.Teapot(10000))])
 line.build_tracker()
