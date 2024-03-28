@@ -1055,25 +1055,10 @@ class Octupole(BeamElement):
 
     @staticmethod
     def add_slice(weight, container, thick_name, slice_name, _buffer=None):
-        self_or_ref = container[thick_name]
-
-        container[slice_name] = Multipole(knl=np.zeros(4), ksl=np.zeros(4),
-                                          _buffer=_buffer)
-        ref = container[slice_name]
-
-        ref.knl[0] = 0.
-        ref.knl[1] = 0.
-        ref.knl[2] = 0.
-        ref.knl[3] = weight * (
-            _get_expr(self_or_ref.k3) * _get_expr(self_or_ref.length))
-
-        ref.ksl[0] = 0.
-        ref.ksl[1] = 0.
-        ref.ksl[2] = 0.
-        ref.ksl[2] = weight * (
-            _get_expr(self_or_ref.k3s) * _get_expr(self_or_ref.length))
-
-        ref.order = 3
+        self = container[thick_name]
+        if hasattr(self, '_value'): self = self._value
+        container[slice_name] = xt.ThinSliceOctupole(
+                                    _parent=self, weight=weight, _buffer=_buffer)
 
 
 class Quadrupole(BeamElement):

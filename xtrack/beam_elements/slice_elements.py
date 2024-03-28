@@ -4,7 +4,8 @@ import numpy as np
 
 from ..general import _pkg_root
 from ..random import RandomUniform, RandomExponential
-from .elements import SynchrotronRadiationRecord, Quadrupole, Sextupole, Bend
+from .elements import (SynchrotronRadiationRecord, Quadrupole, Sextupole,
+                       Octupole, Bend)
 from ..base_element import BeamElement
 
 xo.context_default.kernels.clear()
@@ -60,6 +61,32 @@ class ThinSliceSextupole(BeamElement):
 
     _extra_c_sources = _common_c_sources + [
         _pkg_root.joinpath('beam_elements/elements_src/thin_slice_sextupole.h')]
+
+    def to_dict(self, **kwargs):
+        dct = BeamElement.to_dict(self, **kwargs)
+        dct['_parent_name'] = self._parent_name
+        return dct
+
+    @classmethod
+    def from_dict(cls, dct, **kwargs):
+        obj = super().from_dict(dct, **kwargs)
+        obj._parent_name = dct['_parent_name']
+        return obj
+
+_thin_slice_oct_xofields = {
+    '_parent': xo.Ref(Octupole)}
+_thin_slice_oct_xofields.update(_common_xofields)
+class ThinSliceOctupole(BeamElement):
+    allow_rot_and_shift = False
+    _skip_in_to_dict = ['_parent']
+    _depends_on = [RandomUniform, RandomExponential]
+    _internal_record_class = SynchrotronRadiationRecord
+    has_backtrack = True
+
+    _xofields = _thin_slice_oct_xofields
+
+    _extra_c_sources = _common_c_sources + [
+        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_octupole.h')]
 
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)

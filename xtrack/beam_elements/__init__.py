@@ -7,7 +7,8 @@ from .elements import *
 from .exciter import Exciter
 from .apertures import *
 from .beam_interaction import BeamInteraction, ParticlesInjectionSample
-from .slice_elements import (ThinSliceQuadrupole, ThinSliceSextupole, ThinSliceBend,
+from .slice_elements import (ThinSliceQuadrupole, ThinSliceSextupole,
+                             ThinSliceOctupole, ThinSliceBend,
                              ThinSliceBendEntry, ThinSliceBendExit)
 from .rft_element import RFT_Element
 from ..base_element import BeamElement
