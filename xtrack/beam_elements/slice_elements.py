@@ -30,6 +30,7 @@ class ThinSliceQuadrupole(BeamElement):
     _depends_on = [RandomUniform, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord
     has_backtrack = True
+    _force_moveable = True
 
     _xofields = _thin_slice_quad_xofields
 
@@ -56,6 +57,7 @@ class ThinSliceSextupole(BeamElement):
     _depends_on = [RandomUniform, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord
     has_backtrack = True
+    _force_moveable = True
 
     _xofields = _thin_slice_sext_xofields
 
@@ -82,6 +84,7 @@ class ThinSliceOctupole(BeamElement):
     _depends_on = [RandomUniform, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord
     has_backtrack = True
+    _force_moveable = True
 
     _xofields = _thin_slice_oct_xofields
 
@@ -108,6 +111,7 @@ class ThinSliceBend(BeamElement):
     _depends_on = [RandomUniform, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord
     has_backtrack = True
+    _force_moveable = True
 
     _xofields = _thin_slice_bend_xofields
 
@@ -132,6 +136,7 @@ class ThinSliceBendEntry(BeamElement):
     allow_rot_and_shift = False
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
+    _force_moveable = True
 
     _xofields = _thin_slice_bend_entry_xofields
 
@@ -157,6 +162,7 @@ class ThinSliceBendExit(BeamElement):
     allow_rot_and_shift = False
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
+    _force_moveable = True
 
     _xofields = _thin_slice_bend_exit_xofields
 

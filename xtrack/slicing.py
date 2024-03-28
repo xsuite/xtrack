@@ -387,7 +387,7 @@ class Slicer:
             A list of the names of the slices that were added.
         """
         drift_idx, element_idx = 0, 0
-        drift_to_slice = xt.Drift(length=element.length)
+        drift_to_slice = xt.Drift(length=element.length, _buffer=element._buffer)
         slices_to_append = []
 
         if hasattr(type(element), 'add_entry_slice'):

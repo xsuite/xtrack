@@ -123,8 +123,12 @@ class TrackerData:
 
         for nn in element_names:
             if hasattr(self._element_dict[nn], '_parent'):
-                self._element_dict[nn]._parent = self._element_dict[
+                this_parent = self._element_dict[
                     self._element_dict[nn]._parent_name]
+                this_parent._movable = True # Not sure why it is needed
+                if this_parent._buffer is not self._element_dict[nn]._buffer:
+                    this_parent.move(_buffer=self._element_dict[nn]._buffer)
+                self._element_dict[nn]._parent = this_parent
 
     def common_buffer_for_elements(self):
         """If all `self.elements` elements are in the same buffer,
