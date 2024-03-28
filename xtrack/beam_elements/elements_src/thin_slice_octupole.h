@@ -56,8 +56,8 @@ void ThinSliceOctupole_track_local_particle(
         double const backtrack_sign = -1;
     #endif
 
-    double const knl_oct[4] = {0., 0., 0., k3 * length / weight}; // the length is supposed to be already scaled by the weight
-    double const ksl_oct[4] = {0., 0., 0., k3s * length / weight};
+    double const knl_oct[4] = {0., 0., 0., backtrack_sign * k3 * length / weight}; // the length is supposed to be already scaled by the weight
+    double const ksl_oct[4] = {0., 0., 0., backtrack_sign * k3s * length / weight};
 
     //start_per_particle_block (part0->part)
 
