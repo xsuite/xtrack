@@ -12,13 +12,13 @@ xo.context_default.kernels.clear()
 class ThinSliceQuadrupole(BeamElement):
     allow_rot_and_shift = False
     _xofields = {
-        'parent': xo.Ref(Quadrupole),
+        '_parent': xo.Ref(Quadrupole),
         'radiation_flag': xo.Int64,
         'delta_taper': xo.Float64,
         'weight': xo.Float64,
     }
 
-    _skip_in_to_dict = ['parent']
+    _skip_in_to_dict = ['_parent']
 
     _depends_on = [RandomUniform, RandomExponential]
 
@@ -33,13 +33,13 @@ class ThinSliceQuadrupole(BeamElement):
 
     has_backtrack = True
 
-    def to_dict(self):
-        dct = BeamElement.to_dict(self)
-        dct['parent_name'] = self.parent_name
+    def to_dict(self, **kwargs):
+        dct = BeamElement.to_dict(self, **kwargs)
+        dct['_parent_name'] = self._parent_name
         return dct
 
     @classmethod
-    def from_dict(cls, dct):
-        obj = BeamElement.from_dict(dct)
-        obj.parent_name = dct['parent_name']
+    def from_dict(cls, dct, **kwargs):
+        obj = super().from_dict(dct, **kwargs)
+        obj._parent_name = dct['_parent_name']
         return obj

@@ -422,7 +422,7 @@ class Slicer:
                     _buffer=self._line.element_dict[name]._buffer,
                 )
             slices_to_append.append(slice_name)
-            self._line.element_dict[slice_name].parent_name = name
+            self._line.element_dict[slice_name]._parent_name = name
 
         return slices_to_append
 

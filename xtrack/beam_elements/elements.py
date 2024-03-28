@@ -1164,7 +1164,7 @@ class Quadrupole(BeamElement):
             self = self._value
 
         container[slice_name] = xt.ThinSliceQuadrupole(
-                                    parent=self, weight=weight, _buffer=_buffer)
+                                    _parent=self, weight=weight, _buffer=_buffer)
 
     @classmethod
     def add_thick_slice(cls, weight, container, name, slice_name, _buffer=None):
