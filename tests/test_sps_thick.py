@@ -191,6 +191,27 @@ def test_sps_thick(test_context, deferred_expressions):
 
     tw_backwards = line.twiss(start=line.element_names[0],
                 end=line.element_names[-1],
-                init=tw_edge_linear.get_twiss_init(line.element_names[-1]))
+                init=tw_edge_linear.get_twiss_init(line.element_names[-1]),
+                compute_chromatic_properties=True)
 
-    prrrr
+    assert_allclose = np.testing.assert_allclose
+
+    assert_allclose(tw_backwards.s, tw_edge_linear.s, rtol=0, atol=1e-10)
+    assert_allclose(tw_backwards.x, tw_edge_linear.x, rtol=0, atol=1e-10)
+    assert_allclose(tw_backwards.px, tw_edge_linear.px, rtol=0, atol=1e-10)
+    assert_allclose(tw_backwards.y, tw_edge_linear.y, rtol=0, atol=1e-10)
+    assert_allclose(tw_backwards.py, tw_edge_linear.py, rtol=0, atol=1e-10)
+    assert_allclose(tw_backwards.zeta, tw_edge_linear.zeta, rtol=0, atol=1e-10)
+    assert_allclose(tw_backwards.delta, tw_edge_linear.delta, rtol=0, atol=1e-10)
+    assert_allclose(tw_backwards.betx, tw_edge_linear.betx, rtol=5e-9, atol=1e-10)
+    assert_allclose(tw_backwards.bety, tw_edge_linear.bety, rtol=5e-9, atol=1e-10)
+    assert_allclose(tw_backwards.ax_chrom, tw_edge_linear.ax_chrom, rtol=0, atol=1e-5)
+    assert_allclose(tw_backwards.ay_chrom, tw_edge_linear.ay_chrom, rtol=0, atol=1e-5)
+    assert_allclose(tw_backwards.bx_chrom, tw_edge_linear.bx_chrom, rtol=0, atol=1e-5)
+    assert_allclose(tw_backwards.by_chrom, tw_edge_linear.by_chrom, rtol=0, atol=1e-5)
+    assert_allclose(tw_backwards.dx, tw_edge_linear.dx, rtol=0, atol=1e-8)
+    assert_allclose(tw_backwards.dy, tw_edge_linear.dy, rtol=0, atol=1e-8)
+    assert_allclose(tw_backwards.mux[-1] - tw_edge_linear.mux[0], tw_edge_linear.qx,
+                    rtol=0, atol=1e-10)
+    assert_allclose(tw_backwards.muy[-1] - tw_edge_linear.muy[0], tw_edge_linear.qy,
+                    rtol=0, atol=1e-10)
