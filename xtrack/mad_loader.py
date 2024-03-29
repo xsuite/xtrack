@@ -814,8 +814,21 @@ class MadLoader:
             aper = Aperture(mad_el, self.enable_align_errors, self)
             aperture_seq = aper.entry() + aper.aperture() + aper.exit()
 
-        align_entry, align_exit = align.entry(), align.exit()
-        elem_list = aperture_seq + align_entry + xtrack_el + align_exit
+        # old sandwitch
+        # align_entry, align_exit = align.entry(), align.exit()
+        # elem_list = aperture_seq + align_entry + xtrack_el + align_exit
+
+        # using directly tilt and shift in the element
+        for xtee in xtrack_el:
+            if align.tilt or align.dx or align.dy:
+                xtee.rot_s = align.tilt
+                xtee.shift_x = align.dx
+                xtee.shift_y = align.dy
+        align.tilt = 0
+        align.dx = 0
+        align.dy = 0
+
+        elem_list = aperture_seq + xtrack_el
 
         if not self.use_compound_elements:
             return elem_list
