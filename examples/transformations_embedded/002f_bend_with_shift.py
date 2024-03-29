@@ -1,7 +1,11 @@
 import xtrack as xt
 import numpy as np
 
-bend = xt.Bend(k0=0.1, h=0.11, k1=0.1, length=1)
+bend = xt.Bend(k0=0.1, h=0.11, k1=0.1, length=1,
+               knl=[0, 0, 0.3, 0.4, 0.5],
+               ksl=[0, 0, -0.3, -0.2, -0.1]
+)
+
 bend.rot_s = 20.
 bend.shift_x = 0.1
 bend.shift_y = 0.2
