@@ -95,7 +95,7 @@ def _generate_track_local_particle_with_transformations(
             '{\n')
 
     if rot_and_shift_from_parent:
-        add_to_call = '_parent'
+        add_to_call = '__parent'
     else:
         add_to_call = ''
 
@@ -103,7 +103,7 @@ def _generate_track_local_particle_with_transformations(
 
         source += (
             '    // Transform to local frame\n'
-            #f'    printf("Transform to local frame {element_name}\\n");\n'
+            # f'    printf("Transform to local frame {element_name}\\n");\n'
             f'double const _sin_rot_s = {element_name}Data_get{add_to_call}__sin_rot_s(el);\n'
             'if (_sin_rot_s > -2.) {\n'
             f'    double const _cos_rot_s = {element_name}Data_get{add_to_call}__cos_rot_s(el);\n'
@@ -261,7 +261,6 @@ def _shiftx_property(self):
     return self._shift_x
 
 def _set_shiftx_property_setter(self, value):
-    import pdb; pdb.set_trace()
     self._shift_x = value
     if not _tranformations_active(self):
         self._sin_rot_s = -999.
@@ -332,7 +331,7 @@ class MetaBeamElement(xo.MetaHybridClass):
         depends_on.append(Particles._XoStruct)
 
         # For now I assume that when there is a parent, the element inherits the parent's transformations
-        rot_and_shift_from_parent = 'parent' in xofields.keys()
+        rot_and_shift_from_parent = '_parent' in xofields.keys()
 
         track_kernel_name = None
         if ('allow_track' not in data.keys() or data['allow_track']):
