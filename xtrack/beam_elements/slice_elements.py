@@ -1,6 +1,4 @@
 import xobjects as xo
-from pathlib import Path
-import numpy as np
 
 from ..general import _pkg_root
 from ..random import RandomUniform, RandomExponential
