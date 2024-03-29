@@ -1,12 +1,14 @@
 import xtrack as xt
 import numpy as np
 
-bend = xt.Bend(k0=0., h=0., k1=0.1, length=1)
+bend = xt.Bend(k0=0.1, h=0.11, k1=0.1, length=1)
+bend.rot_s = 20.
 bend.shift_x = 0.1
+bend.shift_y = 0.2
 
 line = xt.Line(elements=[bend])
 
-line.configure_bend_model(edge='linear', core='expanded')
+line.configure_bend_model(edge='full', core='expanded')
 
 line.slice_thick_elements(
     slicing_strategies=[xt.Strategy(xt.Teapot(10000))])
@@ -19,7 +21,7 @@ assert line['e0..entry_map']._parent is line['e0']
 assert line['e0..exit_map']._parent_name == 'e0'
 assert line['e0..exit_map']._parent is line['e0']
 
-p0 = xt.Particles(p0c=10e9, x=0., px=0., y=0., py=0., delta=0.03)
+p0 = xt.Particles(p0c=10e9, x=1e-3, px=2.e-3, y=3.e-3, py=4.e-3, delta=0.03)
 p_ref = p0.copy()
 p_slice = p0.copy()
 
@@ -34,3 +36,8 @@ assert_allclose(p_slice.y, p_ref.y, rtol=0, atol=1e-10)
 assert_allclose(p_slice.py, p_ref.py, rtol=0, atol=1e-10)
 assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-10)
 assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-10)
+
+
+# Test properties
+
+# Test backtracking

@@ -36,7 +36,6 @@ void ThinSliceBendEntry_track_local_particle(
             //end_per_particle_block
         }
         else if (edge_entry_model==1){
-            printf("Edge entry model 1\n");
             #ifdef XSUITE_BACKTRACK
                 //start_per_particle_block (part0->part)
                     LocalParticle_kill_particle(part, -32);
