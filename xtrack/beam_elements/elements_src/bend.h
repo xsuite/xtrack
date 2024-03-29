@@ -162,20 +162,21 @@ void Bend_track_local_particle(
     /*gpuglmem*/ const double *knl = BendData_getp1_knl(el, 0);
     /*gpuglmem*/ const double *ksl = BendData_getp1_ksl(el, 0);
 
+        if (num_multipole_kicks == 0) { // num_multipole_kicks needs to be determined
+
+            if (fabs(h) < 1e-8){
+                num_multipole_kicks = 1; // straight magnet, one multipole kick in the middle
+            }
+            else{
+                double b_circum = 2 * 3.14159 / fabs(h);
+                num_multipole_kicks = fabs(length) / b_circum / 0.5e-3; // 0.5 mrad per kick (on average)
+            }
+        }
+
+
     if (model==0 || model==1 || model==2 || model==3){
 
             int64_t num_slices;
-            if (num_multipole_kicks == 0) { // num_multipole_kicks needs to be determined
-
-                if (fabs(h) < 1e-8){
-                    num_multipole_kicks = 0; // straight magnet
-                }
-                else{
-                    double b_circum = 2 * 3.14159 / fabs(h);
-                    num_multipole_kicks = fabs(length) / b_circum / 0.5e-3; // 0.5 mrad per kick (on average)
-                }
-            }
-
             if (num_multipole_kicks <= N_KICKS_YOSHIDA) {
                 num_slices = 1;
             }
