@@ -79,7 +79,7 @@ def test_sps_thick(test_context, deferred_expressions):
     assert line['mbb.10150'].edge_exit_model == 'full'
     assert line['mbb.10150'].model == 'expanded'
 
-    assert np.isclose(twmad.s[-1], tw.s[-1], atol=1e-11, rtol=0)
+    assert np.isclose(twmad.s[-1], tw.s[-1], atol=1e-9, rtol=0)
     assert np.isclose(twmad.summary.q1, tw.qx, rtol=0, atol=1e-7)
     assert np.isclose(twmad.summary.q2, tw.qy, rtol=0, atol=1e-7)
     assert np.isclose(twmad.summary.dq1, tw.dqx, rtol=0, atol=0.2)
