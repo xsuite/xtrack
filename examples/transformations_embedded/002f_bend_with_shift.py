@@ -42,8 +42,6 @@ p_slice = p0.copy()
 line.track(p_slice)
 line._line_before_slicing.track(p_ref)
 
-
-
 assert_allclose = np.testing.assert_allclose
 assert_allclose = np.testing.assert_allclose
 assert_allclose(p_slice.x, p_ref.x, rtol=0, atol=atol)
