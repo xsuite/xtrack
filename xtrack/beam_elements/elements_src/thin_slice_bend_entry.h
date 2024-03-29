@@ -22,9 +22,7 @@ void ThinSliceBendEntry_track_local_particle(
         double const edge_entry_hgap = ThinSliceBendEntryData_get__parent_edge_entry_hgap(el);
         double const k0 = ThinSliceBendEntryData_get__parent_k0(el);
 
-        printf("Edge entry model: %lld\n", edge_entry_model);
         if (edge_entry_model==0){
-            printf("Edge entry model 0\n");
             double r21, r43;
             compute_dipole_edge_linear_coefficients(k0, edge_entry_angle,
                     edge_entry_angle_fdown, edge_entry_hgap, edge_entry_fint,

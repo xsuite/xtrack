@@ -15,8 +15,6 @@ void multipole_compute_dpx_dpy_single_particle(LocalParticle* part,
     double delta_tap, double const backtrack_sign,
     double* dpx_out, double* dpy_out){
 
-        printf("backtrack_sign = %e\n", backtrack_sign);
-
         double const chi = LocalParticle_get_chi(part);
 
         int64_t index = order;
@@ -151,9 +149,6 @@ void Multipole_track_single_particle(LocalParticle* part,
 
             LocalParticle_add_to_zeta(part, rv0v*chi * ( hyly - hxlx ) );
         }
-
-        printf("dpx = %e\n", dpx);
-        printf("dpy = %e\n", dpy);
 
         LocalParticle_add_to_px(part, dpx);
         LocalParticle_add_to_py(part, dpy);

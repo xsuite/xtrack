@@ -18,7 +18,6 @@ tw0.qx, tw0.qy
 line.vars['k0bi1bsw1l11']._info() # Check that the knob controls k0 and the edges
 
 line.element_refs['bi1.bsw1l1.1'].h._info() # Check no reference system curvature
-line.element_refs['bi1.bsw1l1.1_den'].r21._info() # Check no horizontal edge focusing
 
 # Build chicane knob (k0)
 line.vars['bsw_k0l'] = 0

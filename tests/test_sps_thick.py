@@ -215,5 +215,3 @@ def test_sps_thick(test_context, deferred_expressions):
                     rtol=0, atol=1e-10)
     assert_allclose(tw_backwards.muy[-1] - tw_edge_linear.muy[0], tw_edge_linear.qy,
                     rtol=0, atol=1e-10)
-
-    prrrrr
