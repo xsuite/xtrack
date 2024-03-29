@@ -234,10 +234,11 @@ def _generate_per_particle_kernel_from_local_particle_function(
     return source
 
 def _tranformations_active(self):
+
     if (self.shift_x == 0 and self.shift_y == 0
         and self._sin_rot_s == 0 and self._cos_rot_s >= 0):
         return False
-    elif self._sin_rot_s < -2.:
+    elif (self.shift_x == 0 and self.shift_y == 0 and self._sin_rot_s < -2.):
         return False
     else:
         return True
@@ -252,14 +253,21 @@ def _set_rot_s_property_setter(self, value):
     self._cos_rot_s = np.cos(value * np.pi / 180.)
     if not _tranformations_active(self):
         self._sin_rot_s = -999.
+    elif self._sin_rot_s < -2.:
+        self._sin_rot_s = 0.
+        self._cos_rot_s = 1.
 
 def _shiftx_property(self):
     return self._shift_x
 
 def _set_shiftx_property_setter(self, value):
+    import pdb; pdb.set_trace()
     self._shift_x = value
     if not _tranformations_active(self):
         self._sin_rot_s = -999.
+    elif self._sin_rot_s < -2.:
+        self._sin_rot_s = 0.
+        self._cos_rot_s = 1.
 
 def _shifty_property(self):
     return self._shift_y
