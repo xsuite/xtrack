@@ -426,7 +426,7 @@ class Slicer:
                 type(obj_to_slice).add_thick_slice(
                     weight=weight,
                     container=container,
-                    name=name,
+                    thick_name=name,
                     slice_name=slice_name,
                     _buffer=self._line.element_dict[name]._buffer,
                 )

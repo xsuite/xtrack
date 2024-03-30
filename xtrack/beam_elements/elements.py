@@ -953,29 +953,12 @@ class Bend(BeamElement):
         container[slice_name] = xt.ThinSliceBendExit(
                                             _parent=self, _buffer=_buffer)
 
-    @classmethod
-    def add_thick_slice(cls, weight, container, name, slice_name, _buffer=None):
-        self_or_ref = container[name]
-        container[slice_name] = cls(
-            length=999.,
-            order=4,
-            _buffer=_buffer,
-        )
-        ref = container[slice_name]
-
-        ref.length = _get_expr(self_or_ref.length) * weight
-        ref.num_multipole_kicks = _get_expr(self_or_ref.num_multipole_kicks)
-        ref.order = _get_expr(self_or_ref.order)
-        ref.k0 = _get_expr(self_or_ref.k0)
-        ref.h = _get_expr(self_or_ref.h)
-        ref.k1 = _get_expr(self_or_ref.k1)
-        ref.model = _get_expr(self_or_ref.model)
-
-        for ii in range(5):
-            ref.knl[ii] = _get_expr(self_or_ref.knl[ii]) * weight
-
-        for ii in range(5):
-            ref.ksl[ii] = _get_expr(self_or_ref.ksl[ii]) * weight
+    @staticmethod
+    def add_thick_slice(weight, container, thick_name, slice_name, _buffer=None):
+        self = container[thick_name]
+        if hasattr(self, '_value'): self = self._value
+        container[slice_name] = xt.ThickSliceBend(
+                                    _parent=self, weight=weight, _buffer=_buffer)
 
 
 class Sextupole(BeamElement):

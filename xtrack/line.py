@@ -1786,7 +1786,11 @@ class Line:
         ll = 0
         for ee in self.elements:
             if _is_thick(ee):
-                ll += ee.length
+                if hasattr(ee, '_parent'):
+                    this_length = self[ee._parent_name].length * ee.weight
+                else:
+                    this_length = ee.length
+                ll += this_length
 
         return ll
 
@@ -1832,7 +1836,11 @@ class Line:
             if mode == "upstream":
                 s.append(s_prev)
             if _is_thick(ee):
-                s_prev += ee.length
+                if hasattr(ee, '_parent'):
+                    this_length = self[ee._parent_name].length * ee.weight
+                else:
+                    this_length = ee.length
+                s_prev += this_length
             if mode == "downstream":
                 s.append(s_prev)
 
