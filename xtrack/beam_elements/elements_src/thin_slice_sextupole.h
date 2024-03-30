@@ -6,6 +6,7 @@
 #ifndef XTRACK_THIN_SLICE_SEXTUPOLE_H
 #define XTRACK_THIN_SLICE_SEXTUPOLE_H
 
+/*gpufun*/
 void ThinSliceSextupole_track_local_particle(
         ThinSliceSextupoleData el,
         LocalParticle* part0

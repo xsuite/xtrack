@@ -17,10 +17,15 @@ class ThickSliceBend(BeamElement):
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
     _force_moveable = True
+    isthick = True
 
     _xofields = _thick_slice_bend_xofields
 
     _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_thick_bend.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_bend.h'),
         _pkg_root.joinpath('beam_elements/elements_src/thick_slice_bend.h')]
 
     def to_dict(self, **kwargs):

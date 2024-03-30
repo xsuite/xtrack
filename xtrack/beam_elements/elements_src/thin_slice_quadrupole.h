@@ -6,6 +6,7 @@
 #ifndef XTRACK_THIN_SLICE_QUADRUPOLE_H
 #define XTRACK_THIN_SLICE_QUADRUPOLE_H
 
+/*gpufun*/
 void ThinSliceQuadrupole_track_local_particle(
         ThinSliceQuadrupoleData el,
         LocalParticle* part0

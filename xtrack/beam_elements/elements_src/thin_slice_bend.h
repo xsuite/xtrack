@@ -6,6 +6,7 @@
 #ifndef XTRACK_THIN_SLICE_BEND_H
 #define XTRACK_THIN_SLICE_BEND_H
 
+/*gpufun*/
 void ThinSliceBend_track_local_particle(
         ThinSliceBendData el,
         LocalParticle* part0
