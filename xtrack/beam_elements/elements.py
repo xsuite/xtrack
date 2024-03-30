@@ -1110,18 +1110,12 @@ class Quadrupole(BeamElement):
         container[slice_name] = xt.ThinSliceQuadrupole(
                                     _parent=self, weight=weight, _buffer=_buffer)
 
-    @classmethod
-    def add_thick_slice(cls, weight, container, name, slice_name, _buffer=None):
-        self_or_ref = container[name]
-        container[slice_name] = cls(
-            length=999.,
-            _buffer=_buffer,
-        )
-        ref = container[slice_name]
-
-        ref.length = _get_expr(self_or_ref.length) * weight
-        ref.k1 = _get_expr(self_or_ref.k1)
-        ref.k1s = _get_expr(self_or_ref.k1s)
+    @staticmethod
+    def add_thick_slice(weight, container, thick_name, slice_name, _buffer=None):
+        self = container[thick_name]
+        if hasattr(self, '_value'): self = self._value
+        container[slice_name] = xt.ThickSliceQuadrupole(
+                                    _parent=self, weight=weight, _buffer=_buffer)
 
 class Solenoid(BeamElement):
     isthick = True
