@@ -10,7 +10,7 @@ from .beam_interaction import BeamInteraction, ParticlesInjectionSample
 from .slice_elements import (ThinSliceQuadrupole, ThinSliceSextupole,
                              ThinSliceOctupole, ThinSliceBend,
                              ThinSliceBendEntry, ThinSliceBendExit)
-from .slice_elements_thick import (ThickSliceBend,)
+from .slice_elements_thick import (ThickSliceBend, ThickSliceQuadrupole)
 from .rft_element import RFT_Element
 from ..base_element import BeamElement
 
