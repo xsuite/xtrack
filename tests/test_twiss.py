@@ -224,6 +224,7 @@ def test_get_normalized_coordinates(test_context):
 @for_all_test_contexts
 def test_get_normalized_coordinates_twiss_init(test_context):
 
+    ctx2np = test_context.nparray_from_context_array
     path_line_particles = test_data_folder / 'hllhc15_noerrors_nobb/line_and_particle.json'
 
     with open(path_line_particles, 'r') as fid:
@@ -270,7 +271,7 @@ def test_get_normalized_coordinates_twiss_init(test_context):
 
     for part in [particles1,particles2,particles3,particles4]:
         tw = line.twiss()
-        tw_init = tw.get_twiss_init(at_element=line.element_names[part.at_element[0]])
+        tw_init = tw.get_twiss_init(at_element=line.element_names[ctx2np(part.at_element)[0]])
 
         norm_coord = tw_init.get_normalized_coordinates(part, nemitt_x=2.5e-6,
                                                 nemitt_y=1e-6)
