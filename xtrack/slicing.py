@@ -90,9 +90,16 @@ class Uniform(ElementSlicingScheme):
 
 class Teapot(ElementSlicingScheme):
     def element_weights(self, element_length=None):
+        if self.slicing_order == 0 and self.mode == 'thick':
+            return [1.]
+
         return [1. / self.slicing_order] * self.slicing_order
 
     def drift_weights(self, element_length=None):
+
+        if self.slicing_order == 0:
+            return [1.]
+
         if self.slicing_order == 1:
             return [0.5, 0.5]
 
