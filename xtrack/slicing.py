@@ -81,9 +81,14 @@ class ElementSlicingScheme(abc.ABC):
 
 class Uniform(ElementSlicingScheme):
     def element_weights(self, element_length=None):
+        if self.slicing_order == 0 and self.mode == 'thick':
+            return [1.]
+
         return [1. / self.slicing_order] * self.slicing_order
 
     def drift_weights(self, element_length=None):
+        if self.slicing_order == 0:
+            return [1.]
         slices = self.slicing_order + 1
         return [1. / slices] * slices
 
