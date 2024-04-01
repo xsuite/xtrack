@@ -199,22 +199,7 @@ def survey_from_line(line, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
 
     assert not values_at_element_exit, "Not implemented yet"
 
-    # Extract drift lengths
-    # drift_length = _get_s_increments(line.elements)
-
     # Extract angle and tilt from elements
-    # angle = []
-    # tilt = []
-    # for nn in line.element_names:
-    #     ee = line[nn]
-    #     hxl, hyl = (ee.hxl, ee.hyl) if hasattr(ee, "hxl") else (0, 0)
-    #     assert hyl == 0, ("Survey of machines with tilt not yet implemented, "
-    #                       f"{nn} has hyl={hyl} ")
-    #     this_angle = hxl  # TODO: generalize for non-flat lines
-    #     this_tilt = 0     # TODO: generalize for non-flat lines
-
-    #     angle.append(this_angle)
-    #     tilt.append(this_tilt)
     tt = line.get_table(attr = True)
     angle = tt.hxl
     tilt = angle * 0 # TODO: generalize for non-flat lines
