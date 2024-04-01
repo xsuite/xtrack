@@ -3706,22 +3706,113 @@ class Line:
     def _get_attr_cache(self):
         cache = LineAttr(
             line=self,
-            fields=[
-                'hxl', 'hyl', 'length', 'radiation_flag', 'delta_taper', 'ks',
-                'voltage', 'frequency', 'lag', 'lag_taper',
-                'k0', 'k1', 'k1s', 'k2', 'h',
-                ('knl', 0), ('ksl', 0), ('knl', 1), ('ksl', 1),
-                ('knl', 2), ('ksl', 2), ('knl', 3), ('ksl', 3),
-                (('_parent', 'k0'), None),
-            ],
+            fields={
+                'radiation_flag': None, 'delta_taper': None, 'ks': None,
+                'voltage': None, 'frequency': None, 'lag': None,
+                'lag_taper': None,
+
+                'weight': None,
+
+                '_own_length': 'length',
+
+                '_own_h': 'h',
+                '_own_hxl': 'hxl',
+                '_own_hyl': 'hyl',
+
+                '_own_k0': 'k0',
+                '_own_k1': 'k1',
+                '_own_k2': 'k2',
+                '_own_k3': 'k3',
+                '_own_k0s': 'k0s',
+                '_own_k1s': 'k1s',
+                '_own_k2s': 'k2s',
+                '_own_k3s': 'k3s',
+
+                '_own_k0l': ('knl', 0),
+                '_own_k1l': ('knl', 1),
+                '_own_k2l': ('knl', 2),
+                '_own_k3l': ('knl', 3),
+                '_own_k0sl': ('ksl', 0),
+                '_own_k1sl': ('ksl', 1),
+                '_own_k2sl': ('ksl', 2),
+                '_own_k3sl': ('ksl', 3),
+
+                '_parent_length': (('_parent', 'length'), None),
+                '_parent_h': (('_parent', 'h'), None),
+                '_parent_hxl': (('_parent', 'hxl'), None),
+                '_parent_hyl': (('_parent', 'hyl'), None),
+
+                '_parent_k0': (('_parent', 'k0'), None),
+                '_parent_k1': (('_parent', 'k1'), None),
+                '_parent_k2': (('_parent', 'k2'), None),
+                '_parent_k3': (('_parent', 'k3'), None),
+                '_parent_k0s': (('_parent', 'k0s'), None),
+                '_parent_k1s': (('_parent', 'k1s'), None),
+                '_parent_k2s': (('_parent', 'k2s'), None),
+                '_parent_k3s': (('_parent', 'k3s'), None),
+
+                '_parent_k0l': (('_parent', 'knl'), 0),
+                '_parent_k1l': (('_parent', 'knl'), 1),
+                '_parent_k2l': (('_parent', 'knl'), 2),
+                '_parent_k3l': (('_parent', 'knl'), 3),
+                '_parent_k0sl': (('_parent', 'ksl'), 0),
+                '_parent_k1sl': (('_parent', 'ksl'), 1),
+                '_parent_k2sl': (('_parent', 'ksl'), 2),
+                '_parent_k3sl': (('_parent', 'ksl'), 3),
+
+            },
             derived_fields={
-                'k0l': lambda attr: attr['knl', 0] + attr['k0'] * attr['length'],
-                'k1l': lambda attr: attr['knl', 1] + attr['k1'] * attr['length'],
-                'k2l': lambda attr: attr['knl', 2] + attr['k2'] * attr['length'],
-                'k3l': lambda attr: attr['knl', 3],
-                'angle_x': lambda attr: attr['hxl'] + attr['h'] * attr['length'],
-                'k1sl': lambda attr: attr['ksl', 1] + attr['k1s'] * attr['length'],
+                'length': lambda attr:
+                    attr['_own_length'] + attr['_parent_length'] * attr['weight'],
+                'hxl': lambda attr:
+                    attr['_own_hxl']
+                    + attr['_own_h'] * attr['_own_length']
+                    + attr['_parent_hxl'] * attr['weight']
+                    + attr['_parent_h'] * attr['_parent_length'] * attr['weight'],
+                'hyl': lambda attr:
+                    attr['_own_hyl'] + attr['_parent_hyl'] * attr['weight'],
+                'k0l': lambda attr: (
+                    attr['_own_k0l']
+                    + attr['_own_k0'] * attr['_own_length']
+                    + attr['_parent_k0l'] * attr['weight']
+                    + attr['_parent_k0'] * attr['_parent_length'] * attr['weight']),
+                'k0sl': lambda attr: (
+                    attr['_own_k0sl']
+                    + attr['_own_k0s'] * attr['_own_length']
+                    + attr['_parent_k0sl'] * attr['weight']
+                    + attr['_parent_k0s'] * attr['_parent_length'] * attr['weight']),
+                'k1l': lambda attr: (
+                    attr['_own_k1l']
+                    + attr['_own_k1'] * attr['_own_length']
+                    + attr['_parent_k1l'] * attr['weight']
+                    + attr['_parent_k1'] * attr['_parent_length'] * attr['weight']),
+                'k1sl': lambda attr: (
+                    attr['_own_k1sl']
+                    + attr['_own_k1s'] * attr['_own_length']
+                    + attr['_parent_k1sl'] * attr['weight']
+                    + attr['_parent_k1s'] * attr['_parent_length'] * attr['weight']),
+                'k2l': lambda attr: (
+                    attr['_own_k2l']
+                    + attr['_own_k2'] * attr['_own_length']
+                    + attr['_parent_k2l'] * attr['weight']
+                    + attr['_parent_k2'] * attr['_parent_length'] * attr['weight']),
+                'k2sl': lambda attr: (
+                    attr['_own_k2sl']
+                    + attr['_own_k2s'] * attr['_own_length']
+                    + attr['_parent_k2sl'] * attr['weight']
+                    + attr['_parent_k2s'] * attr['_parent_length'] * attr['weight']),
+                'k3l': lambda attr: (
+                    attr['_own_k3l']
+                    + attr['_own_k3'] * attr['_own_length']
+                    + attr['_parent_k3l'] * attr['weight']
+                    + attr['_parent_k3'] * attr['_parent_length'] * attr['weight']),
+                'k3sl': lambda attr: (
+                    attr['_own_k3sl']
+                    + attr['_own_k3s'] * attr['_own_length']
+                    + attr['_parent_k3sl'] * attr['weight']
+                    + attr['_parent_k3s'] * attr['_parent_length'] * attr['weight']),
             }
+
         )
         return cache
 
@@ -4507,18 +4598,29 @@ class LineAttr:
         as argument and returns the value of the derived field.
     """
     def __init__(self, line, fields, derived_fields=None):
+
+        assert isinstance(fields, dict)
+
+        field_names = list(fields.keys())
+        field_access = []
+        for fn in field_names:
+            fa = fields[fn]
+            if fa is None:
+                fa = fn
+            field_access.append(fa)
+
         self.line = line
         self.fields = fields
         self.derived_fields = derived_fields or {}
         self._cache = {}
 
-        for ff in fields:
-            if isinstance(ff, str):
-                name = ff
+        for fn, fa in zip(field_names, field_access):
+            if isinstance(fa, str):
+                access = fa
                 index = None
             else:
-                name, index = ff
-            self._cache[ff] = LineAttrItem(name=name, index=index, line=line)
+                access, index = fa
+            self._cache[fn] = LineAttrItem(name=access, index=index, line=line)
 
     def __getitem__(self, key):
         if key in self.derived_fields:
@@ -4527,7 +4629,7 @@ class LineAttr:
         return self._cache[key].get_full_array()
 
     def keys(self):
-        return list(self.fields) + list(self.derived_fields.keys())
+        return list(self.derived_fields.keys()) + list(self.fields)
 
 
 class EnergyProgram:
