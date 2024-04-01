@@ -86,8 +86,8 @@ class Drift(BeamElement):
         container[slice_name].length = _get_expr(container[thick_name].length) * weight
 
     @classmethod
-    def add_thick_slice(cls, weight, container, name, slice_name, _buffer=None):
-        cls.add_slice(weight, container, name, slice_name, _buffer=_buffer)
+    def add_thick_slice(cls, weight, container, thick_name, slice_name, _buffer=None):
+        cls.add_slice(weight, container, thick_name, slice_name, _buffer=_buffer)
 
 
 class Cavity(BeamElement):

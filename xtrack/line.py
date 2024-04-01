@@ -3712,6 +3712,7 @@ class Line:
                 'k0', 'k1', 'k1s', 'k2', 'h',
                 ('knl', 0), ('ksl', 0), ('knl', 1), ('ksl', 1),
                 ('knl', 2), ('ksl', 2), ('knl', 3), ('ksl', 3),
+                (('_parent', 'k0'), None),
             ],
             derived_fields={
                 'k0l': lambda attr: attr['knl', 0] + attr['k0'] * attr['length'],
@@ -4454,8 +4455,22 @@ class LineAttrItem:
         setter_names = []
         for ii, nn in enumerate(all_names):
             ee = line.element_dict[nn]
-            if hasattr(ee, '_xobject') and hasattr(ee._xobject, name):
-                if index is not None and index >= len(getattr(ee, name)):
+            if isinstance(name, (list, tuple)):
+                inner_obj = ee
+                inner_name = name[-1]
+                has_name = True
+                for nn_inner in name[:-1]:
+                    if not hasattr(inner_obj, nn_inner):
+                        has_name = False
+                        break
+                    inner_obj = getattr(inner_obj, nn_inner)
+                if not has_name:
+                    continue
+            else:
+                inner_obj = ee
+                inner_name = name
+            if hasattr(inner_obj, '_xobject') and hasattr(inner_obj._xobject, inner_name):
+                if index is not None and index >= len(getattr(inner_obj, inner_name)):
                     continue
                 mask[ii] = True
                 setter_names.append(nn)
