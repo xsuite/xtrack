@@ -1136,7 +1136,7 @@ class MadLoader:
         el.knl = knl[:lmax]
         el.ksl = ksl[:lmax]
 
-        if el.hyl:
+        if hasattr(el, 'hyl') and el.hyl:
             raise NotImplementedError("Multipole with hyl is not supported.")
 
         if (
