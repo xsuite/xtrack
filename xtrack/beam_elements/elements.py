@@ -721,6 +721,7 @@ class SimpleThinQuadrupole(BeamElement):
     }
 
     has_backtrack = True
+    allow_rot_and_shift = False
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/simplethinquadrupole.h')]
@@ -1262,6 +1263,7 @@ class SimpleThinBend(BeamElement):
     }
 
     has_backtrack = True
+    allow_rot_and_shift = False
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/simplethinbend.h')]
