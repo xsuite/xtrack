@@ -49,7 +49,6 @@ assert_allclose(p_slice.py, p0.py, rtol=0, atol=1e-10)
 assert_allclose(p_slice.zeta, p0.zeta, rtol=0, atol=1e-10)
 assert_allclose(p_slice.delta, p0.delta, rtol=0, atol=1e-10)
 
-
 line.optimize_for_tracking()
 
 if quad.shift_x !=0 or quad.shift_y != 0 or quad.rot_s_rad != 0:
