@@ -23,14 +23,15 @@ class QuadrupoleThickSlice(xt.BeamElement):
     ]
 
 quad = xt.Quadrupole(k1=0.1, length=1)
-quad.rot_s = 20.
+quad.rot_s_rad = 0 #np.deg2rad(20.)
 quad.shift_x = 0.1
-quad.shift_y = 0.2
+quad.shift_y = 0; 0.2
 
 
 quad_slice = QuadrupoleThickSlice(length=quad.length/2, parent=quad, _buffer=quad._buffer)
 
-p0 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03)
+p0 = xt.Particles(p0c=10e9, x=0.1)
+# p0 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03)
 p_ref = p0.copy()
 p_slice = p0.copy()
 
