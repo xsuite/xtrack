@@ -4824,8 +4824,6 @@ def _hxl_hyl_survey_from_attr(attr):
     own_hyl_survey = (
         own_sin_rot_s * own_hxl_proper_system + own_cos_rot_s * own_hyl_proper_system)
 
-    import pdb; pdb.set_trace()
-
     parent_hxl_survey = (
         parent_cos_rot_s * parent_hxl_proper_system
         - parent_sin_rot_s * parent_hyl_proper_system)
