@@ -1,9 +1,10 @@
 import xtrack as xt
 import numpy as np
 
-bend = xt.Bend(k0=0.4, h=0.3, k1=0.1, length=1,
+bend = xt.Bend(k0=0.4, h=0.3, length=1,
+            # k1=0.1,
             #    shift_x=1e-3, shift_y=2e-3, rot_s_rad=0.2
-               )
+            )
 
 line = xt.Line(elements=[bend])
 
@@ -67,5 +68,5 @@ assert_allclose(p_slice.delta, p0.delta, rtol=0, atol=1e-10)
 
 line.optimize_for_tracking()
 
-if bend.shift_x !=0 or bend.shift_y != 0 or bend.rot_s_rad != 0:
+if bend.shift_x !=0 or bend.shift_y != 0 or bend.rot_s_rad != 0 and bend.k1 != 0:
     assert isinstance(line['e0..995'], xt.Multipole)

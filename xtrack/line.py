@@ -2666,8 +2666,6 @@ class Line:
 
         """
 
-        import pdb; pdb.set_trace()
-
         if self.iscollective:
             raise NotImplementedError("Optimization is not implemented for "
                                       "collective trackers")
