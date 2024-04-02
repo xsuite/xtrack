@@ -136,6 +136,24 @@ class ThinSliceOctupole(BeamElement):
         obj._parent_name = dct['_parent_name']
         return obj
 
+    def get_equivalent_multipole(self):
+
+        knl = [0., 0., 0., 0.]
+        ksl = [0., 0., 0., 0.]
+
+        knl[3] += self._parent.k3 * self._parent.length * self.weight
+        ksl[3] += self._parent.k3s * self._parent.length * self.weight
+
+        length = self._parent.length * self.weight
+
+        out = Multipole(knl=knl, ksl=ksl, length=length,
+                        hxl=0,
+                        shift_x=self._parent.shift_x,
+                        shift_y=self._parent.shift_y,
+                        rot_s_rad=self._parent.rot_s_rad,
+                        _buffer=self._buffer)
+        return out
+
 _thin_slice_bend_xofields = {
     '_parent': xo.Ref(Bend)}
 _thin_slice_bend_xofields.update(_common_xofields)
