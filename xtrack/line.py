@@ -3709,7 +3709,7 @@ class Line:
             fields={
                 'radiation_flag': None, 'delta_taper': None, 'ks': None,
                 'voltage': None, 'frequency': None, 'lag': None,
-                'lag_taper': None,
+                'lag_taper': None, '_sin_rot_s': None, '_cos_rot_s': None,
 
                 'weight': None,
 
@@ -3764,13 +3764,8 @@ class Line:
             derived_fields={
                 'length': lambda attr:
                     attr['_own_length'] + attr['_parent_length'] * attr['weight'],
-                'hxl': lambda attr:
-                    attr['_own_hxl']
-                    + attr['_own_h'] * attr['_own_length']
-                    + attr['_parent_hxl'] * attr['weight']
-                    + attr['_parent_h'] * attr['_parent_length'] * attr['weight'],
-                'hyl': lambda attr:
-                    attr['_own_hyl'] + attr['_parent_hyl'] * attr['weight'],
+                'hxl': lambda attr: _hxl_hyl_survey_from_attr(attr)[0],
+                'hyl': lambda attr: _hxl_hyl_survey_from_attr(attr)[1],
                 'k0l': lambda attr: (
                     attr['_own_k0l']
                     + attr['_own_k0'] * attr['_own_length']
@@ -4784,3 +4779,34 @@ def _vars_unused(line):
         and 't_turn_s' in line.vars.keys()):
         return True
     return False
+
+def _hxl_hyl_survey_from_attr(attr):
+
+    weight = attr['weight']
+
+    own_hxl = attr['_own_hxl']
+    own_h = attr['_own_h']
+    own_length = attr['_own_length']
+    parent_hxl = attr['_parent_hxl']
+    parent_h = attr['_parent_h']
+    parent_length = attr['_parent_length']
+
+    own_hyl = attr['_own_hyl']
+    parent_hyl = attr['_parent_hyl']
+
+    hxl_proper_system = (own_hxl + own_h * own_length
+            + parent_hxl * weight + parent_h * parent_length * weight)
+
+    hyl_proper_system = own_hyl + parent_hyl * weight
+
+    _cos_rot_s = attr['_cos_rot_s']
+    _sin_rot_s = attr['_sin_rot_s']
+
+    mask_inactive = _sin_rot_s < -2.
+    _cos_rot_s[mask_inactive] = 1.
+    _sin_rot_s[mask_inactive] = 0.
+
+    hxl_survey = (_cos_rot_s * hxl_proper_system - _sin_rot_s * hyl_proper_system)
+    hyl_survey = (_sin_rot_s * hxl_proper_system + _cos_rot_s * hyl_proper_system)
+
+    return hxl_survey, hyl_survey
