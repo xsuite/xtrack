@@ -103,10 +103,10 @@ def test_eq_emitt(conf):
         assert_allclose(tw_after_tilt.betx, tw_before_tilt.bety, rtol=3e-5, atol=0)
 
         assert_allclose(tw_after_tilt.y, tw_before_tilt.x, rtol=0, atol=1e-9)
-        assert_allclose(tw_after_tilt.x, tw_before_tilt.y, rtol=0, atol=1e-9)
+        assert_allclose(tw_after_tilt.x, -tw_before_tilt.y, rtol=0, atol=1e-9)
 
         assert_allclose(tw_after_tilt.dy, tw_before_tilt.dx, rtol=0, atol=5e-6)
-        assert_allclose(tw_after_tilt.dx, tw_before_tilt.dy, rtol=0, atol=5e-6)
+        assert_allclose(tw_after_tilt.dx, -tw_before_tilt.dy, rtol=0, atol=5e-6)
 
     line.configure_radiation(model='mean')
     line.compensate_radiation_energy_loss()
@@ -144,7 +144,7 @@ def test_eq_emitt(conf):
         assert np.isclose(ez, 3.5762e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
-        assert np.isclose(ex, 2.5531e-12, atol=0,     rtol=4e-3)
+        assert np.isclose(ex, 2.5385e-12, atol=0,     rtol=4e-3)
         assert np.isclose(ey, 7.0576e-10, atol=0,     rtol=1e-4)
         assert np.isclose(ez, 3.5763e-6,  atol=0,     rtol=1e-4)
         checked = True
