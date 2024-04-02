@@ -4794,13 +4794,15 @@ def _hxl_hyl_survey_from_attr(attr):
     own_hyl = attr['_own_hyl']
     parent_hyl = attr['_parent_hyl']
 
+    import pdb; pdb.set_trace()
+
     hxl_proper_system = (own_hxl + own_h * own_length
             + parent_hxl * weight + parent_h * parent_length * weight)
 
     hyl_proper_system = own_hyl + parent_hyl * weight
 
-    _cos_rot_s = attr['_cos_rot_s']
-    _sin_rot_s = attr['_sin_rot_s']
+    _cos_rot_s = attr['_cos_rot_s'].copy()
+    _sin_rot_s = attr['_sin_rot_s'].copy()
 
     mask_inactive = _sin_rot_s < -2.
     _cos_rot_s[mask_inactive] = 1.
