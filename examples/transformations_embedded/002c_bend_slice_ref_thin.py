@@ -70,3 +70,5 @@ line.optimize_for_tracking()
 
 if bend.shift_x !=0 or bend.shift_y != 0 or bend.rot_s_rad != 0 and bend.k1 != 0:
     assert isinstance(line['e0..995'], xt.Multipole)
+else:
+    assert isinstance(line['e0..995'], xt.SimpleThinBend)
