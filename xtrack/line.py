@@ -3709,11 +3709,14 @@ class Line:
             fields={
                 'radiation_flag': None, 'delta_taper': None, 'ks': None,
                 'voltage': None, 'frequency': None, 'lag': None,
-                'lag_taper': None, '_sin_rot_s': None, '_cos_rot_s': None,
+                'lag_taper': None,
 
                 'weight': None,
 
                 '_own_length': 'length',
+
+                '_own_sin_rot_s': '_sin_rot_s',
+                '_own_cos_rot_s': '_cos_rot_s',
 
                 '_own_h': 'h',
                 '_own_hxl': 'hxl',
@@ -3738,6 +3741,9 @@ class Line:
                 '_own_k3sl': ('ksl', 3),
 
                 '_parent_length': (('_parent', 'length'), None),
+                '_parent_sin_rot_s': (('_parent', '_sin_rot_s'), None),
+                '_parent_cos_rot_s': (('_parent', '_cos_rot_s'), None),
+
                 '_parent_h': (('_parent', 'h'), None),
                 '_parent_hxl': (('_parent', 'hxl'), None),
                 '_parent_hyl': (('_parent', 'hyl'), None),
@@ -4785,30 +4791,49 @@ def _hxl_hyl_survey_from_attr(attr):
     weight = attr['weight']
 
     own_hxl = attr['_own_hxl']
+    own_hyl = attr['_own_hyl']
     own_h = attr['_own_h']
     own_length = attr['_own_length']
+    own_sin_rot_s = attr['_own_sin_rot_s'].copy()
+    own_cos_rot_s = attr['_own_cos_rot_s'].copy()
     parent_hxl = attr['_parent_hxl']
+    parent_hyl = attr['_parent_hyl']
     parent_h = attr['_parent_h']
     parent_length = attr['_parent_length']
+    parent_sin_rot_s = attr['_parent_sin_rot_s'].copy()
+    parent_cos_rot_s = attr['_parent_cos_rot_s'].copy()
 
-    own_hyl = attr['_own_hyl']
-    parent_hyl = attr['_parent_hyl']
+    has_own_rot = (own_cos_rot_s !=0) | (own_sin_rot_s != 0)
+    mask_own_rot_inactive = own_sin_rot_s < -2.
+    own_cos_rot_s[mask_own_rot_inactive] = 1.
+    own_sin_rot_s[mask_own_rot_inactive] = 0.
+
+    has_parent_rot = (parent_cos_rot_s !=0) | (parent_sin_rot_s != 0)
+    mask_parent_rot_inactive = parent_sin_rot_s < -2.
+    parent_cos_rot_s[mask_parent_rot_inactive] = 1.
+    parent_sin_rot_s[mask_parent_rot_inactive] = 0.
+
+    own_hxl_proper_system = own_hxl + own_h * own_length
+    parent_hxl_proper_system = parent_hxl * weight + parent_h * parent_length * weight
+
+    own_hyl_proper_system = own_hyl
+    parent_hyl_proper_system = parent_hyl * weight
+
+    own_hxl_survey = (
+        own_cos_rot_s * own_hxl_proper_system - own_sin_rot_s * own_hyl_proper_system)
+    own_hyl_survey = (
+        own_sin_rot_s * own_hxl_proper_system + own_cos_rot_s * own_hyl_proper_system)
 
     import pdb; pdb.set_trace()
 
-    hxl_proper_system = (own_hxl + own_h * own_length
-            + parent_hxl * weight + parent_h * parent_length * weight)
+    parent_hxl_survey = (
+        parent_cos_rot_s * parent_hxl_proper_system
+        - parent_sin_rot_s * parent_hyl_proper_system)
+    parent_hyl_survey = (
+        parent_sin_rot_s * parent_hxl_proper_system
+        + parent_cos_rot_s * parent_hyl_proper_system)
 
-    hyl_proper_system = own_hyl + parent_hyl * weight
-
-    _cos_rot_s = attr['_cos_rot_s'].copy()
-    _sin_rot_s = attr['_sin_rot_s'].copy()
-
-    mask_inactive = _sin_rot_s < -2.
-    _cos_rot_s[mask_inactive] = 1.
-    _sin_rot_s[mask_inactive] = 0.
-
-    hxl_survey = (_cos_rot_s * hxl_proper_system - _sin_rot_s * hyl_proper_system)
-    hyl_survey = (_sin_rot_s * hxl_proper_system + _cos_rot_s * hyl_proper_system)
+    hxl_survey = own_hxl_survey * has_own_rot + parent_hxl_survey * has_parent_rot
+    hyl_survey = own_hyl_survey * has_own_rot + parent_hyl_survey * has_parent_rot
 
     return hxl_survey, hyl_survey
