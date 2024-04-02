@@ -467,10 +467,8 @@ class Alignment:
         self.mad_el = mad_el
         self.bv = bv
         self.tilt = bv * mad_el.get("tilt", 0)  # some elements do not have tilt
-        if self.tilt:
-            self.tilt = rad2deg(self.tilt)
         if custom_tilt is not None:
-            self.tilt += rad2deg(custom_tilt)
+            self.tilt += custom_tilt
         self.name = mad_el.name
         self.dx = 0
         self.dy = 0
@@ -821,7 +819,7 @@ class MadLoader:
         # using directly tilt and shift in the element
         for xtee in xtrack_el:
             if align.tilt or align.dx or align.dy:
-                xtee.rot_s = align.tilt
+                xtee.rot_s_rad = align.tilt
                 xtee.shift_x = align.dx
                 xtee.shift_y = align.dy
         align.tilt = 0

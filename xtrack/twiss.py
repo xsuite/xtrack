@@ -1398,8 +1398,8 @@ def _extract_sr_distribution_properties(line, px_co, py_co, ptau_co):
     if np.any(radiation_flag > 1):
         raise ValueError('Incompatible radiation flag')
 
-    hxl = line.attr['hxl']
-    hyl = line.attr['hyl']
+    hxl = line.attr['angle_rad'] * np.cos(line.attr['rot_s_rad'])
+    hyl = line.attr['angle_rad'] * np.sin(line.attr['rot_s_rad'])
     dl = line.attr['length'] * (radiation_flag == 1)
 
     mask = (dl != 0)

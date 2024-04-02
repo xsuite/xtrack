@@ -246,11 +246,11 @@ def _tranformations_active(self):
 def _rot_s_property(self):
     if self._sin_rot_s < -2.:
         return 0.
-    return np.arctan2(self._sin_rot_s, self._cos_rot_s) * 180. / np.pi
+    return np.arctan2(self._sin_rot_s, self._cos_rot_s)
 
 def _set_rot_s_property_setter(self, value):
-    self._sin_rot_s = np.sin(value * np.pi / 180.)
-    self._cos_rot_s = np.cos(value * np.pi / 180.)
+    self._sin_rot_s = np.sin(value)
+    self._cos_rot_s = np.cos(value)
     if not _tranformations_active(self):
         self._sin_rot_s = -999.
     elif self._sin_rot_s < -2.:
@@ -411,7 +411,7 @@ class MetaBeamElement(xo.MetaHybridClass):
             ))
 
         if allow_rot_and_shift:
-            new_class.rot_s = property(_rot_s_property, _set_rot_s_property_setter)
+            new_class.rot_s_rad = property(_rot_s_property, _set_rot_s_property_setter)
             new_class.shift_x = property(_shiftx_property, _set_shiftx_property_setter)
             new_class.shift_y = property(_shifty_property, _set_shifty_property_setter)
 
@@ -526,14 +526,14 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             raise ValueError("Invalid array type")
 
     def xoinitialize(self, **kwargs):
-        rot_s = kwargs.pop('rot_s', None)
+        rot_s_rad = kwargs.pop('rot_s_rad', None)
         shift_x = kwargs.pop('shift_x', None)
         shift_y = kwargs.pop('shift_y', None)
 
         xo.HybridClass.xoinitialize(self, **kwargs)
 
-        if rot_s is not None:
-            self.rot_s = rot_s
+        if rot_s_rad is not None:
+            self.rot_s_rad = rot_s_rad
 
         if shift_x is not None:
             self.shift_x = shift_x

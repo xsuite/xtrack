@@ -147,7 +147,6 @@ void Multipole_track_single_particle(LocalParticle* part,
         #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
         if (radiation_flag > 0 && length > 0){
             double const x      = LocalParticle_get_x(part);
-            double const y      = LocalParticle_get_y(part);
             double const L_path = 0.5*length * (1 + (hxl*x)/length);
             if (radiation_flag == 1){
                 synrad_average_kick(part, curv, L_path,

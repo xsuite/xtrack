@@ -3768,8 +3768,8 @@ class Line:
             derived_fields={
                 'length': lambda attr:
                     attr['_own_length'] + attr['_parent_length'] * attr['weight'],
-                'angle': _angle_from_attr,
-                'rot_s': _rot_s_from_attr,
+                'angle_rad': _angle_from_attr,
+                'rot_s_rad': _rot_s_from_attr,
                 'k0l': lambda attr: (
                     attr['_own_k0l']
                     + attr['_own_k0'] * attr['_own_length']
@@ -4824,5 +4824,4 @@ def _rot_s_from_attr(attr):
     rot_s_rad[has_parent_rot] = np.arctan2(parent_sin_rot_s[has_parent_rot],
                                             parent_cos_rot_s[has_parent_rot])
 
-    rot_s_deg = np.rad2deg(rot_s_rad)
-    return rot_s_deg
+    return rot_s_rad

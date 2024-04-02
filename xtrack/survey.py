@@ -201,8 +201,8 @@ def survey_from_line(line, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
 
     # Extract angle and tilt from elements
     tt = line.get_table(attr = True)
-    angle = np.sqrt(tt.hxl**2 + tt.hyl**2)
-    tilt = np.arctan2(tt.hyl, tt.hxl)
+    angle = tt.angle_rad
+    tilt = tt.rot_s_rad
     drift_length = tt.length
     drift_length[~tt.isthick] = 0
 
