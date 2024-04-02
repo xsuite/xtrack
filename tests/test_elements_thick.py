@@ -99,14 +99,16 @@ def test_combined_function_dipole_against_ptc(test_context, k0, k1, k2, length,
                            atol=(1e-10 if k1 == 0 and k2 == 0 else 5e-9))
         assert np.allclose(part.ptau[ii], mad_results.pt, atol=1e-11, rtol=0)
 
-        line_core_only = xt.Line(elements=[line_thick['b']])
+        line_core_only = xt.Line(elements=[line_thick['b'].copy()])
         line_core_only.build_tracker(_context=test_context)
+        line_core_only.configure_bend_model(edge='suppressed')
 
         part = p0.copy(_context=test_context)
         line_core_only.track(part)
         line_core_only.track(part, backtrack=True)
         part.move(_context=xo.context_default)
         p0.move(_context=xo.context_default)
+        assert np.all(part.state == 1)
         assert np.allclose(part.x[ii], p0.x[ii], atol=1e-11, rtol=0)
         assert np.allclose(part.px[ii], p0.px[ii], atol=1e-11, rtol=0)
         assert np.allclose(part.y[ii], p0.y[ii], atol=1e-11, rtol=0)
