@@ -18,37 +18,22 @@ if wiggler_on:
 if vertical_orbit_distortion:
     line['mwi.e5rg'].ksl[0] = 2e-7
 
-# Make sure there is no vertical bend nor skew element
-for ee in line.elements:
-    if isinstance(ee, xt.Multipole):
-        assert np.all(ee.ksl[1:] == 0)
-
 if tilt_machine_by_90_degrees:
 
     tw_before_tilt = line.twiss()
 
-    # Bring the machine to the vertical plane
-    for ee in line.elements:
-        if isinstance(ee, xt.Multipole):
-            knl = ee.knl.copy()
-            ksl = ee.ksl.copy()
-            hxl = ee.hxl
-            hyl = ee.hyl
-
-            ee.hxl = -hyl
-            ee.hyl = -hxl
-
-            ee.knl[0] = -ksl[0]
-            ee.ksl[0] = -knl[0]
-            if len(knl) > 1:
-                ee.knl[1] = -knl[1]
-                ee.ksl[1] = 0
-            if len(knl) > 2:
-                ee.knl[2] = 0
-                ee.ksl[2] = knl[2]
-
-        if isinstance(ee, xt.DipoleEdge):
-            ee._r21, ee._r43 = ee._r43, ee._r21
+    already_tilted = []
+    for nn in line.element_names:
+        if hasattr(line[nn], 'rot_s_rad'):
+            if nn not in already_tilted:
+                line[nn].rot_s_rad += np.pi/2
+                already_tilted.append(nn)
+        if hasattr(line[nn], '_parent_name'):
+            nn_parent = line[nn]._parent_name
+            if hasattr(line[nn_parent], 'rot_s_rad'):
+                if nn_parent not in already_tilted:
+                    line[nn_parent].rot_s_rad += np.pi/2
+                    already_tilted.append(nn_parent)
 
     tw_after_tilt = line.twiss()
 
