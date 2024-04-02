@@ -74,7 +74,7 @@ void ThinSliceBend_track_local_particle(
         #endif
 
         Multipole_track_single_particle(part,
-            hxl_bend, 0., length, weight, // weight 1
+            hxl_bend, length, weight, // weight 1
             knl, ksl, order, inv_factorial_order, // first tap unused
             knl_bend, ksl_bend, 1, 1,
             backtrack_sign,

@@ -56,7 +56,7 @@ void multipole_compute_dpx_dpy_single_particle(LocalParticle* part,
 
 /*gpuglmem*/
 void Multipole_track_single_particle(LocalParticle* part,
-    double hxl, double hyl, double length, double weight,
+    double hxl, double length, double weight,
     double const* knl, double const* ksl,
     int64_t const order, double const inv_factorial_order_0,
     double const* knl_2, double const* ksl_2,
@@ -95,8 +95,7 @@ void Multipole_track_single_particle(LocalParticle* part,
         double const curv = sqrt(dpx*dpx + dpy*dpy) / length;
         if (radiation_flag > 0 && length > 0){
             double const x      = LocalParticle_get_x(part);
-            double const y      = LocalParticle_get_y(part);
-            double const L_path = 0.5 * length * (1 + (hxl*x - hyl*y)/length);
+            double const L_path = 0.5 * length * (1 + hxl*x/length);
             if (radiation_flag == 1){
                 synrad_average_kick(part, curv, L_path,
                         dp_record_entry, dpx_record_entry, dpy_record_entry);
@@ -107,47 +106,38 @@ void Multipole_track_single_particle(LocalParticle* part,
         }
         #endif
 
-        if( ( hxl > 0) || ( hyl > 0) || ( hxl < 0 ) || ( hyl < 0 ) )
+        if( ( hxl > 0) || ( hxl < 0 ) )
         {
             double const delta  = LocalParticle_get_delta(part);
             double const chi    = LocalParticle_get_chi(part);
             double const x      = LocalParticle_get_x(part);
-            double const y      = LocalParticle_get_y(part);
 
             double const hxlx   = x * hxl;
-            double const hyly   = y * hyl;
 
             double const rv0v = 1./LocalParticle_get_rvv(part);
 
             dpx += (hxl + hxl * delta);
-            dpy -= (hyl + hyl * delta);
 
             if( length != 0)
             {
                 double knl0 = 0;
-                double ksl0 = 0;
 
                 if (knl){
                     knl0 += knl[0];
-                    ksl0 += ksl[0];
                 }
 
                 if (knl_2){
                     knl0 += knl_2[0];
-                    ksl0 += ksl_2[0];
                 }
 
                 double b1l = backtrack_sign * chi * knl0 * weight;
-                double a1l = backtrack_sign * chi * ksl0 * weight;
 
                 b1l = b1l * (1 + delta_tap);
-                a1l = a1l * (1 + delta_tap);
 
                 dpx -= b1l * hxlx / length;
-                dpy -= a1l * hyly / length;
             }
 
-            LocalParticle_add_to_zeta(part, rv0v*chi * ( hyly - hxlx ) );
+            LocalParticle_add_to_zeta(part, -rv0v*chi * hxlx);
         }
 
         LocalParticle_add_to_px(part, dpx);
@@ -158,7 +148,7 @@ void Multipole_track_single_particle(LocalParticle* part,
         if (radiation_flag > 0 && length > 0){
             double const x      = LocalParticle_get_x(part);
             double const y      = LocalParticle_get_y(part);
-            double const L_path = 0.5*length * (1 + (hxl*x - hyl*y)/length);
+            double const L_path = 0.5*length * (1 + (hxl*x)/length);
             if (radiation_flag == 1){
                 synrad_average_kick(part, curv, L_path,
                         dp_record_exit, dpx_record_exit, dpy_record_exit);

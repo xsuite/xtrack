@@ -67,7 +67,7 @@ void ThinSliceOctupole_track_local_particle(
         #endif
 
         Multipole_track_single_particle(part,
-            0., 0., length, weight, // weight 1
+            0., length, weight, // weight 1
             NULL, NULL, -1, -1, // first tap unused
             knl_oct, ksl_oct, 3, 1./6.,
             backtrack_sign,

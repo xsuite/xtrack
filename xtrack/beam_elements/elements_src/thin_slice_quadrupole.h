@@ -66,7 +66,7 @@ void ThinSliceQuadrupole_track_local_particle(
         #endif
 
         Multipole_track_single_particle(part,
-            0., 0., length, weight, // weight 1
+            0., length, weight, // weight 1
             NULL, NULL, -1, -1, // first tap unused
             knl_quad, ksl_quad, 1, 1,
             backtrack_sign,

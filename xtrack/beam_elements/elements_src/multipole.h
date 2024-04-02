@@ -46,10 +46,8 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 
     #ifndef XSUITE_BACKTRACK
         double const hxl = MultipoleData_get_hxl(el);
-        double const hyl = MultipoleData_get_hyl(el);
     #else
         double const hxl = -MultipoleData_get_hxl(el);
-        double const hyl = -MultipoleData_get_hyl(el);
     #endif
 
     /*gpuglmem*/ double const* knl = MultipoleData_getp1_knl(el, 0);
@@ -70,7 +68,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         #endif
 
         Multipole_track_single_particle(part,
-            hxl, hyl, length, 1, //weight 1
+            hxl, length, 1, //weight 1
             knl, ksl, order, inv_factorial_order_0,
             NULL, NULL, -1, -1., // second tap unused
             backtrack_sign,

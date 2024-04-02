@@ -1138,13 +1138,15 @@ class MadLoader:
         el.knl = knl[:lmax]
         el.ksl = ksl[:lmax]
 
+        if el.hyl:
+            raise NotImplementedError("Multipole with hyl is not supported.")
+
         if (
             mad_elem.angle
         ):  # testing for non-zero (cannot use !=0 as it creates an expression)
             el.hxl = mad_elem.angle
         else:
             el.hxl = mad_elem.knl[0]  # in madx angle=0 -> dipole
-            el.hyl = mad_elem.ksl[0]  # in madx angle=0 -> dipole
         el.length = mad_elem.lrad
         return self.make_compound_elem([el], mad_elem)
 
@@ -1158,7 +1160,6 @@ class MadLoader:
             ksl=vkick,
             length=(mad_el.l or mad_el.lrad),
             hxl=0,
-            hyl=0,
         )
 
         if value_if_expr(mad_el.l) != 0:
@@ -1191,7 +1192,6 @@ class MadLoader:
             ksl=vkick,
             length=(mad_el.l or mad_el.lrad),
             hxl=0,
-            hyl=0,
         )
 
         if value_if_expr(mad_el.l) != 0:
@@ -1222,7 +1222,6 @@ class MadLoader:
             ksl=vkick,
             length=(mad_el.l or mad_el.lrad),
             hxl=0,
-            hyl=0,
         )
 
         if value_if_expr(mad_el.l) != 0:

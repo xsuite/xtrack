@@ -2843,7 +2843,7 @@ class Line:
         for ee, nn in zip(self.elements, self.element_names):
             if isinstance(ee, Multipole) and nn not in keep:
                 ctx2np = ee._context.nparray_from_context_array
-                aux = ([ee.hxl, ee.hyl]
+                aux = ([ee.hxl]
                         + list(ctx2np(ee.knl)) + list(ctx2np(ee.ksl)))
                 if np.sum(np.abs(np.array(aux))) == 0.0:
                     continue
@@ -3258,7 +3258,7 @@ class Line:
                 prev_nn = newline.element_names[-1]
                 prev_ee = newline.element_dict[prev_nn]
                 if (isinstance(prev_ee, Multipole)
-                    and prev_ee.hxl==ee.hxl==0 and prev_ee.hyl==ee.hyl==0
+                    and prev_ee.hxl==ee.hxl==0
                     and prev_nn not in keep
                     ):
 
@@ -3275,7 +3275,7 @@ class Line:
                     for ii,kk in enumerate(ee._xobject.ksl):
                         ksl[ii]+=kk
                     newee = Multipole(
-                            knl=knl, ksl=ksl, hxl=prev_ee.hxl, hyl=prev_ee.hyl,
+                            knl=knl, ksl=ksl, hxl=prev_ee.hxl,
                             length=prev_ee.length,
                             radiation_flag=prev_ee.radiation_flag)
                     prev_nn += ('_' + nn)
@@ -3720,7 +3720,6 @@ class Line:
 
                 '_own_h': 'h',
                 '_own_hxl': 'hxl',
-                '_own_hyl': 'hyl',
 
                 '_own_k0': 'k0',
                 '_own_k1': 'k1',
@@ -3746,7 +3745,6 @@ class Line:
 
                 '_parent_h': (('_parent', 'h'), None),
                 '_parent_hxl': (('_parent', 'hxl'), None),
-                '_parent_hyl': (('_parent', 'hyl'), None),
 
                 '_parent_k0': (('_parent', 'k0'), None),
                 '_parent_k1': (('_parent', 'k1'), None),
@@ -3770,8 +3768,8 @@ class Line:
             derived_fields={
                 'length': lambda attr:
                     attr['_own_length'] + attr['_parent_length'] * attr['weight'],
-                'hxl': lambda attr: _hxl_hyl_survey_from_attr(attr)[0],
-                'hyl': lambda attr: _hxl_hyl_survey_from_attr(attr)[1],
+                'angle': _angle_from_attr,
+                'rot_s': _rot_s_from_attr,
                 'k0l': lambda attr: (
                     attr['_own_k0l']
                     + attr['_own_k0'] * attr['_own_length']
@@ -4052,15 +4050,14 @@ def _is_simple_quadrupole(el):
             el.order == 1 and
             el.knl[0] == 0 and
             not any(el.ksl) and
-            not el.hxl and
-            not el.hyl)
+            not el.hxl)
 
 
 def _is_simple_dipole(el):
     if not isinstance(el, Multipole):
         return False
     return (el.radiation_flag == 0 and el.order == 0
-            and not any(el.ksl) and not el.hyl)
+            and not any(el.ksl))
 
 
 @contextmanager
@@ -4786,20 +4783,28 @@ def _vars_unused(line):
         return True
     return False
 
-def _hxl_hyl_survey_from_attr(attr):
+def _angle_from_attr(attr):
 
     weight = attr['weight']
 
     own_hxl = attr['_own_hxl']
-    own_hyl = attr['_own_hyl']
     own_h = attr['_own_h']
     own_length = attr['_own_length']
-    own_sin_rot_s = attr['_own_sin_rot_s'].copy()
-    own_cos_rot_s = attr['_own_cos_rot_s'].copy()
     parent_hxl = attr['_parent_hxl']
-    parent_hyl = attr['_parent_hyl']
     parent_h = attr['_parent_h']
     parent_length = attr['_parent_length']
+
+    own_hxl_proper_system = own_hxl + own_h * own_length
+    parent_hxl_proper_system = parent_hxl * weight + parent_h * parent_length * weight
+
+    angle = own_hxl_proper_system + parent_hxl_proper_system
+
+    return angle
+
+def _rot_s_from_attr(attr):
+
+    own_sin_rot_s = attr['_own_sin_rot_s'].copy()
+    own_cos_rot_s = attr['_own_cos_rot_s'].copy()
     parent_sin_rot_s = attr['_parent_sin_rot_s'].copy()
     parent_cos_rot_s = attr['_parent_cos_rot_s'].copy()
 
@@ -4813,25 +4818,11 @@ def _hxl_hyl_survey_from_attr(attr):
     parent_cos_rot_s[mask_parent_rot_inactive] = 1.
     parent_sin_rot_s[mask_parent_rot_inactive] = 0.
 
-    own_hxl_proper_system = own_hxl + own_h * own_length
-    parent_hxl_proper_system = parent_hxl * weight + parent_h * parent_length * weight
+    rot_s_rad = 0. * own_sin_rot_s
+    rot_s_rad[has_own_rot] = np.arctan2(own_sin_rot_s[has_own_rot],
+                                        own_cos_rot_s[has_own_rot])
+    rot_s_rad[has_parent_rot] = np.arctan2(parent_sin_rot_s[has_parent_rot],
+                                            parent_cos_rot_s[has_parent_rot])
 
-    own_hyl_proper_system = own_hyl
-    parent_hyl_proper_system = parent_hyl * weight
-
-    own_hxl_survey = (
-        own_cos_rot_s * own_hxl_proper_system - own_sin_rot_s * own_hyl_proper_system)
-    own_hyl_survey = (
-        own_sin_rot_s * own_hxl_proper_system + own_cos_rot_s * own_hyl_proper_system)
-
-    parent_hxl_survey = (
-        parent_cos_rot_s * parent_hxl_proper_system
-        - parent_sin_rot_s * parent_hyl_proper_system)
-    parent_hyl_survey = (
-        parent_sin_rot_s * parent_hxl_proper_system
-        + parent_cos_rot_s * parent_hyl_proper_system)
-
-    hxl_survey = own_hxl_survey * has_own_rot + parent_hxl_survey * has_parent_rot
-    hyl_survey = own_hyl_survey * has_own_rot + parent_hyl_survey * has_parent_rot
-
-    return hxl_survey, hyl_survey
+    rot_s_deg = np.rad2deg(rot_s_rad)
+    return rot_s_deg

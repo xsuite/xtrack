@@ -609,8 +609,6 @@ class Multipole(BeamElement):
         Order of the multipole. Default is ``0``.
     hxl : float
         Rotation angle of the reference trajectory in the horizontal plane in radians. Default is ``0``.
-    hyl : float
-        Rotation angle of the reference trajectory in the vertical plane in radians. Default is ``0``.
     length : float
         Length of the originating thick multipole. Default is ``0``.
 
@@ -621,7 +619,6 @@ class Multipole(BeamElement):
         'inv_factorial_order': xo.Float64,
         'length': xo.Float64,
         'hxl': xo.Float64,
-        'hyl': xo.Float64,
         'radiation_flag': xo.Int64,
         'delta_taper': xo.Float64,
         'knl': xo.Float64[:],
@@ -660,6 +657,9 @@ class Multipole(BeamElement):
                 knl = [_bal[idx] * factorial(idx // 2, exact=True) for idx in idxes]
                 ksl = [_bal[idx + 1] * factorial(idx // 2, exact=True) for idx in idxes]
 
+        if 'hyl' in kwargs.keys():
+            assert kwargs['hyl'] == 0.0, 'hyl is not supported anymore'
+
         len_knl = len(knl) if knl is not None else 0
         len_ksl = len(ksl) if ksl is not None else 0
         n = max((order + 1), max(len_knl, len_ksl))
@@ -695,10 +695,18 @@ class Multipole(BeamElement):
         self._order = value
         self.inv_factorial_order = 1.0 / factorial(value, exact=True)
 
+    @property
+    def hyl(self):
+        raise ValueError("hyl is not anymore supported")
+
+    @hyl.setter
+    def hyl(self, value):
+        raise ValueError("hyl is not anymore supported")
+
 
 class SimpleThinQuadrupole(BeamElement):
     """An specialized version of Multipole to model a thin quadrupole
-    (knl[0], ksl, hxl, hyl are all zero).
+    (knl[0], ksl, hxl, are all zero).
 
     Parameters
     ----------
@@ -734,9 +742,6 @@ class SimpleThinQuadrupole(BeamElement):
 
     @property
     def hxl(self): return 0.0
-
-    @property
-    def hyl(self): return 0.0
 
     @property
     def length(self): return 0.0
@@ -925,9 +930,6 @@ class Bend(BeamElement):
 
     @property
     def hxl(self): return self.h * self.length
-
-    @property
-    def hyl(self): return 0.0
 
     @property
     def radiation_flag(self): return 0.0
@@ -1243,7 +1245,7 @@ class Wedge(BeamElement):
 
 
 class SimpleThinBend(BeamElement):
-    '''A specialized version of Multipole to model a thin bend (ksl, hyl are all zero).
+    '''A specialized version of Multipole to model a thin bend (ksl are all zero).
     knl : array
         Normalized integrated strength of the normal components in units of m^-n.
         Must be of length 1.
@@ -1282,9 +1284,6 @@ class SimpleThinBend(BeamElement):
 
         kwargs["knl"] = knl
         self.xoinitialize(**kwargs)
-
-    @property
-    def hyl(self): return 0.0
 
     @property
     def radiation_flag(self): return 0.0
