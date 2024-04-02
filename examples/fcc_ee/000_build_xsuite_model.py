@@ -26,7 +26,7 @@ line_thick = xt.Line.from_madx_sequence(mad.sequence.fccee_p_ring, allow_thick=T
 tt = line_thick.get_table()
 wigs = tt.rows['mwi.*', tt.element_type=='Bend'].name
 for nn in wigs:
-    line_thick.element_refs[nn].rot_s = 90.0
+    line_thick.element_refs[nn].rot_s_rad = np.pi/2
 
 line_thick.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV,
                                  gamma0=mad.sequence.fccee_p_ring.beam.gamma)

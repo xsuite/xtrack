@@ -16,7 +16,7 @@ if wiggler_on:
     line.vars['on_wiggler_v'] = 0.4
 
 if vertical_orbit_distortion:
-    line['mwi.e5rg'].ksl[0] = 2e-7
+    line['mwi.e5rg'].knl[0] = 2e-7
 
 if tilt_machine_by_90_degrees:
 
