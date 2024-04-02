@@ -767,7 +767,7 @@ class Bend(BeamElement):
     isthick = True
     has_backtrack = True
 
-    _xofields={
+    _xofields = {
         'k0': xo.Float64,
         'k1': xo.Float64,
         'h': xo.Float64,

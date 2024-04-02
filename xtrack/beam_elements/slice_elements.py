@@ -3,7 +3,7 @@ import xobjects as xo
 from ..general import _pkg_root
 from ..random import RandomUniform, RandomExponential
 from .elements import (SynchrotronRadiationRecord, Quadrupole, Sextupole,
-                       Octupole, Bend)
+                       Octupole, Bend, Multipole)
 from ..base_element import BeamElement
 
 xo.context_default.kernels.clear()
@@ -126,6 +126,24 @@ class ThinSliceBend(BeamElement):
         obj = super().from_dict(dct, **kwargs)
         obj._parent_name = dct['_parent_name']
         return obj
+
+    def get_equivalent_multipole(self):
+        knl = self._parent.knl.copy() * self.weight
+        ksl = self._parent.ksl.copy() * self.weight
+
+        knl[0] += self._parent.k0 * self._parent.length * self.weight
+        knl[1] += self._parent.k1 * self._parent.length * self.weight
+
+        length = self._parent.length * self.weight
+
+        out = Multipole(knl=knl, ksl=ksl, length=length,
+                        hxl=self._parent.h * length,
+                        shift_x=self._parent.shift_x,
+                        shift_y=self._parent.shift_y,
+                        rot_s_rad=self._parent.rot_s_rad,
+                        _buffer=self._buffer)
+        return out
+
 
 _thin_slice_bend_entry_xofields = {
     '_parent': xo.Ref(Bend)}

@@ -2666,6 +2666,8 @@ class Line:
 
         """
 
+        import pdb; pdb.set_trace()
+
         if self.iscollective:
             raise NotImplementedError("Optimization is not implemented for "
                                       "collective trackers")
@@ -2682,6 +2684,9 @@ class Line:
 
         # Unfreeze the line
         self.discard_tracker()
+
+        if verbose: _print("Replance slices with equivalent multipoles")
+        self._replace_with_equivalent_multipoles()
 
         if keep_markers is True:
             if verbose: _print('Markers are kept')
@@ -2801,7 +2806,7 @@ class Line:
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict = newline.element_dict
+            self.element_dict.update(newline.element_dict)
             return self
         else:
             return newline
@@ -2851,7 +2856,7 @@ class Line:
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict = newline.element_dict
+            self.element_dict.update(newline.element_dict)
             return self
         else:
             return newline
@@ -2898,7 +2903,7 @@ class Line:
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict = newline.element_dict
+            self.element_dict.update(newline.element_dict)
             return self
         else:
             return newline
@@ -2923,6 +2928,8 @@ class Line:
 
         '''
 
+        assert inplace is True, 'Only inplace is supported for now'
+
         self._frozen_check()
 
         if keep is None:
@@ -2934,7 +2941,7 @@ class Line:
 
         for ii, (ee, nn) in enumerate(zip(self.elements, self.element_names)):
             if ii == 0:
-                newline.append_element(ee.copy(), nn)
+                newline.append_element(ee, nn)
                 continue
 
             this_ee = ee if inplace else ee.copy()
@@ -2950,7 +2957,7 @@ class Line:
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict = newline.element_dict
+            self.element_dict.update(newline.element_dict)
             return self
         else:
             return newline
@@ -3288,7 +3295,7 @@ class Line:
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict = newline.element_dict
+            self.element_dict.update(newline.element_dict)
             return self
         else:
             return newline
@@ -3960,6 +3967,16 @@ class Line:
 
         return self._line_before_slicing_cache
 
+    def _replace_with_equivalent_multipoles(self):
+
+        self._frozen_check()
+
+        for nn in self.element_names:
+            ee = self[nn]
+            if hasattr(ee, 'get_equivalent_multipole'):
+                new_ee = ee.get_equivalent_multipole()
+                self.element_dict[nn] = new_ee
+
 def frac(x):
     return x % 1
 
@@ -4042,23 +4059,23 @@ def _deserialize_element(el, class_dict, _buffer):
     else:
         return eltype.from_dict(eldct)
 
-
 def _is_simple_quadrupole(el):
     if not isinstance(el, Multipole):
         return False
-    return (el.radiation_flag == 0 and
-            el.order == 1 and
-            el.knl[0] == 0 and
-            not any(el.ksl) and
-            not el.hxl)
-
+    return (el.radiation_flag == 0
+            and (el.order == 1 or len(el.knl) == 2 or not any(el.knl[2:]))
+            and el.knl[0] == 0
+            and not any(el.ksl)
+            and not el.hxl
+            and el.shift_x == 0 and el.shift_y == 0 and np.abs(el.rot_s_rad) < 1e-12)
 
 def _is_simple_dipole(el):
     if not isinstance(el, Multipole):
         return False
-    return (el.radiation_flag == 0 and el.order == 0
-            and not any(el.ksl))
-
+    return (el.radiation_flag == 0
+            and (el.order == 0 or len(el.knl) == 1 or not any(el.knl[1:]))
+            and not any(el.ksl)
+            and el.shift_x == 0 and el.shift_y == 0 and np.abs(el.rot_s_rad) < 1e-12)
 
 @contextmanager
 def freeze_longitudinal(tracker):

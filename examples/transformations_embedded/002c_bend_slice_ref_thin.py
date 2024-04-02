@@ -1,7 +1,8 @@
 import xtrack as xt
 import numpy as np
 
-bend = xt.Bend(k0=0.4, h=0.3, k1=0.1, length=1)
+bend = xt.Bend(k0=0.4, h=0.3, k1=0.1, length=1, shift_x=1e-3, shift_y=2e-3,
+               rot_s_rad=0.2)
 
 line = xt.Line(elements=[bend])
 
@@ -62,3 +63,6 @@ assert_allclose(p_slice.y, p0.y, rtol=0, atol=1e-10)
 assert_allclose(p_slice.py, p0.py, rtol=0, atol=1e-10)
 assert_allclose(p_slice.zeta, p0.zeta, rtol=0, atol=1e-10)
 assert_allclose(p_slice.delta, p0.delta, rtol=0, atol=1e-10)
+
+import pdb; pdb.set_trace()
+line.optimize_for_tracking()
