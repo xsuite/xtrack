@@ -1,7 +1,9 @@
 import xtrack as xt
 import numpy as np
 
-sext = xt.Sextupole(k2=0.1, length=1)
+sext = xt.Sextupole(k2=0.1, length=1,
+            shift_x=1e-3, shift_y=2e-3, rot_s_rad=0.2
+            )
 
 line = xt.Line(elements=[sext])
 
@@ -37,6 +39,29 @@ line2.build_tracker()
 assert isinstance(line2['e0..0'], xt.ThinSliceSextupole)
 assert line2['e0..0']._parent_name == 'e0'
 assert line2['e0..0']._parent is line2['e0']
+
+line.track(p_slice, backtrack=True)
+
+assert_allclose(p_slice.x, p0.x, rtol=0, atol=1e-10)
+assert_allclose(p_slice.px, p0.px, rtol=0, atol=1e-10)
+assert_allclose(p_slice.y, p0.y, rtol=0, atol=1e-10)
+assert_allclose(p_slice.py, p0.py, rtol=0, atol=1e-10)
+assert_allclose(p_slice.zeta, p0.zeta, rtol=0, atol=1e-10)
+assert_allclose(p_slice.delta, p0.delta, rtol=0, atol=1e-10)
+
+line.optimize_for_tracking()
+
+assert isinstance(line['e0..0'], xt.Multipole)
+
+p_slice = p0.copy()
+line.track(p_slice)
+
+assert_allclose(p_slice.x, p_ref.x, rtol=0, atol=1e-10)
+assert_allclose(p_slice.px, p_ref.px, rtol=0, atol=1e-10)
+assert_allclose(p_slice.y, p_ref.y, rtol=0, atol=1e-10)
+assert_allclose(p_slice.py, p_ref.py, rtol=0, atol=1e-10)
+assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-10)
+assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-10)
 
 line.track(p_slice, backtrack=True)
 
