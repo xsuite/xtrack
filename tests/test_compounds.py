@@ -161,6 +161,34 @@ def test_slicing_preserve_thick_compound_if_unsliced():
     ]
 
 
+def test_madloader_compounds_repeated_elements():
+    mad = Madx(stdout=False)
+    mad.options.rbarc = False
+    mad.input(f"""
+    mb: sbend, l:=1, angle:=0.1, k0:=0.2, k1=0.1;
+    ss: sequence, l:=2, refer=entry;
+        mb, at=0;
+        mb, at=1;
+    endsequence;
+    """)
+    mad.beam()
+    mad.use(sequence='ss')
+
+    line = xt.Line.from_madx_sequence(
+        sequence=mad.sequence.ss,
+        deferred_expressions=True,
+        allow_thick=True,
+    )
+
+    mb_compound_expected = ['mb_entry', 'mb_den', 'mb', 'mb_dex', 'mb_exit']
+    mb_compound_result = line.get_compound_subsequence('mb')
+    assert mb_compound_result == mb_compound_expected
+
+    mb0_compound_expected = ['mb_entry:0', 'mb_den:0', 'mb:0', 'mb_dex:0', 'mb_exit:0']
+    mb0_compound_result = line.get_compound_subsequence('mb:0')
+    assert mb0_compound_result == mb0_compound_expected
+
+
 @pytest.fixture(scope='function')
 def line_with_compounds(temp_context_default_func):
     # The fixture `temp_context_default_func` is defined in conftest.py and is
