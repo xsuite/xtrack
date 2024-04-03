@@ -755,9 +755,8 @@ def test_import_thick_with_apertures_and_slice():
     )
 
     assert line.get_compound_subsequence('elm') == [
-        'elm_entry', 'elm_aper_tilt_entry', 'elm_aper_offset_entry',
+        'elm_entry',
         'elm_aper',
-        'elm_aper_offset_exit', 'elm_aper_tilt_exit',
         'elm',
         'elm_exit',
     ]
@@ -767,12 +766,9 @@ def test_import_thick_with_apertures_and_slice():
     def _assert_eq(a, b):
         assert np.isclose(a, b, atol=1e-16)
 
-    _assert_eq(line[f'elm_aper_tilt_entry'].angle, 0.1 * rad_to_deg)
-    _assert_eq(line[f'elm_aper_tilt_exit'].angle, -0.1 * rad_to_deg)
-    _assert_eq(line[f'elm_aper_offset_entry'].dx, 0.2)
-    _assert_eq(line[f'elm_aper_offset_entry'].dy, 0.3)
-    _assert_eq(line[f'elm_aper_offset_exit'].dx, -0.2)
-    _assert_eq(line[f'elm_aper_offset_exit'].dy, -0.3)
+    _assert_eq(line[f'elm_aper'].rot_s_rad, 0.1)
+    _assert_eq(line[f'elm_aper'].shift_x, 0.2)
+    _assert_eq(line[f'elm_aper'].shift_y, 0.3)
     _assert_eq(line[f'elm_aper'].max_x, 0.1)
     _assert_eq(line[f'elm_aper'].max_y, 0.2)
     _assert_eq(line[f'elm_aper'].a_squ, 0.11 ** 2)
@@ -784,43 +780,24 @@ def test_import_thick_with_apertures_and_slice():
 
     assert line.get_compound_subsequence('elm') == [
         'elm_entry',                    # entry marker
-        'elm_aper_tilt_entry..0',       # ┐
-        'elm_aper_offset_entry..0',     # │
-        'elm_aper..0',                  # ├ entry edge aperture
-        'elm_aper_offset_exit..0',      # │
-        'elm_aper_tilt_exit..0',        # ┘
+        'elm_aper..0',                  # entry edge aperture
         'elm..entry_map',               # entry edge (+transform)
         'drift_elm..0',                 # drift 0
-        'elm_aper_tilt_entry..1',       # ┐
-        'elm_aper_offset_entry..1',     # │
-        'elm_aper..1',                  # ├ slice 1 aperture
-        'elm_aper_offset_exit..1',      # │
-        'elm_aper_tilt_exit..1',        # ┘
+        'elm_aper..1',                  # slice 1 aperture
         'elm..0',                       # slice 0 (+transform)
         'drift_elm..1',                 # drift 1
-        'elm_aper_tilt_entry..2',       # ┐
-        'elm_aper_offset_entry..2',     # │
-        'elm_aper..2',                  # ├ slice 2 aperture
-        'elm_aper_offset_exit..2',      # │
-        'elm_aper_tilt_exit..2',        # ┘
+        'elm_aper..2',                  # slice 2 aperture
         'elm..1',                       # slice 2 (+transform)
         'drift_elm..2',                 # drift 2
-        'elm_aper_tilt_entry..3',       # ┐
-        'elm_aper_offset_entry..3',     # │
-        'elm_aper..3',                  # ├ exit edge aperture
-        'elm_aper_offset_exit..3',      # │
-        'elm_aper_tilt_exit..3',        # ┘
+        'elm_aper..3',                  # exit edge aperture
         'elm..exit_map',                # exit edge (+transform)
         'elm_exit',                     # exit marker
     ]
 
     for i in range(4):
-        _assert_eq(line[f'elm_aper_tilt_entry..{i}'].angle, 0.1 * rad_to_deg)
-        _assert_eq(line[f'elm_aper_tilt_exit..{i}'].angle, -0.1 * rad_to_deg)
-        _assert_eq(line[f'elm_aper_offset_entry..{i}'].dx, 0.2)
-        _assert_eq(line[f'elm_aper_offset_entry..{i}'].dy, 0.3)
-        _assert_eq(line[f'elm_aper_offset_exit..{i}'].dx, -0.2)
-        _assert_eq(line[f'elm_aper_offset_exit..{i}'].dy, -0.3)
+        _assert_eq(line[f'elm_aper..{i}'].rot_s_rad, 0.1)
+        _assert_eq(line[f'elm_aper..{i}'].shift_x, 0.2)
+        _assert_eq(line[f'elm_aper..{i}'].shift_y, 0.3)
         _assert_eq(line[f'elm_aper..{i}'].max_x, 0.1)
         _assert_eq(line[f'elm_aper..{i}'].max_y, 0.2)
         _assert_eq(line[f'elm_aper..{i}'].a_squ, 0.11 ** 2)

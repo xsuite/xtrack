@@ -387,7 +387,7 @@ class CompoundElementBuilder:
 class Aperture:
     def __init__(self, mad_el, enable_errors, loader):
         self.mad_el = mad_el
-        self.aper_tilt = rad2deg(mad_el.aper_tilt)
+        self.aper_tilt = mad_el.aper_tilt
         self.aper_offset = mad_el.aper_offset
         self.name = self.mad_el.name
         self.dx = self.aper_offset[0]
@@ -403,48 +403,6 @@ class Aperture:
         self.classes = loader.classes
         self.Builder = loader.Builder
 
-    def entry(self):
-        out = []
-        if self.aper_tilt:
-            out.append(
-                self.Builder(
-                    self.name + "_aper_tilt_entry",
-                    self.classes.SRotation,
-                    angle=self.aper_tilt,
-                )
-            )
-        if self.dx or self.dy:
-            out.append(
-                self.Builder(
-                    self.name + "_aper_offset_entry",
-                    self.classes.XYShift,
-                    dx=self.dx,
-                    dy=self.dy,
-                )
-            )
-        return out
-
-    def exit(self):
-        out = []
-        if self.dx or self.dy:
-            out.append(
-                self.Builder(
-                    self.name + "_aper_offset_exit",
-                    self.classes.XYShift,
-                    dx=-self.dx,
-                    dy=-self.dy,
-                )
-            )
-        if self.aper_tilt:
-            out.append(
-                self.Builder(
-                    self.name + "_aper_tilt_exit",
-                    self.classes.SRotation,
-                    angle=-self.aper_tilt,
-                )
-            )
-        return out
-
     def aperture(self):
         if len(self.mad_el.aper_vx) > 2:
             return [
@@ -453,13 +411,21 @@ class Aperture:
                     self.classes.LimitPolygon,
                     x_vertices=self.mad_el.aper_vx,
                     y_vertices=self.mad_el.aper_vy,
+                    shift_x=self.dx,
+                    shift_y=self.dy,
+                    rot_s_rad=self.aper_tilt
                 )
             ]
         else:
             conveter = getattr(self.loader, "convert_" + self.apertype, None)
             if conveter is None:
                 raise ValueError(f"Aperture type `{self.apertype}` not supported")
-            return conveter(self.mad_el)
+            out = conveter(self.mad_el)
+            assert len(out) == 1
+            out[0].shift_x = self.dx
+            out[0].shift_y = self.dy
+            out[0].rot_s_rad = self.aper_tilt
+            return out
 
 
 class Alignment:
@@ -485,49 +451,6 @@ class Alignment:
             self.tilt += rad2deg(self.align_errors.dpsi)
         self.classes = classes
         self.Builder = Builder
-
-    def entry(self):
-        out = []
-        if self.dx or self.dy:
-            out.append(
-                self.Builder(
-                    self.name + "_offset_entry",
-                    self.classes.XYShift,
-                    dx=self.dx,
-                    dy=self.dy,
-                )
-            )
-        if self.tilt:
-            out.append(
-                self.Builder(
-                    self.name + "_tilt_entry",
-                    self.classes.SRotation,
-                    angle=self.tilt,
-                )
-            )
-        return out
-
-    def exit(self):
-        out = []
-        if self.tilt:
-            out.append(
-                self.Builder(
-                    self.name + "_tilt_exit",
-                    self.classes.SRotation,
-                    angle=-self.tilt,
-                )
-            )
-        if self.dx or self.dy:
-            out.append(
-                self.Builder(
-                    self.name + "_offset_exit",
-                    self.classes.XYShift,
-                    dx=-self.dx,
-                    dy=-self.dy,
-                )
-            )
-        return out
-
 
 class Dummy:
     type = "None"
@@ -810,11 +733,7 @@ class MadLoader:
             if self.bv == -1:
                 raise NotImplementedError("Apertures for bv=-1 are not yet supported.")
             aper = Aperture(mad_el, self.enable_align_errors, self)
-            aperture_seq = aper.entry() + aper.aperture() + aper.exit()
-
-        # old sandwitch
-        # align_entry, align_exit = align.entry(), align.exit()
-        # elem_list = aperture_seq + align_entry + xtrack_el + align_exit
+            aperture_seq = aper.aperture()
 
         # using directly tilt and shift in the element
         for xtee in xtrack_el:
@@ -846,8 +765,8 @@ class MadLoader:
             CompoundElementBuilder(
                 name=mad_el.name,
                 core=xtrack_el,
-                entry_transform=align.entry(),
-                exit_transform=align.exit(),
+                entry_transform=[],
+                exit_transform=[],
                 aperture=aperture_seq,
             ),
         ]
@@ -945,31 +864,6 @@ class MadLoader:
         )
 
         sequence = [bend_core]
-
-        # dipedge_entry = self.Builder(
-        #     mad_el.name + "_den",
-        #     self.classes.DipoleEdge,
-        #     e1=e1,
-        #     e1_fd = (k0 - h) * l_curv / 2,
-        #     fint=mad_el.fint,
-        #     hgap=mad_el.hgap,
-        #     k=k0,
-        #     side='entry',
-        # )
-        # sequence = [dipedge_entry] + sequence
-
-        # # For the sbend edge import we assume k0l = angle
-        # dipedge_exit = self.Builder(
-        #     mad_el.name + "_dex",
-        #     self.classes.DipoleEdge,
-        #     e1=e2,
-        #     e1_fd = (k0 - h) * l_curv / 2,
-        #     fint=mad_el.fintx if value_if_expr(mad_el.fintx) >= 0 else mad_el.fint,
-        #     hgap=mad_el.hgap,
-        #     k=k0,
-        #     side='exit',
-        # )
-        # sequence = sequence + [dipedge_exit]
 
         return self.make_compound_elem(sequence, mad_el)
 
