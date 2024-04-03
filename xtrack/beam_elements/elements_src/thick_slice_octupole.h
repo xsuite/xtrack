@@ -3,8 +3,8 @@
 // Copyright (c) CERN, 2023.                 //
 // ######################################### //
 
-#ifndef XTRACK_THIN_SLICE_OCTUPOLE_H
-#define XTRACK_THIN_SLICE_OCTUPOLE_H
+#ifndef XTRACK_THICK_SLICE_OCTUPOLE_H
+#define XTRACK_THICK_SLICE_OCTUPOLE_H
 
 /*gpufun*/
 void ThickSliceOctupole_track_local_particle(

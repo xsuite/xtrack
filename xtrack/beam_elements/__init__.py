@@ -11,7 +11,8 @@ from .slice_elements import (ThinSliceQuadrupole, ThinSliceSextupole,
                              ThinSliceOctupole, ThinSliceBend,
                              ThinSliceBendEntry, ThinSliceBendExit)
 from .slice_elements_thick import (ThickSliceBend, ThickSliceQuadrupole,
-                                   ThickSliceSextupole, ThickSliceOctupole)
+                                   ThickSliceSextupole, ThickSliceOctupole,
+                                   DriftSliceOctupole)
 from .rft_element import RFT_Element
 from ..base_element import BeamElement
 
