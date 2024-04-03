@@ -324,14 +324,14 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
     line.configure_bend_model(core={False: 'expanded', True: 'full'}[
                               use_true_thick_bends])
 
-    elem_den = line['elem_den']
+
+    assert np.all(line.get_table().name == np.array(
+        ['ss$start', 'elem_entry', 'elem', 'elem_exit', 'drift_0', 'ss$end',
+       '_end_point']))
     elem = line['elem']
-    elem_dex = line['elem_dex']
 
     # Check that the line has correct values to start with
     assert elem.model == {False: 'expanded', True: 'full'}[use_true_thick_bends]
-    assert isinstance(elem_den, xt.DipoleEdge)
-    assert isinstance(elem_dex, xt.DipoleEdge)
 
     # Element:
     assert np.isclose(elem.length, 2.0, atol=1e-16)
@@ -346,19 +346,17 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
     )
 
     # Edges:
-    assert np.isclose(elem_den.fint, 0.5, atol=1e-16)
-    assert np.isclose(elem_den.hgap, 0.6, atol=1e-16)
-    assert np.isclose(elem_den.e1,
+    assert np.isclose(elem.edge_entry_fint, 0.5, atol=1e-16)
+    assert np.isclose(elem.edge_entry_hgap, 0.6, atol=1e-16)
+    assert np.isclose(elem.edge_entry_angle,
                       {'rbend': 0.7 + 0.1 / 2, 'sbend': 0.7}[bend_type],
                       atol=1e-16)
-    assert np.isclose(elem_den.k, 0.2, atol=1e-16)
 
-    assert np.isclose(elem_dex.fint, 0.5, atol=1e-16)
-    assert np.isclose(elem_dex.hgap, 0.6, atol=1e-16)
-    assert np.isclose(elem_dex.e1,
+    assert np.isclose(elem.edge_exit_fint, 0.5, atol=1e-16)
+    assert np.isclose(elem.edge_exit_hgap, 0.6, atol=1e-16)
+    assert np.isclose(elem.edge_exit_angle,
                      {'rbend': 0.8 + 0.1 / 2, 'sbend': 0.8}[bend_type],
                       atol=1e-16)
-    assert np.isclose(elem_dex.k, 0.2, atol=1e-16)
 
     # Finish the test here if we are not using knobs
     if not with_knobs:
@@ -385,19 +383,18 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
     )
 
     # Edges:
-    assert np.isclose(elem_den.fint, 1.0, atol=1e-16)
-    assert np.isclose(elem_den.hgap, 1.2, atol=1e-16)
-    assert np.isclose(elem_den.e1,
+    assert np.isclose(elem.edge_entry_fint, 1.0, atol=1e-16)
+    assert np.isclose(elem.edge_entry_hgap, 1.2, atol=1e-16)
+    assert np.isclose(elem.edge_entry_angle,
         {'rbend': 1.4 + 0.2 / 2, 'sbend': 1.4}[bend_type],
         atol=1e-16)
-    assert np.isclose(elem_den.k, 0.4, atol=1e-16)
+    assert np.isclose(elem.k0, 0.4, atol=1e-16)
 
-    assert np.isclose(elem_dex.fint, 1.0, atol=1e-16)
-    assert np.isclose(elem_dex.hgap, 1.2, atol=1e-16)
-    assert np.isclose(elem_dex.e1,
+    assert np.isclose(elem.edge_exit_fint, 1.0, atol=1e-16)
+    assert np.isclose(elem.edge_exit_hgap, 1.2, atol=1e-16)
+    assert np.isclose(elem.edge_exit_angle,
         {'rbend': 1.6 + 0.2 / 2, 'sbend': 1.6}[bend_type],
         atol=1e-16)
-    assert np.isclose(elem_dex.k, 0.4, atol=1e-16)
 
 
 @pytest.mark.parametrize('with_knobs', [False, True])
@@ -761,7 +758,7 @@ def test_import_thick_with_apertures_and_slice():
         'elm_entry', 'elm_aper_tilt_entry', 'elm_aper_offset_entry',
         'elm_aper',
         'elm_aper_offset_exit', 'elm_aper_tilt_exit',
-        'elm_tilt_entry', 'elm_den', 'elm', 'elm_dex', 'elm_tilt_exit',
+        'elm',
         'elm_exit',
     ]
 
@@ -781,8 +778,7 @@ def test_import_thick_with_apertures_and_slice():
     _assert_eq(line[f'elm_aper'].a_squ, 0.11 ** 2)
     _assert_eq(line[f'elm_aper'].b_squ, 0.22 ** 2)
 
-    _assert_eq(line[f'elm_tilt_entry'].angle, 0.2 * rad_to_deg)
-    _assert_eq(line[f'elm_tilt_exit'].angle, -0.2 * rad_to_deg)
+    _assert_eq(line[f'elm'].rot_s_rad, 0.2)
 
     line.slice_thick_elements(slicing_strategies=[Strategy(Uniform(2))])
 
@@ -793,36 +789,28 @@ def test_import_thick_with_apertures_and_slice():
         'elm_aper..0',                  # ├ entry edge aperture
         'elm_aper_offset_exit..0',      # │
         'elm_aper_tilt_exit..0',        # ┘
-        'elm_tilt_entry..0',            # ┐
-        'elm_den',                      # ├ entry edge (+transform)
-        'elm_tilt_exit..0',             # ┘
+        'elm..entry_map',               # entry edge (+transform)
         'drift_elm..0',                 # drift 0
         'elm_aper_tilt_entry..1',       # ┐
         'elm_aper_offset_entry..1',     # │
         'elm_aper..1',                  # ├ slice 1 aperture
         'elm_aper_offset_exit..1',      # │
         'elm_aper_tilt_exit..1',        # ┘
-        'elm_tilt_entry..1',            # ┐
-        'elm..0',                       # ├ slice 0 (+transform)
-        'elm_tilt_exit..1',             # ┘
+        'elm..0',                       # slice 0 (+transform)
         'drift_elm..1',                 # drift 1
         'elm_aper_tilt_entry..2',       # ┐
         'elm_aper_offset_entry..2',     # │
         'elm_aper..2',                  # ├ slice 2 aperture
         'elm_aper_offset_exit..2',      # │
         'elm_aper_tilt_exit..2',        # ┘
-        'elm_tilt_entry..2',            # ┐
-        'elm..1',                       # ├ slice 1 (+transform)
-        'elm_tilt_exit..2',             # ┘
+        'elm..1',                       # slice 2 (+transform)
         'drift_elm..2',                 # drift 2
         'elm_aper_tilt_entry..3',       # ┐
         'elm_aper_offset_entry..3',     # │
         'elm_aper..3',                  # ├ exit edge aperture
         'elm_aper_offset_exit..3',      # │
         'elm_aper_tilt_exit..3',        # ┘
-        'elm_tilt_entry..3',            # ┐
-        'elm_dex',                      # ├ exit edge (+transform)
-        'elm_tilt_exit..3',             # ┘
+        'elm..exit_map',                # exit edge (+transform)
         'elm_exit',                     # exit marker
     ]
 
@@ -838,8 +826,8 @@ def test_import_thick_with_apertures_and_slice():
         _assert_eq(line[f'elm_aper..{i}'].a_squ, 0.11 ** 2)
         _assert_eq(line[f'elm_aper..{i}'].b_squ, 0.22 ** 2)
 
-        _assert_eq(line[f'elm_tilt_entry..{i}'].angle, 0.2 * rad_to_deg)
-        _assert_eq(line[f'elm_tilt_exit..{i}'].angle, -0.2 * rad_to_deg)
+    for i in range(2):
+        _assert_eq(line[f'elm..{i}']._parent.rot_s_rad, 0.2)
 
 @for_all_test_contexts
 def test_sextupole(test_context):
