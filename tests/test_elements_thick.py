@@ -483,11 +483,13 @@ def test_import_thick_bend_from_madx_and_slice(
 
     # Verify that the slices are correct
     for elem in elems:
-        assert np.isclose(elem.length, 1.0, atol=1e-16)
-        assert np.allclose(elem.knl, [0.2, 0, 0.4, 0, 0], atol=1e-16)
-        assert np.allclose(elem.ksl, 0, atol=1e-16)
-        assert np.isclose(elem.hxl, 0.05, atol=1e-16)
-        assert np.isclose(elem.hyl, 0, atol=1e-16)
+        assert isinstance(elem, xt.ThinSliceBend)
+        assert np.isclose(elem.weight, 0.5, atol=1e-16)
+        assert np.isclose(elem._parent.length, 2.0, atol=1e-16)
+        assert np.isclose(elem._parent.k0, 0.2, atol=1e-16)
+        assert np.allclose(elem._parent.knl, [0., 0, 0.8, 0, 0], atol=1e-16)
+        assert np.allclose(elem._parent.ksl, 0, atol=1e-16)
+        assert np.isclose(elem._parent.h, 0.05, atol=1e-16)
 
     for drift in drifts:
         assert np.isclose(drift.length, 2/3, atol=1e-16)
@@ -505,11 +507,20 @@ def test_import_thick_bend_from_madx_and_slice(
 
     # Verify that the line has been adjusted correctly
     for elem in elems:
-        assert np.isclose(elem.length, 1.5, atol=1e-16)
-        assert np.allclose(elem.knl, [0.6, 0., 1.2, 0, 0], atol=1e-16)
-        assert np.allclose(elem.ksl, 0, atol=1e-16)
-        assert np.isclose(elem.hxl, 0.1, atol=1e-16)  # hl = angle / slice_count
-        assert np.isclose(elem.hyl, 0, atol=1e-16)
+        assert np.isclose(elem.weight, 0.5, atol=1e-16)
+        assert np.isclose(elem._parent.length, 3.0, atol=1e-16)
+        assert np.isclose(elem._parent.k0, 0.4, atol=1e-16)
+        assert np.allclose(elem._parent.knl, [0., 0, 2.4, 0, 0], atol=1e-16)
+        assert np.allclose(elem._parent.ksl, 0, atol=1e-16)
+        assert np.isclose(elem._parent.h, 0.2/3, atol=1e-16)
+
+        assert np.isclose(elem._xobject.weight, 0.5, atol=1e-16)
+        assert np.isclose(elem._xobject._parent.length, 3.0, atol=1e-16)
+        assert np.isclose(elem._xobject._parent.k0, 0.4, atol=1e-16)
+        assert np.allclose(elem._xobject._parent.knl, [0., 0, 2.4, 0, 0], atol=1e-16)
+        assert np.allclose(elem._xobject._parent.ksl, 0, atol=1e-16)
+        assert np.isclose(elem._xobject._parent.h, 0.2/3, atol=1e-16)
+
 
     for drift in drifts:
         assert np.isclose(drift.length, 1, atol=1e-16)
