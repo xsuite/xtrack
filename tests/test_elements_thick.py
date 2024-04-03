@@ -477,6 +477,7 @@ def test_import_thick_bend_from_madx_and_slice(
     )
 
     line.slice_thick_elements(slicing_strategies=[Strategy(Uniform(2))])
+    line.build_tracker(compile=False)
 
     elems = [line[f'elem..{ii}'] for ii in range(2)]
     drifts = [line[f'drift_elem..{ii}'] for ii in range(2)]
@@ -521,6 +522,8 @@ def test_import_thick_bend_from_madx_and_slice(
         assert np.allclose(elem._xobject._parent.ksl, 0, atol=1e-16)
         assert np.isclose(elem._xobject._parent.h, 0.2/3, atol=1e-16)
 
+        assert elem._parent._buffer is line._buffer
+        assert elem._xobject._parent._buffer is line._buffer
 
     for drift in drifts:
         assert np.isclose(drift.length, 1, atol=1e-16)
