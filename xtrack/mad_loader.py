@@ -315,6 +315,10 @@ class ElementBuilder:
             super().__setattr__(k, v)
 
     def add_to_line(self, line, buffer):
+        if self.type is xtrack.Drift:
+            self.attrs.pop("rot_s_rad", None)
+            self.attrs.pop("shift_x", None)
+            self.attrs.pop("shift_y", None)
         xtel = self.type(**self.attrs, _buffer=buffer)
         name = generate_repeated_name(line, self.name)
         line.append_element(xtel, name)
@@ -322,6 +326,12 @@ class ElementBuilder:
 
 class ElementBuilderWithExpr(ElementBuilder):
     def add_to_line(self, line, buffer):
+
+        if self.type is xtrack.Drift:
+            self.attrs.pop("rot_s_rad", None)
+            self.attrs.pop("shift_x", None)
+            self.attrs.pop("shift_y", None)
+
         attr_values = {k: get_value(v) for k, v in self.attrs.items()}
         xtel = self.type(**attr_values, _buffer=buffer)
         name = generate_repeated_name(line, self.name)
@@ -405,26 +415,27 @@ class Aperture:
 
     def aperture(self):
         if len(self.mad_el.aper_vx) > 2:
-            return [
-                self.Builder(
+            builder = self.Builder(
                     self.name + "_aper",
                     self.classes.LimitPolygon,
                     x_vertices=self.mad_el.aper_vx,
                     y_vertices=self.mad_el.aper_vy,
-                    shift_x=self.dx,
-                    shift_y=self.dy,
-                    rot_s_rad=self.aper_tilt
                 )
-            ]
+            if self.dx or self.dy or self.aper_tilt:
+                builder.shift_x = self.dx
+                builder.shift_y = self.dy
+                builder.rot_s_rad = self.aper_tilt
+            return [builder]
         else:
             conveter = getattr(self.loader, "convert_" + self.apertype, None)
             if conveter is None:
                 raise ValueError(f"Aperture type `{self.apertype}` not supported")
             out = conveter(self.mad_el)
             assert len(out) == 1
-            out[0].shift_x = self.dx
-            out[0].shift_y = self.dy
-            out[0].rot_s_rad = self.aper_tilt
+            if self.dx or self.dy or self.aper_tilt:
+                out[0].shift_x = self.dx
+                out[0].shift_y = self.dy
+                out[0].rot_s_rad = self.aper_tilt
             return out
 
 
@@ -739,8 +750,9 @@ class MadLoader:
         for xtee in xtrack_el:
             if align.tilt or align.dx or align.dy:
                 xtee.rot_s_rad = align.tilt
-                xtee.shift_x = align.dx
-                xtee.shift_y = align.dy
+                if align.dx or align.dy:
+                    xtee.shift_x = align.dx
+                    xtee.shift_y = align.dy
         align.tilt = 0
         align.dx = 0
         align.dy = 0
@@ -1029,6 +1041,9 @@ class MadLoader:
         el = self.Builder(mad_elem.name, self.classes.Multipole, order=lmax - 1)
         el.knl = knl[:lmax]
         el.ksl = ksl[:lmax]
+
+        if hasattr(mad_elem, 'ksl') and mad_elem.ksl[0]:
+            raise NotImplementedError("Multipole with ksl[0] is not supported.")
 
         if hasattr(el, 'hyl') and el.hyl:
             raise NotImplementedError("Multipole with hyl is not supported.")
