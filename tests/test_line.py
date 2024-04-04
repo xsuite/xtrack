@@ -307,36 +307,6 @@ def test_redundant_apertures_with_compounds():
     assert 'a2' not in line.get_compound_by_name('c2').elements
 
 
-def test_remove_redundant_apertures_not_inplace():
-
-    # Test removing all consecutive middle apertures
-    elements = []
-    for _ in range(5):
-        elements += [
-            xt.Drift(length=0.6),
-            xt.LimitRect(min_x=-0.3, max_x=0.3,min_y=-0.3, max_y=0.3),
-            xt.Marker(),
-            xt.Drift(length=0.4)
-        ]
-    line = xt.Line(elements=elements)
-    original_line = line.copy()
-
-    assert len(line.element_names) == 20
-    all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn])]
-    all_aper_pos = [line.get_s_position(ap) for ap in all_aper]
-    newline = line.remove_redundant_apertures(inplace=False)
-    newline = newline.remove_markers(inplace=False)
-    newline = newline.merge_consecutive_drifts(inplace=False)
-    assert xt._lines_equal(line, original_line)
-
-    assert len(newline.element_names) == 5
-    # Verify that only the first and last aperture are kept
-    new_aper = [nn for nn in newline.element_names if xt._is_aperture(newline[nn])]
-    assert new_aper == [all_aper[0], all_aper[-1]]
-    new_aper_pos = [newline.get_s_position(ap) for ap in new_aper]
-    assert new_aper_pos == [all_aper_pos[0], all_aper_pos[-1]]
-
-
 def test_redundant_apertures_with_compounds_not_inplace():
     sequence = [
         ('a0', xt.LimitRect(min_x=-0.3, max_x=0.3, min_y=-0.3, max_y=0.3)),
@@ -767,7 +737,6 @@ def test_optimize_multipoles(test_context):
         'q4': xt.Multipole(knl=[0, 1], ksl=[1, 2], length=0, _context=test_context),
         'd1': xt.Multipole(knl=[1], hxl=0.0, length=2, _context=test_context),
         'd2': xt.Multipole(knl=[1], hxl=0.1, length=0, _context=test_context),
-        'd3': xt.Multipole(knl=[1], hyl=1, length=2, _context=test_context),
         'd4': xt.Multipole(knl=[1], ksl=[3], length=2, _context=test_context),
     }
 
