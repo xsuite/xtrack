@@ -54,7 +54,7 @@ void multipole_compute_dpx_dpy_single_particle(LocalParticle* part,
         *dpy_out = dpy;
 }
 
-/*gpuglmem*/
+/*gpufun*/
 void Multipole_track_single_particle(LocalParticle* part,
     double hxl, double length, double weight,
     double const* knl, double const* ksl,
