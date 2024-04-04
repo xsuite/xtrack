@@ -1965,7 +1965,7 @@ class Line:
             index = self.element_names.index(index)
 
         if element is None:
-            if name not in self.element_names:
+            if name not in self.element_dict.keys():
                 raise ValueError(
                     f'Element {name} not found in the line. You must either '
                     f'give an `element` or a name of an element already '
@@ -1998,8 +1998,10 @@ class Line:
                             "the core region."
                         )
 
-            assert name not in self.element_dict.keys()
-            self.element_dict[name] = element
+            if element is None:
+                assert name in self.element_dict.keys()
+            else:
+                self.element_dict[name] = element
             self.element_names.insert(index, name)
 
             if isinstance(compound, SlicedCompound):

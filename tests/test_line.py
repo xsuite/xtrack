@@ -50,13 +50,13 @@ def test_simplification_methods():
     line.merge_consecutive_drifts(inplace=True)
 
     # Test removing of zero-length drifts
-    line.insert_element(element=xt.Drift(length=0), name='marker1', at_s=3.3)
-    line.insert_element(element=xt.Drift(length=0), name='marker2', at_s=3.3)
+    line.insert_element(element=xt.Drift(length=0), name='dzero1', at_s=3.3)
+    line.insert_element(element=xt.Drift(length=0), name='dzero2', at_s=3.3)
     assert len(line.element_names) == 5
-    line.remove_zero_length_drifts(inplace=True, keep='marker2')
+    line.remove_zero_length_drifts(inplace=True, keep='dzero2')
     assert len(line.element_names) == 4
-    assert 'marker2' in line.element_names
-    assert 'marker1' not in line.element_names
+    assert 'dzero2' in line.element_names
+    assert 'dzero1' not in line.element_names
     line.remove_zero_length_drifts(inplace=True)
 
     # Test merging of multipoles
