@@ -24,6 +24,7 @@ _thin_slice_quad_xofields = {
 _thin_slice_quad_xofields.update(_common_xofields)
 class ThinSliceQuadrupole(BeamElement):
     allow_rot_and_shift = False
+    rot_and_shift_from_parent = True
     _skip_in_to_dict = ['_parent']
     _depends_on = [RandomUniform, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord
@@ -69,6 +70,7 @@ _thin_slice_sext_xofields = {
 _thin_slice_sext_xofields.update(_common_xofields)
 class ThinSliceSextupole(BeamElement):
     allow_rot_and_shift = False
+    rot_and_shift_from_parent = True
     _skip_in_to_dict = ['_parent']
     _depends_on = [RandomUniform, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord
@@ -114,6 +116,7 @@ _thin_slice_oct_xofields = {
 _thin_slice_oct_xofields.update(_common_xofields)
 class ThinSliceOctupole(BeamElement):
     allow_rot_and_shift = False
+    rot_and_shift_from_parent = True
     _skip_in_to_dict = ['_parent']
     _depends_on = [RandomUniform, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord
@@ -159,6 +162,7 @@ _thin_slice_bend_xofields = {
 _thin_slice_bend_xofields.update(_common_xofields)
 class ThinSliceBend(BeamElement):
     allow_rot_and_shift = False
+    rot_and_shift_from_parent = True
     _skip_in_to_dict = ['_parent']
     _depends_on = [RandomUniform, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord
@@ -204,6 +208,7 @@ _thin_slice_bend_entry_xofields = {
 _thin_slice_bend_entry_xofields.update(_common_xofields)
 class ThinSliceBendEntry(BeamElement):
     allow_rot_and_shift = False
+    rot_and_shift_from_parent = True
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
     _force_moveable = True
@@ -230,6 +235,7 @@ _thin_slice_bend_exit_xofields = {
 _thin_slice_bend_exit_xofields.update(_common_xofields)
 class ThinSliceBendExit(BeamElement):
     allow_rot_and_shift = False
+    rot_and_shift_from_parent = True
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
     _force_moveable = True

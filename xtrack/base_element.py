@@ -333,10 +333,8 @@ class MetaBeamElement(xo.MetaHybridClass):
         # For now I assume that when there is a parent, the element inherits the parent's transformations
         rot_and_shift_from_parent = False
         if '_parent' in xofields.keys():
-            if 'rot_and_shift_from_parent' in data.keys():
-                rot_and_shift_from_parent = data['rot_and_shift_from_parent']
-            else:
-                rot_and_shift_from_parent = True
+            assert 'rot_and_shift_from_parent' in data.keys()
+            rot_and_shift_from_parent = data['rot_and_shift_from_parent']
 
         track_kernel_name = None
         if ('allow_track' not in data.keys() or data['allow_track']):
