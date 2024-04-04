@@ -1051,6 +1051,12 @@ class Octupole(BeamElement):
         container[slice_name] = xt.ThickSliceOctupole(
                                     _parent=self, weight=weight, _buffer=_buffer)
 
+    @staticmethod
+    def add_drift_slice(weight, container, thick_name, slice_name, _buffer=None):
+        self = container[thick_name]
+        if hasattr(self, '_value'): self = self._value
+        container[slice_name] = xt.DriftSliceOctupole(
+                                    _parent=self, weight=weight, _buffer=_buffer)
 
 class Quadrupole(BeamElement):
     isthick = True

@@ -412,7 +412,20 @@ class Slicer:
             slices_to_append.append(f'{name}..entry_map')
 
         for weight, is_drift in chosen_slicing.iter_weights(element.length):
-            if is_drift and chosen_slicing.mode == 'thin':
+            already_added = False
+            if (is_drift and chosen_slicing.mode == 'thin'
+                and hasattr(element, "add_drift_slice")):
+                slice_name = f'drift_{name}..{drift_idx}'
+                type(element).add_drift_slice(
+                    weight=weight,
+                    container=self._line.element_dict,
+                    thick_name=name,
+                    slice_name=slice_name,
+                    _buffer=self._line.element_dict[name]._buffer,
+                )
+                drift_idx += 1
+                already_added = True
+            elif is_drift and chosen_slicing.mode == 'thin':
                 slice_name = f'drift_{name}..{drift_idx}'
                 obj_to_slice = drift_to_slice
                 drift_idx += 1
@@ -426,22 +439,23 @@ class Slicer:
             else:
                 container = self._line.element_dict
 
-            if chosen_slicing.mode == 'thin':
-                type(obj_to_slice).add_slice(
-                    weight=weight,
-                    container=container,
-                    thick_name=name,
-                    slice_name=slice_name,
-                    _buffer=self._line.element_dict[name]._buffer,
-                )
-            else:
-                type(obj_to_slice).add_thick_slice(
-                    weight=weight,
-                    container=container,
-                    thick_name=name,
-                    slice_name=slice_name,
-                    _buffer=self._line.element_dict[name]._buffer,
-                )
+            if not already_added:
+                if chosen_slicing.mode == 'thin':
+                    type(obj_to_slice).add_slice(
+                        weight=weight,
+                        container=container,
+                        thick_name=name,
+                        slice_name=slice_name,
+                        _buffer=self._line.element_dict[name]._buffer,
+                    )
+                else:
+                    type(obj_to_slice).add_thick_slice(
+                        weight=weight,
+                        container=container,
+                        thick_name=name,
+                        slice_name=slice_name,
+                        _buffer=self._line.element_dict[name]._buffer,
+                    )
             slices_to_append.append(slice_name)
 
         if hasattr(type(element), 'add_exit_slice'):
