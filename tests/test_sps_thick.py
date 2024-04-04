@@ -129,11 +129,11 @@ def test_sps_thick(test_context, deferred_expressions):
 
     assert isinstance(line['mbb.10150_entry'], xt.Marker)
     assert isinstance(line['mbb.10150..entry_map'], xt.ThinSliceBendEntry)
-    assert isinstance(line['drift_mbb.10150..0'], xt.Drift)
+    assert isinstance(line['drift_mbb.10150..0'], xt.DriftSliceBend)
     assert isinstance(line['mbb.10150..0'], xt.ThinSliceBend)
-    assert isinstance(line['drift_mbb.10150..1'], xt.Drift)
+    assert isinstance(line['drift_mbb.10150..1'], xt.DriftSliceBend)
     assert isinstance(line['mbb.10150..1'], xt.ThinSliceBend)
-    assert isinstance(line['drift_mbb.10150..2'], xt.Drift)
+    assert isinstance(line['drift_mbb.10150..2'], xt.DriftSliceBend)
     assert isinstance(line['mbb.10150..exit_map'], xt.ThinSliceBendExit)
     assert isinstance(line['mbb.10150_exit'], xt.Marker)
 
