@@ -331,7 +331,12 @@ class MetaBeamElement(xo.MetaHybridClass):
         depends_on.append(Particles._XoStruct)
 
         # For now I assume that when there is a parent, the element inherits the parent's transformations
-        rot_and_shift_from_parent = '_parent' in xofields.keys()
+        rot_and_shift_from_parent = False
+        if '_parent' in xofields.keys():
+            if 'rot_and_shift_from_parent' in data.keys():
+                rot_and_shift_from_parent = data['rot_and_shift_from_parent']
+            else:
+                rot_and_shift_from_parent = True
 
         track_kernel_name = None
         if ('allow_track' not in data.keys() or data['allow_track']):

@@ -146,6 +146,7 @@ _drift_slice_bend_xofields = {
 _drift_slice_bend_xofields.update(_common_xofields)
 class DriftSliceBend(BeamElement):
     allow_rot_and_shift = False
+    rot_and_shift_from_parent=False
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
     _force_moveable = True
@@ -173,6 +174,7 @@ _drift_slice_quadrupole_xofields = {
 _drift_slice_quadrupole_xofields.update(_common_xofields)
 class DriftSliceQuadrupole(BeamElement):
     allow_rot_and_shift = False
+    rot_and_shift_from_parent=False
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
     _force_moveable = True
@@ -201,6 +203,7 @@ _drift_slice_sextupole_xofields = {
 _drift_slice_sextupole_xofields.update(_common_xofields)
 class DriftSliceSextupole(BeamElement):
     allow_rot_and_shift = False
+    rot_and_shift_from_parent=False
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
     _force_moveable = True
@@ -229,6 +232,7 @@ _drift_slice_octupole_xofields = {
 _drift_slice_octupole_xofields.update(_common_xofields)
 class DriftSliceOctupole(BeamElement):
     allow_rot_and_shift = False
+    rot_and_shift_from_parent=False
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
     _force_moveable = True
