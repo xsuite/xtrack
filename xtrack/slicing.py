@@ -289,7 +289,7 @@ class Slicer:
         slice_idx = 0
         for slice_name in sliced_core:
             element = self._line.element_dict[slice_name]
-            if isinstance(element, xt.Drift):
+            if isinstance(element, xt.Drift) or 'DriftSlice' in type(element).__name__:
                 updated_core.append(slice_name)
                 continue
 

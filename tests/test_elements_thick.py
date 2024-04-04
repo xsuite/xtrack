@@ -608,7 +608,6 @@ def test_import_thick_quad_from_madx_and_slice(with_knobs):
         assert drift._xobject._parent._buffer is line._buffer
 
 
-
 @for_all_test_contexts
 def test_fringe_implementations(test_context):
 
