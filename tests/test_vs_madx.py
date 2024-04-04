@@ -283,10 +283,10 @@ def test_twiss_and_survey(
                 sigx = np.sqrt(twmad['sig11'][imad])
                 sigy = np.sqrt(twmad['sig33'][imad])
 
-                assert np.isclose(twtst['x'][ixt], (twmad['x'][imad] - mad_shift_x),
+                assert np.isclose(twtst['x'][ixt], twmad['x'][imad],
                                 atol=0.03*sigx, rtol=0)
                 assert np.isclose(twtst['y'][ixt],
-                                (twmad['y'][imad] - mad_shift_y),
+                                (twmad['y'][imad]),
                                 atol=0.03*sigy, rtol=0)
 
                 assert np.isclose(twtst['px'][ixt], twmad['px'][imad],
