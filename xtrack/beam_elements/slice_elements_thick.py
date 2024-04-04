@@ -3,7 +3,7 @@ import xobjects as xo
 from ..general import _pkg_root
 from ..base_element import BeamElement
 from .elements import (SynchrotronRadiationRecord, Bend, Quadrupole, Sextupole,
-                       Octupole)
+                       Octupole, Drift)
 from ..random import RandomUniform, RandomExponential
 
 _common_xofields = {
@@ -173,6 +173,11 @@ class DriftSliceBend(BeamElement):
         obj._parent_name = dct['_parent_name']
         return obj
 
+    def get_equivalent_element(self):
+        out = Drift(length=self._parent.length * self.weight,
+                     _buffer=self._buffer)
+        return out
+
 _drift_slice_quadrupole_xofields = {
     '_parent': xo.Ref(Quadrupole)}
 _drift_slice_quadrupole_xofields.update(_common_xofields)
@@ -200,6 +205,11 @@ class DriftSliceQuadrupole(BeamElement):
         obj = super().from_dict(dct, **kwargs)
         obj._parent_name = dct['_parent_name']
         return obj
+
+    def get_equivalent_element(self):
+        out = Drift(length=self._parent.length * self.weight,
+                     _buffer=self._buffer)
+        return out
 
 
 _drift_slice_sextupole_xofields = {
@@ -230,6 +240,11 @@ class DriftSliceSextupole(BeamElement):
         obj._parent_name = dct['_parent_name']
         return obj
 
+    def get_equivalent_element(self):
+        out = Drift(length=self._parent.length * self.weight,
+                     _buffer=self._buffer)
+        return out
+
 
 _drift_slice_octupole_xofields = {
     '_parent': xo.Ref(Octupole)}
@@ -258,3 +273,8 @@ class DriftSliceOctupole(BeamElement):
         obj = super().from_dict(dct, **kwargs)
         obj._parent_name = dct['_parent_name']
         return obj
+
+    def get_equivalent_element(self):
+        out = Drift(length=self._parent.length * self.weight,
+                     _buffer=self._buffer)
+        return out

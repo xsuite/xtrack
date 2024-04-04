@@ -47,7 +47,7 @@ class ThinSliceQuadrupole(BeamElement):
         obj._parent_name = dct['_parent_name']
         return obj
 
-    def get_equivalent_multipole(self):
+    def get_equivalent_element(self):
 
         knl = [0., 0.]
         ksl = [0., 0.]
@@ -93,7 +93,7 @@ class ThinSliceSextupole(BeamElement):
         obj._parent_name = dct['_parent_name']
         return obj
 
-    def get_equivalent_multipole(self):
+    def get_equivalent_element(self):
 
         knl = [0., 0., 0.]
         ksl = [0., 0., 0.]
@@ -139,7 +139,7 @@ class ThinSliceOctupole(BeamElement):
         obj._parent_name = dct['_parent_name']
         return obj
 
-    def get_equivalent_multipole(self):
+    def get_equivalent_element(self):
 
         knl = [0., 0., 0., 0.]
         ksl = [0., 0., 0., 0.]
@@ -185,7 +185,7 @@ class ThinSliceBend(BeamElement):
         obj._parent_name = dct['_parent_name']
         return obj
 
-    def get_equivalent_multipole(self):
+    def get_equivalent_element(self):
         knl = self._parent.knl.copy() * self.weight
         ksl = self._parent.ksl.copy() * self.weight
 

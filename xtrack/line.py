@@ -2683,8 +2683,8 @@ class Line:
         # Unfreeze the line
         self.discard_tracker()
 
-        if verbose: _print("Replance slices with equivalent multipoles")
-        self._replace_with_equivalent_multipoles()
+        if verbose: _print("Replance slices with equivalent elements")
+        self._replace_with_equivalent_elements()
 
         if keep_markers is True:
             if verbose: _print('Markers are kept')
@@ -3965,14 +3965,14 @@ class Line:
 
         return self._line_before_slicing_cache
 
-    def _replace_with_equivalent_multipoles(self):
+    def _replace_with_equivalent_elements(self):
 
         self._frozen_check()
 
         for nn in self.element_names:
             ee = self[nn]
-            if hasattr(ee, 'get_equivalent_multipole'):
-                new_ee = ee.get_equivalent_multipole()
+            if hasattr(ee, 'get_equivalent_element'):
+                new_ee = ee.get_equivalent_element()
                 self.element_dict[nn] = new_ee
 
 def frac(x):

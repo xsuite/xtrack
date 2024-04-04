@@ -16,6 +16,8 @@ line.build_tracker()
 line._line_before_slicing.build_tracker()
 assert line['e0..995']._parent_name == 'e0'
 assert line['e0..995']._parent is line['e0']
+assert line['drift_e0..995']._parent_name == 'e0'
+assert line['drift_e0..995']._parent is line['e0']
 assert line['e0..entry_map']._parent_name == 'e0'
 assert line['e0..entry_map']._parent is line['e0']
 assert line['e0..exit_map']._parent_name == 'e0'
@@ -42,6 +44,8 @@ line2 = xt.Line.from_json('ttt.json')
 assert isinstance(line2['e0..995'], xt.ThinSliceBend)
 assert line2['e0..995']._parent_name == 'e0'
 assert line2['e0..995']._parent is None
+assert line2['drift_e0..995']._parent_name == 'e0'
+assert line2['drift_e0..995']._parent is None
 assert line2['e0..entry_map']._parent_name == 'e0'
 assert line2['e0..entry_map']._parent is None
 assert line2['e0..exit_map']._parent_name == 'e0'
@@ -51,8 +55,13 @@ line2.build_tracker()
 assert isinstance(line2['e0..995'], xt.ThinSliceBend)
 assert line2['e0..995']._parent_name == 'e0'
 assert line2['e0..995']._parent is line2['e0']
+assert isinstance(line2['drift_e0..995'], xt.DriftSliceBend)
+assert line2['drift_e0..995']._parent_name == 'e0'
+assert line2['drift_e0..995']._parent is line2['e0']
+assert isinstance(line2['e0..entry_map'], xt.ThinSliceBendEntry)
 assert line2['e0..entry_map']._parent_name == 'e0'
 assert line2['e0..entry_map']._parent is line2['e0']
+assert isinstance(line2['e0..exit_map'], xt.ThinSliceBendExit)
 assert line2['e0..exit_map']._parent_name == 'e0'
 assert line2['e0..exit_map']._parent is line2['e0']
 
@@ -72,6 +81,7 @@ if bend.shift_x !=0 or bend.shift_y != 0 or bend.rot_s_rad != 0 and bend.k1 != 0
     assert isinstance(line['e0..995'], xt.Multipole)
 else:
     assert isinstance(line['e0..995'], xt.SimpleThinBend)
+assert isinstance(line['drift_e0..995'], xt.Drift)
 
 p_slice = p0.copy()
 line.track(p_slice)
