@@ -168,25 +168,15 @@ def test_tilt_shift_and_errors():
         on_err = int(opt['enable_errors'])
         if opt['enable_apertures']:
 
-            assert np.isclose(line['elm2_aper_tilt_entry'].angle,
-                                mad_elm2.aper_tilt/np.pi*180,
-                                rtol=0, atol=1e-13)
-            assert np.isclose(line['elm2_aper_tilt_exit'].angle,
-                                -mad_elm2.aper_tilt/np.pi*180,
+            assert np.isclose(line['elm2_aper'].rot_s_rad,
+                                mad_elm2.aper_tilt,
                                 rtol=0, atol=1e-13)
 
-
-            assert np.isclose(line['elm2_aper_offset_entry'].dx,
+            assert np.isclose(line['elm2_aper'].shift_x,
                         on_err * mad_elm2.align_errors.arex + mad_elm2.aper_offset[0],
                         rtol=0, atol=1e-13)
-            assert np.isclose(line['elm2_aper_offset_entry'].dy,
+            assert np.isclose(line['elm2_aper'].shift_y,
                         on_err * mad_elm2.align_errors.arey + mad_elm2.aper_offset[1],
-                        rtol=0, atol=1e-13)
-            assert np.isclose(line['elm2_aper_offset_exit'].dx,
-                        -(on_err * mad_elm2.align_errors.arex + mad_elm2.aper_offset[0]),
-                        rtol=0, atol=1e-13)
-            assert np.isclose(line['elm2_aper_offset_exit'].dy,
-                        -(on_err * mad_elm2.align_errors.arey + mad_elm2.aper_offset[1]),
                         rtol=0, atol=1e-13)
 
             assert isinstance(line['elm2_aper'], xt.LimitRectEllipse)
@@ -195,22 +185,15 @@ def test_tilt_shift_and_errors():
             assert line['elm2_aper'].a_squ == .11**2
             assert line['elm2_aper'].b_squ == .22**2
 
-        assert np.isclose(line['elm2_tilt_entry'].angle,
-                    (mad_elm2.tilt + on_err * mad_elm2.align_errors.dpsi)/np.pi*180,
-                    rtol=0, atol=1e-13)
-        assert np.isclose(line['elm2_tilt_exit'].angle,
-                    -(mad_elm2.tilt + on_err * mad_elm2.align_errors.dpsi)/np.pi*180,
+        assert np.isclose(line['elm2'].rot_s_rad,
+                    (mad_elm2.tilt + on_err * mad_elm2.align_errors.dpsi),
                     rtol=0, atol=1e-13)
 
         if opt['enable_errors']:
-            assert np.isclose(line['elm2_offset_entry'].dx,
+            assert np.isclose(line['elm2'].shift_x,
                                 on_err * mad_elm2.align_errors.dx, rtol=0, atol=1e-13)
-            assert np.isclose(line['elm2_offset_entry'].dy,
+            assert np.isclose(line['elm2'].shift_y,
                                 on_err * mad_elm2.align_errors.dy, rtol=0, atol=1e-13)
-            assert np.isclose(line['elm2_offset_exit'].dx,
-                                -on_err * mad_elm2.align_errors.dx, rtol=0, atol=1e-13)
-            assert np.isclose(line['elm2_offset_exit'].dy,
-                                -on_err * mad_elm2.align_errors.dy, rtol=0, atol=1e-13)
 
         for ii in range(line['elm2'].order+1):
             ref = 0

@@ -448,7 +448,7 @@ class Alignment:
             self.align_errors = mad_el.align_errors
             self.dx = self.align_errors.dx
             self.dy = self.align_errors.dy
-            self.tilt += rad2deg(self.align_errors.dpsi)
+            self.tilt += self.align_errors.dpsi
         self.classes = classes
         self.Builder = Builder
 
