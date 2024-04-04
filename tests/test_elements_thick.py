@@ -65,6 +65,10 @@ def test_combined_function_dipole_against_ptc(test_context, k0, k1, k2, length,
         line_thick['b'].k1 = 0
         line_thick['b'].k2 = 0
 
+    line_core_only = xt.Line(elements=[line_thick['b'].copy()])
+    line_core_only.build_tracker(_context=test_context)
+    line_core_only.configure_bend_model(edge='suppressed')
+
     for ii in range(len(p0.x)):
         mad.input(f"""
         beam, particle=proton, pc={p0.p0c[ii] / 1e9}, sequence=ss, radiate=FALSE;
@@ -98,10 +102,6 @@ def test_combined_function_dipole_against_ptc(test_context, k0, k1, k2, length,
         assert np.allclose(xt_tau[ii], mad_results.t, rtol=0,
                            atol=(1e-10 if k1 == 0 and k2 == 0 else 5e-9))
         assert np.allclose(part.ptau[ii], mad_results.pt, atol=1e-11, rtol=0)
-
-        line_core_only = xt.Line(elements=[line_thick['b'].copy()])
-        line_core_only.build_tracker(_context=test_context)
-        line_core_only.configure_bend_model(edge='suppressed')
 
         part = p0.copy(_context=test_context)
         line_core_only.track(part)
@@ -490,7 +490,8 @@ def test_import_thick_bend_from_madx_and_slice(
         assert np.isclose(elem._parent.h, 0.05, atol=1e-16)
 
     for drift in drifts:
-        assert np.isclose(drift.length, 2/3, atol=1e-16)
+        assert np.isclose(drift._parent.length, 2., atol=1e-16)
+        assert np.isclose(drift.weight, 1./3., atol=1e-16)
 
     # Finish the test here if we are not using knobs
     if not with_knobs:
@@ -523,7 +524,11 @@ def test_import_thick_bend_from_madx_and_slice(
         assert elem._xobject._parent._buffer is line._buffer
 
     for drift in drifts:
-        assert np.isclose(drift.length, 1, atol=1e-16)
+        assert np.isclose(drift._parent.length, 3, atol=1e-16)
+        assert np.isclose(drift.weight, 1./3., atol=1e-16)
+
+        assert drift._parent._buffer is line._buffer
+        assert drift._xobject._parent._buffer is line._buffer
 
 
 @pytest.mark.parametrize(
@@ -550,22 +555,21 @@ def test_import_thick_quad_from_madx_and_slice(with_knobs):
     )
 
     line.slice_thick_elements(slicing_strategies=[Strategy(Uniform(2))])
+    line.build_tracker(compile=False)
 
     elems = [line[f'elem..{ii}'] for ii in range(2)]
     drifts = [line[f'drift_elem..{ii}'] for ii in range(2)]
 
     # Verify that the slices are correct
     for elem in elems:
-        assert np.isclose(elem.length, 1.0, atol=1e-16)
-        expected_k1l = 0.1 * 2
-        expected_k1sl = 0.2 * 2
-        assert np.allclose(elem.knl, [0, expected_k1l / 2, 0, 0, 0], atol=1e-16)
-        assert np.allclose(elem.ksl, [0, expected_k1sl / 2, 0, 0, 0], atol=1e-16)
-        assert np.isclose(elem.hxl, 0, atol=1e-16)
-        assert np.isclose(elem.hyl, 0, atol=1e-16)
+        assert np.isclose(elem.weight, 0.5, atol=1e-16)
+        assert np.isclose(elem._parent.length, 2.0, atol=1e-16)
+        assert np.isclose(elem._parent.k1, 0.1, atol=1e-16)
+        assert np.isclose(elem._parent.k1s, 0.2, atol=1e-16)
 
     for drift in drifts:
-        assert np.isclose(drift.length, 2/3, atol=1e-16)
+        assert np.isclose(drift._parent.length, 2., atol=1e-16)
+        assert np.isclose(drift.weight, 1./3., atol=1e-16)
 
     # Finish the test here if we are not using knobs
     if not with_knobs:
@@ -580,16 +584,29 @@ def test_import_thick_quad_from_madx_and_slice(with_knobs):
 
     # Verify that the line has been adjusted correctly
     for elem in elems:
-        assert np.isclose(elem.length, 1.5, atol=1e-16)
-        expected_k1l = 2.1 * 3
-        expected_k1sl = 2.2 * 3
-        assert np.allclose(elem.knl, [0, expected_k1l / 2, 0, 0, 0], atol=1e-16)
-        assert np.allclose(elem.ksl, [0, expected_k1sl / 2, 0, 0, 0], atol=1e-16)
-        assert np.isclose(elem.hxl, 0, atol=1e-16)
-        assert np.isclose(elem.hyl, 0, atol=1e-16)
+        assert np.isclose(elem.weight, 0.5, atol=1e-16)
+        assert np.isclose(elem._parent.length, 3.0, atol=1e-16)
+        assert np.isclose(elem._parent.k1, 2.1, atol=1e-16)
+        assert np.isclose(elem._parent.k1s, 2.2, atol=1e-16)
+
+        assert np.isclose(elem._xobject.weight, 0.5, atol=1e-16)
+        assert np.isclose(elem._xobject._parent.length, 3.0, atol=1e-16)
+        assert np.isclose(elem._xobject._parent.k1, 2.1, atol=1e-16)
+        assert np.isclose(elem._xobject._parent.k1s, 2.2, atol=1e-16)
+
+        assert elem._parent._buffer is line._buffer
+        assert elem._xobject._parent._buffer is line._buffer
 
     for drift in drifts:
-        assert np.isclose(drift.length, 1, atol=1e-16)
+        assert np.isclose(drift._parent.length, 3., atol=1e-16)
+        assert np.isclose(drift.weight, 1./3., atol=1e-16)
+
+        assert np.isclose(drift._xobject._parent.length, 3., atol=1e-16)
+        assert np.isclose(drift._xobject.weight, 1./3., atol=1e-16)
+
+        assert drift._parent._buffer is line._buffer
+        assert drift._xobject._parent._buffer is line._buffer
+
 
 
 @for_all_test_contexts
