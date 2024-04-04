@@ -963,6 +963,13 @@ class Bend(BeamElement):
         container[slice_name] = xt.ThickSliceBend(
                                     _parent=self, weight=weight, _buffer=_buffer)
 
+    @staticmethod
+    def add_drift_slice(weight, container, thick_name, slice_name, _buffer=None):
+        self = container[thick_name]
+        if hasattr(self, '_value'): self = self._value
+        container[slice_name] = xt.DriftSliceBend(
+                                    _parent=self, weight=weight, _buffer=_buffer)
+
 
 class Sextupole(BeamElement):
 
@@ -1005,6 +1012,14 @@ class Sextupole(BeamElement):
         self = container[thick_name]
         if hasattr(self, '_value'): self = self._value
         container[slice_name] = xt.ThickSliceSextupole(
+                                    _parent=self, weight=weight, _buffer=_buffer)
+
+
+    @staticmethod
+    def add_drift_slice(weight, container, thick_name, slice_name, _buffer=None):
+        self = container[thick_name]
+        if hasattr(self, '_value'): self = self._value
+        container[slice_name] = xt.DriftSliceSextupole(
                                     _parent=self, weight=weight, _buffer=_buffer)
 
 
@@ -1128,6 +1143,13 @@ class Quadrupole(BeamElement):
         self = container[thick_name]
         if hasattr(self, '_value'): self = self._value
         container[slice_name] = xt.ThickSliceQuadrupole(
+                                    _parent=self, weight=weight, _buffer=_buffer)
+
+    @staticmethod
+    def add_drift_slice(weight, container, thick_name, slice_name, _buffer=None):
+        self = container[thick_name]
+        if hasattr(self, '_value'): self = self._value
+        container[slice_name] = xt.DriftSliceQuadrupole(
                                     _parent=self, weight=weight, _buffer=_buffer)
 
 class Solenoid(BeamElement):

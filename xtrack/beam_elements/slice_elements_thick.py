@@ -141,6 +141,89 @@ class ThickSliceOctupole(BeamElement):
         return obj
 
 
+_drift_slice_bend_xofields = {
+    '_parent': xo.Ref(Bend)}
+_drift_slice_bend_xofields.update(_common_xofields)
+class DriftSliceBend(BeamElement):
+    allow_rot_and_shift = False
+    _skip_in_to_dict = ['_parent']
+    has_backtrack = True
+    _force_moveable = True
+    isthick = True
+
+    _xofields = _drift_slice_bend_xofields
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/drift_slice_bend.h')]
+
+    def to_dict(self, **kwargs):
+        dct = BeamElement.to_dict(self, **kwargs)
+        dct['_parent_name'] = self._parent_name
+        return dct
+
+    @classmethod
+    def from_dict(cls, dct, **kwargs):
+        obj = super().from_dict(dct, **kwargs)
+        obj._parent_name = dct['_parent_name']
+        return obj
+
+_drift_slice_quadrupole_xofields = {
+    '_parent': xo.Ref(Quadrupole)}
+_drift_slice_quadrupole_xofields.update(_common_xofields)
+class DriftSliceQuadrupole(BeamElement):
+    allow_rot_and_shift = False
+    _skip_in_to_dict = ['_parent']
+    has_backtrack = True
+    _force_moveable = True
+    isthick = True
+
+    _xofields = _drift_slice_quadrupole_xofields
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/drift_slice_quadrupole.h')]
+
+    def to_dict(self, **kwargs):
+        dct = BeamElement.to_dict(self, **kwargs)
+        dct['_parent_name'] = self._parent_name
+        return dct
+
+    @classmethod
+    def from_dict(cls, dct, **kwargs):
+        obj = super().from_dict(dct, **kwargs)
+        obj._parent_name = dct['_parent_name']
+        return obj
+
+
+_drift_slice_sextupole_xofields = {
+    '_parent': xo.Ref(Sextupole)}
+_drift_slice_sextupole_xofields.update(_common_xofields)
+class DriftSliceSextupole(BeamElement):
+    allow_rot_and_shift = False
+    _skip_in_to_dict = ['_parent']
+    has_backtrack = True
+    _force_moveable = True
+    isthick = True
+
+    _xofields = _drift_slice_sextupole_xofields
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/drift_slice_sextupole.h')]
+
+    def to_dict(self, **kwargs):
+        dct = BeamElement.to_dict(self, **kwargs)
+        dct['_parent_name'] = self._parent_name
+        return dct
+
+    @classmethod
+    def from_dict(cls, dct, **kwargs):
+        obj = super().from_dict(dct, **kwargs)
+        obj._parent_name = dct['_parent_name']
+        return obj
+
+
 _drift_slice_octupole_xofields = {
     '_parent': xo.Ref(Octupole)}
 _drift_slice_octupole_xofields.update(_common_xofields)
@@ -167,40 +250,3 @@ class DriftSliceOctupole(BeamElement):
         obj = super().from_dict(dct, **kwargs)
         obj._parent_name = dct['_parent_name']
         return obj
-
-
-# _drift_slice_xofields = {
-#     '_parent_length': xo.Ref(xo.Float64)}
-# _drift_slice_xofields.update(_common_xofields)
-# class ThickSliceDrift(BeamElement):
-#     allow_rot_and_shift = False
-#     _skip_in_to_dict = ['_parent_length']
-#     has_backtrack = True
-#     _force_moveable = True
-#     isthick = True
-
-#     _xofields = _drift_slice_xofields
-
-#     _extra_c_sources = [
-#         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
-#         _pkg_root.joinpath('beam_elements/elements_src/thick_slice_drift.h')]
-
-#     def to_dict(self, **kwargs):
-#         dct = BeamElement.to_dict(self, **kwargs)
-#         dct['_parent_name'] = self._parent_name
-#         return dct
-
-#     @classmethod
-#     def from_dict(cls, dct, **kwargs):
-#         obj = super().from_dict(dct, **kwargs)
-#         obj._parent_name = dct['_parent_name']
-#         return obj
-
-#     @property
-#     def _parent(self):
-#         return self._parent_cache
-
-#     @_parent.setter
-#     def _parent(self, value):
-#         self._parent_cache = value
-#         self._parent_length = value._xobject.length
