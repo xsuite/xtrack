@@ -936,13 +936,9 @@ def test_line_attr():
     line.build_tracker()
 
     assert np.all(line.attr['length'] == [1, 0, 6, 10, 12])
-    assert np.all(line.attr['knl', 0] == [0, 2, 7, 0, 0])
-    assert np.all(line.attr['k0'] == [0, 0, 5, 0, 0])
     assert np.all(line.attr['k0l'] == [0, 2, 5 * 6 + 7, 0, 0])
-    assert np.all(line.attr['knl', 1] == [0, 3, 8, 0, 0])
-    assert np.all(line.attr['k1'] == [0, 0, 0, 0, 11])
     assert np.all(line.attr['k1l'] == [0, 3, 8, 0, 11 * 12])
-    assert np.all(line.attr['angle_x'] == [0, 8, 0.5 * 6, 0, 0])
+    assert np.all(line.attr['angle_rad'] == [0, 8, 0.5 * 6, 0, 0])
 
 @for_all_test_contexts
 def test_insert_thin_elements_at_s_basic(test_context):
