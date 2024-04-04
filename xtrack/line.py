@@ -4110,7 +4110,7 @@ def mk_class_namespace(extra_classes):
     return out
 
 
-def _is_drift(element): # can be removed if length is zero
+def _is_drift(element):
     return isinstance(element, (beam_elements.Drift,) )
 
 
