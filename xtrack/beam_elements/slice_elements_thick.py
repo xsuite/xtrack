@@ -10,7 +10,6 @@ _common_xofields = {
     'weight': xo.Float64,
 }
 
-
 _thick_slice_bend_xofields = {
     '_parent': xo.Ref(Bend)}
 _thick_slice_bend_xofields.update(_common_xofields)

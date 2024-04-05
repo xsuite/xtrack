@@ -398,62 +398,52 @@ class Slicer:
         drift_idx, element_idx = 0, 0
         slices_to_append = []
 
-        if hasattr(type(element), 'add_entry_slice'):
-            type(element).add_entry_slice(
-                container=self._line.element_dict,
-                thick_name=name,
-                slice_name=f'{name}..entry_map',
-                _buffer=element._buffer,
-            )
-            slices_to_append.append(f'{name}..entry_map')
+        if hasattr(element, '_entry_slice_class'):
+            nn = f'{name}..entry_map'
+            ee = element._entry_slice_class(_parent_name=name,
+                    _parent=element, _buffer=element._buffer)
+            self._line.element_dict[nn] = ee
+            slices_to_append.append(nn)
 
         if chosen_slicing.mode == 'thin':
             for weight, is_drift in chosen_slicing.iter_weights(element.length):
                 if is_drift:
-                    slice_name = f'drift_{name}..{drift_idx}'
-                    element_adder = type(element).add_drift_slice
+                    nn = f'drift_{name}..{drift_idx}'
+                    ee = element._drift_slice_class(_parent_name=name,
+                            _parent=element, _buffer=element._buffer,
+                            weight=weight)
+                    self._line.element_dict[nn] = ee
+                    slices_to_append.append(nn)
                     drift_idx += 1
                 else:
-                    slice_name = f'{name}..{element_idx}'
-                    element_adder = type(element).add_slice
-                    element_idx += 1
+                    nn = f'{name}..{element_idx}'
+                    if element._thin_slice_class is not None:
+                        ee = element._thin_slice_class(_parent_name=name,
+                                _parent=element, _buffer=element._buffer,
+                                weight=weight)
+                        self._line.element_dict[nn] = ee
+                        slices_to_append.append(nn)
+                        element_idx += 1
 
-                try:
-                    element_adder(
-                        weight=weight,
-                        container=self._line.element_dict,
-                        thick_name=name,
-                        slice_name=slice_name,
-                        _buffer=self._line.element_dict[name]._buffer,
-                    )
-                    slices_to_append.append(slice_name)
-                except xt.ThinSliceNotNeededError:
-                    pass
         elif chosen_slicing.mode == 'thick':
             for weight, is_drift in chosen_slicing.iter_weights(element.length):
-                assert not is_drift
-                slice_name = f'{name}..{element_idx}'
+                nn = f'{name}..{element_idx}'
+                ee = element._thick_slice_class(_parent_name=name,
+                        _parent=element, _buffer=element._buffer,
+                        weight=weight)
+                self._line.element_dict[nn] = ee
+                slices_to_append.append(nn)
                 element_idx += 1
-
-                type(element).add_thick_slice(
-                    weight=weight,
-                    container=self._line.element_dict,
-                    thick_name=name,
-                    slice_name=slice_name,
-                    _buffer=self._line.element_dict[name]._buffer,
-                )
-                slices_to_append.append(slice_name)
         else:
             raise ValueError(f'Unknown slicing mode: {chosen_slicing.mode}')
 
-        if hasattr(type(element), 'add_exit_slice'):
-            type(element).add_exit_slice(
-                container=self._line.element_dict,
-                thick_name=name,
-                slice_name=f'{name}..exit_map',
-                _buffer=element._buffer,
-            )
-            slices_to_append.append(f'{name}..exit_map')
+        if hasattr(element, '_exit_slice_class'):
+            nn = f'{name}..exit_map'
+            ee = element._exit_slice_class(_parent_name=name,
+                    _parent=element, _buffer=element._buffer)
+            self._line.element_dict[nn] = ee
+            slices_to_append.append(nn)
+
 
         for nn in slices_to_append:
             self._line.element_dict[nn]._parent_name = name

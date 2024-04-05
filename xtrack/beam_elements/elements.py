@@ -74,6 +74,8 @@ class Drift(BeamElement):
     allow_backtrack = True
     allow_rot_and_shift = False
 
+
+
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/drift_elem.h'),
@@ -96,6 +98,18 @@ class Drift(BeamElement):
         if hasattr(self, '_value'): self = self._value
         container[slice_name] = xt.DriftSlice(
                                     _parent=self, weight=weight, _buffer=_buffer)
+
+    @property
+    def _thin_slice_class(self):
+        return None
+
+    @property
+    def _thick_slice_class(self):
+        return xt.DriftSlice
+
+    @property
+    def _drift_slice_class(self):
+        return xt.DriftSlice
 
 
 class Cavity(BeamElement):
@@ -764,6 +778,7 @@ class Bend(BeamElement):
         components.
 
     """
+
     isthick = True
     has_backtrack = True
 
@@ -928,6 +943,26 @@ class Bend(BeamElement):
     @property
     def radiation_flag(self): return 0.0
 
+    @property
+    def _thin_slice_class(self):
+        return xt.ThinSliceBend
+
+    @property
+    def _thick_slice_class(self):
+        return xt.ThickSliceBend
+
+    @property
+    def _drift_slice_class(self):
+        return xt.DriftSliceBend
+
+    @property
+    def _entry_slice_class(self):
+        return xt.ThinSliceBendEntry
+
+    @property
+    def _exit_slice_class(self):
+        return xt.ThinSliceBendExit
+
     @staticmethod
     def add_slice(weight, container, thick_name, slice_name, _buffer=None):
         self = container[thick_name]
@@ -1016,6 +1051,18 @@ class Sextupole(BeamElement):
         container[slice_name] = xt.DriftSliceSextupole(
                                     _parent=self, weight=weight, _buffer=_buffer)
 
+    @property
+    def _thin_slice_class(self):
+        return xt.ThinSliceSextupole
+
+    @property
+    def _thick_slice_class(self):
+        return xt.ThickSliceSextupole
+
+    @property
+    def _drift_slice_class(self):
+        return xt.DriftSliceSextupole
+
 
 class Octupole(BeamElement):
 
@@ -1066,6 +1113,19 @@ class Octupole(BeamElement):
         if hasattr(self, '_value'): self = self._value
         container[slice_name] = xt.DriftSliceOctupole(
                                     _parent=self, weight=weight, _buffer=_buffer)
+
+    @property
+    def _thin_slice_class(self):
+        return xt.ThinSliceOctupole
+
+    @property
+    def _thick_slice_class(self):
+        return xt.ThickSliceOctupole
+
+    @property
+    def _drift_slice_class(self):
+        return xt.DriftSliceOctupole
+
 
 class Quadrupole(BeamElement):
     """
@@ -1140,6 +1200,19 @@ class Quadrupole(BeamElement):
         if hasattr(self, '_value'): self = self._value
         container[slice_name] = xt.DriftSliceQuadrupole(
                                     _parent=self, weight=weight, _buffer=_buffer)
+
+    @property
+    def _thin_slice_class(self):
+        return xt.ThinSliceQuadrupole
+
+    @property
+    def _thick_slice_class(self):
+        return xt.ThickSliceQuadrupole
+
+    @property
+    def _drift_slice_class(self):
+        return xt.DriftSliceQuadrupole
+
 
 class Solenoid(BeamElement):
     """Solenoid element.

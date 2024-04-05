@@ -8,8 +8,6 @@ line = xt.Line(elements=[drift])
 line.slice_thick_elements(
     slicing_strategies=[xt.Strategy(xt.Uniform(5))])
 line.build_tracker()
-assert line['e0..0']._parent_name == 'e0'
-assert line['e0..0']._parent is line['e0']
 assert line['drift_e0..0']._parent_name == 'e0'
 assert line['drift_e0..0']._parent is line['e0']
 
@@ -18,7 +16,7 @@ p_ref = p0.copy()
 p_slice = p0.copy()
 
 line.track(p_slice)
-oct.track(p_ref)
+drift.track(p_ref)
 
 assert_allclose = np.testing.assert_allclose
 assert_allclose = np.testing.assert_allclose
@@ -31,17 +29,11 @@ assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-10)
 
 line.to_json('ttt.json')
 line2 = xt.Line.from_json('ttt.json')
-assert isinstance(line2['e0..0'], xt.ThinSliceOctupole)
-assert line2['e0..0']._parent_name == 'e0'
-assert line2['e0..0']._parent is None
 assert line2['drift_e0..0']._parent_name == 'e0'
 assert line2['drift_e0..0']._parent is None
 
 line2.build_tracker()
-assert isinstance(line2['e0..0'], xt.ThinSliceOctupole)
-assert line2['e0..0']._parent_name == 'e0'
-assert line2['e0..0']._parent is line2['e0']
-assert isinstance(line2['drift_e0..0'], xt.DriftSliceOctupole)
+assert isinstance(line2['drift_e0..0'], xt.DriftSlice)
 assert line2['drift_e0..0']._parent_name == 'e0'
 assert line2['drift_e0..0']._parent is line2['e0']
 
@@ -56,7 +48,6 @@ assert_allclose(p_slice.delta, p0.delta, rtol=0, atol=1e-10)
 
 line.optimize_for_tracking()
 
-assert isinstance(line['e0..0'], xt.Multipole)
 assert isinstance(line['drift_e0..0'], xt.Drift)
 
 p_slice = p0.copy()
