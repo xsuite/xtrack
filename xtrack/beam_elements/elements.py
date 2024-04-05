@@ -15,7 +15,6 @@ from ..random import RandomUniform, RandomExponential, RandomNormal
 from ..general import _pkg_root, _print
 from ..internal_record import RecordIndex, RecordIdentifier
 
-
 class ReferenceEnergyIncrease(BeamElement):
 
     '''Beam element modeling a change of reference energy (acceleration, 
@@ -82,12 +81,21 @@ class Drift(BeamElement):
 
     @staticmethod
     def add_slice(weight, container, thick_name, slice_name, _buffer=None):
-        container[slice_name] = Drift(_buffer=_buffer)
-        container[slice_name].length = _get_expr(container[thick_name].length) * weight
+        raise ThinSliceNotNeededError
 
-    @classmethod
-    def add_thick_slice(cls, weight, container, thick_name, slice_name, _buffer=None):
-        cls.add_slice(weight, container, thick_name, slice_name, _buffer=_buffer)
+    @staticmethod
+    def add_thick_slice(weight, container, thick_name, slice_name, _buffer=None):
+        self = container[thick_name]
+        if hasattr(self, '_value'): self = self._value
+        container[slice_name] = xt.DriftSlice(
+                                    _parent=self, weight=weight, _buffer=_buffer)
+
+    @staticmethod
+    def add_drift_slice(weight, container, thick_name, slice_name, _buffer=None):
+        self = container[thick_name]
+        if hasattr(self, '_value'): self = self._value
+        container[slice_name] = xt.DriftSlice(
+                                    _parent=self, weight=weight, _buffer=_buffer)
 
 
 class Cavity(BeamElement):
@@ -2303,3 +2311,6 @@ class SecondOrderTaylorMap(BeamElement):
             out.T[:, :, kk] *= scale_factors[kk]
 
         return out
+
+class ThinSliceNotNeededError(Exception):
+    pass
