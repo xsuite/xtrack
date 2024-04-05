@@ -74,30 +74,10 @@ class Drift(BeamElement):
     allow_backtrack = True
     allow_rot_and_shift = False
 
-
-
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/drift_elem.h'),
         ]
-
-    @staticmethod
-    def add_slice(weight, container, thick_name, slice_name, _buffer=None):
-        raise ThinSliceNotNeededError
-
-    @staticmethod
-    def add_thick_slice(weight, container, thick_name, slice_name, _buffer=None):
-        self = container[thick_name]
-        if hasattr(self, '_value'): self = self._value
-        container[slice_name] = xt.DriftSlice(
-                                    _parent=self, weight=weight, _buffer=_buffer)
-
-    @staticmethod
-    def add_drift_slice(weight, container, thick_name, slice_name, _buffer=None):
-        self = container[thick_name]
-        if hasattr(self, '_value'): self = self._value
-        container[slice_name] = xt.DriftSlice(
-                                    _parent=self, weight=weight, _buffer=_buffer)
 
     @property
     def _thin_slice_class(self):
@@ -963,42 +943,6 @@ class Bend(BeamElement):
     def _exit_slice_class(self):
         return xt.ThinSliceBendExit
 
-    @staticmethod
-    def add_slice(weight, container, thick_name, slice_name, _buffer=None):
-        self = container[thick_name]
-        if hasattr(self, '_value'): self = self._value
-        container[slice_name] = xt.ThinSliceBend(
-                                    _parent=self, weight=weight, _buffer=_buffer)
-
-    @staticmethod
-    def add_entry_slice(container, thick_name, slice_name, _buffer=None):
-        self = container[thick_name]
-        if hasattr(self, '_value'): self = self._value
-        container[slice_name] = xt.ThinSliceBendEntry(
-                                            _parent=self, _buffer=_buffer)
-
-    @staticmethod
-    def add_exit_slice(container, thick_name, slice_name, _buffer=None):
-        self = container[thick_name]
-        if hasattr(self, '_value'): self = self._value
-        container[slice_name] = xt.ThinSliceBendExit(
-                                            _parent=self, _buffer=_buffer)
-
-    @staticmethod
-    def add_thick_slice(weight, container, thick_name, slice_name, _buffer=None):
-        self = container[thick_name]
-        if hasattr(self, '_value'): self = self._value
-        container[slice_name] = xt.ThickSliceBend(
-                                    _parent=self, weight=weight, _buffer=_buffer)
-
-    @staticmethod
-    def add_drift_slice(weight, container, thick_name, slice_name, _buffer=None):
-        self = container[thick_name]
-        if hasattr(self, '_value'): self = self._value
-        container[slice_name] = xt.DriftSliceBend(
-                                    _parent=self, weight=weight, _buffer=_buffer)
-
-
 
 class Sextupole(BeamElement):
 
@@ -1028,28 +972,6 @@ class Sextupole(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/sextupole.h'),
     ]
-
-    @staticmethod
-    def add_slice(weight, container, thick_name, slice_name, _buffer=None):
-        self = container[thick_name]
-        if hasattr(self, '_value'): self = self._value
-        container[slice_name] = xt.ThinSliceSextupole(
-                                    _parent=self, weight=weight, _buffer=_buffer)
-
-    @staticmethod
-    def add_thick_slice(weight, container, thick_name, slice_name, _buffer=None):
-        self = container[thick_name]
-        if hasattr(self, '_value'): self = self._value
-        container[slice_name] = xt.ThickSliceSextupole(
-                                    _parent=self, weight=weight, _buffer=_buffer)
-
-
-    @staticmethod
-    def add_drift_slice(weight, container, thick_name, slice_name, _buffer=None):
-        self = container[thick_name]
-        if hasattr(self, '_value'): self = self._value
-        container[slice_name] = xt.DriftSliceSextupole(
-                                    _parent=self, weight=weight, _buffer=_buffer)
 
     @property
     def _thin_slice_class(self):
@@ -1092,27 +1014,6 @@ class Octupole(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/octupole.h'),
     ]
-
-    @staticmethod
-    def add_slice(weight, container, thick_name, slice_name, _buffer=None):
-        self = container[thick_name]
-        if hasattr(self, '_value'): self = self._value
-        container[slice_name] = xt.ThinSliceOctupole(
-                                    _parent=self, weight=weight, _buffer=_buffer)
-
-    @staticmethod
-    def add_thick_slice(weight, container, thick_name, slice_name, _buffer=None):
-        self = container[thick_name]
-        if hasattr(self, '_value'): self = self._value
-        container[slice_name] = xt.ThickSliceOctupole(
-                                    _parent=self, weight=weight, _buffer=_buffer)
-
-    @staticmethod
-    def add_drift_slice(weight, container, thick_name, slice_name, _buffer=None):
-        self = container[thick_name]
-        if hasattr(self, '_value'): self = self._value
-        container[slice_name] = xt.DriftSliceOctupole(
-                                    _parent=self, weight=weight, _buffer=_buffer)
 
     @property
     def _thin_slice_class(self):
@@ -1176,30 +1077,8 @@ class Quadrupole(BeamElement):
 
         return cls(**dct, **kwargs)
 
-
     @property
     def radiation_flag(self): return 0.0
-
-    @staticmethod
-    def add_slice(weight, container, thick_name, slice_name, _buffer=None):
-        self = container[thick_name]
-        if hasattr(self, '_value'): self = self._value
-        container[slice_name] = xt.ThinSliceQuadrupole(
-                                    _parent=self, weight=weight, _buffer=_buffer)
-
-    @staticmethod
-    def add_thick_slice(weight, container, thick_name, slice_name, _buffer=None):
-        self = container[thick_name]
-        if hasattr(self, '_value'): self = self._value
-        container[slice_name] = xt.ThickSliceQuadrupole(
-                                    _parent=self, weight=weight, _buffer=_buffer)
-
-    @staticmethod
-    def add_drift_slice(weight, container, thick_name, slice_name, _buffer=None):
-        self = container[thick_name]
-        if hasattr(self, '_value'): self = self._value
-        container[slice_name] = xt.DriftSliceQuadrupole(
-                                    _parent=self, weight=weight, _buffer=_buffer)
 
     @property
     def _thin_slice_class(self):
