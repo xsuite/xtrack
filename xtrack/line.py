@@ -1930,7 +1930,7 @@ class Line:
             strategies.append(strategy)
 
         slicer = Slicer(self, slicing_strategies=strategies)
-        slicer.slice_in_place()
+        slicer.slice_in_place(_edge_markers=False)
 
         # Restore and update the compound container
         new_compound_container = self.compound_container

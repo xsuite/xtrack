@@ -237,7 +237,7 @@ class Slicer:
             strategy_cache[name, type_] = (strategy.slicing, score)
         self._strategy_cache = strategy_cache
 
-    def slice_in_place(self):
+    def slice_in_place(self, _edge_markers=True):
 
         self._line._frozen_check()
 
@@ -250,7 +250,8 @@ class Slicer:
                 subsequence = self._slice_compound(name, compound)
             else:
                 element = self._line.element_dict[name]
-                subsequence = self._slice_element(name, element)
+                subsequence = self._slice_element(
+                    name, element, _edge_markers=_edge_markers)
 
             # Create a new compound with the sliced elements
             if subsequence is not None:
@@ -312,7 +313,7 @@ class Slicer:
 
         return subsequence
 
-    def _slice_element(self, name, element) -> Optional[List[str]]:
+    def _slice_element(self, name, element, _edge_markers=True) -> Optional[List[str]]:
         """Slice element and return slice names, or None if no slicing."""
         # Don't slice already thin elements and drifts
         if not element.isthick:
@@ -332,16 +333,17 @@ class Slicer:
             name=name,
         )
 
-        entry_marker, exit_marker = f'{name}_entry', f'{name}_exit'
-        if entry_marker not in self._line.element_dict:
-            self._line.element_dict[entry_marker] = xt.Marker(
-                                                    _buffer=element._buffer)
-            slices_to_add = [entry_marker] + slices_to_add
+        if _edge_markers:
+            entry_marker, exit_marker = f'{name}_entry', f'{name}_exit'
+            if entry_marker not in self._line.element_dict:
+                self._line.element_dict[entry_marker] = xt.Marker(
+                                                        _buffer=element._buffer)
+                slices_to_add = [entry_marker] + slices_to_add
 
-        if exit_marker not in self._line.element_dict:
-            self._line.element_dict[exit_marker] = xt.Marker(
-                                                    _buffer=element._buffer)
-            slices_to_add += [exit_marker]
+            if exit_marker not in self._line.element_dict:
+                self._line.element_dict[exit_marker] = xt.Marker(
+                                                        _buffer=element._buffer)
+                slices_to_add += [exit_marker]
 
         return slices_to_add
 
