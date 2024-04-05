@@ -1929,10 +1929,10 @@ class Line:
             strategy = Strategy(scheme, name=name, exact=True)
             strategies.append(strategy)
 
-        import pdb; pdb.set_trace()
-
         slicer = Slicer(self, slicing_strategies=strategies)
         slicer.slice_in_place()
+
+        # REMEMBER TO RESTORE THE OLD COMPOUND CONTAINER!!!!!
 
     def insert_element(self, name, element=None, at=None, index=None, at_s=None,
                        s_tol=1e-6):

@@ -399,8 +399,6 @@ class Slicer:
             A list of the names of the slices that were added.
         """
 
-        import pdb; pdb.set_trace()
-
         drift_idx, element_idx = 0, 0
         slices_to_append = []
 
@@ -448,7 +446,6 @@ class Slicer:
             assert element.isthick
             elem_length = element._parent.length * element.weight
             for weight, is_drift in chosen_slicing.iter_weights(elem_length):
-                import pdb; pdb.set_trace()
                 nn = f'{name}..{element_idx}'
                 ee = type(element)(_parent_name=element._parent_name,
                         _parent=element._parent, _buffer=element._buffer,
