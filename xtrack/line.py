@@ -1995,6 +1995,9 @@ class Line:
                 )
 
         if index is not None:
+
+            s_tol = 0.5e-6
+
             if _is_thick(element) and np.abs(_length(element, self)) > 0:
                 raise NotImplementedError('Use `at_s` to insert thick elements')
 
@@ -3838,8 +3841,6 @@ class Line:
 
     def _insert_thin_elements_at_s(self, elements_to_insert):
 
-        raise NotImplementedError('to be adapted')
-
         '''
         Example:
         elements_to_insert = [
@@ -3852,61 +3853,12 @@ class Line:
         '''
 
         self._frozen_check()
+        s_tol = 0.5e-6
 
         s_cuts = [ee[0] for ee in elements_to_insert]
         s_cuts = np.sort(s_cuts)
 
-        s_tol = 0.5e-6
-
-        tt_before_cut = self.get_table()
-
-        i_next = np.array([np.argmax(tt_before_cut['s'] > s_cut) for s_cut in s_cuts])
-        i_ele_containing = i_next - 1
-
-        needs_cut = np.abs(tt_before_cut['s'][i_ele_containing] - s_cuts) > s_tol
-
-        assert np.all(s_cuts[needs_cut] > tt_before_cut.s[i_ele_containing[needs_cut]])
-        assert np.all(s_cuts[needs_cut] < tt_before_cut.s[i_ele_containing[needs_cut]+1])
-        assert np.all(tt_before_cut.element_type[i_ele_containing[needs_cut]] == 'Drift')
-
-        i_drifts_to_cut = set(i_ele_containing[needs_cut])
-
-        for idr in progress(i_drifts_to_cut, desc='Cut drifts'):
-            name_drift = tt_before_cut.name[idr]
-            drift = self[name_drift]
-            assert isinstance(drift, xt.Drift)
-            _buffer = drift._buffer
-            l_drift = drift.length
-            s_start = tt_before_cut['s'][idr]
-            s_end = s_start + l_drift
-            s_cut_dr = np.sort([s_start] + list(s_cuts[i_ele_containing==idr]) + [s_end])
-
-            drifts_for_replacement = []
-            i_new_drifts = 0
-            new_drift_names = []
-            for ll in np.diff(s_cut_dr):
-                if ll > s_tol:
-                    drifts_for_replacement.append(xt.Drift(length=ll, _buffer=_buffer))
-                    new_drift_names.append(f'{name_drift}_{i_new_drifts}')
-                    assert new_drift_names[-1] not in self.element_names
-                    i_new_drifts += 1
-
-            insert_at = self.element_names.index(name_drift)
-            self.element_names.remove(name_drift)
-            cpd_name = self.compound_container.compound_name_for_element(name_drift)
-            if cpd_name is not None:
-                cpd = self.compound_container.compound_for_name(cpd_name)
-                assert name_drift in cpd.core
-                cpd.core.remove(name_drift)
-            else:
-                cpd = None
-            for nn, dd in zip(new_drift_names, drifts_for_replacement):
-                self.element_dict[nn] = dd
-                self.element_names.insert(insert_at, nn)
-                if cpd is not None:
-                    cpd.core.add(nn)
-                    self.compound_container._compound_name_for_element[nn] = cpd_name
-                insert_at += 1
+        self.cut_at_s(s_cuts)
 
         tt_after_cut = self.get_table()
 
@@ -3955,7 +3907,7 @@ class Line:
                 elif ele_name_ins in cpd_ins.entry:
                     pass # Goes in front ot the compound but does not belong to it
                 elif ele_name_ins in cpd_ins.exit:
-                    assert len(cpd.exit_transform) == 0
+                    assert len(cpd_ins.exit_transform) == 0
                     cpd_ins.core.add(nn)
                     self.compound_container._compound_name_for_element[nn] = cpd_name_ins
                 elif ele_name_ins in cpd_ins.exit_transform:

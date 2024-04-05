@@ -14,3 +14,6 @@ line.configure_bend_model(edge='linear', core='expanded')
 #     slicing_strategies=[xt.Strategy(xt.Uniform(3))])
 
 line.cut_at_s([0.3])
+
+line._insert_thin_elements_at_s([
+    (0.4, [('mymark1', xt.Marker()), ('mymark2', xt.Marker())])])
