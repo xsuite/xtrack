@@ -1936,13 +1936,17 @@ class Line:
         new_compound_container = self.compound_container
         self.compound_container = old_compound_container
         for nn in new_compound_container.compound_names:
-            old_cmpnd_name = old_compound_container.compound_name_for_element(nn)
-            old_cmpnd = old_compound_container.compound_for_name(old_cmpnd_name)
-            elems = list(old_cmpnd.elements)
-            elems.remove(nn)
+            cmpnd_name = old_compound_container.compound_name_for_element(nn)
+            if cmpnd_name is not None:
+                old_cmpnd = old_compound_container.compound_for_name(cmpnd_name)
+                elems = list(old_cmpnd.elements)
+                elems.remove(nn)
+            else:
+                elems = []
+                cmpnd_name = nn
             elems += new_compound_container.compound_for_name(nn).elements
             new_cmpnd = xt.compounds.SlicedCompound(elems)
-            self.compound_container.define_compound(old_cmpnd_name, new_cmpnd)
+            self.compound_container.define_compound(cmpnd_name, new_cmpnd)
 
     def insert_element(self, name, element=None, at=None, index=None, at_s=None,
                        s_tol=1e-6):
