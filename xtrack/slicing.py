@@ -238,6 +238,9 @@ class Slicer:
         self._strategy_cache = strategy_cache
 
     def slice_in_place(self):
+
+        self._line._frozen_check()
+
         thin_names = []
 
         collapsed_names = self._line.get_collapsed_names()
@@ -425,12 +428,22 @@ class Slicer:
                         slices_to_append.append(nn)
                         element_idx += 1
 
-        elif chosen_slicing.mode == 'thick':
+        elif chosen_slicing.mode == 'thick' and hasattr(element, 'length'):
             for weight, is_drift in chosen_slicing.iter_weights(element.length):
                 nn = f'{name}..{element_idx}'
                 ee = element._thick_slice_class(_parent_name=name,
                         _parent=element, _buffer=element._buffer,
                         weight=weight)
+                self._line.element_dict[nn] = ee
+                slices_to_append.append(nn)
+                element_idx += 1
+        elif chosen_slicing.mode == 'thick' and not hasattr(element, 'length'):
+            assert hasattr(element, '_parent')
+            for weight, is_drift in chosen_slicing.iter_weights(1):
+                nn = f'{name}..{element_idx}'
+                ee = type(element)(_parent_name=element._parent_name,
+                        _parent=element._parent, _buffer=element._buffer,
+                        weight=weight * element.weight)
                 self._line.element_dict[nn] = ee
                 slices_to_append.append(nn)
                 element_idx += 1

@@ -1920,6 +1920,10 @@ class Line:
         """Slice the line so that positions in s never fall inside an element."""
         cuts_for_element = self._elements_intersecting_s(s)
         strategies = [Strategy(None)]  # catch-all, ignore unaffected elements
+
+        old_compound_container = self.compound_container
+        self.compound_container = type(old_compound_container)()
+
         for name, cuts in cuts_for_element.items():
             scheme = Custom(at_s=cuts, mode='thick')
             strategy = Strategy(scheme, name=name, exact=True)
