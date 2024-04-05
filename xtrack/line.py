@@ -1932,7 +1932,17 @@ class Line:
         slicer = Slicer(self, slicing_strategies=strategies)
         slicer.slice_in_place()
 
-        # REMEMBER TO RESTORE THE OLD COMPOUND CONTAINER!!!!!
+        # Restore and update the compound container
+        new_compound_container = self.compound_container
+        self.compound_container = old_compound_container
+        for nn in new_compound_container.compound_names:
+            old_cmpnd_name = old_compound_container.compound_name_for_element(nn)
+            old_cmpnd = old_compound_container.compound_for_name(old_cmpnd_name)
+            elems = list(old_cmpnd.elements)
+            elems.remove(nn)
+            elems += new_compound_container.compound_for_name(nn).elements
+            new_cmpnd = xt.compounds.SlicedCompound(elems)
+            self.compound_container.define_compound(old_cmpnd_name, new_cmpnd)
 
     def insert_element(self, name, element=None, at=None, index=None, at_s=None,
                        s_tol=1e-6):
