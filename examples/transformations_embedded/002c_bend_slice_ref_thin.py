@@ -102,3 +102,5 @@ assert_allclose(p_slice.py, p0.py, rtol=0, atol=1e-10)
 assert_allclose(p_slice.zeta, p0.zeta, rtol=0, atol=1e-10)
 assert_allclose(p_slice.delta, p0.delta, rtol=0, atol=1e-10)
 
+line2.cut_at_s(np.linspace(0, line2.get_length(), 123))
+

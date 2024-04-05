@@ -1786,10 +1786,7 @@ class Line:
         ll = 0
         for ee in self.elements:
             if _is_thick(ee):
-                if hasattr(ee, '_parent'):
-                    this_length = self[ee._parent_name].length * ee.weight
-                else:
-                    this_length = ee.length
+                this_length = _length(ee, self)
                 ll += this_length
 
         return ll
@@ -1836,10 +1833,7 @@ class Line:
             if mode == "upstream":
                 s.append(s_prev)
             if _is_thick(ee):
-                if hasattr(ee, '_parent'):
-                    this_length = self[ee._parent_name].length * ee.weight
-                else:
-                    this_length = ee.length
+                this_length = _length(ee, self)
                 s_prev += this_length
             if mode == "downstream":
                 s.append(s_prev)
@@ -1900,7 +1894,7 @@ class Line:
                     current_s = next(current_s_iter)
                     continue
 
-                end = start + element.length
+                end = start + _length(element, self)
                 if np.isclose(current_s, end, atol=tol):
                     current_s = next(current_s_iter)
                     continue
@@ -1981,7 +1975,7 @@ class Line:
                 )
 
         if index is not None:
-            if _is_thick(element) and np.abs(element.length) > 0:
+            if _is_thick(element) and np.abs(_length(element, self)) > 0:
                 raise NotImplementedError('Use `at_s` to insert thick elements')
 
             left_name = self.element_names[index - 1]
@@ -2015,7 +2009,7 @@ class Line:
 
         s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
 
-        if not _is_thick(element) or np.abs(element.length) == 0:
+        if not _is_thick(element) or np.abs(_length(element, self)) == 0:
             i_closest = np.argmin(np.abs(s_vect_upstream - at_s))
             if np.abs(s_vect_upstream[i_closest] - at_s) < s_tol:
                 return self.insert_element(
@@ -2032,13 +2026,13 @@ class Line:
             return self.insert_element(index=i_first_drift_to_cut,
                                        element=element, name=name)
 
-        if _is_thick(element) and np.abs(element.length) > 0:
-            s_end_ele = at_s + element.length
+        if _is_thick(element) and np.abs(_length(element, self)) > 0:
+            s_end_ele = at_s + _length(element, self)
         else:
             s_end_ele = s_start_ele
 
         i_last_drift_to_cut = np.where(s_vect_upstream < s_end_ele)[0][-1]
-        if _is_thick(element) and element.length > 0:
+        if _is_thick(element) and _length(element, self) > 0:
             assert i_first_drift_to_cut <= i_last_drift_to_cut
         name_first_drift_to_cut = self.element_names[i_first_drift_to_cut]
         name_last_drift_to_cut = self.element_names[i_last_drift_to_cut]
@@ -2348,7 +2342,7 @@ class Line:
                 new_elements.append(ee)
             else:
                 if _is_thick(ee) and not _is_drift(ee):
-                    new_elements.append(Drift(length=ee.length))
+                    new_elements.append(Drift(length=_length(ee, self)))
                 else:
                     new_elements.append(Drift(length=0))
 
@@ -2897,7 +2891,7 @@ class Line:
 
         for ee, nn in zip(self.elements, self.element_names):
             if _is_drift(ee) and nn not in keep:
-                if ee.length == 0.0:
+                if _length(ee, self) == 0.0:
                     continue
             newline.append_element(ee, nn)
 
@@ -3164,7 +3158,7 @@ class Line:
             # However, it is enough for them to have an upstream aperture as they are
             # at this stage just Markers (and xcoll takes care of providing the down-
             # stream aperture), so we mark them as thin.
-            if name in needs_aperture and hasattr(ee, 'length') and ee.length == 0:
+            if name in needs_aperture and hasattr(ee, 'length') and _length(ee, self) == 0:
                 elements_df.loc[elements_df['name']==name, 'isthick'] = False
 
         i_prev_aperture = elements_df[elements_df['is_aperture']].index[0]
@@ -3197,7 +3191,7 @@ class Line:
         # Check for elements missing aperture downstream
         s_downstream = elements_df.s.copy()
         df_thick_to_check = elements_df[elements_df['isthick'] & ~(elements_df.i_aperture_upstream.isna())].copy()
-        s_downstream.loc[df_thick_to_check.index] += np.array([ee.length for ee in df_thick_to_check.element])
+        s_downstream.loc[df_thick_to_check.index] += np.array([_length(ee, self) for ee in df_thick_to_check.element])
         elements_df['misses_aperture_downstream'] = (
             (np.abs(elements_df['s_aperture_downstream'] - s_downstream) > 1e-6)
             & ~(np.isnan(elements_df['i_aperture_upstream'])))
@@ -3823,6 +3817,8 @@ class Line:
         return cache
 
     def _insert_thin_elements_at_s(self, elements_to_insert):
+
+        raise NotImplementedError('to be adapted')
 
         '''
         Example:
@@ -4842,3 +4838,9 @@ def _rot_s_from_attr(attr):
                                             parent_cos_rot_s[has_parent_rot])
 
     return rot_s_rad
+
+def _length(element, line):
+    if hasattr(element, 'length'):
+        return element.length
+    assert hasattr(element, '_parent_name')
+    return line[element._parent_name].length * element.weight
