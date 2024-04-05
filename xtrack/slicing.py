@@ -398,6 +398,9 @@ class Slicer:
         list
             A list of the names of the slices that were added.
         """
+
+        import pdb; pdb.set_trace()
+
         drift_idx, element_idx = 0, 0
         slices_to_append = []
 
@@ -443,7 +446,9 @@ class Slicer:
         elif chosen_slicing.mode == 'thick' and not hasattr(element, 'length'):
             assert hasattr(element, '_parent')
             assert element.isthick
-            for weight, is_drift in chosen_slicing.iter_weights(1):
+            elem_length = element._parent.length * element.weight
+            for weight, is_drift in chosen_slicing.iter_weights(elem_length):
+                import pdb; pdb.set_trace()
                 nn = f'{name}..{element_idx}'
                 ee = type(element)(_parent_name=element._parent_name,
                         _parent=element._parent, _buffer=element._buffer,
