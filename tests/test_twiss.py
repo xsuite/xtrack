@@ -54,7 +54,7 @@ def test_twiss_4d_fodo_vs_beta_rel(test_context):
 
 @for_all_test_contexts
 def test_coupled_beta(test_context):
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.call(str(test_data_folder / 'hllhc15_noerrors_nobb/sequence.madx'))
     mad.use('lhcb1')
 
@@ -97,7 +97,7 @@ def test_coupled_beta(test_context):
 
 @for_all_test_contexts
 def test_twiss_zeta0_delta0(test_context):
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.call(str(test_data_folder
                  / 'hllhc15_noerrors_nobb/sequence_with_crabs.madx'))
     mad.use('lhcb1')
@@ -1238,7 +1238,7 @@ def test_momentum_crab_dispersion(test_context):
 @for_all_test_contexts
 def test_twiss_group_compounds(test_context):
 
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     # Load mad model and apply element shifts
     mad.input(f'''

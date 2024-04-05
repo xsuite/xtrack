@@ -64,7 +64,7 @@ def test_energy_program(test_context):
     t_s = t_s
 
     # Load mad model and apply element shifts
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.call(str(test_data_folder / 'psb_chicane/psb.seq'))
     mad.call(str(test_data_folder / 'psb_chicane/psb_fb_lhc.str'))
     mad.input('''

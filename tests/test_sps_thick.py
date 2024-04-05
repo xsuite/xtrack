@@ -17,7 +17,7 @@ test_data_folder = pathlib.Path(
 @for_all_test_contexts
 def test_sps_thick(test_context, deferred_expressions):
 
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.call(str(test_data_folder) + '/sps_thick/sps.seq')
     mad.input('beam, particle=proton, pc=26;')
     mad.call(str(test_data_folder) + '/sps_thick/lhc_q20.str')

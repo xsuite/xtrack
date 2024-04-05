@@ -44,7 +44,7 @@ def test_combined_function_dipole_against_ptc(test_context, k0, k1, k2, length,
         delta=[-0.1, -0.05, 0, 0.05, 0.1],
         _context=test_context,
     )
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.input(f"""
     ss: sequence, l={length};
         b: sbend, at={length / 2}, angle={k0 * length}, k1={k1}, k2={k2}, l={length};
@@ -299,7 +299,7 @@ def test_thick_multipolar_component(test_context, element_type, h):
 )
 @pytest.mark.parametrize('bend_type', ['rbend', 'sbend'])
 def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type):
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.options.rbarc = False
 
     mad.input(f"""
@@ -399,7 +399,7 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
 
 @pytest.mark.parametrize('with_knobs', [False, True])
 def test_import_thick_quad_from_madx(with_knobs):
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     mad.input(f"""
     knob_a := 0.0;
@@ -451,7 +451,7 @@ def test_import_thick_bend_from_madx_and_slice(
         with_knobs,
         bend_type,
 ):
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.options.rbarc = False
     mad.input(f"""
     knob_a := 1.0;
@@ -537,7 +537,7 @@ def test_import_thick_bend_from_madx_and_slice(
     ids=['with knobs', 'no knobs'],
 )
 def test_import_thick_quad_from_madx_and_slice(with_knobs):
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.input(f"""
     knob_a := 0.0;
     knob_b := 2.0;
@@ -737,7 +737,7 @@ def test_backtrack_with_bend_quadrupole_and_cfm(test_context):
 
 
 def test_import_thick_with_apertures_and_slice():
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     mad.input("""
     k1=0.2;
@@ -919,7 +919,7 @@ def test_sextupole(test_context):
     assert np.allclose(p_sliced.zeta, p.zeta, rtol=0, atol=1e-14)
 
     from cpymad.madx import Madx
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.input(f"""
         knob_a := 1.0;
         knob_b := 2.0;
@@ -972,7 +972,7 @@ def test_solenoid_against_madx(test_context, ks, ksi, length):
         _context=test_context,
     )
 
-    mad = Madx()
+    mad = Madx(stdout=False)
     if length == 0:
         dr_len = 1e-11
         mad.input(f"""

@@ -169,52 +169,27 @@ class Elens(BeamElement):
 
     '''
 
-# if array is needed we do it like this
-#    _xofields={'inner_radius': xo.Float64[:]}
     _xofields={
-               'current'                : xo.Float64,
-               'inner_radius'           : xo.Float64,
-               'outer_radius'           : xo.Float64,
-               'elens_length'           : xo.Float64,
-               'voltage'                : xo.Float64,
-               'residual_kick_x'        : xo.Float64,
-               'residual_kick_y'        : xo.Float64,
-               'coefficients_polynomial': xo.Float64[:],
-               'polynomial_order'       : xo.Float64
-              }
+        'current': xo.Float64,
+        'inner_radius': xo.Field(xo.Float64, default=1.),
+        'outer_radius': xo.Field(xo.Float64, default=1.),
+        'elens_length': xo.Float64,
+        'voltage': xo.Float64,
+        'residual_kick_x': xo.Float64,
+        'residual_kick_y': xo.Float64,
+        'coefficients_polynomial': xo.Field(xo.Float64[:], default=[0]),
+        'polynomial_order': xo.Float64,
+    }
 
     has_backtrack = True
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/elens.h')]
 
-    def __init__(self,  inner_radius = 1.,
-                        outer_radius = 1.,
-                        current      = 0.,
-                        elens_length = 0.,
-                        voltage      = 0.,
-                        residual_kick_x = 0,
-                        residual_kick_y = 0,
-                        coefficients_polynomial = [0],
-                        _xobject = None,
-                        **kwargs):
-
-        kwargs["coefficients_polynomial"] = len(coefficients_polynomial)
-
-        if _xobject is not None:
-            super().__init__(_xobject=_xobject)
-        else:
-            super().__init__(**kwargs)
-            self.inner_radius    = inner_radius
-            self.outer_radius    = outer_radius
-            self.current         = current
-            self.elens_length    = elens_length
-            self.voltage         = voltage
-            self.residual_kick_x   = residual_kick_x
-            self.residual_kick_y   = residual_kick_y
-
-            self.coefficients_polynomial[:] = self._arr2ctx(coefficients_polynomial)
-            polynomial_order = len(coefficients_polynomial)-1
+    def __init__(self, _xobject=None, **kwargs):
+        super().__init__(_xobject=_xobject, **kwargs)
+        if _xobject is None:
+            polynomial_order = len(self.coefficients_polynomial) - 1
             self.polynomial_order = polynomial_order
 
 
@@ -235,9 +210,9 @@ class NonLinearLens(BeamElement):
     '''
 
     _xofields={
-            'knll': xo.Float64,
-            'cnll': xo.Float64,
-            }
+        'knll': xo.Float64,
+        'cnll': xo.Float64,
+    }
 
     _extra_c_sources = [
         _pkg_root.joinpath('headers/constants.h'),
@@ -284,28 +259,6 @@ class Wire(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/wire.h'),
     ]
 
-    def __init__(self,  L_phy   = 0,
-                        L_int   = 0,
-                        current = 0,
-                        xma     = 0,
-                        yma     = 0,
-                        post_subtract_px = 0,
-                        post_subtract_py = 0,
-                        _xobject = None,
-                        **kwargs):
-
-        if _xobject is not None:
-            super().__init__(_xobject=_xobject)
-        else:
-            super().__init__(**kwargs)
-            self.L_phy   = L_phy
-            self.L_int   = L_int
-            self.current = current
-            self.xma     = xma
-            self.yma     = yma
-            self.post_subtract_px = post_subtract_px
-            self.post_subtract_py = post_subtract_py
-
 
 class SRotation(BeamElement):
     '''Beam element modeling an rotation of the reference system around the s axis.
@@ -332,6 +285,7 @@ class SRotation(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/srotation.h')]
 
     _store_in_to_dict = ['angle']
+    _skip_in_to_dict = ['sin_z', 'cos_s']
 
     def __init__(self, angle=None, cos_z=None, sin_z=None, **kwargs):
         """
@@ -398,6 +352,7 @@ class XRotation(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/xrotation.h')]
 
     _store_in_to_dict = ['angle']
+    _skip_in_to_dict = ['sin_angle', 'cos_angle', 'tan_angle']
 
     def __init__(
             self,
@@ -486,6 +441,7 @@ class YRotation(BeamElement):
     ]
 
     _store_in_to_dict = ['angle']
+    _skip_in_to_dict = ['sin_angle', 'cos_angle', 'tan_angle']
 
     def __init__(
             self,
@@ -574,15 +530,6 @@ class ZetaShift(BeamElement):
 
     _store_in_to_dict = ['dzeta']
 
-    def __init__(self, dzeta = 0, **nargs):
-
-        if '_xobject' in nargs.keys() and nargs['_xobject'] is not None:
-            self.xoinitialize(**nargs)
-            return
-
-        nargs['dzeta'] = dzeta
-        super().__init__(**nargs)
-
 
 class SynchrotronRadiationRecord(xo.HybridClass):
     _xofields = {
@@ -628,6 +575,8 @@ class Multipole(BeamElement):
     _rename = {
         'order': '_order',
     }
+
+    _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
 
     _depends_on = [RandomUniform, RandomExponential]
 
@@ -695,6 +644,30 @@ class Multipole(BeamElement):
         self._order = value
         self.inv_factorial_order = 1.0 / factorial(value, exact=True)
 
+    def to_dict(self, copy_to_cpu=True):
+        out = super().to_dict(copy_to_cpu=copy_to_cpu)
+
+        # The constructor essentially overrides order if given knl or ksl
+        # imply a higher one to the one given. Otherwise, knl and ksl are
+        # resized, which at this stage means that the information about the
+        # order (by which we understand the desired size of knl/ksl, which can
+        # be different to the actual tracking order, as that can be changed
+        # later) is essentially encoded in knl/ksl.
+        # We should probably come up with a better way of handling this, but
+        # in the meantime let's produce a minimal dict that allows to
+        # reconstruct the xobject according to the rules outlined above.
+
+        if np.allclose(self.knl, 0, atol=1e-16):
+            del out['knl']
+
+        if np.allclose(self.ksl, 0, atol=1e-16):
+            del out['ksl']
+
+        if self.order != 0 and 'knl' not in out and 'ksl' not in out:
+            out['order'] = self.order
+
+        return out
+
     @property
     def hyl(self):
         raise ValueError("hyl is not anymore supported")
@@ -717,7 +690,7 @@ class SimpleThinQuadrupole(BeamElement):
     """
 
     _xofields={
-        'knl': xo.Float64[2],
+        'knl': xo.Field(xo.Float64[2], default=[0, 0]),
     }
 
     has_backtrack = True
@@ -726,20 +699,13 @@ class SimpleThinQuadrupole(BeamElement):
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/simplethinquadrupole.h')]
 
-    def __init__(self, knl=None, **kwargs):
+    def __init__(self, **kwargs):
+        knl = kwargs.get('knl')
+        if kwargs.get('_xobject') is None and knl is not None:
+            if len(knl) != 2:
+                raise ValueError("For a quadrupole, len(knl) must be 2.")
 
-        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
-            self.xoinitialize(**kwargs)
-            return
-
-        if knl is None:
-            knl = np.zeros(2)
-
-        if len(knl) != 2:
-            raise ValueError("For a quadrupole, len(knl) must be 2.")
-
-        kwargs["knl"] = knl
-        self.xoinitialize(**kwargs)
+        super().__init__(**kwargs)
 
     @property
     def hxl(self): return 0.0
@@ -765,6 +731,31 @@ class SimpleThinQuadrupole(BeamElement):
 
 
 class Bend(BeamElement):
+    """
+    Implementation of combined function magnet (i.e. a bending magnet with
+    a quadrupole component).
+
+    Parameters
+    ----------
+    k0 : float
+        Strength of the horizontal dipolar component in units of m^-1.
+    k1 : float
+        Strength of the horizontal quadrupolar component in units of m^-2.
+    h : float
+        Curvature of the reference trajectory in units of m^-1.
+    length : float
+        Length of the element in units of m.
+    knl : array
+        Integrated strength of the high-order normal multipolar components
+        (knl[0] and knl[1] should not be used).
+    ksl : array
+        Integrated strength of the high-order skew multipolar components
+        (ksl[0] and ksl[1] should not be used).
+    num_multipole_kicks : int
+        Number of multipole kicks used to model high order multipolar
+        components.
+
+    """
     isthick = True
     has_backtrack = True
 
@@ -793,6 +784,8 @@ class Bend(BeamElement):
         'ksl': xo.Float64[5],
     }
 
+    _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
+
     _rename = {
         'order': '_order',
         'model': '_model',
@@ -814,32 +807,6 @@ class Bend(BeamElement):
     ]
 
     def __init__(self, **kwargs):
-
-        """
-        Implementation of combined function magnet (i.e. a bending magnet with
-        a quadrupole component).
-
-        Parameters
-        ----------
-        k0 : float
-            Strength of the horizontal dipolar component in units of m^-1.
-        k1 : float
-            Strength of the horizontal quadrupolar component in units of m^-2.
-        h : float
-            Curvature of the reference trajectory in units of m^-1.
-        length : float
-            Length of the element in units of m.
-        knl : array
-            Integrated strength of the high-order normal multipolar components
-            (knl[0] and knl[1] should not be used).
-        ksl : array
-            Integrated strength of the high-order skew multipolar components
-            (ksl[0] and ksl[1] should not be used).
-        num_multipole_kicks : int
-            Number of multipole kicks used to model high order multipolar
-            components.
-
-        """
 
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
@@ -864,6 +831,24 @@ class Bend(BeamElement):
             self.model = model
         self.order = order
 
+    def to_dict(self, copy_to_cpu=True):
+        out = super().to_dict(copy_to_cpu=copy_to_cpu)
+        out.pop('_model')
+        out['model'] = self.model
+
+        # See the comment in Multiple.to_dict about knl/ksl/order dumping
+
+        if np.allclose(self.knl, 0, atol=1e-16):
+            out.pop('knl', None)
+
+        if np.allclose(self.ksl, 0, atol=1e-16):
+            out.pop('ksl', None)
+
+        if self.order != 0 and 'knl' not in out and 'ksl' not in out:
+            out['order'] = self.order
+
+        return out
+
     @property
     def order(self):
         return self._order
@@ -877,7 +862,7 @@ class Bend(BeamElement):
     def model(self):
         return {
             0: 'adaptive',
-            1: 'full', # same as adaptive (for backward compatibility)
+            1: 'full',  # same as adaptive (for backward compatibility)
             2: 'bend-kick-bend',
             3: 'rot-kick-rot',
             4: 'expanded'
@@ -969,6 +954,7 @@ class Bend(BeamElement):
         if hasattr(self, '_value'): self = self._value
         container[slice_name] = xt.DriftSliceBend(
                                     _parent=self, weight=weight, _buffer=_buffer)
+
 
 
 class Sextupole(BeamElement):
@@ -1074,10 +1060,22 @@ class Octupole(BeamElement):
                                     _parent=self, weight=weight, _buffer=_buffer)
 
 class Quadrupole(BeamElement):
+    """
+    Quadrupole element.
+
+    Parameters
+    ----------
+    k1 : float
+        Strength of the quadrupole component in m^-2.
+    k1s : float
+        Strength of the skew quadrupole component in m^-2.
+    length : float
+        Length of the element in meters.
+    """
     isthick = True
     has_backtrack = True
 
-    _xofields={
+    _xofields = {
         'k1': xo.Float64,
         'k1s': xo.Float64,
         'length': xo.Float64,
@@ -1092,28 +1090,11 @@ class Quadrupole(BeamElement):
     ]
 
     def __init__(self, **kwargs):
+        length = kwargs.get('length', 0)
+        if kwargs.get('_xobject') is None and np.isclose(length, 0, atol=1e-13):
+            raise ValueError("A thick element must have a non-zero length.")
 
-        """
-        Quadrupole element.
-
-        Parameters
-        ----------
-        k1 : float
-            Strength of the quadrupole component in m^-2.
-        k1s : float
-            Strength of the skew quadrupole component in m^-2.
-        length : float
-            Length of the element in meters.
-        """
-
-        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
-            self.xoinitialize(**kwargs)
-            return
-
-        if kwargs.get('length', 0.0) == 0.0 and not '_xobject' in kwargs:
-            raise ValueError("A thick element must have a length.")
-
-        self.xoinitialize(**kwargs)
+        super().__init__(**kwargs)
 
     @classmethod
     def from_dict(cls, dct, **kwargs):
@@ -1153,6 +1134,18 @@ class Quadrupole(BeamElement):
                                     _parent=self, weight=weight, _buffer=_buffer)
 
 class Solenoid(BeamElement):
+    """Solenoid element.
+
+    Parameters
+    ----------
+    length : float
+        Length of the element in meters.
+    ks : float
+        Strength of the solenoid component in rad / m. Only to be specified
+        when the element is thin, i.e. when `length` is 0.
+    ksi : float
+        Integrated strength of the solenoid component in rad.
+    """
     isthick = True
     has_backtrack = True
 
@@ -1173,9 +1166,8 @@ class Solenoid(BeamElement):
 
     _internal_record_class = SynchrotronRadiationRecord
 
-    def __init__(self, length=0, ks=0, ksi=0, **kwargs):
-        """
-        Solenoid element.
+    def __init__(self, **kwargs):
+        """Solenoid element.
 
         Parameters
         ----------
@@ -1187,26 +1179,25 @@ class Solenoid(BeamElement):
         ksi : float
             Integrated strength of the solenoid component in rad.
         """
-
-        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
-            self.xoinitialize(**kwargs)
+        if kwargs.get('_xobject') is not None:
+            super().__init__(**kwargs)
             return
 
-        if ksi != 0:
+        if kwargs.get('ksi', 0) != 0:
             # Fail when trying to create a thin solenoid, as these are not
             # tested yet
             raise NotImplementedError('Thin solenoids are not implemented yet.')
             # self.isthick = False
 
-        if ksi and length:
+        if kwargs.get('ksi') and kwargs.get('length'):
             raise ValueError(
                 "The parameter `ksi` can only be specified when `length` == 0."
             )
 
-        self.xoinitialize(length=length, ks=ks, ksi=ksi, **kwargs)
+        self.xoinitialize(**kwargs)
 
 
-class CombinedFunctionMagnet():
+class CombinedFunctionMagnet:
 
     def __init__(self, *args, **kwargs):
         raise TypeError('`CombinedFunctionMagnet` is supported anymore. '
@@ -1242,8 +1233,7 @@ class Fringe(BeamElement):
     ]
 
     def __init__(self, **kwargs):
-        raise NotImplementedError # untested
-        self.xoinitialize(**kwargs)
+        raise NotImplementedError
 
 
 class Wedge(BeamElement):
@@ -1268,21 +1258,22 @@ class Wedge(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/wedge.h'),
     ]
 
-    def __init__(self, **kwargs):
-        # raise NotImplementedError # Untested
-        self.xoinitialize(**kwargs)
-
 
 class SimpleThinBend(BeamElement):
-    '''A specialized version of Multipole to model a thin bend (ksl are all zero).
+
+    """A specialized version of Multipole to model a thin bend (ksl, hyl are all zero).
+
+    Parameters
+    ----------
     knl : array
         Normalized integrated strength of the normal components in units of m^-n.
         Must be of length 1.
     hxl : float
-        Rotation angle of the reference trajectory in the horizontal plane in radians. Default is ``0``.
+        Rotation angle of the reference trajectory in the horizontal plane in
+        radians. Default is ``0``.
     length : float
         Length of the originating thick bend. Default is ``0``.
-    '''
+    """
 
     _xofields={
         'knl': xo.Float64[1],
@@ -1296,24 +1287,13 @@ class SimpleThinBend(BeamElement):
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/simplethinbend.h')]
 
-    def __init__(self, knl=None, **kwargs):
+    def __init__(self, **kwargs):
+        knl = kwargs.get('knl')
+        if kwargs.get('_xobject') is None and knl is not None:
+            if len(knl) != 1:
+                raise ValueError("For a simple thin bend, len(knl) must be 1.")
 
-        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
-            self.xoinitialize(**kwargs)
-            return
-
-        if knl is None:
-            knl = np.zeros(1)
-
-        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
-            self.xoinitialize(**kwargs)
-            return
-
-        if len(knl) != 1:
-            raise ValueError("For a SimpleThinBend, len(knl) must be 1.")
-
-        kwargs["knl"] = knl
-        self.xoinitialize(**kwargs)
+        super().__init__(**kwargs)
 
     @property
     def radiation_flag(self): return 0.0
@@ -1333,7 +1313,8 @@ class SimpleThinBend(BeamElement):
 
 
 class RFMultipole(BeamElement):
-    '''Beam element modeling a thin modulated multipole, with strengths dependent on the z coordinate:
+    """Beam element modeling a thin modulated multipole, with strengths
+    dependent on the z coordinate:
 
     Parameters
     ----------
@@ -1355,12 +1336,10 @@ class RFMultipole(BeamElement):
         Longitudinal phase seen by the reference particle. Default is ``0``.
     frequency : float
         Frequency in Hertz. Default is ``0``.
-
-    '''
+    """
 
     _xofields={
         'order': xo.Int64,
-        'inv_factorial_order': xo.Float64,
         'voltage': xo.Float64,
         'frequency': xo.Float64,
         'lag': xo.Float64,
@@ -1376,39 +1355,19 @@ class RFMultipole(BeamElement):
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/rfmultipole.h')]
 
-    def __init__(
-        self,
-        order=None,
-        knl=None,
-        ksl=None,
-        pn=None,
-        ps=None,
-        **kwargs
-    ):
+    def __init__(self, **kwargs):
+        if 'p' in kwargs:
+            raise ValueError("`p` in RF Multipole is not supported anymore")
 
-        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
-            self.xoinitialize(**kwargs)
-            return
+        if 'bal' in kwargs:
+            raise ValueError("`bal` in RF Multipole is not supported anymore")
 
-        assert 'p' not in kwargs, "`p` in RF Multipole is not supported anymore"
-
-        if order is None:
-            order = 0
-
-        if "bal" in kwargs.keys():
-            if not "knl" in kwargs.keys() or not "ksl" in kwargs.keys():
-                _bal = kwargs['bal']
-                idxes = np.array([ii for ii in range(0, len(_bal), 2)])
-                knl = [_bal[idx] * factorial(idx // 2, exact=True) for idx in idxes]
-                ksl = [_bal[idx + 1] * factorial(idx // 2, exact=True) for idx in idxes]
-
-
-        len_knl = len(knl) if knl is not None else 0
-        len_ksl = len(ksl) if ksl is not None else 0
-        len_pn = len(pn) if pn is not None else 0
-        len_ps = len(ps) if ps is not None else 0
-        n = max((order + 1), max(len_knl, len_ksl, len_pn, len_ps))
-        assert n > 0
+        order = kwargs.get('order', 0)
+        knl = np.array(kwargs.get('knl', [0]))
+        ksl = np.array(kwargs.get('ksl', [0]))
+        pn = np.array(kwargs.get('pn', [0]))
+        ps = np.array(kwargs.get('ps', [0]))
+        n = max(order + 1, len(knl), len(ksl), len(pn), len(ps))
 
         nknl = np.zeros(n, dtype=np.float64)
         nksl = np.zeros(n, dtype=np.float64)
@@ -1434,13 +1393,12 @@ class RFMultipole(BeamElement):
         kwargs["pn"] = npn
         kwargs["ps"] = nps
         kwargs["order"] = order
-        #kwargs["inv_factorial_order"] = 1.0 / factorial(order, exact=True)
 
         self.xoinitialize(**kwargs)
 
 
 class DipoleEdge(BeamElement):
-    '''Beam element modeling a dipole edge (see MAD-X manual for detaild description).
+    """Beam element modeling a dipole edge (see MAD-X manual for detaild description).
 
     Parameters
     ----------
@@ -1454,7 +1412,7 @@ class DipoleEdge(BeamElement):
         Fringe integral.
     e1_fd : float
         Term added to e1 only for the linear mode and only in the vertical
-        plane to acconut for non zero angle in the closed orbit when entering
+        plane to account for non-zero angle in the closed orbit when entering
         the fringe field (feed down effect).
     model : str
         Model to be used for the edge. It can be 'linear', 'full' or 'suppress'.
@@ -1462,21 +1420,20 @@ class DipoleEdge(BeamElement):
     side : str
         Side of the bend on which the edge is located. It can be 'entry' or
         'exit'. Default is 'entry'.
-
-    '''
+    """
 
     _xofields = {
-            'r21': xo.Float64,
-            'r43': xo.Float64,
-            'hgap': xo.Float64,
-            'k': xo.Float64,
-            'e1': xo.Float64,
-            'e1_fd': xo.Float64,
-            'fint': xo.Float64,
-            'model': xo.Int64,
-            'side': xo.Int64,
-            'delta_taper': xo.Float64,
-            }
+        'r21': xo.Float64,
+        'r43': xo.Float64,
+        'hgap': xo.Float64,
+        'k': xo.Float64,
+        'e1': xo.Float64,
+        'e1_fd': xo.Float64,
+        'fint': xo.Float64,
+        'model': xo.Int64,
+        'side': xo.Int64,
+        'delta_taper': xo.Float64,
+    }
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
@@ -1543,6 +1500,24 @@ class DipoleEdge(BeamElement):
             self.side = side
 
         self._update_r21_r43()
+
+    def to_dict(self, copy_to_cpu=True):
+        scalar_fields = ['k', 'e1', 'e1_fd', 'hgap', 'fint']
+
+        out = {'__class__': type(self).__name__}
+
+        for field_name in scalar_fields:
+            value = getattr(self, field_name)
+            if not np.isclose(value, 0, atol=1e-16):
+                out[field_name] = value
+
+        if self._model != 0:
+            out['model'] = self.model
+
+        if self._side != 0:
+            out['side'] = self.side
+
+        return out
 
     def _update_r21_r43(self):
         corr = np.float64(2.0) * self.k * self.hgap * self.fint
@@ -1639,6 +1614,7 @@ class DipoleEdge(BeamElement):
             'exit': 1,
         }[value]
 
+
 class LineSegmentMap(BeamElement):
 
     _xofields={
@@ -1691,7 +1667,7 @@ class LineSegmentMap(BeamElement):
         'voltage_rf': xo.Float64[:],
         'frequency_rf': xo.Float64[:],
         'lag_rf': xo.Float64[:],
-        }
+    }
 
     _depends_on = [RandomNormal]
     isthick = True
@@ -2062,10 +2038,9 @@ class LineSegmentMap(BeamElement):
         }[self.longitudinal_mode_flag]
         return ret
 
-class FirstOrderTaylorMap(BeamElement):
 
-    '''
-    First order Taylor map.
+class FirstOrderTaylorMap(BeamElement):
+    """First order Taylor map.
 
     Parameters
     ----------
@@ -2077,16 +2052,16 @@ class FirstOrderTaylorMap(BeamElement):
         6x6 array of the first order Taylor map coefficients.
     radiation_flag : int
         Flag for synchrotron radiation. 0 - no radiation, 1 - radiation on.
-
-    '''
+    """
 
     isthick = True
 
-    _xofields={
+    _xofields = {
         'radiation_flag': xo.Int64,
         'length': xo.Float64,
-        'm0': xo.Float64[6],
-        'm1': xo.Float64[6,6]}
+        'm0': xo.Field(xo.Float64[6], default=np.zeros(6, dtype=np.float64)),
+        'm1': xo.Field(xo.Float64[6, 6], default=np.eye(6, dtype=np.float64)),
+    }
 
     _depends_on = [RandomUniform, RandomExponential]
 
@@ -2098,53 +2073,12 @@ class FirstOrderTaylorMap(BeamElement):
     _internal_record_class = SynchrotronRadiationRecord # not functional,
     # included for compatibility with Multipole
 
-    def __init__(self, length = 0.0, m0 = None, m1 = None,radiation_flag=0,**nargs):
 
-        if '_xobject' in nargs.keys() and nargs['_xobject'] is not None:
-            self.xoinitialize(**nargs)
-            return
-
-        nargs['radiation_flag'] = radiation_flag
-        nargs['length'] = length
-        if m0 is None:
-            nargs['m0'] = np.zeros(6,dtype=np.float64)
-        else:
-            if len(np.shape(m0)) == 1 and np.shape(m0)[0] == 6:
-                nargs['m0'] = m0
-            else:
-                raise ValueError(f'Wrong shape for m0: {np.shape(m0)}')
-        if m1 is None:
-            nargs['m1'] = np.eye(6,dtype=np.float64)
-        else:
-            if len(np.shape(m1)) == 2 and np.shape(m1)[0] == 6 and np.shape(m1)[1] == 6:
-                nargs['m1'] = m1
-            else:
-                raise ValueError(f'Wrong shape for m1: {np.shape(m1)}')
-        super().__init__(**nargs)
-
-
-class LinearTransferMatrix(BeamElement):
-    _xofields={
-    'discontinued': xo.Int64
-        }
-
-    def __init__(self, Q_x=0, Q_y=0,
-                     beta_x_0=1.0, beta_x_1=1.0, beta_y_0=1.0, beta_y_1=1.0,
-                     alpha_x_0=0.0, alpha_x_1=0.0, alpha_y_0=0.0, alpha_y_1=0.0,
-                     disp_x_0=0.0, disp_x_1=0.0, disp_y_0=0.0, disp_y_1=0.0,
-                     Q_s=0.0, beta_s=1.0,
-                     chroma_x=0.0, chroma_y=0.0,
-                     det_xx=0.0, det_xy=0.0, det_yy=0.0, det_yx=0.0,
-                     energy_increment=0.0, energy_ref_increment=0.0,
-                     x_ref_0 = 0.0, px_ref_0 = 0.0, x_ref_1 = 0.0, px_ref_1 = 0.0,
-                     y_ref_0 = 0.0, py_ref_0 = 0.0, y_ref_1 = 0.0, py_ref_1 = 0.0,
-                     damping_rate_x = 0.0, damping_rate_y = 0.0, damping_rate_s = 0.0,
-                     equ_emit_x = 0.0, equ_emit_y = 0.0, equ_emit_s = 0.0,
-                     gauss_noise_ampl_x=0.0,gauss_noise_ampl_px=0.0,gauss_noise_ampl_y=0.0,gauss_noise_ampl_py=0.0,gauss_noise_ampl_zeta=0.0,gauss_noise_ampl_delta=0.0,
-                     **nargs):
-
+class LinearTransferMatrix:
+    def __init__(self, **kwargs):
         raise NotImplementedError(
-            '`LinearTransferMatrix` is deprecated. Use `LineSegmentMap` instead.')
+            '`LinearTransferMatrix` is deprecated. Use `LineSegmentMap` instead.'
+        )
 
 
 def _angle_from_trig(cos=None, sin=None, tan=None):
@@ -2215,6 +2149,7 @@ def _get_order(array):
     if not np.any(nonzero_indices):
         return 0
     return np.max(nonzero_indices)
+
 
 class SecondOrderTaylorMap(BeamElement):
 
