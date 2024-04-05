@@ -59,8 +59,8 @@ ex = tw_rad.eq_gemitt_x
 ey = tw_rad.eq_gemitt_y
 ez = tw_rad.eq_gemitt_zeta
 
-num_particles_test = 300
-n_turns_track_test = 350
+num_particles_test = 200
+n_turns_track_test = 200
 
 line.configure_radiation(model='quantum')
 p = line.build_particles(num_particles=num_particles_test)

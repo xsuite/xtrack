@@ -36,10 +36,12 @@ ONLY_XTRACK_ELEMENTS = [
     ReferenceEnergyIncrease,
     Cavity,
     XYShift,
+    ZetaShift,
     Elens,
     Wire,
     SRotation,
     YRotation,
+    Solenoid,
     RFMultipole,
     DipoleEdge,
     SimpleThinBend,
@@ -58,7 +60,6 @@ NO_SYNRAD_ELEMENTS = [
     Quadrupole,
     Sextupole,
     Octupole,
-    Solenoid,
 ]
 
 NON_TRACKING_ELEMENTS = [

@@ -89,7 +89,7 @@ def multipole_to_madx_str(name, line):
     mult = _get_eref(line, name)
 
     if (len(mult.knl._value) == 1 and len(mult.ksl._value) == 1
-        and mult.hxl._value == 0 and mult.hyl._value == 0):
+        and mult.hxl._value == 0):
         # It is a dipole corrector
         tokens = []
         tokens.append('kicker')
@@ -100,7 +100,7 @@ def multipole_to_madx_str(name, line):
 
     # correctors are not handled correctly!!!!
     # https://github.com/MethodicalAcceleratorDesign/MAD-X/issues/911
-    assert mult.hyl._value == 0
+    # assert mult.hyl._value == 0
 
     tokens = []
     tokens.append('multipole')

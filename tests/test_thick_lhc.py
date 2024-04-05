@@ -46,9 +46,7 @@ def test_madloader_lhc_thick(test_context):
         if hasattr(ee, 'KILL_EXI_FRINGE'):
             ee.KILL_EXI_FRINGE = True
 
-    for ee in line.elements:
-        if isinstance(ee, xt.DipoleEdge):
-            ee.k = 0
+    line.configure_bend_model(edge='suppressed')
 
     tw0 = line.twiss()
     twmad = mad.twiss(table='twiss')

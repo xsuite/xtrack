@@ -8,6 +8,7 @@ from numbers import Number
 from scipy.special import factorial
 
 import xobjects as xo
+import xtrack as xt
 
 from ..base_element import BeamElement
 from ..random import RandomUniform, RandomExponential, RandomNormal
@@ -46,6 +47,7 @@ class Marker(BeamElement):
     behaves_like_drift = True
     allow_backtrack = True
     has_backtrack = True
+    allow_rot_and_shift = False
 
     _extra_c_sources = [
         "/*gpufun*/\n"
@@ -71,6 +73,7 @@ class Drift(BeamElement):
     behaves_like_drift = True
     has_backtrack = True
     allow_backtrack = True
+    allow_rot_and_shift = False
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
@@ -83,13 +86,8 @@ class Drift(BeamElement):
         container[slice_name].length = _get_expr(container[thick_name].length) * weight
 
     @classmethod
-    def add_thick_slice(cls, weight, container, name, slice_name, _buffer=None):
-        cls.add_slice(weight, container, name, slice_name, _buffer=_buffer)
-
-    @staticmethod
-    def delete_element_ref(ref):
-        _unregister_if_preset(ref.length)
-        _unregister_if_preset(ref)
+    def add_thick_slice(cls, weight, container, thick_name, slice_name, _buffer=None):
+        cls.add_slice(weight, container, thick_name, slice_name, _buffer=_buffer)
 
 
 class Cavity(BeamElement):
@@ -139,6 +137,7 @@ class XYShift(BeamElement):
 
     allow_backtrack = True
     has_backtrack = True
+    allow_rot_and_shift = False
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/xyshift.h')]
@@ -279,6 +278,7 @@ class SRotation(BeamElement):
 
     allow_backtrack = True
     has_backtrack = True
+    allow_rot_and_shift = False
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/track_srotation.h'),
@@ -556,8 +556,6 @@ class Multipole(BeamElement):
         Order of the multipole. Default is ``0``.
     hxl : float
         Rotation angle of the reference trajectory in the horizontal plane in radians. Default is ``0``.
-    hyl : float
-        Rotation angle of the reference trajectory in the vertical plane in radians. Default is ``0``.
     length : float
         Length of the originating thick multipole. Default is ``0``.
 
@@ -568,7 +566,6 @@ class Multipole(BeamElement):
         'inv_factorial_order': xo.Float64,
         'length': xo.Float64,
         'hxl': xo.Float64,
-        'hyl': xo.Float64,
         'radiation_flag': xo.Int64,
         'delta_taper': xo.Float64,
         'knl': xo.Float64[:],
@@ -586,6 +583,7 @@ class Multipole(BeamElement):
     _extra_c_sources = [
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('headers/synrad_spectrum.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_multipole.h'),
         _pkg_root.joinpath('beam_elements/elements_src/multipole.h')]
 
     _internal_record_class = SynchrotronRadiationRecord
@@ -607,6 +605,9 @@ class Multipole(BeamElement):
                 idxes = np.array([ii for ii in range(0, len(_bal), 2)])
                 knl = [_bal[idx] * factorial(idx // 2, exact=True) for idx in idxes]
                 ksl = [_bal[idx + 1] * factorial(idx // 2, exact=True) for idx in idxes]
+
+        if 'hyl' in kwargs.keys():
+            assert kwargs['hyl'] == 0.0, 'hyl is not supported anymore'
 
         len_knl = len(knl) if knl is not None else 0
         len_ksl = len(ksl) if ksl is not None else 0
@@ -667,10 +668,18 @@ class Multipole(BeamElement):
 
         return out
 
+    @property
+    def hyl(self):
+        raise ValueError("hyl is not anymore supported")
+
+    @hyl.setter
+    def hyl(self, value):
+        raise ValueError("hyl is not anymore supported")
+
 
 class SimpleThinQuadrupole(BeamElement):
-    """A specialized version of Multipole to model a thin quadrupole
-    (knl[0], ksl, hxl, hyl are all zero).
+    """An specialized version of Multipole to model a thin quadrupole
+    (knl[0], ksl, hxl, are all zero).
 
     Parameters
     ----------
@@ -685,6 +694,7 @@ class SimpleThinQuadrupole(BeamElement):
     }
 
     has_backtrack = True
+    allow_rot_and_shift = False
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/simplethinquadrupole.h')]
@@ -699,9 +709,6 @@ class SimpleThinQuadrupole(BeamElement):
 
     @property
     def hxl(self): return 0.0
-
-    @property
-    def hyl(self): return 0.0
 
     @property
     def length(self): return 0.0
@@ -752,30 +759,50 @@ class Bend(BeamElement):
     isthick = True
     has_backtrack = True
 
-    _xofields={
+    _xofields = {
         'k0': xo.Float64,
         'k1': xo.Float64,
         'h': xo.Float64,
         'length': xo.Float64,
-        'knl': xo.Float64[5],
-        'ksl': xo.Float64[5],
+        'model': xo.Int64,
+        'edge_entry_active': xo.Field(xo.Int64, default=1),
+        'edge_exit_active': xo.Field(xo.Int64, default=1),
+        'edge_entry_model': xo.Int64,
+        'edge_exit_model': xo.Int64,
+        'edge_entry_angle': xo.Float64,
+        'edge_exit_angle': xo.Float64,
+        'edge_entry_angle_fdown': xo.Float64,
+        'edge_exit_angle_fdown': xo.Float64,
+        'edge_entry_fint': xo.Float64,
+        'edge_exit_fint': xo.Float64,
+        'edge_entry_hgap': xo.Float64,
+        'edge_exit_hgap': xo.Float64,
         'num_multipole_kicks': xo.Int64,
         'order': xo.Int64,
         'inv_factorial_order': xo.Float64,
-        'model': xo.Int64,
+        'knl': xo.Float64[5],
+        'ksl': xo.Float64[5],
     }
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
 
     _rename = {
         'order': '_order',
-        'model': '_model'
+        'model': '_model',
+        'edge_entry_model': '_edge_entry_model',
+        'edge_exit_model': '_edge_exit_model',
     }
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_bend.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/wedge_track.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/fringe_track.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_nonlinear.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_bend.h'),
         _pkg_root.joinpath('beam_elements/elements_src/bend.h'),
     ]
 
@@ -784,9 +811,6 @@ class Bend(BeamElement):
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
             return
-
-        if kwargs.get('length', 0.0) == 0.0 and not '_xobject' in kwargs:
-            raise ValueError("A thick element must have a length.")
 
         model = kwargs.pop('model', None)
 
@@ -857,84 +881,80 @@ class Bend(BeamElement):
         }[value]
 
     @property
-    def hxl(self): return self.h * self.length
+    def edge_entry_model(self):
+        return {
+            0: 'linear',
+            1: 'full',
+           -1: 'suppressed',
+        }[self._edge_entry_model]
+
+    @edge_entry_model.setter
+    def edge_entry_model(self, value):
+        assert value in ['linear', 'full', 'suppressed']
+        self._edge_entry_model = {
+            'linear': 0,
+            'full': 1,
+            'suppressed': -1,
+        }[value]
 
     @property
-    def hyl(self): return 0.0
+    def edge_exit_model(self):
+        return {
+            0: 'linear',
+            1: 'full',
+           -1: 'suppressed',
+        }[self._edge_exit_model]
+
+    @edge_exit_model.setter
+    def edge_exit_model(self, value):
+        assert value in ['linear', 'full', 'suppressed']
+        self._edge_exit_model = {
+            'linear': 0,
+            'full': 1,
+            'suppressed': -1,
+        }[value]
+
+    @property
+    def hxl(self): return self.h * self.length
 
     @property
     def radiation_flag(self): return 0.0
 
     @staticmethod
     def add_slice(weight, container, thick_name, slice_name, _buffer=None):
-        self_or_ref = container[thick_name]
-
-        container[slice_name] = Multipole(knl=np.zeros(5), ksl=np.zeros(5),
-                                          _buffer=_buffer)
-        ref = container[slice_name]
-
-        ref.knl[0] = (_get_expr(self_or_ref.k0) * _get_expr(self_or_ref.length)
-                      + _get_expr(self_or_ref.knl[0])) * weight
-        ref.knl[1] = (_get_expr(self_or_ref.k1) * _get_expr(self_or_ref.length)
-                      + _get_expr(self_or_ref.knl[1])) * weight
-
-        order = 1
-        for ii in range(2, 5):
-            ref.knl[ii] = _get_expr(self_or_ref.knl[ii]) * weight
-
-            if _nonzero(ref.knl[ii]):
-                order = max(order, ii)
-
-        for ii in range(5):
-            ref.ksl[ii] = _get_expr(self_or_ref.ksl[ii]) * weight
-
-            if _nonzero(self_or_ref.ksl[ii]):  # update in the same way for ksl
-                order = max(order, ii)
-
-        ref.hxl = _get_expr(self_or_ref.h) * _get_expr(self_or_ref.length) * weight
-        ref.length = _get_expr(self_or_ref.length) * weight
-        ref.order = order
-
-    @classmethod
-    def add_thick_slice(cls, weight, container, name, slice_name, _buffer=None):
-        self_or_ref = container[name]
-        container[slice_name] = cls(
-            length=999.,
-            order=4,
-            _buffer=_buffer,
-        )
-        ref = container[slice_name]
-
-        ref.length = _get_expr(self_or_ref.length) * weight
-        ref.num_multipole_kicks = _get_expr(self_or_ref.num_multipole_kicks)
-        ref.order = _get_expr(self_or_ref.order)
-        ref.k0 = _get_expr(self_or_ref.k0)
-        ref.h = _get_expr(self_or_ref.h)
-        ref.k1 = _get_expr(self_or_ref.k1)
-        ref.model = _get_expr(self_or_ref.model)
-
-        for ii in range(5):
-            ref.knl[ii] = _get_expr(self_or_ref.knl[ii]) * weight
-
-        for ii in range(5):
-            ref.ksl[ii] = _get_expr(self_or_ref.ksl[ii]) * weight
+        self = container[thick_name]
+        if hasattr(self, '_value'): self = self._value
+        container[slice_name] = xt.ThinSliceBend(
+                                    _parent=self, weight=weight, _buffer=_buffer)
 
     @staticmethod
-    def delete_element_ref(ref):
-        # Remove the array fields
-        for field in ['knl', 'ksl']:
-            for ii in range(5):
-                _unregister_if_preset(getattr(ref, field)[ii])
+    def add_entry_slice(container, thick_name, slice_name, _buffer=None):
+        self = container[thick_name]
+        if hasattr(self, '_value'): self = self._value
+        container[slice_name] = xt.ThinSliceBendEntry(
+                                            _parent=self, _buffer=_buffer)
 
-        # Remove the scalar fields
-        for field in [
-            'k0', 'k1', 'h', 'length', 'num_multipole_kicks', 'order',
-            'inv_factorial_order',
-        ]:
-            _unregister_if_preset(getattr(ref, field))
+    @staticmethod
+    def add_exit_slice(container, thick_name, slice_name, _buffer=None):
+        self = container[thick_name]
+        if hasattr(self, '_value'): self = self._value
+        container[slice_name] = xt.ThinSliceBendExit(
+                                            _parent=self, _buffer=_buffer)
 
-        # Remove the ref to the element itself
-        _unregister_if_preset(ref)
+    @staticmethod
+    def add_thick_slice(weight, container, thick_name, slice_name, _buffer=None):
+        self = container[thick_name]
+        if hasattr(self, '_value'): self = self._value
+        container[slice_name] = xt.ThickSliceBend(
+                                    _parent=self, weight=weight, _buffer=_buffer)
+
+    @staticmethod
+    def add_drift_slice(weight, container, thick_name, slice_name, _buffer=None):
+        self = container[thick_name]
+        if hasattr(self, '_value'): self = self._value
+        container[slice_name] = xt.DriftSliceBend(
+                                    _parent=self, weight=weight, _buffer=_buffer)
+
 
 
 class Sextupole(BeamElement):
@@ -968,42 +988,25 @@ class Sextupole(BeamElement):
 
     @staticmethod
     def add_slice(weight, container, thick_name, slice_name, _buffer=None):
-        self_or_ref = container[thick_name]
-
-        container[slice_name] = Multipole(knl=np.zeros(3), ksl=np.zeros(3),
-                                          _buffer=_buffer)
-        ref = container[slice_name]
-
-        ref.knl[0] = 0.
-        ref.knl[1] = 0.
-        ref.knl[2] = weight * (
-            _get_expr(self_or_ref.k2) * _get_expr(self_or_ref.length))
-
-        ref.ksl[0] = 0.
-        ref.ksl[1] = 0.
-        ref.ksl[2] = weight * (
-            _get_expr(self_or_ref.k2s) * _get_expr(self_or_ref.length))
-
-        ref.order = 2
-
-    @classmethod
-    def add_thick_slice(cls, weight, container, name, slice_name, _buffer=None):
-        self_or_ref = container[name]
-        container[slice_name] = cls(_buffer=_buffer)
-        ref = container[slice_name]
-
-        ref.length = _get_expr(self_or_ref.length) * weight
-        ref.k2 = _get_expr(self_or_ref.k2)
-        ref.k2s = _get_expr(self_or_ref.k2s)
+        self = container[thick_name]
+        if hasattr(self, '_value'): self = self._value
+        container[slice_name] = xt.ThinSliceSextupole(
+                                    _parent=self, weight=weight, _buffer=_buffer)
 
     @staticmethod
-    def delete_element_ref(ref):
-        # Remove the scalar fields
-        for field in ['k2', 'k2s', 'length']:
-            _unregister_if_preset(getattr(ref, field))
+    def add_thick_slice(weight, container, thick_name, slice_name, _buffer=None):
+        self = container[thick_name]
+        if hasattr(self, '_value'): self = self._value
+        container[slice_name] = xt.ThickSliceSextupole(
+                                    _parent=self, weight=weight, _buffer=_buffer)
 
-        # Remove the ref to the element itself
-        _unregister_if_preset(ref)
+
+    @staticmethod
+    def add_drift_slice(weight, container, thick_name, slice_name, _buffer=None):
+        self = container[thick_name]
+        if hasattr(self, '_value'): self = self._value
+        container[slice_name] = xt.DriftSliceSextupole(
+                                    _parent=self, weight=weight, _buffer=_buffer)
 
 
 class Octupole(BeamElement):
@@ -1037,35 +1040,24 @@ class Octupole(BeamElement):
 
     @staticmethod
     def add_slice(weight, container, thick_name, slice_name, _buffer=None):
-        self_or_ref = container[thick_name]
-
-        container[slice_name] = Multipole(knl=np.zeros(4), ksl=np.zeros(4),
-                                          _buffer=_buffer)
-        ref = container[slice_name]
-
-        ref.knl[0] = 0.
-        ref.knl[1] = 0.
-        ref.knl[2] = 0.
-        ref.knl[3] = weight * (
-            _get_expr(self_or_ref.k3) * _get_expr(self_or_ref.length))
-
-        ref.ksl[0] = 0.
-        ref.ksl[1] = 0.
-        ref.ksl[2] = 0.
-        ref.ksl[2] = weight * (
-            _get_expr(self_or_ref.k3s) * _get_expr(self_or_ref.length))
-
-        ref.order = 3
+        self = container[thick_name]
+        if hasattr(self, '_value'): self = self._value
+        container[slice_name] = xt.ThinSliceOctupole(
+                                    _parent=self, weight=weight, _buffer=_buffer)
 
     @staticmethod
-    def delete_element_ref(ref):
-        # Remove the scalar fields
-        for field in ['k3', 'k3s', 'length']:
-            _unregister_if_preset(getattr(ref, field))
+    def add_thick_slice(weight, container, thick_name, slice_name, _buffer=None):
+        self = container[thick_name]
+        if hasattr(self, '_value'): self = self._value
+        container[slice_name] = xt.ThickSliceOctupole(
+                                    _parent=self, weight=weight, _buffer=_buffer)
 
-        # Remove the ref to the element itself
-        _unregister_if_preset(ref)
-
+    @staticmethod
+    def add_drift_slice(weight, container, thick_name, slice_name, _buffer=None):
+        self = container[thick_name]
+        if hasattr(self, '_value'): self = self._value
+        container[slice_name] = xt.DriftSliceOctupole(
+                                    _parent=self, weight=weight, _buffer=_buffer)
 
 class Quadrupole(BeamElement):
     """
@@ -1093,6 +1085,7 @@ class Quadrupole(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_srotation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_quadrupole.h'),
         _pkg_root.joinpath('beam_elements/elements_src/quadrupole.h'),
     ]
 
@@ -1121,43 +1114,24 @@ class Quadrupole(BeamElement):
 
     @staticmethod
     def add_slice(weight, container, thick_name, slice_name, _buffer=None):
-        self_or_ref = container[thick_name]
-
-        container[slice_name] = Multipole(knl=np.zeros(5), ksl=np.zeros(5),
-                                          _buffer=_buffer)
-        ref = container[slice_name]
-
-        ref.knl[0] = 0.
-        ref.knl[1] = (_get_expr(self_or_ref.k1) * _get_expr(self_or_ref.length)
-                      ) * weight
-        ref.ksl[1] = (_get_expr(self_or_ref.k1s) * _get_expr(self_or_ref.length)
-                      ) * weight
-
-        ref.hxl = 0
-        ref.length = _get_expr(self_or_ref.length) * weight
-
-    @classmethod
-    def add_thick_slice(cls, weight, container, name, slice_name, _buffer=None):
-        self_or_ref = container[name]
-        container[slice_name] = cls(
-            length=999.,
-            _buffer=_buffer,
-        )
-        ref = container[slice_name]
-
-        ref.length = _get_expr(self_or_ref.length) * weight
-        ref.k1 = _get_expr(self_or_ref.k1)
-        ref.k1s = _get_expr(self_or_ref.k1s)
+        self = container[thick_name]
+        if hasattr(self, '_value'): self = self._value
+        container[slice_name] = xt.ThinSliceQuadrupole(
+                                    _parent=self, weight=weight, _buffer=_buffer)
 
     @staticmethod
-    def delete_element_ref(ref):
-        # Remove the scalar fields
-        for field in ['k1', 'k1s', 'length']:
-            _unregister_if_preset(getattr(ref, field))
+    def add_thick_slice(weight, container, thick_name, slice_name, _buffer=None):
+        self = container[thick_name]
+        if hasattr(self, '_value'): self = self._value
+        container[slice_name] = xt.ThickSliceQuadrupole(
+                                    _parent=self, weight=weight, _buffer=_buffer)
 
-        # Remove the ref to the element itself
-        _unregister_if_preset(ref)
-
+    @staticmethod
+    def add_drift_slice(weight, container, thick_name, slice_name, _buffer=None):
+        self = container[thick_name]
+        if hasattr(self, '_value'): self = self._value
+        container[slice_name] = xt.DriftSliceQuadrupole(
+                                    _parent=self, weight=weight, _buffer=_buffer)
 
 class Solenoid(BeamElement):
     """Solenoid element.
@@ -1286,6 +1260,7 @@ class Wedge(BeamElement):
 
 
 class SimpleThinBend(BeamElement):
+
     """A specialized version of Multipole to model a thin bend (ksl, hyl are all zero).
 
     Parameters
@@ -1307,6 +1282,7 @@ class SimpleThinBend(BeamElement):
     }
 
     has_backtrack = True
+    allow_rot_and_shift = False
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/simplethinbend.h')]
@@ -1318,9 +1294,6 @@ class SimpleThinBend(BeamElement):
                 raise ValueError("For a simple thin bend, len(knl) must be 1.")
 
         super().__init__(**kwargs)
-
-    @property
-    def hyl(self): return 0.0
 
     @property
     def radiation_flag(self): return 0.0
@@ -1466,6 +1439,8 @@ class DipoleEdge(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
         _pkg_root.joinpath('beam_elements/elements_src/wedge_track.h'),
         _pkg_root.joinpath('beam_elements/elements_src/fringe_track.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_nonlinear.h'),
         _pkg_root.joinpath('beam_elements/elements_src/dipoleedge.h')]
 
     has_backtrack = True

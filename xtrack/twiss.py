@@ -1319,7 +1319,7 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
     wx_chrom = np.sqrt(ax_chrom**2 + bx_chrom**2)
     wy_chrom = np.sqrt(ay_chrom**2 + by_chrom**2)
 
-    # Could be addede if needed (note that mad-x unwaps and devide by 2pi)
+    # Could be addede if needed (note that mad-x unwraps and devide by 2pi)
     # phix_chrom = np.arctan2(ax_chrom, bx_chrom)
     # phiy_chrom = np.arctan2(ay_chrom, by_chrom)
 
@@ -1360,7 +1360,8 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
                                        px_co, py_co, ptau_co, W_matrix,
                                        T_rev0, line, radiation_method):
     diff_ptau = np.diff(ptau_co)
-    eloss_turn = -sum(diff_ptau[diff_ptau<0]) * particle_on_co._xobject.p0c[0]
+    mask_loss = diff_ptau < 0
+    eloss_turn = -sum(diff_ptau[mask_loss]) * particle_on_co._xobject.p0c[0]
 
     # Get eigenvalues
     w0, v0 = np.linalg.eig(R_matrix)
@@ -1372,10 +1373,14 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
 
     # Damping constants and partition numbers
     energy0 = particle_on_co.mass0 * particle_on_co._xobject.gamma0[0]
+
     damping_constants_turns = -np.log(np.abs(eigenvals))
     damping_constants_s = damping_constants_turns / T_rev0
+
+    # https://cds.cern.ch/record/175614 , Eq. 4.24
     partition_numbers = (
-        damping_constants_turns* 2 * energy0/eloss_turn)
+        damping_constants_turns * 2
+        / (-np.sum(diff_ptau[mask_loss] / (1 + ptau_co[:-1][mask_loss]))))
 
     eneloss_damp_res = {
         'eneloss_turn': eloss_turn,
@@ -1393,8 +1398,8 @@ def _extract_sr_distribution_properties(line, px_co, py_co, ptau_co):
     if np.any(radiation_flag > 1):
         raise ValueError('Incompatible radiation flag')
 
-    hxl = line.attr['hxl']
-    hyl = line.attr['hyl']
+    hxl = line.attr['angle_rad'] * np.cos(line.attr['rot_s_rad'])
+    hyl = line.attr['angle_rad'] * np.sin(line.attr['rot_s_rad'])
     dl = line.attr['length'] * (radiation_flag == 1)
 
     mask = (dl != 0)

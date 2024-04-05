@@ -147,17 +147,17 @@ def test_slicing_preserve_thick_compound_if_unsliced():
     assert isinstance(line.get_compound_by_name('slice'), SlicedCompound)
     assert line.get_compound_subsequence('slice') == [
         'slice_entry',
-        'slice_den',
+        'slice..entry_map',
         'drift_slice..0', 'slice..0',
         'drift_slice..1', 'slice..1',
         'drift_slice..2',
-        'slice_dex',
+        'slice..exit_map',
         'slice_exit',
     ]
 
     assert isinstance(line.get_compound_by_name('keep'), Compound)
     assert line.get_compound_subsequence('keep') == [
-        'keep_entry', 'keep_den', 'keep', 'keep_dex', 'keep_exit',
+        'keep_entry', 'keep', 'keep_exit',
     ]
 
 

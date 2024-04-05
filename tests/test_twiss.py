@@ -1282,19 +1282,11 @@ def test_twiss_group_compounds(test_context):
         assert len(tw_comp[nn]) == len(tw_comp['name'])
 
     assert 'bi1.bsw1l1.2_entry' in tw.name
-    assert 'bi1.bsw1l1.2_offset_entry' in tw.name
-    assert 'bi1.bsw1l1.2_den' in tw.name
     assert 'bi1.bsw1l1.2' in tw.name
-    assert 'bi1.bsw1l1.2_dex' in tw.name
-    assert 'bi1.bsw1l1.2_offset_exit' in tw.name
     assert 'bi1.bsw1l1.2_exit' in tw.name
 
     assert 'bi1.bsw1l1.2_entry' in tw_comp.name
-    assert 'bi1.bsw1l1.2_offset_entry' not in tw_comp.name
-    assert 'bi1.bsw1l1.2_den' not in tw_comp.name
     assert 'bi1.bsw1l1.2' not in tw_comp.name
-    assert 'bi1.bsw1l1.2_dex' not in tw_comp.name
-    assert 'bi1.bsw1l1.2_offset_exit' not in tw_comp.name
     assert 'bi1.bsw1l1.2_exit' not in tw_comp.name
 
     assert tw_comp['name', -2] == tw['name', -2] == 'psb1$end'
@@ -1327,15 +1319,11 @@ def test_twiss_group_compounds(test_context):
         assert len(tw_comp_local[nn]) == len(tw_comp_local['name'])
 
     assert 'br.bhz161_entry' in tw_local.name
-    assert 'br.bhz161_den' in tw_local.name
     assert 'br.bhz161' in tw_local.name
-    assert 'br.bhz161_dex' in tw_local.name
     assert 'br.bhz161_exit' in tw_local.name
 
     assert 'br.bhz161_entry' in tw_comp_local.name
-    assert 'br.bhz161_den' not in tw_comp_local.name
     assert 'br.bhz161' not in tw_comp_local.name
-    assert 'br.bhz161_dex' not in tw_comp_local.name
     assert 'br.bhz161_exit' not in tw_comp_local.name
 
     assert tw_comp_local['name', -2] == tw_local['name', -2] == 'br.stscrap162_entry'

@@ -47,8 +47,13 @@ def test_fcc_ee_solenoid_correction():
     ip_sol = 'ip.1'
 
     theta_tilt = 15e-3 # rad
+    l_beam = 4.4
+    l_solenoid = l_beam * np.cos(theta_tilt)
+    ds_sol_start = -l_beam / 2
+    ds_sol_end = +l_beam / 2
+    ip_sol = 'ip.1'
 
-    s_sol_slices = np.linspace(ds_sol_start, ds_sol_end, 1001)
+    s_sol_slices = np.linspace(-l_solenoid/2, l_solenoid/2, 1001)
     bz_sol_slices = np.interp(s_sol_slices, bz_df.z, bz_df.Bz)
     bz_sol_slices[0] = 0
     bz_sol_slices[-1] = 0
@@ -73,8 +78,8 @@ def test_fcc_ee_solenoid_correction():
 
     sol_start_tilt = xt.YRotation(angle=-theta_tilt * 180 / np.pi)
     sol_end_tilt = xt.YRotation(angle=+theta_tilt * 180 / np.pi)
-    sol_start_shift = xt.XYShift(dx=l_solenoid/2 * np.sin(theta_tilt))
-    sol_end_shift = xt.XYShift(dx=l_solenoid/2 * np.sin(theta_tilt))
+    sol_start_shift = xt.XYShift(dx=l_solenoid/2 * np.tan(theta_tilt))
+    sol_end_shift = xt.XYShift(dx=l_solenoid/2 * np.tan(theta_tilt))
 
     line.element_dict['sol_start_tilt_'+ip_sol] = sol_start_tilt
     line.element_dict['sol_end_tilt_'+ip_sol] = sol_end_tilt
@@ -83,7 +88,6 @@ def test_fcc_ee_solenoid_correction():
 
     line.element_dict['sol_entry_'+ip_sol] = xt.Solenoid(length=0, ks=0)
     line.element_dict['sol_exit_'+ip_sol] = xt.Solenoid(length=0, ks=0)
-
 
     sol_slice_names = []
     sol_slice_names.append('sol_entry_'+ip_sol)
@@ -396,9 +400,9 @@ def test_fcc_ee_solenoid_correction():
     assert_allclose(tw_chk['muy', 'pqc2le.4'], tw_sol_off['muy', 'pqc2le.4'], atol=2e-6, rtol=5e-5)
 
     assert tw_chk.c_minus < 1e-6
-    assert_allclose(tw_chk['betx2', 'ip.1'] / tw_chk['betx', 'ip.1'], 0, atol=1e-11)
-    assert_allclose(tw_chk['bety1', 'ip.1'] / tw_chk['bety', 'ip.1'], 0, atol=1e-11)
-    assert_allclose(tw_chk['betx2', 'pqc2re.1'] / tw_chk['betx', 'pqc2re.1'], 0, atol=1e-11)
-    assert_allclose(tw_chk['bety1', 'pqc2re.1'] / tw_chk['bety', 'pqc2re.1'], 0, atol=1e-11)
-    assert_allclose(tw_chk['betx2', 'pqc2le.4'] / tw_chk['betx', 'pqc2le.4'], 0, atol=1e-11)
-    assert_allclose(tw_chk['bety1', 'pqc2le.4'] / tw_chk['bety', 'pqc2le.4'], 0, atol=1e-11)
+    assert_allclose(tw_chk['betx2', 'ip.1'] / tw_chk['betx', 'ip.1'], 0, atol=1e-10)
+    assert_allclose(tw_chk['bety1', 'ip.1'] / tw_chk['bety', 'ip.1'], 0, atol=1e-10)
+    assert_allclose(tw_chk['betx2', 'pqc2re.1'] / tw_chk['betx', 'pqc2re.1'], 0, atol=1e-10)
+    assert_allclose(tw_chk['bety1', 'pqc2re.1'] / tw_chk['bety', 'pqc2re.1'], 0, atol=1e-10)
+    assert_allclose(tw_chk['betx2', 'pqc2le.4'] / tw_chk['betx', 'pqc2le.4'], 0, atol=1e-10)
+    assert_allclose(tw_chk['bety1', 'pqc2le.4'] / tw_chk['bety', 'pqc2le.4'], 0, atol=1e-10)

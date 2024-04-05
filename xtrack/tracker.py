@@ -101,8 +101,9 @@ class Tracker:
         if self.iscollective:
             # Build tracker for all non-collective elements
             # (with collective elements replaced by Drifts)
-            ele_dict_non_collective = {
-                nn:ee for nn, ee in zip(line.element_names, noncollective_xelements)}
+            ele_dict_non_collective = line.element_dict.copy() # need to keep the parents
+            for nn, ee in zip(line.element_names, noncollective_xelements):
+                ele_dict_non_collective[nn] = ee
         else:
             ele_dict_non_collective = line.element_dict
 
@@ -569,7 +570,7 @@ class Tracker:
                 )
             src_lines.append(
                 f"""
-                            {ccnn}_track_local_particle(({ccnn}Data) el, &lpart);
+                            {ccnn}_track_local_particle_with_transformations(({ccnn}Data) el, &lpart);
                             break;"""
             )
 

@@ -980,7 +980,7 @@ def test_multipole_tilt_90_deg(test_context):
     ln.track(p)
 
     # Check dispersion
-    my = xt.Multipole(ksl=[0.1, 0], hyl=0.1, length=2, _context=test_context)
+    my = xt.Multipole(knl=[0.1, 0], hxl=0.1, rot_s_rad=np.deg2rad(-90), length=2, _context=test_context)
     py = xt.Particles(x = 0, y=0, delta=1., p0c=1e12, _context=test_context)
     my.track(py)
 

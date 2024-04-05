@@ -148,6 +148,10 @@ class Line:
 
         self.metadata = {}
 
+        self._line_before_slicing_cache = None
+        self._compound_container_before_slicing = None
+        self._element_names_before_slicing = None
+
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
 
@@ -213,6 +217,14 @@ class Line:
 
         if 'metadata' in dct.keys():
             self.metadata = dct['metadata']
+
+        self._element_names_before_slicing = dct.get(
+            '_element_names_before_slicing', None)
+        _compound_container_before_slicing_dct = dct.get(
+            '_compound_container_before_slicing', None)
+        if _compound_container_before_slicing_dct is not None:
+            self._compound_container_before_slicing = CompoundContainer.from_dict(
+                            _compound_container_before_slicing_dct)
 
         if ('energy_program' in self.element_dict
              and self.element_dict['energy_program'] is not None):
@@ -535,6 +547,13 @@ class Line:
         out['config'] = self.config.data.copy()
         out['_extra_config'] = self._extra_config.copy()
         out['compound_container'] = self.compound_container.to_dict()
+
+        if self._compound_container_before_slicing is not None:
+            out['_compound_container_before_slicing'] = self._compound_container_before_slicing.to_dict()
+
+        if self._element_names_before_slicing is not None:
+            out['_element_names_before_slicing'] = self._element_names_before_slicing
+
         if self.particle_ref is not None:
             out['particle_ref'] = self.particle_ref.to_dict()
         if self._var_management is not None and include_var_management:
@@ -926,7 +945,13 @@ class Line:
 
         """
 
-        self._frozen_check()
+        self.build_tracker(compile=False) # ensure elements are in the same buffer
+        self.discard_tracker()
+
+        self._line_before_slicing_cache = None
+        self._compound_container_before_slicing = self.compound_container.copy()
+        self._element_names_before_slicing = list(self.element_names).copy()
+
         slicer = Slicer(self, slicing_strategies)
         return slicer.slice_in_place()
 
@@ -1761,7 +1786,11 @@ class Line:
         ll = 0
         for ee in self.elements:
             if _is_thick(ee):
-                ll += ee.length
+                if hasattr(ee, '_parent'):
+                    this_length = self[ee._parent_name].length * ee.weight
+                else:
+                    this_length = ee.length
+                ll += this_length
 
         return ll
 
@@ -1807,7 +1836,11 @@ class Line:
             if mode == "upstream":
                 s.append(s_prev)
             if _is_thick(ee):
-                s_prev += ee.length
+                if hasattr(ee, '_parent'):
+                    this_length = self[ee._parent_name].length * ee.weight
+                else:
+                    this_length = ee.length
+                s_prev += this_length
             if mode == "downstream":
                 s.append(s_prev)
 
@@ -1932,7 +1965,7 @@ class Line:
             index = self.element_names.index(index)
 
         if element is None:
-            if name not in self.element_names:
+            if name not in self.element_dict.keys():
                 raise ValueError(
                     f'Element {name} not found in the line. You must either '
                     f'give an `element` or a name of an element already '
@@ -1965,8 +1998,10 @@ class Line:
                             "the core region."
                         )
 
-            assert name not in self.element_dict.keys()
-            self.element_dict[name] = element
+            if element is None:
+                assert name in self.element_dict.keys()
+            else:
+                self.element_dict[name] = element
             self.element_names.insert(index, name)
 
             if isinstance(compound, SlicedCompound):
@@ -2503,13 +2538,16 @@ class Line:
         if edge not in [None, 'linear', 'full', 'suppressed']:
             raise ValueError(f'Unknown bend edge model {edge}')
 
-        for ee in self.elements:
-            if core is not None and isinstance(ee,
-                                (xt.Bend, xt.CombinedFunctionMagnet)):
+        for ee in self.element_dict.values():
+            if core is not None and isinstance(ee, xt.Bend):
                 ee.model = core
 
             if edge is not None and isinstance(ee, xt.DipoleEdge):
                 ee.model = edge
+
+            if edge is not None and isinstance(ee, xt.Bend):
+                ee.edge_entry_model = edge
+                ee.edge_exit_model = edge
 
             if num_multipole_kicks is not None:
                 ee.num_multipole_kicks = num_multipole_kicks
@@ -2647,6 +2685,9 @@ class Line:
         # Unfreeze the line
         self.discard_tracker()
 
+        if verbose: _print("Replance slices with equivalent elements")
+        self._replace_with_equivalent_elements()
+
         if keep_markers is True:
             if verbose: _print('Markers are kept')
         elif keep_markers is False:
@@ -2765,7 +2806,7 @@ class Line:
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict = newline.element_dict
+            self.element_dict.update(newline.element_dict)
             return self
         else:
             return newline
@@ -2807,7 +2848,7 @@ class Line:
         for ee, nn in zip(self.elements, self.element_names):
             if isinstance(ee, Multipole) and nn not in keep:
                 ctx2np = ee._context.nparray_from_context_array
-                aux = ([ee.hxl, ee.hyl]
+                aux = ([ee.hxl]
                         + list(ctx2np(ee.knl)) + list(ctx2np(ee.ksl)))
                 if np.sum(np.abs(np.array(aux))) == 0.0:
                     continue
@@ -2815,7 +2856,7 @@ class Line:
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict = newline.element_dict
+            self.element_dict.update(newline.element_dict)
             return self
         else:
             return newline
@@ -2862,7 +2903,7 @@ class Line:
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict = newline.element_dict
+            self.element_dict.update(newline.element_dict)
             return self
         else:
             return newline
@@ -2887,6 +2928,8 @@ class Line:
 
         '''
 
+        assert inplace is True, 'Only inplace is supported for now'
+
         self._frozen_check()
 
         if keep is None:
@@ -2898,7 +2941,7 @@ class Line:
 
         for ii, (ee, nn) in enumerate(zip(self.elements, self.element_names)):
             if ii == 0:
-                newline.append_element(ee.copy(), nn)
+                newline.append_element(ee, nn)
                 continue
 
             this_ee = ee if inplace else ee.copy()
@@ -2914,7 +2957,7 @@ class Line:
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict = newline.element_dict
+            self.element_dict.update(newline.element_dict)
             return self
         else:
             return newline
@@ -3222,7 +3265,7 @@ class Line:
                 prev_nn = newline.element_names[-1]
                 prev_ee = newline.element_dict[prev_nn]
                 if (isinstance(prev_ee, Multipole)
-                    and prev_ee.hxl==ee.hxl==0 and prev_ee.hyl==ee.hyl==0
+                    and prev_ee.hxl==ee.hxl==0
                     and prev_nn not in keep
                     ):
 
@@ -3239,7 +3282,7 @@ class Line:
                     for ii,kk in enumerate(ee._xobject.ksl):
                         ksl[ii]+=kk
                     newee = Multipole(
-                            knl=knl, ksl=ksl, hxl=prev_ee.hxl, hyl=prev_ee.hyl,
+                            knl=knl, ksl=ksl, hxl=prev_ee.hxl,
                             length=prev_ee.length,
                             radiation_flag=prev_ee.radiation_flag)
                     prev_nn += ('_' + nn)
@@ -3252,7 +3295,7 @@ class Line:
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict = newline.element_dict
+            self.element_dict.update(newline.element_dict)
             return self
         else:
             return newline
@@ -3670,21 +3713,112 @@ class Line:
     def _get_attr_cache(self):
         cache = LineAttr(
             line=self,
-            fields=[
-                'hxl', 'hyl', 'length', 'radiation_flag', 'delta_taper', 'ks',
-                'voltage', 'frequency', 'lag', 'lag_taper',
-                'k0', 'k1', 'k1s', 'k2', 'h',
-                ('knl', 0), ('ksl', 0), ('knl', 1), ('ksl', 1),
-                ('knl', 2), ('ksl', 2), ('knl', 3), ('ksl', 3),
-            ],
+            fields={
+                'radiation_flag': None, 'delta_taper': None, 'ks': None,
+                'voltage': None, 'frequency': None, 'lag': None,
+                'lag_taper': None,
+
+                'weight': None,
+
+                '_own_length': 'length',
+
+                '_own_sin_rot_s': '_sin_rot_s',
+                '_own_cos_rot_s': '_cos_rot_s',
+
+                '_own_h': 'h',
+                '_own_hxl': 'hxl',
+
+                '_own_k0': 'k0',
+                '_own_k1': 'k1',
+                '_own_k2': 'k2',
+                '_own_k3': 'k3',
+                '_own_k0s': 'k0s',
+                '_own_k1s': 'k1s',
+                '_own_k2s': 'k2s',
+                '_own_k3s': 'k3s',
+
+                '_own_k0l': ('knl', 0),
+                '_own_k1l': ('knl', 1),
+                '_own_k2l': ('knl', 2),
+                '_own_k3l': ('knl', 3),
+                '_own_k0sl': ('ksl', 0),
+                '_own_k1sl': ('ksl', 1),
+                '_own_k2sl': ('ksl', 2),
+                '_own_k3sl': ('ksl', 3),
+
+                '_parent_length': (('_parent', 'length'), None),
+                '_parent_sin_rot_s': (('_parent', '_sin_rot_s'), None),
+                '_parent_cos_rot_s': (('_parent', '_cos_rot_s'), None),
+
+                '_parent_h': (('_parent', 'h'), None),
+                '_parent_hxl': (('_parent', 'hxl'), None),
+
+                '_parent_k0': (('_parent', 'k0'), None),
+                '_parent_k1': (('_parent', 'k1'), None),
+                '_parent_k2': (('_parent', 'k2'), None),
+                '_parent_k3': (('_parent', 'k3'), None),
+                '_parent_k0s': (('_parent', 'k0s'), None),
+                '_parent_k1s': (('_parent', 'k1s'), None),
+                '_parent_k2s': (('_parent', 'k2s'), None),
+                '_parent_k3s': (('_parent', 'k3s'), None),
+
+                '_parent_k0l': (('_parent', 'knl'), 0),
+                '_parent_k1l': (('_parent', 'knl'), 1),
+                '_parent_k2l': (('_parent', 'knl'), 2),
+                '_parent_k3l': (('_parent', 'knl'), 3),
+                '_parent_k0sl': (('_parent', 'ksl'), 0),
+                '_parent_k1sl': (('_parent', 'ksl'), 1),
+                '_parent_k2sl': (('_parent', 'ksl'), 2),
+                '_parent_k3sl': (('_parent', 'ksl'), 3),
+
+            },
             derived_fields={
-                'k0l': lambda attr: attr['knl', 0] + attr['k0'] * attr['length'],
-                'k1l': lambda attr: attr['knl', 1] + attr['k1'] * attr['length'],
-                'k2l': lambda attr: attr['knl', 2] + attr['k2'] * attr['length'],
-                'k3l': lambda attr: attr['knl', 3],
-                'angle_x': lambda attr: attr['hxl'] + attr['h'] * attr['length'],
-                'k1sl': lambda attr: attr['ksl', 1] + attr['k1s'] * attr['length'],
+                'length': lambda attr:
+                    attr['_own_length'] + attr['_parent_length'] * attr['weight'],
+                'angle_rad': _angle_from_attr,
+                'rot_s_rad': _rot_s_from_attr,
+                'k0l': lambda attr: (
+                    attr['_own_k0l']
+                    + attr['_own_k0'] * attr['_own_length']
+                    + attr['_parent_k0l'] * attr['weight']
+                    + attr['_parent_k0'] * attr['_parent_length'] * attr['weight']),
+                'k0sl': lambda attr: (
+                    attr['_own_k0sl']
+                    + attr['_own_k0s'] * attr['_own_length']
+                    + attr['_parent_k0sl'] * attr['weight']
+                    + attr['_parent_k0s'] * attr['_parent_length'] * attr['weight']),
+                'k1l': lambda attr: (
+                    attr['_own_k1l']
+                    + attr['_own_k1'] * attr['_own_length']
+                    + attr['_parent_k1l'] * attr['weight']
+                    + attr['_parent_k1'] * attr['_parent_length'] * attr['weight']),
+                'k1sl': lambda attr: (
+                    attr['_own_k1sl']
+                    + attr['_own_k1s'] * attr['_own_length']
+                    + attr['_parent_k1sl'] * attr['weight']
+                    + attr['_parent_k1s'] * attr['_parent_length'] * attr['weight']),
+                'k2l': lambda attr: (
+                    attr['_own_k2l']
+                    + attr['_own_k2'] * attr['_own_length']
+                    + attr['_parent_k2l'] * attr['weight']
+                    + attr['_parent_k2'] * attr['_parent_length'] * attr['weight']),
+                'k2sl': lambda attr: (
+                    attr['_own_k2sl']
+                    + attr['_own_k2s'] * attr['_own_length']
+                    + attr['_parent_k2sl'] * attr['weight']
+                    + attr['_parent_k2s'] * attr['_parent_length'] * attr['weight']),
+                'k3l': lambda attr: (
+                    attr['_own_k3l']
+                    + attr['_own_k3'] * attr['_own_length']
+                    + attr['_parent_k3l'] * attr['weight']
+                    + attr['_parent_k3'] * attr['_parent_length'] * attr['weight']),
+                'k3sl': lambda attr: (
+                    attr['_own_k3sl']
+                    + attr['_own_k3s'] * attr['_own_length']
+                    + attr['_parent_k3sl'] * attr['weight']
+                    + attr['_parent_k3s'] * attr['_parent_length'] * attr['weight']),
             }
+
         )
         return cache
 
@@ -3817,6 +3951,32 @@ class Line:
                 if insert_at is not None:
                     insert_at += 1
 
+    @property
+    def _line_before_slicing(self):
+        if self._element_names_before_slicing is None:
+            return None
+
+        if self._line_before_slicing_cache is None:
+            # Shallow copy of the line
+            out = Line.__new__(Line)
+            out.__dict__.update(self.__dict__)
+            out._element_names = self._element_names_before_slicing
+            out.compound_container = self._compound_container_before_slicing
+            out.tracker = None
+            self._line_before_slicing_cache = out
+
+        return self._line_before_slicing_cache
+
+    def _replace_with_equivalent_elements(self):
+
+        self._frozen_check()
+
+        for nn in self.element_names:
+            ee = self[nn]
+            if hasattr(ee, 'get_equivalent_element'):
+                new_ee = ee.get_equivalent_element()
+                self.element_dict[nn] = new_ee
+
 def frac(x):
     return x % 1
 
@@ -3899,24 +4059,23 @@ def _deserialize_element(el, class_dict, _buffer):
     else:
         return eltype.from_dict(eldct)
 
-
 def _is_simple_quadrupole(el):
     if not isinstance(el, Multipole):
         return False
-    return (el.radiation_flag == 0 and
-            el.order == 1 and
-            el.knl[0] == 0 and
-            not any(el.ksl) and
-            not el.hxl and
-            not el.hyl)
-
+    return (el.radiation_flag == 0
+            and (el.order == 1 or len(el.knl) == 2 or not any(el.knl[2:]))
+            and el.knl[0] == 0
+            and not any(el.ksl)
+            and not el.hxl
+            and el.shift_x == 0 and el.shift_y == 0 and np.abs(el.rot_s_rad) < 1e-12)
 
 def _is_simple_dipole(el):
     if not isinstance(el, Multipole):
         return False
-    return (el.radiation_flag == 0 and el.order == 0
-            and not any(el.ksl) and not el.hyl)
-
+    return (el.radiation_flag == 0
+            and (el.order == 0 or len(el.knl) == 1 or not any(el.knl[1:]))
+            and not any(el.ksl)
+            and el.shift_x == 0 and el.shift_y == 0 and np.abs(el.rot_s_rad) < 1e-12)
 
 @contextmanager
 def freeze_longitudinal(tracker):
@@ -3951,7 +4110,7 @@ def mk_class_namespace(extra_classes):
     return out
 
 
-def _is_drift(element): # can be removed if length is zero
+def _is_drift(element):
     return isinstance(element, (beam_elements.Drift,) )
 
 
@@ -4402,8 +4561,22 @@ class LineAttrItem:
         setter_names = []
         for ii, nn in enumerate(all_names):
             ee = line.element_dict[nn]
-            if hasattr(ee, '_xobject') and hasattr(ee._xobject, name):
-                if index is not None and index >= len(getattr(ee, name)):
+            if isinstance(name, (list, tuple)):
+                inner_obj = ee
+                inner_name = name[-1]
+                has_name = True
+                for nn_inner in name[:-1]:
+                    if not hasattr(inner_obj, nn_inner):
+                        has_name = False
+                        break
+                    inner_obj = getattr(inner_obj, nn_inner)
+                if not has_name:
+                    continue
+            else:
+                inner_obj = ee
+                inner_name = name
+            if hasattr(inner_obj, '_xobject') and hasattr(inner_obj._xobject, inner_name):
+                if index is not None and index >= len(getattr(inner_obj, inner_name)):
                     continue
                 mask[ii] = True
                 setter_names.append(nn)
@@ -4440,18 +4613,29 @@ class LineAttr:
         as argument and returns the value of the derived field.
     """
     def __init__(self, line, fields, derived_fields=None):
+
+        assert isinstance(fields, dict)
+
+        field_names = list(fields.keys())
+        field_access = []
+        for fn in field_names:
+            fa = fields[fn]
+            if fa is None:
+                fa = fn
+            field_access.append(fa)
+
         self.line = line
         self.fields = fields
         self.derived_fields = derived_fields or {}
         self._cache = {}
 
-        for ff in fields:
-            if isinstance(ff, str):
-                name = ff
+        for fn, fa in zip(field_names, field_access):
+            if isinstance(fa, str):
+                access = fa
                 index = None
             else:
-                name, index = ff
-            self._cache[ff] = LineAttrItem(name=name, index=index, line=line)
+                access, index = fa
+            self._cache[fn] = LineAttrItem(name=access, index=index, line=line)
 
     def __getitem__(self, key):
         if key in self.derived_fields:
@@ -4460,7 +4644,7 @@ class LineAttr:
         return self._cache[key].get_full_array()
 
     def keys(self):
-        return list(self.fields) + list(self.derived_fields.keys())
+        return list(self.derived_fields.keys()) + list(self.fields)
 
 
 class EnergyProgram:
@@ -4615,3 +4799,46 @@ def _vars_unused(line):
         and 't_turn_s' in line.vars.keys()):
         return True
     return False
+
+def _angle_from_attr(attr):
+
+    weight = attr['weight']
+
+    own_hxl = attr['_own_hxl']
+    own_h = attr['_own_h']
+    own_length = attr['_own_length']
+    parent_hxl = attr['_parent_hxl']
+    parent_h = attr['_parent_h']
+    parent_length = attr['_parent_length']
+
+    own_hxl_proper_system = own_hxl + own_h * own_length
+    parent_hxl_proper_system = parent_hxl * weight + parent_h * parent_length * weight
+
+    angle = own_hxl_proper_system + parent_hxl_proper_system
+
+    return angle
+
+def _rot_s_from_attr(attr):
+
+    own_sin_rot_s = attr['_own_sin_rot_s'].copy()
+    own_cos_rot_s = attr['_own_cos_rot_s'].copy()
+    parent_sin_rot_s = attr['_parent_sin_rot_s'].copy()
+    parent_cos_rot_s = attr['_parent_cos_rot_s'].copy()
+
+    has_own_rot = (own_cos_rot_s !=0) | (own_sin_rot_s != 0)
+    mask_own_rot_inactive = own_sin_rot_s < -2.
+    own_cos_rot_s[mask_own_rot_inactive] = 1.
+    own_sin_rot_s[mask_own_rot_inactive] = 0.
+
+    has_parent_rot = (parent_cos_rot_s !=0) | (parent_sin_rot_s != 0)
+    mask_parent_rot_inactive = parent_sin_rot_s < -2.
+    parent_cos_rot_s[mask_parent_rot_inactive] = 1.
+    parent_sin_rot_s[mask_parent_rot_inactive] = 0.
+
+    rot_s_rad = 0. * own_sin_rot_s
+    rot_s_rad[has_own_rot] = np.arctan2(own_sin_rot_s[has_own_rot],
+                                        own_cos_rot_s[has_own_rot])
+    rot_s_rad[has_parent_rot] = np.arctan2(parent_sin_rot_s[has_parent_rot],
+                                            parent_cos_rot_s[has_parent_rot])
+
+    return rot_s_rad
