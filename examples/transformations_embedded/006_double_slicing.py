@@ -17,3 +17,5 @@ line.cut_at_s([0, 0.25, 0.3, 0.6, 0.8, 1.])
 
 line._insert_thin_elements_at_s([
     (0.4, [('mymark1', xt.Marker()), ('mymark2', xt.Marker())])])
+
+line.insert_element(name='mkins', element=xt.Quadrupole(length=0.1), at_s=0.9)

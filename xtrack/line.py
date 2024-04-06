@@ -2010,147 +2010,49 @@ class Line:
 
         assert ((index is not None and at_s is None) or
                 (index is None and at_s is not None)), (
-                    "Either `index` or `at_s` must be provided"
+                    "Either `at` or `at_s` must be provided"
                 )
 
+        if _is_thick(element) and np.abs(_length(element, self)) > 0 and at_s is None:
+            raise NotImplementedError('Use `at_s` to insert thick elements')
+
+        if element is None:
+            assert name in self.element_dict.keys()
+        else:
+            self.element_dict[name] = element
+
+        # Insert by name or index
         if index is not None:
-
-            s_tol = 0.5e-6
-
-            if _is_thick(element) and np.abs(_length(element, self)) > 0:
-                raise NotImplementedError('Use `at_s` to insert thick elements')
-
-            left_name = self.element_names[index - 1]
-            left_cpd_name = self.get_compound_for_element(left_name)
-            right_name = self.element_names[index]
-            right_cpd_name = self.get_compound_for_element(right_name)
-            compound = None
-            if left_cpd_name == right_cpd_name and left_cpd_name is not None:
-                compound = self.compound_container.compound_for_name(left_cpd_name)
-                if isinstance(compound, Compound):
-                    if not (left_name in compound.core or right_name in compound.core):
-                        raise ValueError(
-                            "Elements can only be inserted into a compound in "
-                            "the core region."
-                        )
-
-            if element is None:
-                assert name in self.element_dict.keys()
-            else:
-                self.element_dict[name] = element
             self.element_names.insert(index, name)
-
-            if isinstance(compound, SlicedCompound):
-                compound.elements.add(name)
-                #self.compound_container.define_compound(left_cpd_name, compound)
-            elif isinstance(compound, Compound):
-                compound.core.add(name)
-                #self.compound_container.define_compound(left_cpd_name, compound)
-
             return
 
+        # Insert by s position
         s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
 
+        # Shortcut in case ot thin element and no cut needed
         if not _is_thick(element) or np.abs(_length(element, self)) == 0:
             i_closest = np.argmin(np.abs(s_vect_upstream - at_s))
             if np.abs(s_vect_upstream[i_closest] - at_s) < s_tol:
                 return self.insert_element(
                     index=i_closest, element=element, name=name)
 
-        s_vect_downstream = np.array(self.get_s_position(mode='downstream'))
-
         s_start_ele = at_s
-        i_first_drift_to_cut = np.where(s_vect_downstream > s_start_ele)[0][0]
-
-        # Shortcut for thin element without drift splitting
-        if (not _is_thick(element)
-                and np.abs(s_vect_upstream[i_first_drift_to_cut]-at_s) < 1e-10):
-            return self.insert_element(index=i_first_drift_to_cut,
-                                       element=element, name=name)
-
         if _is_thick(element) and np.abs(_length(element, self)) > 0:
             s_end_ele = at_s + _length(element, self)
         else:
             s_end_ele = s_start_ele
 
+        self.cut_at_s([s_start_ele, s_end_ele])
+
+        s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
+        s_vect_downstream = np.array(self.get_s_position(mode='downstream'))
+
+        i_first_drift_to_cut = np.where(s_vect_downstream > s_start_ele)[0][0]
         i_last_drift_to_cut = np.where(s_vect_upstream < s_end_ele)[0][-1]
         if _is_thick(element) and _length(element, self) > 0:
             assert i_first_drift_to_cut <= i_last_drift_to_cut
-        name_first_drift_to_cut = self.element_names[i_first_drift_to_cut]
-        name_last_drift_to_cut = self.element_names[i_last_drift_to_cut]
-        first_drift_to_cut = self.element_dict[name_first_drift_to_cut]
-        last_drift_to_cut = self.element_dict[name_last_drift_to_cut]
 
-        assert _is_drift(first_drift_to_cut)
-        assert _is_drift(last_drift_to_cut)
-
-        for ii in range(i_first_drift_to_cut, i_last_drift_to_cut+1):
-            e_to_replace = self.element_dict[self.element_names[ii]]
-            if (not _is_drift(e_to_replace) and
-                not isinstance(e_to_replace, Marker) and
-                not _is_aperture(e_to_replace)):
-                raise ValueError(
-                    f'Cannot replace active element {self.element_names[ii]}')
-
-        l_left_part = s_start_ele - s_vect_upstream[i_first_drift_to_cut]
-        l_right_part = s_vect_downstream[i_last_drift_to_cut] - s_end_ele
-        assert l_left_part >= 0
-        assert l_right_part >= 0
-        name_left = name_first_drift_to_cut + '_u' # u for upstream
-        name_right = name_last_drift_to_cut + '_d' # d for downstream
-
-        drift_base = self.element_dict[name_first_drift_to_cut]
-        drift_left = drift_base.copy()
-        drift_left.length = l_left_part
-        drift_right = drift_base.copy()
-        drift_right.length = l_right_part
-
-        # Check if not illegally inserting in a compound
-        _compounds = self.compound_container
-        left_compound = _compounds.compound_name_for_element(name_first_drift_to_cut)
-        right_compound = _compounds.compound_name_for_element(name_last_drift_to_cut)
-        compound = None
-        if left_compound is not None and left_compound == right_compound:
-            compound = _compounds.compound_for_name(left_compound)
-            if isinstance(compound, Compound):
-                if not (name_first_drift_to_cut in compound.core and name_last_drift_to_cut in compound.core):
-                    raise ValueError(
-                        "Elements can only be inserted into a compound in "
-                        "the core region."
-                    )
-
-        # Insert
-        assert name_left not in self.element_names
-        assert name_right not in self.element_names
-
-        names_to_insert = []
-
-        if drift_left.length > 0:
-            names_to_insert.append(name_left)
-            self.element_dict[name_left] = drift_left
-        names_to_insert.append(name)
-        self.element_dict[name] = element
-        if drift_right.length > 0:
-            names_to_insert.append(name_right)
-            self.element_dict[name_right] = drift_right
-
-        replaced_names = self.element_names[i_first_drift_to_cut:i_last_drift_to_cut + 1]
-        self.element_names[i_first_drift_to_cut:i_last_drift_to_cut + 1] = names_to_insert
-
-        # Update compound container if the inserted element falls in the middle
-        # of a compound element.
-        if compound:
-            compound_name = left_compound
-            if isinstance(compound, SlicedCompound):
-                # _compounds.remove_compound(compound_name)
-                compound.elements -= set(replaced_names)
-                compound.elements |= set(names_to_insert)
-                # _compounds.define_compound(compound_name, compound)
-            elif isinstance(compound, Compound):
-                # _compounds.remove_compound(compound_name)
-                compound.core -= set(replaced_names)
-                compound.core |= set(names_to_insert)
-                # _compounds.define_compound(compound_name, compound)
+        self.element_names[i_first_drift_to_cut:i_last_drift_to_cut + 1] = [name]
 
         return self
 
