@@ -1930,7 +1930,7 @@ class Line:
             strategies.append(strategy)
 
         slicer = Slicer(self, slicing_strategies=strategies)
-        slicer.slice_in_place(_edge_markers=False)
+        slicer.slice_in_place()
 
         # Restore and update the compound container
         new_compound_container = self.compound_container
@@ -1941,10 +1941,23 @@ class Line:
                 old_cmpnd = old_compound_container.compound_for_name(cmpnd_name)
                 elems = list(old_cmpnd.elements)
                 elems.remove(nn)
+                remove_markers = True
             else:
                 elems = []
                 cmpnd_name = nn
+                remove_markers = False
             elems += new_compound_container.compound_for_name(nn).elements
+
+            if remove_markers:
+                rm_entry = nn + '_entry'
+                rm_exit = nn + '_exit'
+                elems.remove(rm_entry)
+                elems.remove(rm_exit)
+                self.element_names.remove(rm_entry)
+                self.element_names.remove(rm_exit)
+                self.element_dict.pop(rm_entry)
+                self.element_dict.pop(rm_exit)
+
             new_cmpnd = xt.compounds.SlicedCompound(elems)
             self.compound_container.define_compound(cmpnd_name, new_cmpnd)
 

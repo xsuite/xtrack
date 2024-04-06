@@ -10,8 +10,8 @@ line = xt.Line(elements=[bend])
 
 line.configure_bend_model(edge='linear', core='expanded')
 
-# line.slice_thick_elements(
-#     slicing_strategies=[xt.Strategy(xt.Uniform(3))])
+line.slice_thick_elements(
+    slicing_strategies=[xt.Strategy(xt.Uniform(3))])
 
 line.cut_at_s([0.3])
 
