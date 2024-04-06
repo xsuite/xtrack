@@ -3877,7 +3877,6 @@ class Line:
         drift_names = []
         for nnnn in elems:
             if 'DriftSlice' in type(self.element_dict[nnnn]).__name__:
-                assert nnnn.startswith('drift_' + name_compound + '..')
                 drift_names.append(nnnn)
         drift_names = sorted(drift_names)
 
@@ -3892,8 +3891,8 @@ class Line:
         for dn in drift_names:
             self.element_dict.pop(dn)
         new_names = []
-        for ii in range(len(drift_names)):
-            new_names.append(f'drift_{name_compound}..{ii}')
+        for ii, old_name in enumerate(drift_names):
+            new_names.append(old_name.split('..')[0] + f'..{ii}')
         # add new names to dict
         for ii, dn in enumerate(drifts):
             self.element_dict[new_names[ii]] = dn
