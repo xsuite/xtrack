@@ -1958,6 +1958,37 @@ class Line:
                 self.element_dict.pop(rm_entry)
                 self.element_dict.pop(rm_exit)
 
+            # rename drifts
+            drift_names = []
+            for nnnn in elems:
+                if 'DriftSlice' in type(self.element_dict[nnnn]).__name__:
+                    assert nnnn.startswith('drift_' + cmpnd_name + '..')
+                    drift_names.append(nnnn)
+            drift_names = sorted(drift_names)
+
+            drifts = []
+            indeces_in_line = []
+            indeces_in_elems = []
+            for dn in drift_names:
+                drifts.append(self.element_dict[dn])
+                indeces_in_line.append(self.element_names.index(dn))
+                indeces_in_elems.append(elems.index(dn))
+            # remove old names from dict
+            for dn in drift_names:
+                self.element_dict.pop(dn)
+            new_names = []
+            for ii in range(len(drift_names)):
+                new_names.append(f'drift_{cmpnd_name}..{ii}')
+            # add new names to dict
+            for ii, dn in enumerate(drifts):
+                self.element_dict[new_names[ii]] = dn
+            # replace old names in line element_names
+            for ii, dn in zip(indeces_in_line, new_names):
+                self.element_names[ii] = dn
+            # replace old names in compound elements
+            for ii, dn in zip(indeces_in_elems, new_names):
+                elems[ii] = dn
+
             new_cmpnd = xt.compounds.SlicedCompound(elems)
             self.compound_container.define_compound(cmpnd_name, new_cmpnd)
 
