@@ -33,6 +33,10 @@ def test_simplification_methods():
 
     # Test merging of drifts
     line.insert_element(element=xt.Cavity(), name='cav', at_s=3.3)
+    import pdb; pdb.set_trace()
+    assert isinstance(line['e4..0'], xt.DriftSlice)
+    line._replace_with_equivalent_elements()
+    assert isinstance(line['e4..0'], xt.Drift)
     line.merge_consecutive_drifts(inplace=True)
     assert len(line.element_names) == 3
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
@@ -43,20 +47,24 @@ def test_simplification_methods():
     # Test merging of drifts, while keeping one
     line.insert_element(element=xt.Drift(length=1), name='drift1', at_s=1.2)
     line.insert_element(element=xt.Drift(length=1), name='drift2', at_s=2.2)
+    line._replace_with_equivalent_elements()
     line.merge_consecutive_drifts(inplace=True, keep=['drift2'])
     assert len(line.element_names) == 5
     assert 'drift2' in line.element_names
     assert 'drift1' not in line.element_names
+    line._replace_with_equivalent_elements()
     line.merge_consecutive_drifts(inplace=True)
 
     # Test removing of zero-length drifts
     line.insert_element(element=xt.Drift(length=0), name='dzero1', at_s=3.3)
     line.insert_element(element=xt.Drift(length=0), name='dzero2', at_s=3.3)
     assert len(line.element_names) == 5
+    line._replace_with_equivalent_elements()
     line.remove_zero_length_drifts(inplace=True, keep='dzero2')
     assert len(line.element_names) == 4
     assert 'dzero2' in line.element_names
     assert 'dzero1' not in line.element_names
+    line._replace_with_equivalent_elements()
     line.remove_zero_length_drifts(inplace=True)
 
     # Test merging of multipoles
@@ -66,6 +74,7 @@ def test_simplification_methods():
     line.insert_element(element=xt.Multipole(knl=[0, 3, 8], ksl=[2, 0, 17]), name='m3', at_s=3.3)
     line.insert_element(element=xt.Multipole(knl=[2, 0, 0], ksl=[40]), name='m4', at_s=3.3)
     assert len(line.element_names) == 7
+    line._replace_with_equivalent_elements()
     line.merge_consecutive_multipoles(inplace=True, keep='m3')
     assert len(line.element_names) == 6
     assert 'm3' in line.element_names
@@ -77,6 +86,7 @@ def test_simplification_methods():
     assert np.allclose(line[joined_mult].knl, [5,2,3], rtol=0, atol=1e-15)
     assert np.allclose(line[joined_mult].ksl, [10,60,0], rtol=0, atol=1e-15)
     # Merging all
+    line._replace_with_equivalent_elements()
     line.merge_consecutive_multipoles(inplace=True)
     assert len(line.element_names) == 4
     assert np.allclose(line[1].knl, [7,5,11], rtol=0, atol=1e-15)
@@ -91,6 +101,7 @@ def test_simplification_methods():
     line['m5'].ksl[:] = 0
     line['m6'].knl[:] = 0
     line['m6'].ksl[:] = 0
+    line._replace_with_equivalent_elements()
     line.remove_inactive_multipoles(inplace=True, keep='m5')
     assert len(line.element_names) == 5
     assert 'm5' in line.element_names
@@ -101,6 +112,7 @@ def test_simplification_methods():
     line.insert_element(element=xt.Marker(), name='marker2', at_s=3.3)
     assert 'marker1' in line.element_names
     assert 'marker2' in line.element_names
+    line._replace_with_equivalent_elements()
     line.remove_markers(keep='marker2')
     assert 'marker1' not in line.element_names
     assert 'marker2' in line.element_names
@@ -109,6 +121,7 @@ def test_simplification_methods():
     assert 'marker2' in line.element_names
     assert 'marker3' in line.element_names
     assert 'marker4' in line.element_names
+    line._replace_with_equivalent_elements()
     line.remove_markers()
     assert 'marker2' not in line.element_names
     assert 'marker3' not in line.element_names

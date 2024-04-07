@@ -319,6 +319,9 @@ class Slicer:
         if not element.isthick:
             return None
 
+        if isinstance(element, xt.Drift):
+            _edge_markers = False
+
         chosen_slicing = self._scheme_for_element(element, name)
 
         # If the chosen slicing is explicitly None, then we keep the current

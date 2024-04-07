@@ -3880,13 +3880,17 @@ class Line:
                 drift_names.append(nnnn)
         drift_names = sorted(drift_names)
 
-        drifts = []
-        indeces_in_line = []
-        indeces_in_elems = []
-        for dn in drift_names:
-            drifts.append(self.element_dict[dn])
-            indeces_in_line.append(self.element_names.index(dn))
-            indeces_in_elems.append(elems.index(dn))
+        try:
+            drifts = []
+            indeces_in_line = []
+            indeces_in_elems = []
+            for dn in drift_names:
+                drifts.append(self.element_dict[dn])
+                indeces_in_line.append(self.element_names.index(dn))
+                indeces_in_elems.append(elems.index(dn))
+        except Exception: # Inconsistency in compound
+            return
+
         # remove old names from dict
         for dn in drift_names:
             self.element_dict.pop(dn)
