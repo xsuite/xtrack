@@ -384,9 +384,9 @@ def test_insert_omp():
     line.insert_element(element=multipole, at_s=1, name='mp')
     line.build_tracker()
 
-    assert line._buffer is line['dr_u']._buffer
-    assert line['dr_u']._buffer is line['mp']._buffer
-    assert line['mp']._buffer is line['dr_d']._buffer
+    assert line._buffer is line['dr..0']._buffer
+    assert line['dr..0']._buffer is line['mp']._buffer
+    assert line['mp']._buffer is line['dr..1']._buffer
     assert line._context.omp_num_threads == 'auto'
 
 
