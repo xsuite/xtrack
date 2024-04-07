@@ -182,15 +182,12 @@ def bend_to_madx_str(name, line):
     tokens.append(mad_assignment('l', _ge(bend.length)))
     tokens.append(mad_assignment('angle', _ge(bend.h) * _ge(bend.length)))
     tokens.append(mad_assignment('k0', _ge(bend.k0)))
+    tokens.append(mad_assignment('e1', _ge(bend.edge_entry_angle)))
+    tokens.append(mad_assignment('e2', _ge(bend.edge_exit_angle)))
+    tokens.append(mad_assignment('fint', _ge(bend.edge_entry_fint)))
+    tokens.append(mad_assignment('fintx', _ge(bend.edge_exit_fint)))
+    tokens.append(mad_assignment('hgap', _ge(bend.edge_entry_hgap)))
     # k1, k2, knl, ksl need to be implemented
-    if name + '_den' in line.element_dict.keys():
-        edg_entry = line[name + '_den']
-        tokens.append(mad_assignment('e1', _ge(edg_entry.e1)))
-        tokens.append(mad_assignment('fint', _ge(edg_entry.fint)))
-        tokens.append(mad_assignment('hgap', _ge(edg_entry.hgap)))
-    if name + '_dex' in line.element_dict.keys():
-        edg_exit = line[name + '_dex']
-        tokens.append(mad_assignment('e2', _ge(edg_exit.e1)))
 
     _handle_transforms(tokens, bend)
 
