@@ -174,19 +174,30 @@ class Strategy:
         self.slicing = slicing
 
     def _match_on_name(self, name):
-        if self.match_name is None:
-            return True
         if self.regex:
             return self.match_name.match(name)
         return self.match_name == name
 
     def _match_on_type(self, element):
-        if self.element_type is None:
-            return True
         return isinstance(element, self.element_type)
 
     def match_element(self, name, element):
-        return self._match_on_name(name) and self._match_on_type(element)
+
+        if isinstance(element, xt.Drift):
+            matched = False
+            if self.match_name and not self.element_type:
+                matched = self._match_on_name(name)
+            elif self.element_type and not self.match_name:
+                matched = self._match_on_type(element)
+            elif self.match_name and self.element_type:
+                matched = self._match_on_name(name) and self._match_on_type(element)
+        else:
+            matched = True
+            if self.match_name:
+                matched = matched and self._match_on_name(name)
+            if self.element_type:
+                matched = matched and self._match_on_type(element)
+        return matched
 
     def __repr__(self):
         params = {
@@ -214,8 +225,8 @@ class Slicer:
             A list of slicing strategies to apply to the line.
         """
         self._line = line
-        self._slicing_strategies = ([Strategy(None, element_type=xt.Drift)] +
-                                    slicing_strategies)
+        self._slicing_strategies = [xt.Strategy(None, element_type=xt.Drift) # Do nothing to drifts by default
+                                    ] + slicing_strategies
         self._has_expressions = line.vars is not None
 
         # If all strategies are exact matches (no regex), instead of performing
