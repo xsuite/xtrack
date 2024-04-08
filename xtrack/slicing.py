@@ -12,7 +12,6 @@ from typing import List, Tuple, Iterator, Optional, Literal
 
 import numpy as np
 
-from .compounds import SlicedCompound
 from .progress_indicator import progress
 
 import xtrack as xt
@@ -257,23 +256,12 @@ class Slicer:
 
         collapsed_names = self._line.element_names.copy()
         for ii, name in enumerate(progress(collapsed_names, desc='Slicing line')):
-            # compound = self._line.get_compound_by_name(name)
-            compound = None # Force!!!!!
 
-            if compound is not None:
-                subsequence = self._slice_compound(name, compound)
-            else:
-                element = self._line.element_dict[name]
-                subsequence = self._slice_element(
-                    name, element, _edge_markers=_edge_markers)
+            element = self._line.element_dict[name]
+            subsequence = self._slice_element(
+                name, element, _edge_markers=_edge_markers)
 
-            # Create a new compound with the sliced elements
-            if subsequence is not None:
-                thin_compound = SlicedCompound(elements=subsequence)
-                self._line.compound_container.define_compound(name, thin_compound)
-            elif compound:
-                subsequence = self._order_set_by_line(compound.elements)
-            else:
+            if subsequence is None:
                 subsequence = [name]
 
             thin_names += subsequence
@@ -281,51 +269,6 @@ class Slicer:
         # Commit the changes to the line
         self._line.element_names = thin_names
 
-    def _slice_compound(self, name, compound) -> Optional[List[str]]:
-        """Slice compound and return slice names, or None if no slicing."""
-        sliced_core = []
-        slicing_was_performed = False
-        for core_el_name in self._order_set_by_line(compound.core):
-            element = self._line.element_dict[core_el_name]
-            slice_names = self._slice_element(core_el_name, element)
-            if slice_names is None:
-                slice_names = [core_el_name]
-            else:
-                slicing_was_performed = True
-            sliced_core += slice_names
-
-        if not slicing_was_performed:
-            return None
-
-        aperture = self._order_set_by_line(compound.aperture)
-        entry_transform = self._order_set_by_line(compound.entry_transform)
-        exit_transform = self._order_set_by_line(compound.exit_transform)
-        compound_entry = self._order_set_by_line(compound.entry)
-        compound_exit = self._order_set_by_line(compound.exit)
-
-        updated_core = []
-        slice_idx = 0
-        for slice_name in sliced_core:
-            element = self._line.element_dict[slice_name]
-            if 'DriftSlice' in type(element).__name__:
-                updated_core.append(slice_name)
-                continue
-
-            # Copy the apertures and transformations with a new name
-            updated_core += (
-                self._make_copies(aperture, slice_idx) +
-                self._make_copies(entry_transform, slice_idx) +
-                [slice_name] +
-                self._make_copies(exit_transform, slice_idx)
-            )
-            slice_idx += 1
-
-        subsequence = compound_entry + updated_core + compound_exit
-
-        # Remove the existing compound
-        self._line.compound_container.remove_compound(name)
-
-        return subsequence
 
     def _slice_element(self, name, element, _edge_markers=True) -> Optional[List[str]]:
         """Slice element and return slice names, or None if no slicing."""

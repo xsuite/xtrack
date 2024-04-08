@@ -25,7 +25,6 @@ from . import linear_normal_form as lnf
 import xobjects as xo
 import xtrack as xt
 import xdeps as xd
-from .compounds import CompoundContainer, CompoundType, Compound, SlicedCompound
 from .progress_indicator import progress
 from .slicing import Custom, Slicer, Strategy
 from .mad_writer import to_madx_sequence
@@ -136,7 +135,6 @@ class Line:
 
         self.element_dict = element_dict.copy()  # avoid modifications if user provided
         self.element_names = list(element_names).copy()
-        self.compound_container = CompoundContainer()
 
         self.particle_ref = particle_ref
 
@@ -149,7 +147,6 @@ class Line:
         self.metadata = {}
 
         self._line_before_slicing_cache = None
-        self._compound_container_before_slicing = None
         self._element_names_before_slicing = None
 
     @classmethod
@@ -211,20 +208,11 @@ class Line:
         if '_extra_config' in dct.keys():
             self._extra_config.update(dct['_extra_config'])
 
-        if 'compound_container' in dct.keys():
-            compounds = dct['compound_container']
-            self.compound_container = CompoundContainer.from_dict(compounds)
-
         if 'metadata' in dct.keys():
             self.metadata = dct['metadata']
 
         self._element_names_before_slicing = dct.get(
             '_element_names_before_slicing', None)
-        _compound_container_before_slicing_dct = dct.get(
-            '_compound_container_before_slicing', None)
-        if _compound_container_before_slicing_dct is not None:
-            self._compound_container_before_slicing = CompoundContainer.from_dict(
-                            _compound_container_before_slicing_dct)
 
         if ('energy_program' in self.element_dict
              and self.element_dict['energy_program'] is not None):
@@ -446,7 +434,6 @@ class Line:
         classes=(),
         ignored_madtypes=(),
         allow_thick=None,
-        use_compound_elements=True,
         name_prefix=None,
     ):
 
@@ -487,11 +474,6 @@ class Line:
         allow_thick : bool, optional
             If true, thick elements are allowed. Otherwise, an error is raised
             if a thick element is encountered.
-        use_compound_elements : bool, optional
-            If true, elements that are one element in madx but multiple elements
-            in xtrack will be grouped together with a marker attached in front,
-            and will be accessible through __getattr__. Otherwise, the line will
-            be flattened.
 
         Returns
         -------
@@ -518,7 +500,6 @@ class Line:
             error_table=None,  # not implemented yet
             replace_in_expr=replace_in_expr,
             allow_thick=allow_thick,
-            use_compound_elements=use_compound_elements,
             name_prefix=name_prefix
         )
         line = loader.make_line()
@@ -546,10 +527,6 @@ class Line:
         out["element_names"] = self.element_names[:]
         out['config'] = self.config.data.copy()
         out['_extra_config'] = self._extra_config.copy()
-        out['compound_container'] = self.compound_container.to_dict()
-
-        if self._compound_container_before_slicing is not None:
-            out['_compound_container_before_slicing'] = self._compound_container_before_slicing.to_dict()
 
         if self._element_names_before_slicing is not None:
             out['_element_names_before_slicing'] = self._element_names_before_slicing
@@ -667,12 +644,7 @@ class Line:
         element_types = list(map(lambda e: e.__class__.__name__, elements)) + [""]
         isthick = np.array(list(map(_is_thick, elements)) + [False])
         iscollective = np.array(list(map(xt.tracker._check_is_collective, elements)) + [False])
-        compound_name = list(self.get_element_compound_names()) + [None]
         elements += [None]
-
-        for ii in range(len(compound_name)):
-            if compound_name[ii] is None:
-                compound_name[ii] = ''
 
         out = {
             's': s_elements,
@@ -680,7 +652,6 @@ class Line:
             'name': list(self.element_names) + ['_end_point'],
             'isthick': isthick,
             'iscollective': iscollective,
-            'compound_name': compound_name,
             'element': elements
         }
 
@@ -747,8 +718,6 @@ class Line:
 
         if self._var_management is not None:
             out._init_var_management(dct=self._var_management_to_dict())
-
-        out.compound_container = self.compound_container.copy()
 
         out.config.update(self.config.copy())
         out._extra_config.update(self._extra_config.copy())
@@ -949,7 +918,6 @@ class Line:
         self.discard_tracker()
 
         self._line_before_slicing_cache = None
-        self._compound_container_before_slicing = self.compound_container.copy()
         self._element_names_before_slicing = list(self.element_names).copy()
 
         slicer = Slicer(self, slicing_strategies)
@@ -1117,7 +1085,6 @@ class Line:
         use_full_inverse=None,
         strengths=None,
         hide_thin_groups=None,
-        group_compound_elements=None,
         search_for_t_rev=None,
         num_turns_search_t_rev=None,
         only_twiss_init=None,
@@ -1921,9 +1888,6 @@ class Line:
         cuts_for_element = self._elements_intersecting_s(s)
         strategies = [Strategy(None)]  # catch-all, ignore unaffected elements
 
-        old_compound_container = self.compound_container
-        self.compound_container = type(old_compound_container)()
-
         for name, cuts in cuts_for_element.items():
             scheme = Custom(at_s=cuts, mode='thick')
             strategy = Strategy(scheme, name=name, exact=True)
@@ -1931,40 +1895,6 @@ class Line:
 
         slicer = Slicer(self, slicing_strategies=strategies)
         slicer.slice_in_place()
-
-        # Restore and update the compound container
-        new_compound_container = self.compound_container
-        self.compound_container = old_compound_container
-        affected_compounds = []
-        for nn in new_compound_container.compound_names:
-            cmpnd_name = old_compound_container.compound_name_for_element(nn)
-            if cmpnd_name is not None:
-                old_cmpnd = old_compound_container.compound_for_name(cmpnd_name)
-                elems = list(old_cmpnd.elements)
-                elems.remove(nn)
-                remove_markers = True
-            else:
-                elems = []
-                cmpnd_name = nn
-                remove_markers = False
-            elems += new_compound_container.compound_for_name(nn).elements
-
-            if remove_markers:
-                rm_entry = nn + '_entry'
-                rm_exit = nn + '_exit'
-                elems.remove(rm_entry)
-                elems.remove(rm_exit)
-                self.element_names.remove(rm_entry)
-                self.element_names.remove(rm_exit)
-                self.element_dict.pop(rm_entry)
-                self.element_dict.pop(rm_exit)
-
-            new_cmpnd = xt.compounds.SlicedCompound(elems)
-            self.compound_container.define_compound(cmpnd_name, new_cmpnd)
-            affected_compounds.append(cmpnd_name)
-
-        # for nn_cmpnd in affected_compounds:
-        #     self._rename_drifts_in_compounds(nn_cmpnd)
 
 
     def insert_element(self, name, element=None, at=None, index=None, at_s=None,
@@ -2055,179 +1985,6 @@ class Line:
         self.element_names[i_first_drift_to_cut:i_last_drift_to_cut + 1] = [name]
 
         return self
-
-    def get_compound_by_name(self, name) -> Optional[CompoundType]:
-        """Get a compound object by its name."""
-        if not self.compound_container:
-            return None
-        return self.compound_container.compound_for_name(name)
-
-    def get_compound_subsequence(self, name) -> List[str]:
-        """The sequence of element names corresponding to the compound name.
-
-        Equivalent to `sorted(compound.elements, key=self.element_names.index)`
-        but should be faster due to the assumption that compounds are contiguous.
-        """
-        element_set = self.get_compound_by_name(name).elements
-        compound_len = len(element_set)
-        subsequence = None
-
-        for idx, element_name in enumerate(self.element_names):
-            if element_name in element_set:
-                subsequence = self.element_names[idx:idx + compound_len]
-                break
-
-        # if subsequence is None or set(subsequence) != element_set:
-        #     raise AssertionError(
-        #         f'Compound {name} is corrupted, as its elements {element_set} '
-        #         f'are not a contiguous subsequence of the line.'
-        #     )
-
-        return subsequence
-
-    def get_compound_for_element(self, name) -> Optional[str]:
-        """Get the compound name for an element name."""
-        if not self.compound_container:
-            return None
-        return self.compound_container.compound_name_for_element(name)
-
-    def get_element_compound_names(self) -> List[Optional[str]]:
-        """Get the compound names for all elements."""
-        return [
-            self.get_compound_for_element(name)
-            for name in self.element_names
-        ]
-
-    def transform_compound(
-            self,
-            compound_name,
-            x_shift=0,
-            y_shift=0,
-            x_rotation=0,
-            y_rotation=0,
-            s_rotation=0,
-    ):
-        """Transform a compound element.
-
-        Transformations are applied in the order: XYShift, XRotation, YRotation,
-        SRotation.
-
-        Parameters
-        ----------
-        compound_name : str
-            Name of the compound element to transform.
-        x_shift : float, optional
-            Shift in the x direction, in meters.
-        y_shift : float, optional
-            Shift in the y direction, in meters.
-        x_rotation : float, optional
-            Rotation around the x-axis, in degrees.
-        y_rotation : float, optional
-            Rotation around the y-axis, in degrees.
-        s_rotation : float, optional
-            Rotation around the s-axis, in degrees.
-        """
-        compound = self.get_compound_by_name(compound_name)
-        element_names = self.get_compound_subsequence(compound_name)
-        idx_begin = self.element_names.index(element_names[0])
-        idx_end = idx_begin + len(element_names)
-
-        # Elements and names to add in the order they will appear in the line
-        before, after = [], []
-        names_before, names_after = [], []
-
-        # Generate a unique name for the transformation
-        def _generate_name(transform_type):
-            base = f'{compound_name}_{transform_type}'
-            new_name = base
-            count = 1
-            while new_name in element_names:
-                new_name = f'{base}_{count}'
-                count += 1
-
-            return new_name
-
-        # Create the transformation elements
-        if x_shift or y_shift:
-            shift = xt.XYShift(dx=x_shift, dy=y_shift)
-            before += [shift]
-            names_before += [_generate_name('offset_entry')]
-            unshift = xt.XYShift(dx=-x_shift, dy=-y_shift)
-            after = [unshift] + after
-            names_after = [_generate_name('offset_exit')] + names_after
-
-        if x_rotation:
-            x_rot_elem = xt.XRotation(angle=x_rotation)
-            before += [x_rot_elem]
-            names_before += [_generate_name('xrot_entry')]
-            x_unrot_elem = xt.XRotation(angle=-x_rotation)
-            after = [x_unrot_elem] + after
-            names_after = [_generate_name('xrot_exit')] + names_after
-
-        if y_rotation:
-            y_rot_elem = xt.YRotation(angle=y_rotation)
-            before += [y_rot_elem]
-            names_before += [_generate_name('yrot_entry')]
-            y_unrot_elem = xt.YRotation(angle=-y_rotation)
-            after = [y_unrot_elem] + after
-            names_after = [_generate_name('yrot_exit')] + names_after
-
-        if s_rotation:
-            s_rot_elem = xt.SRotation(angle=s_rotation)
-            before += [s_rot_elem]
-            names_before += [_generate_name('tilt_entry')]
-            s_unrot_elem = xt.SRotation(angle=-s_rotation)
-            after = [s_unrot_elem] + after
-            names_after = [_generate_name('tilt_exit')] + names_after
-
-        # Commit the transformations to the line
-        self.compound_container.remove_compound(compound_name)
-
-        for idx, element in enumerate(reversed(after)):
-            new_name = names_after[-idx - 1]
-            self.insert_element(index=idx_end, element=element, name=new_name)
-            compound.add_transform(new_name, side='exit')
-
-        for idx, element in enumerate(reversed(before)):
-            new_name = names_before[-idx - 1]
-            self.insert_element(index=idx_begin, element=element, name=new_name)
-            compound.add_transform(new_name, side='entry')
-
-        self.compound_container.define_compound(compound_name, compound)
-
-    def _enumerate_top_level(self):
-        idx = 0
-        while idx < len(self):
-            element_name = self.element_names[idx]
-            compound_name = self.get_compound_for_element(element_name)
-
-            # Not a compound, set the mask field to True
-            if compound_name is None:
-                yield idx, compound_name
-                idx += 1
-                continue
-
-            # Is (the first element) in a compound
-            yield idx, compound_name
-            compound = self.get_compound_by_name(compound_name)
-            idx += len(compound.elements)  # skip the remaining elements
-
-    def get_compound_mask(self) -> List[bool]:
-        """The mask of elements that are entry to a compound, or not in one."""
-        if not self.compound_container:
-            return [True] * len(self)
-
-        mask = [False] * len(self)
-        for element_idx, compound_name in self._enumerate_top_level():
-            mask[element_idx] = True
-
-        return mask
-
-    def get_collapsed_names(self):
-        return [
-            compound_name or self.element_names[element_idx]
-            for element_idx, compound_name in self._enumerate_top_level()
-        ]
 
     def append_element(self, element, name):
 
@@ -2979,10 +2736,6 @@ class Line:
 
         for name in aper_to_remove:
             newline.element_names.remove(name)
-            compound_name = self.compound_container.compound_name_for_element(name)
-            if compound_name is not None:
-                newline.get_compound_by_name(compound_name).remove_element(name)
-
 
         return newline
 
@@ -3614,9 +3367,6 @@ class Line:
 
     def __getitem__(self, ii):
         if isinstance(ii, str):
-            # if ii in self._compound_relation:
-            #     component_names = self._compound_relation[ii]
-            #     return [self.element_dict[name] for name in component_names]
 
             try:
                 return self.element_dict.__getitem__(ii)
@@ -3801,11 +3551,6 @@ class Line:
         for i_ins, (s_insert, ee) in enumerate(
                     progress(elements_to_insert, desc="Inserting elements")):
             ele_name_ins = ele_name_insertions[i_ins]
-            cpd_name_ins = self.compound_container.compound_name_for_element(ele_name_ins)
-            if cpd_name_ins is not None:
-                cpd_ins = self.compound_container.compound_for_name(cpd_name_ins)
-            else:
-                cpd_ins = None
 
             if ele_name_ins not in self.element_names:
                 assert ele_name_ins == '_end_point'
@@ -3820,23 +3565,6 @@ class Line:
                 else:
                     self.element_names.insert(insert_at, nn)
 
-                if cpd_ins is None:
-                    pass # No compound
-                elif ele_name_ins in cpd_ins.core:
-                    cpd_ins.core.add(nn)
-                    self.compound_container._compound_name_for_element[nn] = cpd_name_ins
-                elif ele_name_ins in cpd_ins.entry:
-                    pass # Goes in front ot the compound but does not belong to it
-                elif ele_name_ins in cpd_ins.exit:
-                    assert len(cpd_ins.exit_transform) == 0
-                    cpd_ins.core.add(nn)
-                    self.compound_container._compound_name_for_element[nn] = cpd_name_ins
-                elif ele_name_ins in cpd_ins.exit_transform:
-                    cpd_ins.core.add(nn)
-                    self.compound_container._compound_name_for_element[nn] = cpd_name_ins
-                else:
-                    raise ValueError(f'Inconsistent insertion in compound {cpd_name_ins}')
-
                 if insert_at is not None:
                     insert_at += 1
 
@@ -3850,7 +3578,6 @@ class Line:
             out = Line.__new__(Line)
             out.__dict__.update(self.__dict__)
             out._element_names = self._element_names_before_slicing
-            out.compound_container = self._compound_container_before_slicing
             out.tracker = None
             self._line_before_slicing_cache = out
 
@@ -3865,50 +3592,6 @@ class Line:
             if hasattr(ee, 'get_equivalent_element'):
                 new_ee = ee.get_equivalent_element()
                 self.element_dict[nn] = new_ee
-
-    def _rename_drifts_in_compounds(self, name_compound):
-
-        self._frozen_check()
-        compound = self.compound_container.compound_for_name(name_compound)
-        assert isinstance(compound, xt.compounds.SlicedCompound)
-
-        elems = list(compound.elements)
-        # rename drifts
-        drift_names = []
-        for nnnn in elems:
-            if 'DriftSlice' in type(self.element_dict[nnnn]).__name__:
-                drift_names.append(nnnn)
-        drift_names = sorted(drift_names)
-
-        try:
-            drifts = []
-            indeces_in_line = []
-            indeces_in_elems = []
-            for dn in drift_names:
-                drifts.append(self.element_dict[dn])
-                indeces_in_line.append(self.element_names.index(dn))
-                indeces_in_elems.append(elems.index(dn))
-        except Exception: # Inconsistency in compound
-            return
-
-        # remove old names from dict
-        for dn in drift_names:
-            self.element_dict.pop(dn)
-        new_names = []
-        for ii, old_name in enumerate(drift_names):
-            new_names.append(old_name.split('..')[0] + f'..{ii}')
-        # add new names to dict
-        for ii, dn in enumerate(drifts):
-            self.element_dict[new_names[ii]] = dn
-        # replace old names in line element_names
-        for ii, dn in zip(indeces_in_line, new_names):
-            self.element_names[ii] = dn
-        # replace old names in compound elements
-        for ii, dn in zip(indeces_in_elems, new_names):
-            elems[ii] = dn
-
-        new_cmpnd = xt.compounds.SlicedCompound(elems)
-        self.compound_container.define_compound(name_compound, new_cmpnd)
 
 def frac(x):
     return x % 1

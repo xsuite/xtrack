@@ -341,58 +341,6 @@ class ElementBuilderWithExpr(ElementBuilder):
         return xtel
 
 
-class CompoundElementBuilder:
-    """A builder-like object for holding elements that should become a compound
-    element in the final lattice."""
-    def __init__(
-        self,
-        name: str,
-        core: List[ElementBuilder],
-        entry_transform: List[ElementBuilder],
-        exit_transform: List[ElementBuilder],
-        aperture: List[ElementBuilder],
-    ):
-        self.name = name
-        self.core = core
-        self.entry_transform = entry_transform
-        self.exit_transform = exit_transform
-        self.aperture = aperture
-
-    def add_to_line(self, line, buffer):
-        start_marker = ElementBuilder(
-            name=self.name + "_entry",
-            type=xtrack.Marker,
-        )
-
-        end_marker = ElementBuilder(
-            name=self.name + "_exit",
-            type=xtrack.Marker,
-        )
-
-        component_elements = (
-            [start_marker] +
-            self.aperture +
-            self.entry_transform + self.core + self.exit_transform +
-            [end_marker]
-        )
-
-        for el in component_elements:
-            el.add_to_line(line, buffer)
-
-        def _get_names(builder_elements):
-            return [elem.name for elem in builder_elements]
-
-        compound = Compound(
-            core=_get_names(self.core),
-            aperture=_get_names(self.aperture),
-            entry_transform=_get_names(self.entry_transform),
-            exit_transform=_get_names(self.exit_transform),
-            entry=start_marker.name,
-            exit_=end_marker.name,
-        )
-        line.compound_container.define_compound(self.name, compound)
-
-
 class Aperture:
     def __init__(self, mad_el, enable_errors, loader):
         self.mad_el = mad_el
@@ -525,12 +473,9 @@ class MadLoader:
         classes=xtrack,
         replace_in_expr=None,
         allow_thick=False,
-        use_compound_elements=True,
         name_prefix=None
     ):
 
-
-        use_compound_elements = False # FORCE!!!!
 
         if enable_errors is not None:
             if enable_field_errors is None:
@@ -575,7 +520,6 @@ class MadLoader:
         self.name_prefix = name_prefix
 
         self.allow_thick = allow_thick
-        self.use_compound_elements = use_compound_elements
         self.bv = 1
 
     def iter_elements(self, madeval=None):
@@ -674,7 +618,7 @@ class MadLoader:
 
     def add_elements(
         self,
-        elements: List[Union[ElementBuilder, CompoundElementBuilder]],
+        elements: List[Union[ElementBuilder]],
         line,
         buffer,
     ):
@@ -714,7 +658,7 @@ class MadLoader:
             length=mad_el.l * weight,
         )
 
-    def make_compound_elem(
+    def make_composite_element(
             self,
             xtrack_el,
             mad_el,
@@ -761,29 +705,7 @@ class MadLoader:
 
         elem_list = aperture_seq + xtrack_el
 
-        if not self.use_compound_elements:
-            return elem_list
-
-        is_singleton = len(elem_list) == 1
-        if is_singleton:
-
-            is_drift = issubclass(elem_list[0].type, self.classes.Drift)
-            if is_drift and mad_el.name.startswith('drift_'):
-                return elem_list
-
-            is_marker = issubclass(elem_list[0].type, self.classes.Marker)
-            if is_marker:
-                return elem_list
-
-        return [
-            CompoundElementBuilder(
-                name=mad_el.name,
-                core=xtrack_el,
-                entry_transform=[],
-                exit_transform=[],
-                aperture=aperture_seq,
-            ),
-        ]
+        return elem_list
 
     def convert_quadrupole(self, mad_el):
         if self.allow_thick:
@@ -798,7 +720,7 @@ class MadLoader:
 
     def _convert_quadrupole_thick(self, mad_el): # bv done
 
-        return self.make_compound_elem(
+        return self.make_composite_element(
             [
                 self.Builder(
                     mad_el.name,
@@ -879,10 +801,10 @@ class MadLoader:
 
         sequence = [bend_core]
 
-        return self.make_compound_elem(sequence, mad_el)
+        return self.make_composite_element(sequence, mad_el)
 
     def convert_sextupole(self, mad_el): # bv done
-        return self.make_compound_elem(
+        return self.make_composite_element(
             [
                 self.Builder(
                     mad_el.name,
@@ -896,7 +818,7 @@ class MadLoader:
         )
 
     def convert_octupole(self, mad_el): # bv done
-        return self.make_compound_elem(
+        return self.make_composite_element(
             [
                 self.Builder(
                     mad_el.name,
@@ -995,11 +917,11 @@ class MadLoader:
 
     def convert_marker(self, mad_elem):
         el = self.Builder(mad_elem.name, self.classes.Marker)
-        return self.make_compound_elem([el], mad_elem)
+        return self.make_composite_element([el], mad_elem)
 
     def convert_drift_like(self, mad_elem):
         el = self.Builder(mad_elem.name, self._drift, length=mad_elem.l)
-        return self.make_compound_elem([el], mad_elem)
+        return self.make_composite_element([el], mad_elem)
 
     convert_monitor = convert_drift_like
     convert_hmonitor = convert_drift_like
@@ -1022,7 +944,7 @@ class MadLoader:
             ks=self.bv * mad_elem.ks,
             ksi=self.bv * mad_elem.ksi,
         )
-        return self.make_compound_elem([el], mad_elem)
+        return self.make_composite_element([el], mad_elem)
 
     def convert_multipole(self, mad_elem): # bv done
         self._assert_element_is_thin(mad_elem)
@@ -1057,7 +979,7 @@ class MadLoader:
         else:
             el.hxl = mad_elem.knl[0]  # in madx angle=0 -> dipole
         el.length = mad_elem.lrad
-        return self.make_compound_elem([el], mad_elem)
+        return self.make_composite_element([el], mad_elem)
 
     def convert_kicker(self, mad_el): # bv done
         hkick = [-mad_el.hkick] if mad_el.hkick else []
@@ -1083,7 +1005,7 @@ class MadLoader:
         else:
             sequence = [thin_kicker]
 
-        return self.make_compound_elem(sequence, mad_el)
+        return self.make_composite_element(sequence, mad_el)
 
     convert_tkicker = convert_kicker
 
@@ -1115,7 +1037,7 @@ class MadLoader:
         else:
             sequence = [thin_hkicker]
 
-        return self.make_compound_elem(sequence, mad_el)
+        return self.make_composite_element(sequence, mad_el)
 
     def convert_vkicker(self, mad_el): # bv done
         if mad_el.vkick:
@@ -1145,7 +1067,7 @@ class MadLoader:
         else:
             sequence = [thin_vkicker]
 
-        return self.make_compound_elem(sequence, mad_el)
+        return self.make_composite_element(sequence, mad_el)
 
     def convert_dipedge(self, mad_elem):
         if self.bv == -1:
@@ -1159,7 +1081,7 @@ class MadLoader:
             hgap=mad_elem.hgap,
             fint=mad_elem.fint,
         )
-        return self.make_compound_elem([el], mad_elem)
+        return self.make_composite_element([el], mad_elem)
 
     def convert_rfcavity(self, ee): # bv done
         # TODO LRAD
@@ -1197,7 +1119,7 @@ class MadLoader:
         else:
             sequence = [el]
 
-        return self.make_compound_elem(sequence, ee)
+        return self.make_composite_element(sequence, ee)
 
     def convert_rfmultipole(self, ee):
         if self.bv == -1:
@@ -1219,7 +1141,7 @@ class MadLoader:
             pn=[v * 360 for v in ee.pnl],
             ps=[v * 360 for v in ee.psl],
         )
-        return self.make_compound_elem([el], ee)
+        return self.make_composite_element([el], ee)
 
     def convert_wire(self, ee):
         if self.bv == -1:
@@ -1237,7 +1159,7 @@ class MadLoader:
                 xma=ee.xma[0],
                 yma=ee.yma[0],
             )
-            return self.make_compound_elem([el], ee)
+            return self.make_composite_element([el], ee)
         else:
             # TODO: add multiple elements for multiwire configuration
             raise ValueError("Multiwire configuration not supported")
@@ -1271,7 +1193,7 @@ class MadLoader:
                 pn=[ee.lag * 360 + 90],  # TODO: Changed sign to match sixtrack
                 # To be checked!!!!
             )
-        return self.make_compound_elem([el], ee)
+        return self.make_composite_element([el], ee)
 
     def convert_beambeam(self, ee):
         if self.bv == -1:
@@ -1331,7 +1253,7 @@ class MadLoader:
                 d_px=0,
                 d_py=0,
             )
-        return self.make_compound_elem([el], ee)
+        return self.make_composite_element([el], ee)
 
     def convert_placeholder(self, ee):
         # assert not is_expr(ee.slot_id) can be done only after release MADX 5.09
@@ -1360,7 +1282,7 @@ class MadLoader:
             el = self.Builder(ee.name, self.classes.SCInterpolatedProfile)
         else:
             el = self.Builder(ee.name, self._drift, length=ee.l)
-        return self.make_compound_elem([el], ee)
+        return self.make_composite_element([el], ee)
 
     def convert_matrix(self, ee):
         if self.bv == -1:
@@ -1380,7 +1302,7 @@ class MadLoader:
         el = self.Builder(
             ee.name, self.classes.FirstOrderTaylorMap, length=length, m0=m0, m1=m1
         )
-        return self.make_compound_elem([el], ee)
+        return self.make_composite_element([el], ee)
 
     def convert_srotation(self, ee):
         if self.bv == -1:
@@ -1389,7 +1311,7 @@ class MadLoader:
         el = self.Builder(
             ee.name, self.classes.SRotation, angle=angle
         )
-        return self.make_compound_elem([el], ee)
+        return self.make_composite_element([el], ee)
 
     def convert_xrotation(self, ee):
         if self.bv == -1:
@@ -1398,7 +1320,7 @@ class MadLoader:
         el = self.Builder(
             ee.name, self.classes.XRotation, angle=angle
         )
-        return self.make_compound_elem([el], ee)
+        return self.make_composite_element([el], ee)
 
     def convert_yrotation(self, ee):
         if self.bv == -1:
@@ -1407,7 +1329,7 @@ class MadLoader:
         el = self.Builder(
             ee.name, self.classes.YRotation, angle=angle
         )
-        return self.make_compound_elem([el], ee)
+        return self.make_composite_element([el], ee)
 
     def convert_translation(self, ee):
         if self.bv == -1:
@@ -1420,7 +1342,7 @@ class MadLoader:
         ee.dx = 0
         ee.dy = 0
         ee.ds = 0
-        return self.make_compound_elem([el_transverse], ee)
+        return self.make_composite_element([el_transverse], ee)
 
     def convert_nllens(self, mad_elem):
         if self.bv == -1:
@@ -1431,4 +1353,4 @@ class MadLoader:
             knll=mad_elem.knll,
             cnll=mad_elem.cnll,
         )
-        return self.make_compound_elem([el], mad_elem)
+        return self.make_composite_element([el], mad_elem)
