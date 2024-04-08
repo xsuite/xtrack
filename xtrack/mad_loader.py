@@ -33,7 +33,6 @@ import numpy as np
 
 import xobjects
 import xtrack
-from .compounds import Compound
 from .general import _print
 from .progress_indicator import progress
 
@@ -529,6 +528,9 @@ class MadLoader:
         use_compound_elements=True,
         name_prefix=None
     ):
+
+
+        use_compound_elements = False # FORCE!!!!
 
         if enable_errors is not None:
             if enable_field_errors is None:
