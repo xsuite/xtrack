@@ -1673,8 +1673,8 @@ class LineSegmentMap(BeamElement):
         'qx': xo.Float64,
         'qy': xo.Float64,
 
-        'dqx': xo.Float64,
-        'dqy': xo.Float64,
+        'coeffs_dqx': xo.Float64[:],
+        'coeffs_dqy': xo.Float64[:],
         'det_xx': xo.Float64,
         'det_xy': xo.Float64,
         'det_yy': xo.Float64,
@@ -1895,8 +1895,15 @@ class LineSegmentMap(BeamElement):
 
         nargs['qx'] = qx
         nargs['qy'] = qy
-        nargs['dqx'] = dqx
-        nargs['dqy'] = dqy
+
+        dqx = np.atleast_1d(dqx)
+        dqy = np.atleast_1d(dqy)
+
+        coeffs_dqx = [dqx[i] / float(factorial(i + 1)) for i in range(len(dqx))]
+        coeffs_dqy = [dqy[i] / float(factorial(i + 1)) for i in range(len(dqy))]
+
+        nargs['coeffs_dqx'] = coeffs_dqx
+        nargs['coeffs_dqy'] = coeffs_dqy
         nargs['det_xx'] = det_xx
         nargs['det_xy'] = det_xy
         nargs['det_yy'] = det_yy
