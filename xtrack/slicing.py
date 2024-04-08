@@ -277,7 +277,7 @@ class Slicer:
             or (hasattr(element, 'length') and element.length == 0)):
             return None
 
-        if isinstance(element, xt.Drift):
+        if isinstance(element, xt.Drift) or type(element).__name__.startswith('DriftSlice'):
             _edge_markers = False
 
         chosen_slicing = self._scheme_for_element(element, name)
