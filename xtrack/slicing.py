@@ -248,6 +248,9 @@ class Slicer:
             # compound = self._line.get_compound_by_name(name)
             compound = None # Force!!!!!
 
+            if name.startswith('br.stscrap22'):
+                import pdb; pdb.set_trace()
+
             if compound is not None:
                 subsequence = self._slice_compound(name, compound)
             else:
@@ -318,7 +321,8 @@ class Slicer:
     def _slice_element(self, name, element, _edge_markers=True) -> Optional[List[str]]:
         """Slice element and return slice names, or None if no slicing."""
         # Don't slice already thin elements and drifts
-        if not element.isthick:
+        if (not element.isthick
+            or (hasattr(element, 'length') and element.length == 0)):
             return None
 
         if isinstance(element, xt.Drift):
