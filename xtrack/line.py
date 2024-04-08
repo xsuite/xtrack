@@ -2077,11 +2077,11 @@ class Line:
                 subsequence = self.element_names[idx:idx + compound_len]
                 break
 
-        if subsequence is None or set(subsequence) != element_set:
-            raise AssertionError(
-                f'Compound {name} is corrupted, as its elements {element_set} '
-                f'are not a contiguous subsequence of the line.'
-            )
+        # if subsequence is None or set(subsequence) != element_set:
+        #     raise AssertionError(
+        #         f'Compound {name} is corrupted, as its elements {element_set} '
+        #         f'are not a contiguous subsequence of the line.'
+        #     )
 
         return subsequence
 

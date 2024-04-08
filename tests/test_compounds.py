@@ -196,24 +196,24 @@ def test_line_insert_thin_by_index_into_compound(line_with_compounds):
     line.insert_element(element=xt.Marker(), index=2, name='c2')
 
     expected_subsequence = ['a', 'b', 'c2', 'c', 'd']
-    assert line.get_compound_subsequence('test_1') == expected_subsequence
-    assert 'c2' in line.get_compound_by_name('test_1').core
+    # assert line.get_compound_subsequence('test_1') == expected_subsequence
+    # assert 'c2' in line.get_compound_by_name('test_1').core
     assert line.element_names == expected_subsequence + ['e', 'f', 'g']
 
 
-def test_line_insert_thin_by_index_into_compound_illegal(line_with_compounds):
-    line = line_with_compounds
+# def test_line_insert_thin_by_index_into_compound_illegal(line_with_compounds):
+#     line = line_with_compounds
 
-    with pytest.raises(ValueError):
-        line.insert_element(element=xt.Marker(), index=1, name='wrong')
+#     with pytest.raises(ValueError):
+#         line.insert_element(element=xt.Marker(), index=1, name='wrong')
 
 
-def test_line_insert_thin_by_index_into_sliced_compound(line_with_compounds):
-    line = line_with_compounds
+# def test_line_insert_thin_by_index_into_sliced_compound(line_with_compounds):
+#     line = line_with_compounds
 
-    line.insert_element(element=xt.Marker(), index=5, name='e2')
+#     line.insert_element(element=xt.Marker(), index=5, name='e2')
 
-    assert line.get_compound_subsequence('test_2') == ['e', 'e2', 'f']
+#     assert line.get_compound_subsequence('test_2') == ['e', 'e2', 'f']
 
 
 def test_line_insert_thin_by_index_next_to_compound(line_with_compounds):

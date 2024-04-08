@@ -297,7 +297,7 @@ def test_insert():
     assert line.get_s_position('inserted_drift') == 0.11
     assert len(line.elements) == 7
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
-                ['e0_u', 'inserted_drift', 'e0_d', 'e1', 'e2', 'e3', 'e4']))])
+                ['e0..0', 'inserted_drift', 'e0..2', 'e1', 'e2', 'e3', 'e4']))])
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
 
     line = line0.copy()
@@ -305,7 +305,7 @@ def test_insert():
     assert line.get_s_position('inserted_drift') == 0.95
     assert len(line.elements) == 6
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
-                ['e0_u', 'inserted_drift', 'e1_d', 'e2', 'e3', 'e4']))])
+                ['e0..0', 'inserted_drift', 'e1..1', 'e2', 'e3', 'e4']))])
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
 
     line = line0.copy()
@@ -313,7 +313,7 @@ def test_insert():
     assert line.get_s_position('inserted_drift') == 1.
     assert len(line.elements) == 6
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
-                ['e0', 'inserted_drift', 'e1_d', 'e2', 'e3', 'e4']))])
+                ['e0', 'inserted_drift', 'e1..1', 'e2', 'e3', 'e4']))])
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
 
     line = line0.copy()
@@ -321,7 +321,7 @@ def test_insert():
     assert line.get_s_position('inserted_drift') == 0.8
     assert len(line.elements) == 6
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
-                ['e0_u', 'inserted_drift', 'e1', 'e2', 'e3', 'e4']))])
+                ['e0..0', 'inserted_drift', 'e1', 'e2', 'e3', 'e4']))])
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
 
     line = line0.copy()
@@ -329,11 +329,11 @@ def test_insert():
     assert line.get_s_position('aper') == 2.1
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
-                ['e0', 'e1', 'e2_u', 'aper', 'e2_d', 'e3', 'e4']))])
+                ['e0', 'e1', 'e2..0', 'aper', 'e2..1', 'e3', 'e4']))])
     line.insert_element(element=xt.Drift(length=0.8), at_s=1.9, name="newdrift")
     assert line.get_s_position('newdrift') == 1.9
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
-                ['e0', 'e1_u', 'newdrift', 'e2_d_d', 'e3', 'e4']))])
+                ['e0', 'e1..0', 'newdrift', 'e2..2', 'e3', 'e4']))])
 
     # Check preservation of markers
     elements = []
@@ -368,7 +368,7 @@ def test_insert():
     assert line.get_s_position('inserted_drift') == 0.95
     assert len(line.elements) == 10
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
-                ['d0_u', 'inserted_drift', 'd1_d', 'm1', 'd2', 'm2', 'd3',
+                ['d0..0', 'inserted_drift', 'd1..1', 'm1', 'd2', 'm2', 'd3',
                 'm3', 'd4', 'm4']))])
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
 
