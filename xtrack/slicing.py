@@ -214,7 +214,8 @@ class Slicer:
             A list of slicing strategies to apply to the line.
         """
         self._line = line
-        self._slicing_strategies = slicing_strategies
+        self._slicing_strategies = ([Strategy(None, element_type=xt.Drift)] +
+                                    slicing_strategies)
         self._has_expressions = line.vars is not None
 
         # If all strategies are exact matches (no regex), instead of performing
@@ -247,9 +248,6 @@ class Slicer:
         for ii, name in enumerate(progress(collapsed_names, desc='Slicing line')):
             # compound = self._line.get_compound_by_name(name)
             compound = None # Force!!!!!
-
-            if name.startswith('br.stscrap22'):
-                import pdb; pdb.set_trace()
 
             if compound is not None:
                 subsequence = self._slice_compound(name, compound)
