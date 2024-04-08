@@ -166,16 +166,10 @@ def rfmultipole_to_madx_str(name, line):
     return ', '.join(tokens)
 
 def dipoleedge_to_madx_str(name, line):
-    if line.get_compound_for_element(name) is None:
-        raise NotImplementedError("isolated dipole edges are not yet supported")
-    return None
+    raise NotImplementedError("isolated dipole edges are not yet supported")
 
 def bend_to_madx_str(name, line):
     bend = _get_eref(line, name)
-
-    if isinstance(line.get_compound_by_name(line.get_compound_for_element(name)),
-                                            xt.slicing.SlicedCompound):
-        raise NotImplementedError("thick slicing of bends is not yet supported")
 
     tokens = []
     tokens.append('sbend')
@@ -242,8 +236,7 @@ def solenoid_to_madx_str(name, line):
     return ', '.join(tokens)
 
 def srotation_to_madx_str(name, line):
-    if line.get_compound_for_element(name) is None:
-        raise NotImplementedError("isolated rotations are not yet supported")
+    raise NotImplementedError("isolated rotations are not yet supported")
     return 'marker'
     # srot = _get_eref(line, name)
     # tokens = []

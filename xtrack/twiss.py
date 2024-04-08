@@ -71,7 +71,6 @@ def twiss_line(line, particle_ref=None, method=None,
         use_full_inverse=None,
         strengths=None,
         hide_thin_groups=None,
-        group_compound_elements=None,
         search_for_t_rev=None,
         num_turns_search_t_rev=None,
         only_twiss_init=None,
@@ -140,8 +139,6 @@ def twiss_line(line, particle_ref=None, method=None,
     hide_thin_groups : bool, optional
         If True, values associate to elements in thin groups are replacede with
         NaNs.
-    group_compound_elements : bool, optional
-        If True, elements in compounds are grouped together.
     search_for_t_rev : bool, optional
         If True, the revolution period is searched for, otherwise the revolution
         period computed from the circumference is assumed.
@@ -301,7 +298,6 @@ def twiss_line(line, particle_ref=None, method=None,
     reverse=(reverse or False)
     strengths=(strengths or False)
     hide_thin_groups=(hide_thin_groups or False)
-    group_compound_elements=(group_compound_elements or False)
     search_for_t_rev=(search_for_t_rev or False)
     num_turns_search_t_rev=(num_turns_search_t_rev or None)
     only_twiss_init=(only_twiss_init or False)
@@ -572,7 +568,6 @@ def twiss_line(line, particle_ref=None, method=None,
         zeta_disp=zeta_disp,
         use_full_inverse=use_full_inverse,
         hide_thin_groups=hide_thin_groups,
-        group_compound_elements=group_compound_elements,
         only_markers=only_markers,
         only_orbit=only_orbit,
         compute_lattice_functions=compute_lattice_functions,
@@ -617,7 +612,6 @@ def twiss_line(line, particle_ref=None, method=None,
             end=end,
             num_turns=num_turns,
             hide_thin_groups=hide_thin_groups,
-            group_compound_elements=group_compound_elements,
             only_markers=only_markers,
             periodic=periodic)
         twiss_res._data.update(cols_chrom)
@@ -753,7 +747,6 @@ def _twiss_open(line, init,
                       delta_disp, zeta_disp,
                       use_full_inverse,
                       hide_thin_groups=False,
-                      group_compound_elements=False,
                       only_markers=False,
                       only_orbit=False,
                       compute_lattice_functions=True,
@@ -984,22 +977,6 @@ def _twiss_open(line, init,
 
     twiss_res_element_by_element['name'] = np.array(twiss_res_element_by_element['name'])
 
-    if group_compound_elements:
-        assert not only_markers, 'group_compound_elements not implemented with only_markers'
-        compound_mask = np.zeros_like(twiss_res_element_by_element['s'], dtype=bool)
-        n_mask = len(compound_mask)
-        compound_mask[-1] = True
-        compound_mask[:-1] = (
-            line.tracker._tracker_data_base.compound_mask[i_start:i_start+n_mask-1])
-        for kk in list(twiss_res_element_by_element.keys()):
-            twiss_res_element_by_element[kk] = (
-                twiss_res_element_by_element[kk][compound_mask])
-
-        ## To use the name of the compounds (not done for now)
-        # twiss_res_element_by_element['name'][:-1] = (
-        #     line.tracker._tracker_data_base.element_compound_names[
-        #         i_start:i_stop+1][compound_mask[:-1]])
-
     twiss_res = TwissTable(data=twiss_res_element_by_element)
     twiss_res._data.update(extra_data)
 
@@ -1206,7 +1183,6 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                     on_momentum_twiss_res=None,
                     start=None, end=None, num_turns=None,
                     hide_thin_groups=False,
-                    group_compound_elements=False,
                     only_markers=False,
                     periodic=False):
 
@@ -1290,7 +1266,6 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                 zeta_disp=zeta_disp,
                 use_full_inverse=use_full_inverse,
                 hide_thin_groups=hide_thin_groups,
-                group_compound_elements=group_compound_elements,
                 only_markers=only_markers,
                 _continue_if_lost=False,
                 _keep_tracking_data=False,
