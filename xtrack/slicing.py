@@ -243,9 +243,11 @@ class Slicer:
 
         thin_names = []
 
-        collapsed_names = self._line.get_collapsed_names()
+        collapsed_names = self._line.element_names.copy()
         for ii, name in enumerate(progress(collapsed_names, desc='Slicing line')):
-            compound = self._line.get_compound_by_name(name)
+            # compound = self._line.get_compound_by_name(name)
+            compound = None # Force!!!!!
+
             if compound is not None:
                 subsequence = self._slice_compound(name, compound)
             else:
@@ -416,10 +418,15 @@ class Slicer:
             slices_to_append.append(nn)
 
         if not hasattr(element, 'length'):
+            # Slicing a thick slice of a another element
             assert hasattr(element, '_parent')
             assert element.isthick
             elem_length = element._parent.length * element.weight
             for weight, is_drift in chosen_slicing.iter_weights(elem_length):
+
+                if not is_drift:
+                    continue
+
                 nn = f'{name}..{element_idx}'
                 ee = type(element)(_parent_name=element._parent_name,
                         _parent=element._parent, _buffer=element._buffer,
