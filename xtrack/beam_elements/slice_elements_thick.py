@@ -6,6 +6,8 @@ from .elements import (SynchrotronRadiationRecord, Bend, Quadrupole, Sextupole,
                        Octupole, Drift)
 from ..random import RandomUniform, RandomExponential
 
+from .slice_elements import _slice_copy
+
 _common_xofields = {
     'weight': xo.Float64,
 }
@@ -29,6 +31,8 @@ class ThickSliceBend(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_bend.h'),
         _pkg_root.joinpath('beam_elements/elements_src/thick_slice_bend.h')]
+
+    copy = _slice_copy
 
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
@@ -61,6 +65,8 @@ class ThickSliceQuadrupole(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/track_srotation.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_quadrupole.h'),
         _pkg_root.joinpath('beam_elements/elements_src/thick_slice_quadrupole.h')]
+
+    copy = _slice_copy
 
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
@@ -97,6 +103,8 @@ class ThickSliceSextupole(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/track_multipole.h'),
         _pkg_root.joinpath('beam_elements/elements_src/thick_slice_sextupole.h')]
 
+    copy = _slice_copy
+
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
         dct['_parent_name'] = self._parent_name
@@ -132,6 +140,8 @@ class ThickSliceOctupole(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/track_multipole.h'),
         _pkg_root.joinpath('beam_elements/elements_src/thick_slice_octupole.h')]
 
+    copy = _slice_copy
+
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
         dct['_parent_name'] = self._parent_name
@@ -166,6 +176,8 @@ class DriftSliceBend(BeamElement):
         dct['_parent_name'] = self._parent_name
         return dct
 
+    copy = _slice_copy
+
     @classmethod
     def from_dict(cls, dct, **kwargs):
         obj = super().from_dict(dct, **kwargs)
@@ -193,6 +205,8 @@ class DriftSliceQuadrupole(BeamElement):
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/drift_slice_quadrupole.h')]
+
+    copy = _slice_copy
 
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
@@ -228,6 +242,8 @@ class DriftSliceSextupole(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/drift_slice_sextupole.h')]
 
+    copy = _slice_copy
+
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
         dct['_parent_name'] = self._parent_name
@@ -262,6 +278,8 @@ class DriftSliceOctupole(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/drift_slice_octupole.h')]
 
+    copy = _slice_copy
+
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
         dct['_parent_name'] = self._parent_name
@@ -294,6 +312,8 @@ class DriftSlice(BeamElement):
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/drift_slice.h')]
+
+    copy = _slice_copy
 
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)

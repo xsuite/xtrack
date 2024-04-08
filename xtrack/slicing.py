@@ -415,7 +415,20 @@ class Slicer:
             self._line.element_dict[nn] = ee
             slices_to_append.append(nn)
 
-        if chosen_slicing.mode == 'thin':
+        if not hasattr(element, 'length'):
+            assert hasattr(element, '_parent')
+            assert element.isthick
+            elem_length = element._parent.length * element.weight
+            for weight, is_drift in chosen_slicing.iter_weights(elem_length):
+                nn = f'{name}..{element_idx}'
+                ee = type(element)(_parent_name=element._parent_name,
+                        _parent=element._parent, _buffer=element._buffer,
+                        weight=weight * element.weight)
+                ee._parent_name = element._parent_name
+                self._line.element_dict[nn] = ee
+                slices_to_append.append(nn)
+                element_idx += 1
+        elif chosen_slicing.mode == 'thin':
             for weight, is_drift in chosen_slicing.iter_weights(element.length):
                 if is_drift:
                     nn = f'drift_{name}..{drift_idx}'
@@ -436,26 +449,13 @@ class Slicer:
                         self._line.element_dict[nn] = ee
                         slices_to_append.append(nn)
                         element_idx += 1
-        elif chosen_slicing.mode == 'thick' and hasattr(element, 'length'):
+        elif hasattr(element, 'length'):
             for weight, is_drift in chosen_slicing.iter_weights(element.length):
                 nn = f'{name}..{element_idx}'
                 ee = element._thick_slice_class(
                         _parent=element, _buffer=element._buffer,
                         weight=weight)
                 ee._parent_name = name
-                self._line.element_dict[nn] = ee
-                slices_to_append.append(nn)
-                element_idx += 1
-        elif chosen_slicing.mode == 'thick' and not hasattr(element, 'length'):
-            assert hasattr(element, '_parent')
-            assert element.isthick
-            elem_length = element._parent.length * element.weight
-            for weight, is_drift in chosen_slicing.iter_weights(elem_length):
-                nn = f'{name}..{element_idx}'
-                ee = type(element)(_parent_name=element._parent_name,
-                        _parent=element._parent, _buffer=element._buffer,
-                        weight=weight * element.weight)
-                ee._parent_name = element._parent_name
                 self._line.element_dict[nn] = ee
                 slices_to_append.append(nn)
                 element_idx += 1
@@ -484,5 +484,8 @@ class Slicer:
 
     def _order_set_by_line(self, set_to_order: set):
         """Order a set of element names by their order in the line."""
-        assert isinstance(set_to_order, set)
-        return sorted(set_to_order, key=self._line.element_names.index)
+        assert isinstance(set_to_order, (set, frozenset))
+        try:
+            return sorted(set_to_order, key=self._line.element_names.index)
+        except:
+            return set_to_order

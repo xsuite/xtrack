@@ -19,6 +19,13 @@ _common_c_sources = [
     _pkg_root.joinpath('beam_elements/elements_src/track_multipole.h')
 ]
 
+def _slice_copy(self, **kwargs):
+    out = BeamElement.copy(self, **kwargs)
+    out._parent = None
+    out._parent_name = self._parent_name
+    return out
+
+
 _thin_slice_quad_xofields = {
     '_parent': xo.Ref(Quadrupole)}
 _thin_slice_quad_xofields.update(_common_xofields)
@@ -82,6 +89,8 @@ class ThinSliceSextupole(BeamElement):
     _extra_c_sources = _common_c_sources + [
         _pkg_root.joinpath('beam_elements/elements_src/thin_slice_sextupole.h')]
 
+    copy = _slice_copy
+
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
         dct['_parent_name'] = self._parent_name
@@ -127,6 +136,8 @@ class ThinSliceOctupole(BeamElement):
 
     _extra_c_sources = _common_c_sources + [
         _pkg_root.joinpath('beam_elements/elements_src/thin_slice_octupole.h')]
+
+    copy = _slice_copy
 
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
@@ -174,6 +185,8 @@ class ThinSliceBend(BeamElement):
     _extra_c_sources = _common_c_sources + [
         _pkg_root.joinpath('beam_elements/elements_src/thin_slice_bend.h')]
 
+    copy = _slice_copy
+
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
         dct['_parent_name'] = self._parent_name
@@ -219,6 +232,8 @@ class ThinSliceBendEntry(BeamElement):
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/thin_slice_bend_entry.h')]
 
+    copy = _slice_copy
+
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
         dct['_parent_name'] = self._parent_name
@@ -245,6 +260,8 @@ class ThinSliceBendExit(BeamElement):
     _extra_c_sources = [
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/thin_slice_bend_exit.h')]
+
+    copy = _slice_copy
 
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)

@@ -1963,8 +1963,8 @@ class Line:
             self.compound_container.define_compound(cmpnd_name, new_cmpnd)
             affected_compounds.append(cmpnd_name)
 
-        for nn_cmpnd in affected_compounds:
-            self._rename_drifts_in_compounds(nn_cmpnd)
+        # for nn_cmpnd in affected_compounds:
+        #     self._rename_drifts_in_compounds(nn_cmpnd)
 
 
     def insert_element(self, name, element=None, at=None, index=None, at_s=None,
