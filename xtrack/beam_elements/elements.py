@@ -1833,10 +1833,14 @@ class LineSegmentMap(BeamElement):
         lag_rf : list of float
             List of lag of the RF kicks in the segment. Only used if
             ``longitudinal_mode`` is ``'nonlinear'`` or ``'linear_fixed_rf'``.
-        dqx : float
-            Horizontal chromaticity of the segment.
-        dqy : float
-            Vertical chromaticity of the segment.
+        dqx : float or list of float
+            Horizontal chromaticity of the segment. It can be a single value for
+            the linear chromaticity or an array of chromaticities up to any
+            order
+        dqy : float or list of float
+            Vertical chromaticity of the segment. It can be a single value for
+            the linear chromaticity or an array of chromaticities up to any
+            order
         det_xx : float
             Anharmonicity xx coefficient (i.e. dqx / dJx, where Jx is the horizontal
             action). Optional, default is ``0``.
