@@ -3758,7 +3758,7 @@ def _is_thick(element, line):
 
 def _is_collective(element, line):
     if isinstance(element, xt.Replica):
-        return is_collective(line[element._parent_name], None)
+        return _is_collective(line[element._parent_name], None)
     iscoll = not hasattr(element, 'iscollective') or element.iscollective
     return iscoll
 
