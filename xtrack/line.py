@@ -1857,12 +1857,12 @@ class Line:
                     start, name = next(all_s_iter)
                     continue
 
-                if np.isclose(current_s, start, atol=tol):
+                if np.isclose(current_s, start, atol=tol, rtol=0):
                     current_s = next(current_s_iter)
                     continue
 
                 end = start + _length(element, self)
-                if np.isclose(current_s, end, atol=tol):
+                if np.isclose(current_s, end, atol=tol, rtol=0):
                     current_s = next(current_s_iter)
                     continue
 
@@ -1975,14 +1975,16 @@ class Line:
         self.cut_at_s([s_start_ele, s_end_ele])
 
         s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
-        s_vect_downstream = np.array(self.get_s_position(mode='downstream'))
-
-        i_first_drift_to_cut = np.where(s_vect_downstream > s_start_ele)[0][0]
-        i_last_drift_to_cut = np.where(s_vect_upstream < s_end_ele)[0][-1]
         if _is_thick(element) and _length(element, self) > 0:
+            s_vect_downstream = np.array(self.get_s_position(mode='downstream'))
+            i_first_drift_to_cut = np.where(s_vect_downstream > s_start_ele)[0][0]
+            i_last_drift_to_cut = np.where(s_vect_upstream < s_end_ele)[0][-1]
             assert i_first_drift_to_cut <= i_last_drift_to_cut
-
-        self.element_names[i_first_drift_to_cut:i_last_drift_to_cut + 1] = [name]
+            self.element_names[i_first_drift_to_cut:i_last_drift_to_cut + 1] = [name]
+        else:
+            i_closest = np.argmin(np.abs(s_vect_upstream - at_s))
+            assert np.abs(s_vect_upstream[i_closest] - at_s) < s_tol
+            self.element_names.insert(i_closest, name)
 
         return self
 

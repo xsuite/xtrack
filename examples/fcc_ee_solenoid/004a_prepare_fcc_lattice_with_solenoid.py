@@ -163,7 +163,6 @@ line.element_refs['qc2l1.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k
 line.element_refs['qc2l2.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k2.l1']
 line.element_refs['qc1l2.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k3.l1']
 
-
 Strategy = xt.Strategy
 Teapot = xt.Teapot
 slicing_strategies = [
@@ -191,7 +190,6 @@ slicing_strategies = [
 ]
 line.discard_tracker()
 line.slice_thick_elements(slicing_strategies=slicing_strategies)
-
 # Add dipole correctors
 line.insert_element(name='mcb1.r1', element=xt.Multipole(knl=[0]),
                     at='qc1r1.1_exit')
