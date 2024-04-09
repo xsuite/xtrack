@@ -1925,9 +1925,9 @@ class LineSegmentMap(BeamElement):
         else:
             dnqy = [qy]
             if dqy != 0:
-                dnqx.append(dqy)
+                dnqy.append(dqy)
             if ddqy != 0:
-                dnqx.append(ddqy)
+                dnqy.append(ddqy)
 
         coeffs_dqx = [dnqx[i] / float(factorial(i)) for i in range(len(dnqx))]
         coeffs_dqy = [dnqy[i] / float(factorial(i)) for i in range(len(dnqy))]
