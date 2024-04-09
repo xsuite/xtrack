@@ -4206,6 +4206,9 @@ class LineAttrItem:
         setter_names = []
         for ii, nn in enumerate(all_names):
             ee = line.element_dict[nn]
+            if isinstance(ee, xt.Replica):
+                nn = ee._parent_name
+                ee = line[ee._parent_name]
             if isinstance(name, (list, tuple)):
                 inner_obj = ee
                 inner_name = name[-1]
