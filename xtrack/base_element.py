@@ -551,6 +551,15 @@ class Replica:
     def __repr__(self):
         return f'Replica(parent_name="{self._parent_name}")'
 
+    def to_dict(self):
+        return {
+            '__class__': 'Replica',
+            '_parent_name': self._parent_name}
+
+    @classmethod
+    def from_dict(cls, dct):
+        return cls(_parent_name=dct['_parent_name'])
+
 
 class PerParticlePyMethod:
 

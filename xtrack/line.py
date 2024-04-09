@@ -3743,7 +3743,7 @@ def mk_class_namespace(extra_classes):
         all_classes = element_classes + extra_classes
         log.warning("Xfields not installed correctly")
 
-    all_classes = all_classes + (EnergyProgram,)
+    all_classes = all_classes + (EnergyProgram, xt.Replica)
 
     out = AttrDict()
     for cl in all_classes:
