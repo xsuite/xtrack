@@ -66,7 +66,14 @@ class TrackerData:
         if _offset is not None:
             raise ValueError('`_offset` is not supported yet')
 
-        self._element_dict = element_dict
+        self._element_dict = element_dict.copy()
+
+        # Handle replicas
+        for nn in list(self._element_dict.keys()):
+            ee = self._element_dict[nn]
+            if isinstance(ee, xt.Replica):
+                self._element_dict[nn] = self._element_dict[ee._parent_name]
+
         self._element_names = tuple(element_names)
         self._elements = tuple([element_dict[ee] for ee in element_names])
         self._is_backtrackable = np.all([_has_backtrack(ee, element_dict)
