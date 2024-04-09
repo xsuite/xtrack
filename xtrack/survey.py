@@ -167,15 +167,6 @@ class SurveyTable(Table):
 
         return out
 
-def _get_s_increments(elements):
-    lengths = []
-    for ee in elements:
-        if xt.line._is_thick(ee):
-            lengths.append(ee.length)
-        else:
-            lengths.append(0.0)
-    return lengths
-
 # ==================================================
 
 # Main function

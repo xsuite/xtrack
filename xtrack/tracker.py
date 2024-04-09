@@ -18,7 +18,8 @@ from .base_element import _handle_per_particle_blocks
 from .beam_elements import Drift
 from .general import _pkg_root
 from .internal_record import new_io_buffer
-from .line import Line, _is_thick, freeze_longitudinal as _freeze_longitudinal
+from .line import Line, _is_thick, _is_collective
+from .line import freeze_longitudinal as _freeze_longitudinal
 from .pipeline import PipelineStatus
 from .progress_indicator import progress
 from .tracker_data import TrackerData
@@ -27,9 +28,7 @@ from .prebuild_kernels import get_suitable_kernel, XT_PREBUILT_KERNELS_LOCATION
 logger = logging.getLogger(__name__)
 
 
-def _check_is_collective(ele):
-    iscoll = not hasattr(ele, 'iscollective') or ele.iscollective
-    return iscoll
+
 
 
 class Tracker:
@@ -58,7 +57,7 @@ class Tracker:
         # Check if there are collective elements
         self.iscollective = False
         for ee in line.elements:
-            if _check_is_collective(ee):
+            if _is_collective(ee, line):
                 self.iscollective = True
                 break
 
@@ -160,7 +159,7 @@ class Tracker:
         i_part = 0
         idx = 0
         for nn, ee in zip(line.element_names, line.elements):
-            if not _check_is_collective(ee):
+            if not _is_collective(ee, line):
                 this_part.append_element(ee, nn)
                 _element_part.append(i_part)
                 _element_index_in_part.append(ii_in_part)
@@ -190,7 +189,7 @@ class Tracker:
             if isinstance(pp, Line):
                 noncollective_xelements += pp.elements
             else:
-                if _is_thick(pp):
+                if _is_thick(pp, line):
                     ldrift = pp.length
                 else:
                     ldrift = 0.

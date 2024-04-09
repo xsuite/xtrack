@@ -348,7 +348,7 @@ class Line:
         drifts = {}
         last_s = 0
         for node in nodes:
-            if _is_thick(node.what):
+            if _is_thick(node.what, None):
                 node_length = node.what.length
                 if refer == 'entry':
                     offset = 0
@@ -642,8 +642,15 @@ class Line:
         elements = list(self.elements)
         s_elements = np.array(list(self.get_s_elements()) + [self.get_length()])
         element_types = list(map(lambda e: e.__class__.__name__, elements)) + [""]
-        isthick = np.array(list(map(_is_thick, elements)) + [False])
-        iscollective = np.array(list(map(xt.tracker._check_is_collective, elements)) + [False])
+
+        isthick = []
+        iscollective = []
+        for ee in elements:
+            isthick.append(_is_thick(ee, self))
+            iscollective.append(_is_collective(ee, self))
+        isthick = np.array(isthick + [False])
+        iscollective = np.array(iscollective + [False])
+
         elements += [None]
 
         out = {
@@ -1752,7 +1759,7 @@ class Line:
 
         ll = 0
         for ee in self.elements:
-            if _is_thick(ee):
+            if _is_thick(ee, self):
                 this_length = _length(ee, self)
                 ll += this_length
 
@@ -1799,7 +1806,7 @@ class Line:
         for ee in self.elements:
             if mode == "upstream":
                 s.append(s_prev)
-            if _is_thick(ee):
+            if _is_thick(ee, line=self):
                 this_length = _length(ee, self)
                 s_prev += this_length
             if mode == "downstream":
@@ -1943,7 +1950,7 @@ class Line:
                     "Either `at` or `at_s` must be provided"
                 )
 
-        if _is_thick(element) and np.abs(_length(element, self)) > 0 and at_s is None:
+        if _is_thick(element, self) and np.abs(_length(element, self)) > 0 and at_s is None:
             raise NotImplementedError('Use `at_s` to insert thick elements')
 
         if element is None:
@@ -1960,14 +1967,14 @@ class Line:
         s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
 
         # Shortcut in case ot thin element and no cut needed
-        if not _is_thick(element) or np.abs(_length(element, self)) == 0:
+        if not _is_thick(element, self) or np.abs(_length(element, self)) == 0:
             i_closest = np.argmin(np.abs(s_vect_upstream - at_s))
             if np.abs(s_vect_upstream[i_closest] - at_s) < s_tol:
                 return self.insert_element(
                     index=i_closest, element=element, name=name)
 
         s_start_ele = at_s
-        if _is_thick(element) and np.abs(_length(element, self)) > 0:
+        if _is_thick(element, self) and np.abs(_length(element, self)) > 0:
             s_end_ele = at_s + _length(element, self)
         else:
             s_end_ele = s_start_ele
@@ -1975,7 +1982,7 @@ class Line:
         self.cut_at_s([s_start_ele, s_end_ele])
 
         s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
-        if _is_thick(element) and _length(element, self) > 0:
+        if _is_thick(element, self) and _length(element, self) > 0:
             s_vect_downstream = np.array(self.get_s_position(mode='downstream'))
             i_first_drift_to_cut = np.where(s_vect_downstream > s_start_ele)[0][0]
             i_last_drift_to_cut = np.where(s_vect_upstream < s_end_ele)[0][-1]
@@ -2047,7 +2054,7 @@ class Line:
                     _buffer = ee._buffer
                 else:
                     _buffer = None
-                if _is_thick(ee) and not _is_drift(ee):
+                if _is_thick(ee, self) and not _is_drift(ee):
                     new_elements[nn] = Drift(
                         length=_length(ee, self), _buffer=_buffer)
                 else:
@@ -3744,8 +3751,16 @@ def _is_aperture(element):
     return element.__class__.__name__.startswith('Limit')
 
 
-def _is_thick(element):
+def _is_thick(element, line):
+    if isinstance(element, xt.Replica):
+        return _is_thick(line[element._parent_name], None)
     return hasattr(element, "isthick") and element.isthick
+
+def _is_collective(element, line):
+    if isinstance(element, xt.Replica):
+        return is_collective(line[element._parent_name], None)
+    iscoll = not hasattr(element, 'iscollective') or element.iscollective
+    return iscoll
 
 
 def _allow_backtrack(element):
@@ -4466,6 +4481,8 @@ def _rot_s_from_attr(attr):
     return rot_s_rad
 
 def _length(element, line):
+    if isinstance(element, xt.Replica):
+        return _length(line[element._parent_name], None)
     if hasattr(element, 'length'):
         return element.length
     assert hasattr(element, '_parent_name')

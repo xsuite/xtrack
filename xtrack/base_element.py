@@ -544,6 +544,11 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         if shift_y is not None:
             self.shift_y = shift_y
 
+class Replica:
+    def __init__(self, _parent_name, _parent=None):
+        self._parent_name = _parent_name
+        self._parent = _parent
+
 
 class PerParticlePyMethod:
 
