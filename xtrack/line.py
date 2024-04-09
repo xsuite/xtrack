@@ -2038,16 +2038,20 @@ class Line:
             mask = [not(ee.__class__.__name__.startswith(exclude_types_starting_with))
                     for ee in self.elements]
 
-        new_elements = []
+        new_elements = self.element_dict.copy()
         assert len(mask) == len(self.elements)
-        for ff, ee in zip(mask, self.elements):
-            if ff:
-                new_elements.append(ee)
-            else:
-                if _is_thick(ee) and not _is_drift(ee):
-                    new_elements.append(Drift(length=_length(ee, self)))
+        for ff, nn in zip(mask, self.element_names):
+            if not ff:
+                ee = self.element_dict[nn]
+                if hasattr(ee, '_buffer'):
+                    _buffer = ee._buffer
                 else:
-                    new_elements.append(Drift(length=0))
+                    _buffer = None
+                if _is_thick(ee) and not _is_drift(ee):
+                    new_elements[nn] = Drift(
+                        length=_length(ee, self), _buffer=_buffer)
+                else:
+                    new_elements[nn] = Drift(length=0, _buffer=_buffer)
 
         new_line = self.__class__(elements=new_elements,
                               element_names=self.element_names)
