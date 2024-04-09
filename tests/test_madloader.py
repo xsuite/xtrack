@@ -710,12 +710,6 @@ def test_load_b2_with_bv_minus_one():
     l4names.remove('lhcb2$start')
     l4names.remove('lhcb2$end')
 
-    # They seem not to be in the same place?!?
-    l2names.remove('tclia.4r2_entry')
-    l2names.remove('tclia.4r2_exit')
-    l4names.remove('tclia.4r2_entry')
-    l4names.remove('tclia.4r2_exit')
-
     assert set(l2names) == set(l4names)
 
     assert np.allclose(
