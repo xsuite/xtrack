@@ -13,7 +13,7 @@ from .general import _print
 
 from xobjects.struct import Struct, MetaStruct
 
-from .line import Line, mk_class_namespace
+from .line import Line, mk_class_namespace, _has_backtrack
 
 
 class SerializationHeader(xo.Struct):
@@ -69,7 +69,8 @@ class TrackerData:
         self._element_dict = element_dict
         self._element_names = tuple(element_names)
         self._elements = tuple([element_dict[ee] for ee in element_names])
-        self._is_backtrackable = np.all([ee.has_backtrack for ee in self._elements])
+        self._is_backtrackable = np.all([_has_backtrack(ee, element_dict)
+                                         for ee in self._elements])
         self.extra_element_classes = extra_element_classes
 
         # If no buffer given, try to guess it from elements, if there is no

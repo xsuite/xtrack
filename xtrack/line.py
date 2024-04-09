@@ -2855,7 +2855,9 @@ class Line:
             if name == '_end_point':
                 continue
             ee = self.element_dict[name]
-            if _allow_backtrack(ee) and not name in needs_aperture:
+            if isinstance(ee, xt.Replica):
+                ee = self.element_dict[ee._parent_name]
+            if _allow_backtrack(ee, self) and not name in needs_aperture:
                 dont_need_aperture[name] = True
             if name.endswith('_entry') or name.endswith('_exit'):
                 dont_need_aperture[name] = True
@@ -3762,9 +3764,15 @@ def _is_collective(element, line):
     iscoll = not hasattr(element, 'iscollective') or element.iscollective
     return iscoll
 
-
-def _allow_backtrack(element):
+def _allow_backtrack(element, line):
+    if isinstance(element, xt.Replica):
+        return _allow_backtrack(line[element._parent_name], None)
     return hasattr(element, 'allow_backtrack') and element.allow_backtrack
+
+def _has_backtrack(element, line):
+    if isinstance(element, xt.Replica):
+        return _has_backtrack(line[element._parent_name], None)
+    return hasattr(element, '_has_backtrack') and element._has_backtrack
 
 
 def _next_name(prefix, names, name_format='{}{}'):
