@@ -329,45 +329,44 @@ def test_slicing_strategy_matching():
     expected_something_drift_lens = [1/5] * 5
     assert _weights_of_drifts('something') == expected_something_drift_lens
 
+    tt = line.get_table()
+
     # Test accessing compound elements
-    assert line.get_compound_subsequence('mb10') == [
+    assert np.all(tt.rows['mb10_entry':'mb10_exit'].name == [
         'mb10_entry', 'mb10..entry_map',
         'drift_mb10..0', 'mb10..0', 'drift_mb10..1', 'mb10..1',
         'drift_mb10..2', 'mb10..2', 'drift_mb10..3', 'mb10..3', 'drift_mb10..4',
         'mb10..4', 'drift_mb10..5',
         'mb10..exit_map', 'mb10_exit',
-    ]
-    assert line.get_compound_subsequence('mb11') == [
+    ])
+    assert np.all(tt.rows['mb11_entry':'mb11_exit'].name == [
         'mb11_entry',
         'drift_mb11..0', 'mb11..0', 'drift_mb11..1', 'mb11..1',
         'drift_mb11..2', 'mb11..2', 'drift_mb11..3', 'mb11..3', 'drift_mb11..4',
         'mb11..4', 'drift_mb11..5',
         'mb11_exit',
-    ]
-    assert line.get_compound_subsequence('mq10') == [
+    ])
+    assert np.all(tt.rows['mq10_entry':'mq10_exit'].name == [
         'mq10_entry', 'drift_mq10..0', 'mq10..0', 'drift_mq10..1', 'mq10_exit',
-    ]
-    assert line.get_compound_subsequence('something') == [
+    ])
+    assert np.all(tt.rows['something_entry':'something_exit'].name == [
         'something_entry', 'something..entry_map',
         'drift_something..0', 'something..0',
         'drift_something..1', 'something..1', 'drift_something..2',
         'something..2', 'drift_something..3', 'something..3',
         'drift_something..4',
         'something..exit_map', 'something_exit',
-    ]
-    assert line.get_compound_subsequence('mb20') == [
+    ])
+    assert np.all(tt.rows['mb20_entry':'mb20_exit'].name == [
         'mb20_entry', 'mb20..entry_map',
         'drift_mb20..0', 'mb20..0', 'drift_mb20..1', 'mb20..1',
         'drift_mb20..2',
         'mb20..exit_map', 'mb20_exit',
-    ]
-    assert line.get_compound_subsequence('mb21') == [
+    ])
+    assert np.all(tt.rows['mb21_entry':'mb21_exit'].name == [
         'mb21_entry', 'drift_mb21..0', 'mb21..0', 'drift_mb21..1', 'mb21..1',
         'drift_mb21..2', 'mb21..2', 'drift_mb21..3', 'mb21_exit',
-    ]
-    assert list(line.compound_container.compound_names) == [
-        'mb10', 'mb11', 'mq10', 'something', 'mb20', 'mb21',
-    ]
+    ])
 
 
 def test_slicing_thick_bend_simple():
