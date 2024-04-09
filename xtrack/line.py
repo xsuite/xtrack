@@ -641,15 +641,24 @@ class Line:
 
         elements = list(self.elements)
         s_elements = np.array(list(self.get_s_elements()) + [self.get_length()])
-        element_types = list(map(lambda e: e.__class__.__name__, elements)) + [""]
 
         isthick = []
         iscollective = []
+        element_types = []
+        isreplica = []
         for ee in elements:
+            if isinstance(ee, xt.Replica):
+                ee = self.element_dict[ee._parent_name]
+                isreplica.append(True)
+            else:
+                isreplica.append(False)
             isthick.append(_is_thick(ee, self))
             iscollective.append(_is_collective(ee, self))
+            element_types.append(ee.__class__.__name__)
         isthick = np.array(isthick + [False])
         iscollective = np.array(iscollective + [False])
+        isreplica = np.array(isreplica + [False])
+        element_types = np.array(element_types + [''])
 
         elements += [None]
 
@@ -659,6 +668,7 @@ class Line:
             'name': list(self.element_names) + ['_end_point'],
             'isthick': isthick,
             'iscollective': iscollective,
+            'isreplica': isreplica,
             'element': elements
         }
 
