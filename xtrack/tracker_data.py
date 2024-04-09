@@ -75,7 +75,7 @@ class TrackerData:
                 self._element_dict[nn] = self._element_dict[ee._parent_name]
 
         self._element_names = tuple(element_names)
-        self._elements = tuple([element_dict[ee] for ee in element_names])
+        self._elements = tuple([self._element_dict[ee] for ee in element_names])
         self._is_backtrackable = np.all([_has_backtrack(ee, element_dict)
                                          for ee in self._elements])
         self.extra_element_classes = extra_element_classes
