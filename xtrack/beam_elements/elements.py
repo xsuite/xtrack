@@ -1923,7 +1923,7 @@ class LineSegmentMap(BeamElement):
             assert qy == 0 and dqy == 0 and ddqy == 0
             qy = dnqy[0]
         else:
-            dnqy = [qx]
+            dnqy = [qy]
             if dqy != 0:
                 dnqx.append(dqy)
             if ddqy != 0:
