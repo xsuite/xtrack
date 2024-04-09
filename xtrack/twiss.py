@@ -2314,6 +2314,7 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
         markers.append(xt.Drift(length=0))
 
     if algorithm == 'insert':
+        auxline.cut_at_s(at_s)
         for nn, mm, ss in zip(names_inserted_markers, markers, at_s):
             auxline.insert_element(element=mm, name=nn, at_s=ss)
     elif algorithm == 'regen_all_drifts':
@@ -2354,7 +2355,6 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
         _buffer=tracker._buffer,
         io_buffer=tracker.io_buffer,
         line=auxline,
-        track_kernel=tracker.track_kernel,
         particles_monitor_class=None,
         local_particle_src=tracker.local_particle_src
     )
