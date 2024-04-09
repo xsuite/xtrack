@@ -15,8 +15,8 @@ dy = [0, 20]
 dpx = [0.7, -0.3]
 dpy = [0.4, -0.6]
 bets = 1e-3
-dqx = [2, 30, 400]
-dqy = [3, 40, 500]
+dnqx = [0.21, 2, 30, 400]
+dnqy = [0.32, 3, 40, 500]
 
 segm_1 = xt.LineSegmentMap(
         qx=0.4, qy=0.3, qs=0.0001,
@@ -34,9 +34,9 @@ segm_1 = xt.LineSegmentMap(
         y_ref=[y_co[0], y_co[1]],
         py_ref=[py_co[0], py_co[1]])
 segm_2 = xt.LineSegmentMap(
-        qx=0.21, qy=0.32, qs=0.0003,
+        qs=0.0003,
         bets=bets, length=0.2,
-        dqx=dqx, dqy=dqy,
+        dnqx=dnqx, dnqy=dnqy,
         betx=[betx[1], betx[0]],
         bety=[bety[1], bety[0]],
         alfx=[alfx[1], alfx[0]],
@@ -88,5 +88,5 @@ for tw in [tw4d, tw6d]:
 
     chroma_table = line.get_non_linear_chromaticity((-1e-2, 1e-2),
                                                     num_delta=25)
-    assert np.allclose(chroma_table.dnqx[1:], dqx, atol=1e-5, rtol=0)
-    assert np.allclose(chroma_table.dnqy[1:], dqy, atol=1e-5, rtol=0)
+    assert np.allclose(chroma_table.dnqx[1:], dnqx[1:], atol=1e-5, rtol=0)
+    assert np.allclose(chroma_table.dnqy[1:], dnqy[1:], atol=1e-5, rtol=0)

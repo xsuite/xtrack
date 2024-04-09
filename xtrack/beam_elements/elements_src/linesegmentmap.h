@@ -158,17 +158,17 @@ void transverse_motion(LocalParticle *part0, LineSegmentMapData el){
                 + bety_0
                     * LocalParticle_get_py(part)*LocalParticle_get_py(part));
             double phase = 2*PI*(qx + det_xx * J_x + det_xy * J_y);
-            for (int i_dqx=0; i_dqx<ndqx; i_dqx++){
+            for (int i_dqx=1; i_dqx<ndqx; i_dqx++){
                 phase += 2*PI*(LineSegmentMapData_get_coeffs_dqx(el, i_dqx) *
-                               pow(LocalParticle_get_delta(part), i_dqx+1));
+                               pow(LocalParticle_get_delta(part), i_dqx));
             }
 
             cos_x = cos(phase);
             sin_x = sin(phase);
             phase = 2*PI*(qy + det_yx * J_x + det_yy * J_y);
-            for (int i_dqy=0; i_dqy<ndqy; i_dqy++){
+            for (int i_dqy=1; i_dqy<ndqy; i_dqy++){
                 phase += 2*PI*(LineSegmentMapData_get_coeffs_dqy(el, i_dqy) *
-                               pow(LocalParticle_get_delta(part), i_dqy+1));
+                               pow(LocalParticle_get_delta(part), i_dqy));
             }
 
             cos_y = cos(phase);
