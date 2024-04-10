@@ -35,3 +35,8 @@ line = xt.Line.from_madx_sequence(
 
 assert line['elm'].name_associated_aperture == 'elm_aper'
 assert type(line['elm_aper']) == xt.LimitRectEllipse
+
+line.slice_thick_elements(
+    slicing_strategies=[
+        xt.Strategy(slicing=xt.Teapot(3), element_type=xt.Bend),
+    ])
