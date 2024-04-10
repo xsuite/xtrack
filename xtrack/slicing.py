@@ -177,25 +177,27 @@ class Strategy:
             return self.match_name.match(name)
         return self.match_name == name
 
-    def _match_on_type(self, element):
+    def _match_on_type(self, element, line):
+        if isinstance(element, xt.Replica):
+            element = line[element._parent_name]
         return isinstance(element, self.element_type)
 
-    def match_element(self, name, element):
+    def match_element(self, name, element, line):
 
         if isinstance(element, xt.Drift):
             matched = False
             if self.match_name and not self.element_type:
                 matched = self._match_on_name(name)
             elif self.element_type and not self.match_name:
-                matched = self._match_on_type(element)
+                matched = self._match_on_type(element, line)
             elif self.match_name and self.element_type:
-                matched = self._match_on_name(name) and self._match_on_type(element)
+                matched = self._match_on_name(name) and self._match_on_type(element, line)
         else:
             matched = True
             if self.match_name:
                 matched = matched and self._match_on_name(name)
             if self.element_type:
-                matched = matched and self._match_on_type(element)
+                matched = matched and self._match_on_type(element, line)
         return matched
 
     def __repr__(self):
@@ -272,15 +274,16 @@ class Slicer:
 
     def _slice_element(self, name, element, _edge_markers=True) -> Optional[List[str]]:
         """Slice element and return slice names, or None if no slicing."""
+
         # Don't slice already thin elements and drifts
-        if (not element.isthick
+        if (not xt.line._is_thick(element, self._line)
             or (hasattr(element, 'length') and element.length == 0)):
             return None
 
         if isinstance(element, xt.Drift) or type(element).__name__.startswith('DriftSlice'):
             _edge_markers = False
 
-        chosen_slicing = self._scheme_for_element(element, name)
+        chosen_slicing = self._scheme_for_element(element, name, self._line)
 
         # If the chosen slicing is explicitly None, then we keep the current
         # thick element and don't add any slices.
@@ -295,29 +298,40 @@ class Slicer:
         )
 
         if _edge_markers:
+
+            if isinstance(element, xt.Replica):
+                _buffer = self._line[element._parent_name]._buffer
+            else:
+                _buffer = element._buffer
+
             entry_marker, exit_marker = f'{name}_entry', f'{name}_exit'
             if entry_marker not in self._line.element_dict:
                 self._line.element_dict[entry_marker] = xt.Marker(
-                                                        _buffer=element._buffer)
+                                                        _buffer=_buffer)
                 slices_to_add = [entry_marker] + slices_to_add
 
             if exit_marker not in self._line.element_dict:
                 self._line.element_dict[exit_marker] = xt.Marker(
-                                                        _buffer=element._buffer)
+                                                        _buffer=_buffer)
                 slices_to_add += [exit_marker]
 
         return slices_to_add
 
-    def _scheme_for_element(self, element, name):
+    def _scheme_for_element(self, element, name, line):
         """Choose a slicing strategy for the element"""
         if self._use_cache:
             cache = self._strategy_cache
+
+            eltype = type(element)
+            if eltype is xt.Replica:
+                eltype = type(self._line[element._parent_name])
+
             try:
-                scheme, _ = cache[name, type(element)]
+                scheme, _ = cache[name, eltype]
                 return scheme
             except KeyError:
                 entry_name = cache.get((name, None), (None, np.inf))
-                entry_type = cache.get((None, type(element)), (None, np.inf))
+                entry_type = cache.get((None, eltype), (None, np.inf))
                 default = cache.get((None, None), (None, np.inf))
                 scheme, score = min(
                     [entry_name, entry_type, default],
@@ -333,7 +347,7 @@ class Slicer:
         chosen_slicing = None
 
         for strategy in reversed(self._slicing_strategies):
-            if strategy.match_element(name, element):
+            if strategy.match_element(name, element, line):
                 slicing_found = True
                 chosen_slicing = strategy.slicing
                 break
@@ -362,14 +376,19 @@ class Slicer:
             A list of the names of the slices that were added.
         """
 
+        parent_name = name
+        if isinstance(element, xt.Replica):
+            parent_name = element._parent_name
+            element = self._line[element._parent_name]
+
         drift_idx, element_idx = 0, 0
         slices_to_append = []
 
         if hasattr(element, '_entry_slice_class'):
             nn = f'{name}..entry_map'
-            ee = element._entry_slice_class(_parent_name=name,
+            ee = element._entry_slice_class(
                     _parent=element, _buffer=element._buffer)
-            ee._parent_name = name
+            ee._parent_name = parent_name
             self._line.element_dict[nn] = ee
             slices_to_append.append(nn)
 
@@ -384,7 +403,7 @@ class Slicer:
                     continue
 
                 nn = f'{name}..{element_idx}'
-                ee = type(element)(_parent_name=element._parent_name,
+                ee = type(element)(
                         _parent=element._parent, _buffer=element._buffer,
                         weight=weight * element.weight)
                 ee._parent_name = element._parent_name
@@ -398,7 +417,7 @@ class Slicer:
                     ee = element._drift_slice_class(
                             _parent=element, _buffer=element._buffer,
                             weight=weight)
-                    ee._parent_name = name
+                    ee._parent_name = parent_name
                     self._line.element_dict[nn] = ee
                     slices_to_append.append(nn)
                     drift_idx += 1
@@ -408,7 +427,7 @@ class Slicer:
                         ee = element._thin_slice_class(
                                 _parent=element, _buffer=element._buffer,
                                 weight=weight)
-                        ee._parent_name = name
+                        ee._parent_name = parent_name
                         self._line.element_dict[nn] = ee
                         slices_to_append.append(nn)
                         element_idx += 1
@@ -418,7 +437,7 @@ class Slicer:
                 ee = element._thick_slice_class(
                         _parent=element, _buffer=element._buffer,
                         weight=weight)
-                ee._parent_name = name
+                ee._parent_name = parent_name
                 self._line.element_dict[nn] = ee
                 slices_to_append.append(nn)
                 element_idx += 1
@@ -429,7 +448,7 @@ class Slicer:
             nn = f'{name}..exit_map'
             ee = element._exit_slice_class(
                     _parent=element, _buffer=element._buffer)
-            ee._parent_name = name
+            ee._parent_name = parent_name
             self._line.element_dict[nn] = ee
             slices_to_append.append(nn)
 
