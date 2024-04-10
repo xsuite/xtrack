@@ -1878,7 +1878,7 @@ class Line:
 
             while True:
                 element = self[name]
-                if not _is_thick(element):
+                if not _is_thick(element, self):
                     start, name = next(all_s_iter)
                     continue
 

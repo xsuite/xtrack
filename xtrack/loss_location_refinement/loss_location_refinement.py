@@ -10,7 +10,7 @@ import xobjects as xo
 import xtrack as xt
 
 from ..beam_elements import LimitPolygon, XYShift, SRotation, Drift, Marker
-from ..line import Line, _is_thick, _behaves_like_drift, _allow_backtrack
+from ..line import Line, _is_thick, _behaves_like_drift, _allow_backtrack, _has_backtrack
 
 from ..general import _print
 
@@ -245,8 +245,8 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_end_thin_0,
     for nn in interp_line._original_line.element_names[i_start : i_stop]:
         ee = interp_line._original_line.element_dict[nn]
 
-        if ((hasattr(ee, 'has_backtrack') and not ee.has_backtrack) or
-            (not _allow_backtrack(ee) and not isinstance(ee, tuple(allowed_backtrack_types)))):
+        if ((not _has_backtrack(ee, line)) or
+            (not _allow_backtrack(ee, line) and not isinstance(ee, tuple(allowed_backtrack_types)))):
             if _skip_in_loss_location_refinement(ee):
                 return 'skipped'
             raise TypeError(
