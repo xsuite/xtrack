@@ -142,7 +142,7 @@ def test_remove_redundant_apertures():
 
     # Test removing all consecutive middle apertures
     assert len(line.element_names) == 20
-    all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn])]
+    all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn], line)]
     all_aper_pos = [line.get_s_position(ap) for ap in all_aper]
     line.remove_redundant_apertures()
     line.remove_markers()
@@ -150,7 +150,7 @@ def test_remove_redundant_apertures():
     # The lattice is now D1-A1-DD-A5-D10
     assert len(line.element_names) == 5
     # Verify that only the first and last aperture are kept
-    new_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn])]
+    new_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn], line)]
     assert new_aper == [all_aper[0], all_aper[-1]]
     new_aper_pos = [line.get_s_position(ap) for ap in new_aper]
     assert new_aper_pos == [all_aper_pos[0], all_aper_pos[-1]]
@@ -159,7 +159,7 @@ def test_remove_redundant_apertures():
     # keep the 4th one (and hence also the 5th)
     line = original_line.copy()
     assert len(line.element_names) == 20
-    all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn])]
+    all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn], line)]
     all_aper_pos = [line.get_s_position(ap) for ap in all_aper]
     line.remove_redundant_apertures(keep=all_aper[3])
     line.remove_markers()
@@ -167,7 +167,7 @@ def test_remove_redundant_apertures():
     # The lattice is now D1-A1-DD-A4-DD-A5-D10
     assert len(line.element_names) == 7
     # Verify that only the first, fourth, and last aperture are kept
-    new_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn])]
+    new_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn], line)]
     assert new_aper == [all_aper[0], all_aper[3], all_aper[-1]]
     new_aper_pos = [line.get_s_position(ap) for ap in new_aper]
     assert new_aper_pos == [all_aper_pos[0], all_aper_pos[3], all_aper_pos[-1]]
@@ -177,16 +177,16 @@ def test_remove_redundant_apertures():
     # give the same result as above
     line = original_line.copy()
     assert len(line.element_names) == 20
-    all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn])]
+    all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn], line)]
     all_aper_pos = [line.get_s_position(ap) for ap in all_aper]
-    all_drifts = [nn for nn in line.element_names if xt._is_drift(line[nn])]
+    all_drifts = [nn for nn in line.element_names if xt._is_drift(line[nn], line)]
     line.remove_redundant_apertures(drifts_that_need_aperture=all_drifts[8])
     line.remove_markers()
     line.merge_consecutive_drifts()
     # The lattice is now D1-A1-DD-A4-DD-A5-D10
     assert len(line.element_names) == 7
     # Verify that only the first, fourth, and last aperture are kept
-    new_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn])]
+    new_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn], line)]
     assert new_aper == [all_aper[0], all_aper[3], all_aper[-1]]
     new_aper_pos = [line.get_s_position(ap) for ap in new_aper]
     assert new_aper_pos == [all_aper_pos[0], all_aper_pos[3], all_aper_pos[-1]]
