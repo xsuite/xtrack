@@ -545,20 +545,20 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         if shift_y is not None:
             self.shift_y = shift_y
 
-    def to_dict(self):
-        dct = xo.HybridClass.to_dict(self)
+    def to_dict(self, **kwargs):
+        dct = xo.HybridClass.to_dict(self, **kwargs)
         if self.name_associated_aperture is not None:
             dct['name_associated_aperture'] = self.name_associated_aperture
         return dct
 
     @classmethod
-    def from_dict(cls, dct):
+    def from_dict(cls, dct, **kwargs):
         if 'name_associated_aperture' in dct.keys():
             name_associated_aperture = dct.pop('name_associated_aperture')
         else:
             name_associated_aperture = None
 
-        instance = xo.HybridClass.from_dict(dct)
+        instance = xo.HybridClass._static_from_dict(cls, dct, **kwargs)
         instance.name_associated_aperture = name_associated_aperture
         return instance
 

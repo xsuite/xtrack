@@ -709,10 +709,16 @@ class MadLoader:
         align.dx = 0
         align.dy = 0
 
-        assert len(xtrack_el) == 1, "Only one element per mad element is supported"
-        assert len(aperture_seq) <= 1, "Only one aperture per mad element is supported"
-
+        # Attach aperture to main element
         if aperture_seq:
+            assert len(aperture_seq) <= 1, (
+                "Only one aperture per mad element is supported")
+            main_element=None
+            for ee in xtrack_el:
+                if ee.name== mad_el.name:
+                    main_element=ee
+                    break
+            assert main_element is not None
             xtrack_el[0].name_associated_aperture = aperture_seq[0].name
 
         elem_list = aperture_seq + xtrack_el
