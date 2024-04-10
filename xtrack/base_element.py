@@ -432,6 +432,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     allow_rot_and_shift = True
     skip_in_loss_location_refinement = False
     needs_rng = False
+    name_associated_aperture = None
 
     def __init__(self, *args, **kwargs):
         xo.HybridClass.__init__(self, *args, **kwargs)
@@ -543,6 +544,24 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
         if shift_y is not None:
             self.shift_y = shift_y
+
+    def to_dict(self):
+        dct = xo.HybridClass.to_dict(self)
+        if self.name_associated_aperture is not None:
+            dct['name_associated_aperture'] = self.name_associated_aperture
+        return dct
+
+    @classmethod
+    def from_dict(cls, dct):
+        if 'name_associated_aperture' in dct.keys():
+            name_associated_aperture = dct.pop('name_associated_aperture')
+        else:
+            name_associated_aperture = None
+
+        instance = xo.HybridClass.from_dict(dct)
+        instance.name_associated_aperture = name_associated_aperture
+        return instance
+
 
 class Replica:
     def __init__(self, _parent_name):

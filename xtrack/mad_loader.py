@@ -318,7 +318,10 @@ class ElementBuilder:
             self.attrs.pop("rot_s_rad", None)
             self.attrs.pop("shift_x", None)
             self.attrs.pop("shift_y", None)
+        name_associated_aperture = self.attrs.pop("name_associated_aperture", None)
         xtel = self.type(**self.attrs, _buffer=buffer)
+        if name_associated_aperture:
+            xtel.name_associated_aperture = name_associated_aperture
         name = generate_repeated_name(line, self.name)
         line.append_element(xtel, name)
 
@@ -332,8 +335,11 @@ class ElementBuilderWithExpr(ElementBuilder):
             self.attrs.pop("shift_y", None)
 
         attr_values = {k: get_value(v) for k, v in self.attrs.items()}
+        name_associated_aperture = attr_values.pop("name_associated_aperture", None)
         xtel = self.type(**attr_values, _buffer=buffer)
         name = generate_repeated_name(line, self.name)
+        if name_associated_aperture:
+            xtel.name_associated_aperture = name_associated_aperture
         line.append_element(xtel, name)
         elref = line.element_refs[name]
         for k, p in self.attrs.items():
@@ -702,6 +708,12 @@ class MadLoader:
         align.tilt = 0
         align.dx = 0
         align.dy = 0
+
+        assert len(xtrack_el) == 1, "Only one element per mad element is supported"
+        assert len(aperture_seq) <= 1, "Only one aperture per mad element is supported"
+
+        if aperture_seq:
+            xtrack_el[0].name_associated_aperture = aperture_seq[0].name
 
         elem_list = aperture_seq + xtrack_el
 

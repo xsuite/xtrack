@@ -770,8 +770,6 @@ def no_test_import_thick_with_apertures_and_slice():
     )
 
 
-    rad_to_deg = 180 / np.pi
-
     def _assert_eq(a, b):
         assert np.isclose(a, b, atol=1e-16)
 
