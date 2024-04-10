@@ -9,10 +9,14 @@ line.build_tracker()
 tt = line.get_table(attr=True)
 tt.show()
 
-import pdb; pdb.set_trace()
+
+l2 = xt.Line.from_dict(line.to_dict())
+
 line.slice_thick_elements(
     slicing_strategies=[
         xt.Strategy(slicing=xt.Teapot(3), element_type=xt.Bend),
     ])
 
-l2 = xt.Line.from_dict(line.to_dict())
+line.build_tracker()
+
+tt_sliced = line.get_table(attr=True)
