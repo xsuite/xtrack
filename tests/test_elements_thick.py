@@ -735,8 +735,7 @@ def test_backtrack_with_bend_quadrupole_and_cfm(test_context):
     assert np.allclose(p2.zeta, p0.zeta, atol=1e-15, rtol=0)
     assert np.allclose(p2.delta, p0.delta, atol=1e-15, rtol=0)
 
-# RE-ENABLE THIS TEST ADN FIX THE BUG@!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-def no_test_import_thick_with_apertures_and_slice():
+def test_import_thick_with_apertures_and_slice():
     mad = Madx(stdout=False)
 
     mad.input("""
@@ -785,7 +784,7 @@ def no_test_import_thick_with_apertures_and_slice():
 
     line.slice_thick_elements(slicing_strategies=[Strategy(Uniform(2))])
 
-    assert line.get_compound_subsequence('elm') == [
+    assert np.all(line.get_table().rows['elm_entry':'elm_exit'].name == [
         'elm_entry',                    # entry marker
         'elm_aper..0',                  # entry edge aperture
         'elm..entry_map',               # entry edge (+transform)
@@ -799,16 +798,18 @@ def no_test_import_thick_with_apertures_and_slice():
         'elm_aper..3',                  # exit edge aperture
         'elm..exit_map',                # exit edge (+transform)
         'elm_exit',                     # exit marker
-    ]
+    ])
+
+    line.build_tracker(compile=False) # To resolve parents
 
     for i in range(4):
-        _assert_eq(line[f'elm_aper..{i}'].rot_s_rad, 0.1)
-        _assert_eq(line[f'elm_aper..{i}'].shift_x, 0.2)
-        _assert_eq(line[f'elm_aper..{i}'].shift_y, 0.3)
-        _assert_eq(line[f'elm_aper..{i}'].max_x, 0.1)
-        _assert_eq(line[f'elm_aper..{i}'].max_y, 0.2)
-        _assert_eq(line[f'elm_aper..{i}'].a_squ, 0.11 ** 2)
-        _assert_eq(line[f'elm_aper..{i}'].b_squ, 0.22 ** 2)
+        _assert_eq(line[f'elm_aper..{i}']._parent.rot_s_rad, 0.1)
+        _assert_eq(line[f'elm_aper..{i}']._parent.shift_x, 0.2)
+        _assert_eq(line[f'elm_aper..{i}']._parent.shift_y, 0.3)
+        _assert_eq(line[f'elm_aper..{i}']._parent.max_x, 0.1)
+        _assert_eq(line[f'elm_aper..{i}']._parent.max_y, 0.2)
+        _assert_eq(line[f'elm_aper..{i}']._parent.a_squ, 0.11 ** 2)
+        _assert_eq(line[f'elm_aper..{i}']._parent.b_squ, 0.22 ** 2)
 
     for i in range(2):
         _assert_eq(line[f'elm..{i}']._parent.rot_s_rad, 0.2)

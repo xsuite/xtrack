@@ -72,7 +72,9 @@ class TrackerData:
         for nn in list(self._element_dict.keys()):
             ee = self._element_dict[nn]
             if isinstance(ee, xt.Replica):
+                ee._parent = self._element_dict[ee._parent_name]
                 self._element_dict[nn] = self._element_dict[ee._parent_name]
+
 
         self._element_names = tuple(element_names)
         self._elements = tuple([self._element_dict[ee] for ee in element_names])
