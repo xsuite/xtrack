@@ -2745,8 +2745,8 @@ class Line:
                 aper_m2 = aper_m1
                 aper_m1 = aper_0
                 aper_0  = nn
-            elif (not isinstance(ee, (Drift, Marker))
-            or nn in drifts_that_need_aperture):
+            elif ((not isinstance(ee, (Marker)) and not _is_drift(ee, self))
+                  or nn in drifts_that_need_aperture):
             # We are in an active element: all previous apertures
             # should be kept in the line
                 aper_0  = None
@@ -3769,12 +3769,18 @@ def mk_class_namespace(extra_classes):
 def _is_drift(element, line):
     if isinstance(element, xt.Replica):
         return _is_drift(line[element._parent_name], None)
-    return isinstance(element, (beam_elements.Drift,) )
+    if isinstance(element, (beam_elements.Drift)):
+        return True
+    if type(element).__name__.startswith('Drift'):
+        return True
+    return False
 
-
-def _behaves_like_drift(element):
+def _behaves_like_drift(element, line):
+    if _is_drift(element, line):
+        return True
+    if isinstance(element, xt.Replica):
+        return _behaves_like_drift(line[element._parent_name], None)
     return hasattr(element, 'behaves_like_drift') and element.behaves_like_drift
-
 
 def _is_aperture(element, line):
     if isinstance(element, xt.Replica):
