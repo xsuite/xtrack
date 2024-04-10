@@ -646,19 +646,26 @@ class Line:
         iscollective = []
         element_types = []
         isreplica = []
+        parent_name = []
         for ee in elements:
+            ee_pname = None
             if isinstance(ee, xt.Replica):
+                ee_pname = ee._parent_name
                 ee = self.element_dict[ee._parent_name]
                 isreplica.append(True)
             else:
                 isreplica.append(False)
+                if hasattr(ee, '_parent_name'):
+                    ee_pname = ee._parent_name
             isthick.append(_is_thick(ee, self))
             iscollective.append(_is_collective(ee, self))
             element_types.append(ee.__class__.__name__)
+            parent_name.append(ee_pname)
         isthick = np.array(isthick + [False])
         iscollective = np.array(iscollective + [False])
         isreplica = np.array(isreplica + [False])
         element_types = np.array(element_types + [''])
+        parent_name = np.array(parent_name + [None])
 
         elements += [None]
 
@@ -667,6 +674,7 @@ class Line:
             'element_type': element_types,
             'name': list(self.element_names) + ['_end_point'],
             'isreplica': isreplica,
+            'parent_name': parent_name,
             'isthick': isthick,
             'iscollective': iscollective,
             'element': elements
