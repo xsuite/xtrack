@@ -3765,10 +3765,17 @@ def mk_class_namespace(extra_classes):
         out[cl.__name__] = cl
     return out
 
+def _length(element, line):
+    if isinstance(element, xt.Replica):
+        return _length(line[element._parent_name], line)
+    if hasattr(element, 'length'):
+        return element.length
+    assert hasattr(element, '_parent_name')
+    return line[element._parent_name].length * element.weight
 
 def _is_drift(element, line):
     if isinstance(element, xt.Replica):
-        return _is_drift(line[element._parent_name], None)
+        return _is_drift(line[element._parent_name], line)
     if isinstance(element, (beam_elements.Drift)):
         return True
     if type(element).__name__.startswith('Drift'):
@@ -3779,36 +3786,35 @@ def _behaves_like_drift(element, line):
     if _is_drift(element, line):
         return True
     if isinstance(element, xt.Replica):
-        return _behaves_like_drift(line[element._parent_name], None)
+        return _behaves_like_drift(line[element._parent_name], line)
     return hasattr(element, 'behaves_like_drift') and element.behaves_like_drift
 
 def _is_aperture(element, line):
     if isinstance(element, xt.Replica):
-        return _is_aperture(line[element._parent_name], None)
+        return _is_aperture(line[element._parent_name], line)
     return element.__class__.__name__.startswith('Limit')
-
 
 def _is_thick(element, line):
     if isinstance(element, xt.Replica):
-        return _is_thick(line[element._parent_name], None)
+        return _is_thick(line[element._parent_name], line)
     return hasattr(element, "isthick") and element.isthick
 
 def _is_collective(element, line):
     if isinstance(element, xt.Replica):
-        return _is_collective(line[element._parent_name], None)
+        return _is_collective(line[element._parent_name], line)
     iscoll = not hasattr(element, 'iscollective') or element.iscollective
     return iscoll
 
 # whether backtrack in loss location refinement is allowed
 def _allow_backtrack(element, line):
     if isinstance(element, xt.Replica):
-        return _allow_backtrack(line[element._parent_name], None)
+        return _allow_backtrack(line[element._parent_name], line)
     return hasattr(element, 'allow_backtrack') and element.allow_backtrack
 
 # whether element has backtrack capability
 def _has_backtrack(element, line):
     if isinstance(element, xt.Replica):
-        return _has_backtrack(line[element._parent_name], None)
+        return _has_backtrack(line[element._parent_name], line)
     return hasattr(element, 'has_backtrack') and element.has_backtrack
 
 def _next_name(prefix, names, name_format='{}{}'):
@@ -4530,10 +4536,4 @@ def _rot_s_from_attr(attr):
 
     return rot_s_rad
 
-def _length(element, line):
-    if isinstance(element, xt.Replica):
-        return _length(line[element._parent_name], None)
-    if hasattr(element, 'length'):
-        return element.length
-    assert hasattr(element, '_parent_name')
-    return line[element._parent_name].length * element.weight
+
