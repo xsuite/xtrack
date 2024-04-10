@@ -86,6 +86,7 @@ class TwissPlot(object):
         clist="k r b g c m",
         lattice=None,
         newfig=True,
+        figlabel=None
     ):
         yl, yr, clist = list(map(str.split, (yl, yr, clist)))
         #    timeit('Init',True)
@@ -106,7 +107,7 @@ class TwissPlot(object):
             self.color[i] = self.clist.pop(0)
             self.clist.append(self.color[i])
         if newfig is True:
-            self.figure = pl.figure()
+            self.figure = pl.figure(num=self.figlabel)
         elif newfig is False:
             self.figure = pl.gcf()
             self.figure.clf()

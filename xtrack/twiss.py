@@ -3222,8 +3222,12 @@ def _complete_twiss_init(start, end, init_at, init,
         assert start is not None and end is not None, (
             'start and end must be provided together')
         if init is None:
-            if betx is not None and bety is not None:
-              init = xt.TwissInit(
+
+            assert betx is not None and bety is not None, (
+                'betx and bety or init must be provided when start '
+                'and end are used')
+
+            init = xt.TwissInit(
                 element_name=init_at,
                 x=x, px=px, y=y, py=py, zeta=zeta, delta=delta,
                 betx=betx, alfx=alfx, bety=bety, alfy=alfy, bets=bets,
@@ -3233,9 +3237,6 @@ def _complete_twiss_init(start, end, init_at, init,
                 ay_chrom=ay_chrom, by_chrom=by_chrom,
                 ddpx=ddpx, ddx=ddx, ddpy=ddpy, ddy=ddy,
                 )
-            else:
-                 tw_closed=line.twiss(reverse=reverse)
-                 init = tw_closed.get_twiss_init(tw_closed.name[0])
         elif isinstance(init, TwissTable):
             init = init.get_twiss_init(at_element=init_at)
         else:
