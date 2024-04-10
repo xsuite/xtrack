@@ -2072,7 +2072,7 @@ class Line:
                     _buffer = ee._buffer
                 else:
                     _buffer = None
-                if _is_thick(ee, self) and not _is_drift(ee):
+                if _is_thick(ee, self) and not _is_drift(ee, self):
                     new_elements[nn] = Drift(
                         length=_length(ee, self), _buffer=_buffer)
                 else:
@@ -2622,7 +2622,7 @@ class Line:
         newline = Line(elements=[], element_names=[])
 
         for ee, nn in zip(self.elements, self.element_names):
-            if _is_drift(ee) and nn not in keep:
+            if _is_drift(ee, self) and nn not in keep:
                 if _length(ee, self) == 0.0:
                     continue
             newline.append_element(ee, nn)
@@ -2671,10 +2671,10 @@ class Line:
                 continue
 
             this_ee = ee if inplace else ee.copy()
-            if _is_drift(ee) and not nn in keep:
+            if _is_drift(ee, self) and not nn in keep:
                 prev_nn = newline.element_names[-1]
                 prev_ee = newline.element_dict[prev_nn]
-                if _is_drift(prev_ee) and not prev_nn in keep:
+                if _is_drift(prev_ee, self) and not prev_nn in keep:
                     prev_ee.length += ee.length
                 else:
                     newline.append_element(this_ee, nn)
@@ -2736,7 +2736,7 @@ class Line:
         aper_m2 = None
 
         for ee, nn in zip(self.elements, self.element_names):
-            if ee.__class__.__name__.startswith('Limit'):
+            if _is_aperture(ee, self):
             # We encountered a new aperture, shift all previous
                 aper_m2 = aper_m1
                 aper_m1 = aper_0
@@ -2749,8 +2749,10 @@ class Line:
                 aper_m1 = None
                 aper_m2 = None
             if (aper_m2 is not None
-                and _apertures_equal(self.element_dict[aper_0], self.element_dict[aper_m1])
-                and _apertures_equal(self.element_dict[aper_m1], self.element_dict[aper_m2])
+                and _apertures_equal(
+                    self.element_dict[aper_0], self.element_dict[aper_m1], self)
+                and _apertures_equal(
+                    self.element_dict[aper_m1], self.element_dict[aper_m2], self)
                 ):
                 # We found three consecutive apertures (with only Drifts and Markers
                 # in between) that are the same, hence the middle one can be removed
@@ -2856,7 +2858,8 @@ class Line:
         elements_df = self.to_pandas()
 
         elements_df['is_aperture'] = elements_df.name.map(
-                lambda nn: nn == '_end_point' or  _is_aperture(self.element_dict[nn]))
+                lambda nn: nn == '_end_point'
+                    or  _is_aperture(self.element_dict[nn], self))
 
         if not elements_df.name.values[-1] == '_end_point':
             elements_df['is_aperture'][-1] = False
@@ -3759,7 +3762,9 @@ def mk_class_namespace(extra_classes):
     return out
 
 
-def _is_drift(element):
+def _is_drift(element, line):
+    if isinstance(element, xt.Replica):
+        return _is_drift(line[element._parent_name], None)
     return isinstance(element, (beam_elements.Drift,) )
 
 
@@ -3767,7 +3772,9 @@ def _behaves_like_drift(element):
     return hasattr(element, 'behaves_like_drift') and element.behaves_like_drift
 
 
-def _is_aperture(element):
+def _is_aperture(element, line):
+    if isinstance(element, xt.Replica):
+        return _is_aperture(line[element._parent_name], None)
     return element.__class__.__name__.startswith('Limit')
 
 
@@ -3823,9 +3830,13 @@ def _dicts_equal(dict1, dict2):
     return True
 
 
-def _apertures_equal(ap1, ap2):
-    if not _is_aperture(ap1) or not _is_aperture(ap2):
+def _apertures_equal(ap1, ap2, line):
+    if not _is_aperture(ap1, line) or not _is_aperture(ap2, line):
         raise ValueError(f"Element {ap1} or {ap2} not an aperture!")
+    if isinstance(ap1, xt.Replica):
+        ap1 = line[ap1._parent_name]
+    if isinstance(ap2, xt.Replica):
+        ap2 = line[ap2._parent_name]
     if ap1.__class__ != ap2.__class__:
         return False
     ap1 = ap1.to_dict()

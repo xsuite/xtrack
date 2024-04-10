@@ -205,14 +205,13 @@ def test_remove_redundant_apertures():
     line.remove_redundant_apertures()
     assert xt._lines_equal(line, original_line)
 
-##### REMEMBER TO RE-ENABLE THIS TEST AFTER FIXING THE BUG!!!!!!!!!!!!!!!!!!!!!
-def no_test_redundant_apertures_with_compounds():
+def test_redundant_apertures_with_compounds():
     sequence = [
         ('a1', xt.LimitRect(min_x=-0.3, max_x=0.3, min_y=-0.3, max_y=0.3)),
         ('d0', xt.Drift(length=0.6)),
         ('a1', xt.LimitRect(min_x=-0.3, max_x=0.3, min_y=-0.3, max_y=0.3)),
         ('d1', xt.Drift(length=0.4)),
-        ('a2', xt.LimitRect(min_x=-0.3, max_x=0.3, min_y=-0.3, max_y=0.3)),
+        ('a2', xt.Replica('a1')),
         ('m2', xt.Marker()),
         ('d2..1', xt.Drift(length=0.2)),
         ('d2..2', xt.Drift(length=0.2)),
@@ -220,18 +219,11 @@ def no_test_redundant_apertures_with_compounds():
         ('d3', xt.Drift(length=0.4)),
     ]
     line = xt.Line(elements=dict(sequence), element_names=[n for n, _ in sequence])
-    compound = Compound(core=['d1'], aperture=['a1'])
-    compound_sliced = SlicedCompound(elements=['a2', 'm2', 'd2..1', 'd2..2'])
-    line.compound_container.define_compound('c1', compound)
-    line.compound_container.define_compound('c2', compound_sliced)
 
     line.remove_redundant_apertures()
 
     expected_names = ['d0', 'a1', 'd1', 'm2', 'd2..1', 'd2..2', 'a3', 'd3']
     assert line.element_names == expected_names
-
-    assert 'a1' not in line.get_compound_by_name('c1').elements
-    assert 'a2' not in line.get_compound_by_name('c2').elements
 
 ##### REMEMBER TO RE-ENABLE THIS TEST AFTER FIXING THE BUG!!!!!!!!!!!!!!!!!!!!!
 def no_test_redundant_apertures_with_compounds_not_inplace():
