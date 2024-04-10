@@ -3799,16 +3799,17 @@ def _is_collective(element, line):
     iscoll = not hasattr(element, 'iscollective') or element.iscollective
     return iscoll
 
+# whether backtrack in loss location refinement is allowed
 def _allow_backtrack(element, line):
     if isinstance(element, xt.Replica):
         return _allow_backtrack(line[element._parent_name], None)
     return hasattr(element, 'allow_backtrack') and element.allow_backtrack
 
+# whether element has backtrack capability
 def _has_backtrack(element, line):
     if isinstance(element, xt.Replica):
         return _has_backtrack(line[element._parent_name], None)
-    return hasattr(element, '_has_backtrack') and element._has_backtrack
-
+    return hasattr(element, 'has_backtrack') and element.has_backtrack
 
 def _next_name(prefix, names, name_format='{}{}'):
     """Return an available element name by appending a number"""
