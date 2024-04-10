@@ -2711,6 +2711,10 @@ class Line:
 
         '''
 
+        if not inplace:
+            raise NotImplementedError('`remove_redundant_apertures` only'
+                                      ' available for inplace operation')
+
         # For every occurence of three or more apertures that are the same,
         # only separated by Drifts or Markers, this script removes the
         # middle apertures
@@ -3828,7 +3832,6 @@ def _dicts_equal(dict1, dict2):
         elif dict1[key] != dict2[key]:
             return False
     return True
-
 
 def _apertures_equal(ap1, ap2, line):
     if not _is_aperture(ap1, line) or not _is_aperture(ap2, line):
