@@ -824,6 +824,8 @@ def test_twiss_against_matrix(test_context):
     dpx = [0.7, -0.3]
     dpy = [0.4, -0.6]
     bets = 1e-3
+    dqx = [2, 30, 400]
+    dqy = [3, 40, 500]
 
     segm_1 = xt.LineSegmentMap(
             qx=0.4, qy=0.3, qs=0.0001,
@@ -843,7 +845,7 @@ def test_twiss_against_matrix(test_context):
     segm_2 = xt.LineSegmentMap(
             qx=0.21, qy=0.32, qs=0.0003,
             bets=bets, length=0.2,
-            dqx=2., dqy=3.,
+            dqx=dqx, dqy=dqy,
             betx=[betx[1], betx[0]],
             bety=[bety[1], bety[0]],
             alfx=[alfx[1], alfx[0]],
@@ -893,6 +895,12 @@ def test_twiss_against_matrix(test_context):
         assert np.allclose(tw.px, [2e-6, -3e-6, 2e-6], atol=1e-12, rtol=0)
         assert np.allclose(tw.y, [3e-3, 4e-3, 3e-3], atol=1e-7, rtol=0)
         assert np.allclose(tw.py, [4e-6, -5e-6, 4e-6], atol=1e-12, rtol=0)
+
+        chroma_table = line.get_non_linear_chromaticity((-1e-2, 1e-2),
+                                                        num_delta=25)
+        assert np.allclose(chroma_table.dnqx[1:], dqx, atol=1e-5, rtol=0)
+        assert np.allclose(chroma_table.dnqy[1:], dqy, atol=1e-5, rtol=0)
+
 
 @for_all_test_contexts
 @pytest.mark.parametrize('machine', ['sps', 'psb'])
@@ -1737,7 +1745,7 @@ def test_second_order_chromaticity_and_dispersion(test_context):
 
     tw = line.twiss(method='4d')
     nlchr = line.get_non_linear_chromaticity(delta0_range=(-1e-4, 1e-4),
-                                            num_delta=21, fit_order=1, method='4d')
+                                             num_delta=21, fit_order=1)
     tw_fw = line.twiss(start='ip4', end='ip6', init_at='ip4',
                 x=tw['x', 'ip4'], px=tw['px', 'ip4'],
                 y=tw['y', 'ip4'], py=tw['py', 'ip4'],
@@ -1761,7 +1769,7 @@ def test_second_order_chromaticity_and_dispersion(test_context):
                 compute_chromatic_properties=True)
 
     nlchr = line.get_non_linear_chromaticity(delta0_range=(-1e-4, 1e-4),
-                                            num_delta=21, fit_order=2, method='4d')
+                                             num_delta=21, fit_order=2)
 
     location = 'ip3'
 
