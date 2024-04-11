@@ -14,6 +14,7 @@ tt = line.get_table()
 assert np.all(tt['name'][:-1] == ['e0', 'e1', 'e2', 'e3', 'e4', 'e5'])
 
 _is_drift = xt.line._is_drift
+_behaves_like_drift = xt.line._behaves_like_drift
 
 assert not _is_drift(line['e0'], line)
 assert not _is_drift(line['e1'], line)
@@ -21,6 +22,13 @@ assert not _is_drift(line['e2'], line)
 assert _is_drift(line['e3'], line)
 assert _is_drift(line['e4'], line)
 assert _is_drift(line['e5'], line)
+
+assert not _behaves_like_drift(line['e0'], line)
+assert not _behaves_like_drift(line['e1'], line)
+assert not _behaves_like_drift(line['e2'], line)
+assert _behaves_like_drift(line['e3'], line)
+assert _behaves_like_drift(line['e4'], line)
+assert _behaves_like_drift(line['e5'], line)
 
 line.slice_thick_elements(
     slicing_strategies=[
@@ -42,10 +50,16 @@ assert np.all(line.get_table().name == [
 for nn, ee in line.items():
     if nn.startswith('drift'):
         assert _is_drift(ee, line)
+        assert _behaves_like_drift(ee, line)
     elif nn in ['e3', 'e4', 'e5']:
         assert _is_drift(ee, line)
+        assert _behaves_like_drift(ee, line)
+    elif nn.endswith('_entry') or nn.endswith('_exit'): # Markers
+        assert not _is_drift(ee, line)
+        assert _behaves_like_drift(ee, line)
     else:
         assert not _is_drift(ee, line)
+        assert not _behaves_like_drift(ee, line)
 
 line.cut_at_s([0.6, 1.5])
 assert_allclose(length, line.get_length(), rtol=0, atol=1e-15)
@@ -53,7 +67,9 @@ assert_allclose(line.get_s_position('drift_e0..2..1'), 0.6, rtol=0, atol=1e-15)
 assert_allclose(line.get_s_position('e1..1..1'), 1.5, rtol=0, atol=1e-15)
 
 assert _is_drift(line['drift_e0..2..1'], line)
+assert _behaves_like_drift(line['drift_e0..2..1'], line)
 assert not _is_drift(line['e1..1..1'], line)
+assert not _behaves_like_drift(line['e1..1..1'], line)
 
 line.slice_thick_elements(
     slicing_strategies=[
@@ -78,7 +94,13 @@ assert np.all(line.get_table().name == [
 for nn, ee in line.items():
     if nn.startswith('drift'):
         assert _is_drift(ee, line)
+        assert _behaves_like_drift(ee, line)
     elif nn in ['e4..0', 'e4..1', 'e4..2']:
         assert _is_drift(ee, line)
+        assert _behaves_like_drift(ee, line)
+    elif nn.endswith('_entry') or nn.endswith('_exit'): # Markers
+        assert not _is_drift(ee, line)
+        assert _behaves_like_drift(ee, line)
     else:
         assert not _is_drift(ee, line)
+        assert not _behaves_like_drift(ee, line)
