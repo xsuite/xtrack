@@ -651,7 +651,8 @@ class Line:
             ee_pname = None
             if isinstance(ee, xt.Replica):
                 ee_pname = ee._parent_name
-                ee = self.element_dict[ee._parent_name]
+                while isinstance(ee, xt.Replica):
+                    ee = self.element_dict[ee._parent_name]
                 isreplica.append(True)
             else:
                 isreplica.append(False)
@@ -4251,9 +4252,9 @@ class LineAttrItem:
         setter_names = []
         for ii, nn in enumerate(all_names):
             ee = line.element_dict[nn]
-            if isinstance(ee, xt.Replica):
+            while isinstance(ee, xt.Replica):
                 nn = ee._parent_name
-                ee = line[ee._parent_name]
+                ee = line[nn]
             if isinstance(name, (list, tuple)):
                 inner_obj = ee
                 inner_name = name[-1]

@@ -178,7 +178,7 @@ class Strategy:
         return self.match_name == name
 
     def _match_on_type(self, element, line):
-        if isinstance(element, xt.Replica):
+        while isinstance(element, xt.Replica):
             element = line[element._parent_name]
         return isinstance(element, self.element_type)
 
@@ -300,7 +300,10 @@ class Slicer:
         if _edge_markers:
 
             if isinstance(element, xt.Replica):
-                _buffer = self._line[element._parent_name]._buffer
+                ee = element
+                while isinstance(ee, xt.Replica):
+                    ee = self._line[ee._parent_name]
+                _buffer = ee._buffer
             else:
                 _buffer = element._buffer
 
@@ -317,8 +320,8 @@ class Slicer:
 
         # Handle aperture
         ee_for_aper = element
-        if isinstance(ee_for_aper, xt.Replica):
-            ee_for_aper = self._line[element._parent_name]
+        while isinstance(ee_for_aper, xt.Replica):
+            ee_for_aper = self._line[ee_for_aper._parent_name]
         if (hasattr(ee_for_aper, 'name_associated_aperture')
             and ee_for_aper.name_associated_aperture is not None):
             new_slices_to_add = []
@@ -342,9 +345,10 @@ class Slicer:
         if self._use_cache:
             cache = self._strategy_cache
 
-            eltype = type(element)
-            if eltype is xt.Replica:
-                eltype = type(self._line[element._parent_name])
+            ee = element
+            while isinstance(ee, xt.Replica):
+                ee = self._line[ee._parent_name]
+            eltype = type(ee)
 
             try:
                 scheme, _ = cache[name, eltype]
@@ -397,7 +401,7 @@ class Slicer:
         """
 
         parent_name = name
-        if isinstance(element, xt.Replica):
+        while isinstance(element, xt.Replica):
             parent_name = element._parent_name
             element = self._line[element._parent_name]
 
