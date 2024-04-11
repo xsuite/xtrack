@@ -42,7 +42,7 @@ from numpy.matlib import repmat
 bet_prod = np.atleast_2d(betx_monitors).T @ np.atleast_2d(betx_hcorrectors)
 mux_diff = repmat(mux_monitor, n_hcorrectors, 1).T - repmat(mux_hcorrectors, n_monitors, 1)
 
-response_matrix = np.sqrt(bet_prod) / 2 / np.sin(np.pi * qx) * np.cos(np.pi * qx - np.abs(mux_diff))
+response_matrix = np.sqrt(bet_prod) / 2 / np.sin(np.pi * qx) * np.cos(np.pi * qx - 2*np.pi*np.abs(mux_diff))
 
 theta = 1e-5
 i_h_kick = np.where(h_corrector_names == 'mcbh.15r7.b1')[0][0]
@@ -53,5 +53,13 @@ tw2 = line.twiss4d()
 kick_vect = np.zeros(n_hcorrectors)
 kick_vect[i_h_kick] = theta
 
-delta_tw = response_matrix @ kick_vect
+x_res = response_matrix @ kick_vect
+
+import matplotlib.pyplot as plt
+plt.close('all')
+plt.figure(1)
+plt.plot(tt_monitors.s, x_res, '.', label='Response')
+plt.plot(tw2.s, -tw2.x)
+
+plt.show()
 
