@@ -51,7 +51,7 @@ line['mcbh.15r7.b1'].knl[0] = theta
 tw2 = line.twiss4d()
 
 kick_vect = np.zeros(n_hcorrectors)
-kick_vect[i_h_kick] = theta
+kick_vect[i_h_kick] = -theta
 
 x_res = response_matrix @ kick_vect
 
@@ -59,7 +59,7 @@ import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
 plt.plot(tt_monitors.s, x_res, '.', label='Response')
-plt.plot(tw2.s, -tw2.x)
+plt.plot(tw2.s, tw2.x)
 
 plt.show()
 
