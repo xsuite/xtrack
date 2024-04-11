@@ -2760,7 +2760,8 @@ class TwissTable(Table):
             mask=None,
             labels=None,
             clist="k r b g c m",
-            ax=None):
+            ax=None,
+            figlabel=None):
 
         if mask is not None:
             if isinstance(mask,str):
@@ -2776,7 +2777,8 @@ class TwissTable(Table):
 
         self._is_s_begin=True
 
-        pl=TwissPlot(self, x=x, yl=yl, yr=yr, idx=idx, lattice=lattice, newfig=newfig, clist=clist)
+        pl=TwissPlot(self, x=x, yl=yl, yr=yr, idx=idx, lattice=lattice, newfig=newfig,
+                figlabel=figlabel,clist=clist)
 
         if labels is not None:
             mask=self.mask[labels]

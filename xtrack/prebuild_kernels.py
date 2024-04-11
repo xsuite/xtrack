@@ -237,7 +237,7 @@ def get_suitable_kernel(
                 get_element_class_by_name(class_name)
                 for class_name in available_classes_names
             ]
-            _print(f'Found suitable prebuilt kernel `{module_name}`.')
+            #_print(f'Found suitable prebuilt kernel `{module_name}`.')
             return module_name, available_classes
         elif verbose:
             class_diff = set(requested_class_names) - set(available_classes_names)

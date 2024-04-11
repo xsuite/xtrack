@@ -107,7 +107,8 @@ class TwissPlot(object):
             self.color[i] = self.clist.pop(0)
             self.clist.append(self.color[i])
         if newfig is True:
-            self.figure = pl.figure(num=self.figlabel)
+            self.figure = pl.figure(num=figlabel)
+            self.figure.clf()
         elif newfig is False:
             self.figure = pl.gcf()
             self.figure.clf()
