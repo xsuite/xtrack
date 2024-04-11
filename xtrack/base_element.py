@@ -275,6 +275,9 @@ def _set_shifty_property_setter(self, value):
     self._shift_y = value
     if not _tranformations_active(self):
         self._sin_rot_s = -999.
+    elif self._sin_rot_s < -2.:
+        self._sin_rot_s = 0.
+        self._cos_rot_s = 1.
 
 class MetaBeamElement(xo.MetaHybridClass):
 
