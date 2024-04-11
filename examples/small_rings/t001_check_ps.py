@@ -95,7 +95,7 @@ assert np.isclose(tw.dqy, dq2_ptc, atol=1e-2, rtol=0)
 assert np.isclose(tw.dqx, dq1_ptc, atol=1e-2, rtol=0)
 assert np.isclose(tw.dqy, dq2_ptc, atol=1e-2, rtol=0)
 
-nlchr = line.get_non_linear_chromaticity()
+nlchr = line.get_non_linear_chromaticity(method='4d')
 assert np.isclose(nlchr['ddqx'], ddq1_ptc, atol=0, rtol=5e-3)
 assert np.isclose(nlchr['ddqy'], ddq2_ptc, atol=0, rtol=5e-3)
 

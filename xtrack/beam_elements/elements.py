@@ -1673,8 +1673,8 @@ class LineSegmentMap(BeamElement):
         'qx': xo.Float64,
         'qy': xo.Float64,
 
-        'coeffs_dqx': xo.Float64[:],
-        'coeffs_dqy': xo.Float64[:],
+        'dqx': xo.Float64,
+        'dqy': xo.Float64,
         'det_xx': xo.Float64,
         'det_xy': xo.Float64,
         'det_yy': xo.Float64,
@@ -1742,7 +1742,7 @@ class LineSegmentMap(BeamElement):
             momentum_compaction_factor=None,
             slippage_length=None,
             voltage_rf=None, frequency_rf=None, lag_rf=None,
-            dqx=0.0, dqy=0.0, ddqx=0.0, ddqy=0.0, dnqx=None, dnqy=None,
+            dqx=0.0, dqy=0.0,
             det_xx=0.0, det_xy=0.0, det_yy=0.0, det_yx=0.0,
             energy_increment=0.0, energy_ref_increment=0.0,
             damping_rate_x = 0.0, damping_rate_y = 0.0, damping_rate_s = 0.0,
@@ -1833,26 +1833,10 @@ class LineSegmentMap(BeamElement):
         lag_rf : list of float
             List of lag of the RF kicks in the segment. Only used if
             ``longitudinal_mode`` is ``'nonlinear'`` or ``'linear_fixed_rf'``.
-        dqx : float or list of float
-            Horizontal linear chromaticity of the segment.
-        dqy : float or list of float
-            Vertical linear chromaticity of the segment.
-        ddqx: float
-            Horizontal second order chromaticity of the segment
-        ddqy: float
-            Vertical second order chromaticity of the segment
-        dnqx: list of float
-            List of horizontal chromaticities up to any order. The first element
-            of the list is the horizontal tune, the second element is the
-            horizontal linear chromaticity, the third element the horizontal
-            second order chromaticity and so on. It can be specified only if the
-            horizontal tune, and chromaticities are not specified.
-        dnqy: list of float
-            List of vertical chromaticities up to any order. The first element
-            of the list is the vertical tune, the second element is the
-            vertical linear chromaticity, the third element the vertical
-            second order chromaticity and so on. It can be specified only if the
-            vertical tune, and chromaticities are not specified.
+        dqx : float
+            Horizontal chromaticity of the segment.
+        dqy : float
+            Vertical chromaticity of the segment.
         det_xx : float
             Anharmonicity xx coefficient (i.e. dqx / dJx, where Jx is the horizontal
             action). Optional, default is ``0``.
@@ -1909,33 +1893,10 @@ class LineSegmentMap(BeamElement):
         assert longitudinal_mode in [
             'linear_fixed_qs', 'nonlinear', 'linear_fixed_rf', 'frozen', None]
 
-        if dnqx is not None:
-            assert qx == 0 and dqx == 0 and ddqx == 0
-            qx = dnqx[0]
-        else:
-            dnqx = [qx]
-            if dqx != 0:
-                dnqx.append(dqx)
-            if ddqx != 0:
-                dnqx.append(ddqx)
-
-        if dnqy is not None:
-            assert qy == 0 and dqy == 0 and ddqy == 0
-            qy = dnqy[0]
-        else:
-            dnqy = [qy]
-            if dqy != 0:
-                dnqy.append(dqy)
-            if ddqy != 0:
-                dnqy.append(ddqy)
-
-        coeffs_dqx = [dnqx[i] / float(factorial(i)) for i in range(len(dnqx))]
-        coeffs_dqy = [dnqy[i] / float(factorial(i)) for i in range(len(dnqy))]
-
         nargs['qx'] = qx
         nargs['qy'] = qy
-        nargs['coeffs_dqx'] = coeffs_dqx
-        nargs['coeffs_dqy'] = coeffs_dqy
+        nargs['dqx'] = dqx
+        nargs['dqy'] = dqy
         nargs['det_xx'] = det_xx
         nargs['det_xy'] = det_xy
         nargs['det_yy'] = det_yy

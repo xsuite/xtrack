@@ -3528,9 +3528,6 @@ def _add_action_in_res(res, kwargs):
 
 def get_non_linear_chromaticity(line, delta0_range, num_delta, fit_order=3, **kwargs):
 
-    assert 'method' not in kwargs.keys()
-    kwargs['method'] = '4d'
-
     delta0 = np.linspace(delta0_range[0], delta0_range[1], num_delta)
 
     twiss = []

@@ -30,7 +30,7 @@ line.particle_ref = xt.Particles(mass0=mad.sequence.lhcb1.beam.mass*1e9,
 
 tw = line.twiss(method='4d')
 nlchr = line.get_non_linear_chromaticity(delta0_range=(-1e-4, 1e-4),
-                                         num_delta=21, fit_order=1)
+                                        num_delta=21, fit_order=1, method='4d')
 tw_fw = line.twiss(start='ip4', end='ip6', init_at='ip4',
               x=tw['x', 'ip4'], px=tw['px', 'ip4'],
               y=tw['y', 'ip4'], py=tw['py', 'ip4'],
@@ -69,7 +69,7 @@ ddy_mad = np.interp(tw_fw.s, twm.s, twm.ddy)
 ddx_mad = np.interp(tw_fw.s, twm.s, twm.ddx)
 
 nlchr = line.get_non_linear_chromaticity(delta0_range=(-1e-4, 1e-4),
-                                         num_delta=21, fit_order=2)
+                                        num_delta=21, fit_order=2, method='4d')
 
 tw_mad = []
 for dd in nlchr.delta0:

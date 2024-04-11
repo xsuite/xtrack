@@ -15,12 +15,10 @@ dy = [0, 20]
 dpx = [0.7, -0.3]
 dpy = [0.4, -0.6]
 bets = 1e-3
-dnqx = [0.21, 2, 30, 400]
-dnqy = [0.32, 3, 40, 500]
 
 segm_1 = xt.LineSegmentMap(
         qx=0.4, qy=0.3, qs=0.0001,
-        bets=bets, length=0.1,
+        bets = bets, length=0.1,
         betx=[betx[0], betx[1]],
         bety=[bety[0], bety[1]],
         alfx=[alfx[0], alfx[1]],
@@ -34,9 +32,9 @@ segm_1 = xt.LineSegmentMap(
         y_ref=[y_co[0], y_co[1]],
         py_ref=[py_co[0], py_co[1]])
 segm_2 = xt.LineSegmentMap(
-        qs=0.0003,
-        bets=bets, length=0.2,
-        dnqx=dnqx, dnqy=dnqy,
+        qx=0.21, qy=0.32, qs=0.0003,
+        bets = bets, length=0.2,
+        dqx=2., dqy=3.,
         betx=[betx[1], betx[0]],
         bety=[bety[1], bety[0]],
         alfx=[alfx[1], alfx[0]],
@@ -60,6 +58,7 @@ assert np.isclose(tw6d.qs, 0.0004, atol=1e-7, rtol=0)
 assert np.isclose(tw6d.bets0, 1e-3, atol=1e-7, rtol=0)
 
 for tw in [tw4d, tw6d]:
+
     assert np.isclose(tw.qx, 0.4 + 0.21, atol=1e-7, rtol=0)
     assert np.isclose(tw.qy, 0.3 + 0.32, atol=1e-7, rtol=0)
 
@@ -85,8 +84,3 @@ for tw in [tw4d, tw6d]:
     assert np.allclose(tw.px, [2e-6, -3e-6, 2e-6], atol=1e-12, rtol=0)
     assert np.allclose(tw.y, [3e-3, 4e-3, 3e-3], atol=1e-7, rtol=0)
     assert np.allclose(tw.py, [4e-6, -5e-6, 4e-6], atol=1e-12, rtol=0)
-
-    chroma_table = line.get_non_linear_chromaticity((-1e-2, 1e-2),
-                                                    num_delta=25)
-    assert np.allclose(chroma_table.dnqx[1:], dnqx[1:], atol=1e-5, rtol=0)
-    assert np.allclose(chroma_table.dnqy[1:], dnqy[1:], atol=1e-5, rtol=0)
