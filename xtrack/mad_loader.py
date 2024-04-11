@@ -318,6 +318,7 @@ class ElementBuilder:
         xtel = self.type(**self.attrs, _buffer=buffer)
         name = generate_repeated_name(line, self.name)
         line.append_element(xtel, name)
+        return name
 
 
 class ElementBuilderWithExpr(ElementBuilder):
@@ -329,7 +330,7 @@ class ElementBuilderWithExpr(ElementBuilder):
         elref = line.element_refs[name]
         for k, p in self.attrs.items():
             set_expr(elref, k, p)
-        return xtel
+        return name
 
 
 class CompoundElementBuilder:
@@ -367,21 +368,24 @@ class CompoundElementBuilder:
             [end_marker]
         )
 
+        new_name_map = {}
         for el in component_elements:
-            el.add_to_line(line, buffer)
+            added_name = el.add_to_line(line, buffer)
+            new_name_map[el.name] = added_name
 
         def _get_names(builder_elements):
-            return [elem.name for elem in builder_elements]
+            return [new_name_map[elem.name] for elem in builder_elements]
 
         compound = Compound(
             core=_get_names(self.core),
             aperture=_get_names(self.aperture),
             entry_transform=_get_names(self.entry_transform),
             exit_transform=_get_names(self.exit_transform),
-            entry=start_marker.name,
-            exit_=end_marker.name,
+            entry=new_name_map[start_marker.name],
+            exit_=new_name_map[end_marker.name],
         )
-        line.compound_container.define_compound(self.name, compound)
+        line.compound_container.define_compound(new_name_map[self.name], compound)
+        return list(new_name_map.values())
 
 
 class Aperture:
@@ -746,8 +750,8 @@ class MadLoader:
     ):
         out = {}  # tbc
         for el in elements:
-            xt_element = el.add_to_line(line, buffer)
-            out[el.name] = xt_element  # tbc
+            name = el.add_to_line(line, buffer)
+            out[el.name] = name  # tbc
         return out  # tbc
 
     @property
