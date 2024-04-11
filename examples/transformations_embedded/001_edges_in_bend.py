@@ -1,3 +1,4 @@
+import numpy as np
 import xtrack as xt
 import xobjects as xo
 
@@ -21,3 +22,11 @@ p2 = p1.copy()
 
 bend_only_e1.track(p1)
 edge_e1.track(p2)
+
+assert_allclose = np.testing.assert_allclose
+assert_allclose(p1.x, p2.x, rtol=0, atol=1e-14)
+assert_allclose(p1.px, p2.px, rtol=0, atol=1e-14)
+assert_allclose(p1.y, p2.y, rtol=0, atol=1e-14)
+assert_allclose(p1.py, p2.py, rtol=0, atol=1e-14)
+assert_allclose(p1.zeta, p2.zeta, rtol=0, atol=1e-14)
+assert_allclose(p1.delta, p2.delta, rtol=0, atol=1e-14)

@@ -22,7 +22,7 @@ logger.addHandler(logging.StreamHandler())
 
 def _skip_in_loss_location_refinement(element, line):
     if isinstance(element, xt.Replica):
-        return _skip_in_loss_location_refinement(line[element._parent_index], line)
+        return _skip_in_loss_location_refinement(element.resolve(line), line)
     return (hasattr(element, 'skip_in_loss_location_refinement')
             and element.skip_in_loss_location_refinement)
 
@@ -195,13 +195,14 @@ def check_for_active_shifts_and_rotations(line, i_aper_0, i_aper_1):
                 break
     return presence_shifts_rotations
 
+
 def apertures_are_identical(aper1, aper2, line):
 
-    while isinstance(aper1, xt.Replica):
-        aper1 = line[aper1._parent_name]
+    if isinstance(aper1, xt.Replica):
+        aper1 = aper1.resolve(line)
 
-    while isinstance(aper2, xt.Replica):
-        aper2 = line[aper2._parent_name]
+    if isinstance(aper2, xt.Replica):
+        aper2 = aper2.resolve(line)
 
     if aper1.__class__ != aper2.__class__:
         return False
@@ -225,6 +226,7 @@ def find_apertures(ln_gen):
             apertures.append(ee)
 
     return i_apertures, apertures
+
 
 def refine_loss_location_single_aperture(particles, i_aper_1, i_end_thin_0,
                     line, interp_line,
@@ -261,8 +263,8 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_end_thin_0,
             can_backtrack = False
 
             # Check for override
-            while isinstance(ee, xt.Replica):
-                ee = line[ee._parent_name]
+            if isinstance(ee, xt.Replica):
+                ee = ee.resolve(line)
             if isinstance(ee, tuple(allowed_backtrack_types)):
                 can_backtrack = True
 
@@ -445,8 +447,8 @@ def find_adjacent_drift(line, i_element, direction):
         increment = 1
     while not(found):
         ee = line.element_dict[line.element_names[ii]]
-        while isinstance(ee, xt.Replica):
-            ee = line.element_dict[ee._parent_name]
+        if isinstance(ee, xt.Replica):
+            ee = ee.resolve(line)
         ccnn = ee.__class__.__name__
         #_print(ccnn)
         if ccnn.startswith('Drift'):
@@ -464,8 +466,8 @@ def find_previous_drift(line, i_aperture):
     found = False
     while not(found):
         ee = line.element_dict[line.element_names[ii]]
-        while isinstance(ee, xt.Replica):
-            ee = line.element_dict[ee._parent_name]
+        if isinstance(ee, xt.Replica):
+            ee = ee.resolve(line)
         ccnn = ee.__class__.__name__
         if ccnn == 'Drift':
             found = True

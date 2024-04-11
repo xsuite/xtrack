@@ -575,6 +575,23 @@ class Replica:
             '__class__': 'Replica',
             '_parent_name': self._parent_name}
 
+    def resolve(self, element_container, get_name=False):
+        target_name = self._parent_name
+        visited = {target_name}
+        while isinstance(element := element_container[target_name], Replica):
+            target_name = element._parent_name
+            if target_name in visited:
+                raise RecursionError(
+                    f"Resolving replica of `{self._parent_name}` leads to a "
+                    "circular reference: check the correctness of your line."
+                )
+            visited.add(target_name)
+
+        if get_name:
+            return target_name
+
+        return element_container[target_name]
+
     @classmethod
     def from_dict(cls, dct):
         return cls(_parent_name=dct['_parent_name'])

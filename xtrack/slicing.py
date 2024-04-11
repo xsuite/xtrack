@@ -178,8 +178,8 @@ class Strategy:
         return self.match_name == name
 
     def _match_on_type(self, element, line):
-        while isinstance(element, xt.Replica):
-            element = line[element._parent_name]
+        if isinstance(element, xt.Replica):
+            element = element.resolve(line)
         return isinstance(element, self.element_type)
 
     def match_element(self, name, element, line):
@@ -300,12 +300,8 @@ class Slicer:
         if _edge_markers:
 
             if isinstance(element, xt.Replica):
-                ee = element
-                while isinstance(ee, xt.Replica):
-                    ee = self._line[ee._parent_name]
-                _buffer = ee._buffer
-            else:
-                _buffer = element._buffer
+                element = element.resolve(self._line)
+            _buffer = element._buffer
 
             entry_marker, exit_marker = f'{name}_entry', f'{name}_exit'
             if entry_marker not in self._line.element_dict:
@@ -320,8 +316,8 @@ class Slicer:
 
         # Handle aperture
         ee_for_aper = element
-        while isinstance(ee_for_aper, xt.Replica):
-            ee_for_aper = self._line[ee_for_aper._parent_name]
+        if isinstance(ee_for_aper, xt.Replica):
+            ee_for_aper = ee_for_aper.resolve(self._line)
         if (hasattr(ee_for_aper, 'name_associated_aperture')
             and ee_for_aper.name_associated_aperture is not None):
             new_slices_to_add = []
@@ -345,10 +341,9 @@ class Slicer:
         if self._use_cache:
             cache = self._strategy_cache
 
-            ee = element
-            while isinstance(ee, xt.Replica):
-                ee = self._line[ee._parent_name]
-            eltype = type(ee)
+            if isinstance(element, xt.Replica):
+                element = element.resolve(self._line)
+            eltype = type(element)
 
             try:
                 scheme, _ = cache[name, eltype]
@@ -401,9 +396,9 @@ class Slicer:
         """
 
         parent_name = name
-        while isinstance(element, xt.Replica):
-            parent_name = element._parent_name
-            element = self._line[element._parent_name]
+        if isinstance(element, xt.Replica):
+            parent_name = element.resolve(self._line, get_name=True)
+            element = self._line[parent_name]
 
         drift_idx, element_idx = 0, 0
         slices_to_append = []
