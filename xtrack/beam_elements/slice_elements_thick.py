@@ -22,6 +22,7 @@ class ThickSliceBend(BeamElement):
     has_backtrack = True
     _force_moveable = True
     isthick = True
+    _inherit_strengths = True
 
     _xofields = _thick_slice_bend_xofields
 
@@ -56,6 +57,7 @@ class ThickSliceQuadrupole(BeamElement):
     has_backtrack = True
     _force_moveable = True
     isthick = True
+    _inherit_strengths = True
 
     _xofields = _thick_slice_quadrupole_xofields
 
@@ -90,6 +92,7 @@ class ThickSliceSextupole(BeamElement):
     has_backtrack = True
     _force_moveable = True
     isthick = True
+    _inherit_strengths = True
 
     _xofields = _thick_slice_sextupole_xofields
 
@@ -127,6 +130,7 @@ class ThickSliceOctupole(BeamElement):
     has_backtrack = True
     _force_moveable = True
     isthick = True
+    _inherit_strengths = True
 
     _xofields = _thick_slice_octupole_xofields
 

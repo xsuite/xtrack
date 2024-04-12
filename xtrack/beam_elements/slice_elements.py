@@ -37,6 +37,7 @@ class ThinSliceQuadrupole(BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
     has_backtrack = True
     _force_moveable = True
+    _inherit_strengths = True
 
     _xofields = _thin_slice_quad_xofields
 
@@ -83,6 +84,7 @@ class ThinSliceSextupole(BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
     has_backtrack = True
     _force_moveable = True
+    _inherit_strengths = True
 
     _xofields = _thin_slice_sext_xofields
 
@@ -131,6 +133,7 @@ class ThinSliceOctupole(BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
     has_backtrack = True
     _force_moveable = True
+    _inherit_strengths = True
 
     _xofields = _thin_slice_oct_xofields
 
@@ -179,6 +182,7 @@ class ThinSliceBend(BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
     has_backtrack = True
     _force_moveable = True
+    _inherit_strengths = True
 
     _xofields = _thin_slice_bend_xofields
 

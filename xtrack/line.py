@@ -3507,45 +3507,44 @@ class Line:
                 'k0l': lambda attr: (
                     attr['_own_k0l']
                     + attr['_own_k0'] * attr['_own_length']
-                    + attr['_parent_k0l'] * attr['weight']
-                    + attr['_parent_k0'] * attr['_parent_length'] * attr['weight']),
+                    + attr['_parent_k0l'] * attr['weight'] * attr._inherit_strengths
+                    + attr['_parent_k0'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
                 'k0sl': lambda attr: (
                     attr['_own_k0sl']
                     + attr['_own_k0s'] * attr['_own_length']
-                    + attr['_parent_k0sl'] * attr['weight']
-                    + attr['_parent_k0s'] * attr['_parent_length'] * attr['weight']),
+                    + attr['_parent_k0sl'] * attr['weight']* attr._inherit_strengths
+                    + attr['_parent_k0s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
                 'k1l': lambda attr: (
                     attr['_own_k1l']
                     + attr['_own_k1'] * attr['_own_length']
-                    + attr['_parent_k1l'] * attr['weight']
-                    + attr['_parent_k1'] * attr['_parent_length'] * attr['weight']),
+                    + attr['_parent_k1l'] * attr['weight'] * attr._inherit_strengths
+                    + attr['_parent_k1'] * attr['_parent_length'] * attr['weight']* attr._inherit_strengths),
                 'k1sl': lambda attr: (
                     attr['_own_k1sl']
                     + attr['_own_k1s'] * attr['_own_length']
-                    + attr['_parent_k1sl'] * attr['weight']
-                    + attr['_parent_k1s'] * attr['_parent_length'] * attr['weight']),
+                    + attr['_parent_k1sl'] * attr['weight'] * attr._inherit_strengths
+                    + attr['_parent_k1s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
                 'k2l': lambda attr: (
                     attr['_own_k2l']
                     + attr['_own_k2'] * attr['_own_length']
-                    + attr['_parent_k2l'] * attr['weight']
-                    + attr['_parent_k2'] * attr['_parent_length'] * attr['weight']),
+                    + attr['_parent_k2l'] * attr['weight'] * attr._inherit_strengths
+                    + attr['_parent_k2'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
                 'k2sl': lambda attr: (
                     attr['_own_k2sl']
                     + attr['_own_k2s'] * attr['_own_length']
-                    + attr['_parent_k2sl'] * attr['weight']
-                    + attr['_parent_k2s'] * attr['_parent_length'] * attr['weight']),
+                    + attr['_parent_k2sl'] * attr['weight'] * attr._inherit_strengths
+                    + attr['_parent_k2s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
                 'k3l': lambda attr: (
                     attr['_own_k3l']
                     + attr['_own_k3'] * attr['_own_length']
-                    + attr['_parent_k3l'] * attr['weight']
-                    + attr['_parent_k3'] * attr['_parent_length'] * attr['weight']),
+                    + attr['_parent_k3l'] * attr['weight'] * attr._inherit_strengths
+                    + attr['_parent_k3'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
                 'k3sl': lambda attr: (
                     attr['_own_k3sl']
                     + attr['_own_k3s'] * attr['_own_length']
-                    + attr['_parent_k3sl'] * attr['weight']
-                    + attr['_parent_k3s'] * attr['_parent_length'] * attr['weight']),
+                    + attr['_parent_k3sl'] * attr['weight'] * attr._inherit_strengths
+                    + attr['_parent_k3s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
             }
-
         )
         return cache
 
@@ -4320,6 +4319,14 @@ class LineAttr:
         self.fields = fields
         self.derived_fields = derived_fields or {}
         self._cache = {}
+
+        # Build _inherit_strengths
+        _inherit_strengths = np.zeros(len(line.element_names), dtype=np.float64)
+        for ii, nn in enumerate(line.element_names):
+            ee = line.element_dict[nn]
+            if hasattr(ee, '_inherit_strengths') and ee._inherit_strengths:
+                _inherit_strengths[ii] = 1.
+        self._inherit_strengths = _inherit_strengths
 
         for fn, fa in zip(field_names, field_access):
             if isinstance(fa, str):
