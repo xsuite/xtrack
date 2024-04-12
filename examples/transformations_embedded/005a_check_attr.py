@@ -26,6 +26,7 @@ assert tt['isreplica', 'e0'] == False
 assert tt['parent_name', 'e0'] is None
 assert tt['isthick', 'e0'] == True
 assert tt['iscollective', 'e0'] == False
+assert_allclose(tt['s', 'e0'], 0, rtol=0, atol=1e-14)
 assert_allclose(tt['length', 'e0'], 1, rtol=0, atol=1e-14)
 assert_allclose(tt['angle_rad', 'e0'], 0.3, rtol=0, atol=1e-14)
 assert_allclose(tt['rot_s_rad', 'e0'], 0.2, rtol=0, atol=1e-14)
@@ -45,6 +46,7 @@ assert tt['isreplica', 'e1'] == False
 assert tt['parent_name', 'e1'] is None
 assert tt['isthick', 'e1'] == True
 assert tt['iscollective', 'e1'] == False
+assert_allclose(tt['s', 'e1'], 1., rtol=0, atol=1e-14)
 assert_allclose(tt['length', 'e1'], 0.5, rtol=0, atol=1e-14)
 assert_allclose(tt['angle_rad', 'e1'], 0.0, rtol=0, atol=1e-14)
 assert_allclose(tt['rot_s_rad', 'e1'], 0.1, rtol=0, atol=1e-14)
@@ -64,6 +66,7 @@ assert tt['isreplica', 'e2'] == False
 assert tt['parent_name', 'e2'] is None
 assert tt['isthick', 'e2'] == True
 assert tt['iscollective', 'e2'] == False
+assert_allclose(tt['s', 'e2'], 1.5, rtol=0, atol=1e-14)
 assert_allclose(tt['length', 'e2'], 0.3, rtol=0, atol=1e-14)
 assert_allclose(tt['angle_rad', 'e2'], 0.0, rtol=0, atol=1e-14)
 assert_allclose(tt['rot_s_rad', 'e2'], 0.3, rtol=0, atol=1e-14)
@@ -83,6 +86,7 @@ assert tt['isreplica', 'e3'] == False
 assert tt['parent_name', 'e3'] is None
 assert tt['isthick', 'e3'] == True
 assert tt['iscollective', 'e3'] == False
+assert_allclose(tt['s', 'e3'], 1.8, rtol=0, atol=1e-14)
 assert_allclose(tt['length', 'e3'], 0.4, rtol=0, atol=1e-14)
 assert_allclose(tt['angle_rad', 'e3'], 0.0, rtol=0, atol=1e-14)
 assert_allclose(tt['rot_s_rad', 'e3'], 0.4, rtol=0, atol=1e-14)
@@ -102,6 +106,7 @@ assert tt['isreplica', 'e4'] == False
 assert tt['parent_name', 'e4'] is None
 assert tt['isthick', 'e4'] == False
 assert tt['iscollective', 'e4'] == False
+assert_allclose(tt['s', 'e4'], 2.2, rtol=0, atol=1e-14)
 assert_allclose(tt['length', 'e4'], 0.4, rtol=0, atol=1e-14)
 assert_allclose(tt['angle_rad', 'e4'], 0.1, rtol=0, atol=1e-14)
 assert_allclose(tt['rot_s_rad', 'e4'], 0.7, rtol=0, atol=1e-14)
@@ -121,6 +126,7 @@ assert tt['isreplica', 'e5'] == False
 assert tt['parent_name', 'e5'] is None
 assert tt['isthick', 'e5'] == True
 assert tt['iscollective', 'e5'] == False
+assert_allclose(tt['s', 'e5'], 2.2, rtol=0, atol=1e-14)
 assert_allclose(tt['length', 'e5'], 5.0, rtol=0, atol=1e-14)
 assert_allclose(tt['angle_rad', 'e5'], 0.0, rtol=0, atol=1e-14)
 assert_allclose(tt['rot_s_rad', 'e5'], 0.0, rtol=0, atol=1e-14)
@@ -153,3 +159,9 @@ assert_allclose(tt['k0sl', 'e6'], 0.1, rtol=0, atol=1e-14)
 assert_allclose(tt['k1sl', 'e6'], 0.2, rtol=0, atol=1e-14)
 assert_allclose(tt['k2sl', 'e6'], 0.3, rtol=0, atol=1e-14)
 assert_allclose(tt['k3sl', 'e6'], 0.4, rtol=0, atol=1e-14)
+
+# Slice thin
+line.slice_thick_elements(
+    slicing_strategies=[xt.Strategy(xt.Uniform(2))])
+line.build_tracker()
+tt = line.get_table(attr=True)
