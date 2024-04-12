@@ -21,6 +21,8 @@ tt = line.get_table(attr=True)
 
 assert_allclose = np.testing.assert_allclose
 
+assert_allclose(tt['s', -1], 8.2, rtol=0, atol=1e-14)
+
 assert tt['element_type','e0'] == 'Bend'
 assert tt['isreplica', 'e0'] == False
 assert tt['parent_name', 'e0'] is None
@@ -165,3 +167,25 @@ line.slice_thick_elements(
     slicing_strategies=[xt.Strategy(xt.Uniform(2))])
 line.build_tracker()
 tt = line.get_table(attr=True)
+
+assert_allclose(tt['s', -1], 8.2, rtol=0, atol=1e-14)
+
+assert tt['element_type','e0..1'] == 'ThinSliceBend'
+assert tt['isreplica', 'e0..1'] == False
+assert tt['parent_name', 'e0..1'] == 'e0'
+assert tt['isthick', 'e0..1'] == False
+assert tt['iscollective', 'e0..1'] == False
+assert_allclose(tt['s', 'e0..1'], 2./3., rtol=0, atol=1e-14)
+assert_allclose(tt['length', 'e0..1'], 1, rtol=0, atol=1e-14)
+assert_allclose(tt['angle_rad', 'e0..1'], 0.3, rtol=0, atol=1e-14)
+assert_allclose(tt['rot_s_rad', 'e0..1'], 0.2, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_x', 'e0..1'], 1e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_y', 'e0..1'], 2e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['k0l', 'e0..1'], 0.4 * 1 + 0.7, rtol=0, atol=1e-14)
+assert_allclose(tt['k1l', 'e0..1'], 0.1 * 1 + 0.8, rtol=0, atol=1e-14)
+assert_allclose(tt['k2l', 'e0..1'], 0.9, rtol=0, atol=1e-14)
+assert_allclose(tt['k3l', 'e0..1'], 1.0, rtol=0, atol=1e-14)
+assert_allclose(tt['k0sl', 'e0..1'], 0.1, rtol=0, atol=1e-14)
+assert_allclose(tt['k1sl', 'e0..1'], 0.2, rtol=0, atol=1e-14)
+assert_allclose(tt['k2sl', 'e0..1'], 0.3, rtol=0, atol=1e-14)
+assert_allclose(tt['k3sl', 'e0..1'], 0.4, rtol=0, atol=1e-14)
