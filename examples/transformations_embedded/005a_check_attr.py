@@ -250,3 +250,23 @@ assert_allclose(tt['k0sl', 'drift_e0..1'], 0, rtol=0, atol=1e-14)
 assert_allclose(tt['k1sl', 'drift_e0..1'], 0, rtol=0, atol=1e-14)
 assert_allclose(tt['k2sl', 'drift_e0..1'], 0, rtol=0, atol=1e-14)
 assert_allclose(tt['k3sl', 'drift_e0..1'], 0, rtol=0, atol=1e-14)
+
+assert tt['element_type','e1..1'] == 'ThinSliceQuadrupole'
+assert tt['isreplica', 'e1..1'] == False
+assert tt['parent_name', 'e1..1'] == 'e1'
+assert tt['isthick', 'e1..1'] == False
+assert tt['iscollective', 'e1..1'] == False
+assert_allclose(tt['s', 'e1..1'], 1 + .5*2./3., rtol=0, atol=1e-14)
+assert_allclose(tt['length', 'e1..1'], 0.5*1/2, rtol=0, atol=1e-14)
+assert_allclose(tt['angle_rad', 'e1..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['rot_s_rad', 'e1..1'], 0.1, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_x', 'e1..1'], 2e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_y', 'e1..1'], 1e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['k0l', 'e1..1'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['k1l', 'e1..1'], 0.1 * 0.5 / 2, rtol=0, atol=1e-14)
+assert_allclose(tt['k2l', 'e1..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k3l', 'e1..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k0sl', 'e1..1'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['k1sl', 'e1..1'], 0.5 * 0.2 / 2, rtol=0, atol=1e-14)
+assert_allclose(tt['k2sl', 'e1..1'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['k3sl', 'e1..1'], 0., rtol=0, atol=1e-14)
