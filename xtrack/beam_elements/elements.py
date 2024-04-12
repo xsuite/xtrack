@@ -659,11 +659,11 @@ class Multipole(BeamElement):
         # in the meantime let's produce a minimal dict that allows to
         # reconstruct the xobject according to the rules outlined above.
 
-        if np.allclose(self.knl, 0, atol=1e-16):
-            del out['knl']
+        if 'knl' in out and np.allclose(out['knl'], 0, atol=1e-16):
+            out.pop('knl', None)
 
-        if np.allclose(self.ksl, 0, atol=1e-16):
-            del out['ksl']
+        if 'ksl' in out and np.allclose(out['ksl'], 0, atol=1e-16):
+            out.pop('ksl', None)
 
         if self.order != 0 and 'knl' not in out and 'ksl' not in out:
             out['order'] = self.order
