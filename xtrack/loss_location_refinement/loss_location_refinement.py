@@ -267,6 +267,8 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_end_thin_0,
                 can_backtrack = True
 
         if not can_backtrack:
+            if _skip_in_loss_location_refinement(ee, line):
+                return 'skipped'
             raise TypeError(
                 f'Cannot backtrack through element {nn} of type '
                 f'{ee.__class__.__name__}')
