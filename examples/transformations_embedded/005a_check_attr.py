@@ -74,3 +74,21 @@ assert_allclose(tt['k1sl', 'e2'], 0.0, rtol=0, atol=1e-14)
 assert_allclose(tt['k2sl', 'e2'], 0.2 * 0.3, rtol=0, atol=1e-14)
 assert_allclose(tt['k3sl', 'e2'], 0, rtol=0, atol=1e-14)
 
+assert tt['element_type','e3'] == 'Octupole'
+assert tt['isreplica', 'e3'] == False
+assert tt['parent_name', 'e3'] is None
+assert tt['isthick', 'e3'] == True
+assert tt['iscollective', 'e3'] == False
+assert_allclose(tt['length', 'e3'], 0.4, rtol=0, atol=1e-14)
+assert_allclose(tt['angle_rad', 'e3'], 0.0, rtol=0, atol=1e-14)
+assert_allclose(tt['rot_s_rad', 'e3'], 0.4, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_x', 'e3'], 4e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_y', 'e3'], 4e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['k0l', 'e3'], 0.0, rtol=0, atol=1e-14)
+assert_allclose(tt['k1l', 'e3'], 0.0, rtol=0, atol=1e-14)
+assert_allclose(tt['k2l', 'e3'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k3l', 'e3'], 0.1 * 0.4, rtol=0, atol=1e-14)
+assert_allclose(tt['k0sl', 'e3'], 0.0, rtol=0, atol=1e-14)
+assert_allclose(tt['k1sl', 'e3'], 0.0, rtol=0, atol=1e-14)
+assert_allclose(tt['k2sl', 'e3'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k3sl', 'e3'], 0.2 * 0.4, rtol=0, atol=1e-14)
