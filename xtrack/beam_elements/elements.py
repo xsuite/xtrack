@@ -17,7 +17,7 @@ from ..internal_record import RecordIndex, RecordIdentifier
 
 class ReferenceEnergyIncrease(BeamElement):
 
-    '''Beam element modeling a change of reference energy (acceleration, 
+    '''Beam element modeling a change of reference energy (acceleration,
     deceleration).
 
     Parameters
