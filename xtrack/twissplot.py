@@ -186,8 +186,8 @@ class TwissPlot(object):
         #    print 'optics run'
         self.ont = self.table
         self.xaxis = getattr(self.ont, self.x)[self.idx]
-        is_ion = pl.isinteractive()
-        pl.interactive(False)
+        #is_ion = pl.isinteractive()
+        #pl.interactive(False)
         self.lines = []
         self.legends = []
         #    self.figure.lines=[]
@@ -219,7 +219,7 @@ class TwissPlot(object):
         ca.grid(True)
         #    self.figure.canvas.mpl_connect('button_release_event',self.button_press)
         self.figure.canvas.mpl_connect("pick_event", self.pick)
-        pl.interactive(is_ion)
+        #pl.interactive(is_ion)
         self.figure.canvas.draw()
         if hasattr(self, "on_run"):
             self.on_run(self)
