@@ -15,7 +15,7 @@ mult = xt.Multipole(knl=[0.7, 0.8, 0.9, 1.0], ksl=[0.1, 0.2, 0.3, 0.4],
                     hxl=0.1)
 drift = xt.Drift(length=5.0)
 
-line = xt.Line(elements=[bend, quad, sext, octu, mult, drift])
+line = xt.Line(elements=[bend, quad, sext, octu, mult, drift, xt.Replica(_parent_name='e0')])
 line.build_tracker()
 tt = line.get_table(attr=True)
 
@@ -135,3 +135,21 @@ assert_allclose(tt['k1sl', 'e5'], 0.0, rtol=0, atol=1e-14)
 assert_allclose(tt['k2sl', 'e5'], 0.0, rtol=0, atol=1e-14)
 assert_allclose(tt['k3sl', 'e5'], 0.0, rtol=0, atol=1e-14)
 
+assert tt['element_type','e6'] == 'Bend'
+assert tt['isreplica', 'e6'] == True
+assert tt['parent_name', 'e6'] == 'e0'
+assert tt['isthick', 'e6'] == True
+assert tt['iscollective', 'e6'] == False
+assert_allclose(tt['length', 'e6'], 1, rtol=0, atol=1e-14)
+assert_allclose(tt['angle_rad', 'e6'], 0.3, rtol=0, atol=1e-14)
+assert_allclose(tt['rot_s_rad', 'e6'], 0.2, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_x', 'e6'], 1e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_y', 'e6'], 2e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['k0l', 'e6'], 0.4 * 1 + 0.7, rtol=0, atol=1e-14)
+assert_allclose(tt['k1l', 'e6'], 0.1 * 1 + 0.8, rtol=0, atol=1e-14)
+assert_allclose(tt['k2l', 'e6'], 0.9, rtol=0, atol=1e-14)
+assert_allclose(tt['k3l', 'e6'], 1.0, rtol=0, atol=1e-14)
+assert_allclose(tt['k0sl', 'e6'], 0.1, rtol=0, atol=1e-14)
+assert_allclose(tt['k1sl', 'e6'], 0.2, rtol=0, atol=1e-14)
+assert_allclose(tt['k2sl', 'e6'], 0.3, rtol=0, atol=1e-14)
+assert_allclose(tt['k3sl', 'e6'], 0.4, rtol=0, atol=1e-14)
