@@ -650,9 +650,7 @@ class Line:
         for ee in elements:
             ee_pname = None
             if isinstance(ee, xt.Replica):
-                ee_pname = ee._parent_name
-                while isinstance(ee, xt.Replica):
-                    ee = self.element_dict[ee._parent_name]
+                ee = ee.resolve(self)
                 isreplica.append(True)
             else:
                 isreplica.append(False)
@@ -2882,7 +2880,7 @@ class Line:
                 continue
             ee = self.element_dict[name]
             if isinstance(ee, xt.Replica):
-                ee = self.element_dict[ee._parent_name]
+                ee = ee.resolve(self)
             if _allow_backtrack(ee, self) and not name in needs_aperture:
                 dont_need_aperture[name] = True
             if name.endswith('_entry') or name.endswith('_exit'):
@@ -3768,7 +3766,7 @@ def mk_class_namespace(extra_classes):
 
 def _length(element, line):
     if isinstance(element, xt.Replica):
-        return _length(line[element._parent_name], line)
+        element = element.resolve(line)
     if hasattr(element, 'length'):
         return element.length
     assert hasattr(element, '_parent_name')
@@ -3776,8 +3774,8 @@ def _length(element, line):
 
 def _is_drift(element, line):
     if isinstance(element, xt.Replica):
-        return _is_drift(line[element._parent_name], line)
-    if isinstance(element, (beam_elements.Drift)):
+        element = element.resolve(line)
+    if isinstance(element, beam_elements.Drift):
         return True
     if type(element).__name__.startswith('Drift'):
         return True
@@ -3787,35 +3785,35 @@ def _behaves_like_drift(element, line):
     if _is_drift(element, line):
         return True
     if isinstance(element, xt.Replica):
-        return _behaves_like_drift(line[element._parent_name], line)
+        element = element.resolve(line)
     return hasattr(element, 'behaves_like_drift') and element.behaves_like_drift
 
 def _is_aperture(element, line):
     if isinstance(element, xt.Replica):
-        return _is_aperture(line[element._parent_name], line)
+        element = element.resolve(line)
     return element.__class__.__name__.startswith('Limit')
 
 def _is_thick(element, line):
     if isinstance(element, xt.Replica):
-        return _is_thick(line[element._parent_name], line)
+        element = element.resolve(line)
     return hasattr(element, "isthick") and element.isthick
 
 def _is_collective(element, line):
     if isinstance(element, xt.Replica):
-        return _is_collective(line[element._parent_name], line)
+        element = element.resolve(line)
     iscoll = not hasattr(element, 'iscollective') or element.iscollective
     return iscoll
 
 # whether backtrack in loss location refinement is allowed
 def _allow_backtrack(element, line):
     if isinstance(element, xt.Replica):
-        return _allow_backtrack(line[element._parent_name], line)
+        element = element.resolve(line)
     return hasattr(element, 'allow_backtrack') and element.allow_backtrack
 
 # whether element has backtrack capability
 def _has_backtrack(element, line):
     if isinstance(element, xt.Replica):
-        return _has_backtrack(line[element._parent_name], line)
+        element = element.resolve(line)
     return hasattr(element, 'has_backtrack') and element.has_backtrack
 
 def _next_name(prefix, names, name_format='{}{}'):
@@ -3851,9 +3849,9 @@ def _apertures_equal(ap1, ap2, line):
     if not _is_aperture(ap1, line) or not _is_aperture(ap2, line):
         raise ValueError(f"Element {ap1} or {ap2} not an aperture!")
     if isinstance(ap1, xt.Replica):
-        ap1 = line[ap1._parent_name]
+        ap1 = ap1.resolve(line)
     if isinstance(ap2, xt.Replica):
-        ap2 = line[ap2._parent_name]
+        ap2 = ap2.resolve(line)
     if ap1.__class__ != ap2.__class__:
         return False
     ap1 = ap1.to_dict()
@@ -4252,8 +4250,8 @@ class LineAttrItem:
         setter_names = []
         for ii, nn in enumerate(all_names):
             ee = line.element_dict[nn]
-            while isinstance(ee, xt.Replica):
-                nn = ee._parent_name
+            if isinstance(ee, xt.Replica):
+                nn = ee.resolve(line, get_name=True)
                 ee = line[nn]
             if isinstance(name, (list, tuple)):
                 inner_obj = ee
