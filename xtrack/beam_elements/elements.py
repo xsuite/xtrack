@@ -840,10 +840,10 @@ class Bend(BeamElement):
         out['model'] = self.model
 
         # See the comment in Multiple.to_dict about knl/ksl/order dumping
-        if np.allclose(out['knl'], 0, atol=1e-16):
+        if 'knl' in out and np.allclose(out['knl'], 0, atol=1e-16):
             out.pop('knl', None)
 
-        if np.allclose(out['ksl'], 0, atol=1e-16):
+        if 'ksl' in out and np.allclose(out['ksl'], 0, atol=1e-16):
             out.pop('ksl', None)
 
         if self.order != 0 and 'knl' not in out and 'ksl' not in out:
