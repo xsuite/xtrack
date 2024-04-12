@@ -209,3 +209,44 @@ assert_allclose(tt['k0sl', 'e0..exit_map'], 0, rtol=0, atol=1e-14)
 assert_allclose(tt['k1sl', 'e0..exit_map'], 0, rtol=0, atol=1e-14)
 assert_allclose(tt['k2sl', 'e0..exit_map'], 0, rtol=0, atol=1e-14)
 assert_allclose(tt['k3sl', 'e0..exit_map'], 0, rtol=0, atol=1e-14)
+
+assert tt['element_type','e0..entry_map'] == 'ThinSliceBendEntry'
+assert tt['isreplica', 'e0..entry_map'] == False
+assert tt['parent_name', 'e0..entry_map'] == 'e0'
+assert tt['isthick', 'e0..entry_map'] == False
+assert tt['iscollective', 'e0..entry_map'] == False
+assert_allclose(tt['s', 'e0..entry_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['length', 'e0..entry_map'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['angle_rad', 'e0..entry_map'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['rot_s_rad', 'e0..entry_map'], 0.2, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_x', 'e0..entry_map'], 1e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_y', 'e0..entry_map'], 2e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['k0l', 'e0..entry_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k1l', 'e0..entry_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k2l', 'e0..entry_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k3l', 'e0..entry_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k0sl', 'e0..entry_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k1sl', 'e0..entry_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k2sl', 'e0..entry_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k3sl', 'e0..entry_map'], 0, rtol=0, atol=1e-14)
+
+
+assert tt['element_type','drift_e0..1'] == 'DriftSliceBend'
+assert tt['isreplica', 'drift_e0..1'] == False
+assert tt['parent_name', 'drift_e0..1'] == 'e0'
+assert tt['isthick', 'drift_e0..1'] == True
+assert tt['iscollective', 'drift_e0..1'] == False
+assert_allclose(tt['s', 'drift_e0..1'], 1./3, rtol=0, atol=1e-14)
+assert_allclose(tt['length', 'drift_e0..1'], 1/3, rtol=0, atol=1e-14)
+assert_allclose(tt['angle_rad', 'drift_e0..1'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['rot_s_rad', 'drift_e0..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_x', 'drift_e0..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_y', 'drift_e0..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k0l', 'drift_e0..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k1l', 'drift_e0..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k2l', 'drift_e0..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k3l', 'drift_e0..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k0sl', 'drift_e0..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k1sl', 'drift_e0..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k2sl', 'drift_e0..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k3sl', 'drift_e0..1'], 0, rtol=0, atol=1e-14)
