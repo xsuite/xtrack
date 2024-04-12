@@ -650,6 +650,7 @@ class Line:
         for ee in elements:
             ee_pname = None
             if isinstance(ee, xt.Replica):
+                ee_pname = ee._parent_name
                 ee = ee.resolve(self)
                 isreplica.append(True)
             else:
