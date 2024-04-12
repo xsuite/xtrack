@@ -171,7 +171,7 @@ class Multiline:
         return cls.from_dict(dct, **kwargs)
 
     @classmethod
-    def from_madx(cls, file, stdout=None, return_lines=False, **kwargs):
+    def from_madx(cls, filename=None, madx=None, stdout=None, return_lines=False, **kwargs):
         '''
         Load a multiline from a MAD-X file.
 
@@ -188,10 +188,11 @@ class Multiline:
         new_multiline: Multiline
             The multiline object.
         '''
-        from cpymad.madx import Madx
-
-        mad = Madx(stdout=stdout)
-        mad.call(file)
+        if madx is None:
+           from cpymad.madx import Madx
+           madx = Madx(stdout=stdout)
+        if filename is not None:
+           mad.call(filename)
         lines = {}
         for nn in mad.sequence.keys():
             lines[nn] = xt.Line.from_madx_sequence(
