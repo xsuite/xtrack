@@ -192,21 +192,21 @@ class Multiline:
            from cpymad.madx import Madx
            madx = Madx(stdout=stdout)
         if filename is not None:
-           mad.call(filename)
+           madx.call(filename)
         lines = {}
-        for nn in mad.sequence.keys():
+        for nn in madx.sequence.keys():
             lines[nn] = xt.Line.from_madx_sequence(
-                mad.sequence[nn],
+                madx.sequence[nn],
                 allow_thick=True,
                 deferred_expressions=True,
                 **kwargs)
 
             lines[nn].particle_ref = xt.Particles(
-                mass0=mad.sequence[nn].beam.mass*1e9,
-                q0=mad.sequence[nn].beam.charge,
-                gamma0=mad.sequence[nn].beam.gamma)
+                mass0=madx.sequence[nn].beam.mass*1e9,
+                q0=madx.sequence[nn].beam.charge,
+                gamma0=madx.sequence[nn].beam.gamma)
 
-            if mad.sequence[nn].beam.bv == -1:
+            if madx.sequence[nn].beam.bv == -1:
                 lines[nn].twiss_default['reverse'] = True
 
         if return_lines:
