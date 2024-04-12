@@ -3451,6 +3451,8 @@ class Line:
 
                 '_own_sin_rot_s': '_sin_rot_s',
                 '_own_cos_rot_s': '_cos_rot_s',
+                '_own_shift_x': '_shift_x',
+                '_own_shift_y': '_shift_y',
 
                 '_own_h': 'h',
                 '_own_hxl': 'hxl',
@@ -3476,6 +3478,8 @@ class Line:
                 '_parent_length': (('_parent', 'length'), None),
                 '_parent_sin_rot_s': (('_parent', '_sin_rot_s'), None),
                 '_parent_cos_rot_s': (('_parent', '_cos_rot_s'), None),
+                '_parent_shift_x': (('_parent', '_shift_x'), None),
+                '_parent_shift_y': (('_parent', '_shift_y'), None),
 
                 '_parent_h': (('_parent', 'h'), None),
                 '_parent_hxl': (('_parent', 'hxl'), None),
@@ -3504,6 +3508,12 @@ class Line:
                     attr['_own_length'] + attr['_parent_length'] * attr['weight'],
                 'angle_rad': _angle_from_attr,
                 'rot_s_rad': _rot_s_from_attr,
+                'shift_x': lambda attr:
+                    attr['_own_shift_x'] + attr['_parent_shift_x']
+                    * attr._rot_and_shift_from_parent,
+                'shift_y': lambda attr:
+                    attr['_own_shift_y'] + attr['_parent_shift_y']
+                    * attr._rot_and_shift_from_parent,
                 'k0l': lambda attr: (
                     attr['_own_k0l']
                     + attr['_own_k0'] * attr['_own_length']
@@ -4320,13 +4330,17 @@ class LineAttr:
         self.derived_fields = derived_fields or {}
         self._cache = {}
 
-        # Build _inherit_strengths
+        # Build _inherit_strengths and _rot_and_shift_from_parent
         _inherit_strengths = np.zeros(len(line.element_names), dtype=np.float64)
+        _rot_and_shift_from_parent = np.zeros(len(line.element_names), dtype=np.float64)
         for ii, nn in enumerate(line.element_names):
             ee = line.element_dict[nn]
             if hasattr(ee, '_inherit_strengths') and ee._inherit_strengths:
                 _inherit_strengths[ii] = 1.
+            if hasattr(ee, 'rot_and_shift_from_parent') and ee.rot_and_shift_from_parent:
+                _rot_and_shift_from_parent[ii] = 1.
         self._inherit_strengths = _inherit_strengths
+        self._rot_and_shift_from_parent = _rot_and_shift_from_parent
 
         for fn, fa in zip(field_names, field_access):
             if isinstance(fa, str):
@@ -4538,7 +4552,7 @@ def _rot_s_from_attr(attr):
     rot_s_rad[has_own_rot] = np.arctan2(own_sin_rot_s[has_own_rot],
                                         own_cos_rot_s[has_own_rot])
     rot_s_rad[has_parent_rot] = np.arctan2(parent_sin_rot_s[has_parent_rot],
-                                            parent_cos_rot_s[has_parent_rot])
+        parent_cos_rot_s[has_parent_rot] * attr._rot_and_shift_from_parent[has_parent_rot])
 
     return rot_s_rad
 
