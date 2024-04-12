@@ -4526,7 +4526,8 @@ def _angle_from_attr(attr):
     parent_length = attr['_parent_length']
 
     own_hxl_proper_system = own_hxl + own_h * own_length
-    parent_hxl_proper_system = parent_hxl * weight + parent_h * parent_length * weight
+    parent_hxl_proper_system = ((parent_hxl * weight + parent_h * parent_length * weight)
+                                * attr._inherit_strengths)
 
     angle = own_hxl_proper_system + parent_hxl_proper_system
 
@@ -4553,7 +4554,7 @@ def _rot_s_from_attr(attr):
     rot_s_rad[has_own_rot] = np.arctan2(own_sin_rot_s[has_own_rot],
                                         own_cos_rot_s[has_own_rot])
     rot_s_rad[has_parent_rot] = np.arctan2(parent_sin_rot_s[has_parent_rot],
-        parent_cos_rot_s[has_parent_rot] * attr._rot_and_shift_from_parent[has_parent_rot])
+        parent_cos_rot_s[has_parent_rot]) * attr._rot_and_shift_from_parent[has_parent_rot]
 
     return rot_s_rad
 
