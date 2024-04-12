@@ -34,6 +34,7 @@ class ReferenceEnergyIncrease(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/referenceenergyincrease.h')]
 
     has_backtrack = True
+    allow_rot_and_shift = False
 
 
 class Marker(BeamElement):
@@ -349,6 +350,7 @@ class XRotation(BeamElement):
 
     allow_backtrack = True
     has_backtrack = True
+    allow_rot_and_shift = False
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/xrotation.h')]
@@ -430,6 +432,7 @@ class YRotation(BeamElement):
 
     has_backtrack = True
     allow_backtrack = True
+    allow_rot_and_shift = False
 
     _xofields={
         'sin_angle': xo.Float64,
@@ -526,6 +529,7 @@ class ZetaShift(BeamElement):
         }
 
     has_backtrack = True
+    allow_rot_and_shift = False
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/zetashift.h')]
