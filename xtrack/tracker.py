@@ -52,6 +52,7 @@ class Tracker:
         particles_monitor_class=None,
         extra_headers=(),
         local_particle_src=None,
+        _prebuilding_kernels=False,
     ):
 
         # Check if there are collective elements
@@ -106,16 +107,24 @@ class Tracker:
         else:
             ele_dict_non_collective = line.element_dict
 
+        if _prebuilding_kernels:
+            element_s_locations = np.zeros(len(line.element_names))
+            line_length = 0.
+        else:
+            element_s_locations = line.get_s_elements()
+            line_length = line.get_length()
+
         tracker_data_base = TrackerData(
             allow_move=True, # Will move elements to the same buffer
             element_dict=ele_dict_non_collective,
             element_names=line.element_names,
-            element_s_locations=line.get_s_elements(),
-            line_length=line.get_length(),
+            element_s_locations=element_s_locations,
+            line_length=line_length,
             kernel_element_classes=None,
             extra_element_classes=(particles_monitor_class._XoStruct,),
             _context=_context,
-            _buffer=_buffer)
+            _buffer=_buffer,
+            _no_resolve_parents=_prebuilding_kernels)
         line._freeze()
 
         if np.any([hasattr(ee, 'needs_rng') and ee.needs_rng for ee in line.elements]):
@@ -131,7 +140,8 @@ class Tracker:
         self._tracker_data_cache = {}
         self._tracker_data_cache[None] = tracker_data_base
 
-        self._get_twiss_mask_markers() # to cache it
+        if not _prebuilding_kernels:
+            self._get_twiss_mask_markers() # to cache it
 
         self._init_io_buffer(io_buffer)
 
