@@ -7,16 +7,16 @@ xo.context_default.kernels.clear()
 # only edge entry
 bend_only_e1 = xt.Bend(
     length=0, k0=0.1,
-    edge_entry_angle=0.05,
-    edge_entry_hgap=0.06,
-    edge_entry_fint=0.08,
-    edge_exit_active=False)
+    edge_exit_angle=0.05,
+    edge_exit_hgap=0.06,
+    edge_exit_fint=0.08,
+    edge_entry_active=False)
 
 edge_e1 = xt.DipoleEdge(
-    k=0.1, side='entry', e1=0.05, hgap=0.06, fint=0.08)
+    k=0.1, side='exit', e1=0.05, hgap=0.06, fint=0.08)
 
 edge_e1.model = 'full'
-bend_only_e1.edge_entry_model = 'full'
+bend_only_e1.edge_exit_model = 'full'
 
 p1 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03)
 p2 = p1.copy()
