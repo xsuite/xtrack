@@ -624,10 +624,14 @@ class Multipole(BeamElement):
         nksl = np.zeros(n, dtype=np.float64)
 
         if knl is not None:
-            nknl[: len(knl)] = self._arr2ctx(np.array(knl))
+            if hasattr(knl, 'get'):
+                knl = knl.get()
+            nknl[: len(knl)] = np.array(knl)
 
         if ksl is not None:
-            nksl[: len(ksl)] = self._arr2ctx(np.array(ksl))
+            if hasattr(ksl, 'get'):
+                ksl = ksl.get()
+            nksl[: len(ksl)] = np.array(ksl)
 
         if 'delta_taper' not in kwargs.keys():
             kwargs['delta_taper'] = 0.0
