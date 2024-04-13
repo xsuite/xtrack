@@ -44,7 +44,7 @@ def test_survey_slicing(test_context, slice_mode, tilted, orientation,
             xt.Bend(),
         ]
     )
-    line.build_tracker()
+    line.build_tracker(_context=test_context)
 
     line.vars['l_drift'] = 999.
     line.vars['l_bend'] = 999.
@@ -71,9 +71,10 @@ def test_survey_slicing(test_context, slice_mode, tilted, orientation,
     line.element_refs['e5'].rot_s_rad = line.vars['tilt_bend_deg'] * np.pi / 180
     line.element_refs['e7'].rot_s_rad = line.vars['tilt_bend_deg'] * np.pi / 180
 
-    line.slice_thick_elements(
-        slicing_strategies=[xt.Strategy(xt.Teapot(20, mode=slice_mode))])
-    line.build_tracker()
+    if slice_mode is not None:
+        line.slice_thick_elements(
+            slicing_strategies=[xt.Strategy(xt.Teapot(20, mode=slice_mode))])
+        line.build_tracker(_context=test_context)
 
     line.vars['l_drift'] = 1
     line.vars['l_bend'] = 1
@@ -90,7 +91,7 @@ def test_survey_slicing(test_context, slice_mode, tilted, orientation,
     if slice_mode == 'thin' and transform_to_actual_elements:
         line.discard_tracker()
         line._replace_with_equivalent_elements()
-        line.build_tracker()
+        line.build_tracker(_context=test_context)
         assert isinstance(line['e1..1'], xt.Multipole)
 
     sv = line.survey()
@@ -102,13 +103,17 @@ def test_survey_slicing(test_context, slice_mode, tilted, orientation,
 
     if not tilted and orientation == 'acw':
         assert_allclose(np.abs(sv.Y), 0, rtol=0, atol=1e-14)
-        assert_allclose(np.trapz(sv.X, sv.Z), -4.818 , rtol=0, atol=2e-3) # clockwise
+        assert_allclose(np.trapz(sv.X, sv.Z), -4.818 , rtol=0, # anti-clockwise
+                        atol=(2e-3 if slice_mode is not None else 0.5))
     elif not tilted and orientation == 'cw':
         assert_allclose(np.abs(sv.Y), 0, rtol=0, atol=1e-14)
-        assert_allclose(np.trapz(sv.X, sv.Z), 4.818 , rtol=0, atol=2e-3)
+        assert_allclose(np.trapz(sv.X, sv.Z), 4.818 , rtol=0, # clockwise
+                        atol=(2e-3 if slice_mode is not None else 0.5))
     elif tilted and orientation == 'acw':
         assert_allclose(np.abs(sv.X), 0, rtol=0, atol=1e-14)
-        assert_allclose(np.trapz(sv.Y, sv.Z), -4.818 , rtol=0, atol=2e-3)
+        assert_allclose(np.trapz(sv.Y, sv.Z), -4.818 , rtol=0, # anti-clockwise
+                        atol=(2e-3 if slice_mode is not None else 0.5))
     elif tilted and orientation == 'cw':
         assert_allclose(np.abs(sv.X), 0, rtol=0, atol=1e-14)
-        assert_allclose(np.trapz(sv.Y, sv.Z), 4.818 , rtol=0, atol=2e-3)
+        assert_allclose(np.trapz(sv.Y, sv.Z), 4.818 , rtol=0, # clockwise
+                        atol=(2e-3 if slice_mode is not None else 0.5))
