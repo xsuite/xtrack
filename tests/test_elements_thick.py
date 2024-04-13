@@ -803,13 +803,13 @@ def test_import_thick_with_apertures_and_slice():
     line.build_tracker(compile=False) # To resolve parents
 
     for i in range(4):
-        _assert_eq(line[f'elm_aper..{i}']._parent.rot_s_rad, 0.1)
-        _assert_eq(line[f'elm_aper..{i}']._parent.shift_x, 0.2)
-        _assert_eq(line[f'elm_aper..{i}']._parent.shift_y, 0.3)
-        _assert_eq(line[f'elm_aper..{i}']._parent.max_x, 0.1)
-        _assert_eq(line[f'elm_aper..{i}']._parent.max_y, 0.2)
-        _assert_eq(line[f'elm_aper..{i}']._parent.a_squ, 0.11 ** 2)
-        _assert_eq(line[f'elm_aper..{i}']._parent.b_squ, 0.22 ** 2)
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).rot_s_rad, 0.1)
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).shift_x, 0.2)
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).shift_y, 0.3)
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).max_x, 0.1)
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).max_y, 0.2)
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).a_squ, 0.11 ** 2)
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).b_squ, 0.22 ** 2)
 
     for i in range(2):
         _assert_eq(line[f'elm..{i}']._parent.rot_s_rad, 0.2)
