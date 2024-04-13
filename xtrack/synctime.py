@@ -1,3 +1,5 @@
+import xobjects as xo
+
 COAST_STATE_RANGE_START= 1000000
 DEFAULT_FRAME_RELATIVE_LENGTH = 0.9
 
@@ -15,6 +17,9 @@ class SyncTime:
         self.at_end = at_end
 
     def track(self, particles):
+
+        assert isinstance(particles._context, xo.ContextCpu), (
+                          'SyncTime only available for CPU for now')
 
         beta0 = particles._xobject.beta0[0]
         beta1 = beta0 / self.frame_relative_length

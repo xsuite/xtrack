@@ -656,6 +656,7 @@ class MadLoader:
 
         self.allow_thick = allow_thick
         self.use_compound_elements = use_compound_elements
+        self.bv = 1
 
     def iter_elements(self, madeval=None):
         """Yield element data for each known element"""

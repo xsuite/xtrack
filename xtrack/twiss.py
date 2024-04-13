@@ -890,6 +890,11 @@ def _twiss_open(line, init,
     delta_co = np.array(line.record_last_track.delta[0, i_start:i_stop+1].copy())
     ptau_co = np.array(line.record_last_track.ptau[0, i_start:i_stop+1].copy())
     s_co = line.record_last_track.s[0, i_start:i_stop+1].copy()
+    ax_co = line.record_last_track.ax[0, i_start:i_stop+1].copy()
+    ay_co = line.record_last_track.ay[0, i_start:i_stop+1].copy()
+    pz_co = np.sqrt((1 + delta_co)**2 - (px_co - ax_co)**2 - (py_co - ay_co)**2)
+    x_prime_co = (px_co - ax_co) / pz_co
+    y_prime_co = (py_co - ay_co) / pz_co
 
     Ws = np.zeros(shape=(len(s_co), 6, 6), dtype=np.float64)
     Ws[:, 0, :] = 0.5 * (line.record_last_track.x[1:7, i_start:i_stop+1] - x_co).T / scale_eigen
@@ -927,6 +932,10 @@ def _twiss_open(line, init,
         zeta_co = zeta_co[mask_twiss]
         delta_co = delta_co[mask_twiss]
         ptau_co = ptau_co[mask_twiss]
+        x_prime_co = x_prime_co[mask_twiss]
+        y_prime_co = y_prime_co[mask_twiss]
+        ax_co = ax_co[mask_twiss]
+        ay_co = ay_co[mask_twiss]
         dzeta = dzeta[mask_twiss]
         Ws = Ws[mask_twiss, :, :]
 
@@ -943,6 +952,10 @@ def _twiss_open(line, init,
         'delta': delta_co,
         'ptau': ptau_co,
         'W_matrix': Ws,
+        'x_prime': x_prime_co,
+        'y_prime': y_prime_co,
+        'ax': ax_co,
+        'ay': ay_co,
     })
 
     if not only_orbit and compute_lattice_functions:
@@ -1349,7 +1362,8 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
                                        px_co, py_co, ptau_co, W_matrix,
                                        T_rev0, line, radiation_method):
     diff_ptau = np.diff(ptau_co)
-    eloss_turn = -sum(diff_ptau[diff_ptau<0]) * particle_on_co._xobject.p0c[0]
+    mask_loss = diff_ptau < 0
+    eloss_turn = -sum(diff_ptau[mask_loss]) * particle_on_co._xobject.p0c[0]
 
     # Get eigenvalues
     w0, v0 = np.linalg.eig(R_matrix)
@@ -1361,10 +1375,14 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
 
     # Damping constants and partition numbers
     energy0 = particle_on_co.mass0 * particle_on_co._xobject.gamma0[0]
+
     damping_constants_turns = -np.log(np.abs(eigenvals))
     damping_constants_s = damping_constants_turns / T_rev0
+
+    # https://cds.cern.ch/record/175614 , Eq. 4.24
     partition_numbers = (
-        damping_constants_turns* 2 * energy0/eloss_turn)
+        damping_constants_turns * 2
+        / (-np.sum(diff_ptau[mask_loss] / (1 + ptau_co[:-1][mask_loss]))))
 
     eneloss_damp_res = {
         'eneloss_turn': eloss_turn,

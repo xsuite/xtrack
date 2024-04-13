@@ -24,7 +24,7 @@ class RFT_Element:
     isthick = True
 
     def __init__(self, element):
-        
+
         import RF_Track as rft
         self.length = element.get_length()
         self.lattice = rft.Lattice()
@@ -35,7 +35,7 @@ class RFT_Element:
         self.arr_for_xt = np.empty(0)
 
     def track(self, particles, increment_at_element=False):
-        
+
         p = particles
         if p.x.shape[0]==0:
            return
@@ -66,7 +66,6 @@ class RFT_Element:
 
         # Update particles
         self.arr_for_xt = self.arr_for_xt[self.arr_for_xt[:,7].argsort()] # sort by particle id
-        p.p0c = pref1.get_phase_space('%Pc') * 1e6 # eV
         p.x  = self.arr_for_xt[:,0] / 1e3 # m
         p.px = self.arr_for_xt[:,1] * 1e6 / p.p0c # rad
         p.y  = self.arr_for_xt[:,2] / 1e3 # m
