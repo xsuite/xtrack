@@ -390,3 +390,24 @@ assert_allclose(tt['k0sl', 'drift_e3..1'], 0, rtol=0, atol=1e-14)
 assert_allclose(tt['k1sl', 'drift_e3..1'], 0, rtol=0, atol=1e-14)
 assert_allclose(tt['k2sl', 'drift_e3..1'], 0, rtol=0, atol=1e-14)
 assert_allclose(tt['k3sl', 'drift_e3..1'], 0, rtol=0, atol=1e-14)
+
+# Check e5 untouched
+assert tt['element_type','e5'] == 'Drift'
+assert tt['isreplica', 'e5'] == False
+assert tt['parent_name', 'e5'] is None
+assert tt['isthick', 'e5'] == True
+assert tt['iscollective', 'e5'] == False
+assert_allclose(tt['s', 'e5'], 2.2, rtol=0, atol=1e-14)
+assert_allclose(tt['length', 'e5'], 5.0, rtol=0, atol=1e-14)
+assert_allclose(tt['angle_rad', 'e5'], 0.0, rtol=0, atol=1e-14)
+assert_allclose(tt['rot_s_rad', 'e5'], 0.0, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_x', 'e5'], 0.0, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_y', 'e5'], 0.0, rtol=0, atol=1e-14)
+assert_allclose(tt['k0l', 'e5'], 0.0, rtol=0, atol=1e-14)
+assert_allclose(tt['k1l', 'e5'], 0.0, rtol=0, atol=1e-14)
+assert_allclose(tt['k2l', 'e5'], 0.0, rtol=0, atol=1e-14)
+assert_allclose(tt['k3l', 'e5'], 0.0, rtol=0, atol=1e-14)
+assert_allclose(tt['k0sl', 'e5'], 0.0, rtol=0, atol=1e-14)
+assert_allclose(tt['k1sl', 'e5'], 0.0, rtol=0, atol=1e-14)
+assert_allclose(tt['k2sl', 'e5'], 0.0, rtol=0, atol=1e-14)
+assert_allclose(tt['k3sl', 'e5'], 0.0, rtol=0, atol=1e-14)
