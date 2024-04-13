@@ -201,10 +201,12 @@ def _set_vars(line):
 @pytest.mark.parametrize(
     "check_expr",
     [False, True],
+    ids=['no_expr', 'with_expr'],
 )
 @pytest.mark.parametrize(
     "use_copy",
     [False, True],
+    ids=['no_copy', 'with_copy'],
 )
 def test_attr_replicas(test_context, check_expr, use_copy):
 
@@ -370,10 +372,12 @@ def test_attr_replicas(test_context, check_expr, use_copy):
 @pytest.mark.parametrize(
     "check_expr",
     [False, True],
+    ids=['no_expr', 'with_expr'],
 )
 @pytest.mark.parametrize(
     "use_copy",
     [False, True],
+    ids=['no_copy', 'with_copy'],
 )
 def test_attr_thin_slicing(test_context, check_expr, use_copy):
 
@@ -724,10 +728,12 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
 @pytest.mark.parametrize(
     "check_expr",
     [False, True],
+    ids=["no_expr", "with_expr"],
 )
 @pytest.mark.parametrize(
     "use_copy",
     [False, True],
+    ids=["no_copy", "with_copy"],
 )
 def test_attr_thick_slicing(test_context, check_expr, use_copy):
 
