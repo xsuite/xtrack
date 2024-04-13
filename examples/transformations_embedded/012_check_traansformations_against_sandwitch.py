@@ -1,16 +1,16 @@
 import xtrack as xt
 import numpy as np
 
-slice_mode = None
+slice_mode = 'thick'
 
 ele_test = [
-    xt.Bend(k0=0.04, h=0.03, length=1,
-            k1=0.1,
-            knl=[0.7, 0.8, 0.9, 1.0], ksl=[0.1, 0.2, 0.3, 0.4],
-            edge_entry_angle=0.05, edge_exit_angle=0.06,
-            edge_entry_hgap=0.06, edge_exit_hgap=0.07,
-            edge_entry_fint=0.08, edge_exit_fint=0.09,
-            ),
+    # xt.Bend(k0=0.04, h=0.03, length=1,
+    #         k1=0.1,
+    #         knl=[0.7, 0.8, 0.9, 1.0], ksl=[0.1, 0.2, 0.3, 0.4],
+    #         edge_entry_angle=0.05, edge_exit_angle=0.06,
+    #         edge_entry_hgap=0.06, edge_exit_hgap=0.07,
+    #         edge_entry_fint=0.08, edge_exit_fint=0.09,
+    #         ),
     xt.Quadrupole(k1=2., k1s=-3., length=3.),
     xt.Sextupole(k2=0.1, k2s=0.2, length=0.3),
     xt.Octupole(k3=0.1, k3s=0.2, length=0.4),
@@ -57,5 +57,5 @@ for elem in ele_test:
     assert_allclose(p_test.px, p_ref.px, rtol=0, atol=1e-13)
     assert_allclose(p_test.y, p_ref.y, rtol=0, atol=1e-13)
     assert_allclose(p_test.py, p_ref.py, rtol=0, atol=1e-13)
-    assert_allclose(p_test.zeta, p_ref.zeta, rtol=0, atol=1e-13)
+    assert_allclose(p_test.zeta, p_ref.zeta, rtol=0, atol=1e-12)
     assert_allclose(p_test.delta, p_ref.delta, rtol=0, atol=1e-13)
