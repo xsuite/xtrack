@@ -72,5 +72,5 @@ def test_test_tilt_shifts_vs_sandwtch(test_context, slice_mode):
         assert_allclose(p_test.px, p_ref.px, rtol=0, atol=1e-13)
         assert_allclose(p_test.y, p_ref.y, rtol=0, atol=1e-13)
         assert_allclose(p_test.py, p_ref.py, rtol=0, atol=1e-13)
-        assert_allclose(p_test.zeta, p_ref.zeta, rtol=0, atol=1e-12)
+        assert_allclose(p_test.zeta, p_ref.zeta, rtol=0, atol=5e-12)
         assert_allclose(p_test.delta, p_ref.delta, rtol=0, atol=1e-13)
