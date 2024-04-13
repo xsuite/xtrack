@@ -168,6 +168,7 @@ class DriftSliceBend(BeamElement):
     has_backtrack = True
     _force_moveable = True
     isthick = True
+    _inherit_strengths = False
 
     _xofields = _drift_slice_bend_xofields
 
@@ -203,6 +204,7 @@ class DriftSliceQuadrupole(BeamElement):
     has_backtrack = True
     _force_moveable = True
     isthick = True
+    _inherit_strengths = False
 
     _xofields = _drift_slice_quadrupole_xofields
 
@@ -239,6 +241,7 @@ class DriftSliceSextupole(BeamElement):
     has_backtrack = True
     _force_moveable = True
     isthick = True
+    _inherit_strengths = False
 
     _xofields = _drift_slice_sextupole_xofields
 
@@ -275,6 +278,7 @@ class DriftSliceOctupole(BeamElement):
     has_backtrack = True
     _force_moveable = True
     isthick = True
+    _inherit_strengths = False
 
     _xofields = _drift_slice_octupole_xofields
 
@@ -310,6 +314,7 @@ class DriftSlice(BeamElement):
     has_backtrack = True
     _force_moveable = True
     isthick = True
+    _inherit_strengths = False
 
     _xofields = _drift_slice_xofields
 

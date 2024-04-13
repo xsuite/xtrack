@@ -230,6 +230,7 @@ class ThinSliceBendEntry(BeamElement):
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
     _force_moveable = True
+    _inherit_strengths = False
 
     _xofields = _thin_slice_bend_entry_xofields
 
@@ -259,6 +260,7 @@ class ThinSliceBendExit(BeamElement):
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
     _force_moveable = True
+    _inherit_strengths = False
 
     _xofields = _thin_slice_bend_exit_xofields
 
