@@ -1,7 +1,7 @@
 import xtrack as xt
 import numpy as np
 
-slice_mode = 'thick'
+slice_mode = 'thin'
 
 ele_test = [
     xt.Bend(k0=0.04, h=0.03, length=1,
