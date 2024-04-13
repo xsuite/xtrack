@@ -230,26 +230,6 @@ class Slicer:
                                     ] + slicing_strategies
         self._has_expressions = line.vars is not None
 
-        # If all strategies are exact matches (no regex), instead of performing
-        # sequential matching against them all, we can use dictionary lookup to
-        # immediately find the right strategy.
-        self._use_cache = True
-        strategy_cache = {}
-        for score, strategy in enumerate(reversed(slicing_strategies)):
-            if strategy.regex:
-                self._use_cache = False
-                break
-
-            name, type_ = strategy.match_name, strategy.element_type
-
-            # Skip the current strategy if it is redundant
-            if ((name, None) in strategy_cache or
-                    (None, type_) in strategy_cache):
-                continue
-
-            strategy_cache[name, type_] = (strategy.slicing, score)
-        self._strategy_cache = strategy_cache
-
     def slice_in_place(self, _edge_markers=True):
 
         self._line._frozen_check()
@@ -338,29 +318,6 @@ class Slicer:
 
     def _scheme_for_element(self, element, name, line):
         """Choose a slicing strategy for the element"""
-        if self._use_cache:
-            cache = self._strategy_cache
-
-            if isinstance(element, xt.Replica):
-                element = element.resolve(self._line)
-            eltype = type(element)
-
-            try:
-                scheme, _ = cache[name, eltype]
-                return scheme
-            except KeyError:
-                entry_name = cache.get((name, None), (None, np.inf))
-                entry_type = cache.get((None, eltype), (None, np.inf))
-                default = cache.get((None, None), (None, np.inf))
-                scheme, score = min(
-                    [entry_name, entry_type, default],
-                    key=lambda x: x[1],
-                )
-                if score < np.inf:
-                    return scheme
-
-            raise ValueError(f'No slicing strategy found for the element '
-                             f'{name}: {element}.')
 
         slicing_found = False
         chosen_slicing = None

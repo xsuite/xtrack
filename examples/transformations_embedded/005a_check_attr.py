@@ -18,6 +18,7 @@ drift = xt.Drift(length=5.0)
 line = xt.Line(elements=[bend, quad, sext, octu, mult, drift, xt.Replica(_parent_name='e0')])
 line.build_tracker()
 tt = line.get_table(attr=True)
+tt_thick = tt
 
 assert_allclose = np.testing.assert_allclose
 
