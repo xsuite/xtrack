@@ -1,7 +1,10 @@
 import xtrack as xt
 import numpy as np
 
+assert_allclose = np.testing.assert_allclose
+
 slice_mode = 'thick'
+tilted = True
 
 line = xt.Line(
     elements=[
@@ -28,10 +31,19 @@ line.slice_thick_elements(
     slicing_strategies=[xt.Strategy(xt.Teapot(20, mode=slice_mode))])
 line.build_tracker()
 
-line.vars['tilt_bend_deg'] = 90
-
+line.vars['tilt_bend_deg'] = 0
 
 sv = line.survey()
+assert_allclose(sv.Z[-1], 0, rtol=0, atol=1e-14)
+assert_allclose(sv.X[-1], 0, rtol=0, atol=1e-14)
+assert_allclose(sv.Y[-1], 0, rtol=0, atol=1e-14)
+assert_allclose(sv.s[-1], 8, rtol=0, atol=1e-14)
+
+if tilted:
+    pass
+else:
+    assert_allclose(np.abs(sv.Y), 0, rtol=0, atol=1e-14)
+    assert_allclose(np.trapz(sv.X, sv.Z), 4.81831, rtol=0, atol=1e-5) # clockwise
 
 import matplotlib.pyplot as plt
 plt.close('all')
