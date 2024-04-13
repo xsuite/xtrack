@@ -1,26 +1,201 @@
 import xtrack as xt
 import numpy as np
 
-bend = xt.Bend(k0=0.4, h=0.3, length=1, shift_x=1e-3, shift_y=2e-3, rot_s_rad=0.2,
-               k1=0.1,
-               knl=[0.7, 0.8, 0.9, 1.0], ksl=[0.1, 0.2, 0.3, 0.4])
-quad = xt.Quadrupole(k1=0.1, k1s=0.2,
-                     length=0.5, shift_x=2e-3, shift_y=1e-3, rot_s_rad=0.1)
-sext = xt.Sextupole(k2=0.1, k2s=0.2,
-                    length=0.3, shift_x=3e-3, shift_y=4e-3, rot_s_rad=0.3)
-octu = xt.Octupole(k3=0.1, k3s=0.2,
-                     length=0.4, shift_x=5e-3, shift_y=6e-3, rot_s_rad=0.4)
-mult = xt.Multipole(knl=[0.7, 0.8, 0.9, 1.0], ksl=[0.1, 0.2, 0.3, 0.4],
-                    length=0.4, shift_x=5e-3, shift_y=6e-3, rot_s_rad=0.7,
-                    hxl=0.1)
-drift = xt.Drift(length=5.0)
+check_expr = True
 
-line = xt.Line(elements=[bend, quad, sext, octu, mult, drift, xt.Replica(_parent_name='e0')])
+
+if not check_expr:
+    bend = xt.Bend(k0=0.4, h=0.3, length=1, shift_x=1e-3, shift_y=2e-3, rot_s_rad=0.2,
+                k1=0.1,
+                knl=[0.7, 0.8, 0.9, 1.0], ksl=[0.1, 0.2, 0.3, 0.4])
+    quad = xt.Quadrupole(k1=0.1, k1s=0.2,
+                        length=0.5, shift_x=2e-3, shift_y=1e-3, rot_s_rad=0.1)
+    sext = xt.Sextupole(k2=0.1, k2s=0.2,
+                        length=0.3, shift_x=3e-3, shift_y=4e-3, rot_s_rad=0.3)
+    octu = xt.Octupole(k3=0.1, k3s=0.2,
+                        length=0.4, shift_x=5e-3, shift_y=6e-3, rot_s_rad=0.4)
+    mult = xt.Multipole(knl=[0.7, 0.8, 0.9, 1.0], ksl=[0.1, 0.2, 0.3, 0.4],
+                        length=0.4, shift_x=5e-3, shift_y=6e-3, rot_s_rad=0.7,
+                        hxl=0.1)
+    drift = xt.Drift(length=5.0)
+
+    line = xt.Line(elements=[bend, quad, sext, octu, mult, drift, xt.Replica(_parent_name='e0')])
+else:
+    bend = xt.Bend(length=999.)
+    quad = xt.Quadrupole(length=999.)
+    sext = xt.Sextupole(length=999.)
+    octu = xt.Octupole(length=999.)
+    mult = xt.Multipole(length=999, knl=[999.]*4, ksl=[999.]*4)
+    drift = xt.Drift()
+
+    line = xt.Line(elements=[bend, quad, sext, octu, mult, drift, xt.Replica(_parent_name='e0')])
+
+    line.vars['k0_bend'] = 999.
+    line.vars['h_bend'] = 999.
+    line.vars['length_bend'] = 999.
+    line.vars['shift_x_bend'] = 999.
+    line.vars['shift_y_bend'] = 999.
+    line.vars['rot_s_rad_bend'] = 999.
+    line.vars['k1_bend'] = 999.
+    line.vars['knl_bend_0'] = 999.
+    line.vars['knl_bend_1'] = 999.
+    line.vars['knl_bend_2'] = 999.
+    line.vars['knl_bend_3'] = 999.
+    line.vars['ksl_bend_0'] = 999.
+    line.vars['ksl_bend_1'] = 999.
+    line.vars['ksl_bend_2'] = 999.
+    line.vars['ksl_bend_3'] = 999.
+
+    line.vars['k1_quad'] = 999.
+    line.vars['k1s_quad'] = 999.
+    line.vars['length_quad'] = 999.
+    line.vars['shift_x_quad'] = 999.
+    line.vars['shift_y_quad'] = 999.
+    line.vars['rot_s_rad_quad'] = 999.
+
+    line.vars['k2_sext'] = 999.
+    line.vars['k2s_sext'] = 999.
+    line.vars['length_sext'] = 999.
+    line.vars['shift_x_sext'] = 999.
+    line.vars['shift_y_sext'] = 999.
+    line.vars['rot_s_rad_sext'] = 999.
+
+    line.vars['k3_octu'] = 999.
+    line.vars['k3s_octu'] = 999.
+    line.vars['length_octu'] = 999.
+    line.vars['shift_x_octu'] = 999.
+    line.vars['shift_y_octu'] = 999.
+    line.vars['rot_s_rad_octu'] = 999.
+
+    line.vars['knl_mult_0'] = 999.
+    line.vars['knl_mult_1'] = 999.
+    line.vars['knl_mult_2'] = 999.
+    line.vars['knl_mult_3'] = 999.
+    line.vars['ksl_mult_0'] = 999.
+    line.vars['ksl_mult_1'] = 999.
+    line.vars['ksl_mult_2'] = 999.
+    line.vars['ksl_mult_3'] = 999.
+    line.vars['length_mult'] = 999.
+    line.vars['shift_x_mult'] = 999.
+    line.vars['shift_y_mult'] = 999.
+    line.vars['rot_s_rad_mult'] = 999.
+    line.vars['hxl_mult'] = 999.
+
+    line.vars['length_drift'] = 999.
+
+    line.element_refs['e0'].k0 = line.vars['k0_bend']
+    line.element_refs['e0'].h = line.vars['h_bend']
+    line.element_refs['e0'].length = line.vars['length_bend']
+    line.element_refs['e0'].shift_x = line.vars['shift_x_bend']
+    line.element_refs['e0'].shift_y = line.vars['shift_y_bend']
+    line.element_refs['e0'].rot_s_rad = line.vars['rot_s_rad_bend']
+    line.element_refs['e0'].k1 = line.vars['k1_bend']
+    line.element_refs['e0'].knl[0] = line.vars['knl_bend_0']
+    line.element_refs['e0'].knl[1] = line.vars['knl_bend_1']
+    line.element_refs['e0'].knl[2] = line.vars['knl_bend_2']
+    line.element_refs['e0'].knl[3] = line.vars['knl_bend_3']
+    line.element_refs['e0'].ksl[0] = line.vars['ksl_bend_0']
+    line.element_refs['e0'].ksl[1] = line.vars['ksl_bend_1']
+    line.element_refs['e0'].ksl[2] = line.vars['ksl_bend_2']
+    line.element_refs['e0'].ksl[3] = line.vars['ksl_bend_3']
+
+    line.element_refs['e1'].k1 = line.vars['k1_quad']
+    line.element_refs['e1'].k1s = line.vars['k1s_quad']
+    line.element_refs['e1'].length = line.vars['length_quad']
+    line.element_refs['e1'].shift_x = line.vars['shift_x_quad']
+    line.element_refs['e1'].shift_y = line.vars['shift_y_quad']
+    line.element_refs['e1'].rot_s_rad = line.vars['rot_s_rad_quad']
+
+    line.element_refs['e2'].k2 = line.vars['k2_sext']
+    line.element_refs['e2'].k2s = line.vars['k2s_sext']
+    line.element_refs['e2'].length = line.vars['length_sext']
+    line.element_refs['e2'].shift_x = line.vars['shift_x_sext']
+    line.element_refs['e2'].shift_y = line.vars['shift_y_sext']
+    line.element_refs['e2'].rot_s_rad = line.vars['rot_s_rad_sext']
+
+    line.element_refs['e3'].k3 = line.vars['k3_octu']
+    line.element_refs['e3'].k3s = line.vars['k3s_octu']
+    line.element_refs['e3'].length = line.vars['length_octu']
+    line.element_refs['e3'].shift_x = line.vars['shift_x_octu']
+    line.element_refs['e3'].shift_y = line.vars['shift_y_octu']
+    line.element_refs['e3'].rot_s_rad = line.vars['rot_s_rad_octu']
+
+    line.element_refs['e4'].knl[0] = line.vars['knl_mult_0']
+    line.element_refs['e4'].knl[1] = line.vars['knl_mult_1']
+    line.element_refs['e4'].knl[2] = line.vars['knl_mult_2']
+    line.element_refs['e4'].knl[3] = line.vars['knl_mult_3']
+    line.element_refs['e4'].ksl[0] = line.vars['ksl_mult_0']
+    line.element_refs['e4'].ksl[1] = line.vars['ksl_mult_1']
+    line.element_refs['e4'].ksl[2] = line.vars['ksl_mult_2']
+    line.element_refs['e4'].ksl[3] = line.vars['ksl_mult_3']
+    line.element_refs['e4'].length = line.vars['length_mult']
+    line.element_refs['e4'].shift_x = line.vars['shift_x_mult']
+    line.element_refs['e4'].shift_y = line.vars['shift_y_mult']
+    line.element_refs['e4'].rot_s_rad = line.vars['rot_s_rad_mult']
+    line.element_refs['e4'].hxl = line.vars['hxl_mult']
+
+    line.element_refs['e5'].length = line.vars['length_drift']
+
+
 line.build_tracker()
-tt = line.get_table(attr=True)
-tt_thick = tt
-
 line0 = line.copy()
+
+line.vars['k0_bend'] = 0.4
+line.vars['h_bend'] = 0.3
+line.vars['length_bend'] = 1
+line.vars['shift_x_bend'] = 1e-3
+line.vars['shift_y_bend'] = 2e-3
+line.vars['rot_s_rad_bend'] = 0.2
+line.vars['k1_bend'] = 0.1
+line.vars['knl_bend_0'] = 0.7
+line.vars['knl_bend_1'] = 0.8
+line.vars['knl_bend_2'] = 0.9
+line.vars['knl_bend_3'] = 1.0
+line.vars['ksl_bend_0'] = 0.1
+line.vars['ksl_bend_1'] = 0.2
+line.vars['ksl_bend_2'] = 0.3
+line.vars['ksl_bend_3'] = 0.4
+
+line.vars['k1_quad'] = 0.1
+line.vars['k1s_quad'] = 0.2
+line.vars['length_quad'] = 0.5
+line.vars['shift_x_quad'] = 2e-3
+line.vars['shift_y_quad'] = 1e-3
+line.vars['rot_s_rad_quad'] = 0.1
+
+line.vars['k2_sext'] = 0.1
+line.vars['k2s_sext'] = 0.2
+line.vars['length_sext'] = 0.3
+line.vars['shift_x_sext'] = 3e-3
+line.vars['shift_y_sext'] = 4e-3
+line.vars['rot_s_rad_sext'] = 0.3
+
+line.vars['k3_octu'] = 0.1
+line.vars['k3s_octu'] = 0.2
+line.vars['length_octu'] = 0.4
+line.vars['shift_x_octu'] = 5e-3
+line.vars['shift_y_octu'] = 6e-3
+line.vars['rot_s_rad_octu'] = 0.4
+
+line.vars['knl_mult_0'] = 0.7
+line.vars['knl_mult_1'] = 0.8
+line.vars['knl_mult_2'] = 0.9
+line.vars['knl_mult_3'] = 1.0
+line.vars['ksl_mult_0'] = 0.1
+line.vars['ksl_mult_1'] = 0.2
+line.vars['ksl_mult_2'] = 0.3
+line.vars['ksl_mult_3'] = 0.4
+line.vars['length_mult'] = 0.4
+line.vars['shift_x_mult'] = 5e-3
+line.vars['shift_y_mult'] = 6e-3
+line.vars['rot_s_rad_mult'] = 0.7
+line.vars['hxl_mult'] = 0.1
+
+line.vars['length_drift'] = 5.0
+
+
+tt = line.get_table(attr=True)
+
 
 assert_allclose = np.testing.assert_allclose
 
@@ -166,8 +341,67 @@ assert_allclose(tt['k2sl', 'e6'], 0.3, rtol=0, atol=1e-14)
 assert_allclose(tt['k3sl', 'e6'], 0.4, rtol=0, atol=1e-14)
 
 # Slice thin
+line = line0.copy()
 line.slice_thick_elements(
     slicing_strategies=[xt.Strategy(xt.Uniform(2))])
+
+
+line.vars['k0_bend'] = 0.4
+line.vars['h_bend'] = 0.3
+line.vars['length_bend'] = 1
+line.vars['shift_x_bend'] = 1e-3
+line.vars['shift_y_bend'] = 2e-3
+line.vars['rot_s_rad_bend'] = 0.2
+line.vars['k1_bend'] = 0.1
+line.vars['knl_bend_0'] = 0.7
+line.vars['knl_bend_1'] = 0.8
+line.vars['knl_bend_2'] = 0.9
+line.vars['knl_bend_3'] = 1.0
+line.vars['ksl_bend_0'] = 0.1
+line.vars['ksl_bend_1'] = 0.2
+line.vars['ksl_bend_2'] = 0.3
+line.vars['ksl_bend_3'] = 0.4
+
+line.vars['k1_quad'] = 0.1
+line.vars['k1s_quad'] = 0.2
+line.vars['length_quad'] = 0.5
+line.vars['shift_x_quad'] = 2e-3
+line.vars['shift_y_quad'] = 1e-3
+line.vars['rot_s_rad_quad'] = 0.1
+
+line.vars['k2_sext'] = 0.1
+line.vars['k2s_sext'] = 0.2
+line.vars['length_sext'] = 0.3
+line.vars['shift_x_sext'] = 3e-3
+line.vars['shift_y_sext'] = 4e-3
+line.vars['rot_s_rad_sext'] = 0.3
+
+line.vars['k3_octu'] = 0.1
+line.vars['k3s_octu'] = 0.2
+line.vars['length_octu'] = 0.4
+line.vars['shift_x_octu'] = 5e-3
+line.vars['shift_y_octu'] = 6e-3
+line.vars['rot_s_rad_octu'] = 0.4
+
+line.vars['knl_mult_0'] = 0.7
+line.vars['knl_mult_1'] = 0.8
+line.vars['knl_mult_2'] = 0.9
+line.vars['knl_mult_3'] = 1.0
+line.vars['ksl_mult_0'] = 0.1
+line.vars['ksl_mult_1'] = 0.2
+line.vars['ksl_mult_2'] = 0.3
+line.vars['ksl_mult_3'] = 0.4
+line.vars['length_mult'] = 0.4
+line.vars['shift_x_mult'] = 5e-3
+line.vars['shift_y_mult'] = 6e-3
+line.vars['rot_s_rad_mult'] = 0.7
+line.vars['hxl_mult'] = 0.1
+
+line.vars['length_drift'] = 5.0
+
+
+
+
 line.build_tracker()
 tt = line.get_table(attr=True)
 
@@ -498,6 +732,64 @@ line = line0.copy()
 line.slice_thick_elements(
     slicing_strategies=[xt.Strategy(xt.Uniform(2, mode='thick'))])
 line.build_tracker()
+
+
+line.vars['k0_bend'] = 0.4
+line.vars['h_bend'] = 0.3
+line.vars['length_bend'] = 1
+line.vars['shift_x_bend'] = 1e-3
+line.vars['shift_y_bend'] = 2e-3
+line.vars['rot_s_rad_bend'] = 0.2
+line.vars['k1_bend'] = 0.1
+line.vars['knl_bend_0'] = 0.7
+line.vars['knl_bend_1'] = 0.8
+line.vars['knl_bend_2'] = 0.9
+line.vars['knl_bend_3'] = 1.0
+line.vars['ksl_bend_0'] = 0.1
+line.vars['ksl_bend_1'] = 0.2
+line.vars['ksl_bend_2'] = 0.3
+line.vars['ksl_bend_3'] = 0.4
+
+line.vars['k1_quad'] = 0.1
+line.vars['k1s_quad'] = 0.2
+line.vars['length_quad'] = 0.5
+line.vars['shift_x_quad'] = 2e-3
+line.vars['shift_y_quad'] = 1e-3
+line.vars['rot_s_rad_quad'] = 0.1
+
+line.vars['k2_sext'] = 0.1
+line.vars['k2s_sext'] = 0.2
+line.vars['length_sext'] = 0.3
+line.vars['shift_x_sext'] = 3e-3
+line.vars['shift_y_sext'] = 4e-3
+line.vars['rot_s_rad_sext'] = 0.3
+
+line.vars['k3_octu'] = 0.1
+line.vars['k3s_octu'] = 0.2
+line.vars['length_octu'] = 0.4
+line.vars['shift_x_octu'] = 5e-3
+line.vars['shift_y_octu'] = 6e-3
+line.vars['rot_s_rad_octu'] = 0.4
+
+line.vars['knl_mult_0'] = 0.7
+line.vars['knl_mult_1'] = 0.8
+line.vars['knl_mult_2'] = 0.9
+line.vars['knl_mult_3'] = 1.0
+line.vars['ksl_mult_0'] = 0.1
+line.vars['ksl_mult_1'] = 0.2
+line.vars['ksl_mult_2'] = 0.3
+line.vars['ksl_mult_3'] = 0.4
+line.vars['length_mult'] = 0.4
+line.vars['shift_x_mult'] = 5e-3
+line.vars['shift_y_mult'] = 6e-3
+line.vars['rot_s_rad_mult'] = 0.7
+line.vars['hxl_mult'] = 0.1
+
+line.vars['length_drift'] = 5.0
+
+
+
+
 tt = line.get_table(attr=True)
 
 assert tt['element_type','e0..1'] == 'ThickSliceBend'
