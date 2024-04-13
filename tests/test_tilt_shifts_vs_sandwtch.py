@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 
 from xobjects.test_helpers import for_all_test_contexts
+import xobjects as xo
 
 @for_all_test_contexts
 @pytest.mark.parametrize(
@@ -62,6 +63,9 @@ def test_test_tilt_shifts_vs_sandwtch(test_context, slice_mode):
 
         line_test.track(p_test)
         line_ref.track(p_ref)
+
+        p_test.move(_context=xo.context_default)
+        p_ref.move(_context=xo.context_default)
 
         assert_allclose = np.testing.assert_allclose
         assert_allclose(p_test.x, p_ref.x, rtol=0, atol=1e-13)
