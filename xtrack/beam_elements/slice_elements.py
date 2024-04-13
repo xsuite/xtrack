@@ -44,6 +44,8 @@ class ThinSliceQuadrupole(BeamElement):
     _extra_c_sources = _common_c_sources + [
         _pkg_root.joinpath('beam_elements/elements_src/thin_slice_quadrupole.h')]
 
+    copy = _slice_copy
+
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
         dct['_parent_name'] = self._parent_name
@@ -218,7 +220,6 @@ class ThinSliceBend(BeamElement):
                         rot_s_rad=self._parent.rot_s_rad,
                         _buffer=self._buffer)
         return out
-
 
 _thin_slice_bend_entry_xofields = {
     '_parent': xo.Ref(Bend)}
