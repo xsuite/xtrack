@@ -20,6 +20,8 @@ line.build_tracker()
 tt = line.get_table(attr=True)
 tt_thick = tt
 
+line0 = line.copy()
+
 assert_allclose = np.testing.assert_allclose
 
 assert_allclose(tt['s', -1], 8.2, rtol=0, atol=1e-14)
@@ -491,3 +493,9 @@ assert_allclose(tt['k0sl', 'drift_e6..1'], 0, rtol=0, atol=1e-14)
 assert_allclose(tt['k1sl', 'drift_e6..1'], 0, rtol=0, atol=1e-14)
 assert_allclose(tt['k2sl', 'drift_e6..1'], 0, rtol=0, atol=1e-14)
 assert_allclose(tt['k3sl', 'drift_e6..1'], 0, rtol=0, atol=1e-14)
+
+line = line0.copy()
+line.slice_thick_elements(
+    slicing_strategies=[xt.Strategy(xt.Uniform(2, mode='thick'))])
+line.build_tracker()
+tt = line.get_table(attr=True)

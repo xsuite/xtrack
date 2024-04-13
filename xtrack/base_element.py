@@ -578,6 +578,13 @@ class Replica:
             '__class__': 'Replica',
             '_parent_name': self._parent_name}
 
+    @classmethod
+    def from_dict(cls, dct, **kwargs):
+        return cls(_parent_name=dct['_parent_name'])
+
+    def copy(self, **kwargs):
+        return Replica(_parent_name=self._parent_name)
+
     def resolve(self, element_container, get_name=False):
         target_name = self._parent_name
         visited = {target_name}
@@ -595,9 +602,7 @@ class Replica:
 
         return element_container[target_name]
 
-    @classmethod
-    def from_dict(cls, dct):
-        return cls(_parent_name=dct['_parent_name'])
+
 
 
 class PerParticlePyMethod:
