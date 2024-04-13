@@ -499,3 +499,266 @@ line.slice_thick_elements(
     slicing_strategies=[xt.Strategy(xt.Uniform(2, mode='thick'))])
 line.build_tracker()
 tt = line.get_table(attr=True)
+
+assert tt['element_type','e0..1'] == 'ThickSliceBend'
+assert tt['isreplica', 'e0..1'] == False
+assert tt['parent_name', 'e0..1'] == 'e0'
+assert tt['isthick', 'e0..1'] == True
+assert tt['iscollective', 'e0..1'] == False
+assert_allclose(tt['s', 'e0..1'], 1./2., rtol=0, atol=1e-14)
+assert_allclose(tt['length', 'e0..1'], 1/2, rtol=0, atol=1e-14)
+assert_allclose(tt['angle_rad', 'e0..1'], 0.3/2, rtol=0, atol=1e-14)
+assert_allclose(tt['rot_s_rad', 'e0..1'], 0.2, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_x', 'e0..1'], 1e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_y', 'e0..1'], 2e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['k0l', 'e0..1'], 0.5 * (0.4 * 1 + 0.7), rtol=0, atol=1e-14)
+assert_allclose(tt['k1l', 'e0..1'], 0.5 * (0.1 * 1 + 0.8), rtol=0, atol=1e-14)
+assert_allclose(tt['k2l', 'e0..1'], 0.5 *  .9, rtol=0, atol=1e-14)
+assert_allclose(tt['k3l', 'e0..1'], 0.5 * 1., rtol=0, atol=1e-14)
+assert_allclose(tt['k0sl', 'e0..1'], 0.5 * 0.1, rtol=0, atol=1e-14)
+assert_allclose(tt['k1sl', 'e0..1'], 0.5 * 0.2, rtol=0, atol=1e-14)
+assert_allclose(tt['k2sl', 'e0..1'], 0.5 *  0.3, rtol=0, atol=1e-14)
+assert_allclose(tt['k3sl', 'e0..1'], 0.5 *  0.4, rtol=0, atol=1e-14)
+
+assert tt['element_type','e0..exit_map'] == 'ThinSliceBendExit'
+assert tt['isreplica', 'e0..exit_map'] == False
+assert tt['parent_name', 'e0..exit_map'] == 'e0'
+assert tt['isthick', 'e0..exit_map'] == False
+assert tt['iscollective', 'e0..exit_map'] == False
+assert_allclose(tt['s', 'e0..exit_map'], 1., rtol=0, atol=1e-14)
+assert_allclose(tt['length', 'e0..exit_map'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['angle_rad', 'e0..exit_map'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['rot_s_rad', 'e0..exit_map'], 0.2, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_x', 'e0..exit_map'], 1e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_y', 'e0..exit_map'], 2e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['k0l', 'e0..exit_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k1l', 'e0..exit_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k2l', 'e0..exit_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k3l', 'e0..exit_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k0sl', 'e0..exit_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k1sl', 'e0..exit_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k2sl', 'e0..exit_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k3sl', 'e0..exit_map'], 0, rtol=0, atol=1e-14)
+
+assert tt['element_type','e0..entry_map'] == 'ThinSliceBendEntry'
+assert tt['isreplica', 'e0..entry_map'] == False
+assert tt['parent_name', 'e0..entry_map'] == 'e0'
+assert tt['isthick', 'e0..entry_map'] == False
+assert tt['iscollective', 'e0..entry_map'] == False
+assert_allclose(tt['s', 'e0..entry_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['length', 'e0..entry_map'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['angle_rad', 'e0..entry_map'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['rot_s_rad', 'e0..entry_map'], 0.2, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_x', 'e0..entry_map'], 1e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_y', 'e0..entry_map'], 2e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['k0l', 'e0..entry_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k1l', 'e0..entry_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k2l', 'e0..entry_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k3l', 'e0..entry_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k0sl', 'e0..entry_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k1sl', 'e0..entry_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k2sl', 'e0..entry_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k3sl', 'e0..entry_map'], 0, rtol=0, atol=1e-14)
+
+assert tt['element_type','e1..1'] == 'ThickSliceQuadrupole'
+assert tt['isreplica', 'e1..1'] == False
+assert tt['parent_name', 'e1..1'] == 'e1'
+assert tt['isthick', 'e1..1'] == True
+assert tt['iscollective', 'e1..1'] == False
+assert_allclose(tt['s', 'e1..1'], 1 + .5 / 2, rtol=0, atol=1e-14)
+assert_allclose(tt['length', 'e1..1'], 0.5*1/2, rtol=0, atol=1e-14)
+assert_allclose(tt['angle_rad', 'e1..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['rot_s_rad', 'e1..1'], 0.1, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_x', 'e1..1'], 2e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_y', 'e1..1'], 1e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['k0l', 'e1..1'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['k1l', 'e1..1'], 0.1 * 0.5 / 2, rtol=0, atol=1e-14)
+assert_allclose(tt['k2l', 'e1..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k3l', 'e1..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k0sl', 'e1..1'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['k1sl', 'e1..1'], 0.5 * 0.2 / 2, rtol=0, atol=1e-14)
+assert_allclose(tt['k2sl', 'e1..1'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['k3sl', 'e1..1'], 0., rtol=0, atol=1e-14)
+
+assert tt['element_type','e1_entry'] == 'Marker'
+assert tt['isreplica', 'e1_entry'] == False
+assert tt['parent_name', 'e1_entry'] is None
+assert tt['isthick', 'e1_entry'] == False
+assert tt['iscollective', 'e1_entry'] == False
+assert_allclose(tt['s', 'e1_entry'], 1, rtol=0, atol=1e-14)
+assert_allclose(tt['length', 'e1_entry'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['angle_rad', 'e1_entry'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['rot_s_rad', 'e1_entry'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_x', 'e1_entry'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_y', 'e1_entry'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k0l', 'e1_entry'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k1l', 'e1_entry'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k2l', 'e1_entry'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k3l', 'e1_entry'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k0sl', 'e1_entry'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k1sl', 'e1_entry'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k2sl', 'e1_entry'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k3sl', 'e1_entry'], 0, rtol=0, atol=1e-14)
+
+assert tt['element_type','e2..1'] == 'ThickSliceSextupole'
+assert tt['isreplica', 'e2..1'] == False
+assert tt['parent_name', 'e2..1'] == 'e2'
+assert tt['isthick', 'e2..1'] == True
+assert tt['iscollective', 'e2..1'] == False
+assert_allclose(tt['s', 'e2..1'], 1.5 + .3 / 2., rtol=0, atol=1e-14)
+assert_allclose(tt['length', 'e2..1'], 0.3*1/2, rtol=0, atol=1e-14)
+assert_allclose(tt['angle_rad', 'e2..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['rot_s_rad', 'e2..1'], 0.3, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_x', 'e2..1'], 3e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_y', 'e2..1'], 4e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['k0l', 'e2..1'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['k1l', 'e2..1'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['k2l', 'e2..1'], 0.1 * 0.3*1/2, rtol=0, atol=1e-14)
+assert_allclose(tt['k3l', 'e2..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k0sl', 'e2..1'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['k1sl', 'e2..1'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['k2sl', 'e2..1'], 0.2 * 0.3*1/2, rtol=0, atol=1e-14)
+assert_allclose(tt['k3sl', 'e2..1'], 0., rtol=0, atol=1e-14)
+
+assert tt['element_type','e3..1'] == 'ThickSliceOctupole'
+assert tt['isreplica', 'e3..1'] == False
+assert tt['parent_name', 'e3..1'] == 'e3'
+assert tt['isthick', 'e3..1'] == True
+assert tt['iscollective', 'e3..1'] == False
+assert_allclose(tt['s', 'e3..1'], 1.8 + .4 /2., rtol=0, atol=1e-14)
+assert_allclose(tt['length', 'e3..1'], 0.4*1/2, rtol=0, atol=1e-14)
+assert_allclose(tt['angle_rad', 'e3..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['rot_s_rad', 'e3..1'], 0.4, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_x', 'e3..1'], 5e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_y', 'e3..1'], 6e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['k0l', 'e3..1'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['k1l', 'e3..1'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['k2l', 'e3..1'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['k3l', 'e3..1'], 0.1 * 0.4*1/2, rtol=0, atol=1e-14)
+assert_allclose(tt['k0sl', 'e3..1'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['k1sl', 'e3..1'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['k2sl', 'e3..1'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['k3sl', 'e3..1'], 0.2 * 0.4*1/2, rtol=0, atol=1e-14)
+
+prrrrr
+
+assert tt['element_type','drift_e3..1'] == 'DriftSliceOctupole'
+assert tt['isreplica', 'drift_e3..1'] == False
+assert tt['parent_name', 'drift_e3..1'] == 'e3'
+assert tt['isthick', 'drift_e3..1'] == True
+assert tt['iscollective', 'drift_e3..1'] == False
+assert_allclose(tt['s', 'drift_e3..1'], 1.8 + .4*1./3., rtol=0, atol=1e-14)
+assert_allclose(tt['length', 'drift_e3..1'], 0.4*1/3, rtol=0, atol=1e-14)
+assert_allclose(tt['angle_rad', 'drift_e3..1'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['rot_s_rad', 'drift_e3..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_x', 'drift_e3..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_y', 'drift_e3..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k0l', 'drift_e3..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k1l', 'drift_e3..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k2l', 'drift_e3..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k3l', 'drift_e3..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k0sl', 'drift_e3..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k1sl', 'drift_e3..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k2sl', 'drift_e3..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k3sl', 'drift_e3..1'], 0, rtol=0, atol=1e-14)
+
+# Check e5 untouched
+assert tt['element_type','e5'] == 'Drift'
+assert tt['isreplica', 'e5'] == False
+assert tt['parent_name', 'e5'] is None
+assert tt['isthick', 'e5'] == True
+assert tt['iscollective', 'e5'] == False
+assert_allclose(tt['s', 'e5'], 2.2, rtol=0, atol=1e-14)
+assert_allclose(tt['length', 'e5'], 5.0, rtol=0, atol=1e-14)
+assert_allclose(tt['angle_rad', 'e5'], 0.0, rtol=0, atol=1e-14)
+assert_allclose(tt['rot_s_rad', 'e5'], 0.0, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_x', 'e5'], 0.0, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_y', 'e5'], 0.0, rtol=0, atol=1e-14)
+assert_allclose(tt['k0l', 'e5'], 0.0, rtol=0, atol=1e-14)
+assert_allclose(tt['k1l', 'e5'], 0.0, rtol=0, atol=1e-14)
+assert_allclose(tt['k2l', 'e5'], 0.0, rtol=0, atol=1e-14)
+assert_allclose(tt['k3l', 'e5'], 0.0, rtol=0, atol=1e-14)
+assert_allclose(tt['k0sl', 'e5'], 0.0, rtol=0, atol=1e-14)
+assert_allclose(tt['k1sl', 'e5'], 0.0, rtol=0, atol=1e-14)
+assert_allclose(tt['k2sl', 'e5'], 0.0, rtol=0, atol=1e-14)
+assert_allclose(tt['k3sl', 'e5'], 0.0, rtol=0, atol=1e-14)
+
+assert tt['element_type','e6..1'] == 'ThinSliceBend'
+assert tt['isreplica', 'e6..1'] == False
+assert tt['parent_name', 'e6..1'] == 'e0'
+assert tt['isthick', 'e6..1'] == False
+assert tt['iscollective', 'e6..1'] == False
+assert_allclose(tt['s', 'e6..1'], 7.2 + 2./3., rtol=0, atol=1e-14)
+assert_allclose(tt['length', 'e6..1'], 1/2, rtol=0, atol=1e-14)
+assert_allclose(tt['angle_rad', 'e6..1'], 0.3/2, rtol=0, atol=1e-14)
+assert_allclose(tt['rot_s_rad', 'e6..1'], 0.2, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_x', 'e6..1'], 1e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_y', 'e6..1'], 2e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['k0l', 'e6..1'], 0.5 * (0.4 * 1 + 0.7), rtol=0, atol=1e-14)
+assert_allclose(tt['k1l', 'e6..1'], 0.5 * (0.1 * 1 + 0.8), rtol=0, atol=1e-14)
+assert_allclose(tt['k2l', 'e6..1'], 0.5 *  .9, rtol=0, atol=1e-14)
+assert_allclose(tt['k3l', 'e6..1'], 0.5 * 1., rtol=0, atol=1e-14)
+assert_allclose(tt['k0sl', 'e6..1'], 0.5 * 0.1, rtol=0, atol=1e-14)
+assert_allclose(tt['k1sl', 'e6..1'], 0.5 * 0.2, rtol=0, atol=1e-14)
+assert_allclose(tt['k2sl', 'e6..1'], 0.5 *  0.3, rtol=0, atol=1e-14)
+assert_allclose(tt['k3sl', 'e6..1'], 0.5 *  0.4, rtol=0, atol=1e-14)
+
+assert tt['element_type','e6..exit_map'] == 'ThinSliceBendExit'
+assert tt['isreplica', 'e6..exit_map'] == False
+assert tt['parent_name', 'e6..exit_map'] == 'e0'
+assert tt['isthick', 'e6..exit_map'] == False
+assert tt['iscollective', 'e6..exit_map'] == False
+assert_allclose(tt['s', 'e6..exit_map'], 7.2 + 1., rtol=0, atol=1e-14)
+assert_allclose(tt['length', 'e6..exit_map'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['angle_rad', 'e6..exit_map'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['rot_s_rad', 'e6..exit_map'], 0.2, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_x', 'e6..exit_map'], 1e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_y', 'e6..exit_map'], 2e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['k0l', 'e6..exit_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k1l', 'e6..exit_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k2l', 'e6..exit_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k3l', 'e6..exit_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k0sl', 'e6..exit_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k1sl', 'e6..exit_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k2sl', 'e6..exit_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k3sl', 'e6..exit_map'], 0, rtol=0, atol=1e-14)
+
+assert tt['element_type','e6..entry_map'] == 'ThinSliceBendEntry'
+assert tt['isreplica', 'e6..entry_map'] == False
+assert tt['parent_name', 'e6..entry_map'] == 'e0'
+assert tt['isthick', 'e6..entry_map'] == False
+assert tt['iscollective', 'e6..entry_map'] == False
+assert_allclose(tt['s', 'e6..entry_map'], 7.2, rtol=0, atol=1e-14)
+assert_allclose(tt['length', 'e6..entry_map'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['angle_rad', 'e6..entry_map'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['rot_s_rad', 'e6..entry_map'], 0.2, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_x', 'e6..entry_map'], 1e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_y', 'e6..entry_map'], 2e-3, rtol=0, atol=1e-14)
+assert_allclose(tt['k0l', 'e6..entry_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k1l', 'e6..entry_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k2l', 'e6..entry_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k3l', 'e6..entry_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k0sl', 'e6..entry_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k1sl', 'e6..entry_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k2sl', 'e6..entry_map'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k3sl', 'e6..entry_map'], 0, rtol=0, atol=1e-14)
+
+assert tt['element_type','drift_e6..1'] == 'DriftSliceBend'
+assert tt['isreplica', 'drift_e6..1'] == False
+assert tt['parent_name', 'drift_e6..1'] == 'e0'
+assert tt['isthick', 'drift_e6..1'] == True
+assert tt['iscollective', 'drift_e6..1'] == False
+assert_allclose(tt['s', 'drift_e6..1'], 7.2 + 1./3, rtol=0, atol=1e-14)
+assert_allclose(tt['length', 'drift_e6..1'], 1/3, rtol=0, atol=1e-14)
+assert_allclose(tt['angle_rad', 'drift_e6..1'], 0., rtol=0, atol=1e-14)
+assert_allclose(tt['rot_s_rad', 'drift_e6..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_x', 'drift_e6..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['shift_y', 'drift_e6..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k0l', 'drift_e6..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k1l', 'drift_e6..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k2l', 'drift_e6..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k3l', 'drift_e6..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k0sl', 'drift_e6..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k1sl', 'drift_e6..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k2sl', 'drift_e6..1'], 0, rtol=0, atol=1e-14)
+assert_allclose(tt['k3sl', 'drift_e6..1'], 0, rtol=0, atol=1e-14)
