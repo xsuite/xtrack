@@ -602,9 +602,6 @@ class Replica:
 
         return element_container[target_name]
 
-
-
-
 class PerParticlePyMethod:
 
     def __init__(self, kernel_name, element, additional_arg_names):
