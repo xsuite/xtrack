@@ -2888,6 +2888,77 @@ class TwissTable(Table):
 
         return Table(res)
 
+    def get_ibs_growth_rates(
+        self,
+        formalism,
+        num_particles: int = None,
+        gemitt_x: float = None,
+        nemitt_x: float = None,
+        gemitt_y: float = None,
+        nemitt_y: float = None,
+        sigma_delta: float = None,
+        bunch_length: float = None,
+        bunched: bool = True,
+        particles: xt.Particles = None,
+        **kwargs,
+    ):
+        """
+        Computes IntraBeam Scattering growth rates from the provided `xtrack.Line`.
+
+        Parameters
+        ----------
+        line : xtrack.Line
+            Line in which the IBS kick element will be installed.
+        formalism : str
+            Which formalism to use for the computation. Can be ``Nagaitsev``
+            or ``Bjorken-Mtingwa`` (also accepts ``B&M``), case-insensitively.
+        num_particles : int, optional
+            The number of particles in the beam. Required if `particles` is
+            not provided.
+        gemitt_x : float, optional
+            Horizontal geometric emittance in [m]. If `particles` is not
+            provided, either this parameter or `nemitt_x` is required.
+        nemitt_x : float, optional
+            Horizontal normalized emittance in [m]. If `particles` is not
+            provided, either this parameter or `gemitt_x` is required.
+        gemitt_y : float, optional
+            Vertical geometric emittance in [m]. If `particles` is not
+            provided, either this parameter or `nemitt_y` is required.
+        nemitt_y : float, optional
+            Vertical normalized emittance in [m]. If `particles` is not
+            provided, either this parameter or `gemitt_y` is required.
+        sigma_delta : float, optional
+            The momentum spread. Required if `particles` is not provided.
+        bunch_length : float, optional
+            The bunch length in [m]. Required if `particles` is not provided.
+        bunched : bool, optional
+            Whether the beam is bunched or not (coasting). Defaults to `True`.
+            Required if `particles` is not provided.
+        particles : xtrack.Particles
+            The particles to circulate in the line. If provided the emittances,
+            momentum spread and bunch length will be computed from the particles.
+            Otherwise explicit values must be provided (see above parameters).
+        **kwargs : dict
+            Keyword arguments are passed to the growth rates computation method of
+            the chosen IBS formalism implementation. See the IBS details from the
+            `xfields` package directly.
+
+        Returns
+        -------
+        IBSGrowthRates
+            An ``IBSGrowthRates`` object with the computed growth rates.
+        """
+        try:
+            from xfields.ibs import get_intrabeam_scattering_growth_rates
+        except ImportError:
+            raise ImportError("Please install xfields to use this feature.")
+        return get_intrabeam_scattering_growth_rates(
+            self, formalism, num_particles,
+            gemitt_x, nemitt_x, gemitt_y, nemitt_y,
+            sigma_delta, bunch_length, bunched,
+            particles, return_class=False, **kwargs,
+        )
+
     def get_R_matrix(self, start, end):
 
         assert self.values_at == 'entry', 'Not yet implemented for exit'
