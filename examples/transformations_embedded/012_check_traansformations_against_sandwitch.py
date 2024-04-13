@@ -10,12 +10,16 @@ elem = xt.Quadrupole(k1=2., k1s=-3., length=3.)
 line_test = xt.Line(elements=[elem.copy()])
 
 line_ref = xt.Line(elements=[
+    xt.XYShift(dx=shift_x, dy=shift_y),
     xt.SRotation(angle=np.rad2deg(rot_s_rad)),
     elem.copy(),
     xt.SRotation(angle=np.rad2deg(-rot_s_rad)),
+    xt.XYShift(dx=-shift_x, dy=-shift_y),
 ])
 
 line_test['e0'].rot_s_rad = rot_s_rad
+line_test['e0'].shift_x = shift_x
+line_test['e0'].shift_y = shift_y
 
 p_test = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03)
 p_ref = p_test.copy()
