@@ -57,6 +57,7 @@ def test_test_tilt_shifts_vs_sandwtch(test_context, slice_mode):
         p_test = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03,
                               _context=test_context)
         p_ref = p_test.copy()
+        p0 = p_test.copy()
 
         line_test.build_tracker(_context=test_context)
         line_ref.build_tracker(_context=test_context)
@@ -74,3 +75,28 @@ def test_test_tilt_shifts_vs_sandwtch(test_context, slice_mode):
         assert_allclose(p_test.py, p_ref.py, rtol=0, atol=1e-13)
         assert_allclose(p_test.zeta, p_ref.zeta, rtol=0, atol=5e-12)
         assert_allclose(p_test.delta, p_ref.delta, rtol=0, atol=1e-13)
+
+        # Test backtrack
+        p_test.move(_context=test_context)
+        p_ref.move(_context=test_context)
+
+        line_test.track(p_test, backtrack=True)
+        line_ref.track(p_ref, backtrack=True)
+
+        p_test.move(_context=xo.context_default)
+        p_ref.move(_context=xo.context_default)
+
+        assert_allclose(p_test.x, p_ref.x, rtol=0, atol=1e-11)
+        assert_allclose(p_test.px, p_ref.px, rtol=0, atol=1e-11)
+        assert_allclose(p_test.y, p_ref.y, rtol=0, atol=1e-11)
+        assert_allclose(p_test.py, p_ref.py, rtol=0, atol=1e-11)
+        assert_allclose(p_test.zeta, p_ref.zeta, rtol=0, atol=1e-7)
+        assert_allclose(p_test.delta, p_ref.delta, rtol=0, atol=1e-11)
+
+        p0.move(_context=xo.context_default)
+        assert_allclose(p_test.x, p0.x, rtol=0, atol=1e-11)
+        assert_allclose(p_test.px, p0.px, rtol=0, atol=1e-11)
+        assert_allclose(p_test.y, p0.y, rtol=0, atol=1e-11)
+        assert_allclose(p_test.py, p0.py, rtol=0, atol=1e-11)
+        assert_allclose(p_test.zeta, p0.zeta, rtol=0, atol=1e-7)
+        assert_allclose(p_test.delta, p0.delta, rtol=0, atol=1e-11)
