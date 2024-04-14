@@ -28,12 +28,14 @@ seq: sequence, l=1;
 elm: elm, at=0.5;
 endsequence;
 
-beam;
+beam, particle=proton, gamma=100;
 use, sequence=seq;
 
 select,flag=error,clear;
 select,flag=error,pattern=elm;
 ealign, dx={shift_x}, dy={shift_y};
+
+twiss, betx=1, bety=1, x={x_test}, px={px_test}, y={y_test}, py={py_test};
 
 """)
 
@@ -57,7 +59,7 @@ l_tilted.build_tracker()
 lmad = xt.Line.from_madx_sequence(mad.sequence.seq, enable_align_errors=True)
 lmad.build_tracker()
 
-p0 = xt.Particles(x=x_test, px=px_test, y=y_test, py=py_test, p0c=1e9)
+p0 = xt.Particles(x=x_test, px=px_test, y=y_test, py=py_test, gamma0=100)
 
 pmad = p0.copy()
 lmad.track(pmad)
@@ -71,11 +73,6 @@ l_tilted.track(plinetilted)
 peletitled = p0.copy()
 elm_tilted.track(peletitled)
 
-pmad.get_table().show()
-psandwitch.get_table().show()
-plinetilted.get_table().show()
-peletitled.get_table().show()
-
 assert elm.rot_s_rad == 0
 elm.rot_s_rad = tilt_rad
 elm.shift_x = shift_x
@@ -83,15 +80,10 @@ elm.shift_y = shift_y
 pprop = p0.copy()
 elm.track(pprop)
 
-pprop.get_table().show()
-
-pref = psandwitch
-
 assert_allclose = np.testing.assert_allclose
-for pp in [plinetilted, pmad, peletitled, pprop]:
-    assert_allclose(pp.x, pref.x, rtol=0, atol=1e-12)
-    assert_allclose(pp.px, pref.px, rtol=0, atol=1e-12)
-    assert_allclose(pp.y, pref.y, rtol=0, atol=1e-12)
-    assert_allclose(pp.py, pref.py, rtol=0, atol=1e-12)
-    assert_allclose(pp.zeta, pref.zeta, rtol=0, atol=1e-12)
-    assert_allclose(pp.delta, pref.delta, rtol=0, atol=1e-12)
+for pp in [psandwitch, plinetilted, pmad, peletitled, pprop]:
+    assert_allclose(pp.x, mad.table.twiss.x[-1], rtol=0, atol=1e-12)
+    assert_allclose(pp.px, mad.table.twiss.px[-1], rtol=0, atol=1e-12)
+    assert_allclose(pp.y, mad.table.twiss.y[-1], rtol=0, atol=1e-12)
+    assert_allclose(pp.py, mad.table.twiss.py[-1], rtol=0, atol=1e-12)
+    assert_allclose(pp.zeta, pp.beta0[0]*mad.table.twiss.t[-1], rtol=0, atol=1e-12)
