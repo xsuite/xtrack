@@ -6,6 +6,8 @@ from xobjects.test_helpers import for_all_test_contexts
 import xobjects as xo
 from cpymad.madx import Madx
 
+assert_allclose = np.testing.assert_allclose
+
 @for_all_test_contexts
 @pytest.mark.parametrize(
     'slice_mode',
@@ -181,10 +183,61 @@ def test_tilt_shifts_vs_madx():
     pprop = p0.copy()
     elm.track(pprop)
 
-    assert_allclose = np.testing.assert_allclose
     for pp in [psandwitch, plinetilted, pmad, peletitled, pprop]:
         assert_allclose(pp.x, mad.table.twiss.x[-1], rtol=0, atol=1e-12)
         assert_allclose(pp.px, mad.table.twiss.px[-1], rtol=0, atol=1e-12)
         assert_allclose(pp.y, mad.table.twiss.y[-1], rtol=0, atol=1e-12)
         assert_allclose(pp.py, mad.table.twiss.py[-1], rtol=0, atol=1e-12)
         assert_allclose(pp.zeta, pp.beta0[0]*mad.table.twiss.t[-1], rtol=0, atol=1e-12)
+
+
+@for_all_test_contexts
+def test_shift_x(test_context):
+
+    k1 = 2.
+    length = 0.1
+
+    quad = xt.Quadrupole(k1=k1, length=length, shift_x=1e-3, _context=test_context)
+
+    assert quad.shift_x == 1e-3
+    assert quad.shift_y == 0
+    assert quad._sin_rot_s == 0.0
+    assert quad._cos_rot_s == 1.0
+
+    p = xt.Particles(x=0, p0c=1e12, _context=test_context)
+    quad.track(p)
+    p.move(_context=xo.context_default)
+
+    assert_allclose(p.px, -k1 * length * -1e-3, rtol=5e-3, atol=0)
+
+    # Change the shift
+    quad.shift_x = 2e-3
+    p = xt.Particles(x=0, p0c=1e12, _context=test_context)
+    quad.track(p)
+    p.move(_context=xo.context_default)
+    assert_allclose(p.px, -k1 * length * -2e-3, rtol=5e-3, atol=0)
+
+    # Make a line
+    line = xt.Line(elements=[quad])
+
+    # Slice the line:
+    line.slice_thick_elements(
+        slicing_strategies=[xt.Strategy(xt.Uniform(3))])
+    line.build_tracker(_context=test_context)
+
+    tt = line.get_table()
+    assert len(tt.rows['e0\.\..*']) == 3
+
+    p = xt.Particles(x=0, p0c=1e12, _context=test_context)
+    line.track(p)
+    p.move(_context=xo.context_default)
+
+    assert_allclose(p.px, -k1 * length * -2e-3, rtol=5e-3, atol=0)
+
+    # Change the shift
+    quad.shift_x = 3e-3
+    p = xt.Particles(x=0, p0c=1e12, _context=test_context)
+    line.track(p)
+    p.move(_context=xo.context_default)
+
+    assert_allclose(p.px, -k1 * length * -3e-3, rtol=5e-3, atol=0)
