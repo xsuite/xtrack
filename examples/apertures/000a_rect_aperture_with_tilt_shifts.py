@@ -10,7 +10,6 @@ import xtrack as xt
 
 context = xo.ContextCpu()
 
-
 n_part=300000
 
 particles = xt.Particles(_context=context,
