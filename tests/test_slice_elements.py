@@ -75,6 +75,7 @@ def test_thin_slice_bend(test_context):
     p_slice.move(_context=test_context)
     line.track(p_slice, backtrack=True)
     p_slice.move(_context=xo.context_default)
+    p0.move(_context=xo.context_default)
 
     assert (p_slice.state == 1).all()
     assert_allclose(p_slice.x, p0.x, rtol=0, atol=1e-10)
@@ -92,6 +93,7 @@ def test_thin_slice_bend(test_context):
         assert isinstance(line['e0..995'], xt.SimpleThinBend)
     assert isinstance(line['drift_e0..995'], xt.Drift)
 
+    p0.move(_context=test_context)
     p_slice = p0.copy()
     line.track(p_slice)
     p_slice.move(_context=xo.context_default)
