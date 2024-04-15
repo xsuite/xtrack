@@ -117,45 +117,43 @@ def test_tilt_shift_and_errors():
         line=ml.make_line()
 
         if opt['enable_apertures'] and opt['enable_errors']:
-            line.element_names == (
-                'seq$start', 'elm1_aper_tilt_entry', 'elm1_aper_offset_entry',
-                'elm1_aper', 'elm1_aper_offset_exit', 'elm1_aper_tilt_exit',
-                'elm1_tilt_entry', 'elm1_offset_entry', 'elm1', 'elm1_offset_exit',
-                'elm1_tilt_exit', 'drift_0', 'mk', 'mk2_aper', 'mk2', 'drift_1',
-                'elm2_aper_tilt_entry', 'elm2_aper_offset_entry', 'elm2_aper',
-                'elm2_aper_offset_exit', 'elm2_aper_tilt_exit', 'elm2_tilt_entry',
-                'elm2_offset_entry', 'elm2', 'elm2_offset_exit', 'elm2_tilt_exit',
-                'elm3_aper_tilt_entry', 'elm3_aper_offset_entry', 'elm3_aper',
-                'elm3_aper_offset_exit', 'elm3_aper_tilt_exit', 'elm3_tilt_entry',
-                'elm3_offset_entry', 'elm3', 'elm3_offset_exit', 'elm3_tilt_exit',
-                'drift_2', 'seq$end')
+            assert np.all(np.array(line.element_names) == (
+                'seq$start',
+                'elm1_aper',
+                'elm1',
+                'drift_0', 'mk', 'mk2_aper', 'mk2', 'drift_1',
+                'elm2_aper',
+                'elm2',
+                'elm3_aper',
+                'elm3',
+                'drift_2', 'seq$end'))
 
         elif opt['enable_apertures'] and not(opt['enable_errors']):
-            line.element_names == (
-                'seq$start', 'elm1_aper_tilt_entry', 'elm1_aper_offset_entry',
-                'elm1_aper', 'elm1_aper_offset_exit', 'elm1_aper_tilt_exit',
-                'elm1_tilt_entry', 'elm1', 'elm1_tilt_exit', 'drift_0', 'mk',
-                'mk2_aper', 'mk2', 'drift_1', 'elm2_aper_tilt_entry',
-                'elm2_aper_offset_entry', 'elm2_aper', 'elm2_aper_offset_exit',
-                'elm2_aper_tilt_exit', 'elm2_tilt_entry', 'elm2', 'elm2_tilt_exit',
-                'elm3_aper_tilt_entry', 'elm3_aper_offset_entry', 'elm3_aper',
-                'elm3_aper_offset_exit', 'elm3_aper_tilt_exit',
-                'elm3_tilt_entry','elm3', 'elm3_tilt_exit', 'drift_2', 'seq$end'
-                )
+            assert np.all(np.array(line.element_names) == (
+                'seq$start',
+                'elm1_aper',
+                'elm1',
+                'drift_0',
+                'mk',
+                'mk2_aper', 'mk2', 'drift_1',
+                'elm2_aper',
+                'elm2',
+                'elm3_aper',
+                'elm3', 'drift_2', 'seq$end'
+                ))
         elif not(opt['enable_apertures']) and opt['enable_errors']:
-            line.element_names == (
-                'seq$start', 'elm1_tilt_entry', 'elm1_offset_entry', 'elm1',
-                'elm1_offset_exit', 'elm1_tilt_exit', 'drift_0', 'mk', 'mk2',
-                'drift_1', 'elm2_tilt_entry', 'elm2_offset_entry', 'elm2',
-                'elm2_offset_exit', 'elm2_tilt_exit', 'elm3_tilt_entry',
-                'elm3_offset_entry', 'elm3', 'elm3_offset_exit',
-                'elm3_tilt_exit', 'drift_2', 'seq$end')
+            assert np.all(np.array(line.element_names) == (
+                'seq$start', 'elm1',
+                'drift_0', 'mk', 'mk2',
+                'drift_1', 'elm2',
+                'elm3',
+                'drift_2', 'seq$end'))
         elif not(opt['enable_apertures']) and not(opt['enable_errors']):
-            line.element_names == (
-                'seq$start', 'elm1_tilt_entry', 'elm1', 'elm1_tilt_exit',
-                'drift_0', 'mk', 'mk2', 'drift_1', 'elm2_tilt_entry', 'elm2',
-                'elm2_tilt_exit', 'elm3_tilt_entry', 'elm3', 'elm3_tilt_exit',
-                'drift_2', 'seq$end')
+            assert np.all(np.array(line.element_names) == (
+                'seq$start', 'elm1',
+                'drift_0', 'mk', 'mk2', 'drift_1', 'elm2',
+                'elm3',
+                'drift_2', 'seq$end'))
 
         for nn in line.element_names:
             if 'tilt' in nn:
