@@ -6,7 +6,7 @@ drift = xt.Drift(length=1)
 line = xt.Line(elements=[drift])
 
 line.slice_thick_elements(
-    slicing_strategies=[xt.Strategy(xt.Uniform(5))])
+    slicing_strategies=[xt.Strategy(xt.Uniform(5), element_type=xt.Drift)])
 line.build_tracker()
 assert line['drift_e0..0']._parent_name == 'e0'
 assert line['drift_e0..0']._parent is line['e0']
