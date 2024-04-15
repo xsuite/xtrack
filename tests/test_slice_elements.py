@@ -89,6 +89,9 @@ def test_thin_slice_bend(test_context):
         assert isinstance(line['e0..995'], xt.SimpleThinBend)
     assert isinstance(line['drift_e0..995'], xt.Drift)
 
+    assert isinstance(line['e0..entry_map'], xt.DipoleEdge)
+    assert isinstance(line['e0..exit_map'], xt.DipoleEdge)
+
     p_slice = p0.copy()
     line.track(p_slice)
 

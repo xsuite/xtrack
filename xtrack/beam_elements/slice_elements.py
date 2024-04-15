@@ -3,7 +3,7 @@ import xobjects as xo
 from ..general import _pkg_root
 from ..random import RandomUniform, RandomExponential
 from .elements import (SynchrotronRadiationRecord, Quadrupole, Sextupole,
-                       Octupole, Bend, Multipole)
+                       Octupole, Bend, Multipole, DipoleEdge)
 from ..base_element import BeamElement
 
 xo.context_default.kernels.clear()
@@ -251,6 +251,19 @@ class ThinSliceBendEntry(BeamElement):
         obj._parent_name = dct['_parent_name']
         return obj
 
+    def get_equivalent_element(self):
+
+        return DipoleEdge(
+            k=self._parent.k0,
+            e1=self._parent.edge_entry_angle,
+            e1_fd=self._parent.edge_entry_angle_fdown,
+            hgap=self._parent.edge_entry_hgap,
+            fint=self._parent.edge_entry_fint,
+            model=self._parent.edge_entry_model,
+            side='entry',
+            _buffer=self._buffer
+        )
+
 _thin_slice_bend_exit_xofields = {
     '_parent': xo.Ref(Bend)}
 _thin_slice_bend_exit_xofields.update(_common_xofields)
@@ -280,3 +293,16 @@ class ThinSliceBendExit(BeamElement):
         obj = super().from_dict(dct, **kwargs)
         obj._parent_name = dct['_parent_name']
         return obj
+
+    def get_equivalent_element(self):
+
+            return DipoleEdge(
+                k=self._parent.k0,
+                e1=self._parent.edge_exit_angle,
+                e1_fd=self._parent.edge_exit_angle_fdown,
+                hgap=self._parent.edge_exit_hgap,
+                fint=self._parent.edge_exit_fint,
+                model=self._parent.edge_exit_model,
+                side='exit',
+                _buffer=self._buffer
+            )
