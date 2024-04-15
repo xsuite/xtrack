@@ -9,7 +9,9 @@ assert_allclose= xo.assert_allclose
 @for_all_test_contexts
 def test_thin_slice_bend(test_context):
 
-    bend = xt.Bend(k0=0.4, h=0.3, length=1)
+    bend = xt.Bend(k0=0.4, h=0.3, length=1,
+                   edge_entry_angle=0.05, edge_entry_hgap=0.06, edge_entry_fint=0.08,
+                   edge_exit_angle=0.05, edge_exit_hgap=0.06, edge_exit_fint=0.08)
 
     line = xt.Line(elements=[bend])
 
@@ -421,7 +423,9 @@ def test_thin_slice_drift(test_context):
 @for_all_test_contexts
 def test_thick_slice_bend(test_context):
 
-    bend = xt.Bend(k0=0.4, h=0.3, k1=0.1, length=1)
+    bend = xt.Bend(k0=0.4, h=0.3, length=1,
+                edge_entry_angle=0.05, edge_entry_hgap=0.06, edge_entry_fint=0.08,
+                edge_exit_angle=0.05, edge_exit_hgap=0.06, edge_exit_fint=0.08)
 
     line = xt.Line(elements=[bend])
 
