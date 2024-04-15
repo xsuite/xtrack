@@ -4,6 +4,8 @@ import xobjects as xo
 
 xo.context_default.kernels.clear()
 
+model = 'full'
+
 # only edge entry
 bend_only_e1 = xt.Bend(
     length=0, k0=0.1,
@@ -16,6 +18,7 @@ edge_e1 = xt.DipoleEdge(
     k=0.1, side='entry', e1=0.05, hgap=0.06, fint=0.08)
 
 line = xt.Line(elements=[bend_only_e1])
+
 line['e0'].length = 1 # to force the slicing
 line.slice_thick_elements(
     slicing_strategies=[xt.Strategy(xt.Teapot(1))])
@@ -27,8 +30,8 @@ assert 'e0..exit_map' in line.element_names
 assert isinstance(line['e0..entry_map'], xt.ThinSliceBendEntry)
 assert isinstance(line['e0..exit_map'], xt.ThinSliceBendExit)
 
-edge_e1.model = 'full'
-bend_only_e1.edge_entry_model = 'full'
+edge_e1.model = model
+bend_only_e1.edge_entry_model = model
 
 p1 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03)
 p2 = p1.copy()
