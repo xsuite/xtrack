@@ -108,6 +108,7 @@ def test_thin_slice_bend(test_context):
     p_slice.move(_context=test_context)
     line.track(p_slice, backtrack=True)
     p_slice.move(_context=xo.context_default)
+    p0.move(_context=xo.context_default)
 
     assert_allclose(p_slice.x, p0.x, rtol=0, atol=1e-10)
     assert_allclose(p_slice.px, p0.px, rtol=0, atol=1e-10)
