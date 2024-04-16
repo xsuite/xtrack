@@ -5,8 +5,8 @@ import xobjects as xo
 
 assert_allclose = xo.assert_allclose
 
-def assert_allclose(a, b, **kwargs):
-    print(a, b)
+# def assert_allclose(a, b, **kwargs):
+#     print(a, b)
 
 test_data_folder = '../../test_data'
 

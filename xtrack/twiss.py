@@ -3045,6 +3045,19 @@ class TwissTable(Table):
             out.qs = 0
             out.muzeta[:] = 0
 
+        # Same convention as in MAD-X for reversing strengths
+        for kk in NORMAL_STRENGTHS_FROM_ATTR:
+            if kk not in out._col_names:
+                continue
+            ii = int(kk.split('k')[-1].split('l')[0])
+            out[kk] *= (-1)**(ii+1)
+
+        for kk in SKEW_STRENGTHS_FROM_ATTR:
+            if kk not in out._col_names:
+                continue
+            ii = int(kk.split('k')[-1].split('sl')[0])
+            out[kk] *= (-1)**ii
+
         out._data['reference_frame'] = {
             'proper': 'reverse', 'reverse': 'proper'}[self.reference_frame]
 
