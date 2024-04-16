@@ -171,7 +171,7 @@ class Multiline:
         return cls.from_dict(dct, **kwargs)
 
     @classmethod
-    def from_madx(cls, file, stdout=None, **kwargs):
+    def from_madx(cls, filename=None, madx=None, stdout=None, return_lines=False, **kwargs):
         '''
         Load a multiline from a MAD-X file.
 
@@ -188,27 +188,31 @@ class Multiline:
         new_multiline: Multiline
             The multiline object.
         '''
-        from cpymad.madx import Madx
-
-        mad = Madx(stdout=stdout)
-        mad.call(file)
+        if madx is None:
+           from cpymad.madx import Madx
+           madx = Madx(stdout=stdout)
+        if filename is not None:
+           madx.call(filename)
         lines = {}
-        for nn in mad.sequence.keys():
+        for nn in madx.sequence.keys():
             lines[nn] = xt.Line.from_madx_sequence(
-                mad.sequence[nn],
+                madx.sequence[nn],
                 allow_thick=True,
                 deferred_expressions=True,
                 **kwargs)
 
             lines[nn].particle_ref = xt.Particles(
-                mass0=mad.sequence[nn].beam.mass*1e9,
-                q0=mad.sequence[nn].beam.charge,
-                gamma0=mad.sequence[nn].beam.gamma)
+                mass0=madx.sequence[nn].beam.mass*1e9,
+                q0=madx.sequence[nn].beam.charge,
+                gamma0=madx.sequence[nn].beam.gamma)
 
-            if mad.sequence[nn].beam.bv == -1:
+            if madx.sequence[nn].beam.bv == -1:
                 lines[nn].twiss_default['reverse'] = True
 
-        return cls(lines=lines)
+        if return_lines:
+            return lines
+        else:
+            return cls(lines=lines)
 
     def copy(self):
         '''
