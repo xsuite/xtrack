@@ -260,7 +260,8 @@ def test_slice_thick_and_insert_with_replicas(test_context):
     assert_allclose(tt.s, [0., 1., 2., 3., 4., 5.], rtol=0, atol=1e-14)
     assert_allclose(tt_no_repl.s, [0., 1., 2., 3., 4., 5.], rtol=0, atol=1e-14)
 
-    p0 = xt.Particles(p0c=1e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03)
+    p0 = xt.Particles(p0c=1e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03,
+                        _context=test_context)
     p1 = p0.copy()
     p2 = p0.copy()
 
