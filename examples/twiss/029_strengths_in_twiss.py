@@ -79,4 +79,14 @@ assert_allclose(twm2['k5l', 'mctxf.3l1:1'], tw.lhcb2['k5l', 'mctxf.3l1'], rtol=0
 assert_allclose(twm1['k1sl', 'mqs.27l3.b1:1'], tw.lhcb1['k1sl', 'mqs.27l3.b1'], rtol=0, atol=1e-14)
 assert_allclose(twm2['k1sl', 'mqs.23l2.b2:1'], tw.lhcb2['k1sl', 'mqs.23l2.b2'], rtol=0, atol=1e-14)
 
+assert_allclose(twm1['k2sl', 'mss.28l5.b1:1'], tw.lhcb1['k2sl', 'mss.28l5.b1'], rtol=0, atol=1e-14)
+assert_allclose(twm2['k2sl', 'mss.33l5.b2:1'], tw.lhcb2['k2sl', 'mss.33l5.b2'], rtol=0, atol=1e-14)
 
+assert_allclose(twm1['k3sl', 'mcosx.3l2:1'], tw.lhcb1['k3sl', 'mcosx.3l2'], rtol=0, atol=1e-14)
+assert_allclose(twm2['k3sl', 'mcosx.3l2:1'], tw.lhcb2['k3sl', 'mcosx.3l2'], rtol=0, atol=1e-14)
+
+assert_allclose(twm1['k4sl', 'mcdsxf.3r1:1'], tw.lhcb1['k4sl', 'mcdsxf.3r1'], rtol=0, atol=1e-14)
+assert_allclose(twm2['k4sl', 'mcdsxf.3r1:1'], tw.lhcb2['k4sl', 'mcdsxf.3r1'], rtol=0, atol=1e-14)
+
+assert_allclose(twm1['k5sl', 'mctsxf.3r1:1'], tw.lhcb1['k5sl', 'mctsxf.3r1'], rtol=0, atol=1e-14)
+assert_allclose(twm2['k5sl', 'mctsxf.3r1:1'], tw.lhcb2['k5sl', 'mctsxf.3r1'], rtol=0, atol=1e-14)
