@@ -46,6 +46,10 @@ VARS_FOR_TWISS_INIT_GENERATION = [
     'ddx', 'ddpx', 'ddy', 'ddpy',
 ]
 
+NORMAL_STRENGTHS_FROM_ATTR=['k0l', 'k1l', 'k2l', 'k3l', 'k4l', 'k5l']
+SKEW_STRENGTHS_FROM_ATTR=['k0sl', 'k1sl', 'k2sl', 'k3sl', 'k4sl', 'k5sl']
+OTHER_FIELDS_FROM_ATTR=['element_type', 'isthick', 'length', 'compound_name']
+
 log = logging.getLogger(__name__)
 
 def twiss_line(line, particle_ref=None, method=None,
@@ -684,10 +688,11 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res._data['values_at'] = 'entry'
 
     if strengths:
-        strengths = _extract_knl_ksl(line, twiss_res['name'])
-        twiss_res._data.update(strengths)
-        twiss_res._col_names = (list(twiss_res._col_names) +
-                                    list(strengths.keys()))
+        tt = line.get_table(attr=True).rows[list(twiss_res.name)]
+        for kk in (NORMAL_STRENGTHS_FROM_ATTR + SKEW_STRENGTHS_FROM_ATTR
+                   + OTHER_FIELDS_FROM_ATTR):
+            twiss_res._col_names.append(kk)
+            twiss_res._data[kk] = tt[kk]
 
     twiss_res._data['method'] = method
     twiss_res._data['radiation_method'] = radiation_method
@@ -2957,14 +2962,14 @@ class TwissTable(Table):
             itake = slice(1, None, None)
 
         for kk in self._col_names:
-            if kk == 'name':
+            if (kk == 'name' or kk in NORMAL_STRENGTHS_FROM_ATTR
+                    or kk in SKEW_STRENGTHS_FROM_ATTR
+                    or kk in OTHER_FIELDS_FROM_ATTR):
                 new_data[kk][:-1] = new_data[kk][:-1][::-1]
-                new_data[kk][-1] = self.name[-1]
+                new_data[kk][-1] = self[kk][-1]
             elif kk == 'W_matrix':
                 new_data[kk][:-1, :, :] = new_data[kk][itake, :, :][::-1, :, :]
                 new_data[kk][-1, :, :] = self[kk][0, :, :]
-            elif kk.startswith('k') and kk.endswith('nl', 'sl'):
-                continue # Not yet implemented
             else:
                 new_data[kk][:-1] = new_data[kk][itake][::-1]
                 new_data[kk][-1] = self[kk][0]
@@ -3286,50 +3291,6 @@ def _extract_twiss_parameters_with_inverse(Ws):
     gamy *= sign_y
 
     return betx, alfx, gamx, bety, alfy, gamy, bety1, betx2
-
-def _extract_knl_ksl(line, names):
-
-    knl = []
-    ksl = []
-
-    ctx2np = line._context.nparray_from_context_array
-
-    for nn in names:
-        if nn in line.element_names:
-            if hasattr(line.element_dict[nn], 'knl'):
-                knl.append(ctx2np(line.element_dict[nn].knl).copy())
-            else:
-                knl.append([])
-
-            if hasattr(line.element_dict[nn], 'ksl'):
-                ksl.append(ctx2np(line.element_dict[nn].ksl).copy())
-            else:
-                ksl.append([])
-        else:
-            knl.append([])
-            ksl.append([])
-
-    # Find maximum length of knl and ksl
-    max_knl = 0
-    max_ksl = 0
-    for ii in range(len(knl)):
-        max_knl = max(max_knl, len(knl[ii]))
-        max_ksl = max(max_ksl, len(ksl[ii]))
-
-    knl_array = np.zeros(shape=(len(knl), max_knl), dtype=np.float64)
-    ksl_array = np.zeros(shape=(len(ksl), max_ksl), dtype=np.float64)
-
-    for ii in range(len(knl)):
-        knl_array[ii, :len(knl[ii])] = knl[ii]
-        ksl_array[ii, :len(ksl[ii])] = ksl[ii]
-
-    k_dict = {}
-    for jj in range(max_knl):
-        k_dict[f'k{jj}nl'] = knl_array[:, jj]
-    for jj in range(max_ksl):
-        k_dict[f'k{jj}sl'] = ksl_array[:, jj]
-
-    return k_dict
 
 def _str_to_index(line, ele, allow_end_point=True):
     if allow_end_point and ele == '_end_point':
