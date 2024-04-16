@@ -46,9 +46,9 @@ VARS_FOR_TWISS_INIT_GENERATION = [
     'ddx', 'ddpx', 'ddy', 'ddpy',
 ]
 
-NORMAL_STRENGTHS_FROM_ATTR=['k0l', 'k1l', 'k2l', 'k3l', 'k4l', 'k5l']
-SKEW_STRENGTHS_FROM_ATTR=['k0sl', 'k1sl', 'k2sl', 'k3sl', 'k4sl', 'k5sl']
-OTHER_FIELDS_FROM_ATTR=['element_type', 'isthick', 'length', 'compound_name']
+NORMAL_STRENGTHS_FROM_ATTR=['k0l', 'k1l', 'k2l', 'k3l', 'k4l', 'k5l', 'k6l']
+SKEW_STRENGTHS_FROM_ATTR=['k0sl', 'k1sl', 'k2sl', 'k3sl', 'k4sl', 'k5sl', 'k6sl']
+OTHER_FIELDS_FROM_ATTR=['element_type', 'isthick', 'length', 'parent_name']
 
 log = logging.getLogger(__name__)
 
