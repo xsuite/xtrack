@@ -29,8 +29,8 @@ if tilt_machine_by_90_degrees:
             if nn not in already_tilted:
                 line[nn].rot_s_rad += np.pi/2
                 already_tilted.append(nn)
-        if hasattr(line[nn], '_parent_name'):
-            nn_parent = line[nn]._parent_name
+        if hasattr(line[nn], 'parent_name'):
+            nn_parent = line[nn].parent_name
             if hasattr(line[nn_parent], 'rot_s_rad'):
                 if nn_parent not in already_tilted:
                     line[nn_parent].rot_s_rad += np.pi/2
