@@ -40,3 +40,12 @@ line.get_table().show()
 # quad_5       16 Multipole      False
 # drift7       16 Drift           True
 # _end_point   20                False
+
+
+import xplt
+xplt.apply_style()
+
+plot = xplt.FloorPlot(line=line)
+plot.legend()
+
+plot.save("sequence_example.png")
