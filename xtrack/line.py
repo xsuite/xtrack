@@ -3464,8 +3464,6 @@ class Line:
                 '_own_k3': 'k3',
                 '_own_k4': 'k4',
                 '_own_k5': 'k5',
-                '_own_k6': 'k6',
-
 
                 '_own_k0s': 'k0s',
                 '_own_k1s': 'k1s',
@@ -3473,7 +3471,6 @@ class Line:
                 '_own_k3s': 'k3s',
                 '_own_k4s': 'k4s',
                 '_own_k5s': 'k5s',
-                '_own_k6s': 'k6s',
 
                 '_own_k0l': ('knl', 0),
                 '_own_k1l': ('knl', 1),
@@ -3481,7 +3478,6 @@ class Line:
                 '_own_k3l': ('knl', 3),
                 '_own_k4l': ('knl', 4),
                 '_own_k5l': ('knl', 5),
-                '_own_k6l': ('knl', 6),
 
                 '_own_k0sl': ('ksl', 0),
                 '_own_k1sl': ('ksl', 1),
@@ -3489,7 +3485,6 @@ class Line:
                 '_own_k3sl': ('ksl', 3),
                 '_own_k4sl': ('ksl', 4),
                 '_own_k5sl': ('ksl', 5),
-                '_own_k6sl': ('ksl', 6),
 
                 '_parent_length': (('_parent', 'length'), None),
                 '_parent_sin_rot_s': (('_parent', '_sin_rot_s'), None),
@@ -3506,7 +3501,6 @@ class Line:
                 '_parent_k3': (('_parent', 'k3'), None),
                 '_parent_k4': (('_parent', 'k4'), None),
                 '_parent_k5': (('_parent', 'k5'), None),
-                '_parent_k6': (('_parent', 'k6'), None),
 
                 '_parent_k0s': (('_parent', 'k0s'), None),
                 '_parent_k1s': (('_parent', 'k1s'), None),
@@ -3514,7 +3508,6 @@ class Line:
                 '_parent_k3s': (('_parent', 'k3s'), None),
                 '_parent_k4s': (('_parent', 'k4s'), None),
                 '_parent_k5s': (('_parent', 'k5s'), None),
-                '_parent_k6s': (('_parent', 'k6s'), None),
 
                 '_parent_k0l': (('_parent', 'knl'), 0),
                 '_parent_k1l': (('_parent', 'knl'), 1),
@@ -3522,7 +3515,6 @@ class Line:
                 '_parent_k3l': (('_parent', 'knl'), 3),
                 '_parent_k4l': (('_parent', 'knl'), 4),
                 '_parent_k5l': (('_parent', 'knl'), 5),
-                '_parent_k6l': (('_parent', 'knl'), 6),
 
                 '_parent_k0sl': (('_parent', 'ksl'), 0),
                 '_parent_k1sl': (('_parent', 'ksl'), 1),
@@ -3530,7 +3522,6 @@ class Line:
                 '_parent_k3sl': (('_parent', 'ksl'), 3),
                 '_parent_k4sl': (('_parent', 'ksl'), 4),
                 '_parent_k5sl': (('_parent', 'ksl'), 5),
-                '_parent_k6sl': (('_parent', 'ksl'), 6),
 
             },
             derived_fields={
@@ -3604,16 +3595,6 @@ class Line:
                     + attr['_own_k5s'] * attr['_own_length']
                     + attr['_parent_k5sl'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k5s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k6l': lambda attr: (
-                    attr['_own_k6l']
-                    + attr['_own_k6'] * attr['_own_length']
-                    + attr['_parent_k6l'] * attr['weight'] * attr._inherit_strengths
-                    + attr['_parent_k6'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k6sl': lambda attr: (
-                    attr['_own_k6sl']
-                    + attr['_own_k6s'] * attr['_own_length']
-                    + attr['_parent_k6sl'] * attr['weight'] * attr._inherit_strengths
-                    + attr['_parent_k6s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
             }
         )
         return cache
