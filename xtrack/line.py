@@ -1171,7 +1171,7 @@ class Line:
                   solver_options={}, allow_twiss_failure=True,
                   restore_if_fail=True, verbose=False,
                   n_steps_max=20, default_tol=None,
-                  solver=None, **kwargs):
+                  solver=None, check_limits=True, **kwargs):
         '''
         Change a set of knobs in the beamline in order to match assigned targets.
 
@@ -1209,8 +1209,11 @@ class Line:
             for `None` is used for all targets for which a tolerance is not
             otherwise provided. Example: `default_tol={'betx': 1e-4, None: 1e-6}`.
         solver : str
-            Solver to be used for the matching. Available solvers are `jacobian`
-            (default), and `fsolve`.
+            Solver to be used for the matching.
+        check_limits : bool
+            If True (default), the limits of the knobs are checked before the
+            optimization. If False, if the knobs are out of limits, the optimization
+            knobs are set to the limits on the first iteration.
         **kwargs : dict
             Additional arguments to be passed to the twiss.
 
@@ -1281,7 +1284,8 @@ class Line:
                         allow_twiss_failure=allow_twiss_failure,
                         restore_if_fail=restore_if_fail,
                         verbose=verbose, n_steps_max=n_steps_max,
-                        default_tol=default_tol, solver=solver, **kwargs)
+                        default_tol=default_tol, solver=solver,
+                        check_limits=check_limits, **kwargs)
 
 
     def match_knob(self, knob_name, vary, targets,
