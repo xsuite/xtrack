@@ -22,7 +22,7 @@ _common_c_sources = [
 def _slice_copy(self, **kwargs):
     out = BeamElement.copy(self, **kwargs)
     out._parent = None
-    out._parent_name = self._parent_name
+    out.parent_name = self.parent_name
     return out
 
 
@@ -48,13 +48,13 @@ class ThinSliceQuadrupole(BeamElement):
 
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
-        dct['_parent_name'] = self._parent_name
+        dct['parent_name'] = self.parent_name
         return dct
 
     @classmethod
     def from_dict(cls, dct, **kwargs):
         obj = super().from_dict(dct, **kwargs)
-        obj._parent_name = dct['_parent_name']
+        obj.parent_name = dct['parent_name']
         return obj
 
     def get_equivalent_element(self):
@@ -97,13 +97,13 @@ class ThinSliceSextupole(BeamElement):
 
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
-        dct['_parent_name'] = self._parent_name
+        dct['parent_name'] = self.parent_name
         return dct
 
     @classmethod
     def from_dict(cls, dct, **kwargs):
         obj = super().from_dict(dct, **kwargs)
-        obj._parent_name = dct['_parent_name']
+        obj.parent_name = dct['parent_name']
         return obj
 
     def get_equivalent_element(self):
@@ -146,13 +146,13 @@ class ThinSliceOctupole(BeamElement):
 
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
-        dct['_parent_name'] = self._parent_name
+        dct['parent_name'] = self.parent_name
         return dct
 
     @classmethod
     def from_dict(cls, dct, **kwargs):
         obj = super().from_dict(dct, **kwargs)
-        obj._parent_name = dct['_parent_name']
+        obj.parent_name = dct['parent_name']
         return obj
 
     def get_equivalent_element(self):
@@ -195,13 +195,13 @@ class ThinSliceBend(BeamElement):
 
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
-        dct['_parent_name'] = self._parent_name
+        dct['parent_name'] = self.parent_name
         return dct
 
     @classmethod
     def from_dict(cls, dct, **kwargs):
         obj = super().from_dict(dct, **kwargs)
-        obj._parent_name = dct['_parent_name']
+        obj.parent_name = dct['parent_name']
         return obj
 
     def get_equivalent_element(self):
@@ -242,13 +242,13 @@ class ThinSliceBendEntry(BeamElement):
 
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
-        dct['_parent_name'] = self._parent_name
+        dct['parent_name'] = self.parent_name
         return dct
 
     @classmethod
     def from_dict(cls, dct, **kwargs):
         obj = super().from_dict(dct, **kwargs)
-        obj._parent_name = dct['_parent_name']
+        obj.parent_name = dct['parent_name']
         return obj
 
     def get_equivalent_element(self):
@@ -285,13 +285,13 @@ class ThinSliceBendExit(BeamElement):
 
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
-        dct['_parent_name'] = self._parent_name
+        dct['parent_name'] = self.parent_name
         return dct
 
     @classmethod
     def from_dict(cls, dct, **kwargs):
         obj = super().from_dict(dct, **kwargs)
-        obj._parent_name = dct['_parent_name']
+        obj.parent_name = dct['parent_name']
         return obj
 
     def get_equivalent_element(self):

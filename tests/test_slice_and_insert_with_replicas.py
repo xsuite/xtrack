@@ -10,10 +10,10 @@ def test_slice_thin_and_insert_with_replicas(test_context):
 
     elements = {
         'e0': xt.Bend(k0=0.3, h=0.31, length=1),
-        'e1': xt.Replica(_parent_name='e0'),
+        'e1': xt.Replica(parent_name='e0'),
         'e2': xt.Bend(k0=-0.4, h=-0.41, length=1),
-        'e3': xt.Replica(_parent_name='e2'),
-        'e4': xt.Replica(_parent_name='e3'), # Replica of replica
+        'e3': xt.Replica(parent_name='e2'),
+        'e4': xt.Replica(parent_name='e3'), # Replica of replica
     }
     line = xt.Line(elements=elements,
                 element_names=list(elements.keys()))
@@ -227,10 +227,10 @@ def test_slice_thick_and_insert_with_replicas(test_context):
 
     elements = {
         'e0': xt.Bend(k0=0.3, h=0.31, length=1),
-        'e1': xt.Replica(_parent_name='e0'),
+        'e1': xt.Replica(parent_name='e0'),
         'e2': xt.Bend(k0=-0.4, h=-0.41, length=1),
-        'e3': xt.Replica(_parent_name='e2'),
-        'e4': xt.Replica(_parent_name='e3'), # Replica of replica
+        'e3': xt.Replica(parent_name='e2'),
+        'e4': xt.Replica(parent_name='e3'), # Replica of replica
     }
     line = xt.Line(elements=elements,
                 element_names=list(elements.keys()))

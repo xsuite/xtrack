@@ -126,7 +126,7 @@ class TrackerData:
                 break
             if hasattr(self._element_dict[nn], '_parent'):
                 this_parent = self._element_dict[
-                    self._element_dict[nn]._parent_name]
+                    self._element_dict[nn].parent_name]
                 this_parent._movable = True # Force movable
                 if this_parent._buffer is not self._element_dict[nn]._buffer:
                     this_parent.move(_buffer=self._element_dict[nn]._buffer)

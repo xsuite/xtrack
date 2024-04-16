@@ -28,11 +28,11 @@ line.slice_thick_elements(
     slicing_strategies=[xt.Strategy(xt.Teapot(n_teapot))])
 line.build_tracker()
 line._line_before_slicing.build_tracker()
-assert line['e0..0']._parent_name == 'e0'
+assert line['e0..0'].parent_name == 'e0'
 assert line['e0..0']._parent is line['e0']
-assert line['e0..entry_map']._parent_name == 'e0'
+assert line['e0..entry_map'].parent_name == 'e0'
 assert line['e0..entry_map']._parent is line['e0']
-assert line['e0..exit_map']._parent_name == 'e0'
+assert line['e0..exit_map'].parent_name == 'e0'
 assert line['e0..exit_map']._parent is line['e0']
 
 p0 = xt.Particles(p0c=10e9, x=1e-3, px=2.e-3, y=3.e-3, py=4.e-3, delta=0.03)

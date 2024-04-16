@@ -14,13 +14,13 @@ line.slice_thick_elements(
     slicing_strategies=[xt.Strategy(xt.Teapot(10000))])
 line.build_tracker()
 line._line_before_slicing.build_tracker()
-assert line['e0..995']._parent_name == 'e0'
+assert line['e0..995'].parent_name == 'e0'
 assert line['e0..995']._parent is line['e0']
-assert line['drift_e0..995']._parent_name == 'e0'
+assert line['drift_e0..995'].parent_name == 'e0'
 assert line['drift_e0..995']._parent is line['e0']
-assert line['e0..entry_map']._parent_name == 'e0'
+assert line['e0..entry_map'].parent_name == 'e0'
 assert line['e0..entry_map']._parent is line['e0']
-assert line['e0..exit_map']._parent_name == 'e0'
+assert line['e0..exit_map'].parent_name == 'e0'
 assert line['e0..exit_map']._parent is line['e0']
 
 p0 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03)
@@ -42,27 +42,27 @@ assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-10)
 line.to_json('ttt.json')
 line2 = xt.Line.from_json('ttt.json')
 assert isinstance(line2['e0..995'], xt.ThinSliceBend)
-assert line2['e0..995']._parent_name == 'e0'
+assert line2['e0..995'].parent_name == 'e0'
 assert line2['e0..995']._parent is None
-assert line2['drift_e0..995']._parent_name == 'e0'
+assert line2['drift_e0..995'].parent_name == 'e0'
 assert line2['drift_e0..995']._parent is None
-assert line2['e0..entry_map']._parent_name == 'e0'
+assert line2['e0..entry_map'].parent_name == 'e0'
 assert line2['e0..entry_map']._parent is None
-assert line2['e0..exit_map']._parent_name == 'e0'
+assert line2['e0..exit_map'].parent_name == 'e0'
 assert line2['e0..exit_map']._parent is None
 
 line2.build_tracker()
 assert isinstance(line2['e0..995'], xt.ThinSliceBend)
-assert line2['e0..995']._parent_name == 'e0'
+assert line2['e0..995'].parent_name == 'e0'
 assert line2['e0..995']._parent is line2['e0']
 assert isinstance(line2['drift_e0..995'], xt.DriftSliceBend)
-assert line2['drift_e0..995']._parent_name == 'e0'
+assert line2['drift_e0..995'].parent_name == 'e0'
 assert line2['drift_e0..995']._parent is line2['e0']
 assert isinstance(line2['e0..entry_map'], xt.ThinSliceBendEntry)
-assert line2['e0..entry_map']._parent_name == 'e0'
+assert line2['e0..entry_map'].parent_name == 'e0'
 assert line2['e0..entry_map']._parent is line2['e0']
 assert isinstance(line2['e0..exit_map'], xt.ThinSliceBendExit)
-assert line2['e0..exit_map']._parent_name == 'e0'
+assert line2['e0..exit_map'].parent_name == 'e0'
 assert line2['e0..exit_map']._parent is line2['e0']
 
 line.track(p_slice, backtrack=True)

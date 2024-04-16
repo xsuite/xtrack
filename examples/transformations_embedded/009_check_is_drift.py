@@ -4,9 +4,9 @@ import xtrack as xt
 bend = xt.Bend(k0=0.4, h=0.3, length=1)
 
 line = xt.Line(
-    elements=[bend, xt.Replica(_parent_name='e0'), xt.Replica(_parent_name='e1'),
-                         xt.Drift(length=1.), xt.Replica(_parent_name='e3'),
-                         xt.Replica(_parent_name='e4')])
+    elements=[bend, xt.Replica(parent_name='e0'), xt.Replica(parent_name='e1'),
+                         xt.Drift(length=1.), xt.Replica(parent_name='e3'),
+                         xt.Replica(parent_name='e4')])
 length = line.get_length()
 
 tt = line.get_table()

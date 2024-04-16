@@ -37,13 +37,13 @@ class ThickSliceBend(BeamElement):
 
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
-        dct['_parent_name'] = self._parent_name
+        dct['parent_name'] = self.parent_name
         return dct
 
     @classmethod
     def from_dict(cls, dct, **kwargs):
         obj = super().from_dict(dct, **kwargs)
-        obj._parent_name = dct['_parent_name']
+        obj.parent_name = dct['parent_name']
         return obj
 
 
@@ -72,13 +72,13 @@ class ThickSliceQuadrupole(BeamElement):
 
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
-        dct['_parent_name'] = self._parent_name
+        dct['parent_name'] = self.parent_name
         return dct
 
     @classmethod
     def from_dict(cls, dct, **kwargs):
         obj = super().from_dict(dct, **kwargs)
-        obj._parent_name = dct['_parent_name']
+        obj.parent_name = dct['parent_name']
         return obj
 
 
@@ -110,13 +110,13 @@ class ThickSliceSextupole(BeamElement):
 
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
-        dct['_parent_name'] = self._parent_name
+        dct['parent_name'] = self.parent_name
         return dct
 
     @classmethod
     def from_dict(cls, dct, **kwargs):
         obj = super().from_dict(dct, **kwargs)
-        obj._parent_name = dct['_parent_name']
+        obj.parent_name = dct['parent_name']
         return obj
 
 
@@ -148,13 +148,13 @@ class ThickSliceOctupole(BeamElement):
 
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
-        dct['_parent_name'] = self._parent_name
+        dct['parent_name'] = self.parent_name
         return dct
 
     @classmethod
     def from_dict(cls, dct, **kwargs):
         obj = super().from_dict(dct, **kwargs)
-        obj._parent_name = dct['_parent_name']
+        obj.parent_name = dct['parent_name']
         return obj
 
 
@@ -178,7 +178,7 @@ class DriftSliceBend(BeamElement):
 
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
-        dct['_parent_name'] = self._parent_name
+        dct['parent_name'] = self.parent_name
         return dct
 
     copy = _slice_copy
@@ -186,7 +186,7 @@ class DriftSliceBend(BeamElement):
     @classmethod
     def from_dict(cls, dct, **kwargs):
         obj = super().from_dict(dct, **kwargs)
-        obj._parent_name = dct['_parent_name']
+        obj.parent_name = dct['parent_name']
         return obj
 
     def get_equivalent_element(self):
@@ -216,13 +216,13 @@ class DriftSliceQuadrupole(BeamElement):
 
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
-        dct['_parent_name'] = self._parent_name
+        dct['parent_name'] = self.parent_name
         return dct
 
     @classmethod
     def from_dict(cls, dct, **kwargs):
         obj = super().from_dict(dct, **kwargs)
-        obj._parent_name = dct['_parent_name']
+        obj.parent_name = dct['parent_name']
         return obj
 
     def get_equivalent_element(self):
@@ -253,13 +253,13 @@ class DriftSliceSextupole(BeamElement):
 
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
-        dct['_parent_name'] = self._parent_name
+        dct['parent_name'] = self.parent_name
         return dct
 
     @classmethod
     def from_dict(cls, dct, **kwargs):
         obj = super().from_dict(dct, **kwargs)
-        obj._parent_name = dct['_parent_name']
+        obj.parent_name = dct['parent_name']
         return obj
 
     def get_equivalent_element(self):
@@ -290,13 +290,13 @@ class DriftSliceOctupole(BeamElement):
 
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
-        dct['_parent_name'] = self._parent_name
+        dct['parent_name'] = self.parent_name
         return dct
 
     @classmethod
     def from_dict(cls, dct, **kwargs):
         obj = super().from_dict(dct, **kwargs)
-        obj._parent_name = dct['_parent_name']
+        obj.parent_name = dct['parent_name']
         return obj
 
     def get_equivalent_element(self):
@@ -326,13 +326,13 @@ class DriftSlice(BeamElement):
 
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
-        dct['_parent_name'] = self._parent_name
+        dct['parent_name'] = self.parent_name
         return dct
 
     @classmethod
     def from_dict(cls, dct, **kwargs):
         obj = super().from_dict(dct, **kwargs)
-        obj._parent_name = dct['_parent_name']
+        obj.parent_name = dct['parent_name']
         return obj
 
     def get_equivalent_element(self):

@@ -6,18 +6,18 @@ bend = xt.Bend(k0=0.4, h=0.3, length=1)
 elements = {
     # correct case
     'a0': bend,
-    'a1': xt.Replica(_parent_name='a0'),
-    'a2': xt.Replica(_parent_name='a1'),
+    'a1': xt.Replica(parent_name='a0'),
+    'a2': xt.Replica(parent_name='a1'),
     # create a simple loop
-    'b0': xt.Replica(_parent_name='b0'),
+    'b0': xt.Replica(parent_name='b0'),
     # loop with two replicas
-    'c0': xt.Replica(_parent_name='c1'),
-    'c1': xt.Replica(_parent_name='c0'),
+    'c0': xt.Replica(parent_name='c1'),
+    'c1': xt.Replica(parent_name='c0'),
     # bigger loop
-    'd0': xt.Replica(_parent_name='d1'),
-    'd1': xt.Replica(_parent_name='d2'),
-    'd2': xt.Replica(_parent_name='d0'),
-    'd3': xt.Replica(_parent_name='d1'),
+    'd0': xt.Replica(parent_name='d1'),
+    'd1': xt.Replica(parent_name='d2'),
+    'd2': xt.Replica(parent_name='d0'),
+    'd3': xt.Replica(parent_name='d1'),
 }
 
 line = xt.Line(elements=elements, element_names=list(elements.keys()))

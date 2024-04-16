@@ -308,7 +308,7 @@ class Slicer:
                     or type(ee).__name__.startswith('ThickSlice')):
                     aper_name = f'{name}_aper..{aper_index}'
                     self._line.element_dict[aper_name] = xt.Replica(
-                        _parent_name=ee_for_aper.name_associated_aperture)
+                        parent_name=ee_for_aper.name_associated_aperture)
                     new_slices_to_add += [aper_name]
                     aper_index += 1
                 new_slices_to_add += [nn]
@@ -364,7 +364,7 @@ class Slicer:
             nn = f'{name}..entry_map'
             ee = element._entry_slice_class(
                     _parent=element, _buffer=element._buffer)
-            ee._parent_name = parent_name
+            ee.parent_name = parent_name
             self._line.element_dict[nn] = ee
             slices_to_append.append(nn)
 
@@ -382,7 +382,7 @@ class Slicer:
                 ee = type(element)(
                         _parent=element._parent, _buffer=element._buffer,
                         weight=weight * element.weight)
-                ee._parent_name = element._parent_name
+                ee.parent_name = element.parent_name
                 self._line.element_dict[nn] = ee
                 slices_to_append.append(nn)
                 element_idx += 1
@@ -393,7 +393,7 @@ class Slicer:
                     ee = element._drift_slice_class(
                             _parent=element, _buffer=element._buffer,
                             weight=weight)
-                    ee._parent_name = parent_name
+                    ee.parent_name = parent_name
                     self._line.element_dict[nn] = ee
                     slices_to_append.append(nn)
                     drift_idx += 1
@@ -403,7 +403,7 @@ class Slicer:
                         ee = element._thin_slice_class(
                                 _parent=element, _buffer=element._buffer,
                                 weight=weight)
-                        ee._parent_name = parent_name
+                        ee.parent_name = parent_name
                         self._line.element_dict[nn] = ee
                         slices_to_append.append(nn)
                         element_idx += 1
@@ -413,7 +413,7 @@ class Slicer:
                 ee = element._thick_slice_class(
                         _parent=element, _buffer=element._buffer,
                         weight=weight)
-                ee._parent_name = parent_name
+                ee.parent_name = parent_name
                 self._line.element_dict[nn] = ee
                 slices_to_append.append(nn)
                 element_idx += 1
@@ -424,7 +424,7 @@ class Slicer:
             nn = f'{name}..exit_map'
             ee = element._exit_slice_class(
                     _parent=element, _buffer=element._buffer)
-            ee._parent_name = parent_name
+            ee.parent_name = parent_name
             self._line.element_dict[nn] = ee
             slices_to_append.append(nn)
 

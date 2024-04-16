@@ -19,7 +19,7 @@ if not check_expr:
                         hxl=0.1)
     drift = xt.Drift(length=5.0)
 
-    line = xt.Line(elements=[bend, quad, sext, octu, mult, drift, xt.Replica(_parent_name='e0')])
+    line = xt.Line(elements=[bend, quad, sext, octu, mult, drift, xt.Replica(parent_name='e0')])
 else:
     bend = xt.Bend(length=999.)
     quad = xt.Quadrupole(length=999.)
@@ -28,7 +28,7 @@ else:
     mult = xt.Multipole(length=999, knl=[999.]*4, ksl=[999.]*4)
     drift = xt.Drift()
 
-    line = xt.Line(elements=[bend, quad, sext, octu, mult, drift, xt.Replica(_parent_name='e0')])
+    line = xt.Line(elements=[bend, quad, sext, octu, mult, drift, xt.Replica(parent_name='e0')])
 
     line.vars['k0_bend'] = 999.
     line.vars['h_bend'] = 999.

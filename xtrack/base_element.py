@@ -567,32 +567,32 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
 
 class Replica:
-    def __init__(self, _parent_name):
-        self._parent_name = _parent_name
+    def __init__(self, parent_name):
+        self.parent_name = parent_name
 
     def __repr__(self):
-        return f'Replica(parent_name="{self._parent_name}")'
+        return f'Replica(parent_name="{self.parent_name}")'
 
     def to_dict(self):
         return {
             '__class__': 'Replica',
-            '_parent_name': self._parent_name}
+            'parent_name': self.parent_name}
 
     @classmethod
     def from_dict(cls, dct, **kwargs):
-        return cls(_parent_name=dct['_parent_name'])
+        return cls(parent_name=dct['parent_name'])
 
     def copy(self, **kwargs):
-        return Replica(_parent_name=self._parent_name)
+        return Replica(parent_name=self.parent_name)
 
     def resolve(self, element_container, get_name=False):
-        target_name = self._parent_name
+        target_name = self.parent_name
         visited = {target_name}
         while isinstance(element := element_container[target_name], Replica):
-            target_name = element._parent_name
+            target_name = element.parent_name
             if target_name in visited:
                 raise RecursionError(
-                    f"Resolving replica of `{self._parent_name}` leads to a "
+                    f"Resolving replica of `{self.parent_name}` leads to a "
                     "circular reference: check the correctness of your line."
                 )
             visited.add(target_name)

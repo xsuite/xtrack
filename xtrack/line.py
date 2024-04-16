@@ -650,13 +650,13 @@ class Line:
         for ee in elements:
             ee_pname = None
             if isinstance(ee, xt.Replica):
-                ee_pname = ee._parent_name
+                ee_pname = ee.parent_name
                 ee = ee.resolve(self)
                 isreplica.append(True)
             else:
                 isreplica.append(False)
-                if hasattr(ee, '_parent_name'):
-                    ee_pname = ee._parent_name
+                if hasattr(ee, 'parent_name'):
+                    ee_pname = ee.parent_name
             isthick.append(_is_thick(ee, self))
             iscollective.append(_is_collective(ee, self))
             element_types.append(ee.__class__.__name__)
@@ -3779,8 +3779,8 @@ def _length(element, line):
         element = element.resolve(line)
     if hasattr(element, 'length'):
         return element.length
-    assert hasattr(element, '_parent_name')
-    return line[element._parent_name].length * element.weight
+    assert hasattr(element, 'parent_name')
+    return line[element.parent_name].length * element.weight
 
 def _is_drift(element, line):
     if isinstance(element, xt.Replica):
