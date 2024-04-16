@@ -296,7 +296,7 @@ class Multiline:
         return out
 
     def match(self, vary, targets, restore_if_fail=True, solver=None,
-              verbose=False, **kwargs):
+              verbose=False, check_limits=True, **kwargs):
 
         '''
         Change a set of knobs in the beam lines in order to match assigned targets.
@@ -338,7 +338,7 @@ class Multiline:
 
         return xt.match.match_line(self, vary, targets,
                           restore_if_fail=restore_if_fail,
-                          solver=solver, verbose=verbose, **kwargs)
+                          solver=solver, verbose=verbose, check_limits=check_limits, **kwargs)
 
     def match_knob(self, knob_name, vary, targets,
                 knob_value_start=0, knob_value_end=1,

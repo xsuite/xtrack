@@ -1188,7 +1188,7 @@ class Line:
                   solver_options={}, allow_twiss_failure=True,
                   restore_if_fail=True, verbose=False,
                   n_steps_max=20, default_tol=None,
-                  solver=None, **kwargs):
+                  solver=None, check_limits=True, **kwargs):
         '''
         Change a set of knobs in the beamline in order to match assigned targets.
 
@@ -1298,7 +1298,7 @@ class Line:
                         allow_twiss_failure=allow_twiss_failure,
                         restore_if_fail=restore_if_fail,
                         verbose=verbose, n_steps_max=n_steps_max,
-                        default_tol=default_tol, solver=solver, **kwargs)
+                        default_tol=default_tol, solver=solver, check_limits=check_limits, **kwargs)
 
 
     def match_knob(self, knob_name, vary, targets,
