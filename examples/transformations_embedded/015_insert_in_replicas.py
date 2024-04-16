@@ -4,7 +4,6 @@ import numpy as np
 
 assert_allclose = xo.assert_allclose
 
-slice_mode= 'thin'
 
 elements = {
     'e0': xt.Bend(k0=0.3, h=0.31, length=1),
@@ -58,13 +57,13 @@ assert_allclose(p2.delta, p1.delta, rtol=0, atol=1e-14)
 line.slice_thick_elements(
     slicing_strategies=[
         xt.Strategy(None),
-        xt.Strategy(xt.Teapot(2, mode=slice_mode), name='e2|e3|e4')])
+        xt.Strategy(xt.Teapot(2, mode='thin'), name='e2|e3|e4')])
 line.build_tracker()
 
 line_no_repl.slice_thick_elements(
     slicing_strategies=[
         xt.Strategy(None),
-        xt.Strategy(xt.Teapot(2, mode=slice_mode), name='e2|e3|e4')])
+        xt.Strategy(xt.Teapot(2, mode='thin'), name='e2|e3|e4')])
 line_no_repl.build_tracker()
 
 tt = line.get_table()
