@@ -1975,11 +1975,6 @@ class Line:
         if _is_thick(element, self) and np.abs(_length(element, self)) > 0 and at_s is None:
             raise NotImplementedError('Use `at_s` to insert thick elements')
 
-        if element is None:
-            assert name in self.element_dict.keys()
-        else:
-            self.element_dict[name] = element
-
         # Insert by name or index
         if index is not None:
             self.element_names.insert(index, name)
@@ -2014,6 +2009,11 @@ class Line:
             i_closest = np.argmin(np.abs(s_vect_upstream - at_s))
             assert np.abs(s_vect_upstream[i_closest] - at_s) < s_tol
             self.element_names.insert(i_closest, name)
+
+        if element is None:
+            assert name in self.element_dict.keys()
+        else:
+            self.element_dict[name] = element
 
         return self
 
