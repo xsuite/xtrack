@@ -2890,7 +2890,7 @@ class TwissTable(Table):
 
     def get_ibs_growth_rates(
         self,
-        formalism,
+        formalism: str,
         num_particles: int = None,
         gemitt_x: float = None,
         nemitt_x: float = None,
