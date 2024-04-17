@@ -747,6 +747,7 @@ def test_bend_edge_slice_exit(test_context, model):
 def test_thin_slice_bend_with_multipoles(test_context):
 
     bend = xt.Bend(k0=0.4, h=0.3, length=1,
+                   k1=0.003,
                    knl=[0, 0.001, 0.01], ksl=[0, 0.002, 0.03],
                    num_multipole_kicks=100000,
                    edge_entry_angle=0.05, edge_entry_hgap=0.06, edge_entry_fint=0.08,
