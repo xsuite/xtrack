@@ -276,11 +276,11 @@ def test_knl_ksl_in_twiss(test_context):
 
     for tt in [tw_with_knl_ksl, tw_with_knl_ksl_part]:
 
-        for kk in ['k0nl', 'k0sl', 'k1nl', 'k1sl', 'k2nl', 'k2sl']:
+        for kk in ['k0l', 'k0sl', 'k1l', 'k1sl', 'k2l', 'k2sl']:
             assert kk in tt.keys()
             assert kk not in tw.keys()
 
-        assert tt['k2nl', 'ms.30r5.b1'] == line['ms.30r5.b1'].knl[2]
+        assert tt['k2l', 'ms.30r5.b1'] == line['ms.30r5.b1'].knl[2]
         assert tt['k0sl', 'mcbrdv.4r5.b1'] == line['mcbrdv.4r5.b1'].ksl[0]
 
 def test_get_R_matrix():

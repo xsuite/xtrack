@@ -1978,6 +1978,7 @@ class Line:
         # Insert by name or index
         if index is not None:
             self.element_names.insert(index, name)
+            self.element_dict[name] = element
             return
 
         # Insert by s position
