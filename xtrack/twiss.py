@@ -1634,9 +1634,9 @@ def _compute_equilibrium_emittance_full(px_co, py_co, ptau_co, R_matrix_ebe,
     beta0 = line.particle_ref._xobject.beta0[0]
     gamma0 = line.particle_ref._xobject.gamma0[0]
 
-    eq_nemitt_x = float(eq_gemitt_x / (beta0 * gamma0))
-    eq_nemitt_y = float(eq_gemitt_y / (beta0 * gamma0))
-    eq_nemitt_zeta = float(eq_gemitt_zeta / (beta0 * gamma0))
+    eq_nemitt_x = float(eq_gemitt_x * (beta0 * gamma0))
+    eq_nemitt_y = float(eq_gemitt_y * (beta0 * gamma0))
+    eq_nemitt_zeta = float(eq_gemitt_zeta * (beta0 * gamma0))
 
     Sigma_norm = np.zeros_like(EE_norm, dtype=complex)
     for ii in range(6):
