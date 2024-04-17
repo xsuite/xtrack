@@ -985,3 +985,25 @@ def test_slicing_at_custom_s():
     assert np.allclose(tab.rows[r'e4\.\.\d*'].s, [4, 4.5], atol=1e-16)
     assert np.allclose(tab.rows[r'e5\.\.\d*'].s, [5], atol=1e-16)
     assert np.allclose(tab.rows[r'e6\.\.\d*'].s, [7, 7.8, 7.9], atol=1e-16)
+
+def test_insert_thick_element_reuse_marker_name():
+
+    assert_allclose = xo.assert_allclose
+
+    elements = {
+        'd1': xt.Drift(length=1),
+        'm1': xt.Marker(),
+        'd2': xt.Drift(length=1),
+    }
+
+    line=xt.Line(elements=elements,
+                element_names=list(elements.keys()))
+
+    # Note that the name is reused
+    line.insert_element(element=xt.Bend(length=1.), name='m1', at_s=0.5)
+
+    tt = line.get_table()
+
+    assert np.all(tt.name == ['d1..0', 'm1', 'd2..1', '_end_point'])
+    assert np.all(tt.parent_name == ['d1', None, 'd2', None])
+    assert_allclose(tt.s, [0. , 0.5, 1.5, 2. ], rtol=0, atol=1e-14)
