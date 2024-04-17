@@ -1512,9 +1512,9 @@ def _compute_equilibrium_emittance_kick_as_co(px_co, py_co, ptau_co, W_matrix,
     eq_gemitt_zeta = 1 / (4 * clight * damping_constants_turns[2]) * np.sum(
                         (Kz_sq + Kpz_sq) * n_dot_delta_kick_sq_ave * dl)
 
-    eq_nemitt_x = float(eq_gemitt_x / (beta0 * gamma0))
-    eq_nemitt_y = float(eq_gemitt_y / (beta0 * gamma0))
-    eq_nemitt_zeta = float(eq_gemitt_zeta / (beta0 * gamma0))
+    eq_nemitt_x = float(eq_gemitt_x * (beta0 * gamma0))
+    eq_nemitt_y = float(eq_gemitt_y * (beta0 * gamma0))
+    eq_nemitt_zeta = float(eq_gemitt_zeta * (beta0 * gamma0))
 
     res = {
         'eq_gemitt_x': eq_gemitt_x,
