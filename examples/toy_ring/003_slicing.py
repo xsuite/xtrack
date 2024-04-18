@@ -131,4 +131,18 @@ ltable.rows['mqf.1.*']
 # mqf.1..1         0.15    True ThickSliceQuadrupole       mqf.1   0 0.015   0
 # mqf.1_exit        0.3   False Marker                      None   0     0   0
 
-# Change the parent 
+# Change the the strength of the parent
+line['mqf.1'].k1 = 0.2
+
+# Update the table
+ltable = line.get_table(attr=True).cols['s', 'isthick', 'element_type',
+                                        'parent_name', 'k0l', 'k1l', 'k2l']
+ltable.rows['mqf.1.*']
+# returns (the strength of the slices has changed):
+#
+# Table: 4 rows, 8 cols
+# name                s isthick element_type         parent_name k0l  k1l k2l
+# mqf.1_entry         0   False Marker                      None   0    0   0
+# mqf.1..0            0    True ThickSliceQuadrupole       mqf.1   0 0.03   0
+# mqf.1..1         0.15    True ThickSliceQuadrupole       mqf.1   0 0.03   0
+# mqf.1_exit        0.3   False Marker                      None   0    0   0
