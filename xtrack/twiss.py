@@ -20,6 +20,7 @@ from xdeps import Table
 
 from . import linear_normal_form as lnf
 from .general import _print
+from .twissplot import TwissPlot
 
 import xtrack as xt  # To avoid circular imports
 
@@ -3138,6 +3139,42 @@ class TwissTable(Table):
         tarset = xt.TargetSet(tars=tars, value=value, at=at,
                               action=self._action, **kwargs)
         return tarset
+
+    def plot(self,yl='betx bety',yr='dx dy',x='s',
+            lattice=True,
+            mask=None,
+            labels=None,
+            clist="k r b g c m",
+            ax=None,
+            figlabel=None):
+
+        if 'length' not in self.keys():
+            lattice=False
+
+        if mask is not None:
+            if isinstance(mask,str):
+                idx=self.mask[mask]
+            else:
+                idx=mask
+        else:
+            idx=slice(None)
+        if ax is None:
+            newfig=True
+        else:
+            raise NotImplementedError
+
+        self._is_s_begin=True
+
+        pl=TwissPlot(self, x=x, yl=yl, yr=yr, idx=idx, lattice=lattice, newfig=newfig,
+                figlabel=figlabel,clist=clist)
+
+        if labels is not None:
+            mask=self.mask[labels]
+            labels=self[self._index][mask]
+            xs=self[x][mask]
+            pl.left.set_xticks(xs,labels)
+        return pl
+
 
 def _complete_twiss_init(start, end, init_at, init,
                         line, reverse,
