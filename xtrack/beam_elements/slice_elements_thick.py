@@ -3,7 +3,7 @@ import xobjects as xo
 from ..general import _pkg_root
 from ..base_element import BeamElement
 from .elements import (SynchrotronRadiationRecord, Bend, Quadrupole, Sextupole,
-                       Octupole, Drift)
+                       Octupole, Solenoid, Drift)
 from ..random import RandomUniform, RandomExponential
 
 from .slice_elements import _slice_copy
@@ -156,6 +156,43 @@ class ThickSliceOctupole(BeamElement):
         obj = super().from_dict(dct, **kwargs)
         obj.parent_name = dct['parent_name']
         return obj
+
+_thick_slice_solenoid_xofields = {
+    '_parent': xo.Ref(Solenoid)}
+_thick_slice_solenoid_xofields.update(_common_xofields)
+class ThickSliceSolenoid(BeamElement):
+    allow_rot_and_shift = False
+    rot_and_shift_from_parent = True
+    _skip_in_to_dict = ['_parent']
+    has_backtrack = True
+    _force_moveable = True
+    isthick = True
+    _inherit_strengths = True
+
+    _xofields = _thick_slice_solenoid_xofields
+
+    _depends_on = [RandomUniform, RandomExponential]
+    _internal_record_class = SynchrotronRadiationRecord
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
+        _pkg_root.joinpath('headers/constants.h'),
+        _pkg_root.joinpath('headers/synrad_spectrum.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/thick_slice_solenoid.h')]
+
+    copy = _slice_copy
+
+    def to_dict(self, **kwargs):
+        dct = BeamElement.to_dict(self, **kwargs)
+        dct['parent_name'] = self.parent_name
+        return dct
+
+    @classmethod
+    def from_dict(cls, dct, **kwargs):
+        obj = super().from_dict(dct, **kwargs)
+        obj.parent_name = dct['parent_name']
+        return obj
+
 
 
 _drift_slice_bend_xofields = {

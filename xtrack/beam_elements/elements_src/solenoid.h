@@ -8,15 +8,6 @@
 
 
 /*gpufun*/
-void Solenoid_thin_track_single_particle(LocalParticle*, double, double, double);
-
-/*gpufun*/
-void Solenoid_thick_track_single_particle(LocalParticle*, double, double, int64_t,
-                                          double*, double*, double*,
-                                          double*, double*, double*);
-
-
-/*gpufun*/
 void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
     // Parameters
     double length = SolenoidData_get_length(el);
