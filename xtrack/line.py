@@ -435,6 +435,7 @@ class Line:
         ignored_madtypes=(),
         allow_thick=None,
         name_prefix=None,
+        enable_layout_data=False
     ):
 
         """
@@ -474,6 +475,8 @@ class Line:
         allow_thick : bool, optional
             If true, thick elements are allowed. Otherwise, an error is raised
             if a thick element is encountered.
+        enable_layout_data: bool, optional
+            If true, the layout data is imported.
 
         Returns
         -------
@@ -500,7 +503,8 @@ class Line:
             error_table=None,  # not implemented yet
             replace_in_expr=replace_in_expr,
             allow_thick=allow_thick,
-            name_prefix=name_prefix
+            name_prefix=name_prefix,
+            enable_layout_data=enable_layout_data,
         )
         line = loader.make_line()
         return line

@@ -479,7 +479,8 @@ class MadLoader:
         classes=xtrack,
         replace_in_expr=None,
         allow_thick=False,
-        name_prefix=None
+        name_prefix=None,
+        enable_layout_data=False,
     ):
 
 
@@ -524,6 +525,7 @@ class MadLoader:
         self._drift = self.classes.Drift
         self.ignore_madtypes = ignore_madtypes
         self.name_prefix = name_prefix
+        self.enable_layout_data = enable_layout_data
 
         self.allow_thick = allow_thick
         self.bv = 1
@@ -620,6 +622,26 @@ class MadLoader:
                     f'Element {el.type} not supported,\nimplement "add_{el.type}"'
                     f" or convert_{el.type} in function in MadLoader"
                 )
+
+        # copy layout data
+        if self.enable_layout_data:
+            layout_data = {}
+            for compound_name in line.compound_container._compounds:
+                madel = mad.elements[compound_name]
+                # offset represent the offset of the assembly with respect to mid-beam
+                eldata = {}
+                eldata["offset"] = [madel.mech_sep / 2 * self.bv, madel.v_pos]
+                eldata["assembly_id"] = madel.assembly_id
+                eldata["slot_id"] = madel.slot_id
+                eldata["aperture"] = [
+                    madel.apertype,
+                    list(madel.aperture),
+                    list(madel.aper_tol),
+                ]
+                layout_data[compound_name] = eldata
+
+            line.metadata["layout_data"] = layout_data
+
         return line
 
     def add_elements(
