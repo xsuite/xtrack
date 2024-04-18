@@ -1173,6 +1173,10 @@ class Solenoid(BeamElement):
 
         self.xoinitialize(**kwargs)
 
+    @property
+    def _thick_slice_class(self):
+        return xt.ThickSliceSolenoid
+
 
 class CombinedFunctionMagnet:
 
