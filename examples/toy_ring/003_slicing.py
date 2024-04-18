@@ -117,8 +117,12 @@ ltable.rows['mqd.1']
 # name               s isthick element_type         parent_name k0l   k1l k2l
 # mqd.1            5.3    True Quadrupole                  None   0 -0.21   0
 
-### Changing properties of sliced elements
-# Sliced elements are updated whever the parent is changed. For example:
+
+########################################
+# Change properties of sliced elements #
+########################################
+
+# Sliced elements are updated whenever their parent is changed. For example:
 
 # Inspect a quadrupole:
 ltable.rows['mqf.1.*']
@@ -134,7 +138,7 @@ ltable.rows['mqf.1.*']
 # Change the the strength of the parent
 line['mqf.1'].k1 = 0.2
 
-# Update the table
+# Inspect
 ltable = line.get_table(attr=True).cols['s', 'isthick', 'element_type',
                                         'parent_name', 'k0l', 'k1l', 'k2l']
 ltable.rows['mqf.1.*']

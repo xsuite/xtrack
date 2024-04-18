@@ -950,6 +950,15 @@ class Bend(BeamElement):
     def _exit_slice_class(self):
         return xt.ThinSliceBendExit
 
+    @property
+    def _repr_fields(self):
+        return ['length', 'k0', 'k1', 'h', 'model', 'knl', 'ksl',
+                'edge_entry_active', 'edge_exit_active', 'edge_entry_model',
+                'edge_exit_model', 'edge_entry_angle', 'edge_exit_angle',
+                'edge_entry_angle_fdown', 'edge_exit_angle_fdown',
+                'edge_entry_fint', 'edge_exit_fint', 'edge_entry_hgap',
+                'edge_exit_hgap', 'shift_x', 'shift_y', 'rot_s_rad']
+
 
 class Sextupole(BeamElement):
 
