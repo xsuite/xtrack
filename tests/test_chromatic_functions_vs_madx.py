@@ -15,6 +15,14 @@ def test_chromatic_functions_vs_madx(test_context):
                                 'hllhc15_thick/hllhc15_collider_thick.json')
     collider['lhcb1'].twiss_default['method'] = '4d'
     collider['lhcb2'].twiss_default['method'] = '4d'
+
+
+    # Slice to have the exit markers
+    collider.lhcb1.slice_thick_elements(
+        slicing_strategies=[xt.Strategy(xt.Uniform(1, mode='thick'))])
+    collider.lhcb2.slice_thick_elements(
+        slicing_strategies=[xt.Strategy(xt.Uniform(1, mode='thick'))])
+
     collider.build_trackers(_context=test_context)
 
     mad = Madx(stdout=False)
