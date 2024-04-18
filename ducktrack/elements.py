@@ -651,14 +651,17 @@ class LinearTransferMatrix(Element):
         ("y_ref_1","","",0.0),
         ("py_ref_1","","",0.0),
         ("damping_rate_x","","",0.0),
+        ("damping_rate_px","","",0.0),
         ("damping_rate_y","","",0.0),
-        ("damping_rate_s","","",0.0),
-        ("equ_emit_x","","",0.0),
-        ("equ_emit_y","","",0.0),
-        ("equ_emit_s","","",0.0),
+        ("damping_rate_py","","",0.0),
+        ("damping_rate_zeta","","",0.0),
+        ("damping_rate_pzeta","","",0.0),
         ("gauss_noise_ampl_x","","",0.0),
+        ("gauss_noise_ampl_px","","",0.0),
         ("gauss_noise_ampl_y","","",0.0),
-        ("gauss_noise_ampl_s","","",0.0)]
+        ("gauss_noise_ampl_py","","",0.0),
+        ("gauss_noise_ampl_zeta","","",0.0),
+        ("gauss_noise_ampl_pzeta","","",0.0)]
 
     def track(self,p):
         sin = p._m.sin
@@ -746,37 +749,38 @@ class LinearTransferMatrix(Element):
             p.y *= geo_emit_factor
             p.py = old_py * geo_emit_factor
 
-        if self.damping_rate_x < 0.0 or self.damping_rate_y < 0.0 or self.damping_rate_s < 0.0:
+        if (self.damping_rate_x < 0.0 or self.damping_rate_px < 0.0
+                or self.damping_rate_y < 0.0 or self.damping_rate_py < 0.0
+                or self.damping_rate_zeta < 0.0 or self.damping_rate_pzeta < 0.0):
             raise ValueError("Damping rates cannot be negative")
-        if self.equ_emit_x < 0.0 or self.equ_emit_y < 0.0 or self.equ_emit_s < 0.0:
-            raise ValueError("Equilibrium emittance cannot be negative")
         if self.damping_rate_x > 0.0:
-            factor = 1.0-self.damping_rate_x/2 
-            p.x *= factor
-            p.px *= factor 
-            if self.equ_emit_x > 0.0:
-                p.px += np.sqrt(2.0*self.equ_emit_x*self.damping_rate_x/self.beta_x_1)*np.random.randn(len(p.px))
+            p.x *= 1.0-self.damping_rate_x
+        if self.damping_rate_px > 0.0:
+            p.px *= 1.0-self.damping_rate_px
         if self.damping_rate_y > 0.0:
-            factor = 1.0-self.damping_rate_y/2 
-            p.y *= factor
-            p.py *= factor 
-            if self.equ_emit_y > 0.0:
-                p.py += np.sqrt(2.0*self.equ_emit_y*self.damping_rate_y/self.beta_y_1)*np.random.randn(len(p.py))
-        if self.damping_rate_s > 0.0:
-            factor = 1.0-self.damping_rate_s/2
-            p.zeta *= factor
-            p.delta *= factor
-            if self.equ_emit_s > 0.0:
-                p.delta += np.sqrt(2.0*self.equ_emit_s*self.damping_rate_s/self.beta_s)*np.random.randn(len(p.delta))
-
-        if self.gauss_noise_ampl_x < 0.0 or self.gauss_noise_ampl_y < 0.0 or self.gauss_noise_ampl_s < 0.0:
+            p.y *= 1.0-self.damping_rate_y
+        if self.damping_rate_py > 0.0:
+            p.py *= 1.0-self.damping_rate_py
+        if self.damping_rate_zeta > 0.0:
+            p.zeta *= 1.0-self.damping_rate_zeta
+        if self.damping_rate_pzeta > 0.0:
+            p.pzeta *= 1.0-self.damping_rate_pzeta            
+        if (self.gauss_noise_ampl_x < 0.0 or self.gauss_noise_ampl_px < 0.0 
+                or self.gauss_noise_ampl_y < 0.0 or self.gauss_noise_ampl_py < 0.0
+                or self.gauss_noise_ampl_zeta < 0.0 or self.gauss_noise_ampl_pzeta < 0.0):
             raise ValueError("Noise amplitude cannot be negative")
+        if self.gauss_noise_ampl_x > 0.0:
+            p.x += self.gauss_noise_ampl_x*np.random.randn(len(p.x))
         if self.gauss_noise_ampl_x > 0.0:
             p.px += self.gauss_noise_ampl_x*np.random.randn(len(p.px))
         if self.gauss_noise_ampl_y > 0.0:
-            p.py += self.gauss_noise_ampl_y*np.random.randn(len(p.py))
-        if self.gauss_noise_ampl_s > 0.0:
-            p.delta += self.gauss_noise_ampl_s*np.random.randn(len(p.delta))
+            p.y += self.gauss_noise_ampl_y*np.random.randn(len(p.y))
+        if self.gauss_noise_ampl_py > 0.0:
+            p.py += self.gauss_noise_ampl_py*np.random.randn(len(p.py))
+        if self.gauss_noise_ampl_zeta > 0.0:
+            p.zeta += self.gauss_noise_ampl_zeta*np.random.randn(len(p.zeta))
+        if self.gauss_noise_ampl_pzeta > 0.0:
+            p.pzeta += self.gauss_noise_ampl_pzeta*np.random.randn(len(p.pzeta))
 
         # re-adding dispersion and closed orbit
         old_x=p.x

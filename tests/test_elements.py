@@ -771,8 +771,16 @@ def test_simplified_accelerator_segment_uncorrelated_damping(test_context):
     y_ref_1 = 4E-2
     py_ref_1 = 5E-4
     damping_rate_x = 5E-4
+    damping_rate_px = 2E-4
     damping_rate_y = 1E-3
-    damping_rate_s = 2E-3
+    damping_rate_py = 7E-3
+    damping_rate_zeta = 2E-3
+    #damping_rate_pzeta = 1E-2
+    #damping_rate_px = 0.0
+    #damping_rate_y = 0.0
+    #damping_rate_py = 0.0
+    #damping_rate_zeta = 0.0
+    damping_rate_pzeta = 0.0
 
     dtk_particle = dtk.TestParticles(
             p0c=25.92e9,
@@ -798,26 +806,28 @@ def test_simplified_accelerator_segment_uncorrelated_damping(test_context):
         energy_increment=energy_increment,
         x_ref=(x_ref_0, x_ref_1), px_ref=(px_ref_0, px_ref_1),
         y_ref=(y_ref_0, y_ref_1), py_ref=(py_ref_0, py_ref_1),
-        damping_rate_x = damping_rate_x,
-        damping_rate_y = damping_rate_y,
-        damping_rate_s = damping_rate_s)
+        damping_rate_x = damping_rate_x,damping_rate_px = damping_rate_px,
+        damping_rate_y = damping_rate_y,damping_rate_py = damping_rate_py,
+        damping_rate_zeta = damping_rate_zeta,damping_rate_pzeta = damping_rate_pzeta)
 
     arc.track(particles)
 
     dtk_arc = dtk.elements.LinearTransferMatrix(alpha_x_0=alpha_x_0, beta_x_0=beta_x_0, disp_x_0=disp_x_0,
-    alpha_x_1=alpha_x_1, beta_x_1=beta_x_1, disp_x_1=disp_x_1,
-    alpha_y_0=alpha_y_0, beta_y_0=beta_y_0, disp_y_0=disp_y_0,
-    alpha_y_1=alpha_y_1, beta_y_1=beta_y_1, disp_y_1=disp_y_1,
-    Q_x=Q_x, Q_y=Q_y,
-    beta_s=beta_s, Q_s=Q_s,
-    chroma_x=0.0, chroma_y=0.0,
-    det_xx=0.0, det_xy=0.0, det_yy=0.0, det_yx=0.0,
-    energy_ref_increment=energy_ref_increment,energy_increment=energy_increment,
-    x_ref_0 = x_ref_0, px_ref_0 = px_ref_0, x_ref_1 = x_ref_1, px_ref_1 = px_ref_1,
-    y_ref_0 = y_ref_0, py_ref_0 = py_ref_0, y_ref_1 = y_ref_1, py_ref_1 = py_ref_1,
-    damping_rate_x = damping_rate_x,damping_rate_y = damping_rate_y,damping_rate_s = damping_rate_s)
+        alpha_x_1=alpha_x_1, beta_x_1=beta_x_1, disp_x_1=disp_x_1,
+        alpha_y_0=alpha_y_0, beta_y_0=beta_y_0, disp_y_0=disp_y_0,
+        alpha_y_1=alpha_y_1, beta_y_1=beta_y_1, disp_y_1=disp_y_1,
+        Q_x=Q_x, Q_y=Q_y,
+        beta_s=beta_s, Q_s=Q_s,
+        chroma_x=0.0, chroma_y=0.0,
+        det_xx=0.0, det_xy=0.0, det_yy=0.0, det_yx=0.0,
+        energy_ref_increment=energy_ref_increment,energy_increment=energy_increment,
+        x_ref_0 = x_ref_0, px_ref_0 = px_ref_0, x_ref_1 = x_ref_1, px_ref_1 = px_ref_1,
+        y_ref_0 = y_ref_0, py_ref_0 = py_ref_0, y_ref_1 = y_ref_1, py_ref_1 = py_ref_1,
+        damping_rate_x = damping_rate_x,damping_rate_px = damping_rate_px,
+        damping_rate_y = damping_rate_y,damping_rate_py = damping_rate_py,
+        damping_rate_zeta = damping_rate_zeta,damping_rate_pzeta = damping_rate_pzeta)
     dtk_arc.track(dtk_particle)
-
+    
     assert np.isclose(test_context.nparray_from_context_array(particles.x)[0],
                       dtk_particle.x, rtol=1e-14, atol=1e-14)
     assert np.isclose(test_context.nparray_from_context_array(particles.px)[0],

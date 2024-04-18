@@ -274,7 +274,7 @@ void longitudinal_motion(LocalParticle *part0,
 
 /*gpufun*/
 void uncorrelated_radiation_damping(LocalParticle *part0,
-            double[6][6] const damping_factors){
+            LineSegmentMapData el){
 
     //start_per_particle_block (part0->part)
         double in[6];
@@ -288,15 +288,15 @@ void uncorrelated_radiation_damping(LocalParticle *part0,
         for(unsigned int i=0;i<6;++i){
             out[i] = 0;
             for(unsigned int j=0;j<6;++j){
-                out[i] += damping_factors[i,j]*in[j];
+                out[i] += LineSegmentMapData_get_damping_factors(el,i,j)*in[j];
             }
         }
-        LocalParticle_set_x(part, in[0]);
-        LocalParticle_set_px(part, in[1]);
-        LocalParticle_set_y(part, in[2]);
-        LocalParticle_set_py(part, in[3]);
-        LocalParticle_set_z(part, in[4]);
-        LocalParticle_update_pzeta(part,in[5]);
+        LocalParticle_set_x(part, out[0]);
+        LocalParticle_set_px(part, out[1]);
+        LocalParticle_set_y(part, out[2]);
+        LocalParticle_set_py(part, out[3]);
+        LocalParticle_set_zeta(part, out[4]);
+        LocalParticle_update_pzeta(part,out[5]);
     //end_per_particle_block
 }
 
@@ -337,23 +337,23 @@ void energy_and_reference_increments(LocalParticle *part0,
 
 /*gpufun*/
 void uncorrelated_gaussian_noise(LocalParticle *part0,
-                    double[6][6] const gauss_noise_matrix){
+                    LineSegmentMapData el){
 
         //start_per_particle_block (part0->part)
             double r = RandomNormal_generate(part);
-            LocalParticle_add_to_x(part,r*gauss_noise_matrix[0,0]);
+            LocalParticle_add_to_x(part,r*LineSegmentMapData_get_gauss_noise_matrix(el,0,0));
             r = RandomNormal_generate(part);
-            LocalParticle_add_to_px(part,r*gauss_noise_matrix[1,1]);
+            LocalParticle_add_to_px(part,r*LineSegmentMapData_get_gauss_noise_matrix(el,1,1));
             r = RandomNormal_generate(part);
-            LocalParticle_add_to_y(part,r*gauss_noise_matrix[2,2]);
+            LocalParticle_add_to_y(part,r*LineSegmentMapData_get_gauss_noise_matrix(el,2,2));
             r = RandomNormal_generate(part);
-            LocalParticle_add_to_py(part,r*gauss_noise_matrix[3,3]);
+            LocalParticle_add_to_py(part,r*LineSegmentMapData_get_gauss_noise_matrix(el,3,3));
             r = RandomNormal_generate(part);
-            LocalParticle_add_to_zeta(part,r*gauss_noise_matrix[4,4]);
+            LocalParticle_add_to_zeta(part,r*LineSegmentMapData_get_gauss_noise_matrix(el,4,4));
             r = RandomNormal_generate(part);
-            double delta = LocalParticle_get_delta(part);
-            delta += r*gauss_noise_matrix[5,5];
-            LocalParticle_update_delta(part,delta);
+            double pzeta = LocalParticle_get_pzeta(part);
+            pzeta += r*LineSegmentMapData_get_gauss_noise_matrix(el,5,5);
+            LocalParticle_update_pzeta(part,pzeta);
         //end_per_particle_block
 
 }
@@ -398,13 +398,11 @@ void LineSegmentMap_track_local_particle(LineSegmentMapData el, LocalParticle* p
         LineSegmentMapData_get_energy_ref_increment(el));
 
     if (LineSegmentMapData_get_uncorrelated_rad_damping(el) == 1){
-        uncorrelated_radiation_damping(part0,
-            LineSegmentMapData_get_damping_factors(el);
+        uncorrelated_radiation_damping(part0,el);
     }
 
     if (LineSegmentMapData_get_uncorrelated_gauss_noise(el) == 1){
-        uncorrelated_gaussian_noise(part0,
-            LineSegmentMapData_get_gauss_noise_matrix(el);
+        uncorrelated_gaussian_noise(part0,el);
     }
 
     add_dispersion(part0,

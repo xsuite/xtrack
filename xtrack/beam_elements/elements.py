@@ -1698,7 +1698,7 @@ class LineSegmentMap(BeamElement):
         'energy_ref_increment': xo.Float64,
         'energy_increment': xo.Float64,
         'uncorrelated_rad_damping': xo.Int64,
-        'damping_matrix':xo.Float64[6,6],
+        'damping_factors':xo.Float64[6,6],
         'uncorrelated_gauss_noise': xo.Int64,
         'gauss_noise_matrix':xo.Float64[6,6],
 
@@ -1740,7 +1740,7 @@ class LineSegmentMap(BeamElement):
             energy_increment=0.0, energy_ref_increment=0.0,
             damping_rate_x = 0.0, damping_rate_px = 0.0,
             damping_rate_y = 0.0, damping_rate_py = 0.0,
-            damping_rate_z = 0.0, damping_rate_delta = 0.0
+            damping_rate_zeta = 0.0, damping_rate_pzeta = 0.0,
             gauss_noise_ampl_x=0.0,gauss_noise_ampl_px=0.0,
             gauss_noise_ampl_y=0.0,gauss_noise_ampl_py=0.0,
             gauss_noise_ampl_zeta=0.0,gauss_noise_ampl_pzeta=0.0,
@@ -2033,11 +2033,12 @@ class LineSegmentMap(BeamElement):
         assert damping_rate_px >= 0.0
         assert damping_rate_y >= 0.0
         assert damping_rate_py >= 0.0
-        assert damping_rate_z >= 0.0
+        assert damping_rate_zeta >= 0.0
         assert damping_rate_pzeta >= 0.0
         
-        if damping_rate_x > 0.0 or damping_rate_y > 0.0 or damping_rate_y > 0.0 or
-                damping_rate_px > 0.0 or damping_rate_py > 0.0 or damping_rate_pzeta > 0.0:
+        if (damping_rate_x > 0.0 or damping_rate_px > 0.0
+                or damping_rate_y > 0.0 or damping_rate_py > 0.0 
+                or damping_rate_zeta > 0.0 or damping_rate_pzeta > 0.0):
             assert damping_matrix is None
             nargs['uncorrelated_rad_damping'] = True
             nargs['damping_factors'] = np.identity(6,dtype=float)
@@ -2045,8 +2046,8 @@ class LineSegmentMap(BeamElement):
             nargs['damping_factors'][1,1] -= damping_rate_px
             nargs['damping_factors'][2,2] -= damping_rate_y
             nargs['damping_factors'][3,3] -= damping_rate_py
-            nargs['damping_factors'][3,3] -= damping_rate_z
-            nargs['damping_factors'][3,3] -= damping_rate_pzeta
+            nargs['damping_factors'][4,4] -= damping_rate_zeta
+            nargs['damping_factors'][5,5] -= damping_rate_pzeta
         elif damping_matrix is not None:
             assert np.shape(damping_matrix) == (6,6)
             nargs['uncorrelated_rad_damping'] = True
@@ -2058,11 +2059,11 @@ class LineSegmentMap(BeamElement):
         assert gauss_noise_ampl_px >= 0.0
         assert gauss_noise_ampl_y >= 0.0
         assert gauss_noise_ampl_py >= 0.0
-        assert gauss_noise_ampl_z >= 0.0
+        assert gauss_noise_ampl_zeta >= 0.0
         assert gauss_noise_ampl_pzeta >= 0.0
-        if gauss_noise_ampl_x > 0 or gauss_noise_ampl_px > 0 or
+        if (gauss_noise_ampl_x > 0 or gauss_noise_ampl_px > 0 or
                 gauss_noise_ampl_y > 0 or gauss_noise_ampl_py > 0 or
-                gauss_noise_ampl_z > 0 or gauss_noise_ampl_pzeta > 0:
+                gauss_noise_ampl_zeta > 0 or gauss_noise_ampl_pzeta > 0):
             assert gauss_noise_matrix is None
             nargs['uncorrelated_gauss_noise'] = True
             nargs['gauss_noise_matrix'] = np.zeros((6,6),dtype=float)
@@ -2070,18 +2071,19 @@ class LineSegmentMap(BeamElement):
             nargs['gauss_noise_matrix'][1,1] = gauss_noise_ampl_px
             nargs['gauss_noise_matrix'][2,2] = gauss_noise_ampl_y
             nargs['gauss_noise_matrix'][3,3] = gauss_noise_ampl_py
-            nargs['gauss_noise_matrix'][4,4] = gauss_noise_ampl_z
+            nargs['gauss_noise_matrix'][4,4] = gauss_noise_ampl_zeta
             nargs['gauss_noise_matrix'][5,5] = gauss_noise_ampl_pzeta
         elif gauss_noise_matrix is not None:
+            nargs['uncorrelated_gauss_noise'] = True
             nargs['gauss_noise_matrix'] = gauss_noise_matrix
         else:
-            nargs['damping_factors'] = np.zeros((6,6),dtype=float)
             nargs['uncorrelated_gauss_noise'] = False
             
-        for i in range(6):
-            for j in range(6):
-                if i!=j:
-                    assert nargs['gauss_noise_matrix'][i,j] == 0.0,"Not implemented"
+        if nargs['uncorrelated_gauss_noise']:
+            for i in range(6):
+                for j in range(6):
+                    if i!=j:
+                        assert nargs['gauss_noise_matrix'][i,j] == 0.0,"Not implemented"
 
         super().__init__(**nargs)
 
