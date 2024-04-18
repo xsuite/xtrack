@@ -846,9 +846,17 @@ def test_simplified_accelerator_segment_uncorrelated_damping_equilibrium(test_co
     Q_y = 0.22
     beta_s = 856.9
     Q_s = 0.015
-    damping_rate_x = 5E-4
-    damping_rate_y = 1E-3
+    damping_rate_h = 5E-4
+    damping_rate_v = 1E-3
     damping_rate_s = 2E-3
+    
+    damping_rate_x = damping_rate_h/2
+    damping_rate_px = damping_rate_h/2
+    damping_rate_y = damping_rate_v/2
+    damping_rate_py = damping_rate_v/2
+    damping_rate_zeta = 0.0
+    damping_rate_pzeta = damping_rate_s
+    
     energy = 45.6
     equ_emit_x = 0.3E-9
     equ_emit_y = 1E-12
@@ -857,6 +865,13 @@ def test_simplified_accelerator_segment_uncorrelated_damping_equilibrium(test_co
     beta_s = equ_length/equ_delta
     equ_emit_s = equ_length*equ_delta
 
+    
+    gauss_noise_ampl_px = np.sqrt(equ_emit_x*damping_rate_h/beta_x_0)
+    gauss_noise_ampl_x = beta_x_0*gauss_noise_ampl_px
+    gauss_noise_ampl_py = np.sqrt(equ_emit_y*damping_rate_v/beta_y_0)
+    gauss_noise_ampl_y = beta_y_0*gauss_noise_ampl_py
+    gauss_noise_ampl_delta = np.sqrt(2*equ_emit_s*damping_rate_s/beta_s)
+    
     npart = int(1E3)
     particles = xp.Particles(_context=test_context,
                 x=np.random.randn(npart)*np.sqrt(equ_emit_x*beta_x_0),
@@ -868,7 +883,6 @@ def test_simplified_accelerator_segment_uncorrelated_damping_equilibrium(test_co
                 p0c=energy*1E9)
     particles._init_random_number_generator()
 
-
     arc = xt.LineSegmentMap(_context=test_context,
         alfx=(alpha_x_0, alpha_x_0), betx=(beta_x_0, beta_x_0),
         dx=(0.0, 0.0), dpx=(0.0, 0.0),
@@ -876,10 +890,12 @@ def test_simplified_accelerator_segment_uncorrelated_damping_equilibrium(test_co
         dy=(0.0, 0.0), dpy=(0.0, 0.0),
         qx=Q_x, qy=Q_y,
         bets=beta_s, qs=Q_s,
-        damping_rate_x = damping_rate_x,
-        damping_rate_y = damping_rate_y,
-        damping_rate_s = damping_rate_s,
-        equ_emit_x=equ_emit_x, equ_emit_y=equ_emit_y, equ_emit_s=equ_emit_s)
+        damping_rate_x=damping_rate_x,damping_rate_px=damping_rate_px,
+        damping_rate_y=damping_rate_y,damping_rate_py=damping_rate_py,
+        damping_rate_zeta=0.0,damping_rate_pzeta=damping_rate_pzeta,
+        gauss_noise_ampl_x = gauss_noise_ampl_x, gauss_noise_ampl_px = gauss_noise_ampl_px, 
+        gauss_noise_ampl_y = gauss_noise_ampl_y, gauss_noise_ampl_py = gauss_noise_ampl_py,
+        gauss_noise_ampl_zeta = 0.0, gauss_noise_ampl_pzeta = gauss_noise_ampl_delta)
 
     gamma_x = (1.0+alpha_x_0**2)/beta_x_0
     gamma_y = (1.0+alpha_y_0**2)/beta_y_0
