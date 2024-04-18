@@ -775,12 +775,7 @@ def test_simplified_accelerator_segment_uncorrelated_damping(test_context):
     damping_rate_y = 1E-3
     damping_rate_py = 7E-3
     damping_rate_zeta = 2E-3
-    #damping_rate_pzeta = 1E-2
-    #damping_rate_px = 0.0
-    #damping_rate_y = 0.0
-    #damping_rate_py = 0.0
-    #damping_rate_zeta = 0.0
-    damping_rate_pzeta = 0.0
+    damping_rate_pzeta = 1E-2
 
     dtk_particle = dtk.TestParticles(
             p0c=25.92e9,
