@@ -1294,6 +1294,11 @@ def test_custom_twiss_init(test_context):
 
     collider = xt.Multiline.from_json(
         test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.json')
+
+    collider.lhcb1.slice_thick_elements(
+        slicing_strategies=[xt.Strategy(xt.Uniform(1, mode='thick'))])
+    collider.lhcb2.slice_thick_elements(
+        slicing_strategies=[xt.Strategy(xt.Uniform(1, mode='thick'))])
     collider.build_trackers(_context=test_context)
 
     # Switch on crossing angles to get some vertical dispersion
@@ -1351,7 +1356,7 @@ def test_custom_twiss_init(test_context):
         assert np.isclose(tw['py', location], py0, atol=1e-9, rtol=0)
 
         # Check at a point in a downstream arc
-        loc_check = f'mb.a24l7.{bn}'
+        loc_check = f'mb.a24l7.{bn}..0'
         assert np.isclose(tw['betx', loc_check], tw_full['betx', loc_check],
                             atol=5e-6, rtol=0)
         assert np.isclose(tw['bety', loc_check], tw_full['bety', loc_check],
@@ -1406,7 +1411,7 @@ def test_custom_twiss_init(test_context):
         assert np.isclose(tw['y', location], y0, atol=1e-9, rtol=0)
 
         # Check at a point in an upstream arc
-        loc_check = f'mb.a24r4.{bn}'
+        loc_check = f'mb.a24r4.{bn}..0'
         assert np.isclose(tw['betx', loc_check], tw_full['betx', loc_check],
                             atol=5e-6, rtol=0)
         assert np.isclose(tw['bety', loc_check], tw_full['bety', loc_check],
