@@ -673,9 +673,9 @@ class Line:
             's': s_elements,
             'element_type': element_types,
             'name': list(self.element_names) + ['_end_point'],
+            'isthick': isthick,
             'isreplica': isreplica,
             'parent_name': parent_name,
-            'isthick': isthick,
             'iscollective': iscollective,
             'element': elements
         }
