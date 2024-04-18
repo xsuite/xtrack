@@ -1,84 +1,114 @@
 import xtrack as xt
 from cpymad.madx import Madx
 
-# Carry on with the same example as in 001
+# Load a very simple sequence from MAD-X
 mad = Madx()
 mad.input("""
     seq: sequence, l=4;
     b1: sbend, at=0.5, angle=0.2, l=1;
     b2: sbend, at=2.5, angle=0.3, l=1;
     endsequence;
-    
+
     beam;
     use,sequence=seq;
 """)
 
 line = xt.Line.from_madx_sequence(mad.sequence.seq)
+line.build_tracker()
 
-# Add a transformations
-line.transform_compound('b1', x_shift=-0.1, s_rotation=0.8)
+print('The line as imported from MAD-X:')
+print(line.get_table())
 
-# Note that the type of our compound is simply 'Compound' for now, and it has
-# the knowledge of the character of the different elements that compose the
-# compound:
-print(line.get_compound_by_name('b1'))
-# Compound(
-#     core={'b1_den', 'b1_dex', 'b1'},
-#     aperture=set(),
-#     entry_transform={'b1_tilt_entry', 'b1_offset_entry'},
-#     exit_transform={'b1_tilt_exit', 'b1_offset_exit'},
-#     entry={'b1_entry'},
-#     exit={'b1_exit'},
-# )
+# Shift and tilt selected elements
+line['b1'].shift_x = -0.1
+line['b1'].rot_s_rad = 0.8
+line['b2'].shift_y = 0.2
+line['b2'].rot_s_rad = -0.8
+
+tt = line.get_table(attr=True)
+tt.cols['s', 'element_type', 'isthick', 'shift_x', 'shift_y', 'rot_s_rad']
+# returns:
+#
+# name       s element_type isthick shift_x shift_y rot_s_rad
+# seq$start  0 Marker         False       0       0         0
+# b1         0 Bend            True    -0.1       0       0.8
+# drift_0    1 Drift           True       0       0         0
+# b2         2 Bend            True       0     0.2      -0.8
+# drift_1    3 Drift           True       0       0         0
+# seq$end    4 Marker         False       0       0         0
+# _end_point 4                False       0       0         0
 
 # Slice the line
 slicing_strategies = [
     xt.Strategy(slicing=None),  # Default catch-all
-    xt.Strategy(slicing=xt.Teapot(3), element_type=xt.Bend),
+    xt.Strategy(slicing=xt.Teapot(2), element_type=xt.Bend),
 ]
 line.slice_thick_elements(slicing_strategies)
+line.build_tracker()
 
-print(line.get_table())
-# Table: 47 rows, 5 cols
-# name                   s element_type isthick compound_name
-# seq$start              0 Marker         False
-# b1_entry               0 Marker         False b1
-# b1_offset_entry..0     0 XYShift        False b1 <- Transformations are moved
-# b1_tilt_entry..0       0 SRotation      False b1 <- ...to each of the slices
-# b1_den                 0 DipoleEdge     False b1
-# b1_tilt_exit..0        0 SRotation      False b1 <- ...and undone after
-# b1_offset_exit..0      0 XYShift        False b1 <- (here for the edge).
-# drift_b1..0            0 Drift           True b1
-# b1_offset_entry..1 0.125 XYShift        False b1 <- And here
-# b1_tilt_entry..1   0.125 SRotation      False b1 <- ..for the slice
-# b1..0              0.125 Multipole      False b1
-# b1_tilt_exit..1    0.125 SRotation      False b1 <- ...of the
-# b1_offset_exit..1  0.125 XYShift        False b1 <- ...actual bend
-# drift_b1..1        0.125 Drift           True b1
-#   etc...
+# Inspect
+tt = line.get_table(attr=True)
+tt.cols['s', 'element_type', 'isthick', 'parent_name', 'shift_x', 'shift_y', 'rot_s_rad']
+# returns:
+#
+# Table: 23 rows, 8 cols
+# name                 s element_type       isthick parent_name shift_x shift_y rot_s_rad
+# seq$start            0 Marker               False        None       0       0         0
+# b1_entry             0 Marker               False        None       0       0         0
+# b1..entry_map        0 ThinSliceBendEntry   False          b1    -0.1       0       0.8
+# drift_b1..0          0 DriftSliceBend        True          b1       0       0         0
+# b1..0         0.166667 ThinSliceBend        False          b1    -0.1       0       0.8
+# drift_b1..1   0.166667 DriftSliceBend        True          b1       0       0         0
+# b1..1         0.833333 ThinSliceBend        False          b1    -0.1       0       0.8
+# drift_b1..2   0.833333 DriftSliceBend        True          b1       0       0         0
+# b1..exit_map         1 ThinSliceBendExit    False          b1    -0.1       0       0.8
+# b1_exit              1 Marker               False        None       0       0         0
+# drift_0              1 Drift                 True        None       0       0         0
+# b2_entry             2 Marker               False        None       0       0         0
+# b2..entry_map        2 ThinSliceBendEntry   False          b2       0     0.2      -0.8
+# drift_b2..0          2 DriftSliceBend        True          b2       0       0        -0
+# b2..0          2.16667 ThinSliceBend        False          b2       0     0.2      -0.8
+# drift_b2..1    2.16667 DriftSliceBend        True          b2       0       0        -0
+# b2..1          2.83333 ThinSliceBend        False          b2       0     0.2      -0.8
+# drift_b2..2    2.83333 DriftSliceBend        True          b2       0       0        -0
+# b2..exit_map         3 ThinSliceBendExit    False          b2       0     0.2      -0.8
+# b2_exit              3 Marker               False        None       0       0         0
+# drift_1              3 Drift                 True        None       0       0         0
+# seq$end              4 Marker               False        None       0       0         0
+# _end_point           4                      False        None       0       0         0
 
-# After slicing the compound becomes a 'SlicedCompound' and loses memory of
-# its logical structure
-print(line.get_compound_by_name('b1'))
-# SlicedCompound({'b1_tilt_exit..2', 'drift_b1..0', 'b1..1', ...)
+# Update misalignment for one element. We act on the parent and the effect is
+# propagated to the slices.
+line['b2'].s_rotation = 0.3
+line['b2'].shift_x = 2e-3
 
-# If we add a transformation of a sliced compound it will now be added around
-# it, as is the case for the 'Compound':
-line.transform_compound('b2', s_rotation=0.1)
-
-print(line.get_table().rows['b2':'b2':'compound_name'])
-# Table: 13 rows, 5 cols
-# name                   s element_type isthick compound_name
-# b2_tilt_entry          2 SRotation      False b2  <- add the rotation
-# b2_entry               2 Marker         False b2
-# b2_den                 2 DipoleEdge     False b2
-# drift_b2..0            2 Drift           True b2
-# b2..0              2.125 Multipole      False b2
-# drift_b2..1        2.125 Drift           True b2
-# b2..1                2.5 Multipole      False b2
-# drift_b2..2          2.5 Drift           True b2
-# b2..2              2.875 Multipole      False b2
-# drift_b2..3        2.875 Drift           True b2
-# b2_dex                 3 DipoleEdge     False b2
-# b2_exit                3 Marker         False b2
-# b2_tilt_exit           3 SRotation      False b2 <- undo the rotation
+# Inspect
+tt = line.get_table(attr=True)
+tt.cols['s', 'element_type', 'isthick', 'parent_name', 'shift_x', 'shift_y', 'rot_s_rad']
+# returns:
+#
+# Table: 23 rows, 8 cols
+# name                 s element_type       isthick parent_name shift_x shift_y rot_s_rad
+# seq$start            0 Marker               False        None       0       0         0
+# b1_entry             0 Marker               False        None       0       0         0
+# b1..entry_map        0 ThinSliceBendEntry   False          b1    -0.1       0       0.8
+# drift_b1..0          0 DriftSliceBend        True          b1       0       0         0
+# b1..0         0.166667 ThinSliceBend        False          b1    -0.1       0       0.8
+# drift_b1..1   0.166667 DriftSliceBend        True          b1       0       0         0
+# b1..1         0.833333 ThinSliceBend        False          b1    -0.1       0       0.8
+# drift_b1..2   0.833333 DriftSliceBend        True          b1       0       0         0
+# b1..exit_map         1 ThinSliceBendExit    False          b1    -0.1       0       0.8
+# b1_exit              1 Marker               False        None       0       0         0
+# drift_0              1 Drift                 True        None       0       0         0
+# b2_entry             2 Marker               False        None       0       0         0
+# b2..entry_map        2 ThinSliceBendEntry   False          b2   0.002     0.2      -0.8
+# drift_b2..0          2 DriftSliceBend        True          b2       0       0        -0
+# b2..0          2.16667 ThinSliceBend        False          b2   0.002     0.2      -0.8
+# drift_b2..1    2.16667 DriftSliceBend        True          b2       0       0        -0
+# b2..1          2.83333 ThinSliceBend        False          b2   0.002     0.2      -0.8
+# drift_b2..2    2.83333 DriftSliceBend        True          b2       0       0        -0
+# b2..exit_map         3 ThinSliceBendExit    False          b2   0.002     0.2      -0.8
+# b2_exit              3 Marker               False        None       0       0         0
+# drift_1              3 Drift                 True        None       0       0         0
+# seq$end              4 Marker               False        None       0       0         0
+# _end_point           4                      False        None       0       0         0
