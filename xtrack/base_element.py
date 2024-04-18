@@ -565,6 +565,12 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         instance.name_associated_aperture = name_associated_aperture
         return instance
 
+    @property
+    def _add_to_repr(self):
+        out = []
+        if hasattr(self, 'parent_name'):
+            out.append('parent_name')
+        return out
 
 class Replica:
     def __init__(self, parent_name):
