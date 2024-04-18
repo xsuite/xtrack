@@ -626,19 +626,20 @@ class MadLoader:
         # copy layout data
         if self.enable_layout_data:
             layout_data = {}
-            for compound_name in line.compound_container._compounds:
-                madel = mad.elements[compound_name]
-                # offset represent the offset of the assembly with respect to mid-beam
-                eldata = {}
-                eldata["offset"] = [madel.mech_sep / 2 * self.bv, madel.v_pos]
-                eldata["assembly_id"] = madel.assembly_id
-                eldata["slot_id"] = madel.slot_id
-                eldata["aperture"] = [
-                    madel.apertype,
-                    list(madel.aperture),
-                    list(madel.aper_tol),
-                ]
-                layout_data[compound_name] = eldata
+            for nn in line.element_names:
+                if nn in mad.elements:
+                    madel = mad.elements[nn]
+                    # offset represent the offset of the assembly with respect to mid-beam
+                    eldata = {}
+                    eldata["offset"] = [madel.mech_sep / 2 * self.bv, madel.v_pos]
+                    eldata["assembly_id"] = madel.assembly_id
+                    eldata["slot_id"] = madel.slot_id
+                    eldata["aperture"] = [
+                        madel.apertype,
+                        list(madel.aperture),
+                        list(madel.aper_tol),
+                    ]
+                    layout_data[nn] = eldata
 
             line.metadata["layout_data"] = layout_data
 
