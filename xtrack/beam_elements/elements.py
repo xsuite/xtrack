@@ -1743,7 +1743,7 @@ class LineSegmentMap(BeamElement):
             damping_rate_z = 0.0, damping_rate_delta = 0.0
             gauss_noise_ampl_x=0.0,gauss_noise_ampl_px=0.0,
             gauss_noise_ampl_y=0.0,gauss_noise_ampl_py=0.0,
-            gauss_noise_ampl_zeta=0.0,gauss_noise_ampl_delta=0.0,
+            gauss_noise_ampl_zeta=0.0,gauss_noise_ampl_pzeta=0.0,
             damping_matrix=None,gauss_noise_matrix=None,
             **nargs):
 
@@ -1868,7 +1868,7 @@ class LineSegmentMap(BeamElement):
             Longitudinal damping rate on the particles motion defined such that
             emit_s = emit_s(n=0) * exp(-damping_rate_s * n) where n is the turn
             number. Optional, default is ``0``.
-        damping_rate_delta : float
+        damping_rate_pzeta : float
             Longitudinal damping rate on the particles motion defined such that
             emit_s = emit_s(n=0) * exp(-damping_rate_s * n) where n is the turn
             number. Optional, default is ``0``.
@@ -1882,7 +1882,7 @@ class LineSegmentMap(BeamElement):
             Amplitude of Gaussian noise on the vertical momentum. Optional, default is ``0``.
         gauss_noise_ampl_zeta : float
             Amplitude of Gaussian noise on the longitudinal position. Optional, default is ``0``.
-        gauss_noise_ampl_delta : float
+        gauss_noise_ampl_pzeta : float
             Amplitude of Gaussian noise on the longitudinal momentum. Optional, default is ``0``.
         damping_matrix : float[6,6]
             Matrix of damping: Each paticles coordinate vector (x,px,y,py,zeta,pzeta) is multiplied
@@ -2034,10 +2034,10 @@ class LineSegmentMap(BeamElement):
         assert damping_rate_y >= 0.0
         assert damping_rate_py >= 0.0
         assert damping_rate_z >= 0.0
-        assert damping_rate_delta >= 0.0
+        assert damping_rate_pzeta >= 0.0
         
         if damping_rate_x > 0.0 or damping_rate_y > 0.0 or damping_rate_y > 0.0 or
-                damping_rate_px > 0.0 or damping_rate_py > 0.0 or damping_rate_delta > 0.0:
+                damping_rate_px > 0.0 or damping_rate_py > 0.0 or damping_rate_pzeta > 0.0:
             assert damping_matrix is None
             nargs['uncorrelated_rad_damping'] = True
             nargs['damping_factors'] = np.identity(6,dtype=float)
@@ -2046,7 +2046,7 @@ class LineSegmentMap(BeamElement):
             nargs['damping_factors'][2,2] -= damping_rate_y
             nargs['damping_factors'][3,3] -= damping_rate_py
             nargs['damping_factors'][3,3] -= damping_rate_z
-            nargs['damping_factors'][3,3] -= damping_rate_delta
+            nargs['damping_factors'][3,3] -= damping_rate_pzeta
         elif damping_matrix is not None:
             assert np.shape(damping_matrix) == (6,6)
             nargs['uncorrelated_rad_damping'] = True
@@ -2059,10 +2059,10 @@ class LineSegmentMap(BeamElement):
         assert gauss_noise_ampl_y >= 0.0
         assert gauss_noise_ampl_py >= 0.0
         assert gauss_noise_ampl_z >= 0.0
-        assert gauss_noise_ampl_delta >= 0.0
+        assert gauss_noise_ampl_pzeta >= 0.0
         if gauss_noise_ampl_x > 0 or gauss_noise_ampl_px > 0 or
                 gauss_noise_ampl_y > 0 or gauss_noise_ampl_py > 0 or
-                gauss_noise_ampl_z > 0 or gauss_noise_ampl_delta > 0:
+                gauss_noise_ampl_z > 0 or gauss_noise_ampl_pzeta > 0:
             assert gauss_noise_matrix is None
             nargs['uncorrelated_gauss_noise'] = True
             nargs['gauss_noise_matrix'] = np.zeros((6,6),dtype=float)
@@ -2071,7 +2071,7 @@ class LineSegmentMap(BeamElement):
             nargs['gauss_noise_matrix'][2,2] = gauss_noise_ampl_y
             nargs['gauss_noise_matrix'][3,3] = gauss_noise_ampl_py
             nargs['gauss_noise_matrix'][4,4] = gauss_noise_ampl_z
-            nargs['gauss_noise_matrix'][5,5] = gauss_noise_ampl_delta
+            nargs['gauss_noise_matrix'][5,5] = gauss_noise_ampl_pzeta
         elif gauss_noise_matrix is not None:
             nargs['gauss_noise_matrix'] = gauss_noise_matrix
         else:
