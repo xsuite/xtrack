@@ -79,7 +79,6 @@ def twiss_line(line, particle_ref=None, method=None,
         search_for_t_rev=None,
         num_turns_search_t_rev=None,
         only_twiss_init=None,
-        only_markers=None,
         only_orbit=None,
         compute_R_element_by_element=None,
         compute_lattice_functions=None,
@@ -97,6 +96,7 @@ def twiss_line(line, particle_ref=None, method=None,
         _keep_initial_particles=None,
         _initial_particles=None,
         _ebe_monitor=None,
+        only_markers=None,
         ):
 
     """
@@ -123,8 +123,6 @@ def twiss_line(line, particle_ref=None, method=None,
         Initial value for the zeta parameter.
     freeze_longitudinal : bool, optional
         If True, the longitudinal motion is frozen.
-    only_markers: bool, optional
-        If True, results are computed only at marker elements.
     at_elements : list, optional
         List of elements at which the Twiss parameters are computed.
         If not provided, the Twiss parameters are computed at all elements.
@@ -314,6 +312,9 @@ def twiss_line(line, particle_ref=None, method=None,
     compute_chromatic_properties=(compute_chromatic_properties
                         if compute_chromatic_properties is not None else None)
     num_turns = (num_turns or 1)
+
+    if only_markers:
+        raise NotImplementedError('`only_markers` not supported anymore')
 
     if only_orbit:
         raise NotImplementedError # Tested only experimentally
@@ -918,23 +919,7 @@ def _twiss_open(line, init,
     name_co = np.array(line.element_names[i_start:i_stop] + ('_end_point',))
 
     if only_markers:
-        mask_twiss = line.tracker._get_twiss_mask_markers()[i_start:i_stop+1]
-        mask_twiss[-1] = True # to include the "_end_point"
-        name_co = name_co[mask_twiss]
-        s_co = s_co[mask_twiss]
-        x_co = x_co[mask_twiss]
-        px_co = px_co[mask_twiss]
-        y_co = y_co[mask_twiss]
-        py_co = py_co[mask_twiss]
-        zeta_co = zeta_co[mask_twiss]
-        delta_co = delta_co[mask_twiss]
-        ptau_co = ptau_co[mask_twiss]
-        x_prime_co = x_prime_co[mask_twiss]
-        y_prime_co = y_prime_co[mask_twiss]
-        ax_co = ax_co[mask_twiss]
-        ay_co = ay_co[mask_twiss]
-        dzeta = dzeta[mask_twiss]
-        Ws = Ws[mask_twiss, :, :]
+        raise NotImplementedError('only_markers not supported anymore')
 
     twiss_res_element_by_element = {}
 
@@ -1191,6 +1176,9 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                     hide_thin_groups=False,
                     only_markers=False,
                     periodic=False):
+
+    if only_markers:
+        raise NotImplementedError('only_markers not supported anymore')
 
     tw_chrom_res = []
     for dd in [-delta_chrom, delta_chrom]:
