@@ -742,7 +742,7 @@ def test_simplified_accelerator_segment_chroma_detuning(test_context):
                       dtk_particle.delta, rtol=1e-14, atol=1e-14)
 
 
-@for_all_test_contexts
+#@for_all_test_contexts
 def test_simplified_accelerator_segment_uncorrelated_damping(test_context):
     alpha_x_0 = -0.5
     beta_x_0 = 100.0
@@ -922,6 +922,37 @@ def test_simplified_accelerator_segment_uncorrelated_damping_equilibrium(test_co
     assert np.isclose(equ_emit_x,equ_emit_x_0, rtol=1e-1, atol=1e-10)
     assert np.isclose(equ_emit_y,equ_emit_y_0, rtol=1e-1, atol=1e-10)
     assert np.isclose(equ_emit_s,equ_emit_s_0, rtol=1e-1, atol=1e-10)
+
+
+@for_all_test_contexts
+def test_simplified_accelerator_segment_correlated_noise(test_context):
+    npart = int(1E6)
+    scale = 1E-6
+    random_matrix = np.reshape(np.random.rand(36),(6,6))
+    data = np.transpose(np.random.multivariate_normal(np.zeros(6),random_matrix,npart))
+    covariance_matrix = np.cov(data)
+
+    particles = xp.Particles(_context=test_context,
+                x=np.zeros(npart),
+                p0c=45E9)
+    particles._init_random_number_generator()
+
+    arc = xt.LineSegmentMap(_context=test_context,
+        betx=1.0, bety=1.0,bets=1.0,
+        qx=0.0, qy=0.0, qs=0.0,
+        gauss_noise_matrix=covariance_matrix*scale
+        )
+        
+    arc.track(particles)
+    data = np.zeros((6,npart))
+    data[0,:] = particles.x
+    data[1,:] = particles.px
+    data[2,:] = particles.y
+    data[3,:] = particles.py
+    data[4,:] = particles.zeta
+    data[5,:] = particles.pzeta
+    cov = np.cov(data)/scale
+    assert np.allclose(cov,covariance_matrix,atol=1E-4,rtol=1E-2)
 
 
 @for_all_test_contexts

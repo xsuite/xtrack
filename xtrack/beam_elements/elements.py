@@ -2072,7 +2072,7 @@ class LineSegmentMap(BeamElement):
             assert gauss_noise_matrix is None
             nargs['uncorrelated_gauss_noise'] = True
             nargs['correlated_gauss_noise'] = False
-            nargs['gauss_noise_matrix'] = np.zeros(6,dtype=float)
+            nargs['gauss_noise_matrix'] = np.zeros((6,6),dtype=float)
             nargs['gauss_noise_matrix'][0,0] = gauss_noise_ampl_x
             nargs['gauss_noise_matrix'][1,1] = gauss_noise_ampl_px
             nargs['gauss_noise_matrix'][2,2] = gauss_noise_ampl_y
@@ -2082,7 +2082,7 @@ class LineSegmentMap(BeamElement):
         elif gauss_noise_matrix is not None:
             nargs['correlated_gauss_noise'] = True
             nargs['uncorrelated_gauss_noise'] = False
-            # https://github.com/numpy/numpy/blob/main/numpy/random/_generator.pyx
+            assert np.shape(gauss_noise_matrix) == (6,6)
             (u, s, vh) = np.linalg.svd(gauss_noise_matrix)
             nargs['gauss_noise_matrix'] = u*np.sqrt(s)
         else:

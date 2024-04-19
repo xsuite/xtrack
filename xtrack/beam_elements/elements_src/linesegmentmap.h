@@ -399,19 +399,13 @@ void correlated_gaussian_noise(LocalParticle *part0,
                     r[i] += LineSegmentMapData_get_gauss_noise_matrix(el,i,j)*x[j];
                 }
             }
-            LocalParticle_add_to_x(part,
-                r[0]*LineSegmentMapData_get_gauss_noise_matrix(el,0,0));
-            LocalParticle_add_to_px(part,
-                r[1]*LineSegmentMapData_get_gauss_noise_matrix(el,1,1));
-            LocalParticle_add_to_y(part,
-                r[2]*LineSegmentMapData_get_gauss_noise_matrix(el,2,2));
-            LocalParticle_add_to_py(part,
-                r[3]*LineSegmentMapData_get_gauss_noise_matrix(el,3,3));
-            LocalParticle_add_to_zeta(part,
-                r[4]*LineSegmentMapData_get_gauss_noise_matrix(el,4,4));
+            LocalParticle_add_to_x(part,r[0]);
+            LocalParticle_add_to_px(part,r[1]);
+            LocalParticle_add_to_y(part,r[2]);
+            LocalParticle_add_to_py(part,r[3]);
+            LocalParticle_add_to_zeta(part,r[4]);
             double pzeta = LocalParticle_get_pzeta(part);
-            pzeta += r[5]*LineSegmentMapData_get_gauss_noise_matrix(el,5,5);
-            LocalParticle_update_pzeta(part,pzeta);
+            LocalParticle_update_pzeta(part,pzeta+r[5]);
         //end_per_particle_block
 }
 
@@ -466,7 +460,7 @@ void LineSegmentMap_track_local_particle(LineSegmentMapData el, LocalParticle* p
         uncorrelated_gaussian_noise(part0,el);
     }
     
-    if (LineSegmentMapData_get_uncorrelated_gauss_noise(el) == 1){
+    if (LineSegmentMapData_get_correlated_gauss_noise(el) == 1){
         correlated_gaussian_noise(part0,el);
     }
 
