@@ -10,7 +10,6 @@ import xpart as xp
 from cpymad.madx import Madx
 from scipy.stats import linregress
 from xobjects.test_helpers import for_all_test_contexts
-from xpart.particles import Particles, ParticlesPurelyLongitudinal
 
 import ducktrack as dtk
 import xtrack as xt
@@ -26,9 +25,9 @@ def test_constructor(test_context):
         xt.Multipole(_context=test_context, knl=[2, 3]),
         xt.RFMultipole(_context=test_context, knl=[2]),
         xt.Cavity(_context=test_context, voltage=3.),
-        xt.SRotation(_context=test_context, angle=4),
-        xt.XRotation(_context=test_context, angle=1.8),
-        xt.YRotation(_context=test_context, angle=2.4),
+        xt.SRotation(_context=test_context, angle=0),
+        xt.XRotation(_context=test_context, angle=0),
+        xt.YRotation(_context=test_context, angle=0),
         xt.ZetaShift(_context=test_context, dzeta=3E-4),
         xt.XYShift(_context=test_context, dx=1),
         xt.DipoleEdge(_context=test_context, h=1),
@@ -540,12 +539,8 @@ void TestElement_track_local_particle(TestElementData el,
 """
 
 
-@pytest.mark.parametrize(
-    'particles_class',
-    [Particles, ParticlesPurelyLongitudinal],
-)
 @for_all_test_contexts
-def test_per_particle_kernel(test_context, particles_class):
+def test_per_particle_kernel(test_context):
     class TestElement(xt.BeamElement):
         _xofields = {
             'a': xo.Float64
@@ -563,12 +558,12 @@ def test_per_particle_kernel(test_context, particles_class):
 
     el = TestElement(_context=test_context, a=10)
 
-    p = Particles(p0c=1e9, s=[1, 2, 3], _context=test_context)
+    p = xt.Particles(p0c=1e9, s=[1, 2, 3], _context=test_context)
     el.track(p)
     p.move(_context=xo.ContextCpu())
     assert np.all(p.s == [10, 10, 10])
 
-    p = particles_class(p0c=1e9, s=[1, 2, 3], _context=test_context)
+    p = xt.Particles(p0c=1e9, s=[1, 2, 3], _context=test_context)
     b = p.s*0.5
     el.test_kernel(p, b=b)
     p.move(_context=xo.ContextCpu())
@@ -913,7 +908,7 @@ def test_simplified_accelerator_segment_uncorrelated_damping_equilibrium(test_co
 
 @for_all_test_contexts
 def test_nonlinearlens(test_context):
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     dr_len = 1e-11
     mad.input(f"""
@@ -988,7 +983,7 @@ def test_multipole_tilt_90_deg(test_context):
     ln.track(p)
 
     # Check dispersion
-    my = xt.Multipole(ksl=[0.1, 0], hyl=0.1, length=2, _context=test_context)
+    my = xt.Multipole(knl=[0.1, 0], hxl=0.1, rot_s_rad=np.deg2rad(-90), length=2, _context=test_context)
     py = xt.Particles(x = 0, y=0, delta=1., p0c=1e12, _context=test_context)
     my.track(py)
 

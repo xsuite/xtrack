@@ -12,16 +12,15 @@ void Quadrupole_track_local_particle(
         LocalParticle* part0
 ) {
     double length = QuadrupoleData_get_length(el);
+    const double k1 = QuadrupoleData_get_k1(el);
+    const double k1s = QuadrupoleData_get_k1s(el);
 
     #ifdef XSUITE_BACKTRACK
         length = -length;
     #endif
 
-    const double k1 = QuadrupoleData_get_k1(el);
+    Quadrupole_from_params_track_local_particle(length, k1, k1s, part0);
 
-    //start_per_particle_block (part0->part)
-        track_thick_cfd(part, length, 0, k1, 0);
-    //end_per_particle_block
 }
 
 #endif // XTRACK_QUADRUPOLE_H

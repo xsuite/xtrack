@@ -37,6 +37,9 @@ ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau',
                         'ax_chrom', 'bx_chrom', 'ay_chrom', 'by_chrom',
                         'wx_chrom', 'wy_chrom',
                         'ddqx', 'ddqy', 'ddx', 'ddpx', 'ddy', 'ddpy',
+                        'betx1', 'bety1', 'betx2', 'bety2',
+                        'alfx1', 'alfy1', 'alfx2', 'alfy2',
+                        'gamx1', 'gamy1', 'gamx2', 'gamy2',
                         'eq_gemitt_x', 'eq_gemitt_y', 'eq_gemitt_zeta',
                         'eq_nemitt_x', 'eq_nemitt_y', 'eq_nemitt_zeta']
 
@@ -641,10 +644,10 @@ class TargetRelPhaseAdvance(Target):
             using the specified tar and at.
         end : str, optional
             Final element at which the phase advance is evaluated. Default is the
-            last element of the line.
+            last element of selected twiss range.
         start : str, optional
             Initali wlement at which the phase advance is evaluated. Default is the
-            first element of the line.
+            first element of the selected twiss range.
         tol : float, optional
             Tolerance below which the target is considered to be met.
         weight : float, optional
@@ -684,12 +687,121 @@ class TargetRelPhaseAdvance(Target):
 
         return mu_1 - mu_0
 
+
+class TargetRmatrixTerm(Target):
+
+    def __init__(self, tar, value, start=None, end=None, tag='',  **kwargs):
+
+        """
+        Target object for matching terms of the R-matrix between two
+        elements in a line.
+
+        Parameters
+        ----------
+        tar : str
+            Term to be matched. Can be "r11", "r12", "r21", "r22", etc
+        value : float or GreaterThan or LessThan or TwissTable
+            Value to be matched. Inequality constraints can also be specified.
+            If a TwissTable is specified, the target obtained from the table
+            using the specified tar and at.
+        start : str
+            First element of the range for which the R-matrix is computed.
+        end : str
+            End element of the range for which the R-matrix is computed.
+        tol : float, optional
+            Tolerance below which the target is considered to be met.
+        weight : float, optional
+            Weight used for this target in the cost function.
+        line : Line, optional
+            Line in which the R matrix is calculated. Needs to be specified if the
+            match involves multiple lines.
+        tag : str, optional
+            Tag associated to the target. Default is ''.
+        """
+
+        assert isinstance(tar, str), 'Only strings are supported for tar'
+        assert len(tar) == 3, (
+            'Only terms of the R-matrix in the form "r11", "r12", "r21", "r22", etc'
+            ' are supported')
+
+        Target.__init__(self, tar=self.compute, value=value, tag=tag, **kwargs)
+
+        self.term = tar
+        if end is None:
+            raise NotImplementedError('end cannot be None')
+            end = '__ele_stop__'
+        if start is None:
+            raise NotImplementedError('start cannot be None')
+            start = '__ele_start__'
+        self.end = end
+        self.start = start
+
+    def __repr__(self):
+        return f'{self.term}({self.start}, {self.end}, val={self.value}, tol={self.tol}, weight={self.weight})'
+
+    def compute(self, tw):
+
+        assert isinstance(self.term, str), 'Only strings are supported for tar'
+        assert len(self.term) == 3, (
+            'Only terms of the R-matrix in the form "r11", "r12", "r21", "r22", etc'
+            ' are supported')
+
+        rmat = tw.get_R_matrix(self.start, self.end)
+
+        ii = int(self.term[1]) - 1
+        jj = int(self.term[2]) - 1
+
+        assert ii >= 0 and ii < 6, 'Invalid R-matrix term'
+        assert jj >= 0 and jj < 6, 'Invalid R-matrix term'
+
+        return rmat[ii, jj]
+
+class TargetRmatrix(TargetSet):
+
+    def __init__(self, tars=None, value=None,start=None, end=None,
+        r11=None, r12=None, r13=None, r14=None, r15=None, r16=None,
+        r21=None, r22=None, r23=None, r24=None, r25=None, r26=None,
+        r31=None, r32=None, r33=None, r34=None, r35=None, r36=None,
+        r41=None, r42=None, r43=None, r44=None, r45=None, r46=None,
+        r51=None, r52=None, r53=None, r54=None, r55=None, r56=None,
+        r61=None, r62=None, r63=None, r64=None, r65=None, r66=None,
+        **kwargs):
+
+        if tars is not None:
+            raise NotImplementedError
+        if value is not None:
+            raise NotImplementedError
+
+        r_elems = {
+            'r11': r11, 'r12': r12, 'r13': r13, 'r14': r14, 'r15': r15, 'r16': r16,
+            'r21': r21, 'r22': r22, 'r23': r23, 'r24': r24, 'r25': r25, 'r26': r26,
+            'r31': r31, 'r32': r32, 'r33': r33, 'r34': r34, 'r35': r35, 'r36': r36,
+            'r41': r41, 'r42': r42, 'r43': r43, 'r44': r44, 'r45': r45, 'r46': r46,
+            'r51': r51, 'r52': r52, 'r53': r53, 'r54': r54, 'r55': r55, 'r56': r56,
+            'r61': r61, 'r62': r62, 'r63': r63, 'r64': r64, 'r65': r65, 'r66': r66,
+        }
+
+        tol = kwargs.pop('tol', None)
+
+        self.targets = []
+        for kk, vv in r_elems.items():
+            thistol = tol
+            if thistol is not None:
+                if kk[1] in ['2', '4']:
+                    thistol *= 1e-2
+                if kk[2] in ['2', '4']:
+                    thistol *= 1e+2
+            if vv is not None:
+                self.targets.append(TargetRmatrixTerm(kk, vv, start=start, end=end,
+                                                      tol=thistol, **kwargs))
+
+
 def match_line(line, vary, targets, solve=True, assert_within_tol=True,
                   compensate_radiation_energy_loss=False,
                   solver_options={}, allow_twiss_failure=True,
                   restore_if_fail=True, verbose=False,
                   n_steps_max=20, default_tol=None,
-                  solver=None, **kwargs):
+                  solver=None, check_limits=True, **kwargs):
 
     if not isinstance(targets, (list, tuple)):
         targets = [targets]
@@ -770,7 +882,8 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
                         verbose=verbose, assert_within_tol=assert_within_tol,
                         solver_options=solver_options,
                         n_steps_max=n_steps_max,
-                        restore_if_fail=restore_if_fail)
+                        restore_if_fail=restore_if_fail,
+                        check_limits=check_limits)
 
     if solve:
         opt.solve()

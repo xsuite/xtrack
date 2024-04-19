@@ -27,9 +27,6 @@ collider.build_trackers()
 collider.vars.load_madx_optics_file(
     "../../test_data/hllhc15_thick/opt_round_150_1500.madx")
 
-collider.lhcb1.twiss_default['only_markers'] = True
-collider.lhcb2.twiss_default['only_markers'] = True
-
 c0 = collider.copy()
 
 lm.set_var_limits_and_steps(collider)
@@ -42,10 +39,10 @@ for ll in collider.line_names:
     tw0[ll]._data['ddqy'] = ddqy
 
 beta15 = {
-    'betx_ip1': 0.13,
-    'bety_ip1': 0.03,
-    'betx_ip5': 0.19,
-    'bety_ip5': 0.089,
+    'betx_ip1': 0.15,
+    'bety_ip1': 0.10,
+    'betx_ip5': 0.10,
+    'bety_ip5': 0.15,
 }
 
 staged_match = False
@@ -284,7 +281,7 @@ t4 = time.time()
 optimizers['orbit_knobs'] = opt
 
 # Rematch tunes and chromaticities
-print('Rematching tunes and chromaticities')
+print('Rematching chromaticities')
 for ll in collider.line_names:
     line = collider[ll]
     beam_name = ll[-2:]

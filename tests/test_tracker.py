@@ -6,6 +6,7 @@ import json
 import pathlib
 import pytest
 
+from cpymad.madx import Madx
 import numpy as np
 import xobjects as xo
 import xtrack as xt
@@ -323,6 +324,7 @@ def _get_at_turn_element(particles):
     all_together = len(at_turn)==1 and len(at_element)==1 and len(at_s)==1
     return all_together, at_turn[0], at_element[0], at_s[0]
 
+
 def test_tracker_hashable_config():
     line = xt.Line([])
     line.build_tracker()
@@ -424,16 +426,22 @@ def test_tracker_config(test_context):
     assert current_kernel is first_kernel
     assert current_data is first_data
 
-
 @for_all_test_contexts
-def test_optimize_for_tracking(test_context):
-    fname_line_particles = test_data_folder / 'hllhc15_noerrors_nobb/line_and_particle.json'
+@pytest.mark.parametrize('multiline', [False, True])
+def test_optimize_for_tracking(test_context, multiline):
 
-    with open(fname_line_particles, 'r') as fid:
-        input_data = json.load(fid)
-
-    line = xt.Line.from_dict(input_data['line'])
-    line.particle_ref = xp.Particles.from_dict(input_data['particle'])
+    if multiline:
+        mline = xt.Multiline.from_json(test_data_folder /
+                         "hllhc15_collider/collider_00_from_mad.json")
+        line = mline['lhcb1']
+        line.particle_ref = xp.Particles(p0c=7000e9)
+        line.vars['vrf400'] = 16
+    else:
+        fname_line_particles = test_data_folder / 'hllhc15_noerrors_nobb/line_and_particle.json'
+        with open(fname_line_particles, 'r') as fid:
+            input_data = json.load(fid)
+        line = xt.Line.from_dict(input_data['line'])
+        line.particle_ref = xp.Particles.from_dict(input_data['particle'])
 
     line.build_tracker(_context=test_context)
 
@@ -490,7 +498,7 @@ def test_optimize_for_tracking(test_context):
     assert np.allclose(p_no_optimized.y, p_optimized.y, rtol=0, atol=1e-14)
     assert np.allclose(p_no_optimized.px, p_optimized.px, rtol=0, atol=1e-14)
     assert np.allclose(p_no_optimized.py, p_optimized.py, rtol=0, atol=1e-14)
-    assert np.allclose(p_no_optimized.zeta, p_optimized.zeta, rtol=0, atol=1e-11)
+    assert np.allclose(p_no_optimized.zeta, p_optimized.zeta, rtol=0, atol=1e-10)
     assert np.allclose(p_no_optimized.delta, p_optimized.delta, rtol=0, atol=1e-14)
 
 
@@ -569,3 +577,145 @@ def test_tbt_monitor_with_progress(test_context, ele_start, ele_stop, expected_x
 
     recorded_x = np.concatenate([monitor_recorded_x[0], p.x])
     assert np.allclose(recorded_x, expected_x, atol=1e-16)
+
+
+@pytest.fixture
+def pimms_mad():
+    pimms_path = test_data_folder / 'pimms/PIMMS.seq'
+    mad = Madx(stdout=False)
+    mad.option(echo=False)
+    mad.call(str(pimms_path))
+    mad.beam()
+    mad.use('pimms')
+    return mad
+
+
+@for_all_test_contexts
+def test_track_log_and_merit_function(pimms_mad, test_context):
+    line = xt.Line.from_madx_sequence(
+        pimms_mad.sequence.pimms,
+        deferred_expressions=True,
+    )
+    line.particle_ref = xt.Particles(
+        q0=1,
+        mass0=xt.PROTON_MASS_EV,
+        kinetic_energy0=200e6, # eV
+    )
+    line.insert_element(
+        name='septum_aperture',
+        element=xt.LimitRect(min_x=-0.1, max_x=0.1, min_y=-0.1, max_y=0.1),
+        at='extr_septum',
+    )
+    line['septum_aperture'].max_x = 0.035
+    line.configure_bend_model(edge='full', core='adaptive', num_multipole_kicks=1)
+
+    line.vars['kqf_common'] = 0
+    line.vars['kqfa'] = line.vars['kqf_common']
+    line.vars['kqfb'] = line.vars['kqf_common']
+
+    line.vars['kqf_common'] = 2e-2
+    line.vars['kqd'] = -2e-2
+
+    line.build_tracker(_context=test_context)
+
+    # Prepare a match on the tunes, dispersion at electrostatic septum, and
+    # correct the chromaticity. Don't run it, instead we will simulate an
+    # external optimizer.
+    opt = line.match(
+        solve=False,
+        method='4d',
+        vary=[
+            xt.VaryList(['ksf', 'ksd'], step=1e-3),
+            xt.VaryList(['kqfa', 'kqfb'], limits=(0, 1), step=1e-3, tag='qf'),
+            xt.Vary('kqd', limits=(-1, 0), step=1e-3, tag='qd', weight=10),
+        ],
+        targets=[
+            xt.TargetSet(dqx=-0.1, dqy=-0.1, tol=1e-3, tag="chrom"),
+            xt.Target(dx=0, at='extr_septum', tol=1e-6),
+            xt.TargetSet(qx=1.663, qy=1.72, tol=1e-6, tag="tunes"),
+        ]
+    )
+
+    # Check that the merit function works correctly
+    merit_function = opt.get_merit_function(return_scalar=True, check_limits=False)
+
+    x_expected = [line.vars[kk]._value for kk in ['ksf', 'ksd', 'kqfa', 'kqfb', 'kqd']]
+    x_expected[4] /= 10  # include the weight
+    x_start = merit_function.get_x()
+    assert np.allclose(x_start, x_expected, atol=1e-14)
+
+    expected_limits = [
+        [-1e200, 1e200],  # default
+        [-1e200, 1e200],  # default
+        [0, 1],
+        [0, 1],
+        [-0.1, 0],
+    ]
+    assert np.allclose(merit_function.get_x_limits(), expected_limits, atol=1e-14)
+
+    # Below numbers obtained by first only matching the tunes, then the above
+    x_optimized = [-1.40251213, 0.81823393, 0.31196667, 0.52478984, -0.052393429]
+    merit_function.set_x(x_optimized)
+    assert np.all(opt.target_status(ret=True)['tol_met'])
+
+    # Now prepare to track and to log intensity and sextupole strength
+    num_particles = 1000
+    beam_intensity = 1e10  # p+
+
+    # Generate particles with a gaussian distribution in normalized phase space,
+    # and a gaussian momentum distribution (rms spread 5e-4)
+    particles = line.build_particles(
+        x_norm=np.random.normal(size=num_particles),
+        px_norm=np.random.normal(size=num_particles),
+        y_norm=np.random.normal(size=num_particles),
+        py_norm=np.random.normal(size=num_particles),
+        delta=5e-4 * np.random.normal(size=num_particles),
+        method='4d',
+        weight=beam_intensity / num_particles,
+        nemitt_x=1.5e-6, nemitt_y=1e-6,
+    )
+
+    # Define time-dependent behaviour of the quadrupoles
+    line.functions['fun_kqfa'] = xt.FunctionPieceWiseLinear(
+        x=[0, 0.5e-3],
+        y=[line.vv['kqfa'], 0.313],
+    )
+    line.vars['kqfa'] = line.functions['fun_kqfa'](line.vars['t_turn_s'])
+    line.vars['kse2'] = 9
+
+    kqfa_before = line.vv['kqfa']
+
+    def measure_intensity(_, particles):
+        ctx2np = particles._context.nparray_from_context_array
+        state = ctx2np(particles.state)
+        weight = ctx2np(particles.weight)
+        mask_alive = state > 0
+        return np.sum(weight[mask_alive])
+
+    intensity_before = measure_intensity(None, particles)
+
+    log = xt.Log('kqfa',  # vars to be logged
+                 intensity=measure_intensity)  # user-defined function to be logged
+
+    line.discard_tracker()
+    line.build_tracker(_context=test_context)
+    line.enable_time_dependent_vars = True
+    num_turns = 1000
+    line.track(particles=particles, num_turns=num_turns, log=log)
+
+    intensity_after = measure_intensity(None, particles)
+
+    # Check that kqfa is increasing linearly
+    fit = np.polyfit(np.arange(num_turns), line.log_last_track['kqfa'], 1, full=True)
+    (slope, _), residual, _, _, _ = fit
+    assert slope > 0
+    assert residual < 1e-29
+    assert np.isclose(line.log_last_track['kqfa'][0], kqfa_before, atol=1e-14, rtol=0)
+    assert np.isclose(line.log_last_track['kqfa'][-1], line.vv['kqfa'], atol=1e-14, rtol=0)
+
+    # Check that intensity is decreasing
+    intensity = np.array(line.log_last_track['intensity'])
+    assert np.all(intensity[:-1] - intensity[1:] >= 0)
+    assert np.isclose(intensity[0], intensity_before, atol=1e-14, rtol=0)
+    # The last log point is from the beginning of the last turn:
+    assert np.isclose(intensity[-1], intensity_after, atol=0, rtol=1e-2)

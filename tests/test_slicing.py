@@ -7,15 +7,17 @@ import pytest
 import math
 
 import xtrack as xt
-from xtrack.slicing import Strategy, Teapot, Uniform
+from xtrack.slicing import Strategy, Teapot, Uniform, Custom, Slicer
 
 
 def test_slicing_uniform():
     # Test for one slice
-    slicing_3 = Uniform(1)
-    assert slicing_3.element_weights() == [1.0]
-    assert slicing_3.drift_weights() == [0.5] * 2
-    assert [w for w in slicing_3] == [(0.5, True), (1.0, False), (0.5, True)]
+    slicing_1 = Uniform(1)
+    assert slicing_1.element_weights() == [1.0]
+    assert slicing_1.drift_weights() == [0.5] * 2
+    expected_1 = [w for w in slicing_1.iter_weights(None)]
+    result_1 = [(0.5, True), (1.0, False), (0.5, True)]
+    assert expected_1 == result_1
 
     # Test for three slices
     slicing_3 = Uniform(3)
@@ -23,12 +25,14 @@ def test_slicing_uniform():
     assert slicing_3.drift_weights() == [0.25] * 4
 
     elem_info, drift_info = (1./3., False), (0.25, True)
-    assert [w for w in slicing_3] == [
+    expected_3 = [
         drift_info, elem_info,
         drift_info, elem_info,
         drift_info, elem_info,
         drift_info,
     ]
+    result_3 = [w for w in slicing_3.iter_weights(None)]
+    assert expected_3 == result_3
 
     # Test error handling
     with pytest.raises(ValueError):
@@ -37,10 +41,12 @@ def test_slicing_uniform():
 
 def test_slicing_teapot():
     # Test for one slice
-    slicing_3 = Teapot(1)
-    assert slicing_3.element_weights() == [1.0]
-    assert slicing_3.drift_weights() == [0.5] * 2
-    assert [w for w in slicing_3] == [(0.5, True), (1.0, False), (0.5, True)]
+    slicing_1 = Teapot(1)
+    assert slicing_1.element_weights() == [1.0]
+    assert slicing_1.drift_weights() == [0.5] * 2
+    expected_1 = [(0.5, True), (1.0, False), (0.5, True)]
+    result_1 = [w for w in slicing_1.iter_weights()]
+    assert expected_1 == result_1
 
     # Test for three slices
     slicing_3 = Teapot(3)
@@ -48,12 +54,14 @@ def test_slicing_teapot():
     assert slicing_3.drift_weights() == [0.125, 0.375, 0.375, 0.125]
 
     elem_info = (1./3., False)
-    assert [w for w in slicing_3] == [
+    expected_3 = [
         (0.125, True), elem_info,
         (0.375, True), elem_info,
         (0.375, True), elem_info,
         (0.125, True),
     ]
+    result_3 = [w for w in slicing_3.iter_weights()]
+    assert expected_3 == result_3
 
     # Test error handling
     with pytest.raises(ValueError):
@@ -62,24 +70,122 @@ def test_slicing_teapot():
 
 def test_slicing_teapot_mode_thick():
     # Test for two slices
-    slicing_3 = Teapot(2, mode='thick')
-    assert slicing_3.drift_weights() == [0.5] * 2
-    assert [w for w in slicing_3] == [(0.5, True), (0.5, True)]
+    slicing_2 = Teapot(2, mode='thick')
+    assert slicing_2.drift_weights() == [0.5] * 2
+    expected_2 = [(0.5, True), (0.5, True)]
+    result_2 = [w for w in slicing_2.iter_weights()]
+    assert expected_2 == result_2
 
     # Test for four slices
     slicing_3 = Teapot(4, mode='thick')
     assert slicing_3.drift_weights() == [0.125, 0.375, 0.375, 0.125]
 
-    assert [w for w in slicing_3] == [
+    expected = [
         (0.125, True),
         (0.375, True),
         (0.375, True),
         (0.125, True),
     ]
+    result = [w for w in slicing_3.iter_weights()]
+    assert expected == result
 
     # Test error handling
     with pytest.raises(ValueError):
         Teapot(0)
+
+
+def test_slicing_custom():
+    elem_len_3 = 16
+    slicing_3 = Custom(at_s=[0.8, 2, 8], mode='thin')
+    expected_dr_3 = [0.8/16, 1.2/16, 6/16, 8/16]
+    result_dr_3 = slicing_3.drift_weights(element_length=elem_len_3)
+    assert np.allclose(expected_dr_3, result_dr_3, atol=1e-30)
+
+    expected_el_3 = [1/3] * 3
+    result_el_3 = slicing_3.element_weights(element_length=elem_len_3)
+    assert np.allclose(expected_el_3, result_el_3, atol=1e-30)
+
+    elem_info = (1/3, False)
+    expected_3 = [
+        (0.8/16, True), elem_info,
+        (1.2/16, True), elem_info,
+        (6/16, True), elem_info,
+        (8/16, True),
+    ]
+    result_3 = [w for w in slicing_3.iter_weights(element_length=elem_len_3)]
+    assert expected_3 == result_3  # ditto
+
+
+def test_slicing_custom_thick():
+    elem_len_1 = 1.1
+    slicing_1 = Custom(at_s=[0.3], mode='thick')
+    expected_dr_1 = [0.3 / 1.1, 0.8 / 1.1]
+    result_dr_1 = slicing_1.drift_weights(element_length=elem_len_1)
+    assert np.allclose(expected_dr_1, result_dr_1, atol=1e-30)
+
+    expected_1 = [
+        (0.3 / 1.1, True),
+        (0.8 / 1.1, True),
+    ]
+    result_1 = [w for w in slicing_1.iter_weights(element_length=elem_len_1)]
+    assert expected_1 == result_1  # for now exact comparison works
+
+    elem_len_3 = 16
+    slicing_3 = Custom(at_s=[0.8, 2, 8])
+    expected_dr_3 = [0.8/16, 1.2/16, 6/16, 8/16]
+    result_dr_3 = slicing_3.drift_weights(element_length=elem_len_3)
+    assert np.allclose(expected_dr_3, result_dr_3, atol=1e-30)
+
+    expected_3 = [
+        (0.8/16, True),
+        (1.2/16, True),
+        (6/16, True),
+        (8/16, True),
+    ]
+    result_3 = [w for w in slicing_3.iter_weights(element_length=elem_len_3)]
+    assert expected_3 == result_3  # ditto
+
+
+def test_strategy_matching_good_order():
+    slicing_strategies = [
+        Strategy(slicing=Uniform(1)),
+        Strategy(element_type=xt.Drift, slicing=Uniform(2)),
+        Strategy(name='some.*', slicing=Uniform(3)),
+        Strategy(name='something', slicing=Uniform(4)),
+        Strategy(name='something', element_type=xt.Drift, slicing=Uniform(5)),
+    ]
+
+    dr = xt.Drift()
+    mk = xt.Marker()
+    line = xt.Line(elements=[dr, mk])
+    slicer = Slicer(slicing_strategies=slicing_strategies, line=line)
+
+    assert slicer._scheme_for_element(element=mk, name='else', line=line).slicing_order == 1
+    assert slicer._scheme_for_element(element=dr, name='what', line=line).slicing_order == 2
+    assert slicer._scheme_for_element(element=dr, name='somewhat', line=line).slicing_order == 3
+    assert slicer._scheme_for_element(element=mk, name='something', line=line).slicing_order == 4
+    assert slicer._scheme_for_element(element=dr, name='something', line=line).slicing_order == 5
+
+
+def test_strategy_matching_confusing_order():
+    slicing_strategies = [
+        Strategy(slicing=Uniform(1)),
+        Strategy(name='something', slicing=Uniform(2)),
+        Strategy(name='something', element_type=xt.Drift, slicing=Uniform(3)),
+        Strategy(name='some.*', slicing=Uniform(4)),
+        Strategy(name='some.*', element_type=xt.Drift, slicing=Uniform(5)),
+    ]
+
+    dr = xt.Drift()
+    mk = xt.Marker()
+    line = xt.Line(elements=[dr, mk])
+    slicer = Slicer(slicing_strategies=slicing_strategies, line=line)
+
+    assert slicer._scheme_for_element(element=mk, name='else', line=line).slicing_order == 1
+    assert slicer._scheme_for_element(element=mk, name='something', line=line).slicing_order == 4
+    assert slicer._scheme_for_element(element=dr, name='something', line=line).slicing_order == 5
+    assert slicer._scheme_for_element(element=mk, name='somewhat', line=line).slicing_order == 4
+    assert slicer._scheme_for_element(element=dr, name='somewhat', line=line).slicing_order == 5
 
 
 def test_slicing_strategy_matching():
@@ -125,9 +231,11 @@ def test_slicing_strategy_matching():
         'keep_this',
         # 5 slices for mb10:
         'mb10_entry',  # Marker
+        'mb10..entry_map',
         'drift_mb10..0', 'mb10..0', 'drift_mb10..1', 'mb10..1', 'drift_mb10..2',
         'mb10..2', 'drift_mb10..3', 'mb10..3', 'drift_mb10..4', 'mb10..4',
         'drift_mb10..5',
+        'mb10..exit_map',
         'mb10_exit',  # Marker
         # Kept drift:
         'keep_drifts',
@@ -143,13 +251,17 @@ def test_slicing_strategy_matching():
         'mq10_exit',  # Marker
         # Four slices for 'something':
         'something_entry',  # Marker
+        'something..entry_map',
         'drift_something..0', 'something..0', 'drift_something..1',
         'something..1', 'drift_something..2', 'something..2',
         'drift_something..3', 'something..3', 'drift_something..4',
+        'something..exit_map',
         'something_exit',  # Marker
         # Two slices for 'mb20':
         'mb20_entry',  # Marker
+        'mb20..entry_map',
         'drift_mb20..0', 'mb20..0', 'drift_mb20..1', 'mb20..1', 'drift_mb20..2',
+        'mb20..exit_map',
         'mb20_exit',  # Marker
         # Keep thin:
         'keep_thin',
@@ -165,19 +277,21 @@ def test_slicing_strategy_matching():
     for name, element in line.element_dict.items():
         if name == 'keep_this':
             assert isinstance(element, xt.Quadrupole)
-        elif name == 'keep_drifts' or name.startswith('drift_'):
-            assert isinstance(element, xt.Drift)
+        elif name == 'keep_drifts':
+            assert (element, xt.Drift)
+        elif name.startswith('drift_'):
+            assert 'DriftSlice' in type(element).__name__
         elif name == 'keep_thin':
             assert isinstance(element, xt.Multipole)
         elif name[-3:-1] == '..':
-            assert isinstance(element, xt.Multipole)
+            assert 'ThinSlice' in type(element).__name__
         else:
-            assert isinstance(element, xt.Marker)
+            name not in line.element_names
 
     # Check the right scheme was used:
-    def _lengths_of_drifts(name):
+    def _weights_of_drifts(name):
         return [
-            line[nn].length for nn in line.element_names
+            line[nn].weight for nn in line.element_names
             if nn.startswith(f'drift_{name}')
         ]
 
@@ -197,55 +311,62 @@ def test_slicing_strategy_matching():
 
     # Teapot
     expected_mb20_drift_lens = [1/6, 2/3, 1/6]
-    assert _lengths_of_drifts('mb20') == expected_mb20_drift_lens
+    assert _weights_of_drifts('mb20') == expected_mb20_drift_lens
 
     expected_mb10_drift_lens = [1/12, 5/24, 5/24, 5/24, 5/24, 1/12]
-    assert _lengths_of_drifts('mb10') == expected_mb10_drift_lens
+    assert _weights_of_drifts('mb10') == expected_mb10_drift_lens
 
     expected_mb11_drift_lens = [1/12, 5/24, 5/24, 5/24, 5/24, 1/12]
-    assert _lengths_of_drifts('mb11') == expected_mb11_drift_lens
+    assert _weights_of_drifts('mb11') == expected_mb11_drift_lens
 
     # Uniform
     expected_mq10_drift_lens = [1/2] * 2
-    assert _lengths_of_drifts('mq10') == expected_mq10_drift_lens
+    assert _weights_of_drifts('mq10') == expected_mq10_drift_lens
 
     expected_mb21_drift_lens = [1/4] * 4
-    assert _lengths_of_drifts('mb21') == expected_mb21_drift_lens
+    assert _weights_of_drifts('mb21') == expected_mb21_drift_lens
 
     expected_something_drift_lens = [1/5] * 5
-    assert _lengths_of_drifts('something') == expected_something_drift_lens
+    assert _weights_of_drifts('something') == expected_something_drift_lens
+
+    tt = line.get_table()
 
     # Test accessing compound elements
-    assert line.get_compound_subsequence('mb10') == [
-        'mb10_entry', 'drift_mb10..0', 'mb10..0', 'drift_mb10..1', 'mb10..1',
+    assert np.all(tt.rows['mb10_entry':'mb10_exit'].name == [
+        'mb10_entry', 'mb10..entry_map',
+        'drift_mb10..0', 'mb10..0', 'drift_mb10..1', 'mb10..1',
         'drift_mb10..2', 'mb10..2', 'drift_mb10..3', 'mb10..3', 'drift_mb10..4',
-        'mb10..4', 'drift_mb10..5', 'mb10_exit',
-    ]
-    assert line.get_compound_subsequence('mb11') == [
-        'mb11_entry', 'drift_mb11..0', 'mb11..0', 'drift_mb11..1', 'mb11..1',
+        'mb10..4', 'drift_mb10..5',
+        'mb10..exit_map', 'mb10_exit',
+    ])
+    assert np.all(tt.rows['mb11_entry':'mb11_exit'].name == [
+        'mb11_entry',
+        'drift_mb11..0', 'mb11..0', 'drift_mb11..1', 'mb11..1',
         'drift_mb11..2', 'mb11..2', 'drift_mb11..3', 'mb11..3', 'drift_mb11..4',
-        'mb11..4', 'drift_mb11..5', 'mb11_exit',
-    ]
-    assert line.get_compound_subsequence('mq10') == [
+        'mb11..4', 'drift_mb11..5',
+        'mb11_exit',
+    ])
+    assert np.all(tt.rows['mq10_entry':'mq10_exit'].name == [
         'mq10_entry', 'drift_mq10..0', 'mq10..0', 'drift_mq10..1', 'mq10_exit',
-    ]
-    assert line.get_compound_subsequence('something') == [
-        'something_entry', 'drift_something..0', 'something..0',
+    ])
+    assert np.all(tt.rows['something_entry':'something_exit'].name == [
+        'something_entry', 'something..entry_map',
+        'drift_something..0', 'something..0',
         'drift_something..1', 'something..1', 'drift_something..2',
         'something..2', 'drift_something..3', 'something..3',
-        'drift_something..4', 'something_exit',
-    ]
-    assert line.get_compound_subsequence('mb20') == [
-        'mb20_entry', 'drift_mb20..0', 'mb20..0', 'drift_mb20..1', 'mb20..1',
-        'drift_mb20..2', 'mb20_exit',
-    ]
-    assert line.get_compound_subsequence('mb21') == [
+        'drift_something..4',
+        'something..exit_map', 'something_exit',
+    ])
+    assert np.all(tt.rows['mb20_entry':'mb20_exit'].name == [
+        'mb20_entry', 'mb20..entry_map',
+        'drift_mb20..0', 'mb20..0', 'drift_mb20..1', 'mb20..1',
+        'drift_mb20..2',
+        'mb20..exit_map', 'mb20_exit',
+    ])
+    assert np.all(tt.rows['mb21_entry':'mb21_exit'].name == [
         'mb21_entry', 'drift_mb21..0', 'mb21..0', 'drift_mb21..1', 'mb21..1',
         'drift_mb21..2', 'mb21..2', 'drift_mb21..3', 'mb21_exit',
-    ]
-    assert list(line.compound_container.compound_names) == [
-        'mb10', 'mb11', 'mq10', 'something', 'mb20', 'mb21',
-    ]
+    ])
 
 
 def test_slicing_thick_bend_simple():
@@ -262,31 +383,19 @@ def test_slicing_thick_bend_simple():
     line = xt.Line(elements=[bend], element_names=['bend'])
     line.slice_thick_elements([Strategy(slicing=Teapot(2))])
 
-    assert len(line) == 7  # 2 markers + 2 slices + 3 drifts
+    assert len(line) == 9  # 2 markers + 2 edges + 2 slices + 3 drifts
 
-    assert line['drift_bend..0'].length == 3.0 * 1/6
-    assert line['drift_bend..1'].length == 3.0 * 2/3
-    assert line['drift_bend..2'].length == 3.0 * 1/6
+    assert line['drift_bend..0'].weight == 1/6
+    assert line['drift_bend..1'].weight == 2/3
+    assert line['drift_bend..2'].weight == 1/6
 
     bend0, bend1 = line['bend..0'], line['bend..1']
-    assert bend0.length == bend1.length == 1.5
-
-    expected_knl = [0.15, 0.3, 0, 0, 0]
-    assert np.allclose(bend0.knl, expected_knl, atol=1e-16)
-    assert np.allclose(bend1.knl, expected_knl, atol=1e-16)
-
-    expected_hxl = 0.3
-    assert np.allclose(bend0.hxl, expected_hxl, atol=1e-16)
-    assert np.allclose(bend1.hxl, expected_hxl, atol=1e-16)
+    assert bend0.weight == bend1.weight == 0.5
 
     # Make sure the order and the inverse factorial make sense:
     _fact = math.factorial
-    assert np.isclose(_fact(bend0.order) * bend0.inv_factorial_order, 1, atol=1e-16)
-    assert np.isclose(_fact(bend1.order) * bend0.inv_factorial_order, 1, atol=1e-16)
-
-    # All else is zero:
-    assert np.allclose(bend0.ksl, 0, atol=1e-16)
-    assert np.allclose(bend0.hyl, 0, atol=1e-16)
+    assert np.isclose(_fact(bend0._parent.order) * bend0._parent.inv_factorial_order, 1, atol=1e-16)
+    assert np.isclose(_fact(bend1._parent.order) * bend0._parent.inv_factorial_order, 1, atol=1e-16)
 
 
 def test_slicing_thick_bend_into_thick_bends_simple():
@@ -305,27 +414,27 @@ def test_slicing_thick_bend_into_thick_bends_simple():
     line = xt.Line(elements=[bend], element_names=['bend'])
     line.slice_thick_elements([Strategy(slicing=Uniform(2, mode='thick'))])
 
-    assert len(line) == 4  # 2 markers + 2 thick slices
+    assert len(line) == 6  # 2 markers + 2 edges + 2 thick slices
 
     bend0, bend1 = line['bend..0'], line['bend..1']
-    assert bend0.length == bend1.length == 1.5
+    assert bend0.weight == bend1.weight == 0.5
 
-    assert bend0.k0 == bend1.k0 == 0.1
-    assert bend0.h == bend1.h == 0.2
-    assert bend0.k1 == bend1.k1 == 0.2
+    assert bend0._parent.k0 == bend1._parent.k0 == 0.1
+    assert bend0._parent.h == bend1._parent.h == 0.2
+    assert bend0._parent.k1 == bend1._parent.k1 == 0.2
 
-    expected_knl = np.array([0.1, 0.2, 0.3, 0.4, 0.5]) / 2
-    assert np.allclose(bend0.knl, expected_knl, atol=1e-16)
-    assert np.allclose(bend1.knl, expected_knl, atol=1e-16)
+    expected_knl = np.array([0.1, 0.2, 0.3, 0.4, 0.5])
+    assert np.allclose(bend0._parent.knl, expected_knl, atol=1e-16)
+    assert np.allclose(bend1._parent.knl, expected_knl, atol=1e-16)
 
-    expected_ksl = np.array([0.7, 0.6, 0.5, 0.4, 0.3]) / 2
-    assert np.allclose(bend0.ksl, expected_ksl, atol=1e-16)
-    assert np.allclose(bend1.ksl, expected_ksl, atol=1e-16)
+    expected_ksl = np.array([0.7, 0.6, 0.5, 0.4, 0.3])
+    assert np.allclose(bend0._parent.ksl, expected_ksl, atol=1e-16)
+    assert np.allclose(bend1._parent.ksl, expected_ksl, atol=1e-16)
 
     # Make sure the order and the inverse factorial make sense:
     _fact = math.factorial
-    assert np.isclose(_fact(bend0.order) * bend0.inv_factorial_order, 1, atol=1e-16)
-    assert np.isclose(_fact(bend1.order) * bend0.inv_factorial_order, 1, atol=1e-16)
+    assert np.isclose(_fact(bend0._parent.order) * bend0._parent.inv_factorial_order, 1, atol=1e-16)
+    assert np.isclose(_fact(bend1._parent.order) * bend0._parent.inv_factorial_order, 1, atol=1e-16)
 
 
 def test_slicing_xdeps_consistency():

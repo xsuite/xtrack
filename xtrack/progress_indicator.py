@@ -92,8 +92,11 @@ def progress(iterable: Iterable, **options):
 
 
 try:
-    from tqdm.autonotebook import tqdm
-    from tqdm.notebook import tqdm_notebook
+    import warnings
+    with warnings.catch_warnings(): # To avoid warnings from tqdm.autonotebook (experimental module)
+        warnings.simplefilter("ignore")
+        from tqdm.autonotebook import tqdm
+        from tqdm.notebook import tqdm_notebook
 
     if tqdm is tqdm_notebook:  # tqdm determined we're in a notebook.
         class PatchedTqdm(tqdm):

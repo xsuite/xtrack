@@ -36,7 +36,7 @@ particles = line.build_particles(
 # line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
 
 # Track
-line.track(particles, num_turns=200, time=True)
+line.track(particles, num_turns=200, time=True, with_progress=5)
 
 print(f'Tracked in {line.time_last_track} seconds')
 

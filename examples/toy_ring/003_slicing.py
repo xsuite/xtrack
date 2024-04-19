@@ -7,7 +7,7 @@ lbend = 3
 lquad = 0.3
 elements = {
     'mqf.1': xt.Quadrupole(length=lquad, k1=0.1),
-    'msf.1': xt.Sextupole(length=0.1, k2=0.),
+    'msf.1': xt.Sextupole(length=0.1, k2=0.02),
     'd1.1':  xt.Drift(length=0.9),
     'mb1.1': xt.Bend(length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
     'd2.1':  xt.Drift(length=1),
@@ -51,63 +51,102 @@ line_before_slicing.build_tracker()
 
 # Ispect the result:
 
-ltable = line.get_table(attr=True).cols['s', 'isthick', 'element_type']
+ltable = line.get_table(attr=True).cols['s', 'isthick', 'element_type',
+                                        'parent_name', 'k0l', 'k1l', 'k2l']
 
 # The sextupole msf.1 has one thin slice, as default strategy (1) is applied.
 ltable.rows['msf.1_entry':'msf.1_exit']
 # returns:
 #
-# Table: 5 rows, 4 cols
-# name              s isthick element_type
-# msf.1_entry     0.3   False Marker
-# drift_msf.1..0  0.3    True Drift
-# msf.1..0       0.35   False Multipole
-# drift_msf.1..1 0.35    True Drift
-# msf.1_exit      0.4   False Marker
+# Table: 5 rows, 8 cols
+# name                s isthick element_type         parent_name k0l k1l   k2l
+# msf.1_entry       0.3   False Marker                      None   0   0     0
+# drift_msf.1..0    0.3    True DriftSliceSextupole        msf.1   0   0     0
+# msf.1..0         0.35   False ThinSliceSextupole         msf.1   0   0 0.002
+# drift_msf.1..1   0.35    True DriftSliceSextupole        msf.1   0   0     0
+# msf.1_exit        0.4   False Marker                      None   0   0     0
 
 # The bend mb2.1 has three thin slices, as strategy (2) is applied.
 ltable.rows['mb2.1_entry':'mb2.1_exit']
 # returns:
 #
-# Table: 7 rows, 4 cols
-# name             s isthick element_type
-# mb2.1_entry    6.6   False Marker
-# drift_mb2.1..0 6.6    True Drift
-# mb2.1..0       7.6   False Multipole
-# drift_mb2.1..1 7.6    True Drift
-# mb2.1..1       8.6   False Multipole
-# drift_mb2.1..2 8.6    True Drift
-# mb2.1_exit     9.6   False Marker
+# Table: 9 rows, 8 cols
+# name               s isthick element_type         parent_name      k0l k1l k2l
+# mb2.1_entry      6.6   False Marker                      None        0   0   0
+# mb2.1..entry_map 6.6   False ThinSliceBendEntry         mb2.1        0   0   0
+# drift_mb2.1..0   6.6    True DriftSliceBend             mb2.1        0   0   0
+# mb2.1..0         7.6   False ThinSliceBend              mb2.1 0.785398   0   0
+# drift_mb2.1..1   7.6    True DriftSliceBend             mb2.1        0   0   0
+# mb2.1..1         8.6   False ThinSliceBend              mb2.1 0.785398   0   0
+# drift_mb2.1..2   8.6    True DriftSliceBend             mb2.1        0   0   0
+# mb2.1..exit_map  9.6   False ThinSliceBendExit          mb2.1        0   0   0
+# mb2.1_exit       9.6   False Marker                      None        0   0   0
 
 # The quadrupole mqd.2 has four thin slices, as strategy (3) is applied.
 ltable.rows['mqd.2_entry':'mqd.2_exit']
 # returns:
 #
-# Table: 7 rows, 4 cols
-# name             s isthick element_type
-# mb2.1_entry    6.6   False Marker
-# drift_mb2.1..0 6.6    True Drift
-# mb2.1..0       7.6   False Multipole
-# drift_mb2.1..1 7.6    True Drift
-# mb2.1..1       8.6   False Multipole
-# drift_mb2.1..2 8.6    True Drift
-# mb2.1_exit     9.6   False Marker
+# Table: 9 rows, 8 cols
+# name                   s isthick element_type         parent_name k0l   k1l ...
+# mqd.2_entry         15.9   False Marker                      None   0     0
+# drift_mqd.2..0      15.9    True DriftSliceQuadrupole       mqd.2   0     0
+# mqd.2..0         15.9375   False ThinSliceQuadrupole        mqd.2   0 -0.07
+# drift_mqd.2..1   15.9375    True DriftSliceQuadrupole       mqd.2   0     0
+# mqd.2..1           16.05   False ThinSliceQuadrupole        mqd.2   0 -0.07
+# drift_mqd.2..2     16.05    True DriftSliceQuadrupole       mqd.2   0     0
+# mqd.2..2         16.1625   False ThinSliceQuadrupole        mqd.2   0 -0.07
+# drift_mqd.2..3   16.1625    True DriftSliceQuadrupole       mqd.2   0     0
+# mqd.2_exit          16.2   False Marker                      None   0     0
 
 # The quadrupole mqf.1 has two thick slices, as strategy (6) is applied.
 ltable.rows['mqf.1_entry':'mqf.1_exit']
 # returns:
 #
-# Table: 4 rows, 4 cols
-# name              s isthick element_type
-# mqf.1_entry       0   False Marker
-# mqf.1..0          0    True Quadrupole
-# mqf.1..1       0.15    True Quadrupole
-# mqf.1_exit      0.3   False Marker
+# Table: 4 rows, 8 cols
+# name                s isthick element_type         parent_name k0l   k1l k2l
+# mqf.1_entry         0   False Marker                      None   0     0   0
+# mqf.1..0            0    True ThickSliceQuadrupole       mqf.1   0 0.015   0
+# mqf.1..1         0.15    True ThickSliceQuadrupole       mqf.1   0 0.015   0
+# mqf.1_exit        0.3   False Marker                      None   0     0   0
 
 # The quadrupole mqd.1 is left untouched, as strategy (7) is applied.
 ltable.rows['mqd.1']
 # returns:
 #
-# Table: 1 row, 4 cols
-# name             s isthick element_type
-# mqd.1          5.3    True Quadrupole
+# Table: 1 row, 8 cols
+# name               s isthick element_type         parent_name k0l   k1l k2l
+# mqd.1            5.3    True Quadrupole                  None   0 -0.21   0
+
+
+########################################
+# Change properties of sliced elements #
+########################################
+
+# Sliced elements are updated whenever their parent is changed. For example:
+
+# Inspect a quadrupole:
+ltable.rows['mqf.1.*']
+# returns:
+#
+# Table: 4 rows, 8 cols
+# name                s isthick element_type         parent_name k0l   k1l k2l
+# mqf.1_entry         0   False Marker                      None   0     0   0
+# mqf.1..0            0    True ThickSliceQuadrupole       mqf.1   0 0.015   0
+# mqf.1..1         0.15    True ThickSliceQuadrupole       mqf.1   0 0.015   0
+# mqf.1_exit        0.3   False Marker                      None   0     0   0
+
+# Change the the strength of the parent
+line['mqf.1'].k1 = 0.2
+
+# Inspect
+ltable = line.get_table(attr=True).cols['s', 'isthick', 'element_type',
+                                        'parent_name', 'k0l', 'k1l', 'k2l']
+ltable.rows['mqf.1.*']
+# returns (the strength of the slices has changed):
+#
+# Table: 4 rows, 8 cols
+# name                s isthick element_type         parent_name k0l  k1l k2l
+# mqf.1_entry         0   False Marker                      None   0    0   0
+# mqf.1..0            0    True ThickSliceQuadrupole       mqf.1   0 0.03   0
+# mqf.1..1         0.15    True ThickSliceQuadrupole       mqf.1   0 0.03   0
+# mqf.1_exit        0.3   False Marker                      None   0    0   0

@@ -14,12 +14,10 @@ import xpart as xp
 import xobjects as xo
 
 from xtrack import Line, Node, Multipole
-from xtrack.compounds import Compound, SlicedCompound
 from xobjects.test_helpers import for_all_test_contexts
 
 test_data_folder = pathlib.Path(
             __file__).parent.joinpath('../test_data').absolute()
-
 
 
 def test_simplification_methods():
@@ -33,6 +31,9 @@ def test_simplification_methods():
 
     # Test merging of drifts
     line.insert_element(element=xt.Cavity(), name='cav', at_s=3.3)
+    assert isinstance(line['e4..0'], xt.DriftSlice)
+    line._replace_with_equivalent_elements()
+    assert isinstance(line['e4..0'], xt.Drift)
     line.merge_consecutive_drifts(inplace=True)
     assert len(line.element_names) == 3
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
@@ -43,20 +44,24 @@ def test_simplification_methods():
     # Test merging of drifts, while keeping one
     line.insert_element(element=xt.Drift(length=1), name='drift1', at_s=1.2)
     line.insert_element(element=xt.Drift(length=1), name='drift2', at_s=2.2)
+    line._replace_with_equivalent_elements()
     line.merge_consecutive_drifts(inplace=True, keep=['drift2'])
     assert len(line.element_names) == 5
     assert 'drift2' in line.element_names
     assert 'drift1' not in line.element_names
+    line._replace_with_equivalent_elements()
     line.merge_consecutive_drifts(inplace=True)
 
     # Test removing of zero-length drifts
-    line.insert_element(element=xt.Drift(length=0), name='marker1', at_s=3.3)
-    line.insert_element(element=xt.Drift(length=0), name='marker2', at_s=3.3)
+    line.insert_element(element=xt.Drift(length=0), name='dzero1', at_s=3.3)
+    line.insert_element(element=xt.Drift(length=0), name='dzero2', at_s=3.3)
     assert len(line.element_names) == 5
-    line.remove_zero_length_drifts(inplace=True, keep='marker2')
+    line._replace_with_equivalent_elements()
+    line.remove_zero_length_drifts(inplace=True, keep='dzero2')
     assert len(line.element_names) == 4
-    assert 'marker2' in line.element_names
-    assert 'marker1' not in line.element_names
+    assert 'dzero2' in line.element_names
+    assert 'dzero1' not in line.element_names
+    line._replace_with_equivalent_elements()
     line.remove_zero_length_drifts(inplace=True)
 
     # Test merging of multipoles
@@ -66,6 +71,7 @@ def test_simplification_methods():
     line.insert_element(element=xt.Multipole(knl=[0, 3, 8], ksl=[2, 0, 17]), name='m3', at_s=3.3)
     line.insert_element(element=xt.Multipole(knl=[2, 0, 0], ksl=[40]), name='m4', at_s=3.3)
     assert len(line.element_names) == 7
+    line._replace_with_equivalent_elements()
     line.merge_consecutive_multipoles(inplace=True, keep='m3')
     assert len(line.element_names) == 6
     assert 'm3' in line.element_names
@@ -77,6 +83,7 @@ def test_simplification_methods():
     assert np.allclose(line[joined_mult].knl, [5,2,3], rtol=0, atol=1e-15)
     assert np.allclose(line[joined_mult].ksl, [10,60,0], rtol=0, atol=1e-15)
     # Merging all
+    line._replace_with_equivalent_elements()
     line.merge_consecutive_multipoles(inplace=True)
     assert len(line.element_names) == 4
     assert np.allclose(line[1].knl, [7,5,11], rtol=0, atol=1e-15)
@@ -91,6 +98,7 @@ def test_simplification_methods():
     line['m5'].ksl[:] = 0
     line['m6'].knl[:] = 0
     line['m6'].ksl[:] = 0
+    line._replace_with_equivalent_elements()
     line.remove_inactive_multipoles(inplace=True, keep='m5')
     assert len(line.element_names) == 5
     assert 'm5' in line.element_names
@@ -101,6 +109,7 @@ def test_simplification_methods():
     line.insert_element(element=xt.Marker(), name='marker2', at_s=3.3)
     assert 'marker1' in line.element_names
     assert 'marker2' in line.element_names
+    line._replace_with_equivalent_elements()
     line.remove_markers(keep='marker2')
     assert 'marker1' not in line.element_names
     assert 'marker2' in line.element_names
@@ -109,93 +118,11 @@ def test_simplification_methods():
     assert 'marker2' in line.element_names
     assert 'marker3' in line.element_names
     assert 'marker4' in line.element_names
+    line._replace_with_equivalent_elements()
     line.remove_markers()
     assert 'marker2' not in line.element_names
     assert 'marker3' not in line.element_names
     assert 'marker4' not in line.element_names
-
-
-def test_simplification_methods_not_inplace():
-
-    line = xt.Line(
-        elements=([xt.Drift(length=0)] # Start line marker
-                    + [xt.Drift(length=1) for _ in range(5)]
-                    + [xt.Drift(length=0)] # End line marker
-            )
-        )
-
-    # Test merging of drifts
-    line.insert_element(element=xt.Cavity(), name="cav", at_s=3.3)
-    original_line = line.copy()
-    newline = line.merge_consecutive_drifts(inplace=False)
-    assert xt._lines_equal(line, original_line)
-    assert len(newline.element_names) == 3
-    assert newline.get_length() == newline.get_s_elements(mode='downstream')[-1] == 5
-    assert np.isclose(newline[0].length, 3.3, rtol=0, atol=1e-12)
-    assert isinstance(newline[1], xt.Cavity)
-    assert np.isclose(newline[2].length, 1.7, rtol=0, atol=1e-12)
-    line.merge_consecutive_drifts(inplace=True)
-
-    # Test removing of zero-length drifts
-    line.insert_element(element=xt.Drift(length=0), name="marker", at_s=3.3)
-    assert len(line.element_names) == 4
-    original_line = line.copy()
-    newline = line.remove_zero_length_drifts(inplace=False)
-    assert xt._lines_equal(line, original_line)
-    assert len(newline.element_names) == 3
-    line.remove_zero_length_drifts(inplace=True)
-
-    # Test merging of multipoles
-    line._var_management = None
-    line.insert_element(element=xt.Multipole(knl=[1, 0, 3], ksl=[0, 20, 0]), name="m1", at_s=3.3)
-    line.insert_element(element=xt.Multipole(knl=[4, 2], ksl=[10, 40]), name="m2", at_s=3.3)
-    assert len(line.element_names) == 5
-    original_line = line.copy()
-    newline = line.merge_consecutive_multipoles(inplace=False)
-    assert xt._lines_equal(line, original_line)
-    assert len(newline.element_names) == 4
-    assert np.allclose(newline[1].knl, [5,2,3], rtol=0, atol=1e-15)
-    assert np.allclose(newline[1].ksl, [10,60,0], rtol=0, atol=1e-15)
-    line.merge_consecutive_multipoles(inplace=True)
-
-    # Test removing inactive multipoles
-    original_line = line.copy()
-    newline = line.remove_inactive_multipoles(inplace=False)
-    assert xt._lines_equal(line, original_line)
-    assert len(newline.element_names) == 4
-    line.remove_inactive_multipoles(inplace=True)
-
-    line[1].knl[:] = 0
-    line[1].ksl[:] = 0
-    original_line = line.copy()
-    newline = line.remove_inactive_multipoles(inplace=False)
-    assert xt._lines_equal(line, original_line)
-    assert len(newline.element_names) == 3
-    line.remove_inactive_multipoles(inplace=True)
-
-    # Test removing markers
-    line.insert_element(element=xt.Marker(), name='marker1', at_s=3.3)
-    line.insert_element(element=xt.Marker(), name='marker2', at_s=3.3)
-    assert 'marker1' in line.element_names
-    assert 'marker2' in line.element_names
-    original_line = line.copy()
-    newline = line.remove_markers(inplace=False, keep='marker2')
-    assert xt._lines_equal(line, original_line)
-    assert 'marker1' not in newline.element_names
-    assert 'marker2' in newline.element_names
-    line.remove_markers(inplace=True, keep='marker2')
-
-    line.insert_element(element=xt.Marker(), name='marker4', at_s=3.3)
-    line.insert_element(element=xt.Marker(), name='marker3', at_s=3.3)
-    assert 'marker2' in line.element_names
-    assert 'marker3' in line.element_names
-    assert 'marker4' in line.element_names
-    original_line = line.copy()
-    newline = line.remove_markers(inplace=False)
-    assert xt._lines_equal(line, original_line)
-    assert 'marker2' not in newline.element_names
-    assert 'marker3' not in newline.element_names
-    assert 'marker4' not in newline.element_names
 
 
 def test_remove_redundant_apertures():
@@ -205,7 +132,7 @@ def test_remove_redundant_apertures():
     elements = []
     for _ in range(5):
         elements += [
-            xt.Drift(length=0.6), 
+            xt.Drift(length=0.6),
             xt.LimitRect(min_x=-0.3, max_x=0.3,min_y=-0.3, max_y=0.3),
             xt.Marker(),
             xt.Drift(length=0.4)
@@ -215,7 +142,7 @@ def test_remove_redundant_apertures():
 
     # Test removing all consecutive middle apertures
     assert len(line.element_names) == 20
-    all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn])]
+    all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn], line)]
     all_aper_pos = [line.get_s_position(ap) for ap in all_aper]
     line.remove_redundant_apertures()
     line.remove_markers()
@@ -223,7 +150,7 @@ def test_remove_redundant_apertures():
     # The lattice is now D1-A1-DD-A5-D10
     assert len(line.element_names) == 5
     # Verify that only the first and last aperture are kept
-    new_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn])]
+    new_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn], line)]
     assert new_aper == [all_aper[0], all_aper[-1]]
     new_aper_pos = [line.get_s_position(ap) for ap in new_aper]
     assert new_aper_pos == [all_aper_pos[0], all_aper_pos[-1]]
@@ -232,7 +159,7 @@ def test_remove_redundant_apertures():
     # keep the 4th one (and hence also the 5th)
     line = original_line.copy()
     assert len(line.element_names) == 20
-    all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn])]
+    all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn], line)]
     all_aper_pos = [line.get_s_position(ap) for ap in all_aper]
     line.remove_redundant_apertures(keep=all_aper[3])
     line.remove_markers()
@@ -240,7 +167,7 @@ def test_remove_redundant_apertures():
     # The lattice is now D1-A1-DD-A4-DD-A5-D10
     assert len(line.element_names) == 7
     # Verify that only the first, fourth, and last aperture are kept
-    new_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn])]
+    new_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn], line)]
     assert new_aper == [all_aper[0], all_aper[3], all_aper[-1]]
     new_aper_pos = [line.get_s_position(ap) for ap in new_aper]
     assert new_aper_pos == [all_aper_pos[0], all_aper_pos[3], all_aper_pos[-1]]
@@ -250,16 +177,16 @@ def test_remove_redundant_apertures():
     # give the same result as above
     line = original_line.copy()
     assert len(line.element_names) == 20
-    all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn])]
+    all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn], line)]
     all_aper_pos = [line.get_s_position(ap) for ap in all_aper]
-    all_drifts = [nn for nn in line.element_names if xt._is_drift(line[nn])]
+    all_drifts = [nn for nn in line.element_names if xt._is_drift(line[nn], line)]
     line.remove_redundant_apertures(drifts_that_need_aperture=all_drifts[8])
     line.remove_markers()
     line.merge_consecutive_drifts()
     # The lattice is now D1-A1-DD-A4-DD-A5-D10
     assert len(line.element_names) == 7
     # Verify that only the first, fourth, and last aperture are kept
-    new_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn])]
+    new_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn], line)]
     assert new_aper == [all_aper[0], all_aper[3], all_aper[-1]]
     new_aper_pos = [line.get_s_position(ap) for ap in new_aper]
     assert new_aper_pos == [all_aper_pos[0], all_aper_pos[3], all_aper_pos[-1]]
@@ -278,14 +205,13 @@ def test_remove_redundant_apertures():
     line.remove_redundant_apertures()
     assert xt._lines_equal(line, original_line)
 
-
-def test_redundant_apertures_with_compounds():
+def test_redundant_apertures():
     sequence = [
         ('a1', xt.LimitRect(min_x=-0.3, max_x=0.3, min_y=-0.3, max_y=0.3)),
         ('d0', xt.Drift(length=0.6)),
         ('a1', xt.LimitRect(min_x=-0.3, max_x=0.3, min_y=-0.3, max_y=0.3)),
         ('d1', xt.Drift(length=0.4)),
-        ('a2', xt.LimitRect(min_x=-0.3, max_x=0.3, min_y=-0.3, max_y=0.3)),
+        ('a2', xt.Replica('a1')),
         ('m2', xt.Marker()),
         ('d2..1', xt.Drift(length=0.2)),
         ('d2..2', xt.Drift(length=0.2)),
@@ -293,83 +219,11 @@ def test_redundant_apertures_with_compounds():
         ('d3', xt.Drift(length=0.4)),
     ]
     line = xt.Line(elements=dict(sequence), element_names=[n for n, _ in sequence])
-    compound = Compound(core=['d1'], aperture=['a1'])
-    compound_sliced = SlicedCompound(elements=['a2', 'm2', 'd2..1', 'd2..2'])
-    line.compound_container.define_compound('c1', compound)
-    line.compound_container.define_compound('c2', compound_sliced)
 
     line.remove_redundant_apertures()
 
     expected_names = ['d0', 'a1', 'd1', 'm2', 'd2..1', 'd2..2', 'a3', 'd3']
     assert line.element_names == expected_names
-
-    assert 'a1' not in line.get_compound_by_name('c1').elements
-    assert 'a2' not in line.get_compound_by_name('c2').elements
-
-
-def test_remove_redundant_apertures_not_inplace():
-
-    # Test removing all consecutive middle apertures
-    elements = []
-    for _ in range(5):
-        elements += [
-            xt.Drift(length=0.6),
-            xt.LimitRect(min_x=-0.3, max_x=0.3,min_y=-0.3, max_y=0.3),
-            xt.Marker(),
-            xt.Drift(length=0.4)
-        ]
-    line = xt.Line(elements=elements)
-    original_line = line.copy()
-
-    assert len(line.element_names) == 20
-    all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn])]
-    all_aper_pos = [line.get_s_position(ap) for ap in all_aper]
-    newline = line.remove_redundant_apertures(inplace=False)
-    newline = newline.remove_markers(inplace=False)
-    newline = newline.merge_consecutive_drifts(inplace=False)
-    assert xt._lines_equal(line, original_line)
-
-    assert len(newline.element_names) == 5
-    # Verify that only the first and last aperture are kept
-    new_aper = [nn for nn in newline.element_names if xt._is_aperture(newline[nn])]
-    assert new_aper == [all_aper[0], all_aper[-1]]
-    new_aper_pos = [newline.get_s_position(ap) for ap in new_aper]
-    assert new_aper_pos == [all_aper_pos[0], all_aper_pos[-1]]
-
-
-def test_redundant_apertures_with_compounds_not_inplace():
-    sequence = [
-        ('a0', xt.LimitRect(min_x=-0.3, max_x=0.3, min_y=-0.3, max_y=0.3)),
-        ('d0', xt.Drift(length=0.6)),
-        ('a1', xt.LimitRect(min_x=-0.3, max_x=0.3, min_y=-0.3, max_y=0.3)),
-        ('d1', xt.Drift(length=0.4)),
-        ('a2', xt.LimitRect(min_x=-0.3, max_x=0.3, min_y=-0.3, max_y=0.3)),
-        ('m2', xt.Marker()),
-        ('d2..1', xt.Drift(length=0.2)),
-        ('d2..2', xt.Drift(length=0.2)),
-        ('a3', xt.LimitRect(min_x=-0.3, max_x=0.3, min_y=-0.3, max_y=0.3)),
-        ('d3', xt.Drift(length=0.4)),
-    ]
-    line = xt.Line(elements=dict(sequence), element_names=[n for n, _ in sequence])
-    compound = Compound(core=['d1'], aperture=['a1'])
-    compound_sliced = SlicedCompound(elements=['a2', 'm2', 'd2..1', 'd2..2'])
-    line.compound_container.define_compound('c1', compound)
-    line.compound_container.define_compound('c2', compound_sliced)
-
-    new_line = line.remove_redundant_apertures(inplace=False)
-
-    expected_new_names = ['a0', 'd0', 'd1', 'm2', 'd2..1', 'd2..2', 'a3', 'd3']
-    assert new_line.element_names == expected_new_names
-
-    expected_names = ['a0', 'd0', 'a1', 'd1', 'a2', 'm2', 'd2..1', 'd2..2', 'a3', 'd3']
-    assert line.element_names == expected_names
-
-    assert 'a1' not in new_line.get_compound_by_name('c1').elements
-    assert 'a2' not in new_line.get_compound_by_name('c2').elements
-
-    assert 'a1' in line.get_compound_by_name('c1').elements
-    assert 'a2' in line.get_compound_by_name('c2').elements
-
 
 def test_insert():
 
@@ -397,7 +251,7 @@ def test_insert():
     assert line.get_s_position('inserted_drift') == 0.11
     assert len(line.elements) == 7
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
-                ['e0_u', 'inserted_drift', 'e0_d', 'e1', 'e2', 'e3', 'e4']))])
+                ['e0..0', 'inserted_drift', 'e0..2', 'e1', 'e2', 'e3', 'e4']))])
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
 
     line = line0.copy()
@@ -405,7 +259,7 @@ def test_insert():
     assert line.get_s_position('inserted_drift') == 0.95
     assert len(line.elements) == 6
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
-                ['e0_u', 'inserted_drift', 'e1_d', 'e2', 'e3', 'e4']))])
+                ['e0..0', 'inserted_drift', 'e1..1', 'e2', 'e3', 'e4']))])
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
 
     line = line0.copy()
@@ -413,7 +267,7 @@ def test_insert():
     assert line.get_s_position('inserted_drift') == 1.
     assert len(line.elements) == 6
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
-                ['e0', 'inserted_drift', 'e1_d', 'e2', 'e3', 'e4']))])
+                ['e0', 'inserted_drift', 'e1..1', 'e2', 'e3', 'e4']))])
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
 
     line = line0.copy()
@@ -421,7 +275,7 @@ def test_insert():
     assert line.get_s_position('inserted_drift') == 0.8
     assert len(line.elements) == 6
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
-                ['e0_u', 'inserted_drift', 'e1', 'e2', 'e3', 'e4']))])
+                ['e0..0', 'inserted_drift', 'e1', 'e2', 'e3', 'e4']))])
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
 
     line = line0.copy()
@@ -429,11 +283,11 @@ def test_insert():
     assert line.get_s_position('aper') == 2.1
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
-                ['e0', 'e1', 'e2_u', 'aper', 'e2_d', 'e3', 'e4']))])
+                ['e0', 'e1', 'e2..0', 'aper', 'e2..1', 'e3', 'e4']))])
     line.insert_element(element=xt.Drift(length=0.8), at_s=1.9, name="newdrift")
     assert line.get_s_position('newdrift') == 1.9
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
-                ['e0', 'e1_u', 'newdrift', 'e2_d_d', 'e3', 'e4']))])
+                ['e0', 'e1..0', 'newdrift', 'e2..1..1', 'e3', 'e4']))])
 
     # Check preservation of markers
     elements = []
@@ -468,7 +322,7 @@ def test_insert():
     assert line.get_s_position('inserted_drift') == 0.95
     assert len(line.elements) == 10
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
-                ['d0_u', 'inserted_drift', 'd1_d', 'm1', 'd2', 'm2', 'd3',
+                ['d0..0', 'inserted_drift', 'd1..1', 'm1', 'd2', 'm2', 'd3',
                 'm3', 'd4', 'm4']))])
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
 
@@ -484,9 +338,9 @@ def test_insert_omp():
     line.insert_element(element=multipole, at_s=1, name='mp')
     line.build_tracker()
 
-    assert line._buffer is line['dr_u']._buffer
-    assert line['dr_u']._buffer is line['mp']._buffer
-    assert line['mp']._buffer is line['dr_d']._buffer
+    assert line._buffer is line['dr..0']._buffer
+    assert line['dr..0']._buffer is line['mp']._buffer
+    assert line['mp']._buffer is line['dr..1']._buffer
     assert line._context.omp_num_threads == 'auto'
 
 
@@ -497,7 +351,8 @@ def test_to_pandas():
     df = line.to_pandas()
 
     assert tuple(df.columns) == (
-        's', 'element_type', 'name', 'isthick', 'compound_name', 'element')
+        's', 'element_type', 'name', 'isthick', 'isreplica', 'parent_name',
+       'iscollective', 'element')
     assert len(df) == 4
 
 def test_check_aperture():
@@ -767,7 +622,6 @@ def test_optimize_multipoles(test_context):
         'q4': xt.Multipole(knl=[0, 1], ksl=[1, 2], length=0, _context=test_context),
         'd1': xt.Multipole(knl=[1], hxl=0.0, length=2, _context=test_context),
         'd2': xt.Multipole(knl=[1], hxl=0.1, length=0, _context=test_context),
-        'd3': xt.Multipole(knl=[1], hyl=1, length=2, _context=test_context),
         'd4': xt.Multipole(knl=[1], ksl=[3], length=2, _context=test_context),
     }
 
@@ -936,13 +790,9 @@ def test_line_attr():
     line.build_tracker()
 
     assert np.all(line.attr['length'] == [1, 0, 6, 10, 12])
-    assert np.all(line.attr['knl', 0] == [0, 2, 7, 0, 0])
-    assert np.all(line.attr['k0'] == [0, 0, 5, 0, 0])
     assert np.all(line.attr['k0l'] == [0, 2, 5 * 6 + 7, 0, 0])
-    assert np.all(line.attr['knl', 1] == [0, 3, 8, 0, 0])
-    assert np.all(line.attr['k1'] == [0, 0, 0, 0, 11])
     assert np.all(line.attr['k1l'] == [0, 3, 8, 0, 11 * 12])
-    assert np.all(line.attr['angle_x'] == [0, 8, 0.5 * 6, 0, 0])
+    assert np.all(line.attr['angle_rad'] == [0, 8, 0.5 * 6, 0, 0])
 
 @for_all_test_contexts
 def test_insert_thin_elements_at_s_basic(test_context):
@@ -1040,9 +890,9 @@ def test_insert_thin_elements_at_s_lhc(test_context):
             == np.array(['m0_at_a', 'm1_at_a', 'm2_at_a', 'mq.28r3.b1_entry']))
 
     assert np.all(tt.rows['m0_at_b%%-2':'m0_at_b%%+4'].name
-            == np.array(['mb.a29r3.b1..0', 'drift_mb.a29r3.b1..1_0',
+            == np.array(['mb.a29r3.b1..0', 'drift_mb.a29r3.b1..1..0',
                         'm0_at_b', 'm1_at_b', 'm2_at_b',
-                        'drift_mb.a29r3.b1..1_1', 'mb.a29r3.b1..1']))
+                        'drift_mb.a29r3.b1..1..1', 'mb.a29r3.b1..1']))
 
     assert np.all(tt.rows['mq.29r3.b1_exit%%-3':'mq.29r3.b1_exit'].name
             == np.array(['m0_at_c', 'm1_at_c', 'm2_at_c', 'mq.29r3.b1_exit']))
@@ -1051,23 +901,109 @@ def test_insert_thin_elements_at_s_lhc(test_context):
                 == np.array(['m0_at_d', 'm1_at_d', 'm2_at_d',
                             'lhcb1ip7_p_', '_end_point']))
 
-    assert tt['compound_name', 'm0_at_a'] == 'mq.28r3.b1'
-    assert tt['compound_name', 'm1_at_a'] == 'mq.28r3.b1'
-    assert tt['compound_name', 'm2_at_a'] == 'mq.28r3.b1'
-
-    assert tt['compound_name', 'm0_at_b'] == 'mb.a29r3.b1'
-    assert tt['compound_name', 'm1_at_b'] == 'mb.a29r3.b1'
-    assert tt['compound_name', 'm2_at_b'] == 'mb.a29r3.b1'
-
-    assert tt['compound_name', 'm0_at_c'] == 'mq.29r3.b1'
-    assert tt['compound_name', 'm1_at_c'] == 'mq.29r3.b1'
-    assert tt['compound_name', 'm2_at_c'] == 'mq.29r3.b1'
-
-    assert tt['compound_name', 'm0_at_d'] == ''
-    assert tt['compound_name', 'm1_at_d'] == ''
-    assert tt['compound_name', 'm2_at_d'] == ''
-
     assert np.isclose(line.get_length(), tw0.s[-1], atol=1e-6)
 
     tw1 = line.twiss()
-    np.isclose(tw1.qx, tw0.qx, atol=1e-9, rtol=0)
+    assert np.isclose(tw1.qx, tw0.qx, atol=1e-9, rtol=0)
+
+
+def test_elements_intersecting_s():
+    elements = {
+        'e1': xt.Drift(length=1),  # at 0
+        'e2': xt.Drift(length=2),  # at 1
+        'm1': xt.Marker(),         # at 3
+        'e3': xt.Drift(length=1),  # at 3
+        'm2': xt.Marker(),         # at 4
+        'm3': xt.Marker(),         # at 4
+        'e4': xt.Drift(length=1),  # at 4
+        'e5': xt.Drift(length=2),  # at 5
+        'e6': xt.Drift(length=1),  # at 7
+        'm4': xt.Marker(),         # at 8
+    }
+
+    line = xt.Line(
+        elements=elements,
+        element_names=list(elements.keys()),
+    )
+
+    cuts = [
+        0.5,  # e1
+        1,
+        1.1, 1.7,  # e2
+        4.5,  # e4
+        7.8, 7.9,  # e6
+        8,
+        8,
+    ]
+
+    expected = {
+        'e1': [0.5],
+        'e2': [0.1, 0.7],
+        'e4': [0.5],
+        'e6': [0.8, 0.9],
+    }
+    result = line._elements_intersecting_s(cuts)
+    for kk in expected.keys() | result.keys():
+        assert np.allclose(expected[kk], result[kk], atol=1e-16)
+
+
+def test_slicing_at_custom_s():
+    elements = {
+        'e1': xt.Drift(length=1),  # at 0
+        'e2': xt.Drift(length=2),  # at 1
+        'm1': xt.Marker(),         # at 3
+        'e3': xt.Drift(length=1),  # at 3
+        'm2': xt.Marker(),         # at 4
+        'm3': xt.Marker(),         # at 4
+        'e4': xt.Drift(length=1),  # at 4
+        'e5': xt.Drift(length=2),  # at 5
+        'e6': xt.Drift(length=1),  # at 7
+        'm4': xt.Marker(),         # at 8
+    }
+
+    line = xt.Line(
+        elements=elements,
+        element_names=list(elements.keys()),
+    )
+
+    cuts = [
+        0.5,  # e1
+        1,
+        1.1, 1.7,  # e2
+        4.5,  # e4
+        7.8, 7.9,  # e6
+        8,
+        8,
+    ]
+
+    line.cut_at_s(cuts)
+
+    tab = line.get_table()
+    assert np.allclose(tab.rows[r'e1\.\.\d*'].s, [0, 0.5], atol=1e-16)
+    assert np.allclose(tab.rows[r'e2\.\.\d*'].s, [1, 1.1, 1.7], atol=1e-16)
+    assert np.allclose(tab.rows[r'e3\.\.\d*'].s, [3], atol=1e-16)
+    assert np.allclose(tab.rows[r'e4\.\.\d*'].s, [4, 4.5], atol=1e-16)
+    assert np.allclose(tab.rows[r'e5\.\.\d*'].s, [5], atol=1e-16)
+    assert np.allclose(tab.rows[r'e6\.\.\d*'].s, [7, 7.8, 7.9], atol=1e-16)
+
+def test_insert_thick_element_reuse_marker_name():
+
+    assert_allclose = xo.assert_allclose
+
+    elements = {
+        'd1': xt.Drift(length=1),
+        'm1': xt.Marker(),
+        'd2': xt.Drift(length=1),
+    }
+
+    line=xt.Line(elements=elements,
+                element_names=list(elements.keys()))
+
+    # Note that the name is reused
+    line.insert_element(element=xt.Bend(length=1.), name='m1', at_s=0.5)
+
+    tt = line.get_table()
+
+    assert np.all(tt.name == ['d1..0', 'm1', 'd2..1', '_end_point'])
+    assert np.all(tt.parent_name == ['d1', None, 'd2', None])
+    assert_allclose(tt.s, [0. , 0.5, 1.5, 2. ], rtol=0, atol=1e-14)

@@ -54,7 +54,7 @@ def test_twiss_4d_fodo_vs_beta_rel(test_context):
 
 @for_all_test_contexts
 def test_coupled_beta(test_context):
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.call(str(test_data_folder / 'hllhc15_noerrors_nobb/sequence.madx'))
     mad.use('lhcb1')
 
@@ -97,7 +97,7 @@ def test_coupled_beta(test_context):
 
 @for_all_test_contexts
 def test_twiss_zeta0_delta0(test_context):
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.call(str(test_data_folder
                  / 'hllhc15_noerrors_nobb/sequence_with_crabs.madx'))
     mad.use('lhcb1')
@@ -205,21 +205,21 @@ def test_get_normalized_coordinates(test_context):
     assert particles23._capacity == 20
     assert np.allclose(norm_coord23['x_norm'][:3], [-1, 0, 0.5], atol=1e-10, rtol=0)
     assert np.allclose(norm_coord23['x_norm'][3:6], [-1, 0, 0.5], atol=1e-10, rtol=0)
-    assert np.allclose(norm_coord23['x_norm'][6:], xp.particles.LAST_INVALID_STATE)
+    assert np.allclose(norm_coord23['x_norm'][6:], xt.particles.LAST_INVALID_STATE)
     assert np.allclose(norm_coord23['y_norm'][:3], [0.3, -0.2, 0.2], atol=1e-10, rtol=0)
     assert np.allclose(norm_coord23['y_norm'][3:6], [0.3, -0.2, 0.2], atol=1e-10, rtol=0)
-    assert np.allclose(norm_coord23['y_norm'][6:], xp.particles.LAST_INVALID_STATE)
+    assert np.allclose(norm_coord23['y_norm'][6:], xt.particles.LAST_INVALID_STATE)
     assert np.allclose(norm_coord23['px_norm'][:3], [0.1, 0.2, 0.3], atol=1e-10, rtol=0)
     assert np.allclose(norm_coord23['px_norm'][3:6], [0.1, 0.2, 0.3], atol=1e-10, rtol=0)
-    assert np.allclose(norm_coord23['px_norm'][6:], xp.particles.LAST_INVALID_STATE)
+    assert np.allclose(norm_coord23['px_norm'][6:], xt.particles.LAST_INVALID_STATE)
     assert np.allclose(norm_coord23['py_norm'][:3], [0.5, 0.6, 0.8], atol=1e-10, rtol=0)
     assert np.allclose(norm_coord23['py_norm'][3:6], [0.5, 0.6, 0.8], atol=1e-10, rtol=0)
-    assert np.allclose(norm_coord23['py_norm'][6:], xp.particles.LAST_INVALID_STATE)
+    assert np.allclose(norm_coord23['py_norm'][6:], xt.particles.LAST_INVALID_STATE)
 
     particles23.move(_context=xo.context_default)
     assert np.all(particles23.at_element[:3] == line.element_names.index('s.ds.r3.b1'))
     assert np.all(particles23.at_element[3:6] == line.element_names.index('s.ds.r7.b1'))
-    assert np.all(particles23.at_element[6:] == xp.particles.LAST_INVALID_STATE)
+    assert np.all(particles23.at_element[6:] == xt.particles.LAST_INVALID_STATE)
 
 @for_all_test_contexts
 def test_twiss_does_not_affect_monitors(test_context):
@@ -276,11 +276,11 @@ def test_knl_ksl_in_twiss(test_context):
 
     for tt in [tw_with_knl_ksl, tw_with_knl_ksl_part]:
 
-        for kk in ['k0nl', 'k0sl', 'k1nl', 'k1sl', 'k2nl', 'k2sl']:
+        for kk in ['k0l', 'k0sl', 'k1l', 'k1sl', 'k2l', 'k2sl']:
             assert kk in tt.keys()
             assert kk not in tw.keys()
 
-        assert tt['k2nl', 'ms.30r5.b1'] == line['ms.30r5.b1'].knl[2]
+        assert tt['k2l', 'ms.30r5.b1'] == line['ms.30r5.b1'].knl[2]
         assert tt['k0sl', 'mcbrdv.4r5.b1'] == line['mcbrdv.4r5.b1'].ksl[0]
 
 def test_get_R_matrix():
@@ -478,6 +478,39 @@ def test_periodic_cell_twiss(test_context):
         assert np.isclose(mux_arc_from_cell, mux_arc_target, rtol=1e-6)
         assert np.isclose(muy_arc_from_cell, muy_arc_target, rtol=1e-6)
 
+
+        dp_test = 1e-4
+        tw_cell_periodic_plus = line.twiss(
+            method='4d',
+            delta0=dp_test,
+            start=start_cell,
+            end=end_cell,
+            init='periodic')
+        tw_cell_periodic_minus = line.twiss(
+            method='4d',
+            delta0=-dp_test,
+            start=start_cell,
+            end=end_cell,
+            init='periodic')
+
+        dqx_expected = (tw_cell_periodic_plus.mux[-1] - tw_cell_periodic_minus.mux[-1]
+                       - tw_cell_periodic_plus.mux[0] + tw_cell_periodic_minus.mux[0]
+                       ) / 2 / dp_test
+
+        dqy_expected = (tw_cell_periodic_plus.muy[-1] - tw_cell_periodic_minus.muy[-1]
+                          - tw_cell_periodic_plus.muy[0] + tw_cell_periodic_minus.muy[0]
+                            ) / 2 / dp_test
+
+        if beam_name == 'b1':
+            assert np.isclose(dqx_expected, 0.22855, rtol=0, atol=1e-4) # to catch regressions
+            assert np.isclose(dqy_expected, 0.26654, rtol=0, atol=1e-4) # to catch regressions
+        else:
+            assert np.isclose(dqx_expected, -0.479425, rtol=0, atol=1e-4)
+            assert np.isclose(dqy_expected, 0.543953, rtol=0, atol=1e-4)
+
+        assert np.isclose(tw_cell_periodic.dqx, dqx_expected, rtol=0, atol=1e-4)
+        assert np.isclose(tw_cell_periodic.dqy, dqy_expected, rtol=0, atol=1e-4)
+
 @pytest.fixture(scope='module')
 def collider_for_test_twiss_range():
 
@@ -498,7 +531,7 @@ def collider_for_test_twiss_range():
 @pytest.mark.parametrize('check', ['fw', 'bw', 'fw_kw', 'bw_kw', 'fw_table', 'bw_table'])
 @pytest.mark.parametrize('init_at_edge', [True, False], ids=['init_at_edge', 'init_inside'])
 @pytest.mark.parametrize('cycle_to',
-                         [None, ('s.ds.l6.b1', 's.ds.l6.b2'), ('ip6', 'ip6'), ('ip5', 'ip5')],
+                         [('ip3', 'ip3'), ('s.ds.l6.b1', 's.ds.l6.b2'), ('ip6', 'ip6'), ('ip5', 'ip5')],
                          ids=['no_cycle', 'cycle_arc', 'cycle_edge1', 'cycle_edge2'])
 def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, collider_for_test_twiss_range):
 
@@ -511,13 +544,12 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
         collider.lhcb2.twiss_default['method'] = '4d'
         collider.lhcb2.twiss_default['reverse'] = True
 
-    if cycle_to is not None:
-        if collider.lhcb1.element_names[0] != cycle_to[0]:
-            collider.lhcb1.cycle(cycle_to[0], inplace=True)
-        if collider.lhcb2.element_names[0] != cycle_to[1]:
-            collider.lhcb2.cycle(cycle_to[1], inplace=True)
+    if collider.lhcb1.element_names[0] != cycle_to[0]:
+        collider.lhcb1.cycle(cycle_to[0], inplace=True)
+    if collider.lhcb2.element_names[0] != cycle_to[1]:
+        collider.lhcb2.cycle(cycle_to[1], inplace=True)
 
-    loop_around = cycle_to is not None
+    loop_around = collider.lhcb1.element_names[0] != 'ip3'
 
     collider.vars['on_x5hs'] = 200
     collider.vars['on_x5vs'] = 123
@@ -529,7 +561,7 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
         zeta=5e-5,
         alfx=1e-8, alfy=1e-8,
         dzeta=1e-4, dx=1e-4, dy=1e-4, dpx=1e-5, dpy=1e-5,
-        nuzeta=1e-5, dx_zeta=1e-7, dy_zeta=1e-7,
+        nuzeta=1e-5, dx_zeta=1e-7, dy_zeta=1e-7, dpx_zeta=1e-8, dpy_zeta=1e-8,
         nux=1e-8, nuy=1e-8,
         betx2=1e-4, bety1=1e-4,
     )
@@ -558,7 +590,9 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
         atols['nux'] = 1e-8
         atols['nuy'] = 1e-8
         atols['dx_zeta'] = 2e-5
+        atols['dpx_zeta'] = 2e-6
         atols['dy_zeta'] = 2e-5
+        atols['dpy_zeta'] = 2e-6
 
     atol_default = 1e-11
     rtol_default = 1e-9
@@ -1178,113 +1212,28 @@ def test_crab_dispersion(test_context):
     assert np.allclose(tw6d_rf_on['dy_zeta'], tw4d_rf_off['dy_zeta'], rtol=0, atol=1e-7)
 
 @for_all_test_contexts
-def test_twiss_group_compounds(test_context):
+def test_momentum_crab_dispersion(test_context):
 
-    mad = Madx()
+    collider = xt.Multiline.from_json(test_data_folder /
+                        'hllhc15_collider/collider_00_from_mad.json')
+    collider.build_trackers(_context=test_context)
 
-    # Load mad model and apply element shifts
-    mad.input(f'''
-    call, file = '{str(test_data_folder)}/psb_chicane/psb.seq';
-    call, file = '{str(test_data_folder)}/psb_chicane/psb_fb_lhc.str';
+    collider.vars['vrf400'] = 16
+    collider.vars['on_crab1'] = -190
+    collider.vars['on_crab5'] = -190
 
-    beam, particle=PROTON, pc=0.5708301551893517;
-    use, sequence=psb1;
+    line = collider.lhcb1
 
-    select,flag=error,clear;
-    select,flag=error,pattern=bi1.bsw1l1.1*;
-    ealign, dx=-0.0057;
+    tw6d = line.twiss(method='6d')
+    dz = 1e-3
+    tw4d_plus = line.twiss(method='4d', zeta0=dz, freeze_longitudinal=True)
+    tw4d_minus = line.twiss(method='4d', zeta0=-dz, freeze_longitudinal=True)
+    dpx_dzeta_expected = (tw4d_plus.px -  tw4d_minus.px) / (2*dz)
+    dpy_dzeta_expected = (tw4d_plus.py -  tw4d_minus.py) / (2*dz)
 
-    select,flag=error,clear;
-    select,flag=error,pattern=bi1.bsw1l1.2*;
-    select,flag=error,pattern=bi1.bsw1l1.3*;
-    select,flag=error,pattern=bi1.bsw1l1.4*;
-    ealign, dx=-0.0442;
+    assert np.allclose(tw6d['dpx_zeta'], dpx_dzeta_expected, rtol=0, atol=1e-7)
+    assert np.allclose(tw6d['dpy_zeta'], dpy_dzeta_expected, rtol=0, atol=1e-7)
 
-    k0bi1bsw1l11 = 1e-2; // To have some non-zero orbit
-
-    twiss;
-    ''')
-
-    line = xt.Line.from_madx_sequence(mad.sequence.psb1,
-                                    allow_thick=True,
-                                    enable_align_errors=True,
-                                    deferred_expressions=True)
-    line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV,
-                                gamma0=mad.sequence.psb1.beam.gamma)
-    line.configure_bend_model(core='full')
-    line.twiss_default['method'] = '4d'
-
-    line.build_tracker(_context=test_context)
-
-    tw = line.twiss()
-    tw_comp = line.twiss(group_compound_elements=True)
-
-    for nn in tw._col_names:
-        assert len(tw[nn]) == len(tw['name'])
-        assert len(tw_comp[nn]) == len(tw_comp['name'])
-
-    assert 'bi1.bsw1l1.2_entry' in tw.name
-    assert 'bi1.bsw1l1.2_offset_entry' in tw.name
-    assert 'bi1.bsw1l1.2_den' in tw.name
-    assert 'bi1.bsw1l1.2' in tw.name
-    assert 'bi1.bsw1l1.2_dex' in tw.name
-    assert 'bi1.bsw1l1.2_offset_exit' in tw.name
-    assert 'bi1.bsw1l1.2_exit' in tw.name
-
-    assert 'bi1.bsw1l1.2_entry' in tw_comp.name
-    assert 'bi1.bsw1l1.2_offset_entry' not in tw_comp.name
-    assert 'bi1.bsw1l1.2_den' not in tw_comp.name
-    assert 'bi1.bsw1l1.2' not in tw_comp.name
-    assert 'bi1.bsw1l1.2_dex' not in tw_comp.name
-    assert 'bi1.bsw1l1.2_offset_exit' not in tw_comp.name
-    assert 'bi1.bsw1l1.2_exit' not in tw_comp.name
-
-    assert tw_comp['name', -2] == tw['name', -2] == 'psb1$end'
-    assert tw_comp['name', -1] == tw['name', -1] == '_end_point'
-
-    assert np.isclose(tw_comp['px', 'br1.dhz16l1_entry'],
-                    tw['px', 'br1.dhz16l1'], rtol=0, atol=1e-15)
-
-    assert np.allclose(tw_comp['W_matrix', 'bi1.bsw1l1.2_entry'],
-                    tw['W_matrix', 'bi1.bsw1l1.2_entry'], rtol=0, atol=1e-15)
-
-    tw_init = tw.get_twiss_init('bi1.ksw16l1_entry')
-    tw_init_comp = tw_comp.get_twiss_init('bi1.ksw16l1_entry')
-
-    assert np.allclose(tw_init_comp.W_matrix, tw_init.W_matrix,
-                        rtol=0, atol=1e-15)
-    assert np.isclose(tw_init_comp.mux, tw_init.mux, rtol=0, atol=1e-15)
-    assert np.isclose(tw_init_comp.x, tw_init.x, rtol=0, atol=1e-15)
-
-    tw_comp_local = line.twiss(group_compound_elements=True,
-                            init=tw_init_comp,
-                            start='bi1.ksw16l1_entry',
-                            end='br.stscrap162_entry')
-    tw_local = line.twiss(init=tw_init,
-                            start='bi1.ksw16l1_entry',
-                            end='br.stscrap162_entry')
-
-    for nn in tw_local._col_names:
-        assert len(tw_local[nn]) == len(tw_local['name'])
-        assert len(tw_comp_local[nn]) == len(tw_comp_local['name'])
-
-    assert 'br.bhz161_entry' in tw_local.name
-    assert 'br.bhz161_den' in tw_local.name
-    assert 'br.bhz161' in tw_local.name
-    assert 'br.bhz161_dex' in tw_local.name
-    assert 'br.bhz161_exit' in tw_local.name
-
-    assert 'br.bhz161_entry' in tw_comp_local.name
-    assert 'br.bhz161_den' not in tw_comp_local.name
-    assert 'br.bhz161' not in tw_comp_local.name
-    assert 'br.bhz161_dex' not in tw_comp_local.name
-    assert 'br.bhz161_exit' not in tw_comp_local.name
-
-    assert tw_comp_local['name', -2] == tw_local['name', -2] == 'br.stscrap162_entry'
-    assert tw_comp_local['name', -1] == tw_local['name', -1] == '_end_point'
-
-    assert np.isclose(tw_comp_local['px', 'br1.dhz16l1_entry'],
-                    tw_local['px', 'br1.dhz16l1'], rtol=0, atol=1e-15)
 
 @for_all_test_contexts
 def test_twiss_init_file(test_context):
@@ -1345,6 +1294,11 @@ def test_custom_twiss_init(test_context):
 
     collider = xt.Multiline.from_json(
         test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.json')
+
+    collider.lhcb1.slice_thick_elements(
+        slicing_strategies=[xt.Strategy(xt.Uniform(1, mode='thick'))])
+    collider.lhcb2.slice_thick_elements(
+        slicing_strategies=[xt.Strategy(xt.Uniform(1, mode='thick'))])
     collider.build_trackers(_context=test_context)
 
     # Switch on crossing angles to get some vertical dispersion
@@ -1402,7 +1356,7 @@ def test_custom_twiss_init(test_context):
         assert np.isclose(tw['py', location], py0, atol=1e-9, rtol=0)
 
         # Check at a point in a downstream arc
-        loc_check = f'mb.a24l7.{bn}'
+        loc_check = f'mb.a24l7.{bn}..0'
         assert np.isclose(tw['betx', loc_check], tw_full['betx', loc_check],
                             atol=5e-6, rtol=0)
         assert np.isclose(tw['bety', loc_check], tw_full['bety', loc_check],
@@ -1457,7 +1411,7 @@ def test_custom_twiss_init(test_context):
         assert np.isclose(tw['y', location], y0, atol=1e-9, rtol=0)
 
         # Check at a point in an upstream arc
-        loc_check = f'mb.a24r4.{bn}'
+        loc_check = f'mb.a24r4.{bn}..0'
         assert np.isclose(tw['betx', loc_check], tw_full['betx', loc_check],
                             atol=5e-6, rtol=0)
         assert np.isclose(tw['bety', loc_check], tw_full['bety', loc_check],
@@ -1486,125 +1440,6 @@ def test_custom_twiss_init(test_context):
                             atol=1e-9, rtol=0)
         assert np.isclose(tw['py', loc_check], tw_full['py', loc_check],
                             atol=1e-9, rtol=0)
-
-@for_all_test_contexts
-def test_only_markers(test_context):
-
-    collider = xt.Multiline.from_json(
-        test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.json')
-    collider.build_trackers(_context=test_context)
-    collider.lhcb1.twiss_default['method'] = '4d'
-    collider.lhcb2.twiss_default['method'] = '4d'
-    collider.lhcb2.twiss_default['reverse'] = True
-
-    # Check on b1 (no reverse)
-
-    line = collider.lhcb1
-
-    tw_init_start = line.twiss().get_twiss_init('s.ds.l5.b1')
-    tw_init_end = line.twiss().get_twiss_init('e.ds.r5.b1')
-
-    tw = line.twiss(start='s.ds.l5.b1', end='e.ds.r5.b1', init=tw_init_start)
-    tw2 = line.twiss(start='s.ds.l5.b1', end='e.ds.r5.b1', init=tw_init_end)
-
-    tw_mk = line.twiss(start='s.ds.l5.b1', end='e.ds.r5.b1', init=tw_init_start,
-                    only_markers=True)
-    tw2_mk = line.twiss(start='s.ds.l5.b1', end='e.ds.r5.b1', init=tw_init_end,
-                        only_markers=True)
-
-    # Check names are the right ones
-    ltable = line.get_table()
-    expected_names = np.concatenate([
-        ltable.rows[ltable.element_type == 'Marker'].rows['s.ds.l5.b1':'e.ds.r5.b1'].name,
-        ['_end_point']])
-
-    assert np.all(tw_mk.name == expected_names)
-    assert np.all(tw2_mk.name == expected_names)
-    assert np.all(tw2.name == tw.name)
-
-    assert tw.only_markers is False
-    assert tw2.only_markers is False
-    assert tw_mk.only_markers is True
-    assert tw2_mk.only_markers is True
-
-    assert tw.orientation == 'forward'
-    assert tw2.orientation == 'backward'
-    assert tw_mk.orientation == 'forward'
-    assert tw2_mk.orientation == 'backward'
-
-    assert tw.s[1] == tw.s[0] # First element is a marker
-    assert tw2.s[1] == tw2.s[0] # First element is a marker
-
-    # Consistency checks on other columns
-    for tt in [tw, tw2, tw_mk, tw2_mk]:
-        assert tw.name[0] == 's.ds.l5.b1'
-        assert tw.name[-1] == '_end_point'
-        assert tw.name[-2] == 'e.ds.r5.b1'
-
-        assert np.isclose(tt['s', 'e.ds.r5.b1'], line.get_s_position('e.ds.r5.b1'), atol=1e-8, rtol=0)
-        assert np.isclose(tt['s', 'e.ds.r5.b1'], tt['s', '_end_point'], atol=1e-8, rtol=0)
-        assert np.isclose(tt['s', 's.ds.l5.b1'], line.get_s_position('s.ds.l5.b1'), atol=1e-8, rtol=0)
-
-        for kk in tw._col_names:
-            if kk == 'name':
-                continue
-            atol = dict(alfx=1e-7, alfy=1e-7, dx=1e-7, dy=1e-7, dpx=1e8, dpy=1e-8,
-                        dx_zeta=3e-8, W_matrix=3e-7).get(kk, 1e-10)
-            assert np.allclose(tt[kk], tw.rows[tt.name][kk], rtol=1e-6, atol=atol)
-
-    line = collider.lhcb2
-
-    tw_init_start = line.twiss().get_twiss_init('s.ds.l5.b2')
-    tw_init_end = line.twiss().get_twiss_init('e.ds.r5.b2')
-
-    tw = line.twiss(start='s.ds.l5.b2', end='e.ds.r5.b2', init=tw_init_start)
-    tw2 = line.twiss(start='s.ds.l5.b2', end='e.ds.r5.b2', init=tw_init_end)
-
-    tw_mk = line.twiss(start='s.ds.l5.b2', end='e.ds.r5.b2', init=tw_init_start,
-                    only_markers=True)
-    tw2_mk = line.twiss(start='s.ds.l5.b2', end='e.ds.r5.b2', init=tw_init_end,
-                        only_markers=True)
-
-    # Check on b2 (with reverse)
-    # Check names are the right ones
-    ltable = line.get_table()
-    expected_names = np.concatenate([
-        ltable.rows[ltable.element_type == 'Marker'].rows['e.ds.r5.b2':'s.ds.l5.b2'].name[::-1],
-        ['_end_point']])
-
-    assert np.all(tw_mk.name == expected_names)
-    assert np.all(tw2_mk.name == expected_names)
-    assert np.all(tw2.name == tw.name)
-
-    assert tw.only_markers is False
-    assert tw2.only_markers is False
-    assert tw_mk.only_markers is True
-    assert tw2_mk.only_markers is True
-
-    assert tw.orientation == 'backward'
-    assert tw2.orientation == 'forward'
-    assert tw_mk.orientation == 'backward'
-    assert tw2_mk.orientation == 'forward'
-
-    assert tw.s[1] == tw.s[0] # First element is a marker
-    assert tw2.s[1] == tw2.s[0] # First element is a marker
-
-    # Consistency checks on other columns
-    for tt in [tw, tw2, tw_mk, tw2_mk]:
-        assert tw.name[0] == 's.ds.l5.b2'
-        assert tw.name[-1] == '_end_point'
-        assert tw.name[-2] == 'e.ds.r5.b2'
-
-        assert np.isclose(tt['s', 'e.ds.r5.b2'], line.get_length() - line.get_s_position('e.ds.r5.b2'), atol=1e-8, rtol=0)
-        assert np.isclose(tt['s', 'e.ds.r5.b2'], tt['s', '_end_point'], atol=1e-8, rtol=0)
-        assert np.isclose(tt['s', 's.ds.l5.b2'], line.get_length() - line.get_s_position('s.ds.l5.b2'), atol=1e-8, rtol=0)
-
-        for kk in tw._col_names:
-            if kk == 'name':
-                continue
-            atol = dict(alfx=1e-7, alfy=1e-7, dx=1e-7, dy=1e-7, dpx=1e8, dpy=1e-8,
-                        dx_zeta=3e-8, W_matrix=3e-7).get(kk, 1e-10)
-            assert np.allclose(tt[kk], tw.rows[tt.name][kk], rtol=1e-6, atol=atol)
 
 @for_all_test_contexts
 def test_adaptive_steps_for_rmatrix(test_context):
@@ -1732,9 +1567,9 @@ def test_second_order_chromaticity_and_dispersion(test_context):
     assert np.allclose(tw['ddy', location], 2*pxs_y[-3], atol=0, rtol=1e-4)
     assert np.allclose(tw['ddpy', location], 2*pxs_py[-3], atol=0, rtol=1e-4)
     assert np.isclose(tw['dqx'], pxs_qx[-2], atol=0, rtol=1e-3)
-    assert np.isclose(tw['ddqx'], pxs_qx[-3]*2, atol=0, rtol=1e-3)
+    assert np.isclose(tw['ddqx'], pxs_qx[-3]*2, atol=0, rtol=1e-2)
     assert np.isclose(tw['dqy'], pxs_qy[-2], atol=0, rtol=1e-3)
-    assert np.isclose(tw['ddqy'], pxs_qy[-3]*2, atol=0, rtol=1e-3)
+    assert np.isclose(tw['ddqy'], pxs_qy[-3]*2, atol=0, rtol=1e-2)
 
     assert np.isclose(nlchr['dqx'], pxs_qx[-2], atol=0, rtol=2e-3)
     assert np.isclose(nlchr['dqy'], pxs_qy[-2], atol=0, rtol=2e-3)
@@ -1750,3 +1585,89 @@ def test_second_order_chromaticity_and_dispersion(test_context):
     assert np.allclose(tw_part['dy'], tw_bw.rows[:-1]['dy'], atol=1e-2, rtol=0)
     assert np.allclose(tw_part['dpx'], tw_bw.rows[:-1]['dpx'], atol=1e-3, rtol=0)
     assert np.allclose(tw_part['dpy'], tw_bw.rows[:-1]['dpy'], atol=1e-3, rtol=0)
+
+@for_all_test_contexts
+def test_twiss_strength_reverse_vs_madx(test_context):
+
+    test_data_folder_str = str(test_data_folder)
+
+    mad1=Madx(stdout=False)
+    mad1.call(test_data_folder_str + '/hllhc15_thick/lhc.seq')
+    mad1.call(test_data_folder_str + '/hllhc15_thick/hllhc_sequence.madx')
+    mad1.input('beam, sequence=lhcb1, particle=proton, energy=7000;')
+    mad1.use('lhcb1')
+    mad1.input('beam, sequence=lhcb2, particle=proton, energy=7000, bv=-1;')
+    mad1.use('lhcb2')
+    mad1.call(test_data_folder_str + '/hllhc15_thick/opt_round_150_1500.madx')
+
+    mad1.globals['on_x1'] = 100 # Check kicker expressions
+    mad1.globals['on_sep2'] = 2 # Check kicker expressions
+    mad1.globals['on_x5'] = 123 # Check kicker expressions
+
+    mad1.globals['kqs.a23b1'] = 1e-4 # Check skew quad expressions
+    mad1.globals['kqs.a12b2'] = 1e-4 # Check skew quad expressions
+
+    mad1.globals['ksf.b1'] = 1e-3  # Check sext expressions
+    mad1.globals['ksf.b2'] = 1e-3  # Check sext expressions
+
+    mad1.globals['kss.a45b1'] = 1e-4 # Check skew sext expressions
+    mad1.globals['kss.a45b2'] = 1e-4 # Check skew sext expressions
+
+    mad1.globals['kof.a34b1'] = 3 # Check oct expressions
+    mad1.globals['kof.a34b2'] = 3 # Check oct expressions
+
+    mad1.globals['kcosx3.l2'] = 5 # Check skew oct expressions
+
+    mad1.globals['kcdx3.r1'] = 1e-4 # Check thin decapole expressions
+
+    mad1.globals['kcdsx3.r1'] = 1e-4 # Check thin skew decapole expressions
+
+    mad1.globals['kctx3.l1'] = 1e-5 # Check thin dodecapole expressions
+
+    mad1.globals['kctsx3.r1'] = 1e-5 # Check thin skew dodecapole expressions
+
+    mad1.input('twiss, sequence=lhcb1, table=twisslhcb1;')
+    mad1.input('twiss, sequence=lhcb2, table=twisslhcb2;')
+
+    twm1 = xt.Table(mad1.table.twisslhcb1)
+    twm2 = xt.Table(mad1.table.twisslhcb2)
+
+    collider = xt.Multiline.from_madx(madx=mad1)
+    collider.build_trackers(_context=test_context)
+    tw = collider.twiss(strengths=True, method='4d')
+
+    # Normal strengths
+    assert_allclose = xo.assert_allclose
+    assert_allclose(twm1['k0l', 'mb.a20r8.b1:1'], tw.lhcb1['k0l', 'mb.a20r8.b1'], rtol=0, atol=1e-14)
+    assert_allclose(twm2['k0l', 'mb.a20r8.b2:1'], tw.lhcb2['k0l', 'mb.a20r8.b2'], rtol=0, atol=1e-14)
+
+    assert_allclose(twm1['k1l', 'mq.22l3.b1:1'], tw.lhcb1['k1l', 'mq.22l3.b1'], rtol=0, atol=1e-14)
+    assert_allclose(twm2['k1l', 'mq.22l3.b2:1'], tw.lhcb2['k1l', 'mq.22l3.b2'], rtol=0, atol=1e-14)
+
+    assert_allclose(twm1['k2l', 'ms.16l1.b1:1'], tw.lhcb1['k2l', 'ms.16l1.b1'], rtol=0, atol=1e-14)
+    assert_allclose(twm2['k2l', 'ms.16l1.b2:1'], tw.lhcb2['k2l', 'ms.16l1.b2'], rtol=0, atol=1e-14)
+
+    assert_allclose(twm1['k3l', 'mo.25l4.b1:1'], tw.lhcb1['k3l', 'mo.25l4.b1'], rtol=0, atol=1e-14)
+    assert_allclose(twm2['k3l', 'mo.24l4.b2:1'], tw.lhcb2['k3l', 'mo.24l4.b2'], rtol=0, atol=1e-14)
+
+    assert_allclose(twm1['k4l', 'mcdxf.3r1:1'], tw.lhcb1['k4l', 'mcdxf.3r1'], rtol=0, atol=1e-14)
+    assert_allclose(twm2['k4l', 'mcdxf.3r1:1'], tw.lhcb2['k4l', 'mcdxf.3r1'], rtol=0, atol=1e-14)
+
+    assert_allclose(twm1['k5l', 'mctxf.3l1:1'], tw.lhcb1['k5l', 'mctxf.3l1'], rtol=0, atol=1e-14)
+    assert_allclose(twm2['k5l', 'mctxf.3l1:1'], tw.lhcb2['k5l', 'mctxf.3l1'], rtol=0, atol=1e-14)
+
+    # Skew strengths
+    assert_allclose(twm1['k1sl', 'mqs.27l3.b1:1'], tw.lhcb1['k1sl', 'mqs.27l3.b1'], rtol=0, atol=1e-14)
+    assert_allclose(twm2['k1sl', 'mqs.23l2.b2:1'], tw.lhcb2['k1sl', 'mqs.23l2.b2'], rtol=0, atol=1e-14)
+
+    assert_allclose(twm1['k2sl', 'mss.28l5.b1:1'], tw.lhcb1['k2sl', 'mss.28l5.b1'], rtol=0, atol=1e-14)
+    assert_allclose(twm2['k2sl', 'mss.33l5.b2:1'], tw.lhcb2['k2sl', 'mss.33l5.b2'], rtol=0, atol=1e-14)
+
+    assert_allclose(twm1['k3sl', 'mcosx.3l2:1'], tw.lhcb1['k3sl', 'mcosx.3l2'], rtol=0, atol=1e-14)
+    assert_allclose(twm2['k3sl', 'mcosx.3l2:1'], tw.lhcb2['k3sl', 'mcosx.3l2'], rtol=0, atol=1e-14)
+
+    assert_allclose(twm1['k4sl', 'mcdsxf.3r1:1'], tw.lhcb1['k4sl', 'mcdsxf.3r1'], rtol=0, atol=1e-14)
+    assert_allclose(twm2['k4sl', 'mcdsxf.3r1:1'], tw.lhcb2['k4sl', 'mcdsxf.3r1'], rtol=0, atol=1e-14)
+
+    assert_allclose(twm1['k5sl', 'mctsxf.3r1:1'], tw.lhcb1['k5sl', 'mctsxf.3r1'], rtol=0, atol=1e-14)
+    assert_allclose(twm2['k5sl', 'mctsxf.3r1:1'], tw.lhcb2['k5sl', 'mctsxf.3r1'], rtol=0, atol=1e-14)

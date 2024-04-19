@@ -12,9 +12,6 @@ collider.build_trackers()
 collider.vars.load_madx_optics_file(
     "../../test_data/hllhc15_thick/opt_round_150_1500.madx")
 
-collider.lhcb1.twiss_default['only_markers'] = True
-collider.lhcb2.twiss_default['only_markers'] = True
-
 c0 = collider.copy()
 
 h_correctors_ip1_b1 = ['acbh16.r8b1', 'acbh14.l1b1', 'acbh12.l1b1',

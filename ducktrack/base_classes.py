@@ -76,7 +76,8 @@ class Base(metaclass=_MetaElement):
     def from_dict(cls, dct, keepextra=True):
         self = cls()
         for kk in cls._base_fields:
-            setattr(self, kk, dct[kk])
+            if kk in dct:
+                setattr(self, kk, dct[kk])
         if keepextra:
             for kk in cls._extra_fields:
                 if kk in dct:

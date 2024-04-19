@@ -17,7 +17,13 @@ void track_thick_bend(
         const double h        // curvature
 ) {
 
-    if(fabs(k) < 1e-8 && fabs(h) < 1e-8) {
+    if (length == 0.0) {
+        return;
+    }
+
+    double const k_chi = k * LocalParticle_get_chi(part);
+
+    if(fabs(k_chi) < 1e-8 && fabs(h) < 1e-8) {
         Drift_single_particle(part, length);
         return;
     }
@@ -37,10 +43,10 @@ void track_thick_bend(
     const double A = 1.0 / sqrt(POW2(one_plus_delta) - POW2(py));
     const double pz = sqrt(POW2(one_plus_delta) - POW2(px) - POW2(py));
 
-    if (fabs(h) > 1e-8 && fabs(k) > 1e-8){
+    if (fabs(h) > 1e-8 && fabs(k_chi) > 1e-8){
         // The case for non-zero curvature, s is arc length
         // Useful constants
-        const double C = pz - k * ((1 / h) + x);
+        const double C = pz - k_chi * ((1 / h) + x);
         new_px = px * cos(s * h) + C * sin(s * h);
         double const new_pz = sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py));
         // double const d_new_px_ds = new_px / new_pz;
@@ -49,13 +55,13 @@ void track_thick_bend(
 
         // Update particle coordinates
 
-        new_x = (new_pz * h - d_new_px_ds - k)/(h*k);
+        new_x = (new_pz * h - d_new_px_ds - k_chi)/(h*k_chi);
         const double D = asin(A * px) - asin(A * new_px);
-        new_y = y + ((py * s) / (k / h)) + (py / k) * D;
+        new_y = y + ((py * s) / (k_chi / h)) + (py / k_chi) * D;
 
-        delta_ell = ((one_plus_delta * s * h) / k) + (one_plus_delta / k) * D;
+        delta_ell = ((one_plus_delta * s * h) / k_chi) + (one_plus_delta / k_chi) * D;
     }
-    else if (fabs(h) > 1e-8 && fabs(k) < 1e-8){
+    else if (fabs(h) > 1e-8 && fabs(k_chi) < 1e-8){
         // Based on SUBROUTINE Sprotr in PTC and curex_drift in MAD-NG
         // Polar drift
         double const rho = 1/h;
@@ -76,13 +82,13 @@ void track_thick_bend(
     }
     else {
         // The case for zero curvature -- straight bend, s is Cartesian length
-        new_px = px - k * s;
-        new_x = x + (sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py)) - pz) / k;
+        new_px = px - k_chi* s;
+        new_x = x + (sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py)) - pz) / k_chi;
 
         const double D = asin(A * px) - asin(A * new_px);
-        new_y = y + (py / k) * D;
+        new_y = y + (py / k_chi) * D;
 
-        delta_ell = (one_plus_delta / k) * D;
+        delta_ell = (one_plus_delta / k_chi) * D;
     }
 
     // Update Particles object
