@@ -1698,8 +1698,10 @@ class LineSegmentMap(BeamElement):
         'energy_ref_increment': xo.Float64,
         'energy_increment': xo.Float64,
         'uncorrelated_rad_damping': xo.Int64,
+        'correlated_rad_damping': xo.Int64,
         'damping_factors':xo.Float64[6,6],
         'uncorrelated_gauss_noise': xo.Int64,
+        'correlated_gauss_noise': xo.Int64,
         'gauss_noise_matrix':xo.Float64[6,6],
 
         'longitudinal_mode_flag': xo.Int64,
@@ -2041,6 +2043,7 @@ class LineSegmentMap(BeamElement):
                 or damping_rate_zeta > 0.0 or damping_rate_pzeta > 0.0):
             assert damping_matrix is None
             nargs['uncorrelated_rad_damping'] = True
+            nargs['correlated_rad_damping'] = False
             nargs['damping_factors'] = np.identity(6,dtype=float)
             nargs['damping_factors'][0,0] -= damping_rate_x
             nargs['damping_factors'][1,1] -= damping_rate_px
@@ -2050,10 +2053,12 @@ class LineSegmentMap(BeamElement):
             nargs['damping_factors'][5,5] -= damping_rate_pzeta
         elif damping_matrix is not None:
             assert np.shape(damping_matrix) == (6,6)
-            nargs['uncorrelated_rad_damping'] = True
+            nargs['correlated_rad_damping'] = True
+            nargs['uncorrelated_rad_damping'] = False
             nargs['damping_factors'] = np.identity(6,dtype=float)+damping_matrix
         else:
             nargs['uncorrelated_rad_damping'] = False
+            nargs['correlated_rad_damping'] = False
 
         assert gauss_noise_ampl_x >= 0.0
         assert gauss_noise_ampl_px >= 0.0
@@ -2066,7 +2071,8 @@ class LineSegmentMap(BeamElement):
                 gauss_noise_ampl_zeta > 0 or gauss_noise_ampl_pzeta > 0):
             assert gauss_noise_matrix is None
             nargs['uncorrelated_gauss_noise'] = True
-            nargs['gauss_noise_matrix'] = np.zeros((6,6),dtype=float)
+            nargs['correlated_gauss_noise'] = False
+            nargs['gauss_noise_matrix'] = np.zeros(6,dtype=float)
             nargs['gauss_noise_matrix'][0,0] = gauss_noise_ampl_x
             nargs['gauss_noise_matrix'][1,1] = gauss_noise_ampl_px
             nargs['gauss_noise_matrix'][2,2] = gauss_noise_ampl_y
@@ -2074,17 +2080,14 @@ class LineSegmentMap(BeamElement):
             nargs['gauss_noise_matrix'][4,4] = gauss_noise_ampl_zeta
             nargs['gauss_noise_matrix'][5,5] = gauss_noise_ampl_pzeta
         elif gauss_noise_matrix is not None:
-            nargs['uncorrelated_gauss_noise'] = True
-            nargs['gauss_noise_matrix'] = gauss_noise_matrix
+            nargs['correlated_gauss_noise'] = True
+            nargs['uncorrelated_gauss_noise'] = False
+            # https://github.com/numpy/numpy/blob/main/numpy/random/_generator.pyx 
+            (u, s, vh) = numpy.linalg.svd(gauss_noise_matrix)
+            nargs['gauss_noise_matrix'] = u*np.sqrt(s)
         else:
             nargs['uncorrelated_gauss_noise'] = False
-            
-        if nargs['uncorrelated_gauss_noise']:
-            for i in range(6):
-                for j in range(6):
-                    if i!=j:
-                        assert nargs['gauss_noise_matrix'][i,j] == 0.0,"Not implemented"
-
+            nargs['correlated_gauss_noise'] = False
         super().__init__(**nargs)
 
     @property
