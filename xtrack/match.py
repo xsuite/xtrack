@@ -801,7 +801,7 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
                   solver_options={}, allow_twiss_failure=True,
                   restore_if_fail=True, verbose=False,
                   n_steps_max=20, default_tol=None,
-                  solver=None, **kwargs):
+                  solver=None, check_limits=True, **kwargs):
 
     if not isinstance(targets, (list, tuple)):
         targets = [targets]
@@ -882,7 +882,8 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
                         verbose=verbose, assert_within_tol=assert_within_tol,
                         solver_options=solver_options,
                         n_steps_max=n_steps_max,
-                        restore_if_fail=restore_if_fail)
+                        restore_if_fail=restore_if_fail,
+                        check_limits=check_limits)
 
     if solve:
         opt.solve()

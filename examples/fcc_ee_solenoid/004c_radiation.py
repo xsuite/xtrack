@@ -53,11 +53,16 @@ print('partition numbers: ', tw_rad.partition_numbers)
 print('gemit_x: ', tw_rad.eq_gemitt_x)
 print('gemit_y: ', tw_rad.eq_gemitt_y)
 
-tw_rad = line.twiss(eneloss_and_damping=True)
+tw_rad = line.twiss(eneloss_and_damping=True, radiation_method='full')
 
 ex = tw_rad.eq_gemitt_x
 ey = tw_rad.eq_gemitt_y
 ez = tw_rad.eq_gemitt_zeta
+
+# Equilibrium beam sizes
+beam_sizes = tw_rad.get_beam_covariance(
+    gemitt_x=tw_rad.eq_gemitt_x, gemitt_y=0*tw_rad.eq_gemitt_y,
+    gemitt_zeta=tw_rad.eq_gemitt_zeta)
 
 num_particles_test = 200
 n_turns_track_test = 200
@@ -80,39 +85,30 @@ line.configure_radiation(model='mean')
 import matplotlib.pyplot as plt
 plt.close('all')
 
-mon = mon_at_start
+mon = line.record_last_track
 
-betx = tw_rad['betx', 0]
-bety = tw_rad['bety', 0]
-betx2 = tw_rad['betx2', 0]
-bety1 = tw_rad['bety1', 0]
-dx = tw_rad['dx', 0]
-dy = tw_rad['dy', 0]
+fig = plt.figure(figsize=(6.4, 4.8*1.3))
 
-fig = plt.figure(100 + 1, figsize=(6.4, 4.8*1.3))
 spx = fig. add_subplot(3, 1, 1)
-spx.plot(np.std(mon.x, axis=0), label='track')
-spx.axhline(
-    np.sqrt(ex * betx + ey * betx2 + (np.std(p.delta) * dy)**2),
-    color='red', label='twiss')
-spx.legend(loc='lower right')
-spx.set_ylabel(r'$\sigma_{x}$ [m]')
+spx.plot(1e6 * np.std(mon.x, axis=0), label='track')
+spx.axhline(1e6 * beam_sizes['sigma_x', 'ip.1'], color='red', label='twiss')
+spx.legend(loc='lower right', fontsize='small')
+spx.set_ylabel(r'$\sigma_{x}$ [$\mu m$]')
 spx.set_ylim(bottom=0)
 
 spy = fig. add_subplot(3, 1, 2, sharex=spx)
-spy.plot(np.std(mon.y, axis=0), label='track')
-spy.axhline(
-    np.sqrt(ex * bety1 + ey * bety + (np.std(p.delta) * dy)**2),
-    color='red', label='twiss')
-spy.set_ylabel(r'$\sigma_{y}$ [m]')
+spy.plot(1e9 * np.std(mon.y, axis=0), label='track')
+spy.axhline(1e9 * beam_sizes['sigma_y', 'ip.1'], color='red', label='twiss')
+spy.set_ylabel(r'$\sigma_{y}$ [nm]')
 spy.set_ylim(bottom=0)
 
 spz = fig. add_subplot(3, 1, 3, sharex=spx)
-spz.plot(np.std(mon.zeta, axis=0))
-spz.axhline(np.sqrt(ez * tw_rad.bets0), color='red')
-spz.set_ylabel(r'$\sigma_{z}$ [m]')
+spz.plot(np.std(1e3*mon.zeta, axis=0))
+spz.axhline(1e3*beam_sizes['sigma_zeta', 'ip.1'], color='red', label='twiss')
+spz.set_ylabel(r'$\sigma_{z}$ [mm]')
 spz.set_ylim(bottom=0)
+spz.set_xlabel('s [m]')
+plt.subplots_adjust(left=.2, top=.95, hspace=.2)
 
-plt.suptitle(r'$\varepsilon_y$ = ' f'{ey*1e12:.6f} pm')
 
 plt.show()

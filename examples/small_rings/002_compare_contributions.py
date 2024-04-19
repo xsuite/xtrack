@@ -31,16 +31,16 @@ line.slice_thick_elements(
         ])
 
 line.configure_bend_model(core='expanded', edge='linear') # default
-tw_el = line.twiss(method='4d', group_compound_elements=True)
+tw_el = line.twiss(method='4d')
 
 line.configure_bend_model(core='full', edge='linear')
-tw_fl = line.twiss(method='4d', group_compound_elements=True)
+tw_fl = line.twiss(method='4d')
 
 line.configure_bend_model(core='expanded', edge='full')
-tw_ef = line.twiss(method='4d', group_compound_elements=True)
+tw_ef = line.twiss(method='4d')
 
 line.configure_bend_model(core='full', edge='full')
-tw_ff = line.twiss(method='4d', group_compound_elements=True)
+tw_ff = line.twiss(method='4d')
 
 import matplotlib.pyplot as plt
 plt.close('all')

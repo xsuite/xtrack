@@ -21,22 +21,22 @@ line = Line.from_sequence([
 
 line.get_table().show()
 # prints:
-#
-# name          s element_type isthick compound_name
-# arc           0 Marker         False
-# drift         0 Drift           True
-# arcquad       1 Multipole      False
-# drift1        1 Drift           True
-# arcbend       5 Multipole      False
-# drift2        5 Drift           True
-# section2     10 Marker         False
-# drift3       10 Drift           True
-# section2quad 11 Multipole      False
-# drift4       11 Drift           True
-# sext         13 Multipole      False
-# drift5       13 Drift           True
-# section2bend 15 Multipole      False
-# drift6       15 Drift           True
-# quad_5       16 Multipole      False
-# drift7       16 Drift           True
-# _end_point   20                False
+# #
+# name          s element_type isthick isreplica parent_name iscollective
+# arc           0 Marker         False     False        None        False
+# drift         0 Drift           True     False        None        False
+# arcquad       1 Multipole      False     False        None        False
+# drift1        1 Drift           True     False        None        False
+# arcbend       5 Multipole      False     False        None        False
+# drift2        5 Drift           True     False        None        False
+# section2     10 Marker         False     False        None        False
+# drift3       10 Drift           True     False        None        False
+# section2quad 11 Multipole      False     False        None        False
+# drift4       11 Drift           True     False        None        False
+# sext         13 Multipole      False     False        None        False
+# drift5       13 Drift           True     False        None        False
+# section2bend 15 Multipole      False     False        None        False
+# drift6       15 Drift           True     False        None        False
+# quad_5       16 Multipole      False     False        None        False
+# drift7       16 Drift           True     False        None        False
+# _end_point   20                False     False        None        False

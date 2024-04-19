@@ -15,7 +15,7 @@ test_data_folder = pathlib.Path(
 @for_all_test_contexts
 def test_twiss_psb(test_context):
 
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.call(str(test_data_folder / 'psb_injection/psb_injection.seq'))
     mad.use('psb')
     twmad = mad.twiss()

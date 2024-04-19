@@ -52,7 +52,22 @@ ONLY_XTRACK_ELEMENTS = [
     LimitRectEllipse,
     LimitRect,
     LimitRacetrack,
-    LimitPolygon
+    LimitPolygon,
+    DriftSlice,
+    DriftSliceBend,
+    DriftSliceOctupole,
+    DriftSliceQuadrupole,
+    DriftSliceSextupole,
+    ThickSliceBend,
+    ThickSliceOctupole,
+    ThickSliceQuadrupole,
+    ThickSliceSextupole,
+    ThinSliceBend,
+    ThinSliceBendEntry,
+    ThinSliceBendExit,
+    ThinSliceOctupole,
+    ThinSliceQuadrupole,
+    ThinSliceSextupole,
 ]
 
 NO_SYNRAD_ELEMENTS = [

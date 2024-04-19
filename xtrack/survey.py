@@ -167,15 +167,6 @@ class SurveyTable(Table):
 
         return out
 
-def _get_s_increments(elements):
-    lengths = []
-    for ee in elements:
-        if xt.line._is_thick(ee):
-            lengths.append(ee.length)
-        else:
-            lengths.append(0.0)
-    return lengths
-
 # ==================================================
 
 # Main function
@@ -199,28 +190,18 @@ def survey_from_line(line, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
 
     assert not values_at_element_exit, "Not implemented yet"
 
-    # Extract drift lengths
-    drift_length = _get_s_increments(line.elements)
-
     # Extract angle and tilt from elements
-    angle = []
-    tilt = []
-    for nn in line.element_names:
-        ee = line[nn]
-        hxl, hyl = (ee.hxl, ee.hyl) if hasattr(ee, "hxl") else (0, 0)
-        assert hyl == 0, ("Survey of machines with tilt not yet implemented, "
-                          f"{nn} has hyl={hyl} ")
-        this_angle = hxl  # TODO: generalize for non-flat lines
-        this_tilt = 0     # TODO: generalize for non-flat lines
-
-        angle.append(this_angle)
-        tilt.append(this_tilt)
+    tt = line.get_table(attr = True)
+    angle = tt.angle_rad
+    tilt = tt.rot_s_rad
+    drift_length = tt.length
+    drift_length[~tt.isthick] = 0
 
     if type(element0) == str:
         element0 = line.element_names.index(element0)
 
     X, Y, Z, theta, phi, psi = compute_survey(
-        X0, Y0, Z0, theta0, phi0, psi0, drift_length, angle, tilt,
+        X0, Y0, Z0, theta0, phi0, psi0, drift_length[:-1], angle[:-1], tilt[:-1],
         element0=element0)
 
     # Initializing dictionary
@@ -233,12 +214,11 @@ def survey_from_line(line, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
     out_columns["phi"] = np.unwrap(phi)
     out_columns["psi"] = np.unwrap(psi)
 
-    out_columns["name"] = np.array(list(line.element_names) + ["_end_point"])
-    out_columns["s"] = np.array(line.get_s_elements() + [line.get_length()])
-
-    out_columns['drift_length'] = np.array(drift_length + [0.])
-    out_columns['angle'] = np.array(angle + [0.])
-    out_columns['tilt'] = np.array(tilt + [0.])
+    out_columns["name"] = tt.name
+    out_columns["s"] = tt.s
+    out_columns['drift_length'] = drift_length
+    out_columns['angle'] = angle
+    out_columns['tilt'] = tilt
 
     out_scalars['element0'] = element0
 

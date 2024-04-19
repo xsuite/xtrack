@@ -51,9 +51,9 @@ class BeamBeam4D(Element):
     def from_dict(cls, dct):
         if 'other_beam_Sigma_11' in dct.keys():
             # Comes from xfields
-            assert dct['other_beam_Sigma_13'] == 0
-            assert dct['ref_shift_x'] == 0
-            assert dct['ref_shift_y'] == 0
+            assert dct.get('other_beam_Sigma_13', 0) == 0
+            assert dct.get('ref_shift_x', 0) == 0
+            assert dct.get('ref_shift_y', 0) == 0
 
             kwargs = {
             "charge": dct["other_beam_q0"]*dct['other_beam_num_particles'],

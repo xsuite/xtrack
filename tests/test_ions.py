@@ -14,7 +14,7 @@ test_data_folder = pathlib.Path(
 @for_all_test_contexts
 def test_ions(test_context):
 
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.call(str(test_data_folder.joinpath(
         'sps_ions/SPS_2021_Pb_ions_thin_test.seq')))
     mad.use('sps')

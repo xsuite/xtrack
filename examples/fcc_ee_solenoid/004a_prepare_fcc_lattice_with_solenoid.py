@@ -7,7 +7,7 @@ from scipy.constants import e as qe
 from cpymad.madx import Madx
 
 fname = 'fccee_z'; pc_gev = 45.6
-# fname = 'fccee_t'; pc_gev = 182.5
+fname = 'fccee_t'; pc_gev = 182.5
 
 mad = Madx()
 mad.call('../../test_data/fcc_ee/' + fname + '.seq')
@@ -163,7 +163,6 @@ line.element_refs['qc2l1.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k
 line.element_refs['qc2l2.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k2.l1']
 line.element_refs['qc1l2.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k3.l1']
 
-
 Strategy = xt.Strategy
 Teapot = xt.Teapot
 slicing_strategies = [
@@ -191,7 +190,6 @@ slicing_strategies = [
 ]
 line.discard_tracker()
 line.slice_thick_elements(slicing_strategies=slicing_strategies)
-
 # Add dipole correctors
 line.insert_element(name='mcb1.r1', element=xt.Multipole(knl=[0]),
                     at='qc1r1.1_exit')
@@ -226,7 +224,6 @@ assert line.element_names[-1] == 'ip.4.l'
 assert line.element_names[0] == 'ip.4'
 
 opt = line.match(
-    only_markers=True,
     method='4d',
     start='ip.4', end='ip.4.l',
     init=tw_thick_no_rad,
