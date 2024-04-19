@@ -2082,8 +2082,8 @@ class LineSegmentMap(BeamElement):
         elif gauss_noise_matrix is not None:
             nargs['correlated_gauss_noise'] = True
             nargs['uncorrelated_gauss_noise'] = False
-            # https://github.com/numpy/numpy/blob/main/numpy/random/_generator.pyx 
-            (u, s, vh) = numpy.linalg.svd(gauss_noise_matrix)
+            # https://github.com/numpy/numpy/blob/main/numpy/random/_generator.pyx
+            (u, s, vh) = np.linalg.svd(gauss_noise_matrix)
             nargs['gauss_noise_matrix'] = u*np.sqrt(s)
         else:
             nargs['uncorrelated_gauss_noise'] = False
