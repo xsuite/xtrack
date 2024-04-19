@@ -181,7 +181,7 @@ class RandomRutherford(RandomUniform):
             raise ValueError('Rutherford random generator is not currently supported on GPU.')
 
     def set_parameters(self, A, B, lower_val, upper_val):
-        self.compile_kernels(particles_class=xp.Particles, only_if_needed=True)
+        self.compile_kernels(particles_class=xt.Particles, only_if_needed=True)
         context = self._buffer.context
         context.kernels.set_rutherford(rng=self, A=A, B=B, lower_val=lower_val, upper_val=upper_val)
 

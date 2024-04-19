@@ -221,6 +221,29 @@ class MultiSetter(xo.HybridClass):
         self._set_kernel(data=self, buffer=self._tracker_buffer.buffer,
                input=xt.BeamElement._arr2ctx(self, values))
 
+    def compile_kernels(self, only_if_needed=True):
+        context = self._buffer.context
+        if context.allow_prebuilt_kernels and only_if_needed:
+            try:
+                from xsuite_kernels import (
+                    get_suitable_kernel,
+                    XSK_PREBUILT_KERNELS_LOCATION,
+                )
+                kernel_info = get_suitable_kernel({}, ())
+            except ImportError:
+                kernel_info = None
+
+            if kernel_info:
+                module_name, _ = kernel_info
+                kernels = context.kernels_from_file(
+                    module_name=module_name,
+                    containing_dir=XSK_PREBUILT_KERNELS_LOCATION,
+                    kernel_descriptions=self._kernels,
+                )
+                context.kernels.update(kernels)
+
+        super().compile_kernels(only_if_needed=only_if_needed)
+
 
 def _extract_offset(obj, field_name, index, dtype, xodtype):
 

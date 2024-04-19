@@ -2,13 +2,12 @@
 # This file is part of the Xobjects Package.  #
 # Copyright (c) CERN, 2022.                   #
 # ########################################### #
-import json
 
 import cffi
 
 import xobjects as xo
 import xtrack as xt
-from xtrack.prebuild_kernels import regenerate_kernels
+from xsuite_kernels.prebuild_kernels import regenerate_kernels
 
 
 def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func, capsys):
@@ -43,15 +42,17 @@ def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func, capsys):
         }),
     ]
 
-    patch_defs = 'xtrack.prebuilt_kernels.kernel_definitions.kernel_definitions'
+    # Override the definitions with the temporary ones
+    patch_defs = 'xsuite_kernels.kernel_definitions.kernel_definitions'
     mocker.patch(patch_defs, kernel_definitions)
-
-    mocker.patch('xtrack.prebuild_kernels.XT_PREBUILT_KERNELS_LOCATION',
+    # We need to change the default location so that loading the kernels works
+    mocker.patch('xsuite_kernels.prebuild_kernels.XSK_PREBUILT_KERNELS_LOCATION',
                  tmp_path)
-    mocker.patch('xtrack.tracker.XT_PREBUILT_KERNELS_LOCATION', tmp_path)
+    mocker.patch('xsuite_kernels.XSK_PREBUILT_KERNELS_LOCATION',
+                 tmp_path)
 
     # Try regenerating the kernels
-    regenerate_kernels()
+    regenerate_kernels(location=tmp_path)
 
     # Check if the expected files were created
     so_file0, = tmp_path.glob('000_test_module.*.so')
@@ -103,17 +104,17 @@ def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_fun
         }),
     ]
 
-    patch_defs = 'xtrack.prebuilt_kernels.kernel_definitions.kernel_definitions'
+    # Override the definitions with the temporary ones
+    patch_defs = 'xsuite_kernels.kernel_definitions.kernel_definitions'
     mocker.patch(patch_defs, kernel_definitions)
-
-    mocker.patch('xtrack.prebuild_kernels.XT_PREBUILT_KERNELS_LOCATION',
+    # We need to change the default location so that loading the kernels works
+    mocker.patch('xsuite_kernels.prebuild_kernels.XSK_PREBUILT_KERNELS_LOCATION',
                  tmp_path)
-    mocker.patch('xtrack.tracker.XT_PREBUILT_KERNELS_LOCATION', tmp_path)
-    mocker.patch('xtrack.base_element.XT_PREBUILT_KERNELS_LOCATION', tmp_path)
-    mocker.patch('xtrack.particles.particles.XT_PREBUILT_KERNELS_LOCATION', tmp_path)
+    mocker.patch('xsuite_kernels.XSK_PREBUILT_KERNELS_LOCATION',
+                 tmp_path)
 
     # Try regenerating the kernels
-    regenerate_kernels()
+    regenerate_kernels(location=tmp_path)
 
     # Check if the expected files were created
     so_file_exists = False
