@@ -233,7 +233,6 @@ def test_fcc_ee_solenoid_correction():
     assert line.element_names[0] == 'ip.4'
 
     opt = line.match(
-        only_markers=True,
         method='4d',
         start='ip.4', end='ip.4.l',
         init=tw_thick_no_rad,

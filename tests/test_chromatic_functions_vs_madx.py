@@ -44,7 +44,7 @@ def test_chromatic_functions_vs_madx(test_context):
             mad.use(sequence="lhcb2")
             line.twiss_default['reverse'] = True
 
-        tw = line.twiss(only_markers=True)
+        tw = line.twiss()
         twmad = mad.twiss(chrom=True)
 
         tw_test = tw.rows['.*_exit']
@@ -71,8 +71,7 @@ def test_chromatic_functions_vs_madx(test_context):
         # Open twiss
         init = tw.get_twiss_init('ip3')
         tw_open = line.twiss(start='ip3', end='ip6', init=init,
-                            compute_chromatic_properties=True,
-                            only_markers=True)
+                            compute_chromatic_properties=True)
 
         tw_ref_open = tw.rows['ip3':'ip6']
         assert np.allclose(tw_open.wx_chrom[:-1], tw_ref_open.wx_chrom,

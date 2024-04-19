@@ -43,8 +43,7 @@ tw_rad = line.twiss(eneloss_and_damping=True)
 tw_rad2 = line.twiss(eneloss_and_damping=True, method='6d',
                      radiation_method='full',
                      compute_lattice_functions=False,
-                     compute_chromatic_properties=False,
-                     only_markers=False)
+                     compute_chromatic_properties=False)
 
 
 ex = tw_rad.eq_gemitt_x

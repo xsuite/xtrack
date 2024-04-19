@@ -85,7 +85,6 @@ print('Number of elements: ', len(line))
 print('\n')
 
 opt = line.match(
-    only_markers=True,
     method='4d',
     start=line.element_names[0], end=line.element_names[-1],
     init=tw_thick_no_rad.get_twiss_init(0),
