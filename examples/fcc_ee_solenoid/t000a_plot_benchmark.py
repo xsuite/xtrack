@@ -46,8 +46,13 @@ ctx.add_kernels(
 delta=np.array([0, 4])
 p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
                  energy0=45.6e9,
-                 x=[-18e-3, -1e-3], px=1e-3*(1+delta), y=1e-3,
+                 x=[-21e-3, -1e-3], px=1e-3*(1+delta), y=1e-3,
                  delta=delta)
+
+# p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
+#                  energy0=45.6e7,
+#                  x=[-18e-3, -1e-3], px=1e-3*(1+delta), y=1e-3,
+#                  delta=delta)
 
 p = p0.copy()
 
@@ -319,29 +324,47 @@ plt.plot(mon.s[:, :-1].T, emitted_dpy.T, '-', label='dpy')
 plt.plot(mon.s[:, :-1].T, dE_ds.T * dy_ds.T*np.diff(mon.s, 1).T/p.p0c[0], '--')
 
 i_part_plot = 0
+
 plt.figure(100, figsize=(6.4, 4.8*1.6))
 sp1 = plt.subplot(5, 1, 1)
-plt.plot(mon.s[i_part_plot, :] - z_sol_center, mon.x[i_part_plot, :])
+plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e3 * mon.x[i_part_plot, :])
+plt.axhline(0, color='grey', alpha=0.6, linestyle=':')
+plt.ylim(-10, 10)
+plt.ylabel('x [mm]')
+
+px = mon.px[i_part_plot, :]
+px_mech = px - ax_ref[i_part_plot, :]
+px_mech_boris = px_log[:, i_part_plot]
+
+py = mon.py[i_part_plot, :]
+py_mech = py - ay_ref[i_part_plot, :]
+py_mech_boris = py_log[:, i_part_plot]
 
 sp2 = plt.subplot(5, 1, 2, sharex=sp1)
-plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6*mon.px[i_part_plot, :], label=r'$p_x$ canonical')
-plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6*px_mech[i_part_plot, :], label=r"$p_x$ kinetic")
-plt.plot(z_log[:, i_part_plot] - z_sol_center,
-         1e6 * px_log[:, i_part_plot], label=r"$p_x$ kin. Boris", linestyle='--')
-plt.legend(fontsize='small')
+plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (px - px[0]), label=r'Canonical')
+plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (px_mech - px_mech[0]), label=r"Kinetic")
+plt.plot(z_log[:, i_part_plot] - z_sol_center, 1e6 * (px_mech_boris - px_mech[0]),
+         label=r"Kin. Boris", linestyle='--')
+plt.legend(fontsize='medium')
+plt.ylabel(r"$\Delta p_x$ [$10^{-6}$]")
 
 sp3 = plt.subplot(5, 1, 3, sharex=sp1)
-plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6*mon.py[i_part_plot, :], label=r'$p_x$ canonical')
-plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6*py_mech[i_part_plot, :], label=r"$p_y$ kinetic")
-plt.plot(z_log[:, i_part_plot] - z_sol_center,
-         1e6 * py_log[:, i_part_plot], label=r"$p_y$ kin. Boris", linestyle='--')
-plt.legend(fontsize='small')
+plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (py - py[0]), label=r'Canonical')
+plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (py_mech - py_mech[0]), label=r"Kinetic")
+plt.plot(z_log[:, i_part_plot] - z_sol_center, 1e6 * (py_mech_boris - py_mech[0]),
+         label=r"Kin. Boris", linestyle='--')
+plt.legend(fontsize='medium')
+plt.ylabel(r"$\Delta p_y$ [$10^{-6}$]")
 
 sp4 = plt.subplot(5, 1, 4, sharex=sp1)
 plt.plot(z_axis - z_sol_center, Bz_axis)
+plt.ylabel(r'$B_{z}$ [T]')
 
 sp4 = plt.subplot(5, 1, 5, sharex=sp1)
 plt.plot(0.5 * (z_log[:-1, i_part] + z_log[1:, i_part]) - z_sol_center, Bx_log[:-1, i_part])
+plt.plot(0.5 * (z_log[:-1, i_part] + z_log[1:, i_part]) - z_sol_center, By_log[:-1, i_part])
+plt.ylabel(r'$B_{x,y}$ [T]')
+plt.xlabel('s [m]')
 
 plt.xlim(-5, 5)
 plt.subplots_adjust(top=.95, bottom=.05, hspace=.3)
