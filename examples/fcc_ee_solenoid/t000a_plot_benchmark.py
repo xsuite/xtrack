@@ -295,7 +295,7 @@ plt.plot(0.5 * (z_log[:-1] + z_log[1:]), dy_ds_log, label='Boris')
 plt.plot(mon.s.T, yp.T, label="y'", color='C1', linestyle='-')
 plt.plot(mon.s[:, :-1].T, dy_ds.T, '--', color='C2',
          label=r"$\Delta y / \Delta s$")
-plt.legend()
+
 
 # Compare ax and ay
 plt.figure(3)
@@ -319,24 +319,44 @@ plt.plot(mon.s[:, :-1].T, emitted_dpy.T, '-', label='dpy')
 plt.plot(mon.s[:, :-1].T, dE_ds.T * dy_ds.T*np.diff(mon.s, 1).T/p.p0c[0], '--')
 
 i_part_plot = 0
-plt.figure(100, figsize=(6.4, 4.8*1.3))
-sp1 = plt.subplot(4, 1, 1)
+plt.figure(100, figsize=(6.4, 4.8*1.6))
+sp1 = plt.subplot(5, 1, 1)
 plt.plot(mon.s[i_part_plot, :] - z_sol_center, mon.x[i_part_plot, :])
 
-sp2 = plt.subplot(4, 1, 2, sharex=sp1)
-plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6*mon.px[i_part_plot, :], label=r'$p_x$')
-plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6*xp[i_part_plot, :], label=r"$x'$")
+sp2 = plt.subplot(5, 1, 2, sharex=sp1)
+plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6*mon.px[i_part_plot, :], label=r'$p_x$ canonical')
+plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6*px_mech[i_part_plot, :], label=r"$p_x$ kinetic")
+plt.plot(z_log[:, i_part_plot] - z_sol_center,
+         1e6 * px_log[:, i_part_plot], label=r"$p_x$ kin. Boris", linestyle='--')
+plt.legend(fontsize='small')
 
-plt.plot(0.5 * (z_log[:-1, i_part] + z_log[1:, i_part]) - z_sol_center,
-         1e6 * dx_ds_log[:, i_part_plot], label=r"$x'$ (t-domain)", linestyle='--')
-plt.legend()
+sp3 = plt.subplot(5, 1, 3, sharex=sp1)
+plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6*mon.py[i_part_plot, :], label=r'$p_x$ canonical')
+plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6*py_mech[i_part_plot, :], label=r"$p_y$ kinetic")
+plt.plot(z_log[:, i_part_plot] - z_sol_center,
+         1e6 * py_log[:, i_part_plot], label=r"$p_y$ kin. Boris", linestyle='--')
+plt.legend(fontsize='small')
 
-sp2 = plt.subplot(4, 1, 3, sharex=sp1)
+sp4 = plt.subplot(5, 1, 4, sharex=sp1)
 plt.plot(z_axis - z_sol_center, Bz_axis)
 
-sp3 = plt.subplot(4, 1, 4, sharex=sp1)
-sp3.plot(0.5 * (z_log[:-1, i_part] + z_log[1:, i_part]) - z_sol_center, Bx_log[:-1, i_part])
+sp4 = plt.subplot(5, 1, 5, sharex=sp1)
+plt.plot(0.5 * (z_log[:-1, i_part] + z_log[1:, i_part]) - z_sol_center, Bx_log[:-1, i_part])
 
 plt.xlim(-5, 5)
+plt.subplots_adjust(top=.95, bottom=.05, hspace=.3)
+
+# # Grid of x, y points
+# nx, ny = 101, 101
+# x = np.linspace(z_sol_center - 5, z_sol_center+5, nx)
+# y = np.linspace(0, 0.1, ny)
+# X, Y = np.meshgrid(x, y)
+
+
+# plt.close('all')
+# Bx, By, Bz = sf.get_field(Y, 0*Y, X)
+# plt.figure(101)
+# plt.streamplot(x, y, Bz, Bx, color='k', linewidth=1, cmap=plt.cm.inferno,
+#               density=2, arrowstyle='->', arrowsize=0, minlength=1.5)
 
 plt.show()
