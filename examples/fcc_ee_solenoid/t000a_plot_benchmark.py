@@ -45,8 +45,8 @@ ctx.add_kernels(
 
 p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
                  energy0=45.6e9,
-                 x=-150e-3, px=15e-3,
-                #  y=-10e-3, py=
+                 x=-170e-3, px=15e-3,
+                 y=10e-3, py=-5e-3,
                  delta=0)
 
 # p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
