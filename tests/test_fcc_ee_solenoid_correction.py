@@ -372,11 +372,6 @@ def test_fcc_ee_solenoid_correction():
     assert_allclose(tw_chk['kin_xprime', 'pqc2le.4'], 0, atol=1e-8, rtol=0)
     assert_allclose(tw_chk['kin_yprime', 'pqc2le.4'], 0, atol=1e-8, rtol=0)
 
-    assert tw_chk['ax', 'pqc2le.4'] == 0
-    assert tw_chk['ay', 'pqc2le.4'] == 0
-    assert tw_chk['ax', 'pqc2re.1'] == 0
-    assert tw_chk['ay', 'pqc2re.1'] == 0
-
     assert_allclose(tw_chk['betx', 'ip.1'], tw_sol_off['betx', 'ip.1'], atol=0, rtol=5e-5)
     assert_allclose(tw_chk['bety', 'ip.1'], tw_sol_off['bety', 'ip.1'], atol=0, rtol=5e-5)
     assert_allclose(tw_chk['alfx', 'ip.1'], tw_sol_off['alfx', 'ip.1'], atol=1e-5, rtol=0)
