@@ -334,31 +334,32 @@ plt.ylim(-100, 100)
 plt.ylabel('x, y [mm]')
 
 px = mon.px[i_part_plot, :]
-px_mech = px - ax_ref[i_part_plot, :]
-px_mech_boris = px_log[:, i_part_plot]
+kin_px = mon.kin_px[i_part_plot, :]
+kin_px_boris = px_log[:, i_part_plot]
 
 py = mon.py[i_part_plot, :]
-py_mech = py - ay_ref[i_part_plot, :]
-py_mech_boris = py_log[:, i_part_plot]
+kin_py = mon.kin_py[i_part_plot, :]
+kin_py_boris = py_log[:, i_part_plot]
 
 sp2 = plt.subplot(5, 1, 2, sharex=sp1)
 plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (px - px[0]), label=r'Canonical')
-plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (px_mech - px_mech[0]), label=r"Kinetic")
-plt.plot(z_log[:, i_part_plot] - z_sol_center, 1e6 * (px_mech_boris - px_mech[0]),
+plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (kin_px - kin_px[0]), label=r"Kinetic")
+plt.plot(z_log[:, i_part_plot] - z_sol_center, 1e6 * (kin_px_boris - kin_px[0]),
          label=r"Kin. Boris", linestyle='--')
 plt.legend(fontsize='medium')
 plt.ylabel(r"$\Delta p_x$ [$10^{-6}$]")
 
 sp3 = plt.subplot(5, 1, 3, sharex=sp1)
 plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (py - py[0]), label=r'Canonical')
-plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (py_mech - py_mech[0]), label=r"Kinetic")
-plt.plot(z_log[:, i_part_plot] - z_sol_center, 1e6 * (py_mech_boris - py_mech[0]),
+plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (kin_py - kin_py[0]), label=r"Kinetic")
+plt.plot(z_log[:, i_part_plot] - z_sol_center, 1e6 * (kin_py_boris - kin_py[0]),
          label=r"Kin. Boris", linestyle='--')
 plt.legend(fontsize='medium')
 plt.ylabel(r"$\Delta p_y$ [$10^{-6}$]")
 
 sp4 = plt.subplot(5, 1, 4, sharex=sp1)
-plt.plot(z_axis - z_sol_center, Bz_axis)
+# plt.plot(z_axis - z_sol_center, Bz_axis)
+plt.plot(0.5 * (z_log[:-1, i_part] + z_log[1:, i_part]) - z_sol_center, Bz_log[:-1, i_part])
 plt.ylabel(r'$B_{z}$ [T]')
 
 sp4 = plt.subplot(5, 1, 5, sharex=sp1)
