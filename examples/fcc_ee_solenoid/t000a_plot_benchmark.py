@@ -43,11 +43,11 @@ ctx.add_kernels(
     sources=[xt._pkg_root / '_temp/boris_and_solenoid_map/boris.h'],
 )
 
-delta=np.array([0, 4])
 p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
                  energy0=45.6e9,
-                 x=[-21e-3, -1e-3], px=1e-3*(1+delta), y=1e-3,
-                 delta=delta)
+                 x=-150e-3, px=15e-3,
+                #  y=-10e-3, py=
+                 delta=0)
 
 # p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
 #                  energy0=45.6e7,
@@ -56,7 +56,7 @@ p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
 
 p = p0.copy()
 
-z_sol_center = 20
+z_sol_center = 10
 sf = SolenoidField(L=4, a=0.3, B0=1.5, z0=z_sol_center)
 
 dt = 1e-10
@@ -328,9 +328,10 @@ i_part_plot = 0
 plt.figure(100, figsize=(6.4, 4.8*1.6))
 sp1 = plt.subplot(5, 1, 1)
 plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e3 * mon.x[i_part_plot, :])
+plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e3 * mon.y[i_part_plot, :])
 plt.axhline(0, color='grey', alpha=0.6, linestyle=':')
-plt.ylim(-10, 10)
-plt.ylabel('x [mm]')
+plt.ylim(-100, 100)
+plt.ylabel('x, y [mm]')
 
 px = mon.px[i_part_plot, :]
 px_mech = px - ax_ref[i_part_plot, :]
@@ -364,10 +365,11 @@ sp4 = plt.subplot(5, 1, 5, sharex=sp1)
 plt.plot(0.5 * (z_log[:-1, i_part] + z_log[1:, i_part]) - z_sol_center, Bx_log[:-1, i_part])
 plt.plot(0.5 * (z_log[:-1, i_part] + z_log[1:, i_part]) - z_sol_center, By_log[:-1, i_part])
 plt.ylabel(r'$B_{x,y}$ [T]')
+plt.legend([r'$B_x$', r'$B_y$'])
 plt.xlabel('s [m]')
 
 plt.xlim(-5, 5)
-plt.subplots_adjust(top=.95, bottom=.05, hspace=.3)
+plt.subplots_adjust(top=.95, bottom=.06, hspace=.3)
 
 # # Grid of x, y points
 # nx, ny = 101, 101
