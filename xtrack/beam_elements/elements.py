@@ -1851,29 +1851,23 @@ class LineSegmentMap(BeamElement):
         energy_ref_increment : float
             Increment of the reference energy in eV.
         damping_rate_x : float
-            Horizontal damping rate on the particles motion defined such that
-            emit_x = emit_x(n=0) * exp(-damping_rate_x * n) where n is the turn
-            number. Optional, default is ``0``.
+            Damping rate of the horizontal position
+            x_n+1 = (1-damping_rate_x)*x_n. Optional, default is ``0``.
         damping_rate_px : float
-            Horizontal damping rate on the particles motion defined such that
-            emit_x = emit_x(n=0) * exp(-damping_rate_x * n) where n is the turn
-            number. Optional, default is ``0``.
+            Damping rate of the horizontal momentum
+            px_n+1 = (1-damping_rate_px)*px_n. Optional, default is ``0``.
         damping_rate_y : float
-            Vertical damping rate on the particles motion defined such that
-            emit_y = emit_y(n=0) * exp(-damping_rate_y * n) where n is the turn
-            number. Optional, default is ``0``.
+            Damping rate of the vertical position
+            y_n+1 = (1-damping_rate_y)*y_n. Optional, default is ``0``.
         damping_rate_py : float
-            Vertical damping rate on the particles motion defined such that
-            emit_y = emit_y(n=0) * exp(-damping_rate_y * n) where n is the turn
-            number. Optional, default is ``0``.
+            Damping rate of the vertical momentum
+            px_n+1 = (1-damping_rate_x)*py_n. Optional, default is ``0``.
         damping_rate_z : float
-            Longitudinal damping rate on the particles motion defined such that
-            emit_s = emit_s(n=0) * exp(-damping_rate_s * n) where n is the turn
-            number. Optional, default is ``0``.
+            Damping rate of the longitudinal position
+            z_n+1 = (1-damping_rate_z)*z_n. Optional, default is ``0``.
         damping_rate_pzeta : float
-            Longitudinal damping rate on the particles motion defined such that
-            emit_s = emit_s(n=0) * exp(-damping_rate_s * n) where n is the turn
-            number. Optional, default is ``0``.
+            Damping rate on the momentum
+            pzeta_n+1 = (1-damping_rate_pzeta)*pzeta_n. Optional, default is ``0``.
         gauss_noise_ampl_x : float
             Amplitude of Gaussian noise on the horizontal position. Optional, default is ``0``.
         gauss_noise_ampl_px : float
@@ -1889,10 +1883,10 @@ class LineSegmentMap(BeamElement):
         damping_matrix : float[6,6]
             Matrix of damping: Each paticles coordinate vector (x,px,y,py,zeta,pzeta) is multiplied
             by the identity + the damping matrix. Incompatible with inputs damping_rate_*.
-            (default is ``None``)
+            Optional, default is ``None``
         gauss_noise_matrix : float[6,6]
-            Noise amlitude in all dof. Incompatible with inputs gauss_noise_ampl_*.
-            (default is ``None``)
+            Covariance matrix of the Gaussian noise applied in (x,px,y,py,zeta,pzeta).
+            Incompatible with inputs gauss_noise_ampl_*. Optional, default is ``None``
         '''
 
         if '_xobject' in nargs.keys() and nargs['_xobject'] is not None:
