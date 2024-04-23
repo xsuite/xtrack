@@ -385,4 +385,13 @@ plt.subplots_adjust(top=.95, bottom=.06, hspace=.3)
 # plt.streamplot(x, y, Bz, Bx, color='k', linewidth=1, cmap=plt.cm.inferno,
 #               density=2, arrowstyle='->', arrowsize=0, minlength=1.5)
 
+
+x_test = 2e-3
+B_test = sf.get_field(0 * z_axis + x_test, 0 * z_axis, z_axis)
+
+Bx_test = B_test[0]
+Bz_test = B_test[2]
+
+
+
 plt.show()
