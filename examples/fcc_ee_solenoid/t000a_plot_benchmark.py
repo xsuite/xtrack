@@ -43,21 +43,54 @@ ctx.add_kernels(
     sources=[xt._pkg_root / '_temp/boris_and_solenoid_map/boris.h'],
 )
 
+tag = 'case0'
+orbit_lims = -5, 5
 p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
                  energy0=45.6e9,
-                 x=-170e-3, px=15e-3,
-                 y=10e-3, py=-5e-3,
+                 x=1e-3, px=0,
+                 y=1e-3, py=0,
                  delta=0)
 
+# tag = 'case1'
+# orbit_lims = -100, 100
 # p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
-#                  energy0=45.6e7,
-#                  x=[-18e-3, -1e-3], px=1e-3*(1+delta), y=1e-3,
+#                  energy0=45.6e9,
+#                  x=-170e-3, px=15e-3,
+#                  y=10e-3, py=-5e-3,
+#                  delta=0)
+
+# tag = 'case2'
+# orbit_lims = -100, 100
+# delta = -0.1
+# p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
+#                  energy0=45.6e9,
+#                  x=-170e-3, px=15e-3 * (1+delta),
+#                  y=10e-3, py=-5e-3 * (1+delta),
 #                  delta=delta)
+
+tag = 'case3'
+orbit_lims = -100, 100
+delta = -0.99
+p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
+                 energy0=45.6e9,
+                 x=-170e-3, px=15e-3 * (1+delta),
+                 y=10e-3, py=-5e-3 * (1+delta),
+                 delta=delta)
+
+# tag = 'case4'
+# orbit_lims = -100, 100
+# delta = -0.999
+# p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
+#                  energy0=45.6e9,
+#                  x=-170e-3, px=15e-3 * (1+delta),
+#                  y=10e-3, py=-5e-3 * (1+delta),
+#                  delta=delta)
+
 
 p = p0.copy()
 
 z_sol_center = 10
-sf = SolenoidField(L=4, a=0.3, B0=1.5, z0=z_sol_center)
+sf = SolenoidField(L=4, a=0.3, B0=1., z0=z_sol_center)
 
 dt = 1e-10
 n_steps = 1500
@@ -251,25 +284,6 @@ for i_part in range(z_log.shape[1]):
     this_dx_ds = dx_ds[i_part, :]
     this_dy_ds = dy_ds[i_part, :]
 
-#     assert np.allclose(dx_ds_xsuite_check, dx_ds_boris_check, rtol=0,
-#             atol=2.8e-2 * (np.max(dx_ds_boris_check) - np.min(dx_ds_boris_check)))
-#     assert np.allclose(dy_ds_xsuite_check, dy_ds_boris_check, rtol=0,
-#             atol=2.8e-2 * (np.max(dy_ds_boris_check) - np.min(dy_ds_boris_check)))
-#     xo.assert_allclose(dE_ds_xsuite_check, dE_ds_boris_check, rtol=0,
-#             atol=3e-2 * (np.max(dE_ds_boris_check) - np.min(dE_ds_boris_check)))
-
-#     assert np.allclose(ax_ref[i_part, :], mon.ax[i_part, :],
-#                     rtol=0, atol=np.max(np.abs(ax_ref)*3e-2))
-#     assert np.allclose(ay_ref[i_part, :], mon.ay[i_part, :],
-#                     rtol=0, atol=np.max(np.abs(ay_ref)*3e-2))
-
-#     assert np.allclose(this_emitted_dpx,
-#             this_dE_ds * this_dx_ds * np.diff(mon.s[i_part, :])/p.p0c[0],
-#             rtol=0, atol=1e-4 * (np.max(this_emitted_dpx) - np.min(this_emitted_dpx)))
-#     assert np.allclose(this_emitted_dpy,
-#             this_dE_ds * this_dy_ds * np.diff(mon.s[i_part, :])/p.p0c[0],
-#             rtol=0, atol=2e-3 * (np.max(this_emitted_dpy) - np.min(this_emitted_dpy)))
-
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
@@ -337,7 +351,7 @@ sp2 = plt.subplot(5, 1, 2, sharex=sp1)
 plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e3 * mon.x[i_part_plot, :])
 plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e3 * mon.y[i_part_plot, :])
 plt.axhline(0, color='grey', alpha=0.6, linestyle=':')
-plt.ylim(-100, 100)
+plt.ylim(*orbit_lims)
 plt.ylabel('x, y [mm]')
 
 px = mon.px[i_part_plot, :]
@@ -377,11 +391,14 @@ plt.ylabel(r"$\Delta p_y$ [$10^{-6}$]")
 plt.xlim(-6, 6)
 plt.xlabel('s [m]')
 
-plt.subplots_adjust(top=.91, bottom=.06, hspace=.3)
+plt.subplots_adjust(top=.91, bottom=.06, hspace=.3, left=.14)
 plt.suptitle(r'$\Delta s_\text{slices}$ = ' f'{np.diff(z_log, axis=0).mean():.2f}, '
-             r'$E_0$ = ' f'{p.energy0[0]*1e-9:.2f} GeV, '
-             r'$\delta$ = ' f'{p.delta[0]:.2e}\n'
+             r'$E_0$ = ' f'{p.energy0[0]*1e-9:.1f} GeV, '
+             r'$\delta$ = ' f'{p.delta[0]:.3f} '
+             r'($E$ = ' f'{p.energy[0]*1e-9:.3f} GeV) \n'
              r"Initial $x'$ = " f"{mon.kin_xprime[i_part_plot, 0]*1e3:.2f} mrad, "
              r"initial $y'$ = " f"{mon.kin_yprime[i_part_plot, 0]*1e3:.2f} mrad")
+
+plt.savefig(f'benchmark_{tag}.png', dpi=200)
 
 plt.show()
