@@ -325,8 +325,15 @@ plt.plot(mon.s[:, :-1].T, dE_ds.T * dy_ds.T*np.diff(mon.s, 1).T/p.p0c[0], '--')
 
 i_part_plot = 0
 
-plt.figure(100, figsize=(6.4, 4.8*1.6))
+plt.figure(100, figsize=(6.4*1.1, 4.8*1.7))
+
+
 sp1 = plt.subplot(5, 1, 1)
+# plt.plot(z_axis - z_sol_center, Bz_axis)
+plt.plot(0.5 * (z_log[:-1, i_part] + z_log[1:, i_part]) - z_sol_center, Bz_log[:-1, i_part])
+plt.ylabel(r'$B_{z}$ [T]')
+
+sp2 = plt.subplot(5, 1, 2, sharex=sp1)
 plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e3 * mon.x[i_part_plot, :])
 plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e3 * mon.y[i_part_plot, :])
 plt.axhline(0, color='grey', alpha=0.6, linestyle=':')
@@ -341,64 +348,40 @@ py = mon.py[i_part_plot, :]
 kin_py = mon.kin_py[i_part_plot, :]
 kin_py_boris = py_log[:, i_part_plot]
 
-sp2 = plt.subplot(5, 1, 2, sharex=sp1)
+sp3 = plt.subplot(5, 1, 3, sharex=sp1)
+plt.plot(0.5 * (z_log[:-1, i_part] + z_log[1:, i_part]) - z_sol_center, Bx_log[:-1, i_part])
+plt.plot(0.5 * (z_log[:-1, i_part] + z_log[1:, i_part]) - z_sol_center, By_log[:-1, i_part])
+plt.ylabel(r'$B_{x,y}$ [T]')
+plt.legend([r'$B_x$', r'$B_y$'], loc='upper left')
+
+sp4 = plt.subplot(5, 1, 4, sharex=sp1)
 plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (px - px[0]),
          label=r'$p_x$ (xsuite)')
 plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (kin_px - kin_px[0]),
          label=r"$p_x^\text{kin}$ (xsuite)")
 plt.plot(z_log[:, i_part_plot] - z_sol_center, 1e6 * (kin_px_boris - kin_px[0]),
          label=r"$p_x^\text{kin}$ (Boris)", linestyle='--')
-plt.legend(fontsize='medium')
+plt.legend(fontsize='medium', loc='upper left')
 plt.ylabel(r"$\Delta p_x$ [$10^{-6}$]")
 
-sp3 = plt.subplot(5, 1, 3, sharex=sp1)
-plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (py - py[0]), label=r'Canonical Xsuite')
-plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (kin_py - kin_py[0]), label=r"Kinetic Xsuite")
+sp5 = plt.subplot(5, 1, 5, sharex=sp1)
+plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (py - py[0]),
+         label=r'$p_y$ (xsuite)')
+plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (kin_py - kin_py[0]),
+         label=r"$p_y^\text{kin}$ (xsuite)")
 plt.plot(z_log[:, i_part_plot] - z_sol_center, 1e6 * (kin_py_boris - kin_py[0]),
-         label=r"Kin. Boris", linestyle='--')
-plt.legend(fontsize='medium')
+         label=r"$p_y^\text{kin}$ (Boris)", linestyle='--')
+plt.legend(fontsize='medium', loc='upper left')
 plt.ylabel(r"$\Delta p_y$ [$10^{-6}$]")
 
-sp4 = plt.subplot(5, 1, 4, sharex=sp1)
-# plt.plot(z_axis - z_sol_center, Bz_axis)
-plt.plot(0.5 * (z_log[:-1, i_part] + z_log[1:, i_part]) - z_sol_center, Bz_log[:-1, i_part])
-plt.ylabel(r'$B_{z}$ [T]')
-
-sp4 = plt.subplot(5, 1, 5, sharex=sp1)
-plt.plot(0.5 * (z_log[:-1, i_part] + z_log[1:, i_part]) - z_sol_center, Bx_log[:-1, i_part])
-plt.plot(0.5 * (z_log[:-1, i_part] + z_log[1:, i_part]) - z_sol_center, By_log[:-1, i_part])
-plt.ylabel(r'$B_{x,y}$ [T]')
-plt.legend([r'$B_x$', r'$B_y$'])
+plt.xlim(-6, 6)
 plt.xlabel('s [m]')
 
-plt.xlim(-5, 5)
-plt.subplots_adjust(top=.95, bottom=.06, hspace=.3)
-plt.suptitle(r'$\Delta s_\text{slices}$=' f'{np.diff(z_log, axis=0).mean():.2f}, '
+plt.subplots_adjust(top=.91, bottom=.06, hspace=.3)
+plt.suptitle(r'$\Delta s_\text{slices}$ = ' f'{np.diff(z_log, axis=0).mean():.2f}, '
              r'$E_0$ = ' f'{p.energy0[0]*1e-9:.2f} GeV, '
              r'$\delta$ = ' f'{p.delta[0]:.2e}\n'
              r"Initial $x'$ = " f"{mon.kin_xprime[i_part_plot, 0]*1e3:.2f} mrad, "
              r"initial $y'$ = " f"{mon.kin_yprime[i_part_plot, 0]*1e3:.2f} mrad")
-
-# # Grid of x, y points
-# nx, ny = 101, 101
-# x = np.linspace(z_sol_center - 5, z_sol_center+5, nx)
-# y = np.linspace(0, 0.1, ny)
-# X, Y = np.meshgrid(x, y)
-
-
-# plt.close('all')
-# Bx, By, Bz = sf.get_field(Y, 0*Y, X)
-# plt.figure(101)
-# plt.streamplot(x, y, Bz, Bx, color='k', linewidth=1, cmap=plt.cm.inferno,
-#               density=2, arrowstyle='->', arrowsize=0, minlength=1.5)
-
-
-x_test = 2e-3
-B_test = sf.get_field(0 * z_axis + x_test, 0 * z_axis, z_axis)
-
-Bx_test = B_test[0]
-Bz_test = B_test[2]
-
-
 
 plt.show()
