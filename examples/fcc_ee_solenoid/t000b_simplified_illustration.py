@@ -11,10 +11,15 @@ from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
 
 ctx = xo.ContextCpu()
 
+# p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
+#                  energy0=45.6e9,
+#                  x=-140e-3, px=10e-3,
+#                  y=1e-3, py=0,
+#                  delta=0)
 p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
                  energy0=45.6e9,
-                 x=-140e-3, px=10e-3,
-                 y=1e-3, py=0,
+                 x=1e-3, px=1e-3,
+                 y=1e-3, py=1e-3,
                  delta=0)
 
 
@@ -68,7 +73,7 @@ sp2 = plt.subplot(4, 1, 2, sharex=sp1)
 plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e3 * mon.x[i_part_plot, :])
 plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e3 * mon.y[i_part_plot, :])
 plt.axhline(0, color='grey', alpha=0.6, linestyle=':')
-plt.ylim(-100, 100)
+plt.ylim(-20, 20)
 plt.ylabel('x, y [mm]')
 
 px = mon.px[i_part_plot, :]

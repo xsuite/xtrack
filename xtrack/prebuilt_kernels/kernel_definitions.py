@@ -62,6 +62,7 @@ ONLY_XTRACK_ELEMENTS = [
     ThickSliceOctupole,
     ThickSliceQuadrupole,
     ThickSliceSextupole,
+    ThickSliceSolenoid,
     ThinSliceBend,
     ThinSliceBendEntry,
     ThinSliceBendExit,
