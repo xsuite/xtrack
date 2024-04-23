@@ -58,6 +58,9 @@ Bz_mon[1:] = Bz_mid
 import matplotlib.pyplot as plt
 plt.close('all')
 
+toplot = ['canonical', 'potential', 'prime']
+toplot = ['canonical']
+
 i_part_plot = 0
 dz = z_axis[1] - z_axis[0]
 
@@ -86,30 +89,40 @@ kin_py = mon.kin_py[i_part_plot, :]
 kin_yprime = mon.kin_yprime[i_part_plot, :]
 
 sp3 = plt.subplot(4, 1, 3, sharex=sp1)
-plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (px - px[0]), label=r'$p_x$')
-plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * mon.ax[i_part_plot, :], label=r'$a_x$')
-plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (kin_xprime - kin_xprime[0]),
-         label=r"x'", color='C2', linewidth=2)
+if 'canonical' in toplot:
+    plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (px - px[0]),
+             label=r'$p_x$')
+if 'potential' in toplot:
+    plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * mon.ax[i_part_plot, :],
+             label=r'$a_x$')
+if 'prime' in toplot:
+    plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (kin_xprime - kin_xprime[0]),
+            label=r"x'", color='C2', linewidth=2)
 plt.grid()
 plt.legend(fontsize='medium', loc='upper left')
 plt.ylabel(r"[$10^{-6}$]")
+plt.ylim(-150, 150)
 
 sp4 = plt.subplot(4, 1, 4, sharex=sp1)
-plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (py - py[0]), label=r'$p_y$')
-plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * mon.ay[i_part_plot, :], label=r'$a_y$')
-plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (kin_yprime - kin_yprime[0]),
+if 'canonical' in toplot:
+    plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (py - py[0]),
+             label=r'$p_y$')
+if 'potential' in toplot:
+    plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * mon.ay[i_part_plot, :],
+             label=r'$a_y$')
+if 'prime' in toplot:
+    plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (kin_yprime - kin_yprime[0]),
          label=r"$y'$", color='C2', linewidth=2)
 plt.grid()
 plt.legend(fontsize='medium', loc='upper left')
 plt.ylabel(r"[$10^{-6}$]")
-
-# sp5 = plt.subplot(5, 1, 5, sharex=sp1)
-# plt.plot(mon.s[i_part_plot, :] - z_sol_center, mon.ay[i_part_plot, :])
-
+plt.ylim(-150, 150)
 
 plt.xlim(-5, 5)
 plt.xlabel('s [m]')
 plt.subplots_adjust(top=.95, bottom=.06, hspace=.3)
+
+plt.savefig(f'solenoid_tracking_{"_".join(toplot)}.png', dpi=200)
 
 
 plt.show()

@@ -342,16 +342,18 @@ kin_py = mon.kin_py[i_part_plot, :]
 kin_py_boris = py_log[:, i_part_plot]
 
 sp2 = plt.subplot(5, 1, 2, sharex=sp1)
-plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (px - px[0]), label=r'Canonical')
-plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (kin_px - kin_px[0]), label=r"Kinetic")
+plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (px - px[0]),
+         label=r'$p_x$ (xsuite)')
+plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (kin_px - kin_px[0]),
+         label=r"$p_x^\text{kin}$ (xsuite)")
 plt.plot(z_log[:, i_part_plot] - z_sol_center, 1e6 * (kin_px_boris - kin_px[0]),
-         label=r"Kin. Boris", linestyle='--')
+         label=r"$p_x^\text{kin}$ (Boris)", linestyle='--')
 plt.legend(fontsize='medium')
 plt.ylabel(r"$\Delta p_x$ [$10^{-6}$]")
 
 sp3 = plt.subplot(5, 1, 3, sharex=sp1)
-plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (py - py[0]), label=r'Canonical')
-plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (kin_py - kin_py[0]), label=r"Kinetic")
+plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (py - py[0]), label=r'Canonical Xsuite')
+plt.plot(mon.s[i_part_plot, :] - z_sol_center, 1e6 * (kin_py - kin_py[0]), label=r"Kinetic Xsuite")
 plt.plot(z_log[:, i_part_plot] - z_sol_center, 1e6 * (kin_py_boris - kin_py[0]),
          label=r"Kin. Boris", linestyle='--')
 plt.legend(fontsize='medium')
@@ -371,6 +373,11 @@ plt.xlabel('s [m]')
 
 plt.xlim(-5, 5)
 plt.subplots_adjust(top=.95, bottom=.06, hspace=.3)
+plt.suptitle(r'$\Delta s_\text{slices}$=' f'{np.diff(z_log, axis=0).mean():.2f}, '
+             r'$E_0$ = ' f'{p.energy0[0]*1e-9:.2f} GeV, '
+             r'$\delta$ = ' f'{p.delta[0]:.2e}\n'
+             r"Initial $x'$ = " f"{mon.kin_xprime[i_part_plot, 0]*1e3:.2f} mrad, "
+             r"initial $y'$ = " f"{mon.kin_yprime[i_part_plot, 0]*1e3:.2f} mrad")
 
 # # Grid of x, y points
 # nx, ny = 101, 101
