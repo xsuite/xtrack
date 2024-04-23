@@ -10,7 +10,7 @@ import xobjects as xo
 import xtrack as xt
 
 from ..beam_elements import LimitPolygon, XYShift, SRotation, Drift, Marker
-from ..line import (Line, _is_thick, _behaves_like_drift, _allow_backtrack,
+from ..line import (Line, _is_thick, _behaves_like_drift, _allow_loss_refinement,
                     _has_backtrack, _is_aperture)
 
 from ..general import _print
@@ -52,7 +52,7 @@ class LossLocationRefinement:
         If True, the lines used to refine the loss location are saved.
     allowed_backtrack_types : list
         List of element types through which the backtracking is allowed.
-        Elements exposing the attribute `allow_backtrack` are automatically
+        Elements exposing the attribute `allow_loss_refinement` are automatically
         added to the list.
 
     '''
@@ -261,7 +261,7 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_end_thin_0,
         can_backtrack = True
         if not _has_backtrack(ee, line):
             can_backtrack = False
-        elif not _allow_backtrack(ee, line):
+        elif not _allow_loss_refinement(ee, line):
             can_backtrack = False
 
             # Check for override

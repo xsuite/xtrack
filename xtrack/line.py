@@ -2891,7 +2891,7 @@ class Line:
             ee = self.element_dict[name]
             if isinstance(ee, xt.Replica):
                 ee = ee.resolve(self)
-            if _allow_backtrack(ee, self) and not name in needs_aperture:
+            if _allow_loss_refinement(ee, self) and not name in needs_aperture:
                 dont_need_aperture[name] = True
             if name.endswith('_entry') or name.endswith('_exit'):
                 dont_need_aperture[name] = True
@@ -3871,10 +3871,10 @@ def _is_collective(element, line):
     return iscoll
 
 # whether backtrack in loss location refinement is allowed
-def _allow_backtrack(element, line):
+def _allow_loss_refinement(element, line):
     if isinstance(element, xt.Replica):
         element = element.resolve(line)
-    return hasattr(element, 'allow_backtrack') and element.allow_backtrack
+    return hasattr(element, 'allow_loss_refinement') and element.allow_loss_refinement
 
 # whether element has backtrack capability
 def _has_backtrack(element, line):

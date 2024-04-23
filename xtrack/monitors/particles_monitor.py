@@ -162,7 +162,7 @@ class ParticlesMonitor(BeamElement):
 
     behaves_like_drift = True
     has_backtrack = True
-    allow_backtrack = True
+    allow_loss_refinement = True
     _ParticlesClass = xt.Particles
 
 
