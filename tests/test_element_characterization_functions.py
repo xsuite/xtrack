@@ -41,7 +41,7 @@ def test_has_backtrack(test_context):
     line.build_tracker(_context=test_context)
 
     _has_backtrack = xt.line._has_backtrack
-    _allow_backtrack = xt.line._allow_backtrack
+    _allow_loss_refinement = xt.line._allow_loss_refinement
 
     assert _has_backtrack(line['e0'], line)
     assert _has_backtrack(line['e1'], line)
@@ -50,12 +50,12 @@ def test_has_backtrack(test_context):
     assert _has_backtrack(line['a1'], line)
     assert _has_backtrack(line['a2'], line)
 
-    assert not _allow_backtrack(line['e0'], line)
-    assert not _allow_backtrack(line['e1'], line)
-    assert not _allow_backtrack(line['e2'], line)
-    assert _allow_backtrack(line['a0'], line)
-    assert _allow_backtrack(line['a1'], line)
-    assert _allow_backtrack(line['a2'], line)
+    assert not _allow_loss_refinement(line['e0'], line)
+    assert not _allow_loss_refinement(line['e1'], line)
+    assert not _allow_loss_refinement(line['e2'], line)
+    assert _allow_loss_refinement(line['a0'], line)
+    assert _allow_loss_refinement(line['a1'], line)
+    assert _allow_loss_refinement(line['a2'], line)
 
 def test_is_drift_behaves_like_drift():
 

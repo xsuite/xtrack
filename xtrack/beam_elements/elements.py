@@ -45,7 +45,7 @@ class Marker(BeamElement):
         '_dummy': xo.Int64}
 
     behaves_like_drift = True
-    allow_backtrack = True
+    allow_loss_refinement = True
     has_backtrack = True
     allow_rot_and_shift = False
 
@@ -72,7 +72,7 @@ class Drift(BeamElement):
     isthick = True
     behaves_like_drift = True
     has_backtrack = True
-    allow_backtrack = True
+    allow_loss_refinement = True
     allow_rot_and_shift = False
 
     _extra_c_sources = [
@@ -138,7 +138,7 @@ class XYShift(BeamElement):
         'dy': xo.Float64,
         }
 
-    allow_backtrack = True
+    allow_loss_refinement = True
     has_backtrack = True
     allow_rot_and_shift = False
 
@@ -279,7 +279,7 @@ class SRotation(BeamElement):
         'sin_z': xo.Float64,
         }
 
-    allow_backtrack = True
+    allow_loss_refinement = True
     has_backtrack = True
     allow_rot_and_shift = False
 
@@ -348,7 +348,7 @@ class XRotation(BeamElement):
         'tan_angle': xo.Float64,
         }
 
-    allow_backtrack = True
+    allow_loss_refinement = True
     has_backtrack = True
     allow_rot_and_shift = False
 
@@ -431,7 +431,7 @@ class YRotation(BeamElement):
     '''
 
     has_backtrack = True
-    allow_backtrack = True
+    allow_loss_refinement = True
     allow_rot_and_shift = False
 
     _xofields={
