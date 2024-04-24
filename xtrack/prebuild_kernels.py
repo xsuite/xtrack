@@ -267,15 +267,12 @@ def regenerate_kernels(kernels=None):
         import xcoll as xc
         BEAM_ELEMENTS_INIT_DEFAULTS['EverestBlock'] = {
                 'material': xc.materials.Silicon,
-                'use_prebuilt_kernels': False
             }
         BEAM_ELEMENTS_INIT_DEFAULTS['EverestCollimator'] = {
                 'material': xc.materials.Silicon,
-                'use_prebuilt_kernels': False
             }
         BEAM_ELEMENTS_INIT_DEFAULTS['EverestCrystal'] = {
                 'material': xc.materials.SiliconCrystal,
-                'use_prebuilt_kernels': False
             }
     except ImportError:
         pass
