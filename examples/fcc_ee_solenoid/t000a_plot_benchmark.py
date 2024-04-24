@@ -43,13 +43,13 @@ ctx.add_kernels(
     sources=[xt._pkg_root / '_temp/boris_and_solenoid_map/boris.h'],
 )
 
-tag = 'case0'
-orbit_lims = -5, 5
-p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
-                 energy0=45.6e9,
-                 x=1e-3, px=0,
-                 y=1e-3, py=0,
-                 delta=0)
+# tag = 'case0'
+# orbit_lims = -5, 5
+# p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
+#                  energy0=45.6e9,
+#                  x=1e-3, px=0,
+#                  y=1e-3, py=0,
+#                  delta=0)
 
 # tag = 'case1'
 # orbit_lims = -100, 100
@@ -68,14 +68,14 @@ p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
 #                  y=10e-3, py=-5e-3 * (1+delta),
 #                  delta=delta)
 
-tag = 'case3'
-orbit_lims = -100, 100
-delta = -0.99
-p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
-                 energy0=45.6e9,
-                 x=-170e-3, px=15e-3 * (1+delta),
-                 y=10e-3, py=-5e-3 * (1+delta),
-                 delta=delta)
+# tag = 'case3'
+# orbit_lims = -100, 100
+# delta = -0.99
+# p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
+#                  energy0=45.6e9,
+#                  x=-170e-3, px=15e-3 * (1+delta),
+#                  y=10e-3, py=-5e-3 * (1+delta),
+#                  delta=delta)
 
 # tag = 'case4'
 # orbit_lims = -100, 100
@@ -86,6 +86,13 @@ p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
 #                  y=10e-3, py=-5e-3 * (1+delta),
 #                  delta=delta)
 
+tag = 'case5'
+orbit_lims = -100, 100
+p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
+                 energy0=45.6e9,
+                 x=-70e-3, px=6e-3,
+                 y=10e-3, py=-5e-3,
+                 delta=0)
 
 p = p0.copy()
 
