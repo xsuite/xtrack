@@ -17,6 +17,10 @@ void track_thick_bend(
         const double h        // curvature
 ) {
 
+    if (length == 0.0) {
+        return;
+    }
+
     double const k_chi = k * LocalParticle_get_chi(part);
 
     if(fabs(k_chi) < 1e-8 && fabs(h) < 1e-8) {

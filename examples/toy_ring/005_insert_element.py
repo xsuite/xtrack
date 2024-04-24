@@ -35,25 +35,24 @@ tab = line.get_table()
 tab.show()
 # prints:
 #
-# Table: 17 rows, 5 cols
-# name          s element_type isthick compound_name
-# mqf.1         0 Quadrupole      True
-# d1.1        0.3 Drift           True
-# mb1.1       1.3 Bend            True
-# d2.1        4.3 Drift           True
-# mqd.1       5.3 Quadrupole      True
-# d3.1        5.6 Drift           True
-# mb2.1       6.6 Bend            True
-# d4.1        9.6 Drift           True
-# mqf.2      10.6 Quadrupole      True
-# d1.2       10.9 Drift           True
-# mb1.2      11.9 Bend            True
-# d2.2       14.9 Drift           True
-# mqd.2      15.9 Quadrupole      True
-# d3.2       16.2 Drift           True
-# mb2.2      17.2 Bend            True
-# d4.2       20.2 Drift           True
-# _end_point 21.2                False
+# name          s element_type isthick isreplica parent_name iscollective
+# mqf.1         0 Quadrupole      True     False        None        False
+# d1.1        0.3 Drift           True     False        None        False
+# mb1.1       1.3 Bend            True     False        None        False
+# d2.1        4.3 Drift           True     False        None        False
+# mqd.1       5.3 Quadrupole      True     False        None        False
+# d3.1        5.6 Drift           True     False        None        False
+# mb2.1       6.6 Bend            True     False        None        False
+# d4.1        9.6 Drift           True     False        None        False
+# mqf.2      10.6 Quadrupole      True     False        None        False
+# d1.2       10.9 Drift           True     False        None        False
+# mb1.2      11.9 Bend            True     False        None        False
+# d2.2       14.9 Drift           True     False        None        False
+# mqd.2      15.9 Quadrupole      True     False        None        False
+# d3.2       16.2 Drift           True     False        None        False
+# mb2.2      17.2 Bend            True     False        None        False
+# d4.2       20.2 Drift           True     False        None        False
+# _end_point 21.2                False     False        None        False
 
 # Define a sextupole
 my_sext = xt.Sextupole(length=0.1, k2=0.1)
@@ -72,30 +71,30 @@ line.insert_element('aper', my_aper, index='mb1.1')
 line.get_table().show()
 # prints:
 #
-# name          s element_type isthick compound_name
-# mqf.1         0 Quadrupole      True
-# d1.1_u      0.3 Drift           True
-# msf.1       0.4 Sextupole       True
-# d1.1_d      0.5 Drift           True
-# aper        1.3 LimitRect      False
-# mb1.1       1.3 Bend            True
-# d2.1        4.3 Drift           True
-# mqd.1       5.3 Quadrupole      True
-# d3.1_u      5.6 Drift           True
-# msd.1       5.7 Sextupole       True
-# d3.1_d      5.8 Drift           True
-# mb2.1       6.6 Bend            True
-# d4.1        9.6 Drift           True
-# mqf.2      10.6 Quadrupole      True
-# d1.2_u     10.9 Drift           True
-# msf.2        11 Sextupole       True
-# d1.2_d     11.1 Drift           True
-# mb1.2      11.9 Bend            True
-# d2.2       14.9 Drift           True
-# mqd.2      15.9 Quadrupole      True
-# d3.2_u     16.2 Drift           True
-# msd.2      16.3 Sextupole       True
-# d3.2_d     16.4 Drift           True
-# mb2.2      17.2 Bend            True
-# d4.2       20.2 Drift           True
-# _end_point 21.2                False
+# name          s element_type isthick isreplica parent_name iscollective
+# mqf.1         0 Quadrupole      True     False        None        False
+# d1.1..0     0.3 DriftSlice      True     False        d1.1        False
+# msf.1       0.4 Sextupole       True     False        None        False
+# d1.1..2     0.5 DriftSlice      True     False        d1.1        False
+# aper        1.3 LimitRect      False     False        None        False
+# mb1.1       1.3 Bend            True     False        None        False
+# d2.1        4.3 Drift           True     False        None        False
+# mqd.1       5.3 Quadrupole      True     False        None        False
+# d3.1..0     5.6 DriftSlice      True     False        d3.1        False
+# msd.1       5.7 Sextupole       True     False        None        False
+# d3.1..2     5.8 DriftSlice      True     False        d3.1        False
+# mb2.1       6.6 Bend            True     False        None        False
+# d4.1        9.6 Drift           True     False        None        False
+# mqf.2      10.6 Quadrupole      True     False        None        False
+# d1.2..0    10.9 DriftSlice      True     False        d1.2        False
+# msf.2        11 Sextupole       True     False        None        False
+# d1.2..2    11.1 DriftSlice      True     False        d1.2        False
+# mb1.2      11.9 Bend            True     False        None        False
+# d2.2       14.9 Drift           True     False        None        False
+# mqd.2      15.9 Quadrupole      True     False        None        False
+# d3.2..0    16.2 DriftSlice      True     False        d3.2        False
+# msd.2      16.3 Sextupole       True     False        None        False
+# d3.2..2    16.4 DriftSlice      True     False        d3.2        False
+# mb2.2      17.2 Bend            True     False        None        False
+# d4.2       20.2 Drift           True     False        None        False
+# _end_point 21.2                False     False        None        False

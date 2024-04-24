@@ -21,6 +21,13 @@ mad.use('fccee_p_ring')
 
 line_thick = xt.Line.from_madx_sequence(mad.sequence.fccee_p_ring, allow_thick=True,
                                   deferred_expressions=True)
+
+# Introduce 90 degree tilt for wiggler
+tt = line_thick.get_table()
+wigs = tt.rows['mwi.*', tt.element_type=='Bend'].name
+for nn in wigs:
+    line_thick.element_refs[nn].rot_s_rad = np.pi/2
+
 line_thick.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV,
                                  gamma0=mad.sequence.fccee_p_ring.beam.gamma)
 line_thick.build_tracker()
@@ -55,17 +62,9 @@ slicing_strategies = [
 
 line.slice_thick_elements(slicing_strategies=slicing_strategies)
 
-# Tilt wiggler by 90 degrees
-tt = line.get_table()
-wigs = tt.rows['mwi.*', tt.element_type=='Multipole'].name
-for nn in wigs:
-    line.element_refs[nn].hyl = line.element_refs[nn].hxl._expr
-    line.element_refs[nn].hxl = 0
-    line.element_refs[nn].ksl[0] = line.element_refs[nn].knl[0]._expr
-    line.element_refs[nn].knl[0] = 0
-
 line.build_tracker()
-tw_thin_before = line.twiss(start=0, end=len(line)-1, method='4d',
+tw_thin_before = line.twiss(start=line.element_names[0], end=line.element_names[-1],
+                          method='4d',
                           init=tw_thick_no_rad.get_twiss_init(0))
 
 # Compare tunes
@@ -86,9 +85,8 @@ print('Number of elements: ', len(line))
 print('\n')
 
 opt = line.match(
-    only_markers=True,
     method='4d',
-    start=0, end=len(line)-1,
+    start=line.element_names[0], end=line.element_names[-1],
     init=tw_thick_no_rad.get_twiss_init(0),
     vary=xt.VaryList(['k1qf4', 'k1qf2', 'k1qd3', 'k1qd1',], step=1e-8,
     ),

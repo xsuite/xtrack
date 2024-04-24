@@ -25,11 +25,13 @@ print('Tracking...')
 line.track(p, num_turns=6000, time=True)
 print(f'Done in {line.time_last_track:.4} s')
 
-assert np.isclose(monitor.x[0, 0], -0.045936, rtol=0, atol=1e-5)
-assert np.isclose(monitor.x[0, 300], -0.04522354, rtol=0, atol=1e-5)
-assert np.isclose(monitor.x[0, 2500], -0.02256763, rtol=0, atol=1e-5)
-assert np.isclose(monitor.x[0, 4500], -0.00143883, rtol=0, atol=1e-5)
-assert np.isclose(monitor.x[0, 5500], 0.0, rtol=0, atol=1e-5)
+import numpy as np
+assert_allclose = np.testing.assert_allclose
+assert_allclose(monitor.x[0, 0], -0.045936, rtol=0, atol=1e-5)
+assert_allclose(monitor.x[0, 300], -0.04522354, rtol=0, atol=1e-5)
+assert_allclose(monitor.x[0, 2500], -0.02256763, rtol=0, atol=1e-5)
+assert_allclose(monitor.x[0, 4500], -0.00143883, rtol=0, atol=1e-5)
+assert_allclose(monitor.x[0, 5500], 0.0, rtol=0, atol=1e-5)
 
 
 import matplotlib.pyplot as plt

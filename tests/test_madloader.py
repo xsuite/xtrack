@@ -39,7 +39,7 @@ def test_add_lists():
 
 def test_tilt_shift_and_errors():
 
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     src="""
     k1=0.2;
@@ -47,7 +47,7 @@ def test_tilt_shift_and_errors():
 
     elm: multipole,
             knl:={0.1,-k1,0.3},
-            ksl={-0.1,0.2,-0.3,4},
+            ksl={0.,0.2,-0.3,4},
             angle=0.1,
             tilt=0.2,
             lrad=1,
@@ -117,45 +117,43 @@ def test_tilt_shift_and_errors():
         line=ml.make_line()
 
         if opt['enable_apertures'] and opt['enable_errors']:
-            line.element_names == (
-                'seq$start', 'elm1_aper_tilt_entry', 'elm1_aper_offset_entry',
-                'elm1_aper', 'elm1_aper_offset_exit', 'elm1_aper_tilt_exit',
-                'elm1_tilt_entry', 'elm1_offset_entry', 'elm1', 'elm1_offset_exit',
-                'elm1_tilt_exit', 'drift_0', 'mk', 'mk2_aper', 'mk2', 'drift_1',
-                'elm2_aper_tilt_entry', 'elm2_aper_offset_entry', 'elm2_aper',
-                'elm2_aper_offset_exit', 'elm2_aper_tilt_exit', 'elm2_tilt_entry',
-                'elm2_offset_entry', 'elm2', 'elm2_offset_exit', 'elm2_tilt_exit',
-                'elm3_aper_tilt_entry', 'elm3_aper_offset_entry', 'elm3_aper',
-                'elm3_aper_offset_exit', 'elm3_aper_tilt_exit', 'elm3_tilt_entry',
-                'elm3_offset_entry', 'elm3', 'elm3_offset_exit', 'elm3_tilt_exit',
-                'drift_2', 'seq$end')
+            assert np.all(np.array(line.element_names) == (
+                'seq$start',
+                'elm1_aper',
+                'elm1',
+                'drift_0', 'mk', 'mk2_aper', 'mk2', 'drift_1',
+                'elm2_aper',
+                'elm2',
+                'elm3_aper',
+                'elm3',
+                'drift_2', 'seq$end'))
 
         elif opt['enable_apertures'] and not(opt['enable_errors']):
-            line.element_names == (
-                'seq$start', 'elm1_aper_tilt_entry', 'elm1_aper_offset_entry',
-                'elm1_aper', 'elm1_aper_offset_exit', 'elm1_aper_tilt_exit',
-                'elm1_tilt_entry', 'elm1', 'elm1_tilt_exit', 'drift_0', 'mk',
-                'mk2_aper', 'mk2', 'drift_1', 'elm2_aper_tilt_entry',
-                'elm2_aper_offset_entry', 'elm2_aper', 'elm2_aper_offset_exit',
-                'elm2_aper_tilt_exit', 'elm2_tilt_entry', 'elm2', 'elm2_tilt_exit',
-                'elm3_aper_tilt_entry', 'elm3_aper_offset_entry', 'elm3_aper',
-                'elm3_aper_offset_exit', 'elm3_aper_tilt_exit',
-                'elm3_tilt_entry','elm3', 'elm3_tilt_exit', 'drift_2', 'seq$end'
-                )
+            assert np.all(np.array(line.element_names) == (
+                'seq$start',
+                'elm1_aper',
+                'elm1',
+                'drift_0',
+                'mk',
+                'mk2_aper', 'mk2', 'drift_1',
+                'elm2_aper',
+                'elm2',
+                'elm3_aper',
+                'elm3', 'drift_2', 'seq$end'
+                ))
         elif not(opt['enable_apertures']) and opt['enable_errors']:
-            line.element_names == (
-                'seq$start', 'elm1_tilt_entry', 'elm1_offset_entry', 'elm1',
-                'elm1_offset_exit', 'elm1_tilt_exit', 'drift_0', 'mk', 'mk2',
-                'drift_1', 'elm2_tilt_entry', 'elm2_offset_entry', 'elm2',
-                'elm2_offset_exit', 'elm2_tilt_exit', 'elm3_tilt_entry',
-                'elm3_offset_entry', 'elm3', 'elm3_offset_exit',
-                'elm3_tilt_exit', 'drift_2', 'seq$end')
+            assert np.all(np.array(line.element_names) == (
+                'seq$start', 'elm1',
+                'drift_0', 'mk', 'mk2',
+                'drift_1', 'elm2',
+                'elm3',
+                'drift_2', 'seq$end'))
         elif not(opt['enable_apertures']) and not(opt['enable_errors']):
-            line.element_names == (
-                'seq$start', 'elm1_tilt_entry', 'elm1', 'elm1_tilt_exit',
-                'drift_0', 'mk', 'mk2', 'drift_1', 'elm2_tilt_entry', 'elm2',
-                'elm2_tilt_exit', 'elm3_tilt_entry', 'elm3', 'elm3_tilt_exit',
-                'drift_2', 'seq$end')
+            assert np.all(np.array(line.element_names) == (
+                'seq$start', 'elm1',
+                'drift_0', 'mk', 'mk2', 'drift_1', 'elm2',
+                'elm3',
+                'drift_2', 'seq$end'))
 
         for nn in line.element_names:
             if 'tilt' in nn:
@@ -168,25 +166,15 @@ def test_tilt_shift_and_errors():
         on_err = int(opt['enable_errors'])
         if opt['enable_apertures']:
 
-            assert np.isclose(line['elm2_aper_tilt_entry'].angle,
-                                mad_elm2.aper_tilt/np.pi*180,
-                                rtol=0, atol=1e-13)
-            assert np.isclose(line['elm2_aper_tilt_exit'].angle,
-                                -mad_elm2.aper_tilt/np.pi*180,
+            assert np.isclose(line['elm2_aper'].rot_s_rad,
+                                mad_elm2.aper_tilt,
                                 rtol=0, atol=1e-13)
 
-
-            assert np.isclose(line['elm2_aper_offset_entry'].dx,
+            assert np.isclose(line['elm2_aper'].shift_x,
                         on_err * mad_elm2.align_errors.arex + mad_elm2.aper_offset[0],
                         rtol=0, atol=1e-13)
-            assert np.isclose(line['elm2_aper_offset_entry'].dy,
+            assert np.isclose(line['elm2_aper'].shift_y,
                         on_err * mad_elm2.align_errors.arey + mad_elm2.aper_offset[1],
-                        rtol=0, atol=1e-13)
-            assert np.isclose(line['elm2_aper_offset_exit'].dx,
-                        -(on_err * mad_elm2.align_errors.arex + mad_elm2.aper_offset[0]),
-                        rtol=0, atol=1e-13)
-            assert np.isclose(line['elm2_aper_offset_exit'].dy,
-                        -(on_err * mad_elm2.align_errors.arey + mad_elm2.aper_offset[1]),
                         rtol=0, atol=1e-13)
 
             assert isinstance(line['elm2_aper'], xt.LimitRectEllipse)
@@ -195,22 +183,15 @@ def test_tilt_shift_and_errors():
             assert line['elm2_aper'].a_squ == .11**2
             assert line['elm2_aper'].b_squ == .22**2
 
-        assert np.isclose(line['elm2_tilt_entry'].angle,
-                    (mad_elm2.tilt + on_err * mad_elm2.align_errors.dpsi)/np.pi*180,
-                    rtol=0, atol=1e-13)
-        assert np.isclose(line['elm2_tilt_exit'].angle,
-                    -(mad_elm2.tilt + on_err * mad_elm2.align_errors.dpsi)/np.pi*180,
+        assert np.isclose(line['elm2'].rot_s_rad,
+                    (mad_elm2.tilt + on_err * mad_elm2.align_errors.dpsi),
                     rtol=0, atol=1e-13)
 
         if opt['enable_errors']:
-            assert np.isclose(line['elm2_offset_entry'].dx,
+            assert np.isclose(line['elm2'].shift_x,
                                 on_err * mad_elm2.align_errors.dx, rtol=0, atol=1e-13)
-            assert np.isclose(line['elm2_offset_entry'].dy,
+            assert np.isclose(line['elm2'].shift_y,
                                 on_err * mad_elm2.align_errors.dy, rtol=0, atol=1e-13)
-            assert np.isclose(line['elm2_offset_exit'].dx,
-                                -on_err * mad_elm2.align_errors.dx, rtol=0, atol=1e-13)
-            assert np.isclose(line['elm2_offset_exit'].dy,
-                                -on_err * mad_elm2.align_errors.dy, rtol=0, atol=1e-13)
 
         for ii in range(line['elm2'].order+1):
             ref = 0
@@ -233,7 +214,7 @@ def test_tilt_shift_and_errors():
         line=list(ml.iter_elements())
 
 def test_matrix():
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     mad.input("""
     a11=1;
@@ -249,10 +230,10 @@ def test_matrix():
     line=MadLoader(mad.sequence.ss).make_line()
     line=MadLoader(mad.sequence.ss,enable_expressions=True).make_line()
     line.vars['a11']=2.0
-    assert line[2].m1[0,0]==line.vars['a11']._value
+    assert line[1].m1[0,0]==line.vars['a11']._value
 
 def test_srotation():
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     mad.input("""
     angle=0.2;
@@ -265,12 +246,12 @@ def test_srotation():
 
     line=MadLoader(mad.sequence.ss).make_line()
     line=MadLoader(mad.sequence.ss,enable_expressions=True).make_line()
-    assert isinstance(line[2],xt.SRotation)
+    assert isinstance(line[1],xt.SRotation)
     line.vars['angle'] = 2.0
-    assert line[2].angle == line.vars['angle']._value*180/np.pi
+    assert line[1].angle == line.vars['angle']._value*180/np.pi
 
 def test_xrotation():
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     mad.input("""
     angle=0.2;
@@ -283,12 +264,12 @@ def test_xrotation():
 
     line=MadLoader(mad.sequence.ss).make_line()
     line=MadLoader(mad.sequence.ss,enable_expressions=True).make_line()
-    assert isinstance(line[2],xt.XRotation)
+    assert isinstance(line[1],xt.XRotation)
     line.vars['angle'] = 2.0
-    assert line[2].angle == line.vars['angle']._value*180/np.pi
+    assert line[1].angle == line.vars['angle']._value*180/np.pi
 
 def test_yrotation():
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     mad.input("""
     angle=0.2;
@@ -301,13 +282,13 @@ def test_yrotation():
 
     line=MadLoader(mad.sequence.ss).make_line()
     line=MadLoader(mad.sequence.ss,enable_expressions=True).make_line()
-    assert isinstance(line[2],xt.YRotation)
+    assert isinstance(line[1],xt.YRotation)
     line.vars['angle'] = 2.0
-    assert line[2].angle == line.vars['angle']._value*180/np.pi
+    assert line[1].angle == line.vars['angle']._value*180/np.pi
 
 def test_mad_elements_import():
 
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     # Element definitions
     mad.input("""
@@ -317,17 +298,17 @@ def test_mad_elements_import():
     cav0: rfcavity, freq:=a*10, lag:=a*0.5, volt:=a*6;
     cav1: rfcavity, lag:=a*0.5, volt:=a*6, harmon:=a*8;
     wire1: wire, current:=a*5, l:=a*0, l_phy:=a*1, l_int:=a*2, xma:=a*1e-3, yma:=a*2e-3;
-    mult0: multipole, knl:={a*1,a*2,a*3}, ksl:={a*4,a*5,a*6}, lrad:=a*1.1;
-    mult1: multipole, knl={1,2,3,0}, ksl:={1,2,3};
-    mult2: multipole, knl={1,2,3,0}, ksl={1,2,0,0,0};
-    mult3: multipole, knl={1,2,3,0}, ksl:={1,2,0,b,0};
+    mult0: multipole, knl:={a*1,a*2,a*3}, ksl:={0, a*5,a*6}, lrad:=a*1.1;
+    mult1: multipole, knl={1,2,3,0}, ksl:={0,2,3};
+    mult2: multipole, knl={1,2,3,0}, ksl={0,2,0,0,0};
+    mult3: multipole, knl={1,2,3,0}, ksl:={0,2,0,b,0};
     kick0: kicker, hkick:=a*5, vkick:=a*6, lrad:=a*2.2;
     kick1: tkicker, hkick:=a*7, vkick:=a*8, lrad:=a*2.3;
     kick2: hkicker, kick:=a*3, lrad:=a*2.4;
     kick3: vkicker, kick:=a*4, lrad:=a*2.5;
     dipedge0: dipedge, h:=a*0.1, e1:=a*3, fint:=a*4, hgap:=a*0.02;
     rfm0: rfmultipole, volt:=a*2, lag:=a*0.5, freq:=a*100.,
-                knl:={a*2,a*3}, ksl:={a*4,a*5},
+                knl:={a*2,a*3}, ksl:={0,a*5},
                 pnl:={a*0.3, a*0.4}, psl:={a*0.5, a*0.6};
     crab0: crabcavity, volt:=a*2, lag:=a*0.5, freq:=a*100.;
     crab1: crabcavity, volt:=a*2, lag:=a*0.5, freq:=a*100., tilt:=a*pi/2;
@@ -409,9 +390,8 @@ def test_mad_elements_import():
         assert isinstance(line['m0'], xt.Multipole)
         assert line.get_s_position('m0') == 0.1
         assert np.all(line['m0'].knl == np.array([1,2,3]))
-        assert np.all(line['m0'].ksl == np.array([4,5,6]))
+        assert np.all(line['m0'].ksl == np.array([0,5,6]))
         assert line['m0'].hxl == 1
-        assert line['m0'].hyl == 4
         assert line['m0'].length == 1.1
         assert len(line['m1'].knl)==3
         assert len(line['m1'].ksl)==3
@@ -430,7 +410,6 @@ def test_mad_elements_import():
         assert np.all(line['k0'].knl == np.array([-5]))
         assert np.all(line['k0'].ksl == np.array([6]))
         assert line['k0'].hxl == 0
-        assert line['k0'].hyl == 0
         assert line['k0'].length == 2.2
 
         assert isinstance(line['k1'], xt.Multipole)
@@ -438,7 +417,6 @@ def test_mad_elements_import():
         assert np.all(line['k1'].knl == np.array([-7]))
         assert np.all(line['k1'].ksl == np.array([8]))
         assert line['k1'].hxl == 0
-        assert line['k1'].hyl == 0
         assert line['k1'].length == 2.3
 
         assert isinstance(line['k2'], xt.Multipole)
@@ -446,7 +424,6 @@ def test_mad_elements_import():
         assert np.all(line['k2'].knl == np.array([-3]))
         assert np.all(line['k2'].ksl == np.array([0]))
         assert line['k2'].hxl == 0
-        assert line['k2'].hyl == 0
         assert line['k2'].length == 2.4
 
         assert isinstance(line['k3'], xt.Multipole)
@@ -454,7 +431,6 @@ def test_mad_elements_import():
         assert np.all(line['k3'].knl == np.array([0]))
         assert np.all(line['k3'].ksl == np.array([4]))
         assert line['k3'].hxl == 0
-        assert line['k3'].hyl == 0
         assert line['k3'].length == 2.5
 
         assert isinstance(line['c0'], xt.Cavity)
@@ -480,7 +456,7 @@ def test_mad_elements_import():
         assert isinstance(line['r0'], xt.RFMultipole)
         assert line.get_s_position('r0') == 0.4
         assert np.all(line['r0'].knl == np.array([2,3]))
-        assert np.all(line['r0'].ksl == np.array([4,5]))
+        assert np.all(line['r0'].ksl == np.array([0,5]))
         assert np.all(line['r0'].pn == np.array([0.3*360,0.4*360]))
         assert np.all(line['r0'].ps == np.array([0.5*360,0.6*360]))
         assert line['r0'].voltage == 2e6
@@ -542,7 +518,7 @@ def test_selective_expr_import_and_replace_in_expr():
 
     # Load line with knobs on correctors only
     from cpymad.madx import Madx
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.call(str( test_data_folder /
                 'hllhc14_no_errors_with_coupling_knobs/lhcb1_seq.madx'))
     mad.use(sequence='lhcb1')
@@ -661,7 +637,7 @@ def test_load_b2_with_bv_minus_one():
 
     test_data_folder_str = str(test_data_folder)
 
-    mad1=Madx()
+    mad1=Madx(stdout=False)
     mad1.call(test_data_folder_str + '/hllhc15_thick/lhc.seq')
     mad1.call(test_data_folder_str + '/hllhc15_thick/hllhc_sequence.madx')
     mad1.input('beam, sequence=lhcb1, particle=proton, energy=7000;')
@@ -671,7 +647,7 @@ def test_load_b2_with_bv_minus_one():
     mad1.call(test_data_folder_str + '/hllhc15_thick/opt_round_150_1500.madx')
     mad1.twiss()
 
-    mad4=Madx()
+    mad4=Madx(stdout=False)
     mad4.input('mylhcbeam=4')
     mad4.call(test_data_folder_str + '/hllhc15_thick/lhcb4.seq')
     mad4.call(test_data_folder_str + '/hllhc15_thick/hllhc_sequence.madx')
@@ -732,12 +708,6 @@ def test_load_b2_with_bv_minus_one():
     l4names.remove('lhcb2$start')
     l4names.remove('lhcb2$end')
 
-    # They seem not to be in the same place?!?
-    l2names.remove('tclia.4r2_entry')
-    l2names.remove('tclia.4r2_exit')
-    l4names.remove('tclia.4r2_entry')
-    l4names.remove('tclia.4r2_exit')
-
     assert set(l2names) == set(l4names)
 
     assert np.allclose(
@@ -752,7 +722,7 @@ def test_load_b2_with_bv_minus_one():
         d2 = e2.to_dict()
         d4 = e4.to_dict()
         for kk in d2.keys():
-            if kk == '__class__':
+            if kk in ('__class__', 'model', 'side'):
                 assert d2[kk] == d4[kk]
                 continue
             assert np.allclose(d2[kk], d4[kk], rtol=1e-10, atol=1e-16)

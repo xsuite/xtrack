@@ -7,6 +7,7 @@ import pathlib
 import numpy as np
 import pytest
 
+import xobjects as xo
 import xtrack as xt
 import xpart as xp
 from xobjects.test_helpers import for_all_test_contexts
@@ -22,7 +23,7 @@ path = test_data_folder.joinpath('hllhc14_input_mad/')
 
 @pytest.fixture(scope='module')
 def mad_with_errors():
-    mad_with_errors = Madx()
+    mad_with_errors = Madx(stdout=False)
     mad_with_errors.call(str(path.joinpath("final_seq.madx")))
     mad_with_errors.use(sequence='lhcb1')
     mad_with_errors.twiss()
@@ -40,7 +41,7 @@ def mad_with_errors():
 
 @pytest.fixture(scope='module')
 def mad_b12_no_errors():
-    mad_b12_no_errors = Madx()
+    mad_b12_no_errors = Madx(stdout=False)
     mad_b12_no_errors.call(str(test_data_folder.joinpath(
                                    'hllhc15_noerrors_nobb/sequence.madx')))
     mad_b12_no_errors.globals['vrf400'] = 16
@@ -56,7 +57,7 @@ def mad_b12_no_errors():
 
 @pytest.fixture(scope='module')
 def mad_b4_no_errors():
-    mad_b4_no_errors = Madx()
+    mad_b4_no_errors = Madx(stdout=False)
     mad_b4_no_errors.call(str(test_data_folder.joinpath(
                                    'hllhc15_noerrors_nobb/sequence_b4.madx')))
     mad_b4_no_errors.globals['vrf400'] = 16
@@ -283,10 +284,10 @@ def test_twiss_and_survey(
                 sigx = np.sqrt(twmad['sig11'][imad])
                 sigy = np.sqrt(twmad['sig33'][imad])
 
-                assert np.isclose(twtst['x'][ixt], (twmad['x'][imad] - mad_shift_x),
+                assert np.isclose(twtst['x'][ixt], twmad['x'][imad],
                                 atol=0.03*sigx, rtol=0)
                 assert np.isclose(twtst['y'][ixt],
-                                (twmad['y'][imad] - mad_shift_y),
+                                (twmad['y'][imad]),
                                 atol=0.03*sigy, rtol=0)
 
                 assert np.isclose(twtst['px'][ixt], twmad['px'][imad],
@@ -435,30 +436,33 @@ def test_line_import_from_madx(test_context, mad_with_errors):
         dtest = ee_test.to_dict()
         dref = ee_six.to_dict()
 
+        ee_test_cpu = ee_test.copy(_context=xo.ContextCpu())
+        ee_six_cpu = ee_six.copy(_context=xo.ContextCpu())
+
         skip_order = False
         if isinstance(ee_test, xt.Multipole):
             if ee_test._order != ee_six._order:
                 min_order = min(ee_test._order, ee_six._order)
-                if len(dtest['knl']) > min_order+1:
-                    assert np.all(dtest['knl'][min_order+1]  == 0)
-                    dtest['knl'] = dtest['knl'][:min_order+1]
-                if len(dref['knl']) > min_order+1:
-                    assert np.all(dref['knl'][min_order+1]  == 0)
-                    dref['knl'] = dref['knl'][:min_order+1]
-                if len(dtest['ksl']) > min_order+1:
-                    assert np.all(dtest['ksl'][min_order+1]  == 0)
-                    dtest['ksl'] = dtest['ksl'][:min_order+1]
-                if len(dref['ksl']) > min_order+1:
-                    assert np.all(dref['ksl'][min_order+1]  == 0)
-                    dref['ksl'] = dref['ksl'][:min_order+1]
+                assert np.allclose(
+                    ee_test.knl[:min_order+1],
+                    ee_six.knl[:min_order+1],
+                    atol=1e-16,
+                )
+                assert np.allclose(
+                    ee_test.ksl[:min_order+1],
+                    ee_six.ksl[:min_order+1],
+                    atol=1e-16,
+                )
+                assert np.allclose(ee_test.knl[min_order+1:], 0, atol=1e-16)
+                assert np.allclose(ee_test.ksl[min_order+1:], 0, atol=1e-16)
+                assert np.allclose(ee_six.knl[min_order+1:], 0, atol=1e-16)
+                assert np.allclose(ee_six.ksl[min_order+1:], 0, atol=1e-16)
+
                 skip_order = True
 
         for kk in dtest.keys():
 
-            if skip_order and kk == '_order':
-                continue
-
-            if skip_order and kk == 'inv_factorial_order':
+            if skip_order and kk in ('order', 'knl', 'ksl'):
                 continue
 
             # Check if they are identical
@@ -598,7 +602,7 @@ def test_low_beta_twiss(test_context):
 
     path_madseq = test_data_folder / 'psb_injection/psb_injection.seq'
 
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.call(str(path_madseq))
 
     mad.use(sequence='psb')

@@ -82,6 +82,71 @@ def _handle_per_particle_blocks(sources, local_particle_src):
 
     return out
 
+def _generate_track_local_particle_with_transformations(
+                                                element_name,
+                                                allow_rot_and_shift,
+                                                rot_and_shift_from_parent,
+                                                local_particle_function_name):
+
+    source = ('''
+            /*gpufun*/
+            '''
+            f'void {local_particle_function_name}_with_transformations({element_name}Data el, LocalParticle* part0)'
+            '{\n')
+
+    if rot_and_shift_from_parent:
+        add_to_call = '__parent'
+    else:
+        add_to_call = ''
+
+    if allow_rot_and_shift:
+
+        source += (
+            '    // Transform to local frame\n'
+            # f'    printf("Transform to local frame {element_name}\\n");\n'
+            f'double const _sin_rot_s = {element_name}Data_get{add_to_call}__sin_rot_s(el);\n'
+            'if (_sin_rot_s > -2.) {\n'
+            f'    double const _cos_rot_s = {element_name}Data_get{add_to_call}__cos_rot_s(el);\n'
+            f'    double const shift_x = {element_name}Data_get{add_to_call}__shift_x(el);\n'
+            f'    double const shift_y = {element_name}Data_get{add_to_call}__shift_y(el);\n'
+            '\n'
+            '    //start_per_particle_block (part0->part)\n'
+            '       LocalParticle_add_to_x(part, -shift_x);\n'
+            '       LocalParticle_add_to_y(part, -shift_y);\n'
+            '    //end_per_particle_block\n'
+            '\n'
+            '     //start_per_particle_block (part0->part)\n'
+            '          SRotation_single_particle(part, _sin_rot_s, _cos_rot_s);\n'
+            '     //end_per_particle_block\n'
+            '}\n'
+        )
+
+    source += (
+            f'    {local_particle_function_name}(el, part0);\n'
+    )
+
+    if allow_rot_and_shift:
+        source += (
+            '    // Transform back to global frame\n'
+            #f'    printf("Transform to back to global frame {element_name}\\n");\n'
+            'if (_sin_rot_s > -2.) {\n'
+            f'    double const _cos_rot_s = {element_name}Data_get{add_to_call}__cos_rot_s(el);\n'
+            f'    double const shift_x = {element_name}Data_get{add_to_call}__shift_x(el);\n'
+            f'    double const shift_y = {element_name}Data_get{add_to_call}__shift_y(el);\n'
+            '\n'
+            '    //start_per_particle_block (part0->part)\n'
+            '       SRotation_single_particle(part, -_sin_rot_s, _cos_rot_s);\n'
+            '    //end_per_particle_block\n'
+            '\n'
+            '    //start_per_particle_block (part0->part)\n'
+            '       LocalParticle_add_to_x(part, shift_x);\n'
+            '       LocalParticle_add_to_y(part, shift_y);\n'
+            '    //end_per_particle_block\n'
+            '}\n'
+        )
+    source += '}\n'
+    return source
+
 def _generate_per_particle_kernel_from_local_particle_function(
                                                 element_name, kernel_name,
                                                 local_particle_function_name,
@@ -125,7 +190,7 @@ def _generate_per_particle_kernel_from_local_particle_function(
                 #else // When we skip reorganize, we cannot just batch active particles
                     const int64_t num_particles_to_track = capacity;
                 #endif
-                
+
                 const int64_t chunk_size = (num_particles_to_track + num_threads - 1)/num_threads; // ceil division
             #endif // CONTEXT_OPENMP
 
@@ -168,6 +233,52 @@ def _generate_per_particle_kernel_from_local_particle_function(
 ''')
     return source
 
+def _tranformations_active(self):
+
+    if (self.shift_x == 0 and self.shift_y == 0
+        and self._sin_rot_s == 0 and self._cos_rot_s >= 0):
+        return False
+    elif (self.shift_x == 0 and self.shift_y == 0 and self._sin_rot_s < -2.):
+        return False
+    else:
+        return True
+
+def _rot_s_property(self):
+    if self._sin_rot_s < -2.:
+        return 0.
+    return np.arctan2(self._sin_rot_s, self._cos_rot_s)
+
+def _set_rot_s_property_setter(self, value):
+    self._sin_rot_s = np.sin(value)
+    self._cos_rot_s = np.cos(value)
+    if not _tranformations_active(self):
+        self._sin_rot_s = -999.
+    elif self._sin_rot_s < -2.:
+        self._sin_rot_s = 0.
+        self._cos_rot_s = 1.
+
+def _shiftx_property(self):
+    return self._shift_x
+
+def _set_shiftx_property_setter(self, value):
+    self._shift_x = value
+    if not _tranformations_active(self):
+        self._sin_rot_s = -999.
+    elif self._sin_rot_s < -2.:
+        self._sin_rot_s = 0.
+        self._cos_rot_s = 1.
+
+def _shifty_property(self):
+    return self._shift_y
+
+def _set_shifty_property_setter(self, value):
+    self._shift_y = value
+    if not _tranformations_active(self):
+        self._sin_rot_s = -999.
+    elif self._sin_rot_s < -2.:
+        self._sin_rot_s = 0.
+        self._cos_rot_s = 1.
+
 class MetaBeamElement(xo.MetaHybridClass):
 
     def __new__(cls, name, bases, data):
@@ -175,6 +286,15 @@ class MetaBeamElement(xo.MetaHybridClass):
 
         # Take xofields from data['_xofields'] or from bases
         xofields = _build_xofields_dict(bases, data)
+
+        allow_rot_and_shift = data.get('allow_rot_and_shift', True)
+
+        if allow_rot_and_shift:
+            xofields['_sin_rot_s'] = xo.Field(xo.Float64, default=-999.)
+            xofields['_cos_rot_s'] = xo.Field(xo.Float64, default=-999.)
+            xofields['_shift_x'] = xo.Field(xo.Float64, 0)
+            xofields['_shift_y'] = xo.Field(xo.Float64, 0)
+
         data = data.copy()
         data['_xofields'] = xofields
 
@@ -182,7 +302,8 @@ class MetaBeamElement(xo.MetaHybridClass):
         extra_c_source = [
             _pkg_root.joinpath('headers','constants.h'),
             _pkg_root.joinpath('headers','checks.h'),
-            _pkg_root.joinpath('headers','particle_states.h')
+            _pkg_root.joinpath('headers','particle_states.h'),
+            _pkg_root.joinpath('beam_elements', 'elements_src', 'track_srotation.h'),
         ]
         kernels = {}
 
@@ -212,13 +333,27 @@ class MetaBeamElement(xo.MetaHybridClass):
         # Add dependency on Particles class
         depends_on.append(Particles._XoStruct)
 
+        # For now I assume that when there is a parent, the element inherits the parent's transformations
+        rot_and_shift_from_parent = False
+        if '_parent' in xofields.keys():
+            assert 'rot_and_shift_from_parent' in data.keys()
+            rot_and_shift_from_parent = data['rot_and_shift_from_parent']
+
         track_kernel_name = None
-        if 'allow_track' not in data.keys() or data['allow_track']:
+        if ('allow_track' not in data.keys() or data['allow_track']):
+
+            extra_c_source.append(
+                _generate_track_local_particle_with_transformations(
+                    element_name=name,
+                    allow_rot_and_shift=(allow_rot_and_shift or rot_and_shift_from_parent),
+                    rot_and_shift_from_parent=rot_and_shift_from_parent,
+                    local_particle_function_name=name+'_track_local_particle'))
+
             # Generate track kernel
             extra_c_source.append(
                 _generate_per_particle_kernel_from_local_particle_function(
                     element_name=name, kernel_name=name+'_track_particles',
-                    local_particle_function_name=name+'_track_local_particle'))
+                    local_particle_function_name=name+'_track_local_particle_with_transformations'))
 
             # Define track kernel
             track_kernel_name = f'{name}_track_particles'
@@ -281,6 +416,11 @@ class MetaBeamElement(xo.MetaHybridClass):
                 additional_arg_names=tuple(arg.name for arg in desc.args),
             ))
 
+        if allow_rot_and_shift:
+            new_class.rot_s_rad = property(_rot_s_property, _set_rot_s_property_setter)
+            new_class.shift_x = property(_shiftx_property, _set_shiftx_property_setter)
+            new_class.shift_y = property(_shifty_property, _set_shifty_property_setter)
+
         return new_class
 
 
@@ -292,9 +432,10 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     allow_track = True
     has_backtrack = False
     allow_backtrack = False
+    allow_rot_and_shift = True
     skip_in_loss_location_refinement = False
     needs_rng = False
-
+    name_associated_aperture = None
 
     def __init__(self, *args, **kwargs):
         xo.HybridClass.__init__(self, *args, **kwargs)
@@ -391,6 +532,81 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         else:
             raise ValueError("Invalid array type")
 
+    def xoinitialize(self, **kwargs):
+        rot_s_rad = kwargs.pop('rot_s_rad', None)
+        shift_x = kwargs.pop('shift_x', None)
+        shift_y = kwargs.pop('shift_y', None)
+
+        xo.HybridClass.xoinitialize(self, **kwargs)
+
+        if rot_s_rad is not None:
+            self.rot_s_rad = rot_s_rad
+
+        if shift_x is not None:
+            self.shift_x = shift_x
+
+        if shift_y is not None:
+            self.shift_y = shift_y
+
+    def to_dict(self, **kwargs):
+        dct = xo.HybridClass.to_dict(self, **kwargs)
+        if self.name_associated_aperture is not None:
+            dct['name_associated_aperture'] = self.name_associated_aperture
+        return dct
+
+    @classmethod
+    def from_dict(cls, dct, **kwargs):
+        if 'name_associated_aperture' in dct.keys():
+            name_associated_aperture = dct.pop('name_associated_aperture')
+        else:
+            name_associated_aperture = None
+
+        instance = xo.HybridClass._static_from_dict(cls, dct, **kwargs)
+        instance.name_associated_aperture = name_associated_aperture
+        return instance
+
+    @property
+    def _add_to_repr(self):
+        out = []
+        if hasattr(self, 'parent_name'):
+            out.append('parent_name')
+        return out
+
+class Replica:
+    def __init__(self, parent_name):
+        self.parent_name = parent_name
+
+    def __repr__(self):
+        return f'Replica(parent_name="{self.parent_name}")'
+
+    def to_dict(self):
+        return {
+            '__class__': 'Replica',
+            'parent_name': self.parent_name}
+
+    @classmethod
+    def from_dict(cls, dct, **kwargs):
+        return cls(parent_name=dct['parent_name'])
+
+    def copy(self, **kwargs):
+        return Replica(parent_name=self.parent_name)
+
+    def resolve(self, element_container, get_name=False):
+        target_name = self.parent_name
+        visited = {target_name}
+        while isinstance(element := element_container[target_name], Replica):
+            target_name = element.parent_name
+            if target_name in visited:
+                raise RecursionError(
+                    f"Resolving replica of `{self.parent_name}` leads to a "
+                    "circular reference: check the correctness of your line."
+                )
+            visited.add(target_name)
+
+        if get_name:
+            return target_name
+
+        return element_container[target_name]
 
 class PerParticlePyMethod:
 
