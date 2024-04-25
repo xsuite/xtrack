@@ -263,19 +263,6 @@ def regenerate_kernels(kernels=None):
 
     import xpart as xp
     from xtrack.prebuilt_kernels.kernel_definitions import kernel_definitions
-    try:
-        import xcoll as xc
-        BEAM_ELEMENTS_INIT_DEFAULTS['EverestBlock'] = {
-                'material': xc.materials.Silicon,
-            }
-        BEAM_ELEMENTS_INIT_DEFAULTS['EverestCollimator'] = {
-                'material': xc.materials.Silicon,
-            }
-        BEAM_ELEMENTS_INIT_DEFAULTS['EverestCrystal'] = {
-                'material': xc.materials.SiliconCrystal,
-            }
-    except ImportError:
-        pass
 
     for module_name, metadata in kernel_definitions:
         if kernels is not None and module_name not in kernels:
