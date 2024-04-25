@@ -90,8 +90,8 @@ tag = 'case5'
 orbit_lims = -100, 100
 p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
                  energy0=45.6e9,
-                 x=-70e-3, px=6e-3,
-                 y=10e-3, py=-5e-3,
+                 x=-150e-3, px=15e-3,
+                 y=30e-3, py=-5e-3,
                  delta=0)
 
 p = p0.copy()
@@ -407,5 +407,22 @@ plt.suptitle(r'$\Delta s_\text{slices}$ = ' f'{np.diff(z_log, axis=0).mean():.2f
              r"initial $y'$ = " f"{mon.kin_yprime[i_part_plot, 0]*1e3:.2f} mrad")
 
 plt.savefig(f'benchmark_{tag}.png', dpi=200)
+
+
+plt.figure(101)
+plt.plot(mon.s[i_part_plot, :-1] - z_sol_center, dE_ds[i_part_plot, :]* 1e-2,
+            label='xsuite')
+plt.plot(z_log[:, i_part_plot] - z_sol_center, dE_ds_boris_eV *1e-2,
+         label="Boris", linestyle='--')
+plt.ylabel(r"$dE/ds$ [eV/cm]")
+plt.legend(fontsize='medium', loc='upper left')
+plt.xlim(-6, 6)
+plt.xlabel('s [m]')
+plt.suptitle(r'$\Delta s_\text{slices}$ = ' f'{np.diff(z_log, axis=0).mean():.2f}, '
+             r'$E_0$ = ' f'{p.energy0[0]*1e-9:.1f} GeV, '
+             r'$\delta$ = ' f'{p.delta[0]:.3f} '
+             r'($E$ = ' f'{p.energy[0]*1e-9:.3f} GeV) \n'
+             r"Initial $x'$ = " f"{mon.kin_xprime[i_part_plot, 0]*1e3:.2f} mrad, "
+             r"initial $y'$ = " f"{mon.kin_yprime[i_part_plot, 0]*1e3:.2f} mrad")
 
 plt.show()
