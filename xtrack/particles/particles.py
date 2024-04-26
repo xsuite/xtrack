@@ -1300,6 +1300,46 @@ class Particles(xo.HybridClass):
             pzeta, mode='readonly',
             container=self)
 
+    @property
+    def kin_px(self):
+        out = self.px - self.ax
+        return self._buffer.context.linked_array_type.from_array(
+            out,
+            mode='readonly',
+            container=self)
+
+    @property
+    def kin_py(self):
+        out = self.py - self.ay
+        return self._buffer.context.linked_array_type.from_array(
+            out,
+            mode='readonly',
+            container=self)
+
+    @property
+    def kin_ps(self):
+        out = np.sqrt((1 + self.delta) ** 2 - self.kin_px ** 2 - self.kin_py ** 2)
+        return self._buffer.context.linked_array_type.from_array(
+            out,
+            mode='readonly',
+            container=self)
+
+    @property
+    def kin_xprime(self):
+        out = self.kin_px / self.kin_ps
+        return self._buffer.context.linked_array_type.from_array(
+            out,
+            mode='readonly',
+            container=self)
+
+    @property
+    def kin_yprime(self):
+        out = self.kin_py / self.kin_ps
+        return self._buffer.context.linked_array_type.from_array(
+            out,
+            mode='readonly',
+            container=self)
+
     def add_to_energy(self, delta_energy):
         """
         Add `delta_energy` to the `energy` of the particles object. `delta`,
