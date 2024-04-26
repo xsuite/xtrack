@@ -203,6 +203,7 @@ class DriftSliceBend(BeamElement):
     rot_and_shift_from_parent = False
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
+    allow_loss_refinement = True
     _force_moveable = True
     isthick = True
     _inherit_strengths = False
@@ -239,6 +240,7 @@ class DriftSliceQuadrupole(BeamElement):
     rot_and_shift_from_parent = False
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
+    allow_loss_refinement = True
     _force_moveable = True
     isthick = True
     _inherit_strengths = False
@@ -276,6 +278,7 @@ class DriftSliceSextupole(BeamElement):
     rot_and_shift_from_parent = False
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
+    allow_loss_refinement = True
     _force_moveable = True
     isthick = True
     _inherit_strengths = False
@@ -313,6 +316,7 @@ class DriftSliceOctupole(BeamElement):
     rot_and_shift_from_parent = False
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
+    allow_loss_refinement = True
     _force_moveable = True
     isthick = True
     _inherit_strengths = False
@@ -349,6 +353,7 @@ class DriftSlice(BeamElement):
     rot_and_shift_from_parent = False
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
+    allow_loss_refinement = True
     _force_moveable = True
     isthick = True
     _inherit_strengths = False

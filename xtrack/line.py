@@ -1855,7 +1855,7 @@ class Line:
     def _elements_intersecting_s(
             self,
             s: List[float],
-            tol=1e-16,
+            s_tol=1e-6,
     ) -> Dict[str, List[float]]:
         """Given a list of s positions, return a list of elements 'cut' by s.
 
@@ -1863,9 +1863,9 @@ class Line:
         ---------
         s
             A list of s positions.
-        tol
+        s_tol
             Tolerance used when checking if s falls inside an element, or
-            at its edge. Defaults to 1e-16.
+            at its edge. Defaults to 1e-6.
 
         Returns
         -------
@@ -1890,12 +1890,12 @@ class Line:
                     start, name = next(all_s_iter)
                     continue
 
-                if np.isclose(current_s, start, atol=tol, rtol=0):
+                if np.isclose(current_s, start, atol=s_tol, rtol=0):
                     current_s = next(current_s_iter)
                     continue
 
                 end = start + _length(element, self)
-                if np.isclose(current_s, end, atol=tol, rtol=0):
+                if np.isclose(current_s, end, atol=s_tol, rtol=0):
                     current_s = next(current_s_iter)
                     continue
 
@@ -1916,9 +1916,9 @@ class Line:
 
         return cuts_for_element
 
-    def cut_at_s(self, s: List[float]):
+    def cut_at_s(self, s: List[float], s_tol=1e-6):
         """Slice the line so that positions in s never fall inside an element."""
-        cuts_for_element = self._elements_intersecting_s(s)
+        cuts_for_element = self._elements_intersecting_s(s, s_tol=s_tol)
         strategies = [Strategy(None)]  # catch-all, ignore unaffected elements
 
         for name, cuts in cuts_for_element.items():
@@ -2891,7 +2891,7 @@ class Line:
             ee = self.element_dict[name]
             if isinstance(ee, xt.Replica):
                 ee = ee.resolve(self)
-            if _allow_backtrack(ee, self) and not name in needs_aperture:
+            if _allow_loss_refinement(ee, self) and not name in needs_aperture:
                 dont_need_aperture[name] = True
             if name.endswith('_entry') or name.endswith('_exit'):
                 dont_need_aperture[name] = True
@@ -3615,7 +3615,7 @@ class Line:
         )
         return cache
 
-    def _insert_thin_elements_at_s(self, elements_to_insert):
+    def _insert_thin_elements_at_s(self, elements_to_insert, s_tol=0.5e-6):
 
         '''
         Example:
@@ -3629,7 +3629,6 @@ class Line:
         '''
 
         self._frozen_check()
-        s_tol = 0.5e-6
 
         s_cuts = [ee[0] for ee in elements_to_insert]
         s_cuts = np.sort(s_cuts)
@@ -3871,10 +3870,10 @@ def _is_collective(element, line):
     return iscoll
 
 # whether backtrack in loss location refinement is allowed
-def _allow_backtrack(element, line):
+def _allow_loss_refinement(element, line):
     if isinstance(element, xt.Replica):
         element = element.resolve(line)
-    return hasattr(element, 'allow_backtrack') and element.allow_backtrack
+    return hasattr(element, 'allow_loss_refinement') and element.allow_loss_refinement
 
 # whether element has backtrack capability
 def _has_backtrack(element, line):
