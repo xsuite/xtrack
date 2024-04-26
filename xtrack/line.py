@@ -2005,15 +2005,21 @@ class Line:
 
         s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
         if _is_thick(element, self) and _length(element, self) > 0:
-            s_vect_downstream = np.array(self.get_s_position(mode='downstream'))
-            i_first_drift_to_cut = np.where(s_vect_downstream > s_start_ele)[0][0]
-            i_last_drift_to_cut = np.where(s_vect_upstream < s_end_ele)[0][-1]
-            assert i_first_drift_to_cut <= i_last_drift_to_cut
-            # Check removed lengths
-            xo.assert_allclose(s_vect_upstream[i_last_drift_to_cut + 1]
-                              - s_vect_upstream[i_first_drift_to_cut],
+            i_first_removal = np.where(np.abs(s_vect_upstream - s_start_ele) < s_tol)[0][0]
+            i_last_removal = np.where(np.abs(s_vect_upstream - s_end_ele) < s_tol)[0][0] - 1
+            xo.assert_allclose(s_vect_upstream[i_last_removal + 1]
+                              - s_vect_upstream[i_first_removal],
                                 _length(element, self), atol=s_tol, rtol=0)
-            self.element_names[i_first_drift_to_cut:i_last_drift_to_cut + 1] = [name]
+            self.element_names[i_first_removal:i_last_removal + 1] = [name]                                             
+
+
+            # s_vect_downstream = np.array(self.get_s_position(mode='downstream'))
+            # i_first_drift_to_cut = np.where(
+            #     s_vect_downstream > s_start_ele - s_tol)[0][0]
+            # i_last_drift_to_cut = np.where(s_vect_upstream < s_end_ele + s_tol)[0][-1]
+            # assert i_first_drift_to_cut <= i_last_drift_to_cut
+            # Check removed lengths
+
         else:
             i_closest = np.argmin(np.abs(s_vect_upstream - at_s))
             assert np.abs(s_vect_upstream[i_closest] - at_s) < s_tol
