@@ -40,7 +40,7 @@ class BeamProfileMonitor(BeamElement):
     }
 
     behaves_like_drift = True
-    allow_backtrack = True
+    allow_loss_refinement = True
 
     properties = [field.name for field in BeamProfileMonitorRecord._fields]
 

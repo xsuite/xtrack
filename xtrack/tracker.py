@@ -143,9 +143,8 @@ class Tracker:
         if not _prebuilding_kernels:
             self._get_twiss_mask_markers() # to cache it
 
-        self._init_io_buffer(io_buffer)
-
         self.line = line
+        self._init_io_buffer(io_buffer)
         self.line.tracker = self
 
         if compile:
@@ -153,7 +152,13 @@ class Tracker:
 
     def _init_io_buffer(self, io_buffer=None):
         if io_buffer is None:
-            io_buffer = new_io_buffer(_context=self._context)
+            io_bufs = [ee.io_buffer for ee in self.line.elements if hasattr(ee, 'io_buffer')]
+            if len(io_bufs) == 0:
+                io_buffer = new_io_buffer(_context=self._context)
+            elif len(np.unique([id(buf) for buf in io_bufs])) > 1:
+                raise ValueError("Different io buffers found in elements!")
+            else:
+                io_buffer = io_bufs[0]
         self.io_buffer = io_buffer
 
     def _split_parts_for_collective_mode(self, line, _buffer):

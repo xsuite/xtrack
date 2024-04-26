@@ -1855,7 +1855,7 @@ class Line:
     def _elements_intersecting_s(
             self,
             s: List[float],
-            tol=1e-16,
+            s_tol=1e-6,
     ) -> Dict[str, List[float]]:
         """Given a list of s positions, return a list of elements 'cut' by s.
 
@@ -1863,9 +1863,9 @@ class Line:
         ---------
         s
             A list of s positions.
-        tol
+        s_tol
             Tolerance used when checking if s falls inside an element, or
-            at its edge. Defaults to 1e-16.
+            at its edge. Defaults to 1e-6.
 
         Returns
         -------
@@ -1890,12 +1890,12 @@ class Line:
                     start, name = next(all_s_iter)
                     continue
 
-                if np.isclose(current_s, start, atol=tol, rtol=0):
+                if np.isclose(current_s, start, atol=s_tol, rtol=0):
                     current_s = next(current_s_iter)
                     continue
 
                 end = start + _length(element, self)
-                if np.isclose(current_s, end, atol=tol, rtol=0):
+                if np.isclose(current_s, end, atol=s_tol, rtol=0):
                     current_s = next(current_s_iter)
                     continue
 
@@ -1916,9 +1916,9 @@ class Line:
 
         return cuts_for_element
 
-    def cut_at_s(self, s: List[float]):
+    def cut_at_s(self, s: List[float], s_tol=1e-6):
         """Slice the line so that positions in s never fall inside an element."""
-        cuts_for_element = self._elements_intersecting_s(s)
+        cuts_for_element = self._elements_intersecting_s(s, s_tol=s_tol)
         strategies = [Strategy(None)]  # catch-all, ignore unaffected elements
 
         for name, cuts in cuts_for_element.items():
@@ -2005,11 +2005,12 @@ class Line:
 
         s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
         if _is_thick(element, self) and _length(element, self) > 0:
-            s_vect_downstream = np.array(self.get_s_position(mode='downstream'))
-            i_first_drift_to_cut = np.where(s_vect_downstream > s_start_ele)[0][0]
-            i_last_drift_to_cut = np.where(s_vect_upstream < s_end_ele)[0][-1]
-            assert i_first_drift_to_cut <= i_last_drift_to_cut
-            self.element_names[i_first_drift_to_cut:i_last_drift_to_cut + 1] = [name]
+            i_first_removal = np.where(np.abs(s_vect_upstream - s_start_ele) < s_tol)[0][-1]
+            i_last_removal = np.where(np.abs(s_vect_upstream - s_end_ele) < s_tol)[0][0] - 1
+            xo.assert_allclose(s_vect_upstream[i_last_removal + 1]
+                              - s_vect_upstream[i_first_removal],
+                                _length(element, self), atol=2 * s_tol, rtol=0)
+            self.element_names[i_first_removal:i_last_removal + 1] = [name]
         else:
             i_closest = np.argmin(np.abs(s_vect_upstream - at_s))
             assert np.abs(s_vect_upstream[i_closest] - at_s) < s_tol
@@ -2891,7 +2892,7 @@ class Line:
             ee = self.element_dict[name]
             if isinstance(ee, xt.Replica):
                 ee = ee.resolve(self)
-            if _allow_backtrack(ee, self) and not name in needs_aperture:
+            if _allow_loss_refinement(ee, self) and not name in needs_aperture:
                 dont_need_aperture[name] = True
             if name.endswith('_entry') or name.endswith('_exit'):
                 dont_need_aperture[name] = True
@@ -3615,7 +3616,7 @@ class Line:
         )
         return cache
 
-    def _insert_thin_elements_at_s(self, elements_to_insert):
+    def _insert_thin_elements_at_s(self, elements_to_insert, s_tol=0.5e-6):
 
         '''
         Example:
@@ -3629,7 +3630,6 @@ class Line:
         '''
 
         self._frozen_check()
-        s_tol = 0.5e-6
 
         s_cuts = [ee[0] for ee in elements_to_insert]
         s_cuts = np.sort(s_cuts)
@@ -3672,6 +3672,69 @@ class Line:
 
                 if insert_at is not None:
                     insert_at += 1
+
+    def _insert_thick_elements_at_s(self, element_names, elements,
+                                    at_s, s_tol=1e-6):
+
+        assert isinstance(element_names, (list, tuple))
+        assert isinstance(elements, (list, tuple))
+        assert isinstance(at_s, (list, tuple, np.ndarray))
+        assert len(element_names) == len(elements) == len(at_s)
+
+        self._frozen_check()
+
+        s_insert = np.array(at_s)
+        l_insert = np.array([_length(ee, None) for ee in elements])
+        ele_insert = list(elements).copy()
+        name_insert = list(element_names).copy()
+
+        end_insert = np.array(s_insert) + np.array(l_insert)
+
+        self.cut_at_s(list(s_insert) + list(end_insert))
+
+        i_sorted = np.argsort(s_insert)
+        s_insert_sorted = s_insert[i_sorted]
+        ele_insert_sorted = [ele_insert[i] for i in i_sorted]
+        name_insert_sorted = [name_insert[i] for i in i_sorted]
+        end_insert_sorted = end_insert[i_sorted]
+
+        assert np.all(s_insert_sorted[:-1] < end_insert_sorted[1:]), (
+                    'Overlapping insertions')
+
+        old_element_names = self.element_names
+
+        s_tol = 1e-6
+
+        s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
+
+        i_replace = np.zeros(len(s_vect_upstream), dtype=int)
+        mask_remove = np.zeros(len(s_vect_upstream), dtype=bool)
+
+        i_replace[:] = -1
+
+        for ii in range(len(s_insert_sorted)):
+            ss_start = s_insert_sorted[ii]
+            ss_end = end_insert_sorted[ii]
+
+            i_first_removal = np.where(np.abs(s_vect_upstream - ss_start) < s_tol)[0][-1]
+            i_last_removal = np.where(np.abs(s_vect_upstream - ss_end) < s_tol)[0][0] - 1
+
+            i_replace[i_first_removal] = ii
+            mask_remove[i_first_removal+1:i_last_removal+1] = True
+
+        new_element_names = []
+        for ii, nn in enumerate(old_element_names):
+            if mask_remove[ii]:
+                continue
+            if i_replace[ii] != -1:
+                new_element_names.append(name_insert_sorted[i_replace[ii]])
+            else:
+                new_element_names.append(nn)
+
+        for new_nn, new_ee in zip(name_insert_sorted, ele_insert_sorted):
+            self.element_dict[new_nn] = new_ee
+
+        self.element_names = new_element_names
 
     @property
     def _line_before_slicing(self):
@@ -3871,10 +3934,10 @@ def _is_collective(element, line):
     return iscoll
 
 # whether backtrack in loss location refinement is allowed
-def _allow_backtrack(element, line):
+def _allow_loss_refinement(element, line):
     if isinstance(element, xt.Replica):
         element = element.resolve(line)
-    return hasattr(element, 'allow_backtrack') and element.allow_backtrack
+    return hasattr(element, 'allow_loss_refinement') and element.allow_loss_refinement
 
 # whether element has backtrack capability
 def _has_backtrack(element, line):
