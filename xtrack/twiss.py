@@ -2827,7 +2827,7 @@ class TwissTable(Table):
     def get_ibs_growth_rates(
         self,
         formalism: str,
-        num_particles: int = None,
+        total_beam_intensity: int = None,
         gemitt_x: float = None,
         nemitt_x: float = None,
         gemitt_y: float = None,
@@ -2848,9 +2848,8 @@ class TwissTable(Table):
         formalism : str
             Which formalism to use for the computation. Can be ``Nagaitsev``
             or ``Bjorken-Mtingwa`` (also accepts ``B&M``), case-insensitively.
-        num_particles : int, optional
-            The number of particles in the beam. Required if `particles` is
-            not provided.
+        total_beam_intensity : int, optional
+            The beam intensity. Required if `particles` is not provided.
         gemitt_x : float, optional
             Horizontal geometric emittance in [m]. If `particles` is not
             provided, either this parameter or `nemitt_x` is required.
@@ -2889,10 +2888,10 @@ class TwissTable(Table):
         except ImportError:
             raise ImportError("Please install xfields to use this feature.")
         return get_intrabeam_scattering_growth_rates(
-            self, formalism, num_particles,
+            self, formalism, total_beam_intensity,
             gemitt_x, nemitt_x, gemitt_y, nemitt_y,
             sigma_delta, bunch_length, bunched,
-            particles, return_class=False, **kwargs,
+            particles, **kwargs,
         )
 
     def get_R_matrix(self, start, end):
