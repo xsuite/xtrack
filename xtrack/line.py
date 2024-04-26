@@ -2009,6 +2009,10 @@ class Line:
             i_first_drift_to_cut = np.where(s_vect_downstream > s_start_ele)[0][0]
             i_last_drift_to_cut = np.where(s_vect_upstream < s_end_ele)[0][-1]
             assert i_first_drift_to_cut <= i_last_drift_to_cut
+            # Check removed lengths
+            xo.assert_allclose(s_vect_upstream[i_last_drift_to_cut + 1]
+                              - s_vect_upstream[i_first_drift_to_cut],
+                                _length(element, self), atol=s_tol, rtol=0)
             self.element_names[i_first_drift_to_cut:i_last_drift_to_cut + 1] = [name]
         else:
             i_closest = np.argmin(np.abs(s_vect_upstream - at_s))
