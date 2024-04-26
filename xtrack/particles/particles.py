@@ -1318,7 +1318,8 @@ class Particles(xo.HybridClass):
 
     @property
     def kin_ps(self):
-        out = np.sqrt((1 + self.delta) ** 2 - self.kin_px ** 2 - self.kin_py ** 2)
+        sqrt = self._context.nplike_lib.sqrt
+        out = sqrt((1 + self.delta) ** 2 - self.kin_px ** 2 - self.kin_py ** 2)
         return self._buffer.context.linked_array_type.from_array(
             out,
             mode='readonly',
