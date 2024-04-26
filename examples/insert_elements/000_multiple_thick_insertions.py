@@ -1,4 +1,5 @@
 import xtrack as xt
+import xobjects as xo
 import numpy as np
 
 line = xt.Line(
@@ -14,3 +15,14 @@ line._insert_thick_elements_at_s(
     elements=ele_insert,
     at_s=s_insert
 )
+
+tt = line.get_table()
+
+assert np.all(tt.name == ['e0', 'e1', 'e2..0', 'insertion_0', 'e3..1', 'e4', 'e5..0',
+       'insertion_1', 'e6..1', 'insertion_2', 'e8', 'e9', '_end_point'])
+xo.assert_allclose(tt.s, [ 0. ,  1. ,  2. ,  2.5,  3.5,  4. ,  5. ,
+                                 5.5,  6.5,  7. ,  8. , 9. , 10. ])
+
+assert np.all(tt.element_type == ['Drift', 'Drift', 'DriftSlice', 'Sextupole', 'DriftSlice', 'Drift',
+       'DriftSlice', 'Sextupole', 'DriftSlice', 'Sextupole', 'Drift',
+       'Drift', ''])
