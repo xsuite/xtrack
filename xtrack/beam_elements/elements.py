@@ -15,6 +15,8 @@ from ..random import RandomUniform, RandomExponential, RandomNormal
 from ..general import _pkg_root, _print
 from ..internal_record import RecordIndex, RecordIdentifier
 
+ALLOCATED_MULTIPOLE_ORDER = 5
+
 class ReferenceEnergyIncrease(BeamElement):
 
     '''Beam element modeling a change of reference energy (acceleration,
@@ -791,8 +793,8 @@ class Bend(BeamElement):
         'num_multipole_kicks': xo.Int64,
         'order': xo.Int64,
         'inv_factorial_order': xo.Float64,
-        'knl': xo.Float64[5],
-        'ksl': xo.Float64[5],
+        'knl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
+        'ksl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
     }
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
@@ -828,13 +830,12 @@ class Bend(BeamElement):
         knl = kwargs.get('knl', np.array([]))
         ksl = kwargs.get('ksl', np.array([]))
         order_from_kl = max(len(knl), len(ksl)) - 1
-        order = kwargs.get('order', max(4, order_from_kl))
+        order = kwargs.get('order', max(ALLOCATED_MULTIPOLE_ORDER, order_from_kl))
 
-        if order > 4:
-            raise NotImplementedError # Untested
-
-        kwargs['knl'] = np.pad(knl, (0, 5 - len(knl)), 'constant')
-        kwargs['ksl'] = np.pad(ksl, (0, 5 - len(ksl)), 'constant')
+        kwargs['knl'] = np.pad(knl,
+                        (0, ALLOCATED_MULTIPOLE_ORDER + 1 - len(knl)), 'constant')
+        kwargs['ksl'] = np.pad(ksl,
+                        (0, ALLOCATED_MULTIPOLE_ORDER + 1 - len(ksl)), 'constant')
 
         self.xoinitialize(**kwargs)
 
