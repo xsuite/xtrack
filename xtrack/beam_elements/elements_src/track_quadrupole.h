@@ -61,6 +61,7 @@ void Quadrupole_from_params_track_local_particle(
     const double kick_weight = 1. / num_multipole_kicks;
     normal_quad_with_rotation_track(part0, slice_length, k_rotated, needs_rotation,
                                     sin_rot, cos_rot);
+
     for (int ii = 0; ii < num_multipole_kicks; ii++) {
         //start_per_particle_block (part0->part)
             track_multipolar_kick_bend(

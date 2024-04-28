@@ -1124,6 +1124,15 @@ class Quadrupole(BeamElement):
         return out
 
     @property
+    def order(self):
+        return self._order
+
+    @order.setter
+    def order(self, value):
+        self._order = value
+        self.inv_factorial_order = 1.0 / factorial(value, exact=True)
+
+    @property
     def radiation_flag(self): return 0.0
 
     @property
