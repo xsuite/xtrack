@@ -1073,6 +1073,12 @@ class Quadrupole(BeamElement):
         'ksl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
     }
 
+    _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
+
+    _rename = {
+        'order': '_order',
+    }
+
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
@@ -1086,19 +1092,34 @@ class Quadrupole(BeamElement):
         if kwargs.get('_xobject') is None and np.isclose(length, 0, atol=1e-13):
             raise ValueError("A thick element must have a non-zero length.")
 
-        super().__init__(**kwargs)
+        knl = kwargs.get('knl', np.array([]))
+        ksl = kwargs.get('ksl', np.array([]))
+        order_from_kl = max(len(knl), len(ksl)) - 1
+        order = kwargs.get('order', max(ALLOCATED_MULTIPOLE_ORDER, order_from_kl))
 
-    @classmethod
-    def from_dict(cls, dct, **kwargs):
-        if 'num_multipole_kicks' in dct:
-            assert dct['num_multipole_kicks'] == 0
-            dct.pop('num_multipole_kicks')
-            dct.pop('knl', None)
-            dct.pop('ksl', None)
-            dct.pop('order', None)
-            dct.pop('inv_factorial_order', None)
+        kwargs['knl'] = np.pad(knl,
+                        (0, ALLOCATED_MULTIPOLE_ORDER + 1 - len(knl)), 'constant')
+        kwargs['ksl'] = np.pad(ksl,
+                        (0, ALLOCATED_MULTIPOLE_ORDER + 1 - len(ksl)), 'constant')
 
-        return cls(**dct, **kwargs)
+        self.xoinitialize(**kwargs)
+
+        self.order = order
+
+    def to_dict(self, copy_to_cpu=True):
+        out = super().to_dict(copy_to_cpu=copy_to_cpu)
+
+        # See the comment in Multiple.to_dict about knl/ksl/order dumping
+        if 'knl' in out and np.allclose(out['knl'], 0, atol=1e-16):
+            out.pop('knl', None)
+
+        if 'ksl' in out and np.allclose(out['ksl'], 0, atol=1e-16):
+            out.pop('ksl', None)
+
+        if self.order != 0 and 'knl' not in out and 'ksl' not in out:
+            out['order'] = self.order
+
+        return out
 
     @property
     def radiation_flag(self): return 0.0
