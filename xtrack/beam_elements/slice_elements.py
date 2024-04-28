@@ -59,8 +59,8 @@ class ThinSliceQuadrupole(BeamElement):
 
     def get_equivalent_element(self):
 
-        knl = [0., 0.]
-        ksl = [0., 0.]
+        knl = self._parent.knl.copy() * self.weight
+        ksl = self._parent.ksl.copy() * self.weight
 
         knl[1] += self._parent.k1 * self._parent.length * self.weight
         ksl[1] += self._parent.k1s * self._parent.length * self.weight
