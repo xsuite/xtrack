@@ -1081,6 +1081,7 @@ class Quadrupole(BeamElement):
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_multipolar_components.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_srotation.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_quadrupole.h'),
@@ -1088,6 +1089,7 @@ class Quadrupole(BeamElement):
     ]
 
     def __init__(self, **kwargs):
+
         length = kwargs.get('length', 0)
         if kwargs.get('_xobject') is None and np.isclose(length, 0, atol=1e-13):
             raise ValueError("A thick element must have a non-zero length.")

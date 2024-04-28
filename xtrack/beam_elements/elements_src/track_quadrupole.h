@@ -34,10 +34,10 @@ void normal_quad_with_rotation_track(
 /*gpufun*/
 void Quadrupole_from_params_track_local_particle(
         double length, double k1, double k1s,
-        // int64_t num_multipole_kicks,
-        // double const* knl, double const* ksl,
-        // int64_t order, double inv_factorial_order,
-        // double factor_knl_ksl,
+        int64_t num_multipole_kicks,
+        double const* knl, double const* ksl,
+        int64_t order, double inv_factorial_order,
+        double factor_knl_ksl,
         LocalParticle* part0
 ) {
 
@@ -45,9 +45,9 @@ void Quadrupole_from_params_track_local_particle(
     double cos_rot=0;
     double k_rotated = k1;
 
-    // if (num_multipole_kicks == 0) { // auto mode
-    //     num_multipole_kicks = 1;
-    // }
+    if (num_multipole_kicks == 0) { // auto mode
+        num_multipole_kicks = 1;
+    }
 
     const int needs_rotation = k1s != 0.0;
     if (needs_rotation) {
@@ -57,8 +57,19 @@ void Quadrupole_from_params_track_local_particle(
         k_rotated = sqrt(k1*k1 + k1s*k1s);
     }
 
-    normal_quad_with_rotation_track(part0, length, k_rotated, needs_rotation,
+    const double slice_length = length / (num_multipole_kicks + 1);
+    const double kick_weight = 1. / num_multipole_kicks;
+    normal_quad_with_rotation_track(part0, slice_length, k_rotated, needs_rotation,
                                     sin_rot, cos_rot);
+    for (int ii = 0; ii < num_multipole_kicks; ii++) {
+        //start_per_particle_block (part0->part)
+            track_multipolar_kick_bend(
+                    part, order, inv_factorial_order, knl, ksl, factor_knl_ksl,
+                    kick_weight, 0, 0, 0, 0);
+        //end_per_particle_block
+        normal_quad_with_rotation_track(part0, slice_length, k_rotated, needs_rotation,
+                                        sin_rot, cos_rot);
+    }
 
 
 }
