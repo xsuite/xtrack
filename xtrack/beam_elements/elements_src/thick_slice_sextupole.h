@@ -33,7 +33,7 @@ void ThickSliceSextupole_track_local_particle(
         Drift_single_particle(part, length / 2.);
 
         Multipole_track_single_particle(part,
-        0., length, weight, // weight 1
+        0., length, weight,
         NULL, NULL, -1, -1, // first tap unused
         knl_sext, ksl_sext, 2, 0.5,
         backtrack_sign,
