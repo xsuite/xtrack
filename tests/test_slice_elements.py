@@ -1425,3 +1425,5 @@ def test_thin_slice_sextupole_with_multipoles(test_context):
     assert_allclose(p_slice.py, p0.py, rtol=0, atol=1e-14)
     assert_allclose(p_slice.zeta, p0.zeta, rtol=0, atol=1e-14)
     assert_allclose(p_slice.delta, p0.delta, rtol=0, atol=1e-14)
+
+    # TODO: add check on value of multipoles after optimization!!!
