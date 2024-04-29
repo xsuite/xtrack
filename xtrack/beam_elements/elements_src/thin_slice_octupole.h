@@ -17,10 +17,10 @@ void ThinSliceOctupole_track_local_particle(
     const double k3 = ThinSliceOctupoleData_get__parent_k3(el);
     const double k3s = ThinSliceOctupoleData_get__parent_k3s(el);
 
-    const double order = ThinSliceSextupoleData_get__parent_order(el);
-    const double inv_factorial_order = ThinSliceSextupoleData_get__parent_inv_factorial_order(el);
-    const double* knl = ThinSliceSextupoleData_getp1__parent_knl(el, 0);
-    const double* ksl = ThinSliceSextupoleData_getp1__parent_ksl(el, 0);
+    const double order = ThinSliceOctupoleData_get__parent_order(el);
+    const double inv_factorial_order = ThinSliceOctupoleData_get__parent_inv_factorial_order(el);
+    const double* knl = ThinSliceOctupoleData_getp1__parent_knl(el, 0);
+    const double* ksl = ThinSliceOctupoleData_getp1__parent_ksl(el, 0);
 
     SynchrotronRadiationRecordData record = NULL;
     RecordIndex record_index = NULL;
