@@ -87,7 +87,8 @@ class LossLocationRefinement:
         # Build track kernel with all elements + polygon
         elm_gen = self.line.element_dict.copy()
         elm_gen['_xtrack_temp_poly_'] = temp_poly
-        ln_gen = Line(elements=elm_gen, element_names=list(elm_gen.keys()))
+        ln_gen = Line(elements=elm_gen,
+                      element_names=list(line.element_names) + ['_xtrack_temp_poly_'])
         ln_gen.build_tracker(_buffer=self.line._buffer)
         ln_gen.config.XTRACK_GLOBAL_XY_LIMIT = line.config.XTRACK_GLOBAL_XY_LIMIT
         self._ln_gen = ln_gen
