@@ -984,6 +984,17 @@ class Sextupole(BeamElement):
         'k2': xo.Float64,
         'k2s': xo.Float64,
         'length': xo.Float64,
+        'num_multipole_kicks': xo.Int64,
+        'order': xo.Int64,
+        'inv_factorial_order': xo.Float64,
+        'knl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
+        'ksl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
+    }
+
+    _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
+
+    _rename = {
+        'order': '_order',
     }
 
     _depends_on = [RandomUniform, RandomExponential]
@@ -996,6 +1007,46 @@ class Sextupole(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/track_multipole.h'),
         _pkg_root.joinpath('beam_elements/elements_src/sextupole.h'),
     ]
+
+    def __init__(self, **kwargs):
+
+        knl = kwargs.get('knl', np.array([]))
+        ksl = kwargs.get('ksl', np.array([]))
+        order_from_kl = max(len(knl), len(ksl)) - 1
+        order = kwargs.get('order', max(ALLOCATED_MULTIPOLE_ORDER, order_from_kl))
+
+        kwargs['knl'] = np.pad(knl,
+                        (0, ALLOCATED_MULTIPOLE_ORDER + 1 - len(knl)), 'constant')
+        kwargs['ksl'] = np.pad(ksl,
+                        (0, ALLOCATED_MULTIPOLE_ORDER + 1 - len(ksl)), 'constant')
+
+        self.xoinitialize(**kwargs)
+
+        self.order = order
+
+    def to_dict(self, copy_to_cpu=True):
+        out = super().to_dict(copy_to_cpu=copy_to_cpu)
+
+        # See the comment in Multiple.to_dict about knl/ksl/order dumping
+        if 'knl' in out and np.allclose(out['knl'], 0, atol=1e-16):
+            out.pop('knl', None)
+
+        if 'ksl' in out and np.allclose(out['ksl'], 0, atol=1e-16):
+            out.pop('ksl', None)
+
+        if self.order != 0 and 'knl' not in out and 'ksl' not in out:
+            out['order'] = self.order
+
+        return out
+
+    @property
+    def order(self):
+        return self._order
+
+    @order.setter
+    def order(self, value):
+        self._order = value
+        self.inv_factorial_order = 1.0 / factorial(value, exact=True)
 
     @property
     def _thin_slice_class(self):
@@ -1095,10 +1146,6 @@ class Quadrupole(BeamElement):
     ]
 
     def __init__(self, **kwargs):
-
-        length = kwargs.get('length', 0)
-        if kwargs.get('_xobject') is None and np.isclose(length, 0, atol=1e-13):
-            raise ValueError("A thick element must have a non-zero length.")
 
         knl = kwargs.get('knl', np.array([]))
         ksl = kwargs.get('ksl', np.array([]))

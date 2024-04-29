@@ -25,6 +25,12 @@ void Sextupole_track_local_particle(
     double const knl_sext[3] = {0., 0., backtrack_sign * k2 * length};
     double const ksl_sext[3] = {0., 0., backtrack_sign * k2s * length};
 
+    int64_t num_multipole_kicks = SextupoleData_get_num_multipole_kicks(el);
+    const int64_t order = SextupoleData_get_order(el);
+    const double inv_factorial_order = SextupoleData_get_inv_factorial_order(el);
+    /*gpuglmem*/ const double *knl = SextupoleData_getp1_knl(el, 0);
+    /*gpuglmem*/ const double *ksl = SextupoleData_getp1_ksl(el, 0);
+
     //start_per_particle_block (part0->part)
 
         // Drift
@@ -32,7 +38,7 @@ void Sextupole_track_local_particle(
 
         Multipole_track_single_particle(part,
             0., length, 1, // weight 1
-            NULL, NULL, -1, -1, // first tap unused
+            knl, ksl, order, inv_factorial_order,
             knl_sext, ksl_sext, 2, 0.5,
             backtrack_sign,
             0, 0,
