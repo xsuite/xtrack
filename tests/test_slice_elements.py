@@ -45,8 +45,8 @@ def test_thin_slice_bend(test_context):
     assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-10)
     assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-10)
 
-    line.to_json('ttt.json')
-    line2 = xt.Line.from_json('ttt.json')
+    line.to_json('ttt_thin_bend.json')
+    line2 = xt.Line.from_json('ttt_thin_bend.json')
     assert isinstance(line2['e0..995'], xt.ThinSliceBend)
     assert line2['e0..995'].parent_name == 'e0'
     assert line2['e0..995']._parent is None
@@ -138,8 +138,8 @@ def test_thin_slice_quadrupole(test_context):
     assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-10)
     assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-10)
 
-    line.to_json('ttt.json')
-    line2 = xt.Line.from_json('ttt.json')
+    line.to_json('ttt_thin_quad.json')
+    line2 = xt.Line.from_json('ttt_thin_quad.json')
     assert isinstance(line2['e0..995'], xt.ThinSliceQuadrupole)
     assert line2['e0..995'].parent_name == 'e0'
     assert line2['e0..995']._parent is None
@@ -219,8 +219,8 @@ def test_thin_slice_sextupole(test_context):
     assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-10)
     assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-10)
 
-    line.to_json('ttt.json')
-    line2 = xt.Line.from_json('ttt.json')
+    line.to_json('ttt_thin_sext.json')
+    line2 = xt.Line.from_json('ttt_thin_sext.json')
     assert isinstance(line2['e0..0'], xt.ThinSliceSextupole)
     assert line2['e0..0'].parent_name == 'e0'
     assert line2['e0..0']._parent is None
@@ -298,8 +298,8 @@ def test_thin_slice_octupole(test_context):
     assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-10)
     assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-10)
 
-    line.to_json('ttt.json')
-    line2 = xt.Line.from_json('ttt.json')
+    line.to_json('ttt_thin_oct.json')
+    line2 = xt.Line.from_json('ttt_thin_oct.json')
     assert isinstance(line2['e0..0'], xt.ThinSliceOctupole)
     assert line2['e0..0'].parent_name == 'e0'
     assert line2['e0..0']._parent is None
@@ -375,8 +375,8 @@ def test_thin_slice_drift(test_context):
     assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-10)
     assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-10)
 
-    line.to_json('ttt.json')
-    line2 = xt.Line.from_json('ttt.json')
+    line.to_json('ttt_drift.json')
+    line2 = xt.Line.from_json('ttt_drift.json')
     assert line2['drift_e0..0'].parent_name == 'e0'
     assert line2['drift_e0..0']._parent is None
 
@@ -454,8 +454,8 @@ def test_thick_slice_bend(test_context):
     assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-10)
     assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-10)
 
-    line.to_json('ttt.json')
-    line2 = xt.Line.from_json('ttt.json')
+    line.to_json('ttt_thick_bend.json')
+    line2 = xt.Line.from_json('ttt_thick_bend.json')
     assert isinstance(line2['e0..3'], xt.ThickSliceBend)
     assert line2['e0..3'].parent_name == 'e0'
     assert line2['e0..3']._parent is None
@@ -511,8 +511,8 @@ def test_thick_slice_quadrupole(test_context):
     assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-10)
     assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-10)
 
-    line.to_json('ttt.json')
-    line2 = xt.Line.from_json('ttt.json')
+    line.to_json('ttt_thick_quad.json')
+    line2 = xt.Line.from_json('ttt_thick_quad.json')
     assert isinstance(line2['e0..3'], xt.ThickSliceQuadrupole)
     assert line2['e0..3'].parent_name == 'e0'
     assert line2['e0..3']._parent is None
@@ -559,8 +559,8 @@ def test_thick_slice_sextupole(test_context):
     assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-10)
     assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-10)
 
-    line.to_json('ttt.json')
-    line2 = xt.Line.from_json('ttt.json')
+    line.to_json('ttt_thick_sext.json')
+    line2 = xt.Line.from_json('ttt_thick_sext.json')
     assert isinstance(line2['e0..0'], xt.ThickSliceSextupole)
     assert line2['e0..0'].parent_name == 'e0'
     assert line2['e0..0']._parent is None
@@ -607,8 +607,8 @@ def test_thick_slice_octupole(test_context):
     assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-10)
     assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-10)
 
-    line.to_json('ttt.json')
-    line2 = xt.Line.from_json('ttt.json')
+    line.to_json('ttt_thick_oct.json')
+    line2 = xt.Line.from_json('ttt_thick_oct.json')
     assert isinstance(line2['e0..0'], xt.ThickSliceOctupole)
     assert line2['e0..0'].parent_name == 'e0'
     assert line2['e0..0']._parent is None
@@ -655,8 +655,8 @@ def test_thick_slice_solenoid(test_context):
     assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-10)
     assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-10)
 
-    line.to_json('ttt.json')
-    line2 = xt.Line.from_json('ttt.json')
+    line.to_json('ttt_thick_solenoid.json')
+    line2 = xt.Line.from_json('ttt_thick_solenoid.json')
     assert isinstance(line2['e0..0'], xt.ThickSliceSolenoid)
     assert line2['e0..0'].parent_name == 'e0'
     assert line2['e0..0']._parent is None
@@ -834,8 +834,8 @@ def test_thin_slice_bend_with_multipoles(test_context):
     assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-8)
     assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-8)
 
-    line.to_json('ttt.json')
-    line2 = xt.Line.from_json('ttt.json')
+    line.to_json('ttt_bend_mult.json')
+    line2 = xt.Line.from_json('ttt_bend_mult.json')
     assert isinstance(line2['e0..995'], xt.ThinSliceBend)
     assert line2['e0..995'].parent_name == 'e0'
     assert line2['e0..995']._parent is None
@@ -938,8 +938,8 @@ def test_thick_slice_bend_with_multipoles(test_context):
     assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-8)
     assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-8)
 
-    line.to_json('ttt.json')
-    line2 = xt.Line.from_json('ttt.json')
+    line.to_json('ttt_thick_bend_mult.json')
+    line2 = xt.Line.from_json('ttt_thick_bend_mult.json')
     assert isinstance(line2['e0..995'], xt.ThickSliceBend)
     assert line2['e0..995'].parent_name == 'e0'
     assert line2['e0..995']._parent is None
@@ -973,7 +973,8 @@ def test_thick_slice_bend_with_multipoles(test_context):
 def test_thin_slice_bend_with_multipoles_bend_off(test_context):
 
     bend = xt.Bend(k0=0, h=0, length=1,
-                   knl=[0, 0.001, 0.01], ksl=[0, 0.002, 0.03],
+                   knl=[0, 0.001, 0.01, 0.02, 0.04, 0.6],
+                   ksl=[0, 0.002, 0.03, 0.03, 0.05, 0.7],
                    num_multipole_kicks=10,
                    edge_entry_angle=0.05, edge_entry_hgap=0.06, edge_entry_fint=0.08,
                    edge_exit_angle=0.05, edge_exit_hgap=0.06, edge_exit_fint=0.08)
@@ -1010,8 +1011,8 @@ def test_thin_slice_bend_with_multipoles_bend_off(test_context):
     assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-14)
     assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-14)
 
-    line.to_json('ttt.json')
-    line2 = xt.Line.from_json('ttt.json')
+    line.to_json('ttt_thin_bend_mult_off.json')
+    line2 = xt.Line.from_json('ttt_thin_bend_mult_off.json')
     assert isinstance(line2['e0..5'], xt.ThinSliceBend)
     assert line2['e0..5'].parent_name == 'e0'
     assert line2['e0..5']._parent is None
@@ -1077,7 +1078,8 @@ def test_thin_slice_bend_with_multipoles_bend_off(test_context):
 def test_thick_slice_quad_with_multipoles(test_context):
 
     quad = xt.Quadrupole(k1=1e-3, k1s=2e-3, length=1,
-                   knl=[0, 0.001, 0.01], ksl=[0, 0.002, 0.03],
+                   knl=[0, 0.001, 0.01, 0.02, 0.04, 0.6],
+                   ksl=[0, 0.002, 0.03, 0.03, 0.05, 0.7],
                    num_multipole_kicks=100000)
 
     line = xt.Line(elements=[quad])
@@ -1104,8 +1106,8 @@ def test_thick_slice_quad_with_multipoles(test_context):
     assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-8)
     assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-8)
 
-    line.to_json('ttt.json')
-    line2 = xt.Line.from_json('ttt.json')
+    line.to_json('ttt_thick_quad_mult.json')
+    line2 = xt.Line.from_json('ttt_thick_quad_mult.json')
     assert isinstance(line2['e0..5'], xt.ThickSliceQuadrupole)
     assert line2['e0..5'].parent_name == 'e0'
     assert line2['e0..5']._parent is None
@@ -1129,7 +1131,8 @@ def test_thick_slice_quad_with_multipoles(test_context):
 def test_thin_slice_quad_with_multipoles(test_context):
 
     quad = xt.Quadrupole(k1=1e-3, k1s=2e-3, length=1,
-                   knl=[0, 0.001, 0.01], ksl=[0, 0.002, 0.03],
+                   knl=[0, 0.001, 0.01, 0.02, 0.04, 0.6],
+                   ksl=[0, 0.002, 0.03, 0.03, 0.05, 0.7],
                    num_multipole_kicks=100000)
 
     line = xt.Line(elements=[quad])
@@ -1158,8 +1161,8 @@ def test_thin_slice_quad_with_multipoles(test_context):
     assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-8)
     assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-8)
 
-    line.to_json('ttt.json')
-    line2 = xt.Line.from_json('ttt.json')
+    line.to_json('ttt_thin_quad_mult.json')
+    line2 = xt.Line.from_json('ttt_thin_quad_mult.json')
     assert isinstance(line2['e0..5'], xt.ThinSliceQuadrupole)
     assert line2['e0..5'].parent_name == 'e0'
     assert line2['e0..5']._parent is None
@@ -1212,7 +1215,8 @@ def test_thin_slice_quad_with_multipoles(test_context):
 def test_thin_slice_quad_with_multipoles_quad_off(test_context):
 
     quad = xt.Quadrupole(k1=0, k1s=0, length=1,
-                   knl=[0, 0.001, 0.01], ksl=[0, 0.002, 0.03],
+                   knl=[0, 0.001, 0.01, 0.02, 0.04, 0.6],
+                   ksl=[0, 0.002, 0.03, 0.03, 0.05, 0.7],
                    num_multipole_kicks=10)
 
     line = xt.Line(elements=[quad])
@@ -1241,8 +1245,8 @@ def test_thin_slice_quad_with_multipoles_quad_off(test_context):
     assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-14)
     assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-14)
 
-    line.to_json('ttt.json')
-    line2 = xt.Line.from_json('ttt.json')
+    line.to_json('ttt_thin_mult_quad_off.json')
+    line2 = xt.Line.from_json('ttt_thin_mult_quad_off.json')
     assert isinstance(line2['e0..5'], xt.ThinSliceQuadrupole)
     assert line2['e0..5'].parent_name == 'e0'
     assert line2['e0..5']._parent is None
@@ -1296,7 +1300,9 @@ def test_thick_slice_sextupole_with_multipoles(test_context):
 
     sext = xt.Sextupole(k2=1e-3, k2s=2e-3,
                    length=0.001, # need to make it very short because thick has only one kick in the center
-                   knl=[0, 0.001, 0.01], ksl=[0, 0.002, 0.03])
+                   knl=[0, 0.001, 0.01, 0.02, 0.04, 0.6],
+                   ksl=[0, 0.002, 0.03, 0.03, 0.05, 0.7]
+    )
 
     line = xt.Line(elements=[sext])
 
@@ -1322,8 +1328,8 @@ def test_thick_slice_sextupole_with_multipoles(test_context):
     assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-8)
     assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-8)
 
-    line.to_json('ttt.json')
-    line2 = xt.Line.from_json('ttt.json')
+    line.to_json('ttt_thick_sext_mult.json')
+    line2 = xt.Line.from_json('ttt_thick_sext_mult.json')
     assert isinstance(line2['e0..0'], xt.ThickSliceSextupole)
     assert line2['e0..1'].parent_name == 'e0'
     assert line2['e0..1']._parent is None
@@ -1347,7 +1353,8 @@ def test_thick_slice_sextupole_with_multipoles(test_context):
 def test_thin_slice_sextupole_with_multipoles(test_context):
 
     sext = xt.Sextupole(k2=1e-3, k2s=2e-3, length=0.001,
-                   knl=[0, 0.001, 0.01], ksl=[0, 0.002, 0.03])
+                   knl=[0, 0.001, 0.01, 0.02, 0.04, 0.6],
+                   ksl=[0, 0.002, 0.03, 0.03, 0.05, 0.7])
 
     line = xt.Line(elements=[sext])
 
@@ -1375,8 +1382,8 @@ def test_thin_slice_sextupole_with_multipoles(test_context):
     assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-8)
     assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-8)
 
-    line.to_json('ttt.json')
-    line2 = xt.Line.from_json('ttt.json')
+    line.to_json('ttt_thin_sext_mult.json')
+    line2 = xt.Line.from_json('ttt_thin_sext_mult.json')
     assert isinstance(line2['e0..1'], xt.ThinSliceSextupole)
     assert line2['e0..1'].parent_name == 'e0'
     assert line2['e0..1']._parent is None
@@ -1430,7 +1437,8 @@ def test_thick_slice_octupole_with_multipoles(test_context):
 
     oct = xt.Octupole(k3=1e-3, k3s=2e-3,
                    length=0.001, # need to make it very short because thick has only one kick in the center
-                   knl=[0, 0.001, 0.01], ksl=[0, 0.002, 0.03])
+                   knl=[0, 0.001, 0.01, 0.02, 0.04, 0.6],
+                   ksl=[0, 0.002, 0.03, 0.03, 0.05, 0.7])
 
     line = xt.Line(elements=[oct])
 
@@ -1456,8 +1464,8 @@ def test_thick_slice_octupole_with_multipoles(test_context):
     assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-8)
     assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-8)
 
-    line.to_json('ttt.json')
-    line2 = xt.Line.from_json('ttt.json')
+    line.to_json('ttt_thick_oct_mult.json')
+    line2 = xt.Line.from_json('ttt_thick_oct_mult.json')
     assert isinstance(line2['e0..0'], xt.ThickSliceOctupole)
     assert line2['e0..1'].parent_name == 'e0'
     assert line2['e0..1']._parent is None
@@ -1484,7 +1492,8 @@ def test_thick_slice_octupole_with_multipoles(test_context):
 def test_thin_slice_octupole_with_multipoles(test_context):
 
     oct = xt.Octupole(k3=1e-3, k3s=-1e-3, length=0.001,
-                   knl=[0, 0.001, 0.01], ksl=[0, 0.002, 0.03])
+                   knl=[0, 0.001, 0.01, 0.02, 0.04, 0.6],
+                   ksl=[0, 0.002, 0.03, 0.03, 0.05, 0.7])
 
     line = xt.Line(elements=[oct])
 
@@ -1512,8 +1521,8 @@ def test_thin_slice_octupole_with_multipoles(test_context):
     assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-8)
     assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-8)
 
-    line.to_json('ttt.json')
-    line2 = xt.Line.from_json('ttt.json')
+    line.to_json('ttt_octupole_thin.json')
+    line2 = xt.Line.from_json('ttt_octupole_thin.json')
     assert isinstance(line2['e0..1'], xt.ThinSliceOctupole)
     assert line2['e0..1'].parent_name == 'e0'
     assert line2['e0..1']._parent is None
