@@ -983,8 +983,10 @@ def test_thin_slice_bend_with_multipoles_bend_off(test_context):
 
     line.configure_bend_model(edge='linear', core='expanded')
 
+    num_slices = 10
+
     line.slice_thick_elements(
-        slicing_strategies=[xt.Strategy(xt.Uniform(10))])
+        slicing_strategies=[xt.Strategy(xt.Uniform(num_slices))])
     line.build_tracker(_context=test_context)
     line._line_before_slicing.build_tracker(_context=test_context)
     assert line['e0..5'].parent_name == 'e0'
@@ -1048,6 +1050,9 @@ def test_thin_slice_bend_with_multipoles_bend_off(test_context):
     assert_allclose(p_slice.delta, p0.delta, rtol=0, atol=1e-14)
 
     line.optimize_for_tracking()
+
+    assert_allclose(line['e0..5'].knl[5], 0.6/num_slices, rtol=0, atol=1e-14)
+    assert_allclose(line['e0..5'].ksl[5], 0.7/num_slices, rtol=0, atol=1e-14)
 
     assert isinstance(line['e0..5'], xt.Multipole)
     assert isinstance(line['drift_e0..5'], xt.Drift)
@@ -1221,8 +1226,10 @@ def test_thin_slice_quad_with_multipoles_quad_off(test_context):
 
     line = xt.Line(elements=[quad])
 
+    num_slices = 10
+
     line.slice_thick_elements(
-        slicing_strategies=[xt.Strategy(xt.Uniform(10))])
+        slicing_strategies=[xt.Strategy(xt.Uniform(num_slices))])
     line.build_tracker(_context=test_context)
     line._line_before_slicing.build_tracker(_context=test_context)
     assert line['e0..5'].parent_name == 'e0'
@@ -1275,6 +1282,9 @@ def test_thin_slice_quad_with_multipoles_quad_off(test_context):
 
     assert isinstance(line['e0..5'], xt.Multipole)
     assert isinstance(line['drift_e0..5'], xt.Drift)
+
+    assert_allclose(line['e0..5'].knl[5], 0.6/num_slices, rtol=0, atol=1e-14)
+    assert_allclose(line['e0..5'].ksl[5], 0.7/num_slices, rtol=0, atol=1e-14)
 
     p_slice = p0.copy()
     line.track(p_slice)
@@ -1358,8 +1368,10 @@ def test_thin_slice_sextupole_with_multipoles(test_context):
 
     line = xt.Line(elements=[sext])
 
+    num_slices = 2
+
     line.slice_thick_elements(
-        slicing_strategies=[xt.Strategy(xt.Uniform(2))])
+        slicing_strategies=[xt.Strategy(xt.Uniform(num_slices))])
     line.build_tracker(_context=test_context)
     line._line_before_slicing.build_tracker(_context=test_context)
     assert line['e0..1'].parent_name == 'e0'
@@ -1412,6 +1424,9 @@ def test_thin_slice_sextupole_with_multipoles(test_context):
 
     assert isinstance(line['e0..1'], xt.Multipole)
     assert isinstance(line['drift_e0..1'], xt.Drift)
+
+    assert_allclose(line['e0..1'].knl[5], 0.6/num_slices, rtol=0, atol=1e-14)
+    assert_allclose(line['e0..1'].ksl[5], 0.7/num_slices, rtol=0, atol=1e-14)
 
     p_slice = p0.copy()
     line.track(p_slice)
@@ -1485,8 +1500,6 @@ def test_thick_slice_octupole_with_multipoles(test_context):
     assert_allclose(p_slice.zeta, p0.zeta, rtol=0, atol=1e-8)
     assert_allclose(p_slice.delta, p0.delta, rtol=0, atol=1e-8)
 
-    # TODO: add check on value of multipoles after optimization!!!
-
 
 @for_all_test_contexts
 def test_thin_slice_octupole_with_multipoles(test_context):
@@ -1497,8 +1510,10 @@ def test_thin_slice_octupole_with_multipoles(test_context):
 
     line = xt.Line(elements=[oct])
 
+    num_slices = 2
+
     line.slice_thick_elements(
-        slicing_strategies=[xt.Strategy(xt.Uniform(2))])
+        slicing_strategies=[xt.Strategy(xt.Uniform(num_slices))])
     line.build_tracker(_context=test_context)
     line._line_before_slicing.build_tracker(_context=test_context)
     assert line['e0..1'].parent_name == 'e0'
@@ -1551,6 +1566,9 @@ def test_thin_slice_octupole_with_multipoles(test_context):
 
     assert isinstance(line['e0..1'], xt.Multipole)
     assert isinstance(line['drift_e0..1'], xt.Drift)
+
+    assert_allclose(line['e0..1'].knl[5], 0.6/num_slices, rtol=0, atol=1e-14)
+    assert_allclose(line['e0..1'].ksl[5], 0.7/num_slices, rtol=0, atol=1e-14)
 
     p_slice = p0.copy()
     line.track(p_slice)
