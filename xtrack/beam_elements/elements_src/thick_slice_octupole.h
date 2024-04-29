@@ -20,7 +20,7 @@ void ThickSliceOctupole_track_local_particle(
     const double order = ThickSliceOctupoleData_get__parent_order(el);
     const double inv_factorial_order = ThickSliceOctupoleData_get__parent_inv_factorial_order(el);
     const double* knl = ThickSliceOctupoleData_getp1__parent_knl(el, 0);
-    const double* ksl = ThickSliceOcttupoleData_getp1__parent_ksl(el, 0);
+    const double* ksl = ThickSliceOctupoleData_getp1__parent_ksl(el, 0);
 
     #ifndef XSUITE_BACKTRACK
         double const length = weight * ThickSliceOctupoleData_get__parent_length(el); // m

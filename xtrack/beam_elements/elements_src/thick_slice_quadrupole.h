@@ -16,6 +16,7 @@ void ThickSliceQuadrupole_track_local_particle(
     const double k1 = ThickSliceQuadrupoleData_get__parent_k1(el);
     const double k1s = ThickSliceQuadrupoleData_get__parent_k1s(el);
 
+    const int64_t num_multipole_kicks_parent = ThickSliceQuadrupoleData_get__parent_num_multipole_kicks(el);
     const double order = ThickSliceQuadrupoleData_get__parent_order(el);
     const double inv_factorial_order = ThickSliceQuadrupoleData_get__parent_inv_factorial_order(el);
     const double* knl = ThickSliceQuadrupoleData_getp1__parent_knl(el, 0);
