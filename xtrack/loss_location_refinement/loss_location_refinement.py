@@ -11,7 +11,7 @@ import xtrack as xt
 
 from ..beam_elements import LimitPolygon, XYShift, SRotation, Drift, Marker
 from ..line import (Line, _is_thick, _behaves_like_drift, _allow_loss_refinement,
-                    _has_backtrack, _is_aperture, _is_collective)
+                    _has_backtrack, _is_aperture)
 
 from ..general import _print
 
@@ -85,8 +85,7 @@ class LossLocationRefinement:
                                           y_out=na([2]), z_out=na([0]))
 
         # Build track kernel with all elements + polygon
-        elm_gen = {kk:ee for kk,ee in self.line.element_dict.items()
-                   if not _is_collective(ee, None)}
+        elm_gen = self.line.element_dict.copy()
         elm_gen['_xtrack_temp_poly_'] = temp_poly
         ln_gen = Line(elements=elm_gen,
                       element_names=list(line.element_names) + ['_xtrack_temp_poly_'])
