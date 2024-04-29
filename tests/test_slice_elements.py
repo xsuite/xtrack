@@ -1208,7 +1208,6 @@ def test_thin_slice_quad_with_multipoles(test_context):
     assert_allclose(p_slice.zeta, p0.zeta, rtol=0, atol=1e-14)
     assert_allclose(p_slice.delta, p0.delta, rtol=0, atol=1e-14)
 
-
 @for_all_test_contexts
 def test_thin_slice_quad_with_multipoles_quad_off(test_context):
 
@@ -1291,3 +1290,55 @@ def test_thin_slice_quad_with_multipoles_quad_off(test_context):
     assert_allclose(p_slice.py, p0.py, rtol=0, atol=1e-14)
     assert_allclose(p_slice.zeta, p0.zeta, rtol=0, atol=1e-14)
     assert_allclose(p_slice.delta, p0.delta, rtol=0, atol=1e-14)
+
+@for_all_test_contexts
+def test_thick_slice_sextupole_with_multipoles(test_context):
+
+    sext = xt.Sextupole(k2=1e-3, k2s=2e-3,
+                   length=0.001, # need to make it very short because thick has only one kick in the center
+                   knl=[0, 0.001, 0.01], ksl=[0, 0.002, 0.03])
+
+    line = xt.Line(elements=[sext])
+
+    line.slice_thick_elements(
+        slicing_strategies=[xt.Strategy(xt.Uniform(2, mode='thick'))])
+    line.build_tracker(_context=test_context)
+    line._line_before_slicing.build_tracker(_context=test_context)
+    assert line['e0..0'].parent_name == 'e0'
+    assert line['e0..0']._parent is line['e0']
+
+    p0 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03
+                      ,_context=test_context)
+    p_ref = p0.copy()
+    p_slice = p0.copy()
+
+    line.track(p_slice)
+    line._line_before_slicing.track(p_ref)
+
+    assert_allclose(p_slice.x, p_ref.x, rtol=0, atol=1e-8)
+    assert_allclose(p_slice.px, p_ref.px, rtol=0, atol=1e-8)
+    assert_allclose(p_slice.y, p_ref.y, rtol=0, atol=1e-8)
+    assert_allclose(p_slice.py, p_ref.py, rtol=0, atol=1e-8)
+    assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-8)
+    assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-8)
+
+    line.to_json('ttt.json')
+    line2 = xt.Line.from_json('ttt.json')
+    assert isinstance(line2['e0..0'], xt.ThickSliceSextupole)
+    assert line2['e0..0'].parent_name == 'e0'
+    assert line2['e0..0']._parent is None
+
+    line2.build_tracker(_context=test_context)
+    assert isinstance(line2['e0..0'], xt.ThickSliceSextupole)
+    assert line2['e0..0'].parent_name == 'e0'
+    assert line2['e0..0']._parent is line2['e0']
+
+    line.track(p_slice, backtrack=True)
+
+    assert (p_slice.state == 1).all()
+    assert_allclose(p_slice.x, p0.x, rtol=0, atol=1e-8)
+    assert_allclose(p_slice.px, p0.px, rtol=0, atol=1e-8)
+    assert_allclose(p_slice.y, p0.y, rtol=0, atol=1e-8)
+    assert_allclose(p_slice.py, p0.py, rtol=0, atol=1e-8)
+    assert_allclose(p_slice.zeta, p0.zeta, rtol=0, atol=1e-8)
+    assert_allclose(p_slice.delta, p0.delta, rtol=0, atol=1e-8)

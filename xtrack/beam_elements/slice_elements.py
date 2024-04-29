@@ -108,8 +108,8 @@ class ThinSliceSextupole(BeamElement):
 
     def get_equivalent_element(self):
 
-        knl = [0., 0., 0.]
-        ksl = [0., 0., 0.]
+        knl = self._parent.knl.copy() * self.weight
+        ksl = self._parent.ksl.copy() * self.weight
 
         knl[2] += self._parent.k2 * self._parent.length * self.weight
         ksl[2] += self._parent.k2s * self._parent.length * self.weight

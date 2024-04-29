@@ -15,11 +15,11 @@ void ThickSliceQuadrupole_track_local_particle(
     double weight = ThickSliceQuadrupoleData_get_weight(el);
     const double k1 = ThickSliceQuadrupoleData_get__parent_k1(el);
     const double k1s = ThickSliceQuadrupoleData_get__parent_k1s(el);
+
     const double order = ThickSliceQuadrupoleData_get__parent_order(el);
     const double inv_factorial_order = ThickSliceQuadrupoleData_get__parent_inv_factorial_order(el);
     const double* knl = ThickSliceQuadrupoleData_getp1__parent_knl(el, 0);
     const double* ksl = ThickSliceQuadrupoleData_getp1__parent_ksl(el, 0);
-    const int64_t num_multipole_kicks_parent = ThickSliceQuadrupoleData_get__parent_num_multipole_kicks(el);
 
     #ifndef XSUITE_BACKTRACK
         double const length = weight * ThickSliceQuadrupoleData_get__parent_length(el); // m
