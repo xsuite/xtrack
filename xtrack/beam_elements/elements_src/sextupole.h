@@ -12,8 +12,8 @@ void Sextupole_track_local_particle(
         LocalParticle* part0
 ) {
     double length = SextupoleData_get_length(el);
-
     double backtrack_sign = 1;
+
     #ifdef XSUITE_BACKTRACK
         length = -length;
         backtrack_sign = -1;
