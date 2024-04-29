@@ -1178,6 +1178,7 @@ class Quadrupole(BeamElement):
         'k1': xo.Float64,
         'k1s': xo.Float64,
         'length': xo.Float64,
+        'num_multipole_kicks': xo.Int64,
         'order': xo.Int64,
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
