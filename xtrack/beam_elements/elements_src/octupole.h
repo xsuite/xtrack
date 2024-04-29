@@ -38,7 +38,7 @@ void Octupole_track_local_particle(
         Multipole_track_single_particle(part,
             0., length, 1, // weight 1
             knl, ksl, order, inv_factorial_order,
-            knl_oct, ksl_oct, 2, 0.5,
+            knl_oct, ksl_oct, 3, 1./6.,
             backtrack_sign,
             0, 0,
             NULL, NULL, NULL,
