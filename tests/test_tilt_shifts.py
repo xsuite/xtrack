@@ -35,17 +35,21 @@ def test_test_tilt_shifts_vs_sandwtch(test_context, slice_mode):
 
         shift_x = 1e-3
         shift_y = 2e-3
+        shift_s = 10e-3
         rot_s_rad = -0.4
 
         line_test = xt.Line(elements=[elem.copy()])
 
         line_ref = xt.Line(elements=[
+            xt.Drift(length=shift_s),
             xt.XYShift(dx=shift_x, dy=shift_y),
             xt.SRotation(angle=np.rad2deg(rot_s_rad)),
             elem.copy(),
             xt.SRotation(angle=np.rad2deg(-rot_s_rad)),
             xt.XYShift(dx=-shift_x, dy=-shift_y),
+            xt.Drift(length=-shift_s)
         ])
+        line_ref.config.XTRACK_GLOBAL_XY_LIMIT = 1000
 
         if slice_mode is not None:
             line_test.slice_thick_elements(
@@ -56,6 +60,7 @@ def test_test_tilt_shifts_vs_sandwtch(test_context, slice_mode):
         line_test['e0'].rot_s_rad = rot_s_rad
         line_test['e0'].shift_x = shift_x
         line_test['e0'].shift_y = shift_y
+        line_test['e0'].shift_s = shift_s
 
         p_test = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03,
                               _context=test_context)

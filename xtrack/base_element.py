@@ -153,7 +153,7 @@ def _generate_track_local_particle_with_transformations(
             '\n'
             '    if (shift_s != 0.) {\n'
             '        //start_per_particle_block (part0->part)\n'
-            '            Drift_single_particle(part, shift_s);\n'
+            '            Drift_single_particle(part, -shift_s);\n'
             '        //end_per_particle_block\n'
             '    }\n'
             '}\n'
