@@ -4,6 +4,7 @@ import numpy as np
 line = xt.Line.from_json(
     '../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
 tt = line.get_table()
+line.twiss_default['co_search_at'] = 'ip7'
 
 tw0 = line.twiss4d()
 
@@ -86,7 +87,44 @@ kick_vect_y[i_v_kick] = theta_y
 x_res = response_matrix_x @ kick_vect_x
 y_res = response_matrix_y @ kick_vect_y
 
+x_meas = tw2.rows[h_monitor_names].x
+y_meas = tw2.rows[v_monitor_names].y
+x_s_meas = tw2.rows[h_monitor_names].s
+y_s_meas = tw2.rows[v_monitor_names].s
 
+class MeasOrbitH(xt.Action):
+    def __init__(self, line, h_monitor_names):
+        self.line = line
+        self.h_monitor_names = h_monitor_names
+        self.n_monitors = len(h_monitor_names)
+
+    def run(self):
+        tw = self.line.twiss4d(only_orbit=True)
+        x = tw.rows[self.h_monitor_names].x
+        out = {f'x_at_'+name: x[i] for i, name in enumerate(self.h_monitor_names)}
+        return out
+meas_orbit_h = MeasOrbitH(line, h_monitor_names)
+
+tol=1e-8
+
+h_correction_knobs = []
+for nn_kick in h_corrector_names:
+    corr_knob_name = f'orbit_corr_{nn_kick}'
+    assert hasattr(line[nn_kick], 'knl')
+    line.vars[corr_knob_name] = 0
+    line.element_refs[nn_kick].knl[0] += line.vars[f'orbit_corr_{nn_kick}']
+    h_correction_knobs.append(corr_knob_name)
+
+opt = line.match(
+    solve=False,
+    targets=[
+        meas_orbit_h.target(f'x_at_{name}', value=0., tol=tol)
+            for name in h_monitor_names],
+    vary=xt.VaryList(h_correction_knobs, step=1e-8))
+
+def _get_jacobian(x, **kwargs):
+    return -response_matrix_x
+opt._err.get_jacobian = _get_jacobian
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -94,12 +132,14 @@ plt.figure(1)
 plt.subplot(2, 1, 1)
 plt.plot(tt_monitors.s, x_res, '.', label='Response')
 plt.plot(tw2.s, tw2.x)
+plt.plot(x_s_meas, x_meas, 'x', label='Measurement')
 plt.ylabel('x')
 plt.grid(True)
 plt.legend()
 plt.subplot(2, 1, 2)
 plt.plot(tt_monitors.s, y_res, '.', label='Response')
 plt.plot(tw2.s, tw2.y)
+plt.plot(y_s_meas, y_meas, 'x', label='Measurement')
 plt.ylabel('y')
 plt.grid(True)
 plt.legend()
