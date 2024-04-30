@@ -109,6 +109,13 @@ def _generate_track_local_particle_with_transformations(
             f'    double const _cos_rot_s = {element_name}Data_get{add_to_call}__cos_rot_s(el);\n'
             f'    double const shift_x = {element_name}Data_get{add_to_call}__shift_x(el);\n'
             f'    double const shift_y = {element_name}Data_get{add_to_call}__shift_y(el);\n'
+            f'    double const shift_s = {element_name}Data_get{add_to_call}__shift_s(el);\n'
+            '\n'
+            '    if (shift_s != 0.) {\n'
+            '        //start_per_particle_block (part0->part)\n'
+            '            Drift_single_particle(part, shift_s);\n'
+            '        //end_per_particle_block\n'
+            '    }\n'
             '\n'
             '    //start_per_particle_block (part0->part)\n'
             '       LocalParticle_add_to_x(part, -shift_x);\n'
@@ -133,6 +140,7 @@ def _generate_track_local_particle_with_transformations(
             f'    double const _cos_rot_s = {element_name}Data_get{add_to_call}__cos_rot_s(el);\n'
             f'    double const shift_x = {element_name}Data_get{add_to_call}__shift_x(el);\n'
             f'    double const shift_y = {element_name}Data_get{add_to_call}__shift_y(el);\n'
+            f'    double const shift_s = {element_name}Data_get{add_to_call}__shift_s(el);\n'
             '\n'
             '    //start_per_particle_block (part0->part)\n'
             '       SRotation_single_particle(part, -_sin_rot_s, _cos_rot_s);\n'
@@ -142,6 +150,12 @@ def _generate_track_local_particle_with_transformations(
             '       LocalParticle_add_to_x(part, shift_x);\n'
             '       LocalParticle_add_to_y(part, shift_y);\n'
             '    //end_per_particle_block\n'
+            '\n'
+            '    if (shift_s != 0.) {\n'
+            '        //start_per_particle_block (part0->part)\n'
+            '            Drift_single_particle(part, shift_s);\n'
+            '        //end_per_particle_block\n'
+            '    }\n'
             '}\n'
         )
     source += '}\n'
@@ -235,10 +249,11 @@ def _generate_per_particle_kernel_from_local_particle_function(
 
 def _tranformations_active(self):
 
-    if (self.shift_x == 0 and self.shift_y == 0
-        and self._sin_rot_s == 0 and self._cos_rot_s >= 0):
+    if (self.shift_x == 0 and self.shift_y == 0 and self.shift_s == 0
+        and self._sin_rot_s == 0 and self._cos_rot_s >= 0): # means angle is zero
         return False
-    elif (self.shift_x == 0 and self.shift_y == 0 and self._sin_rot_s < -2.):
+    elif (self.shift_x == 0 and self.shift_y == 0 and self.shift_s == 0
+          and self._sin_rot_s < -2.):
         return False
     else:
         return True
@@ -279,6 +294,17 @@ def _set_shifty_property_setter(self, value):
         self._sin_rot_s = 0.
         self._cos_rot_s = 1.
 
+def _shifts_property(self):
+    return self._shift_s
+
+def _set_shifts_property_setter(self, value):
+    self._shift_s = value
+    if not _tranformations_active(self):
+        self._sin_rot_s = -999.
+    elif self._sin_rot_s < -2.:
+        self._sin_rot_s = 0.
+        self._cos_rot_s = 1.
+
 class MetaBeamElement(xo.MetaHybridClass):
 
     def __new__(cls, name, bases, data):
@@ -294,6 +320,7 @@ class MetaBeamElement(xo.MetaHybridClass):
             xofields['_cos_rot_s'] = xo.Field(xo.Float64, default=-999.)
             xofields['_shift_x'] = xo.Field(xo.Float64, 0)
             xofields['_shift_y'] = xo.Field(xo.Float64, 0)
+            xofields['_shift_s'] = xo.Field(xo.Float64, 0)
 
         data = data.copy()
         data['_xofields'] = xofields
@@ -304,6 +331,7 @@ class MetaBeamElement(xo.MetaHybridClass):
             _pkg_root.joinpath('headers','checks.h'),
             _pkg_root.joinpath('headers','particle_states.h'),
             _pkg_root.joinpath('beam_elements', 'elements_src', 'track_srotation.h'),
+            _pkg_root.joinpath('beam_elements', 'elements_src', 'drift.h'),
         ]
         kernels = {}
 
@@ -420,6 +448,7 @@ class MetaBeamElement(xo.MetaHybridClass):
             new_class.rot_s_rad = property(_rot_s_property, _set_rot_s_property_setter)
             new_class.shift_x = property(_shiftx_property, _set_shiftx_property_setter)
             new_class.shift_y = property(_shifty_property, _set_shifty_property_setter)
+            new_class.shift_s = property(_shifts_property, _set_shifts_property_setter)
 
         return new_class
 
@@ -536,6 +565,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         rot_s_rad = kwargs.pop('rot_s_rad', None)
         shift_x = kwargs.pop('shift_x', None)
         shift_y = kwargs.pop('shift_y', None)
+        shift_s = kwargs.pop('shift_s', None)
 
         xo.HybridClass.xoinitialize(self, **kwargs)
 
@@ -547,6 +577,9 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
         if shift_y is not None:
             self.shift_y = shift_y
+
+        if shift_s is not None:
+            self.shift_s = shift_s
 
     def to_dict(self, **kwargs):
         dct = xo.HybridClass.to_dict(self, **kwargs)
