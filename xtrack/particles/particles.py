@@ -1008,7 +1008,7 @@ class Particles(xo.HybridClass):
             _print_state = Print.suppress
             Print.suppress = True
             try:
-                from xsuite_kernels import (
+                from xsuite import (
                     get_suitable_kernel,
                     XSK_PREBUILT_KERNELS_LOCATION,
                 )

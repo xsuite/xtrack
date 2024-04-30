@@ -462,7 +462,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             Print.suppress = True
             classes = (cls._XoStruct,) + tuple(extra_classes)
             try:
-                from xsuite_kernels import (
+                from xsuite import (
                     get_suitable_kernel,
                     XSK_PREBUILT_KERNELS_LOCATION,
                 )

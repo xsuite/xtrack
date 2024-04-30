@@ -1,13 +1,13 @@
 # copyright ################################# #
-# This file is part of the Xobjects Package.  #
-# Copyright (c) CERN, 2022.                   #
+# This file is part of the Xtrack Package.    #
+# Copyright (c) CERN, 2024.                   #
 # ########################################### #
 
 import cffi
 
 import xobjects as xo
 import xtrack as xt
-from xsuite_kernels.prebuild_kernels import regenerate_kernels
+from xsuite.prebuild_kernels import regenerate_kernels
 
 
 def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func, capsys):
@@ -43,12 +43,12 @@ def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func, capsys):
     ]
 
     # Override the definitions with the temporary ones
-    patch_defs = 'xsuite_kernels.kernel_definitions.kernel_definitions'
+    patch_defs = 'xsuite.kernel_definitions.kernel_definitions'
     mocker.patch(patch_defs, kernel_definitions)
     # We need to change the default location so that loading the kernels works
-    mocker.patch('xsuite_kernels.prebuild_kernels.XSK_PREBUILT_KERNELS_LOCATION',
+    mocker.patch('xsuite.prebuild_kernels.XSK_PREBUILT_KERNELS_LOCATION',
                  tmp_path)
-    mocker.patch('xsuite_kernels.XSK_PREBUILT_KERNELS_LOCATION',
+    mocker.patch('xsuite.XSK_PREBUILT_KERNELS_LOCATION',
                  tmp_path)
 
     # Try regenerating the kernels
@@ -105,12 +105,12 @@ def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_fun
     ]
 
     # Override the definitions with the temporary ones
-    patch_defs = 'xsuite_kernels.kernel_definitions.kernel_definitions'
+    patch_defs = 'xsuite.kernel_definitions.kernel_definitions'
     mocker.patch(patch_defs, kernel_definitions)
     # We need to change the default location so that loading the kernels works
-    mocker.patch('xsuite_kernels.prebuild_kernels.XSK_PREBUILT_KERNELS_LOCATION',
+    mocker.patch('xsuite.prebuild_kernels.XSK_PREBUILT_KERNELS_LOCATION',
                  tmp_path)
-    mocker.patch('xsuite_kernels.XSK_PREBUILT_KERNELS_LOCATION',
+    mocker.patch('xsuite.XSK_PREBUILT_KERNELS_LOCATION',
                  tmp_path)
 
     # Try regenerating the kernels

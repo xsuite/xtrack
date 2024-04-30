@@ -225,7 +225,7 @@ class MultiSetter(xo.HybridClass):
         context = self._buffer.context
         if context.allow_prebuilt_kernels and only_if_needed:
             try:
-                from xsuite_kernels import (
+                from xsuite import (
                     get_suitable_kernel,
                     XSK_PREBUILT_KERNELS_LOCATION,
                 )
