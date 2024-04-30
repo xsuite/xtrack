@@ -3471,6 +3471,7 @@ class Line:
                 '_own_cos_rot_s': '_cos_rot_s',
                 '_own_shift_x': '_shift_x',
                 '_own_shift_y': '_shift_y',
+                '_own_shift_s': '_shift_s',
 
                 '_own_h': 'h',
                 '_own_hxl': 'hxl',
@@ -3508,6 +3509,7 @@ class Line:
                 '_parent_cos_rot_s': (('_parent', '_cos_rot_s'), None),
                 '_parent_shift_x': (('_parent', '_shift_x'), None),
                 '_parent_shift_y': (('_parent', '_shift_y'), None),
+                '_parent_shift_s': (('_parent', '_shift_s'), None),
 
                 '_parent_h': (('_parent', 'h'), None),
                 '_parent_hxl': (('_parent', 'hxl'), None),
@@ -3551,6 +3553,9 @@ class Line:
                     * attr._rot_and_shift_from_parent,
                 'shift_y': lambda attr:
                     attr['_own_shift_y'] + attr['_parent_shift_y']
+                    * attr._rot_and_shift_from_parent,
+                'shift_s': lambda attr:
+                    attr['_own_shift_s'] + attr['_parent_shift_s']
                     * attr._rot_and_shift_from_parent,
                 'k0l': lambda attr: (
                     attr['_own_k0l']
@@ -3851,7 +3856,8 @@ def _is_simple_quadrupole(el):
             and el.knl[0] == 0
             and not any(el.ksl)
             and not el.hxl
-            and el.shift_x == 0 and el.shift_y == 0 and np.abs(el.rot_s_rad) < 1e-12)
+            and el.shift_x == 0 and el.shift_y == 0 and el.shift_s == 0
+            and np.abs(el.rot_s_rad) < 1e-12)
 
 def _is_simple_dipole(el):
     if not isinstance(el, Multipole):
@@ -3859,7 +3865,8 @@ def _is_simple_dipole(el):
     return (el.radiation_flag == 0
             and (el.order == 0 or len(el.knl) == 1 or not any(el.knl[1:]))
             and not any(el.ksl)
-            and el.shift_x == 0 and el.shift_y == 0 and np.abs(el.rot_s_rad) < 1e-12)
+            and el.shift_x == 0 and el.shift_y == 0 and el.shift_s == 0
+            and np.abs(el.rot_s_rad) < 1e-12)
 
 @contextmanager
 def freeze_longitudinal(tracker):

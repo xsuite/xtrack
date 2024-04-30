@@ -71,6 +71,7 @@ class ThinSliceQuadrupole(BeamElement):
                         hxl=0,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
+                        shift_s=self._parent.shift_s,
                         rot_s_rad=self._parent.rot_s_rad,
                         _buffer=self._buffer)
         return out
@@ -120,6 +121,7 @@ class ThinSliceSextupole(BeamElement):
                         hxl=0,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
+                        shift_s=self._parent.shift_s,
                         rot_s_rad=self._parent.rot_s_rad,
                         _buffer=self._buffer)
         return out
@@ -169,6 +171,7 @@ class ThinSliceOctupole(BeamElement):
                         hxl=0,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
+                        shift_s=self._parent.shift_s,
                         rot_s_rad=self._parent.rot_s_rad,
                         _buffer=self._buffer)
         return out
@@ -217,6 +220,7 @@ class ThinSliceBend(BeamElement):
                         hxl=self._parent.h * length,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
+                        shift_s=self._parent.shift_s,
                         rot_s_rad=self._parent.rot_s_rad,
                         _buffer=self._buffer)
         return out
