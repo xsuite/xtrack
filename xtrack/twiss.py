@@ -316,9 +316,6 @@ def twiss_line(line, particle_ref=None, method=None,
     if only_markers:
         raise NotImplementedError('`only_markers` not supported anymore')
 
-    if only_orbit:
-        raise NotImplementedError # Tested only experimentally
-
     if isinstance(init, TwissInit):
         init = init.copy()
 
@@ -547,6 +544,7 @@ def twiss_line(line, particle_ref=None, method=None,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y, r_sigma=r_sigma,
             compute_R_element_by_element=compute_R_element_by_element,
             only_markers=only_markers,
+            only_orbit=only_orbit,
             )
     else:
         # force
@@ -624,7 +622,7 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res._data.update(scalars_chrom)
         twiss_res._col_names += list(cols_chrom.keys())
 
-    if eneloss_and_damping:
+    if eneloss_and_damping and not only_orbit:
         assert 'R_matrix' in twiss_res._data
         if radiation_method != 'full' or twiss_res._data['R_matrix_ebe'] is None:
             with xt.line._preserve_config(line):
@@ -1672,10 +1670,12 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             search_for_t_rev=False,
                             num_turns_search_t_rev=1,
                             compute_R_element_by_element=False,
-                            only_markers=False):
+                            only_markers=False,
+                            only_orbit=False):
 
     eigenvalues = None
     Rot = None
+    RR_ebe = None
 
     if start is not None or end is not None:
         assert start is not None and end is not None, (
@@ -1706,6 +1706,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                 search_for_t_rev=search_for_t_rev,
                                 num_turns_search_t_rev=num_turns_search_t_rev,
                                 )
+    if only_orbit:
+        W_matrix = np.eye(6)
 
     if W_matrix is not None:
         W = W_matrix

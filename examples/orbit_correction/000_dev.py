@@ -75,7 +75,7 @@ i_v_kick = np.where(v_corrector_names == name_y_kick)[0][0]
 line[name_h_kick].knl[0] = -theta_x
 line[name_y_kick].ksl[0] = theta_y
 
-tw2 = line.twiss4d()
+tw2 = line.twiss4d(only_orbit=True)
 
 kick_vect_x = np.zeros(n_hcorrectors)
 kick_vect_x[i_h_kick] = theta_x
@@ -85,6 +85,8 @@ kick_vect_y[i_v_kick] = theta_y
 
 x_res = response_matrix_x @ kick_vect_x
 y_res = response_matrix_y @ kick_vect_y
+
+
 
 import matplotlib.pyplot as plt
 plt.close('all')
