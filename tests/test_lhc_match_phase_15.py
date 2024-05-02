@@ -46,9 +46,6 @@ def test_lhc_match_phase_15(test_context, config):
     default_tol = {None: 1e-8, 'betx': 5e-6, 'bety': 5e-6, 'dx': 1e-7,
                   'alfx': 5e-6, 'alfy': 5e-6}
 
-    collider.lhcb1.twiss_default['only_markers'] = True
-    collider.lhcb2.twiss_default['only_markers'] = True
-
     lm.set_var_limits_and_steps(collider)
 
     tw0 = collider.twiss()
@@ -520,7 +517,7 @@ def test_lhc_match_phase_15(test_context, config):
 
     # Check generated optics in madx
 
-    mad=Madx()
+    mad=Madx(stdout=False)
     mad.call(str(test_data_folder / 'hllhc15_thick/lhc.seq'))
     mad.call(str(test_data_folder / 'hllhc15_thick/hllhc_sequence.madx'))
     mad.input('beam, sequence=lhcb1, particle=proton, energy=7000;')

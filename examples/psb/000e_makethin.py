@@ -88,10 +88,10 @@ for ii, tt in enumerate(t_test):
     qx.append(tw.qx)
     qy.append(tw.qy)
     bety_at_mker.append(tw['bety', 'mker_match'])
-    k0_bsw1.append(line['bi1.bsw1l1.1..1'].knl[0] / line['bi1.bsw1l1.1..1'].length)
-    k2_bsw1.append(line['bi1.bsw1l1.1..1'].knl[2] / line['bi1.bsw1l1.1..1'].length)
-    k0_bsw2.append(line['bi1.bsw1l1.2..1'].knl[0] / line['bi1.bsw1l1.2..1'].length)
-    k2_bsw2.append(line['bi1.bsw1l1.2..1'].knl[2] / line['bi1.bsw1l1.2..1'].length)
+    k0_bsw1.append(line['bi1.bsw1l1.1'].knl[0] / line['bi1.bsw1l1.1'].length)
+    k2_bsw1.append(line['bi1.bsw1l1.1'].knl[2] / line['bi1.bsw1l1.1'].length)
+    k0_bsw2.append(line['bi1.bsw1l1.2'].knl[0] / line['bi1.bsw1l1.2'].length)
+    k2_bsw2.append(line['bi1.bsw1l1.2'].knl[2] / line['bi1.bsw1l1.2'].length)
 
     line.vars['on_chicane_beta_corr'] = 0
     line.vars['on_chicane_tune_corr'] = 0
@@ -173,14 +173,14 @@ for ii, tt in enumerate(t_test):
     line.vars['t_turn_s'] = tt
 
     tw_thick = line_thick.twiss()
-    bety_at_scraper_thick.append(tw_thick['bety', 'br.stscrap22_entry'])
+    bety_at_scraper_thick.append(tw_thick['bety', 'br.stscrap22'])
     qx_thick.append(tw_thick.qx)
     qy_thick.append(tw_thick.qy)
     dqx_thick.append(tw_thick.dqx)
     dqy_thick.append(tw_thick.dqy)
 
     tw_thin = line.twiss()
-    bety_at_scraper_thin.append(tw_thin['bety', 'br.stscrap22_entry'])
+    bety_at_scraper_thin.append(tw_thin['bety', 'br.stscrap22'])
     qx_thin.append(tw_thin.qx)
     qy_thin.append(tw_thin.qy)
     dqx_thin.append(tw_thin.dqx)
@@ -215,12 +215,12 @@ for ii, tt in enumerate(t_test):
     line.vars['t_turn_s'] = tt
 
     tw_thick = line_thick.twiss()
-    bety_at_scraper_thick_corr.append(tw_thick['bety', 'br.stscrap22_entry'])
+    bety_at_scraper_thick_corr.append(tw_thick['bety', 'br.stscrap22'])
     qx_thick_corr.append(tw_thick.qx)
     qy_thick_corr.append(tw_thick.qy)
 
     tw_thin = line.twiss()
-    bety_at_scraper_thin_corr.append(tw_thin['bety', 'br.stscrap22_entry'])
+    bety_at_scraper_thin_corr.append(tw_thin['bety', 'br.stscrap22'])
     qx_thin_corr.append(tw_thin.qx)
     qy_thin_corr.append(tw_thin.qy)
 

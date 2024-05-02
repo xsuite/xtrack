@@ -17,19 +17,24 @@ line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
                                     mass0=seq.beam.mass * 1e9,
                                     q0=seq.beam.charge)
 
-# Inspect one bend (the bend is a compound element made by a core and two edge elements)
-tt = line.get_table()
-tt.rows['lnr.mbhek.0135_entry':'lnr.mbhek.0135_exit'].show()
-# name                          s element_type isthick ...
-# lnr.mbhek.0135_entry     4.4992 Marker         False
-# lnr.mbhek.0135_den       4.4992 DipoleEdge     False
-# lnr.mbhek.0135           4.4992 Bend            True
-# lnr.mbhek.0135_dex      5.46995 DipoleEdge     False
-# lnr.mbhek.0135_exit     5.46995 Marker         False
+# Inspect one bend
+line['lnr.mbhek.0135']
+# returns:
+#
+# Bend(length=0.971, k0=1.08, k1=0, h=1.08, model='adaptive',
+#      knl=array([0., 0., 0., 0., 0.]), ksl=array([0., 0., 0., 0., 0.]),
+#      edge_entry_active=1, edge_exit_active=1,
+#      edge_entry_model='linear', edge_exit_model='linear',
+#      edge_entry_angle=0.287, edge_exit_angle=0.287,
+#      edge_entry_angle_fdown=0, edge_exit_angle_fdown=0,
+#      edge_entry_fint=0.424, edge_exit_fint=0.424,
+#      edge_entry_hgap=0.038, edge_exit_hgap=0.038,
+#      shift_x=0, shift_y=0, rot_s_rad=0)
 
 # By default the adaptive model is used for the core and the linearized model for the edge
 line['lnr.mbhek.0135'].model # is 'adaptive'
-line['lnr.mbhek.0135_den'].model # is 'linear'
+line['lnr.mbhek.0135'].edge_entry_model # is 'linear'
+line['lnr.mbhek.0135'].edge_exit_model # is 'linear'
 
 # For small machines (bends with large bending angles) it is more appropriate to
 # switch to the `full` model for the edge
@@ -39,7 +44,8 @@ line.configure_bend_model(core='adaptive', edge='full')
 line.config.XTRACK_USE_EXACT_DRIFTS = True
 
 line['lnr.mbhek.0135'].model # is 'adaptive'
-line['lnr.mbhek.0135_den'].model # is 'full'
+line['lnr.mbhek.0135'].edge_entry_model # is 'full'
+line['lnr.mbhek.0135'].edge_exit_model # is 'full'
 
 # Slice the bends to see the behavior of the optics functions within them
 line.slice_thick_elements(
@@ -87,7 +93,7 @@ plt.xlabel('s [m]')
 
 # Highlight the bends
 tt_sliced = line.get_table()
-tbends = tt_sliced.rows[tt_sliced.element_type == 'Bend']
+tbends = tt_sliced.rows[tt_sliced.element_type == 'ThickSliceBend']
 for ax in [ax1, ax2, ax3, ax4]:
     for nn in tbends.name:
         ax.axvspan(tbends['s', nn], tbends['s', nn] + line[nn].length,

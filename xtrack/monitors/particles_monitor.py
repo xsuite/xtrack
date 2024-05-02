@@ -162,7 +162,7 @@ class ParticlesMonitor(BeamElement):
 
     behaves_like_drift = True
     has_backtrack = True
-    allow_backtrack = True
+    allow_loss_refinement = True
     _ParticlesClass = xt.Particles
 
 
@@ -176,7 +176,7 @@ per_particle_vars = xt.Particles.per_particle_vars
 for tt, nn in per_particle_vars:
     setattr(ParticlesMonitor, nn, _FieldOfMonitor(name=nn))
 
-for nn in ['pzeta']:
+for nn in ['pzeta', 'kin_px', 'kin_py', 'kin_ps', 'kin_xprime', 'kin_yprime']:
     setattr(ParticlesMonitor, nn, _FieldOfMonitor(name=nn))
 
 

@@ -7,7 +7,7 @@ num_particles_test = 300
 fname = 'fccee_z'; gemitt_y_target = 1.4e-12; n_turns_track_test = 3000
 # fname = 'fccee_w'; gemitt_y_target = 2.2e-12; n_turns_track_test = 2000
 # fname = 'fccee_h'; gemitt_y_target = 1.4e-12; n_turns_track_test = 400
-# fname = 'fccee_t'; gemitt_y_target = 2e-12; n_turns_track_test = 600
+fname = 'fccee_t'; gemitt_y_target = 2e-12; n_turns_track_test = 600
 
 line = xt.Line.from_json(fname + '_thin.json')
 
@@ -43,8 +43,7 @@ tw_rad = line.twiss(eneloss_and_damping=True)
 tw_rad2 = line.twiss(eneloss_and_damping=True, method='6d',
                      radiation_method='full',
                      compute_lattice_functions=False,
-                     compute_chromatic_properties=False,
-                     only_markers=False)
+                     compute_chromatic_properties=False)
 
 
 ex = tw_rad.eq_gemitt_x

@@ -15,7 +15,7 @@ test_data_folder = pathlib.Path(
 
 @for_all_test_contexts
 def test_madloader_lhc_thick(test_context):
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     mad.input(f"""
     call,file="{str(test_data_folder)}/hllhc15_thick/lhc.seq";
@@ -46,9 +46,7 @@ def test_madloader_lhc_thick(test_context):
         if hasattr(ee, 'KILL_EXI_FRINGE'):
             ee.KILL_EXI_FRINGE = True
 
-    for ee in line.elements:
-        if isinstance(ee, xt.DipoleEdge):
-            ee.k = 0
+    line.configure_bend_model(edge='suppressed')
 
     tw0 = line.twiss()
     twmad = mad.twiss(table='twiss')

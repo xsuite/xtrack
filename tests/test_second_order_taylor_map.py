@@ -90,7 +90,7 @@ def test_second_order_maps_against_madx(test_context):
 
     # Generate MAD-X maps
 
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.call(str(test_data_folder / "hllhc15_thick/lhc.seq"))
     mad.call(str(test_data_folder / "hllhc15_thick/hllhc_sequence.madx"))
 

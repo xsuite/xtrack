@@ -13,7 +13,7 @@ twm = mad.twiss()
 line = xt.Line.from_madx_sequence(mad.sequence.lep, deferred_expressions=True)
 line.particle_ref = xt.Particles(
     mass0=xt.ELECTRON_MASS_EV, gamma0=mad.sequence.lep.beam.gamma)
-
+line.build_tracker()
 sv = line.survey()
 tw = line.twiss()
 
