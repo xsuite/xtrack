@@ -13,7 +13,6 @@ from scipy.constants import epsilon_0
 import xobjects as xo
 from xobjects.general import Print
 from xobjects import BypassLinked
-from xtrack.prebuild_kernels import XT_PREBUILT_KERNELS_LOCATION
 
 from .constants import PROTON_MASS_EV
 
@@ -1006,16 +1005,23 @@ class Particles(xo.HybridClass):
         """
         context = self._buffer.context
         if context.allow_prebuilt_kernels:
-            from xtrack.prebuild_kernels import get_suitable_kernel
             _print_state = Print.suppress
             Print.suppress = True
-            kernel_info = get_suitable_kernel({}, (self.__class__._XoStruct,))
+            try:
+                from xsuite import (
+                    get_suitable_kernel,
+                    XSK_PREBUILT_KERNELS_LOCATION,
+                )
+                kernel_info = get_suitable_kernel({}, ())
+            except ImportError:
+                kernel_info = None
+
             Print.suppress = _print_state
             if kernel_info:
                 module_name, _ = kernel_info
                 kernels = context.kernels_from_file(
                     module_name=module_name,
-                    containing_dir=XT_PREBUILT_KERNELS_LOCATION,
+                    containing_dir=XSK_PREBUILT_KERNELS_LOCATION,
                     kernel_descriptions=self._kernels,
                 )
                 context.kernels.update(kernels)
