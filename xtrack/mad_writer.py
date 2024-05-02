@@ -62,6 +62,8 @@ def _handle_transforms(tokens, el):
         tokens.append(mad_assignment('dy', _ge(el.shift_y)))
     if el.rot_s_rad._expr is not None or el.rot_s_rad._value:
         tokens.append(mad_assignment('tilt', _ge(el.rot_s_rad)))
+    if el.shift_s._expr is not None or el.shift_s._value:
+        raise NotImplementedError("shift_s is not yet supported in mad writer")
 
 def cavity_to_madx_str(name, line):
     cav = _get_eref(line, name)
