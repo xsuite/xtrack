@@ -73,8 +73,8 @@ theta_y = 2e-5
 i_h_kick = np.where(h_corrector_names == name_h_kick)[0][0]
 i_v_kick = np.where(v_corrector_names == name_y_kick)[0][0]
 
-line[name_h_kick].knl[0] = -theta_x
-line[name_y_kick].ksl[0] = theta_y
+line.element_refs[name_h_kick].knl[0] += -theta_x
+line.element_refs[name_y_kick].ksl[0] += theta_y
 
 tw2 = line.twiss4d(only_orbit=True)
 
@@ -128,8 +128,27 @@ def _get_jacobian(x, **kwargs):
     return -response_matrix_x
 opt._err.get_jacobian = _get_jacobian
 
+# # SVD
+# opt.step()
 
-opt.step()
+# Normalize response matrix columns
+normalized_response_matrix_x = response_matrix_x.copy()
+for jj in range(normalized_response_matrix_x.shape[1]):
+    normalized_response_matrix_x[:, jj] /= np.linalg.norm(normalized_response_matrix_x[:, jj])
+
+kick_h_corr = np.zeros(n_hcorrectors)
+
+# MICADO 1 corrector
+proj = normalized_response_matrix_x.T @ x_meas
+
+i_corr = np.argmax(np.abs(proj))
+kick_h_corr[i_corr] = (response_matrix_x[:, i_corr] @ x_meas
+                       / np.linalg.norm(response_matrix_x[:, i_corr])**2)
+
+for nn_knob, kick in zip(h_correction_knobs, kick_h_corr):
+    line.vars[nn_knob] += kick
+
+
 meas_after = meas_orbit_h.run()
 tw_meas_after = meas_after['tw_meas']
 
