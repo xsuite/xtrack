@@ -13,8 +13,8 @@ tw0 = line.twiss4d()
 
 tw1 = line.twiss4d()
 
-# Select monitors by names (starting by "bpm." and not ending by "_entry" or "_exit")
-tt_monitors = tt.rows['bpm\..*'].rows['.*(?<!_entry)$'].rows['.*(?<!_exit)$']
+# Select monitors by names (starting by "bpm" and not ending by "_entry" or "_exit")
+tt_monitors = tt.rows['bpm.*'].rows['.*(?<!_entry)$'].rows['.*(?<!_exit)$']
 h_monitor_names = tt_monitors.name
 v_monitor_names = tt_monitors.name
 
@@ -100,8 +100,10 @@ class MeasOrbitH(xt.Action):
 
     def run(self):
         tw = self.line.twiss4d(only_orbit=True)
-        x = tw.rows[self.h_monitor_names].x
+        tw_meas = tw.rows[self.h_monitor_names]
+        x = tw_meas.x
         out = {f'x_at_'+name: x[i] for i, name in enumerate(self.h_monitor_names)}
+        out['tw_meas'] = tw_meas
         return out
 meas_orbit_h = MeasOrbitH(line, h_monitor_names)
 
@@ -126,6 +128,11 @@ def _get_jacobian(x, **kwargs):
     return -response_matrix_x
 opt._err.get_jacobian = _get_jacobian
 
+
+opt.step()
+meas_after = meas_orbit_h.run()
+tw_meas_after = meas_after['tw_meas']
+
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
@@ -133,6 +140,7 @@ plt.subplot(2, 1, 1)
 plt.plot(tt_monitors.s, x_res, '.', label='Response')
 plt.plot(tw2.s, tw2.x)
 plt.plot(x_s_meas, x_meas, 'x', label='Measurement')
+plt.plot(tw_meas_after.s, tw_meas_after.x, '.', label='After correction')
 plt.ylabel('x')
 plt.grid(True)
 plt.legend()
@@ -140,6 +148,7 @@ plt.subplot(2, 1, 2)
 plt.plot(tt_monitors.s, y_res, '.', label='Response')
 plt.plot(tw2.s, tw2.y)
 plt.plot(y_s_meas, y_meas, 'x', label='Measurement')
+plt.plot(tw_meas_after.s, tw_meas_after.y, '.', label='After correction')
 plt.ylabel('y')
 plt.grid(True)
 plt.legend()
