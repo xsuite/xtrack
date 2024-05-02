@@ -11,7 +11,6 @@ import xobjects as xo
 from xobjects.general import Print
 
 from xobjects.hybrid_class import _build_xofields_dict
-from xtrack.prebuild_kernels import XT_PREBUILT_KERNELS_LOCATION
 
 from .general import _pkg_root
 from .internal_record import RecordIdentifier, RecordIndex, generate_get_record
@@ -484,7 +483,6 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         cls = type(self)
 
         if context.allow_prebuilt_kernels:
-            from xtrack.prebuild_kernels import get_suitable_kernel
             # Default config is empty (all flags default to not defined, which
             # enables most behaviours). In the future this has to be looked at
             # whenever a new flag is needed.
@@ -492,15 +490,24 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             _print_state = Print.suppress
             Print.suppress = True
             classes = (cls._XoStruct,) + tuple(extra_classes)
-            kernel_info = get_suitable_kernel(
-                _default_config, classes
-            )
+            try:
+                from xsuite import (
+                    get_suitable_kernel,
+                    XSK_PREBUILT_KERNELS_LOCATION,
+                )
+            except ImportError:
+                kernel_info = None
+            else:
+                kernel_info = get_suitable_kernel(
+                    _default_config, classes
+                )
+
             Print.suppress = _print_state
             if kernel_info:
                 module_name, _ = kernel_info
                 kernels = context.kernels_from_file(
                     module_name=module_name,
-                    containing_dir=XT_PREBUILT_KERNELS_LOCATION,
+                    containing_dir=XSK_PREBUILT_KERNELS_LOCATION,
                     kernel_descriptions=self._kernels,
                 )
                 context.kernels.update(kernels)
