@@ -2,17 +2,31 @@
 # This file is part of the Xtrack Package.    #
 # Copyright (c) CERN, 2024.                   #
 # ########################################### #
+import os
 
 import cffi
+import pytest
 
 import xobjects as xo
 import xtrack as xt
-from xsuite.prebuild_kernels import regenerate_kernels
 
 
-def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func, capsys):
+@pytest.fixture
+def with_verbose():
+    old_verbose = os.environ.get('XSUITE_VERBOSE', None)
+    os.environ['XSUITE_VERBOSE'] = '1'
+
+    yield
+
+    if old_verbose is None:
+        del os.environ['XSUITE_VERBOSE']
+    else:
+        os.environ['XSUITE_VERBOSE'] = old_verbose
+
+
+def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func, capsys, with_verbose):
     # Set up the temporary kernels directory
-    kernel_definitions = [
+    kernel_defs = [
         ("111_test_module", {
             "config": {
                 "XTRACK_MULTIPOLE_NO_SYNRAD": True,
@@ -43,8 +57,8 @@ def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func, capsys):
     ]
 
     # Override the definitions with the temporary ones
-    patch_defs = 'xsuite.kernel_definitions.kernel_definitions'
-    mocker.patch(patch_defs, kernel_definitions)
+    mocker.patch('xsuite.kernel_definitions.kernel_definitions', kernel_defs)
+    mocker.patch('xsuite.prebuild_kernels.kernel_definitions', kernel_defs)
     # We need to change the default location so that loading the kernels works
     mocker.patch('xsuite.prebuild_kernels.XSK_PREBUILT_KERNELS_LOCATION',
                  tmp_path)
@@ -52,7 +66,8 @@ def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func, capsys):
                  tmp_path)
 
     # Try regenerating the kernels
-    regenerate_kernels(location=tmp_path)
+    from xsuite.prebuild_kernels import regenerate_kernels
+    regenerate_kernels(kernels=['111_test_module', '000_test_module'], location=tmp_path)
 
     # Check if the expected files were created
     so_file0, = tmp_path.glob('000_test_module.*.so')
@@ -86,7 +101,7 @@ def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func, capsys):
 
 def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_func):
     # Set up the temporary kernels directory
-    kernel_definitions = [
+    kernel_defs = [
         ("test_module", {
             "config": {},
             "classes": [
@@ -105,8 +120,8 @@ def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_fun
     ]
 
     # Override the definitions with the temporary ones
-    patch_defs = 'xsuite.kernel_definitions.kernel_definitions'
-    mocker.patch(patch_defs, kernel_definitions)
+    mocker.patch('xsuite.kernel_definitions.kernel_definitions', kernel_defs)
+    mocker.patch('xsuite.prebuild_kernels.kernel_definitions', kernel_defs)
     # We need to change the default location so that loading the kernels works
     mocker.patch('xsuite.prebuild_kernels.XSK_PREBUILT_KERNELS_LOCATION',
                  tmp_path)
@@ -114,7 +129,8 @@ def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_fun
                  tmp_path)
 
     # Try regenerating the kernels
-    regenerate_kernels(location=tmp_path)
+    from xsuite.prebuild_kernels import regenerate_kernels
+    regenerate_kernels(kernels=['test_module', 'test_module_rand'], location=tmp_path)
 
     # Check if the expected files were created
     so_file_exists = False
