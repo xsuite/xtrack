@@ -65,24 +65,24 @@ muy_diff = repmat(muy_monitor, n_vcorrectors, 1).T - repmat(muy_correctors, n_vm
 response_matrix_x = np.sqrt(bet_prod_x) / 2 / np.sin(np.pi * qx) * np.cos(np.pi * qx - 2*np.pi*np.abs(mux_diff))
 response_matrix_y = np.sqrt(bet_prod_y) / 2 / np.sin(np.pi * qy) * np.cos(np.pi * qy - 2*np.pi*np.abs(muy_diff))
 
-name_h_kick = 'mcbh.15r7.b1'
-name_y_kick = 'mcbv.14r7.b1'
-
-theta_x = 1e-5
-theta_y = 2e-5
-i_h_kick = np.where(h_corrector_names == name_h_kick)[0][0]
-i_v_kick = np.where(v_corrector_names == name_y_kick)[0][0]
-
-line.element_refs[name_h_kick].knl[0] += -theta_x
-line.element_refs[name_y_kick].ksl[0] += theta_y
-
-tw2 = line.twiss4d(only_orbit=True)
+h_kicks = {'mcbh.15r7.b1': 1e-5, 'mcbh.21r7.b1':-3e-5}
+v_kicks = {'mcbv.14r7.b1': 2e-5, 'mcbv.22r7.b1':-1e-5}
 
 kick_vect_x = np.zeros(n_hcorrectors)
-kick_vect_x[i_h_kick] = theta_x
-
 kick_vect_y = np.zeros(n_vcorrectors)
-kick_vect_y[i_v_kick] = theta_y
+
+for nn_kick, kick in h_kicks.items():
+    line.element_refs[nn_kick].knl[0] -= kick
+    i_h_kick = np.where(h_corrector_names == nn_kick)[0][0]
+    kick_vect_x[i_h_kick] = kick
+
+for nn_kick, kick in v_kicks.items():
+    line.element_refs[nn_kick].ksl[0] += kick
+    i_v_kick = np.where(v_corrector_names == nn_kick)[0][0]
+    kick_vect_y[i_v_kick] = kick
+
+
+tw2 = line.twiss4d(only_orbit=True)
 
 x_res = response_matrix_x @ kick_vect_x
 y_res = response_matrix_y @ kick_vect_y
@@ -129,7 +129,8 @@ def _get_jacobian(x, **kwargs):
 opt._err.get_jacobian = _get_jacobian
 
 # # SVD
-# opt.step()
+# n_svd = 3
+# opt.step(n_svd)
 
 # Normalize response matrix columns
 normalized_response_matrix_x = response_matrix_x.copy()
@@ -138,15 +139,51 @@ for jj in range(normalized_response_matrix_x.shape[1]):
 
 kick_h_corr = np.zeros(n_hcorrectors)
 
-# MICADO 1 corrector
-proj = normalized_response_matrix_x.T @ x_meas
+x_iter = x_meas.copy()
 
-i_corr = np.argmax(np.abs(proj))
-kick_h_corr[i_corr] = (response_matrix_x[:, i_corr] @ x_meas
-                       / np.linalg.norm(response_matrix_x[:, i_corr])**2)
+n_micado = 1
+used_correctors = []
+x_iter_list = []
+opt.solver.n_bisections = 0
+for ii in range(n_micado):
 
-for nn_knob, kick in zip(h_correction_knobs, kick_h_corr):
-    line.vars[nn_knob] += kick
+    pen = []
+    for jj in range(n_hcorrectors):
+        opt.disable_all_vary()
+        opt.vary[jj].active = True
+
+        opt.step()
+        pen.append(opt.log().penalty[-1])
+
+    i_corr = np.argmin(pen)
+    used_correctors.append(i_corr)
+
+
+    # proj = normalized_response_matrix_x.T @ x_iter
+
+    # for uu in used_correctors:
+    #     proj[uu] = 0
+
+    # i_corr = np.argmax(np.abs(proj))
+    # used_correctors.append(i_corr)
+
+    # used_correctors.append(i_corr)
+    # print(f'{i_corr=}')
+    # kick_h_corr[i_corr] = -(response_matrix_x[:, i_corr] @ x_iter
+    #                     / np.linalg.norm(response_matrix_x[:, i_corr])**2)
+    # x_iter += kick_h_corr[i_corr] * response_matrix_x[:, i_corr]
+
+    # x_iter_list.append(x_iter.copy())
+
+# for nn_knob, kick in zip(h_correction_knobs, kick_h_corr):
+#     line.vars[nn_knob] -= kick
+
+opt.disable_all_vary()
+for jj in used_correctors:
+    opt.vary[jj].enabled = True
+
+opt.actions[0].x = None
+opt.step()
 
 
 meas_after = meas_orbit_h.run()
