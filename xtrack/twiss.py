@@ -692,7 +692,7 @@ def twiss_line(line, particle_ref=None, method=None,
         for kk in (NORMAL_STRENGTHS_FROM_ATTR + SKEW_STRENGTHS_FROM_ATTR
                    + OTHER_FIELDS_FROM_ATTR):
             twiss_res._col_names.append(kk)
-            twiss_res._data[kk] = tt[kk]
+            twiss_res._data[kk] = tt[kk].copy()
 
     twiss_res._data['method'] = method
     twiss_res._data['radiation_method'] = radiation_method

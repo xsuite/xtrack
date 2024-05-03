@@ -58,7 +58,7 @@ for nn_kick, kick in h_kicks.items():
     i_h_kick = np.where(h_corrector_names == nn_kick)[0][0]
     kick_vect_x[i_h_kick] = kick
 
-for iter in range(1):
+for iter in range(3):
     # Measure the orbit
     tw_meas = line.twiss4d(only_orbit=True)
 
@@ -77,5 +77,21 @@ for iter in range(1):
 
     print('max x: ', tw_after.x.max())
 
+x_meas_after = tw_after.rows[h_monitor_names].x
+
+s_correctors = tw_after.rows[h_corrector_names].s
+
 # Extract kicks from the knobs
 applied_kicks = np.array([line.vv[nn_knob] for nn_knob in h_correction_knobs])
+
+import matplotlib.pyplot as plt
+plt.close('all')
+plt.figure(1)
+sp1 = plt.subplot(211)
+sp1.plot(s_x_meas, x_meas, label='measured')
+sp1.plot(s_x_meas, x_meas_after, label='corrected')
+
+sp2 = plt.subplot(212, sharex=sp1)
+sp2.plot(s_correctors, applied_kicks, label='applied kicks')
+
+plt.show()
