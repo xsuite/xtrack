@@ -58,36 +58,54 @@ for nn_kick, kick in h_kicks.items():
     i_h_kick = np.where(h_corrector_names == nn_kick)[0][0]
     kick_vect_x[i_h_kick] = kick
 
-# Measure the orbit
 tw_meas = line.twiss4d(only_orbit=True)
 
 x_meas = tw_meas.rows[h_monitor_names].x
 s_x_meas = tw_meas.rows[h_monitor_names].s
 
-n_micado = 3
-used_correctors = []
+for iter in range(3):
+    # Measure the orbit
+    tw_iter = line.twiss4d(only_orbit=True)
 
-prrrr
+    x_iter = tw_iter.rows[h_monitor_names].x
 
-for i_micado in n_micado:
+    n_micado = 5
 
-    for i_corr in range(n_hcorrectors):
-        mask_corr = np.zeros(n_hcorrectors, dtype=bool)
-        mask_corr[i_corr] = True
-        for i_used in used_correctors:
-            mask_corr[i_used] = True
+    used_correctors = []
 
-        # Compute the correction with least squares
-        correction_x, residual_x, rank_x, sval_x = np.linalg.lstsq(
-                                response_matrix_x, -x_meas, rcond=None)
+    for i_micado in range(n_micado):
 
-# Apply correction
-for nn_knob, kick in zip(h_correction_knobs, correction_x):
-    line.vars[nn_knob] -= kick # knl[0] is -kick
+        residuals = []
+        for i_corr in range(n_hcorrectors):
+            if i_corr in used_correctors:
+                residuals.append(np.nan)
+                continue
+            mask_corr = np.zeros(n_hcorrectors, dtype=bool)
+            mask_corr[i_corr] = True
+            for i_used in used_correctors:
+                mask_corr[i_used] = True
 
-tw_after = line.twiss4d(only_orbit=True)
+            # Compute the correction with least squares
+            _, residual_x, rank_x, sval_x = np.linalg.lstsq(
+                        response_matrix_x[:, mask_corr], -x_iter, rcond=None)
+            residuals.append(residual_x[0])
+        used_correctors.append(np.nanargmin(residuals))
 
-print('max x: ', tw_after.x.max())
+    mask_corr = np.zeros(n_hcorrectors, dtype=bool)
+    mask_corr[used_correctors] = True
+    # Compute the correction with least squares
+    correction_masked, residual_x, rank_x, sval_x = np.linalg.lstsq(
+                response_matrix_x[:, mask_corr], -x_iter, rcond=None)
+    correction_x = np.zeros(n_hcorrectors)
+    correction_x[mask_corr] = correction_masked
+
+    # Apply correction
+    for nn_knob, kick in zip(h_correction_knobs, correction_x):
+        line.vars[nn_knob] -= kick # knl[0] is -kick
+
+    tw_after = line.twiss4d(only_orbit=True)
+
+    print('max x: ', tw_after.x.max())
 
 x_meas_after = tw_after.rows[h_monitor_names].x
 
