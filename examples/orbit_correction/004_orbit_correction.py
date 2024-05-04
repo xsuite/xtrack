@@ -19,8 +19,8 @@ h_monitor_names = tt_monitors.name
 tt_h_correctors = tt.rows['mcb.*'].rows['.*h\..*'].rows['.*\.b1']
 h_corrector_names = tt_h_correctors.name
 
-orbit_correction = oc.OrbitCorrection(line=line, h_monitor_names=h_monitor_names,
-                                        h_corrector_names=h_corrector_names)
+orbit_correction = oc.OrbitCorrection(line=line, monitor_names=h_monitor_names,
+                                        corrector_names=h_corrector_names)
 orbit_correction.add_correction_knobs()
 
 response_matrix_x = oc._build_response_matrix(

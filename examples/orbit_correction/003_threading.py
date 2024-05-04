@@ -25,23 +25,18 @@ h_monitor_names = tt_monitors.name
 tt_h_correctors = tt.rows['mcb.*'].rows['.*h\..*'].rows['.*\.b1']
 h_corrector_names = tt_h_correctors.name
 
-orbit_correction = oc.OrbitCorrection(line=line, h_monitor_names=h_monitor_names,
-                                        h_corrector_names=h_corrector_names,
+orbit_correction = oc.OrbitCorrection(line=line, plane='x', monitor_names=h_monitor_names,
+                                        corrector_names=h_corrector_names,
                                         start=line_range[0], end=line_range[1])
 orbit_correction._add_correction_knobs()
-
-response_matrix_x = oc._build_response_matrix(
-    tw, h_monitor_names, h_corrector_names, mode='open')
 
 # Introduce some orbit perturbation
 
 h_kicks = {'mcbh.14r2.b1': 1e-5, 'mcbh.26l3.b1':-3e-5}
-kick_vect_x = np.zeros(response_matrix_x.shape[1])
 
 for nn_kick, kick in h_kicks.items():
     line.element_refs[nn_kick].knl[0] -= kick
     i_h_kick = np.where(h_corrector_names == nn_kick)[0][0]
-    kick_vect_x[i_h_kick] = kick
 
 # tt = line.get_table()
 # tt_quad = tt.rows[tt.element_type == 'Quadrupole']
