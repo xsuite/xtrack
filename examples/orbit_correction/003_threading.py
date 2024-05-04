@@ -25,17 +25,10 @@ h_monitor_names = tt_monitors.name
 tt_h_correctors = tt.rows['mcb.*'].rows['.*h\..*'].rows['.*\.b1']
 h_corrector_names = tt_h_correctors.name
 
-# Add correction knobs to the correctors
-h_correction_knobs = []
-for nn_kick in h_corrector_names:
-    corr_knob_name = f'orbit_corr_{nn_kick}'
-    assert hasattr(line[nn_kick], 'knl')
-    line.vars[corr_knob_name] = 0
-    line.element_refs[nn_kick].knl[0] += line.vars[f'orbit_corr_{nn_kick}']
-    h_correction_knobs.append(corr_knob_name)
+orbit_correction = oc.OrbitCorrection(line=line, h_monitor_names=h_monitor_names,
+                                        h_corrector_names=h_corrector_names)
+orbit_correction.add_correction_knobs()
 
-
-# Wille eq. 3.164
 response_matrix_x = oc._build_response_matrix(
     tw, h_monitor_names, h_corrector_names, mode='open')
 
@@ -75,14 +68,8 @@ for iter in range(3):
 
     correction_x = oc._compute_correction(x_iter, response_matrix_x, n_micado)
 
-    # correction_masked, residual_x, rank_x, sval_x = np.linalg.lstsq(
-    #             response_matrix_x[2:, :], -x_iter[2:], rcond=None)
-    # correction_x = np.zeros(n_hcorrectors)
-    # correction_x = correction_masked
-
     # Apply correction
-    for nn_knob, kick in zip(h_correction_knobs, correction_x):
-        line.vars[nn_knob] -= kick # knl[0] is -kick
+    orbit_correction.apply_correction(correction_x)
 
     tw_after = line.twiss4d(only_orbit=True, start=line_range[0], end=line_range[1],
                             betx=betx_start_guess,
@@ -95,7 +82,7 @@ x_meas_after = tw_after.rows[h_monitor_names].x
 s_correctors = tw_after.rows[h_corrector_names].s
 
 # Extract kicks from the knobs
-applied_kicks = np.array([line.vv[nn_knob] for nn_knob in h_correction_knobs])
+applied_kicks = orbit_correction.get_kick_values()
 
 import matplotlib.pyplot as plt
 plt.close('all')

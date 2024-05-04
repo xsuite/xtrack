@@ -72,3 +72,37 @@ def _build_response_matrix(tw, h_monitor_names, h_corrector_names,
                              * np.cos(np.pi * tune - 2*np.pi*np.abs(mux_diff)))
 
     return response_matrix_x
+
+
+class OrbitCorrection:
+
+    def __init__(self, line, h_monitor_names, h_corrector_names):
+
+        self.line = line
+        self.h_monitor_names = h_monitor_names
+        self.h_corrector_names = h_corrector_names
+
+    def add_correction_knobs(self):
+
+        self.h_correction_knobs = []
+        for nn_kick in self.h_corrector_names:
+            corr_knob_name = f'orbit_corr_{nn_kick}'
+            assert hasattr(self.line[nn_kick], 'knl')
+
+            if corr_knob_name not in self.line.vars:
+                self.line.vars[corr_knob_name] = 0
+
+            if (self.line.element_refs[nn_kick].knl[0]._expr is None or
+                  (self.line.vars[corr_knob_name]
+                   not in self.line.element_refs[nn_kick].knl[0]._expr._get_dependencies())):
+                self.line.element_refs[nn_kick].knl[0] += (
+                    self.line.vars[f'orbit_corr_{nn_kick}'])
+            self.h_correction_knobs.append(corr_knob_name)
+
+    def apply_correction(self, correction_x):
+
+        for nn_knob, kick in zip(self.h_correction_knobs, correction_x):
+            self.line.vars[nn_knob] -= kick # knl[0] is -kick
+
+    def get_kick_values(self):
+        return np.array([self.line.vv[nn_knob] for nn_knob in self.h_correction_knobs])
