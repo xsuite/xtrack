@@ -51,8 +51,8 @@ response_matrix_x = (np.sqrt(bet_prod_x) / 2 / np.sin(np.pi * qx)
 
 
 # Introduce some orbit perturbation
-h_kicks = {'mcbh.15r7.b1': 1e-5, 'mcbh.21r7.b1':-3e-5}
 
+h_kicks = {} #'mcbh.15r7.b1': 1e-5, 'mcbh.21r7.b1':-3e-5}
 kick_vect_x = np.zeros(n_hcorrectors)
 
 for nn_kick, kick in h_kicks.items():
@@ -60,12 +60,20 @@ for nn_kick, kick in h_kicks.items():
     i_h_kick = np.where(h_corrector_names == nn_kick)[0][0]
     kick_vect_x[i_h_kick] = kick
 
+tt = line.get_table()
+tt_quad = tt.rows[tt.element_type == 'Quadrupole']
+shift_x = np.random.randn(len(tt_quad)) * 1e-5 # 10 um rm shift on all quads
+for nn_quad, shift in zip(tt_quad.name, shift_x):
+    line.element_refs[nn_quad].shift_x = shift
+
+
+
 tw_meas = line.twiss4d(only_orbit=True)
 
 x_meas = tw_meas.rows[h_monitor_names].x
 s_x_meas = tw_meas.rows[h_monitor_names].s
 
-n_micado = 5
+n_micado = None
 
 for iter in range(3):
     # Measure the orbit
@@ -73,7 +81,7 @@ for iter in range(3):
 
     x_iter = tw_iter.rows[h_monitor_names].x
 
-    correction_x = oc._compute_correction_micado(x_iter, response_matrix_x, n_micado)
+    correction_x = oc._compute_correction(x_iter, response_matrix_x, n_micado)
 
     # Apply correction
     for nn_knob, kick in zip(h_correction_knobs, correction_x):
