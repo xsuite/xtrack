@@ -76,13 +76,52 @@ def _build_response_matrix(tw, h_monitor_names, h_corrector_names,
 
 class OrbitCorrection:
 
-    def __init__(self, line, h_monitor_names, h_corrector_names):
+    def __init__(self, line, h_monitor_names, h_corrector_names,
+                 start=None, end=None, twiss_table=None, n_micado=None):
 
         self.line = line
         self.h_monitor_names = h_monitor_names
         self.h_corrector_names = h_corrector_names
+        self.start = start
+        self.end = end
+        self.twiss_table = twiss_table
+        self.n_micado = n_micado
 
-    def add_correction_knobs(self):
+        if start is None:
+            assert end is None
+            self.mode = 'open'
+            if self.twiss_table is None:
+                self.twiss_table = line.twiss4d(start=start, end=end,
+                                                betx=1, bety=1)
+        else:
+            assert end is not None
+            self.mode = 'closed'
+            if self.twiss_table is None:
+                self.twiss_table = line.twiss4d()
+
+        self.response_matrix_x = _build_response_matrix(
+            tw=self.twiss_table, h_monitor_names=self.h_monitor_names,
+            h_corrector_names=self.h_corrector_names, mode=self.mode)
+
+        self._add_correction_knobs()
+
+    def _measure_position(self):
+        tw_orbit = self.line.twiss4d(only_orbit=True, start=self.start, end=self.end,
+                                     betx=1, bety=1)
+
+        self.position = tw_orbit.rows[self.h_monitor_names].x
+
+    def _compute_correction(self, position=None, n_micado=None):
+
+        if n_micado is None:
+            n_micado = self.n_micado
+
+        if position is None:
+            position = self.position
+
+        self.correction = _compute_correction(position, self.response_matrix_x, n_micado)
+
+    def _add_correction_knobs(self):
 
         self.h_correction_knobs = []
         for nn_kick in self.h_corrector_names:
@@ -99,9 +138,12 @@ class OrbitCorrection:
                     self.line.vars[f'orbit_corr_{nn_kick}'])
             self.h_correction_knobs.append(corr_knob_name)
 
-    def apply_correction(self, correction_x):
+    def _apply_correction(self, correction=None):
 
-        for nn_knob, kick in zip(self.h_correction_knobs, correction_x):
+        if correction is None:
+            correction = self.correction
+
+        for nn_knob, kick in zip(self.h_correction_knobs, correction):
             self.line.vars[nn_knob] += kick
 
     def get_kick_values(self):
