@@ -60,9 +60,7 @@ n_micado = None
 
 for iter in range(3):
     # Measure the orbit
-    orbit_correction._measure_position()
-    orbit_correction._compute_correction()
-    orbit_correction._apply_correction()
+    orbit_correction.correct()
 
     tw_after = line.twiss4d(only_orbit=True, start=line_range[0], end=line_range[1],
                             betx=betx_start_guess,

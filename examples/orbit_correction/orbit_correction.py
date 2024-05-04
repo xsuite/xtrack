@@ -105,6 +105,11 @@ class OrbitCorrection:
 
         self._add_correction_knobs()
 
+    def correct(self):
+        self._measure_position()
+        self._compute_correction()
+        self._apply_correction()
+
     def _measure_position(self):
         tw_orbit = self.line.twiss4d(only_orbit=True, start=self.start, end=self.end,
                                      betx=1, bety=1)
