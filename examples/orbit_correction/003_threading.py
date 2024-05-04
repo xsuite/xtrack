@@ -92,6 +92,6 @@ sp1.plot(s_x_meas, x_meas, label='measured')
 sp1.plot(s_x_meas, x_meas_after, label='corrected')
 
 sp2 = plt.subplot(212, sharex=sp1)
-sp2.plot(s_correctors, applied_kicks, label='applied kicks')
+markerline, stemlines, baseline = sp2.stem(s_correctors, applied_kicks, label='applied kicks')
 
 plt.show()
