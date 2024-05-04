@@ -27,7 +27,7 @@ h_corrector_names = tt_h_correctors.name
 
 orbit_correction = oc.OrbitCorrection(line=line, h_monitor_names=h_monitor_names,
                                         h_corrector_names=h_corrector_names,
-                                        twiss_table=tw)
+                                        start=line_range[0], end=line_range[1])
 orbit_correction._add_correction_knobs()
 
 response_matrix_x = oc._build_response_matrix(
@@ -60,22 +60,13 @@ n_micado = None
 
 for iter in range(3):
     # Measure the orbit
-    tw_iter = line.twiss4d(only_orbit=True,
-                            start=line_range[0], end=line_range[1],
-                            betx=betx_start_guess,
-                            bety=bety_start_guess)
-
-    x_iter = tw_iter.rows[h_monitor_names].x
-
-    correction_x = oc._compute_correction(x_iter, response_matrix_x, n_micado)
-
-    # Apply correction
-    orbit_correction._apply_correction(correction_x)
+    orbit_correction._measure_position()
+    orbit_correction._compute_correction()
+    orbit_correction._apply_correction()
 
     tw_after = line.twiss4d(only_orbit=True, start=line_range[0], end=line_range[1],
                             betx=betx_start_guess,
                             bety=bety_start_guess)
-
     print('max x: ', tw_after.x.max())
 
 x_meas_after = tw_after.rows[h_monitor_names].x

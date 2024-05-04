@@ -89,13 +89,13 @@ class OrbitCorrection:
 
         if start is None:
             assert end is None
-            self.mode = 'open'
+            self.mode = 'closed'
             if self.twiss_table is None:
                 self.twiss_table = line.twiss4d(start=start, end=end,
                                                 betx=1, bety=1)
         else:
             assert end is not None
-            self.mode = 'closed'
+            self.mode = 'open'
             if self.twiss_table is None:
                 self.twiss_table = line.twiss4d()
 
