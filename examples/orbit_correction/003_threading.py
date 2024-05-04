@@ -4,12 +4,18 @@ from numpy.matlib import repmat
 
 import orbit_correction as oc
 
+line_range = ('ip2', 'ip3')
+betx_start_guess = 1.
+bety_start_guess = 1.
+
 line = xt.Line.from_json(
     '../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
-tt = line.get_table()
+tt = line.get_table().rows[line_range[0]:line_range[1]]
 line.twiss_default['co_search_at'] = 'ip7'
 
-tw = line.twiss4d()
+tw = line.twiss4d(start=line_range[0], end=line_range[1],
+                  betx=betx_start_guess,
+                  bety=bety_start_guess)
 
 # Select monitors by names (starting by "bpm" and not ending by "_entry" or "_exit")
 tt_monitors = tt.rows['bpm.*'].rows['.*(?<!_entry)$'].rows['.*(?<!_exit)$']
@@ -38,17 +44,13 @@ mux_correctors = tw.rows[h_corrector_names].mux
 n_h_monitors = len(h_monitor_names)
 n_hcorrectors = len(h_corrector_names)
 
-qx = tw.qx
-
 bet_prod_x = np.atleast_2d(betx_monitors).T @ np.atleast_2d(betx_correctors)
 mux_diff = (repmat(mux_monitor, n_hcorrectors, 1).T
                     - repmat(mux_correctors, n_h_monitors, 1))
+mux_diff[mux_diff < 0] = 0
 
-# Slide 28
-# https://indico.cern.ch/event/1328128/contributions/5589794/attachments/2786478/4858384/linearimperfections_2024.pdf
-response_matrix_x = (np.sqrt(bet_prod_x) / 2 / np.sin(np.pi * qx)
-                     * np.cos(np.pi * qx - 2*np.pi*np.abs(mux_diff)))
-
+# Wille eq. 3.164
+response_matrix_x = (np.sqrt(bet_prod_x) * np.sin(2*np.pi*np.abs(mux_diff)))
 
 # Introduce some orbit perturbation
 
@@ -66,9 +68,9 @@ shift_x = np.random.randn(len(tt_quad)) * 1e-5 # 10 um rm shift on all quads
 for nn_quad, shift in zip(tt_quad.name, shift_x):
     line.element_refs[nn_quad].shift_x = shift
 
-
-
-tw_meas = line.twiss4d(only_orbit=True)
+tw_meas = line.twiss4d(only_orbit=True, start=line_range[0], end=line_range[1],
+                          betx=betx_start_guess,
+                          bety=bety_start_guess)
 
 x_meas = tw_meas.rows[h_monitor_names].x
 s_x_meas = tw_meas.rows[h_monitor_names].s
@@ -77,17 +79,27 @@ n_micado = None
 
 for iter in range(3):
     # Measure the orbit
-    tw_iter = line.twiss4d(only_orbit=True)
+    tw_iter = line.twiss4d(only_orbit=True,
+                            start=line_range[0], end=line_range[1],
+                            betx=betx_start_guess,
+                            bety=bety_start_guess)
 
     x_iter = tw_iter.rows[h_monitor_names].x
 
-    correction_x = oc._compute_correction(x_iter, response_matrix_x, n_micado)
+    # correction_x = oc._compute_correction(x_iter, response_matrix_x, n_micado)
+
+    correction_masked, residual_x, rank_x, sval_x = np.linalg.lstsq(
+                response_matrix_x[2:, :], -x_iter[2:], rcond=None)
+    correction_x = np.zeros(n_hcorrectors)
+    correction_x = correction_masked
 
     # Apply correction
     for nn_knob, kick in zip(h_correction_knobs, correction_x):
         line.vars[nn_knob] -= kick # knl[0] is -kick
 
-    tw_after = line.twiss4d(only_orbit=True)
+    tw_after = line.twiss4d(only_orbit=True, start=line_range[0], end=line_range[1],
+                            betx=betx_start_guess,
+                            bety=bety_start_guess)
 
     print('max x: ', tw_after.x.max())
 
