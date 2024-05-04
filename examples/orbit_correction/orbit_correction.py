@@ -59,10 +59,10 @@ def _build_response_matrix(tw, h_monitor_names, h_corrector_names,
     bet_prod_x = np.atleast_2d(betx_monitors).T @ np.atleast_2d(betx_correctors)
     mux_diff = (repmat(mux_monitor, n_hcorrectors, 1).T
                         - repmat(mux_correctors, n_h_monitors, 1))
-    mux_diff[mux_diff < 0] = 0
 
     if mode == 'open':
         # Wille eq. 3.164
+        mux_diff[mux_diff < 0] = 0 # use only correctors upstream of the monitor
         response_matrix_x = (np.sqrt(bet_prod_x) * np.sin(2*np.pi*np.abs(mux_diff)))
     elif mode == 'closed':
         # Slide 28
