@@ -19,28 +19,34 @@ tw = line.twiss4d(start=line_range[0], end=line_range[1],
 
 # Select monitors by names (starting by "bpm" and not ending by "_entry" or "_exit")
 tt_monitors = tt.rows['bpm.*'].rows['.*(?<!_entry)$'].rows['.*(?<!_exit)$']
-h_monitor_names = tt_monitors.name
+monitor_names = tt_monitors.name
 
 # Select h correctors by names (starting by "mcb.", containing "h.", and ending by ".b1")
 tt_h_correctors = tt.rows['mcb.*'].rows['.*h\..*'].rows['.*\.b1']
 h_corrector_names = tt_h_correctors.name
 
-orbit_correction_h = oc.OrbitCorrection(line=line, plane='x', monitor_names=h_monitor_names,
+# Select v correctors by names (starting by "mcb.", containing "v.", and ending by ".b1")
+tt_v_correctors = tt.rows['mcb.*'].rows['.*v\..*'].rows['.*\.b1']
+v_corrector_names = tt_v_correctors.name
+
+orbit_correction_h = oc.OrbitCorrection(line=line, plane='x', monitor_names=monitor_names,
                                         corrector_names=h_corrector_names,
+                                        start=line_range[0], end=line_range[1])
+
+orbit_correction_v = oc.OrbitCorrection(line=line, plane='y', monitor_names=monitor_names,
+                                        corrector_names=v_corrector_names,
                                         start=line_range[0], end=line_range[1])
 
 # Introduce some orbit perturbation
 
 h_kicks = {'mcbh.14r2.b1': 1e-5, 'mcbh.26l3.b1':-3e-5}
-# v_kicks = {'mcbv.15r2.b1': 2e-5, 'mcbv.25l3.b1':-2e-5}
+v_kicks = {'mcbv.11r2.b1': -2e-5, 'mcbv.29l3.b1':-4e-5}
 
 for nn_kick, kick in h_kicks.items():
     line.element_refs[nn_kick].knl[0] -= kick
-    i_h_kick = np.where(h_corrector_names == nn_kick)[0][0]
 
-# for nn_kick, kick in v_kicks.items():
-#     line.element_refs[nn_kick].knl[1] += kick
-#     i_v_kick = np.where(h_corrector_names == nn_kick)[0][0]
+for nn_kick, kick in v_kicks.items():
+    line.element_refs[nn_kick].ksl[0] += kick
 
 # tt = line.get_table()
 # tt_quad = tt.rows[tt.element_type == 'Quadrupole']
@@ -52,35 +58,47 @@ tw_meas = line.twiss4d(only_orbit=True, start=line_range[0], end=line_range[1],
                           betx=betx_start_guess,
                           bety=bety_start_guess)
 
-x_meas = tw_meas.rows[h_monitor_names].x
-s_x_meas = tw_meas.rows[h_monitor_names].s
+x_meas = tw_meas.rows[monitor_names].x
+y_meas = tw_meas.rows[monitor_names].y
+s_meas = tw_meas.rows[monitor_names].s
 
 n_micado = None
 
 for iter in range(3):
-    # Measure the orbit
     orbit_correction_h.correct()
+    orbit_correction_v.correct()
 
     tw_after = line.twiss4d(only_orbit=True, start=line_range[0], end=line_range[1],
                             betx=betx_start_guess,
                             bety=bety_start_guess)
     print('max x: ', tw_after.x.max())
+    print('max y: ', tw_after.y.max())
 
-x_meas_after = tw_after.rows[h_monitor_names].x
+x_meas_after = tw_after.rows[monitor_names].x
+y_meas_after = tw_after.rows[monitor_names].y
 
-s_correctors = tw_after.rows[h_corrector_names].s
+s_h_correctors = tw_after.rows[h_corrector_names].s
+s_v_correctors = tw_after.rows[v_corrector_names].s
 
 # Extract kicks from the knobs
-applied_kicks = orbit_correction_h.get_kick_values()
+applied_kicks_h = orbit_correction_h.get_kick_values()
+applied_kicks_v = orbit_correction_v.get_kick_values()
 
 import matplotlib.pyplot as plt
 plt.close('all')
-plt.figure(1)
-sp1 = plt.subplot(211)
-sp1.plot(s_x_meas, x_meas, label='measured')
-sp1.plot(s_x_meas, x_meas_after, label='corrected')
+plt.figure(1, figsize=(6.4, 4.8*1.7))
+sp1 = plt.subplot(411)
+sp1.plot(s_meas, x_meas, label='measured')
+sp1.plot(s_meas, x_meas_after, label='corrected')
 
-sp2 = plt.subplot(212, sharex=sp1)
-markerline, stemlines, baseline = sp2.stem(s_correctors, applied_kicks, label='applied kicks')
+sp2 = plt.subplot(412, sharex=sp1)
+markerline, stemlines, baseline = sp2.stem(s_h_correctors, applied_kicks_h, label='applied kicks')
 
+sp3 = plt.subplot(413, sharex=sp1)
+sp3.plot(s_meas, y_meas, label='measured')
+sp3.plot(s_meas, y_meas_after, label='corrected')
+
+sp4 = plt.subplot(414, sharex=sp1)
+markerline, stemlines, baseline = sp4.stem(s_v_correctors, applied_kicks_v, label='applied kicks')
+plt.subplots_adjust(hspace=0.35, top=.90, bottom=.10)
 plt.show()
