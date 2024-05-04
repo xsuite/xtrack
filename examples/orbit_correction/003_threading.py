@@ -34,28 +34,15 @@ for nn_kick in h_corrector_names:
     line.element_refs[nn_kick].knl[0] += line.vars[f'orbit_corr_{nn_kick}']
     h_correction_knobs.append(corr_knob_name)
 
-# Build response matrix
-betx_monitors = tw.rows[h_monitor_names].betx
-betx_correctors = tw.rows[h_corrector_names].betx
-
-mux_monitor = tw.rows[h_monitor_names].mux
-mux_correctors = tw.rows[h_corrector_names].mux
-
-n_h_monitors = len(h_monitor_names)
-n_hcorrectors = len(h_corrector_names)
-
-bet_prod_x = np.atleast_2d(betx_monitors).T @ np.atleast_2d(betx_correctors)
-mux_diff = (repmat(mux_monitor, n_hcorrectors, 1).T
-                    - repmat(mux_correctors, n_h_monitors, 1))
-mux_diff[mux_diff < 0] = 0
 
 # Wille eq. 3.164
-response_matrix_x = (np.sqrt(bet_prod_x) * np.sin(2*np.pi*np.abs(mux_diff)))
+response_matrix_x = oc._build_response_matrix(
+    tw, h_monitor_names, h_corrector_names, mode='open')
 
 # Introduce some orbit perturbation
 
 h_kicks = {'mcbh.14r2.b1': 1e-5, 'mcbh.26l3.b1':-3e-5}
-kick_vect_x = np.zeros(n_hcorrectors)
+kick_vect_x = np.zeros(response_matrix_x.shape[1])
 
 for nn_kick, kick in h_kicks.items():
     line.element_refs[nn_kick].knl[0] -= kick
