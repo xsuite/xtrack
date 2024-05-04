@@ -26,8 +26,9 @@ tt_h_correctors = tt.rows['mcb.*'].rows['.*h\..*'].rows['.*\.b1']
 h_corrector_names = tt_h_correctors.name
 
 orbit_correction = oc.OrbitCorrection(line=line, h_monitor_names=h_monitor_names,
-                                        h_corrector_names=h_corrector_names)
-orbit_correction.add_correction_knobs()
+                                        h_corrector_names=h_corrector_names,
+                                        twiss_table=tw)
+orbit_correction._add_correction_knobs()
 
 response_matrix_x = oc._build_response_matrix(
     tw, h_monitor_names, h_corrector_names, mode='open')
@@ -69,7 +70,7 @@ for iter in range(3):
     correction_x = oc._compute_correction(x_iter, response_matrix_x, n_micado)
 
     # Apply correction
-    orbit_correction.apply_correction(correction_x)
+    orbit_correction._apply_correction(correction_x)
 
     tw_after = line.twiss4d(only_orbit=True, start=line_range[0], end=line_range[1],
                             betx=betx_start_guess,
