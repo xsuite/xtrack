@@ -95,14 +95,14 @@ class OrbitCorrection:
             if (self.line.element_refs[nn_kick].knl[0]._expr is None or
                   (self.line.vars[corr_knob_name]
                    not in self.line.element_refs[nn_kick].knl[0]._expr._get_dependencies())):
-                self.line.element_refs[nn_kick].knl[0] += (
+                self.line.element_refs[nn_kick].knl[0] -= ( # knl[0] is -kick
                     self.line.vars[f'orbit_corr_{nn_kick}'])
             self.h_correction_knobs.append(corr_knob_name)
 
     def apply_correction(self, correction_x):
 
         for nn_knob, kick in zip(self.h_correction_knobs, correction_x):
-            self.line.vars[nn_knob] -= kick # knl[0] is -kick
+            self.line.vars[nn_knob] += kick
 
     def get_kick_values(self):
         return np.array([self.line.vv[nn_knob] for nn_knob in self.h_correction_knobs])
