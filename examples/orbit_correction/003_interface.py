@@ -8,9 +8,9 @@ line_range = ('ip2', 'ip3')
 betx_start_guess = 1.
 bety_start_guess = 1.
 
-# line_range = (None, None)
-# betx_start_guess = None
-# bety_start_guess = None
+line_range = (None, None)
+betx_start_guess = None
+bety_start_guess = None
 
 line = xt.Line.from_json(
     '../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
@@ -43,20 +43,22 @@ orbit_correction_v = oc.OrbitCorrection(line=line, plane='y', monitor_names=moni
 
 # Introduce some orbit perturbation
 
-h_kicks = {'mcbh.14r2.b1': 1e-5, 'mcbh.26l3.b1':-3e-5}
-v_kicks = {'mcbv.11r2.b1': -2e-5, 'mcbv.29l3.b1':-4e-5}
+# h_kicks = {'mcbh.14r2.b1': 1e-5, 'mcbh.26l3.b1':-3e-5}
+# v_kicks = {'mcbv.11r2.b1': -2e-5, 'mcbv.29l3.b1':-4e-5}
 
-for nn_kick, kick in h_kicks.items():
-    line.element_refs[nn_kick].knl[0] -= kick
+# for nn_kick, kick in h_kicks.items():
+#     line.element_refs[nn_kick].knl[0] -= kick
 
-for nn_kick, kick in v_kicks.items():
-    line.element_refs[nn_kick].ksl[0] += kick
+# for nn_kick, kick in v_kicks.items():
+#     line.element_refs[nn_kick].ksl[0] += kick
 
-# tt = line.get_table()
-# tt_quad = tt.rows[tt.element_type == 'Quadrupole']
-# shift_x = np.random.randn(len(tt_quad)) * 1e-5 # 10 um rm shift on all quads
-# for nn_quad, shift in zip(tt_quad.name, shift_x):
-#     line.element_refs[nn_quad].shift_x = shift
+tt = line.get_table()
+tt_quad = tt.rows[tt.element_type == 'Quadrupole']
+shift_x = np.random.randn(len(tt_quad)) * 1e-5 # 10 um rm shift on all quads
+shift_y = np.random.randn(len(tt_quad)) * 1e-5 # 10 um rm shift on all quads
+for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
+    line.element_refs[nn_quad].shift_x = sx
+    line.element_refs[nn_quad].shift_y = sy
 
 tw_meas = line.twiss4d(only_orbit=True, start=line_range[0], end=line_range[1],
                           betx=betx_start_guess,
