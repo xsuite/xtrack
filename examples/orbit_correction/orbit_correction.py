@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.matlib import repmat
 
-def _compute_correction(x_iter, response_matrix_x, n_micado=None):
+def _compute_correction(x_iter, response_matrix_x, n_micado=None, rcond=None):
 
     n_hcorrectors = response_matrix_x.shape[1]
 
@@ -22,7 +22,7 @@ def _compute_correction(x_iter, response_matrix_x, n_micado=None):
 
                 # Compute the correction with least squares
                 _, residual_x, rank_x, sval_x = np.linalg.lstsq(
-                            response_matrix_x[:, mask_corr], -x_iter, rcond=None)
+                            response_matrix_x[:, mask_corr], -x_iter, rcond=rcond)
                 residuals.append(residual_x[0])
             used_correctors.append(np.nanargmin(residuals))
 
@@ -34,7 +34,7 @@ def _compute_correction(x_iter, response_matrix_x, n_micado=None):
 
     # Compute the correction with least squares
     correction_masked, residual_x, rank_x, sval_x = np.linalg.lstsq(
-                response_matrix_x[:, mask_corr], -x_iter, rcond=None)
+                response_matrix_x[:, mask_corr], -x_iter, rcond=rcond)
     correction_x = np.zeros(n_hcorrectors)
     correction_x[mask_corr] = correction_masked
 
@@ -78,7 +78,8 @@ def _build_response_matrix(tw, monitor_names, corrector_names,
 class OrbitCorrection:
 
     def __init__(self, line, plane, monitor_names, corrector_names,
-                 start=None, end=None, twiss_table=None, n_micado=None):
+                 start=None, end=None, twiss_table=None, n_micado=None,
+                 rcond=None):
 
         assert plane in ['x', 'y']
 
@@ -90,6 +91,7 @@ class OrbitCorrection:
         self.end = end
         self.twiss_table = twiss_table
         self.n_micado = n_micado
+        self.rcond = rcond
 
         if start is None:
             assert end is None
@@ -106,6 +108,9 @@ class OrbitCorrection:
         self.response_matrix = _build_response_matrix(plane=self.plane,
             tw=self.twiss_table, monitor_names=self.monitor_names,
             corrector_names=self.corrector_names, mode=self.mode)
+
+        self.s_correctors = self.twiss_table.rows[self.corrector_names].s
+        self.s_monitors = self.twiss_table.rows[self.monitor_names].s
 
         self._add_correction_knobs()
 
@@ -132,7 +137,8 @@ class OrbitCorrection:
         if position is None:
             position = self.position
 
-        self.correction = _compute_correction(position, self.response_matrix, n_micado)
+        self.correction = _compute_correction(position, self.response_matrix, n_micado,
+                                              rcond=self.rcond)
 
     def _add_correction_knobs(self):
 

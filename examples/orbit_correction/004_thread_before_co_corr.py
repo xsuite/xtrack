@@ -54,11 +54,65 @@ orbit_correction_v = oc.OrbitCorrection(line=line, plane='y', monitor_names=moni
 
 tt = line.get_table()
 tt_quad = tt.rows[tt.element_type == 'Quadrupole']
-shift_x = np.random.randn(len(tt_quad)) * 1e-3 # 100 um rm shift on all quads
-shift_y = np.random.randn(len(tt_quad)) * 1e-3 # 100 um rm shift on all quads
+shift_x = np.random.randn(len(tt_quad)) * 1e-3 # 1 mm rms shift on all quads
+shift_y = np.random.randn(len(tt_quad)) * 1e-3 # 1 mm rms shift on all quads
 for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
     line.element_refs[nn_quad].shift_x = sx
     line.element_refs[nn_quad].shift_y = sy
+
+
+
+tt = line.get_table()
+line_length = tt.s[-1]
+
+ds_correction = 400
+step_size = ds_correction
+
+s_corr_end = ds_correction
+s_corr_start = 0
+
+i_win = 0
+end_loop = False
+while not end_loop:
+
+    if s_corr_end > line_length:
+        s_corr_end = line_length
+        end_loop = True
+
+    print(f'Window {i_win}, s_end: {s_corr_end}')
+    tt_part = tt.rows[s_corr_start:s_corr_end:'s']
+    start = tt_part.name[0]
+    end = tt_part.name[-1]
+    these_h_corrector_names = [name for name in h_corrector_names if
+                               name in tt_part.name]
+    these_v_corrector_names = [name for name in v_corrector_names if
+                                 name in tt_part.name]
+    these_monitor_names = [name for name in monitor_names if name in tt_part.name]
+
+    try:
+
+        this_ocorr_h = oc.OrbitCorrection(
+            line=line, plane='x', monitor_names=these_monitor_names,
+            corrector_names=these_h_corrector_names,
+            start=start, end=end, rcond=1e-3)
+
+        this_ocorr_v = oc.OrbitCorrection(
+            line=line, plane='y', monitor_names=these_monitor_names,
+            corrector_names=these_v_corrector_names,
+            start=start, end=end, rcond=1e-3)
+
+        this_ocorr_h.correct()
+        this_ocorr_h.correct()
+
+        this_ocorr_h.correct()
+        this_ocorr_h.correct()
+
+        s_corr_end += ds_correction
+        step_size = ds_correction
+        i_win += 1
+    except NotImplementedError:
+        step_size /= 2
+        s_corr_end -= step_size
 
 tw_meas = line.twiss4d(only_orbit=True, start=line_range[0], end=line_range[1],
                           betx=betx_start_guess,
