@@ -114,9 +114,9 @@ class OrbitCorrection:
 
         self._add_correction_knobs()
 
-    def correct(self):
+    def correct(self, n_micado=None, rcond=None):
         self._measure_position()
-        self._compute_correction()
+        self._compute_correction(n_micado=n_micado, rcond=rcond)
         self._apply_correction()
 
     def _measure_position(self):
@@ -129,7 +129,10 @@ class OrbitCorrection:
 
         self.position = tw_orbit.rows[self.monitor_names][self.plane]
 
-    def _compute_correction(self, position=None, n_micado=None):
+    def _compute_correction(self, position=None, n_micado=None, rcond=None):
+
+        if rcond is None:
+            rcond = self.rcond
 
         if n_micado is None:
             n_micado = self.n_micado
@@ -138,13 +141,13 @@ class OrbitCorrection:
             position = self.position
 
         self.correction = _compute_correction(position, self.response_matrix, n_micado,
-                                              rcond=self.rcond)
+                                              rcond=rcond)
 
     def _add_correction_knobs(self):
 
         self.correction_knobs = []
         for nn_kick in self.corrector_names:
-            corr_knob_name = f'orbit_corr_{nn_kick}'
+            corr_knob_name = f'orbit_corr_{nn_kick}_{self.plane}'
             assert hasattr(self.line[nn_kick], 'knl')
             assert hasattr(self.line[nn_kick], 'ksl')
 
@@ -156,13 +159,13 @@ class OrbitCorrection:
                     (self.line.vars[corr_knob_name]
                     not in self.line.element_refs[nn_kick].knl[0]._expr._get_dependencies())):
                     self.line.element_refs[nn_kick].knl[0] -= ( # knl[0] is -kick
-                        self.line.vars[f'orbit_corr_{nn_kick}'])
+                        self.line.vars[f'orbit_corr_{nn_kick}_x'])
             elif self.plane == 'y':
                 if (self.line.element_refs[nn_kick].ksl[0]._expr is None or
                     (self.line.vars[corr_knob_name]
                     not in self.line.element_refs[nn_kick].ksl[0]._expr._get_dependencies())):
                     self.line.element_refs[nn_kick].ksl[0] += ( # ksl[0] is +kick
-                        self.line.vars[f'orbit_corr_{nn_kick}'])
+                        self.line.vars[f'orbit_corr_{nn_kick}_y'])
 
             self.correction_knobs.append(corr_knob_name)
 

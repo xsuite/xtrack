@@ -26,13 +26,13 @@ tt_monitors = tt.rows['bpm.*'].rows['.*(?<!_entry)$'].rows['.*(?<!_exit)$']
 monitor_names = tt_monitors.name
 
 # Select h correctors by names (starting by "mcb.", containing "h.", and ending by ".b1")
-tt_h_correctors = tt.rows['mcb.*'].rows['.*h\..*'].rows['.*\.b1']
-# tt_h_correctors = tt.rows[tt.element_type == 'Quadrupole']
+# tt_h_correctors = tt.rows['mcb.*'].rows['.*h\..*'].rows['.*\.b1']
+tt_h_correctors = tt.rows[tt.element_type == 'Quadrupole']
 h_corrector_names = tt_h_correctors.name
 
 # Select v correctors by names (starting by "mcb.", containing "v.", and ending by ".b1")
-tt_v_correctors = tt.rows['mcb.*'].rows['.*v\..*'].rows['.*\.b1']
-# tt_v_correctors = tt.rows[tt.element_type == 'Quadrupole']
+# tt_v_correctors = tt.rows['mcb.*'].rows['.*v\..*'].rows['.*\.b1']
+tt_v_correctors = tt.rows[tt.element_type == 'Quadrupole']
 v_corrector_names = tt_v_correctors.name
 
 orbit_correction_h = oc.OrbitCorrection(line=line, plane='x', monitor_names=monitor_names,
@@ -57,8 +57,8 @@ orbit_correction_v = oc.OrbitCorrection(line=line, plane='y', monitor_names=moni
 tt = line.get_table()
 # tt_quad = tt.rows[tt.element_type == 'Quadrupole']
 tt_quad = tt.rows['mq\..*']
-shift_x = np.random.randn(len(tt_quad)) * 1e-4 # 1 mm rms shift on all quads
-shift_y = np.random.randn(len(tt_quad)) * 1e-4 # 1 mm rms shift on all quads
+shift_x = np.random.randn(len(tt_quad)) * 1e-3 # 1 mm rms shift on all quads
+shift_y = np.random.randn(len(tt_quad)) * 1e-3 # 1 mm rms shift on all quads
 for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
     line.element_refs[nn_quad].shift_x = sx
     line.element_refs[nn_quad].shift_y = sy
@@ -68,7 +68,7 @@ for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
 tt = line.get_table()
 line_length = tt.s[-1]
 
-ds_correction = 400
+ds_correction = 800
 step_size = ds_correction
 
 s_corr_end = ds_correction
@@ -92,23 +92,43 @@ while not end_loop:
                                  name in tt_part.name]
     these_monitor_names = [name for name in monitor_names if name in tt_part.name]
 
+    tt_new_part = tt.rows[s_corr_end-ds_correction:s_corr_end:'s']
+    start_new = tt_new_part.name[0]
+    end_new = tt_new_part.name[-1]
+    these_h_corrector_names_new = [name for name in h_corrector_names if
+                                   name in tt_new_part.name]
+    these_v_corrector_names_new = [name for name in v_corrector_names if
+                                      name in tt_new_part.name]
+    these_monitor_names_new = [name for name in monitor_names if name in tt_new_part.name]
+
     try:
+
+        this_ocorr_h_new = oc.OrbitCorrection(
+            line=line, plane='x', monitor_names=these_monitor_names_new,
+            corrector_names=these_h_corrector_names_new,
+            start=start_new, end=end_new)
+
+        this_ocorr_v_new = oc.OrbitCorrection(
+            line=line, plane='y', monitor_names=these_monitor_names_new,
+            corrector_names=these_v_corrector_names_new,
+            start=start_new, end=end_new)
+
+        this_ocorr_h_new.correct(rcond=1e-1)
+        this_ocorr_v_new.correct(rcond=1e-1)
 
         this_ocorr_h = oc.OrbitCorrection(
             line=line, plane='x', monitor_names=these_monitor_names,
             corrector_names=these_h_corrector_names,
-            start=start, end=end, rcond=1e-2)
+            start=start, end=end)
 
         this_ocorr_v = oc.OrbitCorrection(
             line=line, plane='y', monitor_names=these_monitor_names,
             corrector_names=these_v_corrector_names,
-            start=start, end=end, rcond=1e-2)
+            start=start, end=end)
 
-        this_ocorr_h.correct()
-        this_ocorr_h.correct()
+        this_ocorr_h.correct(rcond=1e-1)
+        this_ocorr_v.correct(rcond=1e-1)
 
-        this_ocorr_h.correct()
-        this_ocorr_h.correct()
 
         s_corr_end += ds_correction
         step_size = ds_correction
@@ -116,6 +136,26 @@ while not end_loop:
     except NotImplementedError:
         step_size /= 2
         s_corr_end -= step_size
+
+two = line.twiss(only_orbit=True, start=line.element_names[0],
+                 end=line.element_names[-1], betx=1, bety=1,
+                 _continue_if_lost=True)
+
+import matplotlib.pyplot as plt
+plt.close('all')
+plt.figure(1)
+sp1 = plt.subplot(311)
+plt.plot(two.s, two.x, label='x')
+plt.plot(two.s, two.y, label='y')
+sp2 = plt.subplot(312, sharex=sp1)
+plt.stem(this_ocorr_h.s_correctors, this_ocorr_v.get_kick_values())
+sp3 = plt.subplot(313, sharex=sp1)
+plt.stem(this_ocorr_v.s_correctors, this_ocorr_v.get_kick_values())
+
+plt.show()
+
+prrrr
+
 
 tw_meas = line.twiss4d(only_orbit=True, start=line_range[0], end=line_range[1],
                           betx=betx_start_guess,
