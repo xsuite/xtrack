@@ -27,10 +27,12 @@ monitor_names = tt_monitors.name
 
 # Select h correctors by names (starting by "mcb.", containing "h.", and ending by ".b1")
 tt_h_correctors = tt.rows['mcb.*'].rows['.*h\..*'].rows['.*\.b1']
+# tt_h_correctors = tt.rows[tt.element_type == 'Quadrupole']
 h_corrector_names = tt_h_correctors.name
 
 # Select v correctors by names (starting by "mcb.", containing "v.", and ending by ".b1")
 tt_v_correctors = tt.rows['mcb.*'].rows['.*v\..*'].rows['.*\.b1']
+# tt_v_correctors = tt.rows[tt.element_type == 'Quadrupole']
 v_corrector_names = tt_v_correctors.name
 
 orbit_correction_h = oc.OrbitCorrection(line=line, plane='x', monitor_names=monitor_names,
@@ -53,9 +55,10 @@ orbit_correction_v = oc.OrbitCorrection(line=line, plane='y', monitor_names=moni
 #     line.element_refs[nn_kick].ksl[0] += kick
 
 tt = line.get_table()
-tt_quad = tt.rows[tt.element_type == 'Quadrupole']
-shift_x = np.random.randn(len(tt_quad)) * 1e-3 # 1 mm rms shift on all quads
-shift_y = np.random.randn(len(tt_quad)) * 1e-3 # 1 mm rms shift on all quads
+# tt_quad = tt.rows[tt.element_type == 'Quadrupole']
+tt_quad = tt.rows['mq\..*']
+shift_x = np.random.randn(len(tt_quad)) * 1e-4 # 1 mm rms shift on all quads
+shift_y = np.random.randn(len(tt_quad)) * 1e-4 # 1 mm rms shift on all quads
 for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
     line.element_refs[nn_quad].shift_x = sx
     line.element_refs[nn_quad].shift_y = sy
@@ -94,12 +97,12 @@ while not end_loop:
         this_ocorr_h = oc.OrbitCorrection(
             line=line, plane='x', monitor_names=these_monitor_names,
             corrector_names=these_h_corrector_names,
-            start=start, end=end, rcond=1e-3)
+            start=start, end=end, rcond=1e-2)
 
         this_ocorr_v = oc.OrbitCorrection(
             line=line, plane='y', monitor_names=these_monitor_names,
             corrector_names=these_v_corrector_names,
-            start=start, end=end, rcond=1e-3)
+            start=start, end=end, rcond=1e-2)
 
         this_ocorr_h.correct()
         this_ocorr_h.correct()
@@ -124,7 +127,7 @@ s_meas = tw_meas.rows[monitor_names].s
 
 n_micado = None
 
-for iter in range(3):
+for iter in range(10):
     orbit_correction_h.correct()
     orbit_correction_v.correct()
 
