@@ -12,9 +12,19 @@ line_range = (None, None)
 betx_start_guess = None
 bety_start_guess = None
 
+line_range = ('ip6', 'ip8')
+betx_start_guess = 1.
+bety_start_guess = 1.
+
 line = xt.Line.from_json(
     '../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
-tt = line.get_table().rows[line_range[0]:line_range[1]]
+
+# I use the twiss to allow the loop around of the ring 
+# tt = line.get_table().rows[line_range[0]:line_range[1]]
+tt = line.twiss4d(start=line_range[0], end=line_range[1],
+                    betx=betx_start_guess,
+                    bety=bety_start_guess)
+
 line.twiss_default['co_search_at'] = 'ip7'
 
 tw = line.twiss4d(start=line_range[0], end=line_range[1],

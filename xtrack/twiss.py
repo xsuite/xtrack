@@ -1879,10 +1879,12 @@ def _handle_loop_around(kwargs):
     tw_res = TwissTable.concatenate([tw1, tw2])
 
     tw_res.s -= tw_res['s', ele_name_init] - init.s
-    tw_res.mux -= tw_res['mux', ele_name_init] - init.mux
-    tw_res.muy -= tw_res['muy', ele_name_init] - init.muy
-    tw_res.muzeta -= tw_res['muzeta', ele_name_init] - init.muzeta
-    tw_res.dzeta -= tw_res['dzeta', ele_name_init] - init.dzeta
+
+    if 'mux' in tw_res.keys():
+        tw_res.mux -= tw_res['mux', ele_name_init] - init.mux
+        tw_res.muy -= tw_res['muy', ele_name_init] - init.muy
+        tw_res.muzeta -= tw_res['muzeta', ele_name_init] - init.muzeta
+        tw_res.dzeta -= tw_res['dzeta', ele_name_init] - init.dzeta
 
     # Not yet supported
     if 'dmux' in tw_res.keys():
@@ -2761,12 +2763,20 @@ class TwissTable(Table):
             ddy = None
             ddpy = None
 
+        if 'mux' in self.keys():
+            mux = self.mux[at_element]
+            muy = self.muy[at_element]
+            muzeta = self.muzeta[at_element]
+            dzeta = self.dzeta[at_element]
+        else:
+            mux = 0
+            muy = 0
+            muzeta = 0
+            dzeta = 0
+
         return TwissInit(particle_on_co=part, W_matrix=W,
                         element_name=str(self.name[at_element]),
-                        mux=self.mux[at_element],
-                        muy=self.muy[at_element],
-                        muzeta=self.muzeta[at_element],
-                        dzeta=self.dzeta[at_element],
+                        mux=mux, muy=muy, muzeta=muzeta, dzeta=dzeta,
                         ax_chrom=ax_chrom, bx_chrom=bx_chrom,
                         ay_chrom=ay_chrom, by_chrom=by_chrom,
                         ddx=ddx, ddpx=ddpx, ddy=ddy, ddpy=ddpy,
