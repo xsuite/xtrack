@@ -95,13 +95,13 @@ class OrbitCorrection:
             assert end is None
             self.mode = 'closed'
             if self.twiss_table is None:
-                self.twiss_table = line.twiss4d(start=start, end=end,
-                                                betx=1, bety=1)
+                self.twiss_table = line.twiss4d()
         else:
             assert end is not None
             self.mode = 'open'
             if self.twiss_table is None:
-                self.twiss_table = line.twiss4d()
+                self.twiss_table = line.twiss4d(start=start, end=end,
+                                                betx=1, bety=1)
 
         self.response_matrix = _build_response_matrix(plane=self.plane,
             tw=self.twiss_table, monitor_names=self.monitor_names,
@@ -115,8 +115,12 @@ class OrbitCorrection:
         self._apply_correction()
 
     def _measure_position(self):
+        if self.mode == 'open':
+            betx=1
+        else:
+            betx=None
         tw_orbit = self.line.twiss4d(only_orbit=True, start=self.start, end=self.end,
-                                     betx=1, bety=1)
+                                     betx=betx, bety=betx)
 
         self.position = tw_orbit.rows[self.monitor_names][self.plane]
 

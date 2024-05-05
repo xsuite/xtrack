@@ -8,6 +8,10 @@ line_range = ('ip2', 'ip3')
 betx_start_guess = 1.
 bety_start_guess = 1.
 
+line_range = (None, None)
+betx_start_guess = None
+bety_start_guess = None
+
 line = xt.Line.from_json(
     '../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
 tt = line.get_table().rows[line_range[0]:line_range[1]]
