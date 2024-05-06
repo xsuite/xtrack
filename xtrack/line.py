@@ -2359,6 +2359,39 @@ class Line:
         self.config.XFIELDS_BB3D_NO_BEAMSTR = (beamstrahlung_flag == 0)
         self.config.XFIELDS_BB3D_NO_BHABHA = (bhabha_flag == 0)
 
+    def configure_intrabeam_scattering(self, update_every: int) -> None:
+        """
+        Configures the IBS kick element in the line for tracking.
+
+        Notes
+        -----
+            This **should be** one of the last steps taken before tracking.
+            At the very least, if steps are taken that change the lattice's
+            optics after this configuration, then this function should be
+            called once again.
+
+        Parameters
+        ----------
+        line : xtrack.Line
+            The line in which the IBS kick element was inserted.
+        update_every : int
+            The frequency at which to recompute the kick coefficients, in
+            number of turns. They will be computed at the first turn of
+            tracking, and then every `update_every` turns afterwards.
+
+        Raises
+        ------
+        AssertionError
+            If the provided `update_every` is not a positive integer.
+        AssertionError
+            If more than one IBS kick element is found in the line.
+        """
+        try:
+            from xfields.ibs import configure_intrabeam_scattering
+        except ImportError:
+            raise ImportError("Please install xfields to use this feature.")
+        configure_intrabeam_scattering(self, update_every=update_every)
+
     def compensate_radiation_energy_loss(self, delta0=0, rtol_eneloss=1e-10,
                                     max_iter=100, **kwargs):
 
