@@ -2359,7 +2359,9 @@ class Line:
         self.config.XFIELDS_BB3D_NO_BEAMSTR = (beamstrahlung_flag == 0)
         self.config.XFIELDS_BB3D_NO_BHABHA = (bhabha_flag == 0)
 
-    def configure_intrabeam_scattering(self, update_every: int) -> None:
+    def configure_intrabeam_scattering(
+        self, element = None, update_every: int = None, **kwargs
+    ) -> None:
         """
         Configures the IBS kick element in the line for tracking.
 
@@ -2374,10 +2376,18 @@ class Line:
         ----------
         line : xtrack.Line
             The line in which the IBS kick element was inserted.
+        element : IBSKick, optional
+            If provided, the element is first inserted in the line,
+            before proceeding to configuration. In this case the keyword
+            arguments are passed on to the `line.insert_element` method.
         update_every : int
             The frequency at which to recompute the kick coefficients, in
             number of turns. They will be computed at the first turn of
             tracking, and then every `update_every` turns afterwards.
+        **kwargs : dict, optional
+            Required if an element is provided. Keyword arguments are
+            passed to the `line.insert_element()` method according to
+            `line.insert_element(element=element, **kwargs)`.
 
         Raises
         ------
@@ -2385,12 +2395,17 @@ class Line:
             If the provided `update_every` is not a positive integer.
         AssertionError
             If more than one IBS kick element is found in the line.
+        AssertionError
+            If the element is an `IBSSimpleKick` and the line is operating
+            below transition energy.
         """
         try:
             from xfields.ibs import configure_intrabeam_scattering
         except ImportError:
             raise ImportError("Please install xfields to use this feature.")
-        configure_intrabeam_scattering(self, update_every=update_every)
+        configure_intrabeam_scattering(
+            self, element=element, update_every=update_every, **kwargs
+        )
 
     def compensate_radiation_energy_loss(self, delta0=0, rtol_eneloss=1e-10,
                                     max_iter=100, **kwargs):
