@@ -55,8 +55,8 @@ orbit_correction_v = oc.OrbitCorrection(line=line, plane='y', monitor_names=moni
 #     line.element_refs[nn_kick].ksl[0] += kick
 
 tt = line.get_table()
-# tt_quad = tt.rows[tt.element_type == 'Quadrupole']
-tt_quad = tt.rows['mq\..*']
+tt_quad = tt.rows[tt.element_type == 'Quadrupole']
+# tt_quad = tt.rows['mq\..*']
 shift_x = np.random.randn(len(tt_quad)) * 1e-3 # 1 mm rms shift on all quads
 shift_y = np.random.randn(len(tt_quad)) * 1e-3 # 1 mm rms shift on all quads
 for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
@@ -139,18 +139,7 @@ two = line.twiss(only_orbit=True, start=line.element_names[0],
                  end=line.element_names[-1], betx=1, bety=1,
                  _continue_if_lost=True)
 
-import matplotlib.pyplot as plt
-plt.close('all')
-plt.figure(1)
-sp1 = plt.subplot(311)
-plt.plot(two.s, two.x, label='x')
-plt.plot(two.s, two.y, label='y')
-sp2 = plt.subplot(312, sharex=sp1)
-plt.stem(this_ocorr_h.s_correctors, this_ocorr_v.get_kick_values())
-sp3 = plt.subplot(313, sharex=sp1)
-plt.stem(this_ocorr_v.s_correctors, this_ocorr_v.get_kick_values())
 
-plt.show()
 
 tw_meas = line.twiss4d(only_orbit=True, start=line_range[0], end=line_range[1],
                           betx=betx_start_guess,
@@ -162,7 +151,7 @@ s_meas = tw_meas.rows[monitor_names].s
 
 n_micado = None
 
-for iter in range(10):
+for iter in range(5):
     orbit_correction_h.correct()
     orbit_correction_v.correct()
 
@@ -184,7 +173,18 @@ applied_kicks_v = orbit_correction_v.get_kick_values()
 
 import matplotlib.pyplot as plt
 plt.close('all')
-plt.figure(1, figsize=(6.4, 4.8*1.7))
+
+plt.figure(1)
+sp1 = plt.subplot(311)
+plt.plot(two.s, two.x, label='x')
+plt.plot(two.s, two.y, label='y')
+sp2 = plt.subplot(312, sharex=sp1)
+plt.stem(this_ocorr_h.s_correctors, this_ocorr_v.get_kick_values())
+sp3 = plt.subplot(313, sharex=sp1)
+plt.stem(this_ocorr_v.s_correctors, this_ocorr_v.get_kick_values())
+
+
+plt.figure(2, figsize=(6.4, 4.8*1.7))
 sp1 = plt.subplot(411)
 sp1.plot(s_meas, x_meas, label='measured')
 sp1.plot(s_meas, x_meas_after, label='corrected')
