@@ -26,13 +26,13 @@ tt_monitors = tt.rows['bpm.*'].rows['.*(?<!_entry)$'].rows['.*(?<!_exit)$']
 monitor_names = tt_monitors.name
 
 # Select h correctors by names (starting by "mcb.", containing "h.", and ending by ".b1")
-# tt_h_correctors = tt.rows['mcb.*'].rows['.*h\..*'].rows['.*\.b1']
-tt_h_correctors = tt.rows[tt.element_type == 'Quadrupole']
+tt_h_correctors = tt.rows['mcb.*'].rows['.*h\..*']
+# tt_h_correctors = tt.rows[tt.element_type == 'Quadrupole']
 h_corrector_names = tt_h_correctors.name
 
 # Select v correctors by names (starting by "mcb.", containing "v.", and ending by ".b1")
-# tt_v_correctors = tt.rows['mcb.*'].rows['.*v\..*'].rows['.*\.b1']
-tt_v_correctors = tt.rows[tt.element_type == 'Quadrupole']
+tt_v_correctors = tt.rows['mcb.*'].rows['.*v\..*']
+# tt_v_correctors = tt.rows[tt.element_type == 'Quadrupole']
 v_corrector_names = tt_v_correctors.name
 
 orbit_correction_h = oc.OrbitCorrection(line=line, plane='x', monitor_names=monitor_names,
@@ -63,12 +63,10 @@ for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
     line.element_refs[nn_quad].shift_x = sx
     line.element_refs[nn_quad].shift_y = sy
 
-
-
 tt = line.get_table()
 line_length = tt.s[-1]
 
-ds_correction = 800
+ds_correction = 2000
 step_size = ds_correction
 
 s_corr_end = ds_correction
@@ -153,9 +151,6 @@ sp3 = plt.subplot(313, sharex=sp1)
 plt.stem(this_ocorr_v.s_correctors, this_ocorr_v.get_kick_values())
 
 plt.show()
-
-prrrr
-
 
 tw_meas = line.twiss4d(only_orbit=True, start=line_range[0], end=line_range[1],
                           betx=betx_start_guess,
