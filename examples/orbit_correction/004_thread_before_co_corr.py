@@ -112,8 +112,8 @@ while not end_loop:
             corrector_names=these_v_corrector_names_new,
             start=start_new, end=end_new)
 
-        this_ocorr_h_new.correct(rcond=1e-4)
-        this_ocorr_v_new.correct(rcond=1e-4)
+        this_ocorr_h_new.correct(rcond=1e-5)
+        this_ocorr_v_new.correct(rcond=1e-5)
 
         # Correct the everything including the new added portion
         this_ocorr_h = oc.OrbitCorrection(
@@ -126,8 +126,8 @@ while not end_loop:
             corrector_names=these_v_corrector_names,
             start=start, end=end)
 
-        this_ocorr_h.correct(rcond=1e-4)
-        this_ocorr_v.correct(rcond=1e-4)
+        this_ocorr_h.correct(rcond=1e-5)
+        this_ocorr_v.correct(rcond=1e-5)
 
         s_corr_end += ds_correction
         step_size = ds_correction
@@ -156,8 +156,8 @@ s_meas = tw_meas.rows[monitor_names].s
 n_micado = None
 
 for iter in range(5):
-    orbit_correction_h.correct(rcond=1e-4)
-    orbit_correction_v.correct(rcond=1e-4)
+    orbit_correction_h.correct()#n_singular_values=200)
+    orbit_correction_v.correct()#n_singular_values=200)
 
     tw_after = line.twiss4d(only_orbit=True, start=line_range[0], end=line_range[1],
                             betx=betx_start_guess,
