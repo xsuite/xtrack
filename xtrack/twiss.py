@@ -2839,7 +2839,7 @@ class TwissTable(Table):
         **kwargs,
     ):
         """
-        Computes IntraBeam Scattering growth rates from the provided `xtrack.Line`.
+        Computes IntraBeam Scattering growth rates.
 
         Parameters
         ----------
