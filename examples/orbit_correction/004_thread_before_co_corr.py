@@ -66,7 +66,7 @@ for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
 tt = line.get_table()
 line_length = tt.s[-1]
 
-ds_correction = 2000
+ds_correction = 500
 step_size = ds_correction
 
 s_corr_end = ds_correction
@@ -99,42 +99,38 @@ while not end_loop:
                                       name in tt_new_part.name]
     these_monitor_names_new = [name for name in monitor_names if name in tt_new_part.name]
 
-    try:
+    # Correct only the new added portion
+    this_ocorr_h_new = oc.OrbitCorrection(
+        line=line, plane='x', monitor_names=these_monitor_names_new,
+        corrector_names=these_h_corrector_names_new,
+        start=start_new, end=end_new, twiss_table=tw)
 
-        # Correct only the new added portion
-        this_ocorr_h_new = oc.OrbitCorrection(
-            line=line, plane='x', monitor_names=these_monitor_names_new,
-            corrector_names=these_h_corrector_names_new,
-            start=start_new, end=end_new)
+    this_ocorr_v_new = oc.OrbitCorrection(
+        line=line, plane='y', monitor_names=these_monitor_names_new,
+        corrector_names=these_v_corrector_names_new,
+        start=start_new, end=end_new,
+        twiss_table=tw)
 
-        this_ocorr_v_new = oc.OrbitCorrection(
-            line=line, plane='y', monitor_names=these_monitor_names_new,
-            corrector_names=these_v_corrector_names_new,
-            start=start_new, end=end_new)
+    this_ocorr_h_new.correct()#rcond=1e-4)
+    this_ocorr_v_new.correct()#rcond=1e-4)
 
-        this_ocorr_h_new.correct(rcond=1e-5)
-        this_ocorr_v_new.correct(rcond=1e-5)
+    # Correct everything including the new added portion
+    this_ocorr_h = oc.OrbitCorrection(
+        line=line, plane='x', monitor_names=these_monitor_names,
+        corrector_names=these_h_corrector_names,
+        start=start, end=end, twiss_table=tw)
 
-        # Correct the everything including the new added portion
-        this_ocorr_h = oc.OrbitCorrection(
-            line=line, plane='x', monitor_names=these_monitor_names,
-            corrector_names=these_h_corrector_names,
-            start=start, end=end)
+    this_ocorr_v = oc.OrbitCorrection(
+        line=line, plane='y', monitor_names=these_monitor_names,
+        corrector_names=these_v_corrector_names,
+        start=start, end=end, twiss_table=tw)
 
-        this_ocorr_v = oc.OrbitCorrection(
-            line=line, plane='y', monitor_names=these_monitor_names,
-            corrector_names=these_v_corrector_names,
-            start=start, end=end)
+    this_ocorr_h.correct()#rcond=1e-4)
+    this_ocorr_v.correct()#rcond=1e-4)
 
-        this_ocorr_h.correct(rcond=1e-5)
-        this_ocorr_v.correct(rcond=1e-5)
-
-        s_corr_end += ds_correction
-        step_size = ds_correction
-        i_win += 1
-    except NotImplementedError:
-        step_size /= 2
-        s_corr_end -= step_size
+    s_corr_end += ds_correction
+    step_size = ds_correction
+    i_win += 1
 
 two = line.twiss(only_orbit=True, start=line.element_names[0],
                  end=line.element_names[-1], betx=1, bety=1,
@@ -156,8 +152,8 @@ s_meas = tw_meas.rows[monitor_names].s
 n_micado = None
 
 for iter in range(5):
-    orbit_correction_h.correct()#n_singular_values=200)
-    orbit_correction_v.correct()#n_singular_values=200)
+    orbit_correction_h.correct()
+    orbit_correction_v.correct()
 
     tw_after = line.twiss4d(only_orbit=True, start=line_range[0], end=line_range[1],
                             betx=betx_start_guess,
