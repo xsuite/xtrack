@@ -1,9 +1,21 @@
 import numpy as np
 from numpy.matlib import repmat
 
-def _compute_correction(x_iter, response_matrix_x, n_micado=None, rcond=None):
+def _compute_correction(x_iter, response_matrix, n_micado=None, rcond=None,
+                        n_singular_values=None):
 
-    n_hcorrectors = response_matrix_x.shape[1]
+    if isinstance(response_matrix, (list, tuple)):
+        assert len(response_matrix) == 3 # U, S, Vt
+        U, S, Vt = response_matrix
+        if n_singular_values is not None:
+            U = U[:, :n_singular_values]
+            S = S[:n_singular_values]
+            Vt = Vt[:n_singular_values, :]
+        response_matrix = U @ np.diag(S) @ Vt
+    else:
+        assert n_singular_values is None
+
+    n_hcorrectors = response_matrix.shape[1]
 
     if n_micado is not None:
         used_correctors = []
@@ -22,7 +34,7 @@ def _compute_correction(x_iter, response_matrix_x, n_micado=None, rcond=None):
 
                 # Compute the correction with least squares
                 _, residual_x, rank_x, sval_x = np.linalg.lstsq(
-                            response_matrix_x[:, mask_corr], -x_iter, rcond=rcond)
+                            response_matrix[:, mask_corr], -x_iter, rcond=rcond)
                 residuals.append(residual_x[0])
             used_correctors.append(np.nanargmin(residuals))
 
@@ -34,7 +46,7 @@ def _compute_correction(x_iter, response_matrix_x, n_micado=None, rcond=None):
 
     # Compute the correction with least squares
     correction_masked, residual_x, rank_x, sval_x = np.linalg.lstsq(
-                response_matrix_x[:, mask_corr], -x_iter, rcond=rcond)
+                response_matrix[:, mask_corr], -x_iter, rcond=rcond)
     correction_x = np.zeros(n_hcorrectors)
     correction_x[mask_corr] = correction_masked
 
@@ -79,7 +91,7 @@ class OrbitCorrection:
 
     def __init__(self, line, plane, monitor_names, corrector_names,
                  start=None, end=None, twiss_table=None, n_micado=None,
-                 rcond=None):
+                 n_singular_values=None, rcond=None):
 
         assert plane in ['x', 'y']
 
@@ -92,6 +104,7 @@ class OrbitCorrection:
         self.twiss_table = twiss_table
         self.n_micado = n_micado
         self.rcond = rcond
+        self.n_singular_values = n_singular_values
 
         if start is None:
             assert end is None
@@ -109,14 +122,20 @@ class OrbitCorrection:
             tw=self.twiss_table, monitor_names=self.monitor_names,
             corrector_names=self.corrector_names, mode=self.mode)
 
+        U, S , Vt = np.linalg.svd(self.response_matrix, full_matrices=False)
+        self.singular_values = S
+        self.singular_vectors_out = U
+        self.singular_vectors_in = Vt
+
         self.s_correctors = self.twiss_table.rows[self.corrector_names].s
         self.s_monitors = self.twiss_table.rows[self.monitor_names].s
 
         self._add_correction_knobs()
 
-    def correct(self, n_micado=None, rcond=None):
+    def correct(self, n_micado=None, n_singular_values=None, rcond=None):
         self._measure_position()
-        self._compute_correction(n_micado=n_micado, rcond=rcond)
+        self._compute_correction(n_micado=n_micado, rcond=rcond,
+                                 n_singular_values=n_singular_values)
         self._apply_correction()
 
     def _measure_position(self):
@@ -129,10 +148,14 @@ class OrbitCorrection:
 
         self.position = tw_orbit.rows[self.monitor_names][self.plane]
 
-    def _compute_correction(self, position=None, n_micado=None, rcond=None):
+    def _compute_correction(self, position=None, n_micado=None,
+                            n_singular_values=None, rcond=None):
 
         if rcond is None:
             rcond = self.rcond
+
+        if n_singular_values is None:
+            n_singular_values = self.n_singular_values
 
         if n_micado is None:
             n_micado = self.n_micado
@@ -140,8 +163,10 @@ class OrbitCorrection:
         if position is None:
             position = self.position
 
-        self.correction = _compute_correction(position, self.response_matrix, n_micado,
-                                              rcond=rcond)
+        self.correction = _compute_correction(position,
+            response_matrix=(self.singular_vectors_out, self.singular_values, self.singular_vectors_in),
+            n_micado=n_micado,
+            rcond=rcond, n_singular_values=n_singular_values)
 
     def _add_correction_knobs(self):
 
@@ -179,3 +204,7 @@ class OrbitCorrection:
 
     def get_kick_values(self):
         return np.array([self.line.vv[nn_knob] for nn_knob in self.correction_knobs])
+
+    def _clean_correction_knobs(self):
+        for nn_knob in self.correction_knobs:
+            self.line.vars[nn_knob] = 0

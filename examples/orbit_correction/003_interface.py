@@ -37,8 +37,8 @@ tt_monitors = tt.rows['bpm.*'].rows['.*(?<!_entry)$'].rows['.*(?<!_exit)$']
 monitor_names = tt_monitors.name
 
 # Select h correctors by names (starting by "mcb.", containing "h.", and ending by ".b1")
-# tt_h_correctors = tt.rows['mcb.*'].rows['.*h\..*']
-tt_h_correctors = tt.rows[tt.element_type == 'Quadrupole']
+tt_h_correctors = tt.rows['mcb.*'].rows['.*h\..*']
+# tt_h_correctors = tt.rows[tt.element_type == 'Quadrupole']
 h_corrector_names = tt_h_correctors.name
 
 # Select v correctors by names (starting by "mcb.", containing "v.", and ending by ".b1")
