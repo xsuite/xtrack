@@ -106,6 +106,10 @@ class Line:
         self._extra_config['_needs_rng'] = False
         self._extra_config['enable_time_dependent_vars'] = False
         self._extra_config['twiss_default'] = {}
+        self._extra_config['steering_monitors_x'] = []
+        self._extra_config['steering_monitors_y'] = []
+        self._extra_config['steering_correctors_x'] = []
+        self._extra_config['steering_correctors_y'] = []
 
         if isinstance(elements, dict):
             element_dict = elements
@@ -3421,6 +3425,38 @@ class Line:
             self.energy_program.complete_init(self)
         self.energy_program.line = self
         self.element_refs['energy_program'].t_turn_s_line = self.vars['t_turn_s']
+
+    @property
+    def steering_monitors_x(self):
+        return self._extra_config.get('steering_monitors_x', None)
+
+    @steering_monitors_x.setter
+    def steering_monitors_x(self, value):
+        self._extra_config['steering_monitors_x'] = value
+
+    @property
+    def steering_monitors_y(self):
+        return self._extra_config.get('steering_monitors_y', None)
+
+    @steering_monitors_y.setter
+    def steering_monitors_y(self, value):
+        self._extra_config['steering_monitors_y'] = value
+
+    @property
+    def steering_correctors_x(self):
+        return self._extra_config.get('steering_correctors_x', None)
+
+    @steering_correctors_x.setter
+    def steering_correctors_x(self, value):
+        self._extra_config['steering_correctors_x'] = value
+
+    @property
+    def steering_correctors_y(self):
+        return self._extra_config.get('steering_correctors_y', None)
+
+    @steering_correctors_y.setter
+    def steering_correctors_y(self, value):
+        self._extra_config['steering_correctors_y'] = value
 
     def __getitem__(self, ii):
         if isinstance(ii, str):
