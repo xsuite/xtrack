@@ -307,3 +307,62 @@ class OrbitCorrection:
             self.y_correction.correct(n_micado=n_micado_y,
                                       n_singular_values=n_singular_values_y,
                                       rcond=rcond_y)
+
+def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = None,
+            monitor_names_x=None, monitor_names_y=None,
+            corrector_names_x=None, corrector_names_y=None):
+
+    tt = line.get_table()
+    line_length = tt.s[-1]
+
+    if monitor_names_x is None:
+        monitor_names_x = line.steering_monitors_x
+
+    if monitor_names_y is None:
+        monitor_names_y = line.steering_monitors_y
+
+    if corrector_names_x is None:
+        corrector_names_x = line.steering_correctors_x
+
+    if corrector_names_y is None:
+        corrector_names_y = line.steering_correctors_y
+
+    i_win = 0
+    end_loop = False
+    s_corr_end = ds_thread
+    while not end_loop:
+
+        if s_corr_end > line_length:
+            s_corr_end = line_length
+            end_loop = True
+
+        print(f'Window {i_win}, s_end: {s_corr_end}')
+
+        # Correct only the new added portion
+        tt_new_part = tt.rows[s_corr_end-ds_thread:s_corr_end:'s']
+        ocorr_only_added_part = OrbitCorrection(
+            line=line, start=tt_new_part.name[0], end=tt_new_part.name[-1],
+            twiss_table=twiss_table,
+            monitor_names_x=[nn for nn in corrector_names_x if nn in tt_new_part.name],
+            monitor_names_y=[nn for nn in corrector_names_y if nn in tt_new_part.name],
+            corrector_names_x=[nn for nn in corrector_names_x if nn in tt_new_part.name],
+            corrector_names_y=[nn for nn in corrector_names_y if nn in tt_new_part.name],
+        )
+        ocorr_only_added_part.correct(rcond=rcond_short)
+
+        # Correct from start line to end of new added portion
+        tt_part = tt.rows[0:s_corr_end:'s']
+        ocorr = OrbitCorrection(
+            twiss_table=twiss_table,
+            line=line, start=tt_part.name[0], end=tt_part.name[-1],
+            monitor_names_x=[nn for nn in corrector_names_x if nn in tt_part.name],
+            monitor_names_y=[nn for nn in corrector_names_y if nn in tt_part.name],
+            corrector_names_x=[nn for nn in corrector_names_x if nn in tt_part.name],
+            corrector_names_y=[nn for nn in corrector_names_y if nn in tt_part.name],
+        )
+        ocorr.correct(rcond=rcond_long)
+
+        s_corr_end += ds_thread
+        i_win += 1
+
+    return ocorr

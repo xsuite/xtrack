@@ -64,61 +64,10 @@ for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
     line.element_refs[nn_quad].shift_y = sy
 
 
+ocorr = oc._thread(line, ds_thread=500., rcond_short=None, rcond_long=None)
 
-ds_correction = 500
-rcond_short = None
-rcond_long = None
-
-step_size = ds_correction
-
-s_corr_end = ds_correction
-
-tt = line.get_table()
-line_length = tt.s[-1]
-
-i_win = 0
-end_loop = False
-while not end_loop:
-
-    if s_corr_end > line_length:
-        s_corr_end = line_length
-        end_loop = True
-
-    print(f'Window {i_win}, s_end: {s_corr_end}')
-
-    # Correct only the new added portion
-    tt_new_part = tt.rows[s_corr_end-ds_correction:s_corr_end:'s']
-    ocorr_only_added_part = oc.OrbitCorrection(
-        line=line, start=tt_new_part.name[0], end=tt_new_part.name[-1], twiss_table=tw,
-        monitor_names_x=[nn for nn in h_corrector_names if nn in tt_new_part.name],
-        monitor_names_y=[nn for nn in v_corrector_names if nn in tt_new_part.name],
-        corrector_names_x=[nn for nn in h_corrector_names if nn in tt_new_part.name],
-        corrector_names_y=[nn for nn in v_corrector_names if nn in tt_new_part.name],
-    )
-    ocorr_only_added_part.correct(rcond=rcond_short)
-
-    # Correct from start line to end of new added portion
-    tt_part = tt.rows[0:s_corr_end:'s']
-    ocorr = oc.OrbitCorrection(
-        line=line, start=tt_part.name[0], end=tt_part.name[-1], twiss_table=tw,
-        monitor_names_x=[nn for nn in h_corrector_names if nn in tt_part.name],
-        monitor_names_y=[nn for nn in v_corrector_names if nn in tt_part.name],
-        corrector_names_x=[nn for nn in h_corrector_names if nn in tt_part.name],
-        corrector_names_y=[nn for nn in v_corrector_names if nn in tt_part.name],
-    )
-    ocorr.correct(rcond=rcond_long)
-
-    s_corr_end += ds_correction
-    step_size = ds_correction
-    i_win += 1
-
-two = line.twiss(only_orbit=True, start=line.element_names[0],
-                 end=line.element_names[-1], betx=1, bety=1,
-                 _continue_if_lost=True)
 kick_h_after_thread = ocorr.x_correction.get_kick_values()
 kick_v_after_thread = ocorr.y_correction.get_kick_values()
-x_meas_after_thread = two.rows[monitor_names].x
-y_meas_after_thread = two.rows[monitor_names].y
 
 tw_meas = line.twiss4d(only_orbit=True, start=line_range[0], end=line_range[1],
                           betx=betx_start_guess,
@@ -158,20 +107,9 @@ s_v_correctors = tw_after.rows[v_corrector_names].s
 applied_kicks_h = orbit_correction.x_correction.get_kick_values()
 applied_kicks_v = orbit_correction.y_correction.get_kick_values()
 
+
 import matplotlib.pyplot as plt
 plt.close('all')
-plt.figure(1)
-sp1 = plt.subplot(411)
-plt.plot(two.s, two.x, label='x')
-plt.plot(orbit_correction.x_correction.s_monitors, x_meas_after_thread, 'x')
-
-sp2 = plt.subplot(412, sharex=sp1)
-plt.stem(orbit_correction.x_correction.s_correctors, kick_h_after_thread)
-sp3 = plt.subplot(413, sharex=sp1)
-plt.plot(two.s, two.y, label='y')
-plt.plot(orbit_correction.y_correction.s_monitors, y_meas_after_thread, 'x')
-sp3 = plt.subplot(414, sharex=sp1)
-plt.stem(orbit_correction.y_correction.s_correctors, kick_v_after_thread)
 
 
 plt.figure(2, figsize=(6.4, 4.8*1.7))
