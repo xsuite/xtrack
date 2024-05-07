@@ -95,16 +95,7 @@ class OrbitCorrectionSinglePlane:
 
         assert plane in ['x', 'y']
 
-        self.line = line
-        self.plane = plane
-        self.monitor_names = monitor_names
-        self.corrector_names = corrector_names
-        self.start = start
-        self.end = end
         self.twiss_table = twiss_table
-        self.n_micado = n_micado
-        self.rcond = rcond
-        self.n_singular_values = n_singular_values
 
         if start is None:
             assert end is None
@@ -117,6 +108,39 @@ class OrbitCorrectionSinglePlane:
             if self.twiss_table is None:
                 self.twiss_table = line.twiss4d(start=start, end=end,
                                                 betx=1, bety=1)
+
+        if corrector_names is None:
+            corr_names_from_line = getattr(line, f'steering_correctors_{plane}')
+            assert corr_names_from_line is not None, (
+                f'No steering correctors found for plane {plane}')
+            if start is not None:
+                corrector_names = [nn for nn in corr_names_from_line
+                                   if nn in self.twiss_table.name]
+            else:
+                corrector_names = corr_names_from_line
+
+        if monitor_names is None:
+            monitor_names = getattr(line, f'steering_monitors_{plane}')
+            assert monitor_names is not None, (
+                f'No monitors found for plane {plane}')
+            if start is not None:
+                monitor_names = [nn for nn in monitor_names
+                                 if nn in self.twiss_table.name]
+            else:
+                monitor_names = monitor_names
+
+        assert len(monitor_names) > 0
+        assert len(corrector_names) > 0
+
+        self.line = line
+        self.plane = plane
+        self.monitor_names = monitor_names
+        self.corrector_names = corrector_names
+        self.start = start
+        self.end = end
+        self.n_micado = n_micado
+        self.rcond = rcond
+        self.n_singular_values = n_singular_values
 
         self.response_matrix = _build_response_matrix(plane=self.plane,
             tw=self.twiss_table, monitor_names=self.monitor_names,
@@ -232,13 +256,9 @@ class OrbitCorrection:
         else:
             n_micado_x, n_micado_y = n_micado, n_micado
 
-        if monitor_names_x is not None or corrector_names_x is not None:
-            if monitor_names_x is None:
-                raise ValueError('monitor_names_x must be provided when '
-                                 'corrector_names_x is provided')
-            if corrector_names_x is None:
-                raise ValueError('corrector_names_x must be provided when '
-                                 'monitor_names_x is provided')
+        if (monitor_names_x is not None or corrector_names_x is not None
+            or line.steering_correctors_x is not None
+            or line.steering_monitors_x is not None):
             self.x_correction = OrbitCorrectionSinglePlane(
                 line=line, plane='x', monitor_names=monitor_names_x,
                 corrector_names=corrector_names_x, start=start, end=end,
@@ -247,13 +267,9 @@ class OrbitCorrection:
         else:
             self.x_correction = None
 
-        if monitor_names_y is not None or corrector_names_y is not None:
-            if monitor_names_y is None:
-                raise ValueError('monitor_names_y must be provided when '
-                                 'corrector_names_y is provided')
-            if corrector_names_y is None:
-                raise ValueError('corrector_names_y must be provided when '
-                                 'monitor_names_y is provided')
+        if (monitor_names_y is not None or corrector_names_y is not None
+           or line.steering_correctors_y is not None
+           or line.steering_monitors_y is not None):
             self.y_correction = OrbitCorrectionSinglePlane(
                 line=line, plane='y', monitor_names=monitor_names_y,
                 corrector_names=corrector_names_y, start=start, end=end,

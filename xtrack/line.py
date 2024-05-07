@@ -106,10 +106,10 @@ class Line:
         self._extra_config['_needs_rng'] = False
         self._extra_config['enable_time_dependent_vars'] = False
         self._extra_config['twiss_default'] = {}
-        self._extra_config['steering_monitors_x'] = []
-        self._extra_config['steering_monitors_y'] = []
-        self._extra_config['steering_correctors_x'] = []
-        self._extra_config['steering_correctors_y'] = []
+        self._extra_config['steering_monitors_x'] = None
+        self._extra_config['steering_monitors_y'] = None
+        self._extra_config['steering_correctors_x'] = None
+        self._extra_config['steering_correctors_y'] = None
 
         if isinstance(elements, dict):
             element_dict = elements

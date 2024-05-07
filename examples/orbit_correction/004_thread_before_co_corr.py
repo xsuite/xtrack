@@ -35,9 +35,12 @@ tt_v_correctors = tt.rows['mcb.*'].rows['.*h\..*|.*v\..*']
 # tt_v_correctors = tt.rows[tt.element_type == 'Quadrupole']
 v_corrector_names = tt_v_correctors.name
 
+line.steering_correctors_x = h_corrector_names
+line.steering_correctors_y = v_corrector_names
+line.steering_monitors_x = monitor_names
+line.steering_monitors_y = monitor_names
+
 orbit_correction = oc.OrbitCorrection(line=line,
-        monitor_names_x=monitor_names, monitor_names_y=monitor_names,
-        corrector_names_x=h_corrector_names, corrector_names_y=v_corrector_names,
         start=line_range[0], end=line_range[1])
 
 # Introduce some orbit perturbation
