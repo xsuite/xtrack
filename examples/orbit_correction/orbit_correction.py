@@ -87,7 +87,7 @@ def _build_response_matrix(tw, monitor_names, corrector_names,
     return response_matrix
 
 
-class OrbitCorrection:
+class OrbitCorrectionSinglePlane:
 
     def __init__(self, line, plane, monitor_names, corrector_names,
                  start=None, end=None, twiss_table=None, n_micado=None,

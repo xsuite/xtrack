@@ -78,11 +78,11 @@ s_meas = tw_meas.rows[monitor_names].s
 n_micado = None
 
 for iter in range(10):
-    orbit_correction_h = oc.OrbitCorrection(line=line, plane='x', monitor_names=monitor_names,
+    orbit_correction_h = oc.OrbitCorrectionSinglePlane(line=line, plane='x', monitor_names=monitor_names,
                                         corrector_names=h_corrector_names,
                                         start=line_range[0], end=line_range[1])
 
-    orbit_correction_v = oc.OrbitCorrection(line=line, plane='y', monitor_names=monitor_names,
+    orbit_correction_v = oc.OrbitCorrectionSinglePlane(line=line, plane='y', monitor_names=monitor_names,
                                             corrector_names=v_corrector_names,
                                             start=line_range[0], end=line_range[1])
     orbit_correction_h.correct()

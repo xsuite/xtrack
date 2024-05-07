@@ -35,11 +35,11 @@ tt_v_correctors = tt.rows['mcb.*'].rows['.*h\..*|.*v\..*']
 # tt_v_correctors = tt.rows[tt.element_type == 'Quadrupole']
 v_corrector_names = tt_v_correctors.name
 
-orbit_correction_h = oc.OrbitCorrection(line=line, plane='x', monitor_names=monitor_names,
+orbit_correction_h = oc.OrbitCorrectionSinglePlane(line=line, plane='x', monitor_names=monitor_names,
                                         corrector_names=h_corrector_names,
                                         start=line_range[0], end=line_range[1])
 
-orbit_correction_v = oc.OrbitCorrection(line=line, plane='y', monitor_names=monitor_names,
+orbit_correction_v = oc.OrbitCorrectionSinglePlane(line=line, plane='y', monitor_names=monitor_names,
                                         corrector_names=v_corrector_names,
                                         start=line_range[0], end=line_range[1])
 
@@ -100,12 +100,12 @@ while not end_loop:
     these_monitor_names_new = [name for name in monitor_names if name in tt_new_part.name]
 
     # Correct only the new added portion
-    this_ocorr_h_new = oc.OrbitCorrection(
+    this_ocorr_h_new = oc.OrbitCorrectionSinglePlane(
         line=line, plane='x', monitor_names=these_monitor_names_new,
         corrector_names=these_h_corrector_names_new,
         start=start_new, end=end_new, twiss_table=tw)
 
-    this_ocorr_v_new = oc.OrbitCorrection(
+    this_ocorr_v_new = oc.OrbitCorrectionSinglePlane(
         line=line, plane='y', monitor_names=these_monitor_names_new,
         corrector_names=these_v_corrector_names_new,
         start=start_new, end=end_new,
@@ -115,12 +115,12 @@ while not end_loop:
     this_ocorr_v_new.correct()#rcond=1e-4)
 
     # Correct everything including the new added portion
-    this_ocorr_h = oc.OrbitCorrection(
+    this_ocorr_h = oc.OrbitCorrectionSinglePlane(
         line=line, plane='x', monitor_names=these_monitor_names,
         corrector_names=these_h_corrector_names,
         start=start, end=end, twiss_table=tw)
 
-    this_ocorr_v = oc.OrbitCorrection(
+    this_ocorr_v = oc.OrbitCorrectionSinglePlane(
         line=line, plane='y', monitor_names=these_monitor_names,
         corrector_names=these_v_corrector_names,
         start=start, end=end, twiss_table=tw)
