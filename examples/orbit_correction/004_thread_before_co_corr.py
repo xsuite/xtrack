@@ -80,25 +80,25 @@ while not end_loop:
 
     # Correct only the new added portion
     tt_new_part = tt.rows[s_corr_end-ds_correction:s_corr_end:'s']
-    this_ocorr_new = oc.OrbitCorrection(
+    ocorr_only_added_part = oc.OrbitCorrection(
         line=line, start=tt_new_part.name[0], end=tt_new_part.name[-1], twiss_table=tw,
         monitor_names_x=[nn for nn in h_corrector_names if nn in tt_new_part.name],
         monitor_names_y=[nn for nn in v_corrector_names if nn in tt_new_part.name],
         corrector_names_x=[nn for nn in h_corrector_names if nn in tt_new_part.name],
         corrector_names_y=[nn for nn in v_corrector_names if nn in tt_new_part.name],
     )
-    this_ocorr_new.correct()#rcond=1e-4)
+    ocorr_only_added_part.correct()#rcond=1e-4)
 
     # Correct from start line to end of new added portion
     tt_part = tt.rows[0:s_corr_end:'s']
-    this_ocorr = oc.OrbitCorrection(
+    ocorr = oc.OrbitCorrection(
         line=line, start=tt_part.name[0], end=tt_part.name[-1], twiss_table=tw,
         monitor_names_x=[nn for nn in h_corrector_names if nn in tt_part.name],
         monitor_names_y=[nn for nn in v_corrector_names if nn in tt_part.name],
         corrector_names_x=[nn for nn in h_corrector_names if nn in tt_part.name],
         corrector_names_y=[nn for nn in v_corrector_names if nn in tt_part.name],
     )
-    this_ocorr.correct()#rcond=1e-4)
+    ocorr.correct()#rcond=1e-4)
 
     s_corr_end += ds_correction
     step_size = ds_correction
@@ -107,8 +107,8 @@ while not end_loop:
 two = line.twiss(only_orbit=True, start=line.element_names[0],
                  end=line.element_names[-1], betx=1, bety=1,
                  _continue_if_lost=True)
-kick_h_after_thread = this_ocorr.x_correction.get_kick_values()
-kick_v_after_thread = this_ocorr.y_correction.get_kick_values()
+kick_h_after_thread = ocorr.x_correction.get_kick_values()
+kick_v_after_thread = ocorr.y_correction.get_kick_values()
 x_meas_after_thread = two.rows[monitor_names].x
 y_meas_after_thread = two.rows[monitor_names].y
 
