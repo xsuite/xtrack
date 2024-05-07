@@ -67,7 +67,6 @@ ds_correction = 500
 step_size = ds_correction
 
 s_corr_end = ds_correction
-s_corr_start = 0
 
 i_win = 0
 end_loop = False
@@ -78,9 +77,9 @@ while not end_loop:
         end_loop = True
 
     print(f'Window {i_win}, s_end: {s_corr_end}')
-    tt_part = tt.rows[s_corr_start:s_corr_end:'s']
-    start = tt_part.name[0]
-    end = tt_part.name[-1]
+    tt_part = tt.rows[0:s_corr_end:'s']
+    start_thread_iter = tt_part.name[0]
+    end_thread_iter = tt_part.name[-1]
     these_h_corrector_names = [name for name in h_corrector_names if
                                name in tt_part.name]
     these_v_corrector_names = [name for name in v_corrector_names if
@@ -88,8 +87,7 @@ while not end_loop:
     these_monitor_names = [name for name in monitor_names if name in tt_part.name]
 
     tt_new_part = tt.rows[s_corr_end-ds_correction:s_corr_end:'s']
-    start_new = tt_new_part.name[0]
-    end_new = tt_new_part.name[-1]
+    start_new_part = tt_new_part.name[0]
     these_h_corrector_names_new = [name for name in h_corrector_names if
                                    name in tt_new_part.name]
     these_v_corrector_names_new = [name for name in v_corrector_names if
@@ -98,7 +96,7 @@ while not end_loop:
 
     # Correct only the new added portion
     this_ocorr_new = oc.OrbitCorrection(
-        line=line, start=start_new, end=end_new,
+        line=line, start=start_new_part, end=end_thread_iter,
         monitor_names_x=these_monitor_names_new,
         monitor_names_y=these_monitor_names_new,
         corrector_names_x=these_h_corrector_names_new,
@@ -107,18 +105,14 @@ while not end_loop:
     this_ocorr_new.correct()#rcond=1e-4)
 
     # Correct everything including the new added portion
-    this_ocorr_h = oc.OrbitCorrectionSinglePlane(
-        line=line, plane='x', monitor_names=these_monitor_names,
-        corrector_names=these_h_corrector_names,
-        start=start, end=end, twiss_table=tw)
-
-    this_ocorr_v = oc.OrbitCorrectionSinglePlane(
-        line=line, plane='y', monitor_names=these_monitor_names,
-        corrector_names=these_v_corrector_names,
-        start=start, end=end, twiss_table=tw)
-
-    this_ocorr_h.correct()#rcond=1e-4)
-    this_ocorr_v.correct()#rcond=1e-4)
+    this_ocorr= oc.OrbitCorrection(
+        line=line, start=start_thread_iter, end=end_thread_iter,
+        monitor_names_x=these_monitor_names,
+        monitor_names_y=these_monitor_names,
+        corrector_names_x=these_h_corrector_names,
+        corrector_names_y=these_v_corrector_names,
+        twiss_table=tw)
+    this_ocorr.correct()#rcond=1e-4)
 
     s_corr_end += ds_correction
     step_size = ds_correction
@@ -127,8 +121,8 @@ while not end_loop:
 two = line.twiss(only_orbit=True, start=line.element_names[0],
                  end=line.element_names[-1], betx=1, bety=1,
                  _continue_if_lost=True)
-kick_h_after_thread = this_ocorr_h.get_kick_values()
-kick_v_after_thread = this_ocorr_v.get_kick_values()
+kick_h_after_thread = this_ocorr.x_correction.get_kick_values()
+kick_v_after_thread = this_ocorr.y_correction.get_kick_values()
 x_meas_after_thread = two.rows[monitor_names].x
 y_meas_after_thread = two.rows[monitor_names].y
 
@@ -176,15 +170,15 @@ plt.close('all')
 plt.figure(1)
 sp1 = plt.subplot(411)
 plt.plot(two.s, two.x, label='x')
-plt.plot(this_ocorr_h.s_monitors, x_meas_after_thread, 'x')
+plt.plot(orbit_correction.x_correction.s_monitors, x_meas_after_thread, 'x')
 
 sp2 = plt.subplot(412, sharex=sp1)
-plt.stem(this_ocorr_h.s_correctors, kick_h_after_thread)
+plt.stem(orbit_correction.x_correction.s_correctors, kick_h_after_thread)
 sp3 = plt.subplot(413, sharex=sp1)
 plt.plot(two.s, two.y, label='y')
-plt.plot(this_ocorr_v.s_monitors, y_meas_after_thread, 'x')
+plt.plot(orbit_correction.y_correction.s_monitors, y_meas_after_thread, 'x')
 sp3 = plt.subplot(414, sharex=sp1)
-plt.stem(this_ocorr_v.s_correctors, kick_v_after_thread)
+plt.stem(orbit_correction.y_correction.s_correctors, kick_v_after_thread)
 
 
 plt.figure(2, figsize=(6.4, 4.8*1.7))
@@ -195,7 +189,7 @@ sp1.plot(s_meas, x_meas_after, label='corrected')
 
 sp2 = plt.subplot(412, sharex=sp1)
 markerline, stemlines, baseline = sp2.stem(s_h_correctors, applied_kicks_h, label='applied kicks')
-plt.plot(this_ocorr_h.s_correctors, kick_h_after_thread, 'xr')
+plt.plot(orbit_correction.x_correction.s_correctors, kick_h_after_thread, 'xr')
 
 sp3 = plt.subplot(413, sharex=sp1)
 sp3.plot(s_meas, y_meas, label='measured')
@@ -203,6 +197,6 @@ sp3.plot(s_meas, y_meas_after, label='corrected')
 
 sp4 = plt.subplot(414, sharex=sp1)
 markerline, stemlines, baseline = sp4.stem(s_v_correctors, applied_kicks_v, label='applied kicks')
-plt.plot(this_ocorr_v.s_correctors, kick_v_after_thread, 'xr')
+plt.plot(orbit_correction.y_correction.s_correctors, kick_v_after_thread, 'xr')
 plt.subplots_adjust(hspace=0.35, top=.90, bottom=.10)
 plt.show()
