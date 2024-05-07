@@ -208,3 +208,86 @@ class OrbitCorrectionSinglePlane:
     def _clean_correction_knobs(self):
         for nn_knob in self.correction_knobs:
             self.line.vars[nn_knob] = 0
+
+class OrbitCorrection:
+
+    def __init__(self, line,
+                 start=None, end=None, twiss_table=None,
+                 monitor_names_x=None, corrector_names_x=None,
+                 monitor_names_y=None, corrector_names_y=None,
+                 n_micado=None, n_singular_values=None, rcond=None):
+
+        if isinstance(rcond, (tuple, list)):
+            rcond_x, rcond_y = rcond
+        else:
+            rcond_x, rcond_y = rcond, rcond
+
+        if isinstance(n_singular_values, (tuple, list)):
+            n_singular_values_x, n_singular_values_y = n_singular_values
+        else:
+            n_singular_values_x, n_singular_values_y = n_singular_values, n_singular_values
+
+        if isinstance(n_micado, (tuple, list)):
+            n_micado_x, n_micado_y = n_micado
+        else:
+            n_micado_x, n_micado_y = n_micado, n_micado
+
+        if monitor_names_x is not None or corrector_names_x is not None:
+            if monitor_names_x is None:
+                raise ValueError('monitor_names_x must be provided when '
+                                 'corrector_names_x is provided')
+            if corrector_names_x is None:
+                raise ValueError('corrector_names_x must be provided when '
+                                 'monitor_names_x is provided')
+            self.x_correction = OrbitCorrectionSinglePlane(
+                line=line, plane='x', monitor_names=monitor_names_x,
+                corrector_names=corrector_names_x, start=start, end=end,
+                twiss_table=twiss_table, n_micado=n_micado_x,
+                n_singular_values=n_singular_values_x, rcond=rcond_x)
+        else:
+            self.x_correction = None
+
+        if monitor_names_y is not None or corrector_names_y is not None:
+            if monitor_names_y is None:
+                raise ValueError('monitor_names_y must be provided when '
+                                 'corrector_names_y is provided')
+            if corrector_names_y is None:
+                raise ValueError('corrector_names_y must be provided when '
+                                 'monitor_names_y is provided')
+            self.y_correction = OrbitCorrectionSinglePlane(
+                line=line, plane='y', monitor_names=monitor_names_y,
+                corrector_names=corrector_names_y, start=start, end=end,
+                twiss_table=twiss_table, n_micado=n_micado_y,
+                n_singular_values=n_singular_values_y, rcond=rcond_y)
+        else:
+            self.y_correction = None
+
+    def correct(self, planes=None, n_micado=None, n_singular_values=None,
+                rcond=None):
+
+        if isinstance(rcond, (tuple, list)):
+            rcond_x, rcond_y = rcond
+        else:
+            rcond_x, rcond_y = rcond, rcond
+
+        if isinstance(n_singular_values, (tuple, list)):
+            n_singular_values_x, n_singular_values_y = n_singular_values
+        else:
+            n_singular_values_x, n_singular_values_y = n_singular_values, n_singular_values
+
+        if isinstance(n_micado, (tuple, list)):
+            n_micado_x, n_micado_y = n_micado
+        else:
+            n_micado_x, n_micado_y = n_micado, n_micado
+
+        if planes is None:
+            planes = 'xy'
+        assert planes in ['x', 'y', 'xy']
+        if self.x_correction is not None and 'x' in planes:
+            self.x_correction.correct(n_micado=n_micado_x,
+                                      n_singular_values=n_singular_values_x,
+                                      rcond=rcond_x)
+        if self.y_correction is not None and 'y' in planes:
+            self.y_correction.correct(n_micado=n_micado_y,
+                                      n_singular_values=n_singular_values_y,
+                                      rcond=rcond_y)
