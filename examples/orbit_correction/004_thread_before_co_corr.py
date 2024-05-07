@@ -25,12 +25,12 @@ tw = line.twiss4d(start=line_range[0], end=line_range[1],
 tt_monitors = tt.rows['bpm.*'].rows['.*(?<!_entry)$'].rows['.*(?<!_exit)$']
 monitor_names = tt_monitors.name
 
-# Select h correctors by names (starting by "mcb.", containing "h.", and ending by ".b1")
+# Select h correctors by names (starting by "mcb.", containing "h." or "v.")
 tt_h_correctors = tt.rows['mcb.*'].rows['.*h\..*|.*v\..*']
 # tt_h_correctors = tt.rows[tt.element_type == 'Quadrupole']
 h_corrector_names = tt_h_correctors.name
 
-# Select v correctors by names (starting by "mcb.", containing "v.", and ending by ".b1")
+# Select v correctors by names (starting by "mcb.", containing "h." or "v.")
 tt_v_correctors = tt.rows['mcb.*'].rows['.*h\..*|.*v\..*']
 # tt_v_correctors = tt.rows[tt.element_type == 'Quadrupole']
 v_corrector_names = tt_v_correctors.name
@@ -60,13 +60,18 @@ for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
     line.element_refs[nn_quad].shift_x = sx
     line.element_refs[nn_quad].shift_y = sy
 
-tt = line.get_table()
-line_length = tt.s[-1]
+
 
 ds_correction = 500
+rcond_short = None
+rcond_long = None
+
 step_size = ds_correction
 
 s_corr_end = ds_correction
+
+tt = line.get_table()
+line_length = tt.s[-1]
 
 i_win = 0
 end_loop = False
@@ -87,7 +92,7 @@ while not end_loop:
         corrector_names_x=[nn for nn in h_corrector_names if nn in tt_new_part.name],
         corrector_names_y=[nn for nn in v_corrector_names if nn in tt_new_part.name],
     )
-    ocorr_only_added_part.correct()#rcond=1e-4)
+    ocorr_only_added_part.correct(rcond=rcond_short)
 
     # Correct from start line to end of new added portion
     tt_part = tt.rows[0:s_corr_end:'s']
@@ -98,7 +103,7 @@ while not end_loop:
         corrector_names_x=[nn for nn in h_corrector_names if nn in tt_part.name],
         corrector_names_y=[nn for nn in v_corrector_names if nn in tt_part.name],
     )
-    ocorr.correct()#rcond=1e-4)
+    ocorr.correct(rcond=rcond_long)
 
     s_corr_end += ds_correction
     step_size = ds_correction
