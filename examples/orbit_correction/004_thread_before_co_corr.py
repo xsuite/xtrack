@@ -77,41 +77,27 @@ while not end_loop:
         end_loop = True
 
     print(f'Window {i_win}, s_end: {s_corr_end}')
-    tt_part = tt.rows[0:s_corr_end:'s']
-    start_thread_iter = tt_part.name[0]
-    end_thread_iter = tt_part.name[-1]
-    these_h_corrector_names = [name for name in h_corrector_names if
-                               name in tt_part.name]
-    these_v_corrector_names = [name for name in v_corrector_names if
-                                 name in tt_part.name]
-    these_monitor_names = [name for name in monitor_names if name in tt_part.name]
-
-    tt_new_part = tt.rows[s_corr_end-ds_correction:s_corr_end:'s']
-    start_new_part = tt_new_part.name[0]
-    these_h_corrector_names_new = [name for name in h_corrector_names if
-                                   name in tt_new_part.name]
-    these_v_corrector_names_new = [name for name in v_corrector_names if
-                                      name in tt_new_part.name]
-    these_monitor_names_new = [name for name in monitor_names if name in tt_new_part.name]
 
     # Correct only the new added portion
+    tt_new_part = tt.rows[s_corr_end-ds_correction:s_corr_end:'s']
     this_ocorr_new = oc.OrbitCorrection(
-        line=line, start=start_new_part, end=end_thread_iter,
-        monitor_names_x=these_monitor_names_new,
-        monitor_names_y=these_monitor_names_new,
-        corrector_names_x=these_h_corrector_names_new,
-        corrector_names_y=these_v_corrector_names_new,
-        twiss_table=tw)
+        line=line, start=tt_new_part.name[0], end=tt_new_part.name[-1], twiss_table=tw,
+        monitor_names_x=[nn for nn in h_corrector_names if nn in tt_new_part.name],
+        monitor_names_y=[nn for nn in v_corrector_names if nn in tt_new_part.name],
+        corrector_names_x=[nn for nn in h_corrector_names if nn in tt_new_part.name],
+        corrector_names_y=[nn for nn in v_corrector_names if nn in tt_new_part.name],
+    )
     this_ocorr_new.correct()#rcond=1e-4)
 
-    # Correct everything including the new added portion
-    this_ocorr= oc.OrbitCorrection(
-        line=line, start=start_thread_iter, end=end_thread_iter,
-        monitor_names_x=these_monitor_names,
-        monitor_names_y=these_monitor_names,
-        corrector_names_x=these_h_corrector_names,
-        corrector_names_y=these_v_corrector_names,
-        twiss_table=tw)
+    # Correct from start line to end of new added portion
+    tt_part = tt.rows[0:s_corr_end:'s']
+    this_ocorr = oc.OrbitCorrection(
+        line=line, start=tt_part.name[0], end=tt_part.name[-1], twiss_table=tw,
+        monitor_names_x=[nn for nn in h_corrector_names if nn in tt_part.name],
+        monitor_names_y=[nn for nn in v_corrector_names if nn in tt_part.name],
+        corrector_names_x=[nn for nn in h_corrector_names if nn in tt_part.name],
+        corrector_names_y=[nn for nn in v_corrector_names if nn in tt_part.name],
+    )
     this_ocorr.correct()#rcond=1e-4)
 
     s_corr_end += ds_correction
@@ -125,7 +111,6 @@ kick_h_after_thread = this_ocorr.x_correction.get_kick_values()
 kick_v_after_thread = this_ocorr.y_correction.get_kick_values()
 x_meas_after_thread = two.rows[monitor_names].x
 y_meas_after_thread = two.rows[monitor_names].y
-
 
 tw_meas = line.twiss4d(only_orbit=True, start=line_range[0], end=line_range[1],
                           betx=betx_start_guess,
