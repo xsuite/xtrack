@@ -2,7 +2,7 @@ import xtrack as xt
 import numpy as np
 from numpy.matlib import repmat
 
-import orbit_correction as oc
+import xtrack.trajectory_correction as oc
 
 line_range = ('ip2', 'ip3')
 betx_start_guess = 1.
