@@ -308,6 +308,70 @@ class OrbitCorrection:
                                       n_singular_values=n_singular_values_y,
                                       rcond=rcond_y)
 
+    def thread(self, ds_thread=None, rcond_short=None, rcond_long=None):
+
+        if self.start is not None or self.end is not None:
+            raise NotImplementedError('Thread not implemented for line portions')
+
+        threader = _thread(line=self.line, ds_thread=ds_thread, twiss_table=self.twiss_table,
+                rcond_short=rcond_short, rcond_long=rcond_long,
+                monitor_names_x=self.x_correction.monitor_names,
+                monitor_names_y=self.y_correction.monitor_names,
+                corrector_names_x=self.x_correction.corrector_names,
+                corrector_names_y=self.y_correction.corrector_names)
+        return threader
+
+    @property
+    def start(self):
+        if self.x_correction is not None:
+            x_start = self.x_correction.start
+        else:
+            x_start = None
+        if self.y_correction is not None:
+            y_start = self.y_correction.start
+        else:
+            y_start = None
+
+        if x_start is None:
+            return y_start
+        if y_start is None:
+            return x_start
+        if x_start is not None and y_start is not None:
+            assert x_start == y_start
+            return x_start
+
+    @property
+    def end(self):
+        if self.x_correction is not None:
+            x_end = self.x_correction.end
+        else:
+            x_end = None
+        if self.y_correction is not None:
+            y_end = self.y_correction.end
+        else:
+            y_end = None
+
+        if x_end is None:
+            return y_end
+        if y_end is None:
+            return x_end
+        if x_end is not None and y_end is not None:
+            assert x_end == y_end
+            return x_end
+    @property
+    def line(self):
+        if self.x_correction is not None:
+            return self.x_correction.line
+        if self.y_correction is not None:
+            return self.y_correction.line
+
+    @property
+    def twiss_table(self):
+        if self.x_correction is not None:
+            return self.x_correction.twiss_table
+        if self.y_correction is not None:
+            return self.y_correction.twiss_table
+
 def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = None,
             monitor_names_x=None, monitor_names_y=None,
             corrector_names_x=None, corrector_names_y=None):

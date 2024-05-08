@@ -64,10 +64,10 @@ for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
     line.element_refs[nn_quad].shift_y = sy
 
 
-ocorr = oc._thread(line, ds_thread=500., rcond_short=None, rcond_long=None)
+threader = orbit_correction.thread(ds_thread=500., rcond_short=None, rcond_long=None)
 
-kick_h_after_thread = ocorr.x_correction.get_kick_values()
-kick_v_after_thread = ocorr.y_correction.get_kick_values()
+kick_h_after_thread = threader.x_correction.get_kick_values()
+kick_v_after_thread = threader.y_correction.get_kick_values()
 
 tw_meas = line.twiss4d(only_orbit=True, start=line_range[0], end=line_range[1],
                           betx=betx_start_guess,
