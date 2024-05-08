@@ -239,11 +239,11 @@ class TwissPlot(object):
         vd = 0
         sp = self.lattice
         s = self.ont.s
-        l = self.ont.length
-        for i in names:
-            myvd = self.ont._data.get(i, None)
+        l = np.diff(s,append=[s[-1]])
+        for name in names:
+            myvd = self.ont._data.get(name, None)
             if myvd is not None:
-                vdname = i
+                vdname = name
                 vd = myvd[self.idx] + vd
         if np.any(vd != 0):
             m = np.abs(vd).max()
@@ -267,10 +267,10 @@ class TwissPlot(object):
                         self.lines.append(bplt[0])
                         self.legends.append(lbl)
                     row_names = self.ont.name
-                    for r, i in zip(bplt, c):
-                        r.elemname = row_names[i]
+                    for r, name in zip(bplt, c):
+                        r.elemname = row_names[name]
                         r.elemprop = vdname
-                        r.elemvalue = getattr(self.ont, vdname)[i]
+                        r.elemvalue = getattr(self.ont, vdname)[name]
                 self.lattice.set_ylim(-1.5, 1.5)
 
     #    timeit('end lattice')
