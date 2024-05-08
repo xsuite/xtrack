@@ -233,7 +233,7 @@ class OrbitCorrectionSinglePlane:
         for nn_knob in self.correction_knobs:
             self.line.vars[nn_knob] = 0
 
-class OrbitCorrection:
+class TrajectoryCorrection:
 
     def __init__(self, line,
                  start=None, end=None, twiss_table=None,
@@ -404,7 +404,7 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
 
         # Correct only the new added portion
         tt_new_part = tt.rows[s_corr_end-ds_thread:s_corr_end:'s']
-        ocorr_only_added_part = OrbitCorrection(
+        ocorr_only_added_part = TrajectoryCorrection(
             line=line, start=tt_new_part.name[0], end=tt_new_part.name[-1],
             twiss_table=twiss_table,
             monitor_names_x=[nn for nn in corrector_names_x if nn in tt_new_part.name],
@@ -416,7 +416,7 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
 
         # Correct from start line to end of new added portion
         tt_part = tt.rows[0:s_corr_end:'s']
-        ocorr = OrbitCorrection(
+        ocorr = TrajectoryCorrection(
             twiss_table=twiss_table,
             line=line, start=tt_part.name[0], end=tt_part.name[-1],
             monitor_names_x=[nn for nn in corrector_names_x if nn in tt_part.name],

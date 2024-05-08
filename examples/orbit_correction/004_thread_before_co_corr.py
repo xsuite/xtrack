@@ -4,22 +4,13 @@ from numpy.matlib import repmat
 
 import xtrack.trajectory_correction as oc
 
-line_range = ('ip2', 'ip3')
-betx_start_guess = 1.
-bety_start_guess = 1.
-
-line_range = (None, None)
-betx_start_guess = None
-bety_start_guess = None
 
 line = xt.Line.from_json(
     '../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
-tt = line.get_table().rows[line_range[0]:line_range[1]]
+tt = line.get_table()
 line.twiss_default['co_search_at'] = 'ip7'
 
-tw = line.twiss4d(start=line_range[0], end=line_range[1],
-                  betx=betx_start_guess,
-                  bety=bety_start_guess)
+tw = line.twiss4d()
 
 # Select monitors by names (starting by "bpm" and not ending by "_entry" or "_exit")
 tt_monitors = tt.rows['bpm.*'].rows['.*(?<!_entry)$'].rows['.*(?<!_exit)$']
@@ -40,8 +31,7 @@ line.steering_correctors_y = v_corrector_names
 line.steering_monitors_x = monitor_names
 line.steering_monitors_y = monitor_names
 
-orbit_correction = oc.OrbitCorrection(line=line,
-        start=line_range[0], end=line_range[1])
+orbit_correction = line.correct_trajectory(run=False)
 
 # Introduce some orbit perturbation
 
@@ -69,10 +59,7 @@ threader = orbit_correction.thread(ds_thread=500., rcond_short=None, rcond_long=
 kick_h_after_thread = threader.x_correction.get_kick_values()
 kick_v_after_thread = threader.y_correction.get_kick_values()
 
-tw_meas = line.twiss4d(only_orbit=True, start=line_range[0], end=line_range[1],
-                          betx=betx_start_guess,
-                          bety=bety_start_guess)
-
+tw_meas = line.twiss4d(only_orbit=True)
 x_meas = tw_meas.rows[monitor_names].x
 y_meas = tw_meas.rows[monitor_names].y
 s_meas = tw_meas.rows[monitor_names].s
@@ -82,9 +69,7 @@ n_micado = None
 for iter in range(5):
     orbit_correction.correct()
 
-    tw_after = line.twiss4d(only_orbit=True, start=line_range[0], end=line_range[1],
-                            betx=betx_start_guess,
-                            bety=bety_start_guess)
+    tw_after = line.twiss4d(only_orbit=True)
     print(f'max x: {tw_after.x.max()}    max y: {tw_after.y.max()}, rms x: {tw_after.x.std()}    rms y: {tw_after.y.std()}')
 
 # orbit_correction_h._measure_position()
@@ -93,9 +78,7 @@ for iter in range(5):
 # orbit_correction_h._clean_correction_knobs()
 # orbit_correction_h._apply_correction()
 
-tw_after = line.twiss4d(only_orbit=True, start=line_range[0], end=line_range[1],
-                        betx=betx_start_guess,
-                        bety=bety_start_guess)
+tw_after = line.twiss4d(only_orbit=True)
 
 x_meas_after = tw_after.rows[monitor_names].x
 y_meas_after = tw_after.rows[monitor_names].y

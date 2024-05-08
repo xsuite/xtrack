@@ -46,6 +46,7 @@ from .footprint import Footprint, _footprint_with_linear_rescale
 from .internal_record import (start_internal_logging_for_elements_of_type,
                               stop_internal_logging_for_elements_of_type,
                               stop_internal_logging)
+from .trajectory_correction import TrajectoryCorrection
 
 from .general import _print
 
@@ -1360,6 +1361,26 @@ class Line:
         return survey_from_line(self, X0=X0, Y0=Y0, Z0=Z0, theta0=theta0,
                                    phi0=phi0, psi0=psi0, element0=element0,
                                    reverse=reverse)
+
+    def correct_trajectory(self, run=True, start=None, end=None,
+                 twiss_table=None,
+                 monitor_names_x=None, corrector_names_x=None,
+                 monitor_names_y=None, corrector_names_y=None,
+                 n_micado=None, n_singular_values=None, rcond=None):
+
+        correction = TrajectoryCorrection(line=self,
+                 start=start, end=end, twiss_table=twiss_table,
+                 monitor_names_x=monitor_names_x,
+                 corrector_names_x=corrector_names_x,
+                 monitor_names_y=monitor_names_y,
+                 corrector_names_y=corrector_names_y,
+                 n_micado=n_micado, n_singular_values=n_singular_values,
+                 rcond=rcond)
+
+        if run:
+            correction.correct()
+
+        return correction
 
     def correct_closed_orbit(self, reference, correction_config,
                         solver=None, verbose=False, restore_if_fail=True):
