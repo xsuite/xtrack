@@ -3128,13 +3128,41 @@ class TwissTable(Table):
                               action=self._action, **kwargs)
         return tarset
 
-    def plot(self,yl='betx bety',yr='dx dy',x='s',
+    def plot(self,yl="",yr="",x='s',
             lattice=True,
             mask=None,
             labels=None,
             clist="k r b g c m",
             ax=None,
             figlabel=None):
+        """
+        Plot columns of the TwissTable
+
+        Parameters:
+        -----------
+        yl: str
+            space separated columns or expressions to plot on the left y-axis
+        yr: str
+            space separated columns or expressions to plot on the right y-axis
+        x: str
+            column to plot on the x-axis
+        lattice: bool
+            if True, the lattice is plotted
+        mask: slice
+            mask to select the elements to plot
+        labels: str
+            mask to select the elements to label
+        clist: str
+            colors to use
+        ax: matplotlib axis
+            axis to plot on
+        figlabel: str
+            label to use for the figure
+        """
+
+        if yl=="" and yr=="":
+            yl='betx bety'
+            yr='dx dy'
 
         if 'length' not in self.keys():
             lattice=False

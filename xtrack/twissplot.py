@@ -106,7 +106,7 @@ class TwissPlot(object):
         else:
             self.figure = newfig
             self.figure.clf()
-        if lattice:
+        if lattice and x=="s":
             self.lattice = self._new_axes()
             #      self.lattice.set_autoscale_on(False)
             self.lattice.yaxis.set_visible(False)
@@ -121,7 +121,7 @@ class TwissPlot(object):
 
         #    timeit('Setup')
         self.run()
-        if lattice:
+        if lattice and x=="s":
             self.lattice.set_autoscale_on(False)
         if yl:
             self.left.set_autoscale_on(False)
@@ -179,7 +179,7 @@ class TwissPlot(object):
         import matplotlib.pyplot as plt
 
         self.ont = self.table
-        self.xaxis = getattr(self.ont, self.x)[self.idx]
+        self.xaxis = self.ont[self.x][self.idx]
         self.lines = []
         self.legends = []
         #    self.figure.lines=[]
