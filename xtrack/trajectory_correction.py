@@ -156,12 +156,42 @@ class OrbitCorrectionSinglePlane:
 
         self._add_correction_knobs()
 
-    def correct(self, n_micado=None, n_singular_values=None, rcond=None):
+    def correct(self, n_iter='auto', n_micado=None, n_singular_values=None,
+                rcond=None, stop_iter_factor=0.1, verbose=True):
+
+        assert n_iter == 'auto' or np.isscalar(n_iter)
+        if n_iter == 'auto':
+            assert stop_iter_factor > 0
+            assert stop_iter_factor < 1
+
+        pos_rms_prev = 0
+
+        i_iter = 0
+        while True:
+            position = self._measure_position()
+            self._position_before = position
+            if verbose:
+                print(
+                    f'Trajectory correction - iter {i_iter}, rms: {position.std()}')
+
+            if n_iter == 'auto':
+                if i_iter > 0 and position.std() > (1. - stop_iter_factor) * pos_rms_prev:
+                    break
+                pos_rms_prev = position.std()
+
+            correction = self._compute_correction(position=position,
+                                    n_micado=n_micado, rcond=rcond,
+                                    n_singular_values=n_singular_values)
+            self._apply_correction(correction)
+
+            i_iter += 1
+            if n_iter != 'auto' and i_iter >= n_iter:
+                break
         position = self._measure_position()
-        correction = self._compute_correction(position=position,
-                                n_micado=n_micado, rcond=rcond,
-                                n_singular_values=n_singular_values)
-        self._apply_correction(correction)
+        self._position_after = position
+        if verbose:
+            print(
+                f'Trajectory correction - iter {i_iter}, rms: {position.std()}')
 
     def _measure_position(self):
         if self.mode == 'open':
@@ -281,7 +311,12 @@ class TrajectoryCorrection:
             self.y_correction = None
 
     def correct(self, planes=None, n_micado=None, n_singular_values=None,
-                rcond=None):
+                rcond=None, n_iter='auto', verbose=True, stop_iter_factor=0.1):
+
+        assert n_iter == 'auto' or np.isscalar(n_iter)
+        if n_iter == 'auto':
+            assert stop_iter_factor > 0
+            assert stop_iter_factor < 1
 
         if isinstance(rcond, (tuple, list)):
             rcond_x, rcond_y = rcond
@@ -301,14 +336,30 @@ class TrajectoryCorrection:
         if planes is None:
             planes = 'xy'
         assert planes in ['x', 'y', 'xy']
-        if self.x_correction is not None and 'x' in planes:
-            self.x_correction.correct(n_micado=n_micado_x,
-                                      n_singular_values=n_singular_values_x,
-                                      rcond=rcond_x)
-        if self.y_correction is not None and 'y' in planes:
-            self.y_correction.correct(n_micado=n_micado_y,
-                                      n_singular_values=n_singular_values_y,
-                                      rcond=rcond_y)
+
+        i_iter = 0
+        stop_x = self.x_correction is None or 'x' not in planes
+        stop_y = self.y_correction is None or 'y' not in planes
+        while True:
+            if not stop_x:
+                self.x_correction.correct(n_micado=n_micado_x,
+                            n_singular_values=n_singular_values_x,
+                            rcond=rcond_x, verbose=verbose, n_iter=1)
+                if i_iter > 0 and n_iter == 'auto':
+                    stop_x = (self.x_correction._position_after.std()
+                        > (1. - stop_iter_factor) * self.x_correction._position_before.std())
+            if not stop_y:
+                self.y_correction.correct(n_micado=n_micado_y,
+                            n_singular_values=n_singular_values_y,
+                            rcond=rcond_y, verbose=verbose, n_iter=1)
+                if i_iter > 0 and n_iter == 'auto':
+                    stop_y = (self.y_correction._position_after.std()
+                        > (1. - stop_iter_factor) * self.y_correction._position_before.std())
+            if stop_x and stop_y:
+                break
+            i_iter += 1
+            if n_iter != 'auto' and i_iter >= n_iter:
+                break
 
     def thread(self, ds_thread=None, rcond_short=None, rcond_long=None):
 
@@ -414,7 +465,7 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
             corrector_names_x=[nn for nn in corrector_names_x if nn in tt_new_part.name],
             corrector_names_y=[nn for nn in corrector_names_y if nn in tt_new_part.name],
         )
-        ocorr_only_added_part.correct(rcond=rcond_short)
+        ocorr_only_added_part.correct(rcond=rcond_short, n_iter=1, verbose=False)
 
         # Correct from start line to end of new added portion
         tt_part = tt.rows[0:s_corr_end:'s']
@@ -426,7 +477,7 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
             corrector_names_x=[nn for nn in corrector_names_x if nn in tt_part.name],
             corrector_names_y=[nn for nn in corrector_names_y if nn in tt_part.name],
         )
-        ocorr.correct(rcond=rcond_long)
+        ocorr.correct(rcond=rcond_long, n_iter=1, verbose=False)
 
         s_corr_end += ds_thread
         i_win += 1
