@@ -157,10 +157,11 @@ class OrbitCorrectionSinglePlane:
         self._add_correction_knobs()
 
     def correct(self, n_micado=None, n_singular_values=None, rcond=None):
-        self._measure_position()
-        self._compute_correction(n_micado=n_micado, rcond=rcond,
-                                 n_singular_values=n_singular_values)
-        self._apply_correction()
+        position = self._measure_position()
+        correction = self._compute_correction(position=position,
+                                n_micado=n_micado, rcond=rcond,
+                                n_singular_values=n_singular_values)
+        self._apply_correction(correction)
 
     def _measure_position(self):
         if self.mode == 'open':
@@ -170,9 +171,11 @@ class OrbitCorrectionSinglePlane:
         tw_orbit = self.line.twiss4d(only_orbit=True, start=self.start, end=self.end,
                                      betx=betx, bety=betx)
 
-        self.position = tw_orbit.rows[self.monitor_names][self.plane]
+        position = tw_orbit.rows[self.monitor_names][self.plane]
 
-    def _compute_correction(self, position=None, n_micado=None,
+        return position
+
+    def _compute_correction(self, position, n_micado=None,
                             n_singular_values=None, rcond=None):
 
         if rcond is None:
@@ -184,13 +187,12 @@ class OrbitCorrectionSinglePlane:
         if n_micado is None:
             n_micado = self.n_micado
 
-        if position is None:
-            position = self.position
-
-        self.correction = _compute_correction(position,
+        correction = _compute_correction(position,
             response_matrix=(self.singular_vectors_out, self.singular_values, self.singular_vectors_in),
             n_micado=n_micado,
             rcond=rcond, n_singular_values=n_singular_values)
+
+        return correction
 
     def _add_correction_knobs(self):
 
