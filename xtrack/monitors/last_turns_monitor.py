@@ -42,7 +42,7 @@ class LastTurnsMonitor(BeamElement):
     }
 
     behaves_like_drift = True
-    allow_backtrack = True
+    allow_loss_refinement = True
 
     # TODO: find a way to dynamically change what properties are being saved by this monitor
     properties = [field.name for field in LastTurnsData._fields if field.name != 'lost_at_offset']

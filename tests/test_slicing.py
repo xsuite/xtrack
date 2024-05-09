@@ -407,8 +407,8 @@ def test_slicing_thick_bend_into_thick_bends_simple():
 
     bend = xt.Bend(
         length=3.0,
-        knl=[0.1, 0.2, 0.3, 0.4, 0.5],
-        ksl=[0.7, 0.6, 0.5, 0.4, 0.3],
+        knl=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6],
+        ksl=[0.7, 0.6, 0.5, 0.4, 0.3, 0.2],
         **additional_kwargs
     )
     line = xt.Line(elements=[bend], element_names=['bend'])
@@ -423,11 +423,11 @@ def test_slicing_thick_bend_into_thick_bends_simple():
     assert bend0._parent.h == bend1._parent.h == 0.2
     assert bend0._parent.k1 == bend1._parent.k1 == 0.2
 
-    expected_knl = np.array([0.1, 0.2, 0.3, 0.4, 0.5])
+    expected_knl = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
     assert np.allclose(bend0._parent.knl, expected_knl, atol=1e-16)
     assert np.allclose(bend1._parent.knl, expected_knl, atol=1e-16)
 
-    expected_ksl = np.array([0.7, 0.6, 0.5, 0.4, 0.3])
+    expected_ksl = np.array([0.7, 0.6, 0.5, 0.4, 0.3, 0.2])
     assert np.allclose(bend0._parent.ksl, expected_ksl, atol=1e-16)
     assert np.allclose(bend1._parent.ksl, expected_ksl, atol=1e-16)
 

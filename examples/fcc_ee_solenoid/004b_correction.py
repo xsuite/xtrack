@@ -121,7 +121,7 @@ tw_sol_on_corrected = line.twiss(method='4d')
 assert_allclose = np.testing.assert_allclose
 
 # Check that tilt is present
-assert_allclose(tw_sol_off['x_prime', 'ip.1'], np.tan(0.015), atol=1e-14, rtol=0)
+assert_allclose(tw_sol_off['kin_xprime', 'ip.1'], np.tan(0.015), atol=1e-14, rtol=0)
 
 # Check that solenoid introduces coupling
 assert tw_sol_on.c_minus > 1e-4
@@ -131,21 +131,16 @@ tw_chk = tw_sol_on_corrected
 
 assert_allclose(tw_chk['x', 'ip.1'], 0, atol=1e-8, rtol=0)
 assert_allclose(tw_chk['y', 'ip.1'], 0, atol=1e-10, rtol=0)
-assert_allclose(tw_chk['x_prime', 'ip.1'], tw_sol_off['x_prime', 'ip.1'],  atol=1e-9, rtol=0)
-assert_allclose(tw_chk['y_prime', 'ip.1'], 0,  atol=1e-8, rtol=0)
+assert_allclose(tw_chk['kin_xprime', 'ip.1'], tw_sol_off['kin_xprime', 'ip.1'],  atol=1e-9, rtol=0)
+assert_allclose(tw_chk['kin_yprime', 'ip.1'], 0,  atol=1e-8, rtol=0)
 assert_allclose(tw_chk['x', 'pqc2re.1'], 0, atol=5e-8, rtol=0)
 assert_allclose(tw_chk['y', 'pqc2re.1'], 0, atol=5e-8, rtol=0)
-assert_allclose(tw_chk['x_prime', 'pqc2re.1'], 0, atol=1e-8, rtol=0)
-assert_allclose(tw_chk['y_prime', 'pqc2re.1'], 0, atol=1e-8, rtol=0)
+assert_allclose(tw_chk['kin_xprime', 'pqc2re.1'], 0, atol=1e-8, rtol=0)
+assert_allclose(tw_chk['kin_yprime', 'pqc2re.1'], 0, atol=1e-8, rtol=0)
 assert_allclose(tw_chk['x', 'pqc2le.4'], 0, atol=5e-8, rtol=0)
 assert_allclose(tw_chk['y', 'pqc2le.4'], 0, atol=5e-8, rtol=0)
-assert_allclose(tw_chk['x_prime', 'pqc2le.4'], 0, atol=1e-8, rtol=0)
-assert_allclose(tw_chk['y_prime', 'pqc2le.4'], 0, atol=1e-8, rtol=0)
-
-assert tw_chk['ax', 'pqc2le.4'] == 0
-assert tw_chk['ay', 'pqc2le.4'] == 0
-assert tw_chk['ax', 'pqc2re.1'] == 0
-assert tw_chk['ay', 'pqc2re.1'] == 0
+assert_allclose(tw_chk['kin_xprime', 'pqc2le.4'], 0, atol=1e-8, rtol=0)
+assert_allclose(tw_chk['kin_yprime', 'pqc2le.4'], 0, atol=1e-8, rtol=0)
 
 assert_allclose(tw_chk['betx', 'ip.1'], tw_sol_off['betx', 'ip.1'], atol=0, rtol=5e-4)
 assert_allclose(tw_chk['bety', 'ip.1'], tw_sol_off['bety', 'ip.1'], atol=0, rtol=5e-4)
@@ -212,16 +207,16 @@ plt.ylabel(r'$\beta_{y,1}$ [m]')
 
 plt.figure(6)
 ax1 = plt.subplot(2, 1, 1)
-plt.plot(tw_sol_on.s, tw_sol_off.x_prime, label='solenoid off')
-plt.plot(tw_sol_on.s, tw_sol_on.x_prime, label='correction off')
-plt.plot(tw_sol_on.s, tw_sol_on_corrected.x_prime, label='correction on')
+plt.plot(tw_sol_on.s, tw_sol_off.kin_xprime, label='solenoid off')
+plt.plot(tw_sol_on.s, tw_sol_on.kin_xprime, label='correction off')
+plt.plot(tw_sol_on.s, tw_sol_on_corrected.kin_xprime, label='correction on')
 plt.ylabel("x'")
 plt.legend()
 
 ax2 = plt.subplot(2, 1, 2, sharex=ax1)
-plt.plot(tw_sol_on.s, tw_sol_off.y_prime, label='solenoid off')
-plt.plot(tw_sol_on.s, tw_sol_on.y_prime, label='correction off')
-plt.plot(tw_sol_on.s, tw_sol_on_corrected.y_prime, label='correction on')
+plt.plot(tw_sol_on.s, tw_sol_off.kin_yprime, label='solenoid off')
+plt.plot(tw_sol_on.s, tw_sol_on.kin_yprime, label='correction off')
+plt.plot(tw_sol_on.s, tw_sol_on_corrected.kin_yprime, label='correction on')
 plt.ylabel("y'")
 
 plt.figure(7)
@@ -239,14 +234,14 @@ plt.suptitle('Solenoid tilt is subtracted')
 
 plt.figure(8)
 ax1 = plt.subplot(2, 1, 1)
-plt.plot(tw_sol_on.s, tw_sol_on.x_prime - tw_sol_off.x_prime, label='correction off')
-plt.plot(tw_sol_on.s, tw_sol_on_corrected.x_prime  - tw_sol_off.x_prime, label='correction on')
+plt.plot(tw_sol_on.s, tw_sol_on.kin_xprime - tw_sol_off.kin_xprime, label='correction off')
+plt.plot(tw_sol_on.s, tw_sol_on_corrected.kin_xprime  - tw_sol_off.kin_xprime, label='correction on')
 plt.ylabel("x'")
 plt.legend()
 
 ax2 = plt.subplot(2, 1, 2, sharex=ax1)
-plt.plot(tw_sol_on.s, tw_sol_on.y_prime - tw_sol_off.y_prime, label='correction off')
-plt.plot(tw_sol_on.s, tw_sol_on_corrected.y_prime  - tw_sol_off.y_prime, label='correction on')
+plt.plot(tw_sol_on.s, tw_sol_on.kin_yprime - tw_sol_off.kin_yprime, label='correction off')
+plt.plot(tw_sol_on.s, tw_sol_on_corrected.kin_yprime  - tw_sol_off.kin_yprime, label='correction on')
 plt.ylabel("y'")
 plt.suptitle('Solenoid tilt is subtracted')
 
@@ -286,12 +281,12 @@ plt.ylabel('Bz [T]')
 plt.grid()
 
 ax2 = plt.subplot(3, 1, 2, sharex=ax1)
-plt.plot(tw_sol_on.s - s_ip, tw_sol_on_corrected.x_prime  - tw_sol_off.x_prime)
+plt.plot(tw_sol_on.s - s_ip, tw_sol_on_corrected.kin_xprime  - tw_sol_off.kin_xprime)
 plt.ylabel("x'")
 plt.grid()
 
 ax3 = plt.subplot(3, 1, 3, sharex=ax1)
-plt.plot(tw_sol_on.s - s_ip, tw_sol_on_corrected.y_prime  - tw_sol_off.y_prime)
+plt.plot(tw_sol_on.s - s_ip, tw_sol_on_corrected.kin_yprime  - tw_sol_off.kin_yprime)
 plt.ylabel("y'")
 plt.suptitle('Angles - Solenoid tilt is subtracted')
 plt.subplots_adjust(hspace=0.3, top=0.9)

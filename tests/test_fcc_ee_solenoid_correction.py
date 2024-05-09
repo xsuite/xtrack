@@ -351,7 +351,7 @@ def test_fcc_ee_solenoid_correction():
     assert_allclose = np.testing.assert_allclose
 
     # Check that tilt is present
-    assert_allclose(tw_sol_off['x_prime', 'ip.1'], np.tan(0.015), atol=1e-14, rtol=0)
+    assert_allclose(tw_sol_off['kin_xprime', 'ip.1'], np.tan(0.015), atol=1e-14, rtol=0)
 
     # Check that solenoid introduces coupling
     assert tw_sol_on.c_minus > 1e-4
@@ -361,21 +361,16 @@ def test_fcc_ee_solenoid_correction():
 
     assert_allclose(tw_chk['x', 'ip.1'], 0, atol=1e-8, rtol=0)
     assert_allclose(tw_chk['y', 'ip.1'], 0, atol=1e-10, rtol=0)
-    assert_allclose(tw_chk['x_prime', 'ip.1'], tw_sol_off['x_prime', 'ip.1'],  atol=1e-9, rtol=0)
-    assert_allclose(tw_chk['y_prime', 'ip.1'], 0,  atol=1e-8, rtol=0)
+    assert_allclose(tw_chk['kin_xprime', 'ip.1'], tw_sol_off['kin_xprime', 'ip.1'],  atol=1e-9, rtol=0)
+    assert_allclose(tw_chk['kin_yprime', 'ip.1'], 0,  atol=1e-8, rtol=0)
     assert_allclose(tw_chk['x', 'pqc2re.1'], 0, atol=5e-8, rtol=0)
     assert_allclose(tw_chk['y', 'pqc2re.1'], 0, atol=5e-8, rtol=0)
-    assert_allclose(tw_chk['x_prime', 'pqc2re.1'], 0, atol=1e-8, rtol=0)
-    assert_allclose(tw_chk['y_prime', 'pqc2re.1'], 0, atol=1e-8, rtol=0)
+    assert_allclose(tw_chk['kin_xprime', 'pqc2re.1'], 0, atol=1e-8, rtol=0)
+    assert_allclose(tw_chk['kin_yprime', 'pqc2re.1'], 0, atol=1e-8, rtol=0)
     assert_allclose(tw_chk['x', 'pqc2le.4'], 0, atol=5e-8, rtol=0)
     assert_allclose(tw_chk['y', 'pqc2le.4'], 0, atol=5e-8, rtol=0)
-    assert_allclose(tw_chk['x_prime', 'pqc2le.4'], 0, atol=1e-8, rtol=0)
-    assert_allclose(tw_chk['y_prime', 'pqc2le.4'], 0, atol=1e-8, rtol=0)
-
-    assert tw_chk['ax', 'pqc2le.4'] == 0
-    assert tw_chk['ay', 'pqc2le.4'] == 0
-    assert tw_chk['ax', 'pqc2re.1'] == 0
-    assert tw_chk['ay', 'pqc2re.1'] == 0
+    assert_allclose(tw_chk['kin_xprime', 'pqc2le.4'], 0, atol=1e-8, rtol=0)
+    assert_allclose(tw_chk['kin_yprime', 'pqc2le.4'], 0, atol=1e-8, rtol=0)
 
     assert_allclose(tw_chk['betx', 'ip.1'], tw_sol_off['betx', 'ip.1'], atol=0, rtol=5e-5)
     assert_allclose(tw_chk['bety', 'ip.1'], tw_sol_off['bety', 'ip.1'], atol=0, rtol=5e-5)

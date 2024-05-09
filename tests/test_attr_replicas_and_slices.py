@@ -6,18 +6,20 @@ import pytest
 assert_allclose = np.testing.assert_allclose
 
 def _make_line_no_expressions():
-    bend = xt.Bend(k0=0.4, h=0.3, length=1, shift_x=1e-3, shift_y=2e-3, rot_s_rad=0.2,
-                k1=0.1,
-                knl=[0.7, 0.8, 0.9, 1.0], ksl=[0.1, 0.2, 0.3, 0.4])
+    bend = xt.Bend(
+        k0=0.4, h=0.3, length=1,
+        shift_x=1e-3, shift_y=2e-3, shift_s=2e-3, rot_s_rad=0.2,
+        k1=0.1,
+        knl=[0.7, 0.8, 0.9, 1.0], ksl=[0.1, 0.2, 0.3, 0.4])
     quad = xt.Quadrupole(k1=0.1, k1s=0.2,
-                        length=0.5, shift_x=2e-3, shift_y=1e-3, rot_s_rad=0.1)
+        length=0.5, shift_x=2e-3, shift_y=1e-3, shift_s=-1e-3, rot_s_rad=0.1)
     sext = xt.Sextupole(k2=0.1, k2s=0.2,
-                        length=0.3, shift_x=3e-3, shift_y=4e-3, rot_s_rad=0.3)
+        length=0.3, shift_x=3e-3, shift_y=4e-3, shift_s=-2e-3, rot_s_rad=0.3)
     octu = xt.Octupole(k3=0.1, k3s=0.2,
-                        length=0.4, shift_x=5e-3, shift_y=6e-3, rot_s_rad=0.4)
+        length=0.4, shift_x=5e-3, shift_y=6e-3, shift_s=-1e-3, rot_s_rad=0.4)
     mult = xt.Multipole(knl=[0.7, 0.8, 0.9, 1.0], ksl=[0.1, 0.2, 0.3, 0.4],
-                        length=0.4, shift_x=5e-3, shift_y=6e-3, rot_s_rad=0.7,
-                        hxl=0.1)
+        length=0.4, shift_x=5e-3, shift_y=6e-3, shift_s=-1e-3, rot_s_rad=0.7,
+        hxl=0.1)
     drift = xt.Drift(length=5.0)
 
     line = xt.Line(elements=[bend, quad, sext, octu, mult, drift, xt.Replica(parent_name='e0')])
@@ -39,6 +41,7 @@ def _make_line_with_expressions():
     line.vars['length_bend'] = 999.
     line.vars['shift_x_bend'] = 999.
     line.vars['shift_y_bend'] = 999.
+    line.vars['shift_s_bend'] = 999.
     line.vars['rot_s_rad_bend'] = 999.
     line.vars['k1_bend'] = 999.
     line.vars['knl_bend_0'] = 999.
@@ -55,6 +58,7 @@ def _make_line_with_expressions():
     line.vars['length_quad'] = 999.
     line.vars['shift_x_quad'] = 999.
     line.vars['shift_y_quad'] = 999.
+    line.vars['shift_s_quad'] = 999.
     line.vars['rot_s_rad_quad'] = 999.
 
     line.vars['k2_sext'] = 999.
@@ -62,6 +66,7 @@ def _make_line_with_expressions():
     line.vars['length_sext'] = 999.
     line.vars['shift_x_sext'] = 999.
     line.vars['shift_y_sext'] = 999.
+    line.vars['shift_s_sext'] = 999.
     line.vars['rot_s_rad_sext'] = 999.
 
     line.vars['k3_octu'] = 999.
@@ -69,6 +74,7 @@ def _make_line_with_expressions():
     line.vars['length_octu'] = 999.
     line.vars['shift_x_octu'] = 999.
     line.vars['shift_y_octu'] = 999.
+    line.vars['shift_s_octu'] = 999.
     line.vars['rot_s_rad_octu'] = 999.
 
     line.vars['knl_mult_0'] = 999.
@@ -82,6 +88,7 @@ def _make_line_with_expressions():
     line.vars['length_mult'] = 999.
     line.vars['shift_x_mult'] = 999.
     line.vars['shift_y_mult'] = 999.
+    line.vars['shift_s_mult'] = 999.
     line.vars['rot_s_rad_mult'] = 999.
     line.vars['hxl_mult'] = 999.
 
@@ -92,6 +99,7 @@ def _make_line_with_expressions():
     line.element_refs['e0'].length = line.vars['length_bend']
     line.element_refs['e0'].shift_x = line.vars['shift_x_bend']
     line.element_refs['e0'].shift_y = line.vars['shift_y_bend']
+    line.element_refs['e0'].shift_s = line.vars['shift_s_bend']
     line.element_refs['e0'].rot_s_rad = line.vars['rot_s_rad_bend']
     line.element_refs['e0'].k1 = line.vars['k1_bend']
     line.element_refs['e0'].knl[0] = line.vars['knl_bend_0']
@@ -108,6 +116,7 @@ def _make_line_with_expressions():
     line.element_refs['e1'].length = line.vars['length_quad']
     line.element_refs['e1'].shift_x = line.vars['shift_x_quad']
     line.element_refs['e1'].shift_y = line.vars['shift_y_quad']
+    line.element_refs['e1'].shift_s = line.vars['shift_s_quad']
     line.element_refs['e1'].rot_s_rad = line.vars['rot_s_rad_quad']
 
     line.element_refs['e2'].k2 = line.vars['k2_sext']
@@ -115,6 +124,7 @@ def _make_line_with_expressions():
     line.element_refs['e2'].length = line.vars['length_sext']
     line.element_refs['e2'].shift_x = line.vars['shift_x_sext']
     line.element_refs['e2'].shift_y = line.vars['shift_y_sext']
+    line.element_refs['e2'].shift_s = line.vars['shift_s_sext']
     line.element_refs['e2'].rot_s_rad = line.vars['rot_s_rad_sext']
 
     line.element_refs['e3'].k3 = line.vars['k3_octu']
@@ -122,6 +132,7 @@ def _make_line_with_expressions():
     line.element_refs['e3'].length = line.vars['length_octu']
     line.element_refs['e3'].shift_x = line.vars['shift_x_octu']
     line.element_refs['e3'].shift_y = line.vars['shift_y_octu']
+    line.element_refs['e3'].shift_s = line.vars['shift_s_octu']
     line.element_refs['e3'].rot_s_rad = line.vars['rot_s_rad_octu']
 
     line.element_refs['e4'].knl[0] = line.vars['knl_mult_0']
@@ -135,6 +146,7 @@ def _make_line_with_expressions():
     line.element_refs['e4'].length = line.vars['length_mult']
     line.element_refs['e4'].shift_x = line.vars['shift_x_mult']
     line.element_refs['e4'].shift_y = line.vars['shift_y_mult']
+    line.element_refs['e4'].shift_s = line.vars['shift_s_mult']
     line.element_refs['e4'].rot_s_rad = line.vars['rot_s_rad_mult']
     line.element_refs['e4'].hxl = line.vars['hxl_mult']
 
@@ -148,6 +160,7 @@ def _set_vars(line):
     line.vars['length_bend'] = 1
     line.vars['shift_x_bend'] = 1e-3
     line.vars['shift_y_bend'] = 2e-3
+    line.vars['shift_s_bend'] = 2e-3
     line.vars['rot_s_rad_bend'] = 0.2
     line.vars['k1_bend'] = 0.1
     line.vars['knl_bend_0'] = 0.7
@@ -164,6 +177,7 @@ def _set_vars(line):
     line.vars['length_quad'] = 0.5
     line.vars['shift_x_quad'] = 2e-3
     line.vars['shift_y_quad'] = 1e-3
+    line.vars['shift_s_quad'] = -1e-3
     line.vars['rot_s_rad_quad'] = 0.1
 
     line.vars['k2_sext'] = 0.1
@@ -171,6 +185,7 @@ def _set_vars(line):
     line.vars['length_sext'] = 0.3
     line.vars['shift_x_sext'] = 3e-3
     line.vars['shift_y_sext'] = 4e-3
+    line.vars['shift_s_sext'] = -2e-3
     line.vars['rot_s_rad_sext'] = 0.3
 
     line.vars['k3_octu'] = 0.1
@@ -178,6 +193,7 @@ def _set_vars(line):
     line.vars['length_octu'] = 0.4
     line.vars['shift_x_octu'] = 5e-3
     line.vars['shift_y_octu'] = 6e-3
+    line.vars['shift_s_octu'] = -1e-3
     line.vars['rot_s_rad_octu'] = 0.4
 
     line.vars['knl_mult_0'] = 0.7
@@ -191,6 +207,7 @@ def _set_vars(line):
     line.vars['length_mult'] = 0.4
     line.vars['shift_x_mult'] = 5e-3
     line.vars['shift_y_mult'] = 6e-3
+    line.vars['shift_s_mult'] = -1e-3
     line.vars['rot_s_rad_mult'] = 0.7
     line.vars['hxl_mult'] = 0.1
 
@@ -239,6 +256,7 @@ def test_attr_replicas(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e0'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e0'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e0'], 2e-3, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e0'], 2e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e0'], 0.4 * 1 + 0.7, rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e0'], 0.1 * 1 + 0.8, rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e0'], 0.9, rtol=0, atol=1e-14)
@@ -259,6 +277,7 @@ def test_attr_replicas(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e1'], 0.1, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e1'], 2e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e1'], 1e-3, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e1'], -1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e1'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e1'], 0.1 * 0.5, rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e1'], 0.0, rtol=0, atol=1e-14)
@@ -279,6 +298,7 @@ def test_attr_replicas(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e2'], 0.3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e2'], 3e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e2'], 4e-3, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e2'], -2e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e2'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e2'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e2'], 0.1 * 0.3, rtol=0, atol=1e-14)
@@ -299,6 +319,7 @@ def test_attr_replicas(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e3'], 0.4, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e3'], 5e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e3'], 6e-3, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e3'], -1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e3'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e3'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e3'], 0, rtol=0, atol=1e-14)
@@ -319,6 +340,7 @@ def test_attr_replicas(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e4'], 0.7, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e4'], 5e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e4'], 6e-3, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e4'], -1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e4'], 0.7, rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e4'], 0.8, rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e4'], 0.9, rtol=0, atol=1e-14)
@@ -341,6 +363,7 @@ def test_attr_replicas(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e5'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e5'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e5'], 0.0, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e5'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e5'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e5'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e5'], 0.0, rtol=0, atol=1e-14)
@@ -360,6 +383,7 @@ def test_attr_replicas(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e6'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e6'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e6'], 2e-3, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e6'], 2e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e6'], 0.4 * 1 + 0.7, rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e6'], 0.1 * 1 + 0.8, rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e6'], 0.9, rtol=0, atol=1e-14)
@@ -415,6 +439,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e0..1'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e0..1'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e0..1'], 2e-3, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e0..1'], 2e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e0..1'], 0.5 * (0.4 * 1 + 0.7), rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e0..1'], 0.5 * (0.1 * 1 + 0.8), rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e0..1'], 0.5 *  .9, rtol=0, atol=1e-14)
@@ -435,6 +460,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e0..exit_map'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e0..exit_map'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e0..exit_map'], 2e-3, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e0..exit_map'], 2e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e0..exit_map'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e0..exit_map'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e0..exit_map'], 0, rtol=0, atol=1e-14)
@@ -455,6 +481,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e0..entry_map'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e0..entry_map'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e0..entry_map'], 2e-3, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e0..entry_map'], 2e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e0..entry_map'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e0..entry_map'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e0..entry_map'], 0, rtol=0, atol=1e-14)
@@ -475,6 +502,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'drift_e0..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'drift_e0..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'drift_e0..1'], 0, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'drift_e0..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'drift_e0..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'drift_e0..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'drift_e0..1'], 0, rtol=0, atol=1e-14)
@@ -495,6 +523,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e1..1'], 0.1, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e1..1'], 2e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e1..1'], 1e-3, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e1..1'], -1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e1..1'], 0., rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e1..1'], 0.1 * 0.5 / 2, rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e1..1'], 0, rtol=0, atol=1e-14)
@@ -515,6 +544,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'drift_e1..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'drift_e1..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'drift_e1..1'], 0, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'drift_e1..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'drift_e1..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'drift_e1..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'drift_e1..1'], 0, rtol=0, atol=1e-14)
@@ -535,6 +565,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e1_entry'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e1_entry'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e1_entry'], 0, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e1_entry'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e1_entry'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e1_entry'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e1_entry'], 0, rtol=0, atol=1e-14)
@@ -555,6 +586,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e2..1'], 0.3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e2..1'], 3e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e2..1'], 4e-3, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e2..1'], -2e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e2..1'], 0., rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e2..1'], 0., rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e2..1'], 0.1 * 0.3*1/2, rtol=0, atol=1e-14)
@@ -575,6 +607,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'drift_e2..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'drift_e2..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'drift_e2..1'], 0, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'drift_e2..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'drift_e2..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'drift_e2..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'drift_e2..1'], 0, rtol=0, atol=1e-14)
@@ -595,6 +628,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e3..1'], 0.4, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e3..1'], 5e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e3..1'], 6e-3, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e3..1'], -1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e3..1'], 0., rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e3..1'], 0., rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e3..1'], 0., rtol=0, atol=1e-14)
@@ -615,6 +649,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'drift_e3..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'drift_e3..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'drift_e3..1'], 0, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'drift_e3..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'drift_e3..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'drift_e3..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'drift_e3..1'], 0, rtol=0, atol=1e-14)
@@ -636,6 +671,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e5'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e5'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e5'], 0.0, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e5'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e5'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e5'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e5'], 0.0, rtol=0, atol=1e-14)
@@ -656,6 +692,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e6..1'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e6..1'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e6..1'], 2e-3, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e6..1'], 2e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e6..1'], 0.5 * (0.4 * 1 + 0.7), rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e6..1'], 0.5 * (0.1 * 1 + 0.8), rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e6..1'], 0.5 *  .9, rtol=0, atol=1e-14)
@@ -676,6 +713,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e6..exit_map'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e6..exit_map'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e6..exit_map'], 2e-3, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e6..exit_map'], 2e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e6..exit_map'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e6..exit_map'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e6..exit_map'], 0, rtol=0, atol=1e-14)
@@ -696,6 +734,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e6..entry_map'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e6..entry_map'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e6..entry_map'], 2e-3, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e6..entry_map'], 2e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e6..entry_map'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e6..entry_map'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e6..entry_map'], 0, rtol=0, atol=1e-14)
@@ -716,6 +755,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'drift_e6..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'drift_e6..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'drift_e6..1'], 0, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'drift_e6..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'drift_e6..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'drift_e6..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'drift_e6..1'], 0, rtol=0, atol=1e-14)
@@ -771,6 +811,7 @@ def test_attr_thick_slicing(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e0..1'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e0..1'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e0..1'], 2e-3, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e0..1'], 2e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e0..1'], 0.5 * (0.4 * 1 + 0.7), rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e0..1'], 0.5 * (0.1 * 1 + 0.8), rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e0..1'], 0.5 *  .9, rtol=0, atol=1e-14)
@@ -791,6 +832,7 @@ def test_attr_thick_slicing(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e0..exit_map'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e0..exit_map'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e0..exit_map'], 2e-3, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e0..exit_map'], 2e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e0..exit_map'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e0..exit_map'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e0..exit_map'], 0, rtol=0, atol=1e-14)
@@ -811,6 +853,7 @@ def test_attr_thick_slicing(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e0..entry_map'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e0..entry_map'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e0..entry_map'], 2e-3, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e0..entry_map'], 2e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e0..entry_map'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e0..entry_map'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e0..entry_map'], 0, rtol=0, atol=1e-14)
@@ -831,6 +874,7 @@ def test_attr_thick_slicing(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e1..1'], 0.1, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e1..1'], 2e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e1..1'], 1e-3, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e1..1'], -1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e1..1'], 0., rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e1..1'], 0.1 * 0.5 / 2, rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e1..1'], 0, rtol=0, atol=1e-14)
@@ -851,6 +895,7 @@ def test_attr_thick_slicing(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e1_entry'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e1_entry'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e1_entry'], 0, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e1_entry'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e1_entry'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e1_entry'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e1_entry'], 0, rtol=0, atol=1e-14)
@@ -871,6 +916,7 @@ def test_attr_thick_slicing(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e2..1'], 0.3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e2..1'], 3e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e2..1'], 4e-3, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e2..1'], -2e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e2..1'], 0., rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e2..1'], 0., rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e2..1'], 0.1 * 0.3*1/2, rtol=0, atol=1e-14)
@@ -891,6 +937,7 @@ def test_attr_thick_slicing(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e3..1'], 0.4, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e3..1'], 5e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e3..1'], 6e-3, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e3..1'], -1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e3..1'], 0., rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e3..1'], 0., rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e3..1'], 0., rtol=0, atol=1e-14)
@@ -912,6 +959,7 @@ def test_attr_thick_slicing(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e5'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e5'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e5'], 0.0, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e5'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e5'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e5'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e5'], 0.0, rtol=0, atol=1e-14)
@@ -932,6 +980,7 @@ def test_attr_thick_slicing(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e6..1'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e6..1'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e6..1'], 2e-3, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e6..1'], 2e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e6..1'], 0.5 * (0.4 * 1 + 0.7), rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e6..1'], 0.5 * (0.1 * 1 + 0.8), rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e6..1'], 0.5 *  .9, rtol=0, atol=1e-14)
@@ -952,6 +1001,7 @@ def test_attr_thick_slicing(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e6..exit_map'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e6..exit_map'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e6..exit_map'], 2e-3, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e6..exit_map'], 2e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e6..exit_map'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e6..exit_map'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e6..exit_map'], 0, rtol=0, atol=1e-14)
@@ -972,6 +1022,7 @@ def test_attr_thick_slicing(test_context, check_expr, use_copy):
     assert_allclose(tt['rot_s_rad', 'e6..entry_map'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e6..entry_map'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e6..entry_map'], 2e-3, rtol=0, atol=1e-14)
+    assert_allclose(tt['shift_s', 'e6..entry_map'], 2e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['k0l', 'e6..entry_map'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k1l', 'e6..entry_map'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['k2l', 'e6..entry_map'], 0, rtol=0, atol=1e-14)

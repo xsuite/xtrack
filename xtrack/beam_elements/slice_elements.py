@@ -59,8 +59,8 @@ class ThinSliceQuadrupole(BeamElement):
 
     def get_equivalent_element(self):
 
-        knl = [0., 0.]
-        ksl = [0., 0.]
+        knl = self._parent.knl.copy() * self.weight
+        ksl = self._parent.ksl.copy() * self.weight
 
         knl[1] += self._parent.k1 * self._parent.length * self.weight
         ksl[1] += self._parent.k1s * self._parent.length * self.weight
@@ -71,6 +71,7 @@ class ThinSliceQuadrupole(BeamElement):
                         hxl=0,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
+                        shift_s=self._parent.shift_s,
                         rot_s_rad=self._parent.rot_s_rad,
                         _buffer=self._buffer)
         return out
@@ -108,8 +109,8 @@ class ThinSliceSextupole(BeamElement):
 
     def get_equivalent_element(self):
 
-        knl = [0., 0., 0.]
-        ksl = [0., 0., 0.]
+        knl = self._parent.knl.copy() * self.weight
+        ksl = self._parent.ksl.copy() * self.weight
 
         knl[2] += self._parent.k2 * self._parent.length * self.weight
         ksl[2] += self._parent.k2s * self._parent.length * self.weight
@@ -120,6 +121,7 @@ class ThinSliceSextupole(BeamElement):
                         hxl=0,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
+                        shift_s=self._parent.shift_s,
                         rot_s_rad=self._parent.rot_s_rad,
                         _buffer=self._buffer)
         return out
@@ -157,8 +159,8 @@ class ThinSliceOctupole(BeamElement):
 
     def get_equivalent_element(self):
 
-        knl = [0., 0., 0., 0.]
-        ksl = [0., 0., 0., 0.]
+        knl = self._parent.knl.copy() * self.weight
+        ksl = self._parent.ksl.copy() * self.weight
 
         knl[3] += self._parent.k3 * self._parent.length * self.weight
         ksl[3] += self._parent.k3s * self._parent.length * self.weight
@@ -169,6 +171,7 @@ class ThinSliceOctupole(BeamElement):
                         hxl=0,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
+                        shift_s=self._parent.shift_s,
                         rot_s_rad=self._parent.rot_s_rad,
                         _buffer=self._buffer)
         return out
@@ -217,6 +220,7 @@ class ThinSliceBend(BeamElement):
                         hxl=self._parent.h * length,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
+                        shift_s=self._parent.shift_s,
                         rot_s_rad=self._parent.rot_s_rad,
                         _buffer=self._buffer)
         return out

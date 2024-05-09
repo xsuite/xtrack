@@ -23,7 +23,6 @@ from .line import freeze_longitudinal as _freeze_longitudinal
 from .pipeline import PipelineStatus
 from .progress_indicator import progress
 from .tracker_data import TrackerData
-from .prebuild_kernels import get_suitable_kernel, XT_PREBUILT_KERNELS_LOCATION
 
 logger = logging.getLogger(__name__)
 
@@ -143,9 +142,8 @@ class Tracker:
         if not _prebuilding_kernels:
             self._get_twiss_mask_markers() # to cache it
 
-        self._init_io_buffer(io_buffer)
-
         self.line = line
+        self._init_io_buffer(io_buffer)
         self.line.tracker = self
 
         if compile:
@@ -153,7 +151,13 @@ class Tracker:
 
     def _init_io_buffer(self, io_buffer=None):
         if io_buffer is None:
-            io_buffer = new_io_buffer(_context=self._context)
+            io_bufs = [ee.io_buffer for ee in self.line.elements if hasattr(ee, 'io_buffer')]
+            if len(io_bufs) == 0:
+                io_buffer = new_io_buffer(_context=self._context)
+            elif len(np.unique([id(buf) for buf in io_bufs])) > 1:
+                raise ValueError("Different io buffers found in elements!")
+            else:
+                io_buffer = io_bufs[0]
         self.io_buffer = io_buffer
 
     def _split_parts_for_collective_mode(self, line, _buffer):
@@ -424,15 +428,24 @@ class Tracker:
     ):
         if compile == 'force':
             use_prebuilt_kernels = False
-        elif not self._context.allow_prebuilt_kernels: # only CPU serial
+        elif not self._context.allow_prebuilt_kernels:  # only CPU serial
             use_prebuilt_kernels = False
         else:
             use_prebuilt_kernels = self.use_prebuilt_kernels
 
         if use_prebuilt_kernels:
-            kernel_info = get_suitable_kernel(
-                self.config, self.line_element_classes
-            )
+            try:
+                from xsuite import (
+                    get_suitable_kernel,
+                    XSK_PREBUILT_KERNELS_LOCATION,
+                )
+            except ImportError:
+                kernel_info = None
+            else:
+                kernel_info = get_suitable_kernel(
+                    self.config, self.line_element_classes
+                )
+
             if kernel_info:
                 module_name, modules_classes = kernel_info
 
@@ -440,7 +453,7 @@ class Tracker:
                                             modules_classes)['track_line']
                 kernels = self._context.kernels_from_file(
                     module_name=module_name,
-                    containing_dir=XT_PREBUILT_KERNELS_LOCATION,
+                    containing_dir=XSK_PREBUILT_KERNELS_LOCATION,
                     kernel_descriptions={'track_line': kernel_description},
                 )
                 return kernels['track_line']
@@ -702,6 +715,9 @@ class Tracker:
 
         # Random number generator init kernel
         kernel_descriptions.update(xt.Particles._kernels)
+
+        # Multisetter
+        kernel_descriptions.update(xt.MultiSetter._kernels)
 
         return kernel_descriptions
 
@@ -1453,6 +1469,7 @@ class Tracker:
         return state
 
     def check_compatibility_with_prebuilt_kernels(self):
+        from xsuite import get_suitable_kernel
         get_suitable_kernel(
             config=self.line.config,
             line_element_classes=self.line_element_classes,
