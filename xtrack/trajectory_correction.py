@@ -355,6 +355,7 @@ class TrajectoryCorrection:
                 if i_iter > 0 and n_iter == 'auto':
                     stop_y = (self.y_correction._position_after.std()
                         > (1. - stop_iter_factor) * self.y_correction._position_before.std())
+
             if verbose:
                 str_2print = f'Iteration {i_iter}, '
                 if self.x_correction is not None and 'x' in planes:
@@ -363,6 +364,7 @@ class TrajectoryCorrection:
                 if self.y_correction is not None and 'y' in planes:
                     str_2print += (f'y_rms: {self.y_correction._position_before.std():.2e}'
                         f' -> {self.y_correction._position_after.std():.2e}')
+                print(str_2print)
             if stop_x and stop_y:
                 break
             i_iter += 1
