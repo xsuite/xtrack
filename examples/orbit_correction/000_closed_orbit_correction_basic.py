@@ -39,7 +39,7 @@ for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
 tw_before = line.twiss4d()
 
 # Correct orbit
-orbit_correction = line.correct_trajectory(twiss_table=tw_ref)
+orbit_correction = line.correct_trajectory(twiss_table=tw_ref, planes='x')
 
 
 # Twiss after matching

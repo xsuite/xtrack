@@ -344,17 +344,25 @@ class TrajectoryCorrection:
             if not stop_x:
                 self.x_correction.correct(n_micado=n_micado_x,
                             n_singular_values=n_singular_values_x,
-                            rcond=rcond_x, verbose=verbose, n_iter=1)
+                            rcond=rcond_x, verbose=False, n_iter=1)
                 if i_iter > 0 and n_iter == 'auto':
                     stop_x = (self.x_correction._position_after.std()
                         > (1. - stop_iter_factor) * self.x_correction._position_before.std())
             if not stop_y:
                 self.y_correction.correct(n_micado=n_micado_y,
                             n_singular_values=n_singular_values_y,
-                            rcond=rcond_y, verbose=verbose, n_iter=1)
+                            rcond=rcond_y, verbose=False, n_iter=1)
                 if i_iter > 0 and n_iter == 'auto':
                     stop_y = (self.y_correction._position_after.std()
                         > (1. - stop_iter_factor) * self.y_correction._position_before.std())
+            if verbose:
+                str_2print = f'Iteration {i_iter}, '
+                if self.x_correction is not None and 'x' in planes:
+                    str_2print += (f'x_rms: {self.x_correction._position_before.std():.2e}'
+                        f' -> {self.x_correction._position_after.std():.2e}, ') 
+                if self.y_correction is not None and 'y' in planes:
+                    str_2print += (f'y_rms: {self.y_correction._position_before.std():.2e}'
+                        f' -> {self.y_correction._position_after.std():.2e}')
             if stop_x and stop_y:
                 break
             i_iter += 1
