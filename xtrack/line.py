@@ -3617,10 +3617,8 @@ class Line:
                     + attr['_own_k5s'] * attr['_own_length']
                     + attr['_parent_k5sl'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k5s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'hkick': lambda attr: (
-                    attr["angle_rad"]*np.cos(attr["rot_s_rad"]) - attr["k0l"]),
-                'vkick': lambda attr: (
-                    attr["angle_rad"]*np.sin(attr["rot_s_rad"]) - attr["k0sl"]),
+                'hkick': lambda attr: attr["angle_rad"] - attr["k0l"],
+                'vkick': lambda attr: attr["k0sl"],
             }
         )
         return cache

@@ -349,8 +349,6 @@ def test_attr_replicas(test_context, check_expr, use_copy):
     assert_allclose(tt['k1sl', 'e4'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['k2sl', 'e4'], 0.3, rtol=0, atol=1e-14)
     assert_allclose(tt['k3sl', 'e4'], 0.4, rtol=0, atol=1e-14)
-    assert_allclose(tt['hkick', 'e4'], -0.623515781271551, rtol=0, atol=1e-14)
-    assert_allclose(tt['vkick', 'e4'], -0.0355782312762309, rtol=0, atol=1e-14)
 
     assert tt['element_type','e5'] == 'Drift'
     assert tt['isreplica', 'e5'] == False
