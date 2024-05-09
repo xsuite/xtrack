@@ -969,12 +969,13 @@ class KnobOptimizer:
             line.vars[aux_name] =  line.vv.get(aux_name,0)
             if ( line.vars[vv.name]._expr is None or
                  ( line.vars[aux_name] not in line.vars[vv.name]._expr._get_dependencies() )):
-                 line.vars[vv.name] += line.vars[aux_name]
+                 line.vars[vv.name] += line.vars[aux_name] * line.vars[knob_name]
 
             vv_aux = vv.__dict__.copy()
             vv_aux['name'] = aux_name
             vary_aux.append(xt.Vary(**vv_aux))
 
+        line.vars[knob_name] = knob_value_end
         opt = line.match(vary=vary_aux, targets = targets, solve=False, **kwargs)
 
         object.__setattr__(self, 'opt', opt)
