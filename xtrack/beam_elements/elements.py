@@ -355,6 +355,7 @@ class XRotation(BeamElement):
     allow_rot_and_shift = False
 
     _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/track_xrotation.h'),
         _pkg_root.joinpath('beam_elements/elements_src/xrotation.h')]
 
     _store_in_to_dict = ['angle']

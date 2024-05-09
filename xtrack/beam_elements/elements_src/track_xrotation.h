@@ -17,7 +17,7 @@ void XRotation_single_particle(LocalParticle* part, double sin_angle, double cos
     double const t = LocalParticle_get_zeta(part)/beta0;
     double const pt = LocalParticle_get_pzeta(part)*beta0;
 
-    double pz = sqrt(1.0 + 2.0*pt/beta + pt*pt - px*px - py*py);
+    double pz = sqrt(1.0 + 2.0*pt/beta0 + pt*pt - px*px - py*py);
     double ptt = 1.0 - tan_angle*py/pz;
     double y_hat = y/(cos_angle*ptt);
     double py_hat = cos_angle*py + sin_angle*pz;
