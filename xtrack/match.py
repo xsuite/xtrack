@@ -966,7 +966,7 @@ class KnobOptimizer:
         vary_aux = []
         for vv in vary_flatten:
             aux_name = vv.name + '_from_' + knob_name
-            line.vars[aux_name] = 0
+            line.vars[aux_name] =  line.vv.get(aux_name,0)
             if ( line.vars[vv.name]._expr is None or
                  ( line.vars[aux_name] not in line.vars[vv.name]._expr._get_dependencies() )):
                  line.vars[vv.name] += line.vars[aux_name]

@@ -4220,6 +4220,12 @@ class LineVars:
             return self._setter_from_cache(key)
         return self.line._xdeps_vref[key]
 
+    def get(self,key,default=0):
+        if key in self:
+            return self[key]
+        else:
+            return default
+
     def __setitem__(self, key, value):
         if self.cache_active:
             if isref(value) or isinstance(value, VarSetter):
@@ -4336,6 +4342,12 @@ class VarValues:
 
     def __setitem__(self, key, value):
         self.vars[key] = value
+
+    def get(self,key, default=0):
+        if key in self.vars:
+            return self.vars[key]._value
+        else:
+            return default
 
 class VarSetter:
     def __init__(self, line, varname):
