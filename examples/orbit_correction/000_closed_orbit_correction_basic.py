@@ -28,8 +28,8 @@ tw_ref = line.twiss4d()
 # Introduce misalignments on all quadrupoles
 tt = line.get_table()
 tt_quad = tt.rows[tt.element_type == 'Quadrupole']
-shift_x = np.random.randn(len(tt_quad)) * 0.1e-3 # 0.1 mm rms shift on all quads
-shift_y = np.random.randn(len(tt_quad)) * 0.1e-3 # 0.1 mm rms shift on all quads
+shift_x = np.random.randn(len(tt_quad)) * 0.01e-3 # 0.01 mm rms shift on all quads
+shift_y = np.random.randn(len(tt_quad)) * 0.01e-3 # 0.01 mm rms shift on all quads
 for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
     line.element_refs[nn_quad].shift_x = sx
     line.element_refs[nn_quad].shift_y = sy
@@ -55,18 +55,25 @@ plt.close('all')
 
 plt.figure(1, figsize=(6.4, 4.8*1.7))
 sp1 = plt.subplot(411)
-sp1.plot(tw_before.s, tw_before.x, label='before corr.')
-sp1.plot(tw_after.s, tw_after.x, label='after corr.')
+sp1.plot(tw_before.s, tw_before.x * 1e3, label='before corr.')
+sp1.plot(tw_after.s, tw_after.x * 1e3, label='after corr.')
 plt.legend(loc='upper right')
+plt.ylabel('x [mm]')
 
 sp2 = plt.subplot(412, sharex=sp1)
-sp2.stem(s_x_correctors, kicks_x)
+sp2.stem(s_x_correctors, kicks_x * 1e6)
+plt.ylabel(r'x kick [$\mu$rad]')
 
 sp3 = plt.subplot(413, sharex=sp1)
-sp3.plot(tw_before.s, tw_before.y)
-sp3.plot(tw_after.s, tw_after.y)
+sp3.plot(tw_before.s, tw_before.y * 1e3)
+sp3.plot(tw_after.s, tw_after.y * 1e3)
+plt.ylabel('y [mm]')
 
 sp4 = plt.subplot(414, sharex=sp1)
-sp4.stem(s_y_correctors, kicks_y)
+sp4.stem(s_y_correctors, kicks_y * 1e6)
+plt.ylabel(r'y kick [$\mu$rad]')
+sp4.set_xlabel('s [m]')
+
+plt.subplots_adjust(hspace=0.3, top=0.95, bottom=0.08)
 
 plt.show()
