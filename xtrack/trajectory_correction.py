@@ -360,7 +360,7 @@ class TrajectoryCorrection:
                 str_2print = f'Iteration {i_iter}, '
                 if self.x_correction is not None and 'x' in planes:
                     str_2print += (f'x_rms: {self.x_correction._position_before.std():.2e}'
-                        f' -> {self.x_correction._position_after.std():.2e}, ') 
+                        f' -> {self.x_correction._position_after.std():.2e}, ')
                 if self.y_correction is not None and 'y' in planes:
                     str_2print += (f'y_rms: {self.y_correction._position_before.std():.2e}'
                         f' -> {self.y_correction._position_after.std():.2e}')
@@ -443,7 +443,7 @@ class TrajectoryCorrection:
 
 def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = None,
             monitor_names_x=None, monitor_names_y=None,
-            corrector_names_x=None, corrector_names_y=None):
+            corrector_names_x=None, corrector_names_y=None, verbose=True):
 
     tt = line.get_table()
     line_length = tt.s[-1]
@@ -469,8 +469,6 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
             s_corr_end = line_length
             end_loop = True
 
-        print(f'Window {i_win}, s_end: {s_corr_end}')
-
         # Correct only the new added portion
         tt_new_part = tt.rows[s_corr_end-ds_thread:s_corr_end:'s']
         ocorr_only_added_part = TrajectoryCorrection(
@@ -483,6 +481,16 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
         )
         ocorr_only_added_part.correct(rcond=rcond_short, n_iter=1, verbose=False)
 
+        if verbose:
+            ocprint = ocorr_only_added_part
+            str_2print = f'Stop at s={s_corr_end}, '
+            str_2print += 'local rms  = ['
+            str_2print += (f'x: {ocprint.x_correction._position_before.std():.2e}'
+                f' -> {ocprint.x_correction._position_after.std():.2e}, ')
+            str_2print += (f'y: {ocprint.y_correction._position_before.std():.2e}'
+                f' -> {ocprint.y_correction._position_after.std():.2e}]')
+            print(str_2print)
+
         # Correct from start line to end of new added portion
         tt_part = tt.rows[0:s_corr_end:'s']
         ocorr = TrajectoryCorrection(
@@ -494,6 +502,16 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
             corrector_names_y=[nn for nn in corrector_names_y if nn in tt_part.name],
         )
         ocorr.correct(rcond=rcond_long, n_iter=1, verbose=False)
+
+        if verbose:
+            ocprint = ocorr
+            str_2print = f'Stop at s={s_corr_end}, '
+            str_2print += 'global rms = ['
+            str_2print += (f'x: {ocprint.x_correction._position_before.std():.2e}'
+                f' -> {ocprint.x_correction._position_after.std():.2e}, ')
+            str_2print += (f'y: {ocprint.y_correction._position_before.std():.2e}'
+                f' -> {ocprint.y_correction._position_after.std():.2e}]')
+            print(str_2print)
 
         s_corr_end += ds_thread
         i_win += 1
