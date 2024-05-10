@@ -34,11 +34,24 @@ for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
     line.element_refs[nn_quad].shift_x = sx
     line.element_refs[nn_quad].shift_y = sy
 
+# Create orbit correction object without running the correction
+orbit_correction = line.correct_trajectory(twiss_table=tw_ref, run=False)
+
+# Inspect singular values of the response matrices
+x_sv = orbit_correction.x_correction.singular_values
+y_sv = orbit_correction.y_correction.singular_values
+
 # Twiss before correction
 tw_before = line.twiss4d()
 
-# Correct orbit
-orbit_correction = line.correct_trajectory(twiss_table=tw_ref)
+# Correct
+orbit_correction.correct(n_singular_values=(200, 210))
+
+# Remove applied correction
+orbit_correction.clear_correction_knobs()
+
+# Correct with a customized number of singular values
+orbit_correction.correct(n_singular_values=(200, 210))
 
 # Twiss after correction
 tw_after = line.twiss4d()
@@ -75,5 +88,12 @@ plt.ylabel(r'y kick [$\mu$rad]')
 sp4.set_xlabel('s [m]')
 
 plt.subplots_adjust(hspace=0.3, top=0.95, bottom=0.08)
+
+plt.figure(2)
+plt.semilogy(np.abs(orbit_correction.x_correction.singular_values), '.-', label='x')
+plt.semilogy(np.abs(orbit_correction.y_correction.singular_values), '.-', label='y')
+plt.legend()
+plt.xlabel('mode')
+plt.ylabel('singular value (modulus)')
 
 plt.show()

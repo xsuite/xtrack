@@ -261,7 +261,7 @@ class OrbitCorrectionSinglePlane:
     def get_kick_values(self):
         return np.array([self.line.vv[nn_knob] for nn_knob in self.correction_knobs])
 
-    def _clean_correction_knobs(self):
+    def clear_correction_knobs(self):
         for nn_knob in self.correction_knobs:
             self.line.vars[nn_knob] = 0
 
@@ -383,6 +383,12 @@ class TrajectoryCorrection:
                 corrector_names_x=self.x_correction.corrector_names,
                 corrector_names_y=self.y_correction.corrector_names)
         return threader
+
+    def clear_correction_knobs(self):
+        if self.x_correction is not None:
+            self.x_correction.clear_correction_knobs()
+        if self.y_correction is not None:
+            self.y_correction.clear_correction_knobs()
 
     @property
     def start(self):
