@@ -1362,7 +1362,7 @@ class Line:
                                    phi0=phi0, psi0=psi0, element0=element0,
                                    reverse=reverse)
 
-    def correct_trajectory(self, run=True, start=None, end=None,
+    def correct_trajectory(self, run=True, n_iter='auto', start=None, end=None,
                  twiss_table=None, planes=None,
                  monitor_names_x=None, corrector_names_x=None,
                  monitor_names_y=None, corrector_names_y=None,
@@ -1378,7 +1378,7 @@ class Line:
                  rcond=rcond)
 
         if run:
-            correction.correct(planes=planes)
+            correction.correct(planes=planes, n_iter=n_iter)
 
         return correction
 
