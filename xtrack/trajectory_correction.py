@@ -1,5 +1,6 @@
 import numpy as np
 from numpy.matlib import repmat
+import xtrack as xt
 
 def _compute_correction(x_iter, response_matrix, n_micado=None, rcond=None,
                         n_singular_values=None):
@@ -168,7 +169,12 @@ class OrbitCorrectionSinglePlane:
 
         i_iter = 0
         while True:
-            position = self._measure_position()
+            try:
+                position = self._measure_position()
+            except xt.twiss.ClosedOrbitSearchError:
+                raise RuntimeError('Closed orbit not found. '
+                    'Please use the `thread(...)` method to obtain a first guess, '
+                    'then call the `correct(...)` method again.')
             self._position_before = position
             if verbose:
                 print(

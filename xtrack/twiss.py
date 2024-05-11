@@ -2118,7 +2118,7 @@ def _one_turn_map(p, particle_ref, line, delta_zeta, start, end, num_turns):
     line.track(part, ele_start=start, ele_stop=end, num_turns=num_turns)
     if part.state[0] < 0:
         raise ClosedOrbitSearchError(
-            f'Particle lost in one-turn map, p.state = {part.state[0]}')
+            f'Particle lost, p.state = {part.state[0]}')
     p_res = np.array([
            part._xobject.x[0],
            part._xobject.px[0],
