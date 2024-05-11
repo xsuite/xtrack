@@ -40,6 +40,12 @@ tw_before = line.twiss4d()
 
 # Correct orbit
 orbit_correction = line.correct_trajectory(twiss_table=tw_ref)
+# prints:
+#
+# Iteration 0, x_rms: 1.65e-03 -> 7.22e-06, y_rms: 2.23e-03 -> 1.54e-04
+# Iteration 1, x_rms: 1.11e-05 -> 2.09e-06, y_rms: 1.55e-04 -> 5.54e-06
+# Iteration 2, x_rms: 2.09e-06 -> 2.09e-06, y_rms: 5.54e-06 -> 2.15e-06
+# Iteration 3, x_rms: 2.09e-06 -> 2.09e-06, y_rms: 2.15e-06 -> 2.13e-06
 
 # Twiss after correction
 tw_after = line.twiss4d()

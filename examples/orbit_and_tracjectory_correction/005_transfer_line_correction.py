@@ -48,6 +48,10 @@ tw_before = line.twiss4d(start='ti2$start', end='ti2$end', init=init)
 
 # Correct trajectory
 correction = line.correct_trajectory(twiss_table=tw_ref, start='ti2$start', end='ti2$end')
+# prints:
+#
+# Iteration 0, x_rms: 2.01e-03 -> 1.80e-04, y_rms: 6.94e-04 -> 1.23e-04
+# Iteration 1, x_rms: 1.80e-04 -> 1.80e-04, y_rms: 1.23e-04 -> 1.23e-04
 
 # Twiss after correction
 tw_after = line.twiss4d(start='ti2$start', end='ti2$end', init=init)
@@ -75,7 +79,7 @@ sp2 = plt.subplot(412, sharex=sp1)
 sp2.stem(s_x_correctors, kicks_x * 1e6)
 plt.ylabel(r'x kick [$\mu$rad]')
 
-sp3 = plt.subplot(413, sharex=sp1)
+sp3 = plt.subplot(413, sharex=sp1, sharey=sp1)
 sp3.plot(tw_before.s, tw_before.y * 1e3)
 sp3.plot(tw_after.s, tw_after.y * 1e3)
 plt.ylabel('y [mm]')

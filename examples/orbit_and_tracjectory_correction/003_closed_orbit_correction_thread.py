@@ -44,12 +44,31 @@ orbit_correction = line.correct_trajectory(twiss_table=tw_ref, run=False)
 # Thread
 threader = orbit_correction.thread(ds_thread=500., # correct in sections of 500 m
                                    rcond_short=1e-4, rcond_long=1e-4)
+# prints:
+#
+# Stop at s=500.0, local rms  = [x: 1.44e-03 -> 3.04e-05, y: 3.47e-03 -> 6.91e-08]
+# Stop at s=500.0, global rms = [x: 3.04e-05 -> 3.04e-05, y: 6.91e-08 -> 1.90e-12]
+# Stop at s=1000.0, local rms  = [x: 6.44e-03 -> 9.02e-05, y: 3.45e-03 -> 6.44e-05]
+# Stop at s=1000.0, global rms = [x: 1.37e-03 -> 2.19e-05, y: 3.59e-03 -> 7.25e-06]
+# Stop at s=1500.0, local rms  = [x: 3.24e-03 -> 5.33e-04, y: 1.37e-03 -> 6.29e-06]
+# Stop at s=1500.0, global rms = [x: 5.58e-04 -> 1.89e-05, y: 2.17e-03 -> 5.66e-06]
+# ...
+# Stop at s=26000.0, local rms  = [x: 7.07e-03 -> 1.66e-04, y: 5.25e-03 -> 3.62e-04]
+# Stop at s=26000.0, global rms = [x: 5.46e-04 -> 5.82e-06, y: 2.53e-04 -> 2.40e-07]
+# Stop at s=26500.0, local rms  = [x: 4.30e-03 -> 1.16e-03, y: 1.73e-03 -> 3.11e-06]
+# Stop at s=26500.0, global rms = [x: 3.19e-04 -> 5.09e-06, y: 4.06e-04 -> 2.81e-06]
+# Stop at s=26658.88, local rms  = [x: 8.09e-04 -> 3.74e-05, y: 1.11e-03 -> 2.86e-04]
+# Stop at s=26658.88, global rms = [x: 3.07e-05 -> 5.07e-06, y: 5.45e-05 -> 3.52e-09]
 
 # Closed twiss after threading (closed orbit is found)
 tw_after_thread = line.twiss4d()
 
 # Correct (with custom number of singular values)
 orbit_correction.correct(n_singular_values=200)
+# prints:
+#
+# Iteration 0, x_rms: 1.30e-03 -> 2.33e-04, y_rms: 6.91e-04 -> 2.20e-04
+# Iteration 1, x_rms: 2.33e-04 -> 2.33e-04, y_rms: 2.20e-04 -> 2.16e-04
 
 # Twiss after closed orbit correction
 tw_after = line.twiss4d()

@@ -38,9 +38,12 @@ for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
 # Twiss before correction
 tw_before = line.twiss4d()
 
-# Correct orbit
+# Correct orbit using 5 correctors in each plane
 orbit_correction = line.correct_trajectory(twiss_table=tw_ref, n_micado=5,
                                            n_iter=1)
+# prints:
+#
+# Iteration 0, x_rms: 1.65e-03 -> 1.06e-04, y_rms: 2.25e-03 -> 1.76e-04
 
 # Twiss after correction
 tw_after = line.twiss4d()

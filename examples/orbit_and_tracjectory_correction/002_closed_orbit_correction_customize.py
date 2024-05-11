@@ -46,13 +46,24 @@ y_sv = orbit_correction.y_correction.singular_values
 tw_before = line.twiss4d()
 
 # Correct
-orbit_correction.correct(n_singular_values=(200, 210))
+orbit_correction.correct()
+# prints:
+# Iteration 0, x_rms: 1.65e-03 -> 7.22e-06, y_rms: 2.23e-03 -> 1.54e-04
+# Iteration 1, x_rms: 1.11e-05 -> 2.09e-06, y_rms: 1.55e-04 -> 5.54e-06
+# Iteration 2, x_rms: 2.09e-06 -> 2.09e-06, y_rms: 5.54e-06 -> 2.15e-06
+# Iteration 3, x_rms: 2.09e-06 -> 2.09e-06, y_rms: 2.15e-06 -> 2.13e-06
 
 # Remove applied correction
 orbit_correction.clear_correction_knobs()
 
 # Correct with a customized number of singular values
 orbit_correction.correct(n_singular_values=(200, 210))
+# prints:
+#
+# Iteration 0, x_rms: 1.65e-03 -> 9.38e-06, y_rms: 2.23e-03 -> 1.55e-04
+# Iteration 1, x_rms: 1.24e-05 -> 6.42e-06, y_rms: 1.56e-04 -> 7.40e-06
+# Iteration 2, x_rms: 6.42e-06 -> 6.42e-06, y_rms: 7.40e-06 -> 5.22e-06
+# Iteration 3, x_rms: 6.42e-06 -> 6.42e-06, y_rms: 5.22e-06 -> 5.22e-06
 
 # Twiss after correction
 tw_after = line.twiss4d()
