@@ -25,10 +25,12 @@ line.steering_correctors_x = tt_h_correctors.name
 tt_v_correctors = tt.rows['mci.*'].rows['.*v\..*']
 line.steering_correctors_y = tt_v_correctors.name
 
+# Initial conditions from upstream ring
 init = xt.TwissInit(betx=27.77906807, bety=120.39920690,
                      alfx=0.63611880, alfy=-2.70621900,
                      dx=-0.59866300, dpx=0.01603536)
 
+# Reference twiss (no misalignments)
 tw_ref = line.twiss4d(start='ti2$start', end='ti2$end', init=init)
 
 # Introduce misalignments on all quadrupoles
