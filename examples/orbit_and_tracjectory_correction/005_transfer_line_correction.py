@@ -55,10 +55,11 @@ s_y_correctors = correction.y_correction.s_correctors
 kicks_x = correction.x_correction.get_kick_values()
 kicks_y = correction.y_correction.get_kick_values()
 
+#!end-doc-part
+
 # Plots
 import matplotlib.pyplot as plt
 plt.close('all')
-
 
 plt.figure(1, figsize=(6.4, 4.8*1.7))
 sp1 = plt.subplot(411)

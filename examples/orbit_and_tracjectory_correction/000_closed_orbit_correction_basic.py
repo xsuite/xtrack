@@ -49,6 +49,8 @@ s_y_correctors = orbit_correction.y_correction.s_correctors
 kicks_x = orbit_correction.x_correction.get_kick_values()
 kicks_y = orbit_correction.y_correction.get_kick_values()
 
+#!end-doc-part
+
 # Plots
 import matplotlib.pyplot as plt
 plt.close('all')

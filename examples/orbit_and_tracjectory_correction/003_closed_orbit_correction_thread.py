@@ -34,26 +34,23 @@ for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
     line.element_refs[nn_quad].shift_x = sx
     line.element_refs[nn_quad].shift_y = sy
 
-# Create orbit correction object without running the correction
-orbit_correction = line.correct_trajectory(twiss_table=tw_ref, run=False)
-
-# Inspect singular values of the response matrices
-x_sv = orbit_correction.x_correction.singular_values
-y_sv = orbit_correction.y_correction.singular_values
-
 # Closed twiss fails (closed orbit is not found)
 # line.twiss4d()
 
-# Correct
-orbit_correction.correct(n_singular_values=(200, 210))
+# Create orbit correction object without running the correction
+orbit_correction = line.correct_trajectory(twiss_table=tw_ref, run=False)
 
-# Remove applied correction
-orbit_correction.clear_correction_knobs()
+# Thread
+threader = orbit_correction.thread(ds_thread=500., # correct in sections of 500 m
+                                   rcond_short=1e-4, rcond_long=1e-4)
 
-# Correct with a customized number of singular values
-orbit_correction.correct(n_singular_values=(200, 210))
+# Closed twiss after threading (closed orbit is found)
+tw_after_thread = line.twiss4d()
 
-# Twiss after correction
+# Correct (with custom number of singular values)
+orbit_correction.correct(n_singular_values=200)
+
+# Twiss after closed orbit correction
 tw_after = line.twiss4d()
 
 # Extract correction strength
@@ -68,8 +65,8 @@ plt.close('all')
 
 plt.figure(1, figsize=(6.4, 4.8*1.7))
 sp1 = plt.subplot(411)
-sp1.plot(tw_before.s, tw_before.x * 1e3, label='before corr.')
-sp1.plot(tw_after.s, tw_after.x * 1e3, label='after corr.')
+sp1.plot(tw_after_thread.s, tw_after_thread.x * 1e3, label='after thread.')
+sp1.plot(tw_after.s, tw_after.x * 1e3, label='after c.o. corr.')
 plt.legend(loc='upper right')
 plt.ylabel('x [mm]')
 
@@ -78,7 +75,7 @@ sp2.stem(s_x_correctors, kicks_x * 1e6)
 plt.ylabel(r'x kick [$\mu$rad]')
 
 sp3 = plt.subplot(413, sharex=sp1)
-sp3.plot(tw_before.s, tw_before.y * 1e3)
+sp3.plot(tw_after_thread.s, tw_after_thread.y * 1e3, label='after thread.')
 sp3.plot(tw_after.s, tw_after.y * 1e3)
 plt.ylabel('y [mm]')
 
@@ -88,12 +85,5 @@ plt.ylabel(r'y kick [$\mu$rad]')
 sp4.set_xlabel('s [m]')
 
 plt.subplots_adjust(hspace=0.3, top=0.95, bottom=0.08)
-
-plt.figure(2)
-plt.semilogy(np.abs(x_sv), '.-', label='x')
-plt.semilogy(np.abs(y_sv), '.-', label='y')
-plt.legend()
-plt.xlabel('mode')
-plt.ylabel('singular value (modulus)')
 
 plt.show()
