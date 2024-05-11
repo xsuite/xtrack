@@ -97,18 +97,21 @@ class OrbitCorrectionSinglePlane:
         assert plane in ['x', 'y']
 
         self.twiss_table = twiss_table
+        if twiss_table is not None:
+            assert twiss_table.reference_frame == 'proper', (
+                'Twiss table must be in the proper frame (`reverse` not supported)')
 
         if start is None:
             assert end is None
             self.mode = 'closed'
             if self.twiss_table is None:
-                self.twiss_table = line.twiss4d()
+                self.twiss_table = line.twiss4d(reverse=False)
         else:
             assert end is not None
             self.mode = 'open'
             if self.twiss_table is None:
                 self.twiss_table = line.twiss4d(start=start, end=end,
-                                                betx=1, bety=1)
+                                                betx=1, bety=1, reverse=False)
 
         if corrector_names is None:
             corr_names_from_line = getattr(line, f'steering_correctors_{plane}')
@@ -205,7 +208,7 @@ class OrbitCorrectionSinglePlane:
         else:
             betx=None
         tw_orbit = self.line.twiss4d(only_orbit=True, start=self.start, end=self.end,
-                                     betx=betx, bety=betx)
+                                     betx=betx, bety=betx, reverse=False)
 
         position = tw_orbit.rows[self.monitor_names][self.plane]
 
