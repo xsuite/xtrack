@@ -64,9 +64,11 @@ plt.close('all')
 
 plt.figure(1, figsize=(6.4, 4.8*1.7))
 sp1 = plt.subplot(411)
-sp1.plot(tw_before.s, tw_before.x * 1e3, label='before corr.')
-sp1.plot(tw_after.s, tw_after.x * 1e3, label='after corr.')
-plt.legend(loc='upper right')
+sp1.plot(tw_before.s, tw_before.x * 1e3,
+         label=f'before corr. (rms: {tw_before.x.std() * 1e3:.2e} mm)')
+sp1.plot(tw_after.s, tw_after.x * 1e3,
+         label=f'after corr. (rms: {tw_after.x.std() * 1e3:.2e} mm)')
+plt.legend(loc='lower right')
 plt.ylabel('x [mm]')
 
 sp2 = plt.subplot(412, sharex=sp1)
@@ -74,9 +76,12 @@ sp2.stem(s_x_correctors, kicks_x * 1e6)
 plt.ylabel(r'x kick [$\mu$rad]')
 
 sp3 = plt.subplot(413, sharex=sp1)
-sp3.plot(tw_before.s, tw_before.y * 1e3)
-sp3.plot(tw_after.s, tw_after.y * 1e3)
+sp3.plot(tw_before.s, tw_before.y * 1e3,
+            label=f'before corr. (rms: {tw_before.y.std() * 1e3:.2e} mm)')
+sp3.plot(tw_after.s, tw_after.y * 1e3,
+            label=f'after corr. (rms: {tw_after.y.std() * 1e3:.2e} mm)')
 plt.ylabel('y [mm]')
+plt.legend(loc='lower right')
 
 sp4 = plt.subplot(414, sharex=sp1)
 sp4.stem(s_y_correctors, kicks_y * 1e6)
