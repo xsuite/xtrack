@@ -1439,7 +1439,7 @@ class Line:
 
         return correction
 
-    def correct_closed_orbit(self, reference, correction_config,
+    def _xmask_correct_closed_orbit(self, reference, correction_config,
                         solver=None, verbose=False, restore_if_fail=True):
 
         """

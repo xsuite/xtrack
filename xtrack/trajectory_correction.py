@@ -282,6 +282,49 @@ class TrajectoryCorrection:
                  monitor_names_y=None, corrector_names_y=None,
                  n_micado=None, n_singular_values=None, rcond=None):
 
+        '''
+        Trajectory correction using linearized response matrix from optics
+        table.
+
+        Parameters
+        ----------
+
+        line : xtrack.Line
+            Line object on which the trajectory correction is performed.
+                start : str
+            Start of the line range in which the correction is performed.
+            If `start` is provided `end` must also be provided.
+            If `start` is None, the correction is performed on the periodic
+            solution (closed orbit).
+        end : str
+            End of the line range in which the correction is performed.
+            If `end` is provided `start` must also be provided.
+            If `start` is None, the correction is performed on the periodic
+            solution (closed orbit).
+        twiss_table : TwissTable
+            Twiss table used to compute the response matrix for the correction.
+            If None, the twiss table is computed from the line.
+        monitor_names_x : list of str
+            List of elements used as monitors in the horizontal plane.
+        corrector_names_x : list of str
+            List of elements used as correctors in the horizontal plane. They
+            must have `knl` and `ksl` attributes.
+        monitor_names_y : list of str
+            List of elements used as monitors in the vertical plane.
+        corrector_names_y : list of str
+            List of elements used as correctors in the vertical plane. They
+            must have `knl` and `ksl` attributes.
+        n_micado : int
+            If `n_micado` is not None, the MICADO algorithm is used for the
+            correction. In that case, the number of correctors to be used is
+            given by `n_micado`.
+        n_singular_values : int
+            Number of singular values used for the correction.
+        rcond : float
+            Cutoff for small singular values (relative to the largest singular
+            value). Singular values smaller than `rcond` are considered zero.
+        '''
+
         if isinstance(rcond, (tuple, list)):
             rcond_x, rcond_y = rcond
         else:
@@ -321,6 +364,35 @@ class TrajectoryCorrection:
 
     def correct(self, planes=None, n_micado=None, n_singular_values=None,
                 rcond=None, n_iter='auto', verbose=True, stop_iter_factor=0.1):
+
+        '''
+        Correct the trajectory in the horizontal and/or vertical plane.
+
+        Parameters
+        ----------
+        planes : str
+            Plane(s) in which the correction is performed. Possible values are
+            'x', 'y', 'xy'.
+        n_micado : int or tuple of int
+            If `n_micado` is not None, the MICADO algorithm is used for the
+            correction. In that case, the number of correctors to be used is
+            given by `n_micado`.
+        n_singular_values : int or tuple of int
+            Number of singular values used for the correction.
+        rcond : float or tuple of float
+            Cutoff for small singular values (relative to the largest singular
+            value). Singular values smaller than `rcond` are considered zero.
+        n_iter : int or 'auto'
+            Number of iterations for the correction. If 'auto', the correction
+            stops when the rms of the position does not decrease by more than
+            `stop_iter_factor` with respect to the previous iteration.
+        verbose : bool
+            If True, print the rms of the position at each iteration.
+        stop_iter_factor : float
+            If `n_iter` is 'auto', the correction stops when the rms of the
+            position does not decrease by more than `stop_iter_factor` with
+            respect to the previous iteration.
+        '''
 
         assert n_iter == 'auto' or np.isscalar(n_iter)
         if n_iter == 'auto':
@@ -382,6 +454,25 @@ class TrajectoryCorrection:
 
     def thread(self, ds_thread=None, rcond_short=None, rcond_long=None):
 
+        '''
+        Thread the trajectory along the line. The correction is performed in
+        portions of length `ds_thread`. For each portion the correction is
+        firs performed only on the new added part, then on the whole portion up
+        to the end of the new added part.
+
+        Parameters
+        ----------
+        ds_thread : float
+            Length of the portion added at each iteration.
+        rcond_short : float or tuple of float
+            Cutoff for small singular values (relative to the largest singular
+            value) used for the correction of the new added part.
+        rcond_long : float or tuple of float
+            Cutoff for small singular values (relative to the largest singular
+            value) used for the correction of the whole portion up to the end
+            of the new added part.
+        '''
+
         if self.start is not None or self.end is not None:
             raise NotImplementedError('Thread not implemented for line portions')
 
@@ -394,6 +485,11 @@ class TrajectoryCorrection:
         return threader
 
     def clear_correction_knobs(self):
+
+        '''
+        Set all correction knobs to zero. Erases all applied corrections.
+        '''
+
         if self.x_correction is not None:
             self.x_correction.clear_correction_knobs()
         if self.y_correction is not None:
