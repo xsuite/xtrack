@@ -1368,6 +1368,63 @@ class Line:
                  monitor_names_y=None, corrector_names_y=None,
                  n_micado=None, n_singular_values=None, rcond=None):
 
+        '''
+        Correct the beam trajectory using linearized response matrix from optics
+        table.
+
+        Parameters
+        ----------
+
+        run : bool
+            If True (default), the correction is performed immediately. If False,
+            a TrajectoryCorrection object is returned, which can be used for
+            advanced correction.
+        n_iter : int
+            Number of iterations for the correction. If 'auto' (default), the
+            iterations are performed for as long as the correction is improving.
+        start : str
+            Start of the line range in which the correction is performed.
+            If `start` is provided `end` must also be provided.
+            If `start` is None, the correction is performed on the periodic
+            solution (closed orbit).
+        end : str
+            End of the line range in which the correction is performed.
+            If `end` is provided `start` must also be provided.
+            If `start` is None, the correction is performed on the periodic
+            solution (closed orbit).
+        twiss_table : TwissTable
+            Twiss table used to compute the response matrix for the correction.
+            If None, the twiss table is computed from the line.
+        planes : str
+            Planes for which the correction is performed. It can be 'x', 'y' or
+            'xy'. If None, the correction is performed for both planes.
+        monitor_names_x : list of str
+            List of elements used as monitors in the horizontal plane.
+        corrector_names_x : list of str
+            List of elements used as correctors in the horizontal plane. They
+            must have `knl` and `ksl` attributes.
+        monitor_names_y : list of str
+            List of elements used as monitors in the vertical plane.
+        corrector_names_y : list of str
+            List of elements used as correctors in the vertical plane. They
+            must have `knl` and `ksl` attributes.
+        n_micado : int
+            If `n_micado` is not None, the MICADO algorithm is used for the
+            correction. In that case, the number of correctors to be used is
+            given by `n_micado`.
+        n_singular_values : int
+            Number of singular values used for the correction.
+        rcond : float
+            Cutoff for small singular values (relative to the largest singular
+            value). Singular values smaller than `rcond` are considered zero.
+
+        Returns
+        -------
+        correction : TrajectoryCorrection
+            Trajectory correction object.
+
+        '''
+
         correction = TrajectoryCorrection(line=self,
                  start=start, end=end, twiss_table=twiss_table,
                  monitor_names_x=monitor_names_x,
