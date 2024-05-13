@@ -8,7 +8,7 @@ test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
 @for_all_test_contexts
-def test_ip_knob_matching(test_context):
+def test_ip_knob_matching_new_optimize_api(test_context):
 
     collider = xt.Multiline.from_json(test_data_folder /
                     'hllhc15_thick/hllhc15_collider_thick.json')
@@ -325,7 +325,7 @@ def test_ip_knob_matching(test_context):
     assert np.isclose(tw.lhcb2['px', 'ip8'], -120e-6, atol=1e-9, rtol=0)
 
 @for_all_test_contexts
-def test_match_ir8_optics(test_context):
+def test_match_ir8_optics_new_optimize_api(test_context):
 
     collider = xt.Multiline.from_json(test_data_folder /
                     'hllhc15_thick/hllhc15_collider_thick.json')

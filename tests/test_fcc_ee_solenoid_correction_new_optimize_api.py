@@ -11,7 +11,7 @@ test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
 
-def test_fcc_ee_solenoid_correction():
+def test_fcc_ee_solenoid_correction_new_optimizer_api():
     fname = 'fccee_t'; pc_gev = 182.5
 
     mad = Madx(stdout=False)
