@@ -48,10 +48,6 @@ tw_before = line.twiss4d(start='ti2$start', end='ti2$end', init=init)
 
 # Correct trajectory
 correction = line.correct_trajectory(twiss_table=tw_ref, start='ti2$start', end='ti2$end')
-# prints:
-#
-# Iteration 0, x_rms: 2.01e-03 -> 1.80e-04, y_rms: 6.94e-04 -> 1.23e-04
-# Iteration 1, x_rms: 1.80e-04 -> 1.80e-04, y_rms: 1.23e-04 -> 1.23e-04
 
 # Twiss after correction
 tw_after = line.twiss4d(start='ti2$start', end='ti2$end', init=init)
@@ -62,33 +58,11 @@ s_y_correctors = correction.y_correction.s_correctors
 kicks_x = correction.x_correction.get_kick_values()
 kicks_y = correction.y_correction.get_kick_values()
 
-#!end-doc-part
+assert tw_before.x.std() > 1.5e-3
+assert tw_before.y.std() > 0.5e-3
 
-# Plots
-import matplotlib.pyplot as plt
-plt.close('all')
+assert tw_after.x.std() < 0.3e-3
+assert tw_after.y.std() < 0.3e-3
 
-plt.figure(1, figsize=(6.4, 4.8*1.7))
-sp1 = plt.subplot(411)
-sp1.plot(tw_before.s, tw_before.x * 1e3, label='before corr.')
-sp1.plot(tw_after.s, tw_after.x * 1e3, label='after corr.')
-plt.legend(loc='upper left')
-plt.ylabel('x [mm]')
-
-sp2 = plt.subplot(412, sharex=sp1)
-sp2.stem(s_x_correctors, kicks_x * 1e6)
-plt.ylabel(r'x kick [$\mu$rad]')
-
-sp3 = plt.subplot(413, sharex=sp1, sharey=sp1)
-sp3.plot(tw_before.s, tw_before.y * 1e3)
-sp3.plot(tw_after.s, tw_after.y * 1e3)
-plt.ylabel('y [mm]')
-
-sp4 = plt.subplot(414, sharex=sp1)
-sp4.stem(s_y_correctors, kicks_y * 1e6)
-plt.ylabel(r'y kick [$\mu$rad]')
-sp4.set_xlabel('s [m]')
-
-plt.subplots_adjust(hspace=0.3, top=0.95, bottom=0.08)
-
-plt.show()
+assert kicks_x.std() < 2e-5
+assert kicks_y.std() < 2e-5
