@@ -1,5 +1,4 @@
 import xtrack as xt
-import xobjects as xo
 import numpy as np
 
 line = xt.Line.from_json(
@@ -25,21 +24,30 @@ tw_ref = line.twiss4d()
 # Introduce misalignments on all quadrupoles
 tt = line.get_table()
 tt_quad = tt.rows[tt.element_type == 'Quadrupole']
-rgen = np.random.RandomState(1) # fix seed for random number generator
-shift_x = rgen.randn(len(tt_quad)) * 0.01e-3 # 0.01 mm rms shift on all quads
-shift_y = rgen.randn(len(tt_quad)) * 0.01e-3 # 0.01 mm rms shift on all quads
+rgen = np.random.RandomState(2) # fix seed for random number generator
+shift_x = rgen.randn(len(tt_quad)) * 1e-3 # 1. mm rms shift on all quads
+shift_y = rgen.randn(len(tt_quad)) * 1e-3 # 1. mm rms shift on all quads
 for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
     line.element_refs[nn_quad].shift_x = sx
     line.element_refs[nn_quad].shift_y = sy
 
-# Twiss before correction
-tw_before = line.twiss4d()
+# Closed twiss fails (closed orbit is not found)
+# line.twiss4d()
 
-# Correct orbit using 5 correctors in each plane
-orbit_correction = line.correct_trajectory(twiss_table=tw_ref, n_micado=5,
-                                           n_iter=1)
+# Create orbit correction object without running the correction
+orbit_correction = line.correct_trajectory(twiss_table=tw_ref, run=False)
 
-# Twiss after correction
+# Thread
+threader = orbit_correction.thread(ds_thread=500., # correct in sections of 500 m
+                                   rcond_short=1e-4, rcond_long=1e-4)
+
+# Closed twiss after threading (closed orbit is found)
+tw_after_thread = line.twiss4d()
+
+# Correct (with custom number of singular values)
+orbit_correction.correct(n_singular_values=200)
+
+# Twiss after closed orbit correction
 tw_after = line.twiss4d()
 
 # Extract correction strength
@@ -48,10 +56,12 @@ s_y_correctors = orbit_correction.y_correction.s_correctors
 kicks_x = orbit_correction.x_correction.get_kick_values()
 kicks_y = orbit_correction.y_correction.get_kick_values()
 
-assert tw_before.x.std() > 1e-3
-assert tw_before.y.std() > 1e-3
-assert tw_after.y.std() < 2e-4
-assert tw_after.x.std() < 2e-4
+assert tw_after_thread.x.std() < 2e-3
+assert tw_after_thread.y.std() < 2e-3
 
-assert np.sum(np.abs(kicks_x)>0) == 5
-assert np.sum(np.abs(kicks_y)>0) == 5
+assert tw_after.x.std() < 5e-4
+assert tw_after.y.std() < 5e-4
+
+assert kicks_x.std() < 5e-5
+assert kicks_y.std() < 5e-5
+
