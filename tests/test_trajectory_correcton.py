@@ -270,8 +270,8 @@ def test_orbit_correction_thread(test_context):
 def test_correct_trajectory_transfer_line(test_context):
 
     mad_ti2 = Madx()
-    mad_ti2.call('../../../acc-models-tls/sps_extraction/tt60ti2/ti2.seq')
-    mad_ti2.call('../../../acc-models-tls/sps_extraction/tt60ti2_q20/line/ti2_liu.str')
+    mad_ti2.call(str(test_data_folder / 'sps_to_lhc_ti2/ti2.seq'))
+    mad_ti2.call(str(test_data_folder / 'sps_to_lhc_ti2/ti2_liu.str'))
     mad_ti2.beam()
     mad_ti2.use('ti2')
 

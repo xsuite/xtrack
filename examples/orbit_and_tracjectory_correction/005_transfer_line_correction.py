@@ -3,8 +3,8 @@ from cpymad.madx import Madx
 import xtrack as xt
 
 mad_ti2 = Madx()
-mad_ti2.call('../../../acc-models-tls/sps_extraction/tt60ti2/ti2.seq')
-mad_ti2.call('../../../acc-models-tls/sps_extraction/tt60ti2_q20/line/ti2_liu.str')
+mad_ti2.call('../../test_data/sps_to_lhc_ti2/ti2.seq')
+mad_ti2.call('../../test_data/sps_to_lhc_ti2/ti2_liu.str')
 mad_ti2.beam()
 mad_ti2.use('ti2')
 
