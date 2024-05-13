@@ -1,5 +1,4 @@
 import numpy as np
-from numpy.matlib import repmat
 import xtrack as xt
 
 def _compute_correction(x_iter, response_matrix, n_micado=None, rcond=None,
@@ -71,8 +70,8 @@ def _build_response_matrix(tw, monitor_names, corrector_names,
     n_correctors = len(corrector_names)
 
     bet_prod = np.atleast_2d(bet_monitors).T @ np.atleast_2d(bet_correctors)
-    mu_diff = (repmat(mu_monitor, n_correctors, 1).T
-                        - repmat(mux_correctors, n_monitors, 1))
+    mu_diff = (np.tile(mu_monitor, (n_correctors, 1)).T
+                        - np.tile(mux_correctors, (n_monitors, 1)))
 
     if mode == 'open':
         # Wille eq. 3.164
