@@ -966,20 +966,16 @@ class KnobOptimizer:
         vary_aux = []
         for vv in vary_flatten:
             aux_name = vv.name + '_from_' + knob_name
-            if (aux_name in line.vars
-                and (line.vars[aux_name] in
-                         line.vars[vv.name]._expr._get_dependencies())):
-                # reset existing term in expression
-                line.vars[aux_name] = 0
-            else:
-                # create new term in expression
-                line.vars[aux_name] = 0
-                line.vars[vv.name] += line.vars[aux_name]
+            line.vars[aux_name] =  line.vv.get(aux_name,0)
+            if ( line.vars[vv.name]._expr is None or
+                 ( line.vars[aux_name] not in line.vars[vv.name]._expr._get_dependencies() )):
+                 line.vars[vv.name] += line.vars[aux_name] * line.vars[knob_name]
 
             vv_aux = vv.__dict__.copy()
             vv_aux['name'] = aux_name
             vary_aux.append(xt.Vary(**vv_aux))
 
+        line.vars[knob_name] = knob_value_end
         opt = line.match(vary=vary_aux, targets = targets, solve=False, **kwargs)
 
         object.__setattr__(self, 'opt', opt)

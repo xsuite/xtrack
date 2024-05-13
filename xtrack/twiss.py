@@ -49,7 +49,7 @@ VARS_FOR_TWISS_INIT_GENERATION = [
 
 NORMAL_STRENGTHS_FROM_ATTR=['k0l', 'k1l', 'k2l', 'k3l', 'k4l', 'k5l']
 SKEW_STRENGTHS_FROM_ATTR=['k0sl', 'k1sl', 'k2sl', 'k3sl', 'k4sl', 'k5sl']
-OTHER_FIELDS_FROM_ATTR=['element_type', 'isthick', 'length', 'parent_name']
+OTHER_FIELDS_FROM_ATTR=['angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'element_type', 'isthick', 'length', 'parent_name']
 
 log = logging.getLogger(__name__)
 
@@ -3217,13 +3217,41 @@ class TwissTable(Table):
                               action=self._action, **kwargs)
         return tarset
 
-    def plot(self,yl='betx bety',yr='dx dy',x='s',
+    def plot(self,yl="",yr="",x='s',
             lattice=True,
             mask=None,
             labels=None,
             clist="k r b g c m",
             ax=None,
             figlabel=None):
+        """
+        Plot columns of the TwissTable
+
+        Parameters:
+        -----------
+        yl: str
+            space separated columns or expressions to plot on the left y-axis
+        yr: str
+            space separated columns or expressions to plot on the right y-axis
+        x: str
+            column to plot on the x-axis
+        lattice: bool
+            if True, the lattice is plotted
+        mask: slice
+            mask to select the elements to plot
+        labels: str
+            mask to select the elements to label
+        clist: str
+            colors to use
+        ax: matplotlib axis
+            axis to plot on
+        figlabel: str
+            label to use for the figure
+        """
+
+        if yl=="" and yr=="":
+            yl='betx bety'
+            yr='dx dy'
 
         if 'length' not in self.keys():
             lattice=False

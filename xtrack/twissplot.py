@@ -106,7 +106,7 @@ class TwissPlot(object):
         else:
             self.figure = newfig
             self.figure.clf()
-        if lattice:
+        if lattice and x=="s":
             self.lattice = self._new_axes()
             #      self.lattice.set_autoscale_on(False)
             self.lattice.yaxis.set_visible(False)
@@ -121,7 +121,7 @@ class TwissPlot(object):
 
         #    timeit('Setup')
         self.run()
-        if lattice:
+        if lattice and x=="s":
             self.lattice.set_autoscale_on(False)
         if yl:
             self.left.set_autoscale_on(False)
@@ -179,7 +179,7 @@ class TwissPlot(object):
         import matplotlib.pyplot as plt
 
         self.ont = self.table
-        self.xaxis = getattr(self.ont, self.x)[self.idx]
+        self.xaxis = self.ont[self.x][self.idx]
         self.lines = []
         self.legends = []
         #    self.figure.lines=[]
@@ -239,11 +239,11 @@ class TwissPlot(object):
         vd = 0
         sp = self.lattice
         s = self.ont.s
-        l = self.ont.length
-        for i in names:
-            myvd = self.ont._data.get(i, None)
+        l = np.diff(s,append=[s[-1]])
+        for name in names:
+            myvd = self.ont._data.get(name, None)
             if myvd is not None:
-                vdname = i
+                vdname = name
                 vd = myvd[self.idx] + vd
         if np.any(vd != 0):
             m = np.abs(vd).max()
@@ -267,10 +267,10 @@ class TwissPlot(object):
                         self.lines.append(bplt[0])
                         self.legends.append(lbl)
                     row_names = self.ont.name
-                    for r, i in zip(bplt, c):
-                        r.elemname = row_names[i]
+                    for r, name in zip(bplt, c):
+                        r.elemname = row_names[name]
                         r.elemprop = vdname
-                        r.elemvalue = getattr(self.ont, vdname)[i]
+                        r.elemvalue = getattr(self.ont, vdname)[name]
                 self.lattice.set_ylim(-1.5, 1.5)
 
     #    timeit('end lattice')
