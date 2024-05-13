@@ -257,7 +257,7 @@ class OrbitCorrectionSinglePlane:
                 if (self.line.element_refs[nn_kick].knl[0]._expr is None or
                     (self.line.vars[corr_knob_name]
                     not in self.line.element_refs[nn_kick].knl[0]._expr._get_dependencies())):
-                    if self.line.element_refs[nn_kick].knl[0].expr is not None:
+                    if self.line.element_refs[nn_kick].knl[0]._expr is not None:
                         self.line.element_refs[nn_kick].knl[0] -= ( # knl[0] is -kick
                             self.line.vars[f'orbit_corr_{nn_kick}_x'])
                     else:
