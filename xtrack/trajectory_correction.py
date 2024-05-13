@@ -110,8 +110,13 @@ class OrbitCorrectionSinglePlane:
             assert end is not None
             self.mode = 'open'
             if self.twiss_table is None:
+                # Initialized with betx=1, bety=1 (use W_matrix to avoid compilation)
                 self.twiss_table = line.twiss4d(start=start, end=end,
-                                                betx=1, bety=1, reverse=False)
+                    init=xt.TwissInit(W_matrix=np.eye(6),
+                                      particle_on_co=line.build_particles(
+                                          x=0, y=0, px=0, py=0, zeta=0, delta=0),
+                                      element_name=start),
+                                      reverse=False)
 
         if corrector_names is None:
             corr_names_from_line = getattr(line, f'steering_correctors_{plane}')
@@ -204,11 +209,15 @@ class OrbitCorrectionSinglePlane:
 
     def _measure_position(self):
         if self.mode == 'open':
-            betx=1
+            # Initialized with betx=1, bety=1 (use W_matrix to avoid compilation)
+            twinit = xt.TwissInit(W_matrix=np.eye(6),
+                            particle_on_co=self.line.build_particles(
+                                          x=0, y=0, px=0, py=0, zeta=0, delta=0),
+                            element_name=self.start)
         else:
-            betx=None
+            twinit = None
         tw_orbit = self.line.twiss4d(only_orbit=True, start=self.start, end=self.end,
-                                     betx=betx, bety=betx, reverse=False)
+                                     init=twinit, reverse=False)
 
         position = tw_orbit.rows[self.monitor_names][self.plane]
 

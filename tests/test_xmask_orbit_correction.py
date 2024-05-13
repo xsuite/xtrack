@@ -222,7 +222,7 @@ def test_orbit_correction(test_context):
 
     tw_before = collider.lhcb1.twiss()
 
-    collider.lhcb1.correct_closed_orbit(
+    collider.lhcb1._xmask_correct_closed_orbit(
                              reference=collider.lhcb1_co_ref,
                              correction_config=correction_config)
 
