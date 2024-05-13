@@ -1,9 +1,5 @@
 import xtrack as xt
 import numpy as np
-from numpy.matlib import repmat
-
-import xtrack.trajectory_correction as oc
-
 
 line = xt.Line.from_json(
     '../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
