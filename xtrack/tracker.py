@@ -151,7 +151,8 @@ class Tracker:
 
     def _init_io_buffer(self, io_buffer=None):
         if io_buffer is None:
-            io_bufs = [ee.io_buffer for ee in self.line.elements if hasattr(ee, 'io_buffer')]
+            io_bufs = [ee.io_buffer for ee in self.line.elements
+                       if getattr(ee, 'io_buffer', None) is not None]
             if len(io_bufs) == 0:
                 io_buffer = new_io_buffer(_context=self._context)
             elif len(np.unique([id(buf) for buf in io_bufs])) > 1:
