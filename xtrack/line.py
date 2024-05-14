@@ -2362,7 +2362,6 @@ class Line:
     def configure_intrabeam_scattering(
         self, element = None,
         update_every: int = None,
-        _context: xo.context.XContext = None,
         **kwargs,
     ) -> None:
         """
@@ -2387,11 +2386,6 @@ class Line:
             The frequency at which to recompute the kick coefficients, in
             number of turns. They will be computed at the first turn of
             tracking, and then every `update_every` turns afterwards.
-        _context : xo.context.XContext, optional
-            If `element` is provided and `_context` is provided, then this
-            is used when rebuilding the line tracker. If one has specific
-            needs for the built tracker, they should rebuild it themselves
-            after calling this function.
         **kwargs : dict, optional
             Required if an element is provided. Keyword arguments are
             passed to the `line.insert_element()` method according to
@@ -2415,7 +2409,7 @@ class Line:
         except ImportError as error:
             raise ImportError("Please install xfields to use this feature.") from error
         configure_intrabeam_scattering(
-            self, element=element, update_every=update_every, _context=_context, **kwargs
+            self, element=element, update_every=update_every, **kwargs
         )
 
     def compensate_radiation_energy_loss(self, delta0=0, rtol_eneloss=1e-10,
