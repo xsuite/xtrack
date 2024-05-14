@@ -125,7 +125,8 @@ def test_coasting():
     t_range_size = z_range_size / (tw.beta0 * clight)
 
     import nafflib
-    f_harmons = nafflib.get_tunes(intensity_vs_t, N=50)[0] / (t_unwrapped[1] - t_unwrapped[0])
+    intensity_no_ave = intensity_vs_t - np.mean(intensity_vs_t)
+    f_harmons = nafflib.get_tunes(intensity_no_ave, N=50)[0] / (t_unwrapped[1] - t_unwrapped[0])
     f_nominal = 1 / tw.T_rev0
     dt_expected = -(twom.zeta[-1] - twom.zeta[0]) / tw.beta0 / clight
     f_expected = 1 / (tw.T_rev0 + dt_expected)
