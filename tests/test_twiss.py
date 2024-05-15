@@ -511,7 +511,7 @@ def test_periodic_cell_twiss(test_context):
         assert np.isclose(tw_cell_periodic.dqx, dqx_expected, rtol=0, atol=1e-4)
         assert np.isclose(tw_cell_periodic.dqy, dqy_expected, rtol=0, atol=1e-4)
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='function')
 def collider_for_test_twiss_range():
 
     collider = xt.Multiline.from_json(test_data_folder /
