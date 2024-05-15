@@ -3,7 +3,7 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-from .general import _pkg_root, _print
+from .general import _pkg_root, _print, START, END
 
 from .particles import (Particles, PROTON_MASS_EV, ELECTRON_MASS_EV,
                         enable_pyheadtail_interface, disable_pyheadtail_interface)
@@ -15,8 +15,8 @@ from .tracker_data import TrackerData
 from .line import Line, Node, freeze_longitudinal, _temp_knobs, EnergyProgram
 from .tracker import Tracker, Log
 from .match import (Vary, Target, TargetList, VaryList, TargetInequality, Action,
-                    TargetRelPhaseAdvance, TargetSet, START, END,
-                    GreaterThan, LessThan, TargetRmatrixTerm, TargetRmatrix)
+                    TargetRelPhaseAdvance, TargetSet, GreaterThan, LessThan,
+                    TargetRmatrixTerm, TargetRmatrix)
 from .targets import (TargetLuminosity, TargetSeparationOrthogonalToCrossing,
                       TargetSeparation)
 from .twiss import TwissInit, TwissTable

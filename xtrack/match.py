@@ -5,7 +5,7 @@ import numpy as np
 from scipy.optimize import fsolve, minimize
 
 from .twiss import TwissInit, VARS_FOR_TWISS_INIT_GENERATION, _complete_twiss_init
-from .general import _print
+from .general import _print, START, END, _LOC
 import xtrack as xt
 import xdeps as xd
 
@@ -44,15 +44,6 @@ ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau',
                         'eq_nemitt_x', 'eq_nemitt_y', 'eq_nemitt_zeta']
 
 Action = xd.Action
-
-class _LOC:
-    def __init__(self, name=None):
-        self.name = name
-    def __repr__(self):
-        return self.name
-
-START = _LOC('START')
-END = _LOC('END')
 
 class ActionTwiss(xd.Action):
 
