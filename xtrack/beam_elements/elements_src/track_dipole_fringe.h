@@ -3,8 +3,8 @@
 // Copyright (c) CERN, 2023.                 //
 // ######################################### //
 
-#ifndef XTRACK_FRINGE_TRACK_H
-#define XTRACK_FRINGE_TRACK_H
+#ifndef XTRACK_TRACK_DIPOLE_FRINGE_H
+#define XTRACK_TRACK_DIPOLE_FRINGE_H
 
 #define POW2(X) ((X)*(X))
 #define POW3(X) ((X)*(X)*(X))
@@ -17,7 +17,7 @@
 // https://github.com/MethodicalAcceleratorDesign/MAD/blob/d3cabd9cdebde62ebedb51bab61ac033b9159489/src/madl_dynmap.mad#L1864
 
 /*gpufun*/
-void Fringe_single_particle(
+void DipoleFringe_single_particle(
         LocalParticle* part,  // LocalParticle to track
         const double fint,    // Fringe field integral
         const double hgap,    // Half gap
@@ -95,7 +95,7 @@ void Fringe_single_particle(
 //https://github.com/MethodicalAcceleratorDesign/MAD-X/blob/master/libs/ptc/src/Sh_def_kind.f90#L4936
 
 /*gpufun*/
-void Fringe_single_particle(
+void DipoleFringe_single_particle(
         LocalParticle* part,  // LocalParticle to track
         const double fint,    // Fringe field integral
         const double hgap,    // Half gap
@@ -184,7 +184,7 @@ void Fringe_single_particle(
 // still to be checked
 
 // /*gpufun*/
-// void Fringe_single_particle_paper(
+// void DipoleFringe_single_particle(
 //         LocalParticle* part,  // LocalParticle to track
 //         const double fint,    // Fringe field integral
 //         const double hgap,    // Half gap
@@ -261,4 +261,4 @@ void Fringe_single_particle(
 
 // }
 
-#endif // XTRACK_FRINGE_H
+#endif // XTRACK_TRACK_DIPOLE_FRINGE_H

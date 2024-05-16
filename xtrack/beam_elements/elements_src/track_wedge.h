@@ -3,8 +3,8 @@
 // Copyright (c) CERN, 2023.                 //
 // ######################################### //
 
-#ifndef XTRACK_WEDGE_TRACK_H
-#define XTRACK_WEDGE_TRACK_H
+#ifndef XTRACK_TRACK_WEDGE_H
+#define XTRACK_TRACK_WEDGE_H
 
 #define POW2(X) ((X)*(X))
 
@@ -55,4 +55,4 @@ void Wedge_single_particle(
     LocalParticle_add_to_zeta(part, -delta_ell / rvv);
 }
 
-#endif
+#endif // XTRACK_TRACK_WEDGE_H
