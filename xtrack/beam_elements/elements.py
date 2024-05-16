@@ -2147,7 +2147,7 @@ class ElectronCooler(BeamElement):
             The radius of the electron beam, in meters.
         temp_perp : float, optional
             The transverse temperature of the electron beam, in electron volts.
-        T_l : float, optional
+        temp_long : float, optional
             The longitudinal temperature of the electron beam, in electron volts.
         magnetic_field : float, optional
             The magnetic field strength, in tesla.
