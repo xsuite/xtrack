@@ -879,13 +879,20 @@ class ElectronCooler(Element):
         beta2=self.kinetic_energy_to_beta(E_tot, self.me_ev)
         beta_diff = beta2-beta0
         return beta_diff
+    
+    def velocity_energy_offset_dependence(self,beta0,offset_energy):
+        E_tot_oe = E = self.beta_to_kinetic_energy(beta0, self.me_ev)+ offset_energy; 
+        gamma_oe = 1 + (E_tot_oe/self.me_ev)
+        beta_oe = np.sqrt(1 - 1/(gamma_oe*gamma_oe))
+        beta_diff_oe = beta_oe - beta0
+        return beta_diff_oe
  
     def force(self, p):
         x     = p.x     - self.offset_x
         px    = p.px    - self.offset_px
         y     = p.y     - self.offset_y
         py    = p.py    - self.offset_py
-        delta = p.delta - self.offset_energy
+        delta = p.delta 
 
         if np.isscalar(p.x):
             x = np.array([x])
@@ -925,8 +932,9 @@ class ElectronCooler(Element):
         self.omega = self.space_charge*1/(2*np.pi*epsilon_0*clight) * self.current/(self.radius_e_beam**2*beta0*gamma0*self.magnetic_field)
 
         # warning: p.delta*machine_v is not fully correct for relativistic beams. to be checked.
-        Vi = delta*machine_v - self.space_charge*clight*self.radial_velocity_dependence(gamma=gamma0, r=radius, current=self.current, beta0=beta0, radius_e_beam=self.radius_e_beam)
-
+        Vi = delta*machine_v 
+        Vi -= self.space_charge*clight*self.radial_velocity_dependence(gamma=gamma0, r=radius, current=self.current, beta0=beta0, radius_e_beam=self.radius_e_beam)
+        Vi -= clight*self.velocity_energy_offset_dependence(beta0=beta0,offset_energy=self.offset_energy)
         # Warning: should gamma_0/gamma to be correct
         dVx = px*machine_v
         dVy = py*machine_v
