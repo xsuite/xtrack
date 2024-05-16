@@ -23,19 +23,20 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
     double offset_px      = ElectronCoolerData_get_offset_px(el);
     double offset_y       = ElectronCoolerData_get_offset_y(el);
     double offset_py      = ElectronCoolerData_get_offset_py(el);
-    double offset_energy  = ElectronCoolerData_get_offset_energy(el);
+    double offset_energy  = ElectronCoolerData_get_offset_energy(el); //eV
     
     double magnetic_field_ratio        = ElectronCoolerData_get_magnetic_field_ratio(el);
     double space_charge = ElectronCoolerData_get_space_charge(el);
-        
-    double mass_electron_ev = MASS_ELECTRON * POW2(C_LIGHT) / QELEM; //eV
-
+    
     double p0c    = LocalParticle_get_p0c(part0); // eV
     double Z      = LocalParticle_get_q0(part0); // eV
     double beta0  = LocalParticle_get_beta0(part0); // eV/c^2
     double gamma0 = LocalParticle_get_gamma0(part0); // eV/c^2    
 
     double V_ele = beta0;
+
+    double mass_electron_ev = MASS_ELECTRON * POW2(C_LIGHT) / QELEM; //eV
+    double energy_electron_initial = (gamma0 - 1) * mass_electron_ev; //eV 
 
     // compute electron density
     double V = PI * POW2(radius_e_beam) * length; // m3
@@ -64,7 +65,7 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
     double px    = LocalParticle_get_px(part)   - offset_px;
     double y     = LocalParticle_get_y(part)    - offset_y ;
     double py    = LocalParticle_get_py(part)   - offset_py;
-    double delta = LocalParticle_get_delta(part)           ;//offset_energy is implemented in electron space charge
+    double delta = LocalParticle_get_delta(part)           ;//offset_energy is implemented when longitudinal velocity is computed
    
     double theta = atan2(y , x);
     double radius = hypot(x,y);
@@ -79,18 +80,23 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
     //equation 100b in Helmut Poth: Electron cooling. page 186
     double space_charge_coefficient = RADIUS_ELECTRON / (QELEM * C_LIGHT) * (gamma0 + 1) / (gamma0 * gamma0); //used for computation of the space charge energy offset
     double dE_E = space_charge_coefficient * current * POW2(radius / radius_e_beam) / POW3(beta0); 
-    double Energy = (gamma0 - 1) * mass_electron_ev + offset_energy; 
-    double E_diff = dE_E * Energy; 
-    double E_tot = Energy + E_diff; 
-    double gamma = 1 + (E_tot/mass_electron_ev);
-    double beta2 = sqrt(1 - 1/(gamma*gamma));
-    double beta_diff = beta2 - beta0;
+    double E_diff_sc = dE_E * energy_electron_initial; 
+    double E_tot_sc = energy_electron_initial + E_diff_sc; 
+    double gamma_sc = 1 + (E_tot_sc/mass_electron_ev);
+    double beta_sc = sqrt(1 - 1/(gamma_sc*gamma_sc));
+    double beta_diff_sc = beta_sc - beta0;
+
+    //velocity difference due to energy offset of the electron cooler in eV
+    double E_tot_oe = energy_electron_initial + offset_energy; 
+    double gamma_oe = 1 + (E_tot_oe/mass_electron_ev);
+    double beta_oe = sqrt(1 - 1/(gamma_oe*gamma_oe));
+    double beta_diff_oe = beta_oe - beta0;
        
-    double Vi = delta*machine_v  - space_charge*C_LIGHT*beta_diff;
+    double Vi = delta*machine_v  - space_charge*C_LIGHT*beta_diff_sc - C_LIGHT*beta_diff_oe;
     double dVx = px*machine_v;
     double dVy = py*machine_v;
    
-    dVx -= space_charge*omega *radius* -sin(theta); //correct sign for rotation? in betacool it is positive.
+    dVx -= space_charge*omega *radius* -sin(theta); 
     dVy -= space_charge*omega *radius* +cos(theta);
     
     double Vi_abs = sqrt(dVx*dVx+dVy*dVy+Vi*Vi);
