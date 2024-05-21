@@ -771,8 +771,11 @@ def test_simplified_accelerator_segment_uncorrelated_damping(test_context):
     y_ref_1 = 4E-2
     py_ref_1 = 5E-4
     damping_rate_x = 5E-4
+    damping_rate_px = 2E-4
     damping_rate_y = 1E-3
-    damping_rate_s = 2E-3
+    damping_rate_py = 7E-3
+    damping_rate_zeta = 2E-3
+    damping_rate_pzeta = 1E-2
 
     dtk_particle = dtk.TestParticles(
             p0c=25.92e9,
@@ -798,26 +801,113 @@ def test_simplified_accelerator_segment_uncorrelated_damping(test_context):
         energy_increment=energy_increment,
         x_ref=(x_ref_0, x_ref_1), px_ref=(px_ref_0, px_ref_1),
         y_ref=(y_ref_0, y_ref_1), py_ref=(py_ref_0, py_ref_1),
-        damping_rate_x = damping_rate_x,
-        damping_rate_y = damping_rate_y,
-        damping_rate_s = damping_rate_s)
+        damping_rate_x = damping_rate_x,damping_rate_px = damping_rate_px,
+        damping_rate_y = damping_rate_y,damping_rate_py = damping_rate_py,
+        damping_rate_zeta = damping_rate_zeta,damping_rate_pzeta = damping_rate_pzeta)
 
     arc.track(particles)
 
     dtk_arc = dtk.elements.LinearTransferMatrix(alpha_x_0=alpha_x_0, beta_x_0=beta_x_0, disp_x_0=disp_x_0,
-    alpha_x_1=alpha_x_1, beta_x_1=beta_x_1, disp_x_1=disp_x_1,
-    alpha_y_0=alpha_y_0, beta_y_0=beta_y_0, disp_y_0=disp_y_0,
-    alpha_y_1=alpha_y_1, beta_y_1=beta_y_1, disp_y_1=disp_y_1,
-    Q_x=Q_x, Q_y=Q_y,
-    beta_s=beta_s, Q_s=Q_s,
-    chroma_x=0.0, chroma_y=0.0,
-    det_xx=0.0, det_xy=0.0, det_yy=0.0, det_yx=0.0,
-    energy_ref_increment=energy_ref_increment,energy_increment=energy_increment,
-    x_ref_0 = x_ref_0, px_ref_0 = px_ref_0, x_ref_1 = x_ref_1, px_ref_1 = px_ref_1,
-    y_ref_0 = y_ref_0, py_ref_0 = py_ref_0, y_ref_1 = y_ref_1, py_ref_1 = py_ref_1,
-    damping_rate_x = damping_rate_x,damping_rate_y = damping_rate_y,damping_rate_s = damping_rate_s)
+        alpha_x_1=alpha_x_1, beta_x_1=beta_x_1, disp_x_1=disp_x_1,
+        alpha_y_0=alpha_y_0, beta_y_0=beta_y_0, disp_y_0=disp_y_0,
+        alpha_y_1=alpha_y_1, beta_y_1=beta_y_1, disp_y_1=disp_y_1,
+        Q_x=Q_x, Q_y=Q_y,
+        beta_s=beta_s, Q_s=Q_s,
+        chroma_x=0.0, chroma_y=0.0,
+        det_xx=0.0, det_xy=0.0, det_yy=0.0, det_yx=0.0,
+        energy_ref_increment=energy_ref_increment,energy_increment=energy_increment,
+        x_ref_0 = x_ref_0, px_ref_0 = px_ref_0, x_ref_1 = x_ref_1, px_ref_1 = px_ref_1,
+        y_ref_0 = y_ref_0, py_ref_0 = py_ref_0, y_ref_1 = y_ref_1, py_ref_1 = py_ref_1,
+        damping_rate_x = damping_rate_x,damping_rate_px = damping_rate_px,
+        damping_rate_y = damping_rate_y,damping_rate_py = damping_rate_py,
+        damping_rate_zeta = damping_rate_zeta,damping_rate_pzeta = damping_rate_pzeta)
     dtk_arc.track(dtk_particle)
+    
+    assert np.isclose(test_context.nparray_from_context_array(particles.x)[0],
+                      dtk_particle.x, rtol=1e-14, atol=1e-14)
+    assert np.isclose(test_context.nparray_from_context_array(particles.px)[0],
+                      dtk_particle.px, rtol=1e-14, atol=1e-14)
+    assert np.isclose(test_context.nparray_from_context_array(particles.y)[0],
+                      dtk_particle.y, rtol=1e-14, atol=1e-14)
+    assert np.isclose(test_context.nparray_from_context_array(particles.py)[0],
+                      dtk_particle.py, rtol=1e-14, atol=1e-14)
+    assert np.isclose(test_context.nparray_from_context_array(particles.zeta)[0],
+                      dtk_particle.zeta, rtol=1e-14, atol=1e-14)
+    assert np.isclose(test_context.nparray_from_context_array(particles.delta)[0],
+                      dtk_particle.delta, rtol=1e-14, atol=1e-14)
 
+@for_all_test_contexts
+def test_simplified_accelerator_segment_correlated_damping(test_context):
+    alpha_x_0 = -0.5
+    beta_x_0 = 100.0
+    disp_x_0 = 1.8
+    alpha_x_1 = 2.1
+    beta_x_1 = 2.0
+    disp_x_1 = 3.3
+    alpha_y_0 = -0.4
+    beta_y_0 = 8.0
+    disp_y_0 = -0.2
+    alpha_y_1 = 0.7
+    beta_y_1 = 0.3
+    disp_y_1 = -1.9
+    Q_x = 0.27
+    Q_y = 0.34
+    beta_s = 856.9
+    Q_s = 0.001
+    energy_ref_increment = 1.2E9
+    energy_increment = 4.8E8
+    x_ref_0 = -5E-3
+    px_ref_0 = 6E-4
+    x_ref_1 = 2E-2
+    px_ref_1 = -5E-5
+    y_ref_0 = -9E-2
+    py_ref_0 = 1E-4
+    y_ref_1 = 4E-2
+    py_ref_1 = 5E-4
+    damping_matrix = np.reshape(np.random.randn(36),(6,6))
+
+    dtk_particle = dtk.TestParticles(
+            p0c=25.92e9,
+            x=1e-3,
+            px=1e-5,
+            y=-2e-3,
+            py=-1.5e-5,
+            zeta=2.,
+            delta=2E-4)
+
+    particles = xp.Particles.from_dict(dtk_particle.to_dict(),
+                                       _context=test_context)
+
+
+    arc = xt.LineSegmentMap(_context=test_context,
+        alfx=(alpha_x_0, alpha_x_1), betx=(beta_x_0, beta_x_1),
+        dx=(disp_x_0, disp_x_1), dpx=(0.0, 0.0),
+        alfy=(alpha_y_0, alpha_y_1), bety=(beta_y_0, beta_y_1),
+        dy=(disp_y_0, disp_y_1), dpy=(0.0, 0.0),
+        qx=Q_x, qy=Q_y,
+        bets=beta_s, qs=Q_s,
+        energy_ref_increment=energy_ref_increment,
+        energy_increment=energy_increment,
+        x_ref=(x_ref_0, x_ref_1), px_ref=(px_ref_0, px_ref_1),
+        y_ref=(y_ref_0, y_ref_1), py_ref=(py_ref_0, py_ref_1),
+        damping_matrix = damping_matrix)
+
+    arc.track(particles)
+
+    dtk_arc = dtk.elements.LinearTransferMatrix(alpha_x_0=alpha_x_0, beta_x_0=beta_x_0, disp_x_0=disp_x_0,
+        alpha_x_1=alpha_x_1, beta_x_1=beta_x_1, disp_x_1=disp_x_1,
+        alpha_y_0=alpha_y_0, beta_y_0=beta_y_0, disp_y_0=disp_y_0,
+        alpha_y_1=alpha_y_1, beta_y_1=beta_y_1, disp_y_1=disp_y_1,
+        Q_x=Q_x, Q_y=Q_y,
+        beta_s=beta_s, Q_s=Q_s,
+        chroma_x=0.0, chroma_y=0.0,
+        det_xx=0.0, det_xy=0.0, det_yy=0.0, det_yx=0.0,
+        energy_ref_increment=energy_ref_increment,energy_increment=energy_increment,
+        x_ref_0 = x_ref_0, px_ref_0 = px_ref_0, x_ref_1 = x_ref_1, px_ref_1 = px_ref_1,
+        y_ref_0 = y_ref_0, py_ref_0 = py_ref_0, y_ref_1 = y_ref_1, py_ref_1 = py_ref_1,
+        damping_matrix = damping_matrix)
+    dtk_arc.track(dtk_particle)
+    
     assert np.isclose(test_context.nparray_from_context_array(particles.x)[0],
                       dtk_particle.x, rtol=1e-14, atol=1e-14)
     assert np.isclose(test_context.nparray_from_context_array(particles.px)[0],
@@ -841,9 +931,17 @@ def test_simplified_accelerator_segment_uncorrelated_damping_equilibrium(test_co
     Q_y = 0.22
     beta_s = 856.9
     Q_s = 0.015
-    damping_rate_x = 5E-4
-    damping_rate_y = 1E-3
+    damping_rate_h = 5E-4
+    damping_rate_v = 1E-3
     damping_rate_s = 2E-3
+    
+    damping_rate_x = damping_rate_h/2
+    damping_rate_px = damping_rate_h/2
+    damping_rate_y = damping_rate_v/2
+    damping_rate_py = damping_rate_v/2
+    damping_rate_zeta = 0.0
+    damping_rate_pzeta = damping_rate_s
+    
     energy = 45.6
     equ_emit_x = 0.3E-9
     equ_emit_y = 1E-12
@@ -852,6 +950,13 @@ def test_simplified_accelerator_segment_uncorrelated_damping_equilibrium(test_co
     beta_s = equ_length/equ_delta
     equ_emit_s = equ_length*equ_delta
 
+    
+    gauss_noise_ampl_px = np.sqrt(equ_emit_x*damping_rate_h/beta_x_0)
+    gauss_noise_ampl_x = beta_x_0*gauss_noise_ampl_px
+    gauss_noise_ampl_py = np.sqrt(equ_emit_y*damping_rate_v/beta_y_0)
+    gauss_noise_ampl_y = beta_y_0*gauss_noise_ampl_py
+    gauss_noise_ampl_delta = np.sqrt(2*equ_emit_s*damping_rate_s/beta_s)
+    
     npart = int(1E3)
     particles = xp.Particles(_context=test_context,
                 x=np.random.randn(npart)*np.sqrt(equ_emit_x*beta_x_0),
@@ -863,7 +968,6 @@ def test_simplified_accelerator_segment_uncorrelated_damping_equilibrium(test_co
                 p0c=energy*1E9)
     particles._init_random_number_generator()
 
-
     arc = xt.LineSegmentMap(_context=test_context,
         alfx=(alpha_x_0, alpha_x_0), betx=(beta_x_0, beta_x_0),
         dx=(0.0, 0.0), dpx=(0.0, 0.0),
@@ -871,10 +975,12 @@ def test_simplified_accelerator_segment_uncorrelated_damping_equilibrium(test_co
         dy=(0.0, 0.0), dpy=(0.0, 0.0),
         qx=Q_x, qy=Q_y,
         bets=beta_s, qs=Q_s,
-        damping_rate_x = damping_rate_x,
-        damping_rate_y = damping_rate_y,
-        damping_rate_s = damping_rate_s,
-        equ_emit_x=equ_emit_x, equ_emit_y=equ_emit_y, equ_emit_s=equ_emit_s)
+        damping_rate_x=damping_rate_x,damping_rate_px=damping_rate_px,
+        damping_rate_y=damping_rate_y,damping_rate_py=damping_rate_py,
+        damping_rate_zeta=0.0,damping_rate_pzeta=damping_rate_pzeta,
+        gauss_noise_ampl_x = gauss_noise_ampl_x, gauss_noise_ampl_px = gauss_noise_ampl_px, 
+        gauss_noise_ampl_y = gauss_noise_ampl_y, gauss_noise_ampl_py = gauss_noise_ampl_py,
+        gauss_noise_ampl_zeta = 0.0, gauss_noise_ampl_pzeta = gauss_noise_ampl_delta)
 
     gamma_x = (1.0+alpha_x_0**2)/beta_x_0
     gamma_y = (1.0+alpha_y_0**2)/beta_y_0
@@ -901,6 +1007,37 @@ def test_simplified_accelerator_segment_uncorrelated_damping_equilibrium(test_co
     assert np.isclose(equ_emit_x,equ_emit_x_0, rtol=1e-1, atol=1e-10)
     assert np.isclose(equ_emit_y,equ_emit_y_0, rtol=1e-1, atol=1e-10)
     assert np.isclose(equ_emit_s,equ_emit_s_0, rtol=1e-1, atol=1e-10)
+
+
+@for_all_test_contexts
+def test_simplified_accelerator_segment_correlated_noise(test_context):
+    npart = int(1E6)
+    scale = 1E-6
+    random_matrix = np.reshape(np.random.rand(36),(6,6))
+    data = np.transpose(np.random.multivariate_normal(np.zeros(6),random_matrix,npart))
+    covariance_matrix = np.cov(data)
+
+    particles = xp.Particles(_context=test_context,
+                x=np.zeros(npart),
+                p0c=45E9)
+    particles._init_random_number_generator()
+
+    arc = xt.LineSegmentMap(_context=test_context,
+        betx=1.0, bety=1.0,bets=1.0,
+        qx=0.0, qy=0.0, qs=0.0,
+        gauss_noise_matrix=covariance_matrix*scale
+        )
+        
+    arc.track(particles)
+    data = np.zeros((6,npart))
+    data[0,:] = particles.x
+    data[1,:] = particles.px
+    data[2,:] = particles.y
+    data[3,:] = particles.py
+    data[4,:] = particles.zeta
+    data[5,:] = particles.pzeta
+    cov = np.cov(data)/scale
+    assert np.allclose(cov,covariance_matrix,atol=1E-4,rtol=1E-2)
 
 
 @for_all_test_contexts

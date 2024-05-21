@@ -1777,16 +1777,11 @@ class LineSegmentMap(BeamElement):
         'energy_ref_increment': xo.Float64,
         'energy_increment': xo.Float64,
         'uncorrelated_rad_damping': xo.Int64,
-        'damping_factor_x':xo.Float64,
-        'damping_factor_y':xo.Float64,
-        'damping_factor_s':xo.Float64,
+        'correlated_rad_damping': xo.Int64,
+        'damping_factors':xo.Float64[6,6],
         'uncorrelated_gauss_noise': xo.Int64,
-        'gauss_noise_ampl_x':xo.Float64,
-        'gauss_noise_ampl_px':xo.Float64,
-        'gauss_noise_ampl_y':xo.Float64,
-        'gauss_noise_ampl_py':xo.Float64,
-        'gauss_noise_ampl_zeta':xo.Float64,
-        'gauss_noise_ampl_delta':xo.Float64,
+        'correlated_gauss_noise': xo.Int64,
+        'gauss_noise_matrix':xo.Float64[6,6],
 
         'longitudinal_mode_flag': xo.Int64,
         'qs': xo.Float64,
@@ -1824,11 +1819,13 @@ class LineSegmentMap(BeamElement):
             dqx=0.0, dqy=0.0,
             det_xx=0.0, det_xy=0.0, det_yy=0.0, det_yx=0.0,
             energy_increment=0.0, energy_ref_increment=0.0,
-            damping_rate_x = 0.0, damping_rate_y = 0.0, damping_rate_s = 0.0,
-            equ_emit_x = 0.0, equ_emit_y = 0.0, equ_emit_s = 0.0,
+            damping_rate_x = 0.0, damping_rate_px = 0.0,
+            damping_rate_y = 0.0, damping_rate_py = 0.0,
+            damping_rate_zeta = 0.0, damping_rate_pzeta = 0.0,
             gauss_noise_ampl_x=0.0,gauss_noise_ampl_px=0.0,
             gauss_noise_ampl_y=0.0,gauss_noise_ampl_py=0.0,
-            gauss_noise_ampl_zeta=0.0,gauss_noise_ampl_delta=0.0,
+            gauss_noise_ampl_zeta=0.0,gauss_noise_ampl_pzeta=0.0,
+            damping_matrix=None,gauss_noise_matrix=None,
             **nargs):
 
         '''
@@ -1933,23 +1930,23 @@ class LineSegmentMap(BeamElement):
         energy_ref_increment : float
             Increment of the reference energy in eV.
         damping_rate_x : float
-            Horizontal damping rate on the particles motion defined such that
-            emit_x = emit_x(n=0) * exp(-damping_rate_x * n) where n is the turn
-            number. Optional, default is ``0``.
+            Damping rate of the horizontal position
+            x_n+1 = (1-damping_rate_x)*x_n. Optional, default is ``0``.
+        damping_rate_px : float
+            Damping rate of the horizontal momentum
+            px_n+1 = (1-damping_rate_px)*px_n. Optional, default is ``0``.
         damping_rate_y : float
-            Vertical damping rate on the particles motion defined such that
-            emit_y = emit_y(n=0) * exp(-damping_rate_y * n) where n is the turn
-            number. Optional, default is ``0``.
-        damping_rate_s : float
-            Longitudinal damping rate on the particles motion defined such that
-            emit_s = emit_s(n=0) * exp(-damping_rate_s * n) where n is the turn
-            number. Optional, default is ``0``.
-        equ_emit_x : float
-            Horizontal equilibrium emittance (geometric). Optional.
-        equ_emit_y : float
-            Vertical equilibrium emittance (geometric). Optional.
-        equ_emit_s : float
-            Longitudinal equilibrium emittance (geometric). Optional.
+            Damping rate of the vertical position
+            y_n+1 = (1-damping_rate_y)*y_n. Optional, default is ``0``.
+        damping_rate_py : float
+            Damping rate of the vertical momentum
+            px_n+1 = (1-damping_rate_x)*py_n. Optional, default is ``0``.
+        damping_rate_z : float
+            Damping rate of the longitudinal position
+            z_n+1 = (1-damping_rate_z)*z_n. Optional, default is ``0``.
+        damping_rate_pzeta : float
+            Damping rate on the momentum
+            pzeta_n+1 = (1-damping_rate_pzeta)*pzeta_n. Optional, default is ``0``.
         gauss_noise_ampl_x : float
             Amplitude of Gaussian noise on the horizontal position. Optional, default is ``0``.
         gauss_noise_ampl_px : float
@@ -1960,9 +1957,15 @@ class LineSegmentMap(BeamElement):
             Amplitude of Gaussian noise on the vertical momentum. Optional, default is ``0``.
         gauss_noise_ampl_zeta : float
             Amplitude of Gaussian noise on the longitudinal position. Optional, default is ``0``.
-        gauss_noise_ampl_delta : float
+        gauss_noise_ampl_pzeta : float
             Amplitude of Gaussian noise on the longitudinal momentum. Optional, default is ``0``.
-
+        damping_matrix : float[6,6]
+            Matrix of damping: Each paticles coordinate vector (x,px,y,py,zeta,pzeta) is multiplied
+            by the identity + the damping matrix. Incompatible with inputs damping_rate_*.
+            Optional, default is ``None``
+        gauss_noise_matrix : float[6,6]
+            Covariance matrix of the Gaussian noise applied in (x,px,y,py,zeta,pzeta).
+            Incompatible with inputs gauss_noise_ampl_*. Optional, default is ``None``
         '''
 
         if '_xobject' in nargs.keys() and nargs['_xobject'] is not None:
@@ -2100,61 +2103,64 @@ class LineSegmentMap(BeamElement):
         # acceleration without change of reference momentum
         nargs['energy_increment'] = energy_increment
 
-        if damping_rate_x < 0.0 or damping_rate_y < 0.0 or damping_rate_s < 0.0:
-            raise ValueError('Damping rates cannot be negative')
-        if damping_rate_x > 0.0 or damping_rate_y > 0.0 or damping_rate_s > 0.0:
+
+        assert damping_rate_x >= 0.0
+        assert damping_rate_px >= 0.0
+        assert damping_rate_y >= 0.0
+        assert damping_rate_py >= 0.0
+        assert damping_rate_zeta >= 0.0
+        assert damping_rate_pzeta >= 0.0
+        
+        if (damping_rate_x > 0.0 or damping_rate_px > 0.0
+                or damping_rate_y > 0.0 or damping_rate_py > 0.0 
+                or damping_rate_zeta > 0.0 or damping_rate_pzeta > 0.0):
+            assert damping_matrix is None
             nargs['uncorrelated_rad_damping'] = True
-            nargs['damping_factor_x'] = 1.0-damping_rate_x/2.0
-            nargs['damping_factor_y'] = 1.0-damping_rate_y/2.0
-            nargs['damping_factor_s'] = 1.0-damping_rate_s/2.0
+            nargs['correlated_rad_damping'] = False
+            nargs['damping_factors'] = np.identity(6,dtype=float)
+            nargs['damping_factors'][0,0] -= damping_rate_x
+            nargs['damping_factors'][1,1] -= damping_rate_px
+            nargs['damping_factors'][2,2] -= damping_rate_y
+            nargs['damping_factors'][3,3] -= damping_rate_py
+            nargs['damping_factors'][4,4] -= damping_rate_zeta
+            nargs['damping_factors'][5,5] -= damping_rate_pzeta
+        elif damping_matrix is not None:
+            assert np.shape(damping_matrix) == (6,6)
+            nargs['correlated_rad_damping'] = True
+            nargs['uncorrelated_rad_damping'] = False
+            nargs['damping_factors'] = np.identity(6,dtype=float)+damping_matrix
         else:
             nargs['uncorrelated_rad_damping'] = False
-
-        if equ_emit_x < 0.0 or equ_emit_y < 0.0 or equ_emit_s < 0.0:
-            raise ValueError('Equilibrium emittances cannot be negative')
-        nargs['uncorrelated_gauss_noise'] = False
-        nargs['gauss_noise_ampl_x'] = 0.0
-        nargs['gauss_noise_ampl_px'] = 0.0
-        nargs['gauss_noise_ampl_y'] = 0.0
-        nargs['gauss_noise_ampl_py'] = 0.0
-        nargs['gauss_noise_ampl_zeta'] = 0.0
-        nargs['gauss_noise_ampl_delta'] = 0.0
-
-        assert equ_emit_x >= 0.0
-        assert equ_emit_y >= 0.0
-        assert equ_emit_s >= 0.0
-
-        if equ_emit_x > 0.0:
-            assert alfx[1] == 0
-            nargs['uncorrelated_gauss_noise'] = True
-            nargs['gauss_noise_ampl_px'] = np.sqrt(equ_emit_x*damping_rate_x/betx[1])
-            nargs['gauss_noise_ampl_x'] = betx[0]*nargs['gauss_noise_ampl_px']
-        if equ_emit_y > 0.0:
-            assert alfy[1] == 0
-            nargs['uncorrelated_gauss_noise'] = True
-            nargs['gauss_noise_ampl_py'] = np.sqrt(equ_emit_y*damping_rate_y/bety[1])
-            nargs['gauss_noise_ampl_y'] = bety[0]*nargs['gauss_noise_ampl_py']
-        if equ_emit_s > 0.0:
-            nargs['uncorrelated_gauss_noise'] = True
-            nargs['gauss_noise_ampl_delta'] = np.sqrt(equ_emit_s*damping_rate_s/bets)
-            nargs['gauss_noise_ampl_zeta'] = bets*nargs['gauss_noise_ampl_delta']
+            nargs['correlated_rad_damping'] = False
 
         assert gauss_noise_ampl_x >= 0.0
         assert gauss_noise_ampl_px >= 0.0
         assert gauss_noise_ampl_y >= 0.0
         assert gauss_noise_ampl_py >= 0.0
         assert gauss_noise_ampl_zeta >= 0.0
-        assert gauss_noise_ampl_delta >= 0.0
-
-        if gauss_noise_ampl_x > 0.0 or gauss_noise_ampl_px > 0.0 or gauss_noise_ampl_y > 0.0 or gauss_noise_ampl_py > 0.0 or gauss_noise_ampl_zeta > 0.0 or gauss_noise_ampl_delta > 0.0:
+        assert gauss_noise_ampl_pzeta >= 0.0
+        if (gauss_noise_ampl_x > 0 or gauss_noise_ampl_px > 0 or
+                gauss_noise_ampl_y > 0 or gauss_noise_ampl_py > 0 or
+                gauss_noise_ampl_zeta > 0 or gauss_noise_ampl_pzeta > 0):
+            assert gauss_noise_matrix is None
             nargs['uncorrelated_gauss_noise'] = True
-            nargs['gauss_noise_ampl_x'] = np.sqrt(nargs['gauss_noise_ampl_x']**2+gauss_noise_ampl_x**2)
-            nargs['gauss_noise_ampl_px'] = np.sqrt(nargs['gauss_noise_ampl_px']**2+gauss_noise_ampl_px**2)
-            nargs['gauss_noise_ampl_y'] = np.sqrt(nargs['gauss_noise_ampl_y']**2+gauss_noise_ampl_y**2)
-            nargs['gauss_noise_ampl_py'] = np.sqrt(nargs['gauss_noise_ampl_py']**2+gauss_noise_ampl_py**2)
-            nargs['gauss_noise_ampl_zeta'] = np.sqrt(nargs['gauss_noise_ampl_zeta']**2+gauss_noise_ampl_zeta**2)
-            nargs['gauss_noise_ampl_delta'] = np.sqrt(nargs['gauss_noise_ampl_delta']**2+gauss_noise_ampl_delta**2)
-
+            nargs['correlated_gauss_noise'] = False
+            nargs['gauss_noise_matrix'] = np.zeros((6,6),dtype=float)
+            nargs['gauss_noise_matrix'][0,0] = gauss_noise_ampl_x
+            nargs['gauss_noise_matrix'][1,1] = gauss_noise_ampl_px
+            nargs['gauss_noise_matrix'][2,2] = gauss_noise_ampl_y
+            nargs['gauss_noise_matrix'][3,3] = gauss_noise_ampl_py
+            nargs['gauss_noise_matrix'][4,4] = gauss_noise_ampl_zeta
+            nargs['gauss_noise_matrix'][5,5] = gauss_noise_ampl_pzeta
+        elif gauss_noise_matrix is not None:
+            nargs['correlated_gauss_noise'] = True
+            nargs['uncorrelated_gauss_noise'] = False
+            assert np.shape(gauss_noise_matrix) == (6,6)
+            (u, s, vh) = np.linalg.svd(gauss_noise_matrix)
+            nargs['gauss_noise_matrix'] = u*np.sqrt(s)
+        else:
+            nargs['uncorrelated_gauss_noise'] = False
+            nargs['correlated_gauss_noise'] = False
         super().__init__(**nargs)
 
     @property
