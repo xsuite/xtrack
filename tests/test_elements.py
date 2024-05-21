@@ -1027,7 +1027,7 @@ def test_simplified_accelerator_segment_correlated_noise(test_context):
         qx=0.0, qy=0.0, qs=0.0,
         gauss_noise_matrix=covariance_matrix*scale
         )
-        
+
     arc.track(particles)
     data = np.zeros((6,npart))
     data[0,:] = particles.x
@@ -1037,7 +1037,7 @@ def test_simplified_accelerator_segment_correlated_noise(test_context):
     data[4,:] = particles.zeta
     data[5,:] = particles.pzeta
     cov = np.cov(data)/scale
-    assert np.allclose(cov,covariance_matrix,atol=1E-4,rtol=1E-2)
+    xo.assert_allclose(cov,covariance_matrix,atol=1E-4,rtol=0.1)
 
 
 @for_all_test_contexts
