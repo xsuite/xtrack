@@ -719,3 +719,85 @@ def test_track_log_and_merit_function(pimms_mad, test_context):
     assert np.isclose(intensity[0], intensity_before, atol=1e-14, rtol=0)
     # The last log point is from the beginning of the last turn:
     assert np.isclose(intensity[-1], intensity_after, atol=0, rtol=1e-2)
+
+
+@for_all_test_contexts
+def test_init_io_buffer(test_context):
+    class TestElementRecord(xo.HybridClass):
+        _xofields = {
+            '_index': xt.RecordIndex,
+            'record_field': xo.Int64[:],
+        }
+
+    class TestElement(xt.BeamElement):
+        _xofields={
+            'element_field': xo.Int64,
+        }
+
+        _internal_record_class = TestElementRecord
+
+        _extra_c_sources = [
+            r'''
+            /*gpufun*/
+            void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
+                // Extract the record and record_index
+                TestElementRecordData record = TestElementData_getp_internal_record(el, part0);
+                RecordIndex record_index = NULL;
+                if (record){
+                    record_index = TestElementRecordData_getp__index(record);
+                }
+
+                int64_t elem_field = TestElementData_get_element_field(el);
+
+                //start_per_particle_block (part0->part)
+                    if (record) {  // Record exists
+                        // Get a slot in the record (this is thread safe)
+                        int64_t i_slot = RecordIndex_get_slot(record_index);
+
+                        if (i_slot>=0) {  // Slot available
+                            TestElementRecordData_set_record_field(
+                                record,
+                                i_slot,
+                                elem_field
+                            );
+                        }
+                    }
+                //end_per_particle_block
+            }
+            '''
+        ]
+
+    line = xt.Line(elements=[
+        TestElement(element_field=3),
+        TestElement(element_field=4),
+    ])
+    line.build_tracker(_context=test_context)
+
+    record = line.start_internal_logging_for_elements_of_type(
+        TestElement,
+        capacity=1000,
+    )
+
+    num_turns = 100
+
+    part = xp.Particles(_context=test_context, x=[1e-3, 2e-3, 3e-3])
+    line.track(part, num_turns=num_turns)
+
+    num_recorded = record._index.num_recorded
+    num_particles = len(part.x)
+
+    record.move(_context=xo.ContextCpu())
+
+    assert num_recorded == (2 * num_particles * num_turns)
+    assert np.all(
+        record.record_field[:num_recorded] ==
+        (([3] * num_particles) + ([4] * num_particles)) * num_turns
+    )
+    assert np.all(record.record_field[num_recorded:] == 0)
+
+    # Now we stop logging and manually reset to mimic the situation where the
+    # record is manually flushed.
+    line.stop_internal_logging_for_elements_of_type(TestElement)
+    line.tracker._init_io_buffer()
+
+    assert line.tracker.io_buffer is not None
