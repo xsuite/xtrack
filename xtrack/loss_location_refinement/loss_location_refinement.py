@@ -10,7 +10,8 @@ import xobjects as xo
 import xtrack as xt
 
 from ..beam_elements import LimitPolygon, XYShift, SRotation, Drift, Marker
-from ..line import Line, _is_thick, _behaves_like_drift, _allow_backtrack
+from ..line import (Line, _is_thick, _behaves_like_drift, _allow_loss_refinement,
+                    _has_backtrack, _is_aperture)
 
 from ..general import _print
 
@@ -19,7 +20,9 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
 
 
-def _skip_in_loss_location_refinement(element):
+def _skip_in_loss_location_refinement(element, line):
+    if isinstance(element, xt.Replica):
+        return _skip_in_loss_location_refinement(element.resolve(line), line)
     return (hasattr(element, 'skip_in_loss_location_refinement')
             and element.skip_in_loss_location_refinement)
 
@@ -49,7 +52,7 @@ class LossLocationRefinement:
         If True, the lines used to refine the loss location are saved.
     allowed_backtrack_types : list
         List of element types through which the backtracking is allowed.
-        Elements exposing the attribute `allow_backtrack` are automatically
+        Elements exposing the attribute `allow_loss_refinement` are automatically
         added to the list.
 
     '''
@@ -82,7 +85,10 @@ class LossLocationRefinement:
                                           y_out=na([2]), z_out=na([0]))
 
         # Build track kernel with all elements + polygon
-        ln_gen = Line(elements=self.line.elements + (temp_poly,))
+        elm_gen = self.line.element_dict.copy()
+        elm_gen['_xtrack_temp_poly_'] = temp_poly
+        ln_gen = Line(elements=elm_gen,
+                      element_names=list(line.element_names) + ['_xtrack_temp_poly_'])
         ln_gen.build_tracker(_buffer=self.line._buffer)
         ln_gen.config.XTRACK_GLOBAL_XY_LIMIT = line.config.XTRACK_GLOBAL_XY_LIMIT
         self._ln_gen = ln_gen
@@ -143,7 +149,7 @@ class LossLocationRefinement:
 
                 if (not(presence_shifts_rotations) and
                    apertures_are_identical(self.line.elements[i_aper_0],
-                                           self.line.elements[i_aper_1])):
+                                           self.line.elements[i_aper_1], self.line)):
 
                     logger.debug('Replicate mode')
                     (interp_line, i_end_thin_0, i_start_thin_1, s0, s1
@@ -192,7 +198,14 @@ def check_for_active_shifts_and_rotations(line, i_aper_0, i_aper_1):
                 break
     return presence_shifts_rotations
 
-def apertures_are_identical(aper1, aper2):
+
+def apertures_are_identical(aper1, aper2, line):
+
+    if isinstance(aper1, xt.Replica):
+        aper1 = aper1.resolve(line)
+
+    if isinstance(aper2, xt.Replica):
+        aper2 = aper2.resolve(line)
 
     if aper1.__class__ != aper2.__class__:
         return False
@@ -211,11 +224,12 @@ def find_apertures(ln_gen):
     i_apertures = []
     apertures = []
     for ii, ee in enumerate(ln_gen.elements):
-        if ee.__class__.__name__.startswith('Limit'):
+        if _is_aperture(ee, ln_gen):
             i_apertures.append(ii)
             apertures.append(ee)
 
     return i_apertures, apertures
+
 
 def refine_loss_location_single_aperture(particles, i_aper_1, i_end_thin_0,
                     line, interp_line,
@@ -245,9 +259,20 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_end_thin_0,
     for nn in interp_line._original_line.element_names[i_start : i_stop]:
         ee = interp_line._original_line.element_dict[nn]
 
-        if ((hasattr(ee, 'has_backtrack') and not ee.has_backtrack) or
-            (not _allow_backtrack(ee) and not isinstance(ee, tuple(allowed_backtrack_types)))):
-            if _skip_in_loss_location_refinement(ee):
+        can_backtrack = True
+        if not _has_backtrack(ee, line):
+            can_backtrack = False
+        elif not _allow_loss_refinement(ee, line):
+            can_backtrack = False
+
+            # Check for override
+            if isinstance(ee, xt.Replica):
+                ee = ee.resolve(line)
+            if isinstance(ee, tuple(allowed_backtrack_types)):
+                can_backtrack = True
+
+        if not can_backtrack:
+            if _skip_in_loss_location_refinement(ee, line):
                 return 'skipped'
             raise TypeError(
                 f'Cannot backtrack through element {nn} of type '
@@ -385,8 +410,8 @@ def build_interp_line(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
 
     for i_ele in range(i_start_thin_0+1, i_start_thin_1):
         ee = line.elements[i_ele]
-        if not _behaves_like_drift(ee):
-            assert not _is_thick(ee)
+        if not _behaves_like_drift(ee, line):
+            assert not _is_thick(ee, line)
             ss_ee = line.tracker._tracker_data_base.element_s_locations[i_ele]
             elements.append(ee.copy(_buffer=_buffer))
             s_elements.append(ss_ee)
@@ -427,11 +452,13 @@ def find_adjacent_drift(line, i_element, direction):
         increment = 1
     while not(found):
         ee = line.element_dict[line.element_names[ii]]
+        if isinstance(ee, xt.Replica):
+            ee = ee.resolve(line)
         ccnn = ee.__class__.__name__
         #_print(ccnn)
-        if ccnn == 'Drift':
+        if ccnn.startswith('Drift'):
             found = True
-        elif _behaves_like_drift(ee):
+        elif _behaves_like_drift(ee, line):
             found = True
         else:
             ii += increment
@@ -444,11 +471,12 @@ def find_previous_drift(line, i_aperture):
     found = False
     while not(found):
         ee = line.element_dict[line.element_names[ii]]
+        if isinstance(ee, xt.Replica):
+            ee = ee.resolve(line)
         ccnn = ee.__class__.__name__
-        #_print(ccnn)
         if ccnn == 'Drift':
             found = True
-        elif _behaves_like_drift(ee):
+        elif _behaves_like_drift(ee, line):
             found = True
         else:
             ii -= 1
@@ -475,7 +503,7 @@ def characterize_aperture(line, i_aperture, n_theta, r_max, dr,
         i_stop = find_adjacent_drift(line, i_aperture, 'downstream')
         i_start = i_aperture
         backtrack = 'force'
-        assert np.all([ee.has_backtrack for ee in
+        assert np.all([_has_backtrack(ee, line) for ee in
                 line.tracker._tracker_data_base.elements[i_start:i_stop+1]])
         index_start_thin = i_stop - 1
 

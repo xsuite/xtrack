@@ -7,14 +7,13 @@ collider['lhcb2'].twiss_default['method'] = '4d'
 
 line = collider.lhcb1
 
-tw = line.twiss(only_markers=True)
+tw = line.twiss()
 
 init = xt.TwissInit(betx=0.15, bety=0.15,
                            ax_chrom=42.7928, bx_chrom=-18.4181,
                            ay_chrom=-18.0191, by_chrom= 11.54862)
 tw_open = line.twiss(start='ip5', end='ip7', init=init,
-                        compute_chromatic_properties=True,
-                        only_markers=True)
+                        compute_chromatic_properties=True)
 
 import matplotlib.pyplot as plt
 plt.close('all')

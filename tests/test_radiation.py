@@ -143,7 +143,7 @@ def test_ring_with_radiation(test_context):
     from cpymad.madx import Madx
 
     # Import thick sequence
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     # CLIC-DR
     mad.call(str(test_data_folder.joinpath('clic_dr/sequence.madx')))
@@ -162,6 +162,7 @@ def test_ring_with_radiation(test_context):
     mad.input(f'''
     select, flag=MAKETHIN, SLICE=4, thick=false;
     select, flag=MAKETHIN, pattern=wig, slice=1;
+    select, flag=makethin, class=rfcavity, slice=1;
     MAKETHIN, SEQUENCE=ring, MAKEDIPEDGE=true;
     use, sequence=RING;
     ''')

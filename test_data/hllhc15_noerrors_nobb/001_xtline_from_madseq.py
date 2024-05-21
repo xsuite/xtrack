@@ -19,7 +19,7 @@ import xobjects as xo
 
 line = xt.Line.from_madx_sequence(sequence=mad.sequence.lhcb1)
 for nn, ee in zip(line.element_names, line.elements):
-    if nn.startswith('acs'):
+    if nn.startswith('acs') and hasattr(ee, 'voltage'):
         assert ee.__class__.__name__ == 'Cavity'
         ee.voltage = 1e6
         ee.frequency = 400e6

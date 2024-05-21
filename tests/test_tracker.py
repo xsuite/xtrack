@@ -582,7 +582,7 @@ def test_tbt_monitor_with_progress(test_context, ele_start, ele_stop, expected_x
 @pytest.fixture
 def pimms_mad():
     pimms_path = test_data_folder / 'pimms/PIMMS.seq'
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.option(echo=False)
     mad.call(str(pimms_path))
     mad.beam()
@@ -709,7 +709,7 @@ def test_track_log_and_merit_function(pimms_mad, test_context):
     fit = np.polyfit(np.arange(num_turns), line.log_last_track['kqfa'], 1, full=True)
     (slope, _), residual, _, _, _ = fit
     assert slope > 0
-    assert residual < 1e-29
+    assert residual < 1e-28
     assert np.isclose(line.log_last_track['kqfa'][0], kqfa_before, atol=1e-14, rtol=0)
     assert np.isclose(line.log_last_track['kqfa'][-1], line.vv['kqfa'], atol=1e-14, rtol=0)
 

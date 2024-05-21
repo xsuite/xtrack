@@ -8,7 +8,7 @@ from .general import _pkg_root, _print
 from .particles import (Particles, PROTON_MASS_EV, ELECTRON_MASS_EV,
                         enable_pyheadtail_interface, disable_pyheadtail_interface)
 
-from .base_element import BeamElement
+from .base_element import BeamElement, Replica
 from .beam_elements import *
 from .random import *
 from .tracker_data import TrackerData
@@ -37,11 +37,12 @@ from .multisetter import MultiSetter
 from .footprint import Footprint, LinearRescale
 
 # Flags and test functions
-from .line import _is_drift, _behaves_like_drift, _is_aperture, _is_thick, _allow_backtrack
+from .line import _is_drift, _behaves_like_drift, _is_aperture, _is_thick, _allow_loss_refinement
 from .line import _lines_equal, _apertures_equal
 
 from .slicing import Strategy, Uniform, Teapot
 from .loss_location_refinement import _skip_in_loss_location_refinement
+from .trajectory_correction import TrajectoryCorrection
 
 from xdeps import Table, FunctionPieceWiseLinear
 

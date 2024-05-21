@@ -12,48 +12,38 @@ void Sextupole_track_local_particle(
         LocalParticle* part0
 ) {
     double length = SextupoleData_get_length(el);
+    double backtrack_sign = 1;
 
     #ifdef XSUITE_BACKTRACK
         length = -length;
+        backtrack_sign = -1;
     #endif
 
     double const k2 = SextupoleData_get_k2(el);
     double const k2s = SextupoleData_get_k2s(el);
 
-    double const knl2 = k2 * length;
-    double const ksl2 = k2s * length;
+    double const knl_sext[3] = {0., 0., backtrack_sign * k2 * length};
+    double const ksl_sext[3] = {0., 0., backtrack_sign * k2s * length};
+
+    const int64_t order = SextupoleData_get_order(el);
+    const double inv_factorial_order = SextupoleData_get_inv_factorial_order(el);
+    /*gpuglmem*/ const double *knl = SextupoleData_getp1_knl(el, 0);
+    /*gpuglmem*/ const double *ksl = SextupoleData_getp1_ksl(el, 0);
 
     //start_per_particle_block (part0->part)
 
         // Drift
         Drift_single_particle(part, length / 2.);
 
-        // Sextupolar kick
-        int64_t index = 2;
-        double const inv_factorial = 0.5; // 1 / factorial(2)
-        double dpx = knl2 * inv_factorial;
-        double dpy = ksl2 * inv_factorial;
-
-        double const x   = LocalParticle_get_x(part);
-        double const y   = LocalParticle_get_y(part);
-        double const chi = LocalParticle_get_chi(part);
-
-        while( index > 0 )
-        {
-            double const zre = dpx * x - dpy * y;
-            double const zim = dpx * y + dpy * x;
-
-            index -= 1;
-
-            dpx = zre;
-            dpy = zim;
-        }
-
-        dpx = -chi * dpx; // rad
-        dpy =  chi * dpy; // rad
-
-        LocalParticle_add_to_px(part, dpx);
-        LocalParticle_add_to_py(part, dpy);
+        Multipole_track_single_particle(part,
+            0., length, 1, // weight 1
+            knl, ksl, order, inv_factorial_order,
+            knl_sext, ksl_sext, 2, 0.5,
+            backtrack_sign,
+            0, 0,
+            NULL, NULL, NULL,
+            NULL, NULL, NULL,
+            NULL, NULL);
 
         // Drift
         Drift_single_particle(part, length / 2.);

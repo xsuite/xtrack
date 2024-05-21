@@ -33,6 +33,9 @@ aper_1 = xt.LimitRect(_buffer=buf, min_x=-1e-2, max_x=1e-2,
                                    min_y=-2e-2, max_y=2e-2)
 shift_aper_1 = (-5e-3, 1e-2)
 rot_deg_aper_1 = 10.
+aper_1.shift_x = shift_aper_1[0]
+aper_1.shift_y = shift_aper_1[1]
+aper_1.rot_s_rad = np.deg2rad(rot_deg_aper_1)
 
 
 # aper_0_sandwitch
@@ -47,12 +50,9 @@ line_aper_0.build_tracker(_buffer=buf)
 
 # aper_1_sandwitch
 line_aper_1 = xt.Line(
-    elements=[xt.XYShift(_buffer=buf, dx=shift_aper_1[0], dy=shift_aper_1[1]),
-              xt.SRotation(_buffer=buf, angle=rot_deg_aper_1),
-              aper_1,
-              xt.Multipole(_buffer=buf, knl=[0.001]),
-              xt.SRotation(_buffer=buf, angle=-rot_deg_aper_1),
-              xt.XYShift(_buffer=buf, dx=-shift_aper_1[0], dy=-shift_aper_1[1])])
+    elements=[aper_1,
+              xt.Multipole(_buffer=buf, knl=[0.001])
+        ])
 line_aper_1.build_tracker(_buffer=buf)
 
 #################

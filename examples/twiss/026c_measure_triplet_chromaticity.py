@@ -8,7 +8,7 @@ collider['lhcb2'].twiss_default['method'] = '4d'
 line = collider.lhcb1
 line.cycle('ip3', inplace=True)
 
-tw = line.twiss(only_markers=True)
+tw = line.twiss()
 
 
 # Measure chromaticities of ITL5

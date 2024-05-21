@@ -4,6 +4,7 @@
 # ######################################### #
 
 import logging
+import pytest
 
 import numpy as np
 
@@ -100,8 +101,11 @@ def test_collimation_infrastructure():
 
         assert parent_x == particles.x[ii]
 
-
-def test_aperture_refinement():
+@pytest.mark.parametrize(
+    'sandwitch_aper',
+    [True, False],
+    ids=['sadwitch_aper', 'no_sadwitch_aper'])
+def test_aperture_refinement(sandwitch_aper):
     n_part=10000
     shift_x = 0.3e-2
     shift_y = 0.5e-2
@@ -123,22 +127,36 @@ def test_aperture_refinement():
     rot_deg_aper_1 = 10.
 
     # aper_0_sandwitch
-    line_aper_0 = xt.Line(
-        elements=[xt.XYShift(_buffer=buf, dx=shift_aper_0[0], dy=shift_aper_0[1]),
-                  xt.SRotation(_buffer=buf, angle=rot_deg_aper_0),
-                  aper_0,
-                  xt.Multipole(_buffer=buf, knl=[0.00]),
-                  xt.SRotation(_buffer=buf, angle=-rot_deg_aper_0),
-                  xt.XYShift(_buffer=buf, dx=-shift_aper_0[0], dy=-shift_aper_0[1])])
-    line_aper_0.build_tracker(_buffer=buf)
-    # aper_1_sandwitch
-    line_aper_1 = xt.Line(
-        elements=[xt.XYShift(_buffer=buf, dx=shift_aper_1[0], dy=shift_aper_1[1]),
-                  xt.SRotation(_buffer=buf, angle=rot_deg_aper_1),
-                  aper_1,
-                  xt.Multipole(_buffer=buf, knl=[0.00]),
-                  xt.SRotation(_buffer=buf, angle=-rot_deg_aper_1),
-                  xt.XYShift(_buffer=buf, dx=-shift_aper_1[0], dy=-shift_aper_1[1])])
+    if sandwitch_aper:
+        line_aper_0 = xt.Line(
+            elements=[xt.XYShift(_buffer=buf, dx=shift_aper_0[0], dy=shift_aper_0[1]),
+                    xt.SRotation(_buffer=buf, angle=rot_deg_aper_0),
+                    aper_0,
+                    xt.Multipole(_buffer=buf, knl=[0.00]),
+                    xt.SRotation(_buffer=buf, angle=-rot_deg_aper_0),
+                    xt.XYShift(_buffer=buf, dx=-shift_aper_0[0], dy=-shift_aper_0[1])])
+        line_aper_0.build_tracker(_buffer=buf)
+        # aper_1_sandwitch
+        line_aper_1 = xt.Line(
+            elements=[xt.XYShift(_buffer=buf, dx=shift_aper_1[0], dy=shift_aper_1[1]),
+                    xt.SRotation(_buffer=buf, angle=rot_deg_aper_1),
+                    aper_1,
+                    xt.Multipole(_buffer=buf, knl=[0.00]),
+                    xt.SRotation(_buffer=buf, angle=-rot_deg_aper_1),
+                    xt.XYShift(_buffer=buf, dx=-shift_aper_1[0], dy=-shift_aper_1[1])])
+    else:
+        aper_0.shift_x = shift_aper_0[0]
+        aper_0.shift_y = shift_aper_0[1]
+        aper_0.rot_s_rad = np.deg2rad(rot_deg_aper_0)
+        line_aper_0 = xt.Line(
+            elements=[aper_0, xt.Multipole(_buffer=buf, knl=[0.0])])
+        line_aper_0.build_tracker(_buffer=buf)
+        aper_1.shift_x = shift_aper_1[0]
+        aper_1.shift_y = shift_aper_1[1]
+        aper_1.rot_s_rad = np.deg2rad(rot_deg_aper_1)
+        line_aper_1 = xt.Line(
+            elements=[aper_1, xt.Multipole(_buffer=buf, knl=[0.00])])
+
     line_aper_1.build_tracker(_buffer=buf)
 
     # Build example line
