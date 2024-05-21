@@ -72,11 +72,12 @@ ring_map = xt.LineSegmentMap(
     gauss_noise_ampl_pzeta=gauss_noise_ampl_delta,
 )
 
-# Build particles
+# Build particles (all at the same position)
+num_particles = 1000
 part = xt.Particles(
-    x=[10 * np.sqrt(equ_emit_x * beta_x)],
-    y=[10 * np.sqrt(equ_emit_y * beta_y)],
-    pzeta=[10 * np.sqrt(equ_delta / beta_s)],
+    x=num_particles * [2 * np.sqrt(equ_emit_x * beta_x)],
+    y=num_particles * [2 * np.sqrt(equ_emit_y * beta_y)],
+    pzeta=num_particles * [0.15 * np.sqrt(equ_delta / beta_s)],
     p0c=energy * 1e9,
 )
 # Initialize random number generator
@@ -87,24 +88,26 @@ line = xt.Line(elements=[ring_map])
 line.build_tracker()
 
 # Track!
-num_turns = 100_000
-line.track(part, num_turns=num_turns, turn_by_turn_monitor=True)
+num_turns = 40_000
+line.track(part, num_turns=num_turns,
+           turn_by_turn_monitor=True, with_progress=True)
 
 # Compute emittances from tracking data
 emit_x = 0.5 * (
-    gamma_x * line.record_last_track.x[0, :] ** 2
+    gamma_x * line.record_last_track.x ** 2
     + 2 * alpha_x *
-    line.record_last_track.x[0, :] * line.record_last_track.px[0, :]
-    + beta_x * line.record_last_track.px[0, :] ** 2
-)
+    line.record_last_track.x * line.record_last_track.px[0, :]
+    + beta_x * line.record_last_track.px ** 2
+).mean(axis=0)
 emit_y = 0.5 * (
-    gamma_y * line.record_last_track.y[0, :] ** 2
+    gamma_y * line.record_last_track.y ** 2
     + 2 * alpha_y *
-    line.record_last_track.y[0, :] * line.record_last_track.py[0, :]
-    + beta_y * line.record_last_track.py[0, :] ** 2
-)
-emit_s = 0.5 * (line.record_last_track.zeta[0, :] ** 2 /
-                beta_s + beta_s * line.record_last_track.delta[0, :] ** 2)
+    line.record_last_track.y * line.record_last_track.py[0, :]
+    + beta_y * line.record_last_track.py ** 2
+).mean(axis=0)
+emit_s = 0.5 * (line.record_last_track.zeta ** 2 /
+                beta_s + beta_s * line.record_last_track.delta ** 2
+                ).mean(axis=0)
 
 # Get equilibrium emittances by averaging last turns
 averga_start = 30_000
@@ -114,26 +117,30 @@ emit_s_0 = np.average(emit_s[averga_start:])
 
 # Expected emittance evolution
 turns = np.arange(num_turns)
-eps_x_expected = emit_x[0] * np.exp(-damping_rate_h * turns)
-eps_y_expected = emit_y[0] * np.exp(-damping_rate_v * turns)
-eps_s_expected = emit_s[0] * np.exp(-damping_rate_s * turns)
+eps_x_expected = (emit_x[0] - emit_x_0) * \
+    np.exp(-damping_rate_h * turns) + emit_x_0
+eps_y_expected = (emit_y[0] - emit_y_0) * \
+    np.exp(-damping_rate_v * turns) + emit_y_0
+eps_s_expected = (emit_s[0] - emit_s_0) * \
+    np.exp(-damping_rate_s * turns) + emit_s_0
 
 # Plot
 plt.close("all")
 
-plt.figure(10)
+plt.figure(1)
 sp1 = plt.subplot(311)
 plt.plot(turns, emit_x)
 plt.plot(turns, eps_x_expected, "--r", label="expected")
-plt.plot([turns[0], turns[-1]], [emit_x_0, emit_x_0],
-         "--g", label="equilibrium")
+plt.axhline(y=emit_x_0, linestyle='--', color='g', label="equilibrium")
 plt.ylabel(r"$\epsilon_x$ [m]")
+plt.ylim(bottom=0)
 plt.legend()
 
 plt.subplot(312, sharex=sp1)
 plt.plot(turns, emit_y)
 plt.plot(turns, eps_y_expected, "--r")
 plt.plot([turns[0], turns[-1]], [emit_y_0, emit_y_0], "--g")
+plt.ylim(bottom=0)
 plt.ylabel(r"$\epsilon_y$ [m]")
 
 plt.subplot(313, sharex=sp1)
@@ -141,6 +148,7 @@ plt.plot(turns, emit_s)
 plt.plot(turns, eps_s_expected, "--r")
 plt.plot([turns[0], turns[-1]], [emit_s_0, emit_s_0], "--g")
 plt.ylabel(r"$\epsilon_s$ [m]")
+plt.ylim(bottom=0)
 plt.xlabel("turn")
 
 plt.show()
