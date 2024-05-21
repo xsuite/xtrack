@@ -1030,6 +1030,7 @@ def test_simplified_accelerator_segment_correlated_noise(test_context):
 
     arc.track(particles)
     data = np.zeros((6,npart))
+    particles.move(_context=xo.context_default)
     data[0,:] = particles.x
     data[1,:] = particles.px
     data[2,:] = particles.y
