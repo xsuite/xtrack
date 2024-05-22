@@ -511,7 +511,7 @@ def test_periodic_cell_twiss(test_context):
         assert np.isclose(tw_cell_periodic.dqx, dqx_expected, rtol=0, atol=1e-4)
         assert np.isclose(tw_cell_periodic.dqy, dqy_expected, rtol=0, atol=1e-4)
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='function')
 def collider_for_test_twiss_range():
 
     collider = xt.Multiline.from_json(test_data_folder /
@@ -1671,3 +1671,54 @@ def test_twiss_strength_reverse_vs_madx(test_context):
 
     assert_allclose(twm1['k5sl', 'mctsxf.3r1:1'], tw.lhcb1['k5sl', 'mctsxf.3r1'], rtol=0, atol=1e-14)
     assert_allclose(twm2['k5sl', 'mctsxf.3r1:1'], tw.lhcb2['k5sl', 'mctsxf.3r1'], rtol=0, atol=1e-14)
+
+
+@for_all_test_contexts
+@pytest.mark.parametrize('line_name', ['lhcb1'])
+@pytest.mark.parametrize('reverse', [False, True])
+@pytest.mark.parametrize('section', [
+    (xt.START, xt.END),
+    (xt.START, '_end_point'),
+])
+def test_twiss_range_start_end(test_context, line_name, reverse, section, collider_for_test_twiss_range):
+    collider = collider_for_test_twiss_range
+    init_at = 'ip5'
+
+    collider.vars['on_x5hs'] = 200
+    collider.vars['on_x5vs'] = 123
+    collider.vars['on_sep5h'] = 1
+    collider.vars['on_sep5v'] = 2
+
+    line = collider[line_name]
+
+    if isinstance(test_context, xo.ContextCpu) and (
+        test_context.omp_num_threads != line._context.omp_num_threads):
+        buffer = test_context.new_buffer()
+    elif isinstance(test_context, line._context.__class__):
+        buffer = line._buffer
+    else:
+        buffer = test_context.new_buffer()
+
+    line.build_tracker(_buffer=buffer)
+
+    tw = line.twiss()
+    tw_init = tw.get_twiss_init(init_at)
+
+    start = section[0]
+    end = section[1]
+    if not reverse:
+        tw_test = line.twiss(start=start, end=end, init=tw_init, reverse=reverse)
+    else:
+        with pytest.raises(ValueError) as excinfo:
+            line.twiss(start=start, end=end, init=tw_init, reverse=reverse)
+        assert 'reverse' in str(excinfo.value)
+        return
+
+    start_el = line.element_names[0]
+    end_el = line.element_names[-1]
+    tw_ref = line.twiss(start=start_el, end=end_el, init=tw_init, reverse=reverse)
+
+    for kk in tw_test._data.keys():
+        if kk in ('particle_on_co', '_action'):
+            continue
+        assert np.all(tw_test._data[kk] == tw_ref._data[kk])
