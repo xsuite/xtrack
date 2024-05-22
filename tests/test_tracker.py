@@ -727,6 +727,7 @@ def test_init_io_buffer(test_context):
         _xofields = {
             '_index': xt.RecordIndex,
             'record_field': xo.Int64[:],
+            'record_at_element': xo.Int64[:],
         }
 
     class TestElement(xt.BeamElement):
@@ -760,6 +761,11 @@ def test_init_io_buffer(test_context):
                                 i_slot,
                                 elem_field
                             );
+                            TestElementRecordData_set_record_at_element(
+                                record,
+                                i_slot,
+                                LocalParticle_get_at_element(part)
+                            );
                         }
                     }
                 //end_per_particle_block
@@ -789,10 +795,12 @@ def test_init_io_buffer(test_context):
     record.move(_context=xo.ContextCpu())
 
     assert num_recorded == (2 * num_particles * num_turns)
-    assert np.all(
-        record.record_field[:num_recorded] ==
-        (([3] * num_particles) + ([4] * num_particles)) * num_turns
-    )
+    assert np.sum(record.record_field == 3) == num_particles * num_turns
+    assert np.sum(record.record_field == 4) == num_particles * num_turns
+    assert np.all(record.record_field[:num_recorded][
+                    record.record_at_element[:num_recorded] == 0] == 3)
+    assert np.all(record.record_field[:num_recorded][
+                    record.record_at_element[:num_recorded] == 1] == 4)
     assert np.all(record.record_field[num_recorded:] == 0)
 
     # Now we stop logging and manually reset to mimic the situation where the
