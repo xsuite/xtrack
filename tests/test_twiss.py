@@ -1679,6 +1679,8 @@ def test_twiss_strength_reverse_vs_madx(test_context):
 @pytest.mark.parametrize('section', [
     (xt.START, xt.END),
     (xt.START, '_end_point'),
+    (xt.START, 'ip6'),
+    ('ip4', xt.END),
 ])
 def test_twiss_range_start_end(test_context, line_name, reverse, section, collider_for_test_twiss_range):
     collider = collider_for_test_twiss_range
@@ -1714,8 +1716,8 @@ def test_twiss_range_start_end(test_context, line_name, reverse, section, collid
         assert 'reverse' in str(excinfo.value)
         return
 
-    start_el = line.element_names[0]
-    end_el = line.element_names[-1]
+    start_el = (line.element_names[0] if start == xt.START else start)
+    end_el = (line.element_names[-1] if (end == xt.END or end == '_end_point') else end)
     tw_ref = line.twiss(start=start_el, end=end_el, init=tw_init, reverse=reverse)
 
     for kk in tw_test._data.keys():
