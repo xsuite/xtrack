@@ -511,7 +511,7 @@ def test_periodic_cell_twiss(test_context):
         assert np.isclose(tw_cell_periodic.dqx, dqx_expected, rtol=0, atol=1e-4)
         assert np.isclose(tw_cell_periodic.dqy, dqy_expected, rtol=0, atol=1e-4)
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope='module')
 def collider_for_test_twiss_range():
 
     collider = xt.Multiline.from_json(test_data_folder /
@@ -538,6 +538,7 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
     if collider_for_test_twiss_range is not None:
         collider = collider_for_test_twiss_range
     else:
+        raise ValueError('This should not happen')
         collider = xt.Multiline.from_json(test_data_folder /
                         'hllhc15_thick/hllhc15_collider_thick.json')
         collider.lhcb1.twiss_default['method'] = '4d'
@@ -1692,6 +1693,11 @@ def test_twiss_range_start_end(test_context, line_name, reverse, section, collid
     collider.vars['on_sep5v'] = 2
 
     line = collider[line_name]
+
+    if collider.lhcb1.element_names[0] != 'ip3':
+        collider.lhcb1.cycle('ip3', inplace=True)
+    if collider.lhcb2.element_names[0] != 'ip3':
+        collider.lhcb2.cycle('ip3', inplace=True)
 
     if isinstance(test_context, xo.ContextCpu) and (
         test_context.omp_num_threads != line._context.omp_num_threads):
