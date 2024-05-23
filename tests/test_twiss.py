@@ -1729,4 +1729,5 @@ def test_twiss_range_start_end(test_context, line_name, reverse, section, collid
     for kk in tw_test._data.keys():
         if kk in ('particle_on_co', '_action'):
             continue
-        assert np.all(tw_test._data[kk] == tw_ref._data[kk])
+        assert np.all(tw_test._data[kk] == tw_ref._data[kk]), (
+            'Issues with variable: ' + kk)
