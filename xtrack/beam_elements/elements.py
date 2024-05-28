@@ -1185,6 +1185,7 @@ class Quadrupole(BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
         'ksl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
+        'with_fringes': xo.UInt8,
     }
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
@@ -1198,6 +1199,7 @@ class Quadrupole(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/track_multipolar_components.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_srotation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_quadrupole.h'),
         _pkg_root.joinpath('beam_elements/elements_src/quadrupole.h'),
     ]
