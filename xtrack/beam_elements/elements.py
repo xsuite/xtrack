@@ -2,6 +2,7 @@
 # This file is part of the Xtrack Package.  #
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
+from typing import List
 
 import numpy as np
 from numbers import Number
@@ -599,7 +600,7 @@ class Multipole(BeamElement):
 
     has_backtrack = True
 
-    def __init__(self, order=None, knl=None, ksl=None, **kwargs):
+    def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
 
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
@@ -1278,11 +1279,23 @@ class Solenoid(BeamElement):
         'ks': xo.Float64,
         'ksi': xo.Float64,
         'radiation_flag': xo.Int64,
+        'num_multipole_kicks': xo.Int64,
+        'order': xo.Int64,
+        'inv_factorial_order': xo.Float64,
+        'knl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
+        'ksl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
+    }
+
+    _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
+
+    _rename = {
+        'order': '_order',
     }
 
     _extra_c_sources = [
         _pkg_root.joinpath('headers/synrad_spectrum.h'),
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_multipolar_components.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_solenoid.h'),
         _pkg_root.joinpath('beam_elements/elements_src/solenoid.h'),
     ]
@@ -1303,6 +1316,12 @@ class Solenoid(BeamElement):
             when the element is thin, i.e. when `length` is 0.
         ksi : float
             Integrated strength of the solenoid component in rad.
+        knl : array
+            Integrated strength of the high-order normal multipolar components.
+        ksl : array
+            Integrated strength of the high-order skew multipolar components.
+        order : int
+            Order of the multipole expansion.
         """
         if kwargs.get('_xobject') is not None:
             super().__init__(**kwargs)
@@ -1319,7 +1338,28 @@ class Solenoid(BeamElement):
                 "The parameter `ksi` can only be specified when `length` == 0."
             )
 
+        knl = kwargs.get('knl', np.array([]))
+        ksl = kwargs.get('ksl', np.array([]))
+        order_from_kl = max(len(knl), len(ksl)) - 1
+        order = kwargs.get('order', max(ALLOCATED_MULTIPOLE_ORDER, order_from_kl))
+
+        kwargs['knl'] = np.pad(knl,
+                        (0, ALLOCATED_MULTIPOLE_ORDER + 1 - len(knl)), 'constant')
+        kwargs['ksl'] = np.pad(ksl,
+                        (0, ALLOCATED_MULTIPOLE_ORDER + 1 - len(ksl)), 'constant')
+
         self.xoinitialize(**kwargs)
+
+        self.order = order
+
+    @property
+    def order(self):
+        return self._order
+
+    @order.setter
+    def order(self, value):
+        self._order = value
+        self.inv_factorial_order = 1.0 / factorial(value, exact=True)
 
     @property
     def _thick_slice_class(self):
