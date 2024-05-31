@@ -13,12 +13,14 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
     double length = SolenoidData_get_length(el);
     double ks = SolenoidData_get_ks(el);
     int64_t radiation_flag = SolenoidData_get_radiation_flag(el);
+    double factor_knl_ksl = 1;
 
     #ifdef XSUITE_BACKTRACK
         length = -length;
+        factor_knl_ksl = -1;
     #endif
 
-    #ifndef XTRACK_SOLENOID_NO_SYNRAD
+    #ifndef XTRACK_SOLENOID_NO_SYNRAD  // does this do the right thing?
     double dp_record_entry = 0.;
     double dpx_record_entry = 0.;
     double dpy_record_entry = 0.;
@@ -27,12 +29,31 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
     double dpy_record_exit = 0.;
     #endif
 
+    int64_t num_multipole_kicks = SolenoidData_get_num_multipole_kicks(el);
+    const int64_t order = SolenoidData_get_order(el);
+    const double inv_factorial_order = SolenoidData_get_inv_factorial_order(el);
+    /*gpuglmem*/ const double *knl = SolenoidData_getp1_knl(el, 0);
+    /*gpuglmem*/ const double *ksl = SolenoidData_getp1_ksl(el, 0);
+    const double slice_length = length / (num_multipole_kicks + 1);
+    const double kick_weight = 1. / num_multipole_kicks;
+
+    for (int ii = 0; ii < num_multipole_kicks; ii++) {
+        //start_per_particle_block (part0->part)
+        Solenoid_thick_track_single_particle(part, slice_length, ks, radiation_flag,
+                        &dp_record_entry, &dpx_record_entry, &dpy_record_entry,
+                        &dp_record_exit, &dpx_record_exit, &dpy_record_exit);
+
+        track_multipolar_kick_bend(
+                    part, order, inv_factorial_order, knl, ksl, factor_knl_ksl,
+                    kick_weight, 0, 0, 0, 0);
+        //end_per_particle_block
+    }
+
     //start_per_particle_block (part0->part)
-    Solenoid_thick_track_single_particle(part, length, ks, radiation_flag,
+    Solenoid_thick_track_single_particle(part, slice_length, ks, radiation_flag,
                     &dp_record_entry, &dpx_record_entry, &dpy_record_entry,
                     &dp_record_exit, &dpx_record_exit, &dpy_record_exit);
     //end_per_particle_block
-
 }
 
 

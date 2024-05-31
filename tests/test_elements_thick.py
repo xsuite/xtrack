@@ -2,14 +2,16 @@
 # This file is part of the Xtrack Package.  #
 # Copyright (c) CERN, 2023.                 #
 # ######################################### #
+import itertools
+
 import numpy as np
 import pytest
+from cpymad.madx import Madx
+
 import xobjects as xo
 import xpart as xp
-from cpymad.madx import Madx
-from xobjects.test_helpers import for_all_test_contexts
-
 import xtrack as xt
+from xobjects.test_helpers import for_all_test_contexts
 from xtrack.mad_loader import MadLoader
 from xtrack.slicing import Strategy, Uniform
 
@@ -1088,6 +1090,72 @@ def test_solenoid_thick_analytic(test_context, length, expected):
     assert np.allclose(p_sol.s, length, atol=1e-9)
 
 @for_all_test_contexts
+@pytest.mark.parametrize(
+    'backtrack', [False, True],
+)
+def test_solenoid_with_mult_kicks(test_context, backtrack):
+    length = 2
+    ks = 1.5
+    num_kicks = 2
+    knl = np.array([0.1, 0.4, 0.5])
+    ksl = np.array([0.2, 0.3, 0.6])
+
+    solenoid_with_kicks = xt.Solenoid(
+        length=length,
+        ks=ks,
+        num_multipole_kicks=num_kicks,
+        knl=knl,
+        ksl=ksl,
+    )
+
+    line_ref = xt.Line(
+        elements=[
+            xt.Solenoid(length=length / (num_kicks + 1), ks=ks),
+            xt.Multipole(knl=knl / num_kicks, ksl=ksl / num_kicks),
+            xt.Solenoid(length=length / (num_kicks + 1), ks=ks),
+            xt.Multipole(knl=knl / num_kicks, ksl=ksl / num_kicks),
+            xt.Solenoid(length=length / (num_kicks + 1), ks=ks),
+        ],
+        element_names=[
+            'sol_0', 'kick_0', 'sol_1', 'kick_1', 'sol_2',
+        ]
+    )
+
+    line_test = xt.Line(elements=[
+            solenoid_with_kicks,
+        ],
+        element_names=['sol'],
+    )
+
+    coords = np.linspace(-0.05, 0.05, 10)
+    coords_6d = np.array(list(itertools.product(*(coords,) * 6))).T
+
+    p0 = xt.Particles(
+        x=coords_6d[0],
+        px=coords_6d[1],
+        y=coords_6d[2],
+        py=coords_6d[3],
+        zeta=coords_6d[4],
+        delta=coords_6d[5],
+    )
+    p_ref = p0.copy()
+    p_test = p0.copy()
+
+    line_ref.build_tracker(_context=test_context)
+    line_ref.track(p_ref, num_turns=1, backtrack=backtrack)
+
+    line_test.build_tracker(_context=test_context)
+    line_test.track(p_test, num_turns=1, backtrack=backtrack)
+
+    xo.assert_allclose(p_test.x, p_ref.x, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.px, p_ref.px, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.y, p_ref.y, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.py, p_ref.py, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.delta, p_ref.delta, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.pzeta, p_ref.pzeta, rtol=0, atol=1e-13)
+
+
+@for_all_test_contexts
 def test_skew_quadrupole(test_context):
     k1 = 1.0
     k1s = 2.0
@@ -1101,7 +1169,7 @@ def test_skew_quadrupole(test_context):
     for ii in range(n_slices):
         ele_thin.append(xt.Drift(length=length/n_slices/2))
         ele_thin.append(xt.Multipole(knl=[0, k1 * length/n_slices],
-                                    ksl=[0, k1s * length/n_slices]))
+                                     ksl=[0, k1s * length/n_slices]))
         ele_thin.append(xt.Drift(length=length/n_slices/2))
     lref = xt.Line(ele_thin)
     lref.build_tracker(_context=test_context)

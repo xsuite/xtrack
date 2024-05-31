@@ -12,9 +12,7 @@ _common_xofields = {
     'weight': xo.Float64,
 }
 
-_thick_slice_bend_xofields = {
-    '_parent': xo.Ref(Bend)}
-_thick_slice_bend_xofields.update(_common_xofields)
+
 class ThickSliceBend(BeamElement):
     allow_rot_and_shift = False
     rot_and_shift_from_parent = True
@@ -24,7 +22,7 @@ class ThickSliceBend(BeamElement):
     isthick = True
     _inherit_strengths = True
 
-    _xofields = _thick_slice_bend_xofields
+    _xofields = {'_parent': xo.Ref(Bend), **_common_xofields}
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
@@ -48,9 +46,6 @@ class ThickSliceBend(BeamElement):
         return obj
 
 
-_thick_slice_quadrupole_xofields = {
-    '_parent': xo.Ref(Quadrupole)}
-_thick_slice_quadrupole_xofields.update(_common_xofields)
 class ThickSliceQuadrupole(BeamElement):
     allow_rot_and_shift = False
     rot_and_shift_from_parent = True
@@ -60,7 +55,7 @@ class ThickSliceQuadrupole(BeamElement):
     isthick = True
     _inherit_strengths = True
 
-    _xofields = _thick_slice_quadrupole_xofields
+    _xofields = {'_parent': xo.Ref(Quadrupole), **_common_xofields}
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
@@ -83,9 +78,6 @@ class ThickSliceQuadrupole(BeamElement):
         return obj
 
 
-_thick_slice_sextupole_xofields = {
-    '_parent': xo.Ref(Sextupole)}
-_thick_slice_sextupole_xofields.update(_common_xofields)
 class ThickSliceSextupole(BeamElement):
     allow_rot_and_shift = False
     rot_and_shift_from_parent = True
@@ -95,7 +87,7 @@ class ThickSliceSextupole(BeamElement):
     isthick = True
     _inherit_strengths = True
 
-    _xofields = _thick_slice_sextupole_xofields
+    _xofields = {'_parent': xo.Ref(Sextupole), **_common_xofields}
 
     _depends_on = [RandomUniform, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord
@@ -121,9 +113,6 @@ class ThickSliceSextupole(BeamElement):
         return obj
 
 
-_thick_slice_octupole_xofields = {
-    '_parent': xo.Ref(Octupole)}
-_thick_slice_octupole_xofields.update(_common_xofields)
 class ThickSliceOctupole(BeamElement):
     allow_rot_and_shift = False
     rot_and_shift_from_parent = True
@@ -133,7 +122,7 @@ class ThickSliceOctupole(BeamElement):
     isthick = True
     _inherit_strengths = True
 
-    _xofields = _thick_slice_octupole_xofields
+    _xofields = {'_parent': xo.Ref(Octupole), **_common_xofields}
 
     _depends_on = [RandomUniform, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord
@@ -158,9 +147,7 @@ class ThickSliceOctupole(BeamElement):
         obj.parent_name = dct['parent_name']
         return obj
 
-_thick_slice_solenoid_xofields = {
-    '_parent': xo.Ref(Solenoid)}
-_thick_slice_solenoid_xofields.update(_common_xofields)
+
 class ThickSliceSolenoid(BeamElement):
     allow_rot_and_shift = False
     rot_and_shift_from_parent = True
@@ -170,7 +157,7 @@ class ThickSliceSolenoid(BeamElement):
     isthick = True
     _inherit_strengths = True
 
-    _xofields = _thick_slice_solenoid_xofields
+    _xofields = {'_parent': xo.Ref(Solenoid), **_common_xofields}
 
     _depends_on = [RandomUniform, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord
@@ -195,10 +182,6 @@ class ThickSliceSolenoid(BeamElement):
         return obj
 
 
-
-_drift_slice_bend_xofields = {
-    '_parent': xo.Ref(Bend)}
-_drift_slice_bend_xofields.update(_common_xofields)
 class DriftSliceBend(BeamElement):
     allow_rot_and_shift = False
     rot_and_shift_from_parent = False
@@ -209,7 +192,7 @@ class DriftSliceBend(BeamElement):
     isthick = True
     _inherit_strengths = False
 
-    _xofields = _drift_slice_bend_xofields
+    _xofields = {'_parent': xo.Ref(Bend), **_common_xofields}
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
@@ -233,9 +216,7 @@ class DriftSliceBend(BeamElement):
                      _buffer=self._buffer)
         return out
 
-_drift_slice_quadrupole_xofields = {
-    '_parent': xo.Ref(Quadrupole)}
-_drift_slice_quadrupole_xofields.update(_common_xofields)
+
 class DriftSliceQuadrupole(BeamElement):
     allow_rot_and_shift = False
     rot_and_shift_from_parent = False
@@ -246,7 +227,7 @@ class DriftSliceQuadrupole(BeamElement):
     isthick = True
     _inherit_strengths = False
 
-    _xofields = _drift_slice_quadrupole_xofields
+    _xofields = {'_parent': xo.Ref(Quadrupole), **_common_xofields}
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
@@ -271,9 +252,6 @@ class DriftSliceQuadrupole(BeamElement):
         return out
 
 
-_drift_slice_sextupole_xofields = {
-    '_parent': xo.Ref(Sextupole)}
-_drift_slice_sextupole_xofields.update(_common_xofields)
 class DriftSliceSextupole(BeamElement):
     allow_rot_and_shift = False
     rot_and_shift_from_parent = False
@@ -284,7 +262,7 @@ class DriftSliceSextupole(BeamElement):
     isthick = True
     _inherit_strengths = False
 
-    _xofields = _drift_slice_sextupole_xofields
+    _xofields = {'_parent': xo.Ref(Sextupole), **_common_xofields}
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
@@ -309,9 +287,6 @@ class DriftSliceSextupole(BeamElement):
         return out
 
 
-_drift_slice_octupole_xofields = {
-    '_parent': xo.Ref(Octupole)}
-_drift_slice_octupole_xofields.update(_common_xofields)
 class DriftSliceOctupole(BeamElement):
     allow_rot_and_shift = False
     rot_and_shift_from_parent = False
@@ -322,7 +297,7 @@ class DriftSliceOctupole(BeamElement):
     isthick = True
     _inherit_strengths = False
 
-    _xofields = _drift_slice_octupole_xofields
+    _xofields = {'_parent': xo.Ref(Octupole), **_common_xofields}
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
@@ -346,9 +321,7 @@ class DriftSliceOctupole(BeamElement):
                      _buffer=self._buffer)
         return out
 
-_drift_slice_xofields = {
-    '_parent': xo.Ref(Drift)}
-_drift_slice_xofields.update(_common_xofields)
+
 class DriftSlice(BeamElement):
     allow_rot_and_shift = False
     rot_and_shift_from_parent = False
@@ -359,7 +332,7 @@ class DriftSlice(BeamElement):
     isthick = True
     _inherit_strengths = False
 
-    _xofields = _drift_slice_xofields
+    _xofields = {'_parent': xo.Ref(Drift), **_common_xofields}
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
