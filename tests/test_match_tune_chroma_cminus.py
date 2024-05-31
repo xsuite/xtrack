@@ -1,11 +1,10 @@
 import json
-import time
 import pathlib
+import time
 
-import numpy as np
-
-import xtrack as xt
+import xobjects as xo
 import xpart as xp
+import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
 
 test_data_folder = pathlib.Path(
@@ -61,10 +60,10 @@ def test_match_tune_chromaticity(test_context):
     print(f"ksf.b1 = {line.vars['ksf.b1']._value}")
     print(f"ksd.b1 = {line.vars['ksd.b1']._value}")
 
-    assert np.isclose(tw_final['qx'], 62.315, atol=1e-7)
-    assert np.isclose(tw_final['qy'], 60.325, atol=1e-7)
-    assert np.isclose(tw_final['dqx'], 10.0, atol=0.05)
-    assert np.isclose(tw_final['dqy'], 12.0, atol=0.05)
+    xo.assert_allclose(tw_final['qx'], 62.315, atol=1e-7)
+    xo.assert_allclose(tw_final['qy'], 60.325, atol=1e-7)
+    xo.assert_allclose(tw_final['dqx'], 10.0, atol=0.05)
+    xo.assert_allclose(tw_final['dqy'], 12.0, atol=0.05)
 
 
     t1 = time.time()
@@ -92,10 +91,10 @@ def test_match_tune_chromaticity(test_context):
     print(f"ksf.b1 = {line.vars['ksf.b1']._value}")
     print(f"ksd.b1 = {line.vars['ksd.b1']._value}")
 
-    assert np.isclose(tw_final['qx'], 62.27, atol=1e-4)
-    assert np.isclose(tw_final['qy'], 60.28, atol=1e-4)
-    assert np.isclose(tw_final['dqx'], -5.0, atol=0.05)
-    assert np.isclose(tw_final['dqy'], -7.0, atol=0.05)
+    xo.assert_allclose(tw_final['qx'], 62.27, atol=1e-4)
+    xo.assert_allclose(tw_final['qy'], 60.28, atol=1e-4)
+    xo.assert_allclose(tw_final['dqx'], -5.0, atol=0.05)
+    xo.assert_allclose(tw_final['dqy'], -7.0, atol=0.05)
 
     # Trying 4d matching
     for ee in line.elements:
@@ -126,10 +125,10 @@ def test_match_tune_chromaticity(test_context):
     print(f"ksf.b1 = {line.vars['ksf.b1']._value}")
     print(f"ksd.b1 = {line.vars['ksd.b1']._value}")
 
-    assert np.isclose(tw_final['qx'], 62.29, atol=1e-4)
-    assert np.isclose(tw_final['qy'], 60.31, atol=1e-4)
-    assert np.isclose(tw_final['dqx'],  6.0, atol=0.05)
-    assert np.isclose(tw_final['dqy'],  4.0, atol=0.05)
+    xo.assert_allclose(tw_final['qx'], 62.29, atol=1e-4)
+    xo.assert_allclose(tw_final['qy'], 60.31, atol=1e-4)
+    xo.assert_allclose(tw_final['dqx'],  6.0, atol=0.05)
+    xo.assert_allclose(tw_final['dqy'],  4.0, atol=0.05)
 
 
 @for_all_test_contexts
@@ -201,15 +200,15 @@ def test_match_chroma_knob(test_context):
                     xt.Target('dqy', 3.0, tol=1e-6)])
 
     tw = line.twiss()
-    assert np.isclose(tw.dqx, 2.0, atol=1e-6)
-    assert np.isclose(tw.dqy, 2.0, atol=1e-6)
+    xo.assert_allclose(tw.dqx, 2.0, atol=1e-6)
+    xo.assert_allclose(tw.dqy, 2.0, atol=1e-6)
 
     line.vars['dqx.b1'] = 6.0
     line.vars['dqy.b1'] = 7.0
 
     tw = line.twiss()
-    assert np.isclose(tw.dqx, 6.0, atol=1e-4)
-    assert np.isclose(tw.dqy, 7.0, atol=1e-4)
+    xo.assert_allclose(tw.dqx, 6.0, atol=1e-4)
+    xo.assert_allclose(tw.dqy, 7.0, atol=1e-4)
 
 
 

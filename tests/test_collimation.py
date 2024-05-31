@@ -4,13 +4,14 @@
 # ######################################### #
 
 import logging
-import pytest
 
 import numpy as np
+import pytest
 
 import xobjects as xo
-import xtrack as xt
 import xpart as xp
+import xtrack as xt
+
 
 def test_collimation_infrastructure():
 
@@ -218,7 +219,7 @@ def test_aperture_refinement(sandwitch_aper):
     r1 = np.sqrt(aper_1.a_squ)
     s_expected = s0 + (r_calc-r0)/(r1 - r0)*(s1 - s0)
     # TODO This threshold is a bit large
-    assert np.allclose(particles.s[mask_lost], s_expected[mask_lost], atol=0.11)
+    xo.assert_allclose(particles.s[mask_lost], s_expected[mask_lost], atol=0.11)
 
 
 def test_losslocationrefinement_thick_collective_collimator():
@@ -323,7 +324,7 @@ def test_losslocationrefinement_thick_collective_collimator():
 
     loss_loc_refinement.refine_loss_location(particles)
 
-    assert np.allclose(particles.s[mask_lost], 9.00,
+    xo.assert_allclose(particles.s[mask_lost], 9.00,
                        rtol=0, atol=loss_loc_refinement.ds*1.0001)
 
 def test_losslocationrefinement_skip_refinement_for_collimators():

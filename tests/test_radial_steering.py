@@ -1,8 +1,8 @@
-import numpy as np
 import pathlib
 
-import xtrack as xt
+import xobjects as xo
 import xpart as xp
+import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
 
 test_data_folder = pathlib.Path(
@@ -59,5 +59,5 @@ def test_radial_steering(test_context):
     print(f'tw_6d_offmom.delta[0]: {tw_6d_offmom.delta[0]}')
     print(f'tw_6d_offmom.ptau[0]: {tw_6d_offmom.ptau[0]}')
 
-    assert np.isclose(delta_trim, tw_6d_offmom.delta[0], rtol=1e-3, atol=0)
-    assert np.isclose(dzeta, dzeta_from_twiss, rtol=1e-3, atol=0)
+    xo.assert_allclose(delta_trim, tw_6d_offmom.delta[0], rtol=1e-3, atol=0)
+    xo.assert_allclose(dzeta, dzeta_from_twiss, rtol=1e-3, atol=0)

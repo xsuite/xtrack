@@ -2,13 +2,13 @@ import pathlib
 
 import numpy as np
 import pytest
-
 from cpymad.madx import Madx
 
+import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xtrack.slicing import Strategy, Teapot
 from xobjects.test_helpers import for_all_test_contexts
+from xtrack.slicing import Strategy, Teapot
 
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
@@ -43,15 +43,15 @@ def test_sps_thick(test_context, deferred_expressions):
     assert line['mbb.10150'].model == 'adaptive'
 
     ang = line['mbb.10150'].k0 * line['mbb.10150'].length
-    assert np.isclose(line['mbb.10150'].edge_entry_angle, ang / 2, atol=1e-11, rtol=0)
-    assert np.isclose(line['mbb.10150'].edge_exit_angle, ang / 2, atol=1e-11, rtol=0)
+    xo.assert_allclose(line['mbb.10150'].edge_entry_angle, ang / 2, atol=1e-11, rtol=0)
+    xo.assert_allclose(line['mbb.10150'].edge_exit_angle, ang / 2, atol=1e-11, rtol=0)
 
     tw = line.twiss()
-    assert np.isclose(twmad.s[-1], tw.s[-1], atol=1e-9, rtol=0)
-    assert np.isclose(twmad.summary.q1, tw.qx, rtol=0, atol=1e-7)
-    assert np.isclose(twmad.summary.q2, tw.qy, rtol=0, atol=1e-7)
-    assert np.isclose(twmad.summary.dq1, tw.dqx, rtol=0, atol=0.2)
-    assert np.isclose(twmad.summary.dq2, tw.dqy, rtol=0, atol=0.2)
+    xo.assert_allclose(twmad.s[-1], tw.s[-1], atol=1e-9, rtol=0)
+    xo.assert_allclose(twmad.summary.q1, tw.qx, rtol=0, atol=1e-7)
+    xo.assert_allclose(twmad.summary.q2, tw.qy, rtol=0, atol=1e-7)
+    xo.assert_allclose(twmad.summary.dq1, tw.dqx, rtol=0, atol=0.2)
+    xo.assert_allclose(twmad.summary.dq2, tw.dqy, rtol=0, atol=0.2)
 
     line.configure_bend_model(edge='full', core='full')
 
@@ -61,11 +61,11 @@ def test_sps_thick(test_context, deferred_expressions):
     assert line['mbb.10150'].edge_exit_model == 'full'
     assert line['mbb.10150'].model == 'full'
 
-    assert np.isclose(twmad.s[-1], tw.s[-1], atol=1e-9, rtol=0)
-    assert np.isclose(twmad.summary.q1, tw.qx, rtol=0, atol=1e-7)
-    assert np.isclose(twmad.summary.q2, tw.qy, rtol=0, atol=1e-7)
-    assert np.isclose(twmad.summary.dq1, tw.dqx, rtol=0, atol=0.01)
-    assert np.isclose(twmad.summary.dq2, tw.dqy, rtol=0, atol=0.01)
+    xo.assert_allclose(twmad.s[-1], tw.s[-1], atol=1e-9, rtol=0)
+    xo.assert_allclose(twmad.summary.q1, tw.qx, rtol=0, atol=1e-7)
+    xo.assert_allclose(twmad.summary.q2, tw.qy, rtol=0, atol=1e-7)
+    xo.assert_allclose(twmad.summary.dq1, tw.dqx, rtol=0, atol=0.01)
+    xo.assert_allclose(twmad.summary.dq2, tw.dqy, rtol=0, atol=0.01)
 
     line.configure_bend_model(core='expanded')
 
@@ -75,11 +75,11 @@ def test_sps_thick(test_context, deferred_expressions):
     assert line['mbb.10150'].edge_exit_model == 'full'
     assert line['mbb.10150'].model == 'expanded'
 
-    assert np.isclose(twmad.s[-1], tw.s[-1], atol=1e-9, rtol=0)
-    assert np.isclose(twmad.summary.q1, tw.qx, rtol=0, atol=1e-7)
-    assert np.isclose(twmad.summary.q2, tw.qy, rtol=0, atol=1e-7)
-    assert np.isclose(twmad.summary.dq1, tw.dqx, rtol=0, atol=0.2)
-    assert np.isclose(twmad.summary.dq2, tw.dqy, rtol=0, atol=0.2)
+    xo.assert_allclose(twmad.s[-1], tw.s[-1], atol=1e-9, rtol=0)
+    xo.assert_allclose(twmad.summary.q1, tw.qx, rtol=0, atol=1e-7)
+    xo.assert_allclose(twmad.summary.q2, tw.qy, rtol=0, atol=1e-7)
+    xo.assert_allclose(twmad.summary.dq1, tw.dqx, rtol=0, atol=0.2)
+    xo.assert_allclose(twmad.summary.dq2, tw.dqy, rtol=0, atol=0.2)
 
     line.configure_bend_model(edge='linear')
 
@@ -171,19 +171,19 @@ def test_sps_thick(test_context, deferred_expressions):
 
     tw_edge_full = line.twiss()
 
-    assert np.isclose(twmad.s[-1], tw_edge_full.s[-1], atol=1e-9, rtol=0)
-    assert np.isclose(twmad.summary.q1, tw_edge_full.qx, rtol=0, atol=0.5e-3)
-    assert np.isclose(twmad.summary.q2, tw_edge_full.qy, rtol=0, atol=0.5e-3)
-    assert np.isclose(twmad.summary.dq1, tw_edge_full.dqx, rtol=0, atol=0.2)
-    assert np.isclose(twmad.summary.dq2, tw_edge_full.dqy, rtol=0, atol=0.2)
+    xo.assert_allclose(twmad.s[-1], tw_edge_full.s[-1], atol=1e-9, rtol=0)
+    xo.assert_allclose(twmad.summary.q1, tw_edge_full.qx, rtol=0, atol=0.5e-3)
+    xo.assert_allclose(twmad.summary.q2, tw_edge_full.qy, rtol=0, atol=0.5e-3)
+    xo.assert_allclose(twmad.summary.dq1, tw_edge_full.dqx, rtol=0, atol=0.2)
+    xo.assert_allclose(twmad.summary.dq2, tw_edge_full.dqy, rtol=0, atol=0.2)
 
     line.configure_bend_model(edge='linear')
     tw_edge_linear = line.twiss()
-    assert np.isclose(twmad.s[-1], tw_edge_linear.s[-1], atol=1e-9, rtol=0)
-    assert np.isclose(twmad.summary.q1, tw_edge_linear.qx, rtol=0, atol=0.5e-3)
-    assert np.isclose(twmad.summary.q2, tw_edge_linear.qy, rtol=0, atol=0.5e-3)
-    assert np.isclose(twmad.summary.dq1, tw_edge_linear.dqx, rtol=0, atol=0.2)
-    assert np.isclose(twmad.summary.dq2, tw_edge_linear.dqy, rtol=0, atol=0.2)
+    xo.assert_allclose(twmad.s[-1], tw_edge_linear.s[-1], atol=1e-9, rtol=0)
+    xo.assert_allclose(twmad.summary.q1, tw_edge_linear.qx, rtol=0, atol=0.5e-3)
+    xo.assert_allclose(twmad.summary.q2, tw_edge_linear.qy, rtol=0, atol=0.5e-3)
+    xo.assert_allclose(twmad.summary.dq1, tw_edge_linear.dqx, rtol=0, atol=0.2)
+    xo.assert_allclose(twmad.summary.dq2, tw_edge_linear.dqy, rtol=0, atol=0.2)
 
     tw_backwards = line.twiss(start=line.element_names[0],
                 end=line.element_names[-1],

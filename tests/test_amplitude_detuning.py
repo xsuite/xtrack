@@ -1,4 +1,4 @@
-import numpy as np
+import xobjects as xo
 import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
 
@@ -11,8 +11,7 @@ def test_amplitude_detuning(test_context):
 
     det = line.get_amplitude_detuning_coefficients()
 
-    assert np.isclose(det['det_xx'], 1000, atol=1e-1, rtol=0)
-    assert np.isclose(det['det_yy'], 2000, atol=1e-1, rtol=0)
-    assert np.isclose(det['det_xy'], 10, atol=1e-1, rtol=0)
-    assert np.isclose(det['det_yx'], 20, atol=1e-1, rtol=0)
-
+    xo.assert_allclose(det['det_xx'], 1000, atol=1e-1, rtol=0)
+    xo.assert_allclose(det['det_yy'], 2000, atol=1e-1, rtol=0)
+    xo.assert_allclose(det['det_xy'], 10, atol=1e-1, rtol=0)
+    xo.assert_allclose(det['det_yx'], 20, atol=1e-1, rtol=0)

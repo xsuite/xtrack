@@ -3,13 +3,14 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-import pathlib
 import json
+import pathlib
+
 import numpy as np
 
+import xobjects as xo
 import xpart as xp
 import xtrack as xt
-import xobjects as xo
 from xobjects.test_helpers import for_all_test_contexts
 
 test_data_folder = pathlib.Path(
@@ -42,7 +43,7 @@ def test_match_and_track_from_element(test_context):
     tw = line.twiss(at_elements=[at_element])
 
     particles.move(_context=xo.context_default) # To easily do the checks with numpy
-    assert np.isclose(
+    xo.assert_allclose(
         np.sqrt(tw['betx'][0]*2.5e-6/particles.beta0[0]/particles.gamma0[0]),
         np.max(np.abs(particles.x - np.mean(particles.x))), rtol=1e-3, atol=0)
     particles.move(_context=test_context)
@@ -58,7 +59,7 @@ def test_match_and_track_from_element(test_context):
     # Check that distribution is matched at the end of the turn
     tw0 = line.twiss(at_elements=[0])
     particles.move(_context=xo.context_default)
-    assert np.isclose(
+    xo.assert_allclose(
         np.sqrt(tw0['betx'][0]*2.5e-6/particles.beta0[0]/particles.gamma0[0]),
         np.max(np.abs(particles.x - np.mean(particles.x))), rtol=2e-3, atol=0)
 
@@ -72,7 +73,7 @@ def test_match_and_track_from_element(test_context):
     tw = line.twiss(at_elements=[at_element])
 
     particles.move(_context=xo.context_default)
-    assert np.isclose(
+    xo.assert_allclose(
         np.sqrt(tw['betx'][0]*2.5e-6/particles.beta0[0]/particles.gamma0[0]),
         np.max(np.abs(particles.x - np.mean(particles.x))), rtol=1e-3, atol=0)
     particles.move(_context=test_context)
@@ -81,11 +82,11 @@ def test_match_and_track_from_element(test_context):
 
     tw0 = line.twiss(at_elements=[0])
     particles.move(_context=xo.context_default)
-    assert np.isclose(
+    xo.assert_allclose(
         np.sqrt(tw0['betx'][0]*2.5e-6/particles.beta0[0]/particles.gamma0[0]),
         np.max(np.abs(particles.x - np.mean(particles.x))), rtol=2e-3, atol=0)
     assert np.all(particles.at_turn==3)
-    assert np.allclose(particles.s, 3*line.get_length(), rtol=0, atol=1e-7)
+    xo.assert_allclose(particles.s, 3*line.get_length(), rtol=0, atol=1e-7)
 
     # Check collective case
     line_w_collective = xt.Line.from_dict(input_data['line'])
@@ -108,7 +109,7 @@ def test_match_and_track_from_element(test_context):
     tw = line_w_collective.twiss(at_elements=[at_element])
 
     particles.move(_context=xo.context_default)
-    assert np.isclose(
+    xo.assert_allclose(
         np.sqrt(tw['betx'][0]*2.5e-6/particles.beta0[0]/particles.gamma0[0]),
         np.max(np.abs(particles.x - np.mean(particles.x))), rtol=1e-3, atol=0)
     particles.move(_context=test_context)
@@ -117,11 +118,11 @@ def test_match_and_track_from_element(test_context):
 
     tw0 = line_w_collective.twiss(at_elements=[0])
     particles.move(_context=xo.context_default)
-    assert np.isclose(
+    xo.assert_allclose(
         np.sqrt(tw0['betx'][0]*2.5e-6/particles.beta0[0]/particles.gamma0[0]),
         np.max(np.abs(particles.x - np.mean(particles.x))), rtol=3e-3, atol=0)
     assert np.all(particles.at_turn==3)
-    assert np.allclose(particles.s, 3*line_w_collective.get_length(), rtol=0, atol=1e-7)
+    xo.assert_allclose(particles.s, 3*line_w_collective.get_length(), rtol=0, atol=1e-7)
 
     # Check match_at_s
     at_element = 'ip6'
@@ -135,10 +136,10 @@ def test_match_and_track_from_element(test_context):
     tw = line_w_collective.twiss(at_elements=[at_element])
 
     particles.move(_context=xo.context_default)
-    assert np.isclose(
+    xo.assert_allclose(
         np.sqrt(tw['betx'][0]*2.5e-6/particles.beta0[0]/particles.gamma0[0]),
         np.max(np.abs(particles.x - np.mean(particles.x))), rtol=1e-3, atol=0)
-    assert np.allclose(particles.s, tw['s'][0], atol=1e-8, rtol=0)
+    xo.assert_allclose(particles.s, tw['s'][0], atol=1e-8, rtol=0)
 
     phasex_first_part = np.angle(particles.x[0] / np.sqrt(tw['betx'][0]) -
                 1j*(particles.x[0]  * tw['alfx'][0] / np.sqrt(tw['betx'][0]) +
@@ -148,7 +149,7 @@ def test_match_and_track_from_element(test_context):
         at_s=line_w_collective.get_s_position('ip6') + 100)['mux'][0]
     mu_at_element = line_w_collective.twiss(at_elements=[at_element])['mux'][0]
 
-    assert np.isclose(phasex_first_part, (mu_at_element - mu_at_s)*2*np.pi,
+    xo.assert_allclose(phasex_first_part, (mu_at_element - mu_at_s)*2*np.pi,
                     atol=0, rtol=0.02)
     particles.move(_context=test_context)
 
@@ -156,8 +157,8 @@ def test_match_and_track_from_element(test_context):
 
     tw0 = line_w_collective.twiss(at_elements=[0])
     particles.move(_context=xo.context_default)
-    assert np.isclose(
+    xo.assert_allclose(
         np.sqrt(tw0['betx'][0]*2.5e-6/particles.beta0[0]/particles.gamma0[0]),
         np.max(np.abs(particles.x - np.mean(particles.x))), rtol=2e-3, atol=0)
     assert np.all(particles.at_turn==3)
-    assert np.allclose(particles.s, 3*line_w_collective.get_length(), rtol=0, atol=1e-7)
+    xo.assert_allclose(particles.s, 3*line_w_collective.get_length(), rtol=0, atol=1e-7)

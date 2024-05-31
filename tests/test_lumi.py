@@ -1,7 +1,9 @@
 import numpy as np
 
-import xtrack as xt
+import xobjects as xo
 import xpart as xp
+import xtrack as xt
+
 
 def test_lumi_calculation():
 
@@ -103,7 +105,7 @@ def test_lumi_calculation():
         twiss_b2=twiss_b2,
         crab=False)
 
-    assert np.isclose(ll_ip1, 1.0e+34, rtol=1e-2, atol=0)
+    xo.assert_allclose(ll_ip1, 1.0e+34, rtol=1e-2, atol=0)
 
     ll_ip5 = xt.lumi.luminosity_from_twiss(
         n_colliding_bunches=n_colliding_bunches,
@@ -116,4 +118,4 @@ def test_lumi_calculation():
         twiss_b2=twiss_b2,
         crab=False)
 
-    assert np.isclose(ll_ip5, 1.0e+34, rtol=1e-2, atol=0)
+    xo.assert_allclose(ll_ip5, 1.0e+34, rtol=1e-2, atol=0)

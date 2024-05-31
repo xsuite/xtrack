@@ -4,12 +4,12 @@
 # ######################################### #
 import numpy as np
 import pytest
+from cpymad.madx import Madx
+
 import xobjects as xo
 import xpart as xp
-from cpymad.madx import Madx
-from xobjects.test_helpers import for_all_test_contexts
-
 import xtrack as xt
+from xobjects.test_helpers import for_all_test_contexts
 from xtrack.mad_loader import MadLoader
 from xtrack.slicing import Strategy, Uniform
 
@@ -91,17 +91,17 @@ def test_combined_function_dipole_against_ptc(test_context, k0, k1, k2, length,
         part.move(_context=xo.context_default)
 
         xt_tau = part.zeta/part.beta0
-        assert np.allclose(part.x[ii], mad_results.x, rtol=0,
+        xo.assert_allclose(part.x[ii], mad_results.x, rtol=0,
                            atol=(1e-11 if k1 == 0 and k2 == 0 else 5e-9))
-        assert np.allclose(part.px[ii], mad_results.px, rtol=0,
+        xo.assert_allclose(part.px[ii], mad_results.px, rtol=0,
                            atol=(1e-11 if k1 == 0 and k2 == 0 else 5e-9))
-        assert np.allclose(part.y[ii], mad_results.y, rtol=0,
+        xo.assert_allclose(part.y[ii], mad_results.y, rtol=0,
                            atol=(1e-11 if k1 == 0 and k2 == 0 else 5e-9))
-        assert np.allclose(part.py[ii], mad_results.py, rtol=0,
+        xo.assert_allclose(part.py[ii], mad_results.py, rtol=0,
                            atol=(1e-11 if k1 == 0 and k2 == 0 else 5e-9))
-        assert np.allclose(xt_tau[ii], mad_results.t, rtol=0,
+        xo.assert_allclose(xt_tau[ii], mad_results.t, rtol=0,
                            atol=(1e-10 if k1 == 0 and k2 == 0 else 5e-9))
-        assert np.allclose(part.ptau[ii], mad_results.pt, atol=1e-11, rtol=0)
+        xo.assert_allclose(part.ptau[ii], mad_results.pt, atol=1e-11, rtol=0)
 
         part = p0.copy(_context=test_context)
         line_core_only.track(part)
@@ -109,12 +109,12 @@ def test_combined_function_dipole_against_ptc(test_context, k0, k1, k2, length,
         part.move(_context=xo.context_default)
         p0.move(_context=xo.context_default)
         assert np.all(part.state == 1)
-        assert np.allclose(part.x[ii], p0.x[ii], atol=1e-11, rtol=0)
-        assert np.allclose(part.px[ii], p0.px[ii], atol=1e-11, rtol=0)
-        assert np.allclose(part.y[ii], p0.y[ii], atol=1e-11, rtol=0)
-        assert np.allclose(part.py[ii], p0.py[ii], atol=1e-11, rtol=0)
-        assert np.allclose(part.zeta[ii], p0.zeta[ii], atol=1e-11, rtol=0)
-        assert np.allclose(part.ptau[ii], p0.ptau[ii], atol=1e-11, rtol=0)
+        xo.assert_allclose(part.x[ii], p0.x[ii], atol=1e-11, rtol=0)
+        xo.assert_allclose(part.px[ii], p0.px[ii], atol=1e-11, rtol=0)
+        xo.assert_allclose(part.y[ii], p0.y[ii], atol=1e-11, rtol=0)
+        xo.assert_allclose(part.py[ii], p0.py[ii], atol=1e-11, rtol=0)
+        xo.assert_allclose(part.zeta[ii], p0.zeta[ii], atol=1e-11, rtol=0)
+        xo.assert_allclose(part.ptau[ii], p0.ptau[ii], atol=1e-11, rtol=0)
 
 @for_all_test_contexts
 def test_combined_function_dipole_expanded(test_context):
@@ -147,12 +147,12 @@ def test_combined_function_dipole_expanded(test_context):
     line_thick.track(p_ref)
     p_ref.move(_context=xo.context_default)
 
-    assert np.allclose(p_test.x, p_ref.x, rtol=0, atol=5e-9)
-    assert np.allclose(p_test.px, p_ref.px, rtol=0, atol=2e-9)
-    assert np.allclose(p_test.y, p_ref.y, rtol=0, atol=5e-9)
-    assert np.allclose(p_test.py, p_ref.py, rtol=0, atol=2e-9)
-    assert np.allclose(p_test.zeta, p_ref.zeta, rtol=0, atol=1e-11)
-    assert np.allclose(p_test.ptau, p_ref.ptau, atol=1e-11, rtol=0)
+    xo.assert_allclose(p_test.x, p_ref.x, rtol=0, atol=5e-9)
+    xo.assert_allclose(p_test.px, p_ref.px, rtol=0, atol=2e-9)
+    xo.assert_allclose(p_test.y, p_ref.y, rtol=0, atol=5e-9)
+    xo.assert_allclose(p_test.py, p_ref.py, rtol=0, atol=2e-9)
+    xo.assert_allclose(p_test.zeta, p_ref.zeta, rtol=0, atol=1e-11)
+    xo.assert_allclose(p_test.ptau, p_ref.ptau, atol=1e-11, rtol=0)
 
     # Check backtrack
     line_thick.configure_bend_model(core='expanded')
@@ -161,12 +161,12 @@ def test_combined_function_dipole_expanded(test_context):
     p_test.move(_context=xo.context_default)
     p0.move(_context=xo.context_default)
 
-    assert np.allclose(p_test.x, p0.x, atol=1e-11, rtol=0)
-    assert np.allclose(p_test.px, p0.px, atol=1e-11, rtol=0)
-    assert np.allclose(p_test.y, p0.y, atol=1e-11, rtol=0)
-    assert np.allclose(p_test.py, p0.py, atol=1e-11, rtol=0)
-    assert np.allclose(p_test.zeta, p0.zeta, atol=1e-11, rtol=0)
-    assert np.allclose(p_test.ptau, p0.ptau, atol=1e-11, rtol=0)
+    xo.assert_allclose(p_test.x, p0.x, atol=1e-11, rtol=0)
+    xo.assert_allclose(p_test.px, p0.px, atol=1e-11, rtol=0)
+    xo.assert_allclose(p_test.y, p0.y, atol=1e-11, rtol=0)
+    xo.assert_allclose(p_test.py, p0.py, atol=1e-11, rtol=0)
+    xo.assert_allclose(p_test.zeta, p0.zeta, atol=1e-11, rtol=0)
+    xo.assert_allclose(p_test.ptau, p0.ptau, atol=1e-11, rtol=0)
 
 def test_thick_bend_survey():
     circumference = 10
@@ -279,7 +279,7 @@ def test_thick_multipolar_component(test_context, element_type, h):
 
     # Check that the results are the same
     for attr in ['x', 'px', 'y', 'py', 'zeta', 'delta']:
-        assert np.allclose(
+        xo.assert_allclose(
             getattr(p_no_slices, attr),
             getattr(p_with_slices, attr),
             atol=1e-14,
@@ -334,27 +334,27 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
     assert elem.model == {False: 'expanded', True: 'full'}[use_true_thick_bends]
 
     # Element:
-    assert np.isclose(elem.length, 2.0, atol=1e-16)
-    assert np.isclose(elem.k0, 0.2, atol=1e-16)
-    assert np.isclose(elem.h, 0.05, atol=1e-16)  # h = angle / L
-    assert np.allclose(elem.ksl, 0.0, atol=1e-16)
+    xo.assert_allclose(elem.length, 2.0, atol=1e-16)
+    xo.assert_allclose(elem.k0, 0.2, atol=1e-16)
+    xo.assert_allclose(elem.h, 0.05, atol=1e-16)  # h = angle / L
+    xo.assert_allclose(elem.ksl, 0.0, atol=1e-16)
 
-    assert np.allclose(
+    xo.assert_allclose(
         elem.knl,
         np.array([0, 0, 0.8, 0, 0, 0]),  # knl = [0, 0, k2 * L, 0, 0]
         atol=1e-16,
     )
 
     # Edges:
-    assert np.isclose(elem.edge_entry_fint, 0.5, atol=1e-16)
-    assert np.isclose(elem.edge_entry_hgap, 0.6, atol=1e-16)
-    assert np.isclose(elem.edge_entry_angle,
+    xo.assert_allclose(elem.edge_entry_fint, 0.5, atol=1e-16)
+    xo.assert_allclose(elem.edge_entry_hgap, 0.6, atol=1e-16)
+    xo.assert_allclose(elem.edge_entry_angle,
                       {'rbend': 0.7 + 0.1 / 2, 'sbend': 0.7}[bend_type],
                       atol=1e-16)
 
-    assert np.isclose(elem.edge_exit_fint, 0.5, atol=1e-16)
-    assert np.isclose(elem.edge_exit_hgap, 0.6, atol=1e-16)
-    assert np.isclose(elem.edge_exit_angle,
+    xo.assert_allclose(elem.edge_exit_fint, 0.5, atol=1e-16)
+    xo.assert_allclose(elem.edge_exit_hgap, 0.6, atol=1e-16)
+    xo.assert_allclose(elem.edge_exit_angle,
                      {'rbend': 0.8 + 0.1 / 2, 'sbend': 0.8}[bend_type],
                       atol=1e-16)
 
@@ -371,28 +371,28 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
 
     # Verify that the line has been adjusted correctly
     # Element:
-    assert np.isclose(elem.length, 3.0, atol=1e-16)
-    assert np.isclose(elem.k0, 0.4, atol=1e-16)
-    assert np.isclose(elem.h, 0.2 / 3.0, atol=1e-16)  # h = angle / length
-    assert np.allclose(elem.ksl, 0.0, atol=1e-16)
+    xo.assert_allclose(elem.length, 3.0, atol=1e-16)
+    xo.assert_allclose(elem.k0, 0.4, atol=1e-16)
+    xo.assert_allclose(elem.h, 0.2 / 3.0, atol=1e-16)  # h = angle / length
+    xo.assert_allclose(elem.ksl, 0.0, atol=1e-16)
 
-    assert np.allclose(
+    xo.assert_allclose(
         elem.knl,
         np.array([0, 0, 2.4, 0, 0, 0]),  # knl = [0, 0, k2 * L, 0, 0]
         atol=1e-16,
     )
 
     # Edges:
-    assert np.isclose(elem.edge_entry_fint, 1.0, atol=1e-16)
-    assert np.isclose(elem.edge_entry_hgap, 1.2, atol=1e-16)
-    assert np.isclose(elem.edge_entry_angle,
+    xo.assert_allclose(elem.edge_entry_fint, 1.0, atol=1e-16)
+    xo.assert_allclose(elem.edge_entry_hgap, 1.2, atol=1e-16)
+    xo.assert_allclose(elem.edge_entry_angle,
         {'rbend': 1.4 + 0.2 / 2, 'sbend': 1.4}[bend_type],
         atol=1e-16)
-    assert np.isclose(elem.k0, 0.4, atol=1e-16)
+    xo.assert_allclose(elem.k0, 0.4, atol=1e-16)
 
-    assert np.isclose(elem.edge_exit_fint, 1.0, atol=1e-16)
-    assert np.isclose(elem.edge_exit_hgap, 1.2, atol=1e-16)
-    assert np.isclose(elem.edge_exit_angle,
+    xo.assert_allclose(elem.edge_exit_fint, 1.0, atol=1e-16)
+    xo.assert_allclose(elem.edge_exit_hgap, 1.2, atol=1e-16)
+    xo.assert_allclose(elem.edge_exit_angle,
         {'rbend': 1.6 + 0.2 / 2, 'sbend': 1.6}[bend_type],
         atol=1e-16)
 
@@ -420,9 +420,9 @@ def test_import_thick_quad_from_madx(with_knobs):
     elem = line['elem']
 
     # Verify that the line has been imported correctly
-    assert np.isclose(elem.length, 2.0, atol=1e-16)
-    assert np.isclose(elem.k1, 0.1, atol=1e-16)
-    assert np.isclose(elem.k1s, 0.2, atol=1e-16)
+    xo.assert_allclose(elem.length, 2.0, atol=1e-16)
+    xo.assert_allclose(elem.k1, 0.1, atol=1e-16)
+    xo.assert_allclose(elem.k1s, 0.2, atol=1e-16)
 
     # Finish the test here if we are not using knobs
     if not with_knobs:
@@ -436,9 +436,9 @@ def test_import_thick_quad_from_madx(with_knobs):
     line.vars['knob_b'] = 3.0
 
     # Verify that the line has been adjusted correctly
-    assert np.isclose(elem.length, 3.0, atol=1e-16)
-    assert np.isclose(elem.k1, 1.1, atol=1e-16)
-    assert np.isclose(elem.k1s, 1.2, atol=1e-16)
+    xo.assert_allclose(elem.length, 3.0, atol=1e-16)
+    xo.assert_allclose(elem.k1, 1.1, atol=1e-16)
+    xo.assert_allclose(elem.k1s, 1.2, atol=1e-16)
 
 
 @pytest.mark.parametrize(
@@ -482,16 +482,16 @@ def test_import_thick_bend_from_madx_and_slice(
     # Verify that the slices are correct
     for elem in elems:
         assert isinstance(elem, xt.ThinSliceBend)
-        assert np.isclose(elem.weight, 0.5, atol=1e-16)
-        assert np.isclose(elem._parent.length, 2.0, atol=1e-16)
-        assert np.isclose(elem._parent.k0, 0.2, atol=1e-16)
-        assert np.allclose(elem._parent.knl, [0., 0, 0.8, 0, 0, 0], atol=1e-16)
-        assert np.allclose(elem._parent.ksl, 0, atol=1e-16)
-        assert np.isclose(elem._parent.h, 0.05, atol=1e-16)
+        xo.assert_allclose(elem.weight, 0.5, atol=1e-16)
+        xo.assert_allclose(elem._parent.length, 2.0, atol=1e-16)
+        xo.assert_allclose(elem._parent.k0, 0.2, atol=1e-16)
+        xo.assert_allclose(elem._parent.knl, [0., 0, 0.8, 0, 0, 0], atol=1e-16)
+        xo.assert_allclose(elem._parent.ksl, 0, atol=1e-16)
+        xo.assert_allclose(elem._parent.h, 0.05, atol=1e-16)
 
     for drift in drifts:
-        assert np.isclose(drift._parent.length, 2., atol=1e-16)
-        assert np.isclose(drift.weight, 1./3., atol=1e-16)
+        xo.assert_allclose(drift._parent.length, 2., atol=1e-16)
+        xo.assert_allclose(drift.weight, 1./3., atol=1e-16)
 
     # Finish the test here if we are not using knobs
     if not with_knobs:
@@ -506,26 +506,26 @@ def test_import_thick_bend_from_madx_and_slice(
 
     # Verify that the line has been adjusted correctly
     for elem in elems:
-        assert np.isclose(elem.weight, 0.5, atol=1e-16)
-        assert np.isclose(elem._parent.length, 3.0, atol=1e-16)
-        assert np.isclose(elem._parent.k0, 0.4, atol=1e-16)
-        assert np.allclose(elem._parent.knl, [0., 0, 2.4, 0, 0, 0], atol=1e-16)
-        assert np.allclose(elem._parent.ksl, 0, atol=1e-16)
-        assert np.isclose(elem._parent.h, 0.2/3, atol=1e-16)
+        xo.assert_allclose(elem.weight, 0.5, atol=1e-16)
+        xo.assert_allclose(elem._parent.length, 3.0, atol=1e-16)
+        xo.assert_allclose(elem._parent.k0, 0.4, atol=1e-16)
+        xo.assert_allclose(elem._parent.knl, [0., 0, 2.4, 0, 0, 0], atol=1e-16)
+        xo.assert_allclose(elem._parent.ksl, 0, atol=1e-16)
+        xo.assert_allclose(elem._parent.h, 0.2/3, atol=1e-16)
 
-        assert np.isclose(elem._xobject.weight, 0.5, atol=1e-16)
-        assert np.isclose(elem._xobject._parent.length, 3.0, atol=1e-16)
-        assert np.isclose(elem._xobject._parent.k0, 0.4, atol=1e-16)
-        assert np.allclose(elem._xobject._parent.knl, [0., 0, 2.4, 0, 0, 0], atol=1e-16)
-        assert np.allclose(elem._xobject._parent.ksl, 0, atol=1e-16)
-        assert np.isclose(elem._xobject._parent.h, 0.2/3, atol=1e-16)
+        xo.assert_allclose(elem._xobject.weight, 0.5, atol=1e-16)
+        xo.assert_allclose(elem._xobject._parent.length, 3.0, atol=1e-16)
+        xo.assert_allclose(elem._xobject._parent.k0, 0.4, atol=1e-16)
+        xo.assert_allclose(elem._xobject._parent.knl, [0., 0, 2.4, 0, 0, 0], atol=1e-16)
+        xo.assert_allclose(elem._xobject._parent.ksl, 0, atol=1e-16)
+        xo.assert_allclose(elem._xobject._parent.h, 0.2/3, atol=1e-16)
 
         assert elem._parent._buffer is line._buffer
         assert elem._xobject._parent._buffer is line._buffer
 
     for drift in drifts:
-        assert np.isclose(drift._parent.length, 3, atol=1e-16)
-        assert np.isclose(drift.weight, 1./3., atol=1e-16)
+        xo.assert_allclose(drift._parent.length, 3, atol=1e-16)
+        xo.assert_allclose(drift.weight, 1./3., atol=1e-16)
 
         assert drift._parent._buffer is line._buffer
         assert drift._xobject._parent._buffer is line._buffer
@@ -562,14 +562,14 @@ def test_import_thick_quad_from_madx_and_slice(with_knobs):
 
     # Verify that the slices are correct
     for elem in elems:
-        assert np.isclose(elem.weight, 0.5, atol=1e-16)
-        assert np.isclose(elem._parent.length, 2.0, atol=1e-16)
-        assert np.isclose(elem._parent.k1, 0.1, atol=1e-16)
-        assert np.isclose(elem._parent.k1s, 0.2, atol=1e-16)
+        xo.assert_allclose(elem.weight, 0.5, atol=1e-16)
+        xo.assert_allclose(elem._parent.length, 2.0, atol=1e-16)
+        xo.assert_allclose(elem._parent.k1, 0.1, atol=1e-16)
+        xo.assert_allclose(elem._parent.k1s, 0.2, atol=1e-16)
 
     for drift in drifts:
-        assert np.isclose(drift._parent.length, 2., atol=1e-16)
-        assert np.isclose(drift.weight, 1./3., atol=1e-16)
+        xo.assert_allclose(drift._parent.length, 2., atol=1e-16)
+        xo.assert_allclose(drift.weight, 1./3., atol=1e-16)
 
     # Finish the test here if we are not using knobs
     if not with_knobs:
@@ -584,25 +584,25 @@ def test_import_thick_quad_from_madx_and_slice(with_knobs):
 
     # Verify that the line has been adjusted correctly
     for elem in elems:
-        assert np.isclose(elem.weight, 0.5, atol=1e-16)
-        assert np.isclose(elem._parent.length, 3.0, atol=1e-16)
-        assert np.isclose(elem._parent.k1, 2.1, atol=1e-16)
-        assert np.isclose(elem._parent.k1s, 2.2, atol=1e-16)
+        xo.assert_allclose(elem.weight, 0.5, atol=1e-16)
+        xo.assert_allclose(elem._parent.length, 3.0, atol=1e-16)
+        xo.assert_allclose(elem._parent.k1, 2.1, atol=1e-16)
+        xo.assert_allclose(elem._parent.k1s, 2.2, atol=1e-16)
 
-        assert np.isclose(elem._xobject.weight, 0.5, atol=1e-16)
-        assert np.isclose(elem._xobject._parent.length, 3.0, atol=1e-16)
-        assert np.isclose(elem._xobject._parent.k1, 2.1, atol=1e-16)
-        assert np.isclose(elem._xobject._parent.k1s, 2.2, atol=1e-16)
+        xo.assert_allclose(elem._xobject.weight, 0.5, atol=1e-16)
+        xo.assert_allclose(elem._xobject._parent.length, 3.0, atol=1e-16)
+        xo.assert_allclose(elem._xobject._parent.k1, 2.1, atol=1e-16)
+        xo.assert_allclose(elem._xobject._parent.k1s, 2.2, atol=1e-16)
 
         assert elem._parent._buffer is line._buffer
         assert elem._xobject._parent._buffer is line._buffer
 
     for drift in drifts:
-        assert np.isclose(drift._parent.length, 3., atol=1e-16)
-        assert np.isclose(drift.weight, 1./3., atol=1e-16)
+        xo.assert_allclose(drift._parent.length, 3., atol=1e-16)
+        xo.assert_allclose(drift.weight, 1./3., atol=1e-16)
 
-        assert np.isclose(drift._xobject._parent.length, 3., atol=1e-16)
-        assert np.isclose(drift._xobject.weight, 1./3., atol=1e-16)
+        xo.assert_allclose(drift._xobject._parent.length, 3., atol=1e-16)
+        xo.assert_allclose(drift._xobject.weight, 1./3., atol=1e-16)
 
         assert drift._parent._buffer is line._buffer
         assert drift._xobject._parent._buffer is line._buffer
@@ -631,16 +631,16 @@ def test_fringe_implementations(test_context):
     p_ng.move(_context=xo.context_default)
     p_ptc.move(_context=xo.context_default)
 
-    assert np.isclose(p_ng.x, p_ptc.x, rtol=0, atol=1e-10)
-    assert np.isclose(p_ng.px, p_ptc.px, rtol=0, atol=1e-12)
-    assert np.isclose(p_ng.y, p_ptc.y, rtol=0, atol=1e-12)
-    assert np.isclose(p_ng.py, p_ptc.py, rtol=0, atol=1e-12)
-    assert np.isclose(p_ng.delta, p_ptc.delta, rtol=0, atol=1e-12)
-    assert np.isclose(p_ng.s, p_ptc.s, rtol=0, atol=1e-12)
-    assert np.isclose(p_ng.zeta, p_ptc.zeta, rtol=0, atol=1e-10)
+    xo.assert_allclose(p_ng.x, p_ptc.x, rtol=0, atol=1e-10)
+    xo.assert_allclose(p_ng.px, p_ptc.px, rtol=0, atol=1e-12)
+    xo.assert_allclose(p_ng.y, p_ptc.y, rtol=0, atol=1e-12)
+    xo.assert_allclose(p_ng.py, p_ptc.py, rtol=0, atol=1e-12)
+    xo.assert_allclose(p_ng.delta, p_ptc.delta, rtol=0, atol=1e-12)
+    xo.assert_allclose(p_ng.s, p_ptc.s, rtol=0, atol=1e-12)
+    xo.assert_allclose(p_ng.zeta, p_ptc.zeta, rtol=0, atol=1e-10)
 
-    assert np.isclose(np.linalg.det(R_ng), 1, rtol=0, atol=1e-8) # Symplecticity check
-    assert np.isclose(np.linalg.det(R_ptc), 1, rtol=0, atol=1e-8) # Symplecticity check
+    xo.assert_allclose(np.linalg.det(R_ng), 1, rtol=0, atol=1e-8) # Symplecticity check
+    xo.assert_allclose(np.linalg.det(R_ptc), 1, rtol=0, atol=1e-8) # Symplecticity check
 
 
 @for_all_test_contexts
@@ -662,13 +662,13 @@ def test_backtrack_with_bend_quadrupole_and_cfm(test_context):
 
     p0.move(_context=xo.context_default)
     p2.move(_context=xo.context_default)
-    assert np.allclose(p2.s, p0.s, atol=1e-15, rtol=0)
-    assert np.allclose(p2.x, p0.x, atol=1e-15, rtol=0)
-    assert np.allclose(p2.px, p0.px, atol=1e-15, rtol=0)
-    assert np.allclose(p2.y, p0.y, atol=1e-15, rtol=0)
-    assert np.allclose(p2.py, p0.py, atol=1e-15, rtol=0)
-    assert np.allclose(p2.zeta, p0.zeta, atol=1e-15, rtol=0)
-    assert np.allclose(p2.delta, p0.delta, atol=1e-15, rtol=0)
+    xo.assert_allclose(p2.s, p0.s, atol=1e-15, rtol=0)
+    xo.assert_allclose(p2.x, p0.x, atol=1e-15, rtol=0)
+    xo.assert_allclose(p2.px, p0.px, atol=1e-15, rtol=0)
+    xo.assert_allclose(p2.y, p0.y, atol=1e-15, rtol=0)
+    xo.assert_allclose(p2.py, p0.py, atol=1e-15, rtol=0)
+    xo.assert_allclose(p2.zeta, p0.zeta, atol=1e-15, rtol=0)
+    xo.assert_allclose(p2.delta, p0.delta, atol=1e-15, rtol=0)
 
     # Same for quadrupole
     q = xt.Quadrupole(k1=0.2, length=1.0)
@@ -685,13 +685,13 @@ def test_backtrack_with_bend_quadrupole_and_cfm(test_context):
 
     p0.move(_context=xo.context_default)
     p2.move(_context=xo.context_default)
-    assert np.allclose(p2.s, p0.s, atol=1e-15, rtol=0)
-    assert np.allclose(p2.x, p0.x, atol=1e-15, rtol=0)
-    assert np.allclose(p2.px, p0.px, atol=1e-15, rtol=0)
-    assert np.allclose(p2.y, p0.y, atol=1e-15, rtol=0)
-    assert np.allclose(p2.py, p0.py, atol=1e-15, rtol=0)
-    assert np.allclose(p2.zeta, p0.zeta, atol=1e-15, rtol=0)
-    assert np.allclose(p2.delta, p0.delta, atol=1e-15, rtol=0)
+    xo.assert_allclose(p2.s, p0.s, atol=1e-15, rtol=0)
+    xo.assert_allclose(p2.x, p0.x, atol=1e-15, rtol=0)
+    xo.assert_allclose(p2.px, p0.px, atol=1e-15, rtol=0)
+    xo.assert_allclose(p2.y, p0.y, atol=1e-15, rtol=0)
+    xo.assert_allclose(p2.py, p0.py, atol=1e-15, rtol=0)
+    xo.assert_allclose(p2.zeta, p0.zeta, atol=1e-15, rtol=0)
+    xo.assert_allclose(p2.delta, p0.delta, atol=1e-15, rtol=0)
 
     # Same for dipole edge
     de = xt.DipoleEdge(e1=0.1, k=3, fint=0.3)
@@ -727,13 +727,13 @@ def test_backtrack_with_bend_quadrupole_and_cfm(test_context):
 
     p0.move(_context=xo.context_default)
     p2.move(_context=xo.context_default)
-    assert np.allclose(p2.s, p0.s, atol=1e-15, rtol=0)
-    assert np.allclose(p2.x, p0.x, atol=1e-15, rtol=0)
-    assert np.allclose(p2.px, p0.px, atol=1e-15, rtol=0)
-    assert np.allclose(p2.y, p0.y, atol=1e-15, rtol=0)
-    assert np.allclose(p2.py, p0.py, atol=1e-15, rtol=0)
-    assert np.allclose(p2.zeta, p0.zeta, atol=1e-15, rtol=0)
-    assert np.allclose(p2.delta, p0.delta, atol=1e-15, rtol=0)
+    xo.assert_allclose(p2.s, p0.s, atol=1e-15, rtol=0)
+    xo.assert_allclose(p2.x, p0.x, atol=1e-15, rtol=0)
+    xo.assert_allclose(p2.px, p0.px, atol=1e-15, rtol=0)
+    xo.assert_allclose(p2.y, p0.y, atol=1e-15, rtol=0)
+    xo.assert_allclose(p2.py, p0.py, atol=1e-15, rtol=0)
+    xo.assert_allclose(p2.zeta, p0.zeta, atol=1e-15, rtol=0)
+    xo.assert_allclose(p2.delta, p0.delta, atol=1e-15, rtol=0)
 
 def test_import_thick_with_apertures_and_slice():
     mad = Madx(stdout=False)
@@ -770,7 +770,7 @@ def test_import_thick_with_apertures_and_slice():
 
 
     def _assert_eq(a, b):
-        assert np.isclose(a, b, atol=1e-16)
+        xo.assert_allclose(a, b, atol=1e-16)
 
     _assert_eq(line[f'elm_aper'].rot_s_rad, 0.1)
     _assert_eq(line[f'elm_aper'].shift_x, 0.2)
@@ -852,12 +852,12 @@ def test_sextupole(test_context):
 
     p_thin.move(_context=xo.context_default)
     p_thick.move(_context=xo.context_default)
-    assert np.allclose(p_thin.x, p_thick.x, rtol=0, atol=1e-14)
-    assert np.allclose(p_thin.px, p_thick.px, rtol=0, atol=1e-14)
-    assert np.allclose(p_thin.y, p_thick.y, rtol=0, atol=1e-14)
-    assert np.allclose(p_thin.py, p_thick.py, rtol=0, atol=1e-14)
-    assert np.allclose(p_thin.delta, p_thick.delta, rtol=0, atol=1e-14)
-    assert np.allclose(p_thin.zeta, p_thick.zeta, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thin.x, p_thick.x, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thin.px, p_thick.px, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thin.y, p_thick.y, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thin.py, p_thick.py, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thin.delta, p_thick.delta, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thin.zeta, p_thick.zeta, rtol=0, atol=1e-14)
 
     # slicing
     Teapot = xt.slicing.Teapot
@@ -872,12 +872,12 @@ def test_sextupole(test_context):
     line_sliced.track(p_sliced)
 
     p_sliced.move(_context=xo.context_default)
-    assert np.allclose(p_sliced.x, p_thick.x, rtol=0, atol=5e-6)
-    assert np.allclose(p_sliced.px, p_thick.px, rtol=0.01, atol=1e-10)
-    assert np.allclose(p_sliced.y, p_thick.y, rtol=0, atol=5e-6)
-    assert np.allclose(p_sliced.py, p_thick.py, rtol=0.01, atol=1e-10)
-    assert np.allclose(p_sliced.delta, p_thick.delta, rtol=0, atol=1e-14)
-    assert np.allclose(p_sliced.zeta, p_thick.zeta, rtol=0, atol=2e-7)
+    xo.assert_allclose(p_sliced.x, p_thick.x, rtol=0, atol=5e-6)
+    xo.assert_allclose(p_sliced.px, p_thick.px, rtol=0.01, atol=1e-10)
+    xo.assert_allclose(p_sliced.y, p_thick.y, rtol=0, atol=5e-6)
+    xo.assert_allclose(p_sliced.py, p_thick.py, rtol=0.01, atol=1e-10)
+    xo.assert_allclose(p_sliced.delta, p_thick.delta, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_sliced.zeta, p_thick.zeta, rtol=0, atol=2e-7)
 
     p_thick.move(_context=test_context)
     p_thin.move(_context=test_context)
@@ -891,24 +891,24 @@ def test_sextupole(test_context):
     p_thin.move(_context=xo.context_default)
     p_sliced.move(_context=xo.context_default)
 
-    assert np.allclose(p_thin.x, p.x, rtol=0, atol=1e-14)
-    assert np.allclose(p_thin.px, p.px, rtol=0, atol=1e-14)
-    assert np.allclose(p_thin.y, p.y, rtol=0, atol=1e-14)
-    assert np.allclose(p_thin.py, p.py, rtol=0, atol=1e-14)
-    assert np.allclose(p_thin.delta, p.delta, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thin.x, p.x, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thin.px, p.px, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thin.y, p.y, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thin.py, p.py, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thin.delta, p.delta, rtol=0, atol=1e-14)
 
-    assert np.allclose(p_thick.x, p.x, rtol=0, atol=1e-14)
-    assert np.allclose(p_thick.px, p.px, rtol=0, atol=1e-14)
-    assert np.allclose(p_thick.y, p.y, rtol=0, atol=1e-14)
-    assert np.allclose(p_thick.py, p.py, rtol=0, atol=1e-14)
-    assert np.allclose(p_thick.delta, p.delta, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thick.x, p.x, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thick.px, p.px, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thick.y, p.y, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thick.py, p.py, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_thick.delta, p.delta, rtol=0, atol=1e-14)
 
-    assert np.allclose(p_sliced.x, p.x, rtol=0, atol=1e-14)
-    assert np.allclose(p_sliced.px, p.px, rtol=0, atol=1e-14)
-    assert np.allclose(p_sliced.y, p.y, rtol=0, atol=1e-14)
-    assert np.allclose(p_sliced.py, p.py, rtol=0, atol=1e-14)
-    assert np.allclose(p_sliced.delta, p.delta, rtol=0, atol=1e-14)
-    assert np.allclose(p_sliced.zeta, p.zeta, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_sliced.x, p.x, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_sliced.px, p.px, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_sliced.y, p.y, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_sliced.py, p.py, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_sliced.delta, p.delta, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_sliced.zeta, p.zeta, rtol=0, atol=1e-14)
 
     from cpymad.madx import Madx
     mad = Madx(stdout=False)
@@ -929,17 +929,17 @@ def test_sextupole(test_context):
 
     elem = line_mad['elem']
     assert isinstance(elem, xt.Sextupole)
-    assert np.isclose(elem.length, 0.4, rtol=0, atol=1e-14)
-    assert np.isclose(elem.k2, 3, rtol=0, atol=1e-14)
-    assert np.isclose(elem.k2s, 10, rtol=0, atol=1e-14)
+    xo.assert_allclose(elem.length, 0.4, rtol=0, atol=1e-14)
+    xo.assert_allclose(elem.k2, 3, rtol=0, atol=1e-14)
+    xo.assert_allclose(elem.k2s, 10, rtol=0, atol=1e-14)
 
     line_mad.vv['knob_a'] = 0.5
     line_mad.vv['knob_b'] = 0.6
     line_mad.vv['knob_l'] = 0.7
 
-    assert np.isclose(elem.length, 0.7, rtol=0, atol=1e-14)
-    assert np.isclose(elem.k2, 1.5, rtol=0, atol=1e-14)
-    assert np.isclose(elem.k2s, 3.0, rtol=0, atol=1e-14)
+    xo.assert_allclose(elem.length, 0.7, rtol=0, atol=1e-14)
+    xo.assert_allclose(elem.k2, 1.5, rtol=0, atol=1e-14)
+    xo.assert_allclose(elem.k2s, 3.0, rtol=0, atol=1e-14)
 
 @pytest.mark.parametrize(
     'ks, ksi, length',
@@ -1013,13 +1013,13 @@ def test_solenoid_against_madx(test_context, ks, ksi, length):
         part.move(_context=xo.context_default)
 
         xt_tau = part.zeta/part.beta0
-        assert np.allclose(part.x[ii], mad_results.x, atol=1e-10, rtol=0), 'x'
-        assert np.allclose(part.px[ii], mad_results.px, atol=1e-11, rtol=0), 'px'
-        assert np.allclose(part.y[ii], mad_results.y, atol=1e-10, rtol=0), 'y'
-        assert np.allclose(part.py[ii], mad_results.py, atol=1e-11, rtol=0), 'py'
-        assert np.allclose(xt_tau[ii], mad_results.t, atol=1e-9, rtol=0), 't'
-        assert np.allclose(part.ptau[ii], mad_results.pt, atol=1e-11, rtol=0), 'pt'
-        assert np.allclose(part.s[ii], mad_results.s, atol=1e-11, rtol=0), 's'
+        xo.assert_allclose(part.x[ii], mad_results.x, atol=1e-10, rtol=0), 'x'
+        xo.assert_allclose(part.px[ii], mad_results.px, atol=1e-11, rtol=0), 'px'
+        xo.assert_allclose(part.y[ii], mad_results.y, atol=1e-10, rtol=0), 'y'
+        xo.assert_allclose(part.py[ii], mad_results.py, atol=1e-11, rtol=0), 'py'
+        xo.assert_allclose(xt_tau[ii], mad_results.t, atol=1e-9, rtol=0), 't'
+        xo.assert_allclose(part.ptau[ii], mad_results.pt, atol=1e-11, rtol=0), 'pt'
+        xo.assert_allclose(part.s[ii], mad_results.s, atol=1e-11, rtol=0), 's'
 
 
 @for_all_test_contexts
@@ -1043,12 +1043,12 @@ def test_solenoid_thick_drift_like(test_context):
     p_sol.move(_context=xo.context_default)
     p_drift.move(_context=xo.context_default)
 
-    assert np.allclose(p_sol.x, p_drift.x, atol=1e-9)
-    assert np.allclose(p_sol.px, p_drift.px, atol=1e-9)
-    assert np.allclose(p_sol.y, p_drift.y, atol=1e-9)
-    assert np.allclose(p_sol.py, p_drift.py, atol=1e-9)
-    assert np.allclose(p_sol.zeta, p_drift.zeta, atol=1e-9)
-    assert np.allclose(p_sol.delta, p_drift.delta, atol=1e-9)
+    xo.assert_allclose(p_sol.x, p_drift.x, atol=1e-9)
+    xo.assert_allclose(p_sol.px, p_drift.px, atol=1e-9)
+    xo.assert_allclose(p_sol.y, p_drift.y, atol=1e-9)
+    xo.assert_allclose(p_sol.py, p_drift.py, atol=1e-9)
+    xo.assert_allclose(p_sol.zeta, p_drift.zeta, atol=1e-9)
+    xo.assert_allclose(p_sol.delta, p_drift.delta, atol=1e-9)
 
 
 @for_all_test_contexts
@@ -1078,14 +1078,14 @@ def test_solenoid_thick_analytic(test_context, length, expected):
 
     p_sol.move(_context=xo.context_default)
 
-    assert np.allclose(p_sol.x, expected[0], atol=1e-9)
-    assert np.allclose(p_sol.px, expected[1], atol=1e-9)
-    assert np.allclose(p_sol.y, expected[2], atol=1e-9)
-    assert np.allclose(p_sol.py, expected[3], atol=1e-9)
+    xo.assert_allclose(p_sol.x, expected[0], atol=1e-9)
+    xo.assert_allclose(p_sol.px, expected[1], atol=1e-9)
+    xo.assert_allclose(p_sol.y, expected[2], atol=1e-9)
+    xo.assert_allclose(p_sol.py, expected[3], atol=1e-9)
     delta_ell = (p_sol.s - p_sol.zeta) * p_sol.rvv
-    assert np.allclose(delta_ell, expected[4], atol=1e-9)
-    assert np.allclose(p_sol.delta, expected[5], atol=1e-9)
-    assert np.allclose(p_sol.s, length, atol=1e-9)
+    xo.assert_allclose(delta_ell, expected[4], atol=1e-9)
+    xo.assert_allclose(p_sol.delta, expected[5], atol=1e-9)
+    xo.assert_allclose(p_sol.s, length, atol=1e-9)
 
 @for_all_test_contexts
 def test_skew_quadrupole(test_context):
@@ -1116,12 +1116,12 @@ def test_skew_quadrupole(test_context):
     p_test.move(_context=xo.context_default)
     p_ref.move(_context=xo.context_default)
 
-    assert np.isclose(p_test.x, p_ref.x, atol=1e-8, rtol=0)
-    assert np.isclose(p_test.px, p_ref.px, atol=5e-8, rtol=0)
-    assert np.isclose(p_test.y, p_ref.y, atol=1e-8, rtol=0)
-    assert np.isclose(p_test.py, p_ref.py, atol=5e-8, rtol=0)
-    assert np.isclose(p_test.zeta, p_ref.zeta, atol=1e-8, rtol=0)
-    assert np.isclose(p_test.delta, p_ref.delta, atol=5e-8, rtol=0)
+    xo.assert_allclose(p_test.x, p_ref.x, atol=1e-8, rtol=0)
+    xo.assert_allclose(p_test.px, p_ref.px, atol=5e-8, rtol=0)
+    xo.assert_allclose(p_test.y, p_ref.y, atol=1e-8, rtol=0)
+    xo.assert_allclose(p_test.py, p_ref.py, atol=5e-8, rtol=0)
+    xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=1e-8, rtol=0)
+    xo.assert_allclose(p_test.delta, p_ref.delta, atol=5e-8, rtol=0)
 
 @for_all_test_contexts
 def test_octupole(test_context):
@@ -1150,9 +1150,9 @@ def test_octupole(test_context):
     p_test.move(_context=xo.context_default)
     p_ref.move(_context=xo.context_default)
 
-    assert np.isclose(p_test.x, p_ref.x, atol=1e-12, rtol=0)
-    assert np.isclose(p_test.px, p_ref.px, atol=1e-12, rtol=0)
-    assert np.isclose(p_test.y, p_ref.y, atol=1e-12, rtol=0)
-    assert np.isclose(p_test.py, p_ref.py, atol=1e-12, rtol=0)
-    assert np.isclose(p_test.zeta, p_ref.zeta, atol=1e-12, rtol=0)
-    assert np.isclose(p_test.delta, p_ref.delta, atol=1e-12, rtol=0)
+    xo.assert_allclose(p_test.x, p_ref.x, atol=1e-12, rtol=0)
+    xo.assert_allclose(p_test.px, p_ref.px, atol=1e-12, rtol=0)
+    xo.assert_allclose(p_test.y, p_ref.y, atol=1e-12, rtol=0)
+    xo.assert_allclose(p_test.py, p_ref.py, atol=1e-12, rtol=0)
+    xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=1e-12, rtol=0)
+    xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-12, rtol=0)
