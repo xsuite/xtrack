@@ -1,5 +1,8 @@
 import pathlib
+
 from cpymad.madx import Madx
+
+import xobjects as xo
 import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
 
@@ -61,12 +64,12 @@ def test_chromatic_functions_vs_madx(test_context):
         bx_ref = np.real(zx_ref)
         by_ref = np.real(zy_ref)
 
-        assert np.allclose(tw_test.wx_chrom, wx_ref, rtol=0, atol=2e-3 * np.max(wx_ref))
-        assert np.allclose(tw_test.wy_chrom, wy_ref, rtol=0, atol=2e-3 * np.max(wy_ref))
-        assert np.allclose(tw_test.ax_chrom, ax_ref, rtol=0, atol=2e-3 * np.max(ax_ref))
-        assert np.allclose(tw_test.ay_chrom, ay_ref, rtol=0, atol=2e-3 * np.max(ay_ref))
-        assert np.allclose(tw_test.bx_chrom, bx_ref, rtol=0, atol=2e-3 * np.max(bx_ref))
-        assert np.allclose(tw_test.by_chrom, by_ref, rtol=0, atol=2e-3 * np.max(by_ref))
+        xo.assert_allclose(tw_test.wx_chrom, wx_ref, rtol=0, atol=2e-3 * np.max(wx_ref))
+        xo.assert_allclose(tw_test.wy_chrom, wy_ref, rtol=0, atol=2e-3 * np.max(wy_ref))
+        xo.assert_allclose(tw_test.ax_chrom, ax_ref, rtol=0, atol=2e-3 * np.max(ax_ref))
+        xo.assert_allclose(tw_test.ay_chrom, ay_ref, rtol=0, atol=2e-3 * np.max(ay_ref))
+        xo.assert_allclose(tw_test.bx_chrom, bx_ref, rtol=0, atol=2e-3 * np.max(bx_ref))
+        xo.assert_allclose(tw_test.by_chrom, by_ref, rtol=0, atol=2e-3 * np.max(by_ref))
 
         # Open twiss
         init = tw.get_twiss_init('ip3')
@@ -74,13 +77,13 @@ def test_chromatic_functions_vs_madx(test_context):
                             compute_chromatic_properties=True)
 
         tw_ref_open = tw.rows['ip3':'ip6']
-        assert np.allclose(tw_open.wx_chrom[:-1], tw_ref_open.wx_chrom,
+        xo.assert_allclose(tw_open.wx_chrom[:-1], tw_ref_open.wx_chrom,
                         rtol=0, atol=2e-3 * np.max(tw_ref_open.wx_chrom))
-        assert np.allclose(tw_open.wy_chrom[:-1], tw_ref_open.wy_chrom,
+        xo.assert_allclose(tw_open.wy_chrom[:-1], tw_ref_open.wy_chrom,
                         rtol=0, atol=2e-3 * np.max(tw_ref_open.wy_chrom))
-        assert np.allclose(tw_open.ax_chrom[:-1], tw_ref_open.ax_chrom,
+        xo.assert_allclose(tw_open.ax_chrom[:-1], tw_ref_open.ax_chrom,
                             rtol=0, atol=2e-3 * np.max(tw_ref_open.ax_chrom))
-        assert np.allclose(tw_open.ay_chrom[:-1], tw_ref_open.ay_chrom,
+        xo.assert_allclose(tw_open.ay_chrom[:-1], tw_ref_open.ay_chrom,
                                 rtol=0, atol=2e-3 * np.max(tw_ref_open.ay_chrom))
-        assert np.allclose(tw_open.bx_chrom[:-1], tw_ref_open.bx_chrom,
+        xo.assert_allclose(tw_open.bx_chrom[:-1], tw_ref_open.bx_chrom,
                                 rtol=0, atol=2e-3 * np.max(tw_ref_open.bx_chrom))

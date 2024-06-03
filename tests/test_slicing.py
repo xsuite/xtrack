@@ -2,10 +2,12 @@
 # This file is part of the Xtrack Package.  #
 # Copyright (c) CERN, 2023.                 #
 # ######################################### #
-import numpy as np
-import pytest
 import math
 
+import numpy as np
+import pytest
+
+import xobjects as xo
 import xtrack as xt
 from xtrack.slicing import Strategy, Teapot, Uniform, Custom, Slicer
 
@@ -99,11 +101,11 @@ def test_slicing_custom():
     slicing_3 = Custom(at_s=[0.8, 2, 8], mode='thin')
     expected_dr_3 = [0.8/16, 1.2/16, 6/16, 8/16]
     result_dr_3 = slicing_3.drift_weights(element_length=elem_len_3)
-    assert np.allclose(expected_dr_3, result_dr_3, atol=1e-30)
+    xo.assert_allclose(expected_dr_3, result_dr_3, atol=1e-30)
 
     expected_el_3 = [1/3] * 3
     result_el_3 = slicing_3.element_weights(element_length=elem_len_3)
-    assert np.allclose(expected_el_3, result_el_3, atol=1e-30)
+    xo.assert_allclose(expected_el_3, result_el_3, atol=1e-30)
 
     elem_info = (1/3, False)
     expected_3 = [
@@ -121,7 +123,7 @@ def test_slicing_custom_thick():
     slicing_1 = Custom(at_s=[0.3], mode='thick')
     expected_dr_1 = [0.3 / 1.1, 0.8 / 1.1]
     result_dr_1 = slicing_1.drift_weights(element_length=elem_len_1)
-    assert np.allclose(expected_dr_1, result_dr_1, atol=1e-30)
+    xo.assert_allclose(expected_dr_1, result_dr_1, atol=1e-30)
 
     expected_1 = [
         (0.3 / 1.1, True),
@@ -134,7 +136,7 @@ def test_slicing_custom_thick():
     slicing_3 = Custom(at_s=[0.8, 2, 8])
     expected_dr_3 = [0.8/16, 1.2/16, 6/16, 8/16]
     result_dr_3 = slicing_3.drift_weights(element_length=elem_len_3)
-    assert np.allclose(expected_dr_3, result_dr_3, atol=1e-30)
+    xo.assert_allclose(expected_dr_3, result_dr_3, atol=1e-30)
 
     expected_3 = [
         (0.8/16, True),
@@ -394,8 +396,8 @@ def test_slicing_thick_bend_simple():
 
     # Make sure the order and the inverse factorial make sense:
     _fact = math.factorial
-    assert np.isclose(_fact(bend0._parent.order) * bend0._parent.inv_factorial_order, 1, atol=1e-16)
-    assert np.isclose(_fact(bend1._parent.order) * bend0._parent.inv_factorial_order, 1, atol=1e-16)
+    xo.assert_allclose(_fact(bend0._parent.order) * bend0._parent.inv_factorial_order, 1, atol=1e-16)
+    xo.assert_allclose(_fact(bend1._parent.order) * bend0._parent.inv_factorial_order, 1, atol=1e-16)
 
 
 def test_slicing_thick_bend_into_thick_bends_simple():
@@ -424,17 +426,17 @@ def test_slicing_thick_bend_into_thick_bends_simple():
     assert bend0._parent.k1 == bend1._parent.k1 == 0.2
 
     expected_knl = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
-    assert np.allclose(bend0._parent.knl, expected_knl, atol=1e-16)
-    assert np.allclose(bend1._parent.knl, expected_knl, atol=1e-16)
+    xo.assert_allclose(bend0._parent.knl, expected_knl, atol=1e-16)
+    xo.assert_allclose(bend1._parent.knl, expected_knl, atol=1e-16)
 
     expected_ksl = np.array([0.7, 0.6, 0.5, 0.4, 0.3, 0.2])
-    assert np.allclose(bend0._parent.ksl, expected_ksl, atol=1e-16)
-    assert np.allclose(bend1._parent.ksl, expected_ksl, atol=1e-16)
+    xo.assert_allclose(bend0._parent.ksl, expected_ksl, atol=1e-16)
+    xo.assert_allclose(bend1._parent.ksl, expected_ksl, atol=1e-16)
 
     # Make sure the order and the inverse factorial make sense:
     _fact = math.factorial
-    assert np.isclose(_fact(bend0._parent.order) * bend0._parent.inv_factorial_order, 1, atol=1e-16)
-    assert np.isclose(_fact(bend1._parent.order) * bend0._parent.inv_factorial_order, 1, atol=1e-16)
+    xo.assert_allclose(_fact(bend0._parent.order) * bend0._parent.inv_factorial_order, 1, atol=1e-16)
+    xo.assert_allclose(_fact(bend1._parent.order) * bend0._parent.inv_factorial_order, 1, atol=1e-16)
 
 
 def test_slicing_xdeps_consistency():

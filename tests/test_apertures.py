@@ -104,7 +104,7 @@ def test_aperture_polygon(test_context):
                     x=x_vertices*0.99,
                     y=y_vertices*0.99)
     aper.track(parttest)
-    assert np.allclose(ctx2np(parttest.state), 1)
+    xo.assert_allclose(ctx2np(parttest.state), 1)
 
     # Try some particles outside
     parttest = xp.Particles(
@@ -113,7 +113,7 @@ def test_aperture_polygon(test_context):
                     x=x_vertices*1.01,
                     y=y_vertices*1.01)
     aper.track(parttest)
-    assert np.allclose(ctx2np(parttest.state), 0)
+    xo.assert_allclose(ctx2np(parttest.state), 0)
 
 
 def test_mad_import():
@@ -152,13 +152,13 @@ def test_mad_import():
 
     circ = apertures[0]
     assert circ.__class__.__name__ == 'LimitEllipse'
-    assert np.isclose(circ.a_squ, .2**2, atol=1e-13, rtol=0)
-    assert np.isclose(circ.b_squ, .2**2, atol=1e-13, rtol=0)
+    xo.assert_allclose(circ.a_squ, .2**2, atol=1e-13, rtol=0)
+    xo.assert_allclose(circ.b_squ, .2**2, atol=1e-13, rtol=0)
 
     ellip = apertures[1]
     assert ellip.__class__.__name__ == 'LimitEllipse'
-    assert np.isclose(ellip.a_squ, .2**2, atol=1e-13, rtol=0)
-    assert np.isclose(ellip.b_squ, .1**2, atol=1e-13, rtol=0)
+    xo.assert_allclose(ellip.a_squ, .2**2, atol=1e-13, rtol=0)
+    xo.assert_allclose(ellip.b_squ, .1**2, atol=1e-13, rtol=0)
 
     rect = apertures[2]
     assert rect.__class__.__name__ == 'LimitRect'
@@ -170,8 +170,8 @@ def test_mad_import():
     rectellip = apertures[3]
     assert rectellip.max_x == .2
     assert rectellip.max_y == .4
-    assert np.isclose(rectellip.a_squ, .25**2, atol=1e-13, rtol=0)
-    assert np.isclose(rectellip.b_squ, .45**2, atol=1e-13, rtol=0)
+    xo.assert_allclose(rectellip.a_squ, .25**2, atol=1e-13, rtol=0)
+    xo.assert_allclose(rectellip.b_squ, .45**2, atol=1e-13, rtol=0)
 
     racetr = apertures[4]
     assert racetr.__class__.__name__ == 'LimitRacetrack'
@@ -185,26 +185,26 @@ def test_mad_import():
     octag = apertures[5]
     assert octag.__class__.__name__ == 'LimitPolygon'
     assert octag._xobject.x_vertices[0] == 0.4
-    assert np.isclose(octag._xobject.y_vertices[0], 0.4*np.tan(0.5), atol=1e-14, rtol=0)
+    xo.assert_allclose(octag._xobject.y_vertices[0], 0.4*np.tan(0.5), atol=1e-14, rtol=0)
     assert octag._xobject.y_vertices[1] == 0.5
-    assert np.isclose(octag._xobject.x_vertices[1], 0.5/np.tan(1.), atol=1e-14, rtol=0)
+    xo.assert_allclose(octag._xobject.x_vertices[1], 0.5/np.tan(1.), atol=1e-14, rtol=0)
 
     assert octag._xobject.y_vertices[2] == 0.5
-    assert np.isclose(octag._xobject.x_vertices[2], -0.5/np.tan(1.), atol=1e-14, rtol=0)
+    xo.assert_allclose(octag._xobject.x_vertices[2], -0.5/np.tan(1.), atol=1e-14, rtol=0)
     assert octag._xobject.x_vertices[3] == -0.4
-    assert np.isclose(octag._xobject.y_vertices[3], 0.4*np.tan(0.5), atol=1e-14, rtol=0)
+    xo.assert_allclose(octag._xobject.y_vertices[3], 0.4*np.tan(0.5), atol=1e-14, rtol=0)
 
 
     assert octag._xobject.x_vertices[4] == -0.4
-    assert np.isclose(octag._xobject.y_vertices[4], -0.4*np.tan(0.5), atol=1e-14, rtol=0)
+    xo.assert_allclose(octag._xobject.y_vertices[4], -0.4*np.tan(0.5), atol=1e-14, rtol=0)
     assert octag._xobject.y_vertices[5] == -0.5
-    assert np.isclose(octag._xobject.x_vertices[5], -0.5/np.tan(1.), atol=1e-14, rtol=0)
+    xo.assert_allclose(octag._xobject.x_vertices[5], -0.5/np.tan(1.), atol=1e-14, rtol=0)
 
 
     assert octag._xobject.y_vertices[6] == -0.5
-    assert np.isclose(octag._xobject.x_vertices[6], 0.5/np.tan(1.), atol=1e-14, rtol=0)
+    xo.assert_allclose(octag._xobject.x_vertices[6], 0.5/np.tan(1.), atol=1e-14, rtol=0)
     assert octag._xobject.x_vertices[7] == 0.4
-    assert np.isclose(octag._xobject.y_vertices[7], -0.4*np.tan(0.5), atol=1e-14, rtol=0)
+    xo.assert_allclose(octag._xobject.y_vertices[7], -0.4*np.tan(0.5), atol=1e-14, rtol=0)
 
     polyg = apertures[6]
     assert polyg.__class__.__name__ == 'LimitPolygon'

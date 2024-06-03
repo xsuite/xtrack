@@ -4,13 +4,14 @@
 # ######################################### #
 import json
 import pathlib
-import pytest
 
-from cpymad.madx import Madx
 import numpy as np
+import pytest
+from cpymad.madx import Madx
+
 import xobjects as xo
-import xtrack as xt
 import xpart as xp
+import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
 
 test_data_folder = pathlib.Path(
@@ -33,7 +34,7 @@ def test_simple_collective_line(test_context):
     particles.move(_context=xo.ContextCpu())
 
     assert np.all(particles.at_turn == num_turns)
-    assert np.allclose(particles.s, 10 * num_turns, rtol=0, atol=1e-14)
+    xo.assert_allclose(particles.s, 10 * num_turns, rtol=0, atol=1e-14)
 
 
 
@@ -494,12 +495,12 @@ def test_optimize_for_tracking(test_context, multiline):
     assert np.all(p_no_optimized.state == 1)
     assert np.all(p_optimized.state == 1)
 
-    assert np.allclose(p_no_optimized.x, p_optimized.x, rtol=0, atol=1e-14)
-    assert np.allclose(p_no_optimized.y, p_optimized.y, rtol=0, atol=1e-14)
-    assert np.allclose(p_no_optimized.px, p_optimized.px, rtol=0, atol=1e-14)
-    assert np.allclose(p_no_optimized.py, p_optimized.py, rtol=0, atol=1e-14)
-    assert np.allclose(p_no_optimized.zeta, p_optimized.zeta, rtol=0, atol=1e-10)
-    assert np.allclose(p_no_optimized.delta, p_optimized.delta, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_no_optimized.x, p_optimized.x, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_no_optimized.y, p_optimized.y, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_no_optimized.px, p_optimized.px, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_no_optimized.py, p_optimized.py, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_no_optimized.zeta, p_optimized.zeta, rtol=0, atol=1e-10)
+    xo.assert_allclose(p_no_optimized.delta, p_optimized.delta, rtol=0, atol=1e-14)
 
 
 @for_all_test_contexts
@@ -523,12 +524,12 @@ def test_backtrack_with_flag(test_context):
     line.track(p, backtrack=True, turn_by_turn_monitor='ONE_TURN_EBE')
     mon_backtrack = line.record_last_track
 
-    assert np.allclose(mon_forward.x, mon_backtrack.x, rtol=0, atol=1e-10)
-    assert np.allclose(mon_forward.y, mon_backtrack.y, rtol=0, atol=1e-10)
-    assert np.allclose(mon_forward.px, mon_backtrack.px, rtol=0, atol=1e-10)
-    assert np.allclose(mon_forward.py, mon_backtrack.py, rtol=0, atol=1e-10)
-    assert np.allclose(mon_forward.zeta, mon_backtrack.zeta, rtol=0, atol=1e-10)
-    assert np.allclose(mon_forward.delta, mon_backtrack.delta, rtol=0, atol=1e-10)
+    xo.assert_allclose(mon_forward.x, mon_backtrack.x, rtol=0, atol=1e-10)
+    xo.assert_allclose(mon_forward.y, mon_backtrack.y, rtol=0, atol=1e-10)
+    xo.assert_allclose(mon_forward.px, mon_backtrack.px, rtol=0, atol=1e-10)
+    xo.assert_allclose(mon_forward.py, mon_backtrack.py, rtol=0, atol=1e-10)
+    xo.assert_allclose(mon_forward.zeta, mon_backtrack.zeta, rtol=0, atol=1e-10)
+    xo.assert_allclose(mon_forward.delta, mon_backtrack.delta, rtol=0, atol=1e-10)
 
 
 @for_all_test_contexts
@@ -549,7 +550,7 @@ def test_tracking_with_progress(test_context, with_progress, turns, collective):
     particles.move(xo.ContextCpu())
 
     assert np.all(particles.at_turn == turns)
-    assert np.allclose(particles.s, 10 * turns, rtol=0, atol=1e-14)
+    xo.assert_allclose(particles.s, 10 * turns, rtol=0, atol=1e-14)
 
 
 @for_all_test_contexts
@@ -576,7 +577,7 @@ def test_tbt_monitor_with_progress(test_context, ele_start, ele_stop, expected_x
     assert monitor_recorded_x.shape == (1, len(expected_x) - 1)
 
     recorded_x = np.concatenate([monitor_recorded_x[0], p.x])
-    assert np.allclose(recorded_x, expected_x, atol=1e-16)
+    xo.assert_allclose(recorded_x, expected_x, atol=1e-16)
 
 
 @pytest.fixture
@@ -642,7 +643,7 @@ def test_track_log_and_merit_function(pimms_mad, test_context):
     x_expected = [line.vars[kk]._value for kk in ['ksf', 'ksd', 'kqfa', 'kqfb', 'kqd']]
     x_expected[4] /= 10  # include the weight
     x_start = merit_function.get_x()
-    assert np.allclose(x_start, x_expected, atol=1e-14)
+    xo.assert_allclose(x_start, x_expected, atol=1e-14)
 
     expected_limits = [
         [-1e200, 1e200],  # default
@@ -651,7 +652,7 @@ def test_track_log_and_merit_function(pimms_mad, test_context):
         [0, 1],
         [-0.1, 0],
     ]
-    assert np.allclose(merit_function.get_x_limits(), expected_limits, atol=1e-14)
+    xo.assert_allclose(merit_function.get_x_limits(), expected_limits, atol=1e-14)
 
     # Below numbers obtained by first only matching the tunes, then the above
     x_optimized = [-1.40251213, 0.81823393, 0.31196667, 0.52478984, -0.052393429]
@@ -710,15 +711,15 @@ def test_track_log_and_merit_function(pimms_mad, test_context):
     (slope, _), residual, _, _, _ = fit
     assert slope > 0
     assert residual < 1e-28
-    assert np.isclose(line.log_last_track['kqfa'][0], kqfa_before, atol=1e-14, rtol=0)
-    assert np.isclose(line.log_last_track['kqfa'][-1], line.vv['kqfa'], atol=1e-14, rtol=0)
+    xo.assert_allclose(line.log_last_track['kqfa'][0], kqfa_before, atol=1e-14, rtol=0)
+    xo.assert_allclose(line.log_last_track['kqfa'][-1], line.vv['kqfa'], atol=1e-14, rtol=0)
 
     # Check that intensity is decreasing
     intensity = np.array(line.log_last_track['intensity'])
     assert np.all(intensity[:-1] - intensity[1:] >= 0)
-    assert np.isclose(intensity[0], intensity_before, atol=1e-14, rtol=0)
+    xo.assert_allclose(intensity[0], intensity_before, atol=1e-14, rtol=0)
     # The last log point is from the beginning of the last turn:
-    assert np.isclose(intensity[-1], intensity_after, atol=0, rtol=1e-2)
+    xo.assert_allclose(intensity[-1], intensity_after, atol=0, rtol=1e-2)
 
 
 @for_all_test_contexts

@@ -5,9 +5,10 @@
 
 import json
 import pathlib
-import pytest
 
 import numpy as np
+import pytest
+
 import xfields as xf
 import xobjects as xo
 import xpart as xp
@@ -208,8 +209,8 @@ def test_ring_with_spacecharge(test_context, mode):
           f'ey={(qy_probe - qy_target)/1e-3:.6f}e-3')
 
     with flaky_assertions():
-        assert np.isclose(qx_probe, qx_target, atol=5e-4, rtol=0)
-        assert np.isclose(qy_probe, qy_target, atol=5e-4, rtol=0)
+        xo.assert_allclose(qx_probe, qx_target, atol=5e-4, rtol=0)
+        xo.assert_allclose(qy_probe, qy_target, atol=5e-4, rtol=0)
 
     if mode == 'pic_average_transverse':
         sc_test = all_pics[50]
@@ -218,7 +219,7 @@ def test_ring_with_spacecharge(test_context, mode):
         for dtest in [sc_test.fieldmap.dphi_dx, sc_test.fieldmap.dphi_dy]:
             # Check that the normalized electric field is the same
             dtest = ctx2np(dtest)
-            assert np.allclose(
+            xo.assert_allclose(
                 dtest[:, :, 3] / np.max(dtest[:, :, 3]),
                 dtest[:, :, 4] / np.max(dtest[:, :, 4]),
                 atol=1e-10, rtol=1e-5)
