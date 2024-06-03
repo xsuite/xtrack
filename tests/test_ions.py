@@ -51,7 +51,7 @@ def test_ions(test_context):
     tw = line.twiss()
 
     xo.assert_allclose(tw.qs, qs_mad, rtol=0, atol=1e-6)
-    xo.assert_allclose(tw.qx, summad_4d.q1, rtol=0, atol=1e-5)
-    xo.assert_allclose(tw.qy, summad_4d.q2, rtol=0, atol=1e-5)
-    xo.assert_allclose(tw.dqx - summad_6d.dq1, 0, rtol=0, atol=0.5)
-    xo.assert_allclose(tw.dqy - summad_6d.dq2, 0, rtol=0, atol=0.5)
+    xo.assert_allclose(tw.qx, float(summad_4d.q1.iloc[0]), rtol=0, atol=1e-5)
+    xo.assert_allclose(tw.qy, float(summad_4d.q2.iloc[0]), rtol=0, atol=1e-5)
+    xo.assert_allclose(tw.dqx - float(summad_6d.dq1.iloc[0]), 0, rtol=0, atol=0.5)
+    xo.assert_allclose(tw.dqy - float(summad_6d.dq2.iloc[0]), 0, rtol=0, atol=0.5)
