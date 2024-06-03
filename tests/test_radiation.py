@@ -190,7 +190,7 @@ def test_ring_with_radiation(test_context):
     met = mad_emit_table
 
     with flaky_assertions():
-        xo.assert_allclose(tw['eneloss_turn'], mad_emit_summ.u0[0]*1e9,
+        xo.assert_allclose(tw['eneloss_turn'], mad_emit_summ.u0.iloc[0]*1e9,
                         rtol=3e-3, atol=0)
         xo.assert_allclose(tw['damping_constants_s'][0],
             met[met.loc[:, 'parameter']=='damping_constant']['mode1'].iloc[0],
@@ -235,12 +235,12 @@ def test_ring_with_radiation(test_context):
 
     with flaky_assertions():
         xo.assert_allclose(np.std(mon.zeta[:, 750:]),
-            np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode3'][0] * np.abs(tw['bets0'])),
+            np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode3'].iloc[0] * np.abs(tw['bets0'])),
             rtol=0.2, atol=0
             )
 
         xo.assert_allclose(np.std(mon.x[:, 750:]),
-            np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode1'][0] * tw['betx'][0]),
+            np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode1'].iloc[0] * tw['betx'][0]),
             rtol=0.2, atol=0
             )
 

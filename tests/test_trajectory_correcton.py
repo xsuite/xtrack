@@ -28,9 +28,9 @@ def test_orbit_correction_basics(test_context):
 
     # Define elements to be used as correctors for orbit correction
     # (for LHC all element namesstarting by "mcb.", containing "h." or "v.")
-    tt_h_correctors = tt.rows['mcb.*'].rows['.*h\..*']
+    tt_h_correctors = tt.rows['mcb.*'].rows[r'.*h\..*']
     line.steering_correctors_x = tt_h_correctors.name
-    tt_v_correctors = tt.rows['mcb.*'].rows['.*v\..*']
+    tt_v_correctors = tt.rows['mcb.*'].rows[r'.*v\..*']
     line.steering_correctors_y = tt_v_correctors.name
 
     # Reference twiss (no misalignments)
@@ -87,9 +87,9 @@ def test_orbit_correction_micado(test_context):
 
     # Define elements to be used as correctors for orbit correction
     # (for LHC all element namesstarting by "mcb.", containing "h." or "v.")
-    tt_h_correctors = tt.rows['mcb.*'].rows['.*h\..*']
+    tt_h_correctors = tt.rows['mcb.*'].rows[r'.*h\..*']
     line.steering_correctors_x = tt_h_correctors.name
-    tt_v_correctors = tt.rows['mcb.*'].rows['.*v\..*']
+    tt_v_correctors = tt.rows['mcb.*'].rows[r'.*v\..*']
     line.steering_correctors_y = tt_v_correctors.name
 
     # Reference twiss (no misalignments)
@@ -145,9 +145,9 @@ def test_orbit_correction_customize(test_context):
 
     # Define elements to be used as correctors for orbit correction
     # (for LHC all element namesstarting by "mcb.", containing "h." or "v.")
-    tt_h_correctors = tt.rows['mcb.*'].rows['.*h\..*']
+    tt_h_correctors = tt.rows['mcb.*'].rows[r'.*h\..*']
     line.steering_correctors_x = tt_h_correctors.name
-    tt_v_correctors = tt.rows['mcb.*'].rows['.*v\..*']
+    tt_v_correctors = tt.rows['mcb.*'].rows[r'.*v\..*']
     line.steering_correctors_y = tt_v_correctors.name
 
     # Reference twiss (no misalignments)
@@ -214,9 +214,9 @@ def test_orbit_correction_thread(test_context):
 
     # Define elements to be used as correctors for orbit correction
     # (for LHC all element namesstarting by "mcb.", containing "h." or "v.")
-    tt_h_correctors = tt.rows['mcb.*'].rows['.*h\..*']
+    tt_h_correctors = tt.rows['mcb.*'].rows[r'.*h\..*']
     line.steering_correctors_x = tt_h_correctors.name
-    tt_v_correctors = tt.rows['mcb.*'].rows['.*v\..*']
+    tt_v_correctors = tt.rows['mcb.*'].rows[r'.*v\..*']
     line.steering_correctors_y = tt_v_correctors.name
 
     # Reference twiss (no misalignments)
@@ -288,9 +288,9 @@ def test_correct_trajectory_transfer_line(test_context):
 
     # Define elements to be used as correctors for orbit correction
     # (in this case all element names starting by "mci.", containing "h." or "v.")
-    tt_h_correctors = tt.rows['mci.*'].rows['.*h\..*']
+    tt_h_correctors = tt.rows['mci.*'].rows[r'.*h\..*']
     line.steering_correctors_x = tt_h_correctors.name
-    tt_v_correctors = tt.rows['mci.*'].rows['.*v\..*']
+    tt_v_correctors = tt.rows['mci.*'].rows[r'.*v\..*']
     line.steering_correctors_y = tt_v_correctors.name
 
     # Initial conditions from upstream ring
