@@ -1131,6 +1131,7 @@ def test_solenoid_with_mult_kicks(test_context, backtrack):
     coords_6d = np.array(list(itertools.product(*(coords,) * 6))).T
 
     p0 = xt.Particles(
+        _context=test_context,
         x=coords_6d[0],
         px=coords_6d[1],
         y=coords_6d[2],
