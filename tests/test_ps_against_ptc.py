@@ -1,10 +1,11 @@
 import pathlib
-from cpymad.madx import Madx
+
 import numpy as np
+from cpymad.madx import Madx
+
+import xobjects as xo
 import xtrack as xt
-
 from xobjects.test_helpers import for_all_test_contexts
-
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
@@ -14,7 +15,7 @@ def test_ps_against_ptc(test_context):
 
     # Verify correct result with Yoshida integration in CombinedFunctionMagnet
 
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     mad.call(str(test_data_folder / 'ps_sftpro/ps.seq'))
     mad.call(str(test_data_folder / 'ps_sftpro/ps_hs_sftpro.str'))
@@ -97,24 +98,24 @@ def test_ps_against_ptc(test_context):
     wx_ptc = np.sqrt(ax_ptc**2 + bx_ptc**2)
     wy_ptc = np.sqrt(ay_ptc**2 + by_ptc**2)
 
-    assert np.isclose(tw.qx, qx_ptc, atol=1e-4, rtol=0)
-    assert np.isclose(tw.qy, qy_ptc, atol=1e-4, rtol=0)
+    xo.assert_allclose(tw.qx, qx_ptc, atol=1e-4, rtol=0)
+    xo.assert_allclose(tw.qy, qy_ptc, atol=1e-4, rtol=0)
 
-    assert np.isclose(tw.dqx, dq1_ptc, atol=1e-2, rtol=0)
-    assert np.isclose(tw.dqy, dq2_ptc, atol=1e-2, rtol=0)
+    xo.assert_allclose(tw.dqx, dq1_ptc, atol=1e-2, rtol=0)
+    xo.assert_allclose(tw.dqy, dq2_ptc, atol=1e-2, rtol=0)
 
-    assert np.isclose(tw.dqx, dq1_ptc, atol=1e-2, rtol=0)
-    assert np.isclose(tw.dqy, dq2_ptc, atol=1e-2, rtol=0)
+    xo.assert_allclose(tw.dqx, dq1_ptc, atol=1e-2, rtol=0)
+    xo.assert_allclose(tw.dqy, dq2_ptc, atol=1e-2, rtol=0)
 
     nlchr = line.get_non_linear_chromaticity(method='4d')
-    assert np.isclose(nlchr['ddqx'], ddq1_ptc, atol=0, rtol=5e-3)
-    assert np.isclose(nlchr['ddqy'], ddq2_ptc, atol=0, rtol=5e-3)
+    xo.assert_allclose(nlchr['ddqx'], ddq1_ptc, atol=0, rtol=5e-3)
+    xo.assert_allclose(nlchr['ddqy'], ddq2_ptc, atol=0, rtol=5e-3)
 
-    assert np.isclose(nlchr['dqx'], dq1_ptc, atol=0, rtol=5e-3)
-    assert np.isclose(nlchr['dqy'], dq2_ptc, atol=0, rtol=5e-3)
+    xo.assert_allclose(nlchr['dqx'], dq1_ptc, atol=0, rtol=5e-3)
+    xo.assert_allclose(nlchr['dqy'], dq2_ptc, atol=0, rtol=5e-3)
 
-    assert np.allclose(nlchr.dnqx[:3], [tw.qx, nlchr.dqx, nlchr.ddqx], atol=0, rtol=1e-6)
-    assert np.allclose(nlchr.dnqy[:3], [tw.qy, nlchr.dqy, nlchr.ddqy], atol=0, rtol=1e-6)
+    xo.assert_allclose(nlchr.dnqx[:3], [tw.qx, nlchr.dqx, nlchr.ddqx], atol=0, rtol=1e-6)
+    xo.assert_allclose(nlchr.dnqy[:3], [tw.qy, nlchr.dqy, nlchr.ddqy], atol=0, rtol=1e-6)
 
     markers_ptc = tptc.rows[tptc.keyword == 'marker']
     markers_common_ptc = [nn for nn in markers_ptc.name if nn.split(':')[0] in tw.name]
@@ -122,14 +123,14 @@ def test_ps_against_ptc(test_context):
     mask_ptc = tptc.mask[markers_common_ptc]
     mask_xs = tw.mask[markers_common_xs]
 
-    assert np.allclose(tw.ax_chrom[mask_xs], ax_ptc[mask_ptc], atol=1e-2, rtol=0)
-    assert np.allclose(tw.bx_chrom[mask_xs], bx_ptc[mask_ptc], atol=1e-2, rtol=0)
-    assert np.allclose(tw.ay_chrom[mask_xs], ay_ptc[mask_ptc], atol=1e-2, rtol=0)
-    assert np.allclose(tw.by_chrom[mask_xs], by_ptc[mask_ptc], atol=1e-2, rtol=0)
-    assert np.allclose(tw.wx_chrom[mask_xs], wx_ptc[mask_ptc], atol=1e-2, rtol=0)
-    assert np.allclose(tw.wy_chrom[mask_xs], wy_ptc[mask_ptc], atol=1e-2, rtol=0)
+    xo.assert_allclose(tw.ax_chrom[mask_xs], ax_ptc[mask_ptc], atol=1e-2, rtol=0)
+    xo.assert_allclose(tw.bx_chrom[mask_xs], bx_ptc[mask_ptc], atol=1e-2, rtol=0)
+    xo.assert_allclose(tw.ay_chrom[mask_xs], ay_ptc[mask_ptc], atol=1e-2, rtol=0)
+    xo.assert_allclose(tw.by_chrom[mask_xs], by_ptc[mask_ptc], atol=1e-2, rtol=0)
+    xo.assert_allclose(tw.wx_chrom[mask_xs], wx_ptc[mask_ptc], atol=1e-2, rtol=0)
+    xo.assert_allclose(tw.wy_chrom[mask_xs], wy_ptc[mask_ptc], atol=1e-2, rtol=0)
 
-    assert np.allclose(tw.betx[mask_xs], betx[mask_ptc], rtol=1e-4, atol=0)
-    assert np.allclose(tw.bety[mask_xs], bety[mask_ptc], rtol=1e-4, atol=0)
-    assert np.allclose(tw.dx[mask_xs], dx_ptc[mask_ptc], rtol=1e-4, atol=1e-6)
-    assert np.allclose(tw.dy[mask_xs], dy_ptc[mask_ptc], rtol=1e-4, atol=1e-6)
+    xo.assert_allclose(tw.betx[mask_xs], betx[mask_ptc], rtol=1e-4, atol=0)
+    xo.assert_allclose(tw.bety[mask_xs], bety[mask_ptc], rtol=1e-4, atol=0)
+    xo.assert_allclose(tw.dx[mask_xs], dx_ptc[mask_ptc], rtol=1e-4, atol=1e-6)
+    xo.assert_allclose(tw.dy[mask_xs], dy_ptc[mask_ptc], rtol=1e-4, atol=1e-6)

@@ -25,7 +25,6 @@ from . import linear_normal_form as lnf
 import xobjects as xo
 import xtrack as xt
 import xdeps as xd
-from .compounds import CompoundContainer, CompoundType, Compound, SlicedCompound
 from .progress_indicator import progress
 from .slicing import Custom, Slicer, Strategy
 from .mad_writer import to_madx_sequence
@@ -47,6 +46,7 @@ from .footprint import Footprint, _footprint_with_linear_rescale
 from .internal_record import (start_internal_logging_for_elements_of_type,
                               stop_internal_logging_for_elements_of_type,
                               stop_internal_logging)
+from .trajectory_correction import TrajectoryCorrection
 
 from .general import _print
 
@@ -107,6 +107,10 @@ class Line:
         self._extra_config['_needs_rng'] = False
         self._extra_config['enable_time_dependent_vars'] = False
         self._extra_config['twiss_default'] = {}
+        self._extra_config['steering_monitors_x'] = None
+        self._extra_config['steering_monitors_y'] = None
+        self._extra_config['steering_correctors_x'] = None
+        self._extra_config['steering_correctors_y'] = None
 
         if isinstance(elements, dict):
             element_dict = elements
@@ -136,7 +140,6 @@ class Line:
 
         self.element_dict = element_dict.copy()  # avoid modifications if user provided
         self.element_names = list(element_names).copy()
-        self.compound_container = CompoundContainer()
 
         self.particle_ref = particle_ref
 
@@ -147,6 +150,9 @@ class Line:
         self.tracker = None
 
         self.metadata = {}
+
+        self._line_before_slicing_cache = None
+        self._element_names_before_slicing = None
 
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
@@ -207,12 +213,11 @@ class Line:
         if '_extra_config' in dct.keys():
             self._extra_config.update(dct['_extra_config'])
 
-        if 'compound_container' in dct.keys():
-            compounds = dct['compound_container']
-            self.compound_container = CompoundContainer.from_dict(compounds)
-
         if 'metadata' in dct.keys():
             self.metadata = dct['metadata']
+
+        self._element_names_before_slicing = dct.get(
+            '_element_names_before_slicing', None)
 
         if ('energy_program' in self.element_dict
              and self.element_dict['energy_program'] is not None):
@@ -348,7 +353,7 @@ class Line:
         drifts = {}
         last_s = 0
         for node in nodes:
-            if _is_thick(node.what):
+            if _is_thick(node.what, None):
                 node_length = node.what.length
                 if refer == 'entry':
                     offset = 0
@@ -434,8 +439,8 @@ class Line:
         classes=(),
         ignored_madtypes=(),
         allow_thick=None,
-        use_compound_elements=True,
         name_prefix=None,
+        enable_layout_data=False
     ):
 
         """
@@ -475,11 +480,8 @@ class Line:
         allow_thick : bool, optional
             If true, thick elements are allowed. Otherwise, an error is raised
             if a thick element is encountered.
-        use_compound_elements : bool, optional
-            If true, elements that are one element in madx but multiple elements
-            in xtrack will be grouped together with a marker attached in front,
-            and will be accessible through __getattr__. Otherwise, the line will
-            be flattened.
+        enable_layout_data: bool, optional
+            If true, the layout data is imported.
 
         Returns
         -------
@@ -506,8 +508,8 @@ class Line:
             error_table=None,  # not implemented yet
             replace_in_expr=replace_in_expr,
             allow_thick=allow_thick,
-            use_compound_elements=use_compound_elements,
-            name_prefix=name_prefix
+            name_prefix=name_prefix,
+            enable_layout_data=enable_layout_data,
         )
         line = loader.make_line()
         return line
@@ -534,7 +536,10 @@ class Line:
         out["element_names"] = self.element_names[:]
         out['config'] = self.config.data.copy()
         out['_extra_config'] = self._extra_config.copy()
-        out['compound_container'] = self.compound_container.to_dict()
+
+        if self._element_names_before_slicing is not None:
+            out['_element_names_before_slicing'] = self._element_names_before_slicing
+
         if self.particle_ref is not None:
             out['particle_ref'] = self.particle_ref.to_dict()
         if self._var_management is not None and include_var_management:
@@ -645,23 +650,42 @@ class Line:
 
         elements = list(self.elements)
         s_elements = np.array(list(self.get_s_elements()) + [self.get_length()])
-        element_types = list(map(lambda e: e.__class__.__name__, elements)) + [""]
-        isthick = np.array(list(map(_is_thick, elements)) + [False])
-        iscollective = np.array(list(map(xt.tracker._check_is_collective, elements)) + [False])
-        compound_name = list(self.get_element_compound_names()) + [None]
-        elements += [None]
 
-        for ii in range(len(compound_name)):
-            if compound_name[ii] is None:
-                compound_name[ii] = ''
+        isthick = []
+        iscollective = []
+        element_types = []
+        isreplica = []
+        parent_name = []
+        for ee in elements:
+            ee_pname = None
+            if isinstance(ee, xt.Replica):
+                ee_pname = ee.parent_name
+                ee = ee.resolve(self)
+                isreplica.append(True)
+            else:
+                isreplica.append(False)
+                if hasattr(ee, 'parent_name'):
+                    ee_pname = ee.parent_name
+            isthick.append(_is_thick(ee, self))
+            iscollective.append(_is_collective(ee, self))
+            element_types.append(ee.__class__.__name__)
+            parent_name.append(ee_pname)
+        isthick = np.array(isthick + [False])
+        iscollective = np.array(iscollective + [False])
+        isreplica = np.array(isreplica + [False])
+        element_types = np.array(element_types + [''])
+        parent_name = np.array(parent_name + [None])
+
+        elements += [None]
 
         out = {
             's': s_elements,
             'element_type': element_types,
             'name': list(self.element_names) + ['_end_point'],
             'isthick': isthick,
+            'isreplica': isreplica,
+            'parent_name': parent_name,
             'iscollective': iscollective,
-            'compound_name': compound_name,
             'element': elements
         }
 
@@ -728,8 +752,6 @@ class Line:
 
         if self._var_management is not None:
             out._init_var_management(dct=self._var_management_to_dict())
-
-        out.compound_container = self.compound_container.copy()
 
         out.config.update(self.config.copy())
         out._extra_config.update(self._extra_config.copy())
@@ -926,7 +948,12 @@ class Line:
 
         """
 
-        self._frozen_check()
+        self.build_tracker(compile=False) # ensure elements are in the same buffer
+        self.discard_tracker()
+
+        self._line_before_slicing_cache = None
+        self._element_names_before_slicing = list(self.element_names).copy()
+
         slicer = Slicer(self, slicing_strategies)
         return slicer.slice_in_place()
 
@@ -1092,7 +1119,6 @@ class Line:
         use_full_inverse=None,
         strengths=None,
         hide_thin_groups=None,
-        group_compound_elements=None,
         search_for_t_rev=None,
         num_turns_search_t_rev=None,
         only_twiss_init=None,
@@ -1154,7 +1180,7 @@ class Line:
                   solver_options={}, allow_twiss_failure=True,
                   restore_if_fail=True, verbose=False,
                   n_steps_max=20, default_tol=None,
-                  solver=None, **kwargs):
+                  solver=None, check_limits=True, **kwargs):
         '''
         Change a set of knobs in the beamline in order to match assigned targets.
 
@@ -1192,8 +1218,11 @@ class Line:
             for `None` is used for all targets for which a tolerance is not
             otherwise provided. Example: `default_tol={'betx': 1e-4, None: 1e-6}`.
         solver : str
-            Solver to be used for the matching. Available solvers are `jacobian`
-            (default), and `fsolve`.
+            Solver to be used for the matching.
+        check_limits : bool
+            If True (default), the limits of the knobs are checked before the
+            optimization. If False, if the knobs are out of limits, the optimization
+            knobs are set to the limits on the first iteration.
         **kwargs : dict
             Additional arguments to be passed to the twiss.
 
@@ -1264,7 +1293,8 @@ class Line:
                         allow_twiss_failure=allow_twiss_failure,
                         restore_if_fail=restore_if_fail,
                         verbose=verbose, n_steps_max=n_steps_max,
-                        default_tol=default_tol, solver=solver, **kwargs)
+                        default_tol=default_tol, solver=solver,
+                        check_limits=check_limits, **kwargs)
 
 
     def match_knob(self, knob_name, vary, targets,
@@ -1332,7 +1362,84 @@ class Line:
                                    phi0=phi0, psi0=psi0, element0=element0,
                                    reverse=reverse)
 
-    def correct_closed_orbit(self, reference, correction_config,
+    def correct_trajectory(self, run=True, n_iter='auto', start=None, end=None,
+                 twiss_table=None, planes=None,
+                 monitor_names_x=None, corrector_names_x=None,
+                 monitor_names_y=None, corrector_names_y=None,
+                 n_micado=None, n_singular_values=None, rcond=None):
+
+        '''
+        Correct the beam trajectory using linearized response matrix from optics
+        table.
+
+        Parameters
+        ----------
+
+        run : bool
+            If True (default), the correction is performed immediately. If False,
+            a TrajectoryCorrection object is returned, which can be used for
+            advanced correction.
+        n_iter : int
+            Number of iterations for the correction. If 'auto' (default), the
+            iterations are performed for as long as the correction is improving.
+        start : str
+            Start of the line range in which the correction is performed.
+            If `start` is provided `end` must also be provided.
+            If `start` is None, the correction is performed on the periodic
+            solution (closed orbit).
+        end : str
+            End of the line range in which the correction is performed.
+            If `end` is provided `start` must also be provided.
+            If `start` is None, the correction is performed on the periodic
+            solution (closed orbit).
+        twiss_table : TwissTable
+            Twiss table used to compute the response matrix for the correction.
+            If None, the twiss table is computed from the line.
+        planes : str
+            Planes for which the correction is performed. It can be 'x', 'y' or
+            'xy'. If None, the correction is performed for both planes.
+        monitor_names_x : list of str
+            List of elements used as monitors in the horizontal plane.
+        corrector_names_x : list of str
+            List of elements used as correctors in the horizontal plane. They
+            must have `knl` and `ksl` attributes.
+        monitor_names_y : list of str
+            List of elements used as monitors in the vertical plane.
+        corrector_names_y : list of str
+            List of elements used as correctors in the vertical plane. They
+            must have `knl` and `ksl` attributes.
+        n_micado : int
+            If `n_micado` is not None, the MICADO algorithm is used for the
+            correction. In that case, the number of correctors to be used is
+            given by `n_micado`.
+        n_singular_values : int
+            Number of singular values used for the correction.
+        rcond : float
+            Cutoff for small singular values (relative to the largest singular
+            value). Singular values smaller than `rcond` are considered zero.
+
+        Returns
+        -------
+        correction : TrajectoryCorrection
+            Trajectory correction object.
+
+        '''
+
+        correction = TrajectoryCorrection(line=self,
+                 start=start, end=end, twiss_table=twiss_table,
+                 monitor_names_x=monitor_names_x,
+                 corrector_names_x=corrector_names_x,
+                 monitor_names_y=monitor_names_y,
+                 corrector_names_y=corrector_names_y,
+                 n_micado=n_micado, n_singular_values=n_singular_values,
+                 rcond=rcond)
+
+        if run:
+            correction.correct(planes=planes, n_iter=n_iter)
+
+        return correction
+
+    def _xmask_correct_closed_orbit(self, reference, correction_config,
                         solver=None, verbose=False, restore_if_fail=True):
 
         """
@@ -1760,8 +1867,9 @@ class Line:
 
         ll = 0
         for ee in self.elements:
-            if _is_thick(ee):
-                ll += ee.length
+            if _is_thick(ee, self):
+                this_length = _length(ee, self)
+                ll += this_length
 
         return ll
 
@@ -1806,8 +1914,9 @@ class Line:
         for ee in self.elements:
             if mode == "upstream":
                 s.append(s_prev)
-            if _is_thick(ee):
-                s_prev += ee.length
+            if _is_thick(ee, line=self):
+                this_length = _length(ee, self)
+                s_prev += this_length
             if mode == "downstream":
                 s.append(s_prev)
 
@@ -1828,7 +1937,7 @@ class Line:
     def _elements_intersecting_s(
             self,
             s: List[float],
-            tol=1e-16,
+            s_tol=1e-6,
     ) -> Dict[str, List[float]]:
         """Given a list of s positions, return a list of elements 'cut' by s.
 
@@ -1836,9 +1945,9 @@ class Line:
         ---------
         s
             A list of s positions.
-        tol
+        s_tol
             Tolerance used when checking if s falls inside an element, or
-            at its edge. Defaults to 1e-16.
+            at its edge. Defaults to 1e-6.
 
         Returns
         -------
@@ -1859,16 +1968,16 @@ class Line:
 
             while True:
                 element = self[name]
-                if not _is_thick(element):
+                if not _is_thick(element, self):
                     start, name = next(all_s_iter)
                     continue
 
-                if np.isclose(current_s, start, atol=tol):
+                if np.isclose(current_s, start, atol=s_tol, rtol=0):
                     current_s = next(current_s_iter)
                     continue
 
-                end = start + element.length
-                if np.isclose(current_s, end, atol=tol):
+                end = start + _length(element, self)
+                if np.isclose(current_s, end, atol=s_tol, rtol=0):
                     current_s = next(current_s_iter)
                     continue
 
@@ -1889,10 +1998,11 @@ class Line:
 
         return cuts_for_element
 
-    def cut_at_s(self, s: List[float]):
+    def cut_at_s(self, s: List[float], s_tol=1e-6):
         """Slice the line so that positions in s never fall inside an element."""
-        cuts_for_element = self._elements_intersecting_s(s)
+        cuts_for_element = self._elements_intersecting_s(s, s_tol=s_tol)
         strategies = [Strategy(None)]  # catch-all, ignore unaffected elements
+
         for name, cuts in cuts_for_element.items():
             scheme = Custom(at_s=cuts, mode='thick')
             strategy = Strategy(scheme, name=name, exact=True)
@@ -1900,6 +2010,7 @@ class Line:
 
         slicer = Slicer(self, slicing_strategies=strategies)
         slicer.slice_in_place()
+
 
     def insert_element(self, name, element=None, at=None, index=None, at_s=None,
                        s_tol=1e-6):
@@ -1932,7 +2043,7 @@ class Line:
             index = self.element_names.index(index)
 
         if element is None:
-            if name not in self.element_names:
+            if name not in self.element_dict.keys():
                 raise ValueError(
                     f'Element {name} not found in the line. You must either '
                     f'give an `element` or a name of an element already '
@@ -1944,317 +2055,55 @@ class Line:
 
         assert ((index is not None and at_s is None) or
                 (index is None and at_s is not None)), (
-                    "Either `index` or `at_s` must be provided"
+                    "Either `at` or `at_s` must be provided"
                 )
 
+        if _is_thick(element, self) and np.abs(_length(element, self)) > 0 and at_s is None:
+            raise NotImplementedError('Use `at_s` to insert thick elements')
+
+        # Insert by name or index
         if index is not None:
-            if _is_thick(element) and np.abs(element.length) > 0:
-                raise NotImplementedError('Use `at_s` to insert thick elements')
-
-            left_name = self.element_names[index - 1]
-            left_cpd_name = self.get_compound_for_element(left_name)
-            right_name = self.element_names[index]
-            right_cpd_name = self.get_compound_for_element(right_name)
-            compound = None
-            if left_cpd_name == right_cpd_name and left_cpd_name is not None:
-                compound = self.compound_container.compound_for_name(left_cpd_name)
-                if isinstance(compound, Compound):
-                    if not (left_name in compound.core or right_name in compound.core):
-                        raise ValueError(
-                            "Elements can only be inserted into a compound in "
-                            "the core region."
-                        )
-
-            assert name not in self.element_dict.keys()
-            self.element_dict[name] = element
             self.element_names.insert(index, name)
-
-            if isinstance(compound, SlicedCompound):
-                compound.elements.add(name)
-                #self.compound_container.define_compound(left_cpd_name, compound)
-            elif isinstance(compound, Compound):
-                compound.core.add(name)
-                #self.compound_container.define_compound(left_cpd_name, compound)
-
+            self.element_dict[name] = element
             return
 
+        # Insert by s position
         s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
 
-        if not _is_thick(element) or np.abs(element.length) == 0:
+        # Shortcut in case ot thin element and no cut needed
+        if not _is_thick(element, self) or np.abs(_length(element, self)) == 0:
             i_closest = np.argmin(np.abs(s_vect_upstream - at_s))
             if np.abs(s_vect_upstream[i_closest] - at_s) < s_tol:
                 return self.insert_element(
                     index=i_closest, element=element, name=name)
 
-        s_vect_downstream = np.array(self.get_s_position(mode='downstream'))
-
         s_start_ele = at_s
-        i_first_drift_to_cut = np.where(s_vect_downstream > s_start_ele)[0][0]
-
-        # Shortcut for thin element without drift splitting
-        if (not _is_thick(element)
-                and np.abs(s_vect_upstream[i_first_drift_to_cut]-at_s) < 1e-10):
-            return self.insert_element(index=i_first_drift_to_cut,
-                                       element=element, name=name)
-
-        if _is_thick(element) and np.abs(element.length) > 0:
-            s_end_ele = at_s + element.length
+        if _is_thick(element, self) and np.abs(_length(element, self)) > 0:
+            s_end_ele = at_s + _length(element, self)
         else:
             s_end_ele = s_start_ele
 
-        i_last_drift_to_cut = np.where(s_vect_upstream < s_end_ele)[0][-1]
-        if _is_thick(element) and element.length > 0:
-            assert i_first_drift_to_cut <= i_last_drift_to_cut
-        name_first_drift_to_cut = self.element_names[i_first_drift_to_cut]
-        name_last_drift_to_cut = self.element_names[i_last_drift_to_cut]
-        first_drift_to_cut = self.element_dict[name_first_drift_to_cut]
-        last_drift_to_cut = self.element_dict[name_last_drift_to_cut]
+        self.cut_at_s([s_start_ele, s_end_ele])
 
-        assert _is_drift(first_drift_to_cut)
-        assert _is_drift(last_drift_to_cut)
+        s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
+        if _is_thick(element, self) and _length(element, self) > 0:
+            i_first_removal = np.where(np.abs(s_vect_upstream - s_start_ele) < s_tol)[0][-1]
+            i_last_removal = np.where(np.abs(s_vect_upstream - s_end_ele) < s_tol)[0][0] - 1
+            xo.assert_allclose(s_vect_upstream[i_last_removal + 1]
+                              - s_vect_upstream[i_first_removal],
+                                _length(element, self), atol=2 * s_tol, rtol=0)
+            self.element_names[i_first_removal:i_last_removal + 1] = [name]
+        else:
+            i_closest = np.argmin(np.abs(s_vect_upstream - at_s))
+            assert np.abs(s_vect_upstream[i_closest] - at_s) < s_tol
+            self.element_names.insert(i_closest, name)
 
-        for ii in range(i_first_drift_to_cut, i_last_drift_to_cut+1):
-            e_to_replace = self.element_dict[self.element_names[ii]]
-            if (not _is_drift(e_to_replace) and
-                not isinstance(e_to_replace, Marker) and
-                not _is_aperture(e_to_replace)):
-                raise ValueError(
-                    f'Cannot replace active element {self.element_names[ii]}')
-
-        l_left_part = s_start_ele - s_vect_upstream[i_first_drift_to_cut]
-        l_right_part = s_vect_downstream[i_last_drift_to_cut] - s_end_ele
-        assert l_left_part >= 0
-        assert l_right_part >= 0
-        name_left = name_first_drift_to_cut + '_u' # u for upstream
-        name_right = name_last_drift_to_cut + '_d' # d for downstream
-
-        drift_base = self.element_dict[name_first_drift_to_cut]
-        drift_left = drift_base.copy()
-        drift_left.length = l_left_part
-        drift_right = drift_base.copy()
-        drift_right.length = l_right_part
-
-        # Check if not illegally inserting in a compound
-        _compounds = self.compound_container
-        left_compound = _compounds.compound_name_for_element(name_first_drift_to_cut)
-        right_compound = _compounds.compound_name_for_element(name_last_drift_to_cut)
-        compound = None
-        if left_compound is not None and left_compound == right_compound:
-            compound = _compounds.compound_for_name(left_compound)
-            if isinstance(compound, Compound):
-                if not (name_first_drift_to_cut in compound.core and name_last_drift_to_cut in compound.core):
-                    raise ValueError(
-                        "Elements can only be inserted into a compound in "
-                        "the core region."
-                    )
-
-        # Insert
-        assert name_left not in self.element_names
-        assert name_right not in self.element_names
-
-        names_to_insert = []
-
-        if drift_left.length > 0:
-            names_to_insert.append(name_left)
-            self.element_dict[name_left] = drift_left
-        names_to_insert.append(name)
-        self.element_dict[name] = element
-        if drift_right.length > 0:
-            names_to_insert.append(name_right)
-            self.element_dict[name_right] = drift_right
-
-        replaced_names = self.element_names[i_first_drift_to_cut:i_last_drift_to_cut + 1]
-        self.element_names[i_first_drift_to_cut:i_last_drift_to_cut + 1] = names_to_insert
-
-        # Update compound container if the inserted element falls in the middle
-        # of a compound element.
-        if compound:
-            compound_name = left_compound
-            if isinstance(compound, SlicedCompound):
-                # _compounds.remove_compound(compound_name)
-                compound.elements -= set(replaced_names)
-                compound.elements |= set(names_to_insert)
-                # _compounds.define_compound(compound_name, compound)
-            elif isinstance(compound, Compound):
-                # _compounds.remove_compound(compound_name)
-                compound.core -= set(replaced_names)
-                compound.core |= set(names_to_insert)
-                # _compounds.define_compound(compound_name, compound)
+        if element is None:
+            assert name in self.element_dict.keys()
+        else:
+            self.element_dict[name] = element
 
         return self
-
-    def get_compound_by_name(self, name) -> Optional[CompoundType]:
-        """Get a compound object by its name."""
-        if not self.compound_container:
-            return None
-        return self.compound_container.compound_for_name(name)
-
-    def get_compound_subsequence(self, name) -> List[str]:
-        """The sequence of element names corresponding to the compound name.
-
-        Equivalent to `sorted(compound.elements, key=self.element_names.index)`
-        but should be faster due to the assumption that compounds are contiguous.
-        """
-        element_set = self.get_compound_by_name(name).elements
-        compound_len = len(element_set)
-        subsequence = None
-
-        for idx, element_name in enumerate(self.element_names):
-            if element_name in element_set:
-                subsequence = self.element_names[idx:idx + compound_len]
-                break
-
-        if subsequence is None or set(subsequence) != element_set:
-            raise AssertionError(
-                f'Compound {name} is corrupted, as its elements {element_set} '
-                f'are not a contiguous subsequence of the line.'
-            )
-
-        return subsequence
-
-    def get_compound_for_element(self, name) -> Optional[str]:
-        """Get the compound name for an element name."""
-        if not self.compound_container:
-            return None
-        return self.compound_container.compound_name_for_element(name)
-
-    def get_element_compound_names(self) -> List[Optional[str]]:
-        """Get the compound names for all elements."""
-        return [
-            self.get_compound_for_element(name)
-            for name in self.element_names
-        ]
-
-    def transform_compound(
-            self,
-            compound_name,
-            x_shift=0,
-            y_shift=0,
-            x_rotation=0,
-            y_rotation=0,
-            s_rotation=0,
-    ):
-        """Transform a compound element.
-
-        Transformations are applied in the order: XYShift, XRotation, YRotation,
-        SRotation.
-
-        Parameters
-        ----------
-        compound_name : str
-            Name of the compound element to transform.
-        x_shift : float, optional
-            Shift in the x direction, in meters.
-        y_shift : float, optional
-            Shift in the y direction, in meters.
-        x_rotation : float, optional
-            Rotation around the x-axis, in degrees.
-        y_rotation : float, optional
-            Rotation around the y-axis, in degrees.
-        s_rotation : float, optional
-            Rotation around the s-axis, in degrees.
-        """
-        compound = self.get_compound_by_name(compound_name)
-        element_names = self.get_compound_subsequence(compound_name)
-        idx_begin = self.element_names.index(element_names[0])
-        idx_end = idx_begin + len(element_names)
-
-        # Elements and names to add in the order they will appear in the line
-        before, after = [], []
-        names_before, names_after = [], []
-
-        # Generate a unique name for the transformation
-        def _generate_name(transform_type):
-            base = f'{compound_name}_{transform_type}'
-            new_name = base
-            count = 1
-            while new_name in element_names:
-                new_name = f'{base}_{count}'
-                count += 1
-
-            return new_name
-
-        # Create the transformation elements
-        if x_shift or y_shift:
-            shift = xt.XYShift(dx=x_shift, dy=y_shift)
-            before += [shift]
-            names_before += [_generate_name('offset_entry')]
-            unshift = xt.XYShift(dx=-x_shift, dy=-y_shift)
-            after = [unshift] + after
-            names_after = [_generate_name('offset_exit')] + names_after
-
-        if x_rotation:
-            x_rot_elem = xt.XRotation(angle=x_rotation)
-            before += [x_rot_elem]
-            names_before += [_generate_name('xrot_entry')]
-            x_unrot_elem = xt.XRotation(angle=-x_rotation)
-            after = [x_unrot_elem] + after
-            names_after = [_generate_name('xrot_exit')] + names_after
-
-        if y_rotation:
-            y_rot_elem = xt.YRotation(angle=y_rotation)
-            before += [y_rot_elem]
-            names_before += [_generate_name('yrot_entry')]
-            y_unrot_elem = xt.YRotation(angle=-y_rotation)
-            after = [y_unrot_elem] + after
-            names_after = [_generate_name('yrot_exit')] + names_after
-
-        if s_rotation:
-            s_rot_elem = xt.SRotation(angle=s_rotation)
-            before += [s_rot_elem]
-            names_before += [_generate_name('tilt_entry')]
-            s_unrot_elem = xt.SRotation(angle=-s_rotation)
-            after = [s_unrot_elem] + after
-            names_after = [_generate_name('tilt_exit')] + names_after
-
-        # Commit the transformations to the line
-        self.compound_container.remove_compound(compound_name)
-
-        for idx, element in enumerate(reversed(after)):
-            new_name = names_after[-idx - 1]
-            self.insert_element(index=idx_end, element=element, name=new_name)
-            compound.add_transform(new_name, side='exit')
-
-        for idx, element in enumerate(reversed(before)):
-            new_name = names_before[-idx - 1]
-            self.insert_element(index=idx_begin, element=element, name=new_name)
-            compound.add_transform(new_name, side='entry')
-
-        self.compound_container.define_compound(compound_name, compound)
-
-    def _enumerate_top_level(self):
-        idx = 0
-        while idx < len(self):
-            element_name = self.element_names[idx]
-            compound_name = self.get_compound_for_element(element_name)
-
-            # Not a compound, set the mask field to True
-            if compound_name is None:
-                yield idx, compound_name
-                idx += 1
-                continue
-
-            # Is (the first element) in a compound
-            yield idx, compound_name
-            compound = self.get_compound_by_name(compound_name)
-            idx += len(compound.elements)  # skip the remaining elements
-
-    def get_compound_mask(self) -> List[bool]:
-        """The mask of elements that are entry to a compound, or not in one."""
-        if not self.compound_container:
-            return [True] * len(self)
-
-        mask = [False] * len(self)
-        for element_idx, compound_name in self._enumerate_top_level():
-            mask[element_idx] = True
-
-        return mask
-
-    def get_collapsed_names(self):
-        return [
-            compound_name or self.element_names[element_idx]
-            for element_idx, compound_name in self._enumerate_top_level()
-        ]
 
     def append_element(self, element, name):
 
@@ -2306,16 +2155,20 @@ class Line:
             mask = [not(ee.__class__.__name__.startswith(exclude_types_starting_with))
                     for ee in self.elements]
 
-        new_elements = []
+        new_elements = self.element_dict.copy()
         assert len(mask) == len(self.elements)
-        for ff, ee in zip(mask, self.elements):
-            if ff:
-                new_elements.append(ee)
-            else:
-                if _is_thick(ee) and not _is_drift(ee):
-                    new_elements.append(Drift(length=ee.length))
+        for ff, nn in zip(mask, self.element_names):
+            if not ff:
+                ee = self.element_dict[nn]
+                if hasattr(ee, '_buffer'):
+                    _buffer = ee._buffer
                 else:
-                    new_elements.append(Drift(length=0))
+                    _buffer = None
+                if _is_thick(ee, self) and not _is_drift(ee, self):
+                    new_elements[nn] = Drift(
+                        length=_length(ee, self), _buffer=_buffer)
+                else:
+                    new_elements[nn] = Drift(length=0, _buffer=_buffer)
 
         new_line = self.__class__(elements=new_elements,
                               element_names=self.element_names)
@@ -2503,13 +2356,16 @@ class Line:
         if edge not in [None, 'linear', 'full', 'suppressed']:
             raise ValueError(f'Unknown bend edge model {edge}')
 
-        for ee in self.elements:
-            if core is not None and isinstance(ee,
-                                (xt.Bend, xt.CombinedFunctionMagnet)):
+        for ee in self.element_dict.values():
+            if core is not None and isinstance(ee, xt.Bend):
                 ee.model = core
 
             if edge is not None and isinstance(ee, xt.DipoleEdge):
                 ee.model = edge
+
+            if edge is not None and isinstance(ee, xt.Bend):
+                ee.edge_entry_model = edge
+                ee.edge_exit_model = edge
 
             if num_multipole_kicks is not None:
                 ee.num_multipole_kicks = num_multipole_kicks
@@ -2585,6 +2441,59 @@ class Line:
         self.config.XFIELDS_BB3D_NO_BEAMSTR = (beamstrahlung_flag == 0)
         self.config.XFIELDS_BB3D_NO_BHABHA = (bhabha_flag == 0)
 
+    def configure_intrabeam_scattering(
+        self, element = None,
+        update_every: int = None,
+        **kwargs,
+    ) -> None:
+        """
+        Configures the IBS kick element in the line for tracking.
+
+        Notes
+        -----
+            This **should be** one of the last steps taken before tracking.
+            At the very least, if steps are taken that change the lattice's
+            optics after this configuration, then this function should be
+            called once again.
+
+        Parameters
+        ----------
+        line : xtrack.Line
+            The line in which the IBS kick element was inserted.
+        element : IBSKick, optional
+            If provided, the element is first inserted in the line,
+            before proceeding to configuration. In this case the keyword
+            arguments are passed on to the `line.insert_element` method.
+        update_every : int
+            The frequency at which to recompute the kick coefficients, in
+            number of turns. They will be computed at the first turn of
+            tracking, and then every `update_every` turns afterwards.
+        **kwargs : dict, optional
+            Required if an element is provided. Keyword arguments are
+            passed to the `line.insert_element()` method according to
+            `line.insert_element(element=element, **kwargs)`.
+
+        Raises
+        ------
+        ImportError
+            If the xfields package is not installed, with a sufficiently
+            recent version.
+        AssertionError
+            If the provided `update_every` is not a positive integer.
+        AssertionError
+            If more than one IBS kick element is found in the line.
+        AssertionError
+            If the element is an `IBSSimpleKick` and the line is operating
+            below transition energy.
+        """
+        try:
+            from xfields.ibs import configure_intrabeam_scattering
+        except ImportError as error:
+            raise ImportError("Please install xfields to use this feature.") from error
+        configure_intrabeam_scattering(
+            self, element=element, update_every=update_every, **kwargs
+        )
+
     def compensate_radiation_energy_loss(self, delta0=0, rtol_eneloss=1e-10,
                                     max_iter=100, **kwargs):
 
@@ -2646,6 +2555,9 @@ class Line:
 
         # Unfreeze the line
         self.discard_tracker()
+
+        if verbose: _print("Replance slices with equivalent elements")
+        self._replace_with_equivalent_elements()
 
         if keep_markers is True:
             if verbose: _print('Markers are kept')
@@ -2765,7 +2677,7 @@ class Line:
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict = newline.element_dict
+            self.element_dict.update(newline.element_dict)
             return self
         else:
             return newline
@@ -2807,7 +2719,7 @@ class Line:
         for ee, nn in zip(self.elements, self.element_names):
             if isinstance(ee, Multipole) and nn not in keep:
                 ctx2np = ee._context.nparray_from_context_array
-                aux = ([ee.hxl, ee.hyl]
+                aux = ([ee.hxl]
                         + list(ctx2np(ee.knl)) + list(ctx2np(ee.ksl)))
                 if np.sum(np.abs(np.array(aux))) == 0.0:
                     continue
@@ -2815,7 +2727,7 @@ class Line:
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict = newline.element_dict
+            self.element_dict.update(newline.element_dict)
             return self
         else:
             return newline
@@ -2855,14 +2767,14 @@ class Line:
         newline = Line(elements=[], element_names=[])
 
         for ee, nn in zip(self.elements, self.element_names):
-            if _is_drift(ee) and nn not in keep:
-                if ee.length == 0.0:
+            if _is_drift(ee, self) and nn not in keep:
+                if _length(ee, self) == 0.0:
                     continue
             newline.append_element(ee, nn)
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict = newline.element_dict
+            self.element_dict.update(newline.element_dict)
             return self
         else:
             return newline
@@ -2887,6 +2799,8 @@ class Line:
 
         '''
 
+        assert inplace is True, 'Only inplace is supported for now'
+
         self._frozen_check()
 
         if keep is None:
@@ -2898,14 +2812,14 @@ class Line:
 
         for ii, (ee, nn) in enumerate(zip(self.elements, self.element_names)):
             if ii == 0:
-                newline.append_element(ee.copy(), nn)
+                newline.append_element(ee, nn)
                 continue
 
             this_ee = ee if inplace else ee.copy()
-            if _is_drift(ee) and not nn in keep:
+            if _is_drift(ee, self) and not nn in keep:
                 prev_nn = newline.element_names[-1]
                 prev_ee = newline.element_dict[prev_nn]
-                if _is_drift(prev_ee) and not prev_nn in keep:
+                if _is_drift(prev_ee, self) and not prev_nn in keep:
                     prev_ee.length += ee.length
                 else:
                     newline.append_element(this_ee, nn)
@@ -2914,7 +2828,7 @@ class Line:
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict = newline.element_dict
+            self.element_dict.update(newline.element_dict)
             return self
         else:
             return newline
@@ -2942,6 +2856,10 @@ class Line:
 
         '''
 
+        if not inplace:
+            raise NotImplementedError('`remove_redundant_apertures` only'
+                                      ' available for inplace operation')
+
         # For every occurence of three or more apertures that are the same,
         # only separated by Drifts or Markers, this script removes the
         # middle apertures
@@ -2967,21 +2885,23 @@ class Line:
         aper_m2 = None
 
         for ee, nn in zip(self.elements, self.element_names):
-            if ee.__class__.__name__.startswith('Limit'):
+            if _is_aperture(ee, self):
             # We encountered a new aperture, shift all previous
                 aper_m2 = aper_m1
                 aper_m1 = aper_0
                 aper_0  = nn
-            elif (not isinstance(ee, (Drift, Marker))
-            or nn in drifts_that_need_aperture):
+            elif ((not isinstance(ee, (Marker)) and not _is_drift(ee, self))
+                  or nn in drifts_that_need_aperture):
             # We are in an active element: all previous apertures
             # should be kept in the line
                 aper_0  = None
                 aper_m1 = None
                 aper_m2 = None
             if (aper_m2 is not None
-                and _apertures_equal(self.element_dict[aper_0], self.element_dict[aper_m1])
-                and _apertures_equal(self.element_dict[aper_m1], self.element_dict[aper_m2])
+                and _apertures_equal(
+                    self.element_dict[aper_0], self.element_dict[aper_m1], self)
+                and _apertures_equal(
+                    self.element_dict[aper_m1], self.element_dict[aper_m2], self)
                 ):
                 # We found three consecutive apertures (with only Drifts and Markers
                 # in between) that are the same, hence the middle one can be removed
@@ -2998,10 +2918,6 @@ class Line:
 
         for name in aper_to_remove:
             newline.element_names.remove(name)
-            compound_name = self.compound_container.compound_name_for_element(name)
-            if compound_name is not None:
-                newline.get_compound_by_name(compound_name).remove_element(name)
-
 
         return newline
 
@@ -3091,7 +3007,8 @@ class Line:
         elements_df = self.to_pandas()
 
         elements_df['is_aperture'] = elements_df.name.map(
-                lambda nn: nn == '_end_point' or  _is_aperture(self.element_dict[nn]))
+                lambda nn: nn == '_end_point'
+                    or  _is_aperture(self.element_dict[nn], self))
 
         if not elements_df.name.values[-1] == '_end_point':
             elements_df['is_aperture'][-1] = False
@@ -3108,7 +3025,9 @@ class Line:
             if name == '_end_point':
                 continue
             ee = self.element_dict[name]
-            if _allow_backtrack(ee) and not name in needs_aperture:
+            if isinstance(ee, xt.Replica):
+                ee = ee.resolve(self)
+            if _allow_loss_refinement(ee, self) and not name in needs_aperture:
                 dont_need_aperture[name] = True
             if name.endswith('_entry') or name.endswith('_exit'):
                 dont_need_aperture[name] = True
@@ -3121,7 +3040,7 @@ class Line:
             # However, it is enough for them to have an upstream aperture as they are
             # at this stage just Markers (and xcoll takes care of providing the down-
             # stream aperture), so we mark them as thin.
-            if name in needs_aperture and hasattr(ee, 'length') and ee.length == 0:
+            if name in needs_aperture and hasattr(ee, 'length') and _length(ee, self) == 0:
                 elements_df.loc[elements_df['name']==name, 'isthick'] = False
 
         i_prev_aperture = elements_df[elements_df['is_aperture']].index[0]
@@ -3154,7 +3073,7 @@ class Line:
         # Check for elements missing aperture downstream
         s_downstream = elements_df.s.copy()
         df_thick_to_check = elements_df[elements_df['isthick'] & ~(elements_df.i_aperture_upstream.isna())].copy()
-        s_downstream.loc[df_thick_to_check.index] += np.array([ee.length for ee in df_thick_to_check.element])
+        s_downstream.loc[df_thick_to_check.index] += np.array([_length(ee, self) for ee in df_thick_to_check.element])
         elements_df['misses_aperture_downstream'] = (
             (np.abs(elements_df['s_aperture_downstream'] - s_downstream) > 1e-6)
             & ~(np.isnan(elements_df['i_aperture_upstream'])))
@@ -3222,7 +3141,7 @@ class Line:
                 prev_nn = newline.element_names[-1]
                 prev_ee = newline.element_dict[prev_nn]
                 if (isinstance(prev_ee, Multipole)
-                    and prev_ee.hxl==ee.hxl==0 and prev_ee.hyl==ee.hyl==0
+                    and prev_ee.hxl==ee.hxl==0
                     and prev_nn not in keep
                     ):
 
@@ -3239,7 +3158,7 @@ class Line:
                     for ii,kk in enumerate(ee._xobject.ksl):
                         ksl[ii]+=kk
                     newee = Multipole(
-                            knl=knl, ksl=ksl, hxl=prev_ee.hxl, hyl=prev_ee.hyl,
+                            knl=knl, ksl=ksl, hxl=prev_ee.hxl,
                             length=prev_ee.length,
                             radiation_flag=prev_ee.radiation_flag)
                     prev_nn += ('_' + nn)
@@ -3252,7 +3171,7 @@ class Line:
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict = newline.element_dict
+            self.element_dict.update(newline.element_dict)
             return self
         else:
             return newline
@@ -3329,6 +3248,13 @@ class Line:
             raise ValueError(
                 'This action is not allowed as the line is frozen! '
                 'You can unfreeze the line by calling the `discard_tracker()` method.')
+
+    def transform_compound(self, *args, **kwargs):
+        raise NotImplementedError('`transform_compound` is not anymore supported. '
+            'Tilt and shifts can be applied directly to the elements.\n'
+            'For more details, see: '
+            'https://xsuite.readthedocs.io/en/latest/line.html#apply-transformations-tilt-shift-to-elements'
+        )
 
     def __len__(self):
         return len(self.element_names)
@@ -3631,11 +3557,40 @@ class Line:
         self.energy_program.line = self
         self.element_refs['energy_program'].t_turn_s_line = self.vars['t_turn_s']
 
+    @property
+    def steering_monitors_x(self):
+        return self._extra_config.get('steering_monitors_x', None)
+
+    @steering_monitors_x.setter
+    def steering_monitors_x(self, value):
+        self._extra_config['steering_monitors_x'] = value
+
+    @property
+    def steering_monitors_y(self):
+        return self._extra_config.get('steering_monitors_y', None)
+
+    @steering_monitors_y.setter
+    def steering_monitors_y(self, value):
+        self._extra_config['steering_monitors_y'] = value
+
+    @property
+    def steering_correctors_x(self):
+        return self._extra_config.get('steering_correctors_x', None)
+
+    @steering_correctors_x.setter
+    def steering_correctors_x(self, value):
+        self._extra_config['steering_correctors_x'] = value
+
+    @property
+    def steering_correctors_y(self):
+        return self._extra_config.get('steering_correctors_y', None)
+
+    @steering_correctors_y.setter
+    def steering_correctors_y(self, value):
+        self._extra_config['steering_correctors_y'] = value
+
     def __getitem__(self, ii):
         if isinstance(ii, str):
-            # if ii in self._compound_relation:
-            #     component_names = self._compound_relation[ii]
-            #     return [self.element_dict[name] for name in component_names]
 
             try:
                 return self.element_dict.__getitem__(ii)
@@ -3670,25 +3625,172 @@ class Line:
     def _get_attr_cache(self):
         cache = LineAttr(
             line=self,
-            fields=[
-                'hxl', 'hyl', 'length', 'radiation_flag', 'delta_taper', 'ks',
-                'voltage', 'frequency', 'lag', 'lag_taper',
-                'k0', 'k1', 'k1s', 'k2', 'h',
-                ('knl', 0), ('ksl', 0), ('knl', 1), ('ksl', 1),
-                ('knl', 2), ('ksl', 2), ('knl', 3), ('ksl', 3),
-            ],
+            fields={
+                'radiation_flag': None, 'delta_taper': None, 'ks': None,
+                'voltage': None, 'frequency': None, 'lag': None,
+                'lag_taper': None,
+
+                'weight': None,
+
+                '_own_length': 'length',
+
+                '_own_sin_rot_s': '_sin_rot_s',
+                '_own_cos_rot_s': '_cos_rot_s',
+                '_own_shift_x': '_shift_x',
+                '_own_shift_y': '_shift_y',
+                '_own_shift_s': '_shift_s',
+
+                '_own_h': 'h',
+                '_own_hxl': 'hxl',
+
+                '_own_k0': 'k0',
+                '_own_k1': 'k1',
+                '_own_k2': 'k2',
+                '_own_k3': 'k3',
+                '_own_k4': 'k4',
+                '_own_k5': 'k5',
+
+                '_own_k0s': 'k0s',
+                '_own_k1s': 'k1s',
+                '_own_k2s': 'k2s',
+                '_own_k3s': 'k3s',
+                '_own_k4s': 'k4s',
+                '_own_k5s': 'k5s',
+
+                '_own_k0l': ('knl', 0),
+                '_own_k1l': ('knl', 1),
+                '_own_k2l': ('knl', 2),
+                '_own_k3l': ('knl', 3),
+                '_own_k4l': ('knl', 4),
+                '_own_k5l': ('knl', 5),
+
+                '_own_k0sl': ('ksl', 0),
+                '_own_k1sl': ('ksl', 1),
+                '_own_k2sl': ('ksl', 2),
+                '_own_k3sl': ('ksl', 3),
+                '_own_k4sl': ('ksl', 4),
+                '_own_k5sl': ('ksl', 5),
+
+                '_parent_length': (('_parent', 'length'), None),
+                '_parent_sin_rot_s': (('_parent', '_sin_rot_s'), None),
+                '_parent_cos_rot_s': (('_parent', '_cos_rot_s'), None),
+                '_parent_shift_x': (('_parent', '_shift_x'), None),
+                '_parent_shift_y': (('_parent', '_shift_y'), None),
+                '_parent_shift_s': (('_parent', '_shift_s'), None),
+
+                '_parent_h': (('_parent', 'h'), None),
+                '_parent_hxl': (('_parent', 'hxl'), None),
+
+                '_parent_k0': (('_parent', 'k0'), None),
+                '_parent_k1': (('_parent', 'k1'), None),
+                '_parent_k2': (('_parent', 'k2'), None),
+                '_parent_k3': (('_parent', 'k3'), None),
+                '_parent_k4': (('_parent', 'k4'), None),
+                '_parent_k5': (('_parent', 'k5'), None),
+
+                '_parent_k0s': (('_parent', 'k0s'), None),
+                '_parent_k1s': (('_parent', 'k1s'), None),
+                '_parent_k2s': (('_parent', 'k2s'), None),
+                '_parent_k3s': (('_parent', 'k3s'), None),
+                '_parent_k4s': (('_parent', 'k4s'), None),
+                '_parent_k5s': (('_parent', 'k5s'), None),
+
+                '_parent_k0l': (('_parent', 'knl'), 0),
+                '_parent_k1l': (('_parent', 'knl'), 1),
+                '_parent_k2l': (('_parent', 'knl'), 2),
+                '_parent_k3l': (('_parent', 'knl'), 3),
+                '_parent_k4l': (('_parent', 'knl'), 4),
+                '_parent_k5l': (('_parent', 'knl'), 5),
+
+                '_parent_k0sl': (('_parent', 'ksl'), 0),
+                '_parent_k1sl': (('_parent', 'ksl'), 1),
+                '_parent_k2sl': (('_parent', 'ksl'), 2),
+                '_parent_k3sl': (('_parent', 'ksl'), 3),
+                '_parent_k4sl': (('_parent', 'ksl'), 4),
+                '_parent_k5sl': (('_parent', 'ksl'), 5),
+
+            },
             derived_fields={
-                'k0l': lambda attr: attr['knl', 0] + attr['k0'] * attr['length'],
-                'k1l': lambda attr: attr['knl', 1] + attr['k1'] * attr['length'],
-                'k2l': lambda attr: attr['knl', 2] + attr['k2'] * attr['length'],
-                'k3l': lambda attr: attr['knl', 3],
-                'angle_x': lambda attr: attr['hxl'] + attr['h'] * attr['length'],
-                'k1sl': lambda attr: attr['ksl', 1] + attr['k1s'] * attr['length'],
+                'length': lambda attr:
+                    attr['_own_length'] + attr['_parent_length'] * attr['weight'],
+                'angle_rad': _angle_from_attr,
+                'rot_s_rad': _rot_s_from_attr,
+                'shift_x': lambda attr:
+                    attr['_own_shift_x'] + attr['_parent_shift_x']
+                    * attr._rot_and_shift_from_parent,
+                'shift_y': lambda attr:
+                    attr['_own_shift_y'] + attr['_parent_shift_y']
+                    * attr._rot_and_shift_from_parent,
+                'shift_s': lambda attr:
+                    attr['_own_shift_s'] + attr['_parent_shift_s']
+                    * attr._rot_and_shift_from_parent,
+                'k0l': lambda attr: (
+                    attr['_own_k0l']
+                    + attr['_own_k0'] * attr['_own_length']
+                    + attr['_parent_k0l'] * attr['weight'] * attr._inherit_strengths
+                    + attr['_parent_k0'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
+                'k0sl': lambda attr: (
+                    attr['_own_k0sl']
+                    + attr['_own_k0s'] * attr['_own_length']
+                    + attr['_parent_k0sl'] * attr['weight']* attr._inherit_strengths
+                    + attr['_parent_k0s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
+                'k1l': lambda attr: (
+                    attr['_own_k1l']
+                    + attr['_own_k1'] * attr['_own_length']
+                    + attr['_parent_k1l'] * attr['weight'] * attr._inherit_strengths
+                    + attr['_parent_k1'] * attr['_parent_length'] * attr['weight']* attr._inherit_strengths),
+                'k1sl': lambda attr: (
+                    attr['_own_k1sl']
+                    + attr['_own_k1s'] * attr['_own_length']
+                    + attr['_parent_k1sl'] * attr['weight'] * attr._inherit_strengths
+                    + attr['_parent_k1s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
+                'k2l': lambda attr: (
+                    attr['_own_k2l']
+                    + attr['_own_k2'] * attr['_own_length']
+                    + attr['_parent_k2l'] * attr['weight'] * attr._inherit_strengths
+                    + attr['_parent_k2'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
+                'k2sl': lambda attr: (
+                    attr['_own_k2sl']
+                    + attr['_own_k2s'] * attr['_own_length']
+                    + attr['_parent_k2sl'] * attr['weight'] * attr._inherit_strengths
+                    + attr['_parent_k2s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
+                'k3l': lambda attr: (
+                    attr['_own_k3l']
+                    + attr['_own_k3'] * attr['_own_length']
+                    + attr['_parent_k3l'] * attr['weight'] * attr._inherit_strengths
+                    + attr['_parent_k3'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
+                'k3sl': lambda attr: (
+                    attr['_own_k3sl']
+                    + attr['_own_k3s'] * attr['_own_length']
+                    + attr['_parent_k3sl'] * attr['weight'] * attr._inherit_strengths
+                    + attr['_parent_k3s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
+                'k4l': lambda attr: (
+                    attr['_own_k4l']
+                    + attr['_own_k4'] * attr['_own_length']
+                    + attr['_parent_k4l'] * attr['weight'] * attr._inherit_strengths
+                    + attr['_parent_k4'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
+                'k4sl': lambda attr: (
+                    attr['_own_k4sl']
+                    + attr['_own_k4s'] * attr['_own_length']
+                    + attr['_parent_k4sl'] * attr['weight'] * attr._inherit_strengths
+                    + attr['_parent_k4s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
+                'k5l': lambda attr: (
+                    attr['_own_k5l']
+                    + attr['_own_k5'] * attr['_own_length']
+                    + attr['_parent_k5l'] * attr['weight'] * attr._inherit_strengths
+                    + attr['_parent_k5'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
+                'k5sl': lambda attr: (
+                    attr['_own_k5sl']
+                    + attr['_own_k5s'] * attr['_own_length']
+                    + attr['_parent_k5sl'] * attr['weight'] * attr._inherit_strengths
+                    + attr['_parent_k5s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
+                'hkick': lambda attr: attr["angle_rad"] - attr["k0l"],
+                'vkick': lambda attr: attr["k0sl"],
             }
         )
         return cache
 
-    def _insert_thin_elements_at_s(self, elements_to_insert):
+    def _insert_thin_elements_at_s(self, elements_to_insert, s_tol=0.5e-6):
 
         '''
         Example:
@@ -3706,57 +3808,7 @@ class Line:
         s_cuts = [ee[0] for ee in elements_to_insert]
         s_cuts = np.sort(s_cuts)
 
-        s_tol = 0.5e-6
-
-        tt_before_cut = self.get_table()
-
-        i_next = np.array([np.argmax(tt_before_cut['s'] > s_cut) for s_cut in s_cuts])
-        i_ele_containing = i_next - 1
-
-        needs_cut = np.abs(tt_before_cut['s'][i_ele_containing] - s_cuts) > s_tol
-
-        assert np.all(s_cuts[needs_cut] > tt_before_cut.s[i_ele_containing[needs_cut]])
-        assert np.all(s_cuts[needs_cut] < tt_before_cut.s[i_ele_containing[needs_cut]+1])
-        assert np.all(tt_before_cut.element_type[i_ele_containing[needs_cut]] == 'Drift')
-
-        i_drifts_to_cut = set(i_ele_containing[needs_cut])
-
-        for idr in progress(i_drifts_to_cut, desc='Cut drifts'):
-            name_drift = tt_before_cut.name[idr]
-            drift = self[name_drift]
-            assert isinstance(drift, xt.Drift)
-            _buffer = drift._buffer
-            l_drift = drift.length
-            s_start = tt_before_cut['s'][idr]
-            s_end = s_start + l_drift
-            s_cut_dr = np.sort([s_start] + list(s_cuts[i_ele_containing==idr]) + [s_end])
-
-            drifts_for_replacement = []
-            i_new_drifts = 0
-            new_drift_names = []
-            for ll in np.diff(s_cut_dr):
-                if ll > s_tol:
-                    drifts_for_replacement.append(xt.Drift(length=ll, _buffer=_buffer))
-                    new_drift_names.append(f'{name_drift}_{i_new_drifts}')
-                    assert new_drift_names[-1] not in self.element_names
-                    i_new_drifts += 1
-
-            insert_at = self.element_names.index(name_drift)
-            self.element_names.remove(name_drift)
-            cpd_name = self.compound_container.compound_name_for_element(name_drift)
-            if cpd_name is not None:
-                cpd = self.compound_container.compound_for_name(cpd_name)
-                assert name_drift in cpd.core
-                cpd.core.remove(name_drift)
-            else:
-                cpd = None
-            for nn, dd in zip(new_drift_names, drifts_for_replacement):
-                self.element_dict[nn] = dd
-                self.element_names.insert(insert_at, nn)
-                if cpd is not None:
-                    cpd.core.add(nn)
-                    self.compound_container._compound_name_for_element[nn] = cpd_name
-                insert_at += 1
+        self.cut_at_s(s_cuts)
 
         tt_after_cut = self.get_table()
 
@@ -3778,11 +3830,6 @@ class Line:
         for i_ins, (s_insert, ee) in enumerate(
                     progress(elements_to_insert, desc="Inserting elements")):
             ele_name_ins = ele_name_insertions[i_ins]
-            cpd_name_ins = self.compound_container.compound_name_for_element(ele_name_ins)
-            if cpd_name_ins is not None:
-                cpd_ins = self.compound_container.compound_for_name(cpd_name_ins)
-            else:
-                cpd_ins = None
 
             if ele_name_ins not in self.element_names:
                 assert ele_name_ins == '_end_point'
@@ -3797,25 +3844,96 @@ class Line:
                 else:
                     self.element_names.insert(insert_at, nn)
 
-                if cpd_ins is None:
-                    pass # No compound
-                elif ele_name_ins in cpd_ins.core:
-                    cpd_ins.core.add(nn)
-                    self.compound_container._compound_name_for_element[nn] = cpd_name_ins
-                elif ele_name_ins in cpd_ins.entry:
-                    pass # Goes in front ot the compound but does not belong to it
-                elif ele_name_ins in cpd_ins.exit:
-                    assert len(cpd.exit_transform) == 0
-                    cpd_ins.core.add(nn)
-                    self.compound_container._compound_name_for_element[nn] = cpd_name_ins
-                elif ele_name_ins in cpd_ins.exit_transform:
-                    cpd_ins.core.add(nn)
-                    self.compound_container._compound_name_for_element[nn] = cpd_name_ins
-                else:
-                    raise ValueError(f'Inconsistent insertion in compound {cpd_name_ins}')
-
                 if insert_at is not None:
                     insert_at += 1
+
+    def _insert_thick_elements_at_s(self, element_names, elements,
+                                    at_s, s_tol=1e-6):
+
+        assert isinstance(element_names, (list, tuple))
+        assert isinstance(elements, (list, tuple))
+        assert isinstance(at_s, (list, tuple, np.ndarray))
+        assert len(element_names) == len(elements) == len(at_s)
+
+        self._frozen_check()
+
+        s_insert = np.array(at_s)
+        l_insert = np.array([_length(ee, None) for ee in elements])
+        ele_insert = list(elements).copy()
+        name_insert = list(element_names).copy()
+
+        end_insert = np.array(s_insert) + np.array(l_insert)
+
+        self.cut_at_s(list(s_insert) + list(end_insert))
+
+        i_sorted = np.argsort(s_insert)
+        s_insert_sorted = s_insert[i_sorted]
+        ele_insert_sorted = [ele_insert[i] for i in i_sorted]
+        name_insert_sorted = [name_insert[i] for i in i_sorted]
+        end_insert_sorted = end_insert[i_sorted]
+
+        assert np.all(s_insert_sorted[:-1] < end_insert_sorted[1:]), (
+                    'Overlapping insertions')
+
+        old_element_names = self.element_names
+
+        s_tol = 1e-6
+
+        s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
+
+        i_replace = np.zeros(len(s_vect_upstream), dtype=int)
+        mask_remove = np.zeros(len(s_vect_upstream), dtype=bool)
+
+        i_replace[:] = -1
+
+        for ii in range(len(s_insert_sorted)):
+            ss_start = s_insert_sorted[ii]
+            ss_end = end_insert_sorted[ii]
+
+            i_first_removal = np.where(np.abs(s_vect_upstream - ss_start) < s_tol)[0][-1]
+            i_last_removal = np.where(np.abs(s_vect_upstream - ss_end) < s_tol)[0][0] - 1
+
+            i_replace[i_first_removal] = ii
+            mask_remove[i_first_removal+1:i_last_removal+1] = True
+
+        new_element_names = []
+        for ii, nn in enumerate(old_element_names):
+            if mask_remove[ii]:
+                continue
+            if i_replace[ii] != -1:
+                new_element_names.append(name_insert_sorted[i_replace[ii]])
+            else:
+                new_element_names.append(nn)
+
+        for new_nn, new_ee in zip(name_insert_sorted, ele_insert_sorted):
+            self.element_dict[new_nn] = new_ee
+
+        self.element_names = new_element_names
+
+    @property
+    def _line_before_slicing(self):
+        if self._element_names_before_slicing is None:
+            return None
+
+        if self._line_before_slicing_cache is None:
+            # Shallow copy of the line
+            out = Line.__new__(Line)
+            out.__dict__.update(self.__dict__)
+            out._element_names = self._element_names_before_slicing
+            out.tracker = None
+            self._line_before_slicing_cache = out
+
+        return self._line_before_slicing_cache
+
+    def _replace_with_equivalent_elements(self):
+
+        self._frozen_check()
+
+        for nn in self.element_names:
+            ee = self[nn]
+            if hasattr(ee, 'get_equivalent_element'):
+                new_ee = ee.get_equivalent_element()
+                self.element_dict[nn] = new_ee
 
 def frac(x):
     return x % 1
@@ -3899,24 +4017,25 @@ def _deserialize_element(el, class_dict, _buffer):
     else:
         return eltype.from_dict(eldct)
 
-
 def _is_simple_quadrupole(el):
     if not isinstance(el, Multipole):
         return False
-    return (el.radiation_flag == 0 and
-            el.order == 1 and
-            el.knl[0] == 0 and
-            not any(el.ksl) and
-            not el.hxl and
-            not el.hyl)
-
+    return (el.radiation_flag == 0
+            and (el.order == 1 or len(el.knl) == 2 or not any(el.knl[2:]))
+            and el.knl[0] == 0
+            and not any(el.ksl)
+            and not el.hxl
+            and el.shift_x == 0 and el.shift_y == 0 and el.shift_s == 0
+            and np.abs(el.rot_s_rad) < 1e-12)
 
 def _is_simple_dipole(el):
     if not isinstance(el, Multipole):
         return False
-    return (el.radiation_flag == 0 and el.order == 0
-            and not any(el.ksl) and not el.hyl)
-
+    return (el.radiation_flag == 0
+            and (el.order == 0 or len(el.knl) == 1 or not any(el.knl[1:]))
+            and not any(el.ksl)
+            and el.shift_x == 0 and el.shift_y == 0 and el.shift_s == 0
+            and np.abs(el.rot_s_rad) < 1e-12)
 
 @contextmanager
 def freeze_longitudinal(tracker):
@@ -3943,33 +4062,64 @@ def mk_class_namespace(extra_classes):
         all_classes = element_classes + extra_classes
         log.warning("Xfields not installed correctly")
 
-    all_classes = all_classes + (EnergyProgram,)
+    all_classes = all_classes + (EnergyProgram, xt.Replica)
 
     out = AttrDict()
     for cl in all_classes:
         out[cl.__name__] = cl
     return out
 
+def _length(element, line):
+    if isinstance(element, xt.Replica):
+        element = element.resolve(line)
+    if hasattr(element, 'length'):
+        return element.length
+    assert hasattr(element, 'parent_name')
+    return line[element.parent_name].length * element.weight
 
-def _is_drift(element): # can be removed if length is zero
-    return isinstance(element, (beam_elements.Drift,) )
+def _is_drift(element, line):
+    if isinstance(element, xt.Replica):
+        element = element.resolve(line)
+    if isinstance(element, beam_elements.Drift):
+        return True
+    if type(element).__name__.startswith('Drift'):
+        return True
+    return False
 
-
-def _behaves_like_drift(element):
+def _behaves_like_drift(element, line):
+    if _is_drift(element, line):
+        return True
+    if isinstance(element, xt.Replica):
+        element = element.resolve(line)
     return hasattr(element, 'behaves_like_drift') and element.behaves_like_drift
 
-
-def _is_aperture(element):
+def _is_aperture(element, line):
+    if isinstance(element, xt.Replica):
+        element = element.resolve(line)
     return element.__class__.__name__.startswith('Limit')
 
-
-def _is_thick(element):
+def _is_thick(element, line):
+    if isinstance(element, xt.Replica):
+        element = element.resolve(line)
     return hasattr(element, "isthick") and element.isthick
 
+def _is_collective(element, line):
+    if isinstance(element, xt.Replica):
+        element = element.resolve(line)
+    iscoll = not hasattr(element, 'iscollective') or element.iscollective
+    return iscoll
 
-def _allow_backtrack(element):
-    return hasattr(element, 'allow_backtrack') and element.allow_backtrack
+# whether backtrack in loss location refinement is allowed
+def _allow_loss_refinement(element, line):
+    if isinstance(element, xt.Replica):
+        element = element.resolve(line)
+    return hasattr(element, 'allow_loss_refinement') and element.allow_loss_refinement
 
+# whether element has backtrack capability
+def _has_backtrack(element, line):
+    if isinstance(element, xt.Replica):
+        element = element.resolve(line)
+    return hasattr(element, 'has_backtrack') and element.has_backtrack
 
 def _next_name(prefix, names, name_format='{}{}'):
     """Return an available element name by appending a number"""
@@ -4000,10 +4150,13 @@ def _dicts_equal(dict1, dict2):
             return False
     return True
 
-
-def _apertures_equal(ap1, ap2):
-    if not _is_aperture(ap1) or not _is_aperture(ap2):
+def _apertures_equal(ap1, ap2, line):
+    if not _is_aperture(ap1, line) or not _is_aperture(ap2, line):
         raise ValueError(f"Element {ap1} or {ap2} not an aperture!")
+    if isinstance(ap1, xt.Replica):
+        ap1 = ap1.resolve(line)
+    if isinstance(ap2, xt.Replica):
+        ap2 = ap2.resolve(line)
     if ap1.__class__ != ap2.__class__:
         return False
     ap1 = ap1.to_dict()
@@ -4234,6 +4387,12 @@ class LineVars:
             return self._setter_from_cache(key)
         return self.line._xdeps_vref[key]
 
+    def get(self,key,default=0):
+        if key in self:
+            return self[key]
+        else:
+            return default
+
     def __setitem__(self, key, value):
         if self.cache_active:
             if isref(value) or isinstance(value, VarSetter):
@@ -4351,6 +4510,12 @@ class VarValues:
     def __setitem__(self, key, value):
         self.vars[key] = value
 
+    def get(self,key, default=0):
+        if key in self.vars:
+            return self.vars[key]._value
+        else:
+            return default
+
 class VarSetter:
     def __init__(self, line, varname):
         self.multiline = line
@@ -4402,8 +4567,25 @@ class LineAttrItem:
         setter_names = []
         for ii, nn in enumerate(all_names):
             ee = line.element_dict[nn]
-            if hasattr(ee, '_xobject') and hasattr(ee._xobject, name):
-                if index is not None and index >= len(getattr(ee, name)):
+            if isinstance(ee, xt.Replica):
+                nn = ee.resolve(line, get_name=True)
+                ee = line[nn]
+            if isinstance(name, (list, tuple)):
+                inner_obj = ee
+                inner_name = name[-1]
+                has_name = True
+                for nn_inner in name[:-1]:
+                    if not hasattr(inner_obj, nn_inner):
+                        has_name = False
+                        break
+                    inner_obj = getattr(inner_obj, nn_inner)
+                if not has_name:
+                    continue
+            else:
+                inner_obj = ee
+                inner_name = name
+            if hasattr(inner_obj, '_xobject') and hasattr(inner_obj._xobject, inner_name):
+                if index is not None and index >= len(getattr(inner_obj, inner_name)):
                     continue
                 mask[ii] = True
                 setter_names.append(nn)
@@ -4440,18 +4622,41 @@ class LineAttr:
         as argument and returns the value of the derived field.
     """
     def __init__(self, line, fields, derived_fields=None):
+
+        assert isinstance(fields, dict)
+
+        field_names = list(fields.keys())
+        field_access = []
+        for fn in field_names:
+            fa = fields[fn]
+            if fa is None:
+                fa = fn
+            field_access.append(fa)
+
         self.line = line
         self.fields = fields
         self.derived_fields = derived_fields or {}
         self._cache = {}
 
-        for ff in fields:
-            if isinstance(ff, str):
-                name = ff
+        # Build _inherit_strengths and _rot_and_shift_from_parent
+        _inherit_strengths = np.zeros(len(line.element_names), dtype=np.float64)
+        _rot_and_shift_from_parent = np.zeros(len(line.element_names), dtype=np.float64)
+        for ii, nn in enumerate(line.element_names):
+            ee = line.element_dict[nn]
+            if hasattr(ee, '_inherit_strengths') and ee._inherit_strengths:
+                _inherit_strengths[ii] = 1.
+            if hasattr(ee, 'rot_and_shift_from_parent') and ee.rot_and_shift_from_parent:
+                _rot_and_shift_from_parent[ii] = 1.
+        self._inherit_strengths = _inherit_strengths
+        self._rot_and_shift_from_parent = _rot_and_shift_from_parent
+
+        for fn, fa in zip(field_names, field_access):
+            if isinstance(fa, str):
+                access = fa
                 index = None
             else:
-                name, index = ff
-            self._cache[ff] = LineAttrItem(name=name, index=index, line=line)
+                access, index = fa
+            self._cache[fn] = LineAttrItem(name=access, index=index, line=line)
 
     def __getitem__(self, key):
         if key in self.derived_fields:
@@ -4460,7 +4665,7 @@ class LineAttr:
         return self._cache[key].get_full_array()
 
     def keys(self):
-        return list(self.fields) + list(self.derived_fields.keys())
+        return list(self.derived_fields.keys()) + list(self.fields)
 
 
 class EnergyProgram:
@@ -4615,3 +4820,49 @@ def _vars_unused(line):
         and 't_turn_s' in line.vars.keys()):
         return True
     return False
+
+def _angle_from_attr(attr):
+
+    weight = attr['weight']
+
+    own_hxl = attr['_own_hxl']
+    own_h = attr['_own_h']
+    own_length = attr['_own_length']
+    parent_hxl = attr['_parent_hxl']
+    parent_h = attr['_parent_h']
+    parent_length = attr['_parent_length']
+
+    own_hxl_proper_system = own_hxl + own_h * own_length
+    parent_hxl_proper_system = ((parent_hxl * weight + parent_h * parent_length * weight)
+                                * attr._inherit_strengths)
+
+    angle = own_hxl_proper_system + parent_hxl_proper_system
+
+    return angle
+
+def _rot_s_from_attr(attr):
+
+    own_sin_rot_s = attr['_own_sin_rot_s'].copy()
+    own_cos_rot_s = attr['_own_cos_rot_s'].copy()
+    parent_sin_rot_s = attr['_parent_sin_rot_s'].copy()
+    parent_cos_rot_s = attr['_parent_cos_rot_s'].copy()
+
+    has_own_rot = (own_cos_rot_s !=0) | (own_sin_rot_s != 0)
+    mask_own_rot_inactive = own_sin_rot_s < -2.
+    own_cos_rot_s[mask_own_rot_inactive] = 1.
+    own_sin_rot_s[mask_own_rot_inactive] = 0.
+
+    has_parent_rot = (parent_cos_rot_s !=0) | (parent_sin_rot_s != 0)
+    mask_parent_rot_inactive = parent_sin_rot_s < -2.
+    parent_cos_rot_s[mask_parent_rot_inactive] = 1.
+    parent_sin_rot_s[mask_parent_rot_inactive] = 0.
+
+    rot_s_rad = 0. * own_sin_rot_s
+    rot_s_rad[has_own_rot] = np.arctan2(own_sin_rot_s[has_own_rot],
+                                        own_cos_rot_s[has_own_rot])
+    rot_s_rad[has_parent_rot] = np.arctan2(parent_sin_rot_s[has_parent_rot],
+        parent_cos_rot_s[has_parent_rot]) * attr._rot_and_shift_from_parent[has_parent_rot]
+
+    return rot_s_rad
+
+

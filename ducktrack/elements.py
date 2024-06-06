@@ -651,14 +651,18 @@ class LinearTransferMatrix(Element):
         ("y_ref_1","","",0.0),
         ("py_ref_1","","",0.0),
         ("damping_rate_x","","",0.0),
+        ("damping_rate_px","","",0.0),
         ("damping_rate_y","","",0.0),
-        ("damping_rate_s","","",0.0),
-        ("equ_emit_x","","",0.0),
-        ("equ_emit_y","","",0.0),
-        ("equ_emit_s","","",0.0),
+        ("damping_rate_py","","",0.0),
+        ("damping_rate_zeta","","",0.0),
+        ("damping_rate_pzeta","","",0.0),
         ("gauss_noise_ampl_x","","",0.0),
+        ("gauss_noise_ampl_px","","",0.0),
         ("gauss_noise_ampl_y","","",0.0),
-        ("gauss_noise_ampl_s","","",0.0)]
+        ("gauss_noise_ampl_py","","",0.0),
+        ("gauss_noise_ampl_zeta","","",0.0),
+        ("gauss_noise_ampl_pzeta","","",0.0),
+        ("damping_matrix","","",0.0),]
 
     def track(self,p):
         sin = p._m.sin
@@ -746,37 +750,50 @@ class LinearTransferMatrix(Element):
             p.y *= geo_emit_factor
             p.py = old_py * geo_emit_factor
 
-        if self.damping_rate_x < 0.0 or self.damping_rate_y < 0.0 or self.damping_rate_s < 0.0:
-            raise ValueError("Damping rates cannot be negative")
-        if self.equ_emit_x < 0.0 or self.equ_emit_y < 0.0 or self.equ_emit_s < 0.0:
-            raise ValueError("Equilibrium emittance cannot be negative")
-        if self.damping_rate_x > 0.0:
-            factor = 1.0-self.damping_rate_x/2 
-            p.x *= factor
-            p.px *= factor 
-            if self.equ_emit_x > 0.0:
-                p.px += np.sqrt(2.0*self.equ_emit_x*self.damping_rate_x/self.beta_x_1)*np.random.randn(len(p.px))
-        if self.damping_rate_y > 0.0:
-            factor = 1.0-self.damping_rate_y/2 
-            p.y *= factor
-            p.py *= factor 
-            if self.equ_emit_y > 0.0:
-                p.py += np.sqrt(2.0*self.equ_emit_y*self.damping_rate_y/self.beta_y_1)*np.random.randn(len(p.py))
-        if self.damping_rate_s > 0.0:
-            factor = 1.0-self.damping_rate_s/2
-            p.zeta *= factor
-            p.delta *= factor
-            if self.equ_emit_s > 0.0:
-                p.delta += np.sqrt(2.0*self.equ_emit_s*self.damping_rate_s/self.beta_s)*np.random.randn(len(p.delta))
+        if not hasattr(self.damping_matrix,'__iter__'):
+            if (self.damping_rate_x < 0.0 or self.damping_rate_px < 0.0
+                    or self.damping_rate_y < 0.0 or self.damping_rate_py < 0.0
+                    or self.damping_rate_zeta < 0.0 or self.damping_rate_pzeta < 0.0):
+                raise ValueError("Damping rates cannot be negative")
+            if self.damping_rate_x > 0.0:
+                p.x *= 1.0-self.damping_rate_x
+            if self.damping_rate_px > 0.0:
+                p.px *= 1.0-self.damping_rate_px
+            if self.damping_rate_y > 0.0:
+                p.y *= 1.0-self.damping_rate_y
+            if self.damping_rate_py > 0.0:
+                p.py *= 1.0-self.damping_rate_py
+            if self.damping_rate_zeta > 0.0:
+                p.zeta *= 1.0-self.damping_rate_zeta
+            if self.damping_rate_pzeta > 0.0:
+                p.pzeta *= 1.0-self.damping_rate_pzeta
+        else:
+            assert np.shape(self.damping_matrix) == (6,6)
+            transformation = self.damping_matrix + np.identity(6)
+            p.x,p.px,p.y,p.py,p.zeta,p.pzeta = transformation[0,0]*p.x+transformation[0,1]*p.px+transformation[0,2]*p.y+transformation[0,3]*p.py+transformation[0,4]*p.zeta+transformation[0,5]*p.pzeta,\
+                                               transformation[1,0]*p.x+transformation[1,1]*p.px+transformation[1,2]*p.y+transformation[1,3]*p.py+transformation[1,4]*p.zeta+transformation[1,5]*p.pzeta,\
+                                               transformation[2,0]*p.x+transformation[2,1]*p.px+transformation[2,2]*p.y+transformation[2,3]*p.py+transformation[2,4]*p.zeta+transformation[2,5]*p.pzeta,\
+                                               transformation[3,0]*p.x+transformation[3,1]*p.px+transformation[3,2]*p.y+transformation[3,3]*p.py+transformation[3,4]*p.zeta+transformation[3,5]*p.pzeta,\
+                                               transformation[4,0]*p.x+transformation[4,1]*p.px+transformation[4,2]*p.y+transformation[4,3]*p.py+transformation[4,4]*p.zeta+transformation[4,5]*p.pzeta,\
+                                               transformation[5,0]*p.x+transformation[5,1]*p.px+transformation[5,2]*p.y+transformation[5,3]*p.py+transformation[5,4]*p.zeta+transformation[5,5]*p.pzeta
 
-        if self.gauss_noise_ampl_x < 0.0 or self.gauss_noise_ampl_y < 0.0 or self.gauss_noise_ampl_s < 0.0:
+
+        if (self.gauss_noise_ampl_x < 0.0 or self.gauss_noise_ampl_px < 0.0 
+                or self.gauss_noise_ampl_y < 0.0 or self.gauss_noise_ampl_py < 0.0
+                or self.gauss_noise_ampl_zeta < 0.0 or self.gauss_noise_ampl_pzeta < 0.0):
             raise ValueError("Noise amplitude cannot be negative")
+        if self.gauss_noise_ampl_x > 0.0:
+            p.x += self.gauss_noise_ampl_x*np.random.randn(len(p.x))
         if self.gauss_noise_ampl_x > 0.0:
             p.px += self.gauss_noise_ampl_x*np.random.randn(len(p.px))
         if self.gauss_noise_ampl_y > 0.0:
-            p.py += self.gauss_noise_ampl_y*np.random.randn(len(p.py))
-        if self.gauss_noise_ampl_s > 0.0:
-            p.delta += self.gauss_noise_ampl_s*np.random.randn(len(p.delta))
+            p.y += self.gauss_noise_ampl_y*np.random.randn(len(p.y))
+        if self.gauss_noise_ampl_py > 0.0:
+            p.py += self.gauss_noise_ampl_py*np.random.randn(len(p.py))
+        if self.gauss_noise_ampl_zeta > 0.0:
+            p.zeta += self.gauss_noise_ampl_zeta*np.random.randn(len(p.zeta))
+        if self.gauss_noise_ampl_pzeta > 0.0:
+            p.pzeta += self.gauss_noise_ampl_pzeta*np.random.randn(len(p.pzeta))
 
         # re-adding dispersion and closed orbit
         old_x=p.x

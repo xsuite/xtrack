@@ -13,7 +13,6 @@ from scipy.constants import epsilon_0
 import xobjects as xo
 from xobjects.general import Print
 from xobjects import BypassLinked
-from xtrack.prebuild_kernels import XT_PREBUILT_KERNELS_LOCATION
 
 from .constants import PROTON_MASS_EV
 
@@ -1006,16 +1005,23 @@ class Particles(xo.HybridClass):
         """
         context = self._buffer.context
         if context.allow_prebuilt_kernels:
-            from xtrack.prebuild_kernels import get_suitable_kernel
             _print_state = Print.suppress
             Print.suppress = True
-            kernel_info = get_suitable_kernel({}, (self.__class__._XoStruct,))
+            try:
+                from xsuite import (
+                    get_suitable_kernel,
+                    XSK_PREBUILT_KERNELS_LOCATION,
+                )
+                kernel_info = get_suitable_kernel({}, ())
+            except ImportError:
+                kernel_info = None
+
             Print.suppress = _print_state
             if kernel_info:
                 module_name, _ = kernel_info
                 kernels = context.kernels_from_file(
                     module_name=module_name,
-                    containing_dir=XT_PREBUILT_KERNELS_LOCATION,
+                    containing_dir=XSK_PREBUILT_KERNELS_LOCATION,
                     kernel_descriptions=self._kernels,
                 )
                 context.kernels.update(kernels)
@@ -1298,6 +1304,47 @@ class Particles(xo.HybridClass):
         pzeta = self.ptau / self.beta0
         return self._buffer.context.linked_array_type.from_array(
             pzeta, mode='readonly',
+            container=self)
+
+    @property
+    def kin_px(self):
+        out = self.px - self.ax
+        return self._buffer.context.linked_array_type.from_array(
+            out,
+            mode='readonly',
+            container=self)
+
+    @property
+    def kin_py(self):
+        out = self.py - self.ay
+        return self._buffer.context.linked_array_type.from_array(
+            out,
+            mode='readonly',
+            container=self)
+
+    @property
+    def kin_ps(self):
+        sqrt = self._context.nplike_lib.sqrt
+        out = sqrt((1 + self.delta) ** 2 - self.kin_px ** 2 - self.kin_py ** 2)
+        return self._buffer.context.linked_array_type.from_array(
+            out,
+            mode='readonly',
+            container=self)
+
+    @property
+    def kin_xprime(self):
+        out = self.kin_px / self.kin_ps
+        return self._buffer.context.linked_array_type.from_array(
+            out,
+            mode='readonly',
+            container=self)
+
+    @property
+    def kin_yprime(self):
+        out = self.kin_py / self.kin_ps
+        return self._buffer.context.linked_array_type.from_array(
+            out,
+            mode='readonly',
             container=self)
 
     def add_to_energy(self, delta_energy):

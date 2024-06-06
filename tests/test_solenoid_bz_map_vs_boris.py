@@ -1,13 +1,13 @@
 import numpy as np
-
 from scipy.constants import c as clight
 from scipy.constants import e as qe
 from scipy.constants import epsilon_0 as eps0
 
 import xobjects as xo
 import xtrack as xt
-from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
 from xobjects.test_helpers import for_all_test_contexts
+from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
+
 
 @for_all_test_contexts
 def test_solenoid_bz_map_vs_boris(test_context):
@@ -233,21 +233,21 @@ def test_solenoid_bz_map_vs_boris(test_context):
         this_dx_ds = dx_ds[i_part, :]
         this_dy_ds = dy_ds[i_part, :]
 
-        assert np.allclose(dx_ds_xsuite_check, dx_ds_boris_check, rtol=0,
+        xo.assert_allclose(dx_ds_xsuite_check, dx_ds_boris_check, rtol=0,
                 atol=2.8e-2 * (np.max(dx_ds_boris_check) - np.min(dx_ds_boris_check)))
-        assert np.allclose(dy_ds_xsuite_check, dy_ds_boris_check, rtol=0,
+        xo.assert_allclose(dy_ds_xsuite_check, dy_ds_boris_check, rtol=0,
                 atol=2.8e-2 * (np.max(dy_ds_boris_check) - np.min(dy_ds_boris_check)))
-        assert np.allclose(dE_ds_xsuite_check, dE_ds_boris_check, rtol=0,
+        xo.assert_allclose(dE_ds_xsuite_check, dE_ds_boris_check, rtol=0,
                 atol=1e-2 * (np.max(dE_ds_boris_check) - np.min(dE_ds_boris_check)))
 
-        assert np.allclose(ax_ref[i_part, :], mon.ax[i_part, :],
+        xo.assert_allclose(ax_ref[i_part, :], mon.ax[i_part, :],
                         rtol=0, atol=np.max(np.abs(ax_ref)*3e-2))
-        assert np.allclose(ay_ref[i_part, :], mon.ay[i_part, :],
+        xo.assert_allclose(ay_ref[i_part, :], mon.ay[i_part, :],
                         rtol=0, atol=np.max(np.abs(ay_ref)*3e-2))
 
-        assert np.allclose(this_emitted_dpx,
+        xo.assert_allclose(this_emitted_dpx,
                 this_dE_ds * this_dx_ds * np.diff(mon.s[i_part, :])/p.p0c[0],
                 rtol=0, atol=1e-4 * (np.max(this_emitted_dpx) - np.min(this_emitted_dpx)))
-        assert np.allclose(this_emitted_dpy,
+        xo.assert_allclose(this_emitted_dpy,
                 this_dE_ds * this_dy_ds * np.diff(mon.s[i_part, :])/p.p0c[0],
                 rtol=0, atol=2e-3 * (np.max(this_emitted_dpy) - np.min(this_emitted_dpy)))

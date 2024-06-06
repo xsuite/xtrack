@@ -1,7 +1,9 @@
-import numpy as np
-import xtrack as xt
 import pathlib
 
+import numpy as np
+
+import xobjects as xo
+import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
 
 test_data_folder = pathlib.Path(
@@ -79,7 +81,7 @@ def test_match_coupling_knob(test_context):
     # Check orthogonality
     line.vars['c_minus_re.b1'] = 1e-3
     line.vars['c_minus_im.b1'] = 1e-3
-    assert np.isclose(line.twiss().c_minus/np.sqrt(2), 1e-3, rtol=0, atol=1.5e-5)
+    xo.assert_allclose(line.twiss().c_minus/np.sqrt(2), 1e-3, rtol=0, atol=1.5e-5)
 
     # Compare against "legacy" knobs
     line_legacy = xt.Line.from_json(test_data_folder /
@@ -101,8 +103,8 @@ def test_match_coupling_knob(test_context):
     tt_im_leg = line_legacy.get_table(attr=True)
 
     # Withing 12% of the maximum value
-    assert np.allclose(tt_re.k1sl, tt_re_leg.k1sl, rtol=0,
+    xo.assert_allclose(tt_re.k1sl, tt_re_leg.k1sl, rtol=0,
                     atol=0.12 * np.max(tt_re_leg.k1sl))
-    assert np.allclose(tt_im.k1sl, tt_im_leg.k1sl, rtol=0,
+    xo.assert_allclose(tt_im.k1sl, tt_im_leg.k1sl, rtol=0,
                     atol=0.12 * np.max(tt_im_leg.k1sl))
 

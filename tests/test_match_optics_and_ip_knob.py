@@ -1,6 +1,8 @@
 import pathlib
 
 import numpy as np
+
+import xobjects as xo
 import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
 
@@ -47,23 +49,23 @@ def test_ip_knob_matching(test_context):
 
     # Check a few steps and limits
 
-    assert np.isclose(collider.vars.vary_default['acbxh1.l8']['step'], 1.0e-15, atol=1e-17, rtol=0)
-    assert np.isclose(collider.vars.vary_default['acbxh1.l8']['limits'][0], -limitmcbx, atol=1e-17, rtol=0)
-    assert np.isclose(collider.vars.vary_default['acbxh1.l8']['limits'][1], limitmcbx, atol=1e-17, rtol=0)
-    assert np.isclose(collider.vars.vary_default['acbyhs5.r8b2']['step'], 1.0e-15, atol=1e-17, rtol=0)
-    assert np.isclose(collider.vars.vary_default['acbyhs5.r8b2']['limits'][0], -limitmcbc, atol=1e-17, rtol=0)
-    assert np.isclose(collider.vars.vary_default['acbyhs5.r8b2']['limits'][1], limitmcbc, atol=1e-17, rtol=0)
+    xo.assert_allclose(collider.vars.vary_default['acbxh1.l8']['step'], 1.0e-15, atol=1e-17, rtol=0)
+    xo.assert_allclose(collider.vars.vary_default['acbxh1.l8']['limits'][0], -limitmcbx, atol=1e-17, rtol=0)
+    xo.assert_allclose(collider.vars.vary_default['acbxh1.l8']['limits'][1], limitmcbx, atol=1e-17, rtol=0)
+    xo.assert_allclose(collider.vars.vary_default['acbyhs5.r8b2']['step'], 1.0e-15, atol=1e-17, rtol=0)
+    xo.assert_allclose(collider.vars.vary_default['acbyhs5.r8b2']['limits'][0], -limitmcbc, atol=1e-17, rtol=0)
+    xo.assert_allclose(collider.vars.vary_default['acbyhs5.r8b2']['limits'][1], limitmcbc, atol=1e-17, rtol=0)
 
     # Check that they are preserved by to_dict/from_dict
     collider = xt.Multiline.from_dict(collider.to_dict())
     collider.build_trackers()
 
-    assert np.isclose(collider.vars.vary_default['acbxh1.l8']['step'], 1.0e-15, atol=1e-17, rtol=0)
-    assert np.isclose(collider.vars.vary_default['acbxh1.l8']['limits'][0], -limitmcbx, atol=1e-17, rtol=0)
-    assert np.isclose(collider.vars.vary_default['acbxh1.l8']['limits'][1], limitmcbx, atol=1e-17, rtol=0)
-    assert np.isclose(collider.vars.vary_default['acbyhs5.r8b2']['step'], 1.0e-15, atol=1e-17, rtol=0)
-    assert np.isclose(collider.vars.vary_default['acbyhs5.r8b2']['limits'][0], -limitmcbc, atol=1e-17, rtol=0)
-    assert np.isclose(collider.vars.vary_default['acbyhs5.r8b2']['limits'][1], limitmcbc, atol=1e-17, rtol=0)
+    xo.assert_allclose(collider.vars.vary_default['acbxh1.l8']['step'], 1.0e-15, atol=1e-17, rtol=0)
+    xo.assert_allclose(collider.vars.vary_default['acbxh1.l8']['limits'][0], -limitmcbx, atol=1e-17, rtol=0)
+    xo.assert_allclose(collider.vars.vary_default['acbxh1.l8']['limits'][1], limitmcbx, atol=1e-17, rtol=0)
+    xo.assert_allclose(collider.vars.vary_default['acbyhs5.r8b2']['step'], 1.0e-15, atol=1e-17, rtol=0)
+    xo.assert_allclose(collider.vars.vary_default['acbyhs5.r8b2']['limits'][0], -limitmcbc, atol=1e-17, rtol=0)
+    xo.assert_allclose(collider.vars.vary_default['acbyhs5.r8b2']['limits'][1], limitmcbc, atol=1e-17, rtol=0)
 
     # kill all existing knobs orbit knobs in ip2 and ip8
     all_knobs_ip2ip8 = [
@@ -118,7 +120,7 @@ def test_ip_knob_matching(test_context):
     ll = opt.log()
     assert len(ll) == 1
     assert ll.iteration[0] == 0
-    assert np.isclose(ll['penalty', 0], 0.0424264, atol=1e-6, rtol=0)
+    xo.assert_allclose(ll['penalty', 0], 0.0424264, atol=1e-6, rtol=0)
     assert ll['tol_met', 0] == 'yyyyynyn'
     assert ll['target_active', 0] == 'yyyyyyyy'
     assert ll['vary_active', 0] == 'yyyyyyyyyyyyyy'
@@ -136,17 +138,17 @@ def test_ip_knob_matching(test_context):
     assert np.all(np.array(vtags) == np.array(
         ['', '', '', '', '', '', '', '', 'mcbx', 'mcbx', 'mcbx', 'mcbx', 'mcbx', 'mcbx']))
 
-    assert np.isclose(opt.vary[0].step, 2e-15, atol=1e-17, rtol=0)
-    assert np.isclose(opt.vary[0].limits[0], -9e-5, atol=1e-10, rtol=0)
-    assert np.isclose(opt.vary[0].limits[1], 9e-5, atol=1e-10, rtol=0)
-    assert np.isclose(opt.vary[2].step, 1e-15, atol=1e-17, rtol=0)
-    assert np.isclose(opt.vary[2].limits[0], -limitmcby, atol=1e-10, rtol=0)
-    assert np.isclose(opt.vary[2].limits[1], limitmcby, atol=1e-10, rtol=0)
+    xo.assert_allclose(opt.vary[0].step, 2e-15, atol=1e-17, rtol=0)
+    xo.assert_allclose(opt.vary[0].limits[0], -9e-5, atol=1e-10, rtol=0)
+    xo.assert_allclose(opt.vary[0].limits[1], 9e-5, atol=1e-10, rtol=0)
+    xo.assert_allclose(opt.vary[2].step, 1e-15, atol=1e-17, rtol=0)
+    xo.assert_allclose(opt.vary[2].limits[0], -limitmcby, atol=1e-10, rtol=0)
+    xo.assert_allclose(opt.vary[2].limits[1], limitmcby, atol=1e-10, rtol=0)
 
-    assert np.isclose(opt.targets[4].tol, 1.1e-10, atol=1e-14, rtol=0)
-    assert np.isclose(opt.targets[5].tol, 0.8e-10, atol=1e-14, rtol=0)
-    assert np.isclose(opt.targets[6].tol, 1.1e-10, atol=1e-14, rtol=0)
-    assert np.isclose(opt.targets[7].tol, 0.9e-10, atol=1e-14, rtol=0)
+    xo.assert_allclose(opt.targets[4].tol, 1.1e-10, atol=1e-14, rtol=0)
+    xo.assert_allclose(opt.targets[5].tol, 0.8e-10, atol=1e-14, rtol=0)
+    xo.assert_allclose(opt.targets[6].tol, 1.1e-10, atol=1e-14, rtol=0)
+    xo.assert_allclose(opt.targets[7].tol, 0.9e-10, atol=1e-14, rtol=0)
 
     # Set mcmbx by hand (as in mad-x script)
     testkqx8=abs(collider.varval['kqx.l8'])*7000./0.3
@@ -194,12 +196,12 @@ def test_ip_knob_matching(test_context):
     assert ll['tol_met', 10] != 'yyyyyyyy'
 
     # Check that mcbxs did not move
-    assert np.allclose(ll['vary_8', 1:], init_mcbx_plus, atol=1e-12, rtol=0)
-    assert np.allclose(ll['vary_9', 1:], init_mcbx_plus, atol=1e-12, rtol=0)
-    assert np.allclose(ll['vary_10', 1:], init_mcbx_plus, atol=1e-12, rtol=0)
-    assert np.allclose(ll['vary_11', 1:], -init_mcbx_plus, atol=1e-12, rtol=0)
-    assert np.allclose(ll['vary_12', 1:], -init_mcbx_plus, atol=1e-12, rtol=0)
-    assert np.allclose(ll['vary_13', 1:], -init_mcbx_plus, atol=1e-12, rtol=0)
+    xo.assert_allclose(ll['vary_8', 1:], init_mcbx_plus, atol=1e-12, rtol=0)
+    xo.assert_allclose(ll['vary_9', 1:], init_mcbx_plus, atol=1e-12, rtol=0)
+    xo.assert_allclose(ll['vary_10', 1:], init_mcbx_plus, atol=1e-12, rtol=0)
+    xo.assert_allclose(ll['vary_11', 1:], -init_mcbx_plus, atol=1e-12, rtol=0)
+    xo.assert_allclose(ll['vary_12', 1:], -init_mcbx_plus, atol=1e-12, rtol=0)
+    xo.assert_allclose(ll['vary_13', 1:], -init_mcbx_plus, atol=1e-12, rtol=0)
 
 
     # Link all mcbx stengths to the first one
@@ -223,11 +225,11 @@ def test_ip_knob_matching(test_context):
     assert np.all(ll['tol_met', -1] == 'yyyyyyyy')
 
     # Check imposed relationship among varys
-    assert np.isclose(ll['vary_8', 11], ll['vary_9', 11], atol=1e-12, rtol=0)
-    assert np.isclose(ll['vary_8', 11], ll['vary_10', 11], atol=1e-12, rtol=0)
-    assert np.isclose(ll['vary_8', 11], -ll['vary_11', 11], atol=1e-12, rtol=0)
-    assert np.isclose(ll['vary_8', 11], -ll['vary_12', 11], atol=1e-12, rtol=0)
-    assert np.isclose(ll['vary_8', 11], -ll['vary_13', 11], atol=1e-12, rtol=0)
+    xo.assert_allclose(ll['vary_8', 11], ll['vary_9', 11], atol=1e-12, rtol=0)
+    xo.assert_allclose(ll['vary_8', 11], ll['vary_10', 11], atol=1e-12, rtol=0)
+    xo.assert_allclose(ll['vary_8', 11], -ll['vary_11', 11], atol=1e-12, rtol=0)
+    xo.assert_allclose(ll['vary_8', 11], -ll['vary_12', 11], atol=1e-12, rtol=0)
+    xo.assert_allclose(ll['vary_8', 11], -ll['vary_13', 11], atol=1e-12, rtol=0)
 
     opt.generate_knob()
 
@@ -235,10 +237,10 @@ def test_ip_knob_matching(test_context):
     tw = collider.twiss()
     collider.vars['on_x8h'] = 0
 
-    assert np.isclose(tw.lhcb1['x', 'ip8'], 0, atol=1e-10, rtol=0)
-    assert np.isclose(tw.lhcb2['x', 'ip8'], 0, atol=1e-10, rtol=0)
-    assert np.isclose(tw.lhcb1['px', 'ip8'], 100e-6, atol=1e-10, rtol=0)
-    assert np.isclose(tw.lhcb2['px', 'ip8'], -100e-6, atol=1e-10, rtol=0)
+    xo.assert_allclose(tw.lhcb1['x', 'ip8'], 0, atol=1e-10, rtol=0)
+    xo.assert_allclose(tw.lhcb2['x', 'ip8'], 0, atol=1e-10, rtol=0)
+    xo.assert_allclose(tw.lhcb1['px', 'ip8'], 100e-6, atol=1e-10, rtol=0)
+    xo.assert_allclose(tw.lhcb2['px', 'ip8'], -100e-6, atol=1e-10, rtol=0)
 
     # Match horizontal separation in ip8
     sep_match = 2e-3
@@ -297,20 +299,20 @@ def test_ip_knob_matching(test_context):
     tw = collider.twiss()
     collider.vars['on_sep8h'] = 0
 
-    assert np.isclose(tw.lhcb1['x', 'ip8'], 1.5e-3, atol=1e-10, rtol=0)
-    assert np.isclose(tw.lhcb2['x', 'ip8'], -1.5e-3, atol=1e-10, rtol=0)
-    assert np.isclose(tw.lhcb1['px', 'ip8'], 0, atol=1e-10, rtol=0)
-    assert np.isclose(tw.lhcb2['px', 'ip8'], 0, atol=1e-10, rtol=0)
+    xo.assert_allclose(tw.lhcb1['x', 'ip8'], 1.5e-3, atol=1e-9, rtol=0)
+    xo.assert_allclose(tw.lhcb2['x', 'ip8'], -1.5e-3, atol=1e-9, rtol=0)
+    xo.assert_allclose(tw.lhcb1['px', 'ip8'], 0, atol=1e-9, rtol=0)
+    xo.assert_allclose(tw.lhcb2['px', 'ip8'], 0, atol=1e-9, rtol=0)
 
     # Check that on_x8h still works
     collider.vars['on_x8h'] = 100
     tw = collider.twiss()
     collider.vars['on_x8h'] = 0
 
-    assert np.isclose(tw.lhcb1['x', 'ip8'], 0, atol=1e-10, rtol=0)
-    assert np.isclose(tw.lhcb2['x', 'ip8'], 0, atol=1e-10, rtol=0)
-    assert np.isclose(tw.lhcb1['px', 'ip8'], 100e-6, atol=1e-10, rtol=0)
-    assert np.isclose(tw.lhcb2['px', 'ip8'], -100e-6, atol=1e-10, rtol=0)
+    xo.assert_allclose(tw.lhcb1['x', 'ip8'], 0, atol=1e-9, rtol=0)
+    xo.assert_allclose(tw.lhcb2['x', 'ip8'], 0, atol=1e-9, rtol=0)
+    xo.assert_allclose(tw.lhcb1['px', 'ip8'], 100e-6, atol=1e-9, rtol=0)
+    xo.assert_allclose(tw.lhcb2['px', 'ip8'], -100e-6, atol=1e-9, rtol=0)
 
     # Both knobs together
     collider.vars['on_x8h'] = 120
@@ -319,10 +321,10 @@ def test_ip_knob_matching(test_context):
     collider.vars['on_x8h'] = 0
     collider.vars['on_sep8h'] = 0
 
-    assert np.isclose(tw.lhcb1['x', 'ip8'], 1.7e-3, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['x', 'ip8'], -1.7e-3, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb1['px', 'ip8'], 120e-6, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['px', 'ip8'], -120e-6, atol=1e-9, rtol=0)
+    xo.assert_allclose(tw.lhcb1['x', 'ip8'], 1.7e-3, atol=1e-9, rtol=0)
+    xo.assert_allclose(tw.lhcb2['x', 'ip8'], -1.7e-3, atol=1e-9, rtol=0)
+    xo.assert_allclose(tw.lhcb1['px', 'ip8'], 120e-6, atol=1e-9, rtol=0)
+    xo.assert_allclose(tw.lhcb2['px', 'ip8'], -120e-6, atol=1e-9, rtol=0)
 
 @for_all_test_contexts
 def test_match_ir8_optics(test_context):
@@ -332,25 +334,25 @@ def test_match_ir8_optics(test_context):
     collider.build_trackers(test_context)
 
     tw = collider.twiss()
-    assert np.isclose(tw.lhcb1['betx', 'ip1'], 0.15, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb1['bety', 'ip1'], 0.15, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb2['betx', 'ip1'], 0.15, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb2['bety', 'ip1'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1['betx', 'ip1'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1['bety', 'ip1'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2['betx', 'ip1'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2['bety', 'ip1'], 0.15, atol=1e-6, rtol=0)
 
-    assert np.isclose(tw.lhcb1['betx', 'ip5'], 0.15, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb1['bety', 'ip5'], 0.15, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb2['betx', 'ip5'], 0.15, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb2['bety', 'ip5'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1['betx', 'ip5'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1['bety', 'ip5'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2['betx', 'ip5'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2['bety', 'ip5'], 0.15, atol=1e-6, rtol=0)
 
-    assert np.isclose(tw.lhcb1['betx', 'ip8'], 1.5, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb1['bety', 'ip8'], 1.5, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb2['betx', 'ip8'], 1.5, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb2['bety', 'ip8'], 1.5, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1['betx', 'ip8'], 1.5, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1['bety', 'ip8'], 1.5, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2['betx', 'ip8'], 1.5, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2['bety', 'ip8'], 1.5, atol=1e-6, rtol=0)
 
-    assert np.isclose(tw.lhcb1['betx', 'ip2'], 10., atol=1e-5, rtol=0)
-    assert np.isclose(tw.lhcb1['bety', 'ip2'], 10., atol=1e-5, rtol=0)
-    assert np.isclose(tw.lhcb2['betx', 'ip2'], 10., atol=1e-5, rtol=0)
-    assert np.isclose(tw.lhcb2['bety', 'ip2'], 10., atol=1e-5, rtol=0)
+    xo.assert_allclose(tw.lhcb1['betx', 'ip2'], 10., atol=1e-5, rtol=0)
+    xo.assert_allclose(tw.lhcb1['bety', 'ip2'], 10., atol=1e-5, rtol=0)
+    xo.assert_allclose(tw.lhcb2['betx', 'ip2'], 10., atol=1e-5, rtol=0)
+    xo.assert_allclose(tw.lhcb2['bety', 'ip2'], 10., atol=1e-5, rtol=0)
 
 
     nrj = 7000.
@@ -535,25 +537,25 @@ def test_match_ir8_optics(test_context):
     assert opt.log()['tol_met', -1] == 'yyyyyyyyyyyyyy'
 
 
-    assert np.isclose(tw.lhcb1['betx', 'ip1'], 0.15, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb1['bety', 'ip1'], 0.15, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb2['betx', 'ip1'], 0.15, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb2['bety', 'ip1'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1['betx', 'ip1'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1['bety', 'ip1'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2['betx', 'ip1'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2['bety', 'ip1'], 0.15, atol=1e-6, rtol=0)
 
-    assert np.isclose(tw.lhcb1['betx', 'ip5'], 0.15, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb1['bety', 'ip5'], 0.15, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb2['betx', 'ip5'], 0.15, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb2['bety', 'ip5'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1['betx', 'ip5'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1['bety', 'ip5'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2['betx', 'ip5'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2['bety', 'ip5'], 0.15, atol=1e-6, rtol=0)
 
-    assert np.isclose(tw.lhcb1['betx', 'ip8'], 1.5, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb1['bety', 'ip8'], 1.5, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb2['betx', 'ip8'], 1.5, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb2['bety', 'ip8'], 1.5, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1['betx', 'ip8'], 1.5, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1['bety', 'ip8'], 1.5, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2['betx', 'ip8'], 1.5, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2['bety', 'ip8'], 1.5, atol=1e-6, rtol=0)
 
-    assert np.isclose(tw.lhcb1['betx', 'ip2'], 10., atol=1e-5, rtol=0)
-    assert np.isclose(tw.lhcb1['bety', 'ip2'], 10., atol=1e-5, rtol=0)
-    assert np.isclose(tw.lhcb2['betx', 'ip2'], 10., atol=1e-5, rtol=0)
-    assert np.isclose(tw.lhcb2['bety', 'ip2'], 10., atol=1e-5, rtol=0)
+    xo.assert_allclose(tw.lhcb1['betx', 'ip2'], 10., atol=1e-5, rtol=0)
+    xo.assert_allclose(tw.lhcb1['bety', 'ip2'], 10., atol=1e-5, rtol=0)
+    xo.assert_allclose(tw.lhcb2['betx', 'ip2'], 10., atol=1e-5, rtol=0)
+    xo.assert_allclose(tw.lhcb2['bety', 'ip2'], 10., atol=1e-5, rtol=0)
 
     # Beam 2
 
@@ -702,23 +704,23 @@ def test_match_ir8_optics(test_context):
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyyyyyyyyyyyy'
     assert opt.log()['tol_met', -1] == 'yyyyyyyyyyyyyy'
 
-    assert np.isclose(tw.lhcb1['betx', 'ip1'], 0.15, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb1['bety', 'ip1'], 0.15, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb2['betx', 'ip1'], 0.15, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb2['bety', 'ip1'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1['betx', 'ip1'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1['bety', 'ip1'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2['betx', 'ip1'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2['bety', 'ip1'], 0.15, atol=1e-6, rtol=0)
 
-    assert np.isclose(tw.lhcb1['betx', 'ip5'], 0.15, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb1['bety', 'ip5'], 0.15, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb2['betx', 'ip5'], 0.15, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb2['bety', 'ip5'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1['betx', 'ip5'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1['bety', 'ip5'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2['betx', 'ip5'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2['bety', 'ip5'], 0.15, atol=1e-6, rtol=0)
 
-    assert np.isclose(tw.lhcb1['betx', 'ip8'], 1.5, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb1['bety', 'ip8'], 1.5, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb2['betx', 'ip8'], 1.5, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb2['bety', 'ip8'], 1.5, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1['betx', 'ip8'], 1.5, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1['bety', 'ip8'], 1.5, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2['betx', 'ip8'], 1.5, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2['bety', 'ip8'], 1.5, atol=1e-6, rtol=0)
 
-    assert np.isclose(tw.lhcb1['betx', 'ip2'], 10., atol=1e-5, rtol=0)
-    assert np.isclose(tw.lhcb1['bety', 'ip2'], 10., atol=1e-5, rtol=0)
-    assert np.isclose(tw.lhcb2['betx', 'ip2'], 10., atol=1e-5, rtol=0)
-    assert np.isclose(tw.lhcb2['bety', 'ip2'], 10., atol=1e-5, rtol=0)
+    xo.assert_allclose(tw.lhcb1['betx', 'ip2'], 10., atol=1e-5, rtol=0)
+    xo.assert_allclose(tw.lhcb1['bety', 'ip2'], 10., atol=1e-5, rtol=0)
+    xo.assert_allclose(tw.lhcb2['betx', 'ip2'], 10., atol=1e-5, rtol=0)
+    xo.assert_allclose(tw.lhcb2['bety', 'ip2'], 10., atol=1e-5, rtol=0)
 

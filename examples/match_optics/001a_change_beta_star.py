@@ -27,9 +27,6 @@ collider.build_trackers()
 collider.vars.load_madx_optics_file(
     "../../test_data/hllhc15_thick/opt_round_150_1500.madx")
 
-collider.lhcb1.twiss_default['only_markers'] = True
-collider.lhcb2.twiss_default['only_markers'] = True
-
 c0 = collider.copy()
 
 lm.set_var_limits_and_steps(collider)

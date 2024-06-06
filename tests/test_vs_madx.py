@@ -4,15 +4,15 @@
 # ######################################### #
 
 import pathlib
+
 import numpy as np
 import pytest
-
-import xtrack as xt
-import xpart as xp
-from xobjects.test_helpers import for_all_test_contexts
-
 from cpymad.madx import Madx
 
+import xobjects as xo
+import xpart as xp
+import xtrack as xt
+from xobjects.test_helpers import for_all_test_contexts
 
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
@@ -22,7 +22,7 @@ path = test_data_folder.joinpath('hllhc14_input_mad/')
 
 @pytest.fixture(scope='module')
 def mad_with_errors():
-    mad_with_errors = Madx()
+    mad_with_errors = Madx(stdout=False)
     mad_with_errors.call(str(path.joinpath("final_seq.madx")))
     mad_with_errors.use(sequence='lhcb1')
     mad_with_errors.twiss()
@@ -40,7 +40,7 @@ def mad_with_errors():
 
 @pytest.fixture(scope='module')
 def mad_b12_no_errors():
-    mad_b12_no_errors = Madx()
+    mad_b12_no_errors = Madx(stdout=False)
     mad_b12_no_errors.call(str(test_data_folder.joinpath(
                                    'hllhc15_noerrors_nobb/sequence.madx')))
     mad_b12_no_errors.globals['vrf400'] = 16
@@ -56,7 +56,7 @@ def mad_b12_no_errors():
 
 @pytest.fixture(scope='module')
 def mad_b4_no_errors():
-    mad_b4_no_errors = Madx()
+    mad_b4_no_errors = Madx(stdout=False)
     mad_b4_no_errors.call(str(test_data_folder.joinpath(
                                    'hllhc15_noerrors_nobb/sequence_b4.madx')))
     mad_b4_no_errors.globals['vrf400'] = 16
@@ -192,14 +192,14 @@ def test_twiss_and_survey(
 
         # Check against mad
         for twtst in [twxt, twxt4d]:
-            assert np.isclose(mad_ref.table.summ.q1[0], twtst['qx'], rtol=1e-4, atol=0)
-            assert np.isclose(mad_ref.table.summ.q2[0], twtst['qy'], rtol=1e-4, atol=0)
-            assert np.isclose(mad_ref.table.summ.dq1, twtst['dqx'], atol=0.1, rtol=0)
-            assert np.isclose(mad_ref.table.summ.dq2, twtst['dqy'], atol=0.1, rtol=0)
-            assert np.isclose(mad_ref.table.summ.alfa[0],
+            xo.assert_allclose(mad_ref.table.summ.q1[0], twtst['qx'], rtol=1e-4, atol=0)
+            xo.assert_allclose(mad_ref.table.summ.q2[0], twtst['qy'], rtol=1e-4, atol=0)
+            xo.assert_allclose(mad_ref.table.summ.dq1, twtst['dqx'], atol=0.1, rtol=0)
+            xo.assert_allclose(mad_ref.table.summ.dq2, twtst['dqy'], atol=0.1, rtol=0)
+            xo.assert_allclose(mad_ref.table.summ.alfa[0],
                 twtst['momentum_compaction_factor'], atol=7e-8, rtol=0)
             if twtst is not tw4d_part:
-                assert np.isclose(twxt['qs'], 0.0021, atol=1e-4, rtol=0)
+                xo.assert_allclose(twxt['qs'], 0.0021, atol=1e-4, rtol=0)
 
 
         for is_part, twtst in zip([False, False, True, True],
@@ -238,23 +238,23 @@ def test_twiss_and_survey(
                 mad_shift_x = eemad.align_errors.dx if eemad.align_errors else 0
                 mad_shift_y = eemad.align_errors.dy if eemad.align_errors else 0
 
-                assert np.isclose(twtst['s'][ixt], twmad['s'][imad],
+                xo.assert_allclose(twtst['s'][ixt], twmad['s'][imad],
                                 atol=1e-6, rtol=0)
-                assert np.isclose(twtst['betx'][ixt], twmad['betx'][imad],
+                xo.assert_allclose(twtst['betx'][ixt], twmad['betx'][imad],
                                 atol=0, rtol=7e-4)
-                assert np.isclose(twtst['bety'][ixt], twmad['bety'][imad],
+                xo.assert_allclose(twtst['bety'][ixt], twmad['bety'][imad],
                                 atol=0, rtol=7e-4)
-                assert np.isclose(twtst['alfx'][ixt], twmad['alfx'][imad],
+                xo.assert_allclose(twtst['alfx'][ixt], twmad['alfx'][imad],
                                 atol=1e-1, rtol=0)
-                assert np.isclose(twtst['alfy'][ixt], twmad['alfy'][imad],
+                xo.assert_allclose(twtst['alfy'][ixt], twmad['alfy'][imad],
                                 atol=1e-1, rtol=0)
-                assert np.isclose(twtst['dx'][ixt], twmad['dx'][imad],
+                xo.assert_allclose(twtst['dx'][ixt], twmad['dx'][imad],
                                 atol=1e-2, rtol=0)
-                assert np.isclose(twtst['dy'][ixt], twmad['dy'][imad],
+                xo.assert_allclose(twtst['dy'][ixt], twmad['dy'][imad],
                                 atol=1e-2, rtol=0)
-                assert np.isclose(twtst['dpx'][ixt], twmad['dpx'][imad],
+                xo.assert_allclose(twtst['dpx'][ixt], twmad['dpx'][imad],
                                 atol=3e-4, rtol=0)
-                assert np.isclose(twtst['dpy'][ixt], twmad['dpy'][imad],
+                xo.assert_allclose(twtst['dpy'][ixt], twmad['dpy'][imad],
                                 atol=3e-4, rtol=0)
 
                 if is_part:
@@ -269,91 +269,91 @@ def test_twiss_and_survey(
                     muy0_mad = 0
                     mux0_tst = 0
                     muy0_tst = 0
-                assert np.isclose(twtst['mux'][ixt] - mux0_tst,
+                xo.assert_allclose(twtst['mux'][ixt] - mux0_tst,
                                   twmad['mux'][imad] - mux0_mad,
                                   atol=1e-4, rtol=0)
-                assert np.isclose(twtst['muy'][ixt] - muy0_tst,
+                xo.assert_allclose(twtst['muy'][ixt] - muy0_tst,
                                   twmad['muy'][imad] - muy0_mad,
                                   atol=1e-4, rtol=0)
 
-                assert np.isclose(twtst['s'][ixt], twmad['s'][imad],
+                xo.assert_allclose(twtst['s'][ixt], twmad['s'][imad],
                                 atol=5e-6, rtol=0)
 
                 # I check the orbit relative to sigma to be more accurate at the IP
                 sigx = np.sqrt(twmad['sig11'][imad])
                 sigy = np.sqrt(twmad['sig33'][imad])
 
-                assert np.isclose(twtst['x'][ixt], (twmad['x'][imad] - mad_shift_x),
+                xo.assert_allclose(twtst['x'][ixt], twmad['x'][imad],
                                 atol=0.03*sigx, rtol=0)
-                assert np.isclose(twtst['y'][ixt],
-                                (twmad['y'][imad] - mad_shift_y),
+                xo.assert_allclose(twtst['y'][ixt],
+                                (twmad['y'][imad]),
                                 atol=0.03*sigy, rtol=0)
 
-                assert np.isclose(twtst['px'][ixt], twmad['px'][imad],
+                xo.assert_allclose(twtst['px'][ixt], twmad['px'][imad],
                                 atol=2e-7, rtol=0)
-                assert np.isclose(twtst['py'][ixt], twmad['py'][imad],
+                xo.assert_allclose(twtst['py'][ixt], twmad['py'][imad],
                                 atol=2e-7, rtol=0)
 
-                assert np.isclose(Sigmas.Sigma11[ixt], twmad['sig11'][imad], atol=5e-10)
-                assert np.isclose(Sigmas.Sigma12[ixt], twmad['sig12'][imad], atol=3e-12)
-                assert np.isclose(Sigmas.Sigma22[ixt], twmad['sig22'][imad], atol=1e-12)
-                assert np.isclose(Sigmas.Sigma33[ixt], twmad['sig33'][imad], atol=5e-10)
-                assert np.isclose(Sigmas.Sigma34[ixt], twmad['sig34'][imad], atol=3e-12)
-                assert np.isclose(Sigmas.Sigma44[ixt], twmad['sig44'][imad], atol=1e-12)
+                xo.assert_allclose(Sigmas.Sigma11[ixt], twmad['sig11'][imad], atol=5e-10)
+                xo.assert_allclose(Sigmas.Sigma12[ixt], twmad['sig12'][imad], atol=3e-12)
+                xo.assert_allclose(Sigmas.Sigma22[ixt], twmad['sig22'][imad], atol=1e-12)
+                xo.assert_allclose(Sigmas.Sigma33[ixt], twmad['sig33'][imad], atol=5e-10)
+                xo.assert_allclose(Sigmas.Sigma34[ixt], twmad['sig34'][imad], rtol=1e-4, atol=3e-12)
+                xo.assert_allclose(Sigmas.Sigma44[ixt], twmad['sig44'][imad], atol=1e-12)
 
                 if twtst not in [twxt4d, tw4d_part]: # 4d less precise due to different momentum (coupling comes from feeddown)
-                    assert np.isclose(Sigmas.Sigma13[ixt], twmad['sig13'][imad], atol=5e-10)
-                    assert np.isclose(Sigmas.Sigma14[ixt], twmad['sig14'][imad], atol=2e-12)
-                    assert np.isclose(Sigmas.Sigma23[ixt], twmad['sig23'][imad], atol=1e-12)
-                    assert np.isclose(Sigmas.Sigma24[ixt], twmad['sig24'][imad], atol=1e-12)
+                    xo.assert_allclose(Sigmas.Sigma13[ixt], twmad['sig13'][imad], atol=5e-10)
+                    xo.assert_allclose(Sigmas.Sigma14[ixt], twmad['sig14'][imad], atol=2e-12)
+                    xo.assert_allclose(Sigmas.Sigma23[ixt], twmad['sig23'][imad], atol=1e-12)
+                    xo.assert_allclose(Sigmas.Sigma24[ixt], twmad['sig24'][imad], atol=1e-12)
 
                 # check matrix is symmetric
-                assert np.isclose(Sigmas.Sigma12[ixt], Sigmas.Sigma21[ixt], atol=1e-16)
-                assert np.isclose(Sigmas.Sigma13[ixt], Sigmas.Sigma31[ixt], atol=1e-16)
-                assert np.isclose(Sigmas.Sigma14[ixt], Sigmas.Sigma41[ixt], atol=1e-16)
-                assert np.isclose(Sigmas.Sigma23[ixt], Sigmas.Sigma32[ixt], atol=1e-16)
-                assert np.isclose(Sigmas.Sigma24[ixt], Sigmas.Sigma42[ixt], atol=1e-16)
-                assert np.isclose(Sigmas.Sigma34[ixt], Sigmas.Sigma43[ixt], atol=1e-16)
+                xo.assert_allclose(Sigmas.Sigma12[ixt], Sigmas.Sigma21[ixt], atol=1e-16)
+                xo.assert_allclose(Sigmas.Sigma13[ixt], Sigmas.Sigma31[ixt], atol=1e-16)
+                xo.assert_allclose(Sigmas.Sigma14[ixt], Sigmas.Sigma41[ixt], atol=1e-16)
+                xo.assert_allclose(Sigmas.Sigma23[ixt], Sigmas.Sigma32[ixt], atol=1e-16)
+                xo.assert_allclose(Sigmas.Sigma24[ixt], Sigmas.Sigma42[ixt], atol=1e-16)
+                xo.assert_allclose(Sigmas.Sigma34[ixt], Sigmas.Sigma43[ixt], atol=1e-16)
 
                 # check matrix consistency with Sigma.Sigma
-                assert np.isclose(Sigmas.Sigma11[ixt], Sigmas.Sigma[ixt][0, 0], atol=1e-16)
-                assert np.isclose(Sigmas.Sigma12[ixt], Sigmas.Sigma[ixt][0, 1], atol=1e-16)
-                assert np.isclose(Sigmas.Sigma13[ixt], Sigmas.Sigma[ixt][0, 2], atol=1e-16)
-                assert np.isclose(Sigmas.Sigma14[ixt], Sigmas.Sigma[ixt][0, 3], atol=1e-16)
-                assert np.isclose(Sigmas.Sigma21[ixt], Sigmas.Sigma[ixt][1, 0], atol=1e-16)
-                assert np.isclose(Sigmas.Sigma22[ixt], Sigmas.Sigma[ixt][1, 1], atol=1e-16)
-                assert np.isclose(Sigmas.Sigma23[ixt], Sigmas.Sigma[ixt][1, 2], atol=1e-16)
-                assert np.isclose(Sigmas.Sigma24[ixt], Sigmas.Sigma[ixt][1, 3], atol=1e-16)
-                assert np.isclose(Sigmas.Sigma31[ixt], Sigmas.Sigma[ixt][2, 0], atol=1e-16)
-                assert np.isclose(Sigmas.Sigma32[ixt], Sigmas.Sigma[ixt][2, 1], atol=1e-16)
-                assert np.isclose(Sigmas.Sigma33[ixt], Sigmas.Sigma[ixt][2, 2], atol=1e-16)
-                assert np.isclose(Sigmas.Sigma34[ixt], Sigmas.Sigma[ixt][2, 3], atol=1e-16)
-                assert np.isclose(Sigmas.Sigma41[ixt], Sigmas.Sigma[ixt][3, 0], atol=1e-16)
-                assert np.isclose(Sigmas.Sigma42[ixt], Sigmas.Sigma[ixt][3, 1], atol=1e-16)
-                assert np.isclose(Sigmas.Sigma43[ixt], Sigmas.Sigma[ixt][3, 2], atol=1e-16)
-                assert np.isclose(Sigmas.Sigma44[ixt], Sigmas.Sigma[ixt][3, 3], atol=1e-16)
+                xo.assert_allclose(Sigmas.Sigma11[ixt], Sigmas.Sigma[ixt][0, 0], atol=1e-16)
+                xo.assert_allclose(Sigmas.Sigma12[ixt], Sigmas.Sigma[ixt][0, 1], atol=1e-16)
+                xo.assert_allclose(Sigmas.Sigma13[ixt], Sigmas.Sigma[ixt][0, 2], atol=1e-16)
+                xo.assert_allclose(Sigmas.Sigma14[ixt], Sigmas.Sigma[ixt][0, 3], atol=1e-16)
+                xo.assert_allclose(Sigmas.Sigma21[ixt], Sigmas.Sigma[ixt][1, 0], atol=1e-16)
+                xo.assert_allclose(Sigmas.Sigma22[ixt], Sigmas.Sigma[ixt][1, 1], atol=1e-16)
+                xo.assert_allclose(Sigmas.Sigma23[ixt], Sigmas.Sigma[ixt][1, 2], atol=1e-16)
+                xo.assert_allclose(Sigmas.Sigma24[ixt], Sigmas.Sigma[ixt][1, 3], atol=1e-16)
+                xo.assert_allclose(Sigmas.Sigma31[ixt], Sigmas.Sigma[ixt][2, 0], atol=1e-16)
+                xo.assert_allclose(Sigmas.Sigma32[ixt], Sigmas.Sigma[ixt][2, 1], atol=1e-16)
+                xo.assert_allclose(Sigmas.Sigma33[ixt], Sigmas.Sigma[ixt][2, 2], atol=1e-16)
+                xo.assert_allclose(Sigmas.Sigma34[ixt], Sigmas.Sigma[ixt][2, 3], atol=1e-16)
+                xo.assert_allclose(Sigmas.Sigma41[ixt], Sigmas.Sigma[ixt][3, 0], atol=1e-16)
+                xo.assert_allclose(Sigmas.Sigma42[ixt], Sigmas.Sigma[ixt][3, 1], atol=1e-16)
+                xo.assert_allclose(Sigmas.Sigma43[ixt], Sigmas.Sigma[ixt][3, 2], atol=1e-16)
+                xo.assert_allclose(Sigmas.Sigma44[ixt], Sigmas.Sigma[ixt][3, 3], atol=1e-16)
 
                 # Check sigma_x, sigma_y
-                assert np.isclose(Sigmas.sigma_x[ixt], np.sqrt(Sigmas.Sigma11[ixt]), atol=1e-16)
-                assert np.isclose(Sigmas.sigma_y[ixt], np.sqrt(Sigmas.Sigma33[ixt]), atol=1e-16)
-                assert np.isclose(Sigmas.sigma_px[ixt], np.sqrt(Sigmas.Sigma22[ixt]), atol=1e-16)
-                assert np.isclose(Sigmas.sigma_py[ixt], np.sqrt(Sigmas.Sigma44[ixt]), atol=1e-16)
+                xo.assert_allclose(Sigmas.sigma_x[ixt], np.sqrt(Sigmas.Sigma11[ixt]), atol=1e-16)
+                xo.assert_allclose(Sigmas.sigma_y[ixt], np.sqrt(Sigmas.Sigma33[ixt]), atol=1e-16)
+                xo.assert_allclose(Sigmas.sigma_px[ixt], np.sqrt(Sigmas.Sigma22[ixt]), atol=1e-16)
+                xo.assert_allclose(Sigmas.sigma_py[ixt], np.sqrt(Sigmas.Sigma44[ixt]), atol=1e-16)
 
                 if not(is_part): # We don't have survey on a part of the machine
                     # Check survey
-                    assert np.isclose(survxt.X[ixt], survmad['X'][imad], atol=1e-6)
-                    assert np.isclose(survxt.Y[ixt], survmad['Y'][imad], atol=1e-6)
-                    assert np.isclose(survxt.Z[ixt], survmad['Z'][imad], atol=1e-6)
-                    assert np.isclose(survxt.s[ixt], survmad['s'][imad], atol=5e-6)
-                    assert np.isclose(survxt.phi[ixt], survmad['phi'][imad], atol=1e-10)
-                    assert np.isclose(survxt.theta[ixt], survmad['theta'][imad], atol=1e-10)
-                    assert np.isclose(survxt.psi[ixt], survmad['psi'][imad], atol=1e-10)
+                    xo.assert_allclose(survxt.X[ixt], survmad['X'][imad], atol=1e-6)
+                    xo.assert_allclose(survxt.Y[ixt], survmad['Y'][imad], rtol=2e-7, atol=1e-6)
+                    xo.assert_allclose(survxt.Z[ixt], survmad['Z'][imad], atol=1e-6)
+                    xo.assert_allclose(survxt.s[ixt], survmad['s'][imad], atol=5e-6)
+                    xo.assert_allclose(survxt.phi[ixt], survmad['phi'][imad], atol=1e-10)
+                    xo.assert_allclose(survxt.theta[ixt], survmad['theta'][imad], atol=1e-10)
+                    xo.assert_allclose(survxt.psi[ixt], survmad['psi'][imad], atol=1e-10)
 
                     # angle and tilt are associated to the element itself (ixt - 1)
                     # For now not checking the sign of the angles, convetion in mad-X to be calrified
-                    assert np.isclose(np.abs(survxt.angle[ixt-1]),
+                    xo.assert_allclose(np.abs(survxt.angle[ixt-1]),
                             np.abs(survmad['angle'][imad]), atol=1e-10)
-                    assert np.isclose(survxt.tilt[ixt-1], survmad['tilt'][imad], atol=1e-10)
+                    xo.assert_allclose(survxt.tilt[ixt-1], survmad['tilt'][imad], atol=1e-10)
 
         # Check to_pandas (not extensively for now)
         dftw = twtst.to_pandas()
@@ -366,14 +366,14 @@ def test_twiss_and_survey(
             s_test = [2e3, 1e3, 3e3, 10e3]
             twats = line.twiss(at_s = s_test)
             for ii, ss in enumerate(s_test):
-                assert np.isclose(twats['s'][ii], ss, rtol=0, atol=1e-14)
-                assert np.isclose(twats['alfx'][ii], np.interp(ss, twxt['s'], twxt['alfx']),
+                xo.assert_allclose(twats['s'][ii], ss, rtol=0, atol=1e-14)
+                xo.assert_allclose(twats['alfx'][ii], np.interp(ss, twxt['s'], twxt['alfx']),
                                 rtol=1e-5, atol=0)
-                assert np.isclose(twats['alfy'][ii], np.interp(ss, twxt['s'], twxt['alfy']),
+                xo.assert_allclose(twats['alfy'][ii], np.interp(ss, twxt['s'], twxt['alfy']),
                                 rtol=1e-5, atol=0)
-                assert np.isclose(twats['dpx'][ii], np.interp(ss, twxt['s'], twxt['dpx']),
+                xo.assert_allclose(twats['dpx'][ii], np.interp(ss, twxt['s'], twxt['dpx']),
                                 rtol=1e-5, atol=0)
-                assert np.isclose(twats['dpy'][ii], np.interp(ss, twxt['s'], twxt['dpy']),
+                xo.assert_allclose(twats['dpy'][ii], np.interp(ss, twxt['s'], twxt['dpy']),
                                 rtol=1e-5, atol=0)
 
 
@@ -435,30 +435,33 @@ def test_line_import_from_madx(test_context, mad_with_errors):
         dtest = ee_test.to_dict()
         dref = ee_six.to_dict()
 
+        ee_test_cpu = ee_test.copy(_context=xo.ContextCpu())
+        ee_six_cpu = ee_six.copy(_context=xo.ContextCpu())
+
         skip_order = False
         if isinstance(ee_test, xt.Multipole):
             if ee_test._order != ee_six._order:
                 min_order = min(ee_test._order, ee_six._order)
-                if len(dtest['knl']) > min_order+1:
-                    assert np.all(dtest['knl'][min_order+1]  == 0)
-                    dtest['knl'] = dtest['knl'][:min_order+1]
-                if len(dref['knl']) > min_order+1:
-                    assert np.all(dref['knl'][min_order+1]  == 0)
-                    dref['knl'] = dref['knl'][:min_order+1]
-                if len(dtest['ksl']) > min_order+1:
-                    assert np.all(dtest['ksl'][min_order+1]  == 0)
-                    dtest['ksl'] = dtest['ksl'][:min_order+1]
-                if len(dref['ksl']) > min_order+1:
-                    assert np.all(dref['ksl'][min_order+1]  == 0)
-                    dref['ksl'] = dref['ksl'][:min_order+1]
+                xo.assert_allclose(
+                    ee_test.knl[:min_order+1],
+                    ee_six.knl[:min_order+1],
+                    atol=1e-16,
+                )
+                xo.assert_allclose(
+                    ee_test.ksl[:min_order+1],
+                    ee_six.ksl[:min_order+1],
+                    atol=1e-16,
+                )
+                xo.assert_allclose(ee_test.knl[min_order+1:], 0, atol=1e-16)
+                xo.assert_allclose(ee_test.ksl[min_order+1:], 0, atol=1e-16)
+                xo.assert_allclose(ee_six.knl[min_order+1:], 0, atol=1e-16)
+                xo.assert_allclose(ee_six.ksl[min_order+1:], 0, atol=1e-16)
+
                 skip_order = True
 
         for kk in dtest.keys():
 
-            if skip_order and kk == '_order':
-                continue
-
-            if skip_order and kk == 'inv_factorial_order':
+            if skip_order and kk in ('order', 'knl', 'ksl'):
                 continue
 
             # Check if they are identical
@@ -508,20 +511,20 @@ def test_line_import_from_madx(test_context, mad_with_errors):
     print('\nTest tracker and xsuite vars...\n')
     line = line_with_expressions.copy()
     line.build_tracker(_context=test_context)
-    assert np.isclose(line.twiss()['qx'], 62.31, rtol=0, atol=1e-4)
+    xo.assert_allclose(line.twiss()['qx'], 62.31, rtol=0, atol=1e-4)
     line.vars['kqtf.b1'] = -2e-4
-    assert np.isclose(line.twiss()['qx'], 62.2834, rtol=0, atol=1e-4)
+    xo.assert_allclose(line.twiss()['qx'], 62.2834, rtol=0, atol=1e-4)
 
-    assert np.isclose(line.element_dict['acsca.b5l4.b1'].voltage,
+    xo.assert_allclose(line.element_dict['acsca.b5l4.b1'].voltage,
                       2e6, rtol=0, atol=1e-14)
     line.vars['vrf400'] = 8
-    assert np.isclose(line.element_dict['acsca.b5l4.b1'].voltage,
+    xo.assert_allclose(line.element_dict['acsca.b5l4.b1'].voltage,
                       1e6, rtol=0, atol=1e-14)
 
-    assert np.isclose(line.element_dict['acsca.b5l4.b1'].lag, 180,
+    xo.assert_allclose(line.element_dict['acsca.b5l4.b1'].lag, 180,
                     rtol=0, atol=1e-14)
     line.vars['lagrf400.b1'] = 0.75
-    assert np.isclose(line.element_dict['acsca.b5l4.b1'].lag, 270,
+    xo.assert_allclose(line.element_dict['acsca.b5l4.b1'].lag, 270,
                     rtol=0, atol=1e-14)
 
     assert np.abs(
@@ -530,11 +533,11 @@ def test_line_import_from_madx(test_context, mad_with_errors):
     assert np.abs(
         line.element_dict['acfcav.bl5.b1'].to_dict()['ksl'][0]) == 0
 
-    assert np.isclose(
+    xo.assert_allclose(
         line.element_dict['acfcav.bl5.b1'].to_dict()['ps'][0], 90,
         rtol=0, atol=1e-14)
     line.vars['phi_crab_l5b1'] = 0.5
-    assert np.isclose(
+    xo.assert_allclose(
         line.element_dict['acfcav.bl5.b1'].to_dict()['ps'][0], 270,
                     rtol=0, atol=1e-14)
 
@@ -544,11 +547,11 @@ def test_line_import_from_madx(test_context, mad_with_errors):
     assert np.abs(
         line.element_dict['acfcah.bl1.b1'].to_dict()['knl'][0]) == 0
 
-    assert np.isclose(
+    xo.assert_allclose(
         line.element_dict['acfcah.bl1.b1'].to_dict()['pn'][0], 90,
         rtol=0, atol=1e-14)
     line.vars['phi_crab_l1b1'] = 0.5
-    assert np.isclose(
+    xo.assert_allclose(
         line.element_dict['acfcah.bl1.b1'].to_dict()['pn'][0], 270,
         rtol=0, atol=1e-14)
 
@@ -573,17 +576,17 @@ def test_orbit_knobs(test_context, mad_b12_no_errors):
     line.build_tracker(_context=test_context)
 
     line.vars['on_x1'] = 250
-    assert np.isclose(line.twiss(at_elements=['ip1'])['px'][0], 250e-6,
+    xo.assert_allclose(line.twiss(at_elements=['ip1'])['px'][0], 250e-6,
                 atol=1e-6, rtol=0)
     line.vars['on_x1'] = -300
-    assert np.isclose(line.twiss(at_elements=['ip1'])['px'][0], -300e-6,
+    xo.assert_allclose(line.twiss(at_elements=['ip1'])['px'][0], -300e-6,
                 atol=1e-6, rtol=0)
 
     line.vars['on_x5'] = 130
-    assert np.isclose(line.twiss(at_elements=['ip5'])['py'][0], 130e-6,
+    xo.assert_allclose(line.twiss(at_elements=['ip5'])['py'][0], 130e-6,
                 atol=1e-6, rtol=0)
     line.vars['on_x5'] = -270
-    assert np.isclose(line.twiss(at_elements=['ip5'])['py'][0], -270e-6,
+    xo.assert_allclose(line.twiss(at_elements=['ip5'])['py'][0], -270e-6,
                 atol=1e-6, rtol=0)
 
 
@@ -598,7 +601,7 @@ def test_low_beta_twiss(test_context):
 
     path_madseq = test_data_folder / 'psb_injection/psb_injection.seq'
 
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.call(str(path_madseq))
 
     mad.use(sequence='psb')
@@ -607,17 +610,17 @@ def test_low_beta_twiss(test_context):
 
     emitdf = mad.table.emitsumm.dframe()
 
-    assert np.isclose(mad.sequence.psb.beam.gamma, line.particle_ref.gamma0,
+    xo.assert_allclose(mad.sequence.psb.beam.gamma, line.particle_ref.gamma0,
                       rtol=0, atol=1e-6)
-    assert np.isclose(mad.sequence.psb.beam.beta, line.particle_ref.beta0,
+    xo.assert_allclose(mad.sequence.psb.beam.beta, line.particle_ref.beta0,
                     rtol=0, atol=1e-10)
 
     beta0 = line.particle_ref.beta0
 
-    assert np.isclose(mad.table.summ['q1'][0], tw['qx'], rtol=0, atol=1e-6)
-    assert np.isclose(mad.table.summ['q2'][0], tw['qy'], rtol=0, atol=1e-6)
-    assert np.isclose(mad.table.summ['dq1'][0]*beta0, tw['dqx'], rtol=0,
+    xo.assert_allclose(mad.table.summ['q1'][0], tw['qx'], rtol=0, atol=1e-6)
+    xo.assert_allclose(mad.table.summ['q2'][0], tw['qy'], rtol=0, atol=1e-6)
+    xo.assert_allclose(mad.table.summ['dq1'][0]*beta0, tw['dqx'], rtol=0,
                         atol=1e-6)
-    assert np.isclose(mad.table.summ['dq2'][0]*beta0, tw['dqy'], rtol=0,
+    xo.assert_allclose(mad.table.summ['dq2'][0]*beta0, tw['dqy'], rtol=0,
                         atol=1e-6)
-    assert np.isclose(tw.qs, emitdf.qs.iloc[0], rtol=0, atol=1e-8)
+    xo.assert_allclose(tw.qs, emitdf.qs.iloc[0], rtol=0, atol=1e-8)

@@ -2,52 +2,53 @@ import itertools
 import pathlib
 
 import numpy as np
-
-import xtrack.mad_loader
-from xtrack import MadLoader
-import xtrack as xt
+from cpymad.madx import Madx
 from scipy.constants import c as clight
 
+import xobjects as xo
 import xpart as xp
-
-from cpymad.madx import Madx
+import xtrack as xt
+import xtrack.mad_loader
+from xtrack import MadLoader
 
 test_data_folder = pathlib.Path(
-            __file__).parent.joinpath('../test_data').absolute()
+    __file__).parent.joinpath('../test_data').absolute()
+
 
 def test_non_zero_index():
-    lst=[1,2,3,0,0,0]
-    assert xtrack.mad_loader.non_zero_len([1,2,3,0,0,0])==3
+    lst = [1, 2, 3, 0, 0, 0]
+    assert xtrack.mad_loader.non_zero_len(lst) == 3
+
 
 def test_add_lists():
-    a=[1,2,3,1,1,1]
-    b=[1,1,1,4,5,6]
-    c=xtrack.mad_loader.add_lists(a,b,8)
-    assert c==[2, 3, 4, 5, 6, 7, 0, 0]
+    a = [1, 2, 3, 1, 1, 1]
+    b = [1, 1, 1, 4, 5, 6]
+    c = xtrack.mad_loader.add_lists(a, b, 8)
+    assert c == [2, 3, 4, 5, 6, 7, 0, 0]
+
 
 def test_add_lists():
-    a=[1,2,3,1,1,1]
-    b=[1,1,1,4,5,6,7,8]
-    c=xtrack.mad_loader.add_lists(a,b,8)
-    assert c==[2, 3, 4, 5, 6, 7, 7, 8]
+    a = [1, 2, 3, 1, 1, 1]
+    b = [1, 1, 1, 4, 5, 6, 7, 8]
+    c = xtrack.mad_loader.add_lists(a, b, 8)
+    assert c == [2, 3, 4, 5, 6, 7, 7, 8]
 
-    a=[1,2,3,1,1,1]
-    b=[1,1,1,4,5,6,7,8]
-    c=xtrack.mad_loader.add_lists(a,b,10)
-    assert c==[2, 3, 4, 5, 6, 7, 7, 8,0,0]
+    a = [1, 2, 3, 1, 1, 1]
+    b = [1, 1, 1, 4, 5, 6, 7, 8]
+    c = xtrack.mad_loader.add_lists(a, b, 10)
+    assert c == [2, 3, 4, 5, 6, 7, 7, 8, 0, 0]
 
 
 def test_tilt_shift_and_errors():
+    mad = Madx(stdout=False)
 
-    mad = Madx()
-
-    src="""
+    src = """
     k1=0.2;
     tilt=0.1;
 
     elm: multipole,
             knl:={0.1,-k1,0.3},
-            ksl={-0.1,0.2,-0.3,4},
+            ksl={0.,0.2,-0.3,4},
             angle=0.1,
             tilt=0.2,
             lrad=1,
@@ -102,60 +103,57 @@ def test_tilt_shift_and_errors():
     from xtrack import MadLoader
 
     def gen_options(opt1):
-        for v in itertools.product(*([[True, False]]*len(opt1))):
-            yield dict(zip(opt1,v))
+        for v in itertools.product(*([[True, False]] * len(opt1))):
+            yield dict(zip(opt1, v))
 
-    opt1=["enable_expressions",
+    opt1 = ["enable_expressions",
         "enable_errors",
         "enable_apertures"]
 
-    opt2=["skip_markers","merge_drifts","merge_multipoles"]
-
+    opt2 = ["skip_markers", "merge_drifts", "merge_multipoles"]
 
     for opt in gen_options(opt1):
-        ml=MadLoader(mad.sequence.seq,**opt)
-        line=ml.make_line()
+        ml = MadLoader(mad.sequence.seq, **opt)
+        line = ml.make_line()
 
         if opt['enable_apertures'] and opt['enable_errors']:
-            line.element_names == (
-                'seq$start', 'elm1_aper_tilt_entry', 'elm1_aper_offset_entry',
-                'elm1_aper', 'elm1_aper_offset_exit', 'elm1_aper_tilt_exit',
-                'elm1_tilt_entry', 'elm1_offset_entry', 'elm1', 'elm1_offset_exit',
-                'elm1_tilt_exit', 'drift_0', 'mk', 'mk2_aper', 'mk2', 'drift_1',
-                'elm2_aper_tilt_entry', 'elm2_aper_offset_entry', 'elm2_aper',
-                'elm2_aper_offset_exit', 'elm2_aper_tilt_exit', 'elm2_tilt_entry',
-                'elm2_offset_entry', 'elm2', 'elm2_offset_exit', 'elm2_tilt_exit',
-                'elm3_aper_tilt_entry', 'elm3_aper_offset_entry', 'elm3_aper',
-                'elm3_aper_offset_exit', 'elm3_aper_tilt_exit', 'elm3_tilt_entry',
-                'elm3_offset_entry', 'elm3', 'elm3_offset_exit', 'elm3_tilt_exit',
-                'drift_2', 'seq$end')
+            assert np.all(np.array(line.element_names) == (
+                'seq$start',
+                'elm1_aper',
+                'elm1',
+                'drift_0', 'mk', 'mk2_aper', 'mk2', 'drift_1',
+                'elm2_aper',
+                'elm2',
+                'elm3_aper',
+                'elm3',
+                'drift_2', 'seq$end'))
 
-        elif opt['enable_apertures'] and not(opt['enable_errors']):
-            line.element_names == (
-                'seq$start', 'elm1_aper_tilt_entry', 'elm1_aper_offset_entry',
-                'elm1_aper', 'elm1_aper_offset_exit', 'elm1_aper_tilt_exit',
-                'elm1_tilt_entry', 'elm1', 'elm1_tilt_exit', 'drift_0', 'mk',
-                'mk2_aper', 'mk2', 'drift_1', 'elm2_aper_tilt_entry',
-                'elm2_aper_offset_entry', 'elm2_aper', 'elm2_aper_offset_exit',
-                'elm2_aper_tilt_exit', 'elm2_tilt_entry', 'elm2', 'elm2_tilt_exit',
-                'elm3_aper_tilt_entry', 'elm3_aper_offset_entry', 'elm3_aper',
-                'elm3_aper_offset_exit', 'elm3_aper_tilt_exit',
-                'elm3_tilt_entry','elm3', 'elm3_tilt_exit', 'drift_2', 'seq$end'
-                )
-        elif not(opt['enable_apertures']) and opt['enable_errors']:
-            line.element_names == (
-                'seq$start', 'elm1_tilt_entry', 'elm1_offset_entry', 'elm1',
-                'elm1_offset_exit', 'elm1_tilt_exit', 'drift_0', 'mk', 'mk2',
-                'drift_1', 'elm2_tilt_entry', 'elm2_offset_entry', 'elm2',
-                'elm2_offset_exit', 'elm2_tilt_exit', 'elm3_tilt_entry',
-                'elm3_offset_entry', 'elm3', 'elm3_offset_exit',
-                'elm3_tilt_exit', 'drift_2', 'seq$end')
-        elif not(opt['enable_apertures']) and not(opt['enable_errors']):
-            line.element_names == (
-                'seq$start', 'elm1_tilt_entry', 'elm1', 'elm1_tilt_exit',
-                'drift_0', 'mk', 'mk2', 'drift_1', 'elm2_tilt_entry', 'elm2',
-                'elm2_tilt_exit', 'elm3_tilt_entry', 'elm3', 'elm3_tilt_exit',
-                'drift_2', 'seq$end')
+        elif opt['enable_apertures'] and not (opt['enable_errors']):
+            assert np.all(np.array(line.element_names) == (
+                'seq$start',
+                'elm1_aper',
+                'elm1',
+                'drift_0',
+                'mk',
+                'mk2_aper', 'mk2', 'drift_1',
+                'elm2_aper',
+                'elm2',
+                'elm3_aper',
+                'elm3', 'drift_2', 'seq$end'
+            ))
+        elif not (opt['enable_apertures']) and opt['enable_errors']:
+            assert np.all(np.array(line.element_names) == (
+                'seq$start', 'elm1',
+                'drift_0', 'mk', 'mk2',
+                'drift_1', 'elm2',
+                'elm3',
+                'drift_2', 'seq$end'))
+        elif not (opt['enable_apertures']) and not (opt['enable_errors']):
+            assert np.all(np.array(line.element_names) == (
+                'seq$start', 'elm1',
+                'drift_0', 'mk', 'mk2', 'drift_1', 'elm2',
+                'elm3',
+                'drift_2', 'seq$end'))
 
         for nn in line.element_names:
             if 'tilt' in nn:
@@ -167,73 +165,56 @@ def test_tilt_shift_and_errors():
 
         on_err = int(opt['enable_errors'])
         if opt['enable_apertures']:
+            xo.assert_allclose(line['elm2_aper'].rot_s_rad,
+                               mad_elm2.aper_tilt,
+                               rtol=0, atol=1e-13)
 
-            assert np.isclose(line['elm2_aper_tilt_entry'].angle,
-                                mad_elm2.aper_tilt/np.pi*180,
-                                rtol=0, atol=1e-13)
-            assert np.isclose(line['elm2_aper_tilt_exit'].angle,
-                                -mad_elm2.aper_tilt/np.pi*180,
-                                rtol=0, atol=1e-13)
-
-
-            assert np.isclose(line['elm2_aper_offset_entry'].dx,
-                        on_err * mad_elm2.align_errors.arex + mad_elm2.aper_offset[0],
-                        rtol=0, atol=1e-13)
-            assert np.isclose(line['elm2_aper_offset_entry'].dy,
-                        on_err * mad_elm2.align_errors.arey + mad_elm2.aper_offset[1],
-                        rtol=0, atol=1e-13)
-            assert np.isclose(line['elm2_aper_offset_exit'].dx,
-                        -(on_err * mad_elm2.align_errors.arex + mad_elm2.aper_offset[0]),
-                        rtol=0, atol=1e-13)
-            assert np.isclose(line['elm2_aper_offset_exit'].dy,
-                        -(on_err * mad_elm2.align_errors.arey + mad_elm2.aper_offset[1]),
-                        rtol=0, atol=1e-13)
+            xo.assert_allclose(line['elm2_aper'].shift_x,
+                               on_err * mad_elm2.align_errors.arex + mad_elm2.aper_offset[0],
+                               rtol=0, atol=1e-13)
+            xo.assert_allclose(line['elm2_aper'].shift_y,
+                               on_err * mad_elm2.align_errors.arey + mad_elm2.aper_offset[1],
+                               rtol=0, atol=1e-13)
 
             assert isinstance(line['elm2_aper'], xt.LimitRectEllipse)
             assert line['elm2_aper'].max_x == .1
             assert line['elm2_aper'].max_y == .2
-            assert line['elm2_aper'].a_squ == .11**2
-            assert line['elm2_aper'].b_squ == .22**2
+            assert line['elm2_aper'].a_squ == .11 ** 2
+            assert line['elm2_aper'].b_squ == .22 ** 2
 
-        assert np.isclose(line['elm2_tilt_entry'].angle,
-                    (mad_elm2.tilt + on_err * mad_elm2.align_errors.dpsi)/np.pi*180,
-                    rtol=0, atol=1e-13)
-        assert np.isclose(line['elm2_tilt_exit'].angle,
-                    -(mad_elm2.tilt + on_err * mad_elm2.align_errors.dpsi)/np.pi*180,
-                    rtol=0, atol=1e-13)
+        xo.assert_allclose(line['elm2'].rot_s_rad,
+                           (mad_elm2.tilt + on_err * mad_elm2.align_errors.dpsi),
+                           rtol=0, atol=1e-13)
 
         if opt['enable_errors']:
-            assert np.isclose(line['elm2_offset_entry'].dx,
-                                on_err * mad_elm2.align_errors.dx, rtol=0, atol=1e-13)
-            assert np.isclose(line['elm2_offset_entry'].dy,
-                                on_err * mad_elm2.align_errors.dy, rtol=0, atol=1e-13)
-            assert np.isclose(line['elm2_offset_exit'].dx,
-                                -on_err * mad_elm2.align_errors.dx, rtol=0, atol=1e-13)
-            assert np.isclose(line['elm2_offset_exit'].dy,
-                                -on_err * mad_elm2.align_errors.dy, rtol=0, atol=1e-13)
+            xo.assert_allclose(line['elm2'].shift_x,
+                               on_err * mad_elm2.align_errors.dx, rtol=0, atol=1e-13)
+            xo.assert_allclose(line['elm2'].shift_y,
+                               on_err * mad_elm2.align_errors.dy, rtol=0, atol=1e-13)
 
-        for ii in range(line['elm2'].order+1):
+        for ii in range(line['elm2'].order + 1):
             ref = 0
-            if len(mad_elm2.knl)>ii:
+            if len(mad_elm2.knl) > ii:
                 ref += mad_elm2.knl[ii]
-            if opt['enable_errors'] and len(mad_elm2.field_errors.dkn)>ii:
+            if opt['enable_errors'] and len(mad_elm2.field_errors.dkn) > ii:
                 ref += mad_elm2.field_errors.dkn[ii]
-            assert np.isclose(line['elm2'].knl[ii], ref, rtol=0, atol=1e-13)
+            xo.assert_allclose(line['elm2'].knl[ii], ref, rtol=0, atol=1e-13)
 
-        for ii in range(line['elm2'].order+1):
+        for ii in range(line['elm2'].order + 1):
             ref = 0
-            if len(mad_elm2.ksl)>ii:
+            if len(mad_elm2.ksl) > ii:
                 ref += mad_elm2.ksl[ii]
-            if opt['enable_errors'] and len(mad_elm2.field_errors.dks)>ii:
+            if opt['enable_errors'] and len(mad_elm2.field_errors.dks) > ii:
                 ref += mad_elm2.field_errors.dks[ii]
-            assert np.isclose(line['elm2'].ksl[ii], ref, rtol=0, atol=1e-13)
+            xo.assert_allclose(line['elm2'].ksl[ii], ref, rtol=0, atol=1e-13)
 
     for opt in gen_options(opt2):
-        ml=MadLoader(mad.sequence.seq,**opt)
-        line=list(ml.iter_elements())
+        ml = MadLoader(mad.sequence.seq, **opt)
+        line = list(ml.iter_elements())
+
 
 def test_matrix():
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     mad.input("""
     a11=1;
@@ -246,13 +227,14 @@ def test_matrix():
     beam; use, sequence=ss;
     """)
 
-    line=MadLoader(mad.sequence.ss).make_line()
-    line=MadLoader(mad.sequence.ss,enable_expressions=True).make_line()
-    line.vars['a11']=2.0
-    assert line[2].m1[0,0]==line.vars['a11']._value
+    line = MadLoader(mad.sequence.ss).make_line()
+    line = MadLoader(mad.sequence.ss, enable_expressions=True).make_line()
+    line.vars['a11'] = 2.0
+    assert line[1].m1[0, 0] == line.vars['a11']._value
+
 
 def test_srotation():
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     mad.input("""
     angle=0.2;
@@ -263,14 +245,15 @@ def test_srotation():
     beam; use, sequence=ss;
     """)
 
-    line=MadLoader(mad.sequence.ss).make_line()
-    line=MadLoader(mad.sequence.ss,enable_expressions=True).make_line()
-    assert isinstance(line[2],xt.SRotation)
+    line = MadLoader(mad.sequence.ss).make_line()
+    line = MadLoader(mad.sequence.ss, enable_expressions=True).make_line()
+    assert isinstance(line[1], xt.SRotation)
     line.vars['angle'] = 2.0
-    assert line[2].angle == line.vars['angle']._value*180/np.pi
+    assert line[1].angle == line.vars['angle']._value * 180 / np.pi
+
 
 def test_xrotation():
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     mad.input("""
     angle=0.2;
@@ -281,14 +264,15 @@ def test_xrotation():
     beam; use, sequence=ss;
     """)
 
-    line=MadLoader(mad.sequence.ss).make_line()
-    line=MadLoader(mad.sequence.ss,enable_expressions=True).make_line()
-    assert isinstance(line[2],xt.XRotation)
+    line = MadLoader(mad.sequence.ss).make_line()
+    line = MadLoader(mad.sequence.ss, enable_expressions=True).make_line()
+    assert isinstance(line[1], xt.XRotation)
     line.vars['angle'] = 2.0
-    assert line[2].angle == line.vars['angle']._value*180/np.pi
+    assert line[1].angle == line.vars['angle']._value * 180 / np.pi
+
 
 def test_yrotation():
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     mad.input("""
     angle=0.2;
@@ -299,15 +283,15 @@ def test_yrotation():
     beam; use, sequence=ss;
     """)
 
-    line=MadLoader(mad.sequence.ss).make_line()
-    line=MadLoader(mad.sequence.ss,enable_expressions=True).make_line()
-    assert isinstance(line[2],xt.YRotation)
+    line = MadLoader(mad.sequence.ss).make_line()
+    line = MadLoader(mad.sequence.ss, enable_expressions=True).make_line()
+    assert isinstance(line[1], xt.YRotation)
     line.vars['angle'] = 2.0
-    assert line[2].angle == line.vars['angle']._value*180/np.pi
+    assert line[1].angle == line.vars['angle']._value * 180 / np.pi
+
 
 def test_mad_elements_import():
-
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     # Element definitions
     mad.input("""
@@ -317,47 +301,47 @@ def test_mad_elements_import():
     cav0: rfcavity, freq:=a*10, lag:=a*0.5, volt:=a*6;
     cav1: rfcavity, lag:=a*0.5, volt:=a*6, harmon:=a*8;
     wire1: wire, current:=a*5, l:=a*0, l_phy:=a*1, l_int:=a*2, xma:=a*1e-3, yma:=a*2e-3;
-    mult0: multipole, knl:={a*1,a*2,a*3}, ksl:={a*4,a*5,a*6}, lrad:=a*1.1;
-    mult1: multipole, knl={1,2,3,0}, ksl:={1,2,3};
-    mult2: multipole, knl={1,2,3,0}, ksl={1,2,0,0,0};
-    mult3: multipole, knl={1,2,3,0}, ksl:={1,2,0,b,0};
+    mult0: multipole, knl:={a*1,a*2,a*3}, ksl:={0, a*5,a*6}, lrad:=a*1.1;
+    mult1: multipole, knl={1,2,3,0}, ksl:={0,2,3};
+    mult2: multipole, knl={1,2,3,0}, ksl={0,2,0,0,0};
+    mult3: multipole, knl={1,2,3,0}, ksl:={0,2,0,b,0};
     kick0: kicker, hkick:=a*5, vkick:=a*6, lrad:=a*2.2;
     kick1: tkicker, hkick:=a*7, vkick:=a*8, lrad:=a*2.3;
     kick2: hkicker, kick:=a*3, lrad:=a*2.4;
     kick3: vkicker, kick:=a*4, lrad:=a*2.5;
     dipedge0: dipedge, h:=a*0.1, e1:=a*3, fint:=a*4, hgap:=a*0.02;
     rfm0: rfmultipole, volt:=a*2, lag:=a*0.5, freq:=a*100.,
-                knl:={a*2,a*3}, ksl:={a*4,a*5},
+                knl:={a*2,a*3}, ksl:={0,a*5},
                 pnl:={a*0.3, a*0.4}, psl:={a*0.5, a*0.6};
     crab0: crabcavity, volt:=a*2, lag:=a*0.5, freq:=a*100.;
     crab1: crabcavity, volt:=a*2, lag:=a*0.5, freq:=a*100., tilt:=a*pi/2;
     oct0: marker, apertype=octagon, aperture:={a * 3, a * 6, a * pi/6, a * pi/3};
     """)
 
-    matrix_m0 = np.random.randn(6)*1E-6
-    matrix_m1 = np.reshape(np.random.randn(36),(6,6))
+    matrix_m0 = np.random.randn(6) * 1E-6
+    matrix_m1 = np.reshape(np.random.randn(36), (6, 6))
     mad.input(f"mat:matrix,l:=0.003*a,"
               f"kick1:={matrix_m0[0]}*a,kick2:={matrix_m0[1]}*a,"
               f"kick3:={matrix_m0[2]}*a,kick4:={matrix_m0[3]}*a,"
               f"kick5:={matrix_m0[4]}*a,kick6:={matrix_m0[5]}*a,"
-              f"rm11:={matrix_m1[0,0]}*a,rm12:={matrix_m1[0,1]}*a,"
-              f"rm13:={matrix_m1[0,2]}*a,rm14:={matrix_m1[0,3]}*a,"
-              f"rm15:={matrix_m1[0,4]}*a,rm16:={matrix_m1[0,5]}*a,"
-              f"rm21:={matrix_m1[1,0]}*a,rm22:={matrix_m1[1,1]}*a,"
-              f"rm23:={matrix_m1[1,2]}*a,rm24:={matrix_m1[1,3]}*a,"
-              f"rm25:={matrix_m1[1,4]}*a,rm26:={matrix_m1[1,5]}*a,"
-              f"rm31:={matrix_m1[2,0]}*a,rm32:={matrix_m1[2,1]}*a,"
-              f"rm33:={matrix_m1[2,2]}*a,rm34:={matrix_m1[2,3]}*a,"
-              f"rm35:={matrix_m1[2,4]}*a,rm36:={matrix_m1[2,5]}*a,"
-              f"rm41:={matrix_m1[3,0]}*a,rm42:={matrix_m1[3,1]}*a,"
-              f"rm43:={matrix_m1[3,2]}*a,rm44:={matrix_m1[3,3]}*a,"
-              f"rm45:={matrix_m1[3,4]}*a,rm46:={matrix_m1[3,5]}*a,"
-              f"rm51:={matrix_m1[4,0]}*a,rm52:={matrix_m1[4,1]}*a,"
-              f"rm53:={matrix_m1[4,2]}*a,rm54:={matrix_m1[4,3]}*a,"
-              f"rm55:={matrix_m1[4,4]}*a,rm56:={matrix_m1[4,5]}*a,"
-              f"rm61:={matrix_m1[5,0]}*a,rm62:={matrix_m1[5,1]}*a,"
-              f"rm63:={matrix_m1[5,2]}*a,rm64:={matrix_m1[5,3]}*a,"
-              f"rm65:={matrix_m1[5,4]}*a,rm66={matrix_m1[5,5]}*a;")
+              f"rm11:={matrix_m1[0, 0]}*a,rm12:={matrix_m1[0, 1]}*a,"
+              f"rm13:={matrix_m1[0, 2]}*a,rm14:={matrix_m1[0, 3]}*a,"
+              f"rm15:={matrix_m1[0, 4]}*a,rm16:={matrix_m1[0, 5]}*a,"
+              f"rm21:={matrix_m1[1, 0]}*a,rm22:={matrix_m1[1, 1]}*a,"
+              f"rm23:={matrix_m1[1, 2]}*a,rm24:={matrix_m1[1, 3]}*a,"
+              f"rm25:={matrix_m1[1, 4]}*a,rm26:={matrix_m1[1, 5]}*a,"
+              f"rm31:={matrix_m1[2, 0]}*a,rm32:={matrix_m1[2, 1]}*a,"
+              f"rm33:={matrix_m1[2, 2]}*a,rm34:={matrix_m1[2, 3]}*a,"
+              f"rm35:={matrix_m1[2, 4]}*a,rm36:={matrix_m1[2, 5]}*a,"
+              f"rm41:={matrix_m1[3, 0]}*a,rm42:={matrix_m1[3, 1]}*a,"
+              f"rm43:={matrix_m1[3, 2]}*a,rm44:={matrix_m1[3, 3]}*a,"
+              f"rm45:={matrix_m1[3, 4]}*a,rm46:={matrix_m1[3, 5]}*a,"
+              f"rm51:={matrix_m1[4, 0]}*a,rm52:={matrix_m1[4, 1]}*a,"
+              f"rm53:={matrix_m1[4, 2]}*a,rm54:={matrix_m1[4, 3]}*a,"
+              f"rm55:={matrix_m1[4, 4]}*a,rm56:={matrix_m1[4, 5]}*a,"
+              f"rm61:={matrix_m1[5, 0]}*a,rm62:={matrix_m1[5, 1]}*a,"
+              f"rm63:={matrix_m1[5, 2]}*a,rm64:={matrix_m1[5, 3]}*a,"
+              f"rm65:={matrix_m1[5, 4]}*a,rm66={matrix_m1[5, 5]}*a;")
 
     # Sequence
     mad.input("""
@@ -381,13 +365,12 @@ def test_mad_elements_import():
     oct: oct0, at=3;
     endsequence;
     """
-    )
+              )
 
     # Beam
     mad.input("""
     beam, particle=proton, gamma=1.05, sequence=testseq;
     """)
-
 
     mad.use('testseq')
 
@@ -399,38 +382,34 @@ def test_mad_elements_import():
                                           install_apertures=True)
         line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, gamma0=1.05)
 
-        line = xt.Line.from_dict(line.to_dict()) # This calls the to_dict method fot all
-                                                # elements
-
+        line = xt.Line.from_dict(line.to_dict())  # This calls the to_dict method fot all
+        # elements
 
         assert len(line.element_names) == len(line.element_dict.keys())
         assert line.get_length() == 10
 
         assert isinstance(line['m0'], xt.Multipole)
         assert line.get_s_position('m0') == 0.1
-        assert np.all(line['m0'].knl == np.array([1,2,3]))
-        assert np.all(line['m0'].ksl == np.array([4,5,6]))
+        assert np.all(line['m0'].knl == np.array([1, 2, 3]))
+        assert np.all(line['m0'].ksl == np.array([0, 5, 6]))
         assert line['m0'].hxl == 1
-        assert line['m0'].hyl == 4
         assert line['m0'].length == 1.1
-        assert len(line['m1'].knl)==3
-        assert len(line['m1'].ksl)==3
-        assert len(line['m2'].knl)==3
-        assert len(line['m2'].ksl)==3
+        assert len(line['m1'].knl) == 3
+        assert len(line['m1'].ksl) == 3
+        assert len(line['m2'].knl) == 3
+        assert len(line['m2'].ksl) == 3
         if test_expressions:
-          assert len(line['m3'].knl)==4
-          assert len(line['m3'].ksl)==4
+            assert len(line['m3'].knl) == 4
+            assert len(line['m3'].ksl) == 4
         else:
-          assert len(line['m3'].knl)==3
-          assert len(line['m3'].ksl)==3
-
+            assert len(line['m3'].knl) == 3
+            assert len(line['m3'].ksl) == 3
 
         assert isinstance(line['k0'], xt.Multipole)
         assert line.get_s_position('k0') == 0.3
         assert np.all(line['k0'].knl == np.array([-5]))
         assert np.all(line['k0'].ksl == np.array([6]))
         assert line['k0'].hxl == 0
-        assert line['k0'].hyl == 0
         assert line['k0'].length == 2.2
 
         assert isinstance(line['k1'], xt.Multipole)
@@ -438,7 +417,6 @@ def test_mad_elements_import():
         assert np.all(line['k1'].knl == np.array([-7]))
         assert np.all(line['k1'].ksl == np.array([8]))
         assert line['k1'].hxl == 0
-        assert line['k1'].hyl == 0
         assert line['k1'].length == 2.3
 
         assert isinstance(line['k2'], xt.Multipole)
@@ -446,7 +424,6 @@ def test_mad_elements_import():
         assert np.all(line['k2'].knl == np.array([-3]))
         assert np.all(line['k2'].ksl == np.array([0]))
         assert line['k2'].hxl == 0
-        assert line['k2'].hyl == 0
         assert line['k2'].length == 2.4
 
         assert isinstance(line['k3'], xt.Multipole)
@@ -454,7 +431,6 @@ def test_mad_elements_import():
         assert np.all(line['k3'].knl == np.array([0]))
         assert np.all(line['k3'].ksl == np.array([4]))
         assert line['k3'].hxl == 0
-        assert line['k3'].hyl == 0
         assert line['k3'].length == 2.5
 
         assert isinstance(line['c0'], xt.Cavity)
@@ -465,8 +441,8 @@ def test_mad_elements_import():
 
         assert isinstance(line['c1'], xt.Cavity)
         assert line.get_s_position('c1') == 0.2
-        assert np.isclose(line['c1'].frequency, clight*line.particle_ref.beta0/10.*8,
-                        rtol=0, atol=1e-7)
+        xo.assert_allclose(line['c1'].frequency, clight * line.particle_ref.beta0 / 10. * 8,
+                           rtol=0, atol=1e-7)
         assert line['c1'].lag == 180
         assert line['c1'].voltage == 6e6
 
@@ -479,10 +455,10 @@ def test_mad_elements_import():
 
         assert isinstance(line['r0'], xt.RFMultipole)
         assert line.get_s_position('r0') == 0.4
-        assert np.all(line['r0'].knl == np.array([2,3]))
-        assert np.all(line['r0'].ksl == np.array([4,5]))
-        assert np.all(line['r0'].pn == np.array([0.3*360,0.4*360]))
-        assert np.all(line['r0'].ps == np.array([0.5*360,0.6*360]))
+        assert np.all(line['r0'].knl == np.array([2, 3]))
+        assert np.all(line['r0'].ksl == np.array([0, 5]))
+        assert np.all(line['r0'].pn == np.array([0.3 * 360, 0.4 * 360]))
+        assert np.all(line['r0'].ps == np.array([0.5 * 360, 0.6 * 360]))
         assert line['r0'].voltage == 2e6
         assert line['r0'].order == 1
         assert line['r0'].frequency == 100e6
@@ -492,8 +468,8 @@ def test_mad_elements_import():
         assert line.get_s_position('cb0') == 0.41
         assert len(line['cb0'].knl) == 1
         assert len(line['cb0'].ksl) == 1
-        assert np.isclose(line['cb0'].knl[0], 2*1e6/line.particle_ref.p0c[0],
-                        rtol=0, atol=1e-12)
+        xo.assert_allclose(line['cb0'].knl[0], 2 * 1e6 / line.particle_ref.p0c[0],
+                           rtol=0, atol=1e-12)
         assert np.all(line['cb0'].ksl == 0)
         assert np.all(line['cb0'].pn == np.array([270]))
         assert np.all(line['cb0'].ps == 0.)
@@ -506,8 +482,8 @@ def test_mad_elements_import():
         assert line.get_s_position('cb1') == 0.42
         assert len(line['cb1'].knl) == 1
         assert len(line['cb1'].ksl) == 1
-        assert np.isclose(line['cb1'].ksl[0], -2*1e6/line.particle_ref.p0c[0],
-                        rtol=0, atol=1e-12)
+        xo.assert_allclose(line['cb1'].ksl[0], -2 * 1e6 / line.particle_ref.p0c[0],
+                           rtol=0, atol=1e-12)
         assert np.all(line['cb1'].knl == 0)
         assert np.all(line['cb1'].ps == np.array([270]))
         assert np.all(line['cb1'].pn == 0.)
@@ -516,7 +492,6 @@ def test_mad_elements_import():
         assert line['cb1'].frequency == 100e6
         assert line['cb1'].lag == 0
 
-
         assert isinstance(line['w'], xt.Wire)
         assert line.get_s_position('w') == 1
         assert line['w'].L_phy == 1
@@ -524,38 +499,38 @@ def test_mad_elements_import():
         assert line['w'].xma == 1e-3
         assert line['w'].yma == 2e-3
 
-        assert isinstance(line['mat0'],xt.FirstOrderTaylorMap)
+        assert isinstance(line['mat0'], xt.FirstOrderTaylorMap)
         assert line.get_s_position('mat0') == 2
-        assert np.allclose(line['mat0'].m0,matrix_m0,rtol=0.0,atol=1E-12)
-        assert np.allclose(line['mat0'].m1,matrix_m1,rtol=0.0,atol=1E-12)
+        xo.assert_allclose(line['mat0'].m0, matrix_m0, rtol=0.0, atol=1E-12)
+        xo.assert_allclose(line['mat0'].m1, matrix_m1, rtol=0.0, atol=1E-12)
 
         assert isinstance(line['oct_aper'], xt.LimitPolygon)
         assert line.get_s_position('oct_aper') == 3
         x_1, x_2, y_1, y_2 = 3, 2 * np.sqrt(3), np.sqrt(3), 6
-        expected_x_vertices = [x_1, x_2,  -x_2, -x_1, -x_1, -x_2, x_2, x_1]
+        expected_x_vertices = [x_1, x_2, -x_2, -x_1, -x_1, -x_2, x_2, x_1]
         expected_y_vertices = [y_1, y_2, y_2, y_1, -y_1, -y_2, -y_2, -y_1]
-        assert np.allclose(line['oct_aper'].x_vertices, expected_x_vertices)
-        assert np.allclose(line['oct_aper'].y_vertices, expected_y_vertices)
+        xo.assert_allclose(line['oct_aper'].x_vertices, expected_x_vertices)
+        xo.assert_allclose(line['oct_aper'].y_vertices, expected_y_vertices)
 
 
 def test_selective_expr_import_and_replace_in_expr():
-
     # Load line with knobs on correctors only
     from cpymad.madx import Madx
-    mad = Madx()
-    mad.call(str( test_data_folder /
-                'hllhc14_no_errors_with_coupling_knobs/lhcb1_seq.madx'))
+    mad = Madx(stdout=False)
+    mad.call(str(test_data_folder /
+                 'hllhc14_no_errors_with_coupling_knobs/lhcb1_seq.madx'))
     mad.use(sequence='lhcb1')
     line = xt.Line.from_madx_sequence(mad.sequence.lhcb1,
-        deferred_expressions=True,
-        replace_in_expr={'bv_aux': 'bv_aux_lhcb1'},
-        expressions_for_element_types=('kicker', 'hkicker', 'vkicker'))
+                                      deferred_expressions=True,
+                                      replace_in_expr={'bv_aux': 'bv_aux_lhcb1'},
+                                      expressions_for_element_types=('kicker', 'hkicker', 'vkicker'))
 
     assert len(line.vars['bv_aux_lhcb1']._find_dependant_targets()) > 1
     assert 'bv_aux' not in line.vars
 
-    assert line.element_refs['mqxfa.b3r5..1'].knl[1]._expr is None # multipole
-    assert line.element_refs['mcbxfbv.b2r1'].ksl[0]._expr is not None # kicker
+    assert line.element_refs['mqxfa.b3r5..1'].knl[1]._expr is None  # multipole
+    assert line.element_refs['mcbxfbv.b2r1'].ksl[0]._expr is not None  # kicker
+
 
 def test_load_madx_optics_file():
     collider = xt.Multiline.from_json(
@@ -591,9 +566,9 @@ def test_load_madx_optics_file():
     assert collider.lhcb1.varval['on_x1'] == 70
     assert collider.lhcb2.varval['on_x1'] == 70
 
-    collider.vars['on_disp'] = 0 # more precise angle
-    assert np.isclose(collider.twiss().lhcb1['px', 'ip1'], 70e-6, atol=1e-8, rtol=0)
-    assert np.isclose(collider.twiss().lhcb2['px', 'ip1'], -70e-6, atol=1e-8, rtol=0)
+    collider.vars['on_disp'] = 0  # more precise angle
+    xo.assert_allclose(collider.twiss().lhcb1['px', 'ip1'], 70e-6, atol=1e-8, rtol=0)
+    xo.assert_allclose(collider.twiss().lhcb2['px', 'ip1'], -70e-6, atol=1e-8, rtol=0)
 
     collider.vars.load_madx_optics_file(
         test_data_folder / 'hllhc15_thick/opt_round_300_1500.madx')
@@ -601,67 +576,67 @@ def test_load_madx_optics_file():
     collider._xdeps_manager.verify()
 
     tw = collider.twiss()
-    assert np.isclose(tw.lhcb1.qx, 62.31000000, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb1.qy, 60.32000000, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb2.qx, 62.31000000, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb2.qy, 60.32000000, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb1['betx', 'ip1'], 0.30, atol=0, rtol=1e-4)
-    assert np.isclose(tw.lhcb1['bety', 'ip1'], 0.30, atol=0, rtol=1e-4)
-    assert np.isclose(tw.lhcb2['betx', 'ip1'], 0.30, atol=0, rtol=1e-4)
-    assert np.isclose(tw.lhcb2['bety', 'ip1'], 0.30, atol=0, rtol=1e-4)
+    xo.assert_allclose(tw.lhcb1.qx, 62.31000000, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1.qy, 60.32000000, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2.qx, 62.31000000, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2.qy, 60.32000000, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1['betx', 'ip1'], 0.30, atol=0, rtol=1e-4)
+    xo.assert_allclose(tw.lhcb1['bety', 'ip1'], 0.30, atol=0, rtol=1e-4)
+    xo.assert_allclose(tw.lhcb2['betx', 'ip1'], 0.30, atol=0, rtol=1e-4)
+    xo.assert_allclose(tw.lhcb2['bety', 'ip1'], 0.30, atol=0, rtol=1e-4)
 
     # Check a knob
     collider.vars['on_x1'] = 30
     collider.vars['on_disp'] = 0
     tw = collider.twiss()
-    assert np.isclose(tw.lhcb1['px', 'ip1'], 30e-6, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['px', 'ip1'], -30e-6, atol=1e-9, rtol=0)
+    xo.assert_allclose(tw.lhcb1['px', 'ip1'], 30e-6, atol=1e-9, rtol=0)
+    xo.assert_allclose(tw.lhcb2['px', 'ip1'], -30e-6, atol=1e-9, rtol=0)
 
     collider.vars.load_madx_optics_file(
         test_data_folder / 'hllhc15_thick/opt_round_150_1500.madx')
 
     tw = collider.twiss()
-    assert np.isclose(tw.lhcb1.qx, 62.31000000, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb1.qy, 60.32000000, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb2.qx, 62.31000000, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb2.qy, 60.32000000, atol=1e-6, rtol=0)
-    assert np.isclose(tw.lhcb1['betx', 'ip1'], 0.15, atol=0, rtol=1e-6)
-    assert np.isclose(tw.lhcb1['bety', 'ip1'], 0.15, atol=0, rtol=1e-6)
-    assert np.isclose(tw.lhcb2['betx', 'ip1'], 0.15, atol=0, rtol=1e-6)
-    assert np.isclose(tw.lhcb2['bety', 'ip1'], 0.15, atol=0, rtol=1e-6)
+    xo.assert_allclose(tw.lhcb1.qx, 62.31000000, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1.qy, 60.32000000, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2.qx, 62.31000000, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2.qy, 60.32000000, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1['betx', 'ip1'], 0.15, atol=0, rtol=1e-6)
+    xo.assert_allclose(tw.lhcb1['bety', 'ip1'], 0.15, atol=0, rtol=1e-6)
+    xo.assert_allclose(tw.lhcb2['betx', 'ip1'], 0.15, atol=0, rtol=1e-6)
+    xo.assert_allclose(tw.lhcb2['bety', 'ip1'], 0.15, atol=0, rtol=1e-6)
 
     # Check a knob
     collider.vars['on_x1'] = 10
     collider.vars['on_disp'] = 0
     tw = collider.twiss()
-    assert np.isclose(tw.lhcb1['px', 'ip1'], 10e-6, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['px', 'ip1'], -10e-6, atol=1e-9, rtol=0)
+    xo.assert_allclose(tw.lhcb1['px', 'ip1'], 10e-6, atol=1e-9, rtol=0)
+    xo.assert_allclose(tw.lhcb2['px', 'ip1'], -10e-6, atol=1e-9, rtol=0)
 
     # Try unregister/register
 
     collider.vars['ox_x1h'] = 20
     tw = collider.twiss()
-    assert np.isclose(tw.lhcb1['px', 'ip1'], 10e-6, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['px', 'ip1'], -10e-6, atol=1e-9, rtol=0)
+    xo.assert_allclose(tw.lhcb1['px', 'ip1'], 10e-6, atol=1e-9, rtol=0)
+    xo.assert_allclose(tw.lhcb2['px', 'ip1'], -10e-6, atol=1e-9, rtol=0)
 
     collider.vars['on_x8h'] = collider.vars['on_x2']
     collider.vars['on_x2'] = 25
     tw = collider.twiss()
 
-    assert np.isclose(tw.lhcb1['px', 'ip8'], 25e-6, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['px', 'ip8'], -25e-6, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb1['py', 'ip8'], 0, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['py', 'ip8'], 0, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb1['py', 'ip2'], 25e-6, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['py', 'ip2'], -25e-6, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb1['px', 'ip2'], 0, atol=1e-9, rtol=0)
-    assert np.isclose(tw.lhcb2['px', 'ip2'], 0, atol=1e-9, rtol=0)
+    xo.assert_allclose(tw.lhcb1['px', 'ip8'], 25e-6, atol=1e-9, rtol=0)
+    xo.assert_allclose(tw.lhcb2['px', 'ip8'], -25e-6, atol=1e-9, rtol=0)
+    xo.assert_allclose(tw.lhcb1['py', 'ip8'], 0, atol=1e-9, rtol=0)
+    xo.assert_allclose(tw.lhcb2['py', 'ip8'], 0, atol=1e-9, rtol=0)
+    xo.assert_allclose(tw.lhcb1['py', 'ip2'], 25e-6, atol=1e-9, rtol=0)
+    xo.assert_allclose(tw.lhcb2['py', 'ip2'], -25e-6, atol=1e-9, rtol=0)
+    xo.assert_allclose(tw.lhcb1['px', 'ip2'], 0, atol=1e-9, rtol=0)
+    xo.assert_allclose(tw.lhcb2['px', 'ip2'], 0, atol=1e-9, rtol=0)
+
 
 def test_load_b2_with_bv_minus_one():
-
     test_data_folder_str = str(test_data_folder)
 
-    mad1=Madx()
+    mad1 = Madx(stdout=False)
     mad1.call(test_data_folder_str + '/hllhc15_thick/lhc.seq')
     mad1.call(test_data_folder_str + '/hllhc15_thick/hllhc_sequence.madx')
     mad1.input('beam, sequence=lhcb1, particle=proton, energy=7000;')
@@ -671,7 +646,7 @@ def test_load_b2_with_bv_minus_one():
     mad1.call(test_data_folder_str + '/hllhc15_thick/opt_round_150_1500.madx')
     mad1.twiss()
 
-    mad4=Madx()
+    mad4 = Madx(stdout=False)
     mad4.input('mylhcbeam=4')
     mad4.call(test_data_folder_str + '/hllhc15_thick/lhcb4.seq')
     mad4.call(test_data_folder_str + '/hllhc15_thick/hllhc_sequence.madx')
@@ -681,41 +656,41 @@ def test_load_b2_with_bv_minus_one():
     mad4.twiss()
 
     for mad in [mad1, mad4]:
-        mad.globals['vrf400'] = 16 # Check voltage expressions
-        mad.globals['lagrf400.b2'] = 0.02 # Check lag expressions
-        mad.globals['on_x1'] = 100 # Check kicker expressions
-        mad.globals['on_sep2'] = 2 # Check kicker expressions
-        mad.globals['on_x5'] = 123 # Check kicker expressions
-        mad.globals['kqtf.b2'] = 1e-5 # Check quad expressions
+        mad.globals['vrf400'] = 16  # Check voltage expressions
+        mad.globals['lagrf400.b2'] = 0.02  # Check lag expressions
+        mad.globals['on_x1'] = 100  # Check kicker expressions
+        mad.globals['on_sep2'] = 2  # Check kicker expressions
+        mad.globals['on_x5'] = 123  # Check kicker expressions
+        mad.globals['kqtf.b2'] = 1e-5  # Check quad expressions
         mad.globals['ksf.b2'] = 1e-3  # Check sext expressions
-        mad.globals['kqs.l3b2'] = 1e-4 # Check skew expressions
-        mad.globals['kss.a45b2'] = 1e-4 # Check skew sext expressions
-        mad.globals['kof.a34b2'] = 3 # Check oct expressions
-        mad.globals['on_crab1'] = -190 # Check cavity expressions
-        mad.globals['on_crab5'] = -130 # Check cavity expressions
-        mad.globals['on_sol_atlas'] = 1 # Check solenoid expressions
-        mad.globals['kcdx3.r1'] = 1e-4 # Check thin decapole expressions
-        mad.globals['kcdsx3.r1'] = 1e-4 # Check thin skew decapole expressions
-        mad.globals['kctx3.l1'] = 1e-5 # Check thin dodecapole expressions
-        mad.globals['kctsx3.r1'] = 1e-5 # Check thin skew dodecapole expressions
+        mad.globals['kqs.l3b2'] = 1e-4  # Check skew expressions
+        mad.globals['kss.a45b2'] = 1e-4  # Check skew sext expressions
+        mad.globals['kof.a34b2'] = 3  # Check oct expressions
+        mad.globals['on_crab1'] = -190  # Check cavity expressions
+        mad.globals['on_crab5'] = -130  # Check cavity expressions
+        mad.globals['on_sol_atlas'] = 1  # Check solenoid expressions
+        mad.globals['kcdx3.r1'] = 1e-4  # Check thin decapole expressions
+        mad.globals['kcdsx3.r1'] = 1e-4  # Check thin skew decapole expressions
+        mad.globals['kctx3.l1'] = 1e-5  # Check thin dodecapole expressions
+        mad.globals['kctsx3.r1'] = 1e-5  # Check thin skew dodecapole expressions
 
-    line2=xt.Line.from_madx_sequence(mad1.sequence.lhcb2,
-                                    allow_thick=True,
-                                    deferred_expressions=True,
-                                    replace_in_expr={'bv_aux':'bvaux_b2'})
+    line2 = xt.Line.from_madx_sequence(mad1.sequence.lhcb2,
+                                       allow_thick=True,
+                                       deferred_expressions=True,
+                                       replace_in_expr={'bv_aux': 'bvaux_b2'})
     line2.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, p0c=7000e9)
 
-    line4=xt.Line.from_madx_sequence(mad4.sequence.lhcb2,
-                                    allow_thick=True,
-                                    deferred_expressions=True,
-                                    replace_in_expr={'bv_aux':'bvaux_b2'})
+    line4 = xt.Line.from_madx_sequence(mad4.sequence.lhcb2,
+                                       allow_thick=True,
+                                       deferred_expressions=True,
+                                       replace_in_expr={'bv_aux': 'bvaux_b2'})
     line4.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, p0c=7000e9)
 
     # Bend done
 
     # Quadrupole
-    assert np.isclose(line2['mq.27l2.b2'].k1, line4['mq.27l2.b2'].k1, rtol=0, atol=1e-12)
-    assert np.isclose(line2['mqs.27l3.b2'].k1s, line4['mqs.27l3.b2'].k1s, rtol=0, atol=1e-12)
+    xo.assert_allclose(line2['mq.27l2.b2'].k1, line4['mq.27l2.b2'].k1, rtol=0, atol=1e-12)
+    xo.assert_allclose(line2['mqs.27l3.b2'].k1s, line4['mqs.27l3.b2'].k1s, rtol=0, atol=1e-12)
 
     tt2 = line2.get_table()
     tt4 = line4.get_table()
@@ -732,19 +707,13 @@ def test_load_b2_with_bv_minus_one():
     l4names.remove('lhcb2$start')
     l4names.remove('lhcb2$end')
 
-    # They seem not to be in the same place?!?
-    l2names.remove('tclia.4r2_entry')
-    l2names.remove('tclia.4r2_exit')
-    l4names.remove('tclia.4r2_entry')
-    l4names.remove('tclia.4r2_exit')
-
     assert set(l2names) == set(l4names)
 
-    assert np.allclose(
+    xo.assert_allclose(
         tt2nodr.rows[l2names].s, tt4nodr.rows[l2names].s, rtol=0, atol=1e-8)
 
     for nn in l2names:
-        print(nn+'              ', end='\r', flush=True)
+        print(nn + '              ', end='\r', flush=True)
         if nn == '_end_point':
             continue
         e2 = line2[nn]
@@ -752,7 +721,7 @@ def test_load_b2_with_bv_minus_one():
         d2 = e2.to_dict()
         d4 = e4.to_dict()
         for kk in d2.keys():
-            if kk == '__class__':
+            if kk in ('__class__', 'model', 'side'):
                 assert d2[kk] == d4[kk]
                 continue
-            assert np.allclose(d2[kk], d4[kk], rtol=1e-10, atol=1e-16)
+            xo.assert_allclose(d2[kk], d4[kk], rtol=1e-10, atol=1e-16)

@@ -3,17 +3,18 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-import pickle
 import json
 import pathlib
-import pytest
-import numpy as np
+import pickle
 
-import xtrack as xt
-import xpart as xp
-from xobjects.test_helpers import for_all_test_contexts
+import numpy as np
+import pytest
 
 import ducktrack as dtk
+import xobjects as xo
+import xpart as xp
+import xtrack as xt
+from xobjects.test_helpers import for_all_test_contexts
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
@@ -142,11 +143,11 @@ def test_full_rings(
     parttest = part_co.copy()
     for _ in range(10):
         line.track(parttest)
-        assert np.isclose(parttest._xobject.x[0], part_co._xobject.x[0],
+        xo.assert_allclose(parttest._xobject.x[0], part_co._xobject.x[0],
                           rtol=0, atol=1e-11)
-        assert np.isclose(parttest._xobject.y[0], part_co._xobject.y[0],
+        xo.assert_allclose(parttest._xobject.y[0], part_co._xobject.y[0],
                           rtol=0, atol=1e-11)
-        assert np.isclose(parttest._xobject.zeta[0], part_co._xobject.zeta[0],
+        xo.assert_allclose(parttest._xobject.zeta[0], part_co._xobject.zeta[0],
                           rtol=0, atol=5e-11)
 
 @for_all_test_contexts

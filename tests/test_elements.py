@@ -5,15 +5,13 @@
 
 import numpy as np
 import pytest
-import xobjects as xo
-import xpart as xp
 from cpymad.madx import Madx
-from scipy.stats import linregress
-from xobjects.test_helpers import for_all_test_contexts
 
 import ducktrack as dtk
+import xobjects as xo
+import xpart as xp
 import xtrack as xt
-from xtrack import MadLoader
+from xobjects.test_helpers import for_all_test_contexts
 from xtrack.beam_elements.elements import _angle_from_trig
 
 
@@ -25,9 +23,9 @@ def test_constructor(test_context):
         xt.Multipole(_context=test_context, knl=[2, 3]),
         xt.RFMultipole(_context=test_context, knl=[2]),
         xt.Cavity(_context=test_context, voltage=3.),
-        xt.SRotation(_context=test_context, angle=4),
-        xt.XRotation(_context=test_context, angle=1.8),
-        xt.YRotation(_context=test_context, angle=2.4),
+        xt.SRotation(_context=test_context, angle=0),
+        xt.XRotation(_context=test_context, angle=0),
+        xt.YRotation(_context=test_context, angle=0),
         xt.ZetaShift(_context=test_context, dzeta=3E-4),
         xt.XYShift(_context=test_context, dx=1),
         xt.DipoleEdge(_context=test_context, h=1),
@@ -108,7 +106,7 @@ def test__angle_from_trig(cos, sin, tan, angle):
         if tan is not None:
             assert tan == tan_res
 
-        assert np.isclose(angle, result, atol=1e-13)
+        xo.assert_allclose(angle, result, atol=1e-13)
 
 
 @for_all_test_contexts
@@ -158,7 +156,7 @@ def test_backtrack(test_context):
 
         # assert that nothing changed
         for k in 'x,px,y,py,zeta,delta'.split(','):
-            assert np.isclose(test_context.nparray_from_context_array(
+            xo.assert_allclose(test_context.nparray_from_context_array(
                       getattr(new_particles, k))[0],
                       getattr(dtk_particle, k), rtol=1e-14, atol=1e-14)
 
@@ -201,11 +199,11 @@ def test_drift(test_context):
     dtk_drift = dtk.elements.Drift(length=10.)
     dtk_drift.track(dtk_particle)
 
-    assert np.isclose(test_context.nparray_from_context_array(particles.x)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.x)[0],
                       dtk_particle.x, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.y)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.y)[0],
                       dtk_particle.y, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.zeta)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.zeta)[0],
                       dtk_particle.zeta,
                       rtol=1e-14, atol=1e-14)
 
@@ -233,11 +231,11 @@ def test_drift_exact(test_context):
     dtk_drift = dtk.elements.DriftExact(length=10.)
     dtk_drift.track(dtk_particle)
 
-    assert np.isclose(test_context.nparray_from_context_array(particles.x)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.x)[0],
                       dtk_particle.x, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.y)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.y)[0],
                       dtk_particle.y, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.zeta)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.zeta)[0],
                       dtk_particle.zeta,
                       rtol=1e-14, atol=1e-14)
 
@@ -259,12 +257,12 @@ def test_marker(test_context):
     marker = xt.Marker(_context=test_context)
     marker.track(particles)
 
-    assert np.isclose(test_context.nparray_from_context_array(particles.zeta)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.zeta)[0],
                       dtk_particle.zeta,
                       rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.x)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.x)[0],
                       dtk_particle.x, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.y)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.y)[0],
                       dtk_particle.y, rtol=1e-14, atol=1e-14)
 
 
@@ -299,9 +297,9 @@ def test_elens(test_context):
 
     dtk_elens.track(dtk_particle)
 
-    assert np.isclose(test_context.nparray_from_context_array(particles.px)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.px)[0],
                       dtk_particle.px, rtol=1e-2, atol=1e-2)
-    assert np.isclose(test_context.nparray_from_context_array(particles.py)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.py)[0],
                       dtk_particle.py, rtol=1e-9, atol=1e-9)
 
 
@@ -357,9 +355,9 @@ def test_elens_measured_radial(test_context):
 
     particle_test.move(_context=xo.ContextCpu())
 
-    assert np.isclose(particle_test.px[0], particle_ref.px[0],
+    xo.assert_allclose(particle_test.px[0], particle_ref.px[0],
                       rtol=1e-2, atol=1e-2)
-    assert np.isclose(particle_test.py[0], particle_ref.py[0],
+    xo.assert_allclose(particle_test.py[0], particle_ref.py[0],
                       rtol=1e-2, atol=1e-2)
 
 
@@ -395,9 +393,9 @@ def test_wire(test_context):
 
     dtk_wire.track(dtk_particle)
 
-    assert np.isclose(test_context.nparray_from_context_array(particles.px)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.px)[0],
                       dtk_particle.px, rtol=1e-9, atol=1e-9)
-    assert np.isclose(test_context.nparray_from_context_array(particles.py)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.py)[0],
                       dtk_particle.py, rtol=1e-9, atol=1e-9)
 
 
@@ -427,17 +425,17 @@ def test_linear_transfer_first_order_taylor_map(test_context):
     dtk_arc = dtk.elements.FirstOrderTaylorMap(m0 = m0, m1 = m1)
     dtk_arc.track(dtk_particle)
 
-    assert np.isclose(test_context.nparray_from_context_array(particles.x)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.x)[0],
                       dtk_particle.x, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.px)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.px)[0],
                       dtk_particle.px, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.y)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.y)[0],
                       dtk_particle.y, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.py)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.py)[0],
                       dtk_particle.py, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.zeta)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.zeta)[0],
                       dtk_particle.zeta, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.delta)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.delta)[0],
                       dtk_particle.delta, rtol=1e-14, atol=1e-14)
 
 
@@ -451,7 +449,7 @@ def test_cavity(test_context):
 
     part = part.copy(_context=xo.ContextCpu())
 
-    assert np.allclose(part.energy,
+    xo.assert_allclose(part.energy,
                             part0.energy+cav.voltage, atol=5e-7, rtol=0)
 
     Pc = np.sqrt(part.energy**2 - part.mass0**2)
@@ -461,11 +459,11 @@ def test_cavity(test_context):
     tau0 = part0.zeta/(part0.beta0)
     tau = part.zeta/(part.beta0)
 
-    assert np.allclose(part.delta, delta, atol=1e-14, rtol=0)
-    assert np.allclose(part.rpp, 1/(1+delta), atol=1e-14, rtol=0)
-    assert np.allclose(part.rvv, beta/part.beta0, atol=1e-14, rtol=0)
-    assert np.allclose(tau, tau0, atol=1e-14, rtol=0)
-    assert np.allclose((part.ptau - part0.ptau) * part0.p0c, 30, atol=1e-9, rtol=0)
+    xo.assert_allclose(part.delta, delta, atol=1e-14, rtol=0)
+    xo.assert_allclose(part.rpp, 1/(1+delta), atol=1e-14, rtol=0)
+    xo.assert_allclose(part.rvv, beta/part.beta0, atol=1e-14, rtol=0)
+    xo.assert_allclose(tau, tau0, atol=1e-14, rtol=0)
+    xo.assert_allclose((part.ptau - part0.ptau) * part0.p0c, 30, atol=1e-9, rtol=0)
 
 @for_all_test_contexts
 def test_exciter(test_context):
@@ -487,19 +485,19 @@ def test_exciter(test_context):
     expected_px = np.array([0.1, 0.2, 0.3])
     particles.move(_context=xo.context_default)
 
-    assert np.allclose(particles.px, expected_px)
+    xo.assert_allclose(particles.px, expected_px)
 
     particles.move(_context=test_context)
     line.track(particles, num_turns=1)
     expected_px += np.array([0.2, 0.3, 0.1])
     particles.move(_context=xo.context_default)
-    assert np.allclose(particles.px, expected_px)
+    xo.assert_allclose(particles.px, expected_px)
 
     particles.move(_context=test_context)
     line.track(particles, num_turns=1)
     expected_px += np.array([0.3, 0.1, 0])
     particles.move(_context=xo.context_default)
-    assert np.allclose(particles.px, expected_px)
+    xo.assert_allclose(particles.px, expected_px)
 
 
 test_source = r"""
@@ -639,17 +637,17 @@ def test_simplified_accelerator_segment(test_context):
 
     dtk_arc.track(dtk_particle)
 
-    assert np.isclose(test_context.nparray_from_context_array(particles.x)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.x)[0],
                       dtk_particle.x, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.px)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.px)[0],
                       dtk_particle.px, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.y)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.y)[0],
                       dtk_particle.y, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.py)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.py)[0],
                       dtk_particle.py, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.zeta)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.zeta)[0],
                       dtk_particle.zeta, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.delta)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.delta)[0],
                       dtk_particle.delta, rtol=1e-14, atol=1e-14)
 
 
@@ -728,17 +726,17 @@ def test_simplified_accelerator_segment_chroma_detuning(test_context):
         y_ref_0 = y_ref_0, py_ref_0 = py_ref_0, y_ref_1 = y_ref_1, py_ref_1 = py_ref_1)
     dtk_arc.track(dtk_particle)
 
-    assert np.isclose(test_context.nparray_from_context_array(particles.x)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.x)[0],
                       dtk_particle.x, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.px)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.px)[0],
                       dtk_particle.px, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.y)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.y)[0],
                       dtk_particle.y, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.py)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.py)[0],
                       dtk_particle.py, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.zeta)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.zeta)[0],
                       dtk_particle.zeta, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.delta)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.delta)[0],
                       dtk_particle.delta, rtol=1e-14, atol=1e-14)
 
 
@@ -771,8 +769,11 @@ def test_simplified_accelerator_segment_uncorrelated_damping(test_context):
     y_ref_1 = 4E-2
     py_ref_1 = 5E-4
     damping_rate_x = 5E-4
+    damping_rate_px = 2E-4
     damping_rate_y = 1E-3
-    damping_rate_s = 2E-3
+    damping_rate_py = 7E-3
+    damping_rate_zeta = 2E-3
+    damping_rate_pzeta = 1E-2
 
     dtk_particle = dtk.TestParticles(
             p0c=25.92e9,
@@ -798,37 +799,124 @@ def test_simplified_accelerator_segment_uncorrelated_damping(test_context):
         energy_increment=energy_increment,
         x_ref=(x_ref_0, x_ref_1), px_ref=(px_ref_0, px_ref_1),
         y_ref=(y_ref_0, y_ref_1), py_ref=(py_ref_0, py_ref_1),
-        damping_rate_x = damping_rate_x,
-        damping_rate_y = damping_rate_y,
-        damping_rate_s = damping_rate_s)
+        damping_rate_x = damping_rate_x,damping_rate_px = damping_rate_px,
+        damping_rate_y = damping_rate_y,damping_rate_py = damping_rate_py,
+        damping_rate_zeta = damping_rate_zeta,damping_rate_pzeta = damping_rate_pzeta)
 
     arc.track(particles)
 
     dtk_arc = dtk.elements.LinearTransferMatrix(alpha_x_0=alpha_x_0, beta_x_0=beta_x_0, disp_x_0=disp_x_0,
-    alpha_x_1=alpha_x_1, beta_x_1=beta_x_1, disp_x_1=disp_x_1,
-    alpha_y_0=alpha_y_0, beta_y_0=beta_y_0, disp_y_0=disp_y_0,
-    alpha_y_1=alpha_y_1, beta_y_1=beta_y_1, disp_y_1=disp_y_1,
-    Q_x=Q_x, Q_y=Q_y,
-    beta_s=beta_s, Q_s=Q_s,
-    chroma_x=0.0, chroma_y=0.0,
-    det_xx=0.0, det_xy=0.0, det_yy=0.0, det_yx=0.0,
-    energy_ref_increment=energy_ref_increment,energy_increment=energy_increment,
-    x_ref_0 = x_ref_0, px_ref_0 = px_ref_0, x_ref_1 = x_ref_1, px_ref_1 = px_ref_1,
-    y_ref_0 = y_ref_0, py_ref_0 = py_ref_0, y_ref_1 = y_ref_1, py_ref_1 = py_ref_1,
-    damping_rate_x = damping_rate_x,damping_rate_y = damping_rate_y,damping_rate_s = damping_rate_s)
+        alpha_x_1=alpha_x_1, beta_x_1=beta_x_1, disp_x_1=disp_x_1,
+        alpha_y_0=alpha_y_0, beta_y_0=beta_y_0, disp_y_0=disp_y_0,
+        alpha_y_1=alpha_y_1, beta_y_1=beta_y_1, disp_y_1=disp_y_1,
+        Q_x=Q_x, Q_y=Q_y,
+        beta_s=beta_s, Q_s=Q_s,
+        chroma_x=0.0, chroma_y=0.0,
+        det_xx=0.0, det_xy=0.0, det_yy=0.0, det_yx=0.0,
+        energy_ref_increment=energy_ref_increment,energy_increment=energy_increment,
+        x_ref_0 = x_ref_0, px_ref_0 = px_ref_0, x_ref_1 = x_ref_1, px_ref_1 = px_ref_1,
+        y_ref_0 = y_ref_0, py_ref_0 = py_ref_0, y_ref_1 = y_ref_1, py_ref_1 = py_ref_1,
+        damping_rate_x = damping_rate_x,damping_rate_px = damping_rate_px,
+        damping_rate_y = damping_rate_y,damping_rate_py = damping_rate_py,
+        damping_rate_zeta = damping_rate_zeta,damping_rate_pzeta = damping_rate_pzeta)
     dtk_arc.track(dtk_particle)
-
-    assert np.isclose(test_context.nparray_from_context_array(particles.x)[0],
+    
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.x)[0],
                       dtk_particle.x, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.px)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.px)[0],
                       dtk_particle.px, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.y)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.y)[0],
                       dtk_particle.y, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.py)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.py)[0],
                       dtk_particle.py, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.zeta)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.zeta)[0],
                       dtk_particle.zeta, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.delta)[0],
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.delta)[0],
+                      dtk_particle.delta, rtol=1e-14, atol=1e-14)
+
+@for_all_test_contexts
+def test_simplified_accelerator_segment_correlated_damping(test_context):
+    alpha_x_0 = -0.5
+    beta_x_0 = 100.0
+    disp_x_0 = 1.8
+    alpha_x_1 = 2.1
+    beta_x_1 = 2.0
+    disp_x_1 = 3.3
+    alpha_y_0 = -0.4
+    beta_y_0 = 8.0
+    disp_y_0 = -0.2
+    alpha_y_1 = 0.7
+    beta_y_1 = 0.3
+    disp_y_1 = -1.9
+    Q_x = 0.27
+    Q_y = 0.34
+    beta_s = 856.9
+    Q_s = 0.001
+    energy_ref_increment = 1.2E9
+    energy_increment = 4.8E8
+    x_ref_0 = -5E-3
+    px_ref_0 = 6E-4
+    x_ref_1 = 2E-2
+    px_ref_1 = -5E-5
+    y_ref_0 = -9E-2
+    py_ref_0 = 1E-4
+    y_ref_1 = 4E-2
+    py_ref_1 = 5E-4
+    damping_matrix = np.reshape(np.random.randn(36),(6,6))
+
+    dtk_particle = dtk.TestParticles(
+            p0c=25.92e9,
+            x=1e-3,
+            px=1e-5,
+            y=-2e-3,
+            py=-1.5e-5,
+            zeta=2.,
+            delta=2E-4)
+
+    particles = xp.Particles.from_dict(dtk_particle.to_dict(),
+                                       _context=test_context)
+
+
+    arc = xt.LineSegmentMap(_context=test_context,
+        alfx=(alpha_x_0, alpha_x_1), betx=(beta_x_0, beta_x_1),
+        dx=(disp_x_0, disp_x_1), dpx=(0.0, 0.0),
+        alfy=(alpha_y_0, alpha_y_1), bety=(beta_y_0, beta_y_1),
+        dy=(disp_y_0, disp_y_1), dpy=(0.0, 0.0),
+        qx=Q_x, qy=Q_y,
+        bets=beta_s, qs=Q_s,
+        energy_ref_increment=energy_ref_increment,
+        energy_increment=energy_increment,
+        x_ref=(x_ref_0, x_ref_1), px_ref=(px_ref_0, px_ref_1),
+        y_ref=(y_ref_0, y_ref_1), py_ref=(py_ref_0, py_ref_1),
+        damping_matrix = damping_matrix)
+
+    arc.track(particles)
+
+    dtk_arc = dtk.elements.LinearTransferMatrix(alpha_x_0=alpha_x_0, beta_x_0=beta_x_0, disp_x_0=disp_x_0,
+        alpha_x_1=alpha_x_1, beta_x_1=beta_x_1, disp_x_1=disp_x_1,
+        alpha_y_0=alpha_y_0, beta_y_0=beta_y_0, disp_y_0=disp_y_0,
+        alpha_y_1=alpha_y_1, beta_y_1=beta_y_1, disp_y_1=disp_y_1,
+        Q_x=Q_x, Q_y=Q_y,
+        beta_s=beta_s, Q_s=Q_s,
+        chroma_x=0.0, chroma_y=0.0,
+        det_xx=0.0, det_xy=0.0, det_yy=0.0, det_yx=0.0,
+        energy_ref_increment=energy_ref_increment,energy_increment=energy_increment,
+        x_ref_0 = x_ref_0, px_ref_0 = px_ref_0, x_ref_1 = x_ref_1, px_ref_1 = px_ref_1,
+        y_ref_0 = y_ref_0, py_ref_0 = py_ref_0, y_ref_1 = y_ref_1, py_ref_1 = py_ref_1,
+        damping_matrix = damping_matrix)
+    dtk_arc.track(dtk_particle)
+    
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.x)[0],
+                      dtk_particle.x, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.px)[0],
+                      dtk_particle.px, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.y)[0],
+                      dtk_particle.y, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.py)[0],
+                      dtk_particle.py, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.zeta)[0],
+                      dtk_particle.zeta, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(test_context.nparray_from_context_array(particles.delta)[0],
                       dtk_particle.delta, rtol=1e-14, atol=1e-14)
 
 @for_all_test_contexts
@@ -841,9 +929,17 @@ def test_simplified_accelerator_segment_uncorrelated_damping_equilibrium(test_co
     Q_y = 0.22
     beta_s = 856.9
     Q_s = 0.015
-    damping_rate_x = 5E-4
-    damping_rate_y = 1E-3
+    damping_rate_h = 5E-4
+    damping_rate_v = 1E-3
     damping_rate_s = 2E-3
+    
+    damping_rate_x = damping_rate_h/2
+    damping_rate_px = damping_rate_h/2
+    damping_rate_y = damping_rate_v/2
+    damping_rate_py = damping_rate_v/2
+    damping_rate_zeta = 0.0
+    damping_rate_pzeta = damping_rate_s
+    
     energy = 45.6
     equ_emit_x = 0.3E-9
     equ_emit_y = 1E-12
@@ -852,6 +948,13 @@ def test_simplified_accelerator_segment_uncorrelated_damping_equilibrium(test_co
     beta_s = equ_length/equ_delta
     equ_emit_s = equ_length*equ_delta
 
+    
+    gauss_noise_ampl_px = np.sqrt(equ_emit_x*damping_rate_h/beta_x_0)
+    gauss_noise_ampl_x = beta_x_0*gauss_noise_ampl_px
+    gauss_noise_ampl_py = np.sqrt(equ_emit_y*damping_rate_v/beta_y_0)
+    gauss_noise_ampl_y = beta_y_0*gauss_noise_ampl_py
+    gauss_noise_ampl_delta = np.sqrt(2*equ_emit_s*damping_rate_s/beta_s)
+    
     npart = int(1E3)
     particles = xp.Particles(_context=test_context,
                 x=np.random.randn(npart)*np.sqrt(equ_emit_x*beta_x_0),
@@ -863,7 +966,6 @@ def test_simplified_accelerator_segment_uncorrelated_damping_equilibrium(test_co
                 p0c=energy*1E9)
     particles._init_random_number_generator()
 
-
     arc = xt.LineSegmentMap(_context=test_context,
         alfx=(alpha_x_0, alpha_x_0), betx=(beta_x_0, beta_x_0),
         dx=(0.0, 0.0), dpx=(0.0, 0.0),
@@ -871,10 +973,12 @@ def test_simplified_accelerator_segment_uncorrelated_damping_equilibrium(test_co
         dy=(0.0, 0.0), dpy=(0.0, 0.0),
         qx=Q_x, qy=Q_y,
         bets=beta_s, qs=Q_s,
-        damping_rate_x = damping_rate_x,
-        damping_rate_y = damping_rate_y,
-        damping_rate_s = damping_rate_s,
-        equ_emit_x=equ_emit_x, equ_emit_y=equ_emit_y, equ_emit_s=equ_emit_s)
+        damping_rate_x=damping_rate_x,damping_rate_px=damping_rate_px,
+        damping_rate_y=damping_rate_y,damping_rate_py=damping_rate_py,
+        damping_rate_zeta=0.0,damping_rate_pzeta=damping_rate_pzeta,
+        gauss_noise_ampl_x = gauss_noise_ampl_x, gauss_noise_ampl_px = gauss_noise_ampl_px, 
+        gauss_noise_ampl_y = gauss_noise_ampl_y, gauss_noise_ampl_py = gauss_noise_ampl_py,
+        gauss_noise_ampl_zeta = 0.0, gauss_noise_ampl_pzeta = gauss_noise_ampl_delta)
 
     gamma_x = (1.0+alpha_x_0**2)/beta_x_0
     gamma_y = (1.0+alpha_y_0**2)/beta_y_0
@@ -898,14 +1002,46 @@ def test_simplified_accelerator_segment_uncorrelated_damping_equilibrium(test_co
     equ_emit_y_0 = np.average(emit_y)
     equ_emit_s_0 = np.average(emit_s)
 
-    assert np.isclose(equ_emit_x,equ_emit_x_0, rtol=1e-1, atol=1e-10)
-    assert np.isclose(equ_emit_y,equ_emit_y_0, rtol=1e-1, atol=1e-10)
-    assert np.isclose(equ_emit_s,equ_emit_s_0, rtol=1e-1, atol=1e-10)
+    xo.assert_allclose(equ_emit_x,equ_emit_x_0, rtol=1e-1, atol=1e-10)
+    xo.assert_allclose(equ_emit_y,equ_emit_y_0, rtol=1e-1, atol=1e-10)
+    xo.assert_allclose(equ_emit_s,equ_emit_s_0, rtol=1e-1, atol=1e-10)
+
+
+@for_all_test_contexts
+def test_simplified_accelerator_segment_correlated_noise(test_context):
+    npart = int(1E6)
+    scale = 1E-6
+    random_matrix = np.reshape(np.random.rand(36),(6,6))
+    data = np.transpose(np.random.multivariate_normal(np.zeros(6),random_matrix,npart))
+    covariance_matrix = np.cov(data)
+
+    particles = xp.Particles(_context=test_context,
+                x=np.zeros(npart),
+                p0c=45E9)
+    particles._init_random_number_generator()
+
+    arc = xt.LineSegmentMap(_context=test_context,
+        betx=1.0, bety=1.0,bets=1.0,
+        qx=0.0, qy=0.0, qs=0.0,
+        gauss_noise_matrix=covariance_matrix*scale
+        )
+
+    arc.track(particles)
+    data = np.zeros((6,npart))
+    particles.move(_context=xo.context_default)
+    data[0,:] = particles.x
+    data[1,:] = particles.px
+    data[2,:] = particles.y
+    data[3,:] = particles.py
+    data[4,:] = particles.zeta
+    data[5,:] = particles.pzeta
+    cov = np.cov(data)/scale
+    xo.assert_allclose(cov,covariance_matrix,atol=1E-4,rtol=0.1)
 
 
 @for_all_test_contexts
 def test_nonlinearlens(test_context):
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     dr_len = 1e-11
     mad.input(f"""
@@ -959,13 +1095,13 @@ def test_nonlinearlens(test_context):
         px.append(mad_results.px)
         py.append(mad_results.py)
 
-        assert np.allclose(part.x[ii], mad_results.x, atol=1e-14, rtol=0), 'x'
-        assert np.allclose(part.px[ii], mad_results.px, atol=1e-14, rtol=0), 'px'
-        assert np.allclose(part.y[ii], mad_results.y, atol=1e-14, rtol=0), 'y'
-        assert np.allclose(part.py[ii], mad_results.py, atol=1e-14, rtol=0), 'py'
-        assert np.allclose(xt_tau[ii], mad_results.t, atol=1e-14, rtol=0), 't'
-        assert np.allclose(part.ptau[ii], mad_results.pt, atol=1e-14, rtol=0), 'pt'
-        assert np.allclose(part.s[ii], mad_results.s, atol=1e-14, rtol=0), 's'
+        xo.assert_allclose(part.x[ii], mad_results.x, atol=1e-14, rtol=0), 'x'
+        xo.assert_allclose(part.px[ii], mad_results.px, atol=1e-14, rtol=0), 'px'
+        xo.assert_allclose(part.y[ii], mad_results.y, atol=1e-14, rtol=0), 'y'
+        xo.assert_allclose(part.py[ii], mad_results.py, atol=1e-14, rtol=0), 'py'
+        xo.assert_allclose(xt_tau[ii], mad_results.t, atol=1e-14, rtol=0), 't'
+        xo.assert_allclose(part.ptau[ii], mad_results.pt, atol=1e-14, rtol=0), 'pt'
+        xo.assert_allclose(part.s[ii], mad_results.s, atol=1e-14, rtol=0), 's'
 
 @for_all_test_contexts
 def test_multipole_tilt_90_deg(test_context):
@@ -980,19 +1116,19 @@ def test_multipole_tilt_90_deg(test_context):
     ln.track(p)
 
     # Check dispersion
-    my = xt.Multipole(ksl=[0.1, 0], hyl=0.1, length=2, _context=test_context)
+    my = xt.Multipole(knl=[0.1, 0], hxl=0.1, rot_s_rad=np.deg2rad(-90), length=2, _context=test_context)
     py = xt.Particles(x = 0, y=0, delta=1., p0c=1e12, _context=test_context)
     my.track(py)
 
     p.move(_context=xo.context_default)
     py.move(_context=xo.context_default)
 
-    assert np.allclose(p.x, py.x, rtol=0, atol=1e-14)
-    assert np.allclose(p.y, py.y, rtol=0, atol=1e-14)
-    assert np.allclose(p.px, py.px, rtol=0, atol=1e-14)
-    assert np.allclose(p.py, py.py, rtol=0, atol=1e-14)
-    assert np.allclose(p.zeta, py.zeta, rtol=0, atol=1e-14)
-    assert np.allclose(p.ptau, py.ptau, rtol=0, atol=1e-14)
+    xo.assert_allclose(p.x, py.x, rtol=0, atol=1e-14)
+    xo.assert_allclose(p.y, py.y, rtol=0, atol=1e-14)
+    xo.assert_allclose(p.px, py.px, rtol=0, atol=1e-14)
+    xo.assert_allclose(p.py, py.py, rtol=0, atol=1e-14)
+    xo.assert_allclose(p.zeta, py.zeta, rtol=0, atol=1e-14)
+    xo.assert_allclose(p.ptau, py.ptau, rtol=0, atol=1e-14)
 
     # Check weak focusing
     pf = xt.Particles(x=0, y=0.3, delta=0., p0c=1e12, _context=test_context)
@@ -1004,9 +1140,9 @@ def test_multipole_tilt_90_deg(test_context):
     pf.move(_context=xo.context_default)
     pfy.move(_context=xo.context_default)
 
-    assert np.allclose(pf.x, pfy.x, rtol=0, atol=1e-14)
-    assert np.allclose(pf.y, pfy.y, rtol=0, atol=1e-14)
-    assert np.allclose(pf.px, pfy.px, rtol=0, atol=1e-14)
-    assert np.allclose(pf.py, pfy.py, rtol=0, atol=1e-14)
-    assert np.allclose(pf.zeta, pfy.zeta, rtol=0, atol=1e-14)
-    assert np.allclose(pf.ptau, pfy.ptau, rtol=0, atol=1e-14)
+    xo.assert_allclose(pf.x, pfy.x, rtol=0, atol=1e-14)
+    xo.assert_allclose(pf.y, pfy.y, rtol=0, atol=1e-14)
+    xo.assert_allclose(pf.px, pfy.px, rtol=0, atol=1e-14)
+    xo.assert_allclose(pf.py, pfy.py, rtol=0, atol=1e-14)
+    xo.assert_allclose(pf.zeta, pfy.zeta, rtol=0, atol=1e-14)
+    xo.assert_allclose(pf.ptau, pfy.ptau, rtol=0, atol=1e-14)

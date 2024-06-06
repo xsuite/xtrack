@@ -12,51 +12,41 @@ void Octupole_track_local_particle(
         LocalParticle* part0
 ) {
     double length = OctupoleData_get_length(el);
+    double backtrack_sign = 1;
 
     #ifdef XSUITE_BACKTRACK
         length = -length;
+        backtrack_sign = -1;
     #endif
 
     double const k3 = OctupoleData_get_k3(el);
     double const k3s = OctupoleData_get_k3s(el);
 
-    double const knl3 = k3 * length;
-    double const ksl3 = k3s * length;
+    double const knl_oct[4] = {0., 0., 0., backtrack_sign * k3 * length};
+    double const ksl_oct[4] = {0., 0., 0., backtrack_sign * k3s * length};
+
+    const int64_t order = OctupoleData_get_order(el);
+    const double inv_factorial_order = OctupoleData_get_inv_factorial_order(el);
+    /*gpuglmem*/ const double *knl = OctupoleData_getp1_knl(el, 0);
+    /*gpuglmem*/ const double *ksl = OctupoleData_getp1_ksl(el, 0);
 
     //start_per_particle_block (part0->part)
 
         // Drift
         Drift_single_particle(part, length / 2.);
 
-        int64_t index = 3;
-        double const inv_factorial = 1/6.; // 1 / factorial(3)
-        double dpx = knl3 * inv_factorial;
-        double dpy = ksl3 * inv_factorial;
-
-        double const x   = LocalParticle_get_x(part);
-        double const y   = LocalParticle_get_y(part);
-        double const chi = LocalParticle_get_chi(part);
-
-        while( index > 0 )
-        {
-            double const zre = dpx * x - dpy * y;
-            double const zim = dpx * y + dpy * x;
-
-            index -= 1;
-
-            dpx = zre;
-            dpy = zim;
-        }
-
-        dpx = -chi * dpx; // rad
-        dpy =  chi * dpy; // rad
-
-        LocalParticle_add_to_px(part, dpx);
-        LocalParticle_add_to_py(part, dpy);
+        Multipole_track_single_particle(part,
+            0., length, 1, // weight 1
+            knl, ksl, order, inv_factorial_order,
+            knl_oct, ksl_oct, 3, 1./6.,
+            backtrack_sign,
+            0, 0,
+            NULL, NULL, NULL,
+            NULL, NULL, NULL,
+            NULL, NULL);
 
         // Drift
         Drift_single_particle(part, length / 2.);
-
 
     //end_per_particle_block
 

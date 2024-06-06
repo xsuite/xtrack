@@ -52,10 +52,18 @@ def mad_assignment(lhs, rhs):
 _ge = xt.elements._get_expr
 _is_ref = xd.refs.is_ref
 
-
-
 def _get_eref(line, name):
     return line.element_refs[name]
+
+def _handle_transforms(tokens, el):
+    if el.shift_x._expr is not None or el.shift_x._value:
+        tokens.append(mad_assignment('dx', _ge(el.shift_x)))
+    if el.shift_y._expr is not None or el.shift_y._value:
+        tokens.append(mad_assignment('dy', _ge(el.shift_y)))
+    if el.rot_s_rad._expr is not None or el.rot_s_rad._value:
+        tokens.append(mad_assignment('tilt', _ge(el.rot_s_rad)))
+    if el.shift_s._expr is not None or el.shift_s._value:
+        raise NotImplementedError("shift_s is not yet supported in mad writer")
 
 def cavity_to_madx_str(name, line):
     cav = _get_eref(line, name)
@@ -64,6 +72,7 @@ def cavity_to_madx_str(name, line):
     tokens.append(mad_assignment('freq', _ge(cav.frequency) * 1e-6))
     tokens.append(mad_assignment('volt', _ge(cav.voltage) * 1e-6))
     tokens.append(mad_assignment('lag', _ge(cav.lag) / 360.))
+    _handle_transforms(tokens, cav)
 
     return ', '.join(tokens)
 
@@ -89,18 +98,21 @@ def multipole_to_madx_str(name, line):
     mult = _get_eref(line, name)
 
     if (len(mult.knl._value) == 1 and len(mult.ksl._value) == 1
-        and mult.hxl._value == 0 and mult.hyl._value == 0):
+        and mult.hxl._value == 0):
         # It is a dipole corrector
         tokens = []
         tokens.append('kicker')
         tokens.append(mad_assignment('hkick', -1 * _ge(mult.knl[0])))
         tokens.append(mad_assignment('vkick', _ge(mult.ksl[0])))
         tokens.append(mad_assignment('lrad', _ge(mult.length)))
+
+        _handle_transforms(tokens, mult)
+
         return ', '.join(tokens)
 
     # correctors are not handled correctly!!!!
     # https://github.com/MethodicalAcceleratorDesign/MAD-X/issues/911
-    assert mult.hyl._value == 0
+    # assert mult.hyl._value == 0
 
     tokens = []
     tokens.append('multipole')
@@ -116,6 +128,8 @@ def multipole_to_madx_str(name, line):
     tokens.append('ksl:={' + ','.join(ksl_mad) + '}')
     tokens.append(mad_assignment('lrad', _ge(mult.length)))
     tokens.append(mad_assignment('angle', _ge(mult.hxl)))
+
+    _handle_transforms(tokens, mult)
 
     return ', '.join(tokens)
 
@@ -149,34 +163,30 @@ def rfmultipole_to_madx_str(name, line):
     tokens.append(mad_assignment('volt', _ge(rfmult.voltage) * 1e-6))
     tokens.append(mad_assignment('lag', _ge(rfmult.lag) / 360.))
 
+    _handle_transforms(tokens, rfmult)
+
     return ', '.join(tokens)
 
 def dipoleedge_to_madx_str(name, line):
-    if line.get_compound_for_element(name) is None:
-        raise NotImplementedError("isolated dipole edges are not yet supported")
-    return None
+    raise NotImplementedError("isolated dipole edges are not yet supported")
 
 def bend_to_madx_str(name, line):
     bend = _get_eref(line, name)
-
-    if isinstance(line.get_compound_by_name(line.get_compound_for_element(name)),
-                                            xt.slicing.SlicedCompound):
-        raise NotImplementedError("thick slicing of bends is not yet supported")
 
     tokens = []
     tokens.append('sbend')
     tokens.append(mad_assignment('l', _ge(bend.length)))
     tokens.append(mad_assignment('angle', _ge(bend.h) * _ge(bend.length)))
     tokens.append(mad_assignment('k0', _ge(bend.k0)))
+    tokens.append(mad_assignment('e1', _ge(bend.edge_entry_angle)))
+    tokens.append(mad_assignment('e2', _ge(bend.edge_exit_angle)))
+    tokens.append(mad_assignment('fint', _ge(bend.edge_entry_fint)))
+    tokens.append(mad_assignment('fintx', _ge(bend.edge_exit_fint)))
+    tokens.append(mad_assignment('hgap', _ge(bend.edge_entry_hgap)))
     # k1, k2, knl, ksl need to be implemented
-    if name + '_den' in line.element_dict.keys():
-        edg_entry = line[name + '_den']
-        tokens.append(mad_assignment('e1', _ge(edg_entry.e1)))
-        tokens.append(mad_assignment('fint', _ge(edg_entry.fint)))
-        tokens.append(mad_assignment('hgap', _ge(edg_entry.hgap)))
-    if name + '_dex' in line.element_dict.keys():
-        edg_exit = line[name + '_dex']
-        tokens.append(mad_assignment('e2', _ge(edg_exit.e1)))
+
+    _handle_transforms(tokens, bend)
+
     return ', '.join(tokens)
 
 def sextupole_to_madx_str(name, line):
@@ -186,6 +196,9 @@ def sextupole_to_madx_str(name, line):
     tokens.append(mad_assignment('l', _ge(sext.length)))
     tokens.append(mad_assignment('k2', _ge(sext.k2)))
     tokens.append(mad_assignment('k2s', _ge(sext.k2s)))
+
+    _handle_transforms(tokens, sext)
+
     return ', '.join(tokens)
 
 def octupole_to_madx_str(name, line):
@@ -195,6 +208,9 @@ def octupole_to_madx_str(name, line):
     tokens.append(mad_assignment('l', _ge(octup.length)))
     tokens.append(mad_assignment('k3', _ge(octup.k3)))
     tokens.append(mad_assignment('k3s', _ge(octup.k3s)))
+
+    _handle_transforms(tokens, octup)
+
     return ', '.join(tokens)
 
 def quadrupole_to_madx_str(name, line):
@@ -204,6 +220,9 @@ def quadrupole_to_madx_str(name, line):
     tokens.append(mad_assignment('l', _ge(quad.length)))
     tokens.append(mad_assignment('k1', _ge(quad.k1)))
     tokens.append(mad_assignment('k1s', _ge(quad.k1s)))
+
+    _handle_transforms(tokens, quad)
+
     return ', '.join(tokens)
 
 def solenoid_to_madx_str(name, line):
@@ -213,11 +232,13 @@ def solenoid_to_madx_str(name, line):
     tokens.append(mad_assignment('l', _ge(sol.length)))
     tokens.append(mad_assignment('ks', _ge(sol.ks)))
     tokens.append(mad_assignment('ksi', _ge(sol.ksi)))
+
+    _handle_transforms(tokens, sol)
+
     return ', '.join(tokens)
 
 def srotation_to_madx_str(name, line):
-    if line.get_compound_for_element(name) is None:
-        raise NotImplementedError("isolated rotations are not yet supported")
+    raise NotImplementedError("isolated rotations are not yet supported")
     return 'marker'
     # srot = _get_eref(line, name)
     # tokens = []

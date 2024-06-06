@@ -10,11 +10,10 @@ import numpy as np
 import pytest
 from numpy.testing import assert_equal, assert_allclose
 
-import xtrack as xt
-import xpart as xp
 import xobjects as xo
+import xpart as xp
+import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
-
 
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
@@ -317,7 +316,7 @@ def test_collective_ebe_monitor(test_context, line0, particles0):
     )
     recoded_track_x_collective = line_collective.record_last_track.x
 
-    assert np.allclose(recoded_track_x, recoded_track_x_collective)
+    xo.assert_allclose(recoded_track_x, recoded_track_x_collective)
 
     # Element by element mode
     monitor_mode = 'ONE_TURN_EBE'
@@ -344,7 +343,7 @@ def test_collective_ebe_monitor(test_context, line0, particles0):
         turn_by_turn_monitor=monitor_mode,
     )
     recoded_track_x_collective = line_collective.record_last_track.x
-    assert np.allclose(recoded_track_x, recoded_track_x_collective)
+    xo.assert_allclose(recoded_track_x, recoded_track_x_collective)
 
 
 @for_all_test_contexts

@@ -1,8 +1,10 @@
-import numpy as np
 import pathlib
-from cpymad.madx import Madx
-import xtrack as xt
 
+import numpy as np
+from cpymad.madx import Madx
+
+import xobjects as xo
+import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
 
 
@@ -12,7 +14,7 @@ def test_ps_multiturn_twiss(test_context):
     test_data_folder = pathlib.Path(
             __file__).parent.joinpath('../test_data').absolute()
 
-    mad = Madx()
+    mad = Madx(stdout=False)
     mad.input("""
     beam, particle=proton, pc = 14.0;
     BRHO      = BEAM->PC * 3.3356;
@@ -63,15 +65,15 @@ def test_ps_multiturn_twiss(test_context):
 
     circum = line.get_length()
 
-    assert np.isclose(tw_mt.s[-1], 4 * circum, atol=1e-10, rtol=0)
-    assert np.isclose(tw_mt['s', '_turn_0'], 0, atol=1e-10, rtol=0)
-    assert np.isclose(tw_mt['s', '_turn_1'], circum, atol=1e-10, rtol=0)
-    assert np.isclose(tw_mt['s', '_turn_2'], 2 * circum, atol=1e-10, rtol=0)
-    assert np.isclose(tw_mt['s', '_turn_3'], 3 * circum, atol=1e-10, rtol=0)
-    assert np.isclose(tw_mt['s', '_end_point'], 4 * circum, atol=1e-10, rtol=0)
+    xo.assert_allclose(tw_mt.s[-1], 4 * circum, atol=1e-10, rtol=0)
+    xo.assert_allclose(tw_mt['s', '_turn_0'], 0, atol=1e-10, rtol=0)
+    xo.assert_allclose(tw_mt['s', '_turn_1'], circum, atol=1e-10, rtol=0)
+    xo.assert_allclose(tw_mt['s', '_turn_2'], 2 * circum, atol=1e-10, rtol=0)
+    xo.assert_allclose(tw_mt['s', '_turn_3'], 3 * circum, atol=1e-10, rtol=0)
+    xo.assert_allclose(tw_mt['s', '_end_point'], 4 * circum, atol=1e-10, rtol=0)
 
-    assert np.isclose(tw_mt.mux[-1], 4 * tw.mux[-1], rtol=0, atol=0.05)
-    assert np.isclose(tw_mt.muy[-1], 4 * tw.muy[-1], rtol=0, atol=0.05)
+    xo.assert_allclose(tw_mt.mux[-1], 4 * tw.mux[-1], rtol=0, atol=0.05)
+    xo.assert_allclose(tw_mt.muy[-1], 4 * tw.muy[-1], rtol=0, atol=0.05)
 
     assert 'qx' in tw
     assert 'qy' in tw
@@ -83,11 +85,11 @@ def test_ps_multiturn_twiss(test_context):
     assert tw_mt['x', '_turn_2'] < -2e-2
     assert np.abs(tw_mt['x', '_turn_3']) < 1e-2
 
-    assert np.isclose(tw_mt.x[-1], tw_mt.x[0], rtol=0, atol=1e-8)
-    assert np.isclose(tw_mt.y[-1], tw_mt.y[0], rtol=0, atol=1e-8)
-    assert np.isclose(tw_mt.px[-1], tw_mt.px[0], rtol=0, atol=1e-10)
-    assert np.isclose(tw_mt.py[-1], tw_mt.py[0], rtol=0, atol=1e-10)
-    assert np.isclose(tw_mt.betx[-1], tw_mt.betx[0], rtol=0, atol=1e-5)
-    assert np.isclose(tw_mt.bety[-1], tw_mt.bety[0], rtol=0, atol=1e-5)
-    assert np.isclose(tw_mt.alfx[-1], tw_mt.alfx[0], rtol=0, atol=1e-5)
-    assert np.isclose(tw_mt.alfy[-1], tw_mt.alfy[0], rtol=0, atol=1e-5)
+    xo.assert_allclose(tw_mt.x[-1], tw_mt.x[0], rtol=0, atol=1e-8)
+    xo.assert_allclose(tw_mt.y[-1], tw_mt.y[0], rtol=0, atol=1e-8)
+    xo.assert_allclose(tw_mt.px[-1], tw_mt.px[0], rtol=0, atol=1e-10)
+    xo.assert_allclose(tw_mt.py[-1], tw_mt.py[0], rtol=0, atol=1e-10)
+    xo.assert_allclose(tw_mt.betx[-1], tw_mt.betx[0], rtol=0, atol=1e-5)
+    xo.assert_allclose(tw_mt.bety[-1], tw_mt.bety[0], rtol=0, atol=1e-5)
+    xo.assert_allclose(tw_mt.alfx[-1], tw_mt.alfx[0], rtol=0, atol=1e-5)
+    xo.assert_allclose(tw_mt.alfy[-1], tw_mt.alfy[0], rtol=0, atol=1e-5)

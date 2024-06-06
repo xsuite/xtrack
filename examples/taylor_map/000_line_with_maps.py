@@ -23,7 +23,7 @@ line_maps.build_tracker()
 line_maps.get_table().show()
 # prints:
 #
-# name              s element_type         isthick compound_name
+# name              s element_type         isthick
 # ip7               0 Marker                 False
 # map_0             0 SecondOrderTaylorMap    True
 # ip8         3321.22 Marker                 False

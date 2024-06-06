@@ -5,6 +5,7 @@
 
 import numpy as np
 
+import xobjects as xo
 import xtrack as xt
 import xpart as xp
 from xobjects.test_helpers import for_all_test_contexts
@@ -79,13 +80,13 @@ def test_aperture_turn_ele_and_monitor(test_context):
     at_element_expected = np.int_(np.clip(at_element_expected, 0,
                                           n_slices-1))
 
-    assert np.allclose(part_s + at_turn_expected*line.get_length(), s_expected,
+    xo.assert_allclose(part_s + at_turn_expected*line.get_length(), s_expected,
                        atol=1e-3)
-    assert np.allclose(at_turn_expected, part_at_turn)
+    xo.assert_allclose(at_turn_expected, part_at_turn)
 
     # I need to add a tolerance of one element as a mismatch is visible
     # on a few slices due to rounding
-    assert np.allclose(at_element_expected, part_at_element, atol=1.1)
+    xo.assert_allclose(at_element_expected, part_at_element, atol=1.1)
 
     # Test monitor
     mon = line.record_last_track
@@ -192,13 +193,13 @@ def test_custom_monitor(test_context):
     at_element_expected = np.int_(np.clip(at_element_expected, 0,
                                           n_slices-1))
 
-    assert np.allclose(part_s + at_turn_expected * line.get_length(),
+    xo.assert_allclose(part_s + at_turn_expected * line.get_length(),
                        s_expected, atol=1e-3)
-    assert np.allclose(at_turn_expected, part_at_turn)
+    xo.assert_allclose(at_turn_expected, part_at_turn)
 
     # I need to add a tolerance of one element as a mismatch is visible
     # on a few slices due to rounding
-    assert np.allclose(at_element_expected, part_at_element, atol=1.1)
+    xo.assert_allclose(at_element_expected, part_at_element, atol=1.1)
 
     # Test monitor
     mon = monitor

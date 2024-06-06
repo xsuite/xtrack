@@ -93,6 +93,7 @@ p0_J = particles_ave.p0c[0] / clight * qe
 B_T = p0_J / qe / rho_0
 mass_0_kg = particles_ave.mass0 * qe / clight**2
 E_crit_J = 3 * qe * hbar * gamma**2 * B_T / (2 * mass_0_kg)
+E_crit_eV = E_crit_J / qe
 
 E_ave_J = 8 * np.sqrt(3) / 45 * E_crit_J
 E_ave_eV = E_ave_J / qe
@@ -102,3 +103,27 @@ E_sq_ave_eV = E_sq_ave_J / qe**2
 
 assert np.isclose(np.mean(record.photon_energy[:n_recorded]), E_ave_eV, rtol=1e-2, atol=0)
 assert np.isclose(np.std(record.photon_energy[:n_recorded]), np.sqrt(E_sq_ave_eV - E_ave_eV**2), rtol=1e-3, atol=0)
+
+hist, bin_edges = np.histogram(np.log10(record.photon_energy[:n_recorded]), bins=100)
+bin_centers = (bin_edges[:-1] + bin_edges[1:])/2
+
+dE = np.diff(10**bin_edges)
+E_center = 10**bin_centers
+
+dn_dE = hist / dE
+
+dn_dE_at_E_crit = np.interp(E_crit_eV, E_center, dn_dE)
+
+dn_dE_norm = dn_dE / dn_dE_at_E_crit
+
+import matplotlib.pyplot as plt
+plt.close('all')
+plt.figure(1)
+plt.loglog(E_center/E_crit_eV, dn_dE_norm)
+
+plt.xlabel(r'$E/E{_\text{crit}}$')
+plt.ylabel('Normalized dN/dE')
+plt.xlim(1e-3, 1e1)
+plt.ylim(1e-3, 1e2)
+plt.grid(True)
+plt.show()

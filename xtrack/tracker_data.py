@@ -13,7 +13,7 @@ from .general import _print
 
 from xobjects.struct import Struct, MetaStruct
 
-from .line import Line, mk_class_namespace
+from .line import Line, mk_class_namespace, _has_backtrack
 
 
 class SerializationHeader(xo.Struct):
@@ -36,14 +36,13 @@ class TrackerData:
             element_s_locations,
             line_length,
             cache=None,
-            compound_mask=None,
-            element_compound_names=None,
             kernel_element_classes=None,
             extra_element_classes=(),
             allow_move=False,
             _context=None,
             _buffer=None,
             _offset=None,
+            _no_resolve_parents=False,
     ):
         """
         Create an immutable line suitable for serialisation.
@@ -58,9 +57,6 @@ class TrackerData:
             List of element s locations.
         line_length : float
             Length of the line.
-        compound_mask : list, optional
-            List of booleans indicating whether the element is an entry of a
-            compound element, or a standalone element.
         kernel_element_classes : list, optional
             Explicit list of classes of elements of the line; if `None`,
             will be inferred from list.
@@ -71,10 +67,18 @@ class TrackerData:
         if _offset is not None:
             raise ValueError('`_offset` is not supported yet')
 
-        self._element_dict = element_dict
+        self._element_dict = element_dict.copy()
+
+        # Handle replicas
+        for nn in list(self._element_dict.keys()):
+            ee = self._element_dict[nn]
+            if isinstance(ee, xt.Replica):
+                self._element_dict[nn] = ee.resolve(self._element_dict)
+
         self._element_names = tuple(element_names)
-        self._elements = tuple([element_dict[ee] for ee in element_names])
-        self._is_backtrackable = np.all([ee.has_backtrack for ee in self._elements])
+        self._elements = tuple([self._element_dict[ee] for ee in element_names])
+        self._is_backtrackable = np.all([_has_backtrack(ee, element_dict)
+                                         for ee in self._elements])
         self.extra_element_classes = extra_element_classes
 
         # If no buffer given, try to guess it from elements, if there is no
@@ -102,11 +106,6 @@ class TrackerData:
             cache = {}
         self.cache = cache
 
-        if compound_mask is None:
-            compound_mask = np.zeros(len(element_names), dtype=np.bool)
-        self.compound_mask = np.array(compound_mask)
-        self.element_compound_names = np.array(element_compound_names)
-
         if not kernel_element_classes:
             kernel_element_classes = (
                 line_element_classes | set(extra_element_classes))
@@ -120,6 +119,19 @@ class TrackerData:
         ElementRefDataClass = xt.tracker._element_ref_data_class_from_element_classes(
                                             kernel_element_classes)
         self._element_ref_data = self.build_ref_data(_buffer, ElementRefDataClass)
+
+        # Resolve slice parents
+        for nn in element_names:
+            if _no_resolve_parents:
+                break
+            if hasattr(self._element_dict[nn], '_parent'):
+                this_parent = self._element_dict[
+                    self._element_dict[nn].parent_name]
+                this_parent._movable = True # Force movable
+                if this_parent._buffer is not self._element_dict[nn]._buffer:
+                    this_parent.move(_buffer=self._element_dict[nn]._buffer)
+                self._element_dict[nn]._parent = this_parent
+                assert self._element_dict[nn]._parent._offset == self._element_dict[nn]._xobject._parent._offset
 
     def common_buffer_for_elements(self):
         """If all `self.elements` elements are in the same buffer,

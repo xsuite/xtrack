@@ -1,11 +1,9 @@
 import pathlib
 
-import numpy as np
-
-import xtrack as xt
-import xpart as xp
 import xdeps as xd
-
+import xobjects as xo
+import xpart as xp
+import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
 
 test_data_folder = pathlib.Path(
@@ -55,9 +53,9 @@ def test_var_cache(test_context):
     assert collider.vars['on_x1']._value == 11
     assert collider.vars['on_x5']._value == 55
 
-    assert np.isclose(
+    xo.assert_allclose(
         collider['lhcb1'].twiss()['px', 'ip1'], 11e-6, atol=1e-9, rtol=0)
-    assert np.isclose(
+    xo.assert_allclose(
         collider['lhcb1'].twiss()['py', 'ip5'], 55e-6, atol=1e-9, rtol=0)
 
     collider.vars['on_x1'] = 234
@@ -66,14 +64,14 @@ def test_var_cache(test_context):
     assert collider.vars['on_x1']._value == 234
     assert collider.vars['on_x5']._value == 123
 
-    assert np.isclose(
+    xo.assert_allclose(
         collider['lhcb1'].twiss()['px', 'ip1'], 234e-6, atol=1e-9, rtol=0)
-    assert np.isclose(
+    xo.assert_allclose(
         collider['lhcb1'].twiss()['py', 'ip5'], 123e-6, atol=1e-9, rtol=0)
 
     collider.vars['on_x2'] = 234
 
-    assert np.isclose(
+    xo.assert_allclose(
         collider['lhcb1'].twiss()['py', 'ip2'], 234e-6, atol=1e-9, rtol=0)
 
     collider.vars.cache_active = False
@@ -124,9 +122,9 @@ def test_var_cache(test_context):
     assert line.vars['on_x1']._value == 11
     assert line.vars['on_x5']._value == 55
 
-    assert np.isclose(
+    xo.assert_allclose(
         line.twiss()['px', 'ip1'], 11e-6, atol=1e-9, rtol=0)
-    assert np.isclose(
+    xo.assert_allclose(
         line.twiss()['py', 'ip5'], 55e-6, atol=1e-9, rtol=0)
 
     line.vars['on_x1'] = 234
@@ -135,14 +133,14 @@ def test_var_cache(test_context):
     assert line.vars['on_x1']._value == 234
     assert line.vars['on_x5']._value == 123
 
-    assert np.isclose(
+    xo.assert_allclose(
         line.twiss()['px', 'ip1'], 234e-6, atol=1e-9, rtol=0)
-    assert np.isclose(
+    xo.assert_allclose(
         line.twiss()['py', 'ip5'], 123e-6, atol=1e-9, rtol=0)
 
     line.vars['on_x2'] = 234
 
-    assert np.isclose(
+    xo.assert_allclose(
         line.twiss()['py', 'ip2'], 234e-6, atol=1e-9, rtol=0)
 
     line.vars.cache_active = False
@@ -186,9 +184,9 @@ def test_var_cache(test_context):
     assert line.vars['on_x1']._value == 11
     assert line.vars['on_x5']._value == 55
 
-    assert np.isclose(
+    xo.assert_allclose(
         line.twiss()['px', 'ip1'], 11e-6, atol=1e-9, rtol=0)
-    assert np.isclose(
+    xo.assert_allclose(
         line.twiss()['py', 'ip5'], 55e-6, atol=1e-9, rtol=0)
 
     line.vars['on_x1'] = 234
@@ -197,14 +195,14 @@ def test_var_cache(test_context):
     assert line.vars['on_x1']._value == 234
     assert line.vars['on_x5']._value == 123
 
-    assert np.isclose(
+    xo.assert_allclose(
         line.twiss()['px', 'ip1'], 234e-6, atol=1e-9, rtol=0)
-    assert np.isclose(
+    xo.assert_allclose(
         line.twiss()['py', 'ip5'], 123e-6, atol=1e-9, rtol=0)
 
     line.vars['on_x2'] = 234
 
-    assert np.isclose(
+    xo.assert_allclose(
         line.twiss()['py', 'ip2'], 234e-6, atol=1e-9, rtol=0)
 
     line.vars.cache_active = False

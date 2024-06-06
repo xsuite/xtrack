@@ -1,21 +1,20 @@
 import pathlib
 
 from cpymad.madx import Madx
-import xtrack as xt
-import xpart as xp
+
 import xdeps as xd
-from xtrack.slicing import Teapot, Strategy
-
+import xobjects as xo
+import xpart as xp
+import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
-
-import numpy as np
+from xtrack.slicing import Teapot, Strategy
 
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
 @for_all_test_contexts
 def test_madloader_lhc_thick(test_context):
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     mad.input(f"""
     call,file="{str(test_data_folder)}/hllhc15_thick/lhc.seq";
@@ -46,9 +45,7 @@ def test_madloader_lhc_thick(test_context):
         if hasattr(ee, 'KILL_EXI_FRINGE'):
             ee.KILL_EXI_FRINGE = True
 
-    for ee in line.elements:
-        if isinstance(ee, xt.DipoleEdge):
-            ee.k = 0
+    line.configure_bend_model(edge='suppressed')
 
     tw0 = line.twiss()
     twmad = mad.twiss(table='twiss')
@@ -59,14 +56,14 @@ def test_madloader_lhc_thick(test_context):
     print(f'dqy xsuite:      {tw0.dqy}')
     print(f'dqy mad nochrom: {twmad.summary.dq2}')
 
-    assert np.isclose(tw0.dqx, twmad.summary.dq1, atol=0.2, rtol=0)
-    assert np.isclose(tw0.dqy, twmad.summary.dq2, atol=0.2, rtol=0)
-    assert np.isclose(tw0.qx, twmad.summary.q1, atol=1e-6, rtol=0)
-    assert np.isclose(tw0.qy, twmad.summary.q2, atol=1e-6, rtol=0)
-    assert np.isclose(tw0['betx', 'ip1'], tmad['betx', 'ip1:1'], atol=0, rtol=1e-5)
-    assert np.isclose(tw0['bety', 'ip1'], tmad['bety', 'ip1:1'], atol=0, rtol=1e-5)
-    assert np.isclose(tw0['betx', 'ip5'], tmad['betx', 'ip5:1'], atol=0, rtol=1e-5)
-    assert np.isclose(tw0['bety', 'ip5'], tmad['bety', 'ip5:1'], atol=0, rtol=1e-5)
+    xo.assert_allclose(tw0.dqx, twmad.summary.dq1, atol=0.2, rtol=0)
+    xo.assert_allclose(tw0.dqy, twmad.summary.dq2, atol=0.2, rtol=0)
+    xo.assert_allclose(tw0.qx, twmad.summary.q1, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw0.qy, twmad.summary.q2, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw0['betx', 'ip1'], tmad['betx', 'ip1:1'], atol=0, rtol=1e-5)
+    xo.assert_allclose(tw0['bety', 'ip1'], tmad['bety', 'ip1:1'], atol=0, rtol=1e-5)
+    xo.assert_allclose(tw0['betx', 'ip5'], tmad['betx', 'ip5:1'], atol=0, rtol=1e-5)
+    xo.assert_allclose(tw0['bety', 'ip5'], tmad['bety', 'ip5:1'], atol=0, rtol=1e-5)
 
 
 @for_all_test_contexts
@@ -101,18 +98,18 @@ def test_slicing_lhc_thick(test_context):
     beta_beat_y_at_ips = [tw['bety', f'ip{nn}'] / tw_thick['bety', f'ip{nn}'] - 1
                             for nn in range(1, 9)]
 
-    assert np.allclose(beta_beat_x_at_ips, 0, atol=3e-3)
-    assert np.allclose(beta_beat_y_at_ips, 0, atol=3e-3)
+    xo.assert_allclose(beta_beat_x_at_ips, 0, atol=3e-3)
+    xo.assert_allclose(beta_beat_y_at_ips, 0, atol=3e-3)
 
     # Checks on orbit knobs
-    assert np.isclose(tw_thick['px', 'ip1'], 0, rtol=0, atol=1e-7)
-    assert np.isclose(tw_thick['py', 'ip1'], 0, rtol=0, atol=1e-7)
-    assert np.isclose(tw_thick['px', 'ip5'], 0, rtol=0, atol=1e-7)
-    assert np.isclose(tw_thick['py', 'ip5'], 0, rtol=0, atol=1e-7)
-    assert np.isclose(tw['px', 'ip1'], 0, rtol=0, atol=1e-7)
-    assert np.isclose(tw['py', 'ip1'], 0, rtol=0, atol=1e-7)
-    assert np.isclose(tw['px', 'ip5'], 0, rtol=0, atol=1e-7)
-    assert np.isclose(tw['py', 'ip5'], 0, rtol=0, atol=1e-7)
+    xo.assert_allclose(tw_thick['px', 'ip1'], 0, rtol=0, atol=1e-7)
+    xo.assert_allclose(tw_thick['py', 'ip1'], 0, rtol=0, atol=1e-7)
+    xo.assert_allclose(tw_thick['px', 'ip5'], 0, rtol=0, atol=1e-7)
+    xo.assert_allclose(tw_thick['py', 'ip5'], 0, rtol=0, atol=1e-7)
+    xo.assert_allclose(tw['px', 'ip1'], 0, rtol=0, atol=1e-7)
+    xo.assert_allclose(tw['py', 'ip1'], 0, rtol=0, atol=1e-7)
+    xo.assert_allclose(tw['px', 'ip5'], 0, rtol=0, atol=1e-7)
+    xo.assert_allclose(tw['py', 'ip5'], 0, rtol=0, atol=1e-7)
 
     line.vars['on_x1'] = 50
     line.vars['on_x5'] = 60
@@ -122,14 +119,14 @@ def test_slicing_lhc_thick(test_context):
     tw = line.twiss()
     tw_thick = line_thick.twiss()
 
-    assert np.isclose(tw_thick['px', 'ip1'], 50e-6, rtol=0, atol=5e-7)
-    assert np.isclose(tw_thick['py', 'ip1'], 0, rtol=0, atol=5e-7)
-    assert np.isclose(tw_thick['px', 'ip5'], 0, rtol=0, atol=5e-7)
-    assert np.isclose(tw_thick['py', 'ip5'], 60e-6, rtol=0, atol=5e-7)
-    assert np.isclose(tw['px', 'ip1'], 50e-6, rtol=0, atol=5e-7)
-    assert np.isclose(tw['py', 'ip1'], 0, rtol=0, atol=5e-7)
-    assert np.isclose(tw['px', 'ip5'], 0, rtol=0, atol=5e-7)
-    assert np.isclose(tw['py', 'ip5'], 60e-6, rtol=0, atol=5e-7)
+    xo.assert_allclose(tw_thick['px', 'ip1'], 50e-6, rtol=0, atol=5e-7)
+    xo.assert_allclose(tw_thick['py', 'ip1'], 0, rtol=0, atol=5e-7)
+    xo.assert_allclose(tw_thick['px', 'ip5'], 0, rtol=0, atol=5e-7)
+    xo.assert_allclose(tw_thick['py', 'ip5'], 60e-6, rtol=0, atol=5e-7)
+    xo.assert_allclose(tw['px', 'ip1'], 50e-6, rtol=0, atol=5e-7)
+    xo.assert_allclose(tw['py', 'ip1'], 0, rtol=0, atol=5e-7)
+    xo.assert_allclose(tw['px', 'ip5'], 0, rtol=0, atol=5e-7)
+    xo.assert_allclose(tw['py', 'ip5'], 60e-6, rtol=0, atol=5e-7)
 
     line_thick.match(
         vary=[
@@ -160,20 +157,20 @@ def test_slicing_lhc_thick(test_context):
     tw = line.twiss()
     tw_thick = line_thick.twiss()
 
-    assert np.isclose(tw_thick.qx, 62.27, rtol=0, atol=1e-4)
-    assert np.isclose(tw_thick.qy, 60.29, rtol=0, atol=1e-4)
-    assert np.isclose(tw_thick.dqx, 10.0, rtol=0, atol=0.05)
-    assert np.isclose(tw_thick.dqy, 12.0, rtol=0, atol=0.05)
-    assert np.isclose(tw.qx, 62.27, rtol=0, atol=1e-4)
-    assert np.isclose(tw.qy, 60.29, rtol=0, atol=1e-4)
-    assert np.isclose(tw.dqx, 10.0, rtol=0, atol=0.05)
-    assert np.isclose(tw.dqy, 12.0, rtol=0, atol=0.05)
+    xo.assert_allclose(tw_thick.qx, 62.27, rtol=0, atol=1e-4)
+    xo.assert_allclose(tw_thick.qy, 60.29, rtol=0, atol=1e-4)
+    xo.assert_allclose(tw_thick.dqx, 10.0, rtol=0, atol=0.05)
+    xo.assert_allclose(tw_thick.dqy, 12.0, rtol=0, atol=0.05)
+    xo.assert_allclose(tw.qx, 62.27, rtol=0, atol=1e-4)
+    xo.assert_allclose(tw.qy, 60.29, rtol=0, atol=1e-4)
+    xo.assert_allclose(tw.dqx, 10.0, rtol=0, atol=0.05)
+    xo.assert_allclose(tw.dqy, 12.0, rtol=0, atol=0.05)
 
-    assert np.isclose(line.vars['kqtf.b1']._value, line_thick.vars['kqtf.b1']._value,
+    xo.assert_allclose(line.vars['kqtf.b1']._value, line_thick.vars['kqtf.b1']._value,
                         rtol=0.03, atol=0)
-    assert np.isclose(line.vars['kqtd.b1']._value, line_thick.vars['kqtd.b1']._value,
+    xo.assert_allclose(line.vars['kqtd.b1']._value, line_thick.vars['kqtd.b1']._value,
                         rtol=0.03, atol=0)
-    assert np.isclose(line.vars['ksf.b1']._value, line_thick.vars['ksf.b1']._value,
+    xo.assert_allclose(line.vars['ksf.b1']._value, line_thick.vars['ksf.b1']._value,
                         rtol=0.03, atol=0)
-    assert np.isclose(line.vars['ksd.b1']._value, line_thick.vars['ksd.b1']._value,
+    xo.assert_allclose(line.vars['ksd.b1']._value, line_thick.vars['ksd.b1']._value,
                         rtol=0.03, atol=0)

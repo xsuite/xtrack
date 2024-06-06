@@ -4,14 +4,15 @@
 # ######################################### #
 
 import pathlib
+
 import numpy as np
-from scipy.constants import e as qe
 from scipy.constants import c as clight
+from scipy.constants import e as qe
 from scipy.constants import epsilon_0, hbar
 
+import xobjects as xo
 import xpart as xp
 import xtrack as xt
-import xobjects as xo
 from xobjects.test_helpers import for_all_test_contexts
 from xpart.test_helpers import flaky_assertions, retry
 
@@ -65,7 +66,7 @@ def test_radiation(test_context):
     dct_ave = particles_ave.to_dict()
     dct_rng = particles_rnd.to_dict()
 
-    assert np.allclose(dct_ave['delta'], np.mean(dct_rng['delta']),
+    xo.assert_allclose(dct_ave['delta'], np.mean(dct_rng['delta']),
                     atol=0, rtol=5e-3)
 
     rho_0 = L_bend/theta_bend
@@ -76,7 +77,7 @@ def test_radiation(test_context):
     Delta_E_eV = -Ps*(L_bend/clight) / qe
     Delta_E_trk = (dct_ave['ptau']-dct_ave_before['ptau'])*dct_ave['p0c']
 
-    assert np.allclose(Delta_E_eV, Delta_E_trk, atol=0, rtol=4e-5)
+    xo.assert_allclose(Delta_E_eV, Delta_E_trk, atol=0, rtol=4e-5)
 
     # Check photons
     line=xt.Line(elements=[
@@ -108,7 +109,7 @@ def test_radiation(test_context):
                                                             )*particles_test.p0c
         n_recorded = record._index.num_recorded
         assert n_recorded < record_capacity
-        assert np.allclose(-np.sum(Delta_E_test),
+        xo.assert_allclose(-np.sum(Delta_E_test),
                         np.sum(record.photon_energy[:n_recorded]),
                         atol=0, rtol=1e-6)
 
@@ -131,8 +132,8 @@ def test_radiation(test_context):
     mean_photon_energy_sq = sum_photon_energy_sq / tot_n_recorded
     std_photon_energy = np.sqrt(mean_photon_energy_sq - mean_photon_energy**2)
 
-    assert np.isclose(mean_photon_energy, E_ave_eV, rtol=1e-2, atol=0)
-    assert np.isclose(std_photon_energy,
+    xo.assert_allclose(mean_photon_energy, E_ave_eV, rtol=1e-2, atol=0)
+    xo.assert_allclose(std_photon_energy,
                       np.sqrt(E_sq_ave_eV - E_ave_eV**2), rtol=2e-3, atol=0)
 
 
@@ -143,7 +144,7 @@ def test_ring_with_radiation(test_context):
     from cpymad.madx import Madx
 
     # Import thick sequence
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     # CLIC-DR
     mad.call(str(test_data_folder.joinpath('clic_dr/sequence.madx')))
@@ -162,6 +163,7 @@ def test_ring_with_radiation(test_context):
     mad.input(f'''
     select, flag=MAKETHIN, SLICE=4, thick=false;
     select, flag=MAKETHIN, pattern=wig, slice=1;
+    select, flag=makethin, class=rfcavity, slice=1;
     MAKETHIN, SEQUENCE=ring, MAKEDIPEDGE=true;
     use, sequence=RING;
     ''')
@@ -188,30 +190,30 @@ def test_ring_with_radiation(test_context):
     met = mad_emit_table
 
     with flaky_assertions():
-        assert np.isclose(tw['eneloss_turn'], mad_emit_summ.u0[0]*1e9,
+        xo.assert_allclose(tw['eneloss_turn'], mad_emit_summ.u0.iloc[0]*1e9,
                         rtol=3e-3, atol=0)
-        assert np.isclose(tw['damping_constants_s'][0],
+        xo.assert_allclose(tw['damping_constants_s'][0],
             met[met.loc[:, 'parameter']=='damping_constant']['mode1'].iloc[0],
             rtol=3e-3, atol=0
             )
-        assert np.isclose(tw['damping_constants_s'][1],
+        xo.assert_allclose(tw['damping_constants_s'][1],
             met[met.loc[:, 'parameter']=='damping_constant']['mode2'].iloc[0],
             rtol=1e-3, atol=0
             )
-        assert np.isclose(tw['damping_constants_s'][2],
+        xo.assert_allclose(tw['damping_constants_s'][2],
             met[met.loc[:, 'parameter']=='damping_constant']['mode3'].iloc[0],
             rtol=3e-3, atol=0
             )
 
-        assert np.isclose(tw['partition_numbers'][0],
+        xo.assert_allclose(tw['partition_numbers'][0],
             met[met.loc[:, 'parameter']=='damping_partion']['mode1'].iloc[0],
             rtol=3e-3, atol=0
             )
-        assert np.isclose(tw['partition_numbers'][1],
+        xo.assert_allclose(tw['partition_numbers'][1],
             met[met.loc[:, 'parameter']=='damping_partion']['mode2'].iloc[0],
             rtol=1e-3, atol=0
             )
-        assert np.isclose(tw['partition_numbers'][2],
+        xo.assert_allclose(tw['partition_numbers'][2],
             met[met.loc[:, 'parameter']=='damping_partion']['mode3'].iloc[0],
             rtol=3e-3, atol=0
             )
@@ -232,13 +234,13 @@ def test_ring_with_radiation(test_context):
     mon = line.record_last_track
 
     with flaky_assertions():
-        assert np.isclose(np.std(mon.zeta[:, 750:]),
-            np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode3'][0] * np.abs(tw['bets0'])),
+        xo.assert_allclose(np.std(mon.zeta[:, 750:]),
+            np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode3'].iloc[0] * np.abs(tw['bets0'])),
             rtol=0.2, atol=0
             )
 
-        assert np.isclose(np.std(mon.x[:, 750:]),
-            np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode1'][0] * tw['betx'][0]),
+        xo.assert_allclose(np.std(mon.x[:, 750:]),
+            np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode1'].iloc[0] * tw['betx'][0]),
             rtol=0.2, atol=0
             )
 
@@ -263,14 +265,14 @@ def test_ring_with_radiation(test_context):
     pgen.move(_context=xo.ContextCpu())
 
     with flaky_assertions():
-        assert np.isclose(np.std(pgen.x),
+        xo.assert_allclose(np.std(pgen.x),
                         np.sqrt(tw['dx'][0]**2*np.std(pgen.delta)**2
                                 + tw['betx'][0]*nemitt_x/mad.sequence.ring.beam.gamma),
                         atol=0, rtol=1e-2)
 
-        assert np.isclose(np.std(pgen.y),
+        xo.assert_allclose(np.std(pgen.y),
                         np.sqrt(tw['dy'][0]**2*np.std(pgen.delta)**2
                                 + tw['bety'][0]*nemitt_y/mad.sequence.ring.beam.gamma),
                         atol=0, rtol=1e-2)
 
-        assert np.isclose(np.std(pgen.zeta), sigma_z, atol=0, rtol=5e-3)
+        xo.assert_allclose(np.std(pgen.zeta), sigma_z, atol=0, rtol=5e-3)

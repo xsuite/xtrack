@@ -5,7 +5,7 @@ import numpy as np
 from scipy.optimize import fsolve, minimize
 
 from .twiss import TwissInit, VARS_FOR_TWISS_INIT_GENERATION, _complete_twiss_init
-from .general import _print
+from .general import _print, START, END, _LOC
 import xtrack as xt
 import xdeps as xd
 
@@ -44,15 +44,6 @@ ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau',
                         'eq_nemitt_x', 'eq_nemitt_y', 'eq_nemitt_zeta']
 
 Action = xd.Action
-
-class _LOC:
-    def __init__(self, name=None):
-        self.name = name
-    def __repr__(self):
-        return self.name
-
-START = _LOC('START')
-END = _LOC('END')
 
 class ActionTwiss(xd.Action):
 
@@ -801,7 +792,7 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
                   solver_options={}, allow_twiss_failure=True,
                   restore_if_fail=True, verbose=False,
                   n_steps_max=20, default_tol=None,
-                  solver=None, **kwargs):
+                  solver=None, check_limits=True, **kwargs):
 
     if not isinstance(targets, (list, tuple)):
         targets = [targets]
@@ -882,7 +873,8 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
                         verbose=verbose, assert_within_tol=assert_within_tol,
                         solver_options=solver_options,
                         n_steps_max=n_steps_max,
-                        restore_if_fail=restore_if_fail)
+                        restore_if_fail=restore_if_fail,
+                        check_limits=check_limits)
 
     if solve:
         opt.solve()
