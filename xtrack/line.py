@@ -2183,7 +2183,7 @@ class Line:
         return new_line
 
     def cycle(self, index_first_element=None, name_first_element=None,
-              inplace=False):
+              inplace=True):
 
         """
         Cycle the line to start from a given element.
