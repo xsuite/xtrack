@@ -80,10 +80,11 @@ line.track(p, num_turns=n_turns_track_test, turn_by_turn_monitor=True, time=True
 mon_at_start = line.record_last_track
 print(f'Tracking time: {line.time_last_track}')
 
+# Approximated calculation based on Hofmann Eq. 14.19
 twe = tw_no_rad
 tt = line.get_table(attr=True)
 hh = np.sqrt(np.diff(twe.px, append=0)**2 + np.diff(twe.py, append=0)**2)
-dl = np.diff(twe.s, append=0)
+dl = np.diff(twe.s, append=line.get_length())
 gamma0 = line.particle_ref.gamma0[0]
 
 dyprime = twe.dpy*(1 - twe.delta) - twe.py
@@ -96,11 +97,11 @@ I4_y = np.sum(twe.dy * hh**3 * dl) # to be generalized for combined function mag
 lam_comp = 2.436e-12 # [m]
 ey_hof = 55 * np.sqrt(3) / 96 * lam_comp / 2 / np.pi * gamma0**2 * I5_y / (I2_y - I4_y)
 
-line.configure_radiation(model='mean')
-
+# Plots
 import matplotlib.pyplot as plt
 plt.close('all')
 
+line.configure_radiation(model='mean') # Leave the line in a twissable state
 mon = line.record_last_track
 
 fig = plt.figure(figsize=(6.4, 4.8*1.3))
