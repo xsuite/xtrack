@@ -331,24 +331,20 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if start is not None:
         if isinstance(start, xt.match._LOC):
+            assert start in [xt.START, xt.END]
             if reverse:
-                raise ValueError('If reverse=True, `start` must be a name of'
-                                 'an element in the line.')
-            if start is not xt.START:
-                raise ValueError('The value of `start` must be an element name '
-                                 'or xt.START.')
-            start = line.element_names[0]
+                start = {xt.START: xt.END, xt.END: xt.START}[start]
+            start = {xt.START: line.element_names[0],
+                     xt.END: line.element_names[-1]}[start]
         assert isinstance(start, str)  # index not supported anymore
 
     if end is not None:
         if isinstance(end, xt.match._LOC):
+            assert end in [xt.START, xt.END]
             if reverse:
-                raise ValueError('If reverse=True, `end` must be a name of'
-                                 'an element in the line.')
-            if end is not xt.END:
-                raise ValueError('The value of `end` must be an element name '
-                                 'or xt.END.')
-            end = line.element_names[-1]
+                end = {xt.START: xt.END, xt.END: xt.START}[end]
+            end = {xt.START: line.element_names[0],
+                     xt.END: line.element_names[-1]}[end]
         assert isinstance(end, str)  # index not supported anymore
 
     if (init is not None and init != 'periodic'
