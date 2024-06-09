@@ -20,7 +20,7 @@ delta = 0
 particles_ave = xt.Particles(
         _context=context,
         p0c=5e9 / (1 + delta), # 5 GeV
-        x=np.zeros(1000000),
+        x=np.zeros(10_000_000),
         px=1e-4,
         py=-1e-4,
         delta=delta,
@@ -28,6 +28,7 @@ particles_ave = xt.Particles(
 particles_ave_0 = particles_ave.copy()
 gamma = (particles_ave.energy/particles_ave.mass0)[0]
 gamma0 = (particles_ave.gamma0[0])
+energy0 = particles_ave.energy0[0]
 particles_rnd = particles_ave.copy()
 
 P0_J = particles_ave.p0c[0] / clight * qe
@@ -75,7 +76,7 @@ line=xt.Line(elements=[
 line.build_tracker(_context=context)
 line.configure_radiation(model='quantum')
 
-record_capacity = int(100e6)
+record_capacity = int(1000e6)
 record = line.start_internal_logging_for_elements_of_type(xt.Multipole,
                                                             capacity=record_capacity)
 particles_test = particles_ave_0.copy()
@@ -104,7 +105,9 @@ E_sq_ave_eV = E_sq_ave_J / qe**2
 assert np.isclose(np.mean(record.photon_energy[:n_recorded]), E_ave_eV, rtol=1e-2, atol=0)
 assert np.isclose(np.std(record.photon_energy[:n_recorded]), np.sqrt(E_sq_ave_eV - E_ave_eV**2), rtol=1e-3, atol=0)
 
-hist, bin_edges = np.histogram(np.log10(record.photon_energy[:n_recorded]), bins=100)
+hist, bin_edges = np.histogram(np.log10(record.photon_energy[:n_recorded]),
+                range = (np.log10(1e-4 * E_crit_eV),
+                         np.log10(1e4 * E_crit_eV)), bins=500)
 bin_centers = (bin_edges[:-1] + bin_edges[1:])/2
 
 dE = np.diff(10**bin_edges)
@@ -116,14 +119,22 @@ dn_dE_at_E_crit = np.interp(E_crit_eV, E_center, dn_dE)
 
 dn_dE_norm = dn_dE / dn_dE_at_E_crit
 
+import n_photons
+dn_dE_ref = n_photons.spectral_at_energy(E_center, energy0, 1/h_bend)
+dn_dE_ref_at_E_crit = np.interp(E_crit_eV, E_center, dn_dE_ref)
+dn_dE_ref_norm = dn_dE_ref / dn_dE_ref_at_E_crit
+
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
-plt.loglog(E_center/E_crit_eV, dn_dE_norm)
+plt.loglog(E_center/E_crit_eV, dn_dE_norm, '.', label='Xsuite - photon histogram')
+plt.loglog(E_center/E_crit_eV, dn_dE_ref_norm, '-', label='Analytic')
+plt.legend()
 
 plt.xlabel(r'$E/E{_\text{crit}}$')
 plt.ylabel('Normalized dN/dE')
 plt.xlim(1e-3, 1e1)
-plt.ylim(1e-3, 1e2)
+plt.ylim(1e-5, 1e3)
 plt.grid(True)
+
 plt.show()
