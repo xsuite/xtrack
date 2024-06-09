@@ -729,12 +729,20 @@ class Line:
         for kk in (xt.twiss.NORMAL_STRENGTHS_FROM_ATTR
                  + xt.twiss.SKEW_STRENGTHS_FROM_ATTR
                  + xt.twiss.OTHER_FIELDS_FROM_ATTR):
-                            this_attr = self.attr[kk]
-        if hasattr(this_attr, 'get'):
-            this_attr = this_attr.get() # bring to cpu
-        # Add zero at the end (there is _end_point)
-        out[kk] = np.concatenate((this_attr, [this_attr[-1]*0]))
+            this_attr = self.attr[kk]
+            if hasattr(this_attr, 'get'):
+                this_attr = this_attr.get() # bring to cpu
+            # Add zero at the end (there is _end_point)
+            out[kk] = np.concatenate((this_attr, [this_attr[-1]*0]))
+
+        if reverse:
+            for kk in out:
+                # Change order
+                out[kk][:-1] = out[kk][:-1][::-1]
+
         tab = xt.Table(out)
+        if reverse:
+            xt.twiss._reverse_strengths(tab) # Change signs
         return tab
 
     def copy(self, _context=None, _buffer=None):
