@@ -17,3 +17,5 @@ line = collider.lhcb2
 
 tw8_closed = line.twiss(start='ip8')
 tw8_open = line.twiss(start='ip8', betx=1.5, bety=1.5)
+
+tw_part = line.twiss(start='ip8', end='ip2', init='full_periodic')
