@@ -366,13 +366,7 @@ def twiss_line(line, particle_ref=None, method=None,
             init_part2.element_name = line.twiss(
                 start=xt.START, end=xt.START, betx=1, bety=1).name[0]
 
-            kwargs_to_remove = (
-                'x', 'px', 'y', 'py', 'zeta', 'delta', 'betx',
-                'alfx', 'bety', 'alfy', 'bets',
-                'dx', 'dpx', 'dy', 'dpy', 'dzeta', 'mux', 'muy', 'muzeta',
-                'ax_chrom', 'bx_chrom', 'ay_chrom', 'by_chrom',
-                'ddpx', 'ddx', 'ddpy', 'ddy')
-            for kk in kwargs_to_remove:
+            for kk in VARS_FOR_TWISS_INIT_GENERATION:
                 kwargs.pop(kk, None)
 
             t2o = twiss_line(start=xt.START, end=start, init=init_part2, **kwargs)
@@ -381,6 +375,15 @@ def twiss_line(line, particle_ref=None, method=None,
             t2o.name[-1] = '_end_point'
             out = xt.TwissTable.concatenate([t1o, t2o])
         return _add_action_in_res(out, input_kwargs)
+
+    if init == 'full_periodic':
+        kwargs_for_init = _updated_kwargs_from_locals(kwargs, locals().copy())
+        kwargs_for_init.pop('init')
+        kwargs_for_init.pop('start')
+        kwargs_for_init.pop('end')
+        kwargs_for_init.pop('init_at')
+        tw = twiss_line(**kwargs_for_init) # Periodic twiss of the full line
+        init = tw.get_twiss_init(init_at or start)
 
     if (init is not None and init != 'periodic'
         or betx is not None or bety is not None):
@@ -564,7 +567,7 @@ def twiss_line(line, particle_ref=None, method=None,
     if isinstance(init, str):
         if init in ['preserve', 'preserve_start', 'preserve_end']:
             raise ValueError(f'init={init} not anymore supported')
-        assert init == 'periodic'
+        assert init == 'periodic' or 'full_periodic'
 
     if periodic:
 
