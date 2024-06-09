@@ -347,6 +347,41 @@ def twiss_line(line, particle_ref=None, method=None,
                      xt.END: line.element_names[-1]}[end]
         assert isinstance(end, str)  # index not supported anymore
 
+    if start is not None and end is None:
+        # One turn twiss from start to start
+        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+        kwargs.pop('start')
+        if (init is None or init == 'periodic') and betx is None and bety is None:
+            # Periodic twiss
+            tw = twiss_line(**kwargs)
+            t1 = tw.rows[start:]
+            t2 = tw.rows[:start]
+            out = xt.TwissTable.concatenate([t1, t2])
+        else:
+            kwargs.pop('end')
+            kwargs.pop('init')
+            t1o = twiss_line(start=start, end=xt.END, **kwargs)
+            init_part2 = t1o.get_twiss_init('_end_point')
+            # Dummy twiss to get the name at the start of the secon part
+            init_part2.element_name = line.twiss(
+                start=xt.START, end=xt.START, betx=1, bety=1).name[0]
+
+            kwargs_to_remove = (
+                'x', 'px', 'y', 'py', 'zeta', 'delta', 'betx',
+                'alfx', 'bety', 'alfy', 'bets',
+                'dx', 'dpx', 'dy', 'dpy', 'dzeta', 'mux', 'muy', 'muzeta',
+                'ax_chrom', 'bx_chrom', 'ay_chrom', 'by_chrom',
+                'ddpx', 'ddx', 'ddpy', 'ddy')
+            for kk in kwargs_to_remove:
+                kwargs.pop(kk, None)
+
+            t2o = twiss_line(start=xt.START, end=start, init=init_part2, **kwargs)
+            # remove repeated element
+            t2o = t2o.rows[:-1]
+            t2o.name[-1] = '_end_point'
+            out = xt.TwissTable.concatenate([t1o, t2o])
+        return _add_action_in_res(out, input_kwargs)
+
     if (init is not None and init != 'periodic'
         or betx is not None or bety is not None):
         periodic = False
