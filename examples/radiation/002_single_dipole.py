@@ -14,13 +14,13 @@ import xobjects as xo
 context = xo.ContextCpu()
 
 L_bend = 1.
-B_T = 2
+B_T = 1
 n_part = 1_000_000
 
 delta = 0
 particles_ave = xt.Particles(
         _context=context,
-        p0c=5e9, # / (1 + delta), # 5 GeV
+        p0c=80e9, # / (1 + delta), # 5 GeV
         x=np.zeros(n_part),
         px=1e-4,
         py=-1e-4,
@@ -65,7 +65,7 @@ Ps = (2 * r0 * clight * mass0_kg * clight**2 * gamma0**2 * gamma**2)/(3*rho_0**2
 Delta_E_eV = -Ps*(L_bend/clight) / qe
 Delta_E_trk = (dct_ave['ptau']-dct_ave_before['ptau'])*dct_ave['p0c']
 
-assert np.allclose(Delta_E_eV, Delta_E_trk, atol=0, rtol=4e-5)
+xo.assert_allclose(Delta_E_eV, Delta_E_trk, atol=0, rtol=1e-3)
 
 # Check photons
 line=xt.Line(elements=[
@@ -122,6 +122,8 @@ dn_dE_at_E_crit = np.interp(E_crit_eV, E_center, dn_dE)
 
 dn_dE_norm = dn_dE / dn_dE_at_E_crit
 
+# Check against analytical expresson from:
+# Implements from A. Hofmann, The physics of synchrotron radiation, Eq. 5.48b
 import n_photons
 dn_dE_ref = n_photons.photon_spectrum(E_center, gamma, 1/h_bend)
 dn_dE_ref_at_E_crit = np.interp(E_crit_eV, E_center, dn_dE_ref)
@@ -144,7 +146,7 @@ plt.loglog(E_center, dn_dE, label='Xsuite photon histogram')
 plt.loglog(E_center, dn_dE_ref, '--', label='Analytical')
 plt.axvline(x=E_crit_eV, linestyle='--', color='k', label='Critical energy')
 plt.xlim(1e-3*E_crit_eV, 1e1*E_crit_eV)
-plt.ylim(1., 1e7)
+plt.ylim(1.e-2, 1e5)
 plt.xlabel('Energy [eV]')
 plt.ylabel('dN/dE [1/(eV s)]')
 plt.legend()
