@@ -2204,6 +2204,9 @@ class Line:
 
         """
 
+        if not inplace:
+            raise ValueError('`inplace=False` is not anymore supported')
+
         if ((index_first_element is not None and name_first_element is not None)
                or (index_first_element is None and name_first_element is None)):
              raise ValueError(
