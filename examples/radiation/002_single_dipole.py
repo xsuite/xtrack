@@ -114,7 +114,9 @@ bin_centers = (bin_edges[:-1] + bin_edges[1:])/2
 dE = np.diff(10**bin_edges)
 E_center = 10**bin_centers
 
-dn_dE = hist / dE / (2 * L_bend) / n_part / clight
+dn_dE = hist / dE / (2 * L_bend / clight) / n_part
+
+xo.assert_allclose(np.sum(dn_dE * dE*E_center) * qe, Ps, atol=0, rtol=1e-2)
 
 dn_dE_at_E_crit = np.interp(E_crit_eV, E_center, dn_dE)
 
