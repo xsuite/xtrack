@@ -723,6 +723,20 @@ class Line:
 
         return xd.Table(data=data)
 
+    def get_strengths(self, reverse=False):
+        out = {}
+        out['name'] = np.array(list(self.element_names) + ['_end_point'])
+        for kk in (xt.twiss.NORMAL_STRENGTHS_FROM_ATTR
+                 + xt.twiss.SKEW_STRENGTHS_FROM_ATTR
+                 + xt.twiss.OTHER_FIELDS_FROM_ATTR):
+                            this_attr = self.attr[kk]
+        if hasattr(this_attr, 'get'):
+            this_attr = this_attr.get() # bring to cpu
+        # Add zero at the end (there is _end_point)
+        out[kk] = np.concatenate((this_attr, [this_attr[-1]*0]))
+        tab = xt.Table(out)
+        return tab
+
     def copy(self, _context=None, _buffer=None):
         '''
         Return a copy of the line.

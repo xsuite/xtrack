@@ -49,7 +49,8 @@ VARS_FOR_TWISS_INIT_GENERATION = [
 
 NORMAL_STRENGTHS_FROM_ATTR=['k0l', 'k1l', 'k2l', 'k3l', 'k4l', 'k5l']
 SKEW_STRENGTHS_FROM_ATTR=['k0sl', 'k1sl', 'k2sl', 'k3sl', 'k4sl', 'k5sl']
-OTHER_FIELDS_FROM_ATTR=['angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'element_type', 'isthick', 'length', 'parent_name']
+OTHER_FIELDS_FROM_ATTR=['angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'ks', 'length']
+OTHER_FIELDS_FROM_TABLE=['element_type', 'isthick', 'parent_name']
 
 log = logging.getLogger(__name__)
 
@@ -740,7 +741,7 @@ def twiss_line(line, particle_ref=None, method=None,
     if strengths:
         tt = line.get_table(attr=True).rows[list(twiss_res.name)]
         for kk in (NORMAL_STRENGTHS_FROM_ATTR + SKEW_STRENGTHS_FROM_ATTR
-                   + OTHER_FIELDS_FROM_ATTR):
+                   + OTHER_FIELDS_FROM_ATTR + OTHER_FIELDS_FROM_TABLE):
             twiss_res._col_names.append(kk)
             twiss_res._data[kk] = tt[kk].copy()
 
@@ -3086,7 +3087,9 @@ class TwissTable(Table):
         for kk in self._col_names:
             if (kk == 'name' or kk in NORMAL_STRENGTHS_FROM_ATTR
                     or kk in SKEW_STRENGTHS_FROM_ATTR
-                    or kk in OTHER_FIELDS_FROM_ATTR):
+                    or kk in OTHER_FIELDS_FROM_ATTR
+                    or kk in OTHER_FIELDS_FROM_TABLE
+                    ):
                 new_data[kk][:-1] = new_data[kk][:-1][::-1]
                 new_data[kk][-1] = self[kk][-1]
             elif kk == 'W_matrix':
@@ -3173,18 +3176,7 @@ class TwissTable(Table):
             out.qs = 0
             out.muzeta[:] = 0
 
-        # Same convention as in MAD-X for reversing strengths
-        for kk in NORMAL_STRENGTHS_FROM_ATTR:
-            if kk not in out._col_names:
-                continue
-            ii = int(kk.split('k')[-1].split('l')[0])
-            out[kk] *= (-1)**(ii+1)
-
-        for kk in SKEW_STRENGTHS_FROM_ATTR:
-            if kk not in out._col_names:
-                continue
-            ii = int(kk.split('k')[-1].split('sl')[0])
-            out[kk] *= (-1)**ii
+        _reverse_strengths(out)
 
         out._data['reference_frame'] = {
             'proper': 'reverse', 'reverse': 'proper'}[self.reference_frame]
@@ -3712,3 +3704,20 @@ def _find_closed_orbit_search_t_rev(line, num_turns_search_t_rev=None):
         delta=x_sol[5])
 
     return particle_on_co
+
+def _reverse_strengths(out):
+    # Same convention as in MAD-X for reversing strengths
+    for kk in NORMAL_STRENGTHS_FROM_ATTR:
+        if kk not in out._col_names:
+            continue
+        ii = int(kk.split('k')[-1].split('l')[0])
+        out[kk] *= (-1)**(ii+1)
+
+    for kk in SKEW_STRENGTHS_FROM_ATTR:
+        if kk not in out._col_names:
+            continue
+        ii = int(kk.split('k')[-1].split('sl')[0])
+        out[kk] *= (-1)**ii
+
+    if 'vkick' in out._col_names:
+        out['vkick'] *= 1
