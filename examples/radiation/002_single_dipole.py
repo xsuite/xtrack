@@ -15,7 +15,7 @@ context = xo.ContextCpu()
 
 L_bend = 1.
 B_T = 2
-n_part = 10_000_000
+n_part = 1_000_000
 
 delta = 0
 particles_ave = xt.Particles(
@@ -116,14 +116,14 @@ E_center = 10**bin_centers
 
 dn_dE = hist / dE / (2 * L_bend / clight) / n_part
 
-xo.assert_allclose(np.sum(dn_dE * dE*E_center) * qe, Ps, atol=0, rtol=1e-2)
+xo.assert_allclose(np.sum(dn_dE * dE * E_center) * qe, Ps, atol=0, rtol=1e-2)
 
 dn_dE_at_E_crit = np.interp(E_crit_eV, E_center, dn_dE)
 
 dn_dE_norm = dn_dE / dn_dE_at_E_crit
 
 import n_photons
-dn_dE_ref = n_photons.spectral_at_energy(E_center, energy, 1/h_bend)
+dn_dE_ref = n_photons.photon_spectrum(E_center, gamma, 1/h_bend)
 dn_dE_ref_at_E_crit = np.interp(E_crit_eV, E_center, dn_dE_ref)
 dn_dE_ref_norm = dn_dE_ref / dn_dE_ref_at_E_crit
 
@@ -133,7 +133,6 @@ plt.figure(1)
 plt.loglog(E_center/E_crit_eV, dn_dE_norm, '.', label='Xsuite - photon histogram')
 plt.loglog(E_center/E_crit_eV, dn_dE_ref_norm, '-', label='Analytic')
 plt.legend()
-
 plt.xlabel(r'$E/E{_\text{crit}}$')
 plt.ylabel('Normalized dN/dE')
 plt.xlim(1e-3, 1e1)
@@ -141,7 +140,13 @@ plt.ylim(1e-5, 1e3)
 plt.grid(True)
 
 plt.figure(2)
-plt.loglog(E_center, dn_dE)
-plt.loglog(E_center, dn_dE_ref)
+plt.loglog(E_center, dn_dE, label='Xsuite photon histogram')
+plt.loglog(E_center, dn_dE_ref, '--', label='Analytical')
+plt.axvline(x=E_crit_eV, linestyle='--', color='k', label='Critical energy')
+plt.xlim(1e-3*E_crit_eV, 1e1*E_crit_eV)
+plt.ylim(1., 1e7)
+plt.xlabel('Energy [eV]')
+plt.ylabel('dN/dE [1/(eV s)]')
+plt.legend()
 
 plt.show()
