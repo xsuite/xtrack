@@ -63,6 +63,17 @@ xo.assert_allclose(line['mbw.a6l3.b2'].h,
 
 tw = line.twiss()
 
-assert tw8_closed.name[-1] == '_end_point'
-assert np.all(tw8_closed.rows['ip.?'].name
-       == np.array(['ip8', 'ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7']))
+for tw8 in [tw8_closed, tw8_open]:
+    assert tw8.name[-1] == '_end_point'
+    assert np.all(tw8.rows['ip.?'].name
+        == np.array(['ip8', 'ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7']))
+
+    for nn in ['s', 'mux', 'muy']:
+        assert np.all(np.diff(tw8.rows['ip.?'][nn]) > 0)
+        assert tw8[nn][0] == 0
+        xo.assert_allclose(tw8[nn][-1], tw[nn][-1], rtol=1e-12, atol=5e-7)
+
+    xo.assert_allclose(
+            tw8['betx', ['ip8', 'ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7']],
+            tw[ 'betx', ['ip8', 'ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7']],
+            rtol=1e-5, atol=0)
