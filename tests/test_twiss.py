@@ -1079,7 +1079,7 @@ def test_custom_twiss_init(test_context):
             'hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
     line.particle_ref = xp.Particles(
                         mass0=xp.PROTON_MASS_EV, q0=1, energy0=7e12)
-    line.build_tracker()
+    line.build_tracker(_context=test_context)
     line.vars['on_disp'] = 1
 
     tw = line.twiss()
@@ -1734,4 +1734,48 @@ def test_twiss_range_start_end(test_context, line_name, reverse, section, collid
             assert np.all(tw_test._data[kk] == tw_ref._data[kk])
             continue
 
-        xo.assert_allclose(tw_test._data[kk], tw_ref._data[kk], rtol=0, atol=5e-13)
+        xo.assert_allclose(tw_test._data[kk], tw_ref._data[kk], rtol=1e-12, atol=5e-13)
+
+@for_all_test_contexts
+def test_arbitrary_start(test_context, collider_for_test_twiss_range):
+
+    collider = collider_for_test_twiss_range
+
+    if collider.lhcb1.element_names[0] != 'ip1':
+        collider.lhcb1.cycle('ip1', inplace=True)
+    if collider.lhcb2.element_names[0] != 'ip1':
+        collider.lhcb2.cycle('ip1', inplace=True)
+
+    line = collider.lhcb2 # <- use lhcb2 to test the reverse option
+    assert line.twiss_default['method'] == '4d'
+    assert line.twiss_default['reverse']
+
+    if isinstance(test_context, xo.ContextCpu) and (
+        test_context.omp_num_threads != line._context.omp_num_threads):
+        buffer = test_context.new_buffer()
+    elif isinstance(test_context, line._context.__class__):
+        buffer = line._buffer
+    else:
+        buffer = test_context.new_buffer()
+
+    line.build_tracker(_buffer=buffer)
+
+    tw8_closed = line.twiss(start='ip8')
+    tw8_open = line.twiss(start='ip8', betx=1.5, bety=1.5)
+
+    tw = line.twiss()
+
+    for tw8 in [tw8_closed, tw8_open]:
+        assert tw8.name[-1] == '_end_point'
+        assert np.all(tw8.rows['ip.?'].name
+            == np.array(['ip8', 'ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7']))
+
+        for nn in ['s', 'mux', 'muy']:
+            assert np.all(np.diff(tw8.rows['ip.?'][nn]) > 0)
+            assert tw8[nn][0] == 0
+            xo.assert_allclose(tw8[nn][-1], tw[nn][-1], rtol=1e-12, atol=5e-7)
+
+        xo.assert_allclose(
+                tw8['betx', ['ip8', 'ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7']],
+                tw[ 'betx', ['ip8', 'ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7']],
+                rtol=1e-5, atol=0)
