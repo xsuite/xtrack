@@ -42,3 +42,20 @@ line.get_strengths(reverse=False).rows['mbw\..*l3.b2'].cols['k0l angle_rad']
 # mbw.d6l3.b2             0.000188729  0.000188729
 # mbw.e6l3.b2             0.000188729  0.000188729
 # mbw.f6l3.b2             0.000188729  0.000188729
+
+import xobjects as xo
+str_table_rev = line.get_strengths() # Takes reverse from twiss_default
+xo.assert_allclose(line['mbw.a6l3.b2'].k0,
+        -str_table_rev['k0l', 'mbw.a6l3.b2'] / str_table_rev['length', 'mbw.a6l3.b2'],
+        rtol=0, atol=1e-14)
+xo.assert_allclose(line['mbw.a6l3.b2'].h,
+        -str_table_rev['angle_rad', 'mbw.a6l3.b2'] / str_table_rev['length', 'mbw.a6l3.b2'],
+        rtol=0, atol=1e-14)
+
+str_table = line.get_strengths(reverse=False) # Takes reverse from twiss_default
+xo.assert_allclose(line['mbw.a6l3.b2'].k0,
+        str_table['k0l', 'mbw.a6l3.b2'] / str_table['length', 'mbw.a6l3.b2'],
+        rtol=0, atol=1e-14)
+xo.assert_allclose(line['mbw.a6l3.b2'].h,
+        str_table['angle_rad', 'mbw.a6l3.b2'] / str_table['length', 'mbw.a6l3.b2'],
+        rtol=0, atol=1e-14)
