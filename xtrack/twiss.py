@@ -3720,7 +3720,7 @@ def _reverse_strengths(out):
         out[kk] *= (-1)**ii
 
     if 'vkick' in out._col_names:
-        out['vkick'] *= 1
+        out['vkick'] *= -1
 
     if 'angle_rad' in out._col_names:
-        out['angle_rad'] *= 1
+        out['angle_rad'] *= -1

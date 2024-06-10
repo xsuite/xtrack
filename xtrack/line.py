@@ -723,7 +723,11 @@ class Line:
 
         return xd.Table(data=data)
 
-    def get_strengths(self, reverse=False):
+    def get_strengths(self, reverse=None):
+
+        if reverse is None:
+            reverse = self.twiss_default.get('reverse', False)
+
         out = {}
         out['name'] = np.array(list(self.element_names) + ['_end_point'])
         for kk in (xt.twiss.NORMAL_STRENGTHS_FROM_ATTR
@@ -743,6 +747,9 @@ class Line:
         tab = xt.Table(out)
         if reverse:
             xt.twiss._reverse_strengths(tab) # Change signs
+
+        tab._data['reference_frame'] = {
+            True: 'reverse', False: 'proper'}[reverse]
         return tab
 
     def copy(self, _context=None, _buffer=None):
@@ -1352,7 +1359,7 @@ class Line:
 
 
     def survey(self,X0=0,Y0=0,Z0=0,theta0=0, phi0=0, psi0=0,
-               element0=0, reverse=False):
+               element0=0, reverse=None):
 
         """
         Returns a survey of the beamline (based on MAD-X survey command).
@@ -1379,6 +1386,9 @@ class Line:
         survey : SurveyTable
             Survey table.
         """
+
+        if reverse is None:
+            reverse = self.twiss_default.get('reverse', False)
 
         return survey_from_line(self, X0=X0, Y0=Y0, Z0=Z0, theta0=theta0,
                                    phi0=phi0, psi0=psi0, element0=element0,
