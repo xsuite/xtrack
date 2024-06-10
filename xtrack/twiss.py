@@ -47,6 +47,8 @@ VARS_FOR_TWISS_INIT_GENERATION = [
     'ddx', 'ddpx', 'ddy', 'ddpy',
 ]
 
+CYCLICAL_QUANTITIES = ['mux', 'muy', 'dzeta', 's']
+
 NORMAL_STRENGTHS_FROM_ATTR=['k0l', 'k1l', 'k2l', 'k3l', 'k4l', 'k5l']
 SKEW_STRENGTHS_FROM_ATTR=['k0sl', 'k1sl', 'k2sl', 'k3sl', 'k4sl', 'k5sl']
 OTHER_FIELDS_FROM_ATTR=['angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'ks', 'length']
@@ -3236,7 +3238,7 @@ class TwissTable(Table):
                     continue
                 new_data[kk][i_start:i_end] = (
                     tt[kk][ind_per_table[ii][0]:ind_per_table[ii][1]])
-                if kk in ['mux', 'muy', 'dzeta', 's']:
+                if kk in CYCLICAL_QUANTITIES:
                     new_data[kk][i_start:i_end] -= new_data[kk][i_start]
                     if ii > 0:
                         new_data[kk][i_start:i_end] += new_data[kk][i_start-1]
@@ -3252,6 +3254,10 @@ class TwissTable(Table):
         new_table._data['particle_on_co'] = tables_to_concat[0].particle_on_co
 
         return new_table
+
+    def zero_at(self, name):
+        for kk in CYCLICAL_QUANTITIES:
+            self[kk] -= self[kk, name]
 
     def target(self, tars=None, value=None, at=None, **kwargs):
         if value is None:

@@ -77,3 +77,5 @@ for tw8 in [tw8_closed, tw8_open]:
             tw8['betx', ['ip8', 'ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7']],
             tw[ 'betx', ['ip8', 'ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7']],
             rtol=1e-5, atol=0)
+
+# TEST tw_part....
