@@ -19,7 +19,7 @@ line = collider.lhcb2 # <- use lhcb2 to test the reverse option
 tw8_closed = line.twiss(start='ip8')
 tw8_open = line.twiss(start='ip8', betx=1.5, bety=1.5)
 
-tw_part = line.twiss(start='ip8', end='ip2', init='full_periodic')
+tw_part = line.twiss(start='ip8', end='ip2', zero_at='ip1', init='full_periodic')
 
 # Test get strengths (to be moved to another script)
 line.get_strengths().rows['mbw\..*l3.b2'].cols['k0l angle_rad']

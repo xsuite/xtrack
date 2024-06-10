@@ -93,6 +93,7 @@ def twiss_line(line, particle_ref=None, method=None,
         mux=None, muy=None, muzeta=None,
         ax_chrom=None, bx_chrom=None, ay_chrom=None, by_chrom=None,
         ddx=None, ddpx=None, ddy=None, ddpy=None,
+        zero_at=None,
         co_search_at=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
@@ -332,6 +333,13 @@ def twiss_line(line, particle_ref=None, method=None,
         assert init is None
         assert reverse is False
 
+    if zero_at is not None:
+        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+        kwargs.pop('zero_at')
+        out = twiss_line(**kwargs)
+        out.zero_at(zero_at)
+        return _add_action_in_res(out, input_kwargs)
+
     if start is not None:
         if isinstance(start, xt.match._LOC):
             assert start in [xt.START, xt.END]
@@ -360,6 +368,7 @@ def twiss_line(line, particle_ref=None, method=None,
             t1 = tw.rows[start:]
             t2 = tw.rows[:start]
             out = xt.TwissTable.concatenate([t1, t2])
+            out.zero_at(out.name[0])
             out.name[-1] = '_end_point'
         else:
             kwargs.pop('end')
@@ -381,13 +390,17 @@ def twiss_line(line, particle_ref=None, method=None,
         return _add_action_in_res(out, input_kwargs)
 
     if init == 'full_periodic':
-        kwargs_for_init = _updated_kwargs_from_locals(kwargs, locals().copy())
-        kwargs_for_init.pop('init')
-        kwargs_for_init.pop('start')
-        kwargs_for_init.pop('end')
-        kwargs_for_init.pop('init_at')
-        tw = twiss_line(**kwargs_for_init) # Periodic twiss of the full line
+        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+        kwargs.pop('init')
+        kwargs.pop('start')
+        kwargs.pop('end')
+        kwargs.pop('init_at')
+        tw = twiss_line(**kwargs) # Periodic twiss of the full line
         init = tw.get_twiss_init(init_at or start)
+        out = twiss_line(start=start, end=end, init=init, **kwargs)
+        if zero_at is None:
+            out.zero_at(start)
+        return _add_action_in_res(out, input_kwargs)
 
     if (init is not None and init != 'periodic'
         or betx is not None or bety is not None):

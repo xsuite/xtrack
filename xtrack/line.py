@@ -1163,6 +1163,7 @@ class Line:
         mux=None, muy=None, muzeta=None,
         ax_chrom=None, bx_chrom=None, ay_chrom=None, by_chrom=None,
         ddx=None, ddpx=None, ddy=None, ddpy=None,
+        zero_at=None,
         co_search_at=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
