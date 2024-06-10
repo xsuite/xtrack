@@ -4,6 +4,7 @@
 # ######################################### #
 
 import xtrack as xt
+import numpy as np
 
 collider = xt.Multiline.from_json(
     '../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
@@ -61,4 +62,7 @@ xo.assert_allclose(line['mbw.a6l3.b2'].h,
         rtol=0, atol=1e-14)
 
 tw = line.twiss()
-tw8_closed
+
+assert tw8_closed.name[-1] == '_end_point'
+assert np.all(tw8_closed.rows['ip.?'].name
+       == np.array(['ip8', 'ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7']))
