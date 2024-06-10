@@ -358,6 +358,7 @@ def twiss_line(line, particle_ref=None, method=None,
             t1 = tw.rows[start:]
             t2 = tw.rows[:start]
             out = xt.TwissTable.concatenate([t1, t2])
+            out.name[-1] = '_end_point'
         else:
             kwargs.pop('end')
             kwargs.pop('init')

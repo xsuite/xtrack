@@ -59,3 +59,6 @@ xo.assert_allclose(line['mbw.a6l3.b2'].k0,
 xo.assert_allclose(line['mbw.a6l3.b2'].h,
         str_table['angle_rad', 'mbw.a6l3.b2'] / str_table['length', 'mbw.a6l3.b2'],
         rtol=0, atol=1e-14)
+
+tw = line.twiss()
+tw8_closed
