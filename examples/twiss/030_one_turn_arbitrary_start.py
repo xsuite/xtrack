@@ -78,4 +78,20 @@ for tw8 in [tw8_closed, tw8_open]:
             tw[ 'betx', ['ip8', 'ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7']],
             rtol=1e-5, atol=0)
 
-# TEST tw_part....
+tw_part = line.twiss(start='ip8', end='ip2', zero_at='ip1', init='full_periodic')
+
+assert tw_part.name[0] == 'ip8'
+assert tw_part.name[-2] == 'ip2'
+assert tw_part.name[-1] == '_end_point'
+
+for kk in ['s', 'mux', 'muy']:
+    tw_part[kk, 'ip1'] == 0.
+    assert np.all(np.diff(tw_part[kk]) >= 0)
+    xo.assert_allclose(
+        tw_part[kk, 'ip8'], -(tw[kk, '_end_point'] - tw[kk, 'ip8']),
+        rtol=1e-12, atol=5e-7)
+    xo.assert_allclose(
+        tw_part[kk, 'ip2'], tw[kk, 'ip2'] - tw[kk, 'ip1'],
+        rtol=1e-12, atol=5e-7)
+
+
