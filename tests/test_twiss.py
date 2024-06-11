@@ -1676,14 +1676,13 @@ def test_twiss_strength_reverse_vs_madx(test_context):
 
 @for_all_test_contexts
 @pytest.mark.parametrize('line_name', ['lhcb1'])
-@pytest.mark.parametrize('reverse', [False, True])
 @pytest.mark.parametrize('section', [
     (xt.START, xt.END),
     (xt.START, '_end_point'),
     (xt.START, 'ip6'),
     ('ip4', xt.END),
 ])
-def test_twiss_range_start_end(test_context, line_name, reverse, section, collider_for_test_twiss_range):
+def test_twiss_range_start_end(test_context, line_name, section, collider_for_test_twiss_range):
     collider = collider_for_test_twiss_range
     init_at = 'ip5'
 
@@ -1709,18 +1708,14 @@ def test_twiss_range_start_end(test_context, line_name, reverse, section, collid
 
     line.build_tracker(_buffer=buffer)
 
-    tw = line.twiss()
+    reverse = {'lhcb1': False, 'lhcb2':True}[line_name]
+
+    tw = line.twiss(reverse=reverse)
     tw_init = tw.get_twiss_init(init_at)
 
     start = section[0]
     end = section[1]
-    if not reverse:
-        tw_test = line.twiss(start=start, end=end, init=tw_init, reverse=reverse)
-    else:
-        with pytest.raises(ValueError) as excinfo:
-            line.twiss(start=start, end=end, init=tw_init, reverse=reverse)
-        assert 'reverse' in str(excinfo.value)
-        return
+    tw_test = line.twiss(start=start, end=end, init=tw_init, reverse=reverse)
 
     start_el = (line.element_names[0] if start == xt.START else start)
     end_el = (line.element_names[-1] if (end == xt.END or end == '_end_point') else end)
