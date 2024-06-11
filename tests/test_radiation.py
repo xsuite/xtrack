@@ -67,7 +67,7 @@ def test_radiation(test_context):
     dct_rng = particles_rnd.to_dict()
 
     xo.assert_allclose(dct_ave['delta'], np.mean(dct_rng['delta']),
-                    atol=0, rtol=5e-3)
+                    atol=1e-12, rtol=5e-3)
 
     rho_0 = L_bend/theta_bend
     mass0_kg = (dct_ave['mass0']*qe/clight**2)

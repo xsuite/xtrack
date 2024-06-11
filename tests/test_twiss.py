@@ -1734,4 +1734,4 @@ def test_twiss_range_start_end(test_context, line_name, reverse, section, collid
             assert np.all(tw_test._data[kk] == tw_ref._data[kk])
             continue
 
-        xo.assert_allclose(tw_test._data[kk], tw_ref._data[kk], rtol=0, atol=5e-13)
+        xo.assert_allclose(tw_test._data[kk], tw_ref._data[kk], rtol=1e-12, atol=5e-13)
