@@ -1779,3 +1779,59 @@ def test_arbitrary_start(test_context, collider_for_test_twiss_range):
                 tw8['betx', ['ip8', 'ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7']],
                 tw[ 'betx', ['ip8', 'ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7']],
                 rtol=1e-5, atol=0)
+
+@for_all_test_contexts
+def test_part_from_full_periodic(test_context, collider_for_test_twiss_range):
+
+    collider = collider_for_test_twiss_range
+
+    if collider.lhcb1.element_names[0] != 'ip1':
+        collider.lhcb1.cycle('ip1', inplace=True)
+    if collider.lhcb2.element_names[0] != 'ip1':
+        collider.lhcb2.cycle('ip1', inplace=True)
+
+    line = collider.lhcb2 # <- use lhcb2 to test the reverse option
+    assert line.twiss_default['method'] == '4d'
+    assert line.twiss_default['reverse']
+
+    if isinstance(test_context, xo.ContextCpu) and (
+        test_context.omp_num_threads != line._context.omp_num_threads):
+        buffer = test_context.new_buffer()
+    elif isinstance(test_context, line._context.__class__):
+        buffer = line._buffer
+    else:
+        buffer = test_context.new_buffer()
+
+    line.build_tracker(_buffer=buffer)
+
+    tw = line.twiss()
+
+    tw_part1 = line.twiss(start='ip8', end='ip2', zero_at='ip1', init='full_periodic')
+
+    assert tw_part1.name[0] == 'ip8'
+    assert tw_part1.name[-2] == 'ip2'
+    assert tw_part1.name[-1] == '_end_point'
+
+    for kk in ['s', 'mux', 'muy']:
+        tw_part1[kk, 'ip1'] == 0.
+        assert np.all(np.diff(tw_part1[kk]) >= 0)
+        xo.assert_allclose(
+            tw_part1[kk, 'ip8'], -(tw[kk, '_end_point'] - tw[kk, 'ip8']),
+            rtol=1e-12, atol=5e-7)
+        xo.assert_allclose(
+            tw_part1[kk, 'ip2'], tw[kk, 'ip2'] - tw[kk, 0],
+            rtol=1e-12, atol=5e-7)
+
+    tw_part2 = line.twiss(start='ip8', end='ip2', init='full_periodic')
+
+    assert tw_part2.name[0] == 'ip8'
+    assert tw_part2.name[-2] == 'ip2'
+    assert tw_part2.name[-1] == '_end_point'
+
+    for kk in ['s', 'mux', 'muy']:
+        tw_part2[kk, 'ip8'] == 0.
+        assert np.all(np.diff(tw_part2[kk]) >= 0)
+        xo.assert_allclose(
+            tw_part2[kk, 'ip2'],
+            tw[kk, 'ip2'] - tw[kk, 0] +(tw[kk, '_end_point'] - tw[kk, 'ip8']),
+            rtol=1e-12, atol=5e-7)

@@ -91,7 +91,7 @@ for kk in ['s', 'mux', 'muy']:
         tw_part1[kk, 'ip8'], -(tw[kk, '_end_point'] - tw[kk, 'ip8']),
         rtol=1e-12, atol=5e-7)
     xo.assert_allclose(
-        tw_part1[kk, 'ip2'], tw[kk, 'ip2'] - tw[kk, 'ip1'],
+        tw_part1[kk, 'ip2'], tw[kk, 'ip2'] - tw[kk, 0],
         rtol=1e-12, atol=5e-7)
 
 tw_part2 = line.twiss(start='ip8', end='ip2', init='full_periodic')
