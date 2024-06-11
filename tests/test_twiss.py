@@ -1736,6 +1736,10 @@ def test_arbitrary_start(test_context, collider_for_test_twiss_range):
 
     collider = collider_for_test_twiss_range
 
+    # No orbit
+    for kk in collider.vars.get_table().rows['on_.*'].name:
+        collider.vars[kk] = 0
+
     if collider.lhcb1.element_names[0] != 'ip1':
         collider.lhcb1.cycle('ip1', inplace=True)
     if collider.lhcb2.element_names[0] != 'ip1':
@@ -1774,6 +1778,8 @@ def test_arbitrary_start(test_context, collider_for_test_twiss_range):
                 tw8['betx', ['ip8', 'ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7']],
                 tw[ 'betx', ['ip8', 'ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7']],
                 rtol=1e-5, atol=0)
+
+    collider.to_json('ok.json')
 
 @for_all_test_contexts
 def test_part_from_full_periodic(test_context, collider_for_test_twiss_range):
