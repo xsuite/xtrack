@@ -79,8 +79,13 @@ def test_cycle(test_context):
         line.build_tracker(_context=test_context)
         line.particle_ref = particle_ref
 
-        cline_name = line.cycle(name_first_element='e2')
-        cline_index = line.cycle(index_first_element=2)
+        cline_name = line.copy()
+        cline_index = line.copy()
+        cline_name.build_tracker(_context=test_context)
+        cline_index.build_tracker(_context=test_context)
+
+        cline_name.cycle(name_first_element='e2')
+        cline_index.cycle(index_first_element=2)
 
         assert cline_name.tracker is not None
         assert cline_index.tracker is not None
@@ -91,14 +96,13 @@ def test_cycle(test_context):
             assert cline.element_names[2] == 'e0'
             assert cline.element_names[3] == 'e1'
 
-            assert cline.elements[0] is d1
-            assert cline.elements[1] is r0
-            assert cline.elements[2] is d0
-            assert cline.elements[3] is c0
+            assert isinstance(cline.elements[0], xt.Drift)
+            assert isinstance(cline.elements[1], xt.SRotation)
+            assert isinstance(cline.elements[2], xt.Drift)
+            assert isinstance(cline.elements[3], xt.Cavity)
 
             assert cline.particle_ref.mass0 == xp.PROTON_MASS_EV
             assert cline.particle_ref.gamma0 == 1.05
-
 
 @for_all_test_contexts
 def test_synrad_configuration(test_context):
