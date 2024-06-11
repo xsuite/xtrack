@@ -49,7 +49,7 @@ VARS_FOR_TWISS_INIT_GENERATION = [
 
 NORMAL_STRENGTHS_FROM_ATTR=['k0l', 'k1l', 'k2l', 'k3l', 'k4l', 'k5l']
 SKEW_STRENGTHS_FROM_ATTR=['k0sl', 'k1sl', 'k2sl', 'k3sl', 'k4sl', 'k5sl']
-OTHER_FIELDS_FROM_ATTR=['element_type', 'isthick', 'length', 'parent_name']
+OTHER_FIELDS_FROM_ATTR=['angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'element_type', 'isthick', 'length', 'parent_name']
 
 log = logging.getLogger(__name__)
 
@@ -316,9 +316,6 @@ def twiss_line(line, particle_ref=None, method=None,
     if only_markers:
         raise NotImplementedError('`only_markers` not supported anymore')
 
-    if only_orbit:
-        raise NotImplementedError # Tested only experimentally
-
     if isinstance(init, TwissInit):
         init = init.copy()
 
@@ -333,10 +330,26 @@ def twiss_line(line, particle_ref=None, method=None,
         assert reverse is False
 
     if start is not None:
-        assert isinstance(start, str) # index not supported anymore
+        if isinstance(start, xt.match._LOC):
+            if reverse:
+                raise ValueError('If reverse=True, `start` must be a name of'
+                                 'an element in the line.')
+            if start is not xt.START:
+                raise ValueError('The value of `start` must be an element name '
+                                 'or xt.START.')
+            start = line.element_names[0]
+        assert isinstance(start, str)  # index not supported anymore
 
     if end is not None:
-        assert isinstance(end, str) # index not supported anymore
+        if isinstance(end, xt.match._LOC):
+            if reverse:
+                raise ValueError('If reverse=True, `end` must be a name of'
+                                 'an element in the line.')
+            if end is not xt.END:
+                raise ValueError('The value of `end` must be an element name '
+                                 'or xt.END.')
+            end = line.element_names[-1]
+        assert isinstance(end, str)  # index not supported anymore
 
     if (init is not None and init != 'periodic'
         or betx is not None or bety is not None):
@@ -547,6 +560,7 @@ def twiss_line(line, particle_ref=None, method=None,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y, r_sigma=r_sigma,
             compute_R_element_by_element=compute_R_element_by_element,
             only_markers=only_markers,
+            only_orbit=only_orbit,
             )
     else:
         # force
@@ -624,7 +638,7 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res._data.update(scalars_chrom)
         twiss_res._col_names += list(cols_chrom.keys())
 
-    if eneloss_and_damping:
+    if eneloss_and_damping and not only_orbit:
         assert 'R_matrix' in twiss_res._data
         if radiation_method != 'full' or twiss_res._data['R_matrix_ebe'] is None:
             with xt.line._preserve_config(line):
@@ -694,7 +708,7 @@ def twiss_line(line, particle_ref=None, method=None,
         for kk in (NORMAL_STRENGTHS_FROM_ATTR + SKEW_STRENGTHS_FROM_ATTR
                    + OTHER_FIELDS_FROM_ATTR):
             twiss_res._col_names.append(kk)
-            twiss_res._data[kk] = tt[kk]
+            twiss_res._data[kk] = tt[kk].copy()
 
     twiss_res._data['method'] = method
     twiss_res._data['radiation_method'] = radiation_method
@@ -888,11 +902,11 @@ def _twiss_open(line, init,
     delta_co = np.array(line.record_last_track.delta[0, i_start:i_stop+1].copy())
     ptau_co = np.array(line.record_last_track.ptau[0, i_start:i_stop+1].copy())
     s_co = line.record_last_track.s[0, i_start:i_stop+1].copy()
-    ax_co = line.record_last_track.ax[0, i_start:i_stop+1].copy()
-    ay_co = line.record_last_track.ay[0, i_start:i_stop+1].copy()
-    pz_co = np.sqrt((1 + delta_co)**2 - (px_co - ax_co)**2 - (py_co - ay_co)**2)
-    x_prime_co = (px_co - ax_co) / pz_co
-    y_prime_co = (py_co - ay_co) / pz_co
+    kin_px_co = line.record_last_track.kin_px[0, i_start:i_stop+1].copy()
+    kin_py_co = line.record_last_track.kin_py[0, i_start:i_stop+1].copy()
+    kin_ps_co = line.record_last_track.kin_ps[0, i_start:i_stop+1].copy()
+    kin_xprime_co = line.record_last_track.kin_xprime[0, i_start:i_stop+1].copy()
+    kin_yprime_co = line.record_last_track.kin_yprime[0, i_start:i_stop+1].copy()
 
     Ws = np.zeros(shape=(len(s_co), 6, 6), dtype=np.float64)
     Ws[:, 0, :] = 0.5 * (line.record_last_track.x[1:7, i_start:i_stop+1] - x_co).T / scale_eigen
@@ -934,10 +948,11 @@ def _twiss_open(line, init,
         'delta': delta_co,
         'ptau': ptau_co,
         'W_matrix': Ws,
-        'x_prime': x_prime_co,
-        'y_prime': y_prime_co,
-        'ax': ax_co,
-        'ay': ay_co,
+        'kin_px': kin_px_co,
+        'kin_py': kin_py_co,
+        'kin_ps': kin_ps_co,
+        'kin_xprime': kin_xprime_co,
+        'kin_yprime': kin_yprime_co,
     })
 
     if not only_orbit and compute_lattice_functions:
@@ -1671,10 +1686,12 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             search_for_t_rev=False,
                             num_turns_search_t_rev=1,
                             compute_R_element_by_element=False,
-                            only_markers=False):
+                            only_markers=False,
+                            only_orbit=False):
 
     eigenvalues = None
     Rot = None
+    RR_ebe = None
 
     if start is not None or end is not None:
         assert start is not None and end is not None, (
@@ -1705,6 +1722,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                 search_for_t_rev=search_for_t_rev,
                                 num_turns_search_t_rev=num_turns_search_t_rev,
                                 )
+    if only_orbit:
+        W_matrix = np.eye(6)
 
     if W_matrix is not None:
         W = W_matrix
@@ -1876,10 +1895,12 @@ def _handle_loop_around(kwargs):
     tw_res = TwissTable.concatenate([tw1, tw2])
 
     tw_res.s -= tw_res['s', ele_name_init] - init.s
-    tw_res.mux -= tw_res['mux', ele_name_init] - init.mux
-    tw_res.muy -= tw_res['muy', ele_name_init] - init.muy
-    tw_res.muzeta -= tw_res['muzeta', ele_name_init] - init.muzeta
-    tw_res.dzeta -= tw_res['dzeta', ele_name_init] - init.dzeta
+
+    if 'mux' in tw_res.keys():
+        tw_res.mux -= tw_res['mux', ele_name_init] - init.mux
+        tw_res.muy -= tw_res['muy', ele_name_init] - init.muy
+        tw_res.muzeta -= tw_res['muzeta', ele_name_init] - init.muzeta
+        tw_res.dzeta -= tw_res['dzeta', ele_name_init] - init.dzeta
 
     # Not yet supported
     if 'dmux' in tw_res.keys():
@@ -2113,7 +2134,7 @@ def _one_turn_map(p, particle_ref, line, delta_zeta, start, end, num_turns):
     line.track(part, ele_start=start, ele_stop=end, num_turns=num_turns)
     if part.state[0] < 0:
         raise ClosedOrbitSearchError(
-            f'Particle lost in one-turn map, p.state = {part.state[0]}')
+            f'Particle lost, p.state = {part.state[0]}')
     p_res = np.array([
            part._xobject.x[0],
            part._xobject.px[0],
@@ -2758,12 +2779,20 @@ class TwissTable(Table):
             ddy = None
             ddpy = None
 
+        if 'mux' in self.keys():
+            mux = self.mux[at_element]
+            muy = self.muy[at_element]
+            muzeta = self.muzeta[at_element]
+            dzeta = self.dzeta[at_element]
+        else:
+            mux = 0
+            muy = 0
+            muzeta = 0
+            dzeta = 0
+
         return TwissInit(particle_on_co=part, W_matrix=W,
                         element_name=str(self.name[at_element]),
-                        mux=self.mux[at_element],
-                        muy=self.muy[at_element],
-                        muzeta=self.muzeta[at_element],
-                        dzeta=self.dzeta[at_element],
+                        mux=mux, muy=muy, muzeta=muzeta, dzeta=dzeta,
                         ax_chrom=ax_chrom, bx_chrom=bx_chrom,
                         ay_chrom=ay_chrom, by_chrom=by_chrom,
                         ddx=ddx, ddpx=ddpx, ddy=ddy, ddpy=ddpy,
@@ -2822,6 +2851,76 @@ class TwissTable(Table):
         res = _build_sigma_table(Sigma=Sigma, s=self.s, name=self.name)
 
         return Table(res)
+
+    def get_ibs_growth_rates(
+        self,
+        formalism: str,
+        total_beam_intensity: int = None,
+        gemitt_x: float = None,
+        nemitt_x: float = None,
+        gemitt_y: float = None,
+        nemitt_y: float = None,
+        sigma_delta: float = None,
+        bunch_length: float = None,
+        bunched: bool = True,
+        particles: xt.Particles = None,
+        **kwargs,
+    ):
+        """
+        Computes IntraBeam Scattering growth rates.
+
+        Parameters
+        ----------
+        line : xtrack.Line
+            Line in which the IBS kick element will be installed.
+        formalism : str
+            Which formalism to use for the computation. Can be ``Nagaitsev``
+            or ``Bjorken-Mtingwa`` (also accepts ``B&M``), case-insensitively.
+        total_beam_intensity : int, optional
+            The beam intensity. Required if `particles` is not provided.
+        gemitt_x : float, optional
+            Horizontal geometric emittance in [m]. If `particles` is not
+            provided, either this parameter or `nemitt_x` is required.
+        nemitt_x : float, optional
+            Horizontal normalized emittance in [m]. If `particles` is not
+            provided, either this parameter or `gemitt_x` is required.
+        gemitt_y : float, optional
+            Vertical geometric emittance in [m]. If `particles` is not
+            provided, either this parameter or `nemitt_y` is required.
+        nemitt_y : float, optional
+            Vertical normalized emittance in [m]. If `particles` is not
+            provided, either this parameter or `gemitt_y` is required.
+        sigma_delta : float, optional
+            The momentum spread. Required if `particles` is not provided.
+        bunch_length : float, optional
+            The bunch length in [m]. Required if `particles` is not provided.
+        bunched : bool, optional
+            Whether the beam is bunched or not (coasting). Defaults to `True`.
+            Required if `particles` is not provided.
+        particles : xtrack.Particles
+            The particles to circulate in the line. If provided the emittances,
+            momentum spread and bunch length will be computed from the particles.
+            Otherwise explicit values must be provided (see above parameters).
+        **kwargs : dict
+            Keyword arguments are passed to the growth rates computation method of
+            the chosen IBS formalism implementation. See the IBS details from the
+            `xfields` package directly.
+
+        Returns
+        -------
+        IBSGrowthRates
+            An ``IBSGrowthRates`` object with the computed growth rates.
+        """
+        try:
+            from xfields.ibs import get_intrabeam_scattering_growth_rates
+        except ImportError:
+            raise ImportError("Please install xfields to use this feature.")
+        return get_intrabeam_scattering_growth_rates(
+            self, formalism, total_beam_intensity,
+            gemitt_x, nemitt_x, gemitt_y, nemitt_y,
+            sigma_delta, bunch_length, bunched,
+            particles, **kwargs,
+        )
 
     def get_R_matrix(self, start, end):
 
@@ -2978,6 +3077,12 @@ class TwissTable(Table):
         out.delta = out.delta
         out.ptau = out.ptau
 
+        if 'kin_px' in out:
+            out.kin_px = out.kin_px
+            out.kin_py = -out.kin_py
+            out.kin_xprime = out.kin_xprime
+            out.kin_yprime = -out.kin_yprime
+
         if 'betx' in out:
             # if optics calculation is not skipped
             out.betx = out.betx
@@ -3128,13 +3233,41 @@ class TwissTable(Table):
                               action=self._action, **kwargs)
         return tarset
 
-    def plot(self,yl='betx bety',yr='dx dy',x='s',
+    def plot(self,yl="",yr="",x='s',
             lattice=True,
             mask=None,
             labels=None,
             clist="k r b g c m",
             ax=None,
             figlabel=None):
+        """
+        Plot columns of the TwissTable
+
+        Parameters:
+        -----------
+        yl: str
+            space separated columns or expressions to plot on the left y-axis
+        yr: str
+            space separated columns or expressions to plot on the right y-axis
+        x: str
+            column to plot on the x-axis
+        lattice: bool
+            if True, the lattice is plotted
+        mask: slice
+            mask to select the elements to plot
+        labels: str
+            mask to select the elements to label
+        clist: str
+            colors to use
+        ax: matplotlib axis
+            axis to plot on
+        figlabel: str
+            label to use for the figure
+        """
+
+        if yl=="" and yr=="":
+            yl='betx bety'
+            yr='dx dy'
 
         if 'length' not in self.keys():
             lattice=False

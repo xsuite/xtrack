@@ -1,7 +1,9 @@
-import pathlib
 import json
+import pathlib
+
 import numpy as np
 
+import xobjects as xo
 import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
 
@@ -49,20 +51,20 @@ def test_match_orbit_bump(test_context):
 
     tw = line.twiss()
 
-    assert np.isclose(tw['y', 'mb.b28l8.b1'], 3e-3, atol=1e-4)
-    assert np.isclose(tw['py', 'mb.b28l8.b1'], 0, atol=1e-6)
-    assert np.isclose(tw['y', 'mq.23l8.b1'], tw_before['y', 'mq.23l8.b1'], atol=1e-6)
-    assert np.isclose(tw['py', 'mq.23l8.b1'], tw_before['py', 'mq.23l8.b1'], atol=1e-7)
-    assert np.isclose(tw['y', 'mq.33l8.b1'], tw_before['y', 'mq.33l8.b1'], atol=1e-6)
-    assert np.isclose(tw['py', 'mq.33l8.b1'], tw_before['py', 'mq.33l8.b1'], atol=1e-7)
+    xo.assert_allclose(tw['y', 'mb.b28l8.b1'], 3e-3, atol=1e-4)
+    xo.assert_allclose(tw['py', 'mb.b28l8.b1'], 0, atol=1e-6)
+    xo.assert_allclose(tw['y', 'mq.23l8.b1'], tw_before['y', 'mq.23l8.b1'], atol=1e-6)
+    xo.assert_allclose(tw['py', 'mq.23l8.b1'], tw_before['py', 'mq.23l8.b1'], atol=1e-7)
+    xo.assert_allclose(tw['y', 'mq.33l8.b1'], tw_before['y', 'mq.33l8.b1'], atol=1e-6)
+    xo.assert_allclose(tw['py', 'mq.33l8.b1'], tw_before['py', 'mq.33l8.b1'], atol=1e-7)
 
     # There is a bit of leakage in the horizontal plane (due to feed-down from sextupoles)
-    assert np.isclose(tw['x', 'mb.b28l8.b1'], tw_before['x', 'mb.b28l8.b1'], atol=100e-6)
-    assert np.isclose(tw['px', 'mb.b28l8.b1'], tw_before['px', 'mb.b28l8.b1'], atol=100e-7)
-    assert np.isclose(tw['x', 'mq.23l8.b1'], tw_before['x', 'mq.23l8.b1'], atol=100e-6)
-    assert np.isclose(tw['px', 'mq.23l8.b1'], tw_before['px', 'mq.23l8.b1'], atol=100e-7)
-    assert np.isclose(tw['x', 'mq.33l8.b1'], tw_before['x', 'mq.33l8.b1'], atol=100e-6)
-    assert np.isclose(tw['px', 'mq.33l8.b1'], tw_before['px', 'mq.33l8.b1'], atol=100e-7)
+    xo.assert_allclose(tw['x', 'mb.b28l8.b1'], tw_before['x', 'mb.b28l8.b1'], atol=100e-6)
+    xo.assert_allclose(tw['px', 'mb.b28l8.b1'], tw_before['px', 'mb.b28l8.b1'], atol=100e-7)
+    xo.assert_allclose(tw['x', 'mq.23l8.b1'], tw_before['x', 'mq.23l8.b1'], atol=100e-6)
+    xo.assert_allclose(tw['px', 'mq.23l8.b1'], tw_before['px', 'mq.23l8.b1'], atol=100e-7)
+    xo.assert_allclose(tw['x', 'mq.33l8.b1'], tw_before['x', 'mq.33l8.b1'], atol=100e-6)
+    xo.assert_allclose(tw['px', 'mq.33l8.b1'], tw_before['px', 'mq.33l8.b1'], atol=100e-7)
 
     # Now I match the bump including the horizontal plane
     # I start from scratch
@@ -104,20 +106,20 @@ def test_match_orbit_bump(test_context):
     assert isinstance(opt.actions[0].kwargs['_initial_particles'], xt.Particles)
 
     tw = line.twiss()
-    assert np.isclose(tw['y', 'mb.b28l8.b1'], 3e-3, atol=1e-4)
-    assert np.isclose(tw['py', 'mb.b28l8.b1'], 0, atol=1e-6)
-    assert np.isclose(tw['y', 'mq.23l8.b1'], tw_before['y', 'mq.23l8.b1'], atol=1e-6)
-    assert np.isclose(tw['py', 'mq.23l8.b1'], tw_before['py', 'mq.23l8.b1'], atol=1e-7)
-    assert np.isclose(tw['y', 'mq.33l8.b1'], tw_before['y', 'mq.33l8.b1'], atol=1e-6)
-    assert np.isclose(tw['py', 'mq.33l8.b1'], tw_before['py', 'mq.33l8.b1'], atol=1e-7)
+    xo.assert_allclose(tw['y', 'mb.b28l8.b1'], 3e-3, atol=1e-4)
+    xo.assert_allclose(tw['py', 'mb.b28l8.b1'], 0, atol=1e-6)
+    xo.assert_allclose(tw['y', 'mq.23l8.b1'], tw_before['y', 'mq.23l8.b1'], atol=1e-6)
+    xo.assert_allclose(tw['py', 'mq.23l8.b1'], tw_before['py', 'mq.23l8.b1'], atol=1e-7)
+    xo.assert_allclose(tw['y', 'mq.33l8.b1'], tw_before['y', 'mq.33l8.b1'], atol=1e-6)
+    xo.assert_allclose(tw['py', 'mq.33l8.b1'], tw_before['py', 'mq.33l8.b1'], atol=1e-7)
 
     # There is a bit of leakage in the horizontal plane (due to feed-down from sextupoles)
-    assert np.isclose(tw['x', 'mb.b28l8.b1'], tw_before['x', 'mb.b28l8.b1'], atol=50e-6)
-    assert np.isclose(tw['px', 'mb.b28l8.b1'], tw_before['px', 'mb.b28l8.b1'], atol=2e-6)
-    assert np.isclose(tw['x', 'mq.23l8.b1'], tw_before['x', 'mq.23l8.b1'], atol=1e-6)
-    assert np.isclose(tw['px', 'mq.23l8.b1'], tw_before['px', 'mq.23l8.b1'], atol=1e-7)
-    assert np.isclose(tw['x', 'mq.33l8.b1'], tw_before['x', 'mq.33l8.b1'], atol=1e-6)
-    assert np.isclose(tw['px', 'mq.33l8.b1'], tw_before['px', 'mq.33l8.b1'], atol=1e-7)
+    xo.assert_allclose(tw['x', 'mb.b28l8.b1'], tw_before['x', 'mb.b28l8.b1'], atol=50e-6)
+    xo.assert_allclose(tw['px', 'mb.b28l8.b1'], tw_before['px', 'mb.b28l8.b1'], atol=2e-6)
+    xo.assert_allclose(tw['x', 'mq.23l8.b1'], tw_before['x', 'mq.23l8.b1'], atol=1e-6)
+    xo.assert_allclose(tw['px', 'mq.23l8.b1'], tw_before['px', 'mq.23l8.b1'], atol=1e-7)
+    xo.assert_allclose(tw['x', 'mq.33l8.b1'], tw_before['x', 'mq.33l8.b1'], atol=1e-6)
+    xo.assert_allclose(tw['px', 'mq.33l8.b1'], tw_before['px', 'mq.33l8.b1'], atol=1e-7)
 
     # Same match but with init provided through a kwargs
     # I start from scratch
@@ -163,20 +165,20 @@ def test_match_orbit_bump(test_context):
     assert isinstance(opt.actions[0].kwargs['_initial_particles'], xt.Particles)
 
     tw = line.twiss()
-    assert np.isclose(tw['y', 'mb.b28l8.b1'], 3e-3, atol=1e-4)
-    assert np.isclose(tw['py', 'mb.b28l8.b1'], 0, atol=1e-6)
-    assert np.isclose(tw['y', 'mq.23l8.b1'], tw_before['y', 'mq.23l8.b1'], atol=1e-6)
-    assert np.isclose(tw['py', 'mq.23l8.b1'], tw_before['py', 'mq.23l8.b1'], atol=1e-7)
-    assert np.isclose(tw['y', 'mq.33l8.b1'], tw_before['y', 'mq.33l8.b1'], atol=1e-6)
-    assert np.isclose(tw['py', 'mq.33l8.b1'], tw_before['py', 'mq.33l8.b1'], atol=1e-7)
+    xo.assert_allclose(tw['y', 'mb.b28l8.b1'], 3e-3, atol=1e-4)
+    xo.assert_allclose(tw['py', 'mb.b28l8.b1'], 0, atol=1e-6)
+    xo.assert_allclose(tw['y', 'mq.23l8.b1'], tw_before['y', 'mq.23l8.b1'], atol=1e-6)
+    xo.assert_allclose(tw['py', 'mq.23l8.b1'], tw_before['py', 'mq.23l8.b1'], atol=1e-7)
+    xo.assert_allclose(tw['y', 'mq.33l8.b1'], tw_before['y', 'mq.33l8.b1'], atol=1e-6)
+    xo.assert_allclose(tw['py', 'mq.33l8.b1'], tw_before['py', 'mq.33l8.b1'], atol=1e-7)
 
     # There is a bit of leakage in the horizontal plane (due to feed-down from sextupoles)
-    assert np.isclose(tw['x', 'mb.b28l8.b1'], tw_before['x', 'mb.b28l8.b1'], atol=50e-6)
-    assert np.isclose(tw['px', 'mb.b28l8.b1'], tw_before['px', 'mb.b28l8.b1'], atol=2e-6)
-    assert np.isclose(tw['x', 'mq.23l8.b1'], tw_before['x', 'mq.23l8.b1'], atol=1e-6)
-    assert np.isclose(tw['px', 'mq.23l8.b1'], tw_before['px', 'mq.23l8.b1'], atol=1e-7)
-    assert np.isclose(tw['x', 'mq.33l8.b1'], tw_before['x', 'mq.33l8.b1'], atol=1e-6)
-    assert np.isclose(tw['px', 'mq.33l8.b1'], tw_before['px', 'mq.33l8.b1'], atol=1e-7)
+    xo.assert_allclose(tw['x', 'mb.b28l8.b1'], tw_before['x', 'mb.b28l8.b1'], atol=50e-6)
+    xo.assert_allclose(tw['px', 'mb.b28l8.b1'], tw_before['px', 'mb.b28l8.b1'], atol=2e-6)
+    xo.assert_allclose(tw['x', 'mq.23l8.b1'], tw_before['x', 'mq.23l8.b1'], atol=1e-6)
+    xo.assert_allclose(tw['px', 'mq.23l8.b1'], tw_before['px', 'mq.23l8.b1'], atol=1e-7)
+    xo.assert_allclose(tw['x', 'mq.33l8.b1'], tw_before['x', 'mq.33l8.b1'], atol=1e-6)
+    xo.assert_allclose(tw['px', 'mq.33l8.b1'], tw_before['px', 'mq.33l8.b1'], atol=1e-7)
 
 def test_match_orbit_bump_with_weights():
 
@@ -226,16 +228,16 @@ def test_match_orbit_bump_with_weights():
 
         tw = line.twiss()
 
-        assert np.isclose(tw['y', 'mq.33l8.b1'], 0, atol=1e-6, rtol=0)
-        assert np.isclose(tw['y', 'mq.17l8.b1'], 0, atol=1e-6, rtol=0)
-        assert np.isclose(tw['py', 'mq.17l8.b1'], 0, atol=1e-8, rtol=0)
-        assert np.isclose(tw['py', 'mq.33l8.b1'], 0, atol=1e-6, rtol=0)
+        xo.assert_allclose(tw['y', 'mq.33l8.b1'], 0, atol=1e-6, rtol=0)
+        xo.assert_allclose(tw['y', 'mq.17l8.b1'], 0, atol=1e-6, rtol=0)
+        xo.assert_allclose(tw['py', 'mq.17l8.b1'], 0, atol=1e-8, rtol=0)
+        xo.assert_allclose(tw['py', 'mq.33l8.b1'], 0, atol=1e-6, rtol=0)
 
-        assert np.isclose(tw['y', 'mb.b26l8.b1'], 3e-3, atol=1e-6, rtol=0)
-        assert np.isclose(tw['py', 'mb.b26l8.b1'], 0, atol=1e-8, rtol=0)
+        xo.assert_allclose(tw['y', 'mb.b26l8.b1'], 3e-3, atol=1e-6, rtol=0)
+        xo.assert_allclose(tw['py', 'mb.b26l8.b1'], 0, atol=1e-8, rtol=0)
 
-        assert np.isclose(tw['y', 'mq.30l8.b1'], -1e-3, atol=1e-6, rtol=0)
-        assert np.isclose(line.vars['acbv22.l8b1']._value, 38e-6, atol=0, rtol=0.02)
+        xo.assert_allclose(tw['y', 'mq.30l8.b1'], -1e-3, atol=1e-6, rtol=0)
+        xo.assert_allclose(line.vars['acbv22.l8b1']._value, 38e-6, atol=0, rtol=0.02)
 
         # Extract last twiss done by optimizer
         last_data = opt._err._last_data
@@ -306,12 +308,12 @@ def test_match_orbit_bump_within_multiline(test_context):
     tw_after_collider = collider.twiss()
     tw = tw_after_collider.lhcb1
 
-    assert np.isclose(tw['y', 'mb.b28l8.b1'], 3e-3, atol=1e-4)
-    assert np.isclose(tw['py', 'mb.b28l8.b1'], 0, atol=1e-6)
-    assert np.isclose(tw['y', 'mq.23l8.b1'], tw_before['y', 'mq.23l8.b1'], atol=1e-6)
-    assert np.isclose(tw['py', 'mq.23l8.b1'], tw_before['py', 'mq.23l8.b1'], atol=1e-7)
-    assert np.isclose(tw['y', 'mq.33l8.b1'], tw_before['y', 'mq.33l8.b1'], atol=1e-6)
-    assert np.isclose(tw['py', 'mq.33l8.b1'], tw_before['py', 'mq.33l8.b1'], atol=1e-7)
+    xo.assert_allclose(tw['y', 'mb.b28l8.b1'], 3e-3, atol=1e-4)
+    xo.assert_allclose(tw['py', 'mb.b28l8.b1'], 0, atol=1e-6)
+    xo.assert_allclose(tw['y', 'mq.23l8.b1'], tw_before['y', 'mq.23l8.b1'], atol=1e-6)
+    xo.assert_allclose(tw['py', 'mq.23l8.b1'], tw_before['py', 'mq.23l8.b1'], atol=1e-7)
+    xo.assert_allclose(tw['y', 'mq.33l8.b1'], tw_before['y', 'mq.33l8.b1'], atol=1e-6)
+    xo.assert_allclose(tw['py', 'mq.33l8.b1'], tw_before['py', 'mq.33l8.b1'], atol=1e-7)
 
 @for_all_test_contexts
 def test_bump_step_and_smooth_inequalities(test_context):
@@ -389,8 +391,8 @@ def test_bump_step_and_smooth_inequalities(test_context):
     assert tw['y', 'mb.b26l8.b1'] > 2.7e-3
     assert tw['y', 'mb.b25l8.b1'] > 2.7e-3
     assert tw['y', 'mq.24l8.b1'] < 3e-3 + 1e-6
-    assert np.isclose(tw['y', 'mq.17l8.b1'], tw_before['y', 'mq.17l8.b1'], rtol=0, atol=1e-7)
-    assert np.isclose(tw['py', 'mq.17l8.b1'], tw_before['py', 'mq.17l8.b1'], rtol=0, atol=1e-9)
+    xo.assert_allclose(tw['y', 'mq.17l8.b1'], tw_before['y', 'mq.17l8.b1'], rtol=0, atol=1e-7)
+    xo.assert_allclose(tw['py', 'mq.17l8.b1'], tw_before['py', 'mq.17l8.b1'], rtol=0, atol=1e-9)
 
     assert isinstance(opt.targets[0].value, xt.GreaterThan)
     assert isinstance(opt.targets[1].value, xt.GreaterThan)
@@ -479,8 +481,8 @@ def test_bump_step_and_smooth_inequalities(test_context):
     assert tw['y', 'mb.b25l8.b1'] > 2.7e-3 - 3e-6
     assert tw['y', 'mq.24l8.b1'] < 3e-3 + 3e-6
     assert tw['y', 'mq.26l8.b1'] < 6e-3 + 3e-6
-    assert np.isclose(tw['y', 'mq.17l8.b1'], tw_before['y', 'mq.17l8.b1'], rtol=0, atol=1e-7)
-    assert np.isclose(tw['py', 'mq.17l8.b1'], tw_before['py', 'mq.17l8.b1'], rtol=0, atol=1e-9)
+    xo.assert_allclose(tw['y', 'mq.17l8.b1'], tw_before['y', 'mq.17l8.b1'], rtol=0, atol=1e-7)
+    xo.assert_allclose(tw['py', 'mq.17l8.b1'], tw_before['py', 'mq.17l8.b1'], rtol=0, atol=1e-9)
 
     assert isinstance(opt.targets[0].value, xt.GreaterThan)
     assert isinstance(opt.targets[1].value, xt.GreaterThan)
@@ -502,10 +504,10 @@ def test_bump_step_and_smooth_inequalities(test_context):
     assert opt.targets[2].value.upper == 3e-3
     assert opt.targets[3].value.upper == 6e-3
 
-    assert np.isclose(opt.targets[0].value.sigma, 0.05 * 2.7e-3, atol=0, rtol=1e-10)
-    assert np.isclose(opt.targets[1].value.sigma, 0.01 * 2.7e-3, atol=0, rtol=1e-10)
-    assert np.isclose(opt.targets[2].value.sigma, 0.04 * 3e-3, atol=0, rtol=1e-10)
-    assert np.isclose(opt.targets[3].value.sigma, 0.01 * 6e-3, atol=0, rtol=1e-10)
+    xo.assert_allclose(opt.targets[0].value.sigma, 0.05 * 2.7e-3, atol=0, rtol=1e-10)
+    xo.assert_allclose(opt.targets[1].value.sigma, 0.01 * 2.7e-3, atol=0, rtol=1e-10)
+    xo.assert_allclose(opt.targets[2].value.sigma, 0.04 * 3e-3, atol=0, rtol=1e-10)
+    xo.assert_allclose(opt.targets[3].value.sigma, 0.01 * 6e-3, atol=0, rtol=1e-10)
 
     x_cut_norm = 1/16 + np.sqrt(33)/16
     poly = lambda x: 3 * x**3 - 2 * x**4
@@ -529,11 +531,11 @@ def test_bump_step_and_smooth_inequalities(test_context):
     mask_zero_gt = x_minus_edge_gt > 0
     assert np.all(residue_gt[mask_zero_gt] == 0)
     mask_linear_gt = x_minus_edge_gt < x_cut_gt
-    assert np.allclose(residue_gt[mask_linear_gt],
+    xo.assert_allclose(residue_gt[mask_linear_gt],
         -x_minus_edge_gt[mask_linear_gt] - x_cut_norm * sigma_gt + sigma_gt*poly(x_cut_norm),
         atol=0, rtol=1e-10)
     mask_poly_gt = (~mask_zero_gt) & (~mask_linear_gt)
-    assert np.allclose(residue_gt[mask_poly_gt],
+    xo.assert_allclose(residue_gt[mask_poly_gt],
         sigma_gt * poly(-x_minus_edge_gt[mask_poly_gt]/sigma_gt),
         atol=0, rtol=1e-10)
 
@@ -556,11 +558,11 @@ def test_bump_step_and_smooth_inequalities(test_context):
     mask_zero_lt = x_minus_edge_lt < 0
     assert np.all(residue_lt[mask_zero_lt] == 0)
     mask_linear_lt = x_minus_edge_lt > x_cut_lt
-    assert np.allclose(residue_lt[mask_linear_lt],
+    xo.assert_allclose(residue_lt[mask_linear_lt],
         x_minus_edge_lt[mask_linear_lt] - x_cut_norm * sigma_lt + sigma_lt*poly(x_cut_norm),
         atol=0, rtol=1e-10)
     mask_poly_lt = (~mask_zero_lt) & (~mask_linear_lt)
-    assert np.allclose(residue_lt[mask_poly_lt],
+    xo.assert_allclose(residue_lt[mask_poly_lt],
         sigma_lt * poly(x_minus_edge_lt[mask_poly_lt]/sigma_lt),
         atol=0, rtol=1e-10)
 
@@ -588,16 +590,16 @@ def test_match_bump_sets_implicit_end(test_context):
     opt.tag(tag='matched')
     opt.reload(0)
     tw_before = line.twiss(method='4d')
-    assert np.isclose(tw_before['y', 'mb.b28l8.b1'], 0, atol=1e-4)
+    xo.assert_allclose(tw_before['y', 'mb.b28l8.b1'], 0, atol=1e-4)
     opt.reload(tag='matched')
     tw = line.twiss(method='4d')
 
-    assert np.isclose(tw['y', 'mb.b28l8.b1'], 3e-3, atol=1e-4)
-    assert np.isclose(tw['py', 'mb.b28l8.b1'], 0, atol=1e-6)
-    assert np.isclose(tw['y', 'mq.23l8.b1'], tw_before['y', 'mq.23l8.b1'], atol=1e-6)
-    assert np.isclose(tw['py', 'mq.23l8.b1'], tw_before['py', 'mq.23l8.b1'], atol=1e-7)
-    assert np.isclose(tw['y', 'mq.33l8.b1'], tw_before['y', 'mq.33l8.b1'], atol=1e-6)
-    assert np.isclose(tw['py', 'mq.33l8.b1'], tw_before['py', 'mq.33l8.b1'], atol=1e-7)
+    xo.assert_allclose(tw['y', 'mb.b28l8.b1'], 3e-3, atol=1e-4)
+    xo.assert_allclose(tw['py', 'mb.b28l8.b1'], 0, atol=1e-6)
+    xo.assert_allclose(tw['y', 'mq.23l8.b1'], tw_before['y', 'mq.23l8.b1'], atol=1e-6)
+    xo.assert_allclose(tw['py', 'mq.23l8.b1'], tw_before['py', 'mq.23l8.b1'], atol=1e-7)
+    xo.assert_allclose(tw['y', 'mq.33l8.b1'], tw_before['y', 'mq.33l8.b1'], atol=1e-6)
+    xo.assert_allclose(tw['py', 'mq.33l8.b1'], tw_before['py', 'mq.33l8.b1'], atol=1e-7)
 
 @for_all_test_contexts
 def test_match_bump_sets_init_end(test_context):
@@ -623,16 +625,16 @@ def test_match_bump_sets_init_end(test_context):
     opt.tag(tag='matched')
     opt.reload(0)
     tw_before = line.twiss(method='4d')
-    assert np.isclose(tw_before['y', 'mb.b28l8.b1'], 0, atol=1e-4)
+    xo.assert_allclose(tw_before['y', 'mb.b28l8.b1'], 0, atol=1e-4)
     opt.reload(tag='matched')
     tw = line.twiss(method='4d')
 
-    assert np.isclose(tw['y', 'mb.b28l8.b1'], 3e-3, atol=1e-4)
-    assert np.isclose(tw['py', 'mb.b28l8.b1'], 0, atol=1e-6)
-    assert np.isclose(tw['y', 'mq.23l8.b1'], tw_before['y', 'mq.23l8.b1'], atol=1e-6)
-    assert np.isclose(tw['py', 'mq.23l8.b1'], tw_before['py', 'mq.23l8.b1'], atol=1e-7)
-    assert np.isclose(tw['y', 'mq.33l8.b1'], tw_before['y', 'mq.33l8.b1'], atol=1e-6)
-    assert np.isclose(tw['py', 'mq.33l8.b1'], tw_before['py', 'mq.33l8.b1'], atol=1e-7)
+    xo.assert_allclose(tw['y', 'mb.b28l8.b1'], 3e-3, atol=1e-4)
+    xo.assert_allclose(tw['py', 'mb.b28l8.b1'], 0, atol=1e-6)
+    xo.assert_allclose(tw['y', 'mq.23l8.b1'], tw_before['y', 'mq.23l8.b1'], atol=1e-6)
+    xo.assert_allclose(tw['py', 'mq.23l8.b1'], tw_before['py', 'mq.23l8.b1'], atol=1e-7)
+    xo.assert_allclose(tw['y', 'mq.33l8.b1'], tw_before['y', 'mq.33l8.b1'], atol=1e-6)
+    xo.assert_allclose(tw['py', 'mq.33l8.b1'], tw_before['py', 'mq.33l8.b1'], atol=1e-7)
 
 @for_all_test_contexts
 def test_match_bump_sets_init_middle(test_context):
@@ -658,16 +660,16 @@ def test_match_bump_sets_init_middle(test_context):
     opt.tag(tag='matched')
     opt.reload(0)
     tw_before = line.twiss(method='4d')
-    assert np.isclose(tw_before['y', 'mb.b28l8.b1'], 0, atol=1e-4)
+    xo.assert_allclose(tw_before['y', 'mb.b28l8.b1'], 0, atol=1e-4)
     opt.reload(tag='matched')
     tw = line.twiss(method='4d')
 
-    assert np.isclose(tw['y', 'mb.b28l8.b1'], 3e-3, atol=1e-4)
-    assert np.isclose(tw['py', 'mb.b28l8.b1'], 0, atol=1e-6)
-    assert np.isclose(tw['y', 'mq.23l8.b1'], tw_before['y', 'mq.23l8.b1'], atol=1e-6)
-    assert np.isclose(tw['py', 'mq.23l8.b1'], tw_before['py', 'mq.23l8.b1'], atol=1e-7)
-    assert np.isclose(tw['y', 'mq.33l8.b1'], tw_before['y', 'mq.33l8.b1'], atol=1e-6)
-    assert np.isclose(tw['py', 'mq.33l8.b1'], tw_before['py', 'mq.33l8.b1'], atol=1e-7)
+    xo.assert_allclose(tw['y', 'mb.b28l8.b1'], 3e-3, atol=1e-4)
+    xo.assert_allclose(tw['py', 'mb.b28l8.b1'], 0, atol=1e-6)
+    xo.assert_allclose(tw['y', 'mq.23l8.b1'], tw_before['y', 'mq.23l8.b1'], atol=1e-6)
+    xo.assert_allclose(tw['py', 'mq.23l8.b1'], tw_before['py', 'mq.23l8.b1'], atol=1e-7)
+    xo.assert_allclose(tw['y', 'mq.33l8.b1'], tw_before['y', 'mq.33l8.b1'], atol=1e-6)
+    xo.assert_allclose(tw['py', 'mq.33l8.b1'], tw_before['py', 'mq.33l8.b1'], atol=1e-7)
 
 @for_all_test_contexts
 def test_match_bump_sets_init_table(test_context):
@@ -694,16 +696,16 @@ def test_match_bump_sets_init_table(test_context):
     opt.tag(tag='matched')
     opt.reload(0)
     tw_before = line.twiss(method='4d')
-    assert np.isclose(tw_before['y', 'mb.b28l8.b1'], 0, atol=1e-4)
+    xo.assert_allclose(tw_before['y', 'mb.b28l8.b1'], 0, atol=1e-4)
     opt.reload(tag='matched')
     tw = line.twiss(method='4d')
 
-    assert np.isclose(tw['y', 'mb.b28l8.b1'], 3e-3, atol=1e-4)
-    assert np.isclose(tw['py', 'mb.b28l8.b1'], 0, atol=1e-6)
-    assert np.isclose(tw['y', 'mq.23l8.b1'], tw_before['y', 'mq.23l8.b1'], atol=1e-6)
-    assert np.isclose(tw['py', 'mq.23l8.b1'], tw_before['py', 'mq.23l8.b1'], atol=1e-7)
-    assert np.isclose(tw['y', 'mq.33l8.b1'], tw_before['y', 'mq.33l8.b1'], atol=1e-6)
-    assert np.isclose(tw['py', 'mq.33l8.b1'], tw_before['py', 'mq.33l8.b1'], atol=1e-7)
+    xo.assert_allclose(tw['y', 'mb.b28l8.b1'], 3e-3, atol=1e-4)
+    xo.assert_allclose(tw['py', 'mb.b28l8.b1'], 0, atol=1e-6)
+    xo.assert_allclose(tw['y', 'mq.23l8.b1'], tw_before['y', 'mq.23l8.b1'], atol=1e-6)
+    xo.assert_allclose(tw['py', 'mq.23l8.b1'], tw_before['py', 'mq.23l8.b1'], atol=1e-7)
+    xo.assert_allclose(tw['y', 'mq.33l8.b1'], tw_before['y', 'mq.33l8.b1'], atol=1e-6)
+    xo.assert_allclose(tw['py', 'mq.33l8.b1'], tw_before['py', 'mq.33l8.b1'], atol=1e-7)
 
 @for_all_test_contexts
 def test_match_bump_common_elements(test_context):
@@ -740,14 +742,14 @@ def test_match_bump_common_elements(test_context):
     assert isinstance(opt.actions[0].kwargs['_initial_particles'][1], xt.Particles)
 
     tw = collider.twiss()
-    assert np.isclose(tw.lhcb1['y', 'ip5'], 0, rtol=0, atol=1e-9)
-    assert np.isclose(tw.lhcb1['py', 'ip5'], 10e-6, rtol=0, atol=1e-9)
-    assert np.isclose(tw.lhcb1['y', 's.ds.r5.b1'], 0, rtol=0, atol=1e-9)
-    assert np.isclose(tw.lhcb1['py', 's.ds.r5.b1'], 0, rtol=0, atol=1e-9)
-    assert np.isclose(tw.lhcb2['y', 'ip5'], 0, rtol=0, atol=1e-9)
-    assert np.isclose(tw.lhcb2['py', 'ip5'], -10e-6, rtol=0, atol=1e-10)
-    assert np.isclose(tw.lhcb2['y', 's.ds.r5.b2'], 0, rtol=0, atol=1e-9)
-    assert np.isclose(tw.lhcb2['py', 's.ds.r5.b2'], 0, rtol=0, atol=1e-9)
+    xo.assert_allclose(tw.lhcb1['y', 'ip5'], 0, rtol=0, atol=1e-9)
+    xo.assert_allclose(tw.lhcb1['py', 'ip5'], 10e-6, rtol=0, atol=1e-9)
+    xo.assert_allclose(tw.lhcb1['y', 's.ds.r5.b1'], 0, rtol=0, atol=1e-9)
+    xo.assert_allclose(tw.lhcb1['py', 's.ds.r5.b1'], 0, rtol=0, atol=1e-9)
+    xo.assert_allclose(tw.lhcb2['y', 'ip5'], 0, rtol=0, atol=1e-9)
+    xo.assert_allclose(tw.lhcb2['py', 'ip5'], -10e-6, rtol=0, atol=1e-10)
+    xo.assert_allclose(tw.lhcb2['y', 's.ds.r5.b2'], 0, rtol=0, atol=1e-9)
+    xo.assert_allclose(tw.lhcb2['py', 's.ds.r5.b2'], 0, rtol=0, atol=1e-9)
 
 @for_all_test_contexts
 def test_match_bump_common_elements_callables_and_inequalities(test_context):
@@ -789,14 +791,14 @@ def test_match_bump_common_elements_callables_and_inequalities(test_context):
 
     tw = collider.twiss()
 
-    assert np.isclose(tw.lhcb1['y', 'ip5'], 0, rtol=0, atol=1e-9)
-    assert np.isclose(tw.lhcb1['py', 'ip5'], 10e-6, rtol=0, atol=1.1e-6)
-    assert np.isclose(tw.lhcb1['y', 's.ds.r5.b1'], 0, rtol=0, atol=1e-9)
-    assert np.isclose(tw.lhcb1['py', 's.ds.r5.b1'], 0, rtol=0, atol=1e-9)
-    assert np.isclose(tw.lhcb2['y', 'ip5'], 0, rtol=0, atol=1e-9)
-    assert np.isclose(tw.lhcb2['py', 'ip5'] + tw.lhcb1['py', 'ip5'], 0, rtol=0, atol=1e-10)
-    assert np.isclose(tw.lhcb2['y', 's.ds.r5.b2'], 0, rtol=0, atol=1e-9)
-    assert np.isclose(tw.lhcb2['py', 's.ds.r5.b2'], 0, rtol=0, atol=1e-9)
+    xo.assert_allclose(tw.lhcb1['y', 'ip5'], 0, rtol=0, atol=1e-9)
+    xo.assert_allclose(tw.lhcb1['py', 'ip5'], 10e-6, rtol=0, atol=1.1e-6)
+    xo.assert_allclose(tw.lhcb1['y', 's.ds.r5.b1'], 0, rtol=0, atol=1e-9)
+    xo.assert_allclose(tw.lhcb1['py', 's.ds.r5.b1'], 0, rtol=0, atol=1e-9)
+    xo.assert_allclose(tw.lhcb2['y', 'ip5'], 0, rtol=0, atol=1e-9)
+    xo.assert_allclose(tw.lhcb2['py', 'ip5'] + tw.lhcb1['py', 'ip5'], 0, rtol=0, atol=1e-10)
+    xo.assert_allclose(tw.lhcb2['y', 's.ds.r5.b2'], 0, rtol=0, atol=1e-9)
+    xo.assert_allclose(tw.lhcb2['py', 's.ds.r5.b2'], 0, rtol=0, atol=1e-9)
 
 @for_all_test_contexts
 def test_match_bump_common_elements_targets_from_tables(test_context):
@@ -846,11 +848,11 @@ def test_match_bump_common_elements_targets_from_tables(test_context):
 
     tw = collider.twiss()
 
-    assert np.isclose(tw.lhcb1['y', 'ip5'], 0, rtol=0, atol=1e-9)
-    assert np.isclose(tw.lhcb1['py', 'ip5'], 10e-6, rtol=0, atol=1.1e-6)
-    assert np.isclose(tw.lhcb1['y', 's.ds.r5.b1'], 0, rtol=0, atol=1e-9)
-    assert np.isclose(tw.lhcb1['py', 's.ds.r5.b1'], 0, rtol=0, atol=1e-9)
-    assert np.isclose(tw.lhcb2['y', 'ip5'], 0, rtol=0, atol=1e-9)
-    assert np.isclose(tw.lhcb2['py', 'ip5'] + tw.lhcb1['py', 'ip5'], 0, rtol=0, atol=1e-10)
-    assert np.isclose(tw.lhcb2['y', 's.ds.r5.b2'], 0, rtol=0, atol=1e-9)
-    assert np.isclose(tw.lhcb2['py', 's.ds.r5.b2'], 0, rtol=0, atol=1e-9)
+    xo.assert_allclose(tw.lhcb1['y', 'ip5'], 0, rtol=0, atol=1e-9)
+    xo.assert_allclose(tw.lhcb1['py', 'ip5'], 10e-6, rtol=0, atol=1.1e-6)
+    xo.assert_allclose(tw.lhcb1['y', 's.ds.r5.b1'], 0, rtol=0, atol=1e-9)
+    xo.assert_allclose(tw.lhcb1['py', 's.ds.r5.b1'], 0, rtol=0, atol=1e-9)
+    xo.assert_allclose(tw.lhcb2['y', 'ip5'], 0, rtol=0, atol=1e-9)
+    xo.assert_allclose(tw.lhcb2['py', 'ip5'] + tw.lhcb1['py', 'ip5'], 0, rtol=0, atol=1e-10)
+    xo.assert_allclose(tw.lhcb2['y', 's.ds.r5.b2'], 0, rtol=0, atol=1e-9)
+    xo.assert_allclose(tw.lhcb2['py', 's.ds.r5.b2'], 0, rtol=0, atol=1e-9)

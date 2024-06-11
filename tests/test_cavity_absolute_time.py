@@ -1,8 +1,8 @@
-import numpy as np
+import pathlib
+
+import xobjects as xo
 import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
-
-import pathlib
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
@@ -39,9 +39,9 @@ def test_cavity_absolute_time(test_context):
 
     f_rev_expected = f_rf / h_rf
 
-    assert np.isclose(f_rev_expected, 1/tw1.T_rev, atol=1e-5, rtol=0)
-    assert np.allclose(tw1.delta, tw1.delta[0], atol=1e-5, rtol=0) # Check that it is flat
+    xo.assert_allclose(f_rev_expected, 1/tw1.T_rev, atol=1e-5, rtol=0)
+    xo.assert_allclose(tw1.delta, tw1.delta[0], atol=1e-5, rtol=0) # Check that it is flat
     delta_expected = -df_rev / f_rev / eta
-    assert np.allclose(tw1.delta, delta_expected, atol=2e-6, rtol=0)
+    xo.assert_allclose(tw1.delta, delta_expected, atol=2e-6, rtol=0)
     tw_off_mom = line.twiss(method='4d', delta0=tw1.delta[0])
-    assert np.allclose(tw1.x, tw_off_mom.x, atol=1e-5, rtol=0)
+    xo.assert_allclose(tw1.x, tw_off_mom.x, atol=1e-5, rtol=0)

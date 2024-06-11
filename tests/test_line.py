@@ -3,18 +3,17 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-import pickle
 import pathlib
+import pickle
 
 import numpy as np
 import pytest
 
-import xtrack as xt
-import xpart as xp
 import xobjects as xo
-
-from xtrack import Line, Node, Multipole
+import xpart as xp
+import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
+from xtrack import Line, Node, Multipole
 
 test_data_folder = pathlib.Path(
             __file__).parent.joinpath('../test_data').absolute()
@@ -37,9 +36,9 @@ def test_simplification_methods():
     line.merge_consecutive_drifts(inplace=True)
     assert len(line.element_names) == 3
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
-    assert np.isclose(line[0].length, 3.3, rtol=0, atol=1e-12)
+    xo.assert_allclose(line[0].length, 3.3, rtol=0, atol=1e-12)
     assert isinstance(line[1], xt.Cavity)
-    assert np.isclose(line[2].length, 1.7, rtol=0, atol=1e-12)
+    xo.assert_allclose(line[2].length, 1.7, rtol=0, atol=1e-12)
 
     # Test merging of drifts, while keeping one
     line.insert_element(element=xt.Drift(length=1), name='drift1', at_s=1.2)
@@ -80,14 +79,14 @@ def test_simplification_methods():
     assert len(joined_mult) == 1
     joined_mult = joined_mult[0]
     assert 'm2' in joined_mult
-    assert np.allclose(line[joined_mult].knl, [5,2,3], rtol=0, atol=1e-15)
-    assert np.allclose(line[joined_mult].ksl, [10,60,0], rtol=0, atol=1e-15)
+    xo.assert_allclose(line[joined_mult].knl, [5,2,3], rtol=0, atol=1e-15)
+    xo.assert_allclose(line[joined_mult].ksl, [10,60,0], rtol=0, atol=1e-15)
     # Merging all
     line._replace_with_equivalent_elements()
     line.merge_consecutive_multipoles(inplace=True)
     assert len(line.element_names) == 4
-    assert np.allclose(line[1].knl, [7,5,11], rtol=0, atol=1e-15)
-    assert np.allclose(line[1].ksl, [52,60,17], rtol=0, atol=1e-15)
+    xo.assert_allclose(line[1].knl, [7,5,11], rtol=0, atol=1e-15)
+    xo.assert_allclose(line[1].ksl, [52,60,17], rtol=0, atol=1e-15)
 
     # Test removing inactive multipoles
     line.insert_element(element=xt.Multipole(knl=[0, 8, 1], ksl=[0, 20, 30]), name='m5', at_s=3.3)
@@ -497,7 +496,7 @@ def test_from_sequence():
     for i, l in enumerate([3, 0, 4, 0, 1, 0, 2]):
         cls = xt.Multipole if i%2 else xt.Drift
         assert isinstance(line.elements[i], cls)
-        assert np.isclose(line.elements[i].length, l)
+        xo.assert_allclose(line.elements[i].length, l)
 
     # using pre-defined elements by name
     # ----------------------------------
@@ -515,7 +514,7 @@ def test_from_sequence():
     for i, l in enumerate([1, 0.3, 3, 0.3, 2, 0.5, 4]):
         cls = xt.Multipole if i%2 else xt.Drift
         assert isinstance(line.elements[i], cls)
-        assert np.isclose(line.elements[i].length, l)
+        xo.assert_allclose(line.elements[i].length, l)
     assert line.elements[1] == line.elements[3]
     assert line.element_names[1] == 'quad'
     assert line.element_names[3] == 'quad3'
@@ -591,7 +590,7 @@ def test_from_sequence_with_thick(refer):
     elif refer == 'exit':
         offset = -1
 
-    assert np.allclose(
+    xo.assert_allclose(
         line.get_s_position(line.element_names),
         [
             0,             # drift
@@ -743,16 +742,16 @@ def test_pickle():
     # Check that expressions work on old and new line
     line.vars['on_x1'] = 234
     ln.vars['on_x1'] = 123
-    assert np.isclose(line.twiss(method='4d')['px', 'ip1'], 234e-6, atol=1e-9, rtol=0)
-    assert np.isclose(ln.twiss(method='4d')['px', 'ip1'], 123e-6, atol=1e-9, rtol=0)
+    xo.assert_allclose(line.twiss(method='4d')['px', 'ip1'], 234e-6, atol=1e-9, rtol=0)
+    xo.assert_allclose(ln.twiss(method='4d')['px', 'ip1'], 123e-6, atol=1e-9, rtol=0)
 
     ln.vars['on_x1'] = 321
-    assert np.isclose(line.twiss(method='4d')['px', 'ip1'], 234e-6, atol=1e-9, rtol=0)
-    assert np.isclose(ln.twiss(method='4d')['px', 'ip1'], 321e-6, atol=1e-9, rtol=0)
+    xo.assert_allclose(line.twiss(method='4d')['px', 'ip1'], 234e-6, atol=1e-9, rtol=0)
+    xo.assert_allclose(ln.twiss(method='4d')['px', 'ip1'], 321e-6, atol=1e-9, rtol=0)
 
     line.vars['on_x1'] = 213
-    assert np.isclose(line.twiss(method='4d')['px', 'ip1'], 213e-6, atol=1e-9, rtol=0)
-    assert np.isclose(ln.twiss(method='4d')['px', 'ip1'], 321e-6, atol=1e-9, rtol=0)
+    xo.assert_allclose(line.twiss(method='4d')['px', 'ip1'], 213e-6, atol=1e-9, rtol=0)
+    xo.assert_allclose(ln.twiss(method='4d')['px', 'ip1'], 321e-6, atol=1e-9, rtol=0)
 
     line.discard_tracker()
 
@@ -764,16 +763,16 @@ def test_pickle():
 
     collider.vars['on_x1'] = 234
     coll.vars['on_x1'] = 123
-    assert np.isclose(collider['lhcb1'].twiss(method='4d')['px', 'ip1'], 234e-6, atol=1e-9, rtol=0)
-    assert np.isclose(coll['lhcb1'].twiss(method='4d')['px', 'ip1'], 123e-6, atol=1e-9, rtol=0)
+    xo.assert_allclose(collider['lhcb1'].twiss(method='4d')['px', 'ip1'], 234e-6, atol=1e-9, rtol=0)
+    xo.assert_allclose(coll['lhcb1'].twiss(method='4d')['px', 'ip1'], 123e-6, atol=1e-9, rtol=0)
 
     coll.vars['on_x1'] = 321
-    assert np.isclose(collider['lhcb1'].twiss(method='4d')['px', 'ip1'], 234e-6, atol=1e-9, rtol=0)
-    assert np.isclose(coll['lhcb1'].twiss(method='4d')['px', 'ip1'], 321e-6, atol=1e-9, rtol=0)
+    xo.assert_allclose(collider['lhcb1'].twiss(method='4d')['px', 'ip1'], 234e-6, atol=1e-9, rtol=0)
+    xo.assert_allclose(coll['lhcb1'].twiss(method='4d')['px', 'ip1'], 321e-6, atol=1e-9, rtol=0)
 
     collider.vars['on_x1'] = 213
-    assert np.isclose(collider['lhcb1'].twiss(method='4d')['px', 'ip1'], 213e-6, atol=1e-9, rtol=0)
-    assert np.isclose(coll['lhcb1'].twiss(method='4d')['px', 'ip1'], 321e-6, atol=1e-9, rtol=0)
+    xo.assert_allclose(collider['lhcb1'].twiss(method='4d')['px', 'ip1'], 213e-6, atol=1e-9, rtol=0)
+    xo.assert_allclose(coll['lhcb1'].twiss(method='4d')['px', 'ip1'], 321e-6, atol=1e-9, rtol=0)
 
 
 def test_line_attr():
@@ -870,21 +869,21 @@ def test_insert_thin_elements_at_s_lhc(test_context):
     # Check that there are no duplicated elements
     assert len(tt.name) == len(set(tt.name))
 
-    assert np.isclose(tt['s', 'm0_at_a'], s0, rtol=0, atol=1e-6)
-    assert np.isclose(tt['s', 'm1_at_a'], s0, rtol=0, atol=1e-6)
-    assert np.isclose(tt['s', 'm2_at_a'], s0, rtol=0, atol=1e-6)
+    xo.assert_allclose(tt['s', 'm0_at_a'], s0, rtol=0, atol=1e-6)
+    xo.assert_allclose(tt['s', 'm1_at_a'], s0, rtol=0, atol=1e-6)
+    xo.assert_allclose(tt['s', 'm2_at_a'], s0, rtol=0, atol=1e-6)
 
-    assert np.isclose(tt['s', 'm0_at_b'], s0 + 10., rtol=0, atol=1e-6)
-    assert np.isclose(tt['s', 'm1_at_b'], s0 + 10., rtol=0, atol=1e-6)
-    assert np.isclose(tt['s', 'm2_at_b'], s0 + 10., rtol=0, atol=1e-6)
+    xo.assert_allclose(tt['s', 'm0_at_b'], s0 + 10., rtol=0, atol=1e-6)
+    xo.assert_allclose(tt['s', 'm1_at_b'], s0 + 10., rtol=0, atol=1e-6)
+    xo.assert_allclose(tt['s', 'm2_at_b'], s0 + 10., rtol=0, atol=1e-6)
 
-    assert np.isclose(tt['s', 'm0_at_c'], s1, rtol=0, atol=1e-6)
-    assert np.isclose(tt['s', 'm1_at_c'], s1, rtol=0, atol=1e-6)
-    assert np.isclose(tt['s', 'm2_at_c'], s1, rtol=0, atol=1e-6)
+    xo.assert_allclose(tt['s', 'm0_at_c'], s1, rtol=0, atol=1e-6)
+    xo.assert_allclose(tt['s', 'm1_at_c'], s1, rtol=0, atol=1e-6)
+    xo.assert_allclose(tt['s', 'm2_at_c'], s1, rtol=0, atol=1e-6)
 
-    assert np.isclose(tt['s', 'm0_at_d'], s2, rtol=0, atol=1e-6)
-    assert np.isclose(tt['s', 'm1_at_d'], s2, rtol=0, atol=1e-6)
-    assert np.isclose(tt['s', 'm2_at_d'], s2, rtol=0, atol=1e-6)
+    xo.assert_allclose(tt['s', 'm0_at_d'], s2, rtol=0, atol=1e-6)
+    xo.assert_allclose(tt['s', 'm1_at_d'], s2, rtol=0, atol=1e-6)
+    xo.assert_allclose(tt['s', 'm2_at_d'], s2, rtol=0, atol=1e-6)
 
     assert np.all(tt.rows['mq.28r3.b1_entry%%-3':'mq.28r3.b1_entry'].name
             == np.array(['m0_at_a', 'm1_at_a', 'm2_at_a', 'mq.28r3.b1_entry']))
@@ -901,10 +900,10 @@ def test_insert_thin_elements_at_s_lhc(test_context):
                 == np.array(['m0_at_d', 'm1_at_d', 'm2_at_d',
                             'lhcb1ip7_p_', '_end_point']))
 
-    assert np.isclose(line.get_length(), tw0.s[-1], atol=1e-6)
+    xo.assert_allclose(line.get_length(), tw0.s[-1], atol=1e-6)
 
     tw1 = line.twiss()
-    assert np.isclose(tw1.qx, tw0.qx, atol=1e-9, rtol=0)
+    xo.assert_allclose(tw1.qx, tw0.qx, atol=1e-9, rtol=0)
 
 
 def test_elements_intersecting_s():
@@ -944,7 +943,7 @@ def test_elements_intersecting_s():
     }
     result = line._elements_intersecting_s(cuts)
     for kk in expected.keys() | result.keys():
-        assert np.allclose(expected[kk], result[kk], atol=1e-16)
+        xo.assert_allclose(expected[kk], result[kk], atol=1e-16)
 
 
 def test_slicing_at_custom_s():
@@ -979,12 +978,12 @@ def test_slicing_at_custom_s():
     line.cut_at_s(cuts)
 
     tab = line.get_table()
-    assert np.allclose(tab.rows[r'e1\.\.\d*'].s, [0, 0.5], atol=1e-16)
-    assert np.allclose(tab.rows[r'e2\.\.\d*'].s, [1, 1.1, 1.7], atol=1e-16)
-    assert np.allclose(tab.rows[r'e3\.\.\d*'].s, [3], atol=1e-16)
-    assert np.allclose(tab.rows[r'e4\.\.\d*'].s, [4, 4.5], atol=1e-16)
-    assert np.allclose(tab.rows[r'e5\.\.\d*'].s, [5], atol=1e-16)
-    assert np.allclose(tab.rows[r'e6\.\.\d*'].s, [7, 7.8, 7.9], atol=1e-16)
+    xo.assert_allclose(tab.rows[r'e1\.\.\d*'].s, [0, 0.5], atol=1e-16)
+    xo.assert_allclose(tab.rows[r'e2\.\.\d*'].s, [1, 1.1, 1.7], atol=1e-16)
+    xo.assert_allclose(tab.rows[r'e3'].s, [3], atol=1e-16)
+    xo.assert_allclose(tab.rows[r'e4\.\.\d*'].s, [4, 4.5], atol=1e-16)
+    xo.assert_allclose(tab.rows[r'e5'].s, [5], atol=1e-16)
+    xo.assert_allclose(tab.rows[r'e6\.\.\d*'].s, [7, 7.8, 7.9], atol=1e-16)
 
 def test_insert_thick_element_reuse_marker_name():
 
@@ -1007,3 +1006,29 @@ def test_insert_thick_element_reuse_marker_name():
     assert np.all(tt.name == ['d1..0', 'm1', 'd2..1', '_end_point'])
     assert np.all(tt.parent_name == ['d1', None, 'd2', None])
     assert_allclose(tt.s, [0. , 0.5, 1.5, 2. ], rtol=0, atol=1e-14)
+
+def test_multiple_thick_elements():
+    line = xt.Line(
+        elements=[xt.Drift(length=1.0) for i in range(10)]
+    )
+
+    s_insert = np.array([2.5, 5.5, 7])
+    l_insert = np.array([1.0, 1.0, 1.0])
+    ele_insert = [xt.Sextupole(length=l) for l in l_insert]
+
+    line._insert_thick_elements_at_s(
+        element_names=[f'insertion_{i}' for i in range(len(s_insert))],
+        elements=ele_insert,
+        at_s=s_insert
+    )
+
+    tt = line.get_table()
+
+    assert np.all(tt.name == ['e0', 'e1', 'e2..0', 'insertion_0', 'e3..1', 'e4', 'e5..0',
+        'insertion_1', 'e6..1', 'insertion_2', 'e8', 'e9', '_end_point'])
+    xo.assert_allclose(tt.s, [ 0. ,  1. ,  2. ,  2.5,  3.5,  4. ,  5. ,
+                                    5.5,  6.5,  7. ,  8. , 9. , 10. ])
+
+    assert np.all(tt.element_type == ['Drift', 'Drift', 'DriftSlice', 'Sextupole', 'DriftSlice', 'Drift',
+        'DriftSlice', 'Sextupole', 'DriftSlice', 'Sextupole', 'Drift',
+        'Drift', ''])

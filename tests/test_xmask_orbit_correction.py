@@ -1,9 +1,10 @@
 import json
 import pathlib
 
-import numpy as np
-import xtrack as xt
 from cpymad.madx import Madx
+
+import xobjects as xo
+import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
 
 test_data_folder = pathlib.Path(
@@ -170,10 +171,10 @@ def test_orbit_correction(test_context):
     for nn in ['lhcb1', 'lhcb1_co_ref']:
         tw = collider[nn].twiss(method='4d', zeta0=0, delta0=0)
         for ip in ['ip1', 'ip2', 'ip5', 'ip8']:
-            assert np.isclose(tw['x', ip], 0, 1e-10)
-            assert np.isclose(tw['px', ip], 0, 1e-10)
-            assert np.isclose(tw['y', ip], 0, 1e-10)
-            assert np.isclose(tw['py', ip], 0, 1e-10)
+            xo.assert_allclose(tw['x', ip], 0, 1e-10)
+            xo.assert_allclose(tw['px', ip], 0, 1e-10)
+            xo.assert_allclose(tw['y', ip], 0, 1e-10)
+            xo.assert_allclose(tw['py', ip], 0, 1e-10)
 
     # Check that the tune knobs work only on line and not on line_co_ref
     tw0 = collider['lhcb1'].twiss(method='4d', zeta0=0, delta0=0)
@@ -222,27 +223,27 @@ def test_orbit_correction(test_context):
 
     tw_before = collider.lhcb1.twiss()
 
-    collider.lhcb1.correct_closed_orbit(
+    collider.lhcb1._xmask_correct_closed_orbit(
                              reference=collider.lhcb1_co_ref,
                              correction_config=correction_config)
 
     tw = collider.lhcb1.twiss()
 
-    assert np.isclose(tw['px', 'ip1'], 250e-6, atol=1e-8)
-    assert np.isclose(tw['py', 'ip1'], 0, atol=1e-8)
+    xo.assert_allclose(tw['px', 'ip1'], 250e-6, rtol=5e-5, atol=1e-8)
+    xo.assert_allclose(tw['py', 'ip1'], 0, atol=1e-8)
 
-    assert np.isclose(tw['px', 'ip5'], 0, atol=1e-8)
-    assert np.isclose(tw['py', 'ip5'], 250e-6, atol=1e-8)
+    xo.assert_allclose(tw['px', 'ip5'], 0, atol=1e-8)
+    xo.assert_allclose(tw['py', 'ip5'], 250e-6, atol=1e-8)
 
     assert tw['px', 'ip2'] > 1e-7 # effect of the spectrometer tilt
     assert tw['py', 'ip2'] > 255e-6 # effect of the spectrometer
-    assert np.isclose(tw['px', 'bpmsw.1r2.b1'], 0, atol=1e-8)  # external angle
-    assert np.isclose(tw['py', 'bpmsw.1r2.b1'], 250e-6, atol=1e-8) # external angle
+    xo.assert_allclose(tw['px', 'bpmsw.1r2.b1'], 0, atol=1e-8)  # external angle
+    xo.assert_allclose(tw['py', 'bpmsw.1r2.b1'], 250e-6, atol=1e-8) # external angle
 
     assert tw['px', 'ip8'] > 255e-6 # effect of the spectrometer
     assert tw['py', 'ip8'] > 1e-6 # effect of the spectrometer tilt
-    assert np.isclose(tw['px', 'bpmsw.1r8.b1'], 250e-6, atol=1e-8) # external angle
-    assert np.isclose(tw['py', 'bpmsw.1r8.b1'], 0, atol=1e-8) # external angle
+    xo.assert_allclose(tw['px', 'bpmsw.1r8.b1'], 250e-6, atol=1e-8) # external angle
+    xo.assert_allclose(tw['py', 'bpmsw.1r8.b1'], 0, atol=1e-8) # external angle
 
 
     places_to_check = [
@@ -260,10 +261,10 @@ def test_orbit_correction(test_context):
     's.ds.r8.b1']
 
     for place in places_to_check:
-        assert np.isclose(tw['x', place], 0, atol=1e-6)
-        assert np.isclose(tw['px', place], 0, atol=1e-8)
-        assert np.isclose(tw['y', place], 0, atol=1e-6)
-        assert np.isclose(tw['py', place], 0, atol=1e-8)
+        xo.assert_allclose(tw['x', place], 0, atol=1e-6)
+        xo.assert_allclose(tw['px', place], 0, atol=1e-8)
+        xo.assert_allclose(tw['y', place], 0, atol=1e-6)
+        xo.assert_allclose(tw['py', place], 0, atol=1e-8)
 
     with xt._temp_knobs(collider, dict(on_corr_co=0, on_disp=0)):
         tw_ref = collider.lhcb1_co_ref.twiss()

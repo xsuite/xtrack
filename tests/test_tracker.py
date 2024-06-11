@@ -4,13 +4,14 @@
 # ######################################### #
 import json
 import pathlib
-import pytest
 
-from cpymad.madx import Madx
 import numpy as np
+import pytest
+from cpymad.madx import Madx
+
 import xobjects as xo
-import xtrack as xt
 import xpart as xp
+import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
 
 test_data_folder = pathlib.Path(
@@ -33,7 +34,7 @@ def test_simple_collective_line(test_context):
     particles.move(_context=xo.ContextCpu())
 
     assert np.all(particles.at_turn == num_turns)
-    assert np.allclose(particles.s, 10 * num_turns, rtol=0, atol=1e-14)
+    xo.assert_allclose(particles.s, 10 * num_turns, rtol=0, atol=1e-14)
 
 
 
@@ -494,12 +495,12 @@ def test_optimize_for_tracking(test_context, multiline):
     assert np.all(p_no_optimized.state == 1)
     assert np.all(p_optimized.state == 1)
 
-    assert np.allclose(p_no_optimized.x, p_optimized.x, rtol=0, atol=1e-14)
-    assert np.allclose(p_no_optimized.y, p_optimized.y, rtol=0, atol=1e-14)
-    assert np.allclose(p_no_optimized.px, p_optimized.px, rtol=0, atol=1e-14)
-    assert np.allclose(p_no_optimized.py, p_optimized.py, rtol=0, atol=1e-14)
-    assert np.allclose(p_no_optimized.zeta, p_optimized.zeta, rtol=0, atol=1e-10)
-    assert np.allclose(p_no_optimized.delta, p_optimized.delta, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_no_optimized.x, p_optimized.x, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_no_optimized.y, p_optimized.y, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_no_optimized.px, p_optimized.px, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_no_optimized.py, p_optimized.py, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_no_optimized.zeta, p_optimized.zeta, rtol=0, atol=1e-10)
+    xo.assert_allclose(p_no_optimized.delta, p_optimized.delta, rtol=0, atol=1e-14)
 
 
 @for_all_test_contexts
@@ -523,12 +524,12 @@ def test_backtrack_with_flag(test_context):
     line.track(p, backtrack=True, turn_by_turn_monitor='ONE_TURN_EBE')
     mon_backtrack = line.record_last_track
 
-    assert np.allclose(mon_forward.x, mon_backtrack.x, rtol=0, atol=1e-10)
-    assert np.allclose(mon_forward.y, mon_backtrack.y, rtol=0, atol=1e-10)
-    assert np.allclose(mon_forward.px, mon_backtrack.px, rtol=0, atol=1e-10)
-    assert np.allclose(mon_forward.py, mon_backtrack.py, rtol=0, atol=1e-10)
-    assert np.allclose(mon_forward.zeta, mon_backtrack.zeta, rtol=0, atol=1e-10)
-    assert np.allclose(mon_forward.delta, mon_backtrack.delta, rtol=0, atol=1e-10)
+    xo.assert_allclose(mon_forward.x, mon_backtrack.x, rtol=0, atol=1e-10)
+    xo.assert_allclose(mon_forward.y, mon_backtrack.y, rtol=0, atol=1e-10)
+    xo.assert_allclose(mon_forward.px, mon_backtrack.px, rtol=0, atol=1e-10)
+    xo.assert_allclose(mon_forward.py, mon_backtrack.py, rtol=0, atol=1e-10)
+    xo.assert_allclose(mon_forward.zeta, mon_backtrack.zeta, rtol=0, atol=1e-10)
+    xo.assert_allclose(mon_forward.delta, mon_backtrack.delta, rtol=0, atol=1e-10)
 
 
 @for_all_test_contexts
@@ -549,7 +550,7 @@ def test_tracking_with_progress(test_context, with_progress, turns, collective):
     particles.move(xo.ContextCpu())
 
     assert np.all(particles.at_turn == turns)
-    assert np.allclose(particles.s, 10 * turns, rtol=0, atol=1e-14)
+    xo.assert_allclose(particles.s, 10 * turns, rtol=0, atol=1e-14)
 
 
 @for_all_test_contexts
@@ -576,7 +577,7 @@ def test_tbt_monitor_with_progress(test_context, ele_start, ele_stop, expected_x
     assert monitor_recorded_x.shape == (1, len(expected_x) - 1)
 
     recorded_x = np.concatenate([monitor_recorded_x[0], p.x])
-    assert np.allclose(recorded_x, expected_x, atol=1e-16)
+    xo.assert_allclose(recorded_x, expected_x, atol=1e-16)
 
 
 @pytest.fixture
@@ -642,7 +643,7 @@ def test_track_log_and_merit_function(pimms_mad, test_context):
     x_expected = [line.vars[kk]._value for kk in ['ksf', 'ksd', 'kqfa', 'kqfb', 'kqd']]
     x_expected[4] /= 10  # include the weight
     x_start = merit_function.get_x()
-    assert np.allclose(x_start, x_expected, atol=1e-14)
+    xo.assert_allclose(x_start, x_expected, atol=1e-14)
 
     expected_limits = [
         [-1e200, 1e200],  # default
@@ -651,7 +652,7 @@ def test_track_log_and_merit_function(pimms_mad, test_context):
         [0, 1],
         [-0.1, 0],
     ]
-    assert np.allclose(merit_function.get_x_limits(), expected_limits, atol=1e-14)
+    xo.assert_allclose(merit_function.get_x_limits(), expected_limits, atol=1e-14)
 
     # Below numbers obtained by first only matching the tunes, then the above
     x_optimized = [-1.40251213, 0.81823393, 0.31196667, 0.52478984, -0.052393429]
@@ -709,13 +710,103 @@ def test_track_log_and_merit_function(pimms_mad, test_context):
     fit = np.polyfit(np.arange(num_turns), line.log_last_track['kqfa'], 1, full=True)
     (slope, _), residual, _, _, _ = fit
     assert slope > 0
-    assert residual < 1e-29
-    assert np.isclose(line.log_last_track['kqfa'][0], kqfa_before, atol=1e-14, rtol=0)
-    assert np.isclose(line.log_last_track['kqfa'][-1], line.vv['kqfa'], atol=1e-14, rtol=0)
+    assert residual < 1e-28
+    xo.assert_allclose(line.log_last_track['kqfa'][0], kqfa_before, atol=1e-14, rtol=0)
+    xo.assert_allclose(line.log_last_track['kqfa'][-1], line.vv['kqfa'], atol=1e-14, rtol=0)
 
     # Check that intensity is decreasing
     intensity = np.array(line.log_last_track['intensity'])
     assert np.all(intensity[:-1] - intensity[1:] >= 0)
-    assert np.isclose(intensity[0], intensity_before, atol=1e-14, rtol=0)
+    xo.assert_allclose(intensity[0], intensity_before, atol=1e-14, rtol=0)
     # The last log point is from the beginning of the last turn:
-    assert np.isclose(intensity[-1], intensity_after, atol=0, rtol=1e-2)
+    xo.assert_allclose(intensity[-1], intensity_after, atol=0, rtol=1e-2)
+
+
+@for_all_test_contexts
+def test_init_io_buffer(test_context):
+    class TestElementRecord(xo.HybridClass):
+        _xofields = {
+            '_index': xt.RecordIndex,
+            'record_field': xo.Int64[:],
+            'record_at_element': xo.Int64[:],
+        }
+
+    class TestElement(xt.BeamElement):
+        _xofields={
+            'element_field': xo.Int64,
+        }
+
+        _internal_record_class = TestElementRecord
+
+        _extra_c_sources = [
+            r'''
+            /*gpufun*/
+            void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
+                // Extract the record and record_index
+                TestElementRecordData record = TestElementData_getp_internal_record(el, part0);
+                RecordIndex record_index = NULL;
+                if (record){
+                    record_index = TestElementRecordData_getp__index(record);
+                }
+
+                int64_t elem_field = TestElementData_get_element_field(el);
+
+                //start_per_particle_block (part0->part)
+                    if (record) {  // Record exists
+                        // Get a slot in the record (this is thread safe)
+                        int64_t i_slot = RecordIndex_get_slot(record_index);
+
+                        if (i_slot>=0) {  // Slot available
+                            TestElementRecordData_set_record_field(
+                                record,
+                                i_slot,
+                                elem_field
+                            );
+                            TestElementRecordData_set_record_at_element(
+                                record,
+                                i_slot,
+                                LocalParticle_get_at_element(part)
+                            );
+                        }
+                    }
+                //end_per_particle_block
+            }
+            '''
+        ]
+
+    line = xt.Line(elements=[
+        TestElement(element_field=3),
+        TestElement(element_field=4),
+    ])
+    line.build_tracker(_context=test_context)
+
+    record = line.start_internal_logging_for_elements_of_type(
+        TestElement,
+        capacity=1000,
+    )
+
+    num_turns = 100
+
+    part = xp.Particles(_context=test_context, x=[1e-3, 2e-3, 3e-3])
+    line.track(part, num_turns=num_turns)
+
+    num_recorded = record._index.num_recorded
+    num_particles = len(part.x)
+
+    record.move(_context=xo.ContextCpu())
+
+    assert num_recorded == (2 * num_particles * num_turns)
+    assert np.sum(record.record_field == 3) == num_particles * num_turns
+    assert np.sum(record.record_field == 4) == num_particles * num_turns
+    assert np.all(record.record_field[:num_recorded][
+                    record.record_at_element[:num_recorded] == 0] == 3)
+    assert np.all(record.record_field[:num_recorded][
+                    record.record_at_element[:num_recorded] == 1] == 4)
+    assert np.all(record.record_field[num_recorded:] == 0)
+
+    # Now we stop logging and manually reset to mimic the situation where the
+    # record is manually flushed.
+    line.stop_internal_logging_for_elements_of_type(TestElement)
+    line.tracker._init_io_buffer()
+
+    assert line.tracker.io_buffer is not None

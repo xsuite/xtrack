@@ -5,6 +5,7 @@
 
 import pathlib
 
+import xobjects as xo
 from xobjects.test_helpers import for_all_test_contexts
 
 
@@ -243,7 +244,7 @@ def test_instability_cpu_gpu(test_context):
     print(f"Growth rate {b*1E4} [$10^{-4}$/turn]")
 
     print(f'{gr_pyht=}, {gr_xtpyht=} {gr_pyht-gr_xtpyht=}')
-    assert np.isclose(gr_xtpyht, gr_pyht, rtol=1e-3, atol=1e-100)
+    xo.assert_allclose(gr_xtpyht, gr_pyht, rtol=1e-3, atol=1e-100)
 
     xp.disable_pyheadtail_interface() # would stay enabled for following tests
                                       # called by pytest

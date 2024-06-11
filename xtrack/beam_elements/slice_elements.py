@@ -26,9 +26,6 @@ def _slice_copy(self, **kwargs):
     return out
 
 
-_thin_slice_quad_xofields = {
-    '_parent': xo.Ref(Quadrupole)}
-_thin_slice_quad_xofields.update(_common_xofields)
 class ThinSliceQuadrupole(BeamElement):
     allow_rot_and_shift = False
     rot_and_shift_from_parent = True
@@ -39,7 +36,7 @@ class ThinSliceQuadrupole(BeamElement):
     _force_moveable = True
     _inherit_strengths = True
 
-    _xofields = _thin_slice_quad_xofields
+    _xofields = {'_parent': xo.Ref(Quadrupole), **_common_xofields}
 
     _extra_c_sources = _common_c_sources + [
         _pkg_root.joinpath('beam_elements/elements_src/thin_slice_quadrupole.h')]
@@ -59,8 +56,8 @@ class ThinSliceQuadrupole(BeamElement):
 
     def get_equivalent_element(self):
 
-        knl = [0., 0.]
-        ksl = [0., 0.]
+        knl = self._parent.knl.copy() * self.weight
+        ksl = self._parent.ksl.copy() * self.weight
 
         knl[1] += self._parent.k1 * self._parent.length * self.weight
         ksl[1] += self._parent.k1s * self._parent.length * self.weight
@@ -71,13 +68,12 @@ class ThinSliceQuadrupole(BeamElement):
                         hxl=0,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
+                        shift_s=self._parent.shift_s,
                         rot_s_rad=self._parent.rot_s_rad,
                         _buffer=self._buffer)
         return out
 
-_thin_slice_sext_xofields = {
-    '_parent': xo.Ref(Sextupole)}
-_thin_slice_sext_xofields.update(_common_xofields)
+
 class ThinSliceSextupole(BeamElement):
     allow_rot_and_shift = False
     rot_and_shift_from_parent = True
@@ -88,7 +84,7 @@ class ThinSliceSextupole(BeamElement):
     _force_moveable = True
     _inherit_strengths = True
 
-    _xofields = _thin_slice_sext_xofields
+    _xofields = {'_parent': xo.Ref(Sextupole), **_common_xofields}
 
     _extra_c_sources = _common_c_sources + [
         _pkg_root.joinpath('beam_elements/elements_src/thin_slice_sextupole.h')]
@@ -108,8 +104,8 @@ class ThinSliceSextupole(BeamElement):
 
     def get_equivalent_element(self):
 
-        knl = [0., 0., 0.]
-        ksl = [0., 0., 0.]
+        knl = self._parent.knl.copy() * self.weight
+        ksl = self._parent.ksl.copy() * self.weight
 
         knl[2] += self._parent.k2 * self._parent.length * self.weight
         ksl[2] += self._parent.k2s * self._parent.length * self.weight
@@ -120,13 +116,12 @@ class ThinSliceSextupole(BeamElement):
                         hxl=0,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
+                        shift_s=self._parent.shift_s,
                         rot_s_rad=self._parent.rot_s_rad,
                         _buffer=self._buffer)
         return out
 
-_thin_slice_oct_xofields = {
-    '_parent': xo.Ref(Octupole)}
-_thin_slice_oct_xofields.update(_common_xofields)
+
 class ThinSliceOctupole(BeamElement):
     allow_rot_and_shift = False
     rot_and_shift_from_parent = True
@@ -137,7 +132,7 @@ class ThinSliceOctupole(BeamElement):
     _force_moveable = True
     _inherit_strengths = True
 
-    _xofields = _thin_slice_oct_xofields
+    _xofields = {'_parent': xo.Ref(Octupole), **_common_xofields}
 
     _extra_c_sources = _common_c_sources + [
         _pkg_root.joinpath('beam_elements/elements_src/thin_slice_octupole.h')]
@@ -157,8 +152,8 @@ class ThinSliceOctupole(BeamElement):
 
     def get_equivalent_element(self):
 
-        knl = [0., 0., 0., 0.]
-        ksl = [0., 0., 0., 0.]
+        knl = self._parent.knl.copy() * self.weight
+        ksl = self._parent.ksl.copy() * self.weight
 
         knl[3] += self._parent.k3 * self._parent.length * self.weight
         ksl[3] += self._parent.k3s * self._parent.length * self.weight
@@ -169,13 +164,12 @@ class ThinSliceOctupole(BeamElement):
                         hxl=0,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
+                        shift_s=self._parent.shift_s,
                         rot_s_rad=self._parent.rot_s_rad,
                         _buffer=self._buffer)
         return out
 
-_thin_slice_bend_xofields = {
-    '_parent': xo.Ref(Bend)}
-_thin_slice_bend_xofields.update(_common_xofields)
+
 class ThinSliceBend(BeamElement):
     allow_rot_and_shift = False
     rot_and_shift_from_parent = True
@@ -186,7 +180,7 @@ class ThinSliceBend(BeamElement):
     _force_moveable = True
     _inherit_strengths = True
 
-    _xofields = _thin_slice_bend_xofields
+    _xofields = {'_parent': xo.Ref(Bend), **_common_xofields}
 
     _extra_c_sources = _common_c_sources + [
         _pkg_root.joinpath('beam_elements/elements_src/thin_slice_bend.h')]
@@ -217,13 +211,12 @@ class ThinSliceBend(BeamElement):
                         hxl=self._parent.h * length,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
+                        shift_s=self._parent.shift_s,
                         rot_s_rad=self._parent.rot_s_rad,
                         _buffer=self._buffer)
         return out
 
-_thin_slice_bend_entry_xofields = {
-    '_parent': xo.Ref(Bend)}
-_thin_slice_bend_entry_xofields.update(_common_xofields)
+
 class ThinSliceBendEntry(BeamElement):
     allow_rot_and_shift = False
     rot_and_shift_from_parent = True
@@ -232,7 +225,7 @@ class ThinSliceBendEntry(BeamElement):
     _force_moveable = True
     _inherit_strengths = False
 
-    _xofields = _thin_slice_bend_entry_xofields
+    _xofields = {'_parent': xo.Ref(Bend), **_common_xofields}
 
     _extra_c_sources = [
         _pkg_root.joinpath('headers/constants.h'),
@@ -264,9 +257,7 @@ class ThinSliceBendEntry(BeamElement):
             _buffer=self._buffer
         )
 
-_thin_slice_bend_exit_xofields = {
-    '_parent': xo.Ref(Bend)}
-_thin_slice_bend_exit_xofields.update(_common_xofields)
+
 class ThinSliceBendExit(BeamElement):
     allow_rot_and_shift = False
     rot_and_shift_from_parent = True
@@ -275,7 +266,7 @@ class ThinSliceBendExit(BeamElement):
     _force_moveable = True
     _inherit_strengths = False
 
-    _xofields = _thin_slice_bend_exit_xofields
+    _xofields = {'_parent': xo.Ref(Bend), **_common_xofields}
 
     _extra_c_sources = [
         _pkg_root.joinpath('headers/constants.h'),

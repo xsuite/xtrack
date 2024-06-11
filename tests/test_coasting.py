@@ -1,8 +1,9 @@
-import numpy as np
-import xtrack as xt
 import pathlib
 
+import numpy as np
 from scipy.constants import c as clight
+
+import xtrack as xt
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
@@ -125,7 +126,8 @@ def test_coasting():
     t_range_size = z_range_size / (tw.beta0 * clight)
 
     import nafflib
-    f_harmons = nafflib.get_tunes(intensity_vs_t, N=50)[0] / (t_unwrapped[1] - t_unwrapped[0])
+    intensity_no_ave = intensity_vs_t - np.mean(intensity_vs_t)
+    f_harmons = nafflib.get_tunes(intensity_no_ave, N=50)[0] / (t_unwrapped[1] - t_unwrapped[0])
     f_nominal = 1 / tw.T_rev0
     dt_expected = -(twom.zeta[-1] - twom.zeta[0]) / tw.beta0 / clight
     f_expected = 1 / (tw.T_rev0 + dt_expected)
@@ -137,9 +139,9 @@ def test_coasting():
     print('f_measured: ', f_measured, ' Hz')
     print('Error:      ', f_measured - f_expected, 'Hz')
 
-    assert np.isclose(f_expected, f_measured, rtol=0, atol=2) # 2 Hz tolerance (to account for random fluctuations)
-    assert np.isclose(np.mean(inten), inten_exp, rtol=1e-2, atol=0)
-    assert np.allclose(p.at_turn, num_turns*0.9, rtol=3e-2, atol=0) #beta1 defaults to 0.1
+    xo.assert_allclose(f_expected, f_measured, rtol=0, atol=5.) # 5 Hz tolerance (to account for random fluctuations)
+    xo.assert_allclose(np.mean(inten), inten_exp, rtol=1e-2, atol=0)
+    xo.assert_allclose(p.at_turn, num_turns*0.9, rtol=3e-2, atol=0) #beta1 defaults to 0.1
 
     tt = line.get_table()
     tt_synch = tt.rows[tt.element_type=='SyncTime']

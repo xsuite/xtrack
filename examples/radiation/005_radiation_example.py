@@ -19,6 +19,7 @@ mad.use('ring')
 mad.input(f'''
 select, flag=MAKETHIN, SLICE=4, thick=false;
 select, flag=MAKETHIN, pattern=wig, slice=1;
+select, flag=makethin, class=rfcavity, slice=1;
 MAKETHIN, SEQUENCE=ring, MAKEDIPEDGE=true;
 use, sequence=RING;
 ''')

@@ -17,6 +17,11 @@ void ThinSliceOctupole_track_local_particle(
     const double k3 = ThinSliceOctupoleData_get__parent_k3(el);
     const double k3s = ThinSliceOctupoleData_get__parent_k3s(el);
 
+    const double order = ThinSliceOctupoleData_get__parent_order(el);
+    const double inv_factorial_order = ThinSliceOctupoleData_get__parent_inv_factorial_order(el);
+    const double* knl = ThinSliceOctupoleData_getp1__parent_knl(el, 0);
+    const double* ksl = ThinSliceOctupoleData_getp1__parent_ksl(el, 0);
+
     SynchrotronRadiationRecordData record = NULL;
     RecordIndex record_index = NULL;
 
@@ -68,7 +73,7 @@ void ThinSliceOctupole_track_local_particle(
 
         Multipole_track_single_particle(part,
             0., length, weight, // weight 1
-            NULL, NULL, -1, -1, // first tap unused
+            knl, ksl, order, inv_factorial_order,
             knl_oct, ksl_oct, 3, 1./6.,
             backtrack_sign,
             delta_taper, radiation_flag,

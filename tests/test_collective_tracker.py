@@ -3,17 +3,10 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-import pathlib
-import json
-import numpy as np
-
 import xobjects as xo
-import xtrack as xt
-import xfields as xf
 import xpart as xp
+import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
-
-import ducktrack as dtk
 
 
 @for_all_test_contexts
@@ -92,7 +85,7 @@ def test_get_non_collective_line(test_context):
     assert nc_line['e7'] is line['e7']
     assert nc_line.tracker.line is nc_line
 
-    assert np.allclose(nc_line.get_s_elements(), line.get_s_elements(),
+    xo.assert_allclose(nc_line.get_s_elements(), line.get_s_elements(),
                     rtol=0, atol=1e-15)
 
     assert nc_line.tracker is not line.tracker

@@ -1,19 +1,16 @@
 import json
 import pathlib
+
 import numpy as np
 import pandas as pd
-
 from cpymad.madx import Madx
 
-import xtrack as xt
-import xpart as xp
 import xdeps as xd
 import xobjects as xo
-from xtrack.slicing import Teapot, Strategy
-
+import xpart as xp
+import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
-
-from cpymad.madx import Madx
+from xtrack.slicing import Teapot, Strategy
 
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
@@ -76,66 +73,66 @@ def test_psb_chicane(test_context):
 
     line.vars['bsw_k2l'] = bsw_k2l_ref
     line.vars['bsw_k0l'] = bsw_k0l_ref
-    assert np.isclose(line['bi1.bsw1l1.1']._xobject.knl[2], bsw_k2l_ref, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.2']._xobject.knl[2], -bsw_k2l_ref, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.3']._xobject.knl[2], -bsw_k2l_ref, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.4']._xobject.knl[2], bsw_k2l_ref, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.1'].k0, bsw_k0l_ref / line['bi1.bsw1l1.1'].length, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.2'].k0, -bsw_k0l_ref / line['bi1.bsw1l1.2'].length, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.3'].k0, -bsw_k0l_ref / line['bi1.bsw1l1.3'].length, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.4'].k0, bsw_k0l_ref / line['bi1.bsw1l1.4'].length, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.1']._xobject.knl[2], bsw_k2l_ref, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.2']._xobject.knl[2], -bsw_k2l_ref, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.3']._xobject.knl[2], -bsw_k2l_ref, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.4']._xobject.knl[2], bsw_k2l_ref, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.1'].k0, bsw_k0l_ref / line['bi1.bsw1l1.1'].length, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.2'].k0, -bsw_k0l_ref / line['bi1.bsw1l1.2'].length, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.3'].k0, -bsw_k0l_ref / line['bi1.bsw1l1.3'].length, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.4'].k0, bsw_k0l_ref / line['bi1.bsw1l1.4'].length, rtol=0, atol=1e-10)
 
     tw = line.twiss()
-    assert np.isclose(tw['x', 'bi1.tstr1l1'], -0.045716, rtol=0, atol=1e-5)
-    assert np.isclose(tw['y', 'bi1.tstr1l1'], 0.0000000, rtol=0, atol=1e-5)
-    assert np.isclose(tw['betx', 'bi1.tstr1l1'], 5.203667, rtol=0, atol=1e-4)
-    assert np.isclose(tw['bety', 'bi1.tstr1l1'], 6.902887, rtol=0, atol=1e-4)
-    assert np.isclose(tw.qy, 4.474414126093382, rtol=0, atol=1e-6) # verify that it does not change from one version to the other
-    assert np.isclose(tw.qx, 4.396717774779403, rtol=0, atol=1e-6)
-    assert np.isclose(tw.dqy, -8.625637734560598, rtol=0, atol=1e-3)
-    assert np.isclose(tw.dqx, -3.5604677592626643, rtol=0, atol=1e-3)
+    xo.assert_allclose(tw['x', 'bi1.tstr1l1'], -0.045716, rtol=0, atol=1e-5)
+    xo.assert_allclose(tw['y', 'bi1.tstr1l1'], 0.0000000, rtol=0, atol=1e-5)
+    xo.assert_allclose(tw['betx', 'bi1.tstr1l1'], 5.203667, rtol=0, atol=1e-4)
+    xo.assert_allclose(tw['bety', 'bi1.tstr1l1'], 6.902887, rtol=0, atol=1e-4)
+    xo.assert_allclose(tw.qy, 4.474414126093382, rtol=0, atol=1e-6) # verify that it does not change from one version to the other
+    xo.assert_allclose(tw.qx, 4.396717774779403, rtol=0, atol=1e-6)
+    xo.assert_allclose(tw.dqy, -8.625637734560598, rtol=0, atol=1e-3)
+    xo.assert_allclose(tw.dqx, -3.5604677592626643, rtol=0, atol=1e-3)
 
     line.vars['bsw_k2l'] = bsw_k2l_ref / 3
-    assert np.isclose(line['bi1.bsw1l1.1']._xobject.knl[2], bsw_k2l_ref / 3, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.2']._xobject.knl[2], -bsw_k2l_ref / 3, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.3']._xobject.knl[2], -bsw_k2l_ref / 3, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.4']._xobject.knl[2], bsw_k2l_ref / 3, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.1'].k0, bsw_k0l_ref / line['bi1.bsw1l1.1'].length, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.2'].k0, -bsw_k0l_ref / line['bi1.bsw1l1.2'].length, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.3'].k0, -bsw_k0l_ref / line['bi1.bsw1l1.3'].length, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.4'].k0, bsw_k0l_ref / line['bi1.bsw1l1.4'].length, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.1']._xobject.knl[2], bsw_k2l_ref / 3, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.2']._xobject.knl[2], -bsw_k2l_ref / 3, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.3']._xobject.knl[2], -bsw_k2l_ref / 3, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.4']._xobject.knl[2], bsw_k2l_ref / 3, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.1'].k0, bsw_k0l_ref / line['bi1.bsw1l1.1'].length, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.2'].k0, -bsw_k0l_ref / line['bi1.bsw1l1.2'].length, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.3'].k0, -bsw_k0l_ref / line['bi1.bsw1l1.3'].length, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.4'].k0, bsw_k0l_ref / line['bi1.bsw1l1.4'].length, rtol=0, atol=1e-10)
 
     tw = line.twiss()
-    assert np.isclose(tw['x', 'bi1.tstr1l1'], -0.0458633, rtol=0, atol=1e-5)
-    assert np.isclose(tw['y', 'bi1.tstr1l1'], 0.0000000, rtol=0, atol=1e-5)
-    assert np.isclose(tw['betx', 'bi1.tstr1l1'], 5.266456, rtol=0, atol=1e-4)
-    assert np.isclose(tw['bety', 'bi1.tstr1l1'], 6.320286, rtol=0, atol=1e-4)
-    assert np.isclose(tw.qy, 4.471766776419623, rtol=0, atol=1e-6)
-    assert np.isclose(tw.qx, 4.398899960718224, rtol=0, atol=1e-6)
-    assert np.isclose(tw.dqy, -8.2058757683523, rtol=0, atol=1e-3)
-    assert np.isclose(tw.dqx, -3.563488925077962, rtol=0, atol=1e-3)
+    xo.assert_allclose(tw['x', 'bi1.tstr1l1'], -0.0458633, rtol=0, atol=1e-5)
+    xo.assert_allclose(tw['y', 'bi1.tstr1l1'], 0.0000000, rtol=0, atol=1e-5)
+    xo.assert_allclose(tw['betx', 'bi1.tstr1l1'], 5.266456, rtol=0, atol=1e-4)
+    xo.assert_allclose(tw['bety', 'bi1.tstr1l1'], 6.320286, rtol=0, atol=1e-4)
+    xo.assert_allclose(tw.qy, 4.471766776419623, rtol=0, atol=1e-6)
+    xo.assert_allclose(tw.qx, 4.398899960718224, rtol=0, atol=1e-6)
+    xo.assert_allclose(tw.dqy, -8.2058757683523, rtol=0, atol=1e-3)
+    xo.assert_allclose(tw.dqx, -3.563488925077962, rtol=0, atol=1e-3)
 
     # Switch off bsws
     line.vars['bsw_k0l'] = 0
     line.vars['bsw_k2l'] = 0
-    assert np.isclose(line['bi1.bsw1l1.1']._xobject.knl[2], 0, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.2']._xobject.knl[2], 0, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.3']._xobject.knl[2], 0, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.4']._xobject.knl[2], 0, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.1'].k0, 0, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.2'].k0, 0, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.3'].k0, 0, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.4'].k0, 0, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.1']._xobject.knl[2], 0, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.2']._xobject.knl[2], 0, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.3']._xobject.knl[2], 0, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.4']._xobject.knl[2], 0, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.1'].k0, 0, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.2'].k0, 0, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.3'].k0, 0, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.4'].k0, 0, rtol=0, atol=1e-10)
 
     tw = line.twiss()
-    assert np.isclose(tw['x', 'bi1.tstr1l1'], 0, rtol=0, atol=1e-5)
-    assert np.isclose(tw['y', 'bi1.tstr1l1'], 0, rtol=0, atol=1e-5)
-    assert np.isclose(tw['betx', 'bi1.tstr1l1'], 5.2996347, rtol=0, atol=1e-4)
-    assert np.isclose(tw['bety', 'bi1.tstr1l1'], 3.838857, rtol=0, atol=1e-4)
-    assert np.isclose(tw.qy, 4.45, rtol=0, atol=1e-6)
-    assert np.isclose(tw.qx, 4.4, rtol=0, atol=1e-6)
-    assert np.isclose(tw.dqy, -7.149781341846406, rtol=0, atol=1e-3)
-    assert np.isclose(tw.dqx, -3.5655757511587893, rtol=0, atol=1e-3)
+    xo.assert_allclose(tw['x', 'bi1.tstr1l1'], 0, rtol=0, atol=1e-5)
+    xo.assert_allclose(tw['y', 'bi1.tstr1l1'], 0, rtol=0, atol=1e-5)
+    xo.assert_allclose(tw['betx', 'bi1.tstr1l1'], 5.2996347, rtol=0, atol=1e-4)
+    xo.assert_allclose(tw['bety', 'bi1.tstr1l1'], 3.838857, rtol=0, atol=1e-4)
+    xo.assert_allclose(tw.qy, 4.45, rtol=0, atol=1e-6)
+    xo.assert_allclose(tw.qx, 4.4, rtol=0, atol=1e-6)
+    xo.assert_allclose(tw.dqy, -7.149781341846406, rtol=0, atol=1e-3)
+    xo.assert_allclose(tw.dqx, -3.5655757511587893, rtol=0, atol=1e-3)
 
 
     # Setup time-dependent functions
@@ -311,16 +308,16 @@ def test_psb_chicane(test_context):
         dqy_thin.append(tw_thin.dqy)
 
 
-    assert np.allclose(qx_thick, qx_ptc, atol=2e-4, rtol=0)
-    assert np.allclose(qy_thick, qy_ptc, atol=2e-4, rtol=0)
-    assert np.allclose(qx_thin, qx_ptc, atol=1e-3, rtol=0)
-    assert np.allclose(qy_thin, qy_ptc, atol=1e-3, rtol=0)
-    assert np.allclose(dqx_thick, dqx_ptc, atol=0.5, rtol=0)
-    assert np.allclose(dqy_thick, dqy_ptc, atol=0.5, rtol=0)
-    assert np.allclose(dqx_thin, dqx_ptc, atol=0.5, rtol=0)
-    assert np.allclose(dqy_thin, dqy_ptc, atol=0.5, rtol=0)
-    assert np.allclose(bety_at_scraper_thick, bety_at_scraper_ptc, atol=0, rtol=1e-2)
-    assert np.allclose(bety_at_scraper_thin, bety_at_scraper_ptc, atol=0, rtol=2e-2)
+    xo.assert_allclose(qx_thick, qx_ptc, atol=2e-4, rtol=0)
+    xo.assert_allclose(qy_thick, qy_ptc, atol=2e-4, rtol=0)
+    xo.assert_allclose(qx_thin, qx_ptc, atol=1e-3, rtol=0)
+    xo.assert_allclose(qy_thin, qy_ptc, atol=1e-3, rtol=0)
+    xo.assert_allclose(dqx_thick, dqx_ptc, atol=0.5, rtol=0)
+    xo.assert_allclose(dqy_thick, dqy_ptc, atol=0.5, rtol=0)
+    xo.assert_allclose(dqx_thin, dqx_ptc, atol=0.5, rtol=0)
+    xo.assert_allclose(dqy_thin, dqy_ptc, atol=0.5, rtol=0)
+    xo.assert_allclose(bety_at_scraper_thick, bety_at_scraper_ptc, atol=0, rtol=1e-2)
+    xo.assert_allclose(bety_at_scraper_thin, bety_at_scraper_ptc, atol=0, rtol=2e-2)
 
     # Check correction
     line.vars['on_chicane_beta_corr'] = 1
@@ -355,12 +352,12 @@ def test_psb_chicane(test_context):
     qy_thin_corr = np.array(qy_thin_corr)
     bety_at_scraper_thin_corr = np.array(bety_at_scraper_thin_corr)
 
-    assert np.allclose(qx_thick_corr, qx_ptc[-1], atol=3e-3, rtol=0)
-    assert np.allclose(qy_thick_corr, qy_ptc[-1], atol=3e-3, rtol=0)
-    assert np.allclose(qx_thin_corr, qx_ptc[-1], atol=3e-3, rtol=0)
-    assert np.allclose(qy_thin_corr, qy_ptc[-1], atol=3e-3, rtol=0)
-    assert np.allclose(bety_at_scraper_thick_corr, bety_at_scraper_ptc[-1], atol=0, rtol=3e-2)
-    assert np.allclose(bety_at_scraper_thin_corr, bety_at_scraper_ptc[-1], atol=0, rtol=3e-2)
+    xo.assert_allclose(qx_thick_corr, qx_ptc[-1], atol=3e-3, rtol=0)
+    xo.assert_allclose(qy_thick_corr, qy_ptc[-1], atol=3e-3, rtol=0)
+    xo.assert_allclose(qx_thin_corr, qx_ptc[-1], atol=3e-3, rtol=0)
+    xo.assert_allclose(qy_thin_corr, qy_ptc[-1], atol=3e-3, rtol=0)
+    xo.assert_allclose(bety_at_scraper_thick_corr, bety_at_scraper_ptc[-1], atol=0, rtol=3e-2)
+    xo.assert_allclose(bety_at_scraper_thin_corr, bety_at_scraper_ptc[-1], atol=0, rtol=3e-2)
 
     # Tracking with time-dependent variable
 
@@ -385,11 +382,11 @@ def test_psb_chicane(test_context):
     line.track(p, num_turns=6000, time=True)
     print(f'Done in {line.time_last_track:.4} s')
 
-    assert np.isclose(monitor.x[0, 0], -0.045936, rtol=0, atol=1e-5)
-    assert np.isclose(monitor.x[0, 300], -0.04522354, rtol=0, atol=1e-5)
-    assert np.isclose(monitor.x[0, 2500], -0.02256763, rtol=0, atol=1e-5)
-    assert np.isclose(monitor.x[0, 4500], -0.00143883, rtol=0, atol=1e-5)
-    assert np.isclose(monitor.x[0, 5500], 0.0, rtol=0, atol=1e-5)
+    xo.assert_allclose(monitor.x[0, 0], -0.045936, rtol=0, atol=1e-5)
+    xo.assert_allclose(monitor.x[0, 300], -0.04522354, rtol=0, atol=1e-5)
+    xo.assert_allclose(monitor.x[0, 2500], -0.02256763, rtol=0, atol=1e-5)
+    xo.assert_allclose(monitor.x[0, 4500], -0.00143883, rtol=0, atol=1e-5)
+    xo.assert_allclose(monitor.x[0, 5500], 0.0, rtol=0, atol=1e-5)
 
     # Test multiturn injection
     if isinstance(test_context, xo.ContextCpu):
@@ -448,5 +445,5 @@ def test_psb_chicane(test_context):
         assert np.all(monitor.at_element[monitor.state > 0] ==
                     line.element_names.index('monitor_at_end'))
 
-        assert np.allclose(monitor.s[monitor.state > 0],
+        xo.assert_allclose(monitor.s[monitor.state > 0],
                         line.get_s_position('monitor_at_end'), atol=1e-12)

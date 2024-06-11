@@ -46,6 +46,7 @@ from .footprint import Footprint, _footprint_with_linear_rescale
 from .internal_record import (start_internal_logging_for_elements_of_type,
                               stop_internal_logging_for_elements_of_type,
                               stop_internal_logging)
+from .trajectory_correction import TrajectoryCorrection
 
 from .general import _print
 
@@ -106,6 +107,10 @@ class Line:
         self._extra_config['_needs_rng'] = False
         self._extra_config['enable_time_dependent_vars'] = False
         self._extra_config['twiss_default'] = {}
+        self._extra_config['steering_monitors_x'] = None
+        self._extra_config['steering_monitors_y'] = None
+        self._extra_config['steering_correctors_x'] = None
+        self._extra_config['steering_correctors_y'] = None
 
         if isinstance(elements, dict):
             element_dict = elements
@@ -1357,7 +1362,84 @@ class Line:
                                    phi0=phi0, psi0=psi0, element0=element0,
                                    reverse=reverse)
 
-    def correct_closed_orbit(self, reference, correction_config,
+    def correct_trajectory(self, run=True, n_iter='auto', start=None, end=None,
+                 twiss_table=None, planes=None,
+                 monitor_names_x=None, corrector_names_x=None,
+                 monitor_names_y=None, corrector_names_y=None,
+                 n_micado=None, n_singular_values=None, rcond=None):
+
+        '''
+        Correct the beam trajectory using linearized response matrix from optics
+        table.
+
+        Parameters
+        ----------
+
+        run : bool
+            If True (default), the correction is performed immediately. If False,
+            a TrajectoryCorrection object is returned, which can be used for
+            advanced correction.
+        n_iter : int
+            Number of iterations for the correction. If 'auto' (default), the
+            iterations are performed for as long as the correction is improving.
+        start : str
+            Start of the line range in which the correction is performed.
+            If `start` is provided `end` must also be provided.
+            If `start` is None, the correction is performed on the periodic
+            solution (closed orbit).
+        end : str
+            End of the line range in which the correction is performed.
+            If `end` is provided `start` must also be provided.
+            If `start` is None, the correction is performed on the periodic
+            solution (closed orbit).
+        twiss_table : TwissTable
+            Twiss table used to compute the response matrix for the correction.
+            If None, the twiss table is computed from the line.
+        planes : str
+            Planes for which the correction is performed. It can be 'x', 'y' or
+            'xy'. If None, the correction is performed for both planes.
+        monitor_names_x : list of str
+            List of elements used as monitors in the horizontal plane.
+        corrector_names_x : list of str
+            List of elements used as correctors in the horizontal plane. They
+            must have `knl` and `ksl` attributes.
+        monitor_names_y : list of str
+            List of elements used as monitors in the vertical plane.
+        corrector_names_y : list of str
+            List of elements used as correctors in the vertical plane. They
+            must have `knl` and `ksl` attributes.
+        n_micado : int
+            If `n_micado` is not None, the MICADO algorithm is used for the
+            correction. In that case, the number of correctors to be used is
+            given by `n_micado`.
+        n_singular_values : int
+            Number of singular values used for the correction.
+        rcond : float
+            Cutoff for small singular values (relative to the largest singular
+            value). Singular values smaller than `rcond` are considered zero.
+
+        Returns
+        -------
+        correction : TrajectoryCorrection
+            Trajectory correction object.
+
+        '''
+
+        correction = TrajectoryCorrection(line=self,
+                 start=start, end=end, twiss_table=twiss_table,
+                 monitor_names_x=monitor_names_x,
+                 corrector_names_x=corrector_names_x,
+                 monitor_names_y=monitor_names_y,
+                 corrector_names_y=corrector_names_y,
+                 n_micado=n_micado, n_singular_values=n_singular_values,
+                 rcond=rcond)
+
+        if run:
+            correction.correct(planes=planes, n_iter=n_iter)
+
+        return correction
+
+    def _xmask_correct_closed_orbit(self, reference, correction_config,
                         solver=None, verbose=False, restore_if_fail=True):
 
         """
@@ -1855,7 +1937,7 @@ class Line:
     def _elements_intersecting_s(
             self,
             s: List[float],
-            tol=1e-16,
+            s_tol=1e-6,
     ) -> Dict[str, List[float]]:
         """Given a list of s positions, return a list of elements 'cut' by s.
 
@@ -1863,9 +1945,9 @@ class Line:
         ---------
         s
             A list of s positions.
-        tol
+        s_tol
             Tolerance used when checking if s falls inside an element, or
-            at its edge. Defaults to 1e-16.
+            at its edge. Defaults to 1e-6.
 
         Returns
         -------
@@ -1890,12 +1972,12 @@ class Line:
                     start, name = next(all_s_iter)
                     continue
 
-                if np.isclose(current_s, start, atol=tol, rtol=0):
+                if np.isclose(current_s, start, atol=s_tol, rtol=0):
                     current_s = next(current_s_iter)
                     continue
 
                 end = start + _length(element, self)
-                if np.isclose(current_s, end, atol=tol, rtol=0):
+                if np.isclose(current_s, end, atol=s_tol, rtol=0):
                     current_s = next(current_s_iter)
                     continue
 
@@ -1916,9 +1998,9 @@ class Line:
 
         return cuts_for_element
 
-    def cut_at_s(self, s: List[float]):
+    def cut_at_s(self, s: List[float], s_tol=1e-6):
         """Slice the line so that positions in s never fall inside an element."""
-        cuts_for_element = self._elements_intersecting_s(s)
+        cuts_for_element = self._elements_intersecting_s(s, s_tol=s_tol)
         strategies = [Strategy(None)]  # catch-all, ignore unaffected elements
 
         for name, cuts in cuts_for_element.items():
@@ -2005,11 +2087,12 @@ class Line:
 
         s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
         if _is_thick(element, self) and _length(element, self) > 0:
-            s_vect_downstream = np.array(self.get_s_position(mode='downstream'))
-            i_first_drift_to_cut = np.where(s_vect_downstream > s_start_ele)[0][0]
-            i_last_drift_to_cut = np.where(s_vect_upstream < s_end_ele)[0][-1]
-            assert i_first_drift_to_cut <= i_last_drift_to_cut
-            self.element_names[i_first_drift_to_cut:i_last_drift_to_cut + 1] = [name]
+            i_first_removal = np.where(np.abs(s_vect_upstream - s_start_ele) < s_tol)[0][-1]
+            i_last_removal = np.where(np.abs(s_vect_upstream - s_end_ele) < s_tol)[0][0] - 1
+            xo.assert_allclose(s_vect_upstream[i_last_removal + 1]
+                              - s_vect_upstream[i_first_removal],
+                                _length(element, self), atol=2 * s_tol, rtol=0)
+            self.element_names[i_first_removal:i_last_removal + 1] = [name]
         else:
             i_closest = np.argmin(np.abs(s_vect_upstream - at_s))
             assert np.abs(s_vect_upstream[i_closest] - at_s) < s_tol
@@ -2357,6 +2440,59 @@ class Line:
         self.config.XTRACK_MULTIPOLE_NO_SYNRAD = (radiation_flag == 0)
         self.config.XFIELDS_BB3D_NO_BEAMSTR = (beamstrahlung_flag == 0)
         self.config.XFIELDS_BB3D_NO_BHABHA = (bhabha_flag == 0)
+
+    def configure_intrabeam_scattering(
+        self, element = None,
+        update_every: int = None,
+        **kwargs,
+    ) -> None:
+        """
+        Configures the IBS kick element in the line for tracking.
+
+        Notes
+        -----
+            This **should be** one of the last steps taken before tracking.
+            At the very least, if steps are taken that change the lattice's
+            optics after this configuration, then this function should be
+            called once again.
+
+        Parameters
+        ----------
+        line : xtrack.Line
+            The line in which the IBS kick element was inserted.
+        element : IBSKick, optional
+            If provided, the element is first inserted in the line,
+            before proceeding to configuration. In this case the keyword
+            arguments are passed on to the `line.insert_element` method.
+        update_every : int
+            The frequency at which to recompute the kick coefficients, in
+            number of turns. They will be computed at the first turn of
+            tracking, and then every `update_every` turns afterwards.
+        **kwargs : dict, optional
+            Required if an element is provided. Keyword arguments are
+            passed to the `line.insert_element()` method according to
+            `line.insert_element(element=element, **kwargs)`.
+
+        Raises
+        ------
+        ImportError
+            If the xfields package is not installed, with a sufficiently
+            recent version.
+        AssertionError
+            If the provided `update_every` is not a positive integer.
+        AssertionError
+            If more than one IBS kick element is found in the line.
+        AssertionError
+            If the element is an `IBSSimpleKick` and the line is operating
+            below transition energy.
+        """
+        try:
+            from xfields.ibs import configure_intrabeam_scattering
+        except ImportError as error:
+            raise ImportError("Please install xfields to use this feature.") from error
+        configure_intrabeam_scattering(
+            self, element=element, update_every=update_every, **kwargs
+        )
 
     def compensate_radiation_energy_loss(self, delta0=0, rtol_eneloss=1e-10,
                                     max_iter=100, **kwargs):
@@ -2891,7 +3027,7 @@ class Line:
             ee = self.element_dict[name]
             if isinstance(ee, xt.Replica):
                 ee = ee.resolve(self)
-            if _allow_backtrack(ee, self) and not name in needs_aperture:
+            if _allow_loss_refinement(ee, self) and not name in needs_aperture:
                 dont_need_aperture[name] = True
             if name.endswith('_entry') or name.endswith('_exit'):
                 dont_need_aperture[name] = True
@@ -3421,6 +3557,38 @@ class Line:
         self.energy_program.line = self
         self.element_refs['energy_program'].t_turn_s_line = self.vars['t_turn_s']
 
+    @property
+    def steering_monitors_x(self):
+        return self._extra_config.get('steering_monitors_x', None)
+
+    @steering_monitors_x.setter
+    def steering_monitors_x(self, value):
+        self._extra_config['steering_monitors_x'] = value
+
+    @property
+    def steering_monitors_y(self):
+        return self._extra_config.get('steering_monitors_y', None)
+
+    @steering_monitors_y.setter
+    def steering_monitors_y(self, value):
+        self._extra_config['steering_monitors_y'] = value
+
+    @property
+    def steering_correctors_x(self):
+        return self._extra_config.get('steering_correctors_x', None)
+
+    @steering_correctors_x.setter
+    def steering_correctors_x(self, value):
+        self._extra_config['steering_correctors_x'] = value
+
+    @property
+    def steering_correctors_y(self):
+        return self._extra_config.get('steering_correctors_y', None)
+
+    @steering_correctors_y.setter
+    def steering_correctors_y(self, value):
+        self._extra_config['steering_correctors_y'] = value
+
     def __getitem__(self, ii):
         if isinstance(ii, str):
 
@@ -3470,6 +3638,7 @@ class Line:
                 '_own_cos_rot_s': '_cos_rot_s',
                 '_own_shift_x': '_shift_x',
                 '_own_shift_y': '_shift_y',
+                '_own_shift_s': '_shift_s',
 
                 '_own_h': 'h',
                 '_own_hxl': 'hxl',
@@ -3507,6 +3676,7 @@ class Line:
                 '_parent_cos_rot_s': (('_parent', '_cos_rot_s'), None),
                 '_parent_shift_x': (('_parent', '_shift_x'), None),
                 '_parent_shift_y': (('_parent', '_shift_y'), None),
+                '_parent_shift_s': (('_parent', '_shift_s'), None),
 
                 '_parent_h': (('_parent', 'h'), None),
                 '_parent_hxl': (('_parent', 'hxl'), None),
@@ -3550,6 +3720,9 @@ class Line:
                     * attr._rot_and_shift_from_parent,
                 'shift_y': lambda attr:
                     attr['_own_shift_y'] + attr['_parent_shift_y']
+                    * attr._rot_and_shift_from_parent,
+                'shift_s': lambda attr:
+                    attr['_own_shift_s'] + attr['_parent_shift_s']
                     * attr._rot_and_shift_from_parent,
                 'k0l': lambda attr: (
                     attr['_own_k0l']
@@ -3611,11 +3784,13 @@ class Line:
                     + attr['_own_k5s'] * attr['_own_length']
                     + attr['_parent_k5sl'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k5s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
+                'hkick': lambda attr: attr["angle_rad"] - attr["k0l"],
+                'vkick': lambda attr: attr["k0sl"],
             }
         )
         return cache
 
-    def _insert_thin_elements_at_s(self, elements_to_insert):
+    def _insert_thin_elements_at_s(self, elements_to_insert, s_tol=0.5e-6):
 
         '''
         Example:
@@ -3629,7 +3804,6 @@ class Line:
         '''
 
         self._frozen_check()
-        s_tol = 0.5e-6
 
         s_cuts = [ee[0] for ee in elements_to_insert]
         s_cuts = np.sort(s_cuts)
@@ -3672,6 +3846,69 @@ class Line:
 
                 if insert_at is not None:
                     insert_at += 1
+
+    def _insert_thick_elements_at_s(self, element_names, elements,
+                                    at_s, s_tol=1e-6):
+
+        assert isinstance(element_names, (list, tuple))
+        assert isinstance(elements, (list, tuple))
+        assert isinstance(at_s, (list, tuple, np.ndarray))
+        assert len(element_names) == len(elements) == len(at_s)
+
+        self._frozen_check()
+
+        s_insert = np.array(at_s)
+        l_insert = np.array([_length(ee, None) for ee in elements])
+        ele_insert = list(elements).copy()
+        name_insert = list(element_names).copy()
+
+        end_insert = np.array(s_insert) + np.array(l_insert)
+
+        self.cut_at_s(list(s_insert) + list(end_insert))
+
+        i_sorted = np.argsort(s_insert)
+        s_insert_sorted = s_insert[i_sorted]
+        ele_insert_sorted = [ele_insert[i] for i in i_sorted]
+        name_insert_sorted = [name_insert[i] for i in i_sorted]
+        end_insert_sorted = end_insert[i_sorted]
+
+        assert np.all(s_insert_sorted[:-1] < end_insert_sorted[1:]), (
+                    'Overlapping insertions')
+
+        old_element_names = self.element_names
+
+        s_tol = 1e-6
+
+        s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
+
+        i_replace = np.zeros(len(s_vect_upstream), dtype=int)
+        mask_remove = np.zeros(len(s_vect_upstream), dtype=bool)
+
+        i_replace[:] = -1
+
+        for ii in range(len(s_insert_sorted)):
+            ss_start = s_insert_sorted[ii]
+            ss_end = end_insert_sorted[ii]
+
+            i_first_removal = np.where(np.abs(s_vect_upstream - ss_start) < s_tol)[0][-1]
+            i_last_removal = np.where(np.abs(s_vect_upstream - ss_end) < s_tol)[0][0] - 1
+
+            i_replace[i_first_removal] = ii
+            mask_remove[i_first_removal+1:i_last_removal+1] = True
+
+        new_element_names = []
+        for ii, nn in enumerate(old_element_names):
+            if mask_remove[ii]:
+                continue
+            if i_replace[ii] != -1:
+                new_element_names.append(name_insert_sorted[i_replace[ii]])
+            else:
+                new_element_names.append(nn)
+
+        for new_nn, new_ee in zip(name_insert_sorted, ele_insert_sorted):
+            self.element_dict[new_nn] = new_ee
+
+        self.element_names = new_element_names
 
     @property
     def _line_before_slicing(self):
@@ -3788,7 +4025,8 @@ def _is_simple_quadrupole(el):
             and el.knl[0] == 0
             and not any(el.ksl)
             and not el.hxl
-            and el.shift_x == 0 and el.shift_y == 0 and np.abs(el.rot_s_rad) < 1e-12)
+            and el.shift_x == 0 and el.shift_y == 0 and el.shift_s == 0
+            and np.abs(el.rot_s_rad) < 1e-12)
 
 def _is_simple_dipole(el):
     if not isinstance(el, Multipole):
@@ -3796,7 +4034,8 @@ def _is_simple_dipole(el):
     return (el.radiation_flag == 0
             and (el.order == 0 or len(el.knl) == 1 or not any(el.knl[1:]))
             and not any(el.ksl)
-            and el.shift_x == 0 and el.shift_y == 0 and np.abs(el.rot_s_rad) < 1e-12)
+            and el.shift_x == 0 and el.shift_y == 0 and el.shift_s == 0
+            and np.abs(el.rot_s_rad) < 1e-12)
 
 @contextmanager
 def freeze_longitudinal(tracker):
@@ -3871,10 +4110,10 @@ def _is_collective(element, line):
     return iscoll
 
 # whether backtrack in loss location refinement is allowed
-def _allow_backtrack(element, line):
+def _allow_loss_refinement(element, line):
     if isinstance(element, xt.Replica):
         element = element.resolve(line)
-    return hasattr(element, 'allow_backtrack') and element.allow_backtrack
+    return hasattr(element, 'allow_loss_refinement') and element.allow_loss_refinement
 
 # whether element has backtrack capability
 def _has_backtrack(element, line):
@@ -4148,6 +4387,12 @@ class LineVars:
             return self._setter_from_cache(key)
         return self.line._xdeps_vref[key]
 
+    def get(self,key,default=0):
+        if key in self:
+            return self[key]
+        else:
+            return default
+
     def __setitem__(self, key, value):
         if self.cache_active:
             if isref(value) or isinstance(value, VarSetter):
@@ -4264,6 +4509,12 @@ class VarValues:
 
     def __setitem__(self, key, value):
         self.vars[key] = value
+
+    def get(self,key, default=0):
+        if key in self.vars:
+            return self.vars[key]._value
+        else:
+            return default
 
 class VarSetter:
     def __init__(self, line, varname):

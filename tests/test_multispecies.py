@@ -1,9 +1,11 @@
-import pytest
-import xtrack as xt
 import numpy as np
-
-from scipy.constants import e as qe
+import pytest
 from scipy.constants import c as clight
+from scipy.constants import e as qe
+
+import xobjects as xo
+import xtrack as xt
+
 
 def test_multispecies_multipole():
 
@@ -36,17 +38,17 @@ def test_multispecies_multipole():
     p1_ref2.chi = p1_ref2_charge_ratio / p1_ref2_mass_ratio
     p1_ref2.delta = P_p1 / p1_ref2_mass_ratio / p1_ref2.p0c - 1
 
-    assert np.isclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
 
-    assert np.isclose(p1.rpp, 1 / (1 + p1.delta), atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.rpp, 1 / (1 + p1_ref2.delta), atol=0, rtol=1e-14)
+    xo.assert_allclose(p1.rpp, 1 / (1 + p1.delta), atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.rpp, 1 / (1 + p1_ref2.delta), atol=0, rtol=1e-14)
 
     p1c = p1.p0c / p1.rpp * p1.mass_ratio
     p1c_ref2 = p1_ref2.p0c / p1_ref2.rpp * p1_ref2.mass_ratio
-    assert np.isclose(p1c, p1c_ref2, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1c, p1c_ref2, atol=0, rtol=1e-14)
 
     L_bend = 1.
 
@@ -103,12 +105,12 @@ def test_multispecies_multipole():
     line_ref1.track(p1, ele_start=0, ele_stop='endmarker')
     line_ref2.track(p1_ref2, ele_start=0, ele_stop='endmarker')
 
-    assert np.isclose(p1.x, p1_ref2.x, atol=0, rtol=1e-14)
-    assert np.isclose(p1.y, p1_ref2.y, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1.x, p1_ref2.x, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1.y, p1_ref2.y, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
 
     # Check absolute time of arrival
     t0_ref1 = p1.s / (p1.beta0 * clight)           # Absolute reference time of arrival
@@ -116,7 +118,7 @@ def test_multispecies_multipole():
     dt_ref1 = -p1.zeta / (p1.beta0 * clight)           # Arrival time relative to reference
     dt_ref2 = -p1_ref2.zeta / (p1_ref2.beta0 * clight) # Arrival time relative to reference
 
-    assert np.isclose(t0_ref1 + dt_ref1, t0_ref2 + dt_ref2, atol=1e-11, rtol=0)
+    xo.assert_allclose(t0_ref1 + dt_ref1, t0_ref2 + dt_ref2, atol=1e-11, rtol=0)
 
 @pytest.mark.parametrize('model', ['expanded', 'bend-kick-bend', 'rot-kick-rot'])
 @pytest.mark.parametrize('B_T', [0.4, 0])
@@ -153,17 +155,17 @@ def test_multispecies_bend(model, B_T, hxl, G_Tm, S_Tm2):
     p1_ref2.chi = p1_ref2_charge_ratio / p1_ref2_mass_ratio
     p1_ref2.delta = P_p1 / p1_ref2_mass_ratio / p1_ref2.p0c - 1
 
-    assert np.isclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
 
-    assert np.isclose(p1.rpp, 1 / (1 + p1.delta), atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.rpp, 1 / (1 + p1_ref2.delta), atol=0, rtol=1e-14)
+    xo.assert_allclose(p1.rpp, 1 / (1 + p1.delta), atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.rpp, 1 / (1 + p1_ref2.delta), atol=0, rtol=1e-14)
 
     p1c = p1.p0c / p1.rpp * p1.mass_ratio
     p1c_ref2 = p1_ref2.p0c / p1_ref2.rpp * p1_ref2.mass_ratio
-    assert np.isclose(p1c, p1c_ref2, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1c, p1c_ref2, atol=0, rtol=1e-14)
 
     L_bend = 1.
 
@@ -220,12 +222,12 @@ def test_multispecies_bend(model, B_T, hxl, G_Tm, S_Tm2):
     line_ref1.track(p1, ele_start=0, ele_stop='endmarker')
     line_ref2.track(p1_ref2, ele_start=0, ele_stop='endmarker')
 
-    assert np.isclose(p1.x, p1_ref2.x, atol=0, rtol=1e-10)
-    assert np.isclose(p1.y, p1_ref2.y, atol=0, rtol=1e-10)
-    assert np.isclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1.x, p1_ref2.x, atol=0, rtol=1e-10)
+    xo.assert_allclose(p1.y, p1_ref2.y, atol=0, rtol=1e-10)
+    xo.assert_allclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
 
     # Check absolute time of arrival
     t0_ref1 = p1.s / (p1.beta0 * clight)           # Absolute reference time of arrival
@@ -233,7 +235,7 @@ def test_multispecies_bend(model, B_T, hxl, G_Tm, S_Tm2):
     dt_ref1 = -p1.zeta / (p1.beta0 * clight)           # Arrival time relative to reference
     dt_ref2 = -p1_ref2.zeta / (p1_ref2.beta0 * clight) # Arrival time relative to reference
 
-    assert np.isclose(t0_ref1 + dt_ref1, t0_ref2 + dt_ref2, atol=1e-11, rtol=0)
+    xo.assert_allclose(t0_ref1 + dt_ref1, t0_ref2 + dt_ref2, atol=1e-11, rtol=0)
 
 @pytest.mark.parametrize('model', ['full', 'linear'])
 @pytest.mark.parametrize('side', ['entry', 'exit'])
@@ -268,17 +270,17 @@ def test_multispecies_dipole_edge(model, side):
     p1_ref2.chi = p1_ref2_charge_ratio / p1_ref2_mass_ratio
     p1_ref2.delta = P_p1 / p1_ref2_mass_ratio / p1_ref2.p0c - 1
 
-    assert np.isclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
 
-    assert np.isclose(p1.rpp, 1 / (1 + p1.delta), atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.rpp, 1 / (1 + p1_ref2.delta), atol=0, rtol=1e-14)
+    xo.assert_allclose(p1.rpp, 1 / (1 + p1.delta), atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.rpp, 1 / (1 + p1_ref2.delta), atol=0, rtol=1e-14)
 
     p1c = p1.p0c / p1.rpp * p1.mass_ratio
     p1c_ref2 = p1_ref2.p0c / p1_ref2.rpp * p1_ref2.mass_ratio
-    assert np.isclose(p1c, p1c_ref2, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1c, p1c_ref2, atol=0, rtol=1e-14)
 
     B_T = 0.4
     e1=0.1
@@ -310,12 +312,12 @@ def test_multispecies_dipole_edge(model, side):
     line_ref1.track(p1, ele_start=0, ele_stop='endmarker')
     line_ref2.track(p1_ref2, ele_start=0, ele_stop='endmarker')
 
-    assert np.isclose(p1.x, p1_ref2.x, atol=0, rtol=1e-5)
-    assert np.isclose(p1.y, p1_ref2.y, atol=0, rtol=1e-1)          #?????????????
-    assert np.isclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1.x, p1_ref2.x, atol=0, rtol=1e-5)
+    xo.assert_allclose(p1.y, p1_ref2.y, atol=0, rtol=1e-1)          #?????????????
+    xo.assert_allclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
 
     # Check absolute time of arrival
     t0_ref1 = p1.s / (p1.beta0 * clight)           # Absolute reference time of arrival
@@ -323,7 +325,7 @@ def test_multispecies_dipole_edge(model, side):
     dt_ref1 = -p1.zeta / (p1.beta0 * clight)           # Arrival time relative to reference
     dt_ref2 = -p1_ref2.zeta / (p1_ref2.beta0 * clight) # Arrival time relative to reference
 
-    assert np.isclose(t0_ref1 + dt_ref1, t0_ref2 + dt_ref2, atol=1e-11, rtol=0)
+    xo.assert_allclose(t0_ref1 + dt_ref1, t0_ref2 + dt_ref2, atol=1e-11, rtol=0)
 
 
 def test_multispecies_quadrupole():
@@ -357,17 +359,17 @@ def test_multispecies_quadrupole():
     p1_ref2.chi = p1_ref2_charge_ratio / p1_ref2_mass_ratio
     p1_ref2.delta = P_p1 / p1_ref2_mass_ratio / p1_ref2.p0c - 1
 
-    assert np.isclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
 
-    assert np.isclose(p1.rpp, 1 / (1 + p1.delta), atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.rpp, 1 / (1 + p1_ref2.delta), atol=0, rtol=1e-14)
+    xo.assert_allclose(p1.rpp, 1 / (1 + p1.delta), atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.rpp, 1 / (1 + p1_ref2.delta), atol=0, rtol=1e-14)
 
     p1c = p1.p0c / p1.rpp * p1.mass_ratio
     p1c_ref2 = p1_ref2.p0c / p1_ref2.rpp * p1_ref2.mass_ratio
-    assert np.isclose(p1c, p1c_ref2, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1c, p1c_ref2, atol=0, rtol=1e-14)
 
     model = 'bend-kick-bend'
     model = 'rot-kick-rot'
@@ -420,12 +422,12 @@ def test_multispecies_quadrupole():
     line_ref1.track(p1, ele_start=0, ele_stop='endmarker')
     line_ref2.track(p1_ref2, ele_start=0, ele_stop='endmarker')
 
-    assert np.isclose(p1.x, p1_ref2.x, atol=0, rtol=1e-10)
-    assert np.isclose(p1.y, p1_ref2.y, atol=0, rtol=1e-10)
-    assert np.isclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1.x, p1_ref2.x, atol=0, rtol=1e-10)
+    xo.assert_allclose(p1.y, p1_ref2.y, atol=0, rtol=1e-10)
+    xo.assert_allclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
 
     # Check absolute time of arrival
     t0_ref1 = p1.s / (p1.beta0 * clight)           # Absolute reference time of arrival
@@ -433,7 +435,7 @@ def test_multispecies_quadrupole():
     dt_ref1 = -p1.zeta / (p1.beta0 * clight)           # Arrival time relative to reference
     dt_ref2 = -p1_ref2.zeta / (p1_ref2.beta0 * clight) # Arrival time relative to reference
 
-    assert np.isclose(t0_ref1 + dt_ref1, t0_ref2 + dt_ref2, atol=1e-11, rtol=0)
+    xo.assert_allclose(t0_ref1 + dt_ref1, t0_ref2 + dt_ref2, atol=1e-11, rtol=0)
 
 def test_multispecies_sextupole():
 
@@ -466,17 +468,17 @@ def test_multispecies_sextupole():
     p1_ref2.chi = p1_ref2_charge_ratio / p1_ref2_mass_ratio
     p1_ref2.delta = P_p1 / p1_ref2_mass_ratio / p1_ref2.p0c - 1
 
-    assert np.isclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
 
-    assert np.isclose(p1.rpp, 1 / (1 + p1.delta), atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.rpp, 1 / (1 + p1_ref2.delta), atol=0, rtol=1e-14)
+    xo.assert_allclose(p1.rpp, 1 / (1 + p1.delta), atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.rpp, 1 / (1 + p1_ref2.delta), atol=0, rtol=1e-14)
 
     p1c = p1.p0c / p1.rpp * p1.mass_ratio
     p1c_ref2 = p1_ref2.p0c / p1_ref2.rpp * p1_ref2.mass_ratio
-    assert np.isclose(p1c, p1c_ref2, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1c, p1c_ref2, atol=0, rtol=1e-14)
 
     model = 'bend-kick-bend'
     model = 'rot-kick-rot'
@@ -528,12 +530,12 @@ def test_multispecies_sextupole():
     line_ref1.track(p1, ele_start=0, ele_stop='endmarker')
     line_ref2.track(p1_ref2, ele_start=0, ele_stop='endmarker')
 
-    assert np.isclose(p1.x, p1_ref2.x, atol=0, rtol=1e-10)
-    assert np.isclose(p1.y, p1_ref2.y, atol=0, rtol=1e-10)
-    assert np.isclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1.x, p1_ref2.x, atol=0, rtol=1e-10)
+    xo.assert_allclose(p1.y, p1_ref2.y, atol=0, rtol=1e-10)
+    xo.assert_allclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
 
     # Check absolute time of arrival
     t0_ref1 = p1.s / (p1.beta0 * clight)           # Absolute reference time of arrival
@@ -541,7 +543,7 @@ def test_multispecies_sextupole():
     dt_ref1 = -p1.zeta / (p1.beta0 * clight)           # Arrival time relative to reference
     dt_ref2 = -p1_ref2.zeta / (p1_ref2.beta0 * clight) # Arrival time relative to reference
 
-    assert np.isclose(t0_ref1 + dt_ref1, t0_ref2 + dt_ref2, atol=1e-11, rtol=0)
+    xo.assert_allclose(t0_ref1 + dt_ref1, t0_ref2 + dt_ref2, atol=1e-11, rtol=0)
 
 def test_multispecies_octupole():
 
@@ -574,17 +576,17 @@ def test_multispecies_octupole():
     p1_ref2.chi = p1_ref2_charge_ratio / p1_ref2_mass_ratio
     p1_ref2.delta = P_p1 / p1_ref2_mass_ratio / p1_ref2.p0c - 1
 
-    assert np.isclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
 
-    assert np.isclose(p1.rpp, 1 / (1 + p1.delta), atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.rpp, 1 / (1 + p1_ref2.delta), atol=0, rtol=1e-14)
+    xo.assert_allclose(p1.rpp, 1 / (1 + p1.delta), atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.rpp, 1 / (1 + p1_ref2.delta), atol=0, rtol=1e-14)
 
     p1c = p1.p0c / p1.rpp * p1.mass_ratio
     p1c_ref2 = p1_ref2.p0c / p1_ref2.rpp * p1_ref2.mass_ratio
-    assert np.isclose(p1c, p1c_ref2, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1c, p1c_ref2, atol=0, rtol=1e-14)
 
     L_bend = 1.
     O_Tm3 = 1
@@ -630,12 +632,12 @@ def test_multispecies_octupole():
     line_ref1.track(p1, ele_start=0, ele_stop='endmarker')
     line_ref2.track(p1_ref2, ele_start=0, ele_stop='endmarker')
 
-    assert np.isclose(p1.x, p1_ref2.x, atol=0, rtol=1e-12)
-    assert np.isclose(p1.y, p1_ref2.y, atol=0, rtol=1e-12)
-    assert np.isclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1.x, p1_ref2.x, atol=0, rtol=1e-12)
+    xo.assert_allclose(p1.y, p1_ref2.y, atol=0, rtol=1e-12)
+    xo.assert_allclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
 
     # Check absolute time of arrival
     t0_ref1 = p1.s / (p1.beta0 * clight)           # Absolute reference time of arrival
@@ -643,7 +645,7 @@ def test_multispecies_octupole():
     dt_ref1 = -p1.zeta / (p1.beta0 * clight)           # Arrival time relative to reference
     dt_ref2 = -p1_ref2.zeta / (p1_ref2.beta0 * clight) # Arrival time relative to reference
 
-    assert np.isclose(t0_ref1 + dt_ref1, t0_ref2 + dt_ref2, atol=1e-11, rtol=0)
+    xo.assert_allclose(t0_ref1 + dt_ref1, t0_ref2 + dt_ref2, atol=1e-11, rtol=0)
 
 def test_multispecies_cavity():
 
@@ -676,17 +678,17 @@ def test_multispecies_cavity():
     p1_ref2.chi = p1_ref2_charge_ratio / p1_ref2_mass_ratio
     p1_ref2.delta = P_p1 / p1_ref2_mass_ratio / p1_ref2.p0c - 1
 
-    assert np.isclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
 
-    assert np.isclose(p1.rpp, 1 / (1 + p1.delta), atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.rpp, 1 / (1 + p1_ref2.delta), atol=0, rtol=1e-14)
+    xo.assert_allclose(p1.rpp, 1 / (1 + p1.delta), atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.rpp, 1 / (1 + p1_ref2.delta), atol=0, rtol=1e-14)
 
     p1c = p1.p0c / p1.rpp * p1.mass_ratio
     p1c_ref2 = p1_ref2.p0c / p1_ref2.rpp * p1_ref2.mass_ratio
-    assert np.isclose(p1c, p1c_ref2, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1c, p1c_ref2, atol=0, rtol=1e-14)
 
     s_cav = 100
     frequency = 400e6
@@ -721,14 +723,14 @@ def test_multispecies_cavity():
     dt_ref1 = -p1.zeta / (p1.beta0 * clight)           # Arrival time relative to reference
     dt_ref2 = -p1_ref2.zeta / (p1_ref2.beta0 * clight) # Arrival time relative to reference
 
-    assert np.isclose(t0_ref1 + dt_ref1, t0_ref2 + dt_ref2, atol=1e-11, rtol=0)
-    assert np.isclose(p1_ref2.zeta,
+    xo.assert_allclose(t0_ref1 + dt_ref1, t0_ref2 + dt_ref2, atol=1e-11, rtol=0)
+    xo.assert_allclose(p1_ref2.zeta,
         (1 - p1_ref2.beta0 / p1.beta0) * p1.s + p1_ref2.beta0 / p1.beta0 * p1.zeta,
         atol=1e-11, rtol=0)
 
-    assert np.isclose(p1.x, p1_ref2.x, atol=0, rtol=1e-12)
-    assert np.isclose(p1.y, p1_ref2.y, atol=0, rtol=1e-12)
-    assert np.isclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
-    assert np.isclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1.x, p1_ref2.x, atol=0, rtol=1e-12)
+    xo.assert_allclose(p1.y, p1_ref2.y, atol=0, rtol=1e-12)
+    xo.assert_allclose(p1_ref2.mass, p1.mass, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.charge, p1.charge, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.energy, p1.energy, atol=0, rtol=1e-14)
+    xo.assert_allclose(p1_ref2.rvv * p1_ref2.beta0, p1.rvv * p1.beta0, atol=0, rtol=1e-14)
