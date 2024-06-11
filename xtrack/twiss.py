@@ -389,7 +389,7 @@ def twiss_line(line, particle_ref=None, method=None,
             out = xt.TwissTable.concatenate([t1o, t2o])
         return _add_action_in_res(out, input_kwargs)
 
-    if init == 'full_periodic':
+    if init == 'full_periodic' and (start is not None or end is not None):
         kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
         kwargs.pop('init')
         kwargs.pop('start')
@@ -401,8 +401,7 @@ def twiss_line(line, particle_ref=None, method=None,
         if zero_at is None:
             out.zero_at(start)
         return _add_action_in_res(out, input_kwargs)
-
-    if (init is not None and init != 'periodic'
+    elif (init is not None and init != 'periodic'
         or betx is not None or bety is not None):
         periodic = False
     else:
