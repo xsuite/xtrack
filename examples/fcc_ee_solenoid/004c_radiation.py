@@ -4,8 +4,7 @@ import numpy as np
 from scipy.constants import c as clight
 from scipy.constants import e as qe
 
-line = xt.Line.from_json('fccee_t_with_sol_corrected.json')
-line.cycle('ip.1')
+line = xt.Line.from_json('fccee_z_with_sol_corrected.json')
 tw_no_rad = line.twiss(method='4d')
 line.configure_radiation(model='mean')
 tt = line.get_table(attr=True)
