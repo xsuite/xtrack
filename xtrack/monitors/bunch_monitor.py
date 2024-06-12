@@ -49,7 +49,7 @@ class BeamSizeMonitor(BeamElement):
                  start_at_turn=None, stop_at_turn=None, frev=None,
                  harmonic=None, _xobject=None, **kwargs):
         """
-        Monitor to save the transverse beam size (standard deviation of the tracked particle positions)
+        Monitor to save the longitudinal beam size (standard deviation of the tracked particle positions)
 
 
         The monitor allows for arbitrary sampling rate and can thus not only be used to monitor
@@ -69,13 +69,15 @@ class BeamSizeMonitor(BeamElement):
         range zeta/circumference = -0.25 .. 0.25, the second item in the range 0.25 .. 0.75 and
         so on.
 
+        The monitor is a carbon copy of the beam size monitor but dedicated to the longitudinal coordinates.
+
         The monitor provides the following data:
         - `count` Number of particles
         - `zeta_mean`, `delta_mean` Beam position in m and unitless (centroid, i.e. mean of particle zeta, delta)
         - `zeta_std`, `delta_std` Beam size in m (standard deviation of particle zeta, delta)
-        - `zeta_var`, `delta_var` Variance of particle zeta, delta in m² (= std**2)
-        - `zeta_sum`, `delta_sum` Sum of particle zeta, delta in m (= mean * count)
-        - `zeta2_sum`, `delta2_sum` Sum of particle zeta, delta squared in m² (= (std**2 + mean**2) * count)
+        - `zeta_var`, `delta_var` Variance of particle zeta [m²], delta  (= std**2)
+        - `zeta_sum`, `delta_sum` Sum of particle zeta [m], delta (= mean * count)
+        - `zeta2_sum`, `delta2_sum` Sum of particle zeta [m²], delta squared  (= (std**2 + mean**2) * count)
         each as an array of size:
             size = int(( stop_at_turn - start_at_turn ) * harmonic)
 
