@@ -1,33 +1,32 @@
 // ##################################
 // Bunch Monitor
 // 
-// Author: Philipp Niedermayer
+// Author: Philipp Niedermayer, Cristopher Cortes
 // Date: 2023-08-14
 // Edit: 2024-06-12
 // ##################################
 
 
-#ifndef XTRACK_BEAM_SIZE_MONITOR_H
-#define XTRACK_BEAM_SIZE_MONITOR_H
+#ifndef XTRACK_BUNCH_MONITOR_H
+#define XTRACK_BUNCH_MONITOR_H
 
 #if !defined( C_LIGHT )
     #define   C_LIGHT ( 299792458.0 )
 #endif /* !defined( C_LIGHT ) */
 
 /*gpufun*/
-void BeamSizeMonitor_track_local_particle(BeamSizeMonitorData el, LocalParticle* part0){
+void BunchMonitor_track_local_particle(BunchMonitorData el, LocalParticle* part0){
 
     // get parameters
-    int64_t const start_at_turn = BeamSizeMonitorData_get_start_at_turn(el);
-    int64_t particle_id_start = BeamSizeMonitorData_get_particle_id_start(el);
-    int64_t particle_id_stop = particle_id_start + BeamSizeMonitorData_get_num_particles(el);
-    // Should we do explicit casting to float (?) 
-    int64_t const harmonic = BeamSizeMonitorData_get_harmonic(el);
-    double const frev = BeamSizeMonitorData_get_frev(el);
+    int64_t const start_at_turn = BunchMonitorData_get_start_at_turn(el);
+    int64_t particle_id_start = BunchMonitorData_get_particle_id_start(el);
+    int64_t particle_id_stop = particle_id_start + BunchMonitorData_get_num_particles(el);
+    int64_t const harmonic = BunchMonitorData_get_harmonic(el);
+    double const frev = BunchMonitorData_get_frev(el);
     
-    BeamSizeMonitorRecord record = BeamSizeMonitorData_getp_data(el);
+    BunchMonitorRecord record = BunchMonitorData_getp_data(el);
 
-    int64_t max_slot = BeamSizeMonitorRecord_len_count(record);
+    int64_t max_slot = BunchMonitorRecord_len_count(record);
 
     //start_per_particle_block(part0->part)
 
@@ -46,24 +45,25 @@ void BeamSizeMonitor_track_local_particle(BeamSizeMonitorData el, LocalParticle*
 
             if (slot >= 0 && slot < max_slot){
 
-	        double delta = LocalParticle_get_delta(part);
+                double const delta = LocalParticle_get_delta(part);
 
-                /*gpuglmem*/ double* count = BeamSizeMonitorRecord_getp1_count(record, slot);
+                /*gpuglmem*/ double* count = BunchMonitorRecord_getp1_count(record, slot);
                 atomicAdd(count, 1);
 
-                /*gpuglmem*/ double * zeta_sum = BeamSizeMonitorRecord_getp1_zeta_sum(record, slot);
+                /*gpuglmem*/ double * zeta_sum = BunchMonitorRecord_getp1_zeta_sum(record, slot);
                 atomicAdd(zeta_sum, zeta);
 
-                /*gpuglmem*/ double * delta_sum = BeamSizeMonitorRecord_getp1_delta_sum(record, slot);
+                /*gpuglmem*/ double * delta_sum = BunchMonitorRecord_getp1_delta_sum(record, slot);
                 atomicAdd(delta_sum, delta);
 
-                /*gpuglmem*/ double * zeta2_sum = BeamSizeMonitorRecord_getp1_zeta2_sum(record, slot);
+                /*gpuglmem*/ double * zeta2_sum = BunchMonitorRecord_getp1_zeta2_sum(record, slot);
                 atomicAdd(zeta2_sum, zeta*zeta);
 
-                /*gpuglmem*/ double * delta2_sum = BeamSizeMonitorRecord_getp1_delta2_sum(record, slot);
+                /*gpuglmem*/ double * delta2_sum = BunchMonitorRecord_getp1_delta2_sum(record, slot);
                 atomicAdd(delta2_sum, delta*delta);
             }
         }
+        
 	//end_per_particle_block
 }
 

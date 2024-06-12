@@ -1,7 +1,7 @@
 """
 Beam Size Monitor
 
-Author: Philipp Niedermayer
+Author: Philipp Niedermayer, Cristopher Cortes
 Date: 2023-08-14
 Edit: 2024-06-12
 """
@@ -15,14 +15,14 @@ from ..beam_elements import Marker
 from ..internal_record import RecordIndex
 from ..general import _pkg_root
 
-class BeamSizeMonitorRecord(xo.Struct):
+class BunchMonitorRecord(xo.Struct):
     count = xo.Float64[:]
     zeta_sum = xo.Float64[:]
     zeta2_sum = xo.Float64[:]
     delta_sum = xo.Float64[:]
     delta2_sum = xo.Float64[:]
 
-class BeamSizeMonitor(BeamElement):
+class BunchMonitor(BeamElement):
 
     _xofields={
         'particle_id_start': xo.Int64,
@@ -32,13 +32,13 @@ class BeamSizeMonitor(BeamElement):
         'frev': xo.Float64,
         'harmonic': xo.Int64,
         '_index': RecordIndex,
-        'data': BeamSizeMonitorRecord,
+        'data': BunchMonitorRecord,
     }
 
     behaves_like_drift = True
     allow_loss_refinement = True
 
-    properties = [field.name for field in BeamSizeMonitorRecord._fields]
+    properties = [field.name for field in BunchMonitorRecord._fields]
 
     _extra_c_sources = [
         _pkg_root.joinpath('headers/atomicadd.h'),
@@ -49,7 +49,7 @@ class BeamSizeMonitor(BeamElement):
                  start_at_turn=None, stop_at_turn=None, frev=None,
                  harmonic=None, _xobject=None, **kwargs):
         """
-        Monitor to save the longitudinal beam size (standard deviation of the tracked particle positions)
+        Monitor to save the longitudinal bunch position and size (mean and std of zeta) as well as mean and std of momentum spread (delta)
 
 
         The monitor allows for arbitrary sampling rate and can thus not only be used to monitor
@@ -117,18 +117,18 @@ class BeamSizeMonitor(BeamElement):
 
             if "data" not in kwargs:
                 # explicitely init with zeros (instead of size only) to have consistent initial values
-                size = int(round(( stop_at_turn - start_at_turn ) * sampling_frequency / frev))
+                size = int(round(( stop_at_turn - start_at_turn ) * harmonic))
                 kwargs["data"] = {prop: np.zeros(size) for prop in self.properties}
 
             super().__init__(particle_id_start=particle_id_start, num_particles=num_particles,
                              start_at_turn=start_at_turn, stop_at_turn=stop_at_turn, frev=frev,
-                             sampling_frequency=sampling_frequency, **kwargs)
+                             harmonic=harmonic, **kwargs)
 
     def __repr__(self):
         return (
             f"{type(self).__qualname__}(start_at_turn={self.start_at_turn}, stop_at_turn={self.stop_at_turn}, "
             f"particle_id_start={self.particle_id_start}, num_particles={self.num_particles}, frev={self.frev}, "
-            f"harmonic={self.sampling_frequency}) at {hex(id(self))}"
+            f"harmonic={self.harmonic}) at {hex(id(self))}"
         )
 
     def __getattr__(self, attr):

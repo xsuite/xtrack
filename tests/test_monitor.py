@@ -52,6 +52,7 @@ def test_constructor(test_context):
         #xt.ParticlesMonitor(_context=test_context, start_at_turn=0, stop_at_turn=10, num_particles=42),
         #xt.LastTurnsMonitor(_context=test_context, n_last_turns=5, num_particles=42),
         xt.BeamPositionMonitor(_context=test_context, stop_at_turn=10),
+        xt.BunchMonitor(_context=test_context, stop_at_turn=10),
     ]
 
     # test to_dict / from_dict
