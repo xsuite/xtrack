@@ -280,7 +280,7 @@ def test_slicing_strategy_matching():
         if name == 'keep_this':
             assert isinstance(element, xt.Quadrupole)
         elif name == 'keep_drifts':
-            assert (element, xt.Drift)
+            assert isinstance(element, xt.Drift)
         elif name.startswith('drift_'):
             assert 'DriftSlice' in type(element).__name__
         elif name == 'keep_thin':
