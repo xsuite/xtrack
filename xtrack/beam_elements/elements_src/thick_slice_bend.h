@@ -19,8 +19,8 @@ void ThickSliceBend_track_local_particle(
     const double h = ThickSliceBendData_get__parent_h(el);
     const double order = ThickSliceBendData_get__parent_order(el);
     const double inv_factorial_order = ThickSliceBendData_get__parent_inv_factorial_order(el);
-    const double* knl = ThickSliceBendData_getp1__parent_knl(el, 0);
-    const double* ksl = ThickSliceBendData_getp1__parent_ksl(el, 0);
+    /*gpuglmem*/ const double* knl = ThickSliceBendData_getp1__parent_knl(el, 0);
+    /*gpuglmem*/ const double* ksl = ThickSliceBendData_getp1__parent_ksl(el, 0);
     const int64_t model = ThickSliceBendData_get__parent_model(el);
 
     const int64_t num_multipole_kicks_parent = ThickSliceBendData_get__parent_num_multipole_kicks(el);

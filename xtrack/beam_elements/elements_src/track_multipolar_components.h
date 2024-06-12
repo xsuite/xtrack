@@ -9,8 +9,8 @@
 /*gpufun*/
 void track_multipolar_kick_bend(
     LocalParticle* part, int64_t order, double inv_factorial_order,
-    const double* knl,
-    const double* ksl,
+    /*gpuglmem*/ const double* knl,
+    /*gpuglmem*/ const double* ksl,
     double const factor_knl_ksl,
     double kick_weight, double k0, double k1, double h, double length){
 

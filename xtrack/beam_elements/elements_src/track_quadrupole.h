@@ -35,7 +35,7 @@ void normal_quad_with_rotation_track(
 void Quadrupole_from_params_track_local_particle(
         double length, double k1, double k1s,
         int64_t num_multipole_kicks,
-        double const* knl, double const* ksl,
+        /*gpuglmem*/ double const* knl, /*gpuglmem*/ double const* ksl,
         int64_t order, double inv_factorial_order,
         double factor_knl_ksl,
         LocalParticle* part0
