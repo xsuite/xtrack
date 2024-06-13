@@ -1,8 +1,11 @@
-import xtrack as xt
+import itertools
+
+import numpy as np
 import pytest
 
-from xobjects.test_helpers import for_all_test_contexts
 import xobjects as xo
+import xtrack as xt
+from xobjects.test_helpers import for_all_test_contexts
 
 assert_allclose= xo.assert_allclose
 
@@ -630,9 +633,9 @@ def test_thick_slice_octupole(test_context):
 @for_all_test_contexts
 def test_thick_slice_solenoid(test_context):
 
-    oct = xt.Solenoid(ks=0.1, length=1)
+    sol = xt.Solenoid(ks=0.1, length=1)
 
-    line = xt.Line(elements=[oct])
+    line = xt.Line(elements=[sol])
 
     line.slice_thick_elements(
         slicing_strategies=[xt.Strategy(xt.Teapot(10, mode='thick'))])
@@ -646,7 +649,7 @@ def test_thick_slice_solenoid(test_context):
     p_slice = p0.copy()
 
     line.track(p_slice)
-    oct.track(p_ref)
+    sol.track(p_ref)
 
     assert_allclose(p_slice.x, p_ref.x, rtol=0, atol=1e-10)
     assert_allclose(p_slice.px, p_ref.px, rtol=0, atol=1e-10)
@@ -674,6 +677,121 @@ def test_thick_slice_solenoid(test_context):
     assert_allclose(p_slice.py, p0.py, rtol=0, atol=1e-10)
     assert_allclose(p_slice.zeta, p0.zeta, rtol=0, atol=1e-10)
     assert_allclose(p_slice.delta, p0.delta, rtol=0, atol=1e-10)
+
+
+@for_all_test_contexts
+@pytest.mark.parametrize(
+    'radiation_mode,config',
+    [
+        ('mean', {}),
+        ('mean', {'XTRACK_SYNRAD_KICK_SAME_AS_FIRST': True}),
+        ('mean', {'XTRACK_SYNRAD_SCALE_SAME_AS_FIRST': True}),
+        ('quantum', {}),
+    ],
+)
+def test_drift_like_solenoid_with_kicks_radiation(test_context, radiation_mode, config):
+    config['XTRACK_USE_EXACT_DRIFTS'] = True
+    knl = [0.1, 0.4, 0.5]
+    ksl = [0.2, 0.3, 0.6]
+
+    line_test = xt.Line(elements=[
+        xt.Drift(length=0.5),
+        xt.Multipole(knl=knl, ksl=ksl),
+        xt.Drift(length=0.5),
+    ])
+
+    line_ref = xt.Line(elements=[
+        xt.Solenoid(ks=0, length=1, knl=knl, ksl=ksl, num_multipole_kicks=1)
+    ])
+
+    coords = np.linspace(-0.05, 0.05, 10)
+    coords_6d = np.array(list(itertools.product(*(coords,) * 6))).T
+
+    p0 = xt.Particles(
+        _context=test_context,
+        x=coords_6d[0],
+        px=coords_6d[1],
+        y=coords_6d[2],
+        py=coords_6d[3],
+        zeta=coords_6d[4],
+        delta=coords_6d[5],
+    )
+    p0._init_random_number_generator(seeds=np.arange(len(coords_6d[0]), dtype=int))
+    p_ref = p0.copy()
+    p_test = p0.copy()
+
+    line_ref.build_tracker(_context=test_context)
+    line_ref.configure_radiation(model=radiation_mode)
+    line_ref.config.update(config)
+    line_ref.track(p_ref, num_turns=1)
+
+    line_test.build_tracker(_context=test_context)
+    line_test.configure_radiation(model=radiation_mode)
+    line_test.config.update(config)
+    line_test.track(p_test, num_turns=1)
+
+    xo.assert_allclose(p_test.x, p_ref.x, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.px, p_ref.px, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.y, p_ref.y, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.py, p_ref.py, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.delta, p_ref.delta, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.pzeta, p_ref.pzeta, rtol=0, atol=1e-13)
+
+
+@for_all_test_contexts
+@pytest.mark.parametrize(
+    'radiation_mode,config',
+    [
+        ('mean', {}),
+        ('mean', {'XTRACK_SYNRAD_KICK_SAME_AS_FIRST': True}),
+        ('mean', {'XTRACK_SYNRAD_SCALE_SAME_AS_FIRST': True}),
+        ('quantum', {}),
+    ],
+)
+def test_solenoid_with_kicks_radiation(test_context, radiation_mode, config):
+    config['XTRACK_USE_EXACT_DRIFTS'] = True
+
+    ks = 0.4
+    l = 1.1
+    knl = [0.1, 0.4, 0.5]
+    ksl = [0.2, 0.3, 0.6]
+
+    sol_1 = xt.Solenoid(ks=ks, length=l, knl=knl, ksl=ksl, num_multipole_kicks=1)
+    sol_3 = xt.Solenoid(ks=ks, length=l, knl=knl, ksl=ksl, num_multipole_kicks=3)
+
+    line_1 = xt.Line(elements=[sol_1])
+    line_3 = xt.Line(elements=[sol_3])
+
+    coords = np.linspace(-0.05, 0.05, 10)
+    coords_6d = np.array(list(itertools.product(*(coords,) * 6))).T
+
+    p0 = xt.Particles(
+        _context=test_context,
+        x=coords_6d[0],
+        px=coords_6d[1],
+        y=coords_6d[2],
+        py=coords_6d[3],
+        zeta=coords_6d[4],
+        delta=coords_6d[5],
+    )
+    p0._init_random_number_generator(seeds=np.arange(len(coords_6d[0]), dtype=int))
+    p_1 = p0.copy()
+    p_3 = p0.copy()
+
+    line_1.build_tracker(_context=test_context)
+    line_1.configure_radiation(model=radiation_mode)
+    line_1.config.update(config)
+    line_1.track(p_1, num_turns=1)
+
+    line_3.build_tracker(_context=test_context)
+    line_3.configure_radiation(model=radiation_mode)
+    line_3.config.update(config)
+    line_3.track(p_3, num_turns=1)
+
+    d_delta_1 = p_1.delta - p0.delta
+    d_delta_3 = p_3.delta - p0.delta
+
+    xo.assert_allclose(d_delta_1, d_delta_3, rtol=0.01, atol=1e-15)
 
 
 @for_all_test_contexts
