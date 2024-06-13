@@ -1006,8 +1006,12 @@ class Tracker:
                             self.line.log_last_track[kk].append(self.line.vv[kk])
                         else:
                             ff = log[kk]
-                            self.line.log_last_track[kk].append(
-                                                    ff(self.line, particles))
+                            val = ff(self.line, particles)
+                            if hasattr(val, '_store'):
+                                for nn in val._store:
+                                    self.line.log_last_track[nn].append(val[nn])
+                            else:
+                                self.line.log_last_track[kk].append(val)
 
             moveback_to_buffer = None
             moveback_to_offset = None
