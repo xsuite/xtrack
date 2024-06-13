@@ -47,9 +47,12 @@ VARS_FOR_TWISS_INIT_GENERATION = [
     'ddx', 'ddpx', 'ddy', 'ddpy',
 ]
 
+CYCLICAL_QUANTITIES = ['mux', 'muy', 'dzeta', 's']
+
 NORMAL_STRENGTHS_FROM_ATTR=['k0l', 'k1l', 'k2l', 'k3l', 'k4l', 'k5l']
 SKEW_STRENGTHS_FROM_ATTR=['k0sl', 'k1sl', 'k2sl', 'k3sl', 'k4sl', 'k5sl']
-OTHER_FIELDS_FROM_ATTR=['angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'element_type', 'isthick', 'length', 'parent_name']
+OTHER_FIELDS_FROM_ATTR=['angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'ks', 'length']
+OTHER_FIELDS_FROM_TABLE=['element_type', 'isthick', 'parent_name']
 
 log = logging.getLogger(__name__)
 
@@ -90,6 +93,7 @@ def twiss_line(line, particle_ref=None, method=None,
         mux=None, muy=None, muzeta=None,
         ax_chrom=None, bx_chrom=None, ay_chrom=None, by_chrom=None,
         ddx=None, ddpx=None, ddy=None, ddpy=None,
+        zero_at=None,
         co_search_at=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
@@ -329,29 +333,75 @@ def twiss_line(line, particle_ref=None, method=None,
         assert init is None
         assert reverse is False
 
+    if zero_at is not None:
+        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+        kwargs.pop('zero_at')
+        out = twiss_line(**kwargs)
+        out.zero_at(zero_at)
+        return _add_action_in_res(out, input_kwargs)
+
     if start is not None:
         if isinstance(start, xt.match._LOC):
+            assert start in [xt.START, xt.END]
             if reverse:
-                raise ValueError('If reverse=True, `start` must be a name of'
-                                 'an element in the line.')
-            if start is not xt.START:
-                raise ValueError('The value of `start` must be an element name '
-                                 'or xt.START.')
-            start = line.element_names[0]
+                start = {xt.START: xt.END, xt.END: xt.START}[start]
+            start = {xt.START: line.element_names[0],
+                     xt.END: line.element_names[-1]}[start]
         assert isinstance(start, str)  # index not supported anymore
 
     if end is not None:
         if isinstance(end, xt.match._LOC):
+            assert end in [xt.START, xt.END]
             if reverse:
-                raise ValueError('If reverse=True, `end` must be a name of'
-                                 'an element in the line.')
-            if end is not xt.END:
-                raise ValueError('The value of `end` must be an element name '
-                                 'or xt.END.')
-            end = line.element_names[-1]
+                end = {xt.START: xt.END, xt.END: xt.START}[end]
+            end = {xt.START: line.element_names[0],
+                     xt.END: line.element_names[-1]}[end]
         assert isinstance(end, str)  # index not supported anymore
 
-    if (init is not None and init != 'periodic'
+    if start is not None and end is None:
+        # One turn twiss from start to start
+        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+        kwargs.pop('start')
+        if (init is None or init == 'periodic') and betx is None and bety is None:
+            # Periodic twiss
+            tw = twiss_line(**kwargs)
+            t1 = tw.rows[start:]
+            t2 = tw.rows[:start]
+            out = xt.TwissTable.concatenate([t1, t2])
+            out.zero_at(out.name[0])
+            out.name[-1] = '_end_point'
+        else:
+            kwargs.pop('end')
+            kwargs.pop('init')
+            t1o = twiss_line(start=start, end=xt.END, **kwargs)
+            init_part2 = t1o.get_twiss_init('_end_point')
+            # Dummy twiss to get the name at the start of the secon part
+            init_part2.element_name = line.twiss(
+                start=xt.START, end=xt.START, betx=1, bety=1).name[0]
+
+            for kk in VARS_FOR_TWISS_INIT_GENERATION:
+                kwargs.pop(kk, None)
+
+            t2o = twiss_line(start=xt.START, end=start, init=init_part2, **kwargs)
+            # remove repeated element
+            t2o = t2o.rows[:-1]
+            t2o.name[-1] = '_end_point'
+            out = xt.TwissTable.concatenate([t1o, t2o])
+        return _add_action_in_res(out, input_kwargs)
+
+    if init == 'full_periodic' and (start is not None or end is not None):
+        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+        kwargs.pop('init')
+        kwargs.pop('start')
+        kwargs.pop('end')
+        kwargs.pop('init_at')
+        tw = twiss_line(**kwargs) # Periodic twiss of the full line
+        init = tw.get_twiss_init(init_at or start)
+        out = twiss_line(start=start, end=end, init=init, **kwargs)
+        if zero_at is None:
+            out.zero_at(start)
+        return _add_action_in_res(out, input_kwargs)
+    elif (init is not None and init != 'periodic'
         or betx is not None or bety is not None):
         periodic = False
     else:
@@ -533,7 +583,7 @@ def twiss_line(line, particle_ref=None, method=None,
     if isinstance(init, str):
         if init in ['preserve', 'preserve_start', 'preserve_end']:
             raise ValueError(f'init={init} not anymore supported')
-        assert init == 'periodic'
+        assert init == 'periodic' or 'full_periodic'
 
     if periodic:
 
@@ -706,7 +756,7 @@ def twiss_line(line, particle_ref=None, method=None,
     if strengths:
         tt = line.get_table(attr=True).rows[list(twiss_res.name)]
         for kk in (NORMAL_STRENGTHS_FROM_ATTR + SKEW_STRENGTHS_FROM_ATTR
-                   + OTHER_FIELDS_FROM_ATTR):
+                   + OTHER_FIELDS_FROM_ATTR + OTHER_FIELDS_FROM_TABLE):
             twiss_res._col_names.append(kk)
             twiss_res._data[kk] = tt[kk].copy()
 
@@ -3052,7 +3102,9 @@ class TwissTable(Table):
         for kk in self._col_names:
             if (kk == 'name' or kk in NORMAL_STRENGTHS_FROM_ATTR
                     or kk in SKEW_STRENGTHS_FROM_ATTR
-                    or kk in OTHER_FIELDS_FROM_ATTR):
+                    or kk in OTHER_FIELDS_FROM_ATTR
+                    or kk in OTHER_FIELDS_FROM_TABLE
+                    ):
                 new_data[kk][:-1] = new_data[kk][:-1][::-1]
                 new_data[kk][-1] = self[kk][-1]
             elif kk == 'W_matrix':
@@ -3139,18 +3191,7 @@ class TwissTable(Table):
             out.qs = 0
             out.muzeta[:] = 0
 
-        # Same convention as in MAD-X for reversing strengths
-        for kk in NORMAL_STRENGTHS_FROM_ATTR:
-            if kk not in out._col_names:
-                continue
-            ii = int(kk.split('k')[-1].split('l')[0])
-            out[kk] *= (-1)**(ii+1)
-
-        for kk in SKEW_STRENGTHS_FROM_ATTR:
-            if kk not in out._col_names:
-                continue
-            ii = int(kk.split('k')[-1].split('sl')[0])
-            out[kk] *= (-1)**ii
+        _reverse_strengths(out)
 
         out._data['reference_frame'] = {
             'proper': 'reverse', 'reverse': 'proper'}[self.reference_frame]
@@ -3209,7 +3250,7 @@ class TwissTable(Table):
                     continue
                 new_data[kk][i_start:i_end] = (
                     tt[kk][ind_per_table[ii][0]:ind_per_table[ii][1]])
-                if kk in ['mux', 'muy', 'dzeta', 's']:
+                if kk in CYCLICAL_QUANTITIES:
                     new_data[kk][i_start:i_end] -= new_data[kk][i_start]
                     if ii > 0:
                         new_data[kk][i_start:i_end] += new_data[kk][i_start-1]
@@ -3225,6 +3266,10 @@ class TwissTable(Table):
         new_table._data['particle_on_co'] = tables_to_concat[0].particle_on_co
 
         return new_table
+
+    def zero_at(self, name):
+        for kk in CYCLICAL_QUANTITIES:
+            self[kk] -= self[kk, name]
 
     def target(self, tars=None, value=None, at=None, **kwargs):
         if value is None:
@@ -3678,3 +3723,23 @@ def _find_closed_orbit_search_t_rev(line, num_turns_search_t_rev=None):
         delta=x_sol[5])
 
     return particle_on_co
+
+def _reverse_strengths(out):
+    # Same convention as in MAD-X for reversing strengths
+    for kk in NORMAL_STRENGTHS_FROM_ATTR:
+        if kk not in out._col_names:
+            continue
+        ii = int(kk.split('k')[-1].split('l')[0])
+        out[kk] *= (-1)**(ii+1)
+
+    for kk in SKEW_STRENGTHS_FROM_ATTR:
+        if kk not in out._col_names:
+            continue
+        ii = int(kk.split('k')[-1].split('sl')[0])
+        out[kk] *= (-1)**ii
+
+    if 'vkick' in out._col_names:
+        out['vkick'] *= -1
+
+    if 'angle_rad' in out._col_names:
+        out['angle_rad'] *= -1

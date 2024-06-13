@@ -723,6 +723,35 @@ class Line:
 
         return xd.Table(data=data)
 
+    def get_strengths(self, reverse=None):
+
+        if reverse is None:
+            reverse = self.twiss_default.get('reverse', False)
+
+        out = {}
+        out['name'] = np.array(list(self.element_names) + ['_end_point'])
+        for kk in (xt.twiss.NORMAL_STRENGTHS_FROM_ATTR
+                 + xt.twiss.SKEW_STRENGTHS_FROM_ATTR
+                 + xt.twiss.OTHER_FIELDS_FROM_ATTR):
+            this_attr = self.attr[kk]
+            if hasattr(this_attr, 'get'):
+                this_attr = this_attr.get() # bring to cpu
+            # Add zero at the end (there is _end_point)
+            out[kk] = np.concatenate((this_attr, [this_attr[-1]*0]))
+
+        if reverse:
+            for kk in out:
+                # Change order
+                out[kk][:-1] = out[kk][:-1][::-1]
+
+        tab = xt.Table(out)
+        if reverse:
+            xt.twiss._reverse_strengths(tab) # Change signs
+
+        tab._data['reference_frame'] = {
+            True: 'reverse', False: 'proper'}[reverse]
+        return tab
+
     def copy(self, _context=None, _buffer=None):
         '''
         Return a copy of the line.
@@ -1134,6 +1163,7 @@ class Line:
         mux=None, muy=None, muzeta=None,
         ax_chrom=None, bx_chrom=None, ay_chrom=None, by_chrom=None,
         ddx=None, ddpx=None, ddy=None, ddpy=None,
+        zero_at=None,
         co_search_at=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
@@ -1330,7 +1360,7 @@ class Line:
 
 
     def survey(self,X0=0,Y0=0,Z0=0,theta0=0, phi0=0, psi0=0,
-               element0=0, reverse=False):
+               element0=0, reverse=None):
 
         """
         Returns a survey of the beamline (based on MAD-X survey command).
@@ -1357,6 +1387,9 @@ class Line:
         survey : SurveyTable
             Survey table.
         """
+
+        if reverse is None:
+            reverse = self.twiss_default.get('reverse', False)
 
         return survey_from_line(self, X0=X0, Y0=Y0, Z0=Z0, theta0=theta0,
                                    phi0=phi0, psi0=psi0, element0=element0,
@@ -2183,7 +2216,7 @@ class Line:
         return new_line
 
     def cycle(self, index_first_element=None, name_first_element=None,
-              inplace=False):
+              inplace=True):
 
         """
         Cycle the line to start from a given element.
@@ -2203,6 +2236,9 @@ class Line:
             A new line with the elements cycled.
 
         """
+
+        if not inplace:
+            raise ValueError('`inplace=False` is not anymore supported')
 
         if ((index_first_element is not None and name_first_element is not None)
                or (index_first_element is None and name_first_element is None)):

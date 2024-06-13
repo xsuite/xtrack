@@ -4,8 +4,7 @@ import numpy as np
 from scipy.constants import c as clight
 from scipy.constants import e as qe
 
-line = xt.Line.from_json('fccee_t_with_sol_corrected.json')
-line.cycle('ip.1')
+line = xt.Line.from_json('fccee_z_with_sol_corrected.json')
 tw_no_rad = line.twiss(method='4d')
 line.configure_radiation(model='mean')
 tt = line.get_table(attr=True)
@@ -61,7 +60,7 @@ ez = tw_rad.eq_gemitt_zeta
 
 # Equilibrium beam sizes
 beam_sizes = tw_rad.get_beam_covariance(
-    gemitt_x=tw_rad.eq_gemitt_x, gemitt_y=0*tw_rad.eq_gemitt_y,
+    gemitt_x=tw_rad.eq_gemitt_x, gemitt_y=tw_rad.eq_gemitt_y,
     gemitt_zeta=tw_rad.eq_gemitt_zeta)
 
 num_particles_test = 200
@@ -80,11 +79,28 @@ line.track(p, num_turns=n_turns_track_test, turn_by_turn_monitor=True, time=True
 mon_at_start = line.record_last_track
 print(f'Tracking time: {line.time_last_track}')
 
-line.configure_radiation(model='mean')
+# Approximated calculation based on Hofmann Eq. 14.19
+twe = tw_no_rad
+tt = line.get_table(attr=True)
+hh = np.sqrt(np.diff(twe.px, append=0)**2 + np.diff(twe.py, append=0)**2)
+dl = np.diff(twe.s, append=line.get_length())
+gamma0 = line.particle_ref.gamma0[0]
 
+dyprime = twe.dpy*(1 - twe.delta) - twe.py
+
+cur_H_y = twe.gamy * twe.dy**2 + 2 * twe.alfy * twe.dy * dyprime + twe.bety * dyprime**2
+I5_y  = np.sum(cur_H_y * hh**3 * dl)
+I2_y = np.sum(hh**2 * dl)
+I4_y = np.sum(twe.dy * hh**3 * dl) # to be generalized for combined function magnets
+
+lam_comp = 2.436e-12 # [m]
+ey_hof = 55 * np.sqrt(3) / 96 * lam_comp / 2 / np.pi * gamma0**2 * I5_y / (I2_y - I4_y)
+
+# Plots
 import matplotlib.pyplot as plt
 plt.close('all')
 
+line.configure_radiation(model='mean') # Leave the line in a twissable state
 mon = line.record_last_track
 
 fig = plt.figure(figsize=(6.4, 4.8*1.3))

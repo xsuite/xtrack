@@ -58,5 +58,6 @@ for i_part in range(part._capacity):
     plt.ylim(bottom=0, top=1.1)
     plt.grid(True)
     assert np.allclose(hstgm, 1, rtol=1e-10, atol=0.03)
+
 plt.show()
 
