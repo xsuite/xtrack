@@ -1220,9 +1220,9 @@ def _compute_global_quantities(line, twiss_res):
             cmin_arr = (2 * np.sqrt(r1*r2) *
                         np.abs(np.mod(mux[-1], 1) - np.mod(muy[-1], 1))
                         /(1 + r1 * r2))
-            c_minus = np.trapz(cmin_arr, s_vect)/(circumference)
-            c_r1_avg = np.trapz(r1, s_vect)/(circumference)
-            c_r2_avg = np.trapz(r2, s_vect)/(circumference)
+            c_minus = np.trapezoid(cmin_arr, s_vect)/(circumference)
+            c_r1_avg = np.trapezoid(r1, s_vect)/(circumference)
+            c_r2_avg = np.trapezoid(r2, s_vect)/(circumference)
 
             qs = np.abs(twiss_res['muzeta'][-1])
 
