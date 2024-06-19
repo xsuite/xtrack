@@ -2728,6 +2728,55 @@ class TwissInit:
         else:
             self.__dict__[name] = value
 
+    def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None, 
+                                   nemitt_zeta=None):
+        
+        ctx2np = particles._context.nparray_from_context_array
+        
+        part_id = ctx2np(particles.particle_id).copy()
+        at_element = ctx2np(particles.at_element).copy()
+        at_turn = ctx2np(particles.at_element).copy()
+        x_norm = ctx2np(particles.x).copy() 
+        px_norm = x_norm.copy()
+        y_norm = x_norm.copy()
+        py_norm = x_norm.copy()
+        zeta_norm = x_norm.copy()
+        pzeta_norm = x_norm.copy()
+
+        XX_norm  = _W_phys2norm(x = ctx2np(particles.x),
+                                px = ctx2np(particles.px),
+                                y = ctx2np(particles.y),
+                                py = ctx2np(particles.py),
+                                zeta = ctx2np(particles.zeta),
+                                pzeta = ctx2np(particles.ptau)/ctx2np(particles.beta0),
+                                W_matrix = self.W_matrix,
+                                co_dict = self.particle_on_co.copy(_context=xo.context_default).to_dict(),
+                                nemitt_x = nemitt_x,
+                                nemitt_y = nemitt_y,
+                                nemitt_zeta = nemitt_zeta)
+
+        if XX_norm.ndim == 2:
+            x_norm = XX_norm[0, :]
+            px_norm = XX_norm[1, :]
+            y_norm = XX_norm[2, :]
+            py_norm = XX_norm[3, :]
+            zeta_norm = XX_norm[4, :]
+            pzeta_norm = XX_norm[5, :]
+        elif XX_norm.ndim == 3:
+            x_norm = XX_norm[0, :, :]
+            px_norm = XX_norm[1, :, :]
+            y_norm = XX_norm[2, :, :]
+            py_norm = XX_norm[3, :, :]
+            zeta_norm = XX_norm[4, :, :]
+            pzeta_norm = XX_norm[5, :, :]
+
+
+        return Table({'particle_id': part_id, 'at_element': at_element,'at_turn':at_turn,
+                      'x_norm': x_norm, 'px_norm': px_norm, 'y_norm': y_norm,
+                      'py_norm': py_norm, 'zeta_norm': zeta_norm,
+                      'pzeta_norm': pzeta_norm}, index='particle_id')
+    
+
     @property
     def betx(self):
         WW = self.W_matrix
@@ -3008,23 +3057,10 @@ class TwissTable(Table):
 
         return R_matrix
 
-    def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None,
-                                   _force_at_element=None):
+    def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None, 
+                                   nemitt_zeta=None, _force_at_element=None):
 
         # TODO: check consistency of gamma0
-
-        if nemitt_x is None:
-            gemitt_x = 1
-        else:
-            gemitt_x = (nemitt_x / particles._xobject.beta0[0]
-                        / particles._xobject.gamma0[0])
-
-        if nemitt_y is None:
-            gemitt_y = 1
-        else:
-            gemitt_y = (nemitt_y / particles._xobject.beta0[0]
-                        / particles._xobject.gamma0[0])
-
 
         ctx2np = particles._context.nparray_from_context_array
         at_element_particles = ctx2np(particles.at_element)
@@ -3047,31 +3083,33 @@ class TwissTable(Table):
                 at_ele = _force_at_element
 
             W = self.W_matrix[at_ele]
-            W_inv = np.linalg.inv(W)
 
             mask_at_ele = at_element_particles == at_ele
 
             if _force_at_element is not None:
                 mask_at_ele = ctx2np(particles.state) > xt.particles.LAST_INVALID_STATE
 
-            n_at_ele = np.sum(mask_at_ele)
 
-            # Coordinates wrt to the closed orbit
-            XX = np.zeros(shape=(6, n_at_ele), dtype=np.float64)
-            XX[0, :] = ctx2np(particles.x)[mask_at_ele] - self.x[at_ele]
-            XX[1, :] = ctx2np(particles.px)[mask_at_ele] - self.px[at_ele]
-            XX[2, :] = ctx2np(particles.y)[mask_at_ele] - self.y[at_ele]
-            XX[3, :] = ctx2np(particles.py)[mask_at_ele] - self.py[at_ele]
-            XX[4, :] = ctx2np(particles.zeta)[mask_at_ele] - self.zeta[at_ele]
-            XX[5, :] = ((ctx2np(particles.ptau)[mask_at_ele] - self.ptau[at_ele])
-                        / self.particle_on_co._xobject.beta0[0])
+            XX_norm  = _W_phys2norm(x = ctx2np(particles.x)[mask_at_ele],
+                                    px = ctx2np(particles.px)[mask_at_ele],
+                                    y = ctx2np(particles.y)[mask_at_ele],
+                                    py = ctx2np(particles.py)[mask_at_ele],
+                                    zeta = ctx2np(particles.zeta)[mask_at_ele],
+                                    pzeta = ctx2np(particles.ptau)[mask_at_ele]/ctx2np(particles.beta0)[mask_at_ele],
+                                    W_matrix = W,
+                                    co_dict = {'x': self.x[at_ele], 'px': self.px[at_ele],
+                                               'y': self.y[at_ele], 'py': self.py[at_ele],
+                                               'zeta': self.zeta[at_ele], 'ptau': self.ptau[at_ele],
+                                               'beta0': self.particle_on_co._xobject.beta0[0],
+                                               'gamma0': self.particle_on_co._xobject.gamma0[0]},
+                                    nemitt_x = nemitt_x,
+                                    nemitt_y = nemitt_y,
+                                    nemitt_zeta = nemitt_zeta)
 
-            XX_norm = np.dot(W_inv, XX)
-
-            x_norm[mask_at_ele] = XX_norm[0, :] / np.sqrt(gemitt_x)
-            px_norm[mask_at_ele] = XX_norm[1, :] / np.sqrt(gemitt_x)
-            y_norm[mask_at_ele] = XX_norm[2, :] / np.sqrt(gemitt_y)
-            py_norm[mask_at_ele] = XX_norm[3, :] / np.sqrt(gemitt_y)
+            x_norm[mask_at_ele] = XX_norm[0, :]
+            px_norm[mask_at_ele] = XX_norm[1, :]
+            y_norm[mask_at_ele] = XX_norm[2, :]
+            py_norm[mask_at_ele] = XX_norm[3, :]
             zeta_norm[mask_at_ele] = XX_norm[4, :]
             pzeta_norm[mask_at_ele] = XX_norm[5, :]
             at_element[mask_at_ele] = at_ele
@@ -3724,6 +3762,7 @@ def _find_closed_orbit_search_t_rev(line, num_turns_search_t_rev=None):
 
     return particle_on_co
 
+
 def _reverse_strengths(out):
     # Same convention as in MAD-X for reversing strengths
     for kk in NORMAL_STRENGTHS_FROM_ATTR:
@@ -3743,3 +3782,44 @@ def _reverse_strengths(out):
 
     if 'angle_rad' in out._col_names:
         out['angle_rad'] *= -1
+
+
+def _W_phys2norm(x, px, y, py, zeta, pzeta, W_matrix, co_dict, nemitt_x=None, nemitt_y=None, nemitt_zeta=None):
+    
+    
+    # Compute geometric emittances if normalized emittances are provided
+    gemitt_x = np.ones(shape=np.shape(co_dict['beta0'])) if nemitt_x is None else (nemitt_x / co_dict['beta0'] / co_dict['gamma0'])
+    gemitt_y = np.ones(shape=np.shape(co_dict['beta0'])) if nemitt_y is None else (nemitt_y / co_dict['beta0'] / co_dict['gamma0'])
+    gemitt_zeta = np.ones(shape=np.shape(co_dict['beta0'])) if nemitt_zeta is None else (nemitt_zeta / co_dict['beta0'] / co_dict['gamma0'])
+
+    
+    # Prepaing co arrray and gemitt array:
+    co = np.array([co_dict['x'], co_dict['px'], co_dict['y'], co_dict['py'], co_dict['zeta'], co_dict['ptau'] / co_dict['beta0']])
+    gemitt_values = np.array([gemitt_x, gemitt_x, gemitt_y, gemitt_y, gemitt_zeta, gemitt_zeta])
+
+    # Ensuring consistent dimensions
+    for add_axis in range(-1,len(np.shape(x))-len(np.shape(co))):
+        co = co[:,np.newaxis]
+    for add_axis in range(-1,len(np.shape(x))-len(np.shape(gemitt_values))):
+        gemitt_values = gemitt_values[:,np.newaxis]
+
+    
+    # substracting closed orbit
+    XX = np.array([x, px, y, py, zeta, pzeta])
+    XX -= co
+    
+
+    # Apply the inverse transformation matrix
+    W_inv = np.linalg.inv(W_matrix)
+    
+    if len(np.shape(XX)) == 3:
+        XX_norm = np.dot(W_inv, XX.reshape(6,x.shape[0]*x.shape[1]))
+        XX_norm = XX_norm.reshape(6, x.shape[0], x.shape[1])
+    else:    
+        XX_norm = np.dot(W_inv, XX)
+    
+    # Normalize the coordinates with the geometric emittances
+    XX_norm /= np.sqrt(gemitt_values)
+    
+
+    return XX_norm
