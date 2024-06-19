@@ -19,7 +19,7 @@
 void Bend_track_local_particle_from_params(LocalParticle* part0,
                 double length, double k0, double k1, double h,
                 int64_t num_multipole_kicks, int64_t model,
-                double const* knl, double const* ksl,
+                /*gpuglmem*/ double const* knl, /*gpuglmem*/ double const* ksl,
                 int64_t order, double inv_factorial_order,
                 double factor_knl_ksl){
 

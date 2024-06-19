@@ -157,7 +157,7 @@ def test_ring_with_spacecharge(test_context, mode):
     else:
         assert isinstance(line[0], xf.SpaceChargeBiGaussian)
 
-    if mode is not 'frozen':
+    if mode != 'frozen':
         assert line.iscollective
     else:
         assert not line.iscollective
