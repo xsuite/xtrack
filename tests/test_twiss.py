@@ -1584,8 +1584,6 @@ def test_second_order_chromaticity_and_dispersion(test_context):
     line.build_tracker(_context=test_context)
 
     tw = line.twiss(method='4d')
-    nlchr = line.get_non_linear_chromaticity(delta0_range=(-1e-4, 1e-4),
-                                            num_delta=21, fit_order=1, method='4d')
     tw_fw = line.twiss(start='ip4', end='ip6', init_at='ip4',
                 x=tw['x', 'ip4'], px=tw['px', 'ip4'],
                 y=tw['y', 'ip4'], py=tw['py', 'ip4'],
@@ -1609,7 +1607,7 @@ def test_second_order_chromaticity_and_dispersion(test_context):
                 compute_chromatic_properties=True)
 
     nlchr = line.get_non_linear_chromaticity(delta0_range=(-1e-4, 1e-4),
-                                            num_delta=21, fit_order=2, method='4d')
+                                             num_delta=21, fit_order=2)
 
     location = 'ip3'
 
