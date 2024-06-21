@@ -1156,7 +1156,6 @@ def test_solenoid_with_mult_kicks(test_context, backtrack):
     xo.assert_allclose(p_test.pzeta, p_ref.pzeta, rtol=0, atol=1e-13)
 
 
-@for_all_test_contexts
 @pytest.mark.parametrize(
     'radiation_mode,config',
     [
@@ -1166,7 +1165,9 @@ def test_solenoid_with_mult_kicks(test_context, backtrack):
         ('quantum', {}),
     ],
 )
-def test_drift_like_solenoid_with_kicks_radiation(test_context, radiation_mode, config):
+def test_drift_like_solenoid_with_kicks_radiation(radiation_mode, config):
+    test_context = xo.ContextCpu()
+
     config['XTRACK_USE_EXACT_DRIFTS'] = True
     knl = [0.1, 0.4, 0.5]
     ksl = [0.2, 0.3, 0.6]
@@ -1215,7 +1216,6 @@ def test_drift_like_solenoid_with_kicks_radiation(test_context, radiation_mode, 
     xo.assert_allclose(p_test.pzeta, p_ref.pzeta, rtol=0, atol=1e-13)
 
 
-@for_all_test_contexts
 @pytest.mark.parametrize(
     'radiation_mode,config',
     [
@@ -1225,7 +1225,9 @@ def test_drift_like_solenoid_with_kicks_radiation(test_context, radiation_mode, 
         ('quantum', {}),
     ],
 )
-def test_solenoid_with_kicks_radiation(test_context, radiation_mode, config):
+def test_solenoid_with_kicks_radiation(radiation_mode, config):
+    test_context = xo.ContextCpu()
+
     config['XTRACK_USE_EXACT_DRIFTS'] = True
 
     ks = 0.4

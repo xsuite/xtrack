@@ -33,6 +33,7 @@ void synrad_average_kick(LocalParticle* part, double curv, double lpath,
 
     #ifdef XTRACK_SYNRAD_SCALE_SAME_AS_FIRST
     if (part -> ipart == 0){
+    #error "XTRACK_SYNRAD_SCALE_SAME_AS_FIRST not supported when multithreading"  //only_for_context cpu_openmp cuda opencl
       *dp_record = f_t;
     }
     else{
@@ -41,6 +42,7 @@ void synrad_average_kick(LocalParticle* part, double curv, double lpath,
     #endif
 
     #ifdef XTRACK_SYNRAD_KICK_SAME_AS_FIRST
+    #error "XTRACK_SYNRAD_KICK_SAME_AS_FIRST not supported when multithreading"  //only_for_context cpu_openmp cuda opencl
     if (part -> ipart == 0){
       *dp_record = LocalParticle_get_delta(part);
       *dpx_record = LocalParticle_get_px(part);
