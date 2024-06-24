@@ -10,8 +10,8 @@
 
 /*gpufun*/
 void MultFringe_track_single_particle(
-    const double* ks,  // Normal quadrupole component(s); array of length `order`
-    const double* kn,  // Skew quadrupole component(s); array of length `order`
+    const double* kn,  // Normal quadrupole component(s); array of length `order`
+    const double* ks,  // Skew quadrupole component(s); array of length `order`
     const uint8_t is_entry,  // If truthy it's the entry fringe, otherwise the exit
     uint32_t order,  // Order of the fringe
     LocalParticle* part  // Particle to be tracked
