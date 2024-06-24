@@ -24,10 +24,9 @@ void ThickSliceSolenoid_track_local_particle(
 
 
     //start_per_particle_block (part0->part)
-        Solenoid_thick_track_single_particle(
+        Solenoid_thick_with_radiation_track_single_particle(
                 part, length, ks,
                 0, // radiation flag, not supported for now
-                NULL, NULL, NULL,
                 NULL, NULL, NULL);
     //end_per_particle_block
 

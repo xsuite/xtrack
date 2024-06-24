@@ -491,7 +491,7 @@ class Particles(xo.HybridClass):
         return dct
 
     @classmethod
-    def from_pandas(cls, df, _context=None, _buffer=None, _offset=None):
+    def from_pandas(cls, df, _context=None, _buffer=None, _offset=None, load_rng_state=True, **kwargs):
 
         """
         Create a new Particles object from a pandas DataFrame.
@@ -517,7 +517,9 @@ class Particles(xo.HybridClass):
         for tt, nn in cls.scalar_vars + cls.size_vars:
             if nn in dct.keys() and not np.isscalar(dct[nn]):
                 dct[nn] = dct[nn][0]
-        return cls(**dct, _context=_context, _buffer=_buffer, _offset=_offset)
+        return cls.from_dict(dct, load_rng_state=load_rng_state,
+                             _context=_context, _buffer=_buffer,
+                             _offset=_offset, **kwargs)
 
     def to_pandas(self,
                   remove_underscored=None,
