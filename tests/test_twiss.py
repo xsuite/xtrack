@@ -1806,6 +1806,7 @@ def test_arbitrary_start(test_context, collider_for_test_twiss_range):
 
     # No orbit
     for kk in collider.vars.get_table().rows['on_.*'].name:
+        kk = str(kk) # avoid numpy.str_
         collider.vars[kk] = 0
 
     if collider.lhcb1.element_names[0] != 'ip1':
