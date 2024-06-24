@@ -232,7 +232,7 @@ def twiss_line(line, particle_ref=None, method=None,
             - momentum_compaction_factor: momentum compaction factor (slip_factor + 1/gamma_0^2)
             - T_rev0: reference revolution period in seconds
             - circumference: reference trajectory length in meters
-            - partice_on_co: particle on closed orbit
+            - particle_on_co: particle on closed orbit
             - R_matrix: R matrix (if calculated or provided)
             - eneloss_turn, energy loss per turn in electron volts (if
               eneloss_and_damping is True)

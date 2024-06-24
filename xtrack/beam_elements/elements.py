@@ -814,8 +814,8 @@ class Bend(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_bend.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/wedge_track.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/fringe_track.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_nonlinear.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_bend.h'),
@@ -1185,6 +1185,7 @@ class Quadrupole(BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
         'ksl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
+        'with_fringes': xo.UInt8,
     }
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
@@ -1198,6 +1199,7 @@ class Quadrupole(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/track_multipolar_components.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_srotation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_quadrupole.h'),
         _pkg_root.joinpath('beam_elements/elements_src/quadrupole.h'),
     ]
@@ -1377,8 +1379,8 @@ class CombinedFunctionMagnet:
         return Bend(**dct)
 
 
-class Fringe(BeamElement):
-    """Fringe field element.
+class DipoleFringe(BeamElement):
+    """Fringe field element of a dipole.
 
     Parameters
     ----------
@@ -1397,8 +1399,8 @@ class Fringe(BeamElement):
     }
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/fringe_track.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/fringe.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/dipole_fringe.h'),
     ]
 
     def __init__(self, **kwargs):
@@ -1423,7 +1425,7 @@ class Wedge(BeamElement):
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/wedge_track.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
         _pkg_root.joinpath('beam_elements/elements_src/wedge.h'),
     ]
 
@@ -1606,8 +1608,8 @@ class DipoleEdge(BeamElement):
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/wedge_track.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/fringe_track.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_nonlinear.h'),
         _pkg_root.joinpath('beam_elements/elements_src/dipoleedge.h')]

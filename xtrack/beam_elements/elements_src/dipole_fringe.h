@@ -12,16 +12,16 @@
 
 /*gpufun*/
 void Fringe_track_local_particle(
-        FringeData el,
+        DipoleFringeData el,
         LocalParticle* part0
 ) {
     // Parameters
-    const double fint = FringeData_get_fint(el);
-    const double hgap = FringeData_get_hgap(el);
-    const double k = FringeData_get_k(el);
+    const double fint = DipoleFringeData_get_fint(el);
+    const double hgap = DipoleFringeData_get_hgap(el);
+    const double k = DipoleFringeData_get_k(el);
 
     //start_per_particle_block (part0->part)
-        MadNG_Fringe_single_particle(part, fint, hgap, k);
+        DipoleFringe_single_particle(part, fint, hgap, k);
     //end_per_particle_block
 }
 

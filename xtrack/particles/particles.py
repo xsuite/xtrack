@@ -2,6 +2,7 @@
 # This file is part of the Xtrack Package.  #
 # Copyright (c) CERN, 2023.                 #
 # ######################################### #
+import json
 
 import numpy as np
 from pathlib import Path
@@ -489,6 +490,33 @@ class Particles(xo.HybridClass):
                 del (dct[kk])
 
         return dct
+
+    def to_json(self, filename, indent=None, **kwargs):
+        """
+        Save the Particles object to a JSON file.
+
+        Parameters
+        ----------
+        filename : str
+            The name of the file to save the Particles object to.
+        **kwargs : dict
+            Additional keyword arguments to pass to the json.to_dict method.
+        """
+
+        class NumpyEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, np.ndarray):
+                    return obj.tolist()
+                if isinstance(obj, np.floating):
+                    return float(obj)
+                if isinstance(obj, np.integer):
+                    return int(obj)
+                return json.JSONEncoder.default(self, obj)
+
+        dct = self.to_dict(**kwargs)
+
+        with open(filename, 'w') as f:
+            json.dump(dct, f, cls=NumpyEncoder, indent=indent)
 
     @classmethod
     def from_pandas(cls, df, _context=None, _buffer=None, _offset=None, load_rng_state=True, **kwargs):
