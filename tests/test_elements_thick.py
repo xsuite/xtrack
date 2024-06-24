@@ -3,6 +3,8 @@
 # Copyright (c) CERN, 2023.                 #
 # ######################################### #
 import itertools
+import json
+import pathlib
 
 import numpy as np
 import pytest
@@ -1351,3 +1353,68 @@ def test_octupole(test_context):
     xo.assert_allclose(p_test.py, p_ref.py, atol=1e-12, rtol=0)
     xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=1e-12, rtol=0)
     xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-12, rtol=0)
+
+@for_all_test_contexts
+@pytest.mark.parametrize(
+    'element,kn_param_name',
+    [('quadrupole', 'k1'), ('sextupole', 'k2'), ('octupole', 'k3')]
+)
+def test_multipole_fringe(test_context, element, kn_param_name):
+    ref_dir = pathlib.Path(__file__).parent.joinpath('../test_data/fringe_vs_madng')
+
+    with open(ref_dir / f'{element}_fringe.json', 'r') as f:
+        fringe_effect_madng = json.load(f)
+
+    with open(ref_dir / 'initial_particles.json', 'r') as f:
+        initial_particles = json.load(f)
+        p0 = xt.Particles.from_dict(initial_particles, _context=test_context)
+
+    length = 0.01
+    knl = 1
+
+    result = {}
+    element_class = getattr(xt, element.capitalize())
+
+    for has_fringe in (True, False):
+        _p = p0.copy()
+        line = xt.Line(
+            elements=[
+                element_class(
+                    length=length,
+                    edge_entry_active=has_fringe,
+                    edge_exit_active=has_fringe,
+                    **{kn_param_name: knl / length},
+                ),
+            ],
+            element_names=['q'],
+        )
+        line.build_tracker()
+        line.track(_p)
+        _p.sort()
+
+        result[has_fringe] = _p
+
+    coords_xtrack_fringe = np.array([
+        result[True].x,
+        result[True].px,
+        result[True].y,
+        result[True].py,
+        result[True].zeta / result[True].beta0,
+        result[True].ptau]
+    )
+    coords_xtrack_no_fringe = np.array([
+        result[False].x,
+        result[False].px,
+        result[False].y,
+        result[False].py,
+        result[False].zeta / result[False].beta0,
+        result[False].ptau],
+    )
+
+    fringe_effect_xtrack = coords_xtrack_fringe - coords_xtrack_no_fringe
+    xo.assert_allclose(fringe_effect_madng[0], fringe_effect_xtrack[0], atol=1.01e-16, rtol=1e-3)  # x
+    xo.assert_allclose(fringe_effect_madng[1], fringe_effect_xtrack[1], atol=1e-16, rtol=1e-2)  # px
+    xo.assert_allclose(fringe_effect_madng[2], fringe_effect_xtrack[2], atol=1.01e-16, rtol=1e-3)  # y
+    xo.assert_allclose(fringe_effect_madng[3], fringe_effect_xtrack[3], atol=1e-16, rtol=1.01e-2)  # py
+    xo.assert_allclose(fringe_effect_madng[4], fringe_effect_xtrack[4], atol=1.01e-15, rtol=1.01e-2)  # t
+    xo.assert_allclose(fringe_effect_madng[5], fringe_effect_xtrack[5], atol=0, rtol=0)  # pt

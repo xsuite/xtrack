@@ -990,6 +990,8 @@ class Sextupole(BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
         'ksl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
+        'edge_entry_active': xo.Field(xo.UInt8, default=False),
+        'edge_exit_active': xo.Field(xo.UInt8, default=False),
     }
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
@@ -1006,6 +1008,7 @@ class Sextupole(BeamElement):
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('headers/synrad_spectrum.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_multipole.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
         _pkg_root.joinpath('beam_elements/elements_src/sextupole.h'),
     ]
 
@@ -1088,6 +1091,8 @@ class Octupole(BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
         'ksl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
+        'edge_entry_active': xo.Field(xo.UInt8, default=False),
+        'edge_exit_active': xo.Field(xo.UInt8, default=False),
     }
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
@@ -1104,6 +1109,7 @@ class Octupole(BeamElement):
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('headers/synrad_spectrum.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_multipole.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
         _pkg_root.joinpath('beam_elements/elements_src/octupole.h'),
     ]
 
@@ -1185,7 +1191,8 @@ class Quadrupole(BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
         'ksl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
-        'with_fringes': xo.UInt8,
+        'edge_entry_active': xo.Field(xo.UInt8, default=False),
+        'edge_exit_active': xo.Field(xo.UInt8, default=False),
     }
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.

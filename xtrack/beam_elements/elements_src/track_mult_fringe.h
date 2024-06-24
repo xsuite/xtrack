@@ -6,13 +6,14 @@
 #ifndef XTRACK_TRACK_MULT_FRINGE_H
 #define XTRACK_TRACK_MULT_FRINGE_H
 
+#define POW2(x) ((x) * (x))
 #define POW3(x) ((x) * (x) * (x))
 
 /*gpufun*/
 void MultFringe_track_single_particle(
-    const double* ks,  // Normal quadrupole component(s); array of length `order`
-    const double* kn,  // Skew quadrupole component(s); array of length `order`
-    const uint8_t is_entry,  // If truthy it's the entry fringe, otherwise the exit
+    const double* kn,  // Normal quadrupole component(s); array of length `order`
+    const double* ks,  // Skew quadrupole component(s); array of length `order`
+    const uint8_t is_exit,  // If truthy it's the exit fringe, otherwise the entry
     uint32_t order,  // Order of the fringe
     LocalParticle* part  // Particle to be tracked
 ) {
@@ -20,7 +21,7 @@ void MultFringe_track_single_particle(
 
     const double beta0 = LocalParticle_get_beta0(part);
     const double q = LocalParticle_get_q0(part) * LocalParticle_get_charge_ratio(part);
-    const double direction = is_entry ? 1 : -1;
+    const double direction = is_exit ? -1 : 1;
 
     // Particle coordinates
     const double x = LocalParticle_get_x(part);
@@ -41,8 +42,6 @@ void MultFringe_track_single_particle(
     double fy = 0;
     double fyx = 0;
     double fyy = 0;
-
-    printf("Doing the fringe fields of order %d\n", order);
 
     for (uint32_t ii = 0; ii < order; ii++)
     {

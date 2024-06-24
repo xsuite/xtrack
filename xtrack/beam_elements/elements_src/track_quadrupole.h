@@ -38,7 +38,7 @@ void Quadrupole_from_params_track_local_particle(
         /*gpuglmem*/ double const* knl, /*gpuglmem*/ double const* ksl,
         int64_t order, double inv_factorial_order,
         double factor_knl_ksl,
-        uint8_t with_fringes,
+        uint8_t edge_entry_active, uint8_t edge_exit_active,
         LocalParticle* part0
 ) {
     double sin_rot=0;
@@ -48,12 +48,12 @@ void Quadrupole_from_params_track_local_particle(
     const double combined_kn[2] = { 0, k1 };
     const double combined_ks[2] = { 0, k1s };
 
-    if (with_fringes) {
+    if (edge_entry_active) {
         //start_per_particle_block (part0->part)
         MultFringe_track_single_particle(
             combined_kn,
             combined_ks,
-            with_fringes,
+            0,
             2,
             part
         );
@@ -87,12 +87,12 @@ void Quadrupole_from_params_track_local_particle(
                                         sin_rot, cos_rot);
     }
 
-    if (with_fringes) {
+    if (edge_exit_active) {
         //start_per_particle_block (part0->part)
         MultFringe_track_single_particle(
             combined_kn,
             combined_ks,
-            with_fringes,
+            1,
             2,
             part
         );

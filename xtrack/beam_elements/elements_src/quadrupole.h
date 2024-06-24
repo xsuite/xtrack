@@ -27,7 +27,8 @@ void Quadrupole_track_local_particle(
     /*gpuglmem*/ const double *knl = QuadrupoleData_getp1_knl(el, 0);
     /*gpuglmem*/ const double *ksl = QuadrupoleData_getp1_ksl(el, 0);
 
-    const uint8_t with_fringes = QuadrupoleData_get_with_fringes(el);
+    const uint8_t edge_entry_active = QuadrupoleData_get_edge_entry_active(el);
+    const uint8_t edge_exit_active = QuadrupoleData_get_edge_exit_active(el);
 
     Quadrupole_from_params_track_local_particle(
         length, k1, k1s,
@@ -35,7 +36,7 @@ void Quadrupole_track_local_particle(
         knl, ksl,
         order, inv_factorial_order,
         factor_knl_ksl,
-        with_fringes,
+        edge_entry_active, edge_exit_active,
         part0);
 
 }
