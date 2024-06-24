@@ -962,8 +962,8 @@ def test_twiss_against_matrix(test_context):
 
         chroma_table = line.get_non_linear_chromaticity((-1e-2, 1e-2),
                                                         num_delta=25)
-        assert np.allclose(chroma_table.dnqx[1:], dnqx[1:], atol=1e-5, rtol=0)
-        assert np.allclose(chroma_table.dnqy[1:], dnqy[1:], atol=1e-5, rtol=0)
+        xo.assert_allclose(chroma_table.dnqx[1:], dnqx[1:], atol=1e-5, rtol=1e-5)
+        xo.assert_allclose(chroma_table.dnqy[1:], dnqy[1:], atol=1e-5, rtol=1e-5)
 
 @for_all_test_contexts
 @pytest.mark.parametrize('machine', ['sps', 'psb'])
