@@ -52,6 +52,7 @@ def test_constructor(test_context):
         #xt.ParticlesMonitor(_context=test_context, start_at_turn=0, stop_at_turn=10, num_particles=42),
         #xt.LastTurnsMonitor(_context=test_context, n_last_turns=5, num_particles=42),
         xt.BeamPositionMonitor(_context=test_context, stop_at_turn=10),
+        xt.BunchMonitor(_context=test_context, stop_at_turn=10),
     ]
 
     # test to_dict / from_dict
@@ -492,3 +493,69 @@ def test_beam_position_monitor(test_context):
     expected_x_centroid[18:20] = np.nan
     assert_allclose(monitor.x_cen, expected_x_centroid, err_msg="Monitor x centroid does not match expected values")
     assert_allclose(monitor.y_cen, -expected_x_centroid, err_msg="Monitor y centroid does not match expected values")
+
+@for_all_test_contexts
+def test_bunch_monitor(test_context):
+
+    npart = 512 # must be even and >= 512
+    zeta = np.empty(npart+4) # generate a few more than we record to test "num_particles"
+    zeta[0:npart:2] = zeta1 = np.linspace(-0.2, 0.2, npart//2) # first bunch centered around 0
+    zeta[1:npart:2] = zeta2 = -0.5 + zeta1 # second bunch centered around -1/harmonic
+    zeta[npart:] = np.linspace(2,4,4)
+
+    particles = xp.Particles(
+        p0c=6.5e12,
+        zeta=zeta,
+        delta=1e-3*zeta,
+        _context=test_context,
+    )
+
+    monitor = xt.BunchMonitor(
+        num_particles=npart,
+        start_at_turn=0,
+        stop_at_turn=10,
+        frev=2.99792458e8,
+        harmonic=2,
+        _context=test_context,
+    )
+
+    line = xt.Line([monitor])
+    line.build_tracker(_context=test_context)
+
+    for turn in range(11): # track a few more than we record to test "stop_at_turn"
+        # Note that indicees are re-ordered upon particle loss on CPU contexts,
+        # so sort before manipulation
+        if isinstance(test_context, xo.ContextCpu):
+            particles.sort(interleave_lost_particles=True)
+
+        # manipulate particles for testing
+        particles.zeta[0] += 0.005
+        particles.delta[0] += 1e-3*0.005
+        if turn == 8:
+            particles.state[256:] = 0
+        if turn == 9:
+            particles.state[:] = 0
+
+        if isinstance(test_context, xo.ContextCpu):
+            particles.reorganize()
+
+        # track and monitor
+        line.track(particles, num_turns=1)
+
+    # Check against expected values
+    expected_count = np.tile([npart//2, npart//2], 10)
+    expected_count[16:18] = 128
+    expected_count[18:20] = 0
+    assert_equal(monitor.count, expected_count, err_msg="Monitor count does not match expected particle count")
+
+    expected_zeta_sum = np.zeros(20)
+    expected_zeta_sum[0::2] = np.sum(zeta1) + 0.005*np.arange(1, 11)
+    expected_zeta_sum[1::2] = np.sum(zeta2)
+    expected_zeta_sum[16] -= np.sum(zeta1[128:])
+    expected_zeta_sum[17] -= np.sum(zeta2[128:])
+    expected_zeta_sum[18:] = 0
+    assert_allclose(monitor.zeta_sum, expected_zeta_sum, err_msg="Monitor zeta sum does not match expected values")
+    assert_allclose(monitor.delta_sum, 1e-3*expected_zeta_sum, err_msg="Monitor delta sum does not match expected values")
+
+    # TODO: test zeta_mean, delta_mean, zeta2_sum, delta2_sum, zeta_std, delta_std, zeta_var, delta_var
+
