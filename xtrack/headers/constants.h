@@ -50,4 +50,12 @@
     #define DBL_EPSILON (2.2204460492503131e-16)
 #endif /* !defined( DBL_EPSILON ) */
 
+#if !defined( RADIUS_ELECTRON )
+    #define RADIUS_ELECTRON (2.8179403262e-15)
+#endif /* !defined( RADIUS_ELECTRON ) */
+
+#if !defined( MASS_ELECTRON )
+    #define MASS_ELECTRON (9.1093837e-31)
+#endif /* !defined( MASS_ELECTRON ) */
+
 #endif /* XTRACK_CONSTANTS_H */
