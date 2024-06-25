@@ -84,7 +84,7 @@ void Solenoid_thick_track_single_particle(
 
 /*gpufun*/
 void Solenoid_apply_radiation_single_particle(
-    /*gpuglmem*/ LocalParticle* part,
+    LocalParticle* part,
     const double length,
     const int64_t radiation_flag,
     const double old_px, const double old_py,
