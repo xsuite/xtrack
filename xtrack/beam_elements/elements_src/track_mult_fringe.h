@@ -6,6 +6,7 @@
 #ifndef XTRACK_TRACK_MULT_FRINGE_H
 #define XTRACK_TRACK_MULT_FRINGE_H
 
+#define POW2(x) ((x) * (x))
 #define POW3(x) ((x) * (x) * (x))
 
 /*gpufun*/

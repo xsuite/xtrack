@@ -30,15 +30,18 @@ void Octupole_track_local_particle(
     /*gpuglmem*/ const double *knl = OctupoleData_getp1_knl(el, 0);
     /*gpuglmem*/ const double *ksl = OctupoleData_getp1_ksl(el, 0);
 
-    const edge_entry_active = OctupoleData_get_edge_entry_active(el);
-    const edge_exit_active = OctupoleData_get_edge_exit_active(el);
+    const uint8_t edge_entry_active = OctupoleData_get_edge_entry_active(el);
+    const uint8_t edge_exit_active = OctupoleData_get_edge_exit_active(el);
+
+    const double combined_kn[4] = {0, 0, 0, k3};
+    const double combined_ks[4] = {0, 0, 0, k3s};
 
     //start_per_particle_block (part0->part)
         // Entry fringe
         if (edge_entry_active) {
             MultFringe_track_single_particle(
-                {0, 0, 0, k3},
-                {0, 0, 0, k3s},
+                combined_kn,
+                combined_ks,
                 0,
                 4,
                 part
@@ -64,8 +67,8 @@ void Octupole_track_local_particle(
         // Exit fringe
         if (edge_exit_active) {
             MultFringe_track_single_particle(
-                {0, 0, 0, k3},
-                {0, 0, 0, k3s},
+                combined_kn,
+                combined_ks,
                 1,
                 4,
                 part
