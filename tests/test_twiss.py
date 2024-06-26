@@ -222,6 +222,67 @@ def test_get_normalized_coordinates(test_context):
     assert np.all(particles23.at_element[6:] == xt.particles.LAST_INVALID_STATE)
 
 @for_all_test_contexts
+def test_get_normalized_coordinates_twiss_init(test_context):
+
+    ctx2np = test_context.nparray_from_context_array
+    path_line_particles = test_data_folder / 'hllhc15_noerrors_nobb/line_and_particle.json'
+
+    with open(path_line_particles, 'r') as fid:
+        input_data = json.load(fid)
+    line = xt.Line.from_dict(input_data['line'])
+    line.particle_ref = xp.Particles.from_dict(input_data['particle'])
+
+    line.build_tracker(_context=test_context)
+
+
+    # Introduce a non-zero closed orbit
+    line['mqwa.a4r3.b1..1'].knl[0] = 10e-6
+    line['mqwa.a4r3.b1..1'].ksl[0] = 5e-6
+
+    particles1 = line.build_particles(
+        nemitt_x=2.5e-6, nemitt_y=1e-6,
+        x_norm=[-1, 0, 0.5], y_norm=[0.3, -0.2, 0.2],
+        px_norm=[0.1, 0.2, 0.3], py_norm=[0.5, 0.6, 0.8],
+        zeta=[0, 0.1, -0.1], delta=[1e-4, 0., -1e-4])
+    
+    particles2 = line.build_particles(at_element='s.ds.r3.b1',
+        # _capacity=10,
+        nemitt_x=2.5e-6, nemitt_y=1e-6,
+        x_norm=[-1, 0, 0.5], y_norm=[0.3, -0.2, 0.2],
+        px_norm=[0.1, 0.2, 0.3], py_norm=[0.5, 0.6, 0.8],
+        zeta=[0, 0.1, -0.1], delta=[1e-4, 0., -1e-4])
+
+    particles3 = line.build_particles(at_element='s.ds.r7.b1',
+        # _capaci/ty=10,
+        nemitt_x=2.5e-6, nemitt_y=1e-6,
+        x_norm=[-1, 0, 0.5], y_norm=[0.3, -0.2, 0.2],
+        px_norm=[0.1, 0.2, 0.3], py_norm=[0.5, 0.6, 0.8],
+        zeta=[0, 0.1, -0.1], delta=[1e-4, 0., -1e-4])
+
+
+    particles4 = line.build_particles(at_element='s.ds.r7.b1',
+        # _capaci/ty=10,
+        nemitt_x=2.5e-6, nemitt_y=1e-6,
+        x_norm=[-1, 0, 0.5], y_norm=[0.3, -0.2, 0.2],
+        px_norm=[0.1, 0.2, 0.3], py_norm=[0.5, 0.6, 0.8],
+        zeta_norm=[0, 0.1, -0.1], pzeta_norm=[1e-4, 0., -1e-4])
+
+    tw = line.twiss()
+
+    for part in [particles1,particles2,particles3,particles4]:
+        tw = line.twiss()
+        tw_init = tw.get_twiss_init(at_element=line.element_names[ctx2np(part.at_element)[0]])
+
+        norm_coord = tw_init.get_normalized_coordinates(part, nemitt_x=2.5e-6,
+                                                nemitt_y=1e-6)
+
+        assert np.allclose(norm_coord['x_norm'], [-1, 0, 0.5], atol=1e-10, rtol=0)
+        assert np.allclose(norm_coord['y_norm'], [0.3, -0.2, 0.2], atol=1e-10, rtol=0)
+        assert np.allclose(norm_coord['px_norm'], [0.1, 0.2, 0.3], atol=1e-10, rtol=0)
+        assert np.allclose(norm_coord['py_norm'], [0.5, 0.6, 0.8], atol=1e-10, rtol=0)
+
+
+@for_all_test_contexts
 def test_twiss_does_not_affect_monitors(test_context):
 
     path_line_particles = test_data_folder / 'hllhc15_noerrors_nobb/line_and_particle.json'
@@ -825,40 +886,43 @@ def test_twiss_against_matrix(test_context):
     dpx = [0.7, -0.3]
     dpy = [0.4, -0.6]
     bets = 1e-3
+    dnqx = [0.21, 2, 30, 400]
+    dnqy = [0.32, 3, 40, 500]
 
     segm_1 = xt.LineSegmentMap(
-            qx=0.4, qy=0.3, qs=0.0001,
-            bets=bets, length=0.1,
-            betx=[betx[0], betx[1]],
-            bety=[bety[0], bety[1]],
-            alfx=[alfx[0], alfx[1]],
-            alfy=[alfy[0], alfy[1]],
-            dx=[dx[0], dx[1]],
-            dpx=[dpx[0], dpx[1]],
-            dy=[dy[0], dy[1]],
-            dpy=[dpy[0], dpy[1]],
-            x_ref=[x_co[0], x_co[1]],
-            px_ref=[px_co[0], px_co[1]],
-            y_ref=[y_co[0], y_co[1]],
-            py_ref=[py_co[0], py_co[1]])
+        qx=0.4, qy=0.3, qs=0.0001,
+        bets=bets, length=0.1,
+        betx=[betx[0], betx[1]],
+        bety=[bety[0], bety[1]],
+        alfx=[alfx[0], alfx[1]],
+        alfy=[alfy[0], alfy[1]],
+        dx=[dx[0], dx[1]],
+        dpx=[dpx[0], dpx[1]],
+        dy=[dy[0], dy[1]],
+        dpy=[dpy[0], dpy[1]],
+        x_ref=[x_co[0], x_co[1]],
+        px_ref=[px_co[0], px_co[1]],
+        y_ref=[y_co[0], y_co[1]],
+        py_ref=[py_co[0], py_co[1]])
     segm_2 = xt.LineSegmentMap(
-            qx=0.21, qy=0.32, qs=0.0003,
-            bets=bets, length=0.2,
-            dqx=2., dqy=3.,
-            betx=[betx[1], betx[0]],
-            bety=[bety[1], bety[0]],
-            alfx=[alfx[1], alfx[0]],
-            alfy=[alfy[1], alfy[0]],
-            dx=[dx[1], dx[0]],
-            dpx=[dpx[1], dpx[0]],
-            dy=[dy[1], dy[0]],
-            dpy=[dpy[1], dpy[0]],
-            x_ref=[x_co[1], x_co[0]],
-            px_ref=[px_co[1], px_co[0]],
-            y_ref=[y_co[1], y_co[0]],
-            py_ref=[py_co[1], py_co[0]])
+        qs=0.0003,
+        bets=bets, length=0.2,
+        dnqx=dnqx, dnqy=dnqy,
+        betx=[betx[1], betx[0]],
+        bety=[bety[1], bety[0]],
+        alfx=[alfx[1], alfx[0]],
+        alfy=[alfy[1], alfy[0]],
+        dx=[dx[1], dx[0]],
+        dpx=[dpx[1], dpx[0]],
+        dy=[dy[1], dy[0]],
+        dpy=[dpy[1], dpy[0]],
+        x_ref=[x_co[1], x_co[0]],
+        px_ref=[px_co[1], px_co[0]],
+        y_ref=[y_co[1], y_co[0]],
+        py_ref=[py_co[1], py_co[0]])
 
-    line = xt.Line(elements=[segm_1, segm_2], particle_ref=xp.Particles(p0c=1e9))
+    line = xt.Line(elements=[segm_1, segm_2],
+                   particle_ref=xt.Particles(p0c=1e9))
     line.build_tracker(_context=test_context)
 
     tw4d = line.twiss(method='4d')
@@ -868,7 +932,6 @@ def test_twiss_against_matrix(test_context):
     xo.assert_allclose(tw6d.bets0, 1e-3, atol=1e-7, rtol=0)
 
     for tw in [tw4d, tw6d]:
-
         xo.assert_allclose(tw.qx, 0.4 + 0.21, atol=1e-7, rtol=0)
         xo.assert_allclose(tw.qy, 0.3 + 0.32, atol=1e-7, rtol=0)
 
@@ -894,6 +957,13 @@ def test_twiss_against_matrix(test_context):
         xo.assert_allclose(tw.px, [2e-6, -3e-6, 2e-6], atol=1e-12, rtol=0)
         xo.assert_allclose(tw.y, [3e-3, 4e-3, 3e-3], atol=1e-7, rtol=0)
         xo.assert_allclose(tw.py, [4e-6, -5e-6, 4e-6], atol=1e-12, rtol=0)
+
+        assert np.allclose(tw.py, [4e-6, -5e-6, 4e-6], atol=1e-12, rtol=0)
+
+        chroma_table = line.get_non_linear_chromaticity((-1e-2, 1e-2),
+                                                        num_delta=25)
+        xo.assert_allclose(chroma_table.dnqx[1:], dnqx[1:], atol=1e-5, rtol=1e-5)
+        xo.assert_allclose(chroma_table.dnqy[1:], dnqy[1:], atol=1e-5, rtol=1e-5)
 
 @for_all_test_contexts
 @pytest.mark.parametrize('machine', ['sps', 'psb'])
@@ -1079,7 +1149,7 @@ def test_custom_twiss_init(test_context):
             'hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
     line.particle_ref = xp.Particles(
                         mass0=xp.PROTON_MASS_EV, q0=1, energy0=7e12)
-    line.build_tracker()
+    line.build_tracker(_context=test_context)
     line.vars['on_disp'] = 1
 
     tw = line.twiss()
@@ -1514,8 +1584,6 @@ def test_second_order_chromaticity_and_dispersion(test_context):
     line.build_tracker(_context=test_context)
 
     tw = line.twiss(method='4d')
-    nlchr = line.get_non_linear_chromaticity(delta0_range=(-1e-4, 1e-4),
-                                            num_delta=21, fit_order=1, method='4d')
     tw_fw = line.twiss(start='ip4', end='ip6', init_at='ip4',
                 x=tw['x', 'ip4'], px=tw['px', 'ip4'],
                 y=tw['y', 'ip4'], py=tw['py', 'ip4'],
@@ -1539,7 +1607,7 @@ def test_second_order_chromaticity_and_dispersion(test_context):
                 compute_chromatic_properties=True)
 
     nlchr = line.get_non_linear_chromaticity(delta0_range=(-1e-4, 1e-4),
-                                            num_delta=21, fit_order=2, method='4d')
+                                             num_delta=21, fit_order=2)
 
     location = 'ip3'
 
@@ -1676,14 +1744,13 @@ def test_twiss_strength_reverse_vs_madx(test_context):
 
 @for_all_test_contexts
 @pytest.mark.parametrize('line_name', ['lhcb1'])
-@pytest.mark.parametrize('reverse', [False, True])
 @pytest.mark.parametrize('section', [
     (xt.START, xt.END),
     (xt.START, '_end_point'),
     (xt.START, 'ip6'),
     ('ip4', xt.END),
 ])
-def test_twiss_range_start_end(test_context, line_name, reverse, section, collider_for_test_twiss_range):
+def test_twiss_range_start_end(test_context, line_name, section, collider_for_test_twiss_range):
     collider = collider_for_test_twiss_range
     init_at = 'ip5'
 
@@ -1709,18 +1776,14 @@ def test_twiss_range_start_end(test_context, line_name, reverse, section, collid
 
     line.build_tracker(_buffer=buffer)
 
-    tw = line.twiss()
+    reverse = {'lhcb1': False, 'lhcb2':True}[line_name]
+
+    tw = line.twiss(reverse=reverse)
     tw_init = tw.get_twiss_init(init_at)
 
     start = section[0]
     end = section[1]
-    if not reverse:
-        tw_test = line.twiss(start=start, end=end, init=tw_init, reverse=reverse)
-    else:
-        with pytest.raises(ValueError) as excinfo:
-            line.twiss(start=start, end=end, init=tw_init, reverse=reverse)
-        assert 'reverse' in str(excinfo.value)
-        return
+    tw_test = line.twiss(start=start, end=end, init=tw_init, reverse=reverse)
 
     start_el = (line.element_names[0] if start == xt.START else start)
     end_el = (line.element_names[-1] if (end == xt.END or end == '_end_point') else end)
@@ -1734,4 +1797,111 @@ def test_twiss_range_start_end(test_context, line_name, reverse, section, collid
             assert np.all(tw_test._data[kk] == tw_ref._data[kk])
             continue
 
-        xo.assert_allclose(tw_test._data[kk], tw_ref._data[kk], rtol=0, atol=5e-13)
+        xo.assert_allclose(tw_test._data[kk], tw_ref._data[kk], rtol=1e-12, atol=5e-13)
+
+@for_all_test_contexts
+def test_arbitrary_start(test_context, collider_for_test_twiss_range):
+
+    collider = collider_for_test_twiss_range
+
+    # No orbit
+    for kk in collider.vars.get_table().rows['on_.*'].name:
+        kk = str(kk) # avoid numpy.str_
+        collider.vars[kk] = 0
+
+    if collider.lhcb1.element_names[0] != 'ip1':
+        collider.lhcb1.cycle('ip1', inplace=True)
+    if collider.lhcb2.element_names[0] != 'ip1':
+        collider.lhcb2.cycle('ip1', inplace=True)
+
+    line = collider.lhcb2 # <- use lhcb2 to test the reverse option
+    assert line.twiss_default['method'] == '4d'
+    assert line.twiss_default['reverse']
+
+    if isinstance(test_context, xo.ContextCpu) and (
+        test_context.omp_num_threads != line._context.omp_num_threads):
+        buffer = test_context.new_buffer()
+    elif isinstance(test_context, line._context.__class__):
+        buffer = line._buffer
+    else:
+        buffer = test_context.new_buffer()
+
+    line.build_tracker(_buffer=buffer)
+
+    tw8_closed = line.twiss(start='ip8')
+    tw8_open = line.twiss(start='ip8', betx=1.5, bety=1.5)
+
+    tw = line.twiss()
+
+    for tw8 in [tw8_closed, tw8_open]:
+        assert tw8.name[-1] == '_end_point'
+        assert np.all(tw8.rows['ip.?'].name
+            == np.array(['ip8', 'ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7']))
+
+        for nn in ['s', 'mux', 'muy']:
+            assert np.all(np.diff(tw8.rows['ip.?'][nn]) > 0)
+            assert tw8[nn][0] == 0
+            xo.assert_allclose(tw8[nn][-1], tw[nn][-1], rtol=1e-12, atol=5e-7)
+
+        xo.assert_allclose(
+                tw8['betx', ['ip8', 'ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7']],
+                tw[ 'betx', ['ip8', 'ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7']],
+                rtol=1e-5, atol=0)
+
+    collider.to_json('ok.json')
+
+@for_all_test_contexts
+def test_part_from_full_periodic(test_context, collider_for_test_twiss_range):
+
+    collider = collider_for_test_twiss_range
+
+    if collider.lhcb1.element_names[0] != 'ip1':
+        collider.lhcb1.cycle('ip1', inplace=True)
+    if collider.lhcb2.element_names[0] != 'ip1':
+        collider.lhcb2.cycle('ip1', inplace=True)
+
+    line = collider.lhcb2 # <- use lhcb2 to test the reverse option
+    assert line.twiss_default['method'] == '4d'
+    assert line.twiss_default['reverse']
+
+    if isinstance(test_context, xo.ContextCpu) and (
+        test_context.omp_num_threads != line._context.omp_num_threads):
+        buffer = test_context.new_buffer()
+    elif isinstance(test_context, line._context.__class__):
+        buffer = line._buffer
+    else:
+        buffer = test_context.new_buffer()
+
+    line.build_tracker(_buffer=buffer)
+
+    tw = line.twiss()
+
+    tw_part1 = line.twiss(start='ip8', end='ip2', zero_at='ip1', init='full_periodic')
+
+    assert tw_part1.name[0] == 'ip8'
+    assert tw_part1.name[-2] == 'ip2'
+    assert tw_part1.name[-1] == '_end_point'
+
+    for kk in ['s', 'mux', 'muy']:
+        tw_part1[kk, 'ip1'] == 0.
+        assert np.all(np.diff(tw_part1[kk]) >= 0)
+        xo.assert_allclose(
+            tw_part1[kk, 'ip8'], -(tw[kk, '_end_point'] - tw[kk, 'ip8']),
+            rtol=1e-12, atol=5e-7)
+        xo.assert_allclose(
+            tw_part1[kk, 'ip2'], tw[kk, 'ip2'] - tw[kk, 0],
+            rtol=1e-12, atol=5e-7)
+
+    tw_part2 = line.twiss(start='ip8', end='ip2', init='full_periodic')
+
+    assert tw_part2.name[0] == 'ip8'
+    assert tw_part2.name[-2] == 'ip2'
+    assert tw_part2.name[-1] == '_end_point'
+
+    for kk in ['s', 'mux', 'muy']:
+        tw_part2[kk, 'ip8'] == 0.
+        assert np.all(np.diff(tw_part2[kk]) >= 0)
+        xo.assert_allclose(
+            tw_part2[kk, 'ip2'],
+            tw[kk, 'ip2'] - tw[kk, 0] +(tw[kk, '_end_point'] - tw[kk, 'ip8']),
+            rtol=1e-12, atol=5e-7)

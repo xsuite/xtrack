@@ -1,8 +1,11 @@
-import xtrack as xt
+import itertools
+
+import numpy as np
 import pytest
 
-from xobjects.test_helpers import for_all_test_contexts
 import xobjects as xo
+import xtrack as xt
+from xobjects.test_helpers import for_all_test_contexts
 
 assert_allclose= xo.assert_allclose
 
@@ -630,9 +633,9 @@ def test_thick_slice_octupole(test_context):
 @for_all_test_contexts
 def test_thick_slice_solenoid(test_context):
 
-    oct = xt.Solenoid(ks=0.1, length=1)
+    sol = xt.Solenoid(ks=0.1, length=1)
 
-    line = xt.Line(elements=[oct])
+    line = xt.Line(elements=[sol])
 
     line.slice_thick_elements(
         slicing_strategies=[xt.Strategy(xt.Teapot(10, mode='thick'))])
@@ -646,7 +649,7 @@ def test_thick_slice_solenoid(test_context):
     p_slice = p0.copy()
 
     line.track(p_slice)
-    oct.track(p_ref)
+    sol.track(p_ref)
 
     assert_allclose(p_slice.x, p_ref.x, rtol=0, atol=1e-10)
     assert_allclose(p_slice.px, p_ref.px, rtol=0, atol=1e-10)

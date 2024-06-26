@@ -305,7 +305,8 @@ class Tracker:
             t0 = perf_counter()
 
         assert self.iscollective in (True, False)
-        if self.iscollective or self.line.enable_time_dependent_vars:
+        if (self.iscollective or self.line.enable_time_dependent_vars
+            or 'log' in kwargs and kwargs['log'] is not None):
             tracking_func = self._track_with_collective
         else:
             tracking_func = self._track_no_collective
@@ -905,13 +906,13 @@ class Tracker:
                                       ' tracking')
 
         if log is not None:
-            if isinstance(log, str):
-                log = [log]
             if isinstance(log, (list, tuple)):
                 log = Log(*log)
+            elif not isinstance(log, Log):
+                log = Log(log)
         if log is not None and _reset_log:
             if self.line.enable_time_dependent_vars:
-                self.line.log_last_track = {kk: [] for kk in log}
+                self.line.log_last_track = {}
             else:
                 raise NotImplementedError(
                     'log can be used only when time-dependent variables are '
@@ -1003,11 +1004,21 @@ class Tracker:
                 if log is not None:
                     for kk in log:
                         if log[kk] == None:
+                            if kk not in self.line.log_last_track:
+                                self.line.log_last_track[kk] = []
                             self.line.log_last_track[kk].append(self.line.vv[kk])
                         else:
                             ff = log[kk]
-                            self.line.log_last_track[kk].append(
-                                                    ff(self.line, particles))
+                            val = ff(self.line, particles)
+                            if hasattr(ff, '_store'):
+                                for nn in ff._store:
+                                    if nn not in self.line.log_last_track:
+                                        self.line.log_last_track[nn] = []
+                                    self.line.log_last_track[nn].append(val[nn])
+                            else:
+                                if kk not in self.line.log_last_track:
+                                    self.line.log_last_track[kk] = []
+                                self.line.log_last_track[kk].append(val)
 
             moveback_to_buffer = None
             moveback_to_offset = None
@@ -1575,5 +1586,10 @@ class Log(dict):
     def __init__(self, *args, **kwargs):
         self.__dict__ = self
         self.update(kwargs)
+        unnamed_indx = 0
         for arg in args:
-            self[arg] = None
+            if isinstance(arg, str):
+                self[arg] = None
+            else:
+                self[f'_unnamed_{unnamed_indx}'] = arg
+                unnamed_indx += 1

@@ -1032,3 +1032,32 @@ def test_multiple_thick_elements():
     assert np.all(tt.element_type == ['Drift', 'Drift', 'DriftSlice', 'Sextupole', 'DriftSlice', 'Drift',
         'DriftSlice', 'Sextupole', 'DriftSlice', 'Sextupole', 'Drift',
         'Drift', ''])
+
+@for_all_test_contexts
+def test_get_strengths(test_context):
+    collider = xt.Multiline.from_json(
+        test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.json')
+    collider.build_trackers(_context=test_context)
+
+    collider.lhcb1.twiss_default['method'] = '4d'
+    collider.lhcb2.twiss_default['method'] = '4d'
+    collider.lhcb2.twiss_default['reverse'] = True
+
+    line = collider.lhcb2 # <- use lhcb2 to test the reverse option
+
+    import xobjects as xo
+    str_table_rev = line.get_strengths() # Takes reverse from twiss_default
+    xo.assert_allclose(line['mbw.a6l3.b2'].k0,
+            -str_table_rev['k0l', 'mbw.a6l3.b2'] / str_table_rev['length', 'mbw.a6l3.b2'],
+            rtol=0, atol=1e-14)
+    xo.assert_allclose(line['mbw.a6l3.b2'].h,
+            -str_table_rev['angle_rad', 'mbw.a6l3.b2'] / str_table_rev['length', 'mbw.a6l3.b2'],
+            rtol=0, atol=1e-14)
+
+    str_table = line.get_strengths(reverse=False) # Takes reverse from twiss_default
+    xo.assert_allclose(line['mbw.a6l3.b2'].k0,
+            str_table['k0l', 'mbw.a6l3.b2'] / str_table['length', 'mbw.a6l3.b2'],
+            rtol=0, atol=1e-14)
+    xo.assert_allclose(line['mbw.a6l3.b2'].h,
+            str_table['angle_rad', 'mbw.a6l3.b2'] / str_table['length', 'mbw.a6l3.b2'],
+            rtol=0, atol=1e-14)

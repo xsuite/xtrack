@@ -287,3 +287,18 @@ class TwissPlot(object):
     def savefig(self, name):
         self.figure.savefig(name)
         return self
+
+    def ylim(self,left_lo=None,left_hi=None,right_lo=None,right_hi=None):
+        lo,hi=self.left.get_ylim()
+        if left_lo is None:
+            left_lo = lo
+        if left_hi is None:
+            left_hi = hi
+        self.left.set_ylim(left_lo,left_hi)
+        lo,hi=self.right.get_ylim()
+        if right_lo is None:
+            right_lo = lo
+        if right_hi is None:
+            right_hi = hi
+        self.right.set_ylim(right_lo,right_hi)
+        return self
