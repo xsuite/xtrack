@@ -39,7 +39,7 @@ void Sextupole_track_local_particle(
             MultFringe_track_single_particle(
                 {0, 0, k2},
                 {0, 0, k2s},
-                1,
+                0,
                 3,
                 part
             );
@@ -66,7 +66,7 @@ void Sextupole_track_local_particle(
             MultFringe_track_single_particle(
                 {0, 0, k2},
                 {0, 0, k2s},
-                0,
+                1,
                 3,
                 part
             );

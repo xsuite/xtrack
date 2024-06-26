@@ -39,7 +39,7 @@ void Octupole_track_local_particle(
             MultFringe_track_single_particle(
                 {0, 0, 0, k3},
                 {0, 0, 0, k3s},
-                1,
+                0,
                 4,
                 part
             );
@@ -66,7 +66,7 @@ void Octupole_track_local_particle(
             MultFringe_track_single_particle(
                 {0, 0, 0, k3},
                 {0, 0, 0, k3s},
-                0,
+                1,
                 4,
                 part
             );

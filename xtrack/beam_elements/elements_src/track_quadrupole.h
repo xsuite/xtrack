@@ -53,7 +53,7 @@ void Quadrupole_from_params_track_local_particle(
         MultFringe_track_single_particle(
             combined_kn,
             combined_ks,
-            1,
+            0,
             2,
             part
         );
@@ -92,7 +92,7 @@ void Quadrupole_from_params_track_local_particle(
         MultFringe_track_single_particle(
             combined_kn,
             combined_ks,
-            0,
+            1,
             2,
             part
         );
