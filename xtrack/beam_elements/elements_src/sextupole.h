@@ -32,8 +32,8 @@ void Sextupole_track_local_particle(
 
     const uint8_t edge_entry_active = SextupoleData_get_edge_entry_active(el);
     const uint8_t edge_exit_active = SextupoleData_get_edge_exit_active(el);
-    const double combined_kn[3] = {0, 0, k2};
-    const double combined_ks[3] = {0, 0, k2s};
+    const double combined_kn[3] = {0, 0, k2 / 2};
+    const double combined_ks[3] = {0, 0, k2s / 2};
 
     //start_per_particle_block (part0->part)
         // Entry fringe

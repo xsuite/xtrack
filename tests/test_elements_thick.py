@@ -1163,7 +1163,7 @@ def test_octupole(test_context):
 @for_all_test_contexts
 @pytest.mark.parametrize(
     'element,kn_param_name',
-    [('quadrupole', 'k1')]
+    [('quadrupole', 'k1'), ('sextupole', 'k2'), ('octupole', 'k3')]
 )
 def test_multipole_fringe(test_context, element, kn_param_name):
     ref_dir = pathlib.Path(__file__).parent.joinpath('../test_data/fringe_vs_madng')

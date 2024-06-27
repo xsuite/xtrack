@@ -33,8 +33,8 @@ void Octupole_track_local_particle(
     const uint8_t edge_entry_active = OctupoleData_get_edge_entry_active(el);
     const uint8_t edge_exit_active = OctupoleData_get_edge_exit_active(el);
 
-    const double combined_kn[4] = {0, 0, 0, k3};
-    const double combined_ks[4] = {0, 0, 0, k3s};
+    const double combined_kn[4] = {0, 0, 0, k3 / 6};
+    const double combined_ks[4] = {0, 0, 0, k3s / 6};
 
     //start_per_particle_block (part0->part)
         // Entry fringe

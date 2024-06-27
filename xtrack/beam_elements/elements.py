@@ -989,8 +989,8 @@ class Sextupole(BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
         'ksl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
-        'edge_entry_active': xo.Field(xo.UInt8, default=0),
-        'edge_exit_active': xo.Field(xo.UInt8, default=0),
+        'edge_entry_active': xo.Field(xo.UInt8, default=1),
+        'edge_exit_active': xo.Field(xo.UInt8, default=1),
     }
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
@@ -1090,8 +1090,8 @@ class Octupole(BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
         'ksl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
-        'edge_entry_active': xo.Field(xo.UInt8, default=0),
-        'edge_exit_active': xo.Field(xo.UInt8, default=0),
+        'edge_entry_active': xo.Field(xo.UInt8, default=1),
+        'edge_exit_active': xo.Field(xo.UInt8, default=1),
     }
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
