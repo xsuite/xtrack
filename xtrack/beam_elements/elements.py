@@ -16,7 +16,9 @@ from ..random import RandomUniform, RandomExponential, RandomNormal
 from ..general import _pkg_root, _print
 from ..internal_record import RecordIndex, RecordIdentifier
 
+
 ALLOCATED_MULTIPOLE_ORDER = 5
+
 
 class ReferenceEnergyIncrease(BeamElement):
 

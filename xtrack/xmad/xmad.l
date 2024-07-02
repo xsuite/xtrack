@@ -29,10 +29,19 @@
         yylloc->last_column = yytext + yyleng - strrchr(yytext, '\n'); \
     }
 
-// Parse the current token value (in `yytext`) as a floating point value
-double parse_numeric(char* text, char* error) {
+// Parse the current token values (in `yytext`) as numeric values
+double parse_float(char* text, char* error) {
     char* end_ptr;
     double value = strtod(text, &end_ptr);
+    if (end_ptr == text) {
+        *error = 1;
+    }
+    return value;
+}
+
+long parse_integer(char* text, char* error) {
+    char* end_ptr;
+    long value = strtol(text, &end_ptr, 10);
     if (end_ptr == text) {
         *error = 1;
     }
@@ -56,7 +65,8 @@ double parse_numeric(char* text, char* error) {
 %x STRING_STATE
 
     /* Define what identifiers and number literals look like */
-NUMERIC             [0-9]*(\.[0-9]|[0-9]\.|[0-9])[0-9]*(e[+-]?[0-9]+)?
+INTEGER             [0-9]+(e[+-]?[0-9]+)?
+FLOAT               [0-9]*(\.[0-9]|[0-9]\.)[0-9]*(e[+-]?[0-9]+)?
 IDENTIFIER          [A-Za-z_$][A-Za-z0-9_\.$]*
 STRING_LITERAL      \"([^\n\"]|\\\")*\"
 
@@ -75,13 +85,21 @@ STRING_LITERAL      \"([^\n\"]|\\\")*\"
 ";"                 { return SEMICOLON; }
 
     /* Values */
-{NUMERIC}           {
+{FLOAT}             {
         char error = 0;
-        yylval->number = parse_numeric(yytext, &error);
+        yylval->floating = parse_float(yytext, &error);
         if (error) {
-            yyerror(yylloc, yyscanner, "an invalid numeric value encountered");
+            yyerror(yylloc, yyscanner, "an floating point value encountered");
         }
         return FLOAT;
+    }
+{INTEGER}             {
+        char error = 0;
+        yylval->integer = parse_integer(yytext, &error);
+        if (error) {
+            yyerror(yylloc, yyscanner, "an invalid integer value encountered");
+        }
+        return INTEGER;
     }
 {IDENTIFIER}        {
         yylval->string = strdup(yytext);

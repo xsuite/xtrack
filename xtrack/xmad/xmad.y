@@ -31,7 +31,7 @@
  C-side memory management
  ------------------------
  String token values are `strdup`ed into `yylval`, as it is unsafe to share the
- `yytext` pointer outside the *.l file, as it's lifetime is generally only
+ `yytext` pointer outside the *.l file, as its lifetime is generally only
  guaranteed within a lexer rule. This means, however, that in order to avoid
  leaking memory every value of `yylval` needs to be freed after use. Let's
  adopt the following convention within this parser: each `py_` function that
@@ -68,7 +68,8 @@
 
 // The union type that store token values
 %union {
-    double number;
+    double floating;
+    long integer;
     char* string;
     PyObject* object;
 }
@@ -84,7 +85,8 @@
 %token COMMA			","
 %token SEMICOLON		";"
 // Values
-%token<number> FLOAT		"number"
+%token<floating> FLOAT		"floating point number"
+%token<integer> INTEGER		"integer number"
 %token<string> IDENTIFIER	"identifier"
 %token<string> STRING_LITERAL	"string literal"
 // Assignments
@@ -146,7 +148,7 @@ set_value
 
 clone
 	: IDENTIFIER COLON IDENTIFIER arguments SEMICOLON	{
-			$$ = py_clone($1, $3, $4);
+			$$ = py_clone(yyscanner, $1, $3, $4);
 			free($1);
 			free($3);
 		}
@@ -165,29 +167,29 @@ argument
 	| eq_keyword			{ $$ = $1; }
 
 flag
-	: ADD IDENTIFIER		{ $$ = py_eq_value_scalar($2, Py_True); free($2); }
-	| SUB IDENTIFIER		{ $$ = py_eq_value_scalar($2, Py_False); free($2); }
+	: ADD IDENTIFIER		{ $$ = py_eq_value_scalar(yyscanner, $2, Py_True); free($2); }
+	| SUB IDENTIFIER		{ $$ = py_eq_value_scalar(yyscanner, $2, Py_False); free($2); }
 
 eq_keyword
 	: IDENTIFIER ASSIGN STRING_LITERAL	{
-			$$ = py_eq_value_scalar($1, PyUnicode_FromString($3));
+			$$ = py_eq_value_scalar(yyscanner, $1, PyUnicode_FromString($3));
 			free($1);
 			free($3);
 		}
 
 eq_value_scalar
-	: IDENTIFIER ASSIGN sum		{ $$ = py_eq_value_scalar($1, $3); free($1); }
+	: IDENTIFIER ASSIGN sum		{ $$ = py_eq_value_scalar(yyscanner, $1, $3); free($1); }
 
 eq_defer_scalar
-	: IDENTIFIER WALRUS sum		{ $$ = py_eq_defer_scalar($1, $3); free($1); }
+	: IDENTIFIER WALRUS sum		{ $$ = py_eq_defer_scalar(yyscanner, $1, $3); free($1); }
 
 eq_value
-	: IDENTIFIER ASSIGN array	{ $$ = py_eq_value_array($1, $3); free($1); }
-	| IDENTIFIER ASSIGN sum		{ $$ = py_eq_value_sum($1, $3); free($1); }
+	: IDENTIFIER ASSIGN array	{ $$ = py_eq_value_array(yyscanner, $1, $3); free($1); }
+	| IDENTIFIER ASSIGN sum		{ $$ = py_eq_value_sum(yyscanner, $1, $3); free($1); }
 
 eq_defer
-	: IDENTIFIER WALRUS array	{ $$ = py_eq_defer_array($1, $3); free($1); }
-	| IDENTIFIER WALRUS sum		{ $$ = py_eq_defer_sum($1, $3); free($1); }
+	: IDENTIFIER WALRUS array	{ $$ = py_eq_defer_array(yyscanner, $1, $3); free($1); }
+	| IDENTIFIER WALRUS sum		{ $$ = py_eq_defer_sum(yyscanner, $1, $3); free($1); }
 
 sequence
 	: IDENTIFIER COLON STARTSEQUENCE arguments SEMICOLON
@@ -219,22 +221,23 @@ scalar_list
 
 sum
 	: product			{ $$ = $1; }
-	| sum ADD product		{ $$ = py_binary_op("add", $1, $3); }
-	| sum SUB product		{ $$ = py_binary_op("sub", $1, $3); }
+	| sum ADD product		{ $$ = py_binary_op(yyscanner, "add", $1, $3); }
+	| sum SUB product		{ $$ = py_binary_op(yyscanner, "sub", $1, $3); }
 
 product
 	: power				{ $$ = $1; }
-	| product MUL power		{ $$ = py_binary_op("mul", $1, $3); }
-	| product DIV power		{ $$ = py_binary_op("truediv", $1, $3); }
-	| product MOD power		{ $$ = py_binary_op("mod", $1, $3); }
+	| product MUL power		{ $$ = py_binary_op(yyscanner, "mul", $1, $3); }
+	| product DIV power		{ $$ = py_binary_op(yyscanner, "truediv", $1, $3); }
+	| product MOD power		{ $$ = py_binary_op(yyscanner, "mod", $1, $3); }
 
 power
 	: atom				{ $$ = $1; }
-	| power POW atom		{ $$ = py_binary_op("pow", $1, $3); }
+	| power POW atom		{ $$ = py_binary_op(yyscanner, "pow", $1, $3); }
 
 atom
-	: FLOAT				{ $$ = py_float($1); }
-	| SUB atom			{ $$ = py_unary_op("neg", $2); }
+	: FLOAT				{ $$ = py_float(yyscanner, $1); }
+	| INTEGER			{ $$ = py_integer(yyscanner, $1); }
+	| SUB atom			{ $$ = py_unary_op(yyscanner, "neg", $2); }
 	| ADD atom			{ $$ = $2; }
 	| PAREN_OPEN sum PAREN_CLOSE	{ $$ = $2; }
 	| IDENTIFIER			{ $$ = py_identifier_atom(yyscanner, $1); free($1); }
@@ -242,7 +245,7 @@ atom
 	| IDENTIFIER PAREN_OPEN sum PAREN_CLOSE	{ $$ = py_call_func(yyscanner, $1, $3); free($1); }
 	| PAREN_OPEN error PAREN_CLOSE  {
 			// Recover from an error in brackets.
-			$$ = py_float(NAN);
+			$$ = py_float(yyscanner, NAN);
 		}
 
 

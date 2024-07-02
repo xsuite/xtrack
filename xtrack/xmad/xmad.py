@@ -1,24 +1,23 @@
 import builtins
-import contextlib
+import math
+import operator
+import re
+import traceback
 from typing import Tuple
 
 import cython as cy
 import numpy as np
 import scipy.constants as sc
+from cython.cimports.cpython.ref import Py_INCREF, PyObject  # noqa
+from cython.cimports.libc.stdint import uintptr_t  # noqa
 from cython.cimports.libc.stdio import fopen  # noqa
 from cython.cimports.posix.unistd import access, R_OK  # noqa
 from cython.cimports.xtrack.xmad import xmad  # noqa
-from cython.cimports.cpython.ref import Py_INCREF, PyObject  # noqa
-
-import math
-import operator
-import traceback
 
 import xdeps as xd
 import xtrack as xt
 from xdeps.refs import CallRef, LiteralExpr
 from xtrack.beam_elements import element_classes as xt_element_classes
-
 
 KEEP_LITERAL_EXPRESSIONS = False
 
@@ -82,7 +81,7 @@ class ParseLogEntry:
     def __repr__(self):
         out = f'On line {self.line_no} column {self.column}: {self.reason}'
         if self.context:
-            out += '\n----> ' + self.context
+            out += '\n    > ' + self.context
         return out
 
 
@@ -91,12 +90,32 @@ class XMadParseError(Exception):
 
     def __init__(self, parse_log):
         self.parse_log = parse_log.copy()
-        message = '\n\n'.join([repr(entry) for entry in parse_log[:self.LIMIT]])
+
+        message = 'Errors occurred while parsing:\n\n' if len(parse_log) > 1 else ''
+
+        message += '\n\n'.join([repr(entry) for entry in parse_log[:self.LIMIT]])
 
         if len(parse_log) > self.LIMIT:
             message += f'\n\nTruncated {len(parse_log) - self.LIMIT} more errors...'
 
         super().__init__(message)
+
+
+@cy.cfunc
+def register_error(scanner: xmad.yyscan_t, exception, action, add_context=True):
+    parser = parser_from_scanner(scanner)
+    caught_exc_string = '\n'.join(traceback.format_exception(exception))
+    caught_exc_string = _indent_string(caught_exc_string, indent='    > ')
+
+    full_error_string = (
+        f"While {action} the following error occurred:\n\n"
+        f"{caught_exc_string}"
+    )
+    parser.handle_error(full_error_string, add_context=add_context)
+
+
+def _indent_string(string, indent='    '):
+    return re.sub('^', indent, string, flags=re.MULTILINE)
 
 
 @cy.cclass
@@ -166,10 +185,13 @@ class Parser:
         if success != 0 or self.log:
             raise XMadParseError(self.log)
 
-    def handle_error(self, message):
+    def handle_error(self, message, add_context=True):
         text = xmad.yyget_text(self.scanner).decode()
         yylloc_ptr = xmad.yyget_lloc(self.scanner)
-        self.log.append(ParseLogEntry(yylloc_ptr[0], message, context=text))
+        log_entry = ParseLogEntry(yylloc_ptr[0], message)
+        if add_context:
+            log_entry.context = text
+        self.log.append(log_entry)
 
     def get_identifier_ref(self, identifier):
         try:
@@ -180,7 +202,6 @@ class Parser:
 
             return self.var_refs[identifier]
         except Exception as e:
-            print(f'######## identifier = {identifier} type = {type(identifier)}')
             traceback.print_exception(e)
             return np.nan
 
@@ -225,7 +246,8 @@ class Parser:
             line._var_management['lref'] = local_element_refs
             self.lines[line_name] = line
         except Exception as e:
-            traceback.print_exception(e)
+            register_error(self.scanner, e, 'building the sequence')
+
 
     @staticmethod
     def _ref_get_value(value_or_ref):
@@ -245,32 +267,40 @@ def yyerror(_, yyscanner, message):
     parser.handle_error(message.decode())
 
 
+def py_float(scanner, value):
+    return py_numeric(scanner, value)
+
+
+def py_integer(scanner, value):
+    return py_numeric(scanner, value)
+
+
 @cy.exceptval(check=False)
-def py_float(value):
+def py_numeric(scanner, value):
     try:
         if KEEP_LITERAL_EXPRESSIONS:
             return LiteralExpr(value)
         return value
     except Exception as e:
-        traceback.print_exception(e)
+        register_error(scanner, e, f'parsing a numeric value')
 
 
 @cy.exceptval(check=False)
-def py_unary_op(op_string, value):
+def py_unary_op(scanner, op_string, value):
     try:
         function = getattr(operator, op_string.decode())
         return function(value)
     except Exception as e:
-        traceback.print_exception(e)
+        register_error(scanner, e, f'parsing a unary operation')
 
 
 @cy.exceptval(check=False)
-def py_binary_op(op_string, left, right):
+def py_binary_op(scanner, op_string, left, right):
     try:
         function = getattr(operator, op_string.decode())
         return function(left, right)
     except Exception as e:
-        traceback.print_exception(e)
+        register_error(scanner, e, f'parsing a binary operation')
 
 
 @cy.exceptval(check=False)
@@ -286,30 +316,28 @@ def py_call_func(scanner, func_name, value):
         function = BUILTIN_FUNCTIONS[normalized_name]
         return CallRef(function, (value,), {})
     except Exception as e:
-        traceback.print_exception(e)
+        register_error(scanner, e, f'parsing a function call')
 
 
-def py_eq_value_scalar(identifier, value):
+def py_eq_value_scalar(scanner, identifier, value):
     try:
         return identifier.decode(), value
     except Exception as e:
-        traceback.print_exception(e)
+        register_error(scanner, e, f'parsing a scalar assignment')
 
 
-def py_eq_defer_scalar(identifier, value):
+def py_eq_defer_scalar(scanner, identifier, value):
     try:
         return identifier.decode(), value
     except Exception as e:
-        traceback.print_exception(e)
+        register_error(scanner, e, f'parsing a deferred scalar assignment')
 
 
 def py_arrow(scanner, source_name, field_name):
     try:
-        parser_from_scanner(scanner).handle_error(
-            'the arrow syntax is not yet implemented'
-        )
+        raise NotImplementedError
     except Exception as e:
-        traceback.print_exception(e)
+        register_error(scanner, e, f'parsing the arrow syntax')
 
 
 def py_identifier_atom(scanner, name):
@@ -320,9 +348,9 @@ def py_identifier_atom(scanner, name):
             return parser.get_identifier_ref(name)
 
         value = BUILTIN_CONSTANTS[normalized_name]
-        return py_float(value)
+        return py_float(scanner, value)
     except Exception as e:
-        traceback.print_exception(e)
+        register_error(scanner, e, f'parsing an identifier')
 
 
 def py_set_defer(scanner, assignment):
@@ -330,7 +358,7 @@ def py_set_defer(scanner, assignment):
         parser = parser_from_scanner(scanner)
         parser.set_defer(*assignment)
     except Exception as e:
-        traceback.print_exception(e)
+        register_error(scanner, e, 'parsing a deferred assign statement')
 
 
 @cy.exceptval(check=False)
@@ -339,7 +367,7 @@ def py_set_value(scanner, assignment):
         parser = parser_from_scanner(scanner)
         parser.set_value(*assignment)
     except Exception as e:
-        traceback.print_exception(e)
+        register_error(scanner, e, 'parsing a value assign statement')
 
 
 def py_make_sequence(scanner, name, args, elements):
@@ -347,41 +375,41 @@ def py_make_sequence(scanner, name, args, elements):
         parser = parser_from_scanner(scanner)
         parser.add_line(name.decode(), elements, dict(args))
     except Exception as e:
-        traceback.print_exception(e)
+        register_error(scanner, e, 'parsing a sequence')
 
 
-def py_clone(name, parent, args) -> Tuple[str, str, dict]:
+def py_clone(scanner, name, parent, args) -> Tuple[str, str, dict]:
     try:
         return name.decode(), parent.decode(), args
     except Exception as e:
-        traceback.print_exception(e)
+        register_error(scanner, e, 'parsing a clone statement')
 
 
-def py_eq_value_sum(name, value) -> Tuple[str, object]:
+def py_eq_value_sum(scanner, name, value) -> Tuple[str, object]:
     try:
         if xd.refs.is_ref(value):
             return name.decode(), value._get_value()
         return name.decode(), value
     except Exception as e:
-        traceback.print_exception(e)
+        register_error(scanner, e, 'parsing a sum statement')
 
 
-def py_eq_defer_sum(name, value) -> Tuple[str, object]:
+def py_eq_defer_sum(scanner, name, value) -> Tuple[str, object]:
     try:
         return name.decode(), value
     except Exception as e:
-        traceback.print_exception(e)
+        register_error(scanner, e, 'parsing a deferred sum statement')
 
 
-def py_eq_value_array(name, array):
+def py_eq_value_array(scanner, name, array):
     try:
         return name.decode(), array
     except Exception as e:
-        traceback.print_exception(e)
+        register_error(scanner, e, 'parsing an array assignment')
 
 
-def py_eq_defer_array(name, array):
+def py_eq_defer_array(scanner, name, array):
     try:
         return name.decode(), array
     except Exception as e:
-        traceback.print_exception(e)
+        register_error(scanner, e, 'parsing a deferred array assignment')

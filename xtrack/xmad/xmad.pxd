@@ -9,6 +9,10 @@ from cpython.ref cimport PyObject
 
 ctypedef PyObject* extra_t
 
+ctypedef fused numeric:
+    double
+    long
+
 cdef extern from "xmad_tab.h":
     ctypedef struct YYLTYPE:
         int first_line
@@ -41,19 +45,21 @@ cdef extern from "xmad_lex.h":
 cdef object parser_from_scanner(yyscan_t yyscanner)
 
 cdef public void yyerror(YYLTYPE* yyllocp, yyscan_t yyscanner, const char* message)
-cdef public object py_float(double value)
-cdef public object py_unary_op(const char* op_string, object value)
-cdef public object py_binary_op(const char* op_string, object left, object right)
-cdef public tuple py_eq_value_scalar(const char* identifier, object value)
-cdef public tuple py_eq_defer_scalar(const char* identifier, object value)
+cdef public object py_integer(yyscan_t scanner, long value)
+cdef public object py_float(yyscan_t scanner, double value)
+cdef public object py_numeric(yyscan_t scanner, numeric value)
+cdef public object py_unary_op(yyscan_t scanner, const char* op_string, object value)
+cdef public object py_binary_op(yyscan_t scanner, const char* op_string, object left, object right)
+cdef public tuple py_eq_value_scalar(yyscan_t scanner, const char* identifier, object value)
+cdef public tuple py_eq_defer_scalar(yyscan_t scanner, const char* identifier, object value)
 cdef public object py_call_func(yyscan_t scanner, const char* func_name, object value)
 cdef public object py_arrow(yyscan_t scanner, const char* source_name, const char* field_name)
 cdef public object py_identifier_atom(yyscan_t scanner, const char* name)
 cdef public void py_set_defer(yyscan_t scanner, tuple assignment)
 cdef public void py_set_value(yyscan_t scanner, tuple assignment)
 cdef public void py_make_sequence(yyscan_t scanner, const char* name, list args, list elements)
-cdef public object py_clone(const char* name, const char* parent, list args)
-cdef public object py_eq_value_sum(const char* name, object value)
-cdef public object py_eq_defer_sum(const char* name, object value)
-cdef public object py_eq_value_array(const char* name, list array)
-cdef public object py_eq_defer_array(const char* name, list array)
+cdef public object py_clone(yyscan_t scanner, const char* name, const char* parent, list args)
+cdef public object py_eq_value_sum(yyscan_t scanner, const char* name, object value)
+cdef public object py_eq_defer_sum(yyscan_t scanner, const char* name, object value)
+cdef public object py_eq_value_array(yyscan_t scanner, const char* name, list array)
+cdef public object py_eq_defer_array(yyscan_t scanner, const char* name, list array)
