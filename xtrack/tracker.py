@@ -928,6 +928,7 @@ class Tracker:
                                  "please call `particles.reorganize()` first.")
 
         if _session_to_resume is not None:
+            assert particles is None
             if isinstance(_session_to_resume, PipelineStatus):
                 _session_to_resume = _session_to_resume.data
 
