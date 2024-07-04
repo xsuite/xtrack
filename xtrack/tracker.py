@@ -937,6 +937,7 @@ class Tracker:
             assert _session_to_resume['tracker'] is self, (
                 "This session was not created by this tracker")
 
+            particles = _session_to_resume['particles']
             ele_start = _session_to_resume['ele_start']
             ele_stop = _session_to_resume['ele_stop']
             num_turns = _session_to_resume['num_turns']
@@ -1026,8 +1027,6 @@ class Tracker:
                 if (ipp_resume is not None and ipp < ipp_resume):
                     continue
                 elif (ipp_resume is not None and ipp == ipp_resume):
-                    assert particles is None
-                    particles = _session_to_resume['particles']
                     pp = self._parts[ipp]
                     moveback_to_buffer = _session_to_resume['moveback_to_buffer']
                     moveback_to_offset = _session_to_resume['moveback_to_offset']
