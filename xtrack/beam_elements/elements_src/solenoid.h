@@ -1,6 +1,6 @@
 // copyright ############################### //
 // This file is part of the Xtrack Package.  //
-// Copyright (c) CERN, 2023.                 //
+// Copyright (c) CERN, 2024.                 //
 // ######################################### //
 
 #ifndef XTRACK_SOLENOID_H
@@ -20,13 +20,13 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
         factor_knl_ksl = -1;
     #endif
 
-    #ifndef XTRACK_SOLENOID_NO_SYNRAD  // does this do the right thing?
-    double dp_record_entry = 0.;
-    double dpx_record_entry = 0.;
-    double dpy_record_entry = 0.;
-    double dp_record_exit = 0.;
-    double dpx_record_exit = 0.;
-    double dpy_record_exit = 0.;
+    #ifndef XTRACK_SOLENOID_NO_SYNRAD
+        double dp_record_entry = 0.;
+        double dpx_record_entry = 0.;
+        double dpy_record_entry = 0.;
+        double dp_record_exit = 0.;
+        double dpx_record_exit = 0.;
+        double dpy_record_exit = 0.;
     #endif
 
     int64_t num_multipole_kicks = SolenoidData_get_num_multipole_kicks(el);
@@ -37,22 +37,34 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
     const double slice_length = length / (num_multipole_kicks + 1);
     const double kick_weight = 1. / num_multipole_kicks;
 
+    //start_per_particle_block (part0->part)
+    #ifndef XTRACK_SOLENOID_NO_SYNRAD
+        double const old_px = LocalParticle_get_px(part);
+        double const old_py = LocalParticle_get_py(part);
+        double const old_ax = LocalParticle_get_ax(part);
+        double const old_ay = LocalParticle_get_ay(part);
+        double const old_zeta = LocalParticle_get_zeta(part);
+    #endif
+
     for (int ii = 0; ii < num_multipole_kicks; ii++) {
-        //start_per_particle_block (part0->part)
-        Solenoid_thick_track_single_particle(part, slice_length, ks, radiation_flag,
-                        &dp_record_entry, &dpx_record_entry, &dpy_record_entry,
-                        &dp_record_exit, &dpx_record_exit, &dpy_record_exit);
+        Solenoid_thick_track_single_particle(part, slice_length, ks, radiation_flag);
 
         track_multipolar_kick_bend(
                     part, order, inv_factorial_order, knl, ksl, factor_knl_ksl,
                     kick_weight, 0, 0, 0, 0);
-        //end_per_particle_block
     }
 
-    //start_per_particle_block (part0->part)
-    Solenoid_thick_track_single_particle(part, slice_length, ks, radiation_flag,
-                    &dp_record_entry, &dpx_record_entry, &dpy_record_entry,
-                    &dp_record_exit, &dpx_record_exit, &dpy_record_exit);
+    Solenoid_thick_track_single_particle(part, slice_length, ks, radiation_flag);
+
+    #ifndef XTRACK_SOLENOID_NO_SYNRAD
+        if (radiation_flag > 0 && length > 0){
+            Solenoid_apply_radiation_single_particle(
+                part, length, radiation_flag,
+                old_px, old_py, old_ax, old_ay, old_zeta,
+                &dp_record_entry, &dpx_record_entry, &dpy_record_entry
+            );
+        }
+    #endif
     //end_per_particle_block
 }
 
