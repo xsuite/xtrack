@@ -38,6 +38,7 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
     const double kick_weight = 1. / num_multipole_kicks;
 
     double mult_rot_y_rad = SolenoidData_get_mult_rot_y_rad(el);
+    double mult_shift_x = SolenoidData_get_mult_shift_x(el);
     double sin_angle, cos_angle, tan_angle;
     if (mult_rot_y_rad != 0) {
         sin_angle = sin(mult_rot_y_rad);
@@ -63,6 +64,7 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
     for (int ii = 0; ii < num_multipole_kicks; ii++) {
         Solenoid_thick_track_single_particle(part, slice_length, ks, radiation_flag);
 
+        LocalParticle_add_to_x(part, -mult_shift_x);
         if (sin_angle != 0) {
             YRotation_single_particle(part, sin_angle, cos_angle, tan_angle);
         }
@@ -74,6 +76,7 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
         if (sin_angle != 0) {
             YRotation_single_particle(part, -sin_angle, cos_angle, -tan_angle);
         }
+        LocalParticle_add_to_x(part, mult_shift_x);
     }
 
     Solenoid_thick_track_single_particle(part, slice_length, ks, radiation_flag);

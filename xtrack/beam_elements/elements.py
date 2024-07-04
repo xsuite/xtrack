@@ -1285,6 +1285,7 @@ class Solenoid(BeamElement):
         'knl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
         'ksl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
         'mult_rot_y_rad': xo.Float64,
+        'mult_shift_x': xo.Float64,
     }
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
