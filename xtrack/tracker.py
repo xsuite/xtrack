@@ -948,6 +948,7 @@ class Tracker:
                                     '_context_needs_clean_active_lost_state']
             tt_resume = _session_to_resume['tt']
             ipp_resume = _session_to_resume['ipp']
+            log = _session_to_resume['log']
             _session_to_resume['resumed'] = True
         else:
             (ele_start, ele_stop, num_turns, flag_monitor, monitor,
@@ -1078,6 +1079,7 @@ class Tracker:
                             'moveback_to_offset': moveback_to_offset,
                             'ipp': ipp,
                             'tt': tt,
+                            'log':log,
                             'resumed': False
                         }
                     return PipelineStatus(on_hold=True, data=session_on_hold)
