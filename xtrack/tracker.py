@@ -913,7 +913,6 @@ class Tracker:
         if log is not None and _reset_log:
             if self.line.enable_time_dependent_vars:
                 self.line.log_last_track = {}
-                self.line._log_last_track_at_turn = -1
             else:
                 raise NotImplementedError(
                     'log can be used only when time-dependent variables are '
@@ -929,7 +928,6 @@ class Tracker:
                                  "please call `particles.reorganize()` first.")
 
         if _session_to_resume is not None:
-            assert particles is None
             if isinstance(_session_to_resume, PipelineStatus):
                 _session_to_resume = _session_to_resume.data
 
@@ -939,7 +937,6 @@ class Tracker:
             assert _session_to_resume['tracker'] is self, (
                 "This session was not created by this tracker")
 
-            particles = _session_to_resume['particles']
             ele_start = _session_to_resume['ele_start']
             ele_stop = _session_to_resume['ele_stop']
             num_turns = _session_to_resume['num_turns']
@@ -949,7 +946,6 @@ class Tracker:
                                     '_context_needs_clean_active_lost_state']
             tt_resume = _session_to_resume['tt']
             ipp_resume = _session_to_resume['ipp']
-            log = _session_to_resume['log']
             _session_to_resume['resumed'] = True
         else:
             (ele_start, ele_stop, num_turns, flag_monitor, monitor,
@@ -1006,26 +1002,23 @@ class Tracker:
                         particles.update_p0c_and_energy_deviations(p0c)
 
                 if log is not None:
-                    if at_turn > self.line._log_last_track_at_turn:
-                        self.line._log_last_track_at_turn = at_turn
-                        for kk in log:
-                            if log[kk] == None:
+                    for kk in log:
+                        if log[kk] == None:
+                            if kk not in self.line.log_last_track:
+                                self.line.log_last_track[kk] = []
+                            self.line.log_last_track[kk].append(self.line.vv[kk])
+                        else:
+                            ff = log[kk]
+                            val = ff(self.line, particles)
+                            if hasattr(ff, '_store'):
+                                for nn in ff._store:
+                                    if nn not in self.line.log_last_track:
+                                        self.line.log_last_track[nn] = []
+                                    self.line.log_last_track[nn].append(val[nn])
+                            else:
                                 if kk not in self.line.log_last_track:
                                     self.line.log_last_track[kk] = []
-                                self.line.log_last_track[kk].append(self.line.vv[kk])
-                            else:
-                                ff = log[kk]
-                                val = ff(self.line, particles)
-                                if hasattr(ff, '_store'):
-                                    for nn in ff._store:
-                                        if nn not in self.line.log_last_track:
-                                            self.line.log_last_track[nn] = []
-                                        if at_turn > len(self.line.log_last_track[nn]):
-                                            self.line.log_last_track[nn].append(val[nn])
-                                else:
-                                    if kk not in self.line.log_last_track:
-                                        self.line.log_last_track[kk] = []
-                                    self.line.log_last_track[kk].append(val)
+                                self.line.log_last_track[kk].append(val)
 
             moveback_to_buffer = None
             moveback_to_offset = None
@@ -1033,6 +1026,8 @@ class Tracker:
                 if (ipp_resume is not None and ipp < ipp_resume):
                     continue
                 elif (ipp_resume is not None and ipp == ipp_resume):
+                    assert particles is None
+                    particles = _session_to_resume['particles']
                     pp = self._parts[ipp]
                     moveback_to_buffer = _session_to_resume['moveback_to_buffer']
                     moveback_to_offset = _session_to_resume['moveback_to_offset']
@@ -1083,7 +1078,6 @@ class Tracker:
                             'moveback_to_offset': moveback_to_offset,
                             'ipp': ipp,
                             'tt': tt,
-                            'log':log,
                             'resumed': False
                         }
                     return PipelineStatus(on_hold=True, data=session_on_hold)
