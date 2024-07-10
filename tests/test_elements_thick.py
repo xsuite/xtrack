@@ -1156,6 +1156,57 @@ def test_solenoid_with_mult_kicks(test_context, backtrack):
     xo.assert_allclose(p_test.pzeta, p_ref.pzeta, rtol=0, atol=1e-13)
 
 
+@for_all_test_contexts
+def test_solenoid_shifted_and_rotated_multipolar_kick(test_context):
+    ks = 0.9
+    length = 1
+    knl = [0.1, 0.4, 0.5]
+    ksl = [0.2, 0.3, 0.6]
+    mult_rot_y_rad = 0.2
+    mult_shift_x = 0.3
+
+    solenoid = xt.Solenoid(
+        ks=ks,
+        length=length,
+        knl=knl,
+        ksl=ksl,
+        num_multipole_kicks=1,
+        mult_rot_y_rad=mult_rot_y_rad,
+        mult_shift_x=mult_shift_x,
+    )
+
+    solenoid_no_kick = xt.Solenoid(ks=0.9, length=0.5)
+    kick = xt.Multipole(knl=knl, ksl=ksl)
+
+    line_test = xt.Line(elements=[solenoid])
+    line_test.build_tracker(_context=test_context)
+
+    line_ref = xt.Line(elements=[
+        solenoid_no_kick,
+        xt.XYShift(dx=mult_shift_x),
+        xt.YRotation(angle=np.rad2deg(-mult_rot_y_rad)),
+        kick,
+        xt.YRotation(angle=np.rad2deg(mult_rot_y_rad)),
+        xt.XYShift(dx=-mult_shift_x),
+        solenoid_no_kick,
+    ])
+    line_ref.build_tracker(_context=test_context)
+
+    p0 = xt.Particles(x=1e-2, px=-2e-4, y=-2e-2, py=3e-4, zeta=1e-2, delta=1e-3)
+    p_test = p0.copy(_context=test_context)
+    p_ref = p0.copy(_context=test_context)
+
+    line_test.track(p_test)
+    line_ref.track(p_ref)
+
+    xo.assert_allclose(p_test.x, p_ref.x, rtol=0, atol=1e-16)
+    xo.assert_allclose(p_test.px, p_ref.px, rtol=0, atol=1e-16)
+    xo.assert_allclose(p_test.y, p_ref.y, rtol=0, atol=1e-16)
+    xo.assert_allclose(p_test.py, p_ref.py, rtol=0, atol=1e-16)
+    xo.assert_allclose(p_test.zeta, p_ref.zeta, rtol=0, atol=1e-16)
+    xo.assert_allclose(p_test.delta, p_ref.delta, rtol=0, atol=1e-16)
+
+
 @pytest.mark.parametrize(
     'radiation_mode,config',
     [
