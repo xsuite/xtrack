@@ -1388,8 +1388,9 @@ def test_multipole_fringe(test_context, element, kn_param_name):
             ],
             element_names=['q'],
         )
-        line.build_tracker()
+        line.build_tracker(_context=test_context)
         line.track(_p)
+        _p.move(_context=xo.ContextCpu())
         _p.sort()
 
         result[has_fringe] = _p
