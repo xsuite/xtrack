@@ -911,12 +911,7 @@ class Tracker:
             elif not isinstance(log, Log):
                 log = Log(log)
         if log is not None and _reset_log:
-            if self.line.enable_time_dependent_vars:
-                self.line.log_last_track = {}
-            else:
-                raise NotImplementedError(
-                    'log can be used only when time-dependent variables are '
-                    'enabled in the line')
+            self.line.log_last_track = {}
 
         self._check_invalidated()
 
@@ -1001,24 +996,24 @@ class Tracker:
                         p0c = self.line.particle_ref._xobject.p0c[0]
                         particles.update_p0c_and_energy_deviations(p0c)
 
-                if log is not None:
-                    for kk in log:
-                        if log[kk] == None:
+            if log is not None:
+                for kk in log:
+                    if log[kk] == None:
+                        if kk not in self.line.log_last_track:
+                            self.line.log_last_track[kk] = []
+                        self.line.log_last_track[kk].append(self.line.vv[kk])
+                    else:
+                        ff = log[kk]
+                        val = ff(self.line, particles)
+                        if hasattr(ff, '_store'):
+                            for nn in ff._store:
+                                if nn not in self.line.log_last_track:
+                                    self.line.log_last_track[nn] = []
+                                self.line.log_last_track[nn].append(val[nn])
+                        else:
                             if kk not in self.line.log_last_track:
                                 self.line.log_last_track[kk] = []
-                            self.line.log_last_track[kk].append(self.line.vv[kk])
-                        else:
-                            ff = log[kk]
-                            val = ff(self.line, particles)
-                            if hasattr(ff, '_store'):
-                                for nn in ff._store:
-                                    if nn not in self.line.log_last_track:
-                                        self.line.log_last_track[nn] = []
-                                    self.line.log_last_track[nn].append(val[nn])
-                            else:
-                                if kk not in self.line.log_last_track:
-                                    self.line.log_last_track[kk] = []
-                                self.line.log_last_track[kk].append(val)
+                            self.line.log_last_track[kk].append(val)
 
             moveback_to_buffer = None
             moveback_to_offset = None

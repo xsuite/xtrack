@@ -38,6 +38,7 @@ void ThickSliceQuadrupole_track_local_particle(
         knl, ksl,
         order, inv_factorial_order,
         factor_knl_ksl,
+        0, 0,
         part0);
 
 }
