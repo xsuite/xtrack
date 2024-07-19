@@ -411,6 +411,9 @@ def build_interp_line(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
     for i_ele in range(i_start_thin_0+1, i_start_thin_1):
         ee = line.elements[i_ele]
         if not _behaves_like_drift(ee, line):
+            if _is_thick(ee, line):
+                print(ee.__class__.__name__)
+                print(line.element_names[i_ele])
             assert not _is_thick(ee, line)
             ss_ee = line.tracker._tracker_data_base.element_s_locations[i_ele]
             elements.append(ee.copy(_buffer=_buffer))
