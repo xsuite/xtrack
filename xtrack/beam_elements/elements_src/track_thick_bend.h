@@ -6,8 +6,12 @@
 #ifndef XTRACK_TRACK_THICK_BEND_H
 #define XTRACK_TRACK_THICK_BEND_H
 
+#ifndef POW2
 #define POW2(X) ((X)*(X))
+#endif
+#ifndef NONZERO
 #define NONZERO(X) ((X) != 0.0)
+#endif
 
 /*gpufun*/
 void track_thick_bend(

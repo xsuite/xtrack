@@ -6,7 +6,9 @@
 #ifndef XTRACK_TRACK_WEDGE_H
 #define XTRACK_TRACK_WEDGE_H
 
+#ifndef POW2
 #define POW2(X) ((X)*(X))
+#endif
 
 /*gpufun*/
 void Wedge_single_particle(
