@@ -958,8 +958,8 @@ class Tracker:
             if tt_resume is not None and tt < tt_resume:
                 continue
 
-            if (flag_monitor and (ele_start == 0 or tt>0)): # second condition is for delayed start
-                if not(tt_resume is not None and tt == tt_resume):
+            if (flag_monitor and (ele_start == 0 or tt>0) # second condition is for delayed start
+                and not _is_resume_within_turn(tt, tt_resume)):
                     monitor.track(particles)
 
             # Time dependent vars and energy ramping
@@ -998,7 +998,7 @@ class Tracker:
                         p0c = self.line.particle_ref._xobject.p0c[0]
                         particles.update_p0c_and_energy_deviations(p0c)
 
-            if log is not None:
+            if log is not None and not _is_resume_within_turn(tt, tt_resume):
                 if _session_to_resume is not None:
                     plog = _session_to_resume['particles']
                 else:
@@ -1595,3 +1595,6 @@ class Log(dict):
             else:
                 self[f'_unnamed_{unnamed_indx}'] = arg
                 unnamed_indx += 1
+
+def _is_resume_within_turn(tt, tt_resume):
+    return tt_resume is not None and tt == tt_resume
