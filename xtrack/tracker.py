@@ -877,7 +877,8 @@ class Tracker:
         """
         Resume a track session that had been placed on hold.
         """
-        return self._track_with_collective(particles=None, _session_to_resume=session)
+        return self._track_with_collective(particles=None, _session_to_resume=session,
+                                           _reset_log=False)
 
     def _track_with_collective(
         self,
@@ -941,6 +942,7 @@ class Tracker:
                                     '_context_needs_clean_active_lost_state']
             tt_resume = _session_to_resume['tt']
             ipp_resume = _session_to_resume['ipp']
+            log = _session_to_resume['log']
             _session_to_resume['resumed'] = True
         else:
             (ele_start, ele_stop, num_turns, flag_monitor, monitor,
@@ -997,6 +999,10 @@ class Tracker:
                         particles.update_p0c_and_energy_deviations(p0c)
 
             if log is not None:
+                if _session_to_resume is not None:
+                    plog = _session_to_resume['particles']
+                else:
+                    plog = particles
                 for kk in log:
                     if log[kk] == None:
                         if kk not in self.line.log_last_track:
@@ -1004,7 +1010,7 @@ class Tracker:
                         self.line.log_last_track[kk].append(self.line.vv[kk])
                     else:
                         ff = log[kk]
-                        val = ff(self.line, particles)
+                        val = ff(self.line, plog)
                         if hasattr(ff, '_store'):
                             for nn in ff._store:
                                 if nn not in self.line.log_last_track:
@@ -1073,7 +1079,8 @@ class Tracker:
                             'moveback_to_offset': moveback_to_offset,
                             'ipp': ipp,
                             'tt': tt,
-                            'resumed': False
+                            'resumed': False,
+                            'log': log
                         }
                     return PipelineStatus(on_hold=True, data=session_on_hold)
 
