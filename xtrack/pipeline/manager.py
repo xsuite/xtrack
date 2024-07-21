@@ -61,7 +61,7 @@ class PipelineManager:
             return False
         if not self._pending_requests[key].Test():
             if self.verbose:
-                _print(f'Pipeline manager {element_name}: {sender_name} at rank {self.get_particles_rank(sender_name)} previous message to {reciever_name} at rank {self.get_particles_rank(reciever_name)} with tag {tag} was not receviced yet')
+                _print(f'Pipeline manager {element_name}: {sender_name} at rank {self.get_particles_rank(sender_name)} previous message to {reciever_name} at rank {self.get_particles_rank(reciever_name)} with tag {tag} was not received yet')
             return False
         return True
 
