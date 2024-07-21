@@ -964,62 +964,11 @@ class Tracker:
 
             # Time dependent vars and energy ramping
             if self.line.enable_time_dependent_vars:
-                # Find first active particle
-                state = particles.state
-                if isinstance(particles._context, xo.ContextPyopencl):
-                    state = state.get()
-                ii_first_active = int((state > 0).argmax())
-                if ii_first_active == 0 and particles._xobject.state[0] <= 0:
-                    # No active particles
-                    at_turn = 0 # convenient for multi-turn injection
-                else:
-                    at_turn = particles._xobject.at_turn[ii_first_active]
-
-                if self.line.energy_program is not None:
-                    t_turn = self.line.energy_program.get_t_s_at_turn(at_turn)
-                else:
-                    beta0 = particles._xobject.beta0[ii_first_active]
-                    t_turn = (at_turn * self._tracker_data_base.line_length
-                            / (beta0 * clight))
-
-                # Clean leftover from previous trackings
-                if (self.line._t_last_update_time_dependent_vars and
-                   t_turn < self.line._t_last_update_time_dependent_vars):
-                    self.line._t_last_update_time_dependent_vars = None
-
-                if (self.line._t_last_update_time_dependent_vars is None
-                    or self.line.dt_update_time_dependent_vars is None
-                    or t_turn > self.line._t_last_update_time_dependent_vars
-                                + self.line.dt_update_time_dependent_vars):
-                    self.line._t_last_update_time_dependent_vars = t_turn
-                    self.vars['t_turn_s'] = t_turn
-
-                    if self.line.energy_program is not None:
-                        p0c = self.line.particle_ref._xobject.p0c[0]
-                        particles.update_p0c_and_energy_deviations(p0c)
+                self._handle_time_dependent_vars(particles=particles)
 
             if log is not None and not _is_resume_within_turn(tt, tt_resume):
-                if _session_to_resume is not None:
-                    plog = _session_to_resume['particles']
-                else:
-                    plog = particles
-                for kk in log:
-                    if log[kk] == None:
-                        if kk not in self.line.log_last_track:
-                            self.line.log_last_track[kk] = []
-                        self.line.log_last_track[kk].append(self.line.vv[kk])
-                    else:
-                        ff = log[kk]
-                        val = ff(self.line, plog)
-                        if hasattr(ff, '_store'):
-                            for nn in ff._store:
-                                if nn not in self.line.log_last_track:
-                                    self.line.log_last_track[nn] = []
-                                self.line.log_last_track[nn].append(val[nn])
-                        else:
-                            if kk not in self.line.log_last_track:
-                                self.line.log_last_track[kk] = []
-                            self.line.log_last_track[kk].append(val)
+                self._handle_log(_session_to_resume=_session_to_resume,
+                                 particles=particles, log=log)
 
             moveback_to_buffer = None
             moveback_to_offset = None
@@ -1488,6 +1437,65 @@ class Tracker:
             config=self.line.config,
             line_element_classes=self.line_element_classes,
             verbose=True)
+
+    def _handle_time_dependent_vars(self, particles):
+
+        # Find first active particle
+        state = particles.state
+        if isinstance(particles._context, xo.ContextPyopencl):
+            state = state.get()
+        ii_first_active = int((state > 0).argmax())
+        if ii_first_active == 0 and particles._xobject.state[0] <= 0:
+            # No active particles
+            at_turn = 0 # convenient for multi-turn injection
+        else:
+            at_turn = particles._xobject.at_turn[ii_first_active]
+
+        if self.line.energy_program is not None:
+            t_turn = self.line.energy_program.get_t_s_at_turn(at_turn)
+        else:
+            beta0 = particles._xobject.beta0[ii_first_active]
+            t_turn = (at_turn * self._tracker_data_base.line_length
+                    / (beta0 * clight))
+
+        # Clean leftover from previous trackings
+        if (self.line._t_last_update_time_dependent_vars and
+            t_turn < self.line._t_last_update_time_dependent_vars):
+            self.line._t_last_update_time_dependent_vars = None
+
+        if (self.line._t_last_update_time_dependent_vars is None
+            or self.line.dt_update_time_dependent_vars is None
+            or t_turn > self.line._t_last_update_time_dependent_vars
+                        + self.line.dt_update_time_dependent_vars):
+            self.line._t_last_update_time_dependent_vars = t_turn
+            self.vars['t_turn_s'] = t_turn
+
+            if self.line.energy_program is not None:
+                p0c = self.line.particle_ref._xobject.p0c[0]
+                particles.update_p0c_and_energy_deviations(p0c)
+
+    def _handle_log(self, _session_to_resume, particles, log):
+        if _session_to_resume is not None:
+            plog = _session_to_resume['particles']
+        else:
+            plog = particles
+        for kk in log:
+            if log[kk] == None:
+                if kk not in self.line.log_last_track:
+                    self.line.log_last_track[kk] = []
+                self.line.log_last_track[kk].append(self.line.vv[kk])
+            else:
+                ff = log[kk]
+                val = ff(self.line, plog)
+                if hasattr(ff, '_store'):
+                    for nn in ff._store:
+                        if nn not in self.line.log_last_track:
+                            self.line.log_last_track[nn] = []
+                        self.line.log_last_track[nn].append(val[nn])
+                else:
+                    if kk not in self.line.log_last_track:
+                        self.line.log_last_track[kk] = []
+                    self.line.log_last_track[kk].append(val)
 
 
 class TrackerConfig(UserDict):
