@@ -1,5 +1,7 @@
 import io
 import json
+from pathlib import Path
+
 import pandas as pd
 import numpy as np
 from copy import deepcopy
@@ -169,6 +171,51 @@ class Multiline:
                 dct = json.load(fid)
 
         return cls.from_dict(dct, **kwargs)
+
+    @classmethod
+    def _from_parser(cls, lattice_parser):
+        multiline = cls(lines=lattice_parser.lines, link_vars=False)
+        multiline._var_sharing = VarSharing(
+            lines={},
+            names=[],
+            existing_manager=lattice_parser.xd_manager,
+            existing_vref=lattice_parser.var_refs,
+            existing_eref=lattice_parser.element_refs,
+            existing_fref=None,
+        )
+        multiline._multiline_vars = xt.line.LineVars(multiline)
+        for name, line in lattice_parser.lines.items():
+            line._var_management = None
+
+        return multiline
+
+    @classmethod
+    def from_file(cls, filename, _context=xo.context_default):
+        from xtrack.xmad.xmad import Parser
+        lattice_parser = Parser(_context=_context)
+
+        if isinstance(filename, Path):
+            filename = str(filename)
+
+        lattice_parser.parse_file(filename)
+
+        return cls._from_parser(lattice_parser)
+
+    @classmethod
+    def from_string(cls, string: str, _context=xo.context_default):
+        from xtrack.xmad.xmad import Parser
+        lattice_parser = Parser(_context=_context)
+
+        lattice_parser.parse_string(string)
+
+        return cls._from_parser(lattice_parser)
+
+
+    def to_file(self, filename):
+        from xtrack.xmad.writer import XMadWriter
+        writer = XMadWriter(self)
+        with open(filename, 'w') as f:
+            writer.write(stream=f)
 
     @classmethod
     def from_madx(cls, filename=None, madx=None, stdout=None, return_lines=False, **kwargs):

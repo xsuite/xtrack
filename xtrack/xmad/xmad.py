@@ -3,6 +3,7 @@ import math
 import operator
 import re
 import traceback
+from collections import defaultdict
 from typing import Tuple
 
 import cython as cy
@@ -123,25 +124,28 @@ class Parser:
     scanner = cy.declare(xmad.yyscan_t)
     log = cy.declare(list, visibility='public')
     xd_manager = cy.declare(object, visibility='public')
-    vars = cy.declare(dict, visibility='public')
+    vars = cy.declare(object, visibility='public')
     var_refs = cy.declare(object, visibility='public')
     elements = cy.declare(dict, visibility='public')
     element_refs = cy.declare(object, visibility='public')
     lines = cy.declare(dict, visibility='public')
+    _context = cy.declare(object, visibility='public')
 
-    def __init__(self):
+    def __init__(self, _context):
         self.log = []
 
         self.xd_manager = xd.Manager()
 
-        self.vars = {}
+        self.vars = defaultdict(lambda: 0)
+        self.vars.default_factory = None
         self.var_refs = self.xd_manager.ref(self.vars, 'vars')
 
         self.elements = {}
-        self.element_refs = self.xd_manager.ref(self.elements, 'elements')
+        self.element_refs = self.xd_manager.ref(self.elements, 'eref')
 
         self.lines = {}
 
+        self._context = _context
         # So we do something interesting here: the objective is that we want to
         # keep a pointer to the parser object on the C side. However, for
         # reasons yet unknown, in the process of passing the pointer to C and
@@ -185,6 +189,21 @@ class Parser:
         if success != 0 or self.log:
             raise XMadParseError(self.log)
 
+    def get_line(self, name):
+        if not self.lines:
+            raise ValueError('No sequence was parsed. Either the input has no '
+                             'sequences, or the parser has not been run yet.')
+
+        if name is None:
+            try:
+                name, = self.lines.keys()
+            except ValueError:
+                raise ValueError('Cannot unambiguously determine the sequence '
+                                 'as no name was provided and there is more '
+                                 'than one sequence in parsed input.')
+
+        return self.lines[name]
+
     def handle_error(self, message, add_context=True):
         text = xmad.yyget_text(self.scanner).decode()
         yylloc_ptr = xmad.yyget_lloc(self.scanner)
@@ -221,15 +240,18 @@ class Parser:
                 # Let's give up on making the line, it won't be any good anyway.
                 return
 
-            element_dict = {}
-            local_element_refs = self.xd_manager.ref(element_dict, "element_refs")
+            local_elements = {}
+            self.elements[line_name] = local_elements
+            local_element_refs = self.element_refs[line_name]
             element_names = []
+
             for el_template in elements:
                 name, parent, args = el_template
+
                 element_cls = AVAILABLE_ELEMENT_CLASSES[parent]
                 kwargs = {k: self._ref_get_value(v) for k, v in args}
-                element = element_cls(**kwargs)
-                element_dict[name] = element
+                element = element_cls.from_dict(kwargs, _context=self._context)
+                local_elements[name] = element
                 element_names.append(name)
 
                 element_ref = local_element_refs[name]
@@ -242,7 +264,8 @@ class Parser:
                     elif xd.refs.is_ref(v):
                         setattr(element_ref, k, v)
 
-            line = xt.Line(elements=element_dict, element_names=element_names)
+            line = xt.Line(elements=local_elements, element_names=element_names)
+            line._var_management['vref'] = self.var_refs
             line._var_management['lref'] = local_element_refs
             self.lines[line_name] = line
         except Exception as e:
@@ -343,7 +366,7 @@ def py_arrow(scanner, source_name, field_name):
 def py_identifier_atom(scanner, name):
     try:
         normalized_name = name.decode().lower()
-        if name not in BUILTIN_CONSTANTS:
+        if normalized_name not in BUILTIN_CONSTANTS:
             parser = parser_from_scanner(scanner)
             return parser.get_identifier_ref(name)
 

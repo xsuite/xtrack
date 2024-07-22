@@ -1,4 +1,5 @@
 import itertools
+import json
 import pathlib
 
 import numpy as np
@@ -517,13 +518,8 @@ def test_selective_expr_import_and_replace_in_expr():
     # Load line with knobs on correctors only
     from cpymad.madx import Madx
     mad = Madx(stdout=False)
-<<<<<<< HEAD
     mad.call(str(test_data_folder /
                  'hllhc14_no_errors_with_coupling_knobs/lhcb1_seq.madx'))
-=======
-    mad.call(str( test_data_folder /
-                'hllhc14_no_errors_with_coupling_knobs/lhcb1_seq.madx'))
->>>>>>> 692d9ef0 (kill stdout on all Madx in tests)
     mad.use(sequence='lhcb1')
     line = xt.Line.from_madx_sequence(mad.sequence.lhcb1,
                                       deferred_expressions=True,
@@ -538,8 +534,18 @@ def test_selective_expr_import_and_replace_in_expr():
 
 
 def test_load_madx_optics_file():
-    collider = xt.Multiline.from_json(
+    collider_old = xt.Multiline.from_json(
         test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.json')
+    with open(test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.json', 'r') as f:
+        collider_dict = json.load(f)
+        particle_ref = xt.Particles.from_dict(collider_dict['lines']['lhcb1']['particle_ref'])
+    collider = xt.Multiline.from_file(test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.xld', _context=xo.ContextCpu())
+    collider.lhcb1.twiss_default['method'] = '4d'
+    collider.lhcb2.twiss_default['method'] = '4d'
+    collider.lhcb1.twiss_default['reverse'] = False
+    collider.lhcb2.twiss_default['reverse'] = True
+    collider.lhcb1.particle_ref = particle_ref
+    collider.lhcb2.particle_ref = particle_ref
     collider.build_trackers()
 
     # Check varval behaviour

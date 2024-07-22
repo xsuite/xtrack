@@ -260,6 +260,26 @@ class Line:
         return cls.from_dict(dct_line, **kwargs)
 
     @classmethod
+    def from_file(cls, filename, sequence_name=None, _context=xo.context_default):
+        from xtrack.xmad.xmad import Parser
+        lattice_parser = Parser(_context=_context)
+
+        if isinstance(filename, Path):
+            filename = str(filename)
+
+        lattice_parser.parse_file(filename)
+        line = lattice_parser.get_line(sequence_name)
+
+        return line
+
+    def to_file(self, filename, sequence_name):
+        from xtrack.xmad.writer import XMadWriter
+
+        writer = XMadWriter(self, sequence_name)
+        with open(filename, 'w') as f:
+            writer.write(stream=f)
+
+    @classmethod
     def from_sequence(cls, nodes=None, length=None, elements=None,
                       sequences=None, copy_elements=False,
                       naming_scheme='{}{}', auto_reorder=False,

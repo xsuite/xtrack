@@ -13,8 +13,8 @@ import xtrack as xt
 
 from ..base_element import BeamElement
 from ..random import RandomUniform, RandomExponential, RandomNormal
-from ..general import _pkg_root, _print
-from ..internal_record import RecordIndex, RecordIdentifier
+from ..general import _pkg_root
+from ..internal_record import RecordIndex
 
 
 ALLOCATED_MULTIPOLE_ORDER = 5
@@ -830,6 +830,8 @@ class Bend(BeamElement):
             return
 
         model = kwargs.pop('model', None)
+        edge_entry_model = kwargs.pop('edge_entry_model', None)
+        edge_exit_model = kwargs.pop('edge_exit_model', None)
 
         knl = kwargs.get('knl', np.array([]))
         ksl = kwargs.get('ksl', np.array([]))
@@ -845,12 +847,25 @@ class Bend(BeamElement):
 
         if model is not None:
             self.model = model
+
+        if edge_entry_model is not None:
+            self.edge_entry_model = edge_entry_model
+
+        if edge_exit_model is not None:
+            self.edge_exit_model = edge_exit_model
+
         self.order = order
 
     def to_dict(self, copy_to_cpu=True):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
         out.pop('_model')
         out['model'] = self.model
+
+        out.pop('_edge_entry_model')
+        out['edge_entry_model'] = self.edge_entry_model
+
+        out.pop('_edge_exit_model')
+        out['edge_exit_model'] = self.edge_exit_model
 
         # See the comment in Multiple.to_dict about knl/ksl/order dumping
         if 'knl' in out and np.allclose(out['knl'], 0, atol=1e-16):
