@@ -17,7 +17,7 @@ xmad.c: xmad.py xmad.pxd
 xmad_tab.c: xmad.y
 	bison xmad.y -t -k -d -Wcounterexamples -o xmad_tab.c
 
-xmad_lex.c: xmad.l xmad_tab.h
+xmad_lex.c: xmad.l xmad_tab.h lex_helpers.h
 	flex -d --header-file=xmad_lex.h -o xmad_lex.c xmad.l
 
 clean:

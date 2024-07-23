@@ -17,36 +17,7 @@
 
 #include "xmad_tab.h"
 #include "xmad.h"
-
-// A common macro to keep track of token locations in `yylloc`
-#define YY_USER_ACTION                                                 \
-    yylloc->first_line = yylloc->last_line;                            \
-    yylloc->first_column = yylloc->last_column;                        \
-    if (yylloc->last_line == yylineno)                                 \
-        yylloc->last_column += yyleng;                                 \
-    else {                                                             \
-        yylloc->last_line = yylineno;                                  \
-        yylloc->last_column = yytext + yyleng - strrchr(yytext, '\n'); \
-    }
-
-// Parse the current token values (in `yytext`) as numeric values
-double parse_float(char* text, char* error) {
-    char* end_ptr;
-    double value = strtod(text, &end_ptr);
-    if (end_ptr == text) {
-        *error = 1;
-    }
-    return value;
-}
-
-long parse_integer(char* text, char* error) {
-    char* end_ptr;
-    long value = strtol(text, &end_ptr, 10);
-    if (end_ptr == text) {
-        *error = 1;
-    }
-    return value;
-}
+#include "lex_helpers.h"
 
 %}
 
@@ -64,11 +35,17 @@ long parse_integer(char* text, char* error) {
 %x LEXER_ERROR
 %x STRING_STATE
 
-    /* Define what identifiers and number literals look like */
-INTEGER             [0-9]+(e[+-]?[0-9]+)?
-FLOAT               [0-9]*(\.[0-9]|[0-9]\.)[0-9]*(e[+-]?[0-9]+)?
+    /* Define what identifiers and number literals look like
+
+      It seems that GCC assumes that any number constant written in engineering
+      notation is automatically a double. For lack of a better reason to do it
+      differently, let's keep this convention: a sequence of digits -> integer,
+      as soon as '.' or 'e' appears, we have a float.
+    */
+INTEGER             [0-9]+
+FLOAT               [0-9]*(\.[0-9]|[0-9]\.|[0-9])[0-9]*(e[+-]?[0-9]+)?
+    /* Identifiers are fairly usual, but we allow '.' just like MAD-X. */
 IDENTIFIER          [A-Za-z_$][A-Za-z0-9_\.$]*
-STRING_LITERAL      \"([^\n\"]|\\\")*\"
 
 %%
 
@@ -143,19 +120,33 @@ STRING_LITERAL      \"([^\n\"]|\\\")*\"
        This way of handling strings is a bit convoluted, but is night and day
        in terms of error recovery when compared to a single regex solution.
     */
-"\""                BEGIN(STRING_STATE);
+"\""                {
+        BEGIN(STRING_STATE);
+        yymore();
+        yylloc->last_column -= yyleng;
+    }
 <STRING_STATE>"\""  {
         BEGIN(INITIAL);
-        yylval->string = strndup(yytext, yyleng - 1);
+        yylval->string = strndup(yytext + 1, yyleng - 2);
         return STRING_LITERAL;
     }
-<STRING_STATE>"\\\"" { yymore(); }
+<STRING_STATE>"\\\"" {
+        yymore();
+        yylloc->last_column -= yyleng;
+    }
 <STRING_STATE>"\n"  {
         // Let's disallow line breaks in strings. Emit error, and try to recover.
         yyerror(yylloc, yyscanner, "unfinished string literal");
         BEGIN(INITIAL);
+        // This will probably be garbled nonsense, but let's return the string
+        // token anyway: the parser will emit a more meaningful error.
+        yylval->string = strndup(yytext + 1, yyleng - 2);
+        return STRING_LITERAL;
     }
-<STRING_STATE>[^\"] { yymore(); }
+<STRING_STATE>[^\"] {
+        yymore();
+        yylloc->last_column -= yyleng;
+    }
 
     /* Handle invalid input */
 .                   { BEGIN(LEXER_ERROR); yyless(1); }

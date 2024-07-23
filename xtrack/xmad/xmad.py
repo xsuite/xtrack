@@ -170,6 +170,11 @@ class Parser:
 
     def parse_string(self, string):
         xmad.yy_scan_string(string.encode(), self.scanner)
+
+        # yy_scan_string doesn't reset the line and column, so we do it manually
+        xmad.yyset_lineno(1, self.scanner)
+        xmad.yyset_column(1, self.scanner)
+
         success = xmad.yyparse(self.scanner)
 
         if success != 0 or self.log:

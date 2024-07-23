@@ -33,6 +33,8 @@ cdef extern from "xmad_lex.h":
     void* yylex_init_extra(extra_t, yyscan_t*)
     int yylex_destroy(yyscan_t)
 
+    void yyset_lineno(int, yyscan_t)
+    void yyset_column(int, yyscan_t)
     YY_BUFFER_STATE* yy_scan_string(const char*, yyscan_t)
 
     char* yyget_text(yyscan_t)
