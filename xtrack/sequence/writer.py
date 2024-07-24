@@ -1,7 +1,7 @@
 from xtrack.general import _print
 import sys
 from functools import reduce
-from typing import Any, Dict, Callable, Union
+from typing import Any, Dict, Callable, Union, Tuple, Set
 from typing import Optional
 
 import numpy as np
@@ -10,6 +10,9 @@ import xdeps as xd
 import xtrack as xt
 from xdeps.refs import XMadFormatter
 from xdeps.sorting import toposort
+
+
+TAB_WIDTH = 4
 
 
 class XMadWriter:
@@ -33,6 +36,10 @@ class XMadWriter:
 
     def write(self, stream=sys.stdout):
         self._write_expressions(stream)
+
+        stream.write('\n')
+
+        self._write_templates(stream)
 
         stream.write('\n')
 
@@ -69,19 +76,42 @@ class XMadWriter:
 
         stream.write(f'{name}: sequence;\n')
         for element_name, element in line.items():
-            # TODO: We should somehow import elements in a better way from
-            #   MAD-X to avoid this:
-            element_name = element_name.replace(':', '_')
-            self._write_element(stream, element_name, line, formatter)
+            self._write_element(stream, element_name, line, formatter, level=1)
 
         stream.write(f'endsequence;\n')
 
-    def _write_element(self, stream, element_name, line, formatter):
+    def _write_templates(self, stream):
+        formatter = XMadFormatter(scope=None)
+
+        templates_to_write: Set[Tuple[str, str]] = set()
+
+        for line_name, line in self.lines.items():
+            for element_name, element in line.items():
+                if isinstance(element, xt.Replica) or hasattr(element, 'parent_name'):
+                    templates_to_write.add((element.parent_name, line_name))
+
+        for element_name, line_name in templates_to_write:
+            line = self.lines[line_name]
+            self._write_global_template(stream, element_name, line, formatter)
+
+    def _write_global_template(self, stream, element_name, line, formatter):
+        self._write_element(stream, element_name, line, formatter, level=0)
+
+    def _write_element(self, stream, element_name, line, formatter, level):
+        # TODO: We should somehow import elements in a better way from
+        #   MAD-X to avoid this:
+        indent = ' ' * (level * TAB_WIDTH)
         element = line[element_name]
+        element_name = element_name.replace(':', '_')
         element_dict = element.to_dict()
+
+        if isinstance(element, xt.Replica):
+            stream.write(f'{indent}{element_name}: {element.parent_name};')
+            return
+
         element_type = element_dict.pop('__class__')
 
-        stream.write(f'    {element_name}: {element_type}')
+        stream.write(f'{indent}{element_name}: {element_type}')
         element_ref = line.element_refs[element_name]
         expressions = self.var_manager.structure[element_ref]
 
@@ -102,12 +132,12 @@ class XMadWriter:
                 ]
 
         if element_dict:
-            args = self._format_arglist(element_dict, formatter)
+            args = self._format_arglist(element_dict, formatter, level=level + 1)
             stream.write(', ' + args)
 
         stream.write(';\n')
 
-    def _format_arglist(self, args: Dict[str, Any], formatter: XMadFormatter) -> str:
+    def _format_arglist(self, args: Dict[str, Any], formatter: XMadFormatter, level) -> str:
         formatted_args = []
         for arg_name, arg_value in args.items():
             if arg_value is True:
@@ -127,10 +157,11 @@ class XMadWriter:
                 formatted_list = self._build_list(arg_value, formatter)
                 formatted_args.append(f'{arg_name} = ' + '{' + formatted_list + '}')
 
+        indent = ' ' * (level * TAB_WIDTH)
         if len(formatted_args) <= 1:
             return ', '.join(formatted_args)
         else:
-            return '\n        ' + ',\n        '.join(formatted_args)
+            return f'\n{indent}' + f',\n{indent}'.join(formatted_args)
 
     def _build_list(self, list_like, formatter: XMadFormatter) -> str:
         return ', '.join(map(self.scalar_to_str(formatter), list_like))

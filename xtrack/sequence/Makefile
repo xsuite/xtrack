@@ -21,4 +21,4 @@ lexer.c: lexer.l parser_tab.h lex_helpers.h
 	flex -d --header-file=lexer.h -o lexer.c lexer.l
 
 clean:
-	rm parser_tab.* lexer.c lexer.h parser.c parser.h *.o *.so
+	rm parser_tab.c parser_tab.h lexer.c lexer.h parser.c parser.h *.o *.so
