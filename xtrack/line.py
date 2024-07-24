@@ -261,7 +261,7 @@ class Line:
 
     @classmethod
     def from_file(cls, filename, sequence_name=None, _context=xo.context_default):
-        from xtrack.xmad.xmad import Parser
+        from xtrack.sequence.parser import Parser
         lattice_parser = Parser(_context=_context)
 
         if isinstance(filename, Path):
@@ -273,7 +273,7 @@ class Line:
         return line
 
     def to_file(self, filename, sequence_name):
-        from xtrack.xmad.writer import XMadWriter
+        from xtrack.sequence.writer import XMadWriter
 
         writer = XMadWriter(self, sequence_name)
         with open(filename, 'w') as f:

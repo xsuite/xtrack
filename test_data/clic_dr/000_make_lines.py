@@ -64,4 +64,4 @@ line['rf_off'].voltage *= 0.0
 with open('line_for_taper.json', 'w') as f:
     json.dump(line.to_dict(), f, cls=xo.JEncoder)
 
-line.to_file('line_for_taper.xld')
+line.to_file('line_for_taper.xld', sequence_name='ring')

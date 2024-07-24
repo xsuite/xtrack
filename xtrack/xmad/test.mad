@@ -1,7 +1,0 @@
-# ignore this comment
-mb: bend, l=7.7, k0=3e-12;
-
-! that's a sequence:
-seq: sequence, l=.7;
-mb0: mb, at=3.50, angle=.02;
-endsequence;

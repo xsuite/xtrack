@@ -1,6 +1,6 @@
 from cpymad.madx import Madx
-from xtrack.xmad.writer import XMadWriter
-from xtrack.xmad.xmad import Parser
+from xtrack.sequence.writer import XMadWriter
+from xtrack.sequence.xmad import Parser
 import xtrack as xt
 
 test_data_folder = '../../test_data/'

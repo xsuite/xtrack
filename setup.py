@@ -12,8 +12,12 @@ from pathlib import Path
 
 extensions = [
     Extension(
-        "xtrack.xmad.xmad",
-        sources=["xtrack/xmad/xmad.py", "xtrack/xmad/xmad_lex.c", "xtrack/xmad/xmad_tab.c"],
+        "xtrack.sequence.parser",
+        sources=[
+            "xtrack/sequence/parser.py",
+            "xtrack/sequence/lexer.c",
+            "xtrack/sequence/parser_tab.c",
+        ],
         language="c",
     )
 ]

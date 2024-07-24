@@ -1,8 +1,8 @@
 from contextlib import contextmanager
 
 import xtrack as xt
-from xtrack.xmad.writer import XMadWriter
-from xtrack.xmad.xmad import Parser
+from xtrack.sequence.writer import XMadWriter
+from xtrack.sequence.xmad import Parser
 from time import time
 
 @contextmanager
