@@ -32,3 +32,5 @@ for nn in tt.rows[tt.element_type=='Solenoid'].name:
 
 line.to_json('lhc_thick_with_knobs.json', include_var_management=True)
 line.to_file('lhc_thick_with_knobs.xld', sequence_name='lhcb1')
+
+xt.Line.from_file('lhc_thick_with_knobs.xld', sequence_name='lhcb1')

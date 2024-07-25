@@ -1,6 +1,6 @@
 from cpymad.madx import Madx
 from xtrack.sequence.writer import XMadWriter
-from xtrack.sequence.xmad import Parser
+from xtrack.sequence.parser import Parser
 import xtrack as xt
 
 test_data_folder = '../../test_data/'
@@ -17,10 +17,14 @@ line = xt.Line.from_madx_sequence(seq, deferred_expressions=def_expr)
 
 line.to_json('out_pimms.json')
 
-writer = XMadWriter('pimms', line)
+writer = XMadWriter(line, 'pimms')
 
-with open('out_pimms.xmad', 'w') as f:
+print("Writing...")
+
+with open('out_pimms.xld', 'w') as f:
     writer.write(stream=f)
 
+print("Reading...")
+
 p = Parser()
-out = p.parse_file('out_pimms.xmad')
+out = p.parse_file('out_pimms.xld')

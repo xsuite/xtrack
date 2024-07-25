@@ -111,7 +111,7 @@
 
 // Nonterminal (rule) types
 %type <object> clone argument
-%type <object> eq_value flag eq_keyword eq_value_scalar
+%type <object> argument_assign flag variable_assign
 %type <object> atom power product sum
 %type <object> arguments elements array scalar_list
 
@@ -139,7 +139,10 @@ statement
 	| error SEMICOLON  // Recover from an erroneous line.
 
 set_value
-	: eq_value_scalar SEMICOLON	{ py_set_value(yyscanner, $1); }
+	: variable_assign SEMICOLON	{ py_set_value(yyscanner, $1, @1); }
+
+variable_assign
+	: IDENTIFIER ASSIGN sum		{ $$ = py_assign(yyscanner, $1, $3); free($1); }
 
 clone
 	: IDENTIFIER COLON IDENTIFIER arguments SEMICOLON	{
@@ -156,27 +159,21 @@ arguments
 	| COMMA argument arguments	{ PyList_Append($3, $2); $$ = $3; }
 
 argument
-	: eq_value			{ $$ = $1; }
+	: argument_assign		{ $$ = $1; }
 	| flag				{ $$ = $1; }
-	| eq_keyword			{ $$ = $1; }
 
 flag
-	: ADD IDENTIFIER		{ $$ = py_eq_value_scalar(yyscanner, $2, Py_True); free($2); }
-	| SUB IDENTIFIER		{ $$ = py_eq_value_scalar(yyscanner, $2, Py_False); free($2); }
+	: ADD IDENTIFIER		{ $$ = py_assign(yyscanner, $2, Py_True); free($2); }
+	| SUB IDENTIFIER		{ $$ = py_assign(yyscanner, $2, Py_False); free($2); }
 
-eq_keyword
-	: IDENTIFIER ASSIGN STRING_LITERAL	{
-			$$ = py_eq_value_scalar(yyscanner, $1, PyUnicode_FromString($3));
+argument_assign
+	: IDENTIFIER ASSIGN array	{ $$ = py_assign(yyscanner, $1, $3); free($1); }
+	| IDENTIFIER ASSIGN sum		{ $$ = py_assign(yyscanner, $1, $3); free($1); }
+	| IDENTIFIER ASSIGN STRING_LITERAL	{
+			$$ = py_assign(yyscanner, $1, PyUnicode_FromString($3));
 			free($1);
 			free($3);
 		}
-
-eq_value_scalar
-	: IDENTIFIER ASSIGN sum		{ $$ = py_eq_value_scalar(yyscanner, $1, $3); free($1); }
-
-eq_value
-	: IDENTIFIER ASSIGN array	{ $$ = py_eq_value_array(yyscanner, $1, $3); free($1); }
-	| IDENTIFIER ASSIGN sum		{ $$ = py_eq_value_sum(yyscanner, $1, $3); free($1); }
 
 sequence
 	: IDENTIFIER COLON STARTSEQUENCE arguments SEMICOLON
@@ -227,7 +224,7 @@ atom
 	| SUB atom			{ $$ = py_unary_op(yyscanner, "neg", $2); }
 	| ADD atom			{ $$ = $2; }
 	| PAREN_OPEN sum PAREN_CLOSE	{ $$ = $2; }
-	| IDENTIFIER			{ $$ = py_identifier_atom(yyscanner, $1); free($1); }
+	| IDENTIFIER			{ $$ = py_identifier_atom(yyscanner, $1, @1); free($1); }
 	| IDENTIFIER ARROW IDENTIFIER	{ $$ = py_arrow(yyscanner, $1, $3); free($1); free($3); }
 	| IDENTIFIER PAREN_OPEN sum PAREN_CLOSE	{ $$ = py_call_func(yyscanner, $1, $3); free($1); }
 	| PAREN_OPEN error PAREN_CLOSE  {

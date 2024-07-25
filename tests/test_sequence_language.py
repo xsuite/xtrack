@@ -7,7 +7,7 @@ import pytest
 
 import xobjects as xo
 import xtrack as xt
-from xtrack.sequence.parser import Parser, XMadParseError
+from xtrack.sequence.parser import Parser, ParseError
 
 
 def test_parser_expressions():
@@ -52,7 +52,7 @@ def test_string_errors():
     context = xo.ContextCpu()
     parser = Parser(_context=context)
 
-    with pytest.raises(XMadParseError) as e:
+    with pytest.raises(ParseError) as e:
         parser.parse_string(sequence)
 
     assert 'line 2 column 9: syntax error, unexpected string' in str(e.value)
@@ -73,7 +73,7 @@ def test_unfinished_string_error_wont_suppress_next():
     context = xo.ContextCpu()
     parser = Parser(_context=context)
 
-    with pytest.raises(XMadParseError) as e:
+    with pytest.raises(ParseError) as e:
         parser.parse_string(sequence)
 
     assert 'line 2 column 9: syntax error, unexpected string' in str(e.value)
@@ -260,7 +260,7 @@ def test_name_shadowing_error():
     context = xo.ContextCpu()
     parser = Parser(_context=context)
 
-    with pytest.raises(XMadParseError) as e:
+    with pytest.raises(ParseError) as e:
         parser.parse_string(sequence)
 
     assert 'name `Marker` shadows a built-in type.' in str(e.value)

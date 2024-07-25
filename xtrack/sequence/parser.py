@@ -4,6 +4,7 @@ import operator
 import re
 import traceback
 from collections import defaultdict
+from pathlib import Path
 from typing import Tuple, Optional
 
 import cython as cy
@@ -16,6 +17,7 @@ from cython.cimports.posix.unistd import access, R_OK  # noqa
 from cython.cimports.xtrack.sequence import parser as xld  # noqa
 
 import xdeps as xd
+import xobjects as xo
 import xtrack as xt
 from xdeps.refs import CallRef, LiteralExpr
 from xtrack.beam_elements import element_classes as xt_element_classes
@@ -71,39 +73,67 @@ except ModuleNotFoundError:
 
 
 class ParseLogEntry:
-    def __init__(self, location, reason, context=None):
+    def __init__(self, location, reason, error=True, context=None):
         self.line_no = location['first_line']
         self.column = location['first_column']
         self.end_line_no = location['last_line']
         self.end_column = location['last_column']
         self.reason = reason
         self.context = context
+        self.error = error
+
+    def add_file_line(self, file_lines):
+        relevant_lines = file_lines[self.line_no - 1:self.end_line_no]
+
+        def _insert(string, where, what):
+            return string[:where] + what + string[where:]
+
+        relevant_lines[-1] = _insert(relevant_lines[-1], self.end_column - 1, '\033[0m')
+        relevant_lines[0] = _insert(relevant_lines[0], self.column - 1, '\033[4m')
+
+        self.context = '\n'.join(relevant_lines)
 
     def __repr__(self):
-        out = f'On line {self.line_no} column {self.column}: {self.reason}'
+        if self.error:
+            out = '\033[91mError \033[0m'
+        else:
+            out = '\033[93mWarning \033[0m'
+        out += f'on line {self.line_no} column {self.column}: {self.reason}'
+
         if self.context:
-            out += '\n    > ' + self.context
+            out += '\n\n'
+            out += _indent_string(self.context, indent='    > ')
+
         return out
 
 
-class XMadParseError(Exception):
+class ParseError(Exception):
     LIMIT = 15
 
-    def __init__(self, parse_log):
-        self.parse_log = parse_log.copy()
+    def __init__(self, parse_log, error_type="error", file_lines=None):
+        parse_log = parse_log.copy()
 
-        message = 'Errors occurred while parsing:\n\n' if len(parse_log) > 1 else ''
+        if len(parse_log) > 1:
+            message = f'{error_type.title()}s occurred while parsing:\n\n'
+        else:
+            message = ''
 
-        message += '\n\n'.join([repr(entry) for entry in parse_log[:self.LIMIT]])
+        truncated = parse_log[:self.LIMIT]
+        for entry in truncated:
+            entry.add_file_line(file_lines)
+        message += '\n\n'.join([repr(entry) for entry in truncated])
 
         if len(parse_log) > self.LIMIT:
-            message += f'\n\nTruncated {len(parse_log) - self.LIMIT} more errors...'
+            message += (
+                f'\n\nTruncated {len(parse_log) - self.LIMIT} more '
+                f'{error_type}s...'
+            )
 
         super().__init__(message)
 
 
 @cy.cfunc
-def register_error(scanner: xld.yyscan_t, exception, action, add_context=True):
+def register_error(scanner: xld.yyscan_t, exception, action, add_context=True, location=None):
     parser = parser_from_scanner(scanner)
     caught_exc_string = '\n'.join(traceback.format_exception(exception))
     caught_exc_string = _indent_string(caught_exc_string, indent='    > ')
@@ -112,7 +142,7 @@ def register_error(scanner: xld.yyscan_t, exception, action, add_context=True):
         f"While {action} the following error occurred:\n\n"
         f"{caught_exc_string}"
     )
-    parser.handle_error(full_error_string, add_context=add_context)
+    parser.handle_error(full_error_string, add_context=add_context, location=location)
 
 
 def _indent_string(string, indent='    '):
@@ -132,7 +162,7 @@ class Parser:
     global_elements = cy.declare(dict, visibility='public')
     _context = cy.declare(object, visibility='public')
 
-    def __init__(self, _context):
+    def __init__(self, _context=xo.context_default):
         self.log = []
 
         self.xd_manager = xd.Manager()
@@ -179,8 +209,7 @@ class Parser:
 
         success = xld.yyparse(self.scanner)
 
-        if success != 0 or self.log:
-            raise XMadParseError(self.log)
+        self._assert_success(success, string)
 
     def parse_file(self, path):
         c_path = path.encode()
@@ -193,8 +222,27 @@ class Parser:
 
         success = xld.yyparse(self.scanner)
 
-        if success != 0 or self.log:
-            raise XMadParseError(self.log)
+        self._assert_success(success, Path(path))
+
+    def _assert_success(self, success, input_file_or_string=None):
+        errors = [entry for entry in self.log if entry.error]
+
+        def _make_error(error_type='error'):
+            input = input_file_or_string
+            if isinstance(input_file_or_string, Path):
+                input = input_file_or_string.read_text()
+            parse_error = ParseError(
+                self.log, error_type=error_type, file_lines=input.split('\n'))
+            return parse_error
+
+        if success != 0 or errors:
+            raise _make_error()
+
+        if self.log:
+            parse_warning = _make_error(error_type='warning')
+            xt.general._print(str(parse_warning))
+
+        self.log = []  # reset log after all errors have been reported
 
     def get_line(self, name):
         if not self.lines:
@@ -211,25 +259,38 @@ class Parser:
 
         return self.lines[name]
 
-    def handle_error(self, message, add_context=True):
+    def handle_error(self, message, add_context=True, location=None):
+        self._handle_parse_log_event(
+            message, is_error=True, add_context=add_context, location=location)
+
+    def handle_warning(self, message, add_context=True, location=None):
+        self._handle_parse_log_event(
+            message, is_error=False, add_context=add_context, location=location)
+
+    def _handle_parse_log_event(self, message, is_error, add_context, location):
         text = xld.yyget_text(self.scanner).decode()
         yylloc_ptr = xld.yyget_lloc(self.scanner)
-        log_entry = ParseLogEntry(yylloc_ptr[0], message)
+        location = location or yylloc_ptr[0]
+        log_entry = ParseLogEntry(location, message, error=is_error)
         if add_context:
             log_entry.context = text
         self.log.append(log_entry)
 
-    def get_identifier_ref(self, identifier):
+    def get_identifier_ref(self, identifier, location):
         try:
-            identifier = identifier.decode()
-            if identifier not in self.vars:
-                self.handle_error(f'use of an undefined variable `{identifier}`')
-                return np.nan
+            if identifier in self.vars:
+                return self.var_refs[identifier]
 
-            return self.var_refs[identifier]
-        except Exception as e:
-            traceback.print_exception(e)
+            if identifier in BUILTIN_CONSTANTS:
+                return py_float(self.scanner, BUILTIN_CONSTANTS[identifier])
+
+            self.handle_error(
+                f'use of an undefined variable `{identifier}`',
+                location=location,
+            )
             return np.nan
+        except Exception as e:
+            register_error(self.scanner, e, 'getting an identifier reference')
 
     def set_value(self, identifier, value):
         self.var_refs[identifier] = value
@@ -371,11 +432,11 @@ def py_call_func(scanner, func_name, value):
         register_error(scanner, e, f'parsing a function call')
 
 
-def py_eq_value_scalar(scanner, identifier, value):
+def py_assign(scanner, identifier, value):
     try:
         return identifier.decode(), value
     except Exception as e:
-        register_error(scanner, e, f'parsing a deferred scalar assignment')
+        register_error(scanner, e, f'parsing an assignment')
 
 
 def py_arrow(scanner, source_name, field_name):
@@ -385,25 +446,33 @@ def py_arrow(scanner, source_name, field_name):
         register_error(scanner, e, f'parsing the arrow syntax')
 
 
-def py_identifier_atom(scanner, name):
-    try:
-        normalized_name = name.decode()
-        if normalized_name not in BUILTIN_CONSTANTS:
-            parser = parser_from_scanner(scanner)
-            return parser.get_identifier_ref(name)
-
-        value = BUILTIN_CONSTANTS[normalized_name]
-        return py_float(scanner, value)
-    except Exception as e:
-        register_error(scanner, e, f'parsing an identifier')
-
-
-def py_set_value(scanner, assignment):
+def py_identifier_atom(scanner, name, location):
     try:
         parser = parser_from_scanner(scanner)
-        parser.set_value(*assignment)
+        return parser.get_identifier_ref(name.decode(), location)
     except Exception as e:
-        register_error(scanner, e, 'parsing a deferred assign statement')
+        register_error(
+            scanner, e, f'parsing an identifier',
+            add_context=True, location=location,
+        )
+
+
+def py_set_value(scanner, assignment, location):
+    try:
+        identifier, value = assignment
+        parser = parser_from_scanner(scanner)
+        if identifier in BUILTIN_CONSTANTS:
+            parser.handle_warning(
+                f"variable `{identifier}` shadows a built-in constant",
+                add_context=False,
+                location=location,
+            )
+        parser.set_value(identifier, value)
+    except Exception as e:
+        register_error(
+            scanner, e, 'parsing a deferred assign statement',
+            add_context=True, location=location,
+        )
 
 
 def py_make_sequence(scanner, name, args, elements):
@@ -424,20 +493,6 @@ def py_clone(scanner, name, parent, args) -> Optional[Tuple[str, str, dict]]:
         return name.decode(), parent.decode(), args
     except Exception as e:
         register_error(scanner, e, 'parsing a clone statement')
-
-
-def py_eq_value_sum(scanner, name, value) -> Tuple[str, object]:
-    try:
-        return name.decode(), value
-    except Exception as e:
-        register_error(scanner, e, 'parsing a deferred sum statement')
-
-
-def py_eq_value_array(scanner, name, array):
-    try:
-        return name.decode(), array
-    except Exception as e:
-        register_error(scanner, e, 'parsing a deferred array assignment')
 
 
 def py_clone_global(scanner, clone):

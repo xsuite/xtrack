@@ -2,7 +2,7 @@ from contextlib import contextmanager
 
 import xtrack as xt
 from xtrack.sequence.writer import XMadWriter
-from xtrack.sequence.xmad import Parser
+from xtrack.sequence.parser import Parser
 from time import time
 
 @contextmanager
@@ -15,4 +15,4 @@ def how_long(what):
 
 with how_long('reading'):
     p = Parser()
-    out = p.parse_file('out_err.xmad')
+    out = p.parse_file('out_err.xld')

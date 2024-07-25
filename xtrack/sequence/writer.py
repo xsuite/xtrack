@@ -1,5 +1,6 @@
 from xtrack.general import _print
 import sys
+import sys
 from functools import reduce
 from typing import Any, Dict, Callable, Union, Tuple, Set
 from typing import Optional
@@ -8,9 +9,10 @@ import numpy as np
 
 import xdeps as xd
 import xtrack as xt
-from xdeps.refs import XMadFormatter
+from xdeps.refs import XMadFormatter, is_ref
 from xdeps.sorting import toposort
-
+from xtrack.general import _print
+from xtrack.sequence.parser import BUILTIN_CONSTANTS
 
 TAB_WIDTH = 4
 
@@ -35,13 +37,11 @@ class XMadWriter:
         self.var_manager: xd.Manager = lattice._xdeps_manager
 
     def write(self, stream=sys.stdout):
-        self._write_expressions(stream)
+        if self._write_expressions(stream):
+            stream.write('#end of expr\n')
 
-        stream.write('\n')
-
-        self._write_templates(stream)
-
-        stream.write('\n')
+        if self._write_templates(stream):
+            stream.write('#end of templates\n')
 
         for name, line in self.lines.items():
             self._write_line(stream, name, line)
@@ -50,26 +50,42 @@ class XMadWriter:
     def _write_expressions(self, stream):
         formatter = XMadFormatter(scope=None)
 
+        wrote_stuff = False
+
         for var_name in self._sorted_vars():
             if var_name.startswith('__'):
                 continue
 
             value = self.vars[var_name]
+            if var_name in BUILTIN_CONSTANTS:
+                lhs = BUILTIN_CONSTANTS[var_name]
+                rhs = value._value
+                if np.isclose(lhs, rhs, atol=1e-19):
+                    continue
+                _print(
+                    f"Warning: The definition of `{var_name}` (= {rhs}) in "
+                    f"your line shadows a built in constant of the same "
+                    f"name (= {lhs}). Make sure this is desired!"
+                )
 
             if value._expr:
                 formatted_value = value._expr._formatted(formatter)
                 stream.write(f'{var_name} = {formatted_value};\n')
+                wrote_stuff = True
             else:
                 value = value._value
                 if np.isscalar(value):
                     stream.write(f'{var_name} = {value};\n')
+                    wrote_stuff = True
                 elif isinstance(value, Callable):
                     continue
                 else:
                     raise ValueError(
                         f'Cannot write the variable `{var_name}`, as values of '
                         f'type `{type(value).__name__}` (here {value}) are '
-                        f'not supported in XMad.')
+                        f'not supported in XLD.')
+
+        return wrote_stuff
 
     def _write_line(self, stream, name, line):
         formatter = XMadFormatter(scope=line.element_refs)
@@ -82,7 +98,6 @@ class XMadWriter:
 
     def _write_templates(self, stream):
         formatter = XMadFormatter(scope=None)
-
         templates_to_write: Set[Tuple[str, str]] = set()
 
         for line_name, line in self.lines.items():
@@ -93,6 +108,8 @@ class XMadWriter:
         for element_name, line_name in templates_to_write:
             line = self.lines[line_name]
             self._write_global_template(stream, element_name, line, formatter)
+
+        return bool(templates_to_write)
 
     def _write_global_template(self, stream, element_name, line, formatter):
         self._write_element(stream, element_name, line, formatter, level=0)
@@ -144,7 +161,7 @@ class XMadWriter:
                 formatted_args.append(arg_name)
             elif arg_value is False:
                 formatted_args.append(f'-{arg_name}')
-            elif xd.refs.is_ref(arg_value):
+            elif is_ref(arg_value):
                 formatted_value = arg_value._formatted(formatter)
                 formatted_args.append(f'{arg_name} = {formatted_value}')
             elif isinstance(arg_value, str):
@@ -170,7 +187,7 @@ class XMadWriter:
     def scalar_to_str(formatter: XMadFormatter):
         def _mapper(scalar):
             with np.printoptions(floatmode='unique'):
-                if xd.refs.is_ref(scalar):
+                if is_ref(scalar):
                     return scalar._formatted(formatter)
                 return str(scalar)
         return _mapper
