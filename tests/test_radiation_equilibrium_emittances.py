@@ -52,7 +52,7 @@ configurations = [
 @pytest.mark.parametrize('conf', configurations)
 def test_eq_emitt(conf):
 
-    test_context = xo.context_default # On GPU this is too slow to run routinely
+    test_context = xo.ContextCpu() # On GPU this is too slow to run routinely
 
     print('===============================')
     print(conf)

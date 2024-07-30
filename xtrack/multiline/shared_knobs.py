@@ -72,9 +72,21 @@ class VarSharing:
 
             self.manager.copy_expr_from(mgr1, "vars") # copy expressions
 
-            # copy expressions
-            self.manager.copy_expr_from(mgr1, "element_refs",
-                                    {"element_refs": self._eref[name]})
+            # # copy expressions
+            # if line.element_refs == mgr1.containers['element_refs']:
+            #     # The normal case for a single line created manually
+            # self.manager.copy_expr_from(
+            #     mgr1, "element_refs", {"element_refs": self._eref[name]})
+            # # elif line.element_refs == mgr1.containers['element_refs'][name]:
+            # elif line.element_refs._value in mgr1.containers['element_refs']._value.values():
+            #     # When line was created as an ensemble of lines (by the parser)
+            self.manager.copy_expr_from(
+                mgr1, "element_refs", {line.element_refs: self._eref[name]})
+            # else:
+            #     breakpoint()
+            #     raise ValueError("The expressions in the line are not attached "
+            #                      "to the expected container! Looks like your "
+            #                      "line was created manually in a strange way.")
 
         line._var_management = None
 

@@ -1344,13 +1344,6 @@ class Solenoid(BeamElement):
 
 
     def __init__(self, **kwargs):
-        if (kwargs.get('_xobject') is None
-                and np.isclose(kwargs.get('length'), 0, atol=1e-13)):
-            # Fail when trying to create a thin solenoid, as these are not
-            # tested yet
-            raise NotImplementedError('Thin solenoids are not implemented yet.')
-            # self.isthick = False
-
         if not np.isclose(kwargs.get('ksi', 0), 0, atol=1e-13):
             raise ValueError(
                 "The parameter `ksi` can only be specified when `length` == 0."

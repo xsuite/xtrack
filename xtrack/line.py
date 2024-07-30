@@ -245,10 +245,16 @@ class Line:
             Line object.
 
         """
+        skip_xld_test = False
 
         if isinstance(file, io.IOBase):
             dct = json.load(file)
+            try:
+                filename = file.filename
+            except AttributeError:
+                skip_xld_test = True
         else:
+            filename = str(file)
             with open(file, 'r') as fid:
                 dct = json.load(fid)
 
@@ -257,7 +263,22 @@ class Line:
         else:
             dct_line = dct
 
-        return cls.from_dict(dct_line, **kwargs)
+        new_line = cls.from_dict(dct_line, **kwargs)
+
+        if not skip_xld_test:
+            short_uuid = str(uuid.uuid4())[:8]
+            xld_file = filename.replace('.json', f'_{short_uuid}.xld')
+
+            new_line.to_file(xld_file, sequence_name='line')
+            line_from_xld = cls.from_file(xld_file, sequence_name='line', _context=xo.ContextCpu())
+
+            line_from_xld.vars['__vary_default'] = {}
+            line_from_xld.particle_ref = new_line.particle_ref
+            line_from_xld.twiss_default.update(new_line.twiss_default)
+
+            return line_from_xld
+
+        return new_line
 
     @classmethod
     def from_file(cls, filename, sequence_name=None, _context=xo.context_default):
@@ -268,8 +289,21 @@ class Line:
             filename = str(filename)
 
         lattice_parser.parse_file(filename)
-        line = lattice_parser.get_line(sequence_name)
 
+        return cls._from_parser(lattice_parser, sequence_name)
+
+    @classmethod
+    def from_string(cls, string, sequence_name=None, _context=xo.context_default):
+        from xtrack.sequence.parser import Parser
+        lattice_parser = Parser(_context=_context)
+
+        lattice_parser.parse_string(string)
+
+        return cls._from_parser(lattice_parser, sequence_name)
+
+    @classmethod
+    def _from_parser(cls, lattice_parser, sequence_name=None):
+        line = lattice_parser.get_line(sequence_name)
         return line
 
     def to_file(self, filename, sequence_name):
@@ -4075,6 +4109,9 @@ class Functions:
             return self[name]
         except KeyError:
             raise AttributeError(f'Unknown function {name}')
+
+    def __contains__(self, name):
+        return name in self._mathfunctions or name in self._funcs
 
     def update(self, other):
         self._funcs.update(other._funcs)

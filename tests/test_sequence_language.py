@@ -9,6 +9,33 @@ import xobjects as xo
 import xtrack as xt
 from xtrack.sequence.parser import Parser, ParseError
 
+def _normalize_code(code_string, remove_empty_lines=True):
+    lines = code_string.split('\n')  # split into lines
+    lines = map(str.strip, lines)  # remove meaningless whitespace
+
+    if remove_empty_lines:
+        lines = filter(bool, lines)
+
+    return list(lines)
+
+
+def _dict_compare(d1, d2, path='.', atol=1e-16, rtol=1e-16):
+    common_keys = set(d1.keys()) & set(d2.keys())
+    for key in common_keys:
+        if type(d1[key]) != type(d2[key]):
+            raise AssertionError(f'{path}[{key}] type mismatch: {type(d1[key])} != {type(d2[key])}')
+        if isinstance(d1[key], dict):
+            _dict_compare(d1[key], d2[key], f'{path}["{key}"]')
+        if isinstance(d1[key], np.ndarray):
+            xo.assert_allclose(d1[key], d2[key], atol=atol, rtol=rtol)
+        if isinstance(d1[key], list):
+            for i, (v1, v2) in enumerate(zip(d1[key], d2[key])):
+                if isinstance(v1, dict):
+                    _dict_compare(v1, v2, f'{path}["{key}"][{i}]')
+                if isinstance(v1, np.ndarray):
+                    xo.assert_allclose(v1, v2, atol=atol, rtol=rtol)
+                else:
+                    assert v1 == v2
 
 def test_parser_expressions():
     sequence = """
@@ -235,10 +262,10 @@ def test_multiline_read_and_dump(tmp_path):
     with temp_file.open('r') as f:
         generated_sequence = f.read()
 
-    generated_lines = [line.strip() for line in generated_sequence.split('\n')]
-    original_lines = [line.strip() for line in sequence.split('\n')]
+    generated_lines = _normalize_code(generated_sequence, remove_empty_lines=False)
+    original_lines = _normalize_code(sequence, remove_empty_lines=False)
 
-    assert set(generated_lines[0:6]) == set(original_lines[0:6])
+    assert set(generated_lines[0:7]) == set(original_lines[0:7])
     assert generated_lines[7:9] == original_lines[7:9]
     assert set(generated_lines[9:16]) == set(original_lines[9:16])
     assert generated_lines[16:22] == original_lines[16:22]
@@ -292,3 +319,65 @@ def test_slice_elements():
 
     xo.assert_allclose(tab1['s'], [0, 0.95, 1.9, 3.8], atol=1e-16)
     xo.assert_allclose(tab2['s'], [0, 1.9], atol=1e-16)
+
+
+@pytest.mark.parametrize('line_name', ['same_name', 'different_name'])
+def test_parsed_line_to_collider(tmp_path, line_name):
+    sequence = f"""\
+    dr_len = 5;
+
+    {line_name}: sequence;
+        test_element: Drift, length = dr_len;
+    endsequence;
+    """
+
+    context = xo.ContextCpu()
+    line = xt.Line.from_string(sequence, _context=context)
+
+    multiline = xt.Multiline(lines = {'same_name': line})
+
+    outfile = tmp_path / 'test_parsed_line_to_collider.xld'
+    multiline.to_file(outfile)
+    with outfile.open('r') as f:
+        generated_sequence = f.read()
+
+    expected_lines = _normalize_code(sequence.replace('different_name', 'same_name'))
+    generated_lines = _normalize_code(generated_sequence)
+
+    assert expected_lines == generated_lines
+
+    multiline.same_name.vars['dr_len'] = 10
+    assert multiline.same_name['test_element'].length == 10
+
+
+def test_parsed_line_copy():
+    sequence = """\
+    dr_len = 5;
+    k = 3;
+
+    line: sequence;
+        dr: Drift, length = dr_len;
+        mb: Bend, length = 2, knl = {0, 0, 1}, k0 = k;
+    endsequence;
+    """
+
+    context = xo.ContextCpu()
+    line: xt.Line = xt.Line.from_string(sequence, _context=context)
+    copied_line = line.copy()
+
+    line_dict = line.to_dict(include_var_management=True)
+    copied_dict = copied_line.to_dict(include_var_management=True)
+
+    _dict_compare(line_dict, copied_dict)
+
+    line.vars['k'] = 4
+    assert line['mb'].k0 == 4
+
+    assert copied_line['mb'].k0 == 3
+
+    copied_line.vars['k'] = 5
+
+    assert line['mb'].k0 == 4
+    assert copied_line['mb'].k0 == 5
+
+    breakpoint()

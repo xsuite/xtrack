@@ -181,7 +181,7 @@ class Multiline:
             existing_manager=lattice_parser.xd_manager,
             existing_vref=lattice_parser.var_refs,
             existing_eref=lattice_parser.element_refs,
-            existing_fref=None,
+            existing_fref=lattice_parser.func_refs,
         )
         multiline._multiline_vars = xt.line.LineVars(multiline)
         for name, line in lattice_parser.lines.items():

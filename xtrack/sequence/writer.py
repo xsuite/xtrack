@@ -38,10 +38,10 @@ class XMadWriter:
 
     def write(self, stream=sys.stdout):
         if self._write_expressions(stream):
-            stream.write('#end of expr\n')
+            stream.write('\n')
 
         if self._write_templates(stream):
-            stream.write('#end of templates\n')
+            stream.write('\n')
 
         for name, line in self.lines.items():
             self._write_line(stream, name, line)

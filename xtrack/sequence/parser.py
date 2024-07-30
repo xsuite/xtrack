@@ -24,19 +24,6 @@ from xtrack.beam_elements import element_classes as xt_element_classes
 
 KEEP_LITERAL_EXPRESSIONS = False
 
-BUILTIN_FUNCTIONS = {
-    name: getattr(math, name) for name in [
-        'sqrt', 'log', 'log10', 'exp', 'sin', 'cos', 'tan', 'asin', 'acos',
-        'atan', 'sinh', 'cosh', 'tanh', 'erf', 'erfc',
-    ]
-}
-BUILTIN_FUNCTIONS['sinc'] = np.sinc
-BUILTIN_FUNCTIONS['abs'] = builtins.abs
-BUILTIN_FUNCTIONS['round'] = np.round  # these can also be builtins, but the
-BUILTIN_FUNCTIONS['floor'] = np.floor  # numpy versions take NaNs, which is
-BUILTIN_FUNCTIONS['ceil'] = np.ceil    # better for handling parse errors
-BUILTIN_FUNCTIONS['frac'] = lambda x: x % 1.0
-
 
 BUILTIN_CONSTANTS = {
     # Supported constants from MAD-X manual
@@ -158,6 +145,8 @@ class Parser:
     var_refs = cy.declare(object, visibility='public')
     elements = cy.declare(dict, visibility='public')
     element_refs = cy.declare(object, visibility='public')
+    functions = cy.declare(object, visibility='public')
+    func_refs = cy.declare(object, visibility='public')
     lines = cy.declare(dict, visibility='public')
     global_elements = cy.declare(dict, visibility='public')
     _context = cy.declare(object, visibility='public')
@@ -172,7 +161,10 @@ class Parser:
         self.var_refs = self.xd_manager.ref(self.vars, 'vars')
 
         self.elements = {}
-        self.element_refs = self.xd_manager.ref(self.elements, 'eref')
+        self.element_refs = self.xd_manager.ref(self.elements, 'element_refs')
+
+        self.functions = xt.line.Functions()
+        self.func_refs = self.xd_manager.ref(self.functions, 'f')
 
         self.lines = {}
         self.global_elements = {}
@@ -332,8 +324,15 @@ class Parser:
                 elements=self.elements[line_name],
                 element_names=element_names,
             )
+            line._var_management = {}
+            line._var_management['data'] = {}
+            line._var_management['data']['var_values'] = self.vars
+            line._var_management['data']['functions'] = self.functions
+
+            line._var_management['manager'] = self.xd_manager
             line._var_management['vref'] = self.var_refs
             line._var_management['lref'] = self.element_refs[line_name]
+            line._var_management['fref'] = self.func_refs
             self.lines[line_name] = line
         except Exception as e:
             register_error(self.scanner, e, 'building the sequence')
@@ -417,17 +416,18 @@ def py_binary_op(scanner, op_string, left, right):
 @cy.exceptval(check=False)
 def py_call_func(scanner, func_name, value):
     try:
-        normalized_name = func_name.decode()
-        if normalized_name == 'const':
+        name = func_name.decode()
+        if name == 'const':
             return value._value if xd.refs.is_ref(value) else value
-        elif normalized_name not in BUILTIN_FUNCTIONS:
+
+        parser = parser_from_scanner(scanner)
+        if name not in parser.functions:
             parser_from_scanner(scanner).handle_error(
-                f'builtin function `{normalized_name}` is unknown',
+                f'builtin function `{name}` is unknown',
             )
             return np.nan
 
-        function = BUILTIN_FUNCTIONS[normalized_name]
-        return CallRef(function, (value,), {})
+        return getattr(parser.func_refs, name)(value)
     except Exception as e:
         register_error(scanner, e, f'parsing a function call')
 
