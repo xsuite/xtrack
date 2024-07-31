@@ -271,6 +271,7 @@ class Line:
 
             new_line.to_file(xld_file, sequence_name='line')
             line_from_xld = cls.from_file(xld_file, sequence_name='line', _context=xo.ContextCpu())
+            os.remove(xld_file)
 
             line_from_xld.vars['__vary_default'] = {}
             line_from_xld.particle_ref = new_line.particle_ref
@@ -806,7 +807,7 @@ class Line:
             True: 'reverse', False: 'proper'}[reverse]
         return tab
 
-    def copy(self, _context=None, _buffer=None):
+    def copy(self, include_var_management=True, _context=None, _buffer=None):
         '''
         Return a copy of the line.
 
@@ -833,7 +834,7 @@ class Line:
             out.particle_ref = self.particle_ref.copy(
                                         _context=_context, _buffer=_buffer)
 
-        if self._var_management is not None:
+        if self._var_management is not None and include_var_management:
             out._init_var_management(dct=self._var_management_to_dict())
 
         out.config.update(self.config.copy())

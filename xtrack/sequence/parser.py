@@ -236,21 +236,6 @@ class Parser:
 
         self.log = []  # reset log after all errors have been reported
 
-    def get_line(self, name):
-        if not self.lines:
-            raise ValueError('No sequence was parsed. Either the input has no '
-                             'sequences, or the parser has not been run yet.')
-
-        if name is None:
-            try:
-                name, = self.lines.keys()
-            except ValueError:
-                raise ValueError('Cannot unambiguously determine the sequence '
-                                 'as no name was provided and there is more '
-                                 'than one sequence in parsed input.')
-
-        return self.lines[name]
-
     def handle_error(self, message, add_context=True, location=None):
         self._handle_parse_log_event(
             message, is_error=True, add_context=add_context, location=location)
@@ -358,6 +343,70 @@ class Parser:
                         list_ref[i] = le
             elif xd.refs.is_ref(v):
                 setattr(element_ref, k, v)
+
+    def get_line(self, name, copy_manager=True):
+        """Get a copy of the parsed sequence with the given name.
+
+        If `copy_manager` is True, the new line will have its own variable
+        management, so changes applied to its variables will not affect the
+        other lines in the parser. This way, we obtain a proper xt.Line object.
+
+        If `copy_manager` is False, the new line will share the variable
+        manager (and in particular its element_refs will not be technically
+        as expected of a regular xt.Line), which may cause unexpected behavior
+        if the line is copied.
+
+        If an ensemble of lines sharing the same variable manager is needed,
+        consider obtaining an xt.Multiline object instead with `get_multiline`.
+        """
+        if not self.lines:
+            raise ValueError('No sequence was parsed. Either the input has no '
+                             'sequences, or the parser has not been run yet.')
+
+        if name is None:
+            try:
+                name, = self.lines.keys()
+            except ValueError:
+                raise ValueError('Cannot unambiguously determine the sequence '
+                                 'as no name was provided and there is more '
+                                 'than one sequence in parsed input.')
+
+        line = self.lines[name]
+        if not copy_manager:
+            return line
+
+        line = line.copy(include_var_management=False)
+        line._init_var_management()
+        new_line_manager = line._xdeps_manager
+        shared_manager = self.xd_manager
+
+        line._xdeps_vref._owner.update(self.vars)
+
+        new_line_manager.copy_expr_from(shared_manager, 'vars')
+        new_line_manager.copy_expr_from(shared_manager, 'f')
+        new_line_manager.copy_expr_from(
+            shared_manager,
+            'element_refs',
+            bindings={self.element_refs[name]: line.element_refs},
+        )
+
+        return line
+
+    def get_multiline(self):
+        multiline = xt.Multiline(lines=self.lines, link_vars=False)
+        multiline._var_sharing = xt.multiline.VarSharing(
+            lines={},
+            names=[],
+            existing_manager=self.xd_manager,
+            existing_vref=self.var_refs,
+            existing_eref=self.element_refs,
+            existing_fref=self.func_refs,
+        )
+        multiline._multiline_vars = xt.line.LineVars(multiline)
+        for name, line in self.lines.items():
+            line._var_management = None
+
+        return multiline
 
     @staticmethod
     def _ref_get_value(value_or_ref):

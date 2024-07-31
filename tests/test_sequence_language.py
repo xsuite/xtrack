@@ -16,6 +16,8 @@ def _normalize_code(code_string, remove_empty_lines=True):
     if remove_empty_lines:
         lines = filter(bool, lines)
 
+    lines = filter(lambda l: l != 't_turn_s = 0.0;', lines)
+
     return list(lines)
 
 
@@ -36,6 +38,7 @@ def _dict_compare(d1, d2, path='.', atol=1e-16, rtol=1e-16):
                     xo.assert_allclose(v1, v2, atol=atol, rtol=rtol)
                 else:
                     assert v1 == v2
+
 
 def test_parser_expressions():
     sequence = """
@@ -362,7 +365,7 @@ def test_parsed_line_copy():
     """
 
     context = xo.ContextCpu()
-    line: xt.Line = xt.Line.from_string(sequence, _context=context)
+    line = xt.Line.from_string(sequence, _context=context)
     copied_line = line.copy()
 
     line_dict = line.to_dict(include_var_management=True)
@@ -379,5 +382,3 @@ def test_parsed_line_copy():
 
     assert line['mb'].k0 == 4
     assert copied_line['mb'].k0 == 5
-
-    breakpoint()

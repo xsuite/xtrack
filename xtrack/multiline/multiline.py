@@ -174,20 +174,7 @@ class Multiline:
 
     @classmethod
     def _from_parser(cls, lattice_parser):
-        multiline = cls(lines=lattice_parser.lines, link_vars=False)
-        multiline._var_sharing = VarSharing(
-            lines={},
-            names=[],
-            existing_manager=lattice_parser.xd_manager,
-            existing_vref=lattice_parser.var_refs,
-            existing_eref=lattice_parser.element_refs,
-            existing_fref=lattice_parser.func_refs,
-        )
-        multiline._multiline_vars = xt.line.LineVars(multiline)
-        for name, line in lattice_parser.lines.items():
-            line._var_management = None
-
-        return multiline
+        return lattice_parser.get_multiline()
 
     @classmethod
     def from_file(cls, filename, _context=xo.context_default):
