@@ -382,3 +382,26 @@ def test_parsed_line_copy():
 
     assert line['mb'].k0 == 4
     assert copied_line['mb'].k0 == 5
+
+
+def test_modify_element_refs_arrow_syntax():
+    sequence = """\
+    dr_len = 5;
+    k = 3;
+
+    line: sequence;
+        dr: Drift, length = dr_len;
+        mb: Bend, length = 2, knl = {0, 0, 1}, k0 = k;
+    endsequence;
+
+    line->dr->length = dr_len + 1;
+    line->mb->k0 = 4;
+    """
+
+    context = xo.ContextCpu()
+    line = xt.Line.from_string(sequence, _context=context)
+
+    line['dr'].length = 10
+    assert line['dr'].length == 10
+
+    line['mb'].k0 = 4

@@ -112,7 +112,7 @@
 // Nonterminal (rule) types
 %type <object> clone argument start_sequence
 %type <object> argument_assign flag variable_assign
-%type <object> atom power product sum
+%type <object> atom power product sum reference
 %type <object> arguments elements array scalar_list
 
 // Clean up token values on error
@@ -140,9 +140,21 @@ statement
 
 set_value
 	: variable_assign SEMICOLON	{ py_set_value(yyscanner, $1, @1); }
+	| reference ASSIGN sum SEMICOLON	{
+			py_set_ref(yyscanner, $1, $3);
+		}
 
 variable_assign
 	: IDENTIFIER ASSIGN sum		{ $$ = py_assign(yyscanner, $1, $3); free($1); }
+
+reference
+	: IDENTIFIER ARROW IDENTIFIER	{
+			PyObject* ref = py_reference(yyscanner, Py_None, $1, @1);
+			$$ = py_reference(yyscanner, ref, $3, @3);
+			free($1);
+			free($3);
+		}
+	| reference ARROW IDENTIFIER	{ $$ = py_reference(yyscanner, $1, $3, @3); free($3); }
 
 clone
 	: IDENTIFIER COLON IDENTIFIER arguments SEMICOLON	{

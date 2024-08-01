@@ -18,7 +18,7 @@ from cython.cimports.xtrack.sequence import parser as xld  # noqa
 import xdeps as xd
 import xobjects as xo
 import xtrack as xt
-from xdeps.refs import CallRef, LiteralExpr
+from xdeps.refs import CallRef, LiteralExpr, XMadFormatter
 from xtrack.beam_elements import element_classes as xt_element_classes
 import xtrack.sequence.string_formatting as fmt
 
@@ -370,6 +370,46 @@ class Parser:
         line._var_management['fref'] = self.func_refs
         self.lines[line_name] = line
 
+    def get_reference(self, parent, field, location):
+        """Return the result of the syntax: parent->field
+
+        This is context dependent. If parent is None, assume that field names
+        element refs of a line/sequence with such name. If parent is a dict
+        or a list (element refs, a list attribute of an element) this is
+        equivalent to parent[field], and otherwise to parent.field.
+
+        Arguments
+        ---------
+        parent: xd.MutableRef
+        field: str
+        """
+        def _error(message):
+            self.handle_error(message, add_context=True, location=location)
+
+        if parent is None:  # In this case assume
+            # Currently we do not allow this sort of assignment within the
+            # line/sequence, so this should not ever happen
+            assert self._current_line_template is None
+
+            if field not in self.elements:
+                _error(f"no such line `{field}`")
+
+            return self.element_refs[field]
+
+        if isinstance(parent._value, dict):
+            return parent[field]
+
+        if isinstance(parent._value, list):
+            try:
+                return parent[int(field)]
+            except ValueError:
+                formatter = XMadFormatter(scope=None)
+                _error(f"`{parent._formatted(formatter)}` is a list, an "
+                       f"integer was expected instead of `{field}`")
+
+        return getattr(parent, field)
+
+
     def get_line(self, name, copy_manager=True):
         """Get a copy of the parsed sequence with the given name.
 
@@ -542,6 +582,21 @@ def py_set_value(scanner, assignment, location):
             scanner, e, 'parsing a deferred assign statement',
             add_context=True, location=location,
         )
+
+
+def py_reference(scanner, parent, field, location):
+    try:
+        parser = parser_from_scanner(scanner)
+        return parser.get_reference(parent, field.decode(), location)
+    except Exception as e:
+        register_error(scanner, e, 'accessing a reference field')
+
+
+def py_set_ref(scanner, target, value):
+    try:
+        target._set_to_expr(value)
+    except Exception as e:
+        register_error(scanner, e, 'setting a field reference')
 
 
 def py_make_sequence(scanner, line_template):

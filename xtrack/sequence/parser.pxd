@@ -57,6 +57,8 @@ cdef public object py_call_func(yyscan_t scanner, const char* func_name, object 
 cdef public object py_arrow(yyscan_t scanner, const char* source_name, const char* field_name)
 cdef public object py_identifier_atom(yyscan_t scanner, const char* name, YYLTYPE location)
 cdef public void py_set_value(yyscan_t scanner, tuple assignment, YYLTYPE location)
+cdef public object py_reference(yyscan_t scanner, object parent, const char* field, YYLTYPE location)
+cdef public object py_set_ref(yyscan_t scanner, object target, object value)
 cdef public void py_make_sequence(yyscan_t scanner, object line_template)
 cdef public object py_start_sequence(yyscan_t scanner, const char* name, list args, YYLTYPE location)
 cdef public object py_new_element(yyscan_t scanner, object line_template, object element)
