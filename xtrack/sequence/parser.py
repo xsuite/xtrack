@@ -1,4 +1,3 @@
-import builtins
 import math
 import operator
 import re
@@ -21,6 +20,7 @@ import xobjects as xo
 import xtrack as xt
 from xdeps.refs import CallRef, LiteralExpr
 from xtrack.beam_elements import element_classes as xt_element_classes
+import xtrack.sequence.string_formatting as fmt
 
 KEEP_LITERAL_EXPRESSIONS = False
 
@@ -59,6 +59,13 @@ except ModuleNotFoundError:
     pass
 
 
+@cy.cfunc
+def _ref_get_value(value_or_ref):
+    if isinstance(value_or_ref, list):
+        return [getattr(elem, '_value', elem) for elem in value_or_ref]
+    return getattr(value_or_ref, '_value', value_or_ref)
+
+
 class ParseLogEntry:
     def __init__(self, location, reason, error=True, context=None):
         self.line_no = location['first_line']
@@ -75,21 +82,21 @@ class ParseLogEntry:
         def _insert(string, where, what):
             return string[:where] + what + string[where:]
 
-        relevant_lines[-1] = _insert(relevant_lines[-1], self.end_column - 1, '\033[0m')
-        relevant_lines[0] = _insert(relevant_lines[0], self.column - 1, '\033[4m')
+        relevant_lines[-1] = _insert(relevant_lines[-1], self.end_column - 1, fmt.NO_UNDERLINE)
+        relevant_lines[0] = _insert(relevant_lines[0], self.column - 1, fmt.UNDERLINE)
 
         self.context = '\n'.join(relevant_lines)
 
     def __repr__(self):
         if self.error:
-            out = '\033[91mError \033[0m'
+            out = fmt.error('Error')
         else:
-            out = '\033[93mWarning \033[0m'
-        out += f'on line {self.line_no} column {self.column}: {self.reason}'
+            out = fmt.warning('Warning')
+        out += f' on line {self.line_no} column {self.column}: {self.reason}'
 
         if self.context:
             out += '\n\n'
-            out += _indent_string(self.context, indent='    > ')
+            out += fmt.indent_string(self.context, indent='    > ')
 
         return out
 
@@ -123,7 +130,7 @@ class ParseError(Exception):
 def register_error(scanner: xld.yyscan_t, exception, action, add_context=True, location=None):
     parser = parser_from_scanner(scanner)
     caught_exc_string = '\n'.join(traceback.format_exception(exception))
-    caught_exc_string = _indent_string(caught_exc_string, indent='    > ')
+    caught_exc_string = fmt.indent_string(caught_exc_string, indent='    > ')
 
     full_error_string = (
         f"While {action} the following error occurred:\n\n"
@@ -132,8 +139,68 @@ def register_error(scanner: xld.yyscan_t, exception, action, add_context=True, l
     parser.handle_error(full_error_string, add_context=add_context, location=location)
 
 
-def _indent_string(string, indent='    '):
-    return re.sub('^', indent, string, flags=re.MULTILINE)
+@cy.cclass
+class LineTemplate:
+    name = cy.declare(str, visibility='public')
+    args = cy.declare(list, visibility='public')
+    element_dict = cy.declare(dict, visibility='public')
+    element_names = cy.declare(list, visibility='public')
+    location = cy.declare(object, visibility='public')
+    parser = cy.declare(object, visibility='public')
+
+    def __init__(self, name, args, location):
+        self.name = name
+        self.args = args
+        self.element_dict = {}
+        self.element_names = []
+        self.location = location
+
+    def add_element(self, name, parent, args):
+        self._add_element(name, parent, args)
+
+        parent_name = getattr(self.element_dict[name], 'parent_name', None)
+        if parent_name and parent_name not in self.element_dict:
+            self._add_element(
+                parent_name,
+                *self.parser.global_elements[parent_name],
+            )
+
+        self.element_names.append(name)
+
+    def set_parser(self, parser):
+        self.parser = parser
+
+        # Expressions need to go through the parser to be evaluated, so we
+        # need to update the element references in the parser with ours.
+        parser.elements[self.name] = self.element_dict
+
+    def _add_element(self, name, parent, args):
+        if not args and parent not in AVAILABLE_ELEMENT_CLASSES:  # simply insert a replica
+            self.element_dict[name] = xt.Replica(parent_name=parent)
+            return
+
+        if parent not in AVAILABLE_ELEMENT_CLASSES:
+            if parent in self.parser.global_elements:
+                raise SyntaxError(
+                    f'Cloning elements while overriding parameters is not yet '
+                    f'supported in the line.'
+                )
+            raise SyntaxError(f'Unknown element class `{parent}`.')
+
+        element_cls = AVAILABLE_ELEMENT_CLASSES[parent]
+        kwargs = {k: _ref_get_value(v) for k, v in args}
+        element = element_cls.from_dict(kwargs, _context=self.parser._context)
+        self.element_dict[name] = element
+        element_ref = self.parser.element_refs[self.name][name]
+
+        for k, v in args:
+            if isinstance(v, list):
+                list_ref = getattr(element_ref, k)
+                for i, le in enumerate(v):
+                    if xd.refs.is_ref(le):
+                        list_ref[i] = le
+            elif xd.refs.is_ref(v):
+                setattr(element_ref, k, v)
 
 
 @cy.cclass
@@ -149,6 +216,8 @@ class Parser:
     func_refs = cy.declare(object, visibility='public')
     lines = cy.declare(dict, visibility='public')
     global_elements = cy.declare(dict, visibility='public')
+
+    _current_line_template = cy.declare(object, visibility='public')
     _context = cy.declare(object, visibility='public')
 
     def __init__(self, _context=xo.context_default):
@@ -169,6 +238,7 @@ class Parser:
         self.lines = {}
         self.global_elements = {}
 
+        self._current_line_template = None
         self._context = _context
         # So we do something interesting here: the objective is that we want to
         # keep a pointer to the parser object on the C side. However, for
@@ -275,74 +345,30 @@ class Parser:
     def add_global_element(self, name, parent, args):
         self.global_elements[name] = (parent, args)
 
-    def add_line(self, line_name, elements, params):
-        try:
-            if elements is None or params is None:
-                # A parsing error occurred, and we're in recovery.
-                # Let's give up on making the line, it won't be any good anyway.
-                return
+    def open_line(self, line_template):
+        line_template.set_parser(self)
+        self._current_line_template = line_template
 
-            self.elements[line_name] = local_elements = {}
-            element_names = []
+    def commit_line(self, line_template):
+        if line_template is not self._current_line_template:
+           self.handle_error('internal error occurred when building the line')
+        self._current_line_template = None
 
-            for el_template in elements:
-                if el_template is None:
-                    # A parsing error occurred and has been registered already.
-                    # Ignore this element.
-                    continue
+        line_name = line_template.name
+        line = xt.Line(
+            elements=line_template.element_dict,
+            element_names=line_template.element_names,
+        )
+        line._var_management = {}
+        line._var_management['data'] = {}
+        line._var_management['data']['var_values'] = self.vars
+        line._var_management['data']['functions'] = self.functions
 
-                name, parent, args = el_template
-
-                self.add_element_to_line(line_name, name, parent, args)
-
-                parent_name = getattr(local_elements[name], 'parent_name', None)
-                if parent_name and parent_name not in local_elements:
-                    self.add_element_to_line(
-                        line_name,
-                        parent_name,
-                        *self.global_elements[parent_name],
-                    )
-
-                element_names.append(name)
-
-            line = xt.Line(
-                elements=self.elements[line_name],
-                element_names=element_names,
-            )
-            line._var_management = {}
-            line._var_management['data'] = {}
-            line._var_management['data']['var_values'] = self.vars
-            line._var_management['data']['functions'] = self.functions
-
-            line._var_management['manager'] = self.xd_manager
-            line._var_management['vref'] = self.var_refs
-            line._var_management['lref'] = self.element_refs[line_name]
-            line._var_management['fref'] = self.func_refs
-            self.lines[line_name] = line
-        except Exception as e:
-            register_error(self.scanner, e, 'building the sequence')
-
-    def add_element_to_line(self, line_name, name, parent, args):
-        local_elements = self.elements[line_name]
-
-        if not args and parent not in AVAILABLE_ELEMENT_CLASSES:  # simply insert a replica
-            local_elements[name] = xt.Replica(parent_name=parent)
-            return
-
-        element_cls = AVAILABLE_ELEMENT_CLASSES[parent]
-        kwargs = {k: self._ref_get_value(v) for k, v in args}
-        element = element_cls.from_dict(kwargs, _context=self._context)
-        local_elements[name] = element
-        element_ref = self.element_refs[line_name][name]
-
-        for k, v in args:
-            if isinstance(v, list):
-                list_ref = getattr(element_ref, k)
-                for i, le in enumerate(v):
-                    if xd.refs.is_ref(le):
-                        list_ref[i] = le
-            elif xd.refs.is_ref(v):
-                setattr(element_ref, k, v)
+        line._var_management['manager'] = self.xd_manager
+        line._var_management['vref'] = self.var_refs
+        line._var_management['lref'] = self.element_refs[line_name]
+        line._var_management['fref'] = self.func_refs
+        self.lines[line_name] = line
 
     def get_line(self, name, copy_manager=True):
         """Get a copy of the parsed sequence with the given name.
@@ -407,12 +433,6 @@ class Parser:
             line._var_management = None
 
         return multiline
-
-    @staticmethod
-    def _ref_get_value(value_or_ref):
-        if isinstance(value_or_ref, list):
-            return [getattr(elem, '_value', elem) for elem in value_or_ref]
-        return getattr(value_or_ref, '_value', value_or_ref)
 
 
 def parser_from_scanner(yyscanner) -> Parser:
@@ -489,10 +509,10 @@ def py_assign(scanner, identifier, value):
 
 
 def py_arrow(scanner, source_name, field_name):
-    try:
-        raise NotImplementedError
-    except Exception as e:
-        register_error(scanner, e, f'parsing the arrow syntax')
+    parser = parser_from_scanner(scanner)
+    parser.handle_error(
+        'expressions with -> are not yet implemented'
+    )
 
 
 def py_identifier_atom(scanner, name, location):
@@ -524,13 +544,22 @@ def py_set_value(scanner, assignment, location):
         )
 
 
-def py_make_sequence(scanner, name, args, elements):
+def py_make_sequence(scanner, line_template):
     try:
         parser = parser_from_scanner(scanner)
-        parser.add_line(name.decode(), elements, dict(args))
+        parser.commit_line(line_template)
     except Exception as e:
         register_error(scanner, e, 'parsing a sequence')
 
+
+def py_start_sequence(scanner, name, args, location):
+    try:
+        line_template = LineTemplate(name.decode(), args, location)
+        parser = parser_from_scanner(scanner)
+        parser.open_line(line_template)
+        return line_template
+    except Exception as e:
+        register_error(scanner, e, 'parsing a sequence header')
 
 def py_clone(scanner, name, parent, args) -> Optional[Tuple[str, str, dict]]:
     try:
@@ -542,6 +571,18 @@ def py_clone(scanner, name, parent, args) -> Optional[Tuple[str, str, dict]]:
         return name.decode(), parent.decode(), args
     except Exception as e:
         register_error(scanner, e, 'parsing a clone statement')
+
+
+def py_new_element(scanner, line_template, element):
+    if line_template is None:  # An error in the sequence header already occurred
+        return None
+
+    try:
+        line_template.add_element(*element)
+    except Exception as e:
+        register_error(scanner, e, 'building a new element')
+
+    return line_template
 
 
 def py_clone_global(scanner, clone):

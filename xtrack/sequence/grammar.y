@@ -110,7 +110,7 @@
 %token ARROW			"->"
 
 // Nonterminal (rule) types
-%type <object> clone argument
+%type <object> clone argument start_sequence
 %type <object> argument_assign flag variable_assign
 %type <object> atom power product sum
 %type <object> arguments elements array scalar_list
@@ -118,7 +118,7 @@
 // Clean up token values on error
 %destructor { free($$); } IDENTIFIER STRING_LITERAL
 // Clean up the python lists we create as part of grammar actions
-%destructor { Py_DECREF($$); } elements arguments array scalar_list
+%destructor { Py_DECREF($$); } arguments array scalar_list
 
 // Associativity rules
 %left ADD SUB
@@ -176,20 +176,37 @@ argument_assign
 		}
 
 sequence
-	: IDENTIFIER COLON STARTSEQUENCE arguments SEMICOLON
+	: start_sequence
 	  elements
 	  ENDSEQUENCE SEMICOLON		{
-	  		py_make_sequence(yyscanner, $1, $4, $6);
-	  		free($1);
+	  		py_make_sequence(yyscanner, $1);
+	  		// Unfortunately we must handle the reference counting
+	  		// of the LineTemplate object here: it is leaving the
+	  		// "C scope" and we don't need it anymore.
+	  		Py_XDECREF($1);
 	  	}
 
+start_sequence
+	: IDENTIFIER COLON STARTSEQUENCE arguments SEMICOLON	{
+			$$ = py_start_sequence(yyscanner, $1, $4, @$);
+			free($1);
+		}
+
 elements
-	: clone				{ $$ = PyList_New(0); PyList_Append($$, $1); }
-	| elements clone		{ PyList_Append($1, $2); $$ = $1; }
+	: clone				{
+			$$ = py_new_element(yyscanner, $<object>0, $1);
+			// Handling the reference counting, see `sequence`
+			Py_XDECREF($$);
+		}
+	| elements clone		{
+			$$ = py_new_element(yyscanner, $1, $2);
+			// Handling the reference counting, see `sequence`
+			Py_XDECREF($$);
+		}
 	| error SEMICOLON  		{
 			// Recover from a bad line without breaking the
 			// sequence (otherwise falls back to `statement`).
-			$$ = PyList_New(0);
+			$$ = $<object>0;
 		}
 
 array
@@ -225,7 +242,6 @@ atom
 	| ADD atom			{ $$ = $2; }
 	| PAREN_OPEN sum PAREN_CLOSE	{ $$ = $2; }
 	| IDENTIFIER			{ $$ = py_identifier_atom(yyscanner, $1, @1); free($1); }
-	| IDENTIFIER ARROW IDENTIFIER	{ $$ = py_arrow(yyscanner, $1, $3); free($1); free($3); }
 	| IDENTIFIER PAREN_OPEN sum PAREN_CLOSE	{ $$ = py_call_func(yyscanner, $1, $3); free($1); }
 	| PAREN_OPEN error PAREN_CLOSE  {
 			// Recover from an error in brackets.
