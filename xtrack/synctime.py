@@ -47,8 +47,8 @@ class SyncTime:
         # Check if some particles are too fast
         mask_too_fast = mask_alive & (
             particles.zeta > zeta_min + self.circumference * beta0_beta1)
-        if mask_too_fast.any():
-            raise ValueError('Some particles move faster than the time window')
+        # if mask_too_fast.any():
+        #     raise ValueError('Some particles move faster than the time window')
 
         # Update zeta for particles that are stopped
         particles.zeta[mask_stop] += beta0_beta1 * self.circumference
