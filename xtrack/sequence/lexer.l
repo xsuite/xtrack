@@ -55,8 +55,8 @@ IDENTIFIER          [A-Za-z_$][A-Za-z0-9_\.$]*
 ")"                 { return PAREN_CLOSE; }
 "{"                 { return BRACE_OPEN; }
 "}"                 { return BRACE_CLOSE; }
-"sequence"          { return STARTSEQUENCE; }
-"endsequence"       { return ENDSEQUENCE; }
+"beamline"          { return STARTLINE;}
+"endbeamline"       { return ENDLINE; }
 ":"                 { return COLON; }
 ","                 { return COMMA; }
 ";"                 { return SEMICOLON; }

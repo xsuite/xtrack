@@ -90,11 +90,11 @@ class XMadWriter:
     def _write_line(self, stream, name, line):
         formatter = XldFormatter(scope=line.element_refs)
 
-        stream.write(f'{name}: sequence;\n')
+        stream.write(f'{name}: beamline;\n')
         for element_name, element in line.items():
             self._write_element(stream, element_name, line, formatter, level=1)
 
-        stream.write(f'endsequence;\n')
+        stream.write(f'endbeamline;\n')
 
     def _write_templates(self, stream):
         formatter = XldFormatter(scope=None)

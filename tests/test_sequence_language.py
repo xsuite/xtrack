@@ -117,9 +117,9 @@ def test_unfinished_string_error_wont_suppress_next():
 def test_minimal():
     sequence = """\
     x = 1;
-    line: sequence;
+    line: beamline;
         elm_a: Drift, length = x;
-    endsequence;
+    endbeamline;
     """
 
     parser = Parser(_context=xo.context_default)
@@ -135,7 +135,7 @@ def test_line():
     k = 3;
     k2 = 4;
 
-    line: sequence;
+    line: beamline;
         elm_a: Drift, length = 1;
         elm_b: Drift, length = dr_len;
         elm_c: Bend,
@@ -146,7 +146,7 @@ def test_line():
             edge_entry_model = "linear",
             -edge_exit_active,
             model = "adaptive";
-    endsequence;
+    endbeamline;
     """
 
     parser = Parser(_context=xo.context_default)
@@ -183,23 +183,23 @@ def test_multiline_simple_match():
     h = angle / cell_l;
     k0 = h;
     
-    silly1: sequence;
+    silly1: beamline {
         b1: Bend, k0 = k0, h = h, length = cell_l;
         qf1: Multipole, knl = {0, knl_f};
         d12u: Drift, length = cell_l / 2;
         m12: Marker;
         d12d: Drift, length = cell_l / 2;
         qd2: Multipole, knl = {0, knl_d};
-    endsequence;
+    };
 
-    silly2: sequence;
+    silly2: beamline {
         b1: Bend, k0 = k0, h = h, length = cell_l;
         qf1: Multipole, knl = {0, knl_f};
         d12u: Drift, length = cell_l / 2;
         m12: Marker;
         d12d: Drift, length = cell_l / 2;
         qd2: Multipole, knl = {0, knl_d};
-    endsequence;
+    };
     """
     target_tunes = (.21, .17)
 
@@ -237,7 +237,7 @@ def test_multiline_read_and_dump(tmp_path):
         h = (angle / cell_l);
         k0 = h;
         
-        silly1: sequence;
+        silly1: beamline;
             b1: Bend, 
                 length = cell_l,
                 k0 = k0,
@@ -251,9 +251,9 @@ def test_multiline_read_and_dump(tmp_path):
             m12: Marker;
             d12d: Drift, length = (cell_l / 2.0);
             qd2: Multipole, knl = {0.0, knl_d};
-        endsequence;
+        endbeamline;
         
-        silly2: sequence;
+        silly2: beamline;
             b1: Bend, 
                 length = cell_l,
                 k0 = k0,
@@ -265,7 +265,7 @@ def test_multiline_read_and_dump(tmp_path):
             qf1: Multipole, knl = {0.0, knl_f};
             d12: Drift, length = cell_l;
             qd2: Multipole, knl = {0.0, knl_d};
-        endsequence;
+        endbeamline;
     """
 
     multiline = xt.Multiline.from_string(sequence, _context=xo.context_default)
@@ -294,9 +294,9 @@ def test_name_shadowing_error():
     sequence = """\
     Marker: Marker;
     
-    line: sequence;
+    line: beamline;
         Bend: Bend, length = 1;
-    endsequence;
+    endbeamline;
     """
 
     parser = Parser(_context=xo.context_default)
@@ -312,17 +312,17 @@ def test_slice_elements():
     sequence = """\
     template: Drift, length = 1.9;
     
-    line: sequence;
+    line: beamline;
         # Test slices that refer to "global" elements
         elm_a: DriftSlice, parent_name = "template", weight = 0.5;
         elm_a: DriftSlice, parent_name = "template", weight = 0.5;
         # This should produce a replica of the template
         elm_c: template;
-    endsequence;
+    endbeamline;
     
-    line2: sequence;
+    line2: beamline;
         elm_a: DriftSlice, parent_name = "template", weight = 1.0;
-    endsequence;
+    endbeamline;
     """
 
     multiline = xt.Multiline.from_string(sequence)
@@ -340,9 +340,9 @@ def test_parsed_line_to_collider(tmp_path, line_name):
     sequence = f"""\
     dr_len = 5;
 
-    {line_name}: sequence;
+    {line_name}: beamline;
         test_element: Drift, length = dr_len;
-    endsequence;
+    endbeamline;
     """
 
     line = xt.Line.from_string(sequence, _context=xo.context_default)
@@ -368,10 +368,10 @@ def test_parsed_line_copy():
     dr_len = 5;
     k = 3;
 
-    line: sequence;
+    line: beamline;
         dr: Drift, length = dr_len;
         mb: Bend, length = 2, knl = {0, 0, 1}, k0 = k;
-    endsequence;
+    endbeamline;
     """
 
     line = xt.Line.from_string(sequence, _context=xo.context_default)
@@ -398,10 +398,10 @@ def test_modify_element_refs_arrow_syntax():
     dr_len = 5;
     k = 3;
 
-    line: sequence;
+    line: beamline;
         dr: Drift, length = dr_len;
         mb: Bend, length = 2, knl = {0, 0, 1}, k0 = k;
-    endsequence;
+    endbeamline;
 
     line->dr->length = dr_len + 1;
     line->mb->k0 = 4;
@@ -415,9 +415,9 @@ def test_modify_element_refs_arrow_syntax():
 
 def test_arrow_syntax_errors():
     sequence = """\
-    line: sequence;
+    line: beamline;
         dr: Drift, length = 2;
-    endsequence;
+    endbeamline;
 
     line2->mb->k0 = 8;
     line->not_there->h = 3;

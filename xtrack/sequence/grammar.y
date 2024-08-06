@@ -79,8 +79,8 @@
 %token PAREN_CLOSE		")"
 %token BRACE_OPEN		"{"
 %token BRACE_CLOSE		"}"
-%token STARTSEQUENCE		"startsequence"
-%token ENDSEQUENCE		"endsequence"
+%token STARTLINE		"beamline"
+%token ENDLINE			"endbeamline"
 %token COLON			":"
 %token COMMA			","
 %token SEMICOLON		";"
@@ -110,7 +110,7 @@
 %token ARROW			"->"
 
 // Nonterminal (rule) types
-%type <object> clone argument start_sequence
+%type <object> clone argument start_line start_line_modern
 %type <object> argument_assign flag variable_assign
 %type <object> atom power product sum reference
 %type <object> arguments elements array scalar_list
@@ -133,48 +133,47 @@ start
 
 statement
 	: set_value
-	| command_stmt
 	| clone				{
 			py_clone_global(yyscanner, $1);
 			Py_XDECREF($1);
 		}
-	| sequence
-	| error SEMICOLON  // Recover from an erroneous line.
+	| line
+	| error ";"  // Recover from an erroneous line.
 
 set_value
-	: variable_assign SEMICOLON	{
+	: variable_assign ";"	{
 			py_set_value(yyscanner, $1, @1);
 			Py_XDECREF($1);
 		}
-	| reference ASSIGN sum SEMICOLON	{
+	| reference "=" sum ";"	{
 			py_set_ref(yyscanner, $1, $3);
 			Py_XDECREF($1);
 			Py_XDECREF($3);
 		}
 
 variable_assign
-	: IDENTIFIER ASSIGN sum		{
+	: IDENTIFIER "=" sum		{
 			$$ = py_assign(yyscanner, $1, $3);
 			free($1);
 			Py_XDECREF($3);
 		}
 
 reference
-	: IDENTIFIER ARROW IDENTIFIER	{
+	: IDENTIFIER "->" IDENTIFIER	{
 			PyObject* ref = py_reference(yyscanner, Py_None, $1, @1);
 			$$ = py_reference(yyscanner, ref, $3, @3);
 			free($1);
 			free($3);
 			Py_XDECREF(ref);
 		}
-	| reference ARROW IDENTIFIER	{
+	| reference "->" IDENTIFIER	{
 			$$ = py_reference(yyscanner, $1, $3, @3);
 			free($3);
 			Py_XDECREF($1);
 		}
 
 clone
-	: IDENTIFIER COLON IDENTIFIER arguments SEMICOLON	{
+	: IDENTIFIER ":" IDENTIFIER arguments ";"	{
 			$$ = py_clone(yyscanner, $1, $3, $4);
 			free($1);
 			free($3);
@@ -182,11 +181,11 @@ clone
 		}
 
 command_stmt
-	: IDENTIFIER arguments SEMICOLON  { free($1); Py_XDECREF($2); }  // TODO
+	: IDENTIFIER arguments ";"  { free($1); Py_XDECREF($2); }  // TODO
 
 arguments
 	: /* empty */			{ $$ = PyList_New(0); }
-	| arguments COMMA argument	{
+	| arguments "," argument	{
 			PyList_Append($1, $3);
 			$$ = $1;
 			Py_XDECREF($3);
@@ -197,32 +196,32 @@ argument
 	| flag				{ $$ = $1; }
 
 flag
-	: ADD IDENTIFIER		{
+	: "+" IDENTIFIER		{
 			$$ = py_assign(yyscanner, $2, Py_True);
 			free($2);
 		}
-	| SUB IDENTIFIER		{
+	| "-" IDENTIFIER		{
 			$$ = py_assign(yyscanner, $2, Py_False);
 			free($2);
 		}
 
 argument_assign
-	: IDENTIFIER ASSIGN array	{
+	: IDENTIFIER "=" array	{
 			$$ = py_assign(yyscanner, $1, $3);
 			free($1); Py_XDECREF($3);
 		}
-	| IDENTIFIER ASSIGN sum		{
+	| IDENTIFIER "=" sum		{
 			$$ = py_assign(yyscanner, $1, $3);
 			free($1); Py_XDECREF($3);
 		}
-	| IDENTIFIER ASSIGN STRING_LITERAL	{
+	| IDENTIFIER "=" STRING_LITERAL	{
 			$$ = py_assign(yyscanner, $1, PyUnicode_FromString($3));
 			free($1);
 			free($3);
 		}
 
-sequence
-	: start_sequence elements ENDSEQUENCE SEMICOLON		{
+line
+	: start_line elements "endbeamline" ";"	{
 			py_make_sequence(yyscanner, $1);
 			// Unfortunately we must handle the reference counting
 			// of the LineTemplate object here: it is leaving the
@@ -230,9 +229,21 @@ sequence
 			Py_XDECREF($1);
 			Py_XDECREF($2);
 		}
+	| start_line_modern elements "}" ";" 	{
+			py_make_sequence(yyscanner, $1);
+			Py_XDECREF($1);
+			Py_XDECREF($2);
+		}
 
-start_sequence
-	: IDENTIFIER COLON STARTSEQUENCE arguments SEMICOLON	{
+start_line
+	: IDENTIFIER ":" "beamline" arguments ";"	{
+			$$ = py_start_sequence(yyscanner, $1, $4, @$);
+			free($1);
+			Py_XDECREF($4);
+		}
+
+start_line_modern
+	: IDENTIFIER ":" "beamline" arguments "{"	{
 			$$ = py_start_sequence(yyscanner, $1, $4, @$);
 			free($1);
 			Py_XDECREF($4);
@@ -240,6 +251,8 @@ start_sequence
 
 elements
 	: clone				{
+			// $<object>0 is the LineTemplate object taken from the
+			// top of the stack, which is the result of `start_line`
 			$$ = py_new_element(yyscanner, $<object>0, $1);
 			// Handling the reference counting, see `sequence`
 			Py_XDECREF($$);
@@ -258,8 +271,8 @@ elements
 		}
 
 array
-	: BRACE_OPEN scalar_list BRACE_CLOSE { $$ = $2; }
-	| BRACE_OPEN error BRACE_CLOSE  {
+	: "{" scalar_list "}" { $$ = $2; }
+	| "{" error "}"  {
 			// Recover from a bad array.
 			$$ = PyList_New(0);
 		}
@@ -269,7 +282,7 @@ scalar_list
 			$$ = PyList_New(0);
 			PyList_Append($$, $1);
 		}
-	| scalar_list COMMA sum		{
+	| scalar_list "," sum		{
 			PyList_Append($1, $3);
 			$$ = $1;
 			Py_XDECREF($3);
@@ -277,12 +290,12 @@ scalar_list
 
 sum
 	: product			{ $$ = $1; }
-	| sum ADD product		{
+	| sum "+" product		{
 			$$ = py_binary_op(yyscanner, "add", $1, $3);
 			Py_XDECREF($1);
 			Py_XDECREF($3);
 		}
-	| sum SUB product		{
+	| sum "-" product		{
 			$$ = py_binary_op(yyscanner, "sub", $1, $3);
 			Py_XDECREF($1);
 			Py_XDECREF($3);
@@ -290,17 +303,17 @@ sum
 
 product
 	: power				{ $$ = $1; }
-	| product MUL power		{
+	| product "*" power		{
 			$$ = py_binary_op(yyscanner, "mul", $1, $3);
 			Py_XDECREF($1);
 			Py_XDECREF($3);
 		}
-	| product DIV power		{
+	| product "/" power		{
 			$$ = py_binary_op(yyscanner, "truediv", $1, $3);
 			Py_XDECREF($1);
 			Py_XDECREF($3);
 		}
-	| product MOD power		{
+	| product "%" power		{
 			$$ = py_binary_op(yyscanner, "mod", $1, $3);
 			Py_XDECREF($1);
 			Py_XDECREF($3);
@@ -308,7 +321,7 @@ product
 
 power
 	: atom				{ $$ = $1; }
-	| power POW atom		{
+	| power "^" atom		{
 			$$ = py_binary_op(yyscanner, "pow", $1, $3);
 			Py_XDECREF($1);
 			Py_XDECREF($3);
@@ -317,22 +330,22 @@ power
 atom
 	: FLOAT				{ $$ = py_float(yyscanner, $1); }
 	| INTEGER			{ $$ = py_integer(yyscanner, $1); }
-	| SUB atom			{
+	| "-" atom			{
 			$$ = py_unary_op(yyscanner, "neg", $2);
 			Py_XDECREF($2);
 		}
-	| ADD atom			{ $$ = $2; }
-	| PAREN_OPEN sum PAREN_CLOSE	{ $$ = $2; }
+	| "+" atom			{ $$ = $2; }
+	| "(" sum ")"			{ $$ = $2; }
 	| IDENTIFIER			{
 			$$ = py_identifier_atom(yyscanner, $1, @1);
 			free($1);
 		}
-	| IDENTIFIER PAREN_OPEN sum PAREN_CLOSE	{
+	| IDENTIFIER "(" sum ")"	{
 			$$ = py_call_func(yyscanner, $1, $3);
 			free($1);
 			Py_XDECREF($3);
 		}
-	| PAREN_OPEN error PAREN_CLOSE  {
+	| "(" error ")"  		{
 			// Recover from an error in brackets.
 			$$ = py_float(yyscanner, NAN);
 		}
