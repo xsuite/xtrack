@@ -51,8 +51,7 @@ def test_parser_expressions():
     test_float = 0. + 1.0e-2 + 43.2 + 5e2 + .6e+4;  # check float parsing
     """
 
-    context = xo.ContextCpu()
-    parser = Parser(_context=context)
+    parser = Parser(_context=xo.context_default)
     parser.parse_string(sequence)
 
     assert parser.vars['a'] == 1
@@ -76,11 +75,12 @@ def test_string_errors():
     yz = "eoauaeoa";
     def = "uehos";
     correct = "hello\\"escaped";
+    x = 12;
+    x = 13;
     unfinished = "hello;
     """
 
-    context = xo.ContextCpu()
-    parser = Parser(_context=context)
+    parser = Parser(_context=xo.context_default)
 
     with pytest.raises(ParseError) as e:
         parser.parse_string(sequence)
@@ -89,8 +89,9 @@ def test_string_errors():
     assert 'line 3 column 10: syntax error, unexpected string' in str(e.value)
     assert 'line 4 column 11: syntax error, unexpected string' in str(e.value)
     assert 'line 5 column 15: syntax error, unexpected string' in str(e.value)
-    assert 'line 6 column 18: unfinished string' in str(e.value)
-    assert 'line 6 column 18: syntax error, unexpected string' in str(e.value)
+    assert 'line 7 column 5: redefinition of the variable `x`' in str(e.value)
+    assert 'line 8 column 18: unfinished string' in str(e.value)
+    assert 'line 8 column 18: syntax error, unexpected string' in str(e.value)
 
 
 @pytest.mark.xfail(reason='Not implemented yet')
@@ -100,8 +101,7 @@ def test_unfinished_string_error_wont_suppress_next():
     yz = "eoauaeoa";
     """
 
-    context = xo.ContextCpu()
-    parser = Parser(_context=context)
+    parser = Parser(_context=xo.context_default)
 
     with pytest.raises(ParseError) as e:
         parser.parse_string(sequence)
@@ -112,6 +112,20 @@ def test_unfinished_string_error_wont_suppress_next():
     # The below error is suppressed by the previous one for some reason, but
     # it should be raised as well. TODO: This is a bug that should be fixed.
     assert 'line 3 column 10: syntax error, unexpected string' in str(e.value)
+
+
+def test_minimal():
+    sequence = """\
+    x = 1;
+    line: sequence;
+        elm_a: Drift, length = x;
+    endsequence;
+    """
+
+    parser = Parser(_context=xo.context_default)
+    parser.parse_string(sequence)
+
+    _ = parser.get_line('line')
 
 
 def test_line():
@@ -135,8 +149,7 @@ def test_line():
     endsequence;
     """
 
-    context = xo.ContextCpu()
-    parser = Parser(_context=context)
+    parser = Parser(_context=xo.context_default)
     parser.parse_string(sequence)
 
     line = parser.get_line('line')
@@ -159,6 +172,7 @@ def test_line():
     assert not elm_c.edge_exit_active
 
     assert line.element_refs['elm_c'].knl[2]._expr == line.vars['k2'] / line.vars['bend_len']
+
 
 def test_multiline_simple_match():
     sequence = """
@@ -189,8 +203,7 @@ def test_multiline_simple_match():
     """
     target_tunes = (.21, .17)
 
-    context = xo.ContextCpu()
-    multiline = xt.Multiline.from_string(sequence, _context=context)
+    multiline = xt.Multiline.from_string(sequence, _context=xo.context_default)
 
     line1 = multiline.silly1
     particle_ref = xt.Particles(p0c=7e9, q0=1, mass0=xt.PROTON_MASS_EV)
@@ -255,8 +268,7 @@ def test_multiline_read_and_dump(tmp_path):
         endsequence;
     """
 
-    context = xo.ContextCpu()
-    multiline = xt.Multiline.from_string(sequence, _context=context)
+    multiline = xt.Multiline.from_string(sequence, _context=xo.context_default)
 
     temp_file = tmp_path / 'test_multiline.xld'
 
@@ -287,8 +299,7 @@ def test_name_shadowing_error():
     endsequence;
     """
 
-    context = xo.ContextCpu()
-    parser = Parser(_context=context)
+    parser = Parser(_context=xo.context_default)
 
     with pytest.raises(ParseError) as e:
         parser.parse_string(sequence)
@@ -334,8 +345,7 @@ def test_parsed_line_to_collider(tmp_path, line_name):
     endsequence;
     """
 
-    context = xo.ContextCpu()
-    line = xt.Line.from_string(sequence, _context=context)
+    line = xt.Line.from_string(sequence, _context=xo.context_default)
 
     multiline = xt.Multiline(lines = {'same_name': line})
 
@@ -364,8 +374,7 @@ def test_parsed_line_copy():
     endsequence;
     """
 
-    context = xo.ContextCpu()
-    line = xt.Line.from_string(sequence, _context=context)
+    line = xt.Line.from_string(sequence, _context=xo.context_default)
     copied_line = line.copy()
 
     line_dict = line.to_dict(include_var_management=True)
@@ -398,10 +407,37 @@ def test_modify_element_refs_arrow_syntax():
     line->mb->k0 = 4;
     """
 
-    context = xo.ContextCpu()
-    line = xt.Line.from_string(sequence, _context=context)
+    line = xt.Line.from_string(sequence, _context=xo.context_default)
 
-    line['dr'].length = 10
-    assert line['dr'].length == 10
+    assert line['dr'].length == 6
+    assert line['mb'].k0 == 4
 
-    line['mb'].k0 = 4
+
+def test_arrow_syntax_errors():
+    sequence = """\
+    line: sequence;
+        dr: Drift, length = 2;
+    endsequence;
+
+    line2->mb->k0 = 8;
+    line->not_there->h = 3;
+    """
+
+    with pytest.raises(ParseError) as e:
+        _ = xt.Line.from_string(sequence, _context=xo.context_default)
+
+    assert 'on line 5 column 5: no such line' in str(e.value)
+    assert 'cannot access `h`' in str(e.value)
+
+
+def test_add_expressions_to_preexisting_line():
+    line = xt.Line(
+        elements={
+            'dr': xt.Drift(length=2),
+            'mb': xt.Bend(length=2, knl=[0, 0, 1], k0=3),
+        },
+        element_names=['dr', 'mb'],
+    )
+    line._init_var_management()
+
+    line.eval('half = 3; dr->length = 2 * half;')

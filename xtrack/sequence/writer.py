@@ -9,7 +9,7 @@ import numpy as np
 
 import xdeps as xd
 import xtrack as xt
-from xdeps.refs import XMadFormatter, is_ref
+from xdeps.refs import XldFormatter, is_ref
 from xdeps.sorting import toposort
 from xtrack.general import _print
 from xtrack.sequence.parser import BUILTIN_CONSTANTS
@@ -48,7 +48,7 @@ class XMadWriter:
             stream.write('\n')
 
     def _write_expressions(self, stream):
-        formatter = XMadFormatter(scope=None)
+        formatter = XldFormatter(scope=None)
 
         wrote_stuff = False
 
@@ -88,7 +88,7 @@ class XMadWriter:
         return wrote_stuff
 
     def _write_line(self, stream, name, line):
-        formatter = XMadFormatter(scope=line.element_refs)
+        formatter = XldFormatter(scope=line.element_refs)
 
         stream.write(f'{name}: sequence;\n')
         for element_name, element in line.items():
@@ -97,7 +97,7 @@ class XMadWriter:
         stream.write(f'endsequence;\n')
 
     def _write_templates(self, stream):
-        formatter = XMadFormatter(scope=None)
+        formatter = XldFormatter(scope=None)
         templates_to_write: Set[Tuple[str, str]] = set()
 
         for line_name, line in self.lines.items():
@@ -154,7 +154,7 @@ class XMadWriter:
 
         stream.write(';\n')
 
-    def _format_arglist(self, args: Dict[str, Any], formatter: XMadFormatter, level) -> str:
+    def _format_arglist(self, args: Dict[str, Any], formatter: XldFormatter, level) -> str:
         formatted_args = []
         for arg_name, arg_value in args.items():
             if arg_value is True:
@@ -180,11 +180,11 @@ class XMadWriter:
         else:
             return f'\n{indent}' + f',\n{indent}'.join(formatted_args)
 
-    def _build_list(self, list_like, formatter: XMadFormatter) -> str:
+    def _build_list(self, list_like, formatter: XldFormatter) -> str:
         return ', '.join(map(self.scalar_to_str(formatter), list_like))
 
     @staticmethod
-    def scalar_to_str(formatter: XMadFormatter):
+    def scalar_to_str(formatter: XldFormatter):
         def _mapper(scalar):
             with np.printoptions(floatmode='unique'):
                 if is_ref(scalar):

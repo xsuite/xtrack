@@ -314,6 +314,13 @@ class Line:
         with open(filename, 'w') as f:
             writer.write(stream=f)
 
+    def eval(self, expression: str):
+        """Evaluate an xld expression in the context of the line."""
+        from xtrack.sequence.parser import Parser
+        parser = Parser(single_line_mode=True)
+        parser.set_existing_line(self, self.name or 'line')
+        parser.parse_string(expression)
+
     @classmethod
     def from_sequence(cls, nodes=None, length=None, elements=None,
                       sequences=None, copy_elements=False,

@@ -134,18 +134,30 @@ start
 statement
 	: set_value
 	| command_stmt
-	| clone				{ py_clone_global(yyscanner, $1); }
+	| clone				{
+			py_clone_global(yyscanner, $1);
+			Py_XDECREF($1);
+		}
 	| sequence
 	| error SEMICOLON  // Recover from an erroneous line.
 
 set_value
-	: variable_assign SEMICOLON	{ py_set_value(yyscanner, $1, @1); }
+	: variable_assign SEMICOLON	{
+			py_set_value(yyscanner, $1, @1);
+			Py_XDECREF($1);
+		}
 	| reference ASSIGN sum SEMICOLON	{
 			py_set_ref(yyscanner, $1, $3);
+			Py_XDECREF($1);
+			Py_XDECREF($3);
 		}
 
 variable_assign
-	: IDENTIFIER ASSIGN sum		{ $$ = py_assign(yyscanner, $1, $3); free($1); }
+	: IDENTIFIER ASSIGN sum		{
+			$$ = py_assign(yyscanner, $1, $3);
+			free($1);
+			Py_XDECREF($3);
+		}
 
 reference
 	: IDENTIFIER ARROW IDENTIFIER	{
@@ -153,34 +165,56 @@ reference
 			$$ = py_reference(yyscanner, ref, $3, @3);
 			free($1);
 			free($3);
+			Py_XDECREF(ref);
 		}
-	| reference ARROW IDENTIFIER	{ $$ = py_reference(yyscanner, $1, $3, @3); free($3); }
+	| reference ARROW IDENTIFIER	{
+			$$ = py_reference(yyscanner, $1, $3, @3);
+			free($3);
+			Py_XDECREF($1);
+		}
 
 clone
 	: IDENTIFIER COLON IDENTIFIER arguments SEMICOLON	{
 			$$ = py_clone(yyscanner, $1, $3, $4);
 			free($1);
 			free($3);
+			Py_XDECREF($4);
 		}
 
 command_stmt
-	: IDENTIFIER arguments SEMICOLON  { free($1); }  // TODO
+	: IDENTIFIER arguments SEMICOLON  { free($1); Py_XDECREF($2); }  // TODO
 
 arguments
 	: /* empty */			{ $$ = PyList_New(0); }
-	| COMMA argument arguments	{ PyList_Append($3, $2); $$ = $3; }
+	| arguments COMMA argument	{
+			PyList_Append($1, $3);
+			$$ = $1;
+			Py_XDECREF($3);
+		}
 
 argument
 	: argument_assign		{ $$ = $1; }
 	| flag				{ $$ = $1; }
 
 flag
-	: ADD IDENTIFIER		{ $$ = py_assign(yyscanner, $2, Py_True); free($2); }
-	| SUB IDENTIFIER		{ $$ = py_assign(yyscanner, $2, Py_False); free($2); }
+	: ADD IDENTIFIER		{
+			$$ = py_assign(yyscanner, $2, Py_True);
+			free($2);
+		}
+	| SUB IDENTIFIER		{
+			$$ = py_assign(yyscanner, $2, Py_False);
+			free($2);
+		}
 
 argument_assign
-	: IDENTIFIER ASSIGN array	{ $$ = py_assign(yyscanner, $1, $3); free($1); }
-	| IDENTIFIER ASSIGN sum		{ $$ = py_assign(yyscanner, $1, $3); free($1); }
+	: IDENTIFIER ASSIGN array	{
+			$$ = py_assign(yyscanner, $1, $3);
+			free($1); Py_XDECREF($3);
+		}
+	| IDENTIFIER ASSIGN sum		{
+			$$ = py_assign(yyscanner, $1, $3);
+			free($1); Py_XDECREF($3);
+		}
 	| IDENTIFIER ASSIGN STRING_LITERAL	{
 			$$ = py_assign(yyscanner, $1, PyUnicode_FromString($3));
 			free($1);
@@ -188,20 +222,20 @@ argument_assign
 		}
 
 sequence
-	: start_sequence
-	  elements
-	  ENDSEQUENCE SEMICOLON		{
-	  		py_make_sequence(yyscanner, $1);
-	  		// Unfortunately we must handle the reference counting
-	  		// of the LineTemplate object here: it is leaving the
-	  		// "C scope" and we don't need it anymore.
-	  		Py_XDECREF($1);
-	  	}
+	: start_sequence elements ENDSEQUENCE SEMICOLON		{
+			py_make_sequence(yyscanner, $1);
+			// Unfortunately we must handle the reference counting
+			// of the LineTemplate object here: it is leaving the
+			// "C scope" and we don't need it anymore.
+			Py_XDECREF($1);
+			Py_XDECREF($2);
+		}
 
 start_sequence
 	: IDENTIFIER COLON STARTSEQUENCE arguments SEMICOLON	{
 			$$ = py_start_sequence(yyscanner, $1, $4, @$);
 			free($1);
+			Py_XDECREF($4);
 		}
 
 elements
@@ -209,11 +243,13 @@ elements
 			$$ = py_new_element(yyscanner, $<object>0, $1);
 			// Handling the reference counting, see `sequence`
 			Py_XDECREF($$);
+			Py_XDECREF($1);
 		}
 	| elements clone		{
 			$$ = py_new_element(yyscanner, $1, $2);
 			// Handling the reference counting, see `sequence`
-			Py_XDECREF($$);
+			Py_XDECREF($1);
+			Py_XDECREF($2);
 		}
 	| error SEMICOLON  		{
 			// Recover from a bad line without breaking the
@@ -229,36 +265,76 @@ array
 		}
 
 scalar_list
-	: sum				{ $$ = PyList_New(0); PyList_Append($$, $1); }
-	| scalar_list COMMA sum		{ PyList_Append($1, $3); $$ = $1; }
+	: sum				{
+			$$ = PyList_New(0);
+			PyList_Append($$, $1);
+		}
+	| scalar_list COMMA sum		{
+			PyList_Append($1, $3);
+			$$ = $1;
+			Py_XDECREF($3);
+		}
 
 sum
 	: product			{ $$ = $1; }
-	| sum ADD product		{ $$ = py_binary_op(yyscanner, "add", $1, $3); }
-	| sum SUB product		{ $$ = py_binary_op(yyscanner, "sub", $1, $3); }
+	| sum ADD product		{
+			$$ = py_binary_op(yyscanner, "add", $1, $3);
+			Py_XDECREF($1);
+			Py_XDECREF($3);
+		}
+	| sum SUB product		{
+			$$ = py_binary_op(yyscanner, "sub", $1, $3);
+			Py_XDECREF($1);
+			Py_XDECREF($3);
+		}
 
 product
 	: power				{ $$ = $1; }
-	| product MUL power		{ $$ = py_binary_op(yyscanner, "mul", $1, $3); }
-	| product DIV power		{ $$ = py_binary_op(yyscanner, "truediv", $1, $3); }
-	| product MOD power		{ $$ = py_binary_op(yyscanner, "mod", $1, $3); }
+	| product MUL power		{
+			$$ = py_binary_op(yyscanner, "mul", $1, $3);
+			Py_XDECREF($1);
+			Py_XDECREF($3);
+		}
+	| product DIV power		{
+			$$ = py_binary_op(yyscanner, "truediv", $1, $3);
+			Py_XDECREF($1);
+			Py_XDECREF($3);
+		}
+	| product MOD power		{
+			$$ = py_binary_op(yyscanner, "mod", $1, $3);
+			Py_XDECREF($1);
+			Py_XDECREF($3);
+		}
 
 power
 	: atom				{ $$ = $1; }
-	| power POW atom		{ $$ = py_binary_op(yyscanner, "pow", $1, $3); }
+	| power POW atom		{
+			$$ = py_binary_op(yyscanner, "pow", $1, $3);
+			Py_XDECREF($1);
+			Py_XDECREF($3);
+		}
 
 atom
 	: FLOAT				{ $$ = py_float(yyscanner, $1); }
 	| INTEGER			{ $$ = py_integer(yyscanner, $1); }
-	| SUB atom			{ $$ = py_unary_op(yyscanner, "neg", $2); }
+	| SUB atom			{
+			$$ = py_unary_op(yyscanner, "neg", $2);
+			Py_XDECREF($2);
+		}
 	| ADD atom			{ $$ = $2; }
 	| PAREN_OPEN sum PAREN_CLOSE	{ $$ = $2; }
-	| IDENTIFIER			{ $$ = py_identifier_atom(yyscanner, $1, @1); free($1); }
-	| IDENTIFIER PAREN_OPEN sum PAREN_CLOSE	{ $$ = py_call_func(yyscanner, $1, $3); free($1); }
+	| IDENTIFIER			{
+			$$ = py_identifier_atom(yyscanner, $1, @1);
+			free($1);
+		}
+	| IDENTIFIER PAREN_OPEN sum PAREN_CLOSE	{
+			$$ = py_call_func(yyscanner, $1, $3);
+			free($1);
+			Py_XDECREF($3);
+		}
 	| PAREN_OPEN error PAREN_CLOSE  {
 			// Recover from an error in brackets.
 			$$ = py_float(yyscanner, NAN);
 		}
-
 
 %%

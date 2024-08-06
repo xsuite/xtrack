@@ -12,6 +12,13 @@ def assert_context_empty(context):
     """
     gc.collect()
     alive_buffer_count = sum(b.alive for b in context.buffers)
+
+    # Define a helper function to use when debugging this error.
+    def referrers_tree(depth=10):
+        import objgraph
+        objgraph.show_backrefs([b for b in context.buffers if b.alive][0].peek(),
+                               max_depth=depth, filename='/tmp/objgraph.pdf')
+
     if alive_buffer_count > 0:
         pytest.fail(f"There were {alive_buffer_count} active buffers after a "
                     f"test run, which points to a memory leak during the test "

@@ -18,7 +18,7 @@ from cython.cimports.xtrack.sequence import parser as xld  # noqa
 import xdeps as xd
 import xobjects as xo
 import xtrack as xt
-from xdeps.refs import CallRef, LiteralExpr, XMadFormatter
+from xdeps.refs import CallRef, LiteralExpr, XldFormatter
 from xtrack.beam_elements import element_classes as xt_element_classes
 import xtrack.sequence.string_formatting as fmt
 
@@ -57,6 +57,15 @@ try:
     AVAILABLE_ELEMENT_CLASSES.update({cls.__name__: cls for cls in xc_element_classes})
 except ModuleNotFoundError:
     pass
+
+
+class InvalidExpression:
+    """A placeholder class for when an expression is expected but no valid
+    expression can be given."""
+    @classmethod
+    def _set_to_expr(cls, _):
+        """A bad expression error was reported by this point; do nothing."""
+        pass
 
 
 @cy.cfunc
@@ -190,7 +199,7 @@ class LineTemplate:
         element_cls = AVAILABLE_ELEMENT_CLASSES[parent]
         kwargs = {k: _ref_get_value(v) for k, v in args}
         element = element_cls.from_dict(kwargs, _context=self.parser._context)
-        self.element_dict[name] = element
+        self.element_dict[name] = element  # this enables the leak somehow
         element_ref = self.parser.element_refs[self.name][name]
 
         for k, v in args:
@@ -219,14 +228,16 @@ class Parser:
 
     _current_line_template = cy.declare(object, visibility='public')
     _context = cy.declare(object, visibility='public')
+    _single_line_mode: bool
 
-    def __init__(self, _context=xo.context_default):
+    def __init__(self, single_line_mode=False, _context=xo.context_default):
         self.log = []
 
         self.xd_manager = xd.Manager()
 
-        self.vars = defaultdict(lambda: 0)
-        self.vars.default_factory = None
+        # This is apparently expected in xt.Line, so we provide it instead of {}
+        self.vars = defaultdict(lambda: None)
+
         self.var_refs = self.xd_manager.ref(self.vars, 'vars')
 
         self.elements = {}
@@ -240,6 +251,7 @@ class Parser:
 
         self._current_line_template = None
         self._context = _context
+        self._single_line_mode = single_line_mode
         # So we do something interesting here: the objective is that we want to
         # keep a pointer to the parser object on the C side. However, for
         # reasons yet unknown, in the process of passing the pointer to C and
@@ -339,7 +351,13 @@ class Parser:
         except Exception as e:
             register_error(self.scanner, e, 'getting an identifier reference')
 
-    def set_value(self, identifier, value):
+    def set_value(self, identifier, value, location):
+        if identifier in self.vars:
+            self.handle_warning(
+                f'redefinition of the variable `{identifier}`',
+                add_context=True,
+                location=location,
+            )
         self.var_refs[identifier] = value
 
     def add_global_element(self, name, parent, args):
@@ -383,6 +401,9 @@ class Parser:
         parent: xd.MutableRef
         field: str
         """
+        if parent is InvalidExpression:
+            return InvalidExpression
+
         def _error(message):
             self.handle_error(message, add_context=True, location=location)
 
@@ -391,19 +412,28 @@ class Parser:
             # line/sequence, so this should not ever happen
             assert self._current_line_template is None
 
-            if field not in self.elements:
-                _error(f"no such line `{field}`")
+            if field not in self.elements and not self._single_line_mode:
+                _error(f"no such line/sequence: `{field}`")
+                return InvalidExpression
 
             return self.element_refs[field]
 
-        if isinstance(parent._value, dict):
+        try:
+            parent_value = parent._value
+        except (KeyError, AttributeError):
+            formatter = XldFormatter(scope=self.element_refs['line'])
+            _error(f"cannot access `{field}` as "
+                   f"`{parent._formatted(formatter)}` does not exist")
+            return InvalidExpression
+
+        if isinstance(parent_value, dict):
             return parent[field]
 
-        if isinstance(parent._value, list):
+        if isinstance(parent_value, list):
             try:
                 return parent[int(field)]
             except ValueError:
-                formatter = XMadFormatter(scope=None)
+                formatter = XldFormatter(scope=None)
                 _error(f"`{parent._formatted(formatter)}` is a list, an "
                        f"integer was expected instead of `{field}`")
 
@@ -457,6 +487,22 @@ class Parser:
         )
 
         return line
+
+    def set_existing_line(self, line, name):
+        if self.lines or not self._single_line_mode:
+            raise ValueError(
+                'An existing line can only be added to a fresh parser in single '
+                'line mode. This parser either has `_single_line_mode` set to '
+                'False or `set_existing_line` method has been called before.'
+            )
+        self.xd_manager = line._xdeps_manager
+        self.lines[name] = line
+        self.elements[name] = line.element_dict
+        self.element_refs = line.element_refs
+        self.vars = line._var_management['data']['var_values']
+        self.var_refs = line._var_management['vref']
+        self.functions = line._var_management['data']['functions']
+        self.func_refs = line._var_management['fref']
 
     def get_multiline(self):
         multiline = xt.Multiline(lines=self.lines, link_vars=False)
@@ -576,7 +622,7 @@ def py_set_value(scanner, assignment, location):
                 add_context=False,
                 location=location,
             )
-        parser.set_value(identifier, value)
+        parser.set_value(identifier, value, location)
     except Exception as e:
         register_error(
             scanner, e, 'parsing a deferred assign statement',
