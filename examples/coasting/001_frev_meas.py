@@ -4,15 +4,15 @@ import xtrack as xt
 
 from scipy.constants import c as clight
 
-delta0 = 1e-2
+delta0 = 0 #-1e-2
 delta_range = 0
-num_turns=200
-num_particles = 50000
+num_turns=100
+num_particles = 100_000
 
-delta0 = -1e-2
-delta_range = 0
-num_turns=20
-num_particles = 50000
+# delta0 = 1e-2
+# delta_range = 0
+# num_turns=20
+# num_particles = 5_000_000
 
 # # To see the different number of turns
 # delta0 = 0e-2
