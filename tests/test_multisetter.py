@@ -116,3 +116,22 @@ def test_custom_setter_fast_dipole(test_context):
     assert line['df1'].knl[0] == 1.1
     assert line['df2'].knl[0] == 1.2
     assert line['df3'].knl[0] == 1.3
+
+
+@for_all_test_contexts
+def test_custom_setter_empty(test_context):
+    line = xt.Line(elements={
+            'dr1': xt.Drift(length=1.),
+            'dr2': xt.Drift(length=1.),
+            'dr3': xt.Drift(length=1.),
+        },
+        element_names=['dr1', 'dr2', 'dr3', 'dr1'],
+    )
+
+    line.build_tracker(_context=test_context)
+    qf_setter = xt.MultiSetter(line, [], field='knl', index=0)
+
+    ctx2np = test_context.nparray_from_context_array
+
+    values = qf_setter.get_values()
+    assert not np.size(ctx2np(values))

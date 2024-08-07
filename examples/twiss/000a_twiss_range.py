@@ -3,100 +3,75 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-import numpy as np
-
 import xtrack as xt
-import xpart as xp
 
-collider = xt.Multiline.from_json(
-    '../../test_data/hllhc15_collider/collider_00_from_mad.json')
-collider.build_trackers()
+# Load a line and build tracker
+line = xt.Line.from_json(
+    '../../test_data/hllhc15_noerrors_nobb/line_and_particle.json')
+line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, energy0=7e12)
+line.build_tracker()
 
-collider.lhcb1.twiss_default['method'] = '4d'
-collider.lhcb2.twiss_default['method'] = '4d'
-collider.lhcb2.twiss_default['reverse'] = True
+# Periodic twiss
+tw_p = line.twiss()
 
-collider.vars['kqs.a23b1'] = 1e-4
-collider.lhcb1['mq.10l3.b1..2'].knl[0] = 2e-6
-collider.lhcb1['mq.10l3.b1..2'].ksl[0] = -1.5e-6
+# Twiss over a range with user-defined initial conditions (at start)
+tw1 = line.twiss(start='ip5', end='mb.c24r5.b1',
+                betx=0.15, bety=0.15, py=1e-6)
 
-collider.vars['kqs.a23b2'] = -1e-4
-collider.lhcb2['mq.10l3.b2..2'].knl[0] = 3e-6
-collider.lhcb2['mq.10l3.b2..2'].ksl[0] = -1.3e-6
 
-line = collider.lhcb2
-line_name = 'lhcb2'
+# Twiss over a range with user-defined initial conditions at end
+tw2 = line.twiss(start='ip5', end='mb.c24r5.b1', init_at=xt.END,
+                alfx=3.50482, betx=131.189, alfy=-0.677173, bety=40.7318,
+                dx=1.22515, dpx=-0.0169647)
 
-# line = collider.lhcb1
-# line_name = 'lhcb1'
+# Twiss over a range with user-defined initial conditions at arbitrary location
+tw3 = line.twiss(start='ip5', end='mb.c24r5.b1', init_at='mb.c14r5.b1',
+                 alfx=-0.437695, betx=31.8512, alfy=-6.73282, bety=450.454,
+                 dx=1.22606, dpx=-0.0169647)
 
-atols = dict(
-    alfx=1e-8, alfy=1e-8,
-    dzeta=2e-7, dx=1e-4, dy=1e-4, dpx=1e-5, dpy=1e-5,
-    nuzeta=1e-5
-)
+# Initial conditions can also be taken from an existing twiss table
+tw4 = line.twiss(start='ip5', end='mb.c24r5.b1', init_at='mb.c14r5.b1',
+                 init=tw_p)
 
-rtols = dict(
-    alfx=5e-9, alfy=5e-8,
-    betx=5e-9, bety=5e-9, betx1=5e-9, bety2=5e-9, betx2=1e-8, bety1=1e-8,
-    gamx=5e-9, gamy=5e-9,
-)
+# More explicitly, a `TwissInit` object can be extracted from the twiss table
+# and used as initial conditions
+tw_init = tw_p.get_twiss_init('mb.c14r5.b1',)
+tw5 = line.twiss(start='ip5', end='mb.c24r5.b1', init=tw_init)
 
-atol_default = 1e-11
-rtol_default = 1e-9
 
-for line_name, line in zip(['lhcb1', 'lhcb2'], [collider.lhcb1, collider.lhcb2]):
+#!end-doc-part
 
-    tw = line.twiss(r_sigma=0.01)
+# Plot
 
-    tw_init_ip5 = tw.get_twiss_init('ip5')
-    tw_init_ip6 = tw.get_twiss_init('ip6')
+# Choose the twiss to plot
+tw = tw5
 
-    tw_forward = line.twiss(ele_start='ip5', ele_stop='ip6',
-                            twiss_init=tw_init_ip5)
+import matplotlib.pyplot as plt
+plt.close('all')
 
-    tw_backward = line.twiss(ele_start='ip5', ele_stop='ip6',
-                            twiss_init=tw_init_ip6)
+fig1 = plt.figure(1, figsize=(6.4, 4.8*1.5))
+spbet = plt.subplot(3,1,1)
+spco = plt.subplot(3,1,2, sharex=spbet)
+spdisp = plt.subplot(3,1,3, sharex=spbet)
 
-    assert tw_init_ip5.reference_frame == (
-        {'lhcb1': 'proper', 'lhcb2': 'reverse'}[line_name])
-    assert tw_init_ip5.element_name == 'ip5'
+spbet.plot(tw.s, tw.betx)
+spbet.plot(tw.s, tw.bety)
+spbet.set_ylabel(r'$\beta_{x,y}$ [m]')
 
-    tw_part = tw.rows['ip5':'ip6']
-    assert tw_part.name[0] == 'ip5'
-    assert tw_part.name[-1] == 'ip6'
+spco.plot(tw.s, tw.x)
+spco.plot(tw.s, tw.y)
+spco.set_ylabel(r'(Closed orbit)$_{x,y}$ [m]')
 
-    for check, tw_test in zip(('fw', 'bw'), [tw_forward, tw_backward]):
+spdisp.plot(tw.s, tw.dx)
+spdisp.plot(tw.s, tw.dy)
+spdisp.set_ylabel(r'$D_{x,y}$ [m]')
+spdisp.set_xlabel('s [m]')
 
-        print(f'Checking {line_name} {check}')
+for nn in ['ip5', 'mb.c14r5.b1', 'mb.c24r5.b1']:
+    for ax in [spbet, spco, spdisp]:
+        ax.axvline(tw_p['s', nn], color='k', ls='--', alpha=.5)
+    spbet.text(tw_p['s', nn], 22000, nn, rotation=90,
+        horizontalalignment='right', verticalalignment='top', alpha=.5)
 
-        assert tw_test.name[-1] == '_end_point'
-
-        tw_test = tw_test.rows[:-1]
-        assert np.all(tw_test.name == tw_part.name)
-
-        for kk in tw_test._data.keys():
-            if kk in ['name', 'W_matrix', 'particle_on_co', 'values_at', 'method',
-                    'radiation_method', 'reference_frame', 'orientation']:
-                continue # tested separately
-            atol = atols.get(kk, atol_default)
-            rtol = rtols.get(kk, rtol_default)
-            assert np.allclose(
-                tw_test._data[kk], tw_part._data[kk], rtol=rtol, atol=atol)
-
-        assert tw_test.values_at == tw_part.values_at == 'entry'
-        assert tw_test.method == tw_part.method == '4d'
-        assert tw_test.radiation_method == tw_part.radiation_method == 'full'
-        assert tw_test.reference_frame == tw_part.reference_frame == (
-            {'lhcb1': 'proper', 'lhcb2': 'reverse'}[line_name])
-
-        W_matrix_part = tw_part.W_matrix
-        W_matrix_test = tw_test.W_matrix
-
-        for ss in range(W_matrix_part.shape[0]):
-            this_part = W_matrix_part[ss, :, :]
-            this_test = W_matrix_test[ss, :, :]
-
-            for ii in range(this_part.shape[1]):
-                assert np.isclose((np.linalg.norm(this_part[ii, :] - this_test[ii, :])
-                                /np.linalg.norm(this_part[ii, :])), 0, atol=2e-4)
+fig1.subplots_adjust(left=.15, right=.92, hspace=.27)
+plt.show()

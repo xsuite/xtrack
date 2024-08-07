@@ -8,7 +8,6 @@ import numpy as np
 
 import xtrack as xt
 import xobjects as xo
-import xpart as xp
 
 # Display debug information .         #!skip-doc
 logger = logging.getLogger('xtrack')  #!skip-doc
@@ -34,6 +33,9 @@ aper_1 = xt.LimitRect(_buffer=buf, min_x=-1e-2, max_x=1e-2,
                                    min_y=-2e-2, max_y=2e-2)
 shift_aper_1 = (-5e-3, 1e-2)
 rot_deg_aper_1 = 10.
+aper_1.shift_x = shift_aper_1[0]
+aper_1.shift_y = shift_aper_1[1]
+aper_1.rot_s_rad = np.deg2rad(rot_deg_aper_1)
 
 
 # aper_0_sandwitch
@@ -48,12 +50,9 @@ line_aper_0.build_tracker(_buffer=buf)
 
 # aper_1_sandwitch
 line_aper_1 = xt.Line(
-    elements=[xt.XYShift(_buffer=buf, dx=shift_aper_1[0], dy=shift_aper_1[1]),
-              xt.SRotation(_buffer=buf, angle=rot_deg_aper_1),
-              aper_1,
-              xt.Multipole(_buffer=buf, knl=[0.001]),
-              xt.SRotation(_buffer=buf, angle=-rot_deg_aper_1),
-              xt.XYShift(_buffer=buf, dx=-shift_aper_1[0], dy=-shift_aper_1[1])])
+    elements=[aper_1,
+              xt.Multipole(_buffer=buf, knl=[0.001])
+        ])
 line_aper_1.build_tracker(_buffer=buf)
 
 #################
@@ -71,7 +70,7 @@ line.build_tracker(_buffer=buf)
 num_elements = len(line.element_names)
 
 # Generate test particles
-particles = xp.Particles(_context=ctx,
+particles = xt.Particles(_context=ctx,
             px=np.random.uniform(-0.01, 0.01, 10000),
             py=np.random.uniform(-0.01, 0.01, 10000))
 
@@ -118,7 +117,7 @@ for ii, (ln, poly) in enumerate(
                          zip([line_aper_0, line_aper_1],
                              [polygon_0, polygon_1])):
     part_gen_range = 0.05
-    pp = xp.Particles(
+    pp = xt.Particles(
                     p0c=6500e9,
                     x=np.random.uniform(-part_gen_range, part_gen_range, 10000),
                     y=np.random.uniform(-part_gen_range, part_gen_range, 10000))

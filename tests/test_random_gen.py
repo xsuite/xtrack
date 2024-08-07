@@ -3,15 +3,15 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-from pathlib import Path
-
-import numpy as np
 import copy
 
+import numpy as np
+
 import xobjects as xo
-from xobjects.test_helpers import for_all_test_contexts
-import xtrack as xt
 import xpart as xp
+import xtrack as xt
+from xobjects.test_helpers import for_all_test_contexts
+
 
 @for_all_test_contexts
 def test_random_generation(test_context):
@@ -54,7 +54,7 @@ def test_random_generation(test_context):
         assert np.all(x>0)
         assert np.all(x<1)
         hstgm, bin_edges = np.histogram(x,  bins=50, range=(0, 1), density=True)
-        assert np.allclose(hstgm, 1, rtol=1e-10, atol=0.03)
+        xo.assert_allclose(hstgm, 1, rtol=1e-10, atol=0.03)
 
 
 @for_all_test_contexts
@@ -69,7 +69,7 @@ def test_direct_sampling(test_context):
         assert np.all(samples[i_part]>0)
         assert np.all(samples[i_part]<1)
         hstgm, bin_edges = np.histogram(samples[i_part],  bins=50, range=(0, 1), density=True)
-        assert np.allclose(hstgm, 1, rtol=1e-10, atol=0.03)
+        xo.assert_allclose(hstgm, 1, rtol=1e-10, atol=0.03)
 
 
 @for_all_test_contexts

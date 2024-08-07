@@ -16,7 +16,7 @@ import xfields as xf
 # Enable pyheadtail interface #
 ###############################
 
-xp.enable_pyheadtail_interface()
+xt.enable_pyheadtail_interface()
 
 ############
 # Settings #
@@ -40,7 +40,6 @@ nemitt_y=2.5e-6
 n_part=int(1e4)
 num_turns=2
 num_spacecharge_interactions = 540
-tol_spacecharge_position = 1e-2
 
 # mode = 'frozen'
 mode = 'pic'
@@ -82,7 +81,7 @@ line = xt.Line.from_madx_sequence(sequence=mad.sequence[seq_name],
            deferred_expressions=True, install_apertures=True,
            apply_madx_errors=False)
 # Define reference particle
-line.particle_ref = xp.Particles(p0c=p0c,mass0=xp.PROTON_MASS_EV)
+line.particle_ref = xt.Particles(p0c=p0c,mass0=xt.PROTON_MASS_EV)
 
 ################
 # Switch on RF #
@@ -122,7 +121,7 @@ xf.install_spacecharge_frozen(line=line,
                   nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                   sigma_z=sigma_z,
                   num_spacecharge_interactions=num_spacecharge_interactions,
-                  tol_spacecharge_position=tol_spacecharge_position)
+                  )
 
 # Switch to PIC or quasi-frozen
 if mode == 'frozen':

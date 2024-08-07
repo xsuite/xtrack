@@ -8,7 +8,6 @@ import numpy as np
 import sixtracktools
 import xtrack as xt
 import xobjects as xo
-import xpart as xp
 import xfields as xf
 
 # sixtrack_folder = './sixtrack_lhc_no_bb/res_onmom';
@@ -37,7 +36,7 @@ if any(ee.__class__.__name__.startswith('BeamBeam') for ee in line.elements):
     sixdump_CO = sixdump_all[::2][:Nele_st]
     # Get closed-orbit from sixtrack 
     p0c_eV = sixinput.initialconditions[-3] * 1e6
-    part_on_CO = xp.Particles(
+    part_on_CO = xt.Particles(
             p0c=p0c_eV,
             x=sixdump_CO.x[0],
             px=sixdump_CO.px[0],
@@ -70,7 +69,7 @@ s_bench = []
 for ii in range(1, len(iconv)):
     jja = iconv[ii - 1]
     jjb = iconv[ii]
-    prun = xp.Particles.from_dict(_context=context,
+    prun = xt.Particles.from_dict(_context=context,
             dct=sixdump[ii - 1].get_minimal_beam())
     prun.state[0]=1
     prun.reorganize()
@@ -81,7 +80,7 @@ for ii in range(1, len(iconv)):
         #elem.track(prun)
         line.track(particles=prun, ele_start=jj, num_elements=1)
         print(f"{jj} {label},{str(elem)[:50]}")
-    pbench = xp.Particles.from_dict(sixdump[ii].get_minimal_beam())
+    pbench = xt.Particles.from_dict(sixdump[ii].get_minimal_beam())
     s_coord.append(pbench.s)
     x_run.append(prun.x)
     x_bench.append(pbench.x)

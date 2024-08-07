@@ -15,8 +15,7 @@ plt.close('all')
 
 import xobjects as xo
 import xtrack as xt
-import xpart as xp
-xp.enable_pyheadtail_interface()
+xt.enable_pyheadtail_interface()
 
 from PyHEADTAIL.particles.generators import generate_Gaussian6DTwiss
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
@@ -70,8 +69,8 @@ damper = TransverseDamper(dampingrate_x=damping_time, dampingrate_y=damping_time
 damper.needs_cpu = True
 damper.needs_hidden_lost_particles = True
 i_oct = 15.
-detx_x = 1.4e5 * i_oct / 550.0  # from PTC with ATS optics, telescopic factor 1.0
-detx_y = -1.0e5 * i_oct / 550.0
+det_xx = 1.4e5 * i_oct / 550.0  # from PTC with ATS optics, telescopic factor 1.0
+det_xy = -1.0e5 * i_oct / 550.0
 
 # expected octupole threshold with damper is 273A according to https://indico.cern.ch/event/902528/contributions/3798807/attachments/2010534/3359300/20200327_RunIII_stability_NMounet.pdf
 # expected growth rate with damper but without octupole is ~0.3 [$10^{-4}$/turn] (also according to Nicolas' presentation)
@@ -106,10 +105,10 @@ delta0 = np.copy(particles.dp)
 
 chromatic_detuner = ChromaticitySegment(dQp_x=chroma, dQp_y=0.0)
 transverse_detuner = AmplitudeDetuningSegment(
-    dapp_x=detx_x * p0,
-    dapp_y=detx_x * p0,
-    dapp_xy=detx_y * p0,
-    dapp_yx=detx_y * p0,
+    dapp_x=det_xx * p0,
+    dapp_y=det_xx * p0,
+    dapp_xy=det_xy * p0,
+    dapp_yx=det_xy * p0,
     alpha_x=0.0,
     beta_x=beta_x,
     alpha_y=0.0,
@@ -178,7 +177,7 @@ p_pht = particles
 
 ############ xsuite-PyHEADTAIL part (the WakeField instance is shared) ########################
 
-particles = xp.Particles(
+particles = xt.Particles(
     _context=context,
     circumference=circumference,
     particlenumber_per_mp=bunch_intensity / n_macroparticles,
@@ -206,30 +205,19 @@ particles.state[1::2] = 0
 #particles.state[10000:] = 0
 
 
-arc = xt.LinearTransferMatrix(
+arc = xt.LineSegmentMap(
     _context=context,
-    alpha_x_0=0.0,
-    beta_x_0=beta_x,
-    disp_x_0=0.0,
-    alpha_x_1=0.0,
-    beta_x_1=beta_x,
-    disp_x_1=0.0,
-    alpha_y_0=0.0,
-    beta_y_0=beta_y,
-    disp_y_0=0.0,
-    alpha_y_1=0.0,
-    beta_y_1=beta_y,
-    disp_y_1=0.0,
-    Q_x=Q_x,
-    Q_y=Q_y,
-    beta_s=beta_s,
-    Q_s=-Q_s,
-    chroma_x=chroma,
-    chroma_y=0.0,
-    detx_x=detx_x,
-    detx_y=detx_y,
-    dety_y=detx_x,
-    dety_x=detx_y,
+    betx=beta_x,
+    bety=beta_y,
+    qx=Q_x,
+    qy=Q_y,
+    bets=beta_s,
+    qs=Q_s,
+    dqx=chroma,
+    det_xx=det_xx,
+    det_xy=det_xy,
+    det_yy=det_xx,
+    det_yx=det_xy,
     energy_ref_increment=0.0,
     energy_increment=0,
 )

@@ -7,14 +7,13 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
-import xpart as xp
 from pathlib import Path
 
 ctx = xo.ContextCpu()
 #ctx = xo.ContextCupy()
 #ctx = xo.ContextPyopencl()
 
-part = xp.Particles(_context=ctx, p0c=6.5e12, x=[1,2,3])
+part = xt.Particles(_context=ctx, p0c=6.5e12, x=[1,2,3])
 part._init_random_number_generator()
 
 class TestElement(xt.BeamElement):
@@ -59,5 +58,6 @@ for i_part in range(part._capacity):
     plt.ylim(bottom=0, top=1.1)
     plt.grid(True)
     assert np.allclose(hstgm, 1, rtol=1e-10, atol=0.03)
+
 plt.show()
 

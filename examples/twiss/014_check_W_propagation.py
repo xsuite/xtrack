@@ -3,22 +3,19 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-import json
 import numpy as np
 
-import xobjects as xo
 import xtrack as xt
-import xpart as xp
 
 fname_line_particles = '../../test_data/hllhc15_noerrors_nobb/line_and_particle.json'
 line = xt.Line.from_json(fname_line_particles)
-line.particle_ref = xp.Particles(p0c=7e12, mass0=xp.PROTON_MASS_EV)
+line.particle_ref = xt.Particles(p0c=7e12, mass0=xt.PROTON_MASS_EV)
 line.build_tracker()
 
 
 
 tw= line.twiss()
-W_before_propagation, _, _ = xt.linear_normal_form.compute_linear_normal_form(tw.R_matrix)
+W_before_propagation, _, _, _= xt.linear_normal_form.compute_linear_normal_form(tw.R_matrix)
 # tw_full_inverse = line.twiss(use_full_inverse=True)
 
 import matplotlib.pyplot as plt

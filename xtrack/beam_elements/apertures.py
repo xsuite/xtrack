@@ -6,7 +6,6 @@
 import numpy as np
 
 import xobjects as xo
-import xpart as xp
 
 from ..base_element import BeamElement
 from ..general import _pkg_root
@@ -205,20 +204,21 @@ class LimitPolygon(BeamElement):
 
     _kernels = {
         'LimitPolygon_impact_point_and_normal': xo.Kernel(
-            args = [xo.Arg(xo.ThisClass, name='el'),
-                    xo.Arg(xo.Float64, pointer=True, name='x_in'),
-                    xo.Arg(xo.Float64, pointer=True, name='y_in'),
-                    xo.Arg(xo.Float64, pointer=True, name='z_in'),
-                    xo.Arg(xo.Float64, pointer=True, name='x_out'),
-                    xo.Arg(xo.Float64, pointer=True, name='y_out'),
-                    xo.Arg(xo.Float64, pointer=True, name='z_out'),
-                    xo.Arg(xo.Int64,   pointer=False, name='n_impacts'),
-                    xo.Arg(xo.Float64, pointer=True, name='x_inters'),
-                    xo.Arg(xo.Float64, pointer=True, name='y_inters'),
-                    xo.Arg(xo.Float64, pointer=True, name='z_inters'),
-                    xo.Arg(xo.Float64, pointer=True, name='Nx_inters'),
-                    xo.Arg(xo.Float64, pointer=True, name='Ny_inters'),
-                    xo.Arg(xo.Int64,   pointer=True, name='i_found')],
+            c_name='LimitPolygon_impact_point_and_normal',
+            args=[xo.Arg(xo.ThisClass, name='el'),
+                  xo.Arg(xo.Float64, pointer=True, name='x_in'),
+                  xo.Arg(xo.Float64, pointer=True, name='y_in'),
+                  xo.Arg(xo.Float64, pointer=True, name='z_in'),
+                  xo.Arg(xo.Float64, pointer=True, name='x_out'),
+                  xo.Arg(xo.Float64, pointer=True, name='y_out'),
+                  xo.Arg(xo.Float64, pointer=True, name='z_out'),
+                  xo.Arg(xo.Int64,   pointer=False, name='n_impacts'),
+                  xo.Arg(xo.Float64, pointer=True, name='x_inters'),
+                  xo.Arg(xo.Float64, pointer=True, name='y_inters'),
+                  xo.Arg(xo.Float64, pointer=True, name='z_inters'),
+                  xo.Arg(xo.Float64, pointer=True, name='Nx_inters'),
+                  xo.Arg(xo.Float64, pointer=True, name='Ny_inters'),
+                  xo.Arg(xo.Int64,   pointer=True, name='i_found')],
             n_threads='n_impacts')}
 
     def __init__(self, x_vertices=None, y_vertices=None, **kwargs):
@@ -286,8 +286,7 @@ class LimitPolygon(BeamElement):
 
         if 'LimitPolygon_impact_point_and_normal' not in ctx.kernels.keys():
             # The tracking kernel requires the usual particle class
-            self.compile_kernels(particles_class=xp.Particles,
-                                 only_if_needed=True)
+            self.compile_kernels(only_if_needed=True)
 
         x_inters = ctx.zeros(shape=x_in.shape, dtype=np.float64)
         y_inters = ctx.zeros(shape=x_in.shape, dtype=np.float64)

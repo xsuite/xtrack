@@ -10,8 +10,6 @@ import matplotlib.pyplot as plt
 
 import xtrack as xt
 import xobjects as xo
-import xpart as xp
-from scipy.spatial import ConvexHull
 
 
 plt.close('all')
@@ -73,7 +71,7 @@ line.build_tracker()
 # Test on full line
 r = np.linspace(0, 0.018, n_part)
 theta = np.linspace(0, 8*np.pi, n_part)
-particles = xp.Particles(_context=ctx,
+particles = xt.Particles(_context=ctx,
         p0c=6500e9,
         x=r*np.cos(theta)+shift_x,
         y=r*np.sin(theta)+shift_y)
@@ -126,7 +124,7 @@ for ii, (trkr, poly) in enumerate(
                          zip([line_aper_0,line_aper_1],
                              [polygon_0, polygon_1])):
     part_gen_range = 0.05
-    pp = xp.Particles(
+    pp = xt.Particles(
                     p0c=6500e9,
                     x=np.random.uniform(-part_gen_range, part_gen_range, n_part),
                     y=np.random.uniform(-part_gen_range, part_gen_range, n_part))

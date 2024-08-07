@@ -88,10 +88,10 @@ for ii, tt in enumerate(t_test):
     qx.append(tw.qx)
     qy.append(tw.qy)
     bety_at_mker.append(tw['bety', 'mker_match'])
-    k0_bsw1.append(line['bi1.bsw1l1.1..1'].knl[0] / line['bi1.bsw1l1.1..1'].length)
-    k2_bsw1.append(line['bi1.bsw1l1.1..1'].knl[2] / line['bi1.bsw1l1.1..1'].length)
-    k0_bsw2.append(line['bi1.bsw1l1.2..1'].knl[0] / line['bi1.bsw1l1.2..1'].length)
-    k2_bsw2.append(line['bi1.bsw1l1.2..1'].knl[2] / line['bi1.bsw1l1.2..1'].length)
+    k0_bsw1.append(line['bi1.bsw1l1.1'].knl[0] / line['bi1.bsw1l1.1'].length)
+    k2_bsw1.append(line['bi1.bsw1l1.1'].knl[2] / line['bi1.bsw1l1.1'].length)
+    k0_bsw2.append(line['bi1.bsw1l1.2'].knl[0] / line['bi1.bsw1l1.2'].length)
+    k2_bsw2.append(line['bi1.bsw1l1.2'].knl[2] / line['bi1.bsw1l1.2'].length)
 
     line.vars['on_chicane_beta_corr'] = 0
     line.vars['on_chicane_tune_corr'] = 0

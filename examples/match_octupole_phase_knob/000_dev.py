@@ -70,13 +70,14 @@ for var in varlist:
     #lims[var] = ( -offset + min(vals),  offset + max(vals))
 
 
+tw0 = line.twiss()
 
 opt = line.match_knob(
     knob_name='phase_knob',
     run=False,
     assert_within_tol=False,
-    twiss_init=tw.get_twiss_init(0),
-    ele_start=0, ele_stop=len(line)-1,
+    init=tw.get_twiss_init(0),
+    start=0, end=len(line)-1,
     targets=[
         RDTargetReal(j=2, k=0, l=0, m=2),
         RDTargetReal(j=4, k=0, l=0, m=0),
@@ -84,7 +85,7 @@ opt = line.match_knob(
         RDTargetImag(j=2, k=0, l=0, m=2),
         RDTargetImag(j=4, k=0, l=0, m=0),
         # RDTargetImag(j=0, k=0, l=4, m=0),
-        xt.TargetSet(tag="tune", tars=['mux', 'muy'], value='preserve', at='lhcb1$end')
+        xt.TargetSet(tag="tune", tars=['mux', 'muy'], value=tw0, at='lhcb1$end')
     ],
     vary=[
         xt.Vary('kqtf.a12b1', step=1.e-8, limits=lims['kqtf.a12b1']),

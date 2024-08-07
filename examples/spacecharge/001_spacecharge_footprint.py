@@ -30,11 +30,10 @@ nz_grid = 100
 z_range = (-3*sigma_z, 3*sigma_z)
 
 num_spacecharge_interactions = 540
-tol_spacecharge_position = 1e-2
 
 mode = 'frozen'
-#mode = 'quasi-frozen'
-mode = 'pic'
+mode = 'quasi-frozen'
+#mode = 'pic'
 
 #context = xo.ContextCpu()
 context = xo.ContextCupy()
@@ -49,7 +48,8 @@ print(context)
 with open(fname_line, 'r') as fid:
      input_data = json.load(fid)
 line= xt.Line.from_dict(input_data['line'])
-particle_ref = xp.Particles.from_dict(input_data['particle'])
+line.particle_ref = xt.Particles.from_dict(input_data['particle'])
+line.build_tracker(_context=context, compile=False) # Move all elements in the same context
 
 #############################################
 # Install spacecharge interactions (frozen) #
@@ -62,13 +62,10 @@ lprofile = xf.LongitudinalProfileQGaussian(
         q_parameter=1.)
 
 xf.install_spacecharge_frozen(line=line,
-                   particle_ref=particle_ref,
                    longitudinal_profile=lprofile,
                    nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                    sigma_z=sigma_z,
-                   num_spacecharge_interactions=num_spacecharge_interactions,
-                   tol_spacecharge_position=tol_spacecharge_position)
-
+                   num_spacecharge_interactions=num_spacecharge_interactions)
 
 ##########################
 # Configure space-charge #
@@ -78,12 +75,12 @@ if mode == 'frozen':
     pass # Already configured in line
 elif mode == 'quasi-frozen':
     xf.replace_spacecharge_with_quasi_frozen(
-                                    line, _buffer=context.new_buffer(),
+                                    line,
                                     update_mean_x_on_track=True,
                                     update_mean_y_on_track=True)
 elif mode == 'pic':
     pic_collection, all_pics = xf.replace_spacecharge_with_PIC(
-        _context=context, line=line,
+        line=line,
         n_sigmas_range_pic_x=8,
         n_sigmas_range_pic_y=8,
         nx_grid=256, ny_grid=256, nz_grid=nz_grid,
@@ -117,7 +114,6 @@ x_norm_fp, y_norm_fp, r_footprint, theta_footprint = xp.generate_2D_polar_grid(
 N_footprint = len(x_norm_fp)
 
 particles_fp = line.build_particles(
-            particle_ref=particle_ref,
             weight=0, # pure probe particles
             zeta=0, delta=0,
             x_norm=x_norm_fp, px_norm=0,
@@ -126,19 +122,18 @@ particles_fp = line.build_particles(
 
 # I add explicitly a probe particle at1.5 sigma
 particle_probe = line.build_particles(
-            particle_ref=particle_ref,
             weight=0, # pure probe particles
             zeta=0, delta=0,
             x_norm=1.5, px_norm=0,
             y_norm=1.5, py_norm=0,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y)
 
-particles_gaussian = xp.generate_matched_gaussian_bunch(_context=context,
+particles_gaussian = xp.generate_matched_gaussian_bunch(
          num_particles=n_part, total_intensity_particles=bunch_intensity,
          nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
-         particle_ref=particle_ref, line=line_sc_off)
+         line=line_sc_off)
 
-particles = xp.Particles.merge(
+particles = xt.Particles.merge(
                           [particles_fp, particle_probe, particles_gaussian])
 
 particles_0 = particles.copy()
@@ -156,13 +151,13 @@ for ii in range(num_turns):
     y_tbt[:, ii] = ctx2arr(particles.y[:N_footprint]).copy()
     line.track(particles)
 
-tw = line_sc_off.twiss(particle_ref=particle_ref, at_elements=[0])
+tw = line_sc_off.twiss(at_elements=[0])
 
 ######################
 # Frequency analysis #
 ######################
 
-import NAFFlib
+import nafflib
 
 xy_norm = np.zeros((N_r_footprint + 1, N_theta_footprint, 2), dtype=np.float64)
 xy_norm[:, :, 0] = x_norm_fp.reshape((N_r_footprint + 1, N_theta_footprint))
@@ -172,8 +167,8 @@ Qx = np.zeros(N_footprint)
 Qy = np.zeros(N_footprint)
 
 for i_part in range(N_footprint):
-    Qx[i_part] = NAFFlib.get_tune(x_tbt[i_part, :])
-    Qy[i_part] = NAFFlib.get_tune(y_tbt[i_part, :])
+    Qx[i_part] = nafflib.get_tune(x_tbt[i_part, :])
+    Qy[i_part] = nafflib.get_tune(y_tbt[i_part, :])
 
 Qxy_fp = np.zeros_like(xy_norm)
 

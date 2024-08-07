@@ -1,25 +1,23 @@
 import json
 import pathlib
+
 import numpy as np
 import pandas as pd
-
 from cpymad.madx import Madx
 
-import xtrack as xt
-import xpart as xp
 import xdeps as xd
-from xtrack.slicing import Teapot, Strategy
-
+import xobjects as xo
+import xpart as xp
+import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
-
-from cpymad.madx import Madx
+from xtrack.slicing import Teapot, Strategy
 
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
 @for_all_test_contexts
 def test_psb_chicane(test_context):
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     # Load mad model and apply element shifts
     mad.input(f'''
@@ -49,7 +47,7 @@ def test_psb_chicane(test_context):
     line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV,
                                 gamma0=mad.sequence.psb1.beam.gamma)
     line.twiss_default['method'] = '4d'
-    line.configure_bend_model(core='full')
+    line.configure_bend_model(core='adaptive')
 
     # Build chicane knob (k0)
     line.vars['bsw_k0l'] = 0
@@ -75,66 +73,66 @@ def test_psb_chicane(test_context):
 
     line.vars['bsw_k2l'] = bsw_k2l_ref
     line.vars['bsw_k0l'] = bsw_k0l_ref
-    assert np.isclose(line['bi1.bsw1l1.1']._xobject.knl[2], bsw_k2l_ref, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.2']._xobject.knl[2], -bsw_k2l_ref, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.3']._xobject.knl[2], -bsw_k2l_ref, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.4']._xobject.knl[2], bsw_k2l_ref, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.1'].k0, bsw_k0l_ref / line['bi1.bsw1l1.1'].length, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.2'].k0, -bsw_k0l_ref / line['bi1.bsw1l1.2'].length, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.3'].k0, -bsw_k0l_ref / line['bi1.bsw1l1.3'].length, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.4'].k0, bsw_k0l_ref / line['bi1.bsw1l1.4'].length, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.1']._xobject.knl[2], bsw_k2l_ref, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.2']._xobject.knl[2], -bsw_k2l_ref, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.3']._xobject.knl[2], -bsw_k2l_ref, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.4']._xobject.knl[2], bsw_k2l_ref, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.1'].k0, bsw_k0l_ref / line['bi1.bsw1l1.1'].length, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.2'].k0, -bsw_k0l_ref / line['bi1.bsw1l1.2'].length, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.3'].k0, -bsw_k0l_ref / line['bi1.bsw1l1.3'].length, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.4'].k0, bsw_k0l_ref / line['bi1.bsw1l1.4'].length, rtol=0, atol=1e-10)
 
     tw = line.twiss()
-    assert np.isclose(tw['x', 'bi1.tstr1l1'], -0.0457367, rtol=0, atol=1e-5)
-    assert np.isclose(tw['y', 'bi1.tstr1l1'], 0.0000000, rtol=0, atol=1e-5)
-    assert np.isclose(tw['betx', 'bi1.tstr1l1'], 5.20006, rtol=0, atol=1e-4)
-    assert np.isclose(tw['bety', 'bi1.tstr1l1'], 6.91701, rtol=0, atol=1e-4)
-    assert np.isclose(tw.qy, 4.474490031799888, rtol=0, atol=1e-6) # verify that it does not change from one version to the other
-    assert np.isclose(tw.qx, 4.396711590204319, rtol=0, atol=1e-6)
-    assert np.isclose(tw.dqy, -8.636405235646905, rtol=0, atol=1e-4)
-    assert np.isclose(tw.dqx, -3.560656125021211, rtol=0, atol=1e-4)
+    xo.assert_allclose(tw['x', 'bi1.tstr1l1'], -0.045716, rtol=0, atol=1e-5)
+    xo.assert_allclose(tw['y', 'bi1.tstr1l1'], 0.0000000, rtol=0, atol=1e-5)
+    xo.assert_allclose(tw['betx', 'bi1.tstr1l1'], 5.203667, rtol=0, atol=1e-4)
+    xo.assert_allclose(tw['bety', 'bi1.tstr1l1'], 6.902887, rtol=0, atol=1e-4)
+    xo.assert_allclose(tw.qy, 4.474414126093382, rtol=0, atol=1e-6) # verify that it does not change from one version to the other
+    xo.assert_allclose(tw.qx, 4.396717774779403, rtol=0, atol=1e-6)
+    xo.assert_allclose(tw.dqy, -8.625637734560598, rtol=0, atol=1e-3)
+    xo.assert_allclose(tw.dqx, -3.5604677592626643, rtol=0, atol=1e-3)
 
     line.vars['bsw_k2l'] = bsw_k2l_ref / 3
-    assert np.isclose(line['bi1.bsw1l1.1']._xobject.knl[2], bsw_k2l_ref / 3, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.2']._xobject.knl[2], -bsw_k2l_ref / 3, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.3']._xobject.knl[2], -bsw_k2l_ref / 3, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.4']._xobject.knl[2], bsw_k2l_ref / 3, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.1'].k0, bsw_k0l_ref / line['bi1.bsw1l1.1'].length, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.2'].k0, -bsw_k0l_ref / line['bi1.bsw1l1.2'].length, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.3'].k0, -bsw_k0l_ref / line['bi1.bsw1l1.3'].length, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.4'].k0, bsw_k0l_ref / line['bi1.bsw1l1.4'].length, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.1']._xobject.knl[2], bsw_k2l_ref / 3, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.2']._xobject.knl[2], -bsw_k2l_ref / 3, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.3']._xobject.knl[2], -bsw_k2l_ref / 3, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.4']._xobject.knl[2], bsw_k2l_ref / 3, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.1'].k0, bsw_k0l_ref / line['bi1.bsw1l1.1'].length, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.2'].k0, -bsw_k0l_ref / line['bi1.bsw1l1.2'].length, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.3'].k0, -bsw_k0l_ref / line['bi1.bsw1l1.3'].length, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.4'].k0, bsw_k0l_ref / line['bi1.bsw1l1.4'].length, rtol=0, atol=1e-10)
 
     tw = line.twiss()
-    assert np.isclose(tw['x', 'bi1.tstr1l1'], -0.04588556, rtol=0, atol=1e-5)
-    assert np.isclose(tw['y', 'bi1.tstr1l1'], 0.0000000, rtol=0, atol=1e-5)
-    assert np.isclose(tw['betx', 'bi1.tstr1l1'], 5.263928, rtol=0, atol=1e-4)
-    assert np.isclose(tw['bety', 'bi1.tstr1l1'], 6.322020, rtol=0, atol=1e-4)
-    assert np.isclose(tw.qy, 4.471798396829118, rtol=0, atol=1e-6)
-    assert np.isclose(tw.qx, 4.398925843617764, rtol=0, atol=1e-6)
-    assert np.isclose(tw.dqy, -8.20730683661175, rtol=0, atol=1e-4)
-    assert np.isclose(tw.dqx, -3.5636345521616875, rtol=0, atol=1e-4)
+    xo.assert_allclose(tw['x', 'bi1.tstr1l1'], -0.0458633, rtol=0, atol=1e-5)
+    xo.assert_allclose(tw['y', 'bi1.tstr1l1'], 0.0000000, rtol=0, atol=1e-5)
+    xo.assert_allclose(tw['betx', 'bi1.tstr1l1'], 5.266456, rtol=0, atol=1e-4)
+    xo.assert_allclose(tw['bety', 'bi1.tstr1l1'], 6.320286, rtol=0, atol=1e-4)
+    xo.assert_allclose(tw.qy, 4.471766776419623, rtol=0, atol=1e-6)
+    xo.assert_allclose(tw.qx, 4.398899960718224, rtol=0, atol=1e-6)
+    xo.assert_allclose(tw.dqy, -8.2058757683523, rtol=0, atol=1e-3)
+    xo.assert_allclose(tw.dqx, -3.563488925077962, rtol=0, atol=1e-3)
 
     # Switch off bsws
     line.vars['bsw_k0l'] = 0
     line.vars['bsw_k2l'] = 0
-    assert np.isclose(line['bi1.bsw1l1.1']._xobject.knl[2], 0, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.2']._xobject.knl[2], 0, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.3']._xobject.knl[2], 0, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.4']._xobject.knl[2], 0, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.1'].k0, 0, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.2'].k0, 0, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.3'].k0, 0, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.4'].k0, 0, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.1']._xobject.knl[2], 0, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.2']._xobject.knl[2], 0, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.3']._xobject.knl[2], 0, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.4']._xobject.knl[2], 0, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.1'].k0, 0, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.2'].k0, 0, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.3'].k0, 0, rtol=0, atol=1e-10)
+    xo.assert_allclose(line['bi1.bsw1l1.4'].k0, 0, rtol=0, atol=1e-10)
 
     tw = line.twiss()
-    assert np.isclose(tw['x', 'bi1.tstr1l1'], 0, rtol=0, atol=1e-5)
-    assert np.isclose(tw['y', 'bi1.tstr1l1'], 0, rtol=0, atol=1e-5)
-    assert np.isclose(tw['betx', 'bi1.tstr1l1'], 5.2996347, rtol=0, atol=1e-4)
-    assert np.isclose(tw['bety', 'bi1.tstr1l1'], 3.838857, rtol=0, atol=1e-4)
-    assert np.isclose(tw.qy, 4.45, rtol=0, atol=1e-6)
-    assert np.isclose(tw.qx, 4.4, rtol=0, atol=1e-6)
-    assert np.isclose(tw.dqy, -7.149781341846406, rtol=0, atol=1e-4)
-    assert np.isclose(tw.dqx, -3.5655757511587893, rtol=0, atol=1e-4)
+    xo.assert_allclose(tw['x', 'bi1.tstr1l1'], 0, rtol=0, atol=1e-5)
+    xo.assert_allclose(tw['y', 'bi1.tstr1l1'], 0, rtol=0, atol=1e-5)
+    xo.assert_allclose(tw['betx', 'bi1.tstr1l1'], 5.2996347, rtol=0, atol=1e-4)
+    xo.assert_allclose(tw['bety', 'bi1.tstr1l1'], 3.838857, rtol=0, atol=1e-4)
+    xo.assert_allclose(tw.qy, 4.45, rtol=0, atol=1e-6)
+    xo.assert_allclose(tw.qx, 4.4, rtol=0, atol=1e-6)
+    xo.assert_allclose(tw.dqy, -7.149781341846406, rtol=0, atol=1e-3)
+    xo.assert_allclose(tw.dqx, -3.5655757511587893, rtol=0, atol=1e-3)
 
 
     # Setup time-dependent functions
@@ -310,16 +308,16 @@ def test_psb_chicane(test_context):
         dqy_thin.append(tw_thin.dqy)
 
 
-    assert np.allclose(qx_thick, qx_ptc, atol=2e-4, rtol=0)
-    assert np.allclose(qy_thick, qy_ptc, atol=2e-4, rtol=0)
-    assert np.allclose(qx_thin, qx_ptc, atol=1e-3, rtol=0)
-    assert np.allclose(qy_thin, qy_ptc, atol=1e-3, rtol=0)
-    assert np.allclose(dqx_thick, dqx_ptc, atol=0.5, rtol=0)
-    assert np.allclose(dqy_thick, dqy_ptc, atol=0.5, rtol=0)
-    assert np.allclose(dqx_thin, dqx_ptc, atol=0.5, rtol=0)
-    assert np.allclose(dqy_thin, dqy_ptc, atol=0.5, rtol=0)
-    assert np.allclose(bety_at_scraper_thick, bety_at_scraper_ptc, atol=0, rtol=1e-2)
-    assert np.allclose(bety_at_scraper_thin, bety_at_scraper_ptc, atol=0, rtol=2e-2)
+    xo.assert_allclose(qx_thick, qx_ptc, atol=2e-4, rtol=0)
+    xo.assert_allclose(qy_thick, qy_ptc, atol=2e-4, rtol=0)
+    xo.assert_allclose(qx_thin, qx_ptc, atol=1e-3, rtol=0)
+    xo.assert_allclose(qy_thin, qy_ptc, atol=1e-3, rtol=0)
+    xo.assert_allclose(dqx_thick, dqx_ptc, atol=0.5, rtol=0)
+    xo.assert_allclose(dqy_thick, dqy_ptc, atol=0.5, rtol=0)
+    xo.assert_allclose(dqx_thin, dqx_ptc, atol=0.5, rtol=0)
+    xo.assert_allclose(dqy_thin, dqy_ptc, atol=0.5, rtol=0)
+    xo.assert_allclose(bety_at_scraper_thick, bety_at_scraper_ptc, atol=0, rtol=1e-2)
+    xo.assert_allclose(bety_at_scraper_thin, bety_at_scraper_ptc, atol=0, rtol=2e-2)
 
     # Check correction
     line.vars['on_chicane_beta_corr'] = 1
@@ -354,12 +352,12 @@ def test_psb_chicane(test_context):
     qy_thin_corr = np.array(qy_thin_corr)
     bety_at_scraper_thin_corr = np.array(bety_at_scraper_thin_corr)
 
-    assert np.allclose(qx_thick_corr, qx_ptc[-1], atol=3e-3, rtol=0)
-    assert np.allclose(qy_thick_corr, qy_ptc[-1], atol=3e-3, rtol=0)
-    assert np.allclose(qx_thin_corr, qx_ptc[-1], atol=3e-3, rtol=0)
-    assert np.allclose(qy_thin_corr, qy_ptc[-1], atol=3e-3, rtol=0)
-    assert np.allclose(bety_at_scraper_thick_corr, bety_at_scraper_ptc[-1], atol=0, rtol=3e-2)
-    assert np.allclose(bety_at_scraper_thin_corr, bety_at_scraper_ptc[-1], atol=0, rtol=3e-2)
+    xo.assert_allclose(qx_thick_corr, qx_ptc[-1], atol=3e-3, rtol=0)
+    xo.assert_allclose(qy_thick_corr, qy_ptc[-1], atol=3e-3, rtol=0)
+    xo.assert_allclose(qx_thin_corr, qx_ptc[-1], atol=3e-3, rtol=0)
+    xo.assert_allclose(qy_thin_corr, qy_ptc[-1], atol=3e-3, rtol=0)
+    xo.assert_allclose(bety_at_scraper_thick_corr, bety_at_scraper_ptc[-1], atol=0, rtol=3e-2)
+    xo.assert_allclose(bety_at_scraper_thin_corr, bety_at_scraper_ptc[-1], atol=0, rtol=3e-2)
 
     # Tracking with time-dependent variable
 
@@ -384,8 +382,68 @@ def test_psb_chicane(test_context):
     line.track(p, num_turns=6000, time=True)
     print(f'Done in {line.time_last_track:.4} s')
 
-    assert np.isclose(monitor.x[0, 0], -0.045936, rtol=0, atol=1e-5)
-    assert np.isclose(monitor.x[0, 300], -0.04522354, rtol=0, atol=1e-5)
-    assert np.isclose(monitor.x[0, 2500], -0.02256763, rtol=0, atol=1e-5)
-    assert np.isclose(monitor.x[0, 4500], -0.00143883, rtol=0, atol=1e-5)
-    assert np.isclose(monitor.x[0, 5500], 0.0, rtol=0, atol=1e-5)
+    xo.assert_allclose(monitor.x[0, 0], -0.045936, rtol=0, atol=1e-5)
+    xo.assert_allclose(monitor.x[0, 300], -0.04522354, rtol=0, atol=1e-5)
+    xo.assert_allclose(monitor.x[0, 2500], -0.02256763, rtol=0, atol=1e-5)
+    xo.assert_allclose(monitor.x[0, 4500], -0.00143883, rtol=0, atol=1e-5)
+    xo.assert_allclose(monitor.x[0, 5500], 0.0, rtol=0, atol=1e-5)
+
+    # Test multiturn injection
+    if isinstance(test_context, xo.ContextCpu):
+        line.t_turn_s = 0 # Reset time!
+
+        line.vars['on_chicane_k0'] = 1
+        line.vars['on_chicane_k2'] = 1
+        line.vars['on_chicane_beta_corr'] = 1
+        line.vars['on_chicane_tune_corr'] = 1
+
+        df = pd.read_table(test_data_folder / 'psb_chicane/inj_distrib.dat',
+            skiprows=3,
+            names="x x' y y' z z' Phase Time Energy Loss".split())
+
+        kin_energy_ev = df.Energy.values * 1e6
+        tot_energy_ev = kin_energy_ev + xt.PROTON_MASS_EV
+        p0c = line.particle_ref.p0c[0]
+        tot_energy0_ev = line.particle_ref.energy0[0]
+        ptau = (tot_energy_ev - tot_energy0_ev) / p0c
+
+        part_for_injection = xt.Particles(q0=1, mass0=xt.PROTON_MASS_EV, p0c=line.particle_ref.p0c[0],
+                                        ptau=ptau)
+
+        part_for_injection.x = df.x.values * 1e-3
+        part_for_injection.y = df.y.values * 1e-3
+        part_for_injection.zeta = df.z.values * 1e-3
+        part_for_injection.px = df["x'"].values  * 1e-3 * (1 + part_for_injection.delta)
+        part_for_injection.py = df["y'"].values  * 1e-3 * (1 + part_for_injection.delta)
+        part_for_injection.weight = 10
+
+        p_injection = xt.ParticlesInjectionSample(particles_to_inject=part_for_injection,
+                                                line=line,
+                                                element_name='injection',
+                                                num_particles_to_inject=7)
+
+        line.discard_tracker()
+        line.insert_element(index='bi1.tstr1l1', element=p_injection, name='injection')
+
+        # Add monitor at end line
+        monitor = xt.ParticlesMonitor(start_at_turn=0, stop_at_turn=10, num_particles=100)
+        line.insert_element(index='p16ring1$end', element=monitor, name='monitor_at_end')
+        line.build_tracker()
+
+        p = line.build_particles(_capacity=100, x=0)
+        p.state[0] = -500 # kill the particle added by default
+
+        intensity = []
+        line.enable_time_dependent_vars = True
+        for iturn in range(8):
+            intensity.append(p.weight[p.state>0].sum())
+            line.track(p, num_turns=1)
+
+        assert np.all(np.sum(monitor.state > 0, axis=0)
+                    == np.array([ 0,  7, 14, 21, 28, 35, 42, 49, 56,  0]))
+
+        assert np.all(monitor.at_element[monitor.state > 0] ==
+                    line.element_names.index('monitor_at_end'))
+
+        xo.assert_allclose(monitor.s[monitor.state > 0],
+                        line.get_s_position('monitor_at_end'), atol=1e-12)

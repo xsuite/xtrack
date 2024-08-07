@@ -2,9 +2,9 @@ import pathlib
 
 import numpy as np
 
-import xtrack
 import xdeps as xd
-
+import xobjects as xo
+import xtrack
 from xobjects.test_helpers import for_all_test_contexts
 
 test_data_folder = pathlib.Path(
@@ -29,14 +29,14 @@ class ActionArcPhaseAdvanceFromCell(xd.Action):
     def run(self):
 
         twinit_cell = self.line.twiss(
-                    ele_start=self.start_cell, ele_stop=self.end_cell,
-                    twiss_init='periodic', only_twiss_init=True)
+                    start=self.start_cell, end=self.end_cell,
+                    init='periodic', only_twiss_init=True)
         #  twinit_cell.element_name is start_cell for b1 and end_cell for b2
 
-        tw_to_end_arc = self.line.twiss(twiss_init=twinit_cell,
-            ele_start=twinit_cell.element_name, ele_stop=self.end_arc)
-        tw_to_start_arc = self.line.twiss(twiss_init=twinit_cell,
-            ele_start=self.start_arc,ele_stop=twinit_cell.element_name)
+        tw_to_end_arc = self.line.twiss(init=twinit_cell,
+            start=twinit_cell.element_name, end=self.end_arc)
+        tw_to_start_arc = self.line.twiss(init=twinit_cell,
+            start=self.start_arc,end=twinit_cell.element_name)
 
         mux_arc_from_cell = (tw_to_end_arc['mux', self.end_arc]
                              - tw_to_start_arc['mux', self.start_arc])
@@ -116,15 +116,15 @@ def test_match_nested(test_context):
     twb1 = collider.lhcb1.twiss()
     mux_arc_target_b1 = twb1['mux', 's.ds.l7.b1'] - twb1['mux', 'e.ds.r6.b1']
     muy_arc_target_b1 = twb1['muy', 's.ds.l7.b1'] - twb1['muy', 'e.ds.r6.b1']
-    assert np.isclose(resb1['mux_arc_from_cell'] , mux_arc_target_b1, rtol=1e-6)
-    assert np.isclose(resb1['muy_arc_from_cell'] , muy_arc_target_b1, rtol=1e-6)
+    xo.assert_allclose(resb1['mux_arc_from_cell'] , mux_arc_target_b1, rtol=1e-6)
+    xo.assert_allclose(resb1['muy_arc_from_cell'] , muy_arc_target_b1, rtol=1e-6)
 
     # Check for b2
     twb2 = collider.lhcb2.twiss()
     mux_arc_target_b2 = twb2['mux', 's.ds.l7.b2'] - twb2['mux', 'e.ds.r6.b2']
     muy_arc_target_b2 = twb2['muy', 's.ds.l7.b2'] - twb2['muy', 'e.ds.r6.b2']
-    assert np.isclose(resb2['mux_arc_from_cell'] , mux_arc_target_b2, rtol=1e-6)
-    assert np.isclose(resb2['muy_arc_from_cell'] , muy_arc_target_b2, rtol=1e-6)
+    xo.assert_allclose(resb2['mux_arc_from_cell'] , mux_arc_target_b2, rtol=1e-6)
+    xo.assert_allclose(resb2['muy_arc_from_cell'] , muy_arc_target_b2, rtol=1e-6)
 
     starting_values = {
         'kqtf.a67b1': collider.vars['kqtf.a67b1']._value,
@@ -171,28 +171,28 @@ def test_match_nested(test_context):
     # Checks
     resb1_after = action_arc_phase_s67_b1.run()
     tw_init_arcb1 = resb1_after['tw_to_start_arc'].get_twiss_init('e.ds.r6.b1')
-    twb1_after = collider.lhcb1.twiss(ele_start='e.ds.r6.b1',
-                                    ele_stop='s.ds.l7.b1',
-                                    twiss_init=tw_init_arcb1)
-    assert np.isclose(twb1_after['mux', 's.ds.l7.b1'] - twb1_after['mux', 'e.ds.r6.b1'],
+    twb1_after = collider.lhcb1.twiss(start='e.ds.r6.b1',
+                                    end='s.ds.l7.b1',
+                                    init=tw_init_arcb1)
+    xo.assert_allclose(twb1_after['mux', 's.ds.l7.b1'] - twb1_after['mux', 'e.ds.r6.b1'],
                         mux_arc_target_b1, rtol=0, atol=1e-8)
-    assert np.isclose(twb1_after['muy', 's.ds.l7.b1'] - twb1_after['muy', 'e.ds.r6.b1'],
+    xo.assert_allclose(twb1_after['muy', 's.ds.l7.b1'] - twb1_after['muy', 'e.ds.r6.b1'],
                         muy_arc_target_b1, rtol=0, atol=1e-8)
-    assert np.isclose(twb1_after['betx', 's.cell.67.b1'], twb1_after['betx', 'e.cell.67.b1'],
+    xo.assert_allclose(twb1_after['betx', 's.cell.67.b1'], twb1_after['betx', 'e.cell.67.b1'],
                         rtol=0, atol=1e-7)
-    assert np.isclose(twb1_after['bety', 's.cell.67.b1'], twb1_after['bety', 'e.cell.67.b1'],
+    xo.assert_allclose(twb1_after['bety', 's.cell.67.b1'], twb1_after['bety', 'e.cell.67.b1'],
                         rtol=0, atol=1e-7)
 
     resb2_after = action_arc_phase_s67_b2.run()
     tw_init_arcb2 = resb2_after['tw_to_start_arc'].get_twiss_init('e.ds.r6.b2')
-    twb2_after = collider.lhcb2.twiss(ele_start='e.ds.r6.b2',
-                                    ele_stop='s.ds.l7.b2',
-                                    twiss_init=tw_init_arcb2)
-    assert np.isclose(twb2_after['mux', 's.ds.l7.b2'] - twb2_after['mux', 'e.ds.r6.b2'],
+    twb2_after = collider.lhcb2.twiss(start='e.ds.r6.b2',
+                                    end='s.ds.l7.b2',
+                                    init=tw_init_arcb2)
+    xo.assert_allclose(twb2_after['mux', 's.ds.l7.b2'] - twb2_after['mux', 'e.ds.r6.b2'],
                         mux_arc_target_b2, rtol=0, atol=1e-8)
-    assert np.isclose(twb2_after['muy', 's.ds.l7.b2'] - twb2_after['muy', 'e.ds.r6.b2'],
+    xo.assert_allclose(twb2_after['muy', 's.ds.l7.b2'] - twb2_after['muy', 'e.ds.r6.b2'],
                         muy_arc_target_b2, rtol=0, atol=1e-8)
-    assert np.isclose(twb2_after['betx', 's.cell.67.b2'], twb2_after['betx', 'e.cell.67.b2'],
+    xo.assert_allclose(twb2_after['betx', 's.cell.67.b2'], twb2_after['betx', 'e.cell.67.b2'],
                         rtol=0, atol=1e-8)
-    assert np.isclose(twb2_after['bety', 's.cell.67.b2'], twb2_after['bety', 'e.cell.67.b2'],
+    xo.assert_allclose(twb2_after['bety', 's.cell.67.b2'], twb2_after['bety', 'e.cell.67.b2'],
                         rtol=0, atol=1e-8)

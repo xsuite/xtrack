@@ -1,0 +1,85 @@
+QF1: QUADRUPOLE, L=2*0.175, K1:= QF1k1;
+QD:  QUADRUPOLE, L=2*0.175, K1:= QD1k1;
+QF2: QUADRUPOLE, L=2*0.175, K1:= QF2k1;
+QA : QUADRUPOLE, L=0.556,   K1:= QA1k1;
+
+MB:  SBEND, L=1.661, ANGLE=0.3926990817, E1=0.19634954085, E2=0.19634954085;
+
+XCd1: SEXTUPOLE, L=0.2, K2:=k2xcd;
+XCf1: SEXTUPOLE, L=0.2, K2:=k2xcf;
+XCd2: SEXTUPOLE, L=0.2, K2:=k2xcd;
+XCf2: SEXTUPOLE, L=0.2, K2:=k2xcf;
+XRrA : SEXTUPOLE, L=0.2, K2:=k2xrr_a;
+XRrB : SEXTUPOLE, L=0.2, K2:=k2xrr_b;
+
+k2xrr_a := k2xrr;
+k2xrr_b := 0;
+
+ES_injection: marker;
+ES_marker: marker;
+BETkick: marker;
+RFKOkick: marker;
+PIMMS_START: marker;
+
+ES_KICK = 0;
+ES: HKICKER, L=4*0.2   , KICK:= ES_KICK;
+
+PIMMS_cavity: RFCAVITY, L:= 0.0001, VOLT:= 0, HARMON = 1, LAG:= 0.0, no_cavity_totalpath;
+
+PIMMS:SEQUENCE,REFER=centre,L=75.24;
+              PIMMS_START, AT=0;
+              PIMMS_cavity, AT=0.001;
+              ES_injection, AT=1.05;
+              QF1, AT=2.3875;
+              MB, AT=3.8125;
+              QD, AT=5.2925;
+              MB, AT=7.0475;
+              QF1, AT=8.3275;
+              RFKOkick, AT= 9.30875;
+              XCd1, AT=10.29;
+              QF2, AT=10.6775;
+              MB, AT=12.1325;
+              QD, AT=14.2625;
+              MB, AT=15.9175;
+              QF2, AT=17.1975;
+              BETkick, AT=18.7225;
+              QF2, AT=20.2475;
+              MB, AT=21.7025;
+              QD, AT=23.1825;
+              XCf1, AT=24.045;
+              MB, AT=25.4875;
+              QF2, AT=26.7675;
+              QA, AT=27.9425;
+              QF1, AT=29.1175;
+              MB, AT=30.5725;
+              QD, AT=32.1525;
+              MB, AT=33.8075;
+              QF1, AT=35.0575;
+              XRra, AT=35.0575 + 0.6;
+              !XRrb, AT=39.055-0.93;
+              XRrb, AT=40.0075 - 0.6;
+              QF1, AT=40.0075;
+              MB, AT=41.4325;
+              QD, AT=42.9125;
+              MB, AT=44.6675;
+              QF1, AT=45.9475;
+              XCd2, AT=47.91;
+              QF2, AT=48.2975;
+              MB, AT=49.7525;
+              QD, AT=51.8825;
+              MB, AT=53.5375;
+              QF2, AT=54.8175;
+              QF2, AT=57.8675;
+              MB, AT=59.3225;
+              QD, AT=60.8025;
+              XCf2, AT=61.665;
+              MB, AT=63.1075;
+              QF2, AT=64.3875;
+              QF1, AT=66.7375;
+              MB, AT=68.1925;
+              QD, AT=69.7725;
+              MB, AT=71.4275;
+              QF1, AT=72.6775;
+              ES_marker, at=73.25225;
+              ES, AT=73.25225 + 0.4;
+ENDSEQUENCE;

@@ -1,63 +1,119 @@
-import json
-import pathlib
-import numpy as np
-
 import xtrack as xt
-import xpart as xp
+import numpy as np
+import pytest
+
 from xobjects.test_helpers import for_all_test_contexts
+import xobjects as xo
 
-test_data_folder = pathlib.Path(
-        __file__).parent.joinpath('../test_data').absolute()
+assert_allclose = np.testing.assert_allclose
 
+slice_mode = 'thin'
+tilted = True
+orientation = 'acw'
+transform_to_actual_elements = True
 
 @for_all_test_contexts
-def test_survey_element0(test_context):
-    fname_line_particles = test_data_folder.joinpath(
-        'hllhc15_noerrors_nobb/line_and_particle.json')
+@pytest.mark.parametrize(
+    'slice_mode',
+    [None, 'thin', 'thick'],
+    ids=['no_slice', 'thin_slice', 'thick_slice'])
+@pytest.mark.parametrize(
+    'tilted',
+    [False, True],
+    ids=['not_tilted', 'tilted'])
+@pytest.mark.parametrize(
+    'orientation',
+    ['cw', 'acw'],
+    ids=['cw', 'acw'])
+@pytest.mark.parametrize(
+    'transform_to_actual_elements',
+    [False, True],
+    ids=['no_actual_elements', 'actual_elements'])
+def test_survey_slicing(test_context, slice_mode, tilted, orientation,
+                        transform_to_actual_elements):
 
-    with open(fname_line_particles, 'r') as fid:
-        input_data = json.load(fid)
-
-    line = xt.Line.from_dict(input_data['line'])
-    line.particle_ref = xp.Particles.from_dict(input_data['particle'])
-
+    line = xt.Line(
+        elements=[
+            xt.Drift(),
+            xt.Bend(),
+            xt.Drift(),
+            xt.Bend(),
+            xt.Drift(),
+            xt.Bend(),
+            xt.Drift(),
+            xt.Bend(),
+        ]
+    )
     line.build_tracker(_context=test_context)
 
-    starting = {
-        "theta0": -np.pi / 9,
-        "psi0": np.pi / 7,
-        "phi0": np.pi / 11,
-        "X0": -300,
-        "Y0": 150,
-        "Z0": -100,
-    }
+    line.vars['l_drift'] = 999.
+    line.vars['l_bend'] = 999.
+    line.vars['h_bend'] = 999.
+    line.vars['tilt_bend_deg'] = 999.
 
-    line_c = line.cycle('ip5')
 
-    for reverse in [False, True]:
+    line.element_refs['e0'].length = line.vars['l_drift']
+    line.element_refs['e1'].length = line.vars['l_bend']
+    line.element_refs['e2'].length = line.vars['l_drift']
+    line.element_refs['e3'].length = line.vars['l_bend']
+    line.element_refs['e4'].length = line.vars['l_drift']
+    line.element_refs['e5'].length = line.vars['l_bend']
+    line.element_refs['e6'].length = line.vars['l_drift']
+    line.element_refs['e7'].length = line.vars['l_bend']
 
-        sv0 = line.survey(element0='ip5', **starting)
-        sv_c = line_c.survey(**starting)
+    line.element_refs['e1'].h = line.vars['h_bend']
+    line.element_refs['e3'].h = line.vars['h_bend']
+    line.element_refs['e5'].h = line.vars['h_bend']
+    line.element_refs['e7'].h = line.vars['h_bend']
 
-        if reverse:
-            sv0 = sv0.reverse()
-            sv_c = sv_c.reverse()
+    line.element_refs['e1'].rot_s_rad = line.vars['tilt_bend_deg'] * np.pi / 180
+    line.element_refs['e3'].rot_s_rad = line.vars['tilt_bend_deg'] * np.pi / 180
+    line.element_refs['e5'].rot_s_rad = line.vars['tilt_bend_deg'] * np.pi / 180
+    line.element_refs['e7'].rot_s_rad = line.vars['tilt_bend_deg'] * np.pi / 180
 
-        sv0 = sv0.to_pandas()
-        sv_c = sv_c.to_pandas()
+    if slice_mode is not None:
+        line.slice_thick_elements(
+            slicing_strategies=[xt.Strategy(xt.Teapot(20, mode=slice_mode))])
+        line.build_tracker(_context=test_context)
 
-        for ename in ['ip5', 'ip8', 'ip1', 'mb.c12r8.b1..1',
-                    'mb.c12r1.b1..1', 'mb.c12l5.b1..1', 'drift_10', 'drift_10000']:
-            svc_at_e = sv_c[sv_c.name == ename]
-            sv0_at_e = sv0[sv0.name == ename]
+    line.vars['l_drift'] = 1
+    line.vars['l_bend'] = 1
+    if orientation == 'cw':
+        line.vars['h_bend'] = np.pi/2 / line.vars['l_bend']
+    elif orientation == 'acw':
+        line.vars['h_bend'] = -np.pi/2 / line.vars['l_bend']
 
-            assert np.isclose(svc_at_e.X, sv0_at_e.X, rtol=0, atol=5e-4)
-            assert np.isclose(svc_at_e.Y, sv0_at_e.Y, rtol=0, atol=5e-4)
-            assert np.isclose(svc_at_e.Z, sv0_at_e.Z, rtol=0, atol=5e-4)
-            assert np.isclose(np.mod(svc_at_e.theta, 2*np.pi), np.mod(sv0_at_e.theta, 2*np.pi),
-                            rtol=0, atol=1e-12)
-            assert np.isclose(svc_at_e.phi, sv0_at_e.phi, rtol=0, atol=5e-12)
-            assert np.isclose(svc_at_e.psi, sv0_at_e.psi, rtol=0, atol=5e-12)
-            assert np.isclose(svc_at_e.drift_length, sv0_at_e.drift_length, rtol=0, atol=1e-12)
-            assert np.isclose(svc_at_e.angle, sv0_at_e.angle, rtol=0, atol=1e-12)
-            assert np.isclose(svc_at_e.tilt, sv0_at_e.tilt, rtol=0, atol=1e-12)
+    if tilted:
+        line.vars['tilt_bend_deg'] = 90
+    else:
+        line.vars['tilt_bend_deg'] = 0
+
+    if slice_mode == 'thin' and transform_to_actual_elements:
+        line.discard_tracker()
+        line._replace_with_equivalent_elements()
+        line.build_tracker(_context=test_context)
+        assert isinstance(line['e1..1'], xt.Multipole)
+
+    sv = line.survey()
+    assert_allclose(sv.Z[-1], 0, rtol=0, atol=1e-13)
+    assert_allclose(sv.X[-1], 0, rtol=0, atol=1e-13)
+    assert_allclose(sv.Y[-1], 0, rtol=0, atol=1e-13)
+    assert_allclose(sv.s[-1], 8, rtol=0, atol=1e-13)
+
+
+    if not tilted and orientation == 'acw':
+        assert_allclose(np.abs(sv.Y), 0, rtol=0, atol=1e-14)
+        assert_allclose(np.trapezoid(sv.X, sv.Z), -4.818 , rtol=0, # anti-clockwise
+                        atol=(2e-3 if slice_mode is not None else 0.5))
+    elif not tilted and orientation == 'cw':
+        assert_allclose(np.abs(sv.Y), 0, rtol=0, atol=1e-14)
+        assert_allclose(np.trapezoid(sv.X, sv.Z), 4.818 , rtol=0, # clockwise
+                        atol=(2e-3 if slice_mode is not None else 0.5))
+    elif tilted and orientation == 'acw':
+        assert_allclose(np.abs(sv.X), 0, rtol=0, atol=1e-14)
+        assert_allclose(np.trapezoid(sv.Y, sv.Z), -4.818 , rtol=0, # anti-clockwise
+                        atol=(2e-3 if slice_mode is not None else 0.5))
+    elif tilted and orientation == 'cw':
+        assert_allclose(np.abs(sv.X), 0, rtol=0, atol=1e-14)
+        assert_allclose(np.trapezoid(sv.Y, sv.Z), 4.818 , rtol=0, # clockwise
+                        atol=(2e-3 if slice_mode is not None else 0.5))

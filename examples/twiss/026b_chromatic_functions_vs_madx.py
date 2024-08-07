@@ -1,7 +1,5 @@
 from cpymad.madx import Madx
 import xtrack as xt
-import xpart as xp
-import xdeps as xd
 
 import numpy as np
 
@@ -34,7 +32,7 @@ for line_name in ['lhcb1', 'lhcb2']:
         seq = mad.sequence.lhcb2
         line.twiss_default['reverse'] = True
 
-    tw = line.twiss(only_markers=True)
+    tw = line.twiss()
     twmad = mad.twiss(chrom=True)
 
     tw_test = tw.rows['.*_exit']
@@ -58,10 +56,10 @@ for line_name in ['lhcb1', 'lhcb2']:
     assert np.allclose(tw_test.bx_chrom, bx_ref, rtol=0, atol=2e-3 * np.max(bx_ref))
     assert np.allclose(tw_test.by_chrom, by_ref, rtol=0, atol=2e-3 * np.max(by_ref))
 
-    twiss_init = tw.get_twiss_init('ip3')
-    tw_open = line.twiss(ele_start='ip3', ele_stop='ip6', twiss_init=twiss_init,
+    init = tw.get_twiss_init('ip3')
+    tw_open = line.twiss(start='ip3', end='ip6', init=init,
                          compute_chromatic_properties=True,
-                         only_markers=True)
+                         )
 
     tw_ref_open = tw.rows['ip3':'ip6']
     assert np.allclose(tw_open.wx_chrom[:-1], tw_ref_open.wx_chrom,

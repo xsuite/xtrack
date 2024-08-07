@@ -33,10 +33,4 @@ void RandomExponential_sample(RandomExponentialData rng, LocalParticle* part0,
 }
 
 
-/*gpufun*/
-void RandomExponential_track_local_particle(RandomExponentialData rng, LocalParticle* part0) {
-    kill_all_particles(part0, RNG_ERR_INVALID_TRACK);
-}
-
-
 #endif /* XTRACK_EXPONENTIAL_RNG_H */

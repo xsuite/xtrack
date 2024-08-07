@@ -1,61 +1,45 @@
-
-import numpy as np
+# copyright ############################### #
+# This file is part of the Xtrack Package.  #
+# Copyright (c) CERN, 2021.                 #
+# ######################################### #
 
 import xtrack as xt
 
-# xt._print.suppress = True
+# Load a line and build tracker
+line = xt.Line.from_json(
+    '../../test_data/hllhc15_noerrors_nobb/line_and_particle.json')
+line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, energy0=7e12)
+line.build_tracker()
 
-# Load the line
-collider = xt.Multiline.from_json(
-    '../../test_data/hllhc15_collider/collider_00_from_mad.json')
-collider.build_trackers()
+# Periodic twiss of the full ring
+tw_p = line.twiss()
 
-collider.lhcb1.twiss_default['method'] = '4d'
-collider.lhcb2.twiss_default['method'] = '4d'
-collider.lhcb2.twiss_default['reverse'] = True
+# Periodic twiss of an arc cell
+tw = line.twiss(method='4d', start='mq.14r6.b1', end='mq.16r6.b1', init='periodic')
 
-line = collider.lhcb1
-start_cell = 's.cell.67.b1'
-end_cell = 'e.cell.67.b1'
-start_arc = 'e.ds.r6.b1'
-end_arc = 'e.ds.l7.b1'
+#!end-doc-part
 
-# line = collider.lhcb2
-# start_cell = 's.cell.67.b2'
-# end_cell = 'e.cell.67.b2'
-# start_arc = 'e.ds.r6.b2'
-# end_arc = 'e.ds.l7.b2'
+# Plot
 
-tw = line.twiss()
+# Choose the twiss to plot
 
-mux_arc_target = tw['mux', end_arc] - tw['mux', start_arc]
-muy_arc_target = tw['muy', end_arc] - tw['muy', start_arc]
+import matplotlib.pyplot as plt
+plt.close('all')
 
-tw_cell = line.twiss(
-    ele_start=start_cell,
-    ele_stop=end_cell,
-    twiss_init='preserve')
+fig1 = plt.figure(1)
+spbet = plt.subplot(2,1,1)
+spdisp = plt.subplot(2,1,2, sharex=spbet)
 
-tw_cell_periodic = line.twiss(
-    method='4d',
-    ele_start=start_cell,
-    ele_stop=end_cell,
-    twiss_init='periodic')
+spbet.plot(tw.s, tw.betx, label='x')
+spbet.plot(tw.s, tw.bety, label='y')
+spbet.set_ylabel(r'$\beta_{x,y}$ [m]')
+spbet.set_ylim(bottom=0)
+spbet.legend(loc='best')
 
-twinit_start_cell = tw_cell_periodic.get_twiss_init(start_cell)
+spdisp.plot(tw.s, tw.dx, label='x')
+spdisp.plot(tw.s, tw.dy, label='y')
+spdisp.set_ylabel(r'$D_{x,y}$ [m]')
+spdisp.set_xlabel('s [m]')
 
-tw_to_end_arc = line.twiss(
-    ele_start=start_cell,
-    ele_stop=end_arc,
-    twiss_init=twinit_start_cell)
-
-tw_to_start_arc = line.twiss(
-    ele_start=start_arc,
-    ele_stop=start_cell,
-    twiss_init=twinit_start_cell)
-
-mux_arc_from_cell = tw_to_end_arc['mux', end_arc] - tw_to_start_arc['mux', start_arc]
-muy_arc_from_cell = tw_to_end_arc['muy', end_arc] - tw_to_start_arc['muy', start_arc]
-
-assert np.isclose(mux_arc_from_cell, mux_arc_target, rtol=1e-6)
-assert np.isclose(muy_arc_from_cell, muy_arc_target, rtol=1e-6)
+fig1.subplots_adjust(left=.15, right=.92, hspace=.27)
+plt.show()

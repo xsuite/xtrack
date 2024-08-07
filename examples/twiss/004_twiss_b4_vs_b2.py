@@ -1,7 +1,6 @@
 import numpy as np
 from cpymad.madx import Madx
 import xtrack as xt
-import xpart as xp
 
 mad_b2 = Madx()
 mad_b2.call('../../test_data/hllhc15_noerrors_nobb/sequence.madx')
@@ -17,7 +16,7 @@ summb4mad = mad_b4.table.summ
 
 line_b4 = xt.Line.from_madx_sequence(mad_b4.sequence['lhcb2'],
                                      deferred_expressions=True)
-line_b4.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, p0c=7000e9)
+line_b4.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7000e9)
 
 line_b4.build_tracker()
 twb4xt = line_b4.twiss()

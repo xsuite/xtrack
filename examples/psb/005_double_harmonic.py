@@ -6,8 +6,6 @@ from scipy.constants import c as clight
 import xtrack as xt
 import xdeps as xd
 
-# REMEMBER:
-# - Handle zero ramp rate
 
 fname = '../../test_data/psb_chicane/Ramp_and_RF_functions.dat'
 
@@ -64,9 +62,8 @@ line.element_refs['br1.acwf5l1.2'].frequency = line.vars['freq_h2']
 # tw6d = line.twiss(method='6d')
 
 t_rev = []
-qs = []
-zeta_co = []
 beta0 = []
+gamma0 = []
 f_h1 = []
 f_h2 = []
 lag_h1 = []
@@ -76,11 +73,10 @@ volt_h2 = []
 for ii in range(len(t_s)):
     print(f'Computing twiss at t_s = {t_s[ii]:.4} s    ', end='\r', flush=True)
     line.vars['t_turn_s'] = t_s[ii]
-    # tt = line.twiss(method='6d')
-    # t_rev.append(tt.T_rev0)
-    # qs.append(tt.qs)
-    # zeta_co.append(tt.zeta[0])
-    # beta0 = tt.beta0
+    tt = line.twiss(method='4d')
+    t_rev.append(tt.T_rev0)
+    beta0.append(tt.beta0)
+    gamma0.append(tt.gamma0)
     f_h1.append(line['br1.acwf5l1.1'].frequency)
     f_h2.append(line['br1.acwf5l1.2'].frequency)
     lag_h1.append(line['br1.acwf5l1.1'].lag)

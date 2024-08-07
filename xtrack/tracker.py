@@ -2,10 +2,8 @@
 # This file is part of the Xtrack Package.  #
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
-
 from time import perf_counter
 from typing import Literal, Union
-from contextlib import contextmanager
 import logging
 from functools import partial
 from collections import UserDict, defaultdict
@@ -14,26 +12,22 @@ from scipy.constants import c as clight
 
 import numpy as np
 import xobjects as xo
-import xpart as xp
 import xtrack as xt
-
-from .general import _print
 
 from .base_element import _handle_per_particle_blocks
 from .beam_elements import Drift
 from .general import _pkg_root
 from .internal_record import new_io_buffer
-from .line import Line, _is_thick, freeze_longitudinal as _freeze_longitudinal
+from .line import Line, _is_thick, _is_collective
+from .line import freeze_longitudinal as _freeze_longitudinal
 from .pipeline import PipelineStatus
+from .progress_indicator import progress
 from .tracker_data import TrackerData
-from .prebuild_kernels import get_suitable_kernel, XT_PREBUILT_KERNELS_LOCATION
 
 logger = logging.getLogger(__name__)
 
 
-def _check_is_collective(ele):
-    iscoll = not hasattr(ele, 'iscollective') or ele.iscollective
-    return iscoll
+
 
 
 class Tracker:
@@ -54,16 +48,16 @@ class Tracker:
         use_prebuilt_kernels=True,
         enable_pipeline_hold=False,
         track_kernel=None,
-        particles_class=xp.Particles,
         particles_monitor_class=None,
         extra_headers=(),
         local_particle_src=None,
+        _prebuilding_kernels=False,
     ):
 
         # Check if there are collective elements
         self.iscollective = False
         for ee in line.elements:
-            if _check_is_collective(ee):
+            if _is_collective(ee, line):
                 self.iscollective = True
                 break
 
@@ -75,17 +69,13 @@ class Tracker:
             raise NotImplementedError("Skip compilation is not implemented in "
                                       "collective mode")
 
-        if particles_class is None:
-            particles_class = xp.Particles
-
         if local_particle_src is None:
-            local_particle_src = particles_class.gen_local_particle_api()
+            local_particle_src = xt.Particles.gen_local_particle_api()
 
         if not particles_monitor_class:
             particles_monitor_class = self._get_default_monitor_class()
 
         self.line = line
-        self.particles_class = particles_class
         self.particles_monitor_class = particles_monitor_class
         self.extra_headers = extra_headers
         self.local_particle_src = local_particle_src
@@ -110,24 +100,34 @@ class Tracker:
         if self.iscollective:
             # Build tracker for all non-collective elements
             # (with collective elements replaced by Drifts)
-            ele_dict_non_collective = {
-                nn:ee for nn, ee in zip(line.element_names, noncollective_xelements)}
+            ele_dict_non_collective = line.element_dict.copy() # need to keep the parents
+            for nn, ee in zip(line.element_names, noncollective_xelements):
+                ele_dict_non_collective[nn] = ee
         else:
             ele_dict_non_collective = line.element_dict
+
+        if _prebuilding_kernels:
+            element_s_locations = np.zeros(len(line.element_names))
+            line_length = 0.
+        else:
+            element_s_locations = line.get_s_elements()
+            line_length = line.get_length()
 
         tracker_data_base = TrackerData(
             allow_move=True, # Will move elements to the same buffer
             element_dict=ele_dict_non_collective,
             element_names=line.element_names,
-            element_s_locations=line.get_s_elements(),
-            line_length=line.get_length(),
-            compound_mask=line.get_compound_mask(),
-            element_compound_names=line.get_element_compound_names(),
+            element_s_locations=element_s_locations,
+            line_length=line_length,
             kernel_element_classes=None,
             extra_element_classes=(particles_monitor_class._XoStruct,),
             _context=_context,
-            _buffer=_buffer)
+            _buffer=_buffer,
+            _no_resolve_parents=_prebuilding_kernels)
         line._freeze()
+
+        if np.any([hasattr(ee, 'needs_rng') and ee.needs_rng for ee in line.elements]):
+            line._needs_rng = True
 
         _buffer = tracker_data_base._buffer
 
@@ -139,11 +139,11 @@ class Tracker:
         self._tracker_data_cache = {}
         self._tracker_data_cache[None] = tracker_data_base
 
-        self._get_twiss_mask_markers() # to cache it
-
-        self._init_io_buffer(io_buffer)
+        if not _prebuilding_kernels:
+            self._get_twiss_mask_markers() # to cache it
 
         self.line = line
+        self._init_io_buffer(io_buffer)
         self.line.tracker = self
 
         if compile:
@@ -151,7 +151,14 @@ class Tracker:
 
     def _init_io_buffer(self, io_buffer=None):
         if io_buffer is None:
-            io_buffer = new_io_buffer(_context=self._context)
+            io_bufs = [ee.io_buffer for ee in self.line.elements
+                       if getattr(ee, 'io_buffer', None) is not None]
+            if len(io_bufs) == 0:
+                io_buffer = new_io_buffer(_context=self._context)
+            elif len(np.unique([id(buf) for buf in io_bufs])) > 1:
+                raise ValueError("Different io buffers found in elements!")
+            else:
+                io_buffer = io_bufs[0]
         self.io_buffer = io_buffer
 
     def _split_parts_for_collective_mode(self, line, _buffer):
@@ -167,7 +174,7 @@ class Tracker:
         i_part = 0
         idx = 0
         for nn, ee in zip(line.element_names, line.elements):
-            if not _check_is_collective(ee):
+            if not _is_collective(ee, line):
                 this_part.append_element(ee, nn)
                 _element_part.append(i_part)
                 _element_index_in_part.append(ii_in_part)
@@ -197,13 +204,21 @@ class Tracker:
             if isinstance(pp, Line):
                 noncollective_xelements += pp.elements
             else:
-                if _is_thick(pp):
+                if _is_thick(pp, line):
                     ldrift = pp.length
                 else:
                     ldrift = 0.
 
+                if _buffer is None:
+                    if hasattr(pp, '_buffer'):
+                        pp_buffer = pp._buffer
+                    else:
+                        pp_buffer = None
+                else:
+                    pp_buffer = _buffer
+
                 noncollective_xelements.append(
-                    Drift(_buffer=_buffer, length=ldrift))
+                    Drift(_buffer=pp_buffer, length=ldrift))
 
         # Build TrackerPartNonCollective objects for non-collective parts
         for ii, pp in enumerate(parts):
@@ -281,20 +296,102 @@ class Tracker:
                 "This tracker is not anymore valid, most probably because the corresponding line has been unfrozen. "
                 "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
 
-    def _track(self, *args, **kwargs):
+    def _track(self, particles, *args, with_progress: Union[bool, int] = False,
+               time=False, **kwargs):
+
+        out = None
+
+        if time:
+            t0 = perf_counter()
+
         assert self.iscollective in (True, False)
-        if self.iscollective or self.line.enable_time_dependent_vars:
-            return self._track_with_collective(*args, **kwargs)
+        if (self.iscollective or self.line.enable_time_dependent_vars
+            or 'log' in kwargs and kwargs['log'] is not None):
+            tracking_func = self._track_with_collective
         else:
-            return self._track_no_collective(*args, **kwargs)
+            tracking_func = self._track_no_collective
+
+        if with_progress:
+            if self.enable_pipeline_hold:
+                raise ValueError("Progress indicator is not supported with pipeline hold")
+
+            try:
+                num_turns = kwargs['num_turns']
+            except KeyError:
+                raise ValueError('Tracking with progress indicator is only '
+                                 'possible over more than one turn.')
+
+            if with_progress is True:
+                batch_size = scaling = 100
+            else:
+                batch_size = int(with_progress)
+                scaling = with_progress if batch_size > 1 else None
+
+            if kwargs.get('turn_by_turn_monitor') is True:
+                ele_start = kwargs.get('ele_start') or 0
+                ele_stop = kwargs.get('ele_stop')
+                if ele_stop is None:
+                    ele_stop = len(self.line)
+
+                if ele_start >= ele_stop:
+                    # we need an additional turn and space in the monitor for
+                    # the incomplete turn
+                    num_turns += 1
+                _, monitor, _, _ = self._get_monitor(particles, True, num_turns)
+                kwargs['turn_by_turn_monitor'] = monitor
+
+            for ii in progress(
+                    range(0, num_turns, batch_size),
+                    desc='Tracking',
+                    unit_scale=scaling,
+            ):
+                one_turn_kwargs = kwargs.copy()
+                is_first_batch = ii == 0
+                is_last_batch = ii + batch_size >= num_turns
+
+                if is_first_batch and is_last_batch:
+                    # This is the only batch, we track as normal
+                    pass
+                elif is_first_batch:
+                    # Not the last batch, so track until the last element
+                    one_turn_kwargs['ele_stop'] = None
+                    one_turn_kwargs['num_turns'] = batch_size
+                elif is_last_batch:
+                    # Not the first batch, so track from the first element
+                    one_turn_kwargs['ele_start'] = None
+                    remaining_turns = num_turns % batch_size
+                    if remaining_turns == 0:
+                        remaining_turns = batch_size
+                    one_turn_kwargs['num_turns'] = remaining_turns
+                    one_turn_kwargs['_reset_log'] = False
+                elif not is_first_batch and not is_last_batch:
+                    # A 'middle batch', track from first to last element
+                    one_turn_kwargs['num_turns'] = batch_size
+                    one_turn_kwargs['ele_start'] = None
+                    one_turn_kwargs['ele_stop'] = None
+                    one_turn_kwargs['_reset_log'] = False
+
+                tracking_func(particles, *args, **one_turn_kwargs)
+                # particles.reorganize() # could be done in the future to optimize GPU usage
+        else:
+            out = tracking_func(particles, *args, **kwargs)
+
+        if time:
+            t1 = perf_counter()
+            self._context.synchronize()
+            self.time_last_track = t1 - t0
+        else:
+            self.time_last_track = None
+
+        return out
 
     @property
-    def particle_ref(self) -> xp.Particles:
+    def particle_ref(self) -> xt.Particles:
         self._check_invalidated()
         return self.line.particle_ref
 
     @particle_ref.setter
-    def particle_ref(self, value: xp.Particles):
+    def particle_ref(self, value: xt.Particles):
         self.line.particle_ref = value
 
     @property
@@ -328,21 +425,29 @@ class Tracker:
             compile: Union[bool, Literal['force']],
             module_name=None,
             containing_dir='.',
+            extra_classes=[],
+            extra_kernels={},
     ):
         if compile == 'force':
             use_prebuilt_kernels = False
-        elif not isinstance(self._context, xo.ContextCpu):
-            use_prebuilt_kernels = False
-        elif (self._context.omp_num_threads == 'auto'  # CPU context, but OpenMP
-              or self._context.omp_num_threads > 1):
+        elif not self._context.allow_prebuilt_kernels:  # only CPU serial
             use_prebuilt_kernels = False
         else:
             use_prebuilt_kernels = self.use_prebuilt_kernels
 
         if use_prebuilt_kernels:
-            kernel_info = get_suitable_kernel(
-                self.config, self.line_element_classes
-            )
+            try:
+                from xsuite import (
+                    get_suitable_kernel,
+                    XSK_PREBUILT_KERNELS_LOCATION,
+                )
+            except ImportError:
+                kernel_info = None
+            else:
+                kernel_info = get_suitable_kernel(
+                    self.config, self.line_element_classes
+                )
+
             if kernel_info:
                 module_name, modules_classes = kernel_info
 
@@ -350,12 +455,10 @@ class Tracker:
                                             modules_classes)['track_line']
                 kernels = self._context.kernels_from_file(
                     module_name=module_name,
-                    containing_dir=XT_PREBUILT_KERNELS_LOCATION,
+                    containing_dir=XSK_PREBUILT_KERNELS_LOCATION,
                     kernel_descriptions={'track_line': kernel_description},
                 )
-                classes = (self.particles_class._XoStruct,)
-
-                return kernels[('track_line', classes)]
+                return kernels['track_line']
 
         context = self._tracker_data_base._buffer.context
 
@@ -386,19 +489,39 @@ class Tracker:
                              int64_t offset_tbt_monitor,
                 /*gpuglmem*/ int8_t* io_buffer){
 
-            const int64_t capacity = ParticlesData_get__capacity(particles);               //only_for_context cpu_openmp
-            const int num_threads = omp_get_max_threads();                                 //only_for_context cpu_openmp
-            const int64_t chunk_size = (capacity + num_threads - 1)/num_threads; // ceil division  //only_for_context cpu_openmp
-            #pragma omp parallel for                                                       //only_for_context cpu_openmp
-            for (int chunk = 0; chunk < num_threads; chunk++) {                            //only_for_context cpu_openmp
-            int64_t part_id = chunk * chunk_size;                                          //only_for_context cpu_openmp
-            int64_t end_id = (chunk + 1) * chunk_size;                                     //only_for_context cpu_openmp
-            if (end_id > capacity) end_id = capacity;                                      //only_for_context cpu_openmp
+            #define CONTEXT_OPENMP  //only_for_context cpu_openmp
+            #ifdef CONTEXT_OPENMP
+                const int64_t capacity = ParticlesData_get__capacity(particles);
+                const int num_threads = omp_get_max_threads();
+
+                #ifndef XT_OMP_SKIP_REORGANIZE
+                    const int64_t num_particles_to_track = ParticlesData_get__num_active_particles(particles);
+                    
+                    {
+                        LocalParticle lpart;
+                        lpart.io_buffer = io_buffer;
+                        Particles_to_LocalParticle(particles, &lpart, 0, capacity);
+                        check_is_active(&lpart);
+                        count_reorganized_particles(&lpart);
+                        LocalParticle_to_Particles(&lpart, particles, 0, capacity);
+                    }
+                #else // When we skip reorganize, we cannot just batch active particles
+                    const int64_t num_particles_to_track = capacity;
+                #endif
+                
+                const int64_t chunk_size = (num_particles_to_track + num_threads - 1)/num_threads; // ceil division
+            #endif // CONTEXT_OPENMP
+            
+            #pragma omp parallel for                                                           //only_for_context cpu_openmp
+            for (int chunk = 0; chunk < num_threads; chunk++) {                                //only_for_context cpu_openmp
+            int64_t part_id = chunk * chunk_size;                                              //only_for_context cpu_openmp
+            int64_t end_id = (chunk + 1) * chunk_size;                                         //only_for_context cpu_openmp
+            if (end_id > num_particles_to_track) end_id = num_particles_to_track;              //only_for_context cpu_openmp
 
             int64_t part_id = 0;                                      //only_for_context cpu_serial
             int64_t part_id = blockDim.x * blockIdx.x + threadIdx.x;  //only_for_context cuda
             int64_t part_id = get_global_id(0);                       //only_for_context opencl
-            int64_t end_id = 0; // unused outside of openmp  //only_for_context cpu_serial cuda opencl
+            int64_t end_id = 0; // unused outside of openmp           //only_for_context cpu_serial cuda opencl
 
             LocalParticle lpart;
             lpart.io_buffer = io_buffer;
@@ -469,7 +592,7 @@ class Tracker:
                 )
             src_lines.append(
                 f"""
-                            {ccnn}_track_local_particle(({ccnn}Data) el, &lpart);
+                            {ccnn}_track_local_particle_with_transformations(({ccnn}Data) el, &lpart);
                             break;"""
             )
 
@@ -538,9 +661,10 @@ class Tracker:
         source_track = "\n".join(src_lines)
 
         kernels = self.get_kernel_descriptions(kernel_element_classes)
+        kernels.update(extra_kernels)
 
         # Compile!
-        if isinstance(self._context, xo.ContextCpu):
+        if self._context.allow_prebuilt_kernels:
             kwargs = {
                 'containing_dir': containing_dir,
                 'module_name': module_name,
@@ -553,7 +677,7 @@ class Tracker:
             sources=[source_track],
             kernel_descriptions=kernels,
             extra_headers=self._config_to_headers() + headers,
-            extra_classes=kernel_element_classes,
+            extra_classes=kernel_element_classes + extra_classes,
             apply_to_source=[
                 partial(_handle_per_particle_blocks,
                         local_particle_src=self.local_particle_src)],
@@ -562,9 +686,7 @@ class Tracker:
             save_source_as=f'{module_name}.c' if module_name else None,
             **kwargs,
         )
-
-        classes = (self.particles_class._XoStruct,)
-        return out_kernels[('track_line', classes)]
+        return out_kernels['track_line']
 
     def get_kernel_descriptions(self, kernel_element_classes):
 
@@ -577,7 +699,7 @@ class Tracker:
                 args=[
                     xo.Arg(xo.Int8, pointer=True, name="buffer"),
                     xo.Arg(tdata_type, name="tracker_data"),
-                    xo.Arg(self.particles_class._XoStruct, name="particles"),
+                    xo.Arg(xt.Particles._XoStruct, name="particles"),
                     xo.Arg(xo.Int32, name="num_turns"),
                     xo.Arg(xo.Int32, name="ele_start"),
                     xo.Arg(xo.Int32, name="num_ele_track"),
@@ -594,7 +716,10 @@ class Tracker:
         }
 
         # Random number generator init kernel
-        kernel_descriptions.update(self.particles_class._kernels)
+        kernel_descriptions.update(xt.Particles._kernels)
+
+        # Multisetter
+        kernel_descriptions.update(xt.MultiSetter._kernels)
 
         return kernel_descriptions
 
@@ -634,7 +759,7 @@ class Tracker:
                 num_turns = 1
             else:
                 assert num_turns > 0
-            if isinstance(ele_stop,str):
+            if isinstance(ele_stop, str):
                 ele_stop = self.line.element_names.index(ele_stop)
 
             # If ele_stop comes before ele_start, we need to add an additional turn to
@@ -764,12 +889,10 @@ class Tracker:
         turn_by_turn_monitor=None,
         freeze_longitudinal=False,
         backtrack=False,
-        time=False,
-        _session_to_resume=None
+        log=None,
+        _session_to_resume=None,
+        _reset_log=True,
     ):
-
-        if time:
-            t0 = perf_counter()
 
         if ele_start is None:
             ele_start = 0
@@ -781,6 +904,14 @@ class Tracker:
         if backtrack:
             raise NotImplementedError('backtrack not available for collective'
                                       ' tracking')
+
+        if log is not None:
+            if isinstance(log, (list, tuple)):
+                log = Log(*log)
+            elif not isinstance(log, Log):
+                log = Log(log)
+        if log is not None and _reset_log:
+            self.line.log_last_track = {}
 
         self._check_invalidated()
 
@@ -838,15 +969,21 @@ class Tracker:
                 ii_first_active = int((state > 0).argmax())
                 if ii_first_active == 0 and particles._xobject.state[0] <= 0:
                     # No active particles
-                    break
+                    at_turn = 0 # convenient for multi-turn injection
+                else:
+                    at_turn = particles._xobject.at_turn[ii_first_active]
 
-                at_turn = particles._xobject.at_turn[ii_first_active]
                 if self.line.energy_program is not None:
                     t_turn = self.line.energy_program.get_t_s_at_turn(at_turn)
                 else:
                     beta0 = particles._xobject.beta0[ii_first_active]
                     t_turn = (at_turn * self._tracker_data_base.line_length
                             / (beta0 * clight))
+
+                # Clean leftover from previous trackings
+                if (self.line._t_last_update_time_dependent_vars and
+                   t_turn < self.line._t_last_update_time_dependent_vars):
+                    self.line._t_last_update_time_dependent_vars = None
 
                 if (self.line._t_last_update_time_dependent_vars is None
                     or self.line.dt_update_time_dependent_vars is None
@@ -858,6 +995,25 @@ class Tracker:
                     if self.line.energy_program is not None:
                         p0c = self.line.particle_ref._xobject.p0c[0]
                         particles.update_p0c_and_energy_deviations(p0c)
+
+            if log is not None:
+                for kk in log:
+                    if log[kk] == None:
+                        if kk not in self.line.log_last_track:
+                            self.line.log_last_track[kk] = []
+                        self.line.log_last_track[kk].append(self.line.vv[kk])
+                    else:
+                        ff = log[kk]
+                        val = ff(self.line, particles)
+                        if hasattr(ff, '_store'):
+                            for nn in ff._store:
+                                if nn not in self.line.log_last_track:
+                                    self.line.log_last_track[nn] = []
+                                self.line.log_last_track[nn].append(val[nn])
+                        else:
+                            if kk not in self.line.log_last_track:
+                                self.line.log_last_track[kk] = []
+                            self.line.log_last_track[kk].append(val)
 
             moveback_to_buffer = None
             moveback_to_offset = None
@@ -962,12 +1118,6 @@ class Tracker:
 
         self.record_last_track = monitor
 
-        if time:
-            t1 = perf_counter()
-            self._context.synchronize()
-            self.time_last_track = t1 - t0
-        else:
-            self.time_last_track = None
 
     def _track_no_collective(
         self,
@@ -979,11 +1129,16 @@ class Tracker:
         turn_by_turn_monitor=None,
         freeze_longitudinal=False,
         backtrack=False,
-        time=False,
+        log=None,
         _force_no_end_turn_actions=False,
+        _reset_log=True,
     ):
 
         self._check_invalidated()
+
+        if log is not None:
+            raise NotImplementedError(
+                'log can be set only when time-dependent variables are enabled')
 
         if backtrack != False:
             kwargs = locals().copy()
@@ -1000,17 +1155,7 @@ class Tracker:
                 self.config.XSUITE_BACKTRACK = True
                 return self._track_no_collective(**kwargs)
 
-        # Add the Particles class to the config, so the kernel is recompiled
-        # and stored if a new Particles class is given.
-        if type(particles) != xp.Particles:
-            self.config.particles_class_name = type(particles).__name__
-        else:
-            self.config.pop('particles_class_name', None)
-        self.particles_class = particles.__class__
         self.local_particle_src = particles.gen_local_particle_api()
-
-        if time:
-            t0 = perf_counter()
 
         if freeze_longitudinal:
             kwargs = locals().copy()
@@ -1194,13 +1339,6 @@ class Tracker:
 
         self.record_last_track = monitor
 
-        if time:
-            self._context.synchronize()
-            t1 = perf_counter()
-            self.time_last_track = t1 - t0
-        else:
-            self.time_last_track = None
-
     @staticmethod
     def _get_default_monitor_class():
         return xt.ParticlesMonitor
@@ -1294,8 +1432,6 @@ class Tracker:
                 element_s_locations=td_base.element_s_locations,
                 line_length=td_base.line_length,
                 cache=td_base.cache.copy(),
-                compound_mask=td_base.compound_mask,
-                element_compound_names=td_base.element_compound_names,
                 kernel_element_classes=kernel_element_classes,
                 extra_element_classes=td_base.extra_element_classes,
                 _context=self._context,
@@ -1327,18 +1463,6 @@ class Tracker:
     def skip_end_turn_actions(self, value):
         self.line.skip_end_turn_actions = value
 
-    # def __getattr__(self, attr):
-    #     # If not in self look in self.line (if not None)
-    #     if attr == 'line':
-    #         raise AttributeError(f'Tracker object has no attribute `{attr}`')
-    #     if self.line is not None and attr in object.__dir__(self.line):
-    #         _print(f'Warning! The use of `Tracker.{attr}` is deprecated.'
-    #             f' Please use `Line.{attr}` (for more info see '
-    #             'https://github.com/xsuite/xsuite/issues/322)')
-    #         return getattr(self.line, attr)
-    #     else:
-    #         raise AttributeError(f'Tracker object has no attribute `{attr}`')
-
     def __dir__(self):
         return list(set(object.__dir__(self) + dir(self.line)))
 
@@ -1352,6 +1476,7 @@ class Tracker:
         return state
 
     def check_compatibility_with_prebuilt_kernels(self):
+        from xsuite import get_suitable_kernel
         get_suitable_kernel(
             config=self.line.config,
             line_element_classes=self.line_element_classes,
@@ -1429,7 +1554,7 @@ def _element_classes_from_track_kernel(kernel):
 
 def _element_ref_data_class_from_element_classes(element_classes):
 
-    # exctrace XoStruct if needed
+    # extract XoStruct if needed
     element_classes_xostruct = []
     for cc in element_classes:
         if issubclass(cc, xo.Struct):
@@ -1437,12 +1562,29 @@ def _element_ref_data_class_from_element_classes(element_classes):
         else:
             element_classes_xostruct.append(cc._XoStruct)
 
+    # We sort the element classes by name for consistency
+    # This is needed for reproducibility in Xboinc
+    element_classes_xostruct = sorted(element_classes_xostruct, key=lambda s: s._DressingClass.__name__)
+
     class ElementRefClass(xo.UnionRef):
         _reftypes = element_classes_xostruct
 
     class ElementRefData(xo.Struct):
             elements = ElementRefClass[:]
             names = xo.String[:]
-            _overridable = False
 
     return ElementRefData
+
+
+class Log(dict):
+
+    def __init__(self, *args, **kwargs):
+        self.__dict__ = self
+        self.update(kwargs)
+        unnamed_indx = 0
+        for arg in args:
+            if isinstance(arg, str):
+                self[arg] = None
+            else:
+                self[f'_unnamed_{unnamed_indx}'] = arg
+                unnamed_indx += 1

@@ -1,0 +1,670 @@
+ 
+/************************************************************************************/
+/*                       STRENGTH AND ELEMENTS DEFINITIONS                          */
+/************************************************************************************/
+
+ /*************************************************************************************************************
+  * Definitions for bending blocks                                                                            *
+  *                                                                                                           *
+  *  The magnet BAH is artificially split up into two, in order to add the pole face winding(PFW) elements    *
+  *  1.11684/2  = Arc length of bending magnet: BA[12]H[IO]                                                   *
+  *                                                                                                           *
+  *  2.13554    = Half length of centre bending magnet. In MAD, the centre magnet is artificially split up    *
+  *               into BI1PM, BI1PO and BI1PI in order to put in monitors. In reality it is only one magnet.  *
+  *               Therefore  2.13554 = BI1PM->L + BI1PO->L + BI1PI->L = 0.26200 + 0.39574 + 1.4778            *
+  *                                                                                                           *
+  *  BI1PII, BI1PIO = The magnet BI1PI in Arc40 is separated into BI1PII & BI1PIO to give space for the       *
+  *                   horizontal Ionization Profile Monitor. The IPM is inside BI1PI, which is really only    *
+  *                   one magnet (together with BI1PM and BI1PO)                                              *
+  *************************************************************************************************************/
+
+  ED1 =-0.01157;
+  ED2 = 0.01500;
+  ED3 = 0.09557;
+  kEddy = 0.0;
+  sEddy = 0.0;
+  BA1HO :  SBEND, L=1.11684/2., ANGLE=-0.240964/2.
+                              , K1:=kEddy, K2:=sEddy
+                              , E1=-ED1, E2= 0   ;
+  BA1HI :  SBEND, L=1.11684/2., ANGLE=-0.240964/2.
+                              , K1:=kEddy, K2:=sEddy
+                              , E1= 0,   E2=-ED2 ;
+  BI1PO :  SBEND, L=2.13554-0.2620-1.4778
+                              , ANGLE=-(Pi/4.-0.240964)*(1-(1.4778+0.2620)/2.13554)
+                              , K1:=kEddy, K2:=sEddy
+                              , E1= 0,   E2= 0   ; ! L=0.39574
+  BI1PM :  SBEND, L=0.2620    , ANGLE=-(Pi/4.-0.240964)*0.2620/2.13554
+                              , K1:=kEddy, K2:=sEddy
+                              , E1= 0,   E2= 0   ;
+  BI1PI :  SBEND, L=1.4778    , ANGLE=-(Pi/4.-0.240964)*1.4778/2.13554
+                              , K1:=kEddy, K2:=sEddy
+                              , E1= 0,   E2=-ED3 ;
+  BI1PIO : SBEND, L=0.1778    , ANGLE=-(Pi/4.-0.240964)*0.1778/2.13554
+                              , K1:=kEddy, K2:=sEddy
+                              , E1= 0,   E2=0;
+  BI1PII : SBEND, L=1.3000    , ANGLE=-(Pi/4.-0.240964)*1.3000/2.13554
+                              , K1:=kEddy, K2:=sEddy
+                              , E1= 0,   E2=-ED3 ; 
+  BI2PI :  SBEND, L=1.4778    , ANGLE=-(Pi/4.-0.240964)*1.4778/2.13554
+                              , K1:=kEddy, K2:=sEddy
+                              , E1=-ED3, E2= 0   ;
+  BI2PM :  SBEND, L=0.2620    , ANGLE=-(Pi/4.-0.240964)*0.2620/2.13554
+                              , K1:=kEddy, K2:=sEddy
+                              , E1= 0,   E2= 0   ;
+  BI2PO :  SBEND, L=2.13554-0.2620-1.4778
+                , ANGLE=-(Pi/4.-0.240964)*(1-(1.4778+0.2620)/2.13554)
+                              , K1:=kEddy, K2:=sEddy
+                              , E1= 0,   E2= 0   ; ! L=0.39574
+  BA2HI :  SBEND, L=1.11684/2., ANGLE=-0.240964/2.
+                              , K1:=kEddy, K2:=sEddy
+                              , E1=-ED2, E2= 0   ;
+  BA2HO :  SBEND, L=1.11684/2., ANGLE=-0.240964/2.
+                              , K1:=kEddy, K2:=sEddy
+                              , E1= 0,   E2=-ED1 ;
+  DBA   :  DRIFT, L=0.01575;
+  DBI   :  DRIFT, L=0.07299;
+
+
+
+
+ /*************************************************************************
+  * Quadrupole families                                                   *
+  * The quadrupoles are often very close to other elements.               *
+  * This disturbs the fringe field of the quadrupoles.                    *
+  * As a result, the magnetic length is reduced.                          *
+  * Therefore there may be two definitions of the same quadupole:         *
+  * E.g. QFN1030 and QFN1030a, where the first is the normal quadrupole   *
+  * and the second - with the index "a" - is the quadrupole               *
+  * with a shortened magnetic length.                                     *
+  *                                                                       *
+  * The quadrupole QFN22, in straight section 20, is separated in two     *
+  * in order to give space to a schottky PU                               *
+  *                                                                       *
+  *  dLSext ... Quad length reduction due to a Sextupole close to it      *
+  *  dLBmp  ... Quad length reduction due to a Bumper close to it         *
+  *  dLDip  ... Quad length reduction due to a Dipole close to it         *
+  *  dLSol  ... Quad length reduction due to a Correction solenoid close  *
+  *  dLSkew ... Quad length reduction due to a Skew Quad close to it      *
+  *************************************************************************/
+
+  dLSext = 0.005;
+  dLBmp  = 0.000;
+  dLDip  = 0.000;
+  dLSol  = 0.000;
+  dLSkew = 0.005;
+
+
+  QDN1030  : QUADRUPOLE, L:=0.5172,               K1 := kERQD1030;
+  QDN1030a : QUADRUPOLE, L:=0.5172-dLBmp-dLSext,  K1 := kERQD1030;
+  QDN1030b : QUADRUPOLE, L=0.5172-dLSext,         K1 := kERQD1030;
+
+
+  QFN1030  : QUADRUPOLE, L:=0.5172,               K1 := kERQF1030;
+  QFN1030a : QUADRUPOLE, L:=0.5172-2*dLSext,      K1 := kERQF1030;
+
+  ! The QFN2040 and QFN2040a should have been defined as:
+  ! QFN2040  : QUADRUPOLE, L=0.5172,       K1 := kERQF2040;
+  ! QFN2040a : QUADRUPOLE, L=0.5172-dLBmp, K1 := kERQF2040;
+  ! However, the Damper pickups are placed inside these quadrupoles
+  ! and therefore we have to split them up into two halves "H".
+  ! This has an effect on: QFN41i, QFN41o, QFN42i and QFN42o in Straight section 40
+  QFN2040H : QUADRUPOLE, L=0.5172/2,              K1 := kERQF2040;
+  QFN2040Ha: QUADRUPOLE, L=0.5172/2-dLBmp,        K1 := kERQF2040;
+
+  QDN2040  : QUADRUPOLE, L=0.5172,                K1 := kERQD2040;
+  QDN2040a : QUADRUPOLE, L=0.5172-dLSext,         K1 := kERQD2040;
+  QDN2040b : QUADRUPOLE, L=0.5172-dLSext-dLBmp,   K1 := kERQD2040;
+
+  QFN2344  : QUADRUPOLE, L=0.5172,                K1 := kERQF2344;
+  QFN2344a : QUADRUPOLE, L=0.5172-dLSext,         K1 := kERQF2344;
+
+
+  ! The QFT20 should have been defined as:
+  ! QFT20    : QUADRUPOLE, L:=0.5172,      K1 := kERQF2040 + kERQF20CORR;
+  ! However, a Schottky pickup is placed inside this quadrupole
+  ! and therefore we have to split it up into two pieces "A".
+  ! This has an effect on: QFN22I and QFN22O in Straight section 20
+  QFT20I   : QUADRUPOLE, L=0.5172/2-5.6745+5.59,  K1 := kERQF2040 + kERQF20CORR;
+  QFT20O   : QUADRUPOLE, L=0.5172/2+5.6745-5.59,  K1 := kERQF2040 + kERQF20CORR;
+  QFT20a   : QUADRUPOLE, L:=0.5172-dLBmp,         K1 := kERQF2040 + kERQF20CORR;
+  QDT20    : QUADRUPOLE, L=0.5172,                K1 := kERQD2040 + kERQD20CORR;
+  QDT20a   : QUADRUPOLE, L=0.5172-dLBmp-dLSkew,   K1 := kERQD2040 + kERQD20CORR;
+  QDT20b   : QUADRUPOLE, L=0.5172-dLSkew,         K1 := kERQD2040 + kERQD20CORR;
+  QFT23    : QUADRUPOLE, L=0.5172,                K1 := kERQF2344 + kERQF23CORR;
+  QFT23a   : QUADRUPOLE, L=0.5172-dLSkew-dLSol,   K1 := kERQF2344 + kERQF23CORR;
+  QFT24    : QUADRUPOLE, L=0.5172,                K1 := kERQF2344 + kERQF23CORR;
+  QFT24a   : QUADRUPOLE, L=0.5172-dLSol-dLSkew,   K1 := kERQF2344 + kERQF23CORR;
+
+
+  ER.QDN11    : QDN1030a; ! Straight section 10
+  ER.QFN11    : QFN1030a; ! Straight section 10
+  ER.QFN12    : QFN1030a; ! Straight section 10
+  ER.QDN12    : QDN1030a; ! Straight section 10
+
+  ER.QFN21    : QFT20a;   ! Straight section 20
+  ER.QFN22I   : QFT20I;   ! Straight section 20
+  ER.QFN22o   : QFT20O;   ! Straight section 20
+  ER.QFN23    : QFT23a;   ! Straight section 20
+  ER.QFN24    : QFT24a;   ! Straight section 20
+  ER.QDN21    : QDT20a;   ! Straight section 20
+  ER.QDN22    : QDT20b;   ! Straight section 20
+
+  ER.QDN31   : QDN1030b;  ! Straight section 30
+  ER.QFN31   : QFN1030a;  ! Straight section 30
+  ER.QFN32   : QFN1030a;  ! Straight section 30
+  ER.QDN32   : QDN1030b;  ! Straight section 30
+
+  ER.QFN41I  : QFN2040H;  ! Straight section 40
+  ER.QFN41O  : QFN2040H;  ! Straight section 40
+  ER.QDN41   : QDN2040a;  ! Straight section 40
+  ER.QFN43   : QFN2344a;  ! Straight section 40
+  ER.QFN44   : QFN2344a;  ! Straight section 40
+  ER.QDN42   : QDN2040b;  ! Straight section 40
+  ER.QFN42I  : QFN2040Ha; ! Straight section 40
+  ER.QFN42O  : QFN2040H;  ! Straight section 40
+
+
+
+! Sextupoles
+  XFW01   : MULTIPOLE, KNL := {0, 0, 1.11684*sW01};  
+  XFW02   : MULTIPOLE, KNL := {0, 0, 1.11684*sW02};  
+
+  ER.XDN11   : SEXTUPOLE, L=0.33535, K2 := kERXD1030;
+  ER.XFN11   : SEXTUPOLE, L=0.33535, K2 := kERXF1030;
+  ER.XFN12   : SEXTUPOLE, L=0.33535, K2 := kERXF1030;
+  ER.XDN12   : SEXTUPOLE, L=0.33535, K2 := kERXD1030;
+
+  ER.XDN31   : SEXTUPOLE, L=0.33535, K2 := kERXD1030; 
+  ER.XFN31   : SEXTUPOLE, L=0.33535, K2 := kERXF1030;
+  ER.XFN32   : SEXTUPOLE, L=0.33535, K2 := kERXF1030;
+  ER.XDN32   : SEXTUPOLE, L=0.33535, K2 := kERXD1030;
+
+  ER.XFLS41 : SEXTUPOLE, L=0.33535, K2 := kERXF40;  
+  ER.XFLS42 : SEXTUPOLE, L=0.33535, K2 := kERXF40;  
+
+! Pole face windings (PFW)
+  ER.XFW11  : XFW01; ! Arc 10
+  ER.XFW12  : XFW02; ! Arc 10
+  ER.XFW21  : XFW02; ! Arc 20
+  ER.XFW22  : XFW01; ! Arc 20
+  ER.XFW31  : XFW01; ! Arc 30
+  ER.XFW32  : XFW02; ! Arc 30
+  ER.XFW41, : XFW02; ! Arc 40
+  ER.XFW42  : XFW01; ! Arc 40
+
+! Injection bumpers. The injection septa: SMH11 & SEH10 are in the middle
+  ER.DFH11  : HKICKER, KICK := kERDFH11;
+  ER.DFH12  : HKICKER, KICK := kERDFH12;
+  ER.DFH21  : HKICKER, KICK := kERDFH21;
+  ER.DFH42  : HKICKER, KICK := kERDFH42;
+
+! Dipoles, Bumpers and (extraction) Kicker :
+  ER.DWHV11 : KICKER, HKICK := kERDWH11, VKICK := kERDWV11;  ! Represents PFW
+  ER.DHV12  : KICKER, HKICK := kERDH12,  VKICK := kERDV12;
+  ER.DWHV12 : KICKER, HKICK := kERDWH12, VKICK := kERDWV12;  ! Represents PFW
+
+  ER.KDHV21 : KICKER;  ! Damper
+  ER.DWHV21 : KICKER, HKICK := kERDWH21, VKICK := kERDWV21;  ! Represents PFW
+  ER.DEHV21 : KICKER, HKICK := kERDEH21, VKICK := kERDEV21;
+  ER.DEHV22 : KICKER, HKICK := kERDEH22, VKICK := kERDEV22;
+  ER.DWHV22 : KICKER;  ! Represents PFW
+
+  ER.DWHV31 : KICKER;  ! Represents PFW
+
+  ER.KFH31  : HKICKER; ! "extraction" kicker
+  ER.DHV31  : KICKER;
+  ER.KFH3234: HKICKER; ! extraction kicker
+  ER.DWHV32 : KICKER, HKICK := kERDWH32, VKICK := kERDWV32;  ! Represents PFW
+
+  ER.DHV41  : KICKER, HKICK := kERDH41,  VKICK := kERDV41;
+  ER.DHV42  : KICKER, HKICK := kERDH42,  VKICK := kERDV42;
+  ER.DWHV41 : KICKER, HKICK := kERDWH41, VKICK := kERDWV41;   ! Represents PFW
+  ER.DWHV42 : KICKER, HKICK := kERDWH42, VKICK := kERDWV42;   ! Represents PFW
+  ER.SMH11  : MARKER;  ! "injection" septum. Magnetic.
+  ER.SEH10  : MARKER;  ! "injection" septum. Electrostatic.
+
+  ER.KEM12  : KICKER;
+  ER.KDHV41 : KICKER;
+  ER.KDHV42 : KICKER;
+
+! Pick-ups in the arcs
+  ER.UEV13  : VMONITOR;
+  ER.UEH13  : HMONITOR;
+  ER.UEH14  : HMONITOR;
+  ER.UEV14  : VMONITOR;
+  ER.UEV23  : VMONITOR;
+  ER.UEH23  : HMONITOR;
+  ER.UEH24  : HMONITOR;
+  ER.UEV24  : VMONITOR;
+  ER.UEV33  : VMONITOR;
+  ER.UEH33  : HMONITOR;
+  ER.UEH34  : HMONITOR;
+  ER.UEV34  : VMONITOR;
+  ER.UEV43  : VMONITOR;
+  ER.UEH43  : HMONITOR;
+  ER.UEH44  : HMONITOR;
+  ER.UEV44  : VMONITOR;
+
+! Pick-ups in the straight sections
+  ER.UQF11  : MONITOR;
+  ER.UEH11  : HMONITOR;
+  ER.UEV11  : VMONITOR;
+  ER.UEH12  : HMONITOR;
+  ER.UEV12  : VMONITOR;
+  ER.UEV21  : VMONITOR;
+  ER.UEH21  : HMONITOR;
+  ER.UEH22  : HMONITOR;
+  ER.UEV22  : VMONITOR;
+  ER.UWB31  : MONITOR;
+  ER.UEH31  : HMONITOR;
+  ER.UEV31  : VMONITOR;
+  ER.UEH32  : HMONITOR;
+  ER.UEV32  : VMONITOR;
+  ER.UEH41  : HMONITOR;
+  ER.UEV41  : VMONITOR;
+  ER.UEV42  : VMONITOR;
+  ER.UEH42  : HMONITOR;
+
+
+! Solenoid and compensation Elements (Skew-Quads + Solenoids)
+!  Modeling of Electron Cooler + Compensators provided by J. Pasternak
+
+  KickEC = 1.;     ! Flag whether kick due to cooler is taken into account (=1) or not (-0)
+
+  EC0    : SOLENOID,   L=0.18787, KS := 0.1059*Msol;
+  ER.ECDH1  : HKICKER,    KICK :=  KickEC*0.022919*Msol*1.138/0.0756;
+  EC1    : SOLENOID,   L=0.48451, KS := 0.549*Msol;
+  ER.ECQSI1 : MULTIPOLE,             KSL:={0, -(1/59.5808)*Msol*1.138/0.0756};
+  EC2    : SOLENOID,   L=0.15578, KS := 0.74*Msol;
+  ER.ECQSI2 : MULTIPOLE,             KSL:={0, -(1/55.8782)*Msol*1.138/0.0756};
+  EC3    : SOLENOID,   L=0.53184, KS := 0.9*Msol;
+  EC4    : SOLENOID,   L=0.110,   KS := 1.02*Msol;
+  EC5H   : SOLENOID,   L=1.089,   KS := Msol;
+  ER.ECQS01 : MULTIPOLE,             KSL:={0, (1/59.5808)*Msol*1.138/0.0756};
+  ER.ECQS02 : MULTIPOLE,             KSL:={0, (1/55.8782)*Msol*1.138/0.0756};
+  ER.ECDH2  : HKICKER,    KICK := -KickEC*0.022919*Msol*1.138/0.0756;
+
+  ER.QSK21  : QUADRUPOLE, L=0.32,   K1S := kERQSK;
+  ER.SOL21  : SOLENOID,   L=0.427,  KS  := MsolC;
+  ER.SOL22  : SOLENOID,   L=0.427,  KS  := MsolC;
+  ER.QSK22  : QUADRUPOLE, L=0.32,   K1S :=-kERQSK;
+
+! RF cavities
+  ER.CRF41  : RFCAVITY, L = 0.4;
+  ER.CRF43  : RFCAVITY, L = 0.4;
+
+! Special Diagnostics
+  ER.MPIV42 : MONITOR; ! Ionization Position Monitor (VER)
+  ER.MPIH41 : MONITOR; ! Ionization Position Monitor (HOR)
+  ER.MSH42  : MONITOR; ! HOR scraper
+  ER.MSV42  : MONITOR; ! VER scraper
+  ER.UCH10  : MONITOR; ! Schottky pickup
+  ER.UCV22  : MONITOR; ! Schottky pickup
+  ER.UCV32  : MONITOR; ! Schottky pickup
+  ER.UCH40  : MONITOR; ! Schottky pickup
+
+! Other instruments
+
+  ER.PT11     : MARKER; ! Pump tank
+  ER.PT31     : MARKER; ! Pump tank
+  ER.PT32     : MARKER; ! Pump tank
+  ER.MSIEVE12 : MARKER; ! Sieve. Removes part of the particles.
+  ER.MTV12    : MARKER; ! Screen.
+  ER.MTR12    : MARKER; ! Beam current transformer
+  ER.MTRF12   : MARKER; ! Beam current transformer
+  ER.KQF12    : HKICKER; ! Tune kicker
+  ER.KQF31    : HKICKER; ! Tune kicker
+  ER.UDHV41   : MONITOR; ! Pickup for the Damper
+  ER.UDHV42   : MONITOR; ! Pickup for the Damper
+
+! Vacuum chambers
+ ER.junc11 : MARKER; ! "Conical chamber" in straight section 10
+ ER.VVS21  : MARKER; ! Vacuum valve
+ ER.VVS22  : MARKER; ! Vacuum valve
+ ER.VVS41  : MARKER; ! Vacuum valve
+ ER.VPS22  : MARKER; ! Vacuum pump. Sublimation.
+ ER.VCA31  : MARKER;
+ ER.VC31   : MARKER; ! VC31 and VC32 is really the same chamber.
+ ER.VC32   : MARKER; ! It is only separarted to give room for the centre of the straight section
+ ER.VC42   : MARKER;
+
+ 
+/************************************************************************************/
+/*                                    SEQUENCE                                      */
+/************************************************************************************/
+
+ /******************************************************************************************************
+  * LbenH, LSSH, LFrMir, LstrH
+  *
+  * LbenH  = Half length of bending arc i.e. 45 degrees bending
+  * LSSH   = Half length of distance from one arc to the next arc. From "mir to mir".
+  * LSSH   ~ ((25.-2*4.17)*Pi-.0052)/8. = 6.5417. The circumference of LEIR is 25*Pi m. Bending radius=4.17
+  * LFrMir = Length of fringe field region (between the "arc mir" and the "Lstr"). Very short length.
+  *          It is at the start of the straight section, but is not considered part of the stright section
+  * LstrH  = Half length of straight section ( =6.476845 according to survey )
+  ******************************************************************************************************/
+
+ LbenH  = 1.11684 + 0.01575 + 2.13554 + 0.07299;
+ LSSH   = 6.5422;
+ LFrMir = cos(Pi/2-0.240964/2)          * 1.11684 * sin(0.240964)/(0.240964*sin((Pi-0.240964)/2))                    +
+          cos(Pi/2-0.240964)            * 0.01575                                                                    +
+          cos(3*Pi/8-0.240964/2)        * 2.13554 * Sin(Pi/4-0.240964)/((Pi/4-0.240964)*sin((Pi-(Pi/4-0.240964))/2)) +
+          cos(Pi/4)                     * 0.07299                                                                    +
+          cos(Pi/2-(Pi/4))              * 0.07299                                                                    +
+          cos(Pi/2-(3*Pi/8-0.240964/2)) * 2.13554 * Sin(Pi/4-0.240964)/((Pi/4-0.240964)*sin((Pi-(Pi/4-0.240964))/2)) +
+          cos(Pi/2-(Pi/2-0.240964))     * 0.01575                                                                    +
+          cos(Pi/2-(Pi/2-0.240964/2))   * 1.11684 * sin(0.240964)/(0.240964*sin((Pi-0.240964)/2))                    -
+          4.17; ! LFrMir = 0.06535716729
+ LstrH  = LSSH - LFrMir; ! 6.476842833
+
+
+
+ /*************************************************************************************************************
+  * The formula for LFrMir can be rewritten as:                                                               *
+  * LFrMir =  1.11684 * ((1 - cos(0.240964) + sin(0.240964))/0.240964)               +                        *
+  *           0.01575 * (sin(0.240964) + cos(0.240964))                              +                        *
+  *           2.13554 * ((cos(0.240964) - Sin(0.240964))/(Pi/4. - 0.240964))         +                        *
+  *           0.07299 * sqrt(2.)                                                     -                        *
+  *           4.17;                                                                                           *
+  *                                                                                                           *
+  *  0.240964/2 = Angle of bending magnet:      BA[12]H[IO]                                                   *
+  *  1.11684/2  = Arc length of bending magnet: BA[12]H[IO]; angle = -0.240964/2.                             *
+  *  0.01575    = Drift space between magnet:   BA[12]H[IO] and  BI[12]PO                                     *
+  *  2.13554    = Half length of centre bending magnet. In MAD, the centre magnet is artificially split up    *
+  *               into BI1PM, BI1PO and BI1PI in order to put in monitors. In reality it is only one magnet.  *
+  *               Therefore  2.13554 = BI1PM->L + BI1PO->L + BI1PI->L = 0.26200 + 0.39574 + 1.4778            *
+  *  0.26200    = Arc length of bending magnet: BI[12]PM;    angle = -(Pi/4.-0.240964)*0.2620 /2.13554        *
+  *  0.39574    = Arc length of bending magnet: BI[12]PO;    angle = -(Pi/4.-0.240964)*0.39574/2.13554        *
+  *  1.4778     = Arc length of bending magnet: BI[12]PI;    angle = -(Pi/4.-0.240964)*1.4778 /2.13554        *
+  *  0.07299    = Half drift length between:    BI1PI  and  BI2PI                                             *
+  *  Larc       = L*fARC; fARC=alfa/(SIN(alfa)/SIN((PI-alfa)/2)), where fARC > 1                              *
+  *  fARC       = Ratio of arc- and straight length                                                           *
+  *  See drawing:                                                                                             *
+  *  http://cern-accelerators-optics.web.cern.ch/cern-accelerators-optics/LEIR/CalculationOfLFrMir.pdf        *
+  *************************************************************************************************************/
+
+
+
+
+/*********************************************************************
+ * Arc 10
+ *********************************************************************/
+  Arc10  : SEQUENCE, l=2*LbenH;
+    ER.BA1HO10 : BA1HO,   AT=1.11684/4.;
+    ER.DWHV11,            AT=1.11684/2.; ! The DWHV and XFW11 represents the pole face windings (PFW)
+    ER.XFW11,             AT=1.11684/2.;
+    ER.BA1HI10 : BA1HI,   AT=1.11684*(3./4.);
+    ER.BI1PO10 : BI1PO,   AT=LbenH - (0.07299 + 1.4778 + 0.2620 + 0.39574/2);
+    ER.UEV13,             AT=LbenH - (0.07299 + 1.4778 + 0.2620);
+    ER.BI1PM10 : BI1PM,   AT=LbenH - (0.07299 + 1.4778 + 0.2620/2);
+    ER.UEH13,             AT=LbenH - (0.07299 + 1.4778);
+    ER.BI1PI10 : BI1PI,   AT=LbenH - (0.07299 + 1.4778/2);
+    ER.UCH10,             AT=LbenH;
+    ER.BI2PI10 : BI2PI,   AT=LbenH + (0.07299 + 1.4778/2);
+    ER.UEH14,             AT=LbenH + (0.07299 + 1.4778);
+    ER.BI2PM10 : BI2PM,   AT=LbenH + (0.07299 + 1.4778 + 0.2620/2);
+    ER.UEV14,             AT=LbenH + (0.07299 + 1.4778 + 0.2620);
+    ER.BI2PO10 : BI2PO,   AT=LbenH + (0.07299 + 1.4778 + 0.2620 + 0.39574/2);
+    ER.BA2HI10 : BA2HI,   AT=2*LbenH - 1.11684*(3./4.);
+    ER.XFW12,             AT=2*LbenH - 1.11684/2.;
+    ER.DWHV12,            AT=2*LbenH - 1.11684/2.;
+    ER.BA2HO10 : BA2HO,   AT=2*LbenH - 1.11684/4.;
+  ENDSEQUENCE;
+
+
+
+/*********************************************************************
+ * Arc 20
+ *********************************************************************/
+  Arc20  : SEQUENCE, l=2*LbenH;
+    ER.BA1HO20 : BA1HO,   AT=1.11684/4.;
+    ER.DWHV21,            AT=1.11684/2.;
+    ER.XFW21,             AT=1.11684/2.;
+    ER.BA1HI20 : BA1HI,   AT=1.11684*(3./4.);
+    ER.BI1PO20 : BI1PO,   AT=LbenH - (0.07299 + 1.4778 + 0.2620 + 0.39574/2);
+    ER.UEV23,             AT=LbenH - (0.07299 + 1.4778 + 0.2620);
+    ER.BI1PM20 : BI1PM,   AT=LbenH - (0.07299 + 1.4778 + 0.2620/2);
+    ER.UEH23,             AT=LbenH - (0.07299 + 1.4778);
+    ER.BI1PI20 : BI1PI,   AT=LbenH - (0.07299 + 1.4778/2);
+    ER.BI2PI20 : BI2PI,   AT=LbenH + (0.07299 + 1.4778/2);
+    ER.UEH24,             AT=LbenH + (0.07299 + 1.4778);
+    ER.BI2PM20 : BI2PM,   AT=LbenH + (0.07299 + 1.4778 + 0.2620/2);
+    ER.UEV24,             AT=LbenH + (0.07299 + 1.4778 + 0.2620);
+    ER.BI2PO20 : BI2PO,   AT=LbenH + (0.07299 + 1.4778 + 0.2620 + 0.39574/2);
+    ER.BA2HI20 : BA2HI,   AT=2*LbenH - 1.11684*(3./4.);
+    ER.XFW22,             AT=2*LbenH - 1.11684/2.;
+    ER.DWHV22,            AT=2*LbenH - 1.11684/2.;
+    ER.BA2HO20 : BA2HO,   AT=2*LbenH - 1.11684/4.;
+  ENDSEQUENCE;
+
+
+
+/*********************************************************************
+ * Arc 30
+ *********************************************************************/
+  Arc30  : SEQUENCE, l=2*LbenH;
+    ER.BA1HO30 : BA1HO,   AT=1.11684/4.;
+    ER.DWHV31,            AT=1.11684/2.;
+    ER.XFW31,             AT=1.11684/2.;
+    ER.BA1HI30 : BA1HI,   AT=1.11684*(3./4.);
+    ER.BI1PO30 : BI1PO,   AT=LbenH - (0.07299 + 1.4778 + 0.2620 + 0.39574/2);
+    ER.UEV33,             AT=LbenH - (0.07299 + 1.4778 + 0.2620);
+    ER.BI1PM30 : BI1PM,   AT=LbenH - (0.07299 + 1.4778 + 0.2620/2);
+    ER.UEH33,             AT=LbenH - (0.07299 + 1.4778);
+    ER.BI1PI30 : BI1PI,   AT=LbenH - (0.07299 + 1.4778/2);
+    ER.BI2PI30 : BI2PI,   AT=LbenH + (0.07299 + 1.4778/2);
+    ER.UEH34,             AT=LbenH + (0.07299 + 1.4778);
+    ER.BI2PM30 : BI2PM,   AT=LbenH + (0.07299 + 1.4778 + 0.2620/2);
+    ER.UEV34,             AT=LbenH + (0.07299 + 1.4778 + 0.2620);
+    ER.BI2PO30 : BI2PO,   AT=LbenH + (0.07299 + 1.4778 + 0.2620 + 0.39574/2);
+    ER.BA2HI30 : BA2HI,   AT=2*LbenH - 1.11684*(3./4.);
+    ER.XFW32,             AT=2*LbenH - 1.11684/2.;
+    ER.DWHV32,            AT=2*LbenH - 1.11684/2.;
+    ER.BA2HO30 : BA2HO,   AT=2*LbenH - 1.11684/4.;
+  ENDSEQUENCE;
+
+
+
+/*********************************************************************
+ * Arc 40
+ *********************************************************************/
+  Arc40  : SEQUENCE, l=2*LbenH;
+    ER.BA1HO40 : BA1HO,   AT=1.11684/4.;
+    ER.DWHV41,            AT=1.11684/2.;
+    ER.XFW41,             AT=1.11684/2.;
+    ER.BA1HI40 : BA1HI,   AT=1.11684*(3./4.);
+    ER.BI1PO40 : BI1PO,   AT=LbenH - (0.07299 + 1.4778 + 0.2620 + 0.39574/2);
+    ER.UEV43,             AT=LbenH - (0.07299 + 1.4778 + 0.2620);
+    ER.BI1PM40 : BI1PM,   AT=LbenH - (0.07299 + 1.4778 + 0.2620/2);
+    ER.UEH43,             AT=LbenH - (0.07299 + 1.4778);
+    ER.BI1PIO40 : BI1PIO, AT=LbenH - (0.07299 + 1.30 + 0.1778/2); ! Replaces BI1PI
+    ER.MPIH41,            AT=LbenH - (0.07299 + 1.30);  !  rough estimate
+    ER.BI1PII40 : BI1PII, AT=LbenH - (0.07299 + 1.30/2.);
+    ER.UCH40,             AT=LbenH;
+    ER.BI2PI40 : BI2PI,   AT=LbenH + (0.07299 + 1.4778/2);
+    ER.UEH44,             AT=LbenH + (0.07299 + 1.4778);
+    ER.BI2PM40 : BI2PM,   AT=LbenH + (0.07299 + 1.4778 + 0.2620/2);
+    ER.UEV44,             AT=LbenH + (0.07299 + 1.4778 + 0.2620);
+    ER.BI2PO40 : BI2PO,   AT=LbenH + (0.07299 + 1.4778 + 0.2620 + 0.39574/2);
+    ER.BA2HI40 : BA2HI,   AT=2*LbenH - 1.11684*(3./4.);
+    ER.XFW42,             AT=2*LbenH - 1.11684/2.;
+    ER.DWHV42,            AT=2*LbenH - 1.11684/2.;
+    ER.BA2HO40 : BA2HO,   AT=2*LbenH - 1.11684/4.;
+  ENDSEQUENCE;
+
+
+
+
+/*********************************************************************
+ * Straigth section 10
+ *********************************************************************/
+  SS10   : SEQUENCE, L=2*LstrH;
+    ER.UQF11,             AT=LstrH - 6.1155;
+    ER.DFH11,             AT=LstrH - 5.7725;
+    ER.QDN11,             AT=LstrH - (5.1645-.5*dLBmp+.5*dLSext);
+    ER.XDN11,             AT=LstrH - 4.6645;
+    ER.QFN11,             AT=LstrH - 4.1645;
+    ER.XFN11,             AT=LstrH - 3.6345;
+    ER.PT11,              AT=LstrH - 3.1862;
+    ER.UEH11,             AT=LstrH - 2.904;
+    ER.UEV11,             AT=LstrH - 2.814;
+    ER.SMH11,             AT=LstrH - 2.814 + 0.6212 + 0.3393;
+    ER.JUNC11,            AT=LstrH - 3.1862 + 0.3045/2 + 0.325 + 0.130 + 1.0865 + 1.0275/2;
+    ER.CtrS10 : MARKER,   AT=LstrH;
+    ER.SEH10,             AT=LstrH;
+    ER.DHV12,             AT=LstrH + 0.746;
+    ER.UEH12,             AT=LstrH + 1.1055;
+    ER.UEV12,             AT=LstrH + 1.1055;
+    ER.KEM12,             AT=LstrH + 1.3695;
+    ER.MSIEVE12,          AT=LstrH + 1.5595;
+    ER.MTV12,             AT=LstrH + 1.7895;
+    ER.MTR12,             AT=LstrH + 2.4030;
+    ER.MTRF12,            AT=LstrH + 2.9370;
+    ER.XFN12,             AT=LstrH + 3.6345;
+    ER.QFN12,             AT=LstrH + 4.1645;
+    ER.XDN12,             AT=LstrH + 4.6645;
+    ER.QDN12,             AT=LstrH + (5.1645-.5*dLBmp+.5*dLSext);
+    ER.DFH12,             AT=LstrH + 5.7725;
+    ER.KQF12,             AT=LstrH + 6.1705;
+  ENDSEQUENCE;
+
+
+
+/*********************************************************************
+ * Straigth section 20
+ *********************************************************************/
+  SS20 : SEQUENCE, L=2*LstrH;
+    ER.VVS21,             AT=LstrH - 6.3335;
+    ER.KDHV21,            AT=LstrH - 6.0385 - 0.240/2;
+    ER.QFN21,             AT=LstrH - (5.6745+.5*dLBmp);
+    ER.DFH21,             AT=LstrH - 5.2145;
+    ER.QDN21,             AT=LstrH - (4.7545-.5*dLBmp+.5*dLSkew);
+    ER.QSK21,             AT=LstrH - 4.25;
+    ER.QFN23,             AT=LstrH - (3.7545-.5*dLSkew+.5*dLSol);
+    ER.SOL21,             AT=LstrH - 3.124;
+    ER.DEHV21,            AT=LstrH - 2.559;
+    ER.EC021 : EC0,       AT=LstrH - 2.465065;
+    ER.ECQSI1,            AT=LstrH - 2.37113;
+    ER.EC121 : EC1,       AT=LstrH - 2.128875;
+    ER.ECDH1,             AT=LstrH - 1.88662;
+    ER.EC221 : EC2,       AT=LstrH - 1.80873;
+    ER.ECQSI2,            AT=LstrH - 1.73084;
+    ER.EC321 : EC3,       AT=LstrH - 1.46492;
+    ER.UEV21,             AT=LstrH - 1.199;
+    ER.EC421 : EC4,       AT=LstrH - 1.144;
+    ER.UEH21,             AT=LstrH - 1.089;
+    ER.EC5H21 : EC5H,     AT=LstrH - 0.5445;
+    ER.CtrS20 : MARKER,   AT=LstrH;
+    ER.EC5H22 : EC5H,     AT=LstrH + 0.5445;
+    ER.UEH22,             AT=LstrH + 1.089;
+    ER.EC422 : EC4,       AT=LstrH + 1.144;
+    ER.UEV22,             AT=LstrH + 1.199;
+    ER.EC322 : EC3,       AT=LstrH + 1.46492;
+    ER.ECQS02,            AT=LstrH + 1.73084;
+    ER.EC222 : EC2,       AT=LstrH + 1.80873;
+    ER.ECDH2,             AT=LstrH + 1.88662;
+    ER.EC122 : EC1,       AT=LstrH + 2.128875;
+    ER.ECQS01,            AT=LstrH + 2.37113;
+    ER.EC022 : EC0,       AT=LstrH + 2.465065;
+    ER.DEHV22,            AT=LstrH + 2.559;
+    ER.SOL22,             AT=LstrH + 3.124;
+    ER.QFN24,             AT=LstrH + (3.7545-.5*dLSkew+.5*dLSol);
+    ER.QSK22,             AT=LstrH + 4.25;
+    ER.QDN22,             AT=LstrH + (4.7545+.5*dLSkew);
+    ER.QFN22I,            AT=LstrH + (5.59 + 5.6745 - 0.5172/2)/2;
+    ER.UCV22,             AT=LstrH +  5.59;
+    ER.QFN22O,            AT=LstrH + (5.59 + 5.6745 + 0.5172/2)/2;
+ !  ER.QFN22,             AT=LstrH + 5.6745;
+    ER.VPS22,             AT=LstrH + 6.153;
+    ER.VVS22,             AT=LstrH + 6.3335;
+  ENDSEQUENCE;
+
+
+
+/*********************************************************************
+ * Straigth section 30
+ *********************************************************************/
+  SS30 : SEQUENCE, L=2*LstrH;
+    ER.VCA31,             AT=0     + 0.278/2;
+    ER.UWB31,             AT=0     + 0.278 + 0.322/2;
+    ER.KQF31,             AT=0     + 0.278 + 0.322 + 0.260/2;
+    ER.QDN31,             AT=LstrH - (5.1645+.5*dLSext);
+    ER.XDN31,             AT=LstrH - 4.6645;
+    ER.QFN31,             AT=LstrH - 4.1645;
+    ER.XFN31,             AT=LstrH - 3.6345;
+    ER.KFH31,             AT=LstrH - 3.0085;
+    ER.UEH31,             AT=LstrH - 2.5735;
+    ER.UEV31,             AT=LstrH - 2.4835;
+    ER.DHV31,             AT=LstrH - 1.7500;
+    ER.PT31,              AT=LstrH - 2.2792/4;
+    ER.VC31,              AT=LstrH - 2.0000/4;
+    ER.CtrS30 : MARKER,   AT=LstrH;
+    ER.VC32,              AT=LstrH + 2.0000/4;
+    ER.PT32,              AT=LstrH + 2.2792/4;
+    ER.UEH32,             AT=LstrH + 1.6885;
+    ER.UEV32,             AT=LstrH + 1.7785;
+    ER.KFH3234,           AT=LstrH + 2.7585;
+    ER.XFN32,             AT=LstrH + 3.6345;
+    ER.QFN32,             AT=LstrH + 4.1645;
+    ER.XDN32,             AT=LstrH + 4.6645;
+    ER.QDN32,             AT=LstrH + (5.1645+.5*dLSext);
+    ER.UCV32,             AT=LstrH + 5.9585;     ! Schottky
+  ENDSEQUENCE;
+
+
+
+/*********************************************************************
+ * Straigth section 40
+ *********************************************************************/
+  SS40 : SEQUENCE, L=2*LstrH;
+    ER.KDHV41,            AT=0.160;
+    ER.QFN41i,            AT=LstrH - 5.6745 - 0.5172/4;
+    ER.UDHV41,            AT=LstrH - 5.6745;             ! Damper PU
+    ER.QFN41o,            AT=LstrH - 5.6745 + 0.5172/4;
+    ER.QDN41,             AT=LstrH - (4.7545+.5*dLSext);
+    ER.XFLS41,            AT=LstrH - 4.2545;
+    ER.QFN43,             AT=LstrH - (3.7545-.5*dLSext);
+    ER.VVS41,             AT=LstrH - 3.3905;
+    ER.UEH41,             AT=LstrH - 3.1205;
+    ER.UEV41,             AT=LstrH - 3.0305;
+    ER.DHV41,             AT=LstrH - 2.8085;
+    ER.CRF41,             AT=LstrH - 2.1865;
+    ER.CRF43,             AT=LstrH - 1.0865;
+    ER.CtrS40 : MARKER,   AT=LstrH;
+    ER.DHV42,             AT=LstrH + 1.7425;
+    ER.UEV42,             AT=LstrH + 1.9645;
+    ER.UEH42,             AT=LstrH + 2.0545;
+    ER.MPIV42,            AT=LstrH + 2.2665;
+    ER.VC42,              AT=LstrH + 2.2665 + 0.260/2 + 0.520/2;
+    ER.MSH42,             AT=LstrH + 3.0795;             ! moved downstream by 3 mm
+    ER.MSV42,             AT=LstrH + 3.2755;             ! 3 mm on Nov. 5th, 2004.
+    ER.QFN44,             AT=LstrH + (3.7545-.5*dLSext);
+    ER.XFLS42,            AT=LstrH + 4.2545;
+    ER.QDN42,             AT=LstrH + (4.7545+.5*dLSext-.5*dLBmp);
+    ER.DFH42,             AT=LstrH + 5.2145;
+    ER.QFN42I,            AT=LstrH + 5.6745 - 0.5172/4+.5*dLBmp;
+    ER.UDHV42,            AT=LstrH + 5.6745+.5*dLBmp;    ! Damper PU
+    ER.QFN42O,            AT=LstrH + 5.6745 + 0.5172/4+.5*dLBmp;
+    ER.KDHV42,            AT=LstrH + LstrH - 0.160;
+  ENDSEQUENCE;
+
+
+
+
+
+/*********************************************************************
+ * LEIR ring
+ *********************************************************************/
+
+  LEIR : SEQUENCE, REFER=ENTRY, L=8*(LstrH + LbenH);
+    SS10,  AT= 0;
+    Arc10, AT= 2*LstrH;
+    SS20,  AT= 2*LstrH + 2*LbenH;
+    Arc20, AT= 4*LstrH + 2*LbenH;
+    SS30,  AT= 4*LstrH + 4*LbenH;
+    Arc30, AT= 6*LstrH + 4*LbenH;
+    SS40,  AT= 6*LstrH + 6*LbenH;
+    Arc40, AT= 8*LstrH + 6*LbenH;
+  ENDSEQUENCE;
+
+RETURN;

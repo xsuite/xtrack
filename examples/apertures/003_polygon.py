@@ -7,9 +7,9 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
-import xpart as xp
 
-context = xo.ContextPyopencl()
+context = xo.ContextCpu()
+
 np2ctx = context.nparray_to_context_array
 ctx2np = context.nparray_from_context_array
 
@@ -23,7 +23,7 @@ aper = xt.LimitPolygon(
                 y_vertices=np2ctx(y_vertices))
 
 # Try some particles inside
-parttest = xp.Particles(
+parttest = xt.Particles(
                 _context=context,
                 p0c=6500e9,
                 x=x_vertices*0.99,
@@ -32,7 +32,7 @@ aper.track(parttest)
 assert np.allclose(ctx2np(parttest.state), 1)
 
 # Try some particles outside
-parttest = xp.Particles(
+parttest = xt.Particles(
                 _context=context,
                 p0c=6500e9,
                 x=x_vertices*1.01,
@@ -42,7 +42,7 @@ assert np.allclose(ctx2np(parttest.state), 0)
 
 part_gen_range = 0.02
 n_part=10000
-particles = xp.Particles(
+particles = xt.Particles(
                 _context=context,
                 p0c=6500e9,
                 x=np.random.uniform(-part_gen_range, part_gen_range, n_part),

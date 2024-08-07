@@ -89,6 +89,8 @@ def compute_linear_normal_form(M, symplectify=False, only_4d_block=False,
         6x6 matrix
     Rot : np.ndarray
         6x6 matrix
+    eigenvalues : np.ndarray
+        3x1 vector
     '''
 
     if only_4d_block:

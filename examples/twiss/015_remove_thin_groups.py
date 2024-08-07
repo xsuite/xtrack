@@ -6,7 +6,6 @@
 import numpy as np
 
 import xtrack as xt
-import xpart as xp
 
 import matplotlib.pyplot as plt
 
@@ -16,8 +15,8 @@ import matplotlib.pyplot as plt
 
 line = xt.Line.from_json(
     '../../test_data/lhc_no_bb/line_and_particle.json')
-line.particle_ref = xp.Particles(
-                    mass0=xp.PROTON_MASS_EV, q0=1, energy0=7e12)
+line.particle_ref = xt.Particles(
+                    mass0=xt.PROTON_MASS_EV, q0=1, energy0=7e12)
 line.build_tracker()
 
 tw = line.twiss()

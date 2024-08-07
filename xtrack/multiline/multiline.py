@@ -80,7 +80,7 @@ class Multiline:
                     dct['_bb_config'][nn] = vv
 
         dct["metadata"] = deepcopy(self.metadata)
-            
+
         return dct
 
     @classmethod
@@ -121,7 +121,7 @@ class Multiline:
                     df = None
                 new_multiline._bb_config[
                     'dataframes'][nn] = df
-                
+
         if "metadata" in dct:
             new_multiline.metadata = dct["metadata"]
 
@@ -169,6 +169,50 @@ class Multiline:
                 dct = json.load(fid)
 
         return cls.from_dict(dct, **kwargs)
+
+    @classmethod
+    def from_madx(cls, filename=None, madx=None, stdout=None, return_lines=False, **kwargs):
+        '''
+        Load a multiline from a MAD-X file.
+
+        Parameters
+        ----------
+        file: str
+            The MAD-X file to load from.
+        **kwargs: dict
+            Additional keyword arguments are passed to the `Line.from_madx_sequence`
+            method.
+
+        Returns
+        -------
+        new_multiline: Multiline
+            The multiline object.
+        '''
+        if madx is None:
+           from cpymad.madx import Madx
+           madx = Madx(stdout=stdout)
+        if filename is not None:
+           madx.call(filename)
+        lines = {}
+        for nn in madx.sequence.keys():
+            lines[nn] = xt.Line.from_madx_sequence(
+                madx.sequence[nn],
+                allow_thick=True,
+                deferred_expressions=True,
+                **kwargs)
+
+            lines[nn].particle_ref = xt.Particles(
+                mass0=madx.sequence[nn].beam.mass*1e9,
+                q0=madx.sequence[nn].beam.charge,
+                gamma0=madx.sequence[nn].beam.gamma)
+
+            if madx.sequence[nn].beam.bv == -1:
+                lines[nn].twiss_default['reverse'] = True
+
+        if return_lines:
+            return lines
+        else:
+            return cls(lines=lines)
 
     def copy(self):
         '''
@@ -230,6 +274,11 @@ class Multiline:
             A MultiTwiss object containing the twiss parameters for the lines.
         '''
 
+        for old, new in zip(['ele_start', 'ele_stop', 'ele_init', 'twiss_init'],
+                            ['start', 'end', 'init_at', 'init']):
+            if old in kwargs:
+                raise ValueError(f'`{old}` is deprecated. Please use `{new}`.')
+
         out = MultiTwiss()
         if lines is None:
             lines = self.line_names
@@ -247,7 +296,7 @@ class Multiline:
         return out
 
     def match(self, vary, targets, restore_if_fail=True, solver=None,
-              verbose=False, **kwargs):
+              verbose=False, check_limits=True, **kwargs):
 
         '''
         Change a set of knobs in the beam lines in order to match assigned targets.
@@ -264,8 +313,11 @@ class Multiline:
             If True, the beamline is restored to its initial state if the matching
             fails.
         solver : str
-            Solver to be used for the matching. Available solvers are "fsolve"
-            and "bfgs".
+            Solver to be used for the matching.
+        check_limits : bool
+            If True (default), the limits of the knobs are checked before the
+            optimization. If False, if the knobs are out of limits, the optimization
+            knobs are set to the limits on the first iteration.
         verbose : bool
             If True, the matching steps are printed.
         **kwargs : dict
@@ -278,13 +330,19 @@ class Multiline:
 
         '''
 
+        for old, new in zip(['ele_start', 'ele_stop', 'ele_init', 'twiss_init'],
+                            ['start', 'end', 'init_at', 'init']):
+            if old in kwargs:
+                raise ValueError(f'`{old}` is deprecated. Please use `{new}`.')
+
         line_names = kwargs.get('lines', self.line_names)
         kwargs, kwargs_per_twiss = _dispatch_twiss_kwargs(kwargs, line_names)
         kwargs.update(kwargs_per_twiss)
 
         return xt.match.match_line(self, vary, targets,
                           restore_if_fail=restore_if_fail,
-                          solver=solver, verbose=verbose, **kwargs)
+                          solver=solver, check_limits=check_limits,
+                          verbose=verbose, **kwargs)
 
     def match_knob(self, knob_name, vary, targets,
                 knob_value_start=0, knob_value_end=1,
@@ -470,6 +528,17 @@ class Multiline:
 
         '''
 
+        # Check that the context in which the trackers are built is on CPU
+        for nn in ["clockwise", "anticlockwise"]:
+            if self._bb_config[f"{nn}_line"] is None:
+                continue
+            line = self.lines[self._bb_config[f"{nn}_line"]]
+            if not isinstance(line.tracker._context, xo.ContextCpu):
+                raise ValueError(
+                    "The trackers need to be built on CPU before "
+                    "configuring the beam-beam elements."
+                )
+
         if self._bb_config['dataframes']['clockwise'] is not None:
             bb_df_cw = self._bb_config['dataframes']['clockwise'].copy()
         else:
@@ -540,7 +609,8 @@ class MultiTwiss(dict):
 
 def _dispatch_twiss_kwargs(kwargs, lines):
     kwargs_per_twiss = {}
-    for arg_name in ['ele_start', 'ele_stop', 'twiss_init',
+    for arg_name in ['start', 'end', 'init_at', 'init',
+                        '_keep_initial_particles',
                         '_initial_particles', '_ebe_monitor']:
         if arg_name not in kwargs:
             continue

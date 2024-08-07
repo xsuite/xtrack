@@ -13,13 +13,17 @@ line.build_tracker()
 
 tw_before = line.twiss()
 
+GreaterThan = xt.GreaterThan
+LessThan = xt.LessThan
+
+tw0 = line.twiss()
 opt = line.match(
     solve=False,
     solver='jacobian',
     # Portion of the beam line to be modified and initial conditions
-    ele_start='mq.33l8.b1',
-    ele_stop='mq.17l8.b1',
-    twiss_init='preserve',
+    start='mq.33l8.b1',
+    end='mq.17l8.b1',
+    init=tw0, init_at=xt.START,
     # Dipole corrector strengths to be varied
     vary=[
         xt.Vary(name='acbv32.l8b1', step=1e-10, weight=0.7),
@@ -34,12 +38,19 @@ opt = line.match(
         xt.Target('y', at='mb.b26l8.b1', value=3e-3, tol=1e-4),
         xt.Target('py', at='mb.b26l8.b1', value=0, tol=1e-6, weight=1e3),
         # I want the bump to be closed
-        xt.Target('y', at='mq.17l8.b1', value='preserve', tol=1e-6),
-        xt.Target('py', at='mq.17l8.b1', value='preserve', tol=1e-7, weight=1e3),
+        xt.Target('y', at='mq.17l8.b1', value=tw0, tol=1e-6),
+        xt.Target('py', at='mq.17l8.b1', value=tw0, tol=1e-7, weight=1e3),
         # I want to limit the negative excursion ot the bump
-        xt.TargetInequality('y', '>', -1e-3, at='mq.30l8.b1', tol=1e-6),
+        xt.Target('y', -2e-3, at='mq.30l8.b1', tol=1e-6),
+        xt.Target('y', GreaterThan(-1e-3), at='mq.30l8.b1', tol=1e-6),
+        # xt.Target(lambda tw: -tw['y', 'mq.30l8.b1'], LessThan(1e-3))
     ]
 )
+opt.targets[-1].active = False
+opt.solve()
+opt.targets[-1].active = True
+opt.targets[-2].active = False
+opt.solve()
 
 opt.solve()
 

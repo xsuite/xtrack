@@ -104,7 +104,7 @@ def test_aperture_polygon(test_context):
                     x=x_vertices*0.99,
                     y=y_vertices*0.99)
     aper.track(parttest)
-    assert np.allclose(ctx2np(parttest.state), 1)
+    xo.assert_allclose(ctx2np(parttest.state), 1)
 
     # Try some particles outside
     parttest = xp.Particles(
@@ -113,14 +113,14 @@ def test_aperture_polygon(test_context):
                     x=x_vertices*1.01,
                     y=y_vertices*1.01)
     aper.track(parttest)
-    assert np.allclose(ctx2np(parttest.state), 0)
+    xo.assert_allclose(ctx2np(parttest.state), 0)
 
 
 def test_mad_import():
 
     from cpymad.madx import Madx
 
-    mad = Madx()
+    mad = Madx(stdout=False)
 
     mad.input("""
         m_circle: marker, apertype="circle", aperture={.2};
@@ -152,13 +152,13 @@ def test_mad_import():
 
     circ = apertures[0]
     assert circ.__class__.__name__ == 'LimitEllipse'
-    assert np.isclose(circ.a_squ, .2**2, atol=1e-13, rtol=0)
-    assert np.isclose(circ.b_squ, .2**2, atol=1e-13, rtol=0)
+    xo.assert_allclose(circ.a_squ, .2**2, atol=1e-13, rtol=0)
+    xo.assert_allclose(circ.b_squ, .2**2, atol=1e-13, rtol=0)
 
     ellip = apertures[1]
     assert ellip.__class__.__name__ == 'LimitEllipse'
-    assert np.isclose(ellip.a_squ, .2**2, atol=1e-13, rtol=0)
-    assert np.isclose(ellip.b_squ, .1**2, atol=1e-13, rtol=0)
+    xo.assert_allclose(ellip.a_squ, .2**2, atol=1e-13, rtol=0)
+    xo.assert_allclose(ellip.b_squ, .1**2, atol=1e-13, rtol=0)
 
     rect = apertures[2]
     assert rect.__class__.__name__ == 'LimitRect'
@@ -170,8 +170,8 @@ def test_mad_import():
     rectellip = apertures[3]
     assert rectellip.max_x == .2
     assert rectellip.max_y == .4
-    assert np.isclose(rectellip.a_squ, .25**2, atol=1e-13, rtol=0)
-    assert np.isclose(rectellip.b_squ, .45**2, atol=1e-13, rtol=0)
+    xo.assert_allclose(rectellip.a_squ, .25**2, atol=1e-13, rtol=0)
+    xo.assert_allclose(rectellip.b_squ, .45**2, atol=1e-13, rtol=0)
 
     racetr = apertures[4]
     assert racetr.__class__.__name__ == 'LimitRacetrack'
@@ -185,26 +185,26 @@ def test_mad_import():
     octag = apertures[5]
     assert octag.__class__.__name__ == 'LimitPolygon'
     assert octag._xobject.x_vertices[0] == 0.4
-    assert np.isclose(octag._xobject.y_vertices[0], 0.4*np.tan(0.5), atol=1e-14, rtol=0)
+    xo.assert_allclose(octag._xobject.y_vertices[0], 0.4*np.tan(0.5), atol=1e-14, rtol=0)
     assert octag._xobject.y_vertices[1] == 0.5
-    assert np.isclose(octag._xobject.x_vertices[1], 0.5/np.tan(1.), atol=1e-14, rtol=0)
+    xo.assert_allclose(octag._xobject.x_vertices[1], 0.5/np.tan(1.), atol=1e-14, rtol=0)
 
     assert octag._xobject.y_vertices[2] == 0.5
-    assert np.isclose(octag._xobject.x_vertices[2], -0.5/np.tan(1.), atol=1e-14, rtol=0)
+    xo.assert_allclose(octag._xobject.x_vertices[2], -0.5/np.tan(1.), atol=1e-14, rtol=0)
     assert octag._xobject.x_vertices[3] == -0.4
-    assert np.isclose(octag._xobject.y_vertices[3], 0.4*np.tan(0.5), atol=1e-14, rtol=0)
+    xo.assert_allclose(octag._xobject.y_vertices[3], 0.4*np.tan(0.5), atol=1e-14, rtol=0)
 
 
     assert octag._xobject.x_vertices[4] == -0.4
-    assert np.isclose(octag._xobject.y_vertices[4], -0.4*np.tan(0.5), atol=1e-14, rtol=0)
+    xo.assert_allclose(octag._xobject.y_vertices[4], -0.4*np.tan(0.5), atol=1e-14, rtol=0)
     assert octag._xobject.y_vertices[5] == -0.5
-    assert np.isclose(octag._xobject.x_vertices[5], -0.5/np.tan(1.), atol=1e-14, rtol=0)
+    xo.assert_allclose(octag._xobject.x_vertices[5], -0.5/np.tan(1.), atol=1e-14, rtol=0)
 
 
     assert octag._xobject.y_vertices[6] == -0.5
-    assert np.isclose(octag._xobject.x_vertices[6], 0.5/np.tan(1.), atol=1e-14, rtol=0)
+    xo.assert_allclose(octag._xobject.x_vertices[6], 0.5/np.tan(1.), atol=1e-14, rtol=0)
     assert octag._xobject.x_vertices[7] == 0.4
-    assert np.isclose(octag._xobject.y_vertices[7], -0.4*np.tan(0.5), atol=1e-14, rtol=0)
+    xo.assert_allclose(octag._xobject.y_vertices[7], -0.4*np.tan(0.5), atol=1e-14, rtol=0)
 
     polyg = apertures[6]
     assert polyg.__class__.__name__ == 'LimitPolygon'
@@ -249,3 +249,41 @@ def test_longitudinal_rect(test_context):
     aper_rect_longitudinal.track(particles)
     particles.move(_context=xo.ContextCpu())
     assert np.all(particles.state == -2)
+
+@for_all_test_contexts
+def test_aper_tilt(test_context):
+
+    n_part=300000
+
+    particles = xt.Particles(_context=test_context,
+            p0c=6500e9,
+            x=np.random.uniform(-0.25, 0.25, n_part),
+            px = np.zeros(n_part),
+            y=np.random.uniform(0, 0.1, n_part),
+            py = np.zeros(n_part))
+
+    tilt_deg = 10.
+    aper = xt.LimitRect(_context=test_context,
+                        min_x=-.1,
+                        max_x=.1,
+                        min_y=-0.001,
+                        max_y=0.001,
+                        shift_x=0.08,
+                        shift_y=0.04,
+                        rot_s_rad=np.deg2rad(tilt_deg))
+
+    aper.track(particles)
+
+    part_id = test_context.nparray_from_context_array(particles.particle_id)
+    part_state = test_context.nparray_from_context_array(particles.state)
+    part_x = test_context.nparray_from_context_array(particles.x)
+    part_y = test_context.nparray_from_context_array(particles.y)
+
+    x_alive = part_x[part_state>0]
+    y_alive = part_y[part_state>0]
+
+    assert_allclose = np.testing.assert_allclose
+    assert_allclose(np.mean(x_alive), 0.08, rtol=5e-2, atol=0)
+    assert_allclose(np.mean(y_alive), 0.04, rtol=5e-2, atol=0)
+    slope = np.polyfit(x_alive, y_alive, 1)[0]
+    assert_allclose(slope, np.tan(np.deg2rad(tilt_deg)), rtol=5e-2, atol=0)

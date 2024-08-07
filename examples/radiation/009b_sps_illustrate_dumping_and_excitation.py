@@ -5,8 +5,6 @@ from scipy.constants import epsilon_0
 
 from cpymad.madx import Madx
 import xtrack as xt
-import xpart as xp
-import xobjects as xo
 
 mad = Madx()
 mad.call('../../test_data/sps_thick/sps.seq')
@@ -37,7 +35,7 @@ mad.emit()
 
 line = xt.Line.from_madx_sequence(mad.sequence.sps, allow_thick=True,
                                   deferred_expressions=True)
-line.particle_ref = xp.Particles(mass0=xp.ELECTRON_MASS_EV,
+line.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV,
                                     q0=-1, gamma0=mad.sequence.sps.beam.gamma)
 line.cycle('bpv.11706_entry', inplace=True)
 

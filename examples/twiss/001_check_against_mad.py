@@ -7,7 +7,6 @@ import sys
 import numpy as np
 
 import xtrack as xt
-import xpart as xp
 import xobjects as xo
 
 from cpymad.madx import Madx
@@ -34,7 +33,7 @@ twmad = mad.twiss(rmatrix=True, chrom=True)
 
 line = xt.Line.from_madx_sequence(
         mad.sequence['lhcb1'], apply_madx_errors=True)
-line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1,
+line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1,
                         gamma0=mad.sequence.lhcb1.beam.gamma)
 
 context = xo.ContextCpu()
@@ -82,7 +81,7 @@ assert np.isclose(mad.table.summ.q2[0], twxt['qy'], rtol=1e-4)
 assert np.isclose(mad.table.summ.dq1, twxt['dqx'], atol=0.1, rtol=0)
 assert np.isclose(mad.table.summ.dq2, twxt['dqy'], atol=0.1, rtol=0)
 assert np.isclose(mad.table.summ.alfa[0],
-    twxt['momentum_compaction_factor'], atol=1e-8, rtol=0)
+    twxt['momentum_compaction_factor'], atol=5e-8, rtol=0)
 assert np.isclose(twxt['qs'], 0.0021, atol=1e-4, rtol=0)
 
 for name in ['mb.b19r5.b1', 'mb.b19r1.b1', 'ip1', 'ip2', 'ip5', 'ip8',

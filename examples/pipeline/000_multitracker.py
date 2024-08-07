@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 
 import xtrack as xt
-import xpart as xp
 
 from xtrack import PipelineStatus
 
@@ -41,9 +40,9 @@ line2.reset_s_at_end_turn = False
 # We use a multitracker to track one two particles with the first tracker
 # and one particle with the second one
 
-p1 = xp.Particles(p0c=7e12, x=[0,0,0])
-p2 = xp.Particles(p0c=7e12, x=[0,0,0])
-p3 = xp.Particles(p0c=7e12, x=[0,0,0])
+p1 = xt.Particles(p0c=7e12, x=[0,0,0])
+p2 = xt.Particles(p0c=7e12, x=[0,0,0])
+p3 = xt.Particles(p0c=7e12, x=[0,0,0])
 
 multitracker = xt.PipelineMultiTracker(
     branches=[xt.PipelineBranch(line=line1, particles=p1),
@@ -85,8 +84,8 @@ assert np.all(p3.s == 8.)
 line1['pipelnd_el1'].i_hold = 0
 line2['pipelnd_el2'].i_hold = 0
 
-p1 = xp.Particles(p0c=7e12, x=[0,0,0])
-p2 = xp.Particles(p0c=7e12, x=[0,0,0])
+p1 = xt.Particles(p0c=7e12, x=[0,0,0])
+p2 = xt.Particles(p0c=7e12, x=[0,0,0])
 
 multitracker = xt.PipelineMultiTracker(
     branches=[xt.PipelineBranch(line=line1, particles=p1),
