@@ -184,6 +184,7 @@ def test_multiline_simple_match():
     k0 = h;
     
     silly1: beamline {
+        particle_ref, p0c = 7e9, q0 = 1, mass0 = pmass;
         b1: Bend, k0 = k0, h = h, length = cell_l;
         qf1: Multipole, knl = {0, knl_f};
         d12u: Drift, length = cell_l / 2;
@@ -193,6 +194,7 @@ def test_multiline_simple_match():
     };
 
     silly2: beamline {
+        particle_ref, p0c = 7e9, q0 = 1, mass0 = pmass;
         b1: Bend, k0 = k0, h = h, length = cell_l;
         qf1: Multipole, knl = {0, knl_f};
         d12u: Drift, length = cell_l / 2;
@@ -206,23 +208,30 @@ def test_multiline_simple_match():
     multiline = xt.Multiline.from_string(sequence, _context=xo.context_default)
 
     line1 = multiline.silly1
-    particle_ref = xt.Particles(p0c=7e9, q0=1, mass0=xt.PROTON_MASS_EV)
     line1.vars['__vary_default'] = {}
+
+    xo.assert_allclose(line1.particle_ref.p0c, 7e9, atol=1e-16)
+    xo.assert_allclose(line1.particle_ref.q0, 1, atol=1e-16)
+    xo.assert_allclose(line1.particle_ref.mass0, xt.PROTON_MASS_EV, atol=1e-16)
 
     line1.match(
         method='4d',
         vary=xt.VaryList(['knl_f', 'knl_d'], step=1e-6),
         targets=[xt.TargetSet(qx=target_tunes[0], qy=target_tunes[1])],
-        particle_ref=particle_ref,
     )
 
-    tw1 = line1.twiss(method='4d', particle_ref=particle_ref)
+    tw1 = line1.twiss(method='4d')
 
     xo.assert_allclose(tw1.qx, target_tunes[0])
     xo.assert_allclose(tw1.qy, target_tunes[1])
 
     line2 = multiline.silly2
-    tw2 = line2.twiss(method='4d', reverse=True, particle_ref=particle_ref)
+
+    xo.assert_allclose(line2.particle_ref.p0c, 7e9, atol=1e-16)
+    xo.assert_allclose(line2.particle_ref.q0, 1, atol=1e-16)
+    xo.assert_allclose(line2.particle_ref.mass0, xt.PROTON_MASS_EV, atol=1e-16)
+
+    tw2 = line2.twiss(method='4d', reverse=True)
 
     assert tw1.qx == tw2.qx
     assert tw1.qy == tw2.qy

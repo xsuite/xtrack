@@ -154,6 +154,7 @@ class LineTemplate:
     args = cy.declare(list, visibility='public')
     element_dict = cy.declare(dict, visibility='public')
     element_names = cy.declare(list, visibility='public')
+    line_attributes = cy.declare(dict, visibility='public')
     location = cy.declare(object, visibility='public')
     parser = cy.declare(object, visibility='public')
 
@@ -162,6 +163,7 @@ class LineTemplate:
         self.args = args
         self.element_dict = {}
         self.element_names = []
+        self.line_attributes = {}
         self.location = location
 
     def add_element(self, name, parent, args):
@@ -210,6 +212,21 @@ class LineTemplate:
                         list_ref[i] = le
             elif xd.refs.is_ref(v):
                 setattr(element_ref, k, v)
+
+    def add_command(self, command, args):
+        argdict = {k: _ref_get_value(v) for k, v in args}
+        if command == 'particle_ref':
+            return self.add_particle_ref(**argdict)
+        if command == 'setattr':
+            return self.add_attribute(**argdict)
+        raise TypeError(f'Unknown command `{command}`.')
+
+    def add_particle_ref(self, **kwargs):
+        particle_ref = xt.Particles(**kwargs)
+        self.line_attributes['particle_ref'] = particle_ref
+
+    def add_attribute(self, field, json):
+        self.line_attributes[field] = json.loads(json)
 
 
 @cy.cclass
@@ -369,6 +386,7 @@ class Parser:
 
     def commit_line(self, line_template):
         if line_template is not self._current_line_template:
+            # I cannot think of a hypothetical scenario where this would happen
            self.handle_error('internal error occurred when building the line')
         self._current_line_template = None
 
@@ -386,6 +404,10 @@ class Parser:
         line._var_management['vref'] = self.var_refs
         line._var_management['lref'] = self.element_refs[line_name]
         line._var_management['fref'] = self.func_refs
+
+        for attr_name, attr_value in line_template.line_attributes.items():
+            setattr(line, attr_name, attr_value)
+
         self.lines[line_name] = line
 
     def get_reference(self, parent, field, location):
@@ -695,3 +717,19 @@ def py_clone_global(scanner, clone):
         parser.add_global_element(name, parent, args)
     except Exception as e:
         register_error(scanner, e, 'parsing a global clone statement')
+
+
+def py_command(scanner, name, arguments, location):
+    try:
+        return name.decode(), arguments
+    except Exception as e:
+        register_error(scanner, e, 'parsing a command statement',
+                       add_context=True, location=location)
+
+
+def py_add_command(scanner, target, command, location):
+    try:
+        target.add_command(*command)
+    except Exception as e:
+        register_error(scanner, e, 'applying a command statement',
+                       add_context=True, location=location)

@@ -9,7 +9,7 @@ from cpython.ref cimport PyObject
 
 ctypedef PyObject* extra_t
 
-ctypedef fused numeric:
+ctypedef fused numeric_t:
     double
     long
 
@@ -49,7 +49,7 @@ cdef object parser_from_scanner(yyscan_t yyscanner)
 cdef public void yyerror(YYLTYPE* yyllocp, yyscan_t yyscanner, const char* message)
 cdef public object py_integer(yyscan_t scanner, long value)
 cdef public object py_float(yyscan_t scanner, double value)
-cdef public object py_numeric(yyscan_t scanner, numeric value)
+cdef public object py_numeric(yyscan_t scanner, numeric_t value)
 cdef public object py_unary_op(yyscan_t scanner, const char* op_string, object value)
 cdef public object py_binary_op(yyscan_t scanner, const char* op_string, object left, object right)
 cdef public tuple py_assign(yyscan_t scanner, const char* identifier, object value)
@@ -64,3 +64,5 @@ cdef public object py_start_sequence(yyscan_t scanner, const char* name, list ar
 cdef public object py_new_element(yyscan_t scanner, object line_template, object element)
 cdef public object py_clone(yyscan_t scanner, const char* name, const char* parent, list args)
 cdef public void py_clone_global(yyscan_t scanner, tuple clone)
+cdef public tuple py_command(yyscan_t scanner, const char* name, object arguments, YYLTYPE location)
+cdef public void py_add_command(yyscan_t scanner, object target, object command, YYLTYPE location)

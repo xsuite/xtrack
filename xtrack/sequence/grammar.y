@@ -111,14 +111,14 @@
 
 // Nonterminal (rule) types
 %type <object> clone argument start_line start_line_modern
-%type <object> argument_assign flag variable_assign
+%type <object> argument_assign flag variable_assign command
 %type <object> atom power product sum reference
-%type <object> arguments elements array scalar_list
+%type <object> arguments elements commands array scalar_list
 
 // Clean up token values on error
 %destructor { free($$); } IDENTIFIER STRING_LITERAL
 // Clean up the python lists we create as part of grammar actions
-%destructor { Py_DECREF($$); } arguments array scalar_list
+%destructor { Py_DECREF($$); } arguments array scalar_list elements commands
 
 // Associativity rules
 %left ADD SUB
@@ -180,9 +180,6 @@ clone
 			Py_XDECREF($4);
 		}
 
-command_stmt
-	: IDENTIFIER arguments ";"  { free($1); Py_XDECREF($2); }  // TODO
-
 arguments
 	: /* empty */			{ $$ = PyList_New(0); }
 	| arguments "," argument	{
@@ -221,18 +218,18 @@ argument_assign
 		}
 
 line
-	: start_line elements "endbeamline" ";"	{
+	: start_line commands elements "endbeamline" ";"	{
 			py_make_sequence(yyscanner, $1);
 			// Unfortunately we must handle the reference counting
 			// of the LineTemplate object here: it is leaving the
 			// "C scope" and we don't need it anymore.
 			Py_XDECREF($1);
-			Py_XDECREF($2);
+			Py_XDECREF($3);
 		}
-	| start_line_modern elements "}" ";" 	{
+	| start_line_modern commands elements "}" ";" 	{
 			py_make_sequence(yyscanner, $1);
 			Py_XDECREF($1);
-			Py_XDECREF($2);
+			Py_XDECREF($3);
 		}
 
 start_line
@@ -268,6 +265,22 @@ elements
 			// Recover from a bad line without breaking the
 			// sequence (otherwise falls back to `statement`).
 			$$ = $<object>0;
+		}
+
+commands
+	: /* empty */ 			{ $$ = $<object>0; }
+	| commands command	{
+			// $<object>0 is the LineTemplate object, see `elements`
+			py_add_command(yyscanner, $1, $2, @$);
+			Py_XDECREF($2);
+			$$ = $1;
+		}
+
+command
+	: IDENTIFIER arguments ";"  	{
+			$$ = py_command(yyscanner, $1, $2, @$);
+			free($1);
+			Py_XDECREF($2);
 		}
 
 array
