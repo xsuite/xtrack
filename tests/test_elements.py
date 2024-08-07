@@ -8,7 +8,6 @@ import pytest
 from cpymad.madx import Madx
 from scipy.stats import linregress
 from scipy import constants as cst
-from xpart.particles import Particles, ParticlesPurelyLongitudinal
 import ducktrack as dtk
 import xobjects as xo
 import xpart as xp
