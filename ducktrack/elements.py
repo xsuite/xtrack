@@ -722,6 +722,7 @@ class LinearTransferMatrix(Element):
         p.x,p.px = M00_x*p.x + M01_x*p.px, M10_x*p.x + M11_x*p.px
         p.y,p.py = M00_y*p.y + M01_y*p.py, M10_y*p.y + M11_y*p.py
 
+        shift = 0.0
         if self.bucket_length > 0:
             bucket_length_zeta = self.bucket_length*p.beta0*clight
             shift = bucket_length_zeta*np.floor(p.zeta/bucket_length_zeta+0.5);

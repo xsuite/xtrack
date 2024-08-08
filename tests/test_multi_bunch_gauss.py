@@ -45,7 +45,7 @@ def do_checks(test_context,part,n_part_per_bunch,sigma_z,sigma_delta,
                 part.zeta[i_bunch*n_part_per_bunch:
                           (i_bunch+1)*n_part_per_bunch]))
 
-        assert np.isclose((zeta_avg-bunch_spacing*filled_slots[bunch_number])/sigma_z, 0.0, atol=1e-2)
+        assert np.isclose((zeta_avg+bunch_spacing*filled_slots[bunch_number])/sigma_z, 0.0, atol=1e-2)
         assert np.isclose(delta_avg/sigma_delta, 0.0, atol=1e-2)
         assert np.isclose(zeta_rms, sigma_z, rtol=1e-2, atol=1e-15)
         assert np.isclose(delta_rms, sigma_delta, rtol=0.2, atol=1e-15)
