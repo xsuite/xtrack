@@ -814,8 +814,8 @@ class Bend(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_bend.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/wedge_track.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/fringe_track.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_nonlinear.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_bend.h'),
@@ -990,6 +990,8 @@ class Sextupole(BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
         'ksl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
+        'edge_entry_active': xo.Field(xo.UInt64, default=False),
+        'edge_exit_active': xo.Field(xo.UInt64, default=False),
     }
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
@@ -1006,6 +1008,7 @@ class Sextupole(BeamElement):
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('headers/synrad_spectrum.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_multipole.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
         _pkg_root.joinpath('beam_elements/elements_src/sextupole.h'),
     ]
 
@@ -1088,6 +1091,8 @@ class Octupole(BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
         'ksl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
+        'edge_entry_active': xo.Field(xo.UInt64, default=False),
+        'edge_exit_active': xo.Field(xo.UInt64, default=False),
     }
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
@@ -1104,6 +1109,7 @@ class Octupole(BeamElement):
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('headers/synrad_spectrum.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_multipole.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
         _pkg_root.joinpath('beam_elements/elements_src/octupole.h'),
     ]
 
@@ -1185,6 +1191,8 @@ class Quadrupole(BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
         'ksl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
+        'edge_entry_active': xo.Field(xo.UInt64, default=False),
+        'edge_exit_active': xo.Field(xo.UInt64, default=False),
     }
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
@@ -1198,6 +1206,7 @@ class Quadrupole(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/track_multipolar_components.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_srotation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_quadrupole.h'),
         _pkg_root.joinpath('beam_elements/elements_src/quadrupole.h'),
     ]
@@ -1266,10 +1275,10 @@ class Solenoid(BeamElement):
     length : float
         Length of the element in meters.
     ks : float
-        Strength of the solenoid component in rad / m. Only to be specified
-        when the element is thin, i.e. when `length` is 0.
+        Strength of the solenoid component in rad / m.
     ksi : float
-        Integrated strength of the solenoid component in rad.
+        Integrated strength of the solenoid component in rad. Only to be
+        specified when the element is thin, i.e. when `length` is 0.
     """
     isthick = True
     has_backtrack = True
@@ -1284,6 +1293,8 @@ class Solenoid(BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
         'ksl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
+        'mult_rot_y_rad': xo.Float64,
+        'mult_shift_x': xo.Float64,
     }
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
@@ -1296,6 +1307,7 @@ class Solenoid(BeamElement):
         _pkg_root.joinpath('headers/synrad_spectrum.h'),
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_multipolar_components.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_solenoid.h'),
         _pkg_root.joinpath('beam_elements/elements_src/solenoid.h'),
     ]
@@ -1377,8 +1389,8 @@ class CombinedFunctionMagnet:
         return Bend(**dct)
 
 
-class Fringe(BeamElement):
-    """Fringe field element.
+class DipoleFringe(BeamElement):
+    """Fringe field element of a dipole.
 
     Parameters
     ----------
@@ -1397,8 +1409,8 @@ class Fringe(BeamElement):
     }
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/fringe_track.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/fringe.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/dipole_fringe.h'),
     ]
 
     def __init__(self, **kwargs):
@@ -1423,7 +1435,7 @@ class Wedge(BeamElement):
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/wedge_track.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
         _pkg_root.joinpath('beam_elements/elements_src/wedge.h'),
     ]
 
@@ -1606,8 +1618,8 @@ class DipoleEdge(BeamElement):
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/wedge_track.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/fringe_track.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_nonlinear.h'),
         _pkg_root.joinpath('beam_elements/elements_src/dipoleedge.h')]

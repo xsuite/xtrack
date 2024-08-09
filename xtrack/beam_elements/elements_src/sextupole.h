@@ -30,7 +30,22 @@ void Sextupole_track_local_particle(
     /*gpuglmem*/ const double *knl = SextupoleData_getp1_knl(el, 0);
     /*gpuglmem*/ const double *ksl = SextupoleData_getp1_ksl(el, 0);
 
+    const uint8_t edge_entry_active = SextupoleData_get_edge_entry_active(el);
+    const uint8_t edge_exit_active = SextupoleData_get_edge_exit_active(el);
+    const double combined_kn[3] = {0, 0, k2 / 2};
+    const double combined_ks[3] = {0, 0, k2s / 2};
+
     //start_per_particle_block (part0->part)
+        // Entry fringe
+        if (edge_entry_active) {
+            MultFringe_track_single_particle(
+                combined_kn,
+                combined_ks,
+                0,
+                3,
+                part
+            );
+        }
 
         // Drift
         Drift_single_particle(part, length / 2.);
@@ -48,10 +63,17 @@ void Sextupole_track_local_particle(
         // Drift
         Drift_single_particle(part, length / 2.);
 
-
+        // Exit fringe
+        if (edge_exit_active) {
+            MultFringe_track_single_particle(
+                combined_kn,
+                combined_ks,
+                1,
+                3,
+                part
+            );
+        }
     //end_per_particle_block
-
-
 }
 
 #endif // XTRACK_SEXTUPOLE_H
