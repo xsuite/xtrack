@@ -922,7 +922,7 @@ class ElectronCooler(Element):
         if np.isscalar(p.delta):
             delta = np.array([delta])
 
-        theta = np.arctan(y/x)
+        theta = np.arctan2(y, x)
         radius = np.hypot(x,y)
         beta0=p.beta0
         gamma0=p.gamma0
