@@ -700,15 +700,7 @@ def py_set_ref(scanner, target, value):
         register_error(scanner, e, 'setting a field reference')
 
 
-def py_make_sequence(scanner, line_template):
-    try:
-        parser = parser_from_scanner(scanner)
-        parser.commit_line(line_template)
-    except Exception as e:
-        register_error(scanner, e, 'parsing a sequence')
-
-
-def py_start_sequence(scanner, name, args, location):
+def py_start_beamline(scanner, name, args, location):
     try:
         line_template = LineTemplate(name.decode(), args, location)
         parser = parser_from_scanner(scanner)
@@ -717,28 +709,32 @@ def py_start_sequence(scanner, name, args, location):
     except Exception as e:
         register_error(scanner, e, 'parsing a sequence header')
 
-def py_clone(scanner, name, parent, args) -> Optional[Tuple[str, str, dict]]:
+
+def py_end_beamline(scanner, line_template):
+    try:
+        parser = parser_from_scanner(scanner)
+        parser.commit_line(line_template)
+    except Exception as e:
+        register_error(scanner, e, 'parsing a sequence')
+
+
+def py_clone(scanner, name, command) -> Optional[Tuple[str, str, dict]]:
     try:
         if name.decode() in AVAILABLE_ELEMENT_CLASSES:
             parser = parser_from_scanner(scanner)
             parser.handle_error(f'the name `{name.decode()}` shadows a built-in type.')
             return None
 
-        return name.decode(), parent.decode(), args
+        return name.decode(), command[0], command[1]
     except Exception as e:
         register_error(scanner, e, 'parsing a clone statement')
 
 
-def py_new_element(scanner, line_template, element):
-    if line_template is None:  # An error in the sequence header already occurred
-        return None
-
+def py_add_element(scanner, target, element):
     try:
-        line_template.add_element(*element)
+        target.add_element(*element)
     except Exception as e:
         register_error(scanner, e, 'building a new element')
-
-    return line_template
 
 
 def py_clone_global(scanner, clone):
@@ -754,6 +750,7 @@ def py_clone_global(scanner, clone):
 
 def py_command(scanner, name, arguments, location):
     try:
+
         return name.decode(), arguments
     except Exception as e:
         register_error(scanner, e, 'parsing a command statement',

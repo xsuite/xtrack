@@ -212,7 +212,7 @@ def test_multiline_simple_twiss():
     h = angle / cell_l;
     k0 = h;
     
-    silly1: beamline {
+    silly1: beamline;
         particle_ref, p0c = 7e9, q0 = 1, mass0 = pmass;
         b1: Bend, k0 = k0, h = h, length = cell_l;
         qf1: Multipole, knl = {0, knl_f};
@@ -220,9 +220,9 @@ def test_multiline_simple_twiss():
         m12: Marker;
         d12d: Drift, length = cell_l / 2;
         qd2: Multipole, knl = {0, knl_d};
-    };
+    endbeamline;
 
-    silly2: beamline {
+    silly2: beamline;
         particle_ref, p0c = 7e9, q0 = 1, mass0 = pmass;
         twiss_default, reverse;
         b1: Bend, k0 = k0, h = h, length = cell_l;
@@ -231,7 +231,7 @@ def test_multiline_simple_twiss():
         m12: Marker;
         d12d: Drift, length = cell_l / 2;
         qd2: Multipole, knl = {0, knl_d};
-    };
+    endbeamline;
     """
     target_tunes = (.21, .17)
 

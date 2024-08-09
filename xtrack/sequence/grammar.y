@@ -43,13 +43,17 @@
  whenever possible, so let us take care of them as close to the C-Python
  boundary as we can.
 */
-
 // Enable storing line & column no with yylloc (see YY_USER_ACTION macro in *.l)
 %locations
 // Enable re-entrancy (thread safety!)
 %define api.pure
 // Allegedly provides better error messages
 %define parse.error verbose
+// As-is the grammar needs 2 lookahead token to distinguish between line_body
+// and line_commands (see shift/reduce conflict warning). We enable GLR parsing
+// to work around this problem, and seeing that this only happens once per
+// beamline, and it is only 2 lookahead, the performance hit will be negligible.
+%glr-parser
 
 %{
 #define YYERROR_VERBOSE
@@ -113,15 +117,16 @@
 %token ARROW			"->"
 
 // Nonterminal (rule) types
-%type <object> clone argument start_line start_line_modern
-%type <object> argument_assign flag variable_assign command
 %type <object> atom power product sum reference boolean
-%type <object> arguments elements commands array scalar_list
+%type <object> clone argument command
+%type <object> argument_assign flag variable_assign
+%type <object> arguments array scalar_list
+%type <object> line_head line_body line_commands
 
 // Clean up token values on error
-%destructor { free($$); } IDENTIFIER STRING_LITERAL
-// Clean up the python lists we create as part of grammar actions
-%destructor { Py_DECREF($$); } arguments array scalar_list elements commands
+%destructor { free($$); } <string>
+// Clean up the python objects properly on error
+%destructor { Py_DECREF($$); } <object>
 
 // Associativity rules
 %left ADD SUB
@@ -180,18 +185,17 @@ reference
 		}
 
 clone
-	: IDENTIFIER ":" IDENTIFIER arguments ";"	{
-			$$ = py_clone(yyscanner, $1, $3, $4);
+	: IDENTIFIER ":" command ";"	{
+			$$ = py_clone(yyscanner, $1, $3);
 			free($1);
-			free($3);
-			Py_XDECREF($4);
+			Py_XDECREF($3);
 		}
 
 arguments
 	: /* empty */			{ $$ = PyList_New(0); }
 	| arguments "," argument	{
-			PyList_Append($1, $3);
-			Py_DECREF($3);
+			if ($3 != Py_None) PyList_Append($1, $3);
+			Py_XDECREF($3);
 			$$ = $1;
 		}
 
@@ -230,66 +234,36 @@ argument_assign
 		}
 
 line
-	: start_line commands elements "endbeamline" ";"	{
-			py_make_sequence(yyscanner, $1);
-			// Unfortunately we must handle the reference counting
-			// of the LineTemplate object here: it is leaving the
-			// "C scope" and we don't need it anymore.
+	: line_body "endbeamline" ";"	{
+			py_end_beamline(yyscanner, $1);
 			Py_XDECREF($1);
-			Py_XDECREF($3);
-		}
-	| start_line_modern commands elements "}" ";" 	{
-			py_make_sequence(yyscanner, $1);
-			Py_XDECREF($1);
-			Py_XDECREF($3);
 		}
 
-start_line
-	: IDENTIFIER ":" "beamline" arguments ";"	{
-			$$ = py_start_sequence(yyscanner, $1, $4, @$);
-			free($1);
-			Py_XDECREF($4);
-		}
-
-start_line_modern
-	: IDENTIFIER ":" "beamline" arguments "{"	{
-			$$ = py_start_sequence(yyscanner, $1, $4, @$);
-			free($1);
-			Py_XDECREF($4);
-		}
-
-elements
-	: clone				{
-			// $<object>0 is the LineTemplate object taken from the
-			// top of the stack, which is the result of `start_line`
-			$$ = py_new_element(yyscanner, $<object>0, $1);
-			// Handling the reference counting, see `sequence`
-			Py_XDECREF($$);
-			Py_XDECREF($1);
-		}
-	| elements clone		{
-			$$ = py_new_element(yyscanner, $1, $2);
-			// Handling the reference counting, see `sequence`
-			Py_XDECREF($1);
+line_body
+	: line_body clone		{
+			py_add_element(yyscanner, $1, $2);
 			Py_XDECREF($2);
+			$$ = $1;
 		}
-	| error SEMICOLON  		{
-			// Recover from a bad line without breaking the
-			// sequence (otherwise falls back to `statement`).
-			$$ = $<object>0;
-		}
+	| line_commands		{ $$ = $1; }
 
-commands
-	: /* empty */ 			{ $$ = $<object>0; }
-	| commands command	{
-			// $<object>0 is the LineTemplate object, see `elements`
+line_commands
+	: line_commands command ";"		{
 			py_add_command(yyscanner, $1, $2, @$);
 			Py_XDECREF($2);
 			$$ = $1;
 		}
+	| line_head			{ $$ = $1; }
+
+line_head
+	: IDENTIFIER ":" "beamline" arguments ";"	{
+			$$ = py_start_beamline(yyscanner, $1, $4, @$);
+			free($1);
+			Py_XDECREF($4);
+		}
 
 command
-	: IDENTIFIER arguments ";"  	{
+	: IDENTIFIER arguments  	{
 			$$ = py_command(yyscanner, $1, $2, @$);
 			free($1);
 			Py_XDECREF($2);
