@@ -259,11 +259,11 @@ class XldWriter:
 
         indent = ' ' * (level * TAB_WIDTH)
         args = self._format_arglist(line.twiss_default, None, level + 1)
-        stream.write(f'{indent}twiss_default' + args + ';\n')
+        stream.write(f'{indent}twiss_default,' + args + ';\n')
 
         breakpoint()
 
     def _write_config(self, stream, line, level=1):
         indent = ' ' * (level * TAB_WIDTH)
         args = self._format_arglist(line.config, None, level + 1)
-        stream.write(f'{indent}config' + args + ';\n')
+        stream.write(f'{indent}config,' + args + ';\n')

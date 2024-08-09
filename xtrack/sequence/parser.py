@@ -241,7 +241,6 @@ class LineTemplate:
     def add_attribute(self, **kwargs):
         if kwargs.keys() != {'update', 'json'}:
             raise ValueError('The `attr` command expects `update` and `json` parameters.')
-        print("==========> " + kwargs['update'] + " " + kwargs['json'])
         self.line_attributes[kwargs['update']] = json.loads(kwargs['json'])
 
 
@@ -424,13 +423,10 @@ class Parser:
         line._var_management['fref'] = self.func_refs
 
         for attr_name, attr_value in line_template.line_attributes.items():
-            print(f"==========> {attr_name} {attr_value}")
             if hasattr(getattr(line, attr_name, None), 'update'):
-                print("|---> is dict")
                 getattr(line, attr_name).update(attr_value)
                 print(line.metadata)
             else:
-                print("|---> just set")
                 setattr(line, attr_name, attr_value)
 
         self.lines[line_name] = line
