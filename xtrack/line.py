@@ -245,14 +245,14 @@ class Line:
             Line object.
 
         """
-        skip_xld_test = False
+        test_xld = os.environ.get('XTRACK_TEST_XLD', False)
 
         if isinstance(file, io.IOBase):
             dct = json.load(file)
             try:
                 filename = file.filename
             except AttributeError:
-                skip_xld_test = True
+                test_xld = False
         else:
             filename = str(file)
             with open(file, 'r') as fid:
@@ -265,7 +265,7 @@ class Line:
 
         new_line = cls.from_dict(dct_line, **kwargs)
 
-        if not skip_xld_test:
+        if test_xld:
             short_uuid = str(uuid.uuid4())[:8]
             xld_file = filename.replace('.json', f'_{short_uuid}.xld')
 
