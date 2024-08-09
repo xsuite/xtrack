@@ -1,3 +1,4 @@
+import json
 import math
 import operator
 import re
@@ -217,7 +218,11 @@ class LineTemplate:
         argdict = {k: _ref_get_value(v) for k, v in args}
         if command == 'particle_ref':
             return self.add_particle_ref(**argdict)
-        if command == 'setattr':
+        if command == 'twiss_default':
+            return self.add_twiss_default(**argdict)
+        if command == 'config':
+            return self.add_config(**argdict)
+        if command == 'attr':
             return self.add_attribute(**argdict)
         raise TypeError(f'Unknown command `{command}`.')
 
@@ -225,8 +230,19 @@ class LineTemplate:
         particle_ref = xt.Particles(**kwargs)
         self.line_attributes['particle_ref'] = particle_ref
 
-    def add_attribute(self, field, json):
-        self.line_attributes[field] = json.loads(json)
+    def add_twiss_default(self, **kwargs):
+        json_part = json.loads(kwargs.pop('json', "{}"))
+        kwargs.update(json_part)
+        self.line_attributes['twiss_default'] = kwargs
+
+    def add_config(self, **kwargs):
+        self.line_attributes['config'] = kwargs
+
+    def add_attribute(self, **kwargs):
+        if kwargs.keys() != {'update', 'json'}:
+            raise ValueError('The `attr` command expects `update` and `json` parameters.')
+        print("==========> " + kwargs['update'] + " " + kwargs['json'])
+        self.line_attributes[kwargs['update']] = json.loads(kwargs['json'])
 
 
 @cy.cclass
@@ -387,7 +403,9 @@ class Parser:
     def commit_line(self, line_template):
         if line_template is not self._current_line_template:
             # I cannot think of a hypothetical scenario where this would happen
-           self.handle_error('internal error occurred when building the line')
+            self.handle_error('internal error occurred when building the line')
+            return
+
         self._current_line_template = None
 
         line_name = line_template.name
@@ -406,7 +424,14 @@ class Parser:
         line._var_management['fref'] = self.func_refs
 
         for attr_name, attr_value in line_template.line_attributes.items():
-            setattr(line, attr_name, attr_value)
+            print(f"==========> {attr_name} {attr_value}")
+            if hasattr(getattr(line, attr_name, None), 'update'):
+                print("|---> is dict")
+                getattr(line, attr_name).update(attr_value)
+                print(line.metadata)
+            else:
+                print("|---> just set")
+                setattr(line, attr_name, attr_value)
 
         self.lines[line_name] = line
 
@@ -570,6 +595,14 @@ def py_numeric(scanner, value):
         return value
     except Exception as e:
         register_error(scanner, e, f'parsing a numeric value')
+
+
+@cy.exceptval(check=False)
+def py_string(scanner, value):
+    try:
+        return re.sub(r'\\"', '"', value.decode())
+    except Exception as e:
+        register_error(scanner, e, f'parsing a string')
 
 
 @cy.exceptval(check=False)

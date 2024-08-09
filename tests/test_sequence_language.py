@@ -4,17 +4,24 @@
 # ######################################### #
 import numpy as np
 import pytest
+import re
 
 import xobjects as xo
 import xtrack as xt
 from xtrack.sequence.parser import Parser, ParseError
 
-def _normalize_code(code_string, remove_empty_lines=True):
+def _normalize_code(code_string, remove_empty_lines=True, ignore_config=True):
+    if ignore_config:
+        code_string = re.sub(r'config.*?;\n', '', code_string, flags=re.DOTALL)
+
     lines = code_string.split('\n')  # split into lines
     lines = map(str.strip, lines)  # remove meaningless whitespace
 
     if remove_empty_lines:
         lines = filter(bool, lines)
+
+    lines = filter(lambda l: not l.startswith('#'), lines)  # remove lines w/comments
+    lines = map(lambda x: x.split('#')[0].strip(), lines)  # remove comments
 
     lines = filter(lambda l: l != 't_turn_s = 0.0;', lines)
 
@@ -142,7 +149,7 @@ def test_line():
             k0 = k,
             knl = {0, 0, k2 / bend_len},
             length = bend_len,
-            +edge_entry_active,
+            edge_entry_active,
             edge_entry_model = "linear",
             -edge_exit_active,
             model = "adaptive";
@@ -174,8 +181,30 @@ def test_line():
     assert line.element_refs['elm_c'].knl[2]._expr == line.vars['k2'] / line.vars['bend_len']
 
 
-def test_multiline_simple_match():
-    sequence = """
+def test_particle_ref():
+    sequence = """\
+    x = 1;
+    line: beamline;
+        particle_ref, p0c = 7e9, q0 = 1, mass0 = pmass;
+        elm_a: Drift, length = x;
+    endbeamline;
+    """
+
+    parser = Parser(_context=xo.context_default)
+    parser.parse_string(sequence)
+
+    line = parser.get_line('line')
+
+    p_ref = line.particle_ref
+    xo.assert_allclose(p_ref.p0c, 7e9, atol=1e-16)
+    xo.assert_allclose(p_ref.q0, 1, atol=1e-16)
+    xo.assert_allclose(p_ref.mass0, xt.PROTON_MASS_EV, atol=1e-16)
+
+    assert line['elm_a'].length == 1
+
+
+def test_multiline_simple_twiss():
+    sequence = """\
     cell_l = 1;
     knl_f = 1;
     knl_d = -1;
@@ -195,6 +224,7 @@ def test_multiline_simple_match():
 
     silly2: beamline {
         particle_ref, p0c = 7e9, q0 = 1, mass0 = pmass;
+        twiss_default, reverse;
         b1: Bend, k0 = k0, h = h, length = cell_l;
         qf1: Multipole, knl = {0, knl_f};
         d12u: Drift, length = cell_l / 2;
@@ -208,7 +238,7 @@ def test_multiline_simple_match():
     multiline = xt.Multiline.from_string(sequence, _context=xo.context_default)
 
     line1 = multiline.silly1
-    line1.vars['__vary_default'] = {}
+    assert not line1.twiss_default.get('reverse', None)
 
     xo.assert_allclose(line1.particle_ref.p0c, 7e9, atol=1e-16)
     xo.assert_allclose(line1.particle_ref.q0, 1, atol=1e-16)
@@ -227,11 +257,13 @@ def test_multiline_simple_match():
 
     line2 = multiline.silly2
 
+    assert line2.twiss_default['reverse']
+
     xo.assert_allclose(line2.particle_ref.p0c, 7e9, atol=1e-16)
     xo.assert_allclose(line2.particle_ref.q0, 1, atol=1e-16)
     xo.assert_allclose(line2.particle_ref.mass0, xt.PROTON_MASS_EV, atol=1e-16)
 
-    tw2 = line2.twiss(method='4d', reverse=True)
+    tw2 = line2.twiss(method='4d')
 
     assert tw1.qx == tw2.qx
     assert tw1.qy == tw2.qy
@@ -247,6 +279,11 @@ def test_multiline_read_and_dump(tmp_path):
         k0 = h;
         
         silly1: beamline;
+            particle_ref,
+                # t_sim will always be there (calculated by the line by default)
+                # so we override it so that the assertion is nicer
+                t_sim = 10.0;
+
             b1: Bend, 
                 length = cell_l,
                 k0 = k0,
@@ -263,6 +300,11 @@ def test_multiline_read_and_dump(tmp_path):
         endbeamline;
         
         silly2: beamline;
+            particle_ref,
+                p0c = 7100000000.0,  # not "7.1e9" to match the output of writer
+                q0 = 2.0,
+                t_sim = 10.0;  # ditto
+
             b1: Bend, 
                 length = cell_l,
                 k0 = k0,
@@ -289,14 +331,18 @@ def test_multiline_read_and_dump(tmp_path):
     generated_lines = _normalize_code(generated_sequence, remove_empty_lines=False)
     original_lines = _normalize_code(sequence, remove_empty_lines=False)
 
-    assert set(generated_lines[0:7]) == set(original_lines[0:7])
-    assert generated_lines[7:9] == original_lines[7:9]
-    assert set(generated_lines[9:16]) == set(original_lines[9:16])
-    assert generated_lines[16:22] == original_lines[16:22]
+    cmp_args = lambda lines: set(text[0:-1] for text in lines)
 
-    assert generated_lines[23:25] == original_lines[23:25]
-    assert set(generated_lines[25:32]) == set(original_lines[25:32])
-    assert generated_lines[32:36] == original_lines[32:36]
+    assert cmp_args(generated_lines[0:7]) == cmp_args(original_lines[0:7])
+    assert generated_lines[7:11] == original_lines[7:11]
+    assert cmp_args(generated_lines[11:19]) == cmp_args(original_lines[11:19])
+    assert generated_lines[19:26] == original_lines[19:26]
+
+    assert generated_lines[26:28] == original_lines[26:28]
+    assert cmp_args(generated_lines[28:31]) == cmp_args(original_lines[28:31])
+    assert generated_lines[31:33] == original_lines[31:33]
+    assert cmp_args(generated_lines[33:40]) == cmp_args(original_lines[33:40])
+    assert generated_lines[40:45] == original_lines[40:45]
 
 
 def test_name_shadowing_error():
@@ -420,6 +466,25 @@ def test_modify_element_refs_arrow_syntax():
 
     assert line['dr'].length == 6
     assert line['mb'].k0 == 4
+
+def test_commands_on_line():
+    sequence = """\
+    line: beamline;
+        particle_ref, x = 1;
+        twiss_default, reverse, method = "4d";
+        config, MY_CUSTOM_C_FLAG = "whatever";
+        attr, update = "_extra_config", json = "{\\"skip_end_turn_actions\\": true}";
+        dr: Drift, length = 2;
+    endbeamline;
+    """
+
+    line = xt.Line.from_string(sequence, _context=xo.context_default)
+
+    assert line.particle_ref.x == 1
+    assert line.twiss_default['reverse']
+    assert line.twiss_default['method'] == '4d'
+    assert line.config.MY_CUSTOM_C_FLAG == 'whatever'
+    assert line._extra_config['skip_end_turn_actions'] == True
 
 
 def test_arrow_syntax_errors():

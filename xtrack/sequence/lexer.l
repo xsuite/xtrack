@@ -55,11 +55,15 @@ IDENTIFIER          [A-Za-z_$][A-Za-z0-9_\.$]*
 ")"                 { return PAREN_CLOSE; }
 "{"                 { return BRACE_OPEN; }
 "}"                 { return BRACE_CLOSE; }
-"beamline"          { return STARTLINE;}
-"endbeamline"       { return ENDLINE; }
 ":"                 { return COLON; }
 ","                 { return COMMA; }
 ";"                 { return SEMICOLON; }
+
+    /* Keywords */
+"beamline"          { return STARTLINE;}
+"endbeamline"       { return ENDLINE; }
+"true"              { return TRUE; }
+"false"             { return FALSE; }
 
     /* Values */
 {FLOAT}             {

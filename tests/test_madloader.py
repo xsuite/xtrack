@@ -534,18 +534,8 @@ def test_selective_expr_import_and_replace_in_expr():
 
 
 def test_load_madx_optics_file():
-    collider_old = xt.Multiline.from_json(
+    collider = xt.Multiline.from_json(
         test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.json')
-    with open(test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.json', 'r') as f:
-        collider_dict = json.load(f)
-        particle_ref = xt.Particles.from_dict(collider_dict['lines']['lhcb1']['particle_ref'])
-    collider = xt.Multiline.from_file(test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.xld', _context=xo.ContextCpu())
-    collider.lhcb1.twiss_default['method'] = '4d'
-    collider.lhcb2.twiss_default['method'] = '4d'
-    collider.lhcb1.twiss_default['reverse'] = False
-    collider.lhcb2.twiss_default['reverse'] = True
-    collider.lhcb1.particle_ref = particle_ref
-    collider.lhcb2.particle_ref = particle_ref
     collider.build_trackers()
 
     # Check varval behaviour

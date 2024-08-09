@@ -50,6 +50,7 @@ cdef public void yyerror(YYLTYPE* yyllocp, yyscan_t yyscanner, const char* messa
 cdef public object py_integer(yyscan_t scanner, long value)
 cdef public object py_float(yyscan_t scanner, double value)
 cdef public object py_numeric(yyscan_t scanner, numeric_t value)
+cdef public str py_string(yyscan_t scanner, const char* value)
 cdef public object py_unary_op(yyscan_t scanner, const char* op_string, object value)
 cdef public object py_binary_op(yyscan_t scanner, const char* op_string, object left, object right)
 cdef public tuple py_assign(yyscan_t scanner, const char* identifier, object value)

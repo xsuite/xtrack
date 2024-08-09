@@ -11,7 +11,7 @@ test_data_folder = pathlib.Path(
 
 def test_tapering_and_twiss_with_radiation():
 
-    filename = test_data_folder / 'clic_dr/line_for_taper.xld'
+    filename = test_data_folder / 'clic_dr/line_for_taper.json'
     configs = [
         {'radiation_method': None, 'p0_correction': True, 'cavity_preserve_angle': False, 'beta_rtol': 2e-2, 'q_atol': 5e-4},
         {'radiation_method': 'kick_as_co', 'p0_correction': True, 'cavity_preserve_angle': False, 'beta_rtol': 2e-2, 'q_atol': 5e-4},
@@ -22,12 +22,7 @@ def test_tapering_and_twiss_with_radiation():
         {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 2e-5, 'q_atol': 5e-4},
     ]
 
-    line = xt.Line.from_file(filename)
-    line.particle_ref = xt.Particles(
-        mass0=xt.ELECTRON_MASS_EV,
-        q0=-1,
-        gamma0=15000,
-    )
+    line = xt.Line.from_json(filename)
 
     line.build_tracker()
 

@@ -274,8 +274,6 @@ class Line:
             os.remove(xld_file)
 
             line_from_xld.vars['__vary_default'] = {}
-            line_from_xld.particle_ref = new_line.particle_ref
-            line_from_xld.twiss_default.update(new_line.twiss_default)
 
             return line_from_xld
 
@@ -923,7 +921,11 @@ class Line:
 
     @particle_ref.setter
     def particle_ref(self, particle_ref):
+        if particle_ref is not None and len(particle_ref.x) != 1:
+            raise ValueError('Only one reference particle can be provided.')
+
         self._particle_ref = particle_ref
+
         if self.particle_ref is not None and self.particle_ref.t_sim == 0:
             self.particle_ref.t_sim = (
                 self.get_length() / self.particle_ref._xobject.beta0[0] / clight)

@@ -1,5 +1,3 @@
-from xtrack.general import _print
-import sys
 import sys
 from functools import reduce
 from typing import Any, Dict, Callable, Union, Tuple, Set
@@ -8,6 +6,7 @@ from typing import Optional
 import numpy as np
 
 import xdeps as xd
+import xobjects as xo
 import xtrack as xt
 from xdeps.refs import XldFormatter, is_ref
 from xdeps.sorting import toposort
@@ -17,11 +16,27 @@ from xtrack.sequence.parser import BUILTIN_CONSTANTS
 TAB_WIDTH = 4
 
 
+def _get_particle_ref_default(var_name, skip_redundant_particle_vars=True):
+    # If this was a global constant, we would leak a buffer here.
+    # TODO: Even if context is specified as different to context_default, it
+    #  still happens, we should figure out why.
+    p_ref = xt.Particles()
+    return p_ref.to_dict(
+        compact=True,
+        remove_redundant_variables=skip_redundant_particle_vars,
+    ).get(var_name)
+
+
+def _warn(msg):
+    _print(f'Warning: {msg}')
+
+
 class XMadWriter:
     def __init__(
             self,
             lattice: Union[xt.Line, xt.Multiline],
-            name: Optional[str] = None
+            name: Optional[str] = None,
+            skip_redundant_particle_vars: bool = True,
     ):
         if isinstance(lattice, xt.Line):
             self.lines = {name: lattice}
@@ -62,10 +77,10 @@ class XMadWriter:
                 rhs = value._value
                 if np.isclose(lhs, rhs, atol=1e-19):
                     continue
-                _print(
-                    f"Warning: The definition of `{var_name}` (= {rhs}) in "
-                    f"your line shadows a built in constant of the same "
-                    f"name (= {lhs}). Make sure this is desired!"
+                _warn(
+                    f"The definition of `{var_name}` (= {rhs}) in your line "
+                    f"shadows a built in constant of the same name (= {lhs}). "
+                    f"Make sure this is desired!"
                 )
 
             if value._expr:
@@ -91,6 +106,11 @@ class XMadWriter:
         formatter = XldFormatter(scope=line.element_refs)
 
         stream.write(f'{name}: beamline;\n')
+
+        self._write_particle_ref(stream, line, level=1)
+        self._write_twiss_default(stream, line, level=1)
+        self._write_config(stream, line, level=1)
+
         for element_name, element in line.items():
             self._write_element(stream, element_name, line, formatter, level=1)
 
@@ -184,10 +204,12 @@ class XMadWriter:
         return ', '.join(map(self.scalar_to_str(formatter), list_like))
 
     @staticmethod
-    def scalar_to_str(formatter: XldFormatter):
+    def scalar_to_str(formatter: Optional[XldFormatter]):
         def _mapper(scalar):
             with np.printoptions(floatmode='unique'):
                 if is_ref(scalar):
+                    if formatter is None:
+                        raise TypeError('Need a formatter to format an expression.')
                     return scalar._formatted(formatter)
                 return str(scalar)
         return _mapper
@@ -208,3 +230,40 @@ class XMadWriter:
         sorted_keys = [var._key for var in sorted_vars]
 
         return sorted(self.vars.keys(), key=lambda k: -sorted_keys.index(k))
+
+    def _write_particle_ref(self, stream, line, level=1):
+        if not line.particle_ref:
+            return
+
+        params = line.particle_ref.to_dict(compact=True)
+
+        indent = ' ' * (level * TAB_WIDTH)
+        indent2 = ' ' * ((level + 1) * TAB_WIDTH)
+
+        lines = [f'{indent}particle_ref']
+        for key, value in params.items():
+            if value == _get_particle_ref_default(key):
+                continue
+            if not np.isscalar(value):
+                if len(value) > 1:
+                    _warn(f'Particle reference parameter `{key}` has multiple '
+                          f'elements: using only the first one.')
+                value = value[0]
+            lines.append(f'{indent2}{key} = {self.scalar_to_str(None)(value)}')
+
+        stream.write(',\n'.join(lines) + ';\n\n')
+
+    def _write_twiss_default(self, stream, line, level=1):
+        if not line.twiss_default:
+            return
+
+        indent = ' ' * (level * TAB_WIDTH)
+        args = self._format_arglist(line.twiss_default, None, level + 1)
+        stream.write(f'{indent}twiss_default' + args + ';\n')
+
+        breakpoint()
+
+    def _write_config(self, stream, line, level=1):
+        indent = ' ' * (level * TAB_WIDTH)
+        args = self._format_arglist(line.config, None, level + 1)
+        stream.write(f'{indent}config' + args + ';\n')

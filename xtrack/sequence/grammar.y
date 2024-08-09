@@ -79,11 +79,14 @@
 %token PAREN_CLOSE		")"
 %token BRACE_OPEN		"{"
 %token BRACE_CLOSE		"}"
-%token STARTLINE		"beamline"
-%token ENDLINE			"endbeamline"
 %token COLON			":"
 %token COMMA			","
 %token SEMICOLON		";"
+// Keywords
+%token STARTLINE		"beamline"
+%token ENDLINE			"endbeamline"
+%token TRUE			"true"
+%token FALSE			"false"
 // Values
 %token<floating> FLOAT		"floating point number"
 %token<integer> INTEGER		"integer number"
@@ -112,7 +115,7 @@
 // Nonterminal (rule) types
 %type <object> clone argument start_line start_line_modern
 %type <object> argument_assign flag variable_assign command
-%type <object> atom power product sum reference
+%type <object> atom power product sum reference boolean
 %type <object> arguments elements commands array scalar_list
 
 // Clean up token values on error
@@ -150,6 +153,10 @@ set_value
 			Py_XDECREF($1);
 			Py_XDECREF($3);
 		}
+	| reference "=" boolean ";"	{
+			py_set_ref(yyscanner, $1, $3);
+			Py_XDECREF($1);
+		}
 
 variable_assign
 	: IDENTIFIER "=" sum		{
@@ -184,18 +191,19 @@ arguments
 	: /* empty */			{ $$ = PyList_New(0); }
 	| arguments "," argument	{
 			PyList_Append($1, $3);
+			Py_DECREF($3);
 			$$ = $1;
-			Py_XDECREF($3);
 		}
 
 argument
 	: argument_assign		{ $$ = $1; }
 	| flag				{ $$ = $1; }
+	| error				{ $$ = Py_None; }
 
 flag
-	: "+" IDENTIFIER		{
-			$$ = py_assign(yyscanner, $2, Py_True);
-			free($2);
+	: IDENTIFIER			{
+			$$ = py_assign(yyscanner, $1, Py_True);
+			free($1);
 		}
 	| "-" IDENTIFIER		{
 			$$ = py_assign(yyscanner, $2, Py_False);
@@ -211,8 +219,12 @@ argument_assign
 			$$ = py_assign(yyscanner, $1, $3);
 			free($1); Py_XDECREF($3);
 		}
+	| IDENTIFIER "=" boolean	{
+			$$ = py_assign(yyscanner, $1, $3);
+			free($1);
+		}
 	| IDENTIFIER "=" STRING_LITERAL	{
-			$$ = py_assign(yyscanner, $1, PyUnicode_FromString($3));
+			$$ = py_assign(yyscanner, $1, py_string(yyscanner, $3));
 			free($1);
 			free($3);
 		}
@@ -362,5 +374,9 @@ atom
 			// Recover from an error in brackets.
 			$$ = py_float(yyscanner, NAN);
 		}
+
+boolean
+	: TRUE				{ $$ = Py_True; }
+	| FALSE				{ $$ = Py_False; }
 
 %%
