@@ -1,4 +1,4 @@
-name: Publish Xdeps to PyPI
+name: Publish Xtrack to PyPI
 
 on:
   push:
@@ -46,12 +46,12 @@ jobs:
           path: dist/*.tar.gz
 
   publish-to-pypi:
-    name: Publish Xdeps to PyPI
+    name: Publish Xtrack to Test-PyPI
     runs-on: ubuntu-latest
     needs: [build-wheels, build-sdist]
     environment:
-      name: pypi
-      url: https://pypi.org/p/xdeps
+      name: test-pypi
+      url: https://test.pypi.org/legacy/
     permissions:
       id-token: write
 
@@ -65,3 +65,5 @@ jobs:
 
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        repository-url: https://test.pypi.org/legacy/
