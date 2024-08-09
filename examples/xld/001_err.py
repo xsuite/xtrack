@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 
 import xtrack as xt
-from xtrack.sequence.writer import XMadWriter
+from xtrack.sequence.writer import XldWriter
 from xtrack.sequence.parser import Parser
 from time import time
 

@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 
 import xtrack as xt
-from xtrack.sequence.writer import XMadWriter
+from xtrack.sequence.writer import XldWriter
 from xtrack.sequence.parser import Parser
 from time import time
 
@@ -16,7 +16,7 @@ def how_long(what):
 with how_long('reading json'):
     line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
 
-writer = XMadWriter(line, 'lhcb1')
+writer = XldWriter(line, 'lhcb1')
 
 with how_long('writing'):
     with open('out.xld', 'w') as f:

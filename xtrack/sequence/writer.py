@@ -31,7 +31,7 @@ def _warn(msg):
     _print(f'Warning: {msg}')
 
 
-class XMadWriter:
+class XldWriter:
     def __init__(
             self,
             lattice: Union[xt.Line, xt.Multiline],

@@ -199,8 +199,8 @@ class Multiline:
 
 
     def to_file(self, filename):
-        from xtrack.sequence.writer import XMadWriter
-        writer = XMadWriter(self)
+        from xtrack.sequence.writer import XldWriter
+        writer = XldWriter(self)
         with open(filename, 'w') as f:
             writer.write(stream=f)
 

@@ -1,5 +1,5 @@
 from cpymad.madx import Madx
-from xtrack.sequence.writer import XMadWriter
+from xtrack.sequence.writer import XldWriter
 from xtrack.sequence.parser import Parser
 import xtrack as xt
 
@@ -17,7 +17,7 @@ line = xt.Line.from_madx_sequence(seq, deferred_expressions=def_expr)
 
 line.to_json('out_pimms.json')
 
-writer = XMadWriter(line, 'pimms')
+writer = XldWriter(line, 'pimms')
 
 print("Writing...")
 

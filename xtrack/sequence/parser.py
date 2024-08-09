@@ -538,9 +538,10 @@ class Parser:
     def set_existing_line(self, line, name):
         if self.lines or not self._single_line_mode:
             raise ValueError(
-                'An existing line can only be added to a fresh parser in single '
-                'line mode. This parser either has `_single_line_mode` set to '
-                'False or `set_existing_line` method has been called before.'
+                'An existing line can only be added to a fresh parser in '
+                'single line mode. This parser was either created with '
+                '`single_line_mode=False or `set_existing_line` method has '
+                'been called before.'
             )
         self.xd_manager = line._xdeps_manager
         self.lines[name] = line

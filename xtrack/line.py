@@ -306,9 +306,9 @@ class Line:
         return line
 
     def to_file(self, filename, sequence_name):
-        from xtrack.sequence.writer import XMadWriter
+        from xtrack.sequence.writer import XldWriter
 
-        writer = XMadWriter(self, sequence_name)
+        writer = XldWriter(self, sequence_name)
         with open(filename, 'w') as f:
             writer.write(stream=f)
 
