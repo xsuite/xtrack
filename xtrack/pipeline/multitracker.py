@@ -36,7 +36,8 @@ class PipelineMultiTracker:
 
         for branch in self.branches:
             branch.pipeline_status = branch.line.track(
-                 branch.particles, **kwargs)
+                 branch.particles, **kwargs,
+                 _called_by_pipeline=True)
 
         need_resume = True
         while need_resume:

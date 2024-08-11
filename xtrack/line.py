@@ -934,6 +934,20 @@ class Line:
             equals to False and no progress bar is displayed.
         """
 
+        if hasattr(particles, '_needs_pipeline') and particles._needs_pipeline:
+            if '_called_by_pipeline' not in kwargs or not kwargs['_called_by_pipeline']:
+                all_kwargs = locals()
+                multitracker = xt.PipelineMultiTracker(
+                    branches=[xt.PipelineBranch(line=self, particles=particles)])
+                all_kwargs.pop('self')
+                all_kwargs.pop('particles')
+                all_kwargs.pop('kwargs')
+                all_kwargs.pop('_called_by_pipeline', None)
+                return multitracker.track(**all_kwargs, **kwargs)
+
+        if '_called_by_pipeline' in kwargs: # Used only above
+            kwargs.pop('_called_by_pipeline')
+
         self._check_valid_tracker()
         return self.tracker._track(
             particles,
