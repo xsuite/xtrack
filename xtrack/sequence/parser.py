@@ -425,7 +425,6 @@ class Parser:
         for attr_name, attr_value in line_template.line_attributes.items():
             if hasattr(getattr(line, attr_name, None), 'update'):
                 getattr(line, attr_name).update(attr_value)
-                print(line.metadata)
             else:
                 setattr(line, attr_name, attr_value)
 

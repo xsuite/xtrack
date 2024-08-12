@@ -9,10 +9,13 @@ import re
 import xobjects as xo
 import xtrack as xt
 from xtrack.sequence.parser import Parser, ParseError
+from xtrack.tracker import TrackerConfig
+
 
 def _normalize_code(code_string, remove_empty_lines=True, ignore_config=True):
     if ignore_config:
-        code_string = re.sub(r'config.*?;\n', '', code_string, flags=re.DOTALL)
+        code_string = re.sub(r'^\s*config,[^;]*;\n', '', code_string, flags=re.MULTILINE)
+        code_string = re.sub(r'^\s*attr,[^;]*;\n', '', code_string, flags=re.MULTILINE)
 
     lines = code_string.split('\n')  # split into lines
     lines = map(str.strip, lines)  # remove meaningless whitespace
@@ -279,11 +282,9 @@ def test_multiline_read_and_dump(tmp_path):
         k0 = h;
         
         silly1: beamline;
-            particle_ref,
+            particle_ref, t_sim = 10.0;
                 # t_sim will always be there (calculated by the line by default)
                 # so we override it so that the assertion is nicer
-                t_sim = 10.0;
-
             b1: Bend, 
                 length = cell_l,
                 k0 = k0,
@@ -304,7 +305,6 @@ def test_multiline_read_and_dump(tmp_path):
                 p0c = 7100000000.0,  # not "7.1e9" to match the output of writer
                 q0 = 2.0,
                 t_sim = 10.0;  # ditto
-
             b1: Bend, 
                 length = cell_l,
                 k0 = k0,
@@ -334,15 +334,14 @@ def test_multiline_read_and_dump(tmp_path):
     cmp_args = lambda lines: set(text[0:-1] for text in lines)
 
     assert cmp_args(generated_lines[0:7]) == cmp_args(original_lines[0:7])
-    assert generated_lines[7:11] == original_lines[7:11]
-    assert cmp_args(generated_lines[11:19]) == cmp_args(original_lines[11:19])
-    assert generated_lines[19:26] == original_lines[19:26]
+    assert generated_lines[7:10] == original_lines[7:10]
+    assert cmp_args(generated_lines[10:17]) == cmp_args(original_lines[10:17])
+    assert generated_lines[17:26] == original_lines[17:26]
 
-    assert generated_lines[26:28] == original_lines[26:28]
-    assert cmp_args(generated_lines[28:31]) == cmp_args(original_lines[28:31])
-    assert generated_lines[31:33] == original_lines[31:33]
-    assert cmp_args(generated_lines[33:40]) == cmp_args(original_lines[33:40])
-    assert generated_lines[40:45] == original_lines[40:45]
+    assert cmp_args(generated_lines[26:29]) == cmp_args(original_lines[26:29])
+    assert generated_lines[29] == original_lines[29]
+    assert cmp_args(generated_lines[30:37]) == cmp_args(original_lines[30:37])
+    assert generated_lines[37:42] == original_lines[37:42]
 
 
 def test_name_shadowing_error():
@@ -467,24 +466,44 @@ def test_modify_element_refs_arrow_syntax():
     assert line['dr'].length == 6
     assert line['mb'].k0 == 4
 
-def test_commands_on_line():
+def test_commands_on_line(tmp_path):
     sequence = """\
     line: beamline;
-        particle_ref, x = 1;
-        twiss_default, reverse, method = "4d";
+        particle_ref, t_sim = 10.0;  # t_sim will always be there (calculated by the line by default)
+        twiss_default,
+            reverse,
+            method = "4d";
         config, MY_CUSTOM_C_FLAG = "whatever";
         attr, update = "_extra_config", json = "{\\"skip_end_turn_actions\\": true}";
-        dr: Drift, length = 2;
+        dr: Drift, length = 2.0;
     endbeamline;
     """
 
     line = xt.Line.from_string(sequence, _context=xo.context_default)
 
-    assert line.particle_ref.x == 1
+    assert line.particle_ref.t_sim == 10
     assert line.twiss_default['reverse']
     assert line.twiss_default['method'] == '4d'
     assert line.config.MY_CUSTOM_C_FLAG == 'whatever'
     assert line._extra_config['skip_end_turn_actions'] == True
+
+    # Simplify to test the writer:
+    line.config = TrackerConfig({'MY_CUSTOM_C_FLAG': 'whatever'})
+    line._extra_config = {
+        'skip_end_turn_actions': True,
+        'twiss_default': {'reverse': True, 'method': '4d'},
+    }
+
+    outfile = tmp_path / 'test_commands_on_line.xld'
+    line.to_file(outfile, sequence_name='line')
+
+    with outfile.open('r') as f:
+        generated_sequence = f.read()
+
+    expected_lines = _normalize_code(sequence, ignore_config=False)
+    generated_lines = _normalize_code(generated_sequence, ignore_config=False)
+
+    assert expected_lines == generated_lines
 
 
 def test_arrow_syntax_errors():

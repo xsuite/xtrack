@@ -1576,7 +1576,7 @@ struct __pyx_obj_6xtrack_8sequence_6parser___pyx_scope_struct___assert_success {
 };
 
 
-/* "xtrack/sequence/parser.py":434
+/* "xtrack/sequence/parser.py":433
  *         self.lines[line_name] = line
  * 
  *     def get_reference(self, parent, field, location):             # <<<<<<<<<<<<<<
@@ -2724,7 +2724,6 @@ static PyObject *__pyx_builtin_enumerate;
 static PyObject *__pyx_builtin_TypeError;
 static PyObject *__pyx_builtin_ValueError;
 static PyObject *__pyx_builtin_OSError;
-static PyObject *__pyx_builtin_print;
 static PyObject *__pyx_builtin_AssertionError;
 static PyObject *__pyx_builtin_KeyError;
 static PyObject *__pyx_builtin_AttributeError;
@@ -2821,7 +2820,7 @@ static const char __pyx_k_nmass[] = "nmass";
 static const char __pyx_k_numpy[] = "numpy";
 static const char __pyx_k_owner[] = "_owner";
 static const char __pyx_k_pmass[] = "pmass";
-static const char __pyx_k_print[] = "print";
+static const char __pyx_k_print[] = "_print";
 static const char __pyx_k_scipy[] = "scipy";
 static const char __pyx_k_scope[] = "scope";
 static const char __pyx_k_split[] = "split";
@@ -2881,7 +2880,6 @@ static const char __pyx_k_message[] = "message";
 static const char __pyx_k_on_line[] = " on line ";
 static const char __pyx_k_pathlib[] = "pathlib";
 static const char __pyx_k_prepare[] = "__prepare__";
-static const char __pyx_k_print_2[] = "_print";
 static const char __pyx_k_success[] = "success";
 static const char __pyx_k_value_2[] = "value";
 static const char __pyx_k_warning[] = "warning";
@@ -2897,7 +2895,6 @@ static const char __pyx_k_getstate[] = "__getstate__";
 static const char __pyx_k_is_error[] = "is_error";
 static const char __pyx_k_list_ref[] = "list_ref";
 static const char __pyx_k_location[] = "location";
-static const char __pyx_k_metadata[] = "metadata";
 static const char __pyx_k_operator[] = "operator";
 static const char __pyx_k_pyx_type[] = "__pyx_type";
 static const char __pyx_k_qualname[] = "__qualname__";
@@ -3575,7 +3572,6 @@ typedef struct {
   PyObject *__pyx_n_s_math;
   PyObject *__pyx_n_s_message;
   PyObject *__pyx_n_s_metaclass;
-  PyObject *__pyx_n_s_metadata;
   PyObject *__pyx_n_s_module;
   PyObject *__pyx_kp_u_more;
   PyObject *__pyx_n_s_mro_entries;
@@ -3635,7 +3631,6 @@ typedef struct {
   PyObject *__pyx_n_u_prad;
   PyObject *__pyx_n_s_prepare;
   PyObject *__pyx_n_s_print;
-  PyObject *__pyx_n_s_print_2;
   PyObject *__pyx_n_s_proton_mass;
   PyObject *__pyx_n_s_pyx_PickleError;
   PyObject *__pyx_n_s_pyx_checksum;
@@ -4147,7 +4142,6 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_n_s_math);
   Py_CLEAR(clear_module_state->__pyx_n_s_message);
   Py_CLEAR(clear_module_state->__pyx_n_s_metaclass);
-  Py_CLEAR(clear_module_state->__pyx_n_s_metadata);
   Py_CLEAR(clear_module_state->__pyx_n_s_module);
   Py_CLEAR(clear_module_state->__pyx_kp_u_more);
   Py_CLEAR(clear_module_state->__pyx_n_s_mro_entries);
@@ -4207,7 +4201,6 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_n_u_prad);
   Py_CLEAR(clear_module_state->__pyx_n_s_prepare);
   Py_CLEAR(clear_module_state->__pyx_n_s_print);
-  Py_CLEAR(clear_module_state->__pyx_n_s_print_2);
   Py_CLEAR(clear_module_state->__pyx_n_s_proton_mass);
   Py_CLEAR(clear_module_state->__pyx_n_s_pyx_PickleError);
   Py_CLEAR(clear_module_state->__pyx_n_s_pyx_checksum);
@@ -4697,7 +4690,6 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_n_s_math);
   Py_VISIT(traverse_module_state->__pyx_n_s_message);
   Py_VISIT(traverse_module_state->__pyx_n_s_metaclass);
-  Py_VISIT(traverse_module_state->__pyx_n_s_metadata);
   Py_VISIT(traverse_module_state->__pyx_n_s_module);
   Py_VISIT(traverse_module_state->__pyx_kp_u_more);
   Py_VISIT(traverse_module_state->__pyx_n_s_mro_entries);
@@ -4757,7 +4749,6 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_n_u_prad);
   Py_VISIT(traverse_module_state->__pyx_n_s_prepare);
   Py_VISIT(traverse_module_state->__pyx_n_s_print);
-  Py_VISIT(traverse_module_state->__pyx_n_s_print_2);
   Py_VISIT(traverse_module_state->__pyx_n_s_proton_mass);
   Py_VISIT(traverse_module_state->__pyx_n_s_pyx_PickleError);
   Py_VISIT(traverse_module_state->__pyx_n_s_pyx_checksum);
@@ -5281,7 +5272,6 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_n_s_math __pyx_mstate_global->__pyx_n_s_math
 #define __pyx_n_s_message __pyx_mstate_global->__pyx_n_s_message
 #define __pyx_n_s_metaclass __pyx_mstate_global->__pyx_n_s_metaclass
-#define __pyx_n_s_metadata __pyx_mstate_global->__pyx_n_s_metadata
 #define __pyx_n_s_module __pyx_mstate_global->__pyx_n_s_module
 #define __pyx_kp_u_more __pyx_mstate_global->__pyx_kp_u_more
 #define __pyx_n_s_mro_entries __pyx_mstate_global->__pyx_n_s_mro_entries
@@ -5341,7 +5331,6 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_n_u_prad __pyx_mstate_global->__pyx_n_u_prad
 #define __pyx_n_s_prepare __pyx_mstate_global->__pyx_n_s_prepare
 #define __pyx_n_s_print __pyx_mstate_global->__pyx_n_s_print
-#define __pyx_n_s_print_2 __pyx_mstate_global->__pyx_n_s_print_2
 #define __pyx_n_s_proton_mass __pyx_mstate_global->__pyx_n_s_proton_mass
 #define __pyx_n_s_pyx_PickleError __pyx_mstate_global->__pyx_n_s_pyx_PickleError
 #define __pyx_n_s_pyx_checksum __pyx_mstate_global->__pyx_n_s_pyx_checksum
@@ -13566,7 +13555,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_8_assert_success(str
     __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_general); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 349, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-    __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_print_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 349, __pyx_L1_error)
+    __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_print); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 349, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     __pyx_t_4 = __Pyx_PyObject_Str(__pyx_v_parse_warning); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 349, __pyx_L1_error)
@@ -15952,7 +15941,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_24commit_line(struct
  *         for attr_name, attr_value in line_template.line_attributes.items():
  *             if hasattr(getattr(line, attr_name, None), 'update'):             # <<<<<<<<<<<<<<
  *                 getattr(line, attr_name).update(attr_value)
- *                 print(line.metadata)
+ *             else:
  */
     __pyx_t_2 = __Pyx_GetAttr3(__pyx_v_line, __pyx_v_attr_name, Py_None); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 426, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
@@ -15964,8 +15953,8 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_24commit_line(struct
  *         for attr_name, attr_value in line_template.line_attributes.items():
  *             if hasattr(getattr(line, attr_name, None), 'update'):
  *                 getattr(line, attr_name).update(attr_value)             # <<<<<<<<<<<<<<
- *                 print(line.metadata)
  *             else:
+ *                 setattr(line, attr_name, attr_value)
  */
       __pyx_t_3 = __Pyx_GetAttr(__pyx_v_line, __pyx_v_attr_name); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 427, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
@@ -15996,45 +15985,31 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_24commit_line(struct
       }
       __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-      /* "xtrack/sequence/parser.py":428
- *             if hasattr(getattr(line, attr_name, None), 'update'):
- *                 getattr(line, attr_name).update(attr_value)
- *                 print(line.metadata)             # <<<<<<<<<<<<<<
- *             else:
- *                 setattr(line, attr_name, attr_value)
- */
-      __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_line, __pyx_n_s_metadata); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 428, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_2);
-      __pyx_t_9 = __Pyx_PyObject_CallOneArg(__pyx_builtin_print, __pyx_t_2); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 428, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_9);
-      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-      __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-
       /* "xtrack/sequence/parser.py":426
  * 
  *         for attr_name, attr_value in line_template.line_attributes.items():
  *             if hasattr(getattr(line, attr_name, None), 'update'):             # <<<<<<<<<<<<<<
  *                 getattr(line, attr_name).update(attr_value)
- *                 print(line.metadata)
+ *             else:
  */
       goto __pyx_L6;
     }
 
-    /* "xtrack/sequence/parser.py":430
- *                 print(line.metadata)
+    /* "xtrack/sequence/parser.py":429
+ *                 getattr(line, attr_name).update(attr_value)
  *             else:
  *                 setattr(line, attr_name, attr_value)             # <<<<<<<<<<<<<<
  * 
  *         self.lines[line_name] = line
  */
     /*else*/ {
-      __pyx_t_10 = PyObject_SetAttr(__pyx_v_line, __pyx_v_attr_name, __pyx_v_attr_value); if (unlikely(__pyx_t_10 == ((int)-1))) __PYX_ERR(0, 430, __pyx_L1_error)
+      __pyx_t_10 = PyObject_SetAttr(__pyx_v_line, __pyx_v_attr_name, __pyx_v_attr_value); if (unlikely(__pyx_t_10 == ((int)-1))) __PYX_ERR(0, 429, __pyx_L1_error)
     }
     __pyx_L6:;
   }
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
 
-  /* "xtrack/sequence/parser.py":432
+  /* "xtrack/sequence/parser.py":431
  *                 setattr(line, attr_name, attr_value)
  * 
  *         self.lines[line_name] = line             # <<<<<<<<<<<<<<
@@ -16043,9 +16018,9 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_24commit_line(struct
  */
   if (unlikely(__pyx_v_self->lines == Py_None)) {
     PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-    __PYX_ERR(0, 432, __pyx_L1_error)
+    __PYX_ERR(0, 431, __pyx_L1_error)
   }
-  if (unlikely((PyDict_SetItem(__pyx_v_self->lines, __pyx_v_line_name, __pyx_v_line) < 0))) __PYX_ERR(0, 432, __pyx_L1_error)
+  if (unlikely((PyDict_SetItem(__pyx_v_self->lines, __pyx_v_line_name, __pyx_v_line) < 0))) __PYX_ERR(0, 431, __pyx_L1_error)
 
   /* "xtrack/sequence/parser.py":402
  *         self._current_line_template = line_template
@@ -16075,7 +16050,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_24commit_line(struct
   return __pyx_r;
 }
 
-/* "xtrack/sequence/parser.py":434
+/* "xtrack/sequence/parser.py":433
  *         self.lines[line_name] = line
  * 
  *     def get_reference(self, parent, field, location):             # <<<<<<<<<<<<<<
@@ -16143,7 +16118,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
           (void)__Pyx_Arg_NewRef_FASTCALL(values[0]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 434, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 433, __pyx_L3_error)
         else goto __pyx_L5_argtuple_error;
         CYTHON_FALLTHROUGH;
         case  1:
@@ -16151,9 +16126,9 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
           (void)__Pyx_Arg_NewRef_FASTCALL(values[1]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 434, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 433, __pyx_L3_error)
         else {
-          __Pyx_RaiseArgtupleInvalid("get_reference", 1, 3, 3, 1); __PYX_ERR(0, 434, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("get_reference", 1, 3, 3, 1); __PYX_ERR(0, 433, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  2:
@@ -16161,14 +16136,14 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
           (void)__Pyx_Arg_NewRef_FASTCALL(values[2]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 434, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 433, __pyx_L3_error)
         else {
-          __Pyx_RaiseArgtupleInvalid("get_reference", 1, 3, 3, 2); __PYX_ERR(0, 434, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("get_reference", 1, 3, 3, 2); __PYX_ERR(0, 433, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
         const Py_ssize_t kwd_pos_args = __pyx_nargs;
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "get_reference") < 0)) __PYX_ERR(0, 434, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "get_reference") < 0)) __PYX_ERR(0, 433, __pyx_L3_error)
       }
     } else if (unlikely(__pyx_nargs != 3)) {
       goto __pyx_L5_argtuple_error;
@@ -16183,7 +16158,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   }
   goto __pyx_L6_skip;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("get_reference", 1, 3, 3, __pyx_nargs); __PYX_ERR(0, 434, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("get_reference", 1, 3, 3, __pyx_nargs); __PYX_ERR(0, 433, __pyx_L3_error)
   __pyx_L6_skip:;
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -16210,7 +16185,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   return __pyx_r;
 }
 
-/* "xtrack/sequence/parser.py":450
+/* "xtrack/sequence/parser.py":449
  *             return InvalidExpression
  * 
  *         def _error(message):             # <<<<<<<<<<<<<<
@@ -16271,12 +16246,12 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
           (void)__Pyx_Arg_NewRef_FASTCALL(values[0]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 450, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 449, __pyx_L3_error)
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
         const Py_ssize_t kwd_pos_args = __pyx_nargs;
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "_error") < 0)) __PYX_ERR(0, 450, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "_error") < 0)) __PYX_ERR(0, 449, __pyx_L3_error)
       }
     } else if (unlikely(__pyx_nargs != 1)) {
       goto __pyx_L5_argtuple_error;
@@ -16287,7 +16262,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   }
   goto __pyx_L6_skip;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("_error", 1, 1, 1, __pyx_nargs); __PYX_ERR(0, 450, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("_error", 1, 1, 1, __pyx_nargs); __PYX_ERR(0, 449, __pyx_L3_error)
   __pyx_L6_skip:;
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -16330,34 +16305,34 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_13get_reference__err
   __pyx_outer_scope = (struct __pyx_obj_6xtrack_8sequence_6parser___pyx_scope_struct_1_get_reference *) __Pyx_CyFunction_GetClosure(__pyx_self);
   __pyx_cur_scope = __pyx_outer_scope;
 
-  /* "xtrack/sequence/parser.py":451
+  /* "xtrack/sequence/parser.py":450
  * 
  *         def _error(message):
  *             self.handle_error(message, add_context=True, location=location)             # <<<<<<<<<<<<<<
  * 
  *         if parent is None:  # In this case assume
  */
-  if (unlikely(!__pyx_cur_scope->__pyx_v_self)) { __Pyx_RaiseClosureNameError("self"); __PYX_ERR(0, 451, __pyx_L1_error) }
-  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_cur_scope->__pyx_v_self), __pyx_n_s_handle_error); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 451, __pyx_L1_error)
+  if (unlikely(!__pyx_cur_scope->__pyx_v_self)) { __Pyx_RaiseClosureNameError("self"); __PYX_ERR(0, 450, __pyx_L1_error) }
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_cur_scope->__pyx_v_self), __pyx_n_s_handle_error); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 450, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = PyTuple_New(1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 451, __pyx_L1_error)
+  __pyx_t_2 = PyTuple_New(1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 450, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_INCREF(__pyx_v_message);
   __Pyx_GIVEREF(__pyx_v_message);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_2, 0, __pyx_v_message)) __PYX_ERR(0, 451, __pyx_L1_error);
-  __pyx_t_3 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 451, __pyx_L1_error)
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_2, 0, __pyx_v_message)) __PYX_ERR(0, 450, __pyx_L1_error);
+  __pyx_t_3 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 450, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_add_context, Py_True) < 0) __PYX_ERR(0, 451, __pyx_L1_error)
-  if (unlikely(!__pyx_cur_scope->__pyx_v_location)) { __Pyx_RaiseClosureNameError("location"); __PYX_ERR(0, 451, __pyx_L1_error) }
-  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_location, __pyx_cur_scope->__pyx_v_location) < 0) __PYX_ERR(0, 451, __pyx_L1_error)
-  __pyx_t_4 = __Pyx_PyObject_Call(__pyx_t_1, __pyx_t_2, __pyx_t_3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 451, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_add_context, Py_True) < 0) __PYX_ERR(0, 450, __pyx_L1_error)
+  if (unlikely(!__pyx_cur_scope->__pyx_v_location)) { __Pyx_RaiseClosureNameError("location"); __PYX_ERR(0, 450, __pyx_L1_error) }
+  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_location, __pyx_cur_scope->__pyx_v_location) < 0) __PYX_ERR(0, 450, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyObject_Call(__pyx_t_1, __pyx_t_2, __pyx_t_3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 450, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
 
-  /* "xtrack/sequence/parser.py":450
+  /* "xtrack/sequence/parser.py":449
  *             return InvalidExpression
  * 
  *         def _error(message):             # <<<<<<<<<<<<<<
@@ -16381,7 +16356,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_13get_reference__err
   return __pyx_r;
 }
 
-/* "xtrack/sequence/parser.py":434
+/* "xtrack/sequence/parser.py":433
  *         self.lines[line_name] = line
  * 
  *     def get_reference(self, parent, field, location):             # <<<<<<<<<<<<<<
@@ -16420,7 +16395,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
   if (unlikely(!__pyx_cur_scope)) {
     __pyx_cur_scope = ((struct __pyx_obj_6xtrack_8sequence_6parser___pyx_scope_struct_1_get_reference *)Py_None);
     __Pyx_INCREF(Py_None);
-    __PYX_ERR(0, 434, __pyx_L1_error)
+    __PYX_ERR(0, 433, __pyx_L1_error)
   } else {
     __Pyx_GOTREF((PyObject *)__pyx_cur_scope);
   }
@@ -16431,20 +16406,20 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
   __Pyx_INCREF(__pyx_cur_scope->__pyx_v_location);
   __Pyx_GIVEREF(__pyx_cur_scope->__pyx_v_location);
 
-  /* "xtrack/sequence/parser.py":447
+  /* "xtrack/sequence/parser.py":446
  *         field: str
  *         """
  *         if parent is InvalidExpression:             # <<<<<<<<<<<<<<
  *             return InvalidExpression
  * 
  */
-  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_InvalidExpression); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 447, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_InvalidExpression); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 446, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_t_2 = (__pyx_v_parent == __pyx_t_1);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   if (__pyx_t_2) {
 
-    /* "xtrack/sequence/parser.py":448
+    /* "xtrack/sequence/parser.py":447
  *         """
  *         if parent is InvalidExpression:
  *             return InvalidExpression             # <<<<<<<<<<<<<<
@@ -16452,13 +16427,13 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
  *         def _error(message):
  */
     __Pyx_XDECREF(__pyx_r);
-    __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_InvalidExpression); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 448, __pyx_L1_error)
+    __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_InvalidExpression); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 447, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
     __pyx_r = __pyx_t_1;
     __pyx_t_1 = 0;
     goto __pyx_L0;
 
-    /* "xtrack/sequence/parser.py":447
+    /* "xtrack/sequence/parser.py":446
  *         field: str
  *         """
  *         if parent is InvalidExpression:             # <<<<<<<<<<<<<<
@@ -16467,19 +16442,19 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
  */
   }
 
-  /* "xtrack/sequence/parser.py":450
+  /* "xtrack/sequence/parser.py":449
  *             return InvalidExpression
  * 
  *         def _error(message):             # <<<<<<<<<<<<<<
  *             self.handle_error(message, add_context=True, location=location)
  * 
  */
-  __pyx_t_1 = __Pyx_CyFunction_New(&__pyx_mdef_6xtrack_8sequence_6parser_6Parser_13get_reference_1_error, 0, __pyx_n_s_get_reference_locals__error, ((PyObject*)__pyx_cur_scope), __pyx_n_s_xtrack_sequence_parser, __pyx_d, ((PyObject *)__pyx_codeobj__19)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 450, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_CyFunction_New(&__pyx_mdef_6xtrack_8sequence_6parser_6Parser_13get_reference_1_error, 0, __pyx_n_s_get_reference_locals__error, ((PyObject*)__pyx_cur_scope), __pyx_n_s_xtrack_sequence_parser, __pyx_d, ((PyObject *)__pyx_codeobj__19)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 449, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_v__error = __pyx_t_1;
   __pyx_t_1 = 0;
 
-  /* "xtrack/sequence/parser.py":453
+  /* "xtrack/sequence/parser.py":452
  *             self.handle_error(message, add_context=True, location=location)
  * 
  *         if parent is None:  # In this case assume             # <<<<<<<<<<<<<<
@@ -16489,7 +16464,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
   __pyx_t_2 = (__pyx_v_parent == Py_None);
   if (__pyx_t_2) {
 
-    /* "xtrack/sequence/parser.py":456
+    /* "xtrack/sequence/parser.py":455
  *             # Currently we do not allow this sort of assignment within the
  *             # line/sequence, so this should not ever happen
  *             assert self._current_line_template is None             # <<<<<<<<<<<<<<
@@ -16501,14 +16476,14 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
       __pyx_t_2 = (__pyx_cur_scope->__pyx_v_self->_current_line_template == Py_None);
       if (unlikely(!__pyx_t_2)) {
         __Pyx_Raise(__pyx_builtin_AssertionError, 0, 0, 0);
-        __PYX_ERR(0, 456, __pyx_L1_error)
+        __PYX_ERR(0, 455, __pyx_L1_error)
       }
     }
     #else
-    if ((1)); else __PYX_ERR(0, 456, __pyx_L1_error)
+    if ((1)); else __PYX_ERR(0, 455, __pyx_L1_error)
     #endif
 
-    /* "xtrack/sequence/parser.py":458
+    /* "xtrack/sequence/parser.py":457
  *             assert self._current_line_template is None
  * 
  *             if field not in self.elements and not self._single_line_mode:             # <<<<<<<<<<<<<<
@@ -16517,28 +16492,28 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
  */
     if (unlikely(__pyx_cur_scope->__pyx_v_self->elements == Py_None)) {
       PyErr_SetString(PyExc_TypeError, "'NoneType' object is not iterable");
-      __PYX_ERR(0, 458, __pyx_L1_error)
+      __PYX_ERR(0, 457, __pyx_L1_error)
     }
-    __pyx_t_3 = (__Pyx_PyDict_ContainsTF(__pyx_v_field, __pyx_cur_scope->__pyx_v_self->elements, Py_NE)); if (unlikely((__pyx_t_3 < 0))) __PYX_ERR(0, 458, __pyx_L1_error)
+    __pyx_t_3 = (__Pyx_PyDict_ContainsTF(__pyx_v_field, __pyx_cur_scope->__pyx_v_self->elements, Py_NE)); if (unlikely((__pyx_t_3 < 0))) __PYX_ERR(0, 457, __pyx_L1_error)
     if (__pyx_t_3) {
     } else {
       __pyx_t_2 = __pyx_t_3;
       goto __pyx_L6_bool_binop_done;
     }
-    __pyx_t_3 = __Pyx_PyObject_IsTrue(__pyx_cur_scope->__pyx_v_self->_single_line_mode); if (unlikely((__pyx_t_3 < 0))) __PYX_ERR(0, 458, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyObject_IsTrue(__pyx_cur_scope->__pyx_v_self->_single_line_mode); if (unlikely((__pyx_t_3 < 0))) __PYX_ERR(0, 457, __pyx_L1_error)
     __pyx_t_4 = (!__pyx_t_3);
     __pyx_t_2 = __pyx_t_4;
     __pyx_L6_bool_binop_done:;
     if (__pyx_t_2) {
 
-      /* "xtrack/sequence/parser.py":459
+      /* "xtrack/sequence/parser.py":458
  * 
  *             if field not in self.elements and not self._single_line_mode:
  *                 _error(f"no such line/sequence: `{field}`")             # <<<<<<<<<<<<<<
  *                 return InvalidExpression
  * 
  */
-      __pyx_t_1 = PyTuple_New(3); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 459, __pyx_L1_error)
+      __pyx_t_1 = PyTuple_New(3); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 458, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
       __pyx_t_5 = 0;
       __pyx_t_6 = 127;
@@ -16546,7 +16521,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
       __pyx_t_5 += 24;
       __Pyx_GIVEREF(__pyx_kp_u_no_such_line_sequence);
       PyTuple_SET_ITEM(__pyx_t_1, 0, __pyx_kp_u_no_such_line_sequence);
-      __pyx_t_7 = __Pyx_PyObject_FormatSimple(__pyx_v_field, __pyx_empty_unicode); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 459, __pyx_L1_error)
+      __pyx_t_7 = __Pyx_PyObject_FormatSimple(__pyx_v_field, __pyx_empty_unicode); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 458, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_7);
       __pyx_t_6 = (__Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_7) > __pyx_t_6) ? __Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_7) : __pyx_t_6;
       __pyx_t_5 += __Pyx_PyUnicode_GET_LENGTH(__pyx_t_7);
@@ -16557,15 +16532,15 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
       __pyx_t_5 += 1;
       __Pyx_GIVEREF(__pyx_kp_u__17);
       PyTuple_SET_ITEM(__pyx_t_1, 2, __pyx_kp_u__17);
-      __pyx_t_7 = __Pyx_PyUnicode_Join(__pyx_t_1, 3, __pyx_t_5, __pyx_t_6); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 459, __pyx_L1_error)
+      __pyx_t_7 = __Pyx_PyUnicode_Join(__pyx_t_1, 3, __pyx_t_5, __pyx_t_6); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 458, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_7);
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-      __pyx_t_1 = __pyx_pf_6xtrack_8sequence_6parser_6Parser_13get_reference__error(__pyx_v__error, __pyx_t_7); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 459, __pyx_L1_error)
+      __pyx_t_1 = __pyx_pf_6xtrack_8sequence_6parser_6Parser_13get_reference__error(__pyx_v__error, __pyx_t_7); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 458, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
       __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-      /* "xtrack/sequence/parser.py":460
+      /* "xtrack/sequence/parser.py":459
  *             if field not in self.elements and not self._single_line_mode:
  *                 _error(f"no such line/sequence: `{field}`")
  *                 return InvalidExpression             # <<<<<<<<<<<<<<
@@ -16573,13 +16548,13 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
  *             return self.element_refs[field]
  */
       __Pyx_XDECREF(__pyx_r);
-      __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_InvalidExpression); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 460, __pyx_L1_error)
+      __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_InvalidExpression); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 459, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
       __pyx_r = __pyx_t_1;
       __pyx_t_1 = 0;
       goto __pyx_L0;
 
-      /* "xtrack/sequence/parser.py":458
+      /* "xtrack/sequence/parser.py":457
  *             assert self._current_line_template is None
  * 
  *             if field not in self.elements and not self._single_line_mode:             # <<<<<<<<<<<<<<
@@ -16588,7 +16563,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
  */
     }
 
-    /* "xtrack/sequence/parser.py":462
+    /* "xtrack/sequence/parser.py":461
  *                 return InvalidExpression
  * 
  *             return self.element_refs[field]             # <<<<<<<<<<<<<<
@@ -16596,13 +16571,13 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
  *         try:
  */
     __Pyx_XDECREF(__pyx_r);
-    __pyx_t_1 = __Pyx_PyObject_GetItem(__pyx_cur_scope->__pyx_v_self->element_refs, __pyx_v_field); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 462, __pyx_L1_error)
+    __pyx_t_1 = __Pyx_PyObject_GetItem(__pyx_cur_scope->__pyx_v_self->element_refs, __pyx_v_field); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 461, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
     __pyx_r = __pyx_t_1;
     __pyx_t_1 = 0;
     goto __pyx_L0;
 
-    /* "xtrack/sequence/parser.py":453
+    /* "xtrack/sequence/parser.py":452
  *             self.handle_error(message, add_context=True, location=location)
  * 
  *         if parent is None:  # In this case assume             # <<<<<<<<<<<<<<
@@ -16611,7 +16586,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
  */
   }
 
-  /* "xtrack/sequence/parser.py":464
+  /* "xtrack/sequence/parser.py":463
  *             return self.element_refs[field]
  * 
  *         try:             # <<<<<<<<<<<<<<
@@ -16627,19 +16602,19 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
     __Pyx_XGOTREF(__pyx_t_10);
     /*try:*/ {
 
-      /* "xtrack/sequence/parser.py":465
+      /* "xtrack/sequence/parser.py":464
  * 
  *         try:
  *             parent_value = parent._value             # <<<<<<<<<<<<<<
  *         except (KeyError, AttributeError):
  *             formatter = XldFormatter(scope=self.element_refs['line'])
  */
-      __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_parent, __pyx_n_s_value); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 465, __pyx_L8_error)
+      __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_parent, __pyx_n_s_value); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 464, __pyx_L8_error)
       __Pyx_GOTREF(__pyx_t_1);
       __pyx_v_parent_value = __pyx_t_1;
       __pyx_t_1 = 0;
 
-      /* "xtrack/sequence/parser.py":464
+      /* "xtrack/sequence/parser.py":463
  *             return self.element_refs[field]
  * 
  *         try:             # <<<<<<<<<<<<<<
@@ -16655,7 +16630,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
     __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
     __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
 
-    /* "xtrack/sequence/parser.py":466
+    /* "xtrack/sequence/parser.py":465
  *         try:
  *             parent_value = parent._value
  *         except (KeyError, AttributeError):             # <<<<<<<<<<<<<<
@@ -16665,41 +16640,41 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
     __pyx_t_11 = __Pyx_PyErr_ExceptionMatches2(__pyx_builtin_KeyError, __pyx_builtin_AttributeError);
     if (__pyx_t_11) {
       __Pyx_AddTraceback("xtrack.sequence.parser.Parser.get_reference", __pyx_clineno, __pyx_lineno, __pyx_filename);
-      if (__Pyx_GetException(&__pyx_t_1, &__pyx_t_7, &__pyx_t_12) < 0) __PYX_ERR(0, 466, __pyx_L10_except_error)
+      if (__Pyx_GetException(&__pyx_t_1, &__pyx_t_7, &__pyx_t_12) < 0) __PYX_ERR(0, 465, __pyx_L10_except_error)
       __Pyx_XGOTREF(__pyx_t_1);
       __Pyx_XGOTREF(__pyx_t_7);
       __Pyx_XGOTREF(__pyx_t_12);
 
-      /* "xtrack/sequence/parser.py":467
+      /* "xtrack/sequence/parser.py":466
  *             parent_value = parent._value
  *         except (KeyError, AttributeError):
  *             formatter = XldFormatter(scope=self.element_refs['line'])             # <<<<<<<<<<<<<<
  *             _error(f"cannot access `{field}` as "
  *                    f"`{parent._formatted(formatter)}` does not exist")
  */
-      __Pyx_GetModuleGlobalName(__pyx_t_13, __pyx_n_s_XldFormatter); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 467, __pyx_L10_except_error)
+      __Pyx_GetModuleGlobalName(__pyx_t_13, __pyx_n_s_XldFormatter); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 466, __pyx_L10_except_error)
       __Pyx_GOTREF(__pyx_t_13);
-      __pyx_t_14 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_14)) __PYX_ERR(0, 467, __pyx_L10_except_error)
+      __pyx_t_14 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_14)) __PYX_ERR(0, 466, __pyx_L10_except_error)
       __Pyx_GOTREF(__pyx_t_14);
-      __pyx_t_15 = __Pyx_PyObject_Dict_GetItem(__pyx_cur_scope->__pyx_v_self->element_refs, __pyx_n_u_line); if (unlikely(!__pyx_t_15)) __PYX_ERR(0, 467, __pyx_L10_except_error)
+      __pyx_t_15 = __Pyx_PyObject_Dict_GetItem(__pyx_cur_scope->__pyx_v_self->element_refs, __pyx_n_u_line); if (unlikely(!__pyx_t_15)) __PYX_ERR(0, 466, __pyx_L10_except_error)
       __Pyx_GOTREF(__pyx_t_15);
-      if (PyDict_SetItem(__pyx_t_14, __pyx_n_s_scope, __pyx_t_15) < 0) __PYX_ERR(0, 467, __pyx_L10_except_error)
+      if (PyDict_SetItem(__pyx_t_14, __pyx_n_s_scope, __pyx_t_15) < 0) __PYX_ERR(0, 466, __pyx_L10_except_error)
       __Pyx_DECREF(__pyx_t_15); __pyx_t_15 = 0;
-      __pyx_t_15 = __Pyx_PyObject_Call(__pyx_t_13, __pyx_empty_tuple, __pyx_t_14); if (unlikely(!__pyx_t_15)) __PYX_ERR(0, 467, __pyx_L10_except_error)
+      __pyx_t_15 = __Pyx_PyObject_Call(__pyx_t_13, __pyx_empty_tuple, __pyx_t_14); if (unlikely(!__pyx_t_15)) __PYX_ERR(0, 466, __pyx_L10_except_error)
       __Pyx_GOTREF(__pyx_t_15);
       __Pyx_DECREF(__pyx_t_13); __pyx_t_13 = 0;
       __Pyx_DECREF(__pyx_t_14); __pyx_t_14 = 0;
       __pyx_v_formatter = __pyx_t_15;
       __pyx_t_15 = 0;
 
-      /* "xtrack/sequence/parser.py":468
+      /* "xtrack/sequence/parser.py":467
  *         except (KeyError, AttributeError):
  *             formatter = XldFormatter(scope=self.element_refs['line'])
  *             _error(f"cannot access `{field}` as "             # <<<<<<<<<<<<<<
  *                    f"`{parent._formatted(formatter)}` does not exist")
  *             return InvalidExpression
  */
-      __pyx_t_15 = PyTuple_New(5); if (unlikely(!__pyx_t_15)) __PYX_ERR(0, 468, __pyx_L10_except_error)
+      __pyx_t_15 = PyTuple_New(5); if (unlikely(!__pyx_t_15)) __PYX_ERR(0, 467, __pyx_L10_except_error)
       __Pyx_GOTREF(__pyx_t_15);
       __pyx_t_5 = 0;
       __pyx_t_6 = 127;
@@ -16707,7 +16682,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
       __pyx_t_5 += 15;
       __Pyx_GIVEREF(__pyx_kp_u_cannot_access);
       PyTuple_SET_ITEM(__pyx_t_15, 0, __pyx_kp_u_cannot_access);
-      __pyx_t_14 = __Pyx_PyObject_FormatSimple(__pyx_v_field, __pyx_empty_unicode); if (unlikely(!__pyx_t_14)) __PYX_ERR(0, 468, __pyx_L10_except_error)
+      __pyx_t_14 = __Pyx_PyObject_FormatSimple(__pyx_v_field, __pyx_empty_unicode); if (unlikely(!__pyx_t_14)) __PYX_ERR(0, 467, __pyx_L10_except_error)
       __Pyx_GOTREF(__pyx_t_14);
       __pyx_t_6 = (__Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_14) > __pyx_t_6) ? __Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_14) : __pyx_t_6;
       __pyx_t_5 += __Pyx_PyUnicode_GET_LENGTH(__pyx_t_14);
@@ -16719,14 +16694,14 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
       __Pyx_GIVEREF(__pyx_kp_u_as);
       PyTuple_SET_ITEM(__pyx_t_15, 2, __pyx_kp_u_as);
 
-      /* "xtrack/sequence/parser.py":469
+      /* "xtrack/sequence/parser.py":468
  *             formatter = XldFormatter(scope=self.element_refs['line'])
  *             _error(f"cannot access `{field}` as "
  *                    f"`{parent._formatted(formatter)}` does not exist")             # <<<<<<<<<<<<<<
  *             return InvalidExpression
  * 
  */
-      __pyx_t_13 = __Pyx_PyObject_GetAttrStr(__pyx_v_parent, __pyx_n_s_formatted); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 469, __pyx_L10_except_error)
+      __pyx_t_13 = __Pyx_PyObject_GetAttrStr(__pyx_v_parent, __pyx_n_s_formatted); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 468, __pyx_L10_except_error)
       __Pyx_GOTREF(__pyx_t_13);
       __pyx_t_16 = NULL;
       __pyx_t_11 = 0;
@@ -16746,11 +16721,11 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
         PyObject *__pyx_callargs[2] = {__pyx_t_16, __pyx_v_formatter};
         __pyx_t_14 = __Pyx_PyObject_FastCall(__pyx_t_13, __pyx_callargs+1-__pyx_t_11, 1+__pyx_t_11);
         __Pyx_XDECREF(__pyx_t_16); __pyx_t_16 = 0;
-        if (unlikely(!__pyx_t_14)) __PYX_ERR(0, 469, __pyx_L10_except_error)
+        if (unlikely(!__pyx_t_14)) __PYX_ERR(0, 468, __pyx_L10_except_error)
         __Pyx_GOTREF(__pyx_t_14);
         __Pyx_DECREF(__pyx_t_13); __pyx_t_13 = 0;
       }
-      __pyx_t_13 = __Pyx_PyObject_FormatSimple(__pyx_t_14, __pyx_empty_unicode); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 469, __pyx_L10_except_error)
+      __pyx_t_13 = __Pyx_PyObject_FormatSimple(__pyx_t_14, __pyx_empty_unicode); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 468, __pyx_L10_except_error)
       __Pyx_GOTREF(__pyx_t_13);
       __Pyx_DECREF(__pyx_t_14); __pyx_t_14 = 0;
       __pyx_t_6 = (__Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_13) > __pyx_t_6) ? __Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_13) : __pyx_t_6;
@@ -16763,22 +16738,22 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
       __Pyx_GIVEREF(__pyx_kp_u_does_not_exist);
       PyTuple_SET_ITEM(__pyx_t_15, 4, __pyx_kp_u_does_not_exist);
 
-      /* "xtrack/sequence/parser.py":468
+      /* "xtrack/sequence/parser.py":467
  *         except (KeyError, AttributeError):
  *             formatter = XldFormatter(scope=self.element_refs['line'])
  *             _error(f"cannot access `{field}` as "             # <<<<<<<<<<<<<<
  *                    f"`{parent._formatted(formatter)}` does not exist")
  *             return InvalidExpression
  */
-      __pyx_t_13 = __Pyx_PyUnicode_Join(__pyx_t_15, 5, __pyx_t_5, __pyx_t_6); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 468, __pyx_L10_except_error)
+      __pyx_t_13 = __Pyx_PyUnicode_Join(__pyx_t_15, 5, __pyx_t_5, __pyx_t_6); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 467, __pyx_L10_except_error)
       __Pyx_GOTREF(__pyx_t_13);
       __Pyx_DECREF(__pyx_t_15); __pyx_t_15 = 0;
-      __pyx_t_15 = __pyx_pf_6xtrack_8sequence_6parser_6Parser_13get_reference__error(__pyx_v__error, __pyx_t_13); if (unlikely(!__pyx_t_15)) __PYX_ERR(0, 468, __pyx_L10_except_error)
+      __pyx_t_15 = __pyx_pf_6xtrack_8sequence_6parser_6Parser_13get_reference__error(__pyx_v__error, __pyx_t_13); if (unlikely(!__pyx_t_15)) __PYX_ERR(0, 467, __pyx_L10_except_error)
       __Pyx_GOTREF(__pyx_t_15);
       __Pyx_DECREF(__pyx_t_13); __pyx_t_13 = 0;
       __Pyx_DECREF(__pyx_t_15); __pyx_t_15 = 0;
 
-      /* "xtrack/sequence/parser.py":470
+      /* "xtrack/sequence/parser.py":469
  *             _error(f"cannot access `{field}` as "
  *                    f"`{parent._formatted(formatter)}` does not exist")
  *             return InvalidExpression             # <<<<<<<<<<<<<<
@@ -16786,7 +16761,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
  *         if isinstance(parent_value, dict):
  */
       __Pyx_XDECREF(__pyx_r);
-      __Pyx_GetModuleGlobalName(__pyx_t_15, __pyx_n_s_InvalidExpression); if (unlikely(!__pyx_t_15)) __PYX_ERR(0, 470, __pyx_L10_except_error)
+      __Pyx_GetModuleGlobalName(__pyx_t_15, __pyx_n_s_InvalidExpression); if (unlikely(!__pyx_t_15)) __PYX_ERR(0, 469, __pyx_L10_except_error)
       __Pyx_GOTREF(__pyx_t_15);
       __pyx_r = __pyx_t_15;
       __pyx_t_15 = 0;
@@ -16797,7 +16772,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
     }
     goto __pyx_L10_except_error;
 
-    /* "xtrack/sequence/parser.py":464
+    /* "xtrack/sequence/parser.py":463
  *             return self.element_refs[field]
  * 
  *         try:             # <<<<<<<<<<<<<<
@@ -16819,7 +16794,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
     __pyx_L13_try_end:;
   }
 
-  /* "xtrack/sequence/parser.py":472
+  /* "xtrack/sequence/parser.py":471
  *             return InvalidExpression
  * 
  *         if isinstance(parent_value, dict):             # <<<<<<<<<<<<<<
@@ -16829,7 +16804,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
   __pyx_t_2 = PyDict_Check(__pyx_v_parent_value); 
   if (__pyx_t_2) {
 
-    /* "xtrack/sequence/parser.py":473
+    /* "xtrack/sequence/parser.py":472
  * 
  *         if isinstance(parent_value, dict):
  *             return parent[field]             # <<<<<<<<<<<<<<
@@ -16837,13 +16812,13 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
  *         if isinstance(parent_value, list):
  */
     __Pyx_XDECREF(__pyx_r);
-    __pyx_t_12 = __Pyx_PyObject_GetItem(__pyx_v_parent, __pyx_v_field); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 473, __pyx_L1_error)
+    __pyx_t_12 = __Pyx_PyObject_GetItem(__pyx_v_parent, __pyx_v_field); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 472, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_12);
     __pyx_r = __pyx_t_12;
     __pyx_t_12 = 0;
     goto __pyx_L0;
 
-    /* "xtrack/sequence/parser.py":472
+    /* "xtrack/sequence/parser.py":471
  *             return InvalidExpression
  * 
  *         if isinstance(parent_value, dict):             # <<<<<<<<<<<<<<
@@ -16852,7 +16827,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
  */
   }
 
-  /* "xtrack/sequence/parser.py":475
+  /* "xtrack/sequence/parser.py":474
  *             return parent[field]
  * 
  *         if isinstance(parent_value, list):             # <<<<<<<<<<<<<<
@@ -16862,7 +16837,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
   __pyx_t_2 = PyList_Check(__pyx_v_parent_value); 
   if (__pyx_t_2) {
 
-    /* "xtrack/sequence/parser.py":476
+    /* "xtrack/sequence/parser.py":475
  * 
  *         if isinstance(parent_value, list):
  *             try:             # <<<<<<<<<<<<<<
@@ -16878,7 +16853,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
       __Pyx_XGOTREF(__pyx_t_8);
       /*try:*/ {
 
-        /* "xtrack/sequence/parser.py":477
+        /* "xtrack/sequence/parser.py":476
  *         if isinstance(parent_value, list):
  *             try:
  *                 return parent[int(field)]             # <<<<<<<<<<<<<<
@@ -16886,16 +16861,16 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
  *                 formatter = XldFormatter(scope=None)
  */
         __Pyx_XDECREF(__pyx_r);
-        __pyx_t_12 = __Pyx_PyNumber_Int(__pyx_v_field); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 477, __pyx_L18_error)
+        __pyx_t_12 = __Pyx_PyNumber_Int(__pyx_v_field); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 476, __pyx_L18_error)
         __Pyx_GOTREF(__pyx_t_12);
-        __pyx_t_7 = __Pyx_PyObject_GetItem(__pyx_v_parent, __pyx_t_12); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 477, __pyx_L18_error)
+        __pyx_t_7 = __Pyx_PyObject_GetItem(__pyx_v_parent, __pyx_t_12); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 476, __pyx_L18_error)
         __Pyx_GOTREF(__pyx_t_7);
         __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
         __pyx_r = __pyx_t_7;
         __pyx_t_7 = 0;
         goto __pyx_L22_try_return;
 
-        /* "xtrack/sequence/parser.py":476
+        /* "xtrack/sequence/parser.py":475
  * 
  *         if isinstance(parent_value, list):
  *             try:             # <<<<<<<<<<<<<<
@@ -16912,7 +16887,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
       __Pyx_XDECREF(__pyx_t_16); __pyx_t_16 = 0;
       __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
 
-      /* "xtrack/sequence/parser.py":478
+      /* "xtrack/sequence/parser.py":477
  *             try:
  *                 return parent[int(field)]
  *             except ValueError:             # <<<<<<<<<<<<<<
@@ -16922,38 +16897,38 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
       __pyx_t_11 = __Pyx_PyErr_ExceptionMatches(__pyx_builtin_ValueError);
       if (__pyx_t_11) {
         __Pyx_AddTraceback("xtrack.sequence.parser.Parser.get_reference", __pyx_clineno, __pyx_lineno, __pyx_filename);
-        if (__Pyx_GetException(&__pyx_t_7, &__pyx_t_12, &__pyx_t_1) < 0) __PYX_ERR(0, 478, __pyx_L20_except_error)
+        if (__Pyx_GetException(&__pyx_t_7, &__pyx_t_12, &__pyx_t_1) < 0) __PYX_ERR(0, 477, __pyx_L20_except_error)
         __Pyx_XGOTREF(__pyx_t_7);
         __Pyx_XGOTREF(__pyx_t_12);
         __Pyx_XGOTREF(__pyx_t_1);
 
-        /* "xtrack/sequence/parser.py":479
+        /* "xtrack/sequence/parser.py":478
  *                 return parent[int(field)]
  *             except ValueError:
  *                 formatter = XldFormatter(scope=None)             # <<<<<<<<<<<<<<
  *                 _error(f"`{parent._formatted(formatter)}` is a list, an "
  *                        f"integer was expected instead of `{field}`")
  */
-        __Pyx_GetModuleGlobalName(__pyx_t_15, __pyx_n_s_XldFormatter); if (unlikely(!__pyx_t_15)) __PYX_ERR(0, 479, __pyx_L20_except_error)
+        __Pyx_GetModuleGlobalName(__pyx_t_15, __pyx_n_s_XldFormatter); if (unlikely(!__pyx_t_15)) __PYX_ERR(0, 478, __pyx_L20_except_error)
         __Pyx_GOTREF(__pyx_t_15);
-        __pyx_t_13 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 479, __pyx_L20_except_error)
+        __pyx_t_13 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 478, __pyx_L20_except_error)
         __Pyx_GOTREF(__pyx_t_13);
-        if (PyDict_SetItem(__pyx_t_13, __pyx_n_s_scope, Py_None) < 0) __PYX_ERR(0, 479, __pyx_L20_except_error)
-        __pyx_t_14 = __Pyx_PyObject_Call(__pyx_t_15, __pyx_empty_tuple, __pyx_t_13); if (unlikely(!__pyx_t_14)) __PYX_ERR(0, 479, __pyx_L20_except_error)
+        if (PyDict_SetItem(__pyx_t_13, __pyx_n_s_scope, Py_None) < 0) __PYX_ERR(0, 478, __pyx_L20_except_error)
+        __pyx_t_14 = __Pyx_PyObject_Call(__pyx_t_15, __pyx_empty_tuple, __pyx_t_13); if (unlikely(!__pyx_t_14)) __PYX_ERR(0, 478, __pyx_L20_except_error)
         __Pyx_GOTREF(__pyx_t_14);
         __Pyx_DECREF(__pyx_t_15); __pyx_t_15 = 0;
         __Pyx_DECREF(__pyx_t_13); __pyx_t_13 = 0;
         __pyx_v_formatter = __pyx_t_14;
         __pyx_t_14 = 0;
 
-        /* "xtrack/sequence/parser.py":480
+        /* "xtrack/sequence/parser.py":479
  *             except ValueError:
  *                 formatter = XldFormatter(scope=None)
  *                 _error(f"`{parent._formatted(formatter)}` is a list, an "             # <<<<<<<<<<<<<<
  *                        f"integer was expected instead of `{field}`")
  * 
  */
-        __pyx_t_14 = PyTuple_New(5); if (unlikely(!__pyx_t_14)) __PYX_ERR(0, 480, __pyx_L20_except_error)
+        __pyx_t_14 = PyTuple_New(5); if (unlikely(!__pyx_t_14)) __PYX_ERR(0, 479, __pyx_L20_except_error)
         __Pyx_GOTREF(__pyx_t_14);
         __pyx_t_5 = 0;
         __pyx_t_6 = 127;
@@ -16961,7 +16936,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
         __pyx_t_5 += 1;
         __Pyx_GIVEREF(__pyx_kp_u__17);
         PyTuple_SET_ITEM(__pyx_t_14, 0, __pyx_kp_u__17);
-        __pyx_t_15 = __Pyx_PyObject_GetAttrStr(__pyx_v_parent, __pyx_n_s_formatted); if (unlikely(!__pyx_t_15)) __PYX_ERR(0, 480, __pyx_L20_except_error)
+        __pyx_t_15 = __Pyx_PyObject_GetAttrStr(__pyx_v_parent, __pyx_n_s_formatted); if (unlikely(!__pyx_t_15)) __PYX_ERR(0, 479, __pyx_L20_except_error)
         __Pyx_GOTREF(__pyx_t_15);
         __pyx_t_16 = NULL;
         __pyx_t_11 = 0;
@@ -16981,11 +16956,11 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
           PyObject *__pyx_callargs[2] = {__pyx_t_16, __pyx_v_formatter};
           __pyx_t_13 = __Pyx_PyObject_FastCall(__pyx_t_15, __pyx_callargs+1-__pyx_t_11, 1+__pyx_t_11);
           __Pyx_XDECREF(__pyx_t_16); __pyx_t_16 = 0;
-          if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 480, __pyx_L20_except_error)
+          if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 479, __pyx_L20_except_error)
           __Pyx_GOTREF(__pyx_t_13);
           __Pyx_DECREF(__pyx_t_15); __pyx_t_15 = 0;
         }
-        __pyx_t_15 = __Pyx_PyObject_FormatSimple(__pyx_t_13, __pyx_empty_unicode); if (unlikely(!__pyx_t_15)) __PYX_ERR(0, 480, __pyx_L20_except_error)
+        __pyx_t_15 = __Pyx_PyObject_FormatSimple(__pyx_t_13, __pyx_empty_unicode); if (unlikely(!__pyx_t_15)) __PYX_ERR(0, 479, __pyx_L20_except_error)
         __Pyx_GOTREF(__pyx_t_15);
         __Pyx_DECREF(__pyx_t_13); __pyx_t_13 = 0;
         __pyx_t_6 = (__Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_15) > __pyx_t_6) ? __Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_15) : __pyx_t_6;
@@ -16998,14 +16973,14 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
         __Pyx_GIVEREF(__pyx_kp_u_is_a_list_an_integer_was_expect);
         PyTuple_SET_ITEM(__pyx_t_14, 2, __pyx_kp_u_is_a_list_an_integer_was_expect);
 
-        /* "xtrack/sequence/parser.py":481
+        /* "xtrack/sequence/parser.py":480
  *                 formatter = XldFormatter(scope=None)
  *                 _error(f"`{parent._formatted(formatter)}` is a list, an "
  *                        f"integer was expected instead of `{field}`")             # <<<<<<<<<<<<<<
  * 
  *         return getattr(parent, field)
  */
-        __pyx_t_15 = __Pyx_PyObject_FormatSimple(__pyx_v_field, __pyx_empty_unicode); if (unlikely(!__pyx_t_15)) __PYX_ERR(0, 481, __pyx_L20_except_error)
+        __pyx_t_15 = __Pyx_PyObject_FormatSimple(__pyx_v_field, __pyx_empty_unicode); if (unlikely(!__pyx_t_15)) __PYX_ERR(0, 480, __pyx_L20_except_error)
         __Pyx_GOTREF(__pyx_t_15);
         __pyx_t_6 = (__Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_15) > __pyx_t_6) ? __Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_15) : __pyx_t_6;
         __pyx_t_5 += __Pyx_PyUnicode_GET_LENGTH(__pyx_t_15);
@@ -17017,17 +16992,17 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
         __Pyx_GIVEREF(__pyx_kp_u__17);
         PyTuple_SET_ITEM(__pyx_t_14, 4, __pyx_kp_u__17);
 
-        /* "xtrack/sequence/parser.py":480
+        /* "xtrack/sequence/parser.py":479
  *             except ValueError:
  *                 formatter = XldFormatter(scope=None)
  *                 _error(f"`{parent._formatted(formatter)}` is a list, an "             # <<<<<<<<<<<<<<
  *                        f"integer was expected instead of `{field}`")
  * 
  */
-        __pyx_t_15 = __Pyx_PyUnicode_Join(__pyx_t_14, 5, __pyx_t_5, __pyx_t_6); if (unlikely(!__pyx_t_15)) __PYX_ERR(0, 480, __pyx_L20_except_error)
+        __pyx_t_15 = __Pyx_PyUnicode_Join(__pyx_t_14, 5, __pyx_t_5, __pyx_t_6); if (unlikely(!__pyx_t_15)) __PYX_ERR(0, 479, __pyx_L20_except_error)
         __Pyx_GOTREF(__pyx_t_15);
         __Pyx_DECREF(__pyx_t_14); __pyx_t_14 = 0;
-        __pyx_t_14 = __pyx_pf_6xtrack_8sequence_6parser_6Parser_13get_reference__error(__pyx_v__error, __pyx_t_15); if (unlikely(!__pyx_t_14)) __PYX_ERR(0, 480, __pyx_L20_except_error)
+        __pyx_t_14 = __pyx_pf_6xtrack_8sequence_6parser_6Parser_13get_reference__error(__pyx_v__error, __pyx_t_15); if (unlikely(!__pyx_t_14)) __PYX_ERR(0, 479, __pyx_L20_except_error)
         __Pyx_GOTREF(__pyx_t_14);
         __Pyx_DECREF(__pyx_t_15); __pyx_t_15 = 0;
         __Pyx_DECREF(__pyx_t_14); __pyx_t_14 = 0;
@@ -17038,7 +17013,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
       }
       goto __pyx_L20_except_error;
 
-      /* "xtrack/sequence/parser.py":476
+      /* "xtrack/sequence/parser.py":475
  * 
  *         if isinstance(parent_value, list):
  *             try:             # <<<<<<<<<<<<<<
@@ -17064,7 +17039,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
       __Pyx_ExceptionReset(__pyx_t_10, __pyx_t_9, __pyx_t_8);
     }
 
-    /* "xtrack/sequence/parser.py":475
+    /* "xtrack/sequence/parser.py":474
  *             return parent[field]
  * 
  *         if isinstance(parent_value, list):             # <<<<<<<<<<<<<<
@@ -17073,7 +17048,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
  */
   }
 
-  /* "xtrack/sequence/parser.py":483
+  /* "xtrack/sequence/parser.py":482
  *                        f"integer was expected instead of `{field}`")
  * 
  *         return getattr(parent, field)             # <<<<<<<<<<<<<<
@@ -17081,13 +17056,13 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
  * 
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_GetAttr(__pyx_v_parent, __pyx_v_field); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 483, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_GetAttr(__pyx_v_parent, __pyx_v_field); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 482, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "xtrack/sequence/parser.py":434
+  /* "xtrack/sequence/parser.py":433
  *         self.lines[line_name] = line
  * 
  *     def get_reference(self, parent, field, location):             # <<<<<<<<<<<<<<
@@ -17116,7 +17091,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_26get_reference(stru
   return __pyx_r;
 }
 
-/* "xtrack/sequence/parser.py":486
+/* "xtrack/sequence/parser.py":485
  * 
  * 
  *     def get_line(self, name, copy_manager=True):             # <<<<<<<<<<<<<<
@@ -17182,19 +17157,19 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
           (void)__Pyx_Arg_NewRef_FASTCALL(values[0]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 486, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 485, __pyx_L3_error)
         else goto __pyx_L5_argtuple_error;
         CYTHON_FALLTHROUGH;
         case  1:
         if (kw_args > 0) {
           PyObject* value = __Pyx_GetKwValue_FASTCALL(__pyx_kwds, __pyx_kwvalues, __pyx_n_s_copy_manager);
           if (value) { values[1] = __Pyx_Arg_NewRef_FASTCALL(value); kw_args--; }
-          else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 486, __pyx_L3_error)
+          else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 485, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
         const Py_ssize_t kwd_pos_args = __pyx_nargs;
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "get_line") < 0)) __PYX_ERR(0, 486, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "get_line") < 0)) __PYX_ERR(0, 485, __pyx_L3_error)
       }
     } else {
       switch (__pyx_nargs) {
@@ -17210,7 +17185,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   }
   goto __pyx_L6_skip;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("get_line", 0, 1, 2, __pyx_nargs); __PYX_ERR(0, 486, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("get_line", 0, 1, 2, __pyx_nargs); __PYX_ERR(0, 485, __pyx_L3_error)
   __pyx_L6_skip:;
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -17262,31 +17237,31 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_28get_line(struct __
   __Pyx_RefNannySetupContext("get_line", 0);
   __Pyx_INCREF(__pyx_v_name);
 
-  /* "xtrack/sequence/parser.py":501
+  /* "xtrack/sequence/parser.py":500
  *         consider obtaining an xt.Multiline object instead with `get_multiline`.
  *         """
  *         if not self.lines:             # <<<<<<<<<<<<<<
  *             raise ValueError('No sequence was parsed. Either the input has no '
  *                              'sequences, or the parser has not been run yet.')
  */
-  __pyx_t_1 = __Pyx_PyObject_IsTrue(__pyx_v_self->lines); if (unlikely((__pyx_t_1 < 0))) __PYX_ERR(0, 501, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_IsTrue(__pyx_v_self->lines); if (unlikely((__pyx_t_1 < 0))) __PYX_ERR(0, 500, __pyx_L1_error)
   __pyx_t_2 = (!__pyx_t_1);
   if (unlikely(__pyx_t_2)) {
 
-    /* "xtrack/sequence/parser.py":502
+    /* "xtrack/sequence/parser.py":501
  *         """
  *         if not self.lines:
  *             raise ValueError('No sequence was parsed. Either the input has no '             # <<<<<<<<<<<<<<
  *                              'sequences, or the parser has not been run yet.')
  * 
  */
-    __pyx_t_3 = __Pyx_PyObject_Call(__pyx_builtin_ValueError, __pyx_tuple__20, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 502, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyObject_Call(__pyx_builtin_ValueError, __pyx_tuple__20, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 501, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_Raise(__pyx_t_3, 0, 0, 0);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __PYX_ERR(0, 502, __pyx_L1_error)
+    __PYX_ERR(0, 501, __pyx_L1_error)
 
-    /* "xtrack/sequence/parser.py":501
+    /* "xtrack/sequence/parser.py":500
  *         consider obtaining an xt.Multiline object instead with `get_multiline`.
  *         """
  *         if not self.lines:             # <<<<<<<<<<<<<<
@@ -17295,7 +17270,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_28get_line(struct __
  */
   }
 
-  /* "xtrack/sequence/parser.py":505
+  /* "xtrack/sequence/parser.py":504
  *                              'sequences, or the parser has not been run yet.')
  * 
  *         if name is None:             # <<<<<<<<<<<<<<
@@ -17305,7 +17280,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_28get_line(struct __
   __pyx_t_2 = (__pyx_v_name == Py_None);
   if (__pyx_t_2) {
 
-    /* "xtrack/sequence/parser.py":506
+    /* "xtrack/sequence/parser.py":505
  * 
  *         if name is None:
  *             try:             # <<<<<<<<<<<<<<
@@ -17321,7 +17296,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_28get_line(struct __
       __Pyx_XGOTREF(__pyx_t_6);
       /*try:*/ {
 
-        /* "xtrack/sequence/parser.py":507
+        /* "xtrack/sequence/parser.py":506
  *         if name is None:
  *             try:
  *                 name, = self.lines.keys()             # <<<<<<<<<<<<<<
@@ -17330,9 +17305,9 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_28get_line(struct __
  */
         if (unlikely(__pyx_v_self->lines == Py_None)) {
           PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%.30s'", "keys");
-          __PYX_ERR(0, 507, __pyx_L5_error)
+          __PYX_ERR(0, 506, __pyx_L5_error)
         }
-        __pyx_t_3 = __Pyx_PyDict_Keys(__pyx_v_self->lines); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 507, __pyx_L5_error)
+        __pyx_t_3 = __Pyx_PyDict_Keys(__pyx_v_self->lines); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 506, __pyx_L5_error)
         __Pyx_GOTREF(__pyx_t_3);
         if ((likely(PyTuple_CheckExact(__pyx_t_3))) || (PyList_CheckExact(__pyx_t_3))) {
           PyObject* sequence = __pyx_t_3;
@@ -17340,7 +17315,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_28get_line(struct __
           if (unlikely(size != 1)) {
             if (size > 1) __Pyx_RaiseTooManyValuesError(1);
             else if (size >= 0) __Pyx_RaiseNeedMoreValuesError(size);
-            __PYX_ERR(0, 507, __pyx_L5_error)
+            __PYX_ERR(0, 506, __pyx_L5_error)
           }
           #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
           if (likely(PyTuple_CheckExact(sequence))) {
@@ -17350,19 +17325,19 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_28get_line(struct __
           }
           __Pyx_INCREF(__pyx_t_7);
           #else
-          __pyx_t_7 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 507, __pyx_L5_error)
+          __pyx_t_7 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 506, __pyx_L5_error)
           __Pyx_GOTREF(__pyx_t_7);
           #endif
           __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
         } else {
           Py_ssize_t index = -1;
-          __pyx_t_8 = PyObject_GetIter(__pyx_t_3); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 507, __pyx_L5_error)
+          __pyx_t_8 = PyObject_GetIter(__pyx_t_3); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 506, __pyx_L5_error)
           __Pyx_GOTREF(__pyx_t_8);
           __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
           __pyx_t_9 = __Pyx_PyObject_GetIterNextFunc(__pyx_t_8);
           index = 0; __pyx_t_7 = __pyx_t_9(__pyx_t_8); if (unlikely(!__pyx_t_7)) goto __pyx_L11_unpacking_failed;
           __Pyx_GOTREF(__pyx_t_7);
-          if (__Pyx_IternextUnpackEndCheck(__pyx_t_9(__pyx_t_8), 1) < 0) __PYX_ERR(0, 507, __pyx_L5_error)
+          if (__Pyx_IternextUnpackEndCheck(__pyx_t_9(__pyx_t_8), 1) < 0) __PYX_ERR(0, 506, __pyx_L5_error)
           __pyx_t_9 = NULL;
           __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
           goto __pyx_L12_unpacking_done;
@@ -17370,13 +17345,13 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_28get_line(struct __
           __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
           __pyx_t_9 = NULL;
           if (__Pyx_IterFinish() == 0) __Pyx_RaiseNeedMoreValuesError(index);
-          __PYX_ERR(0, 507, __pyx_L5_error)
+          __PYX_ERR(0, 506, __pyx_L5_error)
           __pyx_L12_unpacking_done:;
         }
         __Pyx_DECREF_SET(__pyx_v_name, __pyx_t_7);
         __pyx_t_7 = 0;
 
-        /* "xtrack/sequence/parser.py":506
+        /* "xtrack/sequence/parser.py":505
  * 
  *         if name is None:
  *             try:             # <<<<<<<<<<<<<<
@@ -17393,7 +17368,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_28get_line(struct __
       __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
       __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
 
-      /* "xtrack/sequence/parser.py":508
+      /* "xtrack/sequence/parser.py":507
  *             try:
  *                 name, = self.lines.keys()
  *             except ValueError:             # <<<<<<<<<<<<<<
@@ -17403,27 +17378,27 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_28get_line(struct __
       __pyx_t_10 = __Pyx_PyErr_ExceptionMatches(__pyx_builtin_ValueError);
       if (__pyx_t_10) {
         __Pyx_AddTraceback("xtrack.sequence.parser.Parser.get_line", __pyx_clineno, __pyx_lineno, __pyx_filename);
-        if (__Pyx_GetException(&__pyx_t_3, &__pyx_t_7, &__pyx_t_8) < 0) __PYX_ERR(0, 508, __pyx_L7_except_error)
+        if (__Pyx_GetException(&__pyx_t_3, &__pyx_t_7, &__pyx_t_8) < 0) __PYX_ERR(0, 507, __pyx_L7_except_error)
         __Pyx_XGOTREF(__pyx_t_3);
         __Pyx_XGOTREF(__pyx_t_7);
         __Pyx_XGOTREF(__pyx_t_8);
 
-        /* "xtrack/sequence/parser.py":509
+        /* "xtrack/sequence/parser.py":508
  *                 name, = self.lines.keys()
  *             except ValueError:
  *                 raise ValueError('Cannot unambiguously determine the sequence '             # <<<<<<<<<<<<<<
  *                                  'as no name was provided and there is more '
  *                                  'than one sequence in parsed input.')
  */
-        __pyx_t_11 = __Pyx_PyObject_Call(__pyx_builtin_ValueError, __pyx_tuple__21, NULL); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 509, __pyx_L7_except_error)
+        __pyx_t_11 = __Pyx_PyObject_Call(__pyx_builtin_ValueError, __pyx_tuple__21, NULL); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 508, __pyx_L7_except_error)
         __Pyx_GOTREF(__pyx_t_11);
         __Pyx_Raise(__pyx_t_11, 0, 0, 0);
         __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
-        __PYX_ERR(0, 509, __pyx_L7_except_error)
+        __PYX_ERR(0, 508, __pyx_L7_except_error)
       }
       goto __pyx_L7_except_error;
 
-      /* "xtrack/sequence/parser.py":506
+      /* "xtrack/sequence/parser.py":505
  * 
  *         if name is None:
  *             try:             # <<<<<<<<<<<<<<
@@ -17439,7 +17414,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_28get_line(struct __
       __pyx_L10_try_end:;
     }
 
-    /* "xtrack/sequence/parser.py":505
+    /* "xtrack/sequence/parser.py":504
  *                              'sequences, or the parser has not been run yet.')
  * 
  *         if name is None:             # <<<<<<<<<<<<<<
@@ -17448,7 +17423,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_28get_line(struct __
  */
   }
 
-  /* "xtrack/sequence/parser.py":513
+  /* "xtrack/sequence/parser.py":512
  *                                  'than one sequence in parsed input.')
  * 
  *         line = self.lines[name]             # <<<<<<<<<<<<<<
@@ -17457,25 +17432,25 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_28get_line(struct __
  */
   if (unlikely(__pyx_v_self->lines == Py_None)) {
     PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-    __PYX_ERR(0, 513, __pyx_L1_error)
+    __PYX_ERR(0, 512, __pyx_L1_error)
   }
-  __pyx_t_8 = __Pyx_PyDict_GetItem(__pyx_v_self->lines, __pyx_v_name); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 513, __pyx_L1_error)
+  __pyx_t_8 = __Pyx_PyDict_GetItem(__pyx_v_self->lines, __pyx_v_name); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 512, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_8);
   __pyx_v_line = __pyx_t_8;
   __pyx_t_8 = 0;
 
-  /* "xtrack/sequence/parser.py":514
+  /* "xtrack/sequence/parser.py":513
  * 
  *         line = self.lines[name]
  *         if not copy_manager:             # <<<<<<<<<<<<<<
  *             return line
  * 
  */
-  __pyx_t_2 = __Pyx_PyObject_IsTrue(__pyx_v_copy_manager); if (unlikely((__pyx_t_2 < 0))) __PYX_ERR(0, 514, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_IsTrue(__pyx_v_copy_manager); if (unlikely((__pyx_t_2 < 0))) __PYX_ERR(0, 513, __pyx_L1_error)
   __pyx_t_1 = (!__pyx_t_2);
   if (__pyx_t_1) {
 
-    /* "xtrack/sequence/parser.py":515
+    /* "xtrack/sequence/parser.py":514
  *         line = self.lines[name]
  *         if not copy_manager:
  *             return line             # <<<<<<<<<<<<<<
@@ -17487,7 +17462,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_28get_line(struct __
     __pyx_r = __pyx_v_line;
     goto __pyx_L0;
 
-    /* "xtrack/sequence/parser.py":514
+    /* "xtrack/sequence/parser.py":513
  * 
  *         line = self.lines[name]
  *         if not copy_manager:             # <<<<<<<<<<<<<<
@@ -17496,33 +17471,33 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_28get_line(struct __
  */
   }
 
-  /* "xtrack/sequence/parser.py":517
+  /* "xtrack/sequence/parser.py":516
  *             return line
  * 
  *         line = line.copy(include_var_management=False)             # <<<<<<<<<<<<<<
  *         line._init_var_management()
  *         new_line_manager = line._xdeps_manager
  */
-  __pyx_t_8 = __Pyx_PyObject_GetAttrStr(__pyx_v_line, __pyx_n_s_copy); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 517, __pyx_L1_error)
+  __pyx_t_8 = __Pyx_PyObject_GetAttrStr(__pyx_v_line, __pyx_n_s_copy); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 516, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_8);
-  __pyx_t_7 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 517, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 516, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_7);
-  if (PyDict_SetItem(__pyx_t_7, __pyx_n_s_include_var_management, Py_False) < 0) __PYX_ERR(0, 517, __pyx_L1_error)
-  __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_8, __pyx_empty_tuple, __pyx_t_7); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 517, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_7, __pyx_n_s_include_var_management, Py_False) < 0) __PYX_ERR(0, 516, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_8, __pyx_empty_tuple, __pyx_t_7); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 516, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
   __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
   __Pyx_DECREF_SET(__pyx_v_line, __pyx_t_3);
   __pyx_t_3 = 0;
 
-  /* "xtrack/sequence/parser.py":518
+  /* "xtrack/sequence/parser.py":517
  * 
  *         line = line.copy(include_var_management=False)
  *         line._init_var_management()             # <<<<<<<<<<<<<<
  *         new_line_manager = line._xdeps_manager
  *         shared_manager = self.xd_manager
  */
-  __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_v_line, __pyx_n_s_init_var_management); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 518, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_v_line, __pyx_n_s_init_var_management); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 517, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_7);
   __pyx_t_8 = NULL;
   __pyx_t_10 = 0;
@@ -17542,25 +17517,25 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_28get_line(struct __
     PyObject *__pyx_callargs[2] = {__pyx_t_8, NULL};
     __pyx_t_3 = __Pyx_PyObject_FastCall(__pyx_t_7, __pyx_callargs+1-__pyx_t_10, 0+__pyx_t_10);
     __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
-    if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 518, __pyx_L1_error)
+    if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 517, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
   }
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-  /* "xtrack/sequence/parser.py":519
+  /* "xtrack/sequence/parser.py":518
  *         line = line.copy(include_var_management=False)
  *         line._init_var_management()
  *         new_line_manager = line._xdeps_manager             # <<<<<<<<<<<<<<
  *         shared_manager = self.xd_manager
  * 
  */
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_line, __pyx_n_s_xdeps_manager); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 519, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_line, __pyx_n_s_xdeps_manager); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 518, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __pyx_v_new_line_manager = __pyx_t_3;
   __pyx_t_3 = 0;
 
-  /* "xtrack/sequence/parser.py":520
+  /* "xtrack/sequence/parser.py":519
  *         line._init_var_management()
  *         new_line_manager = line._xdeps_manager
  *         shared_manager = self.xd_manager             # <<<<<<<<<<<<<<
@@ -17572,19 +17547,19 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_28get_line(struct __
   __pyx_v_shared_manager = __pyx_t_3;
   __pyx_t_3 = 0;
 
-  /* "xtrack/sequence/parser.py":522
+  /* "xtrack/sequence/parser.py":521
  *         shared_manager = self.xd_manager
  * 
  *         line._xdeps_vref._owner.update(self.vars)             # <<<<<<<<<<<<<<
  * 
  *         new_line_manager.copy_expr_from(shared_manager, 'vars')
  */
-  __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_v_line, __pyx_n_s_xdeps_vref); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 522, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_v_line, __pyx_n_s_xdeps_vref); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 521, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_7);
-  __pyx_t_8 = __Pyx_PyObject_GetAttrStr(__pyx_t_7, __pyx_n_s_owner); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 522, __pyx_L1_error)
+  __pyx_t_8 = __Pyx_PyObject_GetAttrStr(__pyx_t_7, __pyx_n_s_owner); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 521, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_8);
   __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
-  __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_t_8, __pyx_n_s_update); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 522, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_t_8, __pyx_n_s_update); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 521, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_7);
   __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
   __pyx_t_8 = NULL;
@@ -17605,20 +17580,20 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_28get_line(struct __
     PyObject *__pyx_callargs[2] = {__pyx_t_8, __pyx_v_self->vars};
     __pyx_t_3 = __Pyx_PyObject_FastCall(__pyx_t_7, __pyx_callargs+1-__pyx_t_10, 1+__pyx_t_10);
     __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
-    if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 522, __pyx_L1_error)
+    if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 521, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
   }
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-  /* "xtrack/sequence/parser.py":524
+  /* "xtrack/sequence/parser.py":523
  *         line._xdeps_vref._owner.update(self.vars)
  * 
  *         new_line_manager.copy_expr_from(shared_manager, 'vars')             # <<<<<<<<<<<<<<
  *         new_line_manager.copy_expr_from(shared_manager, 'f')
  *         new_line_manager.copy_expr_from(
  */
-  __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_v_new_line_manager, __pyx_n_s_copy_expr_from); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 524, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_v_new_line_manager, __pyx_n_s_copy_expr_from); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 523, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_7);
   __pyx_t_8 = NULL;
   __pyx_t_10 = 0;
@@ -17638,20 +17613,20 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_28get_line(struct __
     PyObject *__pyx_callargs[3] = {__pyx_t_8, __pyx_v_shared_manager, __pyx_n_u_vars};
     __pyx_t_3 = __Pyx_PyObject_FastCall(__pyx_t_7, __pyx_callargs+1-__pyx_t_10, 2+__pyx_t_10);
     __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
-    if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 524, __pyx_L1_error)
+    if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 523, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
   }
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-  /* "xtrack/sequence/parser.py":525
+  /* "xtrack/sequence/parser.py":524
  * 
  *         new_line_manager.copy_expr_from(shared_manager, 'vars')
  *         new_line_manager.copy_expr_from(shared_manager, 'f')             # <<<<<<<<<<<<<<
  *         new_line_manager.copy_expr_from(
  *             shared_manager,
  */
-  __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_v_new_line_manager, __pyx_n_s_copy_expr_from); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 525, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_v_new_line_manager, __pyx_n_s_copy_expr_from); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 524, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_7);
   __pyx_t_8 = NULL;
   __pyx_t_10 = 0;
@@ -17671,74 +17646,74 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_28get_line(struct __
     PyObject *__pyx_callargs[3] = {__pyx_t_8, __pyx_v_shared_manager, __pyx_n_u_f};
     __pyx_t_3 = __Pyx_PyObject_FastCall(__pyx_t_7, __pyx_callargs+1-__pyx_t_10, 2+__pyx_t_10);
     __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
-    if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 525, __pyx_L1_error)
+    if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 524, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
   }
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-  /* "xtrack/sequence/parser.py":526
+  /* "xtrack/sequence/parser.py":525
  *         new_line_manager.copy_expr_from(shared_manager, 'vars')
  *         new_line_manager.copy_expr_from(shared_manager, 'f')
  *         new_line_manager.copy_expr_from(             # <<<<<<<<<<<<<<
  *             shared_manager,
  *             'element_refs',
  */
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_new_line_manager, __pyx_n_s_copy_expr_from); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 526, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_new_line_manager, __pyx_n_s_copy_expr_from); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 525, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
 
-  /* "xtrack/sequence/parser.py":527
+  /* "xtrack/sequence/parser.py":526
  *         new_line_manager.copy_expr_from(shared_manager, 'f')
  *         new_line_manager.copy_expr_from(
  *             shared_manager,             # <<<<<<<<<<<<<<
  *             'element_refs',
  *             bindings={self.element_refs[name]: line.element_refs},
  */
-  __pyx_t_7 = PyTuple_New(2); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 526, __pyx_L1_error)
+  __pyx_t_7 = PyTuple_New(2); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 525, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_7);
   __Pyx_INCREF(__pyx_v_shared_manager);
   __Pyx_GIVEREF(__pyx_v_shared_manager);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_7, 0, __pyx_v_shared_manager)) __PYX_ERR(0, 526, __pyx_L1_error);
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_7, 0, __pyx_v_shared_manager)) __PYX_ERR(0, 525, __pyx_L1_error);
   __Pyx_INCREF(__pyx_n_u_element_refs);
   __Pyx_GIVEREF(__pyx_n_u_element_refs);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_7, 1, __pyx_n_u_element_refs)) __PYX_ERR(0, 526, __pyx_L1_error);
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_7, 1, __pyx_n_u_element_refs)) __PYX_ERR(0, 525, __pyx_L1_error);
 
-  /* "xtrack/sequence/parser.py":529
+  /* "xtrack/sequence/parser.py":528
  *             shared_manager,
  *             'element_refs',
  *             bindings={self.element_refs[name]: line.element_refs},             # <<<<<<<<<<<<<<
  *         )
  * 
  */
-  __pyx_t_8 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 529, __pyx_L1_error)
+  __pyx_t_8 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 528, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_8);
-  __pyx_t_11 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 529, __pyx_L1_error)
+  __pyx_t_11 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 528, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_11);
-  __pyx_t_12 = __Pyx_PyObject_GetItem(__pyx_v_self->element_refs, __pyx_v_name); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 529, __pyx_L1_error)
+  __pyx_t_12 = __Pyx_PyObject_GetItem(__pyx_v_self->element_refs, __pyx_v_name); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 528, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_12);
-  __pyx_t_13 = __Pyx_PyObject_GetAttrStr(__pyx_v_line, __pyx_n_s_element_refs); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 529, __pyx_L1_error)
+  __pyx_t_13 = __Pyx_PyObject_GetAttrStr(__pyx_v_line, __pyx_n_s_element_refs); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 528, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_13);
-  if (PyDict_SetItem(__pyx_t_11, __pyx_t_12, __pyx_t_13) < 0) __PYX_ERR(0, 529, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_11, __pyx_t_12, __pyx_t_13) < 0) __PYX_ERR(0, 528, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
   __Pyx_DECREF(__pyx_t_13); __pyx_t_13 = 0;
-  if (PyDict_SetItem(__pyx_t_8, __pyx_n_s_bindings, __pyx_t_11) < 0) __PYX_ERR(0, 529, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_8, __pyx_n_s_bindings, __pyx_t_11) < 0) __PYX_ERR(0, 528, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
 
-  /* "xtrack/sequence/parser.py":526
+  /* "xtrack/sequence/parser.py":525
  *         new_line_manager.copy_expr_from(shared_manager, 'vars')
  *         new_line_manager.copy_expr_from(shared_manager, 'f')
  *         new_line_manager.copy_expr_from(             # <<<<<<<<<<<<<<
  *             shared_manager,
  *             'element_refs',
  */
-  __pyx_t_11 = __Pyx_PyObject_Call(__pyx_t_3, __pyx_t_7, __pyx_t_8); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 526, __pyx_L1_error)
+  __pyx_t_11 = __Pyx_PyObject_Call(__pyx_t_3, __pyx_t_7, __pyx_t_8); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 525, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_11);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
   __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
   __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
 
-  /* "xtrack/sequence/parser.py":532
+  /* "xtrack/sequence/parser.py":531
  *         )
  * 
  *         return line             # <<<<<<<<<<<<<<
@@ -17750,7 +17725,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_28get_line(struct __
   __pyx_r = __pyx_v_line;
   goto __pyx_L0;
 
-  /* "xtrack/sequence/parser.py":486
+  /* "xtrack/sequence/parser.py":485
  * 
  * 
  *     def get_line(self, name, copy_manager=True):             # <<<<<<<<<<<<<<
@@ -17778,7 +17753,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_28get_line(struct __
   return __pyx_r;
 }
 
-/* "xtrack/sequence/parser.py":534
+/* "xtrack/sequence/parser.py":533
  *         return line
  * 
  *     def set_existing_line(self, line, name):             # <<<<<<<<<<<<<<
@@ -17842,7 +17817,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
           (void)__Pyx_Arg_NewRef_FASTCALL(values[0]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 534, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 533, __pyx_L3_error)
         else goto __pyx_L5_argtuple_error;
         CYTHON_FALLTHROUGH;
         case  1:
@@ -17850,14 +17825,14 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
           (void)__Pyx_Arg_NewRef_FASTCALL(values[1]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 534, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 533, __pyx_L3_error)
         else {
-          __Pyx_RaiseArgtupleInvalid("set_existing_line", 1, 2, 2, 1); __PYX_ERR(0, 534, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("set_existing_line", 1, 2, 2, 1); __PYX_ERR(0, 533, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
         const Py_ssize_t kwd_pos_args = __pyx_nargs;
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "set_existing_line") < 0)) __PYX_ERR(0, 534, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "set_existing_line") < 0)) __PYX_ERR(0, 533, __pyx_L3_error)
       }
     } else if (unlikely(__pyx_nargs != 2)) {
       goto __pyx_L5_argtuple_error;
@@ -17870,7 +17845,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   }
   goto __pyx_L6_skip;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("set_existing_line", 1, 2, 2, __pyx_nargs); __PYX_ERR(0, 534, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("set_existing_line", 1, 2, 2, __pyx_nargs); __PYX_ERR(0, 533, __pyx_L3_error)
   __pyx_L6_skip:;
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -17910,39 +17885,39 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_30set_existing_line(
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("set_existing_line", 1);
 
-  /* "xtrack/sequence/parser.py":535
+  /* "xtrack/sequence/parser.py":534
  * 
  *     def set_existing_line(self, line, name):
  *         if self.lines or not self._single_line_mode:             # <<<<<<<<<<<<<<
  *             raise ValueError(
  *                 'An existing line can only be added to a fresh parser in '
  */
-  __pyx_t_2 = __Pyx_PyObject_IsTrue(__pyx_v_self->lines); if (unlikely((__pyx_t_2 < 0))) __PYX_ERR(0, 535, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_IsTrue(__pyx_v_self->lines); if (unlikely((__pyx_t_2 < 0))) __PYX_ERR(0, 534, __pyx_L1_error)
   if (!__pyx_t_2) {
   } else {
     __pyx_t_1 = __pyx_t_2;
     goto __pyx_L4_bool_binop_done;
   }
-  __pyx_t_2 = __Pyx_PyObject_IsTrue(__pyx_v_self->_single_line_mode); if (unlikely((__pyx_t_2 < 0))) __PYX_ERR(0, 535, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_IsTrue(__pyx_v_self->_single_line_mode); if (unlikely((__pyx_t_2 < 0))) __PYX_ERR(0, 534, __pyx_L1_error)
   __pyx_t_3 = (!__pyx_t_2);
   __pyx_t_1 = __pyx_t_3;
   __pyx_L4_bool_binop_done:;
   if (unlikely(__pyx_t_1)) {
 
-    /* "xtrack/sequence/parser.py":536
+    /* "xtrack/sequence/parser.py":535
  *     def set_existing_line(self, line, name):
  *         if self.lines or not self._single_line_mode:
  *             raise ValueError(             # <<<<<<<<<<<<<<
  *                 'An existing line can only be added to a fresh parser in '
  *                 'single line mode. This parser was either created with '
  */
-    __pyx_t_4 = __Pyx_PyObject_Call(__pyx_builtin_ValueError, __pyx_tuple__22, NULL); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 536, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyObject_Call(__pyx_builtin_ValueError, __pyx_tuple__22, NULL); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 535, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_Raise(__pyx_t_4, 0, 0, 0);
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-    __PYX_ERR(0, 536, __pyx_L1_error)
+    __PYX_ERR(0, 535, __pyx_L1_error)
 
-    /* "xtrack/sequence/parser.py":535
+    /* "xtrack/sequence/parser.py":534
  * 
  *     def set_existing_line(self, line, name):
  *         if self.lines or not self._single_line_mode:             # <<<<<<<<<<<<<<
@@ -17951,14 +17926,14 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_30set_existing_line(
  */
   }
 
-  /* "xtrack/sequence/parser.py":542
+  /* "xtrack/sequence/parser.py":541
  *                 'been called before.'
  *             )
  *         self.xd_manager = line._xdeps_manager             # <<<<<<<<<<<<<<
  *         self.lines[name] = line
  *         self.elements[name] = line.element_dict
  */
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_line, __pyx_n_s_xdeps_manager); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 542, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_line, __pyx_n_s_xdeps_manager); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 541, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_GIVEREF(__pyx_t_4);
   __Pyx_GOTREF(__pyx_v_self->xd_manager);
@@ -17966,7 +17941,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_30set_existing_line(
   __pyx_v_self->xd_manager = __pyx_t_4;
   __pyx_t_4 = 0;
 
-  /* "xtrack/sequence/parser.py":543
+  /* "xtrack/sequence/parser.py":542
  *             )
  *         self.xd_manager = line._xdeps_manager
  *         self.lines[name] = line             # <<<<<<<<<<<<<<
@@ -17975,34 +17950,34 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_30set_existing_line(
  */
   if (unlikely(__pyx_v_self->lines == Py_None)) {
     PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-    __PYX_ERR(0, 543, __pyx_L1_error)
+    __PYX_ERR(0, 542, __pyx_L1_error)
   }
-  if (unlikely((PyDict_SetItem(__pyx_v_self->lines, __pyx_v_name, __pyx_v_line) < 0))) __PYX_ERR(0, 543, __pyx_L1_error)
+  if (unlikely((PyDict_SetItem(__pyx_v_self->lines, __pyx_v_name, __pyx_v_line) < 0))) __PYX_ERR(0, 542, __pyx_L1_error)
 
-  /* "xtrack/sequence/parser.py":544
+  /* "xtrack/sequence/parser.py":543
  *         self.xd_manager = line._xdeps_manager
  *         self.lines[name] = line
  *         self.elements[name] = line.element_dict             # <<<<<<<<<<<<<<
  *         self.element_refs = line.element_refs
  *         self.vars = line._var_management['data']['var_values']
  */
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_line, __pyx_n_s_element_dict); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 544, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_line, __pyx_n_s_element_dict); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 543, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   if (unlikely(__pyx_v_self->elements == Py_None)) {
     PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-    __PYX_ERR(0, 544, __pyx_L1_error)
+    __PYX_ERR(0, 543, __pyx_L1_error)
   }
-  if (unlikely((PyDict_SetItem(__pyx_v_self->elements, __pyx_v_name, __pyx_t_4) < 0))) __PYX_ERR(0, 544, __pyx_L1_error)
+  if (unlikely((PyDict_SetItem(__pyx_v_self->elements, __pyx_v_name, __pyx_t_4) < 0))) __PYX_ERR(0, 543, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
 
-  /* "xtrack/sequence/parser.py":545
+  /* "xtrack/sequence/parser.py":544
  *         self.lines[name] = line
  *         self.elements[name] = line.element_dict
  *         self.element_refs = line.element_refs             # <<<<<<<<<<<<<<
  *         self.vars = line._var_management['data']['var_values']
  *         self.var_refs = line._var_management['vref']
  */
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_line, __pyx_n_s_element_refs); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 545, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_line, __pyx_n_s_element_refs); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 544, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_GIVEREF(__pyx_t_4);
   __Pyx_GOTREF(__pyx_v_self->element_refs);
@@ -18010,19 +17985,19 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_30set_existing_line(
   __pyx_v_self->element_refs = __pyx_t_4;
   __pyx_t_4 = 0;
 
-  /* "xtrack/sequence/parser.py":546
+  /* "xtrack/sequence/parser.py":545
  *         self.elements[name] = line.element_dict
  *         self.element_refs = line.element_refs
  *         self.vars = line._var_management['data']['var_values']             # <<<<<<<<<<<<<<
  *         self.var_refs = line._var_management['vref']
  *         self.functions = line._var_management['data']['functions']
  */
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_line, __pyx_n_s_var_management); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 546, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_line, __pyx_n_s_var_management); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 545, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_5 = __Pyx_PyObject_Dict_GetItem(__pyx_t_4, __pyx_n_u_data); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 546, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyObject_Dict_GetItem(__pyx_t_4, __pyx_n_u_data); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 545, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  __pyx_t_4 = __Pyx_PyObject_Dict_GetItem(__pyx_t_5, __pyx_n_u_var_values); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 546, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyObject_Dict_GetItem(__pyx_t_5, __pyx_n_u_var_values); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 545, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
   __Pyx_GIVEREF(__pyx_t_4);
@@ -18031,16 +18006,16 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_30set_existing_line(
   __pyx_v_self->vars = __pyx_t_4;
   __pyx_t_4 = 0;
 
-  /* "xtrack/sequence/parser.py":547
+  /* "xtrack/sequence/parser.py":546
  *         self.element_refs = line.element_refs
  *         self.vars = line._var_management['data']['var_values']
  *         self.var_refs = line._var_management['vref']             # <<<<<<<<<<<<<<
  *         self.functions = line._var_management['data']['functions']
  *         self.func_refs = line._var_management['fref']
  */
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_line, __pyx_n_s_var_management); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 547, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_line, __pyx_n_s_var_management); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 546, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_5 = __Pyx_PyObject_Dict_GetItem(__pyx_t_4, __pyx_n_u_vref); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 547, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyObject_Dict_GetItem(__pyx_t_4, __pyx_n_u_vref); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 546, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
   __Pyx_GIVEREF(__pyx_t_5);
@@ -18049,19 +18024,19 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_30set_existing_line(
   __pyx_v_self->var_refs = __pyx_t_5;
   __pyx_t_5 = 0;
 
-  /* "xtrack/sequence/parser.py":548
+  /* "xtrack/sequence/parser.py":547
  *         self.vars = line._var_management['data']['var_values']
  *         self.var_refs = line._var_management['vref']
  *         self.functions = line._var_management['data']['functions']             # <<<<<<<<<<<<<<
  *         self.func_refs = line._var_management['fref']
  * 
  */
-  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_line, __pyx_n_s_var_management); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 548, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_line, __pyx_n_s_var_management); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 547, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
-  __pyx_t_4 = __Pyx_PyObject_Dict_GetItem(__pyx_t_5, __pyx_n_u_data); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 548, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyObject_Dict_GetItem(__pyx_t_5, __pyx_n_u_data); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 547, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-  __pyx_t_5 = __Pyx_PyObject_Dict_GetItem(__pyx_t_4, __pyx_n_u_functions); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 548, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyObject_Dict_GetItem(__pyx_t_4, __pyx_n_u_functions); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 547, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
   __Pyx_GIVEREF(__pyx_t_5);
@@ -18070,16 +18045,16 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_30set_existing_line(
   __pyx_v_self->functions = __pyx_t_5;
   __pyx_t_5 = 0;
 
-  /* "xtrack/sequence/parser.py":549
+  /* "xtrack/sequence/parser.py":548
  *         self.var_refs = line._var_management['vref']
  *         self.functions = line._var_management['data']['functions']
  *         self.func_refs = line._var_management['fref']             # <<<<<<<<<<<<<<
  * 
  *     def get_multiline(self):
  */
-  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_line, __pyx_n_s_var_management); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 549, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_line, __pyx_n_s_var_management); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 548, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
-  __pyx_t_4 = __Pyx_PyObject_Dict_GetItem(__pyx_t_5, __pyx_n_u_fref); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 549, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyObject_Dict_GetItem(__pyx_t_5, __pyx_n_u_fref); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 548, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
   __Pyx_GIVEREF(__pyx_t_4);
@@ -18088,7 +18063,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_30set_existing_line(
   __pyx_v_self->func_refs = __pyx_t_4;
   __pyx_t_4 = 0;
 
-  /* "xtrack/sequence/parser.py":534
+  /* "xtrack/sequence/parser.py":533
  *         return line
  * 
  *     def set_existing_line(self, line, name):             # <<<<<<<<<<<<<<
@@ -18110,7 +18085,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_30set_existing_line(
   return __pyx_r;
 }
 
-/* "xtrack/sequence/parser.py":551
+/* "xtrack/sequence/parser.py":550
  *         self.func_refs = line._var_management['fref']
  * 
  *     def get_multiline(self):             # <<<<<<<<<<<<<<
@@ -18177,134 +18152,134 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_32get_multiline(stru
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("get_multiline", 1);
 
-  /* "xtrack/sequence/parser.py":552
+  /* "xtrack/sequence/parser.py":551
  * 
  *     def get_multiline(self):
  *         multiline = xt.Multiline(lines=self.lines, link_vars=False)             # <<<<<<<<<<<<<<
  *         multiline._var_sharing = xt.multiline.VarSharing(
  *             lines={},
  */
-  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_xt); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 552, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_xt); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 551, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_Multiline); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 552, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_Multiline); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 551, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_1 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 552, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 551, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_lines, __pyx_v_self->lines) < 0) __PYX_ERR(0, 552, __pyx_L1_error)
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_link_vars, Py_False) < 0) __PYX_ERR(0, 552, __pyx_L1_error)
-  __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_empty_tuple, __pyx_t_1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 552, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_lines, __pyx_v_self->lines) < 0) __PYX_ERR(0, 551, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_link_vars, Py_False) < 0) __PYX_ERR(0, 551, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_empty_tuple, __pyx_t_1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 551, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_v_multiline = __pyx_t_3;
   __pyx_t_3 = 0;
 
-  /* "xtrack/sequence/parser.py":553
+  /* "xtrack/sequence/parser.py":552
  *     def get_multiline(self):
  *         multiline = xt.Multiline(lines=self.lines, link_vars=False)
  *         multiline._var_sharing = xt.multiline.VarSharing(             # <<<<<<<<<<<<<<
  *             lines={},
  *             names=[],
  */
-  __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_xt); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 553, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_xt); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 552, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_multiline); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 553, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_multiline); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 552, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_VarSharing); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 553, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_VarSharing); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 552, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "xtrack/sequence/parser.py":554
+  /* "xtrack/sequence/parser.py":553
  *         multiline = xt.Multiline(lines=self.lines, link_vars=False)
  *         multiline._var_sharing = xt.multiline.VarSharing(
  *             lines={},             # <<<<<<<<<<<<<<
  *             names=[],
  *             existing_manager=self.xd_manager,
  */
-  __pyx_t_1 = __Pyx_PyDict_NewPresized(6); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 554, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyDict_NewPresized(6); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 553, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyDict_NewPresized(0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 554, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyDict_NewPresized(0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 553, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_lines, __pyx_t_2) < 0) __PYX_ERR(0, 554, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_lines, __pyx_t_2) < 0) __PYX_ERR(0, 553, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "xtrack/sequence/parser.py":555
+  /* "xtrack/sequence/parser.py":554
  *         multiline._var_sharing = xt.multiline.VarSharing(
  *             lines={},
  *             names=[],             # <<<<<<<<<<<<<<
  *             existing_manager=self.xd_manager,
  *             existing_vref=self.var_refs,
  */
-  __pyx_t_2 = PyList_New(0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 555, __pyx_L1_error)
+  __pyx_t_2 = PyList_New(0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 554, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_names, __pyx_t_2) < 0) __PYX_ERR(0, 554, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_names, __pyx_t_2) < 0) __PYX_ERR(0, 553, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "xtrack/sequence/parser.py":556
+  /* "xtrack/sequence/parser.py":555
  *             lines={},
  *             names=[],
  *             existing_manager=self.xd_manager,             # <<<<<<<<<<<<<<
  *             existing_vref=self.var_refs,
  *             existing_eref=self.element_refs,
  */
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_existing_manager, __pyx_v_self->xd_manager) < 0) __PYX_ERR(0, 554, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_existing_manager, __pyx_v_self->xd_manager) < 0) __PYX_ERR(0, 553, __pyx_L1_error)
 
-  /* "xtrack/sequence/parser.py":557
+  /* "xtrack/sequence/parser.py":556
  *             names=[],
  *             existing_manager=self.xd_manager,
  *             existing_vref=self.var_refs,             # <<<<<<<<<<<<<<
  *             existing_eref=self.element_refs,
  *             existing_fref=self.func_refs,
  */
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_existing_vref, __pyx_v_self->var_refs) < 0) __PYX_ERR(0, 554, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_existing_vref, __pyx_v_self->var_refs) < 0) __PYX_ERR(0, 553, __pyx_L1_error)
 
-  /* "xtrack/sequence/parser.py":558
+  /* "xtrack/sequence/parser.py":557
  *             existing_manager=self.xd_manager,
  *             existing_vref=self.var_refs,
  *             existing_eref=self.element_refs,             # <<<<<<<<<<<<<<
  *             existing_fref=self.func_refs,
  *         )
  */
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_existing_eref, __pyx_v_self->element_refs) < 0) __PYX_ERR(0, 554, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_existing_eref, __pyx_v_self->element_refs) < 0) __PYX_ERR(0, 553, __pyx_L1_error)
 
-  /* "xtrack/sequence/parser.py":559
+  /* "xtrack/sequence/parser.py":558
  *             existing_vref=self.var_refs,
  *             existing_eref=self.element_refs,
  *             existing_fref=self.func_refs,             # <<<<<<<<<<<<<<
  *         )
  *         multiline._multiline_vars = xt.line.LineVars(multiline)
  */
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_existing_fref, __pyx_v_self->func_refs) < 0) __PYX_ERR(0, 554, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_existing_fref, __pyx_v_self->func_refs) < 0) __PYX_ERR(0, 553, __pyx_L1_error)
 
-  /* "xtrack/sequence/parser.py":553
+  /* "xtrack/sequence/parser.py":552
  *     def get_multiline(self):
  *         multiline = xt.Multiline(lines=self.lines, link_vars=False)
  *         multiline._var_sharing = xt.multiline.VarSharing(             # <<<<<<<<<<<<<<
  *             lines={},
  *             names=[],
  */
-  __pyx_t_2 = __Pyx_PyObject_Call(__pyx_t_3, __pyx_empty_tuple, __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 553, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_Call(__pyx_t_3, __pyx_empty_tuple, __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 552, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  if (__Pyx_PyObject_SetAttrStr(__pyx_v_multiline, __pyx_n_s_var_sharing, __pyx_t_2) < 0) __PYX_ERR(0, 553, __pyx_L1_error)
+  if (__Pyx_PyObject_SetAttrStr(__pyx_v_multiline, __pyx_n_s_var_sharing, __pyx_t_2) < 0) __PYX_ERR(0, 552, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "xtrack/sequence/parser.py":561
+  /* "xtrack/sequence/parser.py":560
  *             existing_fref=self.func_refs,
  *         )
  *         multiline._multiline_vars = xt.line.LineVars(multiline)             # <<<<<<<<<<<<<<
  *         for name, line in self.lines.items():
  *             line._var_management = None
  */
-  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_xt); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 561, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_xt); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 560, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_line); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 561, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_line); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 560, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_LineVars); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 561, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_LineVars); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 560, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   __pyx_t_3 = NULL;
@@ -18325,14 +18300,14 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_32get_multiline(stru
     PyObject *__pyx_callargs[2] = {__pyx_t_3, __pyx_v_multiline};
     __pyx_t_2 = __Pyx_PyObject_FastCall(__pyx_t_1, __pyx_callargs+1-__pyx_t_4, 1+__pyx_t_4);
     __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
-    if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 561, __pyx_L1_error)
+    if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 560, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   }
-  if (__Pyx_PyObject_SetAttrStr(__pyx_v_multiline, __pyx_n_s_multiline_vars, __pyx_t_2) < 0) __PYX_ERR(0, 561, __pyx_L1_error)
+  if (__Pyx_PyObject_SetAttrStr(__pyx_v_multiline, __pyx_n_s_multiline_vars, __pyx_t_2) < 0) __PYX_ERR(0, 560, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "xtrack/sequence/parser.py":562
+  /* "xtrack/sequence/parser.py":561
  *         )
  *         multiline._multiline_vars = xt.line.LineVars(multiline)
  *         for name, line in self.lines.items():             # <<<<<<<<<<<<<<
@@ -18342,9 +18317,9 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_32get_multiline(stru
   __pyx_t_5 = 0;
   if (unlikely(__pyx_v_self->lines == Py_None)) {
     PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%.30s'", "items");
-    __PYX_ERR(0, 562, __pyx_L1_error)
+    __PYX_ERR(0, 561, __pyx_L1_error)
   }
-  __pyx_t_1 = __Pyx_dict_iterator(__pyx_v_self->lines, 1, __pyx_n_s_items, (&__pyx_t_6), (&__pyx_t_4)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 562, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_dict_iterator(__pyx_v_self->lines, 1, __pyx_n_s_items, (&__pyx_t_6), (&__pyx_t_4)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 561, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_XDECREF(__pyx_t_2);
   __pyx_t_2 = __pyx_t_1;
@@ -18352,7 +18327,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_32get_multiline(stru
   while (1) {
     __pyx_t_7 = __Pyx_dict_iter_next(__pyx_t_2, __pyx_t_6, &__pyx_t_5, &__pyx_t_1, &__pyx_t_3, NULL, __pyx_t_4);
     if (unlikely(__pyx_t_7 == 0)) break;
-    if (unlikely(__pyx_t_7 == -1)) __PYX_ERR(0, 562, __pyx_L1_error)
+    if (unlikely(__pyx_t_7 == -1)) __PYX_ERR(0, 561, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_XDECREF_SET(__pyx_v_name, __pyx_t_1);
@@ -18360,18 +18335,18 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_32get_multiline(stru
     __Pyx_XDECREF_SET(__pyx_v_line, __pyx_t_3);
     __pyx_t_3 = 0;
 
-    /* "xtrack/sequence/parser.py":563
+    /* "xtrack/sequence/parser.py":562
  *         multiline._multiline_vars = xt.line.LineVars(multiline)
  *         for name, line in self.lines.items():
  *             line._var_management = None             # <<<<<<<<<<<<<<
  * 
  *         return multiline
  */
-    if (__Pyx_PyObject_SetAttrStr(__pyx_v_line, __pyx_n_s_var_management, Py_None) < 0) __PYX_ERR(0, 563, __pyx_L1_error)
+    if (__Pyx_PyObject_SetAttrStr(__pyx_v_line, __pyx_n_s_var_management, Py_None) < 0) __PYX_ERR(0, 562, __pyx_L1_error)
   }
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "xtrack/sequence/parser.py":565
+  /* "xtrack/sequence/parser.py":564
  *             line._var_management = None
  * 
  *         return multiline             # <<<<<<<<<<<<<<
@@ -18383,7 +18358,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_32get_multiline(stru
   __pyx_r = __pyx_v_multiline;
   goto __pyx_L0;
 
-  /* "xtrack/sequence/parser.py":551
+  /* "xtrack/sequence/parser.py":550
  *         self.func_refs = line._var_management['fref']
  * 
  *     def get_multiline(self):             # <<<<<<<<<<<<<<
@@ -19885,7 +19860,7 @@ static PyObject *__pyx_pf_6xtrack_8sequence_6parser_6Parser_36__setstate_cython_
   return __pyx_r;
 }
 
-/* "xtrack/sequence/parser.py":568
+/* "xtrack/sequence/parser.py":567
  * 
  * 
  * def parser_from_scanner(yyscanner) -> Parser:             # <<<<<<<<<<<<<<
@@ -19899,7 +19874,7 @@ static PyObject *__pyx_f_6xtrack_8sequence_6parser_parser_from_scanner(yyscan_t 
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("parser_from_scanner", 1);
 
-  /* "xtrack/sequence/parser.py":570
+  /* "xtrack/sequence/parser.py":569
  * def parser_from_scanner(yyscanner) -> Parser:
  *     # Cast back to Python, see comment in Parser.__init__:
  *     parser = xld.yyget_extra(yyscanner)             # <<<<<<<<<<<<<<
@@ -19908,7 +19883,7 @@ static PyObject *__pyx_f_6xtrack_8sequence_6parser_parser_from_scanner(yyscan_t 
  */
   __pyx_v_parser = yyget_extra(__pyx_v_yyscanner);
 
-  /* "xtrack/sequence/parser.py":571
+  /* "xtrack/sequence/parser.py":570
  *     # Cast back to Python, see comment in Parser.__init__:
  *     parser = xld.yyget_extra(yyscanner)
  *     return cy.cast(Parser, parser)             # <<<<<<<<<<<<<<
@@ -19920,7 +19895,7 @@ static PyObject *__pyx_f_6xtrack_8sequence_6parser_parser_from_scanner(yyscan_t 
   __pyx_r = ((PyObject *)__pyx_v_parser);
   goto __pyx_L0;
 
-  /* "xtrack/sequence/parser.py":568
+  /* "xtrack/sequence/parser.py":567
  * 
  * 
  * def parser_from_scanner(yyscanner) -> Parser:             # <<<<<<<<<<<<<<
@@ -19935,7 +19910,7 @@ static PyObject *__pyx_f_6xtrack_8sequence_6parser_parser_from_scanner(yyscan_t 
   return __pyx_r;
 }
 
-/* "xtrack/sequence/parser.py":574
+/* "xtrack/sequence/parser.py":573
  * 
  * 
  * def yyerror(_, yyscanner, message):             # <<<<<<<<<<<<<<
@@ -19957,29 +19932,29 @@ void yyerror(CYTHON_UNUSED YYLTYPE *__pyx_v__, yyscan_t __pyx_v_yyscanner, char 
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("yyerror", 1);
 
-  /* "xtrack/sequence/parser.py":575
+  /* "xtrack/sequence/parser.py":574
  * 
  * def yyerror(_, yyscanner, message):
  *     parser = parser_from_scanner(yyscanner)             # <<<<<<<<<<<<<<
  *     parser.handle_error(message.decode())
  * 
  */
-  __pyx_t_1 = __pyx_f_6xtrack_8sequence_6parser_parser_from_scanner(__pyx_v_yyscanner); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 575, __pyx_L1_error)
+  __pyx_t_1 = __pyx_f_6xtrack_8sequence_6parser_parser_from_scanner(__pyx_v_yyscanner); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 574, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_v_parser = __pyx_t_1;
   __pyx_t_1 = 0;
 
-  /* "xtrack/sequence/parser.py":576
+  /* "xtrack/sequence/parser.py":575
  * def yyerror(_, yyscanner, message):
  *     parser = parser_from_scanner(yyscanner)
  *     parser.handle_error(message.decode())             # <<<<<<<<<<<<<<
  * 
  * 
  */
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_parser, __pyx_n_s_handle_error); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 576, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_parser, __pyx_n_s_handle_error); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 575, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_ssize_strlen(__pyx_v_message); if (unlikely(__pyx_t_3 == ((Py_ssize_t)-1))) __PYX_ERR(0, 576, __pyx_L1_error)
-  __pyx_t_4 = __Pyx_decode_c_string(__pyx_v_message, 0, __pyx_t_3, NULL, NULL, NULL); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 576, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_ssize_strlen(__pyx_v_message); if (unlikely(__pyx_t_3 == ((Py_ssize_t)-1))) __PYX_ERR(0, 575, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_decode_c_string(__pyx_v_message, 0, __pyx_t_3, NULL, NULL, NULL); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 575, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __pyx_t_5 = NULL;
   __pyx_t_6 = 0;
@@ -20000,13 +19975,13 @@ void yyerror(CYTHON_UNUSED YYLTYPE *__pyx_v__, yyscan_t __pyx_v_yyscanner, char 
     __pyx_t_1 = __Pyx_PyObject_FastCall(__pyx_t_2, __pyx_callargs+1-__pyx_t_6, 1+__pyx_t_6);
     __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-    if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 576, __pyx_L1_error)
+    if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 575, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   }
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "xtrack/sequence/parser.py":574
+  /* "xtrack/sequence/parser.py":573
  * 
  * 
  * def yyerror(_, yyscanner, message):             # <<<<<<<<<<<<<<
@@ -20027,7 +20002,7 @@ void yyerror(CYTHON_UNUSED YYLTYPE *__pyx_v__, yyscan_t __pyx_v_yyscanner, char 
   __Pyx_RefNannyFinishContext();
 }
 
-/* "xtrack/sequence/parser.py":579
+/* "xtrack/sequence/parser.py":578
  * 
  * 
  * def py_float(scanner, value):             # <<<<<<<<<<<<<<
@@ -20044,7 +20019,7 @@ PyObject *py_float(yyscan_t __pyx_v_scanner, double __pyx_v_value) {
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("py_float", 1);
 
-  /* "xtrack/sequence/parser.py":580
+  /* "xtrack/sequence/parser.py":579
  * 
  * def py_float(scanner, value):
  *     return py_numeric(scanner, value)             # <<<<<<<<<<<<<<
@@ -20052,13 +20027,13 @@ PyObject *py_float(yyscan_t __pyx_v_scanner, double __pyx_v_value) {
  * 
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __pyx_fuse_0py_numeric(__pyx_v_scanner, __pyx_v_value); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 580, __pyx_L1_error)
+  __pyx_t_1 = __pyx_fuse_0py_numeric(__pyx_v_scanner, __pyx_v_value); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 579, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "xtrack/sequence/parser.py":579
+  /* "xtrack/sequence/parser.py":578
  * 
  * 
  * def py_float(scanner, value):             # <<<<<<<<<<<<<<
@@ -20077,7 +20052,7 @@ PyObject *py_float(yyscan_t __pyx_v_scanner, double __pyx_v_value) {
   return __pyx_r;
 }
 
-/* "xtrack/sequence/parser.py":583
+/* "xtrack/sequence/parser.py":582
  * 
  * 
  * def py_integer(scanner, value):             # <<<<<<<<<<<<<<
@@ -20094,7 +20069,7 @@ PyObject *py_integer(yyscan_t __pyx_v_scanner, long __pyx_v_value) {
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("py_integer", 1);
 
-  /* "xtrack/sequence/parser.py":584
+  /* "xtrack/sequence/parser.py":583
  * 
  * def py_integer(scanner, value):
  *     return py_numeric(scanner, value)             # <<<<<<<<<<<<<<
@@ -20102,13 +20077,13 @@ PyObject *py_integer(yyscan_t __pyx_v_scanner, long __pyx_v_value) {
  * 
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __pyx_fuse_1py_numeric(__pyx_v_scanner, __pyx_v_value); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 584, __pyx_L1_error)
+  __pyx_t_1 = __pyx_fuse_1py_numeric(__pyx_v_scanner, __pyx_v_value); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 583, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "xtrack/sequence/parser.py":583
+  /* "xtrack/sequence/parser.py":582
  * 
  * 
  * def py_integer(scanner, value):             # <<<<<<<<<<<<<<
@@ -20127,7 +20102,7 @@ PyObject *py_integer(yyscan_t __pyx_v_scanner, long __pyx_v_value) {
   return __pyx_r;
 }
 
-/* "xtrack/sequence/parser.py":587
+/* "xtrack/sequence/parser.py":586
  * 
  * 
  * @cy.exceptval(check=False)             # <<<<<<<<<<<<<<
@@ -20161,7 +20136,7 @@ PyObject *__pyx_fuse_0py_numeric(yyscan_t __pyx_v_scanner, double __pyx_v_value)
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__pyx_fuse_0py_numeric", 1);
 
-  /* "xtrack/sequence/parser.py":589
+  /* "xtrack/sequence/parser.py":588
  * @cy.exceptval(check=False)
  * def py_numeric(scanner, value):
  *     try:             # <<<<<<<<<<<<<<
@@ -20177,20 +20152,20 @@ PyObject *__pyx_fuse_0py_numeric(yyscan_t __pyx_v_scanner, double __pyx_v_value)
     __Pyx_XGOTREF(__pyx_t_3);
     /*try:*/ {
 
-      /* "xtrack/sequence/parser.py":590
+      /* "xtrack/sequence/parser.py":589
  * def py_numeric(scanner, value):
  *     try:
  *         if KEEP_LITERAL_EXPRESSIONS:             # <<<<<<<<<<<<<<
  *             return LiteralExpr(value)
  *         return value
  */
-      __Pyx_GetModuleGlobalName(__pyx_t_4, __pyx_n_s_KEEP_LITERAL_EXPRESSIONS); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 590, __pyx_L3_error)
+      __Pyx_GetModuleGlobalName(__pyx_t_4, __pyx_n_s_KEEP_LITERAL_EXPRESSIONS); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 589, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_4);
-      __pyx_t_5 = __Pyx_PyObject_IsTrue(__pyx_t_4); if (unlikely((__pyx_t_5 < 0))) __PYX_ERR(0, 590, __pyx_L3_error)
+      __pyx_t_5 = __Pyx_PyObject_IsTrue(__pyx_t_4); if (unlikely((__pyx_t_5 < 0))) __PYX_ERR(0, 589, __pyx_L3_error)
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
       if (__pyx_t_5) {
 
-        /* "xtrack/sequence/parser.py":591
+        /* "xtrack/sequence/parser.py":590
  *     try:
  *         if KEEP_LITERAL_EXPRESSIONS:
  *             return LiteralExpr(value)             # <<<<<<<<<<<<<<
@@ -20198,9 +20173,9 @@ PyObject *__pyx_fuse_0py_numeric(yyscan_t __pyx_v_scanner, double __pyx_v_value)
  *     except Exception as e:
  */
         __Pyx_XDECREF(__pyx_r);
-        __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_LiteralExpr); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 591, __pyx_L3_error)
+        __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_LiteralExpr); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 590, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_6);
-        __pyx_t_7 = PyFloat_FromDouble(__pyx_v_value); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 591, __pyx_L3_error)
+        __pyx_t_7 = PyFloat_FromDouble(__pyx_v_value); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 590, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_7);
         __pyx_t_8 = NULL;
         __pyx_t_9 = 0;
@@ -20221,7 +20196,7 @@ PyObject *__pyx_fuse_0py_numeric(yyscan_t __pyx_v_scanner, double __pyx_v_value)
           __pyx_t_4 = __Pyx_PyObject_FastCall(__pyx_t_6, __pyx_callargs+1-__pyx_t_9, 1+__pyx_t_9);
           __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
           __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
-          if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 591, __pyx_L3_error)
+          if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 590, __pyx_L3_error)
           __Pyx_GOTREF(__pyx_t_4);
           __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
         }
@@ -20229,7 +20204,7 @@ PyObject *__pyx_fuse_0py_numeric(yyscan_t __pyx_v_scanner, double __pyx_v_value)
         __pyx_t_4 = 0;
         goto __pyx_L7_try_return;
 
-        /* "xtrack/sequence/parser.py":590
+        /* "xtrack/sequence/parser.py":589
  * def py_numeric(scanner, value):
  *     try:
  *         if KEEP_LITERAL_EXPRESSIONS:             # <<<<<<<<<<<<<<
@@ -20238,7 +20213,7 @@ PyObject *__pyx_fuse_0py_numeric(yyscan_t __pyx_v_scanner, double __pyx_v_value)
  */
       }
 
-      /* "xtrack/sequence/parser.py":592
+      /* "xtrack/sequence/parser.py":591
  *         if KEEP_LITERAL_EXPRESSIONS:
  *             return LiteralExpr(value)
  *         return value             # <<<<<<<<<<<<<<
@@ -20246,13 +20221,13 @@ PyObject *__pyx_fuse_0py_numeric(yyscan_t __pyx_v_scanner, double __pyx_v_value)
  *         register_error(scanner, e, f'parsing a numeric value')
  */
       __Pyx_XDECREF(__pyx_r);
-      __pyx_t_4 = PyFloat_FromDouble(__pyx_v_value); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 592, __pyx_L3_error)
+      __pyx_t_4 = PyFloat_FromDouble(__pyx_v_value); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 591, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_4);
       __pyx_r = __pyx_t_4;
       __pyx_t_4 = 0;
       goto __pyx_L7_try_return;
 
-      /* "xtrack/sequence/parser.py":589
+      /* "xtrack/sequence/parser.py":588
  * @cy.exceptval(check=False)
  * def py_numeric(scanner, value):
  *     try:             # <<<<<<<<<<<<<<
@@ -20266,7 +20241,7 @@ PyObject *__pyx_fuse_0py_numeric(yyscan_t __pyx_v_scanner, double __pyx_v_value)
     __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
     __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
 
-    /* "xtrack/sequence/parser.py":593
+    /* "xtrack/sequence/parser.py":592
  *             return LiteralExpr(value)
  *         return value
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -20276,7 +20251,7 @@ PyObject *__pyx_fuse_0py_numeric(yyscan_t __pyx_v_scanner, double __pyx_v_value)
     __pyx_t_9 = __Pyx_PyErr_ExceptionMatches(((PyObject *)(&((PyTypeObject*)PyExc_Exception)[0])));
     if (__pyx_t_9) {
       __Pyx_AddTraceback("xtrack.sequence.parser.__pyx_fuse_0py_numeric", __pyx_clineno, __pyx_lineno, __pyx_filename);
-      if (__Pyx_GetException(&__pyx_t_4, &__pyx_t_6, &__pyx_t_7) < 0) __PYX_ERR(0, 593, __pyx_L5_except_error)
+      if (__Pyx_GetException(&__pyx_t_4, &__pyx_t_6, &__pyx_t_7) < 0) __PYX_ERR(0, 592, __pyx_L5_except_error)
       __Pyx_XGOTREF(__pyx_t_4);
       __Pyx_XGOTREF(__pyx_t_6);
       __Pyx_XGOTREF(__pyx_t_7);
@@ -20284,19 +20259,19 @@ PyObject *__pyx_fuse_0py_numeric(yyscan_t __pyx_v_scanner, double __pyx_v_value)
       __pyx_v_e = __pyx_t_6;
       /*try:*/ {
 
-        /* "xtrack/sequence/parser.py":594
+        /* "xtrack/sequence/parser.py":593
  *         return value
  *     except Exception as e:
  *         register_error(scanner, e, f'parsing a numeric value')             # <<<<<<<<<<<<<<
  * 
  * 
  */
-        __pyx_t_8 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_a_numeric_value, NULL); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 594, __pyx_L15_error)
+        __pyx_t_8 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_a_numeric_value, NULL); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 593, __pyx_L15_error)
         __Pyx_GOTREF(__pyx_t_8);
         __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
       }
 
-      /* "xtrack/sequence/parser.py":593
+      /* "xtrack/sequence/parser.py":592
  *             return LiteralExpr(value)
  *         return value
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -20349,7 +20324,7 @@ PyObject *__pyx_fuse_0py_numeric(yyscan_t __pyx_v_scanner, double __pyx_v_value)
     }
     goto __pyx_L5_except_error;
 
-    /* "xtrack/sequence/parser.py":589
+    /* "xtrack/sequence/parser.py":588
  * @cy.exceptval(check=False)
  * def py_numeric(scanner, value):
  *     try:             # <<<<<<<<<<<<<<
@@ -20375,7 +20350,7 @@ PyObject *__pyx_fuse_0py_numeric(yyscan_t __pyx_v_scanner, double __pyx_v_value)
     __Pyx_ExceptionReset(__pyx_t_1, __pyx_t_2, __pyx_t_3);
   }
 
-  /* "xtrack/sequence/parser.py":587
+  /* "xtrack/sequence/parser.py":586
  * 
  * 
  * @cy.exceptval(check=False)             # <<<<<<<<<<<<<<
@@ -20426,7 +20401,7 @@ PyObject *__pyx_fuse_1py_numeric(yyscan_t __pyx_v_scanner, long __pyx_v_value) {
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__pyx_fuse_1py_numeric", 1);
 
-  /* "xtrack/sequence/parser.py":589
+  /* "xtrack/sequence/parser.py":588
  * @cy.exceptval(check=False)
  * def py_numeric(scanner, value):
  *     try:             # <<<<<<<<<<<<<<
@@ -20442,20 +20417,20 @@ PyObject *__pyx_fuse_1py_numeric(yyscan_t __pyx_v_scanner, long __pyx_v_value) {
     __Pyx_XGOTREF(__pyx_t_3);
     /*try:*/ {
 
-      /* "xtrack/sequence/parser.py":590
+      /* "xtrack/sequence/parser.py":589
  * def py_numeric(scanner, value):
  *     try:
  *         if KEEP_LITERAL_EXPRESSIONS:             # <<<<<<<<<<<<<<
  *             return LiteralExpr(value)
  *         return value
  */
-      __Pyx_GetModuleGlobalName(__pyx_t_4, __pyx_n_s_KEEP_LITERAL_EXPRESSIONS); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 590, __pyx_L3_error)
+      __Pyx_GetModuleGlobalName(__pyx_t_4, __pyx_n_s_KEEP_LITERAL_EXPRESSIONS); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 589, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_4);
-      __pyx_t_5 = __Pyx_PyObject_IsTrue(__pyx_t_4); if (unlikely((__pyx_t_5 < 0))) __PYX_ERR(0, 590, __pyx_L3_error)
+      __pyx_t_5 = __Pyx_PyObject_IsTrue(__pyx_t_4); if (unlikely((__pyx_t_5 < 0))) __PYX_ERR(0, 589, __pyx_L3_error)
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
       if (__pyx_t_5) {
 
-        /* "xtrack/sequence/parser.py":591
+        /* "xtrack/sequence/parser.py":590
  *     try:
  *         if KEEP_LITERAL_EXPRESSIONS:
  *             return LiteralExpr(value)             # <<<<<<<<<<<<<<
@@ -20463,9 +20438,9 @@ PyObject *__pyx_fuse_1py_numeric(yyscan_t __pyx_v_scanner, long __pyx_v_value) {
  *     except Exception as e:
  */
         __Pyx_XDECREF(__pyx_r);
-        __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_LiteralExpr); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 591, __pyx_L3_error)
+        __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_LiteralExpr); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 590, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_6);
-        __pyx_t_7 = __Pyx_PyInt_From_long(__pyx_v_value); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 591, __pyx_L3_error)
+        __pyx_t_7 = __Pyx_PyInt_From_long(__pyx_v_value); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 590, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_7);
         __pyx_t_8 = NULL;
         __pyx_t_9 = 0;
@@ -20486,7 +20461,7 @@ PyObject *__pyx_fuse_1py_numeric(yyscan_t __pyx_v_scanner, long __pyx_v_value) {
           __pyx_t_4 = __Pyx_PyObject_FastCall(__pyx_t_6, __pyx_callargs+1-__pyx_t_9, 1+__pyx_t_9);
           __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
           __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
-          if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 591, __pyx_L3_error)
+          if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 590, __pyx_L3_error)
           __Pyx_GOTREF(__pyx_t_4);
           __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
         }
@@ -20494,7 +20469,7 @@ PyObject *__pyx_fuse_1py_numeric(yyscan_t __pyx_v_scanner, long __pyx_v_value) {
         __pyx_t_4 = 0;
         goto __pyx_L7_try_return;
 
-        /* "xtrack/sequence/parser.py":590
+        /* "xtrack/sequence/parser.py":589
  * def py_numeric(scanner, value):
  *     try:
  *         if KEEP_LITERAL_EXPRESSIONS:             # <<<<<<<<<<<<<<
@@ -20503,7 +20478,7 @@ PyObject *__pyx_fuse_1py_numeric(yyscan_t __pyx_v_scanner, long __pyx_v_value) {
  */
       }
 
-      /* "xtrack/sequence/parser.py":592
+      /* "xtrack/sequence/parser.py":591
  *         if KEEP_LITERAL_EXPRESSIONS:
  *             return LiteralExpr(value)
  *         return value             # <<<<<<<<<<<<<<
@@ -20511,13 +20486,13 @@ PyObject *__pyx_fuse_1py_numeric(yyscan_t __pyx_v_scanner, long __pyx_v_value) {
  *         register_error(scanner, e, f'parsing a numeric value')
  */
       __Pyx_XDECREF(__pyx_r);
-      __pyx_t_4 = __Pyx_PyInt_From_long(__pyx_v_value); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 592, __pyx_L3_error)
+      __pyx_t_4 = __Pyx_PyInt_From_long(__pyx_v_value); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 591, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_4);
       __pyx_r = __pyx_t_4;
       __pyx_t_4 = 0;
       goto __pyx_L7_try_return;
 
-      /* "xtrack/sequence/parser.py":589
+      /* "xtrack/sequence/parser.py":588
  * @cy.exceptval(check=False)
  * def py_numeric(scanner, value):
  *     try:             # <<<<<<<<<<<<<<
@@ -20531,7 +20506,7 @@ PyObject *__pyx_fuse_1py_numeric(yyscan_t __pyx_v_scanner, long __pyx_v_value) {
     __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
     __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
 
-    /* "xtrack/sequence/parser.py":593
+    /* "xtrack/sequence/parser.py":592
  *             return LiteralExpr(value)
  *         return value
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -20541,7 +20516,7 @@ PyObject *__pyx_fuse_1py_numeric(yyscan_t __pyx_v_scanner, long __pyx_v_value) {
     __pyx_t_9 = __Pyx_PyErr_ExceptionMatches(((PyObject *)(&((PyTypeObject*)PyExc_Exception)[0])));
     if (__pyx_t_9) {
       __Pyx_AddTraceback("xtrack.sequence.parser.__pyx_fuse_1py_numeric", __pyx_clineno, __pyx_lineno, __pyx_filename);
-      if (__Pyx_GetException(&__pyx_t_4, &__pyx_t_6, &__pyx_t_7) < 0) __PYX_ERR(0, 593, __pyx_L5_except_error)
+      if (__Pyx_GetException(&__pyx_t_4, &__pyx_t_6, &__pyx_t_7) < 0) __PYX_ERR(0, 592, __pyx_L5_except_error)
       __Pyx_XGOTREF(__pyx_t_4);
       __Pyx_XGOTREF(__pyx_t_6);
       __Pyx_XGOTREF(__pyx_t_7);
@@ -20549,19 +20524,19 @@ PyObject *__pyx_fuse_1py_numeric(yyscan_t __pyx_v_scanner, long __pyx_v_value) {
       __pyx_v_e = __pyx_t_6;
       /*try:*/ {
 
-        /* "xtrack/sequence/parser.py":594
+        /* "xtrack/sequence/parser.py":593
  *         return value
  *     except Exception as e:
  *         register_error(scanner, e, f'parsing a numeric value')             # <<<<<<<<<<<<<<
  * 
  * 
  */
-        __pyx_t_8 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_a_numeric_value, NULL); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 594, __pyx_L15_error)
+        __pyx_t_8 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_a_numeric_value, NULL); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 593, __pyx_L15_error)
         __Pyx_GOTREF(__pyx_t_8);
         __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
       }
 
-      /* "xtrack/sequence/parser.py":593
+      /* "xtrack/sequence/parser.py":592
  *             return LiteralExpr(value)
  *         return value
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -20614,7 +20589,7 @@ PyObject *__pyx_fuse_1py_numeric(yyscan_t __pyx_v_scanner, long __pyx_v_value) {
     }
     goto __pyx_L5_except_error;
 
-    /* "xtrack/sequence/parser.py":589
+    /* "xtrack/sequence/parser.py":588
  * @cy.exceptval(check=False)
  * def py_numeric(scanner, value):
  *     try:             # <<<<<<<<<<<<<<
@@ -20640,7 +20615,7 @@ PyObject *__pyx_fuse_1py_numeric(yyscan_t __pyx_v_scanner, long __pyx_v_value) {
     __Pyx_ExceptionReset(__pyx_t_1, __pyx_t_2, __pyx_t_3);
   }
 
-  /* "xtrack/sequence/parser.py":587
+  /* "xtrack/sequence/parser.py":586
  * 
  * 
  * @cy.exceptval(check=False)             # <<<<<<<<<<<<<<
@@ -20665,7 +20640,7 @@ PyObject *__pyx_fuse_1py_numeric(yyscan_t __pyx_v_scanner, long __pyx_v_value) {
   return __pyx_r;
 }
 
-/* "xtrack/sequence/parser.py":597
+/* "xtrack/sequence/parser.py":596
  * 
  * 
  * @cy.exceptval(check=False)             # <<<<<<<<<<<<<<
@@ -20699,7 +20674,7 @@ PyObject *py_string(yyscan_t __pyx_v_scanner, char const *__pyx_v_value) {
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("py_string", 1);
 
-  /* "xtrack/sequence/parser.py":599
+  /* "xtrack/sequence/parser.py":598
  * @cy.exceptval(check=False)
  * def py_string(scanner, value):
  *     try:             # <<<<<<<<<<<<<<
@@ -20715,7 +20690,7 @@ PyObject *py_string(yyscan_t __pyx_v_scanner, char const *__pyx_v_value) {
     __Pyx_XGOTREF(__pyx_t_3);
     /*try:*/ {
 
-      /* "xtrack/sequence/parser.py":600
+      /* "xtrack/sequence/parser.py":599
  * def py_string(scanner, value):
  *     try:
  *         return re.sub(r'\\"', '"', value.decode())             # <<<<<<<<<<<<<<
@@ -20723,13 +20698,13 @@ PyObject *py_string(yyscan_t __pyx_v_scanner, char const *__pyx_v_value) {
  *         register_error(scanner, e, f'parsing a string')
  */
       __Pyx_XDECREF(__pyx_r);
-      __Pyx_GetModuleGlobalName(__pyx_t_5, __pyx_n_s_re); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 600, __pyx_L3_error)
+      __Pyx_GetModuleGlobalName(__pyx_t_5, __pyx_n_s_re); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 599, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_5);
-      __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_t_5, __pyx_n_s_sub); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 600, __pyx_L3_error)
+      __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_t_5, __pyx_n_s_sub); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 599, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_6);
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-      __pyx_t_7 = __Pyx_ssize_strlen(__pyx_v_value); if (unlikely(__pyx_t_7 == ((Py_ssize_t)-1))) __PYX_ERR(0, 600, __pyx_L3_error)
-      __pyx_t_5 = __Pyx_decode_c_string(__pyx_v_value, 0, __pyx_t_7, NULL, NULL, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 600, __pyx_L3_error)
+      __pyx_t_7 = __Pyx_ssize_strlen(__pyx_v_value); if (unlikely(__pyx_t_7 == ((Py_ssize_t)-1))) __PYX_ERR(0, 599, __pyx_L3_error)
+      __pyx_t_5 = __Pyx_decode_c_string(__pyx_v_value, 0, __pyx_t_7, NULL, NULL, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 599, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_5);
       __pyx_t_8 = NULL;
       __pyx_t_9 = 0;
@@ -20750,16 +20725,16 @@ PyObject *py_string(yyscan_t __pyx_v_scanner, char const *__pyx_v_value) {
         __pyx_t_4 = __Pyx_PyObject_FastCall(__pyx_t_6, __pyx_callargs+1-__pyx_t_9, 3+__pyx_t_9);
         __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
         __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-        if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 600, __pyx_L3_error)
+        if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 599, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_4);
         __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
       }
-      if (!(likely(PyUnicode_CheckExact(__pyx_t_4))||((__pyx_t_4) == Py_None) || __Pyx_RaiseUnexpectedTypeError("unicode", __pyx_t_4))) __PYX_ERR(0, 600, __pyx_L3_error)
+      if (!(likely(PyUnicode_CheckExact(__pyx_t_4))||((__pyx_t_4) == Py_None) || __Pyx_RaiseUnexpectedTypeError("unicode", __pyx_t_4))) __PYX_ERR(0, 599, __pyx_L3_error)
       __pyx_r = ((PyObject*)__pyx_t_4);
       __pyx_t_4 = 0;
       goto __pyx_L7_try_return;
 
-      /* "xtrack/sequence/parser.py":599
+      /* "xtrack/sequence/parser.py":598
  * @cy.exceptval(check=False)
  * def py_string(scanner, value):
  *     try:             # <<<<<<<<<<<<<<
@@ -20773,7 +20748,7 @@ PyObject *py_string(yyscan_t __pyx_v_scanner, char const *__pyx_v_value) {
     __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
     __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
 
-    /* "xtrack/sequence/parser.py":601
+    /* "xtrack/sequence/parser.py":600
  *     try:
  *         return re.sub(r'\\"', '"', value.decode())
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -20783,7 +20758,7 @@ PyObject *py_string(yyscan_t __pyx_v_scanner, char const *__pyx_v_value) {
     __pyx_t_9 = __Pyx_PyErr_ExceptionMatches(((PyObject *)(&((PyTypeObject*)PyExc_Exception)[0])));
     if (__pyx_t_9) {
       __Pyx_AddTraceback("xtrack.sequence.parser.py_string", __pyx_clineno, __pyx_lineno, __pyx_filename);
-      if (__Pyx_GetException(&__pyx_t_4, &__pyx_t_6, &__pyx_t_5) < 0) __PYX_ERR(0, 601, __pyx_L5_except_error)
+      if (__Pyx_GetException(&__pyx_t_4, &__pyx_t_6, &__pyx_t_5) < 0) __PYX_ERR(0, 600, __pyx_L5_except_error)
       __Pyx_XGOTREF(__pyx_t_4);
       __Pyx_XGOTREF(__pyx_t_6);
       __Pyx_XGOTREF(__pyx_t_5);
@@ -20791,19 +20766,19 @@ PyObject *py_string(yyscan_t __pyx_v_scanner, char const *__pyx_v_value) {
       __pyx_v_e = __pyx_t_6;
       /*try:*/ {
 
-        /* "xtrack/sequence/parser.py":602
+        /* "xtrack/sequence/parser.py":601
  *         return re.sub(r'\\"', '"', value.decode())
  *     except Exception as e:
  *         register_error(scanner, e, f'parsing a string')             # <<<<<<<<<<<<<<
  * 
  * 
  */
-        __pyx_t_8 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_a_string, NULL); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 602, __pyx_L14_error)
+        __pyx_t_8 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_a_string, NULL); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 601, __pyx_L14_error)
         __Pyx_GOTREF(__pyx_t_8);
         __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
       }
 
-      /* "xtrack/sequence/parser.py":601
+      /* "xtrack/sequence/parser.py":600
  *     try:
  *         return re.sub(r'\\"', '"', value.decode())
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -20856,7 +20831,7 @@ PyObject *py_string(yyscan_t __pyx_v_scanner, char const *__pyx_v_value) {
     }
     goto __pyx_L5_except_error;
 
-    /* "xtrack/sequence/parser.py":599
+    /* "xtrack/sequence/parser.py":598
  * @cy.exceptval(check=False)
  * def py_string(scanner, value):
  *     try:             # <<<<<<<<<<<<<<
@@ -20882,7 +20857,7 @@ PyObject *py_string(yyscan_t __pyx_v_scanner, char const *__pyx_v_value) {
     __Pyx_ExceptionReset(__pyx_t_1, __pyx_t_2, __pyx_t_3);
   }
 
-  /* "xtrack/sequence/parser.py":597
+  /* "xtrack/sequence/parser.py":596
  * 
  * 
  * @cy.exceptval(check=False)             # <<<<<<<<<<<<<<
@@ -20907,7 +20882,7 @@ PyObject *py_string(yyscan_t __pyx_v_scanner, char const *__pyx_v_value) {
   return __pyx_r;
 }
 
-/* "xtrack/sequence/parser.py":605
+/* "xtrack/sequence/parser.py":604
  * 
  * 
  * @cy.exceptval(check=False)             # <<<<<<<<<<<<<<
@@ -20942,7 +20917,7 @@ PyObject *py_unary_op(yyscan_t __pyx_v_scanner, char const *__pyx_v_op_string, P
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("py_unary_op", 1);
 
-  /* "xtrack/sequence/parser.py":607
+  /* "xtrack/sequence/parser.py":606
  * @cy.exceptval(check=False)
  * def py_unary_op(scanner, op_string, value):
  *     try:             # <<<<<<<<<<<<<<
@@ -20958,26 +20933,26 @@ PyObject *py_unary_op(yyscan_t __pyx_v_scanner, char const *__pyx_v_op_string, P
     __Pyx_XGOTREF(__pyx_t_3);
     /*try:*/ {
 
-      /* "xtrack/sequence/parser.py":608
+      /* "xtrack/sequence/parser.py":607
  * def py_unary_op(scanner, op_string, value):
  *     try:
  *         function = getattr(operator, op_string.decode())             # <<<<<<<<<<<<<<
  *         return function(value)
  *     except Exception as e:
  */
-      __Pyx_GetModuleGlobalName(__pyx_t_4, __pyx_n_s_operator); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 608, __pyx_L3_error)
+      __Pyx_GetModuleGlobalName(__pyx_t_4, __pyx_n_s_operator); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 607, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_4);
-      __pyx_t_5 = __Pyx_ssize_strlen(__pyx_v_op_string); if (unlikely(__pyx_t_5 == ((Py_ssize_t)-1))) __PYX_ERR(0, 608, __pyx_L3_error)
-      __pyx_t_6 = __Pyx_decode_c_string(__pyx_v_op_string, 0, __pyx_t_5, NULL, NULL, NULL); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 608, __pyx_L3_error)
+      __pyx_t_5 = __Pyx_ssize_strlen(__pyx_v_op_string); if (unlikely(__pyx_t_5 == ((Py_ssize_t)-1))) __PYX_ERR(0, 607, __pyx_L3_error)
+      __pyx_t_6 = __Pyx_decode_c_string(__pyx_v_op_string, 0, __pyx_t_5, NULL, NULL, NULL); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 607, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_6);
-      __pyx_t_7 = __Pyx_GetAttr(__pyx_t_4, __pyx_t_6); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 608, __pyx_L3_error)
+      __pyx_t_7 = __Pyx_GetAttr(__pyx_t_4, __pyx_t_6); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 607, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_7);
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
       __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
       __pyx_v_function = __pyx_t_7;
       __pyx_t_7 = 0;
 
-      /* "xtrack/sequence/parser.py":609
+      /* "xtrack/sequence/parser.py":608
  *     try:
  *         function = getattr(operator, op_string.decode())
  *         return function(value)             # <<<<<<<<<<<<<<
@@ -21004,7 +20979,7 @@ PyObject *py_unary_op(yyscan_t __pyx_v_scanner, char const *__pyx_v_op_string, P
         PyObject *__pyx_callargs[2] = {__pyx_t_4, __pyx_v_value};
         __pyx_t_7 = __Pyx_PyObject_FastCall(__pyx_t_6, __pyx_callargs+1-__pyx_t_8, 1+__pyx_t_8);
         __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
-        if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 609, __pyx_L3_error)
+        if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 608, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_7);
         __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
       }
@@ -21012,7 +20987,7 @@ PyObject *py_unary_op(yyscan_t __pyx_v_scanner, char const *__pyx_v_op_string, P
       __pyx_t_7 = 0;
       goto __pyx_L7_try_return;
 
-      /* "xtrack/sequence/parser.py":607
+      /* "xtrack/sequence/parser.py":606
  * @cy.exceptval(check=False)
  * def py_unary_op(scanner, op_string, value):
  *     try:             # <<<<<<<<<<<<<<
@@ -21025,7 +21000,7 @@ PyObject *py_unary_op(yyscan_t __pyx_v_scanner, char const *__pyx_v_op_string, P
     __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
     __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
 
-    /* "xtrack/sequence/parser.py":610
+    /* "xtrack/sequence/parser.py":609
  *         function = getattr(operator, op_string.decode())
  *         return function(value)
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -21035,7 +21010,7 @@ PyObject *py_unary_op(yyscan_t __pyx_v_scanner, char const *__pyx_v_op_string, P
     __pyx_t_8 = __Pyx_PyErr_ExceptionMatches(((PyObject *)(&((PyTypeObject*)PyExc_Exception)[0])));
     if (__pyx_t_8) {
       __Pyx_AddTraceback("xtrack.sequence.parser.py_unary_op", __pyx_clineno, __pyx_lineno, __pyx_filename);
-      if (__Pyx_GetException(&__pyx_t_7, &__pyx_t_6, &__pyx_t_4) < 0) __PYX_ERR(0, 610, __pyx_L5_except_error)
+      if (__Pyx_GetException(&__pyx_t_7, &__pyx_t_6, &__pyx_t_4) < 0) __PYX_ERR(0, 609, __pyx_L5_except_error)
       __Pyx_XGOTREF(__pyx_t_7);
       __Pyx_XGOTREF(__pyx_t_6);
       __Pyx_XGOTREF(__pyx_t_4);
@@ -21043,19 +21018,19 @@ PyObject *py_unary_op(yyscan_t __pyx_v_scanner, char const *__pyx_v_op_string, P
       __pyx_v_e = __pyx_t_6;
       /*try:*/ {
 
-        /* "xtrack/sequence/parser.py":611
+        /* "xtrack/sequence/parser.py":610
  *         return function(value)
  *     except Exception as e:
  *         register_error(scanner, e, f'parsing a unary operation')             # <<<<<<<<<<<<<<
  * 
  * 
  */
-        __pyx_t_9 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_a_unary_operation, NULL); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 611, __pyx_L14_error)
+        __pyx_t_9 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_a_unary_operation, NULL); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 610, __pyx_L14_error)
         __Pyx_GOTREF(__pyx_t_9);
         __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
       }
 
-      /* "xtrack/sequence/parser.py":610
+      /* "xtrack/sequence/parser.py":609
  *         function = getattr(operator, op_string.decode())
  *         return function(value)
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -21108,7 +21083,7 @@ PyObject *py_unary_op(yyscan_t __pyx_v_scanner, char const *__pyx_v_op_string, P
     }
     goto __pyx_L5_except_error;
 
-    /* "xtrack/sequence/parser.py":607
+    /* "xtrack/sequence/parser.py":606
  * @cy.exceptval(check=False)
  * def py_unary_op(scanner, op_string, value):
  *     try:             # <<<<<<<<<<<<<<
@@ -21134,7 +21109,7 @@ PyObject *py_unary_op(yyscan_t __pyx_v_scanner, char const *__pyx_v_op_string, P
     __Pyx_ExceptionReset(__pyx_t_1, __pyx_t_2, __pyx_t_3);
   }
 
-  /* "xtrack/sequence/parser.py":605
+  /* "xtrack/sequence/parser.py":604
  * 
  * 
  * @cy.exceptval(check=False)             # <<<<<<<<<<<<<<
@@ -21160,7 +21135,7 @@ PyObject *py_unary_op(yyscan_t __pyx_v_scanner, char const *__pyx_v_op_string, P
   return __pyx_r;
 }
 
-/* "xtrack/sequence/parser.py":614
+/* "xtrack/sequence/parser.py":613
  * 
  * 
  * @cy.exceptval(check=False)             # <<<<<<<<<<<<<<
@@ -21195,7 +21170,7 @@ PyObject *py_binary_op(yyscan_t __pyx_v_scanner, char const *__pyx_v_op_string, 
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("py_binary_op", 1);
 
-  /* "xtrack/sequence/parser.py":616
+  /* "xtrack/sequence/parser.py":615
  * @cy.exceptval(check=False)
  * def py_binary_op(scanner, op_string, left, right):
  *     try:             # <<<<<<<<<<<<<<
@@ -21211,26 +21186,26 @@ PyObject *py_binary_op(yyscan_t __pyx_v_scanner, char const *__pyx_v_op_string, 
     __Pyx_XGOTREF(__pyx_t_3);
     /*try:*/ {
 
-      /* "xtrack/sequence/parser.py":617
+      /* "xtrack/sequence/parser.py":616
  * def py_binary_op(scanner, op_string, left, right):
  *     try:
  *         function = getattr(operator, op_string.decode())             # <<<<<<<<<<<<<<
  *         return function(left, right)
  *     except Exception as e:
  */
-      __Pyx_GetModuleGlobalName(__pyx_t_4, __pyx_n_s_operator); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 617, __pyx_L3_error)
+      __Pyx_GetModuleGlobalName(__pyx_t_4, __pyx_n_s_operator); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 616, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_4);
-      __pyx_t_5 = __Pyx_ssize_strlen(__pyx_v_op_string); if (unlikely(__pyx_t_5 == ((Py_ssize_t)-1))) __PYX_ERR(0, 617, __pyx_L3_error)
-      __pyx_t_6 = __Pyx_decode_c_string(__pyx_v_op_string, 0, __pyx_t_5, NULL, NULL, NULL); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 617, __pyx_L3_error)
+      __pyx_t_5 = __Pyx_ssize_strlen(__pyx_v_op_string); if (unlikely(__pyx_t_5 == ((Py_ssize_t)-1))) __PYX_ERR(0, 616, __pyx_L3_error)
+      __pyx_t_6 = __Pyx_decode_c_string(__pyx_v_op_string, 0, __pyx_t_5, NULL, NULL, NULL); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 616, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_6);
-      __pyx_t_7 = __Pyx_GetAttr(__pyx_t_4, __pyx_t_6); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 617, __pyx_L3_error)
+      __pyx_t_7 = __Pyx_GetAttr(__pyx_t_4, __pyx_t_6); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 616, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_7);
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
       __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
       __pyx_v_function = __pyx_t_7;
       __pyx_t_7 = 0;
 
-      /* "xtrack/sequence/parser.py":618
+      /* "xtrack/sequence/parser.py":617
  *     try:
  *         function = getattr(operator, op_string.decode())
  *         return function(left, right)             # <<<<<<<<<<<<<<
@@ -21257,7 +21232,7 @@ PyObject *py_binary_op(yyscan_t __pyx_v_scanner, char const *__pyx_v_op_string, 
         PyObject *__pyx_callargs[3] = {__pyx_t_4, __pyx_v_left, __pyx_v_right};
         __pyx_t_7 = __Pyx_PyObject_FastCall(__pyx_t_6, __pyx_callargs+1-__pyx_t_8, 2+__pyx_t_8);
         __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
-        if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 618, __pyx_L3_error)
+        if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 617, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_7);
         __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
       }
@@ -21265,7 +21240,7 @@ PyObject *py_binary_op(yyscan_t __pyx_v_scanner, char const *__pyx_v_op_string, 
       __pyx_t_7 = 0;
       goto __pyx_L7_try_return;
 
-      /* "xtrack/sequence/parser.py":616
+      /* "xtrack/sequence/parser.py":615
  * @cy.exceptval(check=False)
  * def py_binary_op(scanner, op_string, left, right):
  *     try:             # <<<<<<<<<<<<<<
@@ -21278,7 +21253,7 @@ PyObject *py_binary_op(yyscan_t __pyx_v_scanner, char const *__pyx_v_op_string, 
     __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
     __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
 
-    /* "xtrack/sequence/parser.py":619
+    /* "xtrack/sequence/parser.py":618
  *         function = getattr(operator, op_string.decode())
  *         return function(left, right)
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -21288,7 +21263,7 @@ PyObject *py_binary_op(yyscan_t __pyx_v_scanner, char const *__pyx_v_op_string, 
     __pyx_t_8 = __Pyx_PyErr_ExceptionMatches(((PyObject *)(&((PyTypeObject*)PyExc_Exception)[0])));
     if (__pyx_t_8) {
       __Pyx_AddTraceback("xtrack.sequence.parser.py_binary_op", __pyx_clineno, __pyx_lineno, __pyx_filename);
-      if (__Pyx_GetException(&__pyx_t_7, &__pyx_t_6, &__pyx_t_4) < 0) __PYX_ERR(0, 619, __pyx_L5_except_error)
+      if (__Pyx_GetException(&__pyx_t_7, &__pyx_t_6, &__pyx_t_4) < 0) __PYX_ERR(0, 618, __pyx_L5_except_error)
       __Pyx_XGOTREF(__pyx_t_7);
       __Pyx_XGOTREF(__pyx_t_6);
       __Pyx_XGOTREF(__pyx_t_4);
@@ -21296,19 +21271,19 @@ PyObject *py_binary_op(yyscan_t __pyx_v_scanner, char const *__pyx_v_op_string, 
       __pyx_v_e = __pyx_t_6;
       /*try:*/ {
 
-        /* "xtrack/sequence/parser.py":620
+        /* "xtrack/sequence/parser.py":619
  *         return function(left, right)
  *     except Exception as e:
  *         register_error(scanner, e, f'parsing a binary operation')             # <<<<<<<<<<<<<<
  * 
  * 
  */
-        __pyx_t_9 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_a_binary_operation, NULL); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 620, __pyx_L14_error)
+        __pyx_t_9 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_a_binary_operation, NULL); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 619, __pyx_L14_error)
         __Pyx_GOTREF(__pyx_t_9);
         __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
       }
 
-      /* "xtrack/sequence/parser.py":619
+      /* "xtrack/sequence/parser.py":618
  *         function = getattr(operator, op_string.decode())
  *         return function(left, right)
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -21361,7 +21336,7 @@ PyObject *py_binary_op(yyscan_t __pyx_v_scanner, char const *__pyx_v_op_string, 
     }
     goto __pyx_L5_except_error;
 
-    /* "xtrack/sequence/parser.py":616
+    /* "xtrack/sequence/parser.py":615
  * @cy.exceptval(check=False)
  * def py_binary_op(scanner, op_string, left, right):
  *     try:             # <<<<<<<<<<<<<<
@@ -21387,7 +21362,7 @@ PyObject *py_binary_op(yyscan_t __pyx_v_scanner, char const *__pyx_v_op_string, 
     __Pyx_ExceptionReset(__pyx_t_1, __pyx_t_2, __pyx_t_3);
   }
 
-  /* "xtrack/sequence/parser.py":614
+  /* "xtrack/sequence/parser.py":613
  * 
  * 
  * @cy.exceptval(check=False)             # <<<<<<<<<<<<<<
@@ -21413,7 +21388,7 @@ PyObject *py_binary_op(yyscan_t __pyx_v_scanner, char const *__pyx_v_op_string, 
   return __pyx_r;
 }
 
-/* "xtrack/sequence/parser.py":623
+/* "xtrack/sequence/parser.py":622
  * 
  * 
  * @cy.exceptval(check=False)             # <<<<<<<<<<<<<<
@@ -21451,7 +21426,7 @@ PyObject *py_call_func(yyscan_t __pyx_v_scanner, char const *__pyx_v_func_name, 
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("py_call_func", 1);
 
-  /* "xtrack/sequence/parser.py":625
+  /* "xtrack/sequence/parser.py":624
  * @cy.exceptval(check=False)
  * def py_call_func(scanner, func_name, value):
  *     try:             # <<<<<<<<<<<<<<
@@ -21467,30 +21442,30 @@ PyObject *py_call_func(yyscan_t __pyx_v_scanner, char const *__pyx_v_func_name, 
     __Pyx_XGOTREF(__pyx_t_3);
     /*try:*/ {
 
-      /* "xtrack/sequence/parser.py":626
+      /* "xtrack/sequence/parser.py":625
  * def py_call_func(scanner, func_name, value):
  *     try:
  *         name = func_name.decode()             # <<<<<<<<<<<<<<
  *         if name == 'const':
  *             return value._value if xd.refs.is_ref(value) else value
  */
-      __pyx_t_4 = __Pyx_ssize_strlen(__pyx_v_func_name); if (unlikely(__pyx_t_4 == ((Py_ssize_t)-1))) __PYX_ERR(0, 626, __pyx_L3_error)
-      __pyx_t_5 = __Pyx_decode_c_string(__pyx_v_func_name, 0, __pyx_t_4, NULL, NULL, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 626, __pyx_L3_error)
+      __pyx_t_4 = __Pyx_ssize_strlen(__pyx_v_func_name); if (unlikely(__pyx_t_4 == ((Py_ssize_t)-1))) __PYX_ERR(0, 625, __pyx_L3_error)
+      __pyx_t_5 = __Pyx_decode_c_string(__pyx_v_func_name, 0, __pyx_t_4, NULL, NULL, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 625, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_5);
       __pyx_v_name = __pyx_t_5;
       __pyx_t_5 = 0;
 
-      /* "xtrack/sequence/parser.py":627
+      /* "xtrack/sequence/parser.py":626
  *     try:
  *         name = func_name.decode()
  *         if name == 'const':             # <<<<<<<<<<<<<<
  *             return value._value if xd.refs.is_ref(value) else value
  * 
  */
-      __pyx_t_6 = (__Pyx_PyUnicode_Equals(__pyx_v_name, __pyx_n_u_const, Py_EQ)); if (unlikely((__pyx_t_6 < 0))) __PYX_ERR(0, 627, __pyx_L3_error)
+      __pyx_t_6 = (__Pyx_PyUnicode_Equals(__pyx_v_name, __pyx_n_u_const, Py_EQ)); if (unlikely((__pyx_t_6 < 0))) __PYX_ERR(0, 626, __pyx_L3_error)
       if (__pyx_t_6) {
 
-        /* "xtrack/sequence/parser.py":628
+        /* "xtrack/sequence/parser.py":627
  *         name = func_name.decode()
  *         if name == 'const':
  *             return value._value if xd.refs.is_ref(value) else value             # <<<<<<<<<<<<<<
@@ -21498,12 +21473,12 @@ PyObject *py_call_func(yyscan_t __pyx_v_scanner, char const *__pyx_v_func_name, 
  *         parser = parser_from_scanner(scanner)
  */
         __Pyx_XDECREF(__pyx_r);
-        __Pyx_GetModuleGlobalName(__pyx_t_8, __pyx_n_s_xd); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 628, __pyx_L3_error)
+        __Pyx_GetModuleGlobalName(__pyx_t_8, __pyx_n_s_xd); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 627, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_8);
-        __pyx_t_9 = __Pyx_PyObject_GetAttrStr(__pyx_t_8, __pyx_n_s_refs); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 628, __pyx_L3_error)
+        __pyx_t_9 = __Pyx_PyObject_GetAttrStr(__pyx_t_8, __pyx_n_s_refs); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 627, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_9);
         __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
-        __pyx_t_8 = __Pyx_PyObject_GetAttrStr(__pyx_t_9, __pyx_n_s_is_ref); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 628, __pyx_L3_error)
+        __pyx_t_8 = __Pyx_PyObject_GetAttrStr(__pyx_t_9, __pyx_n_s_is_ref); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 627, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_8);
         __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
         __pyx_t_9 = NULL;
@@ -21524,14 +21499,14 @@ PyObject *py_call_func(yyscan_t __pyx_v_scanner, char const *__pyx_v_func_name, 
           PyObject *__pyx_callargs[2] = {__pyx_t_9, __pyx_v_value};
           __pyx_t_7 = __Pyx_PyObject_FastCall(__pyx_t_8, __pyx_callargs+1-__pyx_t_10, 1+__pyx_t_10);
           __Pyx_XDECREF(__pyx_t_9); __pyx_t_9 = 0;
-          if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 628, __pyx_L3_error)
+          if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 627, __pyx_L3_error)
           __Pyx_GOTREF(__pyx_t_7);
           __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
         }
-        __pyx_t_6 = __Pyx_PyObject_IsTrue(__pyx_t_7); if (unlikely((__pyx_t_6 < 0))) __PYX_ERR(0, 628, __pyx_L3_error)
+        __pyx_t_6 = __Pyx_PyObject_IsTrue(__pyx_t_7); if (unlikely((__pyx_t_6 < 0))) __PYX_ERR(0, 627, __pyx_L3_error)
         __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
         if (__pyx_t_6) {
-          __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_v_value, __pyx_n_s_value); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 628, __pyx_L3_error)
+          __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_v_value, __pyx_n_s_value); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 627, __pyx_L3_error)
           __Pyx_GOTREF(__pyx_t_7);
           __pyx_t_5 = __pyx_t_7;
           __pyx_t_7 = 0;
@@ -21543,7 +21518,7 @@ PyObject *py_call_func(yyscan_t __pyx_v_scanner, char const *__pyx_v_func_name, 
         __pyx_t_5 = 0;
         goto __pyx_L7_try_return;
 
-        /* "xtrack/sequence/parser.py":627
+        /* "xtrack/sequence/parser.py":626
  *     try:
  *         name = func_name.decode()
  *         if name == 'const':             # <<<<<<<<<<<<<<
@@ -21552,52 +21527,52 @@ PyObject *py_call_func(yyscan_t __pyx_v_scanner, char const *__pyx_v_func_name, 
  */
       }
 
-      /* "xtrack/sequence/parser.py":630
+      /* "xtrack/sequence/parser.py":629
  *             return value._value if xd.refs.is_ref(value) else value
  * 
  *         parser = parser_from_scanner(scanner)             # <<<<<<<<<<<<<<
  *         if name not in parser.functions:
  *             parser_from_scanner(scanner).handle_error(
  */
-      __pyx_t_5 = __pyx_f_6xtrack_8sequence_6parser_parser_from_scanner(__pyx_v_scanner); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 630, __pyx_L3_error)
+      __pyx_t_5 = __pyx_f_6xtrack_8sequence_6parser_parser_from_scanner(__pyx_v_scanner); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 629, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_5);
       __pyx_v_parser = __pyx_t_5;
       __pyx_t_5 = 0;
 
-      /* "xtrack/sequence/parser.py":631
+      /* "xtrack/sequence/parser.py":630
  * 
  *         parser = parser_from_scanner(scanner)
  *         if name not in parser.functions:             # <<<<<<<<<<<<<<
  *             parser_from_scanner(scanner).handle_error(
  *                 f'builtin function `{name}` is unknown',
  */
-      __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_parser, __pyx_n_s_functions); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 631, __pyx_L3_error)
+      __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_parser, __pyx_n_s_functions); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 630, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_5);
-      __pyx_t_6 = (__Pyx_PySequence_ContainsTF(__pyx_v_name, __pyx_t_5, Py_NE)); if (unlikely((__pyx_t_6 < 0))) __PYX_ERR(0, 631, __pyx_L3_error)
+      __pyx_t_6 = (__Pyx_PySequence_ContainsTF(__pyx_v_name, __pyx_t_5, Py_NE)); if (unlikely((__pyx_t_6 < 0))) __PYX_ERR(0, 630, __pyx_L3_error)
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
       if (__pyx_t_6) {
 
-        /* "xtrack/sequence/parser.py":632
+        /* "xtrack/sequence/parser.py":631
  *         parser = parser_from_scanner(scanner)
  *         if name not in parser.functions:
  *             parser_from_scanner(scanner).handle_error(             # <<<<<<<<<<<<<<
  *                 f'builtin function `{name}` is unknown',
  *             )
  */
-        __pyx_t_7 = __pyx_f_6xtrack_8sequence_6parser_parser_from_scanner(__pyx_v_scanner); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 632, __pyx_L3_error)
+        __pyx_t_7 = __pyx_f_6xtrack_8sequence_6parser_parser_from_scanner(__pyx_v_scanner); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 631, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_7);
-        __pyx_t_8 = __Pyx_PyObject_GetAttrStr(__pyx_t_7, __pyx_n_s_handle_error); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 632, __pyx_L3_error)
+        __pyx_t_8 = __Pyx_PyObject_GetAttrStr(__pyx_t_7, __pyx_n_s_handle_error); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 631, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_8);
         __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
 
-        /* "xtrack/sequence/parser.py":633
+        /* "xtrack/sequence/parser.py":632
  *         if name not in parser.functions:
  *             parser_from_scanner(scanner).handle_error(
  *                 f'builtin function `{name}` is unknown',             # <<<<<<<<<<<<<<
  *             )
  *             return np.nan
  */
-        __pyx_t_7 = PyTuple_New(3); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 633, __pyx_L3_error)
+        __pyx_t_7 = PyTuple_New(3); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 632, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_7);
         __pyx_t_4 = 0;
         __pyx_t_11 = 127;
@@ -21605,7 +21580,7 @@ PyObject *py_call_func(yyscan_t __pyx_v_scanner, char const *__pyx_v_func_name, 
         __pyx_t_4 += 18;
         __Pyx_GIVEREF(__pyx_kp_u_builtin_function);
         PyTuple_SET_ITEM(__pyx_t_7, 0, __pyx_kp_u_builtin_function);
-        __pyx_t_9 = __Pyx_PyObject_FormatSimple(__pyx_v_name, __pyx_empty_unicode); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 633, __pyx_L3_error)
+        __pyx_t_9 = __Pyx_PyObject_FormatSimple(__pyx_v_name, __pyx_empty_unicode); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 632, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_9);
         __pyx_t_11 = (__Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_9) > __pyx_t_11) ? __Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_9) : __pyx_t_11;
         __pyx_t_4 += __Pyx_PyUnicode_GET_LENGTH(__pyx_t_9);
@@ -21616,7 +21591,7 @@ PyObject *py_call_func(yyscan_t __pyx_v_scanner, char const *__pyx_v_func_name, 
         __pyx_t_4 += 12;
         __Pyx_GIVEREF(__pyx_kp_u_is_unknown);
         PyTuple_SET_ITEM(__pyx_t_7, 2, __pyx_kp_u_is_unknown);
-        __pyx_t_9 = __Pyx_PyUnicode_Join(__pyx_t_7, 3, __pyx_t_4, __pyx_t_11); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 633, __pyx_L3_error)
+        __pyx_t_9 = __Pyx_PyUnicode_Join(__pyx_t_7, 3, __pyx_t_4, __pyx_t_11); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 632, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_9);
         __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
         __pyx_t_7 = NULL;
@@ -21638,13 +21613,13 @@ PyObject *py_call_func(yyscan_t __pyx_v_scanner, char const *__pyx_v_func_name, 
           __pyx_t_5 = __Pyx_PyObject_FastCall(__pyx_t_8, __pyx_callargs+1-__pyx_t_10, 1+__pyx_t_10);
           __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
           __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-          if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 632, __pyx_L3_error)
+          if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 631, __pyx_L3_error)
           __Pyx_GOTREF(__pyx_t_5);
           __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
         }
         __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
 
-        /* "xtrack/sequence/parser.py":635
+        /* "xtrack/sequence/parser.py":634
  *                 f'builtin function `{name}` is unknown',
  *             )
  *             return np.nan             # <<<<<<<<<<<<<<
@@ -21652,16 +21627,16 @@ PyObject *py_call_func(yyscan_t __pyx_v_scanner, char const *__pyx_v_func_name, 
  *         return getattr(parser.func_refs, name)(value)
  */
         __Pyx_XDECREF(__pyx_r);
-        __Pyx_GetModuleGlobalName(__pyx_t_5, __pyx_n_s_np); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 635, __pyx_L3_error)
+        __Pyx_GetModuleGlobalName(__pyx_t_5, __pyx_n_s_np); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 634, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_5);
-        __pyx_t_8 = __Pyx_PyObject_GetAttrStr(__pyx_t_5, __pyx_n_s_nan); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 635, __pyx_L3_error)
+        __pyx_t_8 = __Pyx_PyObject_GetAttrStr(__pyx_t_5, __pyx_n_s_nan); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 634, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_8);
         __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
         __pyx_r = __pyx_t_8;
         __pyx_t_8 = 0;
         goto __pyx_L7_try_return;
 
-        /* "xtrack/sequence/parser.py":631
+        /* "xtrack/sequence/parser.py":630
  * 
  *         parser = parser_from_scanner(scanner)
  *         if name not in parser.functions:             # <<<<<<<<<<<<<<
@@ -21670,7 +21645,7 @@ PyObject *py_call_func(yyscan_t __pyx_v_scanner, char const *__pyx_v_func_name, 
  */
       }
 
-      /* "xtrack/sequence/parser.py":637
+      /* "xtrack/sequence/parser.py":636
  *             return np.nan
  * 
  *         return getattr(parser.func_refs, name)(value)             # <<<<<<<<<<<<<<
@@ -21678,9 +21653,9 @@ PyObject *py_call_func(yyscan_t __pyx_v_scanner, char const *__pyx_v_func_name, 
  *         register_error(scanner, e, f'parsing a function call')
  */
       __Pyx_XDECREF(__pyx_r);
-      __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_parser, __pyx_n_s_func_refs); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 637, __pyx_L3_error)
+      __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_parser, __pyx_n_s_func_refs); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 636, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_5);
-      __pyx_t_9 = __Pyx_GetAttr(__pyx_t_5, __pyx_v_name); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 637, __pyx_L3_error)
+      __pyx_t_9 = __Pyx_GetAttr(__pyx_t_5, __pyx_v_name); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 636, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_9);
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
       __pyx_t_5 = NULL;
@@ -21701,7 +21676,7 @@ PyObject *py_call_func(yyscan_t __pyx_v_scanner, char const *__pyx_v_func_name, 
         PyObject *__pyx_callargs[2] = {__pyx_t_5, __pyx_v_value};
         __pyx_t_8 = __Pyx_PyObject_FastCall(__pyx_t_9, __pyx_callargs+1-__pyx_t_10, 1+__pyx_t_10);
         __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
-        if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 637, __pyx_L3_error)
+        if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 636, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_8);
         __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
       }
@@ -21709,7 +21684,7 @@ PyObject *py_call_func(yyscan_t __pyx_v_scanner, char const *__pyx_v_func_name, 
       __pyx_t_8 = 0;
       goto __pyx_L7_try_return;
 
-      /* "xtrack/sequence/parser.py":625
+      /* "xtrack/sequence/parser.py":624
  * @cy.exceptval(check=False)
  * def py_call_func(scanner, func_name, value):
  *     try:             # <<<<<<<<<<<<<<
@@ -21723,7 +21698,7 @@ PyObject *py_call_func(yyscan_t __pyx_v_scanner, char const *__pyx_v_func_name, 
     __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
     __Pyx_XDECREF(__pyx_t_9); __pyx_t_9 = 0;
 
-    /* "xtrack/sequence/parser.py":638
+    /* "xtrack/sequence/parser.py":637
  * 
  *         return getattr(parser.func_refs, name)(value)
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -21733,7 +21708,7 @@ PyObject *py_call_func(yyscan_t __pyx_v_scanner, char const *__pyx_v_func_name, 
     __pyx_t_10 = __Pyx_PyErr_ExceptionMatches(((PyObject *)(&((PyTypeObject*)PyExc_Exception)[0])));
     if (__pyx_t_10) {
       __Pyx_AddTraceback("xtrack.sequence.parser.py_call_func", __pyx_clineno, __pyx_lineno, __pyx_filename);
-      if (__Pyx_GetException(&__pyx_t_8, &__pyx_t_9, &__pyx_t_5) < 0) __PYX_ERR(0, 638, __pyx_L5_except_error)
+      if (__Pyx_GetException(&__pyx_t_8, &__pyx_t_9, &__pyx_t_5) < 0) __PYX_ERR(0, 637, __pyx_L5_except_error)
       __Pyx_XGOTREF(__pyx_t_8);
       __Pyx_XGOTREF(__pyx_t_9);
       __Pyx_XGOTREF(__pyx_t_5);
@@ -21741,19 +21716,19 @@ PyObject *py_call_func(yyscan_t __pyx_v_scanner, char const *__pyx_v_func_name, 
       __pyx_v_e = __pyx_t_9;
       /*try:*/ {
 
-        /* "xtrack/sequence/parser.py":639
+        /* "xtrack/sequence/parser.py":638
  *         return getattr(parser.func_refs, name)(value)
  *     except Exception as e:
  *         register_error(scanner, e, f'parsing a function call')             # <<<<<<<<<<<<<<
  * 
  * 
  */
-        __pyx_t_7 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_a_function_call, NULL); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 639, __pyx_L16_error)
+        __pyx_t_7 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_a_function_call, NULL); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 638, __pyx_L16_error)
         __Pyx_GOTREF(__pyx_t_7);
         __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
       }
 
-      /* "xtrack/sequence/parser.py":638
+      /* "xtrack/sequence/parser.py":637
  * 
  *         return getattr(parser.func_refs, name)(value)
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -21806,7 +21781,7 @@ PyObject *py_call_func(yyscan_t __pyx_v_scanner, char const *__pyx_v_func_name, 
     }
     goto __pyx_L5_except_error;
 
-    /* "xtrack/sequence/parser.py":625
+    /* "xtrack/sequence/parser.py":624
  * @cy.exceptval(check=False)
  * def py_call_func(scanner, func_name, value):
  *     try:             # <<<<<<<<<<<<<<
@@ -21832,7 +21807,7 @@ PyObject *py_call_func(yyscan_t __pyx_v_scanner, char const *__pyx_v_func_name, 
     __Pyx_ExceptionReset(__pyx_t_1, __pyx_t_2, __pyx_t_3);
   }
 
-  /* "xtrack/sequence/parser.py":623
+  /* "xtrack/sequence/parser.py":622
  * 
  * 
  * @cy.exceptval(check=False)             # <<<<<<<<<<<<<<
@@ -21859,7 +21834,7 @@ PyObject *py_call_func(yyscan_t __pyx_v_scanner, char const *__pyx_v_func_name, 
   return __pyx_r;
 }
 
-/* "xtrack/sequence/parser.py":642
+/* "xtrack/sequence/parser.py":641
  * 
  * 
  * def py_assign(scanner, identifier, value):             # <<<<<<<<<<<<<<
@@ -21893,7 +21868,7 @@ PyObject *py_assign(yyscan_t __pyx_v_scanner, char const *__pyx_v_identifier, Py
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("py_assign", 1);
 
-  /* "xtrack/sequence/parser.py":643
+  /* "xtrack/sequence/parser.py":642
  * 
  * def py_assign(scanner, identifier, value):
  *     try:             # <<<<<<<<<<<<<<
@@ -21909,7 +21884,7 @@ PyObject *py_assign(yyscan_t __pyx_v_scanner, char const *__pyx_v_identifier, Py
     __Pyx_XGOTREF(__pyx_t_3);
     /*try:*/ {
 
-      /* "xtrack/sequence/parser.py":644
+      /* "xtrack/sequence/parser.py":643
  * def py_assign(scanner, identifier, value):
  *     try:
  *         return identifier.decode(), value             # <<<<<<<<<<<<<<
@@ -21917,22 +21892,22 @@ PyObject *py_assign(yyscan_t __pyx_v_scanner, char const *__pyx_v_identifier, Py
  *         register_error(scanner, e, f'parsing an assignment')
  */
       __Pyx_XDECREF(__pyx_r);
-      __pyx_t_4 = __Pyx_ssize_strlen(__pyx_v_identifier); if (unlikely(__pyx_t_4 == ((Py_ssize_t)-1))) __PYX_ERR(0, 644, __pyx_L3_error)
-      __pyx_t_5 = __Pyx_decode_c_string(__pyx_v_identifier, 0, __pyx_t_4, NULL, NULL, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 644, __pyx_L3_error)
+      __pyx_t_4 = __Pyx_ssize_strlen(__pyx_v_identifier); if (unlikely(__pyx_t_4 == ((Py_ssize_t)-1))) __PYX_ERR(0, 643, __pyx_L3_error)
+      __pyx_t_5 = __Pyx_decode_c_string(__pyx_v_identifier, 0, __pyx_t_4, NULL, NULL, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 643, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_5);
-      __pyx_t_6 = PyTuple_New(2); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 644, __pyx_L3_error)
+      __pyx_t_6 = PyTuple_New(2); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 643, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_6);
       __Pyx_GIVEREF(__pyx_t_5);
-      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_6, 0, __pyx_t_5)) __PYX_ERR(0, 644, __pyx_L3_error);
+      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_6, 0, __pyx_t_5)) __PYX_ERR(0, 643, __pyx_L3_error);
       __Pyx_INCREF(__pyx_v_value);
       __Pyx_GIVEREF(__pyx_v_value);
-      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_6, 1, __pyx_v_value)) __PYX_ERR(0, 644, __pyx_L3_error);
+      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_6, 1, __pyx_v_value)) __PYX_ERR(0, 643, __pyx_L3_error);
       __pyx_t_5 = 0;
       __pyx_r = ((PyObject*)__pyx_t_6);
       __pyx_t_6 = 0;
       goto __pyx_L7_try_return;
 
-      /* "xtrack/sequence/parser.py":643
+      /* "xtrack/sequence/parser.py":642
  * 
  * def py_assign(scanner, identifier, value):
  *     try:             # <<<<<<<<<<<<<<
@@ -21944,7 +21919,7 @@ PyObject *py_assign(yyscan_t __pyx_v_scanner, char const *__pyx_v_identifier, Py
     __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
     __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
 
-    /* "xtrack/sequence/parser.py":645
+    /* "xtrack/sequence/parser.py":644
  *     try:
  *         return identifier.decode(), value
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -21954,7 +21929,7 @@ PyObject *py_assign(yyscan_t __pyx_v_scanner, char const *__pyx_v_identifier, Py
     __pyx_t_7 = __Pyx_PyErr_ExceptionMatches(((PyObject *)(&((PyTypeObject*)PyExc_Exception)[0])));
     if (__pyx_t_7) {
       __Pyx_AddTraceback("xtrack.sequence.parser.py_assign", __pyx_clineno, __pyx_lineno, __pyx_filename);
-      if (__Pyx_GetException(&__pyx_t_6, &__pyx_t_5, &__pyx_t_8) < 0) __PYX_ERR(0, 645, __pyx_L5_except_error)
+      if (__Pyx_GetException(&__pyx_t_6, &__pyx_t_5, &__pyx_t_8) < 0) __PYX_ERR(0, 644, __pyx_L5_except_error)
       __Pyx_XGOTREF(__pyx_t_6);
       __Pyx_XGOTREF(__pyx_t_5);
       __Pyx_XGOTREF(__pyx_t_8);
@@ -21962,19 +21937,19 @@ PyObject *py_assign(yyscan_t __pyx_v_scanner, char const *__pyx_v_identifier, Py
       __pyx_v_e = __pyx_t_5;
       /*try:*/ {
 
-        /* "xtrack/sequence/parser.py":646
+        /* "xtrack/sequence/parser.py":645
  *         return identifier.decode(), value
  *     except Exception as e:
  *         register_error(scanner, e, f'parsing an assignment')             # <<<<<<<<<<<<<<
  * 
  * 
  */
-        __pyx_t_9 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_an_assignment, NULL); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 646, __pyx_L14_error)
+        __pyx_t_9 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_an_assignment, NULL); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 645, __pyx_L14_error)
         __Pyx_GOTREF(__pyx_t_9);
         __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
       }
 
-      /* "xtrack/sequence/parser.py":645
+      /* "xtrack/sequence/parser.py":644
  *     try:
  *         return identifier.decode(), value
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -22027,7 +22002,7 @@ PyObject *py_assign(yyscan_t __pyx_v_scanner, char const *__pyx_v_identifier, Py
     }
     goto __pyx_L5_except_error;
 
-    /* "xtrack/sequence/parser.py":643
+    /* "xtrack/sequence/parser.py":642
  * 
  * def py_assign(scanner, identifier, value):
  *     try:             # <<<<<<<<<<<<<<
@@ -22053,7 +22028,7 @@ PyObject *py_assign(yyscan_t __pyx_v_scanner, char const *__pyx_v_identifier, Py
     __Pyx_ExceptionReset(__pyx_t_1, __pyx_t_2, __pyx_t_3);
   }
 
-  /* "xtrack/sequence/parser.py":642
+  /* "xtrack/sequence/parser.py":641
  * 
  * 
  * def py_assign(scanner, identifier, value):             # <<<<<<<<<<<<<<
@@ -22078,7 +22053,7 @@ PyObject *py_assign(yyscan_t __pyx_v_scanner, char const *__pyx_v_identifier, Py
   return __pyx_r;
 }
 
-/* "xtrack/sequence/parser.py":649
+/* "xtrack/sequence/parser.py":648
  * 
  * 
  * def py_arrow(scanner, source_name, field_name):             # <<<<<<<<<<<<<<
@@ -22099,26 +22074,26 @@ PyObject *py_arrow(yyscan_t __pyx_v_scanner, CYTHON_UNUSED char const *__pyx_v_s
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("py_arrow", 1);
 
-  /* "xtrack/sequence/parser.py":650
+  /* "xtrack/sequence/parser.py":649
  * 
  * def py_arrow(scanner, source_name, field_name):
  *     parser = parser_from_scanner(scanner)             # <<<<<<<<<<<<<<
  *     parser.handle_error(
  *         'expressions with -> are not yet implemented'
  */
-  __pyx_t_1 = __pyx_f_6xtrack_8sequence_6parser_parser_from_scanner(__pyx_v_scanner); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 650, __pyx_L1_error)
+  __pyx_t_1 = __pyx_f_6xtrack_8sequence_6parser_parser_from_scanner(__pyx_v_scanner); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 649, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_v_parser = __pyx_t_1;
   __pyx_t_1 = 0;
 
-  /* "xtrack/sequence/parser.py":651
+  /* "xtrack/sequence/parser.py":650
  * def py_arrow(scanner, source_name, field_name):
  *     parser = parser_from_scanner(scanner)
  *     parser.handle_error(             # <<<<<<<<<<<<<<
  *         'expressions with -> are not yet implemented'
  *     )
  */
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_parser, __pyx_n_s_handle_error); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 651, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_parser, __pyx_n_s_handle_error); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 650, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __pyx_t_3 = NULL;
   __pyx_t_4 = 0;
@@ -22138,13 +22113,13 @@ PyObject *py_arrow(yyscan_t __pyx_v_scanner, CYTHON_UNUSED char const *__pyx_v_s
     PyObject *__pyx_callargs[2] = {__pyx_t_3, __pyx_kp_u_expressions_with_are_not_yet_imp};
     __pyx_t_1 = __Pyx_PyObject_FastCall(__pyx_t_2, __pyx_callargs+1-__pyx_t_4, 1+__pyx_t_4);
     __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
-    if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 651, __pyx_L1_error)
+    if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 650, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   }
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "xtrack/sequence/parser.py":649
+  /* "xtrack/sequence/parser.py":648
  * 
  * 
  * def py_arrow(scanner, source_name, field_name):             # <<<<<<<<<<<<<<
@@ -22168,7 +22143,7 @@ PyObject *py_arrow(yyscan_t __pyx_v_scanner, CYTHON_UNUSED char const *__pyx_v_s
   return __pyx_r;
 }
 
-/* "xtrack/sequence/parser.py":656
+/* "xtrack/sequence/parser.py":655
  * 
  * 
  * def py_identifier_atom(scanner, name, location):             # <<<<<<<<<<<<<<
@@ -22205,7 +22180,7 @@ PyObject *py_identifier_atom(yyscan_t __pyx_v_scanner, char const *__pyx_v_name,
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("py_identifier_atom", 1);
 
-  /* "xtrack/sequence/parser.py":657
+  /* "xtrack/sequence/parser.py":656
  * 
  * def py_identifier_atom(scanner, name, location):
  *     try:             # <<<<<<<<<<<<<<
@@ -22221,19 +22196,19 @@ PyObject *py_identifier_atom(yyscan_t __pyx_v_scanner, char const *__pyx_v_name,
     __Pyx_XGOTREF(__pyx_t_3);
     /*try:*/ {
 
-      /* "xtrack/sequence/parser.py":658
+      /* "xtrack/sequence/parser.py":657
  * def py_identifier_atom(scanner, name, location):
  *     try:
  *         parser = parser_from_scanner(scanner)             # <<<<<<<<<<<<<<
  *         return parser.get_identifier_ref(name.decode(), location)
  *     except Exception as e:
  */
-      __pyx_t_4 = __pyx_f_6xtrack_8sequence_6parser_parser_from_scanner(__pyx_v_scanner); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 658, __pyx_L3_error)
+      __pyx_t_4 = __pyx_f_6xtrack_8sequence_6parser_parser_from_scanner(__pyx_v_scanner); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 657, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_4);
       __pyx_v_parser = __pyx_t_4;
       __pyx_t_4 = 0;
 
-      /* "xtrack/sequence/parser.py":659
+      /* "xtrack/sequence/parser.py":658
  *     try:
  *         parser = parser_from_scanner(scanner)
  *         return parser.get_identifier_ref(name.decode(), location)             # <<<<<<<<<<<<<<
@@ -22241,12 +22216,12 @@ PyObject *py_identifier_atom(yyscan_t __pyx_v_scanner, char const *__pyx_v_name,
  *         register_error(
  */
       __Pyx_XDECREF(__pyx_r);
-      __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_parser, __pyx_n_s_get_identifier_ref); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 659, __pyx_L3_error)
+      __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_parser, __pyx_n_s_get_identifier_ref); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 658, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_5);
-      __pyx_t_6 = __Pyx_ssize_strlen(__pyx_v_name); if (unlikely(__pyx_t_6 == ((Py_ssize_t)-1))) __PYX_ERR(0, 659, __pyx_L3_error)
-      __pyx_t_7 = __Pyx_decode_c_string(__pyx_v_name, 0, __pyx_t_6, NULL, NULL, NULL); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 659, __pyx_L3_error)
+      __pyx_t_6 = __Pyx_ssize_strlen(__pyx_v_name); if (unlikely(__pyx_t_6 == ((Py_ssize_t)-1))) __PYX_ERR(0, 658, __pyx_L3_error)
+      __pyx_t_7 = __Pyx_decode_c_string(__pyx_v_name, 0, __pyx_t_6, NULL, NULL, NULL); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 658, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_7);
-      __pyx_t_8 = __pyx_convert__to_py_YYLTYPE(__pyx_v_location); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 659, __pyx_L3_error)
+      __pyx_t_8 = __pyx_convert__to_py_YYLTYPE(__pyx_v_location); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 658, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_8);
       __pyx_t_9 = NULL;
       __pyx_t_10 = 0;
@@ -22268,7 +22243,7 @@ PyObject *py_identifier_atom(yyscan_t __pyx_v_scanner, char const *__pyx_v_name,
         __Pyx_XDECREF(__pyx_t_9); __pyx_t_9 = 0;
         __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
         __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
-        if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 659, __pyx_L3_error)
+        if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 658, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_4);
         __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
       }
@@ -22276,7 +22251,7 @@ PyObject *py_identifier_atom(yyscan_t __pyx_v_scanner, char const *__pyx_v_name,
       __pyx_t_4 = 0;
       goto __pyx_L7_try_return;
 
-      /* "xtrack/sequence/parser.py":657
+      /* "xtrack/sequence/parser.py":656
  * 
  * def py_identifier_atom(scanner, name, location):
  *     try:             # <<<<<<<<<<<<<<
@@ -22291,7 +22266,7 @@ PyObject *py_identifier_atom(yyscan_t __pyx_v_scanner, char const *__pyx_v_name,
     __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
     __Pyx_XDECREF(__pyx_t_9); __pyx_t_9 = 0;
 
-    /* "xtrack/sequence/parser.py":660
+    /* "xtrack/sequence/parser.py":659
  *         parser = parser_from_scanner(scanner)
  *         return parser.get_identifier_ref(name.decode(), location)
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -22301,7 +22276,7 @@ PyObject *py_identifier_atom(yyscan_t __pyx_v_scanner, char const *__pyx_v_name,
     __pyx_t_10 = __Pyx_PyErr_ExceptionMatches(((PyObject *)(&((PyTypeObject*)PyExc_Exception)[0])));
     if (__pyx_t_10) {
       __Pyx_AddTraceback("xtrack.sequence.parser.py_identifier_atom", __pyx_clineno, __pyx_lineno, __pyx_filename);
-      if (__Pyx_GetException(&__pyx_t_4, &__pyx_t_5, &__pyx_t_8) < 0) __PYX_ERR(0, 660, __pyx_L5_except_error)
+      if (__Pyx_GetException(&__pyx_t_4, &__pyx_t_5, &__pyx_t_8) < 0) __PYX_ERR(0, 659, __pyx_L5_except_error)
       __Pyx_XGOTREF(__pyx_t_4);
       __Pyx_XGOTREF(__pyx_t_5);
       __Pyx_XGOTREF(__pyx_t_8);
@@ -22309,17 +22284,17 @@ PyObject *py_identifier_atom(yyscan_t __pyx_v_scanner, char const *__pyx_v_name,
       __pyx_v_e = __pyx_t_5;
       /*try:*/ {
 
-        /* "xtrack/sequence/parser.py":663
+        /* "xtrack/sequence/parser.py":662
  *         register_error(
  *             scanner, e, f'parsing an identifier',
  *             add_context=True, location=location,             # <<<<<<<<<<<<<<
  *         )
  * 
  */
-        __pyx_t_7 = __pyx_convert__to_py_YYLTYPE(__pyx_v_location); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 663, __pyx_L14_error)
+        __pyx_t_7 = __pyx_convert__to_py_YYLTYPE(__pyx_v_location); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 662, __pyx_L14_error)
         __Pyx_GOTREF(__pyx_t_7);
 
-        /* "xtrack/sequence/parser.py":661
+        /* "xtrack/sequence/parser.py":660
  *         return parser.get_identifier_ref(name.decode(), location)
  *     except Exception as e:
  *         register_error(             # <<<<<<<<<<<<<<
@@ -22329,13 +22304,13 @@ PyObject *py_identifier_atom(yyscan_t __pyx_v_scanner, char const *__pyx_v_name,
         __pyx_t_11.__pyx_n = 2;
         __pyx_t_11.add_context = Py_True;
         __pyx_t_11.location = __pyx_t_7;
-        __pyx_t_9 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_an_identifier, &__pyx_t_11); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 661, __pyx_L14_error)
+        __pyx_t_9 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_an_identifier, &__pyx_t_11); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 660, __pyx_L14_error)
         __Pyx_GOTREF(__pyx_t_9);
         __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
         __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
       }
 
-      /* "xtrack/sequence/parser.py":660
+      /* "xtrack/sequence/parser.py":659
  *         parser = parser_from_scanner(scanner)
  *         return parser.get_identifier_ref(name.decode(), location)
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -22389,7 +22364,7 @@ PyObject *py_identifier_atom(yyscan_t __pyx_v_scanner, char const *__pyx_v_name,
     }
     goto __pyx_L5_except_error;
 
-    /* "xtrack/sequence/parser.py":657
+    /* "xtrack/sequence/parser.py":656
  * 
  * def py_identifier_atom(scanner, name, location):
  *     try:             # <<<<<<<<<<<<<<
@@ -22415,7 +22390,7 @@ PyObject *py_identifier_atom(yyscan_t __pyx_v_scanner, char const *__pyx_v_name,
     __Pyx_ExceptionReset(__pyx_t_1, __pyx_t_2, __pyx_t_3);
   }
 
-  /* "xtrack/sequence/parser.py":656
+  /* "xtrack/sequence/parser.py":655
  * 
  * 
  * def py_identifier_atom(scanner, name, location):             # <<<<<<<<<<<<<<
@@ -22442,7 +22417,7 @@ PyObject *py_identifier_atom(yyscan_t __pyx_v_scanner, char const *__pyx_v_name,
   return __pyx_r;
 }
 
-/* "xtrack/sequence/parser.py":667
+/* "xtrack/sequence/parser.py":666
  * 
  * 
  * def py_set_value(scanner, assignment, location):             # <<<<<<<<<<<<<<
@@ -22482,7 +22457,7 @@ void py_set_value(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_assignment, YYLTYP
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("py_set_value", 1);
 
-  /* "xtrack/sequence/parser.py":668
+  /* "xtrack/sequence/parser.py":667
  * 
  * def py_set_value(scanner, assignment, location):
  *     try:             # <<<<<<<<<<<<<<
@@ -22498,7 +22473,7 @@ void py_set_value(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_assignment, YYLTYP
     __Pyx_XGOTREF(__pyx_t_3);
     /*try:*/ {
 
-      /* "xtrack/sequence/parser.py":669
+      /* "xtrack/sequence/parser.py":668
  * def py_set_value(scanner, assignment, location):
  *     try:
  *         identifier, value = assignment             # <<<<<<<<<<<<<<
@@ -22511,7 +22486,7 @@ void py_set_value(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_assignment, YYLTYP
         if (unlikely(size != 2)) {
           if (size > 2) __Pyx_RaiseTooManyValuesError(2);
           else if (size >= 0) __Pyx_RaiseNeedMoreValuesError(size);
-          __PYX_ERR(0, 669, __pyx_L3_error)
+          __PYX_ERR(0, 668, __pyx_L3_error)
         }
         #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
         __pyx_t_4 = PyTuple_GET_ITEM(sequence, 0); 
@@ -22519,62 +22494,62 @@ void py_set_value(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_assignment, YYLTYP
         __Pyx_INCREF(__pyx_t_4);
         __Pyx_INCREF(__pyx_t_5);
         #else
-        __pyx_t_4 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 669, __pyx_L3_error)
+        __pyx_t_4 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 668, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_4);
-        __pyx_t_5 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 669, __pyx_L3_error)
+        __pyx_t_5 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 668, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_5);
         #endif
       } else {
-        __Pyx_RaiseNoneNotIterableError(); __PYX_ERR(0, 669, __pyx_L3_error)
+        __Pyx_RaiseNoneNotIterableError(); __PYX_ERR(0, 668, __pyx_L3_error)
       }
       __pyx_v_identifier = __pyx_t_4;
       __pyx_t_4 = 0;
       __pyx_v_value = __pyx_t_5;
       __pyx_t_5 = 0;
 
-      /* "xtrack/sequence/parser.py":670
+      /* "xtrack/sequence/parser.py":669
  *     try:
  *         identifier, value = assignment
  *         parser = parser_from_scanner(scanner)             # <<<<<<<<<<<<<<
  *         if identifier in BUILTIN_CONSTANTS:
  *             parser.handle_warning(
  */
-      __pyx_t_5 = __pyx_f_6xtrack_8sequence_6parser_parser_from_scanner(__pyx_v_scanner); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 670, __pyx_L3_error)
+      __pyx_t_5 = __pyx_f_6xtrack_8sequence_6parser_parser_from_scanner(__pyx_v_scanner); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 669, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_5);
       __pyx_v_parser = __pyx_t_5;
       __pyx_t_5 = 0;
 
-      /* "xtrack/sequence/parser.py":671
+      /* "xtrack/sequence/parser.py":670
  *         identifier, value = assignment
  *         parser = parser_from_scanner(scanner)
  *         if identifier in BUILTIN_CONSTANTS:             # <<<<<<<<<<<<<<
  *             parser.handle_warning(
  *                 f"variable `{identifier}` shadows a built-in constant",
  */
-      __Pyx_GetModuleGlobalName(__pyx_t_5, __pyx_n_s_BUILTIN_CONSTANTS); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 671, __pyx_L3_error)
+      __Pyx_GetModuleGlobalName(__pyx_t_5, __pyx_n_s_BUILTIN_CONSTANTS); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 670, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_5);
-      __pyx_t_6 = (__Pyx_PySequence_ContainsTF(__pyx_v_identifier, __pyx_t_5, Py_EQ)); if (unlikely((__pyx_t_6 < 0))) __PYX_ERR(0, 671, __pyx_L3_error)
+      __pyx_t_6 = (__Pyx_PySequence_ContainsTF(__pyx_v_identifier, __pyx_t_5, Py_EQ)); if (unlikely((__pyx_t_6 < 0))) __PYX_ERR(0, 670, __pyx_L3_error)
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
       if (__pyx_t_6) {
 
-        /* "xtrack/sequence/parser.py":672
+        /* "xtrack/sequence/parser.py":671
  *         parser = parser_from_scanner(scanner)
  *         if identifier in BUILTIN_CONSTANTS:
  *             parser.handle_warning(             # <<<<<<<<<<<<<<
  *                 f"variable `{identifier}` shadows a built-in constant",
  *                 add_context=False,
  */
-        __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_parser, __pyx_n_s_handle_warning); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 672, __pyx_L3_error)
+        __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_parser, __pyx_n_s_handle_warning); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 671, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_5);
 
-        /* "xtrack/sequence/parser.py":673
+        /* "xtrack/sequence/parser.py":672
  *         if identifier in BUILTIN_CONSTANTS:
  *             parser.handle_warning(
  *                 f"variable `{identifier}` shadows a built-in constant",             # <<<<<<<<<<<<<<
  *                 add_context=False,
  *                 location=location,
  */
-        __pyx_t_4 = PyTuple_New(3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 673, __pyx_L3_error)
+        __pyx_t_4 = PyTuple_New(3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 672, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_4);
         __pyx_t_7 = 0;
         __pyx_t_8 = 127;
@@ -22582,7 +22557,7 @@ void py_set_value(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_assignment, YYLTYP
         __pyx_t_7 += 10;
         __Pyx_GIVEREF(__pyx_kp_u_variable);
         PyTuple_SET_ITEM(__pyx_t_4, 0, __pyx_kp_u_variable);
-        __pyx_t_9 = __Pyx_PyObject_FormatSimple(__pyx_v_identifier, __pyx_empty_unicode); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 673, __pyx_L3_error)
+        __pyx_t_9 = __Pyx_PyObject_FormatSimple(__pyx_v_identifier, __pyx_empty_unicode); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 672, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_9);
         __pyx_t_8 = (__Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_9) > __pyx_t_8) ? __Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_9) : __pyx_t_8;
         __pyx_t_7 += __Pyx_PyUnicode_GET_LENGTH(__pyx_t_9);
@@ -22593,61 +22568,61 @@ void py_set_value(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_assignment, YYLTYP
         __pyx_t_7 += 29;
         __Pyx_GIVEREF(__pyx_kp_u_shadows_a_built_in_constant);
         PyTuple_SET_ITEM(__pyx_t_4, 2, __pyx_kp_u_shadows_a_built_in_constant);
-        __pyx_t_9 = __Pyx_PyUnicode_Join(__pyx_t_4, 3, __pyx_t_7, __pyx_t_8); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 673, __pyx_L3_error)
+        __pyx_t_9 = __Pyx_PyUnicode_Join(__pyx_t_4, 3, __pyx_t_7, __pyx_t_8); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 672, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_9);
         __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
 
-        /* "xtrack/sequence/parser.py":672
+        /* "xtrack/sequence/parser.py":671
  *         parser = parser_from_scanner(scanner)
  *         if identifier in BUILTIN_CONSTANTS:
  *             parser.handle_warning(             # <<<<<<<<<<<<<<
  *                 f"variable `{identifier}` shadows a built-in constant",
  *                 add_context=False,
  */
-        __pyx_t_4 = PyTuple_New(1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 672, __pyx_L3_error)
+        __pyx_t_4 = PyTuple_New(1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 671, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_4);
         __Pyx_GIVEREF(__pyx_t_9);
-        if (__Pyx_PyTuple_SET_ITEM(__pyx_t_4, 0, __pyx_t_9)) __PYX_ERR(0, 672, __pyx_L3_error);
+        if (__Pyx_PyTuple_SET_ITEM(__pyx_t_4, 0, __pyx_t_9)) __PYX_ERR(0, 671, __pyx_L3_error);
         __pyx_t_9 = 0;
 
-        /* "xtrack/sequence/parser.py":674
+        /* "xtrack/sequence/parser.py":673
  *             parser.handle_warning(
  *                 f"variable `{identifier}` shadows a built-in constant",
  *                 add_context=False,             # <<<<<<<<<<<<<<
  *                 location=location,
  *             )
  */
-        __pyx_t_9 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 674, __pyx_L3_error)
+        __pyx_t_9 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 673, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_9);
-        if (PyDict_SetItem(__pyx_t_9, __pyx_n_s_add_context, Py_False) < 0) __PYX_ERR(0, 674, __pyx_L3_error)
+        if (PyDict_SetItem(__pyx_t_9, __pyx_n_s_add_context, Py_False) < 0) __PYX_ERR(0, 673, __pyx_L3_error)
 
-        /* "xtrack/sequence/parser.py":675
+        /* "xtrack/sequence/parser.py":674
  *                 f"variable `{identifier}` shadows a built-in constant",
  *                 add_context=False,
  *                 location=location,             # <<<<<<<<<<<<<<
  *             )
  *         parser.set_value(identifier, value, location)
  */
-        __pyx_t_10 = __pyx_convert__to_py_YYLTYPE(__pyx_v_location); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 675, __pyx_L3_error)
+        __pyx_t_10 = __pyx_convert__to_py_YYLTYPE(__pyx_v_location); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 674, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_10);
-        if (PyDict_SetItem(__pyx_t_9, __pyx_n_s_location, __pyx_t_10) < 0) __PYX_ERR(0, 674, __pyx_L3_error)
+        if (PyDict_SetItem(__pyx_t_9, __pyx_n_s_location, __pyx_t_10) < 0) __PYX_ERR(0, 673, __pyx_L3_error)
         __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
 
-        /* "xtrack/sequence/parser.py":672
+        /* "xtrack/sequence/parser.py":671
  *         parser = parser_from_scanner(scanner)
  *         if identifier in BUILTIN_CONSTANTS:
  *             parser.handle_warning(             # <<<<<<<<<<<<<<
  *                 f"variable `{identifier}` shadows a built-in constant",
  *                 add_context=False,
  */
-        __pyx_t_10 = __Pyx_PyObject_Call(__pyx_t_5, __pyx_t_4, __pyx_t_9); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 672, __pyx_L3_error)
+        __pyx_t_10 = __Pyx_PyObject_Call(__pyx_t_5, __pyx_t_4, __pyx_t_9); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 671, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_10);
         __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
         __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
         __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
         __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
 
-        /* "xtrack/sequence/parser.py":671
+        /* "xtrack/sequence/parser.py":670
  *         identifier, value = assignment
  *         parser = parser_from_scanner(scanner)
  *         if identifier in BUILTIN_CONSTANTS:             # <<<<<<<<<<<<<<
@@ -22656,16 +22631,16 @@ void py_set_value(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_assignment, YYLTYP
  */
       }
 
-      /* "xtrack/sequence/parser.py":677
+      /* "xtrack/sequence/parser.py":676
  *                 location=location,
  *             )
  *         parser.set_value(identifier, value, location)             # <<<<<<<<<<<<<<
  *     except Exception as e:
  *         register_error(
  */
-      __pyx_t_9 = __Pyx_PyObject_GetAttrStr(__pyx_v_parser, __pyx_n_s_set_value); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 677, __pyx_L3_error)
+      __pyx_t_9 = __Pyx_PyObject_GetAttrStr(__pyx_v_parser, __pyx_n_s_set_value); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 676, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_9);
-      __pyx_t_4 = __pyx_convert__to_py_YYLTYPE(__pyx_v_location); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 677, __pyx_L3_error)
+      __pyx_t_4 = __pyx_convert__to_py_YYLTYPE(__pyx_v_location); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 676, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_4);
       __pyx_t_5 = NULL;
       __pyx_t_11 = 0;
@@ -22686,13 +22661,13 @@ void py_set_value(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_assignment, YYLTYP
         __pyx_t_10 = __Pyx_PyObject_FastCall(__pyx_t_9, __pyx_callargs+1-__pyx_t_11, 3+__pyx_t_11);
         __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
         __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-        if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 677, __pyx_L3_error)
+        if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 676, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_10);
         __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
       }
       __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
 
-      /* "xtrack/sequence/parser.py":668
+      /* "xtrack/sequence/parser.py":667
  * 
  * def py_set_value(scanner, assignment, location):
  *     try:             # <<<<<<<<<<<<<<
@@ -22710,7 +22685,7 @@ void py_set_value(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_assignment, YYLTYP
     __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
     __Pyx_XDECREF(__pyx_t_9); __pyx_t_9 = 0;
 
-    /* "xtrack/sequence/parser.py":678
+    /* "xtrack/sequence/parser.py":677
  *             )
  *         parser.set_value(identifier, value, location)
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -22720,7 +22695,7 @@ void py_set_value(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_assignment, YYLTYP
     __pyx_t_11 = __Pyx_PyErr_ExceptionMatches(((PyObject *)(&((PyTypeObject*)PyExc_Exception)[0])));
     if (__pyx_t_11) {
       __Pyx_AddTraceback("xtrack.sequence.parser.py_set_value", __pyx_clineno, __pyx_lineno, __pyx_filename);
-      if (__Pyx_GetException(&__pyx_t_10, &__pyx_t_9, &__pyx_t_4) < 0) __PYX_ERR(0, 678, __pyx_L5_except_error)
+      if (__Pyx_GetException(&__pyx_t_10, &__pyx_t_9, &__pyx_t_4) < 0) __PYX_ERR(0, 677, __pyx_L5_except_error)
       __Pyx_XGOTREF(__pyx_t_10);
       __Pyx_XGOTREF(__pyx_t_9);
       __Pyx_XGOTREF(__pyx_t_4);
@@ -22728,17 +22703,17 @@ void py_set_value(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_assignment, YYLTYP
       __pyx_v_e = __pyx_t_9;
       /*try:*/ {
 
-        /* "xtrack/sequence/parser.py":681
+        /* "xtrack/sequence/parser.py":680
  *         register_error(
  *             scanner, e, 'parsing a deferred assign statement',
  *             add_context=True, location=location,             # <<<<<<<<<<<<<<
  *         )
  * 
  */
-        __pyx_t_5 = __pyx_convert__to_py_YYLTYPE(__pyx_v_location); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 681, __pyx_L15_error)
+        __pyx_t_5 = __pyx_convert__to_py_YYLTYPE(__pyx_v_location); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 680, __pyx_L15_error)
         __Pyx_GOTREF(__pyx_t_5);
 
-        /* "xtrack/sequence/parser.py":679
+        /* "xtrack/sequence/parser.py":678
  *         parser.set_value(identifier, value, location)
  *     except Exception as e:
  *         register_error(             # <<<<<<<<<<<<<<
@@ -22748,13 +22723,13 @@ void py_set_value(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_assignment, YYLTYP
         __pyx_t_13.__pyx_n = 2;
         __pyx_t_13.add_context = Py_True;
         __pyx_t_13.location = __pyx_t_5;
-        __pyx_t_12 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_a_deferred_assign_statem, &__pyx_t_13); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 679, __pyx_L15_error)
+        __pyx_t_12 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_a_deferred_assign_statem, &__pyx_t_13); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 678, __pyx_L15_error)
         __Pyx_GOTREF(__pyx_t_12);
         __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
         __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
       }
 
-      /* "xtrack/sequence/parser.py":678
+      /* "xtrack/sequence/parser.py":677
  *             )
  *         parser.set_value(identifier, value, location)
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -22808,7 +22783,7 @@ void py_set_value(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_assignment, YYLTYP
     }
     goto __pyx_L5_except_error;
 
-    /* "xtrack/sequence/parser.py":668
+    /* "xtrack/sequence/parser.py":667
  * 
  * def py_set_value(scanner, assignment, location):
  *     try:             # <<<<<<<<<<<<<<
@@ -22829,7 +22804,7 @@ void py_set_value(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_assignment, YYLTYP
     __pyx_L8_try_end:;
   }
 
-  /* "xtrack/sequence/parser.py":667
+  /* "xtrack/sequence/parser.py":666
  * 
  * 
  * def py_set_value(scanner, assignment, location):             # <<<<<<<<<<<<<<
@@ -22854,7 +22829,7 @@ void py_set_value(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_assignment, YYLTYP
   __Pyx_RefNannyFinishContext();
 }
 
-/* "xtrack/sequence/parser.py":685
+/* "xtrack/sequence/parser.py":684
  * 
  * 
  * def py_reference(scanner, parent, field, location):             # <<<<<<<<<<<<<<
@@ -22890,7 +22865,7 @@ PyObject *py_reference(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_parent, char 
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("py_reference", 1);
 
-  /* "xtrack/sequence/parser.py":686
+  /* "xtrack/sequence/parser.py":685
  * 
  * def py_reference(scanner, parent, field, location):
  *     try:             # <<<<<<<<<<<<<<
@@ -22906,19 +22881,19 @@ PyObject *py_reference(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_parent, char 
     __Pyx_XGOTREF(__pyx_t_3);
     /*try:*/ {
 
-      /* "xtrack/sequence/parser.py":687
+      /* "xtrack/sequence/parser.py":686
  * def py_reference(scanner, parent, field, location):
  *     try:
  *         parser = parser_from_scanner(scanner)             # <<<<<<<<<<<<<<
  *         return parser.get_reference(parent, field.decode(), location)
  *     except Exception as e:
  */
-      __pyx_t_4 = __pyx_f_6xtrack_8sequence_6parser_parser_from_scanner(__pyx_v_scanner); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 687, __pyx_L3_error)
+      __pyx_t_4 = __pyx_f_6xtrack_8sequence_6parser_parser_from_scanner(__pyx_v_scanner); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 686, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_4);
       __pyx_v_parser = __pyx_t_4;
       __pyx_t_4 = 0;
 
-      /* "xtrack/sequence/parser.py":688
+      /* "xtrack/sequence/parser.py":687
  *     try:
  *         parser = parser_from_scanner(scanner)
  *         return parser.get_reference(parent, field.decode(), location)             # <<<<<<<<<<<<<<
@@ -22926,12 +22901,12 @@ PyObject *py_reference(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_parent, char 
  *         register_error(scanner, e, 'accessing a reference field')
  */
       __Pyx_XDECREF(__pyx_r);
-      __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_parser, __pyx_n_s_get_reference); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 688, __pyx_L3_error)
+      __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_parser, __pyx_n_s_get_reference); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 687, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_5);
-      __pyx_t_6 = __Pyx_ssize_strlen(__pyx_v_field); if (unlikely(__pyx_t_6 == ((Py_ssize_t)-1))) __PYX_ERR(0, 688, __pyx_L3_error)
-      __pyx_t_7 = __Pyx_decode_c_string(__pyx_v_field, 0, __pyx_t_6, NULL, NULL, NULL); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 688, __pyx_L3_error)
+      __pyx_t_6 = __Pyx_ssize_strlen(__pyx_v_field); if (unlikely(__pyx_t_6 == ((Py_ssize_t)-1))) __PYX_ERR(0, 687, __pyx_L3_error)
+      __pyx_t_7 = __Pyx_decode_c_string(__pyx_v_field, 0, __pyx_t_6, NULL, NULL, NULL); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 687, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_7);
-      __pyx_t_8 = __pyx_convert__to_py_YYLTYPE(__pyx_v_location); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 688, __pyx_L3_error)
+      __pyx_t_8 = __pyx_convert__to_py_YYLTYPE(__pyx_v_location); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 687, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_8);
       __pyx_t_9 = NULL;
       __pyx_t_10 = 0;
@@ -22953,7 +22928,7 @@ PyObject *py_reference(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_parent, char 
         __Pyx_XDECREF(__pyx_t_9); __pyx_t_9 = 0;
         __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
         __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
-        if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 688, __pyx_L3_error)
+        if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 687, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_4);
         __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
       }
@@ -22961,7 +22936,7 @@ PyObject *py_reference(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_parent, char 
       __pyx_t_4 = 0;
       goto __pyx_L7_try_return;
 
-      /* "xtrack/sequence/parser.py":686
+      /* "xtrack/sequence/parser.py":685
  * 
  * def py_reference(scanner, parent, field, location):
  *     try:             # <<<<<<<<<<<<<<
@@ -22976,7 +22951,7 @@ PyObject *py_reference(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_parent, char 
     __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
     __Pyx_XDECREF(__pyx_t_9); __pyx_t_9 = 0;
 
-    /* "xtrack/sequence/parser.py":689
+    /* "xtrack/sequence/parser.py":688
  *         parser = parser_from_scanner(scanner)
  *         return parser.get_reference(parent, field.decode(), location)
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -22986,7 +22961,7 @@ PyObject *py_reference(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_parent, char 
     __pyx_t_10 = __Pyx_PyErr_ExceptionMatches(((PyObject *)(&((PyTypeObject*)PyExc_Exception)[0])));
     if (__pyx_t_10) {
       __Pyx_AddTraceback("xtrack.sequence.parser.py_reference", __pyx_clineno, __pyx_lineno, __pyx_filename);
-      if (__Pyx_GetException(&__pyx_t_4, &__pyx_t_5, &__pyx_t_8) < 0) __PYX_ERR(0, 689, __pyx_L5_except_error)
+      if (__Pyx_GetException(&__pyx_t_4, &__pyx_t_5, &__pyx_t_8) < 0) __PYX_ERR(0, 688, __pyx_L5_except_error)
       __Pyx_XGOTREF(__pyx_t_4);
       __Pyx_XGOTREF(__pyx_t_5);
       __Pyx_XGOTREF(__pyx_t_8);
@@ -22994,19 +22969,19 @@ PyObject *py_reference(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_parent, char 
       __pyx_v_e = __pyx_t_5;
       /*try:*/ {
 
-        /* "xtrack/sequence/parser.py":690
+        /* "xtrack/sequence/parser.py":689
  *         return parser.get_reference(parent, field.decode(), location)
  *     except Exception as e:
  *         register_error(scanner, e, 'accessing a reference field')             # <<<<<<<<<<<<<<
  * 
  * 
  */
-        __pyx_t_7 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_accessing_a_reference_field, NULL); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 690, __pyx_L14_error)
+        __pyx_t_7 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_accessing_a_reference_field, NULL); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 689, __pyx_L14_error)
         __Pyx_GOTREF(__pyx_t_7);
         __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
       }
 
-      /* "xtrack/sequence/parser.py":689
+      /* "xtrack/sequence/parser.py":688
  *         parser = parser_from_scanner(scanner)
  *         return parser.get_reference(parent, field.decode(), location)
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -23060,7 +23035,7 @@ PyObject *py_reference(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_parent, char 
     }
     goto __pyx_L5_except_error;
 
-    /* "xtrack/sequence/parser.py":686
+    /* "xtrack/sequence/parser.py":685
  * 
  * def py_reference(scanner, parent, field, location):
  *     try:             # <<<<<<<<<<<<<<
@@ -23086,7 +23061,7 @@ PyObject *py_reference(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_parent, char 
     __Pyx_ExceptionReset(__pyx_t_1, __pyx_t_2, __pyx_t_3);
   }
 
-  /* "xtrack/sequence/parser.py":685
+  /* "xtrack/sequence/parser.py":684
  * 
  * 
  * def py_reference(scanner, parent, field, location):             # <<<<<<<<<<<<<<
@@ -23113,7 +23088,7 @@ PyObject *py_reference(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_parent, char 
   return __pyx_r;
 }
 
-/* "xtrack/sequence/parser.py":693
+/* "xtrack/sequence/parser.py":692
  * 
  * 
  * def py_set_ref(scanner, target, value):             # <<<<<<<<<<<<<<
@@ -23146,7 +23121,7 @@ PyObject *py_set_ref(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_target, PyObjec
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("py_set_ref", 1);
 
-  /* "xtrack/sequence/parser.py":694
+  /* "xtrack/sequence/parser.py":693
  * 
  * def py_set_ref(scanner, target, value):
  *     try:             # <<<<<<<<<<<<<<
@@ -23162,14 +23137,14 @@ PyObject *py_set_ref(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_target, PyObjec
     __Pyx_XGOTREF(__pyx_t_3);
     /*try:*/ {
 
-      /* "xtrack/sequence/parser.py":695
+      /* "xtrack/sequence/parser.py":694
  * def py_set_ref(scanner, target, value):
  *     try:
  *         target._set_to_expr(value)             # <<<<<<<<<<<<<<
  *     except Exception as e:
  *         register_error(scanner, e, 'setting a field reference')
  */
-      __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_target, __pyx_n_s_set_to_expr); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 695, __pyx_L3_error)
+      __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_target, __pyx_n_s_set_to_expr); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 694, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_5);
       __pyx_t_6 = NULL;
       __pyx_t_7 = 0;
@@ -23189,13 +23164,13 @@ PyObject *py_set_ref(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_target, PyObjec
         PyObject *__pyx_callargs[2] = {__pyx_t_6, __pyx_v_value};
         __pyx_t_4 = __Pyx_PyObject_FastCall(__pyx_t_5, __pyx_callargs+1-__pyx_t_7, 1+__pyx_t_7);
         __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
-        if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 695, __pyx_L3_error)
+        if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 694, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_4);
         __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
       }
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
 
-      /* "xtrack/sequence/parser.py":694
+      /* "xtrack/sequence/parser.py":693
  * 
  * def py_set_ref(scanner, target, value):
  *     try:             # <<<<<<<<<<<<<<
@@ -23212,7 +23187,7 @@ PyObject *py_set_ref(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_target, PyObjec
     __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
     __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
 
-    /* "xtrack/sequence/parser.py":696
+    /* "xtrack/sequence/parser.py":695
  *     try:
  *         target._set_to_expr(value)
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -23222,7 +23197,7 @@ PyObject *py_set_ref(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_target, PyObjec
     __pyx_t_7 = __Pyx_PyErr_ExceptionMatches(((PyObject *)(&((PyTypeObject*)PyExc_Exception)[0])));
     if (__pyx_t_7) {
       __Pyx_AddTraceback("xtrack.sequence.parser.py_set_ref", __pyx_clineno, __pyx_lineno, __pyx_filename);
-      if (__Pyx_GetException(&__pyx_t_4, &__pyx_t_5, &__pyx_t_6) < 0) __PYX_ERR(0, 696, __pyx_L5_except_error)
+      if (__Pyx_GetException(&__pyx_t_4, &__pyx_t_5, &__pyx_t_6) < 0) __PYX_ERR(0, 695, __pyx_L5_except_error)
       __Pyx_XGOTREF(__pyx_t_4);
       __Pyx_XGOTREF(__pyx_t_5);
       __Pyx_XGOTREF(__pyx_t_6);
@@ -23230,19 +23205,19 @@ PyObject *py_set_ref(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_target, PyObjec
       __pyx_v_e = __pyx_t_5;
       /*try:*/ {
 
-        /* "xtrack/sequence/parser.py":697
+        /* "xtrack/sequence/parser.py":696
  *         target._set_to_expr(value)
  *     except Exception as e:
  *         register_error(scanner, e, 'setting a field reference')             # <<<<<<<<<<<<<<
  * 
  * 
  */
-        __pyx_t_8 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_setting_a_field_reference, NULL); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 697, __pyx_L14_error)
+        __pyx_t_8 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_setting_a_field_reference, NULL); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 696, __pyx_L14_error)
         __Pyx_GOTREF(__pyx_t_8);
         __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
       }
 
-      /* "xtrack/sequence/parser.py":696
+      /* "xtrack/sequence/parser.py":695
  *     try:
  *         target._set_to_expr(value)
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -23295,7 +23270,7 @@ PyObject *py_set_ref(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_target, PyObjec
     }
     goto __pyx_L5_except_error;
 
-    /* "xtrack/sequence/parser.py":694
+    /* "xtrack/sequence/parser.py":693
  * 
  * def py_set_ref(scanner, target, value):
  *     try:             # <<<<<<<<<<<<<<
@@ -23316,7 +23291,7 @@ PyObject *py_set_ref(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_target, PyObjec
     __pyx_L8_try_end:;
   }
 
-  /* "xtrack/sequence/parser.py":693
+  /* "xtrack/sequence/parser.py":692
  * 
  * 
  * def py_set_ref(scanner, target, value):             # <<<<<<<<<<<<<<
@@ -23341,7 +23316,7 @@ PyObject *py_set_ref(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_target, PyObjec
   return __pyx_r;
 }
 
-/* "xtrack/sequence/parser.py":700
+/* "xtrack/sequence/parser.py":699
  * 
  * 
  * def py_start_beamline(scanner, name, args, location):             # <<<<<<<<<<<<<<
@@ -23377,7 +23352,7 @@ PyObject *py_start_beamline(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, 
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("py_start_beamline", 1);
 
-  /* "xtrack/sequence/parser.py":701
+  /* "xtrack/sequence/parser.py":700
  * 
  * def py_start_beamline(scanner, name, args, location):
  *     try:             # <<<<<<<<<<<<<<
@@ -23393,55 +23368,55 @@ PyObject *py_start_beamline(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, 
     __Pyx_XGOTREF(__pyx_t_3);
     /*try:*/ {
 
-      /* "xtrack/sequence/parser.py":702
+      /* "xtrack/sequence/parser.py":701
  * def py_start_beamline(scanner, name, args, location):
  *     try:
  *         line_template = LineTemplate(name.decode(), args, location)             # <<<<<<<<<<<<<<
  *         parser = parser_from_scanner(scanner)
  *         parser.open_line(line_template)
  */
-      __pyx_t_4 = __Pyx_ssize_strlen(__pyx_v_name); if (unlikely(__pyx_t_4 == ((Py_ssize_t)-1))) __PYX_ERR(0, 702, __pyx_L3_error)
-      __pyx_t_5 = __Pyx_decode_c_string(__pyx_v_name, 0, __pyx_t_4, NULL, NULL, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 702, __pyx_L3_error)
+      __pyx_t_4 = __Pyx_ssize_strlen(__pyx_v_name); if (unlikely(__pyx_t_4 == ((Py_ssize_t)-1))) __PYX_ERR(0, 701, __pyx_L3_error)
+      __pyx_t_5 = __Pyx_decode_c_string(__pyx_v_name, 0, __pyx_t_4, NULL, NULL, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 701, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_5);
-      __pyx_t_6 = __pyx_convert__to_py_YYLTYPE(__pyx_v_location); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 702, __pyx_L3_error)
+      __pyx_t_6 = __pyx_convert__to_py_YYLTYPE(__pyx_v_location); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 701, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_6);
-      __pyx_t_7 = PyTuple_New(3); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 702, __pyx_L3_error)
+      __pyx_t_7 = PyTuple_New(3); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 701, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_7);
       __Pyx_GIVEREF(__pyx_t_5);
-      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_7, 0, __pyx_t_5)) __PYX_ERR(0, 702, __pyx_L3_error);
+      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_7, 0, __pyx_t_5)) __PYX_ERR(0, 701, __pyx_L3_error);
       __Pyx_INCREF(__pyx_v_args);
       __Pyx_GIVEREF(__pyx_v_args);
-      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_7, 1, __pyx_v_args)) __PYX_ERR(0, 702, __pyx_L3_error);
+      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_7, 1, __pyx_v_args)) __PYX_ERR(0, 701, __pyx_L3_error);
       __Pyx_GIVEREF(__pyx_t_6);
-      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_7, 2, __pyx_t_6)) __PYX_ERR(0, 702, __pyx_L3_error);
+      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_7, 2, __pyx_t_6)) __PYX_ERR(0, 701, __pyx_L3_error);
       __pyx_t_5 = 0;
       __pyx_t_6 = 0;
-      __pyx_t_6 = __Pyx_PyObject_Call(((PyObject *)__pyx_ptype_6xtrack_8sequence_6parser_LineTemplate), __pyx_t_7, NULL); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 702, __pyx_L3_error)
+      __pyx_t_6 = __Pyx_PyObject_Call(((PyObject *)__pyx_ptype_6xtrack_8sequence_6parser_LineTemplate), __pyx_t_7, NULL); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 701, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_6);
       __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
       __pyx_v_line_template = ((struct __pyx_obj_6xtrack_8sequence_6parser_LineTemplate *)__pyx_t_6);
       __pyx_t_6 = 0;
 
-      /* "xtrack/sequence/parser.py":703
+      /* "xtrack/sequence/parser.py":702
  *     try:
  *         line_template = LineTemplate(name.decode(), args, location)
  *         parser = parser_from_scanner(scanner)             # <<<<<<<<<<<<<<
  *         parser.open_line(line_template)
  *         return line_template
  */
-      __pyx_t_6 = __pyx_f_6xtrack_8sequence_6parser_parser_from_scanner(__pyx_v_scanner); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 703, __pyx_L3_error)
+      __pyx_t_6 = __pyx_f_6xtrack_8sequence_6parser_parser_from_scanner(__pyx_v_scanner); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 702, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_6);
       __pyx_v_parser = __pyx_t_6;
       __pyx_t_6 = 0;
 
-      /* "xtrack/sequence/parser.py":704
+      /* "xtrack/sequence/parser.py":703
  *         line_template = LineTemplate(name.decode(), args, location)
  *         parser = parser_from_scanner(scanner)
  *         parser.open_line(line_template)             # <<<<<<<<<<<<<<
  *         return line_template
  *     except Exception as e:
  */
-      __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_v_parser, __pyx_n_s_open_line); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 704, __pyx_L3_error)
+      __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_v_parser, __pyx_n_s_open_line); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 703, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_7);
       __pyx_t_5 = NULL;
       __pyx_t_8 = 0;
@@ -23461,13 +23436,13 @@ PyObject *py_start_beamline(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, 
         PyObject *__pyx_callargs[2] = {__pyx_t_5, ((PyObject *)__pyx_v_line_template)};
         __pyx_t_6 = __Pyx_PyObject_FastCall(__pyx_t_7, __pyx_callargs+1-__pyx_t_8, 1+__pyx_t_8);
         __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
-        if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 704, __pyx_L3_error)
+        if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 703, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_6);
         __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
       }
       __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
 
-      /* "xtrack/sequence/parser.py":705
+      /* "xtrack/sequence/parser.py":704
  *         parser = parser_from_scanner(scanner)
  *         parser.open_line(line_template)
  *         return line_template             # <<<<<<<<<<<<<<
@@ -23479,7 +23454,7 @@ PyObject *py_start_beamline(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, 
       __pyx_r = ((PyObject *)__pyx_v_line_template);
       goto __pyx_L7_try_return;
 
-      /* "xtrack/sequence/parser.py":701
+      /* "xtrack/sequence/parser.py":700
  * 
  * def py_start_beamline(scanner, name, args, location):
  *     try:             # <<<<<<<<<<<<<<
@@ -23492,7 +23467,7 @@ PyObject *py_start_beamline(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, 
     __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
     __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
 
-    /* "xtrack/sequence/parser.py":706
+    /* "xtrack/sequence/parser.py":705
  *         parser.open_line(line_template)
  *         return line_template
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -23502,7 +23477,7 @@ PyObject *py_start_beamline(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, 
     __pyx_t_8 = __Pyx_PyErr_ExceptionMatches(((PyObject *)(&((PyTypeObject*)PyExc_Exception)[0])));
     if (__pyx_t_8) {
       __Pyx_AddTraceback("xtrack.sequence.parser.py_start_beamline", __pyx_clineno, __pyx_lineno, __pyx_filename);
-      if (__Pyx_GetException(&__pyx_t_6, &__pyx_t_7, &__pyx_t_5) < 0) __PYX_ERR(0, 706, __pyx_L5_except_error)
+      if (__Pyx_GetException(&__pyx_t_6, &__pyx_t_7, &__pyx_t_5) < 0) __PYX_ERR(0, 705, __pyx_L5_except_error)
       __Pyx_XGOTREF(__pyx_t_6);
       __Pyx_XGOTREF(__pyx_t_7);
       __Pyx_XGOTREF(__pyx_t_5);
@@ -23510,19 +23485,19 @@ PyObject *py_start_beamline(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, 
       __pyx_v_e = __pyx_t_7;
       /*try:*/ {
 
-        /* "xtrack/sequence/parser.py":707
+        /* "xtrack/sequence/parser.py":706
  *         return line_template
  *     except Exception as e:
  *         register_error(scanner, e, 'parsing a sequence header')             # <<<<<<<<<<<<<<
  * 
  * 
  */
-        __pyx_t_9 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_a_sequence_header, NULL); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 707, __pyx_L14_error)
+        __pyx_t_9 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_a_sequence_header, NULL); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 706, __pyx_L14_error)
         __Pyx_GOTREF(__pyx_t_9);
         __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
       }
 
-      /* "xtrack/sequence/parser.py":706
+      /* "xtrack/sequence/parser.py":705
  *         parser.open_line(line_template)
  *         return line_template
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -23575,7 +23550,7 @@ PyObject *py_start_beamline(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, 
     }
     goto __pyx_L5_except_error;
 
-    /* "xtrack/sequence/parser.py":701
+    /* "xtrack/sequence/parser.py":700
  * 
  * def py_start_beamline(scanner, name, args, location):
  *     try:             # <<<<<<<<<<<<<<
@@ -23601,7 +23576,7 @@ PyObject *py_start_beamline(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, 
     __Pyx_ExceptionReset(__pyx_t_1, __pyx_t_2, __pyx_t_3);
   }
 
-  /* "xtrack/sequence/parser.py":700
+  /* "xtrack/sequence/parser.py":699
  * 
  * 
  * def py_start_beamline(scanner, name, args, location):             # <<<<<<<<<<<<<<
@@ -23628,7 +23603,7 @@ PyObject *py_start_beamline(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, 
   return __pyx_r;
 }
 
-/* "xtrack/sequence/parser.py":710
+/* "xtrack/sequence/parser.py":709
  * 
  * 
  * def py_end_beamline(scanner, line_template):             # <<<<<<<<<<<<<<
@@ -23661,7 +23636,7 @@ void py_end_beamline(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_line_template) 
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("py_end_beamline", 1);
 
-  /* "xtrack/sequence/parser.py":711
+  /* "xtrack/sequence/parser.py":710
  * 
  * def py_end_beamline(scanner, line_template):
  *     try:             # <<<<<<<<<<<<<<
@@ -23677,26 +23652,26 @@ void py_end_beamline(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_line_template) 
     __Pyx_XGOTREF(__pyx_t_3);
     /*try:*/ {
 
-      /* "xtrack/sequence/parser.py":712
+      /* "xtrack/sequence/parser.py":711
  * def py_end_beamline(scanner, line_template):
  *     try:
  *         parser = parser_from_scanner(scanner)             # <<<<<<<<<<<<<<
  *         parser.commit_line(line_template)
  *     except Exception as e:
  */
-      __pyx_t_4 = __pyx_f_6xtrack_8sequence_6parser_parser_from_scanner(__pyx_v_scanner); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 712, __pyx_L3_error)
+      __pyx_t_4 = __pyx_f_6xtrack_8sequence_6parser_parser_from_scanner(__pyx_v_scanner); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 711, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_4);
       __pyx_v_parser = __pyx_t_4;
       __pyx_t_4 = 0;
 
-      /* "xtrack/sequence/parser.py":713
+      /* "xtrack/sequence/parser.py":712
  *     try:
  *         parser = parser_from_scanner(scanner)
  *         parser.commit_line(line_template)             # <<<<<<<<<<<<<<
  *     except Exception as e:
  *         register_error(scanner, e, 'parsing a sequence')
  */
-      __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_parser, __pyx_n_s_commit_line); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 713, __pyx_L3_error)
+      __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_parser, __pyx_n_s_commit_line); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 712, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_5);
       __pyx_t_6 = NULL;
       __pyx_t_7 = 0;
@@ -23716,13 +23691,13 @@ void py_end_beamline(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_line_template) 
         PyObject *__pyx_callargs[2] = {__pyx_t_6, __pyx_v_line_template};
         __pyx_t_4 = __Pyx_PyObject_FastCall(__pyx_t_5, __pyx_callargs+1-__pyx_t_7, 1+__pyx_t_7);
         __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
-        if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 713, __pyx_L3_error)
+        if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 712, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_4);
         __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
       }
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
 
-      /* "xtrack/sequence/parser.py":711
+      /* "xtrack/sequence/parser.py":710
  * 
  * def py_end_beamline(scanner, line_template):
  *     try:             # <<<<<<<<<<<<<<
@@ -23739,7 +23714,7 @@ void py_end_beamline(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_line_template) 
     __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
     __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
 
-    /* "xtrack/sequence/parser.py":714
+    /* "xtrack/sequence/parser.py":713
  *         parser = parser_from_scanner(scanner)
  *         parser.commit_line(line_template)
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -23749,7 +23724,7 @@ void py_end_beamline(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_line_template) 
     __pyx_t_7 = __Pyx_PyErr_ExceptionMatches(((PyObject *)(&((PyTypeObject*)PyExc_Exception)[0])));
     if (__pyx_t_7) {
       __Pyx_AddTraceback("xtrack.sequence.parser.py_end_beamline", __pyx_clineno, __pyx_lineno, __pyx_filename);
-      if (__Pyx_GetException(&__pyx_t_4, &__pyx_t_5, &__pyx_t_6) < 0) __PYX_ERR(0, 714, __pyx_L5_except_error)
+      if (__Pyx_GetException(&__pyx_t_4, &__pyx_t_5, &__pyx_t_6) < 0) __PYX_ERR(0, 713, __pyx_L5_except_error)
       __Pyx_XGOTREF(__pyx_t_4);
       __Pyx_XGOTREF(__pyx_t_5);
       __Pyx_XGOTREF(__pyx_t_6);
@@ -23757,19 +23732,19 @@ void py_end_beamline(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_line_template) 
       __pyx_v_e = __pyx_t_5;
       /*try:*/ {
 
-        /* "xtrack/sequence/parser.py":715
+        /* "xtrack/sequence/parser.py":714
  *         parser.commit_line(line_template)
  *     except Exception as e:
  *         register_error(scanner, e, 'parsing a sequence')             # <<<<<<<<<<<<<<
  * 
  * 
  */
-        __pyx_t_8 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_a_sequence, NULL); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 715, __pyx_L14_error)
+        __pyx_t_8 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_a_sequence, NULL); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 714, __pyx_L14_error)
         __Pyx_GOTREF(__pyx_t_8);
         __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
       }
 
-      /* "xtrack/sequence/parser.py":714
+      /* "xtrack/sequence/parser.py":713
  *         parser = parser_from_scanner(scanner)
  *         parser.commit_line(line_template)
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -23822,7 +23797,7 @@ void py_end_beamline(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_line_template) 
     }
     goto __pyx_L5_except_error;
 
-    /* "xtrack/sequence/parser.py":711
+    /* "xtrack/sequence/parser.py":710
  * 
  * def py_end_beamline(scanner, line_template):
  *     try:             # <<<<<<<<<<<<<<
@@ -23843,7 +23818,7 @@ void py_end_beamline(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_line_template) 
     __pyx_L8_try_end:;
   }
 
-  /* "xtrack/sequence/parser.py":710
+  /* "xtrack/sequence/parser.py":709
  * 
  * 
  * def py_end_beamline(scanner, line_template):             # <<<<<<<<<<<<<<
@@ -23865,7 +23840,7 @@ void py_end_beamline(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_line_template) 
   __Pyx_RefNannyFinishContext();
 }
 
-/* "xtrack/sequence/parser.py":718
+/* "xtrack/sequence/parser.py":717
  * 
  * 
  * def py_clone(scanner, name, command) -> Optional[Tuple[str, str, dict]]:             # <<<<<<<<<<<<<<
@@ -23903,7 +23878,7 @@ PyObject *py_clone(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, PyObject 
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("py_clone", 1);
 
-  /* "xtrack/sequence/parser.py":719
+  /* "xtrack/sequence/parser.py":718
  * 
  * def py_clone(scanner, name, command) -> Optional[Tuple[str, str, dict]]:
  *     try:             # <<<<<<<<<<<<<<
@@ -23919,45 +23894,45 @@ PyObject *py_clone(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, PyObject 
     __Pyx_XGOTREF(__pyx_t_3);
     /*try:*/ {
 
-      /* "xtrack/sequence/parser.py":720
+      /* "xtrack/sequence/parser.py":719
  * def py_clone(scanner, name, command) -> Optional[Tuple[str, str, dict]]:
  *     try:
  *         if name.decode() in AVAILABLE_ELEMENT_CLASSES:             # <<<<<<<<<<<<<<
  *             parser = parser_from_scanner(scanner)
  *             parser.handle_error(f'the name `{name.decode()}` shadows a built-in type.')
  */
-      __pyx_t_4 = __Pyx_ssize_strlen(__pyx_v_name); if (unlikely(__pyx_t_4 == ((Py_ssize_t)-1))) __PYX_ERR(0, 720, __pyx_L3_error)
-      __pyx_t_5 = __Pyx_decode_c_string(__pyx_v_name, 0, __pyx_t_4, NULL, NULL, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 720, __pyx_L3_error)
+      __pyx_t_4 = __Pyx_ssize_strlen(__pyx_v_name); if (unlikely(__pyx_t_4 == ((Py_ssize_t)-1))) __PYX_ERR(0, 719, __pyx_L3_error)
+      __pyx_t_5 = __Pyx_decode_c_string(__pyx_v_name, 0, __pyx_t_4, NULL, NULL, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 719, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_5);
-      __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_AVAILABLE_ELEMENT_CLASSES); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 720, __pyx_L3_error)
+      __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_AVAILABLE_ELEMENT_CLASSES); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 719, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_6);
-      __pyx_t_7 = (__Pyx_PySequence_ContainsTF(__pyx_t_5, __pyx_t_6, Py_EQ)); if (unlikely((__pyx_t_7 < 0))) __PYX_ERR(0, 720, __pyx_L3_error)
+      __pyx_t_7 = (__Pyx_PySequence_ContainsTF(__pyx_t_5, __pyx_t_6, Py_EQ)); if (unlikely((__pyx_t_7 < 0))) __PYX_ERR(0, 719, __pyx_L3_error)
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
       __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
       if (__pyx_t_7) {
 
-        /* "xtrack/sequence/parser.py":721
+        /* "xtrack/sequence/parser.py":720
  *     try:
  *         if name.decode() in AVAILABLE_ELEMENT_CLASSES:
  *             parser = parser_from_scanner(scanner)             # <<<<<<<<<<<<<<
  *             parser.handle_error(f'the name `{name.decode()}` shadows a built-in type.')
  *             return None
  */
-        __pyx_t_6 = __pyx_f_6xtrack_8sequence_6parser_parser_from_scanner(__pyx_v_scanner); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 721, __pyx_L3_error)
+        __pyx_t_6 = __pyx_f_6xtrack_8sequence_6parser_parser_from_scanner(__pyx_v_scanner); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 720, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_6);
         __pyx_v_parser = __pyx_t_6;
         __pyx_t_6 = 0;
 
-        /* "xtrack/sequence/parser.py":722
+        /* "xtrack/sequence/parser.py":721
  *         if name.decode() in AVAILABLE_ELEMENT_CLASSES:
  *             parser = parser_from_scanner(scanner)
  *             parser.handle_error(f'the name `{name.decode()}` shadows a built-in type.')             # <<<<<<<<<<<<<<
  *             return None
  * 
  */
-        __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_parser, __pyx_n_s_handle_error); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 722, __pyx_L3_error)
+        __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_parser, __pyx_n_s_handle_error); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 721, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_5);
-        __pyx_t_8 = PyTuple_New(3); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 722, __pyx_L3_error)
+        __pyx_t_8 = PyTuple_New(3); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 721, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_8);
         __pyx_t_4 = 0;
         __pyx_t_9 = 127;
@@ -23965,8 +23940,8 @@ PyObject *py_clone(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, PyObject 
         __pyx_t_4 += 10;
         __Pyx_GIVEREF(__pyx_kp_u_the_name);
         PyTuple_SET_ITEM(__pyx_t_8, 0, __pyx_kp_u_the_name);
-        __pyx_t_10 = __Pyx_ssize_strlen(__pyx_v_name); if (unlikely(__pyx_t_10 == ((Py_ssize_t)-1))) __PYX_ERR(0, 722, __pyx_L3_error)
-        __pyx_t_11 = __Pyx_decode_c_string(__pyx_v_name, 0, __pyx_t_10, NULL, NULL, NULL); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 722, __pyx_L3_error)
+        __pyx_t_10 = __Pyx_ssize_strlen(__pyx_v_name); if (unlikely(__pyx_t_10 == ((Py_ssize_t)-1))) __PYX_ERR(0, 721, __pyx_L3_error)
+        __pyx_t_11 = __Pyx_decode_c_string(__pyx_v_name, 0, __pyx_t_10, NULL, NULL, NULL); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 721, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_11);
         __pyx_t_9 = (__Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_11) > __pyx_t_9) ? __Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_11) : __pyx_t_9;
         __pyx_t_4 += __Pyx_PyUnicode_GET_LENGTH(__pyx_t_11);
@@ -23977,7 +23952,7 @@ PyObject *py_clone(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, PyObject 
         __pyx_t_4 += 26;
         __Pyx_GIVEREF(__pyx_kp_u_shadows_a_built_in_type);
         PyTuple_SET_ITEM(__pyx_t_8, 2, __pyx_kp_u_shadows_a_built_in_type);
-        __pyx_t_11 = __Pyx_PyUnicode_Join(__pyx_t_8, 3, __pyx_t_4, __pyx_t_9); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 722, __pyx_L3_error)
+        __pyx_t_11 = __Pyx_PyUnicode_Join(__pyx_t_8, 3, __pyx_t_4, __pyx_t_9); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 721, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_11);
         __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
         __pyx_t_8 = NULL;
@@ -23999,13 +23974,13 @@ PyObject *py_clone(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, PyObject 
           __pyx_t_6 = __Pyx_PyObject_FastCall(__pyx_t_5, __pyx_callargs+1-__pyx_t_12, 1+__pyx_t_12);
           __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
           __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
-          if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 722, __pyx_L3_error)
+          if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 721, __pyx_L3_error)
           __Pyx_GOTREF(__pyx_t_6);
           __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
         }
         __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
 
-        /* "xtrack/sequence/parser.py":723
+        /* "xtrack/sequence/parser.py":722
  *             parser = parser_from_scanner(scanner)
  *             parser.handle_error(f'the name `{name.decode()}` shadows a built-in type.')
  *             return None             # <<<<<<<<<<<<<<
@@ -24016,7 +23991,7 @@ PyObject *py_clone(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, PyObject 
         __pyx_r = Py_None; __Pyx_INCREF(Py_None);
         goto __pyx_L7_try_return;
 
-        /* "xtrack/sequence/parser.py":720
+        /* "xtrack/sequence/parser.py":719
  * def py_clone(scanner, name, command) -> Optional[Tuple[str, str, dict]]:
  *     try:
  *         if name.decode() in AVAILABLE_ELEMENT_CLASSES:             # <<<<<<<<<<<<<<
@@ -24025,7 +24000,7 @@ PyObject *py_clone(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, PyObject 
  */
       }
 
-      /* "xtrack/sequence/parser.py":725
+      /* "xtrack/sequence/parser.py":724
  *             return None
  * 
  *         return name.decode(), command[0], command[1]             # <<<<<<<<<<<<<<
@@ -24033,21 +24008,21 @@ PyObject *py_clone(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, PyObject 
  *         register_error(scanner, e, 'parsing a clone statement')
  */
       __Pyx_XDECREF(__pyx_r);
-      __pyx_t_4 = __Pyx_ssize_strlen(__pyx_v_name); if (unlikely(__pyx_t_4 == ((Py_ssize_t)-1))) __PYX_ERR(0, 725, __pyx_L3_error)
-      __pyx_t_6 = __Pyx_decode_c_string(__pyx_v_name, 0, __pyx_t_4, NULL, NULL, NULL); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 725, __pyx_L3_error)
+      __pyx_t_4 = __Pyx_ssize_strlen(__pyx_v_name); if (unlikely(__pyx_t_4 == ((Py_ssize_t)-1))) __PYX_ERR(0, 724, __pyx_L3_error)
+      __pyx_t_6 = __Pyx_decode_c_string(__pyx_v_name, 0, __pyx_t_4, NULL, NULL, NULL); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 724, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_6);
-      __pyx_t_5 = __Pyx_GetItemInt(__pyx_v_command, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 725, __pyx_L3_error)
+      __pyx_t_5 = __Pyx_GetItemInt(__pyx_v_command, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 724, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_5);
-      __pyx_t_11 = __Pyx_GetItemInt(__pyx_v_command, 1, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 725, __pyx_L3_error)
+      __pyx_t_11 = __Pyx_GetItemInt(__pyx_v_command, 1, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 724, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_11);
-      __pyx_t_8 = PyTuple_New(3); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 725, __pyx_L3_error)
+      __pyx_t_8 = PyTuple_New(3); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 724, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_8);
       __Pyx_GIVEREF(__pyx_t_6);
-      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_8, 0, __pyx_t_6)) __PYX_ERR(0, 725, __pyx_L3_error);
+      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_8, 0, __pyx_t_6)) __PYX_ERR(0, 724, __pyx_L3_error);
       __Pyx_GIVEREF(__pyx_t_5);
-      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_8, 1, __pyx_t_5)) __PYX_ERR(0, 725, __pyx_L3_error);
+      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_8, 1, __pyx_t_5)) __PYX_ERR(0, 724, __pyx_L3_error);
       __Pyx_GIVEREF(__pyx_t_11);
-      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_8, 2, __pyx_t_11)) __PYX_ERR(0, 725, __pyx_L3_error);
+      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_8, 2, __pyx_t_11)) __PYX_ERR(0, 724, __pyx_L3_error);
       __pyx_t_6 = 0;
       __pyx_t_5 = 0;
       __pyx_t_11 = 0;
@@ -24055,7 +24030,7 @@ PyObject *py_clone(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, PyObject 
       __pyx_t_8 = 0;
       goto __pyx_L7_try_return;
 
-      /* "xtrack/sequence/parser.py":719
+      /* "xtrack/sequence/parser.py":718
  * 
  * def py_clone(scanner, name, command) -> Optional[Tuple[str, str, dict]]:
  *     try:             # <<<<<<<<<<<<<<
@@ -24069,7 +24044,7 @@ PyObject *py_clone(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, PyObject 
     __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
     __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
 
-    /* "xtrack/sequence/parser.py":726
+    /* "xtrack/sequence/parser.py":725
  * 
  *         return name.decode(), command[0], command[1]
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -24079,7 +24054,7 @@ PyObject *py_clone(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, PyObject 
     __pyx_t_12 = __Pyx_PyErr_ExceptionMatches(((PyObject *)(&((PyTypeObject*)PyExc_Exception)[0])));
     if (__pyx_t_12) {
       __Pyx_AddTraceback("xtrack.sequence.parser.py_clone", __pyx_clineno, __pyx_lineno, __pyx_filename);
-      if (__Pyx_GetException(&__pyx_t_8, &__pyx_t_11, &__pyx_t_5) < 0) __PYX_ERR(0, 726, __pyx_L5_except_error)
+      if (__Pyx_GetException(&__pyx_t_8, &__pyx_t_11, &__pyx_t_5) < 0) __PYX_ERR(0, 725, __pyx_L5_except_error)
       __Pyx_XGOTREF(__pyx_t_8);
       __Pyx_XGOTREF(__pyx_t_11);
       __Pyx_XGOTREF(__pyx_t_5);
@@ -24087,19 +24062,19 @@ PyObject *py_clone(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, PyObject 
       __pyx_v_e = __pyx_t_11;
       /*try:*/ {
 
-        /* "xtrack/sequence/parser.py":727
+        /* "xtrack/sequence/parser.py":726
  *         return name.decode(), command[0], command[1]
  *     except Exception as e:
  *         register_error(scanner, e, 'parsing a clone statement')             # <<<<<<<<<<<<<<
  * 
  * 
  */
-        __pyx_t_6 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_a_clone_statement, NULL); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 727, __pyx_L15_error)
+        __pyx_t_6 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_a_clone_statement, NULL); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 726, __pyx_L15_error)
         __Pyx_GOTREF(__pyx_t_6);
         __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
       }
 
-      /* "xtrack/sequence/parser.py":726
+      /* "xtrack/sequence/parser.py":725
  * 
  *         return name.decode(), command[0], command[1]
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -24152,7 +24127,7 @@ PyObject *py_clone(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, PyObject 
     }
     goto __pyx_L5_except_error;
 
-    /* "xtrack/sequence/parser.py":719
+    /* "xtrack/sequence/parser.py":718
  * 
  * def py_clone(scanner, name, command) -> Optional[Tuple[str, str, dict]]:
  *     try:             # <<<<<<<<<<<<<<
@@ -24178,7 +24153,7 @@ PyObject *py_clone(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, PyObject 
     __Pyx_ExceptionReset(__pyx_t_1, __pyx_t_2, __pyx_t_3);
   }
 
-  /* "xtrack/sequence/parser.py":718
+  /* "xtrack/sequence/parser.py":717
  * 
  * 
  * def py_clone(scanner, name, command) -> Optional[Tuple[str, str, dict]]:             # <<<<<<<<<<<<<<
@@ -24204,7 +24179,7 @@ PyObject *py_clone(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, PyObject 
   return __pyx_r;
 }
 
-/* "xtrack/sequence/parser.py":730
+/* "xtrack/sequence/parser.py":729
  * 
  * 
  * def py_add_element(scanner, target, element):             # <<<<<<<<<<<<<<
@@ -24236,7 +24211,7 @@ void py_add_element(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_target, PyObject
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("py_add_element", 1);
 
-  /* "xtrack/sequence/parser.py":731
+  /* "xtrack/sequence/parser.py":730
  * 
  * def py_add_element(scanner, target, element):
  *     try:             # <<<<<<<<<<<<<<
@@ -24252,24 +24227,24 @@ void py_add_element(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_target, PyObject
     __Pyx_XGOTREF(__pyx_t_3);
     /*try:*/ {
 
-      /* "xtrack/sequence/parser.py":732
+      /* "xtrack/sequence/parser.py":731
  * def py_add_element(scanner, target, element):
  *     try:
  *         target.add_element(*element)             # <<<<<<<<<<<<<<
  *     except Exception as e:
  *         register_error(scanner, e, 'building a new element')
  */
-      __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_target, __pyx_n_s_add_element_2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 732, __pyx_L3_error)
+      __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_target, __pyx_n_s_add_element_2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 731, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_4);
-      __pyx_t_5 = __Pyx_PySequence_Tuple(__pyx_v_element); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 732, __pyx_L3_error)
+      __pyx_t_5 = __Pyx_PySequence_Tuple(__pyx_v_element); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 731, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_5);
-      __pyx_t_6 = __Pyx_PyObject_Call(__pyx_t_4, __pyx_t_5, NULL); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 732, __pyx_L3_error)
+      __pyx_t_6 = __Pyx_PyObject_Call(__pyx_t_4, __pyx_t_5, NULL); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 731, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_6);
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
       __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
 
-      /* "xtrack/sequence/parser.py":731
+      /* "xtrack/sequence/parser.py":730
  * 
  * def py_add_element(scanner, target, element):
  *     try:             # <<<<<<<<<<<<<<
@@ -24286,7 +24261,7 @@ void py_add_element(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_target, PyObject
     __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
     __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
 
-    /* "xtrack/sequence/parser.py":733
+    /* "xtrack/sequence/parser.py":732
  *     try:
  *         target.add_element(*element)
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -24296,7 +24271,7 @@ void py_add_element(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_target, PyObject
     __pyx_t_7 = __Pyx_PyErr_ExceptionMatches(((PyObject *)(&((PyTypeObject*)PyExc_Exception)[0])));
     if (__pyx_t_7) {
       __Pyx_AddTraceback("xtrack.sequence.parser.py_add_element", __pyx_clineno, __pyx_lineno, __pyx_filename);
-      if (__Pyx_GetException(&__pyx_t_6, &__pyx_t_5, &__pyx_t_4) < 0) __PYX_ERR(0, 733, __pyx_L5_except_error)
+      if (__Pyx_GetException(&__pyx_t_6, &__pyx_t_5, &__pyx_t_4) < 0) __PYX_ERR(0, 732, __pyx_L5_except_error)
       __Pyx_XGOTREF(__pyx_t_6);
       __Pyx_XGOTREF(__pyx_t_5);
       __Pyx_XGOTREF(__pyx_t_4);
@@ -24304,19 +24279,19 @@ void py_add_element(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_target, PyObject
       __pyx_v_e = __pyx_t_5;
       /*try:*/ {
 
-        /* "xtrack/sequence/parser.py":734
+        /* "xtrack/sequence/parser.py":733
  *         target.add_element(*element)
  *     except Exception as e:
  *         register_error(scanner, e, 'building a new element')             # <<<<<<<<<<<<<<
  * 
  * 
  */
-        __pyx_t_8 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_building_a_new_element, NULL); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 734, __pyx_L14_error)
+        __pyx_t_8 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_building_a_new_element, NULL); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 733, __pyx_L14_error)
         __Pyx_GOTREF(__pyx_t_8);
         __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
       }
 
-      /* "xtrack/sequence/parser.py":733
+      /* "xtrack/sequence/parser.py":732
  *     try:
  *         target.add_element(*element)
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -24369,7 +24344,7 @@ void py_add_element(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_target, PyObject
     }
     goto __pyx_L5_except_error;
 
-    /* "xtrack/sequence/parser.py":731
+    /* "xtrack/sequence/parser.py":730
  * 
  * def py_add_element(scanner, target, element):
  *     try:             # <<<<<<<<<<<<<<
@@ -24390,7 +24365,7 @@ void py_add_element(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_target, PyObject
     __pyx_L8_try_end:;
   }
 
-  /* "xtrack/sequence/parser.py":730
+  /* "xtrack/sequence/parser.py":729
  * 
  * 
  * def py_add_element(scanner, target, element):             # <<<<<<<<<<<<<<
@@ -24411,7 +24386,7 @@ void py_add_element(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_target, PyObject
   __Pyx_RefNannyFinishContext();
 }
 
-/* "xtrack/sequence/parser.py":737
+/* "xtrack/sequence/parser.py":736
  * 
  * 
  * def py_clone_global(scanner, clone):             # <<<<<<<<<<<<<<
@@ -24448,7 +24423,7 @@ void py_clone_global(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_clone) {
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("py_clone_global", 1);
 
-  /* "xtrack/sequence/parser.py":738
+  /* "xtrack/sequence/parser.py":737
  * 
  * def py_clone_global(scanner, clone):
  *     try:             # <<<<<<<<<<<<<<
@@ -24464,7 +24439,7 @@ void py_clone_global(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_clone) {
     __Pyx_XGOTREF(__pyx_t_3);
     /*try:*/ {
 
-      /* "xtrack/sequence/parser.py":739
+      /* "xtrack/sequence/parser.py":738
  * def py_clone_global(scanner, clone):
  *     try:
  *         if clone is None:  # A parsing error already occurred, recover             # <<<<<<<<<<<<<<
@@ -24474,7 +24449,7 @@ void py_clone_global(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_clone) {
       __pyx_t_4 = (__pyx_v_clone == ((PyObject*)Py_None));
       if (__pyx_t_4) {
 
-        /* "xtrack/sequence/parser.py":740
+        /* "xtrack/sequence/parser.py":739
  *     try:
  *         if clone is None:  # A parsing error already occurred, recover
  *             return             # <<<<<<<<<<<<<<
@@ -24483,7 +24458,7 @@ void py_clone_global(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_clone) {
  */
         goto __pyx_L7_try_return;
 
-        /* "xtrack/sequence/parser.py":739
+        /* "xtrack/sequence/parser.py":738
  * def py_clone_global(scanner, clone):
  *     try:
  *         if clone is None:  # A parsing error already occurred, recover             # <<<<<<<<<<<<<<
@@ -24492,19 +24467,19 @@ void py_clone_global(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_clone) {
  */
       }
 
-      /* "xtrack/sequence/parser.py":741
+      /* "xtrack/sequence/parser.py":740
  *         if clone is None:  # A parsing error already occurred, recover
  *             return
  *         parser = parser_from_scanner(scanner)             # <<<<<<<<<<<<<<
  *         name, parent, args = clone
  *         parser.add_global_element(name, parent, args)
  */
-      __pyx_t_5 = __pyx_f_6xtrack_8sequence_6parser_parser_from_scanner(__pyx_v_scanner); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 741, __pyx_L3_error)
+      __pyx_t_5 = __pyx_f_6xtrack_8sequence_6parser_parser_from_scanner(__pyx_v_scanner); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 740, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_5);
       __pyx_v_parser = __pyx_t_5;
       __pyx_t_5 = 0;
 
-      /* "xtrack/sequence/parser.py":742
+      /* "xtrack/sequence/parser.py":741
  *             return
  *         parser = parser_from_scanner(scanner)
  *         name, parent, args = clone             # <<<<<<<<<<<<<<
@@ -24517,7 +24492,7 @@ void py_clone_global(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_clone) {
         if (unlikely(size != 3)) {
           if (size > 3) __Pyx_RaiseTooManyValuesError(3);
           else if (size >= 0) __Pyx_RaiseNeedMoreValuesError(size);
-          __PYX_ERR(0, 742, __pyx_L3_error)
+          __PYX_ERR(0, 741, __pyx_L3_error)
         }
         #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
         __pyx_t_5 = PyTuple_GET_ITEM(sequence, 0); 
@@ -24527,15 +24502,15 @@ void py_clone_global(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_clone) {
         __Pyx_INCREF(__pyx_t_6);
         __Pyx_INCREF(__pyx_t_7);
         #else
-        __pyx_t_5 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 742, __pyx_L3_error)
+        __pyx_t_5 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 741, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_5);
-        __pyx_t_6 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 742, __pyx_L3_error)
+        __pyx_t_6 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 741, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_6);
-        __pyx_t_7 = PySequence_ITEM(sequence, 2); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 742, __pyx_L3_error)
+        __pyx_t_7 = PySequence_ITEM(sequence, 2); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 741, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_7);
         #endif
       } else {
-        __Pyx_RaiseNoneNotIterableError(); __PYX_ERR(0, 742, __pyx_L3_error)
+        __Pyx_RaiseNoneNotIterableError(); __PYX_ERR(0, 741, __pyx_L3_error)
       }
       __pyx_v_name = __pyx_t_5;
       __pyx_t_5 = 0;
@@ -24544,14 +24519,14 @@ void py_clone_global(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_clone) {
       __pyx_v_args = __pyx_t_7;
       __pyx_t_7 = 0;
 
-      /* "xtrack/sequence/parser.py":743
+      /* "xtrack/sequence/parser.py":742
  *         parser = parser_from_scanner(scanner)
  *         name, parent, args = clone
  *         parser.add_global_element(name, parent, args)             # <<<<<<<<<<<<<<
  *     except Exception as e:
  *         register_error(scanner, e, 'parsing a global clone statement')
  */
-      __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_v_parser, __pyx_n_s_add_global_element); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 743, __pyx_L3_error)
+      __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_v_parser, __pyx_n_s_add_global_element); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 742, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_6);
       __pyx_t_5 = NULL;
       __pyx_t_8 = 0;
@@ -24571,13 +24546,13 @@ void py_clone_global(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_clone) {
         PyObject *__pyx_callargs[4] = {__pyx_t_5, __pyx_v_name, __pyx_v_parent, __pyx_v_args};
         __pyx_t_7 = __Pyx_PyObject_FastCall(__pyx_t_6, __pyx_callargs+1-__pyx_t_8, 3+__pyx_t_8);
         __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
-        if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 743, __pyx_L3_error)
+        if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 742, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_7);
         __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
       }
       __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
 
-      /* "xtrack/sequence/parser.py":738
+      /* "xtrack/sequence/parser.py":737
  * 
  * def py_clone_global(scanner, clone):
  *     try:             # <<<<<<<<<<<<<<
@@ -24594,7 +24569,7 @@ void py_clone_global(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_clone) {
     __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
     __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
 
-    /* "xtrack/sequence/parser.py":744
+    /* "xtrack/sequence/parser.py":743
  *         name, parent, args = clone
  *         parser.add_global_element(name, parent, args)
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -24604,7 +24579,7 @@ void py_clone_global(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_clone) {
     __pyx_t_8 = __Pyx_PyErr_ExceptionMatches(((PyObject *)(&((PyTypeObject*)PyExc_Exception)[0])));
     if (__pyx_t_8) {
       __Pyx_AddTraceback("xtrack.sequence.parser.py_clone_global", __pyx_clineno, __pyx_lineno, __pyx_filename);
-      if (__Pyx_GetException(&__pyx_t_7, &__pyx_t_6, &__pyx_t_5) < 0) __PYX_ERR(0, 744, __pyx_L5_except_error)
+      if (__Pyx_GetException(&__pyx_t_7, &__pyx_t_6, &__pyx_t_5) < 0) __PYX_ERR(0, 743, __pyx_L5_except_error)
       __Pyx_XGOTREF(__pyx_t_7);
       __Pyx_XGOTREF(__pyx_t_6);
       __Pyx_XGOTREF(__pyx_t_5);
@@ -24612,19 +24587,19 @@ void py_clone_global(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_clone) {
       __pyx_v_e = __pyx_t_6;
       /*try:*/ {
 
-        /* "xtrack/sequence/parser.py":745
+        /* "xtrack/sequence/parser.py":744
  *         parser.add_global_element(name, parent, args)
  *     except Exception as e:
  *         register_error(scanner, e, 'parsing a global clone statement')             # <<<<<<<<<<<<<<
  * 
  * 
  */
-        __pyx_t_9 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_a_global_clone_statement, NULL); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 745, __pyx_L15_error)
+        __pyx_t_9 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_a_global_clone_statement, NULL); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 744, __pyx_L15_error)
         __Pyx_GOTREF(__pyx_t_9);
         __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
       }
 
-      /* "xtrack/sequence/parser.py":744
+      /* "xtrack/sequence/parser.py":743
  *         name, parent, args = clone
  *         parser.add_global_element(name, parent, args)
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -24677,7 +24652,7 @@ void py_clone_global(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_clone) {
     }
     goto __pyx_L5_except_error;
 
-    /* "xtrack/sequence/parser.py":738
+    /* "xtrack/sequence/parser.py":737
  * 
  * def py_clone_global(scanner, clone):
  *     try:             # <<<<<<<<<<<<<<
@@ -24704,7 +24679,7 @@ void py_clone_global(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_clone) {
     __pyx_L8_try_end:;
   }
 
-  /* "xtrack/sequence/parser.py":737
+  /* "xtrack/sequence/parser.py":736
  * 
  * 
  * def py_clone_global(scanner, clone):             # <<<<<<<<<<<<<<
@@ -24729,7 +24704,7 @@ void py_clone_global(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_clone) {
   __Pyx_RefNannyFinishContext();
 }
 
-/* "xtrack/sequence/parser.py":748
+/* "xtrack/sequence/parser.py":747
  * 
  * 
  * def py_command(scanner, name, arguments, location):             # <<<<<<<<<<<<<<
@@ -24765,7 +24740,7 @@ PyObject *py_command(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, PyObjec
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("py_command", 1);
 
-  /* "xtrack/sequence/parser.py":749
+  /* "xtrack/sequence/parser.py":748
  * 
  * def py_command(scanner, name, arguments, location):
  *     try:             # <<<<<<<<<<<<<<
@@ -24781,7 +24756,7 @@ PyObject *py_command(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, PyObjec
     __Pyx_XGOTREF(__pyx_t_3);
     /*try:*/ {
 
-      /* "xtrack/sequence/parser.py":751
+      /* "xtrack/sequence/parser.py":750
  *     try:
  * 
  *         return name.decode(), arguments             # <<<<<<<<<<<<<<
@@ -24789,22 +24764,22 @@ PyObject *py_command(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, PyObjec
  *         register_error(scanner, e, 'parsing a command statement',
  */
       __Pyx_XDECREF(__pyx_r);
-      __pyx_t_4 = __Pyx_ssize_strlen(__pyx_v_name); if (unlikely(__pyx_t_4 == ((Py_ssize_t)-1))) __PYX_ERR(0, 751, __pyx_L3_error)
-      __pyx_t_5 = __Pyx_decode_c_string(__pyx_v_name, 0, __pyx_t_4, NULL, NULL, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 751, __pyx_L3_error)
+      __pyx_t_4 = __Pyx_ssize_strlen(__pyx_v_name); if (unlikely(__pyx_t_4 == ((Py_ssize_t)-1))) __PYX_ERR(0, 750, __pyx_L3_error)
+      __pyx_t_5 = __Pyx_decode_c_string(__pyx_v_name, 0, __pyx_t_4, NULL, NULL, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 750, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_5);
-      __pyx_t_6 = PyTuple_New(2); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 751, __pyx_L3_error)
+      __pyx_t_6 = PyTuple_New(2); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 750, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_6);
       __Pyx_GIVEREF(__pyx_t_5);
-      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_6, 0, __pyx_t_5)) __PYX_ERR(0, 751, __pyx_L3_error);
+      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_6, 0, __pyx_t_5)) __PYX_ERR(0, 750, __pyx_L3_error);
       __Pyx_INCREF(__pyx_v_arguments);
       __Pyx_GIVEREF(__pyx_v_arguments);
-      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_6, 1, __pyx_v_arguments)) __PYX_ERR(0, 751, __pyx_L3_error);
+      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_6, 1, __pyx_v_arguments)) __PYX_ERR(0, 750, __pyx_L3_error);
       __pyx_t_5 = 0;
       __pyx_r = ((PyObject*)__pyx_t_6);
       __pyx_t_6 = 0;
       goto __pyx_L7_try_return;
 
-      /* "xtrack/sequence/parser.py":749
+      /* "xtrack/sequence/parser.py":748
  * 
  * def py_command(scanner, name, arguments, location):
  *     try:             # <<<<<<<<<<<<<<
@@ -24816,7 +24791,7 @@ PyObject *py_command(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, PyObjec
     __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
     __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
 
-    /* "xtrack/sequence/parser.py":752
+    /* "xtrack/sequence/parser.py":751
  * 
  *         return name.decode(), arguments
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -24826,7 +24801,7 @@ PyObject *py_command(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, PyObjec
     __pyx_t_7 = __Pyx_PyErr_ExceptionMatches(((PyObject *)(&((PyTypeObject*)PyExc_Exception)[0])));
     if (__pyx_t_7) {
       __Pyx_AddTraceback("xtrack.sequence.parser.py_command", __pyx_clineno, __pyx_lineno, __pyx_filename);
-      if (__Pyx_GetException(&__pyx_t_6, &__pyx_t_5, &__pyx_t_8) < 0) __PYX_ERR(0, 752, __pyx_L5_except_error)
+      if (__Pyx_GetException(&__pyx_t_6, &__pyx_t_5, &__pyx_t_8) < 0) __PYX_ERR(0, 751, __pyx_L5_except_error)
       __Pyx_XGOTREF(__pyx_t_6);
       __Pyx_XGOTREF(__pyx_t_5);
       __Pyx_XGOTREF(__pyx_t_8);
@@ -24834,17 +24809,17 @@ PyObject *py_command(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, PyObjec
       __pyx_v_e = __pyx_t_5;
       /*try:*/ {
 
-        /* "xtrack/sequence/parser.py":754
+        /* "xtrack/sequence/parser.py":753
  *     except Exception as e:
  *         register_error(scanner, e, 'parsing a command statement',
  *                        add_context=True, location=location)             # <<<<<<<<<<<<<<
  * 
  * 
  */
-        __pyx_t_9 = __pyx_convert__to_py_YYLTYPE(__pyx_v_location); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 754, __pyx_L14_error)
+        __pyx_t_9 = __pyx_convert__to_py_YYLTYPE(__pyx_v_location); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 753, __pyx_L14_error)
         __Pyx_GOTREF(__pyx_t_9);
 
-        /* "xtrack/sequence/parser.py":753
+        /* "xtrack/sequence/parser.py":752
  *         return name.decode(), arguments
  *     except Exception as e:
  *         register_error(scanner, e, 'parsing a command statement',             # <<<<<<<<<<<<<<
@@ -24854,13 +24829,13 @@ PyObject *py_command(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, PyObjec
         __pyx_t_11.__pyx_n = 2;
         __pyx_t_11.add_context = Py_True;
         __pyx_t_11.location = __pyx_t_9;
-        __pyx_t_10 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_a_command_statement, &__pyx_t_11); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 753, __pyx_L14_error)
+        __pyx_t_10 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_parsing_a_command_statement, &__pyx_t_11); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 752, __pyx_L14_error)
         __Pyx_GOTREF(__pyx_t_10);
         __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
         __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
       }
 
-      /* "xtrack/sequence/parser.py":752
+      /* "xtrack/sequence/parser.py":751
  * 
  *         return name.decode(), arguments
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -24914,7 +24889,7 @@ PyObject *py_command(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, PyObjec
     }
     goto __pyx_L5_except_error;
 
-    /* "xtrack/sequence/parser.py":749
+    /* "xtrack/sequence/parser.py":748
  * 
  * def py_command(scanner, name, arguments, location):
  *     try:             # <<<<<<<<<<<<<<
@@ -24940,7 +24915,7 @@ PyObject *py_command(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, PyObjec
     __Pyx_ExceptionReset(__pyx_t_1, __pyx_t_2, __pyx_t_3);
   }
 
-  /* "xtrack/sequence/parser.py":748
+  /* "xtrack/sequence/parser.py":747
  * 
  * 
  * def py_command(scanner, name, arguments, location):             # <<<<<<<<<<<<<<
@@ -24966,7 +24941,7 @@ PyObject *py_command(yyscan_t __pyx_v_scanner, char const *__pyx_v_name, PyObjec
   return __pyx_r;
 }
 
-/* "xtrack/sequence/parser.py":757
+/* "xtrack/sequence/parser.py":756
  * 
  * 
  * def py_add_command(scanner, target, command, location):             # <<<<<<<<<<<<<<
@@ -25000,7 +24975,7 @@ void py_add_command(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_target, PyObject
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("py_add_command", 1);
 
-  /* "xtrack/sequence/parser.py":758
+  /* "xtrack/sequence/parser.py":757
  * 
  * def py_add_command(scanner, target, command, location):
  *     try:             # <<<<<<<<<<<<<<
@@ -25016,24 +24991,24 @@ void py_add_command(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_target, PyObject
     __Pyx_XGOTREF(__pyx_t_3);
     /*try:*/ {
 
-      /* "xtrack/sequence/parser.py":759
+      /* "xtrack/sequence/parser.py":758
  * def py_add_command(scanner, target, command, location):
  *     try:
  *         target.add_command(*command)             # <<<<<<<<<<<<<<
  *     except Exception as e:
  *         register_error(scanner, e, 'applying a command statement',
  */
-      __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_target, __pyx_n_s_add_command); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 759, __pyx_L3_error)
+      __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_target, __pyx_n_s_add_command); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 758, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_4);
-      __pyx_t_5 = __Pyx_PySequence_Tuple(__pyx_v_command); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 759, __pyx_L3_error)
+      __pyx_t_5 = __Pyx_PySequence_Tuple(__pyx_v_command); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 758, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_5);
-      __pyx_t_6 = __Pyx_PyObject_Call(__pyx_t_4, __pyx_t_5, NULL); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 759, __pyx_L3_error)
+      __pyx_t_6 = __Pyx_PyObject_Call(__pyx_t_4, __pyx_t_5, NULL); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 758, __pyx_L3_error)
       __Pyx_GOTREF(__pyx_t_6);
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
       __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
 
-      /* "xtrack/sequence/parser.py":758
+      /* "xtrack/sequence/parser.py":757
  * 
  * def py_add_command(scanner, target, command, location):
  *     try:             # <<<<<<<<<<<<<<
@@ -25050,7 +25025,7 @@ void py_add_command(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_target, PyObject
     __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
     __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
 
-    /* "xtrack/sequence/parser.py":760
+    /* "xtrack/sequence/parser.py":759
  *     try:
  *         target.add_command(*command)
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -25060,7 +25035,7 @@ void py_add_command(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_target, PyObject
     __pyx_t_7 = __Pyx_PyErr_ExceptionMatches(((PyObject *)(&((PyTypeObject*)PyExc_Exception)[0])));
     if (__pyx_t_7) {
       __Pyx_AddTraceback("xtrack.sequence.parser.py_add_command", __pyx_clineno, __pyx_lineno, __pyx_filename);
-      if (__Pyx_GetException(&__pyx_t_6, &__pyx_t_5, &__pyx_t_4) < 0) __PYX_ERR(0, 760, __pyx_L5_except_error)
+      if (__Pyx_GetException(&__pyx_t_6, &__pyx_t_5, &__pyx_t_4) < 0) __PYX_ERR(0, 759, __pyx_L5_except_error)
       __Pyx_XGOTREF(__pyx_t_6);
       __Pyx_XGOTREF(__pyx_t_5);
       __Pyx_XGOTREF(__pyx_t_4);
@@ -25068,15 +25043,15 @@ void py_add_command(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_target, PyObject
       __pyx_v_e = __pyx_t_5;
       /*try:*/ {
 
-        /* "xtrack/sequence/parser.py":762
+        /* "xtrack/sequence/parser.py":761
  *     except Exception as e:
  *         register_error(scanner, e, 'applying a command statement',
  *                        add_context=True, location=location)             # <<<<<<<<<<<<<<
  */
-        __pyx_t_8 = __pyx_convert__to_py_YYLTYPE(__pyx_v_location); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 762, __pyx_L14_error)
+        __pyx_t_8 = __pyx_convert__to_py_YYLTYPE(__pyx_v_location); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 761, __pyx_L14_error)
         __Pyx_GOTREF(__pyx_t_8);
 
-        /* "xtrack/sequence/parser.py":761
+        /* "xtrack/sequence/parser.py":760
  *         target.add_command(*command)
  *     except Exception as e:
  *         register_error(scanner, e, 'applying a command statement',             # <<<<<<<<<<<<<<
@@ -25085,13 +25060,13 @@ void py_add_command(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_target, PyObject
         __pyx_t_10.__pyx_n = 2;
         __pyx_t_10.add_context = Py_True;
         __pyx_t_10.location = __pyx_t_8;
-        __pyx_t_9 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_applying_a_command_statement, &__pyx_t_10); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 761, __pyx_L14_error)
+        __pyx_t_9 = __pyx_f_6xtrack_8sequence_6parser_register_error(__pyx_v_scanner, __pyx_v_e, __pyx_kp_u_applying_a_command_statement, &__pyx_t_10); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 760, __pyx_L14_error)
         __Pyx_GOTREF(__pyx_t_9);
         __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
         __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
       }
 
-      /* "xtrack/sequence/parser.py":760
+      /* "xtrack/sequence/parser.py":759
  *     try:
  *         target.add_command(*command)
  *     except Exception as e:             # <<<<<<<<<<<<<<
@@ -25145,7 +25120,7 @@ void py_add_command(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_target, PyObject
     }
     goto __pyx_L5_except_error;
 
-    /* "xtrack/sequence/parser.py":758
+    /* "xtrack/sequence/parser.py":757
  * 
  * def py_add_command(scanner, target, command, location):
  *     try:             # <<<<<<<<<<<<<<
@@ -25166,7 +25141,7 @@ void py_add_command(yyscan_t __pyx_v_scanner, PyObject *__pyx_v_target, PyObject
     __pyx_L8_try_end:;
   }
 
-  /* "xtrack/sequence/parser.py":757
+  /* "xtrack/sequence/parser.py":756
  * 
  * 
  * def py_add_command(scanner, target, command, location):             # <<<<<<<<<<<<<<
@@ -27120,7 +27095,6 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
     {&__pyx_n_s_math, __pyx_k_math, sizeof(__pyx_k_math), 0, 0, 1, 1},
     {&__pyx_n_s_message, __pyx_k_message, sizeof(__pyx_k_message), 0, 0, 1, 1},
     {&__pyx_n_s_metaclass, __pyx_k_metaclass, sizeof(__pyx_k_metaclass), 0, 0, 1, 1},
-    {&__pyx_n_s_metadata, __pyx_k_metadata, sizeof(__pyx_k_metadata), 0, 0, 1, 1},
     {&__pyx_n_s_module, __pyx_k_module, sizeof(__pyx_k_module), 0, 0, 1, 1},
     {&__pyx_kp_u_more, __pyx_k_more, sizeof(__pyx_k_more), 0, 1, 0, 0},
     {&__pyx_n_s_mro_entries, __pyx_k_mro_entries, sizeof(__pyx_k_mro_entries), 0, 0, 1, 1},
@@ -27180,7 +27154,6 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
     {&__pyx_n_u_prad, __pyx_k_prad, sizeof(__pyx_k_prad), 0, 1, 0, 1},
     {&__pyx_n_s_prepare, __pyx_k_prepare, sizeof(__pyx_k_prepare), 0, 0, 1, 1},
     {&__pyx_n_s_print, __pyx_k_print, sizeof(__pyx_k_print), 0, 0, 1, 1},
-    {&__pyx_n_s_print_2, __pyx_k_print_2, sizeof(__pyx_k_print_2), 0, 0, 1, 1},
     {&__pyx_n_s_proton_mass, __pyx_k_proton_mass, sizeof(__pyx_k_proton_mass), 0, 0, 1, 1},
     {&__pyx_n_s_pyx_PickleError, __pyx_k_pyx_PickleError, sizeof(__pyx_k_pyx_PickleError), 0, 0, 1, 1},
     {&__pyx_n_s_pyx_checksum, __pyx_k_pyx_checksum, sizeof(__pyx_k_pyx_checksum), 0, 0, 1, 1},
@@ -27290,10 +27263,9 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedBuiltins(void) {
   __pyx_builtin_TypeError = __Pyx_GetBuiltinName(__pyx_n_s_TypeError); if (!__pyx_builtin_TypeError) __PYX_ERR(0, 227, __pyx_L1_error)
   __pyx_builtin_ValueError = __Pyx_GetBuiltinName(__pyx_n_s_ValueError); if (!__pyx_builtin_ValueError) __PYX_ERR(0, 243, __pyx_L1_error)
   __pyx_builtin_OSError = __Pyx_GetBuiltinName(__pyx_n_s_OSError); if (!__pyx_builtin_OSError) __PYX_ERR(0, 325, __pyx_L1_error)
-  __pyx_builtin_print = __Pyx_GetBuiltinName(__pyx_n_s_print); if (!__pyx_builtin_print) __PYX_ERR(0, 428, __pyx_L1_error)
-  __pyx_builtin_AssertionError = __Pyx_GetBuiltinName(__pyx_n_s_AssertionError); if (!__pyx_builtin_AssertionError) __PYX_ERR(0, 456, __pyx_L1_error)
-  __pyx_builtin_KeyError = __Pyx_GetBuiltinName(__pyx_n_s_KeyError); if (!__pyx_builtin_KeyError) __PYX_ERR(0, 466, __pyx_L1_error)
-  __pyx_builtin_AttributeError = __Pyx_GetBuiltinName(__pyx_n_s_AttributeError); if (!__pyx_builtin_AttributeError) __PYX_ERR(0, 466, __pyx_L1_error)
+  __pyx_builtin_AssertionError = __Pyx_GetBuiltinName(__pyx_n_s_AssertionError); if (!__pyx_builtin_AssertionError) __PYX_ERR(0, 455, __pyx_L1_error)
+  __pyx_builtin_KeyError = __Pyx_GetBuiltinName(__pyx_n_s_KeyError); if (!__pyx_builtin_KeyError) __PYX_ERR(0, 465, __pyx_L1_error)
+  __pyx_builtin_AttributeError = __Pyx_GetBuiltinName(__pyx_n_s_AttributeError); if (!__pyx_builtin_AttributeError) __PYX_ERR(0, 465, __pyx_L1_error)
   return 0;
   __pyx_L1_error:;
   return -1;
@@ -27353,48 +27325,48 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_tuple__16);
   __Pyx_GIVEREF(__pyx_tuple__16);
 
-  /* "xtrack/sequence/parser.py":450
+  /* "xtrack/sequence/parser.py":449
  *             return InvalidExpression
  * 
  *         def _error(message):             # <<<<<<<<<<<<<<
  *             self.handle_error(message, add_context=True, location=location)
  * 
  */
-  __pyx_tuple__18 = PyTuple_Pack(1, __pyx_n_s_message); if (unlikely(!__pyx_tuple__18)) __PYX_ERR(0, 450, __pyx_L1_error)
+  __pyx_tuple__18 = PyTuple_Pack(1, __pyx_n_s_message); if (unlikely(!__pyx_tuple__18)) __PYX_ERR(0, 449, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__18);
   __Pyx_GIVEREF(__pyx_tuple__18);
-  __pyx_codeobj__19 = (PyObject*)__Pyx_PyCode_New(1, 0, 0, 1, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__18, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_parser_py, __pyx_n_s_error_2, 450, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__19)) __PYX_ERR(0, 450, __pyx_L1_error)
+  __pyx_codeobj__19 = (PyObject*)__Pyx_PyCode_New(1, 0, 0, 1, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__18, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_parser_py, __pyx_n_s_error_2, 449, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__19)) __PYX_ERR(0, 449, __pyx_L1_error)
 
-  /* "xtrack/sequence/parser.py":502
+  /* "xtrack/sequence/parser.py":501
  *         """
  *         if not self.lines:
  *             raise ValueError('No sequence was parsed. Either the input has no '             # <<<<<<<<<<<<<<
  *                              'sequences, or the parser has not been run yet.')
  * 
  */
-  __pyx_tuple__20 = PyTuple_Pack(1, __pyx_kp_u_No_sequence_was_parsed_Either_th); if (unlikely(!__pyx_tuple__20)) __PYX_ERR(0, 502, __pyx_L1_error)
+  __pyx_tuple__20 = PyTuple_Pack(1, __pyx_kp_u_No_sequence_was_parsed_Either_th); if (unlikely(!__pyx_tuple__20)) __PYX_ERR(0, 501, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__20);
   __Pyx_GIVEREF(__pyx_tuple__20);
 
-  /* "xtrack/sequence/parser.py":509
+  /* "xtrack/sequence/parser.py":508
  *                 name, = self.lines.keys()
  *             except ValueError:
  *                 raise ValueError('Cannot unambiguously determine the sequence '             # <<<<<<<<<<<<<<
  *                                  'as no name was provided and there is more '
  *                                  'than one sequence in parsed input.')
  */
-  __pyx_tuple__21 = PyTuple_Pack(1, __pyx_kp_u_Cannot_unambiguously_determine_t); if (unlikely(!__pyx_tuple__21)) __PYX_ERR(0, 509, __pyx_L1_error)
+  __pyx_tuple__21 = PyTuple_Pack(1, __pyx_kp_u_Cannot_unambiguously_determine_t); if (unlikely(!__pyx_tuple__21)) __PYX_ERR(0, 508, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__21);
   __Pyx_GIVEREF(__pyx_tuple__21);
 
-  /* "xtrack/sequence/parser.py":536
+  /* "xtrack/sequence/parser.py":535
  *     def set_existing_line(self, line, name):
  *         if self.lines or not self._single_line_mode:
  *             raise ValueError(             # <<<<<<<<<<<<<<
  *                 'An existing line can only be added to a fresh parser in '
  *                 'single line mode. This parser was either created with '
  */
-  __pyx_tuple__22 = PyTuple_Pack(1, __pyx_kp_u_An_existing_line_can_only_be_add); if (unlikely(!__pyx_tuple__22)) __PYX_ERR(0, 536, __pyx_L1_error)
+  __pyx_tuple__22 = PyTuple_Pack(1, __pyx_kp_u_An_existing_line_can_only_be_add); if (unlikely(!__pyx_tuple__22)) __PYX_ERR(0, 535, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__22);
   __Pyx_GIVEREF(__pyx_tuple__22);
 
@@ -27776,56 +27748,56 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_GIVEREF(__pyx_tuple__84);
   __pyx_codeobj__85 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 6, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__84, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_parser_py, __pyx_n_s_commit_line, 402, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__85)) __PYX_ERR(0, 402, __pyx_L1_error)
 
-  /* "xtrack/sequence/parser.py":434
+  /* "xtrack/sequence/parser.py":433
  *         self.lines[line_name] = line
  * 
  *     def get_reference(self, parent, field, location):             # <<<<<<<<<<<<<<
  *         """Return the result of the syntax: parent->field
  * 
  */
-  __pyx_tuple__86 = PyTuple_Pack(8, __pyx_n_s_self, __pyx_n_s_parent, __pyx_n_s_field, __pyx_n_s_location, __pyx_n_s_error_2, __pyx_n_s_error_2, __pyx_n_s_parent_value, __pyx_n_s_formatter); if (unlikely(!__pyx_tuple__86)) __PYX_ERR(0, 434, __pyx_L1_error)
+  __pyx_tuple__86 = PyTuple_Pack(8, __pyx_n_s_self, __pyx_n_s_parent, __pyx_n_s_field, __pyx_n_s_location, __pyx_n_s_error_2, __pyx_n_s_error_2, __pyx_n_s_parent_value, __pyx_n_s_formatter); if (unlikely(!__pyx_tuple__86)) __PYX_ERR(0, 433, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__86);
   __Pyx_GIVEREF(__pyx_tuple__86);
-  __pyx_codeobj__87 = (PyObject*)__Pyx_PyCode_New(4, 0, 0, 8, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__86, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_parser_py, __pyx_n_s_get_reference, 434, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__87)) __PYX_ERR(0, 434, __pyx_L1_error)
+  __pyx_codeobj__87 = (PyObject*)__Pyx_PyCode_New(4, 0, 0, 8, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__86, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_parser_py, __pyx_n_s_get_reference, 433, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__87)) __PYX_ERR(0, 433, __pyx_L1_error)
 
-  /* "xtrack/sequence/parser.py":486
+  /* "xtrack/sequence/parser.py":485
  * 
  * 
  *     def get_line(self, name, copy_manager=True):             # <<<<<<<<<<<<<<
  *         """Get a copy of the parsed sequence with the given name.
  * 
  */
-  __pyx_tuple__88 = PyTuple_Pack(6, __pyx_n_s_self, __pyx_n_s_name, __pyx_n_s_copy_manager, __pyx_n_s_line, __pyx_n_s_new_line_manager, __pyx_n_s_shared_manager); if (unlikely(!__pyx_tuple__88)) __PYX_ERR(0, 486, __pyx_L1_error)
+  __pyx_tuple__88 = PyTuple_Pack(6, __pyx_n_s_self, __pyx_n_s_name, __pyx_n_s_copy_manager, __pyx_n_s_line, __pyx_n_s_new_line_manager, __pyx_n_s_shared_manager); if (unlikely(!__pyx_tuple__88)) __PYX_ERR(0, 485, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__88);
   __Pyx_GIVEREF(__pyx_tuple__88);
-  __pyx_codeobj__89 = (PyObject*)__Pyx_PyCode_New(3, 0, 0, 6, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__88, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_parser_py, __pyx_n_s_get_line, 486, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__89)) __PYX_ERR(0, 486, __pyx_L1_error)
-  __pyx_tuple__90 = PyTuple_Pack(1, Py_True); if (unlikely(!__pyx_tuple__90)) __PYX_ERR(0, 486, __pyx_L1_error)
+  __pyx_codeobj__89 = (PyObject*)__Pyx_PyCode_New(3, 0, 0, 6, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__88, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_parser_py, __pyx_n_s_get_line, 485, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__89)) __PYX_ERR(0, 485, __pyx_L1_error)
+  __pyx_tuple__90 = PyTuple_Pack(1, Py_True); if (unlikely(!__pyx_tuple__90)) __PYX_ERR(0, 485, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__90);
   __Pyx_GIVEREF(__pyx_tuple__90);
 
-  /* "xtrack/sequence/parser.py":534
+  /* "xtrack/sequence/parser.py":533
  *         return line
  * 
  *     def set_existing_line(self, line, name):             # <<<<<<<<<<<<<<
  *         if self.lines or not self._single_line_mode:
  *             raise ValueError(
  */
-  __pyx_tuple__91 = PyTuple_Pack(3, __pyx_n_s_self, __pyx_n_s_line, __pyx_n_s_name); if (unlikely(!__pyx_tuple__91)) __PYX_ERR(0, 534, __pyx_L1_error)
+  __pyx_tuple__91 = PyTuple_Pack(3, __pyx_n_s_self, __pyx_n_s_line, __pyx_n_s_name); if (unlikely(!__pyx_tuple__91)) __PYX_ERR(0, 533, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__91);
   __Pyx_GIVEREF(__pyx_tuple__91);
-  __pyx_codeobj__92 = (PyObject*)__Pyx_PyCode_New(3, 0, 0, 3, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__91, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_parser_py, __pyx_n_s_set_existing_line, 534, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__92)) __PYX_ERR(0, 534, __pyx_L1_error)
+  __pyx_codeobj__92 = (PyObject*)__Pyx_PyCode_New(3, 0, 0, 3, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__91, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_parser_py, __pyx_n_s_set_existing_line, 533, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__92)) __PYX_ERR(0, 533, __pyx_L1_error)
 
-  /* "xtrack/sequence/parser.py":551
+  /* "xtrack/sequence/parser.py":550
  *         self.func_refs = line._var_management['fref']
  * 
  *     def get_multiline(self):             # <<<<<<<<<<<<<<
  *         multiline = xt.Multiline(lines=self.lines, link_vars=False)
  *         multiline._var_sharing = xt.multiline.VarSharing(
  */
-  __pyx_tuple__93 = PyTuple_Pack(4, __pyx_n_s_self, __pyx_n_s_multiline, __pyx_n_s_name, __pyx_n_s_line); if (unlikely(!__pyx_tuple__93)) __PYX_ERR(0, 551, __pyx_L1_error)
+  __pyx_tuple__93 = PyTuple_Pack(4, __pyx_n_s_self, __pyx_n_s_multiline, __pyx_n_s_name, __pyx_n_s_line); if (unlikely(!__pyx_tuple__93)) __PYX_ERR(0, 550, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__93);
   __Pyx_GIVEREF(__pyx_tuple__93);
-  __pyx_codeobj__94 = (PyObject*)__Pyx_PyCode_New(1, 0, 0, 4, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__93, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_parser_py, __pyx_n_s_get_multiline, 551, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__94)) __PYX_ERR(0, 551, __pyx_L1_error)
+  __pyx_codeobj__94 = (PyObject*)__Pyx_PyCode_New(1, 0, 0, 4, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__93, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_parser_py, __pyx_n_s_get_multiline, 550, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__94)) __PYX_ERR(0, 550, __pyx_L1_error)
 
   /* "(tree fragment)":1
  * def __reduce_cython__(self):             # <<<<<<<<<<<<<<
@@ -28033,15 +28005,15 @@ static int __Pyx_modinit_type_init_code(void) {
   }
   #endif
   #if CYTHON_USE_TYPE_SPECS
-  __pyx_ptype_6xtrack_8sequence_6parser___pyx_scope_struct_1_get_reference = (PyTypeObject *) __Pyx_PyType_FromModuleAndSpec(__pyx_m, &__pyx_type_6xtrack_8sequence_6parser___pyx_scope_struct_1_get_reference_spec, NULL); if (unlikely(!__pyx_ptype_6xtrack_8sequence_6parser___pyx_scope_struct_1_get_reference)) __PYX_ERR(0, 434, __pyx_L1_error)
-  if (__Pyx_fix_up_extension_type_from_spec(&__pyx_type_6xtrack_8sequence_6parser___pyx_scope_struct_1_get_reference_spec, __pyx_ptype_6xtrack_8sequence_6parser___pyx_scope_struct_1_get_reference) < 0) __PYX_ERR(0, 434, __pyx_L1_error)
+  __pyx_ptype_6xtrack_8sequence_6parser___pyx_scope_struct_1_get_reference = (PyTypeObject *) __Pyx_PyType_FromModuleAndSpec(__pyx_m, &__pyx_type_6xtrack_8sequence_6parser___pyx_scope_struct_1_get_reference_spec, NULL); if (unlikely(!__pyx_ptype_6xtrack_8sequence_6parser___pyx_scope_struct_1_get_reference)) __PYX_ERR(0, 433, __pyx_L1_error)
+  if (__Pyx_fix_up_extension_type_from_spec(&__pyx_type_6xtrack_8sequence_6parser___pyx_scope_struct_1_get_reference_spec, __pyx_ptype_6xtrack_8sequence_6parser___pyx_scope_struct_1_get_reference) < 0) __PYX_ERR(0, 433, __pyx_L1_error)
   #else
   __pyx_ptype_6xtrack_8sequence_6parser___pyx_scope_struct_1_get_reference = &__pyx_type_6xtrack_8sequence_6parser___pyx_scope_struct_1_get_reference;
   #endif
   #if !CYTHON_COMPILING_IN_LIMITED_API
   #endif
   #if !CYTHON_USE_TYPE_SPECS
-  if (__Pyx_PyType_Ready(__pyx_ptype_6xtrack_8sequence_6parser___pyx_scope_struct_1_get_reference) < 0) __PYX_ERR(0, 434, __pyx_L1_error)
+  if (__Pyx_PyType_Ready(__pyx_ptype_6xtrack_8sequence_6parser___pyx_scope_struct_1_get_reference) < 0) __PYX_ERR(0, 433, __pyx_L1_error)
   #endif
   #if PY_MAJOR_VERSION < 3
   __pyx_ptype_6xtrack_8sequence_6parser___pyx_scope_struct_1_get_reference->tp_print = 0;
@@ -29951,56 +29923,56 @@ if (!__Pyx_RefNanny) {
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   PyType_Modified(__pyx_ptype_6xtrack_8sequence_6parser_Parser);
 
-  /* "xtrack/sequence/parser.py":434
+  /* "xtrack/sequence/parser.py":433
  *         self.lines[line_name] = line
  * 
  *     def get_reference(self, parent, field, location):             # <<<<<<<<<<<<<<
  *         """Return the result of the syntax: parent->field
  * 
  */
-  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_6xtrack_8sequence_6parser_6Parser_27get_reference, __Pyx_CYFUNCTION_CCLASS, __pyx_n_s_Parser_get_reference, NULL, __pyx_n_s_xtrack_sequence_parser, __pyx_d, ((PyObject *)__pyx_codeobj__87)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 434, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_6xtrack_8sequence_6parser_6Parser_27get_reference, __Pyx_CYFUNCTION_CCLASS, __pyx_n_s_Parser_get_reference, NULL, __pyx_n_s_xtrack_sequence_parser, __pyx_d, ((PyObject *)__pyx_codeobj__87)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 433, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (__Pyx_SetItemOnTypeDict((PyObject *)__pyx_ptype_6xtrack_8sequence_6parser_Parser, __pyx_n_s_get_reference, __pyx_t_2) < 0) __PYX_ERR(0, 434, __pyx_L1_error)
+  if (__Pyx_SetItemOnTypeDict((PyObject *)__pyx_ptype_6xtrack_8sequence_6parser_Parser, __pyx_n_s_get_reference, __pyx_t_2) < 0) __PYX_ERR(0, 433, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   PyType_Modified(__pyx_ptype_6xtrack_8sequence_6parser_Parser);
 
-  /* "xtrack/sequence/parser.py":486
+  /* "xtrack/sequence/parser.py":485
  * 
  * 
  *     def get_line(self, name, copy_manager=True):             # <<<<<<<<<<<<<<
  *         """Get a copy of the parsed sequence with the given name.
  * 
  */
-  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_6xtrack_8sequence_6parser_6Parser_29get_line, __Pyx_CYFUNCTION_CCLASS, __pyx_n_s_Parser_get_line, NULL, __pyx_n_s_xtrack_sequence_parser, __pyx_d, ((PyObject *)__pyx_codeobj__89)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 486, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_6xtrack_8sequence_6parser_6Parser_29get_line, __Pyx_CYFUNCTION_CCLASS, __pyx_n_s_Parser_get_line, NULL, __pyx_n_s_xtrack_sequence_parser, __pyx_d, ((PyObject *)__pyx_codeobj__89)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 485, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_CyFunction_SetDefaultsTuple(__pyx_t_2, __pyx_tuple__90);
-  if (__Pyx_SetItemOnTypeDict((PyObject *)__pyx_ptype_6xtrack_8sequence_6parser_Parser, __pyx_n_s_get_line, __pyx_t_2) < 0) __PYX_ERR(0, 486, __pyx_L1_error)
+  if (__Pyx_SetItemOnTypeDict((PyObject *)__pyx_ptype_6xtrack_8sequence_6parser_Parser, __pyx_n_s_get_line, __pyx_t_2) < 0) __PYX_ERR(0, 485, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   PyType_Modified(__pyx_ptype_6xtrack_8sequence_6parser_Parser);
 
-  /* "xtrack/sequence/parser.py":534
+  /* "xtrack/sequence/parser.py":533
  *         return line
  * 
  *     def set_existing_line(self, line, name):             # <<<<<<<<<<<<<<
  *         if self.lines or not self._single_line_mode:
  *             raise ValueError(
  */
-  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_6xtrack_8sequence_6parser_6Parser_31set_existing_line, __Pyx_CYFUNCTION_CCLASS, __pyx_n_s_Parser_set_existing_line, NULL, __pyx_n_s_xtrack_sequence_parser, __pyx_d, ((PyObject *)__pyx_codeobj__92)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 534, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_6xtrack_8sequence_6parser_6Parser_31set_existing_line, __Pyx_CYFUNCTION_CCLASS, __pyx_n_s_Parser_set_existing_line, NULL, __pyx_n_s_xtrack_sequence_parser, __pyx_d, ((PyObject *)__pyx_codeobj__92)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 533, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (__Pyx_SetItemOnTypeDict((PyObject *)__pyx_ptype_6xtrack_8sequence_6parser_Parser, __pyx_n_s_set_existing_line, __pyx_t_2) < 0) __PYX_ERR(0, 534, __pyx_L1_error)
+  if (__Pyx_SetItemOnTypeDict((PyObject *)__pyx_ptype_6xtrack_8sequence_6parser_Parser, __pyx_n_s_set_existing_line, __pyx_t_2) < 0) __PYX_ERR(0, 533, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   PyType_Modified(__pyx_ptype_6xtrack_8sequence_6parser_Parser);
 
-  /* "xtrack/sequence/parser.py":551
+  /* "xtrack/sequence/parser.py":550
  *         self.func_refs = line._var_management['fref']
  * 
  *     def get_multiline(self):             # <<<<<<<<<<<<<<
  *         multiline = xt.Multiline(lines=self.lines, link_vars=False)
  *         multiline._var_sharing = xt.multiline.VarSharing(
  */
-  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_6xtrack_8sequence_6parser_6Parser_33get_multiline, __Pyx_CYFUNCTION_CCLASS, __pyx_n_s_Parser_get_multiline, NULL, __pyx_n_s_xtrack_sequence_parser, __pyx_d, ((PyObject *)__pyx_codeobj__94)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 551, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_6xtrack_8sequence_6parser_6Parser_33get_multiline, __Pyx_CYFUNCTION_CCLASS, __pyx_n_s_Parser_get_multiline, NULL, __pyx_n_s_xtrack_sequence_parser, __pyx_d, ((PyObject *)__pyx_codeobj__94)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 550, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (__Pyx_SetItemOnTypeDict((PyObject *)__pyx_ptype_6xtrack_8sequence_6parser_Parser, __pyx_n_s_get_multiline, __pyx_t_2) < 0) __PYX_ERR(0, 551, __pyx_L1_error)
+  if (__Pyx_SetItemOnTypeDict((PyObject *)__pyx_ptype_6xtrack_8sequence_6parser_Parser, __pyx_n_s_get_multiline, __pyx_t_2) < 0) __PYX_ERR(0, 550, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   PyType_Modified(__pyx_ptype_6xtrack_8sequence_6parser_Parser);
 

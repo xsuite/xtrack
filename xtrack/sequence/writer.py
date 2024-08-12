@@ -1,3 +1,4 @@
+import json
 import sys
 from functools import reduce
 from typing import Any, Dict, Callable, Union, Tuple, Set
@@ -110,6 +111,7 @@ class XldWriter:
         self._write_particle_ref(stream, line, level=1)
         self._write_twiss_default(stream, line, level=1)
         self._write_config(stream, line, level=1)
+        self._write_extra_json_attrs(stream, line, '_extra_config', level=1)
 
         for element_name, element in line.items():
             self._write_element(stream, element_name, line, formatter, level=1)
@@ -241,6 +243,7 @@ class XldWriter:
         indent2 = ' ' * ((level + 1) * TAB_WIDTH)
 
         lines = [f'{indent}particle_ref']
+        args = {}
         for key, value in params.items():
             if value == _get_particle_ref_default(key):
                 continue
@@ -249,9 +252,11 @@ class XldWriter:
                     _warn(f'Particle reference parameter `{key}` has multiple '
                           f'elements: using only the first one.')
                 value = value[0]
+            args[key] = value
             lines.append(f'{indent2}{key} = {self.scalar_to_str(None)(value)}')
 
-        stream.write(',\n'.join(lines) + ';\n\n')
+        arglist = self._format_arglist(args, None, level + 1)
+        stream.write(f'{indent}particle_ref, ' + arglist + ';\n')
 
     def _write_twiss_default(self, stream, line, level=1):
         if not line.twiss_default:
@@ -259,11 +264,26 @@ class XldWriter:
 
         indent = ' ' * (level * TAB_WIDTH)
         args = self._format_arglist(line.twiss_default, None, level + 1)
-        stream.write(f'{indent}twiss_default,' + args + ';\n')
-
-        breakpoint()
+        stream.write(f'{indent}twiss_default, ' + args + ';\n')
 
     def _write_config(self, stream, line, level=1):
+        if not line.config:
+            return
+
         indent = ' ' * (level * TAB_WIDTH)
         args = self._format_arglist(line.config, None, level + 1)
-        stream.write(f'{indent}config,' + args + ';\n')
+        stream.write(f'{indent}config, ' + args + ';\n')
+
+    def _write_extra_json_attrs(self, stream, line, field, level=1):
+        field_value = getattr(line, field, None)
+        if not field_value:
+            return
+
+        # Exception for extra config, as it also duplicates twiss_default
+        if field == '_extra_config':
+            field_value = field_value.copy()
+            field_value.pop('twiss_default')
+
+        json_str = json.dumps(field_value).replace('"', r'\"')
+        indent = ' ' * (level * TAB_WIDTH)
+        stream.write(f'{indent}attr, update = "{field}", json = "{json_str}";\n')
