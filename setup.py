@@ -47,7 +47,7 @@ setup(
             "Source Code": "https://github.com/xsuite/xtrack",
         },
     packages=find_packages(),
-    ext_modules=cythonize(extensions, gdb_debug=True),
+    ext_modules=cythonize(extensions, gdb_debug=False),
     include_package_data=True,
     install_requires=[
         'numpy>=1.0',
