@@ -1229,10 +1229,6 @@ class Quadrupole(BeamElement):
     ]
 
     def __init__(self, **kwargs):
-        length = kwargs.get('length', 0)
-        if kwargs.get('_xobject') is None and np.isclose(length, 0, atol=1e-13):
-            raise ValueError("A thick element must have a non-zero length.")
-
         knl = kwargs.get('knl', np.array([]))
         ksl = kwargs.get('ksl', np.array([]))
         order_from_kl = max(len(knl), len(ksl)) - 1
@@ -1243,7 +1239,7 @@ class Quadrupole(BeamElement):
         kwargs['ksl'] = np.pad(ksl,
                         (0, ALLOCATED_MULTIPOLE_ORDER + 1 - len(ksl)), 'constant')
 
-        super().__init__(**kwargs)
+        self.xoinitialize(**kwargs)
 
         self.order = order
 
