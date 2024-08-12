@@ -15,4 +15,4 @@ def how_long(what):
 
 with how_long('reading'):
     p = Parser()
-    out = p.parse_file('out_err.xld')
+    out = p.parse_file('pimms_w_errors.xld')
