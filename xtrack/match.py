@@ -28,6 +28,10 @@ XTRACK_DEFAULT_WEIGHTS = {
     'muy': 10.,
     'qx': 10.,
     'qy': 10.,
+    'dx' : 10.,
+    'dpx': 100.,
+    'dy' : 10.,
+    'dpy': 100.,
 }
 
 ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau',
