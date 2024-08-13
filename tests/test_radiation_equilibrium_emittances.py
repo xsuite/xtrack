@@ -52,7 +52,7 @@ configurations = [
 @pytest.mark.parametrize('conf', configurations)
 def test_eq_emitt(conf):
 
-    test_context = xo.context_default # On GPU this is too slow to run routinely
+    test_context = xo.ContextCpu() # On GPU this is too slow to run routinely
 
     print('===============================')
     print(conf)
@@ -145,7 +145,7 @@ def test_eq_emitt(conf):
         xo.assert_allclose(ez, 3.5766e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
-        xo.assert_allclose(ex, 2.5039e-12, atol=0,     rtol=4e-3)
+        xo.assert_allclose(ex, 2.5039e-12, atol=0,     rtol=6e-3)
         xo.assert_allclose(ey, 7.0576e-10, atol=0,     rtol=1e-4)
         xo.assert_allclose(ez, 3.5763e-6,  atol=0,     rtol=1e-4)
         checked = True

@@ -1,0 +1,361 @@
+pmass = 0.93827208816;
+umass = 0.93149410242;
+kqfa = 0.0;
+k2xcd = -0.552276;
+kse2 = 0.0;
+version = 50902.0;
+amu0 = 1.2566370614359173e-06;
+nmass = 0.93956542052;
+t_turn_s = 0.0;
+emass = 0.00051099895;
+ksd = 0.0;
+kqd = 0.0;
+ksf = 0.0;
+qf2k1 = 0.522717;
+k2xrr = 8.65;
+twiss_tol = 1e-06;
+k2xcf = -0.433238;
+qd1k1 = -0.524626;
+qf1k1 = 0.315396;
+mumass = 0.1056583755;
+kqfb = 0.0;
+kse1 = 0.0;
+
+pimms: beamline;
+    config,
+        XTRACK_MULTIPOLE_NO_SYNRAD,
+        XFIELDS_BB3D_NO_BEAMSTR,
+        XFIELDS_BB3D_NO_BHABHA,
+        XTRACK_GLOBAL_XY_LIMIT = 1.0;
+    attr, update = "_extra_config", json = "{\"skip_end_turn_actions\": false, \"reset_s_at_end_turn\": true, \"matrix_responsiveness_tol\": 1e-15, \"matrix_stability_tol\": 0.002, \"dt_update_time_dependent_vars\": 0.0, \"_t_last_update_time_dependent_vars\": null, \"_radiation_model\": null, \"_beamstrahlung_model\": null, \"_bhabha_model\": null, \"_needs_rng\": false, \"enable_time_dependent_vars\": false, \"steering_monitors_x\": null, \"steering_monitors_y\": null, \"steering_correctors_x\": null, \"steering_correctors_y\": null}";
+    pimms$start: Marker;
+    extr_septum: Marker;
+    drift_0: Drift, length = 2.2125000000000004;
+    qfa.1: Quadrupole,
+        length = 0.35,
+        order = 5,
+        k1 = (1.0 * kqfa);
+    drift_1: Drift, length = 0.4195000000000002;
+    mb: Bend,
+        length = 1.661,
+        h = 0.2364232881998796,
+        k0 = 0.2364232881998796,
+        edge_exit_angle = 0.19634954085,
+        edge_entry_angle = 0.19634954085,
+        modle = "adaptive",
+        edge_entry_model = "linear",
+        edge_exit_model = "linear",
+        order = 5;
+    drift_2: Drift, length = 0.4745000000000008;
+    qd.1: Quadrupole,
+        length = 0.35,
+        order = 5,
+        k1 = (1.0 * kqd);
+    drift_3: Drift, length = 0.7495000000000003;
+    mb_0: Bend,
+        length = 1.661,
+        h = 0.2364232881998796,
+        k0 = 0.2364232881998796,
+        edge_exit_angle = 0.19634954085,
+        edge_entry_angle = 0.19634954085,
+        model = "adaptive",
+        edge_entry_model = "linear",
+        edge_exit_model = "linear",
+        order = 5;
+    drift_4: Drift, length = 0.27449999999999974;
+    qfa.2: Quadrupole,
+        length = 0.35,
+        order = 5,
+        k1 = (1.0 * kqfa);
+    drift_5: Drift, length = 1.6874999999999982;
+    sd1: Sextupole,
+        length = 0.2,
+        order = 5,
+        k2 = ksd;
+    drift_6: Drift, length = 0.11250000000000071;
+    qfb.1: Quadrupole,
+        length = 0.35,
+        order = 5,
+        k1 = (1.0 * kqfb);
+    drift_7: Drift, length = 0.4494999999999987;
+    mb_1: Bend,
+        length = 1.661,
+        h = 0.2364232881998796,
+        k0 = 0.2364232881998796,
+        edge_exit_angle = 0.19634954085,
+        edge_entry_angle = 0.19634954085,
+        model = "adaptive",
+        edge_entry_model = "linear",
+        edge_exit_model = "linear",
+        order = 5;
+    drift_8: Drift, length = 1.1244999999999976;
+    qd.2: Quadrupole,
+        length = 0.35,
+        order = 5,
+        k1 = (1.0 * kqd);
+    drift_9: Drift, length = 0.6494999999999997;
+    mb_2: Bend,
+        length = 1.661,
+        h = 0.2364232881998796,
+        k0 = 0.2364232881998796,
+        edge_exit_angle = 0.19634954085,
+        edge_entry_angle = 0.19634954085,
+        model = "adaptive",
+        edge_entry_model = "linear",
+        edge_exit_model = "linear",
+        order = 5;
+    drift_10: Drift, length = 0.27449999999999974;
+    qfb.2: Quadrupole,
+        length = 0.35,
+        order = 5,
+        k1 = (1.0 * kqfb);
+    drift_11: Drift, length = 2.6999999999999957;
+    qfb.3: Quadrupole,
+        length = 0.35,
+        order = 5,
+        k1 = (1.0 * kqfb);
+    drift_12: Drift, length = 0.44950000000000045;
+    mb_3: Bend,
+        length = 1.661,
+        h = 0.2364232881998796,
+        k0 = 0.2364232881998796,
+        edge_exit_angle = 0.19634954085,
+        edge_entry_angle = 0.19634954085,
+        model = "adaptive",
+        edge_entry_model = "linear",
+        edge_exit_model = "linear",
+        order = 5;
+    drift_13: Drift, length = 0.47449999999999903;
+    qd.3: Quadrupole,
+        length = 0.35,
+        order = 5,
+        k1 = (1.0 * kqd);
+    drift_14: Drift, length = 0.5874999999999986;
+    sf1: Sextupole,
+        length = 0.2,
+        order = 5,
+        k2 = ksf;
+    drift_15: Drift, length = 0.5119999999999969;
+    mb_4: Bend,
+        length = 1.661,
+        h = 0.2364232881998796,
+        k0 = 0.2364232881998796,
+        edge_exit_angle = 0.19634954085,
+        edge_entry_angle = 0.19634954085,
+        model = "adaptive",
+        edge_entry_model = "linear",
+        edge_exit_model = "linear",
+        order = 5;
+    drift_16: Drift, length = 0.2744999999999962;
+    qfb.4: Quadrupole,
+        length = 0.35,
+        order = 5,
+        k1 = (1.0 * kqfb);
+    drift_17: Drift, length = 2.0;
+    qfa.3: Quadrupole,
+        length = 0.35,
+        order = 5,
+        k1 = (1.0 * kqfa);
+    drift_18: Drift, length = 0.44950000000000045;
+    mb_5: Bend,
+        length = 1.661,
+        h = 0.2364232881998796,
+        k0 = 0.2364232881998796,
+        edge_exit_angle = 0.19634954085,
+        edge_entry_angle = 0.19634954085,
+        model = "adaptive",
+        edge_entry_model = "linear",
+        edge_exit_model = "linear",
+        order = 5;
+    drift_19: Drift, length = 0.5745000000000005;
+    qd.4: Quadrupole,
+        length = 0.35,
+        order = 5,
+        k1 = (1.0 * kqd);
+    drift_20: Drift, length = 0.6494999999999962;
+    mb_6: Bend,
+        length = 1.661,
+        h = 0.2364232881998796,
+        k0 = 0.2364232881998796,
+        edge_exit_angle = 0.19634954085,
+        edge_entry_angle = 0.19634954085,
+        model = "adaptive",
+        edge_entry_model = "linear",
+        edge_exit_model = "linear",
+        order = 5;
+    drift_21: Drift, length = 0.24450000000000216;
+    qfa.4: Quadrupole,
+        length = 0.35,
+        order = 5,
+        k1 = (1.0 * kqfa);
+    drift_22: Drift, length = 0.32500000000000284;
+    se1: Sextupole,
+        length = 0.2,
+        order = 5,
+        k2 = kse1;
+    drift_23: Drift, length = 3.549999999999997;
+    se2: Sextupole,
+        length = 0.2,
+        order = 5,
+        k2 = kse2;
+    drift_24: Drift, length = 0.32500000000000284;
+    qfa.5: Quadrupole,
+        length = 0.35,
+        order = 5,
+        k1 = (1.0 * kqfa);
+    drift_25: Drift, length = 0.4194999999999993;
+    mb_7: Bend,
+        length = 1.661,
+        h = 0.2364232881998796,
+        k0 = 0.2364232881998796,
+        edge_exit_angle = 0.19634954085,
+        edge_entry_angle = 0.19634954085,
+        model = "adaptive",
+        edge_entry_model = "linear",
+        edge_exit_model = "linear",
+        order = 5;
+    drift_26: Drift, length = 0.47450000000000614;
+    qd.5: Quadrupole,
+        length = 0.35,
+        order = 5,
+        k1 = (1.0 * kqd);
+    drift_27: Drift, length = 0.7494999999999976;
+    mb_8: Bend,
+        length = 1.661,
+        h = 0.2364232881998796,
+        k0 = 0.2364232881998796,
+        edge_exit_angle = 0.19634954085,
+        edge_entry_angle = 0.19634954085,
+        model = "adaptive",
+        edge_entry_model = "linear",
+        edge_exit_model = "linear",
+        order = 5;
+    drift_28: Drift, length = 0.2745000000000033;
+    qfa.6: Quadrupole,
+        length = 0.35,
+        order = 5,
+        k1 = (1.0 * kqfa);
+    drift_29: Drift, length = 1.6875;
+    sd2: Sextupole,
+        length = 0.2,
+        order = 5,
+        k2 = ksd;
+    drift_30: Drift, length = 0.11250000000000426;
+    qfb.5: Quadrupole,
+        length = 0.35,
+        order = 5,
+        k1 = (1.0 * kqfb);
+    drift_31: Drift, length = 0.44950000000000045;
+    mb_9: Bend,
+        length = 1.661,
+        h = 0.2364232881998796,
+        k0 = 0.2364232881998796,
+        edge_exit_angle = 0.19634954085,
+        edge_entry_angle = 0.19634954085,
+        model = "adaptive",
+        edge_entry_model = "linear",
+        edge_exit_model = "linear",
+        order = 5;
+    drift_32: Drift, length = 1.1245000000000047;
+    qd.6: Quadrupole,
+        length = 0.35,
+        order = 5,
+        k1 = (1.0 * kqd);
+    drift_33: Drift, length = 0.6495000000000033;
+    mb_10: Bend,
+        length = 1.661,
+        h = 0.2364232881998796,
+        k0 = 0.2364232881998796,
+        edge_exit_angle = 0.19634954085,
+        edge_entry_angle = 0.19634954085,
+        model = "adaptive",
+        edge_entry_model = "linear",
+        edge_exit_model = "linear",
+        order = 5;
+    drift_34: Drift, length = 0.2745000000000033;
+    qfb.6: Quadrupole,
+        length = 0.35,
+        order = 5,
+        k1 = (1.0 * kqfb);
+    drift_35: Drift, length = 2.700000000000003;
+    qfb.7: Quadrupole,
+        length = 0.35,
+        order = 5,
+        k1 = (1.0 * kqfb);
+    drift_36: Drift, length = 0.44950000000000045;
+    mb_11: Bend,
+        length = 1.661,
+        h = 0.2364232881998796,
+        k0 = 0.2364232881998796,
+        edge_exit_angle = 0.19634954085,
+        edge_entry_angle = 0.19634954085,
+        model = "adaptive",
+        edge_entry_model = "linear",
+        edge_exit_model = "linear",
+        order = 5;
+    drift_37: Drift, length = 0.47450000000000614;
+    qd.7: Quadrupole,
+        length = 0.35,
+        order = 5,
+        k1 = (1.0 * kqd);
+    drift_38: Drift, length = 0.5874999999999986;
+    sf2: Sextupole,
+        length = 0.2,
+        order = 5,
+        k2 = ksf;
+    drift_39: Drift, length = 0.5120000000000005;
+    mb_12: Bend,
+        length = 1.661,
+        h = 0.2364232881998796,
+        k0 = 0.2364232881998796,
+        edge_exit_angle = 0.19634954085,
+        edge_entry_angle = 0.19634954085,
+        model = "adaptive",
+        edge_entry_model = "linear",
+        edge_exit_model = "linear",
+        order = 5;
+    drift_40: Drift, length = 0.2745000000000033;
+    qfb.8: Quadrupole,
+        length = 0.35,
+        order = 5,
+        k1 = (1.0 * kqfb);
+    drift_41: Drift, length = 2.0;
+    qfa.7: Quadrupole,
+        length = 0.35,
+        order = 5,
+        k1 = (1.0 * kqfa);
+    drift_42: Drift, length = 0.44950000000000045;
+    mb_13: Bend,
+        length = 1.661,
+        h = 0.2364232881998796,
+        k0 = 0.2364232881998796,
+        edge_exit_angle = 0.19634954085,
+        edge_entry_angle = 0.19634954085,
+        model = "adaptive",
+        edge_entry_model = "linear",
+        edge_exit_model = "linear",
+        order = 5;
+    drift_43: Drift, length = 0.5745000000000005;
+    qd.8: Quadrupole,
+        length = 0.35,
+        order = 5,
+        k1 = (1.0 * kqd);
+    drift_44: Drift, length = 0.6495000000000033;
+    mb_14: Bend,
+        length = 1.661,
+        h = 0.2364232881998796,
+        k0 = 0.2364232881998796,
+        edge_exit_angle = 0.19634954085,
+        edge_entry_angle = 0.19634954085,
+        model = "adaptive",
+        edge_entry_model = "linear",
+        edge_exit_model = "linear",
+        order = 5;
+    drift_45: Drift, length = 0.24450000000000216;
+    qfa.8: Quadrupole,
+        length = 0.35,
+        order = 5,
+        k1 = (1.0 * kqfa);
+    drift_46: Drift, length = 2.387500000000003;
+    pimms$end: Marker;
+endbeamline;

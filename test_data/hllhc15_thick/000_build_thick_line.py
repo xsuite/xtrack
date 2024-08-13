@@ -31,3 +31,6 @@ for nn in tt.rows[tt.element_type=='Solenoid'].name:
     line.element_dict[nn] = xt.Drift(length=ee_elen)
 
 line.to_json('lhc_thick_with_knobs.json', include_var_management=True)
+line.to_file('lhc_thick_with_knobs.xld', sequence_name='lhcb1')
+
+xt.Line.from_file('lhc_thick_with_knobs.xld', sequence_name='lhcb1')

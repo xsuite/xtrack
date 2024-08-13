@@ -14,6 +14,7 @@ mad.use('ring')
 mad.input(f'''
 select, flag=MAKETHIN, SLICE=4, thick=false;
 select, flag=MAKETHIN, pattern=wig, slice=1;
+select, flag=MAKETHIN, class=rfcavity, slice=0;
 MAKETHIN, SEQUENCE=ring, MAKEDIPEDGE=true;
 use, sequence=RING;
 ''')
@@ -62,3 +63,5 @@ line['rf_off'].voltage *= 0.0
 
 with open('line_for_taper.json', 'w') as f:
     json.dump(line.to_dict(), f, cls=xo.JEncoder)
+
+line.to_file('line_for_taper.xld', sequence_name='ring')

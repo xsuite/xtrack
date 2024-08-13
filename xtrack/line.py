@@ -245,10 +245,16 @@ class Line:
             Line object.
 
         """
+        test_xld = os.environ.get('XTRACK_TEST_XLD', False)
 
         if isinstance(file, io.IOBase):
             dct = json.load(file)
+            try:
+                filename = file.filename
+            except AttributeError:
+                test_xld = False
         else:
+            filename = str(file)
             with open(file, 'r') as fid:
                 dct = json.load(fid)
 
@@ -257,7 +263,61 @@ class Line:
         else:
             dct_line = dct
 
-        return cls.from_dict(dct_line, **kwargs)
+        new_line = cls.from_dict(dct_line, **kwargs)
+
+        if test_xld:
+            short_uuid = str(uuid.uuid4())[:8]
+            xld_file = filename.replace('.json', f'_{short_uuid}.xld')
+
+            new_line.to_file(xld_file, sequence_name='line')
+            line_from_xld = cls.from_file(xld_file, sequence_name='line', _context=xo.ContextCpu())
+            os.remove(xld_file)
+
+            line_from_xld.vars['__vary_default'] = {}
+
+            return line_from_xld
+
+        return new_line
+
+    @classmethod
+    def from_file(cls, filename, sequence_name=None, _context=xo.context_default):
+        from xtrack.sequence.parser import Parser
+        lattice_parser = Parser(_context=_context)
+
+        if isinstance(filename, Path):
+            filename = str(filename)
+
+        lattice_parser.parse_file(filename)
+
+        return cls._from_parser(lattice_parser, sequence_name)
+
+    @classmethod
+    def from_string(cls, string, sequence_name=None, _context=xo.context_default):
+        from xtrack.sequence.parser import Parser
+        lattice_parser = Parser(_context=_context)
+
+        lattice_parser.parse_string(string)
+
+        return cls._from_parser(lattice_parser, sequence_name)
+
+    @classmethod
+    def _from_parser(cls, lattice_parser, sequence_name=None):
+        line = lattice_parser.get_line(sequence_name)
+        return line
+
+    def to_file(self, filename, sequence_name):
+        from xtrack.sequence.writer import XldWriter
+
+        writer = XldWriter(self, sequence_name)
+        with open(filename, 'w') as f:
+            writer.write(stream=f)
+
+    def eval(self, expression: str):
+        """Evaluate an xld expression in the context of the line."""
+        from xtrack.sequence.parser import Parser
+        parser = Parser(single_line_mode=True)
+        parser.set_existing_line(self, self.name or 'line')
+        parser.parse_string(expression)
 
     @classmethod
     def from_sequence(cls, nodes=None, length=None, elements=None,
@@ -752,7 +812,7 @@ class Line:
             True: 'reverse', False: 'proper'}[reverse]
         return tab
 
-    def copy(self, _context=None, _buffer=None):
+    def copy(self, include_var_management=True, _context=None, _buffer=None):
         '''
         Return a copy of the line.
 
@@ -779,7 +839,7 @@ class Line:
             out.particle_ref = self.particle_ref.copy(
                                         _context=_context, _buffer=_buffer)
 
-        if self._var_management is not None:
+        if self._var_management is not None and include_var_management:
             out._init_var_management(dct=self._var_management_to_dict())
 
         out.config.update(self.config.copy())
@@ -861,7 +921,11 @@ class Line:
 
     @particle_ref.setter
     def particle_ref(self, particle_ref):
+        if particle_ref is not None and len(particle_ref.x) != 1:
+            raise ValueError('Only one reference particle can be provided.')
+
         self._particle_ref = particle_ref
+
         if self.particle_ref is not None and self.particle_ref.t_sim == 0:
             self.particle_ref.t_sim = (
                 self.get_length() / self.particle_ref._xobject.beta0[0] / clight)
@@ -4055,6 +4119,9 @@ class Functions:
             return self[name]
         except KeyError:
             raise AttributeError(f'Unknown function {name}')
+
+    def __contains__(self, name):
+        return name in self._mathfunctions or name in self._funcs
 
     def update(self, other):
         self._funcs.update(other._funcs)

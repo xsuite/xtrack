@@ -49,3 +49,6 @@ collider.lhcb2.twiss_default['method'] = '4d'
 collider.lhcb2.twiss_default['reverse'] = True
 
 collider.to_json('hllhc15_collider_thick.json')
+collider.to_file('hllhc15_collider_thick.xld')
+
+xt.Multiline.from_file('hllhc15_collider_thick.xld')

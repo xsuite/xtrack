@@ -5,6 +5,7 @@ import xobjects as xo
 import xpart as xp
 import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
+import pytest
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
@@ -25,7 +26,7 @@ def test_var_cache(test_context):
     assert 'on_x5' in collider.vars
     assert 'on_x9' not in collider.vars
 
-    assert xd.refs._isref(collider.vars['on_x5'])
+    assert xd.refs.is_ref(collider.vars['on_x5'])
     try:
         collider.vars['on_x9']
     except KeyError:
@@ -39,12 +40,8 @@ def test_var_cache(test_context):
     assert 'on_x9' not in collider.vars
 
     assert isinstance(collider.vars['on_x5'], xt.line.VarSetter)
-    try:
-        collider.vars['on_x9']
-    except KeyError:
-        pass
-    else:
-        raise ValueError('Should have raised KeyError')
+    with pytest.raises(KeyError):
+        _ = collider.vars['on_x9']
 
     assert isinstance(collider.vars['on_x1'], xt.line.VarSetter)
     collider.vars['on_x1'] = 11
@@ -95,13 +92,9 @@ def test_var_cache(test_context):
     assert 'on_x5' in line.vars
     assert 'on_x9' not in line.vars
 
-    assert xd.refs._isref(line.vars['on_x5'])
-    try:
-        line.vars['on_x9']
-    except KeyError:
-        pass
-    else:
-        raise ValueError('Should have raised KeyError')
+    assert xd.refs.is_ref(line.vars['on_x5'])
+    with pytest.raises(KeyError):
+        _ = line.vars['on_x9']
 
     line.vars.cache_active = True
 
@@ -109,12 +102,8 @@ def test_var_cache(test_context):
     assert 'on_x9' not in line.vars
 
     assert isinstance(line.vars['on_x5'], xt.line.VarSetter)
-    try:
-        line.vars['on_x9']
-    except KeyError:
-        pass
-    else:
-        raise ValueError('Should have raised KeyError')
+    with pytest.raises(KeyError):
+        _ = line.vars['on_x9']
 
     line.vars['on_x1'] = 11
     line.vars['on_x5'] = 55
@@ -157,13 +146,9 @@ def test_var_cache(test_context):
 
     line.vars['on_x2'] = 123
 
-    assert xd.refs._isref(line.vars['on_x5'])
-    try:
-        line.vars['on_x9']
-    except KeyError:
-        pass
-    else:
-        raise ValueError('Should have raised KeyError')
+    assert xd.refs.is_ref(line.vars['on_x5'])
+    with pytest.raises(KeyError):
+        _ = line.vars['on_x9']
 
     line.vars.cache_active = True
 
@@ -171,12 +156,8 @@ def test_var_cache(test_context):
     assert 'on_x9' not in line.vars
 
     assert isinstance(line.vars['on_x5'], xt.line.VarSetter)
-    try:
-        line.vars['on_x9']
-    except KeyError:
-        pass
-    else:
-        raise ValueError('Should have raised KeyError')
+    with pytest.raises(KeyError):
+        _ = line.vars['on_x9']
 
     line.vars['on_x1'] = 11
     line.vars['on_x5'] = 55

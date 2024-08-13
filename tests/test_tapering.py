@@ -22,8 +22,7 @@ def test_tapering_and_twiss_with_radiation():
         {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 2e-5, 'q_atol': 5e-4},
     ]
 
-    with open(filename, 'r') as f:
-        line = xt.Line.from_dict(json.load(f))
+    line = xt.Line.from_json(filename)
 
     line.build_tracker()
 

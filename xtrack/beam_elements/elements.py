@@ -13,10 +13,12 @@ import xtrack as xt
 
 from ..base_element import BeamElement
 from ..random import RandomUniform, RandomExponential, RandomNormal
-from ..general import _pkg_root, _print
-from ..internal_record import RecordIndex, RecordIdentifier
+from ..general import _pkg_root
+from ..internal_record import RecordIndex
+
 
 ALLOCATED_MULTIPOLE_ORDER = 5
+
 
 class ReferenceEnergyIncrease(BeamElement):
 
@@ -770,7 +772,6 @@ class Bend(BeamElement):
         components.
 
     """
-
     isthick = True
     has_backtrack = True
 
@@ -829,6 +830,8 @@ class Bend(BeamElement):
             return
 
         model = kwargs.pop('model', None)
+        edge_entry_model = kwargs.pop('edge_entry_model', None)
+        edge_exit_model = kwargs.pop('edge_exit_model', None)
 
         knl = kwargs.get('knl', np.array([]))
         ksl = kwargs.get('ksl', np.array([]))
@@ -844,12 +847,25 @@ class Bend(BeamElement):
 
         if model is not None:
             self.model = model
+
+        if edge_entry_model is not None:
+            self.edge_entry_model = edge_entry_model
+
+        if edge_exit_model is not None:
+            self.edge_exit_model = edge_exit_model
+
         self.order = order
 
     def to_dict(self, copy_to_cpu=True):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
         out.pop('_model')
         out['model'] = self.model
+
+        out.pop('_edge_entry_model')
+        out['edge_entry_model'] = self.edge_entry_model
+
+        out.pop('_edge_exit_model')
+        out['edge_exit_model'] = self.edge_exit_model
 
         # See the comment in Multiple.to_dict about knl/ksl/order dumping
         if 'knl' in out and np.allclose(out['knl'], 0, atol=1e-16):
@@ -962,6 +978,7 @@ class Bend(BeamElement):
                 'edge_entry_angle_fdown', 'edge_exit_angle_fdown',
                 'edge_entry_fint', 'edge_exit_fint', 'edge_entry_hgap',
                 'edge_exit_hgap', 'shift_x', 'shift_y', 'rot_s_rad']
+
 
 
 class Sextupole(BeamElement):
@@ -1212,7 +1229,6 @@ class Quadrupole(BeamElement):
     ]
 
     def __init__(self, **kwargs):
-
         knl = kwargs.get('knl', np.array([]))
         ksl = kwargs.get('ksl', np.array([]))
         order_from_kl = max(len(knl), len(ksl)) - 1
@@ -1279,6 +1295,12 @@ class Solenoid(BeamElement):
     ksi : float
         Integrated strength of the solenoid component in rad. Only to be
         specified when the element is thin, i.e. when `length` is 0.
+    knl : array
+        Integrated strength of the high-order normal multipolar components.
+    ksl : array
+        Integrated strength of the high-order skew multipolar components.
+    order : int
+        Order of the multipole expansion.
     """
     isthick = True
     has_backtrack = True
@@ -1316,36 +1338,9 @@ class Solenoid(BeamElement):
 
     _internal_record_class = SynchrotronRadiationRecord
 
+
     def __init__(self, **kwargs):
-        """Solenoid element.
-
-        Parameters
-        ----------
-        length : float
-            Length of the element in meters.
-        ks : float
-            Strength of the solenoid component in rad / m. Only to be specified
-            when the element is thin, i.e. when `length` is 0.
-        ksi : float
-            Integrated strength of the solenoid component in rad.
-        knl : array
-            Integrated strength of the high-order normal multipolar components.
-        ksl : array
-            Integrated strength of the high-order skew multipolar components.
-        order : int
-            Order of the multipole expansion.
-        """
-        if kwargs.get('_xobject') is not None:
-            super().__init__(**kwargs)
-            return
-
-        if kwargs.get('ksi', 0) != 0:
-            # Fail when trying to create a thin solenoid, as these are not
-            # tested yet
-            raise NotImplementedError('Thin solenoids are not implemented yet.')
-            # self.isthick = False
-
-        if kwargs.get('ksi') and kwargs.get('length'):
+        if not np.isclose(kwargs.get('ksi', 0), 0, atol=1e-13):
             raise ValueError(
                 "The parameter `ksi` can only be specified when `length` == 0."
             )
@@ -1441,7 +1436,6 @@ class Wedge(BeamElement):
 
 
 class SimpleThinBend(BeamElement):
-
     """A specialized version of Multipole to model a thin bend (ksl, hyl are all zero).
 
     Parameters
