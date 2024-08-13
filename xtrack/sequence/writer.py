@@ -152,23 +152,38 @@ class XldWriter:
 
         stream.write(f'{indent}{element_name}: {element_type}')
         element_ref = line.element_refs[element_name]
-        expressions = self.var_manager.structure[element_ref]
+        expressions = self.var_manager.tartasks[element_ref]
 
         for ref in expressions:
-            if ref._key not in element._xo_fnames:
+            if ref._owner == element_ref:
+                is_scalar = True
+                param_name = ref._key
+            elif ref._owner._owner == element_ref:
+                is_scalar = False
+                param_name = ref._owner._key
+            else:
+                breakpoint()
+                _warn(f"{element_name} is a target of an expression but we "
+                      f"cannot determine the parameter name. Skipping.")
+                continue
+
+            if param_name not in element._xo_fnames:
                 # This is not great! Some elements can apparently be imported
                 # as drifts (solenoid), but their expressions (ks) are still
                 # attached, making the definition of the element invalid.
                 # TODO: We should fix this.
-                _print(f'Warning: {element_name} has no attribute {ref._key}, '
-                       f'but an expression setting it is attached.')
+                _warn(f'{element_name} has no attribute {ref._key}, but an '
+                      f'expression setting it is attached.')
                 continue
-            if ref._expr:
-                element_dict[ref._key] = ref._expr
-            else:  # it's probably an array
-                element_dict[ref._key] = [
-                    ref[ii]._expr or ref[ii]._value for ii in range(len(ref._value))
+
+            if is_scalar:
+                param_value = ref._expr
+            else:  # array attribute
+                ary = ref._owner
+                param_value = [
+                    ary[ii]._expr or ary[ii]._value for ii in range(len(ary._value))
                 ]
+            element_dict[param_name] = param_value
 
         if element_dict:
             args = self._format_arglist(element_dict, formatter, level=level + 1)
