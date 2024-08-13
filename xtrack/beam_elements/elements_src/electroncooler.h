@@ -93,6 +93,14 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
     double beta_diff_oe = beta_oe - beta0;
        
     double Vi = delta*machine_v  - space_charge*C_LIGHT*beta_diff_sc - C_LIGHT*beta_diff_oe;
+    // printf("Vi: %g\n", Vi);
+    // printf("beta_diff_oe: %g\n", beta_diff_oe);
+    // printf("beta_oe: %g\n", beta_oe);
+    // printf("E_tot_oe: %g\n", E_tot_oe);
+    // printf("MASS_ELECTRON: %g\n", MASS_ELECTRON);
+    // printf("mass_electron_ev: %g\n", mass_electron_ev);
+    // printf("energy_electron_initial: %g\n", energy_electron_initial);
+    // printf("gamma0: %g\n", gamma0);
     double dVx = px*machine_v;
     double dVy = py*machine_v;
    
