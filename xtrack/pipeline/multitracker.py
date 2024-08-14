@@ -20,6 +20,9 @@ class PipelineBranch:
         self.particles = particles
         self.pipeline_status = None
 
+        if self.line.tracker is None:
+            raise ValueError('Tracker not built for line')
+
         self.line.tracker.enable_pipeline_hold = True
 
 class PipelineMultiTracker:
