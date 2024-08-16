@@ -814,8 +814,8 @@ class Bend(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_bend.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/wedge_track.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/fringe_track.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_nonlinear.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_bend.h'),
@@ -990,6 +990,8 @@ class Sextupole(BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
         'ksl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
+        'edge_entry_active': xo.Field(xo.UInt64, default=False),
+        'edge_exit_active': xo.Field(xo.UInt64, default=False),
     }
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
@@ -1006,6 +1008,7 @@ class Sextupole(BeamElement):
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('headers/synrad_spectrum.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_multipole.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
         _pkg_root.joinpath('beam_elements/elements_src/sextupole.h'),
     ]
 
@@ -1088,6 +1091,8 @@ class Octupole(BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
         'ksl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
+        'edge_entry_active': xo.Field(xo.UInt64, default=False),
+        'edge_exit_active': xo.Field(xo.UInt64, default=False),
     }
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
@@ -1104,6 +1109,7 @@ class Octupole(BeamElement):
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('headers/synrad_spectrum.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_multipole.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
         _pkg_root.joinpath('beam_elements/elements_src/octupole.h'),
     ]
 
@@ -1185,6 +1191,8 @@ class Quadrupole(BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
         'ksl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
+        'edge_entry_active': xo.Field(xo.UInt64, default=False),
+        'edge_exit_active': xo.Field(xo.UInt64, default=False),
     }
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
@@ -1198,6 +1206,7 @@ class Quadrupole(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/track_multipolar_components.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_srotation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_quadrupole.h'),
         _pkg_root.joinpath('beam_elements/elements_src/quadrupole.h'),
     ]
@@ -1266,10 +1275,10 @@ class Solenoid(BeamElement):
     length : float
         Length of the element in meters.
     ks : float
-        Strength of the solenoid component in rad / m. Only to be specified
-        when the element is thin, i.e. when `length` is 0.
+        Strength of the solenoid component in rad / m.
     ksi : float
-        Integrated strength of the solenoid component in rad.
+        Integrated strength of the solenoid component in rad. Only to be
+        specified when the element is thin, i.e. when `length` is 0.
     """
     isthick = True
     has_backtrack = True
@@ -1284,6 +1293,8 @@ class Solenoid(BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
         'ksl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
+        'mult_rot_y_rad': xo.Float64,
+        'mult_shift_x': xo.Float64,
     }
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
@@ -1296,6 +1307,7 @@ class Solenoid(BeamElement):
         _pkg_root.joinpath('headers/synrad_spectrum.h'),
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_multipolar_components.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_solenoid.h'),
         _pkg_root.joinpath('beam_elements/elements_src/solenoid.h'),
     ]
@@ -1377,8 +1389,8 @@ class CombinedFunctionMagnet:
         return Bend(**dct)
 
 
-class Fringe(BeamElement):
-    """Fringe field element.
+class DipoleFringe(BeamElement):
+    """Fringe field element of a dipole.
 
     Parameters
     ----------
@@ -1397,8 +1409,8 @@ class Fringe(BeamElement):
     }
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/fringe_track.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/fringe.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/dipole_fringe.h'),
     ]
 
     def __init__(self, **kwargs):
@@ -1423,7 +1435,7 @@ class Wedge(BeamElement):
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/wedge_track.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
         _pkg_root.joinpath('beam_elements/elements_src/wedge.h'),
     ]
 
@@ -1606,8 +1618,8 @@ class DipoleEdge(BeamElement):
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/wedge_track.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/fringe_track.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_nonlinear.h'),
         _pkg_root.joinpath('beam_elements/elements_src/dipoleedge.h')]
@@ -1792,8 +1804,8 @@ class LineSegmentMap(BeamElement):
         'qx': xo.Float64,
         'qy': xo.Float64,
 
-        'dqx': xo.Float64,
-        'dqy': xo.Float64,
+        'coeffs_dqx': xo.Float64[:],
+        'coeffs_dqy': xo.Float64[:],
         'det_xx': xo.Float64,
         'det_xy': xo.Float64,
         'det_yy': xo.Float64,
@@ -1856,7 +1868,7 @@ class LineSegmentMap(BeamElement):
             momentum_compaction_factor=None,
             slippage_length=None,
             voltage_rf=None, frequency_rf=None, lag_rf=None,
-            dqx=0.0, dqy=0.0,
+            dqx=0.0, dqy=0.0, ddqx=0.0, ddqy=0.0, dnqx=None, dnqy=None,
             det_xx=0.0, det_xy=0.0, det_yy=0.0, det_yx=0.0,
             energy_increment=0.0, energy_ref_increment=0.0,
             damping_rate_x = 0.0, damping_rate_px = 0.0,
@@ -1949,10 +1961,26 @@ class LineSegmentMap(BeamElement):
         lag_rf : list of float
             List of lag of the RF kicks in the segment. Only used if
             ``longitudinal_mode`` is ``'nonlinear'`` or ``'linear_fixed_rf'``.
-        dqx : float
-            Horizontal chromaticity of the segment.
-        dqy : float
-            Vertical chromaticity of the segment.
+dqx : float or list of float
+            Horizontal linear chromaticity of the segment.
+        dqy : float or list of float
+            Vertical linear chromaticity of the segment.
+        ddqx: float
+            Horizontal second order chromaticity of the segment
+        ddqy: float
+            Vertical second order chromaticity of the segment
+        dnqx: list of float
+            List of horizontal chromaticities up to any order. The first element
+            of the list is the horizontal tune, the second element is the
+            horizontal linear chromaticity, the third element the horizontal
+            second order chromaticity and so on. It can be specified only if the
+            horizontal tune, and chromaticities are not specified.
+        dnqy: list of float
+            List of vertical chromaticities up to any order. The first element
+            of the list is the vertical tune, the second element is the
+            vertical linear chromaticity, the third element the vertical
+            second order chromaticity and so on. It can be specified only if the
+            vertical tune, and chromaticities are not specified.
         det_xx : float
             Anharmonicity xx coefficient (i.e. dqx / dJx, where Jx is the horizontal
             action). Optional, default is ``0``.
@@ -2015,10 +2043,33 @@ class LineSegmentMap(BeamElement):
         assert longitudinal_mode in [
             'linear_fixed_qs', 'nonlinear', 'linear_fixed_rf', 'frozen', None]
 
+        if dnqx is not None:
+            assert qx == 0 and dqx == 0 and ddqx == 0
+            qx = dnqx[0]
+        else:
+            dnqx = [qx]
+            if dqx != 0:
+                dnqx.append(dqx)
+            if ddqx != 0:
+                dnqx.append(ddqx)
+
+        if dnqy is not None:
+            assert qy == 0 and dqy == 0 and ddqy == 0
+            qy = dnqy[0]
+        else:
+            dnqy = [qy]
+            if dqy != 0:
+                dnqy.append(dqy)
+            if ddqy != 0:
+                dnqy.append(ddqy)
+
+        coeffs_dqx = [dnqx[i] / float(factorial(i)) for i in range(len(dnqx))]
+        coeffs_dqy = [dnqy[i] / float(factorial(i)) for i in range(len(dnqy))]
+
         nargs['qx'] = qx
         nargs['qy'] = qy
-        nargs['dqx'] = dqx
-        nargs['dqy'] = dqy
+        nargs['coeffs_dqx'] = coeffs_dqx
+        nargs['coeffs_dqy'] = coeffs_dqy
         nargs['det_xx'] = det_xx
         nargs['det_xy'] = det_xy
         nargs['det_yy'] = det_yy

@@ -24,9 +24,10 @@ class PipelineBranch:
 
 class PipelineMultiTracker:
 
-    def __init__(self, branches, enable_debug_log=False):
+    def __init__(self, branches, enable_debug_log=False, verbose=False):
         self.branches = branches
         self.enable_debug_log = enable_debug_log
+        self.verbose = verbose
 
         if self.enable_debug_log:
             self.debug_log = []
@@ -52,6 +53,12 @@ class PipelineMultiTracker:
                                             branch.pipeline_status.data['ipp']],
                             'info': branch.pipeline_status.data['status_from_element'].info
                         })
+                    if self.verbose:
+                        print(
+                            f"Pipeline hold at branch {i_branch} "
+                            f"at turn {branch.pipeline_status.data['tt']} "
+                            f"by element {branch.line.tracker._part_names[branch.pipeline_status.data['ipp']]} "
+                            f"with info: {branch.pipeline_status.data['status_from_element'].info}")
 
                     branch.pipeline_status = branch.line.tracker.resume(
                                                         branch.pipeline_status)

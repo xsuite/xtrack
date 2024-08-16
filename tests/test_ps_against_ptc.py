@@ -107,7 +107,7 @@ def test_ps_against_ptc(test_context):
     xo.assert_allclose(tw.dqx, dq1_ptc, atol=1e-2, rtol=0)
     xo.assert_allclose(tw.dqy, dq2_ptc, atol=1e-2, rtol=0)
 
-    nlchr = line.get_non_linear_chromaticity(method='4d')
+    nlchr = line.get_non_linear_chromaticity()
     xo.assert_allclose(nlchr['ddqx'], ddq1_ptc, atol=0, rtol=5e-3)
     xo.assert_allclose(nlchr['ddqy'], ddq2_ptc, atol=0, rtol=5e-3)
 

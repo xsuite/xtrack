@@ -2369,7 +2369,6 @@ class Line:
         for name in variable_names:
             self.config[f'FREEZE_VAR_{name}'] = False
 
-
     def configure_bend_model(self, core=None, edge=None, num_multipole_kicks=None):
 
         """
@@ -2378,11 +2377,13 @@ class Line:
         Parameters
         ----------
         core: str
-            Medel to be used for the thick bend cores. Can be 'expanded' or '
+            Model to be used for the thick bend cores. Can be 'expanded' or '
             full'.
         edge: str
             Model to be used for the bend edges. Can be 'linear', 'full'
             or 'suppressed'.
+        num_multipole_kicks: int
+            Number of multipole kicks to consider.
         """
 
         if core not in [None, 'adaptive', 'full', 'bend-kick-bend',
@@ -2405,6 +2406,38 @@ class Line:
 
             if num_multipole_kicks is not None:
                 ee.num_multipole_kicks = num_multipole_kicks
+
+    def _configure_mult_fringes(
+            self,
+            element_type,
+            edge: Optional[Literal['full']] = 'full',
+    ):
+        """Configure fringes on elements of a given type.
+
+        Parameters
+        ----------
+        edge: str
+            None to disable, 'full' to enable.
+        """
+        if edge not in [None, 'full']:
+            raise ValueError(f'Unknown edge model {edge}: only None or '
+                             f'"full" are supported.')
+
+        enable_fringes = edge == 'full'
+
+        for ee in self.element_dict.values():
+            if isinstance(ee, element_type):
+                ee.edge_entry_active = enable_fringes
+                ee.edge_exit_active = enable_fringes
+
+    def configure_quadrupole_model(self, edge: Optional[Literal['full']] = 'full'):
+        self._configure_mult_fringes(xt.Quadrupole, edge=edge)
+
+    def configure_sextupole_model(self, edge: Optional[Literal['full']] = 'full'):
+        self._configure_mult_fringes(xt.Sextupole, edge=edge)
+
+    def configure_octupole_model(self, edge: Optional[Literal['full']] = 'full'):
+        self._configure_mult_fringes(xt.Octupole, edge=edge)
 
     def configure_radiation(self, model=None, model_beamstrahlung=None,
                             model_bhabha=None, mode='deprecated'):

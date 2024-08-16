@@ -41,6 +41,7 @@ def gen_madx_optics_file_auto(collider, fname):
         vtable.mask[vtable.mask['acb.*'] | vtable.mask['kd.*']
                     | vtable.mask['kq.*'] | vtable.mask['ks.*']]]
     for nn in vsave.name:
+        nn = str(nn) # to avoid numpy string
         vv = collider.vars[nn]
         extract_val_or_madexpr(vv, dct_expr, dct_val)
 

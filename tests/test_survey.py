@@ -103,17 +103,17 @@ def test_survey_slicing(test_context, slice_mode, tilted, orientation,
 
     if not tilted and orientation == 'acw':
         assert_allclose(np.abs(sv.Y), 0, rtol=0, atol=1e-14)
-        assert_allclose(np.trapz(sv.X, sv.Z), -4.818 , rtol=0, # anti-clockwise
+        assert_allclose(np.trapezoid(sv.X, sv.Z), -4.818 , rtol=0, # anti-clockwise
                         atol=(2e-3 if slice_mode is not None else 0.5))
     elif not tilted and orientation == 'cw':
         assert_allclose(np.abs(sv.Y), 0, rtol=0, atol=1e-14)
-        assert_allclose(np.trapz(sv.X, sv.Z), 4.818 , rtol=0, # clockwise
+        assert_allclose(np.trapezoid(sv.X, sv.Z), 4.818 , rtol=0, # clockwise
                         atol=(2e-3 if slice_mode is not None else 0.5))
     elif tilted and orientation == 'acw':
         assert_allclose(np.abs(sv.X), 0, rtol=0, atol=1e-14)
-        assert_allclose(np.trapz(sv.Y, sv.Z), -4.818 , rtol=0, # anti-clockwise
+        assert_allclose(np.trapezoid(sv.Y, sv.Z), -4.818 , rtol=0, # anti-clockwise
                         atol=(2e-3 if slice_mode is not None else 0.5))
     elif tilted and orientation == 'cw':
         assert_allclose(np.abs(sv.X), 0, rtol=0, atol=1e-14)
-        assert_allclose(np.trapz(sv.Y, sv.Z), 4.818 , rtol=0, # clockwise
+        assert_allclose(np.trapezoid(sv.Y, sv.Z), 4.818 , rtol=0, # clockwise
                         atol=(2e-3 if slice_mode is not None else 0.5))

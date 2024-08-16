@@ -33,6 +33,7 @@ void synrad_average_kick(LocalParticle* part, double curv, double lpath,
 
     #ifdef XTRACK_SYNRAD_SCALE_SAME_AS_FIRST
     if (part -> ipart == 0){
+    #error "XTRACK_SYNRAD_SCALE_SAME_AS_FIRST not supported when multithreading"  //only_for_context cpu_openmp cuda opencl
       *dp_record = f_t;
     }
     else{
@@ -41,6 +42,7 @@ void synrad_average_kick(LocalParticle* part, double curv, double lpath,
     #endif
 
     #ifdef XTRACK_SYNRAD_KICK_SAME_AS_FIRST
+    #error "XTRACK_SYNRAD_KICK_SAME_AS_FIRST not supported when multithreading"  //only_for_context cpu_openmp cuda opencl
     if (part -> ipart == 0){
       *dp_record = LocalParticle_get_delta(part);
       *dpx_record = LocalParticle_get_px(part);
@@ -187,7 +189,9 @@ double synrad_gen_photon_energy_normalized(LocalParticle *part)
       exact=SynRad(result);
       appr=a1/tmp;
     } else {				// use high energy approximation
-      result=xlow-log(RandomUniform_generate(part));
+      double const u = RandomUniform_generate(part);
+      if (u < 1.e-50) continue;  // avoid log(0), retrigger generation
+      result=xlow-log(u);
       exact=SynRad(result);
       appr=a2*exp(-result);
     }

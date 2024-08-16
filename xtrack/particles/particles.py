@@ -2,6 +2,7 @@
 # This file is part of the Xtrack Package.  #
 # Copyright (c) CERN, 2023.                 #
 # ######################################### #
+import json
 
 import numpy as np
 from pathlib import Path
@@ -490,8 +491,35 @@ class Particles(xo.HybridClass):
 
         return dct
 
+    def to_json(self, filename, indent=None, **kwargs):
+        """
+        Save the Particles object to a JSON file.
+
+        Parameters
+        ----------
+        filename : str
+            The name of the file to save the Particles object to.
+        **kwargs : dict
+            Additional keyword arguments to pass to the json.to_dict method.
+        """
+
+        class NumpyEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, np.ndarray):
+                    return obj.tolist()
+                if isinstance(obj, np.floating):
+                    return float(obj)
+                if isinstance(obj, np.integer):
+                    return int(obj)
+                return json.JSONEncoder.default(self, obj)
+
+        dct = self.to_dict(**kwargs)
+
+        with open(filename, 'w') as f:
+            json.dump(dct, f, cls=NumpyEncoder, indent=indent)
+
     @classmethod
-    def from_pandas(cls, df, _context=None, _buffer=None, _offset=None):
+    def from_pandas(cls, df, _context=None, _buffer=None, _offset=None, load_rng_state=True, **kwargs):
 
         """
         Create a new Particles object from a pandas DataFrame.
@@ -517,7 +545,9 @@ class Particles(xo.HybridClass):
         for tt, nn in cls.scalar_vars + cls.size_vars:
             if nn in dct.keys() and not np.isscalar(dct[nn]):
                 dct[nn] = dct[nn][0]
-        return cls(**dct, _context=_context, _buffer=_buffer, _offset=_offset)
+        return cls.from_dict(dct, load_rng_state=load_rng_state,
+                             _context=_context, _buffer=_buffer,
+                             _offset=_offset, **kwargs)
 
     def to_pandas(self,
                   remove_underscored=None,

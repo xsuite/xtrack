@@ -7,7 +7,7 @@ import numpy as np
 
 
 def mysign(u):
-    return 2 * np.float_(u >= 0) - 1.0
+    return 2 * np.float64(u >= 0) - 1.0
 
 
 class Sigmas(object):
