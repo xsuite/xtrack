@@ -291,7 +291,6 @@ def twiss_line(line, particle_ref=None, method=None,
             used for the propagation of the W matrix.
 
     """
-
     input_kwargs = locals().copy()
 
     # defaults
@@ -983,7 +982,8 @@ def _twiss_open(line, init,
             / ((line.record_last_track.delta[6, i_start:i_stop+1] - delta_co).T
             - (line.record_last_track.delta[12, i_start:i_stop+1] - delta_co).T))
 
-    dzeta = dzeta - dzeta[0]
+    dzeta -= dzeta[0]
+    dzeta = np.array(dzeta)
 
     name_co = np.array(line.element_names[i_start:i_stop] + ('_end_point',))
 
