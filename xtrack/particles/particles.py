@@ -876,16 +876,15 @@ class Particles(xo.HybridClass):
             # Reorganize particles
             with self._bypass_linked_vars():
                 for tt, nn in self.per_particle_vars:
+                    if nn.startswith('_rng'):
+                        continue
                     vv = getattr(self, nn)
                     vv_active = vv[mask_active]
                     vv_lost = vv[mask_lost]
 
                     vv[:n_active] = vv_active
                     vv[n_active:n_active + n_lost] = vv_lost
-                    if nn.startswith('_rng'):
-                        vv[n_active + n_lost:] = 0
-                    else:
-                        vv[n_active + n_lost:] = tt._dtype.type(LAST_INVALID_STATE)
+                    vv[n_active + n_lost:] = tt._dtype.type(LAST_INVALID_STATE)
 
         if isinstance(self._buffer.context, xo.ContextCpu):
             self._num_active_particles = n_active
