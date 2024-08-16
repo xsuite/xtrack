@@ -988,6 +988,7 @@ class Particles(xo.HybridClass):
     def init_pipeline(self, name):
 
         self.name = name
+        self._needs_pipeline = True
 
     def show(self):
 
