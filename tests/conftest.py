@@ -11,7 +11,7 @@ def assert_context_empty(context):
     An active buffer is a buffer that has not been freed yet.
     """
     gc.collect()
-    alive_buffer_count = sum(b.alive for b in context.buffers)
+    alive_buffer_count = len(context._buffers)
     if alive_buffer_count > 0:
         pytest.fail(f"There were {alive_buffer_count} active buffers after a "
                     f"test run, which points to a memory leak during the test "
