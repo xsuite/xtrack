@@ -6,9 +6,15 @@
 #ifndef XTRACK_TRACK_DIPOLE_FRINGE_H
 #define XTRACK_TRACK_DIPOLE_FRINGE_H
 
+#ifndef POW2
 #define POW2(X) ((X)*(X))
+#endif
+#ifndef POW3
 #define POW3(X) ((X)*(X)*(X))
+#endif
+#ifndef POW4
 #define POW4(X) ((X)*(X)*(X)*(X))
+#endif
 
 
 #ifndef XTRACK_FRINGE_FROM_PTC

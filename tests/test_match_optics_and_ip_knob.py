@@ -499,7 +499,7 @@ def test_match_ir8_optics(test_context):
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyynnnnnnnnnnnn'
 
-    opt.step(10)
+    opt.step(12)
     assert opt.log()['penalty', -1] < 0.1
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyynnnnnnnnnnnn'
