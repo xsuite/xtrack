@@ -59,5 +59,3 @@ void rng_set (uint32_t *s1, uint32_t *s2, uint32_t *s3, uint32_t *s4, uint32_t s
 }
 
 #endif /* XTRACK_BASE_RNG_H */
-
- 
