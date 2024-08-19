@@ -23,7 +23,17 @@ double rng_get (uint32_t *s1, uint32_t *s2, uint32_t *s3, uint32_t *s4 ){
   *s4 = LCG(*s4, 1664525, 1013904223UL);             // p4=2^32
 
   // Combined period is lcm(p1,p2,p3,p4) ~ 2^121
-  return ((*s1) ^ (*s2) ^ (*s3) ^ (*s4)) / 4294967296.0 ;
+  double const a = ((*s1) ^ (*s2) ^ (*s3) ^ (*s4)) / 4294967296.0 ; // uniform in [0,1) 1e10 resolution
+
+  // Generate another
+  *s1 = TAUSWORTHE (*s1, 13, 19, 4294967294UL, 12);  // p1=2^31-1
+  *s2 = TAUSWORTHE (*s2, 2, 25, 4294967288UL, 4);    // p2=2^30-1
+  *s3 = TAUSWORTHE (*s3, 3, 11, 4294967280UL, 17);   // p3=2^28-1
+  *s4 = LCG(*s4, 1664525, 1013904223UL);             // p4=2^32
+  double const b = ((*s1) ^ (*s2) ^ (*s3) ^ (*s4)) / 4294967296.0 ; // uniform in [0,1) 1e10 resolution
+
+  return a + 1 / 4294967296.0 * b; // uniform in [0,1) 1e20 resolution
+
 }
 
 /*gpufun*/
