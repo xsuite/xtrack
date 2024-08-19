@@ -14,26 +14,28 @@
 #define TAUSWORTHE(s,a,b,c,d) ((((s) &c) <<d) &MASK) ^ (((((s) <<a) &MASK)^(s)) >>b)
 #define LCG(s,A,C) ((((A*(s)) &MASK) + C) &MASK)
 
-
 /*gpufun*/
-double rng_get (uint32_t *s1, uint32_t *s2, uint32_t *s3, uint32_t *s4 ){
+uint32_t rng_get_int32 (uint32_t *s1, uint32_t *s2, uint32_t *s3, uint32_t *s4 ){
   *s1 = TAUSWORTHE (*s1, 13, 19, 4294967294UL, 12);  // p1=2^31-1
   *s2 = TAUSWORTHE (*s2, 2, 25, 4294967288UL, 4);    // p2=2^30-1
   *s3 = TAUSWORTHE (*s3, 3, 11, 4294967280UL, 17);   // p3=2^28-1
   *s4 = LCG(*s4, 1664525, 1013904223UL);             // p4=2^32
 
   // Combined period is lcm(p1,p2,p3,p4) ~ 2^121
-  double const a = ((*s1) ^ (*s2) ^ (*s3) ^ (*s4)) / 4294967296.0 ; // uniform in [0,1) 1e10 resolution
+  return ((*s1) ^ (*s2) ^ (*s3) ^ (*s4));
+}
 
-  // Generate another
-  *s1 = TAUSWORTHE (*s1, 13, 19, 4294967294UL, 12);  // p1=2^31-1
-  *s2 = TAUSWORTHE (*s2, 2, 25, 4294967288UL, 4);    // p2=2^30-1
-  *s3 = TAUSWORTHE (*s3, 3, 11, 4294967280UL, 17);   // p3=2^28-1
-  *s4 = LCG(*s4, 1664525, 1013904223UL);             // p4=2^32
-  double const b = ((*s1) ^ (*s2) ^ (*s3) ^ (*s4)) / 4294967296.0 ; // uniform in [0,1) 1e10 resolution
+#ifndef TWO_TO_32
+#define TWO_TO_32 4294967296.0
+#endif
 
-  return a + 1 / 4294967296.0 * b; // uniform in [0,1) 1e20 resolution
+/*gpufun*/
+double rng_get (uint32_t *s1, uint32_t *s2, uint32_t *s3, uint32_t *s4 ){
 
+  double const a = rng_get_int32(s1, s2, s3, s4) / TWO_TO_32; // uniform in [0, 1) 1e10 resolution
+  double const b = rng_get_int32(s1, s2, s3, s4) / TWO_TO_32; // uniform in [0, 1) 1e10 resolution
+
+  return a + 1 / TWO_TO_32 * b; // uniform in [0,1) 1e20 resolution
 }
 
 /*gpufun*/
