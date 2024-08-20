@@ -1,7 +1,8 @@
 import xtrack as xt
 import numpy as np
 
-rng = xt.RandomUniform()
+# rng = xt.RandomUniform()
+rng = xt.RandomUniformAccurate()
 
 n_gen = 0
 min_val = 2.
