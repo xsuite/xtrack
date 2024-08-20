@@ -82,7 +82,7 @@ class RandomUniformAccurate(RandomUniform):
     ]
 
     _per_particle_kernels = {
-        'sample_exp': xo.Kernel(
+        'sample_unif_accuurate': xo.Kernel(
                 c_name='RandomUniformAccurate_sample',
                 args=[
                     xo.Arg(xo.Float64, pointer=True, name='samples'),
@@ -92,7 +92,7 @@ class RandomUniformAccurate(RandomUniform):
         }
 
     def _sample(self, *args, **kwargs):
-        self.sample_exp(*args, **kwargs)
+        self.sample_unif_accuurate(*args, **kwargs)
 
 
 class RandomExponential(RandomUniform):
