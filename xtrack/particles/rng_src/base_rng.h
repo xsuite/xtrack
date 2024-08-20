@@ -32,10 +32,8 @@ uint32_t rng_get_int32 (uint32_t *s1, uint32_t *s2, uint32_t *s3, uint32_t *s4 )
 /*gpufun*/
 double rng_get (uint32_t *s1, uint32_t *s2, uint32_t *s3, uint32_t *s4 ){
 
-  double const a = rng_get_int32(s1, s2, s3, s4) / TWO_TO_32; // uniform in [0, 1) 1e10 resolution
-  double const b = rng_get_int32(s1, s2, s3, s4) / TWO_TO_32; // uniform in [0, 1) 1e10 resolution
+  return rng_get_int32(s1, s2, s3, s4) / TWO_TO_32; // uniform in [0, 1) 1e10 resolution
 
-  return a + 1 / TWO_TO_32 * b; // uniform in [0,1) 1e20 resolution
 }
 
 /*gpufun*/
