@@ -63,10 +63,20 @@ tw['muy0'] = tw0['muy']
 
 from xtrack.trajectory_correction import _compute_correction
 
-corr_on_observable = 'muy'
+correct_on_observables = ['mux', 'muy']
 
-err = tw.rows[obs_points][corr_on_observable] - tw0.rows[obs_points][corr_on_observable]
-response_matrix = response[corr_on_observable]
+err = None
+response_matrix = None
+for cc in correct_on_observables:
+    ee = tw.rows[obs_points][cc] - tw0.rows[obs_points][cc]
+    rr = response[cc]
+
+    if err is None:
+        err = ee
+        response_matrix = rr
+    else:
+        err = np.concatenate((err, ee))
+        response_matrix = np.concatenate((response_matrix, rr), axis=0)
 
 correction_svd = _compute_correction(err, response_matrix, rcond=1e-2)
 correction_micado = _compute_correction(err, response_matrix, n_micado=2)
