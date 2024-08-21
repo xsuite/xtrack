@@ -8,7 +8,7 @@ tw0 = line.twiss()
 
 tt = line.get_table()
 
-observable_list = ['betx', 'bety', 'mux', 'muy']
+observable_list = ['betx', 'bety', 'mux', 'muy', 'dx']
 
 obs_points = tt.rows['bpm.*'].name
 corr_names = line.vars.get_table().rows['kq.*.b1'].name
@@ -37,7 +37,7 @@ tw['muy0'] = tw0['muy']
 
 from xtrack.trajectory_correction import _compute_correction
 
-corr_on_observable = 'bety'
+corr_on_observable = 'muy'
 
 err = tw.rows[obs_points][corr_on_observable] - tw0.rows[obs_points][corr_on_observable]
 response_matrix = response[corr_on_observable]
