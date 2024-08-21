@@ -7,6 +7,8 @@ tw0 = line.twiss()
 
 tt = line.get_table()
 
+observable = 'dx'
+
 obs_points = tt.rows['bpm.*'].name
 corr_names = line.vars.get_table().rows['kq.*.b1'].name
 
@@ -18,7 +20,7 @@ for ii, nn in enumerate(corr_names):
     line.vars[nn] += dk
     twp = line.twiss()
     for jj, mm in enumerate(obs_points):
-        response_matrix[jj, ii] = (twp['betx', mm] - tw0['betx', mm]) / dk
+        response_matrix[jj, ii] = (twp[observable, mm] - tw0[observable, mm]) / dk
     line.vars[nn] -= dk
 
 line.vars['kq7.r5b1'] *= 1.01
@@ -31,7 +33,7 @@ tw['muy0'] = tw0['muy']
 
 from xtrack.trajectory_correction import _compute_correction
 
-betx_err = tw.rows[obs_points].betx - tw0.rows[obs_points].betx
+betx_err = tw.rows[obs_points][observable] - tw0.rows[obs_points][observable]
 
 correction_svd = _compute_correction(betx_err, response_matrix, rcond=1e-3)
 correction_micado = _compute_correction(betx_err, response_matrix, n_micado=1)
