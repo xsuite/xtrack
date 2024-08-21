@@ -5,14 +5,16 @@ line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.jso
 line.twiss_default.update({'strengths': False, 'method': '4d'})
 tw0 = line.twiss()
 
+
 tt = line.get_table()
 
-observable = 'dx'
+observable_list = ['betx', 'bety', 'mux', 'muy']
 
 obs_points = tt.rows['bpm.*'].name
 corr_names = line.vars.get_table().rows['kq.*.b1'].name
 
-response_matrix = np.zeros((len(obs_points), len(corr_names)))
+response = {oo: np.zeros((len(obs_points), len(corr_names)))
+            for oo in observable_list}
 
 dk = 0.5e-5
 for ii, nn in enumerate(corr_names):
@@ -20,8 +22,10 @@ for ii, nn in enumerate(corr_names):
     line.vars[nn] += dk
     twp = line.twiss()
     for jj, mm in enumerate(obs_points):
-        response_matrix[jj, ii] = (twp[observable, mm] - tw0[observable, mm]) / dk
+        for observable in observable_list:
+            response[observable][jj, ii] = (twp[observable, mm] - tw0[observable, mm]) / dk
     line.vars[nn] -= dk
+
 
 line.vars['kq7.r5b1'] *= 1.01
 tw = line.twiss()
@@ -33,10 +37,13 @@ tw['muy0'] = tw0['muy']
 
 from xtrack.trajectory_correction import _compute_correction
 
-betx_err = tw.rows[obs_points][observable] - tw0.rows[obs_points][observable]
+corr_on_observable = 'bety'
 
-correction_svd = _compute_correction(betx_err, response_matrix, rcond=1e-3)
-correction_micado = _compute_correction(betx_err, response_matrix, n_micado=1)
+err = tw.rows[obs_points][corr_on_observable] - tw0.rows[obs_points][corr_on_observable]
+response_matrix = response[corr_on_observable]
+
+correction_svd = _compute_correction(err, response_matrix, rcond=1e-2)
+correction_micado = _compute_correction(err, response_matrix, n_micado=1)
 
 i_micado = np.argmax(np.abs(correction_micado))
 print(f'MICADO correction: {correction_micado[i_micado]:.2e} at {corr_names[i_micado]}')
