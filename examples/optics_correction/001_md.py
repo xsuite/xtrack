@@ -10,12 +10,12 @@ tw0 = line.twiss()
 
 tt = line.get_table()
 
-observable_list = ['betx'] #, 'bety', 'mux', 'muy', 'dx']
+observable_list = ['betx', 'bety', 'mux', 'muy', 'dx']
 
 obs_points = tt.rows['bpm.*'].name
 corr_vars = [nn for nn in line.vars.get_table().rows['kq.*.b1$'].name
               if 'from' not in nn]
-corr_elements = []
+corr_elements = list(tt.rows[tt.element_type == 'Quadrupole'].name)
 
 correctors = []
 for nn in corr_vars:
