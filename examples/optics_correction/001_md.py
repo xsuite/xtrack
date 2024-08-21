@@ -13,9 +13,14 @@ tt = line.get_table()
 observable_list = ['betx', 'bety', 'mux', 'muy', 'dx']
 
 obs_points = tt.rows['bpm.*'].name
-corr_vars = [nn for nn in line.vars.get_table().rows['kq.*.b1$'].name
-              if 'from' not in nn]
-corr_elements = list(tt.rows[tt.element_type == 'Quadrupole'].name)
+
+# corr_elements = []
+# corr_vars = [nn for nn in line.vars.get_table().rows['kq.*.b1$'].name
+#               if 'from' not in nn]
+
+corr_vars = []
+corr_elements = [nn for nn in list(tt.rows[tt.element_type == 'Quadrupole'].name)
+                 if 'mqm' in nn]
 
 correctors = []
 for nn in corr_vars:
@@ -34,18 +39,18 @@ for ii, cc in enumerate(correctors):
     if corr_type == 'var':
         line.vars[nn] += dk
     elif corr_type == 'element':
-        line.elements[nn].k1 += dk
+        line[nn].k1 += dk
 
     twp = line.twiss()
 
     if corr_type == 'var':
         line.vars[nn] -= dk
     elif corr_type == 'element':
-        line.elements[nn].k1 -= dk
+        line[nn].k1 -= dk
 
-    for jj, mm in enumerate(obs_points):
-        for observable in observable_list:
-            response[observable][jj, ii] = (twp[observable, mm] - tw0[observable, mm]) / dk
+    for observable in observable_list:
+        response[observable][:, ii] = (
+            twp.rows[obs_points][observable] - tw0.rows[obs_points][observable]) / dk
 
 
 line.vars['kq7.r5b1'] *= 1.01
@@ -58,13 +63,13 @@ tw['muy0'] = tw0['muy']
 
 from xtrack.trajectory_correction import _compute_correction
 
-corr_on_observable = 'betx'
+corr_on_observable = 'muy'
 
 err = tw.rows[obs_points][corr_on_observable] - tw0.rows[obs_points][corr_on_observable]
 response_matrix = response[corr_on_observable]
 
 correction_svd = _compute_correction(err, response_matrix, rcond=1e-2)
-correction_micado = _compute_correction(err, response_matrix, n_micado=1)
+correction_micado = _compute_correction(err, response_matrix, n_micado=2)
 
 i_micado = np.argmax(np.abs(correction_micado))
 print(f'MICADO correction: {correction_micado[i_micado]:.2e} at {correctors[i_micado]}')
