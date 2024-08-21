@@ -37,7 +37,7 @@ tw['muy0'] = tw0['muy']
 
 from xtrack.trajectory_correction import _compute_correction
 
-corr_on_observable = 'muy'
+corr_on_observable = 'dx'
 
 err = tw.rows[obs_points][corr_on_observable] - tw0.rows[obs_points][corr_on_observable]
 response_matrix = response[corr_on_observable]
