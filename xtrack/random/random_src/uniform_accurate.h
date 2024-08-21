@@ -9,6 +9,8 @@
 #include <math.h> //only_for_context cpu_serial cpu_openmp
 #include <time.h> //only_for_context cpu_serial cpu_openmp
 
+#define TWO_TO_32 4294967296.0
+
 
 /*gpufun*/
 double RandomUniformAccurate_generate(LocalParticle* part){
@@ -18,16 +20,16 @@ double RandomUniformAccurate_generate(LocalParticle* part){
     section "Generating uniform doubles in the unit interval"
     */
 
-    uint32_t u32_1 = RandomUniformUInt32_generate(part);
-    uint32_t u32_2 = RandomUniformUInt32_generate(part);
+    double out = 0;
 
-    uint64_t u64 = ((uint64_t)u32_1 << 32) | u32_2;
+    out += RandomUniformUInt32_generate(part) / TWO_TO_32;
+    out += RandomUniformUInt32_generate(part) / (TWO_TO_32 * TWO_TO_32);
+    out += RandomUniformUInt32_generate(part) / (
+                                            TWO_TO_32 * TWO_TO_32 * TWO_TO_32);
+    out += RandomUniformUInt32_generate(part) / (
+                                TWO_TO_32 * TWO_TO_32 * TWO_TO_32 * TWO_TO_32);
 
-    //double r = (u64 >> 11) * 0x1.0p-53; # Needed to switch to decimal notation for cuda
-    double r = (u64 >> 11) * 1.11022302462515654042363166809082031250e-16;
-
-    return r;
-
+    return out;
 }
 
 
