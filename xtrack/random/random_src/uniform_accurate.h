@@ -23,7 +23,8 @@ double RandomUniformAccurate_generate(LocalParticle* part){
 
     uint64_t u64 = ((uint64_t)u32_1 << 32) | u32_2;
 
-    double r = (u64 >> 11) * 0x1.0p-53;
+    //double r = (u64 >> 11) * 0x1.0p-53; # Needed to switch to decimal notation for cuda
+    double r = (u64 >> 11) * 1.11022302462515654042363166809082031250e-16;
 
     return r;
 
