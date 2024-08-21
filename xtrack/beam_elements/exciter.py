@@ -99,7 +99,7 @@ class Exciter(BeamElement):
     _extra_c_sources = [_pkg_root.joinpath('beam_elements/elements_src/exciter.h')]
 
 
-    def __init__(self, *, samples=None, nsamples=None, sampling_frequency=0, frev=0, knl=[1], ksl=[], start_turn=0, duration=None, _xobject=None, **kwargs):
+    def __init__(self, *, samples=None, nsamples=None, sampling_frequency=0, frev=0, knl=[], ksl=[], start_turn=0, duration=None, _xobject=None, **kwargs):
 
         if _xobject is not None:
             super().__init__(_xobject=_xobject)
@@ -108,6 +108,7 @@ class Exciter(BeamElement):
 
             # sanitize knl and ksl array length
             n = max(len(knl), len(ksl))
+            assert n > 0, 'Cannot initialise Exciter without componenents'
             nknl = np.zeros(n, dtype=np.float64)
             nksl = np.zeros(n, dtype=np.float64)
             if knl is not None:
