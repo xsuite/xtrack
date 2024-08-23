@@ -21,18 +21,12 @@ tw = line.twiss4d(strengths=True)
 line_half = xt.Line(elements=elements,
                     element_names=['drift0', 'qf1', 'drift1', 'qd1', 'drift2'])
 line_half.particle_ref = line.particle_ref.copy()
-line_half.build_tracker()
-
-particle_on_co = line_half.build_particles(x=0, px=0, y=0, py=0, delta=0, zeta=0)
-RR = line_half.compute_one_turn_matrix_finite_differences(
-    particle_on_co=particle_on_co)['R_matrix']
-
-inv_momenta = np.diag([1, -1, 1, -1, 1, -1])
-
-RR_symm = inv_momenta @ np.linalg.inv(RR) @ inv_momenta @ RR
+tw_half = line_half.twiss4d(strengths=True, init='periodic_symmetric')
 
 import matplotlib.pyplot as plt
 plt.close('all')
-tw.plot()
+
+twplt1 = tw.plot()
+twplt2 = tw_half.plot()
 
 plt.show()

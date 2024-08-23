@@ -119,7 +119,7 @@ def twiss_line(line, particle_ref=None, method=None,
         normal form is used. If '4d' the 4D normal form is used.
     start : int or str, optional
         Index of the element at which the computation starts. If not provided,
-        the periodic sulution is computed. `init` must be provided if
+        the periodic solution is computed. `init` must be provided if
         `start` is provided.
     end : int or str, optional
         Index of the element at which the computation stops.
@@ -405,11 +405,13 @@ def twiss_line(line, particle_ref=None, method=None,
         if zero_at is None:
             out.zero_at(start)
         return _add_action_in_res(out, input_kwargs)
-    elif (init is not None and init != 'periodic'
+    elif (init is not None and init not in ['periodic', 'periodic_symmetric']
         or betx is not None or bety is not None):
         periodic = False
+        periodic_mode = None
     else:
         periodic = True
+        periodic_mode = init or 'periodic'
 
     if freeze_longitudinal:
         kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
@@ -615,6 +617,7 @@ def twiss_line(line, particle_ref=None, method=None,
             compute_R_element_by_element=compute_R_element_by_element,
             only_markers=only_markers,
             only_orbit=only_orbit,
+            periodic_mode=periodic_mode
             )
     else:
         # force
@@ -1742,11 +1745,15 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             num_turns_search_t_rev=1,
                             compute_R_element_by_element=False,
                             only_markers=False,
-                            only_orbit=False):
+                            only_orbit=False,
+                            periodic_mode='periodic'):
 
     eigenvalues = None
     Rot = None
     RR_ebe = None
+
+    assert periodic_mode in ['periodic', 'periodic_symmetric']
+
 
     if start is not None or end is not None:
         assert start is not None and end is not None, (
@@ -1757,6 +1764,11 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
 
     if method == '4d' and delta0 is None:
         delta0 = 0
+
+    if periodic_mode == 'periodic_symmetric':
+        assert R_matrix is None, 'R_matrix must be None for `periodic_symmetric`'
+        assert W_matrix is None, 'W_matrix must be None for `periodic_symmetric`'
+        assert delta0 == 0, 'delta0 must be 0 for `periodic_symmetric`'
 
     if particle_on_co is not None:
         part_on_co = particle_on_co
@@ -1779,6 +1791,15 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                 )
     if only_orbit:
         W_matrix = np.eye(6)
+
+    if periodic_mode == 'periodic_symmetric':
+        assert np.allclose(part_on_co.x[0], 0, atol=1e-12, rtol=0)
+        assert np.allclose(part_on_co.px[0], 0, atol=1e-12, rtol=0)
+        assert np.allclose(part_on_co.y[0], 0, atol=1e-12, rtol=0)
+        assert np.allclose(part_on_co.py[0], 0, atol=1e-12, rtol=0)
+        assert np.allclose(part_on_co.delta[0], 0, atol=1e-12, rtol=0)
+        assert np.allclose(part_on_co.zeta[0], 0, atol=1e-12, rtol=0)
+
 
     if W_matrix is not None:
         W = W_matrix
@@ -1807,6 +1828,12 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                     )
                 RR = RR_out['R_matrix']
                 RR_ebe = RR_out['R_matrix_ebe']
+
+                if periodic_mode == 'periodic_symmetric':
+                    inv_momenta = np.diag([1, -1, 1, -1, 1, -1])
+                    RR_symm = inv_momenta @ np.linalg.inv(RR) @ inv_momenta @ RR
+                    RR = RR_symm
+
                 if matrix_responsiveness_tol is not None:
                     lnf._assert_matrix_responsiveness(RR,
                         matrix_responsiveness_tol, only_4d=(method == '4d'))
