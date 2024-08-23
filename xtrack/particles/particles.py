@@ -214,7 +214,7 @@ class Particles(xo.HybridClass):
 
         accepted_args = set(self._xofields.keys()) | {
             'energy0', 'tau', 'pzeta', 'mass_ratio', 'mass', 'kinetic_energy0',
-            '_context', '_buffer', '_offset',
+            '_context', '_buffer', '_offset', 'p0',
         }
         if set(kwargs.keys()) - accepted_args:
             raise NameError(f'Invalid argument(s) provided: '
