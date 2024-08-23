@@ -27,7 +27,6 @@ particle_on_co = line_half.build_particles(x=0, px=0, y=0, py=0, delta=0, zeta=0
 RR = line_half.compute_one_turn_matrix_finite_differences(
     particle_on_co=particle_on_co)['R_matrix']
 
-
 inv_momenta = np.diag([1, -1, 1, -1, 1, -1])
 
 RR_symm = inv_momenta @ np.linalg.inv(RR) @ inv_momenta @ RR
