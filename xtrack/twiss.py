@@ -758,11 +758,7 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res._data['values_at'] = 'entry'
 
     if strengths:
-        tt = line.get_table(attr=True).rows[list(twiss_res.name)]
-        for kk in (NORMAL_STRENGTHS_FROM_ATTR + SKEW_STRENGTHS_FROM_ATTR
-                   + OTHER_FIELDS_FROM_ATTR + OTHER_FIELDS_FROM_TABLE):
-            twiss_res._col_names.append(kk)
-            twiss_res._data[kk] = tt[kk].copy()
+        _add_strengths_to_twiss_res(line, twiss_res)
 
     twiss_res._data['method'] = method
     twiss_res._data['radiation_method'] = radiation_method
@@ -3062,7 +3058,7 @@ class TwissTable(Table):
 
         return R_matrix
 
-    def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None, 
+    def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None,
                                    nemitt_zeta=None, _force_at_element=None):
 
         # TODO: check consistency of gamma0
@@ -3242,6 +3238,12 @@ class TwissTable(Table):
         return out
 
     ind_per_table = []
+
+    def add_strengths(self, line=None):
+        if line is None:
+            line = self._action.line
+        _add_strengths_to_twiss_res(self, line)
+        return self
 
     @classmethod
     def concatenate(cls, tables_to_concat):
@@ -3793,41 +3795,49 @@ def _reverse_strengths(out):
 
 
 def _W_phys2norm(x, px, y, py, zeta, pzeta, W_matrix, co_dict, nemitt_x=None, nemitt_y=None, nemitt_zeta=None):
-    
-    
-    # Compute geometric emittances if normalized emittances are provided
-    gemitt_x = np.ones(shape=np.shape(co_dict['beta0'])) if nemitt_x is None else (nemitt_x / co_dict['beta0'] / co_dict['gamma0'])
-    gemitt_y = np.ones(shape=np.shape(co_dict['beta0'])) if nemitt_y is None else (nemitt_y / co_dict['beta0'] / co_dict['gamma0'])
-    gemitt_zeta = np.ones(shape=np.shape(co_dict['beta0'])) if nemitt_zeta is None else (nemitt_zeta / co_dict['beta0'] / co_dict['gamma0'])
 
-    
+    # Compute geometric emittances if normalized emittances are provided
+    gemitt_x = np.ones(shape=np.shape(co_dict['beta0'])) if nemitt_x is None else (
+        nemitt_x / co_dict['beta0'] / co_dict['gamma0'])
+    gemitt_y = np.ones(shape=np.shape(co_dict['beta0'])) if nemitt_y is None else (
+        nemitt_y / co_dict['beta0'] / co_dict['gamma0'])
+    gemitt_zeta = np.ones(shape=np.shape(co_dict['beta0'])) if nemitt_zeta is None else (
+        nemitt_zeta / co_dict['beta0'] / co_dict['gamma0'])
+
     # Prepaing co arrray and gemitt array:
-    co = np.array([co_dict['x'], co_dict['px'], co_dict['y'], co_dict['py'], co_dict['zeta'], co_dict['ptau'] / co_dict['beta0']])
-    gemitt_values = np.array([gemitt_x, gemitt_x, gemitt_y, gemitt_y, gemitt_zeta, gemitt_zeta])
+    co = np.array([co_dict['x'], co_dict['px'], co_dict['y'], co_dict['py'],
+                  co_dict['zeta'], co_dict['ptau'] / co_dict['beta0']])
+    gemitt_values = np.array(
+        [gemitt_x, gemitt_x, gemitt_y, gemitt_y, gemitt_zeta, gemitt_zeta])
 
     # Ensuring consistent dimensions
-    for add_axis in range(-1,len(np.shape(x))-len(np.shape(co))):
-        co = co[:,np.newaxis]
-    for add_axis in range(-1,len(np.shape(x))-len(np.shape(gemitt_values))):
-        gemitt_values = gemitt_values[:,np.newaxis]
+    for add_axis in range(-1, len(np.shape(x))-len(np.shape(co))):
+        co = co[:, np.newaxis]
+    for add_axis in range(-1, len(np.shape(x))-len(np.shape(gemitt_values))):
+        gemitt_values = gemitt_values[:, np.newaxis]
 
-    
     # substracting closed orbit
     XX = np.array([x, px, y, py, zeta, pzeta])
     XX -= co
-    
 
     # Apply the inverse transformation matrix
     W_inv = np.linalg.inv(W_matrix)
-    
+
     if len(np.shape(XX)) == 3:
-        XX_norm = np.dot(W_inv, XX.reshape(6,x.shape[0]*x.shape[1]))
+        XX_norm = np.dot(W_inv, XX.reshape(6, x.shape[0]*x.shape[1]))
         XX_norm = XX_norm.reshape(6, x.shape[0], x.shape[1])
-    else:    
+    else:
         XX_norm = np.dot(W_inv, XX)
-    
+
     # Normalize the coordinates with the geometric emittances
     XX_norm /= np.sqrt(gemitt_values)
-    
 
     return XX_norm
+
+
+def _add_strengths_to_twiss_res(twiss_res, line):
+    tt = line.get_table(attr=True).rows[list(twiss_res.name)]
+    for kk in (NORMAL_STRENGTHS_FROM_ATTR + SKEW_STRENGTHS_FROM_ATTR
+                + OTHER_FIELDS_FROM_ATTR + OTHER_FIELDS_FROM_TABLE):
+        twiss_res._col_names.append(kk)
+        twiss_res._data[kk] = tt[kk].copy()
