@@ -16,23 +16,26 @@ ctx = xo.ContextCpu()
 part = xt.Particles(_context=ctx, p0c=6.5e12, x=[1,2,3])
 part._init_random_number_generator()
 
+generator_to_test = 'RandomUniformAccurate'
+
 class TestElement(xt.BeamElement):
     _xofields={
         'dummy': xo.Float64,
         }
 
-    _depends_on = [xt.RandomUniform]
+    _depends_on = [xt.RandomUniform, xt.RandomUniformAccurate]
 
     _extra_c_sources = [
         '''
         /*gpufun*/
         void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
             //start_per_particle_block (part0->part)
-                double rr = RandomUniform_generate(part);
+                double rr = !!GENERATOR!!_generate(part);
                 LocalParticle_set_x(part, rr);
             //end_per_particle_block
         }
-        ''']
+        '''.replace('!!GENERATOR!!', generator_to_test)
+        ]
 
 telem = TestElement(_context=ctx)
 

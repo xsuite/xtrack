@@ -6,9 +6,15 @@
 #ifndef XTRACK_FRINGE_H
 #define XTRACK_FRINGE_H
 
+#ifndef POW2
 #define POW2(X) ((X)*(X))
+#endif
+#ifndef POW3
 #define POW3(X) ((X)*(X)*(X))
+#endif
+#ifndef POW4
 #define POW4(X) ((X)*(X)*(X)*(X))
+#endif
 
 /*gpufun*/
 void Fringe_track_local_particle(

@@ -68,6 +68,32 @@ class RandomUniform(BeamElement):
                     (-1, n_samples_per_seed)
                 )
 
+class RandomUniformAccurate(RandomUniform):
+    _xofields = {
+        '_dummy': xo.UInt8,  # TODO: a hack for allocating an empty struct on OCL
+    }
+
+    allow_track = False
+
+    _depends_on = [RandomUniform]
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('random','random_src','uniform_accurate.h')
+    ]
+
+    _per_particle_kernels = {
+        'sample_unif_accuurate': xo.Kernel(
+                c_name='RandomUniformAccurate_sample',
+                args=[
+                    xo.Arg(xo.Float64, pointer=True, name='samples'),
+                    xo.Arg(xo.Int64, name='n_samples_per_seed')
+                ]
+            )
+        }
+
+    def _sample(self, *args, **kwargs):
+        self.sample_unif_accuurate(*args, **kwargs)
+
 
 class RandomExponential(RandomUniform):
     _xofields = {

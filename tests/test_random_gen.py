@@ -4,6 +4,7 @@
 # ######################################### #
 
 import copy
+import pytest
 
 import numpy as np
 
@@ -14,7 +15,8 @@ from xobjects.test_helpers import for_all_test_contexts
 
 
 @for_all_test_contexts
-def test_random_generation(test_context):
+@pytest.mark.parametrize('generator', ['RandomUniform', 'RandomUniformAccurate'])
+def test_random_generation(test_context, generator):
 
     part = xp.Particles(_context=test_context, p0c=6.5e12, x=[1,2,3])
     part._init_random_number_generator()
@@ -24,7 +26,7 @@ def test_random_generation(test_context):
             'dummy': xo.Float64,
             }
 
-        _depends_on = [xt.RandomUniform]
+        _depends_on = [getattr(xt, generator)]
 
         _extra_c_sources = [
             '''
@@ -32,11 +34,11 @@ def test_random_generation(test_context):
                 void TestElement_track_local_particle(
                         TestElementData el, LocalParticle* part0){
                     //start_per_particle_block (part0->part)
-                        double rr = RandomUniform_generate(part);
+                        double rr = !!GENERATOR!!_generate(part);
                         LocalParticle_set_x(part, rr);
                     //end_per_particle_block
                 }
-            '''
+            '''.replace('!!GENERATOR!!', generator)
         ]
 
     telem = TestElement(_context=test_context)

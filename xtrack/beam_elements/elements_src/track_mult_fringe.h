@@ -6,8 +6,12 @@
 #ifndef XTRACK_TRACK_MULT_FRINGE_H
 #define XTRACK_TRACK_MULT_FRINGE_H
 
-#define POW2(x) ((x) * (x))
-#define POW3(x) ((x) * (x) * (x))
+#ifndef POW2
+#define POW2(X) ((X)*(X))
+#endif
+#ifndef POW3
+#define POW3(X) ((X)*(X)*(X))
+#endif
 
 /*gpufun*/
 void MultFringe_track_single_particle(
