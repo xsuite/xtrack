@@ -3359,8 +3359,8 @@ class TwissTable(Table):
             yl='betx bety'
             yr='dx dy'
 
-        if 'length' not in self.keys():
-            lattice=False
+        if lattice and 'length' not in self.keys():
+            self.add_strengths()
 
         if mask is not None:
             if isinstance(mask,str):
