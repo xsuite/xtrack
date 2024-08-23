@@ -15,11 +15,6 @@
 /*gpufun*/
 double RandomUniformAccurate_generate(LocalParticle* part){
 
-    /*
-    See https://prng.di.unimi.it
-    section "Generating uniform doubles in the unit interval"
-    */
-
     double out = 0;
 
     out += RandomUniformUInt32_generate(part) / TWO_TO_32;
@@ -28,6 +23,10 @@ double RandomUniformAccurate_generate(LocalParticle* part){
                                             TWO_TO_32 * TWO_TO_32 * TWO_TO_32);
     out += RandomUniformUInt32_generate(part) / (
                                 TWO_TO_32 * TWO_TO_32 * TWO_TO_32 * TWO_TO_32);
+    out += RandomUniformUInt32_generate(part) / (
+                    TWO_TO_32 * TWO_TO_32 * TWO_TO_32 * TWO_TO_32 * TWO_TO_32);
+    out += RandomUniformUInt32_generate(part) / (
+        TWO_TO_32 * TWO_TO_32 * TWO_TO_32 * TWO_TO_32 * TWO_TO_32 * TWO_TO_32);
 
     return out;
 }
