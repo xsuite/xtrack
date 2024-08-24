@@ -1830,7 +1830,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                 RR_ebe = RR_out['R_matrix_ebe']
 
                 if periodic_mode == 'periodic_symmetric':
-                    inv_momenta = np.diag([1, -1, 1, -1, 1, -1])
+                    inv_momenta = np.diag([1., -1., 1., -1., 1., 1.])
                     RR_symm = inv_momenta @ np.linalg.inv(RR) @ inv_momenta @ RR
                     RR = RR_symm
 
