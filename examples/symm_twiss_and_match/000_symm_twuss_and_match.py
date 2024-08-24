@@ -26,13 +26,16 @@ line_half = xt.Line(elements=elements,
                     element_names=['drift0', 'qf1', 'drift1_1', 'bend1',
                                    'drift1_2', 'qd1', 'drift2'])
 line_half.particle_ref = line.particle_ref.copy()
-# tw_half = line_half.twiss4d(strengths=True, init='periodic_symmetric')
+tw_half = line_half.twiss4d(strengths=True, init='periodic_symmetric')
 
 import matplotlib.pyplot as plt
 plt.close('all')
 
 twplt1 = tw.plot()
-# twplt1.ylim(left_lo=0, right_lo=0.5, right_hi=4)
-# twplt2 = tw_half.plot()
-
+twplt1.ylim(left_lo=0, right_lo=0.5, right_hi=4)
+twplt1.left.figure.suptitle('Full cell (periodic twiss)')
+twplt2 = tw_half.plot()
+twplt2.ylim(left_lo=0, right_lo=0.5, right_hi=4)
+twplt2.left.set_xlim(0, 100)
+twplt2.left.figure.suptitle('Half cell (periodic-symmetric twiss)')
 plt.show()
