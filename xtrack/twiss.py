@@ -1259,7 +1259,7 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
     for dd in [-delta_chrom, delta_chrom]:
         tw_init_chrom = init.copy()
 
-        if periodic and periodic_mode != 'periodic_symmetric':
+        if periodic:
             import xpart
             part_guess = xpart.build_particles(
                 _context=line._context,
@@ -1269,13 +1269,19 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                 particle_on_co=on_momentum_twiss_res.particle_on_co.copy(),
                 nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                 W_matrix=tw_init_chrom.W_matrix)
-            part_chrom = line.find_closed_orbit(delta0=dd, co_guess=part_guess,
+            if periodic_mode == 'periodic_symmetric':
+                part_chrom = part_guess.copy() # Finding closed orbit does not make sense in this case
+            else:
+                part_chrom = line.find_closed_orbit(delta0=dd, co_guess=part_guess,
                                     start=start, end=end, num_turns=num_turns)
             tw_init_chrom.particle_on_co = part_chrom
             RR_chrom = line.compute_one_turn_matrix_finite_differences(
                                         particle_on_co=tw_init_chrom.particle_on_co.copy(),
                                         start=start, end=end, num_turns=num_turns,
                                         steps_r_matrix=steps_r_matrix)['R_matrix']
+            if periodic_mode == 'periodic_symmetric':
+                RR_chrom = _compute_R_periodic_symmetric(RR_chrom)
+
             (WW_chrom, _, _, _) = lnf.compute_linear_normal_form(RR_chrom,
                                     only_4d_block=method=='4d',
                                     responsiveness_tol=matrix_responsiveness_tol,
