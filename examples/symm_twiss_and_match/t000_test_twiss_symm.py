@@ -72,3 +72,33 @@ xo.assert_allclose(tw_half_cell.qx, tw_cell.qx / 2, atol=1e-9, rtol=0)
 xo.assert_allclose(tw_half_cell.qy, tw_cell.qy / 2, atol=1e-9, rtol=0)
 xo.assert_allclose(tw_half_cell.dqx, tw_cell.dqx / 2, atol=1e-6, rtol=0)
 xo.assert_allclose(tw_half_cell.dqy, tw_cell.dqy / 2, atol=1e-6, rtol=0)
+
+for ll in [cell, half_cell]:
+    ll.vars['kqf'] = 0.027/2
+    ll.vars['kqd'] = -0.0271/2
+    ll.element_refs['qf1'].k1 = ll.vars['kqf']
+    ll.element_refs['qd1'].k1 = ll.vars['kqd']
+
+tw_cell = cell.twiss4d(strengths=True)
+tw_half_cell = half_cell.twiss4d(init='periodic_symmetric', strengths=True)
+
+xo.assert_allclose(tw_cell.mux[-1], 0.231, atol=1e-3, rtol=0)
+xo.assert_allclose(tw_cell.muy[-1], 0.233, atol=1e-3, rtol=0)
+xo.assert_allclose(tw_half_cell.mux[-1], 0.231 / 2, atol=1e-3, rtol=0)
+xo.assert_allclose(tw_half_cell.muy[-1], 0.233 / 2, atol=1e-3, rtol=0)
+
+opt_halfcell = half_cell.match(
+    method='4d',
+    start='start_cell', end='mid_cell',
+    init='periodic_symmetric',
+    targets=xt.TargetSet(mux=0.2501/2, muy=0.2502/2, at='mid_cell'),
+    vary=xt.VaryList(['kqf', 'kqd'], step=1e-5),
+)
+
+tw_cell = cell.twiss4d(strengths=True)
+tw_half_cell = half_cell.twiss4d(init='periodic_symmetric', strengths=True)
+
+xo.assert_allclose(tw_half_cell.mux[-1], 0.2501 / 2, atol=1e-3, rtol=0)
+xo.assert_allclose(tw_half_cell.muy[-1], 0.2502 / 2, atol=1e-3, rtol=0)
+xo.assert_allclose(tw_cell.mux[-1], 0.231, atol=1e-3, rtol=0) # unaffected
+xo.assert_allclose(tw_cell.muy[-1], 0.233, atol=1e-3, rtol=0) # unaffected
