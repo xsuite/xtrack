@@ -690,7 +690,8 @@ def twiss_line(line, particle_ref=None, method=None,
             num_turns=num_turns,
             hide_thin_groups=hide_thin_groups,
             only_markers=only_markers,
-            periodic=periodic)
+            periodic=periodic,
+            periodic_mode=periodic_mode)
         twiss_res._data.update(cols_chrom)
         twiss_res._data.update(scalars_chrom)
         twiss_res._col_names += list(cols_chrom.keys())
@@ -1248,7 +1249,8 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                     start=None, end=None, num_turns=None,
                     hide_thin_groups=False,
                     only_markers=False,
-                    periodic=False):
+                    periodic=False,
+                    periodic_mode=None):
 
     if only_markers:
         raise NotImplementedError('only_markers not supported anymore')
@@ -1257,7 +1259,7 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
     for dd in [-delta_chrom, delta_chrom]:
         tw_init_chrom = init.copy()
 
-        if periodic:
+        if periodic and periodic_mode != 'periodic_symmetric':
             import xpart
             part_guess = xpart.build_particles(
                 _context=line._context,
@@ -1830,9 +1832,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                 RR_ebe = RR_out['R_matrix_ebe']
 
                 if periodic_mode == 'periodic_symmetric':
-                    inv_momenta = np.diag([1., -1., 1., -1., 1., 1.])
-                    RR_symm = inv_momenta @ np.linalg.inv(RR) @ inv_momenta @ RR
-                    RR = RR_symm
+                    RR = _compute_R_periodic_symmetric(RR)
 
                 if matrix_responsiveness_tol is not None:
                     lnf._assert_matrix_responsiveness(RR,
@@ -3858,3 +3858,8 @@ def _W_phys2norm(x, px, y, py, zeta, pzeta, W_matrix, co_dict, nemitt_x=None, ne
     
 
     return XX_norm
+
+def _compute_R_periodic_symmetric(RR):
+    inv_momenta = np.diag([1., -1., 1., -1., 1., 1.])
+    RR_symm = inv_momenta @ np.linalg.inv(RR) @ inv_momenta @ RR
+    return RR_symm
