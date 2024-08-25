@@ -18,7 +18,6 @@ half_cell = xt.Line(
 )
 half_cell.particle_ref = xt.Particles(p0c=2e9)
 
-
 half_cell.vars['kqf'] = 0.027/2
 half_cell.vars['kqd'] = -0.0271/2
 half_cell.element_refs['qf1'].k1 = half_cell.vars['kqf']
@@ -32,7 +31,9 @@ opt_halfcell = half_cell.match(
     vary=xt.VaryList(['kqf', 'kqd'], step=1e-5),
 )
 
-tw_half_cell = half_cell.twiss4d(strengths=True, init='periodic_symmetric')
+tw_half_cell = half_cell.twiss4d(init='periodic_symmetric', # <--- periodic-symmetric boundary
+                                 strengths=True # to get the strengths in table
+                                )
 
 cell = xt.Line(
     elements={
