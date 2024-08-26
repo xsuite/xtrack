@@ -329,6 +329,11 @@ def twiss_line(line, particle_ref=None, method=None,
 
     kwargs = locals().copy()
 
+    if init is not None or betx is not None or bety is not None:
+        # is open twiss
+        start = start or xt.START
+        end = end or xt.END
+
     if num_turns != 1:
         # Untested cases
         assert num_turns > 0
