@@ -23,6 +23,7 @@ half_cell.vars['kqd'] = -0.0271/2
 half_cell.element_refs['qf1'].k1 = half_cell.vars['kqf']
 half_cell.element_refs['qd1'].k1 = half_cell.vars['kqd']
 
+# Match with peridic symmetric boundary
 opt_halfcell = half_cell.match(
     method='4d',
     start='start_cell', end='mid_cell',
@@ -31,8 +32,17 @@ opt_halfcell = half_cell.match(
     vary=xt.VaryList(['kqf', 'kqd'], step=1e-5),
 )
 
-tw_half_cell = half_cell.twiss4d(init='periodic_symmetric', # <--- periodic-symmetric boundary
-                                 strengths=True # to get the strengths in table
-                                )
 
+# Add observation points every 1 m
+half_cell.discard_tracker()
+s_cut = np.arange(0, half_cell.get_length(), 1.)
+half_cell.cut_at_s(s_cut)
+
+# Twiss with periodic symmetric boundary
+tw_half_cell = half_cell.twiss4d(init='periodic_symmetric')
+
+import matplotlib.pyplot as plt
+plt.close('all')
 tw_half_cell.plot()
+
+plt.show()
