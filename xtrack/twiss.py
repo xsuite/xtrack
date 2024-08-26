@@ -3361,8 +3361,13 @@ class TwissTable(Table):
             mask=None,
             labels=None,
             clist="k r b g c m",
+            figure=None,
+            figlabel=None,
             ax=None,
-            figlabel=None):
+            axleft=None,
+            axright=None,
+            axlattice=None,
+            ):
         """
         Plot columns of the TwissTable
 
@@ -3402,15 +3407,22 @@ class TwissTable(Table):
                 idx=mask
         else:
             idx=slice(None)
-        if ax is None:
-            newfig=True
-        else:
-            raise NotImplementedError
 
         self._is_s_begin=True
 
-        pl=TwissPlot(self, x=x, yl=yl, yr=yr, idx=idx, lattice=lattice, newfig=newfig,
-                figlabel=figlabel,clist=clist)
+        pl=TwissPlot(self,
+                x=x,
+                yl=yl,
+                yr=yr,
+                idx=idx,
+                lattice=lattice,
+                figure=figure,
+                figlabel=figlabel,clist=clist,
+                ax=ax,
+                axleft=axleft,
+                axright=axright,
+                axlattice=axlattice
+                )
 
         if labels is not None:
             mask=self.mask[labels]
