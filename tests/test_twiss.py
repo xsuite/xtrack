@@ -51,7 +51,6 @@ def test_twiss_4d_fodo_vs_beta_rel(test_context):
         xo.assert_allclose(tw.dqx, tw_4d_list[0].dqx, atol=1e-4, rtol=0)
         xo.assert_allclose(tw.dqy, tw_4d_list[0].dqy, atol=1e-4, rtol=0)
 
-
 @for_all_test_contexts
 def test_coupled_beta(test_context):
     mad = Madx(stdout=False)
@@ -1905,3 +1904,29 @@ def test_part_from_full_periodic(test_context, collider_for_test_twiss_range):
             tw_part2[kk, 'ip2'],
             tw[kk, 'ip2'] - tw[kk, 0] +(tw[kk, '_end_point'] - tw[kk, 'ip8']),
             rtol=1e-12, atol=5e-7)
+
+
+
+
+@for_all_test_contexts
+def test_twiss_add_strengths(test_context):
+    ## Generate a simple line
+    n = 6
+    fodo = [
+        xt.Multipole(length=0.2, knl=[0, +0.2], ksl=[0, 0]),
+        xt.Drift(length=1.0),
+        xt.Multipole(length=0.2, knl=[0, -0.2], ksl=[0, 0]),
+        xt.Drift(length=1.0),
+        xt.Multipole(length=1.0, knl=[2 * np.pi / n], hxl=[2 * np.pi / n]),
+        xt.Drift(length=1.0),
+    ]
+    line = xt.Line(elements=n * fodo + [xt.Cavity(frequency=1e9, voltage=0, lag=180)])
+    line.build_tracker(_context=test_context)
+
+    ## Twiss
+    line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1, p0c=1e8)
+    tw = line.twiss(method="4d")
+
+    assert "length" not in tw.keys()
+    tw.add_strengths()
+    assert "length" in tw.keys()
