@@ -119,7 +119,7 @@ def twiss_line(line, particle_ref=None, method=None,
         normal form is used. If '4d' the 4D normal form is used.
     start : int or str, optional
         Index of the element at which the computation starts. If not provided,
-        the periodic sulution is computed. `init` must be provided if
+        the periodic solution is computed. `init` must be provided if
         `start` is provided.
     end : int or str, optional
         Index of the element at which the computation stops.
@@ -405,11 +405,13 @@ def twiss_line(line, particle_ref=None, method=None,
         if zero_at is None:
             out.zero_at(start)
         return _add_action_in_res(out, input_kwargs)
-    elif (init is not None and init != 'periodic'
+    elif (init is not None and init not in ['periodic', 'periodic_symmetric']
         or betx is not None or bety is not None):
         periodic = False
+        periodic_mode = None
     else:
         periodic = True
+        periodic_mode = init or 'periodic'
 
     if freeze_longitudinal:
         kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
@@ -615,6 +617,7 @@ def twiss_line(line, particle_ref=None, method=None,
             compute_R_element_by_element=compute_R_element_by_element,
             only_markers=only_markers,
             only_orbit=only_orbit,
+            periodic_mode=periodic_mode
             )
     else:
         # force
@@ -687,7 +690,8 @@ def twiss_line(line, particle_ref=None, method=None,
             num_turns=num_turns,
             hide_thin_groups=hide_thin_groups,
             only_markers=only_markers,
-            periodic=periodic)
+            periodic=periodic,
+            periodic_mode=periodic_mode)
         twiss_res._data.update(cols_chrom)
         twiss_res._data.update(scalars_chrom)
         twiss_res._col_names += list(cols_chrom.keys())
@@ -1241,7 +1245,8 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                     start=None, end=None, num_turns=None,
                     hide_thin_groups=False,
                     only_markers=False,
-                    periodic=False):
+                    periodic=False,
+                    periodic_mode=None):
 
     if only_markers:
         raise NotImplementedError('only_markers not supported anymore')
@@ -1260,13 +1265,19 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                 particle_on_co=on_momentum_twiss_res.particle_on_co.copy(),
                 nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                 W_matrix=tw_init_chrom.W_matrix)
-            part_chrom = line.find_closed_orbit(delta0=dd, co_guess=part_guess,
+            if periodic_mode == 'periodic_symmetric':
+                part_chrom = part_guess.copy() # Finding closed orbit does not make sense in this case
+            else:
+                part_chrom = line.find_closed_orbit(delta0=dd, co_guess=part_guess,
                                     start=start, end=end, num_turns=num_turns)
             tw_init_chrom.particle_on_co = part_chrom
             RR_chrom = line.compute_one_turn_matrix_finite_differences(
                                         particle_on_co=tw_init_chrom.particle_on_co.copy(),
                                         start=start, end=end, num_turns=num_turns,
                                         steps_r_matrix=steps_r_matrix)['R_matrix']
+            if periodic_mode == 'periodic_symmetric':
+                RR_chrom = _compute_R_periodic_symmetric(RR_chrom)
+
             (WW_chrom, _, _, _) = lnf.compute_linear_normal_form(RR_chrom,
                                     only_4d_block=method=='4d',
                                     responsiveness_tol=matrix_responsiveness_tol,
@@ -1738,11 +1749,15 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             num_turns_search_t_rev=1,
                             compute_R_element_by_element=False,
                             only_markers=False,
-                            only_orbit=False):
+                            only_orbit=False,
+                            periodic_mode='periodic'):
 
     eigenvalues = None
     Rot = None
     RR_ebe = None
+
+    assert periodic_mode in ['periodic', 'periodic_symmetric']
+
 
     if start is not None or end is not None:
         assert start is not None and end is not None, (
@@ -1753,6 +1768,11 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
 
     if method == '4d' and delta0 is None:
         delta0 = 0
+
+    if periodic_mode == 'periodic_symmetric':
+        assert R_matrix is None, 'R_matrix must be None for `periodic_symmetric`'
+        assert W_matrix is None, 'W_matrix must be None for `periodic_symmetric`'
+        assert delta0 == 0, 'delta0 must be 0 for `periodic_symmetric`'
 
     if particle_on_co is not None:
         part_on_co = particle_on_co
@@ -1775,6 +1795,15 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                 )
     if only_orbit:
         W_matrix = np.eye(6)
+
+    if periodic_mode == 'periodic_symmetric':
+        assert np.allclose(part_on_co.x[0], 0, atol=1e-12, rtol=0)
+        assert np.allclose(part_on_co.px[0], 0, atol=1e-12, rtol=0)
+        assert np.allclose(part_on_co.y[0], 0, atol=1e-12, rtol=0)
+        assert np.allclose(part_on_co.py[0], 0, atol=1e-12, rtol=0)
+        assert np.allclose(part_on_co.delta[0], 0, atol=1e-12, rtol=0)
+        assert np.allclose(part_on_co.zeta[0], 0, atol=1e-12, rtol=0)
+
 
     if W_matrix is not None:
         W = W_matrix
@@ -1803,6 +1832,10 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                     )
                 RR = RR_out['R_matrix']
                 RR_ebe = RR_out['R_matrix_ebe']
+
+                if periodic_mode == 'periodic_symmetric':
+                    RR = _compute_R_periodic_symmetric(RR)
+
                 if matrix_responsiveness_tol is not None:
                     lnf._assert_matrix_responsiveness(RR,
                         matrix_responsiveness_tol, only_4d=(method == '4d'))
@@ -3834,10 +3867,14 @@ def _W_phys2norm(x, px, y, py, zeta, pzeta, W_matrix, co_dict, nemitt_x=None, ne
 
     return XX_norm
 
-
 def _add_strengths_to_twiss_res(twiss_res, line):
     tt = line.get_table(attr=True).rows[list(twiss_res.name)]
     for kk in (NORMAL_STRENGTHS_FROM_ATTR + SKEW_STRENGTHS_FROM_ATTR
                 + OTHER_FIELDS_FROM_ATTR + OTHER_FIELDS_FROM_TABLE):
         twiss_res._col_names.append(kk)
         twiss_res._data[kk] = tt[kk].copy()
+
+def _compute_R_periodic_symmetric(RR):
+    inv_momenta = np.diag([1., -1., 1., -1., 1., 1.])
+    RR_symm = inv_momenta @ np.linalg.inv(RR) @ inv_momenta @ RR
+    return RR_symm

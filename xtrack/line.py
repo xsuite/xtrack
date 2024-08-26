@@ -115,8 +115,7 @@ class Line:
         if isinstance(elements, dict):
             element_dict = elements
             if element_names is None:
-                raise ValueError('`element_names` must be provided'
-                                 ' if `elements` is a dictionary.')
+                element_names = list(element_dict.keys())
         else:
             if element_names is None:
                 element_names = [f"e{ii}" for ii in range(len(elements))]

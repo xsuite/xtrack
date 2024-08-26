@@ -104,7 +104,7 @@ class ActionTwiss(xd.Action):
                 if isinstance(twinit, xt.TwissInit):
                     twinit_list[ii] = twinit.copy()
                 elif isinstance(twinit, str):
-                    assert twinit == 'periodic'
+                    assert twinit == 'periodic' or twinit == 'periodic_symmetric'
 
         # Handle init_at as xt.START or xt.END
         for ii, init_at in enumerate(ele_init_list):
@@ -126,7 +126,7 @@ class ActionTwiss(xd.Action):
                 twinit_list[ii] = twinit.get_twiss_init(at_element=init_at)
                 ele_init_list[ii] = None
             else:
-                assert twinit is None or twinit == 'periodic'
+                assert twinit is None or twinit in ['periodic', 'periodic_symmetric']
 
         if not ismultiline:
             # Handle case in which twiss init is defined through kwargs
