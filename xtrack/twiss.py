@@ -762,7 +762,7 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res._data['values_at'] = 'entry'
 
     if strengths:
-        _add_strengths_to_twiss_res(line, twiss_res)
+        _add_strengths_to_twiss_res(twiss_res, line)
 
     twiss_res._data['method'] = method
     twiss_res._data['radiation_method'] = radiation_method
