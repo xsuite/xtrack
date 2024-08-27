@@ -103,11 +103,11 @@ class TwissPlot(object):
             idx,
             clist,
         )
-        self.ax=ax
+        self.ax = ax
         self.used_ax = False
         if ax is not None:
             self.figure = ax.figure
-        elif figure is  None:
+        elif figure is None:
             self.figure = plt.figure(num=figlabel)
         if figlabel is not None:
             self.figure.clf()
@@ -116,7 +116,7 @@ class TwissPlot(object):
             self.clist.append(self.color[i])
         if lattice and x == "s":
             self.lattice = self._new_axis(axlattice)
-            #self.lattice.set_frame_on(False)
+            # self.lattice.set_frame_on(False)
             #      self.lattice.set_autoscale_on(False)
             self.lattice.yaxis.set_visible(False)
         if yl:
@@ -146,12 +146,12 @@ class TwissPlot(object):
         if self.ax is None:
             out = self.figure.add_subplot(111)
             self.figure.subplots_adjust(right=0.78)
-            self.ax=out
+            self.ax = out
         if self.used_ax:
             out = self.ax.twinx()
         else:
             out = self.ax
-            self.used_ax=True
+            self.used_ax = True
         return out
 
     def __repr__(self):
@@ -218,10 +218,9 @@ class TwissPlot(object):
         self.ax.set_xlabel(_mylbl(self.axlabel, self.x))
         self.ax.set_xlim(min(self.xaxis), max(self.xaxis))
         self.ax.legend(
-                self.lines,self.legends,
-                loc='upper right',
-                bbox_to_anchor=(1.3, 1.1))
-        #self.figure.legend(self.lines, self.legends, loc="upper right")
+            self.lines, self.legends, loc="upper right", bbox_to_anchor=(1.3, 1.1)
+        )
+        # self.figure.legend(self.lines, self.legends, loc="upper right")
         self.ax.grid(True)
         #    self.figure.canvas.mpl_connect('button_release_event',self.button_press)
         self.figure.canvas.mpl_connect("pick_event", self.pick)
@@ -302,8 +301,15 @@ class TwissPlot(object):
         self.figure.savefig(name)
         return self
 
-    def ylim(self, left_lo=None, left_hi=None, right_lo=None, right_hi=None,
-            lattice_lo=None, lattice_hi=None):
+    def ylim(
+        self,
+        left_lo=None,
+        left_hi=None,
+        right_lo=None,
+        right_hi=None,
+        lattice_lo=None,
+        lattice_hi=None,
+    ):
         lo, hi = self.left.get_ylim()
         if left_lo is None:
             left_lo = lo
@@ -324,11 +330,13 @@ class TwissPlot(object):
         self.lattice.set_ylim(lattice_lo, lattice_hi)
         return self
 
-    def set_s_label(self,regexp="ip.*"):
-        sel=self.table.rows[regexp]
-        self.ax.set_xticks(sel.s,sel.name)
+    def set_s_label(self, regexp="ip.*"):
+        sel = self.table.rows[regexp]
+        self.ax.set_xticks(sel.s, sel.name)
         self.ax.set_xlabel(None)
         return self
 
-
-
+    def move_legend(self, left=0, bottom=0, width=0, height=0):
+        """Uses ax.legend_.set_bbox_to_anchor"""
+        self.ax.legend_.set_bbox_to_anchor((left, bottom, width, height))
+        return self

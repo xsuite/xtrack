@@ -3356,7 +3356,9 @@ class TwissTable(Table):
                               action=self._action, **kwargs)
         return tarset
 
-    def plot(self,yl=None,yr=None,x='s',
+    def plot(self,
+            yl=None,
+            yr=None,x='s',
             lattice=True,
             mask=None,
             labels=None,
@@ -3396,6 +3398,10 @@ class TwissTable(Table):
         if yl is None and yr is None:
             yl='betx bety'
             yr='dx dy'
+        if yl is None:
+            yl=""
+        if yr is None:
+            yr=""
 
         if lattice and 'length' not in self.keys():
             self.add_strengths()
