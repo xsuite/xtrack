@@ -3356,7 +3356,7 @@ class TwissTable(Table):
                               action=self._action, **kwargs)
         return tarset
 
-    def plot(self,yl="",yr="",x='s',
+    def plot(self,yl=None,yr=None,x='s',
             lattice=True,
             mask=None,
             labels=None,
@@ -3393,7 +3393,7 @@ class TwissTable(Table):
             label to use for the figure
         """
 
-        if yl=="" and yr=="":
+        if yl is None and yr is None:
             yl='betx bety'
             yr='dx dy'
 

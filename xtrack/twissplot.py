@@ -116,7 +116,7 @@ class TwissPlot(object):
             self.clist.append(self.color[i])
         if lattice and x == "s":
             self.lattice = self._new_axis(axlattice)
-            self.lattice.set_frame_on(False)
+            #self.lattice.set_frame_on(False)
             #      self.lattice.set_autoscale_on(False)
             self.lattice.yaxis.set_visible(False)
         if yl:
@@ -217,7 +217,11 @@ class TwissPlot(object):
                 self._column(i, self.right, self.color[i])
         self.ax.set_xlabel(_mylbl(self.axlabel, self.x))
         self.ax.set_xlim(min(self.xaxis), max(self.xaxis))
-        self.figure.legend(self.lines, self.legends, loc="upper right")
+        self.ax.legend(
+                self.lines,self.legends,
+                loc='upper right',
+                bbox_to_anchor=(1.3, 1.1))
+        #self.figure.legend(self.lines, self.legends, loc="upper right")
         self.ax.grid(True)
         #    self.figure.canvas.mpl_connect('button_release_event',self.button_press)
         self.figure.canvas.mpl_connect("pick_event", self.pick)
@@ -298,7 +302,8 @@ class TwissPlot(object):
         self.figure.savefig(name)
         return self
 
-    def ylim(self, left_lo=None, left_hi=None, right_lo=None, right_hi=None):
+    def ylim(self, left_lo=None, left_hi=None, right_lo=None, right_hi=None,
+            lattice_lo=None, lattice_hi=None):
         lo, hi = self.left.get_ylim()
         if left_lo is None:
             left_lo = lo
@@ -311,4 +316,19 @@ class TwissPlot(object):
         if right_hi is None:
             right_hi = hi
         self.right.set_ylim(right_lo, right_hi)
+        lo, hi = self.lattice.get_ylim()
+        if lattice_lo is None:
+            lattice_lo = lo
+        if lattice_hi is None:
+            lattice_hi = hi
+        self.lattice.set_ylim(lattice_lo, lattice_hi)
         return self
+
+    def set_s_label(self,regexp="ip.*"):
+        sel=self.table.rows[regexp]
+        self.ax.set_xticks(sel.s,sel.name)
+        self.ax.set_xlabel(None)
+        return self
+
+
+
