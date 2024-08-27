@@ -3369,6 +3369,7 @@ class TwissTable(Table):
             axleft=None,
             axright=None,
             axlattice=None,
+            hover=False
             ):
         """
         Plot columns of the TwissTable
@@ -3427,7 +3428,8 @@ class TwissTable(Table):
                 ax=ax,
                 axleft=axleft,
                 axright=axright,
-                axlattice=axlattice
+                axlattice=axlattice,
+                hover=hover,
                 )
 
         if labels is not None:

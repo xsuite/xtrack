@@ -84,6 +84,7 @@ class TwissPlot(object):
         axleft=None,
         axright=None,
         axlattice=None,
+        hover=False,
     ):
 
         import matplotlib.pyplot as plt
@@ -140,6 +141,8 @@ class TwissPlot(object):
             self.right.set_autoscale_on(False)
             self.right.yaxis.set_label_position("right")
             self.right.yaxis.set_ticks_position("right")
+        if hover:
+            self.set_hover()
 
     #    timeit('Update')
     def _new_axis(self, ax=None):
@@ -193,6 +196,7 @@ class TwissPlot(object):
         self.xaxis = self.ont[self.x][self.idx]
         self.lines = []
         self.legends = []
+        self.names = []
         #    self.figure.lines=[]
         #    self.figure.patches=[]
         #    self.figure.texts=[]
@@ -220,21 +224,32 @@ class TwissPlot(object):
         self.ax.legend(
             self.lines, self.legends, loc="upper right", bbox_to_anchor=(1.3, 1.1)
         )
-        # self.figure.legend(self.lines, self.legends, loc="upper right")
         self.ax.grid(True)
-        #    self.figure.canvas.mpl_connect('button_release_event',self.button_press)
-        self.figure.canvas.mpl_connect("pick_event", self.pick)
-        # plt.interactive(is_ion)
         self.figure.canvas.draw()
         if hasattr(self, "on_run"):
             self.on_run(self)
 
+    def set_hover(self):
+        self.figure.canvas.mpl_connect("motion_notify_event", self.pick)
+
     def pick(self, event):
-        pos = np.array([event.mouseevent.x, event.mouseevent.y])
-        name = event.artist.elemname
-        prop = event.artist.elemprop
-        value = event.artist.elemvalue
-        print("\n %s.%s=%s" % (name, prop, value), end=" ")
+        for ii, ll in enumerate(self.lines):
+            _, data = ll.contains(event)
+            lgd = self.names[ii]
+            if "ind" in data:
+                xx = ll.get_xdata()
+                yy = ll.get_ydata()
+                for idx in data["ind"]:
+                    if "name" in self.table._col_names:
+                        name = self.table.name[idx]
+                    else:
+                        name = ""
+                    print(f"{name:25}, s={xx[idx]:15.6g}, {lgd:>10}={yy[idx]:15.6g}")
+        # pos = np.array([event.mouseevent.x, event.mouseevent.y])
+        # name = event.artist.elemname
+        # prop = event.artist.elemprop
+        # value = event.artist.elemvalue
+        # print("\n %s.%s=%s" % (name, prop, value), end=" ")
 
     #  def button_press(self,mouseevent):
     #    rel=np.array([mouseevent.x,mouseevent.y])
@@ -279,6 +294,7 @@ class TwissPlot(object):
                     if bplt:
                         self.lines.append(bplt[0])
                         self.legends.append(lbl)
+                        self.names.append(lbl)
                     row_names = self.ont.name
                     for r, name in zip(bplt, c):
                         r.elemname = row_names[name]
@@ -295,6 +311,7 @@ class TwissPlot(object):
         sp.set_ylabel(_mylbl(self.axlabel, name))
         self.lines.append(bxp)
         self.legends.append(_mylbl(self.lglabel, name))
+        self.names.append(name)
         sp.autoscale_view()
 
     def savefig(self, name):

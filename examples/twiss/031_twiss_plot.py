@@ -14,8 +14,8 @@ line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, energy0=7e12)
 # Twiss
 tw = line.twiss4d()
 
-tw.plot(figlabel="tw")
-tw.plot(figlabel="tw")
+pl = tw.plot(figlabel="tw")
+pl = tw.plot(figlabel="tw")
 
 fig = plt.figure()
 ax1 = plt.subplot(211)
