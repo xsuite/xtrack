@@ -29,7 +29,7 @@ half_cell.vars['kqd'] = -0.0271/2
 half_cell.element_refs['qf1'].k1 = half_cell.vars['kqf']
 half_cell.element_refs['qd1'].k1 = half_cell.vars['kqd']
 
-# Match with peridic symmetric boundary
+# Match with periodic symmetric boundary
 opt_halfcell = half_cell.match(
     method='4d',
     start='start_cell', end='mid_cell',
