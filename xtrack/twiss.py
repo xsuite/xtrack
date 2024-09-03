@@ -1270,10 +1270,7 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                 particle_on_co=on_momentum_twiss_res.particle_on_co.copy(),
                 nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                 W_matrix=tw_init_chrom.W_matrix)
-            if periodic_mode == 'periodic_symmetric':
-                part_chrom = part_guess.copy() # Finding closed orbit does not make sense in this case
-            else:
-                part_chrom = line.find_closed_orbit(delta0=dd, co_guess=part_guess,
+            part_chrom = line.find_closed_orbit(delta0=dd, co_guess=part_guess,
                                     start=start, end=end, num_turns=num_turns,
                                     symmetrize=(periodic_mode == 'periodic_symmetric'))
             tw_init_chrom.particle_on_co = part_chrom
