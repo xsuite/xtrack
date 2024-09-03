@@ -1560,7 +1560,8 @@ class Line:
                           num_turns=1,
                           co_search_at=None,
                           search_for_t_rev=False,
-                          num_turns_search_t_rev=None):
+                          num_turns_search_t_rev=None,
+                          symmetrize=False):
 
         """
         Find the closed orbit of the beamline.
@@ -1635,7 +1636,8 @@ class Line:
                                  start=start, end=end, num_turns=num_turns,
                                  co_search_at=co_search_at,
                                  search_for_t_rev=search_for_t_rev,
-                                 num_turns_search_t_rev=num_turns_search_t_rev)
+                                 num_turns_search_t_rev=num_turns_search_t_rev,
+                                 symmetrize=symmetrize)
 
     def compute_T_matrix(self, start=None, end=None,
                          particle_on_co=None, steps_t_matrix=None):
@@ -1841,7 +1843,8 @@ class Line:
             steps_r_matrix=None,
             start=None, end=None,
             num_turns=1,
-            element_by_element=False, only_markers=False):
+            element_by_element=False, only_markers=False,
+            symmetrize=False):
 
         '''Compute the one turn matrix using finite differences.
 
@@ -1881,7 +1884,8 @@ class Line:
                         steps_r_matrix, start=start, end=end,
                         num_turns=num_turns,
                         element_by_element=element_by_element,
-                        only_markers=only_markers)
+                        only_markers=only_markers,
+                        symmetrize=symmetrize)
 
     def get_non_linear_chromaticity(self,
                         delta0_range=(-1e-3, 1e-3), num_delta=5, fit_order=3, **kwargs):
