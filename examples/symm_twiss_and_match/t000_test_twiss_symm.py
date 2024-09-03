@@ -153,3 +153,9 @@ xo.assert_allclose(tw_half_cell.qy, tw_cell.qy / 2, atol=1e-9, rtol=0)
 xo.assert_allclose(tw_half_cell.dqx, tw_cell.dqx / 2, atol=1e-6, rtol=0)
 xo.assert_allclose(tw_half_cell.dqy, tw_cell.dqy / 2, atol=1e-6, rtol=0)
 
+tw_off_mom_cell = cell.twiss4d(strengths=True, delta0=1e-3)
+tw_off_mom_half_cell = half_cell.twiss4d(
+    init='periodic_symmetric', strengths=True, delta0=1e-3)
+
+xo.assert_allclose(tw_off_mom_half_cell.x[:-1],
+                   tw_off_mom_cell.rows[:'mid_cell'].x, atol=1e-12, rtol=0)

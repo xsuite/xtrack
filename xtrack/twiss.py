@@ -1774,7 +1774,6 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
     if periodic_mode == 'periodic_symmetric':
         assert R_matrix is None, 'R_matrix must be None for `periodic_symmetric`'
         assert W_matrix is None, 'W_matrix must be None for `periodic_symmetric`'
-        assert delta0 == 0, 'delta0 must be 0 for `periodic_symmetric`'
 
     if particle_on_co is not None:
         part_on_co = particle_on_co
@@ -1798,14 +1797,6 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                 )
     if only_orbit:
         W_matrix = np.eye(6)
-
-    if periodic_mode == 'periodic_symmetric':
-        assert np.allclose(part_on_co.x[0], 0, atol=1e-12, rtol=0)
-        assert np.allclose(part_on_co.px[0], 0, atol=1e-12, rtol=0)
-        assert np.allclose(part_on_co.y[0], 0, atol=1e-12, rtol=0)
-        assert np.allclose(part_on_co.py[0], 0, atol=1e-12, rtol=0)
-        assert np.allclose(part_on_co.delta[0], 0, atol=1e-12, rtol=0)
-        assert np.allclose(part_on_co.zeta[0], 0, atol=1e-12, rtol=0)
 
 
     if W_matrix is not None:
