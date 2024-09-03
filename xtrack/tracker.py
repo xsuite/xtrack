@@ -545,19 +545,19 @@ class Tracker:
 
                 int64_t const ele_stop = ele_start + num_ele_track;
 
-                #ifndef XSUITE_BACKTRACK
-                if (flag_monitor==1){
-                    ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
-                }
-                int64_t elem_idx = ele_start;
-                int64_t const increm = 1;
-                #else
+                #if defined(XSUITE_BACKTRACK) || defined(XSUITE_MIRROR)
                 int64_t elem_idx = ele_stop - 1;
                 int64_t const increm = -1;
                 if (flag_end_turn_actions>0){
                     increment_at_turn_backtrack(&lpart, flag_reset_s_at_end_turn,
                                                 line_length, num_ele_line);
                 }
+                #else
+                if (flag_monitor==1){
+                    ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
+                }
+                int64_t elem_idx = ele_start;
+                int64_t const increm = 1;
                 #endif
 
                 for (; ((elem_idx >= ele_start) && (elem_idx < ele_stop)); elem_idx+=increm){
@@ -608,11 +608,11 @@ class Tracker:
                         break;
                     }
 
-                    #ifndef XSUITE_BACKTRACK
-                        increment_at_element(&lpart, 1);
-                    #else
+                    #if defined(XSUITE_BACKTRACK) || defined(XSUITE_MIRROR)
                         increment_at_element(&lpart, -1);
-                    #endif //XSUITE_BACKTRACK
+                    #else
+                        increment_at_element(&lpart, 1);
+                    #endif
 
                     #endif //DANGER_SKIP_ACTIVE_CHECK_AND_SWAPS
 
@@ -623,20 +623,18 @@ class Tracker:
                     ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
                 }
 
-                #ifndef XSUITE_BACKTRACK
+                #if defined(XSUITE_BACKTRACK) || defined(XSUITE_MIRROR)
+                if (flag_monitor==1){
+                    ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
+                }
+                # else
                 if (flag_end_turn_actions>0){
                     if (isactive){
                         increment_at_turn(&lpart, flag_reset_s_at_end_turn);
                     }
                 }
-                #endif //XSUITE_BACKTRACK
+                #endif
 
-
-                #ifdef XSUITE_BACKTRACK
-                if (flag_monitor==1){
-                    ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
-                }
-                #endif //XSUITE_BACKTRACK
             } // for turns
 
             LocalParticle_to_Particles(&lpart, particles, part_id, 1);
