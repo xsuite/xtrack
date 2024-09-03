@@ -134,6 +134,10 @@ xo.assert_allclose(tw_half_cell.dx[:-1], # remove '_end_point'
                    tw_cell.rows[:'mid_cell'].dx, atol=1e-8, rtol=0)
 xo.assert_allclose(tw_half_cell.dpx[:-1], # remove '_end_point'
                      tw_cell.rows[:'mid_cell'].dpx, atol=1e-8, rtol=0)
+xo.assert_allclose(tw_half_cell.ddx[:-1], # remove '_end_point'
+                   tw_cell.rows[:'mid_cell'].ddx, atol=1e-7, rtol=0)
+xo.assert_allclose(tw_half_cell.ddpx[:-1], # remove '_end_point'
+                   tw_cell.rows[:'mid_cell'].ddpx, atol=1e-8, rtol=0)
 
 xo.assert_allclose(tw_half_cell.ax_chrom[:-1], # remove '_end_point'
                     tw_cell.rows[:'mid_cell'].ax_chrom, atol=1e-5, rtol=0)
