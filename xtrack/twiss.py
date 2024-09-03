@@ -3368,13 +3368,21 @@ class TwissTable(Table):
                               action=self._action, **kwargs)
         return tarset
 
-    def plot(self,yl="",yr="",x='s',
+    def plot(self,
+            yl=None,
+            yr=None,x='s',
             lattice=True,
             mask=None,
             labels=None,
             clist="k r b g c m",
+            figure=None,
+            figlabel=None,
             ax=None,
-            figlabel=None):
+            axleft=None,
+            axright=None,
+            axlattice=None,
+            hover=False
+            ):
         """
         Plot columns of the TwissTable
 
@@ -3400,9 +3408,13 @@ class TwissTable(Table):
             label to use for the figure
         """
 
-        if yl=="" and yr=="":
+        if yl is None and yr is None:
             yl='betx bety'
             yr='dx dy'
+        if yl is None:
+            yl=""
+        if yr is None:
+            yr=""
 
         if lattice and 'length' not in self.keys():
             self.add_strengths()
@@ -3414,15 +3426,23 @@ class TwissTable(Table):
                 idx=mask
         else:
             idx=slice(None)
-        if ax is None:
-            newfig=True
-        else:
-            raise NotImplementedError
 
         self._is_s_begin=True
 
-        pl=TwissPlot(self, x=x, yl=yl, yr=yr, idx=idx, lattice=lattice, newfig=newfig,
-                figlabel=figlabel,clist=clist)
+        pl=TwissPlot(self,
+                x=x,
+                yl=yl,
+                yr=yr,
+                idx=idx,
+                lattice=lattice,
+                figure=figure,
+                figlabel=figlabel,clist=clist,
+                ax=ax,
+                axleft=axleft,
+                axright=axright,
+                axlattice=axlattice,
+                hover=hover,
+                )
 
         if labels is not None:
             mask=self.mask[labels]
