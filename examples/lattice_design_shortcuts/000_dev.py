@@ -2,6 +2,8 @@ import xtrack as xt
 import xdeps as xd
 import xobjects as xo
 
+import numpy as np
+
 class Expr:
     def __init__(self, expr):
         self.expr = expr
@@ -35,6 +37,8 @@ def _new_element(line, name, cls, **kwargs):
     for kk in kwargs:
         setattr(line.element_refs[name], kk, evaluated_kwargs[kk])
 
+    return name
+
 def _call_vars(vars, *args, **kwargs):
     _eval = vars.line._eval_obj.eval
     if len(args) > 0:
@@ -54,23 +58,88 @@ def _call_vars(vars, *args, **kwargs):
         else:
             vars[kk] = kwargs[kk]
 
-xt.Line.newele = _new_element
+def _flatten_components(components):
+    flatten_components = []
+    for nn in components:
+        if isinstance(nn, Section):
+            flatten_components += _flatten_components(nn.components)
+        else:
+            flatten_components.append(nn)
+    return flatten_components
+
+class Section:
+    def __init__(self, line, components, name=None):
+        self.line = line
+        self.components = _flatten_components(components)
+        self.name = name
+
+    def mirror(self):
+        self.components = self.components[::-1]
+
+    def replicate(self, name):
+        new_components = []
+        for nn in self.components:
+            new_nn = nn + '.' + name
+            self.line.element_dict[new_nn] = xt.Replica(nn)
+            new_components.append(new_nn)
+        return Section(self.line, new_components, name=name)
+
+    def twiss4d(self, **kwargs):
+        temp_line = xt.Line(elements=self.line.element_dict,
+                            element_names=self.components)
+        temp_line.particle_ref = self.line.particle_ref
+        return temp_line.twiss4d(**kwargs)
+
+def _section(line, components, name=None):
+    return Section(line, components, name=name)
+
+def _append_section(line, section):
+    line.element_names += section.components
+
+xt.Line.new_element = _new_element
 xt.line.LineVars.__call__ = _call_vars
+xt.Line.new_section = _section
+xt.Line.append_section = _append_section
 
 line = xt.Line()
+line.particle_ref = xt.Particles(p0c=2e9)
 
 line._eval_obj = xd.madxutils.MadxEval(variables=line._xdeps_vref,
                                        functions=line._xdeps_fref,
                                        elements=line.element_dict)
 
 line.vars({
-    'kqf': 0.027,
-    'kqd': -0.0271,
-    'kqf.1': 'kqf / 2',
-    'kqd.1': 'kqd / 2',
+    'k1l.qf': 0.027 / 2,
+    'k1l.qd': -0.0271 / 2,
+    'l.mq': 0.5,
+    'kqf.1': 'k1l.qf / l.mq',
+    'kqd.1': 'k1l.qd / l.mq',
+    'l.mb': 45.,
+    'angle.mb': 2 * np.pi / 1232. * 3,
+    'k0.mb': 'angle.mb / l.mb',
 })
 
-line.newele('qf.1', xt.Quadrupole, k1='kqf.1', length=1.)
-line.newele('qd.1', xt.Quadrupole, k1='kqd.1', length=1.)
+halfcell = line.new_section(components=[
+    line.new_element('start',   xt.Marker),
+    line.new_element('drift.1', xt.Drift,      length='l.mq / 2'),
+    line.new_element('qf',      xt.Quadrupole, k1='kqf.1', length='l.mq'),
+    line.new_element('drift.2', xt.Replica,    parent_name='drift.1'),
+    line.new_element('mb.1',    xt.Bend,       k0='k0.mb', h='k0.mb', length='l.mb  / 4'),
+    line.new_element('mb.2',    xt.Replica,    parent_name='mb.1'),
+    line.new_element('mb.3',    xt.Replica,    parent_name='mb.1'),
+    line.new_element('mb.4',    xt.Replica,    parent_name='mb.1'),
+    line.new_element('drift.3', xt.Replica,    parent_name='drift.1'),
+    line.new_element('qd',      xt.Quadrupole, k1='kqd.1', length='l.mq'),
+    line.new_element('drift.4', xt.Replica,    parent_name='drift.1'),
+])
+
+hcell_left = halfcell.replicate('l')
+hcell_right = halfcell.replicate('r')
+hcell_right.mirror()
+
+cell= line.new_section(components=[hcell_left, hcell_right])
+
+cell.twiss4d().plot()
+
 
 
