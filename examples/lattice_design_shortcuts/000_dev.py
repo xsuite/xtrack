@@ -241,19 +241,17 @@ line.vars({
 
 ss_left = line.new_section(components=[
     line.new_element('ip', xt.Marker),
-    line.new_element('dd.r', xt.Drift, length=24),
+    line.new_element('dd.0', xt.Drift, length=26),
     line.new_element('mq.1', xt.Quadrupole, k1='k1l.q1', length='l.mq'),
-    line.new_element('dd.1', xt.Drift, length=2),
-    line.new_element('mq.2a', xt.Quadrupole, k1='k1l.q2', length='l.mq'),
-    line.new_element('dd.2a', xt.Drift, length=2),
-    line.new_element('mq.2b', xt.Quadrupole, k1='k1l.q2', length='l.mq'),
-    line.new_element('dd.2b', xt.Drift, length=2),
+    line.new_element('dd.1', xt.Drift, length=10),
+    line.new_element('mq.2', xt.Quadrupole, k1='k1l.q2', length='l.mq'),
+    line.new_element('dd.2', xt.Drift, length=10),
     line.new_element('mq.3', xt.Quadrupole, k1='k1l.q3', length='l.mq'),
-    line.new_element('dd.3', xt.Drift, length=13),
+    line.new_element('dd.3', xt.Drift, length=10),
     line.new_element('mq.4', xt.Quadrupole, k1='k1l.q4', length='l.mq'),
-    line.new_element('dd.4', xt.Drift, length=12),
+    line.new_element('dd.4', xt.Drift, length=10),
     line.new_element('mq.5', xt.Quadrupole, k1='k1l.q5', length='l.mq'),
-    line.new_element('dd.5', xt.Drift, length=12),
+    line.new_element('dd.5', xt.Drift, length=7.5),
     line.new_element('e.ss.r', xt.Marker),
 ])
 ss_left.build_tracker()
@@ -279,24 +277,16 @@ opt.step(40)
 opt.targets[0].value=200.
 opt.targets[1].value=200.
 opt.step(40)
-opt.targets[0].value=50.
+opt.targets[0].value=100.
 opt.targets[1].value=50.
 opt.step(40)
-opt.targets[0].value=10.
-opt.targets[1].value=10.
-opt.step(40)
-opt.targets[0].value=5.
-opt.targets[1].value=5.
-opt.step(40)
-opt.targets[0].value=2.
-opt.targets[1].value=2.
-opt.step(40)
+
 
 prrrr
 
 ss_arc = line.new_section(components=[ss_left, arc])
 ss_arc.cut_at_s(np.arange(0, ss_arc.get_length(), 0.5))
-tw_ss_arc = ss_arc.twiss4d(betx=2, bety=2)
+tw_ss_arc = ss_arc.twiss4d(betx=opt.targets[0].value, bety=opt.targets[1].value)
 tw_ss_arc.plot()
 
 import matplotlib.pyplot as plt
