@@ -106,13 +106,31 @@ class Section(xt.Line):
 def _section(line, components, name=None):
     return Section(line, components, name=name)
 
-def _append_section(line, section):
+def _append(line, section):
     line.element_names += section.components
+
+def _replace_replica(line, name):
+    name_parent = line[name].resolve(line, get_name=True)
+    line.element_dict[name] = line[name_parent].copy()
+
+    pars_with_expr = list(
+        line._xdeps_manager.tartasks[line.element_refs[name_parent]].keys())
+
+    for rr in pars_with_expr:
+        assert isinstance(rr, xd.refs.AttrRef)
+        setattr(line.element_refs[name], rr._key, rr._expr)
+
+def _replace_all_replicas(line):
+    for nn in line.element_names:
+        if isinstance(line[nn], xt.Replica):
+            _replace_replica(line, nn)
 
 xt.Line.new_element = _new_element
 xt.line.LineVars.__call__ = _call_vars
 xt.Line.new_section = _section
-xt.Line.append_section = _append_section
+xt.Line.append = _append
+xt.Line.replace_replica = _replace_replica
+xt.Line.replace_all_replicas = _replace_all_replicas
 
 line = xt.Line()
 line.particle_ref = xt.Particles(p0c=2e9)
@@ -151,8 +169,8 @@ halfcell = line.new_section(components=[
     line.new_element('drift.4', xt.Replica,    parent_name='drift.1'),
 ])
 
-hcell_left = halfcell.replicate('l')
-hcell_right = halfcell.replicate('r')
+hcell_left = halfcell.replicate(name='l')
+hcell_right = halfcell.replicate(name='r') # could add mirror=True
 hcell_right.mirror()
 
 cell = line.new_section(components=[
@@ -178,9 +196,7 @@ for ii, nn in enumerate(cell_ss.components):
 
 ss = line.new_section(components=[
     cell_ss.replicate('cell.1'),
-    # cell_ss.replicate('cell.2'),
-    # cell_ss.replicate('cell.3'),
-    # cell_ss.replicate('cell.3'),
+    cell_ss.replicate('cell.2'),
 ])
 
 arc1 = arc.replicate(name='arc.1')
@@ -191,17 +207,101 @@ ss1 = ss.replicate(name='ss.1')
 ss2 = ss.replicate(name='ss.2')
 ss3 = ss.replicate(name='ss.3')
 
-line.append_section(arc1)
-line.append_section(ss1)
-line.append_section(arc2)
-line.append_section(ss2)
-line.append_section(arc3)
-line.append_section(ss3)
+line.append(arc1) # Rename to append
+line.append(ss1)
+line.append(arc2)
+line.append(ss2)
+line.append(arc3)
+line.append(ss3)
 
+line.replace_all_replicas()
 
+opt = cell.match(
+    method='4d',
+    vary=xt.VaryList(['k1l.qf', 'k1l.qd'], step=1e-5),
+    targets=xt.TargetSet(
+        qx=0.333,
+        qy=0.333,
+    ))
 
+tw = line.twiss4d()
 
-cell.twiss4d().plot()
+line.vars({
+    'k1l.q1': 0.012,
+    'k1l.q2': -0.012,
+    'k1l.q3': 0.012,
+    'k1l.q4': -0.012,
+    'k1l.q5': 0.012,
+    'k1.q1': 'k1l.q1 / l.mq',
+    'k1.q2': 'k1l.q2 / l.mq',
+    'k1.q3': 'k1l.q3 / l.mq',
+    'k1.q4': 'k1l.q4 / l.mq',
+    'k1.q5': 'k1l.q5 / l.mq',
+})
+
+ss_left = line.new_section(components=[
+    line.new_element('ip', xt.Marker),
+    line.new_element('dd.r', xt.Drift, length=24),
+    line.new_element('mq.1', xt.Quadrupole, k1='k1l.q1', length='l.mq'),
+    line.new_element('dd.1', xt.Drift, length=8),
+    line.new_element('mq.2', xt.Quadrupole, k1='k1l.q2', length='l.mq'),
+    line.new_element('dd.2', xt.Drift, length=8),
+    line.new_element('mq.3', xt.Quadrupole, k1='k1l.q3', length='l.mq'),
+    line.new_element('dd.3', xt.Drift, length=11),
+    line.new_element('mq.4', xt.Quadrupole, k1='k1l.q4', length='l.mq'),
+    line.new_element('dd.4', xt.Drift, length=12),
+    line.new_element('mq.5', xt.Quadrupole, k1='k1l.q5', length='l.mq'),
+    line.new_element('dd.5', xt.Drift, length=10.5),
+    line.new_element('e.ss.r', xt.Marker),
+])
+ss_left.build_tracker()
+
+tw_arc = arc.twiss4d()
+
+bet_ip = 100.
+
+opt = ss_left.match(
+    solve=False,
+    betx=tw_arc.betx[0], bety=tw_arc.bety[0],
+    alfx=tw_arc.alfx[0], alfy=tw_arc.alfy[0],
+    init_at='e.ss.r',
+    start='ip', end='e.ss.r',
+    vary=xt.VaryList(['k1l.q1', 'k1l.q2', 'k1l.q3', 'k1l.q4'], step=1e-5),
+    targets=xt.TargetSet(
+        betx=bet_ip, bety=bet_ip, alfx=0, alfy=0,
+        at='ip'
+    ))
+
+opt.step(40)
+opt.targets[0].value=50.
+opt.targets[1].value=50.
+opt.step(40)
+opt.targets[0].value=10.
+opt.targets[1].value=10.
+opt.step(40)
+opt.targets[0].value=5.
+opt.targets[1].value=5.
+opt.step(40)
+opt.targets[0].value=2.
+opt.targets[1].value=2.
+opt.step(40)
+
+prrrr
+
+ss_arc = line.new_section(components=[ss_left, arc])
+ss_arc.cut_at_s(np.arange(0, ss_arc.get_length(), 0.5))
+tw_ss_arc = ss_arc.twiss4d(betx=2, bety=2)
+tw_ss_arc.plot()
+
+import matplotlib.pyplot as plt
+plt.close('all')
+fig = plt.figure(1)
+ax1 = fig.add_subplot(2, 1, 1)
+tw.plot('betx bety', ax=ax1)
+ax2 = fig.add_subplot(2, 1, 2, sharex=ax1)
+tw.plot('dx', ax=ax2)
+
+plt.show()
 
 
 
