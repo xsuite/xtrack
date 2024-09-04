@@ -80,6 +80,14 @@ class Section(xt.Line):
         return self._name
 
     @property
+    def particle_ref(self):
+        return self.line.particle_ref
+
+    @particle_ref.setter
+    def particle_ref(self, value):
+        assert value is None
+
+    @property
     def components(self):
         return self.element_names
 
@@ -93,12 +101,6 @@ class Section(xt.Line):
             self.line.element_dict[new_nn] = xt.Replica(nn)
             new_components.append(new_nn)
         return Section(self.line, new_components, name=name)
-
-    def twiss4d(self, **kwargs):
-        temp_line = xt.Line(elements=self.line.element_dict,
-                            element_names=self.components)
-        temp_line.particle_ref = self.line.particle_ref
-        return temp_line.twiss4d(**kwargs)
 
 def _section(line, components, name=None):
     return Section(line, components, name=name)
@@ -124,20 +126,18 @@ line.vars({
     'l.mq': 0.5,
     'kqf.1': 'k1l.qf / l.mq',
     'kqd.1': 'k1l.qd / l.mq',
-    'l.mb': 45.,
-    'angle.mb': 2 * np.pi / 1232. * 3,
+    'l.mb': 12,
+    'angle.mb': 2 * np.pi / 48 ,
     'k0.mb': 'angle.mb / l.mb',
 })
 
 halfcell = line.new_section(components=[
-    line.new_element('start',   xt.Marker),
     line.new_element('drift.1', xt.Drift,      length='l.mq / 2'),
     line.new_element('qf',      xt.Quadrupole, k1='kqf.1', length='l.mq'),
     line.new_element('drift.2', xt.Replica,    parent_name='drift.1'),
-    line.new_element('mb.1',    xt.Bend,       k0='k0.mb', h='k0.mb', length='l.mb  / 4'),
+    line.new_element('mb.1',    xt.Bend,       k0='k0.mb', h='k0.mb', length='l.mb'),
     line.new_element('mb.2',    xt.Replica,    parent_name='mb.1'),
     line.new_element('mb.3',    xt.Replica,    parent_name='mb.1'),
-    line.new_element('mb.4',    xt.Replica,    parent_name='mb.1'),
     line.new_element('drift.3', xt.Replica,    parent_name='drift.1'),
     line.new_element('qd',      xt.Quadrupole, k1='kqd.1', length='l.mq'),
     line.new_element('drift.4', xt.Replica,    parent_name='drift.1'),
@@ -147,7 +147,13 @@ hcell_left = halfcell.replicate('l')
 hcell_right = halfcell.replicate('r')
 hcell_right.mirror()
 
-cell= line.new_section(components=[hcell_left, hcell_right])
+cell= line.new_section(components=[
+    line.new_element('start', xt.Marker),
+    hcell_left,
+    line.new_element('mid', xt.Marker),
+    hcell_right,
+    line.new_element('end', xt.Marker),
+])
 
 cell.twiss4d().plot()
 
