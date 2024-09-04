@@ -72,6 +72,7 @@ class Section(xt.Line):
         self.line = line
         xt.Line.__init__(self, elements=line.element_dict,
                          element_names=_flatten_components(components))
+        self._element_dict = line.element_dict # Avoid copying
         self._var_management = line._var_management
         self._name = name
 
@@ -120,6 +121,13 @@ line._eval_obj = xd.madxutils.MadxEval(variables=line._xdeps_vref,
                                        functions=line._xdeps_fref,
                                        elements=line.element_dict)
 
+n_bends_per_cell = 6
+n_cells_par_arc = 3
+n_arcs = 3
+
+n_bends = n_bends_per_cell * n_cells_par_arc * n_arcs
+
+
 line.vars({
     'k1l.qf': 0.027 / 2,
     'k1l.qd': -0.0271 / 2,
@@ -127,7 +135,7 @@ line.vars({
     'kqf.1': 'k1l.qf / l.mq',
     'kqd.1': 'k1l.qd / l.mq',
     'l.mb': 12,
-    'angle.mb': 2 * np.pi / 48 ,
+    'angle.mb': 2 * np.pi / n_bends,
     'k0.mb': 'angle.mb / l.mb',
 })
 
@@ -147,13 +155,51 @@ hcell_left = halfcell.replicate('l')
 hcell_right = halfcell.replicate('r')
 hcell_right.mirror()
 
-cell= line.new_section(components=[
+cell = line.new_section(components=[
     line.new_element('start', xt.Marker),
     hcell_left,
     line.new_element('mid', xt.Marker),
     hcell_right,
     line.new_element('end', xt.Marker),
 ])
+
+arc = line.new_section(components=[
+    cell.replicate(name='cell.1'),
+    cell.replicate(name='cell.2'),
+    cell.replicate(name='cell.3'),
+])
+
+cell_ss = cell.replicate('ss')
+line.new_element('drift_ss', xt.Drift, length='l.mb')
+for ii, nn in enumerate(cell_ss.components):
+    if nn.startswith('mb'):
+        cell_ss.components[ii] = line.new_element(
+            f'drift.{ii}.ss', xt.Replica, parent_name='drift_ss')
+
+ss = line.new_section(components=[
+    cell_ss.replicate('cell.1'),
+    # cell_ss.replicate('cell.2'),
+    # cell_ss.replicate('cell.3'),
+    # cell_ss.replicate('cell.3'),
+])
+
+arc1 = arc.replicate(name='arc.1')
+arc2 = arc.replicate(name='arc.2')
+arc3 = arc.replicate(name='arc.3')
+
+ss1 = ss.replicate(name='ss.1')
+ss2 = ss.replicate(name='ss.2')
+ss3 = ss.replicate(name='ss.3')
+
+line.append_section(arc1)
+line.append_section(ss1)
+line.append_section(arc2)
+line.append_section(ss2)
+line.append_section(arc3)
+line.append_section(ss3)
+
+
+
 
 cell.twiss4d().plot()
 
