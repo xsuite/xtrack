@@ -67,14 +67,24 @@ def _flatten_components(components):
             flatten_components.append(nn)
     return flatten_components
 
-class Section:
+class Section(xt.Line):
     def __init__(self, line, components, name=None):
         self.line = line
-        self.components = _flatten_components(components)
-        self.name = name
+        xt.Line.__init__(self, elements=line.element_dict,
+                         element_names=_flatten_components(components))
+        self._var_management = line._var_management
+        self._name = name
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def components(self):
+        return self.element_names
 
     def mirror(self):
-        self.components = self.components[::-1]
+        self.element_names = self.element_names[::-1]
 
     def replicate(self, name):
         new_components = []
