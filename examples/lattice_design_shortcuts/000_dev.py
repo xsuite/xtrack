@@ -263,6 +263,9 @@ opt = half_straight.match(
         xt.TargetSet(alfx=0, alfy=0, at='ip'),
         xt.Target(lambda tw: tw.betx[0] - tw.bety[0], 0),
         xt.Target(lambda tw: tw.betx.max(), xt.LessThan(400)),
+        xt.Target(lambda tw: tw.bety.max(), xt.LessThan(400)),
+        xt.Target(lambda tw: tw.betx.min(), xt.GreaterThan(2)),
+        xt.Target(lambda tw: tw.bety.min(), xt.GreaterThan(2)),
     ]
     )
 
@@ -329,12 +332,11 @@ ss1 = std_ss.replicate('ss.1')
 ss2 = std_ss.replicate('ss.2')
 line.discard_tracker()
 
-
-line.append(straight)
-line.append(arc1)
 line.append(ss1)
-line.append(arc2)
+line.append(arc1)
 line.append(ss2)
+line.append(arc2)
+line.append(straight)
 line.append(arc3)
 
 line.replace_all_replicas()
@@ -351,11 +353,14 @@ two = line.twiss(start=xt.START, betx=tw_arc.betx[-1], bety=tw_arc.bety[-1])
 
 import matplotlib.pyplot as plt
 plt.close('all')
-fig = plt.figure(1)
+fig = plt.figure(1, figsize=(6.4*1.2, 4.8))
 ax1 = fig.add_subplot(2, 1, 1)
-tw.plot('betx bety', ax=ax1)
+pltbet = tw.plot('betx bety', ax=ax1)
 ax2 = fig.add_subplot(2, 1, 2, sharex=ax1)
-tw.plot('dx', ax=ax2)
+pltdx = tw.plot('dx', ax=ax2)
+fig.subplots_adjust(right=.85)
+pltbet.move_legend(1.2,1)
+pltdx.move_legend(1.2,1)
 
 import xplt
 xplt.FloorPlot(sv, line, element_width=10)
