@@ -81,27 +81,9 @@ def _section(line, components, name=None):
 def _append(line, section):
     line.element_names += section.components
 
-def _replace_replica(line, name):
-    name_parent = line[name].resolve(line, get_name=True)
-    line.element_dict[name] = line[name_parent].copy()
-
-    pars_with_expr = list(
-        line._xdeps_manager.tartasks[line.element_refs[name_parent]].keys())
-
-    for rr in pars_with_expr:
-        assert isinstance(rr, xd.refs.AttrRef)
-        setattr(line.element_refs[name], rr._key, rr._expr)
-
-def _replace_all_replicas(line):
-    for nn in line.element_names:
-        if isinstance(line[nn], xt.Replica):
-            _replace_replica(line, nn)
-
 xt.line.LineVars.__call__ = _call_vars
 xt.Line.new_section = _section
 xt.Line.append = _append
-xt.Line.replace_replica = _replace_replica
-xt.Line.replace_all_replicas = _replace_all_replicas
 
 line = xt.Line()
 line.particle_ref = xt.Particles(p0c=2e9)

@@ -3342,9 +3342,9 @@ class Line:
             'https://xsuite.readthedocs.io/en/latest/line.html#apply-transformations-tilt-shift-to-elements'
         )
 
-    def new_element(line, name, cls, **kwargs):
+    def new_element(self, name, cls, **kwargs):
 
-        _eval = line._eval_obj.eval
+        _eval = self._eval_obj.eval
 
         assert cls in [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole, xt.Octupole,
                        xt.Marker, xt.Replica], (
@@ -3365,11 +3365,27 @@ class Line:
                 value_kwargs[kk] = kwargs[kk]
 
         element = cls(**value_kwargs)
-        line.element_dict[name] = element
+        self.element_dict[name] = element
         for kk in kwargs:
-            setattr(line.element_refs[name], kk, evaluated_kwargs[kk])
+            setattr(self.element_refs[name], kk, evaluated_kwargs[kk])
 
         return name
+
+    def replace_replica(self, name):
+        name_parent = self[name].resolve(self, get_name=True)
+        self.element_dict[name] = self[name_parent].copy()
+
+        pars_with_expr = list(
+            self._xdeps_manager.tartasks[self.element_refs[name_parent]].keys())
+
+        for rr in pars_with_expr:
+            assert isinstance(rr, xd.refs.AttrRef)
+            setattr(self.element_refs[name], rr._key, rr._expr)
+
+    def replace_all_replicas(self):
+        for nn in self.element_names:
+            if isinstance(self[nn], xt.Replica):
+                self.replace_replica(nn)
 
     def __len__(self):
         return len(self.element_names)
