@@ -109,7 +109,7 @@ class TwissPlot(object):
         if ax is not None:
             self.figure = ax.figure
         elif figure is None:
-            self.figure = plt.figure(num=figlabel)
+            self.figure = plt.figure(num=figlabel, figsize=(6.4*1.2, 4.8))
         if figlabel is not None:
             self.figure.clf()
         for i in self.yl + self.yr:
@@ -148,7 +148,7 @@ class TwissPlot(object):
     def _new_axis(self, ax=None):
         if self.ax is None:
             out = self.figure.add_subplot(111)
-            self.figure.subplots_adjust(right=0.78)
+            self.figure.subplots_adjust(right=0.75)
             self.ax = out
         if self.used_ax:
             out = self.ax.twinx()
@@ -222,7 +222,7 @@ class TwissPlot(object):
         self.ax.set_xlabel(_mylbl(self.axlabel, self.x))
         self.ax.set_xlim(min(self.xaxis), max(self.xaxis))
         self.ax.legend(
-            self.lines, self.legends, loc="upper right", bbox_to_anchor=(1.3, 1.1)
+            self.lines, self.legends, loc="upper right", bbox_to_anchor=(1.35, 1.)
         )
         self.ax.grid(True)
         self.figure.canvas.draw()

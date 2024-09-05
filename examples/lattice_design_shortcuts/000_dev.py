@@ -35,8 +35,7 @@ halfcell = line.new_section(components=[
 ])
 
 hcell_left = halfcell.replicate(name='l')
-hcell_right = halfcell.replicate(name='r') # could add mirror=True
-hcell_right.mirror()
+hcell_right = halfcell.replicate(name='r', mirror=True)
 
 cell = line.new_section(components=[
     line.new_element('start', xt.Marker),

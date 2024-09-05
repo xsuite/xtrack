@@ -1364,6 +1364,8 @@ class Line:
             Value of the knob after the matching. Defaults to 1.
 
         '''
+        if not self._has_valid_tracker():
+            self.build_tracker()
 
         opt = match_knob_line(self, vary=vary, targets=targets,
                         knob_name=knob_name, knob_value_start=knob_value_start,
@@ -1400,6 +1402,9 @@ class Line:
         survey : SurveyTable
             Survey table.
         """
+
+        if not self._has_valid_tracker():
+            self.build_tracker()
 
         if reverse is None:
             reverse = self.twiss_default.get('reverse', False)
@@ -5068,10 +5073,15 @@ class Section(Line):
     def mirror(self):
         self.element_names = self.element_names[::-1]
 
-    def replicate(self, name):
+    def replicate(self, name, mirror=False):
         new_components = []
         for nn in self.components:
             new_nn = nn + '.' + name
             self.line.element_dict[new_nn] = xt.Replica(nn)
             new_components.append(new_nn)
-        return Section(self.line, new_components, name=name)
+        out = Section(self.line, new_components, name=name)
+
+        if mirror:
+            out.mirror()
+
+        return out
