@@ -3342,6 +3342,35 @@ class Line:
             'https://xsuite.readthedocs.io/en/latest/line.html#apply-transformations-tilt-shift-to-elements'
         )
 
+    def new_element(line, name, cls, **kwargs):
+
+        _eval = line._eval_obj.eval
+
+        assert cls in [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole, xt.Octupole,
+                       xt.Marker, xt.Replica], (
+            'Only Drift, Dipole, Quadrupole, Sextupole, Octupole, Marker, and Replica '
+            'elements are allowed in `new_element` for now.')
+        evaluated_kwargs = {}
+        value_kwargs = {}
+        for kk in kwargs:
+            if hasattr(kwargs[kk], '_value'):
+                evaluated_kwargs[kk] = kwargs[kk]
+                value_kwargs[kk] = kwargs[kk]._value
+            elif (isinstance(kwargs[kk], str) and hasattr(cls, '_xofields')
+                and kk in cls._xofields and cls._xofields[kk].__name__ != 'String'):
+                evaluated_kwargs[kk] = _eval(kwargs[kk])
+                value_kwargs[kk] = evaluated_kwargs[kk]._value
+            else:
+                evaluated_kwargs[kk] = kwargs[kk]
+                value_kwargs[kk] = kwargs[kk]
+
+        element = cls(**value_kwargs)
+        line.element_dict[name] = element
+        for kk in kwargs:
+            setattr(line.element_refs[name], kk, evaluated_kwargs[kk])
+
+        return name
+
     def __len__(self):
         return len(self.element_names)
 

@@ -11,34 +11,6 @@ class Expr:
 # line._xdeps_vref._eval("a * b")
 
 
-def _new_element(line, name, cls, **kwargs):
-
-    _eval = line._eval_obj.eval
-
-    evaluated_kwargs = {}
-    value_kwargs = {}
-    for kk in kwargs:
-        if isinstance(kwargs[kk], Expr):
-            evaluated_kwargs[kk] = _eval(kwargs[kk].expr)
-            value_kwargs[kk] = evaluated_kwargs[kk]._value
-        elif hasattr(kwargs[kk], '_value'):
-            evaluated_kwargs[kk] = kwargs[kk]
-            value_kwargs[kk] = kwargs[kk]._value
-        elif (isinstance(kwargs[kk], str) and hasattr(cls, '_xofields')
-             and kk in cls._xofields and cls._xofields[kk].__name__ != 'String'):
-            evaluated_kwargs[kk] = _eval(kwargs[kk])
-            value_kwargs[kk] = evaluated_kwargs[kk]._value
-        else:
-            evaluated_kwargs[kk] = kwargs[kk]
-            value_kwargs[kk] = kwargs[kk]
-
-    element = cls(**value_kwargs)
-    line.element_dict[name] = element
-    for kk in kwargs:
-        setattr(line.element_refs[name], kk, evaluated_kwargs[kk])
-
-    return name
-
 def _call_vars(vars, *args, **kwargs):
     _eval = vars.line._eval_obj.eval
     if len(args) > 0:
@@ -125,7 +97,6 @@ def _replace_all_replicas(line):
         if isinstance(line[nn], xt.Replica):
             _replace_replica(line, nn)
 
-xt.Line.new_element = _new_element
 xt.line.LineVars.__call__ = _call_vars
 xt.Line.new_section = _section
 xt.Line.append = _append
