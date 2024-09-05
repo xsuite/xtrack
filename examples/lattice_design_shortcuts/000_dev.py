@@ -252,8 +252,6 @@ print(f'Half straight length: {half_straight.get_length()}')
 
 tw_arc = arc.twiss4d()
 
-bet_ip = 300.
-
 opt = half_straight.match(
     solve=False,
     betx=tw_arc.betx[0], bety=tw_arc.bety[0],
@@ -264,6 +262,7 @@ opt = half_straight.match(
     targets=[
         xt.TargetSet(alfx=0, alfy=0, at='ip'),
         xt.Target(lambda tw: tw.betx[0] - tw.bety[0], 0),
+        xt.Target(lambda tw: tw.betx.max(), xt.LessThan(400)),
     ]
     )
 
@@ -293,9 +292,13 @@ line.replace_all_replicas()
 line.build_tracker()
 sv = line.survey()
 
+buffer = line._buffer
 line.discard_tracker()
 line.cut_at_s(np.arange(0, line.get_length(), 0.5))
+line.build_tracker(_buffer=buffer)
 tw = line.twiss4d()
+
+two = line.twiss(start=xt.START, betx=tw_arc.betx[-1], bety=tw_arc.bety[-1])
 
 import matplotlib.pyplot as plt
 plt.close('all')
