@@ -241,15 +241,15 @@ line.vars({
 
 ss_left = line.new_section(components=[
     line.new_element('ip', xt.Marker),
-    line.new_element('dd.0', xt.Drift, length=26),
+    line.new_element('dd.0', xt.Drift, length=10),
     line.new_element('mq.1', xt.Quadrupole, k1='k1l.q1', length='l.mq'),
-    line.new_element('dd.1', xt.Drift, length=10),
+    line.new_element('dd.1', xt.Drift, length=6),
     line.new_element('mq.2', xt.Quadrupole, k1='k1l.q2', length='l.mq'),
-    line.new_element('dd.2', xt.Drift, length=10),
+    line.new_element('dd.2', xt.Drift, length=18),
     line.new_element('mq.3', xt.Quadrupole, k1='k1l.q3', length='l.mq'),
-    line.new_element('dd.3', xt.Drift, length=10),
+    line.new_element('dd.3', xt.Drift, length=14),
     line.new_element('mq.4', xt.Quadrupole, k1='k1l.q4', length='l.mq'),
-    line.new_element('dd.4', xt.Drift, length=10),
+    line.new_element('dd.4', xt.Drift, length=14),
     line.new_element('mq.5', xt.Quadrupole, k1='k1l.q5', length='l.mq'),
     line.new_element('dd.5', xt.Drift, length=7.5),
     line.new_element('e.ss.r', xt.Marker),
@@ -268,26 +268,25 @@ opt = ss_left.match(
     start='ip', end='e.ss.r',
     vary=xt.VaryList(['k1l.q1', 'k1l.q2', 'k1l.q3', 'k1l.q4'], step=1e-5),
     targets=xt.TargetSet(
-        betx=bet_ip, bety=bet_ip, alfx=0, alfy=0,
+        alfx=0, alfy=0,
         at='ip'
     ))
 
 
 opt.step(40)
-opt.targets[0].value=200.
-opt.targets[1].value=200.
-opt.step(40)
-opt.targets[0].value=100.
-opt.targets[1].value=50.
-opt.step(40)
 
 
-prrrr
 
+
+tw_arc = arc.twiss4d()
 ss_arc = line.new_section(components=[ss_left, arc])
 ss_arc.cut_at_s(np.arange(0, ss_arc.get_length(), 0.5))
-tw_ss_arc = ss_arc.twiss4d(betx=opt.targets[0].value, bety=opt.targets[1].value)
+tw_ss_arc = ss_arc.twiss4d(betx=tw_arc.betx[-1], bety=tw_arc.bety[-1],
+                           alfx=tw_arc.alfx[-1], alfy=tw_arc.alfy[-1],
+                           init_at=xt.END)
 tw_ss_arc.plot()
+
+prrrr
 
 import matplotlib.pyplot as plt
 plt.close('all')
