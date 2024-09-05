@@ -288,10 +288,12 @@ line.append(arc2)
 line.append(ss3)
 line.append(arc3)
 
-tw_open = line.twiss4d(betx=tw_arc.betx[-1], bety=tw_arc.bety[-1],
-                           alfx=tw_arc.alfx[-1], alfy=tw_arc.alfy[-1],
-                           init_at=xt.END)
+line.replace_all_replicas()
+line.build_tracker()
+sv = line.survey()
 
+line.discard_tracker()
+line.cut_at_s(np.arange(0, line.get_length(), 0.5))
 tw = line.twiss4d()
 
 import matplotlib.pyplot as plt
@@ -301,6 +303,9 @@ ax1 = fig.add_subplot(2, 1, 1)
 tw.plot('betx bety', ax=ax1)
 ax2 = fig.add_subplot(2, 1, 2, sharex=ax1)
 tw.plot('dx', ax=ax2)
+
+import xplt
+xplt.FloorPlot(sv, line, element_width=10)
 
 plt.show()
 
