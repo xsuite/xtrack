@@ -215,8 +215,8 @@ opt = cell.match(
     method='4d',
     vary=xt.VaryList(['k1l.qf', 'k1l.qd'], step=1e-5),
     targets=xt.TargetSet(
-        qx=0.333,
-        qy=0.333,
+        qx=0.333333,
+        qy=0.333333,
     ))
 
 line.vars({
