@@ -207,12 +207,7 @@ ss1 = ss.replicate(name='ss.1')
 ss2 = ss.replicate(name='ss.2')
 ss3 = ss.replicate(name='ss.3')
 
-line.append(arc1) # Rename to append
-line.append(ss1)
-line.append(arc2)
-line.append(ss2)
-line.append(arc3)
-line.append(ss3)
+
 
 line.replace_all_replicas()
 
@@ -223,8 +218,6 @@ opt = cell.match(
         qx=0.333,
         qy=0.333,
     ))
-
-tw = line.twiss4d()
 
 line.vars({
     'k1l.q1': 0.012,
@@ -239,7 +232,7 @@ line.vars({
     'k1.q5': 'k1l.q5 / l.mq',
 })
 
-ss_left = line.new_section(components=[
+half_straight = line.new_section(components=[
     line.new_element('ip', xt.Marker),
     line.new_element('dd.0', xt.Drift, length=10),
     line.new_element('mq.1', xt.Quadrupole, k1='k1l.q1', length='l.mq'),
@@ -247,20 +240,20 @@ ss_left = line.new_section(components=[
     line.new_element('mq.2', xt.Quadrupole, k1='k1l.q2', length='l.mq'),
     line.new_element('dd.2', xt.Drift, length=18),
     line.new_element('mq.3', xt.Quadrupole, k1='k1l.q3', length='l.mq'),
-    line.new_element('dd.3', xt.Drift, length=14),
+    line.new_element('dd.3', xt.Drift, length=16),
     line.new_element('mq.4', xt.Quadrupole, k1='k1l.q4', length='l.mq'),
-    line.new_element('dd.4', xt.Drift, length=14),
+    line.new_element('dd.4', xt.Drift, length=16),
     line.new_element('mq.5', xt.Quadrupole, k1='k1l.q5', length='l.mq'),
     line.new_element('dd.5', xt.Drift, length=7.5),
     line.new_element('e.ss.r', xt.Marker),
 ])
-ss_left.build_tracker()
+half_straight.build_tracker()
 
 tw_arc = arc.twiss4d()
 
 bet_ip = 300.
 
-opt = ss_left.match(
+opt = half_straight.match(
     solve=False,
     betx=tw_arc.betx[0], bety=tw_arc.bety[0],
     alfx=tw_arc.alfx[0], alfy=tw_arc.alfy[0],
@@ -276,18 +269,30 @@ opt = ss_left.match(
 
 opt.step(40)
 
+half_straight_left = half_straight.replicate('ss.l')
+half_straight_left.mirror()
+half_straight_right = half_straight.replicate('ss.r')
+straight = line.new_section(components=[half_straight_left, half_straight_right])
 
-
-
-tw_arc = arc.twiss4d()
-ss_arc = line.new_section(components=[ss_left, arc])
-ss_arc.cut_at_s(np.arange(0, ss_arc.get_length(), 0.5))
+ss_arc = line.new_section(components=[arc1, straight, arc2])
 tw_ss_arc = ss_arc.twiss4d(betx=tw_arc.betx[-1], bety=tw_arc.bety[-1],
                            alfx=tw_arc.alfx[-1], alfy=tw_arc.alfy[-1],
                            init_at=xt.END)
 tw_ss_arc.plot()
 
-prrrr
+line.discard_tracker()
+line.append(straight)
+line.append(arc1)
+line.append(ss2)
+line.append(arc2)
+line.append(ss3)
+line.append(arc3)
+
+tw_open = line.twiss4d(betx=tw_arc.betx[-1], bety=tw_arc.bety[-1],
+                           alfx=tw_arc.alfx[-1], alfy=tw_arc.alfy[-1],
+                           init_at=xt.END)
+
+tw = line.twiss4d()
 
 import matplotlib.pyplot as plt
 plt.close('all')
