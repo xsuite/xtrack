@@ -1323,6 +1323,9 @@ class Line:
 
         '''
 
+        if not self._has_valid_tracker():
+            self.build_tracker()
+
         for old, new in zip(['ele_start', 'ele_stop', 'ele_init', 'twiss_init'],
                                 ['start', 'end', 'init_at', 'init']):
                 if old in kwargs.keys():
