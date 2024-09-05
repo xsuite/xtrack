@@ -3387,6 +3387,12 @@ class Line:
             if isinstance(self[nn], xt.Replica):
                 self.replace_replica(nn)
 
+    def new_section(self, components, name=None):
+        return Section(self, components, name=name)
+
+    def append(self, section):
+        self.element_names += section.components
+
     def __len__(self):
         return len(self.element_names)
 
@@ -5025,4 +5031,47 @@ def _rot_s_from_attr(attr):
 
     return rot_s_rad
 
+def _flatten_components(components):
+    flatten_components = []
+    for nn in components:
+        if isinstance(nn, Section):
+            flatten_components += _flatten_components(nn.components)
+        else:
+            flatten_components.append(nn)
+    return flatten_components
 
+class Section(Line):
+    def __init__(self, line, components, name=None):
+        self.line = line
+        xt.Line.__init__(self, elements=line.element_dict,
+                         element_names=_flatten_components(components))
+        self._element_dict = line.element_dict # Avoid copying
+        self._var_management = line._var_management
+        self._name = name
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def particle_ref(self):
+        return self.line.particle_ref
+
+    @particle_ref.setter
+    def particle_ref(self, value):
+        assert value is None
+
+    @property
+    def components(self):
+        return self.element_names
+
+    def mirror(self):
+        self.element_names = self.element_names[::-1]
+
+    def replicate(self, name):
+        new_components = []
+        for nn in self.components:
+            new_nn = nn + '.' + name
+            self.line.element_dict[new_nn] = xt.Replica(nn)
+            new_components.append(new_nn)
+        return Section(self.line, new_components, name=name)

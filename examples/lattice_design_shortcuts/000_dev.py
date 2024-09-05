@@ -1,73 +1,8 @@
 import xtrack as xt
-import xdeps as xd
-import xobjects as xo
-
 import numpy as np
-
-class Expr:
-    def __init__(self, expr):
-        self.expr = expr
-
-# line._xdeps_vref._eval("a * b")
-
-
-def _flatten_components(components):
-    flatten_components = []
-    for nn in components:
-        if isinstance(nn, Section):
-            flatten_components += _flatten_components(nn.components)
-        else:
-            flatten_components.append(nn)
-    return flatten_components
-
-class Section(xt.Line):
-    def __init__(self, line, components, name=None):
-        self.line = line
-        xt.Line.__init__(self, elements=line.element_dict,
-                         element_names=_flatten_components(components))
-        self._element_dict = line.element_dict # Avoid copying
-        self._var_management = line._var_management
-        self._name = name
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def particle_ref(self):
-        return self.line.particle_ref
-
-    @particle_ref.setter
-    def particle_ref(self, value):
-        assert value is None
-
-    @property
-    def components(self):
-        return self.element_names
-
-    def mirror(self):
-        self.element_names = self.element_names[::-1]
-
-    def replicate(self, name):
-        new_components = []
-        for nn in self.components:
-            new_nn = nn + '.' + name
-            self.line.element_dict[new_nn] = xt.Replica(nn)
-            new_components.append(new_nn)
-        return Section(self.line, new_components, name=name)
-
-def _section(line, components, name=None):
-    return Section(line, components, name=name)
-
-def _append(line, section):
-    line.element_names += section.components
-
-xt.Line.new_section = _section
-xt.Line.append = _append
 
 line = xt.Line()
 line.particle_ref = xt.Particles(p0c=2e9)
-
 
 n_bends_per_cell = 6
 n_cells_par_arc = 3
