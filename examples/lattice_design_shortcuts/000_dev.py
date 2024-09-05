@@ -307,13 +307,6 @@ cell_ss = line.new_section(components=[
 
 ])
 
-cell1_ss = cell_ss.replicate('cell.1')
-cell2_ss = cell_ss.replicate('cell.2')
-std_ss = line.new_section(components=[cell1_ss, cell2_ss])
-
-ss1 = std_ss.replicate('ss.1')
-ss2 = std_ss.replicate('ss.2')
-
 opt = cell_ss.match(
     solve=False,
     method='4d',
@@ -327,7 +320,16 @@ opt.solve()
 
 tw_ss_arc.plot()
 
+
+cell1_ss = cell_ss.replicate('cell.1')
+cell2_ss = cell_ss.replicate('cell.2')
+std_ss = line.new_section(components=[cell1_ss, cell2_ss])
+
+ss1 = std_ss.replicate('ss.1')
+ss2 = std_ss.replicate('ss.2')
 line.discard_tracker()
+
+
 line.append(straight)
 line.append(arc1)
 line.append(ss1)
