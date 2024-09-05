@@ -267,10 +267,11 @@ opt = ss_left.match(
     init_at='e.ss.r',
     start='ip', end='e.ss.r',
     vary=xt.VaryList(['k1l.q1', 'k1l.q2', 'k1l.q3', 'k1l.q4'], step=1e-5),
-    targets=xt.TargetSet(
-        alfx=0, alfy=0,
-        at='ip'
-    ))
+    targets=[
+        xt.TargetSet(alfx=0, alfy=0, at='ip'),
+        xt.Target(lambda tw: tw.betx[0] - tw.bety[0], 0),
+    ]
+    )
 
 
 opt.step(40)
