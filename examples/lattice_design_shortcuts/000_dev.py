@@ -234,20 +234,21 @@ line.vars({
 
 half_straight = line.new_section(components=[
     line.new_element('ip', xt.Marker),
-    line.new_element('dd.0', xt.Drift, length=10),
+    line.new_element('dd.0', xt.Drift, length=20),
     line.new_element('mq.1', xt.Quadrupole, k1='k1l.q1', length='l.mq'),
     line.new_element('dd.1', xt.Drift, length=6),
     line.new_element('mq.2', xt.Quadrupole, k1='k1l.q2', length='l.mq'),
-    line.new_element('dd.2', xt.Drift, length=18),
+    line.new_element('dd.2', xt.Drift, length=11),
     line.new_element('mq.3', xt.Quadrupole, k1='k1l.q3', length='l.mq'),
-    line.new_element('dd.3', xt.Drift, length=16),
+    line.new_element('dd.3', xt.Drift, length=18),
     line.new_element('mq.4', xt.Quadrupole, k1='k1l.q4', length='l.mq'),
-    line.new_element('dd.4', xt.Drift, length=16),
+    line.new_element('dd.4', xt.Drift, length=18),
     line.new_element('mq.5', xt.Quadrupole, k1='k1l.q5', length='l.mq'),
-    line.new_element('dd.5', xt.Drift, length=7.5),
+    line.new_element('dd.5', xt.Drift, length=0.5),
     line.new_element('e.ss.r', xt.Marker),
 ])
 half_straight.build_tracker()
+print(f'Half straight length: {half_straight.get_length()}')
 
 tw_arc = arc.twiss4d()
 
