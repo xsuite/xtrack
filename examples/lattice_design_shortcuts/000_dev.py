@@ -203,9 +203,9 @@ arc1 = arc.replicate(name='arc.1')
 arc2 = arc.replicate(name='arc.2')
 arc3 = arc.replicate(name='arc.3')
 
-ss1 = ss.replicate(name='ss.1')
-ss2 = ss.replicate(name='ss.2')
-ss3 = ss.replicate(name='ss.3')
+# ss1 = ss.replicate(name='ss.1')
+# ss2 = ss.replicate(name='ss.2')
+# ss3 = ss.replicate(name='ss.3')
 
 
 
@@ -278,14 +278,61 @@ ss_arc = line.new_section(components=[arc1, straight, arc2])
 tw_ss_arc = ss_arc.twiss4d(betx=tw_arc.betx[-1], bety=tw_arc.bety[-1],
                            alfx=tw_arc.alfx[-1], alfy=tw_arc.alfy[-1],
                            init_at=xt.END)
+
+line.vars({
+    'k1l.qfss': 0.027 / 2,
+    'k1l.qdss': -0.0271 / 2,
+    'kqfss.1': 'k1l.qfss / l.mq',
+    'kqdss.1': 'k1l.qdss / l.mq',
+    'angle.mb': 2 * np.pi / n_bends,
+    'k0.mb': 'angle.mb / l.mb',
+})
+cell_ss = line.new_section(components=[
+    line.new_element('ss.start', xt.Marker),
+    line.new_element('dd.ss.1.l', xt.Drift,        length='l.mq'),
+    line.new_element('qfss.l',    xt.Quadrupole, k1='kqfss.1', length='l.mq'),
+
+    line.new_element('dd.ss.3.l', xt.Drift,        length='3 *l.mb'),
+
+    line.new_element('qdss.l',    xt.Quadrupole, k1='kqdss.1', length='l.mq'),
+    line.new_element('dd.ss.5.l', xt.Drift,        length='l.mq'),
+
+    line.new_element('dd.ss.5.r', xt.Drift,        length='l.mq'),
+    line.new_element('qdss.r',    xt.Quadrupole, k1='kqdss.1', length='l.mq'),
+
+    line.new_element('dd.ss.3.r', xt.Drift,        length='3 *l.mb'),
+
+    line.new_element('qfss.r',    xt.Quadrupole, k1='kqfss.1', length='l.mq'),
+    line.new_element('dd.ss.1.r', xt.Drift,        length='l.mq'),
+
+])
+
+cell1_ss = cell_ss.replicate('cell.1')
+cell2_ss = cell_ss.replicate('cell.2')
+std_ss = line.new_section(components=[cell1_ss, cell2_ss])
+
+ss1 = std_ss.replicate('ss.1')
+ss2 = std_ss.replicate('ss.2')
+
+opt = cell_ss.match(
+    solve=False,
+    method='4d',
+    vary=xt.VaryList(['k1l.qfss', 'k1l.qdss'], step=1e-5),
+    targets=xt.TargetSet(at='ss.start',
+        betx=tw_arc.betx[-1],
+        bety=tw_arc.bety[-1],
+    ))
+opt.step(40)
+opt.solve()
+
 tw_ss_arc.plot()
 
 line.discard_tracker()
 line.append(straight)
 line.append(arc1)
-line.append(ss2)
+line.append(ss1)
 line.append(arc2)
-line.append(ss3)
+line.append(ss2)
 line.append(arc3)
 
 line.replace_all_replicas()
