@@ -11,25 +11,6 @@ class Expr:
 # line._xdeps_vref._eval("a * b")
 
 
-def _call_vars(vars, *args, **kwargs):
-    _eval = vars.line._eval_obj.eval
-    if len(args) > 0:
-        assert len(kwargs) == 0
-        assert len(args) == 1
-        if isinstance(args[0], str):
-            return vars[args[0]]
-        elif isinstance(args[0], dict):
-            kwargs.update(args[0])
-        else:
-            raise ValueError('Invalid argument')
-    for kk in kwargs:
-        if isinstance(kwargs[kk], Expr):
-            vars[kk] = _eval(kwargs[kk].expr)
-        elif isinstance(kwargs[kk], str):
-            vars[kk] = _eval(kwargs[kk])
-        else:
-            vars[kk] = kwargs[kk]
-
 def _flatten_components(components):
     flatten_components = []
     for nn in components:
@@ -81,16 +62,12 @@ def _section(line, components, name=None):
 def _append(line, section):
     line.element_names += section.components
 
-xt.line.LineVars.__call__ = _call_vars
 xt.Line.new_section = _section
 xt.Line.append = _append
 
 line = xt.Line()
 line.particle_ref = xt.Particles(p0c=2e9)
 
-line._eval_obj = xd.madxutils.MadxEval(variables=line._xdeps_vref,
-                                       functions=line._xdeps_fref,
-                                       elements=line.element_dict)
 
 n_bends_per_cell = 6
 n_cells_par_arc = 3

@@ -3344,7 +3344,7 @@ class Line:
 
     def new_element(self, name, cls, **kwargs):
 
-        _eval = self._eval_obj.eval
+        _eval = self._xdeps_eval.eval
 
         assert cls in [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole, xt.Octupole,
                        xt.Marker, xt.Replica], (
@@ -3532,6 +3532,18 @@ class Line:
             return self._in_multiline._xdeps_manager
         if self._var_management is not None:
             return self._var_management['manager']
+
+    @property
+    def _xdeps_eval(self):
+        try:
+            eva_obj = self._xdeps_eval_obj
+        except AttributeError:
+            eva_obj = xd.madxutils.MadxEval(variables=self._xdeps_vref,
+                                            functions=self._xdeps_fref,
+                                            elements=self.element_dict)
+            self._xdeps_eval_obj = eva_obj
+
+        return eva_obj
 
     @property
     def element_refs(self):
@@ -4611,6 +4623,23 @@ class LineVars:
     def target(self, tar, value, **kwargs):
         action = ActionVars(self.line)
         return xt.Target(action=action, tar=tar, value=value, **kwargs)
+
+    def __call__(self, *args, **kwargs):
+        _eval = self.line._xdeps_eval.eval
+        if len(args) > 0:
+            assert len(kwargs) == 0
+            assert len(args) == 1
+            if isinstance(args[0], str):
+                return self[args[0]]
+            elif isinstance(args[0], dict):
+                kwargs.update(args[0])
+            else:
+                raise ValueError('Invalid argument')
+        for kk in kwargs:
+            if isinstance(kwargs[kk], str):
+                self[kk] = _eval(kwargs[kk])
+            else:
+                self[kk] = kwargs[kk]
 
 class ActionVars(Action):
 
