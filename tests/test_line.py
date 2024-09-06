@@ -656,17 +656,25 @@ def test_from_json_to_json(tmp_path):
     }
     line.metadata = example_metadata
 
+    def asserts():
+        assert len(result.element_dict.keys()) == 2
+        assert result.element_names == ['m', 'd', 'm', 'd']
+
+        assert isinstance(result['m'], xt.Multipole)
+        assert (result['m'].knl == [1, 2]).all()
+
+        assert isinstance(result['d'], xt.Drift)
+        assert result['d'].length == 1
+
+        assert result.metadata == example_metadata
+        result.metadata['qx']['lhcb1'] = result.metadata['qx']['lhcb1'] + 1
+        assert result.metadata != example_metadata
+        result.metadata['qx']['lhcb1'] = result.metadata['qx']['lhcb1'] - 1
+
     line.to_json(tmp_path / 'test.json')
     result = xt.Line.from_json(tmp_path / 'test.json')
 
-    assert len(result.element_dict.keys()) == 2
-    assert result.element_names == ['m', 'd', 'm', 'd']
-
-    assert isinstance(result['m'], xt.Multipole)
-    assert (result['m'].knl == [1, 2]).all()
-
-    assert isinstance(result['d'], xt.Drift)
-    assert result['d'].length == 1
+    asserts()
 
     with open(tmp_path / 'test2.json', 'w') as f:
         line.to_json(f)
@@ -674,18 +682,24 @@ def test_from_json_to_json(tmp_path):
     with open(tmp_path / 'test2.json', 'r') as f:
         result = xt.Line.from_json(f)
 
-    assert len(result.element_dict.keys()) == 2
-    assert result.element_names == ['m', 'd', 'm', 'd']
+    asserts()
 
-    assert isinstance(result['m'], xt.Multipole)
-    assert (result['m'].knl == [1, 2]).all()
+    with open(tmp_path / 'test2.json', 'w') as f:
+        line.to_json(f,indent=None)
 
-    assert isinstance(result['d'], xt.Drift)
-    assert result['d'].length == 1
+    with open(tmp_path / 'test2.json', 'r') as f:
+        result = xt.Line.from_json(f)
 
-    assert result.metadata == example_metadata
-    result.metadata['qx']['lhcb1'] = result.metadata['qx']['lhcb1'] + 1
-    assert result.metadata != example_metadata
+    asserts()
+
+    with open(tmp_path / 'test2.json.gz', 'w') as f:
+        line.to_json(f,indent=2)
+
+    with open(tmp_path / 'test2.json.gz', 'r') as f:
+        result = xt.Line.from_json(f)
+
+    asserts()
+
 
 @for_all_test_contexts
 def test_config_propagation(test_context):
