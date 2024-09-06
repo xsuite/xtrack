@@ -2821,7 +2821,6 @@ class TwissInit:
                       'x_norm': x_norm, 'px_norm': px_norm, 'y_norm': y_norm,
                       'py_norm': py_norm, 'zeta_norm': zeta_norm,
                       'pzeta_norm': pzeta_norm}, index='particle_id')
-    
 
     @property
     def betx(self):
