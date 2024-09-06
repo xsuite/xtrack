@@ -3831,7 +3831,7 @@ def _reverse_strengths(out):
     for kk in SIGN_FLIP_FOR_ATTR_REVERSE:
         if kk not in out:
             val=out[kk]
-            val*=1
+            val*=-1
 
 def _W_phys2norm(x, px, y, py, zeta, pzeta, W_matrix, co_dict, nemitt_x=None, nemitt_y=None, nemitt_zeta=None):
 
