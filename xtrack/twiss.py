@@ -2774,15 +2774,15 @@ class TwissInit:
         else:
             self.__dict__[name] = value
 
-    def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None, 
+    def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None,
                                    nemitt_zeta=None):
-        
+
         ctx2np = particles._context.nparray_from_context_array
-        
+
         part_id = ctx2np(particles.particle_id).copy()
         at_element = ctx2np(particles.at_element).copy()
         at_turn = ctx2np(particles.at_element).copy()
-        x_norm = ctx2np(particles.x).copy() 
+        x_norm = ctx2np(particles.x).copy()
         px_norm = x_norm.copy()
         y_norm = x_norm.copy()
         py_norm = x_norm.copy()
