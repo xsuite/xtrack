@@ -737,7 +737,7 @@ class Line:
 
         tab = xt.Table(out)
         if reverse:
-            xt.twiss._reverse_strengths(tab) # Change signs
+            xt.twiss._reverse_strengths(tab._data) # Change signs
 
         tab._data['reference_frame'] = {
             True: 'reverse', False: 'proper'}[reverse]
