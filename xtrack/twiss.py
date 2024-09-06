@@ -3810,27 +3810,9 @@ def _find_closed_orbit_search_t_rev(line, num_turns_search_t_rev=None):
 
 def _reverse_strengths(out):
     ### Same convention as in MAD-X for reversing strengths
-    ##for kk in NORMAL_STRENGTHS_FROM_ATTR:
-    ##    if kk not in out._col_names:
-    ##        continue
-    ##    ii = int(kk.split('k')[-1].split('l')[0])
-    ##    out[kk] *= (-1)**(ii+1)
-
-    ##for kk in SKEW_STRENGTHS_FROM_ATTR:
-    ##    if kk not in out._col_names:
-    ##        continue
-    ##    ii = int(kk.split('k')[-1].split('sl')[0])
-    ##    out[kk] *= (-1)**ii
-
-    ##if 'vkick' in out._col_names:
-    ##    out['vkick'] *= -1
-
-    ##if 'angle_rad' in out._col_names:
-    ##    out['angle_rad'] *= -1
-
     for kk in SIGN_FLIP_FOR_ATTR_REVERSE:
-        if kk not in out:
-            val=out[kk]
+        if kk in out:
+            val=out[kk] #avoid passing by setitem
             val*=-1
 
 def _W_phys2norm(x, px, y, py, zeta, pzeta, W_matrix, co_dict, nemitt_x=None, nemitt_y=None, nemitt_zeta=None):
