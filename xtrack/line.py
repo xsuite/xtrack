@@ -635,7 +635,7 @@ class Line:
 
         '''
 
-        json_utils.to_json(file, self.to_dict(**kwargs), indent=indent)
+        json_utils.to_json(self.to_dict(**kwargs), file, indent=indent)
 
     def _to_table_dict(self):
 
