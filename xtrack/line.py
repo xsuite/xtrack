@@ -3434,7 +3434,7 @@ class Line:
             if isinstance(rr, xd.refs.AttrRef):
                 setattr(self.element_refs[name], rr._key, rr._expr)
             elif isinstance(rr, xd.refs.ItemRef):
-                rr._owner[rr._key] = rr._expr
+                getattr(self.element_refs[name], rr._owner._key)[rr._key] = rr._expr
 
     def replace_all_replicas(self):
         for nn in self.element_names:
