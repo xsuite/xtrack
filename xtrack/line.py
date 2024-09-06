@@ -3317,7 +3317,7 @@ class Line:
         names_map_line.append(ele_cut_sorted[-1])
         elements_map_line.append(self[ele_cut_sorted[-1]])
 
-        line_maps = xt.Line(elements=elements_map_line, element_names=names_map_line)
+        line_maps = Line(elements=elements_map_line, element_names=names_map_line)
         line_maps.particle_ref = self.particle_ref.copy()
 
         return line_maps
@@ -3415,11 +3415,8 @@ class Line:
             if isinstance(self[nn], xt.Replica):
                 self.replace_replica(nn)
 
-    def new_section(self, components, name=None):
-        return Section(self, components, name=name)
-
-    def append(self, section):
-        self.element_names += section.components
+    def extend(self, line):
+        self.element_names.extend(line.element_names)
 
     def __len__(self):
         return len(self.element_names)
@@ -4629,7 +4626,7 @@ class LineVars:
         defined_vars = set(mad.globals.keys())
 
         xt.general._print.suppress = True
-        dummy_line = xt.Line.from_madx_sequence(mad.sequence.dummy,
+        dummy_line = Line.from_madx_sequence(mad.sequence.dummy,
                                                 deferred_expressions=True)
         xt.general._print.suppress = False
 
@@ -5058,3 +5055,42 @@ def _rot_s_from_attr(attr):
         parent_cos_rot_s[has_parent_rot]) * attr._rot_and_shift_from_parent[has_parent_rot]
 
     return rot_s_rad
+
+def _flatten_components(components):
+    flatten_components = []
+    for nn in components:
+        if isinstance(nn, Line):
+            flatten_components += nn.element_names
+        else:
+            flatten_components.append(nn)
+    return flatten_components
+
+class Environment:
+    def __init__(self, element_dict=None, particle_ref=None):
+        self._element_dict = element_dict or {}
+        self.particle_ref = particle_ref
+
+        self._init_var_management()
+
+    def new_line(self, components, name=None):
+        out = Line()
+        out.particle_ref = self.particle_ref
+        out.line = self
+        out._element_dict = self.element_dict # Avoid copying
+        out.element_names = _flatten_components(components)
+        out._var_management = self._var_management
+        out._name = name
+
+        return out
+
+Environment.element_dict = Line.element_dict
+Environment._init_var_management = Line._init_var_management
+Environment._xdeps_vref = Line._xdeps_vref
+Environment._xdeps_fref = Line._xdeps_fref
+Environment._xdeps_manager = Line._xdeps_manager
+Environment._xdeps_eval = Line._xdeps_eval
+Environment.element_refs = Line.element_refs
+Environment.vars = Line.vars
+Environment.varval = Line.varval
+Environment.vv = Line.vv
+Environment.new_element = Line.new_element

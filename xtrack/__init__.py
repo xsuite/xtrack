@@ -12,7 +12,7 @@ from .base_element import BeamElement, Replica
 from .beam_elements import *
 from .random import *
 from .tracker_data import TrackerData
-from .line import Line, Node, freeze_longitudinal, _temp_knobs, EnergyProgram
+from .line import Line, Node, freeze_longitudinal, _temp_knobs, EnergyProgram, Environment
 from .tracker import Tracker, Log
 from .match import (Vary, Target, TargetList, VaryList, TargetInequality, Action,
                     TargetRelPhaseAdvance, TargetSet, GreaterThan, LessThan,
