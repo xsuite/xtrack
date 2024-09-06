@@ -3,10 +3,8 @@
 # Copyright (c) CERN, 2023.                 #
 # ######################################### #
 
-import io
 import math
 import logging
-import json
 import uuid
 import os
 from collections import defaultdict
@@ -21,6 +19,7 @@ import numpy as np
 from scipy.constants import c as clight
 
 from . import linear_normal_form as lnf
+from .. import json_utils
 
 import xobjects as xo
 import xtrack as xt
@@ -235,6 +234,7 @@ class Line:
         ----------
         file : str or file-like object
             Path to the json file or file-like object.
+            If filename ends with '.gz' file is decompressed.
         **kwargs : dict
             Additional keyword arguments passed to `Line.from_dict`.
 
@@ -245,11 +245,7 @@ class Line:
 
         """
 
-        if isinstance(file, io.IOBase):
-            dct = json.load(file)
-        else:
-            with open(file, 'r') as fid:
-                dct = json.load(fid)
+        dct = json_utils.from_json(file)
 
         if 'line' in dct.keys():
             dct_line = dct['line']
@@ -626,7 +622,7 @@ class Line:
         self.__dict__.update(state)
 
 
-    def to_json(self, file, **kwargs):
+    def to_json(self, file, indent=1, **kwargs):
         '''Save the line to a json file.
 
         Parameters
@@ -639,11 +635,7 @@ class Line:
 
         '''
 
-        if isinstance(file, io.IOBase):
-            json.dump(self.to_dict(**kwargs), file, cls=xo.JEncoder)
-        else:
-            with open(file, 'w') as fid:
-                json.dump(self.to_dict(**kwargs), fid, cls=xo.JEncoder)
+        json_utils.to_json(file, self.to_dict(**kwargs), indent=indent)
 
     def _to_table_dict(self):
 
