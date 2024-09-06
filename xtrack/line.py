@@ -3387,7 +3387,7 @@ class Line:
         new_element_names = []
         for nn in self.element_names:
             new_nn = nn + '.' + name
-            self.line.element_dict[new_nn] = xt.Replica(nn)
+            self.element_dict[new_nn] = xt.Replica(nn)
             new_element_names.append(new_nn)
         out = Line()
         out.element_names = new_element_names
@@ -5072,11 +5072,13 @@ class Environment:
 
         self._init_var_management()
 
-    def new_line(self, components, name=None):
+    def new_line(self, components=None, name=None):
         out = Line()
         out.particle_ref = self.particle_ref
         out.line = self
         out._element_dict = self.element_dict # Avoid copying
+        if components is None:
+            components = []
         out.element_names = _flatten_components(components)
         out._var_management = self._var_management
         out._name = name
