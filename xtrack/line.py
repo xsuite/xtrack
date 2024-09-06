@@ -3379,6 +3379,26 @@ class Line:
 
         return name
 
+    def mirror(self):
+        self._frozen_check()
+        self.element_names = list(reversed(self.element_names))
+
+    def replicate(self, name, mirror=False):
+        new_element_names = []
+        for nn in self.element_names:
+            new_nn = nn + '.' + name
+            self.line.element_dict[new_nn] = xt.Replica(nn)
+            new_element_names.append(new_nn)
+        out = Line()
+        out.element_names = new_element_names
+        out._element_dict = self.element_dict # to make sure that the dict is not copied
+        out._name = name
+
+        if mirror:
+            out.mirror()
+
+        return out
+
     def replace_replica(self, name):
         name_parent = self[name].resolve(self, get_name=True)
         self.element_dict[name] = self[name_parent].copy()
@@ -3442,7 +3462,7 @@ class Line:
                 if vv is self:
                     return kk
         else:
-            return None
+            return getattr(self, '_name', None)
 
     @property
     def iscollective(self):
@@ -5038,53 +5058,3 @@ def _rot_s_from_attr(attr):
         parent_cos_rot_s[has_parent_rot]) * attr._rot_and_shift_from_parent[has_parent_rot]
 
     return rot_s_rad
-
-def _flatten_components(components):
-    flatten_components = []
-    for nn in components:
-        if isinstance(nn, Section):
-            flatten_components += _flatten_components(nn.components)
-        else:
-            flatten_components.append(nn)
-    return flatten_components
-
-class Section(Line):
-    def __init__(self, line, components, name=None):
-        self.line = line
-        xt.Line.__init__(self, elements=line.element_dict,
-                         element_names=_flatten_components(components))
-        self._element_dict = line.element_dict # Avoid copying
-        self._var_management = line._var_management
-        self._name = name
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def particle_ref(self):
-        return self.line.particle_ref
-
-    @particle_ref.setter
-    def particle_ref(self, value):
-        assert value is None
-
-    @property
-    def components(self):
-        return self.element_names
-
-    def mirror(self):
-        self.element_names = self.element_names[::-1]
-
-    def replicate(self, name, mirror=False):
-        new_components = []
-        for nn in self.components:
-            new_nn = nn + '.' + name
-            self.line.element_dict[new_nn] = xt.Replica(nn)
-            new_components.append(new_nn)
-        out = Section(self.line, new_components, name=name)
-
-        if mirror:
-            out.mirror()
-
-        return out
