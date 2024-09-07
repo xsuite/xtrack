@@ -20,6 +20,8 @@ env.vars({
     'l.mb': 12,
     'angle.mb': 2 * np.pi / n_bends,
     'k0.mb': 'angle.mb / l.mb',
+    'k0l.corrector': 0,
+    'k1sl.corrector': 0,
 })
 
 halfcell = env.new_line(components=[
@@ -39,8 +41,12 @@ hcell_right = halfcell.replicate(name='r', mirror=True)
 
 cell = env.new_line(components=[
     env.new_element('start', xt.Marker),
+    env.new_element('corrector.l', xt.Multipole, knl=['k0l.corrector', 0],
+                                                 ksl=[0, 'k1sl.corrector']),
     hcell_left,
     env.new_element('mid', xt.Marker),
+    env.new_element('corrector.v', xt.Multipole, knl=['k0l.corrector', 0],
+                                                 ksl=[0, 'k1sl.corrector']),
     hcell_right,
     env.new_element('end', xt.Marker),
 ])
@@ -151,16 +157,11 @@ env.vars({
     'kqdss.1': 'k1l.qdss / l.mq',
     'angle.mb': 2 * np.pi / n_bends,
     'k0.mb': 'angle.mb / l.mb',
-    'k0l.corrector': 0.,
-    'k1sl.corrector': 0.,
-
 })
 cell_ss = env.new_line(components=[
     env.new_element('ss.start', xt.Marker),
     env.new_element('dd.ss.1.l', xt.Drift,        length='l.mq'),
     env.new_element('qfss.l',    xt.Quadrupole, k1='kqfss.1', length='l.mq'),
-    env.new_element('corrector.l', xt.Multipole, knl=['k0l.corrector', 0],
-                    ksl=[0, 'k1sl.corrector'], length='l.mq'),
 
     env.new_element('dd.ss.3.l', xt.Drift,        length='3 *l.mb'),
 
