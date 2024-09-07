@@ -10,6 +10,7 @@ import json
 import uuid
 import os
 from collections import defaultdict
+from weakref import WeakSet
 
 from contextlib import contextmanager
 from copy import deepcopy
@@ -841,12 +842,16 @@ class Line:
                                 enable_pipeline_hold=enable_pipeline_hold,
                                 **kwargs)
 
+        if hasattr(self, 'env') and self.env is not None:
+            self.env._ensure_tracker_consistency(buffer=self._buffer)
+
         return self.tracker
 
     @property
     def attr(self):
 
-        self._check_valid_tracker()
+        if not self._has_valid_tracker():
+            self.build_tracker()
 
         if ('attr' not in self.tracker._tracker_data_base.cache.keys()
                 or self.tracker._tracker_data_base.cache['attr'] is None):
@@ -5097,19 +5102,26 @@ class Environment:
         self.particle_ref = particle_ref
 
         self._init_var_management()
+        self._lines = WeakSet()
 
     def new_line(self, components=None, name=None):
         out = Line()
         out.particle_ref = self.particle_ref
-        out.line = self
+        out.env = self
         out._element_dict = self.element_dict # Avoid copying
         if components is None:
             components = []
         out.element_names = _flatten_components(components)
         out._var_management = self._var_management
         out._name = name
+        self._lines.add(out)
 
         return out
+
+    def _ensure_tracker_consistency(self, buffer):
+        for ln in self._lines:
+            if ln._has_valid_tracker() and ln._buffer is not buffer:
+                ln.discard_tracker()
 
 Environment.element_dict = Line.element_dict
 Environment._init_var_management = Line._init_var_management
