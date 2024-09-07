@@ -410,7 +410,8 @@ class TrajectoryCorrection:
             self.y_correction = None
 
     def correct(self, planes=None, n_micado=None, n_singular_values=None,
-                rcond=None, n_iter='auto', verbose=True, stop_iter_factor=0.1):
+                rcond=None, n_iter='auto', verbose=True, stop_iter_factor=0.1,
+                tol_position_std=1e-10):
 
         '''
         Correct the trajectory in the horizontal and/or vertical plane.
@@ -499,12 +500,14 @@ class TrajectoryCorrection:
             if n_iter == 'auto' and self.x_correction is not None and 'x' in planes:
                 new_position = self.x_correction._measure_position(tw_orbit)
                 old_position = self.x_correction._measure_position(tw_orbit_prev)
-                stop_x = new_position.std() > (1. - stop_iter_factor) * old_position.std()
+                stop_x = (new_position.std() < tol_position_std or
+                    new_position.std() > (1. - stop_iter_factor) * old_position.std())
 
             if n_iter == 'auto' and self.y_correction is not None and 'y' in planes:
                 new_position = self.y_correction._measure_position(tw_orbit)
                 old_position = self.y_correction._measure_position(tw_orbit_prev)
-                stop_y = new_position.std() > (1. - stop_iter_factor) * old_position.std()
+                stop_y = (new_position.std() < tol_position_std or
+                    new_position.std() > (1. - stop_iter_factor) * old_position.std())
 
             if verbose:
                 str_2print = f'Iteration {i_iter}, '
