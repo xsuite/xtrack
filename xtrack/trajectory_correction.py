@@ -6,14 +6,17 @@ def _compute_correction(x_iter, response_matrix, n_micado=None, rcond=None,
 
     if isinstance(response_matrix, (list, tuple)):
         assert len(response_matrix) == 3 # U, S, Vt
-        U, S, Vt = response_matrix
+        U, S, Vh = response_matrix
         if n_singular_values is not None:
             U = U[:, :n_singular_values]
             S = S[:n_singular_values]
-            Vt = Vt[:n_singular_values, :]
-        response_matrix = U @ np.diag(S) @ Vt
+            Vh = Vh[:n_singular_values, :]
+        response_matrix = U @ np.diag(S) @ Vh
     else:
         assert n_singular_values is None
+        U = None
+        S = None
+        Vh = None
 
     n_hcorrectors = response_matrix.shape[1]
 
@@ -45,8 +48,14 @@ def _compute_correction(x_iter, response_matrix, n_micado=None, rcond=None,
         mask_corr[:] = True
 
     # Compute the correction with least squares
-    correction_masked, residual_x, rank_x, sval_x = np.linalg.lstsq(
-                response_matrix[:, mask_corr], -x_iter, rcond=rcond)
+    if mask_corr.all() and S is not None:
+        S_inv = 1 / S
+        if rcond is not None:
+            S_inv[S < rcond * S[0]] = 0
+        correction_masked = Vh.T.conj() @ (np.diag(S_inv) @ (U.T.conj() @ (-x_iter)))
+    else:
+        correction_masked, residual_x, rank_x, sval_x = np.linalg.lstsq(
+                    response_matrix[:, mask_corr], -x_iter, rcond=rcond)
     correction_x = np.zeros(n_hcorrectors)
     correction_x[mask_corr] = correction_masked
 
@@ -164,6 +173,7 @@ class OrbitCorrectionSinglePlane:
 
         self._add_correction_knobs()
 
+    @profile
     def correct(self, n_iter='auto', n_micado=None, n_singular_values=None,
                 rcond=None, stop_iter_factor=0.1, verbose=True):
 
