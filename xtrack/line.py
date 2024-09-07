@@ -3428,6 +3428,11 @@ class Line:
 
     def replace_replica(self, name):
         name_parent = self[name].resolve(self, get_name=True)
+        cls = self.element_dict[name].__class__
+        assert cls in [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole, xt.Octupole,
+                       xt.Multipole, xt.Marker, xt.Replica], (
+            'Only Drift, Dipole, Quadrupole, Sextupole, Octupole, Multipole, Marker, and Replica '
+            'elements are allowed in `new_element` for now.')
         self.element_dict[name] = self[name_parent].copy()
 
         pars_with_expr = list(
