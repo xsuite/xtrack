@@ -169,8 +169,10 @@ class OrbitCorrectionSinglePlane:
         self.singular_vectors_out = U
         self.singular_vectors_in = Vt
 
-        self.s_correctors = self.twiss_table.rows[self.corrector_names].s
-        self.s_monitors = self.twiss_table.rows[self.monitor_names].s
+        self._mask_monitors = self.twiss_table.mask[self.monitor_names]
+        self._mask_correctors = self.twiss_table.mask[self.corrector_names]
+        self.s_correctors = self.twiss_table.s[self._mask_correctors]
+        self.s_monitors = self.twiss_table.s[self._mask_monitors]
 
         self._add_correction_knobs()
 
@@ -241,7 +243,7 @@ class OrbitCorrectionSinglePlane:
         if tw_orbit is None:
             tw_orbit = self._compute_tw_orbit()
 
-        position = tw_orbit.rows[self.monitor_names][self.plane]
+        position = tw_orbit[self.plane][self._mask_monitors]
 
         return position
 
