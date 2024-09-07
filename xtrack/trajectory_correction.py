@@ -214,7 +214,7 @@ class OrbitCorrectionSinglePlane:
             if n_iter != 'auto' and i_iter >= n_iter:
                 break
 
-        if _tw_orbit is not None:
+        if _tw_orbit is None:
             position = self._measure_position()
             self._position_after = position
             if verbose:
@@ -509,11 +509,15 @@ class TrajectoryCorrection:
             if verbose:
                 str_2print = f'Iteration {i_iter}, '
                 if self.x_correction is not None and 'x' in planes:
-                    str_2print += (f'x_rms: {self.x_correction._position_before.std():.2e}'
-                        f' -> {self.x_correction._position_after.std():.2e}, ')
+                    new_position = self.x_correction._measure_position(tw_orbit)
+                    old_position = self.x_correction._measure_position(tw_orbit_prev)
+                    str_2print += (f'x_rms: {old_position.std():.2e}'
+                        f' -> {new_position.std():.2e}, ')
                 if self.y_correction is not None and 'y' in planes:
-                    str_2print += (f'y_rms: {self.y_correction._position_before.std():.2e}'
-                        f' -> {self.y_correction._position_after.std():.2e}')
+                    new_position = self.y_correction._measure_position(tw_orbit)
+                    old_position = self.y_correction._measure_position(tw_orbit_prev)
+                    str_2print += (f'y_rms: {old_position.std():.2e}'
+                        f' -> {new_position.std():.2e}')
                 print(str_2print)
             if stop_x and stop_y:
                 break
