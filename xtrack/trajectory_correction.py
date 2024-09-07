@@ -216,7 +216,7 @@ class OrbitCorrectionSinglePlane:
             print(
                 f'Trajectory correction - iter {i_iter}, rms: {position.std()}')
 
-    def _measure_position(self):
+    def _compute_tw_orbit(self):
         if self.mode == 'open':
             # Initialized with betx=1, bety=1 (use W_matrix to avoid compilation)
             twinit = xt.TwissInit(W_matrix=np.eye(6),
@@ -227,6 +227,12 @@ class OrbitCorrectionSinglePlane:
             twinit = None
         tw_orbit = self.line.twiss4d(only_orbit=True, start=self.start, end=self.end,
                                      init=twinit, reverse=False)
+        return tw_orbit
+
+    def _measure_position(self, tw_orbit=None):
+
+        if tw_orbit is None:
+            tw_orbit = self._compute_tw_orbit()
 
         position = tw_orbit.rows[self.monitor_names][self.plane]
 
