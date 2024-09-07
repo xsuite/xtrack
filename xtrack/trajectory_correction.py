@@ -173,7 +173,6 @@ class OrbitCorrectionSinglePlane:
 
         self._add_correction_knobs()
 
-    @profile
     def correct(self, n_iter='auto', n_micado=None, n_singular_values=None,
                 rcond=None, stop_iter_factor=0.1, verbose=True):
 
