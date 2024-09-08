@@ -167,9 +167,14 @@ class SurveyTable(Table):
 
         return out
 
-    def plot(self, **kwargs):
+    def plot(self, element_width=None, **kwargs):
+        if element_width is None:
+            x_range = max(self.X) - min(self.X)
+            y_range = max(self.Y) - min(self.Y)
+            z_range = max(self.Z) - min(self.Z)
+            element_width = max([x_range, y_range, z_range]) * 0.03
         import xplt
-        xplt.FloorPlot(self, self.line, **kwargs)
+        xplt.FloorPlot(self, self.line, element_width=element_width, **kwargs)
 
 
 # ==================================================
