@@ -70,11 +70,13 @@ def _build_response_matrix(tw, monitor_names, corrector_names,
     assert plane in ['x', 'y']
 
     # Build response matrix
-    bet_monitors = tw.rows[monitor_names]['bet' + plane]
-    bet_correctors = tw.rows[corrector_names]['bet' + plane]
+    mask_monitors = tw.mask[monitor_names]
+    mask_correctors = tw.mask[corrector_names]
+    bet_monitors = tw['bet' + plane][mask_monitors]
+    bet_correctors = tw['bet' + plane][mask_correctors]
 
-    mu_monitor = tw.rows[monitor_names]['mu' + plane]
-    mux_correctors = tw.rows[corrector_names]['mu' + plane]
+    mu_monitor = tw['mu' + plane][mask_monitors]
+    mux_correctors = tw['mu' + plane][mask_correctors]
 
     n_monitors = len(monitor_names)
     n_correctors = len(corrector_names)
@@ -169,10 +171,11 @@ class OrbitCorrectionSinglePlane:
         self.singular_vectors_out = U
         self.singular_vectors_in = Vt
 
-        self._mask_monitors = self.twiss_table.mask[self.monitor_names]
-        self._mask_correctors = self.twiss_table.mask[self.corrector_names]
-        self.s_correctors = self.twiss_table.s[self._mask_correctors]
-        self.s_monitors = self.twiss_table.s[self._mask_monitors]
+        tw_table_local = self.twiss_table.rows[self.start:self.end]
+        self._mask_monitors = tw_table_local.mask[self.monitor_names]
+        self._mask_correctors = tw_table_local.mask[self.corrector_names]
+        self.s_correctors = tw_table_local.s[self._mask_correctors]
+        self.s_monitors = tw_table_local.s[self._mask_monitors]
 
         self._add_correction_knobs()
 
@@ -666,12 +669,15 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
 
         if verbose:
             ocprint = ocorr_only_added_part
+            tw_orbit_print = ocprint.x_correction._compute_tw_orbit()
+            x_meas_print = ocprint.x_correction._measure_position(tw_orbit_print)
+            y_meas_print = ocprint.y_correction._measure_position(tw_orbit_print)
             str_2print = f'Stop at s={s_corr_end}, '
             str_2print += 'local rms  = ['
             str_2print += (f'x: {ocprint.x_correction._position_before.std():.2e}'
-                f' -> {ocprint.x_correction._position_after.std():.2e}, ')
+                f' -> {x_meas_print.std():.2e}, ')
             str_2print += (f'y: {ocprint.y_correction._position_before.std():.2e}'
-                f' -> {ocprint.y_correction._position_after.std():.2e}]')
+                f' -> {y_meas_print.std():.2e}]')
             print(str_2print)
 
         # Correct from start line to end of new added portion
@@ -688,12 +694,15 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
 
         if verbose:
             ocprint = ocorr
+            tw_orbit_print = ocprint.x_correction._compute_tw_orbit()
+            x_meas_print = ocprint.x_correction._measure_position(tw_orbit_print)
+            y_meas_print = ocprint.y_correction._measure_position(tw_orbit_print)
             str_2print = f'Stop at s={s_corr_end}, '
             str_2print += 'global rms = ['
             str_2print += (f'x: {ocprint.x_correction._position_before.std():.2e}'
-                f' -> {ocprint.x_correction._position_after.std():.2e}, ')
+                f' -> {x_meas_print.std():.2e}, ')
             str_2print += (f'y: {ocprint.y_correction._position_before.std():.2e}'
-                f' -> {ocprint.y_correction._position_after.std():.2e}]')
+                f' -> {y_meas_print.std():.2e}]')
             print(str_2print)
 
         s_corr_end += ds_thread
