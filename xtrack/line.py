@@ -3451,6 +3451,22 @@ class Line:
             if isinstance(self[nn], xt.Replica):
                 self.replace_replica(nn)
 
+    def get_section(self, start=None, end=None, name=None):
+
+        tt = self.get_table().rows[start:end]
+        if tt.name[-1] == '_end_point':
+            tt = tt.rows[:-1]
+        if not hasattr(self, 'env') or self.env is None:
+            self.env = xt.Environment(element_dict=self.element_dict,
+                                      particle_ref=self.particle_ref,
+                                      _var_management=self._var_management)
+            self.env._lines.add(self)
+
+        out = self.env.new_line(components=list(tt.name), name=name)
+
+        return out
+
+
     def extend(self, line):
         self.element_names.extend(line.element_names)
 
@@ -5102,11 +5118,15 @@ def _flatten_components(components):
     return flatten_components
 
 class Environment:
-    def __init__(self, element_dict=None, particle_ref=None):
+    def __init__(self, element_dict=None, particle_ref=None, _var_management=None):
         self._element_dict = element_dict or {}
         self.particle_ref = particle_ref
 
-        self._init_var_management()
+        if _var_management is not None:
+            self._var_management = _var_management
+        else:
+            self._init_var_management()
+
         self._lines = WeakSet()
 
     def new_line(self, components=None, name=None):

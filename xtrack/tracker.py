@@ -26,10 +26,6 @@ from .tracker_data import TrackerData
 
 logger = logging.getLogger(__name__)
 
-
-
-
-
 class Tracker:
 
     '''
