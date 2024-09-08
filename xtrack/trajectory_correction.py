@@ -49,6 +49,7 @@ def _compute_correction(x_iter, response_matrix, n_micado=None, rcond=None,
 
     # Compute the correction with least squares
     if mask_corr.all() and S is not None:
+        # Can reuse the SVD decomposition
         S_inv = np.zeros_like(S)
         S_inv[S > 0] = 1 / S[S > 0]
         if rcond is not None:
