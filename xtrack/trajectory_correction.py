@@ -171,7 +171,18 @@ class OrbitCorrectionSinglePlane:
         self.singular_vectors_out = U
         self.singular_vectors_in = Vt
 
-        tw_table_local = self.twiss_table.rows[self.start:self.end]
+        # tw_table_local = self.twiss_table.rows[self.start:self.end]
+        # Parch: avoid issue with regular expression
+        if self.start is not None:
+            start = self.start.replace('$', '\\$')
+        else:
+            start = None
+        if self.end is not None:
+            end = self.end.replace('$', '\\$')
+        else:
+            end = None
+        tw_table_local = self.twiss_table.rows[start:end]
+
         self._mask_monitors = tw_table_local.mask[self.monitor_names]
         self._mask_correctors = tw_table_local.mask[self.corrector_names]
         self.s_correctors = tw_table_local.s[self._mask_correctors]
