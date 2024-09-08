@@ -10,7 +10,6 @@ n_arcs = 3
 
 n_bends = n_bends_per_cell * n_cells_par_arc * n_arcs
 
-
 env.vars({
     'k1l.qf': 0.027 / 2,
     'k1l.qd': -0.0271 / 2,

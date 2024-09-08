@@ -167,6 +167,11 @@ class SurveyTable(Table):
 
         return out
 
+    def plot(self, **kwargs):
+        import xplt
+        xplt.FloorPlot(self, self.line, **kwargs)
+
+
 # ==================================================
 
 # Main function
@@ -224,6 +229,7 @@ def survey_from_line(line, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
 
     out = SurveyTable(data={**out_columns, **out_scalars},  # this is a merge
                       col_names=out_columns.keys())
+    out._data['line'] = line
 
     return out
 
