@@ -63,7 +63,7 @@ s_meas = tw_meas.rows[monitor_names].s
 n_micado = None
 
 for iter in range(5):
-    orbit_correction.correct(n_singular_values=200)
+    orbit_correction.correct(rcond=1e-5)
 
     tw_after = line.twiss4d(only_orbit=True)
     print(f'max x: {tw_after.x.max()}    max y: {tw_after.y.max()}, rms x: {tw_after.x.std()}    rms y: {tw_after.y.std()}')
