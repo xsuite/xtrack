@@ -29,8 +29,8 @@ mbx = env.new_element('mbxw', xt.Bend, k0='k0.mb', h=0, length='l.mbxw')
 d1 = env.new_line('d1', components=[
     env.new_element('lmbxw.start',   parent=xt.Marker), # shortcut env.new_element('lmbxw.start')
     env.new_element('mbxw.a4@start', parent=xt.Replica, parent_name='mbxw', at=0.5),
-    env.new_element('mbxw.b4@start', parent='mbxw', _from='mbxw.a4@end'),
-    env.new_element('lmbxw.end',     parent=xt.Marker, at=0.5, _from='mbxw.b4@end'),
+    env.new_element('mbxw.b4@start', parent='mbxw', from_='mbxw.a4@end'),
+    env.new_element('lmbxw.end',     parent=xt.Marker, at=0.5, from_='mbxw.b4@end'),
 ])
 
 d2 = env.new_element('d2.b1', xt.Bend, k0='k0.mb', h=0, length='l.mbxw', dx=0.188/2)
@@ -61,3 +61,15 @@ lhc = env.new_line(components=[
 
 
 ])
+
+seq = [
+    Place(env.new_element('ip', xt.Marker), at=10),
+    Place(env.new_element('left', xt.Quadrupole, length=1), at=-5, from_='ip'),
+    env.new_element('after_left', xt.Marker),
+    env.new_element('after_left2', xt.Marker),
+    Place(env.new_element('right',xt.Quadrupole, length=1), at=+5, from_='ip'),
+    Place([env.new_element('before_right', xt.Quadrupole, length=1),
+           env.new_element('before_right2', xt.Marker)], at=0, from_='right@start',
+           anchor='before_right@center'),
+    Place(env.new_element('righter', xt.Quadrupole, length=1), at=+5, from_='before_right'),
+]
