@@ -18,6 +18,7 @@ class Place:
         self.from_ = from_
         self.anchor = anchor
         self.from_anchor = from_anchor
+        self._before = False
 
 env = xt.Environment()
 
@@ -31,11 +32,24 @@ seq = [
         env.new_element('after_right', xt.Marker),
         env.new_element('after_right2', xt.Marker),
     ),
-    Place(env.new_element('before_left', xt.Marker), at='__before__'),
     Place(env.new_element('left', xt.Quadrupole, length=1), at=-5, from_='ip'),
     env.new_element('after_left', xt.Marker),
     env.new_element('after_left2', xt.Marker),
 ]
+
+# seq = [
+#     Place(env.new_element('ip', xt.Marker), at=10),
+#     # Place(env.new_element('right',xt.Quadrupole, length=1), at=+5, from_='ip'),
+#     env.new_element('before_before_right', xt.Marker, at='__before__'),
+#     env.new_element('before_right', xt.Quadrupole, length=1, at='__before__'),
+#     Place(env.new_element('right',xt.Quadrupole, length=1), at=+5, from_='ip'),
+#     env.new_element('after_right', xt.Marker),
+#     env.new_element('after_right2', xt.Marker),
+#     Place(env.new_element('before_left', xt.Marker), at='__before__'),
+#     Place(env.new_element('left', xt.Quadrupole, length=1), at=-5, from_='ip'),
+#     env.new_element('after_left', xt.Marker),
+#     env.new_element('after_left2', xt.Marker),
+# ]
 
 def _all_places(seq):
     seq_all_places = []
@@ -53,7 +67,7 @@ def _all_places(seq):
                 raise ValueError('No Place in sequence')
             ss_aux = _all_places(ss)
             for ii in range(i_first):
-                ss_aux[ii].at = '__before__'
+                ss_aux[ii]._before = True
             seq_all_places.extend(ss_aux)
         else:
             seq_all_places.append(Place(ss, at=None, from_=None))
@@ -75,14 +89,14 @@ while n_resolved != n_resolved_prev:
     for ii, ss in enumerate(seq_all_places):
         if ss.name in s_center_dct:
             continue
-        if ss.at is None or ss.at == '__after__':
+        if ss.at is None:
             ss_prev = seq_all_places[ii-1]
             if ss_prev.name in s_center_dct:
                 s_center_dct[ss.name] = (s_center_dct[ss_prev.name]
                                          + aux_tt['length', ss_prev.name] / 2
                                          + aux_tt['length', ss.name] / 2)
                 n_resolved += 1
-        elif ss.at == '__before__':
+        elif ss._before:
             ss_next = seq_all_places[ii+1]
             if ss_next.name in s_center_dct:
                 s_center_dct[ss.name] = (s_center_dct[ss_next.name]
