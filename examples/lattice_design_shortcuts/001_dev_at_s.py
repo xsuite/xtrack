@@ -23,8 +23,6 @@ class Place:
     def __repr__(self):
         return f'Place({self.name}, at={self.at}, from_={self.from_})'
 
-
-
 def _all_places(seq):
     seq_all_places = []
     for ss in seq:
