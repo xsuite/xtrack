@@ -26,6 +26,8 @@ class Place:
 env = xt.Environment()
 
 seq = [
+    env.new_element('b1', xt.Bend, length=0.5),
+    env.new_element('q1', xt.Quadrupole, length=0.5),
     Place(env.new_element('ip', xt.Marker), at=10),
     # Place(env.new_element('right',xt.Quadrupole, length=1), at=+5, from_='ip'),
     (
@@ -73,6 +75,11 @@ aux_tt['length'] = np.diff(aux_tt._data['s'], append=0)
 s_center_dct = {}
 n_resolved = 0
 n_resolved_prev = -1
+
+if seq_all_places[0].at is None and not seq_all_places[0]._before:
+    s_center_dct[seq_all_places[0].name] = aux_tt['length', seq_all_places[0].name] / 2
+    n_resolved += 1
+
 while n_resolved != n_resolved_prev:
     n_resolved_prev = n_resolved
     for ii, ss in enumerate(seq_all_places):
