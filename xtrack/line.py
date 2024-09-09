@@ -3451,7 +3451,13 @@ class Line:
             if isinstance(self[nn], xt.Replica):
                 self.replace_replica(nn)
 
-    def get_section(self, start=None, end=None, name=None):
+    def select(self, start=None, end=None, name=None):
+
+        if start is xt.START:
+            start = None
+
+        if end is xt.END:
+            end = None
 
         tt = self.get_table().rows[start:end]
         if tt.name[-1] == '_end_point':
