@@ -20,6 +20,9 @@ class Place:
         self.from_anchor = from_anchor
         self._before = False
 
+    def __repr__(self):
+        return f'Place({self.name}, at={self.at}, from_={self.from_})'
+
 env = xt.Environment()
 
 seq = [
@@ -27,44 +30,15 @@ seq = [
     # Place(env.new_element('right',xt.Quadrupole, length=1), at=+5, from_='ip'),
     (
         env.new_element('before_before_right', xt.Marker),
-        env.new_element('before_right', xt.Quadrupole, length=1),
+        env.new_element('before_right', xt.Sextupole, length=1),
         Place(env.new_element('right',xt.Quadrupole, length=1), at=+5, from_='ip'),
         env.new_element('after_right', xt.Marker),
         env.new_element('after_right2', xt.Marker),
     ),
     Place(env.new_element('left', xt.Quadrupole, length=1), at=-5, from_='ip'),
     env.new_element('after_left', xt.Marker),
-    env.new_element('after_left2', xt.Marker),
+    env.new_element('after_left2', xt.Bend, length=0.5),
 ]
-
-seq = [
-    Place(env.new_element('ip', xt.Marker), at=10),
-    # Place(env.new_element('right',xt.Quadrupole, length=1), at=+5, from_='ip'),
-    (
-        env.new_element('before_before_right', xt.Marker),
-        env.new_element('before_right', xt.Quadrupole, length=1),
-        Place(env.new_element('right',xt.Quadrupole, length=1), at=+5, from_='ip'),
-        env.new_element('after_right', xt.Marker),
-        env.new_element('after_right2', xt.Marker),
-    ),
-    Place(env.new_element('left', xt.Quadrupole, length=1), at=-5, from_='ip'),
-    env.new_element('after_left', xt.Marker),
-    env.new_element('after_left2', xt.Marker),
-]
-
-# seq = [
-#     Place(env.new_element('ip', xt.Marker), at=10),
-#     # Place(env.new_element('right',xt.Quadrupole, length=1), at=+5, from_='ip'),
-#     env.new_element('before_before_right', xt.Marker, at='__before__'),
-#     env.new_element('before_right', xt.Quadrupole, length=1, at='__before__'),
-#     Place(env.new_element('right',xt.Quadrupole, length=1), at=+5, from_='ip'),
-#     env.new_element('after_right', xt.Marker),
-#     env.new_element('after_right2', xt.Marker),
-#     Place(env.new_element('before_left', xt.Marker), at='__before__'),
-#     Place(env.new_element('left', xt.Quadrupole, length=1), at=-5, from_='ip'),
-#     env.new_element('after_left', xt.Marker),
-#     env.new_element('after_left2', xt.Marker),
-# ]
 
 def _all_places(seq):
     seq_all_places = []
@@ -104,14 +78,14 @@ while n_resolved != n_resolved_prev:
     for ii, ss in enumerate(seq_all_places):
         if ss.name in s_center_dct:
             continue
-        if ss.at is None:
+        if ss.at is None and not ss._before:
             ss_prev = seq_all_places[ii-1]
             if ss_prev.name in s_center_dct:
                 s_center_dct[ss.name] = (s_center_dct[ss_prev.name]
                                          + aux_tt['length', ss_prev.name] / 2
                                          + aux_tt['length', ss.name] / 2)
                 n_resolved += 1
-        elif ss._before:
+        elif ss.at is None and ss._before:
             ss_next = seq_all_places[ii+1]
             if ss_next.name in s_center_dct:
                 s_center_dct[ss.name] = (s_center_dct[ss_next.name]
@@ -142,5 +116,19 @@ tt_sorted['ds_upstream'] = 0 * tt_sorted['s_entry']
 tt_sorted['ds_upstream'][1:] = tt_sorted['s_entry'][1:] - tt_sorted['s_exit'][:-1]
 tt_sorted['ds_upstream'][0] = tt_sorted['s_entry'][0]
 tt_sorted['s'] = tt_sorted['s_center']
-
 assert np.all(tt_sorted.name == np.array(name_sorted))
+
+s_tol = 1e-12
+names_with_drifts = []
+# Create drifts
+for nn in name_sorted:
+    ds_upstream = tt_sorted['ds_upstream', nn]
+    if np.abs(ds_upstream) > s_tol:
+        assert ds_upstream > 0, f'Negative drift length: {ds_upstream}, upstream of {nn}'
+        drift_name = env._get_a_drift_name()
+        drift = env.new_element(drift_name, xt.Drift, length=ds_upstream)
+        names_with_drifts.append(drift_name)
+    names_with_drifts.append(nn)
+
+line = env.new_line(components=names_with_drifts)
+

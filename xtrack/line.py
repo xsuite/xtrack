@@ -5134,6 +5134,7 @@ class Environment:
             self._init_var_management()
 
         self._lines = WeakSet()
+        self._drift_counter = 0
 
     def new_line(self, components=None, name=None):
         out = Line()
@@ -5153,6 +5154,14 @@ class Environment:
         for ln in self._lines:
             if ln._has_valid_tracker() and ln._buffer is not buffer:
                 ln.discard_tracker()
+
+    def _get_a_drift_name(self):
+        self._drift_counter += 1
+        nn = f'drift_{self._drift_counter}'
+        if nn not in self.element_dict:
+            return nn
+        else:
+            return self._get_a_drift_name()
 
 Environment.element_dict = Line.element_dict
 Environment._init_var_management = Line._init_var_management
