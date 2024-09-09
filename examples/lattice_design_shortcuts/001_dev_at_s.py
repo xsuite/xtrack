@@ -128,12 +128,19 @@ while n_resolved != n_resolved_prev:
 
 assert n_resolved == len(seq_all_places)
 
-aux_s = np.array([s_center_dct[nn] for nn in aux_tt.name[:-1]])
+aux_s_center = np.array([s_center_dct[nn] for nn in aux_tt.name[:-1]])
+aux_tt['s_center'] = np.concatenate([aux_s_center, [0]])
 
-i_sorted = np.argsort(aux_s, stable=True)
+i_sorted = np.argsort(aux_s_center, stable=True)
 
 name_sorted = [str(aux_tt.name[ii]) for ii in i_sorted]
 
 tt_sorted = aux_tt.rows[name_sorted]
+tt_sorted['s_entry'] = tt_sorted['s_center'] - tt_sorted['length'] / 2
+tt_sorted['s_exit'] = tt_sorted['s_center'] + tt_sorted['length'] / 2
+tt_sorted['ds_upstream'] = 0 * tt_sorted['s_entry']
+tt_sorted['ds_upstream'][1:] = tt_sorted['s_entry'][1:] - tt_sorted['s_exit'][:-1]
+tt_sorted['ds_upstream'][0] = tt_sorted['s_entry'][0]
+tt_sorted['s'] = tt_sorted['s_center']
 
 assert np.all(tt_sorted.name == np.array(name_sorted))
