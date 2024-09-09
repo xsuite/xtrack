@@ -4,7 +4,7 @@ def _plot_line(line):
     tt = line.get_table(attr=True)
     xt.twiss.TwissTable.plot(tt, yl='', yr='')
 
-class SPlace:
+class Place:
     def __init__(self, name, s, from_=None):
         self.name = name
         self.s = s
@@ -13,9 +13,10 @@ class SPlace:
 env = xt.Environment()
 
 seq = [
-    SPlace(env.new_element('ip', xt.Marker), s=10),
-    SPlace(env.new_element('left', xt.Marker), s=-5, from_='ip'),
-    SPlace(env.new_element('right', xt.Marker),s=+5, from_='ip'),
+    Place(env.new_element('ip', xt.Marker), s=10),
+    Place(env.new_element('left', xt.Marker), s=-5, from_='ip'),
+    env.new_element('after_left', xt.Marker),
+    Place(env.new_element('right', xt.Marker),s=+5, from_='ip'),
 ]
 
 s_dct = {}

@@ -23,6 +23,31 @@ env.vars({
     'k1sl.corrector': 0,
 })
 
+
+env.new_element('drift.1', xt.Drift,      length='l.mq / 2')
+env.new_element('qf',      xt.Quadrupole, k1='kqf.1', length='l.mq')
+env.new_element('drift.2', xt.Replica,    parent_name='drift.1')
+env.new_element('mb.1',    xt.Bend,       k0='k0.mb', h='k0.mb', length='l.mb')
+env.new_element('mb.2',    xt.Replica,    parent_name='mb.1')
+env.new_element('mb.3',    xt.Replica,    parent_name='mb.1')
+env.new_element('drift.3', xt.Replica,    parent_name='drift.1')
+env.new_element('qd',      xt.Quadrupole, k1='kqd.1', length='l.mq')
+env.new_element('drift.4', xt.Replica,    parent_name='drift.1')
+
+halfcell = env.new_line(components=[
+    'drift.1',
+    'qf',
+    'drift.2',
+    'mb.1',
+    'mb.2',
+    'mb.3',
+    'drift.3',
+    'qd',
+    'drift.4',
+])
+
+
+
 halfcell = env.new_line(components=[
     env.new_element('drift.1', xt.Drift,      length='l.mq / 2'),
     env.new_element('qf',      xt.Quadrupole, k1='kqf.1', length='l.mq'),
@@ -49,6 +74,7 @@ cell = env.new_line(components=[
     hcell_right,
     env.new_element('end', xt.Marker),
 ])
+
 
 arc = env.new_line(components=[
     cell.replicate(name='cell.1'),
