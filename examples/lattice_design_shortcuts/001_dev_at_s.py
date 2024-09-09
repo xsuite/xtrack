@@ -37,6 +37,21 @@ seq = [
     env.new_element('after_left2', xt.Marker),
 ]
 
+seq = [
+    Place(env.new_element('ip', xt.Marker), at=10),
+    # Place(env.new_element('right',xt.Quadrupole, length=1), at=+5, from_='ip'),
+    (
+        env.new_element('before_before_right', xt.Marker),
+        env.new_element('before_right', xt.Quadrupole, length=1),
+        Place(env.new_element('right',xt.Quadrupole, length=1), at=+5, from_='ip'),
+        env.new_element('after_right', xt.Marker),
+        env.new_element('after_right2', xt.Marker),
+    ),
+    Place(env.new_element('left', xt.Quadrupole, length=1), at=-5, from_='ip'),
+    env.new_element('after_left', xt.Marker),
+    env.new_element('after_left2', xt.Marker),
+]
+
 # seq = [
 #     Place(env.new_element('ip', xt.Marker), at=10),
 #     # Place(env.new_element('right',xt.Quadrupole, length=1), at=+5, from_='ip'),
@@ -118,3 +133,7 @@ aux_s = np.array([s_center_dct[nn] for nn in aux_tt.name[:-1]])
 i_sorted = np.argsort(aux_s, stable=True)
 
 name_sorted = [str(aux_tt.name[ii]) for ii in i_sorted]
+
+tt_sorted = aux_tt.rows[name_sorted]
+
+assert np.all(tt_sorted.name == np.array(name_sorted))
