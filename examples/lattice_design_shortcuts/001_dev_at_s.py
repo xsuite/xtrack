@@ -109,7 +109,7 @@ def _resolve_s_positions(seq_all_places, env):
 
     return tt_sorted
 
-def _generate_line_with_drifts(env, tt_sorted, s_tol=1e-12):
+def _generate_element_names_with_drifts(env, tt_sorted, s_tol=1e-12):
 
     names_with_drifts = []
     # Create drifts
@@ -122,9 +122,7 @@ def _generate_line_with_drifts(env, tt_sorted, s_tol=1e-12):
             names_with_drifts.append(drift_name)
         names_with_drifts.append(nn)
 
-    line = env.new_line(components=names_with_drifts)
-
-    return line
+    return list(map(str, names_with_drifts))
 
 
 
@@ -154,6 +152,12 @@ seq = [
 
 seq_all_places = _all_places(seq)
 tab_sorted = _resolve_s_positions(seq_all_places, env)
-line = _generate_line_with_drifts(env, tab_sorted)
+names = _generate_element_names_with_drifts(env, tab_sorted)
 
+line = env.new_line(components=names)
 
+import matplotlib.pyplot as plt
+plt.close('all')
+line.survey().plot()
+
+plt.show()
