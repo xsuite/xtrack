@@ -45,17 +45,18 @@ def _all_places(seq):
             seq_all_places.append(Place(ss, at=None, from_=None))
     return seq_all_places
 
-def _length_expr_or_val(name, line):
-    if isinstance(line[name], xt.Replica):
-        name = line[name].resolve(line, get_name=True)
+# In case we want to allow for the length to be an expression
+# def _length_expr_or_val(name, line):
+#     if isinstance(line[name], xt.Replica):
+#         name = line[name].resolve(line, get_name=True)
 
-    if not line[name].isthick:
-        return 0
+#     if not line[name].isthick:
+#         return 0
 
-    if line.element_refs[name]._expr is not None:
-        return line.element_refs[name]._expr
-    else:
-        return line[name].length
+#     if line.element_refs[name]._expr is not None:
+#         return line.element_refs[name]._expr
+#     else:
+#         return line[name].length
 
 
 def _resolve_s_positions(seq_all_places, env):
@@ -69,8 +70,9 @@ def _resolve_s_positions(seq_all_places, env):
     n_resolved_prev = -1
 
     if seq_all_places[0].at is None and not seq_all_places[0]._before:
-        # s_center_dct[seq_all_places[0].name] = aux_tt['length', seq_all_places[0].name] / 2
-        s_center_dct[seq_all_places[0].name] = _length_expr_or_val(seq_all_places[0].name, aux_line) / 2
+        # In case we want to allow for the length to be an expression
+        s_center_dct[seq_all_places[0].name] = aux_tt['length', seq_all_places[0].name] / 2
+        # s_center_dct[seq_all_places[0].name] = _length_expr_or_val(seq_all_places[0].name, aux_line) / 2
         n_resolved += 1
 
     while n_resolved != n_resolved_prev:
@@ -81,20 +83,24 @@ def _resolve_s_positions(seq_all_places, env):
             if ss.at is None and not ss._before:
                 ss_prev = seq_all_places[ii-1]
                 if ss_prev.name in s_center_dct:
+                    # in case we want to allow for the length to be an expression
+                    # s_center_dct[ss.name] = (s_center_dct[ss_prev.name]
+                    #                         + _length_expr_or_val(ss_prev.name, aux_line) / 2
+                    #                         + _length_expr_or_val(ss.name, aux_line) / 2)
                     s_center_dct[ss.name] = (s_center_dct[ss_prev.name]
-                                            # + aux_tt['length', ss_prev.name] / 2
-                                            + _length_expr_or_val(ss_prev.name, aux_line) / 2
-                                            # + aux_tt['length', ss.name] / 2)
-                                            + _length_expr_or_val(ss.name, aux_line) / 2)
+                                            +  aux_tt['length', ss_prev.name] / 2
+                                             + aux_tt['length', ss.name] / 2)
                     n_resolved += 1
             elif ss.at is None and ss._before:
                 ss_next = seq_all_places[ii+1]
                 if ss_next.name in s_center_dct:
+                     # in case we want to allow for the length to be an expression
+                    # s_center_dct[ss.name] = (s_center_dct[ss_next.name]
+                    #                         - _length_expr_or_val(ss_next.name, aux_line) / 2
+                    #                         - _length_expr_or_val(ss.name, aux_line) / 2)
                     s_center_dct[ss.name] = (s_center_dct[ss_next.name]
-                                            # - aux_tt['length', ss_next.name] / 2
-                                            - _length_expr_or_val(ss_next.name, aux_line) / 2
-                                            # - aux_tt['length', ss.name] / 2)
-                                            - _length_expr_or_val(ss.name, aux_line) / 2)
+                                            - aux_tt['length', ss_next.name] / 2
+                                            - aux_tt['length', ss.name] / 2)
                     n_resolved += 1
             else:
                 if isinstance(ss.at, str):
