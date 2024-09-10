@@ -32,7 +32,8 @@ class Environment:
         out._element_dict = self.element_dict # Avoid copying
         if components is None:
             components = []
-        out.element_names = _flatten_components(components)
+        flattened_components = _flatten_components(components)
+        out.element_names = handle_s_places(flattened_components, self)
         out._var_management = self._var_management
         out._name = name
         self._lines.add(out)
@@ -220,12 +221,11 @@ def _generate_element_names_with_drifts(env, tt_sorted, s_tol=1e-12):
 
 def handle_s_places(seq, env):
 
-    places_found = np.array([isinstance(ss, Place) for ss in seq]).any()
-    if not places_found:
+    if np.array([isinstance(ss, str) for ss in seq]).all():
         return [str(ss) for ss in seq]
 
     seq_all_places = _all_places(seq)
     tab_sorted = _resolve_s_positions(seq_all_places, env)
     names = _generate_element_names_with_drifts(env, tab_sorted)
 
-    return names, tab_sorted
+    return names
