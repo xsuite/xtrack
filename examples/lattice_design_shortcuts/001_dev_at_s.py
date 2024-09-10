@@ -46,8 +46,6 @@ def _all_places(seq):
     return seq_all_places
 
 
-
-
 def _resolve_s_positions(seq_all_places, env):
     names_unsorted = [ss.name for ss in seq_all_places]
     aux_line = env.new_line(components=names_unsorted)
@@ -124,10 +122,6 @@ def _generate_element_names_with_drifts(env, tt_sorted, s_tol=1e-12):
 
     return list(map(str, names_with_drifts))
 
-
-
-
-
 env = xt.Environment()
 
 seq = [
@@ -148,12 +142,19 @@ seq = [
 ]
 
 
+def handle_s_places(seq):
 
+    places_found = np.array([isinstance(ss, Place) for ss in seq]).any()
+    if not places_found:
+        return [str(ss) for ss in seq]
 
-seq_all_places = _all_places(seq)
-tab_sorted = _resolve_s_positions(seq_all_places, env)
-names = _generate_element_names_with_drifts(env, tab_sorted)
+    seq_all_places = _all_places(seq)
+    tab_sorted = _resolve_s_positions(seq_all_places, env)
+    names = _generate_element_names_with_drifts(env, tab_sorted)
 
+    return names
+
+names = handle_s_places(seq)
 line = env.new_line(components=names)
 
 import matplotlib.pyplot as plt
