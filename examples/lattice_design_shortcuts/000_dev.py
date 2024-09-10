@@ -11,11 +11,9 @@ n_arcs = 3
 n_bends = n_bends_per_cell * n_cells_par_arc * n_arcs
 
 env.vars({
-    'k1l.qf': 0.027 / 2,
-    'k1l.qd': -0.0271 / 2,
     'l.mq': 0.5,
-    'kqf.1': 'k1l.qf / l.mq',
-    'kqd.1': 'k1l.qd / l.mq',
+    'kqf': 0.027,
+    'kqd': -0.0271,
     'l.mb': 10,
     'l.ms': 0.3,
     'k2sf': 0.001,
@@ -35,19 +33,19 @@ halfcell = env.new_line(components=[
     env.new_element('mb.1', xt.Replica, parent_name='mb.2', at='-l.mb - 1', from_='mb.2'),
     env.new_element('mb.3', xt.Replica, parent_name='mb.2', at='l.mb + 1', from_='mb.2'),
 
-    env.new_element('mq.f', xt.Quadrupole, k1='kqf.1', length='l.mq', at = '0.5 + l.mq / 2'),
-    env.new_element('mq.d', xt.Quadrupole, k1='kqd.1', length='l.mq', at = 'l.halfcell - l.mq / 2 - 0.5'),
+    env.new_element('mq.d', xt.Quadrupole, k1='kqd', length='l.mq', at = '0.5 + l.mq / 2'),
+    env.new_element('mq.f', xt.Quadrupole, k1='kqf', length='l.mq', at = 'l.halfcell - l.mq / 2 - 0.5'),
 
-    env.new_element('corrector.h', xt.Multipole, at=1.5),
-    env.new_element('corrector.v', xt.Multipole, at='l.halfcell - 1.5'),
+    env.new_element('corrector.v', xt.Multipole, at=1.5),
+    env.new_element('corrector.h', xt.Multipole, at='l.halfcell - 1.5'),
 
-    env.new_element('ms.f', xt.Sextupole, length='l.ms', k2='k2sf', at=2.),
-    env.new_element('ms.d', xt.Sextupole, length='l.ms', k2='k2sd', at='l.halfcell - 2.'),
+    env.new_element('ms.d', xt.Sextupole, length='l.ms', k2='k2sf', at=2.),
+    env.new_element('ms.f', xt.Sextupole, length='l.ms', k2='k2sd', at='l.halfcell - 2.'),
 
 ])
 
-hcell_left = halfcell.replicate(name='l')
-hcell_right = halfcell.replicate(name='r', mirror=True)
+hcell_left = halfcell.replicate(name='l', mirror=True)
+hcell_right = halfcell.replicate(name='r')
 
 cell = env.new_line(components=[
     env.new_element('start', xt.Marker),
@@ -56,15 +54,48 @@ cell = env.new_line(components=[
     env.new_element('end', xt.Marker),
 ])
 
+opt = cell.match(
+    method='4d',
+    vary=xt.VaryList(['kqf', 'kqd'], step=1e-5),
+    targets=xt.TargetSet(
+        qx=0.333333,
+        qy=0.333333,
+    ))
+tw_cell = cell.twiss4d()
+
+
+env.vars({
+    'kqf.ss': 0.027 / 2,
+    'kqd.ss': -0.0271 / 2,
+})
+
 halfcell_ss = env.new_line(components=[
 
     env.new_element('mid', xt.Marker, at='l.halfcell'),
 
-    env.new_element('mq.f', xt.Quadrupole, k1='kqf.1', length='l.mq', at = '0.5 + l.mq / 2'),
-    env.new_element('mq.d', xt.Quadrupole, k1='kqd.1', length='l.mq', at = 'l.halfcell - l.mq / 2 - 0.5'),
+    env.new_element('mq.ss.d', xt.Quadrupole, k1='kqd.ss', length='l.mq', at = '0.5 + l.mq / 2'),
+    env.new_element('mq.ss.f', xt.Quadrupole, k1='kqf.ss', length='l.mq', at = 'l.halfcell - l.mq / 2 - 0.5'),
 
-    env.new_element('corrector.h', xt.Multipole, at=1.5),
+    env.new_element('corrector.ss.v', xt.Multipole, at=1.5),
+    env.new_element('corrector.ss.h', xt.Multipole, at='l.halfcell - 1.5'),
 ])
+
+hcell_left_ss = halfcell_ss.replicate(name='l', mirror=True)
+hcell_right_ss = halfcell_ss.replicate(name='r')
+cell_ss = env.new_line(components=[
+    env.new_element('start.ss', xt.Marker),
+    hcell_left_ss,
+    hcell_right_ss,
+    env.new_element('end.ss', xt.Marker),
+])
+
+opt = cell_ss.match(
+    method='4d',
+    vary=xt.VaryList(['kqf.ss', 'kqd.ss'], step=1e-5),
+    targets=xt.TargetSet(
+        betx=tw_cell.betx[-1], bety=tw_cell.bety[-1], at='start.ss',
+    ))
+
 
 
 arc = env.new_line(components=[
@@ -74,38 +105,24 @@ arc = env.new_line(components=[
 ])
 
 
-cell_ss = env
-
-
-cell_ss = cell.replicate('ss')
-env.new_element('drift_ss', xt.Drift, length='l.mb')
-for ii, nn in enumerate(cell_ss.element_names):
-    if nn.startswith('mb'):
-        cell_ss.element_names[ii] = env.new_element(
-            f'drift.{ii}.ss', xt.Replica, parent_name='drift_ss')
-
 ss = env.new_line(components=[
     cell_ss.replicate('cell.1'),
     cell_ss.replicate('cell.2'),
 ])
 
-arc1 = arc.replicate(name='arc.1')
-arc2 = arc.replicate(name='arc.2')
-arc3 = arc.replicate(name='arc.3')
+ring = env.new_line(components=[
+    arc.replicate(name='arc.1'),
+    ss.replicate(name='ss.1'),
+    arc.replicate(name='arc.2'),
+    ss.replicate(name='ss.2'),
+    arc.replicate(name='arc.3'),
+    ss.replicate(name='ss.3'),
+])
 
-# ss1 = ss.replicate(name='ss.1')
-# ss2 = ss.replicate(name='ss.2')
-# ss3 = ss.replicate(name='ss.3')
+
+pttt
 
 
-
-opt = cell.match(
-    method='4d',
-    vary=xt.VaryList(['k1l.qf', 'k1l.qd'], step=1e-5),
-    targets=xt.TargetSet(
-        qx=0.333333,
-        qy=0.333333,
-    ))
 
 env.vars({
     'k1l.q1': 0.012,
