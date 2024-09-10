@@ -133,6 +133,8 @@ def _resolve_s_positions(seq_all_places, env):
     tt_sorted['s'] = tt_sorted['s_center']
     assert np.all(tt_sorted.name == np.array(name_sorted))
 
+    tt_sorted._data['s_center_dct'] = s_center_dct
+
     return tt_sorted
 
 def _generate_element_names_with_drifts(env, tt_sorted, s_tol=1e-12):
@@ -160,7 +162,7 @@ def handle_s_places(seq):
     tab_sorted = _resolve_s_positions(seq_all_places, env)
     names = _generate_element_names_with_drifts(env, tab_sorted)
 
-    return names
+    return names, tab_sorted
 
 
 
@@ -192,8 +194,7 @@ seq = [
     env.new_element('after_left2', xt.Bend, length='l.after_left2'),
 ]
 
-
-names = handle_s_places(seq)
+names, tab_sorted = handle_s_places(seq)
 line = env.new_line(components=names)
 
 import matplotlib.pyplot as plt
