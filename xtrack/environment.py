@@ -1,4 +1,5 @@
 import xtrack as xt
+import xobjects as xo
 import numpy as np
 from weakref import WeakSet
 
@@ -53,6 +54,57 @@ class Environment:
         else:
             return self._get_a_drift_name()
 
+    def new_element(self, name, cls, **kwargs):
+
+        _eval = self._xdeps_eval.eval
+
+        assert cls in [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole, xt.Octupole,
+                       xt.Multipole, xt.Marker, xt.Replica], (
+            'Only Drift, Dipole, Quadrupole, Sextupole, Octupole, Multipole, Marker, and Replica '
+            'elements are allowed in `new_element` for now.')
+        ref_kwargs = {}
+        value_kwargs = {}
+        for kk in kwargs:
+            if hasattr(kwargs[kk], '_value'):
+                ref_kwargs[kk] = kwargs[kk]
+                value_kwargs[kk] = kwargs[kk]._value
+            elif (hasattr(cls, '_xofields') and kk in cls._xofields
+                  and xo.array.is_array(cls._xofields[kk])):
+                assert hasattr(kwargs[kk], '__iter__'), (
+                    f'{kk} should be an iterable for {cls} element')
+                ref_vv = []
+                value_vv = []
+                for ii, vvv in enumerate(kwargs[kk]):
+                    if hasattr(vvv, '_value'):
+                        ref_vv.append(vvv)
+                        value_vv.append(vvv._value)
+                    elif isinstance(vvv, str):
+                        ref_vv.append(_eval(vvv))
+                        value_vv.append(ref_vv[-1]._value)
+                    else:
+                        ref_vv.append(None)
+                        value_vv.append(vvv)
+                ref_kwargs[kk] = ref_vv
+                value_kwargs[kk] = value_vv
+            elif (isinstance(kwargs[kk], str) and hasattr(cls, '_xofields')
+                and kk in cls._xofields and cls._xofields[kk].__name__ != 'String'):
+                ref_kwargs[kk] = _eval(kwargs[kk])
+                value_kwargs[kk] = ref_kwargs[kk]._value
+            else:
+                value_kwargs[kk] = kwargs[kk]
+
+        element = cls(**value_kwargs)
+        self.element_dict[name] = element
+        for kk in ref_kwargs:
+            if isinstance(ref_kwargs[kk], list):
+                for ii, vvv in enumerate(ref_kwargs[kk]):
+                    if vvv is not None:
+                        getattr(self.element_refs[name], kk)[ii] = vvv
+            else:
+                setattr(self.element_refs[name], kk, ref_kwargs[kk])
+
+        return name
+
 Environment.element_dict = xt.Line.element_dict
 Environment._init_var_management = xt.Line._init_var_management
 Environment._xdeps_vref = xt.Line._xdeps_vref
@@ -63,7 +115,6 @@ Environment.element_refs = xt.Line.element_refs
 Environment.vars = xt.Line.vars
 Environment.varval = xt.Line.varval
 Environment.vv = xt.Line.vv
-Environment.new_element = xt.Line.new_element
 
 class Place:
 
