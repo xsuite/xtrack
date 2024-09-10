@@ -54,7 +54,11 @@ class Environment:
         else:
             return self._get_a_drift_name()
 
-    def new_element(self, name, cls, **kwargs):
+    def new_element(self, name, cls, at=None, from_=None, **kwargs):
+
+        if from_ is not None or at is not None:
+            return Place(at=at, from_=from_,
+                         name=self.new_element(name, cls, **kwargs))
 
         _eval = self._xdeps_eval.eval
 

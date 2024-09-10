@@ -1,7 +1,6 @@
 import xtrack as xt
 import numpy as np
 
-Place = xt.Place
 
 def _plot_line(line):
     tt = line.get_table(attr=True)
@@ -24,16 +23,15 @@ env.vars({
 line = env.new_line(components=[
     env.new_element('b1', xt.Bend, length='l.b1'),
     env.new_element('q1', xt.Quadrupole, length='l.q1'),
-    Place(env.new_element('ip', xt.Marker), at='s.ip'),
-    # Place(env.new_element('right',xt.Quadrupole, length=1), at=+5, from_='ip'),
+    env.new_element('ip', xt.Marker, at='s.ip'),
     (
         env.new_element('before_before_right', xt.Marker),
         env.new_element('before_right', xt.Sextupole, length=1),
-        Place(env.new_element('right',xt.Quadrupole, length=1), at='s.right', from_='ip'),
+        env.new_element('right',xt.Quadrupole, length=1, at='s.right', from_='ip'),
         env.new_element('after_right', xt.Marker),
         env.new_element('after_right2', xt.Marker),
     ),
-    Place(env.new_element('left', xt.Quadrupole, length=1), at='s.left', from_='ip'),
+    env.new_element('left', xt.Quadrupole, length=1, at='s.left', from_='ip'),
     env.new_element('after_left', xt.Marker),
     env.new_element('after_left2', xt.Bend, length='l.after_left2'),
 ])
