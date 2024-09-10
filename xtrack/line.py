@@ -10,7 +10,6 @@ import json
 import uuid
 import os
 from collections import defaultdict
-from weakref import WeakSet
 
 from contextlib import contextmanager
 from copy import deepcopy
@@ -5113,64 +5112,3 @@ def _rot_s_from_attr(attr):
         parent_cos_rot_s[has_parent_rot]) * attr._rot_and_shift_from_parent[has_parent_rot]
 
     return rot_s_rad
-
-def _flatten_components(components):
-    flatten_components = []
-    for nn in components:
-        if isinstance(nn, Line):
-            flatten_components += nn.element_names
-        else:
-            flatten_components.append(nn)
-    return flatten_components
-
-class Environment:
-    def __init__(self, element_dict=None, particle_ref=None, _var_management=None):
-        self._element_dict = element_dict or {}
-        self.particle_ref = particle_ref
-
-        if _var_management is not None:
-            self._var_management = _var_management
-        else:
-            self._init_var_management()
-
-        self._lines = WeakSet()
-        self._drift_counter = 0
-
-    def new_line(self, components=None, name=None):
-        out = Line()
-        out.particle_ref = self.particle_ref
-        out.env = self
-        out._element_dict = self.element_dict # Avoid copying
-        if components is None:
-            components = []
-        out.element_names = _flatten_components(components)
-        out._var_management = self._var_management
-        out._name = name
-        self._lines.add(out)
-
-        return out
-
-    def _ensure_tracker_consistency(self, buffer):
-        for ln in self._lines:
-            if ln._has_valid_tracker() and ln._buffer is not buffer:
-                ln.discard_tracker()
-
-    def _get_a_drift_name(self):
-        self._drift_counter += 1
-        nn = f'drift_{self._drift_counter}'
-        if nn not in self.element_dict:
-            return nn
-        else:
-            return self._get_a_drift_name()
-
-Environment.element_dict = Line.element_dict
-Environment._init_var_management = Line._init_var_management
-Environment._xdeps_vref = Line._xdeps_vref
-Environment._xdeps_fref = Line._xdeps_fref
-Environment._xdeps_manager = Line._xdeps_manager
-Environment._xdeps_eval = Line._xdeps_eval
-Environment.element_refs = Line.element_refs
-Environment.vars = Line.vars
-Environment.varval = Line.varval
-Environment.vv = Line.vv
-Environment.new_element = Line.new_element
