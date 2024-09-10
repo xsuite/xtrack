@@ -45,6 +45,18 @@ def _all_places(seq):
             seq_all_places.append(Place(ss, at=None, from_=None))
     return seq_all_places
 
+def _length_expr_or_val(name, line):
+    if isinstance(line[name], xt.Replica):
+        name = line[name].resolve(line, get_name=True)
+
+    if not line[name].isthick:
+        return 0
+
+    if line.element_refs[name]._expr is not None:
+        return line.element_refs[name]._expr
+    else:
+        return line[name].length
+
 
 def _resolve_s_positions(seq_all_places, env):
     names_unsorted = [ss.name for ss in seq_all_places]
@@ -57,7 +69,8 @@ def _resolve_s_positions(seq_all_places, env):
     n_resolved_prev = -1
 
     if seq_all_places[0].at is None and not seq_all_places[0]._before:
-        s_center_dct[seq_all_places[0].name] = aux_tt['length', seq_all_places[0].name] / 2
+        # s_center_dct[seq_all_places[0].name] = aux_tt['length', seq_all_places[0].name] / 2
+        s_center_dct[seq_all_places[0].name] = _length_expr_or_val(seq_all_places[0].name, aux_line) / 2
         n_resolved += 1
 
     while n_resolved != n_resolved_prev:
@@ -69,27 +82,42 @@ def _resolve_s_positions(seq_all_places, env):
                 ss_prev = seq_all_places[ii-1]
                 if ss_prev.name in s_center_dct:
                     s_center_dct[ss.name] = (s_center_dct[ss_prev.name]
-                                            + aux_tt['length', ss_prev.name] / 2
-                                            + aux_tt['length', ss.name] / 2)
+                                            # + aux_tt['length', ss_prev.name] / 2
+                                            + _length_expr_or_val(ss_prev.name, aux_line) / 2
+                                            # + aux_tt['length', ss.name] / 2)
+                                            + _length_expr_or_val(ss.name, aux_line) / 2)
                     n_resolved += 1
             elif ss.at is None and ss._before:
                 ss_next = seq_all_places[ii+1]
                 if ss_next.name in s_center_dct:
                     s_center_dct[ss.name] = (s_center_dct[ss_next.name]
-                                            - aux_tt['length', ss_next.name] / 2
-                                            - aux_tt['length', ss.name] / 2)
+                                            # - aux_tt['length', ss_next.name] / 2
+                                            - _length_expr_or_val(ss_next.name, aux_line) / 2
+                                            # - aux_tt['length', ss.name] / 2)
+                                            - _length_expr_or_val(ss.name, aux_line) / 2)
                     n_resolved += 1
-            elif ss.from_ is None:
-                s_center_dct[ss.name] = ss.at
-                n_resolved += 1
             else:
-                if ss.from_ in s_center_dct:
-                    s_center_dct[ss.name] = s_center_dct[ss.from_] + ss.at
+                if isinstance(ss.at, str):
+                    at = aux_line._xdeps_eval.eval(ss.at)
+                else:
+                    at = ss.at
+
+                if ss.from_ is None:
+                    s_center_dct[ss.name] = at
+                    n_resolved += 1
+                elif ss.from_ in s_center_dct:
+                    s_center_dct[ss.name] = s_center_dct[ss.from_] + at
                     n_resolved += 1
 
     assert n_resolved == len(seq_all_places), 'Not all positions resolved'
 
-    aux_s_center = np.array([s_center_dct[nn] for nn in aux_tt.name[:-1]])
+    aux_s_center_expr = np.array([s_center_dct[nn] for nn in aux_tt.name[:-1]])
+    aux_s_center = []
+    for ss in aux_s_center_expr:
+        if hasattr(ss, '_value'):
+            aux_s_center.append(ss._value)
+        else:
+            aux_s_center.append(ss)
     aux_tt['s_center'] = np.concatenate([aux_s_center, [0]])
 
     i_sorted = np.argsort(aux_s_center, stable=True)
@@ -122,26 +150,6 @@ def _generate_element_names_with_drifts(env, tt_sorted, s_tol=1e-12):
 
     return list(map(str, names_with_drifts))
 
-env = xt.Environment()
-
-seq = [
-    env.new_element('b1', xt.Bend, length=0.5),
-    env.new_element('q1', xt.Quadrupole, length=0.5),
-    Place(env.new_element('ip', xt.Marker), at=10),
-    # Place(env.new_element('right',xt.Quadrupole, length=1), at=+5, from_='ip'),
-    (
-        env.new_element('before_before_right', xt.Marker),
-        env.new_element('before_right', xt.Sextupole, length=1),
-        Place(env.new_element('right',xt.Quadrupole, length=1), at=+5, from_='ip'),
-        env.new_element('after_right', xt.Marker),
-        env.new_element('after_right2', xt.Marker),
-    ),
-    Place(env.new_element('left', xt.Quadrupole, length=1), at=-5, from_='ip'),
-    env.new_element('after_left', xt.Marker),
-    env.new_element('after_left2', xt.Bend, length=0.5),
-]
-
-
 def handle_s_places(seq):
 
     places_found = np.array([isinstance(ss, Place) for ss in seq]).any()
@@ -153,6 +161,37 @@ def handle_s_places(seq):
     names = _generate_element_names_with_drifts(env, tab_sorted)
 
     return names
+
+
+
+env = xt.Environment()
+
+env.vars({
+    'l.b1': 1.0,
+    'l.q1': 0.5,
+    's.ip': 10,
+    's.left': -5,
+    's.right': 5,
+    'l.before_right': 1,
+    'l.after_left2': 0.5,
+})
+seq = [
+    env.new_element('b1', xt.Bend, length='l.b1'),
+    env.new_element('q1', xt.Quadrupole, length='l.q1'),
+    Place(env.new_element('ip', xt.Marker), at='s.ip'),
+    # Place(env.new_element('right',xt.Quadrupole, length=1), at=+5, from_='ip'),
+    (
+        env.new_element('before_before_right', xt.Marker),
+        env.new_element('before_right', xt.Sextupole, length=1),
+        Place(env.new_element('right',xt.Quadrupole, length=1), at='s.right', from_='ip'),
+        env.new_element('after_right', xt.Marker),
+        env.new_element('after_right2', xt.Marker),
+    ),
+    Place(env.new_element('left', xt.Quadrupole, length=1), at='s.left', from_='ip'),
+    env.new_element('after_left', xt.Marker),
+    env.new_element('after_left2', xt.Bend, length='l.after_left2'),
+]
+
 
 names = handle_s_places(seq)
 line = env.new_line(components=names)
