@@ -131,18 +131,12 @@ env.vars({
 
 half_insertion = env.new_line(components=[
     env.new_element('ip', xt.Marker),
-    env.new_element('dd.0', xt.Drift, length=20),
-    env.new_element('mq.1', xt.Quadrupole, k1='k1.q1', length='l.mq'),
-    env.new_element('dd.1', xt.Drift, length=5),
-    env.new_element('mq.2', xt.Quadrupole, k1='k1.q2', length='l.mq'),
-    env.new_element('dd.2', xt.Drift, length=12),
-    env.new_element('mq.3', xt.Quadrupole, k1='k1.q3', length='l.mq'),
-    env.new_element('dd.3', xt.Drift, length=18),
-    env.new_element('mq.4', xt.Quadrupole, k1='k1.q4', length='l.mq'),
-    env.new_element('dd.4', xt.Drift, length=18),
-    env.new_element('mq.5', xt.Quadrupole, k1='k1.q5', length='l.mq'),
-    env.new_element('dd.5', xt.Drift, length=0.5),
-    env.new_element('e.insertion', xt.Marker),
+    env.new_element('mq.1', xt.Quadrupole, k1='k1.q1', length='l.mq', at = 20),
+    env.new_element('mq.2', xt.Quadrupole, k1='k1.q2', length='l.mq', at = 25),
+    env.new_element('mq.3', xt.Quadrupole, k1='k1.q3', length='l.mq', at=37),
+    env.new_element('mq.4', xt.Quadrupole, k1='k1.q4', length='l.mq', at=55),
+    env.new_element('mq.5', xt.Quadrupole, k1='k1.q5', length='l.mq', at=73),
+    env.new_element('e.insertion', xt.Marker, at=76),
 ])
 
 tw_arc = arc.twiss4d()
