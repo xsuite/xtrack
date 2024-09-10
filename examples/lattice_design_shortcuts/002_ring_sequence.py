@@ -16,34 +16,48 @@ env.vars({
     'l.mq': 0.5,
     'kqf.1': 'k1l.qf / l.mq',
     'kqd.1': 'k1l.qd / l.mq',
-    'l.mb': 10,
-    'l.ms': 0.3,
-    'k2sf': 0.001,
-    'k2sd': -0.001,
+    'l.mb': 12,
     'angle.mb': 2 * np.pi / n_bends,
     'k0.mb': 'angle.mb / l.mb',
     'k0l.corrector': 0,
     'k1sl.corrector': 0,
-    'l.halfcell': 38,
 })
 
+
+env.new_element('drift.1', xt.Drift,      length='l.mq / 2')
+env.new_element('qf',      xt.Quadrupole, k1='kqf.1', length='l.mq')
+env.new_element('drift.2', xt.Replica,    parent_name='drift.1')
+env.new_element('mb.1',    xt.Bend,       k0='k0.mb', h='k0.mb', length='l.mb')
+env.new_element('mb.2',    xt.Replica,    parent_name='mb.1')
+env.new_element('mb.3',    xt.Replica,    parent_name='mb.1')
+env.new_element('drift.3', xt.Replica,    parent_name='drift.1')
+env.new_element('qd',      xt.Quadrupole, k1='kqd.1', length='l.mq')
+env.new_element('drift.4', xt.Replica,    parent_name='drift.1')
+
 halfcell = env.new_line(components=[
+    'drift.1',
+    'qf',
+    'drift.2',
+    'mb.1',
+    'mb.2',
+    'mb.3',
+    'drift.3',
+    'qd',
+    'drift.4',
+])
 
-    env.new_element('mid', xt.Marker, at='l.halfcell'),
 
-    env.new_element('mb.2', xt.Bend, k0='k0.mb', h='k0.mb', length='l.mb', at='l.halfcell / 2'),
-    env.new_element('mb.1', xt.Replica, parent_name='mb.2', at='-l.mb - 1', from_='mb.2'),
-    env.new_element('mb.3', xt.Replica, parent_name='mb.2', at='l.mb + 1', from_='mb.2'),
 
-    env.new_element('mq.f', xt.Quadrupole, k1='kqf.1', length='l.mq', at = '0.5 + l.mq / 2'),
-    env.new_element('mq.d', xt.Quadrupole, k1='kqd.1', length='l.mq', at = 'l.halfcell - l.mq / 2 - 0.5'),
-
-    env.new_element('corrector.h', xt.Multipole, at=1.5),
-    env.new_element('corrector.v', xt.Multipole, at='l.halfcell - 1.5'),
-
-    env.new_element('ms.f', xt.Sextupole, length='l.ms', k2='k2sf', at=2.),
-    env.new_element('ms.d', xt.Sextupole, length='l.ms', k2='k2sd', at='l.halfcell - 2.'),
-
+halfcell = env.new_line(components=[
+    env.new_element('drift.1', xt.Drift,      length='l.mq / 2'),
+    env.new_element('qf',      xt.Quadrupole, k1='kqf.1', length='l.mq'),
+    env.new_element('drift.2', xt.Replica,    parent_name='drift.1'),
+    env.new_element('mb.1',    xt.Bend,       k0='k0.mb', h='k0.mb', length='l.mb'),
+    env.new_element('mb.2',    xt.Replica,    parent_name='mb.1'),
+    env.new_element('mb.3',    xt.Replica,    parent_name='mb.1'),
+    env.new_element('drift.3', xt.Replica,    parent_name='drift.1'),
+    env.new_element('qd',      xt.Quadrupole, k1='kqd.1', length='l.mq'),
+    env.new_element('drift.4', xt.Replica,    parent_name='drift.1'),
 ])
 
 hcell_left = halfcell.replicate(name='l')
@@ -51,19 +65,14 @@ hcell_right = halfcell.replicate(name='r', mirror=True)
 
 cell = env.new_line(components=[
     env.new_element('start', xt.Marker),
+    env.new_element('corrector.l', xt.Multipole, knl=['k0l.corrector', 0],
+                                                 ksl=[0, 'k1sl.corrector']),
     hcell_left,
+    env.new_element('mid', xt.Marker),
+    env.new_element('corrector.v', xt.Multipole, knl=['k0l.corrector', 0],
+                                                 ksl=[0, 'k1sl.corrector']),
     hcell_right,
     env.new_element('end', xt.Marker),
-])
-
-halfcell_ss = env.new_line(components=[
-
-    env.new_element('mid', xt.Marker, at='l.halfcell'),
-
-    env.new_element('mq.f', xt.Quadrupole, k1='kqf.1', length='l.mq', at = '0.5 + l.mq / 2'),
-    env.new_element('mq.d', xt.Quadrupole, k1='kqd.1', length='l.mq', at = 'l.halfcell - l.mq / 2 - 0.5'),
-
-    env.new_element('corrector.h', xt.Multipole, at=1.5),
 ])
 
 
@@ -72,10 +81,6 @@ arc = env.new_line(components=[
     cell.replicate(name='cell.2'),
     cell.replicate(name='cell.3'),
 ])
-
-
-cell_ss = env
-
 
 cell_ss = cell.replicate('ss')
 env.new_element('drift_ss', xt.Drift, length='l.mb')
