@@ -119,51 +119,41 @@ ring = env.new_line(components=[
     ss.replicate(name='ss.3'),
 ])
 
-
-pttt
-
-
+## Insretion
 
 env.vars({
-    'k1l.q1': 0.012,
-    'k1l.q2': -0.012,
-    'k1l.q3': 0.012,
-    'k1l.q4': -0.012,
-    'k1l.q5': 0.012,
-    'k1.q1': 'k1l.q1 / l.mq',
-    'k1.q2': 'k1l.q2 / l.mq',
-    'k1.q3': 'k1l.q3 / l.mq',
-    'k1.q4': 'k1l.q4 / l.mq',
-    'k1.q5': 'k1l.q5 / l.mq',
+    'k1.q1': 0.025,
+    'k1.q2': -0.025,
+    'k1.q3': 0.025,
+    'k1.q4': -0.02,
+    'k1.q5': 0.025,
 })
 
-half_straight = env.new_line(components=[
+half_insertion = env.new_line(components=[
     env.new_element('ip', xt.Marker),
     env.new_element('dd.0', xt.Drift, length=20),
-    env.new_element('mq.1', xt.Quadrupole, k1='k1l.q1', length='l.mq'),
+    env.new_element('mq.1', xt.Quadrupole, k1='k1.q1', length='l.mq'),
     env.new_element('dd.1', xt.Drift, length=5),
-    env.new_element('mq.2', xt.Quadrupole, k1='k1l.q2', length='l.mq'),
+    env.new_element('mq.2', xt.Quadrupole, k1='k1.q2', length='l.mq'),
     env.new_element('dd.2', xt.Drift, length=12),
-    env.new_element('mq.3', xt.Quadrupole, k1='k1l.q3', length='l.mq'),
+    env.new_element('mq.3', xt.Quadrupole, k1='k1.q3', length='l.mq'),
     env.new_element('dd.3', xt.Drift, length=18),
-    env.new_element('mq.4', xt.Quadrupole, k1='k1l.q4', length='l.mq'),
+    env.new_element('mq.4', xt.Quadrupole, k1='k1.q4', length='l.mq'),
     env.new_element('dd.4', xt.Drift, length=18),
-    env.new_element('mq.5', xt.Quadrupole, k1='k1l.q5', length='l.mq'),
+    env.new_element('mq.5', xt.Quadrupole, k1='k1.q5', length='l.mq'),
     env.new_element('dd.5', xt.Drift, length=0.5),
-    env.new_element('e.ss.r', xt.Marker),
+    env.new_element('e.insertion', xt.Marker),
 ])
-half_straight.build_tracker()
-print(f'Half straight length: {half_straight.get_length()}')
 
 tw_arc = arc.twiss4d()
 
-opt = half_straight.match(
+opt = half_insertion.match(
     solve=False,
     betx=tw_arc.betx[0], bety=tw_arc.bety[0],
     alfx=tw_arc.alfx[0], alfy=tw_arc.alfy[0],
-    init_at='e.ss.r',
-    start='ip', end='e.ss.r',
-    vary=xt.VaryList(['k1l.q1', 'k1l.q2', 'k1l.q3', 'k1l.q4'], step=1e-5),
+    init_at='e.insertion',
+    start='ip', end='e.insertion',
+    vary=xt.VaryList(['k1.q1', 'k1.q2', 'k1.q3', 'k1.q4'], step=1e-5),
     targets=[
         xt.TargetSet(alfx=0, alfy=0, at='ip'),
         xt.Target(lambda tw: tw.betx[0] - tw.bety[0], 0),
@@ -172,104 +162,49 @@ opt = half_straight.match(
         xt.Target(lambda tw: tw.betx.min(), xt.GreaterThan(2)),
         xt.Target(lambda tw: tw.bety.min(), xt.GreaterThan(2)),
     ]
-    )
-
-
-opt.step(40)
-
-half_straight_left = half_straight.replicate('ss.l')
-half_straight_left.mirror()
-half_straight_right = half_straight.replicate('ss.r')
-straight = env.new_line(components=[half_straight_left, half_straight_right])
-
-ss_arc = env.new_line(components=[arc1, straight, arc2])
-tw_ss_arc = ss_arc.twiss4d(betx=tw_arc.betx[-1], bety=tw_arc.bety[-1],
-                           alfx=tw_arc.alfx[-1], alfy=tw_arc.alfy[-1],
-                           init_at=xt.END)
-
-env.vars({
-    'k1l.qfss': 0.027 / 2,
-    'k1l.qdss': -0.0271 / 2,
-    'kqfss.1': 'k1l.qfss / l.mq',
-    'kqdss.1': 'k1l.qdss / l.mq',
-    'angle.mb': 2 * np.pi / n_bends,
-    'k0.mb': 'angle.mb / l.mb',
-})
-cell_ss = env.new_line(components=[
-    env.new_element('ss.start', xt.Marker),
-    env.new_element('dd.ss.1.l', xt.Drift,        length='l.mq'),
-    env.new_element('qfss.l',    xt.Quadrupole, k1='kqfss.1', length='l.mq'),
-
-    env.new_element('dd.ss.3.l', xt.Drift,        length='3 *l.mb'),
-
-    env.new_element('qdss.l',    xt.Quadrupole, k1='kqdss.1', length='l.mq'),
-    env.new_element('dd.ss.5.l', xt.Drift,        length='l.mq'),
-
-    env.new_element('dd.ss.5.r', xt.Drift,        length='l.mq'),
-    env.new_element('qdss.r',    xt.Quadrupole, k1='kqdss.1', length='l.mq'),
-
-    env.new_element('dd.ss.3.r', xt.Drift,        length='3 *l.mb'),
-
-    env.new_element('qfss.r',    xt.Quadrupole, k1='kqfss.1', length='l.mq'),
-    env.new_element('dd.ss.1.r', xt.Drift,        length='l.mq'),
-
-])
-
-opt = cell_ss.match(
-    solve=False,
-    method='4d',
-    vary=xt.VaryList(['k1l.qfss', 'k1l.qdss'], step=1e-5),
-    targets=xt.TargetSet(at='ss.start',
-        betx=tw_arc.betx[-1],
-        bety=tw_arc.bety[-1],
-    ))
+)
 opt.step(40)
 opt.solve()
 
-tw_ss_arc.plot()
+insertion = env.new_line([
+    half_insertion.replicate('l', mirror=True),
+    half_insertion.replicate('r')])
 
 
-cell1_ss = cell_ss.replicate('cell.1')
-cell2_ss = cell_ss.replicate('cell.2')
-std_ss = env.new_line(components=[cell1_ss, cell2_ss])
 
-ss1 = std_ss.replicate('ss.1')
-ss2 = std_ss.replicate('ss.2')
+ring2 = env.new_line(components=[
+    arc.replicate(name='arcc.1'),
+    ss.replicate(name='sss.2'),
+    arc.replicate(name='arcc.2'),
+    insertion,
+    arc.replicate(name='arcc.3'),
+    ss.replicate(name='sss.3')
+])
 
-ring = env.new_line()
+ring2_sliced = ring2.select()
+# ring2_sliced.cut_at_s(np.arange(0, ring2.get_length(), 0.5))
 
-ring.extend(ss1)
-ring.extend(arc1)
-ring.extend(ss2)
-ring.extend(arc2)
-ring.extend(straight)
-ring.extend(arc3)
 
-ring.replace_all_replicas()
-ring.build_tracker()
-sv = ring.survey()
 
-buffer = ring._buffer
-ring.discard_tracker()
-ring.cut_at_s(np.arange(0, ring.get_length(), 0.5))
-ring.build_tracker(_buffer=buffer)
-tw = ring.twiss4d()
 
-two = ring.twiss(start=xt.START, betx=tw_arc.betx[-1], bety=tw_arc.bety[-1])
 
 import matplotlib.pyplot as plt
 plt.close('all')
-fig = plt.figure(1, figsize=(6.4*1.2, 4.8))
-ax1 = fig.add_subplot(2, 1, 1)
-pltbet = tw.plot('betx bety', ax=ax1)
-ax2 = fig.add_subplot(2, 1, 2, sharex=ax1)
-pltdx = tw.plot('dx', ax=ax2)
-fig.subplots_adjust(right=.85)
-pltbet.move_legend(1.2,1)
-pltdx.move_legend(1.2,1)
+for ii, rr in enumerate([ring, ring2]):
 
-import xplt
-xplt.FloorPlot(sv, ring, element_width=10)
+    tw = rr.twiss4d()
+
+    fig = plt.figure(ii, figsize=(6.4*1.2, 4.8))
+    ax1 = fig.add_subplot(2, 1, 1)
+    pltbet = tw.plot('betx bety', ax=ax1)
+    ax2 = fig.add_subplot(2, 1, 2, sharex=ax1)
+    pltdx = tw.plot('dx', ax=ax2)
+    fig.subplots_adjust(right=.85)
+    pltbet.move_legend(1.2,1)
+    pltdx.move_legend(1.2,1)
+
+ring2.survey().plot()
+
 
 plt.show()
 
