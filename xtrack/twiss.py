@@ -58,6 +58,8 @@ NORMAL_STRENGTHS_FROM_ATTR=['k0l', 'k1l', 'k2l', 'k3l', 'k4l', 'k5l']
 SKEW_STRENGTHS_FROM_ATTR=['k0sl', 'k1sl', 'k2sl', 'k3sl', 'k4sl', 'k5sl']
 OTHER_FIELDS_FROM_ATTR=['angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'ks', 'length']
 OTHER_FIELDS_FROM_TABLE=['element_type', 'isthick', 'parent_name']
+SIGN_FLIP_FOR_ATTR_REVERSE=['k0l', 'k2l', 'k4l', 'k1sl', 'k3sl', 'k5sl', 'vkick','angle_rad']
+
 
 log = logging.getLogger(__name__)
 
@@ -3274,7 +3276,7 @@ class TwissTable(Table):
             out.qs = 0
             out.muzeta[:] = 0
 
-        _reverse_strengths(out)
+        _reverse_strengths(out._data)
 
         out._data['reference_frame'] = {
             'proper': 'reverse', 'reverse': 'proper'}[self.reference_frame]
@@ -3838,25 +3840,11 @@ def _find_closed_orbit_search_t_rev(line, num_turns_search_t_rev=None):
 
 
 def _reverse_strengths(out):
-    # Same convention as in MAD-X for reversing strengths
-    for kk in NORMAL_STRENGTHS_FROM_ATTR:
-        if kk not in out._col_names:
-            continue
-        ii = int(kk.split('k')[-1].split('l')[0])
-        out[kk] *= (-1)**(ii+1)
-
-    for kk in SKEW_STRENGTHS_FROM_ATTR:
-        if kk not in out._col_names:
-            continue
-        ii = int(kk.split('k')[-1].split('sl')[0])
-        out[kk] *= (-1)**ii
-
-    if 'vkick' in out._col_names:
-        out['vkick'] *= -1
-
-    if 'angle_rad' in out._col_names:
-        out['angle_rad'] *= -1
-
+    ### Same convention as in MAD-X for reversing strengths
+    for kk in SIGN_FLIP_FOR_ATTR_REVERSE:
+        if kk in out:
+            val=out[kk]#avoid passing by setitem
+            np.negative(val,val)
 
 def _W_phys2norm(x, px, y, py, zeta, pzeta, W_matrix, co_dict, nemitt_x=None, nemitt_y=None, nemitt_zeta=None):
 
