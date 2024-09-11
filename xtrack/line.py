@@ -2062,6 +2062,10 @@ class Line:
 
     def cut_at_s(self, s: List[float], s_tol=1e-6):
         """Slice the line so that positions in s never fall inside an element."""
+
+        if self._has_valid_tracker():
+            self.discard_tracker()
+
         cuts_for_element = self._elements_intersecting_s(s, s_tol=s_tol)
         strategies = [Strategy(None)]  # catch-all, ignore unaffected elements
 

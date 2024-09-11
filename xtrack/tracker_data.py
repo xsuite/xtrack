@@ -176,7 +176,7 @@ class TrackerData:
         Move all the elements to the common buffer, if they are not already
         there.
         """
-        for ee in self._elements:
+        for nn, ee in self._element_dict.items():
             if ee._buffer is not buffer:
                 if allow_move:
                     ee.move(_buffer=buffer)

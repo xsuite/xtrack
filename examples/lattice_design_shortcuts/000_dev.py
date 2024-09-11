@@ -175,16 +175,15 @@ ring2 = env.new_line(components=[
     ss.replicate(name='sss.3')
 ])
 
+
+# # Check buffer behavior
 ring2_sliced = ring2.select()
-# ring2_sliced.cut_at_s(np.arange(0, ring2.get_length(), 0.5))
-
-
-
+ring2_sliced.cut_at_s(np.arange(0, ring2.get_length(), 0.5))
 
 
 import matplotlib.pyplot as plt
 plt.close('all')
-for ii, rr in enumerate([ring, ring2]):
+for ii, rr in enumerate([ring, ring2_sliced]):
 
     tw = rr.twiss4d()
 
