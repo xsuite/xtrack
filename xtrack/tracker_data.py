@@ -177,6 +177,8 @@ class TrackerData:
         there.
         """
         for nn, ee in self._element_dict.items():
+            if not hasattr(ee, '_buffer'):
+                continue
             if ee._buffer is not buffer:
                 if allow_move:
                     ee.move(_buffer=buffer)
