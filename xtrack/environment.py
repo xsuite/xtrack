@@ -62,10 +62,20 @@ class Environment:
 
         _eval = self._xdeps_eval.eval
 
-        assert cls in [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole, xt.Octupole,
+        assert isinstance(cls, str) or cls in [xt.Drift, xt.Bend, xt.
+                       Quadrupole, xt.Sextupole, xt.Octupole,
                        xt.Multipole, xt.Marker, xt.Replica], (
             'Only Drift, Dipole, Quadrupole, Sextupole, Octupole, Multipole, Marker, and Replica '
             'elements are allowed in `new_element` for now.')
+
+        cls_input = cls
+        if isinstance(cls, str):
+            # Clone an existing element
+            assert cls in self.element_dict, f'Element {cls} not found in environment'
+            self.element_dict[name] = xt.Replica(parent_name=cls)
+            self.replace_replica(name)
+            cls = type(self.element_dict[name])
+
         ref_kwargs = {}
         value_kwargs = {}
         for kk in kwargs:
@@ -97,11 +107,7 @@ class Environment:
             else:
                 value_kwargs[kk] = kwargs[kk]
 
-        if isinstance(cls, str):
-            # Clone an existing element
-            assert cls in self.element_dict, f'Element {cls} not found in environment'
-            self.element_dict[name] = xt.Replica(parent_name=cls)
-            self.replace_replica(name)
+        if isinstance(cls_input, str):
             for kk in value_kwargs:
                 setattr(self.element_dict[name], kk, value_kwargs[kk])
         else:
@@ -130,6 +136,7 @@ Environment.vars = xt.Line.vars
 Environment.varval = xt.Line.varval
 Environment.vv = xt.Line.vv
 Environment.replace_replica = xt.Line.replace_replica
+Environment.__getitem__ = xt.Line.__getitem__
 
 class Place:
 
