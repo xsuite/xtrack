@@ -25,13 +25,13 @@ env.vars({
     'l.halfcell': 38,
 })
 
-env.new_element('mb', xt.Bend)
+env.new_element('mb', xt.Bend, length='l.mb')
 
 halfcell = env.new_line(components=[
 
     env.new_element('mid', xt.Marker, at='l.halfcell'),
 
-    env.new_element('mb.2', 'mb', k0='k0.mb', h='k0.mb', length='l.mb', at='l.halfcell / 2'),
+    env.new_element('mb.2', 'mb', k0='k0.mb', h='k0.mb', at='l.halfcell / 2'),
     env.new_element('mb.1', xt.Replica, parent_name='mb.2', at='-l.mb - 1', from_='mb.2'),
     env.new_element('mb.3', xt.Replica, parent_name='mb.2', at='l.mb + 1', from_='mb.2'),
 
