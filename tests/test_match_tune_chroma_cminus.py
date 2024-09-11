@@ -6,7 +6,6 @@ import xobjects as xo
 import xpart as xp
 import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
-import numpy as np
 
 test_data_folder = pathlib.Path(
             __file__).parent.joinpath('../test_data').absolute()

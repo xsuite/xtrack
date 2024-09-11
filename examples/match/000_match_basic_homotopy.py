@@ -1,6 +1,4 @@
 import xtrack as xt
-import matplotlib.pyplot as plt
-import numpy as np
 
 # Load a line and build a tracker
 line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
