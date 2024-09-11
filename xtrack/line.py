@@ -3363,6 +3363,7 @@ class Line:
         out = Line()
         out.element_names = new_element_names
         out._element_dict = self.element_dict # to make sure that the dict is not copied
+        out._var_management = self._var_management
         out._name = name
 
         if mirror:
