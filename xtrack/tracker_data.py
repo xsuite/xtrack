@@ -131,6 +131,7 @@ class TrackerData:
                 if this_parent._buffer is not self._element_dict[nn]._buffer:
                     this_parent.move(_buffer=self._element_dict[nn]._buffer)
                 self._element_dict[nn]._parent = this_parent
+                this_parent._movable = True
                 assert self._element_dict[nn]._parent._offset == self._element_dict[nn]._xobject._parent._offset
 
     def common_buffer_for_elements(self):

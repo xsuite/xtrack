@@ -383,6 +383,7 @@ class Slicer:
                 ee = type(element)(
                         _parent=element._parent, _buffer=element._buffer,
                         weight=weight * element.weight)
+                element._parent._movable = True # Force movable
                 ee.parent_name = element.parent_name
                 self._line.element_dict[nn] = ee
                 slices_to_append.append(nn)
