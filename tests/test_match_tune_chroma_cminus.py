@@ -184,10 +184,10 @@ def test_match_tune_chromaticity_homotopy(test_context):
     xo.assert_allclose(tw_final['dqx'], 10.0, atol=0.05)
     xo.assert_allclose(tw_final['dqy'], 12.0, atol=0.05)
 
-    # Order of steps in log
+    # Assure reasonable number of steps in log
     assert len(opt._log['tag']) < 25
 
-    # Look that Homotopy exists
+    # Look that Homotopy entries exist in the log
     for i in range(10):
         assert f'Homotopy it {i}' in opt._log['tag']
 
