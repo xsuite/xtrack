@@ -97,8 +97,18 @@ class Environment:
             else:
                 value_kwargs[kk] = kwargs[kk]
 
-        element = cls(**value_kwargs)
-        self.element_dict[name] = element
+        if isinstance(cls, str):
+            # Clone an existing element
+            assert cls in self.element_dict, f'Element {cls} not found in environment'
+            self.element_dict[name] = xt.Replica(parent_name=cls)
+            self.replace_replica(name)
+            for kk in value_kwargs:
+                setattr(self.element_dict[name], kk, value_kwargs[kk])
+        else:
+            # Instantiate a new element
+            element = cls(**value_kwargs)
+            self.element_dict[name] = element
+
         for kk in ref_kwargs:
             if isinstance(ref_kwargs[kk], list):
                 for ii, vvv in enumerate(ref_kwargs[kk]):
@@ -119,6 +129,7 @@ Environment.element_refs = xt.Line.element_refs
 Environment.vars = xt.Line.vars
 Environment.varval = xt.Line.varval
 Environment.vv = xt.Line.vv
+Environment.replace_replica = xt.Line.replace_replica
 
 class Place:
 
