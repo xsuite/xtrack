@@ -125,6 +125,9 @@ class Environment:
 
         return name
 
+    def place(self, name, at=None, from_=None, anchor=None, from_anchor=None):
+        return Place(name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
+
 Environment.element_dict = xt.Line.element_dict
 Environment._init_var_management = xt.Line._init_var_management
 Environment._xdeps_vref = xt.Line._xdeps_vref

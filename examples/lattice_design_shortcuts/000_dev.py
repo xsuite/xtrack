@@ -30,6 +30,9 @@ env.new_element('mq', xt.Quadrupole, length='l.mq')
 env.new_element('ms', xt.Sextupole, length='l.ms')
 env.new_element('corrector', xt.Multipole, knl=[0], ksl=[0])
 
+env.new_element('mq.f', 'mq', k1='kqf')
+env.new_element('mq.d', 'mq', k1='kqd')
+
 halfcell = env.new_line(components=[
 
     # End of the half cell (will be mid of the cell)
@@ -41,8 +44,8 @@ halfcell = env.new_line(components=[
     env.new_element('mb.3', 'mb', at='l.mb + 1', from_='mb.2'),
 
     # Quads
-    env.new_element('mq.d', 'mq', k1='kqd', at = '0.5 + l.mq / 2'),
-    env.new_element('mq.f', 'mq', k1='kqf', at = 'l.halfcell - l.mq / 2 - 0.5'),
+    env.place('mq.d', at = '0.5 + l.mq / 2'),
+    env.place('mq.f', at = 'l.halfcell - l.mq / 2 - 0.5'),
 
     # Sextupoles
     env.new_element('ms.d', 'ms', k2='k2sf', at=1.2, from_='mq.d'),
