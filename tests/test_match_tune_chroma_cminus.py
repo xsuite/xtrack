@@ -184,13 +184,12 @@ def test_match_tune_chromaticity_homotopy(test_context):
     xo.assert_allclose(tw_final['dqx'], 10.0, atol=0.05)
     xo.assert_allclose(tw_final['dqy'], 12.0, atol=0.05)
 
-    # Assert that Homotopy arrays were created accordingly
-    qx = np.linspace(tw_before['qx'], 62.315, 11)[1:]
-    qy = np.linspace(tw_before['qy'], 60.325, 11)[1:]
-    dqx = np.linspace(tw_before['dqx'], 10.0, 11)[1:]
-    dqy = np.linspace(tw_before['dqy'], 12.0, 11)[1:]
-    
-    # Targets are not logged (only reached values when solving), so no test if they match
+    # Order of steps in log
+    assert len(opt._log['tag']) < 25
+
+    # Look that Homotopy exists
+    for i in range(10):
+        assert f'Homotopy it {i}' in opt._log['tag']
 
 
 @for_all_test_contexts
