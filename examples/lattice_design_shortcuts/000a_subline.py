@@ -37,13 +37,14 @@ girder = env.new_line(components=[
 ])
 
 girder_f = girder.replicate(name='f')
-girder_d = girder.replicate(name='d', mirror=True)
-
 girder_f.replace_all_replicas()
+
+girder_d = girder.replicate(name='d', mirror=True)
 girder_d.replace_all_replicas()
 
-girder_f.element_refs['mq.f'].k1 = env.vars['kqf']
-girder_d.element_refs['mq.d'].k1 = env.vars['kqd']
+env.set('mq.f', k1='kqf')
+env.set('mq.d', k1='kqd')
+
 
 halfcell = env.new_line(components=[
 
