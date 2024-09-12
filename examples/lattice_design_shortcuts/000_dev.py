@@ -25,35 +25,35 @@ env.vars({
     'l.halfcell': 38,
 })
 
-env.new_element('mb', xt.Bend, length='l.mb', k0='k0.mb', h='k0.mb')
-env.new_element('mq', xt.Quadrupole, length='l.mq')
-env.new_element('ms', xt.Sextupole, length='l.ms')
-env.new_element('corrector', xt.Multipole, knl=[0], ksl=[0])
+env.new('mb', xt.Bend, length='l.mb', k0='k0.mb', h='k0.mb')
+env.new('mq', xt.Quadrupole, length='l.mq')
+env.new('ms', xt.Sextupole, length='l.ms')
+env.new('corrector', xt.Multipole, knl=[0], ksl=[0])
 
-env.new_element('mq.f', 'mq', k1='kqf')
-env.new_element('mq.d', 'mq', k1='kqd')
+env.new('mq.f', 'mq', k1='kqf')
+env.new('mq.d', 'mq', k1='kqd')
 
 halfcell = env.new_line(components=[
 
     # End of the half cell (will be mid of the cell)
-    env.new_element('mid', xt.Marker, at='l.halfcell'),
+    env.new('mid', xt.Marker, at='l.halfcell'),
 
     # Bends
-    env.new_element('mb.2', 'mb', at='l.halfcell / 2'),
-    env.new_element('mb.1', 'mb', at='-l.mb - 1', from_='mb.2'),
-    env.new_element('mb.3', 'mb', at='l.mb + 1', from_='mb.2'),
+    env.new('mb.2', 'mb', at='l.halfcell / 2'),
+    env.new('mb.1', 'mb', at='-l.mb - 1', from_='mb.2'),
+    env.new('mb.3', 'mb', at='l.mb + 1', from_='mb.2'),
 
     # Quads
     env.place('mq.d', at = '0.5 + l.mq / 2'),
     env.place('mq.f', at = 'l.halfcell - l.mq / 2 - 0.5'),
 
     # Sextupoles
-    env.new_element('ms.d', 'ms', k2='k2sf', at=1.2, from_='mq.d'),
-    env.new_element('ms.f', 'ms', k2='k2sd', at=-1.2, from_='mq.f'),
+    env.new('ms.d', 'ms', k2='k2sf', at=1.2, from_='mq.d'),
+    env.new('ms.f', 'ms', k2='k2sd', at=-1.2, from_='mq.f'),
 
     # Dipole correctors
-    env.new_element('corrector.v', 'corrector', at=0.75, from_='mq.d'),
-    env.new_element('corrector.h', 'corrector', at=-0.75, from_='mq.f')
+    env.new('corrector.v', 'corrector', at=0.75, from_='mq.d'),
+    env.new('corrector.h', 'corrector', at=-0.75, from_='mq.f')
 
 ])
 
@@ -61,10 +61,10 @@ hcell_left = halfcell.replicate(name='l', mirror=True)
 hcell_right = halfcell.replicate(name='r')
 
 cell = env.new_line(components=[
-    env.new_element('start', xt.Marker),
+    env.new('start', xt.Marker),
     hcell_left,
     hcell_right,
-    env.new_element('end', xt.Marker),
+    env.new('end', xt.Marker),
 ])
 
 opt = cell.match(
@@ -84,22 +84,22 @@ env.vars({
 
 halfcell_ss = env.new_line(components=[
 
-    env.new_element('mid', xt.Marker, at='l.halfcell'),
+    env.new('mid', xt.Marker, at='l.halfcell'),
 
-    env.new_element('mq.ss.d', 'mq', k1='kqd.ss', at = '0.5 + l.mq / 2'),
-    env.new_element('mq.ss.f', 'mq', k1='kqf.ss', at = 'l.halfcell - l.mq / 2 - 0.5'),
+    env.new('mq.ss.d', 'mq', k1='kqd.ss', at = '0.5 + l.mq / 2'),
+    env.new('mq.ss.f', 'mq', k1='kqf.ss', at = 'l.halfcell - l.mq / 2 - 0.5'),
 
-    env.new_element('corrector.ss.v', 'corrector', at=0.75, from_='mq.ss.d'),
-    env.new_element('corrector.ss.h', 'corrector', at=-0.75, from_='mq.ss.f')
+    env.new('corrector.ss.v', 'corrector', at=0.75, from_='mq.ss.d'),
+    env.new('corrector.ss.h', 'corrector', at=-0.75, from_='mq.ss.f')
 ])
 
 hcell_left_ss = halfcell_ss.replicate(name='l', mirror=True)
 hcell_right_ss = halfcell_ss.replicate(name='r')
 cell_ss = env.new_line(components=[
-    env.new_element('start.ss', xt.Marker),
+    env.new('start.ss', xt.Marker),
     hcell_left_ss,
     hcell_right_ss,
-    env.new_element('end.ss', xt.Marker),
+    env.new('end.ss', xt.Marker),
 ])
 
 opt = cell_ss.match(
@@ -145,22 +145,22 @@ env.vars({
 half_insertion = env.new_line(components=[
 
     # Start-end markers
-    env.new_element('ip', xt.Marker),
-    env.new_element('e.insertion', xt.Marker, at=76),
+    env.new('ip', xt.Marker),
+    env.new('e.insertion', xt.Marker, at=76),
 
     # Quads
-    env.new_element('mq.1', xt.Quadrupole, k1='k1.q1', length='l.mq', at = 20),
-    env.new_element('mq.2', xt.Quadrupole, k1='k1.q2', length='l.mq', at = 25),
-    env.new_element('mq.3', xt.Quadrupole, k1='k1.q3', length='l.mq', at=37),
-    env.new_element('mq.4', xt.Quadrupole, k1='k1.q4', length='l.mq', at=55),
-    env.new_element('mq.5', xt.Quadrupole, k1='k1.q5', length='l.mq', at=73),
+    env.new('mq.1', xt.Quadrupole, k1='k1.q1', length='l.mq', at = 20),
+    env.new('mq.2', xt.Quadrupole, k1='k1.q2', length='l.mq', at = 25),
+    env.new('mq.3', xt.Quadrupole, k1='k1.q3', length='l.mq', at=37),
+    env.new('mq.4', xt.Quadrupole, k1='k1.q4', length='l.mq', at=55),
+    env.new('mq.5', xt.Quadrupole, k1='k1.q5', length='l.mq', at=73),
 
     # Dipole correctors (will use h and v on the same corrector)
-    env.new_element('corrector.ss.1', 'corrector', at=0.75, from_='mq.1'),
-    env.new_element('corrector.ss.2', 'corrector', at=-0.75, from_='mq.2'),
-    env.new_element('corrector.ss.3', 'corrector', at=0.75, from_='mq.3'),
-    env.new_element('corrector.ss.4', 'corrector', at=-0.75, from_='mq.4'),
-    env.new_element('corrector.ss.5', 'corrector', at=0.75, from_='mq.5'),
+    env.new('corrector.ss.1', 'corrector', at=0.75, from_='mq.1'),
+    env.new('corrector.ss.2', 'corrector', at=-0.75, from_='mq.2'),
+    env.new('corrector.ss.3', 'corrector', at=0.75, from_='mq.3'),
+    env.new('corrector.ss.4', 'corrector', at=-0.75, from_='mq.4'),
+    env.new('corrector.ss.5', 'corrector', at=0.75, from_='mq.5'),
 
 ])
 

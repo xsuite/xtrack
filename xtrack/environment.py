@@ -65,11 +65,11 @@ class Environment:
         else:
             return self._get_a_drift_name()
 
-    def new_element(self, name, cls, at=None, from_=None, **kwargs):
+    def new(self, name, cls, at=None, from_=None, **kwargs):
 
         if from_ is not None or at is not None:
             return Place(at=at, from_=from_,
-                         name=self.new_element(name, cls, **kwargs))
+                         name=self.new(name, cls, **kwargs))
 
         _eval = self._xdeps_eval.eval
 
@@ -77,7 +77,7 @@ class Environment:
                        Quadrupole, xt.Sextupole, xt.Octupole,
                        xt.Multipole, xt.Marker, xt.Replica], (
             'Only Drift, Dipole, Quadrupole, Sextupole, Octupole, Multipole, Marker, and Replica '
-            'elements are allowed in `new_element` for now.')
+            'elements are allowed in `new` for now.')
 
         cls_input = cls
         if isinstance(cls, str):
@@ -270,7 +270,7 @@ def _generate_element_names_with_drifts(env, tt_sorted, s_tol=1e-12):
         if np.abs(ds_upstream) > s_tol:
             assert ds_upstream > 0, f'Negative drift length: {ds_upstream}, upstream of {nn}'
             drift_name = env._get_a_drift_name()
-            env.new_element(drift_name, xt.Drift, length=ds_upstream)
+            env.new(drift_name, xt.Drift, length=ds_upstream)
             names_with_drifts.append(drift_name)
         names_with_drifts.append(nn)
 
