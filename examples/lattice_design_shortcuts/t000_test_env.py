@@ -1,5 +1,5 @@
 import xtrack as xt
-import xobjects as xo
+import numpy as np
 
 env = xt.Environment()
 
@@ -22,6 +22,18 @@ assert env.vv['b'] == 2 * 3 + 3.
 env.vars['k.1'] = 2 * env.vars['a'] + 5
 assert env.vv['k.1'] == 2 * 3 + 5
 assert env.vv['b'] == 2 * 3 + 2 * 3 + 5
+
+env.vars.set('a', 4.)
+assert env.vv['k.1'] == 2 * 4 + 5
+assert env.vv['b'] == 2 * 4 + 2 * 4 + 5
+
+env.vars.set('k.1', '2*a + 5')
+assert env.vv['k.1'] == 2 * 4 + 5
+assert env.vv['b'] == 2 * 4 + 2 * 4 + 5
+
+env.vars.set('k.1', 3 * env.vars['a'] + 6)
+assert env.vv['k.1'] == 3 * 4 + 6
+assert env.vv['b'] == 2 * 4 + 3 * 4 + 6
 
 
 env.vars({
@@ -48,21 +60,39 @@ line = env.new_line([
 assert line['bb1'] is not env['bb']
 assert line['bb'] is env['bb']
 
-assert line['bb1'].length == 6
-assert line['bb1'].k0 == 2 * (2 * 2 + 5)
+a = env.vv['a']
+assert line['bb1'].length == 3 * a
+assert line['bb1'].k0 == 2 * (2 * a + 5)
 assert line['bb1'].h == 5.
 
-assert line['bb'].k0 == 2 * (2 * 2 + 5)
-assert line['bb'].length == 3 + 2 + 2 * 2 + 5
+assert line['bb'].k0 == 2 * (2 * a + 5)
+assert line['bb'].length == 3 + a + 2 * a + 5
 assert line['bb'].h == 5.
 
 tt = line.get_table(attr=True)
 tt['s_center'] = tt['s'] + tt['length']/2
 
-a = env.vv['a']
+assert np.all(tt.name ==  np.array(['drift_1', 'bb1', 'drift_2', 'bb', '_end_point']))
+
 assert tt['s_center', 'bb1'] == 2*a
 assert tt['s_center', 'bb'] - tt['s_center', 'bb1'] == 10*a
 
+old_a = a
+line.vars['a'] = 3.
+a = line.vv['a']
+assert line['bb1'].length == 3 * a
+assert line['bb1'].k0 == 2 * (2 * a + 5)
+assert line['bb1'].h == 5.
+
+assert line['bb'].k0 == 2 * (2 * a + 5)
+assert line['bb'].length == 3 + a + 2 * a + 5
+assert line['bb'].h == 5.
+
+tt_new = line.get_table(attr=True)
+
+# Drifts are not changed:
+tt_new['length', 'drift_1'] == tt['length', 'drift_1']
+tt_new['length', 'drift_2'] == tt['length', 'drift_2']
 
 
 
