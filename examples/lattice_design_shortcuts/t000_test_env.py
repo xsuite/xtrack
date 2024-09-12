@@ -42,16 +42,28 @@ assert env['bb'].h == 5.
 
 line = env.new_line([
     env.new('bb1', 'bb', length=3*env.vars['a'], at='2*a'),
-    env.place('bb', at=10 * env.vars['a'])
+    env.place('bb', at=10 * env.vars['a'], from_='bb1'),
 ])
+
+assert line['bb1'] is not env['bb']
+assert line['bb'] is env['bb']
 
 assert line['bb1'].length == 6
 assert line['bb1'].k0 == 2 * (2 * 2 + 5)
 assert line['bb1'].h == 5.
 
-assert env['bb'].k0 == 2 * (2 * 2 + 5)
-assert env['bb'].length == 3 + 2 + 2 * 2 + 5
-assert env['bb'].h == 5.
+assert line['bb'].k0 == 2 * (2 * 2 + 5)
+assert line['bb'].length == 3 + 2 + 2 * 2 + 5
+assert line['bb'].h == 5.
+
+tt = line.get_table(attr=True)
+tt['s_center'] = tt['s'] + tt['length']/2
+
+a = env.vv['a']
+assert tt['s_center', 'bb1'] == 2*a
+assert tt['s_center', 'bb'] - tt['s_center', 'bb1'] == 10*a
+
+
 
 
 
