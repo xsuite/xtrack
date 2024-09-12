@@ -36,15 +36,10 @@ girder = env.new_line(components=[
     env.place('corrector', at=-0.8, from_='mq'),
 ])
 
-girder_f = girder.replicate(name='f')
-girder_f.replace_all_replicas()
-
-girder_d = girder.replicate(name='d', mirror=True)
-girder_d.replace_all_replicas()
-
+girder_f = girder.clone(name='f')
+girder_d = girder.clone(name='d', mirror=True)
 env.set('mq.f', k1='kqf')
 env.set('mq.d', k1='kqd')
-
 
 halfcell = env.new_line(components=[
 

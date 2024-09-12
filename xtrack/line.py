@@ -3355,6 +3355,9 @@ class Line:
         self.element_names = list(reversed(self.element_names))
 
     def replicate(self, name, mirror=False):
+
+        self._env_if_needed()
+
         new_element_names = []
         for nn in self.element_names:
             new_nn = nn + '.' + name
@@ -3369,6 +3372,11 @@ class Line:
         if mirror:
             out.mirror()
 
+        return out
+
+    def clone(self, name, mirror=False):
+        out = self.replicate(name=name, mirror=mirror)
+        out.replace_all_replicas()
         return out
 
     def replace_replica(self, name):
@@ -3407,16 +3415,19 @@ class Line:
         tt = self.get_table().rows[start:end]
         if tt.name[-1] == '_end_point':
             tt = tt.rows[:-1]
-        if not hasattr(self, 'env') or self.env is None:
-            self.env = xt.Environment(element_dict=self.element_dict,
-                                      particle_ref=self.particle_ref,
-                                      _var_management=self._var_management)
-            self.env._lines.add(self)
+
+        self._env_if_needed()
 
         out = self.env.new_line(components=list(tt.name), name=name)
 
         return out
 
+    def _env_if_needed(self):
+        if not hasattr(self, 'env') or self.env is None:
+            self.env = xt.Environment(element_dict=self.element_dict,
+                                      particle_ref=self.particle_ref,
+                                      _var_management=self._var_management)
+            self.env._lines.add(self)
 
     def extend(self, line):
         self.element_names.extend(line.element_names)
