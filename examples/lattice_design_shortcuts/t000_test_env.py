@@ -34,3 +34,17 @@ env.new('bb', xt.Bend, k0='2 * b', length=3+env.vars['a'] + env.vars['b'],
 assert env['bb'].k0 == 2 * (2 * 4 + 5)
 assert env['bb'].length == 3 + 4 + 2 * 4 + 5
 assert env['bb'].h == 5.
+
+env.vars['a'] = 2.
+assert env['bb'].k0 == 2 * (2 * 2 + 5)
+assert env['bb'].length == 3 + 2 + 2 * 2 + 5
+assert env['bb'].h == 5.
+
+line = env.new_line([
+    env.new('bb1', 'bb', length=3*env.vars['a'], at='2*a')
+])
+
+assert line['bb1'].length == 6
+assert line['bb1'].k0 == 2 * (2 * 2 + 5)
+assert line['bb1'].h == 5.
+
