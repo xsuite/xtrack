@@ -4686,6 +4686,12 @@ class LineVars:
             else:
                 self[kk] = kwargs[kk]
 
+    def set(self, name, value):
+        if isinstance(value, str):
+            self[name] = self.line._xdeps_eval.eval(value)
+        else:
+            self[name] = value
+
 class ActionVars(Action):
 
     def __init__(self, line):
