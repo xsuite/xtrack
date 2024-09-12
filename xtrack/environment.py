@@ -89,21 +89,11 @@ class Environment:
 
         ref_kwargs, value_kwargs = _parse_kwargs(cls, kwargs, _eval)
 
-        if isinstance(cls_input, str):
-            for kk in value_kwargs:
-                setattr(self.element_dict[name], kk, value_kwargs[kk])
-        else:
-            # Instantiate a new element
-            element = cls(**value_kwargs)
-            self.element_dict[name] = element
+        if not isinstance(cls_input, str): # Parent is a class and not another element
+            self.element_dict[name] = cls(**value_kwargs)
 
-        for kk in ref_kwargs:
-            if isinstance(ref_kwargs[kk], list):
-                for ii, vvv in enumerate(ref_kwargs[kk]):
-                    if vvv is not None:
-                        getattr(self.element_refs[name], kk)[ii] = vvv
-            else:
-                setattr(self.element_refs[name], kk, ref_kwargs[kk])
+        _set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
+                    element_dict=self.element_dict, element_refs=self.element_refs)
 
         return name
 
@@ -321,3 +311,19 @@ def _parse_kwargs(cls, kwargs, _eval):
             value_kwargs[kk] = kwargs[kk]
 
     return ref_kwargs, value_kwargs
+
+def _set_kwargs(name, ref_kwargs, value_kwargs, element_dict, element_refs):
+    for kk in value_kwargs:
+        if hasattr(value_kwargs[kk], '__iter__'):
+            len_value = len(value_kwargs[kk])
+            getattr(element_dict[name], kk)[:len_value] = value_kwargs[kk]
+            if kk in ref_kwargs:
+                for ii, vvv in enumerate(value_kwargs[kk]):
+                    if vvv is not None:
+                        getattr(element_refs[name], kk)[ii] = vvv
+        else:
+            if kk in ref_kwargs:
+                setattr(element_refs[name], kk, ref_kwargs[kk])
+            else:
+                setattr(element_dict[name], kk, value_kwargs[kk])
+
