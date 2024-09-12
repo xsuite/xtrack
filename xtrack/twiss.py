@@ -2996,7 +2996,7 @@ class TwissTable(Table):
         Sigma = gemitt_x * Sigma1 + gemitt_y * Sigma2 + gemitt_zeta * Sigma3
         res = _build_sigma_table(Sigma=Sigma, s=self.s, name=self.name)
 
-        return Table(res)
+        return res
 
     def get_ibs_growth_rates(
         self,
