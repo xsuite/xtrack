@@ -97,6 +97,15 @@ class Environment:
 
         return name
 
+    def set(self, name, **kwargs):
+        _eval = self._xdeps_eval.eval
+
+        ref_kwargs, value_kwargs = _parse_kwargs(
+            type(self.element_dict[name]), kwargs, _eval)
+
+        _set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
+                    element_dict=self.element_dict, element_refs=self.element_refs)
+
     def place(self, name, at=None, from_=None, anchor=None, from_anchor=None):
         return Place(name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
 
