@@ -27,6 +27,15 @@ env.vars.set('a', 4.)
 assert env.vv['k.1'] == 2 * 4 + 5
 assert env.vv['b'] == 2 * 4 + 2 * 4 + 5
 
+env.vars.set('k.1', '2*a + 5')
+assert env.vv['k.1'] == 2 * 4 + 5
+assert env.vv['b'] == 2 * 4 + 2 * 4 + 5
+
+env.vars.set('k.1', 3 * env.vars['a'] + 6)
+assert env.vv['k.1'] == 3 * 4 + 6
+assert env.vv['b'] == 2 * 4 + 3 * 4 + 6
+
+
 env.vars({
     'a': 4.,
     'b': '2 * a + 5',
