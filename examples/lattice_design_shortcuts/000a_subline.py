@@ -28,10 +28,22 @@ env.vars({
 env.new_element('mb', xt.Bend, length='l.mb', k0='k0.mb', h='k0.mb')
 env.new_element('mq', xt.Quadrupole, length='l.mq')
 env.new_element('ms', xt.Sextupole, length='l.ms')
-env.new_element('corrector', xt.Multipole, knl=[0], ksl=[0])
+env.new_element('corrector', xt.Multipole, knl=[0], length=0.1)
 
-env.new_element('mq.f', 'mq', k1='kqf')
-env.new_element('mq.d', 'mq', k1='kqd')
+girder = env.new_line(components=[
+    env.place('mq', at=1),
+    env.place('ms', at=0.8, from_='mq'),
+    env.place('corrector', at=-0.8, from_='mq'),
+])
+
+girder_f = girder.replicate(name='f')
+girder_d = girder.replicate(name='d', mirror=True)
+
+girder_f.replace_all_replicas()
+girder_d.replace_all_replicas()
+
+girder_f.element_refs['mq.f'].k1 = env.vars['kqf']
+girder_d.element_refs['mq.d'].k1 = env.vars['kqd']
 
 halfcell = env.new_line(components=[
 
@@ -43,19 +55,12 @@ halfcell = env.new_line(components=[
     env.new_element('mb.1', 'mb', at='-l.mb - 1', from_='mb.2'),
     env.new_element('mb.3', 'mb', at='l.mb + 1', from_='mb.2'),
 
-    # Quads
-    env.place('mq.d', at = '0.5 + l.mq / 2'),
-    env.place('mq.f', at = 'l.halfcell - l.mq / 2 - 0.5'),
-
-    # Sextupoles
-    env.new_element('ms.d', 'ms', k2='k2sf', at=1.2, from_='mq.d'),
-    env.new_element('ms.f', 'ms', k2='k2sd', at=-1.2, from_='mq.f'),
-
-    # Dipole correctors
-    env.new_element('corrector.v', 'corrector', at=0.75, from_='mq.d'),
-    env.new_element('corrector.h', 'corrector', at=-0.75, from_='mq.f')
+    # Quadrupoles, sextupoles and correctors
+    env.place(girder_d, at=1.2),
+    env.place(girder_f, at='l.halfcell - 1.2'),
 
 ])
+
 
 hcell_left = halfcell.replicate(name='l', mirror=True)
 hcell_right = halfcell.replicate(name='r')
@@ -103,12 +108,13 @@ cell_ss = env.new_line(components=[
 ])
 
 opt = cell_ss.match(
+    solve=False,
     method='4d',
     vary=xt.VaryList(['kqf.ss', 'kqd.ss'], step=1e-5),
     targets=xt.TargetSet(
         betx=tw_cell.betx[-1], bety=tw_cell.bety[-1], at='start.ss',
     ))
-
+opt.solve()
 
 
 arc = env.new_line(components=[

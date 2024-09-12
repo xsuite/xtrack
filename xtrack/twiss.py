@@ -331,9 +331,9 @@ def twiss_line(line, particle_ref=None, method=None,
 
     kwargs = locals().copy()
 
-    if init is not None or betx is not None or bety is not None:
+    if (init is not None or betx is not None or bety is not None) and start is None:
         # is open twiss
-        start = start or xt.START
+        start = xt.START
         end = end or xt.END
 
     if num_turns != 1:
@@ -2996,7 +2996,7 @@ class TwissTable(Table):
         Sigma = gemitt_x * Sigma1 + gemitt_y * Sigma2 + gemitt_zeta * Sigma3
         res = _build_sigma_table(Sigma=Sigma, s=self.s, name=self.name)
 
-        return Table(res)
+        return res
 
     def get_ibs_growth_rates(
         self,

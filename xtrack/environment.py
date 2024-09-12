@@ -7,7 +7,18 @@ from weakref import WeakSet
 def _flatten_components(components):
     flatten_components = []
     for nn in components:
-        if isinstance(nn, xt.Line):
+        if isinstance(nn, Place) and isinstance(nn.name, xt.Line):
+            line = nn.name
+            components = line.element_names.copy()
+            if nn.at is not None:
+                if isinstance(nn.at, str):
+                    at = line._xdeps_eval.eval(nn.at)
+                else:
+                    at = nn.at
+                at_first_element = at - line.get_length() / 2 + line[0].length / 2
+                components[0] = Place(components[0], at=at_first_element, from_=nn.from_)
+            flatten_components += components
+        elif isinstance(nn, xt.Line):
             flatten_components += nn.element_names
         else:
             flatten_components.append(nn)
@@ -124,6 +135,9 @@ class Environment:
                 setattr(self.element_refs[name], kk, ref_kwargs[kk])
 
         return name
+
+    def place(self, name, at=None, from_=None, anchor=None, from_anchor=None):
+        return Place(name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
 
 Environment.element_dict = xt.Line.element_dict
 Environment._init_var_management = xt.Line._init_var_management
