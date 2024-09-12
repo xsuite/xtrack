@@ -37,9 +37,9 @@ girder = env.new_line(components=[
 ])
 
 girder_f = girder.replicate(name='f')
-girder_d = girder.replicate(name='d', mirror=True)
-
 girder_f.replace_all_replicas()
+
+girder_d = girder.replicate(name='d', mirror=True)
 girder_d.replace_all_replicas()
 
 girder_f.element_refs['mq.f'].k1 = env.vars['kqf']

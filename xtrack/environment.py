@@ -87,36 +87,7 @@ class Environment:
             self.replace_replica(name)
             cls = type(self.element_dict[name])
 
-        ref_kwargs = {}
-        value_kwargs = {}
-        for kk in kwargs:
-            if hasattr(kwargs[kk], '_value'):
-                ref_kwargs[kk] = kwargs[kk]
-                value_kwargs[kk] = kwargs[kk]._value
-            elif (hasattr(cls, '_xofields') and kk in cls._xofields
-                  and xo.array.is_array(cls._xofields[kk])):
-                assert hasattr(kwargs[kk], '__iter__'), (
-                    f'{kk} should be an iterable for {cls} element')
-                ref_vv = []
-                value_vv = []
-                for ii, vvv in enumerate(kwargs[kk]):
-                    if hasattr(vvv, '_value'):
-                        ref_vv.append(vvv)
-                        value_vv.append(vvv._value)
-                    elif isinstance(vvv, str):
-                        ref_vv.append(_eval(vvv))
-                        value_vv.append(ref_vv[-1]._value)
-                    else:
-                        ref_vv.append(None)
-                        value_vv.append(vvv)
-                ref_kwargs[kk] = ref_vv
-                value_kwargs[kk] = value_vv
-            elif (isinstance(kwargs[kk], str) and hasattr(cls, '_xofields')
-                and kk in cls._xofields and cls._xofields[kk].__name__ != 'String'):
-                ref_kwargs[kk] = _eval(kwargs[kk])
-                value_kwargs[kk] = ref_kwargs[kk]._value
-            else:
-                value_kwargs[kk] = kwargs[kk]
+        ref_kwargs, value_kwargs = _parse_kwargs(cls, kwargs, _eval)
 
         if isinstance(cls_input, str):
             for kk in value_kwargs:
@@ -316,3 +287,37 @@ def handle_s_places(seq, env):
     names = _generate_element_names_with_drifts(env, tab_sorted)
 
     return names
+
+def _parse_kwargs(cls, kwargs, _eval):
+    ref_kwargs = {}
+    value_kwargs = {}
+    for kk in kwargs:
+        if hasattr(kwargs[kk], '_value'):
+            ref_kwargs[kk] = kwargs[kk]
+            value_kwargs[kk] = kwargs[kk]._value
+        elif (hasattr(cls, '_xofields') and kk in cls._xofields
+                and xo.array.is_array(cls._xofields[kk])):
+            assert hasattr(kwargs[kk], '__iter__'), (
+                f'{kk} should be an iterable for {cls} element')
+            ref_vv = []
+            value_vv = []
+            for ii, vvv in enumerate(kwargs[kk]):
+                if hasattr(vvv, '_value'):
+                    ref_vv.append(vvv)
+                    value_vv.append(vvv._value)
+                elif isinstance(vvv, str):
+                    ref_vv.append(_eval(vvv))
+                    value_vv.append(ref_vv[-1]._value)
+                else:
+                    ref_vv.append(None)
+                    value_vv.append(vvv)
+            ref_kwargs[kk] = ref_vv
+            value_kwargs[kk] = value_vv
+        elif (isinstance(kwargs[kk], str) and hasattr(cls, '_xofields')
+            and kk in cls._xofields and cls._xofields[kk].__name__ != 'String'):
+            ref_kwargs[kk] = _eval(kwargs[kk])
+            value_kwargs[kk] = ref_kwargs[kk]._value
+        else:
+            value_kwargs[kk] = kwargs[kk]
+
+    return ref_kwargs, value_kwargs
