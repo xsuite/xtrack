@@ -265,8 +265,6 @@ xo.assert_allclose(sv_ring.Z[-1], 0, atol=1e-12, rtol=0)
 
 xo.assert_allclose(sv_ring.angle.sum(), 2*np.pi, atol=1e-12, rtol=0)
 
-prrrr
-
 ## Insertion
 
 env.vars({
@@ -299,21 +297,17 @@ half_insertion = env.new_line(components=[
 
 ])
 
-
-
 insertion = env.new_line([
     half_insertion.replicate('l', mirror=True),
     half_insertion.replicate('r')])
 
-
-
 ring2 = env.new_line(components=[
-    arc.replicate(name='arcc.1'),
-    ss.replicate(name='sss.2'),
-    arc.replicate(name='arcc.2'),
+    env['arc.1'],
+    env['ss.1'],
+    env['arc.2'],
     insertion,
-    arc.replicate(name='arcc.3'),
-    ss.replicate(name='sss.3')
+    env['arc.3'],
+    env['ss.3'],
 ])
 
 
@@ -360,18 +354,25 @@ opt = half_insertion.match(
 opt.step(40)
 opt.solve()
 
+tw = ring2.twiss4d()
+
+# Check that the cell is matched to the rest of the ring
+tw_cell_from_ring = tw.rows['start.cell.3.arc.2':'end.cell.3.arc.2']
+xo.assert_allclose(tw_cell_from_ring.betx, tw_cell.betx[:-1], atol=0, rtol=2e-4)
+xo.assert_allclose(tw_cell_from_ring.bety, tw_cell.bety[:-1], atol=0, rtol=2e-4)
+
 
 import matplotlib.pyplot as plt
 plt.close('all')
 for ii, rr in enumerate([ring, ring2_sliced]):
 
-    tw = rr.twiss4d()
+    ttww = rr.twiss4d()
 
     fig = plt.figure(ii, figsize=(6.4*1.2, 4.8))
     ax1 = fig.add_subplot(2, 1, 1)
-    pltbet = tw.plot('betx bety', ax=ax1)
+    pltbet = ttww.plot('betx bety', ax=ax1)
     ax2 = fig.add_subplot(2, 1, 2, sharex=ax1)
-    pltdx = tw.plot('dx', ax=ax2)
+    pltdx = ttww.plot('dx', ax=ax2)
     fig.subplots_adjust(right=.85)
     pltbet.move_legend(1.2,1)
     pltdx.move_legend(1.2,1)
