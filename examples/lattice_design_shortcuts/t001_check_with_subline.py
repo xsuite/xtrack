@@ -100,6 +100,15 @@ halfcell = env.new_line(components=[
 l_hc = env.vv['l.halfcell']
 xo.assert_allclose(l_hc, l_hc, atol=1e-15, rtol=0)
 tt_hc = halfcell.get_table(attr=True)
+assert np.all(tt_hc.name == np.array(
+    ['drift_4', 'ms.d', 'drift_3.d', 'mq.d', 'drift_2.d', 'corrector.d',
+     'drift_1.d', 'drift_5', 'mb.1', 'drift_6', 'mb.2', 'drift_7',
+     'mb.3', 'drift_8', 'drift_1.f', 'corrector.f', 'drift_2.f', 'mq.f',
+     'drift_3.f', 'ms.f', 'drift_9', 'mid', '_end_point']))
+tt_hc['s_center'] = tt_hc['s'] + tt_hc['length']/2 * np.float64(tt_hc['isthick'])
+xo.assert_allclose(tt_hc['s_center', 'mq.d'],
+    1.2 - tt_girder_d.s[-1] / 2 + tt_girder_d['s_center', 'mq.d'],
+    atol=1e-15, rtol=0)
 
 prrrr
 
