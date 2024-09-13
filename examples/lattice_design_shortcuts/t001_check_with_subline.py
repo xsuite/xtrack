@@ -175,6 +175,11 @@ assert np.all(tt_cell.isreplica == np.array(
       True,  True,  True,  True,  True,  True,  True,  True,  True,
       False, False]))
 
+tt_cell_stripped = tt_cell.rows[1:-2] # Remove _end_point and markers added in cell
+tt_cell_second_half = tt_cell_stripped.rows[len(tt_cell_stripped)//2 :]
+tt_cell_second_half.s -= tt_cell_second_half.s[0]
+tt_hc_stripped = tt_hc.rows[:-1] # Remove _end_point
+xo.assert_allclose(tt_cell_second_half.s, tt_hc_stripped.s, atol=1e-14, rtol=0)
 prrrr
 
 opt = cell.match(
