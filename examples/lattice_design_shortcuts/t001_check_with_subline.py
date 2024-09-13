@@ -57,6 +57,7 @@ env.set('mq.d', k1='kqd')
 
 # Check clone
 tt_girder_f = girder_f.get_table(attr=True)
+assert (~(tt_girder_f.isreplica)).all()
 assert np.all(tt_girder_f.name == np.array(
     ['drift_1.f', 'corrector.f', 'drift_2.f', 'mq.f', 'drift_3.f', 'ms.f', '_end_point']))
 tt_girder_f['s_center'] = (tt_girder_f['s']
@@ -71,6 +72,7 @@ xo.assert_allclose(
 
 # Check clone mirror
 tt_girder_d = girder_d.get_table(attr=True)
+assert (~(tt_girder_d.isreplica)).all()
 len_girder = tt_girder_d.s[-1]
 assert np.all(tt_girder_d.name == np.array(
     ['ms.d', 'drift_3.d', 'mq.d', 'drift_2.d', 'corrector.d', 'drift_1.d', '_end_point']))
@@ -187,9 +189,6 @@ s_center_mirrored_first_half = (
     tt_cell_stripped['s', len(tt_cell_stripped)//2] - tt_cell_first_half.s_center[::-1])
 xo.assert_allclose(s_center_mirrored_first_half, tt_hc_stripped.s_center, atol=5e-14, rtol=0)
 
-
-
-
 env.vars({
     'kqf.ss': 0.027 / 2,
     'kqd.ss': -0.0271 / 2,
@@ -216,14 +215,23 @@ cell_ss = env.new_line(components=[
 ])
 
 
-
-
 arc = env.new_line(components=[
     cell.replicate(name='cell.1'),
     cell.replicate(name='cell.2'),
     cell.replicate(name='cell.3'),
 ])
 
+assert 'cell.2' in env.lines
+tt_cell2 = env.lines['cell.2'].get_table(attr=True)
+assert np.all(tt_cell2.name[:-1] == np.array([
+    nn+'.cell.2' for nn in tt_cell.name[:-1]]))
+assert np.all(tt_cell2.s == tt_cell.s)
+assert tt_cell2.isreplica[:-1].all()
+assert tt_cell2['parent_name', 'mq.d.l.cell.2'] == 'mq.d.l'
+assert tt_cell2['parent_name', 'mq.f.l.cell.2'] == 'mq.f.l'
+assert tt_cell['parent_name', 'mq.d.l'] == 'mq.d'
+assert tt_cell['parent_name', 'mq.f.l'] == 'mq.f'
+prrr
 
 ss = env.new_line(components=[
     cell_ss.replicate('cell.1'),
