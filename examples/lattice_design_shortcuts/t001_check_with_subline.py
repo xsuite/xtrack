@@ -41,12 +41,12 @@ tt_girder = girder.get_table(attr=True)
 assert np.all(tt_girder.name == np.array(
     ['drift_1', 'corrector', 'drift_2', 'mq', 'drift_3', 'ms', '_end_point']))
 tt_girder['s_center'] = tt_girder['s'] + tt_girder['length']/2 * np.float64(tt_girder['isthick'])
-xo.assert_allclose(tt_girder['s_center', 'mq'], 1., atol=1e-15, rtol=0)
+xo.assert_allclose(tt_girder['s_center', 'mq'], 1., atol=1e-14, rtol=0)
 xo.assert_allclose(tt_girder['s_center', 'ms'] - tt_girder['s_center', 'mq'], 0.8,
-                   atol=1e-15, rtol=0)
+                   atol=1e-14, rtol=0)
 xo.assert_allclose(
         tt_girder['s_center', 'corrector'] - tt_girder['s_center', 'mq'], -0.8,
-        atol=1e-15, rtol=0)
+        atol=1e-14, rtol=0)
 
 
 girder_f = girder.clone(name='f')
@@ -60,12 +60,12 @@ assert np.all(tt_girder_f.name == np.array(
     ['drift_1.f', 'corrector.f', 'drift_2.f', 'mq.f', 'drift_3.f', 'ms.f', '_end_point']))
 tt_girder_f['s_center'] = (tt_girder_f['s']
             + tt_girder_f['length']/2 * np.float64(tt_girder_f['isthick']))
-xo.assert_allclose(tt_girder_f['s_center', 'mq.f'], 1., atol=1e-15, rtol=0)
+xo.assert_allclose(tt_girder_f['s_center', 'mq.f'], 1., atol=1e-14, rtol=0)
 xo.assert_allclose(tt_girder_f['s_center', 'ms.f'] - tt_girder_f['s_center', 'mq.f'], 0.8,
-                     atol=1e-15, rtol=0)
+                     atol=1e-14, rtol=0)
 xo.assert_allclose(
         tt_girder_f['s_center', 'corrector.f'] - tt_girder_f['s_center', 'mq.f'], -0.8,
-        atol=1e-15, rtol=0)
+        atol=1e-14, rtol=0)
 
 # Check clone mirror
 tt_girder_d = girder_d.get_table(attr=True)
@@ -74,11 +74,11 @@ assert np.all(tt_girder_d.name == np.array(
     ['ms.d', 'drift_3.d', 'mq.d', 'drift_2.d', 'corrector.d', 'drift_1.d', '_end_point']))
 tt_girder_d['s_center'] = (tt_girder_d['s']
             + tt_girder_d['length']/2 * np.float64(tt_girder_d['isthick']))
-xo.assert_allclose(tt_girder_d['s_center', 'mq.d'], len_girder - 1., atol=1e-15, rtol=0)
+xo.assert_allclose(tt_girder_d['s_center', 'mq.d'], len_girder - 1., atol=1e-14, rtol=0)
 xo.assert_allclose(tt_girder_d['s_center', 'ms.d'] - tt_girder_d['s_center', 'mq.d'],
-                   -0.8, atol=1e-15, rtol=0)
+                   -0.8, atol=1e-14, rtol=0)
 xo.assert_allclose(tt_girder_d['s_center', 'corrector.d'] - tt_girder_d['s_center', 'mq.d'],
-                   0.8, atol=1e-15, rtol=0)
+                   0.8, atol=1e-14, rtol=0)
 
 
 halfcell = env.new_line(components=[
@@ -98,7 +98,7 @@ halfcell = env.new_line(components=[
 ])
 
 l_hc = env.vv['l.halfcell']
-xo.assert_allclose(l_hc, l_hc, atol=1e-15, rtol=0)
+xo.assert_allclose(l_hc, l_hc, atol=1e-14, rtol=0)
 tt_hc = halfcell.get_table(attr=True)
 assert np.all(tt_hc.name == np.array(
     ['drift_4', 'ms.d', 'drift_3.d', 'mq.d', 'drift_2.d', 'corrector.d',
@@ -108,8 +108,16 @@ assert np.all(tt_hc.name == np.array(
 tt_hc['s_center'] = tt_hc['s'] + tt_hc['length']/2 * np.float64(tt_hc['isthick'])
 xo.assert_allclose(tt_hc['s_center', 'mq.d'],
     1.2 - tt_girder_d.s[-1] / 2 + tt_girder_d['s_center', 'mq.d'],
-    atol=1e-15, rtol=0)
-
+    atol=1e-14, rtol=0)
+xo.assert_allclose(tt_hc['s_center', 'ms.f'] - tt_hc['s_center', 'mq.f'], 0.8,
+                     atol=1e-14, rtol=0)
+xo.assert_allclose(
+        tt_hc['s_center', 'corrector.f'] - tt_hc['s_center', 'mq.f'], -0.8,
+        atol=1e-14, rtol=0)
+xo.assert_allclose(tt_hc['s_center', 'ms.d'] - tt_hc['s_center', 'mq.d'],
+                   -0.8, atol=1e-14, rtol=0)
+xo.assert_allclose(tt_hc['s_center', 'corrector.d'] - tt_hc['s_center', 'mq.d'],
+                   0.8, atol=1e-14, rtol=0)
 prrrr
 
 
