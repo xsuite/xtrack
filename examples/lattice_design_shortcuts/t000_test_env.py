@@ -48,6 +48,16 @@ env.set('k.1', 3 * env.vars['a'] + 6)
 assert env.vv['k.1'] == 3 * 2 + 6
 assert env.vv['b'] == 2 * 2 + 3 * 2 + 6
 
+assert hasattr(env.ref['k.1'], '_value') # is a Ref
+
+env.ref['a'] = 0
+assert env.vv['k.1'] == 3 * 0 + 6
+assert env.vv['b'] == 2 * 0 + 3 * 0 + 6
+
+env.ref['a'] = 2
+env.ref['k.1'] = 2 * env.ref['a'] + 5
+assert env.vv['k.1'] == 2 * 2 + 5
+assert env.vv['b'] == 2 * 2 + 2 * 2 + 5
 
 env.vars({
     'a': 4.,
