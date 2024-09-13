@@ -81,9 +81,6 @@ xo.assert_allclose(tt_girder_d['s_center', 'corrector.d'] - tt_girder_d['s_cente
                    0.8, atol=1e-15, rtol=0)
 
 
-
-prrrr
-
 halfcell = env.new_line(components=[
 
     # End of the half cell (will be mid of the cell)
@@ -99,6 +96,12 @@ halfcell = env.new_line(components=[
     env.place(girder_f, at='l.halfcell - 1.2'),
 
 ])
+
+l_hc = env.vv['l.halfcell']
+xo.assert_allclose(l_hc, l_hc, atol=1e-15, rtol=0)
+tt_hc = halfcell.get_table(attr=True)
+
+prrrr
 
 
 hcell_left = halfcell.replicate(name='l', mirror=True)

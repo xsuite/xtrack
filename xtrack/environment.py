@@ -9,7 +9,7 @@ def _flatten_components(components):
     for nn in components:
         if isinstance(nn, Place) and isinstance(nn.name, xt.Line):
             line = nn.name
-            components = line.element_names.copy()
+            components = list(line.element_names).copy()
             if nn.at is not None:
                 if isinstance(nn.at, str):
                     at = line._xdeps_eval.eval(nn.at)
