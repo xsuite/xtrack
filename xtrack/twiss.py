@@ -3675,7 +3675,7 @@ def _build_sigma_table(Sigma, s=None, name=None):
     res_data['Sigma52'] = Sigma[:, 4, 1]
 
 
-    return res_data
+    return Table(res_data)
 
 def compute_T_matrix_line(line, start, end, particle_on_co=None,
                             steps_t_matrix=None):
