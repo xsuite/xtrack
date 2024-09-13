@@ -124,6 +124,7 @@ Environment.varval = xt.Line.varval
 Environment.vv = xt.Line.vv
 Environment.replace_replica = xt.Line.replace_replica
 Environment.__getitem__ = xt.Line.__getitem__
+Environment.__setitem__ = xt.Line.__setitem__
 
 class Place:
 
