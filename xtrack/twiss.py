@@ -3286,7 +3286,7 @@ class TwissTable(Table):
     ind_per_table = []
 
     def add_strengths(self, line=None):
-        if line is None:
+        if line is None and hasattr(self,"_action"):
             line = self._action.line
         _add_strengths_to_twiss_res(self, line)
         return self
