@@ -3363,11 +3363,8 @@ class Line:
             new_nn = nn + '.' + name
             self.element_dict[new_nn] = xt.Replica(nn)
             new_element_names.append(new_nn)
-        out = Line()
-        out.element_names = new_element_names
-        out._element_dict = self.element_dict # to make sure that the dict is not copied
-        out._var_management = self._var_management
-        out._name = name
+
+        out = self.env.new_line(components=new_element_names, name=name)
 
         if mirror:
             out.mirror()

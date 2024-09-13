@@ -34,6 +34,7 @@ class Environment:
         else:
             self._init_var_management()
 
+        self.lines = {}
         self._lines = WeakSet()
         self._drift_counter = 0
 
@@ -48,7 +49,9 @@ class Environment:
         out.element_names = handle_s_places(flattened_components, self)
         out._var_management = self._var_management
         out._name = name
-        self._lines.add(out)
+        self._lines.add(out) # Weak references
+        if name is not None:
+            self.lines[name] = out
 
         return out
 
