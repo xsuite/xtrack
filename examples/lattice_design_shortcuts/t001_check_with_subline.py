@@ -147,6 +147,8 @@ cell = env.new_line(components=[
 ])
 
 tt_cell = cell.get_table(attr=True)
+tt_cell['s_center'] = (
+    tt_cell['s'] + tt_cell['length'] / 2 * np.float64(tt_cell['isthick']))
 assert np.all(tt_cell.name == np.array(
     ['start', 'mid.l', 'drift_9.l', 'ms.f.l', 'drift_3.f.l', 'mq.f.l',
       'drift_2.f.l', 'corrector.f.l', 'drift_1.f.l', 'drift_8.l',
@@ -177,14 +179,13 @@ assert np.all(tt_cell.isreplica == np.array(
 
 tt_cell_stripped = tt_cell.rows[1:-2] # Remove _end_point and markers added in cell
 tt_cell_second_half = tt_cell_stripped.rows[len(tt_cell_stripped)//2 :]
-tt_cell_second_half.s -= tt_cell_second_half.s[0]
+tt_cell_second_half.s_center -= tt_cell_second_half.s[0]
 tt_hc_stripped = tt_hc.rows[:-1] # Remove _end_point
-xo.assert_allclose(tt_cell_second_half.s, tt_hc_stripped.s, atol=1e-14, rtol=0)
+xo.assert_allclose(tt_cell_second_half.s_center, tt_hc_stripped.s_center, atol=5e-14, rtol=0)
 tt_cell_first_half = tt_cell_stripped.rows[:len(tt_cell_stripped)//2]
-s_mirrored_first_half = tt_cell_first_half.s[::-1] - tt_cell_first_half.length[::-1]
-s_mirrored_first_half -= s_mirrored_first_half[0]
-xo.assert_allclose(s_mirrored_first_half, tt_hc_stripped.s, atol=1e-14, rtol=0)
-prrrr
+s_center_mirrored_first_half = (
+    tt_cell_stripped['s', len(tt_cell_stripped)//2] - tt_cell_first_half.s_center[::-1])
+xo.assert_allclose(s_center_mirrored_first_half, tt_hc_stripped.s_center, atol=5e-14, rtol=0)
 
 opt = cell.match(
     method='4d',
