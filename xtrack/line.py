@@ -3774,19 +3774,31 @@ class Line:
     def steering_correctors_y(self, value):
         self._extra_config['steering_correctors_y'] = value
 
-    def __getitem__(self, ii):
-        if isinstance(ii, str):
-
-            try:
-                return self.element_dict.__getitem__(ii)
-            except KeyError:
-                raise KeyError(f'No installed element with name {ii}')
+    def __getitem__(self, key):
+        if isinstance(key, str):
+            if key in self.element_dict:
+                return self.element_dict[key]
+            elif key in self.vars:
+                return self.vv[key]
+            elif hasattr(self, 'lines') and key in self.lines: # Want to reuse the method for the env
+                return self.lines[key]
+            else:
+                raise KeyError(f'Name {key} not found')
         else:
-            names = self.element_names.__getitem__(ii)
+            names = self.element_names.__getitem__(key)
             if isinstance(names, str):
                 return self.element_dict.__getitem__(names)
             else:
                 return [self.element_dict[nn] for nn in names]
+
+    def __setitem__(self, key, value):
+        if isinstance(value, Line):
+            raise ValueError('Cannot set a Line, please use Envirnoment.new_line')
+            # Would need to make sure they refer to the same environment
+        elif np.isscalar(value):
+            self.vars[key] = value
+        else:
+            self.element_dict[key] = value
 
     def _get_non_collective_line(self):
         if not self.iscollective:
