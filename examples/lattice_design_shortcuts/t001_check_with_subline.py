@@ -40,13 +40,14 @@ girder = env.new_line(components=[
 tt_girder = girder.get_table(attr=True)
 assert np.all(tt_girder.name == np.array(
     ['drift_1', 'corrector', 'drift_2', 'mq', 'drift_3', 'ms', '_end_point']))
-tt_girder['s_center'] = tt_girder['s'] + tt_girder['length']/2 * np.float64(tt_girder['isthick'])
+tt_girder['s_center'] = tt_girder['s'] + \
+    tt_girder['length']/2 * np.float64(tt_girder['isthick'])
 xo.assert_allclose(tt_girder['s_center', 'mq'], 1., atol=1e-14, rtol=0)
 xo.assert_allclose(tt_girder['s_center', 'ms'] - tt_girder['s_center', 'mq'], 0.8,
                    atol=1e-14, rtol=0)
 xo.assert_allclose(
-        tt_girder['s_center', 'corrector'] - tt_girder['s_center', 'mq'], -0.8,
-        atol=1e-14, rtol=0)
+    tt_girder['s_center', 'corrector'] - tt_girder['s_center', 'mq'], -0.8,
+    atol=1e-14, rtol=0)
 
 
 girder_f = girder.clone(name='f')
@@ -59,13 +60,14 @@ tt_girder_f = girder_f.get_table(attr=True)
 assert np.all(tt_girder_f.name == np.array(
     ['drift_1.f', 'corrector.f', 'drift_2.f', 'mq.f', 'drift_3.f', 'ms.f', '_end_point']))
 tt_girder_f['s_center'] = (tt_girder_f['s']
-            + tt_girder_f['length']/2 * np.float64(tt_girder_f['isthick']))
+                           + tt_girder_f['length']/2 * np.float64(tt_girder_f['isthick']))
 xo.assert_allclose(tt_girder_f['s_center', 'mq.f'], 1., atol=1e-14, rtol=0)
 xo.assert_allclose(tt_girder_f['s_center', 'ms.f'] - tt_girder_f['s_center', 'mq.f'], 0.8,
-                     atol=1e-14, rtol=0)
+                   atol=1e-14, rtol=0)
 xo.assert_allclose(
-        tt_girder_f['s_center', 'corrector.f'] - tt_girder_f['s_center', 'mq.f'], -0.8,
-        atol=1e-14, rtol=0)
+    tt_girder_f['s_center', 'corrector.f'] -
+    tt_girder_f['s_center', 'mq.f'], -0.8,
+    atol=1e-14, rtol=0)
 
 # Check clone mirror
 tt_girder_d = girder_d.get_table(attr=True)
@@ -73,8 +75,9 @@ len_girder = tt_girder_d.s[-1]
 assert np.all(tt_girder_d.name == np.array(
     ['ms.d', 'drift_3.d', 'mq.d', 'drift_2.d', 'corrector.d', 'drift_1.d', '_end_point']))
 tt_girder_d['s_center'] = (tt_girder_d['s']
-            + tt_girder_d['length']/2 * np.float64(tt_girder_d['isthick']))
-xo.assert_allclose(tt_girder_d['s_center', 'mq.d'], len_girder - 1., atol=1e-14, rtol=0)
+                           + tt_girder_d['length']/2 * np.float64(tt_girder_d['isthick']))
+xo.assert_allclose(tt_girder_d['s_center', 'mq.d'],
+                   len_girder - 1., atol=1e-14, rtol=0)
 xo.assert_allclose(tt_girder_d['s_center', 'ms.d'] - tt_girder_d['s_center', 'mq.d'],
                    -0.8, atol=1e-14, rtol=0)
 xo.assert_allclose(tt_girder_d['s_center', 'corrector.d'] - tt_girder_d['s_center', 'mq.d'],
@@ -105,20 +108,32 @@ assert np.all(tt_hc.name == np.array(
      'drift_1.d', 'drift_5', 'mb.1', 'drift_6', 'mb.2', 'drift_7',
      'mb.3', 'drift_8', 'drift_1.f', 'corrector.f', 'drift_2.f', 'mq.f',
      'drift_3.f', 'ms.f', 'drift_9', 'mid', '_end_point']))
-tt_hc['s_center'] = tt_hc['s'] + tt_hc['length']/2 * np.float64(tt_hc['isthick'])
+assert np.all(tt_hc.element_type == np.array(
+    ['Drift', 'Sextupole', 'Drift', 'Quadrupole', 'Drift', 'Multipole',
+     'Drift', 'Drift', 'Bend', 'Drift', 'Bend', 'Drift', 'Bend',
+     'Drift', 'Drift', 'Multipole', 'Drift', 'Quadrupole', 'Drift',
+     'Sextupole', 'Drift', 'Marker', '']))
+assert np.all(tt_hc.isreplica == False)
+tt_hc['s_center'] = (
+    tt_hc['s'] + tt_hc['length'] / 2 * np.float64(tt_hc['isthick']))
 xo.assert_allclose(tt_hc['s_center', 'mq.d'],
-    1.2 - tt_girder_d.s[-1] / 2 + tt_girder_d['s_center', 'mq.d'],
-    atol=1e-14, rtol=0)
+                   1.2 - tt_girder_d.s[-1] / 2 +
+                   tt_girder_d['s_center', 'mq.d'],
+                   atol=1e-14, rtol=0)
 xo.assert_allclose(tt_hc['s_center', 'ms.f'] - tt_hc['s_center', 'mq.f'], 0.8,
-                     atol=1e-14, rtol=0)
+                   atol=1e-14, rtol=0)
 xo.assert_allclose(
-        tt_hc['s_center', 'corrector.f'] - tt_hc['s_center', 'mq.f'], -0.8,
-        atol=1e-14, rtol=0)
+    tt_hc['s_center', 'corrector.f'] - tt_hc['s_center', 'mq.f'], -0.8,
+    atol=1e-14, rtol=0)
 xo.assert_allclose(tt_hc['s_center', 'ms.d'] - tt_hc['s_center', 'mq.d'],
                    -0.8, atol=1e-14, rtol=0)
 xo.assert_allclose(tt_hc['s_center', 'corrector.d'] - tt_hc['s_center', 'mq.d'],
                    0.8, atol=1e-14, rtol=0)
-prrrr
+xo.assert_allclose(tt_hc['s_center', 'mb.2'], l_hc / 2, atol=1e-14, rtol=0)
+xo.assert_allclose(tt_hc['s_center', 'mb.1'], tt_hc['s_center', 'mb.2'] - env.vv['l.mb'] - 1,
+                     atol=1e-14, rtol=0)
+xo.assert_allclose(tt_hc['s_center', 'mb.3'], tt_hc['s_center', 'mb.2'] + env.vv['l.mb'] + 1,
+                   atol=1e-14, rtol=0)
 
 
 hcell_left = halfcell.replicate(name='l', mirror=True)
@@ -130,6 +145,37 @@ cell = env.new_line(components=[
     hcell_right,
     env.new('end', xt.Marker),
 ])
+
+tt_cell = cell.get_table(attr=True)
+assert np.all(tt_cell.name == np.array(
+    ['start', 'mid.l', 'drift_9.l', 'ms.f.l', 'drift_3.f.l', 'mq.f.l',
+      'drift_2.f.l', 'corrector.f.l', 'drift_1.f.l', 'drift_8.l',
+      'mb.3.l', 'drift_7.l', 'mb.2.l', 'drift_6.l', 'mb.1.l',
+      'drift_5.l', 'drift_1.d.l', 'corrector.d.l', 'drift_2.d.l',
+      'mq.d.l', 'drift_3.d.l', 'ms.d.l', 'drift_4.l', 'drift_4.r',
+      'ms.d.r', 'drift_3.d.r', 'mq.d.r', 'drift_2.d.r', 'corrector.d.r',
+      'drift_1.d.r', 'drift_5.r', 'mb.1.r', 'drift_6.r', 'mb.2.r',
+      'drift_7.r', 'mb.3.r', 'drift_8.r', 'drift_1.f.r', 'corrector.f.r',
+      'drift_2.f.r', 'mq.f.r', 'drift_3.f.r', 'ms.f.r', 'drift_9.r',
+      'mid.r', 'end', '_end_point']))
+assert np.all(tt_cell.element_type == np.array(
+    ['Marker', 'Marker', 'Drift', 'Sextupole', 'Drift', 'Quadrupole',
+       'Drift', 'Multipole', 'Drift', 'Drift', 'Bend', 'Drift', 'Bend',
+       'Drift', 'Bend', 'Drift', 'Drift', 'Multipole', 'Drift',
+       'Quadrupole', 'Drift', 'Sextupole', 'Drift', 'Drift', 'Sextupole',
+       'Drift', 'Quadrupole', 'Drift', 'Multipole', 'Drift', 'Drift',
+       'Bend', 'Drift', 'Bend', 'Drift', 'Bend', 'Drift', 'Drift',
+       'Multipole', 'Drift', 'Quadrupole', 'Drift', 'Sextupole', 'Drift',
+       'Marker', 'Marker', '']))
+assert np.all(tt_cell.isreplica == np.array(
+    [False,  True,  True,  True,  True,  True,  True,  True,  True,
+      True,  True,  True,  True,  True,  True,  True,  True,  True,
+      True,  True,  True,  True,  True,  True,  True,  True,  True,
+      True,  True,  True,  True,  True,  True,  True,  True,  True,
+      True,  True,  True,  True,  True,  True,  True,  True,  True,
+      False, False]))
+
+prrrr
 
 opt = cell.match(
     method='4d',
