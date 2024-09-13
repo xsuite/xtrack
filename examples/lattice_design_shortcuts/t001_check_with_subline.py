@@ -231,7 +231,14 @@ assert tt_cell2['parent_name', 'mq.d.l.cell.2'] == 'mq.d.l'
 assert tt_cell2['parent_name', 'mq.f.l.cell.2'] == 'mq.f.l'
 assert tt_cell['parent_name', 'mq.d.l'] == 'mq.d'
 assert tt_cell['parent_name', 'mq.f.l'] == 'mq.f'
-prrr
+
+tt_arc = arc.get_table(attr=True)
+assert len(tt_arc) == 3 * (len(tt_cell)-1) + 1
+n_cell = len(tt_cell) - 1
+assert np.all(tt_arc.name[n_cell:2*n_cell] == tt_cell2.name[:-1])
+for nn in tt_cell2.name[:-1]:
+    assert arc[nn] is env[nn]
+    assert arc[nn] is env['cell.2'][nn]
 
 ss = env.new_line(components=[
     cell_ss.replicate('cell.1'),
@@ -246,6 +253,19 @@ ring = env.new_line(components=[
     arc.replicate(name='arc.3'),
     ss.replicate(name='ss.3'),
 ])
+tt_ring = ring.get_table(attr=True)
+# Check length
+xo.assert_allclose(tt_ring.s[-1], 2*l_hc * (n_cells_par_arc * n_arcs + 2*n_arcs),
+                     atol=1e-12, rtol=0)
+# Check closure
+sv_ring = ring.survey()
+xo.assert_allclose(sv_ring.X[-1], 0, atol=1e-12, rtol=0)
+xo.assert_allclose(sv_ring.Y[-1], 0, atol=1e-12, rtol=0)
+xo.assert_allclose(sv_ring.Z[-1], 0, atol=1e-12, rtol=0)
+
+xo.assert_allclose(sv_ring.angle.sum(), 2*np.pi, atol=1e-12, rtol=0)
+
+prrrr
 
 ## Insertion
 
