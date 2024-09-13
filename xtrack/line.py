@@ -151,6 +151,7 @@ class Line:
 
         self._line_before_slicing_cache = None
         self._element_names_before_slicing = None
+        self.ref = xt.environment.EnvRef(self)
 
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
@@ -3792,12 +3793,17 @@ class Line:
                 return [self.element_dict[nn] for nn in names]
 
     def __setitem__(self, key, value):
+
         if isinstance(value, Line):
             raise ValueError('Cannot set a Line, please use Envirnoment.new_line')
             # Would need to make sure they refer to the same environment
         elif np.isscalar(value):
+            if key in self.element_dict:
+                raise ValueError(f'There is already an element with name {key}')
             self.vars[key] = value
         else:
+            if key in self.vars:
+                raise ValueError('There is already a variable with name {key}')
             self.element_dict[key] = value
 
     def _get_non_collective_line(self):

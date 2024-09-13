@@ -37,6 +37,7 @@ class Environment:
         self.lines = {}
         self._lines = WeakSet()
         self._drift_counter = 0
+        self.ref = EnvRef(self)
 
     def new_line(self, components=None, name=None):
         out = xt.Line()
@@ -340,3 +341,36 @@ def _set_kwargs(name, ref_kwargs, value_kwargs, element_dict, element_refs):
             else:
                 setattr(element_dict[name], kk, value_kwargs[kk])
 
+class EnvRef:
+    def __init__(self, env):
+        self.env = env
+
+    def __getitem__(self, name):
+        if hasattr(self.env, 'lines') and name in self.env.lines:
+            return self.env.lines[name].ref
+        elif name in self.env.element_dict:
+            return self.env.element_refs[name]
+        elif name in self.env.vars:
+            return self.env.vars[name]
+        else:
+            raise KeyError(f'Name {name} not found.')
+
+    def __setitem__(self, key, value):
+        if isinstance(value, xt.Line):
+            raise ValueError('Cannot set a Line, please use Envirnoment.new_line')
+
+        if hasattr(value, '_value'):
+            val_ref = value
+            val_value = value._value
+        else:
+            val_ref = value
+            val_value = value
+
+        if np.isscalar(val_value):
+            if key in self.env.element_dict:
+                raise ValueError(f'There is already an element with name {key}')
+            self.env.vars[key] = val_ref
+        else:
+            if key in self.env.vars:
+                raise ValueError(f'There is already a variable with name {key}')
+            self.element_refs[key] = val_ref
