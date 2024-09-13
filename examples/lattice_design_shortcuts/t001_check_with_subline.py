@@ -187,14 +187,7 @@ s_center_mirrored_first_half = (
     tt_cell_stripped['s', len(tt_cell_stripped)//2] - tt_cell_first_half.s_center[::-1])
 xo.assert_allclose(s_center_mirrored_first_half, tt_hc_stripped.s_center, atol=5e-14, rtol=0)
 
-opt = cell.match(
-    method='4d',
-    vary=xt.VaryList(['kqf', 'kqd'], step=1e-5),
-    targets=xt.TargetSet(
-        qx=0.333333,
-        qy=0.333333,
-    ))
-tw_cell = cell.twiss4d()
+
 
 
 env.vars({
@@ -222,14 +215,7 @@ cell_ss = env.new_line(components=[
     env.new('end.ss', xt.Marker),
 ])
 
-opt = cell_ss.match(
-    solve=False,
-    method='4d',
-    vary=xt.VaryList(['kqf.ss', 'kqd.ss'], step=1e-5),
-    targets=xt.TargetSet(
-        betx=tw_cell.betx[-1], bety=tw_cell.bety[-1], at='start.ss',
-    ))
-opt.solve()
+
 
 
 arc = env.new_line(components=[
@@ -285,26 +271,7 @@ half_insertion = env.new_line(components=[
 
 ])
 
-tw_arc = arc.twiss4d()
 
-opt = half_insertion.match(
-    solve=False,
-    betx=tw_arc.betx[0], bety=tw_arc.bety[0],
-    alfx=tw_arc.alfx[0], alfy=tw_arc.alfy[0],
-    init_at='e.insertion',
-    start='ip', end='e.insertion',
-    vary=xt.VaryList(['k1.q1', 'k1.q2', 'k1.q3', 'k1.q4'], step=1e-5),
-    targets=[
-        xt.TargetSet(alfx=0, alfy=0, at='ip'),
-        xt.Target(lambda tw: tw.betx[0] - tw.bety[0], 0),
-        xt.Target(lambda tw: tw.betx.max(), xt.LessThan(400)),
-        xt.Target(lambda tw: tw.bety.max(), xt.LessThan(400)),
-        xt.Target(lambda tw: tw.betx.min(), xt.GreaterThan(2)),
-        xt.Target(lambda tw: tw.bety.min(), xt.GreaterThan(2)),
-    ]
-)
-opt.step(40)
-opt.solve()
 
 insertion = env.new_line([
     half_insertion.replicate('l', mirror=True),
@@ -325,6 +292,45 @@ ring2 = env.new_line(components=[
 # # Check buffer behavior
 ring2_sliced = ring2.select()
 ring2_sliced.cut_at_s(np.arange(0, ring2.get_length(), 0.5))
+
+opt = cell.match(
+    method='4d',
+    vary=xt.VaryList(['kqf', 'kqd'], step=1e-5),
+    targets=xt.TargetSet(
+        qx=0.333333,
+        qy=0.333333,
+    ))
+tw_cell = cell.twiss4d()
+
+opt = cell_ss.match(
+    solve=False,
+    method='4d',
+    vary=xt.VaryList(['kqf.ss', 'kqd.ss'], step=1e-5),
+    targets=xt.TargetSet(
+        betx=tw_cell.betx[-1], bety=tw_cell.bety[-1], at='start.ss',
+    ))
+opt.solve()
+
+tw_arc = arc.twiss4d()
+
+opt = half_insertion.match(
+    solve=False,
+    betx=tw_arc.betx[0], bety=tw_arc.bety[0],
+    alfx=tw_arc.alfx[0], alfy=tw_arc.alfy[0],
+    init_at='e.insertion',
+    start='ip', end='e.insertion',
+    vary=xt.VaryList(['k1.q1', 'k1.q2', 'k1.q3', 'k1.q4'], step=1e-5),
+    targets=[
+        xt.TargetSet(alfx=0, alfy=0, at='ip'),
+        xt.Target(lambda tw: tw.betx[0] - tw.bety[0], 0),
+        xt.Target(lambda tw: tw.betx.max(), xt.LessThan(400)),
+        xt.Target(lambda tw: tw.bety.max(), xt.LessThan(400)),
+        xt.Target(lambda tw: tw.betx.min(), xt.GreaterThan(2)),
+        xt.Target(lambda tw: tw.bety.min(), xt.GreaterThan(2)),
+    ]
+)
+opt.step(40)
+opt.solve()
 
 
 import matplotlib.pyplot as plt
