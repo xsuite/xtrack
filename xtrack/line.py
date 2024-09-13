@@ -3438,9 +3438,9 @@ class Line:
                 raise ValueError(f'A value must be provided when setting a variable')
             value = args[0]
             if isinstance(value, str):
-                self[name] = _eval(value)
+                self.vars[name] = _eval(value)
             else:
-                self[name] = value
+                self.vars[name] = value
         elif hasattr(self, 'lines') and name in self.lines:
             raise ValueError('Cannot set a line')
         else:
