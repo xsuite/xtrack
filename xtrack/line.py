@@ -3420,6 +3420,32 @@ class Line:
 
         return out
 
+    def set(self, name, *args, **kwargs):
+        _eval = self._xdeps_eval.eval
+
+        if name in self.element_dict:
+            if len(args) > 0:
+                raise ValueError(f'Only kwargs are allowed when setting element attributes')
+            ref_kwargs, value_kwargs = xt.environment._parse_kwargs(
+                type(self.element_dict[name]), kwargs, _eval)
+            xt.environment._set_kwargs(
+                name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
+                element_dict=self.element_dict, element_refs=self.element_refs)
+        elif name in self.vars:
+            if len(kwargs) > 0:
+                raise ValueError(f'Only a single value is allowed when setting variable')
+            if len(args) != 1:
+                raise ValueError(f'A value must be provided when setting a variable')
+            value = args[0]
+            if isinstance(value, str):
+                self[name] = _eval(value)
+            else:
+                self[name] = value
+        elif hasattr(self, 'lines') and name in self.lines:
+            raise ValueError('Cannot set a line')
+        else:
+            raise KeyError(f'Name {name} not found.')
+
     def _env_if_needed(self):
         if not hasattr(self, 'env') or self.env is None:
             self.env = xt.Environment(element_dict=self.element_dict,
