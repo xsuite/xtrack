@@ -35,10 +35,24 @@ env.vars.set('k.1', 3 * env.vars['a'] + 6)
 assert env.vv['k.1'] == 3 * 4 + 6
 assert env.vv['b'] == 2 * 4 + 3 * 4 + 6
 
+env.set('a', 0.)
+assert env.vv['k.1'] == 3 * 0 + 6
+assert env.vv['b'] == 2 * 0 + 3 * 0 + 6
+
+env.set('a', 2.)
+env.set('k.1', '2 * a + 5')
+assert env.vv['k.1'] == 2 * 2 + 5
+assert env.vv['b'] == 2 * 2 + 2 * 2 + 5
+
+env.set('k.1', 3 * env.vars['a'] + 6)
+assert env.vv['k.1'] == 3 * 2 + 6
+assert env.vv['b'] == 2 * 2 + 3 * 2 + 6
+
 
 env.vars({
     'a': 4.,
     'b': '2 * a + 5',
+    'k.1': '2 * a + 5',
 })
 
 env.new('bb', xt.Bend, k0='2 * b', length=3+env.vars['a'] + env.vars['b'],

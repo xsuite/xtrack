@@ -151,6 +151,7 @@ class Line:
 
         self._line_before_slicing_cache = None
         self._element_names_before_slicing = None
+        self.ref = xt.environment.EnvRef(self)
 
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
@@ -3363,11 +3364,8 @@ class Line:
             new_nn = nn + '.' + name
             self.element_dict[new_nn] = xt.Replica(nn)
             new_element_names.append(new_nn)
-        out = Line()
-        out.element_names = new_element_names
-        out._element_dict = self.element_dict # to make sure that the dict is not copied
-        out._var_management = self._var_management
-        out._name = name
+
+        out = self.env.new_line(components=new_element_names, name=name)
 
         if mirror:
             out.mirror()
@@ -3421,6 +3419,32 @@ class Line:
         out = self.env.new_line(components=list(tt.name), name=name)
 
         return out
+
+    def set(self, name, *args, **kwargs):
+        _eval = self._xdeps_eval.eval
+
+        if name in self.element_dict:
+            if len(args) > 0:
+                raise ValueError(f'Only kwargs are allowed when setting element attributes')
+            ref_kwargs, value_kwargs = xt.environment._parse_kwargs(
+                type(self.element_dict[name]), kwargs, _eval)
+            xt.environment._set_kwargs(
+                name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
+                element_dict=self.element_dict, element_refs=self.element_refs)
+        elif name in self.vars:
+            if len(kwargs) > 0:
+                raise ValueError(f'Only a single value is allowed when setting variable')
+            if len(args) != 1:
+                raise ValueError(f'A value must be provided when setting a variable')
+            value = args[0]
+            if isinstance(value, str):
+                self.vars[name] = _eval(value)
+            else:
+                self.vars[name] = value
+        elif hasattr(self, 'lines') and name in self.lines:
+            raise ValueError('Cannot set a line')
+        else:
+            raise KeyError(f'Name {name} not found.')
 
     def _env_if_needed(self):
         if not hasattr(self, 'env') or self.env is None:
@@ -3777,19 +3801,36 @@ class Line:
     def steering_correctors_y(self, value):
         self._extra_config['steering_correctors_y'] = value
 
-    def __getitem__(self, ii):
-        if isinstance(ii, str):
-
-            try:
-                return self.element_dict.__getitem__(ii)
-            except KeyError:
-                raise KeyError(f'No installed element with name {ii}')
+    def __getitem__(self, key):
+        if isinstance(key, str):
+            if key in self.element_dict:
+                return self.element_dict[key]
+            elif key in self.vars:
+                return self.vv[key]
+            elif hasattr(self, 'lines') and key in self.lines: # Want to reuse the method for the env
+                return self.lines[key]
+            else:
+                raise KeyError(f'Name {key} not found')
         else:
-            names = self.element_names.__getitem__(ii)
+            names = self.element_names.__getitem__(key)
             if isinstance(names, str):
                 return self.element_dict.__getitem__(names)
             else:
                 return [self.element_dict[nn] for nn in names]
+
+    def __setitem__(self, key, value):
+
+        if isinstance(value, Line):
+            raise ValueError('Cannot set a Line, please use Envirnoment.new_line')
+            # Would need to make sure they refer to the same environment
+        elif np.isscalar(value):
+            if key in self.element_dict:
+                raise ValueError(f'There is already an element with name {key}')
+            self.vars[key] = value
+        else:
+            if key in self.vars:
+                raise ValueError('There is already a variable with name {key}')
+            self.element_dict[key] = value
 
     def _get_non_collective_line(self):
         if not self.iscollective:
