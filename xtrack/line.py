@@ -3823,13 +3823,17 @@ class Line:
         if isinstance(value, Line):
             raise ValueError('Cannot set a Line, please use Envirnoment.new_line')
             # Would need to make sure they refer to the same environment
-        elif np.isscalar(value):
+
+        if hasattr(value, '_value'):
+            raise ValueError('Value cannot be a Ref. Please use Env.ref or Line.ref')
+
+        if np.isscalar(value):
             if key in self.element_dict:
                 raise ValueError(f'There is already an element with name {key}')
             self.vars[key] = value
         else:
             if key in self.vars:
-                raise ValueError('There is already a variable with name {key}')
+                raise ValueError(f'There is already a variable with name {key}')
             self.element_dict[key] = value
 
     def _get_non_collective_line(self):

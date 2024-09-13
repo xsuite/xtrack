@@ -108,6 +108,3 @@ tt_new = line.get_table(attr=True)
 tt_new['length', 'drift_1'] == tt['length', 'drift_1']
 tt_new['length', 'drift_2'] == tt['length', 'drift_2']
 
-
-
-
