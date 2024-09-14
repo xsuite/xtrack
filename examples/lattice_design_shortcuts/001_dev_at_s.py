@@ -50,6 +50,12 @@ xo.assert_allclose(tt['s_center', 'after_right'] - tt['s_center', 'right'],
                      0.8/2, rtol=0, atol=1e-14)
 xo.assert_allclose(tt['s_center', 'after_right2'] - tt['s_center', 'right'],
                      0.8/2, rtol=0, atol=1e-14)
+xo.assert_allclose(tt['s_center', 'left'] - tt['s_center', 'ip'], -5,
+                   rtol=0, atol=1e-14)
+xo.assert_allclose(tt['s_center', 'after_left'] - tt['s_center', 'left'], 1/2,
+                     rtol=0, atol=1e-14)
+xo.assert_allclose(tt['s_center', 'after_left2'] - tt['s_center', 'after_left'],
+                   0.5/2, rtol=0, atol=1e-14)
 
 
 import matplotlib.pyplot as plt
