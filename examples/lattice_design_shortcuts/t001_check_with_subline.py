@@ -354,12 +354,16 @@ opt = half_insertion.match(
 opt.step(40)
 opt.solve()
 
-tw = ring2.twiss4d()
-
 # Check that the cell is matched to the rest of the ring
+tw = ring.twiss4d()
 tw_cell_from_ring = tw.rows['start.cell.3.arc.2':'end.cell.3.arc.2']
 xo.assert_allclose(tw_cell_from_ring.betx, tw_cell.betx[:-1], atol=0, rtol=2e-4)
 xo.assert_allclose(tw_cell_from_ring.bety, tw_cell.bety[:-1], atol=0, rtol=2e-4)
+
+tw2 = ring2.twiss4d()
+tw_cell_from_ring2 = tw2.rows['start.cell.3.arc.2':'end.cell.3.arc.2']
+xo.assert_allclose(tw_cell_from_ring2.betx, tw_cell.betx[:-1], atol=0, rtol=2e-4)
+xo.assert_allclose(tw_cell_from_ring2.bety, tw_cell.bety[:-1], atol=0, rtol=2e-4)
 
 # Check select
 cell3_select = ring2.select(start='start.cell.3.arc.2', end='end.cell.3.arc.2',
@@ -382,6 +386,15 @@ assert ring2._element_dict is env.element_dict
 
 cell3_select.twiss4d()
 
+tw2_slice = ring2_sliced.twiss4d()
+xo.assert_allclose(tw2_slice['betx', 'ip.l'], tw2['betx', 'ip.l'], atol=0, rtol=2e-4)
+xo.assert_allclose(tw2_slice['bety', 'ip.l'], tw2['bety', 'ip.l'], atol=0, rtol=2e-4)
+xo.assert_allclose(tw2_slice['alfx', 'ip.l'], 0, atol=1e-6, rtol=0)
+xo.assert_allclose(tw2_slice['alfy', 'ip.l'], 0, atol=1e-6, rtol=0)
+xo.assert_allclose(tw2_slice['dx', 'ip.l'], 0, atol=1e-4, rtol=0)
+xo.assert_allclose(tw2_slice['dpx', 'ip.l'], 0, atol=1e-6, rtol=0)
+xo.assert_allclose(tw2_slice['dy', 'ip.l'], 0, atol=1e-4, rtol=0)
+xo.assert_allclose(tw2_slice['dpy', 'ip.l'], 0, atol=1e-6, rtol=0)
 
 import matplotlib.pyplot as plt
 plt.close('all')
