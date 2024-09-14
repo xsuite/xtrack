@@ -45,6 +45,12 @@ xo.assert_allclose(tt['s', 'before_before_right'], tt['s', 'before_right'],
                    rtol=0, atol=1e-14)
 xo.assert_allclose(tt['s_center', 'before_right'] - tt['s_center', 'right'],
                    -(1 + 0.8)/2, rtol=0, atol=1e-14)
+xo.assert_allclose(tt['s_center', 'right'] - tt['s', 'ip'], 5, rtol=0, atol=1e-14)
+xo.assert_allclose(tt['s_center', 'after_right'] - tt['s_center', 'right'],
+                     0.8/2, rtol=0, atol=1e-14)
+xo.assert_allclose(tt['s_center', 'after_right2'] - tt['s_center', 'right'],
+                     0.8/2, rtol=0, atol=1e-14)
+
 
 import matplotlib.pyplot as plt
 plt.close('all')
