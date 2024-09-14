@@ -44,6 +44,11 @@ def test_vars_and_element_access_modes(container_type):
     assert ee.vv['k.1'] == 3 * 4 + 6
     assert ee.vv['b'] == 2 * 4 + 3 * 4 + 6
 
+    env.set('c', '2*b')
+    assert env.vv['c'] == 2 * (2 * 4 + 3 * 4 + 6)
+    env.set('d', 6)
+    assert env.vv['d'] == 6
+
     ee.set('a', 0.)
     assert ee.vv['k.1'] == 3 * 0 + 6
     assert ee.vv['b'] == 2 * 0 + 3 * 0 + 6
