@@ -361,6 +361,27 @@ tw_cell_from_ring = tw.rows['start.cell.3.arc.2':'end.cell.3.arc.2']
 xo.assert_allclose(tw_cell_from_ring.betx, tw_cell.betx[:-1], atol=0, rtol=2e-4)
 xo.assert_allclose(tw_cell_from_ring.bety, tw_cell.bety[:-1], atol=0, rtol=2e-4)
 
+# Check select
+cell3_select = ring2.select(start='start.cell.3.arc.2', end='end.cell.3.arc.2',
+                            name='cell3_copy')
+assert 'cell3_copy' in env.lines
+assert env.lines['cell3_copy'] is cell3_select
+assert cell3_select._element_dict is env.element_dict
+assert cell3_select.element_names[0] == 'start.cell.3.arc.2'
+assert cell3_select.element_names[-1] == 'end.cell.3.arc.2'
+assert (np.array(cell3_select.element_names) == np.array(
+    tw.rows['start.cell.3.arc.2':'end.cell.3.arc.2'].name)).all()
+
+# Check that they share the _element_dict
+assert cell._element_dict is env.element_dict
+assert halfcell._element_dict is env.element_dict
+assert halfcell_ss._element_dict is env.element_dict
+assert cell_ss._element_dict is env.element_dict
+assert insertion._element_dict is env.element_dict
+assert ring2._element_dict is env.element_dict
+
+cell3_select.twiss4d()
+
 
 import matplotlib.pyplot as plt
 plt.close('all')
