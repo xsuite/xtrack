@@ -48,6 +48,8 @@ def test_vars_and_element_access_modes(container_type):
     assert env.vv['c'] == 2 * (2 * 4 + 3 * 4 + 6)
     env.set('d', 6)
     assert env.vv['d'] == 6
+    env.set('d', '7')
+    assert env.vv['d'] == 7
 
     ee.set('a', 0.)
     assert ee.vv['k.1'] == 3 * 0 + 6
@@ -247,6 +249,8 @@ def test_assemble_ring():
 
     girder_f = girder.clone(name='f')
     girder_d = girder.clone(name='d', mirror=True)
+    env.set('mq.f', k1='3') # Test string with value
+    assert env['mq.f'].k1 == 3.
     env.set('mq.f', k1='kqf')
     env.set('mq.d', k1='kqd')
 

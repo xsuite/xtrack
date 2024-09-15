@@ -312,7 +312,10 @@ def _parse_kwargs(cls, kwargs, _eval):
         elif (isinstance(kwargs[kk], str) and hasattr(cls, '_xofields')
             and kk in cls._xofields and cls._xofields[kk].__name__ != 'String'):
             ref_kwargs[kk] = _eval(kwargs[kk])
-            value_kwargs[kk] = ref_kwargs[kk]._value
+            if hasattr(ref_kwargs[kk], '_value'):
+                value_kwargs[kk] = ref_kwargs[kk]._value
+            else:
+                value_kwargs[kk] = ref_kwargs[kk]
         else:
             value_kwargs[kk] = kwargs[kk]
 
