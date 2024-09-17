@@ -364,6 +364,7 @@ class Slicer:
             nn = f'{name}..entry_map'
             ee = element._entry_slice_class(
                     _parent=element, _buffer=element._buffer)
+            element._movable = True # Force movable
             ee.parent_name = parent_name
             self._line.element_dict[nn] = ee
             slices_to_append.append(nn)
@@ -382,6 +383,7 @@ class Slicer:
                 ee = type(element)(
                         _parent=element._parent, _buffer=element._buffer,
                         weight=weight * element.weight)
+                element._parent._movable = True # Force movable
                 ee.parent_name = element.parent_name
                 self._line.element_dict[nn] = ee
                 slices_to_append.append(nn)
@@ -393,6 +395,7 @@ class Slicer:
                     ee = element._drift_slice_class(
                             _parent=element, _buffer=element._buffer,
                             weight=weight)
+                    element._movable = True # Force movable
                     ee.parent_name = parent_name
                     self._line.element_dict[nn] = ee
                     slices_to_append.append(nn)
@@ -403,6 +406,7 @@ class Slicer:
                         ee = element._thin_slice_class(
                                 _parent=element, _buffer=element._buffer,
                                 weight=weight)
+                        element._movable = True # Force movable
                         ee.parent_name = parent_name
                         self._line.element_dict[nn] = ee
                         slices_to_append.append(nn)
@@ -413,6 +417,7 @@ class Slicer:
                 ee = element._thick_slice_class(
                         _parent=element, _buffer=element._buffer,
                         weight=weight)
+                element._movable = True # Force movable
                 ee.parent_name = parent_name
                 self._line.element_dict[nn] = ee
                 slices_to_append.append(nn)
@@ -424,6 +429,7 @@ class Slicer:
             nn = f'{name}..exit_map'
             ee = element._exit_slice_class(
                     _parent=element, _buffer=element._buffer)
+            element._movable = True # Force movable
             ee.parent_name = parent_name
             self._line.element_dict[nn] = ee
             slices_to_append.append(nn)

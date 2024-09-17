@@ -3,10 +3,8 @@
 # Copyright (c) CERN, 2023.                 #
 # ######################################### #
 
-import io
 import math
 import logging
-import json
 import uuid
 import os
 from collections import defaultdict
@@ -21,6 +19,7 @@ import numpy as np
 from scipy.constants import c as clight
 
 from . import linear_normal_form as lnf
+from . import json_utils
 
 import xobjects as xo
 import xtrack as xt
@@ -152,6 +151,7 @@ class Line:
 
         self._line_before_slicing_cache = None
         self._element_names_before_slicing = None
+        self.ref = xt.environment.EnvRef(self)
 
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
@@ -235,6 +235,7 @@ class Line:
         ----------
         file : str or file-like object
             Path to the json file or file-like object.
+            If filename ends with '.gz' file is decompressed.
         **kwargs : dict
             Additional keyword arguments passed to `Line.from_dict`.
 
@@ -245,11 +246,7 @@ class Line:
 
         """
 
-        if isinstance(file, io.IOBase):
-            dct = json.load(file)
-        else:
-            with open(file, 'r') as fid:
-                dct = json.load(fid)
+        dct = json_utils.from_json(file)
 
         if 'line' in dct.keys():
             dct_line = dct['line']
@@ -626,7 +623,7 @@ class Line:
         self.__dict__.update(state)
 
 
-    def to_json(self, file, **kwargs):
+    def to_json(self, file, indent=1, **kwargs):
         '''Save the line to a json file.
 
         Parameters
@@ -639,11 +636,7 @@ class Line:
 
         '''
 
-        if isinstance(file, io.IOBase):
-            json.dump(self.to_dict(**kwargs), file, cls=xo.JEncoder)
-        else:
-            with open(file, 'w') as fid:
-                json.dump(self.to_dict(**kwargs), fid, cls=xo.JEncoder)
+        json_utils.to_json(self.to_dict(**kwargs), file, indent=indent)
 
     def _to_table_dict(self):
 
@@ -745,7 +738,7 @@ class Line:
 
         tab = xt.Table(out)
         if reverse:
-            xt.twiss._reverse_strengths(tab) # Change signs
+            xt.twiss._reverse_strengths(tab._data) # Change signs
 
         tab._data['reference_frame'] = {
             True: 'reverse', False: 'proper'}[reverse]
@@ -841,12 +834,16 @@ class Line:
                                 enable_pipeline_hold=enable_pipeline_hold,
                                 **kwargs)
 
+        if hasattr(self, 'env') and self.env is not None:
+            self.env._ensure_tracker_consistency(buffer=self._buffer)
+
         return self.tracker
 
     @property
     def attr(self):
 
-        self._check_valid_tracker()
+        if not self._has_valid_tracker():
+            self.build_tracker()
 
         if ('attr' not in self.tracker._tracker_data_base.cache.keys()
                 or self.tracker._tracker_data_base.cache['attr'] is None):
@@ -1323,6 +1320,9 @@ class Line:
 
         '''
 
+        if not self._has_valid_tracker():
+            self.build_tracker()
+
         for old, new in zip(['ele_start', 'ele_stop', 'ele_init', 'twiss_init'],
                                 ['start', 'end', 'init_at', 'init']):
                 if old in kwargs.keys():
@@ -1364,6 +1364,8 @@ class Line:
             Value of the knob after the matching. Defaults to 1.
 
         '''
+        if not self._has_valid_tracker():
+            self.build_tracker()
 
         opt = match_knob_line(self, vary=vary, targets=targets,
                         knob_name=knob_name, knob_value_start=knob_value_start,
@@ -1400,6 +1402,9 @@ class Line:
         survey : SurveyTable
             Survey table.
         """
+
+        if not self._has_valid_tracker():
+            self.build_tracker()
 
         if reverse is None:
             reverse = self.twiss_default.get('reverse', False)
@@ -1560,7 +1565,8 @@ class Line:
                           num_turns=1,
                           co_search_at=None,
                           search_for_t_rev=False,
-                          num_turns_search_t_rev=None):
+                          num_turns_search_t_rev=None,
+                          symmetrize=False):
 
         """
         Find the closed orbit of the beamline.
@@ -1635,7 +1641,8 @@ class Line:
                                  start=start, end=end, num_turns=num_turns,
                                  co_search_at=co_search_at,
                                  search_for_t_rev=search_for_t_rev,
-                                 num_turns_search_t_rev=num_turns_search_t_rev)
+                                 num_turns_search_t_rev=num_turns_search_t_rev,
+                                 symmetrize=symmetrize)
 
     def compute_T_matrix(self, start=None, end=None,
                          particle_on_co=None, steps_t_matrix=None):
@@ -1841,7 +1848,8 @@ class Line:
             steps_r_matrix=None,
             start=None, end=None,
             num_turns=1,
-            element_by_element=False, only_markers=False):
+            element_by_element=False, only_markers=False,
+            symmetrize=False):
 
         '''Compute the one turn matrix using finite differences.
 
@@ -1881,7 +1889,8 @@ class Line:
                         steps_r_matrix, start=start, end=end,
                         num_turns=num_turns,
                         element_by_element=element_by_element,
-                        only_markers=only_markers)
+                        only_markers=only_markers,
+                        symmetrize=symmetrize)
 
     def get_non_linear_chromaticity(self,
                         delta0_range=(-1e-3, 1e-3), num_delta=5, fit_order=3, **kwargs):
@@ -2046,6 +2055,10 @@ class Line:
 
     def cut_at_s(self, s: List[float], s_tol=1e-6):
         """Slice the line so that positions in s never fall inside an element."""
+
+        if self._has_valid_tracker():
+            self.discard_tracker()
+
         cuts_for_element = self._elements_intersecting_s(s, s_tol=s_tol)
         strategies = [Strategy(None)]  # catch-all, ignore unaffected elements
 
@@ -3305,7 +3318,7 @@ class Line:
         names_map_line.append(ele_cut_sorted[-1])
         elements_map_line.append(self[ele_cut_sorted[-1]])
 
-        line_maps = xt.Line(elements=elements_map_line, element_names=names_map_line)
+        line_maps = Line(elements=elements_map_line, element_names=names_map_line)
         line_maps.particle_ref = self.particle_ref.copy()
 
         return line_maps
@@ -3337,6 +3350,110 @@ class Line:
             'For more details, see: '
             'https://xsuite.readthedocs.io/en/latest/line.html#apply-transformations-tilt-shift-to-elements'
         )
+
+    def mirror(self):
+        self._frozen_check()
+        self.element_names = list(reversed(self.element_names))
+
+    def replicate(self, name, mirror=False):
+
+        self._env_if_needed()
+
+        new_element_names = []
+        for nn in self.element_names:
+            new_nn = nn + '.' + name
+            self.element_dict[new_nn] = xt.Replica(nn)
+            new_element_names.append(new_nn)
+
+        out = self.env.new_line(components=new_element_names, name=name)
+
+        if mirror:
+            out.mirror()
+
+        return out
+
+    def clone(self, name, mirror=False):
+        out = self.replicate(name=name, mirror=mirror)
+        out.replace_all_replicas()
+        return out
+
+    def replace_replica(self, name):
+        name_parent = self[name].resolve(self, get_name=True)
+        cls = self.element_dict[name].__class__
+        assert cls in [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole, xt.Octupole,
+                       xt.Multipole, xt.Marker, xt.Replica], (
+            'Only Drift, Dipole, Quadrupole, Sextupole, Octupole, Multipole, Marker, and Replica '
+            'elements are allowed in `new_element` for now.')
+        self.element_dict[name] = self[name_parent].copy()
+
+        pars_with_expr = list(
+            self._xdeps_manager.tartasks[self.element_refs[name_parent]].keys())
+
+        for rr in pars_with_expr:
+            assert isinstance(rr, (xd.refs.AttrRef, xd.refs.ItemRef)), (
+                'Only AttrRef and ItemRef are supported for now')
+            if isinstance(rr, xd.refs.AttrRef):
+                setattr(self.element_refs[name], rr._key, rr._expr)
+            elif isinstance(rr, xd.refs.ItemRef):
+                getattr(self.element_refs[name], rr._owner._key)[rr._key] = rr._expr
+
+    def replace_all_replicas(self):
+        for nn in self.element_names:
+            if isinstance(self[nn], xt.Replica):
+                self.replace_replica(nn)
+
+    def select(self, start=None, end=None, name=None):
+
+        if start is xt.START:
+            start = None
+
+        if end is xt.END:
+            end = None
+
+        tt = self.get_table().rows[start:end]
+        if tt.name[-1] == '_end_point':
+            tt = tt.rows[:-1]
+
+        self._env_if_needed()
+
+        out = self.env.new_line(components=list(tt.name), name=name)
+
+        return out
+
+    def set(self, name, *args, **kwargs):
+        _eval = self._xdeps_eval.eval
+
+        if hasattr(self, 'lines') and name in self.lines:
+            raise ValueError('Cannot set a line')
+
+        if name in self.element_dict:
+            if len(args) > 0:
+                raise ValueError(f'Only kwargs are allowed when setting element attributes')
+            ref_kwargs, value_kwargs = xt.environment._parse_kwargs(
+                type(self.element_dict[name]), kwargs, _eval)
+            xt.environment._set_kwargs(
+                name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
+                element_dict=self.element_dict, element_refs=self.element_refs)
+        else:
+            if len(kwargs) > 0:
+                raise ValueError(f'Only a single value is allowed when setting variable')
+            if len(args) != 1:
+                raise ValueError(f'A value must be provided when setting a variable')
+            value = args[0]
+            if isinstance(value, str):
+                self.vars[name] = _eval(value)
+            else:
+                self.vars[name] = value
+
+    def _env_if_needed(self):
+        if not hasattr(self, 'env') or self.env is None:
+            self.env = xt.Environment(element_dict=self.element_dict,
+                                      particle_ref=self.particle_ref,
+                                      _var_management=self._var_management)
+            self.env._lines.add(self)
+
+    def extend(self, line):
+        self.element_names.extend(line.element_names)
 
     def __len__(self):
         return len(self.element_names)
@@ -3379,7 +3496,7 @@ class Line:
                 if vv is self:
                     return kk
         else:
-            return None
+            return getattr(self, '_name', None)
 
     @property
     def iscollective(self):
@@ -3483,6 +3600,18 @@ class Line:
             return self._in_multiline._xdeps_manager
         if self._var_management is not None:
             return self._var_management['manager']
+
+    @property
+    def _xdeps_eval(self):
+        try:
+            eva_obj = self._xdeps_eval_obj
+        except AttributeError:
+            eva_obj = xd.madxutils.MadxEval(variables=self._xdeps_vref,
+                                            functions=self._xdeps_fref,
+                                            elements=self.element_dict)
+            self._xdeps_eval_obj = eva_obj
+
+        return eva_obj
 
     @property
     def element_refs(self):
@@ -3671,19 +3800,40 @@ class Line:
     def steering_correctors_y(self, value):
         self._extra_config['steering_correctors_y'] = value
 
-    def __getitem__(self, ii):
-        if isinstance(ii, str):
-
-            try:
-                return self.element_dict.__getitem__(ii)
-            except KeyError:
-                raise KeyError(f'No installed element with name {ii}')
+    def __getitem__(self, key):
+        if isinstance(key, str):
+            if key in self.element_dict:
+                return self.element_dict[key]
+            elif key in self.vars:
+                return self.vv[key]
+            elif hasattr(self, 'lines') and key in self.lines: # Want to reuse the method for the env
+                return self.lines[key]
+            else:
+                raise KeyError(f'Name {key} not found')
         else:
-            names = self.element_names.__getitem__(ii)
+            names = self.element_names.__getitem__(key)
             if isinstance(names, str):
                 return self.element_dict.__getitem__(names)
             else:
                 return [self.element_dict[nn] for nn in names]
+
+    def __setitem__(self, key, value):
+
+        if isinstance(value, Line):
+            raise ValueError('Cannot set a Line, please use Envirnoment.new_line')
+            # Would need to make sure they refer to the same environment
+
+        if hasattr(value, '_value'):
+            raise ValueError('Value cannot be a Ref. Please use Env.ref or Line.ref')
+
+        if np.isscalar(value):
+            if key in self.element_dict:
+                raise ValueError(f'There is already an element with name {key}')
+            self.vars[key] = value
+        else:
+            if key in self.vars:
+                raise ValueError(f'There is already a variable with name {key}')
+            self.element_dict[key] = value
 
     def _get_non_collective_line(self):
         if not self.iscollective:
@@ -4534,7 +4684,7 @@ class LineVars:
         defined_vars = set(mad.globals.keys())
 
         xt.general._print.suppress = True
-        dummy_line = xt.Line.from_madx_sequence(mad.sequence.dummy,
+        dummy_line = Line.from_madx_sequence(mad.sequence.dummy,
                                                 deferred_expressions=True)
         xt.general._print.suppress = False
 
@@ -4562,6 +4712,29 @@ class LineVars:
     def target(self, tar, value, **kwargs):
         action = ActionVars(self.line)
         return xt.Target(action=action, tar=tar, value=value, **kwargs)
+
+    def __call__(self, *args, **kwargs):
+        _eval = self.line._xdeps_eval.eval
+        if len(args) > 0:
+            assert len(kwargs) == 0
+            assert len(args) == 1
+            if isinstance(args[0], str):
+                return self[args[0]]
+            elif isinstance(args[0], dict):
+                kwargs.update(args[0])
+            else:
+                raise ValueError('Invalid argument')
+        for kk in kwargs:
+            if isinstance(kwargs[kk], str):
+                self[kk] = _eval(kwargs[kk])
+            else:
+                self[kk] = kwargs[kk]
+
+    def set(self, name, value):
+        if isinstance(value, str):
+            self[name] = self.line._xdeps_eval.eval(value)
+        else:
+            self[name] = value
 
 class ActionVars(Action):
 
@@ -4946,5 +5119,3 @@ def _rot_s_from_attr(attr):
         parent_cos_rot_s[has_parent_rot]) * attr._rot_and_shift_from_parent[has_parent_rot]
 
     return rot_s_rad
-
-

@@ -58,6 +58,8 @@ NORMAL_STRENGTHS_FROM_ATTR=['k0l', 'k1l', 'k2l', 'k3l', 'k4l', 'k5l']
 SKEW_STRENGTHS_FROM_ATTR=['k0sl', 'k1sl', 'k2sl', 'k3sl', 'k4sl', 'k5sl']
 OTHER_FIELDS_FROM_ATTR=['angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'ks', 'length']
 OTHER_FIELDS_FROM_TABLE=['element_type', 'isthick', 'parent_name']
+SIGN_FLIP_FOR_ATTR_REVERSE=['k0l', 'k2l', 'k4l', 'k1sl', 'k3sl', 'k5sl', 'vkick', 'angle_rad']
+
 
 log = logging.getLogger(__name__)
 
@@ -328,6 +330,11 @@ def twiss_line(line, particle_ref=None, method=None,
         init = init.copy()
 
     kwargs = locals().copy()
+
+    if (init is not None or betx is not None or bety is not None) and start is None:
+        # is open twiss
+        start = xt.START
+        end = end or xt.END
 
     if num_turns != 1:
         # Untested cases
@@ -1265,18 +1272,16 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                 particle_on_co=on_momentum_twiss_res.particle_on_co.copy(),
                 nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                 W_matrix=tw_init_chrom.W_matrix)
-            if periodic_mode == 'periodic_symmetric':
-                part_chrom = part_guess.copy() # Finding closed orbit does not make sense in this case
-            else:
-                part_chrom = line.find_closed_orbit(delta0=dd, co_guess=part_guess,
-                                    start=start, end=end, num_turns=num_turns)
+            part_chrom = line.find_closed_orbit(delta0=dd, co_guess=part_guess,
+                                    start=start, end=end, num_turns=num_turns,
+                                    symmetrize=(periodic_mode == 'periodic_symmetric'))
             tw_init_chrom.particle_on_co = part_chrom
             RR_chrom = line.compute_one_turn_matrix_finite_differences(
                                         particle_on_co=tw_init_chrom.particle_on_co.copy(),
                                         start=start, end=end, num_turns=num_turns,
-                                        steps_r_matrix=steps_r_matrix)['R_matrix']
-            if periodic_mode == 'periodic_symmetric':
-                RR_chrom = _compute_R_periodic_symmetric(RR_chrom)
+                                        steps_r_matrix=steps_r_matrix,
+                                        symmetrize=(periodic_mode == 'periodic_symmetric')
+                                        )['R_matrix']
 
             (WW_chrom, _, _, _) = lnf.compute_linear_normal_form(RR_chrom,
                                     only_4d_block=method=='4d',
@@ -1758,7 +1763,6 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
 
     assert periodic_mode in ['periodic', 'periodic_symmetric']
 
-
     if start is not None or end is not None:
         assert start is not None and end is not None, (
             'start and end must be both None or both not None')
@@ -1772,7 +1776,6 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
     if periodic_mode == 'periodic_symmetric':
         assert R_matrix is None, 'R_matrix must be None for `periodic_symmetric`'
         assert W_matrix is None, 'W_matrix must be None for `periodic_symmetric`'
-        assert delta0 == 0, 'delta0 must be 0 for `periodic_symmetric`'
 
     if particle_on_co is not None:
         part_on_co = particle_on_co
@@ -1792,17 +1795,10 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                 co_search_at=co_search_at,
                                 search_for_t_rev=search_for_t_rev,
                                 num_turns_search_t_rev=num_turns_search_t_rev,
+                                symmetrize=(periodic_mode == 'periodic_symmetric'),
                                 )
     if only_orbit:
         W_matrix = np.eye(6)
-
-    if periodic_mode == 'periodic_symmetric':
-        assert np.allclose(part_on_co.x[0], 0, atol=1e-12, rtol=0)
-        assert np.allclose(part_on_co.px[0], 0, atol=1e-12, rtol=0)
-        assert np.allclose(part_on_co.y[0], 0, atol=1e-12, rtol=0)
-        assert np.allclose(part_on_co.py[0], 0, atol=1e-12, rtol=0)
-        assert np.allclose(part_on_co.delta[0], 0, atol=1e-12, rtol=0)
-        assert np.allclose(part_on_co.zeta[0], 0, atol=1e-12, rtol=0)
 
 
     if W_matrix is not None:
@@ -1829,12 +1825,10 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                     num_turns=num_turns,
                     element_by_element=compute_R_element_by_element,
                     only_markers=only_markers,
+                    symmetrize=(periodic_mode == 'periodic_symmetric'),
                     )
                 RR = RR_out['R_matrix']
                 RR_ebe = RR_out['R_matrix_ebe']
-
-                if periodic_mode == 'periodic_symmetric':
-                    RR = _compute_R_periodic_symmetric(RR)
 
                 if matrix_responsiveness_tol is not None:
                     lnf._assert_matrix_responsiveness(RR,
@@ -2060,7 +2054,8 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
                       co_search_at=None,
                       search_for_t_rev=False,
                       continue_on_closed_orbit_error=False,
-                      num_turns_search_t_rev=None):
+                      num_turns_search_t_rev=None,
+                      symmetrize=False):
 
     if search_for_t_rev:
         assert line.particle_ref is not None
@@ -2074,6 +2069,7 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
         assert num_turns == 1, '`num_turns` not supported when `search_for_t_rev` is True'
         assert co_search_at is None, '`co_search_at` not supported when `search_for_t_rev` is True'
         assert continue_on_closed_orbit_error is False, '`continue_on_closed_orbit_error` not supported when `search_for_t_rev` is True'
+        assert symmetrize is False, '`symmetrize` not supported when `search_for_t_rev` is True'
 
         out = _find_closed_orbit_search_t_rev(line, num_turns_search_t_rev)
         return out
@@ -2086,6 +2082,7 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
         co_search_at = None # needs to be implemented
 
     if co_search_at is not None:
+        assert not symmetrize, 'Symmetrize not supported when `co_search_at` is provided'
         kwargs = locals().copy()
         kwargs.pop('start')
         kwargs.pop('end')
@@ -2161,7 +2158,8 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
         if np.all(np.abs(_error_for_co(
                 x0, co_guess, line, delta_zeta, delta0, zeta0,
                 start=start, end=end,
-                num_turns=num_turns)) < DEFAULT_CO_SEARCH_TOL):
+                num_turns=num_turns,
+                symmetrize=symmetrize)) < DEFAULT_CO_SEARCH_TOL):
             res = x0
             fsolve_info = 'taken_guess'
             ier = 1
@@ -2170,7 +2168,8 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
         opt = xt.match.opt_from_callable(
             lambda p: _error_for_co(p, co_guess, line,
                             delta_zeta, delta0, zeta0, start=start,
-                            end=end, num_turns=num_turns),
+                            end=end, num_turns=num_turns,
+                            symmetrize=symmetrize),
                 x0=x0, steps=[1e-8, 1e-9, 1e-8, 1e-9, 1e-7, 1e-8],
                 tar=[0., 0., 0., 0., 0., 0.],
                 tols=[1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12])
@@ -2200,7 +2199,7 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
 
     return particle_on_co
 
-def _one_turn_map(p, particle_ref, line, delta_zeta, start, end, num_turns):
+def _one_turn_map(p, particle_ref, line, delta_zeta, start, end, num_turns, symmetrize):
     part = particle_ref.copy()
     part.x = p[0]
     part.px = p[1]
@@ -2216,6 +2215,11 @@ def _one_turn_map(p, particle_ref, line, delta_zeta, start, end, num_turns):
         part.update_p0c_and_energy_deviations(p0c = part._xobject.p0c[0] + dp0c)
 
     line.track(part, ele_start=start, ele_stop=end, num_turns=num_turns)
+    if symmetrize:
+        assert num_turns == 1
+        with xt.line._preserve_config(line):
+            line.config.XSUITE_MIRROR = True
+            line.track(part, ele_start=start, ele_stop=end, num_turns=1)
     if part.state[0] < 0:
         raise ClosedOrbitSearchError(
             f'Particle lost, p.state = {part.state[0]}')
@@ -2228,11 +2232,11 @@ def _one_turn_map(p, particle_ref, line, delta_zeta, start, end, num_turns):
            part._xobject.delta[0]])
     return p_res
 
-def _error_for_co_search_6d(p, co_guess, line, delta_zeta, delta0, zeta0, start, end, num_turns):
-    return p - _one_turn_map(p, co_guess, line, delta_zeta, start, end, num_turns)
+def _error_for_co_search_6d(p, co_guess, line, delta_zeta, delta0, zeta0, start, end, num_turns, symmetrize):
+    return p - _one_turn_map(p, co_guess, line, delta_zeta, start, end, num_turns, symmetrize)
 
-def _error_for_co_search_4d_delta0(p, co_guess, line, delta_zeta, delta0, zeta0, start, end, num_turns):
-    one_turn_res = _one_turn_map(p, co_guess, line, delta_zeta, start, end, num_turns)
+def _error_for_co_search_4d_delta0(p, co_guess, line, delta_zeta, delta0, zeta0, start, end, num_turns, symmetrize):
+    one_turn_res = _one_turn_map(p, co_guess, line, delta_zeta, start, end, num_turns, symmetrize)
     return np.array([
         p[0] - one_turn_res[0],
         p[1] - one_turn_res[1],
@@ -2241,8 +2245,8 @@ def _error_for_co_search_4d_delta0(p, co_guess, line, delta_zeta, delta0, zeta0,
         0,
         p[5] - delta0])
 
-def _error_for_co_search_4d_zeta0(p, co_guess, line, delta_zeta, delta0, zeta0, start, end, num_turns):
-    one_turn_res = _one_turn_map(p, co_guess, line, delta_zeta, start, end, num_turns)
+def _error_for_co_search_4d_zeta0(p, co_guess, line, delta_zeta, delta0, zeta0, start, end, num_turns, symmetrize):
+    one_turn_res = _one_turn_map(p, co_guess, line, delta_zeta, start, end, num_turns, symmetrize)
     return np.array([
         p[0] - one_turn_res[0],
         p[1] - one_turn_res[1],
@@ -2251,8 +2255,8 @@ def _error_for_co_search_4d_zeta0(p, co_guess, line, delta_zeta, delta0, zeta0, 
         p[4] - zeta0,
         0])
 
-def _error_for_co_search_4d_delta0_zeta0(p, co_guess, line, delta_zeta, delta0, zeta0, start, end, num_turns):
-    one_turn_res = _one_turn_map(p, co_guess, line, delta_zeta, start, end, num_turns)
+def _error_for_co_search_4d_delta0_zeta0(p, co_guess, line, delta_zeta, delta0, zeta0, start, end, num_turns, symmetrize):
+    one_turn_res = _one_turn_map(p, co_guess, line, delta_zeta, start, end, num_turns, symmetrize)
     return np.array([
         p[0] - one_turn_res[0],
         p[1] - one_turn_res[1],
@@ -2267,7 +2271,8 @@ def compute_one_turn_matrix_finite_differences(
         start=None, end=None,
         num_turns=1,
         element_by_element=False,
-        only_markers=False):
+        only_markers=False,
+        symmetrize=True):
     import xpart
 
     if steps_r_matrix is None:
@@ -2322,9 +2327,14 @@ def compute_one_turn_matrix_finite_differences(
         assert num_turns == 1, 'Not yet implemented'
         assert end is not None
         line.track(part_temp, ele_start=start, ele_stop=end)
+        if symmetrize:
+            with xt.line._preserve_config(line):
+                line.config.XSUITE_MIRROR = True
+                line.track(part_temp, ele_start=start, ele_stop=end)
     elif particle_on_co._xobject.at_element[0]>0:
         assert element_by_element is False, 'Not yet implemented'
         assert num_turns == 1, 'Not yet implemented'
+        assert symmetrize is False, 'Not yet implemented'
         i_start = particle_on_co._xobject.at_element[0]
         line.track(part_temp, ele_start=i_start)
         line.track(part_temp, num_elements=i_start)
@@ -2335,6 +2345,10 @@ def compute_one_turn_matrix_finite_differences(
         monitor_setting = 'ONE_TURN_EBE' if element_by_element else None
         line.track(part_temp, num_turns=num_turns,
                    turn_by_turn_monitor=monitor_setting)
+        if symmetrize:
+            with xt.line._preserve_config(line):
+                line.config.XSUITE_MIRROR = True
+                line.track(part_temp, num_turns=num_turns)
 
     temp_mat = np.zeros(shape=(6, 12), dtype=np.float64)
     temp_mat[0, :] = context.nparray_from_context_array(part_temp.x)
@@ -2762,15 +2776,15 @@ class TwissInit:
         else:
             self.__dict__[name] = value
 
-    def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None, 
+    def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None,
                                    nemitt_zeta=None):
-        
+
         ctx2np = particles._context.nparray_from_context_array
-        
+
         part_id = ctx2np(particles.particle_id).copy()
         at_element = ctx2np(particles.at_element).copy()
         at_turn = ctx2np(particles.at_element).copy()
-        x_norm = ctx2np(particles.x).copy() 
+        x_norm = ctx2np(particles.x).copy()
         px_norm = x_norm.copy()
         y_norm = x_norm.copy()
         py_norm = x_norm.copy()
@@ -2809,7 +2823,6 @@ class TwissInit:
                       'x_norm': x_norm, 'px_norm': px_norm, 'y_norm': y_norm,
                       'py_norm': py_norm, 'zeta_norm': zeta_norm,
                       'pzeta_norm': pzeta_norm}, index='particle_id')
-    
 
     @property
     def betx(self):
@@ -2983,7 +2996,7 @@ class TwissTable(Table):
         Sigma = gemitt_x * Sigma1 + gemitt_y * Sigma2 + gemitt_zeta * Sigma3
         res = _build_sigma_table(Sigma=Sigma, s=self.s, name=self.name)
 
-        return Table(res)
+        return res
 
     def get_ibs_growth_rates(
         self,
@@ -3263,7 +3276,7 @@ class TwissTable(Table):
             out.qs = 0
             out.muzeta[:] = 0
 
-        _reverse_strengths(out)
+        _reverse_strengths(out._data)
 
         out._data['reference_frame'] = {
             'proper': 'reverse', 'reverse': 'proper'}[self.reference_frame]
@@ -3273,7 +3286,7 @@ class TwissTable(Table):
     ind_per_table = []
 
     def add_strengths(self, line=None):
-        if line is None:
+        if line is None and hasattr(self,"_action"):
             line = self._action.line
         _add_strengths_to_twiss_res(self, line)
         return self
@@ -3356,13 +3369,21 @@ class TwissTable(Table):
                               action=self._action, **kwargs)
         return tarset
 
-    def plot(self,yl="",yr="",x='s',
+    def plot(self,
+            yl=None,
+            yr=None,x='s',
             lattice=True,
             mask=None,
             labels=None,
             clist="k r b g c m",
+            figure=None,
+            figlabel=None,
             ax=None,
-            figlabel=None):
+            axleft=None,
+            axright=None,
+            axlattice=None,
+            hover=False
+            ):
         """
         Plot columns of the TwissTable
 
@@ -3388,9 +3409,16 @@ class TwissTable(Table):
             label to use for the figure
         """
 
-        if yl=="" and yr=="":
+        if yl is None and yr is None:
             yl='betx bety'
             yr='dx dy'
+        if yl is None:
+            yl=""
+        if yr is None:
+            yr=""
+
+        if not hasattr(self,"_action"):
+            lattice=False
 
         if lattice and 'length' not in self.keys():
             self.add_strengths()
@@ -3402,15 +3430,23 @@ class TwissTable(Table):
                 idx=mask
         else:
             idx=slice(None)
-        if ax is None:
-            newfig=True
-        else:
-            raise NotImplementedError
 
         self._is_s_begin=True
 
-        pl=TwissPlot(self, x=x, yl=yl, yr=yr, idx=idx, lattice=lattice, newfig=newfig,
-                figlabel=figlabel,clist=clist)
+        pl=TwissPlot(self,
+                x=x,
+                yl=yl,
+                yr=yr,
+                idx=idx,
+                lattice=lattice,
+                figure=figure,
+                figlabel=figlabel,clist=clist,
+                ax=ax,
+                axleft=axleft,
+                axright=axright,
+                axlattice=axlattice,
+                hover=hover,
+                )
 
         if labels is not None:
             mask=self.mask[labels]
@@ -3807,25 +3843,11 @@ def _find_closed_orbit_search_t_rev(line, num_turns_search_t_rev=None):
 
 
 def _reverse_strengths(out):
-    # Same convention as in MAD-X for reversing strengths
-    for kk in NORMAL_STRENGTHS_FROM_ATTR:
-        if kk not in out._col_names:
-            continue
-        ii = int(kk.split('k')[-1].split('l')[0])
-        out[kk] *= (-1)**(ii+1)
-
-    for kk in SKEW_STRENGTHS_FROM_ATTR:
-        if kk not in out._col_names:
-            continue
-        ii = int(kk.split('k')[-1].split('sl')[0])
-        out[kk] *= (-1)**ii
-
-    if 'vkick' in out._col_names:
-        out['vkick'] *= -1
-
-    if 'angle_rad' in out._col_names:
-        out['angle_rad'] *= -1
-
+    ### Same convention as in MAD-X for reversing strengths
+    for kk in SIGN_FLIP_FOR_ATTR_REVERSE:
+        if kk in out:
+            val=out[kk]#avoid passing by setitem
+            np.negative(val,val)
 
 def _W_phys2norm(x, px, y, py, zeta, pzeta, W_matrix, co_dict, nemitt_x=None, nemitt_y=None, nemitt_zeta=None):
 
@@ -3873,8 +3895,3 @@ def _add_strengths_to_twiss_res(twiss_res, line):
                 + OTHER_FIELDS_FROM_ATTR + OTHER_FIELDS_FROM_TABLE):
         twiss_res._col_names.append(kk)
         twiss_res._data[kk] = tt[kk].copy()
-
-def _compute_R_periodic_symmetric(RR):
-    inv_momenta = np.diag([1., -1., 1., -1., 1., 1.])
-    RR_symm = inv_momenta @ np.linalg.inv(RR) @ inv_momenta @ RR
-    return RR_symm

@@ -167,6 +167,19 @@ class SurveyTable(Table):
 
         return out
 
+    def plot(self, element_width=None, legend=True, **kwargs):
+        if element_width is None:
+            x_range = max(self.X) - min(self.X)
+            y_range = max(self.Y) - min(self.Y)
+            z_range = max(self.Z) - min(self.Z)
+            element_width = max([x_range, y_range, z_range]) * 0.03
+        import xplt
+        xplt.FloorPlot(self, self.line, element_width=element_width, **kwargs)
+        if legend:
+            import matplotlib.pyplot as plt
+            plt.legend()
+
+
 # ==================================================
 
 # Main function
@@ -224,6 +237,7 @@ def survey_from_line(line, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
 
     out = SurveyTable(data={**out_columns, **out_scalars},  # this is a merge
                       col_names=out_columns.keys())
+    out._data['line'] = line
 
     return out
 
