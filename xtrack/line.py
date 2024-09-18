@@ -3804,7 +3804,8 @@ class Line:
         if isinstance(key, str):
             if key in self.element_dict:
                 return xd.madxutils.View(
-                    self.element_dict[key], self.element_refs[key])
+                    self.element_dict[key], self.element_refs[key],
+                    evaluator=self._xdeps_eval.eval)
             elif key in self.vars:
                 return self.vv[key]
             elif hasattr(self, 'lines') and key in self.lines: # Want to reuse the method for the env
@@ -3824,10 +3825,7 @@ class Line:
             raise ValueError('Cannot set a Line, please use Envirnoment.new_line')
             # Would need to make sure they refer to the same environment
 
-        if hasattr(value, '_value'):
-            raise ValueError('Value cannot be a Ref. Please use Env.ref or Line.ref')
-
-        if np.isscalar(value):
+        if np.isscalar(value) or xd.refs.is_ref(value):
             if key in self.element_dict:
                 raise ValueError(f'There is already an element with name {key}')
             self.vars[key] = value
@@ -4633,6 +4631,8 @@ class LineVars:
                                  'cache is active')
             self._setter_from_cache(key)(value)
         else:
+            if isinstance(value, str):
+                value = self.line._xdeps_eval.eval(value)
             self.line._xdeps_vref[key] = value
 
     @property
