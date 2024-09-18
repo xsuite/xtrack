@@ -3378,13 +3378,13 @@ class Line:
         return out
 
     def replace_replica(self, name):
-        name_parent = self[name].resolve(self, get_name=True)
+        name_parent = self.element_dict[name].resolve(self, get_name=True)
         cls = self.element_dict[name].__class__
         assert cls in [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole, xt.Octupole,
                        xt.Multipole, xt.Marker, xt.Replica], (
             'Only Drift, Dipole, Quadrupole, Sextupole, Octupole, Multipole, Marker, and Replica '
             'elements are allowed in `new_element` for now.')
-        self.element_dict[name] = self[name_parent].copy()
+        self.element_dict[name] = self.element_dict[name_parent].copy()
 
         pars_with_expr = list(
             self._xdeps_manager.tartasks[self.element_refs[name_parent]].keys())
@@ -3399,7 +3399,7 @@ class Line:
 
     def replace_all_replicas(self):
         for nn in self.element_names:
-            if isinstance(self[nn], xt.Replica):
+            if isinstance(self.element_dict[nn], xt.Replica):
                 self.replace_replica(nn)
 
     def select(self, start=None, end=None, name=None):
@@ -3803,7 +3803,8 @@ class Line:
     def __getitem__(self, key):
         if isinstance(key, str):
             if key in self.element_dict:
-                return self.element_dict[key]
+                return xd.madxutils.View(
+                    self.element_dict[key], self.element_refs[key])
             elif key in self.vars:
                 return self.vv[key]
             elif hasattr(self, 'lines') and key in self.lines: # Want to reuse the method for the env
@@ -4162,7 +4163,7 @@ class Line:
         self._frozen_check()
 
         for nn in self.element_names:
-            ee = self[nn]
+            ee = self.element_dict[nn]
             if hasattr(ee, 'get_equivalent_element'):
                 new_ee = ee.get_equivalent_element()
                 self.element_dict[nn] = new_ee
@@ -4307,7 +4308,7 @@ def _length(element, line):
     if hasattr(element, 'length'):
         return element.length
     assert hasattr(element, 'parent_name')
-    return line[element.parent_name].length * element.weight
+    return line.element_dict[element.parent_name].length * element.weight
 
 def _is_drift(element, line):
     if isinstance(element, xt.Replica):
@@ -4824,7 +4825,7 @@ class LineAttrItem:
             ee = line.element_dict[nn]
             if isinstance(ee, xt.Replica):
                 nn = ee.resolve(line, get_name=True)
-                ee = line[nn]
+                ee = line.element_dict[nn]
             if isinstance(name, (list, tuple)):
                 inner_obj = ee
                 inner_name = name[-1]
