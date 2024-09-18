@@ -3445,6 +3445,14 @@ class Line:
             else:
                 self.vars[name] = value
 
+    def get(self, key):
+        if key in self.element_dict:
+            return self.element_dict[key]
+        elif key in self.vars:
+            return self.vars._owner[key]
+        else:
+            raise KeyError(f'Element or variable {key} not found')
+
     def _env_if_needed(self):
         if not hasattr(self, 'env') or self.env is None:
             self.env = xt.Environment(element_dict=self.element_dict,
@@ -4313,7 +4321,7 @@ def _is_drift(element, line):
         element = element.resolve(line)
     if isinstance(element, beam_elements.Drift):
         return True
-    if type(element).__name__.startswith('Drift'):
+    if element.__class__.__name__.startswith('Drift'):
         return True
     return False
 

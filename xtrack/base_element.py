@@ -480,7 +480,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             partial(_handle_per_particle_blocks,
                     local_particle_src=Particles.gen_local_particle_api()))
         context = self._context
-        cls = type(self)
+        cls = self.__class__
 
         if context.allow_prebuilt_kernels:
             # Default config is empty (all flags default to not defined, which
