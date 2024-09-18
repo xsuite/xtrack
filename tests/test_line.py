@@ -36,9 +36,9 @@ def test_simplification_methods():
     line.merge_consecutive_drifts(inplace=True)
     assert len(line.element_names) == 3
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
-    xo.assert_allclose(line[0].length, 3.3, rtol=0, atol=1e-12)
-    assert isinstance(line[1], xt.Cavity)
-    xo.assert_allclose(line[2].length, 1.7, rtol=0, atol=1e-12)
+    xo.assert_allclose(line[line.element_names[0]].length, 3.3, rtol=0, atol=1e-12)
+    assert isinstance(line[line.element_names[1]], xt.Cavity)
+    xo.assert_allclose(line[line.element_names[2]].length, 1.7, rtol=0, atol=1e-12)
 
     # Test merging of drifts, while keeping one
     line.insert_element(element=xt.Drift(length=1), name='drift1', at_s=1.2)
@@ -85,8 +85,8 @@ def test_simplification_methods():
     line._replace_with_equivalent_elements()
     line.merge_consecutive_multipoles(inplace=True)
     assert len(line.element_names) == 4
-    xo.assert_allclose(line[1].knl, [7,5,11], rtol=0, atol=1e-15)
-    xo.assert_allclose(line[1].ksl, [52,60,17], rtol=0, atol=1e-15)
+    xo.assert_allclose(line[line.element_names[1]].knl, [7,5,11], rtol=0, atol=1e-15)
+    xo.assert_allclose(line[line.element_names[1]].ksl, [52,60,17], rtol=0, atol=1e-15)
 
     # Test removing inactive multipoles
     line.insert_element(element=xt.Multipole(knl=[0, 8, 1], ksl=[0, 20, 30]), name='m5', at_s=3.3)

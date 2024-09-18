@@ -3809,23 +3809,19 @@ class Line:
         self._extra_config['steering_correctors_y'] = value
 
     def __getitem__(self, key):
-        if isinstance(key, str):
-            if key in self.element_dict:
-                return xd.madxutils.View(
-                    self.element_dict[key], self.element_refs[key],
-                    evaluator=self._xdeps_eval.eval)
-            elif key in self.vars:
-                return self.vv[key]
-            elif hasattr(self, 'lines') and key in self.lines: # Want to reuse the method for the env
-                return self.lines[key]
-            else:
-                raise KeyError(f'Name {key} not found')
+        assert isinstance(key, str)
+        if key in self.element_dict:
+            if self.element_refs is None:
+                return self.element_dict[key]
+            return xd.madxutils.View(
+                self.element_dict[key], self.element_refs[key],
+                evaluator=self._xdeps_eval.eval)
+        elif key in self.vars:
+            return self.vv[key]
+        elif hasattr(self, 'lines') and key in self.lines: # Want to reuse the method for the env
+            return self.lines[key]
         else:
-            names = self.element_names.__getitem__(key)
-            if isinstance(names, str):
-                return self.element_dict.__getitem__(names)
-            else:
-                return [self.element_dict[nn] for nn in names]
+            raise KeyError(f'Name {key} not found')
 
     def __setitem__(self, key, value):
 

@@ -109,8 +109,8 @@ def test_vars_and_element_access_modes(container_type):
     assert env.ref['bb1'].length._value == 3 * 2
     assert env['bb1'].length == 3 * 2
 
-    assert line['bb1'] is not env['bb']
-    assert line['bb'] is env['bb']
+    assert line.get('bb1') is not env.get('bb')
+    assert line.get('bb') is env.get('bb')
 
     a = env.vv['a']
     assert line['bb1'].length == 3 * a
