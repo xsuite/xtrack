@@ -341,3 +341,61 @@ class EnvRef:
             if key in self.env.vars:
                 raise ValueError(f'There is already a variable with name {key}')
             self.element_refs[key] = val_ref
+
+def _handle_bend_kwargs(kwargs, _eval, env=None, name=None):
+
+    kwargs = kwargs.copy()
+
+    if env is not None and name is not None:
+        for kk in 'h length edge_entry_angle edge_exit_angle'.split():
+            if kk not in kwargs:
+                expr = getattr(env.ref[name], kk)._expr
+                if expr is not None:
+                    kwargs[kk] = expr
+                else:
+                    kwargs[kk] = getattr(env.get(name), kk)
+        if 'angle' in kwargs:
+            kwargs.pop('h')
+
+    if isinstance(kwargs['length'], str):
+        length = _eval(kwargs['length'])
+    else:
+        length = kwargs['length']
+
+    if 'angle' in kwargs:
+        assert 'h' not in kwargs, 'Cannot specify both angle and h'
+        assert 'length' in kwargs, 'Length must be specified for a bend'
+
+        angle = kwargs.pop('angle')
+
+        if isinstance(angle, str):
+            angle = _eval(angle)
+
+        kwargs['h'] = angle / length
+    else:
+        angle = kwargs.get('h', 0) * length
+
+    if kwargs.pop('rbend', False):
+        edge_entry_angle = kwargs.pop('edge_entry_angle', 0.)
+        if isinstance(edge_entry_angle, str):
+            edge_entry_angle = _eval(edge_entry_angle)
+        edge_exit_angle = kwargs.pop('edge_exit_angle', 0.)
+        if isinstance(edge_exit_angle, str):
+            edge_exit_angle = _eval(edge_exit_angle)
+
+        edge_entry_angle += angle / 2
+        edge_exit_angle += angle / 2
+
+        kwargs['edge_entry_angle'] = edge_entry_angle
+        kwargs['edge_exit_angle'] = edge_exit_angle
+
+    return kwargs
+
+
+
+
+
+
+
+
+
