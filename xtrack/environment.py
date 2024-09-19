@@ -79,7 +79,7 @@ class Environment:
         else:
             return self._get_a_drift_name()
 
-    def new(self, name, cls, at=None, from_=None, description=None, **kwargs):
+    def new(self, name, cls, at=None, from_=None, extra=None, **kwargs):
 
         if from_ is not None or at is not None:
             return Place(at=at, from_=from_,
@@ -115,8 +115,8 @@ class Environment:
         _set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
                     element_dict=self.element_dict, element_refs=self.element_refs)
 
-        if description is not None:
-            self.element_dict[name].description = description
+        if extra is not None:
+            self.element_dict[name].description = extra
 
         return name
 
