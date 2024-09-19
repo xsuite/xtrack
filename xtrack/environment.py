@@ -344,8 +344,8 @@ def _set_kwargs(name, ref_kwargs, value_kwargs, element_dict, element_refs):
             getattr(element_dict[name], kk)[:len_value] = value_kwargs[kk]
             if kk in ref_kwargs:
                 for ii, vvv in enumerate(value_kwargs[kk]):
-                    if vvv is not None:
-                        getattr(element_refs[name], kk)[ii] = vvv
+                    if ref_kwargs[kk][ii] is not None:
+                        getattr(element_refs[name], kk)[ii] = ref_kwargs[kk][ii]
         else:
             if kk in ref_kwargs:
                 setattr(element_refs[name], kk, ref_kwargs[kk])
