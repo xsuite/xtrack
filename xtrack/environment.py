@@ -4,7 +4,8 @@ import numpy as np
 from weakref import WeakSet
 
 _ALLOWED_ELEMENT_TYPES_IN_NEW = [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole,
-                              xt.Octupole, xt.Multipole, xt.Marker, xt.Replica]
+                              xt.Octupole, xt.Cavity, xt.Multipole,
+                              xt.Marker, xt.Replica]
 
 _ALLOWED_ELEMENT_TYPES_DICT = {'Drift': xt.Drift, 'Bend': xt.Bend,
                                'Quadrupole': xt.Quadrupole, 'Sextupole': xt.Sextupole,
