@@ -3494,6 +3494,8 @@ class Line:
             if len(args) > 0:
                 raise ValueError(f'Only kwargs are allowed when setting element attributes')
 
+            extra = kwargs.pop('extra', None)
+
             if self.element_dict[name].__class__ == xt.Bend:
                 # Handle angle if needed
                 kwargs = xt.environment._handle_bend_kwargs(
@@ -3504,8 +3506,7 @@ class Line:
             xt.environment._set_kwargs(
                 name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
                 element_dict=self.element_dict, element_refs=self.element_refs)
-            if 'extra' in kwargs and kwargs['extra'] is not None:
-                extra = kwargs['extra']
+            if extra is not None:
                 assert isinstance(extra, dict), (
                     'Description must be a dictionary')
                 if (not hasattr(self.element_dict[name], 'extra')

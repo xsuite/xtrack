@@ -97,6 +97,7 @@ lines = [
     "import xtrack as xt",
     "import numpy as np",
     "env=xt.Environment()",
+    "env._xdeps_vref._owner.default_factory = lambda : 0",
     "env.vars['twopi']=np.pi*2",
     "env.new('vkicker','Multipole')",
     "env.new('hkicker','Multipole')",
@@ -112,7 +113,7 @@ lines = [
     "env.new('octupole','Octupole')",
     "env.new('marker','Drift')",
     "env.new('rfcavity','Cavity')",
-    "env.new('multipole','Multipole')",
+    "env.new('multipole','Multipole', knl=[0, 0, 0, 0, 0, 0])",
     "env.new('solenoid','Solenoid')",
 ]
 
@@ -121,6 +122,9 @@ notinitialized = set()
 inside_sequence = False
 lhcb2 = False
 for line in open("lhc.seq"):
+
+    if '/*                       ACSCA CAVITIES ' in line:
+        break
 
     line = line.replace(", L := l.OMK;", ";")
     line = line.replace(" L := l.ACSCA,", "")

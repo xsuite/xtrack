@@ -230,7 +230,7 @@ def _resolve_s_positions(seq_all_places, env):
 
     return tt_sorted
 
-def _generate_element_names_with_drifts(env, tt_sorted, s_tol=1e-12):
+def _generate_element_names_with_drifts(env, tt_sorted, s_tol=1e-10):
 
     names_with_drifts = []
     # Create drifts
