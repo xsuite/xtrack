@@ -122,18 +122,17 @@ inside_sequence = False
 lhcb2 = False
 for line in open("lhc.seq"):
 
-    line = line.replace(', L := l.OMK;', ';')
-    line = line.replace(' L := l.ACSCA,' ,'')
-    line = line.replace(', HARMON := HRF400' ,'')
-    if 'INSTRUMENT' in line or 'PLACEHOLDER' in line:
-        if 'lrad' in line.lower():
+    line = line.replace(", L := l.OMK;", ";")
+    line = line.replace(" L := l.ACSCA,", "")
+    line = line.replace(", HARMON := HRF400", "")
+    if "INSTRUMENT" in line or "PLACEHOLDER" in line:
+        if "lrad" in line.lower():
             newline = line.lower()
-            newline = newline.split('lrad')[0]
+            newline = newline.split("lrad")[0]
             newline = newline.strip()
-            newline = newline.strip(',')
-            newline = newline + ';'
+            newline = newline.strip(",")
+            newline = newline + ";"
             line = newline
-
 
     line = line.strip()
     ls = line.replace(" ", "").lower()
@@ -187,13 +186,14 @@ for ii in range(len(lines)):
     line = lines[ii]
     if ",kick" in line:
         if "h." in line:
-            lines[ii]=re.sub(r"kick=('[-a-z0-9.]+')",r"knl=[-(\1)]",line)
+            line = re.sub(r"kick='([-a-z0-9.]+)'", r"knl=['-(\1)']", line)
         else:
-            lines[ii]=re.sub(r"kick=('[-a-z0-9.]+')",r"ksl=[\1]",line)
-    elif ",hkick" in line:
-        lines[ii]=re.sub(r"hkick=('[-a-z0-9.]+')",r"knl=[-(\1)]",line)
-    elif ",vkick" in line:
-        lines[ii]=re.sub(r"vkick=('[-a-z0-9./]+')",r"ksl=[\1]",line)
+            line = re.sub(r"kick=('[-a-z0-9.]+')", r"ksl=[\1]", line)
+    if ",hkick" in line:
+        line = re.sub(r"hkick='([-a-z0-9.]+)'", r"knl=['-(\1)']", line)
+    if ",vkick" in line:
+        line = re.sub(r"vkick=('[-a-z0-9./]+')", r"ksl=[\1]", line)
+    lines[ii] = line
 
 for ll in lines:
     print(ll)
