@@ -1,4 +1,5 @@
 import xtrack as xt
+import xdeps as xd
 
 env = xt.Environment()
 
@@ -27,7 +28,8 @@ assert env.get('b1') == 9
 assert env.get('b2') == 9
 assert env.get('c') == 12
 
-env.new('mb', 'Bend', k1='3*a', h=4*env.ref['a'], knl=[0, '5*a', 6*env.ref['a']])
+env.new('mb', 'Bend', description='Hello Riccardo',
+        k1='3*a', h=4*env.ref['a'], knl=[0, '5*a', 6*env.ref['a']])
 assert isinstance(env['mb'].k1, float)
 assert isinstance(env['mb'].h, float)
 assert isinstance(env['mb'].knl[0], float)
@@ -57,3 +59,22 @@ assert env['mb'].h == 160
 assert env['mb'].knl[0] == 0
 assert env['mb'].knl[1] == 200
 assert env['mb'].knl[2] == 240
+
+assert isinstance(env['mb'].k1, float)
+assert isinstance(env['mb'].h, float)
+assert isinstance(env['mb'].knl[0], float)
+
+assert env.ref['mb'].k1._value == 120
+assert env.ref['mb'].h._value == 160
+assert env.ref['mb'].knl[0]._value == 0
+assert env.ref['mb'].knl[1]._value == 200
+assert env.ref['mb'].knl[2]._value == 240
+
+assert env.get('mb').k1 == 120
+assert env.get('mb').h == 160
+assert env.get('mb').knl[0] == 0
+assert env.get('mb').knl[1] == 200
+assert env.get('mb').knl[2] == 240
+
+# Some interesting behavior
+assert type(env['mb']) is xd.madxutils.View
