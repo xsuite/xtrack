@@ -686,17 +686,44 @@ env.new("btvss075", "instrument", length="l.btvss075")
 env.new("btvst064", "instrument", length="l.btvst064")
 env.new("btvst065", "instrument", length="l.btvst065")
 env.new("bws", "instrument", length="l.bws")
-env.new("tanal", "instrument", length="l.tanal")
-env.new("tanar", "instrument", length="l.tanar")
-env.new("tanc", "instrument", length="l.tanc")
-env.new("x1zdc001", "instrument", length="l.x1zdc001")
-env.new("x1zdc002", "instrument", length="l.x1zdc002")
-env.new("x2zdc001", "instrument", length="l.x2zdc001")
-env.new("x2zdc002", "instrument", length="l.x2zdc002")
+env.new(
+    "tanal",
+    "instrument",
+)
+env.new(
+    "tanar",
+    "instrument",
+)
+env.new(
+    "tanc",
+    "instrument",
+)
+env.new(
+    "x1zdc001",
+    "instrument",
+)
+env.new(
+    "x1zdc002",
+    "instrument",
+)
+env.new(
+    "x2zdc001",
+    "instrument",
+)
+env.new(
+    "x2zdc002",
+    "instrument",
+)
 env.new("x5fca", "instrument", length="l.x5fca")
 env.new("x5fcb", "instrument", length="l.x5fcb")
-env.new("x5zdc001", "instrument", length="l.x5zdc001")
-env.new("x5zdc002", "instrument", length="l.x5zdc002")
+env.new(
+    "x5zdc001",
+    "instrument",
+)
+env.new(
+    "x5zdc002",
+    "instrument",
+)
 # //---------------------- MARKER         ---------------------------------------------
 env.new(
     "omk",
@@ -845,12 +872,30 @@ env.new("lepra", "placeholder", length="l.lepra")
 env.new("leprb", "placeholder", length="l.leprb")
 env.new("mcbh_unplugged", "placeholder", length="l.mcbh_unplugged")
 env.new("mcbv_unplugged", "placeholder", length="l.mcbv_unplugged")
-env.new("mcbxh_unplugged", "placeholder", length="l.mcbxh_unplugged")
-env.new("mcd_unplugged", "placeholder", length="l.mcd_unplugged")
-env.new("mcosx_unplugged", "placeholder", length="l.mcosx_unplugged")
-env.new("mcox_unplugged", "placeholder", length="l.mcox_unplugged")
-env.new("mco_unplugged", "placeholder", length="l.mco_unplugged")
-env.new("mcssx_unplugged", "placeholder", length="l.mcssx_unplugged")
+env.new(
+    "mcbxh_unplugged",
+    "placeholder",
+)
+env.new(
+    "mcd_unplugged",
+    "placeholder",
+)
+env.new(
+    "mcosx_unplugged",
+    "placeholder",
+)
+env.new(
+    "mcox_unplugged",
+    "placeholder",
+)
+env.new(
+    "mco_unplugged",
+    "placeholder",
+)
+env.new(
+    "mcssx_unplugged",
+    "placeholder",
+)
 env.new("mcs_unplugged", "placeholder", length="l.mcs_unplugged")
 env.new("mo_unplugged", "placeholder", length="l.mo_unplugged")
 env.new("mqt_unplugged", "placeholder", length="l.mqt_unplugged")
@@ -48166,7 +48211,7 @@ env.new_line(
         env.new("ip1.l1", "omk", at="pip1.l1+ip1ofs.b1*ds"),
     ],
 )
-
+prrrrr
 env.new_line(
     name="lhcb2",
     components=[
@@ -95311,6 +95356,7 @@ env.set("mcox.3r1", knl=[0.0, 0.0, 0.0, "kcox3.r1*l.mcox"], extra=dict(polarity=
 env.set(
     "mcssx.3r1", ksl=[0.0, 0.0, "kcssx3.r1*l.mcssx", 0.0], extra=dict(polarity=-1.0)
 )
+breakpoint()
 env.set("mbxw.a4r1", angle="-ad1.lr1", k0="-kd1.lr1", extra=dict(polarity=-1.0))
 env.set("mbxw.b4r1", angle="-ad1.lr1", k0="-kd1.lr1", extra=dict(polarity=-1.0))
 env.set("mbxw.c4r1", angle="-ad1.lr1", k0="-kd1.lr1", extra=dict(polarity=-1.0))

@@ -125,6 +125,15 @@ for line in open("lhc.seq"):
     line = line.replace(', L := l.OMK;', ';')
     line = line.replace(' L := l.ACSCA,' ,'')
     line = line.replace(', HARMON := HRF400' ,'')
+    if 'INSTRUMENT' in line or 'PLACEHOLDER' in line:
+        if 'lrad' in line.lower():
+            newline = line.lower()
+            newline = newline.split('lrad')[0]
+            newline = newline.strip()
+            newline = newline.strip(',')
+            newline = newline + ';'
+            line = newline
+
 
     line = line.strip()
     ls = line.replace(" ", "").lower()
