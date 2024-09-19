@@ -107,6 +107,13 @@ lines = [
     "env.new('placeholder','Drift')",
     "env.new('sbend','Bend')",
     "env.new('rbend','Bend')",
+    "env.new('quadrupole','Quadrupole')",
+    "env.new('sextupole','Sextupole')",
+    "env.new('octupole','Octupole')",
+    "env.new('marker','Drift')",
+    "env.new('rfcavity','Cavity')",
+    "env.new('multipole','Multipole')",
+    "env.new('solenoid','Solenoid')",
 ]
 
 notparsed = []
@@ -114,6 +121,11 @@ notinitialized = set()
 inside_sequence = False
 lhcb2 = False
 for line in open("lhc.seq"):
+
+    line = line.replace(', L := l.OMK;', ';')
+    line = line.replace(' L := l.ACSCA,' ,'')
+    line = line.replace(', HARMON := HRF400' ,'')
+
     line = line.strip()
     ls = line.replace(" ", "").lower()
     if res := stmt.match(ls):
@@ -129,7 +141,7 @@ for line in open("lhc.seq"):
             groups = parse_command(rhs + ";")
             parent = groups.pop(0)[0]
             if parent == "sequence":
-                lines.append(f"env.new_line({lhs!r}, components=[")
+                lines.append(f"env.new_line(name={lhs!r}, components=[")
                 inside_sequence = True
                 if lhs == "lhcb2":
                     lhcb2 = True
