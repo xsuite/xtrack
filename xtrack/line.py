@@ -2110,6 +2110,9 @@ class Line:
                 )
             element = self.element_dict[name]
 
+        if isinstance(element, xd.madxutils.View):
+            raise ValueError('Cannot insert a View in a Line')
+
         self._frozen_check()
 
         assert ((index is not None and at_s is None) or
@@ -2175,6 +2178,9 @@ class Line:
         name : str
             Name of the element to append
         """
+
+        if isinstance(element, xd.madxutils.View):
+            raise ValueError('Cannot append a View to a Line')
 
         self._frozen_check()
         if element in self.element_dict and element is not self.element_dict[name]:
@@ -3305,7 +3311,7 @@ class Line:
 
         for ii in range(len(ele_cut_sorted)-1):
             names_map_line.append(ele_cut_sorted[ii])
-            elements_map_line.append(self[ele_cut_sorted[ii]])
+            elements_map_line.append(self.get(ele_cut_sorted[ii]))
 
             smap = xt.SecondOrderTaylorMap.from_line(
                                     self, start=ele_cut_sorted[ii],
@@ -3809,6 +3815,8 @@ class Line:
         self._extra_config['steering_correctors_y'] = value
 
     def __getitem__(self, key):
+        if np.issubdtype(key.__class__, np.integer):
+            key = self.element_names[key]
         assert isinstance(key, str)
         if key in self.element_dict:
             if self.element_refs is None:
@@ -3834,9 +3842,7 @@ class Line:
                 raise ValueError(f'There is already an element with name {key}')
             self.vars[key] = value
         else:
-            if key in self.vars:
-                raise ValueError(f'There is already a variable with name {key}')
-            self.element_dict[key] = value
+            raise ValueError('Only scalars or references are allowed')
 
     def _get_non_collective_line(self):
         if not self.iscollective:
