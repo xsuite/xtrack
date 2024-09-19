@@ -2111,7 +2111,7 @@ class Line:
             element = self.element_dict[name]
 
         if isinstance(element, xd.madxutils.View):
-            raise ValueError('Cannot insert a View in a Line')
+            element = element._get_viewed_object()
 
         self._frozen_check()
 
@@ -2180,7 +2180,7 @@ class Line:
         """
 
         if isinstance(element, xd.madxutils.View):
-            raise ValueError('Cannot append a View to a Line')
+            element = element._get_viewed_object()
 
         self._frozen_check()
         if element in self.element_dict and element is not self.element_dict[name]:
