@@ -78,3 +78,6 @@ assert env.get('mb').knl[2] == 240
 
 # Some interesting behavior
 assert type(env['mb']) is xd.madxutils.View
+assert env['mb'].__class__ is xt.Bend
+assert type(env.ref['mb']._value) is xt.Bend
+assert type(env.get('mb')) is xt.Bend
