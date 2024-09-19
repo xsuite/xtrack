@@ -3459,7 +3459,7 @@ class Line:
                     element_dict=self.element_dict, element_refs=self.element_refs)
 
         if extra is not None:
-            self.element_dict[name].description = extra
+            self.element_dict[name].extra = extra
 
         return name
 
@@ -3482,7 +3482,7 @@ class Line:
 
         return out
 
-    def set(self, name, *args, **kwargs):
+    def set(self, name, extra=None, *args, **kwargs):
         _eval = self._xdeps_eval.eval
 
         if hasattr(self, 'lines') and name in self.lines:
@@ -3496,12 +3496,22 @@ class Line:
             xt.environment._set_kwargs(
                 name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
                 element_dict=self.element_dict, element_refs=self.element_refs)
+            if extra is not None:
+                assert isinstance(extra, dict), (
+                    'Description must be a dictionary')
+                if (not hasattr(self.element_dict[name], 'extra')
+                    or not isinstance(self.element_dict[name].extra, dict)):
+                    self.element_dict[name].extra = {}
+                self.element_dict[name].extra.update(extra)
+            self.element_dict
         else:
             if len(kwargs) > 0:
                 raise ValueError(f'Only a single value is allowed when setting variable')
             if len(args) != 1:
                 raise ValueError(f'A value must be provided when setting a variable')
             value = args[0]
+            if extra is not None:
+                raise ValueError(f'Description is only allowed for elements')
             if isinstance(value, str):
                 self.vars[name] = _eval(value)
             else:
