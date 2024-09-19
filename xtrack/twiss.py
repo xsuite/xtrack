@@ -2625,7 +2625,7 @@ class TwissInit:
 
             if input_reversed:
                 s_ele_twiss = line.tracker._tracker_data_base.line_length - s_ele_in_line
-                first_ele = line[i_ele_in_line]
+                first_ele = line[line.element_names[i_ele_in_line]]
                 if hasattr(first_ele, 'isthick') and first_ele.isthick:
                     s_ele_twiss -= first_ele.length
             else:
