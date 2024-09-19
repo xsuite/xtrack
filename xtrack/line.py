@@ -3386,10 +3386,10 @@ class Line:
     def replace_replica(self, name):
         name_parent = self.element_dict[name].resolve(self, get_name=True)
         cls = self.element_dict[name].__class__
-        assert cls in [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole, xt.Octupole,
-                       xt.Multipole, xt.Marker, xt.Replica], (
-            'Only Drift, Dipole, Quadrupole, Sextupole, Octupole, Multipole, Marker, and Replica '
-            'elements are allowed in `new_element` for now.')
+        assert cls in xt.ennvironment._ALLOWED_ELEMENT_TYPES_IN_NEW, (
+            'Only '
+            + xt.environment._STR_ALLOWED_ELEMENT_TYPES_IN_NEW
+            + 'elements are allowed in `relace_replica` for now.')
         self.element_dict[name] = self.element_dict[name_parent].copy()
 
         pars_with_expr = list(
@@ -3455,7 +3455,7 @@ class Line:
         if key in self.element_dict:
             return self.element_dict[key]
         elif key in self.vars:
-            return self.vars._owner[key]
+            return self._xdeps_vref._owner[key]
         else:
             raise KeyError(f'Element or variable {key} not found')
 

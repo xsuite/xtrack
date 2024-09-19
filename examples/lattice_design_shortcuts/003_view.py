@@ -17,3 +17,9 @@ assert env['c'] == 12
 assert env.ref['a']._value == 3
 assert env.ref['b']._value == 9
 assert env.ref['c']._value == 12
+
+assert env.get('a') == 3
+assert env.get('b') == 9
+assert env.get('c') == 12
+
+env.new('mb', 'Bend')
