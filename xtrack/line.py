@@ -3459,6 +3459,7 @@ class Line:
                     element_dict=self.element_dict, element_refs=self.element_refs)
 
         if extra is not None:
+            assert isinstance(extra, dict)
             self.element_dict[name].extra = extra
 
         return name
@@ -3482,7 +3483,7 @@ class Line:
 
         return out
 
-    def set(self, name, extra=None, *args, **kwargs):
+    def set(self, name, *args, **kwargs):
         _eval = self._xdeps_eval.eval
 
         if hasattr(self, 'lines') and name in self.lines:
@@ -3493,6 +3494,7 @@ class Line:
                 raise ValueError(f'Only kwargs are allowed when setting element attributes')
 
             if self.element_dict[name].__class__ == xt.Bend:
+                # Handle angle if needed
                 kwargs = xt.environment._handle_bend_kwargs(
                     kwargs, _eval, env=self, name=name)
 
@@ -3501,7 +3503,8 @@ class Line:
             xt.environment._set_kwargs(
                 name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
                 element_dict=self.element_dict, element_refs=self.element_refs)
-            if extra is not None:
+            if 'extra' in kwargs and kwargs['extra'] is not None:
+                extra = kwargs['extra']
                 assert isinstance(extra, dict), (
                     'Description must be a dictionary')
                 if (not hasattr(self.element_dict[name], 'extra')
@@ -3515,8 +3518,8 @@ class Line:
             if len(args) != 1:
                 raise ValueError(f'A value must be provided when setting a variable')
             value = args[0]
-            if extra is not None:
-                raise ValueError(f'Description is only allowed for elements')
+            if 'extra' in kwargs and kwargs['extra'] is not None:
+                raise ValueError(f'Extra is only allowed for elements')
             if isinstance(value, str):
                 self.vars[name] = _eval(value)
             else:
