@@ -22,4 +22,11 @@ assert env.get('a') == 3
 assert env.get('b') == 9
 assert env.get('c') == 12
 
-env.new('mb', 'Bend')
+env.new('mb', 'Bend', k1='3*a', h='4*a', knl=[0, '5*a'])
+assert isinstance(env['mb'].k1, float)
+assert isinstance(env['mb'].h, float)
+assert isinstance(env['mb'].knl[0], float)
+assert env['mb'].k1 == 9
+assert env['mb'].h == 12
+assert env['mb'].knl[0] == 0
+assert env['mb'].knl[1] == 15
