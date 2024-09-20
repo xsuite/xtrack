@@ -3428,50 +3428,6 @@ class Line:
             if isinstance(self.element_dict[nn], xt.Replica):
                 self.replace_replica(nn)
 
-    def new(self, name, cls, at=None, from_=None, extra=None, **kwargs):
-
-        _parse_kwargs = xt.environment._parse_kwargs
-        _set_kwargs = xt.environment._set_kwargs
-
-        if from_ is not None or at is not None:
-            return xt.environment.Place(at=at, from_=from_,
-                         name=self.new(name, cls, **kwargs))
-
-        _eval = self._xdeps_eval.eval
-
-        assert isinstance(cls, str) or cls in _ALLOWED_ELEMENT_TYPES_IN_NEW, (
-            'Only '
-            + _STR_ALLOWED_ELEMENT_TYPES_IN_NEW
-            + ' elements are allowed in `new` for now.')
-
-        needs_instantiation = True
-        if isinstance(cls, str):
-            if cls in self.element_dict:
-                # Clone an existing element
-                self.element_dict[name] = xt.Replica(parent_name=cls)
-                self.replace_replica(name)
-                cls = type(self.element_dict[name])
-                needs_instantiation = False
-            elif cls in _ALLOWED_ELEMENT_TYPES_DICT:
-                cls = _ALLOWED_ELEMENT_TYPES_DICT[cls]
-                needs_instantiation = True
-            else:
-                raise ValueError(f'Element type {cls} not found')
-
-        ref_kwargs, value_kwargs = _parse_kwargs(cls, kwargs, _eval)
-
-        if needs_instantiation: # Parent is a class and not another element
-            self.element_dict[name] = cls(**value_kwargs)
-
-        _set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
-                    element_dict=self.element_dict, element_refs=self.element_refs)
-
-        if extra is not None:
-            assert isinstance(extra, dict)
-            self.element_dict[name].extra = extra
-
-        return name
-
 
     def select(self, start=None, end=None, name=None):
 
