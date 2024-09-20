@@ -61,12 +61,14 @@ halfcell.rebuild()
 hcell_left = halfcell.replicate(name='l', mirror=True)
 hcell_right = halfcell.replicate(name='r')
 
-cell = env.new_line(components=[
-    env.new('start', xt.Marker),
-    hcell_left,
-    hcell_right,
-    env.new('end', xt.Marker),
-])
+cell_bld = env.new_builder()
+
+cell_bld.new('start', xt.Marker)
+cell_bld.place(hcell_left)
+cell_bld.place(hcell_right)
+cell_bld.new('end', xt.Marker)
+
+cell = cell_bld.build()
 
 opt = cell.match(
     method='4d',
@@ -96,6 +98,7 @@ halfcell_ss = env.new_line(components=[
 
 hcell_left_ss = halfcell_ss.replicate(name='l', mirror=True)
 hcell_right_ss = halfcell_ss.replicate(name='r')
+
 cell_ss = env.new_line(components=[
     env.new('start.ss', xt.Marker),
     hcell_left_ss,
@@ -109,8 +112,6 @@ opt = cell_ss.match(
     targets=xt.TargetSet(
         betx=tw_cell.betx[-1], bety=tw_cell.bety[-1], at='start.ss',
     ))
-
-
 
 arc = env.new_line(components=[
     cell.replicate(name='cell.1'),
