@@ -453,6 +453,31 @@ class Builder:
         out =  self.env.new_line(components=self.components, name=name)
         out.builder = self
 
+    def set(self, *args, **kwargs):
+        self.components.append(self.env.set(*args, **kwargs))
+
+    def get(self, *args, **kwargs):
+        return self.env.get(*args, **kwargs)
+
+    @property
+    def element_dict(self):
+        return self.env.element_dict
+
+    @property
+    def ref(self):
+        return self.env.ref
+
+    @property
+    def vars(self):
+        return self.env.vars
+
+    def __getitem__(self, key):
+        return self.env[key]
+
+    def __setitem__(self, key, value):
+        self.env[key] = value
+
+
 
 
 
