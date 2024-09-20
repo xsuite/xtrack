@@ -628,6 +628,13 @@ class Line:
 
         return mng
 
+    def __repr__(self):
+        if hasattr(self, '_name'):
+            name = self._name
+        else:
+            name = ''
+        return f'<{self.__class__.__name__} {name} at {id(self)}>'
+
     def __getstate__(self):
         out = self.__dict__.copy()
         return out
