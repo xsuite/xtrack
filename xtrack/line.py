@@ -844,6 +844,10 @@ class Line:
             _print('The line already has an associated tracker')
             return self.tracker
 
+        if (len(self.element_names) == 0 and hasattr(self, 'builder')
+            and self.builder is not None):
+            self.rebuild()
+
         self.tracker = xt.Tracker(
                                 line=self,
                                 _context=_context,
@@ -858,6 +862,13 @@ class Line:
             self.env._ensure_tracker_consistency(buffer=self._buffer)
 
         return self.tracker
+
+    def rebuild(self):
+        if not hasattr(self, 'builder') or self.builder is None:
+            raise ValueError('The line does not have a builder')
+
+        temp = self.builder.build()
+        self.element_names = temp.element_names
 
     @property
     def attr(self):

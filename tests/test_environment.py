@@ -446,7 +446,7 @@ def test_assemble_ring():
 def test_element_views(container_type):
 
     env = xt.Environment()
-    line = xt.Line()
+    line = env.new_line()
 
     if container_type == 'env':
         ee = env
@@ -478,7 +478,7 @@ def test_element_views(container_type):
     assert ee.get('b2') == 9
     assert ee.get('c') == 12
 
-    ee.new('mb', 'Bend', extra={'description': 'Hello Riccarco'},
+    env.new('mb', 'Bend', extra={'description': 'Hello Riccarco'},
             k1='3*a', h=4*ee.ref['a'], knl=[0, '5*a', 6*ee.ref['a']])
     assert isinstance(ee['mb'].k1, float)
     assert isinstance(ee['mb'].h, float)
