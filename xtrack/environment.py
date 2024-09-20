@@ -452,6 +452,7 @@ class Builder:
     def build(self, name=None):
         out =  self.env.new_line(components=self.components, name=name)
         out.builder = self
+        return out
 
     def set(self, *args, **kwargs):
         self.components.append(self.env.set(*args, **kwargs))
