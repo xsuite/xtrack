@@ -50,6 +50,8 @@ class Environment:
         out.element_names = handle_s_places(flattened_components, self)
         out._var_management = self._var_management
         out._name = name
+        out.builder = Builder(env=self, components=components)
+
         self._lines.add(out) # Weak references
         if name is not None:
             self.lines[name] = out
@@ -68,8 +70,6 @@ class Environment:
             return nn
         else:
             return self._get_a_drift_name()
-
-
 
     def place(self, name, at=None, from_=None, anchor=None, from_anchor=None):
         return Place(name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
@@ -391,6 +391,23 @@ def _handle_bend_kwargs(kwargs, _eval, env=None, name=None):
 
     return kwargs
 
+
+class Builder:
+    def __init__(self, env, components=None):
+        self.env = env
+        self.components = components or []
+
+    def new(self, name, cls, at=None, from_=None, extra=None, **kwargs):
+        self.components.append(self.env.new(
+            name, cls, at=at, from_=from_, extra=extra, **kwargs))
+
+    def place(self, name, at=None, from_=None, anchor=None, from_anchor=None):
+        self.components.append(self.env.place(
+            name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor))
+
+    def build(self, name=None):
+        out =  self.env.new_line(components=self.components, name=name)
+        out.builder = self
 
 
 
