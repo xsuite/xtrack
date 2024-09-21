@@ -58,6 +58,9 @@ class Environment:
 
         return out
 
+    def new_builder(self, components=None, name=None):
+        return Builder(env=self, components=components, name=name)
+
     def _ensure_tracker_consistency(self, buffer):
         for ln in self._lines:
             if ln._has_valid_tracker() and ln._buffer is not buffer:
@@ -80,6 +83,16 @@ class Environment:
         if from_ is not None or at is not None:
             return Place(at=at, from_=from_,
                          name=self.new(name, cls, **kwargs))
+
+        if mode == 'replica':
+            assert cls in self.element_dict, f'Element {cls} not found, cannot replicate'
+            import pdb; pdb.set_trace()
+            kwargs['parent_name'] = xo.String(cls)
+            cls = xt.Replica
+        elif mode == 'clone':
+            assert cls in self.element_dict, f'Element {cls} not found, cannot clone'
+        else:
+            assert mode is None, f'Unknown mode {mode}'
 
         _eval = self._xdeps_eval.eval
 
@@ -337,7 +350,6 @@ def _parse_kwargs(cls, kwargs, _eval):
                 value_kwargs[kk] = ref_kwargs[kk]
         elif isinstance(kwargs[kk], xo.String):
             vvv = kwargs[kk].to_str()
-            ref_kwargs[kk] = None
             value_kwargs[kk] = vvv
         else:
             value_kwargs[kk] = kwargs[kk]
@@ -444,9 +456,10 @@ def _handle_bend_kwargs(kwargs, _eval, env=None, name=None):
 
 
 class Builder:
-    def __init__(self, env, components=None):
+    def __init__(self, env, components=None, name=None):
         self.env = env
         self.components = components or []
+        self.name = name
 
     def new(self, name, cls, at=None, from_=None, extra=None, **kwargs):
         self.components.append(self.env.new(
@@ -457,6 +470,8 @@ class Builder:
             name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor))
 
     def build(self, name=None):
+        if name is None:
+            name = self.name
         out =  self.env.new_line(components=self.components, name=name)
         out.builder = self
         return out

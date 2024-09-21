@@ -33,30 +33,29 @@ env.new('corrector', xt.Multipole, knl=[0], ksl=[0])
 env.new('mq.f', 'mq', k1='kqf')
 env.new('mq.d', 'mq', k1='kqd')
 
-halfcell = env.new_line()
+halfcell = env.new_builder()
 
-hcbld = halfcell.builder
 # End of the half cell (will be mid of the cell)
-hcbld.new('mid', xt.Marker, at='l.halfcell'),
+halfcell.new('mid', xt.Marker, at='l.halfcell'),
 
 # Bends
-hcbld.new('mb.2', 'mb', at='l.halfcell / 2'),
-hcbld.new('mb.1', 'mb', at='-l.mb - 1', from_='mb.2'),
-hcbld.new('mb.3', 'mb', at='l.mb + 1', from_='mb.2'),
+halfcell.new('mb.2', 'mb', at='l.halfcell / 2'),
+halfcell.new('mb.1', 'mb', at='-l.mb - 1', from_='mb.2'),
+halfcell.new('mb.3', 'mb', at='l.mb + 1', from_='mb.2'),
 
 # Quads
-hcbld.place('mq.d', at = '0.5 + l.mq / 2'),
-hcbld.place('mq.f', at = 'l.halfcell - l.mq / 2 - 0.5'),
+halfcell.place('mq.d', at = '0.5 + l.mq / 2'),
+halfcell.place('mq.f', at = 'l.halfcell - l.mq / 2 - 0.5'),
 
 # Sextupoles
-hcbld.new('ms.d', 'ms', k2='k2sf', at=1.2, from_='mq.d'),
-hcbld.new('ms.f', 'ms', k2='k2sd', at=-1.2, from_='mq.f'),
+halfcell.new('ms.d', 'ms', k2='k2sf', at=1.2, from_='mq.d'),
+halfcell.new('ms.f', 'ms', k2='k2sd', at=-1.2, from_='mq.f'),
 
 # Dipole correctors
-hcbld.new('corrector.v', 'corrector', at=0.75, from_='mq.d'),
-hcbld.new('corrector.h', 'corrector', at=-0.75, from_='mq.f')
+halfcell.new('corrector.v', 'corrector', at=0.75, from_='mq.d'),
+halfcell.new('corrector.h', 'corrector', at=-0.75, from_='mq.f')
 
-halfcell.rebuild()
+halfcell = halfcell.build() # The builder can be found in halfcell.builder
 
 hcell_left = halfcell.replicate(name='l', mirror=True)
 hcell_right = halfcell.replicate(name='r')
