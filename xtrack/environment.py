@@ -71,7 +71,7 @@ class Environment:
         else:
             return self._get_a_drift_name()
 
-    def new(self, name, cls, at=None, from_=None, extra=None, **kwargs):
+    def new(self, name, cls, mode=None, at=None, from_=None, extra=None, **kwargs):
 
         _ALLOWED_ELEMENT_TYPES_IN_NEW = xt.line._ALLOWED_ELEMENT_TYPES_IN_NEW
         _ALLOWED_ELEMENT_TYPES_DICT = xt.line._ALLOWED_ELEMENT_TYPES_DICT
@@ -335,6 +335,10 @@ def _parse_kwargs(cls, kwargs, _eval):
                 value_kwargs[kk] = ref_kwargs[kk]._value
             else:
                 value_kwargs[kk] = ref_kwargs[kk]
+        elif isinstance(kwargs[kk], xo.String):
+            vvv = kwargs[kk].to_str()
+            ref_kwargs[kk] = None
+            value_kwargs[kk] = vvv
         else:
             value_kwargs[kk] = kwargs[kk]
 
@@ -342,7 +346,7 @@ def _parse_kwargs(cls, kwargs, _eval):
 
 def _set_kwargs(name, ref_kwargs, value_kwargs, element_dict, element_refs):
     for kk in value_kwargs:
-        if hasattr(value_kwargs[kk], '__iter__'):
+        if hasattr(value_kwargs[kk], '__iter__') and not isinstance(value_kwargs[kk], str):
             len_value = len(value_kwargs[kk])
             getattr(element_dict[name], kk)[:len_value] = value_kwargs[kk]
             if kk in ref_kwargs:
