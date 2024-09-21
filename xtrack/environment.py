@@ -84,9 +84,17 @@ class Environment:
             return Place(at=at, from_=from_,
                          name=self.new(name, cls, **kwargs))
 
+        if isinstance(cls, xt.Line):
+            if mode == 'replica':
+                assert name is not None, 'Name must be provided when replicating a line'
+                return cls.replicate(name=name)
+            else:
+                assert mode in [None, 'clone'], f'Unknown mode {mode}'
+                assert name is not None, 'Name must be provided when cloning a line'
+                return cls.clone(name=name)
+
         if mode == 'replica':
             assert cls in self.element_dict, f'Element {cls} not found, cannot replicate'
-            import pdb; pdb.set_trace()
             kwargs['parent_name'] = xo.String(cls)
             cls = xt.Replica
         elif mode == 'clone':

@@ -114,26 +114,25 @@ opt = cell_ss.match(
         betx=tw_cell.betx[-1], bety=tw_cell.bety[-1], at='start.ss',
     ))
 
-arc = env.new_line(components=[
-    cell.replicate(name='cell.1'),
-    cell.replicate(name='cell.2'),
-    cell.replicate(name='cell.3'),
-])
+arc = env.new_builder()
+arc.new('cell.1', cell, mode='replica')
+arc.new('cell.2', cell, mode='replica')
+arc.new('cell.3', cell, mode='replica')
+arc = arc.build()
 
+ss = env.new_builder()
+ss.new('cell.1', cell_ss, mode='replica')
+ss.new('cell.2', cell_ss, mode='replica')
+ss = ss.build()
 
-ss = env.new_line(components=[
-    cell_ss.replicate('cell.1'),
-    cell_ss.replicate('cell.2'),
-])
-
-ring = env.new_line(components=[
-    arc.replicate(name='arc.1'),
-    ss.replicate(name='ss.1'),
-    arc.replicate(name='arc.2'),
-    ss.replicate(name='ss.2'),
-    arc.replicate(name='arc.3'),
-    ss.replicate(name='ss.3'),
-])
+ring = env.new_builder()
+ring.new('arc.1', arc, mode='replica')
+ring.new('ss.1', ss, mode='replica')
+ring.new('arc.2', arc, mode='replica')
+ring.new('ss.2', ss, mode='replica')
+ring.new('arc.3', arc, mode='replica')
+ring.new('ss.3', ss, mode='replica')
+ring = ring.build()
 
 ## Insertion
 
