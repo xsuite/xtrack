@@ -74,24 +74,33 @@ class Environment:
         else:
             return self._get_a_drift_name()
 
-    def new(self, name, cls, mode=None, at=None, from_=None, extra=None, **kwargs):
-
-        _ALLOWED_ELEMENT_TYPES_IN_NEW = xt.line._ALLOWED_ELEMENT_TYPES_IN_NEW
-        _ALLOWED_ELEMENT_TYPES_DICT = xt.line._ALLOWED_ELEMENT_TYPES_DICT
-        _STR_ALLOWED_ELEMENT_TYPES_IN_NEW = xt.line._STR_ALLOWED_ELEMENT_TYPES_IN_NEW
+    def new(self, name, cls, mode=None, at=None, from_=None, extra=None,
+            mirror=False, **kwargs):
 
         if from_ is not None or at is not None:
             return Place(at=at, from_=from_,
                          name=self.new(name, cls, **kwargs))
 
+        _ALLOWED_ELEMENT_TYPES_IN_NEW = xt.line._ALLOWED_ELEMENT_TYPES_IN_NEW
+        _ALLOWED_ELEMENT_TYPES_DICT = xt.line._ALLOWED_ELEMENT_TYPES_DICT
+        _STR_ALLOWED_ELEMENT_TYPES_IN_NEW = xt.line._STR_ALLOWED_ELEMENT_TYPES_IN_NEW
+
+        if cls is xt.Line or (cls=='Line' and (
+            'Line' not in self.lines and 'Line' not in self.element_dict)):
+            assert mode is None, 'Mode not allowed when cls is Line'
+            return self.new_line(name=name, **kwargs)
+
         if isinstance(cls, xt.Line):
+            assert len(kwargs) == 0, 'No kwargs allowed when creating a line'
             if mode == 'replica':
                 assert name is not None, 'Name must be provided when replicating a line'
-                return cls.replicate(name=name)
+                return cls.replicate(name=name, mirror=mirror)
             else:
                 assert mode in [None, 'clone'], f'Unknown mode {mode}'
                 assert name is not None, 'Name must be provided when cloning a line'
-                return cls.clone(name=name)
+                return cls.clone(name=name, mirror=mirror)
+
+        assert mirror is False, 'mirror=True only allowed for lines'
 
         if mode == 'replica':
             assert cls in self.element_dict, f'Element {cls} not found, cannot replicate'

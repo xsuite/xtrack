@@ -144,27 +144,24 @@ env.vars({
     'k1.q5': 0.025,
 })
 
-half_insertion = env.new_line(components=[
+half_insertion = env.new_builder()
 
-    # Start-end markers
-    env.new('ip', xt.Marker),
-    env.new('e.insertion', xt.Marker, at=76),
+half_insertion.new('ip', xt.Marker)
+half_insertion.new('e.insertion', xt.Marker, at=76)
 
-    # Quads
-    env.new('mq.1', xt.Quadrupole, k1='k1.q1', length='l.mq', at = 20),
-    env.new('mq.2', xt.Quadrupole, k1='k1.q2', length='l.mq', at = 25),
-    env.new('mq.3', xt.Quadrupole, k1='k1.q3', length='l.mq', at=37),
-    env.new('mq.4', xt.Quadrupole, k1='k1.q4', length='l.mq', at=55),
-    env.new('mq.5', xt.Quadrupole, k1='k1.q5', length='l.mq', at=73),
+half_insertion.new('mq.1', xt.Quadrupole, k1='k1.q1', length='l.mq', at = 20)
+half_insertion.new('mq.2', xt.Quadrupole, k1='k1.q2', length='l.mq', at = 25)
+half_insertion.new('mq.3', xt.Quadrupole, k1='k1.q3', length='l.mq', at=37)
+half_insertion.new('mq.4', xt.Quadrupole, k1='k1.q4', length='l.mq', at=55)
+half_insertion.new('mq.5', xt.Quadrupole, k1='k1.q5', length='l.mq', at=73)
 
-    # Dipole correctors (will use h and v on the same corrector)
-    env.new('corrector.ss.1', 'corrector', at=0.75, from_='mq.1'),
-    env.new('corrector.ss.2', 'corrector', at=-0.75, from_='mq.2'),
-    env.new('corrector.ss.3', 'corrector', at=0.75, from_='mq.3'),
-    env.new('corrector.ss.4', 'corrector', at=-0.75, from_='mq.4'),
-    env.new('corrector.ss.5', 'corrector', at=0.75, from_='mq.5'),
+half_insertion.new('corrector.ss.1', 'corrector', at=0.75, from_='mq.1')
+half_insertion.new('corrector.ss.2', 'corrector', at=-0.75, from_='mq.2')
+half_insertion.new('corrector.ss.3', 'corrector', at=0.75, from_='mq.3')
+half_insertion.new('corrector.ss.4', 'corrector', at=-0.75, from_='mq.4')
+half_insertion.new('corrector.ss.5', 'corrector', at=0.75, from_='mq.5')
 
-])
+half_insertion = half_insertion.build()
 
 tw_arc = arc.twiss4d()
 
