@@ -54,6 +54,19 @@ isref = xd.refs.is_ref
 log = logging.getLogger(__name__)
 
 
+_ALLOWED_ELEMENT_TYPES_IN_NEW = [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole,
+                              xt.Octupole, xt.Cavity, xt.Multipole, xt.Solenoid,
+                              xt.Marker, xt.Replica]
+
+_ALLOWED_ELEMENT_TYPES_DICT = {'Drift': xt.Drift, 'Bend': xt.Bend,
+                               'Quadrupole': xt.Quadrupole, 'Sextupole': xt.Sextupole,
+                               'Octupole': xt.Octupole, 'Cavity': xt.Cavity,
+                               'Multipole': xt.Multipole, 'Solenoid': xt.Solenoid,
+                               'Marker': xt.Marker, 'Replica': xt.Replica}
+
+_STR_ALLOWED_ELEMENT_TYPES_IN_NEW = ', '.join([tt.__name__ for tt in _ALLOWED_ELEMENT_TYPES_IN_NEW])
+
+
 class Line:
 
     """
@@ -151,6 +164,7 @@ class Line:
 
         self._line_before_slicing_cache = None
         self._element_names_before_slicing = None
+        self.ref = xt.environment.EnvRef(self)
 
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
@@ -614,6 +628,13 @@ class Line:
 
         return mng
 
+    def __repr__(self):
+        if hasattr(self, '_name'):
+            name = self._name
+        else:
+            name = ''
+        return f'<{self.__class__.__name__} {name} at {id(self)}>'
+
     def __getstate__(self):
         out = self.__dict__.copy()
         return out
@@ -823,6 +844,10 @@ class Line:
             _print('The line already has an associated tracker')
             return self.tracker
 
+        if (len(self.element_names) == 0 and hasattr(self, 'builder')
+            and self.builder is not None):
+            self.rebuild()
+
         self.tracker = xt.Tracker(
                                 line=self,
                                 _context=_context,
@@ -837,6 +862,13 @@ class Line:
             self.env._ensure_tracker_consistency(buffer=self._buffer)
 
         return self.tracker
+
+    def rebuild(self):
+        if not hasattr(self, 'builder') or self.builder is None:
+            raise ValueError('The line does not have a builder')
+
+        temp = self.builder.build()
+        self.element_names = temp.element_names
 
     @property
     def attr(self):
@@ -2109,6 +2141,9 @@ class Line:
                 )
             element = self.element_dict[name]
 
+        if isinstance(element, xd.madxutils.View):
+            element = element._get_viewed_object()
+
         self._frozen_check()
 
         assert ((index is not None and at_s is None) or
@@ -2174,6 +2209,9 @@ class Line:
         name : str
             Name of the element to append
         """
+
+        if isinstance(element, xd.madxutils.View):
+            element = element._get_viewed_object()
 
         self._frozen_check()
         if element in self.element_dict and element is not self.element_dict[name]:
@@ -3304,7 +3342,7 @@ class Line:
 
         for ii in range(len(ele_cut_sorted)-1):
             names_map_line.append(ele_cut_sorted[ii])
-            elements_map_line.append(self[ele_cut_sorted[ii]])
+            elements_map_line.append(self.get(ele_cut_sorted[ii]))
 
             smap = xt.SecondOrderTaylorMap.from_line(
                                     self, start=ele_cut_sorted[ii],
@@ -3363,11 +3401,8 @@ class Line:
             new_nn = nn + '.' + name
             self.element_dict[new_nn] = xt.Replica(nn)
             new_element_names.append(new_nn)
-        out = Line()
-        out.element_names = new_element_names
-        out._element_dict = self.element_dict # to make sure that the dict is not copied
-        out._var_management = self._var_management
-        out._name = name
+
+        out = self.env.new_line(components=new_element_names, name=name)
 
         if mirror:
             out.mirror()
@@ -3380,13 +3415,13 @@ class Line:
         return out
 
     def replace_replica(self, name):
-        name_parent = self[name].resolve(self, get_name=True)
+        name_parent = self.element_dict[name].resolve(self, get_name=True)
         cls = self.element_dict[name].__class__
-        assert cls in [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole, xt.Octupole,
-                       xt.Multipole, xt.Marker, xt.Replica], (
-            'Only Drift, Dipole, Quadrupole, Sextupole, Octupole, Multipole, Marker, and Replica '
-            'elements are allowed in `new_element` for now.')
-        self.element_dict[name] = self[name_parent].copy()
+        assert cls in _ALLOWED_ELEMENT_TYPES_IN_NEW, (
+            'Only '
+            + _STR_ALLOWED_ELEMENT_TYPES_IN_NEW
+            + 'elements are allowed in `relace_replica` for now.')
+        self.element_dict[name] = self.element_dict[name_parent].copy()
 
         pars_with_expr = list(
             self._xdeps_manager.tartasks[self.element_refs[name_parent]].keys())
@@ -3401,8 +3436,9 @@ class Line:
 
     def replace_all_replicas(self):
         for nn in self.element_names:
-            if isinstance(self[nn], xt.Replica):
+            if isinstance(self.element_dict[nn], xt.Replica):
                 self.replace_replica(nn)
+
 
     def select(self, start=None, end=None, name=None):
 
@@ -3421,6 +3457,57 @@ class Line:
         out = self.env.new_line(components=list(tt.name), name=name)
 
         return out
+
+    def set(self, name, *args, **kwargs):
+        _eval = self._xdeps_eval.eval
+
+        if hasattr(self, 'lines') and name in self.lines:
+            raise ValueError('Cannot set a line')
+
+        if name in self.element_dict:
+            if len(args) > 0:
+                raise ValueError(f'Only kwargs are allowed when setting element attributes')
+
+            extra = kwargs.pop('extra', None)
+
+            if self.element_dict[name].__class__ == xt.Bend:
+                # Handle angle if needed
+                kwargs = xt.environment._handle_bend_kwargs(
+                    kwargs, _eval, env=self, name=name)
+
+            ref_kwargs, value_kwargs = xt.environment._parse_kwargs(
+                type(self.element_dict[name]), kwargs, _eval)
+            xt.environment._set_kwargs(
+                name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
+                element_dict=self.element_dict, element_refs=self.element_refs)
+            if extra is not None:
+                assert isinstance(extra, dict), (
+                    'Description must be a dictionary')
+                if (not hasattr(self.element_dict[name], 'extra')
+                    or not isinstance(self.element_dict[name].extra, dict)):
+                    self.element_dict[name].extra = {}
+                self.element_dict[name].extra.update(extra)
+            self.element_dict
+        else:
+            if len(kwargs) > 0:
+                raise ValueError(f'Only a single value is allowed when setting variable')
+            if len(args) != 1:
+                raise ValueError(f'A value must be provided when setting a variable')
+            value = args[0]
+            if 'extra' in kwargs and kwargs['extra'] is not None:
+                raise ValueError(f'Extra is only allowed for elements')
+            if isinstance(value, str):
+                self.vars[name] = _eval(value)
+            else:
+                self.vars[name] = value
+
+    def get(self, key):
+        if key in self.element_dict:
+            return self.element_dict[key]
+        elif key in self.vars:
+            return self._xdeps_vref._owner[key]
+        else:
+            raise KeyError(f'Element or variable {key} not found')
 
     def _env_if_needed(self):
         if not hasattr(self, 'env') or self.env is None:
@@ -3777,19 +3864,35 @@ class Line:
     def steering_correctors_y(self, value):
         self._extra_config['steering_correctors_y'] = value
 
-    def __getitem__(self, ii):
-        if isinstance(ii, str):
-
-            try:
-                return self.element_dict.__getitem__(ii)
-            except KeyError:
-                raise KeyError(f'No installed element with name {ii}')
+    def __getitem__(self, key):
+        if np.issubdtype(key.__class__, np.integer):
+            key = self.element_names[key]
+        assert isinstance(key, str)
+        if key in self.element_dict:
+            if self.element_refs is None:
+                return self.element_dict[key]
+            return xd.madxutils.View(
+                self.element_dict[key], self.element_refs[key],
+                evaluator=self._xdeps_eval.eval)
+        elif key in self.vars:
+            return self.vv[key]
+        elif hasattr(self, 'lines') and key in self.lines: # Want to reuse the method for the env
+            return self.lines[key]
         else:
-            names = self.element_names.__getitem__(ii)
-            if isinstance(names, str):
-                return self.element_dict.__getitem__(names)
-            else:
-                return [self.element_dict[nn] for nn in names]
+            raise KeyError(f'Name {key} not found')
+
+    def __setitem__(self, key, value):
+
+        if isinstance(value, Line):
+            raise ValueError('Cannot set a Line, please use Envirnoment.new_line')
+            # Would need to make sure they refer to the same environment
+
+        if np.isscalar(value) or xd.refs.is_ref(value):
+            if key in self.element_dict:
+                raise ValueError(f'There is already an element with name {key}')
+            self.vars[key] = value
+        else:
+            raise ValueError('Only scalars or references are allowed')
 
     def _get_non_collective_line(self):
         if not self.iscollective:
@@ -4118,7 +4221,7 @@ class Line:
         self._frozen_check()
 
         for nn in self.element_names:
-            ee = self[nn]
+            ee = self.element_dict[nn]
             if hasattr(ee, 'get_equivalent_element'):
                 new_ee = ee.get_equivalent_element()
                 self.element_dict[nn] = new_ee
@@ -4263,14 +4366,14 @@ def _length(element, line):
     if hasattr(element, 'length'):
         return element.length
     assert hasattr(element, 'parent_name')
-    return line[element.parent_name].length * element.weight
+    return line.element_dict[element.parent_name].length * element.weight
 
 def _is_drift(element, line):
     if isinstance(element, xt.Replica):
         element = element.resolve(line)
     if isinstance(element, beam_elements.Drift):
         return True
-    if type(element).__name__.startswith('Drift'):
+    if element.__class__.__name__.startswith('Drift'):
         return True
     return False
 
@@ -4588,6 +4691,8 @@ class LineVars:
                                  'cache is active')
             self._setter_from_cache(key)(value)
         else:
+            if isinstance(value, str):
+                value = self.line._xdeps_eval.eval(value)
             self.line._xdeps_vref[key] = value
 
     @property
@@ -4780,7 +4885,7 @@ class LineAttrItem:
             ee = line.element_dict[nn]
             if isinstance(ee, xt.Replica):
                 nn = ee.resolve(line, get_name=True)
-                ee = line[nn]
+                ee = line.element_dict[nn]
             if isinstance(name, (list, tuple)):
                 inner_obj = ee
                 inner_name = name[-1]

@@ -58,7 +58,7 @@ NORMAL_STRENGTHS_FROM_ATTR=['k0l', 'k1l', 'k2l', 'k3l', 'k4l', 'k5l']
 SKEW_STRENGTHS_FROM_ATTR=['k0sl', 'k1sl', 'k2sl', 'k3sl', 'k4sl', 'k5sl']
 OTHER_FIELDS_FROM_ATTR=['angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'ks', 'length']
 OTHER_FIELDS_FROM_TABLE=['element_type', 'isthick', 'parent_name']
-SIGN_FLIP_FOR_ATTR_REVERSE=['k0l', 'k2l', 'k4l', 'k1sl', 'k3sl', 'k5sl', 'vkick','angle_rad']
+SIGN_FLIP_FOR_ATTR_REVERSE=['k0l', 'k2l', 'k4l', 'k1sl', 'k3sl', 'k5sl', 'vkick', 'angle_rad']
 
 
 log = logging.getLogger(__name__)
@@ -2625,7 +2625,7 @@ class TwissInit:
 
             if input_reversed:
                 s_ele_twiss = line.tracker._tracker_data_base.line_length - s_ele_in_line
-                first_ele = line[i_ele_in_line]
+                first_ele = line[line.element_names[i_ele_in_line]]
                 if hasattr(first_ele, 'isthick') and first_ele.isthick:
                     s_ele_twiss -= first_ele.length
             else:
@@ -3286,7 +3286,7 @@ class TwissTable(Table):
     ind_per_table = []
 
     def add_strengths(self, line=None):
-        if line is None:
+        if line is None and hasattr(self,"_action"):
             line = self._action.line
         _add_strengths_to_twiss_res(self, line)
         return self
@@ -3416,6 +3416,9 @@ class TwissTable(Table):
             yl=""
         if yr is None:
             yr=""
+
+        if not hasattr(self,"_action"):
+            lattice=False
 
         if lattice and 'length' not in self.keys():
             self.add_strengths()

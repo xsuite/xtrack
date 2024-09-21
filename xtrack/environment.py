@@ -9,7 +9,7 @@ def _flatten_components(components):
     for nn in components:
         if isinstance(nn, Place) and isinstance(nn.name, xt.Line):
             line = nn.name
-            components = line.element_names.copy()
+            components = list(line.element_names).copy()
             if nn.at is not None:
                 if isinstance(nn.at, str):
                     at = line._xdeps_eval.eval(nn.at)
@@ -34,8 +34,10 @@ class Environment:
         else:
             self._init_var_management()
 
+        self.lines = {}
         self._lines = WeakSet()
         self._drift_counter = 0
+        self.ref = EnvRef(self)
 
     def new_line(self, components=None, name=None):
         out = xt.Line()
@@ -48,7 +50,11 @@ class Environment:
         out.element_names = handle_s_places(flattened_components, self)
         out._var_management = self._var_management
         out._name = name
-        self._lines.add(out)
+        out.builder = Builder(env=self, components=components)
+
+        self._lines.add(out) # Weak references
+        if name is not None:
+            self.lines[name] = out
 
         return out
 
@@ -65,7 +71,11 @@ class Environment:
         else:
             return self._get_a_drift_name()
 
-    def new(self, name, cls, at=None, from_=None, **kwargs):
+    def new(self, name, cls, mode=None, at=None, from_=None, extra=None, **kwargs):
+
+        _ALLOWED_ELEMENT_TYPES_IN_NEW = xt.line._ALLOWED_ELEMENT_TYPES_IN_NEW
+        _ALLOWED_ELEMENT_TYPES_DICT = xt.line._ALLOWED_ELEMENT_TYPES_DICT
+        _STR_ALLOWED_ELEMENT_TYPES_IN_NEW = xt.line._STR_ALLOWED_ELEMENT_TYPES_IN_NEW
 
         if from_ is not None or at is not None:
             return Place(at=at, from_=from_,
@@ -73,41 +83,44 @@ class Environment:
 
         _eval = self._xdeps_eval.eval
 
-        assert isinstance(cls, str) or cls in [xt.Drift, xt.Bend, xt.
-                       Quadrupole, xt.Sextupole, xt.Octupole,
-                       xt.Multipole, xt.Marker, xt.Replica], (
-            'Only Drift, Dipole, Quadrupole, Sextupole, Octupole, Multipole, Marker, and Replica '
-            'elements are allowed in `new` for now.')
+        assert isinstance(cls, str) or cls in _ALLOWED_ELEMENT_TYPES_IN_NEW, (
+            'Only '
+            + _STR_ALLOWED_ELEMENT_TYPES_IN_NEW
+            + ' elements are allowed in `new` for now.')
 
-        cls_input = cls
+        needs_instantiation = True
         if isinstance(cls, str):
-            # Clone an existing element
-            assert cls in self.element_dict, f'Element {cls} not found in environment'
-            self.element_dict[name] = xt.Replica(parent_name=cls)
-            self.replace_replica(name)
-            cls = type(self.element_dict[name])
+            if cls in self.element_dict:
+                # Clone an existing element
+                self.element_dict[name] = xt.Replica(parent_name=cls)
+                self.replace_replica(name)
+                cls = type(self.element_dict[name])
+                needs_instantiation = False
+            elif cls in _ALLOWED_ELEMENT_TYPES_DICT:
+                cls = _ALLOWED_ELEMENT_TYPES_DICT[cls]
+                needs_instantiation = True
+            else:
+                raise ValueError(f'Element type {cls} not found')
 
         ref_kwargs, value_kwargs = _parse_kwargs(cls, kwargs, _eval)
 
-        if not isinstance(cls_input, str): # Parent is a class and not another element
+        if needs_instantiation: # Parent is a class and not another element
             self.element_dict[name] = cls(**value_kwargs)
 
         _set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
                     element_dict=self.element_dict, element_refs=self.element_refs)
 
+        if extra is not None:
+            assert isinstance(extra, dict)
+            self.element_dict[name].extra = extra
+
         return name
-
-    def set(self, name, **kwargs):
-        _eval = self._xdeps_eval.eval
-
-        ref_kwargs, value_kwargs = _parse_kwargs(
-            type(self.element_dict[name]), kwargs, _eval)
-
-        _set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
-                    element_dict=self.element_dict, element_refs=self.element_refs)
 
     def place(self, name, at=None, from_=None, anchor=None, from_anchor=None):
         return Place(name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
+
+    def new_builder(self):
+        return Builder(self)
 
 Environment.element_dict = xt.Line.element_dict
 Environment._init_var_management = xt.Line._init_var_management
@@ -121,6 +134,9 @@ Environment.varval = xt.Line.varval
 Environment.vv = xt.Line.vv
 Environment.replace_replica = xt.Line.replace_replica
 Environment.__getitem__ = xt.Line.__getitem__
+Environment.__setitem__ = xt.Line.__setitem__
+Environment.set = xt.Line.set
+Environment.get = xt.Line.get
 
 class Place:
 
@@ -261,7 +277,7 @@ def _resolve_s_positions(seq_all_places, env):
 
     return tt_sorted
 
-def _generate_element_names_with_drifts(env, tt_sorted, s_tol=1e-12):
+def _generate_element_names_with_drifts(env, tt_sorted, s_tol=1e-10):
 
     names_with_drifts = []
     # Create drifts
@@ -315,7 +331,14 @@ def _parse_kwargs(cls, kwargs, _eval):
         elif (isinstance(kwargs[kk], str) and hasattr(cls, '_xofields')
             and kk in cls._xofields and cls._xofields[kk].__name__ != 'String'):
             ref_kwargs[kk] = _eval(kwargs[kk])
-            value_kwargs[kk] = ref_kwargs[kk]._value
+            if hasattr(ref_kwargs[kk], '_value'):
+                value_kwargs[kk] = ref_kwargs[kk]._value
+            else:
+                value_kwargs[kk] = ref_kwargs[kk]
+        elif isinstance(kwargs[kk], xo.String):
+            vvv = kwargs[kk].to_str()
+            ref_kwargs[kk] = None
+            value_kwargs[kk] = vvv
         else:
             value_kwargs[kk] = kwargs[kk]
 
@@ -323,16 +346,150 @@ def _parse_kwargs(cls, kwargs, _eval):
 
 def _set_kwargs(name, ref_kwargs, value_kwargs, element_dict, element_refs):
     for kk in value_kwargs:
-        if hasattr(value_kwargs[kk], '__iter__'):
+        if hasattr(value_kwargs[kk], '__iter__') and not isinstance(value_kwargs[kk], str):
             len_value = len(value_kwargs[kk])
             getattr(element_dict[name], kk)[:len_value] = value_kwargs[kk]
             if kk in ref_kwargs:
                 for ii, vvv in enumerate(value_kwargs[kk]):
-                    if vvv is not None:
-                        getattr(element_refs[name], kk)[ii] = vvv
+                    if ref_kwargs[kk][ii] is not None:
+                        getattr(element_refs[name], kk)[ii] = ref_kwargs[kk][ii]
         else:
             if kk in ref_kwargs:
                 setattr(element_refs[name], kk, ref_kwargs[kk])
             else:
                 setattr(element_dict[name], kk, value_kwargs[kk])
+
+class EnvRef:
+    def __init__(self, env):
+        self.env = env
+
+    def __getitem__(self, name):
+        if hasattr(self.env, 'lines') and name in self.env.lines:
+            return self.env.lines[name].ref
+        elif name in self.env.element_dict:
+            return self.env.element_refs[name]
+        elif name in self.env.vars:
+            return self.env.vars[name]
+        else:
+            raise KeyError(f'Name {name} not found.')
+
+    def __setitem__(self, key, value):
+        if isinstance(value, xt.Line):
+            raise ValueError('Cannot set a Line, please use Envirnoment.new_line')
+
+        if hasattr(value, '_value'):
+            val_ref = value
+            val_value = value._value
+        else:
+            val_ref = value
+            val_value = value
+
+        if np.isscalar(val_value):
+            if key in self.env.element_dict:
+                raise ValueError(f'There is already an element with name {key}')
+            self.env.vars[key] = val_ref
+        else:
+            if key in self.env.vars:
+                raise ValueError(f'There is already a variable with name {key}')
+            self.element_refs[key] = val_ref
+
+def _handle_bend_kwargs(kwargs, _eval, env=None, name=None):
+
+    kwargs = kwargs.copy()
+
+    if env is not None and name is not None:
+        for kk in 'h length edge_entry_angle edge_exit_angle'.split():
+            if kk not in kwargs:
+                expr = getattr(env.ref[name], kk)._expr
+                if expr is not None:
+                    kwargs[kk] = expr
+                else:
+                    kwargs[kk] = getattr(env.get(name), kk)
+        if 'angle' in kwargs:
+            kwargs.pop('h')
+
+    if isinstance(kwargs['length'], str):
+        length = _eval(kwargs['length'])
+    else:
+        length = kwargs['length']
+
+    if 'angle' in kwargs:
+        assert 'h' not in kwargs, 'Cannot specify both angle and h'
+        assert 'length' in kwargs, 'Length must be specified for a bend'
+
+        angle = kwargs.pop('angle')
+
+        if isinstance(angle, str):
+            angle = _eval(angle)
+
+        kwargs['h'] = angle / length
+    else:
+        angle = kwargs.get('h', 0) * length
+
+    if kwargs.pop('rbend', False):
+        edge_entry_angle = kwargs.pop('edge_entry_angle', 0.)
+        if isinstance(edge_entry_angle, str):
+            edge_entry_angle = _eval(edge_entry_angle)
+        edge_exit_angle = kwargs.pop('edge_exit_angle', 0.)
+        if isinstance(edge_exit_angle, str):
+            edge_exit_angle = _eval(edge_exit_angle)
+
+        edge_entry_angle += angle / 2
+        edge_exit_angle += angle / 2
+
+        kwargs['edge_entry_angle'] = edge_entry_angle
+        kwargs['edge_exit_angle'] = edge_exit_angle
+
+    return kwargs
+
+
+class Builder:
+    def __init__(self, env, components=None):
+        self.env = env
+        self.components = components or []
+
+    def new(self, name, cls, at=None, from_=None, extra=None, **kwargs):
+        self.components.append(self.env.new(
+            name, cls, at=at, from_=from_, extra=extra, **kwargs))
+
+    def place(self, name, at=None, from_=None, anchor=None, from_anchor=None):
+        self.components.append(self.env.place(
+            name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor))
+
+    def build(self, name=None):
+        out =  self.env.new_line(components=self.components, name=name)
+        out.builder = self
+        return out
+
+    def set(self, *args, **kwargs):
+        self.components.append(self.env.set(*args, **kwargs))
+
+    def get(self, *args, **kwargs):
+        return self.env.get(*args, **kwargs)
+
+    @property
+    def element_dict(self):
+        return self.env.element_dict
+
+    @property
+    def ref(self):
+        return self.env.ref
+
+    @property
+    def vars(self):
+        return self.env.vars
+
+    def __getitem__(self, key):
+        return self.env[key]
+
+    def __setitem__(self, key, value):
+        self.env[key] = value
+
+
+
+
+
+
+
+
 
