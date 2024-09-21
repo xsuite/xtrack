@@ -184,24 +184,18 @@ opt = half_insertion.match(
 opt.step(40)
 opt.solve()
 
-# insertion = env.new_line([
-#     half_insertion.replicate('l', mirror=True),
-#     half_insertion.replicate('r')])
-
 insertion = env.new_builder()
 insertion.new('l', half_insertion, mirror=True)
 insertion.new('r', half_insertion)
 insertion = insertion.build()
 
-
-
 ring2 = env.new_line(components=[
-    arc.replicate(name='arcc.1'),
-    ss.replicate(name='sss.2'),
-    arc.replicate(name='arcc.2'),
+    env['arc.1'],
+    env['ss.1'],
+    env['arc.2'],
     insertion,
-    arc.replicate(name='arcc.3'),
-    ss.replicate(name='sss.3')
+    env['arc.3'],
+    env['ss.3'],
 ])
 
 
