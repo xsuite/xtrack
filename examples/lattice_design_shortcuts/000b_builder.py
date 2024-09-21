@@ -184,9 +184,14 @@ opt = half_insertion.match(
 opt.step(40)
 opt.solve()
 
-insertion = env.new_line([
-    half_insertion.replicate('l', mirror=True),
-    half_insertion.replicate('r')])
+# insertion = env.new_line([
+#     half_insertion.replicate('l', mirror=True),
+#     half_insertion.replicate('r')])
+
+insertion = env.new_builder()
+insertion.new('l', half_insertion, mirror=True)
+insertion.new('r', half_insertion)
+insertion = insertion.build()
 
 
 
