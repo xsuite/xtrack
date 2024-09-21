@@ -36,23 +36,23 @@ env.new('mq.d', 'mq', k1='kqd')
 halfcell = env.new_builder()
 
 # End of the half cell (will be mid of the cell)
-halfcell.new('mid', xt.Marker, at='l.halfcell'),
+halfcell.new('mid', xt.Marker, at='l.halfcell')
 
 # Bends
-halfcell.new('mb.2', 'mb', at='l.halfcell / 2'),
-halfcell.new('mb.1', 'mb', at='-l.mb - 1', from_='mb.2'),
-halfcell.new('mb.3', 'mb', at='l.mb + 1', from_='mb.2'),
+halfcell.new('mb.2', 'mb', at='l.halfcell / 2')
+halfcell.new('mb.1', 'mb', at='-l.mb - 1', from_='mb.2')
+halfcell.new('mb.3', 'mb', at='l.mb + 1', from_='mb.2')
 
 # Quads
-halfcell.place('mq.d', at = '0.5 + l.mq / 2'),
-halfcell.place('mq.f', at = 'l.halfcell - l.mq / 2 - 0.5'),
+halfcell.place('mq.d', at = '0.5 + l.mq / 2')
+halfcell.place('mq.f', at = 'l.halfcell - l.mq / 2 - 0.5')
 
 # Sextupoles
-halfcell.new('ms.d', 'ms', k2='k2sf', at=1.2, from_='mq.d'),
-halfcell.new('ms.f', 'ms', k2='k2sd', at=-1.2, from_='mq.f'),
+halfcell.new('ms.d', 'ms', k2='k2sf', at=1.2, from_='mq.d')
+halfcell.new('ms.f', 'ms', k2='k2sd', at=-1.2, from_='mq.f')
 
 # Dipole correctors
-halfcell.new('corrector.v', 'corrector', at=0.75, from_='mq.d'),
+halfcell.new('corrector.v', 'corrector', at=0.75, from_='mq.d')
 halfcell.new('corrector.h', 'corrector', at=-0.75, from_='mq.f')
 
 halfcell = halfcell.build() # The builder can be found in halfcell.builder
@@ -60,14 +60,14 @@ halfcell = halfcell.build() # The builder can be found in halfcell.builder
 hcell_left = halfcell.replicate(name='l', mirror=True)
 hcell_right = halfcell.replicate(name='r')
 
-cell_bld = env.new_builder()
+cell = env.new_builder()
 
-cell_bld.new('start', xt.Marker)
-cell_bld.place(hcell_left)
-cell_bld.place(hcell_right)
-cell_bld.new('end', xt.Marker)
+cell.new('start', xt.Marker)
+cell.place(hcell_left)
+cell.place(hcell_right)
+cell.new('end', xt.Marker)
 
-cell = cell_bld.build()
+cell = cell.build()
 
 opt = cell.match(
     method='4d',
@@ -84,26 +84,28 @@ env.vars({
     'kqd.ss': -0.0271 / 2,
 })
 
-halfcell_ss = env.new_line(components=[
+halfcell_ss = env.new_builder()
 
-    env.new('mid', xt.Marker, at='l.halfcell'),
+halfcell_ss.new('mid', xt.Marker, at='l.halfcell')
 
-    env.new('mq.ss.d', 'mq', k1='kqd.ss', at = '0.5 + l.mq / 2'),
-    env.new('mq.ss.f', 'mq', k1='kqf.ss', at = 'l.halfcell - l.mq / 2 - 0.5'),
+halfcell_ss.new('mq.ss.d', 'mq', k1='kqd.ss', at = '0.5 + l.mq / 2'),
+halfcell_ss.new('mq.ss.f', 'mq', k1='kqf.ss', at = 'l.halfcell - l.mq / 2 - 0.5')
 
-    env.new('corrector.ss.v', 'corrector', at=0.75, from_='mq.ss.d'),
-    env.new('corrector.ss.h', 'corrector', at=-0.75, from_='mq.ss.f')
-])
+halfcell_ss.new('corrector.ss.v', 'corrector', at=0.75, from_='mq.ss.d')
+halfcell_ss.new('corrector.ss.h', 'corrector', at=-0.75, from_='mq.ss.f')
+
+halfcell_ss = halfcell_ss.build()
 
 hcell_left_ss = halfcell_ss.replicate(name='l', mirror=True)
 hcell_right_ss = halfcell_ss.replicate(name='r')
 
-cell_ss = env.new_line(components=[
-    env.new('start.ss', xt.Marker),
-    hcell_left_ss,
-    hcell_right_ss,
-    env.new('end.ss', xt.Marker),
-])
+cell_ss = env.new_builder()
+cell_ss.new('start.ss', xt.Marker)
+cell_ss.place(hcell_left_ss)
+cell_ss.place(hcell_right_ss)
+cell_ss.new('end.ss', xt.Marker)
+
+cell_ss = cell_ss.build()
 
 opt = cell_ss.match(
     method='4d',
