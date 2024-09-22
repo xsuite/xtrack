@@ -788,7 +788,7 @@ def test_env_new():
     assert ret.from_ == 'm2'
     assert str(env.ref['mm2'].k0._expr) == "(3.0 * vars['a'])"
 
-    env.new('e1', xt.Bend)
+    env.new('e1', xt.Bend, k0='3*a')
     env.new('e2', xt.Bend)
     line = env.new('ll', xt.Line, components=['e1', 'e2'])
     assert isinstance(line, xt.Line)
@@ -797,3 +797,27 @@ def test_env_new():
     line = env.new('ll1', 'Line', components=['e1', 'e2'])
     assert isinstance(line, xt.Line)
     assert line.element_names == ['e1', 'e2']
+
+    env.new('ll2', 'll') # Should be a clone
+    assert isinstance(env['ll2'], xt.Line)
+    assert env['ll2'].element_names == ['e1.ll2', 'e2.ll2']
+    assert isinstance(env['e1.ll2'], xt.Bend)
+    assert isinstance(env['e2.ll2'], xt.Bend)
+    assert env.ref['e1.ll2'].k0._expr == "(3.0 * vars['a'])"
+
+    env.new('ll3', 'll', mode='replica')
+    assert isinstance(env['ll3'], xt.Line)
+    assert env['ll3'].element_names == ['e1.ll3', 'e2.ll3']
+    assert isinstance(env['e1.ll3'], xt.Replica)
+    assert isinstance(env['e2.ll3'], xt.Replica)
+    assert env['e1.ll3'].parent_name == 'e1'
+    assert env['e2.ll3'].parent_name == 'e2'
+
+    ret = env.new('ll4', 'll', at='5*a', from_='m')
+    assert isinstance(ret, xt.environment.Place)
+    assert ret.at == '5*a'
+    assert ret.from_ == 'm'
+    assert isinstance(env['ll4'], xt.Line)
+    assert env['ll4'].element_names == ['e1.ll4', 'e2.ll4']
+    assert isinstance(env['e1.ll4'], xt.Bend)
+    assert isinstance(env['e2.ll4'], xt.Bend)

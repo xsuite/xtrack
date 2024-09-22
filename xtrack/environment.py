@@ -100,10 +100,8 @@ class Environment:
         _ALLOWED_ELEMENT_TYPES_DICT = xt.line._ALLOWED_ELEMENT_TYPES_DICT
         _STR_ALLOWED_ELEMENT_TYPES_IN_NEW = xt.line._STR_ALLOWED_ELEMENT_TYPES_IN_NEW
 
-        if cls is xt.Line or (cls=='Line' and (
-            'Line' not in self.lines and 'Line' not in self.element_dict)):
-            assert mode is None, 'Mode not allowed when cls is Line'
-            return self.new_line(name=name, **kwargs)
+        if cls in self.lines:
+            cls = self.lines[cls]
 
         if isinstance(cls, xt.Line):
             assert len(kwargs) == 0, 'No kwargs allowed when creating a line'
@@ -115,7 +113,12 @@ class Environment:
                 assert name is not None, 'Name must be provided when cloning a line'
                 return cls.clone(name=name, mirror=mirror)
 
-        assert mirror is False, 'mirror=True only allowed for lines'
+        assert mirror is False, 'mirror=True only allowed when cloning or  lines.'
+
+        if cls is xt.Line or (cls=='Line' and (
+            'Line' not in self.lines and 'Line' not in self.element_dict)):
+            assert mode is None, 'Mode not allowed when cls is Line'
+            return self.new_line(name=name, **kwargs)
 
         if mode == 'replica':
             assert cls in self.element_dict, f'Element {cls} not found, cannot replicate'
