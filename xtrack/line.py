@@ -3388,9 +3388,18 @@ class Line:
             'https://xsuite.readthedocs.io/en/latest/line.html#apply-transformations-tilt-shift-to-elements'
         )
 
-    def mirror(self):
-        self._frozen_check()
-        self.element_names = list(reversed(self.element_names))
+    def mirror(self, inplace=True):
+        assert inplace in [True, False]
+        if inplace == False:
+            out = self.select()
+            out.mirror(inplace=True)
+            return out
+        else:
+            self._frozen_check()
+            self.element_names = list(reversed(self.element_names))
+
+    def __neg__(self):
+        return self.mirror(inplace=False)
 
     def replicate(self, name, mirror=False):
 

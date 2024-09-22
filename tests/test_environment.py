@@ -914,3 +914,18 @@ def test_builder_new():
     assert isinstance(bdr['e2.ll4'], xt.Bend)
     assert len(bdr.components) == 11
     assert bdr.components[-1] is ret
+
+def test_neg_line():
+
+    line = xt.Line(elements=[xt.Bend(k0=0.5), xt.Quadrupole(k1=0.1)])
+
+    line_neg = -line
+
+    assert line[0].k0 == 0.5
+    assert line[1].k1 == 0.1
+
+    assert line_neg[0].k1 == 0.1
+    assert line_neg[1].k0 == 0.5
+
+    assert line in line.env._lines
+    assert line_neg in line.env._lines
