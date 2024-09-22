@@ -494,12 +494,16 @@ class Builder:
         self.name = name
 
     def new(self, name, cls, at=None, from_=None, extra=None, **kwargs):
-        self.components.append(self.env.new(
-            name, cls, at=at, from_=from_, extra=extra, **kwargs))
+        out = self.env.new(
+            name, cls, at=at, from_=from_, extra=extra, **kwargs)
+        self.components.append(out)
+        return out
 
     def place(self, name, at=None, from_=None, anchor=None, from_anchor=None):
-        self.components.append(self.env.place(
-            name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor))
+        out = self.env.place(
+            name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
+        self.components.append(out)
+        return out
 
     def build(self, name=None):
         if name is None:

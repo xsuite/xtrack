@@ -821,3 +821,77 @@ def test_env_new():
     assert env['ll4'].element_names == ['e1.ll4', 'e2.ll4']
     assert isinstance(env['e1.ll4'], xt.Bend)
     assert isinstance(env['e2.ll4'], xt.Bend)
+
+def test_builder_new():
+
+    env = xt.Environment()
+    bdr = env.new_builder()
+    bdr['a'] = 3.
+
+    bdr.new('m', xt.Bend, k0='3*a')
+    assert isinstance(bdr['m'], xt.Bend)
+
+    bdr.new('m1', 'm', mode='replica')
+    assert isinstance(bdr['m1'], xt.Replica)
+    assert bdr.get('m1').parent_name == 'm'
+
+    bdr.new('m2', 'm', mode='clone')
+    assert isinstance(bdr['m2'], xt.Bend)
+    str(bdr.ref['m2'].k0._expr) == "(3.0 * vars['a'])"
+
+    ret = bdr.new('mm', xt.Bend, k0='3*a', at='4*a', from_='m')
+    assert isinstance(ret, xt.environment.Place)
+    assert ret.name == 'mm'
+    assert ret.at == '4*a'
+    assert ret.from_ == 'm'
+    assert isinstance(bdr['mm'], xt.Bend)
+
+    ret = bdr.new('mm1', 'mm', mode='replica', at='5*a', from_='m1')
+    assert isinstance(ret, xt.environment.Place)
+    assert isinstance(bdr['mm1'], xt.Replica)
+    assert ret.name == 'mm1'
+    assert ret.at == '5*a'
+    assert ret.from_ == 'm1'
+    assert bdr['mm1'].parent_name == 'mm'
+
+    ret = bdr.new('mm2', 'mm', mode='clone', at='6*a', from_='m2')
+    assert isinstance(ret, xt.environment.Place)
+    assert isinstance(bdr['mm2'], xt.Bend)
+    assert ret.name == 'mm2'
+    assert ret.at == '6*a'
+    assert ret.from_ == 'm2'
+    assert str(bdr.ref['mm2'].k0._expr) == "(3.0 * vars['a'])"
+
+    bdr.new('e1', xt.Bend, k0='3*a')
+    bdr.new('e2', xt.Bend)
+    line = bdr.new('ll', xt.Line, components=['e1', 'e2'])
+    assert isinstance(line, xt.Line)
+    assert line.element_names == ['e1', 'e2']
+
+    line = bdr.new('ll1', 'Line', components=['e1', 'e2'])
+    assert isinstance(line, xt.Line)
+    assert line.element_names == ['e1', 'e2']
+
+    bdr.new('ll2', 'll') # Should be a clone
+    assert isinstance(bdr['ll2'], xt.Line)
+    assert bdr['ll2'].element_names == ['e1.ll2', 'e2.ll2']
+    assert isinstance(bdr['e1.ll2'], xt.Bend)
+    assert isinstance(bdr['e2.ll2'], xt.Bend)
+    assert bdr.ref['e1.ll2'].k0._expr == "(3.0 * vars['a'])"
+
+    bdr.new('ll3', 'll', mode='replica')
+    assert isinstance(bdr['ll3'], xt.Line)
+    assert bdr['ll3'].element_names == ['e1.ll3', 'e2.ll3']
+    assert isinstance(bdr['e1.ll3'], xt.Replica)
+    assert isinstance(bdr['e2.ll3'], xt.Replica)
+    assert bdr['e1.ll3'].parent_name == 'e1'
+    assert bdr['e2.ll3'].parent_name == 'e2'
+
+    ret = bdr.new('ll4', 'll', at='5*a', from_='m')
+    assert isinstance(ret, xt.environment.Place)
+    assert ret.at == '5*a'
+    assert ret.from_ == 'm'
+    assert isinstance(bdr['ll4'], xt.Line)
+    assert bdr['ll4'].element_names == ['e1.ll4', 'e2.ll4']
+    assert isinstance(bdr['e1.ll4'], xt.Bend)
+    assert isinstance(bdr['e2.ll4'], xt.Bend)
