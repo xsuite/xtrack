@@ -5,10 +5,8 @@ from weakref import WeakSet
 
 
 def _flatten_components(components):
-    flatten_components = []
+    flatt_components = []
     for nn in components:
-        assert isinstance(nn, str) or isinstance(nn, xt.Line) or isinstance(nn, Place),(
-            'Only Line, Place or str allowed in components')
         if isinstance(nn, Place) and isinstance(nn.name, xt.Line):
             line = nn.name
             components = list(line.element_names).copy()
@@ -19,12 +17,13 @@ def _flatten_components(components):
                     at = nn.at
                 at_first_element = at - line.get_length() / 2 + line[0].length / 2
                 components[0] = Place(components[0], at=at_first_element, from_=nn.from_)
-            flatten_components += components
+            flatt_components += components
         elif isinstance(nn, xt.Line):
-            flatten_components += nn.element_names
+            flatt_components += nn.element_names
         else:
-            flatten_components.append(nn)
-    return flatten_components
+            flatt_components.append(nn)
+
+    return flatt_components
 
 class Environment:
     def __init__(self, element_dict=None, particle_ref=None, _var_management=None):
@@ -214,6 +213,8 @@ def _all_places(seq):
                 if isinstance(sss, Place):
                     i_first = ii
                     break
+                assert isinstance(sss, str) or isinstance(sss, xt.Line), (
+                    'Only places, elements, strings or Lines are allowed in sequences')
             if i_first is None:
                 raise ValueError('No Place in sequence')
             ss_aux = _all_places(ss)
@@ -221,6 +222,8 @@ def _all_places(seq):
                 ss_aux[ii]._before = True
             seq_all_places.extend(ss_aux)
         else:
+            assert isinstance(ss, str) or isinstance(ss, xt.Line), (
+                'Only places, elements, strings or Lines are allowed in sequences')
             seq_all_places.append(Place(ss, at=None, from_=None))
     return seq_all_places
 
