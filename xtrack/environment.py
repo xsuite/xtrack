@@ -86,8 +86,13 @@ class Environment:
             mirror=False, **kwargs):
 
         if from_ is not None or at is not None:
-            return Place(at=at, from_=from_,
-                         name=self.new(name, cls, **kwargs))
+            all_kwargs = locals()
+            all_kwargs.pop('self')
+            all_kwargs.pop('at')
+            all_kwargs.pop('from_')
+            all_kwargs.pop('kwargs')
+            all_kwargs.update(kwargs)
+            return Place(self.new(**all_kwargs), at=at, from_=from_)
 
         _ALLOWED_ELEMENT_TYPES_IN_NEW = xt.line._ALLOWED_ELEMENT_TYPES_IN_NEW
         _ALLOWED_ELEMENT_TYPES_DICT = xt.line._ALLOWED_ELEMENT_TYPES_DICT

@@ -630,7 +630,7 @@ def test_assemble_ring_builders():
     ring2.place('arc.2')
     ring2.place(insertion)
     ring2.place('arc.3')
-    ring2.place('ss.3')
+    ring2.place(env['ss.3'])
 
     ring2 = ring2.build()
 
@@ -748,3 +748,33 @@ def test_element_views(container_type):
     assert type(ee.ref['mb']._value) is xt.Bend
     assert type(ee.get('mb')) is xt.Bend
 
+def test_env_new():
+
+    env = xt.Environment()
+    env['a'] = 3.
+
+    env.new('m', xt.Bend, k0='3*a')
+    assert isinstance(env['m'], xt.Bend)
+
+    env.new('m1', 'm', mode='replica')
+    assert isinstance(env['m1'], xt.Replica)
+    assert env.get('m1').parent_name == 'm'
+
+    env.new('m2', 'm', mode='clone')
+    assert isinstance(env['m2'], xt.Bend)
+    str(env.ref['m2'].k0._expr) == "(3.0 * vars['a'])"
+
+    ret = env.new('mm', xt.Bend, k0='3*a', at='4*a', from_='m')
+    assert isinstance(ret, xt.environment.Place)
+    assert ret.name == 'mm'
+    assert ret.at == '4*a'
+    assert ret.from_ == 'm'
+    assert isinstance(env['mm'], xt.Bend)
+
+    ret = env.new('mm1', 'mm', mode='replica', at='5*a', from_='m1')
+    assert isinstance(ret, xt.environment.Place)
+    assert isinstance(env['mm1'], xt.Replica)
+    assert ret.name == 'mm1'
+    assert ret.at == '5*a'
+    assert ret.from_ == 'm1'
+    assert env['mm1'].parent_name == 'mm'
