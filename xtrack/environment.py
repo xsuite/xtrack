@@ -46,6 +46,14 @@ class Environment:
         out._element_dict = self.element_dict # Avoid copying
         if components is None:
             components = []
+
+        for ii, nn in enumerate(components):
+            if (isinstance(nn, Place) and isinstance(nn.name, str)
+                    and nn.name in self.lines):
+                nn.name = self.lines[nn.name]
+            if isinstance(nn, str) and nn in self.lines:
+                components[ii] = self.lines[nn]
+
         flattened_components = _flatten_components(components)
         out.element_names = handle_s_places(flattened_components, self)
         out._var_management = self._var_management

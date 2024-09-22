@@ -192,12 +192,12 @@ insertion = env.new_line([
 
 
 ring2 = env.new_line(components=[
-    arc.replicate(name='arcc.1'),
-    ss.replicate(name='sss.2'),
-    arc.replicate(name='arcc.2'),
+    'arc.1',
+    'ss.1',
+    'arc.2',
     insertion,
-    arc.replicate(name='arcc.3'),
-    ss.replicate(name='sss.3')
+    'arc.3',
+    env['ss.3'], # equivalent to 'ss.3'
 ])
 
 
