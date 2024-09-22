@@ -189,15 +189,6 @@ insertion.new('l', half_insertion, mirror=True)
 insertion.new('r', half_insertion)
 insertion = insertion.build()
 
-# ring2 = env.new_line(components=[
-#     env['arc.1'],
-#     env['ss.1'],
-#     env['arc.2'],
-#     insertion,
-#     env['arc.3'],
-#     env['ss.3'],
-# ])
-
 ring2 = env.new_builder()
 
 ring2.place('arc.1')
