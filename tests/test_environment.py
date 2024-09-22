@@ -745,6 +745,7 @@ def test_element_views(container_type):
     # Some interesting behavior
     assert type(ee['mb']) is xd.madxutils.View
     assert ee['mb'].__class__ is xt.Bend
+    assert isinstance(ee['mb'], xt.Bend)
     assert type(ee.ref['mb']._value) is xt.Bend
     assert type(ee.get('mb')) is xt.Bend
 
@@ -778,3 +779,21 @@ def test_env_new():
     assert ret.at == '5*a'
     assert ret.from_ == 'm1'
     assert env['mm1'].parent_name == 'mm'
+
+    ret = env.new('mm2', 'mm', mode='clone', at='6*a', from_='m2')
+    assert isinstance(ret, xt.environment.Place)
+    assert isinstance(env['mm2'], xt.Bend)
+    assert ret.name == 'mm2'
+    assert ret.at == '6*a'
+    assert ret.from_ == 'm2'
+    assert str(env.ref['mm2'].k0._expr) == "(3.0 * vars['a'])"
+
+    env.new('e1', xt.Bend)
+    env.new('e2', xt.Bend)
+    line = env.new('ll', xt.Line, components=['e1', 'e2'])
+    assert isinstance(line, xt.Line)
+    assert line.element_names == ['e1', 'e2']
+
+    line = env.new('ll1', 'Line', components=['e1', 'e2'])
+    assert isinstance(line, xt.Line)
+    assert line.element_names == ['e1', 'e2']

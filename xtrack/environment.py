@@ -7,6 +7,8 @@ from weakref import WeakSet
 def _flatten_components(components):
     flatten_components = []
     for nn in components:
+        assert isinstance(nn, str) or isinstance(nn, xt.Line) or isinstance(nn, Place),(
+            'Only Line, Place or str allowed in components')
         if isinstance(nn, Place) and isinstance(nn.name, xt.Line):
             line = nn.name
             components = list(line.element_names).copy()
