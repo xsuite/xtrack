@@ -153,8 +153,9 @@ for line in open("lhc.seq"):
             groups = parse_command(rhs + ";")
             parent = groups.pop(0)[0]
             if parent == "sequence":
-                lines.append(f"env.new_line(name={lhs!r}, components=[")
+                lines.append(f"{lhs}=env.new_builder(name={lhs!r})")
                 inside_sequence = True
+                sequence_name=lhs
                 if lhs == "lhcb2":
                     lhcb2 = True
             else:
@@ -165,7 +166,7 @@ for line in open("lhc.seq"):
                     groups = invert_at(groups)
                 attrs = groups_to_attrs(groups)
                 if inside_sequence:
-                    lines.append(f"  env.new({lhs!r:20},{parent!r}{attrs}),")
+                    lines.append(f"{sequence_name}.new({lhs!r:20},{parent!r}{attrs})")
                 else:
                     lines.append(f"env.new({lhs!r:20},{parent!r}{attrs})")
         elif eq == ",":  # element definition
@@ -176,7 +177,10 @@ for line in open("lhc.seq"):
             lines.append("#" + line)
     else:
         if line.startswith("ENDSEQUENCE"):
-            lines.append("])")
+            if lhcb2:
+               lines.append(f"#{sequence_name}.reflect().build() ")
+            else:
+               lines.append(f"{sequence_name}.build()")
             inside_sequence = False
         elif len(line) > 0:
             if not line.startswith("if") or not line.startswith("return"):
