@@ -2,7 +2,7 @@ import xtrack as xt
 import xobjects as xo
 import numpy as np
 from weakref import WeakSet
-
+from collections import Counter
 
 def _flatten_components(components):
     flatt_components = []
@@ -215,11 +215,10 @@ def _all_places(seq):
                     break
                 assert isinstance(sss, str) or isinstance(sss, xt.Line), (
                     'Only places, elements, strings or Lines are allowed in sequences')
-            if i_first is None:
-                raise ValueError('No Place in sequence')
             ss_aux = _all_places(ss)
-            for ii in range(i_first):
-                ss_aux[ii]._before = True
+            if i_first is not None:
+                for ii in range(i_first):
+                    ss_aux[ii]._before = True
             seq_all_places.extend(ss_aux)
         else:
             assert isinstance(ss, str) or isinstance(ss, xt.Line), (
@@ -243,46 +242,59 @@ def _all_places(seq):
 
 def _resolve_s_positions(seq_all_places, env):
     names_unsorted = [ss.name for ss in seq_all_places]
+
+    # identify duplicates
+    if len(names_unsorted) != len(set(names_unsorted)):
+        counter = Counter(names_unsorted)
+        duplicates = set([name for name, count in counter.items() if count > 1])
+    else:
+        duplicates = set()
+
     aux_line = env.new_line(components=names_unsorted)
     aux_tt = aux_line.get_table()
     aux_tt['length'] = np.diff(aux_tt._data['s'], append=0)
 
     s_center_dct = {}
+    s_center_dct_names = {}
     n_resolved = 0
     n_resolved_prev = -1
 
+    assert len(seq_all_places) == len(set(seq_all_places)), 'Duplicate places detected'
+
     if seq_all_places[0].at is None and not seq_all_places[0]._before:
         # In case we want to allow for the length to be an expression
-        s_center_dct[seq_all_places[0].name] = aux_tt['length', seq_all_places[0].name] / 2
-        # s_center_dct[seq_all_places[0].name] = _length_expr_or_val(seq_all_places[0].name, aux_line) / 2
+        s_center_dct[seq_all_places[0]] = aux_tt['length', seq_all_places[0].name] / 2
+        # s_center_dct[seq_all_places[0]] = _length_expr_or_val(seq_all_places[0], aux_line) / 2
         n_resolved += 1
 
     while n_resolved != n_resolved_prev:
         n_resolved_prev = n_resolved
         for ii, ss in enumerate(seq_all_places):
-            if ss.name in s_center_dct:
+            if ss in s_center_dct:
                 continue
             if ss.at is None and not ss._before:
                 ss_prev = seq_all_places[ii-1]
-                if ss_prev.name in s_center_dct:
+                if ss_prev in s_center_dct:
                     # in case we want to allow for the length to be an expression
-                    # s_center_dct[ss.name] = (s_center_dct[ss_prev.name]
-                    #                         + _length_expr_or_val(ss_prev.name, aux_line) / 2
-                    #                         + _length_expr_or_val(ss.name, aux_line) / 2)
-                    s_center_dct[ss.name] = (s_center_dct[ss_prev.name]
+                    # s_center_dct[ss] = (s_center_dct[ss_prev]
+                    #                         + _length_expr_or_val(ss_prev, aux_line) / 2
+                    #                         + _length_expr_or_val(ss, aux_line) / 2)
+                    s_center_dct[ss] = (s_center_dct[ss_prev]
                                             +  aux_tt['length', ss_prev.name] / 2
                                              + aux_tt['length', ss.name] / 2)
+                    s_center_dct_names[ss.name] = s_center_dct[ss]
                     n_resolved += 1
             elif ss.at is None and ss._before:
                 ss_next = seq_all_places[ii+1]
-                if ss_next.name in s_center_dct:
+                if ss_next in s_center_dct:
                      # in case we want to allow for the length to be an expression
-                    # s_center_dct[ss.name] = (s_center_dct[ss_next.name]
-                    #                         - _length_expr_or_val(ss_next.name, aux_line) / 2
-                    #                         - _length_expr_or_val(ss.name, aux_line) / 2)
-                    s_center_dct[ss.name] = (s_center_dct[ss_next.name]
+                    # s_center_dct[ss] = (s_center_dct[ss_next]
+                    #                         - _length_expr_or_val(ss_next, aux_line) / 2
+                    #                         - _length_expr_or_val(ss, aux_line) / 2)
+                    s_center_dct[ss] = (s_center_dct[ss_next]
                                             - aux_tt['length', ss_next.name] / 2
                                             - aux_tt['length', ss.name] / 2)
+                    s_center_dct_names[ss.name] = s_center_dct[ss]
                     n_resolved += 1
             else:
                 if isinstance(ss.at, str):
@@ -291,15 +303,20 @@ def _resolve_s_positions(seq_all_places, env):
                     at = ss.at
 
                 if ss.from_ is None:
-                    s_center_dct[ss.name] = at
+                    s_center_dct[ss] = at
+                    s_center_dct_names[ss.name] = at
                     n_resolved += 1
-                elif ss.from_ in s_center_dct:
-                    s_center_dct[ss.name] = s_center_dct[ss.from_] + at
+                elif ss.from_ in s_center_dct_names:
+                    if ss.from_ in duplicates:
+                        assert ss.name in duplicates, (
+                            f'Cannot resolve from_ for {ss.name} as {ss.from_} is duplicated')
+                    s_center_dct[ss] = s_center_dct_names[ss.from_] + at
+                    s_center_dct_names[ss.name] = s_center_dct[ss]
                     n_resolved += 1
 
     assert n_resolved == len(seq_all_places), 'Not all positions resolved'
 
-    aux_s_center_expr = np.array([s_center_dct[nn] for nn in aux_tt.name[:-1]])
+    aux_s_center_expr = np.array([s_center_dct[ss] for ss in seq_all_places])
     aux_s_center = []
     for ss in aux_s_center_expr:
         if hasattr(ss, '_value'):
@@ -312,7 +329,10 @@ def _resolve_s_positions(seq_all_places, env):
 
     name_sorted = [str(aux_tt.name[ii]) for ii in i_sorted]
 
-    tt_sorted = aux_tt.rows[name_sorted]
+    # Temporary, should be replaced by aux_tt.rows[i_sorted], when table is fixed
+    data_sorted = {kk: aux_tt[kk][i_sorted] for kk in aux_tt._col_names}
+    tt_sorted = xt.Table(data_sorted)
+
     tt_sorted['s_entry'] = tt_sorted['s_center'] - tt_sorted['length'] / 2
     tt_sorted['s_exit'] = tt_sorted['s_center'] + tt_sorted['length'] / 2
     tt_sorted['ds_upstream'] = 0 * tt_sorted['s_entry']
