@@ -205,6 +205,11 @@ class Place:
         out += ')'
         return out
 
+    def copy(self):
+        out = Place('dummy')
+        out.__dict__ = self.__dict__.copy()
+        return out
+
 def _all_places(seq):
     seq_all_places = []
     for ss in seq:
@@ -245,6 +250,10 @@ def _all_places(seq):
 
 
 def _resolve_s_positions(seq_all_places, env):
+
+    if len(seq_all_places) != len(set(seq_all_places)):
+        seq_all_places = [ss.copy() for ss in seq_all_places]
+
     names_unsorted = [ss.name for ss in seq_all_places]
 
     # identify duplicates
@@ -365,8 +374,6 @@ def _generate_element_names_with_drifts(env, tt_sorted, s_tol=1e-10):
     return list(map(str, names_with_drifts))
 
 def handle_s_places(seq, env):
-
-    breakpoint()
 
     if np.array([isinstance(ss, str) for ss in seq]).all():
         return [str(ss) for ss in seq]
