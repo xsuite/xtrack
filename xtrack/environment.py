@@ -496,6 +496,9 @@ class Builder:
         self.components = components or []
         self.name = name
 
+    def __repr__(self):
+        return f'Builder({self.name}, components={self.components!r})'
+
     def new(self, name, cls, at=None, from_=None, extra=None, **kwargs):
         out = self.env.new(
             name, cls, at=at, from_=from_, extra=extra, **kwargs)
