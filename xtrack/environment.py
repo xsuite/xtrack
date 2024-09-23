@@ -199,7 +199,11 @@ class Place:
         self._before = False
 
     def __repr__(self):
-        return f'Place({self.name}, at={self.at}, from_={self.from_})'
+        out = f'Place({self.name}, at={self.at}, from_={self.from_}'
+        if self._before:
+            out += ', before=True'
+        out += ')'
+        return out
 
 def _all_places(seq):
     seq_all_places = []
@@ -349,8 +353,8 @@ def _generate_element_names_with_drifts(env, tt_sorted, s_tol=1e-10):
 
     names_with_drifts = []
     # Create drifts
-    for nn in tt_sorted.name:
-        ds_upstream = tt_sorted['ds_upstream', nn]
+    for ii, nn in enumerate(tt_sorted.name):
+        ds_upstream = tt_sorted['ds_upstream', ii]
         if np.abs(ds_upstream) > s_tol:
             assert ds_upstream > 0, f'Negative drift length: {ds_upstream}, upstream of {nn}'
             drift_name = env._get_a_drift_name()
@@ -361,6 +365,8 @@ def _generate_element_names_with_drifts(env, tt_sorted, s_tol=1e-10):
     return list(map(str, names_with_drifts))
 
 def handle_s_places(seq, env):
+
+    breakpoint()
 
     if np.array([isinstance(ss, str) for ss in seq]).all():
         return [str(ss) for ss in seq]
