@@ -160,14 +160,9 @@ insertion = -half_insertion + half_insertion
 
 ring2 = 2 * (arc + ss) + arc + insertion
 
-# # Check buffer behavior
-ring2_sliced = ring2.select()
-ring2_sliced.cut_at_s(np.arange(0, ring2.get_length(), 0.5))
-
-
 import matplotlib.pyplot as plt
 plt.close('all')
-for ii, rr in enumerate([ring, ring2_sliced]):
+for ii, rr in enumerate([ring, ring2]):
 
     tw = rr.twiss4d()
 
