@@ -3401,6 +3401,15 @@ class Line:
     def __neg__(self):
         return self.mirror(inplace=False)
 
+    def __rmul__(self, other):
+        self._env_if_needed()
+        assert isinstance(other, int), 'Only integer multiplication is supported'
+        assert other > 0, 'Only positive integer multiplication is supported'
+        ele_names = list(self.element_names)
+        out = self.env.new_line()
+        out.element_names = ele_names * other
+        return out
+
     def replicate(self, name, mirror=False):
 
         self._env_if_needed()
