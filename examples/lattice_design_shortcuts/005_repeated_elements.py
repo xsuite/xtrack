@@ -13,7 +13,6 @@ line = env.new_line(components=[
     pp,
     (
         'mb',
-        # env.new('mm', 'Quadrupole', length=0.5),
         env.new('ip2', 'Marker', at=20),
         'mb',
     ),
