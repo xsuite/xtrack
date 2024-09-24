@@ -762,7 +762,8 @@ def twiss_line(line, particle_ref=None, method=None,
         raise NotImplementedError
         # Untested
         name_exit = twiss_res.name[:-1]
-        twiss_res = twiss_res[:, 1:]
+        #twiss_res = twiss_res.rows[1:]
+        twiss_res = twiss_res._get_subtable_from_indices(slice(1,None,None))
         twiss_res['name'][:] = name_exit
         twiss_res._data['values_at'] = 'exit'
     else:
@@ -819,7 +820,7 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res = tw_mt
 
     if at_elements is not None:
-        twiss_res = twiss_res[:, at_elements]
+        twiss_res = twiss_res.rows[at_elements]
 
     return _add_action_in_res(twiss_res, input_kwargs)
 
