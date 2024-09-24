@@ -2,7 +2,7 @@ import xtrack as xt
 import xobjects as xo
 import numpy as np
 from weakref import WeakSet
-from collections import Counter
+from collections import Counter, UserDict
 
 def _flatten_components(components):
     flatt_components = []
@@ -35,8 +35,8 @@ class Environment:
         else:
             self._init_var_management()
 
-        self.lines = {}
-        self._lines = WeakSet()
+        self.lines = EnvLines(self)
+        self._lines_weakrefs = WeakSet()
         self._drift_counter = 0
         self.ref = EnvRef(self)
 
@@ -61,7 +61,7 @@ class Environment:
         out._name = name
         out.builder = Builder(env=self, components=components)
 
-        self._lines.add(out) # Weak references
+        self._lines_weakrefs.add(out) # Weak references
         if name is not None:
             self.lines[name] = out
 
@@ -71,7 +71,7 @@ class Environment:
         return Builder(env=self, components=components, name=name)
 
     def _ensure_tracker_consistency(self, buffer):
-        for ln in self._lines:
+        for ln in self._lines_weakrefs:
             if ln._has_valid_tracker() and ln._buffer is not buffer:
                 ln.discard_tracker()
 
@@ -576,10 +576,12 @@ class Builder:
         self.env[key] = value
 
 
+class EnvLines(UserDict):
 
+    def __init__(self, env):
+        self.data = {}
+        self.env = env
 
-
-
-
-
-
+    def __setitem__(self, key, value):
+        self.env._lines_weakrefs.add(value)
+        UserDict.__setitem__(self, key, value)

@@ -927,8 +927,8 @@ def test_neg_line():
     assert line_neg[0].k1 == 0.1
     assert line_neg[1].k0 == 0.5
 
-    assert line in line.env._lines
-    assert line_neg in line.env._lines
+    assert line in line.env._lines_weakrefs
+    assert line_neg in line.env._lines_weakrefs
 
 def test_repeated_elements():
 

@@ -3532,7 +3532,7 @@ class Line:
             self.env = xt.Environment(element_dict=self.element_dict,
                                       particle_ref=self.particle_ref,
                                       _var_management=self._var_management)
-            self.env._lines.add(self)
+            self.env._lines_weakrefs.add(self)
 
     def extend(self, line):
         self.element_names.extend(line.element_names)
