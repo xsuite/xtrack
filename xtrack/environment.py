@@ -166,6 +166,18 @@ class Environment:
     def place(self, name, at=None, from_=None, anchor=None, from_anchor=None):
         return Place(name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
 
+    def __setitem__(self, key, value):
+
+        if isinstance(value, xt.Line):
+            assert value.env is self, 'Line must be in the same environment'
+            if key in self.lines:
+                raise ValueError(f'There is already a line with name {key}')
+            if key in self.element_dict:
+                raise ValueError(f'There is already an element with name {key}')
+            self.lines[key] = value
+        else:
+            xt.Line.__setitem__(self, key, value)
+
 Environment.element_dict = xt.Line.element_dict
 Environment._init_var_management = xt.Line._init_var_management
 Environment._xdeps_vref = xt.Line._xdeps_vref
@@ -178,7 +190,6 @@ Environment.varval = xt.Line.varval
 Environment.vv = xt.Line.vv
 Environment.replace_replica = xt.Line.replace_replica
 Environment.__getitem__ = xt.Line.__getitem__
-Environment.__setitem__ = xt.Line.__setitem__
 Environment.set = xt.Line.set
 Environment.get = xt.Line.get
 

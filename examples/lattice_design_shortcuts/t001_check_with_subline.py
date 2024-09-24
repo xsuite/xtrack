@@ -237,8 +237,8 @@ assert len(tt_arc) == 3 * (len(tt_cell)-1) + 1
 n_cell = len(tt_cell) - 1
 assert np.all(tt_arc.name[n_cell:2*n_cell] == tt_cell2.name[:-1])
 for nn in tt_cell2.name[:-1]:
-    assert arc[nn] is env[nn]
-    assert arc[nn] is env['cell.2'][nn]
+    assert arc.get(nn) is env.get(nn)
+    assert arc.get(nn) is env['cell.2'].get(nn)
 
 ss = env.new_line(components=[
     cell_ss.replicate('cell.1'),
