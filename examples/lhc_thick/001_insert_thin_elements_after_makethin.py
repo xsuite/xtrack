@@ -32,4 +32,4 @@ line._insert_thin_elements_at_s(insertions)
 
 # Inspect:
 tt_after = line.get_table()
-tt_after.rows['marker_20000.0%%-30': 'marker_20000.0%%+30'].show()
+tt_after.rows['marker_20000.0<<30': 'marker_20000.0>>30'].show()
