@@ -984,7 +984,8 @@ def test_repeated_elements():
         2 * ['mb']
     ])
     tt_mult = l_mult.get_table()
-    assert np.all(tt_mult.name == np.array(['mb', 'mb', 'mid', 'mb', 'mb', 'mb', 'mb', 'mid', 'mb', 'mb', 'mb',
+    assert np.all(tt_mult.name == np.array([
+        'mb', 'mb', 'mid', 'mb', 'mb', 'mb', 'mb', 'mid', 'mb', 'mb', 'mb',
         'mb', '_end_point']))
     assert np.all(tt_mult.s == np.array(
         [0. , 0.5, 1. , 1. , 1.5, 2. , 2.5, 3. , 3. , 3.5, 4. , 4.5, 5. ]))

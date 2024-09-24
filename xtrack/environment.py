@@ -455,7 +455,12 @@ class EnvRef:
 
     def __setitem__(self, key, value):
         if isinstance(value, xt.Line):
-            raise ValueError('Cannot set a Line, please use Envirnoment.new_line')
+            assert value.env is self.env, 'Line must be in the same environment'
+            if key in self.env.lines:
+                raise ValueError(f'There is already a line with name {key}')
+            if key in self.env.element_dict:
+                raise ValueError(f'There is already an element with name {key}')
+            self.env.lines[key] = value
 
         if hasattr(value, '_value'):
             val_ref = value

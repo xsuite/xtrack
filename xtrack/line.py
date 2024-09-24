@@ -3410,6 +3410,14 @@ class Line:
         out.element_names = ele_names * other
         return out
 
+    def __add__(self, other):
+        self._env_if_needed
+        assert isinstance(other, Line), 'Only Line can be added to Line'
+        assert other.env is self.env, 'Lines must be in the same environment'
+        out = self.env.new_line(
+            components=list(self.element_names) + list(other.element_names))
+        return out
+
     def replicate(self, name, mirror=False):
 
         self._env_if_needed()
