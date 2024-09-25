@@ -492,6 +492,11 @@ class EnvRef:
 def _handle_bend_kwargs(kwargs, _eval, env=None, name=None):
 
     kwargs = kwargs.copy()
+    rbarc = kwargs.pop('rbarc', False)
+    rbend = kwargs.pop('rbend', False)
+
+    if rbarc:
+        assert 'angle' in kwargs, 'Angle must be specified for a bend with rbarc'
 
     if env is not None and name is not None:
         for kk in 'h length edge_entry_angle edge_exit_angle'.split():
@@ -519,6 +524,12 @@ def _handle_bend_kwargs(kwargs, _eval, env=None, name=None):
             angle = _eval(angle)
 
         kwargs['h'] = angle / length
+
+        if rbend and rbarc:
+            fsin = env._xdeps_fref['sin']
+            fsinc = env._xdeps_fref['sinc']
+            kwargs['h'] = fsin(0.5*angle) / (0.5 * length) # here length is the straight line
+            kwargs['length'] = length / fsinc(0.5*angle)
     else:
         angle = kwargs.get('h', 0) * length
 
