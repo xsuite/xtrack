@@ -536,6 +536,9 @@ def _handle_bend_kwargs(kwargs, _eval, env=None, name=None):
         kwargs['edge_entry_angle'] = edge_entry_angle
         kwargs['edge_exit_angle'] = edge_exit_angle
 
+    if kwargs.pop('k0_from_h', False):
+        kwargs['k0'] = kwargs['h']
+
     return kwargs
 
 
