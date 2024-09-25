@@ -24,7 +24,7 @@ for ii in range(1000):
 
     # tt._get_index()
     # tt._get_names_indices(names_list)
-    # tt2 = tt.mask[list(twiss_res.name)]
+    # tt2 = tt.rows.mask[list(twiss_res.name)]
 
     # for kk in (NORMAL_STRENGTHS_FROM_ATTR + SKEW_STRENGTHS_FROM_ATTR
     #             + OTHER_FIELDS_FROM_ATTR):
