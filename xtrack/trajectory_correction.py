@@ -71,13 +71,13 @@ def _build_response_matrix(tw, monitor_names, corrector_names,
     assert plane in ['x', 'y']
 
     # Build response matrix
-    mask_monitors = tw.mask[monitor_names]
-    mask_correctors = tw.mask[corrector_names]
-    bet_monitors = tw['bet' + plane][mask_monitors]
-    bet_correctors = tw['bet' + plane][mask_correctors]
+    indices_monitors = tw.rows.indices[monitor_names]
+    indices_correctors = tw.rows.indices[corrector_names]
+    bet_monitors = tw['bet' + plane][indices_monitors]
+    bet_correctors = tw['bet' + plane][indices_correctors]
 
-    mu_monitor = tw['mu' + plane][mask_monitors]
-    mux_correctors = tw['mu' + plane][mask_correctors]
+    mu_monitor = tw['mu' + plane][indices_monitors]
+    mux_correctors = tw['mu' + plane][indices_correctors]
 
     n_monitors = len(monitor_names)
     n_correctors = len(corrector_names)
@@ -184,8 +184,8 @@ class OrbitCorrectionSinglePlane:
         #    end = None
         tw_table_local = self.twiss_table.rows[start:end]
 
-        self._indices_monitor = np.where(tw_table_local.mask[self.monitor_names])[0]
-        self._indices_correctors = np.where(tw_table_local.mask[self.corrector_names])[0]
+        self._indices_monitor = tw_table_local.rows.indices[self.monitor_names]
+        self._indices_correctors = tw_table_local.rows.indices[self.corrector_names]
         self.s_correctors = tw_table_local.s[self._indices_correctors]
         self.s_monitors = tw_table_local.s[self._indices_monitor]
 

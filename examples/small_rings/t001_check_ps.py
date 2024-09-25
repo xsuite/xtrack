@@ -108,8 +108,8 @@ assert np.allclose(nlchr.dnqy[:3], [tw.qy, nlchr.dqy, nlchr.ddqy], atol=0, rtol=
 markers_ptc = tptc.rows[tptc.keyword == 'marker']
 markers_common_ptc = [nn for nn in markers_ptc.name if nn.split(':')[0] in tw.name]
 markers_common_xs = [nn.split(':')[0] for nn in markers_common_ptc]
-mask_ptc = tptc.mask[markers_common_ptc]
-mask_xs = tw.mask[markers_common_xs]
+mask_ptc = tptc.rows.mask[markers_common_ptc]
+mask_xs = tw.rows.mask[markers_common_xs]
 
 assert np.allclose(tw.ax_chrom[mask_xs], ax_ptc[mask_ptc], atol=1e-2, rtol=0)
 assert np.allclose(tw.bx_chrom[mask_xs], bx_ptc[mask_ptc], atol=1e-2, rtol=0)
