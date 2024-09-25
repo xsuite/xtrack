@@ -763,7 +763,7 @@ def twiss_line(line, particle_ref=None, method=None,
         # Untested
         name_exit = twiss_res.name[:-1]
         #twiss_res = twiss_res.rows[1:]
-        twiss_res = twiss_res._get_subtable_from_indices(slice(1,None,None))
+        twiss_res = twiss_res._select_rows(slice(1,None,None))
         twiss_res['name'][:] = name_exit
         twiss_res._data['values_at'] = 'exit'
     else:
