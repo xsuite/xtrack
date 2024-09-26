@@ -20,7 +20,9 @@ line    = line0.select(s_marker,e_marker)
 line.env._var_management = None
 line._var_management = None
 line.env._in_multiline = collider
+line.env._name_in_multiline = line0._name_in_multiline
 line._in_multiline = collider
+line._name_in_multiline = line0._name_in_multiline
 
 print('collider and line0 share vars:',line0.vars is collider.vars)
 print('selected line and line0 share vars:',line.vars is line0.vars)
