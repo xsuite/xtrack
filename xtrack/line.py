@@ -3482,6 +3482,14 @@ class Line:
 
         out = self.env.new_line(components=list(tt.name), name=name)
 
+        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+            out.env._var_management = None
+            out._var_management = None
+            out.env._in_multiline = self._in_multiline
+            out._in_multiline = self._in_multiline
+            out.env._name_in_multiline = self._name_in_multiline
+            out._name_in_multiline = self._name_in_multiline
+
         return out
 
     def set(self, name, *args, **kwargs):

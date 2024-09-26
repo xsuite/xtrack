@@ -17,12 +17,12 @@ collider.vars['test_vars'] = 3.1416
 line   = collider[seq]
 line_sel    = line.select(s_marker,e_marker)
 
-line_sel.env._var_management = None
-line_sel._var_management = None
-line_sel.env._in_multiline = collider
-line_sel.env._name_in_multiline = line._name_in_multiline
-line_sel._in_multiline = collider
-line_sel._name_in_multiline = line._name_in_multiline
+# line_sel.env._var_management = None
+# line_sel._var_management = None
+# line_sel.env._in_multiline = collider
+# line_sel.env._name_in_multiline = line._name_in_multiline
+# line_sel._in_multiline = collider
+# line_sel._name_in_multiline = line._name_in_multiline
 
 print('collider and line0 share vars:',line.vars is collider.vars)
 print('selected line and line0 share vars:',line_sel.vars is line.vars)
@@ -42,4 +42,5 @@ assert (str(line.ref['mcbch.7r1.b1'].knl[0]._expr)
 assert (str(line_sel.ref['mcbch.7r1.b1'].knl[0]._expr)
         == "((-vars['acbch7.r1b1']) + vars['aaa'])")
 assert line_sel.get('mcbch.7r1.b1').knl[0] == 1e-6
+assert line.get('mcbch.7r1.b1').knl[0] == 1e-6
 
