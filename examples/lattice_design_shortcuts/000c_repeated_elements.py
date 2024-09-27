@@ -103,11 +103,11 @@ ss = 2 * cell_ss
 
 ring = 3 * (arc + ss)
 
+# Twiss the ring
 tw = ring.twiss4d()
-two = ring.twiss(
-    betx=tw.betx[0], bety=tw.bety[0], alfx=tw.alfx[0], alfy=tw.alfy[0], 
-    dx=tw.dx[0], dpx=tw.dpx[0], dpy=tw.dpy[0], dy=tw.dy[0],
-    start=xt.START, end=xt.END)
+
+# Twiss a single cell
+tw_a_cell = ring.twiss4d(start='mq.f::10', end='mq.f::11', init='periodic')
 
 ## Insertion
 

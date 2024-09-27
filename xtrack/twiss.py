@@ -356,8 +356,8 @@ def twiss_line(line, particle_ref=None, method=None,
             assert start in [xt.START, xt.END]
             if reverse:
                 start = {xt.START: xt.END, xt.END: xt.START}[start]
-            start = {xt.START: line.element_names[0],
-                     xt.END: line.element_names[-1]}[start]
+            start = {xt.START: line._element_names_unique[0],
+                     xt.END: line._element_names_unique[-1]}[start]
         assert isinstance(start, str)  # index not supported anymore
 
     if end is not None:
@@ -365,8 +365,8 @@ def twiss_line(line, particle_ref=None, method=None,
             assert end in [xt.START, xt.END]
             if reverse:
                 end = {xt.START: xt.END, xt.END: xt.START}[end]
-            end = {xt.START: line.element_names[0],
-                     xt.END: line.element_names[-1]}[end]
+            end = {xt.START: line._element_names_unique[0],
+                     xt.END: line._element_names_unique[-1]}[end]
         assert isinstance(end, str)  # index not supported anymore
 
     if start is not None and end is None:
@@ -855,18 +855,18 @@ def _twiss_open(line, init,
         start = 0
 
     if isinstance(start, str):
-        start = line.element_names.index(start)
+        start = line._element_names_unique.index(start)
     if isinstance(end, str):
         if end == '_end_point':
-            end = len(line.element_names) - 1
+            end = len(line._element_names_unique) - 1
         else:
-            end = line.element_names.index(end)
+            end = line._element_names_unique.index(end)
 
-    if init.element_name == line.element_names[start]:
+    if init.element_name == line._element_names_unique[start]:
         twiss_orientation = 'forward'
-    elif init.element_name == '_end_point' and end == len(line.element_names) - 1:
+    elif init.element_name == '_end_point' and end == len(line._element_names_unique) - 1:
         twiss_orientation = 'backward'
-    elif end is not None and init.element_name == line.element_names[end]:
+    elif end is not None and init.element_name == line._element_names_unique[end]:
         twiss_orientation = 'backward'
     else:
         raise ValueError(
@@ -941,13 +941,13 @@ def _twiss_open(line, init,
         i_start = start
         i_stop = part_for_twiss._xobject.at_element[0] + (
                 (part_for_twiss._xobject.at_turn[0] - AT_TURN_FOR_TWISS)
-                * len(line.element_names))
+                * len(line._element_names_unique))
     elif twiss_orientation == 'backward':
         i_start = start
         if ele_stop_track is not None:
             i_stop = ele_stop_track
         else:
-            i_stop = len(line.element_names) - 1
+            i_stop = len(line._element_names_unique) - 1
 
     recorded_state = line.record_last_track.state[:, i_start:i_stop+1].copy()
     if not _continue_if_lost:
@@ -993,7 +993,7 @@ def _twiss_open(line, init,
     dzeta -= dzeta[0]
     dzeta = np.array(dzeta)
 
-    name_co = np.array(line.element_names[i_start:i_stop] + ('_end_point',))
+    name_co = np.array(line._element_names_unique[i_start:i_stop] + ('_end_point',))
 
     if only_markers:
         raise NotImplementedError('only_markers not supported anymore')
@@ -1720,7 +1720,7 @@ def _compute_equilibrium_emittance_full(px_co, py_co, ptau_co, R_matrix_ebe,
     Sigma = RR_ebe @ Sigma_at_start @ np.transpose(RR_ebe, axes=(0,2,1))
 
     eq_sigma_tab = _build_sigma_table(Sigma=Sigma, s=None,
-        name=np.array(tuple(line.element_names) + ('_end_point',)))
+        name=np.array(tuple(line._element_names_unique) + ('_end_point',)))
 
     res = {
         'eq_gemitt_x': eq_gemitt_x,
@@ -1902,9 +1902,9 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
     if isinstance(start, str):
         tw_init_element_name = start
     elif start is None:
-        tw_init_element_name = line.element_names[0]
+        tw_init_element_name = line._element_names_unique[0]
     else:
-        tw_init_element_name = line.element_names[start]
+        tw_init_element_name = line._element_names_unique[start]
 
     init = TwissInit(particle_on_co=part_on_co, W_matrix=W,
                            element_name=tw_init_element_name,
@@ -1936,13 +1936,13 @@ def _handle_loop_around(kwargs):
                             end='_end_point',
                             init=init, **kwargs)
             twini_2 = tw1.get_twiss_init(at_element='_end_point')
-            twini_2.element_name = line.element_names[0]
-            tw2 = twiss_line(start=line.element_names[0], end=end,
+            twini_2.element_name = line._element_names_unique[0]
+            tw2 = twiss_line(start=line._element_names_unique[0], end=end,
                                     init=twini_2, **kwargs)
         elif _str_to_index(line, ele_name_init) <= _str_to_index(line, end):
-            tw2 = twiss_line(start=line.element_names[0], end=end,
+            tw2 = twiss_line(start=line._element_names_unique[0], end=end,
                                 init=init, **kwargs)
-            twini_1 = tw2.get_twiss_init(at_element=line.element_names[0])
+            twini_1 = tw2.get_twiss_init(at_element=line._element_names_unique[0])
             twini_1.element_name = '_end_point'
             tw1 = twiss_line(start=start, end='_end_point',
                                 init=twini_1, **kwargs)
@@ -1954,18 +1954,18 @@ def _handle_loop_around(kwargs):
             'This function should not have been called')
         if _str_to_index(line, ele_name_init) <= _str_to_index(line, start):
             tw1 = twiss_line(start=start,
-                            end=line.element_names[0],
+                            end=line._element_names_unique[0],
                             init=init, **kwargs)
             twini_2 = tw1.get_twiss_init(at_element='_end_point')
-            twini_2.element_name = line.element_names[-1]
-            tw2 = twiss_line(start=line.element_names[-1], end=end,
+            twini_2.element_name = line._element_names_unique[-1]
+            tw2 = twiss_line(start=line._element_names_unique[-1], end=end,
                                     init=twini_2, **kwargs)
         elif _str_to_index(line, ele_name_init) >= _str_to_index(line, end):
-            tw2 = twiss_line(start=line.element_names[-1], end=end,
+            tw2 = twiss_line(start=line._element_names_unique[-1], end=end,
                                 init=init, **kwargs)
-            twini_1 = tw2.get_twiss_init(at_element=line.element_names[-1])
-            twini_1.element_name = line.element_names[0]
-            tw1 = twiss_line(start=start, end=line.element_names[0],
+            twini_1 = tw2.get_twiss_init(at_element=line._element_names_unique[-1])
+            twini_1.element_name = line._element_names_unique[0]
+            tw1 = twiss_line(start=start, end=line._element_names_unique[0],
                                 init=twini_1, **kwargs)
         else:
             raise RuntimeError(
@@ -2095,10 +2095,10 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
         return p_co_at_ele_co_search
 
     if isinstance(start, str):
-        start = line.element_names.index(start)
+        start = line._element_names_unique.index(start)
 
     if isinstance(end, str):
-        end = line.element_names.index(end)
+        end = line._element_names_unique.index(end)
 
     if isinstance(co_guess, dict):
         co_guess = line.build_particles(**co_guess)
@@ -2286,10 +2286,10 @@ def compute_one_turn_matrix_finite_differences(
             'Time-dependent vars not supported in one-turn matrix computation')
 
     if isinstance(start, str):
-        start = line.element_names.index(start)
+        start = line._element_names_unique.index(start)
 
     if isinstance(end, str):
-        end = line.element_names.index(end)
+        end = line._element_names_unique.index(end)
 
     if start is not None and end is not None and start > end:
         raise ValueError('start > end')
@@ -2369,7 +2369,7 @@ def compute_one_turn_matrix_finite_differences(
 
     if element_by_element:
         mon = line.record_last_track
-        temp_mad_ebe = np.zeros(shape=(len(line.element_names) + 1, 6, 12), dtype=np.float64)
+        temp_mad_ebe = np.zeros(shape=(len(line._element_names_unique) + 1, 6, 12), dtype=np.float64)
         temp_mad_ebe[:, 0, :] = mon.x.T
         temp_mad_ebe[:, 1, :] = mon.px.T
         temp_mad_ebe[:, 2, :] = mon.y.T
@@ -2377,7 +2377,7 @@ def compute_one_turn_matrix_finite_differences(
         temp_mad_ebe[:, 4, :] = mon.zeta.T
         temp_mad_ebe[:, 5, :] = mon.ptau.T/mon.beta0.T
 
-        RR_ebe = np.zeros(shape=(len(line.element_names) + 1, 6, 6), dtype=np.float64)
+        RR_ebe = np.zeros(shape=(len(line._element_names_unique) + 1, 6, 6), dtype=np.float64)
         for jj, dd in enumerate([dx, dpx, dy, dpy, dzeta, dpzeta]):
             RR_ebe[:, :, jj] = (temp_mad_ebe[:, :, jj] - temp_mad_ebe[:, :, jj+6])/(2*dd)
 
@@ -2416,7 +2416,7 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
             algorithm = 'regen_all_drifts'
 
     auxline = xt.Line(elements=tracker.line.element_dict.copy(),
-                      element_names=list(tracker.line.element_names).copy())
+                      _element_names_unique=list(tracker.line._element_names_unique).copy())
     if tracker.line.particle_ref is not None:
         auxline.particle_ref = tracker.line.particle_ref.copy()
 
@@ -2626,7 +2626,7 @@ class TwissInit:
 
             if input_reversed:
                 s_ele_twiss = line.tracker._tracker_data_base.line_length - s_ele_in_line
-                first_ele = line[line.element_names[i_ele_in_line]]
+                first_ele = line[line._element_names_unique[i_ele_in_line]]
                 if hasattr(first_ele, 'isthick') and first_ele.isthick:
                     s_ele_twiss -= first_ele.length
             else:
@@ -3625,11 +3625,11 @@ def _extract_twiss_parameters_with_inverse(Ws):
 
 def _str_to_index(line, ele, allow_end_point=True):
     if allow_end_point and ele == '_end_point':
-        return len(line.element_names)
+        return len(line._element_names_unique)
     if isinstance(ele, str):
-        if ele not in line.element_names:
+        if ele not in line._element_names_unique:
             raise ValueError(f'Element {ele} not found in line')
-        return line.element_names.index(ele)
+        return line._element_names_unique.index(ele)
     else:
         return ele
 
@@ -3745,7 +3745,7 @@ def _multiturn_twiss(tw0, num_turns, kwargs):
         tini1.element_name = tw_curr.name[0]
         tw_curr = twiss_line(**kwargs,
             init=tini1, start=tw_curr.name[0],
-            end=line.element_names[-1])
+            end=line._element_names_unique[-1])
 
     tw_mt = xt.TwissTable.concatenate(twisses_to_merge)
 
