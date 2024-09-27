@@ -4641,6 +4641,9 @@ class LineVars:
         out = list(self.line._xdeps_vref._owner.keys()).copy()
         return out
 
+    def __iter__(self):
+        return self.line._xdeps_vref._owner.__iter__()
+
     def update(self, other):
         if self.line._xdeps_vref is None:
             raise RuntimeError(
@@ -4661,8 +4664,27 @@ class LineVars:
                 f'Cannot access variables as the line has no xdeps manager')
         name = np.array([kk for kk in list(self.keys()) if kk != '__vary_default'])
         value = np.array([self.line._xdeps_vref[kk]._value for kk in name])
+        expr  = np.array([str(self.line._xdeps_vref[kk]._expr) for kk in name])
 
-        return xd.Table({'name': name, 'value': value})
+        return xd.Table({'name': name, 'value': value, 'expr': expr})
+
+    def expr(self, var):
+        if isinstance(var,str):
+            ref=self.line._xdeps_vref[var]
+        elif is_expr(var):
+            ref=var
+        else:
+            raise ValueError(f"`{var}` not valid, must be str or expr")
+        expr=ref._expr
+        if expr is None:
+            raise NameError(f"`{var}` does not have any expression")
+        return expr
+
+    def eval(self, expr):
+        return self.line._xdeps_eval.eval(expr)
+
+    def value(self, expr):
+        return eval(self)._get_value()
 
     def __contains__(self, key):
         if self.line._xdeps_vref is None:
