@@ -4266,6 +4266,13 @@ class Line:
                 new_ee = ee.get_equivalent_element()
                 self.element_dict[nn] = new_ee
 
+    @property
+    def _element_names_unique(self):
+        if not self._has_valid_tracker():
+            raise RuntimeError(
+                '`Line._element_names_unique` con only be called after `Line.build_tracker`')
+        return self.tracker._tracker_data_base._element_names_unique
+
 def frac(x):
     return x % 1
 
