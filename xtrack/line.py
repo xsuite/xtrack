@@ -3550,6 +3550,11 @@ class Line:
                                       _var_management=self._var_management)
             self.env._lines_weakrefs.add(self)
 
+            if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+                self.env._var_management = None
+                self.env._in_multiline = self._in_multiline
+                self.env._name_in_multiline = self._name_in_multiline
+
     def extend(self, line):
         self.element_names.extend(line.element_names)
 

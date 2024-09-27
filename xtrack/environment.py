@@ -61,6 +61,12 @@ class Environment:
         out._name = name
         out.builder = Builder(env=self, components=components)
 
+        # Temporary solution to keep consistency in multiline
+        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+            out._var_management = None
+            out._in_multiline = self._in_multiline
+            out._name_in_multiline = self._name_in_multiline
+
         self._lines_weakrefs.add(out) # Weak references
         if name is not None:
             self.lines[name] = out
