@@ -3,6 +3,9 @@ import xobjects as xo
 import xdeps as xd
 import numpy as np
 import pytest
+import pathlib
+
+test_data_folder = pathlib.Path(__file__).parent.joinpath('../test_data').absolute()
 
 @pytest.mark.parametrize('container_type', ['env', 'line'])
 def test_vars_and_element_access_modes(container_type):
@@ -1709,3 +1712,35 @@ def test_repeated_elements():
         'mb', '_end_point']))
     assert np.all(tt_mult.s == np.array(
         [0. , 0.5, 1. , 1. , 1.5, 2. , 2.5, 3. , 3. , 3.5, 4. , 4.5, 5. ]))
+
+def test_select_in_multiline():
+
+    # --- Parameters
+    seq         = 'lhcb1'
+    ip_name     = 'ip1'
+    s_marker    = f'e.ds.l{ip_name[-1]}.b1'
+    e_marker    = f's.ds.r{ip_name[-1]}.b1'
+    #-------------------------------------
+
+    collider_file = test_data_folder / 'hllhc15_collider/collider_00_from_mad.json'
+
+    # Load the machine and select line
+    collider= xt.Multiline.from_json(collider_file)
+    collider.vars['test_vars'] = 3.1416
+    line   = collider[seq]
+    line_sel    = line.select(s_marker,e_marker)
+
+    assert line_sel.element_dict is line.element_dict
+    assert line.get('ip1') is line_sel.get('ip1')
+
+    line_sel['aaa'] = 1e-6
+    assert line_sel['aaa'] == 1e-6
+    assert line['aaa'] == 1e-6
+
+    line_sel.ref['mcbch.7r1.b1'].knl[0] += line.ref['aaa']
+    assert (str(line.ref['mcbch.7r1.b1'].knl[0]._expr)
+            == "((-vars['acbch7.r1b1']) + vars['aaa'])")
+    assert (str(line_sel.ref['mcbch.7r1.b1'].knl[0]._expr)
+            == "((-vars['acbch7.r1b1']) + vars['aaa'])")
+    assert line_sel.get('mcbch.7r1.b1').knl[0] == 1e-6
+    assert line.get('mcbch.7r1.b1').knl[0] == 1e-6

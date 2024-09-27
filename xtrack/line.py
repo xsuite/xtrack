@@ -3550,6 +3550,7 @@ class Line:
                                       _var_management=self._var_management)
             self.env._lines_weakrefs.add(self)
 
+            # Temporary solution to keep consistency in multiline
             if hasattr(self, '_in_multiline') and self._in_multiline is not None:
                 self.env._var_management = None
                 self.env._in_multiline = self._in_multiline

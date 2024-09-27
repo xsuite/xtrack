@@ -17,18 +17,6 @@ collider.vars['test_vars'] = 3.1416
 line   = collider[seq]
 line_sel    = line.select(s_marker,e_marker)
 
-# line_sel.env._var_management = None
-# line_sel._var_management = None
-# line_sel.env._in_multiline = collider
-# line_sel.env._name_in_multiline = line._name_in_multiline
-# line_sel._in_multiline = collider
-# line_sel._name_in_multiline = line._name_in_multiline
-
-print('collider and line0 share vars:',line.vars is collider.vars)
-print('selected line and line0 share vars:',line_sel.vars is line.vars)
-print('test vars in line0:', line.vars['test_vars']._value)
-print('test vars in selected line:', line_sel.vars['test_vars']._value)
-
 assert line_sel.element_dict is line.element_dict
 assert line.get('ip1') is line_sel.get('ip1')
 
