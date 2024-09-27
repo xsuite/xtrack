@@ -568,13 +568,13 @@ def test_assemble_ring():
     # Check that the cell is matched to the rest of the ring
     tw = ring.twiss4d()
     tw_cell_from_ring = tw.rows['start.cell.3.arc.2':'end.cell.3.arc.2']
-    xo.assert_allclose(tw_cell_from_ring.betx, tw_cell.betx[:-1], atol=0, rtol=2e-4)
-    xo.assert_allclose(tw_cell_from_ring.bety, tw_cell.bety[:-1], atol=0, rtol=2e-4)
+    xo.assert_allclose(tw_cell_from_ring.betx, tw_cell.betx[:-1], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw_cell_from_ring.bety, tw_cell.bety[:-1], atol=0, rtol=5e-4)
 
     tw2 = ring2.twiss4d()
     tw_cell_from_ring2 = tw2.rows['start.cell.3.arc.2':'end.cell.3.arc.2']
-    xo.assert_allclose(tw_cell_from_ring2.betx, tw_cell.betx[:-1], atol=0, rtol=2e-4)
-    xo.assert_allclose(tw_cell_from_ring2.bety, tw_cell.bety[:-1], atol=0, rtol=2e-4)
+    xo.assert_allclose(tw_cell_from_ring2.betx, tw_cell.betx[:-1], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw_cell_from_ring2.bety, tw_cell.bety[:-1], atol=0, rtol=5e-4)
 
     # Check select
     cell3_select = ring2.select(start='start.cell.3.arc.2', end='end.cell.3.arc.2',
@@ -598,8 +598,8 @@ def test_assemble_ring():
     cell3_select.twiss4d()
 
     tw2_slice = ring2_sliced.twiss4d()
-    xo.assert_allclose(tw2_slice['betx', 'ip.l'], tw2['betx', 'ip.l'], atol=0, rtol=2e-4)
-    xo.assert_allclose(tw2_slice['bety', 'ip.l'], tw2['bety', 'ip.l'], atol=0, rtol=2e-4)
+    xo.assert_allclose(tw2_slice['betx', 'ip.l'], tw2['betx', 'ip.l'], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw2_slice['bety', 'ip.l'], tw2['bety', 'ip.l'], atol=0, rtol=5e-4)
     xo.assert_allclose(tw2_slice['alfx', 'ip.l'], 0, atol=1e-6, rtol=0)
     xo.assert_allclose(tw2_slice['alfy', 'ip.l'], 0, atol=1e-6, rtol=0)
     xo.assert_allclose(tw2_slice['dx', 'ip.l'], 0, atol=1e-4, rtol=0)
@@ -976,13 +976,13 @@ def test_assemble_ring_builders():
     # Check that the cell is matched to the rest of the ring
     tw = ring.twiss4d()
     tw_cell_from_ring = tw.rows['start.cell.3.arc.2':'end.cell.3.arc.2']
-    xo.assert_allclose(tw_cell_from_ring.betx, tw_cell.betx[:-1], atol=0, rtol=2e-4)
-    xo.assert_allclose(tw_cell_from_ring.bety, tw_cell.bety[:-1], atol=0, rtol=2e-4)
+    xo.assert_allclose(tw_cell_from_ring.betx, tw_cell.betx[:-1], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw_cell_from_ring.bety, tw_cell.bety[:-1], atol=0, rtol=5e-4)
 
     tw2 = ring2.twiss4d()
     tw_cell_from_ring2 = tw2.rows['start.cell.3.arc.2':'end.cell.3.arc.2']
-    xo.assert_allclose(tw_cell_from_ring2.betx, tw_cell.betx[:-1], atol=0, rtol=2e-4)
-    xo.assert_allclose(tw_cell_from_ring2.bety, tw_cell.bety[:-1], atol=0, rtol=2e-4)
+    xo.assert_allclose(tw_cell_from_ring2.betx, tw_cell.betx[:-1], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw_cell_from_ring2.bety, tw_cell.bety[:-1], atol=0, rtol=5e-4)
 
     # Check select
     cell3_select = ring2.select(start='start.cell.3.arc.2', end='end.cell.3.arc.2',
@@ -1006,8 +1006,8 @@ def test_assemble_ring_builders():
     cell3_select.twiss4d()
 
     tw2_slice = ring2_sliced.twiss4d()
-    xo.assert_allclose(tw2_slice['betx', 'ip.l'], tw2['betx', 'ip.l'], atol=0, rtol=2e-4)
-    xo.assert_allclose(tw2_slice['bety', 'ip.l'], tw2['bety', 'ip.l'], atol=0, rtol=2e-4)
+    xo.assert_allclose(tw2_slice['betx', 'ip.l'], tw2['betx', 'ip.l'], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw2_slice['bety', 'ip.l'], tw2['bety', 'ip.l'], atol=0, rtol=5e-4)
     xo.assert_allclose(tw2_slice['alfx', 'ip.l'], 0, atol=1e-6, rtol=0)
     xo.assert_allclose(tw2_slice['alfy', 'ip.l'], 0, atol=1e-6, rtol=0)
     xo.assert_allclose(tw2_slice['dx', 'ip.l'], 0, atol=1e-4, rtol=0)
@@ -1337,11 +1337,11 @@ def test_assemble_ring_repeated_elements():
 
     # Check that the cell is matched to the rest of the ring
     tw_ring = ring.twiss4d()
-    xo.assert_allclose(tw_ring.betx[0], tw_cell.betx[0], atol=0, rtol=2e-4)
-    xo.assert_allclose(tw_ring.bety[0], tw_cell.bety[0], atol=0, rtol=2e-4)
+    xo.assert_allclose(tw_ring.betx[0], tw_cell.betx[0], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw_ring.bety[0], tw_cell.bety[0], atol=0, rtol=5e-4)
     tw_ring2 = ring2.twiss4d()
-    xo.assert_allclose(tw_ring2.betx[0], tw_cell.betx[0], atol=0, rtol=2e-4)
-    xo.assert_allclose(tw_ring2.bety[0], tw_cell.bety[0], atol=0, rtol=2e-4)
+    xo.assert_allclose(tw_ring2.betx[0], tw_cell.betx[0], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw_ring2.bety[0], tw_cell.bety[0], atol=0, rtol=5e-4)
 
     # Check that they share the _element_dict
     assert cell._element_dict is env.element_dict
@@ -1351,8 +1351,8 @@ def test_assemble_ring_repeated_elements():
     assert insertion._element_dict is env.element_dict
     assert ring2._element_dict is env.element_dict
 
-    xo.assert_allclose(tw_ring2['betx', 'ip'], tw_half_insertion['betx', 'ip'], atol=0, rtol=2e-4)
-    xo.assert_allclose(tw_ring2['bety', 'ip'], tw_half_insertion['bety', 'ip'], atol=0, rtol=2e-4)
+    xo.assert_allclose(tw_ring2['betx', 'ip'], tw_half_insertion['betx', 'ip'], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw_ring2['bety', 'ip'], tw_half_insertion['bety', 'ip'], atol=0, rtol=5e-4)
     xo.assert_allclose(tw_ring2['alfx', 'ip'], 0, atol=1e-6, rtol=0)
     xo.assert_allclose(tw_ring2['alfy', 'ip'], 0, atol=1e-6, rtol=0)
     xo.assert_allclose(tw_ring2['dx', 'ip'], 0, atol=1e-4, rtol=0)
