@@ -283,6 +283,7 @@ def _resolve_s_positions(seq_all_places, env):
     aux_line = env.new_line(components=names_unsorted)
     aux_tt = aux_line.get_table()
     aux_tt['length'] = np.diff(aux_tt._data['s'], append=0)
+    aux_tt.name = aux_tt.env_name # I want the repeated names here
 
     s_center_dct = {}
     s_center_dct_names = {}

@@ -1689,7 +1689,7 @@ def test_repeated_elements():
     ])
 
     tt = line.get_table()
-    assert np.all(tt.name == np.array(['mb', 'mb', 'drift_1', 'ip1', 'mb',
+    assert np.all(tt.env_name == np.array(['mb', 'mb', 'drift_1', 'ip1', 'mb',
                                     'mb', 'drift_2', 'mb', 'ip2', 'mb',
                                     'mb', '_end_point']))
     assert np.all(tt.s == np.array([
@@ -1710,7 +1710,7 @@ def test_repeated_elements():
         env.place(l1, at=-env.ref['s.l1'], from_='ip'),
     ])
     tt_twol1 = l_twol1.get_table()
-    assert np.all(tt_twol1.name == np.array(
+    assert np.all(tt_twol1.env_name == np.array(
         ['drift_3', 'mb', 'mb', 'mid', 'mb', 'mb', 'drift_4', 'ip',
         'drift_5', 'mb', 'mb', 'mid', 'mb', 'mb', '_end_point']))
     assert np.all(tt_twol1.s == np.array(
@@ -1723,6 +1723,9 @@ def test_repeated_elements():
     ])
     tt_mult = l_mult.get_table()
     assert np.all(tt_mult.name == np.array([
+        'mb::0', 'mb::1', 'mid::0', 'mb::2', 'mb::3', 'mb::4', 'mb::5',
+       'mid::1', 'mb::6', 'mb::7', 'mb::8', 'mb::9', '_end_point']))
+    assert np.all(tt_mult.env_name == np.array([
         'mb', 'mb', 'mid', 'mb', 'mb', 'mb', 'mb', 'mid', 'mb', 'mb', 'mb',
         'mb', '_end_point']))
     assert np.all(tt_mult.s == np.array(
