@@ -131,18 +131,6 @@ class Line:
         else:
             if element_names is None:
                 element_names = [f"e{ii}" for ii in range(len(elements))]
-            if len(element_names) > len(set(element_names)):
-                log.warning("Repetition found in `element_names` -> renaming")
-                old_element_names = element_names
-                element_names = []
-                counters = {nn: 0 for nn in old_element_names}
-                for nn in old_element_names:
-                    if counters[nn] > 0:
-                        new_nn = nn + '_' + str(counters[nn])
-                    else:
-                        new_nn = nn
-                    counters[nn] += 1
-                    element_names.append(new_nn)
 
             assert len(element_names) == len(elements), (
                 "`elements` and `element_names` should have the same length"
