@@ -1183,7 +1183,7 @@ def test_assemble_ring_repeated_elements():
     tt_cell = cell.get_table(attr=True)
     tt_cell['s_center'] = (
         tt_cell['s'] + tt_cell['length'] / 2 * np.float64(tt_cell['isthick']))
-    assert np.all(tt_cell.name == np.array(
+    assert np.all(tt_cell.env_name == np.array(
         ['mid', 'drift_9', 'ms.f', 'drift_3.f', 'mq.f', 'drift_2.f',
        'corrector.f', 'drift_1.f', 'drift_8', 'mb.3', 'drift_7', 'mb.2',
        'drift_6', 'mb.1', 'drift_5', 'drift_1.d', 'corrector.d',
@@ -1242,8 +1242,8 @@ def test_assemble_ring_repeated_elements():
     tt_arc = arc.get_table(attr=True)
     assert len(tt_arc) == 3 * (len(tt_cell)-1) + 1
     n_cell = len(tt_cell) - 1
-    assert np.all(tt_arc.name[n_cell:2*n_cell] == tt_cell.name[:-1])
-    for nn in tt_cell.name[:-1]:
+    assert np.all(tt_arc.env_name[n_cell:2*n_cell] == tt_cell.env_name[:-1])
+    for nn in tt_cell.env_name[:-1]:
         assert arc.get(nn) is env.get(nn)
         assert arc.get(nn) is env['cell'].get(nn)
 
@@ -1354,14 +1354,29 @@ def test_assemble_ring_repeated_elements():
     assert insertion._element_dict is env.element_dict
     assert ring2._element_dict is env.element_dict
 
-    xo.assert_allclose(tw_ring2['betx', 'ip'], tw_half_insertion['betx', 'ip'], atol=0, rtol=5e-4)
-    xo.assert_allclose(tw_ring2['bety', 'ip'], tw_half_insertion['bety', 'ip'], atol=0, rtol=5e-4)
-    xo.assert_allclose(tw_ring2['alfx', 'ip'], 0, atol=1e-6, rtol=0)
-    xo.assert_allclose(tw_ring2['alfy', 'ip'], 0, atol=1e-6, rtol=0)
-    xo.assert_allclose(tw_ring2['dx', 'ip'], 0, atol=1e-4, rtol=0)
-    xo.assert_allclose(tw_ring2['dpx', 'ip'], 0, atol=1e-6, rtol=0)
-    xo.assert_allclose(tw_ring2['dy', 'ip'], 0, atol=1e-4, rtol=0)
-    xo.assert_allclose(tw_ring2['dpy', 'ip'], 0, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw_ring2['betx', 'ip::0'], tw_half_insertion['betx', 'ip'], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw_ring2['bety', 'ip::0'], tw_half_insertion['bety', 'ip'], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw_ring2['alfx', 'ip::0'], 0, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw_ring2['alfy', 'ip::0'], 0, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw_ring2['dx', 'ip::0'], 0, atol=1e-4, rtol=0)
+    xo.assert_allclose(tw_ring2['dpx', 'ip::0'], 0, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw_ring2['dy', 'ip::0'], 0, atol=1e-4, rtol=0)
+    xo.assert_allclose(tw_ring2['dpy', 'ip::0'], 0, atol=1e-6, rtol=0)
+
+    # Check a line with the same marker at start and end
+    assert arc.element_names[0] == 'mid'
+    assert arc.element_names[-1] == 'mid'
+    twarc = arc.twiss4d()
+    xo.assert_allclose(twarc.s[0], 0, atol=1e-12, rtol=0)
+    xo.assert_allclose(twarc.s[-1], 228, atol=1e-10, rtol=0)
+    twarc_start_end = arc.twiss4d(start=xt.START, end=xt.END, init=twarc)
+    xo.assert_allclose(twarc_start_end.betx, twarc.betx, atol=1e-12, rtol=0)
+
+    tw_one_cell_ref = twarc.rows['mid::2':'mid::3']
+    tw_one_cell = arc.twiss4d(start='mid::2', end='mid::3', init='periodic')
+    tw_one_cell_stripped = tw_one_cell.rows[:-1] # remove _end_point
+    xo.assert_allclose(tw_one_cell_stripped.betx, tw_one_cell_ref.betx, atol=0, rtol=5e-4)
+
 
     # import matplotlib.pyplot as plt
     # plt.close('all')

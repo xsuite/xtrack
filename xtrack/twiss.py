@@ -2872,6 +2872,10 @@ class TwissInit:
 
 class TwissTable(Table):
 
+    def __init__(self, *args, **kwargs):
+        kwargs['sep_count'] = kwargs.get('sep_count', '::::')
+        super().__init__(*args, **kwargs)
+
     _error_on_row_not_found = True
 
     def to_pandas(self, index=None, columns=None):

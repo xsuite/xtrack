@@ -733,7 +733,12 @@ class Line:
         for kk in data.keys():
             data[kk] = np.array(data[kk])
 
-        return xd.Table(data=data)
+        names_table = xd.Table(data={'name': data['name']})
+        names_unique = names_table.cols.get_index_unique()
+        data['env_name'] = data['name']
+        data['name'] = names_unique
+        out = xd.Table(data=data, sep_count='::::')
+        return out
 
     def get_strengths(self, reverse=None):
 
