@@ -158,9 +158,7 @@ if __name__ == '__main__':
 
     optimizations_to_do = 8 * [optimizations_to_do[0]]
 
-    collider.vars.cache_active = True
     initial_values = {kk: collider.vars[kk]._value for kk in all_knobs} # create setters
-    collider._var_sharing = None
 
     # t1 = time.time()
     # pool = mp.Pool(processes=4)

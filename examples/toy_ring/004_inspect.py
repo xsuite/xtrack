@@ -140,7 +140,7 @@ tab.rows[3.0:7.0:'s']
 # A section of the ring can be selected using indexes relative one element
 # (e.g. to get from three elements upstream of 'mqd.1' to two elements
 # downstream of 'mb2.1')
-tab.rows['mqd.1%%-3':'mb2.1%%2']
+tab.rows['mqd.1<<3':'mb2.1>>2']
 # returns:
 #
 # Table: 8 rows, 94 cols

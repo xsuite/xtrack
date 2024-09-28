@@ -57,15 +57,8 @@ halfcell = env.new_line(components=[
 
 ])
 
-hcell_left = halfcell.replicate(name='l', mirror=True)
-hcell_right = halfcell.replicate(name='r')
 
-cell = env.new_line(components=[
-    env.new('start', xt.Marker),
-    hcell_left,
-    hcell_right,
-    env.new('end', xt.Marker),
-])
+cell = -halfcell + halfcell
 
 opt = cell.match(
     method='4d',
@@ -93,44 +86,28 @@ halfcell_ss = env.new_line(components=[
     env.new('corrector.ss.h', 'corrector', at=-0.75, from_='mq.ss.f')
 ])
 
-hcell_left_ss = halfcell_ss.replicate(name='l', mirror=True)
-hcell_right_ss = halfcell_ss.replicate(name='r')
-cell_ss = env.new_line(components=[
-    env.new('start.ss', xt.Marker),
-    hcell_left_ss,
-    hcell_right_ss,
-    env.new('end.ss', xt.Marker),
+cell_ss = env.new_line([
+    env.new('start.cell.ss', 'Marker'),
+    -halfcell_ss + halfcell_ss
 ])
 
 opt = cell_ss.match(
     method='4d',
     vary=xt.VaryList(['kqf.ss', 'kqd.ss'], step=1e-5),
     targets=xt.TargetSet(
-        betx=tw_cell.betx[-1], bety=tw_cell.bety[-1], at='start.ss',
-    ))
+        betx=tw_cell.betx[-1], bety=tw_cell.bety[-1], at='start.cell.ss'))
 
 
+arc = 3 * cell
+ss = 2 * cell_ss
 
-arc = env.new_line(components=[
-    cell.replicate(name='cell.1'),
-    cell.replicate(name='cell.2'),
-    cell.replicate(name='cell.3'),
-])
+ring = 3 * (arc + ss)
 
+# Twiss the ring
+tw = ring.twiss4d()
 
-ss = env.new_line(components=[
-    cell_ss.replicate('cell.1'),
-    cell_ss.replicate('cell.2'),
-])
-
-ring = env.new_line(components=[
-    arc.replicate(name='arc.1'),
-    ss.replicate(name='ss.1'),
-    arc.replicate(name='arc.2'),
-    ss.replicate(name='ss.2'),
-    arc.replicate(name='arc.3'),
-    ss.replicate(name='ss.3'),
-])
+# Twiss a single cell
+tw_a_cell = ring.twiss4d(start='mq.f::10', end='mq.f::11', init='periodic')
 
 ## Insertion
 
@@ -185,30 +162,13 @@ opt = half_insertion.match(
 opt.step(40)
 opt.solve()
 
-insertion = env.new_line([
-    half_insertion.replicate('l', mirror=True),
-    half_insertion.replicate('r')])
+insertion = -half_insertion + half_insertion
 
-
-
-ring2 = env.new_line(components=[
-    arc.replicate(name='arcc.1'),
-    ss.replicate(name='sss.2'),
-    arc.replicate(name='arcc.2'),
-    insertion,
-    arc.replicate(name='arcc.3'),
-    ss.replicate(name='sss.3')
-])
-
-
-# # Check buffer behavior
-ring2_sliced = ring2.select()
-ring2_sliced.cut_at_s(np.arange(0, ring2.get_length(), 0.5))
-
+ring2 = 2 * (arc + ss) + arc + insertion
 
 import matplotlib.pyplot as plt
 plt.close('all')
-for ii, rr in enumerate([ring, ring2_sliced]):
+for ii, rr in enumerate([ring, ring2]):
 
     tw = rr.twiss4d()
 

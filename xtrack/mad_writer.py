@@ -295,7 +295,7 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
                 s_dict[nn] = 0.5 * (tt_s[ii] + tt_s[ii+1])
 
         for nn in line.element_names:
-            el = line[nn]
+            el = line.element_dict[nn]
             if isinstance(el, xt.Drift):
                 continue
             el_str = xsuite_to_mad_conveters[type(el)](nn, line)

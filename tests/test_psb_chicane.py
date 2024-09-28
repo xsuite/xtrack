@@ -376,7 +376,6 @@ def test_psb_chicane(test_context):
 
     line.enable_time_dependent_vars = True
     line.dt_update_time_dependent_vars = 3e-6
-    line.vars.cache_active = True
 
     print('Tracking...')
     line.track(p, num_turns=6000, time=True)
