@@ -61,6 +61,12 @@ class Environment:
         out._name = name
         out.builder = Builder(env=self, components=components)
 
+        # Temporary solution to keep consistency in multiline
+        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+            out._var_management = None
+            out._in_multiline = self._in_multiline
+            out._name_in_multiline = self._name_in_multiline
+
         self._lines_weakrefs.add(out) # Weak references
         if name is not None:
             self.lines[name] = out
@@ -277,6 +283,7 @@ def _resolve_s_positions(seq_all_places, env):
     aux_line = env.new_line(components=names_unsorted)
     aux_tt = aux_line.get_table()
     aux_tt['length'] = np.diff(aux_tt._data['s'], append=0)
+    aux_tt.name = aux_tt.env_name # I want the repeated names here
 
     s_center_dct = {}
     s_center_dct_names = {}

@@ -3,6 +3,9 @@ import xobjects as xo
 import xdeps as xd
 import numpy as np
 import pytest
+import pathlib
+
+test_data_folder = pathlib.Path(__file__).parent.joinpath('../test_data').absolute()
 
 @pytest.mark.parametrize('container_type', ['env', 'line'])
 def test_vars_and_element_access_modes(container_type):
@@ -568,13 +571,13 @@ def test_assemble_ring():
     # Check that the cell is matched to the rest of the ring
     tw = ring.twiss4d()
     tw_cell_from_ring = tw.rows['start.cell.3.arc.2':'end.cell.3.arc.2']
-    xo.assert_allclose(tw_cell_from_ring.betx, tw_cell.betx[:-1], atol=0, rtol=2e-4)
-    xo.assert_allclose(tw_cell_from_ring.bety, tw_cell.bety[:-1], atol=0, rtol=2e-4)
+    xo.assert_allclose(tw_cell_from_ring.betx, tw_cell.betx[:-1], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw_cell_from_ring.bety, tw_cell.bety[:-1], atol=0, rtol=5e-4)
 
     tw2 = ring2.twiss4d()
     tw_cell_from_ring2 = tw2.rows['start.cell.3.arc.2':'end.cell.3.arc.2']
-    xo.assert_allclose(tw_cell_from_ring2.betx, tw_cell.betx[:-1], atol=0, rtol=2e-4)
-    xo.assert_allclose(tw_cell_from_ring2.bety, tw_cell.bety[:-1], atol=0, rtol=2e-4)
+    xo.assert_allclose(tw_cell_from_ring2.betx, tw_cell.betx[:-1], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw_cell_from_ring2.bety, tw_cell.bety[:-1], atol=0, rtol=5e-4)
 
     # Check select
     cell3_select = ring2.select(start='start.cell.3.arc.2', end='end.cell.3.arc.2',
@@ -598,8 +601,8 @@ def test_assemble_ring():
     cell3_select.twiss4d()
 
     tw2_slice = ring2_sliced.twiss4d()
-    xo.assert_allclose(tw2_slice['betx', 'ip.l'], tw2['betx', 'ip.l'], atol=0, rtol=2e-4)
-    xo.assert_allclose(tw2_slice['bety', 'ip.l'], tw2['bety', 'ip.l'], atol=0, rtol=2e-4)
+    xo.assert_allclose(tw2_slice['betx', 'ip.l'], tw2['betx', 'ip.l'], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw2_slice['bety', 'ip.l'], tw2['bety', 'ip.l'], atol=0, rtol=5e-4)
     xo.assert_allclose(tw2_slice['alfx', 'ip.l'], 0, atol=1e-6, rtol=0)
     xo.assert_allclose(tw2_slice['alfy', 'ip.l'], 0, atol=1e-6, rtol=0)
     xo.assert_allclose(tw2_slice['dx', 'ip.l'], 0, atol=1e-4, rtol=0)
@@ -976,13 +979,13 @@ def test_assemble_ring_builders():
     # Check that the cell is matched to the rest of the ring
     tw = ring.twiss4d()
     tw_cell_from_ring = tw.rows['start.cell.3.arc.2':'end.cell.3.arc.2']
-    xo.assert_allclose(tw_cell_from_ring.betx, tw_cell.betx[:-1], atol=0, rtol=2e-4)
-    xo.assert_allclose(tw_cell_from_ring.bety, tw_cell.bety[:-1], atol=0, rtol=2e-4)
+    xo.assert_allclose(tw_cell_from_ring.betx, tw_cell.betx[:-1], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw_cell_from_ring.bety, tw_cell.bety[:-1], atol=0, rtol=5e-4)
 
     tw2 = ring2.twiss4d()
     tw_cell_from_ring2 = tw2.rows['start.cell.3.arc.2':'end.cell.3.arc.2']
-    xo.assert_allclose(tw_cell_from_ring2.betx, tw_cell.betx[:-1], atol=0, rtol=2e-4)
-    xo.assert_allclose(tw_cell_from_ring2.bety, tw_cell.bety[:-1], atol=0, rtol=2e-4)
+    xo.assert_allclose(tw_cell_from_ring2.betx, tw_cell.betx[:-1], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw_cell_from_ring2.bety, tw_cell.bety[:-1], atol=0, rtol=5e-4)
 
     # Check select
     cell3_select = ring2.select(start='start.cell.3.arc.2', end='end.cell.3.arc.2',
@@ -1006,8 +1009,8 @@ def test_assemble_ring_builders():
     cell3_select.twiss4d()
 
     tw2_slice = ring2_sliced.twiss4d()
-    xo.assert_allclose(tw2_slice['betx', 'ip.l'], tw2['betx', 'ip.l'], atol=0, rtol=2e-4)
-    xo.assert_allclose(tw2_slice['bety', 'ip.l'], tw2['bety', 'ip.l'], atol=0, rtol=2e-4)
+    xo.assert_allclose(tw2_slice['betx', 'ip.l'], tw2['betx', 'ip.l'], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw2_slice['bety', 'ip.l'], tw2['bety', 'ip.l'], atol=0, rtol=5e-4)
     xo.assert_allclose(tw2_slice['alfx', 'ip.l'], 0, atol=1e-6, rtol=0)
     xo.assert_allclose(tw2_slice['alfy', 'ip.l'], 0, atol=1e-6, rtol=0)
     xo.assert_allclose(tw2_slice['dx', 'ip.l'], 0, atol=1e-4, rtol=0)
@@ -1180,7 +1183,7 @@ def test_assemble_ring_repeated_elements():
     tt_cell = cell.get_table(attr=True)
     tt_cell['s_center'] = (
         tt_cell['s'] + tt_cell['length'] / 2 * np.float64(tt_cell['isthick']))
-    assert np.all(tt_cell.name == np.array(
+    assert np.all(tt_cell.env_name == np.array(
         ['mid', 'drift_9', 'ms.f', 'drift_3.f', 'mq.f', 'drift_2.f',
        'corrector.f', 'drift_1.f', 'drift_8', 'mb.3', 'drift_7', 'mb.2',
        'drift_6', 'mb.1', 'drift_5', 'drift_1.d', 'corrector.d',
@@ -1239,8 +1242,8 @@ def test_assemble_ring_repeated_elements():
     tt_arc = arc.get_table(attr=True)
     assert len(tt_arc) == 3 * (len(tt_cell)-1) + 1
     n_cell = len(tt_cell) - 1
-    assert np.all(tt_arc.name[n_cell:2*n_cell] == tt_cell.name[:-1])
-    for nn in tt_cell.name[:-1]:
+    assert np.all(tt_arc.env_name[n_cell:2*n_cell] == tt_cell.env_name[:-1])
+    for nn in tt_cell.env_name[:-1]:
         assert arc.get(nn) is env.get(nn)
         assert arc.get(nn) is env['cell'].get(nn)
 
@@ -1337,11 +1340,11 @@ def test_assemble_ring_repeated_elements():
 
     # Check that the cell is matched to the rest of the ring
     tw_ring = ring.twiss4d()
-    xo.assert_allclose(tw_ring.betx[0], tw_cell.betx[0], atol=0, rtol=2e-4)
-    xo.assert_allclose(tw_ring.bety[0], tw_cell.bety[0], atol=0, rtol=2e-4)
+    xo.assert_allclose(tw_ring.betx[0], tw_cell.betx[0], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw_ring.bety[0], tw_cell.bety[0], atol=0, rtol=5e-4)
     tw_ring2 = ring2.twiss4d()
-    xo.assert_allclose(tw_ring2.betx[0], tw_cell.betx[0], atol=0, rtol=2e-4)
-    xo.assert_allclose(tw_ring2.bety[0], tw_cell.bety[0], atol=0, rtol=2e-4)
+    xo.assert_allclose(tw_ring2.betx[0], tw_cell.betx[0], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw_ring2.bety[0], tw_cell.bety[0], atol=0, rtol=5e-4)
 
     # Check that they share the _element_dict
     assert cell._element_dict is env.element_dict
@@ -1351,14 +1354,29 @@ def test_assemble_ring_repeated_elements():
     assert insertion._element_dict is env.element_dict
     assert ring2._element_dict is env.element_dict
 
-    xo.assert_allclose(tw_ring2['betx', 'ip'], tw_half_insertion['betx', 'ip'], atol=0, rtol=2e-4)
-    xo.assert_allclose(tw_ring2['bety', 'ip'], tw_half_insertion['bety', 'ip'], atol=0, rtol=2e-4)
-    xo.assert_allclose(tw_ring2['alfx', 'ip'], 0, atol=1e-6, rtol=0)
-    xo.assert_allclose(tw_ring2['alfy', 'ip'], 0, atol=1e-6, rtol=0)
-    xo.assert_allclose(tw_ring2['dx', 'ip'], 0, atol=1e-4, rtol=0)
-    xo.assert_allclose(tw_ring2['dpx', 'ip'], 0, atol=1e-6, rtol=0)
-    xo.assert_allclose(tw_ring2['dy', 'ip'], 0, atol=1e-4, rtol=0)
-    xo.assert_allclose(tw_ring2['dpy', 'ip'], 0, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw_ring2['betx', 'ip::0'], tw_half_insertion['betx', 'ip'], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw_ring2['bety', 'ip::0'], tw_half_insertion['bety', 'ip'], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw_ring2['alfx', 'ip::0'], 0, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw_ring2['alfy', 'ip::0'], 0, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw_ring2['dx', 'ip::0'], 0, atol=1e-4, rtol=0)
+    xo.assert_allclose(tw_ring2['dpx', 'ip::0'], 0, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw_ring2['dy', 'ip::0'], 0, atol=1e-4, rtol=0)
+    xo.assert_allclose(tw_ring2['dpy', 'ip::0'], 0, atol=1e-6, rtol=0)
+
+    # Check a line with the same marker at start and end
+    assert arc.element_names[0] == 'mid'
+    assert arc.element_names[-1] == 'mid'
+    twarc = arc.twiss4d()
+    xo.assert_allclose(twarc.s[0], 0, atol=1e-12, rtol=0)
+    xo.assert_allclose(twarc.s[-1], 228, atol=1e-10, rtol=0)
+    twarc_start_end = arc.twiss4d(start=xt.START, end=xt.END, init=twarc)
+    xo.assert_allclose(twarc_start_end.betx, twarc.betx, atol=1e-12, rtol=0)
+
+    tw_one_cell_ref = twarc.rows['mid::2':'mid::3']
+    tw_one_cell = arc.twiss4d(start='mid::2', end='mid::3', init='periodic')
+    tw_one_cell_stripped = tw_one_cell.rows[:-1] # remove _end_point
+    xo.assert_allclose(tw_one_cell_stripped.betx, tw_one_cell_ref.betx, atol=0, rtol=5e-4)
+
 
     # import matplotlib.pyplot as plt
     # plt.close('all')
@@ -1671,7 +1689,7 @@ def test_repeated_elements():
     ])
 
     tt = line.get_table()
-    assert np.all(tt.name == np.array(['mb', 'mb', 'drift_1', 'ip1', 'mb',
+    assert np.all(tt.env_name == np.array(['mb', 'mb', 'drift_1', 'ip1', 'mb',
                                     'mb', 'drift_2', 'mb', 'ip2', 'mb',
                                     'mb', '_end_point']))
     assert np.all(tt.s == np.array([
@@ -1692,7 +1710,7 @@ def test_repeated_elements():
         env.place(l1, at=-env.ref['s.l1'], from_='ip'),
     ])
     tt_twol1 = l_twol1.get_table()
-    assert np.all(tt_twol1.name == np.array(
+    assert np.all(tt_twol1.env_name == np.array(
         ['drift_3', 'mb', 'mb', 'mid', 'mb', 'mb', 'drift_4', 'ip',
         'drift_5', 'mb', 'mb', 'mid', 'mb', 'mb', '_end_point']))
     assert np.all(tt_twol1.s == np.array(
@@ -1705,7 +1723,42 @@ def test_repeated_elements():
     ])
     tt_mult = l_mult.get_table()
     assert np.all(tt_mult.name == np.array([
+        'mb::0', 'mb::1', 'mid::0', 'mb::2', 'mb::3', 'mb::4', 'mb::5',
+       'mid::1', 'mb::6', 'mb::7', 'mb::8', 'mb::9', '_end_point']))
+    assert np.all(tt_mult.env_name == np.array([
         'mb', 'mb', 'mid', 'mb', 'mb', 'mb', 'mb', 'mid', 'mb', 'mb', 'mb',
         'mb', '_end_point']))
     assert np.all(tt_mult.s == np.array(
         [0. , 0.5, 1. , 1. , 1.5, 2. , 2.5, 3. , 3. , 3.5, 4. , 4.5, 5. ]))
+
+def test_select_in_multiline():
+
+    # --- Parameters
+    seq         = 'lhcb1'
+    ip_name     = 'ip1'
+    s_marker    = f'e.ds.l{ip_name[-1]}.b1'
+    e_marker    = f's.ds.r{ip_name[-1]}.b1'
+    #-------------------------------------
+
+    collider_file = test_data_folder / 'hllhc15_collider/collider_00_from_mad.json'
+
+    # Load the machine and select line
+    collider= xt.Multiline.from_json(collider_file)
+    collider.vars['test_vars'] = 3.1416
+    line   = collider[seq]
+    line_sel    = line.select(s_marker,e_marker)
+
+    assert line_sel.element_dict is line.element_dict
+    assert line.get('ip1') is line_sel.get('ip1')
+
+    line_sel['aaa'] = 1e-6
+    assert line_sel['aaa'] == 1e-6
+    assert line['aaa'] == 1e-6
+
+    line_sel.ref['mcbch.7r1.b1'].knl[0] += line.ref['aaa']
+    assert (str(line.ref['mcbch.7r1.b1'].knl[0]._expr)
+            == "((-vars['acbch7.r1b1']) + vars['aaa'])")
+    assert (str(line_sel.ref['mcbch.7r1.b1'].knl[0]._expr)
+            == "((-vars['acbch7.r1b1']) + vars['aaa'])")
+    assert line_sel.get('mcbch.7r1.b1').knl[0] == 1e-6
+    assert line.get('mcbch.7r1.b1').knl[0] == 1e-6

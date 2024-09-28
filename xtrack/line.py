@@ -131,18 +131,6 @@ class Line:
         else:
             if element_names is None:
                 element_names = [f"e{ii}" for ii in range(len(elements))]
-            if len(element_names) > len(set(element_names)):
-                log.warning("Repetition found in `element_names` -> renaming")
-                old_element_names = element_names
-                element_names = []
-                counters = {nn: 0 for nn in old_element_names}
-                for nn in old_element_names:
-                    if counters[nn] > 0:
-                        new_nn = nn + '_' + str(counters[nn])
-                    else:
-                        new_nn = nn
-                    counters[nn] += 1
-                    element_names.append(new_nn)
 
             assert len(element_names) == len(elements), (
                 "`elements` and `element_names` should have the same length"
@@ -733,7 +721,12 @@ class Line:
         for kk in data.keys():
             data[kk] = np.array(data[kk])
 
-        return xd.Table(data=data)
+        names_table = xd.Table(data={'name': data['name']})
+        names_unique = names_table.cols.get_index_unique()
+        data['env_name'] = data['name']
+        data['name'] = names_unique
+        out = xd.Table(data=data, sep_count='::::')
+        return out
 
     def get_strengths(self, reverse=None):
 
@@ -3482,6 +3475,14 @@ class Line:
 
         out = self.env.new_line(components=list(tt.name), name=name)
 
+        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+            out.env._var_management = None
+            out._var_management = None
+            out.env._in_multiline = self._in_multiline
+            out._in_multiline = self._in_multiline
+            out.env._name_in_multiline = self._name_in_multiline
+            out._name_in_multiline = self._name_in_multiline
+
         return out
 
     def set(self, name, *args, **kwargs):
@@ -3541,6 +3542,12 @@ class Line:
                                       particle_ref=self.particle_ref,
                                       _var_management=self._var_management)
             self.env._lines_weakrefs.add(self)
+
+            # Temporary solution to keep consistency in multiline
+            if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+                self.env._var_management = None
+                self.env._in_multiline = self._in_multiline
+                self.env._name_in_multiline = self._name_in_multiline
 
     def extend(self, line):
         self.element_names.extend(line.element_names)
@@ -4252,6 +4259,13 @@ class Line:
                 new_ee = ee.get_equivalent_element()
                 self.element_dict[nn] = new_ee
 
+    @property
+    def _element_names_unique(self):
+        if not self._has_valid_tracker():
+            raise RuntimeError(
+                '`Line._element_names_unique` con only be called after `Line.build_tracker`')
+        return self.tracker._tracker_data_base._element_names_unique
+
 def frac(x):
     return x % 1
 
@@ -4628,8 +4642,6 @@ class LineVars:
 
     def __init__(self, line):
         self.line = line
-        self._cache_active = False
-        self._cached_setters = {}
         if '__vary_default' not in self.line._xdeps_vref._owner.keys():
             self.line._xdeps_vref._owner['__vary_default'] = {}
         self.val = VarValues(self)
@@ -4704,26 +4716,9 @@ class LineVars:
                 out.append(kk)
         return out
 
-    def _setter_from_cache(self, varname):
-        if varname not in self._cached_setters:
-            if self.line._xdeps_manager is None:
-                raise RuntimeError(
-                    f'Cannot access variable {varname} as the line has no '
-                    'xdeps manager')
-            try:
-                self.cache_active = False
-                self._cached_setters[varname] = VarSetter(self.line, varname)
-                self.cache_active = True
-            except Exception as ee:
-                self.cache_active = True
-                raise ee
-        return self._cached_setters[varname]
-
     def __getitem__(self, key):
         if key not in self: # uses __contains__ method
             raise KeyError(f'Variable `{key}` not found')
-        if self.cache_active:
-            return self._setter_from_cache(key)
         return self.line._xdeps_vref[key]
 
     def get(self,key,default=0):
@@ -4733,25 +4728,9 @@ class LineVars:
             return default
 
     def __setitem__(self, key, value):
-        if self.cache_active:
-            if isref(value) or isinstance(value, VarSetter):
-                raise ValueError('Cannot set a variable to a ref when the '
-                                 'cache is active')
-            self._setter_from_cache(key)(value)
-        else:
-            if isinstance(value, str):
-                value = self.line._xdeps_eval.eval(value)
-            self.line._xdeps_vref[key] = value
-
-    @property
-    def cache_active(self):
-        return self._cache_active
-
-    @cache_active.setter
-    def cache_active(self, value):
-        assert value in (True, False)
-        self._cache_active = value
-        self.line._xdeps_manager._tree_frozen = value
+        if isinstance(value, str):
+            value = self.line._xdeps_eval.eval(value)
+        self.line._xdeps_vref[key] = value
 
     def set_from_madx_file(self, filename, mad_stdout=False):
 
@@ -4782,9 +4761,6 @@ class LineVars:
             assert isinstance(filename, (list, tuple))
         for ff in filename:
             mad.call(str(ff))
-
-        assert self.cache_active is False, (
-            'Cannot load optics file when cache is active')
 
         mad.input('''
         elm: marker; dummy: sequence, l=1; e:elm, at=0.5; endsequence;
@@ -4851,8 +4827,6 @@ class ActionVars(Action):
         self.line = line
 
     def run(self, **kwargs):
-        assert not self.line.vars.cache_active, (
-            'Cannot run action when cache is active')
         return self.line._xdeps_vref._owner
 
 class ActionLine(Action):
@@ -4879,45 +4853,6 @@ class VarValues:
             return self.vars[key]._value
         else:
             return default
-
-class VarSetter:
-    def __init__(self, line, varname):
-        self.multiline = line
-        self.varname = varname
-
-        manager = self.multiline._xdeps_manager
-        if manager is None:
-            raise RuntimeError(
-                f'Cannot access variable {varname} as the line has no xdeps manager')
-        # assuming line._xdeps_vref is a direct view of a dictionary
-        self.owner = line._xdeps_vref[varname]._owner._owner
-        self.fstr = manager.mk_fun('setter', **{'val': line._xdeps_vref[varname]})
-        self.gbl = {k: r._owner for k, r in manager.containers.items()}
-        self._build_fun()
-
-    def get_value(self):
-        return self.owner[self.varname]
-
-    @property
-    def _value(self):
-        return self.get_value()
-
-    def _build_fun(self):
-        lcl = {}
-        exec(self.fstr, self.gbl.copy(), lcl)
-        self.fun = lcl['setter']
-
-    def __call__(self, value):
-        self.fun(val=value)
-
-    def __getstate__(self):
-        out = self.__dict__.copy()
-        out.pop('fun')
-        return out
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-        self._build_fun()
 
 class LineAttrItem:
     def __init__(self, name, index=None, line=None):
