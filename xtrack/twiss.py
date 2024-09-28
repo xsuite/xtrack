@@ -2416,7 +2416,7 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
             algorithm = 'regen_all_drifts'
 
     auxline = xt.Line(elements=tracker.line.element_dict.copy(),
-                      _element_names_unique=list(tracker.line._element_names_unique).copy())
+                      element_names=list(tracker.line.element_names).copy())
     if tracker.line.particle_ref is not None:
         auxline.particle_ref = tracker.line.particle_ref.copy()
 
