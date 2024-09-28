@@ -1377,6 +1377,22 @@ def test_assemble_ring_repeated_elements():
     tw_one_cell_stripped = tw_one_cell.rows[:-1] # remove _end_point
     xo.assert_allclose(tw_one_cell_stripped.betx, tw_one_cell_ref.betx, atol=0, rtol=5e-4)
 
+    tt_ring2 = ring2.get_table(attr=True)
+    assert tt_ring2['name', 39] == 'mq.f::1'
+    assert tt_ring2['name', 48] == 'mq.f::2'
+    assert ring2.element_names[39] == 'mq.f'
+    assert ring2.element_names[48] == 'mq.f'
+
+    ring2.replace_all_repeated_elements()
+    tt_ring2_after = ring2.get_table(attr=True)
+    assert tt_ring2_after['name', 39] == 'mq.f.1'
+    assert tt_ring2_after['name', 48] == 'mq.f.2'
+    assert ring2.element_names[39] == 'mq.f.1'
+    assert ring2.element_names[48] == 'mq.f.2'
+    assert str(ring2.ref['mq.f.1'].k1._expr) == "vars['kqf']"
+    assert str(ring2.ref['mq.f.2'].k1._expr) == "vars['kqf']"
+    assert ring2.get('mq.f.1') is not ring2.get('mq.f.2')
+
 
     # import matplotlib.pyplot as plt
     # plt.close('all')
