@@ -1393,7 +1393,6 @@ def test_assemble_ring_repeated_elements():
     assert str(ring2.ref['mq.f.2'].k1._expr) == "vars['kqf']"
     assert ring2.get('mq.f.1') is not ring2.get('mq.f.2')
 
-
     # import matplotlib.pyplot as plt
     # plt.close('all')
     # for ii, rr in enumerate([ring, ring2_sliced]):
