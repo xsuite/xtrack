@@ -49,5 +49,6 @@ setup(
         ],
     extras_require={
         'tests': ['cpymad', 'nafflib', 'PyHEADTAIL', 'pytest', 'pytest-mock'],
-        },
+        'notebooks': ['jupyter', 'ipympl', 'xplt'],
+    },
     )
