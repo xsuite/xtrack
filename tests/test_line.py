@@ -384,7 +384,7 @@ def test_check_aperture():
         element_names=['dr1', 'm1_ap', 'dum', 'm1', 'dr2', 'm2', 'dr3',
                        'th1_ap_front', 'dum', 'th1', 'dum', 'th1_ap_back',
                        'dr4', 'th2', 'th2_ap_back',
-                       'dr5', 'th3_ap_front', 'th3'])
+                       'dr5', 'th3_ap_front', 'th3', 'dr6'])
     df = line.check_aperture()
 
     expected_miss_upstream = [nn in ('m2', 'th2') for nn in df['name'].values]
