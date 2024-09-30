@@ -3492,7 +3492,7 @@ class Line:
 
         self._env_if_needed()
 
-        out = self.env.new_line(components=list(tt.name), name=name)
+        out = self.env.new_line(components=list(tt.env_name), name=name)
 
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
             out.env._var_management = None
