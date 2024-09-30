@@ -120,6 +120,10 @@ class Tracker:
             _context=_context,
             _buffer=_buffer,
             _no_resolve_parents=_prebuilding_kernels)
+        if not _prebuilding_kernels:
+            tracker_data_base._line_table = line.get_table()
+            tracker_data_base._element_names_unique = tuple(
+                    tracker_data_base._line_table.name[:-1]) # remove _endpoint
         line._freeze()
 
         if np.any([hasattr(ee, 'needs_rng') and ee.needs_rng for ee in line.elements]):

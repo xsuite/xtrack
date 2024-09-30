@@ -2,10 +2,10 @@ import xtrack as xt
 import xobjects as xo
 import numpy as np
 from weakref import WeakSet
-
+from collections import Counter, UserDict
 
 def _flatten_components(components):
-    flatten_components = []
+    flatt_components = []
     for nn in components:
         if isinstance(nn, Place) and isinstance(nn.name, xt.Line):
             line = nn.name
@@ -17,12 +17,13 @@ def _flatten_components(components):
                     at = nn.at
                 at_first_element = at - line.get_length() / 2 + line[0].length / 2
                 components[0] = Place(components[0], at=at_first_element, from_=nn.from_)
-            flatten_components += components
+            flatt_components += components
         elif isinstance(nn, xt.Line):
-            flatten_components += nn.element_names
+            flatt_components += nn.element_names
         else:
-            flatten_components.append(nn)
-    return flatten_components
+            flatt_components.append(nn)
+
+    return flatt_components
 
 class Environment:
     def __init__(self, element_dict=None, particle_ref=None, _var_management=None):
@@ -34,8 +35,8 @@ class Environment:
         else:
             self._init_var_management()
 
-        self.lines = {}
-        self._lines = WeakSet()
+        self.lines = EnvLines(self)
+        self._lines_weakrefs = WeakSet()
         self._drift_counter = 0
         self.ref = EnvRef(self)
 
@@ -46,18 +47,37 @@ class Environment:
         out._element_dict = self.element_dict # Avoid copying
         if components is None:
             components = []
+
+        for ii, nn in enumerate(components):
+            if (isinstance(nn, Place) and isinstance(nn.name, str)
+                    and nn.name in self.lines):
+                nn.name = self.lines[nn.name]
+            if isinstance(nn, str) and nn in self.lines:
+                components[ii] = self.lines[nn]
+
         flattened_components = _flatten_components(components)
         out.element_names = handle_s_places(flattened_components, self)
         out._var_management = self._var_management
         out._name = name
-        self._lines.add(out) # Weak references
+        out.builder = Builder(env=self, components=components)
+
+        # Temporary solution to keep consistency in multiline
+        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+            out._var_management = None
+            out._in_multiline = self._in_multiline
+            out._name_in_multiline = self._name_in_multiline
+
+        self._lines_weakrefs.add(out) # Weak references
         if name is not None:
             self.lines[name] = out
 
         return out
 
+    def new_builder(self, components=None, name=None):
+        return Builder(env=self, components=components, name=name)
+
     def _ensure_tracker_consistency(self, buffer):
-        for ln in self._lines:
+        for ln in self._lines_weakrefs:
             if ln._has_valid_tracker() and ln._buffer is not buffer:
                 ln.discard_tracker()
 
@@ -69,40 +89,100 @@ class Environment:
         else:
             return self._get_a_drift_name()
 
-    def new(self, name, cls, at=None, from_=None, **kwargs):
+    def new(self, name, cls, mode=None, at=None, from_=None, extra=None,
+            mirror=False, **kwargs):
 
         if from_ is not None or at is not None:
-            return Place(at=at, from_=from_,
-                         name=self.new(name, cls, **kwargs))
+            all_kwargs = locals()
+            all_kwargs.pop('self')
+            all_kwargs.pop('at')
+            all_kwargs.pop('from_')
+            all_kwargs.pop('kwargs')
+            all_kwargs.update(kwargs)
+            return Place(self.new(**all_kwargs), at=at, from_=from_)
+
+        _ALLOWED_ELEMENT_TYPES_IN_NEW = xt.line._ALLOWED_ELEMENT_TYPES_IN_NEW
+        _ALLOWED_ELEMENT_TYPES_DICT = xt.line._ALLOWED_ELEMENT_TYPES_DICT
+        _STR_ALLOWED_ELEMENT_TYPES_IN_NEW = xt.line._STR_ALLOWED_ELEMENT_TYPES_IN_NEW
+
+        if cls in self.lines:
+            cls = self.lines[cls]
+
+        if isinstance(cls, xt.Line):
+            assert len(kwargs) == 0, 'No kwargs allowed when creating a line'
+            if mode == 'replica':
+                assert name is not None, 'Name must be provided when replicating a line'
+                return cls.replicate(name=name, mirror=mirror)
+            else:
+                assert mode in [None, 'clone'], f'Unknown mode {mode}'
+                assert name is not None, 'Name must be provided when cloning a line'
+                return cls.clone(name=name, mirror=mirror)
+
+        assert mirror is False, 'mirror=True only allowed when cloning or  lines.'
+
+        if cls is xt.Line or (cls=='Line' and (
+            'Line' not in self.lines and 'Line' not in self.element_dict)):
+            assert mode is None, 'Mode not allowed when cls is Line'
+            return self.new_line(name=name, **kwargs)
+
+        if mode == 'replica':
+            assert cls in self.element_dict, f'Element {cls} not found, cannot replicate'
+            kwargs['parent_name'] = xo.String(cls)
+            cls = xt.Replica
+        elif mode == 'clone':
+            assert cls in self.element_dict, f'Element {cls} not found, cannot clone'
+        else:
+            assert mode is None, f'Unknown mode {mode}'
 
         _eval = self._xdeps_eval.eval
 
-        assert isinstance(cls, str) or cls in [xt.Drift, xt.Bend, xt.
-                       Quadrupole, xt.Sextupole, xt.Octupole,
-                       xt.Multipole, xt.Marker, xt.Replica], (
-            'Only Drift, Dipole, Quadrupole, Sextupole, Octupole, Multipole, Marker, and Replica '
-            'elements are allowed in `new` for now.')
+        assert isinstance(cls, str) or cls in _ALLOWED_ELEMENT_TYPES_IN_NEW, (
+            'Only '
+            + _STR_ALLOWED_ELEMENT_TYPES_IN_NEW
+            + ' elements are allowed in `new` for now.')
 
-        cls_input = cls
+        needs_instantiation = True
         if isinstance(cls, str):
-            # Clone an existing element
-            assert cls in self.element_dict, f'Element {cls} not found in environment'
-            self.element_dict[name] = xt.Replica(parent_name=cls)
-            self.replace_replica(name)
-            cls = type(self.element_dict[name])
+            if cls in self.element_dict:
+                # Clone an existing element
+                self.element_dict[name] = xt.Replica(parent_name=cls)
+                self.replace_replica(name)
+                cls = type(self.element_dict[name])
+                needs_instantiation = False
+            elif cls in _ALLOWED_ELEMENT_TYPES_DICT:
+                cls = _ALLOWED_ELEMENT_TYPES_DICT[cls]
+                needs_instantiation = True
+            else:
+                raise ValueError(f'Element type {cls} not found')
 
         ref_kwargs, value_kwargs = _parse_kwargs(cls, kwargs, _eval)
 
-        if not isinstance(cls_input, str): # Parent is a class and not another element
+        if needs_instantiation: # Parent is a class and not another element
             self.element_dict[name] = cls(**value_kwargs)
 
         _set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
                     element_dict=self.element_dict, element_refs=self.element_refs)
 
+        if extra is not None:
+            assert isinstance(extra, dict)
+            self.element_dict[name].extra = extra
+
         return name
 
     def place(self, name, at=None, from_=None, anchor=None, from_anchor=None):
         return Place(name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
+
+    def __setitem__(self, key, value):
+
+        if isinstance(value, xt.Line):
+            assert value.env is self, 'Line must be in the same environment'
+            if key in self.lines:
+                raise ValueError(f'There is already a line with name {key}')
+            if key in self.element_dict:
+                raise ValueError(f'There is already an element with name {key}')
+            self.lines[key] = value
+        else:
+            xt.Line.__setitem__(self, key, value)
 
 Environment.element_dict = xt.Line.element_dict
 Environment._init_var_management = xt.Line._init_var_management
@@ -116,8 +196,8 @@ Environment.varval = xt.Line.varval
 Environment.vv = xt.Line.vv
 Environment.replace_replica = xt.Line.replace_replica
 Environment.__getitem__ = xt.Line.__getitem__
-Environment.__setitem__ = xt.Line.__setitem__
 Environment.set = xt.Line.set
+Environment.get = xt.Line.get
 
 class Place:
 
@@ -136,7 +216,16 @@ class Place:
         self._before = False
 
     def __repr__(self):
-        return f'Place({self.name}, at={self.at}, from_={self.from_})'
+        out = f'Place({self.name}, at={self.at}, from_={self.from_}'
+        if self._before:
+            out += ', before=True'
+        out += ')'
+        return out
+
+    def copy(self):
+        out = Place('dummy')
+        out.__dict__ = self.__dict__.copy()
+        return out
 
 def _all_places(seq):
     seq_all_places = []
@@ -150,13 +239,16 @@ def _all_places(seq):
                 if isinstance(sss, Place):
                     i_first = ii
                     break
-            if i_first is None:
-                raise ValueError('No Place in sequence')
+                assert isinstance(sss, str) or isinstance(sss, xt.Line), (
+                    'Only places, elements, strings or Lines are allowed in sequences')
             ss_aux = _all_places(ss)
-            for ii in range(i_first):
-                ss_aux[ii]._before = True
+            if i_first is not None:
+                for ii in range(i_first):
+                    ss_aux[ii]._before = True
             seq_all_places.extend(ss_aux)
         else:
+            assert isinstance(ss, str) or isinstance(ss, xt.Line), (
+                'Only places, elements, strings or Lines are allowed in sequences')
             seq_all_places.append(Place(ss, at=None, from_=None))
     return seq_all_places
 
@@ -175,47 +267,65 @@ def _all_places(seq):
 
 
 def _resolve_s_positions(seq_all_places, env):
+
+    if len(seq_all_places) != len(set(seq_all_places)):
+        seq_all_places = [ss.copy() for ss in seq_all_places]
+
     names_unsorted = [ss.name for ss in seq_all_places]
+
+    # identify duplicates
+    if len(names_unsorted) != len(set(names_unsorted)):
+        counter = Counter(names_unsorted)
+        duplicates = set([name for name, count in counter.items() if count > 1])
+    else:
+        duplicates = set()
+
     aux_line = env.new_line(components=names_unsorted)
     aux_tt = aux_line.get_table()
     aux_tt['length'] = np.diff(aux_tt._data['s'], append=0)
+    aux_tt.name = aux_tt.env_name # I want the repeated names here
 
     s_center_dct = {}
+    s_center_dct_names = {}
     n_resolved = 0
     n_resolved_prev = -1
 
+    assert len(seq_all_places) == len(set(seq_all_places)), 'Duplicate places detected'
+
     if seq_all_places[0].at is None and not seq_all_places[0]._before:
         # In case we want to allow for the length to be an expression
-        s_center_dct[seq_all_places[0].name] = aux_tt['length', seq_all_places[0].name] / 2
-        # s_center_dct[seq_all_places[0].name] = _length_expr_or_val(seq_all_places[0].name, aux_line) / 2
+        s_center_dct[seq_all_places[0]] = aux_tt['length', seq_all_places[0].name] / 2
+        # s_center_dct[seq_all_places[0]] = _length_expr_or_val(seq_all_places[0], aux_line) / 2
         n_resolved += 1
 
     while n_resolved != n_resolved_prev:
         n_resolved_prev = n_resolved
         for ii, ss in enumerate(seq_all_places):
-            if ss.name in s_center_dct:
+            if ss in s_center_dct:
                 continue
             if ss.at is None and not ss._before:
                 ss_prev = seq_all_places[ii-1]
-                if ss_prev.name in s_center_dct:
+                if ss_prev in s_center_dct:
                     # in case we want to allow for the length to be an expression
-                    # s_center_dct[ss.name] = (s_center_dct[ss_prev.name]
-                    #                         + _length_expr_or_val(ss_prev.name, aux_line) / 2
-                    #                         + _length_expr_or_val(ss.name, aux_line) / 2)
-                    s_center_dct[ss.name] = (s_center_dct[ss_prev.name]
+                    # s_center_dct[ss] = (s_center_dct[ss_prev]
+                    #                         + _length_expr_or_val(ss_prev, aux_line) / 2
+                    #                         + _length_expr_or_val(ss, aux_line) / 2)
+                    s_center_dct[ss] = (s_center_dct[ss_prev]
                                             +  aux_tt['length', ss_prev.name] / 2
                                              + aux_tt['length', ss.name] / 2)
+                    s_center_dct_names[ss.name] = s_center_dct[ss]
                     n_resolved += 1
             elif ss.at is None and ss._before:
                 ss_next = seq_all_places[ii+1]
-                if ss_next.name in s_center_dct:
+                if ss_next in s_center_dct:
                      # in case we want to allow for the length to be an expression
-                    # s_center_dct[ss.name] = (s_center_dct[ss_next.name]
-                    #                         - _length_expr_or_val(ss_next.name, aux_line) / 2
-                    #                         - _length_expr_or_val(ss.name, aux_line) / 2)
-                    s_center_dct[ss.name] = (s_center_dct[ss_next.name]
+                    # s_center_dct[ss] = (s_center_dct[ss_next]
+                    #                         - _length_expr_or_val(ss_next, aux_line) / 2
+                    #                         - _length_expr_or_val(ss, aux_line) / 2)
+                    s_center_dct[ss] = (s_center_dct[ss_next]
                                             - aux_tt['length', ss_next.name] / 2
                                             - aux_tt['length', ss.name] / 2)
+                    s_center_dct_names[ss.name] = s_center_dct[ss]
                     n_resolved += 1
             else:
                 if isinstance(ss.at, str):
@@ -224,15 +334,20 @@ def _resolve_s_positions(seq_all_places, env):
                     at = ss.at
 
                 if ss.from_ is None:
-                    s_center_dct[ss.name] = at
+                    s_center_dct[ss] = at
+                    s_center_dct_names[ss.name] = at
                     n_resolved += 1
-                elif ss.from_ in s_center_dct:
-                    s_center_dct[ss.name] = s_center_dct[ss.from_] + at
+                elif ss.from_ in s_center_dct_names:
+                    if ss.from_ in duplicates:
+                        assert ss.name in duplicates, (
+                            f'Cannot resolve from_ for {ss.name} as {ss.from_} is duplicated')
+                    s_center_dct[ss] = s_center_dct_names[ss.from_] + at
+                    s_center_dct_names[ss.name] = s_center_dct[ss]
                     n_resolved += 1
 
     assert n_resolved == len(seq_all_places), 'Not all positions resolved'
 
-    aux_s_center_expr = np.array([s_center_dct[nn] for nn in aux_tt.name[:-1]])
+    aux_s_center_expr = np.array([s_center_dct[ss] for ss in seq_all_places])
     aux_s_center = []
     for ss in aux_s_center_expr:
         if hasattr(ss, '_value'):
@@ -245,7 +360,10 @@ def _resolve_s_positions(seq_all_places, env):
 
     name_sorted = [str(aux_tt.name[ii]) for ii in i_sorted]
 
-    tt_sorted = aux_tt.rows[name_sorted]
+    # Temporary, should be replaced by aux_tt.rows[i_sorted], when table is fixed
+    data_sorted = {kk: aux_tt[kk][i_sorted] for kk in aux_tt._col_names}
+    tt_sorted = xt.Table(data_sorted)
+
     tt_sorted['s_entry'] = tt_sorted['s_center'] - tt_sorted['length'] / 2
     tt_sorted['s_exit'] = tt_sorted['s_center'] + tt_sorted['length'] / 2
     tt_sorted['ds_upstream'] = 0 * tt_sorted['s_entry']
@@ -258,12 +376,12 @@ def _resolve_s_positions(seq_all_places, env):
 
     return tt_sorted
 
-def _generate_element_names_with_drifts(env, tt_sorted, s_tol=1e-12):
+def _generate_element_names_with_drifts(env, tt_sorted, s_tol=1e-10):
 
     names_with_drifts = []
     # Create drifts
-    for nn in tt_sorted.name:
-        ds_upstream = tt_sorted['ds_upstream', nn]
+    for ii, nn in enumerate(tt_sorted.name):
+        ds_upstream = tt_sorted['ds_upstream', ii]
         if np.abs(ds_upstream) > s_tol:
             assert ds_upstream > 0, f'Negative drift length: {ds_upstream}, upstream of {nn}'
             drift_name = env._get_a_drift_name()
@@ -316,6 +434,9 @@ def _parse_kwargs(cls, kwargs, _eval):
                 value_kwargs[kk] = ref_kwargs[kk]._value
             else:
                 value_kwargs[kk] = ref_kwargs[kk]
+        elif isinstance(kwargs[kk], xo.String):
+            vvv = kwargs[kk].to_str()
+            value_kwargs[kk] = vvv
         else:
             value_kwargs[kk] = kwargs[kk]
 
@@ -323,13 +444,13 @@ def _parse_kwargs(cls, kwargs, _eval):
 
 def _set_kwargs(name, ref_kwargs, value_kwargs, element_dict, element_refs):
     for kk in value_kwargs:
-        if hasattr(value_kwargs[kk], '__iter__'):
+        if hasattr(value_kwargs[kk], '__iter__') and not isinstance(value_kwargs[kk], str):
             len_value = len(value_kwargs[kk])
             getattr(element_dict[name], kk)[:len_value] = value_kwargs[kk]
             if kk in ref_kwargs:
                 for ii, vvv in enumerate(value_kwargs[kk]):
-                    if vvv is not None:
-                        getattr(element_refs[name], kk)[ii] = vvv
+                    if ref_kwargs[kk][ii] is not None:
+                        getattr(element_refs[name], kk)[ii] = ref_kwargs[kk][ii]
         else:
             if kk in ref_kwargs:
                 setattr(element_refs[name], kk, ref_kwargs[kk])
@@ -352,7 +473,12 @@ class EnvRef:
 
     def __setitem__(self, key, value):
         if isinstance(value, xt.Line):
-            raise ValueError('Cannot set a Line, please use Envirnoment.new_line')
+            assert value.env is self.env, 'Line must be in the same environment'
+            if key in self.env.lines:
+                raise ValueError(f'There is already a line with name {key}')
+            if key in self.env.element_dict:
+                raise ValueError(f'There is already an element with name {key}')
+            self.env.lines[key] = value
 
         if hasattr(value, '_value'):
             val_ref = value
@@ -369,3 +495,130 @@ class EnvRef:
             if key in self.env.vars:
                 raise ValueError(f'There is already a variable with name {key}')
             self.element_refs[key] = val_ref
+
+def _handle_bend_kwargs(kwargs, _eval, env=None, name=None):
+
+    kwargs = kwargs.copy()
+    rbarc = kwargs.pop('rbarc', False)
+    rbend = kwargs.pop('rbend', False)
+
+    if rbarc:
+        assert 'angle' in kwargs, 'Angle must be specified for a bend with rbarc'
+
+    if env is not None and name is not None:
+        for kk in 'h length edge_entry_angle edge_exit_angle'.split():
+            if kk not in kwargs:
+                expr = getattr(env.ref[name], kk)._expr
+                if expr is not None:
+                    kwargs[kk] = expr
+                else:
+                    kwargs[kk] = getattr(env.get(name), kk)
+        if 'angle' in kwargs:
+            kwargs.pop('h')
+
+    if isinstance(kwargs['length'], str):
+        length = _eval(kwargs['length'])
+    else:
+        length = kwargs['length']
+
+    if 'angle' in kwargs:
+        assert 'h' not in kwargs, 'Cannot specify both angle and h'
+        assert 'length' in kwargs, 'Length must be specified for a bend'
+
+        angle = kwargs.pop('angle')
+
+        if isinstance(angle, str):
+            angle = _eval(angle)
+
+        kwargs['h'] = angle / length
+
+        if rbend and rbarc:
+            fsin = env._xdeps_fref['sin']
+            fsinc = env._xdeps_fref['sinc']
+            kwargs['h'] = fsin(0.5*angle) / (0.5 * length) # here length is the straight line
+            kwargs['length'] = length / fsinc(0.5*angle)
+    else:
+        angle = kwargs.get('h', 0) * length
+
+    if kwargs.pop('rbend', False):
+        edge_entry_angle = kwargs.pop('edge_entry_angle', 0.)
+        if isinstance(edge_entry_angle, str):
+            edge_entry_angle = _eval(edge_entry_angle)
+        edge_exit_angle = kwargs.pop('edge_exit_angle', 0.)
+        if isinstance(edge_exit_angle, str):
+            edge_exit_angle = _eval(edge_exit_angle)
+
+        edge_entry_angle += angle / 2
+        edge_exit_angle += angle / 2
+
+        kwargs['edge_entry_angle'] = edge_entry_angle
+        kwargs['edge_exit_angle'] = edge_exit_angle
+
+    if kwargs.pop('k0_from_h', False):
+        kwargs['k0'] = kwargs['h']
+
+    return kwargs
+
+
+class Builder:
+    def __init__(self, env, components=None, name=None):
+        self.env = env
+        self.components = components or []
+        self.name = name
+
+    def __repr__(self):
+        return f'Builder({self.name}, components={self.components!r})'
+
+    def new(self, name, cls, at=None, from_=None, extra=None, **kwargs):
+        out = self.env.new(
+            name, cls, at=at, from_=from_, extra=extra, **kwargs)
+        self.components.append(out)
+        return out
+
+    def place(self, name, at=None, from_=None, anchor=None, from_anchor=None):
+        out = self.env.place(
+            name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
+        self.components.append(out)
+        return out
+
+    def build(self, name=None):
+        if name is None:
+            name = self.name
+        out =  self.env.new_line(components=self.components, name=name)
+        out.builder = self
+        return out
+
+    def set(self, *args, **kwargs):
+        self.components.append(self.env.set(*args, **kwargs))
+
+    def get(self, *args, **kwargs):
+        return self.env.get(*args, **kwargs)
+
+    @property
+    def element_dict(self):
+        return self.env.element_dict
+
+    @property
+    def ref(self):
+        return self.env.ref
+
+    @property
+    def vars(self):
+        return self.env.vars
+
+    def __getitem__(self, key):
+        return self.env[key]
+
+    def __setitem__(self, key, value):
+        self.env[key] = value
+
+
+class EnvLines(UserDict):
+
+    def __init__(self, env):
+        self.data = {}
+        self.env = env
+
+    def __setitem__(self, key, value):
+        self.env._lines_weakrefs.add(value)
+        UserDict.__setitem__(self, key, value)

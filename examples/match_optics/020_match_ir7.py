@@ -12,7 +12,6 @@ line = xt.Line.from_json(
 line.particle_ref = xt.Particles(p0c=7e12, mass=xt.PROTON_MASS_EV)
 collider = xt.Multiline(lines={'lhcb1': line})
 collider.build_trackers()
-collider.vars.cache_active = True
 
 scale = 23348.89927
 scmin = 0.03*7000./line.vars['nrj']._value

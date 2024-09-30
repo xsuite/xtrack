@@ -225,6 +225,11 @@ class Slicer:
         slicing_strategies : List[Strategy]
             A list of slicing strategies to apply to the line.
         """
+
+        if len(line.element_names) != len(set(line.element_names)):
+            raise NotImplementedError(
+                'Slicing of lines containing repeated elements is not yet supported')
+
         self._line = line
         self._slicing_strategies = [xt.Strategy(None, element_type=xt.Drift) # Do nothing to drifts by default
                                     ] + slicing_strategies
