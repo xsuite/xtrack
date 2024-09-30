@@ -4673,6 +4673,7 @@ class LineVars:
         return out
 
     def __iter__(self):
+        raise NotImplementedError('Use keys() method') # Untested
         return self.line._xdeps_vref._owner.__iter__()
 
     def update(self, other):
@@ -4700,6 +4701,7 @@ class LineVars:
         return xd.Table({'name': name, 'value': value, 'expr': expr})
 
     def expr(self, var):
+        raise NotImplementedError # Untested
         if isinstance(var,str):
             ref=self.line._xdeps_vref[var]
         elif is_expr(var):
@@ -4712,9 +4714,11 @@ class LineVars:
         return expr
 
     def eval(self, expr):
+        raise NotImplementedError # Untested
         return self.line._xdeps_eval.eval(expr)
 
     def value(self, expr):
+        raise NotImplementedError # Untested
         return eval(self)._get_value()
 
     def __contains__(self, key):
