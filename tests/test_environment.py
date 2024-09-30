@@ -1378,7 +1378,6 @@ def test_assemble_ring_repeated_elements():
     xo.assert_allclose(tw_one_cell_stripped.betx, tw_one_cell_ref.betx, atol=0, rtol=5e-4)
 
     cell_selected = arc.select(start='mid::2', end='mid::3')
-    tt_cell_selected = cell_selected.get_table(attr=True)
     tw_cell_selected = cell_selected.twiss4d()
     tw_cell_selected_stripped = tw_cell_selected.rows[:-1] # remove _end_point
     xo.assert_allclose(tw_cell_selected_stripped.betx, tw_one_cell_ref.betx, atol=0, rtol=5e-4)
