@@ -3213,11 +3213,11 @@ class Line:
         i_next_aperture = 0
 
         for iee in progress(range(i_prev_aperture, num_elements), desc='Checking aperture'):
-            if dont_need_aperture[elements_df.loc[iee, 'name']]:
-                continue
-
             if elements_df.loc[iee, 'is_aperture']:
                 i_prev_aperture = iee
+                continue
+
+            if dont_need_aperture[elements_df.loc[iee, 'name']]:
                 continue
 
             if i_next_aperture < iee:
