@@ -4694,7 +4694,7 @@ class LineVars:
         if self.line._xdeps_vref is None:
             raise RuntimeError(
                 f'Cannot access variables as the line has no xdeps manager')
-        name = np.array([kk for kk in list(self.keys()) if kk != '__vary_default'])
+        name = np.array([kk for kk in list(self.keys()) if kk != '__vary_default'], dtype=object)
         value = np.array([self.line._xdeps_vref[kk]._value for kk in name])
         expr  = np.array([str(self.line._xdeps_vref[str(kk)]._expr) for kk in name])
 
