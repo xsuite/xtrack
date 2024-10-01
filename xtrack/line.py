@@ -3405,7 +3405,8 @@ class Line:
 
     def __add__(self, other):
         self._env_if_needed
-        assert isinstance(other, Line), 'Only Line can be added to Line'
+        #assert isinstance(other, Line), 'Only Line can be added to Line'
+        assert other.__class__.__name__=="Line", 'Only Line can be added to Line'
         assert other.env is self.env, 'Lines must be in the same environment'
         out = self.env.new_line(
             components=list(self.element_names) + list(other.element_names))
@@ -3562,6 +3563,30 @@ class Line:
             return self.vars.info(key, limit=limit)
         else:
             raise KeyError(f'Element or variable {key} not found')
+
+#    def get_value(self, key):
+#        if key in self.element_dict:
+#            return self.element_dict[key].get_value()
+#        elif key in self.vars:
+#            return self.vars.get_value(key)
+#        else:
+#            raise KeyError(f'Element or variable {key} not found')
+
+    @property
+    def manager(self):
+        if not hasattr(self, '_var_management') or self._var_management is None:
+            self._init_var_management()
+        return self._var_management['manager']
+
+    def eval(self, expr):
+        return self.vars.eval(expr)
+
+    def new_expr(self, expr):
+        return self.vars.new_expr(expr)
+
+    def get_expr(self, vars):
+        return self.vars.get_expr(vars)
+
 
     def _env_if_needed(self):
         if not hasattr(self, 'env') or self.env is None:
@@ -4711,7 +4736,7 @@ class LineVars:
     def new_expr(self, expr):
         return self.line._xdeps_eval.eval(expr)
 
-    def value(self, expr):
+    def eval(self, expr):
         return self.new_expr(expr)._get_value()
 
     def info(self, var, limit=10):
