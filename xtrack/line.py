@@ -4700,19 +4700,6 @@ class LineVars:
 
         return xd.Table({'name': name, 'value': value, 'expr': expr})
 
-    # def expr(self, var):
-    #     raise NotImplementedError # Untested
-    #     if isinstance(var,str):
-    #         ref=self.line._xdeps_vref[var]
-    #     elif is_expr(var):
-    #         ref=var
-    #     else:
-    #         raise ValueError(f"`{var}` not valid, must be str or expr")
-    #     expr=ref._expr
-    #     if expr is None:
-    #         raise NameError(f"`{var}` does not have any expression")
-    #     return expr
-
     def new_expr(self, expr):
         return self.line._xdeps_eval.eval(expr)
 
