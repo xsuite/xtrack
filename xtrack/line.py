@@ -3555,6 +3555,14 @@ class Line:
         else:
             raise KeyError(f'Element or variable {key} not found')
 
+    def info(self, key, limit=12):
+        if key in self.element_dict:
+            return self[key].info()
+        elif key in self.vars:
+            return self.vars.info(key, limit=limit)
+        else:
+            raise KeyError(f'Element or variable {key} not found')
+
     def _env_if_needed(self):
         if not hasattr(self, 'env') or self.env is None:
             self.env = xt.Environment(element_dict=self.element_dict,
@@ -4706,8 +4714,8 @@ class LineVars:
     def value(self, expr):
         return self.new_expr(expr)._get_value()
 
-    def info(self, var):
-        return self[var]._info()
+    def info(self, var, limit=10):
+        return self[var]._info(limit=limit)
 
     def get_expr(self, var):
         return self[var]._expr
