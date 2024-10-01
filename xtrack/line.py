@@ -4700,26 +4700,30 @@ class LineVars:
 
         return xd.Table({'name': name, 'value': value, 'expr': expr})
 
-    def expr(self, var):
-        raise NotImplementedError # Untested
-        if isinstance(var,str):
-            ref=self.line._xdeps_vref[var]
-        elif is_expr(var):
-            ref=var
-        else:
-            raise ValueError(f"`{var}` not valid, must be str or expr")
-        expr=ref._expr
-        if expr is None:
-            raise NameError(f"`{var}` does not have any expression")
-        return expr
+    # def expr(self, var):
+    #     raise NotImplementedError # Untested
+    #     if isinstance(var,str):
+    #         ref=self.line._xdeps_vref[var]
+    #     elif is_expr(var):
+    #         ref=var
+    #     else:
+    #         raise ValueError(f"`{var}` not valid, must be str or expr")
+    #     expr=ref._expr
+    #     if expr is None:
+    #         raise NameError(f"`{var}` does not have any expression")
+    #     return expr
 
-    def eval(self, expr):
-        raise NotImplementedError # Untested
+    def new_expr(self, expr):
         return self.line._xdeps_eval.eval(expr)
 
     def value(self, expr):
-        raise NotImplementedError # Untested
-        return eval(self)._get_value()
+        return self.new_expr(expr)._get_value()
+
+    def info(self, var):
+        return self[var]._info()
+
+    def get_expr(self, var):
+        return self[var]._expr
 
     def __contains__(self, key):
         if self.line._xdeps_vref is None:
