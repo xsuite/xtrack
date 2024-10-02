@@ -15,10 +15,8 @@ env.vars({
 
 line = env.new_line([
     env.new('bb', xt.Bend, k0='2 * b', length=3+env.vars['a'] + env.vars['b'],
-        h=5.)
+        h=5., ksl=[0, '3*b']),
 ])
-
-
 
 for ee in [line, env]:
 
@@ -74,4 +72,3 @@ for ee in [line, env]:
     tt = ee['bb'].get_table()
     assert tt['value', 'k0'] == 2 * (2 * 2 + 1)
     assert tt['expr', 'k0'] == "(2.0 * vars['b'])"
-
