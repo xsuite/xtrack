@@ -46,17 +46,16 @@ for ee in [line, env]:
     # Vars methods (get, set, eval, get_expr, new_expr, info, get_table)
     assert ee.vars.get('b') == 2 * 2 + 1
 
-    # assert str(ee.get_expr('b')) == "((2.0 * vars['a']) + vars['k.1'])"
+    assert str(ee.vars.get_expr('b')) == "((2.0 * vars['a']) + vars['k.1'])"
 
-    # assert ee.eval('3*a - sqrt(k.1)') == 5
+    assert ee.vars.eval('3*a - sqrt(k.1)') == 5
 
-    # ne = ee.new_expr('sqrt(3*a + 3)')
-    # assert xd.refs.is_ref(ne)
-    # assert str(ne) == "f.sqrt(((3.0 * vars['a']) + 3.0))"
+    ne = ee.vars.new_expr('sqrt(3*a + 3)')
+    assert xd.refs.is_ref(ne)
+    assert str(ne) == "f.sqrt(((3.0 * vars['a']) + 3.0))"
 
-    # ee.info('bb') # Check that it works
-    # ee.info('b')
-    # ee.info('a')
+    ee.vars.info('b')
+    ee.vars.info('a')
 
 
 # Vars methods (get, set, eval, get_expr, new_expr, info, get_table)
