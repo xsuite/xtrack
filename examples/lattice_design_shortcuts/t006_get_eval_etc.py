@@ -71,3 +71,7 @@ for ee in [line, env]:
     assert ee['bb'].get_expr('k0')._value == 2 * (2 * 2 + 1)
     assert ee['bb'].get_value('k0') == 2 * (2 * 2 + 1)
 
+    tt = ee['bb'].get_table()
+    assert tt['value', 'k0'] == 2 * (2 * 2 + 1)
+    assert tt['expr', 'k0'] == "(2.0 * vars['b'])"
+
