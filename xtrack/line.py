@@ -3558,7 +3558,7 @@ class Line:
 
     def info(self, key, limit=12):
         if key in self.element_dict:
-            return self[key].info()
+            return self[key].get_info()
         elif key in self.vars:
             return self.vars.info(key, limit=limit)
         else:
