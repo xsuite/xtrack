@@ -204,6 +204,11 @@ Environment.replace_replica = xt.Line.replace_replica
 Environment.__getitem__ = xt.Line.__getitem__
 Environment.set = xt.Line.set
 Environment.get = xt.Line.get
+Environment.eval = xt.Line.eval
+Environment.info = xt.Line.info
+Environment.get_expr = xt.Line.get_expr
+Environment.new_expr = xt.Line.new_expr
+
 
 class Place:
 
