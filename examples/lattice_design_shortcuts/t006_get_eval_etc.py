@@ -38,6 +38,9 @@ for ee in [line, env]:
     ee.info('b')
     ee.info('a')
 
+    ee.set('c', '6*a')
+    assert ee.get('c') == 6 * 2
+
     # Line/Env containers (env[...], env.ref[...]
     assert ee['b'] == 2 * 2 + 1
     assert type(ee['bb']).__name__ == 'View'
@@ -57,11 +60,9 @@ for ee in [line, env]:
     ee.vars.info('b')
     ee.vars.info('a')
 
+    ee.vars.set('d', '7*a')
+    assert ee.vars.get('d') == 7 * 2
 
-# Vars methods (get, set, eval, get_expr, new_expr, info, get_table)
-
-
-# Vars container vars[...]
-
+    assert xd.refs.is_ref(ee.vars['b'])
 
 # View methods get_expr, get_value, get_info, get_table (for now)
