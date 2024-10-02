@@ -4865,6 +4865,9 @@ class LineVars:
         else:
             self[name] = value
 
+    def get(self, name):
+        return self[name]._value
+
 class ActionVars(Action):
 
     def __init__(self, line):
