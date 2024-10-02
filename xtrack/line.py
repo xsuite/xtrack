@@ -3574,9 +3574,7 @@ class Line:
 
     @property
     def manager(self):
-        if not hasattr(self, '_var_management') or self._var_management is None:
-            self._init_var_management()
-        return self._var_management['manager']
+        return self._xdeps_manager
 
     def eval(self, expr):
         return self.vars.eval(expr)
@@ -3586,7 +3584,6 @@ class Line:
 
     def get_expr(self, vars):
         return self.vars.get_expr(vars)
-
 
     def _env_if_needed(self):
         if not hasattr(self, 'env') or self.env is None:
