@@ -125,7 +125,9 @@ class MadxTransformer(Transformer):
 
     def top_level_command(self, command):
         name, arglist = command
-        self.parameters[name] = dict(arglist)
+        if name not in self.parameters:
+            self.parameters[name] = {}
+        self.parameters[name].update(arglist)
 
     def build_list(self, *args):
         return list(args)
