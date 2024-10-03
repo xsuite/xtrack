@@ -200,7 +200,7 @@ ring["mb.3"].knl # get view the array
 """
 Line     :        vars, ref, element_dict, ref_manager,  get_table
 Env      : lines, vars, ref, element_dict, ref_manager
-Env, Line: get, set, eval, get_expr, new_expr, info; ref, self
+Env, Line: get, set, eval, get_expr, new_expr, info
 
 vars     : get, set, eval, get_expr, new_expr, info, get_table
 view     : get_expr, get_value, get_info, get_table
