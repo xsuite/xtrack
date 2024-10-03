@@ -100,7 +100,7 @@ line['mq_clone_2'].rot_s_rad = 3e-3
 
 line.get_table(attr=True).cols['name s k1l rot_s_rad']
 # is:
-Table: 5 rows, 4 cols
+# Table: 5 rows, 4 cols
 # name                   s           k1l     rot_s_rad
 # mq_clone_1             0          0.03         0.002
 # dd::0                0.3             0             0
