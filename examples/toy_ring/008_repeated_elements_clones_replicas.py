@@ -107,3 +107,34 @@ line.get_table(attr=True).cols['name s k1l rot_s_rad']
 # mq_clone_2           1.3          0.03         0.003
 # dd::1                1.6             0             0
 # _end_point           2.6             0             0
+
+##########################################
+# Replace repleted elements and replicas #
+##########################################
+
+# The line provides methods to automatically replace repeated elements and replicas
+# with clones. For example:
+
+line = env.new_line(components=['mq', 'dd', 'mq', 'dd', 'my_mq_1'])
+line.get_table(attr=True).cols['name s isreplica']
+# is:
+# name                   s isreplica
+# mq::0                  0     False
+# dd::0                0.3     False
+# mq::1                1.3     False
+# dd::1                1.6     False
+# my_mq_1              2.6      True
+# _end_point           2.9     False
+
+line.replace_all_repeated_elements()
+line.replace_all_replicas()
+
+line.get_table(attr=True).cols['name s isreplica']
+# is:
+# name                   s isreplica
+# mq::0                  0     False
+# dd::0                0.3     False
+# mq::1                1.3     False
+# dd::1                1.6     False
+# my_mq_1              2.6      True
+# _end_point           2.9     False
