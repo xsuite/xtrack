@@ -367,7 +367,7 @@ def _resolve_s_positions(seq_all_places, env):
             aux_s_center.append(ss)
     aux_tt['s_center'] = np.concatenate([aux_s_center, [0]])
 
-    i_sorted = np.argsort(aux_s_center, stable=True)
+    i_sorted = np.argsort(aux_s_center, kind='stable')
 
     name_sorted = [str(aux_tt.name[ii]) for ii in i_sorted]
 
