@@ -60,3 +60,50 @@ line.get_table(attr=True).cols['name s rot_s_rad']
 # my_mq_2              1.3         0.001
 # dd::1                1.6             0
 # _end_point           2.6             0
+
+##################
+# Element clones #
+##################
+
+# Element clones are different from replicas and repeated elements. They are
+# actual copies of the element, which inherit the deferred expressions controlling
+# their attributes from the original element. For example:
+
+env.new('mq_clone_1', 'mq', mode='clone')
+env.new('mq_clone_2', 'mq', mode='clone')
+
+line = env.new_line(components=['mq_clone_1', 'dd', 'mq_clone_2', 'dd'])
+
+line['mq'].get_expr('k1') # is 'kq'
+line['mq_clone_1'].get_expr('k1') # is 'kq'
+line['mq_clone_2'].get_expr('k1') # is 'kq'
+
+# When changing the value of 'kq', all three elements are affected
+env['kq'] = 0.2
+line['mq'].k1 # is 0.2
+line['mq_clone_1'].k1 # is 0.2
+line['mq_clone_2'].k1 # is 0.2
+
+# Note instead that if we alter the expression controlling the attribute of mq after
+# its creation, the clones are not affected. For example:
+line['mq'].k1 = '2 * kq'
+
+line['mq'].get_expr('k1')         # is '2 * kq'
+line['mq_clone_1'].get_expr('k1') # is 'kq'
+line['mq_clone_2'].k1             # is 'kq'
+
+# Clones allow for example, specifying different values for tilts and offsets
+# for different elements. For example:
+
+line['mq_clone_1'].rot_s_rad = 2e-3
+line['mq_clone_2'].rot_s_rad = 3e-3
+
+line.get_table(attr=True).cols['name s k1l rot_s_rad']
+# is:
+Table: 5 rows, 4 cols
+# name                   s           k1l     rot_s_rad
+# mq_clone_1             0          0.03         0.002
+# dd::0                0.3             0             0
+# mq_clone_2           1.3          0.03         0.003
+# dd::1                1.6             0             0
+# _end_point           2.6             0             0
