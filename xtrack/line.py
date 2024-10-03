@@ -2646,6 +2646,42 @@ class Line:
         self._check_valid_tracker()
         compensate_radiation_energy_loss(self, **all_kwargs)
 
+    def assign_optics_to_collimators(self, nemitt_x=None, nemitt_y=None, twiss=None):
+        try:
+            from xcoll import assign_optics_to_collimators
+        except ImportError as error:
+            raise ImportError("Please install Xcoll to use this feature.") from error
+        assign_optics_to_collimators(line=self, nemitt_x=nemitt_x,
+                                     nemitt_y=nemitt_y, twiss=twiss)
+
+    def open_collimators(self, names=None):
+        try:
+            from xcoll import open_collimators
+        except ImportError as error:
+            raise ImportError("Please install Xcoll to use this feature.") from error
+        open_collimators(line=self, names=names)
+
+    def send_collimators_to_parking(self, names=None):
+        try:
+            from xcoll import send_to_parking
+        except ImportError as error:
+            raise ImportError("Please install Xcoll to use this feature.") from error
+        send_to_parking(line=self, names=names)
+
+    def enable_material_scattering(self):
+        try:
+            from xcoll import enable_scattering
+        except ImportError as error:
+            raise ImportError("Please install Xcoll to use this feature.") from error
+        enable_scattering(line=self)
+
+    def disable_material_scattering(self):
+        try:
+            from xcoll import disable_scattering
+        except ImportError as error:
+            raise ImportError("Please install Xcoll to use this feature.") from error
+        disable_scattering(line=self)
+
     def optimize_for_tracking(self, compile=True, verbose=True, keep_markers=False):
 
         """
@@ -4410,7 +4446,12 @@ def mk_class_namespace(extra_classes):
         all_classes = element_classes + xf.element_classes + extra_classes + (Line,)
     except ImportError:
         all_classes = element_classes + extra_classes
-        log.warning("Xfields not installed correctly")
+        log.warning("Xfields not installed")
+    try:
+        import xcoll as xc
+        all_classes += xc.element_classes
+    except ImportError:
+        log.warning("Xcoll not installed")
 
     all_classes = all_classes + (EnergyProgram, xt.Replica)
 
