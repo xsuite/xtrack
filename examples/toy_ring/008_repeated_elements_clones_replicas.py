@@ -132,9 +132,9 @@ line.replace_all_replicas()
 line.get_table(attr=True).cols['name s isreplica']
 # is:
 # name                   s isreplica
-# mq::0                  0     False
-# dd::0                0.3     False
-# mq::1                1.3     False
-# dd::1                1.6     False
-# my_mq_1              2.6      True
+# mq.0                   0     False
+# dd.0                 0.3     False
+# mq.1                 1.3     False
+# dd.1                 1.6     False
+# my_mq_1              2.6     False
 # _end_point           2.9     False
