@@ -2,6 +2,7 @@ import xtrack as xt
 import numpy as np
 
 env = xt.Environment()
+env.particle_ref = xt.Particles(p0c=2e9, mass0=xt.PROTON_MASS_EV)
 env['pi'] = np.pi
 
 env['l_bend'] = 3.5
@@ -76,5 +77,14 @@ straight = 2 * straight_cell
 
 # We can assemble a ring by concatenating arcs and straight sections
 ring  = 6 * (arc + straight)
+
+# We can plot the layout of the cell and of the ring
+import matplotlib.pyplot as plt
+plt.close('all')
+
+arc_cell.survey().plot()
+ring.survey().plot()
+
+plt.show()
 
 
