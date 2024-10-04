@@ -40,6 +40,12 @@ class Environment:
         self._drift_counter = 0
         self.ref = EnvRef(self)
 
+    @property
+    def manager(self):
+        if not hasattr(self, '_var_management') or self._var_management is None:
+            self._init_var_management()
+        return self._var_management['manager']
+
     def new_line(self, components=None, name=None):
         out = xt.Line()
         out.particle_ref = self.particle_ref
@@ -198,6 +204,11 @@ Environment.replace_replica = xt.Line.replace_replica
 Environment.__getitem__ = xt.Line.__getitem__
 Environment.set = xt.Line.set
 Environment.get = xt.Line.get
+Environment.eval = xt.Line.eval
+Environment.info = xt.Line.info
+Environment.get_expr = xt.Line.get_expr
+Environment.new_expr = xt.Line.new_expr
+
 
 class Place:
 
@@ -356,7 +367,7 @@ def _resolve_s_positions(seq_all_places, env):
             aux_s_center.append(ss)
     aux_tt['s_center'] = np.concatenate([aux_s_center, [0]])
 
-    i_sorted = np.argsort(aux_s_center, stable=True)
+    i_sorted = np.argsort(aux_s_center, kind='stable')
 
     name_sorted = [str(aux_tt.name[ii]) for ii in i_sorted]
 

@@ -3405,7 +3405,8 @@ class Line:
 
     def __add__(self, other):
         self._env_if_needed
-        assert isinstance(other, Line), 'Only Line can be added to Line'
+        #assert isinstance(other, Line), 'Only Line can be added to Line'
+        assert other.__class__.__name__=="Line", 'Only Line can be added to Line'
         assert other.env is self.env, 'Lines must be in the same environment'
         out = self.env.new_line(
             components=list(self.element_names) + list(other.element_names))
@@ -3458,6 +3459,25 @@ class Line:
             if isinstance(self.element_dict[nn], xt.Replica):
                 self.replace_replica(nn)
 
+    def replace_all_repeated_elements(self, separator='.', mode='clone'):
+
+        self._env_if_needed()
+        env = self.env
+
+        self.discard_tracker()
+        unique_names = list(set(self.element_names))
+        aux_dict = {nn: [] for nn in unique_names}
+        for ii, nn in enumerate(self.element_names):
+            aux_dict[nn].append(ii)
+
+        for nn in unique_names:
+            if len(aux_dict[nn]) > 1:
+                i_rep = 0
+                for ii in aux_dict[nn]:
+                    while (new_name := nn + separator + str(i_rep)) in self.element_dict:
+                        i_rep += 1
+                    env.new(new_name, nn, mode=mode)
+                    self.element_names[ii] = new_name
 
     def select(self, start=None, end=None, name=None):
 
@@ -3473,7 +3493,7 @@ class Line:
 
         self._env_if_needed()
 
-        out = self.env.new_line(components=list(tt.name), name=name)
+        out = self.env.new_line(components=list(tt.env_name), name=name)
 
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
             out.env._var_management = None
@@ -3535,6 +3555,35 @@ class Line:
             return self._xdeps_vref._owner[key]
         else:
             raise KeyError(f'Element or variable {key} not found')
+
+    def info(self, key, limit=12):
+        if key in self.element_dict:
+            return self[key].get_info()
+        elif key in self.vars:
+            return self.vars.info(key, limit=limit)
+        else:
+            raise KeyError(f'Element or variable {key} not found')
+
+#    def get_value(self, key):
+#        if key in self.element_dict:
+#            return self.element_dict[key].get_value()
+#        elif key in self.vars:
+#            return self.vars.get_value(key)
+#        else:
+#            raise KeyError(f'Element or variable {key} not found')
+
+    @property
+    def manager(self):
+        return self._xdeps_manager
+
+    def eval(self, expr):
+        return self.vars.eval(expr)
+
+    def new_expr(self, expr):
+        return self.vars.new_expr(expr)
+
+    def get_expr(self, vars):
+        return self.vars.get_expr(vars)
 
     def _env_if_needed(self):
         if not hasattr(self, 'env') or self.env is None:
@@ -4653,6 +4702,10 @@ class LineVars:
         out = list(self.line._xdeps_vref._owner.keys()).copy()
         return out
 
+    def __iter__(self):
+        raise NotImplementedError('Use keys() method') # Untested
+        return self.line._xdeps_vref._owner.__iter__()
+
     def update(self, other):
         if self.line._xdeps_vref is None:
             raise RuntimeError(
@@ -4671,10 +4724,23 @@ class LineVars:
         if self.line._xdeps_vref is None:
             raise RuntimeError(
                 f'Cannot access variables as the line has no xdeps manager')
-        name = np.array([kk for kk in list(self.keys()) if kk != '__vary_default'])
+        name = np.array([kk for kk in list(self.keys()) if kk != '__vary_default'], dtype=object)
         value = np.array([self.line._xdeps_vref[kk]._value for kk in name])
+        expr  = np.array([str(self.line._xdeps_vref[str(kk)]._expr) for kk in name])
 
-        return xd.Table({'name': name, 'value': value})
+        return xd.Table({'name': name, 'value': value, 'expr': expr})
+
+    def new_expr(self, expr):
+        return self.line._xdeps_eval.eval(expr)
+
+    def eval(self, expr):
+        return self.new_expr(expr)._get_value()
+
+    def info(self, var, limit=10):
+        return self[var]._info(limit=limit)
+
+    def get_expr(self, var):
+        return self[var]._expr
 
     def __contains__(self, key):
         if self.line._xdeps_vref is None:
@@ -4798,6 +4864,9 @@ class LineVars:
             self[name] = self.line._xdeps_eval.eval(value)
         else:
             self[name] = value
+
+    def get(self, name):
+        return self[name]._value
 
 class ActionVars(Action):
 
