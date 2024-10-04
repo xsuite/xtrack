@@ -306,7 +306,7 @@ def _resolve_s_positions(seq_all_places, env):
     if seq_all_places[0].at is None and not seq_all_places[0]._before:
         # In case we want to allow for the length to be an expression
         s_center_dct[seq_all_places[0]] = aux_tt['length', seq_all_places[0].name] / 2
-        # s_center_dct[seq_all_places[0]] = _length_expr_or_val(seq_all_places[0], aux_line) / 2
+        s_center_dct_names[seq_all_places[0].name] = s_center_dct[seq_all_places[0]]
         n_resolved += 1
 
     while n_resolved != n_resolved_prev:
