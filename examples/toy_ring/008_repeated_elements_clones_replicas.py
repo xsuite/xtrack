@@ -39,7 +39,7 @@ line.get_table(attr=True).cols['name s rot_s_rad']
 # Replicas #
 ############
 
-# Replicas behave in the same way as repeted elements, but allow assignining
+# Replicas behave in the same way as repeated elements, but allow assigning
 # a different name to each replica. For example:
 env.new('my_mq_1', 'mq', mode='replica')
 env.new('my_mq_2', 'mq', mode='replica')
@@ -47,7 +47,7 @@ env.new('my_mq_2', 'mq', mode='replica')
 line = env.new_line(components=['my_mq_1', 'dd', 'my_mq_2', 'dd'])
 
 # Here 'mq_1' and 'mq::1' are actually the same element. Any modification on
-# 'mq' is seen directly on 'mq::0' and 'mq::1'. For example, we  set the tilt of 
+# 'mq' is seen directly on 'mq::0' and 'mq::1'. For example, we  set the tilt of
 # mq by 3 mrad:
 line['mq'].rot_s_rad = 3e-3
 
