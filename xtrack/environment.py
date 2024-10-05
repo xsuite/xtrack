@@ -204,7 +204,6 @@ Environment.get_expr = xt.Line.get_expr
 Environment.new_expr = xt.Line.new_expr
 Environment.ref_manager = xt.Line.ref_manager
 
-
 class Place:
 
     def __init__(self, name, at=None, from_=None, anchor=None, from_anchor=None):

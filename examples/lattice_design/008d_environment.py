@@ -96,8 +96,17 @@ line2 = env.new_line(
         env.new('ip', xt.Marker)])
 
 env['l1'] # accesses the first line
-env['l2'] # accesses the second line\
+env['l2'] # accesses the second line
 
 # The environment is associated to the line
 line1.env # is env
 line2.env # is env
+
+# The variables and elements of the environment are shared by all the lines
+# created by the environment
+line2['a'] # is 3.0
+line2['a'] = 4.0
+env['a'] # is 4.0
+
+# All methods available on the environment are also available on the lines, e.g.:
+line2.info('a') # is equivalent to env.info('a')
