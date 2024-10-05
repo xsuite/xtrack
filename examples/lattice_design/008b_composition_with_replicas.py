@@ -26,12 +26,16 @@ arc_half_cell = env.new_line(components=[
     env.place('mqd', at='l_cell/2 - l_quad/2', from_='mqf'),
     ])
 
+
+# We create two replicas of the half cell, one mirrored and one not and we
+# call them left and right
 arc_half_cell_left = env.new('l', arc_half_cell, mirror=True, mode='replica')
 arc_half_cell_right = env.new('r', arc_half_cell, mode='replica')
 
+# We concatenate the two half cells to create a full cell
 cell = arc_half_cell_left + arc_half_cell_right
 cell.get_table()
-# gives the following (note that the name given to the line is added to the
+# this gives the following (note that the name given to the line is added to the
 # element name ad suffix):
 #
 # name                   s element_type isthick isreplica parent_name ...
