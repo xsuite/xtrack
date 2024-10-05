@@ -3576,7 +3576,7 @@ class Line:
 #            raise KeyError(f'Element or variable {key} not found')
 
     @property
-    def manager(self):
+    def ref_manager(self):
         return self._xdeps_manager
 
     def eval(self, expr):

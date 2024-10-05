@@ -80,3 +80,24 @@ env['mq'].get_info('length')
 #  vars['a'] = 3.0
 #
 #  element_refs['mq'].length does not influence any target
+
+#########
+# Lines #
+#########
+
+# The environment can be used to create and access lines
+
+line1 = env.new_line(
+    name='l1', components=['mq', env.new('dd', xt.Drift, length=10)])
+
+line2 = env.new_line(
+    name='l2', components=[
+        env.new('dd', xt.Drift, length=10),
+        env.new('ip', xt.Marker)])
+
+env['l1'] # accesses the first line
+env['l2'] # accesses the second line\
+
+# The environment is associated to the line
+line1.env # is env
+line2.env # is env

@@ -40,12 +40,6 @@ class Environment:
         self._drift_counter = 0
         self.ref = EnvRef(self)
 
-    @property
-    def manager(self):
-        if not hasattr(self, '_var_management') or self._var_management is None:
-            self._init_var_management()
-        return self._var_management['manager']
-
     def new_line(self, components=None, name=None):
         out = xt.Line()
         out.particle_ref = self.particle_ref
@@ -208,6 +202,7 @@ Environment.eval = xt.Line.eval
 Environment.info = xt.Line.info
 Environment.get_expr = xt.Line.get_expr
 Environment.new_expr = xt.Line.new_expr
+Environment.ref_manager = xt.Line.ref_manager
 
 
 class Place:
