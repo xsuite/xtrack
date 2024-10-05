@@ -6,7 +6,11 @@ env = xt.Environment()
 # which will be passed to all lines generated from this environment
 env.partice_ref = xt.Particles(p0c=2e9, mass0=xt.PROTON_MASS_EV)
 
-# The environment can be used to create and inspect veriables and associated
+#############
+# Variables #
+#############
+
+# The environment can be used to create and inspect variables and associated
 # deferred expressions
 env['a'] = 3.
 env['b'] = '2 * a'
@@ -25,6 +29,23 @@ env.info('b')
 #  vars['a'] = 3.0
 
 #  vars['b'] does not influence any target
+
+# We can use the eval method to evaluate the value for a given expression:
+env.eval('sqrt(b + a)') # returns 3.0
+
+# We can inspect the value and expression of all variables in the environment
+env.vars.get_table()
+# returns:
+#
+# Table: 3 rows, 3 cols
+# name             value expr
+# t_turn_s             0 None
+# a                    3 None
+# b                    6 (2.0 * vars['a'])
+
+############
+# Elements #
+############
 
 # The environment can be used to create and inspect elements
 env.new('mq', xt.Quadrupole, length='5*a', k1='b')
