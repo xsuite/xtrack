@@ -3412,6 +3412,9 @@ class Line:
             components=list(self.element_names) + list(other.element_names))
         return out
 
+    def __sub__(self, other):
+        return self + (-other)
+
     def replicate(self, name, mirror=False):
 
         self._env_if_needed()

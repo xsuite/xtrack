@@ -39,7 +39,7 @@ line = env.new_line(components=[
 line.particle_ref = xt.Particles(p0c=1.2e9, mass0=xt.PROTON_MASS_EV)
 
 # Expressions can also be assigned after the creation of the line. For example, we
-# can set the integrated strength of the defocusing quadrupoles (not that line[...]
+# can set the integrated strength of the defocusing quadrupoles (note that line[...]
 # is equivalent to env[...]):
 line['k1l.qd.1'] = -0.1
 line['k1l.qd.2'] = -0.1
