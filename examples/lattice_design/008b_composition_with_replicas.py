@@ -3,8 +3,8 @@ import numpy as np
 
 env = xt.Environment()
 env.particle_ref = xt.Particles(p0c=2e9, mass0=xt.PROTON_MASS_EV)
-env['pi'] = np.pi
 
+env['pi'] = np.pi
 env['l_bend'] = 3.5
 env['l_quad'] = 1.
 env['l_cell'] = 20.
