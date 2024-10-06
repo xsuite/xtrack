@@ -13,7 +13,6 @@ env['k1l.qf.2'] = 0
 
 # Expressions can be associated to any beam element property, when creating the
 # element. For example:
-
 lbend = 3
 line = env.new_line(components=[
     env.new('mqf.1', xt.Quadrupole, length=0.3, k1='k1l.qf.1 / l.quad'),
