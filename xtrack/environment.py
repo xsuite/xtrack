@@ -170,8 +170,8 @@ class Environment:
 
         Examples
         --------
-
         .. code-block:: python
+
             env = xt.Environment()
             env['a'] = 3 # Define a variable
             env.new('mq1', xt.Quadrupole, length=0.3, k1='a')  # Create an element
@@ -217,7 +217,46 @@ class Environment:
 
         return out
 
+    def place(self, name, at=None, from_=None, anchor=None, from_anchor=None):
+        '''
+        Create a place object.
+
+        Parameters
+        ----------
+        name : str or Line
+            Name of the element or line to be placed.
+        at : float or str, optional
+            Position of the created object.
+        from_: str, optional
+            Name of the element from which the position is calculated (its center
+            is used as reference).
+
+        Returns
+        -------
+        Place
+            The new place object.
+        '''
+
+        return Place(name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
+
     def new_builder(self, components=None, name=None):
+        '''
+        Create a new builder.
+
+        Parameters
+        ----------
+        components : list, optional
+            List of components to be added to the builder. It can include strings,
+            place objects, and lines.
+        name : str, optional
+            Name of the line that will be built by the builder.
+
+        Returns
+        -------
+        Builder
+            The new builder.
+        '''
+
         return Builder(env=self, components=components, name=name)
 
     def _ensure_tracker_consistency(self, buffer):
@@ -232,9 +271,6 @@ class Environment:
             return nn
         else:
             return self._get_a_drift_name()
-
-    def place(self, name, at=None, from_=None, anchor=None, from_anchor=None):
-        return Place(name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
 
     def __setitem__(self, key, value):
 
