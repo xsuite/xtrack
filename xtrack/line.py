@@ -3412,6 +3412,9 @@ class Line:
             components=list(self.element_names) + list(other.element_names))
         return out
 
+    def __sub__(self, other):
+        return self + (-other)
+
     def replicate(self, name, mirror=False):
 
         self._env_if_needed()
@@ -3506,6 +3509,27 @@ class Line:
         return out
 
     def set(self, name, *args, **kwargs):
+        '''
+        Set the values or expressions of variables or element properties.
+
+        Parameters
+        ----------
+        name : str
+            Name of the variable or element.
+        value: float or str
+            Value or expression of the variable to set. Can be provided only
+            if the name is associated to a variable.
+        **kwargs, float or str
+            Attributes to set. Can be provided only if the name is associated
+            to an element.
+
+        Examples
+        --------
+        >>> line.set('a', 0.1)
+        >>> line.set('k1', '3*a')
+        >>> line.set('quad', k1=0.1, k2='3*a')
+
+        '''
         _eval = self._xdeps_eval.eval
 
         if hasattr(self, 'lines') and name in self.lines:
@@ -3549,6 +3573,21 @@ class Line:
                 self.vars[name] = value
 
     def get(self, key):
+        '''
+        Get an element or the value of a variable.
+
+        Parameters
+        ----------
+        key : str
+            Name of the element or variable.
+
+        Returns
+        -------
+        element : Element or float
+            Element or value of the variable.
+
+        '''
+
         if key in self.element_dict:
             return self.element_dict[key]
         elif key in self.vars:
@@ -3557,6 +3596,10 @@ class Line:
             raise KeyError(f'Element or variable {key} not found')
 
     def info(self, key, limit=12):
+        """
+            Get information about an element or a variable.
+        """
+
         if key in self.element_dict:
             return self[key].get_info()
         elif key in self.vars:
@@ -3573,17 +3616,58 @@ class Line:
 #            raise KeyError(f'Element or variable {key} not found')
 
     @property
-    def manager(self):
+    def ref_manager(self):
         return self._xdeps_manager
 
     def eval(self, expr):
+        '''
+        Get the value of an expression
+
+        Parameters
+        ----------
+        expr : str
+            Expression to evaluate.
+
+        Returns
+        -------
+        value : float
+            Value of the expression.
+        '''
+
         return self.vars.eval(expr)
 
     def new_expr(self, expr):
+        '''
+        Create a new expression
+
+        Parameters
+        ----------
+        expr : str
+            Expression to create.
+
+        Returns
+        -------
+        expr : Expression
+            New expression.
+        '''
         return self.vars.new_expr(expr)
 
-    def get_expr(self, vars):
-        return self.vars.get_expr(vars)
+    def get_expr(self, var):
+        '''
+        Get expression associated to a variable
+
+        Parameters
+        ----------
+        var: str
+            Name of the variable
+
+        Returns
+        -------
+        expr : Expression
+            Expression associated to the variable
+        '''
+
+        return self.vars.get_expr(var)
 
     def _env_if_needed(self):
         if not hasattr(self, 'env') or self.env is None:

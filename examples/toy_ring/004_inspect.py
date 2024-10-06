@@ -4,7 +4,7 @@ import xtrack as xt
 pi = np.pi
 lbend = 3
 
-# Build a line
+# Build a simple ring
 env = xt.Environment()
 line = env.new_line(components=[
     env.new('mqf.1', xt.Quadrupole, length=0.3, k1=0.1),
@@ -162,6 +162,16 @@ tab.rows[0:10:'s'].rows['mb.*']
 # name         s element_type isthick isreplica parent_name iscollective
 # mb1.1      1.3 Bend            True     False        None        False
 # mb2.1      6.6 Bend            True     False        None        False
+
+# or more efficiently
+tab.rows[0:10:'s','mb.*']
+# returns:
+#
+# Table: 2 rows, 94 cols
+# name         s element_type isthick isreplica parent_name iscollective
+# mb1.1      1.3 Bend            True     False        None        False
+# mb2.1      6.6 Bend            True     False        None        False
+
 
 # All attributes extracted by `line.attr[...]` can be included in the table
 # using `attr=True`. For example, using `tab.cols[...]` to select columns, we

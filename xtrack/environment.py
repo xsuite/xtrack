@@ -40,13 +40,151 @@ class Environment:
         self._drift_counter = 0
         self.ref = EnvRef(self)
 
-    @property
-    def manager(self):
-        if not hasattr(self, '_var_management') or self._var_management is None:
-            self._init_var_management()
-        return self._var_management['manager']
+    def new(self, name, parent, mode=None, at=None, from_=None, extra=None,
+            mirror=False, **kwargs):
+
+        '''
+        Create a new element or line.
+
+        Parameters
+        ----------
+        name : str
+            Name of the new element or line
+        parent : str or class
+            Parent class or name of the parent element
+        mode : str, optional
+             - clone: clone the parent element or line.
+               The parent element or line is copied, together with the associated
+               expressions.
+             - replica: replicate the parent elements or lines are made.
+        at : float or str, optional
+            Position of the created object.
+        from_: str, optional
+            Name of the element from which the position is calculated (its center
+            is used as reference).
+        mirror : bool, optional
+            Can only be used when cloning lines. If True, the order of the elements
+            is reversed.
+
+        Returns
+        -------
+        str or Place
+            Name of the created element or line or a Place object if at or from_ is
+            provided.
+        '''
+
+        if from_ is not None or at is not None:
+            all_kwargs = locals()
+            all_kwargs.pop('self')
+            all_kwargs.pop('at')
+            all_kwargs.pop('from_')
+            all_kwargs.pop('kwargs')
+            all_kwargs.update(kwargs)
+            return Place(self.new(**all_kwargs), at=at, from_=from_)
+
+        _ALLOWED_ELEMENT_TYPES_IN_NEW = xt.line._ALLOWED_ELEMENT_TYPES_IN_NEW
+        _ALLOWED_ELEMENT_TYPES_DICT = xt.line._ALLOWED_ELEMENT_TYPES_DICT
+        _STR_ALLOWED_ELEMENT_TYPES_IN_NEW = xt.line._STR_ALLOWED_ELEMENT_TYPES_IN_NEW
+
+        if parent in self.lines:
+            parent = self.lines[parent]
+
+        if isinstance(parent, xt.Line):
+            assert len(kwargs) == 0, 'No kwargs allowed when creating a line'
+            if mode == 'replica':
+                assert name is not None, 'Name must be provided when replicating a line'
+                return parent.replicate(name=name, mirror=mirror)
+            else:
+                assert mode in [None, 'clone'], f'Unknown mode {mode}'
+                assert name is not None, 'Name must be provided when cloning a line'
+                return parent.clone(name=name, mirror=mirror)
+
+        assert mirror is False, 'mirror=True only allowed when cloning lines.'
+
+        if parent is xt.Line or (parent=='Line' and (
+            'Line' not in self.lines and 'Line' not in self.element_dict)):
+            assert mode is None, 'Mode not allowed when cls is Line'
+            return self.new_line(name=name, **kwargs)
+
+        if mode == 'replica':
+            assert parent in self.element_dict, f'Element {parent} not found, cannot replicate'
+            kwargs['parent_name'] = xo.String(parent)
+            parent = xt.Replica
+        elif mode == 'clone':
+            assert parent in self.element_dict, f'Element {parent} not found, cannot clone'
+        else:
+            assert mode is None, f'Unknown mode {mode}'
+
+        _eval = self._xdeps_eval.eval
+
+        assert isinstance(parent, str) or parent in _ALLOWED_ELEMENT_TYPES_IN_NEW, (
+            'Only '
+            + _STR_ALLOWED_ELEMENT_TYPES_IN_NEW
+            + ' elements are allowed in `new` for now.')
+
+        needs_instantiation = True
+        if isinstance(parent, str):
+            if parent in self.element_dict:
+                # Clone an existing element
+                self.element_dict[name] = xt.Replica(parent_name=parent)
+                xt.Line.replace_replica(self, name)
+                parent = type(self.element_dict[name])
+                needs_instantiation = False
+            elif parent in _ALLOWED_ELEMENT_TYPES_DICT:
+                parent = _ALLOWED_ELEMENT_TYPES_DICT[parent]
+                needs_instantiation = True
+            else:
+                raise ValueError(f'Element type {parent} not found')
+
+        ref_kwargs, value_kwargs = _parse_kwargs(parent, kwargs, _eval)
+
+        if needs_instantiation: # Parent is a class and not another element
+            self.element_dict[name] = parent(**value_kwargs)
+
+        _set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
+                    element_dict=self.element_dict, element_refs=self.element_refs)
+
+        if extra is not None:
+            assert isinstance(extra, dict)
+            self.element_dict[name].extra = extra
+
+        return name
 
     def new_line(self, components=None, name=None):
+
+        '''
+        Create a new line.
+
+        Parameters
+        ----------
+        components : list, optional
+            List of components to be added to the line. It can include strings,
+            place objects, and lines.
+        name : str, optional
+            Name of the new line.
+
+        Returns
+        -------
+        line
+            The new line.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            env = xt.Environment()
+            env['a'] = 3 # Define a variable
+            env.new('mq1', xt.Quadrupole, length=0.3, k1='a')  # Create an element
+            env.new('mq2', xt.Quadrupole, length=0.3, k1='-a')  # Create another element
+
+            ln = env.new_line(name='myline', components=[
+                'mq',  # Add the element 'mq' at the start of the line
+                env.new('mymark', xt.Marker, at=10.0),  # Create a marker at s=10
+                env.new('mq1_clone', 'mq1', k1='2a'),   # Clone 'mq1' with a different k1
+                env.place('mq2', at=20.0, from='mymark'),  # Place 'mq2' at s=20
+                ])
+        '''
+
         out = xt.Line()
         out.particle_ref = self.particle_ref
         out.env = self
@@ -79,7 +217,46 @@ class Environment:
 
         return out
 
+    def place(self, name, at=None, from_=None, anchor=None, from_anchor=None):
+        '''
+        Create a place object.
+
+        Parameters
+        ----------
+        name : str or Line
+            Name of the element or line to be placed.
+        at : float or str, optional
+            Position of the created object.
+        from_: str, optional
+            Name of the element from which the position is calculated (its center
+            is used as reference).
+
+        Returns
+        -------
+        Place
+            The new place object.
+        '''
+
+        return Place(name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
+
     def new_builder(self, components=None, name=None):
+        '''
+        Create a new builder.
+
+        Parameters
+        ----------
+        components : list, optional
+            List of components to be added to the builder. It can include strings,
+            place objects, and lines.
+        name : str, optional
+            Name of the line that will be built by the builder.
+
+        Returns
+        -------
+        Builder
+            The new builder.
+        '''
+
         return Builder(env=self, components=components, name=name)
 
     def _ensure_tracker_consistency(self, buffer):
@@ -94,89 +271,6 @@ class Environment:
             return nn
         else:
             return self._get_a_drift_name()
-
-    def new(self, name, cls, mode=None, at=None, from_=None, extra=None,
-            mirror=False, **kwargs):
-
-        if from_ is not None or at is not None:
-            all_kwargs = locals()
-            all_kwargs.pop('self')
-            all_kwargs.pop('at')
-            all_kwargs.pop('from_')
-            all_kwargs.pop('kwargs')
-            all_kwargs.update(kwargs)
-            return Place(self.new(**all_kwargs), at=at, from_=from_)
-
-        _ALLOWED_ELEMENT_TYPES_IN_NEW = xt.line._ALLOWED_ELEMENT_TYPES_IN_NEW
-        _ALLOWED_ELEMENT_TYPES_DICT = xt.line._ALLOWED_ELEMENT_TYPES_DICT
-        _STR_ALLOWED_ELEMENT_TYPES_IN_NEW = xt.line._STR_ALLOWED_ELEMENT_TYPES_IN_NEW
-
-        if cls in self.lines:
-            cls = self.lines[cls]
-
-        if isinstance(cls, xt.Line):
-            assert len(kwargs) == 0, 'No kwargs allowed when creating a line'
-            if mode == 'replica':
-                assert name is not None, 'Name must be provided when replicating a line'
-                return cls.replicate(name=name, mirror=mirror)
-            else:
-                assert mode in [None, 'clone'], f'Unknown mode {mode}'
-                assert name is not None, 'Name must be provided when cloning a line'
-                return cls.clone(name=name, mirror=mirror)
-
-        assert mirror is False, 'mirror=True only allowed when cloning or  lines.'
-
-        if cls is xt.Line or (cls=='Line' and (
-            'Line' not in self.lines and 'Line' not in self.element_dict)):
-            assert mode is None, 'Mode not allowed when cls is Line'
-            return self.new_line(name=name, **kwargs)
-
-        if mode == 'replica':
-            assert cls in self.element_dict, f'Element {cls} not found, cannot replicate'
-            kwargs['parent_name'] = xo.String(cls)
-            cls = xt.Replica
-        elif mode == 'clone':
-            assert cls in self.element_dict, f'Element {cls} not found, cannot clone'
-        else:
-            assert mode is None, f'Unknown mode {mode}'
-
-        _eval = self._xdeps_eval.eval
-
-        assert isinstance(cls, str) or cls in _ALLOWED_ELEMENT_TYPES_IN_NEW, (
-            'Only '
-            + _STR_ALLOWED_ELEMENT_TYPES_IN_NEW
-            + ' elements are allowed in `new` for now.')
-
-        needs_instantiation = True
-        if isinstance(cls, str):
-            if cls in self.element_dict:
-                # Clone an existing element
-                self.element_dict[name] = xt.Replica(parent_name=cls)
-                self.replace_replica(name)
-                cls = type(self.element_dict[name])
-                needs_instantiation = False
-            elif cls in _ALLOWED_ELEMENT_TYPES_DICT:
-                cls = _ALLOWED_ELEMENT_TYPES_DICT[cls]
-                needs_instantiation = True
-            else:
-                raise ValueError(f'Element type {cls} not found')
-
-        ref_kwargs, value_kwargs = _parse_kwargs(cls, kwargs, _eval)
-
-        if needs_instantiation: # Parent is a class and not another element
-            self.element_dict[name] = cls(**value_kwargs)
-
-        _set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
-                    element_dict=self.element_dict, element_refs=self.element_refs)
-
-        if extra is not None:
-            assert isinstance(extra, dict)
-            self.element_dict[name].extra = extra
-
-        return name
-
-    def place(self, name, at=None, from_=None, anchor=None, from_anchor=None):
-        return Place(name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
 
     def __setitem__(self, key, value):
 
@@ -200,7 +294,6 @@ Environment.element_refs = xt.Line.element_refs
 Environment.vars = xt.Line.vars
 Environment.varval = xt.Line.varval
 Environment.vv = xt.Line.vv
-Environment.replace_replica = xt.Line.replace_replica
 Environment.__getitem__ = xt.Line.__getitem__
 Environment.set = xt.Line.set
 Environment.get = xt.Line.get
@@ -208,7 +301,7 @@ Environment.eval = xt.Line.eval
 Environment.info = xt.Line.info
 Environment.get_expr = xt.Line.get_expr
 Environment.new_expr = xt.Line.new_expr
-
+Environment.ref_manager = xt.Line.ref_manager
 
 class Place:
 
@@ -306,7 +399,7 @@ def _resolve_s_positions(seq_all_places, env):
     if seq_all_places[0].at is None and not seq_all_places[0]._before:
         # In case we want to allow for the length to be an expression
         s_center_dct[seq_all_places[0]] = aux_tt['length', seq_all_places[0].name] / 2
-        # s_center_dct[seq_all_places[0]] = _length_expr_or_val(seq_all_places[0], aux_line) / 2
+        s_center_dct_names[seq_all_places[0].name] = s_center_dct[seq_all_places[0]]
         n_resolved += 1
 
     while n_resolved != n_resolved_prev:
