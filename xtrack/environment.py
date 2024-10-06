@@ -644,7 +644,7 @@ def _handle_bend_kwargs(kwargs, _eval, env=None, name=None):
     else:
         angle = kwargs.get('h', 0) * length
 
-    if kwargs.pop('rbend', False):
+    if rbend:
         edge_entry_angle = kwargs.pop('edge_entry_angle', 0.)
         if isinstance(edge_entry_angle, str):
             edge_entry_angle = _eval(edge_entry_angle)
