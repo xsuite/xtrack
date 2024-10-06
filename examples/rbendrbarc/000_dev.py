@@ -29,4 +29,5 @@ env['ang'] = 0.6
 env.new('rb_rbarc', xt.Bend)
 env.set('rb_rbarc', length='lb', angle='ang', rbend=True, rbarc=True)
 
-xo.assert_allclose(ds_madx, env['rb_rbarc'].length, atol=0, rtol=1e-12)
+xo.assert_allclose(env['rb_rbarc'].length, ds_madx, atol=0, rtol=1e-12)
+xo.assert_allclose(env['rb_rbarc'].h * env['rb_rbarc'].length, 0.6, atol=0, rtol=1e-12)
