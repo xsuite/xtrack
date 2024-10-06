@@ -127,7 +127,7 @@ class Environment:
             if parent in self.element_dict:
                 # Clone an existing element
                 self.element_dict[name] = xt.Replica(parent_name=parent)
-                self.replace_replica(name)
+                xt.Line.replace_replica(self, name)
                 parent = type(self.element_dict[name])
                 needs_instantiation = False
             elif parent in _ALLOWED_ELEMENT_TYPES_DICT:
