@@ -3,9 +3,8 @@ import matplotlib.pyplot as plt
 
 import xtrack as xt
 
+# Build a simple ring
 env = xt.Environment()
-
-# Define elements
 pi = np.pi
 lbend = 3
 line = env.new_line(components=[
