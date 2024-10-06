@@ -8,7 +8,7 @@ l_halfcell = 5.3
 # Create an environment
 env = xt.Environment()
 
-# Build a line
+# Build a simple ring
 line = env.new_line(components=[
     env.new('mqf.1', xt.Quadrupole, length=0.3, k1=0.1, at=0.15),
     env.new('d1.1',  xt.Drift, length=1),
