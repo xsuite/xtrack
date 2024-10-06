@@ -4402,6 +4402,9 @@ class Line:
 def frac(x):
     return x % 1
 
+def sinc(x):
+    return np.sinc(x / np.pi)
+
 class Functions:
 
     _mathfunctions = dict(
@@ -4419,7 +4422,7 @@ class Functions:
         sinh = math.sinh,
         cosh = math.cosh,
         tanh = math.tanh,
-        sinc = np.sinc,
+        sinc = sinc,
         abs = math.fabs,
         erf = math.erf,
         erfc = math.erfc,

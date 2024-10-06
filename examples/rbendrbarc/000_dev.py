@@ -24,3 +24,6 @@ xo.assert_allclose(ds_madx, line['rb'].length, atol=0, rtol=1e-12)
 env = xt.Environment()
 env.new('rbe', xt.Bend)
 env.set('rbe', length=1.0, angle=0.5, rbend=True, rbarc=True)
+
+R = 0.5 * mad_el.l / self.math.sin(0.5 * mad_el.angle) # l is on the straight line
+l_curv = 0.5 * mad_el.angle  / self.math.sin(0.5 * mad_el.angle) * mad_el.l
