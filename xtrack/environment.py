@@ -233,8 +233,6 @@ class Environment:
         else:
             return self._get_a_drift_name()
 
-
-
     def place(self, name, at=None, from_=None, anchor=None, from_anchor=None):
         return Place(name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
 
