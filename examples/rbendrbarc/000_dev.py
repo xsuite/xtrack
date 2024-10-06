@@ -5,7 +5,9 @@ from cpymad.madx import Madx
 
 mad = Madx()
 mad.input('''
-    rb: rbend, l=1.0, angle=0.5;
+    ang = 0.6;
+    lb = 0.5;
+    rb: rbend, l=lb, angle=ang;
 
     beam, particle=proton, energy=1.0;
     seq: sequence, l=2;
@@ -22,7 +24,9 @@ line = xt.Line.from_madx_sequence(mad.sequence.seq)
 xo.assert_allclose(ds_madx, line['rb'].length, atol=0, rtol=1e-12)
 
 env = xt.Environment()
-env.new('rbe', xt.Bend)
-env.set('rbe', length=1.0, angle=0.5, rbend=True, rbarc=True)
+env['lb'] = 0.5
+env['ang'] = 0.6
+env.new('rb_rbarc', xt.Bend)
+env.set('rb_rbarc', length='lb', angle='ang', rbend=True, rbarc=True)
 
-xo.assert_allclose(ds_madx, env['rbe'].length, atol=0, rtol=1e-12)
+xo.assert_allclose(ds_madx, env['rb_rbarc'].length, atol=0, rtol=1e-12)
