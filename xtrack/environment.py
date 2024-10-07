@@ -603,7 +603,7 @@ class EnvRef:
 def _handle_bend_kwargs(kwargs, _eval, env=None, name=None):
 
     kwargs = kwargs.copy()
-    rbarc = kwargs.pop('rbarc', False)
+    rbarc = kwargs.pop('rbarc', True)
     rbend = kwargs.pop('rbend', False)
 
     if rbarc:
