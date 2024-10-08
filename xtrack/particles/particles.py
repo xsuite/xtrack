@@ -212,6 +212,14 @@ class Particles(xo.HybridClass):
             raise NameError('`psigma` is not supported anymore.'
                             'Please use `pzeta` instead.')
 
+        accepted_args = set(self._xofields.keys()) | {
+            'energy0', 'tau', 'pzeta', 'mass_ratio', 'mass', 'kinetic_energy0',
+            '_context', '_buffer', '_offset', 'p0',
+        }
+        if set(kwargs.keys()) - accepted_args:
+            raise NameError(f'Invalid argument(s) provided: '
+                            f'{set(kwargs.keys()) - accepted_args}')
+
         per_part_input_vars = (
             self.per_particle_vars +
             ((xo.Float64, 'energy0'),
