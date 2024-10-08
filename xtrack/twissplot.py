@@ -10,7 +10,7 @@ import numpy as np
 
 
 def _mylbl(d, x):
-    return d.get(x, r"$%s$" % x)
+    return d.get(x, r"%s" % x)
 
 
 class TwissPlot(object):
@@ -21,12 +21,12 @@ class TwissPlot(object):
         "dy": r"$D_y$",
         "mux": r"$\mu_x$",
         "muy": r"$\mu_y$",
-        "Ax": "$A_x$",
-        "Ay": "$A_y$",
-        "Bx": "$B_x$",
-        "By": "$B_y$",
-        "wx": "$w_x$",
-        "wy": "$w_y$",
+        "ax_chrom": "$A_x$",
+        "ay_chrom": "$A_y$",
+        "bx_chrom": "$B_x$",
+        "by_chrom": "$B_y$",
+        "wx_chrom": "$W_x$",
+        "wy_chrom": "$W_y$",
         "sigx": r"$\sigma_x=\sqrt{\beta_x \epsilon}$",
         "sigy": r"$\sigma_y=\sqrt{\beta_y \epsilon}$",
         "sigdx": r"$\sigma_{D_x}=D_x \delta$",
@@ -47,6 +47,12 @@ class TwissPlot(object):
         "sigx": r"$\sigma$ [mm]",
         "sigy": r"$\sigma$ [mm]",
         "sigdx": r"$\sigma$ [mm]",
+        "ax_chrom": "$A$",
+        "ay_chrom": "$A$",
+        "bx_chrom": "$B$",
+        "by_chrom": "$B$",
+        "wx_chrom": "$W$",
+        "wy_chrom": "$W$",
         "n1": r"Aperture [$\sigma$]",
     }
     autoupdate = []
@@ -54,8 +60,7 @@ class TwissPlot(object):
     def ani_autoupdate(self):
         from matplotlib.animation import FuncAnimation
 
-        self._ani = FuncAnimation(
-            self.figure, self.update, blit=False, interval=1000)
+        self._ani = FuncAnimation(self.figure, self.update, blit=False, interval=1000)
 
     def ani_stopupdate(self):
         del self._ani
@@ -73,8 +78,13 @@ class TwissPlot(object):
         idx=slice(None),
         clist="k r b g c m",
         lattice=None,
-        newfig=True,
-        figlabel=None
+        figure=None,
+        figlabel=None,
+        ax=None,
+        axleft=None,
+        axright=None,
+        axlattice=None,
+        hover=False,
     ):
 
         import matplotlib.pyplot as plt
@@ -94,34 +104,34 @@ class TwissPlot(object):
             idx,
             clist,
         )
+        self.ax = ax
+        self.used_ax = False
+        if ax is not None:
+            self.figure = ax.figure
+        elif figure is None:
+            self.figure = plt.figure(num=figlabel, figsize=(6.4*1.2, 4.8))
+        if figlabel is not None:
+            self.figure.clf()
         for i in self.yl + self.yr:
             self.color[i] = self.clist.pop(0)
             self.clist.append(self.color[i])
-        if newfig is True:
-            self.figure = plt.figure(num=figlabel)
-            self.figure.clf()
-        elif newfig is False:
-            self.figure = plt.gcf()
-            self.figure.clf()
-        else:
-            self.figure = newfig
-            self.figure.clf()
-        if lattice and x=="s":
-            self.lattice = self._new_axes()
+        if lattice and x == "s":
+            self.lattice = self._new_axis(axlattice)
+            # self.lattice.set_frame_on(False)
             #      self.lattice.set_autoscale_on(False)
             self.lattice.yaxis.set_visible(False)
         if yl:
-            self.left = self._new_axes()
+            self.left = self._new_axis(axleft)
             #      self.left.set_autoscale_on(False)
         if yr:
-            self.right = self._new_axes()
+            self.right = self._new_axis(axright)
             #      self.right.set_autoscale_on(False)
             self.left.yaxis.set_label_position("right")
             self.left.yaxis.set_ticks_position("right")
 
         #    timeit('Setup')
         self.run()
-        if lattice and x=="s":
+        if lattice and x == "s":
             self.lattice.set_autoscale_on(False)
         if yl:
             self.left.set_autoscale_on(False)
@@ -131,16 +141,20 @@ class TwissPlot(object):
             self.right.set_autoscale_on(False)
             self.right.yaxis.set_label_position("right")
             self.right.yaxis.set_ticks_position("right")
+        if hover:
+            self.set_hover()
 
     #    timeit('Update')
-    def _new_axes(self):
-        if self.figure.axes:
-            ax = self.figure.axes[-1]
-            out = self.figure.add_axes(
-                ax.get_position(), sharex=ax, frameon=False)
+    def _new_axis(self, ax=None):
+        if self.ax is None:
+            out = self.figure.add_subplot(111)
+            self.figure.subplots_adjust(right=0.75)
+            self.ax = out
+        if self.used_ax:
+            out = self.ax.twinx()
         else:
-            # adjust plot dimensions
-            out = self.figure.add_axes([0.17, 0.12, 0.6, 0.8])
+            out = self.ax
+            self.used_ax = True
         return out
 
     def __repr__(self):
@@ -182,6 +196,7 @@ class TwissPlot(object):
         self.xaxis = self.ont[self.x][self.idx]
         self.lines = []
         self.legends = []
+        self.names = []
         #    self.figure.lines=[]
         #    self.figure.patches=[]
         #    self.figure.texts=[]
@@ -204,24 +219,37 @@ class TwissPlot(object):
             self.right.clear()
             for i in self.yr:
                 self._column(i, self.right, self.color[i])
-        ca = self.figure.gca()
-        ca.set_xlabel(_mylbl(self.axlabel, self.x))
-        ca.set_xlim(min(self.xaxis), max(self.xaxis))
-        self.figure.legend(self.lines, self.legends, loc="upper right")
-        ca.grid(True)
-        #    self.figure.canvas.mpl_connect('button_release_event',self.button_press)
-        self.figure.canvas.mpl_connect("pick_event", self.pick)
-        # plt.interactive(is_ion)
+        self.ax.set_xlabel(_mylbl(self.axlabel, self.x))
+        self.ax.set_xlim(min(self.xaxis), max(self.xaxis))
+        self.ax.legend(
+            self.lines, self.legends, loc="upper right", bbox_to_anchor=(1.35, 1.)
+        )
+        self.ax.grid(True)
         self.figure.canvas.draw()
         if hasattr(self, "on_run"):
             self.on_run(self)
 
+    def set_hover(self):
+        self.figure.canvas.mpl_connect("motion_notify_event", self.pick)
+
     def pick(self, event):
-        pos = np.array([event.mouseevent.x, event.mouseevent.y])
-        name = event.artist.elemname
-        prop = event.artist.elemprop
-        value = event.artist.elemvalue
-        print("\n %s.%s=%s" % (name, prop, value), end=" ")
+        for ii, ll in enumerate(self.lines):
+            _, data = ll.contains(event)
+            lgd = self.names[ii]
+            if "ind" in data:
+                xx = ll.get_xdata()
+                yy = ll.get_ydata()
+                for idx in data["ind"]:
+                    if "name" in self.table._col_names:
+                        name = self.table.name[idx]
+                    else:
+                        name = ""
+                    print(f"{name:25}, s={xx[idx]:15.6g}, {lgd:>10}={yy[idx]:15.6g}")
+        # pos = np.array([event.mouseevent.x, event.mouseevent.y])
+        # name = event.artist.elemname
+        # prop = event.artist.elemprop
+        # value = event.artist.elemvalue
+        # print("\n %s.%s=%s" % (name, prop, value), end=" ")
 
     #  def button_press(self,mouseevent):
     #    rel=np.array([mouseevent.x,mouseevent.y])
@@ -239,7 +267,7 @@ class TwissPlot(object):
         vd = 0
         sp = self.lattice
         s = self.ont.s
-        l = np.diff(s,append=[s[-1]])
+        l = np.diff(s, append=[s[-1]])
         for name in names:
             myvd = self.ont._data.get(name, None)
             if myvd is not None:
@@ -266,6 +294,7 @@ class TwissPlot(object):
                     if bplt:
                         self.lines.append(bplt[0])
                         self.legends.append(lbl)
+                        self.names.append(lbl)
                     row_names = self.ont.name
                     for r, name in zip(bplt, c):
                         r.elemname = row_names[name]
@@ -282,23 +311,49 @@ class TwissPlot(object):
         sp.set_ylabel(_mylbl(self.axlabel, name))
         self.lines.append(bxp)
         self.legends.append(_mylbl(self.lglabel, name))
+        self.names.append(name)
         sp.autoscale_view()
 
     def savefig(self, name):
         self.figure.savefig(name)
         return self
 
-    def ylim(self,left_lo=None,left_hi=None,right_lo=None,right_hi=None):
-        lo,hi=self.left.get_ylim()
+    def ylim(
+        self,
+        left_lo=None,
+        left_hi=None,
+        right_lo=None,
+        right_hi=None,
+        lattice_lo=None,
+        lattice_hi=None,
+    ):
+        lo, hi = self.left.get_ylim()
         if left_lo is None:
             left_lo = lo
         if left_hi is None:
             left_hi = hi
-        self.left.set_ylim(left_lo,left_hi)
-        lo,hi=self.right.get_ylim()
+        self.left.set_ylim(left_lo, left_hi)
+        lo, hi = self.right.get_ylim()
         if right_lo is None:
             right_lo = lo
         if right_hi is None:
             right_hi = hi
-        self.right.set_ylim(right_lo,right_hi)
+        self.right.set_ylim(right_lo, right_hi)
+        lo, hi = self.lattice.get_ylim()
+        if lattice_lo is None:
+            lattice_lo = lo
+        if lattice_hi is None:
+            lattice_hi = hi
+        self.lattice.set_ylim(lattice_lo, lattice_hi)
+        return self
+
+    def set_s_label(self, regexp="ip.*"):
+        sel = self.table.rows[regexp]
+        self.ax.set_xticks(sel.s, sel.name)
+        self.ax.set_xlabel(None)
+        return self
+
+    def move_legend(self, left=0, bottom=0, width=0, height=0):
+        """Uses ax.legend_.set_bbox_to_anchor"""
+        self.ax.legend_.set_bbox_to_anchor((left, bottom, width, height))
         return self

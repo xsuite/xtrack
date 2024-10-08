@@ -71,13 +71,13 @@ def _build_response_matrix(tw, monitor_names, corrector_names,
     assert plane in ['x', 'y']
 
     # Build response matrix
-    mask_monitors = tw.mask[monitor_names]
-    mask_correctors = tw.mask[corrector_names]
-    bet_monitors = tw['bet' + plane][mask_monitors]
-    bet_correctors = tw['bet' + plane][mask_correctors]
+    indices_monitors = tw.rows.indices[monitor_names]
+    indices_correctors = tw.rows.indices[corrector_names]
+    bet_monitors = tw['bet' + plane][indices_monitors]
+    bet_correctors = tw['bet' + plane][indices_correctors]
 
-    mu_monitor = tw['mu' + plane][mask_monitors]
-    mux_correctors = tw['mu' + plane][mask_correctors]
+    mu_monitor = tw['mu' + plane][indices_monitors]
+    mux_correctors = tw['mu' + plane][indices_correctors]
 
     n_monitors = len(monitor_names)
     n_correctors = len(corrector_names)
@@ -174,20 +174,20 @@ class OrbitCorrectionSinglePlane:
 
         # tw_table_local = self.twiss_table.rows[self.start:self.end]
         # Parch: avoid issue with regular expression
-        if self.start is not None:
-            start = self.start.replace('$', '\\$')
-        else:
-            start = None
-        if self.end is not None:
-            end = self.end.replace('$', '\\$')
-        else:
-            end = None
+        #if self.start is not None:
+        #    start = self.start.replace('$', '\\$')
+        #else:
+        #    start = None
+        #if self.end is not None:
+        #    end = self.end.replace('$', '\\$')
+        #else:
+        #    end = None
         tw_table_local = self.twiss_table.rows[start:end]
 
-        self._mask_monitors = tw_table_local.mask[self.monitor_names]
-        self._mask_correctors = tw_table_local.mask[self.corrector_names]
-        self.s_correctors = tw_table_local.s[self._mask_correctors]
-        self.s_monitors = tw_table_local.s[self._mask_monitors]
+        self._indices_monitor = tw_table_local.rows.indices[self.monitor_names]
+        self._indices_correctors = tw_table_local.rows.indices[self.corrector_names]
+        self.s_correctors = tw_table_local.s[self._indices_correctors]
+        self.s_monitors = tw_table_local.s[self._indices_monitor]
 
         self._add_correction_knobs()
 
@@ -258,7 +258,7 @@ class OrbitCorrectionSinglePlane:
         if tw_orbit is None:
             tw_orbit = self._compute_tw_orbit()
 
-        position = tw_orbit[self.plane][self._mask_monitors]
+        position = tw_orbit[self.plane][self._indices_monitor]
 
         return position
 

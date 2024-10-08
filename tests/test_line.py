@@ -36,9 +36,9 @@ def test_simplification_methods():
     line.merge_consecutive_drifts(inplace=True)
     assert len(line.element_names) == 3
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
-    xo.assert_allclose(line[0].length, 3.3, rtol=0, atol=1e-12)
-    assert isinstance(line[1], xt.Cavity)
-    xo.assert_allclose(line[2].length, 1.7, rtol=0, atol=1e-12)
+    xo.assert_allclose(line[line.element_names[0]].length, 3.3, rtol=0, atol=1e-12)
+    assert isinstance(line[line.element_names[1]], xt.Cavity)
+    xo.assert_allclose(line[line.element_names[2]].length, 1.7, rtol=0, atol=1e-12)
 
     # Test merging of drifts, while keeping one
     line.insert_element(element=xt.Drift(length=1), name='drift1', at_s=1.2)
@@ -85,8 +85,8 @@ def test_simplification_methods():
     line._replace_with_equivalent_elements()
     line.merge_consecutive_multipoles(inplace=True)
     assert len(line.element_names) == 4
-    xo.assert_allclose(line[1].knl, [7,5,11], rtol=0, atol=1e-15)
-    xo.assert_allclose(line[1].ksl, [52,60,17], rtol=0, atol=1e-15)
+    xo.assert_allclose(line[line.element_names[1]].knl, [7,5,11], rtol=0, atol=1e-15)
+    xo.assert_allclose(line[line.element_names[1]].ksl, [52,60,17], rtol=0, atol=1e-15)
 
     # Test removing inactive multipoles
     line.insert_element(element=xt.Multipole(knl=[0, 8, 1], ksl=[0, 20, 30]), name='m5', at_s=3.3)
@@ -656,17 +656,25 @@ def test_from_json_to_json(tmp_path):
     }
     line.metadata = example_metadata
 
+    def asserts():
+        assert len(result.element_dict.keys()) == 2
+        assert result.element_names == ['m', 'd', 'm', 'd']
+
+        assert isinstance(result['m'], xt.Multipole)
+        assert (result['m'].knl == [1, 2]).all()
+
+        assert isinstance(result['d'], xt.Drift)
+        assert result['d'].length == 1
+
+        assert result.metadata == example_metadata
+        result.metadata['qx']['lhcb1'] = result.metadata['qx']['lhcb1'] + 1
+        assert result.metadata != example_metadata
+        result.metadata['qx']['lhcb1'] = result.metadata['qx']['lhcb1'] - 1
+
     line.to_json(tmp_path / 'test.json')
     result = xt.Line.from_json(tmp_path / 'test.json')
 
-    assert len(result.element_dict.keys()) == 2
-    assert result.element_names == ['m', 'd', 'm', 'd']
-
-    assert isinstance(result['m'], xt.Multipole)
-    assert (result['m'].knl == [1, 2]).all()
-
-    assert isinstance(result['d'], xt.Drift)
-    assert result['d'].length == 1
+    asserts()
 
     with open(tmp_path / 'test2.json', 'w') as f:
         line.to_json(f)
@@ -674,18 +682,24 @@ def test_from_json_to_json(tmp_path):
     with open(tmp_path / 'test2.json', 'r') as f:
         result = xt.Line.from_json(f)
 
-    assert len(result.element_dict.keys()) == 2
-    assert result.element_names == ['m', 'd', 'm', 'd']
+    asserts()
 
-    assert isinstance(result['m'], xt.Multipole)
-    assert (result['m'].knl == [1, 2]).all()
+    with open(tmp_path / 'test2.json', 'w') as f:
+        line.to_json(f,indent=None)
 
-    assert isinstance(result['d'], xt.Drift)
-    assert result['d'].length == 1
+    with open(tmp_path / 'test2.json', 'r') as f:
+        result = xt.Line.from_json(f)
 
-    assert result.metadata == example_metadata
-    result.metadata['qx']['lhcb1'] = result.metadata['qx']['lhcb1'] + 1
-    assert result.metadata != example_metadata
+    asserts()
+
+    with open(tmp_path / 'test2.json.gz', 'w') as f:
+        line.to_json(f,indent=2)
+
+    with open(tmp_path / 'test2.json.gz', 'r') as f:
+        result = xt.Line.from_json(f)
+
+    asserts()
+
 
 @for_all_test_contexts
 def test_config_propagation(test_context):
@@ -885,18 +899,18 @@ def test_insert_thin_elements_at_s_lhc(test_context):
     xo.assert_allclose(tt['s', 'm1_at_d'], s2, rtol=0, atol=1e-6)
     xo.assert_allclose(tt['s', 'm2_at_d'], s2, rtol=0, atol=1e-6)
 
-    assert np.all(tt.rows['mq.28r3.b1_entry%%-3':'mq.28r3.b1_entry'].name
+    assert np.all(tt.rows['mq.28r3.b1_entry<<3':'mq.28r3.b1_entry'].name
             == np.array(['m0_at_a', 'm1_at_a', 'm2_at_a', 'mq.28r3.b1_entry']))
 
-    assert np.all(tt.rows['m0_at_b%%-2':'m0_at_b%%+4'].name
+    assert np.all(tt.rows['m0_at_b<<2':'m0_at_b>>4'].name
             == np.array(['mb.a29r3.b1..0', 'drift_mb.a29r3.b1..1..0',
                         'm0_at_b', 'm1_at_b', 'm2_at_b',
                         'drift_mb.a29r3.b1..1..1', 'mb.a29r3.b1..1']))
 
-    assert np.all(tt.rows['mq.29r3.b1_exit%%-3':'mq.29r3.b1_exit'].name
+    assert np.all(tt.rows['mq.29r3.b1_exit<<3':'mq.29r3.b1_exit'].name
             == np.array(['m0_at_c', 'm1_at_c', 'm2_at_c', 'mq.29r3.b1_exit']))
 
-    assert np.all(tt.rows['m0_at_d':'m0_at_d%%+4'].name
+    assert np.all(tt.rows['m0_at_d':'m0_at_d>>4'].name
                 == np.array(['m0_at_d', 'm1_at_d', 'm2_at_d',
                             'lhcb1ip7_p_', '_end_point']))
 

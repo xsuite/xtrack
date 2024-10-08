@@ -4,7 +4,21 @@ import xtrack as xt
 
 from scipy.constants import c as clight
 
-delta0 = 1e-2
+delta0 = 0 #-1e-2
+delta_range = 0
+num_turns=100
+num_particles = 100_000
+
+# delta0 = 1e-2
+# delta_range = 0
+# num_turns=20
+# num_particles = 5_000_000
+
+# # To see the different number of turns
+# delta0 = 0e-2
+# delta_range = 10e-3
+# num_turns=5000
+# num_particles = 5000
 
 line = xt.Line.from_json(
     '../../test_data/psb_injection/line_and_particle.json')
@@ -42,15 +56,15 @@ circumference = tw.circumference
 zeta_min0 = -circumference/2*tw.beta0/beta1
 zeta_max0 = circumference/2*tw.beta0/beta1
 
-num_particles = 50000
+
 p = line.build_particles(
-    delta=delta0 + 0 * np.random.uniform(-1, 1, num_particles),
+    delta=delta0 + delta_range * np.random.uniform(-1, 1, num_particles),
     x_norm=0, y_norm=0
 )
 
 # Need to take beta of actual particles to convert the distribution along the
 # circumference to a distribution in time
-p.zeta = (np.random.uniform(0, circumference, num_particles) / p.rvv
+p.zeta = (np.random.uniform(0, circumference, num_particles) / p.rvv * 0.999
           + (zeta_max0 - circumference) / p.rvv)
 
 st.prepare_particles_for_sync_time(p, line)
@@ -95,13 +109,13 @@ def y_mean_hist(line, particles):
 
 
 line.enable_time_dependent_vars = True
-num_turns=200
+
 line.track(p, num_turns=num_turns, log=xt.Log(intensity=intensity,
                                          long_density=long_density,
                                          y_mean_hist=y_mean_hist,
                                          z_range=z_range,
                                          particles=particles
-                                         ), with_progress=10)
+                                         ), with_progress=2)
 
 inten = line.log_last_track['intensity']
 
@@ -165,8 +179,8 @@ plt.ylim(inten_exp*0.95, inten_exp*1.05)
 
 plt.figure(2)
 plt.plot(p.delta, p.at_turn, '.')
-plt.ylabel('Number of turns')
-plt.xlabel(r'$\delta$')
+plt.ylabel('Number of revolutions')
+plt.xlabel(r'$\Delta P / P_0$')
 
 plt.figure(3)
 plt.plot([zz[1]-zz[0] for zz in line.log_last_track['z_range']])
@@ -201,18 +215,21 @@ plt.axvline(x=-circumference/2*tw.beta0/beta1, color='C1')
 plt.xlabel('z [m]')
 plt.ylabel('x [m]')
 
-plt.figure(8)
+f8 = plt.figure(8)
 ax1 = plt.subplot(2, 1, 1)
 plt.plot(t_unwrapped*1e6, y_vs_t, '-')
 plt.ylabel('y mean [m]')
-plt.grid()
 ax2 = plt.subplot(2, 1, 2, sharex=ax1)
-plt.plot(t_unwrapped*1e6, intensity_vs_t, '-')
-plt.ylabel('intensity')
+plt.plot(t_unwrapped*1e6, intensity_vs_t/np.mean(intensity_vs_t), '-')
+plt.ylabel('Beam line density [a.u.]')
 plt.xlabel('t [us]')
 plt.ylim(bottom=0)
-for tt in t_range_size * np.arange(0, hist_y.shape[0]):
-    ax1.axvline(x=tt*1e6, color='red', linestyle='--', alpha=0.5)
+for tt in np.arange(0, t_unwrapped[-1], 1/f_nominal):
+    for ax in [ax1, ax2]:
+        ax.axvline(x=tt*1e6, color='red', linestyle='--', alpha=0.5)
+
+# zoom
+ax1.set_xlim(0, 15)
 
 
 plt.show()

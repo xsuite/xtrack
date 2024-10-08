@@ -56,8 +56,6 @@ qtlimit6 = 1.0*90.0/scale
 
 # Break something
 
-collider.vars.cache_active = True
-
 collider.vars['kqt13.l7b1'] = collider.vars['kqt13.l7b1']._value * 1.1
 collider.vars['kqt12.l7b1'] = collider.vars['kqt12.l7b1']._value * 1.1
 collider.vars['kqtl11.l7b1'] = collider.vars['kqtl11.l7b1']._value * 0.9
