@@ -221,6 +221,12 @@ def twiss_line(line, particle_ref=None, method=None,
             - bety1: computed vertical beta function (Mais-Ripken) in meters
             - betx2: computed horizontal beta function (Mais-Ripken) in meters
             - bety2: computed vertical beta function (Mais-Ripken) in meters
+            - c_minus_re: real part of the closest tune approach coefficient
+            - c_minus_im: imaginary part of the closest tune approach coefficient
+            - c_r1: horizontal r1 coefficient for betatron coupling
+            - c_r2: vertical r2 coefficient for betatron coupling
+            - c_phi1: phase advance of the closest tune approach coefficient
+            - c_phi2: phase advance of the closest tune approach coefficient
         The table also contains the following global quantities:
             - qx: horizontal tune
             - qy: vertical tune
@@ -230,6 +236,8 @@ def twiss_line(line, particle_ref=None, method=None,
             - ddqx: horizontal second order chromaticity (d^2 qx / d delta^2)
             - ddqy: vertical second order chromaticity (d^2 qy / d delta^2)
             - c_minus: closest tune approach coefficient
+            - c_minus_re_0: real part of the closest tune approach coefficient (at start of the ring)
+            - c_minus_im_0: imaginary part of the closest tune approach coefficient (at start of the ring)
             - slip_factor: slip factor (-1 / f_ref * d f_ref / d delta) (positive above transition)
             - momentum_compaction_factor: momentum compaction factor (slip_factor + 1/gamma_0^2)
             - T_rev0: reference revolution period in seconds
