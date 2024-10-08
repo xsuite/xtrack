@@ -1257,7 +1257,7 @@ def _compute_global_quantities(line, twiss_res):
             twiss_res._data.update({
                 'qx': mux[-1], 'qy': muy[-1], 'qs': qs,
                 'c_minus': c_minus,
-                'c_minus_re_0': c_minus_re[0], 'c_minus_im0': c_minus_im[0],
+                'c_minus_re_0': c_minus_re[0], 'c_minus_im_0': c_minus_im[0],
             })
 
             # Coupling columns
