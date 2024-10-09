@@ -390,6 +390,7 @@ def twiss_line(line, particle_ref=None, method=None,
             out.zero_at(out.name[0])
             out.name[-1] = '_end_point'
             out['periodic'] = True
+            out['completed_init'] = tw.completed_init
         else:
             # Initial conditions are given -> open twiss
             kwargs.pop('end')
@@ -407,6 +408,7 @@ def twiss_line(line, particle_ref=None, method=None,
             t2o = t2o.rows[:-1]
             t2o.name[-1] = '_end_point'
             out = xt.TwissTable.concatenate([t1o, t2o])
+            out['completed_init'] = t1o.completed_init
         return _add_action_in_res(out, input_kwargs)
 
     if init == 'full_periodic' and (start is not None or end is not None):
@@ -525,6 +527,7 @@ def twiss_line(line, particle_ref=None, method=None,
         ax_chrom=ax_chrom, bx_chrom=bx_chrom, ay_chrom=ay_chrom, by_chrom=by_chrom,
         ddx=ddx, ddpx=ddpx, ddy=ddy, ddpy=ddpy,
         )
+    completed_init = (init.copy() if hasattr(init, 'copy') else init)
 
     # clean quantities embedded in init
     init_at=None
@@ -832,6 +835,7 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res = twiss_res.rows[at_elements]
 
     twiss_res['periodic'] = periodic
+    twiss_res['completed_init'] = completed_init
 
     return _add_action_in_res(twiss_res, input_kwargs)
 
@@ -1977,6 +1981,7 @@ def _handle_loop_around(kwargs):
             twini_2.element_name = line._element_names_unique[0]
             tw2 = twiss_line(start=line._element_names_unique[0], end=end,
                                     init=twini_2, **kwargs)
+            completed_init = tw1.completed_init
         elif _str_to_index(line, ele_name_init) <= _str_to_index(line, end):
             tw2 = twiss_line(start=line._element_names_unique[0], end=end,
                                 init=init, **kwargs)
@@ -1984,6 +1989,7 @@ def _handle_loop_around(kwargs):
             twini_1.element_name = '_end_point'
             tw1 = twiss_line(start=start, end='_end_point',
                                 init=twini_1, **kwargs)
+            completed_init = tw2.completed_init
         else:
             raise RuntimeError(
                 'Boundary conditions not at start or end of the specified range')
@@ -1998,6 +2004,7 @@ def _handle_loop_around(kwargs):
             twini_2.element_name = line._element_names_unique[-1]
             tw2 = twiss_line(start=line._element_names_unique[-1], end=end,
                                     init=twini_2, **kwargs)
+            completed_init = tw1.completed_init
         elif _str_to_index(line, ele_name_init) >= _str_to_index(line, end):
             tw2 = twiss_line(start=line._element_names_unique[-1], end=end,
                                 init=init, **kwargs)
@@ -2005,6 +2012,7 @@ def _handle_loop_around(kwargs):
             twini_1.element_name = line._element_names_unique[0]
             tw1 = twiss_line(start=start, end=line._element_names_unique[0],
                                 init=twini_1, **kwargs)
+            completed_init = tw2.completed_init
         else:
             raise RuntimeError(
                 'Boundary conditions not at start or end of the specified range')
@@ -2012,6 +2020,8 @@ def _handle_loop_around(kwargs):
     tw_res = TwissTable.concatenate([tw1, tw2])
 
     tw_res.s -= tw_res['s', ele_name_init] - init.s
+
+    tw_res['completed_init'] = completed_init
 
     if 'mux' in tw_res.keys():
         tw_res.mux -= tw_res['mux', ele_name_init] - init.mux
@@ -2062,6 +2072,7 @@ def _handle_init_inside_range(kwargs):
                      init=init, reverse=reverse, **kwargs)
 
     tw_res = TwissTable.concatenate([tw1, tw2])
+    tw_res['completed_init'] = tw1.completed_init
 
     tw_res.s -= tw_res['s', ele_name_init] - init.s
     tw_res.mux -= tw_res['mux', ele_name_init] - init.mux
