@@ -102,7 +102,7 @@ class ActionTwiss(xd.Action):
 
         if ismultiline:
             kwargs['init'] = twinit_list
-            kwargs['_keep_initial_particles'] = len(line_names) * True
+            kwargs['_keep_initial_particles'] = len(line_names) * [True]
         else:
             kwargs['init'] = twinit_list[0]
             kwargs['_keep_initial_particles'] = True
