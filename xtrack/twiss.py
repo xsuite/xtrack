@@ -609,7 +609,7 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if periodic:
 
-        assert not _keep_initial_particles
+        assert not _initial_particles
 
         steps_r_matrix = _complete_steps_r_matrix_with_default(steps_r_matrix)
 
