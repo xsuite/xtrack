@@ -389,6 +389,7 @@ def twiss_line(line, particle_ref=None, method=None,
             out = xt.TwissTable.concatenate([t1, t2])
             out.zero_at(out.name[0])
             out.name[-1] = '_end_point'
+            out['periodic'] = True
         else:
             # Initial conditions are given -> open twiss
             kwargs.pop('end')
@@ -829,6 +830,8 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if at_elements is not None:
         twiss_res = twiss_res.rows[at_elements]
+
+    twiss_res['periodic'] = periodic
 
     return _add_action_in_res(twiss_res, input_kwargs)
 
@@ -2907,6 +2910,7 @@ class TwissTable(Table):
     def __init__(self, *args, **kwargs):
         kwargs['sep_count'] = kwargs.get('sep_count', '::::')
         super().__init__(*args, **kwargs)
+        self['periodic'] = False
 
     _error_on_row_not_found = True
 
