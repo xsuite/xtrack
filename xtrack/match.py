@@ -116,8 +116,10 @@ class ActionTwiss(xd.Action):
                 if not tw0[llnn].periodic:
                     kwargs['_initial_particles'][ii] = tw0[llnn]._data.get('_initial_particles', None)
         else:
+            self.kwargs['init'] = tw0.completed_init
+            for kk in VARS_FOR_TWISS_INIT_GENERATION:
+                kwargs.pop(kk, None)
             if not(tw0.periodic):
-                self.kwargs['init'] = tw0.completed_init
                 kwargs['_initial_particles'] = tw0._data.get(
                                         '_initial_particles', None)
 
