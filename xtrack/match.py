@@ -81,8 +81,6 @@ class ActionTwiss(xd.Action):
             twinit_list = kwargs.get('init', none_list)
             ele_start_list = kwargs.get('start', none_list)
             ele_stop_list = kwargs.get('end', none_list)
-            ele_init_list = kwargs.get('init_at', none_list)
-            line_list = [line[nn] for nn in line_names]
 
             assert isinstance(twinit_list, list)
             assert isinstance(ele_start_list, list)
@@ -91,12 +89,10 @@ class ActionTwiss(xd.Action):
             for ii, twinit in enumerate(twinit_list):
                 if isinstance(twinit, xt.MultiTwiss):
                     twinit_list[ii] = twinit[line_names[ii]]
-
         else:
             twinit_list = [kwargs.get('init', None)]
             ele_start_list = [kwargs.get('start', None)]
             ele_stop_list = [kwargs.get('end', None)]
-            ele_init_list = [kwargs.get('init_at', None)]
 
             for ii, twinit in enumerate(twinit_list):
                 if isinstance(twinit, xt.TwissInit):
@@ -116,10 +112,12 @@ class ActionTwiss(xd.Action):
         if ismultiline:
             kwargs['_initial_particles'] = len(line_names) * [None]
             for ii, llnn in enumerate(line_names):
+                self.kwargs['init'][ii] = tw0[llnn].completed_init
                 if not tw0[llnn].periodic:
-                    kwargs['_initial_particles'] = tw0[llnn]._data.get('_initial_particles', None)
+                    kwargs['_initial_particles'][ii] = tw0[llnn]._data.get('_initial_particles', None)
         else:
             if not(tw0.periodic):
+                self.kwargs['init'] = tw0.completed_init
                 kwargs['_initial_particles'] = tw0._data.get(
                                         '_initial_particles', None)
 
