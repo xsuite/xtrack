@@ -1790,10 +1790,11 @@ def test_twiss_range_start_end(test_context, line_name, section, collider_for_te
     tw_ref = line.twiss(start=start_el, end=end_el, init=tw_init, reverse=reverse)
 
     for kk in tw_test._data.keys():
-        if kk in ('particle_on_co', '_action'):
+        if kk in ('particle_on_co', '_action', 'completed_init'):
             continue
 
-        if kk in ('name', 'method', 'values_at', 'radiation_method', 'reference_frame'):
+        if kk in ('name', 'method', 'values_at', 'radiation_method',
+                  'reference_frame'):
             assert np.all(tw_test._data[kk] == tw_ref._data[kk])
             continue
 
