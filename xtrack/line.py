@@ -886,6 +886,20 @@ class Line:
             self.particle_ref.t_sim = (
                 self.get_length() / self.particle_ref._xobject.beta0[0] / clight)
 
+    @property
+    def scattering(self):
+        if not hasattr(self, '_scattering'):
+            try:
+                from xcoll.line_tools import XcollLineAPI
+                self._scattering = XcollLineAPI(line=self)
+            except ImportError as error:
+                self._scattering = None
+                raise ImportError("Please install Xcoll to use this feature.") from error
+                return
+        if self._scattering is None:
+            log.warning("Scattering not available. Xcoll not installed.")
+        return self._scattering
+
     def discard_tracker(self):
 
         """
@@ -2645,42 +2659,6 @@ class Line:
         all_kwargs.update(kwargs)
         self._check_valid_tracker()
         compensate_radiation_energy_loss(self, **all_kwargs)
-
-    def assign_optics_to_collimators(self, nemitt_x=None, nemitt_y=None, twiss=None):
-        try:
-            from xcoll import assign_optics_to_collimators
-        except ImportError as error:
-            raise ImportError("Please install Xcoll to use this feature.") from error
-        assign_optics_to_collimators(line=self, nemitt_x=nemitt_x,
-                                     nemitt_y=nemitt_y, twiss=twiss)
-
-    def open_collimators(self, names=None):
-        try:
-            from xcoll import open_collimators
-        except ImportError as error:
-            raise ImportError("Please install Xcoll to use this feature.") from error
-        open_collimators(line=self, names=names)
-
-    def send_collimators_to_parking(self, names=None):
-        try:
-            from xcoll import send_to_parking
-        except ImportError as error:
-            raise ImportError("Please install Xcoll to use this feature.") from error
-        send_to_parking(line=self, names=names)
-
-    def enable_material_scattering(self):
-        try:
-            from xcoll import enable_scattering
-        except ImportError as error:
-            raise ImportError("Please install Xcoll to use this feature.") from error
-        enable_scattering(line=self)
-
-    def disable_material_scattering(self):
-        try:
-            from xcoll import disable_scattering
-        except ImportError as error:
-            raise ImportError("Please install Xcoll to use this feature.") from error
-        disable_scattering(line=self)
 
     def optimize_for_tracking(self, compile=True, verbose=True, keep_markers=False):
 
