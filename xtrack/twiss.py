@@ -3533,7 +3533,6 @@ def _complete_twiss_init(start, end, init_at, init,
         elif isinstance(init, TwissTable):
             init = init.get_twiss_init(at_element=init_at)
         else:
-            assert init_at is None
             assert x is None and px is None and y is None and py is None
             assert zeta is None and delta is None
             assert betx is None and alfx is None and bety is None and alfy is None
