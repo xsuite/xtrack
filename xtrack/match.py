@@ -762,6 +762,7 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
             tt_name = tt.tar
             tt_at = None
         if tt_at is not None and isinstance(tt_at, _LOC):
+            tt_at_init = tt_at
             tt_at = _at_from_placeholder(tt_at, line=tt.action.line,
                     line_name=tt.line, start=tt.action.kwargs['start'],
                     end=tt.action.kwargs['end'])
@@ -770,8 +771,14 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
             tw0 = tt.action._tw0
             if tt.line:
                 tw0 = tw0[tt.line]
+                this_line = line[tt.line]
             if isinstance(tt_at, _LOC):
                 tt_at_temp = tw0['name', {'START':0, 'END':-1}[tt_at.name]]
+                # If _end_point preceded by a marker, use the marker
+                if tt_at_temp == '_end_point' and len(tw0.name > 1):
+                    prev = tw0['name', -2]
+                    if isinstance(this_line[prev], xt.Marker):
+                        tt_at_temp = prev
                 assert tt_at_temp == tt_at
             tt.tar = (tt_name, tt_at)
 
