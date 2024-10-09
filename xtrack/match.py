@@ -762,24 +762,21 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
             tt_name = tt.tar
             tt_at = None
         if tt_at is not None and isinstance(tt_at, _LOC):
-            tt_at_init = tt_at
-            tt_at = _at_from_placeholder(tt_at, line=tt.action.line,
-                    line_name=tt.line, start=tt.action.kwargs['start'],
-                    end=tt.action.kwargs['end'])
+            # tt_at_init = tt_at
+            # tt_at = _at_from_placeholder(tt_at, line=tt.action.line,
+            #         line_name=tt.line, start=tt.action.kwargs['start'],
+            #         end=tt.action.kwargs['end'])
             assert isinstance(tt.action, ActionTwiss)
             tt.action.prepare() # does nothing if already prepared
-            tw0 = tt.action._tw0
-            if tt.line:
-                tw0 = tw0[tt.line]
-                this_line = line[tt.line]
+            tw0 = tt.action._tw0[tt.line] if tt.line else tt.action._tw0
+            this_line = tt.action.line[tt.line] if tt.line else tt.action.line
             if isinstance(tt_at, _LOC):
-                tt_at_temp = tw0['name', {'START':0, 'END':-1}[tt_at.name]]
+                tt_at= tw0['name', {'START':0, 'END':-1}[tt_at.name]]
                 # If _end_point preceded by a marker, use the marker
-                if tt_at_temp == '_end_point' and len(tw0.name > 1):
+                if tt_at == '_end_point' and len(tw0.name) > 1:
                     prev = tw0['name', -2]
                     if isinstance(this_line[prev], xt.Marker):
-                        tt_at_temp = prev
-                assert tt_at_temp == tt_at
+                        tt_at= prev
             tt.tar = (tt_name, tt_at)
 
         # Handle value
