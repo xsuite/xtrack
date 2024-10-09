@@ -762,10 +762,6 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
             tt_name = tt.tar
             tt_at = None
         if tt_at is not None and isinstance(tt_at, _LOC):
-            # tt_at_init = tt_at
-            # tt_at = _at_from_placeholder(tt_at, line=tt.action.line,
-            #         line_name=tt.line, start=tt.action.kwargs['start'],
-            #         end=tt.action.kwargs['end'])
             assert isinstance(tt.action, ActionTwiss)
             tt.action.prepare() # does nothing if already prepared
             tw0 = tt.action._tw0[tt.line] if tt.line else tt.action._tw0
@@ -953,35 +949,6 @@ class KnobOptimizer:
         self.line.vars[self.knob_name] = self.knob_value_start
 
         _print('Generated knob: ', self.knob_name)
-
-def _at_from_placeholder(tt_at, line, line_name, start, end):
-    assert isinstance(tt_at, _LOC)
-    if isinstance(line, xt.Multiline):
-        assert line is not None, (
-            'For a Multiline, the line must be specified if the target '
-            'is `start`')
-        assert line_name in line.line_names
-        i_line = line.line_names.index(line_name)
-        this_line = line[line_name]
-    else:
-        i_line = None
-        this_line = line
-    if tt_at.name == 'START':
-        if i_line is not None:
-            tt_at = start[i_line]
-        else:
-            tt_at = start
-    elif tt_at.name == 'END':
-        if i_line is not None:
-            tt_at = end[i_line]
-        else:
-            tt_at = end
-    else:
-        raise ValueError(f'Unknown location {tt_at.name}')
-    if not isinstance(tt_at, str):
-        tt_at = this_line.element_names[tt_at]
-
-    return tt_at
 
 def opt_from_callable(function, x0, steps, tar, tols):
 
