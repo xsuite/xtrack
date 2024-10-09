@@ -895,7 +895,6 @@ class Line:
             except ImportError as error:
                 self._scattering = None
                 raise ImportError("Please install Xcoll to use this feature.") from error
-                return
         if self._scattering is None:
             log.warning("Scattering not available. Xcoll not installed.")
         return self._scattering
