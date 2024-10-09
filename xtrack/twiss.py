@@ -390,17 +390,17 @@ def twiss_line(line, particle_ref=None, method=None,
             out.zero_at(out.name[0])
             out.name[-1] = '_end_point'
         else:
+            # Initial conditions are given -> open twiss
             kwargs.pop('end')
-            kwargs.pop('init')
             t1o = twiss_line(start=start, end=xt.END, **kwargs)
             init_part2 = t1o.get_twiss_init('_end_point')
-            # Dummy twiss to get the name at the start of the secon part
+            # Dummy twiss to get the name at the start of the second part
             init_part2.element_name = line.twiss(
                 start=xt.START, end=xt.START, betx=1, bety=1).name[0]
 
             for kk in VARS_FOR_TWISS_INIT_GENERATION:
                 kwargs.pop(kk, None)
-
+            kwargs.pop('init')
             t2o = twiss_line(start=xt.START, end=start, init=init_part2, **kwargs)
             # remove repeated element
             t2o = t2o.rows[:-1]
@@ -3507,6 +3507,9 @@ def _complete_twiss_init(start, end, init_at, init,
                         ax_chrom, bx_chrom, ay_chrom, by_chrom,
                         ddx, ddpx, ddy, ddpy
                         ):
+
+    if isinstance(init, TwissInit) and init_at is not None:
+        init.element_name = init_at
 
     if start is not None or end is not None:
         assert start is not None and end is not None, (
