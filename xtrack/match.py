@@ -58,8 +58,13 @@ class ActionTwiss(xd.Action):
         self.kwargs = kwargs
         self.allow_twiss_failure = allow_twiss_failure
         self.compensate_radiation_energy_loss = compensate_radiation_energy_loss
+        self._alredy_prepared = False
 
-    def prepare(self):
+    def prepare(self, force=False):
+
+        if self._alredy_prepared and not force:
+            return
+
         line = self.line
         kwargs = self.kwargs
 
@@ -108,6 +113,7 @@ class ActionTwiss(xd.Action):
             kwargs['_keep_initial_particles'] = True
 
         tw0 = line.twiss(**kwargs)
+        self._tw0 = tw0
 
         if ismultiline:
             kwargs['_initial_particles'] = len(line_names) * [None]
@@ -745,6 +751,7 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
                     line, allow_twiss_failure=allow_twiss_failure,
                     compensate_radiation_energy_loss=compensate_radiation_energy_loss,
                     **kwargs)
+                action_twiss.prepare()
             tt.action = action_twiss
 
         # Handle at
@@ -758,6 +765,14 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
             tt_at = _at_from_placeholder(tt_at, line=tt.action.line,
                     line_name=tt.line, start=tt.action.kwargs['start'],
                     end=tt.action.kwargs['end'])
+            assert isinstance(tt.action, ActionTwiss)
+            tt.action.prepare() # does nothing if already prepared
+            tw0 = tt.action._tw0
+            if tt.line:
+                tw0 = tw0[tt.line]
+            if isinstance(tt_at, _LOC):
+                tt_at_temp = tw0['name', {'START':0, 'END':-1}[tt_at.name]]
+                assert tt_at_temp == tt_at
             tt.tar = (tt_name, tt_at)
 
         # Handle value
