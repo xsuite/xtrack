@@ -770,9 +770,10 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
                 tt_at= tw0['name', {'START':0, 'END':-1}[tt_at.name]]
                 # If _end_point preceded by a marker, use the marker
                 if tt_at == '_end_point' and len(tw0.name) > 1:
-                    prev = tw0['name', -2]
-                    if isinstance(this_line[prev], xt.Marker):
-                        tt_at= prev
+                    nn_prev = tw0['name', -2]
+                    nn_env_prev = tw0['name_env', -2]
+                    if isinstance(this_line[nn_env_prev], xt.Marker):
+                        tt_at= nn_prev
             tt.tar = (tt_name, tt_at)
 
         # Handle value
