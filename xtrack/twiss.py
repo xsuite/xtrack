@@ -1009,6 +1009,7 @@ def _twiss_open(line, init,
     dzeta = np.array(dzeta)
 
     name_co = np.array(line._element_names_unique[i_start:i_stop] + ('_end_point',))
+    name_co_env = np.array(line.element_names[i_start:i_stop] + ('_end_point',))
 
     if only_markers:
         raise NotImplementedError('only_markers not supported anymore')
@@ -1031,6 +1032,7 @@ def _twiss_open(line, init,
         'kin_ps': kin_ps_co,
         'kin_xprime': kin_xprime_co,
         'kin_yprime': kin_yprime_co,
+        'name_env': name_co_env,
     })
 
     if not only_orbit and compute_lattice_functions:
