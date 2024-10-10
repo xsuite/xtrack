@@ -780,6 +780,9 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
         if isinstance(tt.value, xt.multiline.MultiTwiss):
             tt.value=tt.value[tt.line][tt.tar]
         if isinstance(tt.value, xt.TwissTable):
+            if isinstance(tt.tar, tuple) and tt.tar[1] == '_end_point':
+                # '_end_point' of the tar table might be different from the one of the action
+                raise ValueError('TwissTable target value cannot be used with at=_end_point')
             tt.value=tt.value[tt.tar]
         if isinstance(tt.value, np.ndarray):
             raise ValueError('Target value must be a scalar')
