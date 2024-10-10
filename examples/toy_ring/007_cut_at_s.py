@@ -4,34 +4,29 @@ import xtrack as xt
 # Define elements
 pi = np.pi
 lbend = 3
-elements = {
-    'mqf.1': xt.Quadrupole(length=0.3, k1=0.1),
-    'd1.1':  xt.Drift(length=1),
-    'mb1.1': xt.Bend(length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
-    'd2.1':  xt.Drift(length=1),
+# Build a simple ring
+env = xt.Environment()
+line = env.new_line(components=[
+    env.new('mqf.1', xt.Quadrupole, length=0.3, k1=0.1),
+    env.new('d1.1',  xt.Drift, length=1),
+    env.new('mb1.1', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
+    env.new('d2.1',  xt.Drift, length=1),
 
-    'mqd.1': xt.Quadrupole(length=0.3, k1=-0.7),
-    'd3.1':  xt.Drift(length=1),
-    'mb2.1': xt.Bend(length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
-    'd4.1':  xt.Drift(length=1),
+    env.new('mqd.1', xt.Quadrupole, length=0.3, k1=-0.7),
+    env.new('d3.1',  xt.Drift, length=1),
+    env.new('mb2.1', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
+    env.new('d4.1',  xt.Drift, length=1),
 
-    'mqf.2': xt.Quadrupole(length=0.3, k1=0.1),
-    'd1.2':  xt.Drift(length=1),
-    'mb1.2': xt.Bend(length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
-    'd2.2':  xt.Drift(length=1),
+    env.new('mqf.2', xt.Quadrupole, length=0.3, k1=0.1),
+    env.new('d1.2',  xt.Drift, length=1),
+    env.new('mb1.2', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
+    env.new('d2.2',  xt.Drift, length=1),
 
-    'mqd.2': xt.Quadrupole(length=0.3, k1=-0.7),
-    'd3.2':  xt.Drift(length=1),
-    'mb2.2': xt.Bend(length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
-    'd4.2':  xt.Drift(length=1),
-}
-
-# Build the ring
-line = xt.Line(elements=elements,
-               element_names=['mqf.1', 'd1.1', 'mb1.1', 'd2.1', # defines the order
-                              'mqd.1', 'd3.1', 'mb2.1', 'd4.1',
-                              'mqf.2', 'd1.2', 'mb1.2', 'd2.2',
-                              'mqd.2', 'd3.2', 'mb2.2', 'd4.2'])
+    env.new('mqd.2', xt.Quadrupole, length=0.3, k1=-0.7),
+    env.new('d3.2',  xt.Drift, length=1),
+    env.new('mb2.2', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
+    env.new('d4.2',  xt.Drift, length=1),
+])
 
 #!start-doc-part
 hundred_cuts = np.linspace(0, line.get_length(), num=100)

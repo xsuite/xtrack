@@ -3427,11 +3427,15 @@ class Line:
 
     def __add__(self, other):
         self._env_if_needed
-        assert isinstance(other, Line), 'Only Line can be added to Line'
+        #assert isinstance(other, Line), 'Only Line can be added to Line'
+        assert other.__class__.__name__=="Line", 'Only Line can be added to Line'
         assert other.env is self.env, 'Lines must be in the same environment'
         out = self.env.new_line(
             components=list(self.element_names) + list(other.element_names))
         return out
+
+    def __sub__(self, other):
+        return self + (-other)
 
     def replicate(self, name, mirror=False):
 
@@ -3527,6 +3531,27 @@ class Line:
         return out
 
     def set(self, name, *args, **kwargs):
+        '''
+        Set the values or expressions of variables or element properties.
+
+        Parameters
+        ----------
+        name : str
+            Name of the variable or element.
+        value: float or str
+            Value or expression of the variable to set. Can be provided only
+            if the name is associated to a variable.
+        **kwargs, float or str
+            Attributes to set. Can be provided only if the name is associated
+            to an element.
+
+        Examples
+        --------
+        >>> line.set('a', 0.1)
+        >>> line.set('k1', '3*a')
+        >>> line.set('quad', k1=0.1, k2='3*a')
+
+        '''
         _eval = self._xdeps_eval.eval
 
         if hasattr(self, 'lines') and name in self.lines:
@@ -3570,12 +3595,101 @@ class Line:
                 self.vars[name] = value
 
     def get(self, key):
+        '''
+        Get an element or the value of a variable.
+
+        Parameters
+        ----------
+        key : str
+            Name of the element or variable.
+
+        Returns
+        -------
+        element : Element or float
+            Element or value of the variable.
+
+        '''
+
         if key in self.element_dict:
             return self.element_dict[key]
         elif key in self.vars:
             return self._xdeps_vref._owner[key]
         else:
             raise KeyError(f'Element or variable {key} not found')
+
+    def info(self, key, limit=12):
+        """
+            Get information about an element or a variable.
+        """
+
+        if key in self.element_dict:
+            return self[key].get_info()
+        elif key in self.vars:
+            return self.vars.info(key, limit=limit)
+        else:
+            raise KeyError(f'Element or variable {key} not found')
+
+#    def get_value(self, key):
+#        if key in self.element_dict:
+#            return self.element_dict[key].get_value()
+#        elif key in self.vars:
+#            return self.vars.get_value(key)
+#        else:
+#            raise KeyError(f'Element or variable {key} not found')
+
+    @property
+    def ref_manager(self):
+        return self._xdeps_manager
+
+    def eval(self, expr):
+        '''
+        Get the value of an expression
+
+        Parameters
+        ----------
+        expr : str
+            Expression to evaluate.
+
+        Returns
+        -------
+        value : float
+            Value of the expression.
+        '''
+
+        return self.vars.eval(expr)
+
+    def new_expr(self, expr):
+        '''
+        Create a new expression
+
+        Parameters
+        ----------
+        expr : str
+            Expression to create.
+
+        Returns
+        -------
+        expr : Expression
+            New expression.
+        '''
+        return self.vars.new_expr(expr)
+
+    def get_expr(self, var):
+        '''
+        Get expression associated to a variable
+
+        Parameters
+        ----------
+        var: str
+            Name of the variable
+
+        Returns
+        -------
+        expr : Expression
+            Expression associated to the variable
+        '''
+
+        return self.vars.get_expr(var)
 
     def _env_if_needed(self):
         if not hasattr(self, 'env') or self.env is None:
@@ -4310,6 +4424,9 @@ class Line:
 def frac(x):
     return x % 1
 
+def sinc(x):
+    return np.sinc(x / np.pi)
+
 class Functions:
 
     _mathfunctions = dict(
@@ -4327,7 +4444,7 @@ class Functions:
         sinh = math.sinh,
         cosh = math.cosh,
         tanh = math.tanh,
-        sinc = np.sinc,
+        sinc = sinc,
         abs = math.fabs,
         erf = math.erf,
         erfc = math.erfc,
@@ -4727,26 +4844,17 @@ class LineVars:
 
         return xd.Table({'name': name, 'value': value, 'expr': expr})
 
-    def expr(self, var):
-        raise NotImplementedError # Untested
-        if isinstance(var,str):
-            ref=self.line._xdeps_vref[var]
-        elif is_expr(var):
-            ref=var
-        else:
-            raise ValueError(f"`{var}` not valid, must be str or expr")
-        expr=ref._expr
-        if expr is None:
-            raise NameError(f"`{var}` does not have any expression")
-        return expr
-
-    def eval(self, expr):
-        raise NotImplementedError # Untested
+    def new_expr(self, expr):
         return self.line._xdeps_eval.eval(expr)
 
-    def value(self, expr):
-        raise NotImplementedError # Untested
-        return eval(self)._get_value()
+    def eval(self, expr):
+        return self.new_expr(expr)._get_value()
+
+    def info(self, var, limit=10):
+        return self[var]._info(limit=limit)
+
+    def get_expr(self, var):
+        return self[var]._expr
 
     def __contains__(self, key):
         if self.line._xdeps_vref is None:
@@ -4870,6 +4978,9 @@ class LineVars:
             self[name] = self.line._xdeps_eval.eval(value)
         else:
             self[name] = value
+
+    def get(self, name):
+        return self[name]._value
 
 class ActionVars(Action):
 

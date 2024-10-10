@@ -221,6 +221,12 @@ def twiss_line(line, particle_ref=None, method=None,
             - bety1: computed vertical beta function (Mais-Ripken) in meters
             - betx2: computed horizontal beta function (Mais-Ripken) in meters
             - bety2: computed vertical beta function (Mais-Ripken) in meters
+            - c_minus_re: real part of the closest tune approach coefficient
+            - c_minus_im: imaginary part of the closest tune approach coefficient
+            - c_r1: horizontal r1 coefficient for betatron coupling
+            - c_r2: vertical r2 coefficient for betatron coupling
+            - c_phi1: phase advance of the closest tune approach coefficient
+            - c_phi2: phase advance of the closest tune approach coefficient
         The table also contains the following global quantities:
             - qx: horizontal tune
             - qy: vertical tune
@@ -230,6 +236,8 @@ def twiss_line(line, particle_ref=None, method=None,
             - ddqx: horizontal second order chromaticity (d^2 qx / d delta^2)
             - ddqy: vertical second order chromaticity (d^2 qy / d delta^2)
             - c_minus: closest tune approach coefficient
+            - c_minus_re_0: real part of the closest tune approach coefficient (at start of the ring)
+            - c_minus_im_0: imaginary part of the closest tune approach coefficient (at start of the ring)
             - slip_factor: slip factor (-1 / f_ref * d f_ref / d delta) (positive above transition)
             - momentum_compaction_factor: momentum compaction factor (slip_factor + 1/gamma_0^2)
             - T_rev0: reference revolution period in seconds
@@ -1223,26 +1231,50 @@ def _compute_global_quantities(line, twiss_res):
         if 'mux' in twiss_res._data: # Lattice functions are available
             mux = twiss_res['mux']
             muy = twiss_res['muy']
+
             # Coupling
-            r1 = (np.sqrt(twiss_res['bety1'])/
-                np.sqrt(twiss_res['betx1']))
-            r2 = (np.sqrt(twiss_res['betx2'])/
-                np.sqrt(twiss_res['bety2']))
+            # from Y. Luo et al., "Possible phase loop for the global betatron decoupling",
+            #  C-A/AP/#174, https://www.agsrhichome.bnl.gov//AP/ap_notes/ap_note_174.pdf
+            w11 = W_matrix[:, 0, 0]
+            w13 = W_matrix[:, 0, 2]
+            w14 = W_matrix[:, 0, 3]
+            w31 = W_matrix[:, 2, 0]
+            w32 = W_matrix[:, 2, 1]
+            w33 = W_matrix[:, 2, 2]
+
+            c_r1 = np.sqrt(w31**2 + w32**2) / w11
+            c_r2 = np.sqrt(w13**2 + w14**2) / w33
+            c_phi1 = np.arctan2(w32, w31)
+            c_phi2 = np.arctan2(w14, w13)
 
             # Coupling (https://arxiv.org/pdf/2005.02753.pdf)
-            cmin_arr = (2 * np.sqrt(r1*r2) *
+            # R. Jones, Measuring Tune, Chromaticity and Coupling,
+            # Proceedings of the 2018 CERN–Accelerator–School
+            cmin_arr = (2 * np.sqrt(c_r1*c_r2) *
                         np.abs(np.mod(mux[-1], 1) - np.mod(muy[-1], 1))
-                        /(1 + r1 * r2))
+                        /(1 + c_r1 * c_r2))
             c_minus = trapz(cmin_arr, s_vect)/(circumference)
-            c_r1_avg = trapz(r1, s_vect)/(circumference)
-            c_r2_avg = trapz(r2, s_vect)/(circumference)
+
+            c_minus_cplx = c_minus * np.exp(1j * c_phi1)
+            c_minus_re = np.real(c_minus_cplx)
+            c_minus_im = np.imag(c_minus_cplx)
 
             qs = np.abs(twiss_res['muzeta'][-1])
 
+            # Scalars
             twiss_res._data.update({
                 'qx': mux[-1], 'qy': muy[-1], 'qs': qs,
-                'c_minus': c_minus, 'c_r1_avg': c_r1_avg, 'c_r2_avg': c_r2_avg
+                'c_minus': c_minus,
+                'c_minus_re_0': c_minus_re[0], 'c_minus_im_0': c_minus_im[0],
             })
+
+            # Coupling columns
+            twiss_res['c_minus_re'] = c_minus_re
+            twiss_res['c_minus_im'] = c_minus_im
+            twiss_res['c_r1'] = c_r1
+            twiss_res['c_r2'] = c_r2
+            twiss_res['c_phi1'] = c_phi1
+            twiss_res['c_phi2'] = c_phi2
 
 def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                     matrix_responsiveness_tol, matrix_stability_tol, symplectify,
