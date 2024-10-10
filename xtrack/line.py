@@ -886,6 +886,28 @@ class Line:
             self.particle_ref.t_sim = (
                 self.get_length() / self.particle_ref._xobject.beta0[0] / clight)
 
+    @property
+    def scattering(self):
+        if not hasattr(self, '_scattering') or self._scattering is None:
+            try:
+                from xcoll.line_tools import XcollScatteringAPI
+                self._scattering = XcollScatteringAPI(line=self)
+            except ImportError as error:
+                raise ImportError("Please install Xcoll to use this feature.") from error
+
+        return self._scattering
+
+    @property
+    def collimators(self):
+        if not hasattr(self, '_collimators') or self._collimators is None:
+            try:
+                from xcoll.line_tools import XcollCollimatorAPI
+                self._collimators = XcollCollimatorAPI(line=self)
+            except ImportError as error:
+                raise ImportError("Please install Xcoll to use this feature.") from error
+
+        return self._collimators
+
     def discard_tracker(self):
 
         """
@@ -4527,7 +4549,12 @@ def mk_class_namespace(extra_classes):
         all_classes = element_classes + xf.element_classes + extra_classes + (Line,)
     except ImportError:
         all_classes = element_classes + extra_classes
-        log.warning("Xfields not installed correctly")
+        log.warning("Xfields not installed")
+    try:
+        import xcoll as xc
+        all_classes += xc.element_classes
+    except ImportError:
+        log.warning("Xcoll not installed")
 
     all_classes = all_classes + (EnergyProgram, xt.Replica)
 
