@@ -888,16 +888,25 @@ class Line:
 
     @property
     def scattering(self):
-        if not hasattr(self, '_scattering'):
+        if not hasattr(self, '_scattering') or self._scattering is None:
             try:
-                from xcoll.line_tools import XcollLineAPI
-                self._scattering = XcollLineAPI(line=self)
+                from xcoll.line_tools import XcollScatteringAPI
+                self._scattering = XcollScatteringAPI(line=self)
             except ImportError as error:
-                self._scattering = None
                 raise ImportError("Please install Xcoll to use this feature.") from error
-        if self._scattering is None:
-            log.warning("Scattering not available. Xcoll not installed.")
+
         return self._scattering
+
+    @property
+    def collimators(self):
+        if not hasattr(self, '_collimators') or self._collimators is None:
+            try:
+                from xcoll.line_tools import XcollCollimatorAPI
+                self._collimators = XcollCollimatorAPI(line=self)
+            except ImportError as error:
+                raise ImportError("Please install Xcoll to use this feature.") from error
+
+        return self._collimators
 
     def discard_tracker(self):
 
