@@ -204,6 +204,8 @@ class GreaterThan:
         '''
         if xd.refs.is_ref(self.lower):
             lower_val = self.lower._value
+        else:
+            lower_val = self.lower
         if self.mode == 'step':
             if res < lower_val:
                 return res - lower_val
@@ -251,11 +253,13 @@ class LessThan:
                 self.sigma = sigma
             else:
                 assert sigma_rel is not None
-                self.sigma = np.abs(self.upper) * sigma_rel
+                self.sigma = np.abs(upper_val) * sigma_rel
 
     def auxtarget(self, res):
         if xd.refs.is_ref(self.upper):
             upper_val = self.upper._value
+        else:
+            upper_val = self.upper
         if self.mode == 'step':
             if res > upper_val:
                 return upper_val - res
