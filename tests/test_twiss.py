@@ -835,9 +835,10 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
 
     tw_test = tw_test.rows[:-1]
     assert np.all(tw_test.name == tw_part.name)
+    assert np.all(tw_test.name_env == tw_part.name_env)
 
     for kk in tw_test._data.keys():
-        if kk in ['name', 'W_matrix', 'particle_on_co', 'values_at',
+        if kk in ['name', 'name_env', 'W_matrix', 'particle_on_co', 'values_at',
                     'method', 'radiation_method', 'reference_frame',
                     'orientation', 'steps_r_matrix', 'line_config',
                     'loop_around', '_action',
