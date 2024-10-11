@@ -202,20 +202,24 @@ class GreaterThan:
         '''Transformation applied to target value to obtain the corresponding
         cost function.
         '''
+        if xd.refs.is_ref(self.lower):
+            lower_val = self.lower._value
         if self.mode == 'step':
-            if res < self.lower:
-                return res - self.lower
+            if res < lower_val:
+                return res - lower_val
             else:
                 return 0
         elif self.mode == 'smooth':
-            return self.sigma * self._transition((self.lower - res) / self.sigma)
+            return self.sigma * self._transition((lower_val - res) / self.sigma)
         elif self.mode == 'auxvar':
             raise NotImplementedError # experimental
-            return res - self.lower - self.vary.container[self.vary.name]**2
+            return res - lower_val - self.vary.container[self.vary.name]**2
         else:
             raise ValueError(f'Unknown mode {self.mode}')
 
     def __repr__(self):
+        if xd.refs.is_ref(self.lower):
+            return f'GreaterThan({self.lower})'
         return f'GreaterThan({self.lower:4g})'
 
     # Part of the `auxvar` experimental code
@@ -250,20 +254,24 @@ class LessThan:
                 self.sigma = np.abs(self.upper) * sigma_rel
 
     def auxtarget(self, res):
+        if xd.refs.is_ref(self.upper):
+            upper_val = self.upper._value
         if self.mode == 'step':
-            if res > self.upper:
-                return self.upper - res
+            if res > upper_val:
+                return upper_val - res
             else:
                 return 0
         elif self.mode == 'smooth':
-            return self.sigma * self._transition((res - self.upper) / self.sigma)
+            return self.sigma * self._transition((res - upper_val) / self.sigma)
         elif self.mode == 'auxvar':
             raise NotImplementedError # experimental
-            return self.upper - res - self.vary.container[self.vary.name]**2
+            return upper_val - res - self.vary.container[self.vary.name]**2
         else:
             raise ValueError(f'Unknown mode {self.mode}')
 
     def __repr__(self):
+        if xd.refs.is_ref(self.upper):
+            return f'LessThan({self.upper})'
         return f'LessThan({self.upper:4g})'
 
 # part of the `auxvar` experimental code
@@ -988,3 +996,4 @@ class ActionCall(Action):
             tars.append(xt.Target(ii, ftar[ii], action=self))
 
         return tars
+
