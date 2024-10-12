@@ -769,7 +769,9 @@ class OptimizeLine(xd.Optimize):
                     solver_options={}, allow_twiss_failure=True,
                     restore_if_fail=True, verbose=False,
                     n_steps_max=20, default_tol=None,
-                    solver=None, check_limits=True, **kwargs):
+                    solver=None, check_limits=True,
+                    action_twiss=None,
+                    **kwargs):
 
         if not isinstance(targets, (list, tuple)):
             targets = [targets]
@@ -784,7 +786,6 @@ class OptimizeLine(xd.Optimize):
 
         aux_vary = []
 
-        action_twiss = None
         for tt in targets_flatten:
 
             # Handle action
@@ -867,6 +868,7 @@ class OptimizeLine(xd.Optimize):
                         restore_if_fail=restore_if_fail,
                         check_limits=check_limits)
         self.line = line
+        self.action_twiss = action_twiss
 
     def clone(self, add_targets=None):
         targets = list(self.targets.copy())
@@ -882,10 +884,13 @@ class OptimizeLine(xd.Optimize):
             verbose=self._err.verbose,
             assert_within_tol=self.assert_within_tol,
             n_steps_max=self.n_steps_max,
-            show_call_counter=self._err.show_call_counter,
             check_limits=self.check_limits,
+            action_twiss=self.action_twiss,
         )
         return out
+
+    def plot(self, *args, **kwargs):
+        return self.action_twiss.run().plot(*args, **kwargs)
 
 def _flatten_vary(vary):
     vary_flatten = []
