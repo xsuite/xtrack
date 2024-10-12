@@ -196,7 +196,9 @@ class GreaterThan:
                 self.sigma = sigma
             else:
                 assert sigma_rel is not None
-                self.sigma = np.abs(self.lower) * sigma_rel
+                if xd.refs.is_ref(self.lower):
+                    lower_val = self.lower._value
+                self.sigma = np.abs(lower_val) * sigma_rel
 
     def auxtarget(self, res):
         '''Transformation applied to target value to obtain the corresponding
@@ -223,7 +225,7 @@ class GreaterThan:
         val = self.lower
         if xd.refs.is_ref(self.lower):
             val = self.lower._value
-        return f'GreaterThan({val:4g})'
+        return f'GreaterThan({val:.4g})'
 
     # Part of the `auxvar` experimental code
     # def _set_value(self, val, target):
@@ -254,6 +256,8 @@ class LessThan:
                 self.sigma = sigma
             else:
                 assert sigma_rel is not None
+                if xd.refs.is_ref(self.upper):
+                    upper_val = self.upper._value
                 self.sigma = np.abs(upper_val) * sigma_rel
 
     def auxtarget(self, res):
@@ -278,7 +282,7 @@ class LessThan:
         val = self.upper
         if xd.refs.is_ref(self.upper):
             val = self.upper._value
-        return f'LessThan({val:4g})'
+        return f'LessThan({val:.4g})'
 
 # part of the `auxvar` experimental code
 # def _gen_vary(container):
