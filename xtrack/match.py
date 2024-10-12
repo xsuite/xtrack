@@ -196,6 +196,7 @@ class GreaterThan:
                 self.sigma = sigma
             else:
                 assert sigma_rel is not None
+                lower_val = self.lower
                 if xd.refs.is_ref(self.lower):
                     lower_val = self.lower._value
                 self.sigma = np.abs(lower_val) * sigma_rel
@@ -256,6 +257,7 @@ class LessThan:
                 self.sigma = sigma
             else:
                 assert sigma_rel is not None
+                upper_val = self.upper
                 if xd.refs.is_ref(self.upper):
                     upper_val = self.upper._value
                 self.sigma = np.abs(upper_val) * sigma_rel
@@ -746,105 +748,124 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
                   n_steps_max=20, default_tol=None,
                   solver=None, check_limits=True, **kwargs):
 
-    if not isinstance(targets, (list, tuple)):
-        targets = [targets]
-
-    targets_flatten = []
-    for tt in targets:
-        if isinstance(tt, xd.TargetList):
-            for tt1 in tt.targets:
-                targets_flatten.append(tt1.copy())
-        else:
-            targets_flatten.append(tt.copy())
-
-    aux_vary = []
-
-    action_twiss = None
-    for tt in targets_flatten:
-
-        # Handle action
-        if tt.action is None:
-            if action_twiss is None:
-                action_twiss = ActionTwiss(
-                    line, allow_twiss_failure=allow_twiss_failure,
-                    compensate_radiation_energy_loss=compensate_radiation_energy_loss,
-                    **kwargs)
-                action_twiss.prepare()
-            tt.action = action_twiss
-
-        # Handle at
-        if isinstance(tt.tar, tuple):
-            tt_name = tt.tar[0] # `at` is  present
-            tt_at = tt.tar[1]
-        else:
-            tt_name = tt.tar
-            tt_at = None
-        if tt_at is not None and isinstance(tt_at, _LOC):
-            assert isinstance(tt.action, ActionTwiss)
-            tt.action.prepare() # does nothing if already prepared
-            tw0 = tt.action._tw0[tt.line] if tt.line else tt.action._tw0
-            this_line = tt.action.line[tt.line] if tt.line else tt.action.line
-            if isinstance(tt_at, _LOC):
-                tt_at= tw0['name', {'START':0, 'END':-1}[tt_at.name]]
-                # If _end_point preceded by a marker, use the marker
-                if tt_at == '_end_point' and len(tw0.name) > 1:
-                    nn_prev = tw0['name', -2]
-                    nn_env_prev = tw0['name_env', -2]
-                    if isinstance(this_line[nn_env_prev], xt.Marker):
-                        tt_at= nn_prev
-            tt.tar = (tt_name, tt_at)
-
-        # Handle value
-        if isinstance(tt.value, xt.multiline.MultiTwiss):
-            tt.value=tt.value[tt.line][tt.tar]
-        if isinstance(tt.value, xt.TwissTable):
-            if isinstance(tt.tar, tuple) and tt.tar[1] == '_end_point':
-                # '_end_point' of the tar table might be different from the one of the action
-                raise ValueError('TwissTable target value cannot be used with at=_end_point')
-            tt.value=tt.value[tt.tar]
-        if isinstance(tt.value, np.ndarray):
-            raise ValueError('Target value must be a scalar')
-
-        # Handle weight
-        if tt.weight is None:
-            tt.weight = XTRACK_DEFAULT_WEIGHTS.get(tt_name, 1.)
-        if tt.tol is None:
-            if default_tol is None:
-                tt.tol = XTRACK_DEFAULT_TOL
-            elif isinstance(default_tol, dict):
-                tt.tol = default_tol.get(tt_name,
-                                    default_tol.get(None, XTRACK_DEFAULT_TOL))
-            else:
-                tt.tol = default_tol
-
-        # part of the `auxvar` experimental code
-        # if isinstance(tt.value, (GreaterThan, LessThan)):
-        #     if tt.value.mode == 'auxvar':
-        #         aux_vary.append(tt.value.gen_vary(aux_vary_container))
-        #         aux_vary_container[aux_vary[-1].name] = 0
-        #         val = tt.runeval()
-        #         if val > 0:
-        #             aux_vary_container[aux_vary[-1].name] = np.sqrt(val)
-
-    if not isinstance(vary, (list, tuple)):
-        vary = [vary]
-
-    vary = list(vary) + aux_vary
-
-    vary_flatten = _flatten_vary(vary)
-    _complete_vary_with_info_from_line(vary_flatten, line)
-
-    opt = xd.Optimize(vary=vary_flatten, targets=targets_flatten, solver=solver,
-                        verbose=verbose, assert_within_tol=assert_within_tol,
+    opt = OptimizeLine(line, vary, targets,
+                        assert_within_tol=assert_within_tol,
+                        compensate_radiation_energy_loss=compensate_radiation_energy_loss,
                         solver_options=solver_options,
-                        n_steps_max=n_steps_max,
-                        restore_if_fail=restore_if_fail,
-                        check_limits=check_limits)
+                        allow_twiss_failure=allow_twiss_failure,
+                        restore_if_fail=restore_if_fail, verbose=verbose,
+                        n_steps_max=n_steps_max, default_tol=default_tol,
+                        solver=solver, check_limits=check_limits, **kwargs)
 
     if solve:
         opt.solve()
 
     return opt
+
+class OptimizeLine(xd.Optimize):
+
+    def __init__(self, line, vary, targets, assert_within_tol=True,
+                    compensate_radiation_energy_loss=False,
+                    solver_options={}, allow_twiss_failure=True,
+                    restore_if_fail=True, verbose=False,
+                    n_steps_max=20, default_tol=None,
+                    solver=None, check_limits=True, **kwargs):
+
+        if not isinstance(targets, (list, tuple)):
+            targets = [targets]
+
+        targets_flatten = []
+        for tt in targets:
+            if isinstance(tt, xd.TargetList):
+                for tt1 in tt.targets:
+                    targets_flatten.append(tt1.copy())
+            else:
+                targets_flatten.append(tt.copy())
+
+        aux_vary = []
+
+        action_twiss = None
+        for tt in targets_flatten:
+
+            # Handle action
+            if tt.action is None:
+                if action_twiss is None:
+                    action_twiss = ActionTwiss(
+                        line, allow_twiss_failure=allow_twiss_failure,
+                        compensate_radiation_energy_loss=compensate_radiation_energy_loss,
+                        **kwargs)
+                    action_twiss.prepare()
+                tt.action = action_twiss
+
+            # Handle at
+            if isinstance(tt.tar, tuple):
+                tt_name = tt.tar[0] # `at` is  present
+                tt_at = tt.tar[1]
+            else:
+                tt_name = tt.tar
+                tt_at = None
+            if tt_at is not None and isinstance(tt_at, _LOC):
+                assert isinstance(tt.action, ActionTwiss)
+                tt.action.prepare() # does nothing if already prepared
+                tw0 = tt.action._tw0[tt.line] if tt.line else tt.action._tw0
+                this_line = tt.action.line[tt.line] if tt.line else tt.action.line
+                if isinstance(tt_at, _LOC):
+                    tt_at= tw0['name', {'START':0, 'END':-1}[tt_at.name]]
+                    # If _end_point preceded by a marker, use the marker
+                    if tt_at == '_end_point' and len(tw0.name) > 1:
+                        nn_prev = tw0['name', -2]
+                        nn_env_prev = tw0['name_env', -2]
+                        if isinstance(this_line[nn_env_prev], xt.Marker):
+                            tt_at= nn_prev
+                tt.tar = (tt_name, tt_at)
+
+            # Handle value
+            if isinstance(tt.value, xt.multiline.MultiTwiss):
+                tt.value=tt.value[tt.line][tt.tar]
+            if isinstance(tt.value, xt.TwissTable):
+                if isinstance(tt.tar, tuple) and tt.tar[1] == '_end_point':
+                    # '_end_point' of the tar table might be different from the one of the action
+                    raise ValueError('TwissTable target value cannot be used with at=_end_point')
+                tt.value=tt.value[tt.tar]
+            if isinstance(tt.value, np.ndarray):
+                raise ValueError('Target value must be a scalar')
+
+            # Handle weight
+            if tt.weight is None:
+                tt.weight = XTRACK_DEFAULT_WEIGHTS.get(tt_name, 1.)
+            if tt.tol is None:
+                if default_tol is None:
+                    tt.tol = XTRACK_DEFAULT_TOL
+                elif isinstance(default_tol, dict):
+                    tt.tol = default_tol.get(tt_name,
+                                        default_tol.get(None, XTRACK_DEFAULT_TOL))
+                else:
+                    tt.tol = default_tol
+
+            # part of the `auxvar` experimental code
+            # if isinstance(tt.value, (GreaterThan, LessThan)):
+            #     if tt.value.mode == 'auxvar':
+            #         aux_vary.append(tt.value.gen_vary(aux_vary_container))
+            #         aux_vary_container[aux_vary[-1].name] = 0
+            #         val = tt.runeval()
+            #         if val > 0:
+            #             aux_vary_container[aux_vary[-1].name] = np.sqrt(val)
+
+        if not isinstance(vary, (list, tuple)):
+            vary = [vary]
+
+        vary = list(vary) + aux_vary
+
+        vary_flatten = _flatten_vary(vary)
+        _complete_vary_with_info_from_line(vary_flatten, line)
+
+        xd.Optimize.__init__(self,
+                        vary=vary_flatten, targets=targets_flatten, solver=solver,
+                        verbose=verbose, assert_within_tol=assert_within_tol,
+                        solver_options=solver_options,
+                        n_steps_max=n_steps_max,
+                        restore_if_fail=restore_if_fail,
+                        check_limits=check_limits)
 
 def _flatten_vary(vary):
     vary_flatten = []
