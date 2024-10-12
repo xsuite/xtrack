@@ -220,9 +220,10 @@ class GreaterThan:
             raise ValueError(f'Unknown mode {self.mode}')
 
     def __repr__(self):
+        val = self.lower
         if xd.refs.is_ref(self.lower):
-            return f'GreaterThan({self.lower})'
-        return f'GreaterThan({self.lower:4g})'
+            val = self.lower._value
+        return f'GreaterThan({val:4g})'
 
     # Part of the `auxvar` experimental code
     # def _set_value(self, val, target):
@@ -274,9 +275,10 @@ class LessThan:
             raise ValueError(f'Unknown mode {self.mode}')
 
     def __repr__(self):
+        val = self.upper
         if xd.refs.is_ref(self.upper):
-            return f'LessThan({self.upper})'
-        return f'LessThan({self.upper:4g})'
+            val = self.upper._value
+        return f'LessThan({val:4g})'
 
 # part of the `auxvar` experimental code
 # def _gen_vary(container):
