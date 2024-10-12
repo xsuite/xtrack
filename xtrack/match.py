@@ -866,6 +866,26 @@ class OptimizeLine(xd.Optimize):
                         n_steps_max=n_steps_max,
                         restore_if_fail=restore_if_fail,
                         check_limits=check_limits)
+        self.line = line
+
+    def clone(self, add_targets=None):
+        targets = list(self.targets.copy())
+        if add_targets is not None:
+            if not isinstance(add_targets, (list, tuple)):
+                add_targets = [add_targets]
+            targets.extend(add_targets)
+        out = self.__class__(
+            line = self.line,
+            vary=self.vary,
+            targets=targets,
+            restore_if_fail=self.restore_if_fail,
+            verbose=self._err.verbose,
+            assert_within_tol=self.assert_within_tol,
+            n_steps_max=self.n_steps_max,
+            show_call_counter=self._err.show_call_counter,
+            check_limits=self.check_limits,
+        )
+        return out
 
 def _flatten_vary(vary):
     vary_flatten = []
