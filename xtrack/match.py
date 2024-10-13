@@ -880,6 +880,10 @@ class OptimizeLine(xd.Optimize):
         self.action_twiss = action_twiss
 
     def clone(self, add_targets=None, name=None):
+
+        if hasattr(add_targets, 'values'): # dict like
+            add_targets = list(add_targets.values())
+
         targets = list(self.targets.copy())
         if name is None:
             name = self.name
