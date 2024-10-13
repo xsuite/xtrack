@@ -778,6 +778,9 @@ class OptimizeLine(xd.Optimize):
                     name="",
                     **kwargs):
 
+        if hasattr(targets, 'values'): # dict like
+            targets = list(targets.values())
+
         if not isinstance(targets, (list, tuple)):
             targets = [targets]
 
