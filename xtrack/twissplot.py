@@ -5,7 +5,6 @@ import os
 import gzip
 import time
 
-
 import numpy as np
 
 
@@ -244,7 +243,10 @@ class TwissPlot(object):
                         name = self.table.name[idx]
                     else:
                         name = ""
-                    print(f"{name:25}, s={xx[idx]:15.6g}, {lgd:>10}={yy[idx]:15.6g}")
+                    if "element_type" in self.table._col_names:
+                        elem_type = self.table.element_type[idx]
+                    if not elem_type.startswith("Drift"):
+                        print(f"{name:25}, s={xx[idx]:15.6g}, {lgd:>10}={yy[idx]:15.6g}")
         # pos = np.array([event.mouseevent.x, event.mouseevent.y])
         # name = event.artist.elemname
         # prop = event.artist.elemprop
