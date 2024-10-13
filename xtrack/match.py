@@ -746,7 +746,9 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
                   solver_options={}, allow_twiss_failure=True,
                   restore_if_fail=True, verbose=False,
                   n_steps_max=20, default_tol=None,
-                  solver=None, check_limits=True, **kwargs):
+                  solver=None, check_limits=True,
+                  name="",
+                  **kwargs):
 
     opt = OptimizeLine(line, vary, targets,
                         assert_within_tol=assert_within_tol,
@@ -755,7 +757,9 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
                         allow_twiss_failure=allow_twiss_failure,
                         restore_if_fail=restore_if_fail, verbose=verbose,
                         n_steps_max=n_steps_max, default_tol=default_tol,
-                        solver=solver, check_limits=check_limits, **kwargs)
+                        solver=solver, check_limits=check_limits,
+                        name=name,
+                        **kwargs)
 
     if solve:
         opt.solve()
@@ -771,6 +775,7 @@ class OptimizeLine(xd.Optimize):
                     n_steps_max=20, default_tol=None,
                     solver=None, check_limits=True,
                     action_twiss=None,
+                    name="",
                     **kwargs):
 
         if not isinstance(targets, (list, tuple)):
@@ -866,12 +871,15 @@ class OptimizeLine(xd.Optimize):
                         solver_options=solver_options,
                         n_steps_max=n_steps_max,
                         restore_if_fail=restore_if_fail,
-                        check_limits=check_limits)
+                        check_limits=check_limits,
+                        name=name)
         self.line = line
         self.action_twiss = action_twiss
 
-    def clone(self, add_targets=None):
+    def clone(self, add_targets=None, name=None):
         targets = list(self.targets.copy())
+        if name is None:
+            name = self.name
         if add_targets is not None:
             if not isinstance(add_targets, (list, tuple)):
                 add_targets = [add_targets]
@@ -886,6 +894,7 @@ class OptimizeLine(xd.Optimize):
             n_steps_max=self.n_steps_max,
             check_limits=self.check_limits,
             action_twiss=self.action_twiss,
+            name=name,
         )
         return out
 
