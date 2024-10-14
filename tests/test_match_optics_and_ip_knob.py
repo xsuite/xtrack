@@ -184,16 +184,17 @@ def test_ip_knob_matching(test_context):
     assert np.all(np.array(vactive) == np.array(
         [True, True, True, True, True, True, True, True, False, False, False, False, False, False]))
 
+    assert len(opt.log()) == 1
     opt.step(10) # perform 10 steps without checking for convergence
 
     ll = opt.log()
-    assert len(ll) == 11
+    assert len(ll) == 12
     assert ll['vary_active', 0] == 'yyyyyyyyyyyyyy'
     assert ll['vary_active', 1] == 'yyyyyyyynnnnnn'
-    assert ll['vary_active', 10] == 'yyyyyyyynnnnnn'
+    assert ll['vary_active', 11] == 'yyyyyyyynnnnnn'
 
     # Check solution not found
-    assert ll['tol_met', 10] != 'yyyyyyyy'
+    assert ll['tol_met', 11] != 'yyyyyyyy'
 
     # Check that mcbxs did not move
     xo.assert_allclose(ll['vary_8', 1:], init_mcbx_plus, atol=1e-12, rtol=0)
@@ -219,17 +220,17 @@ def test_ip_knob_matching(test_context):
     ll = opt.log()
 
     # Check driving knob is enabled
-    assert np.all(ll['vary_active', 11:] == 'yyyyyyyyynnnnn')
+    assert np.all(ll['vary_active', 12:] == 'yyyyyyyyynnnnn')
 
     # Check solution found
     assert np.all(ll['tol_met', -1] == 'yyyyyyyy')
 
     # Check imposed relationship among varys
-    xo.assert_allclose(ll['vary_8', 11], ll['vary_9', 11], atol=1e-12, rtol=0)
-    xo.assert_allclose(ll['vary_8', 11], ll['vary_10', 11], atol=1e-12, rtol=0)
-    xo.assert_allclose(ll['vary_8', 11], -ll['vary_11', 11], atol=1e-12, rtol=0)
-    xo.assert_allclose(ll['vary_8', 11], -ll['vary_12', 11], atol=1e-12, rtol=0)
-    xo.assert_allclose(ll['vary_8', 11], -ll['vary_13', 11], atol=1e-12, rtol=0)
+    xo.assert_allclose(ll['vary_8', 12], ll['vary_9', 12], atol=1e-12, rtol=0)
+    xo.assert_allclose(ll['vary_8', 12], ll['vary_10', 12], atol=1e-12, rtol=0)
+    xo.assert_allclose(ll['vary_8', 12], -ll['vary_11', 12], atol=1e-12, rtol=0)
+    xo.assert_allclose(ll['vary_8', 12], -ll['vary_12', 12], atol=1e-12, rtol=0)
+    xo.assert_allclose(ll['vary_8', 12], -ll['vary_13', 12], atol=1e-12, rtol=0)
 
     opt.generate_knob()
 
