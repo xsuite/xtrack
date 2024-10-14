@@ -77,3 +77,20 @@ assert np.isclose(tw['py', 'mb.b26l8.b1'], 0, atol=1e-8, rtol=0)
 
 assert np.isclose(tw['y', 'mq.30l8.b1'], -1e-3, atol=1e-6, rtol=0)
 assert np.isclose(line.vars['acbv22.l8b1']._value, 38e-6, atol=0, rtol=0.02)
+
+# Test variable in inequality
+line['myvar'] = -5e-3
+opt3 = opt2.clone(name='ineq',
+    add_targets=[
+        xt.Target('y', GreaterThan(line.ref['myvar']), at='mq.30l8.b1', tol=1e-6)])
+
+assert len(opt3.target_mismatch(ret=True)) == 0
+assert opt3.target_status(ret=True).residue[-1] == 0
+
+line['myvar'] = -0.5e-3
+assert len(opt3.target_mismatch(ret=True)) == 1
+xo.assert_allclose(opt3.target_status(ret=True).residue[-1], -0.5e-3,
+                   atol=1e-5, rtol=0)
+
+opt3.solve()
+assert len(opt3.target_mismatch(ret=True)) == 0
