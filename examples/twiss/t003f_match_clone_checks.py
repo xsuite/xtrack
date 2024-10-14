@@ -18,6 +18,7 @@ LessThan = xt.LessThan
 
 tw0 = line.twiss()
 opt = line.match(
+    name='bump',
     solve=False,
     solver='jacobian',
     # Portion of the beam line to be modified and initial conditions
@@ -41,6 +42,8 @@ opt = line.match(
     ]
 )
 
+# Check target_mismatch
+assert opt.name == 'bump'
 ts = opt.target_status(ret=True)
 assert len(ts) == 4
 assert np.all(ts.tol_met == np.array([True, False, True, True]))
@@ -51,41 +54,18 @@ assert tm.id[0] == 1
 opt.solve()
 
 # I want to limit the negative excursion ot the bump
-opt2 = opt.clone(
+opt2 = opt.clone(name='limit',
     add_targets=[
+        xt.Target('y', GreaterThan(-2e-3), at='mq.30l8.b1', tol=1e-6),
         xt.Target('y', GreaterThan(-1e-3), at='mq.30l8.b1', tol=1e-6)])
 opt2.solve()
 
-#!end-doc-part
+assert opt2.name == 'limit'
+assert len(opt2.targets) == 6
+tm = opt2.target_mismatch(ret=True)
+assert(len(tm) == 0)
 
 tw = line.twiss()
-
-import matplotlib.pyplot as plt
-plt.close('all')
-fig = plt.figure(1, figsize=(6.4*1.2, 4.8*0.8))
-ax = fig.add_subplot(111)
-ax.plot(tw_before.s, tw_before.y*1000, label='y')
-ax.plot(tw.s, tw.y*1000, label='y')
-# Target
-ax.axvline(x=line.get_s_position('mb.b26l8.b1'), color='r', linestyle='--', alpha=0.5)
-# Correctors
-ax.axvline(x=line.get_s_position('mcbv.32l8.b1'), color='k', linestyle='--', alpha=0.5)
-ax.axvline(x=line.get_s_position('mcbv.28l8.b1'), color='k', linestyle='--', alpha=0.5)
-ax.axvline(x=line.get_s_position('mcbv.26l8.b1'), color='k', linestyle='--', alpha=0.5)
-ax.axvline(x=line.get_s_position('mcbv.24l8.b1'), color='k', linestyle='--', alpha=0.5)
-ax.axvline(x=line.get_s_position('mcbv.22l8.b1'), color='k', linestyle='--', alpha=0.5)
-ax.axvline(x=line.get_s_position('mcbv.18l8.b1'), color='k', linestyle='--', alpha=0.5)
-# Boundaries
-ax.axvline(x=line.get_s_position('mq.33l8.b1'), color='g', linestyle='--', alpha=0.5)
-ax.axvline(x=line.get_s_position('mq.17l8.b1'), color='g', linestyle='--', alpha=0.5)
-ax.axhline(y=-1, color='b', linestyle='--', alpha=0.5)
-ax.set_xlim(line.get_s_position('mq.33l8.b1') - 10,
-            line.get_s_position('mq.17l8.b1') + 10)
-ax.set_xlabel('s [m]')
-ax.set_ylabel('y [mm]')
-ax.set_ylim(-10, 10)
-plt.subplots_adjust(bottom=.152, top=.9, left=.1, right=.95)
-plt.show()
 
 assert np.isclose(tw['y', 'mq.33l8.b1'], 0, atol=1e-6, rtol=0)
 assert np.isclose(tw['y', 'mq.17l8.b1'], 0, atol=1e-6, rtol=0)
