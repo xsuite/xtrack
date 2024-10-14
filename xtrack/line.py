@@ -886,6 +886,28 @@ class Line:
             self.particle_ref.t_sim = (
                 self.get_length() / self.particle_ref._xobject.beta0[0] / clight)
 
+    @property
+    def scattering(self):
+        if not hasattr(self, '_scattering') or self._scattering is None:
+            try:
+                from xcoll.line_tools import XcollScatteringAPI
+                self._scattering = XcollScatteringAPI(line=self)
+            except ImportError as error:
+                raise ImportError("Please install Xcoll to use this feature.") from error
+
+        return self._scattering
+
+    @property
+    def collimators(self):
+        if not hasattr(self, '_collimators') or self._collimators is None:
+            try:
+                from xcoll.line_tools import XcollCollimatorAPI
+                self._collimators = XcollCollimatorAPI(line=self)
+            except ImportError as error:
+                raise ImportError("Please install Xcoll to use this feature.") from error
+
+        return self._collimators
+
     def discard_tracker(self):
 
         """
@@ -3405,11 +3427,15 @@ class Line:
 
     def __add__(self, other):
         self._env_if_needed
-        assert isinstance(other, Line), 'Only Line can be added to Line'
+        #assert isinstance(other, Line), 'Only Line can be added to Line'
+        assert other.__class__.__name__=="Line", 'Only Line can be added to Line'
         assert other.env is self.env, 'Lines must be in the same environment'
         out = self.env.new_line(
             components=list(self.element_names) + list(other.element_names))
         return out
+
+    def __sub__(self, other):
+        return self + (-other)
 
     def replicate(self, name, mirror=False):
 
@@ -3458,6 +3484,25 @@ class Line:
             if isinstance(self.element_dict[nn], xt.Replica):
                 self.replace_replica(nn)
 
+    def replace_all_repeated_elements(self, separator='.', mode='clone'):
+
+        self._env_if_needed()
+        env = self.env
+
+        self.discard_tracker()
+        unique_names = list(set(self.element_names))
+        aux_dict = {nn: [] for nn in unique_names}
+        for ii, nn in enumerate(self.element_names):
+            aux_dict[nn].append(ii)
+
+        for nn in unique_names:
+            if len(aux_dict[nn]) > 1:
+                i_rep = 0
+                for ii in aux_dict[nn]:
+                    while (new_name := nn + separator + str(i_rep)) in self.element_dict:
+                        i_rep += 1
+                    env.new(new_name, nn, mode=mode)
+                    self.element_names[ii] = new_name
 
     def select(self, start=None, end=None, name=None):
 
@@ -3473,7 +3518,7 @@ class Line:
 
         self._env_if_needed()
 
-        out = self.env.new_line(components=list(tt.name), name=name)
+        out = self.env.new_line(components=list(tt.env_name), name=name)
 
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
             out.env._var_management = None
@@ -3486,6 +3531,27 @@ class Line:
         return out
 
     def set(self, name, *args, **kwargs):
+        '''
+        Set the values or expressions of variables or element properties.
+
+        Parameters
+        ----------
+        name : str
+            Name of the variable or element.
+        value: float or str
+            Value or expression of the variable to set. Can be provided only
+            if the name is associated to a variable.
+        **kwargs, float or str
+            Attributes to set. Can be provided only if the name is associated
+            to an element.
+
+        Examples
+        --------
+        >>> line.set('a', 0.1)
+        >>> line.set('k1', '3*a')
+        >>> line.set('quad', k1=0.1, k2='3*a')
+
+        '''
         _eval = self._xdeps_eval.eval
 
         if hasattr(self, 'lines') and name in self.lines:
@@ -3529,12 +3595,101 @@ class Line:
                 self.vars[name] = value
 
     def get(self, key):
+        '''
+        Get an element or the value of a variable.
+
+        Parameters
+        ----------
+        key : str
+            Name of the element or variable.
+
+        Returns
+        -------
+        element : Element or float
+            Element or value of the variable.
+
+        '''
+
         if key in self.element_dict:
             return self.element_dict[key]
         elif key in self.vars:
             return self._xdeps_vref._owner[key]
         else:
             raise KeyError(f'Element or variable {key} not found')
+
+    def info(self, key, limit=12):
+        """
+            Get information about an element or a variable.
+        """
+
+        if key in self.element_dict:
+            return self[key].get_info()
+        elif key in self.vars:
+            return self.vars.info(key, limit=limit)
+        else:
+            raise KeyError(f'Element or variable {key} not found')
+
+#    def get_value(self, key):
+#        if key in self.element_dict:
+#            return self.element_dict[key].get_value()
+#        elif key in self.vars:
+#            return self.vars.get_value(key)
+#        else:
+#            raise KeyError(f'Element or variable {key} not found')
+
+    @property
+    def ref_manager(self):
+        return self._xdeps_manager
+
+    def eval(self, expr):
+        '''
+        Get the value of an expression
+
+        Parameters
+        ----------
+        expr : str
+            Expression to evaluate.
+
+        Returns
+        -------
+        value : float
+            Value of the expression.
+        '''
+
+        return self.vars.eval(expr)
+
+    def new_expr(self, expr):
+        '''
+        Create a new expression
+
+        Parameters
+        ----------
+        expr : str
+            Expression to create.
+
+        Returns
+        -------
+        expr : Expression
+            New expression.
+        '''
+        return self.vars.new_expr(expr)
+
+    def get_expr(self, var):
+        '''
+        Get expression associated to a variable
+
+        Parameters
+        ----------
+        var: str
+            Name of the variable
+
+        Returns
+        -------
+        expr : Expression
+            Expression associated to the variable
+        '''
+
+        return self.vars.get_expr(var)
 
     def _env_if_needed(self):
         if not hasattr(self, 'env') or self.env is None:
@@ -4269,6 +4424,9 @@ class Line:
 def frac(x):
     return x % 1
 
+def sinc(x):
+    return np.sinc(x / np.pi)
+
 class Functions:
 
     _mathfunctions = dict(
@@ -4286,7 +4444,7 @@ class Functions:
         sinh = math.sinh,
         cosh = math.cosh,
         tanh = math.tanh,
-        sinc = np.sinc,
+        sinc = sinc,
         abs = math.fabs,
         erf = math.erf,
         erfc = math.erfc,
@@ -4391,7 +4549,12 @@ def mk_class_namespace(extra_classes):
         all_classes = element_classes + xf.element_classes + extra_classes + (Line,)
     except ImportError:
         all_classes = element_classes + extra_classes
-        log.warning("Xfields not installed correctly")
+        log.warning("Xfields not installed")
+    try:
+        import xcoll as xc
+        all_classes += xc.element_classes
+    except ImportError:
+        log.warning("Xcoll not installed")
 
     all_classes = all_classes + (EnergyProgram, xt.Replica)
 
@@ -4653,6 +4816,10 @@ class LineVars:
         out = list(self.line._xdeps_vref._owner.keys()).copy()
         return out
 
+    def __iter__(self):
+        raise NotImplementedError('Use keys() method') # Untested
+        return self.line._xdeps_vref._owner.__iter__()
+
     def update(self, other):
         if self.line._xdeps_vref is None:
             raise RuntimeError(
@@ -4671,10 +4838,23 @@ class LineVars:
         if self.line._xdeps_vref is None:
             raise RuntimeError(
                 f'Cannot access variables as the line has no xdeps manager')
-        name = np.array([kk for kk in list(self.keys()) if kk != '__vary_default'])
+        name = np.array([kk for kk in list(self.keys()) if kk != '__vary_default'], dtype=object)
         value = np.array([self.line._xdeps_vref[kk]._value for kk in name])
+        expr  = np.array([str(self.line._xdeps_vref[str(kk)]._expr) for kk in name])
 
-        return xd.Table({'name': name, 'value': value})
+        return xd.Table({'name': name, 'value': value, 'expr': expr})
+
+    def new_expr(self, expr):
+        return self.line._xdeps_eval.eval(expr)
+
+    def eval(self, expr):
+        return self.new_expr(expr)._get_value()
+
+    def info(self, var, limit=10):
+        return self[var]._info(limit=limit)
+
+    def get_expr(self, var):
+        return self[var]._expr
 
     def __contains__(self, key):
         if self.line._xdeps_vref is None:
@@ -4798,6 +4978,9 @@ class LineVars:
             self[name] = self.line._xdeps_eval.eval(value)
         else:
             self[name] = value
+
+    def get(self, name):
+        return self[name]._value
 
 class ActionVars(Action):
 

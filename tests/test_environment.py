@@ -1377,6 +1377,26 @@ def test_assemble_ring_repeated_elements():
     tw_one_cell_stripped = tw_one_cell.rows[:-1] # remove _end_point
     xo.assert_allclose(tw_one_cell_stripped.betx, tw_one_cell_ref.betx, atol=0, rtol=5e-4)
 
+    cell_selected = arc.select(start='mid::2', end='mid::3')
+    tw_cell_selected = cell_selected.twiss4d()
+    tw_cell_selected_stripped = tw_cell_selected.rows[:-1] # remove _end_point
+    xo.assert_allclose(tw_cell_selected_stripped.betx, tw_one_cell_ref.betx, atol=0, rtol=5e-4)
+
+    tt_ring2 = ring2.get_table(attr=True)
+    assert tt_ring2['name', 39] == 'mq.f::1'
+    assert tt_ring2['name', 48] == 'mq.f::2'
+    assert ring2.element_names[39] == 'mq.f'
+    assert ring2.element_names[48] == 'mq.f'
+
+    ring2.replace_all_repeated_elements()
+    tt_ring2_after = ring2.get_table(attr=True)
+    assert tt_ring2_after['name', 39] == 'mq.f.1'
+    assert tt_ring2_after['name', 48] == 'mq.f.2'
+    assert ring2.element_names[39] == 'mq.f.1'
+    assert ring2.element_names[48] == 'mq.f.2'
+    assert str(ring2.ref['mq.f.1'].k1._expr) == "vars['kqf']"
+    assert str(ring2.ref['mq.f.2'].k1._expr) == "vars['kqf']"
+    assert ring2.get('mq.f.1') is not ring2.get('mq.f.2')
 
     # import matplotlib.pyplot as plt
     # plt.close('all')
@@ -1762,3 +1782,74 @@ def test_select_in_multiline():
             == "((-vars['acbch7.r1b1']) + vars['aaa'])")
     assert line_sel.get('mcbch.7r1.b1').knl[0] == 1e-6
     assert line.get('mcbch.7r1.b1').knl[0] == 1e-6
+
+@pytest.mark.parametrize('container_type', ['env', 'line'])
+def test_inpection_methods(container_type):
+
+    env = xt.Environment()
+
+    env.vars({
+        'k.1': 1.,
+        'a': 2.,
+        'b': '2 * a + k.1',
+    })
+
+    line = env.new_line([
+        env.new('bb', xt.Bend, k0='2 * b', length=3+env.vars['a'] + env.vars['b'],
+            h=5., ksl=[0, '3*b']),
+    ])
+
+    ee = {'env': env, 'line': line}[container_type]
+
+    # Line/Env methods (get, set, eval, get_expr, new_expr, info)
+    assert ee.get('b') == 2 * 2 + 1
+    assert ee.get('bb') is env.element_dict['bb']
+
+    assert str(ee.get_expr('b')) == "((2.0 * vars['a']) + vars['k.1'])"
+
+    assert ee.eval('3*a - sqrt(k.1)') == 5
+
+    ne = ee.new_expr('sqrt(3*a + 3)')
+    assert xd.refs.is_ref(ne)
+    assert str(ne) == "f.sqrt(((3.0 * vars['a']) + 3.0))"
+
+    ee.info('bb') # Check that it works
+    ee.info('b')
+    ee.info('a')
+
+    ee.set('c', '6*a')
+    assert ee.get('c') == 6 * 2
+
+    # Line/Env containers (env[...], env.ref[...]
+    assert ee['b'] == 2 * 2 + 1
+    assert type(ee['bb']).__name__ == 'View'
+    assert ee['bb'].__class__.__name__ == 'Bend'
+
+    # Vars methods (get, set, eval, get_expr, new_expr, info, get_table)
+    assert ee.vars.get('b') == 2 * 2 + 1
+
+    assert str(ee.vars.get_expr('b')) == "((2.0 * vars['a']) + vars['k.1'])"
+
+    assert ee.vars.eval('3*a - sqrt(k.1)') == 5
+
+    ne = ee.vars.new_expr('sqrt(3*a + 3)')
+    assert xd.refs.is_ref(ne)
+    assert str(ne) == "f.sqrt(((3.0 * vars['a']) + 3.0))"
+
+    ee.vars.info('b')
+    ee.vars.info('a')
+
+    ee.vars.set('d', '7*a')
+    assert ee.vars.get('d') == 7 * 2
+
+    assert xd.refs.is_ref(ee.vars['b'])
+
+    # View methods get_expr, get_value, get_info, get_table (for now)
+    assert xd.refs.is_ref(ee['bb'].get_expr('k0'))
+    assert str(ee['bb'].get_expr('k0')) == "(2.0 * vars['b'])"
+    assert ee['bb'].get_expr('k0')._value == 2 * (2 * 2 + 1)
+    assert ee['bb'].get_value('k0') == 2 * (2 * 2 + 1)
+
+    tt = ee['bb'].get_table()
+    assert tt['value', 'k0'] == 2 * (2 * 2 + 1)
+    assert tt['expr', 'k0'] == "(2.0 * vars['b'])"

@@ -10,16 +10,16 @@ import numpy as np
 import xtrack as xt
 import xobjects as xo
 
+env = xt.Environment()
+
 # Build a beam line
-line = xt.Line(
-    elements=[
-        xt.Multipole(knl=np.array([1.,2.,3.])),
-        xt.Drift(length=2.),
-        xt.Cavity(frequency=400e9, voltage=1e6),
-        xt.Multipole(knl=np.array([1.,2.,3.])),
-        xt.Drift(length=2.),
+line = env.new_line(components=[
+    env.new('m1', xt.Multipole, knl=np.array([1.,2.,3.])),
+    env.new('d1', xt.Drift, length=2.),
+    env.new('c1', xt.Cavity, frequency=400e9, voltage=1e6),
+    env.new('m2', xt.Multipole, knl=np.array([1.,2.,3.])),
+    env.new('c2', xt.Drift, length=2.),
     ],
-    element_names=['m1', 'd1', 'c1', 'm2', 'c2']
 )
 
 # Save to json
@@ -28,7 +28,7 @@ line.to_json('line.json')
 # Load from json
 line_2 = xt.Line.from_json('line.json')
 
-# Alternatively the to dict method can be used, which is more flexible for
+# Alternatively the to_dict method can be used, which is more flexible for
 # example to save additional information in the json file
 
 #Save
