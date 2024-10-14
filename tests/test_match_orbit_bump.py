@@ -949,4 +949,17 @@ def test_match_bump_clone_and_ref_in_inequality(test_context):
                     atol=1e-5, rtol=0)
 
     opt3.solve()
-    assert len(opt3.target_mismatch(ret=True)) == 0
+    assert len(opt3.target_mismatch(ret=True)) == 1 # The disabled target
+    assert opt3.target_mismatch(ret=True).id[0] == 1
+
+    tw = line.twiss()
+
+    assert np.isclose(tw['y', 'mq.33l8.b1'], 0, atol=1e-6, rtol=0)
+    assert np.isclose(tw['y', 'mq.17l8.b1'], 0, atol=1e-6, rtol=0)
+    assert np.isclose(tw['py', 'mq.17l8.b1'], 0, atol=1e-8, rtol=0)
+    assert np.isclose(tw['py', 'mq.33l8.b1'], 0, atol=1e-6, rtol=0)
+
+    assert np.isclose(tw['y', 'mb.b26l8.b1'], 2e-3, atol=1e-6, rtol=0)
+    assert np.isclose(tw['py', 'mb.b26l8.b1'], 0, atol=1e-8, rtol=0)
+
+    assert np.isclose(tw['y', 'mq.30l8.b1'], -0.5e-3, atol=1e-6, rtol=0)
