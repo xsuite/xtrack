@@ -1794,7 +1794,7 @@ def test_twiss_range_start_end(test_context, line_name, section, collider_for_te
             continue
 
         if kk in ('name', 'method', 'values_at', 'radiation_method',
-                  'reference_frame'):
+                  'reference_frame', 'name_env'):
             assert np.all(tw_test._data[kk] == tw_ref._data[kk])
             continue
 
