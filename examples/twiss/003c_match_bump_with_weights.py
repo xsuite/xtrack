@@ -40,19 +40,15 @@ opt = line.match(
         # I want the bump to be closed
         xt.Target('y', at='mq.17l8.b1', value=tw0, tol=1e-6),
         xt.Target('py', at='mq.17l8.b1', value=tw0, tol=1e-7, weight=1e3),
-        # I want to limit the negative excursion ot the bump
-        xt.Target('y', -2e-3, at='mq.30l8.b1', tol=1e-6),
-        xt.Target('y', GreaterThan(-1e-3), at='mq.30l8.b1', tol=1e-6),
-        # xt.Target(lambda tw: -tw['y', 'mq.30l8.b1'], LessThan(1e-3))
     ]
 )
-opt.targets[-1].active = False
-opt.solve()
-opt.targets[-1].active = True
-opt.targets[-2].active = False
-opt.solve()
 
 opt.solve()
+
+# I want to limit the negative excursion ot the bump
+opt2 = opt.clone(
+    add_targets=[xt.Target('y', -2e-3, at='mq.30l8.b1', tol=1e-6)])
+opt2.solve()
 
 #!end-doc-part
 
