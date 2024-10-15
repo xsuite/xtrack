@@ -1,10 +1,35 @@
 import io
+from collections import OrderedDict
 from pathlib import Path
-from typing import TypedDict, Dict, Union, Tuple
+from typing import Dict, List, Tuple, TypedDict, Union
 
 from lark import Lark, Transformer, v_args
 
 grammar = Path(__file__).with_name('madx.lark').read_text()
+
+
+# The following types are used to define the output of the parser, to make it
+# easier to understand the structure of the parsed MAD-X file and to help
+# in spotting mistakes.
+VarValueType = Union[int, float, str, bool]
+
+class VarType(TypedDict):
+    expr: Union[VarValueType, List[VarValueType]]
+    deferred: bool
+
+
+ElementType = Union[TypedDict('ElementType', {'parent': str}), Dict[str, VarType]]
+
+class LineType(TypedDict):
+    parent: str
+    l: VarType
+    elements: Dict[str, Union[ElementType, 'LineType']]
+
+class MadxOutputType(TypedDict):
+    vars: Dict[str, VarType]
+    elements: Dict[str, ElementType]
+    lines: Dict[str, LineType]
+    parameters: Dict[str, ElementType]
 
 
 def make_op_handler(op):
@@ -15,25 +40,6 @@ def make_op_handler(op):
 
 def warn(warning):
     print(f'Warning: {warning}')
-
-
-class VarType(TypedDict):
-    expr: str
-    deferred: bool
-
-
-ElementType = Union[TypedDict('ElementType', {'parent': str}), Dict[str, VarType]]
-
-class LineType(TypedDict):
-    parent: str
-    elements: Dict[str, Union[ElementType, 'LineType']]
-
-
-class MadxOutputType(TypedDict):
-    vars: Dict[str, VarType]
-    elements: Dict[str, ElementType]
-    lines: Dict[str, LineType]
-    parameters: Dict[str, Dict[str, str]]
 
 
 @v_args(inline=True)
