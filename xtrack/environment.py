@@ -450,7 +450,10 @@ def _resolve_s_positions(seq_all_places, env):
                     s_center_dct_names[ss.name] = s_center_dct[ss]
                     n_resolved += 1
 
-    assert n_resolved == len(seq_all_places), 'Not all positions resolved'
+
+    if n_resolved != len(seq_all_places):
+        unresolved_pos = set(seq_all_places) - set(s_center_dct.keys())
+        raise ValueError(f'Could not resolve all s positions: {unresolved_pos}')
 
     aux_s_center_expr = np.array([s_center_dct[ss] for ss in seq_all_places])
     aux_s_center = []
@@ -526,7 +529,10 @@ def _parse_kwargs(cls, kwargs, _eval):
                     value_vv.append(vvv._value)
                 elif isinstance(vvv, str):
                     ref_vv.append(_eval(vvv))
-                    value_vv.append(ref_vv[-1]._value)
+                    if hasattr(ref_vv[-1], '_value'):
+                        value_vv.append(ref_vv[-1]._value)
+                    else:
+                        value_vv.append(ref_vv[-1])
                 else:
                     ref_vv.append(None)
                     value_vv.append(vvv)
