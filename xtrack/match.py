@@ -879,21 +879,41 @@ class OptimizeLine(xd.Optimize):
         self.line = line
         self.action_twiss = action_twiss
 
-    def clone(self, add_targets=None, name=None):
+    def clone(self, add_targets=None, add_vary=None,
+              remove_targets=None, remove_vary=None,
+              name=None):
 
         if hasattr(add_targets, 'values'): # dict like
             add_targets = list(add_targets.values())
 
-        targets = list(self.targets.copy())
+        if hasattr(add_vary, 'values'): # dict like
+            add_vary = list(add_vary.values())
+
         if name is None:
             name = self.name
+
+        assert remove_targets in [None, True, False]
+        assert remove_vary in [None, True, False]
+
+        targets = list(self.targets.copy())
+        if remove_targets:
+            targets = []
         if add_targets is not None:
             if not isinstance(add_targets, (list, tuple)):
                 add_targets = [add_targets]
             targets.extend(add_targets)
+
+        vary = list(self.vary.copy())
+        if remove_vary:
+            vary = []
+        if add_vary is not None:
+            if not isinstance(add_vary, (list, tuple)):
+                add_vary = [add_vary]
+            vary.extend(add_vary)
+
         out = self.__class__(
             line = self.line,
-            vary=self.vary,
+            vary=vary,
             targets=targets,
             restore_if_fail=self.restore_if_fail,
             verbose=self._err.verbose,
