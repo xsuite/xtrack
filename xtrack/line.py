@@ -3580,7 +3580,6 @@ class Line:
                     or not isinstance(self.element_dict[name].extra, dict)):
                     self.element_dict[name].extra = {}
                 self.element_dict[name].extra.update(extra)
-            self.element_dict
         else:
             if len(kwargs) > 0:
                 raise ValueError(f'Only a single value is allowed when setting variable')
