@@ -178,7 +178,7 @@ class MadxParser:
         self.transformer = MadxTransformer()
         self.parser = Lark(grammar, parser='lalr', transformer=self.transformer)
 
-    def parse(self, text: str) -> MadxOutputType:
+    def parse_string(self, text: str) -> MadxOutputType:
         return self.parser.parse(text)  # noqa
 
     def parse_file(self, path_or_file: Union[str, Path, io.TextIOBase]) -> MadxOutputType:
@@ -188,7 +188,7 @@ class MadxParser:
             file = path_or_file
 
         with file:
-            return self.parse(file.read())
+            return self.parse_string(file.read())
 
 
 # Run as a script to be able to inspect a MAD-X file as YAML
