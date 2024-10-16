@@ -343,6 +343,17 @@ class MadxLoader:
             if key in element:
                 element[key]['expr'] = f'-({element[key]["expr"]})'
 
+        def _exchange_fields(key1, key2):
+            value1 = element.pop(key1, None)
+            value2 = element.pop(key2, None)
+
+            if value1 is not None:
+                element[key2] = value1
+
+            if value2 is not None:
+                element[key1] = value2
+
+
         _reverse_field('k0s')
         _reverse_field('k1')
         _reverse_field('k2s')
@@ -352,7 +363,7 @@ class MadxLoader:
         _reverse_field('vkick')
 
         if 'lag' in element:
-            element['lag']['expr'] = f'180 - ({element["lag"]["expr"]})'
+            element['lag']['expr'] = f'0.5 - ({element["lag"]["expr"]})'
 
         if 'at' in element:
             if 'from' in element:
@@ -366,25 +377,25 @@ class MadxLoader:
                     )
                 element['at']['expr'] = f'({line_length["expr"]}) - ({element["at"]["expr"]})'
 
-        e1, e2 = element.get('e1', 0), element.get('e2', 0)
-        if e1 != e2:
-            element['e1'], element['e2'] = e2, e1
-
-        if 'knl' in element:
-            knl = element['knl']['expr'].copy()
-            for i, knli in enumerate(knl[1::2]):
-                knl[i] = f'-({knli})'
-            element['knl']['expr'] = knl
+        if 'nl' in element:
+            knl = element['nl']['expr']
+            for i in range(1, len(knl), 2):
+                knl[i] = f'-({knl[i]})'
 
         if 'ksl' in element:
-            ksl = element['ksl']['expr'].copy()
-            for i, ksli in enumerate(ksl[0::2]):
-                ksl[i] = f'-({ksli})'
-            element['ksl']['expr'] = ksl
+            ksl = element['ksl']['expr']
+            for i in range(0, len(ksl), 2):
+                ksl[i] = f'-({ksl[i]})'
 
         parent_name = element.get('parent')
         if parent_name and parent_name != self._mad_base_type(parent_name):
             element['parent'] = _reversed_name(parent_name)
+
+        _exchange_fields('e1', 'e2')
+        _exchange_fields('h1', 'h2')
+
+        if not ('fint' in element and 'fintx' not in element):
+            _exchange_fields('fint', 'fintx')
 
         return element
 
