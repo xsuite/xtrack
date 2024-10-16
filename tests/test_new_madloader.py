@@ -1,6 +1,8 @@
 import math
 from collections import OrderedDict
 
+import pytest
+
 import xtrack as xt
 from xtrack.mad_parser.parse import MadxParser, MadxOutputType
 from xtrack.mad_parser.loader import MadxLoader
@@ -120,7 +122,8 @@ def test_simple_parser():
     assert expected == result
 
 
-def test_element_parsing():
+@pytest.fixture(scope='module')
+def example_sequence(temp_context_default_mod):
     sequence = """
     ll = 30;
 
@@ -140,7 +143,7 @@ def test_element_parsing():
     rf: rfcavity, L=2, VOLT=1, LAG=2, FREQ=3, HARMON=2;  ! ignore N_BESSEL, NO_CAVITY_TOTALPATH
     mu: multipole, LRAD=1, TILT=2, NL={3, 4, 5}, KSL={1, 2, 3};
     so: solenoid, l=2, ks=3;  ! ignore ksi
-    
+
     ! Not yet implemented
     ! co: collimator, l=2, apertype=ellipse, aperture={0.01,0.005}, aper_offset={x,y}, aper_tol={corner_r,inner_x,inner_y};
 
@@ -171,11 +174,18 @@ def test_element_parsing():
     line_builder.build()
     env = loader.env
 
-    assert env['line'].name == 'line'
-
     positions = {place.name: place.at for place in line_builder.components}
 
-    # vk1
+    return env, positions
+
+
+def test_parsed_line(example_sequence):
+    env, _ = example_sequence
+    assert env['line'].name == 'line'
+
+
+def test_vkick(example_sequence):
+    env, positions = example_sequence
     vk1 = env['vk1']
     assert positions['vk1'] == 1
     assert isinstance(vk1, xt.Multipole)
@@ -184,7 +194,8 @@ def test_element_parsing():
     assert vk1.ksl[0] == 3
     assert vk1.rot_s_rad == -1
 
-    # hk1
+def test_hkick(example_sequence):
+    env, positions = example_sequence
     hk1 = env['hk1']
     assert positions['hk1'] == 3
     assert isinstance(hk1, xt.Multipole)
@@ -193,7 +204,8 @@ def test_element_parsing():
     assert hk1.ksl[0] == 0
     assert hk1.rot_s_rad == -2
 
-    # ki1
+def test_kick(example_sequence):
+    env, positions = example_sequence
     ki1 = env['ki1']
     assert positions['ki1'] == 5
     assert isinstance(ki1, xt.Multipole)
@@ -202,7 +214,8 @@ def test_element_parsing():
     assert ki1.ksl[0] == 3
     assert ki1.rot_s_rad == 1
 
-    # tk1
+def test_tkick(example_sequence):
+    env, positions = example_sequence
     tk1 = env['tk1']
     assert positions['tk1'] == 7
     assert isinstance(tk1, xt.Multipole)
@@ -211,25 +224,31 @@ def test_element_parsing():
     assert tk1.ksl[0] == 3
     assert tk1.rot_s_rad == 2
 
-    # in1
+def test_instrument(example_sequence):
+    env, positions = example_sequence
     in1 = env['in1']
     assert positions['in1'] == 9
     assert isinstance(in1, xt.Drift)
     assert in1.length == 2
 
-    # mo1
+def test_monitor(example_sequence):
+    env, positions = example_sequence
     mo1 = env['mo1']
     assert positions['mo1'] == 11
     assert isinstance(mo1, xt.Drift)
     assert mo1.length == 1
 
-    # pl1
+def test_placeholder(example_sequence):
+    env, positions = example_sequence
     pl1 = env['pl1']
     assert positions['pl1'] == 13
     assert isinstance(pl1, xt.Drift)
     assert pl1.length == 1
 
-    # sb: sbend, l=2, angle=2, tilt=-2, k0=3, k1=1, k2=2, k1s=3, e1=2, e2=1, fint=3, fintx=2, hgap=1;  ! thick, ktap, h1, h2 we ignore
+def test_sbend(example_sequence):
+    env, positions = example_sequence
+    # sb: sbend, l=2, angle=2, tilt=-2, k0=3, k1=1, k2=2, k1s=3, e1=2, e2=1,
+    #   fint=3, fintx=2, hgap=1;  ! thick, ktap, h1, h2 we ignore
     sb1 = env['sb1']
     assert positions['sb1'] == 15
     assert isinstance(sb1, xt.Bend)
@@ -249,7 +268,10 @@ def test_element_parsing():
     assert sb1.edge_entry_hgap == 1
     assert sb1.edge_exit_hgap == 1
 
-    # rb: rbend, l=2, angle=1.5, tilt=-2, k0=3, k1=1, k2=2, k1s=3, e1=2, e2=1, fint=3, fintx=2, hgap=1, h1=3, h2=2;  ! ditto
+def test_rbend(example_sequence):
+    env, positions = example_sequence
+    # rb: rbend, l=2, angle=1.5, tilt=-2, k0=3, k1=1, k2=2, k1s=3, e1=2, e2=1,
+    #   fint=3, fintx=2, hgap=1, h1=3, h2=2;  ! ditto
     rb1 = env['rb1']
     assert positions['rb1'] == 17
     assert isinstance(rb1, xt.Bend)
@@ -276,6 +298,8 @@ def test_element_parsing():
     assert rb1.edge_entry_hgap == 1
     assert rb1.edge_exit_hgap == 1
 
+def test_quadrupole(example_sequence):
+    env, positions = example_sequence
     # qu: quadrupole, l=2, k1=3, k1s=4, tilt=2;  ! ignore thick and ktap
     qu1 = env['qu1']
     assert positions['qu1'] == 19
@@ -285,6 +309,8 @@ def test_element_parsing():
     assert qu1.k1s == 4
     assert qu1.rot_s_rad == 2
 
+def test_sextupole(example_sequence):
+    env, positions = example_sequence
     # se: sextupole, L=1, K2=2, K2S=3, TILT=2;  ! ignore ktap
     se1 = env['se1']
     assert positions['se1'] == 21
@@ -294,6 +320,8 @@ def test_element_parsing():
     assert se1.k2s == 3
     assert se1.rot_s_rad == 2
 
+def test_octupole(example_sequence):
+    env, positions = example_sequence
     # oc: octupole, L=2, K3=3, K3S=2, TILT=2;
     oc1 = env['oc1']
     assert positions['oc1'] == 23
@@ -303,11 +331,15 @@ def test_element_parsing():
     assert oc1.k3s == 2
     assert oc1.rot_s_rad == 2
 
+def test_marker(example_sequence):
+    env, positions = example_sequence
     # ma: marker;
     ma1 = env['ma1']
     assert positions['ma1'] == 25
     assert isinstance(ma1, xt.Marker)
 
+def test_rfcavity(example_sequence):
+    env, positions = example_sequence
     # rf: rfcavity, L=2, VOLT=1, LAG=2, FREQ=3, HARMON=2;  ! ignore N_BESSEL, NO_CAVITY_TOTALPATH
     rf1 = env['rf1']
     assert positions['rf1'] == 27
@@ -316,6 +348,8 @@ def test_element_parsing():
     assert rf1.lag == 2 * 360
     assert rf1.frequency == 3e6
 
+def test_multipole(example_sequence):
+    env, positions = example_sequence
     # mu: multipole, LRAD=1, TILT=2, NL={3, 4, 5}, KSL={1, 2, 3};
     mu1 = env['mu1']
     assert positions['mu1'] == 29
@@ -329,6 +363,8 @@ def test_element_parsing():
     assert mu1.ksl[2] == 3
     assert mu1.rot_s_rad == 2
 
+def test_solenoid(example_sequence):
+    env, positions = example_sequence
     # so: solenoid, l=2, ks=3;  ! ignore ksi
     so1 = env['so1']
     assert positions['so1'] == 31
