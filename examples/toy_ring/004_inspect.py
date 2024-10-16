@@ -4,7 +4,7 @@ import xtrack as xt
 pi = np.pi
 lbend = 3
 
-# Build a line
+# Build a simple ring
 env = xt.Environment()
 line = env.new_line(components=[
     env.new('mqf.1', xt.Quadrupole, length=0.3, k1=0.1),
