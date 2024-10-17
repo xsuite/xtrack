@@ -373,7 +373,7 @@ class Target(xd.Target):
             if line is not None:
                 tag_parts.append(line)
             if at is not None:
-                tag_parts.append(at)
+                tag_parts.append(str(at))
             if isinstance(tar, str):
                 tag_parts.append(tar)
             tag = '_'.join(tag_parts)
@@ -700,6 +700,12 @@ class TargetRmatrixTerm(Target):
         assert len(self.term) == 3, (
             'Only terms of the R-matrix in the form "r11", "r12", "r21", "r22", etc'
             ' are supported')
+
+        if self.start is xt.START:
+            self.start = tw.name[0]
+
+        if self.end is xt.END:
+            self.end = '_end_point'
 
         rmat = tw.get_R_matrix(self.start, self.end)
 
