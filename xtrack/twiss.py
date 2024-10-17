@@ -2816,7 +2816,7 @@ class TwissInit:
 
         part_id = ctx2np(particles.particle_id).copy()
         at_element = ctx2np(particles.at_element).copy()
-        at_turn = ctx2np(particles.at_element).copy()
+        at_turn = ctx2np(particles.at_turn).copy()
         x_norm = ctx2np(particles.x).copy()
         px_norm = x_norm.copy()
         y_norm = x_norm.copy()
@@ -2843,14 +2843,17 @@ class TwissInit:
             py_norm = XX_norm[3, :]
             zeta_norm = XX_norm[4, :]
             pzeta_norm = XX_norm[5, :]
-        elif XX_norm.ndim == 3:
-            x_norm = XX_norm[0, :, :]
-            px_norm = XX_norm[1, :, :]
-            y_norm = XX_norm[2, :, :]
-            py_norm = XX_norm[3, :, :]
-            zeta_norm = XX_norm[4, :, :]
-            pzeta_norm = XX_norm[5, :, :]
 
+        elif XX_norm.ndim == 3:
+            x_norm = XX_norm[0, :, :].flatten()
+            px_norm = XX_norm[1, :, :].flatten()
+            y_norm = XX_norm[2, :, :].flatten()
+            py_norm = XX_norm[3, :, :].flatten()
+            zeta_norm = XX_norm[4, :, :].flatten()
+            pzeta_norm = XX_norm[5, :, :].flatten()
+            part_id = part_id.flatten()
+            at_element = at_element.flatten()
+            at_turn = at_turn.flatten()
 
         return Table({'particle_id': part_id, 'at_element': at_element,'at_turn':at_turn,
                       'x_norm': x_norm, 'px_norm': px_norm, 'y_norm': y_norm,
