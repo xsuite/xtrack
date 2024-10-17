@@ -301,7 +301,7 @@ class LessThan:
 class Target(xd.Target):
 
     def __init__(self, tar=None, value=None, at=None, tol=None, weight=None, scale=None,
-                 line=None, action=None, tag='', optimize_log=False,
+                 line=None, action=None, tag=None, optimize_log=False,
                  **kwargs):
 
         """
@@ -368,6 +368,16 @@ class Target(xd.Target):
 
         self._freeze_value = None
 
+        if tag is None:
+            tag_parts = []
+            if line is not None:
+                tag_parts.append(line)
+            if at is not None:
+                tag_parts.append(at)
+            if isinstance(tar, str):
+                tag_parts.append(tar)
+            tag = '_'.join(tag_parts)
+
         xd.Target.__init__(self, tar=xdtar, value=value, tol=tol,
                             weight=weight, scale=scale, action=action, tag=tag,
                             optimize_log=optimize_log)
@@ -426,7 +436,7 @@ class Target(xd.Target):
 class TargetSet(xd.TargetList):
 
     def __init__(self, tars=None, value=None, at=None, tol=None, weight=None,
-                 scale=None, line=None, action=None, tag='', optimize_log=False,
+                 scale=None, line=None, action=None, tag=None, optimize_log=False,
                  **kwargs):
 
         """
