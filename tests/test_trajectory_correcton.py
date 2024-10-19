@@ -22,7 +22,8 @@ def test_orbit_correction_basics(test_context):
 
     # Define elements to be used as monitors for orbit correction
     # (for LHC all element names starting by "bpm" and not ending by "_entry" or "_exit")
-    tt_monitors = tt.rows['bpm.*'].rows['.*(?<!_entry)$'].rows['.*(?<!_exit)$']
+    #tt_monitors = tt.rows['bpm.*'].rows['.*(?<!_entry)$'].rows['.*(?<!_exit)$']
+    tt_monitors = tt.rows['bpm.*','.*(?<!_entry)$','.*(?<!_exit)$']
     line.steering_monitors_x = tt_monitors.name
     line.steering_monitors_y = tt_monitors.name
 
