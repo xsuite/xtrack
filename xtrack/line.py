@@ -4839,13 +4839,25 @@ class LineVars:
                 f'Cannot access variables as the line has no xdeps manager')
         return self.line._xdeps_vref._owner['__vary_default']
 
-    def get_table(self):
+    def get_table(self, compact=True):
         if self.line._xdeps_vref is None:
             raise RuntimeError(
                 f'Cannot access variables as the line has no xdeps manager')
         name = np.array([kk for kk in list(self.keys()) if kk != '__vary_default'], dtype=object)
         value = np.array([self.line._xdeps_vref[kk]._value for kk in name])
-        expr  = np.array([str(self.line._xdeps_vref[str(kk)]._expr) for kk in name])
+
+        if compact:
+            formatter = xd.refs.CompactFormatter(scope=None)
+            expr = []
+            for kk in name:
+                ee = self.line._xdeps_vref[kk]._expr
+                if ee is None:
+                    expr.append(str(None))
+                else:
+                    expr.append(ee._formatted(formatter))
+            expr = np.array(expr)
+        else:
+            expr  = np.array([str(self.line._xdeps_vref[str(kk)]._expr) for kk in name])
 
         return xd.Table({'name': name, 'value': value, 'expr': expr})
 
