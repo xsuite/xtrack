@@ -1,6 +1,7 @@
 import xtrack as xt
 
-env = xt.ENV()
+env = xt.get_environment(verbose=True)
+
 env.vars.default_to_zero = True
 
 env.new('qf1', 'Quadrupole', length=2*0.175, k1='qf1k1')
@@ -85,4 +86,4 @@ pimm.place('qf1', at=72.6775)
 pimm.place('es_marker', at=73.25225)
 
 pimm = pimm.build() # Becomes a line
-env.default = None
+env.default_to_zero = False

@@ -264,6 +264,25 @@ class Environment:
 
         return Builder(env=self, components=components, name=name)
 
+    def call(self, filename):
+        '''
+        Call a file with xtrack commands.
+
+        Parameters
+        ----------
+        filename : str
+            Name of the file to be called.
+        '''
+        with open(filename) as fid:
+            code = fid.read()
+        import xtrack
+        xtrack._passed_env = self
+        try:
+            exec(code)
+        except Exception as ee:
+            xtrack._passed_env = None
+            raise ee
+
     def _ensure_tracker_consistency(self, buffer):
         for ln in self._lines_weakrefs:
             if ln._has_valid_tracker() and ln._buffer is not buffer:
@@ -737,3 +756,14 @@ class EnvLines(UserDict):
     def __setitem__(self, key, value):
         self.env._lines_weakrefs.add(value)
         UserDict.__setitem__(self, key, value)
+
+def get_environment(verbose=False):
+    import xtrack
+    if hasattr(xtrack, '_passed_env'):
+        if verbose:
+            print('Using existing environment')
+        return xtrack._passed_env
+    else:
+        if verbose:
+            print('Creating new environment')
+        return Environment()
