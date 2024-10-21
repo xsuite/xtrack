@@ -4825,12 +4825,15 @@ class LineVars:
         raise NotImplementedError('Use keys() method') # Untested
         return self.line._xdeps_vref._owner.__iter__()
 
-    def update(self, other, **kwargs):
+    def update(self, *args, **kwargs):
         if self.line._xdeps_vref is None:
             raise RuntimeError(
                 f'Cannot access variables as the line has no xdeps manager')
-        for kk in other.keys():
-            self[kk] = other[kk]
+        if len(args) > 0:
+            assert len(args) == 1, 'update expected at most 1 positional argument'
+            other = args[0]
+            for kk in other.keys():
+                self[kk] = other[kk]
         for kk, vv in kwargs.items():
             self[kk] = vv
 
