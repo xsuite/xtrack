@@ -282,6 +282,7 @@ class Environment:
         except Exception as ee:
             xtrack._passed_env = None
             raise ee
+        xtrack._passed_env = None
 
     def _ensure_tracker_consistency(self, buffer):
         for ln in self._lines_weakrefs:

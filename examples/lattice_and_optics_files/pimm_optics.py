@@ -1,8 +1,7 @@
 import xtrack as xt
 env = xt.get_environment()
 
-env.vars.default_to_zero = True
-env.vars.update(
+env.vars.update(default_to_zero=True,
 
     # Quadrupole strengths
     qf1k1 =  3.15396e-01,
@@ -17,4 +16,3 @@ env.vars.update(
     k2xrr_a = 'k2xrr',
     k2xrr =  8.65,
 )
-env.vars.default_to_zero = False

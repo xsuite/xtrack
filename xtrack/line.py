@@ -4826,16 +4826,27 @@ class LineVars:
         return self.line._xdeps_vref._owner.__iter__()
 
     def update(self, *args, **kwargs):
-        if self.line._xdeps_vref is None:
-            raise RuntimeError(
-                f'Cannot access variables as the line has no xdeps manager')
-        if len(args) > 0:
-            assert len(args) == 1, 'update expected at most 1 positional argument'
-            other = args[0]
-            for kk in other.keys():
-                self[kk] = other[kk]
-        for kk, vv in kwargs.items():
-            self[kk] = vv
+        default_to_zero = kwargs.pop('default_to_zero', None)
+        old_default_to_zero = self.default_to_zero
+        if default_to_zero is not None:
+            self.default_to_zero = default_to_zero
+        try:
+            if self.line._xdeps_vref is None:
+                raise RuntimeError(
+                    f'Cannot access variables as the line has no xdeps manager')
+            if len(args) > 0:
+                assert len(args) == 1, 'update expected at most 1 positional argument'
+                other = args[0]
+                for kk in other.keys():
+                    self[kk] = other[kk]
+            for kk, vv in kwargs.items():
+                self[kk] = vv
+        except Exception as ee:
+            if default_to_zero is not None:
+                self.default_to_zero = old_default_to_zero
+            raise ee
+        if default_to_zero is not None:
+            self.default_to_zero = old_default_to_zero
 
     @property
     def vary_default(self):
