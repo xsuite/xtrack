@@ -93,6 +93,7 @@ class MadxLoader:
         self._new_builtin("rfcavity", "Cavity")
         self._new_builtin("multipole", "Multipole", knl=[0, 0, 0, 0, 0, 0])
         self._new_builtin("solenoid", "Solenoid")
+        self._new_builtin("drift", "Drift")
 
     def load_file(self, file, build=True) -> Optional[List[Builder]]:
         """Load a MAD-X file and generate/update the environment."""
