@@ -4825,12 +4825,14 @@ class LineVars:
         raise NotImplementedError('Use keys() method') # Untested
         return self.line._xdeps_vref._owner.__iter__()
 
-    def update(self, other):
+    def update(self, other, **kwargs):
         if self.line._xdeps_vref is None:
             raise RuntimeError(
                 f'Cannot access variables as the line has no xdeps manager')
         for kk in other.keys():
             self[kk] = other[kk]
+        for kk, vv in kwargs.items():
+            self[kk] = vv
 
     @property
     def vary_default(self):
