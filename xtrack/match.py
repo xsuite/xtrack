@@ -899,6 +899,12 @@ class OptimizeLine(xd.Optimize):
               remove_targets=None, remove_vary=None,
               name=None):
 
+        if hasattr(add_targets, 'copy'):
+            add_targets = add_targets.copy()
+
+        if hasattr(add_vary, 'copy'):
+            add_vary = add_vary.copy()
+
         if hasattr(add_targets, 'values'): # dict like
             add_targets = list(add_targets.values())
 
