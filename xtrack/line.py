@@ -4800,6 +4800,12 @@ def _temp_knobs(line_or_trk, knobs: dict):
         for kk, vv in old_values.items():
             line_or_trk.vars[kk] = vv
 
+class _DefaultFactory:
+    def __init__(self, default):
+        self.default = default
+
+    def __call__(self):
+        return self.default
 
 class LineVars:
 
@@ -4981,6 +4987,20 @@ class LineVars:
 
     def get(self, name):
         return self[name]._value
+
+    @property
+    def default(self):
+        default_factory = self.line._xdeps_vref._owner.default_factory
+        if default_factory is None:
+            return None
+        return self.line._xdeps_vref._owner.default_factory.default
+
+    @default.setter
+    def default(self, value):
+        if value is None:
+            self.line._xdeps_vref._owner.default_factory = None
+        else:
+            self.line._xdeps_vref._owner.default_factory = _DefaultFactory(value)
 
 class ActionVars(Action):
 
