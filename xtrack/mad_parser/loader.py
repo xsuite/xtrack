@@ -25,6 +25,8 @@ TRANSLATE_PARAMS = {
     "from": "from_",
     "e1": "edge_entry_angle",
     "e2": "edge_exit_angle",
+    "fint": "edge_entry_fint",
+    "fintx": "edge_exit_fint",
 }
 
 
@@ -57,14 +59,15 @@ def _reversed_name(name: str):
 
 class MadxLoader:
     def __init__(self, reverse_lines: Optional[List[str]] = None):
-        self._madx_elem_hierarchy: Dict[str, str] = {}
         self.reverse_lines = reverse_lines or []
+
+        self._madx_elem_hierarchy: Dict[str, str] = {}
+        self._reversed_elements: Set[str] = set()
+        self._both_direction_elements: Set[str] = set()
+        self._builtin_types = set()
 
         self.env = xt.Environment()
         self._init_environment()
-
-        self._reversed_elements: Set[str] = set()
-        self._both_direction_elements: Set[str] = set()
 
     def _init_environment(self):
         self.env._xdeps_vref._owner.default_factory = lambda: 0
@@ -73,27 +76,34 @@ class MadxLoader:
         self.env.vars["twopi"] = np.pi * 2
 
         # Define the built-in MAD-X elements
-        self.env.new("vkicker", "Multipole")
-        self.env.new("hkicker", "Multipole")
-        self.env.new("tkicker", "Multipole")
-        self.env.new("collimator", "Drift")
-        self.env.new("instrument", "Drift")
-        self.env.new("monitor", "Drift")
-        self.env.new("placeholder", "Drift")
-        self.env.new("sbend", "Bend")
-        self.env.new("rbend", "Bend")
-        self.env.new("quadrupole", "Quadrupole")
-        self.env.new("sextupole", "Sextupole")
-        self.env.new("octupole", "Octupole")
-        self.env.new("marker", "Drift")
-        self.env.new("rfcavity", "Cavity")
-        self.env.new("multipole", "Multipole", knl=[0, 0, 0, 0, 0, 0])
-        self.env.new("solenoid", "Solenoid")
+        self._new_builtin("vkicker", "Multipole")
+        self._new_builtin("hkicker", "Multipole")
+        self._new_builtin("tkicker", "Multipole")
+        self._new_builtin("kicker", "Multipole")
+        self._new_builtin("collimator", "Drift")
+        self._new_builtin("instrument", "Drift")
+        self._new_builtin("monitor", "Drift")
+        self._new_builtin("placeholder", "Drift")
+        self._new_builtin("sbend", "Bend")  # no rbarc since we don't have an angle
+        self._new_builtin("rbend", "Bend", rbend=True)
+        self._new_builtin("quadrupole", "Quadrupole")
+        self._new_builtin("sextupole", "Sextupole")
+        self._new_builtin("octupole", "Octupole")
+        self._new_builtin("marker", "Marker")
+        self._new_builtin("rfcavity", "Cavity")
+        self._new_builtin("multipole", "Multipole", knl=[0, 0, 0, 0, 0, 0])
+        self._new_builtin("solenoid", "Solenoid")
 
     def load_file(self, file, build=True) -> Optional[List[Builder]]:
         """Load a MAD-X file and generate/update the environment."""
         parser = MadxParser()
         parsed_dict = parser.parse_file(file)
+        return self.load_parsed_dict(parsed_dict, build=build)
+
+    def load_string(self, string, build=True) -> Optional[List[Builder]]:
+        """Load a MAD-X string and generate/update the environment."""
+        parser = MadxParser()
+        parsed_dict = parser.parse_string(string)
         return self.load_parsed_dict(parsed_dict, build=build)
 
     def load_parsed_dict(self, parsed_dict: MadxOutputType, build=True) -> Optional[List[Builder]]:
@@ -125,7 +135,7 @@ class MadxLoader:
             parent = el_params.pop('parent')
             assert parent != 'sequence'
             params, extras = get_params(el_params, parent=parent)
-            self.env.new(name, parent, **params, extra=extras)
+            self._new_element(name, parent, self.env, **params, extra=extras)
 
     def _parse_lines(self, lines: Dict[str, LineType], build=True) -> List[Builder]:
         builders = []
@@ -144,7 +154,7 @@ class MadxLoader:
     def _parse_parameters(self, parameters: Dict[str, Dict[str, str]]):
         for element, el_params in parameters.items():
             params, extras = get_params(el_params, parent=element)
-            self._set_element(element, **params, extra=extras)
+            self._set_element(element, self.env, **params, extra=extras)
 
     def _parse_components(self, builder, elements: Dict[str, LineType]):
         for name, element in elements.items():
@@ -154,26 +164,33 @@ class MadxLoader:
             params, extras = get_params(params, parent=parent)
             self._new_element(name, parent, builder, **params, extra=extras)
 
-    def _new_element(self, name, parent, builder=None, **kwargs):
-        if not builder:
-            builder = self.env
+    def _new_builtin(self, name, xt_type, **kwargs):
+        self.env.new(name, xt_type, **kwargs)
+        self._builtin_types.add(name)
 
+    def _new_element(self, name, parent, builder, **kwargs):
         el_params = self._pre_process_element_params(name, kwargs)
         builder.new(name, parent, **el_params)
 
-    def _set_element(self, name, builder=None, **kwargs):
-        if not builder:
-            builder = self.env
+    def _set_element(self, name, builder, **kwargs):
         el_params = self._pre_process_element_params(name, kwargs)
         builder.set(name, **el_params)
 
     def _pre_process_element_params(self, name, params):
         parent_name = self._mad_base_type(name)
 
-        if parent_name == 'rbend':
-            params['rbend'] = True
+        if parent_name in {'sbend', 'rbend'}:
+            params['rbend'] = parent_name == 'rbend'
+            length = params.get('length', 0)
+            if (k2 := params.pop('k2', None)) and length:
+                params['knl'] = [0, 0, f'({k2}) * ({length})']
+            if (k1s := params.pop('k1s', None)) and length:
+                params['ksl'] = [0, f'({k1s}) * ({length})']
+            if (hgap := params.pop('hgap', None)):
+                params['edge_entry_hgap'] = hgap
+                params['edge_exit_hgap'] = hgap
 
-        if parent_name in {'rfcavity', 'rfmultipole'}:
+        elif parent_name in {'rfcavity', 'rfmultipole'}:
             if (lag := params.pop('lag', None)):
                 params['lag'] = f'({lag}) * 360'
             if (volt := params.pop('volt', None)):
@@ -184,6 +201,36 @@ class MadxLoader:
                 # harmon * beam.beta * clight / sequence.length
                 # raise NotImplementedError
                 pass
+
+        elif parent_name == 'multipole':
+            if (nl := params.pop('nl', None)):
+                params['knl'] = nl
+            if (ksl := params.pop('ksl', None)):
+                params['ksl'] = ksl
+
+        elif parent_name == 'vkicker':
+            if (kick := params.pop('kick', None)):
+                params['ksl'] = [kick]
+
+        elif parent_name == 'hkicker':
+            if (kick := params.pop('kick', None)):
+                params['knl'] = [f'-({kick})']
+
+        elif parent_name in {'kicker', 'tkicker'}:
+            if (vkick := params.pop('vkick', None)):
+                params['ksl'] = [vkick]
+            if (hkick := params.pop('hkick', None)):
+                params['knl'] = [f'-({hkick})']
+
+        if 'edge_entry_fint' in params and 'edge_exit_fint' not in params:
+            params['edge_exit_fint'] = params['edge_entry_fint']
+            # TODO: Technically MAD-X behaviour is that if edge_exit_fint < 0
+            #  then we take edge_entry_fint as edge_exit_fint. But also,
+            #  edge_entry_fint is the default value for edge_exit_fint.
+            #  To implement this (unhinged?) feature faithfully we'd need to
+            #  evaluate the expression here and ideally have a dynamic if-then
+            #  expression... Instead, let's just pretend that edge_exit_fint
+            #  should be taken as is, and hope no one relies on it being < 0.
 
         return params
 
@@ -296,6 +343,17 @@ class MadxLoader:
             if key in element:
                 element[key]['expr'] = f'-({element[key]["expr"]})'
 
+        def _exchange_fields(key1, key2):
+            value1 = element.pop(key1, None)
+            value2 = element.pop(key2, None)
+
+            if value1 is not None:
+                element[key2] = value1
+
+            if value2 is not None:
+                element[key1] = value2
+
+
         _reverse_field('k0s')
         _reverse_field('k1')
         _reverse_field('k2s')
@@ -305,7 +363,7 @@ class MadxLoader:
         _reverse_field('vkick')
 
         if 'lag' in element:
-            element['lag']['expr'] = f'180 - ({element["lag"]["expr"]})'
+            element['lag']['expr'] = f'0.5 - ({element["lag"]["expr"]})'
 
         if 'at' in element:
             if 'from' in element:
@@ -319,25 +377,25 @@ class MadxLoader:
                     )
                 element['at']['expr'] = f'({line_length["expr"]}) - ({element["at"]["expr"]})'
 
-        e1, e2 = element.get('e1', 0), element.get('e2', 0)
-        if e1 != e2:
-            element['e1'], element['e2'] = e2, e1
-
-        if 'knl' in element:
-            knl = element['knl']['expr'].copy()
-            for i, knli in enumerate(knl[1::2]):
-                knl[i] = f'-({knli})'
-            element['knl']['expr'] = knl
+        if 'nl' in element:
+            knl = element['nl']['expr']
+            for i in range(1, len(knl), 2):
+                knl[i] = f'-({knl[i]})'
 
         if 'ksl' in element:
-            ksl = element['ksl']['expr'].copy()
-            for i, ksli in enumerate(ksl[0::2]):
-                ksl[i] = f'-({ksli})'
-            element['ksl']['expr'] = ksl
+            ksl = element['ksl']['expr']
+            for i in range(0, len(ksl), 2):
+                ksl[i] = f'-({ksl[i]})'
 
         parent_name = element.get('parent')
         if parent_name and parent_name != self._mad_base_type(parent_name):
             element['parent'] = _reversed_name(parent_name)
+
+        _exchange_fields('e1', 'e2')
+        _exchange_fields('h1', 'h2')
+
+        if not ('fint' in element and 'fintx' not in element):
+            _exchange_fields('fint', 'fintx')
 
         return element
 
@@ -346,28 +404,12 @@ class MadxLoader:
             element_name = element_name[:-1]
 
         if element_name in self._madx_elem_hierarchy:
-            parent_name = self._madx_elem_hierarchy[element_name][-1]
-        else:
-            parent_name = element_name
+            return self._madx_elem_hierarchy[element_name][-1]
 
-        if parent_name in {
-            "vkicker",
-            "hkicker",
-            "tkicker",
-            "collimator",
-            "instrument",
-            "monitor",
-            "placeholder",
-            "sbend",
-            "rbend",
-            "quadrupole",
-            "sextupole",
-            "octupole",
-            "marker",
-            "rfcavity",
-            "multipole",
-            "solenoid",
-        }:
-            return parent_name
+        if element_name not in self._builtin_types:
+            raise ValueError(
+                f'Something went wrong: cannot identify the MAD-X base type of'
+                f'element `{element_name}`!'
+            )
 
-        return f'{parent_name}^'
+        return element_name

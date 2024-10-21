@@ -1,5 +1,9 @@
+import math
 from collections import OrderedDict
 
+import pytest
+
+import xtrack as xt
 from xtrack.mad_parser.parse import MadxParser, MadxOutputType
 from xtrack.mad_parser.loader import MadxLoader
 
@@ -102,7 +106,7 @@ def test_simple_parser():
     }
 
     parser = MadxParser()
-    result = parser.parse(sequence)
+    result = parser.parse_string(sequence)
 
     def _order_madx_output(item):
         item['vars'] = OrderedDict(item['vars'])
@@ -118,23 +122,502 @@ def test_simple_parser():
     assert expected == result
 
 
-def test_element_reversal():
-    # Elements:
-    # - vkicker, l=real, kick=real, tilt=real
-    # - hkicker, ditto
-    # - kicker, l=real, vkick=real, hkick=real, tilt=real
-    # - tkicker, ditto
-    # - collimator, l=real, apertype=string, aperture={values}, aper_offset={values}, aper_tol={values}
-    # - instrument, l=real
-    # - monitor, l=real
-    # - placeholder, l=real
-    # - sbend, l=real, angle=real, tilt=real, k0=real, k1=real, k2=real, k1s=real, e1=real, e2=real, fint=real, fintx=real, hgap=real, h1=real, h2=real, ktap=real, thick=logical
-    # - rbend, ditto
-    # - quadrupole, l=real, k1=real, k1s=real, tilt=real, ktap=real, thick=logical
-    # - sextupole, L=real, K2=real, K2S=real, TILT=real, KTAP=real
-    # - octupole, L=real, K3=real, K3S=real, TILT=real
-    # - marker;
-    # - rfcavity, L=real, VOLT=real, LAG=real, FREQ=real, HARMON=integer, N_BESSEL=integer, NO_CAVITY_TOTALPATH=logical
-    # - multipole, LRAD=real, TILT=real, NL={real}, KSL={real}
-    # - solenoid, l=real, ks=real, ksi=real
-    pass
+@pytest.fixture(scope='module')
+def example_sequence(temp_context_default_mod):
+    sequence = """
+    ll = 36;
+
+    vk: vkicker, l=2, kick=3, tilt=-1;
+    hk: hkicker, l=1, kick=6, tilt=-2;
+    ki: kicker, l=2, vkick=3, hkick=4, tilt=1;
+    tk: tkicker, l=1, vkick=3, hkick=4, tilt=2;
+    in: instrument, l=2;
+    mo: monitor, l=1;
+    pl: placeholder, l=1;
+    sb: sbend, l=2, angle=2, tilt=-2, k0=3, k1=1, k2=2, k1s=3, e1=2, e2=1, fint=3, fintx=2, hgap=1, h1=3, h2=2;
+    rb: rbend, l=1.5, angle=2, tilt=-2, k0=3, k1=1, k2=2, k1s=3, e1=2, e2=1, fint=3, fintx=2, hgap=1, h1=3, h2=2;
+    qu: quadrupole, l=2, k1=3, k1s=4, tilt=2;  ! ignore thick and ktap
+    se: sextupole, L=1, K2=2, K2S=3, TILT=2;  ! ignore ktap
+    oc: octupole, L=2, K3=3, K3S=2, TILT=2;
+    ma: marker;
+    rf: rfcavity, L=2, VOLT=1, LAG=2, FREQ=3, HARMON=2;  ! ignore N_BESSEL, NO_CAVITY_TOTALPATH
+    mu: multipole, LRAD=1, TILT=2, NL={3, 4, 5, 6}, KSL={1, 2, 3, 4};
+    so: solenoid, l=2, ks=3;  ! ignore ksi
+
+    ! Not yet implemented
+    ! co: collimator, l=2, apertype=ellipse, aperture={0.01,0.005}, aper_offset={x,y}, aper_tol={corner_r,inner_x,inner_y};
+
+    line: sequence, l = ll;
+        vk1: vk, at = 1;
+        hk1: hk, at = 3;
+        ki1: ki, at = 5;
+        tk1: tk, at = 7;
+        in1: in, at = 9;
+        mo1: mo, at = 11;
+        pl1: pl, at = 13;
+        sb1: sb, at = 15;
+        rb1: rb, at = 17;
+        qu1: qu, at = 19;
+        se1: se, at = 21;
+        oc1: oc, at = 23;
+        ma1: ma, at = 25;
+        rf1: rf, at = 27;
+        mu1: mu, at = 29;
+        so1: so, at = 31;
+    endsequence;
+    
+    ! exactly the same as above, but to be parsed in reverse order
+    line_reversed: sequence, l = ll;
+        vk1: vk, at = 1;
+        hk1: hk, at = 3;
+        ki1: ki, at = 5;
+        tk1: tk, at = 7;
+        in1: in, at = 9;
+        mo1: mo, at = 11;
+        pl1: pl, at = 13;
+        sb1: sb, at = 15;
+        rb1: rb, at = 17;
+        qu1: qu, at = 19;
+        se1: se, at = 21;
+        oc1: oc, at = 23;
+        ma1: ma, at = 25;
+        rf1: rf, at = 27;
+        mu1: mu, at = 29;
+        so1: so, at = 31;
+    endsequence;
+    """
+
+    loader = MadxLoader(reverse_lines=['line_reversed'])
+    builders = loader.load_string(sequence, build=False)
+
+    line_builder, line_reversed_builder = builders
+    line_builder.build()
+    line_reversed_builder.build()
+    env = loader.env
+
+    def make_positions(components):
+        eval_ = lambda x: env.eval(x) if isinstance(x, str) else x
+        return {place.name: eval_(place.at) for place in components}
+
+    positions = make_positions(line_builder.components)
+    positions_reversed = make_positions(line_reversed_builder.components)
+
+    return env, {**positions, **positions_reversed}
+
+
+def test_parsed_lines(example_sequence):
+    env, _ = example_sequence
+    assert env['line'].name == 'line'
+    assert env['line_reversed'].name == 'line_reversed'
+
+
+def test_vkick(example_sequence):
+    env, positions = example_sequence
+    vk1 = env['vk1']
+    assert positions['vk1'] == 1
+    assert isinstance(vk1, xt.Multipole)
+    assert vk1.length == 2
+    assert vk1.knl[0] == 0
+    assert vk1.ksl[0] == 3
+    assert vk1.rot_s_rad == -1
+
+
+def test_hkick(example_sequence):
+    env, positions = example_sequence
+    hk1 = env['hk1']
+    assert positions['hk1'] == 3
+    assert isinstance(hk1, xt.Multipole)
+    assert hk1.length == 1
+    assert hk1.knl[0] == -6
+    assert hk1.ksl[0] == 0
+    assert hk1.rot_s_rad == -2
+
+
+def test_kick(example_sequence):
+    env, positions = example_sequence
+    ki1 = env['ki1']
+    assert positions['ki1'] == 5
+    assert isinstance(ki1, xt.Multipole)
+    assert ki1.length == 2
+    assert ki1.knl[0] == -4
+    assert ki1.ksl[0] == 3
+    assert ki1.rot_s_rad == 1
+
+
+def test_tkick(example_sequence):
+    env, positions = example_sequence
+    tk1 = env['tk1']
+    assert positions['tk1'] == 7
+    assert isinstance(tk1, xt.Multipole)
+    assert tk1.length == 1
+    assert tk1.knl[0] == -4
+    assert tk1.ksl[0] == 3
+    assert tk1.rot_s_rad == 2
+
+
+def test_instrument(example_sequence):
+    env, positions = example_sequence
+    in1 = env['in1']
+    assert positions['in1'] == 9
+    assert isinstance(in1, xt.Drift)
+    assert in1.length == 2
+
+
+def test_monitor(example_sequence):
+    env, positions = example_sequence
+    mo1 = env['mo1']
+    assert positions['mo1'] == 11
+    assert isinstance(mo1, xt.Drift)
+    assert mo1.length == 1
+
+
+def test_placeholder(example_sequence):
+    env, positions = example_sequence
+    pl1 = env['pl1']
+    assert positions['pl1'] == 13
+    assert isinstance(pl1, xt.Drift)
+    assert pl1.length == 1
+
+
+def test_sbend(example_sequence):
+    env, positions = example_sequence
+    # sb: sbend, l=2, angle=2, tilt=-2, k0=3, k1=1, k2=2, k1s=3, e1=2, e2=1,
+    #   fint=3, fintx=2, hgap=1;  ! thick, ktap, h1, h2 we ignore
+    sb1 = env['sb1']
+    assert positions['sb1'] == 15
+    assert isinstance(sb1, xt.Bend)
+    assert sb1.length == 2
+    assert sb1.k0 == 3
+    assert sb1.h == 2 / 2  # angle / l
+    assert sb1.k1 == 1
+    assert sb1.knl[0] == 0
+    assert sb1.knl[1] == 0
+    assert sb1.knl[2] == 2 * 2  # k2 * l
+    assert sb1.ksl[0] == 0
+    assert sb1.ksl[1] == 3 * 2  # k1s * l
+    assert sb1.edge_entry_angle == 2
+    assert sb1.edge_exit_angle == 1
+    assert sb1.edge_entry_fint == 3
+    assert sb1.edge_exit_fint == 2
+    assert sb1.edge_entry_hgap == 1
+    assert sb1.edge_exit_hgap == 1
+
+
+def test_rbend(example_sequence):
+    env, positions = example_sequence
+    # rb: rbend, l=2, angle=1.5, tilt=-2, k0=3, k1=1, k2=2, k1s=3, e1=2, e2=1,
+    #   fint=3, fintx=2, hgap=1, h1=3, h2=2;  ! ditto
+    rb1 = env['rb1']
+    assert positions['rb1'] == 17
+    assert isinstance(rb1, xt.Bend)
+
+    angle = 2
+    l = 1.5
+    R = 0.5 * l / math.sin(0.5 * angle)
+    l_curv = R * angle
+    h = 1 / R
+
+    assert rb1.length == l_curv
+    assert rb1.k0 == 3
+    assert rb1.h == h
+    assert rb1.k1 == 1
+    assert rb1.knl[0] == 0
+    assert rb1.knl[1] == 0
+    assert rb1.knl[2] == 2 * l  # k2 * l
+    assert rb1.ksl[0] == 0
+    assert rb1.ksl[1] == 3 * l  # k1s * l
+    assert rb1.edge_entry_angle == 2 + angle / 2
+    assert rb1.edge_exit_angle == 1 + angle / 2
+    assert rb1.edge_entry_fint == 3
+    assert rb1.edge_exit_fint == 2
+    assert rb1.edge_entry_hgap == 1
+    assert rb1.edge_exit_hgap == 1
+
+
+def test_quadrupole(example_sequence):
+    env, positions = example_sequence
+    # qu: quadrupole, l=2, k1=3, k1s=4, tilt=2;  ! ignore thick and ktap
+    qu1 = env['qu1']
+    assert positions['qu1'] == 19
+    assert isinstance(qu1, xt.Quadrupole)
+    assert qu1.length == 2
+    assert qu1.k1 == 3
+    assert qu1.k1s == 4
+    assert qu1.rot_s_rad == 2
+
+
+def test_sextupole(example_sequence):
+    env, positions = example_sequence
+    # se: sextupole, L=1, K2=2, K2S=3, TILT=2;  ! ignore ktap
+    se1 = env['se1']
+    assert positions['se1'] == 21
+    assert isinstance(se1, xt.Sextupole)
+    assert se1.length == 1
+    assert se1.k2 == 2
+    assert se1.k2s == 3
+    assert se1.rot_s_rad == 2
+
+
+def test_octupole(example_sequence):
+    env, positions = example_sequence
+    # oc: octupole, L=2, K3=3, K3S=2, TILT=2;
+    oc1 = env['oc1']
+    assert positions['oc1'] == 23
+    assert isinstance(oc1, xt.Octupole)
+    assert oc1.length == 2
+    assert oc1.k3 == 3
+    assert oc1.k3s == 2
+    assert oc1.rot_s_rad == 2
+
+
+def test_marker(example_sequence):
+    env, positions = example_sequence
+    # ma: marker;
+    ma1 = env['ma1']
+    assert positions['ma1'] == 25
+    assert isinstance(ma1, xt.Marker)
+
+
+def test_rfcavity(example_sequence):
+    env, positions = example_sequence
+    # rf: rfcavity, L=2, VOLT=1, LAG=2, FREQ=3, HARMON=2;  ! ignore N_BESSEL, NO_CAVITY_TOTALPATH
+    rf1 = env['rf1']
+    assert positions['rf1'] == 27
+    assert isinstance(rf1, xt.Cavity)
+    assert rf1.voltage == 1e6
+    assert rf1.lag == 2 * 360
+    assert rf1.frequency == 3e6
+
+
+def test_multipole(example_sequence):
+    env, positions = example_sequence
+    # mu: multipole, LRAD=1, TILT=2, NL={3, 4, 5}, KSL={1, 2, 3};
+    mu1 = env['mu1']
+    assert positions['mu1'] == 29
+    assert isinstance(mu1, xt.Multipole)
+    assert mu1.length == 1
+    assert mu1.knl[0] == 3
+    assert mu1.knl[1] == 4
+    assert mu1.knl[2] == 5
+    assert mu1.knl[3] == 6
+    assert mu1.ksl[0] == 1
+    assert mu1.ksl[1] == 2
+    assert mu1.ksl[2] == 3
+    assert mu1.ksl[3] == 4
+    assert mu1.rot_s_rad == 2
+
+
+def test_solenoid(example_sequence):
+    env, positions = example_sequence
+    # so: solenoid, l=2, ks=3;  ! ignore ksi
+    so1 = env['so1']
+    assert positions['so1'] == 31
+    assert isinstance(so1, xt.Solenoid)
+    assert so1.length == 2
+    assert so1.ks == 3
+
+
+def test_reversed_vkick(example_sequence):
+    env, positions = example_sequence
+    ivk1 = env['vk1^']
+    assert positions['vk1^'] == 36 - 1
+    assert isinstance(ivk1, xt.Multipole)
+    assert ivk1.length == 2
+    assert ivk1.knl[0] == 0
+    assert ivk1.ksl[0] == 3
+    assert ivk1.rot_s_rad == -1
+
+
+def test_reversed_hkick(example_sequence):
+    env, positions = example_sequence
+    hk1 = env['hk1^']
+    assert positions['hk1^'] == 36 - 3
+    assert isinstance(hk1, xt.Multipole)
+    assert hk1.length == 1
+    assert hk1.knl[0] == -6
+    assert hk1.ksl[0] == 0
+    assert hk1.rot_s_rad == -2
+
+
+def test_reversed_kick(example_sequence):
+    env, positions = example_sequence
+    ki1 = env['ki1^']
+    assert positions['ki1^'] == 36 - 5
+    assert isinstance(ki1, xt.Multipole)
+    assert ki1.length == 2
+    assert ki1.knl[0] == -4
+    assert ki1.ksl[0] == -3
+    assert ki1.rot_s_rad == 1
+
+
+def test_reversed_tkick(example_sequence):
+    env, positions = example_sequence
+    tk1 = env['tk1^']
+    assert positions['tk1^'] == 36 - 7
+    assert isinstance(tk1, xt.Multipole)
+    assert tk1.length == 1
+    assert tk1.knl[0] == -4
+    assert tk1.ksl[0] == -3
+    assert tk1.rot_s_rad == 2
+
+
+def test_reversed_instrument(example_sequence):
+    env, positions = example_sequence
+    in1 = env['in1^']
+    assert positions['in1^'] == 36 - 9
+    assert isinstance(in1, xt.Drift)
+    assert in1.length == 2
+
+
+def test_reversed_monitor(example_sequence):
+    env, positions = example_sequence
+    mo1 = env['mo1^']
+    assert positions['mo1^'] == 36 - 11
+    assert isinstance(mo1, xt.Drift)
+    assert mo1.length == 1
+
+
+def test_reversed_placeholder(example_sequence):
+    env, positions = example_sequence
+    pl1 = env['pl1^']
+    assert positions['pl1^'] == 36 - 13
+    assert isinstance(pl1, xt.Drift)
+    assert pl1.length == 1
+
+
+def test_reversed_sbend(example_sequence):
+    env, positions = example_sequence
+    # sb: sbend, l=2, angle=2, tilt=-2, k0=3, k1=1, k2=2, k1s=3, e1=2, e2=1,
+    #   fint=3, fintx=2, hgap=1;  ! thick, ktap, h1, h2 we ignore
+    sb1 = env['sb1^']
+    assert positions['sb1^'] == 36 - 15
+    assert isinstance(sb1, xt.Bend)
+    assert sb1.length == 2
+    assert sb1.k0 == 3
+    assert sb1.h == 2 / 2  # angle / l
+    assert sb1.k1 == -1
+    assert sb1.knl[0] == 0
+    assert sb1.knl[1] == 0
+    assert sb1.knl[2] == 2 * 2  # k2 * l
+    assert sb1.ksl[0] == 0
+    assert sb1.ksl[1] == 3 * 2  # k1s * l
+    assert sb1.edge_entry_angle == 1
+    assert sb1.edge_exit_angle == 2
+    assert sb1.edge_entry_fint == 2
+    assert sb1.edge_exit_fint == 3
+    assert sb1.edge_entry_hgap == 1
+    assert sb1.edge_exit_hgap == 1
+
+
+def test_reversed_rbend(example_sequence):
+    env, positions = example_sequence
+    # rb: rbend, l=2, angle=1.5, tilt=-2, k0=3, k1=1, k2=2, k1s=3, e1=2, e2=1,
+    #   fint=3, fintx=2, hgap=1, h1=3, h2=2;  ! ditto
+    rb1 = env['rb1^']
+    assert positions['rb1^'] == 36 - 17
+    assert isinstance(rb1, xt.Bend)
+
+    angle = 2
+    l = 1.5
+    R = 0.5 * l / math.sin(0.5 * angle)
+    l_curv = R * angle
+    h = 1 / R
+
+    assert rb1.length == l_curv
+    assert rb1.k0 == 3
+    assert rb1.h == h
+    assert rb1.k1 == -1
+    assert rb1.knl[0] == 0
+    assert rb1.knl[1] == 0
+    assert rb1.knl[2] == 2 * l  # k2 * l
+    assert rb1.ksl[0] == 0
+    assert rb1.ksl[1] == 3 * l  # k1s * l
+    assert rb1.edge_entry_angle == 1 + angle / 2
+    assert rb1.edge_exit_angle == 2 + angle / 2
+    assert rb1.edge_entry_fint == 2
+    assert rb1.edge_exit_fint == 3
+    assert rb1.edge_entry_hgap == 1
+    assert rb1.edge_exit_hgap == 1
+
+
+def test_reversed_quadrupole(example_sequence):
+    env, positions = example_sequence
+    # qu: quadrupole, l=2, k1=3, k1s=4, tilt=2;  ! ignore thick and ktap
+    qu1 = env['qu1^']
+    assert positions['qu1^'] == 36 - 19
+    assert isinstance(qu1, xt.Quadrupole)
+    assert qu1.length == 2
+    assert qu1.k1 == -3
+    assert qu1.k1s == 4
+    assert qu1.rot_s_rad == 2
+
+
+def test_reversed_sextupole(example_sequence):
+    env, positions = example_sequence
+    # se: sextupole, L=1, K2=2, K2S=3, TILT=2;  ! ignore ktap
+    se1 = env['se1^']
+    assert positions['se1^'] == 36 - 21
+    assert isinstance(se1, xt.Sextupole)
+    assert se1.length == 1
+    assert se1.k2 == 2
+    assert se1.k2s == -3
+    assert se1.rot_s_rad == 2
+
+
+def test_reversed_octupole(example_sequence):
+    env, positions = example_sequence
+    # oc: octupole, L=2, K3=3, K3S=2, TILT=2;
+    oc1 = env['oc1^']
+    assert positions['oc1^'] == 36 - 23
+    assert isinstance(oc1, xt.Octupole)
+    assert oc1.length == 2
+    assert oc1.k3 == -3
+    assert oc1.k3s == 2
+    assert oc1.rot_s_rad == 2
+
+
+def test_reversed_marker(example_sequence):
+    env, positions = example_sequence
+    # ma: marker;
+    ma1 = env['ma1^']
+    assert positions['ma1^'] == 36 - 25
+    assert isinstance(ma1, xt.Marker)
+
+
+def test_reversed_rfcavity(example_sequence):
+    env, positions = example_sequence
+    # rf: rfcavity, L=2, VOLT=1, LAG=2, FREQ=3, HARMON=2;  ! ignore N_BESSEL, NO_CAVITY_TOTALPATH
+    rf1 = env['rf1^']
+    assert positions['rf1^'] == 36 - 27
+    assert isinstance(rf1, xt.Cavity)
+    assert rf1.voltage == 1e6
+    assert rf1.lag == 180 - 2 * 360
+    assert rf1.frequency == 3e6
+
+
+def test_reversed_multipole(example_sequence):
+    env, positions = example_sequence
+    # mu: multipole, LRAD=1, TILT=2, NL={3, 4, 5}, KSL={1, 2, 3};
+    mu1 = env['mu1^']
+    assert positions['mu1^'] == 36 - 29
+    assert isinstance(mu1, xt.Multipole)
+    assert mu1.length == 1
+    assert mu1.knl[0] == 3
+    assert mu1.knl[1] == -4
+    assert mu1.knl[2] == 5
+    assert mu1.knl[3] == -6
+    assert mu1.ksl[0] == -1
+    assert mu1.ksl[1] == 2
+    assert mu1.ksl[2] == -3
+    assert mu1.ksl[3] == 4
+    assert mu1.rot_s_rad == 2
+
+
+def test_reversed_solenoid(example_sequence):
+    env, positions = example_sequence
+    # so: solenoid, l=2, ks=3;  ! ignore ksi
+    so1 = env['so1^']
+    assert positions['so1^'] == 36 - 31
+    assert isinstance(so1, xt.Solenoid)
+    assert so1.length == 2
+    assert so1.ks == -3

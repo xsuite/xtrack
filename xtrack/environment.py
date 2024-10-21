@@ -136,6 +136,11 @@ class Environment:
             else:
                 raise ValueError(f'Element type {parent} not found')
 
+        if parent == xt.Bend and ('angle' in kwargs or 'rbarc' in kwargs):
+            kwargs = _handle_bend_kwargs(kwargs, _eval, env=self)
+        kwargs.pop('rbarc', None)
+        kwargs.pop('rbend', None)
+
         ref_kwargs, value_kwargs = _parse_kwargs(parent, kwargs, _eval)
 
         if needs_instantiation: # Parent is a class and not another element
@@ -627,10 +632,9 @@ def _handle_bend_kwargs(kwargs, _eval, env=None, name=None):
         if 'angle' in kwargs:
             kwargs.pop('h')
 
-    if isinstance(kwargs['length'], str):
-        length = _eval(kwargs['length'])
-    else:
-        length = kwargs['length']
+    length = kwargs.get('length', 0)
+    if isinstance(length, str):
+        length = _eval(length)
 
     if 'angle' in kwargs:
         assert 'h' not in kwargs, 'Cannot specify both angle and h'
