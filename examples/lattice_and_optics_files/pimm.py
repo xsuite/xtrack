@@ -1,7 +1,7 @@
 import xtrack as xt
 
-env = xt.Environment()
-env.vars.default = 0.0
+env = xt.ENV()
+env.vars.default_to_zero = True
 
 env.new('qf1', 'Quadrupole', length=2*0.175, k1='qf1k1')
 env.new('qd',  'Quadrupole', length=2*0.175, k1='qd1k1')

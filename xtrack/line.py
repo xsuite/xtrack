@@ -5000,18 +5000,19 @@ class LineVars:
         return self[name]._value
 
     @property
-    def default(self):
+    def default_to_zero(self):
         default_factory = self.line._xdeps_vref._owner.default_factory
         if default_factory is None:
-            return None
-        return self.line._xdeps_vref._owner.default_factory.default
+            return False
+        return default_factory.default == 0
 
-    @default.setter
-    def default(self, value):
-        if value is None:
-            self.line._xdeps_vref._owner.default_factory = None
+    @default_to_zero.setter
+    def default_to_zero(self, value):
+        assert value in (True, False)
+        if value:
+            self.line._xdeps_vref._owner.default_factory = _DefaultFactory(0.)
         else:
-            self.line._xdeps_vref._owner.default_factory = _DefaultFactory(value)
+            self.line._xdeps_vref._owner.default_factory = None
 
 class ActionVars(Action):
 

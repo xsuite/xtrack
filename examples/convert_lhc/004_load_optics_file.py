@@ -4,10 +4,10 @@ from xtrack.mad_parser.parse import MadxParser
 dct = MadxParser().parse_file('optics.madx')
 
 env = xt.Environment()
-env.vars.default = 0.
+env.vars.default_to_zero=True
 for vv in dct['vars']:
     env.vars[vv] = dct['vars'][vv]['expr']
-env.vars.default = None
+env.vars.default_to_zero=False
 
 
 tt_vars = env.vars.get_table()
