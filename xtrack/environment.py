@@ -123,12 +123,14 @@ class Environment:
             + ' elements are allowed in `new` for now.')
 
         needs_instantiation = True
+        parent_element = None
         if isinstance(parent, str):
             if parent in self.element_dict:
                 # Clone an existing element
                 self.element_dict[name] = xt.Replica(parent_name=parent)
                 xt.Line.replace_replica(self, name)
-                parent = type(self.element_dict[name])
+                parent_element = self.element_dict[name]
+                parent = type(parent_element)
                 needs_instantiation = False
             elif parent in _ALLOWED_ELEMENT_TYPES_DICT:
                 parent = _ALLOWED_ELEMENT_TYPES_DICT[parent]
@@ -567,11 +569,10 @@ def _set_kwargs(name, ref_kwargs, value_kwargs, element_dict, element_refs):
                 for ii, vvv in enumerate(value_kwargs[kk]):
                     if ref_kwargs[kk][ii] is not None:
                         getattr(element_refs[name], kk)[ii] = ref_kwargs[kk][ii]
+        elif kk in ref_kwargs:
+            setattr(element_refs[name], kk, ref_kwargs[kk])
         else:
-            if kk in ref_kwargs:
-                setattr(element_refs[name], kk, ref_kwargs[kk])
-            else:
-                setattr(element_dict[name], kk, value_kwargs[kk])
+            setattr(element_dict[name], kk, value_kwargs[kk])
 
 class EnvRef:
     def __init__(self, env):
@@ -613,7 +614,6 @@ class EnvRef:
             self.element_refs[key] = val_ref
 
 def _handle_bend_kwargs(kwargs, _eval, env=None, name=None):
-
     kwargs = kwargs.copy()
     rbarc = kwargs.pop('rbarc', True)
     rbend = kwargs.pop('rbend', False)
@@ -670,7 +670,7 @@ def _handle_bend_kwargs(kwargs, _eval, env=None, name=None):
         kwargs['edge_exit_angle'] = edge_exit_angle
 
     if kwargs.pop('k0_from_h', False):
-        kwargs['k0'] = kwargs['h']
+        kwargs['k0'] = kwargs.get('h', 0)
 
     return kwargs
 

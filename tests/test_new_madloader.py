@@ -1,11 +1,17 @@
 import math
+import numpy as np
 from collections import OrderedDict
+from pathlib import Path
 
 import pytest
+import xobjects as xo
+from cpymad.madx import Madx
 
 import xtrack as xt
-from xtrack.mad_parser.parse import MadxParser, MadxOutputType
 from xtrack.mad_parser.loader import MadxLoader
+from xtrack.mad_parser.parse import MadxOutputType, MadxParser
+
+test_data_folder = (Path(__file__).parent / '../test_data').absolute()
 
 
 def test_simple_parser():
@@ -141,8 +147,11 @@ def example_sequence(temp_context_default_mod):
     oc: octupole, L=2, K3=3, K3S=2, TILT=2;
     ma: marker;
     rf: rfcavity, L=2, VOLT=1, LAG=2, FREQ=3, HARMON=2;  ! ignore N_BESSEL, NO_CAVITY_TOTALPATH
-    mu: multipole, LRAD=1, TILT=2, NL={3, 4, 5, 6}, KSL={1, 2, 3, 4};
+    mu: multipole, LRAD=1, TILT=2, KNL={3, 4, 5, 6}, KSL={1, 2, 3, 4};
     so: solenoid, l=2, ks=3;  ! ignore ksi
+    
+    rb_stage1: rbend, l=1;
+    rb_stage2: rb_stage1, angle=2;
 
     ! Not yet implemented
     ! co: collimator, l=2, apertype=ellipse, aperture={0.01,0.005}, aper_offset={x,y}, aper_tol={corner_r,inner_x,inner_y};
@@ -164,6 +173,9 @@ def example_sequence(temp_context_default_mod):
         rf1: rf, at = 27;
         mu1: mu, at = 29;
         so1: so, at = 31;
+
+        rx1: rb_stage2, at = 33;
+        rx2: rb_stage2, at = 35;
     endsequence;
     
     ! exactly the same as above, but to be parsed in reverse order
@@ -184,7 +196,11 @@ def example_sequence(temp_context_default_mod):
         rf1: rf, at = 27;
         mu1: mu, at = 29;
         so1: so, at = 31;
+
+        rx1: rb_stage2, at = 33;
     endsequence;
+
+    rx2, angle = 1.5;
     """
 
     loader = MadxLoader(reverse_lines=['line_reversed'])
@@ -334,6 +350,45 @@ def test_rbend(example_sequence):
     assert rb1.edge_exit_hgap == 1
 
 
+def test_rbend_two_step(example_sequence):
+    env, positions = example_sequence
+    rb1 = env['rx1']
+    assert positions['rx1'] == 33
+    assert isinstance(rb1, xt.Bend)
+
+    angle = 2
+    l = 1
+    R = 0.5 * l / math.sin(0.5 * angle)
+    l_curv = R * angle
+    h = 1 / R
+
+    assert rb1.length == l_curv
+    assert rb1.h == h
+    assert rb1.edge_entry_angle == angle / 2
+    assert rb1.edge_exit_angle == angle / 2
+    assert rb1.k0 == h
+
+
+@pytest.mark.xfail(message='Known bug, not trivial to fix yet')
+def test_rbend_set_params_after_lattice(example_sequence):
+    env, positions = example_sequence
+    rb1 = env['rx2']
+    assert positions['rx2'] == 35
+    assert isinstance(rb1, xt.Bend)
+
+    angle = 1.5
+    l = 1
+    R = 0.5 * l / math.sin(0.5 * angle)
+    l_curv = R * angle
+    h = 1 / R
+
+    assert rb1.length == l_curv
+    assert rb1.h == h
+    assert rb1.edge_entry_angle == angle / 2
+    assert rb1.edge_exit_angle == angle / 2
+    assert rb1.k0 == h
+
+
 def test_quadrupole(example_sequence):
     env, positions = example_sequence
     # qu: quadrupole, l=2, k1=3, k1s=4, tilt=2;  ! ignore thick and ktap
@@ -391,7 +446,7 @@ def test_rfcavity(example_sequence):
 
 def test_multipole(example_sequence):
     env, positions = example_sequence
-    # mu: multipole, LRAD=1, TILT=2, NL={3, 4, 5}, KSL={1, 2, 3};
+    # mu: multipole, LRAD=1, TILT=2, KNL={3, 4, 5}, KSL={1, 2, 3};
     mu1 = env['mu1']
     assert positions['mu1'] == 29
     assert isinstance(mu1, xt.Multipole)
@@ -424,8 +479,8 @@ def test_reversed_vkick(example_sequence):
     assert isinstance(ivk1, xt.Multipole)
     assert ivk1.length == 2
     assert ivk1.knl[0] == 0
-    assert ivk1.ksl[0] == 3
-    assert ivk1.rot_s_rad == -1
+    assert ivk1.ksl[0] == -3
+    assert ivk1.rot_s_rad == 1
 
 
 def test_reversed_hkick(example_sequence):
@@ -436,7 +491,7 @@ def test_reversed_hkick(example_sequence):
     assert hk1.length == 1
     assert hk1.knl[0] == -6
     assert hk1.ksl[0] == 0
-    assert hk1.rot_s_rad == -2
+    assert hk1.rot_s_rad == 2
 
 
 def test_reversed_kick(example_sequence):
@@ -447,7 +502,7 @@ def test_reversed_kick(example_sequence):
     assert ki1.length == 2
     assert ki1.knl[0] == -4
     assert ki1.ksl[0] == -3
-    assert ki1.rot_s_rad == 1
+    assert ki1.rot_s_rad == -1
 
 
 def test_reversed_tkick(example_sequence):
@@ -458,7 +513,7 @@ def test_reversed_tkick(example_sequence):
     assert tk1.length == 1
     assert tk1.knl[0] == -4
     assert tk1.ksl[0] == -3
-    assert tk1.rot_s_rad == 2
+    assert tk1.rot_s_rad == -2
 
 
 def test_reversed_instrument(example_sequence):
@@ -549,7 +604,7 @@ def test_reversed_quadrupole(example_sequence):
     assert qu1.length == 2
     assert qu1.k1 == -3
     assert qu1.k1s == 4
-    assert qu1.rot_s_rad == 2
+    assert qu1.rot_s_rad == -2
 
 
 def test_reversed_sextupole(example_sequence):
@@ -561,7 +616,7 @@ def test_reversed_sextupole(example_sequence):
     assert se1.length == 1
     assert se1.k2 == 2
     assert se1.k2s == -3
-    assert se1.rot_s_rad == 2
+    assert se1.rot_s_rad == -2
 
 
 def test_reversed_octupole(example_sequence):
@@ -573,7 +628,7 @@ def test_reversed_octupole(example_sequence):
     assert oc1.length == 2
     assert oc1.k3 == -3
     assert oc1.k3s == 2
-    assert oc1.rot_s_rad == 2
+    assert oc1.rot_s_rad == -2
 
 
 def test_reversed_marker(example_sequence):
@@ -597,7 +652,7 @@ def test_reversed_rfcavity(example_sequence):
 
 def test_reversed_multipole(example_sequence):
     env, positions = example_sequence
-    # mu: multipole, LRAD=1, TILT=2, NL={3, 4, 5}, KSL={1, 2, 3};
+    # mu: multipole, LRAD=1, TILT=2, KNL={3, 4, 5}, KSL={1, 2, 3};
     mu1 = env['mu1^']
     assert positions['mu1^'] == 36 - 29
     assert isinstance(mu1, xt.Multipole)
@@ -610,7 +665,7 @@ def test_reversed_multipole(example_sequence):
     assert mu1.ksl[1] == 2
     assert mu1.ksl[2] == -3
     assert mu1.ksl[3] == 4
-    assert mu1.rot_s_rad == 2
+    assert mu1.rot_s_rad == -2
 
 
 def test_reversed_solenoid(example_sequence):
@@ -621,3 +676,100 @@ def test_reversed_solenoid(example_sequence):
     assert isinstance(so1, xt.Solenoid)
     assert so1.length == 2
     assert so1.ks == -3
+
+
+def test_load_b2_with_bv_minus_one(tmp_path):
+    test_data_folder_str = str(test_data_folder)
+
+    mad = Madx(stdout=False)
+    mad.call(test_data_folder_str + '/hllhc15_thick/lhc.seq')
+    mad.call(test_data_folder_str + '/hllhc15_thick/hllhc_sequence.madx')
+    mad.input('beam, sequence=lhcb1, particle=proton, energy=7000;')
+    mad.use('lhcb1')
+    mad.input('beam, sequence=lhcb2, particle=proton, energy=7000, bv=-1;')
+    mad.use('lhcb2')
+    mad.call(test_data_folder_str + '/hllhc15_thick/opt_round_150_1500.madx')
+    mad.twiss()
+
+    mad.globals['vrf400'] = 16  # Check voltage expressions
+    mad.globals['lagrf400.b2'] = 0.02  # Check lag expressions
+    mad.globals['on_x1'] = 100  # Check kicker expressions
+    mad.globals['on_sep2'] = 2  # Check kicker expressions
+    mad.globals['on_x5'] = 123  # Check kicker expressions
+    mad.globals['kqtf.b2'] = 1e-5  # Check quad expressions
+    mad.globals['ksf.b2'] = 1e-3  # Check sext expressions
+    mad.globals['kqs.l3b2'] = 1e-4  # Check skew expressions
+    mad.globals['kss.a45b2'] = 1e-4  # Check skew sext expressions
+    mad.globals['kof.a34b2'] = 3  # Check oct expressions
+    mad.globals['on_crab1'] = -190  # Check cavity expressions
+    mad.globals['on_crab5'] = -130  # Check cavity expressions
+    mad.globals['on_sol_atlas'] = 1  # Check solenoid expressions
+    mad.globals['kcdx3.r1'] = 1e-4  # Check thin decapole expressions
+    mad.globals['kcdsx3.r1'] = 1e-4  # Check thin skew decapole expressions
+    mad.globals['kctx3.l1'] = 1e-5  # Check thin dodecapole expressions
+    mad.globals['kctsx3.r1'] = 1e-5  # Check thin skew dodecapole expressions
+
+
+    tmp_seq_path = 'sequence.seq'  # str(tmp_path / 'sequence.seq')
+    mad.input('set, format=".20g";')
+    mad.save(file=tmp_seq_path)
+
+    line2_ref = xt.Line.from_madx_sequence(mad.sequence.lhcb2,
+                                       allow_thick=True,
+                                       deferred_expressions=True,
+                                       replace_in_expr={'bv_aux': 'bvaux_b2'})
+    line2_ref.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7000e9)
+
+    loader = MadxLoader(reverse_lines=['lhcb2'])
+    loader.rbarc = False
+    loader.load_file(tmp_seq_path)
+    line2 = loader.env['lhcb2']
+
+    # Bend done
+
+    # Quadrupole
+    xo.assert_allclose(line2_ref['mq.27l2.b2'].k1, line2['mq.27l2.b2^'].k1, rtol=0, atol=1e-12)
+    xo.assert_allclose(line2_ref['mqs.27l3.b2'].k1s, line2['mqs.27l3.b2^'].k1s, rtol=0, atol=1e-12)
+
+    tt2 = line2_ref.get_table()
+    tt4 = line2.get_table()
+
+    tt2nodr = tt2.rows[tt2.element_type != 'Drift']
+    tt4nodr = tt4.rows[tt4.element_type != 'Drift']
+
+    # Check s
+    l2names = list(tt2nodr.name)
+    l4names = list(tt4nodr.name)
+
+    l2names.remove('lhcb2$start')
+    l2names.remove('lhcb2$end')
+
+    assert l2names == [nn[:-1] if nn.endswith('^') else nn for nn in l4names]
+
+    xo.assert_allclose(tt2nodr.rows[l2names].s, tt4nodr.rows[l4names].s, rtol=0, atol=1e-8)
+
+    for nn in l4names:
+        if nn == '_end_point':
+            continue
+        nn_straight = nn[:-1] if nn.endswith('^') else nn
+        e2 = line2_ref[nn_straight]
+        e4 = line2[nn]
+        d2 = e2.to_dict()
+        d4 = e4.to_dict()
+        for kk in d2.keys():
+            if kk in ('__class__', 'model', 'side'):
+                assert d2[kk] == d4[kk]
+                continue
+            if kk in {
+                'order',  # Always assumed to be 5, not always the same
+                'frequency',  # If not specified, depends on the beam,
+                              # so for now we ignore it
+            }:
+                continue
+            if kk in {'knl', 'ksl'}:
+                maxlen = max(len(d2[kk]), len(d4[kk]))
+                lhs = np.pad(d2[kk], (0, maxlen - len(d2[kk])), mode='constant')
+                rhs = np.pad(d4[kk], (0, maxlen - len(d4[kk])), mode='constant')
+                xo.assert_allclose(lhs, rhs, rtol=1e-10, atol=1e-16)
+                continue
+            xo.assert_allclose(d2[kk], d4[kk], rtol=1e-10, atol=1e-16)

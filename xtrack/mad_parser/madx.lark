@@ -21,7 +21,7 @@ _sequence_body: NAME ":" _SEQUENCE command_arglist ";" (clone | command_stmt)*
 
 _command: NAME command_arglist ";"
 
-command_arglist: ( "," ( equal_scalar | defer_scalar | equal_array | defer_array | flag ) )*
+command_arglist: ( "," ( equal_scalar | defer_scalar | equal_array | defer_array | equal_string | flag ) )*
 
 ?flag: NAME             -> set_flag
     | "-" NAME          -> reset_flag
@@ -33,6 +33,8 @@ command_arglist: ( "," ( equal_scalar | defer_scalar | equal_array | defer_array
 ?equal_scalar: NAME "=" sum   -> assign_value
 
 ?equal_array: NAME "=" array  -> assign_value
+
+?equal_string: NAME "=" string_literal -> assign_value
 
 array: "{" sum ( "," sum )* "}"  -> build_list
 
@@ -67,6 +69,8 @@ array: "{" sum ( "," sum )* "}"  -> build_list
 
 !constant: "TWOPI" | "PI" | "CENTRE"
 
+!string_literal: STRING
+
 ignored: _if | _return
 
 _if: "if"i /[^\n]+/
@@ -75,6 +79,7 @@ _return: "return"i /[^\n]+/
 _SEQUENCE: "sequence"i
 _ENDSEQUENCE: "endsequence"i
 NAME: /[A-z_\\.][A-z0-9_\\.%]*/
+STRING: /"[^"]*"/
 _COMMENT: "!" /[^\n]*/
        | "//" /[^\n]*/
        | "/*" /.*?/s "*/"
