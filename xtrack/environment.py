@@ -760,7 +760,7 @@ class EnvLines(UserDict):
 
 def get_environment(verbose=False):
     import xtrack
-    if hasattr(xtrack, '_passed_env'):
+    if hasattr(xtrack, '_passed_env') and xtrack._passed_env is not None:
         if verbose:
             print('Using existing environment')
         return xtrack._passed_env
