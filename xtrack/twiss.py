@@ -3297,6 +3297,8 @@ class TwissTable(Table):
             out.muy = out.muy[0] - out.muy
             out.muzeta = out.muzeta[0] - out.muzeta
             out.dzeta = out.dzeta[0] - out.dzeta
+            out.phix = -out.phix
+            out.phiy = -out.phiy
 
         if 'ax_chrom' in out._col_names:
             out.ax_chrom = -out.ax_chrom
