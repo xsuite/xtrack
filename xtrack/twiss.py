@@ -1201,6 +1201,9 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
         'nuy': nuy,
         'nuzeta': nuzeta,
         'W_matrix': Ws,
+        'phix': phix,
+        'phiy': phiy,
+        'phizeta': phizeta,
     }
     return res, i_replace
 
@@ -3137,16 +3140,16 @@ class TwissTable(Table):
         W_start = self.W_matrix[start]
         W_end = self.W_matrix[end]
 
-        mux_start = self.mux[start]
-        mux_end = self.mux[end]
-        muy_start = self.muy[start]
-        muy_end = self.muy[end]
-        muzeta_start = self.muzeta[start]
-        muzeta_end = self.muzeta[end]
+        phix_start = self.phix[start]
+        phix_end = self.phix[end]
+        phiy_start = self.phiy[start]
+        phiy_end = self.phiy[end]
+        phizeta_start = self.phizeta[start]
+        phizeta_end = self.phizeta[end]
 
-        phi_x = 2 * np.pi * (mux_end - mux_start)
-        phi_y = 2 * np.pi * (muy_end - muy_start)
-        phi_zeta = 2 * np.pi * (muzeta_end - muzeta_start)
+        phi_x = phix_end - phix_start
+        phi_y = phiy_end - phiy_start
+        phi_zeta = phizeta_end - phizeta_start
 
         Rot = np.zeros(shape=(6, 6), dtype=np.float64)
 
@@ -3312,6 +3315,8 @@ class TwissTable(Table):
             out.muy = out.muy[0] - out.muy
             out.muzeta = out.muzeta[0] - out.muzeta
             out.dzeta = out.dzeta[0] - out.dzeta
+            out.phix = -out.phix
+            out.phiy = -out.phiy
 
         if 'ax_chrom' in out._col_names:
             out.ax_chrom = -out.ax_chrom
