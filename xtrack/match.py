@@ -47,109 +47,7 @@ ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau',
                         'eq_gemitt_x', 'eq_gemitt_y', 'eq_gemitt_zeta',
                         'eq_nemitt_x', 'eq_nemitt_y', 'eq_nemitt_zeta']
 
-Action = xd.Action
 
-class ActionTwiss(xd.Action):
-
-    def __init__(self, line, allow_twiss_failure=False,
-                 compensate_radiation_energy_loss=False,
-                 **kwargs):
-        self.line = line
-        self.kwargs = kwargs
-        self.allow_twiss_failure = allow_twiss_failure
-        self.compensate_radiation_energy_loss = compensate_radiation_energy_loss
-        self._alredy_prepared = False
-
-    def prepare(self, force=False):
-
-        if self._alredy_prepared and not force:
-            return
-
-        line = self.line
-        kwargs = self.kwargs
-
-        ismultiline = isinstance(line, xt.Multiline)
-
-        # Forbit specifying init through kwargs for Multiline
-        if ismultiline:
-            for kk in VARS_FOR_TWISS_INIT_GENERATION:
-                if kk in kwargs:
-                    raise ValueError(
-                        f'`{kk}` cannot be specified for a Multiline match. '
-                        f'Please specify provide a TwissInit object for each line instead.')
-
-        # Handle init from table
-        if ismultiline:
-
-            line_names = kwargs.get('lines', line.line_names)
-            none_list = [None] * len(line_names)
-            twinit_list = kwargs.get('init', none_list)
-            ele_start_list = kwargs.get('start', none_list)
-            ele_stop_list = kwargs.get('end', none_list)
-
-            assert isinstance(twinit_list, list)
-            assert isinstance(ele_start_list, list)
-            assert isinstance(ele_stop_list, list)
-
-            for ii, twinit in enumerate(twinit_list):
-                if isinstance(twinit, xt.MultiTwiss):
-                    twinit_list[ii] = twinit[line_names[ii]]
-        else:
-            twinit_list = [kwargs.get('init', None)]
-            ele_start_list = [kwargs.get('start', None)]
-            ele_stop_list = [kwargs.get('end', None)]
-
-            for ii, twinit in enumerate(twinit_list):
-                if isinstance(twinit, xt.TwissInit):
-                    twinit_list[ii] = twinit.copy()
-                elif isinstance(twinit, str):
-                    assert twinit == 'periodic' or twinit == 'periodic_symmetric'
-
-        if ismultiline:
-            kwargs['init'] = twinit_list
-            kwargs['_keep_initial_particles'] = len(line_names) * [True]
-        else:
-            kwargs['init'] = twinit_list[0]
-            kwargs['_keep_initial_particles'] = True
-
-        tw0 = line.twiss(**kwargs)
-        self._tw0 = tw0
-
-        if ismultiline:
-            kwargs['_initial_particles'] = len(line_names) * [None]
-            for ii, llnn in enumerate(line_names):
-                self.kwargs['init'][ii] = tw0[llnn].completed_init
-                if not tw0[llnn].periodic:
-                    kwargs['_initial_particles'][ii] = tw0[llnn]._data.get('_initial_particles', None)
-        else:
-            self.kwargs['init'] = tw0.completed_init
-            for kk in VARS_FOR_TWISS_INIT_GENERATION:
-                kwargs.pop(kk, None)
-            if not(tw0.periodic):
-                kwargs['_initial_particles'] = tw0._data.get(
-                                        '_initial_particles', None)
-
-        self.kwargs = kwargs
-
-    def run(self, allow_failure=True):
-        if self.compensate_radiation_energy_loss:
-            if isinstance(self.line, xt.Multiline):
-                raise NotImplementedError(
-                    'Radiation energy loss compensation is not yet supported'
-                    ' for Multiline')
-            self.line.compensate_radiation_energy_loss(verbose=False)
-        if not self.allow_twiss_failure or not allow_failure:
-            out = self.line.twiss(**self.kwargs)
-        else:
-            try:
-                out = self.line.twiss(**self.kwargs)
-            except Exception as ee:
-                if allow_failure:
-                    return 'failed'
-                else:
-                    raise ee
-        out.line = self.line
-        return out
 
 # Alternative transitions functions
 # def _transition_sigmoid_integral(x):
@@ -781,6 +679,113 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
         opt.solve()
 
     return opt
+
+
+class Action(xd.Action):
+
+    _target_class = Target
+
+class ActionTwiss(xd.Action):
+
+    def __init__(self, line, allow_twiss_failure=False,
+                 compensate_radiation_energy_loss=False,
+                 **kwargs):
+        self.line = line
+        self.kwargs = kwargs
+        self.allow_twiss_failure = allow_twiss_failure
+        self.compensate_radiation_energy_loss = compensate_radiation_energy_loss
+        self._alredy_prepared = False
+
+    def prepare(self, force=False):
+
+        if self._alredy_prepared and not force:
+            return
+
+        line = self.line
+        kwargs = self.kwargs
+
+        ismultiline = isinstance(line, xt.Multiline)
+
+        # Forbit specifying init through kwargs for Multiline
+        if ismultiline:
+            for kk in VARS_FOR_TWISS_INIT_GENERATION:
+                if kk in kwargs:
+                    raise ValueError(
+                        f'`{kk}` cannot be specified for a Multiline match. '
+                        f'Please specify provide a TwissInit object for each line instead.')
+
+        # Handle init from table
+        if ismultiline:
+
+            line_names = kwargs.get('lines', line.line_names)
+            none_list = [None] * len(line_names)
+            twinit_list = kwargs.get('init', none_list)
+            ele_start_list = kwargs.get('start', none_list)
+            ele_stop_list = kwargs.get('end', none_list)
+
+            assert isinstance(twinit_list, list)
+            assert isinstance(ele_start_list, list)
+            assert isinstance(ele_stop_list, list)
+
+            for ii, twinit in enumerate(twinit_list):
+                if isinstance(twinit, xt.MultiTwiss):
+                    twinit_list[ii] = twinit[line_names[ii]]
+        else:
+            twinit_list = [kwargs.get('init', None)]
+            ele_start_list = [kwargs.get('start', None)]
+            ele_stop_list = [kwargs.get('end', None)]
+
+            for ii, twinit in enumerate(twinit_list):
+                if isinstance(twinit, xt.TwissInit):
+                    twinit_list[ii] = twinit.copy()
+                elif isinstance(twinit, str):
+                    assert twinit == 'periodic' or twinit == 'periodic_symmetric'
+
+        if ismultiline:
+            kwargs['init'] = twinit_list
+            kwargs['_keep_initial_particles'] = len(line_names) * [True]
+        else:
+            kwargs['init'] = twinit_list[0]
+            kwargs['_keep_initial_particles'] = True
+
+        tw0 = line.twiss(**kwargs)
+        self._tw0 = tw0
+
+        if ismultiline:
+            kwargs['_initial_particles'] = len(line_names) * [None]
+            for ii, llnn in enumerate(line_names):
+                self.kwargs['init'][ii] = tw0[llnn].completed_init
+                if not tw0[llnn].periodic:
+                    kwargs['_initial_particles'][ii] = tw0[llnn]._data.get('_initial_particles', None)
+        else:
+            self.kwargs['init'] = tw0.completed_init
+            for kk in VARS_FOR_TWISS_INIT_GENERATION:
+                kwargs.pop(kk, None)
+            if not(tw0.periodic):
+                kwargs['_initial_particles'] = tw0._data.get(
+                                        '_initial_particles', None)
+
+        self.kwargs = kwargs
+
+    def run(self, allow_failure=True):
+        if self.compensate_radiation_energy_loss:
+            if isinstance(self.line, xt.Multiline):
+                raise NotImplementedError(
+                    'Radiation energy loss compensation is not yet supported'
+                    ' for Multiline')
+            self.line.compensate_radiation_energy_loss(verbose=False)
+        if not self.allow_twiss_failure or not allow_failure:
+            out = self.line.twiss(**self.kwargs)
+        else:
+            try:
+                out = self.line.twiss(**self.kwargs)
+            except Exception as ee:
+                if allow_failure:
+                    return 'failed'
+                else:
+                    raise ee
+        out.line = self.line
+        return out
 
 class OptimizeLine(xd.Optimize):
 
