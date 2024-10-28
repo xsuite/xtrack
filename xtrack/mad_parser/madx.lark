@@ -4,6 +4,7 @@
     | new_def
     | new_val
     | sequence          -> top_level_sequence
+    | line              -> top_level_line
     | command_stmt      -> top_level_command
     | clone             -> top_level_clone
 
@@ -14,6 +15,16 @@
 ?sequence: _sequence_body _ENDSEQUENCE ";"
 
 _sequence_body: NAME ":" _SEQUENCE command_arglist ";" (clone | command_stmt)*
+
+?line: NAME ":" _LINE "=" anonymous_line ";"
+
+anonymous_line: "(" line_elements ")"
+
+modifiers: /-/? ( NUMBER "*" )?
+
+?line_elements: line_element ("," line_element)*    -> build_list
+
+?line_element: modifiers (NAME | anonymous_line)
 
 ?clone: NAME ":" _command
 
@@ -78,6 +89,7 @@ _return: "return"i /[^\n]+/
 
 _SEQUENCE: "sequence"i
 _ENDSEQUENCE: "endsequence"i
+_LINE: "line"i
 NAME: /[A-z_\\.][A-z0-9_\\.%]*/
 STRING: /"[^"]*"/
 _COMMENT: "!" /[^\n]*/

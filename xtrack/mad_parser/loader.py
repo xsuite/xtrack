@@ -6,7 +6,7 @@ import numpy as np
 import xtrack as xt
 from xtrack import Environment
 from xtrack.environment import Builder
-from xtrack.mad_parser.parse import ElementType, LineType, MadxParser, VarType, MadxOutputType
+from xtrack.mad_parser.parse import ElementType, LineType, MadxParser, VarType, MadxOutputType, ModifiersType
 
 EXTRA_PARAMS = {
     "slot_id",
@@ -112,6 +112,7 @@ class MadxLoader:
         self._new_builtin("hkicker", "Multipole")
         self._new_builtin("tkicker", "Multipole")
         self._new_builtin("kicker", "Multipole")
+        self._new_builtin("drift", "Drift")
         self._new_builtin("collimator", "Drift")
         self._new_builtin("rcollimator", "Drift")
         self._new_builtin("ecollimator", "Drift")
@@ -177,10 +178,21 @@ class MadxLoader:
 
         for name, line_params in lines.items():
             params = line_params.copy()
-            assert params.pop('parent') == 'sequence'
-            builder = self.env.new_builder(name=name)
-            self._parse_components(builder, params.pop('elements'))
-            builders.append(builder)
+            line_type = params.pop('parent')
+
+            if line_type == 'sequence':
+                builder = self.env.new_builder(name=name)
+                self._parse_components(builder, params.pop('elements'))
+                builders.append(builder)
+            elif line_type == 'line':
+                components = self._parse_line_components(params.pop('elements'))
+                builder = self.env.new_builder(name=name, components=components)
+            else:
+                raise ValueError(
+                    'Only a MAD-X sequence or a line type can be used to build'
+                    'a line, but got: {line_type}!'
+                )
+
             if build:
                 builder.build()
 
@@ -192,12 +204,46 @@ class MadxLoader:
             self._set_element(element, self.env, **params, extra=extras)
 
     def _parse_components(self, builder, elements: Dict[str, LineType]):
-        for name, element in elements.items():
+        for name, element in elements:
             params = element.copy()
             parent = params.pop('parent', None)
             assert parent != 'sequence'
             params, extras = get_params(params, parent=parent)
             self._new_element(name, parent, builder, **params, extra=extras)
+
+    def _parse_line_components(self, elements):
+        components = []
+
+        for name, body in elements:
+            # Parent is None if the element already exists and is referred to,
+            # by name, otherwise we expect a line nested in the current one.
+            parent = body.get('parent', None)
+            repeat = body.get('_repeat', 1)
+            invert = body.get('_invert', False)
+            instance = self.env[name] if name else None
+
+            if parent is None and isinstance(instance, xt.Line):
+                # If it's a line, we use __mul__ and __neg__ directly
+                element = instance
+                if invert:
+                    element = -element
+                element = repeat * element
+                components.append(element)
+            elif parent == 'line':
+                # If it's a nested line, we parse it recursively
+                element = self._parse_line_components(body['elements'])
+                if invert:
+                    element = list(reversed(element))
+                element = repeat * element
+                components += element
+            elif parent is None:
+                # If it's a reference to a single element, we multiply it and
+                # add it. Reversal will not affect it.
+                components += body.get('_repeat', 1) * [name]
+            else:
+                raise ValueError('Only an element reference or a line is accepted')
+
+        return components
 
     def _new_builtin(self, name, xt_type, **kwargs):
         self.env.new(name, xt_type, **kwargs)
@@ -337,12 +383,12 @@ class MadxLoader:
             if line_name not in self.reverse_lines:
                 continue
 
-            new_elements = {}
+            new_elements = []
             line_elements = line_params['elements']
-            for name, elem_params in reversed(line_elements.items()):
+            for name, elem_params in reversed(line_elements):
                 assert elem_params.get('parent', None) != 'sequence', 'Nesting not yet supported!'
                 el = self._reverse_element(name, elem_params, line_params.get('l'))
-                new_elements[_reversed_name(name)] = el
+                new_elements.append((_reversed_name(name), el))
 
             line_params['elements'] = new_elements
 
@@ -367,7 +413,10 @@ class MadxLoader:
         reversed_: Set[str] = set()
 
         def _descend_into_line(line_params, correct_set):
-            for name, elem_params in line_params['elements'].items():
+            if line_params['parent'] == 'line':
+                return
+
+            for name, elem_params in line_params['elements']:
                 parent = elem_params.get('parent', name)
                 correct_set.add(name)
                 # Also add the chain of parent types, as they will also need to
@@ -389,7 +438,10 @@ class MadxLoader:
         hierarchy = {}
 
         def _descend_into_line(line_params):
-            for name, elem_params in line_params['elements'].items():
+            if line_params['parent'] == 'line':
+                return
+
+            for name, elem_params in line_params['elements']:
                 if (parent := elem_params.get('parent', None)):
                     hierarchy[name] = [parent] + hierarchy.get(parent, [])
                 if parent == 'sequence':

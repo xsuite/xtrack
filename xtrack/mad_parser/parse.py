@@ -1,9 +1,9 @@
 import io
-from collections import OrderedDict
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Tuple, TypedDict, Union
 
-from lark import Lark, Transformer, v_args
+from lark import Lark, Transformer, v_args, Token
 
 grammar = Path(__file__).with_name('madx.lark').read_text()
 
@@ -13,23 +13,47 @@ grammar = Path(__file__).with_name('madx.lark').read_text()
 # in spotting mistakes.
 VarValueType = Union[int, float, str, bool]
 
+
 class VarType(TypedDict):
     expr: Union[VarValueType, List[VarValueType]]
     deferred: bool
 
 
-ElementType = Union[TypedDict('ElementType', {'parent': str}), Dict[str, VarType]]
+class ModifiersType(TypedDict, total=False):
+    _repeat: int
+    _invert: bool
 
-class LineType(TypedDict):
+
+class ElementType(TypedDict, ModifiersType):
     parent: str
-    l: VarType
-    elements: Dict[str, Union[ElementType, 'LineType']]
+    __extra_items__: Dict[str, VarType]  # Not really supported until PEP 728
+
+
+class LineType(TypedDict, ModifiersType):
+    parent: str  # 'sequence' or 'line'
+    l: VarType  # optional, but typing.NotRequired is not available in 3.8
+    elements: List[Tuple[str, Union[ElementType, 'LineType']]]
+
 
 class MadxOutputType(TypedDict):
     vars: Dict[str, VarType]
     elements: Dict[str, ElementType]
     lines: Dict[str, LineType]
     parameters: Dict[str, ElementType]
+
+
+@dataclass
+class Modifiers:
+    repeat: int = 1
+    invert: bool = False
+
+    def to_dict(self):
+        out = {}
+        if self.repeat != 1:
+            out['_repeat'] = self.repeat
+        if self.invert:
+            out['_invert'] = True
+        return out
 
 
 def make_op_handler(op):
@@ -102,18 +126,18 @@ class MadxTransformer(Transformer):
     def reset_flag(self, name_token):
         return name_token.value.lower(), False
 
-    def sequence(self, name_token, arglist, *clones):
+    def sequence(self, name_token, arglist, *clones) -> Tuple[str, LineType]:
         return name_token.value.lower(), {
             'parent': 'sequence',
             **dict(arglist),
-            'elements': dict(clones),
+            'elements': list(clones),
         }
 
     def top_level_sequence(self, sequence):
         name, body = sequence
         self.lines[name] = body
 
-    def clone(self, name_token, command_token, arglist):
+    def clone(self, name_token, command_token, arglist) -> Tuple[str, ElementType]:
         return name_token.value.lower(), {
             'parent': command_token.value.lower(),
             **dict(arglist),
@@ -134,6 +158,44 @@ class MadxTransformer(Transformer):
         if name not in self.parameters:
             self.parameters[name] = {}
         self.parameters[name].update(arglist)
+
+    def modifiers(self, *args) -> Modifiers:
+        arg_values = set(token.value for token in args)
+        modifiers = Modifiers()
+
+        if '-' in arg_values:
+            modifiers.invert = True
+            arg_values.remove('-')
+
+        if arg_values:
+            repeat, = arg_values
+            modifiers.repeat = int(repeat)
+
+        return modifiers
+
+    def line_element(self, modifiers, line_item) -> Tuple[str, ElementType]:
+        name = None
+        body = modifiers.to_dict()
+        if isinstance(line_item, Token):
+            name = line_item.value.lower()
+        elif isinstance(line_item, dict):
+            body.update(line_item)
+        else:
+            raise ValueError(f'Unexpected line element: {line_item}')
+        return name, body
+
+    def anonymous_line(self, elements):
+        return {
+            'parent': 'line',
+            'elements': elements,
+        }
+
+    def line(self, name_token, anonymous_line) -> Tuple[str, LineType]:
+        return name_token.value.lower(), anonymous_line
+
+    def top_level_line(self, line):
+        name, body = line
+        self.lines[name] = body
 
     def build_list(self, *args):
         return list(args)
@@ -212,7 +274,7 @@ if __name__ == '__main__':
 
         # This output is for visualisation purposes only: dict ordering is not guaranteed
         # out of the box by the YAML standard (should use !!omap, but it's not supported by PyYAML)
-        yaml_out = yaml.dump(out, Dumper=yaml.CDumper, sort_keys=False)
+        yaml_out = yaml.dump(out, Dumper=yaml.SafeDumper, sort_keys=False)
 
         if not output:
             outfile = Path(file_name).with_suffix(suffix='.yaml')

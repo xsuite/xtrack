@@ -773,3 +773,46 @@ def test_load_b2_with_bv_minus_one(tmp_path):
                 xo.assert_allclose(lhs, rhs, rtol=1e-10, atol=1e-16)
                 continue
             xo.assert_allclose(d2[kk], d4[kk], rtol=1e-10, atol=1e-16)
+
+
+def test_line_syntax():
+    sequence = """
+    el1: drift, l=1;
+    el2: drift, l=2;
+    el3: drift, l=3;
+    
+    l1: line = (el1, el2, el3);
+    l2: line = (-l1);
+    l3: line = (3 * el1, 2 * el2);
+    l4: line = (-l3, l3, el3);
+    l5: line = (-2 * l4);
+    l6: line = (3 * (el1, el2), -(el2, el1));
+    """
+
+    loader = MadxLoader()
+    loader.load_string(sequence)
+    env = loader.env
+
+    l1 = env['l1']
+    assert l1.name == 'l1'
+    assert l1.element_names == ['el1', 'el2', 'el3']
+
+    l2 = env['l2']
+    assert l2.name == 'l2'
+    assert l2.element_names == ['el3', 'el2', 'el1']
+
+    l3 = env['l3']
+    assert l3.name == 'l3'
+    assert l3.element_names == 3 * ['el1'] + 2 * ['el2']
+
+    l4 = env['l4']
+    assert l4.name == 'l4'
+    assert l4.element_names == 2 * ['el2'] + 6 * ['el1'] + 2 * ['el2'] + ['el3']
+
+    l5 = env['l5']
+    assert l5.name == 'l5'
+    assert l5.element_names == 2 * (['el3'] + 2 * ['el2'] + 6 * ['el1'] + 2 * ['el2'])
+
+    l6 = env['l6']
+    assert l6.name == 'l6'
+    assert l6.element_names == 4 * ['el1', 'el2']
