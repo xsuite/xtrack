@@ -112,18 +112,17 @@ void transverse_motion(LocalParticle *part0, LineSegmentMapData el){
     double sin_y = 0;
     double cos_y = 0;
 
-    int64_t any_chroma_x = 0;
-    int64_t any_chroma_y = 0;
+    int64_t any_chroma = 0;
 
     for (int i_dqx=0; i_dqx<ndqx; i_dqx++){
-        any_chroma_x = LineSegmentMapData_get_coeffs_dqx(el, 0) != 0;
+        any_chroma += LineSegmentMapData_get_coeffs_dqx(el, 0) != 0;
     }
 
     for (int i_dqy=0; i_dqy<ndqy; i_dqy++){
-        any_chroma_y = LineSegmentMapData_get_coeffs_dqy(el, 0) != 0;
+        any_chroma += LineSegmentMapData_get_coeffs_dqy(el, 0) != 0;
     }
 
-    if (any_chroma_x || any_chroma_y ||
+    if (any_chroma ||
         det_xx != 0.0 || det_xy != 0.0 || det_yx != 0.0 || det_yy != 0.0){
         detuning = 1;
     }
