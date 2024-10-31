@@ -4,7 +4,7 @@ from typing import Dict, Optional, List, Set, Tuple, Union
 import numpy as np
 
 import xtrack as xt
-from xtrack import Environment
+from xtrack import Environment, BeamElement
 from xtrack.environment import Builder
 from xtrack.mad_parser.parse import ElementType, LineType, MadxParser, VarType, MadxOutputType, ModifiersType
 
@@ -74,7 +74,7 @@ class MadxLoader:
     def __init__(self, reverse_lines: Optional[List[str]] = None):
         self.reverse_lines = reverse_lines or []
 
-        self._madx_elem_hierarchy: Dict[str, str] = {}
+        self._madx_elem_hierarchy: Dict[str, List[str]] = {}
         self._reversed_elements: Set[str] = set()
         self._both_direction_elements: Set[str] = set()
         self._builtin_types = set()
@@ -179,9 +179,11 @@ class MadxLoader:
         for name, line_params in lines.items():
             params = line_params.copy()
             line_type = params.pop('parent')
+            self._madx_elem_hierarchy[name] = [line_type]
 
             if line_type == 'sequence':
-                builder = self.env.new_builder(name=name)
+                refer = params.get('refer', {}).get('expr', 'centre')
+                builder = self.env.new_builder(name=name, refer=refer)
                 self._parse_components(builder, params.pop('elements'))
                 builders.append(builder)
             elif line_type == 'line':
@@ -203,7 +205,7 @@ class MadxLoader:
             params, extras = get_params(el_params, parent=element)
             self._set_element(element, self.env, **params, extra=extras)
 
-    def _parse_components(self, builder, elements: Dict[str, LineType]):
+    def _parse_components(self, builder, elements: List[Tuple[str, Union[ElementType, LineType]]]):
         for name, element in elements:
             params = element.copy()
             parent = params.pop('parent', None)
@@ -255,6 +257,11 @@ class MadxLoader:
         self._parameter_cache[name].update(kwargs)
 
         el_params = self._pre_process_element_params(name, kwargs)
+        length = el_params.get('length', self._parameter_cache[name].get('length', 0))
+        if self._mad_base_type(name) in {'vkicker', 'hkicker', 'kicker', 'tkicker', 'multipole'}:
+            # Workaround for the fact that Multipole.length does not make an element thick
+            length = 0
+
         if parent is None:
             # If parent is None, we wish to place instead
             if self._mad_base_type(name) == 'rbend':
@@ -271,9 +278,21 @@ class MadxLoader:
             if (extras := el_params.pop('extra', None)):
                 _warn(f'Ignoring extra parameters {extras} for element `{name}`!')
 
+            if isinstance(self.env[name], BeamElement) and not self.env[name].isthick and length:
+                drift_name = f'{name}_drift'
+                self.env.new(drift_name, 'Drift', length=f'({length}) / 2')
+                name = builder.new_line([drift_name, name, drift_name])
             builder.place(name, **el_params)
         else:
-            builder.new(name, parent, **el_params)
+            if isinstance(self.env[parent], BeamElement) and not self.env[parent].isthick and length:
+                drift_name = f'{name}_drift'
+                self.env.new(drift_name, 'Drift', length=f'({length}) / 2')
+                at, from_ = el_params.pop('at', None), el_params.pop('from_', None)
+                self.env.new(name, parent, **el_params)
+                name = self.env.new_line([drift_name, name, drift_name])
+                builder.new(name, parent, at=at, from_=from_)
+            else:
+                builder.new(name, parent, **el_params)
 
     def _set_element(self, name, builder, **kwargs):
         self._parameter_cache[name].update(kwargs)
@@ -327,6 +346,8 @@ class MadxLoader:
                 params['knl'] = knl
             if (ksl := params.pop('ksl', None)):
                 params['ksl'] = ksl
+            if params.pop('lrad', None):
+                _warn(f'Multipole `{name}` was specified with a length, ignoring!')
 
         elif parent_name == 'vkicker':
             if (kick := params.pop('kick', None)):

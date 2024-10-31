@@ -72,7 +72,7 @@ array: "{" sum ( "," sum )* "}"  -> build_list
     | "+" atom          -> op_pos
     | NAME              -> name_atom
     | constant
-    | NAME "->" NAME    -> get_item
+    | NAME "->" NAME    -> op_arrow
     | function "(" sum ("," sum)* ")" -> call
     | "(" sum ( "," sum )* ")"
 

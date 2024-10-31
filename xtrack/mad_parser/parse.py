@@ -1,7 +1,7 @@
 import io
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Tuple, TypedDict, Union
+from typing import Dict, List, Tuple, TypedDict, Union, Literal
 
 from lark import Lark, Transformer, v_args, Token
 
@@ -32,6 +32,7 @@ class ElementType(TypedDict, ModifiersType):
 class LineType(TypedDict, ModifiersType):
     parent: str  # 'sequence' or 'line'
     l: VarType  # optional, but typing.NotRequired is not available in 3.8
+    refer: Literal['centre', 'entry']  # ditto
     elements: List[Tuple[str, Union[ElementType, 'LineType']]]
 
 
@@ -209,9 +210,8 @@ class MadxTransformer(Transformer):
             'parameters': self.parameters,
         }
 
-    def get_item(self, lhs, rhs):
-        raise NotImplementedError('The `->` syntax is not yet supported')
 
+    op_arrow = make_op_handler('->')
     op_lt = make_op_handler('<')
     op_gt = make_op_handler('>')
     op_le = make_op_handler('<=')
