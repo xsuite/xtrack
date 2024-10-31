@@ -56,13 +56,14 @@ log = logging.getLogger(__name__)
 
 _ALLOWED_ELEMENT_TYPES_IN_NEW = [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole,
                               xt.Octupole, xt.Cavity, xt.Multipole, xt.Solenoid,
-                              xt.Marker, xt.Replica]
+                              xt.Marker, xt.Replica, xt.XYShift]
 
 _ALLOWED_ELEMENT_TYPES_DICT = {'Drift': xt.Drift, 'Bend': xt.Bend,
                                'Quadrupole': xt.Quadrupole, 'Sextupole': xt.Sextupole,
                                'Octupole': xt.Octupole, 'Cavity': xt.Cavity,
                                'Multipole': xt.Multipole, 'Solenoid': xt.Solenoid,
-                               'Marker': xt.Marker, 'Replica': xt.Replica}
+                               'Marker': xt.Marker, 'Replica': xt.Replica,
+                               'XYShift': xt.XYShift}
 
 _STR_ALLOWED_ELEMENT_TYPES_IN_NEW = ', '.join([tt.__name__ for tt in _ALLOWED_ELEMENT_TYPES_IN_NEW])
 
