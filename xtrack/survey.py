@@ -71,8 +71,16 @@ def advance_drift(v, w, R):
     return np.dot(w, R) + v, w
 
 
-def advance_element(v, w, length=0, angle=0, tilt=0):
+def advance_element(v, w, length=0, angle=0, tilt=0, dx=0, dy=0):
     """Computing the advance element-by-element. See MAD-X manual for generation of R and S"""
+    if dx != 0 or dy != 0:
+        assert angle == 0, "dx and dy are only supported for angle=0"
+        assert tilt == 0, "dx and dy are only supported for tilt=0"
+        assert length == 0, "dx and dy are only supported for length=0"
+
+        v = v + np.array([dx, dy, 0])
+        return v, w
+
     if angle == 0:
         R = np.array([0, 0, length])
         return advance_drift(v, w, R)
@@ -133,6 +141,8 @@ class SurveyTable(Table):
         out_drift_length = list(self.drift_length[:-1][::-1])
         out_angle = list(-self.angle[:-1][::-1])
         out_tilt = list(-self.tilt[:-1][::-1])
+        out_dx = list(-self.dx[:-1][::-1])
+        out_dy = list(-self.dy[:-1][::-1])
         out_name = list(self.name[:-1][::-1])
 
         if type(element0) is str:
@@ -141,7 +151,7 @@ class SurveyTable(Table):
         X, Y, Z, theta, phi, psi = compute_survey(
                                         X0, Y0, Z0, theta0, phi0, psi0,
                                         out_drift_length, out_angle, out_tilt,
-                                        element0=element0)
+                                        out_dx, out_dy, element0=element0)
 
         # Initializing dictionary
         out_columns = {}
@@ -158,6 +168,8 @@ class SurveyTable(Table):
         out_columns['drift_length'] = np.array(out_drift_length + [0.])
         out_columns['angle'] = np.array(out_angle + [0.])
         out_columns['tilt'] = np.array(out_tilt + [0.])
+        out_columns["dx"] = np.array(out_dx + [0.])
+        out_columns["dy"] = np.array(out_dy + [0.])
 
         out_scalars = {}
         out_scalars["element0"] = element0
@@ -218,12 +230,20 @@ def survey_from_line(line, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
     drift_length = tt.length
     drift_length[~tt.isthick] = 0
 
+    # Extract xy shifts from elements
+    dx = tt._own_dx
+    dy = tt._own_dy
+
+    # Handling of rotation elements
+    sin_angle = tt._own_sin_angle
+    print(sin_angle)
+
     if type(element0) == str:
         element0 = line.element_names.index(element0)
 
     X, Y, Z, theta, phi, psi = compute_survey(
         X0, Y0, Z0, theta0, phi0, psi0, drift_length[:-1], angle[:-1], tilt[:-1],
-        element0=element0)
+        dx[:-1], dy[:-1], element0=element0)
 
     # Initializing dictionary
     out_columns = {}
@@ -240,6 +260,8 @@ def survey_from_line(line, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
     out_columns['drift_length'] = drift_length
     out_columns['angle'] = angle
     out_columns['tilt'] = tilt
+    out_columns['dx'] = dx
+    out_columns['dy'] = dy
 
     out_scalars['element0'] = element0
 
@@ -251,23 +273,29 @@ def survey_from_line(line, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
 
 
 def compute_survey(X0, Y0, Z0, theta0, phi0, psi0, drift_length, angle, tilt,
-                   element0=0, reverse_xs=False):
+                   dx, dy, element0=0, reverse_xs=False):
 
     if element0 != 0:
         assert not(reverse_xs), "Not implemented yet"
         drift_forward = drift_length[element0:]
         angle_forward = angle[element0:]
         tilt_forward = tilt[element0:]
+        dx_forward = dx[element0:]
+        dy_forward = dy[element0:]
         (X_forward, Y_forward, Z_forward, theta_forward, phi_forward,
             psi_forward) = compute_survey(X0, Y0, Z0, theta0, phi0, psi0,
-                                    drift_forward, angle_forward, tilt_forward)
+                                    drift_forward, angle_forward, tilt_forward,
+                                    dx_forward, dy_forward)
 
         drift_backward = drift_length[:element0][::-1]
         angle_backward = -np.array(angle[:element0][::-1])
         tilt_backward = -np.array(tilt[:element0][::-1])
+        dx_backward = -np.array(dx[:element0][::-1])
+        dy_backward = -np.array(dy[:element0][::-1])
         (X_backward, Y_backward, Z_backward, theta_backward, phi_backward,
             psi_backward) = compute_survey(X0, Y0, Z0, theta0, phi0, psi0,
                                     drift_backward, angle_backward, tilt_backward,
+                                    dx_backward, dy_backward,
                                     reverse_xs=True)
 
         X = np.array(X_backward[::-1][:-1] + X_forward)
@@ -288,7 +316,7 @@ def compute_survey(X0, Y0, Z0, theta0, phi0, psi0, drift_length, angle, tilt,
     w = get_w_from_angles(theta=theta0, phi=phi0, psi=psi0,
                           reverse_xs=reverse_xs)
     # Advancing element by element
-    for ll, aa, tt in zip(drift_length, angle, tilt):
+    for ll, aa, tt, xx, yy in zip(drift_length, angle, tilt, dx, dy):
 
         th, ph, ps = get_angles_from_w(w, reverse_xs=reverse_xs)
 
@@ -300,7 +328,7 @@ def compute_survey(X0, Y0, Z0, theta0, phi0, psi0, drift_length, angle, tilt,
         psi.append(ps)
 
         # Advancing
-        v, w = advance_element(v, w, length=ll, angle=aa, tilt=tt)
+        v, w = advance_element(v, w, length=ll, angle=aa, tilt=tt, dx=xx, dy=yy)
 
     # Last marker
     th, ph, ps = get_angles_from_w(w, reverse_xs=reverse_xs)
