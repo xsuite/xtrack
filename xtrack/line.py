@@ -4868,14 +4868,14 @@ class LineVars:
             for kk in name:
                 ee = self.line._xdeps_vref[kk]._expr
                 if ee is None:
-                    expr.append(str(None))
+                    expr.append(None)
                 else:
                     expr.append(ee._formatted(formatter))
             expr = np.array(expr)
         else:
             expr  = np.array([str(self.line._xdeps_vref[str(kk)]._expr) for kk in name])
 
-        return xd.Table({'name': name, 'value': value, 'expr': expr})
+        return VarsTable({'name': name, 'value': value, 'expr': expr})
 
     def new_expr(self, expr):
         return self.line._xdeps_eval.eval(expr)
@@ -5029,6 +5029,17 @@ class LineVars:
             self.line._xdeps_vref._owner.default_factory = _DefaultFactory(0.)
         else:
             self.line._xdeps_vref._owner.default_factory = None
+
+class VarsTable(xd.Table):
+
+    def to_dict(self):
+        out = {}
+        for nn, ee, vv in zip(self['name'], self['expr'], self['value']):
+            if ee is not None:
+                out[nn] = ee
+            else:
+                out[nn] = vv
+        return out
 
 class ActionVars(Action):
 

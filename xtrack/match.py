@@ -1085,34 +1085,5 @@ def opt_from_callable(function, x0, steps, tar, tols):
 
     '''Optimize a generic callable'''
 
-    x0 = np.array(x0)
-    x = x0.copy()
-    vary = [xt.Vary(ii, container=x, step=steps[ii]) for ii in range(len(x))]
-
-    opt = xd.Optimize(
-        vary=vary,
-        targets=ActionCall(function, vary).get_targets(tar),
-        show_call_counter=False,
-    )
-
-    for ii, tt in enumerate(opt.targets):
-        tt.tol = tols[ii]
-
+    opt = xd.Optimize.from_callable(function, x0, tar, steps=steps, tols=tols)
     return opt
-
-class ActionCall(Action):
-    def __init__(self, function, vary):
-        self.vary = vary
-        self.function = function
-
-    def run(self):
-        x = [vv.container[vv.name] for vv in self.vary]
-        return self.function(x)
-
-    def get_targets(self, ftar):
-        tars = []
-        for ii in range(len(ftar)):
-            tars.append(xt.Target(ii, ftar[ii], action=self))
-
-        return tars
-
