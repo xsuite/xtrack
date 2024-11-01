@@ -841,7 +841,7 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
         if kk in ['name', 'name_env', 'W_matrix', 'particle_on_co', 'values_at',
                     'method', 'radiation_method', 'reference_frame',
                     'orientation', 'steps_r_matrix', 'line_config',
-                    'loop_around', '_action', 'completed_init'
+                    'loop_around', '_action', 'completed_init',
                     'phix', 'phiy', 'phizeta', # are only relative (not unwrapped)
                     ]:
             continue # some tested separately
