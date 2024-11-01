@@ -56,15 +56,16 @@ log = logging.getLogger(__name__)
 
 _ALLOWED_ELEMENT_TYPES_IN_NEW = [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole,
                               xt.Octupole, xt.Cavity, xt.Multipole, xt.Solenoid,
-                              xt.Marker, xt.Replica, xt.XYShift, xt.XRotation, xt. YRotation]
+                              xt.Marker, xt.Replica, xt.XYShift, xt.XRotation,
+                              xt.YRotation, xt.SRotation]
 
 _ALLOWED_ELEMENT_TYPES_DICT = {'Drift': xt.Drift, 'Bend': xt.Bend,
                                'Quadrupole': xt.Quadrupole, 'Sextupole': xt.Sextupole,
                                'Octupole': xt.Octupole, 'Cavity': xt.Cavity,
                                'Multipole': xt.Multipole, 'Solenoid': xt.Solenoid,
                                'Marker': xt.Marker, 'Replica': xt.Replica,
-                               'XYShift': xt.XYShift,
-                               'XRotation': xt.XRotation, 'YRotation': xt.YRotation}
+                               'XYShift': xt.XYShift, 'XRotation': xt.XRotation,
+                               'YRotation': xt.YRotation, 'SRotation': xt.SRotation}
 
 _STR_ALLOWED_ELEMENT_TYPES_IN_NEW = ', '.join([tt.__name__ for tt in _ALLOWED_ELEMENT_TYPES_IN_NEW])
 
@@ -4158,6 +4159,10 @@ class Line:
                 '_own_sin_angle': 'sin_angle',
                 '_own_cos_angle': 'cos_angle',
 
+                # TODO: This should be corrected at the element level
+                '_own_sin_z': 'sin_z',
+                '_own_cos_z': 'cos_z',
+
                 '_parent_length': (('_parent', 'length'), None),
                 '_parent_sin_rot_s': (('_parent', '_sin_rot_s'), None),
                 '_parent_cos_rot_s': (('_parent', '_cos_rot_s'), None),
@@ -4201,6 +4206,10 @@ class Line:
 
                 '_parent_sin_angle': (('_parent', 'sin_angle'), None),
                 '_parent_cos_angle': (('_parent', 'cos_angle'), None),
+
+                # TODO: This should be corrected at the element level
+                '_parent_sin_z': (('_parent', 'sin_z'), None),
+                '_parent_cos_z': (('_parent', 'cos_z'), None),
 
             },
             derived_fields={
@@ -4281,8 +4290,11 @@ class Line:
                 'vkick': lambda attr: attr["k0sl"],
                 'dx': lambda attr: attr['_own_dx'] + attr['_parent_dx'],
                 'dy': lambda attr: attr['_own_dy'] + attr['_parent_dy'],
-                'sin_angle': lambda attr: attr['_own_sin_angle'] + attr['_parent_sin_angle'],
-                'cos_angle': lambda attr: attr['_own_cos_angle'] + attr['_parent_cos_angle'],
+                'transform_angle_rad': lambda attr: np.arctan2(
+                    attr['_own_sin_angle'] + attr['_parent_sin_angle'] +\
+                    attr['_own_sin_z'] + attr['_parent_sin_z'],
+                    attr['_own_cos_angle'] + attr['_parent_cos_angle'] +\
+                    attr['_own_cos_z'] + attr['_parent_cos_z']),
             }
         )
         return cache
