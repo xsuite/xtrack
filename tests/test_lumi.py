@@ -38,6 +38,9 @@ def test_lumi_calculation():
             muy=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
             muzeta=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
             dzeta=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            phix=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            phiy=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            phizeta=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
             W_matrix=np.zeros(shape=(6, 6, 6))
         ))
 
@@ -72,6 +75,9 @@ def test_lumi_calculation():
             muy=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
             muzeta=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
             dzeta=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            phix=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            phiy=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            phizeta=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
         W_matrix=np.zeros(shape=(6, 6, 6))
         ))
 
