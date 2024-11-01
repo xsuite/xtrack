@@ -1,58 +1,200 @@
+"""
+Test the survey on Bends
+"""
+################################################################################
+# Packages
+################################################################################
 import xtrack as xt
 import numpy as np
 import matplotlib.pyplot as plt
 
-from _madpoint import MadPoint 
+from _helpers import madpoint_twiss_survey, summary_plot
 
-env = xt.Environment()
+################################################################################
+# Setup
+################################################################################
 
-env.particle_ref = xt.Particles(p0c = 1E9)
-env['k0']   = 0.00
-env['h']    = 1E-3
+env = xt.Environment(particle_ref=xt.Particles(p0c=1e9))
+env['k0']           = 1E-3
+env['h']            = 1E-3
+env['dx']           = 2E-6
+env['dy']           = 3E-6
+
+# TODO: These don't work with the env.new function
+env['angle_x']      = 2E-4
+env['angle_y']      = 3E-4
 
 line    = env.new_line(name = 'line', components=[
-    env.new('bend', xt.Bend, k0 = 'k0', h = 'h', length = 0.5, at=2),
-    env.new('xyshift', xt.XYShift, dx = 0.1, dy=0.2),
-    env.new('end', xt.Marker, at = 5)])
+    env.new('bend1', xt.Bend, k0 = 0, h = 0, length = 0.5, at=2),
+    env.new('xyshift', xt.XYShift, dx = 'dx', dy = 'dy', at = 3,),
+    env.new('xyshift2', 'xyshift', mode = 'replica', at = 4),
+    env.new('yrotation', xt.YRotation, angle = env['angle_x'], at = 5),
+    env.new('xrotation', xt.XRotation, angle = env['angle_y'], at = 6),
+    env.new('xyshift3', 'xyshift', mode = 'replica', at = 7),
+    # env.new('bend2', xt.Bend, k0 = 'k0', h = 'h', length = 0.5, at=8),
+    # env.new('xyshift3', 'xyshift', mode = 'replica', at = 9),
+    env.new('end', xt.Marker, at = 10)])
 
-line.configure_bend_model(core = 'bend-kick-bend', edge = 'suppressed')
-line.cut_at_s(np.linspace(0, line.get_length(), 101))
+# line.cut_at_s(np.linspace(0, line.get_length(), 1001))
 
-sv = line.survey()
-tw = line.twiss4d(betx = 1, bety  =1)
+################################################################################
+# Horizontal Mult vs YRotation
+################################################################################
 
-madpoints = []
-xx = []
-yy = []
-zz = []
-for nn in tw.name:
-    madpoints.append(
-        MadPoint(name = nn, xsuite_twiss = tw, xsuite_survey = sv))
-    xx.append(madpoints[-1].p[0])
-    yy.append(madpoints[-1].p[1])
-    zz.append(madpoints[-1].p[2])
+########################################
+# Rotation
+########################################
+env = xt.Environment(particle_ref=xt.Particles(p0c=1e9))
+line    = env.new_line(name = 'line', components=[
+    env.new('yrotation', xt.YRotation, angle = 0, at = 1),
+    env.new('xyshift', xt.XYShift, dx = 1E-6, dy = 1E-6, at = 2),
+    env.new('end', xt.Marker, at = 3)])
+line.configure_bend_model(edge = 'suppressed')
+# line.config.XTRACK_USE_EXACT_DRIFTS = True
 
-xx = np.array(xx)
-yy = np.array(yy)
-zz = np.array(zz)
+# NB Minus sign here as rotation works opposite direction
+line['yrotation'].angle = -1E-3
 
-sv['xx'] = xx
-sv['yy'] = yy
-sv['zz'] = zz
+sv, tw = madpoint_twiss_survey(line)
+summary_plot(sv, tw, 'Rotation Y')
 
+########################################
+# Bend
+########################################
+env = xt.Environment(particle_ref=xt.Particles(p0c=1e9))
+line    = env.new_line(name = 'line', components=[
+    env.new('mult', xt.Multipole, hxl = 0, at = 1),
+    env.new('xyshift', xt.XYShift, dx = 1E-6, dy = 1E-6, at = 2),
+    env.new('end', xt.Marker, at = 3)])
+line.configure_bend_model(edge = 'suppressed')
+# line.config.XTRACK_USE_EXACT_DRIFTS = True
 
-fig, axs = plt.subplots(3, 1, sharex=True)
-axs[0].plot(sv.Z, sv.X)
-axs[1].plot(tw.s, tw.x)
-axs[2].plot(sv.s, sv.xx)
+line['mult'].hxl = np.deg2rad(1E-3)
 
-axs[0].set_xlabel('Z [m]')
-axs[0].set_ylabel('X [m]')
+sv, tw = madpoint_twiss_survey(line)
+summary_plot(sv, tw, 'Horiztonal Mult')
 
-axs[1].set_xlabel('s [m]')
-axs[1].set_ylabel('x [m]')
+################################################################################
+# Vertical Bend vs XRotation
+################################################################################
 
-axs[2].set_xlabel('s [m]')
-axs[2].set_ylabel('xx [m]')
+########################################
+# Rotation
+########################################
+env = xt.Environment(particle_ref=xt.Particles(p0c=1e9))
+line    = env.new_line(name = 'line', components=[
+    env.new('xrotation', xt.XRotation, angle = 0, at = 1),
+    env.new('xyshift', xt.XYShift, dx = 1E-6, dy = 1E-6, at = 2),
+    env.new('end', xt.Marker, at = 3)])
+line.configure_bend_model(edge = 'suppressed')
+# line.config.XTRACK_USE_EXACT_DRIFTS = True
+
+line['xrotation'].angle = 1E-3
+
+sv, tw = madpoint_twiss_survey(line)
+summary_plot(sv, tw, 'Rotation X')
+
+########################################
+# Bend
+########################################
+env = xt.Environment(particle_ref=xt.Particles(p0c=1e9))
+line    = env.new_line(name = 'line', components=[
+    env.new('mult', xt.Multipole, hxl = 0, at = 1, rot_s_rad = np.pi / 2),
+    env.new('xyshift', xt.XYShift, dx = 1E-6, dy = 1E-6, at = 2),
+    env.new('end', xt.Marker, at = 3)])
+line.configure_bend_model(edge = 'suppressed')
+# line.config.XTRACK_USE_EXACT_DRIFTS = True
+
+line['mult'].hxl = np.deg2rad(1E-3)
+
+sv, tw = madpoint_twiss_survey(line)
+summary_plot(sv, tw, 'Vertical Mult')
+
+################################################################################
+# Vertical shift vs SRotation + Horizontal shift
+################################################################################
+
+########################################
+# Vertical Shift
+########################################
+env = xt.Environment(particle_ref=xt.Particles(p0c=1e9))
+line    = env.new_line(name = 'line', components=[
+    env.new('xyshift', xt.XYShift, dy = -1E-6, at = 2),
+    env.new('end', xt.Marker, at = 3)])
+line.configure_bend_model(edge = 'suppressed')
+# line.config.XTRACK_USE_EXACT_DRIFTS = True
+
+sv, tw = madpoint_twiss_survey(line)
+summary_plot(sv, tw, 'Vertical Shift')
+
+########################################
+# Bend
+########################################
+env = xt.Environment(particle_ref=xt.Particles(p0c=1e9))
+line    = env.new_line(name = 'line', components=[
+    env.new('srot', xt.SRotation, angle = 90, at=1),
+    env.new('xyshift', xt.XYShift, dx = 1E-6, at = 2),
+    env.new('end', xt.Marker, at = 3)])
+line.configure_bend_model(edge = 'suppressed')
+# line.config.XTRACK_USE_EXACT_DRIFTS = True
+
+sv, tw = madpoint_twiss_survey(line)
+summary_plot(sv, tw, 'SRot + Horizontal Shift')
+
+################################################################################
+# SRotation then Horizontal Bend
+################################################################################
+
+########################################
+# Vertical Shift
+########################################
+env = xt.Environment(particle_ref=xt.Particles(p0c=1e9))
+line    = env.new_line(name = 'line', components=[
+    env.new('bend', xt.Bend, k0 = 1E-3, h = 1E-3, length = 0.5, at=2),
+    env.new('end', xt.Marker, at = 3)])
+line.configure_bend_model(edge = 'suppressed')
+# line.config.XTRACK_USE_EXACT_DRIFTS = True
+
+sv, tw = madpoint_twiss_survey(line)
+summary_plot(sv, tw, 'Horizontal Bend')
+
+########################################
+# Bend
+########################################
+env = xt.Environment(particle_ref=xt.Particles(p0c=1e9))
+line    = env.new_line(name = 'line', components=[
+    env.new('srot', xt.SRotation, angle=90, at=1),
+    env.new('bend', xt.Bend, k0 = 1E-3, h = 1E-3, length = 0.5, at=2),
+    env.new('end', xt.Marker, at = 3)])
+line.configure_bend_model(edge = 'suppressed')
+# line.config.XTRACK_USE_EXACT_DRIFTS = True
+
+sv, tw = madpoint_twiss_survey(line)
+summary_plot(sv, tw, 'SRot + Horizontal Bend')
+
+################################################################################
+# Multiple
+################################################################################
+
+########################################
+# Rotation
+########################################
+env = xt.Environment(particle_ref=xt.Particles(p0c=1e9))
+line    = env.new_line(
+        name = 'line',
+        components= [env.new('drift', xt.Drift, length = 1E-3)] +\
+                    [env.new('xrotation', xt.XRotation, angle = 1E-2),
+                    env.new('drift', xt.Drift, length = 1E-3)]*1000 +\
+                    [env.new('xyshift', xt.XYShift, dy = 1E-2)] +\
+                    [env.new('xrotation', xt.XRotation, angle = 1E-2),
+                    env.new('drift', xt.Drift, length = 1E-3)]*1000 +\
+                    [env.new('end', xt.Marker)])
+line.configure_bend_model(edge = 'suppressed')
+sv, tw = madpoint_twiss_survey(line)
+summary_plot(sv, tw, 'Check that XYShift is suitably rotated')
+
+# TODO: Replica
+# TODO: Reverse
+
 
 plt.show()
