@@ -187,10 +187,10 @@ def test_ip_knob_matching_new_optimize_api(test_context):
     opt.step(10) # perform 10 steps without checking for convergence
 
     ll = opt.log()
-    assert len(ll) == 12
+    assert len(ll) == 13
     assert ll['vary_active', 0] == 'yyyyyyyyyyyyyy'
     assert ll['vary_active', 1] == 'yyyyyyyynnnnnn'
-    assert ll['vary_active', 11] == 'yyyyyyyynnnnnn'
+    assert ll['vary_active', 12] == 'yyyyyyyynnnnnn'
 
     # Check solution not found
     assert ll['tol_met', 11] != 'yyyyyyyy'
@@ -219,17 +219,17 @@ def test_ip_knob_matching_new_optimize_api(test_context):
     ll = opt.log()
 
     # Check driving knob is enabled
-    assert np.all(ll['vary_active', 12:] == 'yyyyyyyyynnnnn')
+    assert np.all(ll['vary_active', 13:] == 'yyyyyyyyynnnnn')
 
     # Check solution found
     assert np.all(ll['tol_met', -1] == 'yyyyyyyy')
 
     # Check imposed relationship among varys
-    xo.assert_allclose(ll['vary_8', 12], ll['vary_9',   12], atol=1e-12, rtol=0)
-    xo.assert_allclose(ll['vary_8', 12], ll['vary_10',  12], atol=1e-12, rtol=0)
-    xo.assert_allclose(ll['vary_8', 12], -ll['vary_11', 12], atol=1e-12, rtol=0)
-    xo.assert_allclose(ll['vary_8', 12], -ll['vary_12', 12], atol=1e-12, rtol=0)
-    xo.assert_allclose(ll['vary_8', 12], -ll['vary_13', 12], atol=1e-12, rtol=0)
+    xo.assert_allclose(ll['vary_8', 13], ll['vary_9',   13], atol=1e-12, rtol=0)
+    xo.assert_allclose(ll['vary_8', 13], ll['vary_10',  13], atol=1e-12, rtol=0)
+    xo.assert_allclose(ll['vary_8', 13], -ll['vary_11', 13], atol=1e-12, rtol=0)
+    xo.assert_allclose(ll['vary_8', 13], -ll['vary_12', 13], atol=1e-12, rtol=0)
+    xo.assert_allclose(ll['vary_8', 13], -ll['vary_13', 13], atol=1e-12, rtol=0)
 
     opt.generate_knob()
 
