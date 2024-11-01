@@ -1085,5 +1085,6 @@ def opt_from_callable(function, x0, steps, tar, tols):
 
     '''Optimize a generic callable'''
 
-    opt = xd.Optimize.from_callable(function, x0, tar, steps=steps, tols=tols)
+    opt = xd.Optimize.from_callable(function, x0, tar, steps=steps, tols=tols,
+                                    show_call_counter=False)
     return opt
