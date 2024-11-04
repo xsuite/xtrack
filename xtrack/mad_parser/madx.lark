@@ -74,7 +74,7 @@ array: "{" sum ( "," sum )* "}"  -> build_list
     | constant
     | NAME "->" NAME    -> op_arrow
     | function "(" sum ("," sum)* ")" -> call
-    | "(" sum ( "," sum )* ")"
+    | "(" sum ")"
 
 !function: NAME
 
