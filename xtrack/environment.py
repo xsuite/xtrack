@@ -1,21 +1,28 @@
-from typing import Literal
-
-import xtrack as xt
-import xobjects as xo
-import numpy as np
-from weakref import WeakSet
 from collections import Counter, UserDict
+from functools import cmp_to_key
+from typing import Literal
+from weakref import WeakSet
 
+import numpy as np
+
+import xobjects as xo
+import xtrack as xt
 from xdeps.refs import is_ref
 
 ReferType = Literal['entry', 'centre']
 
 
-def _argsort(seq):
-    """Stable np.argsort with a tolerance of 10e-10."""
-    # seq = seq - np.fmod(seq, 1e-10)
-    # return np.argsort(seq, kind='stable')
-    return list(range(len(seq)))
+def _argsort(seq, tol=10e-10):
+    """Argsort, but with a tolerance; `sorted` is stable."""
+    seq_indices = np.arange(len(seq))
+
+    def comparator(i, j):
+        a, b = seq[i], seq[j]
+        if np.abs(a - b) < tol:
+            return 0
+        return -1 if a < b else 1
+
+    return sorted(seq_indices, key=cmp_to_key(comparator))
 
 
 def _flatten_components(components, refer: ReferType = 'centre'):
