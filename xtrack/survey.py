@@ -64,10 +64,12 @@ def advance_bend(v, w, R, S):
     v2 = w1*R + v1  | w2 = w1*S"""
     return np.dot(w, R) + v, np.dot(w, S)
 
+
 def advance_rotation(v, w, S):
     """Advancing through rotation element:
     Rotate w matrix according to transformation matrix S"""
     return v, np.dot(w, S)
+
 
 def advance_drift(v, w, R):
     """Advancing through drift element, see MAD-X manual:
@@ -132,8 +134,8 @@ def advance_element(v, w, length=0, angle=0, tilt=0, dx=0, dy=0,
     if angle == 0:
         R = np.array([0, 0, length])
         return advance_drift(v, w, R)
-    
-    # Horizontal bends
+
+    # Horizontal bending elements
     elif tilt == 0:
         # Relevant sine/cosine
         ca = np.cos(angle)
@@ -144,7 +146,7 @@ def advance_element(v, w, length=0, angle=0, tilt=0, dx=0, dy=0,
         S = np.array([[ca, 0, -sa], [0, 1, 0], [sa, 0, ca]])
         return advance_bend(v, w, R, S)
 
-    # Tilted bends
+    # Tilted bending elements
     else:
         # Relevant sine/cosine
         ca = np.cos(angle)
@@ -157,13 +159,16 @@ def advance_element(v, w, length=0, angle=0, tilt=0, dx=0, dy=0,
         S = np.array([[ca, 0, -sa], [0, 1, 0], [sa, 0, ca]])
 
         # Orthogonal rotation matrix for tilt
-        T = np.array([[ct, -st, 0], [st, ct, 0], [0, 0, 1]])
-        Tinv = np.array([[ct, st, 0], [-st, ct, 0], [0, 0, 1]])
+        T       = np.array([[ct, -st, 0], [st, ct, 0], [0, 0, 1]])
+        Tinv    = np.array([[ct, st, 0], [-st, ct, 0], [0, 0, 1]])
 
         return advance_bend(v, w, np.dot(T, R), np.dot(T, np.dot(S, Tinv)))
 
 
 class SurveyTable(Table):
+    """
+    Table for survey data.
+    """
 
     _error_on_row_not_found = True
 
@@ -194,45 +199,54 @@ class SurveyTable(Table):
         out_tilt = list(-self.tilt[:-1][::-1])
         out_dx = list(-self.dx[:-1][::-1])
         out_dy = list(-self.dy[:-1][::-1])
-        out_rot_x_rad = list(-self.rot_x_rad[:-1][::-1])
-        out_rot_y_rad = list(-self.rot_y_rad[:-1][::-1])
-        out_rot_s_rad = list(-self.rot_s_rad[:-1][::-1])
+        out_transf_x_rad = list(-self.transf_x_rad[:-1][::-1])
+        out_transf_y_rad = list(-self.transf_y_rad[:-1][::-1])
+        out_transf_s_rad = list(-self.transf_s_rad[:-1][::-1])
         out_name = list(self.name[:-1][::-1])
 
-        if type(element0) is str:
+        if isinstance(element0, str):
             element0 = out_name.index(element0)
 
         X, Y, Z, theta, phi, psi = compute_survey(
-                                        X0, Y0, Z0, theta0, phi0, psi0,
-                                        out_drift_length, out_angle, out_tilt,
-                                        out_dx, out_dy, out_rot_x_rad,
-                                        out_rot_y_rad, out_rot_s_rad, element0=element0)
+            X0              = X0,
+            Y0              = Y0,
+            Z0              = Z0,
+            theta0          = theta0,
+            phi0            = phi0,
+            psi0            = psi0,
+            drift_length    = out_drift_length,
+            angle           = out_angle,
+            tilt            = out_tilt,
+            dx              = out_dx,
+            dy              = out_dy,
+            transf_x_rad    = out_transf_x_rad,
+            transf_y_rad    = out_transf_y_rad,
+            transf_s_rad    = out_transf_s_rad,
+            element0        = element0,
+            reverse_xs      = False)
 
         # Initializing dictionary
         out_columns = {}
-        out_columns["X"] = np.array(X)
-        out_columns["Y"] = np.array(Y)
-        out_columns["Z"] = np.array(Z)
-        out_columns["theta"] = np.unwrap(theta)
-        out_columns["phi"] = np.unwrap(phi)
-        out_columns["psi"] = np.unwrap(psi)
-
-        out_columns["name"] = np.array(list(out_name) + ["_end_point"])
-        out_columns["s"] = self.s[-1] - self.s[::-1]
-
-        out_columns['drift_length'] = np.array(out_drift_length + [0.])
-
-        out_columns['angle'] = np.array(out_angle + [0.])
-        out_columns['tilt'] = np.array(out_tilt + [0.])
-
-        out_columns["dx"] = np.array(out_dx + [0.])
-        out_columns["dy"] = np.array(out_dy + [0.])
-
-        out_columns["rot_x_rad"] = np.array(out_rot_x_rad + [0.])
-        out_columns["rot_y_rad"] = np.array(out_rot_y_rad + [0.])
-        out_columns["rot_s_rad"] = np.array(out_rot_s_rad + [0.])
-
         out_scalars = {}
+
+        # Fill survey data
+        out_columns["X"]            = np.array(X)
+        out_columns["Y"]            = np.array(Y)
+        out_columns["Z"]            = np.array(Z)
+        out_columns["theta"]        = np.unwrap(theta)
+        out_columns["phi"]          = np.unwrap(phi)
+        out_columns["psi"]          = np.unwrap(psi)
+        out_columns["name"]         = np.array(list(out_name) + ["_end_point"])
+        out_columns["s"]            = self.s[-1] - self.s[::-1]
+        out_columns['drift_length'] = np.array(out_drift_length + [0.])
+        out_columns['angle']        = np.array(out_angle + [0.])
+        out_columns['tilt']         = np.array(out_tilt + [0.])
+        out_columns["dx"]           = np.array(out_dx + [0.])
+        out_columns["dy"]           = np.array(out_dy + [0.])
+        out_columns["transf_x_rad"] = np.array(out_transf_x_rad + [0.])
+        out_columns["transf_y_rad"] = np.array(out_transf_y_rad + [0.])
+        out_columns["transf_s_rad"] = np.array(out_transf_s_rad + [0.])
+
         out_scalars["element0"] = element0
 
         out = SurveyTable(data=(out_columns | out_scalars),
@@ -241,6 +255,9 @@ class SurveyTable(Table):
         return out
 
     def plot(self, element_width=None, legend=True, **kwargs):
+        """
+        Plot the survey using xplt.FloorPlot
+        """
         # Shallow copy of self
         out_sv_table = SurveyTable.__new__(SurveyTable)
         out_sv_table.__dict__.update(self.__dict__)
@@ -284,10 +301,14 @@ def survey_from_line(line, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
 
     assert not values_at_element_exit, "Not implemented yet"
 
-    # Extract angle and tilt from elements
+    # Get line table to extract attributes
     tt      = line.get_table(attr = True)
+
+    # Extract angle and tilt from elements
     angle   = tt.angle_rad
     tilt    = tt.rot_s_rad
+
+    # Extract drift lengths
     drift_length = tt.length
     drift_length[~tt.isthick] = 0
 
@@ -296,107 +317,170 @@ def survey_from_line(line, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
     dy = tt.dy
 
     # Handling of XYSRotation elements
-    transf_angle_rad = tt.transform_angle_rad
-    transf_x_rad = transf_angle_rad * np.array(tt.element_type == 'XRotation')
-    transf_y_rad = transf_angle_rad * np.array(tt.element_type == 'YRotation')
-    transf_s_rad = transf_angle_rad * np.array(tt.element_type == 'SRotation')
+    transf_angle_rad    = tt.transform_angle_rad
+    transf_x_rad    = transf_angle_rad * np.array(tt.element_type == 'XRotation')
+    transf_y_rad    = transf_angle_rad * np.array(tt.element_type == 'YRotation')
+    transf_s_rad    = transf_angle_rad * np.array(tt.element_type == 'SRotation')
 
-    if type(element0) == str:
+    if isinstance(element0, str):
         element0 = line.element_names.index(element0)
 
     X, Y, Z, theta, phi, psi = compute_survey(
-        X0, Y0, Z0, theta0, phi0, psi0, drift_length[:-1], angle[:-1], tilt[:-1],
-        dx[:-1], dy[:-1], transf_x_rad, transf_y_rad, transf_s_rad, element0=element0)
+        X0              = X0,
+        Y0              = Y0,
+        Z0              = Z0,
+        theta0          = theta0,
+        phi0            = phi0,
+        psi0            = psi0,
+        drift_length    = drift_length[:-1],
+        angle           = angle[:-1],
+        tilt            = tilt[:-1],
+        dx              = dx[:-1],
+        dy              = dy[:-1],
+        transf_x_rad    = transf_x_rad[:-1],
+        transf_y_rad    = transf_y_rad[:-1],
+        transf_s_rad    = transf_s_rad[:-1],
+        element0        = element0,
+        reverse_xs      = False)
 
     # Initializing dictionary
     out_columns = {}
     out_scalars = {}
-    out_columns["X"] = np.array(X)
-    out_columns["Y"] = np.array(Y)
-    out_columns["Z"] = np.array(Z)
-    out_columns["theta"] = np.unwrap(theta)
-    out_columns["phi"] = np.unwrap(phi)
-    out_columns["psi"] = np.unwrap(psi)
 
-    out_columns["name"] = tt.name
-    out_columns["s"] = tt.s
+    # Fill survey data
+    out_columns["X"]            = np.array(X)
+    out_columns["Y"]            = np.array(Y)
+    out_columns["Z"]            = np.array(Z)
+    out_columns["theta"]        = np.unwrap(theta)
+    out_columns["phi"]          = np.unwrap(phi)
+    out_columns["psi"]          = np.unwrap(psi)
+    out_columns["name"]         = tt.name
+    out_columns["s"]            = tt.s
     out_columns['drift_length'] = drift_length
-    out_columns['angle'] = angle
-    out_columns['tilt'] = tilt
-
-    out_columns['dx'] = dx
-    out_columns['dy'] = dy
-
+    out_columns['angle']        = angle
+    out_columns['tilt']         = tilt
+    out_columns['dx']           = dx
+    out_columns['dy']           = dy
     out_columns['transf_x_rad'] = transf_x_rad
     out_columns['transf_y_rad'] = transf_y_rad
     out_columns['transf_s_rad'] = transf_s_rad
 
-    out_scalars['element0'] = element0
+    out_scalars['element0']     = element0
 
-    out = SurveyTable(data={**out_columns, **out_scalars},  # this is a merge
-                      col_names=out_columns.keys())
+    out = SurveyTable(
+        data        = {**out_columns, **out_scalars},  # this is a merge
+        col_names   = out_columns.keys())
     out._data['line'] = line
 
     return out
 
 
-def compute_survey(X0, Y0, Z0, theta0, phi0, psi0, drift_length, angle, tilt,
-                   dx, dy, transf_x_rad, transf_y_rad, transf_s_rad, element0=0, reverse_xs=False):
+def compute_survey(X0, Y0, Z0, theta0, phi0, psi0,
+                   drift_length, angle, tilt,
+                   dx, dy, transf_x_rad, transf_y_rad, transf_s_rad,
+                   element0 = 0, reverse_xs = False):
+    """
+    Compute survey from initial position and orientation.
+    """
 
+    # If element0 is not the first element, split the survey
     if element0 != 0:
+        # Assert that reverse_xs is not implemented yet
         assert not(reverse_xs), "Not implemented yet"
-        drift_forward = drift_length[element0:]
-        angle_forward = angle[element0:]
-        tilt_forward = tilt[element0:]
-        dx_forward = dx[element0:]
-        dy_forward = dy[element0:]
-        transf_x_rad_forward = transf_x_rad[element0:]
-        transf_y_rad_forward = transf_y_rad[element0:]
-        transf_s_rad_forward = transf_s_rad[element0:]
+
+        # Forward section of survey
+        drift_forward           = drift_length[element0:]
+        angle_forward           = angle[element0:]
+        tilt_forward            = tilt[element0:]
+        dx_forward              = dx[element0:]
+        dy_forward              = dy[element0:]
+        transf_x_rad_forward    = transf_x_rad[element0:]
+        transf_y_rad_forward    = transf_y_rad[element0:]
+        transf_s_rad_forward    = transf_s_rad[element0:]
+
+        # Evaluate forward survey
         (X_forward, Y_forward, Z_forward, theta_forward, phi_forward,
-            psi_forward) = compute_survey(X0, Y0, Z0, theta0, phi0, psi0,
-                                    drift_forward, angle_forward, tilt_forward,
-                                    dx_forward, dy_forward, transf_x_rad_forward,
-                                    transf_y_rad_forward, transf_s_rad_forward)
+            psi_forward)    = compute_survey(
+            X0              = X0,
+            Y0              = Y0,
+            Z0              = Z0,
+            theta0          = theta0,
+            phi0            = phi0,
+            psi0            = psi0,
+            drift_length    = drift_forward,
+            angle           = angle_forward,
+            tilt            = tilt_forward,
+            dx              = dx_forward,
+            dy              = dy_forward,
+            transf_x_rad    = transf_x_rad_forward,
+            transf_y_rad    = transf_y_rad_forward,
+            transf_s_rad    = transf_s_rad_forward,
+            element0        = 0,
+            reverse_xs      = False)
 
-        drift_backward = drift_length[:element0][::-1]
-        angle_backward = -np.array(angle[:element0][::-1])
-        tilt_backward = -np.array(tilt[:element0][::-1])
-        dx_backward = -np.array(dx[:element0][::-1])
-        dy_backward = -np.array(dy[:element0][::-1])
-        transf_x_rad_backward = -np.array(transf_x_rad[:element0][::-1])
-        transf_y_rad_backward = -np.array(transf_y_rad[:element0][::-1])
-        transf_s_rad_backward = -np.array(transf_s_rad[:element0][::-1])
+        # Backward section of survey
+        drift_backward          = drift_length[:element0][::-1]
+        angle_backward          = -np.array(angle[:element0][::-1])
+        tilt_backward           = -np.array(tilt[:element0][::-1])
+        dx_backward             = -np.array(dx[:element0][::-1])
+        dy_backward             = -np.array(dy[:element0][::-1])
+        transf_x_rad_backward   = -np.array(transf_x_rad[:element0][::-1])
+        transf_y_rad_backward   = -np.array(transf_y_rad[:element0][::-1])
+        transf_s_rad_backward   = -np.array(transf_s_rad[:element0][::-1])
+
+        # Evaluate backward survey
         (X_backward, Y_backward, Z_backward, theta_backward, phi_backward,
-            psi_backward) = compute_survey(X0, Y0, Z0, theta0, phi0, psi0,
-                                    drift_backward, angle_backward, tilt_backward,
-                                    dx_backward, dy_backward, transf_x_rad_backward,
-                                    transf_y_rad_backward, transf_s_rad_backward,
-                                    reverse_xs=True)
+            psi_backward)   = compute_survey(
+            X0              = X0,
+            Y0              = Y0,
+            Z0              = Z0,
+            theta0          = theta0,
+            phi0            = phi0,
+            psi0            = psi0,
+            drift_length    = drift_backward,
+            angle           = angle_backward,
+            tilt            = tilt_backward,
+            dx              = dx_backward,
+            dy              = dy_backward,
+            transf_x_rad    = transf_x_rad_backward,
+            transf_y_rad    = transf_y_rad_backward,
+            transf_s_rad    = transf_s_rad_backward,
+            element0        = 0,
+            reverse_xs      = True)
 
-        X = np.array(X_backward[::-1][:-1] + X_forward)
-        Y = np.array(Y_backward[::-1][:-1] + Y_forward)
-        Z = np.array(Z_backward[::-1][:-1] + Z_forward)
-        theta = np.array(theta_backward[::-1][:-1] + theta_forward)
-        phi = np.array(phi_backward[::-1][:-1] + phi_forward)
-        psi = np.array(psi_backward[::-1][:-1]+ psi_forward)
+        # Concatenate forward and backward
+        X       = np.array(X_backward[::-1][:-1] + X_forward)
+        Y       = np.array(Y_backward[::-1][:-1] + Y_forward)
+        Z       = np.array(Z_backward[::-1][:-1] + Z_forward)
+        theta   = np.array(theta_backward[::-1][:-1] + theta_forward)
+        phi     = np.array(phi_backward[::-1][:-1] + phi_forward)
+        psi     = np.array(psi_backward[::-1][:-1]+ psi_forward)
         return X, Y, Z, theta, phi, psi
 
-    X = []
-    Y = []
-    Z = []
-    theta = []
-    phi = []
-    psi = []
-    v = np.array([X0, Y0, Z0])
-    w = get_w_from_angles(theta=theta0, phi=phi0, psi=psi0,
-                          reverse_xs=reverse_xs)
+    # Initialise lists for storing the survey
+    X       = []
+    Y       = []
+    Z       = []
+    theta   = []
+    phi     = []
+    psi     = []
+
+    # Initial position and orientation
+    v   = np.array([X0, Y0, Z0])
+    w   = get_w_from_angles(
+        theta       = theta0,
+        phi         = phi0,
+        psi         = psi0,
+        reverse_xs  = reverse_xs)
+
     # Advancing element by element
     for ll, aa, tt, xx, yy, tx, ty, ts, in zip(drift_length, angle, tilt, dx, dy,
-                                  transf_x_rad, transf_x_rad, transf_x_rad):
+                                  transf_x_rad, transf_y_rad, transf_s_rad):
 
-        th, ph, ps = get_angles_from_w(w, reverse_xs=reverse_xs)
+        # Get angles from w matrix after previous element
+        th, ph, ps = get_angles_from_w(w, reverse_xs = reverse_xs)
 
+        # Store position and orientation at element entrance
         X.append(v[0])
         Y.append(v[1])
         Z.append(v[2])
@@ -405,11 +489,20 @@ def compute_survey(X0, Y0, Z0, theta0, phi0, psi0, drift_length, angle, tilt,
         psi.append(ps)
 
         # Advancing
-        v, w = advance_element(v, w, length=ll, angle=aa, tilt=tt, dx=xx, dy=yy,
-                               transf_x_rad=tx, transf_y_rad=ty, transf_s_rad=ts)
+        v, w = advance_element(
+            v               = v,
+            w               = w,
+            length          = ll,
+            angle           = aa,
+            tilt            = tt,
+            dx              = xx,
+            dy              = yy,
+            transf_x_rad    = tx,
+            transf_y_rad    = ty,
+            transf_s_rad    = ts)
 
     # Last marker
-    th, ph, ps = get_angles_from_w(w, reverse_xs=reverse_xs)
+    th, ph, ps = get_angles_from_w(w, reverse_xs = reverse_xs)
     X.append(v[0])
     Y.append(v[1])
     Z.append(v[2])
@@ -417,5 +510,5 @@ def compute_survey(X0, Y0, Z0, theta0, phi0, psi0, drift_length, angle, tilt,
     phi.append(ph)
     psi.append(ps)
 
-    # Returns as SurveyTable object
+    # Return data for SurveyTable object
     return X, Y, Z, theta, phi, psi
