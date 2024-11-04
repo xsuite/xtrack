@@ -4,6 +4,7 @@
 # ######################################### #
 
 import math
+import json
 import logging
 import uuid
 import os
@@ -4984,6 +4985,11 @@ class LineVars:
 
     def load_madx_optics_file(self, filename, mad_stdout=False):
         self.set_from_madx_file(filename, mad_stdout=mad_stdout)
+
+    def load_json(self, filename):
+        with open(filename, 'r') as fid:
+            data = json.load(fid)
+        self.update(data)
 
     def target(self, tar, value, **kwargs):
         action = ActionVars(self.line)
