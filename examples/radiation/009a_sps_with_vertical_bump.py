@@ -41,7 +41,6 @@ mad.input('twiss, table=tw6d;')
 twm6d = mad.table.tw6d
 
 mad.sequence.sps.beam.radiate = True
-mad.emit()
 
 line = xt.Line.from_madx_sequence(mad.sequence.sps, allow_thick=True,
                                   deferred_expressions=True)
@@ -59,6 +58,7 @@ line.insert_element(element=line['actcse.31632'].copy(), index='bpv.51508',
                     name='cav5')
 line.insert_element(element=line['actcse.31632'].copy(), index='bpv.61508',
                     name='cav6')
+mad.emit()
 
 tt = line.get_table()
 

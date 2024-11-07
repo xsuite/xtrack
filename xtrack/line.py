@@ -4987,9 +4987,14 @@ class LineVars:
         self.set_from_madx_file(filename, mad_stdout=mad_stdout)
 
     def load_json(self, filename):
+
         with open(filename, 'r') as fid:
             data = json.load(fid)
+
+        _old_default_to_zero = self.default_to_zero
+        self.default_to_zero = True
         self.update(data)
+        self.default_to_zero = _old_default_to_zero
 
     def target(self, tar, value, **kwargs):
         action = ActionVars(self.line)
