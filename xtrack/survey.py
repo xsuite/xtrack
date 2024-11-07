@@ -14,7 +14,7 @@ import xtrack as xt
 
 # Required functions
 # ==================================================
-def get_w_from_angles(theta, phi, psi, reverse_xs=False):
+def get_w_from_angles(theta, phi, psi, reverse_xs = False):
     """W matrix, see MAD-X manual"""
     costhe = np.cos(theta)
     cosphi = np.cos(phi)
@@ -40,7 +40,7 @@ def get_w_from_angles(theta, phi, psi, reverse_xs=False):
     return w
 
 
-def get_angles_from_w(w, reverse_xs=False):
+def get_angles_from_w(w, reverse_xs = False):
     """Inverse function of get_w_from_angles()"""
     # w[0, 2]/w[2, 2] = (sinthe * cosphi)/(costhe * cosphi)
     # w[1, 0]/w[1, 1] = (cosphi * sinpsi)/(cosphi * cospsi)
@@ -55,7 +55,8 @@ def get_angles_from_w(w, reverse_xs=False):
     psi = np.arctan2(w[1, 0], w[1, 1])
     phi = np.arctan2(w[1, 2], w[1, 1] / np.cos(psi))
 
-    # TODO: arctan2 returns angle between [-pi,pi]. Hence theta ends up not at 2pi after a full survey
+    # TODO: arctan2 returns angle between [-pi,pi].
+    # Hence theta ends up not at 2pi after a full survey
     return theta, phi, psi
 
 
@@ -77,8 +78,9 @@ def advance_drift(v, w, R):
     return np.dot(w, R) + v, w
 
 
-def advance_element(v, w, length=0, angle=0, tilt=0, dx=0, dy=0,
-                    transf_x_rad=0, transf_y_rad=0, transf_s_rad=0):
+def advance_element(
+        v, w, length = 0, angle = 0, tilt = 0,
+        dx = 0, dy = 0, transf_x_rad = 0, transf_y_rad = 0, transf_s_rad = 0):
     """Computing the advance element-by-element.
     See MAD-X manual for generation of R and S"""
     # XYShift Handling
@@ -97,7 +99,7 @@ def advance_element(v, w, length=0, angle=0, tilt=0, dx=0, dy=0,
         assert tilt == 0,   "rot_x_rad is only supported for tilt = 0"
         assert length == 0, "rot_x_rad is only supported for length = 0"
 
-        # Relevant sine/cosine
+        # Rotation sine/cosine
         cr = np.cos(-transf_x_rad)
         sr = np.sin(-transf_x_rad)
         # ------
@@ -110,7 +112,7 @@ def advance_element(v, w, length=0, angle=0, tilt=0, dx=0, dy=0,
         assert tilt == 0,   "rot_y_rad is only supported for tilt = 0"
         assert length == 0, "rot_y_rad is only supported for length = 0"
 
-        # Relevant sine/cosine
+        # Rotation sine/cosine
         cr = np.cos(transf_y_rad)
         sr = np.sin(transf_y_rad)
         # ------
@@ -123,7 +125,7 @@ def advance_element(v, w, length=0, angle=0, tilt=0, dx=0, dy=0,
         assert tilt == 0,   "rot_s_rad is only supported for tilt = 0"
         assert length == 0, "rot_s_rad is only supported for length = 0"
 
-        # Relevant sine/cosine
+        # Rotation sine/cosine
         cr = np.cos(transf_s_rad)
         sr = np.sin(transf_s_rad)
         # ------
@@ -137,7 +139,7 @@ def advance_element(v, w, length=0, angle=0, tilt=0, dx=0, dy=0,
 
     # Horizontal bending elements
     elif tilt == 0:
-        # Relevant sine/cosine
+        # Angle sine/cosine
         ca = np.cos(angle)
         sa = np.sin(angle)
         # ------
@@ -148,9 +150,10 @@ def advance_element(v, w, length=0, angle=0, tilt=0, dx=0, dy=0,
 
     # Tilted bending elements
     else:
-        # Relevant sine/cosine
+        # Angle sine/cosine
         ca = np.cos(angle)
         sa = np.sin(angle)
+        # Tilt sine/cosine
         ct = np.cos(tilt)
         st = np.sin(tilt)
         # ------
@@ -172,8 +175,13 @@ class SurveyTable(Table):
 
     _error_on_row_not_found = True
 
-    def reverse(self, X0=None, Y0=None, Z0=None, theta0=None,
-                phi0=None, psi0=None, element0=None):
+    def reverse(
+            self,
+            X0 = None, Y0 = None, Z0 = None,
+            theta0 = None, phi0 = None, psi0 = None, element0 = None):
+        """
+        Reverse the survey.
+        """
 
         if element0 is None:
             element0 = len(self.name) - self.element0 - 1
@@ -194,15 +202,15 @@ class SurveyTable(Table):
             psi0 = self.psi[self.element0]
 
         # We cut away the last marker (added by survey) and reverse the order
-        out_drift_length = list(self.drift_length[:-1][::-1])
-        out_angle = list(-self.angle[:-1][::-1])
-        out_tilt = list(-self.tilt[:-1][::-1])
-        out_dx = list(-self.dx[:-1][::-1])
-        out_dy = list(-self.dy[:-1][::-1])
-        out_transf_x_rad = list(-self.transf_x_rad[:-1][::-1])
-        out_transf_y_rad = list(-self.transf_y_rad[:-1][::-1])
-        out_transf_s_rad = list(-self.transf_s_rad[:-1][::-1])
-        out_name = list(self.name[:-1][::-1])
+        out_drift_length    = list(self.drift_length[:-1][::-1])
+        out_angle           = list(-self.angle[:-1][::-1])
+        out_tilt            = list(-self.tilt[:-1][::-1])
+        out_dx              = list(-self.dx[:-1][::-1])
+        out_dy              = list(-self.dy[:-1][::-1])
+        out_transf_x_rad    = list(-self.transf_x_rad[:-1][::-1])
+        out_transf_y_rad    = list(-self.transf_y_rad[:-1][::-1])
+        out_transf_s_rad    = list(-self.transf_s_rad[:-1][::-1])
+        out_name            = list(self.name[:-1][::-1])
 
         if isinstance(element0, str):
             element0 = out_name.index(element0)
@@ -249,15 +257,20 @@ class SurveyTable(Table):
 
         out_scalars["element0"] = element0
 
-        out = SurveyTable(data=(out_columns | out_scalars),
-                          col_names=out_columns.keys())
+        out = SurveyTable(
+            data=(out_columns | out_scalars),
+            col_names=out_columns.keys())
 
         return out
 
-    def plot(self, element_width=None, legend=True, **kwargs):
+    def plot(self, element_width = None, legend = True, **kwargs):
         """
         Plot the survey using xplt.FloorPlot
         """
+        # Import the xplt module here
+        # (Not at the top as not default installation with xsuite)
+        import xplt
+
         # Shallow copy of self
         out_sv_table = SurveyTable.__new__(SurveyTable)
         out_sv_table.__dict__.update(self.__dict__)
@@ -266,13 +279,19 @@ class SurveyTable(Table):
         # Removing the count for repeated elements
         out_sv_table.name = np.array([nn.split('::')[0] for nn in out_sv_table.name])
 
+        # Setting element width for plotting
         if element_width is None:
             x_range = max(self.X) - min(self.X)
             y_range = max(self.Y) - min(self.Y)
             z_range = max(self.Z) - min(self.Z)
-            element_width = max([x_range, y_range, z_range]) * 0.03
-        import xplt
-        xplt.FloorPlot(out_sv_table, self.line, element_width=element_width, **kwargs)
+            element_width   = max([x_range, y_range, z_range]) * 0.03
+
+        xplt.FloorPlot(
+            survey          = out_sv_table,
+            line            = self.line,
+            element_width   = element_width,
+            **kwargs)
+
         if legend:
             import matplotlib.pyplot as plt
             plt.legend()
@@ -282,10 +301,10 @@ class SurveyTable(Table):
 
 # Main function
 # ==================================================
-def survey_from_line(line, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
-                        element0=0,
-                        values_at_element_exit=False,
-                        reverse=True):
+def survey_from_line(
+        line,
+        X0 = 0, Y0 = 0, Z0 = 0, theta0 = 0, phi0 = 0, psi0 = 0,
+        element0 = 0, values_at_element_exit = False, reverse = True):
     """Execute SURVEY command. Based on MADX equivalent.
     Attributes, must be given in this order in the dictionary:
     X0        (float)    Initial X position in meters.
@@ -375,10 +394,11 @@ def survey_from_line(line, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
     return out
 
 
-def compute_survey(X0, Y0, Z0, theta0, phi0, psi0,
-                   drift_length, angle, tilt,
-                   dx, dy, transf_x_rad, transf_y_rad, transf_s_rad,
-                   element0 = 0, reverse_xs = False):
+def compute_survey(
+        X0, Y0, Z0, theta0, phi0, psi0,
+        drift_length, angle, tilt,
+        dx, dy, transf_x_rad, transf_y_rad, transf_s_rad,
+        element0 = 0, reverse_xs = False):
     """
     Compute survey from initial position and orientation.
     """
@@ -474,8 +494,8 @@ def compute_survey(X0, Y0, Z0, theta0, phi0, psi0,
         reverse_xs  = reverse_xs)
 
     # Advancing element by element
-    for ll, aa, tt, xx, yy, tx, ty, ts, in zip(drift_length, angle, tilt, dx, dy,
-                                  transf_x_rad, transf_y_rad, transf_s_rad):
+    for ll, aa, tt, xx, yy, tx, ty, ts, in zip(
+        drift_length, angle, tilt, dx, dy, transf_x_rad, transf_y_rad, transf_s_rad):
 
         # Get angles from w matrix after previous element
         th, ph, ps = get_angles_from_w(w, reverse_xs = reverse_xs)
