@@ -1,5 +1,5 @@
 """
-Test the survey on YRotation
+Test the survey on SRotation
 """
 ################################################################################
 # Packages
@@ -50,7 +50,7 @@ axs_shift_v = gs_shift_v.subplots(sharex = 'row', sharey = True)
 env     = xt.Environment(particle_ref = xt.Particles(p0c = 1E9))
 line    = env.new_line(name = 'line', components=[
     env.new('mult1', xt.Multipole, hxl = 0, length = 0.5, at = 1),
-    env.new('yrotation', xt.YRotation, angle = 0, at = 2),
+    env.new('srotation', xt.SRotation, angle = 0, at = 2),
     env.new('mult2', xt.Multipole, hxl = 0, length = 0.5, at = 3),
     env.new('end', xt.Marker, at = 4)])
 
@@ -59,7 +59,7 @@ line    = env.new_line(name = 'line', components=[
 ########################################
 line['mult1'].hxl       = 0
 line['mult2'].hxl       = 0
-line['yrotation'].angle = np.rad2deg(0)
+line['srotation'].angle = np.rad2deg(0)
 
 sv, tw = madpoint_twiss_survey(line)
 
@@ -77,7 +77,7 @@ assert np.allclose(np.array([sv.Y[-1], sv.yy[-1], tw.y[-1]]), 0, atol=TOLERANCE)
 ########################################
 line['mult1'].hxl       = 0
 line['mult2'].hxl       = 0
-line['yrotation'].angle = ROT_DEG
+line['srotation'].angle = ROT_DEG
 
 sv, tw = madpoint_twiss_survey(line)
 
@@ -94,7 +94,7 @@ add_to_plot(axs_mult_h, sv, tw, 1, xlims = PLOT_X_LIMS, ylims = PLOT_Y_LIMS)
 ########################################
 line['mult1'].hxl       = HXL
 line['mult2'].hxl       = 0
-line['yrotation'].angle = ROT_DEG
+line['srotation'].angle = ROT_DEG
 
 sv, tw = madpoint_twiss_survey(line)
 
@@ -111,7 +111,7 @@ add_to_plot(axs_mult_h, sv, tw, 2, xlims = PLOT_X_LIMS, ylims = PLOT_Y_LIMS)
 ########################################
 line['mult1'].hxl       = 0
 line['mult2'].hxl       = HXL
-line['yrotation'].angle = ROT_DEG
+line['srotation'].angle = ROT_DEG
 
 sv, tw = madpoint_twiss_survey(line)
 
@@ -128,7 +128,7 @@ add_to_plot(axs_mult_h, sv, tw, 3, xlims = PLOT_X_LIMS, ylims = PLOT_Y_LIMS)
 ########################################
 line['mult1'].hxl       = HXL
 line['mult2'].hxl       = HXL
-line['yrotation'].angle = ROT_DEG
+line['srotation'].angle = ROT_DEG
 
 sv, tw = madpoint_twiss_survey(line)
 
@@ -150,7 +150,7 @@ add_to_plot(axs_mult_h, sv, tw, 4, xlims = PLOT_X_LIMS, ylims = PLOT_Y_LIMS)
 env     = xt.Environment(particle_ref = xt.Particles(p0c = 1E9))
 line    = env.new_line(name = 'line', components=[
     env.new('mult1', xt.Multipole, hxl = 0, length = 0.5, at = 1, rot_s_rad = np.pi / 2),
-    env.new('yrotation', xt.YRotation, angle = 0, at = 2),
+    env.new('srotation', xt.SRotation, angle = 0, at = 2),
     env.new('mult2', xt.Multipole, hxl = 0, length = 0.5, at = 3, rot_s_rad = np.pi / 2),
     env.new('end', xt.Marker, at = 4)])
 
@@ -159,7 +159,7 @@ line    = env.new_line(name = 'line', components=[
 ########################################
 line['mult1'].hxl       = 0
 line['mult2'].hxl       = 0
-line['yrotation'].angle = np.rad2deg(0)
+line['srotation'].angle = np.rad2deg(0)
 
 sv, tw = madpoint_twiss_survey(line)
 
@@ -177,7 +177,7 @@ assert np.allclose(np.array([sv.Y[-1], sv.yy[-1], tw.y[-1]]), 0, atol=TOLERANCE)
 ########################################
 line['mult1'].hxl       = 0
 line['mult2'].hxl       = 0
-line['yrotation'].angle = ROT_DEG
+line['srotation'].angle = ROT_DEG
 
 sv, tw = madpoint_twiss_survey(line)
 
@@ -194,7 +194,7 @@ add_to_plot(axs_mult_v, sv, tw, 1, xlims = PLOT_X_LIMS, ylims = PLOT_Y_LIMS)
 ########################################
 line['mult1'].hxl       = HXL
 line['mult2'].hxl       = 0
-line['yrotation'].angle = ROT_DEG
+line['srotation'].angle = ROT_DEG
 
 sv, tw = madpoint_twiss_survey(line)
 
@@ -211,7 +211,7 @@ add_to_plot(axs_mult_v, sv, tw, 2, xlims = PLOT_X_LIMS, ylims = PLOT_Y_LIMS)
 ########################################
 line['mult1'].hxl       = 0
 line['mult2'].hxl       = HXL
-line['yrotation'].angle = ROT_DEG
+line['srotation'].angle = ROT_DEG
 
 sv, tw = madpoint_twiss_survey(line)
 
@@ -228,7 +228,7 @@ add_to_plot(axs_mult_v, sv, tw, 3, xlims = PLOT_X_LIMS, ylims = PLOT_Y_LIMS)
 ########################################
 line['mult1'].hxl       = HXL
 line['mult2'].hxl       = HXL
-line['yrotation'].angle = ROT_DEG
+line['srotation'].angle = ROT_DEG
 
 sv, tw = madpoint_twiss_survey(line)
 
@@ -250,7 +250,7 @@ add_to_plot(axs_mult_v, sv, tw, 4, xlims = PLOT_X_LIMS, ylims = PLOT_Y_LIMS)
 env     = xt.Environment(particle_ref = xt.Particles(p0c = 1E9))
 line    = env.new_line(name = 'line', components=[
     env.new('shift1', xt.XYShift, dx = 0, dy = 0, at = 1),
-    env.new('yrotation', xt.YRotation, angle = 0, at = 2),
+    env.new('srotation', xt.SRotation, angle = 0, at = 2),
     env.new('shift2', xt.XYShift, dx = 0, dy = 0, at = 3),
     env.new('end', xt.Marker, at = 4)])
 
@@ -259,7 +259,7 @@ line    = env.new_line(name = 'line', components=[
 ########################################
 line['shift1'].dx       = 0
 line['shift2'].dx       = 0
-line['yrotation'].angle = np.rad2deg(0)
+line['srotation'].angle = np.rad2deg(0)
 
 sv, tw = madpoint_twiss_survey(line)
 
@@ -277,7 +277,7 @@ assert np.allclose(np.array([sv.Y[-1], sv.yy[-1], tw.y[-1]]), 0, atol=TOLERANCE)
 ########################################
 line['shift1'].dx       = 0
 line['shift2'].dx       = 0
-line['yrotation'].angle = ROT_DEG
+line['srotation'].angle = ROT_DEG
 
 sv, tw = madpoint_twiss_survey(line)
 
@@ -294,7 +294,7 @@ add_to_plot(axs_shift_h, sv, tw, 1, xlims = PLOT_X_LIMS, ylims = PLOT_Y_LIMS)
 ########################################
 line['shift1'].dx       = DX
 line['shift2'].dx       = 0
-line['yrotation'].angle = ROT_DEG
+line['srotation'].angle = ROT_DEG
 
 sv, tw = madpoint_twiss_survey(line)
 
@@ -311,7 +311,7 @@ add_to_plot(axs_shift_h, sv, tw, 2, xlims = PLOT_X_LIMS, ylims = PLOT_Y_LIMS)
 ########################################
 line['shift1'].dx       = 0
 line['shift2'].dx       = DX
-line['yrotation'].angle = ROT_DEG
+line['srotation'].angle = ROT_DEG
 
 sv, tw = madpoint_twiss_survey(line)
 
@@ -328,7 +328,7 @@ add_to_plot(axs_shift_h, sv, tw, 3, xlims = PLOT_X_LIMS, ylims = PLOT_Y_LIMS)
 ########################################
 line['shift1'].dx       = DX
 line['shift2'].dx       = DX
-line['yrotation'].angle = ROT_DEG
+line['srotation'].angle = ROT_DEG
 
 sv, tw = madpoint_twiss_survey(line)
 
@@ -350,7 +350,7 @@ add_to_plot(axs_shift_h, sv, tw, 4, xlims = PLOT_X_LIMS, ylims = PLOT_Y_LIMS)
 env     = xt.Environment(particle_ref = xt.Particles(p0c = 1E9))
 line    = env.new_line(name = 'line', components=[
     env.new('shift1', xt.XYShift, dx = 0, dy = 0, at = 1),
-    env.new('yrotation', xt.YRotation, angle = 0, at = 2),
+    env.new('srotation', xt.SRotation, angle = 0, at = 2),
     env.new('shift2', xt.XYShift, dx = 0, dy = 0, at = 3),
     env.new('end', xt.Marker, at = 4)])
 
@@ -359,7 +359,7 @@ line    = env.new_line(name = 'line', components=[
 ########################################
 line['shift1'].dy       = 0
 line['shift2'].dy       = 0
-line['yrotation'].angle = np.rad2deg(0)
+line['srotation'].angle = np.rad2deg(0)
 
 sv, tw = madpoint_twiss_survey(line)
 
@@ -377,7 +377,7 @@ assert np.allclose(np.array([sv.Y[-1], sv.yy[-1], tw.y[-1]]), 0, atol=TOLERANCE)
 ########################################
 line['shift1'].dy       = 0
 line['shift2'].dy       = 0
-line['yrotation'].angle = ROT_DEG
+line['srotation'].angle = ROT_DEG
 
 sv, tw = madpoint_twiss_survey(line)
 
@@ -394,7 +394,7 @@ add_to_plot(axs_shift_v, sv, tw, 1, xlims = PLOT_X_LIMS, ylims = PLOT_Y_LIMS)
 ########################################
 line['shift1'].dy       = DX
 line['shift2'].dy       = 0
-line['yrotation'].angle = ROT_DEG
+line['srotation'].angle = ROT_DEG
 
 sv, tw = madpoint_twiss_survey(line)
 
@@ -411,7 +411,7 @@ add_to_plot(axs_shift_v, sv, tw, 2, xlims = PLOT_X_LIMS, ylims = PLOT_Y_LIMS)
 ########################################
 line['shift1'].dy       = 0
 line['shift2'].dy       = DX
-line['yrotation'].angle = ROT_DEG
+line['srotation'].angle = ROT_DEG
 
 sv, tw = madpoint_twiss_survey(line)
 
@@ -428,7 +428,7 @@ add_to_plot(axs_shift_v, sv, tw, 3, xlims = PLOT_X_LIMS, ylims = PLOT_Y_LIMS)
 ########################################
 line['shift1'].dy       = DX
 line['shift2'].dy       = DX
-line['yrotation'].angle = ROT_DEG
+line['srotation'].angle = ROT_DEG
 
 sv, tw = madpoint_twiss_survey(line)
 
@@ -473,7 +473,7 @@ fig_mult_h.legend(
     ncol            = 2,
     frameon         = False,
     bbox_to_anchor  = (0.5, -0.05))
-fig_mult_h.suptitle('Horizontal Multipole and YRotation')
+fig_mult_h.suptitle('Horizontal Multipole and SRotation')
 
 ########################################
 # Vertical Mult
@@ -504,7 +504,7 @@ fig_mult_v.legend(
     ncol            = 2,
     frameon         = False,
     bbox_to_anchor  = (0.5, -0.05))
-fig_mult_v.suptitle('Vertical Multipole and YRotation')
+fig_mult_v.suptitle('Vertical Multipole and SRotation')
 
 ########################################
 # Horizontal XYShift
@@ -535,7 +535,7 @@ fig_shift_h.legend(
     ncol            = 2,
     frameon         = False,
     bbox_to_anchor  = (0.5, -0.05))
-fig_shift_h.suptitle('Horizontal XYShift and YRotation')
+fig_shift_h.suptitle('Horizontal XYShift and SRotation')
 
 ########################################
 # Vertical XYShift
@@ -566,7 +566,7 @@ fig_shift_v.legend(
     ncol            = 2,
     frameon         = False,
     bbox_to_anchor  = (0.5, -0.05))
-fig_shift_v.suptitle('Vertical XYShift and YRotation')
+fig_shift_v.suptitle('Vertical XYShift and SRotation')
 
 ########################################
 # Show
