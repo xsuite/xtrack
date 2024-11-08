@@ -76,8 +76,12 @@ class MadxTransformer(Transformer):
         self.lines: Dict[str, LineType] = {}
         self.parameters = {}
 
-    def ignored(self, line):
-        warn(f'Ignoring line: {line}')
+    def ignored(self, tokens):
+        if tokens:
+            statement = ' '.join(str(token) for token in tokens.children)
+        else:
+            statement = ''
+        warn(f'Ignoring statement: `{statement}`')
 
     def assign_defer(self, name, value) -> Tuple[str, VarType]:
         return name.value.lower(), {
@@ -134,14 +138,45 @@ class MadxTransformer(Transformer):
             'elements': list(clones),
         }
 
+    def seqedit(self, arglist, *commands) -> Tuple[str, LineType]:
+        (param_name, sequence_name), = arglist
+
+        if param_name != 'sequence':
+            raise ValueError(f'Unexpected parameter `{param_name}` of `seqedit`')
+
+        if sequence_name['deferred']:
+            raise ValueError('Param `sequence` of `seqedit` cannot be deferred.')
+
+        sequence_name = sequence_name['expr']
+
+        for command in commands:
+            name, params = command
+
+            if any(v['deferred'] for v in params.values()):
+                raise ValueError(f'Commands in `seqedit` are not supported with deferred params')
+
+            if name == 'install':
+                element_name = params.pop('element')['expr']
+                self.lines[sequence_name]['elements'].append((element_name, params))
+            else:
+                warn(f'Command {name} with params {params} is ignored')
+
     def top_level_sequence(self, sequence):
         name, body = sequence
         self.lines[name] = body
 
     def clone(self, name_token, command_token, arglist) -> Tuple[str, ElementType]:
+        args = dict(arglist)
+        parent = command_token.value.lower()
+
+        if parent == 'marker' and 'apertype' in args:
+            # Collapse aperture markers into actual aperture elements, this
+            # will make loading easier for now.
+            parent = args.pop('apertype')['expr']
+
         return name_token.value.lower(), {
-            'parent': command_token.value.lower(),
-            **dict(arglist),
+            'parent': parent,
+            **args,
         }
 
     def top_level_clone(self, clone):

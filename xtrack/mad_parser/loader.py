@@ -4,9 +4,10 @@ from typing import Dict, Optional, List, Set, Tuple, Union
 import numpy as np
 
 import xtrack as xt
-from xtrack import Environment, BeamElement
+from xtrack import BeamElement
 from xtrack.environment import Builder
-from xtrack.mad_parser.parse import ElementType, LineType, MadxParser, VarType, MadxOutputType, ModifiersType
+from xtrack.mad_parser.env_writer import EnvWriterProxy
+from xtrack.mad_parser.parse import ElementType, LineType, MadxParser, VarType, MadxOutputType
 
 EXTRA_PARAMS = {
     "slot_id",
@@ -16,8 +17,6 @@ EXTRA_PARAMS = {
     "kmax",
     "calib",
     "polarity",
-    "aperture",  # for now ignore apertures
-    "apertype",
     "aper_tol",
 }
 
@@ -31,6 +30,8 @@ TRANSLATE_PARAMS = {
     "fint": "edge_entry_fint",
     "fintx": "edge_exit_fint",
 }
+
+REVERSED_SUFFIX = '_reversed'
 
 
 def _warn(msg):
@@ -61,7 +62,7 @@ def get_params(params, parent):
 
 
 def _reversed_name(name: str):
-    return f'{name}^'
+    return f'{name}{REVERSED_SUFFIX}'
 
 
 def _invert(value: Union[str, int, float]):
@@ -71,7 +72,11 @@ def _invert(value: Union[str, int, float]):
 
 
 class MadxLoader:
-    def __init__(self, reverse_lines: Optional[List[str]] = None):
+    def __init__(
+            self,
+            reverse_lines: Optional[List[str]] = None,
+            env: Union[xt.Environment, EnvWriterProxy] = None,
+    ):
         self.reverse_lines = reverse_lines or []
 
         self._madx_elem_hierarchy: Dict[str, List[str]] = {}
@@ -82,7 +87,7 @@ class MadxLoader:
 
         self.rbarc = True
 
-        self.env = xt.Environment()
+        self.env = env or xt.Environment()
         self._init_environment()
 
     def _init_environment(self):
@@ -128,7 +133,11 @@ class MadxLoader:
         self._new_builtin("rfcavity", "Cavity")
         self._new_builtin("multipole", "Multipole", knl=6 * [0])
         self._new_builtin("solenoid", "Solenoid")
-        self._new_builtin("rectellipse", "Drift")
+        self._new_builtin('circle', 'LimitEllipse')
+        self._new_builtin('ellipse', 'LimitEllipse')
+        self._new_builtin('rectangle', 'LimitRect')
+        self._new_builtin("rectellipse", 'LimitRectEllipse')
+        self._new_builtin("racetrack", 'LimitRacetrack')
 
     def load_file(self, file, build=True) -> Optional[List[Builder]]:
         """Load a MAD-X file and generate/update the environment."""
@@ -231,6 +240,7 @@ class MadxLoader:
                     element = -element
                 element = repeat * element
                 components.append(element)
+                self._temp_line_save_in_writer(element)
             elif parent == 'line':
                 # If it's a nested line, we parse it recursively
                 element = self._parse_line_components(body['elements'])
@@ -279,7 +289,7 @@ class MadxLoader:
                 _warn(f'Ignoring extra parameters {extras} for element `{name}`!')
 
             if isinstance(self.env[name], BeamElement) and not self.env[name].isthick and length:
-                drift_name = f'{name}_drift'
+                drift_name = f'drift_{name}'
                 self.env.new(drift_name, 'Drift', length=f'({length}) / 2')
                 name = builder.new_line([drift_name, name, drift_name])
             builder.place(name, **el_params)
@@ -290,13 +300,15 @@ class MadxLoader:
                 at, from_ = el_params.pop('at', None), el_params.pop('from_', None)
                 self.env.new(name, parent, **el_params)
                 name = self.env.new_line([drift_name, name, drift_name])
-                builder.new(name, parent, at=at, from_=from_)
+                builder.place(name, at=at, from_=from_)
             else:
                 builder.new(name, parent, **el_params)
 
     def _set_element(self, name, builder, **kwargs):
         self._parameter_cache[name].update(kwargs)
         el_params = self._pre_process_element_params(name, kwargs)
+        el_params.pop('from_', None)
+        el_params.pop('at', None)
         builder.set(name, **el_params)
 
     def _pre_process_element_params(self, name, params):
@@ -363,12 +375,47 @@ class MadxLoader:
             if (hkick := params.pop('hkick', None)):
                 params['knl'] = [f'-({hkick})']
 
+        elif parent_name == 'circle':
+            if (aperture := params.pop('aperture', None)):
+                params['a'] = params['b'] = aperture[0]
+                params['rot_s_rad'] = params.get('aper_tilt', 0)
+                # aper_offset = params.get('aper_offset', [0, 0])
+                # params['shift_x'] = aper_offset[0]
+                # params['shift_y'] = aper_offset[1]
+
+        elif parent_name == 'ellipse':
+            if (aperture := params.pop('aperture', None)):
+                params['a'] = aperture[0]
+                params['b'] = aperture[1]
+                params['rot_s_rad'] = params.get('aper_tilt', 0)
+
+        elif parent_name == 'rectangle':
+            if (aperture := params.pop('aperture', None)):
+                params['min_x'] = -aperture[0]
+                params['max_x'] = aperture[0]
+                params['min_y'] = -aperture[1]
+                params['max_y'] = aperture[1]
+                params['rot_s_rad'] = params.get('aper_tilt', 0)
+#                 params['shift_x'] = params.get('v_pos', 0)
+
         elif parent_name == 'rectellipse':
             if (aperture := params.pop('aperture', None)):
                 params['max_x'] = aperture[0]
                 params['max_y'] = aperture[1]
                 params['a'] = aperture[2]
                 params['b'] = aperture[3]
+                params['rot_s_rad'] = params.get('aper_tilt', 0)
+#                 params['shift_x'] = params.get('v_pos', 0)
+
+        elif parent_name == 'racetrack':
+            if (aperture := params.pop('aperture', None)):
+                params['min_x'] = -aperture[0]
+                params['max_x'] = aperture[0]
+                params['min_y'] = -aperture[1]
+                params['max_y'] = aperture[1]
+                params['a'] = aperture[2]
+                params['b'] = aperture[3]
+                params['rot_s_rad'] = params.get('aper_tilt', 0)
 
         if 'edge_entry_fint' in params and 'edge_exit_fint' not in params:
             params['edge_exit_fint'] = params['edge_entry_fint']
@@ -558,8 +605,8 @@ class MadxLoader:
         return element
 
     def _mad_base_type(self, element_name: str):
-        if element_name.endswith('^'):
-            element_name = element_name[:-1]
+        if element_name.endswith(REVERSED_SUFFIX):
+            element_name = element_name[:-len(REVERSED_SUFFIX)]
 
         if element_name in self._madx_elem_hierarchy:
             return self._madx_elem_hierarchy[element_name][-1]
@@ -571,3 +618,8 @@ class MadxLoader:
             )
 
         return element_name
+
+    def _temp_line_save_in_writer(self, line: xt.Line):
+        """If self.env is a writing proxy, save the temporary line within."""
+        if isinstance(self.env, EnvWriterProxy):
+            self.env.save_temp_line(line)
