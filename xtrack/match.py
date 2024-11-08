@@ -48,7 +48,6 @@ ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau',
                         'eq_nemitt_x', 'eq_nemitt_y', 'eq_nemitt_zeta']
 
 
-
 # Alternative transitions functions
 # def _transition_sigmoid_integral(x):
 #     x_shift = x - 3

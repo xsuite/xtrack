@@ -1,11 +1,14 @@
 from copy import deepcopy
-from typing import Dict, Optional, List, Set, Tuple
+from typing import Dict, Optional, List, Set, Tuple, Union
+
 
 import numpy as np
 
 import xtrack as xt
-from xtrack import Environment
+from xtrack import BeamElement
 from xtrack.environment import Builder
+from xtrack.mad_parser.env_writer import EnvWriterProxy
+from xtrack import Environment
 from xtrack.mad_parser.parse import ElementType, LineType, MadxParser, VarType, MadxOutputType
 
 EXTRA_PARAMS = {
@@ -16,6 +19,7 @@ EXTRA_PARAMS = {
     "kmax",
     "calib",
     "polarity",
+    "aper_tol",
 }
 
 TRANSLATE_PARAMS = {
@@ -28,6 +32,12 @@ TRANSLATE_PARAMS = {
     "fint": "edge_entry_fint",
     "fintx": "edge_exit_fint",
 }
+
+REVERSED_SUFFIX = '_reversed'
+
+
+def _warn(msg):
+    print(f'Warning: {msg}')
 
 
 def get_params(params, parent):
@@ -54,33 +64,66 @@ def get_params(params, parent):
 
 
 def _reversed_name(name: str):
-    return f'{name}^'
+    return f'{name}{REVERSED_SUFFIX}'
+
+
+def _invert(value: Union[str, int, float]):
+    if isinstance(value, str):
+        return f'-({value})'
+    return -value
 
 
 class MadxLoader:
-    def __init__(self, reverse_lines: Optional[List[str]] = None):
+    def __init__(
+            self,
+            reverse_lines: Optional[List[str]] = None,
+            env: Union[xt.Environment, EnvWriterProxy] = None,
+    ):
         self.reverse_lines = reverse_lines or []
 
-        self._madx_elem_hierarchy: Dict[str, str] = {}
+        self._madx_elem_hierarchy: Dict[str, List[str]] = {}
         self._reversed_elements: Set[str] = set()
         self._both_direction_elements: Set[str] = set()
         self._builtin_types = set()
+        self._parameter_cache = {}
 
-        self.env = xt.Environment()
+        self.rbarc = True
+
+        self.env = env or xt.Environment()
+
         self._init_environment()
 
     def _init_environment(self):
-        self.env._xdeps_vref._owner.default_factory = lambda: 0
+        self.env.vars.default_to_zero = True
 
         # Define the builtin MAD-X variables
-        self.env.vars["twopi"] = np.pi * 2
+        self.env.vars.update({
+            "pi": np.pi,
+            "twopi": np.pi * 2,
+            "degrad": 180 / np.pi,  # deg/rad
+            "raddeg": np.pi / 180,  # rad/deg
+            "e": np.e,
+            "emass": 0.51099895000e-3,  # GeV
+            "pmass": 0.93827208816,  # GeV
+            "nmass": 0.93956542052,  # GeV
+            "umass": 0.93149410242,  # GeV
+            "mumass": 0.1056583715,  # GeV
+            "clight": 299792458.0,  # m/s
+            "qelect": 1.602176634e-19,  # A * s
+            "hbar": 6.582119569e-25,  # MeV * s
+            "erad": 2.8179403262e-15,  # m
+            "prad": 'erad / emass * pmass',
+        })
 
         # Define the built-in MAD-X elements
         self._new_builtin("vkicker", "Multipole")
         self._new_builtin("hkicker", "Multipole")
         self._new_builtin("tkicker", "Multipole")
         self._new_builtin("kicker", "Multipole")
+        self._new_builtin("drift", "Drift")
         self._new_builtin("collimator", "Drift")
+        self._new_builtin("rcollimator", "Drift")
+        self._new_builtin("ecollimator", "Drift")
         self._new_builtin("instrument", "Drift")
         self._new_builtin("monitor", "Drift")
         self._new_builtin("placeholder", "Drift")
@@ -91,9 +134,13 @@ class MadxLoader:
         self._new_builtin("octupole", "Octupole")
         self._new_builtin("marker", "Marker")
         self._new_builtin("rfcavity", "Cavity")
-        self._new_builtin("multipole", "Multipole", knl=[0, 0, 0, 0, 0, 0])
+        self._new_builtin("multipole", "Multipole", knl=6 * [0])
         self._new_builtin("solenoid", "Solenoid")
-        self._new_builtin("drift", "Drift")
+        self._new_builtin('circle', 'LimitEllipse')
+        self._new_builtin('ellipse', 'LimitEllipse')
+        self._new_builtin('rectangle', 'LimitRect')
+        self._new_builtin("rectellipse", 'LimitRectEllipse')
+        self._new_builtin("racetrack", 'LimitRacetrack')
 
     def load_file(self, file, build=True) -> Optional[List[Builder]]:
         """Load a MAD-X file and generate/update the environment."""
@@ -143,10 +190,23 @@ class MadxLoader:
 
         for name, line_params in lines.items():
             params = line_params.copy()
-            assert params.pop('parent') == 'sequence'
-            builder = self.env.new_builder(name=name)
-            self._parse_components(builder, params.pop('elements'))
-            builders.append(builder)
+            line_type = params.pop('parent')
+            self._madx_elem_hierarchy[name] = [line_type]
+
+            if line_type == 'sequence':
+                refer = params.get('refer', {}).get('expr', 'centre')
+                builder = self.env.new_builder(name=name, refer=refer)
+                self._parse_components(builder, params.pop('elements'))
+                builders.append(builder)
+            elif line_type == 'line':
+                components = self._parse_line_components(params.pop('elements'))
+                builder = self.env.new_builder(name=name, components=components)
+            else:
+                raise ValueError(
+                    'Only a MAD-X sequence or a line type can be used to build'
+                    'a line, but got: {line_type}!'
+                )
+
             if build:
                 builder.build()
 
@@ -157,31 +217,123 @@ class MadxLoader:
             params, extras = get_params(el_params, parent=element)
             self._set_element(element, self.env, **params, extra=extras)
 
-    def _parse_components(self, builder, elements: Dict[str, LineType]):
-        for name, element in elements.items():
+    def _parse_components(self, builder, elements: List[Tuple[str, Union[ElementType, LineType]]]):
+        for name, element in elements:
             params = element.copy()
-            parent = params.pop('parent')
+            parent = params.pop('parent', None)
             assert parent != 'sequence'
             params, extras = get_params(params, parent=parent)
             self._new_element(name, parent, builder, **params, extra=extras)
+
+    def _parse_line_components(self, elements):
+        components = []
+
+        for name, body in elements:
+            # Parent is None if the element already exists and is referred to,
+            # by name, otherwise we expect a line nested in the current one.
+            parent = body.get('parent', None)
+            repeat = body.get('_repeat', 1)
+            invert = body.get('_invert', False)
+            instance = self.env[name] if name else None
+
+            if parent is None and isinstance(instance, xt.Line):
+                # If it's a line, we use __mul__ and __neg__ directly
+                element = instance
+                if invert:
+                    element = -element
+                element = repeat * element
+                components.append(element)
+            elif parent == 'line':
+                # If it's a nested line, we parse it recursively
+                element = self._parse_line_components(body['elements'])
+                if invert:
+                    element = list(reversed(element))
+                element = repeat * element
+                components += element
+            elif parent is None:
+                # If it's a reference to a single element, we multiply it and
+                # add it. Reversal will not affect it.
+                components += body.get('_repeat', 1) * [name]
+            else:
+                raise ValueError('Only an element reference or a line is accepted')
+
+        return components
 
     def _new_builtin(self, name, xt_type, **kwargs):
         self.env.new(name, xt_type, **kwargs)
         self._builtin_types.add(name)
 
     def _new_element(self, name, parent, builder, **kwargs):
+        self._parameter_cache[name] = {}
+        self._parameter_cache[name].update(self._parameter_cache.get(parent, {}))
+        self._parameter_cache[name].update(kwargs)
+
         el_params = self._pre_process_element_params(name, kwargs)
-        builder.new(name, parent, **el_params)
+        length = el_params.get('length', self._parameter_cache[name].get('length', 0))
+        if self._mad_base_type(name) in {'vkicker', 'hkicker', 'kicker', 'tkicker', 'multipole'}:
+            # Workaround for the fact that Multipole.length does not make an element thick
+            length = 0
+
+        if parent is None:
+            # If parent is None, we wish to place instead
+            if self._mad_base_type(name) == 'rbend':
+                el_params.pop('rbend', None)
+                el_params.pop('rbarc', None)
+                el_params.pop('k0_from_h', None)
+
+            if (superfluous := el_params.keys() - {'at', 'from_', 'extra'}):
+                raise ValueError(
+                    f'Cannot place the element `{name}` as it overrides the '
+                    f'parameters: {superfluous}!'
+                )
+
+            if (extras := el_params.pop('extra', None)):
+                _warn(f'Ignoring extra parameters {extras} for element `{name}`!')
+
+            if isinstance(self.env[name], BeamElement) and not self.env[name].isthick and length:
+                drift_name = f'drift_{name}'
+                self.env.new(drift_name, 'Drift', length=f'({length}) / 2')
+                name = builder.new_line([drift_name, name, drift_name])
+            builder.place(name, **el_params)
+        else:
+            if isinstance(self.env[parent], BeamElement) and not self.env[parent].isthick and length:
+                drift_name = f'{name}_drift'
+                self.env.new(drift_name, 'Drift', length=f'({length}) / 2')
+                at, from_ = el_params.pop('at', None), el_params.pop('from_', None)
+                self.env.new(name, parent, **el_params)
+                name = self.env.new_line([drift_name, name, drift_name])
+                builder.place(name, at=at, from_=from_)
+            else:
+                builder.new(name, parent, **el_params)
 
     def _set_element(self, name, builder, **kwargs):
+        self._parameter_cache[name].update(kwargs)
         el_params = self._pre_process_element_params(name, kwargs)
+        el_params.pop('from_', None)
+        el_params.pop('at', None)
         builder.set(name, **el_params)
 
     def _pre_process_element_params(self, name, params):
         parent_name = self._mad_base_type(name)
 
         if parent_name in {'sbend', 'rbend'}:
+            # Because of the difficulty in handling the angle (it's not part of
+            # the element definition), making an rbend from another rbend is
+            # broken. We give up, and just cache all the parameters from the
+            # hierarchy – that way `_handle_bend_kwargs` always gets the full
+            # picture.
+            params = self._parameter_cache[name]
+
             params['rbend'] = parent_name == 'rbend'
+
+            # `_handle_bend_kwargs` errors if there is rbarc but no angle
+            params['rbarc'] = self.rbarc if 'angle' in params else False
+
+            # Default MAD-X behaviour is to take k0 from h only if k0 is not
+            # given.
+            if 'k0' not in params:
+                params['k0_from_h'] = True
+
             length = params.get('length', 0)
             if (k2 := params.pop('k2', None)) and length:
                 params['knl'] = [0, 0, f'({k2}) * ({length})']
@@ -204,10 +356,12 @@ class MadxLoader:
                 pass
 
         elif parent_name == 'multipole':
-            if (nl := params.pop('nl', None)):
-                params['knl'] = nl
+            if (knl := params.pop('knl', None)):
+                params['knl'] = knl
             if (ksl := params.pop('ksl', None)):
                 params['ksl'] = ksl
+            if params.pop('lrad', None):
+                _warn(f'Multipole `{name}` was specified with a length, ignoring!')
 
         elif parent_name == 'vkicker':
             if (kick := params.pop('kick', None)):
@@ -223,6 +377,48 @@ class MadxLoader:
             if (hkick := params.pop('hkick', None)):
                 params['knl'] = [f'-({hkick})']
 
+        elif parent_name == 'circle':
+            if (aperture := params.pop('aperture', None)):
+                params['a'] = params['b'] = aperture[0]
+                params['rot_s_rad'] = params.get('aper_tilt', 0)
+                # aper_offset = params.get('aper_offset', [0, 0])
+                # params['shift_x'] = aper_offset[0]
+                # params['shift_y'] = aper_offset[1]
+
+        elif parent_name == 'ellipse':
+            if (aperture := params.pop('aperture', None)):
+                params['a'] = aperture[0]
+                params['b'] = aperture[1]
+                params['rot_s_rad'] = params.get('aper_tilt', 0)
+
+        elif parent_name == 'rectangle':
+            if (aperture := params.pop('aperture', None)):
+                params['min_x'] = -aperture[0]
+                params['max_x'] = aperture[0]
+                params['min_y'] = -aperture[1]
+                params['max_y'] = aperture[1]
+                params['rot_s_rad'] = params.get('aper_tilt', 0)
+                # params['shift_x'] = params.get('v_pos', 0)
+
+        elif parent_name == 'rectellipse':
+            if (aperture := params.pop('aperture', None)):
+                params['max_x'] = aperture[0]
+                params['max_y'] = aperture[1]
+                params['a'] = aperture[2]
+                params['b'] = aperture[3]
+                params['rot_s_rad'] = params.get('aper_tilt', 0)
+                # params['shift_x'] = params.get('v_pos', 0)
+
+        elif parent_name == 'racetrack':
+            if (aperture := params.pop('aperture', None)):
+                params['min_x'] = -aperture[0]
+                params['max_x'] = aperture[0]
+                params['min_y'] = -aperture[1]
+                params['max_y'] = aperture[1]
+                params['a'] = aperture[2]
+                params['b'] = aperture[3]
+                params['rot_s_rad'] = params.get('aper_tilt', 0)
+
         if 'edge_entry_fint' in params and 'edge_exit_fint' not in params:
             params['edge_exit_fint'] = params['edge_entry_fint']
             # TODO: Technically MAD-X behaviour is that if edge_exit_fint < 0
@@ -232,6 +428,11 @@ class MadxLoader:
             #  evaluate the expression here and ideally have a dynamic if-then
             #  expression... Instead, let's just pretend that edge_exit_fint
             #  should be taken as is, and hope no one relies on it being < 0.
+
+        if params.pop('aperture', None):
+            _warn(f'Ignoring aperture parameter for element `{name}` for now. '
+                  f'Only apertures on markers and standalone aperture elements '
+                  f'are supported for now.')
 
         return params
 
@@ -257,12 +458,12 @@ class MadxLoader:
             if line_name not in self.reverse_lines:
                 continue
 
-            new_elements = {}
+            new_elements = []
             line_elements = line_params['elements']
-            for name, elem_params in reversed(line_elements.items()):
-                assert elem_params['parent'] != 'sequence', 'Nesting not yet supported!'
+            for name, elem_params in reversed(line_elements):
+                assert elem_params.get('parent', None) != 'sequence', 'Nesting not yet supported!'
                 el = self._reverse_element(name, elem_params, line_params.get('l'))
-                new_elements[_reversed_name(name)] = el
+                new_elements.append((_reversed_name(name), el))
 
             line_params['elements'] = new_elements
 
@@ -287,8 +488,11 @@ class MadxLoader:
         reversed_: Set[str] = set()
 
         def _descend_into_line(line_params, correct_set):
-            for name, elem_params in line_params['elements'].items():
-                parent = elem_params['parent']
+            if line_params['parent'] == 'line':
+                return
+
+            for name, elem_params in line_params['elements']:
+                parent = elem_params.get('parent', name)
                 correct_set.add(name)
                 # Also add the chain of parent types, as they will also need to
                 # be reversed. We skip the last element, as it's the base madx
@@ -309,9 +513,13 @@ class MadxLoader:
         hierarchy = {}
 
         def _descend_into_line(line_params):
-            for name, elem_params in line_params['elements'].items():
-                parent = elem_params['parent']
-                hierarchy[name] = [parent] + hierarchy.get(parent, [])
+            if line_params['parent'] == 'line':
+                return
+
+            for name, elem_params in line_params['elements']:
+                if (parent := elem_params.get('parent', None)):
+                    hierarchy[name] = [parent] + hierarchy.get(parent, [])
+
                 if parent == 'sequence':
                     _descend_into_line(elem_params)
 
@@ -342,7 +550,7 @@ class MadxLoader:
 
         def _reverse_field(key):
             if key in element:
-                element[key]['expr'] = f'-({element[key]["expr"]})'
+                element[key]['expr'] = _invert(element[key]["expr"])
 
         def _exchange_fields(key1, key2):
             value1 = element.pop(key1, None)
@@ -362,13 +570,17 @@ class MadxLoader:
         _reverse_field('ks')
         _reverse_field('ksi')
         _reverse_field('vkick')
+        _reverse_field('tilt')
+
+        if self._mad_base_type(name) == 'vkicker':
+            _reverse_field('kick')
 
         if 'lag' in element:
             element['lag']['expr'] = f'0.5 - ({element["lag"]["expr"]})'
 
         if 'at' in element:
             if 'from' in element:
-                element['at']['expr'] = f'-({element["at"]["expr"]})'
+                element['at']['expr'] = _invert(element["at"]["expr"])
                 element['from']['expr'] = _reversed_name(element['from']['expr'])
             else:
                 if not line_length:
@@ -378,15 +590,15 @@ class MadxLoader:
                     )
                 element['at']['expr'] = f'({line_length["expr"]}) - ({element["at"]["expr"]})'
 
-        if 'nl' in element:
-            knl = element['nl']['expr']
+        if 'knl' in element:
+            knl = element['knl']['expr']
             for i in range(1, len(knl), 2):
-                knl[i] = f'-({knl[i]})'
+                knl[i] = _invert(knl[i])
 
         if 'ksl' in element:
             ksl = element['ksl']['expr']
             for i in range(0, len(ksl), 2):
-                ksl[i] = f'-({ksl[i]})'
+                ksl[i] = _invert(ksl[i])
 
         parent_name = element.get('parent')
         if parent_name and parent_name != self._mad_base_type(parent_name):
@@ -401,8 +613,8 @@ class MadxLoader:
         return element
 
     def _mad_base_type(self, element_name: str):
-        if element_name.endswith('^'):
-            element_name = element_name[:-1]
+        if element_name.endswith(REVERSED_SUFFIX):
+            element_name = element_name[:-len(REVERSED_SUFFIX)]
 
         if element_name in self._madx_elem_hierarchy:
             return self._madx_elem_hierarchy[element_name][-1]

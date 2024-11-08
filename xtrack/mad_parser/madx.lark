@@ -4,6 +4,8 @@
     | new_def
     | new_val
     | sequence          -> top_level_sequence
+    | line              -> top_level_line
+    | seqedit           -> top_level_seqedit
     | command_stmt      -> top_level_command
     | clone             -> top_level_clone
 
@@ -15,13 +17,27 @@
 
 _sequence_body: NAME ":" _SEQUENCE command_arglist ";" (clone | command_stmt)*
 
+?line: NAME ":" _LINE "=" anonymous_line ";"
+
+anonymous_line: "(" line_elements ")"
+
+modifiers: /-/? ( NUMBER "*" )?
+
+?line_elements: line_element ("," line_element)*    -> build_list
+
+?line_element: modifiers (NAME | anonymous_line)
+
+?seqedit: _seqedit_body _ENDEDIT ";"
+
+_seqedit_body: _SEQEDIT command_arglist ";" command_stmt*
+
 ?clone: NAME ":" _command
 
 ?command_stmt: _command
 
 _command: NAME command_arglist ";"
 
-command_arglist: ( "," ( equal_scalar | defer_scalar | equal_array | defer_array | flag ) )*
+command_arglist: ( "," ( equal_scalar | defer_scalar | equal_array | defer_array | equal_string | flag ) )*
 
 ?flag: NAME             -> set_flag
     | "-" NAME          -> reset_flag
@@ -33,6 +49,8 @@ command_arglist: ( "," ( equal_scalar | defer_scalar | equal_array | defer_array
 ?equal_scalar: NAME "=" sum   -> assign_value
 
 ?equal_array: NAME "=" array  -> assign_value
+
+?equal_string: NAME "=" string_literal -> assign_value
 
 array: "{" sum ( "," sum )* "}"  -> build_list
 
@@ -58,23 +76,28 @@ array: "{" sum ( "," sum )* "}"  -> build_list
     | "-" atom          -> op_neg
     | "+" atom          -> op_pos
     | NAME              -> name_atom
-    | constant
-    | NAME "->" NAME    -> get_item
+    | NAME "->" NAME    -> op_arrow
     | function "(" sum ("," sum)* ")" -> call
-    | "(" sum ( "," sum )* ")"
+    | "(" sum ")"
 
 !function: NAME
 
-!constant: "TWOPI" | "PI" | "CENTRE"
+string_literal: STRING
 
-ignored: _if | _return
+ignored: if | return | select | remove
 
-_if: "if"i /[^\n]+/
-_return: "return"i /[^\n]+/
+!if: "if"i /[^\n]+/
+!return: "return"i /[^\n]+/
+!select: "select"i /[^\n]+/
+!remove: "remove"i /[^\n]+/
 
 _SEQUENCE: "sequence"i
 _ENDSEQUENCE: "endsequence"i
+_SEQEDIT: "seqedit"i
+_ENDEDIT: "endedit"i
+_LINE: "line"i
 NAME: /[A-z_\\.][A-z0-9_\\.%]*/
+STRING: /"[^"]*"/
 _COMMENT: "!" /[^\n]*/
        | "//" /[^\n]*/
        | "/*" /.*?/s "*/"
