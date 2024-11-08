@@ -1219,8 +1219,8 @@ class MadLoader:
                 ee.name,
                 self.classes.RFMultipole,
                 frequency=ee.freq * 1e6,
-                ksl=[-ee.volt / self.sequence.beam.pc * 1e-3 * self.bv],
-                ps=[ee.lag * self.bv * 360 + 90],
+                ksl=[-ee.volt / self.sequence.beam.pc * 1e-3],
+                ps=[ee.lag * 360 + 90],
             )
             ee.tilt = 0
         else:
