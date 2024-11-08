@@ -4872,9 +4872,13 @@ class LineVars:
                     expr.append(None)
                 else:
                     expr.append(ee._formatted(formatter))
-            expr = np.array(expr)
         else:
-            expr  = np.array([str(self.line._xdeps_vref[str(kk)]._expr) for kk in name])
+            expr  = [self.line._xdeps_vref[str(kk)]._expr for kk in name]
+            for ii, ee in enumerate(expr):
+                if ee is not None:
+                    expr[ii] = str(ee)
+
+        expr = np.array(expr)
 
         return VarsTable({'name': name, 'value': value, 'expr': expr})
 

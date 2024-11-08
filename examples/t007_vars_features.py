@@ -1,4 +1,8 @@
 import xtrack as xt
+from pathlib import Path
+import json
+
+temp_dir = Path('./')
 
 env = xt.Environment()
 
@@ -31,14 +35,17 @@ assert ee['a'] == 3.0
 assert ee['b'] == 9.0
 assert ee.vars.get_table()['expr', 'b'] == '(3.0 * a)'
 
+with open(temp_dir / 'env.json', 'w') as fid:
+    json.dump(dd, fid)
+
+ee2 = xt.Environment()
+ee2.vars.load_json(temp_dir / 'env.json')
+assert ee2['a'] == 3.0
+assert ee2['b'] == 9.0
+assert ee2.vars.get_table()['expr', 'b'] == '(3.0 * a)'
+
 tt1 = env.vars.get_table(compact=False)
 assert tt1['expr', 'b'] ==  "(3.0 * vars['a'])"
-dd1 = tt1.to_dict(compact=False)
+dd1 = tt1.to_dict()
 assert dd1['b'] == "(3.0 * vars['a'])"
 assert dd1['a'] == 3.0
-
-ee1 = xt.Environment()
-ee1.vars.update(dd1)
-assert ee1['a'] == 3.0
-assert ee1['b'] == 9.0
-assert ee1.vars.get_table(compact=False)['expr', 'b'] == "(3.0 * vars['a'])"
