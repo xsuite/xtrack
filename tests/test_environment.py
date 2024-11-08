@@ -1855,6 +1855,7 @@ def test_inpection_methods(container_type):
     assert tt['value', 'k0'] == 2 * (2 * 2 + 1)
     assert tt['expr', 'k0'] == "(2.0 * vars['b'])"
 
+
 def test_vars_features(tmpdir):
     env = xt.Environment()
 
@@ -1901,3 +1902,64 @@ def test_vars_features(tmpdir):
     dd1 = tt1.to_dict()
     assert dd1['b'] == "(3.0 * vars['a'])"
     assert dd1['a'] == 3.0
+
+
+def test_call(tmpdir):
+    def _trim(string):
+        # Reduce indent level by one
+        return '\n'.join(map(lambda line: line[4:], filter(bool, string.split('\n'))))
+
+    preamble = _trim("""
+    import xtrack as xt
+    env = xt.get_environment()
+    env.vars.default_to_zero=True
+    """)
+
+    parameters = _trim("""
+    env['var1'] = 2
+    env['var2'] = 3
+    """)
+
+    elements = _trim("""
+    env.new('sbend', 'Bend')
+    env.new('drift', 'Drift')
+    
+    env.new('mb2', 'sbend', length=2)
+    env.new('drx', 'drift', length='var1 + var2')
+    """)
+
+    lattice = _trim("""
+    env.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV, energy0=45.6e9)
+    
+    env.new_line(
+        name='seq',
+        components=['mb2', 'drx', 'mb2', 'drx'],
+    )
+    """)
+
+    parameter_file = tmpdir / 'parameters.py'
+    element_file = tmpdir / 'elements.py'
+    lattice_file = tmpdir / 'lattice.py'
+
+    with parameter_file.open('w') as f:
+        f.write(preamble + parameters)
+
+    with element_file.open('w') as f:
+        f.write(preamble + elements)
+
+    with lattice_file.open('w') as f:
+        f.write(preamble + lattice)
+
+    env = xt.Environment()
+    env.call(parameter_file)
+    env.call(element_file)
+    env.call(lattice_file)
+
+    line, = env.lines.values()
+    assert line.name == 'seq'
+    assert line.element_names == ['mb2', 'drx', 'mb2', 'drx']
+    assert env['mb2'].length == line['mb2'].length == 2
+    assert env['drx'].length == line['drx'].length == 5
+
+    env['var1'] = 10
+    assert env['drx'].length == 13
