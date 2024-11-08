@@ -112,6 +112,9 @@ class MadxTransformer(Transformer):
         float_value = float(value)
         return float_value
 
+    def string_literal(self, string):
+        return string.value[1:-1]
+
     def call(self, function, *args):
         return f'{function}({", ".join(args)})'
 

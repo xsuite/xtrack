@@ -82,7 +82,7 @@ array: "{" sum ( "," sum )* "}"  -> build_list
 
 !function: NAME
 
-!string_literal: STRING
+string_literal: STRING
 
 ignored: if | return | select | remove
 

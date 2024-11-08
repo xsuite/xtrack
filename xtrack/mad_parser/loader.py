@@ -94,7 +94,7 @@ class MadxLoader:
         self._init_environment()
 
     def _init_environment(self):
-        self.env._xdeps_vref._owner.default_factory = lambda: 0
+        self.env.vars.default_to_zero = True
 
         # Define the builtin MAD-X variables
         self.env.vars.update({
@@ -428,6 +428,11 @@ class MadxLoader:
             #  evaluate the expression here and ideally have a dynamic if-then
             #  expression... Instead, let's just pretend that edge_exit_fint
             #  should be taken as is, and hope no one relies on it being < 0.
+
+        if params.pop('aperture', None):
+            _warn(f'Ignoring aperture parameter for element `{name}` for now. '
+                  f'Only apertures on markers and standalone aperture elements '
+                  f'are supported for now.')
 
         return params
 
