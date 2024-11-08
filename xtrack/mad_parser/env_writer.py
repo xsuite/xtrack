@@ -21,6 +21,8 @@ class EnvWriterProxy:
     the operations performed on it."""
 
     def __init__(self, env=None, prefix: str = 'env', parent_proxy: 'EnvWriterProxy' = None):
+        print('WARNING: EnvWriterProxy is an experimental feature, which may '
+              'not work correctly, and change in the future.')
         self.env = env or xt.Environment()
         self.prefix = prefix
 
