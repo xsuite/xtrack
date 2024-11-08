@@ -1,12 +1,14 @@
 from copy import deepcopy
 from typing import Dict, Optional, List, Set, Tuple, Union
 
+
 import numpy as np
 
 import xtrack as xt
 from xtrack import BeamElement
 from xtrack.environment import Builder
 from xtrack.mad_parser.env_writer import EnvWriterProxy
+from xtrack import Environment
 from xtrack.mad_parser.parse import ElementType, LineType, MadxParser, VarType, MadxOutputType
 
 EXTRA_PARAMS = {
@@ -88,6 +90,7 @@ class MadxLoader:
         self.rbarc = True
 
         self.env = env or xt.Environment()
+
         self._init_environment()
 
     def _init_environment(self):
@@ -240,7 +243,6 @@ class MadxLoader:
                     element = -element
                 element = repeat * element
                 components.append(element)
-                self._temp_line_save_in_writer(element)
             elif parent == 'line':
                 # If it's a nested line, we parse it recursively
                 element = self._parse_line_components(body['elements'])
@@ -396,7 +398,7 @@ class MadxLoader:
                 params['min_y'] = -aperture[1]
                 params['max_y'] = aperture[1]
                 params['rot_s_rad'] = params.get('aper_tilt', 0)
-#                 params['shift_x'] = params.get('v_pos', 0)
+                # params['shift_x'] = params.get('v_pos', 0)
 
         elif parent_name == 'rectellipse':
             if (aperture := params.pop('aperture', None)):
@@ -405,7 +407,7 @@ class MadxLoader:
                 params['a'] = aperture[2]
                 params['b'] = aperture[3]
                 params['rot_s_rad'] = params.get('aper_tilt', 0)
-#                 params['shift_x'] = params.get('v_pos', 0)
+                # params['shift_x'] = params.get('v_pos', 0)
 
         elif parent_name == 'racetrack':
             if (aperture := params.pop('aperture', None)):
@@ -512,6 +514,7 @@ class MadxLoader:
             for name, elem_params in line_params['elements']:
                 if (parent := elem_params.get('parent', None)):
                     hierarchy[name] = [parent] + hierarchy.get(parent, [])
+
                 if parent == 'sequence':
                     _descend_into_line(elem_params)
 
@@ -618,8 +621,3 @@ class MadxLoader:
             )
 
         return element_name
-
-    def _temp_line_save_in_writer(self, line: xt.Line):
-        """If self.env is a writing proxy, save the temporary line within."""
-        if isinstance(self.env, EnvWriterProxy):
-            self.env.save_temp_line(line)

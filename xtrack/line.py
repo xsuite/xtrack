@@ -4,6 +4,7 @@
 # ######################################### #
 
 import math
+import json
 import logging
 import uuid
 import os
@@ -4803,6 +4804,12 @@ def _temp_knobs(line_or_trk, knobs: dict):
         for kk, vv in old_values.items():
             line_or_trk.vars[kk] = vv
 
+class _DefaultFactory:
+    def __init__(self, default):
+        self.default = default
+
+    def __call__(self):
+        return self.default
 
 class LineVars:
 
@@ -4823,12 +4830,28 @@ class LineVars:
         raise NotImplementedError('Use keys() method') # Untested
         return self.line._xdeps_vref._owner.__iter__()
 
-    def update(self, other):
-        if self.line._xdeps_vref is None:
-            raise RuntimeError(
-                f'Cannot access variables as the line has no xdeps manager')
-        for kk in other.keys():
-            self[kk] = other[kk]
+    def update(self, *args, **kwargs):
+        default_to_zero = kwargs.pop('default_to_zero', None)
+        old_default_to_zero = self.default_to_zero
+        if default_to_zero is not None:
+            self.default_to_zero = default_to_zero
+        try:
+            if self.line._xdeps_vref is None:
+                raise RuntimeError(
+                    f'Cannot access variables as the line has no xdeps manager')
+            if len(args) > 0:
+                assert len(args) == 1, 'update expected at most 1 positional argument'
+                other = args[0]
+                for kk in other.keys():
+                    self[kk] = other[kk]
+            for kk, vv in kwargs.items():
+                self[kk] = vv
+        except Exception as ee:
+            if default_to_zero is not None:
+                self.default_to_zero = old_default_to_zero
+            raise ee
+        if default_to_zero is not None:
+            self.default_to_zero = old_default_to_zero
 
     @property
     def vary_default(self):
@@ -4837,15 +4860,27 @@ class LineVars:
                 f'Cannot access variables as the line has no xdeps manager')
         return self.line._xdeps_vref._owner['__vary_default']
 
-    def get_table(self):
+    def get_table(self, compact=True):
         if self.line._xdeps_vref is None:
             raise RuntimeError(
                 f'Cannot access variables as the line has no xdeps manager')
         name = np.array([kk for kk in list(self.keys()) if kk != '__vary_default'], dtype=object)
         value = np.array([self.line._xdeps_vref[kk]._value for kk in name])
-        expr  = np.array([str(self.line._xdeps_vref[str(kk)]._expr) for kk in name])
 
-        return xd.Table({'name': name, 'value': value, 'expr': expr})
+        if compact:
+            formatter = xd.refs.CompactFormatter(scope=None)
+            expr = []
+            for kk in name:
+                ee = self.line._xdeps_vref[kk]._expr
+                if ee is None:
+                    expr.append(None)
+                else:
+                    expr.append(ee._formatted(formatter))
+            expr = np.array(expr)
+        else:
+            expr  = np.array([str(self.line._xdeps_vref[str(kk)]._expr) for kk in name])
+
+        return VarsTable({'name': name, 'value': value, 'expr': expr})
 
     def new_expr(self, expr):
         return self.line._xdeps_eval.eval(expr)
@@ -4955,6 +4990,16 @@ class LineVars:
     def load_madx_optics_file(self, filename, mad_stdout=False):
         self.set_from_madx_file(filename, mad_stdout=mad_stdout)
 
+    def load_json(self, filename):
+
+        with open(filename, 'r') as fid:
+            data = json.load(fid)
+
+        _old_default_to_zero = self.default_to_zero
+        self.default_to_zero = True
+        self.update(data)
+        self.default_to_zero = _old_default_to_zero
+
     def target(self, tar, value, **kwargs):
         action = ActionVars(self.line)
         return xt.Target(action=action, tar=tar, value=value, **kwargs)
@@ -4984,6 +5029,32 @@ class LineVars:
 
     def get(self, name):
         return self[name]._value
+
+    @property
+    def default_to_zero(self):
+        default_factory = self.line._xdeps_vref._owner.default_factory
+        if default_factory is None:
+            return False
+        return default_factory.default == 0
+
+    @default_to_zero.setter
+    def default_to_zero(self, value):
+        assert value in (True, False)
+        if value:
+            self.line._xdeps_vref._owner.default_factory = _DefaultFactory(0.)
+        else:
+            self.line._xdeps_vref._owner.default_factory = None
+
+class VarsTable(xd.Table):
+
+    def to_dict(self):
+        out = {}
+        for nn, ee, vv in zip(self['name'], self['expr'], self['value']):
+            if ee is not None:
+                out[nn] = ee
+            else:
+                out[nn] = vv
+        return out
 
 class ActionVars(Action):
 

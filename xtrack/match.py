@@ -47,109 +47,6 @@ ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau',
                         'eq_gemitt_x', 'eq_gemitt_y', 'eq_gemitt_zeta',
                         'eq_nemitt_x', 'eq_nemitt_y', 'eq_nemitt_zeta']
 
-Action = xd.Action
-
-class ActionTwiss(xd.Action):
-
-    def __init__(self, line, allow_twiss_failure=False,
-                 compensate_radiation_energy_loss=False,
-                 **kwargs):
-        self.line = line
-        self.kwargs = kwargs
-        self.allow_twiss_failure = allow_twiss_failure
-        self.compensate_radiation_energy_loss = compensate_radiation_energy_loss
-        self._alredy_prepared = False
-
-    def prepare(self, force=False):
-
-        if self._alredy_prepared and not force:
-            return
-
-        line = self.line
-        kwargs = self.kwargs
-
-        ismultiline = isinstance(line, xt.Multiline)
-
-        # Forbit specifying init through kwargs for Multiline
-        if ismultiline:
-            for kk in VARS_FOR_TWISS_INIT_GENERATION:
-                if kk in kwargs:
-                    raise ValueError(
-                        f'`{kk}` cannot be specified for a Multiline match. '
-                        f'Please specify provide a TwissInit object for each line instead.')
-
-        # Handle init from table
-        if ismultiline:
-
-            line_names = kwargs.get('lines', line.line_names)
-            none_list = [None] * len(line_names)
-            twinit_list = kwargs.get('init', none_list)
-            ele_start_list = kwargs.get('start', none_list)
-            ele_stop_list = kwargs.get('end', none_list)
-
-            assert isinstance(twinit_list, list)
-            assert isinstance(ele_start_list, list)
-            assert isinstance(ele_stop_list, list)
-
-            for ii, twinit in enumerate(twinit_list):
-                if isinstance(twinit, xt.MultiTwiss):
-                    twinit_list[ii] = twinit[line_names[ii]]
-        else:
-            twinit_list = [kwargs.get('init', None)]
-            ele_start_list = [kwargs.get('start', None)]
-            ele_stop_list = [kwargs.get('end', None)]
-
-            for ii, twinit in enumerate(twinit_list):
-                if isinstance(twinit, xt.TwissInit):
-                    twinit_list[ii] = twinit.copy()
-                elif isinstance(twinit, str):
-                    assert twinit == 'periodic' or twinit == 'periodic_symmetric'
-
-        if ismultiline:
-            kwargs['init'] = twinit_list
-            kwargs['_keep_initial_particles'] = len(line_names) * [True]
-        else:
-            kwargs['init'] = twinit_list[0]
-            kwargs['_keep_initial_particles'] = True
-
-        tw0 = line.twiss(**kwargs)
-        self._tw0 = tw0
-
-        if ismultiline:
-            kwargs['_initial_particles'] = len(line_names) * [None]
-            for ii, llnn in enumerate(line_names):
-                self.kwargs['init'][ii] = tw0[llnn].completed_init
-                if not tw0[llnn].periodic:
-                    kwargs['_initial_particles'][ii] = tw0[llnn]._data.get('_initial_particles', None)
-        else:
-            self.kwargs['init'] = tw0.completed_init
-            for kk in VARS_FOR_TWISS_INIT_GENERATION:
-                kwargs.pop(kk, None)
-            if not(tw0.periodic):
-                kwargs['_initial_particles'] = tw0._data.get(
-                                        '_initial_particles', None)
-
-        self.kwargs = kwargs
-
-    def run(self, allow_failure=True):
-        if self.compensate_radiation_energy_loss:
-            if isinstance(self.line, xt.Multiline):
-                raise NotImplementedError(
-                    'Radiation energy loss compensation is not yet supported'
-                    ' for Multiline')
-            self.line.compensate_radiation_energy_loss(verbose=False)
-        if not self.allow_twiss_failure or not allow_failure:
-            out = self.line.twiss(**self.kwargs)
-        else:
-            try:
-                out = self.line.twiss(**self.kwargs)
-            except Exception as ee:
-                if allow_failure:
-                    return 'failed'
-                else:
-                    raise ee
-        out.line = self.line
-        return out
 
 # Alternative transitions functions
 # def _transition_sigmoid_integral(x):
@@ -301,7 +198,7 @@ class LessThan:
 class Target(xd.Target):
 
     def __init__(self, tar=None, value=None, at=None, tol=None, weight=None, scale=None,
-                 line=None, action=None, tag='', optimize_log=False,
+                 line=None, action=None, tag=None, optimize_log=False,
                  **kwargs):
 
         """
@@ -368,6 +265,16 @@ class Target(xd.Target):
 
         self._freeze_value = None
 
+        if tag is None:
+            tag_parts = []
+            if line is not None:
+                tag_parts.append(line)
+            if at is not None:
+                tag_parts.append(str(at))
+            if isinstance(tar, str):
+                tag_parts.append(tar)
+            tag = '_'.join(tag_parts)
+
         xd.Target.__init__(self, tar=xdtar, value=value, tol=tol,
                             weight=weight, scale=scale, action=action, tag=tag,
                             optimize_log=optimize_log)
@@ -426,7 +333,7 @@ class Target(xd.Target):
 class TargetSet(xd.TargetList):
 
     def __init__(self, tars=None, value=None, at=None, tol=None, weight=None,
-                 scale=None, line=None, action=None, tag='', optimize_log=False,
+                 scale=None, line=None, action=None, tag=None, optimize_log=False,
                  **kwargs):
 
         """
@@ -691,6 +598,12 @@ class TargetRmatrixTerm(Target):
             'Only terms of the R-matrix in the form "r11", "r12", "r21", "r22", etc'
             ' are supported')
 
+        if self.start is xt.START:
+            self.start = tw.name[0]
+
+        if self.end is xt.END:
+            self.end = '_end_point'
+
         rmat = tw.get_R_matrix(self.start, self.end)
 
         ii = int(self.term[1]) - 1
@@ -765,6 +678,113 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
         opt.solve()
 
     return opt
+
+
+class Action(xd.Action):
+
+    _target_class = Target
+
+class ActionTwiss(xd.Action):
+
+    def __init__(self, line, allow_twiss_failure=False,
+                 compensate_radiation_energy_loss=False,
+                 **kwargs):
+        self.line = line
+        self.kwargs = kwargs
+        self.allow_twiss_failure = allow_twiss_failure
+        self.compensate_radiation_energy_loss = compensate_radiation_energy_loss
+        self._alredy_prepared = False
+
+    def prepare(self, force=False):
+
+        if self._alredy_prepared and not force:
+            return
+
+        line = self.line
+        kwargs = self.kwargs
+
+        ismultiline = isinstance(line, xt.Multiline)
+
+        # Forbit specifying init through kwargs for Multiline
+        if ismultiline:
+            for kk in VARS_FOR_TWISS_INIT_GENERATION:
+                if kk in kwargs:
+                    raise ValueError(
+                        f'`{kk}` cannot be specified for a Multiline match. '
+                        f'Please specify provide a TwissInit object for each line instead.')
+
+        # Handle init from table
+        if ismultiline:
+
+            line_names = kwargs.get('lines', line.line_names)
+            none_list = [None] * len(line_names)
+            twinit_list = kwargs.get('init', none_list)
+            ele_start_list = kwargs.get('start', none_list)
+            ele_stop_list = kwargs.get('end', none_list)
+
+            assert isinstance(twinit_list, list)
+            assert isinstance(ele_start_list, list)
+            assert isinstance(ele_stop_list, list)
+
+            for ii, twinit in enumerate(twinit_list):
+                if isinstance(twinit, xt.MultiTwiss):
+                    twinit_list[ii] = twinit[line_names[ii]]
+        else:
+            twinit_list = [kwargs.get('init', None)]
+            ele_start_list = [kwargs.get('start', None)]
+            ele_stop_list = [kwargs.get('end', None)]
+
+            for ii, twinit in enumerate(twinit_list):
+                if isinstance(twinit, xt.TwissInit):
+                    twinit_list[ii] = twinit.copy()
+                elif isinstance(twinit, str):
+                    assert twinit == 'periodic' or twinit == 'periodic_symmetric'
+
+        if ismultiline:
+            kwargs['init'] = twinit_list
+            kwargs['_keep_initial_particles'] = len(line_names) * [True]
+        else:
+            kwargs['init'] = twinit_list[0]
+            kwargs['_keep_initial_particles'] = True
+
+        tw0 = line.twiss(**kwargs)
+        self._tw0 = tw0
+
+        if ismultiline:
+            kwargs['_initial_particles'] = len(line_names) * [None]
+            for ii, llnn in enumerate(line_names):
+                self.kwargs['init'][ii] = tw0[llnn].completed_init
+                if not tw0[llnn].periodic:
+                    kwargs['_initial_particles'][ii] = tw0[llnn]._data.get('_initial_particles', None)
+        else:
+            self.kwargs['init'] = tw0.completed_init
+            for kk in VARS_FOR_TWISS_INIT_GENERATION:
+                kwargs.pop(kk, None)
+            if not(tw0.periodic):
+                kwargs['_initial_particles'] = tw0._data.get(
+                                        '_initial_particles', None)
+
+        self.kwargs = kwargs
+
+    def run(self, allow_failure=True):
+        if self.compensate_radiation_energy_loss:
+            if isinstance(self.line, xt.Multiline):
+                raise NotImplementedError(
+                    'Radiation energy loss compensation is not yet supported'
+                    ' for Multiline')
+            self.line.compensate_radiation_energy_loss(verbose=False)
+        if not self.allow_twiss_failure or not allow_failure:
+            out = self.line.twiss(**self.kwargs)
+        else:
+            try:
+                out = self.line.twiss(**self.kwargs)
+            except Exception as ee:
+                if allow_failure:
+                    return 'failed'
+                else:
+                    raise ee
+        out.line = self.line
+        return out
 
 class OptimizeLine(xd.Optimize):
 
@@ -879,21 +899,47 @@ class OptimizeLine(xd.Optimize):
         self.line = line
         self.action_twiss = action_twiss
 
-    def clone(self, add_targets=None, name=None):
+    def clone(self, add_targets=None, add_vary=None,
+              remove_targets=None, remove_vary=None,
+              name=None):
+
+        if hasattr(add_targets, 'copy'):
+            add_targets = add_targets.copy()
+
+        if hasattr(add_vary, 'copy'):
+            add_vary = add_vary.copy()
 
         if hasattr(add_targets, 'values'): # dict like
             add_targets = list(add_targets.values())
 
-        targets = list(self.targets.copy())
+        if hasattr(add_vary, 'values'): # dict like
+            add_vary = list(add_vary.values())
+
         if name is None:
             name = self.name
+
+        assert remove_targets in [None, True, False]
+        assert remove_vary in [None, True, False]
+
+        targets = list(self.targets.copy())
+        if remove_targets:
+            targets = []
         if add_targets is not None:
             if not isinstance(add_targets, (list, tuple)):
                 add_targets = [add_targets]
             targets.extend(add_targets)
+
+        vary = list(self.vary.copy())
+        if remove_vary:
+            vary = []
+        if add_vary is not None:
+            if not isinstance(add_vary, (list, tuple)):
+                add_vary = [add_vary]
+            vary.extend(add_vary)
+
         out = self.__class__(
             line = self.line,
-            vary=self.vary,
+            vary=vary,
             targets=targets,
             restore_if_fail=self.restore_if_fail,
             verbose=self._err.verbose,
@@ -1038,34 +1084,6 @@ def opt_from_callable(function, x0, steps, tar, tols):
 
     '''Optimize a generic callable'''
 
-    x0 = np.array(x0)
-    x = x0.copy()
-    vary = [xt.Vary(ii, container=x, step=steps[ii]) for ii in range(len(x))]
-
-    opt = xd.Optimize(
-        vary=vary,
-        targets=ActionCall(function, vary).get_targets(tar),
-        show_call_counter=False,
-    )
-
-    for ii, tt in enumerate(opt.targets):
-        tt.tol = tols[ii]
-
+    opt = xd.Optimize.from_callable(function, x0, tar, steps=steps, tols=tols,
+                                    show_call_counter=False)
     return opt
-
-class ActionCall(Action):
-    def __init__(self, function, vary):
-        self.vary = vary
-        self.function = function
-
-    def run(self):
-        x = [vv.container[vv.name] for vv in self.vary]
-        return self.function(x)
-
-    def get_targets(self, ftar):
-        tars = []
-        for ii in range(len(ftar)):
-            tars.append(xt.Target(ii, ftar[ii], action=self))
-
-        return tars
-

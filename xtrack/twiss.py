@@ -2226,7 +2226,7 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
                 tar=[0., 0., 0., 0., 0., 0.],
                 tols=[1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12])
         try:
-            opt.solve()
+            opt.solve(verbose=-1)
             ier = 1
         except Exception as e:
             ier = -1

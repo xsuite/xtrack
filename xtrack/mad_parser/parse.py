@@ -36,6 +36,8 @@ class LineType(TypedDict, ModifiersType):
     elements: List[Tuple[str, Union[ElementType, 'LineType']]]
 
 
+ElementType = Union[TypedDict('ElementType', {'parent': str}), Dict[str, VarType]]
+
 class MadxOutputType(TypedDict):
     vars: Dict[str, VarType]
     elements: Dict[str, ElementType]
@@ -244,7 +246,6 @@ class MadxTransformer(Transformer):
             'lines': self.lines,
             'parameters': self.parameters,
         }
-
 
     op_arrow = make_op_handler('->')
     op_lt = make_op_handler('<')

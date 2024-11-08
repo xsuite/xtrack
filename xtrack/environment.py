@@ -297,6 +297,26 @@ class Environment:
 
         return Builder(env=self, components=components, name=name, refer=refer)
 
+    def call(self, filename):
+        '''
+        Call a file with xtrack commands.
+
+        Parameters
+        ----------
+        filename : str
+            Name of the file to be called.
+        '''
+        with open(filename) as fid:
+            code = fid.read()
+        import xtrack
+        xtrack._passed_env = self
+        try:
+            exec(code)
+        except Exception as ee:
+            xtrack._passed_env = None
+            raise ee
+        xtrack._passed_env = None
+
     def _ensure_tracker_consistency(self, buffer):
         for ln in self._lines_weakrefs:
             if ln._has_valid_tracker() and ln._buffer is not buffer:
@@ -473,7 +493,7 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center'):
                                               - aux_tt['length', ss_next.name] / 2
                                               - aux_tt['length', ss.name] / 2)
                     s_entry_for_place[ss] = (s_entry_for_place[ss_next]
-                                             - aux_tt['length', ss.name])
+                                            - aux_tt['length', ss.name])
                     place_for_name[ss.name] = ss
                     n_resolved += 1
             else:
@@ -496,6 +516,9 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center'):
                     place_for_name[ss.name] = ss
                     n_resolved += 1
 
+    if n_resolved != len(seq_all_places):
+        unresolved_pos = set(seq_all_places) - set(s_center_dct.keys())
+        raise ValueError(f'Could not resolve all s positions: {unresolved_pos}')
 
     if n_resolved != len(seq_all_places):
         unresolved_pos = set(seq_all_places) - set(s_center_for_place.keys())
@@ -794,3 +817,14 @@ class EnvLines(UserDict):
     def __setitem__(self, key, value):
         self.env._lines_weakrefs.add(value)
         UserDict.__setitem__(self, key, value)
+
+def get_environment(verbose=False):
+    import xtrack
+    if hasattr(xtrack, '_passed_env') and xtrack._passed_env is not None:
+        if verbose:
+            print('Using existing environment')
+        return xtrack._passed_env
+    else:
+        if verbose:
+            print('Creating new environment')
+        return Environment()
