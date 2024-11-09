@@ -68,4 +68,9 @@ assert str(opt3.vary[1]) == str(opt.vary[1])
 assert str(opt3.vary[2]) == str(opt.vary[2])
 assert str(opt3.vary[3]) == str(opt.vary[3])
 
-
+opt4 = opt.clone(name='opt4', remove_vary=True, remove_targets=False,
+                    add_vary=xt.VaryList(['acbv30.l8b1', 'acbv28.l8b1']),
+                    )
+assert len(opt4.vary) == 2
+assert opt.vary[0].name == 'acbv30.l8b1'
+assert opt.vary[1].name == 'acbv28.l8b1'
