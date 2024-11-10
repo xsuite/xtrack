@@ -1206,8 +1206,6 @@ class MadLoader:
             raise ValueError("Multiwire configuration not supported")
 
     def convert_crabcavity(self, ee):
-        if self.bv == -1:
-            raise NotImplementedError("Crab cavity for bv=-1 are not yet supported.")
         self._assert_element_is_thin(ee)
         # This has to be disabled, as it raises an error when l is assigned to an
         # expression:
@@ -1230,8 +1228,8 @@ class MadLoader:
                 ee.name,
                 self.classes.RFMultipole,
                 frequency=ee.freq * 1e6,
-                knl=[ee.volt / self.sequence.beam.pc * 1e-3],
-                pn=[ee.lag * 360 + 90],  # TODO: Changed sign to match sixtrack
+                knl=[ee.volt / self.sequence.beam.pc * 1e-3 * self.bv],
+                pn=[ee.lag * self.bv * 360 + 90],  # TODO: Changed sign to match sixtrack
                 # To be checked!!!!
             )
         return self.make_composite_element([el], ee)
