@@ -4931,6 +4931,9 @@ class LineVars:
         if isinstance(value, str):
             value = self.line._xdeps_eval.eval(value)
         self.line._xdeps_vref[key] = value
+        if self.line.tracker is not None and hasattr(self.line.tracker, 'vars_to_update'):
+            for cc in self.line.tracker.vars_to_update:
+                cc[key] = value
 
     def set_from_madx_file(self, filename, mad_stdout=False):
 

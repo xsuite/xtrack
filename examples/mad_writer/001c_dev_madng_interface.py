@@ -8,6 +8,27 @@ sequence_name='dummy'
 mng = line.to_madng(sequence_name=sequence_name)
 mng._sequence_name = sequence_name
 
+
+class MadngVars:
+
+    def __init__(self, mad):
+        self.mad = mad
+
+    def __setitem__(self, key, value):
+        setattr(self.mad.MADX, key.replace('.', '_'), value)
+        #Expressions still to be handled
+
+mvars = MadngVars(mng)
+
+line.build_tracker()
+line.tracker.vars_to_update = [mvars]
+
+line['a'] = 3.
+assert mng.MADX.a == 3.
+
+
+prrrrr
+
 # line._xdeps_vref._owner.mng = mng
 
 rdts = ["f4000", "f3100", "f2020", "f1120", 'f1001']
