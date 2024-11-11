@@ -1,12 +1,7 @@
 import numpy as np
 import xtrack as xt
 
-line = xt.Line.from_json(
-    '../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
 
-sequence_name='dummy'
-mng = line.to_madng(sequence_name=sequence_name)
-mng._sequence_name = sequence_name
 
 
 class MadngVars:
@@ -18,22 +13,21 @@ class MadngVars:
         setattr(self.mad.MADX, key.replace('.', '_'), value)
         #Expressions still to be handled
 
-mvars = MadngVars(mng)
-
-line.build_tracker()
-line.tracker.vars_to_update = [mvars]
-
-line['a'] = 3.
-assert mng.MADX.a == 3.
-
-
-prrrrr
-
-# line._xdeps_vref._owner.mng = mng
+def _build_madng_model(line, sequence_name='seq'):
+    if line.tracker is None:
+        line.build_tracker()
+    mng = line.to_madng(sequence_name=sequence_name)
+    mng._sequence_name = sequence_name
+    line.tracker._madng = mng
+    line.tracker.vars_to_update = [MadngVars(mng)]
+    return mng
 
 rdts = ["f4000", "f3100", "f2020", "f1120", 'f1001']
 
 def _tw_ng(line, rdts=[], tw=None, scalars=True):
+    if not hasattr(line.tracker, '_madng'):
+        line._build_madng_model()
+    mng = line.tracker._madng
     if tw is None:
         tw = line.twiss(method='4d')
     tw_columns = ['s', 'beta11', 'beta22', 'alfa11', 'alfa22',
@@ -135,8 +129,33 @@ def _tw_ng(line, rdts=[], tw=None, scalars=True):
     return tw
 
 xt.Line._tw_ng = _tw_ng
+xt.Line._build_madng_model = _build_madng_model
+
+line = xt.Line.from_json(
+    '../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
+
+# sequence_name='dummy'
+
+
+# mng = line.to_madng(sequence_name=sequence_name)
+# mng._sequence_name = sequence_name
+
+# line.build_tracker()
+# mvars = MadngVars(mng)
+# line.tracker.vars_to_update = [mvars]
+
+# line['a'] = 3.
+# assert mng.MADX.a == 3.
+
 
 tw = line._tw_ng(rdts=rdts)
+
+line['on_x1'] = 1.
+import xobjects as xo
+xo.assert_allclose(line._tw_ng()['px_ng', 'ip1'], 1e-6, rtol=5e-3, atol=0)
+
+line['on_x1'] = -2.
+xo.assert_allclose(line._tw_ng()['px_ng', 'ip1'], -2e-6, rtol=5e-3, atol=0)
 
 # dct = {k: v[:-1] for k, v in zip(colums, out)}
 # dct['name'] = tw.name
