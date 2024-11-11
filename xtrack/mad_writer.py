@@ -296,8 +296,6 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
 
         for nn in line.element_names:
             el = line.element_dict[nn]
-            if isinstance(el, xt.Drift):
-                continue
             el_str = xsuite_to_mad_conveters[type(el)](nn, line)
             if nn + '_tilt_entry' in line.element_dict:
                 el_str += ", " + mad_assignment('tilt',
