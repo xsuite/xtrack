@@ -69,8 +69,9 @@ _STR_ALLOWED_ELEMENT_TYPES_IN_NEW = ', '.join([tt.__name__ for tt in _ALLOWED_EL
 
 def find_index_repeated(item, lst,count=0):
     res=[ii for ii, nn in enumerate(lst) if nn == item]
+    print(item)
     if count>=len(res):
-        return None
+        raise ValueError(f'Item {item} not found')
     return res[count]
 
 def find_index_repeated2(item, lst,count=0):
@@ -80,6 +81,7 @@ def find_index_repeated2(item, lst,count=0):
             if cc==count:
                 return ii
             cc+=1
+    raise ValueError(f'Item {item} not found')
 
 class Line:
 
@@ -2157,8 +2159,17 @@ class Line:
             index = at
 
         if isinstance(index, str):
-            index= self.element_names.index(index)
-            assert index is not None, f"Element {index} not found in the line."
+            if '::' in index:
+               atelem, count= index.split('::')
+               try:
+                   index= find_index_repeated(atelem, self.element_names, int(count))
+               except ValueError:
+                    raise ValueError(f'Element {atelem!r} not found in the line.')
+            else:
+                try:
+                    index = self.element_names.index(index)
+                except ValueError:
+                    raise ValueError(f'Element {index} not found in the line.')
 
         if element is None:
             if name not in self.element_dict.keys():
