@@ -2049,8 +2049,6 @@ def _handle_loop_around(kwargs):
 
     return tw_res
 
-
-
 def _handle_init_inside_range(kwargs):
 
     kwargs = kwargs.copy()
