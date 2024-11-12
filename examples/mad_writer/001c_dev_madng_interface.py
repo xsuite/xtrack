@@ -160,9 +160,10 @@ class ActionTwissMadng(xt.Action):
 line = xt.Line.from_json(
     '../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
 
+line['test_dk1'] = 0
+line['mb.b32l8.b1'].knl[1] = 'test_dk1'
+
 # sequence_name='dummy'
-
-
 # mng = line.to_madng(sequence_name=sequence_name)
 # mng._sequence_name = sequence_name
 
