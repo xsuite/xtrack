@@ -72,6 +72,22 @@ _ALLOWED_ELEMENT_TYPES_DICT = {'Drift': xt.Drift, 'Bend': xt.Bend,
 _STR_ALLOWED_ELEMENT_TYPES_IN_NEW = ', '.join([tt.__name__ for tt in _ALLOWED_ELEMENT_TYPES_IN_NEW])
 
 
+def find_index_repeated(item, lst,count=0):
+    res=[ii for ii, nn in enumerate(lst) if nn == item]
+    print(item)
+    if count>=len(res):
+        raise ValueError(f'Item {item} not found')
+    return res[count]
+
+def find_index_repeated2(item, lst,count=0):
+    cc=0
+    for ii, nn in enumerate(lst):
+        if nn == item:
+            if cc==count:
+                return ii
+            cc+=1
+    raise ValueError(f'Item {item} not found')
+
 class Line:
 
     """
@@ -2134,9 +2150,8 @@ class Line:
         element: xline.Element, optional
             Element to be inserted. If not given, the element of the given name
             already present in the line is used.
-        at: int, optional
-            Index of the element in the line. If `index` is provided, `at_s`
-            must be None.
+        at: int or string, optional
+            Index or name of the element in the line. If `index` is provided, `at_s` must be None. 
         at_s: float, optional
             Position of the element in the line in meters. If `at_s` is provided, `index`
             must be None.
@@ -2149,8 +2164,17 @@ class Line:
             index = at
 
         if isinstance(index, str):
-            assert index in self.element_names
-            index = self.element_names.index(index)
+            if '::' in index:
+               atelem, count= index.split('::')
+               try:
+                   index= find_index_repeated(atelem, self.element_names, int(count))
+               except ValueError:
+                    raise ValueError(f'Element {atelem!r} not found in the line.')
+            else:
+                try:
+                    index = self.element_names.index(index)
+                except ValueError:
+                    raise ValueError(f'Element {index} not found in the line.')
 
         if element is None:
             if name not in self.element_dict.keys():

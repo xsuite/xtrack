@@ -1075,3 +1075,21 @@ def test_get_strengths(test_context):
     xo.assert_allclose(line['mbw.a6l3.b2'].h,
             str_table['angle_rad', 'mbw.a6l3.b2'] / str_table['length', 'mbw.a6l3.b2'],
             rtol=0, atol=1e-14)
+
+
+
+def test_insert_repeated_names():
+
+    line = xt.Line(
+        elements=([xt.Drift(length=0)] # Start line marker
+                    + [xt.Drift(length=1) for _ in range(5)]
+                    + [xt.Drift(length=0)] # End line marker
+            ),
+        element_names=['d']*7
+        )
+    line.insert_element("m1",xt.Marker(),at="d::3")
+    assert line.element_names[3]=="m1"
+    line.insert_element("m2",xt.Marker(),at="d")
+    assert line.element_names[0]=="m2"
+
+
