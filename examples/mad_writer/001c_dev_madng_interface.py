@@ -100,6 +100,7 @@ def _tw_ng(line, rdts=[], scalars=True):
             local my_norm_for = normal(mytrkflow[1]):analyse('anh') -- anh stands for anharmonicity
 
             local nf = my_norm_for
+            last_nf = my_norm_for
             py:send({
                     nf:q1{1}, -- qx from the normal form (fractional part)
                     nf:q2{1}, -- qy
