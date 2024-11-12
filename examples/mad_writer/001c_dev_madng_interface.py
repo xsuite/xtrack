@@ -177,9 +177,6 @@ opt.step(3)
 tw_after = line._tw_ng(scalars=False)
 xo.assert_allclose(tw_after['px_ng', 'ip1'], 50e-6, rtol=5e-3, atol=0)
 
-'kof.a78b1', 'kof.a81b1', 'kof.a12b1', 'kof.a23b1',
-'kof.a34b1', 'kof.a45b1', 'kof.a56b1', 'kof.a67b1',
-
 # tw = line._tw_ng()
 # opt = line.match(
 #     solve=False,
