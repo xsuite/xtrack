@@ -28,6 +28,7 @@ import xdeps as xd
 from .progress_indicator import progress
 from .slicing import Custom, Slicer, Strategy
 from .mad_writer import to_madx_sequence
+from .madng_interface import _build_madng_model, _discard_madng_model, _tw_ng
 
 from .survey import survey_from_line
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
@@ -633,9 +634,11 @@ class Line:
                         os.remove(nn)
 
         # mng[sequence_name].beam = mng.beam(particle="'proton'", energy=7000)
-
-
         return mng
+
+    _build_madng_model = _build_madng_model
+    _discard_madng_model = _discard_madng_model
+    madng_twiss = _tw_ng
 
     def __repr__(self):
         if hasattr(self, '_name'):
