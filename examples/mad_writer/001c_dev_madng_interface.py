@@ -80,7 +80,7 @@ def _tw_ng(line, rdts=[], normal_form=True,
 
         -- twiss with RDTs
         local mtbl = twiss {sequence=seq, method=4,'''
-        f'mapdef=2'
+        f'mapdef={mapdef_twiss}'
         ''', implicit=true, nslice=3}
 
         -- send columns to Python
@@ -104,8 +104,9 @@ def _tw_ng(line, rdts=[], normal_form=True,
             f'local seq = MADX.{mng._sequence_name}'
             '''
             local track in MAD  -- like "from MAD import track"
-            local mytrktable, mytrkflow = MAD.track{sequence=seq, method=4,
-                                                    mapdef=4, nslice=3}
+            local mytrktable, mytrkflow = MAD.track{sequence=seq, method=4,'''
+            f'mapdef={mapdef_normal_form}, '
+            '''nslice=3}
 
             local normal in MAD.gphys  -- like "from MAD.gphys import normal"
             local my_norm_for = normal(mytrkflow[1]):analyse('anh') -- anh stands for anharmonicity
