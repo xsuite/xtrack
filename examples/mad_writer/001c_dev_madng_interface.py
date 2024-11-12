@@ -24,12 +24,19 @@ def _build_madng_model(line, sequence_name='seq'):
 
 rdts = ["f4000", "f3100", "f2020", "f1120", 'f1001']
 
-def _tw_ng(line, rdts=[], tw=None, scalars=True):
+def _tw_ng(line, rdts=[], scalars=True):
+
+    tw_kwargs = locals()
+    del tw_kwargs['line']
+    _action = ActionTwissMadng(line, tw_kwargs)
+
     if not hasattr(line.tracker, '_madng'):
         line._build_madng_model()
     mng = line.tracker._madng
-    if tw is None:
-        tw = line.twiss(method='4d')
+
+    tw = line.twiss(method='4d', reverse=False)
+    tw._action = _action
+
     tw_columns = ['s', 'beta11', 'beta22', 'alfa11', 'alfa22',
                 'x', 'px', 'y', 'py', 't', 'pt',
                 'dx', 'dy', 'dpx', 'dpy', 'mu1', 'mu2']
@@ -130,6 +137,14 @@ def _tw_ng(line, rdts=[], tw=None, scalars=True):
 
 xt.Line._tw_ng = _tw_ng
 xt.Line._build_madng_model = _build_madng_model
+
+class ActionTwissMadng(xt.Action):
+    def __init__(self, line, tw_kwargs):
+        self.line = line
+        self.tw_kwargs = tw_kwargs
+
+    def run(self):
+        self.line._tw_ng(**self.tw_kwargs)
 
 line = xt.Line.from_json(
     '../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
