@@ -30,7 +30,8 @@ def _build_madng_model(line, sequence_name='seq'):
 rdts = ["f4000", "f3100", "f2020", "f1120", 'f1001']
 
 def _tw_ng(line, rdts=[], normal_form=True,
-           mapdef_twiss=2, mapdef_normal_form=4
+           mapdef_twiss=2, mapdef_normal_form=4,
+           nslice=3,
            ):
 
     tw_kwargs = locals()
@@ -81,7 +82,9 @@ def _tw_ng(line, rdts=[], normal_form=True,
         -- twiss with RDTs
         local mtbl = twiss {sequence=seq, method=4,'''
         f'mapdef={mapdef_twiss}'
-        ''', implicit=true, nslice=3}
+        ''', implicit=true, '''
+        f'nslice={nslice}'
+        '''}
 
         -- send columns to Python
         '''
@@ -105,8 +108,8 @@ def _tw_ng(line, rdts=[], normal_form=True,
             '''
             local track in MAD  -- like "from MAD import track"
             local mytrktable, mytrkflow = MAD.track{sequence=seq, method=4,'''
-            f'mapdef={mapdef_normal_form}, '
-            '''nslice=3}
+            f'mapdef={mapdef_normal_form}, nslice={nslice}'
+            '''}
 
             local normal in MAD.gphys  -- like "from MAD.gphys import normal"
             local my_norm_for = normal(mytrkflow[1]):analyse('anh') -- anh stands for anharmonicity
