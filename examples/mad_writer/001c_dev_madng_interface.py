@@ -1,8 +1,6 @@
 import numpy as np
 import xtrack as xt
-
-
-
+import xobjects as xo
 
 class MadngVars:
 
@@ -86,9 +84,9 @@ def _tw_ng(line, rdts=[], scalars=True):
     # Add to table
     assert len(out[0]) == len(tw) + 1
     for nn in tw_columns:
-        tw[nn+'_ng'] = out_dct[nn][:-1]
+        tw[nn+'_ng'] = np.atleast_1d(np.squeeze(out_dct[nn][:-1]))
     for nn in rdts:
-        tw[nn] = out_dct[nn][:-1]
+        tw[nn] = np.atleast_1d(np.squeeze(out_dct[nn]))
 
     if scalars:
         mng_script_scalar = (
@@ -144,7 +142,7 @@ class ActionTwissMadng(xt.Action):
         self.tw_kwargs = tw_kwargs
 
     def run(self):
-        self.line._tw_ng(**self.tw_kwargs)
+        return self.line._tw_ng(**self.tw_kwargs)
 
 line = xt.Line.from_json(
     '../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
@@ -162,28 +160,39 @@ line = xt.Line.from_json(
 # line['a'] = 3.
 # assert mng.MADX.a == 3.
 
+tw = line._tw_ng(scalars=False)
 
-tw = line._tw_ng(rdts=rdts)
+opt = line.match(
+    solve=False,
+    vary=[
+        xt.Vary('on_x1', step=1e-3),
+    ],
+    targets=(
+        tw.target('px_ng', 50e-6, at='ip1'),
+        tw.target('py_ng', 0, at='ip1'),
+    ),
+)
+opt.step(3)
+tw_after = line._tw_ng(scalars=False)
+
 
 line['on_x1'] = 1.
-import xobjects as xo
+
 xo.assert_allclose(line._tw_ng()['px_ng', 'ip1'], 1e-6, rtol=5e-3, atol=0)
 
 line['on_x1'] = -2.
 xo.assert_allclose(line._tw_ng()['px_ng', 'ip1'], -2e-6, rtol=5e-3, atol=0)
 
-# dct = {k: v[:-1] for k, v in zip(colums, out)}
-# dct['name'] = tw.name
-# tng = xt.Table(dct)
+tw_rdt = line._tw_ng(rdts=rdts)
 
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
 
-plt.plot(tw.s, np.abs(tw.f4000), label='f4000')
-plt.plot(tw.s, np.abs(tw.f2020), label='f2020')
-plt.plot(tw.s, np.abs(tw.f1120), label='f1120')
-plt.plot(tw.s, np.abs(tw.f3100), label='f3100')
+plt.plot(tw_rdt.s, np.abs(tw_rdt.f4000), label='f4000')
+plt.plot(tw_rdt.s, np.abs(tw_rdt.f2020), label='f2020')
+plt.plot(tw_rdt.s, np.abs(tw_rdt.f1120), label='f1120')
+plt.plot(tw_rdt.s, np.abs(tw_rdt.f3100), label='f3100')
 plt.xlabel('s [m]')
 plt.ylabel(r'|f_{jklm}|')
 plt.legend()
