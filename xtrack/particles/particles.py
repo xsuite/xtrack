@@ -762,6 +762,8 @@ class Particles(xo.HybridClass):
         capacity = len(test_x)
         new_part_cpu = self.__class__(_capacity=capacity)
 
+        new_part_cpu.start_tracking_at_element = self.start_tracking_at_element
+
         # Copy scalar vars from first particle
         for tt, nn in self.scalar_vars:
             setattr(new_part_cpu, nn, getattr(self_cpu, nn))
@@ -777,7 +779,7 @@ class Particles(xo.HybridClass):
         # Copy to original context
         target_ctx = self._buffer.context
         if isinstance(target_ctx, xo.ContextCpu):
-            new_part_cpu._buffer.context = target_ctx
+            new_part_cpu.move(_context=target_ctx)
             return new_part_cpu
         else:
             return new_part_cpu.copy(_context=target_ctx)

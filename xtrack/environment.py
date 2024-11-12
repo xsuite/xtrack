@@ -1,23 +1,54 @@
-import xtrack as xt
-import xobjects as xo
-import numpy as np
-from weakref import WeakSet
 from collections import Counter, UserDict
+from functools import cmp_to_key
+from typing import Literal
+from weakref import WeakSet
 
-def _flatten_components(components):
+import numpy as np
+
+import xobjects as xo
+import xtrack as xt
+from xdeps.refs import is_ref
+
+ReferType = Literal['entry', 'centre']
+
+
+def _argsort(seq, tol=10e-10):
+    """Argsort, but with a tolerance; `sorted` is stable."""
+    seq_indices = np.arange(len(seq))
+
+    def comparator(i, j):
+        a, b = seq[i], seq[j]
+        if np.abs(a - b) < tol:
+            return 0
+        return -1 if a < b else 1
+
+    return sorted(seq_indices, key=cmp_to_key(comparator))
+
+
+def _flatten_components(components, refer: ReferType = 'centre'):
+    if refer not in {'entry', 'centre'}:
+        raise ValueError(
+            f'Allowed values for refer are "entry" and "centre". Got "{refer}".'
+        )
+
     flatt_components = []
     for nn in components:
         if isinstance(nn, Place) and isinstance(nn.name, xt.Line):
             line = nn.name
-            components = list(line.element_names).copy()
+            if not line.element_names:
+                continue
+            sub_components = list(line.element_names).copy()
             if nn.at is not None:
                 if isinstance(nn.at, str):
                     at = line._xdeps_eval.eval(nn.at)
                 else:
                     at = nn.at
-                at_first_element = at - line.get_length() / 2 + line[0].length / 2
-                components[0] = Place(components[0], at=at_first_element, from_=nn.from_)
-            flatt_components += components
+                if refer == 'centre':
+                    at_first_element = at - line.get_length() / 2 + line[0].length / 2
+                else:
+                    at_first_element = at
+                sub_components[0] = Place(sub_components[0], at=at_first_element, from_=nn.from_)
+            flatt_components += sub_components
         elif isinstance(nn, xt.Line):
             flatt_components += nn.element_names
         else:
@@ -123,18 +154,25 @@ class Environment:
             + ' elements are allowed in `new` for now.')
 
         needs_instantiation = True
+        parent_element = None
         if isinstance(parent, str):
             if parent in self.element_dict:
                 # Clone an existing element
                 self.element_dict[name] = xt.Replica(parent_name=parent)
                 xt.Line.replace_replica(self, name)
-                parent = type(self.element_dict[name])
+                parent_element = self.element_dict[name]
+                parent = type(parent_element)
                 needs_instantiation = False
             elif parent in _ALLOWED_ELEMENT_TYPES_DICT:
                 parent = _ALLOWED_ELEMENT_TYPES_DICT[parent]
                 needs_instantiation = True
             else:
                 raise ValueError(f'Element type {parent} not found')
+
+        if parent == xt.Bend and ('angle' in kwargs or 'rbarc' in kwargs):
+            kwargs = _handle_bend_kwargs(kwargs, _eval, env=self)
+        kwargs.pop('rbarc', None)
+        kwargs.pop('rbend', None)
 
         ref_kwargs, value_kwargs = _parse_kwargs(parent, kwargs, _eval)
 
@@ -150,7 +188,7 @@ class Environment:
 
         return name
 
-    def new_line(self, components=None, name=None):
+    def new_line(self, components=None, name=None, refer: ReferType = 'centre'):
 
         '''
         Create a new line.
@@ -199,8 +237,8 @@ class Environment:
             if isinstance(nn, str) and nn in self.lines:
                 components[ii] = self.lines[nn]
 
-        flattened_components = _flatten_components(components)
-        out.element_names = handle_s_places(flattened_components, self)
+        flattened_components = _flatten_components(components, refer=refer)
+        out.element_names = handle_s_places(flattened_components, self, refer=refer)
         out._var_management = self._var_management
         out._name = name
         out.builder = Builder(env=self, components=components)
@@ -239,7 +277,7 @@ class Environment:
 
         return Place(name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
 
-    def new_builder(self, components=None, name=None):
+    def new_builder(self, components=None, name=None, refer: ReferType = 'centre'):
         '''
         Create a new builder.
 
@@ -257,7 +295,27 @@ class Environment:
             The new builder.
         '''
 
-        return Builder(env=self, components=components, name=name)
+        return Builder(env=self, components=components, name=name, refer=refer)
+
+    def call(self, filename):
+        '''
+        Call a file with xtrack commands.
+
+        Parameters
+        ----------
+        filename : str
+            Name of the file to be called.
+        '''
+        with open(filename) as fid:
+            code = fid.read()
+        import xtrack
+        xtrack._passed_env = self
+        try:
+            exec(code)
+        except Exception as ee:
+            xtrack._passed_env = None
+            raise ee
+        xtrack._passed_env = None
 
     def _ensure_tracker_consistency(self, buffer):
         for ln in self._lines_weakrefs:
@@ -284,24 +342,25 @@ class Environment:
         else:
             xt.Line.__setitem__(self, key, value)
 
-Environment.element_dict = xt.Line.element_dict
-Environment._init_var_management = xt.Line._init_var_management
-Environment._xdeps_vref = xt.Line._xdeps_vref
-Environment._xdeps_fref = xt.Line._xdeps_fref
-Environment._xdeps_manager = xt.Line._xdeps_manager
-Environment._xdeps_eval = xt.Line._xdeps_eval
-Environment.element_refs = xt.Line.element_refs
-Environment.vars = xt.Line.vars
-Environment.varval = xt.Line.varval
-Environment.vv = xt.Line.vv
-Environment.__getitem__ = xt.Line.__getitem__
-Environment.set = xt.Line.set
-Environment.get = xt.Line.get
-Environment.eval = xt.Line.eval
-Environment.info = xt.Line.info
-Environment.get_expr = xt.Line.get_expr
-Environment.new_expr = xt.Line.new_expr
-Environment.ref_manager = xt.Line.ref_manager
+    element_dict = xt.Line.element_dict
+    _init_var_management = xt.Line._init_var_management
+    _xdeps_vref = xt.Line._xdeps_vref
+    _xdeps_fref = xt.Line._xdeps_fref
+    _xdeps_manager = xt.Line._xdeps_manager
+    _xdeps_eval = xt.Line._xdeps_eval
+    element_refs = xt.Line.element_refs
+    vars = xt.Line.vars
+    varval = xt.Line.varval
+    vv = xt.Line.vv
+    __getitem__ = xt.Line.__getitem__
+    set = xt.Line.set
+    get = xt.Line.get
+    eval = xt.Line.eval
+    info = xt.Line.info
+    get_expr = xt.Line.get_expr
+    new_expr = xt.Line.new_expr
+    ref_manager = xt.Line.ref_manager
+
 
 class Place:
 
@@ -370,7 +429,7 @@ def _all_places(seq):
 #         return line[name].length
 
 
-def _resolve_s_positions(seq_all_places, env):
+def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center'):
 
     if len(seq_all_places) != len(set(seq_all_places)):
         seq_all_places = [ss.copy() for ss in seq_all_places]
@@ -384,13 +443,14 @@ def _resolve_s_positions(seq_all_places, env):
     else:
         duplicates = set()
 
-    aux_line = env.new_line(components=names_unsorted)
+    aux_line = env.new_line(components=names_unsorted, refer=refer)
     aux_tt = aux_line.get_table()
     aux_tt['length'] = np.diff(aux_tt._data['s'], append=0)
-    aux_tt.name = aux_tt.env_name # I want the repeated names here
+    aux_tt.name = aux_tt.env_name  # I want the repeated names here
 
-    s_center_dct = {}
-    s_center_dct_names = {}
+    s_center_for_place = {}
+    s_entry_for_place = {}  # entry positions calculated assuming at is also pointing to entry
+    place_for_name = {}
     n_resolved = 0
     n_resolved_prev = -1
 
@@ -398,38 +458,43 @@ def _resolve_s_positions(seq_all_places, env):
 
     if seq_all_places[0].at is None and not seq_all_places[0]._before:
         # In case we want to allow for the length to be an expression
-        s_center_dct[seq_all_places[0]] = aux_tt['length', seq_all_places[0].name] / 2
-        s_center_dct_names[seq_all_places[0].name] = s_center_dct[seq_all_places[0]]
+        s_center_for_place[seq_all_places[0]] = aux_tt['length', seq_all_places[0].name] / 2
+        s_entry_for_place[seq_all_places[0]] = 0
+        place_for_name[seq_all_places[0].name] = seq_all_places[0]
         n_resolved += 1
 
     while n_resolved != n_resolved_prev:
         n_resolved_prev = n_resolved
         for ii, ss in enumerate(seq_all_places):
-            if ss in s_center_dct:
+            if ss in s_center_for_place:  # Can this ever happen? We assert no duplicates earlier.
                 continue
             if ss.at is None and not ss._before:
                 ss_prev = seq_all_places[ii-1]
-                if ss_prev in s_center_dct:
+                if ss_prev in s_center_for_place:
                     # in case we want to allow for the length to be an expression
                     # s_center_dct[ss] = (s_center_dct[ss_prev]
                     #                         + _length_expr_or_val(ss_prev, aux_line) / 2
                     #                         + _length_expr_or_val(ss, aux_line) / 2)
-                    s_center_dct[ss] = (s_center_dct[ss_prev]
-                                            +  aux_tt['length', ss_prev.name] / 2
-                                             + aux_tt['length', ss.name] / 2)
-                    s_center_dct_names[ss.name] = s_center_dct[ss]
+                    s_center_for_place[ss] = (s_center_for_place[ss_prev]
+                                              + aux_tt['length', ss_prev.name] / 2
+                                              + aux_tt['length', ss.name] / 2)
+                    s_entry_for_place[ss] = (s_entry_for_place[ss_prev]
+                                             + aux_tt['length', ss_prev.name])
+                    place_for_name[ss.name] = ss
                     n_resolved += 1
             elif ss.at is None and ss._before:
                 ss_next = seq_all_places[ii+1]
-                if ss_next in s_center_dct:
-                     # in case we want to allow for the length to be an expression
+                if ss_next in s_center_for_place:
+                    # in case we want to allow for the length to be an expression
                     # s_center_dct[ss] = (s_center_dct[ss_next]
                     #                         - _length_expr_or_val(ss_next, aux_line) / 2
                     #                         - _length_expr_or_val(ss, aux_line) / 2)
-                    s_center_dct[ss] = (s_center_dct[ss_next]
-                                            - aux_tt['length', ss_next.name] / 2
-                                            - aux_tt['length', ss.name] / 2)
-                    s_center_dct_names[ss.name] = s_center_dct[ss]
+                    s_center_for_place[ss] = (s_center_for_place[ss_next]
+                                              - aux_tt['length', ss_next.name] / 2
+                                              - aux_tt['length', ss.name] / 2)
+                    s_entry_for_place[ss] = (s_entry_for_place[ss_next]
+                                            - aux_tt['length', ss.name])
+                    place_for_name[ss.name] = ss
                     n_resolved += 1
             else:
                 if isinstance(ss.at, str):
@@ -438,45 +503,70 @@ def _resolve_s_positions(seq_all_places, env):
                     at = ss.at
 
                 if ss.from_ is None:
-                    s_center_dct[ss] = at
-                    s_center_dct_names[ss.name] = at
+                    s_center_for_place[ss] = at
+                    s_entry_for_place[ss] = at
+                    place_for_name[ss.name] = ss
                     n_resolved += 1
-                elif ss.from_ in s_center_dct_names:
+                elif ss.from_ in place_for_name:
                     if ss.from_ in duplicates:
                         assert ss.name in duplicates, (
                             f'Cannot resolve from_ for {ss.name} as {ss.from_} is duplicated')
-                    s_center_dct[ss] = s_center_dct_names[ss.from_] + at
-                    s_center_dct_names[ss.name] = s_center_dct[ss]
+                    s_center_for_place[ss] = s_center_for_place[place_for_name[ss.from_]] + at
+                    s_entry_for_place[ss] = s_entry_for_place[place_for_name[ss.from_]] + at
+                    place_for_name[ss.name] = ss
                     n_resolved += 1
 
-    assert n_resolved == len(seq_all_places), 'Not all positions resolved'
+    if n_resolved != len(seq_all_places):
+        unresolved_pos = set(seq_all_places) - set(s_center_dct.keys())
+        raise ValueError(f'Could not resolve all s positions: {unresolved_pos}')
 
-    aux_s_center_expr = np.array([s_center_dct[ss] for ss in seq_all_places])
-    aux_s_center = []
-    for ss in aux_s_center_expr:
-        if hasattr(ss, '_value'):
-            aux_s_center.append(ss._value)
-        else:
-            aux_s_center.append(ss)
-    aux_tt['s_center'] = np.concatenate([aux_s_center, [0]])
+    if n_resolved != len(seq_all_places):
+        unresolved_pos = set(seq_all_places) - set(s_center_for_place.keys())
+        raise ValueError(f'Could not resolve all s positions: {unresolved_pos}')
 
-    i_sorted = np.argsort(aux_s_center, kind='stable')
+    aux_s_center_expr = np.array([s_center_for_place[ss] for ss in seq_all_places])
+    aux_s_entry_expr = np.array([s_entry_for_place[ss] for ss in seq_all_places])
+    aux_s_center = [ss._value if is_ref(ss) else ss for ss in aux_s_center_expr]
+    aux_s_entry = [ss._value if is_ref(ss) else ss for ss in aux_s_entry_expr]
 
-    name_sorted = [str(aux_tt.name[ii]) for ii in i_sorted]
+    if refer == 'centre':
+        aux_tt['s_center'] = np.concatenate([aux_s_center, [0]])
 
-    # Temporary, should be replaced by aux_tt.rows[i_sorted], when table is fixed
-    data_sorted = {kk: aux_tt[kk][i_sorted] for kk in aux_tt._col_names}
-    tt_sorted = xt.Table(data_sorted)
+        i_sorted = _argsort(aux_s_center)
 
-    tt_sorted['s_entry'] = tt_sorted['s_center'] - tt_sorted['length'] / 2
-    tt_sorted['s_exit'] = tt_sorted['s_center'] + tt_sorted['length'] / 2
+        name_sorted = [str(aux_tt.name[ii]) for ii in i_sorted]
+
+        # Temporary, should be replaced by aux_tt.rows[i_sorted], when table is fixed
+        data_sorted = {kk: aux_tt[kk][i_sorted] for kk in aux_tt._col_names}
+        tt_sorted = xt.Table(data_sorted)
+
+        tt_sorted['s_entry'] = tt_sorted['s_center'] - tt_sorted['length'] / 2
+        tt_sorted['s_exit'] = tt_sorted['s_center'] + tt_sorted['length'] / 2
+        anchor_pos_dct = s_center_for_place
+    elif refer == 'entry':
+        aux_tt['s_entry'] = np.concatenate([aux_s_entry, [0]])
+
+        i_sorted = _argsort(aux_s_entry)
+
+        name_sorted = [str(aux_tt.name[ii]) for ii in i_sorted]
+
+        # Temporary, should be replaced by aux_tt.rows[i_sorted], when table is fixed
+        data_sorted = {kk: aux_tt[kk][i_sorted] for kk in aux_tt._col_names}
+        tt_sorted = xt.Table(data_sorted)
+
+        tt_sorted['s_center'] = tt_sorted['s_entry'] + tt_sorted['length'] / 2
+        tt_sorted['s_exit'] = tt_sorted['s_entry'] + tt_sorted['length']
+        anchor_pos_dct = s_entry_for_place
+    else:
+        raise ValueError(f'Unknown refer value: {refer}')
+
     tt_sorted['ds_upstream'] = 0 * tt_sorted['s_entry']
     tt_sorted['ds_upstream'][1:] = tt_sorted['s_entry'][1:] - tt_sorted['s_exit'][:-1]
     tt_sorted['ds_upstream'][0] = tt_sorted['s_entry'][0]
-    tt_sorted['s'] = tt_sorted['s_center']
+    tt_sorted['s'] = tt_sorted['s_entry']
     assert np.all(tt_sorted.name == np.array(name_sorted))
 
-    tt_sorted._data['s_center_dct'] = s_center_dct
+    tt_sorted._data['s_entry_dct'] = anchor_pos_dct
 
     return tt_sorted
 
@@ -495,13 +585,13 @@ def _generate_element_names_with_drifts(env, tt_sorted, s_tol=1e-10):
 
     return list(map(str, names_with_drifts))
 
-def handle_s_places(seq, env):
+def handle_s_places(seq, env, refer: ReferType = 'centre'):
 
     if np.array([isinstance(ss, str) for ss in seq]).all():
         return [str(ss) for ss in seq]
 
     seq_all_places = _all_places(seq)
-    tab_sorted = _resolve_s_positions(seq_all_places, env)
+    tab_sorted = _resolve_s_positions(seq_all_places, env, refer=refer)
     names = _generate_element_names_with_drifts(env, tab_sorted)
 
     return names
@@ -525,7 +615,10 @@ def _parse_kwargs(cls, kwargs, _eval):
                     value_vv.append(vvv._value)
                 elif isinstance(vvv, str):
                     ref_vv.append(_eval(vvv))
-                    value_vv.append(ref_vv[-1]._value)
+                    if hasattr(ref_vv[-1], '_value'):
+                        value_vv.append(ref_vv[-1]._value)
+                    else:
+                        value_vv.append(ref_vv[-1])
                 else:
                     ref_vv.append(None)
                     value_vv.append(vvv)
@@ -555,11 +648,10 @@ def _set_kwargs(name, ref_kwargs, value_kwargs, element_dict, element_refs):
                 for ii, vvv in enumerate(value_kwargs[kk]):
                     if ref_kwargs[kk][ii] is not None:
                         getattr(element_refs[name], kk)[ii] = ref_kwargs[kk][ii]
+        elif kk in ref_kwargs:
+            setattr(element_refs[name], kk, ref_kwargs[kk])
         else:
-            if kk in ref_kwargs:
-                setattr(element_refs[name], kk, ref_kwargs[kk])
-            else:
-                setattr(element_dict[name], kk, value_kwargs[kk])
+            setattr(element_dict[name], kk, value_kwargs[kk])
 
 class EnvRef:
     def __init__(self, env):
@@ -601,7 +693,6 @@ class EnvRef:
             self.element_refs[key] = val_ref
 
 def _handle_bend_kwargs(kwargs, _eval, env=None, name=None):
-
     kwargs = kwargs.copy()
     rbarc = kwargs.pop('rbarc', True)
     rbend = kwargs.pop('rbend', False)
@@ -620,10 +711,9 @@ def _handle_bend_kwargs(kwargs, _eval, env=None, name=None):
         if 'angle' in kwargs:
             kwargs.pop('h')
 
-    if isinstance(kwargs['length'], str):
-        length = _eval(kwargs['length'])
-    else:
-        length = kwargs['length']
+    length = kwargs.get('length', 0)
+    if isinstance(length, str):
+        length = _eval(length)
 
     if 'angle' in kwargs:
         assert 'h' not in kwargs, 'Cannot specify both angle and h'
@@ -659,16 +749,17 @@ def _handle_bend_kwargs(kwargs, _eval, env=None, name=None):
         kwargs['edge_exit_angle'] = edge_exit_angle
 
     if kwargs.pop('k0_from_h', False):
-        kwargs['k0'] = kwargs['h']
+        kwargs['k0'] = kwargs.get('h', 0)
 
     return kwargs
 
 
 class Builder:
-    def __init__(self, env, components=None, name=None):
+    def __init__(self, env, components=None, name=None, refer: ReferType = 'centre'):
         self.env = env
         self.components = components or []
         self.name = name
+        self.refer = refer
 
     def __repr__(self):
         return f'Builder({self.name}, components={self.components!r})'
@@ -688,7 +779,7 @@ class Builder:
     def build(self, name=None):
         if name is None:
             name = self.name
-        out =  self.env.new_line(components=self.components, name=name)
+        out =  self.env.new_line(components=self.components, name=name, refer=self.refer)
         out.builder = self
         return out
 
@@ -726,3 +817,14 @@ class EnvLines(UserDict):
     def __setitem__(self, key, value):
         self.env._lines_weakrefs.add(value)
         UserDict.__setitem__(self, key, value)
+
+def get_environment(verbose=False):
+    import xtrack
+    if hasattr(xtrack, '_passed_env') and xtrack._passed_env is not None:
+        if verbose:
+            print('Using existing environment')
+        return xtrack._passed_env
+    else:
+        if verbose:
+            print('Creating new environment')
+        return Environment()
