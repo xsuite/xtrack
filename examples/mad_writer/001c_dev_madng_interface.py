@@ -84,9 +84,9 @@ def _tw_ng(line, rdts=[], scalars=True):
     # Add to table
     assert len(out[0]) == len(tw) + 1
     for nn in tw_columns:
-        tw[nn+'_ng'] = np.atleast_1d(np.squeeze(out_dct[nn][:-1]))
+        tw[nn+'_ng'] = np.atleast_1d(np.squeeze(out_dct[nn]))[:-1]
     for nn in rdts:
-        tw[nn] = np.atleast_1d(np.squeeze(out_dct[nn]))
+        tw[nn] = np.atleast_1d(np.squeeze(out_dct[nn]))[:-1]
 
     if scalars:
         mng_script_scalar = (
@@ -174,6 +174,28 @@ opt = line.match(
 )
 opt.step(3)
 tw_after = line._tw_ng(scalars=False)
+xo.assert_allclose(tw_after['px_ng', 'ip1'], 50e-6, rtol=5e-3, atol=0)
+
+'kof.a78b1', 'kof.a81b1', 'kof.a12b1', 'kof.a23b1',
+'kof.a34b1', 'kof.a45b1', 'kof.a56b1', 'kof.a67b1',
+
+# tw = line._tw_ng()
+# opt = line.match(
+#     solve=False,
+#     vary=[
+#         xt.VaryList([
+#             'kof.a78b1', 'kof.a81b1', 'kof.a12b1', 'kof.a23b1',
+#             'kof.a34b1', 'kof.a45b1', 'kof.a56b1', 'kof.a67b1'], step=1e-2),
+#         xt.VaryList(
+#             ['kod.a78b1', 'kod.a81b1', 'kod.a12b1', 'kod.a23b1',
+#              'kod.a34b1', 'kod.a45b1', 'kod.a56b1', 'kod.a67b1'], step=1e-2),
+#     ],
+#     targets=(
+#         tw.target('dqxdjx_nf_ng', 1e6),
+#         tw.target('dqydjy_nf_ng', 1e6),
+#     ),
+# )
+# opt.step()
 
 
 line['on_x1'] = 1.
