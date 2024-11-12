@@ -108,6 +108,12 @@ def _tw_ng(line, rdts=[], scalars=True):
                     nf:dq2{1}, -- dqy / d delta
                     nf:dq1{2}, -- d2 qx / d delta2
                     nf:dq2{2}, -- d2 qy / d delta2
+                    nf:dq1{3}, -- d3 qx / d delta3
+                    nf:dq2{3}, -- d3 qy / d delta3
+                    nf:dq1{4}, -- d4 qx / d delta4
+                    nf:dq2{4}, -- d4 qy / d delta4
+                    nf:dq1{5}, -- d5 qx / d delta5
+                    nf:dq2{5}, -- d5 qy / d delta5
                     nf:anhx{1, 0}, -- dqx / d(2 jx)
                     nf:anhy{0, 1}, -- dqy / d(2 jy)
                     nf:anhx{0, 1}, -- dqx / d(2 jy)
@@ -124,6 +130,12 @@ def _tw_ng(line, rdts=[], scalars=True):
             dq2 =  out_scalar[3],
             d2q1 = out_scalar[4],
             d2q2 = out_scalar[5],
+            d3q1 = out_scalar[6],
+            d3q2 = out_scalar[7],
+            d4q1 = out_scalar[8],
+            d4q2 = out_scalar[9],
+            d5q1 = out_scalar[10],
+            d5q2 = out_scalar[11],
             dqxdjx = out_scalar[6]*2.,
             dqydjy = out_scalar[7]*2.,
             dqxdjy = out_scalar[8]*2.,
