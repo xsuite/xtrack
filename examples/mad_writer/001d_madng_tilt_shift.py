@@ -38,3 +38,5 @@ print(f'Elapsed time: {t1-t0}')
 
 tw1 = line.madng_twiss()
 
+xo.assert_allclose(tw1.x, tw1.x_ng, atol=2e-4*tw1.x.std(), rtol=0)
+xo.assert_allclose(tw1.y, tw1.y_ng, atol=2e-4*tw1.y.std(), rtol=0)
