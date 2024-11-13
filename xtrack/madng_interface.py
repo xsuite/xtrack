@@ -87,7 +87,7 @@ def _tw_ng(line, rdts=[], normal_form=True,
         local mtbl = twiss {sequence=seq, method=4,'''
         f'mapdef={mapdef_twiss}'
         ''', implicit=true, '''
-        f'nslice={nslice}'
+        f'nslice={nslice}, misalgn=true'
         '''}
 
         -- send columns to Python
