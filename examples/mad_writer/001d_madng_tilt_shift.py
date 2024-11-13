@@ -26,7 +26,10 @@ import time
 t0 = time.perf_counter()
 for nn in tt_quads.name:
     nn_ng = nn.replace('.', '_')
-    mng.send(f'MADX.{nn_ng}.misalign'
+    mng.send(
+             f'MADX.{nn_ng}.dx = 0\n'
+             f'MADX.{nn_ng}.dy = 0\n'
+             f'MADX.{nn_ng}.misalign'
              ' = {'
              f'dx={line[nn].shift_x}, dy={line[nn].shift_y}'
                 '}')

@@ -308,8 +308,6 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
                 s_dict[nn] = 0.5 * (tt_s[ii] + tt_s[ii+1])
 
         for nn in line.element_names:
-            if nn == 'mq.25r1.b1':
-                breakpoint()
             el = line.element_dict[nn]
             el_str = xsuite_to_mad_conveters[type(el)](nn, line)
             if nn + '_tilt_entry' in line.element_dict:
