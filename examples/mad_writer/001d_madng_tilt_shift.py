@@ -24,7 +24,11 @@ tw = line.madng_twiss()
 mng = line.tracker._madng
 import time
 t0 = time.perf_counter()
-for nn in tt_quads.name:
+for nn in tt.name:
+    if nn == '_end_point':
+        continue
+    if not hasattr(line[nn], 'shift_x'):
+        continue
     nn_ng = nn.replace('.', '_')
     mng.send(
              f'MADX.{nn_ng}.dx = 0\n'
