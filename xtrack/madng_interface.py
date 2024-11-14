@@ -115,6 +115,8 @@ def _tw_ng(line, rdts=[], normal_form=True,
     temp_y = tw.wy_ng * np.exp(1j*2*np.pi*tw.phiy_ng)
     tw['ay_ng'] = np.imag(temp_y)
     tw['by_ng'] = np.real(temp_y)
+    del tw['phix_ng']
+    del tw['phiy_ng']
 
     if normal_form:
         mng_script_nf = (
