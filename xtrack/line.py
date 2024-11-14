@@ -6,8 +6,6 @@
 import math
 import json
 import logging
-import uuid
-import os
 from collections import defaultdict
 
 from contextlib import contextmanager
@@ -28,7 +26,7 @@ import xdeps as xd
 from .progress_indicator import progress
 from .slicing import Custom, Slicer, Strategy
 from .mad_writer import to_madx_sequence
-from .madng_interface import _build_madng_model, _discard_madng_model, _tw_ng
+from .madng_interface import _build_madng_model, _discard_madng_model, _tw_ng, line_to_madng
 
 from .survey import survey_from_line
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
@@ -609,48 +607,9 @@ class Line:
             MAD NG instance.
         '''
 
-        try:
-            if temp_fname is None:
-                temp_fname = 'temp_madng_' + str(uuid.uuid4())
+        return line_to_madng(self, sequence_name=sequence_name,
+                             temp_fname=temp_fname, keep_files=keep_files)
 
-            madx_seq = self.to_madx_sequence(sequence_name=sequence_name)
-            with open(f'{temp_fname}.madx', 'w') as fid:
-                fid.write(madx_seq)
-
-            from pymadng import MAD
-            mng = MAD()
-            mng.MADX.load(f'"{temp_fname}.madx"', f'"{temp_fname}"')
-            mng._init_madx_data = madx_seq
-
-            mng[sequence_name] = mng.MADX[sequence_name] # this ensures that the file has been read
-            mng[sequence_name].beam = mng.beam(particle="'custom'",
-                            mass=self.particle_ref.mass0 * 1e9,
-                            charge=self.particle_ref.q0,
-                            betgam=self.particle_ref.beta0[0] * self.particle_ref.gamma0[0])
-
-            # Patch shifts (MAD-NG ignores dx, dy from MAD-X, need to set them through misalign)
-            commands = []
-            for nn in self.element_names:
-                if not hasattr(self[nn], 'shift_x'):
-                    continue
-                nn_ng = nn.replace('.', '_')
-                commands.append(
-                        f'MADX.{nn_ng}.dx = 0\n'
-                        f'MADX.{nn_ng}.dy = 0\n'
-                        f'MADX.{nn_ng}.misalign'
-                        ' = {'
-                        f'dx={self[nn].shift_x}, dy={self[nn].shift_y}'
-                            '}')
-            mng.send('\n'.join(commands))
-
-        finally:
-            if not keep_files:
-                for nn in [temp_fname + '.madx', temp_fname + '.mad']:
-                    if os.path.isfile(nn):
-                        os.remove(nn)
-
-        # mng[sequence_name].beam = mng.beam(particle="'proton'", energy=7000)
-        return mng
 
     _build_madng_model = _build_madng_model
     _discard_madng_model = _discard_madng_model
