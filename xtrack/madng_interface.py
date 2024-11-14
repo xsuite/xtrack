@@ -52,7 +52,9 @@ def _tw_ng(line, rdts=[], normal_form=True,
     tw_columns = ['s', 'beta11', 'beta22', 'alfa11', 'alfa22',
                 'x', 'px', 'y', 'py', 't', 'pt',
                 'dx', 'dy', 'dpx', 'dpy', 'mu1', 'mu2',
-                'beta12', 'beta21']
+                'beta12', 'beta21', 'alfa12', 'alfa21',
+                'wx', 'wy', 'phix', 'phiy', 'dmu1', 'dmu2',
+    ]
 
     columns = tw_columns + rdts
     rdt_cmd = 'local rdts = {"' + '", "'.join(rdts) + '"}'
@@ -72,7 +74,7 @@ def _tw_ng(line, rdts=[], normal_form=True,
         local X0 = damap {nv=6, mo=4}
 
         -- twiss with RDTs
-        local mtbl = twiss {sequence=seq, X0=X0, trkrdt=rdts, info=2, saverdt=true, coupling=true}
+        local mtbl = twiss {sequence=seq, X0=X0, trkrdt=rdts, info=2, saverdt=true, coupling=true, chrom=true}
 
         -- send columns to Python
         '''
@@ -88,7 +90,7 @@ def _tw_ng(line, rdts=[], normal_form=True,
         local mtbl = twiss {sequence=seq, method=4,'''
         f'mapdef={mapdef_twiss}'
         ''', implicit=true, '''
-        f'nslice={nslice}, misalgn=true, coupling=true'
+        f'nslice={nslice}, misalgn=true, coupling=true, chrom=true'
         '''}
 
         -- send columns to Python
@@ -106,6 +108,13 @@ def _tw_ng(line, rdts=[], normal_form=True,
         tw[nn+'_ng'] = np.atleast_1d(np.squeeze(out_dct[nn]))[:-1]
     for nn in rdts:
         tw[nn] = np.atleast_1d(np.squeeze(out_dct[nn]))[:-1]
+
+    temp_x = tw.wx_ng * np.exp(1j*2*np.pi*tw.phix_ng)
+    tw['ax_ng'] = np.imag(temp_x)
+    tw['bx_ng'] = np.real(temp_x)
+    temp_y = tw.wy_ng * np.exp(1j*2*np.pi*tw.phiy_ng)
+    tw['ay_ng'] = np.imag(temp_y)
+    tw['by_ng'] = np.real(temp_y)
 
     if normal_form:
         mng_script_nf = (

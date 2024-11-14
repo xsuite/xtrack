@@ -627,6 +627,22 @@ class Line:
                             mass=self.particle_ref.mass0 * 1e9,
                             charge=self.particle_ref.q0,
                             betgam=self.particle_ref.beta0[0] * self.particle_ref.gamma0[0])
+
+            # Patch shifts (MAD-NG ignores dx, dy from MAD-X, need to set them through misalign)
+            commands = []
+            for nn in self.element_names:
+                if not hasattr(self[nn], 'shift_x'):
+                    continue
+                nn_ng = nn.replace('.', '_')
+                commands.append(
+                        f'MADX.{nn_ng}.dx = 0\n'
+                        f'MADX.{nn_ng}.dy = 0\n'
+                        f'MADX.{nn_ng}.misalign'
+                        ' = {'
+                        f'dx={self[nn].shift_x}, dy={self[nn].shift_y}'
+                            '}')
+            mng.send('\n'.join(commands))
+
         finally:
             if not keep_files:
                 for nn in [temp_fname + '.madx', temp_fname + '.mad']:
