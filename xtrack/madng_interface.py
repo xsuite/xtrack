@@ -214,21 +214,21 @@ def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False):
 
         # Patch shifts (MAD-NG ignores dx, dy from MAD-X, need to set them through misalign)
         commands = []
+        commands.append('MADX:open_env()')
         for nn in line.element_names:
             if not hasattr(line[nn], 'shift_x'):
                 continue
             nn_ng = nn.replace('.', '_')
             commands.append(
-                    'MADX:open_env()\n'
                     f'{nn_ng}.dx = 0\n'
                     f'{nn_ng}.dy = 0\n'
                     f'{nn_ng}.misalign'
                     ' = {'
                     f'dx={mad_str_or_value(_ge(line.ref[nn].shift_x))},'
                     f'dy={mad_str_or_value(_ge(line.ref[nn].shift_y))}'
-                        '}\n'
-                    'MADX:close_env()'
+                        '}'
                     )
+        commands.append('MADX:close_env()')
         mng.send('\n'.join(commands))
 
     finally:
