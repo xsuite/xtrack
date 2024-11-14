@@ -51,7 +51,8 @@ def _tw_ng(line, rdts=[], normal_form=True,
 
     tw_columns = ['s', 'beta11', 'beta22', 'alfa11', 'alfa22',
                 'x', 'px', 'y', 'py', 't', 'pt',
-                'dx', 'dy', 'dpx', 'dpy', 'mu1', 'mu2']
+                'dx', 'dy', 'dpx', 'dpy', 'mu1', 'mu2',
+                'beta12', 'beta21']
 
     columns = tw_columns + rdts
     rdt_cmd = 'local rdts = {"' + '", "'.join(rdts) + '"}'
@@ -71,7 +72,7 @@ def _tw_ng(line, rdts=[], normal_form=True,
         local X0 = damap {nv=6, mo=4}
 
         -- twiss with RDTs
-        local mtbl = twiss {sequence=seq, X0=X0, trkrdt=rdts, info=2, saverdt=true}
+        local mtbl = twiss {sequence=seq, X0=X0, trkrdt=rdts, info=2, saverdt=true, coupling=true}
 
         -- send columns to Python
         '''
@@ -87,7 +88,7 @@ def _tw_ng(line, rdts=[], normal_form=True,
         local mtbl = twiss {sequence=seq, method=4,'''
         f'mapdef={mapdef_twiss}'
         ''', implicit=true, '''
-        f'nslice={nslice}, misalgn=true'
+        f'nslice={nslice}, misalgn=true, coupling=true'
         '''}
 
         -- send columns to Python
