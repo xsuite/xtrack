@@ -219,22 +219,22 @@ def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False):
             if not hasattr(line[nn], 'shift_x'):
                 continue
             nn_ng = nn.replace('.', '_')
-            dx = mad_str_or_value(_ge(line[nn].shift_x))
-            dy = mad_str_or_value(_ge(line[nn].shift_y))
+            dx = mad_str_or_value(_ge(line.ref[nn].shift_x))
+            dy = mad_str_or_value(_ge(line.ref[nn].shift_y))
+            if dx == 0 and dy == 0:
+                continue
             commands.append(
                     f'{nn_ng}.dx = 0\n'
                     f'{nn_ng}.dy = 0\n'
                     f'{nn_ng}.misalign'
                     ' = {'
-                    # f'dx={line[nn].shift_x},'
-                    # f'dy={line[nn].shift_y}'
-
-                    + (f'dx={dx},' if not isinstance(dx, str) else f'dx:={dx},')
-                    + (f'dy={dy}' if not isinstance(dy, str) else f'dy:={dy}')
+                    f'dx={line[nn].shift_x},'
+                    f'dy={line[nn].shift_y}'
+                    # + (f'dx={dx},' if not isinstance(dx, str) else f'dx:={dx},')
+                    # + (f'dy={dy}' if not isinstance(dy, str) else f'dy:={dy}')
                     +   '}'
                     )
         commands.append('MADX:close_env()')
-        print('\n'.join(commands))
         mng.send('\n'.join(commands))
 
     finally:
