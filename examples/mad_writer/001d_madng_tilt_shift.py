@@ -24,11 +24,12 @@ tw = line.madng_twiss()
 mng = line.tracker._madng
 import time
 t0 = time.perf_counter()
+commands = []
 for nn in line.element_names:
     if not hasattr(line[nn], 'shift_x'):
         continue
     nn_ng = nn.replace('.', '_')
-    mng.send(
+    commands.append(
              f'MADX.{nn_ng}.dx = 0\n'
              f'MADX.{nn_ng}.dy = 0\n'
              f'MADX.{nn_ng}.misalign'
@@ -36,7 +37,10 @@ for nn in line.element_names:
              f'dx={line[nn].shift_x}, dy={line[nn].shift_y}'
                 '}')
 t1 = time.perf_counter()
-print(f'Elapsed time: {t1-t0}')
+mng.send('\n'.join(commands))
+t2 = time.perf_counter()
+print(f'Elapsed time loop: {t1-t0}')
+print(f'Elapsed time send: {t2-t1}')
 
 tw1 = line.madng_twiss()
 
