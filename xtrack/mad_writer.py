@@ -48,10 +48,8 @@ def mad_assignment(lhs, rhs):
     else:
         return f"{lhs} = {rhs}"
 
-
 _ge = xt.elements._get_expr
 _is_ref = xd.refs.is_ref
-
 
 def _knl_ksl_to_mad(mult):
     knl_mad = []
