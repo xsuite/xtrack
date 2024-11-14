@@ -3,6 +3,9 @@ from .match import Action
 import os
 import uuid
 
+from .mad_writer import mad_str_or_value
+import xtrack as xt
+
 class MadngVars:
 
     def __init__(self, mad):
@@ -190,6 +193,7 @@ class ActionTwissMadng(Action):
 def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False):
 
     try:
+        _ge = xt.elements._get_expr
         if temp_fname is None:
             temp_fname = 'temp_madng_' + str(uuid.uuid4())
 
@@ -215,12 +219,16 @@ def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False):
                 continue
             nn_ng = nn.replace('.', '_')
             commands.append(
-                    f'MADX.{nn_ng}.dx = 0\n'
-                    f'MADX.{nn_ng}.dy = 0\n'
-                    f'MADX.{nn_ng}.misalign'
+                    'MADX:open_env()\n'
+                    f'{nn_ng}.dx = 0\n'
+                    f'{nn_ng}.dy = 0\n'
+                    f'{nn_ng}.misalign'
                     ' = {'
-                    f'dx={line[nn].shift_x}, dy={line[nn].shift_y}'
-                        '}')
+                    f'dx={mad_str_or_value(_ge(line.ref[nn].shift_x))},'
+                    f'dy={mad_str_or_value(_ge(line.ref[nn].shift_y))}'
+                        '}\n'
+                    'MADX:close_env()'
+                    )
         mng.send('\n'.join(commands))
 
     finally:
