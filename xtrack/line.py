@@ -227,6 +227,9 @@ class Line:
                                     _context=_buffer.context)
 
         if '_var_manager' in dct.keys():
+            # reinit env and var management
+            self.env = None
+            self._var_management = None
             self._init_var_management(dct=dct)
 
         if 'config' in dct.keys():
