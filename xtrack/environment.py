@@ -71,6 +71,15 @@ class Environment:
         self._drift_counter = 0
         self.ref = EnvRef(self)
 
+    def __getstate__(self):
+        out = self.__dict__.copy()
+        out.pop('_lines_weakrefs')
+        return out
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self._lines_weakrefs = WeakSet()
+
     def new(self, name, parent, mode=None, at=None, from_=None, extra=None,
             mirror=False, **kwargs):
 

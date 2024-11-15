@@ -4922,6 +4922,15 @@ class LineVars:
         for cc in self.vars_to_update:
             cc[key] = value
 
+    def __getstate__(self):
+        out = self.__dict__.copy()
+        out['vars_to_update'] = None
+        return out
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.vars_to_update = WeakSet()
+
     def set_from_madx_file(self, filename, mad_stdout=False):
 
         '''
