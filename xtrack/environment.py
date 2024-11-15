@@ -188,6 +188,13 @@ class Environment:
 
         return name
 
+    def _init_var_management(self, dct=None):
+
+        self._var_management = xt.line._make_var_management(element_dict=self.element_dict,
+                                               dct=dct)
+        self._line_vars = xt.line.LineVars(self)
+
+
     def new_line(self, components=None, name=None, refer: ReferType = 'centre'):
 
         '''
@@ -343,7 +350,6 @@ class Environment:
             xt.Line.__setitem__(self, key, value)
 
     element_dict = xt.Line.element_dict
-    _init_var_management = xt.Line._init_var_management
     _xdeps_vref = xt.Line._xdeps_vref
     _xdeps_fref = xt.Line._xdeps_fref
     _xdeps_manager = xt.Line._xdeps_manager
