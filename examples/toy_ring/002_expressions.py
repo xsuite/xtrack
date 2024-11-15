@@ -68,7 +68,7 @@ line['k1l.qf.2'] # is 0.2
 line['mqf.1'].k1 # is 0.666, i.e. 0.2 / lquad
 line['mqf.2'].k1 # is 0.666, i.e. 0.2 / lquad
 
-# The `_info()` method of a variable provides information on the existing relations
+# The `info()` method of a variable provides information on the existing relations
 # between the variables. For example:
 line.info('k1l.qf.1')
 # prints:
@@ -97,6 +97,8 @@ line.info('k1lf')
 #   vars['k1l.qf.1']
 #   element_refs['mqf.1'].k1
 
+# The `get_info()` method of an element provides information on attribute of
+# an element. For example:
 line['mqf.1'].get_info('k1')
 # prints:
 ##  element_refs['mqf.1'].k1._get_value()
