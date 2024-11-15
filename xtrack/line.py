@@ -3782,38 +3782,8 @@ class Line:
 
     def _init_var_management(self, dct=None):
 
-        from collections import defaultdict
-
-        _var_values = defaultdict(lambda: 0)
-        _var_values.default_factory = None
-
-        functions = Functions()
-
-        manager = xd.Manager()
-        _vref = manager.ref(_var_values, 'vars')
-        _fref = manager.ref(functions, 'f')
-        _lref = manager.ref(self.element_dict, 'element_refs')
-
-        self._var_management = {}
-        self._var_management['data'] = {}
-        self._var_management['data']['var_values'] = _var_values
-        self._var_management['data']['functions'] = functions
-
-        self._var_management['manager'] = manager
-        self._var_management['lref'] = _lref
-        self._var_management['vref'] = _vref
-        self._var_management['fref'] = _fref
-
-        _vref['t_turn_s'] = 0.0
-
-        if dct is not None:
-            manager = self._var_management['manager']
-            for kk in dct['_var_management_data'].keys():
-                data_item = dct['_var_management_data'][kk]
-                if kk == 'functions':
-                    data_item = Functions.from_dict(data_item)
-                self._var_management['data'][kk].update(data_item)
-            manager.load(dct['_var_manager'])
+        self._var_management = _make_var_management(element_dict=self.element_dict,
+                                               dct=dct)
 
         if isinstance(self, Line):
             if not hasattr(self, 'env') or self.env is None:
@@ -5417,3 +5387,41 @@ def _rot_s_from_attr(attr):
         parent_cos_rot_s[has_parent_rot]) * attr._rot_and_shift_from_parent[has_parent_rot]
 
     return rot_s_rad
+
+
+def _make_var_management(element_dict, dct=None):
+
+    from collections import defaultdict
+
+    _var_values = defaultdict(lambda: 0)
+    _var_values.default_factory = None
+
+    functions = Functions()
+
+    manager = xd.Manager()
+    _vref = manager.ref(_var_values, 'vars')
+    _fref = manager.ref(functions, 'f')
+    _lref = manager.ref(element_dict, 'element_refs')
+
+    _var_management = {}
+    _var_management['data'] = {}
+    _var_management['data']['var_values'] = _var_values
+    _var_management['data']['functions'] = functions
+
+    _var_management['manager'] = manager
+    _var_management['lref'] = _lref
+    _var_management['vref'] = _vref
+    _var_management['fref'] = _fref
+
+    _vref['t_turn_s'] = 0.0
+
+    if dct is not None:
+        manager = _var_management['manager']
+        for kk in dct['_var_management_data'].keys():
+            data_item = dct['_var_management_data'][kk]
+            if kk == 'functions':
+                data_item = Functions.from_dict(data_item)
+            _var_management['data'][kk].update(data_item)
+        manager.load(dct['_var_manager'])
+
+    return _var_management
