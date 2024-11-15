@@ -3785,13 +3785,9 @@ class Line:
         self._var_management = _make_var_management(element_dict=self.element_dict,
                                                dct=dct)
 
-        if isinstance(self, Line):
-            if not hasattr(self, 'env') or self.env is None:
-                self._env_if_needed()
-                self.env._line_vars = LineVars(self.env)
-        else:
-            # It is an environment
-            object.__setattr__(self, '_line_vars ', LineVars(self))
+        if not hasattr(self, 'env') or self.env is None:
+            self._env_if_needed()
+            self.env._line_vars = LineVars(self.env)
 
     @property
     def _line_vars(self):
