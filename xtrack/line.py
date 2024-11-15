@@ -790,6 +790,9 @@ class Line:
                                         _context=_context, _buffer=_buffer)
 
         if self._var_management is not None:
+            # reinit env and var management
+            out.env = None
+            out._var_management = None
             out._init_var_management(dct=self._var_management_to_dict())
 
         out.config.update(self.config.copy())
