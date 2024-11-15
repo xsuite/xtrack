@@ -22,7 +22,7 @@ class MadngVars:
         #     MADX:close_env()
         #     ''')
 
-def _build_madng_model(line, sequence_name='seq'):
+def build_madng_model(line, sequence_name='seq'):
     if line.tracker is None:
         line.build_tracker()
     mng = line.to_madng(sequence_name=sequence_name)
@@ -31,12 +31,15 @@ def _build_madng_model(line, sequence_name='seq'):
     line.tracker.vars_to_update = [MadngVars(mng)]
     return mng
 
-def _discard_madng_model(line):
+def discard_madng_model(line):
     line.tracker._madng = None
     line.tracker.vars_to_update = []
     return
 
-
+def regen_madng_model(line):
+    discard_madng_model(line)
+    build_madng_model(line)
+    return
 
 def _tw_ng(line, rdts=[], normal_form=True,
            mapdef_twiss=2, mapdef_normal_form=4,
@@ -48,7 +51,7 @@ def _tw_ng(line, rdts=[], normal_form=True,
     _action = ActionTwissMadng(line, tw_kwargs)
 
     if not hasattr(line.tracker, '_madng'):
-        line._build_madng_model()
+        line.build_madng_model()
     mng = line.tracker._madng
 
     tw = line.twiss(method='4d', reverse=False)
@@ -227,11 +230,11 @@ def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False):
                     f'{nn_ng}.dx = 0\n'
                     f'{nn_ng}.dy = 0\n'
                     f'{nn_ng}.misalign'
-                    ' = {'
-                    f'dx={line[nn].shift_x},'
-                    f'dy={line[nn].shift_y}'
-                    # + (f'dx={dx},' if not isinstance(dx, str) else f'dx:={dx},')
-                    # + (f'dy={dy}' if not isinstance(dy, str) else f'dy:={dy}')
+                    ' =\ {'
+                    # f'dx={line[nn].shift_x},'
+                    # f'dy={line[nn].shift_y}'
+                    + (f'dx={dx},' if not isinstance(dx, str) else f'dx={dx},')
+                    + (f'dy={dy}' if not isinstance(dy, str) else f'dy={dy}')
                     +   '}'
                     )
         commands.append('MADX:close_env()')

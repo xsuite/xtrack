@@ -18,11 +18,12 @@ shift_y = rgen.randn(len(tt_quad)) * 0.01e-3 # 0.01 mm rms shift on all quads
 rot_s = rgen.randn(len(tt_quad)) * 1e-3 # 1 mrad rms rotation on all quads
 k2l = rgen.rand(len(tt_quad)) * 1e-3
 
+line['on_error'] = 1.
 for nn_quad, sx, sy, rr, kkk in zip(tt_quad.name, shift_x, shift_y, rot_s, k2l):
-    line[nn_quad].shift_x = sx
-    line[nn_quad].shift_y = sy
-    line[nn_quad].rot_s_rad = rr
-    line[nn_quad].knl[2] = kkk
+    line[nn_quad].shift_x = sx * line.ref['on_error']
+    line[nn_quad].shift_y = sy * line.ref['on_error']
+    line[nn_quad].rot_s_rad = rr * line.ref['on_error']
+    line[nn_quad].knl[2] = kkk * line.ref['on_error']
 tw = line.madng_twiss()
 
 xo.assert_allclose(tw.x, tw.x_ng, atol=5e-4*tw.x.std(), rtol=0)

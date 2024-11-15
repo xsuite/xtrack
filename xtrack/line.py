@@ -26,7 +26,8 @@ import xdeps as xd
 from .progress_indicator import progress
 from .slicing import Custom, Slicer, Strategy
 from .mad_writer import to_madx_sequence
-from .madng_interface import _build_madng_model, _discard_madng_model, _tw_ng, line_to_madng
+from .madng_interface import (build_madng_model, discard_madng_model,
+                              regen_madng_model, _tw_ng, line_to_madng)
 
 from .survey import survey_from_line
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
@@ -611,8 +612,9 @@ class Line:
                              temp_fname=temp_fname, keep_files=keep_files)
 
 
-    _build_madng_model = _build_madng_model
-    _discard_madng_model = _discard_madng_model
+    build_madng_model = build_madng_model
+    discard_madng_model = discard_madng_model
+    regen_madng_model = regen_madng_model
     madng_twiss = _tw_ng
 
     def __repr__(self):
