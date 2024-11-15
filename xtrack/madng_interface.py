@@ -28,12 +28,13 @@ def build_madng_model(line, sequence_name='seq'):
     mng = line.to_madng(sequence_name=sequence_name)
     mng._sequence_name = sequence_name
     line.tracker._madng = mng
-    line.tracker.vars_to_update = [MadngVars(mng)]
+    line.tracker._madng_vars = MadngVars(mng)
+    line.vars.vars_to_update.add(line.tracker._madng_vars)
     return mng
 
 def discard_madng_model(line):
     line.tracker._madng = None
-    line.tracker.vars_to_update = []
+    line.tracker.vars_to_update.remove(line.tracker._madng_vars)
     return
 
 def regen_madng_model(line):

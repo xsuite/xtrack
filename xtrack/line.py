@@ -7,6 +7,7 @@ import math
 import json
 import logging
 from collections import defaultdict
+from weakref import WeakSet
 
 from contextlib import contextmanager
 from copy import deepcopy
@@ -3814,7 +3815,14 @@ class Line:
                 self._var_management['data'][kk].update(data_item)
             manager.load(dct['_var_manager'])
 
-        self._line_vars = LineVars(self)
+        if isinstance(self, Line):
+            if not hasattr(self, 'env') or self.env is None:
+                self._env_if_needed()
+                self.env._line_vars = LineVars(self)
+            self._line_vars = self.env._line_vars
+        else:
+            # It is an environment
+            self._line_vars = LineVars(self)
 
     @property
     def record_last_track(self):
@@ -4822,6 +4830,7 @@ class LineVars:
         if '__vary_default' not in self.line._xdeps_vref._owner.keys():
             self.line._xdeps_vref._owner['__vary_default'] = {}
         self.val = VarValues(self)
+        self.vars_to_update = WeakSet()
 
     def keys(self):
         if self.line._xdeps_vref is None:
@@ -4935,9 +4944,8 @@ class LineVars:
         if isinstance(value, str):
             value = self.line._xdeps_eval.eval(value)
         self.line._xdeps_vref[key] = value
-        if self.line.tracker is not None and hasattr(self.line.tracker, 'vars_to_update'):
-            for cc in self.line.tracker.vars_to_update:
-                cc[key] = value
+        for cc in self.vars_to_update:
+            cc[key] = value
 
     def set_from_madx_file(self, filename, mad_stdout=False):
 
