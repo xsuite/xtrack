@@ -100,7 +100,7 @@ plt.plot(mon.zeta.T[i_turn, :], mon.delta.T[i_turn, :], '.')
 
 def update_plot(i_turn):
     plt.clf()
-    plt.plot(mon.zeta.T[i_turn, :], mon.delta.T[i_turn, :], '.')
+    plt.plot(mon.zeta.T[i_turn, :], mon.delta.T[i_turn, :], '.', markersize=1)
     plt.xlim(-50, 50)
     plt.ylim(-5e-3, 5e-3)
     plt.xlabel('z [m]')
@@ -109,7 +109,7 @@ def update_plot(i_turn):
 
 import matplotlib.animation as animation
 fig = plt.figure()
-animation_fig = animation.FuncAnimation(fig, update_plot, frames=range(0, 1000, 1))
-animation_fig.save('slipstack.gif', fps=30)
+animation_fig = animation.FuncAnimation(fig, update_plot, frames=range(0, 1000, 5))
+# animation_fig.save('slipstack.gif', fps=30)
 
-# plt.show()
+plt.show()
