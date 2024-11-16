@@ -7,27 +7,42 @@ import numpy as np
 import xtrack as xt
 from scipy.constants import c as clight
 
-T_rev = 23e-6 # 23 us
-
 line = xt.Line.from_json('../../test_data/sps_w_spacecharge/line_no_spacecharge.json')
 line.build_tracker()
+tw0 = line.twiss4d()
+
+f0 = 1 / (line.get_length()/(clight*line.particle_ref.beta0[0]))
+h_rf = 4620
 
 tt = line.get_table(attr=True)
 tt_cav = tt.rows[tt.element_type=='Cavity']
 tt_cav.cols['frequency voltage lag'].show()
 
-line['acta.31637'].absolute_time = 1
-line['acta.31637'].frequency = 200.266e6 + 1e3
-line['acta.31637'].voltage = 3e6
+# line.discard_tracker()
+# line.insert_element(element=xt.Cavity(), element_name='acta.31637.b', index='acta.31637')
+# line.build_tracker()
 
-# line['actb.31739'].absolute_time = 1
-# line['actb.31739'].frequency = 200.266e6 - 1e3
-# line['actb.31739'].voltage = 3e6
+line['acta.31637'].absolute_time = 1
+line['acta.31637'].frequency = h_rf * f0 - 1.7e3
+line['acta.31637'].voltage = 3e6 *0
+line['acta.31637'].lag = 180
+
+line['actd.31934'].absolute_time = 1
+line['actd.31934'].frequency = h_rf * f0 - 1.7e3
+line['actd.31934'].voltage = 3e6
+line['actd.31934'].lag = 180
+
+tt = line.get_table(attr=True)
+tt_cav = tt.rows[tt.element_type=='Cavity']
+tt_cav.cols['frequency voltage lag'].show()
 
 # tw = line.twiss(search_for_t_rev=True)
 
 # particles = xt.Particles(p0c=26e9, zeta=np.linspace(-1, 1, 40), delta=tw.delta[0])
-particles = xt.Particles(p0c=26e9, delta=np.linspace(-7e-3, 7e-3, 1000))
+particles = line.build_particles(
+    method='4d',
+    x_norm=0, y_norm=0,
+    delta=np.linspace(-8e-3, 8e-3, 1000))
 
 particles.t_sim = line.get_length() / line.particle_ref._xobject.beta0[0] / clight
 line.track(particles, num_turns=1000, turn_by_turn_monitor=True, with_progress=10)
