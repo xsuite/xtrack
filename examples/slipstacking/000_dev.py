@@ -23,13 +23,13 @@ tt_cav.cols['frequency voltage lag'].show()
 # line.build_tracker()
 
 line['acta.31637'].absolute_time = 1
-line['acta.31637'].frequency = h_rf * f0 - 1.7e3
-line['acta.31637'].voltage = 3e6 *0
+line['acta.31637'].frequency = h_rf * f0 + 1.7e3
+line['acta.31637'].voltage = 2e6
 line['acta.31637'].lag = 180
 
 line['actd.31934'].absolute_time = 1
 line['actd.31934'].frequency = h_rf * f0 - 1.7e3
-line['actd.31934'].voltage = 3e6
+line['actd.31934'].voltage = 2e6
 line['actd.31934'].lag = 180
 
 tt = line.get_table(attr=True)
