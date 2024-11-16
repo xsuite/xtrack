@@ -105,11 +105,11 @@ def update_plot(i_turn):
     plt.ylim(-5e-3, 5e-3)
     plt.xlabel('z [m]')
     plt.ylabel(r'$\Delta p / p_0$')
+    plt.title(f'Turn {i_turn}')
 
 import matplotlib.animation as animation
 fig = plt.figure()
-animation_fig = animation.FuncAnimation(fig, update_plot, frames=range(0, 1000, 10))
+animation_fig = animation.FuncAnimation(fig, update_plot, frames=range(0, 1000, 1))
+animation_fig.save('slipstack.gif', fps=30)
 
-# animation_fig.save("steps/animated_GMM.gif")
-
-plt.show()
+# plt.show()
