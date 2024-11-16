@@ -102,6 +102,9 @@ def update_plot(i_turn):
     plt.clf()
     plt.plot(mon.zeta.T[i_turn, :], mon.delta.T[i_turn, :], '.')
     plt.xlim(-50, 50)
+    plt.ylim(-5e-3, 5e-3)
+    plt.xlabel('z [m]')
+    plt.ylabel(r'$\Delta p / p_0$')
 
 import matplotlib.animation as animation
 fig = plt.figure()
