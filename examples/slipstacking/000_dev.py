@@ -53,10 +53,27 @@ particles = line.build_particles(
 
 particles.t_sim = line.get_length() / line.particle_ref._xobject.beta0[0] / clight
 line.track(particles, num_turns=1000, turn_by_turn_monitor=True, with_progress=10)
-
-
-
 rec = line.record_last_track
+
+# match a bunch (no frequency shift)
+dfreq_tmp = line['dfreq']
+line['dfreq'] = 0
+line['on_rf2'] = 0.
+import xpart as xp
+bunch0 = xp.generate_matched_gaussian_bunch(sigma_z=0.15, num_particles=500,
+                                            nemitt_x=0, nemitt_y=0, line=line)
+line['on_rf2'] = 1.
+line['dfreq'] = dfreq_tmp
+
+bunch1 = bunch0.copy()
+bunch1.delta += tw_rf1.delta[0]
+bunch2 = bunch0.copy()
+bunch2.delta += tw_rf2.delta[0]
+
+two_bunches = xt.Particles.merge([bunch1, bunch2])
+line.track(two_bunches, num_turns=1000, with_progress=10)
+
+
 import matplotlib.pyplot as plt
 
 
@@ -72,4 +89,9 @@ plt.ylabel(r'$\Delta p / p_0$')
 
 plt.figure(2)
 plt.plot(rec.zeta.T)
+
+plt.figure(3)
+plt.plot(two_bunches.zeta, two_bunches.delta, '.')
+
+
 plt.show()
