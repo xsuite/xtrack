@@ -18,25 +18,32 @@ tt = line.get_table(attr=True)
 tt_cav = tt.rows[tt.element_type=='Cavity']
 tt_cav.cols['frequency voltage lag'].show()
 
-# line.discard_tracker()
-# line.insert_element(element=xt.Cavity(), element_name='acta.31637.b', index='acta.31637')
-# line.build_tracker()
+line['dfreq'] = 1.e3
+line['on_rf1'] = 1.
+line['on_rf2'] = 1.
 
 line['acta.31637'].absolute_time = 1
-line['acta.31637'].frequency = h_rf * f0 + 1.7e3
-line['acta.31637'].voltage = 2e6
+line['acta.31637'].frequency = h_rf * f0 + line.ref['dfreq']
+line['acta.31637'].voltage = 1.5e6 * line.ref['on_rf1']
 line['acta.31637'].lag = 180
 
 line['actd.31934'].absolute_time = 1
-line['actd.31934'].frequency = h_rf * f0 - 1.7e3
-line['actd.31934'].voltage = 2e6
+line['actd.31934'].frequency = h_rf * f0 - line.ref['dfreq']
+line['actd.31934'].voltage = 1.5e6 * line.ref['on_rf2']
 line['actd.31934'].lag = 180
 
 tt = line.get_table(attr=True)
 tt_cav = tt.rows[tt.element_type=='Cavity']
 tt_cav.cols['frequency voltage lag'].show()
 
-# tw = line.twiss(search_for_t_rev=True)
+line['on_rf2'] = 0.
+tw_rf1 = line.twiss(search_for_t_rev=True)
+line['on_rf2'] = 1.
+
+line['on_rf1'] = 0.
+tw_rf2 = line.twiss(search_for_t_rev=True)
+line['on_rf1'] = 1.
+
 
 # particles = xt.Particles(p0c=26e9, zeta=np.linspace(-1, 1, 40), delta=tw.delta[0])
 particles = line.build_particles(
