@@ -71,8 +71,9 @@ bunch2 = bunch0.copy()
 bunch2.delta += tw_rf2.delta[0]
 
 two_bunches = xt.Particles.merge([bunch1, bunch2])
-line.track(two_bunches, num_turns=1000, with_progress=10)
+line.track(two_bunches, num_turns=1000, with_progress=10, turn_by_turn_monitor=True)
 
+mon = line.record_last_track
 
 import matplotlib.pyplot as plt
 
@@ -93,5 +94,19 @@ plt.plot(rec.zeta.T)
 plt.figure(3)
 plt.plot(two_bunches.zeta, two_bunches.delta, '.')
 
+i_turn = 500
+plt.figure(4)
+plt.plot(mon.zeta.T[i_turn, :], mon.delta.T[i_turn, :], '.')
+
+def update_plot(i_turn):
+    plt.clf()
+    plt.plot(mon.zeta.T[i_turn, :], mon.delta.T[i_turn, :], '.')
+    plt.xlim(-50, 50)
+
+import matplotlib.animation as animation
+fig = plt.figure()
+animation_fig = animation.FuncAnimation(fig, update_plot, frames=range(0, 1000, 10))
+
+# animation_fig.save("steps/animated_GMM.gif")
 
 plt.show()
