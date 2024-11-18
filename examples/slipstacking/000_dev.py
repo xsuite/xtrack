@@ -44,8 +44,6 @@ line['on_rf1'] = 0.
 tw_rf2 = line.twiss(search_for_t_rev=True)
 line['on_rf1'] = 1.
 
-
-# particles = xt.Particles(p0c=26e9, zeta=np.linspace(-1, 1, 40), delta=tw.delta[0])
 particles = line.build_particles(
     method='4d',
     x_norm=0, y_norm=0,
@@ -60,25 +58,32 @@ dfreq_tmp = line['dfreq']
 line['dfreq'] = 0
 line['on_rf2'] = 0.
 import xpart as xp
-bunch0 = xp.generate_matched_gaussian_bunch(sigma_z=0.15, num_particles=500,
-                                            nemitt_x=0, nemitt_y=0, line=line)
+# bunch0 = xp.generate_matched_gaussian_bunch(sigma_z=0.15, num_particles=500,
+#                                             nemitt_x=0, nemitt_y=0, line=line)
+bucket_length = line.get_length() / h_rf
+train0 = xp.generate_matched_gaussian_multibunch_beam(
+    sigma_z=0.15, nemitt_x=0, nemitt_y=0, line=line,
+    bunch_intensity_particles=1e11,
+    bunch_num_particles=500, filling_scheme=5*[1, 0, 0, 0, 0])
 line['on_rf2'] = 1.
 line['dfreq'] = dfreq_tmp
 
-bunch1 = bunch0.copy()
-bunch1.delta += tw_rf1.delta[0]
-bunch2 = bunch0.copy()
-bunch2.delta += tw_rf2.delta[0]
+train1 = train0.copy()
+train1.delta += tw_rf1.delta[0]
+train2 = train0.copy()
+train2.delta += tw_rf2.delta[0]
+train2.zeta += 20 * bucket_length
 
-two_bunches = xt.Particles.merge([bunch1, bunch2])
-line.track(two_bunches, num_turns=1000, with_progress=10, turn_by_turn_monitor=True)
+two_trains = xt.Particles.merge([train1, train2])
 
+num_turns = 400
+line.track(two_trains, num_turns=num_turns, with_progress=10,
+           turn_by_turn_monitor=True)
 mon = line.record_last_track
 
 import matplotlib.pyplot as plt
-
-
 plt.close('all')
+
 plt.figure(1)
 for ii in range(rec.x.shape[0]):
     mask = rec.state[ii, :]>0
@@ -92,24 +97,26 @@ plt.figure(2)
 plt.plot(rec.zeta.T)
 
 plt.figure(3)
-plt.plot(two_bunches.zeta, two_bunches.delta, '.')
+plt.plot(two_trains.zeta, two_trains.delta, '.')
 
-i_turn = 500
+i_turn = 350
 plt.figure(4)
 plt.plot(mon.zeta.T[i_turn, :], mon.delta.T[i_turn, :], '.')
 
 def update_plot(i_turn):
     plt.clf()
     plt.plot(mon.zeta.T[i_turn, :], mon.delta.T[i_turn, :], '.', markersize=1)
-    plt.xlim(-50, 50)
-    plt.ylim(-5e-3, 5e-3)
+    plt.xlim(-60, 60)
+    plt.ylim(-8e-3, 8e-3)
     plt.xlabel('z [m]')
     plt.ylabel(r'$\Delta p / p_0$')
     plt.title(f'Turn {i_turn}')
+    plt.subplots_adjust(left=0.2)
+    plt.grid(alpha=0.5)
 
 import matplotlib.animation as animation
 fig = plt.figure()
-animation_fig = animation.FuncAnimation(fig, update_plot, frames=range(0, 1000, 5))
-# animation_fig.save('slipstack.gif', fps=30)
-
+animation_fig = animation.FuncAnimation(
+    fig, update_plot, frames=range(0, num_turns, 1))
+animation_fig.save('slipstack.gif', fps=30)
 plt.show()
