@@ -237,7 +237,7 @@ def test_vkick(example_sequence):
     assert vk1.length == 2
     assert vk1.knl[0] == 0
     assert vk1.ksl[0] == 3
-    assert vk1.rot_s_rad == -1
+    xo.assert_allclose(vk1.rot_s_rad, -1)
 
 
 def test_hkick(example_sequence):
@@ -259,7 +259,7 @@ def test_kick(example_sequence):
     assert ki1.length == 2
     assert ki1.knl[0] == -4
     assert ki1.ksl[0] == 3
-    assert ki1.rot_s_rad == 1
+    xo.assert_allclose(ki1.rot_s_rad, 1)
 
 
 def test_tkick(example_sequence):
@@ -482,7 +482,7 @@ def test_reversed_vkick(example_sequence):
     assert ivk1.length == 2
     assert ivk1.knl[0] == 0
     assert ivk1.ksl[0] == -3
-    assert ivk1.rot_s_rad == 1
+    xo.assert_allclose(ivk1.rot_s_rad,  1)
 
 
 def test_reversed_hkick(example_sequence):
@@ -504,7 +504,7 @@ def test_reversed_kick(example_sequence):
     assert ki1.length == 2
     assert ki1.knl[0] == -4
     assert ki1.ksl[0] == -3
-    assert ki1.rot_s_rad == -1
+    xo.assert_allclose(ki1.rot_s_rad, -1)
 
 
 def test_reversed_tkick(example_sequence):
