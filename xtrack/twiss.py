@@ -3190,41 +3190,12 @@ class TwissTable(Table):
         WW = self.W_matrix
         R_matrix_ebe = np.einsum('ijk,ikl->ijl', WW, Rot) @ np.linalg.inv(WW[0, :, :])
 
-        out = Table({'s': self.s, 'name': self.name, 'R_matrix': R_matrix_ebe,
-                    'r11': R_matrix_ebe[:, 0, 1],
-                    'r12': R_matrix_ebe[:, 0, 2],
-                    'r13': R_matrix_ebe[:, 0, 3],
-                    'r14': R_matrix_ebe[:, 0, 4],
-                    'r15': R_matrix_ebe[:, 0, 5],
-                    'r21': R_matrix_ebe[:, 1, 0],
-                    'r22': R_matrix_ebe[:, 1, 1],
-                    'r23': R_matrix_ebe[:, 1, 2],
-                    'r24': R_matrix_ebe[:, 1, 3],
-                    'r25': R_matrix_ebe[:, 1, 4],
-                    'r31': R_matrix_ebe[:, 2, 0],
-                    'r32': R_matrix_ebe[:, 2, 1],
-                    'r33': R_matrix_ebe[:, 2, 2],
-                    'r34': R_matrix_ebe[:, 2, 3],
-                    'r35': R_matrix_ebe[:, 2, 4],
-                    'r41': R_matrix_ebe[:, 3, 0],
-                    'r42': R_matrix_ebe[:, 3, 1],
-                    'r43': R_matrix_ebe[:, 3, 2],
-                    'r44': R_matrix_ebe[:, 3, 3],
-                    'r45': R_matrix_ebe[:, 3, 4],
-                    'r51': R_matrix_ebe[:, 4, 0],
-                    'r52': R_matrix_ebe[:, 4, 1],
-                    'r53': R_matrix_ebe[:, 4, 2],
-                    'r54': R_matrix_ebe[:, 4, 3],
-                    'r55': R_matrix_ebe[:, 4, 4],
-                    'r61': R_matrix_ebe[:, 5, 0],
-                    'r62': R_matrix_ebe[:, 5, 1],
-                    'r63': R_matrix_ebe[:, 5, 2],
-                    'r64': R_matrix_ebe[:, 5, 3],
-                    'r65': R_matrix_ebe[:, 5, 4],
-                    'r66': R_matrix_ebe[:, 5, 5],
-                    },
-                    index='name')
-        return out
+        out_dct = {'s': self.s, 'name': self.name, 'R_matrix': R_matrix_ebe}
+        for ii in range(6):
+            for jj in range(6):
+                out_dct[f'r{ii+1}{jj+1}'] = R_matrix_ebe[:, ii, jj]
+
+        return Table(out_dct)
 
     def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None,
                                    nemitt_zeta=None, _force_at_element=None):
