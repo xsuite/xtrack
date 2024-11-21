@@ -3162,6 +3162,70 @@ class TwissTable(Table):
 
         return R_matrix
 
+    def get_R_matrix_table(self):
+
+        Rot = np.zeros(shape=(len(self.s), 6, 6), dtype=np.float64)
+
+        cos_phix = np.cos(self.phix - self.phix[0])
+        sin_phix = np.sin(self.phix - self.phix[0])
+        cos_phiy = np.cos(self.phiy - self.phiy[0])
+        sin_phiy = np.sin(self.phiy - self.phiy[0])
+        cos_phizeta = np.cos(self.phizeta - self.phizeta[0])
+        sin_phizeta = np.sin(self.phizeta - self.phizeta[0])
+
+        Rot[:, 0, 0] = cos_phix
+        Rot[:, 0, 1] = sin_phix
+        Rot[:, 1, 0] = -sin_phix
+        Rot[:, 1, 1] = cos_phix
+        Rot[:, 2, 2] = cos_phiy
+        Rot[:, 2, 3] = sin_phiy
+        Rot[:, 3, 2] = -sin_phiy
+        Rot[:, 3, 3] = cos_phiy
+        Rot[:, 4, 4] = cos_phizeta
+        Rot[:, 4, 5] = sin_phizeta
+        Rot[:, 5, 4] = -sin_phizeta
+        Rot[:, 5, 5] = cos_phizeta
+
+        # Compute W @ Rot @ W_inv slice by slice
+        WW = self.W_matrix
+        R_matrix_ebe = np.einsum('ijk,ikl->ijl', WW, Rot) @ np.linalg.inv(WW[0, :, :])
+
+        out = Table({'s': self.s, 'name': self.name, 'R_matrix': R_matrix_ebe,
+                    'r11': R_matrix_ebe[:, 0, 1],
+                    'r12': R_matrix_ebe[:, 0, 2],
+                    'r13': R_matrix_ebe[:, 0, 3],
+                    'r14': R_matrix_ebe[:, 0, 4],
+                    'r15': R_matrix_ebe[:, 0, 5],
+                    'r21': R_matrix_ebe[:, 1, 0],
+                    'r22': R_matrix_ebe[:, 1, 1],
+                    'r23': R_matrix_ebe[:, 1, 2],
+                    'r24': R_matrix_ebe[:, 1, 3],
+                    'r25': R_matrix_ebe[:, 1, 4],
+                    'r31': R_matrix_ebe[:, 2, 0],
+                    'r32': R_matrix_ebe[:, 2, 1],
+                    'r33': R_matrix_ebe[:, 2, 2],
+                    'r34': R_matrix_ebe[:, 2, 3],
+                    'r35': R_matrix_ebe[:, 2, 4],
+                    'r41': R_matrix_ebe[:, 3, 0],
+                    'r42': R_matrix_ebe[:, 3, 1],
+                    'r43': R_matrix_ebe[:, 3, 2],
+                    'r44': R_matrix_ebe[:, 3, 3],
+                    'r45': R_matrix_ebe[:, 3, 4],
+                    'r51': R_matrix_ebe[:, 4, 0],
+                    'r52': R_matrix_ebe[:, 4, 1],
+                    'r53': R_matrix_ebe[:, 4, 2],
+                    'r54': R_matrix_ebe[:, 4, 3],
+                    'r55': R_matrix_ebe[:, 4, 4],
+                    'r61': R_matrix_ebe[:, 5, 0],
+                    'r62': R_matrix_ebe[:, 5, 1],
+                    'r63': R_matrix_ebe[:, 5, 2],
+                    'r64': R_matrix_ebe[:, 5, 3],
+                    'r65': R_matrix_ebe[:, 5, 4],
+                    'r66': R_matrix_ebe[:, 5, 5],
+                    },
+                    index='name')
+        return out
+
     def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None,
                                    nemitt_zeta=None, _force_at_element=None):
 
