@@ -436,9 +436,11 @@ class MadxLoader:
             #  should be taken as is, and hope no one relies on it being < 0.
 
         if params.pop('aperture', None):
-            _warn(f'Ignoring aperture parameter for element `{name}` for now. '
-                  f'Only apertures on markers and standalone aperture elements '
-                  f'are supported for now.')
+            pass
+            # Avoid flooding the user with warnings
+            # _warn(f'Ignoring aperture parameter for element `{name}` for now. '
+            #       f'Only apertures on markers and standalone aperture elements '
+            #       f'are supported for now.')
 
         return params
 
