@@ -634,3 +634,9 @@ class MadxLoader:
             )
 
         return element_name
+
+def load_madx_lattice(file):
+    loader = MadxLoader()
+    loader.load_file('../acc-models-ea/H6/h6fm04.seq')
+    env = loader.env
+    return env
