@@ -3443,7 +3443,8 @@ class TwissTable(Table):
             axleft=None,
             axright=None,
             axlattice=None,
-            hover=False
+            hover=False,
+            lattice_only=False
             ):
         """
         Plot columns of the TwissTable
@@ -3494,6 +3495,10 @@ class TwissTable(Table):
 
         self._is_s_begin=True
 
+        if lattice_only:
+            yl = ''
+            yr = ''
+
         pl=TwissPlot(self,
                 x=x,
                 yl=yl,
@@ -3514,6 +3519,14 @@ class TwissTable(Table):
             labels=self[self._index][mask]
             xs=self[x][mask]
             pl.left.set_xticks(xs,labels)
+
+        if lattice_only:
+            ax1 = pl.lattice.twinx()
+            ax1.yaxis.set_label_position("left")
+            ax1.yaxis.set_ticks_position("left")
+            ax1.set_autoscale_on(True)
+            pl.left = ax1
+
         return pl
 
 
