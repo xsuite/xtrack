@@ -126,6 +126,8 @@ class MadxLoader:
         self._new_builtin("ecollimator", "Drift")
         self._new_builtin("instrument", "Drift")
         self._new_builtin("monitor", "Drift")
+        self._new_builtin("hmonitor", "Drift")
+        self._new_builtin("vmonitor", "Drift")
         self._new_builtin("placeholder", "Drift")
         self._new_builtin("sbend", "Bend")  # no rbarc since we don't have an angle
         self._new_builtin("rbend", "Bend", rbend=True)
@@ -304,7 +306,11 @@ class MadxLoader:
                 name = self.env.new_line([drift_name, name, drift_name])
                 builder.place(name, at=at, from_=from_)
             else:
-                builder.new(name, parent, **el_params)
+                if name == parent:
+                    el_params.pop('extra', None)
+                    builder.place(name, **el_params)
+                else:
+                    builder.new(name, parent, **el_params)
 
     def _set_element(self, name, builder, **kwargs):
         self._parameter_cache[name].update(kwargs)
@@ -430,9 +436,11 @@ class MadxLoader:
             #  should be taken as is, and hope no one relies on it being < 0.
 
         if params.pop('aperture', None):
-            _warn(f'Ignoring aperture parameter for element `{name}` for now. '
-                  f'Only apertures on markers and standalone aperture elements '
-                  f'are supported for now.')
+            pass
+            # Avoid flooding the user with warnings
+            # _warn(f'Ignoring aperture parameter for element `{name}` for now. '
+            #       f'Only apertures on markers and standalone aperture elements '
+            #       f'are supported for now.')
 
         return params
 
@@ -626,3 +634,9 @@ class MadxLoader:
             )
 
         return element_name
+
+def load_madx_lattice(file):
+    loader = MadxLoader()
+    loader.load_file(file)
+    env = loader.env
+    return env

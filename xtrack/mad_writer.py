@@ -315,7 +315,8 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
             if el_str is None:
                 continue
 
-            seq_str += f"{nn}: {el_str}, at={s_dict[nn]};\n"
+            nn_mad = nn.replace(':', '__') # : not supported in madx names
+            seq_str += f"{nn_mad}: {el_str}, at={s_dict[nn]};\n"
         seq_str += 'endsequence;'
         machine_str = seq_str
 

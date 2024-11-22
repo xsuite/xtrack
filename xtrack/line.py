@@ -4993,6 +4993,8 @@ class LineVars:
     def load_madx_optics_file(self, filename, mad_stdout=False):
         self.set_from_madx_file(filename, mad_stdout=mad_stdout)
 
+    load_madx = load_madx_optics_file
+
     def load_json(self, filename):
 
         with open(filename, 'r') as fid:

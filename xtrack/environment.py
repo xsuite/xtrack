@@ -26,14 +26,18 @@ def _argsort(seq, tol=10e-10):
 
 
 def _flatten_components(components, refer: ReferType = 'centre'):
-    if refer not in {'entry', 'centre'}:
+    if refer not in {'entry', 'centre', 'exit'}:
         raise ValueError(
-            f'Allowed values for refer are "entry" and "centre". Got "{refer}".'
+            f'Allowed values for refer are "entry", "centre" and "exit". Got "{refer}".'
         )
 
     flatt_components = []
     for nn in components:
         if isinstance(nn, Place) and isinstance(nn.name, xt.Line):
+            if refer == 'exit':
+                raise NotImplementedError(
+                    'Refer "exit" is not yet implemented for lines.'
+                )
             line = nn.name
             if not line.element_names:
                 continue
@@ -465,6 +469,7 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center'):
 
     s_center_for_place = {}
     s_entry_for_place = {}  # entry positions calculated assuming at is also pointing to entry
+    s_exit_for_place = {}  # exit positions calculated assuming at is also pointing to exit
     place_for_name = {}
     n_resolved = 0
     n_resolved_prev = -1
@@ -475,6 +480,7 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center'):
         # In case we want to allow for the length to be an expression
         s_center_for_place[seq_all_places[0]] = aux_tt['length', seq_all_places[0].name] / 2
         s_entry_for_place[seq_all_places[0]] = 0
+        s_exit_for_place[seq_all_places[0]] = aux_tt['length', seq_all_places[0].name]
         place_for_name[seq_all_places[0].name] = seq_all_places[0]
         n_resolved += 1
 
@@ -495,6 +501,8 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center'):
                                               + aux_tt['length', ss.name] / 2)
                     s_entry_for_place[ss] = (s_entry_for_place[ss_prev]
                                              + aux_tt['length', ss_prev.name])
+                    s_exit_for_place[ss] = (s_exit_for_place[ss_prev]
+                                            + aux_tt['length', ss.name])
                     place_for_name[ss.name] = ss
                     n_resolved += 1
             elif ss.at is None and ss._before:
@@ -509,6 +517,8 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center'):
                                               - aux_tt['length', ss.name] / 2)
                     s_entry_for_place[ss] = (s_entry_for_place[ss_next]
                                             - aux_tt['length', ss.name])
+                    s_exit_for_place[ss] = (s_exit_for_place[ss_next]
+                                            - aux_tt['length', ss_next.name])
                     place_for_name[ss.name] = ss
                     n_resolved += 1
             else:
@@ -520,6 +530,7 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center'):
                 if ss.from_ is None:
                     s_center_for_place[ss] = at
                     s_entry_for_place[ss] = at
+                    s_exit_for_place[ss] = at
                     place_for_name[ss.name] = ss
                     n_resolved += 1
                 elif ss.from_ in place_for_name:
@@ -528,11 +539,12 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center'):
                             f'Cannot resolve from_ for {ss.name} as {ss.from_} is duplicated')
                     s_center_for_place[ss] = s_center_for_place[place_for_name[ss.from_]] + at
                     s_entry_for_place[ss] = s_entry_for_place[place_for_name[ss.from_]] + at
+                    s_exit_for_place[ss] = s_exit_for_place[place_for_name[ss.from_]] + at
                     place_for_name[ss.name] = ss
                     n_resolved += 1
 
     if n_resolved != len(seq_all_places):
-        unresolved_pos = set(seq_all_places) - set(s_center_dct.keys())
+        unresolved_pos = set(seq_all_places) - set(s_center_for_place.keys())
         raise ValueError(f'Could not resolve all s positions: {unresolved_pos}')
 
     if n_resolved != len(seq_all_places):
@@ -541,8 +553,10 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center'):
 
     aux_s_center_expr = np.array([s_center_for_place[ss] for ss in seq_all_places])
     aux_s_entry_expr = np.array([s_entry_for_place[ss] for ss in seq_all_places])
+    aux_s_exit_expr = np.array([s_exit_for_place[ss] for ss in seq_all_places])
     aux_s_center = [ss._value if is_ref(ss) else ss for ss in aux_s_center_expr]
     aux_s_entry = [ss._value if is_ref(ss) else ss for ss in aux_s_entry_expr]
+    aux_s_exit = [ss._value if is_ref(ss) else ss for ss in aux_s_exit_expr]
 
     if refer == 'centre':
         aux_tt['s_center'] = np.concatenate([aux_s_center, [0]])
@@ -571,6 +585,20 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center'):
 
         tt_sorted['s_center'] = tt_sorted['s_entry'] + tt_sorted['length'] / 2
         tt_sorted['s_exit'] = tt_sorted['s_entry'] + tt_sorted['length']
+        anchor_pos_dct = s_entry_for_place
+    elif refer == 'exit':
+        aux_tt['s_exit'] = np.concatenate([aux_s_exit, [0]])
+
+        i_sorted = _argsort(aux_s_exit)
+
+        name_sorted = [str(aux_tt.name[ii]) for ii in i_sorted]
+
+        # Temporary, should be replaced by aux_tt.rows[i_sorted], when table is fixed
+        data_sorted = {kk: aux_tt[kk][i_sorted] for kk in aux_tt._col_names}
+        tt_sorted = xt.Table(data_sorted)
+
+        tt_sorted['s_center'] = tt_sorted['s_exit'] - tt_sorted['length'] / 2
+        tt_sorted['s_entry'] = tt_sorted['s_exit'] - tt_sorted['length']
         anchor_pos_dct = s_entry_for_place
     else:
         raise ValueError(f'Unknown refer value: {refer}')

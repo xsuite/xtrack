@@ -3162,6 +3162,41 @@ class TwissTable(Table):
 
         return R_matrix
 
+    def get_R_matrix_table(self):
+
+        Rot = np.zeros(shape=(len(self.s), 6, 6), dtype=np.float64)
+
+        cos_phix = np.cos(self.phix - self.phix[0])
+        sin_phix = np.sin(self.phix - self.phix[0])
+        cos_phiy = np.cos(self.phiy - self.phiy[0])
+        sin_phiy = np.sin(self.phiy - self.phiy[0])
+        cos_phizeta = np.cos(self.phizeta - self.phizeta[0])
+        sin_phizeta = np.sin(self.phizeta - self.phizeta[0])
+
+        Rot[:, 0, 0] = cos_phix
+        Rot[:, 0, 1] = sin_phix
+        Rot[:, 1, 0] = -sin_phix
+        Rot[:, 1, 1] = cos_phix
+        Rot[:, 2, 2] = cos_phiy
+        Rot[:, 2, 3] = sin_phiy
+        Rot[:, 3, 2] = -sin_phiy
+        Rot[:, 3, 3] = cos_phiy
+        Rot[:, 4, 4] = cos_phizeta
+        Rot[:, 4, 5] = sin_phizeta
+        Rot[:, 5, 4] = -sin_phizeta
+        Rot[:, 5, 5] = cos_phizeta
+
+        # Compute W @ Rot @ W_inv slice by slice
+        WW = self.W_matrix
+        R_matrix_ebe = np.einsum('ijk,ikl->ijl', WW, Rot) @ np.linalg.inv(WW[0, :, :])
+
+        out_dct = {'s': self.s, 'name': self.name, 'R_matrix': R_matrix_ebe}
+        for ii in range(6):
+            for jj in range(6):
+                out_dct[f'r{ii+1}{jj+1}'] = R_matrix_ebe[:, ii, jj]
+
+        return Table(out_dct)
+
     def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None,
                                    nemitt_zeta=None, _force_at_element=None):
 
@@ -3445,6 +3480,7 @@ class TwissTable(Table):
             axlattice=None,
             hover=False,
             figsize=(6.4*1.2, 4.8),
+            lattice_only=False
             ):
         """
         Plot columns of the TwissTable
@@ -3495,6 +3531,10 @@ class TwissTable(Table):
 
         self._is_s_begin=True
 
+        if lattice_only:
+            yl = ''
+            yr = ''
+
         pl=TwissPlot(self,
                 x=x,
                 yl=yl,
@@ -3516,6 +3556,14 @@ class TwissTable(Table):
             labels=self[self._index][mask]
             xs=self[x][mask]
             pl.left.set_xticks(xs,labels)
+
+        if lattice_only:
+            ax1 = pl.lattice.twinx()
+            ax1.yaxis.set_label_position("left")
+            ax1.yaxis.set_ticks_position("left")
+            ax1.set_autoscale_on(True)
+            pl.left = ax1
+
         return pl
 
 
