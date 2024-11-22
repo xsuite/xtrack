@@ -84,6 +84,7 @@ class TwissPlot(object):
         axright=None,
         axlattice=None,
         hover=False,
+        figsize=(6.4*1.2, 4.8)
     ):
 
         import matplotlib.pyplot as plt
@@ -108,7 +109,7 @@ class TwissPlot(object):
         if ax is not None:
             self.figure = ax.figure
         elif figure is None:
-            self.figure = plt.figure(num=figlabel, figsize=(6.4*1.2, 4.8))
+            self.figure = plt.figure(num=figlabel, figsize=figsize)
         if figlabel is not None:
             self.figure.clf()
         for i in self.yl + self.yr:

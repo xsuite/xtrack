@@ -3479,6 +3479,7 @@ class TwissTable(Table):
             axright=None,
             axlattice=None,
             hover=False,
+            figsize=(6.4*1.2, 4.8),
             lattice_only=False
             ):
         """
@@ -3547,6 +3548,7 @@ class TwissTable(Table):
                 axright=axright,
                 axlattice=axlattice,
                 hover=hover,
+                figsize=figsize,
                 )
 
         if labels is not None:
