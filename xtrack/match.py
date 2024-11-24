@@ -898,6 +898,7 @@ class OptimizeLine(xd.Optimize):
                         name=name)
         self.line = line
         self.action_twiss = action_twiss
+        self.default_tol = default_tol
 
     def clone(self, add_targets=None, add_vary=None,
               remove_targets=None, remove_vary=None,
@@ -941,6 +942,7 @@ class OptimizeLine(xd.Optimize):
             line = self.line,
             vary=vary,
             targets=targets,
+            default_tol=self.default_tol,
             restore_if_fail=self.restore_if_fail,
             verbose=self._err.verbose,
             assert_within_tol=self.assert_within_tol,
