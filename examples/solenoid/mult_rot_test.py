@@ -143,10 +143,32 @@ plt.title('Vertical Rotated Frame')
 ################################################################################
 # Test Assertions
 ################################################################################
-assert np.isclose(bl_twiss['x'][-1], hrot_twiss['x'][-1], rtol = 1E-6)
-assert np.isclose(bl_twiss['y'][-1], hrot_twiss['y'][-1], rtol = 1E-6)
-assert np.isclose(bl_twiss['x'][-1], vrot_twiss['x'][-1], rtol = 1E-6)
-assert np.isclose(bl_twiss['y'][-1], vrot_twiss['y'][-1], rtol = 1E-6)
+# Tolerances lower for derivative quantities (alfx, alfy, dpx, dpy)
+assert np.isclose(bl_twiss['x'][-1],    hrot_twiss['x'][-1],    rtol = 1E-6)
+assert np.isclose(bl_twiss['y'][-1],    hrot_twiss['y'][-1],    rtol = 1E-6)
+assert np.isclose(bl_twiss['betx'][-1], hrot_twiss['betx'][-1], rtol = 1E-6)
+assert np.isclose(bl_twiss['bety'][-1], hrot_twiss['bety'][-1], rtol = 1E-6)
+assert np.isclose(bl_twiss['alfx'][-1], hrot_twiss['alfx'][-1], rtol = 1E-4)
+assert np.isclose(bl_twiss['alfy'][-1], hrot_twiss['alfy'][-1], rtol = 1E-4)
+assert np.isclose(bl_twiss['dx'][-1],   hrot_twiss['dx'][-1],   rtol = 1E-6)
+assert np.isclose(bl_twiss['dy'][-1],   hrot_twiss['dy'][-1],   rtol = 1E-6)
+assert np.isclose(bl_twiss['dpx'][-1],  hrot_twiss['dpx'][-1],  rtol = 1E-4)
+assert np.isclose(bl_twiss['dpy'][-1],  hrot_twiss['dpy'][-1],  rtol = 1E-4)
+assert np.isclose(bl_twiss['mux'][-1],  hrot_twiss['mux'][-1],  rtol = 1E-6)
+assert np.isclose(bl_twiss['muy'][-1],  hrot_twiss['muy'][-1],  rtol = 1E-6)
+
+assert np.isclose(bl_twiss['x'][-1],    vrot_twiss['x'][-1],    rtol = 1E-6)
+assert np.isclose(bl_twiss['y'][-1],    vrot_twiss['y'][-1],    rtol = 1E-6)
+assert np.isclose(bl_twiss['betx'][-1], vrot_twiss['betx'][-1], rtol = 1E-6)
+assert np.isclose(bl_twiss['bety'][-1], vrot_twiss['bety'][-1], rtol = 1E-4)
+assert np.isclose(bl_twiss['alfx'][-1], vrot_twiss['alfx'][-1], rtol = 1E-4)
+assert np.isclose(bl_twiss['alfy'][-1], vrot_twiss['alfy'][-1], rtol = 1E-6)
+assert np.isclose(bl_twiss['dx'][-1],   vrot_twiss['dx'][-1],   rtol = 1E-6)
+assert np.isclose(bl_twiss['dy'][-1],   vrot_twiss['dy'][-1],   rtol = 1E-6)
+assert np.isclose(bl_twiss['dpx'][-1],  vrot_twiss['dpx'][-1],  rtol = 1E-4)
+assert np.isclose(bl_twiss['dpy'][-1],  vrot_twiss['dpy'][-1],  rtol = 1E-4)
+assert np.isclose(bl_twiss['mux'][-1],  vrot_twiss['mux'][-1],  rtol = 1E-6)
+assert np.isclose(bl_twiss['muy'][-1],  vrot_twiss['muy'][-1],  rtol = 1E-6)
 
 ########################################
 # Show Plots
