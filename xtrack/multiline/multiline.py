@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from copy import deepcopy
 
-from .. import json_utils
+from .. import json as json_utils
 from .shared_knobs import VarSharing
 from ..match import match_knob_line
 import xobjects as xo

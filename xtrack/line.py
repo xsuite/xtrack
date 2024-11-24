@@ -19,7 +19,7 @@ import numpy as np
 from scipy.constants import c as clight
 
 from . import linear_normal_form as lnf
-from . import json_utils
+from . import json as json_utils
 
 import xobjects as xo
 import xtrack as xt

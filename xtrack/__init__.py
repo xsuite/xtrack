@@ -45,6 +45,7 @@ from .slicing import Strategy, Uniform, Teapot
 from .loss_location_refinement import _skip_in_loss_location_refinement
 from .trajectory_correction import TrajectoryCorrection
 from .mad_parser.loader import load_madx_lattice
+from . import json
 
 from xdeps import Table, FunctionPieceWiseLinear
 
