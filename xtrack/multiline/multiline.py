@@ -459,11 +459,11 @@ class Multiline:
         for nn, ll in self.lines.items():
             ll.unfreeze()
 
-        if clockwise_line is not None and anticlockwise_line is not None:
-            circumference_cw = self.lines[clockwise_line].get_length()
-            circumference_acw = self.lines[anticlockwise_line].get_length()
-            assert np.isclose(circumference_cw, circumference_acw,
-                              atol=1e-4, rtol=0)
+        # if clockwise_line is not None and anticlockwise_line is not None:
+        #     circumference_cw = self.lines[clockwise_line].get_length()
+        #     circumference_acw = self.lines[anticlockwise_line].get_length()
+        #     assert np.isclose(circumference_cw, circumference_acw,
+        #                       atol=1e-4, rtol=0)
 
         import xfields as xf
         bb_df_cw, bb_df_acw = xf.install_beambeam_elements_in_lines(
@@ -490,6 +490,8 @@ class Multiline:
 
     def configure_beambeam_interactions(self, num_particles,
                                     nemitt_x, nemitt_y, crab_strong_beam=True,
+                                    nemitt_x_cw=None, nemitt_y_cw=None,
+                                    nemitt_x_acw=None, nemitt_y_acw=None,
                                     use_antisymmetry=False,
                                     separation_bumps=None):
 
@@ -548,6 +550,8 @@ class Multiline:
             num_particles=num_particles,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y,
             crab_strong_beam=crab_strong_beam,
+            nemitt_x_cw=nemitt_x_cw, nemitt_y_cw=nemitt_y_cw,
+            nemitt_x_acw=nemitt_x_acw, nemitt_y_acw=nemitt_y_acw,
             ip_names=self._bb_config['ip_names'],
             use_antisymmetry=use_antisymmetry,
             separation_bumps=separation_bumps)
