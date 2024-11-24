@@ -353,6 +353,10 @@ class TwissPlot(object):
             self.lattice.set_ylim(lattice_lo, lattice_hi)
         return self
 
+    def xlim(self, lo=None, hi=None):
+        self.ax.set_xlim(lo, hi)
+        return self
+
     def set_s_label(self, regexp="ip.*"):
         sel = self.table.rows[regexp]
         self.ax.set_xticks(sel.s, sel.name)
