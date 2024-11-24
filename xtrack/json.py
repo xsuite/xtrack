@@ -5,7 +5,7 @@ import gzip
 from xobjects import JEncoder
 
 
-def to_json(data, file, indent):
+def dump(data, file, indent=1):
     if isinstance(file, io.IOBase):
         fh, close = file, False
     elif (isinstance(file, str) and file.endswith(".gz")) or (
@@ -21,7 +21,7 @@ def to_json(data, file, indent):
         fh.close()
 
 
-def from_json(file):
+def load(file):
     if isinstance(file, io.IOBase):
         fh, close = file, False
     elif (isinstance(file, str) and file.endswith(".gz")) or (

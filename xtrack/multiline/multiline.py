@@ -138,7 +138,7 @@ class Multiline:
         **kwargs: dict
             Additional keyword arguments are passed to the `Line.to_dict` method.
         '''
-        json_utils.to_json(self.to_dict(**kwargs), file, indent=indent)
+        json_utils.dump(self.to_dict(**kwargs), file, indent=indent)
 
 
     @classmethod
@@ -158,7 +158,7 @@ class Multiline:
         new_multiline: Multiline
             The multiline object.
         '''
-        return cls.from_dict(json_utils.from_json(file), **kwargs)
+        return cls.from_dict(json_utils.load(file), **kwargs)
 
     @classmethod
     def from_madx(cls, filename=None, madx=None, stdout=None, return_lines=False, **kwargs):

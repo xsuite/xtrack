@@ -272,7 +272,7 @@ class Line:
 
         """
 
-        dct = json_utils.from_json(file)
+        dct = json_utils.load(file)
 
         if 'line' in dct.keys():
             dct_line = dct['line']
@@ -649,7 +649,7 @@ class Line:
 
         '''
 
-        json_utils.to_json(self.to_dict(**kwargs), file, indent=indent)
+        json_utils.dump(self.to_dict(**kwargs), file, indent=indent)
 
     def _to_table_dict(self):
 
