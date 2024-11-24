@@ -330,24 +330,27 @@ class TwissPlot(object):
         lattice_lo=None,
         lattice_hi=None,
     ):
-        lo, hi = self.left.get_ylim()
-        if left_lo is None:
-            left_lo = lo
-        if left_hi is None:
-            left_hi = hi
-        self.left.set_ylim(left_lo, left_hi)
-        lo, hi = self.right.get_ylim()
-        if right_lo is None:
-            right_lo = lo
-        if right_hi is None:
-            right_hi = hi
-        self.right.set_ylim(right_lo, right_hi)
-        lo, hi = self.lattice.get_ylim()
-        if lattice_lo is None:
-            lattice_lo = lo
-        if lattice_hi is None:
-            lattice_hi = hi
-        self.lattice.set_ylim(lattice_lo, lattice_hi)
+        if self.left is not None:
+            lo, hi = self.left.get_ylim()
+            if left_lo is None:
+                left_lo = lo
+            if left_hi is None:
+                left_hi = hi
+            self.left.set_ylim(left_lo, left_hi)
+        if self.right is not None:
+            lo, hi = self.right.get_ylim()
+            if right_lo is None:
+                right_lo = lo
+            if right_hi is None:
+                right_hi = hi
+            self.right.set_ylim(right_lo, right_hi)
+        if self.lattice is not None:
+            lo, hi = self.lattice.get_ylim()
+            if lattice_lo is None:
+                lattice_lo = lo
+            if lattice_hi is None:
+                lattice_hi = hi
+            self.lattice.set_ylim(lattice_lo, lattice_hi)
         return self
 
     def set_s_label(self, regexp="ip.*"):
