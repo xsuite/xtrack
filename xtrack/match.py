@@ -630,6 +630,8 @@ class TargetRmatrix(TargetSet):
         if value is not None:
             raise NotImplementedError
 
+        tag = kwargs.pop('tag', None)
+
         r_elems = {
             'r11': r11, 'r12': r12, 'r13': r13, 'r14': r14, 'r15': r15, 'r16': r16,
             'r21': r21, 'r22': r22, 'r23': r23, 'r24': r24, 'r25': r25, 'r26': r26,
@@ -650,8 +652,13 @@ class TargetRmatrix(TargetSet):
                 if kk[2] in ['2', '4']:
                     thistol *= 1e+2
             if vv is not None:
+                if tag is not None:
+                    this_tag = tag + f'_{kk}'
+                else:
+                    this_tag = kk
                 self.targets.append(TargetRmatrixTerm(kk, vv, start=start, end=end,
-                                                      tol=thistol, **kwargs))
+                                                      tol=thistol, tag=this_tag,
+                                                      **kwargs))
 
 
 def match_line(line, vary, targets, solve=True, assert_within_tol=True,
