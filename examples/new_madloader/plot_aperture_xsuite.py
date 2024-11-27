@@ -194,9 +194,12 @@ def plot_beam_size(twiss, survey, color):
     s, sx, x, sigx = compute_beam_size(survey, twiss)
     plt.fill_between(s, x - sigx + sx, x + sigx + sx, alpha=0.5, color=color)
 
+plt.close('all')
 
 plot_apertures(lhcb1, tw1_thin, sv1)
 plot_apertures(lhcb2, tw2_thin, sv2)
 
 plot_beam_size(tw1_thin, sv1, color='b')
 plot_beam_size(tw2_thin, sv2, color='r')
+
+plt.show()
