@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import time
 
 import xtrack as xt
 from xtrack.mad_parser.loader import MadxLoader
@@ -105,8 +106,10 @@ insert_apertures(lhcb2, aper2)
 # Twiss thin to verify
 # ====================
 
+print('Start twiss')
 tw1_thin = lhcb1.twiss4d()
 tw2_thin = lhcb2.twiss4d()
+print('Done twiss')
 
 print('After slicing:')
 print(f'lhcb1: qx = {tw1_thin.qx}, qy = {tw1_thin.qy}')
@@ -121,8 +124,10 @@ for var in arc_vars:
     old_vars[var] = env.vars[var]
     env.vars[var] = 0
 
+print('Start survey')
 sv1 = lhcb1.survey()
 sv2 = lhcb2.survey()
+print('Done survey')
 
 
 # Compute offsets
@@ -132,10 +137,10 @@ def offset_elements(line, survey, dir=1):
     tt = line.get_table()
     apertypes = ['LimitEllipse', 'LimitRect', 'LimitRectEllipse', 'LimitRacetrack']
     aper_idx = np.isin(tt.element_type, apertypes)
-    for row in tt.rows[aper_idx].rows:
-        el = line[row.name]
+    for nn in tt.rows[aper_idx].name:
+        el = line[nn]
         mech_sep = el.extra['mech_sep'] * dir
-        x = survey.rows[row.name].X
+        x = survey['X', nn]
         el.shift_x = mech_sep / 2 - x
 
     return aper_idx
@@ -166,7 +171,11 @@ def compute_beam_size(survey, twiss):
 # ==========
 
 def plot_apertures(line, twiss, survey):
+    print('Start offset computation')
+    t1 = time.time()
     aper_idx = offset_elements(line, survey, dir=1 if line.name == 'lhcb1' else -1)
+    t2 = time.time()
+    print(f'Offset computation took {t2 - t1:.2f} s')
 
     tw_ap = twiss.rows[aper_idx]
     sv_ap = survey.rows[aper_idx]
