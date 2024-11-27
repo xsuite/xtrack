@@ -12,7 +12,7 @@ import xobjects as xo
 import xtrack as xt
 
 from ..base_element import BeamElement
-from ..random import RandomUniform, RandomExponential, RandomNormal
+from ..random import RandomUniformAccurate, RandomExponential, RandomNormal
 from ..general import _pkg_root, _print
 from ..internal_record import RecordIndex, RecordIdentifier
 
@@ -588,7 +588,7 @@ class Multipole(BeamElement):
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
 
-    _depends_on = [RandomUniform, RandomExponential]
+    _depends_on = [RandomUniformAccurate, RandomExponential]
 
     _extra_c_sources = [
         _pkg_root.joinpath('headers/constants.h'),
@@ -1000,7 +1000,7 @@ class Sextupole(BeamElement):
         'order': '_order',
     }
 
-    _depends_on = [RandomUniform, RandomExponential]
+    _depends_on = [RandomUniformAccurate, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
@@ -1101,7 +1101,7 @@ class Octupole(BeamElement):
         'order': '_order',
     }
 
-    _depends_on = [RandomUniform, RandomExponential]
+    _depends_on = [RandomUniformAccurate, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
@@ -1312,7 +1312,7 @@ class Solenoid(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/solenoid.h'),
     ]
 
-    _depends_on = [RandomUniform, RandomExponential]
+    _depends_on = [RandomUniformAccurate, RandomExponential]
 
     _internal_record_class = SynchrotronRadiationRecord
 
@@ -1859,7 +1859,7 @@ class LineSegmentMap(BeamElement):
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/linesegmentmap.h')]
 
-    def __init__(self, length=None, qx=0, qy=0,
+    def __init__(self, length=0., qx=0, qy=0,
             betx=1., bety=1., alfx=0., alfy=0.,
             dx=0., dpx=0., dy=0., dpy=0.,
             x_ref=0.0, px_ref=0.0, y_ref=0.0, py_ref=0.0,
@@ -2106,7 +2106,6 @@ dqx : float or list of float
             assert bets is None
 
             if slippage_length is None:
-                assert length is not None
                 nargs['slippage_length'] = length
             else:
                 nargs['slippage_length'] = slippage_length
@@ -2289,7 +2288,7 @@ class FirstOrderTaylorMap(BeamElement):
         'm1': xo.Field(xo.Float64[6, 6], default=np.eye(6, dtype=np.float64)),
     }
 
-    _depends_on = [RandomUniform, RandomExponential]
+    _depends_on = [RandomUniformAccurate, RandomExponential]
 
     _extra_c_sources = [
         _pkg_root.joinpath('headers/constants.h'),

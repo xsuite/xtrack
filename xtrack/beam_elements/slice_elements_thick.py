@@ -4,7 +4,7 @@ from ..general import _pkg_root
 from ..base_element import BeamElement
 from .elements import (SynchrotronRadiationRecord, Bend, Quadrupole, Sextupole,
                        Octupole, Solenoid, Drift)
-from ..random import RandomUniform, RandomExponential
+from ..random import RandomUniformAccurate, RandomExponential
 
 from .slice_elements import _slice_copy
 
@@ -89,7 +89,7 @@ class ThickSliceSextupole(BeamElement):
 
     _xofields = {'_parent': xo.Ref(Sextupole), **_common_xofields}
 
-    _depends_on = [RandomUniform, RandomExponential]
+    _depends_on = [RandomUniformAccurate, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
@@ -124,7 +124,7 @@ class ThickSliceOctupole(BeamElement):
 
     _xofields = {'_parent': xo.Ref(Octupole), **_common_xofields}
 
-    _depends_on = [RandomUniform, RandomExponential]
+    _depends_on = [RandomUniformAccurate, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
@@ -159,7 +159,7 @@ class ThickSliceSolenoid(BeamElement):
 
     _xofields = {'_parent': xo.Ref(Solenoid), **_common_xofields}
 
-    _depends_on = [RandomUniform, RandomExponential]
+    _depends_on = [RandomUniformAccurate, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [

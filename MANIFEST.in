@@ -7,3 +7,4 @@ include *.md
 include LICENSE.txt
 
 recursive-include xtrack *.h
+recursive-include xtrack *.lark

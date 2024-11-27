@@ -78,7 +78,7 @@ class ParticlesInjectionSample:
             return
 
         assert self.element_name in self.line.element_names
-        assert self.line[self.element_name] is self
+        assert self.line.element_dict[self.element_name] is self
         at_element = self.line.element_names.index(self.element_name)
         s_element = self.line.tracker._tracker_data_base.element_s_locations[at_element]
 

@@ -89,11 +89,13 @@ def test_energy_program(test_context):
     line['br1.acwf7l1.1'].frequency = 1e3
 
     # test to_dict and from_dict
+    lbefore = line
     line_dict = line.to_dict()
     line = xt.Line.from_dict(line_dict)
+    assert np.all(line.vars.get_table().name == lbefore.vars.get_table().name)
 
-    # test copy method
     line = line.copy()
+    assert np.all(line.vars.get_table().name == lbefore.vars.get_table().name)
 
     line.build_tracker(_context=test_context)
 

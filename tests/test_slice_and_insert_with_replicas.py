@@ -236,6 +236,8 @@ def test_slice_thick_and_insert_with_replicas(test_context):
                 element_names=list(elements.keys()))
     line.build_tracker(_context=test_context)
 
+    assert line['e2']._movable
+
     element_no_repl={
         'e0': xt.Bend(k0=0.3, h=0.31, length=1),
         'e1': xt.Bend(k0=0.3, h=0.31, length=1),
@@ -275,17 +277,25 @@ def test_slice_thick_and_insert_with_replicas(test_context):
     assert_allclose(p2.zeta, p1.zeta, rtol=0, atol=1e-14)
     assert_allclose(p2.delta, p1.delta, rtol=0, atol=1e-14)
 
+    assert line['e2']._movable
+    # line['e2']._mark = True
+
     line.slice_thick_elements(
         slicing_strategies=[
             xt.Strategy(None),
             xt.Strategy(xt.Teapot(3, mode='thick'), name='e2|e3|e4')])
+    assert line['e2']._movable
     line.build_tracker(_context=test_context)
+
+    assert line['e2']._movable
 
     line_no_repl.slice_thick_elements(
         slicing_strategies=[
             xt.Strategy(None),
             xt.Strategy(xt.Teapot(3, mode='thick'), name='e2|e3|e4')])
     line_no_repl.build_tracker(_context=test_context)
+
+    assert line['e2']._movable
 
     tt = line.get_table()
     tt_no_repl = line_no_repl.get_table()
@@ -341,13 +351,17 @@ def test_slice_thick_and_insert_with_replicas(test_context):
     assert_allclose(p2.zeta, p1.zeta, rtol=0, atol=1e-14)
     assert_allclose(p2.delta, p1.delta, rtol=0, atol=1e-14)
 
+    assert line['e2']._movable
+
     line.discard_tracker()
+    assert line['e2']._movable
     line.insert_element(name='mkins1', element=xt.Marker(), at_s=0.5)
     line.insert_element(name='mkins2', element=xt.Marker(), at_s=1.5)
     line.insert_element(name='mkins3', element=xt.Marker(), at_s=2.5)
     line.insert_element(name='mkins4', element=xt.Marker(), at_s=3.5)
     line.insert_element(name='mkins5', element=xt.Marker(), at_s=4.5)
     line.build_tracker(_context=test_context)
+    assert line['e2']._movable
 
     line_no_repl.discard_tracker()
     line_no_repl.insert_element(name='mkins1', element=xt.Marker(), at_s=0.5)
@@ -356,6 +370,7 @@ def test_slice_thick_and_insert_with_replicas(test_context):
     line_no_repl.insert_element(name='mkins4', element=xt.Marker(), at_s=3.5)
     line_no_repl.insert_element(name='mkins5', element=xt.Marker(), at_s=4.5)
     line_no_repl.build_tracker(_context=test_context)
+    assert line['e2']._movable
 
     tt = line.get_table()
     tt_no_repl = line_no_repl.get_table()
@@ -428,6 +443,7 @@ def test_slice_thick_and_insert_with_replicas(test_context):
 
     line.track(p1)
     line_no_repl.track(p2)
+    assert line['e2']._movable
 
     assert_allclose(p2.x, p1.x, rtol=0, atol=1e-14)
     assert_allclose(p2.px, p1.px, rtol=0, atol=1e-14)

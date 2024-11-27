@@ -3,40 +3,38 @@ import matplotlib.pyplot as plt
 
 import xtrack as xt
 
-# Define elements
+# Build a simple ring
+env = xt.Environment()
 pi = np.pi
 lbend = 3
-elements = {
+line = env.new_line(components=[
     # Three dipoles to make a closed orbit bump
-    'd0.1':  xt.Drift(length=0.05),
-    'bumper_0':  xt.Bend(length=0.05, k0=0, h=0),
-    'd0.2':  xt.Drift(length=0.3),
-    'bumper_1':  xt.Bend(length=0.05, k0=0, h=0),
-    'd0.3':  xt.Drift(length=0.3),
-    'bumper_2':  xt.Bend(length=0.05, k0=0, h=0),
-    'd0.4':  xt.Drift(length=0.2),
+    env.new('d0.1',  xt.Drift,  length=0.05),
+    env.new('bumper_0',  xt.Bend, length=0.05, k0=0, h=0),
+    env.new('d0.2',  xt.Drift, length=0.3),
+    env.new('bumper_1',  xt.Bend, length=0.05, k0=0, h=0),
+    env.new('d0.3',  xt.Drift, length=0.3),
+    env.new('bumper_2',  xt.Bend, length=0.05, k0=0, h=0),
+    env.new('d0.4',  xt.Drift, length=0.2),
 
     # Simple ring with two FODO cells
-    'mqf.1': xt.Quadrupole(length=0.3, k1=0.1),
-    'd1.1':  xt.Drift(length=1),
-    'mb1.1': xt.Bend(length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
-    'd2.1':  xt.Drift(length=1),
-    'mqd.1': xt.Quadrupole(length=0.3, k1=-0.7),
-    'd3.1':  xt.Drift(length=1),
-    'mb2.1': xt.Bend(length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
-    'd3.4':  xt.Drift(length=1),
-    'mqf.2': xt.Quadrupole(length=0.3, k1=0.1),
-    'd1.2':  xt.Drift(length=1),
-    'mb1.2': xt.Bend(length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
-    'd2.2':  xt.Drift(length=1),
-    'mqd.2': xt.Quadrupole(length=0.3, k1=-0.7),
-    'd3.2':  xt.Drift(length=1),
-    'mb2.2': xt.Bend(length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
+    env.new('mqf.1', xt.Quadrupole, length=0.3, k1=0.1),
+    env.new('d1.1',  xt.Drift, length=1),
+    env.new('mb1.1', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
+    env.new('d2.1',  xt.Drift, length=1),
+    env.new('mqd.1', xt.Quadrupole, length=0.3, k1=-0.7),
+    env.new('d3.1',  xt.Drift, length=1),
+    env.new('mb2.1', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
+    env.new('d3.4',  xt.Drift, length=1),
+    env.new('mqf.2', xt.Quadrupole, length=0.3, k1=0.1),
+    env.new('d1.2',  xt.Drift, length=1),
+    env.new('mb1.2', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
+    env.new('d2.2',  xt.Drift, length=1),
+    env.new('mqd.2', xt.Quadrupole, length=0.3, k1=-0.7),
+    env.new('d3.2',  xt.Drift, length=1),
+    env.new('mb2.2', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
+])
 
-}
-
-# Build the ring
-line = xt.Line(elements=elements, element_names=list(elements.keys()))
 kin_energy_0 = 50e6 # 50 MeV
 line.particle_ref = xt.Particles(energy0=kin_energy_0 + xt.PROTON_MASS_EV, # total energy
                                  mass0=xt.PROTON_MASS_EV)

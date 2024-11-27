@@ -1,9 +1,8 @@
-import io
-import json
 import pandas as pd
 import numpy as np
 from copy import deepcopy
 
+from .. import json_utils
 from .shared_knobs import VarSharing
 from ..match import match_knob_line
 import xobjects as xo
@@ -127,23 +126,20 @@ class Multiline:
 
         return new_multiline
 
-    def to_json(self, file, **kwargs):
+    def to_json(self, file, indent=1, **kwargs):
         '''Save the multiline to a json file.
 
         Parameters
         ----------
         file: str or file-like object
             The file to save to. If a string is provided, a file is opened and
-            closed. If a file-like object is provided, it is used directly.
+            closed. If filename ends with '.gz' file is compressed.
+            If a file-like object is provided, it is used directly.
         **kwargs: dict
             Additional keyword arguments are passed to the `Line.to_dict` method.
         '''
+        json_utils.to_json(self.to_dict(**kwargs), file, indent=indent)
 
-        if isinstance(file, io.IOBase):
-            json.dump(self.to_dict(**kwargs), file, cls=xo.JEncoder)
-        else:
-            with open(file, 'w') as fid:
-                json.dump(self.to_dict(**kwargs), fid, cls=xo.JEncoder)
 
     @classmethod
     def from_json(cls, file, **kwargs):
@@ -153,7 +149,8 @@ class Multiline:
         ----------
         file: str or file-like object
             The file to load from. If a string is provided, a file is opened and
-            closed. If a file-like object is provided, it is used directly.
+            closed. If the string endswith '.gz' the file is decompressed.
+            If a file-like object is provided, it is used directly.
         **kwargs: dict
 
         Returns
@@ -161,14 +158,7 @@ class Multiline:
         new_multiline: Multiline
             The multiline object.
         '''
-
-        if isinstance(file, io.IOBase):
-            dct = json.load(file)
-        else:
-            with open(file, 'r') as fid:
-                dct = json.load(fid)
-
-        return cls.from_dict(dct, **kwargs)
+        return cls.from_dict(json_utils.from_json(file), **kwargs)
 
     @classmethod
     def from_madx(cls, filename=None, madx=None, stdout=None, return_lines=False, **kwargs):

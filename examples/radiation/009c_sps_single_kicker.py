@@ -50,17 +50,17 @@ line = xt.Line.from_madx_sequence(mad.sequence.sps, allow_thick=True,
                                   deferred_expressions=True)
 line.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV,
                                     q0=-1, gamma0=mad.sequence.sps.beam.gamma)
-line.cycle('bpv.11706_entry', inplace=True)
+line.cycle('bpv.11706', inplace=True)
 
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.11706_entry',
+line.insert_element(element=line['actcse.31632'].copy(), index='bpv.11706',
                     name='cav1')
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.21508_entry',
+line.insert_element(element=line['actcse.31632'].copy(), index='bpv.21508',
                     name='cav2')
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.41508_entry',
+line.insert_element(element=line['actcse.31632'].copy(), index='bpv.41508',
                     name='cav4')
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.51508_entry',
+line.insert_element(element=line['actcse.31632'].copy(), index='bpv.51508',
                     name='cav5')
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.61508_entry',
+line.insert_element(element=line['actcse.31632'].copy(), index='bpv.61508',
                     name='cav6')
 
 tt = line.get_table()

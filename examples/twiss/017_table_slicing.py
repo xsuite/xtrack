@@ -104,7 +104,7 @@ tw.rows[300:305:'s']
 # A section of the ring can be selected using indexes relative one element
 # (e.g. to get from three elements upstream of 'ip1' to two elements
 # downstream of 'ip1')
-tw.rows['ip5%%-3':'ip5%%2']
+tw.rows['ip<<3':'ip5>>2']
 # returns:
 #
 # TwissTable: 6 rows, 41 cols

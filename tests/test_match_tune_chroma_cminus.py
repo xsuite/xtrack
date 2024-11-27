@@ -1,6 +1,7 @@
 import json
 import pathlib
 import time
+from scipy.optimize import minimize
 
 import xobjects as xo
 import xpart as xp
@@ -130,6 +131,67 @@ def test_match_tune_chromaticity(test_context):
     xo.assert_allclose(tw_final['dqx'],  6.0, atol=0.05)
     xo.assert_allclose(tw_final['dqy'],  4.0, atol=0.05)
 
+@for_all_test_contexts
+def test_match_tune_chromaticity_scalar(test_context):
+
+    with open(path_line) as f:
+        dct = json.load(f)
+
+    line = xt.Line.from_dict(dct['line'])
+    line.particle_ref = xp.Particles.from_dict(dct['particle'])
+
+    line.build_tracker(_context=test_context)
+
+    print('\nInitial twiss parameters')
+    tw_before = line.twiss()
+    print(f"Qx = {tw_before['qx']:.5f} Qy = {tw_before['qy']:.5f} "
+        f"Q'x = {tw_before['dqx']:.5f} Q'y = {tw_before['dqy']:.5f}")
+
+    print(f"kqtf.b1 = {line.vars['kqtf.b1']._value}")
+    print(f"kqtd.b1 = {line.vars['kqtd.b1']._value}")
+    print(f"ksf.b1 = {line.vars['ksf.b1']._value}")
+    print(f"ksd.b1 = {line.vars['ksd.b1']._value}")
+
+    t1 = time.time()
+    opt = line.match(
+        solve=False,
+        vary=[
+            xt.Vary('kqtf.b1', step=1e-8),
+            xt.Vary('kqtd.b1', step=1e-8),
+            xt.Vary('ksf.b1', step=1e-8),
+            xt.Vary('ksd.b1', step=1e-8),
+        ],
+        targets = [
+            xt.Target('qx', 62.315, tol=1e-4),
+            xt.Target('qy', 60.325, tol=1e-4),
+            xt.Target('dqx', 10.0, tol=0.05),
+            xt.Target('dqy', 12.0, tol=0.05)])
+
+    merit_function = opt.get_merit_function(return_scalar=True, check_limits=False)
+    opt.check_limits = False
+    bounds = [(-1e-4, 1e-4), (-1e-4, 1e-4), (-10, 10), (-10, 10)]
+    x0 = merit_function.get_x()
+
+    result = minimize(merit_function, x0=x0, bounds=bounds, jac=merit_function.get_jacobian, method='L-BFGS-B')
+
+    t2 = time.time()
+    print('\nTime fsolve: ', t2-t1)
+
+    merit_function.set_x(result.x)
+
+    tw_final = line.twiss()
+    print('\nFinal twiss parameters')
+    print(f"Qx = {tw_final['qx']:.5f} Qy = {tw_final['qy']:.5f} "
+        f"Q'x = {tw_final['dqx']:.5f} Q'y = {tw_final['dqy']:.5f}")
+    print(f"kqtf.b1 = {line.vars['kqtf.b1']._value}")
+    print(f"kqtd.b1 = {line.vars['kqtd.b1']._value}")
+    print(f"ksf.b1 = {line.vars['ksf.b1']._value}")
+    print(f"ksd.b1 = {line.vars['ksd.b1']._value}")
+
+    xo.assert_allclose(tw_final['qx'], 62.315, atol=1e-7)
+    xo.assert_allclose(tw_final['qy'], 60.325, atol=1e-7)
+    xo.assert_allclose(tw_final['dqx'], 10.0, atol=0.05)
+    xo.assert_allclose(tw_final['dqy'], 12.0, atol=0.05)
 
 @for_all_test_contexts
 def test_match_coupling(test_context):

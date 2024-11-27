@@ -189,7 +189,9 @@ double synrad_gen_photon_energy_normalized(LocalParticle *part)
       exact=SynRad(result);
       appr=a1/tmp;
     } else {				// use high energy approximation
-      result=xlow-log(RandomUniform_generate(part));
+      double const u = RandomUniformAccurate_generate(part);
+      if (u < 1.e-50) continue;  // avoid log(0), retrigger generation
+      result=xlow-log(u);
       exact=SynRad(result);
       appr=a2*exp(-result);
     }
