@@ -115,11 +115,11 @@ void transverse_motion(LocalParticle *part0, LineSegmentMapData el){
     int64_t any_chroma = 0;
 
     for (int i_dqx=0; i_dqx<ndqx; i_dqx++){
-        any_chroma = LineSegmentMapData_get_coeffs_dqx(el, 0) != 0;
+        any_chroma += LineSegmentMapData_get_coeffs_dqx(el, 0) != 0;
     }
 
     for (int i_dqy=0; i_dqy<ndqy; i_dqy++){
-        any_chroma = LineSegmentMapData_get_coeffs_dqy(el, 0) != 0;
+        any_chroma += LineSegmentMapData_get_coeffs_dqy(el, 0) != 0;
     }
 
     if (any_chroma ||

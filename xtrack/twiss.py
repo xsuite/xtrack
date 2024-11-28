@@ -389,23 +389,26 @@ def twiss_line(line, particle_ref=None, method=None,
             out = xt.TwissTable.concatenate([t1, t2])
             out.zero_at(out.name[0])
             out.name[-1] = '_end_point'
+            out['periodic'] = True
+            out['completed_init'] = tw.completed_init
         else:
+            # Initial conditions are given -> open twiss
             kwargs.pop('end')
-            kwargs.pop('init')
             t1o = twiss_line(start=start, end=xt.END, **kwargs)
             init_part2 = t1o.get_twiss_init('_end_point')
-            # Dummy twiss to get the name at the start of the secon part
+            # Dummy twiss to get the name at the start of the second part
             init_part2.element_name = line.twiss(
                 start=xt.START, end=xt.START, betx=1, bety=1).name[0]
 
             for kk in VARS_FOR_TWISS_INIT_GENERATION:
                 kwargs.pop(kk, None)
-
+            kwargs.pop('init')
             t2o = twiss_line(start=xt.START, end=start, init=init_part2, **kwargs)
             # remove repeated element
             t2o = t2o.rows[:-1]
             t2o.name[-1] = '_end_point'
             out = xt.TwissTable.concatenate([t1o, t2o])
+            out['completed_init'] = t1o.completed_init
         return _add_action_in_res(out, input_kwargs)
 
     if init == 'full_periodic' and (start is not None or end is not None):
@@ -524,6 +527,7 @@ def twiss_line(line, particle_ref=None, method=None,
         ax_chrom=ax_chrom, bx_chrom=bx_chrom, ay_chrom=ay_chrom, by_chrom=by_chrom,
         ddx=ddx, ddpx=ddpx, ddy=ddy, ddpy=ddpy,
         )
+    completed_init = (init.copy() if hasattr(init, 'copy') else init)
 
     # clean quantities embedded in init
     init_at=None
@@ -608,7 +612,7 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if periodic:
 
-        assert not _keep_initial_particles
+        assert not _initial_particles
 
         steps_r_matrix = _complete_steps_r_matrix_with_default(steps_r_matrix)
 
@@ -830,6 +834,9 @@ def twiss_line(line, particle_ref=None, method=None,
     if at_elements is not None:
         twiss_res = twiss_res.rows[at_elements]
 
+    twiss_res['periodic'] = periodic
+    twiss_res['completed_init'] = completed_init
+
     return _add_action_in_res(twiss_res, input_kwargs)
 
 def _twiss_open(line, init,
@@ -1002,6 +1009,7 @@ def _twiss_open(line, init,
     dzeta = np.array(dzeta)
 
     name_co = np.array(line._element_names_unique[i_start:i_stop] + ('_end_point',))
+    name_co_env = np.array(line.element_names[i_start:i_stop] + ('_end_point',))
 
     if only_markers:
         raise NotImplementedError('only_markers not supported anymore')
@@ -1024,6 +1032,7 @@ def _twiss_open(line, init,
         'kin_ps': kin_ps_co,
         'kin_xprime': kin_xprime_co,
         'kin_yprime': kin_yprime_co,
+        'name_env': name_co_env,
     })
 
     if not only_orbit and compute_lattice_functions:
@@ -1974,6 +1983,7 @@ def _handle_loop_around(kwargs):
             twini_2.element_name = line._element_names_unique[0]
             tw2 = twiss_line(start=line._element_names_unique[0], end=end,
                                     init=twini_2, **kwargs)
+            completed_init = tw1.completed_init
         elif _str_to_index(line, ele_name_init) <= _str_to_index(line, end):
             tw2 = twiss_line(start=line._element_names_unique[0], end=end,
                                 init=init, **kwargs)
@@ -1981,6 +1991,7 @@ def _handle_loop_around(kwargs):
             twini_1.element_name = '_end_point'
             tw1 = twiss_line(start=start, end='_end_point',
                                 init=twini_1, **kwargs)
+            completed_init = tw2.completed_init
         else:
             raise RuntimeError(
                 'Boundary conditions not at start or end of the specified range')
@@ -1995,6 +2006,7 @@ def _handle_loop_around(kwargs):
             twini_2.element_name = line._element_names_unique[-1]
             tw2 = twiss_line(start=line._element_names_unique[-1], end=end,
                                     init=twini_2, **kwargs)
+            completed_init = tw1.completed_init
         elif _str_to_index(line, ele_name_init) >= _str_to_index(line, end):
             tw2 = twiss_line(start=line._element_names_unique[-1], end=end,
                                 init=init, **kwargs)
@@ -2002,6 +2014,7 @@ def _handle_loop_around(kwargs):
             twini_1.element_name = line._element_names_unique[0]
             tw1 = twiss_line(start=start, end=line._element_names_unique[0],
                                 init=twini_1, **kwargs)
+            completed_init = tw2.completed_init
         else:
             raise RuntimeError(
                 'Boundary conditions not at start or end of the specified range')
@@ -2009,6 +2022,8 @@ def _handle_loop_around(kwargs):
     tw_res = TwissTable.concatenate([tw1, tw2])
 
     tw_res.s -= tw_res['s', ele_name_init] - init.s
+
+    tw_res['completed_init'] = completed_init
 
     if 'mux' in tw_res.keys():
         tw_res.mux -= tw_res['mux', ele_name_init] - init.mux
@@ -2034,8 +2049,6 @@ def _handle_loop_around(kwargs):
 
     return tw_res
 
-
-
 def _handle_init_inside_range(kwargs):
 
     kwargs = kwargs.copy()
@@ -2059,6 +2072,7 @@ def _handle_init_inside_range(kwargs):
                      init=init, reverse=reverse, **kwargs)
 
     tw_res = TwissTable.concatenate([tw1, tw2])
+    tw_res['completed_init'] = tw1.completed_init
 
     tw_res.s -= tw_res['s', ele_name_init] - init.s
     tw_res.mux -= tw_res['mux', ele_name_init] - init.mux
@@ -2210,7 +2224,7 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
                 tar=[0., 0., 0., 0., 0., 0.],
                 tols=[1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12])
         try:
-            opt.solve()
+            opt.solve(verbose=-1)
             ier = 1
         except Exception as e:
             ier = -1
@@ -2819,7 +2833,7 @@ class TwissInit:
 
         part_id = ctx2np(particles.particle_id).copy()
         at_element = ctx2np(particles.at_element).copy()
-        at_turn = ctx2np(particles.at_element).copy()
+        at_turn = ctx2np(particles.at_turn).copy()
         x_norm = ctx2np(particles.x).copy()
         px_norm = x_norm.copy()
         y_norm = x_norm.copy()
@@ -2846,14 +2860,17 @@ class TwissInit:
             py_norm = XX_norm[3, :]
             zeta_norm = XX_norm[4, :]
             pzeta_norm = XX_norm[5, :]
-        elif XX_norm.ndim == 3:
-            x_norm = XX_norm[0, :, :]
-            px_norm = XX_norm[1, :, :]
-            y_norm = XX_norm[2, :, :]
-            py_norm = XX_norm[3, :, :]
-            zeta_norm = XX_norm[4, :, :]
-            pzeta_norm = XX_norm[5, :, :]
 
+        elif XX_norm.ndim == 3:
+            x_norm = XX_norm[0, :, :].flatten()
+            px_norm = XX_norm[1, :, :].flatten()
+            y_norm = XX_norm[2, :, :].flatten()
+            py_norm = XX_norm[3, :, :].flatten()
+            zeta_norm = XX_norm[4, :, :].flatten()
+            pzeta_norm = XX_norm[5, :, :].flatten()
+            part_id = part_id.flatten()
+            at_element = at_element.flatten()
+            at_turn = at_turn.flatten()
 
         return Table({'particle_id': part_id, 'at_element': at_element,'at_turn':at_turn,
                       'x_norm': x_norm, 'px_norm': px_norm, 'y_norm': y_norm,
@@ -2910,6 +2927,7 @@ class TwissTable(Table):
     def __init__(self, *args, **kwargs):
         kwargs['sep_count'] = kwargs.get('sep_count', '::::')
         super().__init__(*args, **kwargs)
+        self['periodic'] = False
 
     _error_on_row_not_found = True
 
@@ -3144,6 +3162,41 @@ class TwissTable(Table):
 
         return R_matrix
 
+    def get_R_matrix_table(self):
+
+        Rot = np.zeros(shape=(len(self.s), 6, 6), dtype=np.float64)
+
+        cos_phix = np.cos(self.phix - self.phix[0])
+        sin_phix = np.sin(self.phix - self.phix[0])
+        cos_phiy = np.cos(self.phiy - self.phiy[0])
+        sin_phiy = np.sin(self.phiy - self.phiy[0])
+        cos_phizeta = np.cos(self.phizeta - self.phizeta[0])
+        sin_phizeta = np.sin(self.phizeta - self.phizeta[0])
+
+        Rot[:, 0, 0] = cos_phix
+        Rot[:, 0, 1] = sin_phix
+        Rot[:, 1, 0] = -sin_phix
+        Rot[:, 1, 1] = cos_phix
+        Rot[:, 2, 2] = cos_phiy
+        Rot[:, 2, 3] = sin_phiy
+        Rot[:, 3, 2] = -sin_phiy
+        Rot[:, 3, 3] = cos_phiy
+        Rot[:, 4, 4] = cos_phizeta
+        Rot[:, 4, 5] = sin_phizeta
+        Rot[:, 5, 4] = -sin_phizeta
+        Rot[:, 5, 5] = cos_phizeta
+
+        # Compute W @ Rot @ W_inv slice by slice
+        WW = self.W_matrix
+        R_matrix_ebe = np.einsum('ijk,ikl->ijl', WW, Rot) @ np.linalg.inv(WW[0, :, :])
+
+        out_dct = {'s': self.s, 'name': self.name, 'R_matrix': R_matrix_ebe}
+        for ii in range(6):
+            for jj in range(6):
+                out_dct[f'r{ii+1}{jj+1}'] = R_matrix_ebe[:, ii, jj]
+
+        return Table(out_dct)
+
     def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None,
                                    nemitt_zeta=None, _force_at_element=None):
 
@@ -3225,7 +3278,8 @@ class TwissTable(Table):
             itake = slice(1, None, None)
 
         for kk in self._col_names:
-            if (kk == 'name' or kk in NORMAL_STRENGTHS_FROM_ATTR
+            if (kk == 'name' or kk == 'name_env'
+                    or kk in NORMAL_STRENGTHS_FROM_ATTR
                     or kk in SKEW_STRENGTHS_FROM_ATTR
                     or kk in OTHER_FIELDS_FROM_ATTR
                     or kk in OTHER_FIELDS_FROM_TABLE
@@ -3424,7 +3478,9 @@ class TwissTable(Table):
             axleft=None,
             axright=None,
             axlattice=None,
-            hover=False
+            hover=False,
+            figsize=(6.4*1.2, 4.8),
+            lattice_only=False
             ):
         """
         Plot columns of the TwissTable
@@ -3475,6 +3531,10 @@ class TwissTable(Table):
 
         self._is_s_begin=True
 
+        if lattice_only:
+            yl = ''
+            yr = ''
+
         pl=TwissPlot(self,
                 x=x,
                 yl=yl,
@@ -3488,6 +3548,7 @@ class TwissTable(Table):
                 axright=axright,
                 axlattice=axlattice,
                 hover=hover,
+                figsize=figsize,
                 )
 
         if labels is not None:
@@ -3495,6 +3556,14 @@ class TwissTable(Table):
             labels=self[self._index][mask]
             xs=self[x][mask]
             pl.left.set_xticks(xs,labels)
+
+        if lattice_only:
+            ax1 = pl.lattice.twinx()
+            ax1.yaxis.set_label_position("left")
+            ax1.yaxis.set_ticks_position("left")
+            ax1.set_autoscale_on(True)
+            pl.left = ax1
+
         return pl
 
 
@@ -3507,6 +3576,9 @@ def _complete_twiss_init(start, end, init_at, init,
                         ax_chrom, bx_chrom, ay_chrom, by_chrom,
                         ddx, ddpx, ddy, ddpy
                         ):
+
+    if isinstance(init, TwissInit) and init_at is not None:
+        init.element_name = init_at
 
     if start is not None or end is not None:
         assert start is not None and end is not None, (
@@ -3530,7 +3602,6 @@ def _complete_twiss_init(start, end, init_at, init,
         elif isinstance(init, TwissTable):
             init = init.get_twiss_init(at_element=init_at)
         else:
-            assert init_at is None
             assert x is None and px is None and y is None and py is None
             assert zeta is None and delta is None
             assert betx is None and alfx is None and bety is None and alfy is None

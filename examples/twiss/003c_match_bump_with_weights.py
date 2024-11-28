@@ -43,7 +43,6 @@ opt = line.match(
         # I want to limit the negative excursion ot the bump
         xt.Target('y', -2e-3, at='mq.30l8.b1', tol=1e-6),
         xt.Target('y', GreaterThan(-1e-3), at='mq.30l8.b1', tol=1e-6),
-        # xt.Target(lambda tw: -tw['y', 'mq.30l8.b1'], LessThan(1e-3))
     ]
 )
 opt.targets[-1].active = False

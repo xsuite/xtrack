@@ -835,12 +835,13 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
 
     tw_test = tw_test.rows[:-1]
     assert np.all(tw_test.name == tw_part.name)
+    assert np.all(tw_test.name_env == tw_part.name_env)
 
     for kk in tw_test._data.keys():
-        if kk in ['name', 'W_matrix', 'particle_on_co', 'values_at',
+        if kk in ['name', 'name_env', 'W_matrix', 'particle_on_co', 'values_at',
                     'method', 'radiation_method', 'reference_frame',
                     'orientation', 'steps_r_matrix', 'line_config',
-                    'loop_around', '_action',
+                    'loop_around', '_action', 'completed_init',
                     'phix', 'phiy', 'phizeta', # are only relative (not unwrapped)
                     ]:
             continue # some tested separately
@@ -1790,10 +1791,11 @@ def test_twiss_range_start_end(test_context, line_name, section, collider_for_te
     tw_ref = line.twiss(start=start_el, end=end_el, init=tw_init, reverse=reverse)
 
     for kk in tw_test._data.keys():
-        if kk in ('particle_on_co', '_action'):
+        if kk in ('particle_on_co', '_action', 'completed_init'):
             continue
 
-        if kk in ('name', 'method', 'values_at', 'radiation_method', 'reference_frame'):
+        if kk in ('name', 'method', 'values_at', 'radiation_method',
+                  'reference_frame', 'name_env'):
             assert np.all(tw_test._data[kk] == tw_ref._data[kk])
             continue
 

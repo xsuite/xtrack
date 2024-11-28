@@ -13,7 +13,7 @@ from .beam_elements import *
 from .random import *
 from .tracker_data import TrackerData
 from .line import Line, Node, freeze_longitudinal, _temp_knobs, EnergyProgram
-from .environment import Environment, Place
+from .environment import Environment, Place, get_environment
 from .tracker import Tracker, Log
 from .match import (Vary, Target, TargetList, VaryList, TargetInequality, Action,
                     TargetRelPhaseAdvance, TargetSet, GreaterThan, LessThan,
@@ -44,6 +44,7 @@ from .line import _lines_equal, _apertures_equal
 from .slicing import Strategy, Uniform, Teapot
 from .loss_location_refinement import _skip_in_loss_location_refinement
 from .trajectory_correction import TrajectoryCorrection
+from .mad_parser.loader import load_madx_lattice
 
 from xdeps import Table, FunctionPieceWiseLinear
 

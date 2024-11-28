@@ -4,10 +4,10 @@
 # ######################################### #
 
 import math
+import json
 import logging
-import uuid
-import os
 from collections import defaultdict
+from weakref import WeakSet
 
 from contextlib import contextmanager
 from copy import deepcopy
@@ -27,6 +27,8 @@ import xdeps as xd
 from .progress_indicator import progress
 from .slicing import Custom, Slicer, Strategy
 from .mad_writer import to_madx_sequence
+from .madng_interface import (build_madng_model, discard_madng_model,
+                              regen_madng_model, _tw_ng, line_to_madng)
 
 from .survey import survey_from_line
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
@@ -56,16 +58,36 @@ log = logging.getLogger(__name__)
 
 _ALLOWED_ELEMENT_TYPES_IN_NEW = [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole,
                               xt.Octupole, xt.Cavity, xt.Multipole, xt.Solenoid,
-                              xt.Marker, xt.Replica]
+                              xt.Marker, xt.Replica, xt.LimitRacetrack, xt.LimitRectEllipse,
+                              xt.LimitRect, xt.LimitEllipse]
 
 _ALLOWED_ELEMENT_TYPES_DICT = {'Drift': xt.Drift, 'Bend': xt.Bend,
                                'Quadrupole': xt.Quadrupole, 'Sextupole': xt.Sextupole,
                                'Octupole': xt.Octupole, 'Cavity': xt.Cavity,
                                'Multipole': xt.Multipole, 'Solenoid': xt.Solenoid,
-                               'Marker': xt.Marker, 'Replica': xt.Replica}
+                               'Marker': xt.Marker, 'Replica': xt.Replica,
+                               'LimitRacetrack': xt.LimitRacetrack,
+                               'LimitRectEllipse': xt.LimitRectEllipse,
+                               'LimitRect': xt.LimitRect, 'LimitEllipse': xt.LimitEllipse}
 
 _STR_ALLOWED_ELEMENT_TYPES_IN_NEW = ', '.join([tt.__name__ for tt in _ALLOWED_ELEMENT_TYPES_IN_NEW])
 
+
+def find_index_repeated(item, lst,count=0):
+    res=[ii for ii, nn in enumerate(lst) if nn == item]
+    print(item)
+    if count>=len(res):
+        raise ValueError(f'Item {item} not found')
+    return res[count]
+
+def find_index_repeated2(item, lst,count=0):
+    cc=0
+    for ii, nn in enumerate(lst):
+        if nn == item:
+            if cc==count:
+                return ii
+            cc+=1
+    raise ValueError(f'Item {item} not found')
 
 class Line:
 
@@ -205,6 +227,9 @@ class Line:
                                     _context=_buffer.context)
 
         if '_var_manager' in dct.keys():
+            # reinit env and var management
+            self.env = None
+            self._var_management = None
             self._init_var_management(dct=dct)
 
         if 'config' in dct.keys():
@@ -587,34 +612,14 @@ class Line:
             MAD NG instance.
         '''
 
-        try:
-            if temp_fname is None:
-                temp_fname = 'temp_madng_' + str(uuid.uuid4())
-
-            madx_seq = self.to_madx_sequence(sequence_name=sequence_name)
-            with open(f'{temp_fname}.madx', 'w') as fid:
-                fid.write(madx_seq)
-
-            from pymadng import MAD
-            mng = MAD()
-            mng.MADX.load(f'"{temp_fname}.madx"', f'"{temp_fname}"')
-            mng._init_madx_data = madx_seq
-
-            mng[sequence_name] = mng.MADX[sequence_name] # this ensures that the file has been read
-            mng[sequence_name].beam = mng.beam(particle="'custom'",
-                            mass=self.particle_ref.mass0 * 1e9,
-                            charge=self.particle_ref.q0,
-                            betgam=self.particle_ref.beta0[0] * self.particle_ref.gamma0[0])
-        finally:
-            if not keep_files:
-                for nn in [temp_fname + '.madx', temp_fname + '.mad']:
-                    if os.path.isfile(nn):
-                        os.remove(nn)
-
-        # mng[sequence_name].beam = mng.beam(particle="'proton'", energy=7000)
+        return line_to_madng(self, sequence_name=sequence_name,
+                             temp_fname=temp_fname, keep_files=keep_files)
 
 
-        return mng
+    build_madng_model = build_madng_model
+    discard_madng_model = discard_madng_model
+    regen_madng_model = regen_madng_model
+    madng_twiss = _tw_ng
 
     def __repr__(self):
         if hasattr(self, '_name'):
@@ -785,6 +790,9 @@ class Line:
                                         _context=_context, _buffer=_buffer)
 
         if self._var_management is not None:
+            # reinit env and var management
+            out.env = None
+            out._var_management = None
             out._init_var_management(dct=self._var_management_to_dict())
 
         out.config.update(self.config.copy())
@@ -2129,9 +2137,8 @@ class Line:
         element: xline.Element, optional
             Element to be inserted. If not given, the element of the given name
             already present in the line is used.
-        at: int, optional
-            Index of the element in the line. If `index` is provided, `at_s`
-            must be None.
+        at: int or string, optional
+            Index or name of the element in the line. If `index` is provided, `at_s` must be None. 
         at_s: float, optional
             Position of the element in the line in meters. If `at_s` is provided, `index`
             must be None.
@@ -2144,8 +2151,17 @@ class Line:
             index = at
 
         if isinstance(index, str):
-            assert index in self.element_names
-            index = self.element_names.index(index)
+            if '::' in index:
+               atelem, count= index.split('::')
+               try:
+                   index= find_index_repeated(atelem, self.element_names, int(count))
+               except ValueError:
+                    raise ValueError(f'Element {atelem!r} not found in the line.')
+            else:
+                try:
+                    index = self.element_names.index(index)
+                except ValueError:
+                    raise ValueError(f'Element {index} not found in the line.')
 
         if element is None:
             if name not in self.element_dict.keys():
@@ -3580,7 +3596,6 @@ class Line:
                     or not isinstance(self.element_dict[name].extra, dict)):
                     self.element_dict[name].extra = {}
                 self.element_dict[name].extra.update(extra)
-            self.element_dict
         else:
             if len(kwargs) > 0:
                 raise ValueError(f'Only a single value is allowed when setting variable')
@@ -3773,40 +3788,16 @@ class Line:
 
     def _init_var_management(self, dct=None):
 
-        from collections import defaultdict
+        self._var_management = _make_var_management(element_dict=self.element_dict,
+                                               dct=dct)
 
-        _var_values = defaultdict(lambda: 0)
-        _var_values.default_factory = None
+        if not hasattr(self, 'env') or self.env is None:
+            self._env_if_needed()
+            self.env._line_vars = LineVars(self.env)
 
-        functions = Functions()
-
-        manager = xd.Manager()
-        _vref = manager.ref(_var_values, 'vars')
-        _fref = manager.ref(functions, 'f')
-        _lref = manager.ref(self.element_dict, 'element_refs')
-
-        self._var_management = {}
-        self._var_management['data'] = {}
-        self._var_management['data']['var_values'] = _var_values
-        self._var_management['data']['functions'] = functions
-
-        self._var_management['manager'] = manager
-        self._var_management['lref'] = _lref
-        self._var_management['vref'] = _vref
-        self._var_management['fref'] = _fref
-
-        _vref['t_turn_s'] = 0.0
-
-        if dct is not None:
-            manager = self._var_management['manager']
-            for kk in dct['_var_management_data'].keys():
-                data_item = dct['_var_management_data'][kk]
-                if kk == 'functions':
-                    data_item = Functions.from_dict(data_item)
-                self._var_management['data'][kk].update(data_item)
-            manager.load(dct['_var_manager'])
-
-        self._line_vars = LineVars(self)
+    @property
+    def _line_vars(self):
+        return self.env._line_vars
 
     @property
     def record_last_track(self):
@@ -4287,7 +4278,7 @@ class Line:
         s_cuts = [ee[0] for ee in elements_to_insert]
         s_cuts = np.sort(s_cuts)
 
-        self.cut_at_s(s_cuts)
+        self.cut_at_s(s_cuts, s_tol=s_tol)
 
         tt_after_cut = self.get_table()
 
@@ -4800,6 +4791,12 @@ def _temp_knobs(line_or_trk, knobs: dict):
         for kk, vv in old_values.items():
             line_or_trk.vars[kk] = vv
 
+class _DefaultFactory:
+    def __init__(self, default):
+        self.default = default
+
+    def __call__(self):
+        return self.default
 
 class LineVars:
 
@@ -4808,6 +4805,7 @@ class LineVars:
         if '__vary_default' not in self.line._xdeps_vref._owner.keys():
             self.line._xdeps_vref._owner['__vary_default'] = {}
         self.val = VarValues(self)
+        self.vars_to_update = WeakSet()
 
     def keys(self):
         if self.line._xdeps_vref is None:
@@ -4820,12 +4818,28 @@ class LineVars:
         raise NotImplementedError('Use keys() method') # Untested
         return self.line._xdeps_vref._owner.__iter__()
 
-    def update(self, other):
-        if self.line._xdeps_vref is None:
-            raise RuntimeError(
-                f'Cannot access variables as the line has no xdeps manager')
-        for kk in other.keys():
-            self[kk] = other[kk]
+    def update(self, *args, **kwargs):
+        default_to_zero = kwargs.pop('default_to_zero', None)
+        old_default_to_zero = self.default_to_zero
+        if default_to_zero is not None:
+            self.default_to_zero = default_to_zero
+        try:
+            if self.line._xdeps_vref is None:
+                raise RuntimeError(
+                    f'Cannot access variables as the line has no xdeps manager')
+            if len(args) > 0:
+                assert len(args) == 1, 'update expected at most 1 positional argument'
+                other = args[0]
+                for kk in other.keys():
+                    self[kk] = other[kk]
+            for kk, vv in kwargs.items():
+                self[kk] = vv
+        except Exception as ee:
+            if default_to_zero is not None:
+                self.default_to_zero = old_default_to_zero
+            raise ee
+        if default_to_zero is not None:
+            self.default_to_zero = old_default_to_zero
 
     @property
     def vary_default(self):
@@ -4834,15 +4848,31 @@ class LineVars:
                 f'Cannot access variables as the line has no xdeps manager')
         return self.line._xdeps_vref._owner['__vary_default']
 
-    def get_table(self):
+    def get_table(self, compact=True):
         if self.line._xdeps_vref is None:
             raise RuntimeError(
                 f'Cannot access variables as the line has no xdeps manager')
         name = np.array([kk for kk in list(self.keys()) if kk != '__vary_default'], dtype=object)
         value = np.array([self.line._xdeps_vref[kk]._value for kk in name])
-        expr  = np.array([str(self.line._xdeps_vref[str(kk)]._expr) for kk in name])
 
-        return xd.Table({'name': name, 'value': value, 'expr': expr})
+        if compact:
+            formatter = xd.refs.CompactFormatter(scope=None)
+            expr = []
+            for kk in name:
+                ee = self.line._xdeps_vref[kk]._expr
+                if ee is None:
+                    expr.append(None)
+                else:
+                    expr.append(ee._formatted(formatter))
+        else:
+            expr  = [self.line._xdeps_vref[str(kk)]._expr for kk in name]
+            for ii, ee in enumerate(expr):
+                if ee is not None:
+                    expr[ii] = str(ee)
+
+        expr = np.array(expr)
+
+        return VarsTable({'name': name, 'value': value, 'expr': expr})
 
     def new_expr(self, expr):
         return self.line._xdeps_eval.eval(expr)
@@ -4889,6 +4919,17 @@ class LineVars:
         if isinstance(value, str):
             value = self.line._xdeps_eval.eval(value)
         self.line._xdeps_vref[key] = value
+        for cc in self.vars_to_update:
+            cc[key] = value
+
+    def __getstate__(self):
+        out = self.__dict__.copy()
+        out['vars_to_update'] = None
+        return out
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.vars_to_update = WeakSet()
 
     def set_from_madx_file(self, filename, mad_stdout=False):
 
@@ -4952,6 +4993,18 @@ class LineVars:
     def load_madx_optics_file(self, filename, mad_stdout=False):
         self.set_from_madx_file(filename, mad_stdout=mad_stdout)
 
+    load_madx = load_madx_optics_file
+
+    def load_json(self, filename):
+
+        with open(filename, 'r') as fid:
+            data = json.load(fid)
+
+        _old_default_to_zero = self.default_to_zero
+        self.default_to_zero = True
+        self.update(data)
+        self.default_to_zero = _old_default_to_zero
+
     def target(self, tar, value, **kwargs):
         action = ActionVars(self.line)
         return xt.Target(action=action, tar=tar, value=value, **kwargs)
@@ -4981,6 +5034,32 @@ class LineVars:
 
     def get(self, name):
         return self[name]._value
+
+    @property
+    def default_to_zero(self):
+        default_factory = self.line._xdeps_vref._owner.default_factory
+        if default_factory is None:
+            return False
+        return default_factory.default == 0
+
+    @default_to_zero.setter
+    def default_to_zero(self, value):
+        assert value in (True, False)
+        if value:
+            self.line._xdeps_vref._owner.default_factory = _DefaultFactory(0.)
+        else:
+            self.line._xdeps_vref._owner.default_factory = None
+
+class VarsTable(xd.Table):
+
+    def to_dict(self):
+        out = {}
+        for nn, ee, vv in zip(self['name'], self['expr'], self['value']):
+            if ee is not None:
+                out[nn] = ee
+            else:
+                out[nn] = vv
+        return out
 
 class ActionVars(Action):
 
@@ -5324,3 +5403,41 @@ def _rot_s_from_attr(attr):
         parent_cos_rot_s[has_parent_rot]) * attr._rot_and_shift_from_parent[has_parent_rot]
 
     return rot_s_rad
+
+
+def _make_var_management(element_dict, dct=None):
+
+    from collections import defaultdict
+
+    _var_values = defaultdict(lambda: 0)
+    _var_values.default_factory = None
+
+    functions = Functions()
+
+    manager = xd.Manager()
+    _vref = manager.ref(_var_values, 'vars')
+    _fref = manager.ref(functions, 'f')
+    _lref = manager.ref(element_dict, 'element_refs')
+
+    _var_management = {}
+    _var_management['data'] = {}
+    _var_management['data']['var_values'] = _var_values
+    _var_management['data']['functions'] = functions
+
+    _var_management['manager'] = manager
+    _var_management['lref'] = _lref
+    _var_management['vref'] = _vref
+    _var_management['fref'] = _fref
+
+    _vref['t_turn_s'] = 0.0
+
+    if dct is not None:
+        manager = _var_management['manager']
+        for kk in dct['_var_management_data'].keys():
+            data_item = dct['_var_management_data'][kk]
+            if kk == 'functions':
+                data_item = Functions.from_dict(data_item)
+            _var_management['data'][kk].update(data_item)
+        manager.load(dct['_var_manager'])
+
+    return _var_management

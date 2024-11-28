@@ -1859,7 +1859,7 @@ class LineSegmentMap(BeamElement):
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/linesegmentmap.h')]
 
-    def __init__(self, length=None, qx=0, qy=0,
+    def __init__(self, length=0., qx=0, qy=0,
             betx=1., bety=1., alfx=0., alfy=0.,
             dx=0., dpx=0., dy=0., dpy=0.,
             x_ref=0.0, px_ref=0.0, y_ref=0.0, py_ref=0.0,
@@ -2106,7 +2106,6 @@ dqx : float or list of float
             assert bets is None
 
             if slippage_length is None:
-                assert length is not None
                 nargs['slippage_length'] = length
             else:
                 nargs['slippage_length'] = slippage_length

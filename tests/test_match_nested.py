@@ -166,7 +166,7 @@ def test_match_nested(test_context):
             xd.Vary(name='kqf.a67', container=collider.vars, step=1e-5),
             xd.Vary(name='kqd.a67', container=collider.vars, step=1e-5),
         ])
-    optimize_phase_arc_67.solve()
+    optimize_phase_arc_67.solve(n_steps=5)
 
     # Checks
     resb1_after = action_arc_phase_s67_b1.run()

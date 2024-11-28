@@ -161,6 +161,24 @@ class LimitEllipse(BeamElement):
         else:
             raise ValueError("a_squ and b_squ have to be positive definite")
 
+    @property
+    def a(self):
+        return np.sqrt(self.a_squ)
+
+    @a.setter
+    def a(self, a):
+        self.a_squ = a * a
+        self.a_b_squ = self.a_squ * self.b_squ
+
+    @property
+    def b(self):
+        return np.sqrt(self.b_squ)
+
+    @b.setter
+    def b(self, b):
+        self.b_squ = b * b
+        self.a_b_squ = self.a_squ * self.b_squ
+
     def set_half_axes(self, a, b):
         return self.set_half_axes_squ(a * a, b * b)
 
@@ -169,6 +187,10 @@ class LimitEllipse(BeamElement):
         self.b_squ = b_squ
         self.a_b_squ = a_squ * b_squ
         return self
+
+    @property
+    def _repr_fields(self):
+        return ['a', 'b']
 
 
 class LimitPolygon(BeamElement):
@@ -386,6 +408,24 @@ class LimitRectEllipse(BeamElement):
             **kwargs
         )
 
+    @property
+    def a(self):
+        return np.sqrt(self.a_squ)
+
+    @a.setter
+    def a(self, a):
+        self.a_squ = a * a
+        self.a_b_squ = self.a_squ * self.b_squ
+
+    @property
+    def b(self):
+        return np.sqrt(self.b_squ)
+
+    @b.setter
+    def b(self, b):
+        self.b_squ = b * b
+        self.a_b_squ = self.a_squ * self.b_squ
+
     def set_half_axes(self, a, b):
         return self.set_half_axes_squ(a * a, b * b)
 
@@ -394,6 +434,10 @@ class LimitRectEllipse(BeamElement):
         self.b_squ = b_squ
         self.a_b_squ = a_squ * b_squ
         return self
+
+    @property
+    def _repr_fields(self):
+        return ['max_x', 'max_y', 'a', 'b']
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitrectellipse.h')]
