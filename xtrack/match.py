@@ -691,6 +691,16 @@ class Action(xd.Action):
 
     _target_class = Target
 
+    def __init__(self, callable, **kwargs):
+        self.callable = callable
+        self.kwargs = kwargs
+
+    def run(self, allow_failure=False):
+        return self.callable(**self.kwargs)
+
+    def __call__(self, **kwargs):
+        return self.run(**kwargs)
+
 class ActionTwiss(xd.Action):
 
     def __init__(self, line, allow_twiss_failure=False,
