@@ -292,13 +292,16 @@ class MadxLoader:
             if (extras := el_params.pop('extra', None)):
                 _warn(f'Ignoring extra parameters {extras} for element `{name}`!')
 
-            if isinstance(self.env[name], BeamElement) and not self.env[name].isthick and length:
+
+            if (isinstance(self.env[name], BeamElement) and not self.env[name].isthick
+                 and length and not isinstance(self.env[name], xt.Marker)):
                 drift_name = f'drift_{name}'
                 self.env.new(drift_name, 'Drift', length=f'({length}) / 2')
                 name = builder.new_line([drift_name, name, drift_name])
             builder.place(name, **el_params)
         else:
-            if isinstance(self.env[parent], BeamElement) and not self.env[parent].isthick and length:
+            if (isinstance(self.env[parent], BeamElement) and not self.env[parent].isthick
+                and length and not isinstance(self.env[parent], xt.Marker)):
                 drift_name = f'{name}_drift'
                 self.env.new(drift_name, 'Drift', length=f'({length}) / 2')
                 at, from_ = el_params.pop('at', None), el_params.pop('from_', None)
@@ -635,8 +638,8 @@ class MadxLoader:
 
         return element_name
 
-def load_madx_lattice(file):
-    loader = MadxLoader()
+def load_madx_lattice(file, reverse_lines=None):
+    loader = MadxLoader(reverse_lines=reverse_lines)
     loader.load_file(file)
     env = loader.env
     return env
