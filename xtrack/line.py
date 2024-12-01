@@ -3632,7 +3632,7 @@ class Line:
         else:
             raise KeyError(f'Element or variable {key} not found')
 
-    def info(self, key, limit=12):
+    def info(self, key, limit=30):
         """
             Get information about an element or a variable.
         """
