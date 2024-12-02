@@ -1096,4 +1096,14 @@ def test_insert_repeated_names():
     line.insert_element("m2",xt.Marker(),at="d")
     assert line.element_names[0]=="m2"
 
+def test_line_table_unique_names():
+    line = xt.Line(
+        elements = {"obm": xt.Bend(length=0.5)},
+        element_names= ["obm","obm"]
+    )
+    table = line.get_table()
+    assert np.all(np.unique_counts(table.name).counts == 1), "Not all elements are unique"
+    for name, env_name in zip(table.name, table.env_name):
+        if name == '_end_point': continue
+        assert line[name] == line[env_name]
 
