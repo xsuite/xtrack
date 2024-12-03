@@ -172,7 +172,19 @@ class Elens(BeamElement):
         Array of coefficients of the polynomial. Default is ``[0]``.
     polynomial_order : int
         Order of the polynomial. Default is ``0``.
-
+    noise: array
+        Array of noise values. Default is ``[1.0]``. Use this to model different
+        on/off states of the elens for each turn. The length of the noise array
+        should be equal to the number of turns you want to simulate. Otherwise,
+        the noise_mode will be used to handle the noise array. 1.0 means full elens
+        and 0.0 means no elens.
+    noise_mode: {'loop', 'last', 'zeros', 'ones'}
+        How to handle the noise array if the number of turns is larger than the
+        length of the noise array. Default is ``'loop'``.
+        'loop': loop over the noise array.
+        'last': use the last value of the noise array.
+        'zero': use zero (no elens) for the remaining turns.
+        'ones': use one (full elens) for the remaining turns.
     '''
 
     _xofields={
@@ -185,6 +197,9 @@ class Elens(BeamElement):
         'residual_kick_y': xo.Float64,
         'coefficients_polynomial': xo.Field(xo.Float64[:], default=[0]),
         'polynomial_order': xo.Float64,
+        'len_noise': xo.Int64,
+        'noise': xo.Field(xo.Float64[:], default=[1.]),
+        'noise_mode': xo.Int64,
     }
 
     has_backtrack = True
@@ -193,10 +208,20 @@ class Elens(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/elens.h')]
 
     def __init__(self, _xobject=None, **kwargs):
+        kwargs["noise_mode"] = {"loop": 0, "last": 1, "zeros": 2, "ones": 3}.get(
+            kwargs.get("noise_mode", "loop"),
+            ValueError("noise_mode must be 'loop', 'last', 'zeros' or 'ones'")
+        )
+
+        if isinstance(kwargs["noise_mode"], ValueError):
+            raise kwargs["noise_mode"]
+
         super().__init__(_xobject=_xobject, **kwargs)
         if _xobject is None:
             polynomial_order = len(self.coefficients_polynomial) - 1
             self.polynomial_order = polynomial_order
+            len_noise = len(self.noise)
+            self.len_noise = len_noise
 
 
 class NonLinearLens(BeamElement):
