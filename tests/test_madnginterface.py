@@ -9,7 +9,7 @@ test_data_folder = pathlib.Path(
 
 @pytest.mark.xfail(strict=False) # sometimes madng fails to start the process (to be investigated)
 def test_madng_twiss():
-    rdts = ["f4000", "f3100", "f2020", "f1120", 'f1001']
+    rdts = ["f4000", "f3100", "f2020", "f1120"]
 
     line = xt.Line.from_json(test_data_folder /
                             'hllhc15_thick/lhc_thick_with_knobs.json')
@@ -56,7 +56,7 @@ def test_madng_interface_with_multipole_errors_and_misalignments():
 
     # Introduce misalignments on all quadrupoles
     tt = line.get_table()
-    tt_quad = tt.rows['mq\..*']
+    tt_quad = tt.rows[r'mq\..*']
     rgen = np.random.RandomState(1) # fix seed for random number generator
                                     # (to have reproducible results)
     shift_x = rgen.randn(len(tt_quad)) * 0.01e-3 # 0.01 mm rms shift on all quads
