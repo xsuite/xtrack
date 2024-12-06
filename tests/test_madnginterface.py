@@ -7,7 +7,7 @@ import numpy as np
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
-@pytest.mark.xfail(strict=False) # sometimes madng fails to start the process (to be investigated)
+# @pytest.mark.xfail(strict=False) # sometimes madng fails to start the process (to be investigated)
 def test_madng_twiss():
     rdts = ["f4000", "f3100", "f2020", "f1120"]
 
@@ -46,7 +46,7 @@ def test_madng_twiss():
     assert np.abs(tw_rdt.f2020).max() > 0
     assert np.abs(tw_rdt.f1120).max() > 0
 
-@pytest.mark.xfail(strict=False) # sometimes madng fails to start the process (to be investigated)
+# @pytest.mark.xfail(strict=False) # sometimes madng fails to start the process (to be investigated)
 def test_madng_interface_with_multipole_errors_and_misalignments():
     line = xt.Line.from_json(test_data_folder /
                             'hllhc15_thick/lhc_thick_with_knobs.json')
