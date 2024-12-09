@@ -357,7 +357,6 @@ def test_to_pandas():
 def test_check_aperture():
 
     class ThickElement:
-
         length = 2.
         isthick = True
 
@@ -380,11 +379,16 @@ def test_check_aperture():
             'th3_ap_front': xt.LimitEllipse(a=1e-2, b=1e-2),
             'th3': ThickElement(),
             'dr6': xt.Drift(length=1),
+            'th4_ap_entry': xt.LimitEllipse(a=1e-2, b=1e-2),
+            'th4': ThickElement(),
+            'th4_ap_exit': xt.LimitEllipse(a=1e-2, b=1e-2),
         },
         element_names=['dr1', 'm1_ap', 'dum', 'm1', 'dr2', 'm2', 'dr3',
                        'th1_ap_front', 'dum', 'th1', 'dum', 'th1_ap_back',
                        'dr4', 'th2', 'th2_ap_back',
-                       'dr5', 'th3_ap_front', 'th3'])
+                       'dr5', 'th3_ap_front', 'th3', 'dr6',
+                       'th4_ap_entry', 'th4', 'th4_ap_exit'])
+    
     df = line.check_aperture()
 
     expected_miss_upstream = [nn in ('m2', 'th2') for nn in df['name'].values]
