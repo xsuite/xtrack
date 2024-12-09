@@ -653,7 +653,7 @@ class TargetRmatrix(TargetSet):
                     thistol *= 1e+2
             if vv is not None:
                 if tag is not None:
-                    this_tag = tag + f'_{kk}'
+                    this_tag = tag
                 else:
                     this_tag = kk
                 self.targets.append(TargetRmatrixTerm(kk, vv, start=start, end=end,
