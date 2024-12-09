@@ -362,6 +362,122 @@ def test_elens_measured_radial(test_context):
 
 
 @for_all_test_contexts
+def test_elens_noise_pattern(test_context):
+    # Set fixed numpy seed
+    np.random.seed(42)
+    # Create a binary noise pattern of 25 samples
+    noise_pattern = np.random.randint(0, 2, 25)
+
+    line_no_pattern = xt.Line(
+        elements=[
+            xt.Drift(length=1e-3),
+            xt.Elens(
+                inner_radius=1.1e-3,
+                outer_radius=2.2e-3,
+                elens_length=3.0,
+                voltage=15e3,
+                current=5,
+            ),
+        ]
+    )
+
+    noise_modes = ["loop", "zeros", "ones", "last"]
+    lines_with_patterns = {
+        mode: xt.Line(
+            elements=[
+                xt.Drift(length=1e-3),
+                xt.Elens(
+                    inner_radius=1.1e-3,
+                    outer_radius=2.2e-3,
+                    elens_length=3.0,
+                    voltage=15e3,
+                    current=5,
+                    noise=noise_pattern,
+                    noise_mode=mode,
+                ),
+            ]
+        )
+        for mode in noise_modes
+    }
+
+    # Build trackers for all lines
+    line_no_pattern.build_tracker(_context=test_context)
+    for mode, line in lines_with_patterns.items():
+        line.build_tracker(_context=test_context)
+
+    # Test each noise mode
+    for mode, line in lines_with_patterns.items():
+        particle_ref = xp.Particles(
+            p0c=np.array([7000e9]),
+            x=np.array([1e-3]),
+            px=np.array([0.0]),
+            y=np.array([2.2e-3]),
+            py=np.array([0.0]),
+            zeta=np.array([0.0]),
+            context=test_context,
+        )
+        particle_ref_copy = particle_ref.copy(_context=test_context)
+
+        if mode == "loop":
+            # Explicitly track with the line_no_pattern for comparison
+            for i in range(50):
+                line_no_pattern.element_dict["e1"].current = 5 * noise_pattern[i % 25]
+                line_no_pattern.track(particle_ref)
+
+        elif mode == "zeros":
+            # All values after the array length are zero
+            for i in range(50):
+                current_value = 5 * (noise_pattern[i] if i < len(noise_pattern) else 0)
+                line_no_pattern.element_dict["e1"].current = current_value
+                line_no_pattern.track(particle_ref)
+
+        elif mode == "ones":
+            # All values after the array length are one
+            for i in range(50):
+                current_value = 5 * (noise_pattern[i] if i < len(noise_pattern) else 1)
+                line_no_pattern.element_dict["e1"].current = current_value
+                line_no_pattern.track(particle_ref)
+
+        elif mode == "last":
+            # All values after the array length are the last array value
+            for i in range(50):
+                current_value = 5 * (
+                    noise_pattern[i] if i < len(noise_pattern) else noise_pattern[-1]
+                )
+                line_no_pattern.element_dict["e1"].current = current_value
+                line_no_pattern.track(particle_ref)
+
+        # Track the line with the specified noise mode
+        line.track(particle_ref_copy, num_turns=50)
+
+        # Validate results (all particles must be the same)
+        xo.assert_allclose(
+            test_context.nparray_from_context_array(particle_ref.x)[0],
+            particle_ref_copy.x,
+            rtol=1e-14,
+            atol=1e-14,
+        )
+        xo.assert_allclose(
+            test_context.nparray_from_context_array(particle_ref.y)[0],
+            particle_ref_copy.y,
+            rtol=1e-14,
+            atol=1e-14,
+        )
+        xo.assert_allclose(
+            test_context.nparray_from_context_array(particle_ref.px)[0],
+            particle_ref_copy.px,
+            rtol=1e-14,
+            atol=1e-14,
+        )
+        xo.assert_allclose(
+            test_context.nparray_from_context_array(particle_ref.py)[0],
+            particle_ref_copy.py,
+            rtol=1e-14,
+            atol=1e-14,
+        )
+
+
+@for_all_test_contexts
 def test_wire(test_context):
     dtk_particle = dtk.TestParticles(
             p0c =np.array([7000e9]),

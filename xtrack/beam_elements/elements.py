@@ -183,7 +183,7 @@ class Elens(BeamElement):
         length of the noise array. Default is ``'loop'``.
         'loop': loop over the noise array.
         'last': use the last value of the noise array.
-        'zero': use zero (no elens) for the remaining turns.
+        'zeros': use zero (no elens) for the remaining turns.
         'ones': use one (full elens) for the remaining turns.
     '''
 
