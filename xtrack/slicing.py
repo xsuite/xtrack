@@ -433,6 +433,7 @@ class Slicer:
                 ee = element._thick_slice_class(
                         _parent=slice_parent, _buffer=element._buffer,
                         weight=weight)
+                ee.parent_name = slice_parent_name
                 self._line.element_dict[nn] = ee
                 slices_to_append.append(nn)
                 element_idx += 1
