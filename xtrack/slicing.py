@@ -245,6 +245,7 @@ class Slicer:
         for ii, name in enumerate(progress(collapsed_names, desc='Slicing line')):
 
             element = self._line.element_dict[name]
+
             subsequence = self._slice_element(
                 name, element, _edge_markers=_edge_markers)
 
@@ -374,56 +375,69 @@ class Slicer:
             self._line.element_dict[nn] = ee
             slices_to_append.append(nn)
 
+        # if not hasattr(element, 'length'):
+        #     # Slicing a thick slice of a another element
+        #     assert hasattr(element, '_parent')
+        #     assert element.isthick
+        #     elem_length = element._parent.length * element.weight
+        #     for weight, is_drift in chosen_slicing.iter_weights(elem_length):
+
+        #         if not is_drift:
+        #             continue
+
+        #         nn = f'{name}..{element_idx}'
+        #         ee = type(element)(
+        #                 _parent=element._parent, _buffer=element._buffer,
+        #                 weight=weight * element.weight)
+        #         element._parent._movable = True # Force movable
+        #         ee.parent_name = element.parent_name
+        #         self._line.element_dict[nn] = ee
+        #         slices_to_append.append(nn)
+        #         element_idx += 1
+
         if not hasattr(element, 'length'):
             # Slicing a thick slice of a another element
             assert hasattr(element, '_parent')
             assert element.isthick
+            element._parent._movable = True # Force movable
             elem_length = element._parent.length * element.weight
+            slice_parent_name = element.parent_name
+            slice_parent = element._parent
+        else:
+            element._movable = True # Force movable
+            elem_length = element.length
+            slice_parent_name = parent_name
+            slice_parent = element
+
+        if chosen_slicing.mode == 'thin':
             for weight, is_drift in chosen_slicing.iter_weights(elem_length):
-
-                if not is_drift:
-                    continue
-
-                nn = f'{name}..{element_idx}'
-                ee = type(element)(
-                        _parent=element._parent, _buffer=element._buffer,
-                        weight=weight * element.weight)
-                element._parent._movable = True # Force movable
-                ee.parent_name = element.parent_name
-                self._line.element_dict[nn] = ee
-                slices_to_append.append(nn)
-                element_idx += 1
-        elif chosen_slicing.mode == 'thin':
-            for weight, is_drift in chosen_slicing.iter_weights(element.length):
                 if is_drift:
                     nn = f'drift_{name}..{drift_idx}'
-                    ee = element._drift_slice_class(
-                            _parent=element, _buffer=element._buffer,
+                    ee = slice_parent._drift_slice_class(
+                            _parent=slice_parent, _buffer=element._buffer,
                             weight=weight)
-                    element._movable = True # Force movable
-                    ee.parent_name = parent_name
+                    ee.parent_name = slice_parent_name
                     self._line.element_dict[nn] = ee
                     slices_to_append.append(nn)
                     drift_idx += 1
                 else:
                     nn = f'{name}..{element_idx}'
-                    if element._thin_slice_class is not None:
-                        ee = element._thin_slice_class(
-                                _parent=element, _buffer=element._buffer,
+                    if slice_parent._thin_slice_class is not None:
+                        ee = slice_parent._thin_slice_class(
+                                _parent=slice_parent, _buffer=element._buffer,
                                 weight=weight)
-                        element._movable = True # Force movable
-                        ee.parent_name = parent_name
+                        ee.parent_name = slice_parent_name
                         self._line.element_dict[nn] = ee
                         slices_to_append.append(nn)
                         element_idx += 1
-        elif hasattr(element, 'length'):
-            for weight, is_drift in chosen_slicing.iter_weights(element.length):
+        elif chosen_slicing.mode == 'thick':
+            for weight, is_drift in chosen_slicing.iter_weights(elem_length):
                 nn = f'{name}..{element_idx}'
                 ee = element._thick_slice_class(
-                        _parent=element, _buffer=element._buffer,
+                        _parent=slice_parent, _buffer=element._buffer,
                         weight=weight)
                 element._movable = True # Force movable
-                ee.parent_name = parent_name
+                ee.parent_name = slice_parent_name
                 self._line.element_dict[nn] = ee
                 slices_to_append.append(nn)
                 element_idx += 1
