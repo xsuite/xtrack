@@ -130,6 +130,7 @@ def test_slice_thin_and_insert_with_replicas(test_context):
     line.discard_tracker()
     line.insert_element(name='mkins1', element=xt.Marker(), at_s=0.5)
     line.insert_element(name='mkins2', element=xt.Marker(), at_s=1.5)
+    breakpoint()
     line.insert_element(name='mkins3', element=xt.Marker(), at_s=2.5)
     line.insert_element(name='mkins4', element=xt.Marker(), at_s=3.5)
     line.insert_element(name='mkins5', element=xt.Marker(), at_s=4.5)

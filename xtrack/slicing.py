@@ -410,7 +410,7 @@ class Slicer:
         elif chosen_slicing.mode == 'thick':
             for weight, is_drift in chosen_slicing.iter_weights(elem_length):
                 nn = f'{name}..{element_idx}'
-                ee = element._thick_slice_class(
+                ee = slice_parent._thick_slice_class(
                         _parent=slice_parent, _buffer=element._buffer,
                         weight=weight)
                 ee.parent_name = slice_parent_name

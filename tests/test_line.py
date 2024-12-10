@@ -283,6 +283,7 @@ def test_insert():
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
                 ['e0', 'e1', 'e2..0', 'aper', 'e2..1', 'e3', 'e4']))])
+    breakpoint()
     line.insert_element(element=xt.Drift(length=0.8), at_s=1.9, name="newdrift")
     assert line.get_s_position('newdrift') == 1.9
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,

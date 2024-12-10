@@ -2210,6 +2210,7 @@ class Line:
         else:
             s_end_ele = s_start_ele
 
+        breakpoint()
         self.cut_at_s([s_start_ele, s_end_ele])
 
         s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
