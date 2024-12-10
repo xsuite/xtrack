@@ -374,26 +374,6 @@ class Slicer:
             self._line.element_dict[nn] = ee
             slices_to_append.append(nn)
 
-        # if not hasattr(element, 'length'):
-        #     # Slicing a thick slice of a another element
-        #     assert hasattr(element, '_parent')
-        #     assert element.isthick
-        #     elem_length = element._parent.length * element.weight
-        #     for weight, is_drift in chosen_slicing.iter_weights(elem_length):
-
-        #         if not is_drift:
-        #             continue
-
-        #         nn = f'{name}..{element_idx}'
-        #         ee = type(element)(
-        #                 _parent=element._parent, _buffer=element._buffer,
-        #                 weight=weight * element.weight)
-        #         element._parent._movable = True # Force movable
-        #         ee.parent_name = element.parent_name
-        #         self._line.element_dict[nn] = ee
-        #         slices_to_append.append(nn)
-        #         element_idx += 1
-
         if not hasattr(element, 'length'):
             # Slicing a thick slice of a another element
             assert hasattr(element, '_parent')
