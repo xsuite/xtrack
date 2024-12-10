@@ -379,10 +379,12 @@ class Slicer:
             assert hasattr(element, '_parent')
             assert element.isthick
             elem_length = element._parent.length * element.weight
+            elem_weight = element.weight
             slice_parent_name = element.parent_name
             slice_parent = element._parent
         else:
             elem_length = element.length
+            elem_weight = 1.
             slice_parent_name = parent_name
             slice_parent = element
 
@@ -392,7 +394,7 @@ class Slicer:
                     nn = f'drift_{name}..{drift_idx}'
                     ee = slice_parent._drift_slice_class(
                             _parent=slice_parent, _buffer=element._buffer,
-                            weight=weight)
+                            weight=weight * elem_weight)
                     ee.parent_name = slice_parent_name
                     self._line.element_dict[nn] = ee
                     slices_to_append.append(nn)
@@ -402,7 +404,7 @@ class Slicer:
                     if slice_parent._thin_slice_class is not None:
                         ee = slice_parent._thin_slice_class(
                                 _parent=slice_parent, _buffer=element._buffer,
-                                weight=weight)
+                                weight=weight * elem_weight)
                         ee.parent_name = slice_parent_name
                         self._line.element_dict[nn] = ee
                         slices_to_append.append(nn)
@@ -412,7 +414,7 @@ class Slicer:
                 nn = f'{name}..{element_idx}'
                 ee = slice_parent._thick_slice_class(
                         _parent=slice_parent, _buffer=element._buffer,
-                        weight=weight)
+                        weight=weight * elem_weight)
                 ee.parent_name = slice_parent_name
                 self._line.element_dict[nn] = ee
                 slices_to_append.append(nn)
