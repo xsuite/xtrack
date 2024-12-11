@@ -284,7 +284,6 @@ def test_insert():
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
                 ['e0', 'e1', 'e2..0', 'aper', 'e2..1', 'e3', 'e4']))])
     line.insert_element(element=xt.Drift(length=0.8), at_s=1.9, name="newdrift")
-    breakpoint()
     assert line.get_s_position('newdrift') == 1.9
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
                 ['e0', 'e1..0', 'newdrift', 'e2..1..1', 'e3', 'e4']))])
