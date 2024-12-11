@@ -382,16 +382,20 @@ class Slicer:
             elem_weight = element.weight
             slice_parent_name = element.parent_name
             slice_parent = element._parent
+            isdriftslice = type(element).__name__.startswith('DriftSlice')
         else:
             elem_length = element.length
             elem_weight = 1.
             slice_parent_name = parent_name
             slice_parent = element
+            isdriftslice = False
 
-        if chosen_slicing.mode == 'thin':
+        if chosen_slicing.mode == 'thin' or isdriftslice:
             for weight, is_drift in chosen_slicing.iter_weights(elem_length):
                 if is_drift:
-                    nn = f'drift_{name}..{drift_idx}'
+                    nn = f'{name}..{drift_idx}'
+                    if not isdriftslice:
+                        nn = 'drift_' + nn
                     ee = slice_parent._drift_slice_class(
                             _parent=slice_parent, _buffer=element._buffer,
                             weight=weight * elem_weight)
@@ -400,6 +404,8 @@ class Slicer:
                     slices_to_append.append(nn)
                     drift_idx += 1
                 else:
+                    if isdriftslice:
+                        continue
                     nn = f'{name}..{element_idx}'
                     if slice_parent._thin_slice_class is not None:
                         ee = slice_parent._thin_slice_class(
