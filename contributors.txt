@@ -13,6 +13,7 @@ CERN contributors:
  - A. Latina
  - B. Lindstrom
  - S. Lopaciuk
+ - J. Salvesen
  - G. Sterbini
  - F. Van Der Veken
 
