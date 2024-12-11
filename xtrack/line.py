@@ -19,7 +19,7 @@ import numpy as np
 from scipy.constants import c as clight
 
 from . import linear_normal_form as lnf
-from . import json_utils
+from . import json as json_utils
 
 import xobjects as xo
 import xtrack as xt
@@ -57,9 +57,10 @@ log = logging.getLogger(__name__)
 
 
 _ALLOWED_ELEMENT_TYPES_IN_NEW = [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole,
-                              xt.Octupole, xt.Cavity, xt.Multipole, xt.Solenoid,
-                              xt.Marker, xt.Replica, xt.LimitRacetrack, xt.LimitRectEllipse,
-                              xt.LimitRect, xt.LimitEllipse]
+                                 xt.Octupole, xt.Cavity, xt.Multipole, xt.Solenoid,
+                                 xt.Marker, xt.Replica, xt.XYShift, xt.XRotation,
+                                 xt.YRotation, xt.SRotation, xt.LimitRacetrack,
+                                 xt.LimitRectEllipse, xt.LimitRect, xt.LimitEllipse]
 
 _ALLOWED_ELEMENT_TYPES_DICT = {'Drift': xt.Drift, 'Bend': xt.Bend,
                                'Quadrupole': xt.Quadrupole, 'Sextupole': xt.Sextupole,
@@ -68,7 +69,9 @@ _ALLOWED_ELEMENT_TYPES_DICT = {'Drift': xt.Drift, 'Bend': xt.Bend,
                                'Marker': xt.Marker, 'Replica': xt.Replica,
                                'LimitRacetrack': xt.LimitRacetrack,
                                'LimitRectEllipse': xt.LimitRectEllipse,
-                               'LimitRect': xt.LimitRect, 'LimitEllipse': xt.LimitEllipse}
+                               'LimitRect': xt.LimitRect, 'LimitEllipse': xt.LimitEllipse,
+                               'XYShift': xt.XYShift, 'XRotation': xt.XRotation,
+                               'YRotation': xt.YRotation, 'SRotation': xt.SRotation}
 
 _STR_ALLOWED_ELEMENT_TYPES_IN_NEW = ', '.join([tt.__name__ for tt in _ALLOWED_ELEMENT_TYPES_IN_NEW])
 
@@ -272,7 +275,7 @@ class Line:
 
         """
 
-        dct = json_utils.from_json(file)
+        dct = json_utils.load(file)
 
         if 'line' in dct.keys():
             dct_line = dct['line']
@@ -649,7 +652,7 @@ class Line:
 
         '''
 
-        json_utils.to_json(self.to_dict(**kwargs), file, indent=indent)
+        json_utils.dump(self.to_dict(**kwargs), file, indent=indent)
 
     def _to_table_dict(self):
 
@@ -3632,7 +3635,7 @@ class Line:
         else:
             raise KeyError(f'Element or variable {key} not found')
 
-    def info(self, key, limit=12):
+    def info(self, key, limit=30):
         """
             Get information about an element or a variable.
         """

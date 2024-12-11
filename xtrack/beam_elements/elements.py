@@ -1293,8 +1293,11 @@ class Solenoid(BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
         'ksl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
+        'mult_rot_x_rad': xo.Float64,
         'mult_rot_y_rad': xo.Float64,
         'mult_shift_x': xo.Float64,
+        'mult_shift_y': xo.Float64,
+        'mult_shift_s': xo.Float64,
     }
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
@@ -1307,7 +1310,9 @@ class Solenoid(BeamElement):
         _pkg_root.joinpath('headers/synrad_spectrum.h'),
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_multipolar_components.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_xrotation.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_srotation.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_solenoid.h'),
         _pkg_root.joinpath('beam_elements/elements_src/solenoid.h'),
     ]

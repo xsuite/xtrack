@@ -630,6 +630,8 @@ class TargetRmatrix(TargetSet):
         if value is not None:
             raise NotImplementedError
 
+        tag = kwargs.pop('tag', None)
+
         r_elems = {
             'r11': r11, 'r12': r12, 'r13': r13, 'r14': r14, 'r15': r15, 'r16': r16,
             'r21': r21, 'r22': r22, 'r23': r23, 'r24': r24, 'r25': r25, 'r26': r26,
@@ -650,8 +652,13 @@ class TargetRmatrix(TargetSet):
                 if kk[2] in ['2', '4']:
                     thistol *= 1e+2
             if vv is not None:
+                if tag is not None:
+                    this_tag = tag
+                else:
+                    this_tag = kk
                 self.targets.append(TargetRmatrixTerm(kk, vv, start=start, end=end,
-                                                      tol=thistol, **kwargs))
+                                                      tol=thistol, tag=this_tag,
+                                                      **kwargs))
 
 
 def match_line(line, vary, targets, solve=True, assert_within_tol=True,
@@ -683,6 +690,16 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
 class Action(xd.Action):
 
     _target_class = Target
+
+    def __init__(self, callable, **kwargs):
+        self.callable = callable
+        self.kwargs = kwargs
+
+    def run(self, allow_failure=False):
+        return self.callable(**self.kwargs)
+
+    def __call__(self, **kwargs):
+        return self.run(**kwargs)
 
 class ActionTwiss(xd.Action):
 
@@ -898,6 +915,7 @@ class OptimizeLine(xd.Optimize):
                         name=name)
         self.line = line
         self.action_twiss = action_twiss
+        self.default_tol = default_tol
 
     def clone(self, add_targets=None, add_vary=None,
               remove_targets=None, remove_vary=None,
@@ -941,6 +959,7 @@ class OptimizeLine(xd.Optimize):
             line = self.line,
             vary=vary,
             targets=targets,
+            default_tol=self.default_tol,
             restore_if_fail=self.restore_if_fail,
             verbose=self._err.verbose,
             assert_within_tol=self.assert_within_tol,
