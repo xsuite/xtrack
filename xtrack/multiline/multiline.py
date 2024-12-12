@@ -1,11 +1,11 @@
-import io
-import json
 import pandas as pd
 import numpy as np
 from copy import deepcopy
 
+from .. import json as json_utils
 from .shared_knobs import VarSharing
 from ..match import match_knob_line
+import xdeps as xd
 import xobjects as xo
 import xtrack as xt
 
@@ -127,23 +127,20 @@ class Multiline:
 
         return new_multiline
 
-    def to_json(self, file, **kwargs):
+    def to_json(self, file, indent=1, **kwargs):
         '''Save the multiline to a json file.
 
         Parameters
         ----------
         file: str or file-like object
             The file to save to. If a string is provided, a file is opened and
-            closed. If a file-like object is provided, it is used directly.
+            closed. If filename ends with '.gz' file is compressed.
+            If a file-like object is provided, it is used directly.
         **kwargs: dict
             Additional keyword arguments are passed to the `Line.to_dict` method.
         '''
+        json_utils.dump(self.to_dict(**kwargs), file, indent=indent)
 
-        if isinstance(file, io.IOBase):
-            json.dump(self.to_dict(**kwargs), file, cls=xo.JEncoder)
-        else:
-            with open(file, 'w') as fid:
-                json.dump(self.to_dict(**kwargs), fid, cls=xo.JEncoder)
 
     @classmethod
     def from_json(cls, file, **kwargs):
@@ -153,7 +150,8 @@ class Multiline:
         ----------
         file: str or file-like object
             The file to load from. If a string is provided, a file is opened and
-            closed. If a file-like object is provided, it is used directly.
+            closed. If the string endswith '.gz' the file is decompressed.
+            If a file-like object is provided, it is used directly.
         **kwargs: dict
 
         Returns
@@ -161,14 +159,7 @@ class Multiline:
         new_multiline: Multiline
             The multiline object.
         '''
-
-        if isinstance(file, io.IOBase):
-            dct = json.load(file)
-        else:
-            with open(file, 'r') as fid:
-                dct = json.load(fid)
-
-        return cls.from_dict(dct, **kwargs)
+        return cls.from_dict(json_utils.load(file), **kwargs)
 
     @classmethod
     def from_madx(cls, filename=None, madx=None, stdout=None, return_lines=False, **kwargs):
@@ -375,8 +366,25 @@ class Multiline:
 
         return opt
 
-    def __getitem__(self, key):
-        return self.lines[key]
+    def __getitem__(self, key: str):
+        if key in self.vars:
+            return self.vv[key]
+
+        if key in self.lines:
+            return self.lines[key]
+
+        raise KeyError(f'Name {key} not found')
+
+    def __setitem__(self, key: str, value):
+        if key in self.lines:
+            raise ValueError(
+                'Cannot create a var `{key}` using __setitem__, as there is '
+                'already a line of that name in this multiline.')
+
+        if not np.isscalar(value) and not xd.refs.is_ref(value):
+            raise ValueError('Only scalars or references are allowed')
+
+        self.vars[key] = value
 
     def __dir__(self):
         return list(self.lines.keys()) + object.__dir__(self)
@@ -388,6 +396,34 @@ class Multiline:
             return self.lines[key]
         else:
             raise AttributeError(f"Multiline object has no attribute `{key}`.")
+
+    def set(self, key, value):
+        self.__setitem__(key, value)
+
+    def get(self, key):
+        return self.__getitem__(key)
+
+    def info(self, key, limit=12):
+        self.vars[key]._info(limit=limit)
+
+    eval = xt.Line.eval
+    get_expr = xt.Line.get_expr
+    new_expr = xt.Line.new_expr
+
+    @property
+    def _xdeps_eval(self):
+        try:
+            eva_obj = self._xdeps_eval_obj
+        except AttributeError:
+            eva_obj = xd.madxutils.MadxEval(variables=self._xdeps_vref,
+                                            functions=self.functions,
+                                            elements={})
+            self._xdeps_eval_obj = eva_obj
+
+        return eva_obj
+
+    def ref_manager(self):
+        return self._var_sharing.manager
 
     @property
     def vars(self):
@@ -601,6 +637,7 @@ class Multiline:
         apply_filling_pattern(collider=self, filling_pattern_cw=filling_pattern_cw,
                             filling_pattern_acw=filling_pattern_acw,
                             i_bunch_cw=i_bunch_cw, i_bunch_acw=i_bunch_acw)
+
 
 class MultiTwiss(dict):
 

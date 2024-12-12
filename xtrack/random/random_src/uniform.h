@@ -46,6 +46,28 @@ double RandomUniform_generate(LocalParticle* part){
     return r;
 }
 
+/*gpufun*/
+uint32_t RandomUniformUInt32_generate(LocalParticle* part){
+    uint32_t s1 = LocalParticle_get__rng_s1(part);
+    uint32_t s2 = LocalParticle_get__rng_s2(part);
+    uint32_t s3 = LocalParticle_get__rng_s3(part);
+    uint32_t s4 = LocalParticle_get__rng_s4(part);
+
+    if (s1==0 && s2==0 && s3==0 && s4==0) {
+        LocalParticle_kill_particle(part, RNG_ERR_SEEDS_NOT_SET);
+        return 0;
+    }
+
+    uint32_t r = rng_get_int32(&s1, &s2, &s3, &s4);
+
+    LocalParticle_set__rng_s1(part, s1);
+    LocalParticle_set__rng_s2(part, s2);
+    LocalParticle_set__rng_s3(part, s3);
+    LocalParticle_set__rng_s4(part, s4);
+
+    return r;
+}
+
 
 /*gpufun*/
 void RandomUniform_sample(RandomUniformData rng, LocalParticle* part0,

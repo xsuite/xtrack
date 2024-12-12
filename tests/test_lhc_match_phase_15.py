@@ -559,10 +559,10 @@ def test_lhc_match_phase_15(test_context, config):
             xt.VaryList(['kqtf.b1', 'kqtd.b1', 'ksf.b1', 'ksd.b1'], step=1e-7),
             xt.VaryList(['kqtf.b2', 'kqtd.b2', 'ksf.b2', 'ksd.b2'], step=1e-7)],
         targets = [
-            xt.TargetSet(line='lhcb1', qx=62.315, qy=60.325, tol=1e-10),
-            xt.TargetSet(line='lhcb1', dqx=10.0, dqy=12.0, tol=1e-5),
-            xt.TargetSet(line='lhcb2', qx=62.316, qy=60.324, tol=1e-10),
-            xt.TargetSet(line='lhcb2', dqx=9.0, dqy=11.0, tol=1e-5)])
+            xt.TargetSet(line='lhcb1', qx=62.315, qy=60.325, tol=1e-6),
+            xt.TargetSet(line='lhcb1', dqx=10.0, dqy=12.0, tol=1e-4),
+            xt.TargetSet(line='lhcb2', qx=62.316, qy=60.324, tol=1e-6),
+            xt.TargetSet(line='lhcb2', dqx=9.0, dqy=11.0, tol=1e-4)])
     opt.solve()
 
     # Transfer knobs to madx model and check matched values

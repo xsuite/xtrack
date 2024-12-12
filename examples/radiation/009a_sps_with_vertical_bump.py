@@ -41,24 +41,24 @@ mad.input('twiss, table=tw6d;')
 twm6d = mad.table.tw6d
 
 mad.sequence.sps.beam.radiate = True
-mad.emit()
 
 line = xt.Line.from_madx_sequence(mad.sequence.sps, allow_thick=True,
                                   deferred_expressions=True)
 line.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV,
                                     q0=-1, gamma0=mad.sequence.sps.beam.gamma)
-line.cycle('bpv.11706_entry', inplace=True)
+line.cycle('bpv.11706', inplace=True)
 
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.11706_entry',
+line.insert_element(element=line['actcse.31632'].copy(), index='bpv.11706',
                     name='cav1')
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.21508_entry',
+line.insert_element(element=line['actcse.31632'].copy(), index='bpv.21508',
                     name='cav2')
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.41508_entry',
+line.insert_element(element=line['actcse.31632'].copy(), index='bpv.41508',
                     name='cav4')
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.51508_entry',
+line.insert_element(element=line['actcse.31632'].copy(), index='bpv.51508',
                     name='cav5')
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.61508_entry',
+line.insert_element(element=line['actcse.31632'].copy(), index='bpv.61508',
                     name='cav6')
+mad.emit()
 
 tt = line.get_table()
 
@@ -105,10 +105,10 @@ line.element_refs['mdv.53307'].ksl[0] = line.vars['mdv.53307.ksl0']
 line.element_refs['mdv.53507'].ksl[0] = line.vars['mdv.53507.ksl0']
 
 # Kill sextupoles in the bump
-line.element_refs['lsf.53205..0'].knl[2] = 0
-line.element_refs['lsd.53505..0'].knl[2] = 0
-line.element_refs['lsf.53605..0'].knl[2] = 0
-line.element_refs['lsd.60105..0'].knl[2] = 0
+line.element_refs['lsf.53205'].k2l = 0
+line.element_refs['lsd.53505'].k2l = 0
+line.element_refs['lsf.53605'].k2l = 0
+line.element_refs['lsd.60105'].k2l = 0
 
 tw0 = line.twiss()
 opt_bump = line.match(
@@ -158,7 +158,7 @@ if match_chrom:
     opt.solve()
 
 
-tw = line.twiss()
+tw = line.twiss(strengths=True)
 tw4d = line.twiss(method='4d')
 
 line.configure_radiation(model='mean')
@@ -188,20 +188,25 @@ line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'), use_prebuilt_
 line.track(p, num_turns=num_turns, time=True, turn_by_turn_monitor=True)
 print(f'Tracking time: {line.time_last_track}')
 
-# twe = tw.rows[:-1]
-# cur_H_x = twe.gamx * twe.dx**2 + 2 * twe.alfx * twe.dx * twe.dpx + twe.betx * twe.dpx**2
-# I5_x  = np.sum(cur_H_x * hh**3 * dl)
-# I2_x = np.sum(hh**2 * dl)
-# I4_x = np.sum(twe.dx * hh**3 * dl) # to be generalized for combined function magnets
+twe = tw.rows[:-1]
+hl = twe.angle_rad
+dl = twe.length
+hh = hl * 0
+hh[dl>0] = hl[dl>0] / dl[dl>0]
+gamma0 = tw.gamma0
+cur_H_x = twe.gamx * twe.dx**2 + 2 * twe.alfx * twe.dx * twe.dpx + twe.betx * twe.dpx**2
+I5_x  = np.sum(cur_H_x * hh**3 * dl)
+I2_x = np.sum(hh**2 * dl)
+I4_x = np.sum(twe.dx * hh**3 * dl) # to be generalized for combined function magnets
 
-# cur_H_y = twe.gamy * twe.dy**2 + 2 * twe.alfy * twe.dy * twe.dpy + twe.bety * twe.dpy**2
-# I5_y  = np.sum(cur_H_y * hh**3 * dl)
-# I2_y = np.sum(hh**2 * dl)
-# I4_y = np.sum(twe.dy * hh**3 * dl) # to be generalized for combined function magnets
+cur_H_y = twe.gamy * twe.dy**2 + 2 * twe.alfy * twe.dy * twe.dpy + twe.bety * twe.dpy**2
+I5_y  = np.sum(cur_H_y * hh**3 * dl)
+I2_y = np.sum(hh**2 * dl)
+I4_y = np.sum(twe.dy * hh**3 * dl) # to be generalized for combined function magnets
 
-# lam_comp = 2.436e-12 # [m]
-# ex_hof = 55 * np.sqrt(3) / 96 * lam_comp / 2 / np.pi * gamma0**2 * I5_x / (I2_x - I4_x)
-# ey_hof = 55 * np.sqrt(3) / 96 * lam_comp / 2 / np.pi * gamma0**2 * I5_y / (I2_y - I4_y)
+lam_comp = 2.436e-12 # [m]
+ex_hof = 55 * np.sqrt(3) / 96 * lam_comp / 2 / np.pi * gamma0**2 * I5_x / (I2_x - I4_x)
+ey_hof = 55 * np.sqrt(3) / 96 * lam_comp / 2 / np.pi * gamma0**2 * I5_y / (I2_y - I4_y)
 
 mon = line.record_last_track
 

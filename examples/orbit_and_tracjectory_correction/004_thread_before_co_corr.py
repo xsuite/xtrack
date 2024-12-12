@@ -50,7 +50,7 @@ for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
     line.element_refs[nn_quad].shift_y = sy
 
 
-threader = orbit_correction.thread(ds_thread=500., rcond_short=None, rcond_long=None)
+threader = orbit_correction.thread(ds_thread=500., rcond_short=1e-4, rcond_long=1e-4)
 
 kick_h_after_thread = threader.x_correction.get_kick_values()
 kick_v_after_thread = threader.y_correction.get_kick_values()
@@ -63,7 +63,7 @@ s_meas = tw_meas.rows[monitor_names].s
 n_micado = None
 
 for iter in range(5):
-    orbit_correction.correct()
+    orbit_correction.correct(rcond=1e-5)
 
     tw_after = line.twiss4d(only_orbit=True)
     print(f'max x: {tw_after.x.max()}    max y: {tw_after.y.max()}, rms x: {tw_after.x.std()}    rms y: {tw_after.y.std()}')

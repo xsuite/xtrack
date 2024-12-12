@@ -1,7 +1,7 @@
 import xobjects as xo
 
 from ..general import _pkg_root
-from ..random import RandomUniform, RandomExponential
+from ..random import RandomUniformAccurate, RandomExponential
 from .elements import (SynchrotronRadiationRecord, Quadrupole, Sextupole,
                        Octupole, Bend, Multipole, DipoleEdge)
 from ..base_element import BeamElement
@@ -30,7 +30,7 @@ class ThinSliceQuadrupole(BeamElement):
     allow_rot_and_shift = False
     rot_and_shift_from_parent = True
     _skip_in_to_dict = ['_parent']
-    _depends_on = [RandomUniform, RandomExponential]
+    _depends_on = [RandomUniformAccurate, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord
     has_backtrack = True
     _force_moveable = True
@@ -78,7 +78,7 @@ class ThinSliceSextupole(BeamElement):
     allow_rot_and_shift = False
     rot_and_shift_from_parent = True
     _skip_in_to_dict = ['_parent']
-    _depends_on = [RandomUniform, RandomExponential]
+    _depends_on = [RandomUniformAccurate, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord
     has_backtrack = True
     _force_moveable = True
@@ -126,7 +126,7 @@ class ThinSliceOctupole(BeamElement):
     allow_rot_and_shift = False
     rot_and_shift_from_parent = True
     _skip_in_to_dict = ['_parent']
-    _depends_on = [RandomUniform, RandomExponential]
+    _depends_on = [RandomUniformAccurate, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord
     has_backtrack = True
     _force_moveable = True
@@ -174,7 +174,7 @@ class ThinSliceBend(BeamElement):
     allow_rot_and_shift = False
     rot_and_shift_from_parent = True
     _skip_in_to_dict = ['_parent']
-    _depends_on = [RandomUniform, RandomExponential]
+    _depends_on = [RandomUniformAccurate, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord
     has_backtrack = True
     _force_moveable = True

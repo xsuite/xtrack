@@ -188,7 +188,7 @@ def test_replica_loops():
 
     ok = ['a1', 'a2']
     for kk in ok:
-        assert line[kk].resolve(line) is line['a0']
+        assert line[kk].resolve(line) is line.get('a0')
 
     error = ['b0', 'c0', 'c1', 'd0', 'd1', 'd2', 'd3']
     for kk in error:
