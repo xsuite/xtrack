@@ -910,7 +910,7 @@ class ElectronCooler(Element):
         self.ome = clight*np.sqrt(4*np.pi*self.ne*self.re) # electron plasma frequency
         self.Ve_magnet = beta0*gamma0*clight*(self.magnetic_field_ratio) # component due to magnetic field imperfections
         self.Veff =np.sqrt(Ve_l**2 + self.Ve_magnet**2 )
-        #self.Vs = Ve_l
+        self.Vs = Ve_l
 
         #coefficient used for computation of friction force compute angular frequency space charge
         friction_coefficient =-4*self.ne*me_kg*q0**2*self.re**2*clight**4

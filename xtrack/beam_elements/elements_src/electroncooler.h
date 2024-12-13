@@ -40,9 +40,9 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
     double E_tot = energy_electron_initial + offset_energy; //eV
 
     double gamma_total = 1 + (E_tot / mass_electron_ev);
-    double beta_total = np.sqrt(1 - 1 / (gamma_total**2));
+    double beta_total = sqrt(1 - 1 / (gamma_total*gamma_total));
     // Electron velocity (v_electrons) based on updated beta
-    double v_electrons = beta_total * clight;  // Velocity of electrons in m/s
+    //double v_electrons = beta_total * C_LIGHT;  // Velocity of electrons in m/s
 
     // compute electron density
     double V = PI * POW2(radius_e_beam) * length; // m3
@@ -95,7 +95,7 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
     double E_tot_final = E_tot + E_diff_sc;
     double gamma_final = 1 + (E_tot_final / mass_electron_ev);
     double beta_final = sqrt(1 - 1 / (gamma_final*gamma_final));
-    double v_electrons_final = beta_final * clight; // # Final velocity of electrons
+    double v_electrons_final = beta_final * C_LIGHT; // # Final velocity of electrons
     
     double Vi = delta*machine_v  - v_electrons_final;
     double dVx = px*machine_v;
