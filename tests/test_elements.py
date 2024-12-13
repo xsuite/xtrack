@@ -42,7 +42,6 @@ def test_constructor(test_context):
                    sampling_frequency=1e3),
         xt.Bend(_context=test_context, length=1.),
         xt.Quadrupole(_context=test_context, length=1.),
-        xt.CombinedFunctionMagnet(_context=test_context, length=1.),
         xt.ElectronCooler(_context=test_context,current=2.4,length=1.5,radius_e_beam=25*1e-3,
                                 temp_perp=0.01,temp_long=0.001,magnetic_field=0.060) 
     ]
@@ -1143,7 +1142,6 @@ def test_multipole_tilt_90_deg(test_context):
     pf.move(_context=xo.context_default)
     pfy.move(_context=xo.context_default)
 
-<<<<<<< HEAD
     assert np.allclose(pf.x, pfy.x, rtol=0, atol=1e-14)
     assert np.allclose(pf.y, pfy.y, rtol=0, atol=1e-14)
     assert np.allclose(pf.px, pfy.px, rtol=0, atol=1e-14)
@@ -1297,11 +1295,3 @@ def test_ecooler(test_context):
 
     assert mse_emittance <1e-9
     assert mse_force < 2
-=======
-    xo.assert_allclose(pf.x, pfy.x, rtol=0, atol=1e-14)
-    xo.assert_allclose(pf.y, pfy.y, rtol=0, atol=1e-14)
-    xo.assert_allclose(pf.px, pfy.px, rtol=0, atol=1e-14)
-    xo.assert_allclose(pf.py, pfy.py, rtol=0, atol=1e-14)
-    xo.assert_allclose(pf.zeta, pfy.zeta, rtol=0, atol=1e-14)
-    xo.assert_allclose(pf.ptau, pfy.ptau, rtol=0, atol=1e-14)
->>>>>>> upstream/main
