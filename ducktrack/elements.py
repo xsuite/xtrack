@@ -910,7 +910,7 @@ class ElectronCooler(Element):
         self.ome = clight*np.sqrt(4*np.pi*self.ne*self.re) # electron plasma frequency
         self.Ve_magnet = beta0*gamma0*clight*(self.magnetic_field_ratio) # component due to magnetic field imperfections
         self.Veff =np.sqrt(Ve_l**2 + self.Ve_magnet**2 )
-        self.Vs = Ve_l
+        #self.Vs = Ve_l
 
         #coefficient used for computation of friction force compute angular frequency space charge
         friction_coefficient =-4*self.ne*me_kg*q0**2*self.re**2*clight**4
@@ -918,36 +918,31 @@ class ElectronCooler(Element):
         mass_electron_ev = me_kg * clight**2 / qe #eV
         energy_electron_initial = (gamma0 - 1) * mass_electron_ev#eV 
 
+        # Updated gamma and beta factors including offset energy
+        E_tot = energy_electron_initial + self.offset_energy
+        gamma_total = 1 + (E_tot / mass_electron_ev)
+        beta_total = np.sqrt(1 - 1 / (gamma_total**2))
+        # Electron velocity (v_electrons) based on updated beta
+        v_electrons = beta_total * clight  # Velocity of electrons in m/s
+
         Fx = np.zeros_like(x)
         Fy = np.zeros_like(y)
         Fl = np.zeros_like(delta)        
         
-        #radial_velocity_dependence due to space charge
         #equation 100b in Helmut Poth: Electron cooling. page 186
-        space_charge_coefficient = self.re / (qe * clight) * (gamma0 + 1) / (gamma0 * gamma0);# //used for computation of the space charge energy offset
-        dE_E = space_charge_coefficient * self.current * (radius / self.re)**2 / (beta0)**3 
-        E_diff_sc = dE_E * energy_electron_initial; 
-        E_tot_sc = energy_electron_initial + E_diff_sc; 
-        gamma_sc = 1 + (E_tot_sc/mass_electron_ev)
-        beta_sc = np.sqrt(1 - 1/(gamma_sc*gamma_sc))
-        beta_diff_sc = beta_sc - beta0
+        # Radial velocity dependence due to space charge
+        space_charge_coefficient = self.re / (qe * clight) * (gamma_total + 1) / (gamma_total**2)
+        dE_E = space_charge_coefficient * self.current * (radius / self.re)**2 / (beta_total**3)
+        E_diff_sc = dE_E * E_tot  # Space charge effect on total energy
 
-        #velocity difference due to energy offset of the electron cooler in eV
-        E_tot_oe = energy_electron_initial + self.offset_energy; 
-        gamma_oe = 1 + (E_tot_oe/mass_electron_ev)
-        beta_oe = np.sqrt(1 - 1/(gamma_oe*gamma_oe))
-        beta_diff_oe = beta_oe - beta0
-
+        E_tot_final = E_tot + E_diff_sc
+        gamma_final = 1 + (E_tot_final / mass_electron_ev)
+        beta_final = np.sqrt(1 - 1 / (gamma_final**2))
+        v_electrons_final = beta_final * clight  # Final velocity of electrons
+        
         # warning: p.delta*machine_v is not fully correct for relativistic beams. to be checked.
-        Vi = delta*machine_v  - self.space_charge*clight*beta_diff_sc - clight*beta_diff_oe
-        # print(f'Vi:',Vi)
-        # print(f'beta_diff_oe:',beta_diff_oe)
-        # print(f'beta_oe:',beta_oe)
-        # print(f'E_tot_oe:',E_tot_oe)
-        # print(f'me_kg:',me_kg)
-        # print(f'me_ev:',mass_electron_ev)
-        # print(f'energy_electron_initial:',energy_electron_initial)
-        # print(f'gamma0:',gamma0)
+        Vi = delta * machine_v - v_electrons_final
+        
         # Warning: should gamma_0/gamma to be correct
         dVx = px*machine_v
         dVy = py*machine_v
