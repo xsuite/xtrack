@@ -37,6 +37,12 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
 
     double mass_electron_ev = MASS_ELECTRON * POW2(C_LIGHT) / QELEM; //eV
     double energy_electron_initial = (gamma0 - 1) * mass_electron_ev; //eV 
+    double E_tot = energy_electron_initial + offset_energy; //eV
+
+    double gamma_total = 1 + (E_tot / mass_electron_ev);
+    double beta_total = np.sqrt(1 - 1 / (gamma_total**2));
+    // Electron velocity (v_electrons) based on updated beta
+    double v_electrons = beta_total * clight;  // Velocity of electrons in m/s
 
     // compute electron density
     double V = PI * POW2(radius_e_beam) * length; // m3
@@ -78,29 +84,20 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
 
     //radial_velocity_dependence due to space charge
     //equation 100b in Helmut Poth: Electron cooling. page 186
-    double space_charge_coefficient = RADIUS_ELECTRON / (QELEM * C_LIGHT) * (gamma0 + 1) / (gamma0 * gamma0); //used for computation of the space charge energy offset
-    double dE_E = space_charge_coefficient * current * POW2(radius / radius_e_beam) / POW3(beta0); 
-    double E_diff_sc = dE_E * energy_electron_initial; 
-    double E_tot_sc = energy_electron_initial + E_diff_sc; 
-    double gamma_sc = 1 + (E_tot_sc/mass_electron_ev);
-    double beta_sc = sqrt(1 - 1/(gamma_sc*gamma_sc));
-    double beta_diff_sc = beta_sc - beta0;
+    double space_charge_coefficient = RADIUS_ELECTRON / (QELEM * C_LIGHT) * (gamma_total + 1) / (gamma_total * gamma_total); //used for computation of the space charge energy offset
+    double dE_E = space_charge_coefficient * current * POW2(radius / radius_e_beam) / POW3(beta_total); 
+    double E_diff_sc = dE_E * E_tot; 
+    // double E_tot_sc = energy_electron_initial + E_diff_sc; 
+    // double gamma_sc = 1 + (E_tot_sc/mass_electron_ev);
+    // double beta_sc = sqrt(1 - 1/(gamma_sc*gamma_sc));
+    // double beta_diff_sc = beta_sc - beta0;
 
-    //velocity difference due to energy offset of the electron cooler in eV
-    double E_tot_oe = energy_electron_initial + offset_energy; 
-    double gamma_oe = 1 + (E_tot_oe/mass_electron_ev);
-    double beta_oe = sqrt(1 - 1/(gamma_oe*gamma_oe));
-    double beta_diff_oe = beta_oe - beta0;
-       
-    double Vi = delta*machine_v  - space_charge*C_LIGHT*beta_diff_sc - C_LIGHT*beta_diff_oe;
-    // printf("Vi: %g\n", Vi);
-    // printf("beta_diff_oe: %g\n", beta_diff_oe);
-    // printf("beta_oe: %g\n", beta_oe);
-    // printf("E_tot_oe: %g\n", E_tot_oe);
-    // printf("MASS_ELECTRON: %g\n", MASS_ELECTRON);
-    // printf("mass_electron_ev: %g\n", mass_electron_ev);
-    // printf("energy_electron_initial: %g\n", energy_electron_initial);
-    // printf("gamma0: %g\n", gamma0);
+    double E_tot_final = E_tot + E_diff_sc;
+    double gamma_final = 1 + (E_tot_final / mass_electron_ev);
+    double beta_final = sqrt(1 - 1 / (gamma_final*gamma_final));
+    double v_electrons_final = beta_final * clight; // # Final velocity of electrons
+    
+    double Vi = delta*machine_v  - v_electrons_final;
     double dVx = px*machine_v;
     double dVy = py*machine_v;
    
