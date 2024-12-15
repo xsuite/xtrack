@@ -2441,6 +2441,10 @@ class SecondOrderTaylorMap(BeamElement):
             A `SecondOrderTaylorMap` object.
 
         '''
+        if start == end:
+            # start == end will lead to compute_one_turn_matrix_finite_differences() computing a
+            # full one-turn response matrix (but here we would rather expect identity)
+            raise NotImplementedError('end element must be after start element')
 
         if twiss_table is None:
             tw = line.twiss(reverse=False)
