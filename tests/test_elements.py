@@ -1212,7 +1212,7 @@ def test_ecooler(test_context):
         zeta=0)
 
     cooler = xt.ElectronCooler(
-        urrent=current, length=cooler_length, radius_e_beam=radius_e_beam,
+        current=current, length=cooler_length, radius_e_beam=radius_e_beam,
         temp_perp=temp_perp, temp_long=temp_long, magnetic_field=magnetic_field, magnetic_field_ratio=0,
         space_charge_factor=0)
 
