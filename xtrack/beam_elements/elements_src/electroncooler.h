@@ -28,21 +28,17 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
     double magnetic_field_ratio        = ElectronCoolerData_get_magnetic_field_ratio(el);
     double space_charge = ElectronCoolerData_get_space_charge(el);
     
-    double p0c    = LocalParticle_get_p0c(part0); // eV
+    double p0c    = LocalParticle_get_p0c(part0); // eV/c
     double Z      = LocalParticle_get_q0(part0); // eV
-    double beta0  = LocalParticle_get_beta0(part0); // eV/c^2
-    double gamma0 = LocalParticle_get_gamma0(part0); // eV/c^2    
+    double beta0  = LocalParticle_get_beta0(part0);  
+    double gamma0 = LocalParticle_get_gamma0(part0);    
+    double mass0 = LocalParticle_get_mass0(part0); // eV/c^2
+    
 
     double V_ele = beta0;
 
     double mass_electron_ev = MASS_ELECTRON * POW2(C_LIGHT) / QELEM; //eV
     double energy_electron_initial = (gamma0 - 1) * mass_electron_ev; //eV 
-    double E_tot = energy_electron_initial + offset_energy; //eV
-
-    double gamma_total = 1 + (E_tot / mass_electron_ev);
-    double beta_total = sqrt(1 - 1 / (gamma_total*gamma_total));
-    // Electron velocity (v_electrons) based on updated beta
-    //double v_electrons = beta_total * C_LIGHT;  // Velocity of electrons in m/s
 
     // compute electron density
     double V = PI * POW2(radius_e_beam) * length; // m3
@@ -72,7 +68,18 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
     double y     = LocalParticle_get_y(part)    - offset_y ;
     double py    = LocalParticle_get_py(part)   - offset_py;
     double delta = LocalParticle_get_delta(part)           ;//offset_energy is implemented when longitudinal velocity is computed
-   
+    
+    // Retrieve reference momentum and mass
+    double pc = p0c*(1.0+delta); // eV
+    double gamma = sqrt(1.0 + pc*pc/(mass0*mass0));
+    double beta  = sqrt(1.0 - 1.0/(gamma*gamma));
+    double beta_x  = px*p0c/mass0/gamma;
+    double beta_y  = py*p0c/mass0/gamma;
+    double beta_z  = sqrt(beta*beta - beta_x*beta_x -beta_y*beta_y);
+
+    double vz  = C_LIGHT*beta_z; // m/sec
+    ///////////////////////////////////////////////////////////////////////
+
     double theta = atan2(y , x);
     double radius = hypot(x,y);
 
@@ -84,20 +91,33 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
 
     //radial_velocity_dependence due to space charge
     //equation 100b in Helmut Poth: Electron cooling. page 186
-    double space_charge_coefficient = RADIUS_ELECTRON / (QELEM * C_LIGHT) * (gamma_total + 1) / (gamma_total * gamma_total); //used for computation of the space charge energy offset
-    double dE_E = space_charge_coefficient * current * POW2(radius / radius_e_beam) / POW3(beta_total); 
-    double E_diff_sc = dE_E * E_tot; 
+    double space_charge_coefficient = space_charge * RADIUS_ELECTRON / (QELEM * C_LIGHT) * (gamma0 + 1) / (gamma0 * gamma0); //used for computation of the space charge energy offset
+    double dE_E = space_charge_coefficient * current * POW2(radius / radius_e_beam) / POW3(beta0); 
+    double E_diff_sc = dE_E * energy_electron_initial; 
     // double E_tot_sc = energy_electron_initial + E_diff_sc; 
     // double gamma_sc = 1 + (E_tot_sc/mass_electron_ev);
     // double beta_sc = sqrt(1 - 1/(gamma_sc*gamma_sc));
     // double beta_diff_sc = beta_sc - beta0;
 
-    double E_tot_final = E_tot + E_diff_sc;
+    //velocity difference due to energy offset of the electron cooler in eV
+    double E_tot_final = energy_electron_initial + offset_energy + E_diff_sc;
     double gamma_final = 1 + (E_tot_final / mass_electron_ev);
-    double beta_final = sqrt(1 - 1 / (gamma_final*gamma_final));
-    double v_electrons_final = beta_final * C_LIGHT; // # Final velocity of electrons
+    double beta_final = sqrt(1 - 1 / (gamma_final*gamma_final));    
+
+    double delta_v=vz-machine_v;   
+    double delta_v2=delta*machine_v;   
+    //double Vi = delta*machine_v  - space_charge*C_LIGHT*beta_diff_sc - C_LIGHT*beta_diff_oe;
+    //double Vi = delta_v  - space_charge*C_LIGHT*beta_diff_sc - C_LIGHT*beta_diff_oe;
+    double Vi = beta * C_LIGHT - beta_final* C_LIGHT;
+    // printf("Vi: %g\n", Vi);
     
-    double Vi = delta*machine_v  - v_electrons_final;
+    //printf("delta_v: %g\n", delta_v);
+    //printf("delta*machine_v: %g\n", delta*machine_v);
+    // printf("E_tot_oe: %g\n", E_tot_oe);
+    // printf("MASS_ELECTRON: %g\n", MASS_ELECTRON);
+    // printf("mass_electron_ev: %g\n", mass_electron_ev);
+    // printf("energy_electron_initial: %g\n", energy_electron_initial);
+    // printf("gamma0: %g\n", gamma0);
     double dVx = px*machine_v;
     double dVy = py*machine_v;
    
