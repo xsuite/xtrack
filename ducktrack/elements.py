@@ -934,16 +934,17 @@ class ElectronCooler(Element):
         #equation 100b in Helmut Poth: Electron cooling. page 186
         
         space_charge_coefficient = self.space_charge *self.re / (qe * clight) * (gamma0 + 1) / (gamma0 * gamma0);# //used for computation of the space charge energy offset
-        dE_E = space_charge_coefficient * self.current * (radius / self.re)**2 / (beta0)**3 
+        dE_E = space_charge_coefficient * self.current * (radius / self.radius_e_beam)**2 / (beta0)**3
         E_diff_sc = dE_E * energy_electron_initial
         
         E_tot_final = energy_electron_initial + self.offset_energy + E_diff_sc
         gamma_final = 1 + (E_tot_final / mass_electron_ev)
         beta_final = np.sqrt(1 - 1 / (gamma_final**2))
         Vi = beta * clight - beta_final* clight
-        #print('diff',beta_final-beta0)
+
+        #print('E_diff_sc',E_diff_sc)
         #print('beta_final',beta_final)
-        #print('beta0',beta0)
+        #print('dE_E',dE_E)
       
         # Warning: should gamma_0/gamma to be correct
         dVx = px*machine_v
