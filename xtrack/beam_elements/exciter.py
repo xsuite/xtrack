@@ -99,12 +99,21 @@ class Exciter(BeamElement):
     _extra_c_sources = [_pkg_root.joinpath('beam_elements/elements_src/exciter.h')]
 
 
-    def __init__(self, *, samples=None, nsamples=None, sampling_frequency=0, frev=0, knl=[1], ksl=[], start_turn=0, duration=None, _xobject=None, **kwargs):
+    def __init__(self, *, samples=None, nsamples=None, sampling_frequency=0, frev=0, knl=None, ksl=None, start_turn=0, duration=None, _xobject=None, **kwargs):
 
         if _xobject is not None:
             super().__init__(_xobject=_xobject)
 
         else:
+            # The default is needed, as we wish to be able to instantiate
+            # elements without properties (empty elements can be templates).
+            if knl is None and ksl is None:
+                knl = [0]
+                ksl = []
+            elif knl is None:
+                knl = []
+            elif ksl is None:
+                ksl = []
 
             # sanitize knl and ksl array length
             n = max(len(knl), len(ksl))

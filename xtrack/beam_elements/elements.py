@@ -51,6 +51,7 @@ class Marker(BeamElement):
     allow_loss_refinement = True
     has_backtrack = True
     allow_rot_and_shift = False
+    _skip_in_repr = ['_dummy']
 
     _extra_c_sources = [
         "/*gpufun*/\n"
@@ -82,6 +83,11 @@ class Drift(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/drift_elem.h'),
         ]
+
+    def __init__(self, length=None, **kwargs):
+        if length:  # otherwise length cannot be set as a positional argument
+            kwargs['length'] = length
+        super().__init__(**kwargs)
 
     @property
     def _thin_slice_class(self):
@@ -2440,6 +2446,10 @@ class SecondOrderTaylorMap(BeamElement):
             A `SecondOrderTaylorMap` object.
 
         '''
+        if start == end:
+            # start == end will lead to compute_one_turn_matrix_finite_differences() computing a
+            # full one-turn response matrix (but here we would rather expect identity)
+            raise NotImplementedError('end element must be after start element')
 
         if twiss_table is None:
             tw = line.twiss(reverse=False)
