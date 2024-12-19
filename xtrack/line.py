@@ -3480,23 +3480,50 @@ class Line:
 
     def replace_replica(self, name):
         name_parent = self.element_dict[name].resolve(self, get_name=True)
-        cls = self.element_dict[name].__class__
-        assert cls in _ALLOWED_ELEMENT_TYPES_IN_NEW, (
-            'Only '
-            + _STR_ALLOWED_ELEMENT_TYPES_IN_NEW
-            + 'elements are allowed in `relace_replica` for now.')
-        self.element_dict[name] = self.element_dict[name_parent].copy()
+        self.copy_element_from(name_parent, self, new_name=name)
+
+    def copy_element_from(self, name, source, new_name=None):
+        """Copy an element from another environment.
+
+        Parameters
+        ----------
+        name: str
+            Name of the element to copy.
+        source: Environment | Line
+            Environment or line where the element is located.
+        new_name: str, optional
+            Rename the element in the new line/environment. If not provided, the
+            element is copied with the same name.
+        """
+        new_name = new_name or name
+        cls = type(source.element_dict[name])
+
+        if cls not in _ALLOWED_ELEMENT_TYPES_IN_NEW:
+            raise ValueError(
+                f'Only {_STR_ALLOWED_ELEMENT_TYPES_IN_NEW} elements are '
+                f'allowed in `copy_from_env` for now.'
+            )
+
+        self.element_dict[new_name] = source.element_dict[name].copy()
 
         pars_with_expr = list(
-            self._xdeps_manager.tartasks[self.element_refs[name_parent]].keys())
+            source._xdeps_manager.tartasks[source.element_refs[name]].keys())
+
+        formatter = xd.refs.CompactFormatter(scope=None)
 
         for rr in pars_with_expr:
-            assert isinstance(rr, (xd.refs.AttrRef, xd.refs.ItemRef)), (
-                'Only AttrRef and ItemRef are supported for now')
+            # Assign expressions by string to avoid having to deal with the
+            # fact that they come from a different manager!
+            expr_string = rr._expr._formatted(formatter)
+
             if isinstance(rr, xd.refs.AttrRef):
-                setattr(self.element_refs[name], rr._key, rr._expr)
+                setattr(self[new_name], rr._key, expr_string)
             elif isinstance(rr, xd.refs.ItemRef):
-                getattr(self.element_refs[name], rr._owner._key)[rr._key] = rr._expr
+                getattr(self[new_name], rr._owner._key)[rr._key] = expr_string
+            else:
+                raise ValueError('Only AttrRef and ItemRef are supported for now')
+
+        return new_name
 
     def replace_all_replicas(self):
         for nn in self.element_names:
