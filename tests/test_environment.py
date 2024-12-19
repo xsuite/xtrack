@@ -1963,3 +1963,36 @@ def test_call(tmpdir):
 
     env['var1'] = 10
     assert env['drx'].length == 13
+
+
+@pytest.mark.parametrize(
+    'overwrite_vars,x_value',
+    [
+        (False, 6),
+        (True, 3),
+    ]
+)
+def test_import_line_from_other_env(overwrite_vars, x_value):
+    env = xt.Environment()
+    env['z'] = 5
+    env['x'] = 'z - 2'
+    env['y'] = 7
+
+    line = env.new_line(components=[
+        env.new('b', xt.Bend, k0='2 * x'),
+        env.new('d', xt.Drift, length='3 * y'),
+    ])
+
+    env2 = xt.Environment()
+    env2['z'] = 3
+    env2['x'] = '2 * z'
+    env2.new('b', xt.Bend, k0='x')
+
+    env2.import_line(line, line_name='line', overwrite_vars=overwrite_vars)
+
+    assert env2['x'] == x_value
+    assert env2['y'] == 7
+
+    assert env2['b'].k0 == x_value
+    assert env2['b_line'].k0 == 2 * x_value
+    assert env2['d'].length == 3 * 7
