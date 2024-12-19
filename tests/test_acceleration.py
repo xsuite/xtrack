@@ -48,7 +48,7 @@ def test_acceleration(test_context):
     xo.assert_allclose(p_co._xobject.zeta[0], stable_z, atol=0, rtol=1e-2)
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextPyopencl',))
 def test_energy_program(test_context):
 
     df = pd.read_csv(test_data_folder / 'psb_chicane/Ramp_and_RF_functions.dat',

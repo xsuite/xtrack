@@ -2196,6 +2196,8 @@ class Particles(xo.HybridClass):
         self._update_zeta(mask=mask, zeta=self.zeta * self.beta0 / old_beta0)
 
         if update_pxpy:
+            if isinstance(self._context, xo.ContextPyopencl):
+                raise NotImplementedError # Issue wiht masking
             scale_pxpy = old_p0c[mask] / new_p0c[mask]
             self.px[mask] *= scale_pxpy
             self.py[mask] *= scale_pxpy
