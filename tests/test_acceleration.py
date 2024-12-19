@@ -173,7 +173,8 @@ def test_energy_program(test_context):
     xo.assert_allclose(line.particle_ref.mass0 * tw.gamma0, line.particle_ref.mass0 + E_kin_turn[0],
                        rtol=1e-10, atol=0)
 
-def test_acceleration_transverse_shrink():
+@for_all_test_contexts
+def test_acceleration_transverse_shrink(test_context):
 
     mad = Madx(stdout=False)
 
@@ -196,7 +197,7 @@ def test_acceleration_transverse_shrink():
         slicing_strategies=[
             xt.Strategy(slicing=xt.Teapot(1)),
         ])
-    line.build_tracker()
+    line.build_tracker(_context=test_context)
 
     # User-defined energy ramp
     t_s = np.array([0., 0.0006, 0.0008, 0.001 , 0.0012, 0.0014, 0.0016, 0.0018,
