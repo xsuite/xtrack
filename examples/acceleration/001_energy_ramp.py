@@ -97,8 +97,6 @@ plt.subplots_adjust(left=0.08, right=0.95, wspace=0.26)
 # Check transverse beam size reduction
 line['t_turn_s'] = 0
 line.enable_time_dependent_vars = False
-# p_test2 = line.build_particles(x_norm=1, nemitt_x=1e-6, nemitt_y=1e-6,
-#                                delta=0)
 
 n_part_test = 100
 # Generate Gaussian distribution with fixed rng seed
@@ -120,13 +118,17 @@ mon2 = line.record_last_track
 std_y = np.std(mon2.y, axis=0)
 std_x = np.std(mon2.x, axis=0)
 
-std_y_expected = np.sqrt(mon2.gamma0[0, 0]* mon2.beta0[0, 0] / mon2.gamma0[0, :] / mon2.beta0[0, :])
-std_x_expected = np.sqrt(mon2.gamma0[0, 0]* mon2.beta0[0, 0] / mon2.gamma0[0, :] / mon2.beta0[0, :])
-
 # Apply moving average filter
 from scipy.signal import savgol_filter
 std_y_smooth = savgol_filter(std_y, 10000, 2)
 std_x_smooth = savgol_filter(std_x, 10000, 2)
+
+std_y_expected = std_y_smooth[1000] * np.sqrt(
+    mon2.gamma0[0, 1000]* mon2.beta0[0, 1000]
+    / mon2.gamma0[0, :] / mon2.beta0[0, :])
+std_x_expected = std_y_smooth[1000] * np.sqrt(
+    mon2.gamma0[0, 1000]* mon2.beta0[0, 1000]
+    / mon2.gamma0[0, :] / mon2.beta0[0, :])
 
 plt.figure(2)
 ax1 = plt.subplot(2,1,1)
