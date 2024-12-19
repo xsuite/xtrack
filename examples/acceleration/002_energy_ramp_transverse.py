@@ -20,6 +20,9 @@ E_kin_GeV = np.array([0.16000000,0.16000000,
     0.16019791, 0.16025666, 0.16032262, 0.16039552, 0.16047524, 0.16056165,
     0.163586, 0.20247050000000014])
 
+
+
+
 # Attach energy program to the line
 line.energy_program = xt.EnergyProgram(t_s=t_s, kinetic_energy0=E_kin_GeV*1e9)
 
