@@ -22,6 +22,7 @@ e_kin_start_eV = 160e6
 line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1.,
                                  energy0=xt.PROTON_MASS_EV + e_kin_start_eV)
 
+# Slice to gain some tracking speed
 line.slice_thick_elements(
     slicing_strategies=[
         xt.Strategy(slicing=xt.Teapot(1)),

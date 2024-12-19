@@ -175,15 +175,28 @@ def test_energy_program(test_context):
 
 def test_acceleration_transverse_shrink():
 
-    # Import a line and build a tracker
-    line = xt.Line.from_json(test_data_folder /
-        'psb_injection/line_and_particle.json')
+    mad = Madx(stdout=False)
+
+    # Load mad model and apply element shifts
+    mad.input(f'''
+    call, file = '{str(test_data_folder)}/psb_chicane/psb.seq';
+    call, file = '{str(test_data_folder)}/psb_chicane/psb_fb_lhc.str';
+    beam;
+    use, sequence=psb1;
+    ''')
+
+    line = xt.Line.from_madx_sequence(mad.sequence.psb1,
+                                        deferred_expressions=True)
     e_kin_start_eV = 160e6
     line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1.,
                                     energy0=xt.PROTON_MASS_EV + e_kin_start_eV)
-    line.build_tracker()
 
-    tw0 = line.twiss4d()
+    # Slice to gain some tracking speed
+    line.slice_thick_elements(
+        slicing_strategies=[
+            xt.Strategy(slicing=xt.Teapot(1)),
+        ])
+    line.build_tracker()
 
     # User-defined energy ramp
     t_s = np.array([0., 0.0006, 0.0008, 0.001 , 0.0012, 0.0014, 0.0016, 0.0018,
@@ -193,7 +206,24 @@ def test_acceleration_transverse_shrink():
         0.16019791, 0.16025666, 0.16032262, 0.16039552, 0.16047524, 0.16056165,
         0.163586, 0.20247050000000014])
 
-    E_kin_GeV -= 0.110
+    # Enhance energy swing to better see the effect of energy on beam size
+    E_kin_GeV -= 0.140
+
+    # Go away from half integer
+    opt = line.match(
+        #verbose=True,
+        method='4d',
+        solve=False,
+        vary=[
+            xt.Vary('kbrqfcorr', step=1e-4),
+            xt.Vary('kbrqdcorr', step=1e-4),
+        ],
+        targets = [
+            xt.Target('qx', value=4.15, tol=1e-5, scale=1),
+            xt.Target('qy', value=4.18, tol=1e-5, scale=1),
+        ]
+    )
+    opt.solve()
 
 
     # Attach energy program to the line
@@ -225,22 +255,22 @@ def test_acceleration_transverse_shrink():
 
     # Build a function with these samples and link it to the cavity
     line.functions['fun_f_rf'] = xt.FunctionPieceWiseLinear(x=t_rf, y=f_rf)
-    line.element_refs['br.c02'].frequency = line.functions['fun_f_rf'](
+    line.element_refs['br1.acwf5l1.1'].frequency = line.functions['fun_f_rf'](
                                                             line.vars['t_turn_s'])
 
     # Setup voltage and lag
-    line.element_refs['br.c02'].voltage = 3000 # V
-    line.element_refs['br.c02'].lag = 0 # degrees (below transition energy)
+    line.element_refs['br1.acwf5l1.1'].voltage = 3000 # V
+    line.element_refs['br1.acwf5l1.1'].lag = 0 # degrees (below transition energy)
 
     # When setting line.vars['t_turn_s'] the reference energy and the rf frequency
     # are updated automatically
     line.vars['t_turn_s'] = 0
     line.particle_ref.kinetic_energy0 # is 160.00000 MeV
-    line['br.c02'].frequency # is 1983931.935 Hz
+    line['br1.acwf5l1.1'].frequency # is 1983931.935 Hz
 
     line.vars['t_turn_s'] = 3e-3
     line.particle_ref.kinetic_energy0 # is 160.56165 MeV
-    line['br.c02'].frequency # is 1986669.0559674294
+    line['br1.acwf5l1.1'].frequency # is 1986669.0559674294
 
     # Back to zero for tracking!
     line.vars['t_turn_s'] = 0
@@ -287,11 +317,11 @@ def test_acceleration_transverse_shrink():
 
     p_test2 = line.build_particles(x_norm=x_norm, px_norm=px_norm,
                                 y_norm=x_norm, py_norm=px_norm,
-                                nemitt_x=3e-6, nemitt_y=3e-6,
+                                nemitt_x=1e-6, nemitt_y=1e-6,
                                 delta=0)
 
     line.enable_time_dependent_vars = True
-    line.track(p_test2, num_turns=50_000, turn_by_turn_monitor=True, with_progress=True)
+    line.track(p_test2, num_turns=20_000, turn_by_turn_monitor=True, with_progress=True)
     mon2 = line.record_last_track
 
     std_y = np.std(mon2.y, axis=0)
@@ -302,7 +332,7 @@ def test_acceleration_transverse_shrink():
     std_y_smooth = savgol_filter(std_y, 10000, 2)
     std_x_smooth = savgol_filter(std_x, 10000, 2)
 
-    i_turn_match = 10000
+    i_turn_match = 1000
     std_y_expected = std_y_smooth[i_turn_match] * np.sqrt(
         mon2.gamma0[0, i_turn_match]* mon2.beta0[0, i_turn_match]
         / mon2.gamma0[0, :] / mon2.beta0[0, :])
@@ -314,12 +344,12 @@ def test_acceleration_transverse_shrink():
     d_sigma_y = std_y_expected[0] - std_y_expected[-1]
 
     import xobjects as xo
-    xo.assert_allclose(std_y_expected[40000:45000].mean(),
-                    std_y_smooth[40000:45000].mean(),
-                    rtol=0, atol=0.03 * d_sigma_y)
-    xo.assert_allclose(std_x_expected[40000:45000].mean(),
-                    std_x_smooth[40000:45000].mean(),
-                    rtol=0, atol=0.03 * d_sigma_x)
+    xo.assert_allclose(std_y_expected[18000:19000].mean(),
+                    std_y_smooth[18000:19000].mean(),
+                    rtol=0, atol=0.01 * d_sigma_y)
+    xo.assert_allclose(std_x_expected[18000:19000].mean(),
+                    std_x_smooth[18000:19000].mean(),
+                    rtol=0, atol=0.01 * d_sigma_x)
 
     # plt.figure(2)
     # ax1 = plt.subplot(2,1,1)
@@ -332,3 +362,4 @@ def test_acceleration_transverse_shrink():
     # plt.plot(std_y, label='raw')
     # plt.plot(std_y_smooth, label='smooth')
     # plt.plot(std_y_expected, label='expected')
+    # plt.show()
