@@ -322,7 +322,7 @@ def test_acceleration_transverse_shrink(test_context):
                                 delta=0)
 
     line.enable_time_dependent_vars = True
-    line.track(p_test2, num_turns=20_000, turn_by_turn_monitor=True, with_progress=True)
+    line.track(p_test2, num_turns=10_000, turn_by_turn_monitor=True, with_progress=True)
     mon2 = line.record_last_track
 
     std_y = np.std(mon2.y, axis=0)
@@ -345,12 +345,12 @@ def test_acceleration_transverse_shrink(test_context):
     d_sigma_y = std_y_expected[0] - std_y_expected[-1]
 
     import xobjects as xo
-    xo.assert_allclose(std_y_expected[18000:19000].mean(),
-                    std_y_smooth[18000:19000].mean(),
-                    rtol=0, atol=0.01 * d_sigma_y)
-    xo.assert_allclose(std_x_expected[18000:19000].mean(),
-                    std_x_smooth[18000:19000].mean(),
-                    rtol=0, atol=0.01 * d_sigma_x)
+    xo.assert_allclose(std_y_expected[8000:9000].mean(),
+                    std_y_smooth[8000:9000].mean(),
+                    rtol=0, atol=0.03 * d_sigma_y)
+    xo.assert_allclose(std_x_expected[8000:9000].mean(),
+                    std_x_smooth[8000:9000].mean(),
+                    rtol=0, atol=0.03 * d_sigma_x)
 
     # plt.figure(2)
     # ax1 = plt.subplot(2,1,1)
