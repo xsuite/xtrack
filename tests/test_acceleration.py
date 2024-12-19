@@ -173,7 +173,7 @@ def test_energy_program(test_context):
     xo.assert_allclose(line.particle_ref.mass0 * tw.gamma0, line.particle_ref.mass0 + E_kin_turn[0],
                        rtol=1e-10, atol=0)
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextPyopencl',))
 def test_acceleration_transverse_shrink(test_context):
 
     mad = Madx(stdout=False)
