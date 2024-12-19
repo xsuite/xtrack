@@ -3213,11 +3213,11 @@ class Line:
         i_next_aperture = 0
 
         for iee in progress(range(i_prev_aperture, num_elements), desc='Checking aperture'):
-            if dont_need_aperture[elements_df.loc[iee, 'name']]:
-                continue
-
             if elements_df.loc[iee, 'is_aperture']:
                 i_prev_aperture = iee
+                continue
+
+            if dont_need_aperture[elements_df.loc[iee, 'name']]:
                 continue
 
             if i_next_aperture < iee:
@@ -4060,6 +4060,8 @@ class Line:
             return self.vv[key]
         elif hasattr(self, 'lines') and key in self.lines: # Want to reuse the method for the env
             return self.lines[key]
+        elif "::" in key and (env_name := key.split("::")[0]) in self.element_dict:
+            return self[env_name]
         else:
             raise KeyError(f'Name {key} not found')
 
