@@ -29,12 +29,10 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
     double space_charge_factor = ElectronCoolerData_get_space_charge(el);
     
     double p0c    = LocalParticle_get_p0c(part0); // eV/c
-    double q0      = LocalParticle_get_q0(part0); // eV
+    double q0      = LocalParticle_get_q0(part0); // e
     double beta0  = LocalParticle_get_beta0(part0);  
     double gamma0 = LocalParticle_get_gamma0(part0);    
     double mass0 = LocalParticle_get_mass0(part0); // eV/c^2
-
-    
 
     // compute electron density
     double volume_e_beam = PI * POW2(radius_e_beam) * length; // m3
@@ -49,17 +47,13 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
     double elec_plasma_frequency = C_LIGHT * sqrt(4 * PI * electron_density * RADIUS_ELECTRON); // electron plasma frequency                
     double V_e_magnet = beta0 * gamma0 * C_LIGHT * magnetic_field_ratio; // velocity spread due to magnetic imperfections
     double V_eff = sqrt(POW2(V_e_long) + POW2(V_e_magnet)); // effective electron beam velocity spread
-    //double Vs = V_e_long;
     double mass_electron_ev = MASS_ELECTRON * POW2(C_LIGHT) / QELEM; //eV
     double energy_electron_initial = (gamma0 - 1) * mass_electron_ev; //eV 
     double energy_e_total = energy_electron_initial + offset_energy;
-    double gamma_total = 1 + (energy_e_total / mass_electron_ev);
-    double beta_total = sqrt(1 - 1 / POW2(gamma_total));
-
+    
     // compute constants outside per particle block
     double friction_coefficient =-4*electron_density*MASS_ELECTRON*POW2(q0)*POW2(RADIUS_ELECTRON)*POW4(C_LIGHT); //coefficient used for computation of friction force
     double omega_e_beam = space_charge_factor*1/(2*PI*EPSILON_0*C_LIGHT) * current/(POW2(radius_e_beam)*beta0*gamma0*magnetic_field);
-    double newton_to_ev_m = 1.0/QELEM;  //6.241506363094e+18
     
     //start_per_particle_block (part0->part)
 
@@ -88,8 +82,8 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
 
     //radial_velocity_dependence due to space charge
     //equation 100b in Helmut Poth: Electron cooling. page 186
-    double space_charge_coefficient = space_charge_factor * RADIUS_ELECTRON / (QELEM * C_LIGHT) * (gamma_total + 1) / POW2(gamma_total); //used for computation of the space charge energy offset
-    double dE_E = space_charge_coefficient * current * POW2(radius / radius_e_beam) / POW3(beta_total); 
+    double space_charge_coefficient = space_charge_factor * RADIUS_ELECTRON / (QELEM * C_LIGHT) * (gamma0 + 1) / POW2(gamma0); //used for computation of the space charge energy offset
+    double dE_E = space_charge_coefficient * current * POW2(radius / radius_e_beam) / POW3(beta0); 
     double E_diff_space_charge = dE_E * energy_e_total; 
     
     double E_kin_total = energy_electron_initial + offset_energy + E_diff_space_charge;
@@ -101,8 +95,7 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
     double dVx = beta_x* C_LIGHT;
     double dVy = beta_y* C_LIGHT;   
     dVx -= omega_e_beam *radius* -sin(theta); 
-    dVy -= omega_e_beam *radius* +cos(theta);
-    
+    dVy -= omega_e_beam *radius* +cos(theta);    
     double dV_abs = sqrt(POW2(dVx)+POW2(dVy)+POW2(dVz));
 
     // Coulomb logarithm    
@@ -114,12 +107,11 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
                         
     Fx = (friction_coefficient * dVx/friction_denominator * log_term); //Newton
     Fy = (friction_coefficient * dVy/friction_denominator * log_term); //Newton
-    Fl = (friction_coefficient * dVz/friction_denominator * log_term); //Newton
-   
+    Fl = (friction_coefficient * dVz/friction_denominator * log_term); //Newton   
 
-    Fx = Fx * newton_to_ev_m * C_LIGHT; // convert to eV/c because p0c is also in eV/c
-    Fy = Fy * newton_to_ev_m * C_LIGHT; // convert to eV/c because p0c is also in eV/c
-    Fl = Fl * newton_to_ev_m * C_LIGHT; // convert to eV/c because p0c is also in eV/c
+    Fx = Fx * 1/QELEM * C_LIGHT; // convert to eV/c because p0c is also in eV/c
+    Fy = Fy * 1/QELEM * C_LIGHT; // convert to eV/c because p0c is also in eV/c
+    Fl = Fl * 1/QELEM * C_LIGHT; // convert to eV/c because p0c is also in eV/c
     }
     double delta_new = delta+Fl*gamma0*tau/p0c;
     

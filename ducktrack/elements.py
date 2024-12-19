@@ -863,9 +863,6 @@ class ElectronCooler(Element):
         ("classical_e_radius","","",physical_constants['classical electron radius'][0]),
         ("me_kg","","",me_kg),
         ]
-      
-    
-    
     
     def force(self, p):
         current=self.current
@@ -917,22 +914,21 @@ class ElectronCooler(Element):
         energy_electron_initial = (gamma0 - 1) * mass_electron_ev #eV
         # Updated gamma and beta factors including offset energy
         energy_e_total = energy_electron_initial + self.offset_energy
-        gamma_total = 1 + (energy_e_total / mass_electron_ev)
-        beta_total = np.sqrt(1 - 1 / (gamma_total**2))
+        # gamma_total = 1 + (energy_e_total / mass_electron_ev)
+        # beta_total = np.sqrt(1 - 1 / (gamma_total**2))
                 
         friction_coefficient =-4*electron_density*me_kg*q0**2*classical_e_radius**2*clight**4 # Coefficient used for computation of friction force 
         # compute angular frequency of rotation of e-beam due to space charge
         omega_e_beam = space_charge_factor*1/(2*np.pi*epsilon_0*clight) * current/(radius_e_beam**2*beta0*gamma0*magnetic_field)
-        
-        
+                
         Fx = np.zeros_like(x)
         Fy = np.zeros_like(y)
         Fl = np.zeros_like(delta)        
         
         #radial_velocity_dependence due to space charge
         #equation 100b in Helmut Poth: Electron cooling. page 186        
-        space_charge_coefficient = space_charge_factor *classical_e_radius / (qe * clight) * (gamma_total + 1) / (gamma_total**2);# //used for computation of the space charge energy offset
-        dE_E = space_charge_coefficient * current * (radius / radius_e_beam)**2 / (beta_total)**3
+        space_charge_coefficient = space_charge_factor *classical_e_radius / (qe * clight) * (gamma0 + 1) / (gamma0**2);# //used for computation of the space charge energy offset
+        dE_E = space_charge_coefficient * current * (radius / radius_e_beam)**2 / (beta0)**3
         E_diff_space_charge = dE_E * energy_e_total        
         
         E_kin_total = energy_e_total + E_diff_space_charge
@@ -962,8 +958,7 @@ class ElectronCooler(Element):
         Fx[outside_beam_indices] = 0.0
         Fy[outside_beam_indices] = 0.0
         Fl[outside_beam_indices] = 0.0
-
-        #newton_to_ev_m = 1/qe #6.241506363094e+18                    
+              
         Fx=Fx*1/qe #convert to eV/m 
         Fy=Fy*1/qe #convert to eV/m 
         Fl=Fl*1/qe #convert to eV/m 
