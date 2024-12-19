@@ -5332,7 +5332,8 @@ class EnergyProgram:
     @t_turn_s_line.setter
     def t_turn_s_line(self, value):
         p0c = self.get_p0c_at_t_s(value)
-        self.line.particle_ref.update_p0c_and_energy_deviations(p0c=p0c)
+        self.line.particle_ref.update_p0c_and_energy_deviations(
+                                                    p0c=p0c, update_pxpy=True)
 
     def to_dict(self):
         assert not self.needs_complete, 'EnergyProgram not completed'

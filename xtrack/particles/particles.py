@@ -2175,7 +2175,7 @@ class Particles(xo.HybridClass):
                                     computed_value=_charge_ratio,
                                     mask=mask)
 
-    def update_p0c_and_energy_deviations(self, p0c):
+    def update_p0c_and_energy_deviations(self, p0c, update_pxpy=False):
 
         assert np.isscalar(p0c), 'p0c must be a scalar'
 
@@ -2194,6 +2194,11 @@ class Particles(xo.HybridClass):
         self._update_refs(p0c=new_p0c, mask=mask)
         self._update_energy_deviations(mask=mask, delta=new_delta)
         self._update_zeta(mask=mask, zeta=self.zeta * self.beta0 / old_beta0)
+
+        if update_pxpy:
+            scale_pxpy = old_p0c[mask] / new_p0c[mask]
+            self.px[mask] *= scale_pxpy
+            self.py[mask] *= scale_pxpy
 
 
 def _mask_to_where(mask, ctx):
