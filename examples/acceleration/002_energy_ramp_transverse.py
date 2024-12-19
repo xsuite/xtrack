@@ -3,14 +3,30 @@ from cpymad.madx import Madx
 import xtrack as xt
 
 # Import a line and build a tracker
-line = xt.Line.from_json(
-    '../../test_data/psb_injection/line_and_particle.json')
+
+test_data_folder = '../../test_data'
+
+mad = Madx(stdout=False)
+
+# Load mad model and apply element shifts
+mad.input(f'''
+call, file = '{str(test_data_folder)}/psb_chicane/psb.seq';
+call, file = '{str(test_data_folder)}/psb_chicane/psb_fb_lhc.str';
+beam;
+use, sequence=psb1;
+''')
+
+line = xt.Line.from_madx_sequence(mad.sequence.psb1,
+                                    deferred_expressions=True)
 e_kin_start_eV = 160e6
 line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1.,
                                  energy0=xt.PROTON_MASS_EV + e_kin_start_eV)
+
+line.slice_thick_elements(
+    slicing_strategies=[
+        xt.Strategy(slicing=xt.Teapot(1)),
+    ])
 line.build_tracker()
-
-
 
 # User-defined energy ramp
 t_s = np.array([0., 0.0006, 0.0008, 0.001 , 0.0012, 0.0014, 0.0016, 0.0018,
@@ -20,11 +36,13 @@ E_kin_GeV = np.array([0.16000000,0.16000000,
     0.16019791, 0.16025666, 0.16032262, 0.16039552, 0.16047524, 0.16056165,
     0.163586, 0.20247050000000014])
 
-E_kin_GeV -= 0.130
+# Enhance energy swing to better see the effect of energy on beam size
+E_kin_GeV -= 0.140
 
-# Go away from hald integer
+# Go away from half integer
 opt = line.match(
     #verbose=True,
+    method='4d',
     solve=False,
     vary=[
         xt.Vary('kbrqfcorr', step=1e-4),
@@ -35,6 +53,7 @@ opt = line.match(
         xt.Target('qy', value=4.18, tol=1e-5, scale=1),
     ]
 )
+opt.solve()
 
 tw0 = line.twiss4d()
 
@@ -67,22 +86,22 @@ f_rf = h_rf * f_rev # frequency program
 
 # Build a function with these samples and link it to the cavity
 line.functions['fun_f_rf'] = xt.FunctionPieceWiseLinear(x=t_rf, y=f_rf)
-line.element_refs['br.c02'].frequency = line.functions['fun_f_rf'](
+line.element_refs['br1.acwf5l1.1'].frequency = line.functions['fun_f_rf'](
                                                         line.vars['t_turn_s'])
 
 # Setup voltage and lag
-line.element_refs['br.c02'].voltage = 3000 # V
-line.element_refs['br.c02'].lag = 0 # degrees (below transition energy)
+line.element_refs['br1.acwf5l1.1'].voltage = 3000 # V
+line.element_refs['br1.acwf5l1.1'].lag = 0 # degrees (below transition energy)
 
 # When setting line.vars['t_turn_s'] the reference energy and the rf frequency
 # are updated automatically
 line.vars['t_turn_s'] = 0
 line.particle_ref.kinetic_energy0 # is 160.00000 MeV
-line['br.c02'].frequency # is 1983931.935 Hz
+line['br1.acwf5l1.1'].frequency # is 1983931.935 Hz
 
 line.vars['t_turn_s'] = 3e-3
 line.particle_ref.kinetic_energy0 # is 160.56165 MeV
-line['br.c02'].frequency # is 1986669.0559674294
+line['br1.acwf5l1.1'].frequency # is 1986669.0559674294
 
 # Back to zero for tracking!
 line.vars['t_turn_s'] = 0
@@ -158,10 +177,10 @@ d_sigma_y = std_y_expected[0] - std_y_expected[-1]
 import xobjects as xo
 xo.assert_allclose(std_y_expected[18000:19000].mean(),
                    std_y_smooth[18000:19000].mean(),
-                   rtol=0, atol=0.03 * d_sigma_y)
+                   rtol=0, atol=0.01 * d_sigma_y)
 xo.assert_allclose(std_x_expected[18000:19000].mean(),
                    std_x_smooth[18000:19000].mean(),
-                   rtol=0, atol=0.03 * d_sigma_x)
+                   rtol=0, atol=0.01 * d_sigma_x)
 
 plt.figure(2)
 ax1 = plt.subplot(2,1,1)
