@@ -98,7 +98,7 @@ plt.subplots_adjust(left=0.08, right=0.95, wspace=0.26)
 line['t_turn_s'] = 0
 line.enable_time_dependent_vars = False
 
-n_part_test = 100
+n_part_test = 500
 # Generate Gaussian distribution with fixed rng seed
 rng = np.random.default_rng(seed=123)
 x_norm = rng.normal(loc=0, scale=1, size=n_part_test)
@@ -106,13 +106,19 @@ px_norm = rng.normal(loc=0, scale=1, size=n_part_test)
 y_norm = rng.normal(loc=0, scale=1, size=n_part_test)
 py_norm = rng.normal(loc=0, scale=1, size=n_part_test)
 
+# rescale to have exact std dev.
+x_norm = x_norm / np.std(x_norm)
+px_norm = px_norm / np.std(px_norm)
+y_norm = y_norm / np.std(y_norm)
+py_norm = py_norm / np.std(py_norm)
+
 p_test2 = line.build_particles(x_norm=x_norm, px_norm=px_norm,
                                y_norm=x_norm, py_norm=px_norm,
-                               nemitt_x=10e-6, nemitt_y=10e-6,
+                               nemitt_x=3e-6, nemitt_y=3e-6,
                                delta=0)
 
 line.enable_time_dependent_vars = True
-line.track(p_test2, num_turns=50000, turn_by_turn_monitor=True, with_progress=True)
+line.track(p_test2, num_turns=50_000, turn_by_turn_monitor=True, with_progress=True)
 mon2 = line.record_last_track
 
 std_y = np.std(mon2.y, axis=0)
@@ -123,18 +129,30 @@ from scipy.signal import savgol_filter
 std_y_smooth = savgol_filter(std_y, 10000, 2)
 std_x_smooth = savgol_filter(std_x, 10000, 2)
 
-std_y_expected = std_y_smooth[1000] * np.sqrt(
-    mon2.gamma0[0, 1000]* mon2.beta0[0, 1000]
+i_turn_match = 10000
+std_y_expected = std_y_smooth[i_turn_match] * np.sqrt(
+    mon2.gamma0[0, i_turn_match]* mon2.beta0[0, i_turn_match]
     / mon2.gamma0[0, :] / mon2.beta0[0, :])
-std_x_expected = std_y_smooth[1000] * np.sqrt(
-    mon2.gamma0[0, 1000]* mon2.beta0[0, 1000]
+std_x_expected = std_x_smooth[i_turn_match] * np.sqrt(
+    mon2.gamma0[0, i_turn_match]* mon2.beta0[0, i_turn_match]
     / mon2.gamma0[0, :] / mon2.beta0[0, :])
+
+d_sigma_x = std_x_expected[0] - std_x_expected[-1]
+d_sigma_y = std_y_expected[0] - std_y_expected[-1]
+
+import xobjects as xo
+xo.assert_allclose(std_y_expected[40000:45000].mean(),
+                   std_y_smooth[40000:45000].mean(),
+                   rtol=0, atol=0.07 * d_sigma_y)
+xo.assert_allclose(std_x_expected[40000:45000].mean(),
+                   std_x_smooth[40000:45000].mean(),
+                   rtol=0, atol=0.07 * d_sigma_x)
 
 plt.figure(2)
 ax1 = plt.subplot(2,1,1)
 plt.plot(std_x, label='raw')
 plt.plot(std_x_smooth, label='smooth')
-plt.plot(std_y_expected, label='expected')
+plt.plot(std_x_expected, label='expected')
 plt.legend()
 
 ax2 = plt.subplot(2,1,2, sharex=ax1)
