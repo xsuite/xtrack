@@ -26,7 +26,7 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
     double offset_energy  = ElectronCoolerData_get_offset_energy(el); //eV
     
     double magnetic_field_ratio  = ElectronCoolerData_get_magnetic_field_ratio(el);
-    double space_charge_factor = ElectronCoolerData_get_space_charge(el);
+    double space_charge_factor = ElectronCoolerData_get_space_charge_factor(el);
     
     double p0c    = LocalParticle_get_p0c(part0); // eV/c
     double q0      = LocalParticle_get_q0(part0); // e

@@ -2601,7 +2601,7 @@ class ElectronCooler(BeamElement):
         'offset_energy' :  xo.Float64,
 
         'magnetic_field_ratio' :  xo.Float64,
-        'space_charge'         : xo.Float64
+        'space_charge_factor'         : xo.Float64
         }
 
     _extra_c_sources = [
@@ -2643,8 +2643,8 @@ class ElectronCooler(BeamElement):
         self.offset_py      = offset_py
         self.offset_energy  = offset_energy
         
-        self.magnetic_field_ratio        = magnetic_field_ratio
-        self.space_charge_factor = space_charge_factor
+        self.magnetic_field_ratio = magnetic_field_ratio
+        self.space_charge_factor  = space_charge_factor
         
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         raise NotImplementedError
