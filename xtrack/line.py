@@ -180,7 +180,8 @@ class Line:
         self.ref = xt.environment.EnvRef(self)
 
     @classmethod
-    def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
+    def from_dict(cls, dct, _context=None, _buffer=None, classes=(),
+                  env=None):
 
         """
         Create a Line object from a dictionary.
@@ -210,7 +211,9 @@ class Line:
 
         _buffer = xo.get_a_buffer(context=_context, buffer=_buffer,size=8)
 
-        if isinstance(dct['elements'], dict):
+        if env is not None:
+            elements = env.element_dict
+        elif isinstance(dct['elements'], dict):
             elements = {}
             for ii, (kk, ee) in enumerate(
                     progress(dct['elements'].items(), desc='Loading line from dict')):
@@ -223,13 +226,18 @@ class Line:
         else:
             raise ValueError('Field `elements` must be a dict or a list')
 
-        self = cls(elements=elements, element_names=dct['element_names'])
+        element_names = dct.get('element_names', [])
+        self = cls(elements=elements, element_names=element_names)
 
         if 'particle_ref' in dct.keys():
             self.particle_ref = xt.Particles.from_dict(dct['particle_ref'],
                                     _context=_buffer.context)
 
-        if '_var_manager' in dct.keys():
+        if env is not None:
+            self.env = env
+            self._var_management = env._var_management
+
+        elif '_var_manager' in dct.keys():
             # reinit env and var management
             self.env = None
             self._var_management = None
