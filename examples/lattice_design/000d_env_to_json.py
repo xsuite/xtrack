@@ -191,8 +191,6 @@ insertion = env.new_line([
     half_insertion.replicate('l', mirror=True),
     half_insertion.replicate('r')])
 
-
-
 ring2 = env.new_line(components=[
     arc.replicate(name='arcc.1'),
     ss.replicate(name='sss.2'),
@@ -261,7 +259,22 @@ xt.Environment.from_dict = _env_from_dict
 edct = env.to_dict()
 env2 = xt.Environment.from_dict(edct)
 
+assert env2.element_dict is not env.element_dict
 
+assert np.all(np.array(list(env2.lines.keys()))
+            == np.array(list(env.lines.keys())))
+
+for nn, ll in env2.lines.items():
+    tt = ll.get_table()
+    tt_ref = env[nn].get_table()
+    assert np.all(tt.name == tt_ref.name)
+
+# Check that no element is in common
+assert len(
+    set(env2.element_dict.values()).intersection(set(env.element_dict.values()))
+    ) == 0
+
+assert env._xdeps_vref.owner is not env2._xdeps_vref.owner
 
 import matplotlib.pyplot as plt
 plt.close('all')
