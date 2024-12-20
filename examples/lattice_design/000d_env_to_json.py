@@ -302,6 +302,7 @@ opt = env2['half_insertion'].match(
 )
 opt.solve()
 
+# Check matched betx=2*bety in env2 but not in env
 xo.assert_allclose(env2['ring'].twiss4d()['betx', 'ip.l'],
                    2*env2['ring'].twiss4d()['bety', 'ip.l'],
                    rtol=1e-4, atol=0)
