@@ -85,7 +85,7 @@ class Environment:
         self._lines_weakrefs = WeakSet()
 
     def new(self, name, parent, mode=None, at=None, from_=None, extra=None,
-            mirror=False, **kwargs):
+            mirror=False, import_from=None, **kwargs):
 
         '''
         Create a new element or line.
@@ -101,6 +101,8 @@ class Environment:
                The parent element or line is copied, together with the associated
                expressions.
              - replica: replicate the parent elements or lines are made.
+             - import: clone from a different environment. `import_from` must be
+               provided.
         at : float or str, optional
             Position of the created object.
         from_: str, optional
@@ -109,6 +111,7 @@ class Environment:
         mirror : bool, optional
             Can only be used when cloning lines. If True, the order of the elements
             is reversed.
+        import_from : Environment, optional. Only to be used when mode is 'import'.
 
         Returns
         -------
@@ -173,6 +176,7 @@ class Environment:
                 # Clone an existing element
                 self.element_dict[name] = xt.Replica(parent_name=parent)
                 xt.Line.replace_replica(self, name)
+
                 parent_element = self.element_dict[name]
                 parent = type(parent_element)
                 needs_instantiation = False
@@ -336,6 +340,60 @@ class Environment:
             xtrack._passed_env = None
             raise ee
         xtrack._passed_env = None
+
+    def copy_element_from(self, name, source, new_name=None):
+        return xt.Line.copy_element_from(self, name, source, new_name)
+
+    def import_line(
+            self,
+            line,
+            suffix_for_common_elements=None,
+            line_name=None,
+            overwrite_vars=False,
+    ):
+        """Import a line into this environment.
+
+        Parameters
+        ----------
+        suffix_for_common_elements : str, optional
+            Suffix to be added to the names of the elements that are common to
+            the imported line and the line in this environment. If None,
+            '_{source_line_name}' is used.
+        line_name : str, optional
+            Name of the new line. If None, the name of the imported line is used.
+        overwrite_vars : bool, optional
+            If True, the variables in the imported line will overwrite the
+            variables with the same name in this environment. Default is False.
+        """
+        line_name = line_name or line.name
+        if suffix_for_common_elements is None:
+            suffix_for_common_elements = f'_{line_name}'
+
+        new_var_values = line.ref_manager.containers['vars']._owner
+        if not overwrite_vars:
+            new_var_values = new_var_values.copy()
+            new_var_values.update(self.ref_manager.containers['vars']._owner)
+        self.ref_manager.containers['vars']._owner.update(new_var_values)
+
+        self.ref_manager.copy_expr_from(line.ref_manager, 'vars', overwrite=overwrite_vars)
+        self.ref_manager.run_tasks()
+
+        components = []
+        for name in line.element_names:
+            new_name = name
+            if name in self.element_dict:
+                new_name += suffix_for_common_elements
+
+            components.append(new_name)
+
+            # Skip shared markers
+            if (isinstance(line[name], xt.Marker) and
+                    name in isinstance(self.element_dict.get(name), xt.Marker)):
+                continue
+
+            self.copy_element_from(name, line, new_name=new_name)
+
+        self.new_line(components=components, name=line_name)
 
     def _ensure_tracker_consistency(self, buffer):
         for ln in self._lines_weakrefs:
