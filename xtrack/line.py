@@ -181,7 +181,7 @@ class Line:
 
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=(),
-                  env=None):
+                  env=None, verbose=True):
 
         """
         Create a Line object from a dictionary.
@@ -259,7 +259,8 @@ class Line:
              and self.element_dict['energy_program'] is not None):
             self.energy_program.line = self
 
-        _print('Done loading line from dict.           ')
+        if verbose:
+            _print('Done loading line from dict.           ')
 
         return self
 

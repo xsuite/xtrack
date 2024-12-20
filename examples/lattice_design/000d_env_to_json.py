@@ -242,7 +242,17 @@ xt.Environment.to_dict = _env_to_dict
 
 dct = env.to_dict()
 
+cls = xt.Environment
+
 ldummy = xt.Line.from_dict(dct)
+out = cls(element_dict=ldummy.element_dict, particle_ref=ldummy.particle_ref,
+          _var_management=ldummy._var_management)
+out._line_vars = xt.line.LineVars(out)
+
+for nn in dct['lines'].keys():
+    ll = xt.Line.from_dict(dct['lines'][nn], env=out, verbose=False)
+    out[nn] = ll
+
 
 import matplotlib.pyplot as plt
 plt.close('all')
