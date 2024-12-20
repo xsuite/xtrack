@@ -240,6 +240,10 @@ def _env_to_dict(self, include_var_management=True):
 xt.Environment._var_management_to_dict = xt.Line._var_management_to_dict
 xt.Environment.to_dict = _env_to_dict
 
+dct = env.to_dict()
+
+ldummy = xt.Line.from_dict(dct)
+
 import matplotlib.pyplot as plt
 plt.close('all')
 for ii, rr in enumerate([ring, ring2_sliced]):
