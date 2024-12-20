@@ -210,6 +210,35 @@ ring2_sliced.cut_at_s(np.arange(0, ring2.get_length(), 0.5))
 env['ring'] = ring2
 env['ring_sliced'] = ring2_sliced
 
+from copy import deepcopy
+
+def _env_to_dict(self, include_var_management=True):
+
+    out = {}
+    out["elements"] = {k: el.to_dict() for k, el in self.element_dict.items()}
+
+    if self.particle_ref is not None:
+        out['particle_ref'] = self.particle_ref.to_dict()
+    if self._var_management is not None and include_var_management:
+        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+            raise ValueError('The line is part ot a MultiLine object. '
+                'To save without expressions please use '
+                '`line.to_dict(include_var_management=False)`.\n'
+                'To save also the deferred expressions please save the '
+                'entire multiline.\n ')
+
+        out.update(self._var_management_to_dict())
+
+    out['lines'] = {}
+
+    for nn, ll in self.lines.items():
+        out['lines'][nn] = ll.to_dict(include_element_dict=False,
+                                      include_var_management=False)
+
+    return out
+
+xt.Environment._var_management_to_dict = xt.Line._var_management_to_dict
+xt.Environment.to_dict = _env_to_dict
 
 import matplotlib.pyplot as plt
 plt.close('all')
