@@ -144,7 +144,7 @@ env.vars({
     'k1.q5': 0.025,
 })
 
-half_insertion = env.new_line(components=[
+half_insertion = env.new_line(name='half_insertion', components=[
 
     # Start-end markers
     env.new('ip', xt.Marker),
@@ -207,8 +207,6 @@ ring2_sliced.cut_at_s(np.arange(0, ring2.get_length(), 0.5))
 
 env['ring'] = ring2
 env['ring_sliced'] = ring2_sliced
-
-from copy import deepcopy
 
 def _env_to_dict(self, include_var_management=True):
 
@@ -275,6 +273,48 @@ assert len(
     ) == 0
 
 assert env._xdeps_vref.owner is not env2._xdeps_vref.owner
+
+tw2 = env2['ring'].twiss4d()
+tw_ref = env2['ring'].twiss4d()
+
+import xobjects as xo
+xo.assert_allclose(tw2.betx, tw_ref.betx, rtol=0, atol=1e-12)
+xo.assert_allclose(tw2.bety, tw_ref.bety, rtol=0, atol=1e-12)
+xo.assert_allclose(tw2.wx_chrom, tw_ref.wx_chrom, rtol=0, atol=1e-12)
+xo.assert_allclose(tw2.wy_chrom, tw_ref.wy_chrom, rtol=0, atol=1e-12)
+
+# In the second environment match betx = 2 * bety
+opt = env2['half_insertion'].match(
+    solve=False,
+    betx=tw_arc.betx[0], bety=tw_arc.bety[0],
+    alfx=tw_arc.alfx[0], alfy=tw_arc.alfy[0],
+    init_at='e.insertion',
+    start='ip', end='e.insertion',
+    vary=xt.VaryList(['k1.q1', 'k1.q2', 'k1.q3', 'k1.q4'], step=1e-5),
+    targets=[
+        xt.TargetSet(alfx=0, alfy=0, at='ip'),
+        xt.Target(lambda tw: tw.betx[0] - 2*tw.bety[0], 0),
+        xt.Target(lambda tw: tw.betx.max(), xt.LessThan(400)),
+        xt.Target(lambda tw: tw.bety.max(), xt.LessThan(400)),
+        xt.Target(lambda tw: tw.betx.min(), xt.GreaterThan(2)),
+        xt.Target(lambda tw: tw.bety.min(), xt.GreaterThan(2)),
+    ]
+)
+opt.solve()
+
+xo.assert_allclose(env2['ring'].twiss4d()['betx', 'ip.l'],
+                   2*env2['ring'].twiss4d()['bety', 'ip.l'],
+                   rtol=1e-4, atol=0)
+xo.assert_allclose(env2['ring_sliced'].twiss4d()['betx', 'ip.l'],
+                   2*env2['ring_sliced'].twiss4d()['bety', 'ip.l'],
+                   rtol=1e-4, atol=0)
+
+xo.assert_allclose(env['ring'].twiss4d()['betx', 'ip.l'],
+                   env['ring'].twiss4d()['bety', 'ip.l'],
+                   rtol=1e-4, atol=0)
+xo.assert_allclose(env['ring_sliced'].twiss4d()['betx', 'ip.l'],
+                   env['ring_sliced'].twiss4d()['bety', 'ip.l'],
+                   rtol=1e-4, atol=0)
 
 import matplotlib.pyplot as plt
 plt.close('all')
