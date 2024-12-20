@@ -539,7 +539,7 @@ class Line:
         line = loader.make_line()
         return line
 
-    def to_dict(self, include_var_management=True):
+    def to_dict(self, include_var_management=True, include_element_dict=True):
 
         '''
         Returns a dictionary representation of the line.
@@ -557,7 +557,8 @@ class Line:
         '''
 
         out = {}
-        out["elements"] = {k: el.to_dict() for k, el in self.element_dict.items()}
+        if include_element_dict:
+            out["elements"] = {k: el.to_dict() for k, el in self.element_dict.items()}
         out["element_names"] = self.element_names[:]
         out['config'] = self.config.data.copy()
         out['_extra_config'] = self._extra_config.copy()
