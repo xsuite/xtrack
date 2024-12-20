@@ -1980,6 +1980,7 @@ def test_import_line_from_other_env(overwrite_vars, x_value):
 
     line = env.new_line(components=[
         env.new('b', xt.Bend, k0='2 * x'),
+        env.new('ip', xt.Marker),
         env.new('d', xt.Drift, length='3 * y'),
     ])
 
@@ -1987,12 +1988,15 @@ def test_import_line_from_other_env(overwrite_vars, x_value):
     env2['z'] = 3
     env2['x'] = '2 * z'
     env2.new('b', xt.Bend, k0='x')
+    env2.new('ip', xt.Marker)
 
     env2.import_line(line, line_name='line', overwrite_vars=overwrite_vars)
 
     assert env2['x'] == x_value
     assert env2['y'] == 7
 
+    assert env2.lines['line'].element_names == ['b_line', 'ip', 'd']
     assert env2['b'].k0 == x_value
     assert env2['b_line'].k0 == 2 * x_value
+    assert isinstance(env2['ip'], xt.Marker)
     assert env2['d'].length == 3 * 7

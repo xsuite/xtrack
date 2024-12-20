@@ -384,8 +384,14 @@ class Environment:
             if name in self.element_dict:
                 new_name += suffix_for_common_elements
 
-            self.copy_element_from(name, line, new_name=new_name)
             components.append(new_name)
+
+            # Skip shared markers
+            if (isinstance(line[name], xt.Marker) and
+                    name in isinstance(self.element_dict.get(name), xt.Marker)):
+                continue
+
+            self.copy_element_from(name, line, new_name=new_name)
 
         self.new_line(components=components, name=line_name)
 
