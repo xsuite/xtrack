@@ -237,21 +237,30 @@ def _env_to_dict(self, include_var_management=True):
 
     return out
 
+
+@classmethod
+def _env_from_dict(cls, dct):
+    cls = xt.Environment
+
+    ldummy = xt.Line.from_dict(dct)
+    out = cls(element_dict=ldummy.element_dict, particle_ref=ldummy.particle_ref,
+            _var_management=ldummy._var_management)
+    out._line_vars = xt.line.LineVars(out)
+
+    for nn in dct['lines'].keys():
+        ll = xt.Line.from_dict(dct['lines'][nn], env=out, verbose=False)
+        out[nn] = ll
+
+    return out
+
+
 xt.Environment._var_management_to_dict = xt.Line._var_management_to_dict
 xt.Environment.to_dict = _env_to_dict
+xt.Environment.from_dict = _env_from_dict
 
-dct = env.to_dict()
+edct = env.to_dict()
+env2 = xt.Environment.from_dict(edct)
 
-cls = xt.Environment
-
-ldummy = xt.Line.from_dict(dct)
-out = cls(element_dict=ldummy.element_dict, particle_ref=ldummy.particle_ref,
-          _var_management=ldummy._var_management)
-out._line_vars = xt.line.LineVars(out)
-
-for nn in dct['lines'].keys():
-    ll = xt.Line.from_dict(dct['lines'][nn], env=out, verbose=False)
-    out[nn] = ll
 
 
 import matplotlib.pyplot as plt
