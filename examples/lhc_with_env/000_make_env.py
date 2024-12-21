@@ -39,3 +39,5 @@ env.import_line(line=line1, suffix_for_common_elements='__b1',
                 line_name='lhcb1')
 env.import_line(line=line4, suffix_for_common_elements='__b2',
                 line_name='lhcb2')
+
+env.to_json('lhc.json.gz')

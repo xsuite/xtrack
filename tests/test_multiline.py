@@ -29,7 +29,7 @@ def test_multiline_metadata(test_context):
         lines={'lhcb1': input_line.copy(), 'lhcb1_co_ref': input_line_co_ref.copy()}
     )
     collider['lhcb1_co_ref'].particle_ref = collider['lhcb1'].particle_ref.copy()
-    
+
     # Test the dump and load into/from dictionnary without metadata
     collider = xt.Multiline.from_dict(collider.to_dict())
 

@@ -500,6 +500,18 @@ class Environment:
 
         xt.json.dump(self.to_dict(**kwargs), file, indent=indent)
 
+    def __getattr__(self, key):
+        if key == 'lines':
+            return object.__getattribute__(self, 'lines')
+        if key in self.lines:
+            return self.lines[key]
+        else:
+            raise AttributeError(f"Multiline object has no attribute `{key}`.")
+
+    def __dir__(self):
+        return [nn for nn  in list(self.lines.keys()) if '.' not in nn
+                    ] + object.__dir__(self)
+
     element_dict = xt.Line.element_dict
     _xdeps_vref = xt.Line._xdeps_vref
     _xdeps_fref = xt.Line._xdeps_fref
