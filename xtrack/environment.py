@@ -460,6 +460,46 @@ class Environment:
 
         return out
 
+    @classmethod
+    def from_json(cls, file, **kwargs):
+
+        """Constructs an environment from a json file.
+
+        Parameters
+        ----------
+        file : str or file-like object
+            Path to the json file or file-like object.
+            If filename ends with '.gz' file is decompressed.
+        **kwargs : dict
+            Additional keyword arguments passed to `Environment.from_dict`.
+
+        Returns
+        -------
+        environment : Environment
+            Environment object.
+
+        """
+
+        dct = xt.json.load(file)
+
+        return cls.from_dict(dct, **kwargs)
+
+
+    def to_json(self, file, indent=1, **kwargs):
+        '''Save the environment to a json file.
+
+        Parameters
+        ----------
+        file: str or file-like object
+            The file to save to. If a string is provided, a file is opened and
+            closed. If a file-like object is provided, it is used directly.
+        **kwargs:
+            Additional keyword arguments are passed to the `Environment.to_dict` method.
+
+        '''
+
+        xt.json.dump(self.to_dict(**kwargs), file, indent=indent)
+
     element_dict = xt.Line.element_dict
     _xdeps_vref = xt.Line._xdeps_vref
     _xdeps_fref = xt.Line._xdeps_fref
