@@ -84,6 +84,8 @@ class Environment:
                 self.import_line(line=ll, suffix_for_common_elements='__'+nn,
                     line_name=nn)
 
+        self.metadata = {}
+
     def __getstate__(self):
         out = self.__dict__.copy()
         out.pop('_lines_weakrefs')
