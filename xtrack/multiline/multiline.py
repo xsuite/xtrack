@@ -2,9 +2,6 @@ import pandas as pd
 import numpy as np
 from copy import deepcopy
 
-from .. import json as json_utils
-from .shared_knobs import VarSharing
-from ..match import match_knob_line
 import xdeps as xd
 import xobjects as xo
 import xtrack as xt
@@ -31,7 +28,8 @@ class Multiline:
         self.line_names = line_names
         line_list = [self.lines[nn] for nn in line_names]
         if link_vars:
-            self._var_sharing = VarSharing(lines=line_list, names=line_names)
+            self._var_sharing = xt.multiline.shared_knobs.VarSharing(
+                lines=line_list, names=line_names)
             self._multiline_vars = xt.line.LineVars(self)
         else:
             self._var_sharing = None
@@ -139,8 +137,7 @@ class Multiline:
         **kwargs: dict
             Additional keyword arguments are passed to the `Line.to_dict` method.
         '''
-        json_utils.dump(self.to_dict(**kwargs), file, indent=indent)
-
+        xt.json.dump(self.to_dict(**kwargs), file, indent=indent)
 
     @classmethod
     def from_json(cls, file, **kwargs):
@@ -159,7 +156,7 @@ class Multiline:
         new_multiline: Multiline
             The multiline object.
         '''
-        return cls.from_dict(json_utils.load(file), **kwargs)
+        return cls.from_dict(xt.json.load(file), **kwargs)
 
     @classmethod
     def from_madx(cls, filename=None, madx=None, stdout=None, return_lines=False, **kwargs):
@@ -360,7 +357,7 @@ class Multiline:
 
         '''
 
-        opt = match_knob_line(self, vary=vary, targets=targets,
+        opt = xt.match.match_knob_line(self, vary=vary, targets=targets,
                         knob_name=knob_name, knob_value_start=knob_value_start,
                         knob_value_end=knob_value_end, **kwargs)
 

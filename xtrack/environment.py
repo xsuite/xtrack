@@ -8,6 +8,7 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 from xdeps.refs import is_ref
+from .multiline import Multiline
 
 ReferType = Literal['entry', 'centre']
 
@@ -500,6 +501,10 @@ class Environment:
 
         xt.json.dump(self.to_dict(**kwargs), file, indent=indent)
 
+    @property
+    def line_names(self):
+        return list(self.lines.keys())
+
     def __getattr__(self, key):
         if key == 'lines':
             return object.__getattribute__(self, 'lines')
@@ -530,6 +535,8 @@ class Environment:
     new_expr = xt.Line.new_expr
     ref_manager = xt.Line.ref_manager
     _var_management_to_dict = xt.Line._var_management_to_dict
+
+    twiss = Multiline.twiss
 
 
 class Place:
