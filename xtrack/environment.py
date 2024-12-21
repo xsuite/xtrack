@@ -89,6 +89,7 @@ class Environment:
     def __getstate__(self):
         out = self.__dict__.copy()
         out.pop('_lines_weakrefs')
+        out.pop('_xdeps_eval_obj', None)
         return out
 
     def __setstate__(self, state):
