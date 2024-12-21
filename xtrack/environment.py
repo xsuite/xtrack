@@ -549,6 +549,9 @@ class Environment:
     build_trackers = MultilineLegacy.build_trackers
     match = MultilineLegacy.match
     from_madx = MultilineLegacy.from_madx
+    install_beambeam_interactions = MultilineLegacy.install_beambeam_interactions
+    configure_beambeam_interactions =  MultilineLegacy.configure_beambeam_interactions
+    apply_filling_pattern = MultilineLegacy.apply_filling_pattern
 
 
 class Place:
