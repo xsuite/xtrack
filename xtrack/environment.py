@@ -2,8 +2,10 @@ from collections import Counter, UserDict
 from functools import cmp_to_key
 from typing import Literal
 from weakref import WeakSet
+from copy import deepcopy
 
 import numpy as np
+import pandas as pd
 
 import xobjects as xo
 import xtrack as xt
@@ -444,6 +446,21 @@ class Environment:
 
             out.update(self._var_management_to_dict())
 
+        if hasattr(self, '_bb_config') and self._bb_config is not None:
+            out['_bb_config'] = {}
+            for nn, vv in self._bb_config.items():
+                if nn == 'dataframes':
+                    out['_bb_config'][nn] = {}
+                    for kk, vv in vv.items():
+                        if vv is not None:
+                            out['_bb_config'][nn][kk] = vv.to_dict()
+                        else:
+                            out['_bb_config'][nn][kk] = None
+                else:
+                    out['_bb_config'][nn] = vv
+
+        out["metadata"] = deepcopy(self.metadata)
+
         out['xsuite_data_type'] = 'Environment'
 
         out['lines'] = {}
@@ -466,6 +483,19 @@ class Environment:
         for nn in dct['lines'].keys():
             ll = xt.Line.from_dict(dct['lines'][nn], env=out, verbose=False)
             out[nn] = ll
+
+        if '_bb_config' in dct:
+            out._bb_config = dct['_bb_config']
+            for nn, vv in dct['_bb_config']['dataframes'].items():
+                if vv is not None:
+                    df = pd.DataFrame(vv)
+                else:
+                    df = None
+                out._bb_config[
+                    'dataframes'][nn] = df
+
+        if "metadata" in dct:
+            out.metadata = dct["metadata"]
 
         return out
 
