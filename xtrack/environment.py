@@ -62,7 +62,8 @@ def _flatten_components(components, refer: ReferType = 'centre'):
     return flatt_components
 
 class Environment:
-    def __init__(self, element_dict=None, particle_ref=None, _var_management=None):
+    def __init__(self, element_dict=None, particle_ref=None, _var_management=None,
+                 lines=None):
         self._element_dict = element_dict or {}
         self.particle_ref = particle_ref
 
@@ -75,6 +76,11 @@ class Environment:
         self._lines_weakrefs = WeakSet()
         self._drift_counter = 0
         self.ref = EnvRef(self)
+
+        if lines is not None:
+            for nn, ll in lines.items():
+                self.import_line(line=ll, suffix_for_common_elements='__'+nn,
+                    line_name=nn)
 
     def __getstate__(self):
         out = self.__dict__.copy()
