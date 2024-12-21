@@ -776,7 +776,6 @@ def test_pickle():
     collider = xt.Multiline(lines={'lhcb1': line})
     collider.build_trackers()
 
-    # DEBUUUUG
     colliderss = pickle.dumps(collider)
 
     coll = pickle.loads(colliderss)
