@@ -548,6 +548,7 @@ class Environment:
     discard_trackers = MultilineLegacy.discard_trackers
     build_trackers = MultilineLegacy.build_trackers
     match = MultilineLegacy.match
+    from_madx = MultilineLegacy.from_madx
 
 
 class Place:
