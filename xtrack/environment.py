@@ -537,6 +537,8 @@ class Environment:
     _var_management_to_dict = xt.Line._var_management_to_dict
 
     twiss = Multiline.twiss
+    discard_trackers = Multiline.discard_trackers
+    build_trackers = Multiline.build_trackers
 
 
 class Place:
