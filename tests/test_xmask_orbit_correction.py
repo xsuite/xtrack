@@ -152,9 +152,9 @@ def test_orbit_correction(test_context):
     collider.build_trackers(_context=test_context)
 
     # Wipe out orbit correction from pymask
-    for kk in collider._var_sharing.data['var_values']:
-        if kk.startswith('corr_acb'):
-            collider.vars[kk] = 0
+    tt_corr = collider.vars.get_table().rows['corr_acb.*']
+    for kk in tt_corr.name:
+        collider.vars[kk] = 0
 
     collider.vars['on_x1'] = 0
     collider.vars['on_x2'] = 0
