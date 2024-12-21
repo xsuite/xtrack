@@ -238,7 +238,7 @@ class Line:
         if env is not None:
             self.env = env
             self._var_management = env._var_management
-
+            self._element_dict = env.element_dict # __init__ makes a copy of the dict
         elif '_var_manager' in dct.keys():
             # reinit env and var management
             self.env = None
