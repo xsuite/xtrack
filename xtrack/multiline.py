@@ -1,4 +1,5 @@
 from .environment import Environment
+from .multiline_legacy import MultilineLegacy
 import xtrack as xt
 
 # For backward compatibility
@@ -22,3 +23,5 @@ class Multiline(Environment):
             return super().from_dict(dct, **kwargs)
         else:
             return xt.MultilineLegacy.from_dict(dct, **kwargs)
+
+    from_madx = MultilineLegacy.from_madx
