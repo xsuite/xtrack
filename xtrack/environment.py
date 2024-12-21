@@ -420,6 +420,46 @@ class Environment:
         else:
             xt.Line.__setitem__(self, key, value)
 
+    def to_dict(self, include_var_management=True):
+
+        out = {}
+        out["elements"] = {k: el.to_dict() for k, el in self.element_dict.items()}
+
+        if self.particle_ref is not None:
+            out['particle_ref'] = self.particle_ref.to_dict()
+        if self._var_management is not None and include_var_management:
+            if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+                raise ValueError('The line is part ot a MultiLine object. '
+                    'To save without expressions please use '
+                    '`line.to_dict(include_var_management=False)`.\n'
+                    'To save also the deferred expressions please save the '
+                    'entire multiline.\n ')
+
+            out.update(self._var_management_to_dict())
+
+        out['lines'] = {}
+
+        for nn, ll in self.lines.items():
+            out['lines'][nn] = ll.to_dict(include_element_dict=False,
+                                        include_var_management=False)
+
+        return out
+
+    @classmethod
+    def from_dict(cls, dct):
+        cls = xt.Environment
+
+        ldummy = xt.Line.from_dict(dct)
+        out = cls(element_dict=ldummy.element_dict, particle_ref=ldummy.particle_ref,
+                _var_management=ldummy._var_management)
+        out._line_vars = xt.line.LineVars(out)
+
+        for nn in dct['lines'].keys():
+            ll = xt.Line.from_dict(dct['lines'][nn], env=out, verbose=False)
+            out[nn] = ll
+
+        return out
+
     element_dict = xt.Line.element_dict
     _xdeps_vref = xt.Line._xdeps_vref
     _xdeps_fref = xt.Line._xdeps_fref
@@ -437,6 +477,7 @@ class Environment:
     get_expr = xt.Line.get_expr
     new_expr = xt.Line.new_expr
     ref_manager = xt.Line.ref_manager
+    _var_management_to_dict = xt.Line._var_management_to_dict
 
 
 class Place:
