@@ -1,1 +1,1 @@
-from .multiline import Multiline, MultiTwiss
+from .multiline import Multiline, MultiTwiss, MultilineLegacy

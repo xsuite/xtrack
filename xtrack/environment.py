@@ -8,7 +8,7 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 from xdeps.refs import is_ref
-from .multiline import Multiline
+from .multiline import MultilineLegacy
 
 ReferType = Literal['entry', 'centre']
 
@@ -536,9 +536,9 @@ class Environment:
     ref_manager = xt.Line.ref_manager
     _var_management_to_dict = xt.Line._var_management_to_dict
 
-    twiss = Multiline.twiss
-    discard_trackers = Multiline.discard_trackers
-    build_trackers = Multiline.build_trackers
+    twiss = MultilineLegacy.twiss
+    discard_trackers = MultilineLegacy.discard_trackers
+    build_trackers = MultilineLegacy.build_trackers
 
 
 class Place:

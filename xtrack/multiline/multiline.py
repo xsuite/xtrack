@@ -6,7 +6,9 @@ import xdeps as xd
 import xobjects as xo
 import xtrack as xt
 
-class Multiline:
+Multiline = None
+
+class MultilineLegacy:
 
     '''
     Class to manage multiple beam lines (they can optionally share the xdeps vars).
