@@ -381,19 +381,19 @@ class Environment:
         components = []
         for name in line.element_names:
             new_name = name
-            if name in self.element_dict:
+            if (name in self.element_dict and not
+                (isinstance(line[name], xt.Marker)
+                and isinstance(self.element_dict.get(name), xt.Marker))):
                 new_name += suffix_for_common_elements
-
-            components.append(new_name)
-
-            # Skip shared markers
-            if (isinstance(line[name], xt.Marker) and
-                    name in isinstance(self.element_dict.get(name), xt.Marker)):
-                continue
 
             self.copy_element_from(name, line, new_name=new_name)
 
-        self.new_line(components=components, name=line_name)
+            components.append(new_name)
+
+        out = self.new_line(components=components, name=line_name)
+
+        if line.particle_ref is not None:
+            out.particle_ref = line.particle_ref.copy()
 
     def _ensure_tracker_consistency(self, buffer):
         for ln in self._lines_weakrefs:
