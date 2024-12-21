@@ -28,7 +28,7 @@ class MultilineLegacy:
         self.line_names = line_names
         line_list = [self.lines[nn] for nn in line_names]
         if link_vars:
-            self._var_sharing = xt.multiline.shared_knobs.VarSharing(
+            self._var_sharing = xt.multiline_legacy.VarSharing(
                 lines=line_list, names=line_names)
             self._multiline_vars = xt.line.LineVars(self)
         else:

@@ -60,7 +60,8 @@ _ALLOWED_ELEMENT_TYPES_IN_NEW = [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole,
                                  xt.Octupole, xt.Cavity, xt.Multipole, xt.Solenoid,
                                  xt.Marker, xt.Replica, xt.XYShift, xt.XRotation,
                                  xt.YRotation, xt.SRotation, xt.LimitRacetrack,
-                                 xt.LimitRectEllipse, xt.LimitRect, xt.LimitEllipse]
+                                 xt.LimitRectEllipse, xt.LimitRect, xt.LimitEllipse,
+                                 xt.RFMultipole]
 
 _ALLOWED_ELEMENT_TYPES_DICT = {'Drift': xt.Drift, 'Bend': xt.Bend,
                                'Quadrupole': xt.Quadrupole, 'Sextupole': xt.Sextupole,
@@ -71,7 +72,8 @@ _ALLOWED_ELEMENT_TYPES_DICT = {'Drift': xt.Drift, 'Bend': xt.Bend,
                                'LimitRectEllipse': xt.LimitRectEllipse,
                                'LimitRect': xt.LimitRect, 'LimitEllipse': xt.LimitEllipse,
                                'XYShift': xt.XYShift, 'XRotation': xt.XRotation,
-                               'YRotation': xt.YRotation, 'SRotation': xt.SRotation}
+                               'YRotation': xt.YRotation, 'SRotation': xt.SRotation,
+                               'RFMultipole': xt.RFMultipole}
 
 _STR_ALLOWED_ELEMENT_TYPES_IN_NEW = ', '.join([tt.__name__ for tt in _ALLOWED_ELEMENT_TYPES_IN_NEW])
 

@@ -720,7 +720,7 @@ class ActionTwiss(xd.Action):
         line = self.line
         kwargs = self.kwargs
 
-        ismultiline = isinstance(line, xt.Multiline)
+        ismultiline = isinstance(line, (xt.Multiline, xt.Environment, xt.MultilineLegacy))
 
         # Forbit specifying init through kwargs for Multiline
         if ismultiline:
@@ -785,7 +785,7 @@ class ActionTwiss(xd.Action):
 
     def run(self, allow_failure=True):
         if self.compensate_radiation_energy_loss:
-            if isinstance(self.line, xt.Multiline):
+            if isinstance(self.line, (xt.Multiline, xt.Environment, xt.MultilineLegacy)):
                 raise NotImplementedError(
                     'Radiation energy loss compensation is not yet supported'
                     ' for Multiline')
@@ -866,7 +866,7 @@ class OptimizeLine(xd.Optimize):
                 tt.tar = (tt_name, tt_at)
 
             # Handle value
-            if isinstance(tt.value, xt.multiline.MultiTwiss):
+            if isinstance(tt.value, xt.MultiTwiss):
                 tt.value=tt.value[tt.line][tt.tar]
             if isinstance(tt.value, xt.TwissTable):
                 if isinstance(tt.tar, tuple) and tt.tar[1] == '_end_point':

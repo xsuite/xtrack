@@ -438,6 +438,8 @@ class Environment:
 
             out.update(self._var_management_to_dict())
 
+        out['xsuite_data_type'] = 'Environment'
+
         out['lines'] = {}
 
         for nn, ll in self.lines.items():
@@ -539,6 +541,7 @@ class Environment:
     twiss = MultilineLegacy.twiss
     discard_trackers = MultilineLegacy.discard_trackers
     build_trackers = MultilineLegacy.build_trackers
+    match = MultilineLegacy.match
 
 
 class Place:
