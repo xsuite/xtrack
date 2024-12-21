@@ -29,7 +29,7 @@ from .pipeline import (PipelineStatus, PipelineMultiTracker, PipelineBranch,
 
 from .monitors import *
 from . import linear_normal_form
-from .multiline import Multiline, MultiTwiss
+from .multiline_legacy import MultilineLegacy, MultiTwiss
 
 from .mad_loader import MadLoader
 
@@ -46,6 +46,8 @@ from .loss_location_refinement import _skip_in_loss_location_refinement
 from .trajectory_correction import TrajectoryCorrection
 from .mad_parser.loader import load_madx_lattice
 from . import json
+
+from .multiline import Multiline
 
 from xdeps import Table, FunctionPieceWiseLinear
 

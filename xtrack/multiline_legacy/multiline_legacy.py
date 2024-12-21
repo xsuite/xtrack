@@ -6,8 +6,6 @@ import xdeps as xd
 import xobjects as xo
 import xtrack as xt
 
-Multiline = None
-
 class MultilineLegacy:
 
     '''

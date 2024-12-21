@@ -8,7 +8,7 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 from xdeps.refs import is_ref
-from .multiline import MultilineLegacy
+from .multiline_legacy.multiline_legacy import MultilineLegacy
 
 ReferType = Literal['entry', 'centre']
 
