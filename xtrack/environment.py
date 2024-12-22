@@ -546,13 +546,17 @@ class Environment:
     def line_names(self):
         return list(self.lines.keys())
 
+    @property
+    def functions(self):
+        return self._xdeps_fref
+
     def __getattr__(self, key):
         if key == 'lines':
             return object.__getattribute__(self, 'lines')
         if key in self.lines:
             return self.lines[key]
         else:
-            raise AttributeError(f"Multiline object has no attribute `{key}`.")
+            raise AttributeError(f"Environment object has no attribute `{key}`.")
 
     def __dir__(self):
         return [nn for nn  in list(self.lines.keys()) if '.' not in nn
@@ -581,6 +585,7 @@ class Environment:
     discard_trackers = MultilineLegacy.discard_trackers
     build_trackers = MultilineLegacy.build_trackers
     match = MultilineLegacy.match
+    match_knob = MultilineLegacy.match_knob
     from_madx = MultilineLegacy.from_madx
     install_beambeam_interactions = MultilineLegacy.install_beambeam_interactions
     configure_beambeam_interactions =  MultilineLegacy.configure_beambeam_interactions
