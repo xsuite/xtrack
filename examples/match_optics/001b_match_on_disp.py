@@ -6,7 +6,7 @@ import xtrack._temp.lhc_match as lm
 
 default_tol = {None: 1e-8, 'betx': 1e-6, 'bety': 1e-6} # to have no rematching w.r.t. madx
 
-collider = xt.Multiline.from_json(
+collider = xt.Environment.from_json(
     "../../test_data/hllhc15_thick/hllhc15_collider_thick.json")
 collider.build_trackers()
 collider.vars.load_madx_optics_file(

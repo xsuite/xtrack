@@ -13,7 +13,7 @@ orbit_settings = {
 
 # Generate Xsuite maps
 
-collider = xt.Multiline.from_json(
+collider = xt.Environment.from_json(
     '../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
 collider.vars.update(orbit_settings)
 collider['lhcb1'].twiss_default['method'] = '4d'

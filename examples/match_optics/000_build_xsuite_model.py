@@ -38,7 +38,7 @@ for ll in [line1, line4]:
         ee_elen = ll[nn].length
         ll.element_dict[nn] = xt.Drift(length=ee_elen)
 
-collider = xt.Multiline(lines={'lhcb1':line1,'lhcb2':line4})
+collider = xt.Environment(lines={'lhcb1':line1,'lhcb2':line4})
 collider.lhcb1.particle_ref=xt.Particles(mass0=xt.PROTON_MASS_EV,p0c=7000e9)
 collider.lhcb2.particle_ref=xt.Particles(mass0=xt.PROTON_MASS_EV,p0c=7000e9)
 

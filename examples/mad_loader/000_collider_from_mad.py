@@ -1,6 +1,6 @@
 import xtrack as xt
 
-lhc = xt.Multiline.from_madx('job.madx')
+lhc = xt.Environment.from_madx('job.madx')
 
 
 # mad = Madx()
@@ -24,4 +24,4 @@ lhc = xt.Multiline.from_madx('job.madx')
 #     if mad.sequence[nn].beam.bv == -1:
 #         lines[nn].twiss_default['reverse'] = True
 
-# multiline = xt.Multiline(lines=lines)
+# multiline = xt.Environment(lines=lines)
