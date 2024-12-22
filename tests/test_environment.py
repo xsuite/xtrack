@@ -1764,7 +1764,7 @@ def test_select_in_multiline():
     collider_file = test_data_folder / 'hllhc15_collider/collider_00_from_mad.json'
 
     # Load the machine and select line
-    collider= xt.Multiline.from_json(collider_file)
+    collider= xt.Environment.from_json(collider_file)
     collider.vars['test_vars'] = 3.1416
     line   = collider[seq]
     line_sel    = line.select(s_marker,e_marker)

@@ -17,7 +17,7 @@ def test_mad_writer(case):
         line = xt.Line.from_json(
             test_data_folder / 'hllhc15_thick/lhc_thick_with_knobs.json')
     else:
-        line = xt.Multiline.from_json(
+        line = xt.Environment.from_json(
             test_data_folder / 'hllhc15_collider/collider_00_from_mad.json').lhcb1
         # Rotations not supported in thin
         for nn in list(line.element_names):

@@ -533,7 +533,7 @@ def test_selective_expr_import_and_replace_in_expr():
 
 
 def test_load_madx_optics_file():
-    collider = xt.Multiline.from_json(
+    collider = xt.Environment.from_json(
         test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers()
 

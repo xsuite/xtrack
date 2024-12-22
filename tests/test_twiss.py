@@ -448,7 +448,7 @@ def test_hide_thin_groups():
 
 @for_all_test_contexts
 def test_periodic_cell_twiss(test_context):
-    collider = xt.Multiline.from_json(test_data_folder /
+    collider = xt.Environment.from_json(test_data_folder /
                     'hllhc15_collider/collider_00_from_mad.json')
     collider.build_trackers(_context=test_context)
 
@@ -574,7 +574,7 @@ def test_periodic_cell_twiss(test_context):
 @pytest.fixture(scope='module')
 def collider_for_test_twiss_range():
 
-    collider = xt.Multiline.from_json(test_data_folder /
+    collider = xt.Environment.from_json(test_data_folder /
                     'hllhc15_thick/hllhc15_collider_thick.json')
     collider.lhcb1.twiss_default['method'] = '4d'
     collider.lhcb2.twiss_default['method'] = '4d'
@@ -599,7 +599,7 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
         collider = collider_for_test_twiss_range
     else:
         raise ValueError('This should not happen')
-        collider = xt.Multiline.from_json(test_data_folder /
+        collider = xt.Environment.from_json(test_data_folder /
                         'hllhc15_thick/hllhc15_collider_thick.json')
         collider.lhcb1.twiss_default['method'] = '4d'
         collider.lhcb2.twiss_default['method'] = '4d'
@@ -1237,7 +1237,7 @@ def test_custom_twiss_init(test_context):
 @for_all_test_contexts
 def test_crab_dispersion(test_context):
 
-    collider = xt.Multiline.from_json(test_data_folder /
+    collider = xt.Environment.from_json(test_data_folder /
                         'hllhc15_collider/collider_00_from_mad.json')
     collider.build_trackers(_context=test_context)
 
@@ -1286,7 +1286,7 @@ def test_crab_dispersion(test_context):
 @for_all_test_contexts
 def test_momentum_crab_dispersion(test_context):
 
-    collider = xt.Multiline.from_json(test_data_folder /
+    collider = xt.Environment.from_json(test_data_folder /
                         'hllhc15_collider/collider_00_from_mad.json')
     collider.build_trackers(_context=test_context)
 
@@ -1364,7 +1364,7 @@ def test_twiss_init_file(test_context):
 @for_all_test_contexts
 def test_custom_twiss_init(test_context):
 
-    collider = xt.Multiline.from_json(
+    collider = xt.Environment.from_json(
         test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.json')
 
     collider.lhcb1.slice_thick_elements(
@@ -1516,7 +1516,7 @@ def test_custom_twiss_init(test_context):
 @for_all_test_contexts
 def test_adaptive_steps_for_rmatrix(test_context):
 
-    collider = xt.Multiline.from_json(
+    collider = xt.Environment.from_json(
         test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers(_context=test_context)
     collider.lhcb1.twiss_default['method'] = '4d'
@@ -1702,7 +1702,7 @@ def test_twiss_strength_reverse_vs_madx(test_context):
     twm1 = xt.Table(mad1.table.twisslhcb1)
     twm2 = xt.Table(mad1.table.twisslhcb2)
 
-    collider = xt.Multiline.from_madx(madx=mad1)
+    collider = xt.Environment.from_madx(madx=mad1)
     collider.build_trackers(_context=test_context)
     tw = collider.twiss(strengths=True, method='4d')
 

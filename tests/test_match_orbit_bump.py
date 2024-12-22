@@ -266,7 +266,7 @@ def test_match_orbit_bump_within_multiline(test_context):
     with open(filename, 'r') as fid:
         dct = json.load(fid)
     line = xt.Line.from_dict(dct)
-    collider = xt.Multiline(
+    collider = xt.Environment(
         lines={'lhcb1': line}
     )
 
@@ -710,7 +710,7 @@ def test_match_bump_sets_init_table(test_context):
 @for_all_test_contexts
 def test_match_bump_common_elements(test_context):
     # Load a line and build a tracker
-    collider = xt.Multiline.from_json(test_data_folder /
+    collider = xt.Environment.from_json(test_data_folder /
                         'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers(test_context)
 
@@ -754,7 +754,7 @@ def test_match_bump_common_elements(test_context):
 @for_all_test_contexts
 def test_match_bump_common_elements_callables_and_inequalities(test_context):
     # Load a line and build a tracker
-    collider = xt.Multiline.from_json(test_data_folder /
+    collider = xt.Environment.from_json(test_data_folder /
                         'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers(test_context)
 
@@ -803,7 +803,7 @@ def test_match_bump_common_elements_callables_and_inequalities(test_context):
 @for_all_test_contexts
 def test_match_bump_common_elements_targets_from_tables(test_context):
     # Load a line and build a tracker
-    collider = xt.Multiline.from_json(test_data_folder /
+    collider = xt.Environment.from_json(test_data_folder /
                         'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers(test_context)
 

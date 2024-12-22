@@ -773,7 +773,7 @@ def test_pickle():
 
     line.discard_tracker()
 
-    collider = xt.Multiline(lines={'lhcb1': line})
+    collider = xt.Environment(lines={'lhcb1': line})
     collider.build_trackers()
 
     colliderss = pickle.dumps(collider)
@@ -1054,7 +1054,7 @@ def test_multiple_thick_elements():
 
 @for_all_test_contexts
 def test_get_strengths(test_context):
-    collider = xt.Multiline.from_json(
+    collider = xt.Environment.from_json(
         test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers(_context=test_context)
 
