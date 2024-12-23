@@ -659,14 +659,20 @@ def _all_places(seq):
 #         return line[name].length
 
 
-def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center'):
+def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
+                         allow_duplicate_places=True):
 
+    # Handle duplicate places
     if len(seq_all_places) != len(set(seq_all_places)):
-        seq_all_places = [ss.copy() for ss in seq_all_places]
+        if allow_duplicate_places:
+            # Make copies
+            seq_all_places = [ss.copy() for ss in seq_all_places]
+        else:
+            raise ValueError('Duplicate places detected and `allow_duplicates` is False')
 
     names_unsorted = [ss.name for ss in seq_all_places]
 
-    # identify duplicates
+    # Handle duplicate names
     if len(names_unsorted) != len(set(names_unsorted)):
         counter = Counter(names_unsorted)
         duplicates = set([name for name, count in counter.items() if count > 1])
@@ -677,6 +683,7 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center'):
     aux_tt = aux_line.get_table()
     aux_tt['length'] = np.diff(aux_tt._data['s'], append=0)
     aux_tt.name = aux_tt.env_name  # I want the repeated names here
+    aux_tt['place_obj'] = np.array(seq_all_places + [None])
 
     s_center_for_place = {}
     s_entry_for_place = {}  # entry positions calculated assuming at is also pointing to entry
