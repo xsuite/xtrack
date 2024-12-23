@@ -48,10 +48,20 @@ line_places = []
 for nn in tt.name:
     if nn == '_end_point':
         continue
-    if not _is_drift(line.element_dict[nn], line):
-        line_places.append(env.place(nn, tt['s_center', nn]))
+    # if _is_drift(line.element_dict[nn], line):
+    #     continue
+    line_places.append(env.place(nn, tt['s_center', nn]))
 
 seq_all_places = _all_places(line_places + what)
 
 tab_sorted = _resolve_s_positions(seq_all_places, env, refer='centre',
                                   allow_duplicate_places=False)
+
+assert len(seq_all_places) == len(tab_sorted)
+
+idx_insertions = []
+for ii in range(len(tab_sorted)):
+    if tab_sorted['place_obj', ii] in what:
+        idx_insertions.append(ii)
+
+tab_insertions = tab_sorted.rows[idx_insertions]
