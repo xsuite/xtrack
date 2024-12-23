@@ -13,6 +13,13 @@ import numpy as np
 # - Sort out center/centre
 # - What happens with repeated elements
 
+def _add_entry_exit_center(tt):
+    tt['length'] = np.diff(tt._data['s'], append=0)
+    tt['s_center'] = tt.s + 0.5 * tt.length
+    tt['s_entry'] = tt.s
+    tt['s_exit'] = tt.s + tt.length
+
+
 env = xt.Environment()
 
 line = env.new_line(
@@ -43,8 +50,7 @@ if len(what) != len(set(what)):
 
 # Resolve s positions
 tt = line.get_table()
-tt['length'] = np.diff(tt._data['s'], append=0)
-tt['s_center'] = tt.s + 0.5 * tt.length
+_add_entry_exit_center(tt)
 
 line_places = []
 for nn in tt.name:
@@ -74,4 +80,17 @@ s_cuts = list(tab_insertions['s_entry']) + list(tab_insertions['s_exit'])
 s_cuts = list(set(s_cuts))
 line.cut_at_s(s_cuts, s_tol=1e-06)
 
-# Get rid of old elements falling inside the insertions
+tt_after_cut = line.get_table()
+_add_entry_exit_center(tt_after_cut)
+
+# Identify old elements falling inside the insertions
+idx_remove = []
+for ii in range(len(tab_insertions)):
+    s_ins_entry = tab_insertions['s_entry', ii]
+    s_ins_exit = tab_insertions['s_exit', ii]
+    entry_is_inside = ((tt_after_cut.s_entry > s_ins_entry + s_tol)
+                     & (tt_after_cut.s_entry < s_ins_exit - s_tol))
+    exit_is_inside =  ((tt_after_cut.s_exit > s_ins_entry + s_tol)
+                     & (tt_after_cut.s_exit < s_ins_exit - s_tol))
+    idx_remove.extend(list(np.where(entry_is_inside | exit_is_inside)[0]))
+
