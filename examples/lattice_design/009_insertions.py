@@ -88,9 +88,12 @@ idx_remove = []
 for ii in range(len(tab_insertions)):
     s_ins_entry = tab_insertions['s_entry', ii]
     s_ins_exit = tab_insertions['s_exit', ii]
-    entry_is_inside = ((tt_after_cut.s_entry > s_ins_entry + s_tol)
-                     & (tt_after_cut.s_entry < s_ins_exit - s_tol))
-    exit_is_inside =  ((tt_after_cut.s_exit > s_ins_entry + s_tol)
-                     & (tt_after_cut.s_exit < s_ins_exit - s_tol))
+
+    entry_is_inside = ((tt_after_cut.s_entry >= s_ins_entry - s_tol)
+                     & (tt_after_cut.s_entry <= s_ins_exit - s_tol))
+    exit_is_inside = ((tt_after_cut.s_exit >= s_ins_entry + s_tol)
+                    & (tt_after_cut.s_exit <= s_ins_exit + s_tol))
     idx_remove.extend(list(np.where(entry_is_inside | exit_is_inside)[0]))
+
+# TODO: Remember to handle adjacent markers
 
