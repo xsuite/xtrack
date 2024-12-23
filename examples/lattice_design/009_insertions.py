@@ -22,6 +22,8 @@ line = env.new_line(
         env.new('qr', 'Quadrupole', length=2.0, at=10.0, from_='q0'),
     ])
 
+s_tol = 1e-10
+
 _is_drift = xt.line._is_drift
 _all_places = xt.environment._all_places
 _resolve_s_positions = xt.environment._resolve_s_positions
@@ -39,10 +41,10 @@ what = [
 if len(what) != len(set(what)):
     what = [ww.copy() for ww in what]
 
+# Resolve s positions
 tt = line.get_table()
 tt['length'] = np.diff(tt._data['s'], append=0)
 tt['s_center'] = tt.s + 0.5 * tt.length
-
 
 line_places = []
 for nn in tt.name:
@@ -55,13 +57,21 @@ for nn in tt.name:
 seq_all_places = _all_places(line_places + what)
 
 tab_sorted = _resolve_s_positions(seq_all_places, env, refer='centre',
+                                  # I will use the ids of the places afterwards, hence:
                                   allow_duplicate_places=False)
 
 assert len(seq_all_places) == len(tab_sorted)
 
+# Get table with new insertions only
 idx_insertions = []
 for ii in range(len(tab_sorted)):
     if tab_sorted['place_obj', ii] in what:
         idx_insertions.append(ii)
-
 tab_insertions = tab_sorted.rows[idx_insertions]
+
+# Make cuts
+s_cuts = list(tab_insertions['s_entry']) + list(tab_insertions['s_exit'])
+s_cuts = list(set(s_cuts))
+line.cut_at_s(s_cuts, s_tol=1e-06)
+
+# Get rid of old elements falling inside the insertions
