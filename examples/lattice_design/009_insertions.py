@@ -13,8 +13,10 @@ import numpy as np
 # - Sort out center/centre
 # - What happens with repeated elements
 
+# General rule: I want to keep anything I can!
+
 def _add_entry_exit_center(tt):
-    tt['length'] = np.diff(tt._data['s'], append=0)
+    tt['length'] = np.diff(tt['s'], append=tt['s'][-1])
     tt['s_center'] = tt.s + 0.5 * tt.length
     tt['s_entry'] = tt.s
     tt['s_exit'] = tt.s + tt.length
@@ -97,3 +99,13 @@ for ii in range(len(tab_insertions)):
 
 # TODO: Remember to handle adjacent markers
 
+places_to_keep = []
+for ii in range(len(tt_after_cut)):
+    nn = tt_after_cut['name', ii]
+    if ii in idx_remove:
+        continue
+    if nn == '_end_point':
+        continue
+    places_to_keep.append(env.place(nn, at=tt_after_cut['s_center', ii]))
+
+l_aux = env.new_line(components=[places_to_keep + what])
