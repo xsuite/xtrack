@@ -31,6 +31,7 @@ line = env.new_line(
         env.new('qr', 'Quadrupole', length=2.0, at=10.0, from_='q0'),
         env.new('mk1', 'Marker', at=40),
         env.new('mk2', 'Marker', at=42),
+        env.new('end', 'Marker', at=50.),
     ])
 
 s_tol = 1e-10
@@ -95,12 +96,16 @@ idx_remove = []
 for ii in range(len(tab_insertions)):
     s_ins_entry = tab_insertions['s_entry', ii]
     s_ins_exit = tab_insertions['s_exit', ii]
-
     entry_is_inside = ((tt_after_cut.s_entry >= s_ins_entry - s_tol)
                      & (tt_after_cut.s_entry <= s_ins_exit - s_tol))
     exit_is_inside = ((tt_after_cut.s_exit >= s_ins_entry + s_tol)
                     & (tt_after_cut.s_exit <= s_ins_exit + s_tol))
-    idx_remove.extend(list(np.where(entry_is_inside | exit_is_inside)[0]))
+    thin_at_entry = ((tt_after_cut.s_entry >= s_ins_entry - s_tol)
+                    & (tt_after_cut.s_exit <= s_ins_entry + s_tol))
+    thin_at_exit = ((tt_after_cut.s_entry >= s_ins_exit - s_tol)
+                  & (tt_after_cut.s_exit <= s_ins_exit + s_tol))
+    remove = (entry_is_inside | exit_is_inside) & (~thin_at_entry) & (~thin_at_exit)
+    idx_remove.extend(list(np.where(remove)[0]))
 
 # TODO: Remember to handle adjacent markers
 
@@ -114,3 +119,7 @@ for ii in range(len(tt_after_cut)):
     places_to_keep.append(env.place(nn, at=tt_after_cut['s_center', ii]))
 
 l_aux = env.new_line(components=[places_to_keep + what])
+
+line.discard_tracker()
+line.element_names.clear()
+line.element_names.extend(l_aux.element_names)
