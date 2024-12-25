@@ -29,7 +29,7 @@ def _argsort(seq, tol=10e-10):
 
 
 def _flatten_components(components, refer: ReferType = 'center'):
-    if refer not in {'entry', 'center', 'exit'}:
+    if refer not in {'entry', 'center', 'centre', 'exit'}:
         raise ValueError(
             f'Allowed values for refer are "entry", "center" and "exit". Got "{refer}".'
         )
@@ -50,7 +50,7 @@ def _flatten_components(components, refer: ReferType = 'center'):
                     at = line._xdeps_eval.eval(nn.at)
                 else:
                     at = nn.at
-                if refer == 'center':
+                if refer == 'center' or refer == 'centre':
                     at_first_element = at - line.get_length() / 2 + line[0].length / 2
                 else:
                     at_first_element = at
@@ -653,15 +653,36 @@ def _all_places(seq):
 #     else:
 #         return line[name].length
 
-def _compute_one_s(at, anchor, from_anchor, self_length, from_length, s_from_entry):
+def _compute_one_s(at, anchor, from_anchor, self_length, from_length, s_entry_from,
+                   default_anchor):
 
-    assert 
+    if is_ref(at):
+        at = at._value
 
-    s_from = s_from_entry
-    if from_anchor
+    if anchor is None:
+        anchor = default_anchor
 
+    if from_anchor is None:
+        from_anchor = default_anchor
 
+    s_from = 0
+    if from_length is not None:
+        s_from = s_entry_from
 
+    if from_anchor == 'center' or from_anchor == 'centre':
+        s_from += from_length / 2
+    elif from_anchor == 'exit':
+        s_from += from_length
+
+    ds_self = 0
+    if anchor == 'center' or anchor=='centre':
+        ds_self = self_length / 2
+    elif anchor == 'exit':
+        ds_self = self_length
+
+    s_entry_self = s_from + at - ds_self
+
+    return s_entry_self
 
 def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
                          allow_duplicate_places=True):
@@ -689,9 +710,7 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
     aux_tt.name = aux_tt.env_name  # I want the repeated names here
     aux_tt['place_obj'] = np.array(seq_all_places + [None])
 
-    s_center_for_place = {}
-    s_entry_for_place = {}  # entry positions calculated assuming at is also pointing to entry
-    s_exit_for_place = {}  # exit positions calculated assuming at is also pointing to exit
+    s_entry_for_place = {}  # entry positions
     place_for_name = {}
     n_resolved = 0
     n_resolved_prev = -1
@@ -707,38 +726,20 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
     while n_resolved != n_resolved_prev:
         n_resolved_prev = n_resolved
         for ii, ss in enumerate(seq_all_places):
-            if ss in s_center_for_place:  # Already resolved
+            if ss in s_entry_for_place:  # Already resolved
                 continue
             if ss.at is None and not ss._before:
                 ss_prev = seq_all_places[ii-1]
-                if ss_prev in s_center_for_place:
-                    # in case we want to allow for the length to be an expression
-                    # s_center_dct[ss] = (s_center_dct[ss_prev]
-                    #                         + _length_expr_or_val(ss_prev, aux_line) / 2
-                    #                         + _length_expr_or_val(ss, aux_line) / 2)
-                    s_center_for_place[ss] = (s_center_for_place[ss_prev]
-                                              + aux_tt['length', ss_prev.name] / 2
-                                              + aux_tt['length', ss.name] / 2)
+                if ss_prev in s_entry_for_place:
                     s_entry_for_place[ss] = (s_entry_for_place[ss_prev]
                                              + aux_tt['length', ss_prev.name])
-                    s_exit_for_place[ss] = (s_exit_for_place[ss_prev]
-                                            + aux_tt['length', ss.name])
                     place_for_name[ss.name] = ss
                     n_resolved += 1
             elif ss.at is None and ss._before:
                 ss_next = seq_all_places[ii+1]
-                if ss_next in s_center_for_place:
-                    # in case we want to allow for the length to be an expression
-                    # s_center_dct[ss] = (s_center_dct[ss_next]
-                    #                         - _length_expr_or_val(ss_next, aux_line) / 2
-                    #                         - _length_expr_or_val(ss, aux_line) / 2)
-                    s_center_for_place[ss] = (s_center_for_place[ss_next]
-                                              - aux_tt['length', ss_next.name] / 2
-                                              - aux_tt['length', ss.name] / 2)
+                if ss_next in s_entry_for_place:
                     s_entry_for_place[ss] = (s_entry_for_place[ss_next]
                                             - aux_tt['length', ss.name])
-                    s_exit_for_place[ss] = (s_exit_for_place[ss_next]
-                                            - aux_tt['length', ss_next.name])
                     place_for_name[ss.name] = ss
                     n_resolved += 1
             else:
@@ -747,89 +748,47 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
                 else:
                     at = ss.at
 
-                if ss.from_ is None:
-                    s_center_for_place[ss] = at
-                    s_entry_for_place[ss] = at
-                    s_exit_for_place[ss] = at
-                    place_for_name[ss.name] = ss
-                    n_resolved += 1
-                elif ss.from_ in place_for_name:
-                    if ss.from_ in duplicates:
-                        assert ss.name in duplicates, (
-                            f'Cannot resolve from_ for {ss.name} as {ss.from_} is duplicated')
-                    s_center_for_place[ss] = s_center_for_place[place_for_name[ss.from_]] + at
-                    s_entry_for_place[ss] = s_entry_for_place[place_for_name[ss.from_]] + at
-                    s_exit_for_place[ss] = s_exit_for_place[place_for_name[ss.from_]] + at
-                    place_for_name[ss.name] = ss
-                    n_resolved += 1
+                from_length=None
+                s_entry_from=None
+                if ss.from_ is not None:
+                    from_length = aux_tt['length', ss.from_]
+                    s_entry_from=s_entry_for_place[ss]
+
+                s_entry_for_place[ss] = _compute_one_s(at, anchor=ss.anchor,
+                    from_anchor=ss.from_anchor,
+                    self_length=aux_tt['length', ss.name],
+                    from_length=from_length,
+                    s_entry_from=s_entry_from,
+                    default_anchor=refer)
+                place_for_name[ss.name] = ss
+                n_resolved += 1
 
     if n_resolved != len(seq_all_places):
-        unresolved_pos = set(seq_all_places) - set(s_center_for_place.keys())
+        unresolved_pos = set(seq_all_places) - set(s_entry_for_place.keys())
         raise ValueError(f'Could not resolve all s positions: {unresolved_pos}')
 
     if n_resolved != len(seq_all_places):
-        unresolved_pos = set(seq_all_places) - set(s_center_for_place.keys())
+        unresolved_pos = set(seq_all_places) - set(s_entry_for_place.keys())
         raise ValueError(f'Could not resolve all s positions: {unresolved_pos}')
 
-    aux_s_center_expr = np.array([s_center_for_place[ss] for ss in seq_all_places])
-    aux_s_entry_expr = np.array([s_entry_for_place[ss] for ss in seq_all_places])
-    aux_s_exit_expr = np.array([s_exit_for_place[ss] for ss in seq_all_places])
-    aux_s_center = [ss._value if is_ref(ss) else ss for ss in aux_s_center_expr]
-    aux_s_entry = [ss._value if is_ref(ss) else ss for ss in aux_s_entry_expr]
-    aux_s_exit = [ss._value if is_ref(ss) else ss for ss in aux_s_exit_expr]
+    aux_s_entry = np.array([s_entry_for_place[ss] for ss in seq_all_places])
+    aux_tt['s_entry'] = np.concatenate([aux_s_entry, [0]])
 
-    if refer == 'center':
-        aux_tt['s_center'] = np.concatenate([aux_s_center, [0]])
+    i_sorted = _argsort(aux_s_entry)
+    name_sorted = [str(aux_tt.name[ii]) for ii in i_sorted]
 
-        i_sorted = _argsort(aux_s_center)
+    # Temporary, should be replaced by aux_tt.rows[i_sorted], when table is fixed
+    data_sorted = {kk: aux_tt[kk][i_sorted] for kk in aux_tt._col_names}
+    tt_sorted = xt.Table(data_sorted)
 
-        name_sorted = [str(aux_tt.name[ii]) for ii in i_sorted]
-
-        # Temporary, should be replaced by aux_tt.rows[i_sorted], when table is fixed
-        data_sorted = {kk: aux_tt[kk][i_sorted] for kk in aux_tt._col_names}
-        tt_sorted = xt.Table(data_sorted)
-
-        tt_sorted['s_entry'] = tt_sorted['s_center'] - tt_sorted['length'] / 2
-        tt_sorted['s_exit'] = tt_sorted['s_center'] + tt_sorted['length'] / 2
-        anchor_pos_dct = s_center_for_place
-    elif refer == 'entry':
-        aux_tt['s_entry'] = np.concatenate([aux_s_entry, [0]])
-
-        i_sorted = _argsort(aux_s_entry)
-
-        name_sorted = [str(aux_tt.name[ii]) for ii in i_sorted]
-
-        # Temporary, should be replaced by aux_tt.rows[i_sorted], when table is fixed
-        data_sorted = {kk: aux_tt[kk][i_sorted] for kk in aux_tt._col_names}
-        tt_sorted = xt.Table(data_sorted)
-
-        tt_sorted['s_center'] = tt_sorted['s_entry'] + tt_sorted['length'] / 2
-        tt_sorted['s_exit'] = tt_sorted['s_entry'] + tt_sorted['length']
-        anchor_pos_dct = s_entry_for_place
-    elif refer == 'exit':
-        aux_tt['s_exit'] = np.concatenate([aux_s_exit, [0]])
-
-        i_sorted = _argsort(aux_s_exit)
-
-        name_sorted = [str(aux_tt.name[ii]) for ii in i_sorted]
-
-        # Temporary, should be replaced by aux_tt.rows[i_sorted], when table is fixed
-        data_sorted = {kk: aux_tt[kk][i_sorted] for kk in aux_tt._col_names}
-        tt_sorted = xt.Table(data_sorted)
-
-        tt_sorted['s_center'] = tt_sorted['s_exit'] - tt_sorted['length'] / 2
-        tt_sorted['s_entry'] = tt_sorted['s_exit'] - tt_sorted['length']
-        anchor_pos_dct = s_entry_for_place
-    else:
-        raise ValueError(f'Unknown refer value: {refer}')
+    tt_sorted['s_center'] = tt_sorted['s_entry'] + tt_sorted['length'] / 2
+    tt_sorted['s_exit'] = tt_sorted['s_entry'] + tt_sorted['length'] / 2
 
     tt_sorted['ds_upstream'] = 0 * tt_sorted['s_entry']
     tt_sorted['ds_upstream'][1:] = tt_sorted['s_entry'][1:] - tt_sorted['s_exit'][:-1]
     tt_sorted['ds_upstream'][0] = tt_sorted['s_entry'][0]
     tt_sorted['s'] = tt_sorted['s_entry']
     assert np.all(tt_sorted.name == np.array(name_sorted))
-
-    tt_sorted._data['s_entry_dct'] = anchor_pos_dct
 
     return tt_sorted
 
