@@ -696,13 +696,6 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
 
     names_unsorted = [ss.name for ss in seq_all_places]
 
-    # Handle duplicate names
-    if len(names_unsorted) != len(set(names_unsorted)):
-        counter = Counter(names_unsorted)
-        duplicates = set([name for name, count in counter.items() if count > 1])
-    else:
-        duplicates = set()
-
     aux_line = env.new_line(components=names_unsorted, refer=refer)
     aux_tt = aux_line.get_table()
     aux_tt['length'] = np.diff(aux_tt._data['s'], append=0)
@@ -781,7 +774,7 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
     tt_sorted = xt.Table(data_sorted)
 
     tt_sorted['s_center'] = tt_sorted['s_entry'] + tt_sorted['length'] / 2
-    tt_sorted['s_exit'] = tt_sorted['s_entry'] + tt_sorted['length'] / 2
+    tt_sorted['s_exit'] = tt_sorted['s_entry'] + tt_sorted['length']
 
     tt_sorted['ds_upstream'] = 0 * tt_sorted['s_entry']
     tt_sorted['ds_upstream'][1:] = tt_sorted['s_entry'][1:] - tt_sorted['s_exit'][:-1]
