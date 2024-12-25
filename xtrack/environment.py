@@ -668,11 +668,10 @@ def _compute_one_s(at, anchor, from_anchor, self_length, from_length, s_entry_fr
     s_from = 0
     if from_length is not None:
         s_from = s_entry_from
-
-    if from_anchor == 'center' or from_anchor == 'centre':
-        s_from += from_length / 2
-    elif from_anchor == 'exit':
-        s_from += from_length
+        if from_anchor == 'center' or from_anchor == 'centre':
+            s_from += from_length / 2
+        elif from_anchor == 'exit':
+            s_from += from_length
 
     ds_self = 0
     if anchor == 'center' or anchor=='centre':
@@ -752,7 +751,7 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
                 s_entry_from=None
                 if ss.from_ is not None:
                     from_length = aux_tt['length', ss.from_]
-                    s_entry_from=s_entry_for_place[ss]
+                    s_entry_from=s_entry_for_place[place_for_name[ss.from_]]
 
                 s_entry_for_place[ss] = _compute_one_s(at, anchor=ss.anchor,
                     from_anchor=ss.from_anchor,
