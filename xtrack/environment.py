@@ -12,7 +12,7 @@ import xtrack as xt
 from xdeps.refs import is_ref
 from .multiline_legacy.multiline_legacy import MultilineLegacy
 
-ReferType = Literal['entry', 'centre']
+ReferType = Literal['entry', 'center']
 
 
 def _argsort(seq, tol=10e-10):
@@ -28,10 +28,10 @@ def _argsort(seq, tol=10e-10):
     return sorted(seq_indices, key=cmp_to_key(comparator))
 
 
-def _flatten_components(components, refer: ReferType = 'centre'):
-    if refer not in {'entry', 'centre', 'exit'}:
+def _flatten_components(components, refer: ReferType = 'center'):
+    if refer not in {'entry', 'center', 'exit'}:
         raise ValueError(
-            f'Allowed values for refer are "entry", "centre" and "exit". Got "{refer}".'
+            f'Allowed values for refer are "entry", "center" and "exit". Got "{refer}".'
         )
 
     flatt_components = []
@@ -50,7 +50,7 @@ def _flatten_components(components, refer: ReferType = 'centre'):
                     at = line._xdeps_eval.eval(nn.at)
                 else:
                     at = nn.at
-                if refer == 'centre':
+                if refer == 'center':
                     at_first_element = at - line.get_length() / 2 + line[0].length / 2
                 else:
                     at_first_element = at
@@ -224,7 +224,7 @@ class Environment:
         self._line_vars = xt.line.LineVars(self)
 
 
-    def new_line(self, components=None, name=None, refer: ReferType = 'centre'):
+    def new_line(self, components=None, name=None, refer: ReferType = 'center'):
 
         '''
         Create a new line.
@@ -313,7 +313,7 @@ class Environment:
 
         return Place(name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
 
-    def new_builder(self, components=None, name=None, refer: ReferType = 'centre'):
+    def new_builder(self, components=None, name=None, refer: ReferType = 'center'):
         '''
         Create a new builder.
 
@@ -596,11 +596,6 @@ class Place:
 
     def __init__(self, name, at=None, from_=None, anchor=None, from_anchor=None):
 
-        if anchor is not None:
-            raise ValueError('anchor not implemented')
-        if from_anchor is not None:
-            raise ValueError('from_anchor not implemented')
-
         self.name = name
         self.at = at
         self.from_ = from_
@@ -658,6 +653,15 @@ def _all_places(seq):
 #     else:
 #         return line[name].length
 
+def _compute_one_s(at, anchor, from_anchor, self_length, from_length, s_from_entry):
+
+    assert 
+
+    s_from = s_from_entry
+    if from_anchor
+
+
+
 
 def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
                          allow_duplicate_places=True):
@@ -696,16 +700,14 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
 
     if seq_all_places[0].at is None and not seq_all_places[0]._before:
         # In case we want to allow for the length to be an expression
-        s_center_for_place[seq_all_places[0]] = aux_tt['length', seq_all_places[0].name] / 2
         s_entry_for_place[seq_all_places[0]] = 0
-        s_exit_for_place[seq_all_places[0]] = aux_tt['length', seq_all_places[0].name]
         place_for_name[seq_all_places[0].name] = seq_all_places[0]
         n_resolved += 1
 
     while n_resolved != n_resolved_prev:
         n_resolved_prev = n_resolved
         for ii, ss in enumerate(seq_all_places):
-            if ss in s_center_for_place:  # Can this ever happen? We assert no duplicates earlier.
+            if ss in s_center_for_place:  # Already resolved
                 continue
             if ss.at is None and not ss._before:
                 ss_prev = seq_all_places[ii-1]
@@ -776,7 +778,7 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
     aux_s_entry = [ss._value if is_ref(ss) else ss for ss in aux_s_entry_expr]
     aux_s_exit = [ss._value if is_ref(ss) else ss for ss in aux_s_exit_expr]
 
-    if refer == 'centre':
+    if refer == 'center':
         aux_tt['s_center'] = np.concatenate([aux_s_center, [0]])
 
         i_sorted = _argsort(aux_s_center)
@@ -846,7 +848,7 @@ def _generate_element_names_with_drifts(env, tt_sorted, s_tol=1e-10):
 
     return list(map(str, names_with_drifts))
 
-def handle_s_places(seq, env, refer: ReferType = 'centre'):
+def handle_s_places(seq, env, refer: ReferType = 'center'):
 
     if np.array([isinstance(ss, str) for ss in seq]).all():
         return [str(ss) for ss in seq]
@@ -1016,7 +1018,7 @@ def _handle_bend_kwargs(kwargs, _eval, env=None, name=None):
 
 
 class Builder:
-    def __init__(self, env, components=None, name=None, refer: ReferType = 'centre'):
+    def __init__(self, env, components=None, name=None, refer: ReferType = 'center'):
         self.env = env
         self.components = components or []
         self.name = name
