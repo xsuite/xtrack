@@ -670,7 +670,7 @@ class Line:
 
         elements = list(self.elements)
         s_elements = np.array(list(self.get_s_elements()) + [self.get_length()])
-        length_elements = np.diff(s_elements, append=s_elements[-1])
+        length_elements = np.diff(s_elements, append=s_elements[-1]) # only think elements have length here
         s_start = s_elements
         s_end = s_elements + length_elements
         s_center = s_start + 0.5 * length_elements

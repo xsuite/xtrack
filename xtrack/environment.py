@@ -587,6 +587,23 @@ class Place:
 
     def __init__(self, name, at=None, from_=None, anchor=None, from_anchor=None):
 
+        if isinstance(at, str) and '@' in at:
+            at_parts = at.split('@')
+            assert len(at_parts) == 2
+            assert from_ is None
+            assert from_anchor is None
+            at = 0
+            from_ = at_parts[1]
+            from_anchor = at_parts[0]
+
+        if from_ is not None:
+            assert isinstance(from_, str)
+            if '@' in from_:
+                from_parts = from_.split('@')
+                assert len(from_parts) == 2
+                from_ = from_parts[1]
+                from_anchor = from_parts[0]
+
         self.name = name
         self.at = at
         self.from_ = from_
