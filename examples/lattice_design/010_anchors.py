@@ -11,8 +11,9 @@ components=[
 
     env.new('q3', 'Quadrupole', length=2.0, at=20.),
     env.new('q4', 'q3', anchor='start', at=0., from_='q3', from_anchor='end'),
+    env.new('q5', 'q3'),
 
-    # Sandwitch of markers expected [m2.0, m2, m2.1.0, m2.1]
+    # Sandwirch of markers expected [m2.0, m2, m2.1.0, m2.1]
     env.new('m2', 'Marker', at=0., from_='q2', from_anchor='start'),
     env.new('m2_0', 'Marker', at=0., from_='m2', from_anchor='start'),
     env.new('m2_1', 'Marker', at=0., from_='m2', from_anchor='end'),
