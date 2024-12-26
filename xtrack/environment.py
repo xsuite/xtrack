@@ -794,9 +794,9 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
         ss_i = seq_all_places[i]
         ss_j = seq_all_places[j]
 
-        # if ss_i.name.startswith('m2') or ss_j.name.startswith('m2'):
-        #     print(f'COMPARING: {ss_i.name} and {ss_j.name}')
-        #     breakpoint()
+        if ss_i.name.startswith('m2') or ss_j.name.startswith('m2'):
+            print(f'COMPARING: {ss_i.name} and {ss_j.name}')
+            breakpoint()
 
         # Use from_anchor information if present
         if ss_i.from_ is not None and ss_i.from_ == ss_j.name:
@@ -811,13 +811,19 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
             else:
                 return -1
 
+        if ss_i.from_ is not None and ss_j.from_ == ss_i.from_:
+            if ss_i.from_anchor == 'start' and ss_j.from_anchor == 'end':
+                return -1
+            if ss_i.from_anchor == 'end' and ss_j.from_anchor == 'start':
+                return 1
+
         # if ss_i.from_anchor == 'end' and ss_j.from_anchor == 'start':
         #     return -1
 
         # if ss_i.from_anchor == 'start' and ss_j.from_anchor == 'end':
         #     return 1
 
-        if ss_i.from_ is not None and  ss_j.from_ is not None:
+        if ss_i.from_ is not None and ss_j.from_ is not None:
             i_from = np.where(aux_tt.name == ss_i.from_)[0][0]
             j_from = np.where(aux_tt.name == ss_j.from_)[0][0]
             return comparator(i_from, j_from)
