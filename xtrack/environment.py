@@ -96,7 +96,9 @@ class Environment:
         self.__dict__.update(state)
         self._lines_weakrefs = WeakSet()
 
-    def new(self, name, parent, mode=None, at=None, from_=None, extra=None,
+    def new(self, name, parent, mode=None, at=None, from_=None,
+            anchor=None, from_anchor=None,
+            extra=None,
             mirror=False, import_from=None, **kwargs):
 
         '''
@@ -137,9 +139,12 @@ class Environment:
             all_kwargs.pop('self')
             all_kwargs.pop('at')
             all_kwargs.pop('from_')
+            all_kwargs.pop('anchor')
+            all_kwargs.pop('from_anchor')
             all_kwargs.pop('kwargs')
             all_kwargs.update(kwargs)
-            return Place(self.new(**all_kwargs), at=at, from_=from_)
+            return Place(self.new(**all_kwargs), at=at, from_=from_,
+                         anchor=anchor, from_anchor=from_anchor)
 
         _ALLOWED_ELEMENT_TYPES_IN_NEW = xt.line._ALLOWED_ELEMENT_TYPES_IN_NEW
         _ALLOWED_ELEMENT_TYPES_DICT = xt.line._ALLOWED_ELEMENT_TYPES_DICT
