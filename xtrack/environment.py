@@ -781,8 +781,6 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
 
     aux_tt['s_entry'] = np.concatenate([aux_s_entry, [0]])
 
-    i_unsorted = np.arange(len(seq_all_places), dtype=int)
-
     def comparator(i, j):
         # Compare s_center
         s_cen_i = aux_s_center[i]
@@ -811,13 +809,14 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
         elif s_comp_i > s_comp_j:
             return 1
 
-        if ss_i._from is not None and ss._from == ss_j.name:
+        # Use from_anchor information if present
+        if ss_i.from_ is not None and ss.from_ == ss_j.name:
             if ss_i.from_anchor == 'start' or ss_i.from_anchor is None:
                 return -1
             else:
                 return 1
 
-        if ss_j._from is not None and ss._from == ss_i.name:
+        if ss_j.from_ is not None and ss.from_ == ss_i.name:
             if ss_j.from_anchor == 'start' or ss_j.from_anchor is None:
                 return 1
             else:
@@ -825,9 +824,8 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
 
         return 0
 
-
-
-    i_sorted = _argsort(sort_keys)
+    i_unsorted = np.arange(len(seq_all_places), dtype=int)
+    i_sorted = sorted(i_unsorted, key=cmp_to_key(comparator))
     name_sorted = [str(aux_tt.name[ii]) for ii in i_sorted]
 
     # Temporary, should be replaced by aux_tt.rows[i_sorted], when table is fixed
