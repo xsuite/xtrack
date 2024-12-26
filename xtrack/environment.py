@@ -749,6 +749,8 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
                     place_for_name[ss.name] = ss
                     n_resolved += 1
             else:
+                if ss.name == 'm3':
+                    breakpoint()
                 if isinstance(ss.at, str):
                     at = aux_line._xdeps_eval.eval(ss.at)
                 else:
