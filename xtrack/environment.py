@@ -700,7 +700,6 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
     aux_tt = aux_line.get_table()
     aux_tt['length'] = np.diff(aux_tt._data['s'], append=0)
     aux_tt.name = aux_tt.env_name  # I want the repeated names here
-    aux_tt['place_obj'] = np.array(seq_all_places + [None])
 
     s_entry_for_place = {}  # entry positions
     place_for_name = {}
