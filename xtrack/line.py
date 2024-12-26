@@ -670,6 +670,10 @@ class Line:
 
         elements = list(self.elements)
         s_elements = np.array(list(self.get_s_elements()) + [self.get_length()])
+        length_elements = np.diff(s_elements, append=s_elements[-1])
+        s_start = s_elements
+        s_end = s_elements + length_elements
+        s_center = s_start + 0.5 * length_elements
 
         isthick = []
         iscollective = []
@@ -706,7 +710,10 @@ class Line:
             'isreplica': isreplica,
             'parent_name': parent_name,
             'iscollective': iscollective,
-            'element': elements
+            'element': elements,
+            's_start': s_start,
+            's_center': s_center,
+            's_end': s_end,
         }
 
         return out

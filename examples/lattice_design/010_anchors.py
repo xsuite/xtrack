@@ -10,4 +10,4 @@ line = env.new_line(components=[
    env.new('s2', 'Sextupole', length=0.1, anchor='end', at=-1., from_='q2', from_anchor='start'),
 ])
 
-line.get_table().show()
+line.get_table().show(cols=['name', 's_start', 's_end', 's_center'])

@@ -722,7 +722,6 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
     while n_resolved != n_resolved_prev:
         n_resolved_prev = n_resolved
         for ii, ss in enumerate(seq_all_places):
-            breakpoint()
             if ss in s_entry_for_place:  # Already resolved
                 continue
             if ss.at is None and not ss._before:
