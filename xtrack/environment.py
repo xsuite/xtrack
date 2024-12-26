@@ -21,9 +21,16 @@ def _argsort(seq, tol=10e-10):
 
     def comparator(i, j):
         a, b = seq[i], seq[j]
-        if np.abs(a - b) < tol:
-            return 0
-        return -1 if a < b else 1
+        if np.abs(a[0] - b[0]) < tol:
+            out =  0
+            if a[1] < b[1]:
+                out = -1
+            elif a[1] > b[1]:
+                out = 1
+        else:
+            out =  -1 if a[0] < b[0] else 1
+
+        return out
 
     return sorted(seq_indices, key=cmp_to_key(comparator))
 
@@ -711,6 +718,9 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
     n_resolved = 0
     n_resolved_prev = -1
 
+    for ss in seq_all_places:
+        ss._sort_priority = 1.0
+
     assert len(seq_all_places) == len(set(seq_all_places)), 'Duplicate places detected'
 
     if seq_all_places[0].at is None and not seq_all_places[0]._before:
@@ -756,6 +766,14 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
                     from_length=from_length,
                     s_entry_from=s_entry_from,
                     default_anchor=refer)
+
+                if ss.from_ is not None:
+                    priority_of_from = place_for_name[ss.from_]._sort_priority
+                    if ss.from_anchor == 'start':
+                        ss._sort_priority = priority_of_from - priority_of_from * 0.5
+                    elif ss.from_anchor == 'end':
+                        ss._sort_priority = priority_of_from + priority_of_from * 0.5
+
                 place_for_name[ss.name] = ss
                 n_resolved += 1
 
@@ -770,9 +788,13 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
     aux_s_entry = np.array([s_entry_for_place[ss] for ss in seq_all_places])
     aux_s_center = aux_s_entry + aux_tt['length'][:-1] / 2 # Need to sort the centers to avoid issues
                                                            # with thin + thick elements at the same s_entry
+    aux_priority = np.array([ss._sort_priority for ss in seq_all_places])
+
+    sort_keys = [(sc, pp) for sc, pp in zip(aux_s_center, aux_priority)]
+
     aux_tt['s_entry'] = np.concatenate([aux_s_entry, [0]])
 
-    i_sorted = _argsort(aux_s_center)
+    i_sorted = _argsort(sort_keys)
     name_sorted = [str(aux_tt.name[ii]) for ii in i_sorted]
 
     # Temporary, should be replaced by aux_tt.rows[i_sorted], when table is fixed
