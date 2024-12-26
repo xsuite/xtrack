@@ -718,8 +718,8 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
     n_resolved = 0
     n_resolved_prev = -1
 
-    for ss in seq_all_places:
-        ss._sort_priority = [1]
+    for ii, ss in enumerate(seq_all_places):
+        ss._sort_priority = [ii]
 
     assert len(seq_all_places) == len(set(seq_all_places)), 'Duplicate places detected'
 
@@ -797,7 +797,7 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
             this_priority += pp * 0.5**(ii)
         aux_priority.append(this_priority)
 
-    sort_keys = [(sc, pp) for sc, pp in zip(aux_s_center, aux_priority)]
+    sort_keys = [(sc, pp, ss.name) for sc, pp, ss in zip(aux_s_center, aux_priority, seq_all_places)]
     print(sort_keys)
 
     aux_tt['s_entry'] = np.concatenate([aux_s_entry, [0]])
