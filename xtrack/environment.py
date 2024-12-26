@@ -763,9 +763,11 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
         raise ValueError(f'Could not resolve all s positions: {unresolved_pos}')
 
     aux_s_entry = np.array([s_entry_for_place[ss] for ss in seq_all_places])
+    aux_s_center = aux_s_entry + aux_tt['length'][:-1] / 2 # Need to sort the centers to avoid issues
+                                                           # with thin + thick elements at the same s_entry
     aux_tt['s_entry'] = np.concatenate([aux_s_entry, [0]])
 
-    i_sorted = _argsort(aux_s_entry)
+    i_sorted = _argsort(aux_s_center)
     name_sorted = [str(aux_tt.name[ii]) for ii in i_sorted]
 
     # Temporary, should be replaced by aux_tt.rows[i_sorted], when table is fixed
