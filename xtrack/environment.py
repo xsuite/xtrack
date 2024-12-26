@@ -718,9 +718,6 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
     n_resolved = 0
     n_resolved_prev = -1
 
-    for ii, ss in enumerate(seq_all_places):
-        ss._sort_priority = [ii]
-
     assert len(seq_all_places) == len(set(seq_all_places)), 'Duplicate places detected'
 
     if seq_all_places[0].at is None and not seq_all_places[0]._before:
@@ -767,13 +764,6 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
                     s_entry_from=s_entry_from,
                     default_anchor=refer)
 
-                if ss.from_ is not None:
-                    priority_of_from = place_for_name[ss.from_]._sort_priority
-                    if ss.from_anchor == 'start':
-                        ss._sort_priority = priority_of_from + [-1.]
-                    elif ss.from_anchor == 'end':
-                        ss._sort_priority = priority_of_from + [+1.]
-
                 place_for_name[ss.name] = ss
                 n_resolved += 1
 
@@ -789,18 +779,53 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
     aux_s_center = aux_s_entry + aux_tt['length'][:-1] / 2 # Need to sort the centers to avoid issues
                                                            # with thin + thick elements at the same s_entry
 
-    # Build a scalar to sort elements with the same s
-    aux_priority = []
-    for ss in seq_all_places:
-        this_priority = 0
-        for ii, pp in enumerate(ss._sort_priority):
-            this_priority += pp * 0.5**(ii)
-        aux_priority.append(this_priority)
-
-    sort_keys = [(sc, pp, ss.name) for sc, pp, ss in zip(aux_s_center, aux_priority, seq_all_places)]
-    print(sort_keys)
-
     aux_tt['s_entry'] = np.concatenate([aux_s_entry, [0]])
+
+    i_unsorted = np.arange(len(seq_all_places), dtype=int)
+
+    def comparator(i, j):
+        # Compare s_center
+        s_cen_i = aux_s_center[i]
+        s_cen_j = aux_s_center[j]
+        if s_cen_i < s_cen_j:
+            return -1
+        elif s_cen_i > s_cen_j:
+            return 1
+
+        # Compare s_center of from if present
+        ss_i = seq_all_places[i]
+        ss_j = seq_all_places[j]
+        s_comp_i = s_cen_i
+        s_comp_j = s_cen_j
+        if ss_i.from_ is not None:
+            n_from_i = place_for_name[ss_i.from_].name
+            l_from_i = aux_tt['length', n_from_i]
+            s_comp_i = s_entry_for_place[place_for_name[n_from_i]] + l_from_i / 2
+        if ss_j.from_ is not None:
+            n_from_j = place_for_name[ss_j.from_].name
+            l_from_j = aux_tt['length', n_from_j]
+            s_comp_j = s_entry_for_place[place_for_name[n_from_j]] + l_from_j / 2
+
+        if s_comp_i < s_comp_j:
+            return -1
+        elif s_comp_i > s_comp_j:
+            return 1
+
+        if ss_i._from is not None and ss._from == ss_j.name:
+            if ss_i.from_anchor == 'start' or ss_i.from_anchor is None:
+                return -1
+            else:
+                return 1
+
+        if ss_j._from is not None and ss._from == ss_i.name:
+            if ss_j.from_anchor == 'start' or ss_j.from_anchor is None:
+                return 1
+            else:
+                return -1
+
+        return 0
+
+
 
     i_sorted = _argsort(sort_keys)
     name_sorted = [str(aux_tt.name[ii]) for ii in i_sorted]
