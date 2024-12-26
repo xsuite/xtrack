@@ -749,8 +749,6 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
                     place_for_name[ss.name] = ss
                     n_resolved += 1
             else:
-                if ss.name == 'm3':
-                    breakpoint()
                 if isinstance(ss.at, str):
                     at = aux_line._xdeps_eval.eval(ss.at)
                 else:
@@ -772,9 +770,9 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
                 if ss.from_ is not None:
                     priority_of_from = place_for_name[ss.from_]._sort_priority
                     if ss.from_anchor == 'start':
-                        ss._sort_priority = priority_of_from + [-1]
+                        ss._sort_priority = priority_of_from + [-1.]
                     elif ss.from_anchor == 'end':
-                        ss._sort_priority = priority_of_from + [+1]
+                        ss._sort_priority = priority_of_from + [+1.]
 
                 place_for_name[ss.name] = ss
                 n_resolved += 1
