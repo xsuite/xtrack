@@ -14,9 +14,9 @@ components=[
 
     # Sandwitch of markers expected [m2.0, m2, m2.1.0, m2.1]
     env.new('m2', 'Marker', at=0., from_='q2', from_anchor='start'),
-    env.new('m2.0', 'Marker', at=0., from_='m2', from_anchor='start'),
-    env.new('m2.1', 'Marker', at=0., from_='m2', from_anchor='end'),
-    env.new('m2.1.0', 'Marker', at=0., from_='m2.1', from_anchor='start'),
+    env.new('m2_0', 'Marker', at=0., from_='m2', from_anchor='start'),
+    env.new('m2_1', 'Marker', at=0., from_='m2', from_anchor='end'),
+    env.new('m2_1_0', 'Marker', at=0., from_='m2_1', from_anchor='start'),
 
     env.new('m1', 'Marker', at=0., from_='q1', from_anchor='start'),
 
