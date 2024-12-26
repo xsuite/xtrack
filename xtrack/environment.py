@@ -675,13 +675,13 @@ def _compute_one_s(at, anchor, from_anchor, self_length, from_length, s_entry_fr
         s_from = s_entry_from
         if from_anchor == 'center' or from_anchor == 'centre':
             s_from += from_length / 2
-        elif from_anchor == 'exit':
+        elif from_anchor == 'end':
             s_from += from_length
 
     ds_self = 0
     if anchor == 'center' or anchor=='centre':
         ds_self = self_length / 2
-    elif anchor == 'exit':
+    elif anchor == 'end':
         ds_self = self_length
 
     s_entry_self = s_from + at - ds_self
@@ -722,6 +722,7 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
     while n_resolved != n_resolved_prev:
         n_resolved_prev = n_resolved
         for ii, ss in enumerate(seq_all_places):
+            breakpoint()
             if ss in s_entry_for_place:  # Already resolved
                 continue
             if ss.at is None and not ss._before:
