@@ -719,7 +719,7 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
     n_resolved_prev = -1
 
     for ss in seq_all_places:
-        ss._sort_priority = 1.0
+        ss._sort_priority = [1]
 
     assert len(seq_all_places) == len(set(seq_all_places)), 'Duplicate places detected'
 
@@ -770,9 +770,9 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
                 if ss.from_ is not None:
                     priority_of_from = place_for_name[ss.from_]._sort_priority
                     if ss.from_anchor == 'start':
-                        ss._sort_priority = priority_of_from - priority_of_from * 0.5
+                        ss._sort_priority = priority_of_from + [-1]
                     elif ss.from_anchor == 'end':
-                        ss._sort_priority = priority_of_from + priority_of_from * 0.5
+                        ss._sort_priority = priority_of_from + [+1]
 
                 place_for_name[ss.name] = ss
                 n_resolved += 1
@@ -788,9 +788,17 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
     aux_s_entry = np.array([s_entry_for_place[ss] for ss in seq_all_places])
     aux_s_center = aux_s_entry + aux_tt['length'][:-1] / 2 # Need to sort the centers to avoid issues
                                                            # with thin + thick elements at the same s_entry
-    aux_priority = np.array([ss._sort_priority for ss in seq_all_places])
+
+    # Build a scalar to sort elements with the same s
+    aux_priority = []
+    for ss in seq_all_places:
+        this_priority = 0
+        for ii, pp in enumerate(ss._sort_priority):
+            this_priority += pp * 0.5**(ii)
+        aux_priority.append(this_priority)
 
     sort_keys = [(sc, pp) for sc, pp in zip(aux_s_center, aux_priority)]
+    print(sort_keys)
 
     aux_tt['s_entry'] = np.concatenate([aux_s_entry, [0]])
 
