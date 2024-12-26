@@ -696,7 +696,7 @@ def _compute_one_s(at, anchor, from_anchor, self_length, from_length, s_entry_fr
     return s_entry_self
 
 def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
-                         allow_duplicate_places=True):
+                         allow_duplicate_places=True, s_tol=1e-10):
 
     # Handle duplicate places
     if len(seq_all_places) != len(set(seq_all_places)):
@@ -785,9 +785,9 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
         # Compare s_center
         s_cen_i = aux_s_center[i]
         s_cen_j = aux_s_center[j]
-        if s_cen_i < s_cen_j:
+        if s_cen_i < s_cen_j and np.abs(s_cen_i - s_cen_j) > s_tol:
             return -1
-        elif s_cen_i > s_cen_j:
+        elif s_cen_i > s_cen_j and np.abs(s_cen_i - s_cen_j) > s_tol:
             return 1
 
         # Compare s_center of from if present
@@ -804,9 +804,9 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
             l_from_j = aux_tt['length', n_from_j]
             s_comp_j = s_entry_for_place[place_for_name[n_from_j]] + l_from_j / 2
 
-        if s_comp_i < s_comp_j:
+        if s_comp_i < s_comp_j and np.abs(s_comp_i - s_comp_j) > s_tol:
             return -1
-        elif s_comp_i > s_comp_j:
+        elif s_comp_i > s_comp_j and np.abs(s_comp_i - s_comp_j) > s_tol:
             return 1
 
         # Use from_anchor information if present
@@ -822,7 +822,7 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
             else:
                 return -1
 
-        return 0
+        return 0 # Preserve order given by the user
 
     i_unsorted = np.arange(len(seq_all_places), dtype=int)
     i_sorted = sorted(i_unsorted, key=cmp_to_key(comparator))
