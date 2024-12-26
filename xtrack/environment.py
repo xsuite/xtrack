@@ -786,9 +786,27 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
         elif s_cen_i > s_cen_j and np.abs(s_cen_i - s_cen_j) > s_tol:
             return 1
 
-        # Compare s_center of from if present
         ss_i = seq_all_places[i]
         ss_j = seq_all_places[j]
+
+        if ss_i.name.startswith('m2') or ss_j.name.startswith('m2'):
+            print(f'Comparing {ss_i.name} and {ss_j.name}')
+            breakpoint()
+
+        # Use from_anchor information if present
+        if ss_i.from_ is not None and ss_i.from_ == ss_j.name:
+            if ss_i.from_anchor == 'start' or ss_i.from_anchor is None:
+                return -1
+            else:
+                return 1
+
+        if ss_j.from_ is not None and ss_j.from_ == ss_i.name:
+            if ss_j.from_anchor == 'start' or ss_j.from_anchor is None:
+                return 1
+            else:
+                return -1
+
+        # Compare s_center of from if present
         s_comp_i = s_cen_i
         s_comp_j = s_cen_j
         if ss_i.from_ is not None:
@@ -805,18 +823,7 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
         elif s_comp_i > s_comp_j and np.abs(s_comp_i - s_comp_j) > s_tol:
             return 1
 
-        # Use from_anchor information if present
-        if ss_i.from_ is not None and ss.from_ == ss_j.name:
-            if ss_i.from_anchor == 'start' or ss_i.from_anchor is None:
-                return -1
-            else:
-                return 1
 
-        if ss_j.from_ is not None and ss.from_ == ss_i.name:
-            if ss_j.from_anchor == 'start' or ss_j.from_anchor is None:
-                return 1
-            else:
-                return -1
 
         return 0 # Preserve order given by the user
 
