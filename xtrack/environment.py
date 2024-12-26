@@ -14,27 +14,6 @@ from .multiline_legacy.multiline_legacy import MultilineLegacy
 
 ReferType = Literal['entry', 'center']
 
-
-def _argsort(seq, tol=10e-10):
-    """Argsort, but with a tolerance; `sorted` is stable."""
-    seq_indices = np.arange(len(seq))
-
-    def comparator(i, j):
-        a, b = seq[i], seq[j]
-        if np.abs(a[0] - b[0]) < tol:
-            out =  0
-            if a[1] < b[1]:
-                out = -1
-            elif a[1] > b[1]:
-                out = 1
-        else:
-            out =  -1 if a[0] < b[0] else 1
-
-        return out
-
-    return sorted(seq_indices, key=cmp_to_key(comparator))
-
-
 def _flatten_components(components, refer: ReferType = 'center'):
     if refer not in {'entry', 'center', 'centre', 'exit'}:
         raise ValueError(
