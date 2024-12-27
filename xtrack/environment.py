@@ -711,7 +711,10 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
 
     aux_line = env.new_line(components=names_unsorted, refer=refer)
     aux_tt = aux_line.get_table()
-    aux_tt['length'] = np.diff(aux_tt._data['s'], append=0)
+    aux_tt['length'] = np.diff(aux_tt.s, append=aux_tt.s[-1])
+    aux_tt = aux_tt.rows[:-1] # Remove endpoint
+
+    # TODO: Generalize for repeated elements (anchors, etc.)
     aux_tt.name = aux_tt.env_name  # I want the repeated names here
 
     s_entry_for_place = {}  # entry positions
@@ -776,40 +779,67 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
         unresolved_pos = set(seq_all_places) - set(s_entry_for_place.keys())
         raise ValueError(f'Could not resolve all s positions: {unresolved_pos}')
 
+    # Sorting
+
     aux_s_entry = np.array([s_entry_for_place[ss] for ss in seq_all_places])
-    aux_s_center = aux_s_entry + aux_tt['length'][:-1] / 2 # Need to sort the centers to avoid issues
-                                                           # with thin + thick elements at the same s_entry
-    aux_tt['s_entry'] = np.concatenate([aux_s_entry, [0]])
-    aux_tt['from_'] = np.array([ss.from_ for ss in seq_all_places] + [None])
-    aux_tt['from_anchor'] = np.array([ss.from_anchor for ss in seq_all_places] + [None])
+    aux_s_center = aux_s_entry + aux_tt['length'] / 2 # Need to sort the centers to avoid issues
+                                                      # with thin + thick elements at the same s_entry
+    aux_tt['s_entry'] = aux_s_entry
+    aux_tt['s_center'] = aux_s_center
 
-    all_from = set(aux_tt['from_'])
+    aux_tt['from_'] = np.array([ss.from_ for ss in seq_all_places])
+    aux_tt['from_anchor'] = np.array([ss.from_anchor for ss in seq_all_places])
+    aux_tt['i_place'] = np.arange(len(seq_all_places))
 
-    # pack places close to respective from_ element
-    i_being_sorted = np.arange(len(seq_all_places), dtype=int)
+    all_from = []
+    for ss in seq_all_places:
+        if ss.from_ is not None and ss.from_ not in all_from:
+            all_from.append(ss.from_)
+
+    # Sort by s_center
+    # TODO: Account for tolerances!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    iii = np.argsort(aux_tt.s_center, kind='stable')
+    aux_tt = aux_tt.rows[iii]
+
+    group_id = np.zeros(len(aux_tt), dtype=int)
+    group_id[0] = 0
+    for ii in range(1, len(aux_tt)):
+        if abs(aux_tt.s_center[ii] - aux_tt.s_center[ii-1]) < s_tol:
+            group_id[ii] = group_id[ii-1]
+        else:
+            group_id[ii] = group_id[ii-1] + 1
+
+    aux_tt['group_id'] = group_id
+    aux_tt.show(cols=['group_id', 's_center', 'name'])
+    prrrrrr
+
     for nn in all_from:
         if nn is None:
             continue
-        key_nn = np.zeros(len(i_being_sorted), dtype=int)
-
-        name_present = aux_tt['name'][i_being_sorted]
-        from_present = aux_tt['from_'][i_being_sorted]
-        from_anchor_present = aux_tt['from_anchor'][i_being_sorted]
+        name_present = aux_tt['name']
+        from_present = aux_tt['from_']
+        from_anchor_present = aux_tt['from_anchor']
 
         mask_pack_before = (from_present == nn) & (from_anchor_present == 'start')
         mask_pack_after = (from_present == nn) & (from_anchor_present == 'end')
 
         i_nn_present = np.where(name_present == nn)[0][0]
+        key_nn = np.array(np.diff(aux_tt['s_center'], append=aux_tt['s_center'][-1]) == 0,
+                          dtype=int)
         key_nn[i_nn_present] = 0
-        key_nn[:i_nn_present]= -10
-        key_nn[i_nn_present+1:] = +10
-        key_nn[mask_pack_before] = -1
-        key_nn[mask_pack_after] = +1
+        key_nn[:i_nn_present]+= -10
+        key_nn[i_nn_present+1:] += +10
+        key_nn[mask_pack_before] -= -1
+        key_nn[mask_pack_after] -= +1
 
-        i_being_sorted = sorted(i_being_sorted, key=lambda ii: key_nn[ii])
+        iii = np.argsort(key_nn, kind='stable')
+        aux_tt['last_key'] = key_nn
+        aux_tt = aux_tt.rows[iii]
 
-    aux_tt.rows[i_being_sorted].show()
-    breakpoint()
+        aux_tt.show(cols=['last_key', 'name', 'from_', 'from_anchor'])
+        breakpoint()
+
+    prrrr
 
     def comparator(i, j):
         # Compare s_center
