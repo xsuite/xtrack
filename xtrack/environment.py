@@ -823,10 +823,10 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
         # if ss_i.from_anchor == 'start' and ss_j.from_anchor == 'end':
         #     return 1
 
-        if ss_i.from_ is not None and ss_j.from_ is not None:
-            i_from = np.where(aux_tt.name == ss_i.from_)[0][0]
-            j_from = np.where(aux_tt.name == ss_j.from_)[0][0]
-            return comparator(i_from, j_from)
+        # if ss_i.from_ is not None and ss_j.from_ is not None:
+        #     i_from = np.where(aux_tt.name == ss_i.from_)[0][0]
+        #     j_from = np.where(aux_tt.name == ss_j.from_)[0][0]
+        #     return comparator(i_from, j_from)
 
         return 0 # Preserve order given by the user
 
