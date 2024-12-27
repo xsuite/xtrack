@@ -779,8 +779,37 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
     aux_s_entry = np.array([s_entry_for_place[ss] for ss in seq_all_places])
     aux_s_center = aux_s_entry + aux_tt['length'][:-1] / 2 # Need to sort the centers to avoid issues
                                                            # with thin + thick elements at the same s_entry
-
     aux_tt['s_entry'] = np.concatenate([aux_s_entry, [0]])
+    aux_tt['from_'] = np.array([ss.from_ for ss in seq_all_places] + [None])
+    aux_tt['from_anchor'] = np.array([ss.from_anchor for ss in seq_all_places] + [None])
+
+    all_from = set(aux_tt['from_'])
+
+    # pack places close to respective from_ element
+    i_being_sorted = np.arange(len(seq_all_places), dtype=int)
+    for nn in all_from:
+        if nn is None:
+            continue
+        key_nn = np.zeros(len(i_being_sorted), dtype=int)
+
+        name_present = aux_tt['name'][i_being_sorted]
+        from_present = aux_tt['from_'][i_being_sorted]
+        from_anchor_present = aux_tt['from_anchor'][i_being_sorted]
+
+        mask_pack_before = (from_present == nn) & (from_anchor_present == 'start')
+        mask_pack_after = (from_present == nn) & (from_anchor_present == 'end')
+
+        i_nn_present = np.where(name_present == nn)[0][0]
+        key_nn[i_nn_present] = 0
+        key_nn[:i_nn_present]= -10
+        key_nn[i_nn_present+1:] = +10
+        key_nn[mask_pack_before] = -1
+        key_nn[mask_pack_after] = +1
+
+        i_being_sorted = sorted(i_being_sorted, key=lambda ii: key_nn[ii])
+
+    aux_tt.rows[i_being_sorted].show()
+    breakpoint()
 
     def comparator(i, j):
         # Compare s_center
@@ -791,31 +820,31 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
         elif s_cen_i > s_cen_j and np.abs(s_cen_i - s_cen_j) > s_tol:
             return 1
 
-        ss_i = seq_all_places[i]
-        ss_j = seq_all_places[j]
+        # ss_i = seq_all_places[i]
+        # ss_j = seq_all_places[j]
 
-        if ss_i.name.startswith('m2') or ss_j.name.startswith('m2'):
-            print(f'COMPARING: {ss_i.name} and {ss_j.name}')
-            breakpoint()
+        # if ss_i.name.startswith('m2') or ss_j.name.startswith('m2'):
+        #     print(f'COMPARING: {ss_i.name} and {ss_j.name}')
+        #     breakpoint()
 
-        # Use from_anchor information if present
-        if ss_i.from_ is not None and ss_i.from_ == ss_j.name:
-            if ss_i.from_anchor == 'start' or ss_i.from_anchor is None:
-                return -1
-            else:
-                return 1
+        # # Use from_anchor information if present
+        # if ss_i.from_ is not None and ss_i.from_ == ss_j.name:
+        #     if ss_i.from_anchor == 'start' or ss_i.from_anchor is None:
+        #         return -1
+        #     else:
+        #         return 1
 
-        if ss_j.from_ is not None and ss_j.from_ == ss_i.name:
-            if ss_j.from_anchor == 'start' or ss_j.from_anchor is None:
-                return 1
-            else:
-                return -1
+        # if ss_j.from_ is not None and ss_j.from_ == ss_i.name:
+        #     if ss_j.from_anchor == 'start' or ss_j.from_anchor is None:
+        #         return 1
+        #     else:
+        #         return -1
 
-        if ss_i.from_ is not None and ss_j.from_ == ss_i.from_:
-            if ss_i.from_anchor == 'start' and ss_j.from_anchor == 'end':
-                return -1
-            if ss_i.from_anchor == 'end' and ss_j.from_anchor == 'start':
-                return 1
+        # if ss_i.from_ is not None and ss_j.from_ == ss_i.from_:
+        #     if ss_i.from_anchor == 'start' and ss_j.from_anchor == 'end':
+        #         return -1
+        #     if ss_i.from_anchor == 'end' and ss_j.from_anchor == 'start':
+        #         return 1
 
         # if ss_i.from_anchor == 'end' and ss_j.from_anchor == 'start':
         #     return -1
@@ -830,8 +859,7 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
 
         return 0 # Preserve order given by the user
 
-    i_unsorted = np.arange(len(seq_all_places), dtype=int)
-    i_sorted = sorted(i_unsorted, key=cmp_to_key(comparator))
+    i_sorted = sorted(i_being_sorted, key=cmp_to_key(comparator))
     name_sorted = [str(aux_tt.name[ii]) for ii in i_sorted]
 
     # Temporary, should be replaced by aux_tt.rows[i_sorted], when table is fixed
