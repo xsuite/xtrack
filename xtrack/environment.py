@@ -814,26 +814,52 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
 
     n_places = len(seq_all_places)
     i_start_group = 0
-    i_end_group = 0
     names_sorted = []
-    while i_end_group < n_places:
+    while i_start_group < n_places:
         i_group = aux_tt['group_id', i_start_group]
+        i_end_group = i_start_group + 1
         while i_end_group < n_places and aux_tt['group_id', i_end_group] == i_group:
             i_end_group += 1
         print(f'Group {i_group}: {aux_tt.name[i_start_group:i_end_group]}')
 
-        if i_end_group - i_start_group == 1: # Single element
-            i_start_group = i_end_group
+        n_group = i_end_group - i_start_group
+        if n_group == 1: # Single element
             names_sorted.append(aux_tt.name[i_start_group])
+            i_start_group = i_end_group
             continue
 
         tt_group = aux_tt.rows[i_start_group:i_end_group]
         tt_group.show(cols=['s_center', 'name', 'from_', 'from_anchor'])
 
-        prrrrrr
+        for ff in tt_group.from_:
+            i_from_global = aux_tt.rows.indices[ff][0] - i_start_group
+            key_sort = np.zeros(n_group, dtype=int)
+
+            if i_from_global < 0:
+                key_sort[:] = 2
+            elif i_from_global >= n_group:
+                key_sort[:] = -2
+            else:
+                i_local = tt_group.rows.indices[ff][0] # I need to use this because it might change in the group resortings
+                key_sort[i_local] = 0
+                key_sort[:i_local] = -2
+                key_sort[i_local+1:] = 2
+
+            from_present = tt_group['from_']
+            from_anchor_present = tt_group['from_anchor']
+
+            mask_pack_before = (from_present == ff) & (from_anchor_present == 'start')
+            mask_pack_after = (from_present == ff) & (from_anchor_present == 'end')
+            key_sort[mask_pack_before] = -1
+            key_sort[mask_pack_after] = 1
+
+            # tt_group[f'key_sort_{ff}'] = key_sort
+            tt_group = tt_group.rows[np.argsort(key_sort, kind='stable')]
+
+        tt_group.show(cols=['s_center', 'name', 'from_', 'from_anchor'])
         i_start_group = i_end_group
 
-    prrrrrr
+    prrrr
 
     for nn in all_from:
         if nn is None:
