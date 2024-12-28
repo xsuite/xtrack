@@ -812,7 +812,9 @@ def _sort_places(tt_unsorted, s_tol=1e-10):
     tt_s_sorted['group_id'] = group_id
     # tt_s_sorted.show(cols=['group_id', 's_center', 'name', 'from_', 'from_anchor', 'i_place'])
 
-    # cache indices
+    # cache indices (indices will change but only within groups, so no need to update in the loop)
+    # This trick gives me x40 speedup compared to using tt_s_sorted.rows.indices
+    # at each iteration.
     ind_name = {nn: ii for ii, nn in enumerate(tt_s_sorted.name)}
 
     n_places = len(tt_s_sorted)
