@@ -12,7 +12,16 @@ env.new_line(name='l1', components=[
 ])
 
 # Test absolute anchor of start 'l1'
-
 env.new_line(name='lstart', components=[
     env.place('l1', anchor='start', at=10.),
+])
+
+# Test absolute anchor of end 'l1'
+env.new_line(name='lend', components=[
+    env.place('l1', anchor='end', at=40.),
+])
+
+# Test absolute anchor of center 'l1'
+env.new_line(name='lcenter', components=[
+    env.place('l1', anchor='center', at=25.),
 ])

@@ -21,7 +21,6 @@ def _flatten_components(components, refer: ReferType = 'center'):
         )
 
     flatt_components = []
-    breakpoint()
     for nn in components:
         if isinstance(nn, Place) and isinstance(nn.name, xt.Line):
 
