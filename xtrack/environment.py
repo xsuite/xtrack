@@ -860,7 +860,7 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
         i_place_sorted.extend(list(tt_group.i_place))
         i_start_group = i_end_group
 
-    tt_sorted = tt_s_sorted.rows[names_sorted]
+    tt_sorted = aux_tt.rows[i_place_sorted]
 
     tt_sorted['s_center'] = tt_sorted['s_entry'] + tt_sorted['length'] / 2
     tt_sorted['s_exit'] = tt_sorted['s_entry'] + tt_sorted['length']
