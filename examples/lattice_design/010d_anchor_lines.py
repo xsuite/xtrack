@@ -36,6 +36,13 @@ env.new_line(name='lstcnt', components=[
 ])
 
 # Test relative anchor of start 'l1' to end of another element
+env.new_line(name='lstst', components=[
+    env.new('q0', 'Quadrupole', length=2.0, at=5.),
+    env.place('l1', anchor='start', at=5. + 1., from_='end@q0'),
+])
+
+
+# Test relative anchor of start 'l1' to end of another element
 env.new_line(name='lstend', components=[
     env.new('q0', 'Quadrupole', length=2.0, at=5.),
     env.place('l1', anchor='start', at=5. - 1., from_='end@q0'),
@@ -73,3 +80,36 @@ tt_test = tt_lend
 assert np.all(tt_test.name == np.array(
     ['drift_6', 'q1', 'drift_1', 'q2', 'drift_2', 'q3', 'drift_3', 'q4',
     'drift_4', 'q5', '_end_point']))
+xo.assert_allclose(tt_test.s, np.array(
+    [ 0., 10., 12., 17., 19., 24., 26., 31., 33., 38., 40.]),
+    rtol=0., atol=1e-15)
+
+tt_lcenter = env['lcenter'].get_table()
+tt_test = tt_lcenter
+assert np.all(tt_test.name == np.array(
+    ['drift_7', 'q1', 'drift_1', 'q2', 'drift_2', 'q3', 'drift_3', 'q4',
+    'drift_4', 'q5', '_end_point']))
+xo.assert_allclose(tt_test.s, np.array(
+    [ 0., 10., 12., 17., 19., 24., 26., 31., 33., 38., 40.]),
+    rtol=0., atol=1e-15)
+
+tt_lstcnt = env['lstcnt'].get_table()
+tt_test = tt_lstcnt
+assert np.all(tt_test.name == np.array(
+    ['drift_8', 'q0', 'drift_9', 'q1', 'drift_1', 'q2', 'drift_2', 'q3',
+     'drift_3', 'q4', 'drift_4', 'q5', '_end_point']))
+xo.assert_allclose(tt_test.s, np.array(
+    [ 0.,  4.,  6., 10., 12., 17., 19., 24., 26., 31., 33., 38., 40.]),
+    rtol=0., atol=1e-15)
+
+tt_lstst = env['lstst'].get_table()
+tt_test = tt_lstst
+assert np.all(tt_test.name == np.array(
+    ['drift_10', 'q0', 'drift_11', 'q1', 'drift_1', 'q2', 'drift_2', 'q3',
+     'drift_3', 'q4', 'drift_4', 'q5', '_end_point']))
+
+tt_lstend = env['lstend'].get_table()
+tt_test = tt_lstend
+assert np.all(tt_test.name == np.array(
+    ['drift_12', 'q0', 'drift_13', 'q1', 'drift_1', 'q2', 'drift_2', 'q3',
+     'drift_3', 'q4', 'drift_4', 'q5', '_end_point']))
