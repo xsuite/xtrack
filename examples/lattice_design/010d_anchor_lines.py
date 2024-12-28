@@ -1,4 +1,7 @@
+import numpy as np
+
 import xtrack as xt
+import xobjects as xo
 
 env = xt.Environment()
 
@@ -37,3 +40,36 @@ env.new_line(name='lstend', components=[
     env.new('q0', 'Quadrupole', length=2.0, at=5.),
     env.place('l1', anchor='start', at=5. - 1., from_='end@q0'),
 ])
+
+tt_l1 = env['l1'].get_table()
+tt_test = tt_l1
+assert np.all(tt_test.name == np.array(
+    ['q1', 'drift_1', 'q2', 'drift_2', 'q3', 'drift_3', 'q4', 'drift_4',
+     'q5', '_end_point']))
+xo.assert_allclose(tt_test.s, np.array(
+    [ 0.,  2.,  7.,  9., 14., 16., 21., 23., 28., 30.]),
+    rtol=0., atol=1e-15)
+xo.assert_allclose(tt_test.s_start, np.array(
+    [ 0.,  2.,  7.,  9., 14., 16., 21., 23., 28., 30.]),
+    rtol=0., atol=1e-15)
+xo.assert_allclose(tt_test.s_center, np.array(
+    [ 1. ,  4.5,  8. , 11.5, 15. , 18.5, 22. , 25.5, 29. , 30. ]),
+    rtol=0., atol=1e-15)
+xo.assert_allclose(tt_test.s_end, np.array(
+    [ 2.,  7.,  9., 14., 16., 21., 23., 28., 30., 30.]),
+    rtol=0., atol=1e-15)
+
+tt_lstart = env['lstart'].get_table()
+tt_test = tt_lstart
+assert np.all(tt_test.name == np.array(
+    ['drift_5', 'q1', 'drift_1', 'q2', 'drift_2', 'q3', 'drift_3', 'q4',
+       'drift_4', 'q5', '_end_point']))
+xo.assert_allclose(tt_test.s, np.array(
+    [ 0., 10., 12., 17., 19., 24., 26., 31., 33., 38., 40.]),
+    rtol=0., atol=1e-15)
+
+tt_lend = env['lend'].get_table()
+tt_test = tt_lend
+assert np.all(tt_test.name == np.array(
+    ['drift_6', 'q1', 'drift_1', 'q2', 'drift_2', 'q3', 'drift_3', 'q4',
+    'drift_4', 'q5', '_end_point']))
