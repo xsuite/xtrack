@@ -858,7 +858,6 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
         names_sorted.extend(list(tt_group.name))
         i_start_group = i_end_group
 
-    # Temporary, should be replaced by aux_tt.rows[i_sorted], when table is fixed
     tt_sorted = aux_tt.rows[names_sorted]
 
     tt_sorted['s_center'] = tt_sorted['s_entry'] + tt_sorted['length'] / 2
