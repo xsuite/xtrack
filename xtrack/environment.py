@@ -710,12 +710,10 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
     names_unsorted = [ss.name for ss in seq_all_places]
 
     aux_line = env.new_line(components=names_unsorted, refer=refer)
-    aux_tt = aux_line.get_table()
-    aux_tt['length'] = np.diff(aux_tt.s, append=aux_tt.s[-1])
-    aux_tt = aux_tt.rows[:-1] # Remove endpoint
-
-    # TODO: Generalize for repeated elements (anchors, etc.)
-    aux_tt.name = aux_tt.env_name  # I want the repeated names here
+    temp_tt = aux_line.get_table()
+    temp_tt['length'] = np.diff(temp_tt.s, append=temp_tt.s[-1])
+    temp_tt = temp_tt.rows[:-1] # Remove endpoint
+    tt_lengths = xt.Table({'name': temp_tt.env_name, 'length': temp_tt.length})
 
     s_entry_for_place = {}  # entry positions
     place_for_name = {}
@@ -739,14 +737,14 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
                 ss_prev = seq_all_places[ii-1]
                 if ss_prev in s_entry_for_place:
                     s_entry_for_place[ss] = (s_entry_for_place[ss_prev]
-                                             + aux_tt['length', ss_prev.name])
+                                             + tt_lengths['length', ss_prev.name])
                     place_for_name[ss.name] = ss
                     n_resolved += 1
             elif ss.at is None and ss._before:
                 ss_next = seq_all_places[ii+1]
                 if ss_next in s_entry_for_place:
                     s_entry_for_place[ss] = (s_entry_for_place[ss_next]
-                                            - aux_tt['length', ss.name])
+                                            - tt_lengths['length', ss.name])
                     place_for_name[ss.name] = ss
                     n_resolved += 1
             else:
@@ -758,12 +756,12 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
                 from_length=None
                 s_entry_from=None
                 if ss.from_ is not None:
-                    from_length = aux_tt['length', ss.from_]
+                    from_length = tt_lengths['length', ss.from_]
                     s_entry_from=s_entry_for_place[place_for_name[ss.from_]]
 
                 s_entry_for_place[ss] = _compute_one_s(at, anchor=ss.anchor,
                     from_anchor=ss.from_anchor,
-                    self_length=aux_tt['length', ss.name],
+                    self_length=tt_lengths['length', ss.name],
                     from_length=from_length,
                     s_entry_from=s_entry_from,
                     default_anchor=refer)
@@ -780,6 +778,8 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
         raise ValueError(f'Could not resolve all s positions: {unresolved_pos}')
 
     # Sorting
+    aux_tt = temp_tt
+
     aux_s_entry = np.array([s_entry_for_place[ss] for ss in seq_all_places])
     aux_s_center = aux_s_entry + aux_tt['length'] / 2 # Need to sort the centers to avoid issues
                                                       # with thin + thick elements at the same s_entry

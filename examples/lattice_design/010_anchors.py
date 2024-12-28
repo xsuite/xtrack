@@ -1,5 +1,9 @@
 import xtrack as xt
 
+# TODO:
+# - Flatten places needs to know about the anchors
+# - What happens if there are elements without `at` in the thin sandwich?
+
 env = xt.Environment()
 
 env.new('q1', 'Quadrupole', length=2.0)
