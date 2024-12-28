@@ -809,7 +809,7 @@ def _sort_places(tt_unsorted, s_tol=1e-10):
             group_id[ii] = group_id[ii-1] + 1
 
     tt_s_sorted['group_id'] = group_id
-    tt_s_sorted.show(cols=['group_id', 's_center', 'name', 'from_', 'from_anchor', 'i_place'])
+    # tt_s_sorted.show(cols=['group_id', 's_center', 'name', 'from_', 'from_anchor', 'i_place'])
 
     n_places = len(tt_s_sorted)
     i_start_group = 0
@@ -820,7 +820,7 @@ def _sort_places(tt_unsorted, s_tol=1e-10):
         i_end_group = i_start_group + 1
         while i_end_group < n_places and tt_s_sorted['group_id', i_end_group] == i_group:
             i_end_group += 1
-        print(f'Group {i_group}: {tt_s_sorted.name[i_start_group:i_end_group]}')
+        # print(f'Group {i_group}: {tt_s_sorted.name[i_start_group:i_end_group]}')
 
         n_group = i_end_group - i_start_group
         if n_group == 1: # Single element
@@ -835,7 +835,7 @@ def _sort_places(tt_unsorted, s_tol=1e-10):
             i_start_group = i_end_group
 
         tt_group = tt_s_sorted.rows[i_start_group:i_end_group]
-        tt_group.show(cols=['s_center', 'name', 'from_', 'from_anchor'])
+        # tt_group.show(cols=['s_center', 'name', 'from_', 'from_anchor'])
 
         for ff in tt_group.from_:
             i_from_global = tt_s_sorted.rows.indices[ff][0] - i_start_group
