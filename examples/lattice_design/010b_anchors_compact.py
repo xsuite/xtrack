@@ -1,4 +1,7 @@
 import xtrack as xt
+import xobjects as xo
+
+import numpy as np
 
 env = xt.Environment()
 
@@ -17,6 +20,7 @@ components=[
     env.new('m2_0', 'Marker', at='start@m2'),
     env.new('m2_1', 'Marker', at='end@m2'),
     env.new('m2_1_0', 'Marker', at='start@m2_1'),
+    env.new('m2_1_1', 'Marker'),
 
     env.new('m1', 'Marker', at='start@q1'),
 
@@ -26,3 +30,26 @@ components=[
 line = env.new_line(components=components)
 
 line.get_table().show(cols=['name', 's_start', 's_end', 's_center'])
+
+tt = line.get_table()
+
+tt.show(cols=['name', 's_start', 's_end', 's_center'])
+
+assert np.all(tt.name == np.array(
+    ['drift_1', 'm1', 'q1', 'drift_2', 's2', 'drift_3', 'm2_0', 'm2',
+       'm2_1_0', 'm2_1_1', 'm2_1', 'q2', 'drift_4', 'q3', 'm3', 'm4',
+       'q4', 'q5', '_end_point']))
+xo.assert_allclose(tt.s, np.array(
+    [ 0. ,  1. ,  1. ,  3. , 11.9, 12. , 13. , 13. , 13. , 13. , 13. ,
+       13. , 15. , 19. , 21. , 21. , 21. , 23. , 25. ]),
+    rtol=0., atol=1e-14)
+xo.assert_allclose(tt.s_start, np.array(
+    [ 0. ,  1. ,  1. ,  3. , 11.9, 12. , 13. , 13. , 13. , 13. , 13. ,
+       13. , 15. , 19. , 21. , 21. , 21. , 23. , 25. ]),
+    rtol=0., atol=1e-14)
+xo.assert_allclose(tt.s_end, np.array(
+    [ 1. ,  1. ,  3. , 11.9, 12. , 13. , 13. , 13. , 13. , 13. , 13. ,
+       15. , 19. , 21. , 21. , 21. , 23. , 25. , 25. ]),
+    rtol=0., atol=1e-14)
+xo.assert_allclose(tt.s_center, 0.5*(tt.s_start + tt.s_end),
+    rtol=0., atol=1e-14)
