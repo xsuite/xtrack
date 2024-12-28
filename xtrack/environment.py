@@ -794,6 +794,7 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
 
     return tt_out
 
+# @profile
 def _sort_places(tt_unsorted, s_tol=1e-10):
 
     # Sort by s_center
@@ -837,8 +838,11 @@ def _sort_places(tt_unsorted, s_tol=1e-10):
         tt_group = tt_s_sorted.rows[i_start_group:i_end_group]
         # tt_group.show(cols=['s_center', 'name', 'from_', 'from_anchor'])
 
+        # cache indices
+        ind_name = {nn: ii for ii, nn in enumerate(tt_s_sorted.name)}
+
         for ff in tt_group.from_:
-            i_from_global = tt_s_sorted.rows.indices[ff][0] - i_start_group
+            i_from_global = ind_name[ff] - i_start_group
             key_sort = np.zeros(n_group, dtype=int)
 
             if i_from_global < 0:
@@ -859,6 +863,8 @@ def _sort_places(tt_unsorted, s_tol=1e-10):
             key_sort[mask_pack_before] = -1
             key_sort[mask_pack_after] = 1
 
+            if np.all(np.diff(key_sort) >=0):
+                continue # already sorted
             tt_group = tt_group.rows[np.argsort(key_sort, kind='stable')]
 
         names_sorted.extend(list(tt_group.name))
