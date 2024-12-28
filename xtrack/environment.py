@@ -812,6 +812,9 @@ def _sort_places(tt_unsorted, s_tol=1e-10):
     tt_s_sorted['group_id'] = group_id
     # tt_s_sorted.show(cols=['group_id', 's_center', 'name', 'from_', 'from_anchor', 'i_place'])
 
+    # cache indices
+    ind_name = {nn: ii for ii, nn in enumerate(tt_s_sorted.name)}
+
     n_places = len(tt_s_sorted)
     i_start_group = 0
     names_sorted = []
@@ -838,8 +841,7 @@ def _sort_places(tt_unsorted, s_tol=1e-10):
         tt_group = tt_s_sorted.rows[i_start_group:i_end_group]
         # tt_group.show(cols=['s_center', 'name', 'from_', 'from_anchor'])
 
-        # cache indices
-        ind_name = {nn: ii for ii, nn in enumerate(tt_s_sorted.name)}
+
 
         for ff in tt_group.from_:
             i_from_global = ind_name[ff] - i_start_group
