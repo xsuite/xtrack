@@ -856,93 +856,11 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
             # tt_group[f'key_sort_{ff}'] = key_sort
             tt_group = tt_group.rows[np.argsort(key_sort, kind='stable')]
 
-        tt_group.show(cols=['s_center', 'name', 'from_', 'from_anchor'])
+        names_sorted.extend(list(tt_group.name))
         i_start_group = i_end_group
 
-    prrrr
-
-    for nn in all_from:
-        if nn is None:
-            continue
-        name_present = aux_tt['name']
-        from_present = aux_tt['from_']
-        from_anchor_present = aux_tt['from_anchor']
-
-        mask_pack_before = (from_present == nn) & (from_anchor_present == 'start')
-        mask_pack_after = (from_present == nn) & (from_anchor_present == 'end')
-
-        i_nn_present = np.where(name_present == nn)[0][0]
-        key_nn = np.array(np.diff(aux_tt['s_center'], append=aux_tt['s_center'][-1]) == 0,
-                          dtype=int)
-        key_nn[i_nn_present] = 0
-        key_nn[:i_nn_present]+= -10
-        key_nn[i_nn_present+1:] += +10
-        key_nn[mask_pack_before] -= -1
-        key_nn[mask_pack_after] -= +1
-
-        iii = np.argsort(key_nn, kind='stable')
-        aux_tt['last_key'] = key_nn
-        aux_tt = aux_tt.rows[iii]
-
-        aux_tt.show(cols=['last_key', 'name', 'from_', 'from_anchor'])
-        breakpoint()
-
-    prrrr
-
-    def comparator(i, j):
-        # Compare s_center
-        s_cen_i = aux_s_center[i]
-        s_cen_j = aux_s_center[j]
-        if s_cen_i < s_cen_j and np.abs(s_cen_i - s_cen_j) > s_tol:
-            return -1
-        elif s_cen_i > s_cen_j and np.abs(s_cen_i - s_cen_j) > s_tol:
-            return 1
-
-        # ss_i = seq_all_places[i]
-        # ss_j = seq_all_places[j]
-
-        # if ss_i.name.startswith('m2') or ss_j.name.startswith('m2'):
-        #     print(f'COMPARING: {ss_i.name} and {ss_j.name}')
-        #     breakpoint()
-
-        # # Use from_anchor information if present
-        # if ss_i.from_ is not None and ss_i.from_ == ss_j.name:
-        #     if ss_i.from_anchor == 'start' or ss_i.from_anchor is None:
-        #         return -1
-        #     else:
-        #         return 1
-
-        # if ss_j.from_ is not None and ss_j.from_ == ss_i.name:
-        #     if ss_j.from_anchor == 'start' or ss_j.from_anchor is None:
-        #         return 1
-        #     else:
-        #         return -1
-
-        # if ss_i.from_ is not None and ss_j.from_ == ss_i.from_:
-        #     if ss_i.from_anchor == 'start' and ss_j.from_anchor == 'end':
-        #         return -1
-        #     if ss_i.from_anchor == 'end' and ss_j.from_anchor == 'start':
-        #         return 1
-
-        # if ss_i.from_anchor == 'end' and ss_j.from_anchor == 'start':
-        #     return -1
-
-        # if ss_i.from_anchor == 'start' and ss_j.from_anchor == 'end':
-        #     return 1
-
-        # if ss_i.from_ is not None and ss_j.from_ is not None:
-        #     i_from = np.where(aux_tt.name == ss_i.from_)[0][0]
-        #     j_from = np.where(aux_tt.name == ss_j.from_)[0][0]
-        #     return comparator(i_from, j_from)
-
-        return 0 # Preserve order given by the user
-
-    i_sorted = sorted(i_being_sorted, key=cmp_to_key(comparator))
-    name_sorted = [str(aux_tt.name[ii]) for ii in i_sorted]
-
     # Temporary, should be replaced by aux_tt.rows[i_sorted], when table is fixed
-    data_sorted = {kk: aux_tt[kk][i_sorted] for kk in aux_tt._col_names}
-    tt_sorted = xt.Table(data_sorted)
+    tt_sorted = aux_tt.rows[names_sorted]
 
     tt_sorted['s_center'] = tt_sorted['s_entry'] + tt_sorted['length'] / 2
     tt_sorted['s_exit'] = tt_sorted['s_entry'] + tt_sorted['length']
@@ -951,7 +869,7 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
     tt_sorted['ds_upstream'][1:] = tt_sorted['s_entry'][1:] - tt_sorted['s_exit'][:-1]
     tt_sorted['ds_upstream'][0] = tt_sorted['s_entry'][0]
     tt_sorted['s'] = tt_sorted['s_entry']
-    assert np.all(tt_sorted.name == np.array(name_sorted))
+    assert np.all(tt_sorted.name == np.array(names_sorted))
 
     return tt_sorted
 
