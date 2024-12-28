@@ -699,14 +699,10 @@ def _compute_one_s(at, anchor, from_anchor, self_length, from_length, s_entry_fr
 def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
                          allow_duplicate_places=True, s_tol=1e-10):
 
-    # Handle duplicate places
-    if len(seq_all_places) != len(set(seq_all_places)):
-        if allow_duplicate_places:
-            # Make copies
-            seq_all_places = [ss.copy() for ss in seq_all_places]
-        else:
-            raise ValueError('Duplicate places detected and `allow_duplicates` is False')
+    if not allow_duplicate_places:
+        raise NotImplementedError('allow_duplicate_places=False not yet implemented')
 
+    seq_all_places = [ss.copy() for ss in seq_all_places]
     names_unsorted = [ss.name for ss in seq_all_places]
 
     aux_line = env.new_line(components=names_unsorted, refer=refer)
@@ -742,6 +738,9 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
                     s_entry_for_place[ss] = (s_entry_for_place[ss_prev]
                                              + tt_lengths['length', ss_prev.name])
                     place_for_name[ss.name] = ss
+                    ss.at = 0
+                    ss.from_ = ss_prev.name
+                    ss.from_anchor = 'end'
                     n_resolved += 1
             elif ss.at is None and ss._before:
                 ss_next = seq_all_places[ii+1]
@@ -749,6 +748,9 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
                     s_entry_for_place[ss] = (s_entry_for_place[ss_next]
                                             - tt_lengths['length', ss.name])
                     place_for_name[ss.name] = ss
+                    ss.at = 0
+                    ss.from_ = ss_next.name
+                    ss.from_anchor = 'start'
                     n_resolved += 1
             else:
                 if isinstance(ss.at, str):
