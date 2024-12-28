@@ -710,10 +710,13 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
     names_unsorted = [ss.name for ss in seq_all_places]
 
     aux_line = env.new_line(components=names_unsorted, refer=refer)
-    temp_tt = aux_line.get_table()
-    temp_tt['length'] = np.diff(temp_tt.s, append=temp_tt.s[-1])
-    temp_tt = temp_tt.rows[:-1] # Remove endpoint
-    tt_lengths = xt.Table({'name': temp_tt.env_name, 'length': temp_tt.length})
+
+    # Prepare table for output
+    tt_out = aux_line.get_table()
+    tt_out['length'] = np.diff(tt_out.s, append=tt_out.s[-1])
+    tt_out = tt_out.rows[:-1] # Remove endpoint
+
+    tt_lengths = xt.Table({'name': tt_out.env_name, 'length': tt_out.length})
 
     s_entry_for_place = {}  # entry positions
     place_for_name = {}
@@ -777,22 +780,23 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
         unresolved_pos = set(seq_all_places) - set(s_entry_for_place.keys())
         raise ValueError(f'Could not resolve all s positions: {unresolved_pos}')
 
-    # Sorting
-    aux_tt = temp_tt
-
     aux_s_entry = np.array([s_entry_for_place[ss] for ss in seq_all_places])
-    aux_s_center = aux_s_entry + aux_tt['length'] / 2 # Need to sort the centers to avoid issues
+    aux_s_center = aux_s_entry + tt_out['length'] / 2 # Need to sort the centers to avoid issues
                                                       # with thin + thick elements at the same s_entry
-    aux_tt['s_entry'] = aux_s_entry
-    aux_tt['s_center'] = aux_s_center
+    tt_out['s_entry'] = aux_s_entry
+    tt_out['s_center'] = aux_s_center
 
-    aux_tt['from_'] = np.array([ss.from_ for ss in seq_all_places])
-    aux_tt['from_anchor'] = np.array([ss.from_anchor for ss in seq_all_places])
-    aux_tt['i_place'] = np.arange(len(seq_all_places))
+    tt_out['from_'] = np.array([ss.from_ for ss in seq_all_places])
+    tt_out['from_anchor'] = np.array([ss.from_anchor for ss in seq_all_places])
+    tt_out['i_place'] = np.arange(len(seq_all_places))
+
+    return tt_out
+
+def _sort_places(tt_unsorted, s_tol=1e-10):
 
     # Sort by s_center
-    iii = _argsort_s(aux_tt.s_center, tol=10e-10)
-    tt_s_sorted = aux_tt.rows[iii]
+    iii = _argsort_s(tt_unsorted.s_center, tol=s_tol)
+    tt_s_sorted = tt_unsorted.rows[iii]
 
     group_id = np.zeros(len(tt_s_sorted), dtype=int)
     group_id[0] = 0
@@ -805,7 +809,7 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
     tt_s_sorted['group_id'] = group_id
     tt_s_sorted.show(cols=['group_id', 's_center', 'name', 'from_', 'from_anchor', 'i_place'])
 
-    n_places = len(seq_all_places)
+    n_places = len(tt_s_sorted)
     i_start_group = 0
     names_sorted = []
     i_place_sorted = []
@@ -860,7 +864,7 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
         i_place_sorted.extend(list(tt_group.i_place))
         i_start_group = i_end_group
 
-    tt_sorted = aux_tt.rows[i_place_sorted]
+    tt_sorted = tt_unsorted.rows[i_place_sorted]
 
     tt_sorted['s_center'] = tt_sorted['s_entry'] + tt_sorted['length'] / 2
     tt_sorted['s_exit'] = tt_sorted['s_entry'] + tt_sorted['length']
@@ -894,7 +898,8 @@ def handle_s_places(seq, env, refer: ReferType = 'center'):
         return [str(ss) for ss in seq]
 
     seq_all_places = _all_places(seq)
-    tab_sorted = _resolve_s_positions(seq_all_places, env, refer=refer)
+    tab_unsorted = _resolve_s_positions(seq_all_places, env, refer=refer)
+    tab_sorted = _sort_places(tab_unsorted)
     names = _generate_element_names_with_drifts(env, tab_sorted)
 
     return names
