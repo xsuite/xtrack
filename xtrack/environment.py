@@ -780,7 +780,6 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
         raise ValueError(f'Could not resolve all s positions: {unresolved_pos}')
 
     # Sorting
-
     aux_s_entry = np.array([s_entry_for_place[ss] for ss in seq_all_places])
     aux_s_center = aux_s_entry + aux_tt['length'] / 2 # Need to sort the centers to avoid issues
                                                       # with thin + thick elements at the same s_entry
@@ -826,6 +825,10 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
             names_sorted.append(aux_tt.name[i_start_group])
             i_start_group = i_end_group
             continue
+
+        if np.all(aux_tt.from_anchor[i_start_group:i_end_group] == None): # Nothing to do
+            names_sorted.extend(list(aux_tt.name[i_start_group:i_end_group]))
+            i_start_group = i_end_group
 
         tt_group = aux_tt.rows[i_start_group:i_end_group]
         tt_group.show(cols=['s_center', 'name', 'from_', 'from_anchor'])
