@@ -12,7 +12,7 @@ import xtrack as xt
 from xdeps.refs import is_ref
 from .multiline_legacy.multiline_legacy import MultilineLegacy
 
-ReferType = Literal['entry', 'center']
+ReferType = Literal['start', 'center', 'centre', 'exit']
 
 def _flatten_components(components, refer: ReferType = 'center'):
     if refer not in {'entry', 'center', 'centre', 'exit'}:
@@ -21,12 +21,14 @@ def _flatten_components(components, refer: ReferType = 'center'):
         )
 
     flatt_components = []
+    breakpoint()
     for nn in components:
         if isinstance(nn, Place) and isinstance(nn.name, xt.Line):
-            if refer == 'exit':
-                raise NotImplementedError(
-                    'Refer "exit" is not yet implemented for lines.'
-                )
+
+            anchor = nn.anchor
+            if anchor is None:
+                anchor = refer or 'center'
+
             line = nn.name
             if not line.element_names:
                 continue
@@ -36,11 +38,16 @@ def _flatten_components(components, refer: ReferType = 'center'):
                     at = line._xdeps_eval.eval(nn.at)
                 else:
                     at = nn.at
-                if refer == 'center' or refer == 'centre':
-                    at_first_element = at - line.get_length() / 2 + line[0].length / 2
+                if anchor=='center' or anchor=='centre':
+                    at_of_entry_first_element = at - line.get_length() / 2
+                elif anchor=='end':
+                    at_of_entry_first_element = at - line.get_length()
+                elif anchor=='start':
+                    at_of_entry_first_element = at
                 else:
-                    at_first_element = at
-                sub_components[0] = Place(sub_components[0], at=at_first_element, from_=nn.from_)
+                    raise ValueError(f'Unknown anchor {anchor}')
+                sub_components[0] = Place(sub_components[0], at=at_of_entry_first_element,
+                        anchor='start', from_=nn.from_, from_anchor=nn.from_anchor)
             flatt_components += sub_components
         elif isinstance(nn, xt.Line):
             flatt_components += nn.element_names
@@ -253,7 +260,7 @@ class Environment:
         out = xt.Line()
         out.particle_ref = self.particle_ref
         out.env = self
-        out._element_dict = self.element_dict # Avoid copying
+        out._element_dict = self.element_dict # Avoid copying (the property setter would do that)
         if components is None:
             components = []
 
