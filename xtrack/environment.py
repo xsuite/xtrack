@@ -790,11 +790,6 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
     aux_tt['from_anchor'] = np.array([ss.from_anchor for ss in seq_all_places])
     aux_tt['i_place'] = np.arange(len(seq_all_places))
 
-    all_from = []
-    for ss in seq_all_places:
-        if ss.from_ is not None and ss.from_ not in all_from:
-            all_from.append(ss.from_)
-
     # Sort by s_center
     iii = _argsort_s(aux_tt.s_center, tol=10e-10)
     aux_tt = aux_tt.rows[iii]
