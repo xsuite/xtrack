@@ -877,7 +877,7 @@ def _generate_element_names_with_drifts(env, tt_sorted, s_tol=1e-10):
 
     names_with_drifts = []
     # Create drifts
-    for ii, nn in enumerate(tt_sorted.name):
+    for ii, nn in enumerate(tt_sorted.env_name):
         ds_upstream = tt_sorted['ds_upstream', ii]
         if np.abs(ds_upstream) > s_tol:
             assert ds_upstream > 0, f'Negative drift length: {ds_upstream}, upstream of {nn}'
