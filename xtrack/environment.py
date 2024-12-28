@@ -810,7 +810,29 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
             group_id[ii] = group_id[ii-1] + 1
 
     aux_tt['group_id'] = group_id
-    aux_tt.show(cols=['group_id', 's_center', 'name'])
+    aux_tt.show(cols=['group_id', 's_center', 'name', 'from_', 'from_anchor', 'i_place'])
+
+    n_places = len(seq_all_places)
+    i_start_group = 0
+    i_end_group = 0
+    names_sorted = []
+    while i_end_group < n_places:
+        i_group = aux_tt['group_id', i_start_group]
+        while i_end_group < n_places and aux_tt['group_id', i_end_group] == i_group:
+            i_end_group += 1
+        print(f'Group {i_group}: {aux_tt.name[i_start_group:i_end_group]}')
+
+        if i_end_group - i_start_group == 1: # Single element
+            i_start_group = i_end_group
+            names_sorted.append(aux_tt.name[i_start_group])
+            continue
+
+        tt_group = aux_tt.rows[i_start_group:i_end_group]
+        tt_group.show(cols=['s_center', 'name', 'from_', 'from_anchor'])
+
+        prrrrrr
+        i_start_group = i_end_group
+
     prrrrrr
 
     for nn in all_from:
