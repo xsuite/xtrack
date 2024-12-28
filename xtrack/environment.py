@@ -857,7 +857,6 @@ def _sort_places(tt_unsorted, s_tol=1e-10):
             key_sort[mask_pack_before] = -1
             key_sort[mask_pack_after] = 1
 
-            # tt_group[f'key_sort_{ff}'] = key_sort
             tt_group = tt_group.rows[np.argsort(key_sort, kind='stable')]
 
         names_sorted.extend(list(tt_group.name))

@@ -22,6 +22,7 @@ components=[
     env.new('m2_0', 'Marker', at=0., from_='m2', from_anchor='start'),
     env.new('m2_1', 'Marker', at=0., from_='m2', from_anchor='end'),
     env.new('m2_1_0', 'Marker', at=0., from_='m2_1', from_anchor='start'),
+    env.new('m2_1_1', 'Marker'),
 
     env.new('m1', 'Marker', at=0., from_='q1', from_anchor='start'),
 
