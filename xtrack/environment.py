@@ -797,8 +797,7 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
             all_from.append(ss.from_)
 
     # Sort by s_center
-    # TODO: Account for tolerances!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    iii = np.argsort(aux_tt.s_center, kind='stable')
+    iii = _argsort_s(aux_tt.s_center, tol=10e-10)
     aux_tt = aux_tt.rows[iii]
 
     group_id = np.zeros(len(aux_tt), dtype=int)
@@ -1131,3 +1130,15 @@ def get_environment(verbose=False):
         if verbose:
             print('Creating new environment')
         return Environment()
+
+def _argsort_s(seq, tol=10e-10):
+    """Argsort, but with a tolerance; `sorted` is stable."""
+    seq_indices = np.arange(len(seq))
+
+    def comparator(i, j):
+        a, b = seq[i], seq[j]
+        if np.abs(a - b) < tol:
+            return 0
+        return -1 if a < b else 1
+
+    return sorted(seq_indices, key=cmp_to_key(comparator))
