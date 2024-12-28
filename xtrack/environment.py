@@ -792,44 +792,47 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
 
     # Sort by s_center
     iii = _argsort_s(aux_tt.s_center, tol=10e-10)
-    aux_tt = aux_tt.rows[iii]
+    tt_s_sorted = aux_tt.rows[iii]
 
-    group_id = np.zeros(len(aux_tt), dtype=int)
+    group_id = np.zeros(len(tt_s_sorted), dtype=int)
     group_id[0] = 0
-    for ii in range(1, len(aux_tt)):
-        if abs(aux_tt.s_center[ii] - aux_tt.s_center[ii-1]) < s_tol:
+    for ii in range(1, len(tt_s_sorted)):
+        if abs(tt_s_sorted.s_center[ii] - tt_s_sorted.s_center[ii-1]) < s_tol:
             group_id[ii] = group_id[ii-1]
         else:
             group_id[ii] = group_id[ii-1] + 1
 
-    aux_tt['group_id'] = group_id
-    aux_tt.show(cols=['group_id', 's_center', 'name', 'from_', 'from_anchor', 'i_place'])
+    tt_s_sorted['group_id'] = group_id
+    tt_s_sorted.show(cols=['group_id', 's_center', 'name', 'from_', 'from_anchor', 'i_place'])
 
     n_places = len(seq_all_places)
     i_start_group = 0
     names_sorted = []
+    i_place_sorted = []
     while i_start_group < n_places:
-        i_group = aux_tt['group_id', i_start_group]
+        i_group = tt_s_sorted['group_id', i_start_group]
         i_end_group = i_start_group + 1
-        while i_end_group < n_places and aux_tt['group_id', i_end_group] == i_group:
+        while i_end_group < n_places and tt_s_sorted['group_id', i_end_group] == i_group:
             i_end_group += 1
-        print(f'Group {i_group}: {aux_tt.name[i_start_group:i_end_group]}')
+        print(f'Group {i_group}: {tt_s_sorted.name[i_start_group:i_end_group]}')
 
         n_group = i_end_group - i_start_group
         if n_group == 1: # Single element
-            names_sorted.append(aux_tt.name[i_start_group])
+            names_sorted.append(tt_s_sorted.name[i_start_group])
+            i_place_sorted.append(tt_s_sorted.i_place[i_start_group])
             i_start_group = i_end_group
             continue
 
-        if np.all(aux_tt.from_anchor[i_start_group:i_end_group] == None): # Nothing to do
-            names_sorted.extend(list(aux_tt.name[i_start_group:i_end_group]))
+        if np.all(tt_s_sorted.from_anchor[i_start_group:i_end_group] == None): # Nothing to do
+            names_sorted.extend(list(tt_s_sorted.name[i_start_group:i_end_group]))
+            i_place_sorted.extend(list(tt_s_sorted.i_place[i_start_group:i_end_group]))
             i_start_group = i_end_group
 
-        tt_group = aux_tt.rows[i_start_group:i_end_group]
+        tt_group = tt_s_sorted.rows[i_start_group:i_end_group]
         tt_group.show(cols=['s_center', 'name', 'from_', 'from_anchor'])
 
         for ff in tt_group.from_:
-            i_from_global = aux_tt.rows.indices[ff][0] - i_start_group
+            i_from_global = tt_s_sorted.rows.indices[ff][0] - i_start_group
             key_sort = np.zeros(n_group, dtype=int)
 
             if i_from_global < 0:
@@ -854,9 +857,10 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
             tt_group = tt_group.rows[np.argsort(key_sort, kind='stable')]
 
         names_sorted.extend(list(tt_group.name))
+        i_place_sorted.extend(list(tt_group.i_place))
         i_start_group = i_end_group
 
-    tt_sorted = aux_tt.rows[names_sorted]
+    tt_sorted = tt_s_sorted.rows[names_sorted]
 
     tt_sorted['s_center'] = tt_sorted['s_entry'] + tt_sorted['length'] / 2
     tt_sorted['s_exit'] = tt_sorted['s_entry'] + tt_sorted['length']
