@@ -2164,6 +2164,7 @@ class Line:
 
         _all_places = xt.environment._all_places
         _resolve_s_positions = xt.environment._resolve_s_positions
+        _flatten_components = xt.environment._flatten_components
 
         # Resolve s positions of insertions
         tt = self.get_table()
@@ -2174,6 +2175,7 @@ class Line:
                 continue
             line_places.append(env.place(enn, at=tt['s_center', nn]))
 
+        what = _flatten_components(what)
         seq_all_places = _all_places(line_places + what)
         mask_insertions = np.array([pp in what for pp in seq_all_places])
         tab_unsorted = _resolve_s_positions(seq_all_places, env, refer='centre')
