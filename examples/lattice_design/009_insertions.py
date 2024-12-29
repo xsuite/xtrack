@@ -63,8 +63,6 @@ seq_all_places = _all_places(line_places + what)
 mask_insertions = np.array([pp in what for pp in seq_all_places])
 tab_unsorted = _resolve_s_positions(seq_all_places, env, refer='centre')
 tab_unsorted['is_insertion'] = mask_insertions
-
-# Get table with new insertions only
 tab_insertions = tab_unsorted.rows[tab_unsorted.is_insertion]
 
 # Make cuts
@@ -90,8 +88,6 @@ for ii in range(len(tab_insertions)):
                   & (tt_after_cut.s_end <= s_ins_end + s_tol))
     remove = (entry_is_inside | exit_is_inside) & (~thin_at_entry) & (~thin_at_exit)
     idx_remove.extend(list(np.where(remove)[0]))
-
-# TODO: Remember to handle adjacent markers
 
 places_to_keep = []
 for ii in range(len(tt_after_cut)):
