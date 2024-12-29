@@ -256,10 +256,8 @@ class Environment:
                 ])
         '''
 
-        out = xt.Line()
-        out.particle_ref = self.particle_ref
-        out.env = self
-        out._element_dict = self.element_dict # Avoid copying (the property setter would do that)
+        out = xt.Line(env=self)
+
         if components is None:
             components = []
 
@@ -272,7 +270,6 @@ class Environment:
 
         flattened_components = _flatten_components(components, refer=refer)
         out.element_names = handle_s_places(flattened_components, self, refer=refer)
-        out._var_management = self._var_management
         out._name = name
         out.builder = Builder(env=self, components=components)
 

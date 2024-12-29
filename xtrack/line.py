@@ -157,6 +157,7 @@ class Line:
         self.env = env
         self._element_dict = env.element_dict # Avoid copying (the property setter would do that)
         self._var_management = env._var_management
+        self.env._lines_weakrefs.add(self)
 
         if particle_ref is None:
             particle_ref = env.particle_ref

@@ -1680,6 +1680,8 @@ def test_neg_line():
 
     line_neg = -line
 
+    assert line_neg.env is line.env
+
     assert line[0].k0 == 0.5
     assert line[1].k1 == 0.1
 
