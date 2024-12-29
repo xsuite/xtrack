@@ -34,15 +34,13 @@ tt0 = line.get_table()
 tt0.show(cols=['name', 's_start', 's_end', 's_center'])
 
 env.new('ss', 'Sextupole', length='0.1')
-pp_ss = env.place('ss')
-
 line.insert([
     env.new('q1', 'q0', at=-5.0, from_='ql'),
-    pp_ss,
+    env.place('ss'),
     env.new('q2', 'q0', anchor='start', at=15.0 - 1.),
-    pp_ss,
+    env.place('ss'),
     env.new('q3', 'q0', anchor='start', at=29, from_='end@ql'),
-    pp_ss,
+    env.place('ss'),
 ])
 
 tt = line.get_table()
@@ -57,3 +55,7 @@ xo.assert_allclose(tt.s_center, np.array(
     [ 2.  ,  5.  ,  6.05,  7.55, 10.  , 12.5 , 15.  , 16.05, 17.55,
       20.  , 25.  , 30.  , 35.5 , 40.  , 41.  , 42.  , 42.05, 46.05,
       50.  , 50.  ]), rtol=0., atol=1e-14)
+
+line.insert([
+    env.new('q4', 'q0', anchor='center', at='', from_='end@q2')
+])
