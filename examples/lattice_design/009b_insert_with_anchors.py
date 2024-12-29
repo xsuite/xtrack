@@ -56,6 +56,8 @@ xo.assert_allclose(tt.s_center, np.array(
       20.  , 25.  , 30.  , 35.5 , 40.  , 41.  , 42.  , 42.05, 46.05,
       50.  , 50.  ]), rtol=0., atol=1e-14)
 
+line.replace_all_repeated_elements(mode='replica')
+
 line.insert([
     env.new('q4', 'q0', anchor='center', at=0, from_='end@q2')
 ])
