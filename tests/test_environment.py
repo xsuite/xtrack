@@ -151,6 +151,17 @@ def test_vars_and_element_access_modes(container_type):
     tt_new['length', 'drift_1'] == tt['length', 'drift_1']
     tt_new['length', 'drift_2'] == tt['length', 'drift_2']
 
+    lcp = line.copy()
+    assert lcp.element_dict is not line.element_dict
+    assert lcp.env is not line.env
+    assert lcp._xdeps_vref._ownerr is not line._xdeps_vref._owner
+
+    line['a'] = 333
+    lcp['a'] = 444
+
+    assert line['a'] == 333
+    assert lcp['a'] == 444
+
 def test_element_placing_at_s():
 
     env = xt.Environment()

@@ -2160,7 +2160,7 @@ class Line:
     def insert(self, what, s_tol=1e-10):
 
         self._frozen_check()
-        env = self._env_if_needed()
+        env = self.env
 
         _all_places = xt.environment._all_places
         _resolve_s_positions = xt.environment._resolve_s_positions
