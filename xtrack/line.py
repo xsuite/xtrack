@@ -106,7 +106,7 @@ class Line:
     config = None
 
     def __init__(self, elements=(), element_names=None, particle_ref=None,
-                 energy_program=None):
+                 energy_program=None, env=None):
         """
         Parameters
         ----------
@@ -151,6 +151,16 @@ class Line:
         self._extra_config['steering_correctors_x'] = None
         self._extra_config['steering_correctors_y'] = None
 
+        if env is None:
+            env = xt.Environment()
+
+        self.env = env
+        self._element_dict = env.element_dict # Avoid copying (the property setter would do that)
+        self._var_management = env._var_management
+
+        if particle_ref is None:
+            particle_ref = env.particle_ref
+
         if isinstance(elements, dict):
             element_dict = elements
             if element_names is None:
@@ -164,7 +174,7 @@ class Line:
             )
             element_dict = dict(zip(element_names, elements))
 
-        self.element_dict = element_dict.copy()  # avoid modifications if user provided
+        self.element_dict.update(element_dict)
         self.element_names = list(element_names).copy()
 
         self.particle_ref = particle_ref
@@ -172,7 +182,6 @@ class Line:
         if energy_program is not None:
             self.energy_program = energy_program # setter will take care of completing
 
-        self._init_var_management()
         self.tracker = None
 
         self.metadata = {}
@@ -816,6 +825,7 @@ class Line:
             out.env = None
             out._var_management = None
             out._init_var_management(dct=self._var_management_to_dict())
+            out._env_if_needed()
 
         out.config.update(self.config.copy())
         out._extra_config.update(self._extra_config.copy())
@@ -2145,6 +2155,67 @@ class Line:
 
         slicer = Slicer(self, slicing_strategies=strategies)
         slicer.slice_in_place()
+
+    def insert(self, what, s_tol=1e-10):
+
+        self._frozen_check()
+        env = self._env_if_needed()
+
+        _all_places = xt.environment._all_places
+        _resolve_s_positions = xt.environment._resolve_s_positions
+
+        # Resolve s positions of insertions
+        tt = self.get_table()
+
+        line_places = []
+        for nn in tt.name:
+            if nn == '_end_point':
+                continue
+            line_places.append(env.place(nn, at= tt['s_center', nn]))
+
+        seq_all_places = _all_places(line_places + what)
+        mask_insertions = np.array([pp in what for pp in seq_all_places])
+        tab_unsorted = _resolve_s_positions(seq_all_places, env, refer='centre')
+        tab_unsorted['is_insertion'] = mask_insertions
+        tab_insertions = tab_unsorted.rows[tab_unsorted.is_insertion]
+
+        # Make cuts
+        s_cuts = list(tab_insertions['s_start']) + list(tab_insertions['s_end'])
+        s_cuts = list(set(s_cuts))
+
+        self.cut_at_s(s_cuts, s_tol=1e-06)
+
+        tt_after_cut = self.get_table()
+
+        # Identify old elements falling inside the insertions
+        idx_remove = []
+        for ii in range(len(tab_insertions)):
+            s_ins_start = tab_insertions['s_start', ii]
+            s_ins_end = tab_insertions['s_end', ii]
+            entry_is_inside = ((tt_after_cut.s_start >= s_ins_start - s_tol)
+                            & (tt_after_cut.s_start <= s_ins_end - s_tol))
+            exit_is_inside = ((tt_after_cut.s_end >= s_ins_start + s_tol)
+                            & (tt_after_cut.s_end <= s_ins_end + s_tol))
+            thin_at_entry = ((tt_after_cut.s_start >= s_ins_start - s_tol)
+                            & (tt_after_cut.s_end <= s_ins_start + s_tol))
+            thin_at_exit = ((tt_after_cut.s_start >= s_ins_end - s_tol)
+                        & (tt_after_cut.s_end <= s_ins_end + s_tol))
+            remove = (entry_is_inside | exit_is_inside) & (~thin_at_entry) & (~thin_at_exit)
+            idx_remove.extend(list(np.where(remove)[0]))
+
+        places_to_keep = []
+        for ii in range(len(tt_after_cut)):
+            nn = tt_after_cut['name', ii]
+            if ii in idx_remove:
+                continue
+            if nn == '_end_point':
+                continue
+            places_to_keep.append(env.place(nn, at=tt_after_cut['s_center', ii]))
+
+        l_aux = env.new_line(components=[places_to_keep + what])
+
+        self.element_names.clear()
+        self.element_names.extend(l_aux.element_names)
 
     def insert_element(self, name, element=None, at=None, index=None, at_s=None,
                        s_tol=1e-6):
