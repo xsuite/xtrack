@@ -826,7 +826,6 @@ def _sort_places(tt_unsorted, s_tol=1e-10):
 
     n_places = len(tt_s_sorted)
     i_start_group = 0
-    names_sorted = []
     i_place_sorted = []
     while i_start_group < n_places:
         i_group = tt_s_sorted['group_id', i_start_group]
@@ -837,20 +836,16 @@ def _sort_places(tt_unsorted, s_tol=1e-10):
 
         n_group = i_end_group - i_start_group
         if n_group == 1: # Single element
-            names_sorted.append(tt_s_sorted.name[i_start_group])
             i_place_sorted.append(tt_s_sorted.i_place[i_start_group])
             i_start_group = i_end_group
             continue
 
         if np.all(tt_s_sorted.from_anchor[i_start_group:i_end_group] == None): # Nothing to do
-            names_sorted.extend(list(tt_s_sorted.name[i_start_group:i_end_group]))
             i_place_sorted.extend(list(tt_s_sorted.i_place[i_start_group:i_end_group]))
             i_start_group = i_end_group
 
         tt_group = tt_s_sorted.rows[i_start_group:i_end_group]
         # tt_group.show(cols=['s_center', 'name', 'from_', 'from_anchor'])
-
-
 
         for ff in tt_group.from_:
             i_from_global = ind_name[ff] - i_start_group
@@ -878,7 +873,6 @@ def _sort_places(tt_unsorted, s_tol=1e-10):
                 continue # already sorted
             tt_group = tt_group.rows[np.argsort(key_sort, kind='stable')]
 
-        names_sorted.extend(list(tt_group.name))
         i_place_sorted.extend(list(tt_group.i_place))
         i_start_group = i_end_group
 
@@ -891,7 +885,6 @@ def _sort_places(tt_unsorted, s_tol=1e-10):
     tt_sorted['ds_upstream'][1:] = tt_sorted['s_start'][1:] - tt_sorted['s_end'][:-1]
     tt_sorted['ds_upstream'][0] = tt_sorted['s_start'][0]
     tt_sorted['s'] = tt_sorted['s_start']
-    assert np.all(tt_sorted.name == np.array(names_sorted))
 
     return tt_sorted
 
