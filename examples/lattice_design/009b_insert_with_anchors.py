@@ -48,11 +48,11 @@ line.insert([
 tt = line.get_table()
 tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
-# assert np.all(tt.name == np.array(
-#     ['drift_1..0', 'q0::0', 'ss::0', 'drift_1..3', 'ql', 'drift_2..0',
-#        'q0::1', 'ss::1', 'drift_2..3', 'q0::2', 'drift_3', 'qr',
-#        'drift_4', 'mk1', 'q0::3', 'mk2', 'ss::2', 'drift_6..1', 'end',
-#        '_end_point']))
+assert np.all(tt.name == np.array(
+    ['drift_1..0', 'q1', 'ss::0', 'drift_1..3', 'ql', 'drift_2..0',
+       'q2', 'ss::1', 'drift_2..3', 'q0', 'drift_3', 'qr',
+       'drift_4', 'mk1', 'q3', 'mk2', 'ss::2', 'drift_6..1', 'end',
+       '_end_point']))
 xo.assert_allclose(tt.s_center, np.array(
     [ 2.  ,  5.  ,  6.05,  7.55, 10.  , 12.5 , 15.  , 16.05, 17.55,
       20.  , 25.  , 30.  , 35.5 , 40.  , 41.  , 42.  , 42.05, 46.05,
