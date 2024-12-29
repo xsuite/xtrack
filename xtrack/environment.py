@@ -12,12 +12,12 @@ import xtrack as xt
 from xdeps.refs import is_ref
 from .multiline_legacy.multiline_legacy import MultilineLegacy
 
-ReferType = Literal['start', 'center', 'centre', 'exit']
+ReferType = Literal['start', 'center', 'centre', 'end']
 
 def _flatten_components(components, refer: ReferType = 'center'):
-    if refer not in {'entry', 'center', 'centre', 'exit'}:
+    if refer not in ['start', 'center', 'centre', 'end']:
         raise ValueError(
-            f'Allowed values for refer are "entry", "center" and "exit". Got "{refer}".'
+            f'Allowed values for refer are "start", "center" and "end". Got "{refer}".'
         )
 
     flatt_components = []
@@ -38,14 +38,14 @@ def _flatten_components(components, refer: ReferType = 'center'):
                 else:
                     at = nn.at
                 if anchor=='center' or anchor=='centre':
-                    at_of_entry_first_element = at - line.get_length() / 2
+                    at_of_start_first_element = at - line.get_length() / 2
                 elif anchor=='end':
-                    at_of_entry_first_element = at - line.get_length()
+                    at_of_start_first_element = at - line.get_length()
                 elif anchor=='start':
-                    at_of_entry_first_element = at
+                    at_of_start_first_element = at
                 else:
                     raise ValueError(f'Unknown anchor {anchor}')
-                sub_components[0] = Place(sub_components[0], at=at_of_entry_first_element,
+                sub_components[0] = Place(sub_components[0], at=at_of_start_first_element,
                         anchor='start', from_=nn.from_, from_anchor=nn.from_anchor)
             flatt_components += sub_components
         elif isinstance(nn, xt.Line):
@@ -672,7 +672,7 @@ def _all_places(seq):
 #     else:
 #         return line[name].length
 
-def _compute_one_s(at, anchor, from_anchor, self_length, from_length, s_entry_from,
+def _compute_one_s(at, anchor, from_anchor, self_length, from_length, s_start_from,
                    default_anchor):
 
     if is_ref(at):
@@ -686,7 +686,7 @@ def _compute_one_s(at, anchor, from_anchor, self_length, from_length, s_entry_fr
 
     s_from = 0
     if from_length is not None:
-        s_from = s_entry_from
+        s_from = s_start_from
         if from_anchor == 'center' or from_anchor == 'centre':
             s_from += from_length / 2
         elif from_anchor == 'end':
@@ -698,9 +698,9 @@ def _compute_one_s(at, anchor, from_anchor, self_length, from_length, s_entry_fr
     elif anchor == 'end':
         ds_self = self_length
 
-    s_entry_self = s_from + at - ds_self
+    s_start_self = s_from + at - ds_self
 
-    return s_entry_self
+    return s_start_self
 
 def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
                          allow_duplicate_places=True, s_tol=1e-10):
@@ -720,7 +720,7 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
 
     tt_lengths = xt.Table({'name': tt_out.env_name, 'length': tt_out.length})
 
-    s_entry_for_place = {}  # entry positions
+    s_start_for_place = {}  # start positions
     place_for_name = {}
     n_resolved = 0
     n_resolved_prev = -1
@@ -729,19 +729,19 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
 
     if seq_all_places[0].at is None and not seq_all_places[0]._before:
         # In case we want to allow for the length to be an expression
-        s_entry_for_place[seq_all_places[0]] = 0
+        s_start_for_place[seq_all_places[0]] = 0
         place_for_name[seq_all_places[0].name] = seq_all_places[0]
         n_resolved += 1
 
     while n_resolved != n_resolved_prev:
         n_resolved_prev = n_resolved
         for ii, ss in enumerate(seq_all_places):
-            if ss in s_entry_for_place:  # Already resolved
+            if ss in s_start_for_place:  # Already resolved
                 continue
             if ss.at is None and not ss._before:
                 ss_prev = seq_all_places[ii-1]
-                if ss_prev in s_entry_for_place:
-                    s_entry_for_place[ss] = (s_entry_for_place[ss_prev]
+                if ss_prev in s_start_for_place:
+                    s_start_for_place[ss] = (s_start_for_place[ss_prev]
                                              + tt_lengths['length', ss_prev.name])
                     place_for_name[ss.name] = ss
                     ss.at = 0
@@ -750,8 +750,8 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
                     n_resolved += 1
             elif ss.at is None and ss._before:
                 ss_next = seq_all_places[ii+1]
-                if ss_next in s_entry_for_place:
-                    s_entry_for_place[ss] = (s_entry_for_place[ss_next]
+                if ss_next in s_start_for_place:
+                    s_start_for_place[ss] = (s_start_for_place[ss_next]
                                             - tt_lengths['length', ss.name])
                     place_for_name[ss.name] = ss
                     ss.at = 0
@@ -765,33 +765,33 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
                     at = ss.at
 
                 from_length=None
-                s_entry_from=None
+                s_start_from=None
                 if ss.from_ is not None:
                     from_length = tt_lengths['length', ss.from_]
-                    s_entry_from=s_entry_for_place[place_for_name[ss.from_]]
+                    s_start_from=s_start_for_place[place_for_name[ss.from_]]
 
-                s_entry_for_place[ss] = _compute_one_s(at, anchor=ss.anchor,
+                s_start_for_place[ss] = _compute_one_s(at, anchor=ss.anchor,
                     from_anchor=ss.from_anchor,
                     self_length=tt_lengths['length', ss.name],
                     from_length=from_length,
-                    s_entry_from=s_entry_from,
+                    s_start_from=s_start_from,
                     default_anchor=refer)
 
                 place_for_name[ss.name] = ss
                 n_resolved += 1
 
     if n_resolved != len(seq_all_places):
-        unresolved_pos = set(seq_all_places) - set(s_entry_for_place.keys())
+        unresolved_pos = set(seq_all_places) - set(s_start_for_place.keys())
         raise ValueError(f'Could not resolve all s positions: {unresolved_pos}')
 
     if n_resolved != len(seq_all_places):
-        unresolved_pos = set(seq_all_places) - set(s_entry_for_place.keys())
+        unresolved_pos = set(seq_all_places) - set(s_start_for_place.keys())
         raise ValueError(f'Could not resolve all s positions: {unresolved_pos}')
 
-    aux_s_entry = np.array([s_entry_for_place[ss] for ss in seq_all_places])
-    aux_s_center = aux_s_entry + tt_out['length'] / 2 # Need to sort the centers to avoid issues
-                                                      # with thin + thick elements at the same s_entry
-    tt_out['s_entry'] = aux_s_entry
+    aux_s_start = np.array([s_start_for_place[ss] for ss in seq_all_places])
+    aux_s_center = aux_s_start + tt_out['length'] / 2 # Need to sort the centers to avoid issues
+                                                      # with thin + thick elements at the same s_start
+    tt_out['s_start'] = aux_s_start
     tt_out['s_center'] = aux_s_center
 
     tt_out['from_'] = np.array([ss.from_ for ss in seq_all_places])
@@ -883,13 +883,13 @@ def _sort_places(tt_unsorted, s_tol=1e-10):
 
     tt_sorted = tt_unsorted.rows[i_place_sorted]
 
-    tt_sorted['s_center'] = tt_sorted['s_entry'] + tt_sorted['length'] / 2
-    tt_sorted['s_exit'] = tt_sorted['s_entry'] + tt_sorted['length']
+    tt_sorted['s_center'] = tt_sorted['s_start'] + tt_sorted['length'] / 2
+    tt_sorted['s_end'] = tt_sorted['s_start'] + tt_sorted['length']
 
-    tt_sorted['ds_upstream'] = 0 * tt_sorted['s_entry']
-    tt_sorted['ds_upstream'][1:] = tt_sorted['s_entry'][1:] - tt_sorted['s_exit'][:-1]
-    tt_sorted['ds_upstream'][0] = tt_sorted['s_entry'][0]
-    tt_sorted['s'] = tt_sorted['s_entry']
+    tt_sorted['ds_upstream'] = 0 * tt_sorted['s_start']
+    tt_sorted['ds_upstream'][1:] = tt_sorted['s_start'][1:] - tt_sorted['s_end'][:-1]
+    tt_sorted['ds_upstream'][0] = tt_sorted['s_start'][0]
+    tt_sorted['s'] = tt_sorted['s_start']
     assert np.all(tt_sorted.name == np.array(names_sorted))
 
     return tt_sorted

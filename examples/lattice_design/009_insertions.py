@@ -15,13 +15,6 @@ import numpy as np
 
 # General rule: I want to keep anything I can!
 
-def _add_entry_exit_center(tt):
-    tt['length'] = np.diff(tt['s'], append=tt['s'][-1])
-    tt['s_center'] = tt.s + 0.5 * tt.length
-    tt['s_entry'] = tt.s
-    tt['s_exit'] = tt.s + tt.length
-
-
 env = xt.Environment()
 
 line = env.new_line(
@@ -39,6 +32,7 @@ s_tol = 1e-10
 _is_drift = xt.line._is_drift
 _all_places = xt.environment._all_places
 _resolve_s_positions = xt.environment._resolve_s_positions
+_sort_places = xt.environment._sort_places
 
 # Insert single thick element at absolute s
 
@@ -56,54 +50,50 @@ what = [
 if len(what) != len(set(what)):
     what = [ww.copy() for ww in what]
 
-# Resolve s positions
+# Resolve s positions of insertions
 tt = line.get_table()
-_add_entry_exit_center(tt)
 
 line_places = []
 for nn in tt.name:
     if nn == '_end_point':
         continue
-    # if _is_drift(line.element_dict[nn], line):
-    #     continue
-    line_places.append(env.place(nn, tt['s_center', nn]))
+    line_places.append(env.place(nn, at= tt['s_center', nn]))
 
 seq_all_places = _all_places(line_places + what)
+mask_insertions = np.array([pp in what for pp in seq_all_places])
 
-tab_sorted = _resolve_s_positions(seq_all_places, env, refer='centre',
-                                  # I will use the ids of the places afterwards, hence:
-                                  allow_duplicate_places=False)
+tab_unsorted = _resolve_s_positions(seq_all_places, env, refer='centre')
+prrrr
+
+
+tab_unsorted['is_insertion'] = mask_insertions
+tab_sorted = _sort_places(tab_unsorted)
 
 assert len(seq_all_places) == len(tab_sorted)
 
 # Get table with new insertions only
-idx_insertions = []
-for ii in range(len(tab_sorted)):
-    if tab_sorted['place_obj', ii] in what:
-        idx_insertions.append(ii)
-tab_insertions = tab_sorted.rows[idx_insertions]
+tab_insertions = tab_sorted.rows[tab_sorted.is_insertion]
 
 # Make cuts
-s_cuts = list(tab_insertions['s_entry']) + list(tab_insertions['s_exit'])
+s_cuts = list(tab_insertions['s_start']) + list(tab_insertions['s_end'])
 s_cuts = list(set(s_cuts))
 line.cut_at_s(s_cuts, s_tol=1e-06)
 
 tt_after_cut = line.get_table()
-_add_entry_exit_center(tt_after_cut)
 
 # Identify old elements falling inside the insertions
 idx_remove = []
 for ii in range(len(tab_insertions)):
-    s_ins_entry = tab_insertions['s_entry', ii]
-    s_ins_exit = tab_insertions['s_exit', ii]
-    entry_is_inside = ((tt_after_cut.s_entry >= s_ins_entry - s_tol)
-                     & (tt_after_cut.s_entry <= s_ins_exit - s_tol))
-    exit_is_inside = ((tt_after_cut.s_exit >= s_ins_entry + s_tol)
-                    & (tt_after_cut.s_exit <= s_ins_exit + s_tol))
-    thin_at_entry = ((tt_after_cut.s_entry >= s_ins_entry - s_tol)
-                    & (tt_after_cut.s_exit <= s_ins_entry + s_tol))
-    thin_at_exit = ((tt_after_cut.s_entry >= s_ins_exit - s_tol)
-                  & (tt_after_cut.s_exit <= s_ins_exit + s_tol))
+    s_ins_start = tab_insertions['s_start', ii]
+    s_ins_end = tab_insertions['s_end', ii]
+    entry_is_inside = ((tt_after_cut.s_start >= s_ins_start - s_tol)
+                     & (tt_after_cut.s_start <= s_ins_end - s_tol))
+    exit_is_inside = ((tt_after_cut.s_end >= s_ins_start + s_tol)
+                    & (tt_after_cut.s_end <= s_ins_end + s_tol))
+    thin_at_entry = ((tt_after_cut.s_start >= s_ins_start - s_tol)
+                    & (tt_after_cut.s_end <= s_ins_start + s_tol))
+    thin_at_exit = ((tt_after_cut.s_start >= s_ins_end - s_tol)
+                  & (tt_after_cut.s_end <= s_ins_end + s_tol))
     remove = (entry_is_inside | exit_is_inside) & (~thin_at_entry) & (~thin_at_exit)
     idx_remove.extend(list(np.where(remove)[0]))
 
