@@ -2169,10 +2169,10 @@ class Line:
         tt = self.get_table()
 
         line_places = []
-        for nn in tt.name:
+        for nn, enn in zip(tt.name, tt.env_name):
             if nn == '_end_point':
                 continue
-            line_places.append(env.place(nn, at= tt['s_center', nn]))
+            line_places.append(env.place(enn, at=tt['s_center', nn]))
 
         seq_all_places = _all_places(line_places + what)
         mask_insertions = np.array([pp in what for pp in seq_all_places])

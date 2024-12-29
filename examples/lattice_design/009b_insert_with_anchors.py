@@ -57,5 +57,5 @@ xo.assert_allclose(tt.s_center, np.array(
       50.  , 50.  ]), rtol=0., atol=1e-14)
 
 line.insert([
-    env.new('q4', 'q0', anchor='center', at='', from_='end@q2')
+    env.new('q4', 'q0', anchor='center', at=0, from_='end@q2')
 ])
