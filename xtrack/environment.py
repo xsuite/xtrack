@@ -789,10 +789,11 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
         raise ValueError(f'Could not resolve all s positions: {unresolved_pos}')
 
     aux_s_start = np.array([s_start_for_place[ss] for ss in seq_all_places])
-    aux_s_center = aux_s_start + tt_out['length'] / 2 # Need to sort the centers to avoid issues
-                                                      # with thin + thick elements at the same s_start
+    aux_s_center = aux_s_start + tt_out['length'] / 2
+    aux_s_end = aux_s_start + tt_out['length']
     tt_out['s_start'] = aux_s_start
     tt_out['s_center'] = aux_s_center
+    tt_out['s_end'] = aux_s_end
 
     tt_out['from_'] = np.array([ss.from_ for ss in seq_all_places])
     tt_out['from_anchor'] = np.array([ss.from_anchor for ss in seq_all_places])

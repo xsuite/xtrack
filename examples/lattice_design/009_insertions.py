@@ -61,22 +61,16 @@ for nn in tt.name:
 
 seq_all_places = _all_places(line_places + what)
 mask_insertions = np.array([pp in what for pp in seq_all_places])
-
 tab_unsorted = _resolve_s_positions(seq_all_places, env, refer='centre')
-prrrr
-
-
 tab_unsorted['is_insertion'] = mask_insertions
-tab_sorted = _sort_places(tab_unsorted)
-
-assert len(seq_all_places) == len(tab_sorted)
 
 # Get table with new insertions only
-tab_insertions = tab_sorted.rows[tab_sorted.is_insertion]
+tab_insertions = tab_unsorted.rows[tab_unsorted.is_insertion]
 
 # Make cuts
 s_cuts = list(tab_insertions['s_start']) + list(tab_insertions['s_end'])
 s_cuts = list(set(s_cuts))
+
 line.cut_at_s(s_cuts, s_tol=1e-06)
 
 tt_after_cut = line.get_table()
