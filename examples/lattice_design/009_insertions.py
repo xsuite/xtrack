@@ -29,12 +29,8 @@ line = env.new_line(
 
 s_tol = 1e-10
 
-_is_drift = xt.line._is_drift
 _all_places = xt.environment._all_places
 _resolve_s_positions = xt.environment._resolve_s_positions
-_sort_places = xt.environment._sort_places
-
-# Insert single thick element at absolute s
 
 env.new('ss', 'Sextupole', length='0.1')
 pp_ss = env.place('ss')

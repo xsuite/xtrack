@@ -2146,7 +2146,6 @@ class Line:
         slicer = Slicer(self, slicing_strategies=strategies)
         slicer.slice_in_place()
 
-
     def insert_element(self, name, element=None, at=None, index=None, at_s=None,
                        s_tol=1e-6):
 
