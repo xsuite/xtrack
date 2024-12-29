@@ -269,7 +269,17 @@ class Environment:
                 components[ii] = self.lines[nn]
 
         flattened_components = _flatten_components(components, refer=refer)
-        out.element_names = handle_s_places(flattened_components, self, refer=refer)
+
+        if np.array([isinstance(ss, str) for ss in flattened_components]).all():
+            # All elements provided by name
+            element_names = [str(ss) for ss in flattened_components]
+        else:
+            seq_all_places = _all_places(flattened_components)
+            tab_unsorted = _resolve_s_positions(seq_all_places, self, refer=refer)
+            tab_sorted = _sort_places(tab_unsorted)
+            element_names = _generate_element_names_with_drifts(self, tab_sorted)
+
+        out.element_names = element_names
         out._name = name
         out.builder = Builder(env=self, components=components)
 
@@ -899,18 +909,6 @@ def _generate_element_names_with_drifts(env, tt_sorted, s_tol=1e-10):
         names_with_drifts.append(nn)
 
     return list(map(str, names_with_drifts))
-
-def handle_s_places(seq, env, refer: ReferType = 'center'):
-
-    if np.array([isinstance(ss, str) for ss in seq]).all():
-        return [str(ss) for ss in seq]
-
-    seq_all_places = _all_places(seq)
-    tab_unsorted = _resolve_s_positions(seq_all_places, env, refer=refer)
-    tab_sorted = _sort_places(tab_unsorted)
-    names = _generate_element_names_with_drifts(env, tab_sorted)
-
-    return names
 
 def _parse_kwargs(cls, kwargs, _eval):
     ref_kwargs = {}
