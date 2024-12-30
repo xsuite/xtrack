@@ -61,8 +61,17 @@ line.replace_all_repeated_elements(mode='replica')
 line.insert([
     env.new('q4', 'q0', anchor='center', at=0, from_='end@q2'),
     env.new('q5', 'q0', at=0, from_='ql'),
-    env.new('ml0', 'Marker', at='start@q5'),
-    env.new('ml1', 'Marker', at='start@q5'),
+    env.new('m5.0', 'Marker', at='start@q5'),
+    env.new('m5.1', 'Marker', at='start@q5'),
+])
+
+tt2 = line.get_table()
+tt2.show(cols=['name', 's_start', 's_end', 's_center'])
+
+line.insert([
+    env.new('q6', 'q0', at=0, from_='qr'),
+    env.new('m5.0', 'Marker', at='start@qr'),
+    env.new('m5.1', 'Marker', at='start@qr'),
 ])
 
 tt2 = line.get_table()
