@@ -2196,6 +2196,7 @@ class Line:
         sliced_elements = self.cut_at_s(s_cuts, s_tol=1e-06, return_slices=True)
 
         tt_after_cut = self.get_table()
+        tt_after_cut['length'] = np.diff(tt_after_cut.s, append=tt_after_cut.s[-1])
 
         # Identify old elements falling inside the insertions
         idx_remove = []
@@ -2216,26 +2217,21 @@ class Line:
         mask_keep = np.ones(len(tt_after_cut), dtype=bool)
         mask_keep[idx_remove] = False
         tt_keep = tt_after_cut.rows[mask_keep]
+        tt_keep['from_'] = np.array([None] * len(tt_keep))
+        tt_keep['from_anchor'] = np.array([None] * len(tt_keep))
+        assert tt_keep.name[-1] == '_end_point'
+        tt_keep = tt_keep.rows[:-1]
 
+        # Unsorted table with all elements for the new line
         tab_unsorted_with_insertions = xt.Table.concatenate([tt_keep, tab_insertions])
 
+        # Sort elements
         tab_sorted = _sort_places(tab_unsorted_with_insertions)
         element_names = _generate_element_names_with_drifts(self, tab_sorted)
+
+        # Update line
+        self.element_names.clear()
         self.element_names.extend(element_names)
-
-        # places_to_keep = []
-        # for ii in range(len(tt_after_cut)):
-        #     nn = tt_after_cut['name', ii]
-        #     if ii in idx_remove:
-        #         continue
-        #     if nn == '_end_point':
-        #         continue
-        #     places_to_keep.append(env.place(nn, at=tt_after_cut['s_center', ii]))
-
-        # l_aux = env.new_line(components=[places_to_keep + what])
-
-        # self.element_names.clear()
-        # self.element_names.extend(l_aux.element_names)
 
     def insert_element(self, name, element=None, at=None, index=None, at_s=None,
                        s_tol=1e-6):
