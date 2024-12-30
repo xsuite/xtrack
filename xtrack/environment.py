@@ -3,6 +3,7 @@ from functools import cmp_to_key
 from typing import Literal
 from weakref import WeakSet
 from copy import deepcopy
+import re
 
 import numpy as np
 import pandas as pd
@@ -397,7 +398,11 @@ class Environment:
         components = []
         for name in line.element_names:
             new_name = name
-            if (name in self.element_dict and not
+
+            if (bool(re.match(r'^drift_\d+$', name))
+                and line.ref[name].length._expr is None):
+                new_name = self._get_a_drift_name()
+            elif (name in self.element_dict and not
                 (isinstance(line[name], xt.Marker)
                 and isinstance(self.element_dict.get(name), xt.Marker))):
                 new_name += suffix_for_common_elements
