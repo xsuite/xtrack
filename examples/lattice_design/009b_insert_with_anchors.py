@@ -74,5 +74,5 @@ line.insert([
     env.new('mr.1', 'Marker', at='start@qr'),
 ])
 
-tt2 = line.get_table()
-tt2.show(cols=['name', 's_start', 's_end', 's_center'])
+tt3 = line.get_table()
+tt3.show(cols=['name', 's_start', 's_end', 's_center'])
