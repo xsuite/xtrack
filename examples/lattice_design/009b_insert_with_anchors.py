@@ -61,8 +61,8 @@ line.replace_all_repeated_elements(mode='replica')
 line.insert([
     env.new('q4', 'q0', anchor='center', at=0, from_='end@q2'),
     env.new('q5', 'q0', at=0, from_='ql'),
-    env.new('ml', 'Marker', from_='start@q5'),
-    env.new('ml0', 'Marker', from_='start@q5'),
+    env.new('ml0', 'Marker', at='start@q5'),
+    env.new('ml1', 'Marker', at='start@q5'),
 ])
 
 tt2 = line.get_table()

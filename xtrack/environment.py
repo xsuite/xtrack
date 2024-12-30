@@ -745,6 +745,13 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
         for ii, ss in enumerate(seq_all_places):
             if ss in s_start_for_place:  # Already resolved
                 continue
+
+            if ss.from_ is not None or ss.from_anchor is not None:
+                if ss.at is None:
+                    raise ValueError(
+                        f'Cannot specify `from_ `or `from_anchor` without providing `at`.'
+                        f'Error in place `{ss}`.')
+
             if ss.at is None and not ss._before:
                 ss_prev = seq_all_places[ii-1]
                 if ss_prev in s_start_for_place:
