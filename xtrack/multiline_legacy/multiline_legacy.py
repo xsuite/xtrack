@@ -21,6 +21,8 @@ class MultilineLegacy:
     '''
 
     def __init__(self, lines: dict, link_vars=True):
+        raise ValueError('MultilineLegacy is deprecated, use Environment instead')
+
         self.lines = {}
         self.lines.update(lines)
 
