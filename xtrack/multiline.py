@@ -24,6 +24,7 @@ class Multiline(Environment):
                   '    import xtrack as xt\n'
                   '    env = xt.Multiline.from_json("my_old_multiline.json")\n'
                   '    env.to_json("my_new_environment.json")\n')
+            return out
 
     @classmethod
     def _from_legacy_multiline_dict(cls, dct):
