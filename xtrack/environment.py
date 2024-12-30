@@ -815,7 +815,7 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
     return tt_out
 
 # @profile
-def _sort_places(tt_unsorted, s_tol=1e-10):
+def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
 
     tt_unsorted['i_place'] = np.arange(len(tt_unsorted))
 
@@ -826,10 +826,12 @@ def _sort_places(tt_unsorted, s_tol=1e-10):
     group_id = np.zeros(len(tt_s_sorted), dtype=int)
     group_id[0] = 0
     for ii in range(1, len(tt_s_sorted)):
-        if abs(tt_s_sorted.s_center[ii] - tt_s_sorted.s_center[ii-1]) < s_tol:
-            group_id[ii] = group_id[ii-1]
-        else:
+        if abs(tt_s_sorted.s_center[ii] - tt_s_sorted.s_center[ii-1]) > s_tol:
             group_id[ii] = group_id[ii-1] + 1
+        elif tt_s_sorted.isthick[ii]: # Needed in Line.insert (on the first sorting pass there can be overlapping elements)
+            group_id[ii] = group_id[ii-1] + 1
+        else:
+            group_id[ii] = group_id[ii-1]
 
     tt_s_sorted['group_id'] = group_id
     # tt_s_sorted.show(cols=['group_id', 's_center', 'name', 'from_', 'from_anchor', 'i_place'])
@@ -863,6 +865,11 @@ def _sort_places(tt_unsorted, s_tol=1e-10):
         # tt_group.show(cols=['s_center', 'name', 'from_', 'from_anchor'])
 
         for ff in tt_group.from_:
+            if ff not in ind_name:
+                if allow_non_existent_from:
+                    continue
+                else:
+                    raise ValueError(f'Element {ff} not found in the line')
             i_from_global = ind_name[ff] - i_start_group
             key_sort = np.zeros(n_group, dtype=int)
 

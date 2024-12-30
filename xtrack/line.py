@@ -2185,15 +2185,16 @@ class Line:
 
         seq_all_places = _all_places(line_places + what)
         mask_insertions = np.array([pp in what for pp in seq_all_places])
-        tab_unsorted = _resolve_s_positions(seq_all_places, env, refer='centre')
-        tab_unsorted['is_insertion'] = mask_insertions
-        tab_insertions = tab_unsorted.rows[tab_unsorted.is_insertion]
+        tab_all_unsorted = _resolve_s_positions(seq_all_places, env, refer='centre')
+        tab_all_unsorted['is_insertion'] = mask_insertions
+        tab_all_sorted = _sort_places(tab_all_unsorted)
+        tab_insertions = tab_all_sorted.rows[tab_all_sorted.is_insertion]
 
         # Make cuts
         s_cuts = list(tab_insertions['s_start']) + list(tab_insertions['s_end'])
         s_cuts = list(set(s_cuts))
 
-        sliced_elements = self.cut_at_s(s_cuts, s_tol=1e-06, return_slices=True)
+        self.cut_at_s(s_cuts, s_tol=1e-06, return_slices=True)
 
         tt_after_cut = self.get_table()
         tt_after_cut['length'] = np.diff(tt_after_cut.s, append=tt_after_cut.s[-1])
@@ -2226,7 +2227,11 @@ class Line:
         tab_unsorted_with_insertions = xt.Table.concatenate([tt_keep, tab_insertions])
 
         # Sort elements
-        tab_sorted = _sort_places(tab_unsorted_with_insertions)
+        tab_sorted = _sort_places(tab_unsorted_with_insertions,
+                                  allow_non_existent_from=True # If from_ is removed s only is conisiderer
+                                                               # (right order comes form previous sorting,
+                                                               # (done before removing elements)
+        )
         element_names = _generate_element_names_with_drifts(self, tab_sorted)
 
         # Update line

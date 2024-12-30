@@ -70,8 +70,8 @@ tt2.show(cols=['name', 's_start', 's_end', 's_center'])
 
 line.insert([
     env.new('q6', 'q0', at=0, from_='qr'),
-    env.new('m5.0', 'Marker', at='start@qr'),
-    env.new('m5.1', 'Marker', at='start@qr'),
+    env.new('mr.0', 'Marker', at='start@qr'),
+    env.new('mr.1', 'Marker', at='start@qr'),
 ])
 
 tt2 = line.get_table()
