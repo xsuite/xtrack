@@ -242,6 +242,7 @@ class Slicer:
         thin_names = []
 
         collapsed_names = self._line.element_names.copy()
+        slices = {}
         for ii, name in enumerate(progress(collapsed_names, desc='Slicing line')):
 
             element = self._line.element_dict[name]
@@ -253,10 +254,12 @@ class Slicer:
                 subsequence = [name]
 
             thin_names += subsequence
+            slices[name] = subsequence
 
         # Commit the changes to the line
         self._line.element_names = thin_names
 
+        return slices
 
     def _slice_element(self, name, element, _edge_markers=True) -> Optional[List[str]]:
         """Slice element and return slice names, or None if no slicing."""

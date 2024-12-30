@@ -2140,7 +2140,7 @@ class Line:
 
         return cuts_for_element
 
-    def cut_at_s(self, s: List[float], s_tol=1e-6):
+    def cut_at_s(self, s: List[float], s_tol=1e-6, return_slices=False):
         """Slice the line so that positions in s never fall inside an element."""
 
         if self._has_valid_tracker():
@@ -2155,7 +2155,10 @@ class Line:
             strategies.append(strategy)
 
         slicer = Slicer(self, slicing_strategies=strategies)
-        slicer.slice_in_place()
+        slices = slicer.slice_in_place()
+
+        if return_slices:
+            return slices
 
     def insert(self, what, s_tol=1e-10):
 
@@ -2165,6 +2168,8 @@ class Line:
         _all_places = xt.environment._all_places
         _resolve_s_positions = xt.environment._resolve_s_positions
         _flatten_components = xt.environment._flatten_components
+        _sort_places = xt.environment._sort_places
+        _generate_element_names_with_drifts = xt.environment._generate_element_names_with_drifts
 
         # Resolve s positions of insertions
         tt = self.get_table()
@@ -2188,7 +2193,7 @@ class Line:
         s_cuts = list(tab_insertions['s_start']) + list(tab_insertions['s_end'])
         s_cuts = list(set(s_cuts))
 
-        self.cut_at_s(s_cuts, s_tol=1e-06)
+        sliced_elements = self.cut_at_s(s_cuts, s_tol=1e-06, return_slices=True)
 
         tt_after_cut = self.get_table()
 
@@ -2208,19 +2213,29 @@ class Line:
             remove = (entry_is_inside | exit_is_inside) & (~thin_at_entry) & (~thin_at_exit)
             idx_remove.extend(list(np.where(remove)[0]))
 
-        places_to_keep = []
-        for ii in range(len(tt_after_cut)):
-            nn = tt_after_cut['name', ii]
-            if ii in idx_remove:
-                continue
-            if nn == '_end_point':
-                continue
-            places_to_keep.append(env.place(nn, at=tt_after_cut['s_center', ii]))
+        mask_keep = np.ones(len(tt_after_cut), dtype=bool)
+        mask_keep[idx_remove] = False
+        tt_keep = tt_after_cut.rows[mask_keep]
 
-        l_aux = env.new_line(components=[places_to_keep + what])
+        tab_unsorted_with_insertions = xt.Table.concatenate([tt_keep, tab_insertions])
 
-        self.element_names.clear()
-        self.element_names.extend(l_aux.element_names)
+        tab_sorted = _sort_places(tab_unsorted_with_insertions)
+        element_names = _generate_element_names_with_drifts(self, tab_sorted)
+        self.element_names.extend(element_names)
+
+        # places_to_keep = []
+        # for ii in range(len(tt_after_cut)):
+        #     nn = tt_after_cut['name', ii]
+        #     if ii in idx_remove:
+        #         continue
+        #     if nn == '_end_point':
+        #         continue
+        #     places_to_keep.append(env.place(nn, at=tt_after_cut['s_center', ii]))
+
+        # l_aux = env.new_line(components=[places_to_keep + what])
+
+        # self.element_names.clear()
+        # self.element_names.extend(l_aux.element_names)
 
     def insert_element(self, name, element=None, at=None, index=None, at_s=None,
                        s_tol=1e-6):

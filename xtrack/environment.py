@@ -804,12 +804,13 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
 
     tt_out['from_'] = np.array([ss.from_ for ss in seq_all_places])
     tt_out['from_anchor'] = np.array([ss.from_anchor for ss in seq_all_places])
-    tt_out['i_place'] = np.arange(len(seq_all_places))
 
     return tt_out
 
 # @profile
 def _sort_places(tt_unsorted, s_tol=1e-10):
+
+    tt_unsorted['i_place'] = np.arange(len(tt_unsorted))
 
     # Sort by s_center
     iii = _argsort_s(tt_unsorted.s_center, tol=s_tol)
