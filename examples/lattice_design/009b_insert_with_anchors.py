@@ -55,24 +55,3 @@ xo.assert_allclose(tt.s_center, np.array(
     [ 2.  ,  5.  ,  6.05,  7.55, 10.  , 12.5 , 15.  , 16.05, 17.55,
       20.  , 25.  , 30.  , 35.5 , 40.  , 41.  , 42.  , 42.05, 46.05,
       50.  , 50.  ]), rtol=0., atol=1e-14)
-
-line.replace_all_repeated_elements(mode='replica')
-
-line.insert([
-    env.new('q4', 'q0', anchor='center', at=0, from_='end@q2'),
-    env.new('q5', 'q0', at=0, from_='ql'),
-    env.new('m5.0', 'Marker', at='start@q5'),
-    env.new('m5.1', 'Marker', at='start@q5'),
-])
-
-tt2 = line.get_table()
-tt2.show(cols=['name', 's_start', 's_end', 's_center'])
-
-line.insert([
-    env.new('q6', 'q0', at=0, from_='qr'),
-    env.new('mr.0', 'Marker', at='start@qr'),
-    env.new('mr.1', 'Marker', at='start@qr'),
-])
-
-tt3 = line.get_table()
-tt3.show(cols=['name', 's_start', 's_end', 's_center'])

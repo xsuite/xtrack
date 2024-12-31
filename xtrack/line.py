@@ -2181,9 +2181,10 @@ class Line:
             line_places.append(env.place(enn, at=tt['s_center', nn]))
 
         what = _flatten_components(what)
+        what = _all_places(what)
         what = [ww.copy() for ww in what]
 
-        seq_all_places = _all_places(line_places + what)
+        seq_all_places = line_places + what
         mask_insertions = np.array([pp in what for pp in seq_all_places])
         tab_all_unsorted = _resolve_s_positions(seq_all_places, env, refer='centre')
         tab_all_unsorted['is_insertion'] = mask_insertions
