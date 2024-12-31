@@ -74,9 +74,21 @@ class Environment:
         self.ref = EnvRef(self)
 
         if lines is not None:
+
+            # Identify common elements
+            counts = Counter()
+            for ll in lines.values():
+                # Count if it is not a marker or a drift, which will be handled by
+                # `import_line`
+                for nn in ll.element_names:
+                    if (not (isinstance(ll.element_dict[nn], (xt.Marker))) and
+                        not bool(re.match(r'^drift_\d+$', nn))):
+                        counts[nn] += 1
+            common_elements = [nn for nn, cc in counts.items() if cc>1]
+
             for nn, ll in lines.items():
                 self.import_line(line=ll, suffix_for_common_elements='/'+nn,
-                    line_name=nn)
+                    line_name=nn, rename_elements={el: el+'/'+nn for el in common_elements})
 
         self.metadata = {}
 
@@ -366,6 +378,7 @@ class Environment:
             self,
             line,
             suffix_for_common_elements=None,
+            rename_elements={},
             line_name=None,
             overwrite_vars=False,
     ):
@@ -400,7 +413,9 @@ class Environment:
         for name in line.element_names:
             new_name = name
 
-            if (bool(re.match(r'^drift_\d+$', name))
+            if name in rename_elements:
+                new_name = rename_elements[name]
+            elif (bool(re.match(r'^drift_\d+$', name))
                 and line.ref[name].length._expr is None):
                 new_name = self._get_a_drift_name()
             elif (name in self.element_dict and not
