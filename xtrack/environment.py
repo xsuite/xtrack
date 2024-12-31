@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 import xobjects as xo
+import xdeps as xd
 import xtrack as xt
 from xdeps.refs import is_ref
 from .multiline_legacy.multiline_legacy import MultilineLegacy
@@ -74,7 +75,7 @@ class Environment:
 
         if lines is not None:
             for nn, ll in lines.items():
-                self.import_line(line=ll, suffix_for_common_elements='__'+nn,
+                self.import_line(line=ll, suffix_for_common_elements='/'+nn,
                     line_name=nn)
 
         self.metadata = {}
@@ -384,7 +385,7 @@ class Environment:
         """
         line_name = line_name or line.name
         if suffix_for_common_elements is None:
-            suffix_for_common_elements = f'_{line_name}'
+            suffix_for_common_elements = f'/{line_name}'
 
         new_var_values = line.ref_manager.containers['vars']._owner
         if not overwrite_vars:
@@ -558,6 +559,22 @@ class Environment:
     @property
     def functions(self):
         return self._xdeps_fref
+
+    def _remove_element(self, name):
+
+        pars_with_expr = list(
+            self._xdeps_manager.tartasks[self.element_refs[name]].keys())
+
+        # Kill all references
+        for rr in pars_with_expr:
+            if isinstance(rr, xd.refs.AttrRef):
+                setattr(self[name], rr._key, 99)
+            elif isinstance(rr, xd.refs.ItemRef):
+                getattr(self[name], rr._owner._key)[rr._key] = 99
+            else:
+                raise ValueError('Only AttrRef and ItemRef are supported for now')
+
+        self.element_dict.pop(name)
 
     def __getattr__(self, key):
         if key == 'lines':
