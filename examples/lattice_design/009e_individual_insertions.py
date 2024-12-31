@@ -36,14 +36,12 @@ tt0.show(cols=['name', 's_start', 's_end', 's_center'])
 env.new('ss', 'Sextupole', length='0.1')
 pp_ss = env.place('ss')
 
-line.insert([
-    env.place('q0', at=5.0),
-    pp_ss,
-    env.place('q0', at=15.0),
-    pp_ss,
-    env.place('q0', at=41.0),
-    pp_ss,
-])
+line.insert('q0', at=5.0)
+line.insert('ss', at=6.0)
+line.insert('q0', at=15.0)
+line.insert('ss', at=16.0)
+line.insert('q0', at=41.0)
+line.insert('ss', at=42.0)
 
 tt = line.get_table()
 tt.show(cols=['name', 's_start', 's_end', 's_center'])

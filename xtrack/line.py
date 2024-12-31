@@ -2173,21 +2173,21 @@ class Line:
         _sort_places = xt.environment._sort_places
         _generate_element_names_with_drifts = xt.environment._generate_element_names_with_drifts
 
-        if not isinstance(what, Iterable):
-            what = [what]
-
         need_place_instantiation = False
         for nn, vv in {'at': at, 'from_': from_, 'anchor': anchor,
                        'from_anchor': from_anchor}.items():
             if vv is not None:
-                if isinstance(what, str):
+                if not isinstance(what, str):
                     raise ValueError(f'The inserted object myst be defined by a string '
-                                 'if {nn} is provided.')
+                                 f'if `{nn}` is provided.')
                 need_place_instantiation = True
 
         if need_place_instantiation:
-            what = [self.env.place(what, at=at, from_=from_, anchor=anchor,
-                                  from_anchor=from_anchor)]
+            what = self.env.place(what, obj=obj, at=at, from_=from_, anchor=anchor,
+                                  from_anchor=from_anchor)
+
+        if not isinstance(what, Iterable):
+            what = [what]
 
         # Resolve s positions of insertions and sort them
         what = _flatten_components(what)
