@@ -2161,7 +2161,8 @@ class Line:
         if return_slices:
             return slices
 
-    def insert(self, what, s_tol=1e-10):
+    def insert(self, what, obj=None, at=None, from_=None, anchor=None,
+               from_anchor=None, s_tol=1e-10):
 
         self._frozen_check()
         env = self.env
@@ -2174,6 +2175,19 @@ class Line:
 
         if not isinstance(what, Iterable):
             what = [what]
+
+        need_place_instantiation = False
+        for nn, vv in {'at': at, 'from_': from_, 'anchor': anchor,
+                       'from_anchor': from_anchor}.items():
+            if vv is not None:
+                if isinstance(what, str):
+                    raise ValueError(f'The inserted object myst be defined by a string '
+                                 'if {nn} is provided.')
+                need_place_instantiation = True
+
+        if need_place_instantiation:
+            what = [self.env.place(what, at=at, from_=from_, anchor=anchor,
+                                  from_anchor=from_anchor)]
 
         # Resolve s positions of insertions and sort them
         what = _flatten_components(what)
