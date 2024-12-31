@@ -2171,18 +2171,17 @@ class Line:
         _sort_places = xt.environment._sort_places
         _generate_element_names_with_drifts = xt.environment._generate_element_names_with_drifts
 
-        # Resolve s positions of insertions
-        tt = self.get_table()
+        # Resolve s positions of insertions and sort them
+        what = _flatten_components(what)
+        what = _all_places(what)
+        what = [ww.copy() for ww in what]
 
+        tt = self.get_table()
         line_places = []
         for nn, enn in zip(tt.name, tt.env_name):
             if nn == '_end_point':
                 continue
             line_places.append(env.place(enn, at=tt['s_center', nn]))
-
-        what = _flatten_components(what)
-        what = _all_places(what)
-        what = [ww.copy() for ww in what]
 
         seq_all_places = line_places + what
         mask_insertions = np.array([pp in what for pp in seq_all_places])
