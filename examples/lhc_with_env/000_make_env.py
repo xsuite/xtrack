@@ -33,12 +33,7 @@ line4=xt.Line.from_madx_sequence(mad4.sequence.lhcb2,
                                  replace_in_expr={'bv_aux':'bvaux_b2'})
 line4.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, p0c=7000e9)
 
-env = xt.Environment()
-
-env.import_line(line=line1, suffix_for_common_elements='__b1',
-                line_name='lhcb1')
-env.import_line(line=line4, suffix_for_common_elements='__b2',
-                line_name='lhcb2')
+env = xt.Environment(lines={'lhcb1': line1, 'lhcb2': line4})
 env.lhcb2.twiss_default['reverse'] = True
 
 env.to_json('lhc.json')

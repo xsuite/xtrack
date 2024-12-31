@@ -8,21 +8,20 @@ assert env.lhcb1.element_dict is env.element_dict
 assert env.lhcb2.element_dict is env.element_dict
 
 assert 'drift_1' in env.lhcb1.element_names
-assert 'drift_1__b1' not in env.lhcb1.element_names
 assert 'drift_1' not in env.lhcb2.element_names
-assert 'drift_1__b2' in env.lhcb2.element_names
 
 assert 'ip1' in env.lhcb1.element_names
 assert 'ip1' in env.lhcb2.element_names
-assert 'ip1__b2' not in env.lhcb2.element_names
+assert 'ip1/b2' not in env.lhcb2.element_names
 
-assert 'mqxfa.a1r1' in env.lhcb1.element_names
-assert 'mqxfa.a1r1__b2' in env.lhcb2.element_names
+assert 'mqxfa.a1r1/lhcb1' in env.lhcb1.element_names
+assert 'mqxfa.a1r1/lhcb2' in env.lhcb2.element_names
+assert 'mqxfa.a1r1'  not in env.lhcb1.element_names
 assert 'mqxfa.a1r1'  not in env.lhcb2.element_names
 
 assert 'mq.12l6.b1' in env.lhcb1.element_names
 assert 'mq.12l6.b2' in env.lhcb2.element_names
-assert 'mq.12l6.b2__b2' not in env.lhcb2.element_names
+assert 'mq.12l6.b2/lhcb2' not in env.lhcb2.element_names
 
 twb1 = env.lhcb1.twiss4d()
 twb2 = env.lhcb2.twiss4d()
