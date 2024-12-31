@@ -309,7 +309,7 @@ class Environment:
 
         return out
 
-    def place(self, name, at=None, from_=None, anchor=None, from_anchor=None):
+    def place(self, name, obj=None, at=None, from_=None, anchor=None, from_anchor=None):
         '''
         Create a place object.
 
@@ -328,6 +328,9 @@ class Environment:
         Place
             The new place object.
         '''
+
+        if obj is not None:
+            self.element_dict[name] = obj
 
         return Place(name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
 
@@ -1136,9 +1139,9 @@ class Builder:
         self.components.append(out)
         return out
 
-    def place(self, name, at=None, from_=None, anchor=None, from_anchor=None):
-        out = self.env.place(
-            name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
+    def place(self, name, obj=None, at=None, from_=None, anchor=None, from_anchor=None):
+        out = self.env.place(name=name, obj=obj, at=at, from_=from_,
+                             anchor=anchor, from_anchor=from_anchor)
         self.components.append(out)
         return out
 

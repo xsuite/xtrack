@@ -8,6 +8,7 @@ import json
 import logging
 from collections import defaultdict
 from weakref import WeakSet
+from collections.abc import Iterable
 
 from contextlib import contextmanager
 from copy import deepcopy
@@ -2170,6 +2171,9 @@ class Line:
         _flatten_components = xt.environment._flatten_components
         _sort_places = xt.environment._sort_places
         _generate_element_names_with_drifts = xt.environment._generate_element_names_with_drifts
+
+        if not isinstance(what, Iterable):
+            what = [what]
 
         # Resolve s positions of insertions and sort them
         what = _flatten_components(what)
