@@ -1,4 +1,5 @@
 from collections import Counter, UserDict
+from collections.abc import Iterable
 from functools import cmp_to_key
 from typing import Literal
 from weakref import WeakSet
@@ -330,7 +331,13 @@ class Environment:
         '''
 
         if obj is not None:
+            assert not isinstance(name, xt.Line)
             self.element_dict[name] = obj
+
+        # if list of strings, create a line
+        if (isinstance(name, Iterable) and not isinstance(name, str)
+            and all(isinstance(item, str) for item in name)):
+            name = self.new_line(components=name)
 
         return Place(name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
 
