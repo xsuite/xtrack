@@ -21,7 +21,7 @@ ln_insert = env.new_line(
         env.new('s3', 's1', anchor='start', at=0.3, from_='end@s2')
     ])
 
-line.insert(env.place(ln_insert, anchor='start', at=1, from_='end@q0'))
+line.insert(ln_insert, anchor='start', at=1, from_='end@q0')
 
 tt = line.get_table()
 tt.show(cols=['name', 's_start', 's_end', 's_center'])

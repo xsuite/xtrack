@@ -2177,9 +2177,9 @@ class Line:
         for nn, vv in {'at': at, 'from_': from_, 'anchor': anchor,
                        'from_anchor': from_anchor}.items():
             if vv is not None:
-                if not isinstance(what, str):
+                if not isinstance(what, (str, xt.Line)):
                     raise ValueError(f'The inserted object myst be defined by a string '
-                                 f'if `{nn}` is provided.')
+                                 f'or Line if `{nn}` is provided.')
                 need_place_instantiation = True
 
         if need_place_instantiation:
