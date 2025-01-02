@@ -905,6 +905,8 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
         # tt_group.show(cols=['s_center', 'name', 'from_', 'from_anchor'])
 
         for ff in tt_group.from_:
+            if ff is None:
+                continue
             if ff not in ind_name:
                 if allow_non_existent_from:
                     continue
