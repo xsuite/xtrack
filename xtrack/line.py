@@ -2257,6 +2257,32 @@ class Line:
         self.element_names.clear()
         self.element_names.extend(element_names)
 
+    def remove(self, name, s_tol=1e-10):
+        self._frozen_check()
+
+        tt = self.get_table()
+        tt['idx'] = np.arange(len(tt))
+
+        idx_remove_name = tt.raws.indices[name]
+        idx_remove_env_name = tt.raws.indices[tt.env_name == name]
+        idx_remove = set(idx_remove_name) | set(idx_remove_env_name)
+        tt_remove = tt.rows[idx_remove]
+
+        mask_thick = tt.is_thick & (tt_remove.s_end - tt_remove.s_start) > s_tol
+        tt_remove_thick = tt_remove[mask_thick]
+        tt_remove_thin = tt_remove[~mask_thick]
+
+        for ii in range(len(tt_remove_thick)):
+            ll = tt_remove_thick['s_end', ii] - tt_remove_thick['s_start', ii]
+            idx = tt_remove_thick['idx', ii]
+            new_name = self.env._get_a_drift_name()
+            self.env.new(new_name, 'Drift', length=ll)
+            self.element_names[idx] = new_name
+
+        idx_remove = tt_remove['idx']
+        self.element_names = [nn for ii, nn in enumerate(self.element_names)
+                              if ii not in idx_remove]
+
     def insert_element(self, name, element=None, at=None, index=None, at_s=None,
                        s_tol=1e-6):
 
