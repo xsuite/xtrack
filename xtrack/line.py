@@ -2178,7 +2178,7 @@ class Line:
                        'from_anchor': from_anchor}.items():
             if vv is not None:
                 if not isinstance(what, (str, xt.Line)):
-                    raise ValueError(f'The inserted object myst be defined by a string '
+                    raise ValueError(f'The inserted object must be defined by a string '
                                  f'or Line if `{nn}` is provided.')
                 need_place_instantiation = True
 
