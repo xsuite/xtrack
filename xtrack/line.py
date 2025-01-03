@@ -2264,21 +2264,7 @@ class Line:
     def remove(self, name, s_tol=1e-10):
         self._frozen_check()
 
-        tt = self.get_table()
-        tt['idx'] = np.arange(len(tt))
-
-        idx_remove_name = tt.rows.indices[name]
-        idx_remove_env_name = tt.rows.indices[tt.env_name == name]
-        idx_remove_rep = list(idx_remove_name) + list(idx_remove_env_name)
-        idx_remove = []
-        for ii in idx_remove_rep: # I don't use set to do it in order
-            if ii not in idx_remove:
-                idx_remove.append(ii)
-
-        if len(idx_remove) == 0:
-            raise ValueError(f'Element {name} not found in the line.')
-
-        tt_remove = tt.rows[idx_remove]
+        tt_remove = self._name_match(name)
 
         mask_thick = tt_remove.isthick & (tt_remove.s_end - tt_remove.s_start > s_tol)
         if mask_thick.any():
@@ -2309,24 +2295,7 @@ class Line:
     def replace(self, name, new_name, s_tol=1e-10):
         self._frozen_check()
 
-        if new_name not in self.element_dict:
-            raise ValueError(f'Element {new_name} not found in the line.')
-
-        tt = self.get_table()
-        tt['idx'] = np.arange(len(tt))
-
-        idx_remove_name = tt.rows.indices[name]
-        idx_remove_env_name = tt.rows.indices[tt.env_name == name]
-        idx_remove_rep = list(idx_remove_name) + list(idx_remove_env_name)
-        idx_remove = []
-        for ii in idx_remove_rep: # I don't use set to do it in order
-            if ii not in idx_remove:
-                idx_remove.append(ii)
-
-        if len(idx_remove) == 0:
-            raise ValueError(f'Element {name} not found in the line.')
-
-        tt_replace = tt.rows[idx_remove]
+        tt_replace = self._name_match(name)
 
         if _is_thick(self.element_dict[new_name], self):
             l_new = _length(self.element_dict[new_name], self)
@@ -2342,6 +2311,25 @@ class Line:
         for ii in range(len(tt_replace)):
             idx = tt_replace['idx', ii]
             self.element_names[idx] = new_name
+
+    def _name_match(self, name):
+        tt = self.get_table()
+        tt['idx'] = np.arange(len(tt))
+
+        idx_match_name = tt.rows.indices[name]
+        idx_match_env_name = tt.rows.indices[tt.env_name == name]
+        idx_match_rep = list(idx_match_name) + list(idx_match_env_name)
+        idx_match = []
+        for ii in idx_match_rep: # I don't use set to do it in order
+            if ii not in idx_match:
+                idx_match.append(ii)
+
+        if len(idx_match) == 0:
+            raise ValueError(f'Element {name} not found in the line.')
+
+        tt_match = tt.rows[idx_match]
+
+        return tt_match
 
     def insert_element(self, name, element=None, at=None, index=None, at_s=None,
                        s_tol=1e-6):
