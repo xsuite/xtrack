@@ -335,6 +335,7 @@ class Environment:
 
         if obj is not None:
             assert not isinstance(name, xt.Line)
+            assert name not in self.element_dict
             self.element_dict[name] = obj
 
         # if list of strings, create a line
