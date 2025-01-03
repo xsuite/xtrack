@@ -396,7 +396,8 @@ class Slicer:
         if chosen_slicing.mode == 'thin' or isdriftslice:
             for weight, is_drift in chosen_slicing.iter_weights(elem_length):
                 if is_drift:
-                    nn = f'{name}..{drift_idx}'
+                    while (nn := f'{name}..{drift_idx}') in self._line.element_dict:
+                        drift_idx += 1
                     if not isdriftslice:
                         nn = 'drift_' + nn
                     ee = slice_parent._drift_slice_class(
@@ -405,11 +406,11 @@ class Slicer:
                     ee.parent_name = slice_parent_name
                     self._line.element_dict[nn] = ee
                     slices_to_append.append(nn)
-                    drift_idx += 1
                 else:
                     if isdriftslice:
                         continue
-                    nn = f'{name}..{element_idx}'
+                    while (nn := f'{name}..{element_idx}') in self._line.element_dict:
+                        element_idx += 1
                     if slice_parent._thin_slice_class is not None:
                         ee = slice_parent._thin_slice_class(
                                 _parent=slice_parent, _buffer=element._buffer,
@@ -417,17 +418,16 @@ class Slicer:
                         ee.parent_name = slice_parent_name
                         self._line.element_dict[nn] = ee
                         slices_to_append.append(nn)
-                        element_idx += 1
         elif chosen_slicing.mode == 'thick':
             for weight, is_drift in chosen_slicing.iter_weights(elem_length):
-                nn = f'{name}..{element_idx}'
+                while (nn := f'{name}..{element_idx}') in self._line.element_dict:
+                    element_idx += 1
                 ee = slice_parent._thick_slice_class(
                         _parent=slice_parent, _buffer=element._buffer,
                         weight=weight * elem_weight)
                 ee.parent_name = slice_parent_name
                 self._line.element_dict[nn] = ee
                 slices_to_append.append(nn)
-                element_idx += 1
         else:
             raise ValueError(f'Unknown slicing mode: {chosen_slicing.mode}')
 
