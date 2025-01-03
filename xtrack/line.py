@@ -795,12 +795,16 @@ class Line:
             True: 'reverse', False: 'proper'}[reverse]
         return tab
 
-    def copy(self, _context=None, _buffer=None):
+    def copy(self, shallow=False, _context=None, _buffer=None):
         '''
         Return a copy of the line.
 
         Parameters
         ----------
+        shallow : bool, optional
+            If False (default), a deep copy is returned.
+            If True, a shallow copy is returned, i.e. the line is plced in the
+            same environment and shares variables and elements with the original.
         _context: xobjects.Context
             xobjects context to be used for the copy
         _buffer: xobjects.Buffer
@@ -2281,6 +2285,7 @@ class Line:
             tt_remove_thick = tt_remove.rows[mask_thick]
         else:
             tt_remove_thick = None
+
         if mask_thick.all():
             tt_remove_thin = None
         else:
@@ -2300,6 +2305,43 @@ class Line:
             idx_remove = tt_remove_thin['idx']
             self.element_names = [nn for ii, nn in enumerate(self.element_names)
                                 if ii not in idx_remove]
+
+    def replace(self, name, new_name, s_tol=1e-10):
+        self._frozen_check()
+
+        if new_name not in self.element_dict:
+            raise ValueError(f'Element {new_name} not found in the line.')
+
+        tt = self.get_table()
+        tt['idx'] = np.arange(len(tt))
+
+        idx_remove_name = tt.rows.indices[name]
+        idx_remove_env_name = tt.rows.indices[tt.env_name == name]
+        idx_remove_rep = list(idx_remove_name) + list(idx_remove_env_name)
+        idx_remove = []
+        for ii in idx_remove_rep: # I don't use set to do it in order
+            if ii not in idx_remove:
+                idx_remove.append(ii)
+
+        if len(idx_remove) == 0:
+            raise ValueError(f'Element {name} not found in the line.')
+
+        tt_replace = tt.rows[idx_remove]
+
+        if _is_thick(self.element_dict[new_name], self):
+            l_new = _length(self.element_dict[new_name], self)
+        else:
+            l_new = 0
+
+        for ii in range(len(tt_replace)):
+            l_old = tt_replace['s_end', ii] - tt_replace['s_start', ii]
+            if np.abs(l_old - l_new) > s_tol:
+                raise ValueError(f'Element {name} cannot be replaced by {new_name} '
+                             'because of different lengths.')
+
+        for ii in range(len(tt_replace)):
+            idx = tt_replace['idx', ii]
+            self.element_names[idx] = new_name
 
     def insert_element(self, name, element=None, at=None, index=None, at_s=None,
                        s_tol=1e-6):
