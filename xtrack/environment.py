@@ -141,6 +141,9 @@ class Environment:
             provided.
         '''
 
+        if name in self.element_dict:
+            raise ValueError(f'Element {name} already exists')
+
         if from_ is not None or at is not None:
             all_kwargs = locals()
             all_kwargs.pop('self')
