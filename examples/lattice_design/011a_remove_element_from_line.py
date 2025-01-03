@@ -54,3 +54,15 @@ assert np.all(tt3.name == np.array(
 xo.assert_allclose(tt3.s_center, np.array(
     [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. , 40. , 41. ,
        46. , 50. , 50. ]), rtol=0., atol=1e-14)
+
+line4 = line0.copy()
+line4.remove('mk2')
+tt4 = line4.get_table()
+tt4.show(cols=['name', 's_start', 's_end', 's_center'])
+
+assert np.all(tt4.name == np.array(
+    ['drift_1', 'ql', 'drift_2', 'q0::0', 'drift_3', 'qr', 'drift_4',
+       'mk1', 'mk3', 'q0::1', 'drift_5', 'end', '_end_point']))
+xo.assert_allclose(tt4.s_center, np.array(
+    [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. , 41. , 46. ,
+       50. , 50. ]), rtol=0., atol=1e-14)
