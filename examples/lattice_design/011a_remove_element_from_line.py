@@ -10,12 +10,34 @@ line0 = env.new_line(
         env.new('ql', 'Quadrupole', length=2.0, at=-10.0, from_='q0'),
         env.new('qr', 'Quadrupole', length=2.0, at=10.0, from_='q0'),
         env.new('mk1', 'Marker', at=40),
-        env.new('mk2', 'Marker', at=42),
-        env.new('q0', 'Quadrupole'),
+        env.new('mk2', 'Marker'),
+        env.new('mk3', 'Marker'),
+        env.place('q0'),
         env.new('end', 'Marker', at=50.),
     ])
+tt0 = line0.get_table()
+tt0.show(cols=['name', 's_start', 's_end', 's_center'])
 
 line1 = line0.copy()
 line1.remove('q0::1')
 tt1 = line1.get_table()
 tt1.show(cols=['name', 's_start', 's_end', 's_center'])
+
+assert np.all(tt1.name == np.array(
+    ['drift_1', 'ql', 'drift_2', 'q0', 'drift_3', 'qr', 'drift_4',
+       'mk1', 'mk2', 'mk3', 'drift_6', 'drift_5', 'end', '_end_point']))
+xo.assert_allclose(tt1.s_center, np.array(
+    [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. , 40. , 41. ,
+       46. , 50. , 50. ]), rtol=0., atol=1e-14)
+
+line2 = line0.copy()
+line2.remove('q0')
+tt2 = line2.get_table()
+tt2.show(cols=['name', 's_start', 's_end', 's_center'])
+
+assert np.all(tt2.name == np.array(
+    ['drift_1', 'ql', 'drift_2', 'drift_7', 'drift_3', 'qr', 'drift_4',
+       'mk1', 'mk2', 'mk3', 'drift_6', 'drift_5', 'end', '_end_point']))
+xo.assert_allclose(tt2.s_center, np.array(
+    [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. , 40. , 41. ,
+       46. , 50. , 50. ]), rtol=0., atol=1e-14)
