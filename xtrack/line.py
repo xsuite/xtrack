@@ -2265,7 +2265,11 @@ class Line:
 
         idx_remove_name = tt.rows.indices[name]
         idx_remove_env_name = tt.rows.indices[tt.env_name == name]
-        idx_remove = list(set(idx_remove_name) | set(idx_remove_env_name))
+        idx_remove_rep = list(idx_remove_name) + list(idx_remove_env_name)
+        idx_remove = []
+        for ii in idx_remove_rep: # I don't use set to do it in order
+            if ii not in idx_remove:
+                idx_remove.append(ii)
 
         if len(idx_remove) == 0:
             raise ValueError(f'Element {name} not found in the line.')

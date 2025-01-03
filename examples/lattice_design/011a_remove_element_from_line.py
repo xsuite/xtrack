@@ -36,8 +36,21 @@ tt2 = line2.get_table()
 tt2.show(cols=['name', 's_start', 's_end', 's_center'])
 
 assert np.all(tt2.name == np.array(
-    ['drift_1', 'ql', 'drift_2', 'drift_7', 'drift_3', 'qr', 'drift_4',
-       'mk1', 'mk2', 'mk3', 'drift_6', 'drift_5', 'end', '_end_point']))
+    ['drift_1', 'ql', 'drift_2', 'drift_6', 'drift_3', 'qr', 'drift_4',
+       'mk1', 'mk2', 'mk3', 'drift_7', 'drift_5', 'end', '_end_point']))
 xo.assert_allclose(tt2.s_center, np.array(
+    [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. , 40. , 41. ,
+       46. , 50. , 50. ]), rtol=0., atol=1e-14)
+
+line3 = line0.copy()
+line3.remove('q.*')
+tt3 = line3.get_table()
+tt3.show(cols=['name', 's_start', 's_end', 's_center'])
+
+assert np.all(tt3.name == np.array(
+    ['drift_1', 'drift_6', 'drift_2', 'drift_7', 'drift_3', 'drift_8',
+     'drift_4', 'mk1', 'mk2', 'mk3', 'drift_9', 'drift_5', 'end',
+     '_end_point']))
+xo.assert_allclose(tt3.s_center, np.array(
     [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. , 40. , 41. ,
        46. , 50. , 50. ]), rtol=0., atol=1e-14)
