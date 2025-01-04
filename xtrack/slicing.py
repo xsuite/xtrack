@@ -366,6 +366,10 @@ class Slicer:
 
         if hasattr(element, '_entry_slice_class'):
             nn = f'{name}..entry_map'
+            if nn in self._line.element_dict:
+                i_entry = 0
+                while (nn := f'{name}..entry_map_{i_entry}') in self._line.element_dict:
+                    i_entry += 1
             ee = element._entry_slice_class(
                     _parent=element, _buffer=element._buffer)
             ee.parent_name = parent_name
@@ -428,6 +432,10 @@ class Slicer:
 
         if hasattr(element, '_exit_slice_class'):
             nn = f'{name}..exit_map'
+            if nn in self._line.element_dict:
+                i_exit = 0
+                while (nn := f'{name}..exit_map_{i_exit}') in self._line.element_dict:
+                    i_exit += 1
             ee = element._exit_slice_class(
                     _parent=element, _buffer=element._buffer)
             ee.parent_name = parent_name
