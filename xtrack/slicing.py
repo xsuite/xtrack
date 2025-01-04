@@ -288,15 +288,9 @@ class Slicer:
             _buffer = element._buffer
 
             entry_marker, exit_marker = f'{name}_entry', f'{name}_exit'
-            if entry_marker not in self._line.element_dict:
-                self._line.element_dict[entry_marker] = xt.Marker(
-                                                        _buffer=_buffer)
-                slices_to_add = [entry_marker] + slices_to_add
-
-            if exit_marker not in self._line.element_dict:
-                self._line.element_dict[exit_marker] = xt.Marker(
-                                                        _buffer=_buffer)
-                slices_to_add += [exit_marker]
+            self._line.element_dict[entry_marker] = xt.Marker(_buffer=_buffer)
+            self._line.element_dict[exit_marker] = xt.Marker(_buffer=_buffer)
+            slices_to_add = [entry_marker] + slices_to_add + [exit_marker]
 
         # Handle aperture
         ee_for_aper = element
