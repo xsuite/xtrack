@@ -2105,8 +2105,9 @@ class Line:
         """
         cuts_for_element = defaultdict(list)
 
-        all_s_positions = self.get_s_elements()
-        all_s_iter = iter(zip(all_s_positions, self.element_names))
+        tt = self.get_table()
+        all_s_positions = tt.s
+        all_s_iter = iter(zip(all_s_positions, tt.name))
         current_s_iter = iter(sorted(set(s)))
 
         try:
