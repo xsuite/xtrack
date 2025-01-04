@@ -116,7 +116,22 @@ xo.assert_allclose(tt.s_center, np.array(
     rtol=0., atol=1e-8)
 
 line = line0.copy()
-line.cut_at_s([20.1, 20.2, 41.7, 41.8])
+line.cut_at_s([20.1, 20.2, 41.7, 41.8, 5.5])
 
 tt = line.get_table()
 tt.show(cols=['name', 's_start', 's_end', 's_center'])
+
+assert np.all(tt.name == np.array(
+    ['drift_1', 'b0_entry', 'b0..entry_map', 'b0..0', 'b0..1',
+       'b0..exit_map', 'b0_exit', 'drift_2', 'ql', 'drift_3',
+       'q0_entry::0', 'q0..0', 'q0..1', 'q0..2', 'q0_exit::0', 'drift_4',
+       'qr', 'drift_5', 'mk1', 'mk2', 'mk3', 'q0_entry::1', 'q0..3',
+       'q0..4', 'q0..5', 'q0_exit::1', 'b0', 'drift_6', 'end',
+       '_end_point']))
+
+xo.assert_allclose(tt.s_center, np.array(
+    [ 2.5 ,  5.  ,  5.  ,  5.25,  5.75,  6.  ,  6.  ,  7.5 , 10.  ,
+       15.  , 19.  , 19.55, 20.15, 20.6 , 21.  , 25.  , 30.  , 35.5 ,
+       40.  , 40.  , 40.  , 40.  , 40.85, 41.75, 41.9 , 42.  , 42.5 ,
+       46.5 , 50.  , 50.  ]),
+    rtol=0., atol=1e-8)
