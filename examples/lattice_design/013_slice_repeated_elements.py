@@ -2,7 +2,8 @@ import xtrack as xt
 import xobjects as xo
 import numpy as np
 
-env = xt.Environment()
+env = xt.Environment(
+    particle_ref=xt.Particles(p0c=7000e9, x=1e-3, px=1e-3, y=1e-3, py=1e-3))
 
 line0 = env.new_line(
     components=[
@@ -82,4 +83,34 @@ xo.assert_allclose(tt.s_center, np.array(
        42.        , 42.0625    , 42.125     , 42.3125    , 42.5       ,
        42.6875    , 42.875     , 42.9375    , 43.        , 43.        ,
        46.5       , 50.        , 50.        ]),
+    rtol=0., atol=1e-8)
+
+line = line0.copy()
+line.slice_thick_elements(
+    slicing_strategies=[
+        xt.Strategy(None),
+        xt.Strategy(slicing=xt.Teapot(2, mode='thick'), name=r'q0.*'),
+        xt.Strategy(slicing=xt.Teapot(3, mode='thick'), name=r'b0.*'),
+    ],
+)
+
+tt = line.get_table()
+tt.show(cols=['name', 's_start', 's_end', 's_center'])
+
+assert np.all(tt.name == np.array(
+    ['drift_1', 'b0_entry::0', 'b0..entry_map', 'b0..0', 'b0..1',
+       'b0..2', 'b0..exit_map', 'b0_exit::0', 'drift_2', 'ql', 'drift_3',
+       'q0_entry::0', 'q0..0', 'q0..1', 'q0_exit::0', 'drift_4', 'qr',
+       'drift_5', 'mk1', 'mk2', 'mk3', 'q0_entry::1', 'q0..2', 'q0..3',
+       'q0_exit::1', 'b0_entry::1', 'b0..entry_map_0', 'b0..3', 'b0..4',
+       'b0..5', 'b0..exit_map_0', 'b0_exit::1', 'drift_6', 'end',
+       '_end_point']))
+xo.assert_allclose(tt.s_center, np.array(
+    [ 2.5       ,  5.        ,  5.        ,  5.08333333,  5.5       ,
+        5.91666667,  6.        ,  6.        ,  7.5       , 10.        ,
+       15.        , 19.        , 19.5       , 20.5       , 21.        ,
+       25.        , 30.        , 35.5       , 40.        , 40.        ,
+       40.        , 40.        , 40.5       , 41.5       , 42.        ,
+       42.        , 42.        , 42.08333333, 42.5       , 42.91666667,
+       43.        , 43.        , 46.5       , 50.        , 50.        ]),
     rtol=0., atol=1e-8)
