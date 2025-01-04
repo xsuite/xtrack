@@ -2180,6 +2180,10 @@ class Line:
         if not isinstance(what, Iterable) or isinstance(what, str):
             what = [what]
 
+        for item in what:
+            if item.__class__.__name__.startswith('Place'):
+                raise ValueError('Cannot append a Place object')
+
         ln_to_append = self.env.new_line(components = what)
         ln_extended = self + ln_to_append
 
