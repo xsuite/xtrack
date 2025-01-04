@@ -18,6 +18,7 @@ line0 = env.new_line(
         env.new('end', 'Marker', at=50.),
     ])
 tt0 = line0.get_table()
+tt0.show(cols=['name', 's_start', 's_end', 's_center'])
 
 line = line0.copy()
 line.slice_thick_elements(
