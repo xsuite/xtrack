@@ -54,3 +54,32 @@ xo.assert_allclose(tt.s_center, np.array(
        42.5       , 42.6875    , 42.875     , 42.9375    , 43.        ,
        43.        , 46.5       , 50.        , 50.        ]),
     rtol=0., atol=1e-8)
+
+line = line0.copy()
+line.slice_thick_elements(
+    slicing_strategies=[
+        xt.Strategy(None),
+        xt.Strategy(slicing=xt.Teapot(2), name=r'q0::0'),
+        xt.Strategy(slicing=xt.Teapot(3), name=r'b0::1'),
+    ]
+)
+tt = line.get_table()
+tt.show(cols=['name', 's_start', 's_end', 's_center'])
+
+assert np.all(tt.name == np.array(
+    ['drift_1', 'b0', 'drift_2', 'ql', 'drift_3', 'q0_entry',
+       'drift_q0..0', 'q0..0', 'drift_q0..1', 'q0..1', 'drift_q0..2',
+       'q0_exit', 'drift_4', 'qr', 'drift_5', 'mk1', 'mk2', 'mk3', 'q0',
+       'b0_entry', 'b0..entry_map', 'drift_b0..0', 'b0..0', 'drift_b0..1',
+       'b0..1', 'drift_b0..2', 'b0..2', 'drift_b0..3', 'b0..exit_map',
+       'b0_exit', 'drift_6', 'end', '_end_point']))
+
+xo.assert_allclose(tt.s_center, np.array(
+    [ 2.5       ,  5.5       ,  7.5       , 10.        , 15.        ,
+       19.        , 19.16666667, 19.33333333, 20.        , 20.66666667,
+       20.83333333, 21.        , 25.        , 30.        , 35.5       ,
+       40.        , 40.        , 40.        , 41.        , 42.        ,
+       42.        , 42.0625    , 42.125     , 42.3125    , 42.5       ,
+       42.6875    , 42.875     , 42.9375    , 43.        , 43.        ,
+       46.5       , 50.        , 50.        ]),
+    rtol=0., atol=1e-8)
