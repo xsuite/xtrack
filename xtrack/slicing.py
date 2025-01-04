@@ -241,8 +241,9 @@ class Slicer:
         assert tt.name[-1] == '_end_point'
         tt = tt.rows[:-1]
         slices = {}
-        for ii, (nn, enn) in enumerate(progress(zip(tt.name, tt.env_name), desc='Slicing line')):
+        for ii, nn in enumerate(progress(tt.name, desc='Slicing line')):
 
+            enn=tt.env_name[ii]
             element = self._line.element_dict[enn]
 
             subsequence = [enn]
