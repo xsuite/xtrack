@@ -2166,6 +2166,26 @@ class Line:
         if return_slices:
             return slices
 
+    def append(self, what, obj=None):
+
+        self._frozen_check()
+
+        if not isinstance(what, (str, xt.Line, Iterable)):
+            raise ValueError('The appended object must be defined by a string or Line.')
+
+        if obj is not None:
+            assert isinstance(what, str)
+            self.env.element_dict[what] = obj
+
+        if not isinstance(what, Iterable) or isinstance(what, str):
+            what = [what]
+
+        ln_to_append = self.env.new_line(components = what)
+        ln_extended = self + ln_to_append
+
+        self.element_names.clear()
+        self.element_names.extend(ln_extended.element_names)
+
     def insert(self, what, obj=None, at=None, from_=None, anchor=None,
                from_anchor=None, s_tol=1e-10):
 
@@ -2332,6 +2352,7 @@ class Line:
 
         return tt_match
 
+    # To be deprecated in favor of Line.insert
     def insert_element(self, name, element=None, at=None, index=None, at_s=None,
                        s_tol=1e-6):
 
