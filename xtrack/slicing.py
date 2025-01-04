@@ -241,43 +241,41 @@ class Slicer:
 
         thin_names = []
 
-        collapsed_names = self._line.element_names.copy()
+        tt = self._line.get_table()
+        assert tt.name[-1] == '_end_point'
+        tt = tt.rows[:-1]
         slices = {}
-        for ii, name in enumerate(progress(collapsed_names, desc='Slicing line')):
+        for ii, (nn, enn) in enumerate(progress(zip(tt.name, tt.env_name), desc='Slicing line')):
 
-            element = self._line.element_dict[name]
+            element = self._line.element_dict[enn]
 
-            subsequence = self._slice_element(
-                name, element, _edge_markers=_edge_markers)
-
-            if subsequence is None:
-                subsequence = [name]
+            subsequence = [enn]
+            # Don't slice already thin elements and drifts
+            if (not xt.line._is_thick(element, self._line)
+                or (hasattr(element, 'length') and element.length == 0)):
+                pass
+            else:
+                chosen_slicing = self._scheme_for_element(element, nn, self._line)
+                if chosen_slicing is not None:
+                    subsequence = self._slice_element(
+                        enn, element, _edge_markers=_edge_markers,
+                        chosen_slicing=chosen_slicing)
+                if subsequence is None:
+                    subsequence = [enn]
 
             thin_names += subsequence
-            slices[name] = subsequence
+            slices[nn] = subsequence
 
         # Commit the changes to the line
         self._line.element_names = thin_names
 
         return slices
 
-    def _slice_element(self, name, element, _edge_markers=True) -> Optional[List[str]]:
+    def _slice_element(self, name, element, chosen_slicing, _edge_markers=True) -> Optional[List[str]]:
         """Slice element and return slice names, or None if no slicing."""
-
-        # Don't slice already thin elements and drifts
-        if (not xt.line._is_thick(element, self._line)
-            or (hasattr(element, 'length') and element.length == 0)):
-            return None
 
         if isinstance(element, xt.Drift) or type(element).__name__.startswith('DriftSlice'):
             _edge_markers = False
-
-        chosen_slicing = self._scheme_for_element(element, name, self._line)
-
-        # If the chosen slicing is explicitly None, then we keep the current
-        # thick element and don't add any slices.
-        if chosen_slicing is None:
-            return None
 
         # Make the slices and add them to line.element_dict (so far inactive)
         slices_to_add = self._make_slices(
