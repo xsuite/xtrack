@@ -114,3 +114,9 @@ xo.assert_allclose(tt.s_center, np.array(
        42.        , 42.        , 42.08333333, 42.5       , 42.91666667,
        43.        , 43.        , 46.5       , 50.        , 50.        ]),
     rtol=0., atol=1e-8)
+
+line = line0.copy()
+line.cut_at_s([20.1, 20.2, 41.7, 41.8])
+
+tt = line.get_table()
+tt.show(cols=['name', 's_start', 's_end', 's_center'])
