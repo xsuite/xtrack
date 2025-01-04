@@ -394,11 +394,10 @@ class Slicer:
 
         if chosen_slicing.mode == 'thin' or isdriftslice:
             for weight, is_drift in chosen_slicing.iter_weights(elem_length):
+                prename = "" if isdriftslice else "drift_"
                 if is_drift:
-                    while (nn := f'{name}..{drift_idx}') in self._line.element_dict:
+                    while (nn := f'{prename}{name}..{drift_idx}') in self._line.element_dict:
                         drift_idx += 1
-                    if not isdriftslice:
-                        nn = 'drift_' + nn
                     ee = slice_parent._drift_slice_class(
                             _parent=slice_parent, _buffer=element._buffer,
                             weight=weight * elem_weight)
