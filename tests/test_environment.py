@@ -422,7 +422,7 @@ def test_assemble_ring():
 
     halfcell_ss = env.new_line(components=[
 
-        env.new('mid', xt.Marker, at='l.halfcell'),
+        env.new('mid.ss', xt.Marker, at='l.halfcell'),
 
         env.new('mq.ss.d', 'mq', k1='kqd.ss', at = '0.5 + l.mq / 2'),
         env.new('mq.ss.f', 'mq', k1='kqf.ss', at = 'l.halfcell - l.mq / 2 - 0.5'),
@@ -833,7 +833,7 @@ def test_assemble_ring_builders():
 
     halfcell_ss = env.new_line(components=[
 
-        env.new('mid', xt.Marker, at='l.halfcell'),
+        env.new('mid.ss', xt.Marker, at='l.halfcell'),
 
         env.new('mq.ss.d', 'mq', k1='kqd.ss', at = '0.5 + l.mq / 2'),
         env.new('mq.ss.f', 'mq', k1='kqf.ss', at = 'l.halfcell - l.mq / 2 - 0.5'),
@@ -2008,8 +2008,8 @@ def test_import_line_from_other_env(overwrite_vars, x_value):
     assert env2['x'] == x_value
     assert env2['y'] == 7
 
-    assert env2.lines['line'].element_names == ['b_line', 'ip', 'd']
+    assert env2.lines['line'].element_names == ['b/line', 'ip', 'd']
     assert env2['b'].k0 == x_value
-    assert env2['b_line'].k0 == 2 * x_value
+    assert env2['b/line'].k0 == 2 * x_value
     assert isinstance(env2['ip'], xt.Marker)
     assert env2['d'].length == 3 * 7
