@@ -197,6 +197,10 @@ class MadxLoader:
 
             if line_type == 'sequence':
                 refer = params.get('refer', {}).get('expr', 'centre')
+                if refer == 'entry':
+                    refer = 'start'
+                elif refer == 'exit':
+                    refer = 'end'
                 builder = self.env.new_builder(name=name, refer=refer)
                 self._parse_components(builder, params.pop('elements'))
                 builders.append(builder)
