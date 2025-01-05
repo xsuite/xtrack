@@ -1231,7 +1231,7 @@ def test_assemble_ring_repeated_elements():
 
     halfcell_ss = env.new_line(components=[
 
-        env.new('mid', xt.Marker, at='l.halfcell'),
+        env.new('mid.ss', xt.Marker, at='l.halfcell'),
 
         env.new('mq.ss.d', 'mq', k1='kqd.ss', at = '0.5 + l.mq / 2'),
         env.new('mq.ss.f', 'mq', k1='kqf.ss', at = 'l.halfcell - l.mq / 2 - 0.5'),

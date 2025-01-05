@@ -142,7 +142,7 @@ class Environment:
         '''
 
         if name in self.element_dict:
-            raise ValueError(f'Element {name} already exists')
+            raise ValueError(f'Element `{name}` already exists')
 
         if from_ is not None or at is not None:
             all_kwargs = locals()
