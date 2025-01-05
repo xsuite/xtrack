@@ -101,3 +101,22 @@ xo.assert_allclose(tt.s_center, np.array(
     [ 2.5,  5.5,  7.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. ,
        40. , 41. , 42.5, 46.5, 50. , 51. , 53. , 55. , 56. ]),
     rtol=0., atol=1e-14)
+
+line = line0.copy()
+line.env.new('qnew1', 'Quadrupole', length=2.0)
+line.env.new('qnew2', 'Quadrupole', length=2.0)
+
+l2 = line.env.new_line(components=['qnew1', 'qnew2', 'ql'])
+line.append([l2, 'qr'])
+
+tt = line.get_table()
+tt.show(cols=['name', 's_start', 's_end', 's_center'])
+
+assert np.all(tt.name == np.array(
+    ['drift_1', 'b0::0', 'drift_2', 'ql::0', 'drift_3', 'q0::0', 'drift_4',
+       'qr::0', 'drift_5', 'mk1', 'mk2', 'mk3', 'q0::1', 'b0::1', 'drift_6',
+       'end', 'qnew1', 'qnew2', 'ql::1', 'qr::1', '_end_point']))
+xo.assert_allclose(tt.s_center, np.array(
+    [ 2.5,  5.5,  7.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. ,
+       40. , 41. , 42.5, 46.5, 50. , 51. , 53. , 55. , 57. , 58. ]),
+    rtol=0., atol=1e-14)
