@@ -2321,3 +2321,404 @@ def test_insert_list():
         [ 4.5 , 10.  , 15.  , 20.  , 21.5 , 22.05, 22.15, 22.25, 25.65,
         30.  , 40.5 , 50.  , 50.  ]),
         rtol=0., atol=1e-14)
+
+def test_anchors_in_new_and_place():
+    env = xt.Environment()
+
+    components = [
+        env.new('q1', 'Quadrupole', length=2.0, anchor='start', at=1.),
+        env.new('q2', 'q1', anchor='start', at=10., from_='q1', from_anchor='end'),
+        env.new('s2', 'Sextupole', length=0.1, anchor='end', at=-1., from_='q2', from_anchor='start'),
+
+        env.new('q3', 'Quadrupole', length=2.0, at=20.),
+        env.new('q4', 'q3', anchor='start', at=0., from_='q3', from_anchor='end'),
+        env.new('q5', 'q3'),
+
+        # Sandwich of markers expected [m2.0, m2, m2.1.0, m2.1.1. m2.1]
+        env.new('m2_0', 'Marker', at=0., from_='m2', from_anchor='start'),
+        env.new('m2', 'Marker', at=0., from_='q2', from_anchor='start'),
+        env.new('m2_1', 'Marker', at=0., from_='m2', from_anchor='end'),
+        env.new('m2_1_0', 'Marker', at=0., from_='m2_1', from_anchor='start'),
+        env.new('m2_1_1', 'Marker'),
+
+        env.new('m1', 'Marker', at=0., from_='q1', from_anchor='start'),
+
+        env.new('m4', 'Marker', at=0., from_='q4', from_anchor='start'),
+        env.new('m3', 'Marker', at=0., from_='q3', from_anchor='end'),
+    ]
+
+    line = env.new_line(components=components)
+
+    tt = line.get_table()
+
+    tt.show(cols=['name', 's_start', 's_end', 's_center'])
+
+    assert np.all(tt.name == np.array(
+        ['drift_1', 'm1', 'q1', 'drift_2', 's2', 'drift_3', 'm2_0', 'm2',
+        'm2_1_0', 'm2_1_1', 'm2_1', 'q2', 'drift_4', 'q3', 'm3', 'm4',
+        'q4', 'q5', '_end_point']))
+    xo.assert_allclose(tt.s, np.array(
+        [ 0. ,  1. ,  1. ,  3. , 11.9, 12. , 13. , 13. , 13. , 13. , 13. ,
+        13. , 15. , 19. , 21. , 21. , 21. , 23. , 25. ]),
+        rtol=0., atol=1e-14)
+    xo.assert_allclose(tt.s_start, np.array(
+        [ 0. ,  1. ,  1. ,  3. , 11.9, 12. , 13. , 13. , 13. , 13. , 13. ,
+        13. , 15. , 19. , 21. , 21. , 21. , 23. , 25. ]),
+        rtol=0., atol=1e-14)
+    xo.assert_allclose(tt.s_end, np.array(
+        [ 1. ,  1. ,  3. , 11.9, 12. , 13. , 13. , 13. , 13. , 13. , 13. ,
+        15. , 19. , 21. , 21. , 21. , 23. , 25. , 25. ]),
+        rtol=0., atol=1e-14)
+    xo.assert_allclose(tt.s_center, 0.5*(tt.s_start + tt.s_end),
+        rtol=0., atol=1e-14)
+
+def test_anchors_in_new_and_place_compact():
+
+    env = xt.Environment()
+
+    components = [
+        env.new('q1', 'Quadrupole', length=2.0, anchor='start', at=1.),
+        env.new('q2', 'q1', anchor='start', at=10., from_='q1', from_anchor='end'),
+        env.new('s2', 'Sextupole', length=0.1, anchor='end', at=-1., from_='q2', from_anchor='start'),
+
+        env.new('q3', 'Quadrupole', length=2.0, at=20.),
+        env.new('q4', 'q3', anchor='start', at=0., from_='q3', from_anchor='end'),
+        env.new('q5', 'q3'),
+
+        # Sandwich of markers expected [m2.0, m2, m2.1.0, m2.1.1. m2.1]
+        env.new('m2_0', 'Marker', at=0., from_='m2', from_anchor='start'),
+        env.new('m2', 'Marker', at=0., from_='q2', from_anchor='start'),
+        env.new('m2_1', 'Marker', at=0., from_='m2', from_anchor='end'),
+        env.new('m2_1_0', 'Marker', at=0., from_='m2_1', from_anchor='start'),
+        env.new('m2_1_1', 'Marker'),
+
+        env.new('m1', 'Marker', at=0., from_='q1', from_anchor='start'),
+
+        env.new('m4', 'Marker', at=0., from_='q4', from_anchor='start'),
+        env.new('m3', 'Marker', at=0., from_='q3', from_anchor='end'),
+    ]
+
+    line = env.new_line(components=components)
+
+    tt = line.get_table()
+
+    tt.show(cols=['name', 's_start', 's_end', 's_center'])
+
+    assert np.all(tt.name == np.array(
+        ['drift_1', 'm1', 'q1', 'drift_2', 's2', 'drift_3', 'm2_0', 'm2',
+        'm2_1_0', 'm2_1_1', 'm2_1', 'q2', 'drift_4', 'q3', 'm3', 'm4',
+        'q4', 'q5', '_end_point']))
+    xo.assert_allclose(tt.s, np.array(
+        [ 0. ,  1. ,  1. ,  3. , 11.9, 12. , 13. , 13. , 13. , 13. , 13. ,
+        13. , 15. , 19. , 21. , 21. , 21. , 23. , 25. ]),
+        rtol=0., atol=1e-14)
+    xo.assert_allclose(tt.s_start, np.array(
+        [ 0. ,  1. ,  1. ,  3. , 11.9, 12. , 13. , 13. , 13. , 13. , 13. ,
+        13. , 15. , 19. , 21. , 21. , 21. , 23. , 25. ]),
+        rtol=0., atol=1e-14)
+    xo.assert_allclose(tt.s_end, np.array(
+        [ 1. ,  1. ,  3. , 11.9, 12. , 13. , 13. , 13. , 13. , 13. , 13. ,
+        15. , 19. , 21. , 21. , 21. , 23. , 25. , 25. ]),
+        rtol=0., atol=1e-14)
+    xo.assert_allclose(tt.s_center, 0.5*(tt.s_start + tt.s_end),
+        rtol=0., atol=1e-14)
+
+def test_place_lines_with_anchors():
+
+    env = xt.Environment()
+
+    # A simple line made of quadrupoles spaced by 5 m
+    env.new_line(name='l1', components=[
+        env.new('q1', 'Quadrupole', length=2.0, at=0., anchor='start'),
+        env.new('q2', 'Quadrupole', length=2.0, anchor='start', at=5., from_='end@q1'),
+        env.new('q3', 'Quadrupole', length=2.0, anchor='start', at=5., from_='end@q2'),
+        env.new('q4', 'Quadrupole', length=2.0, anchor='start', at=5., from_='end@q3'),
+        env.new('q5', 'Quadrupole', length=2.0, anchor='start', at=5., from_='end@q4'),
+    ])
+
+    # Test absolute anchor of start 'l1'
+    env.new_line(name='lstart', components=[
+        env.place('l1', anchor='start', at=10.),
+    ])
+
+    # Test absolute anchor of end 'l1'
+    env.new_line(name='lend', components=[
+        env.place('l1', anchor='end', at=40.),
+    ])
+
+    # Test absolute anchor of center 'l1'
+    env.new_line(name='lcenter', components=[
+        env.place('l1', anchor='center', at=25.),
+    ])
+
+    # Test relative anchor of start 'l1' to start of another element
+    env.new_line(name='lstcnt', components=[
+        env.new('q0', 'Quadrupole', length=2.0, at=5.),
+        env.place('l1', anchor='start', at=5., from_='center@q0'),
+    ])
+
+    # Test relative anchor of start 'l1' to end of another element
+    env.new_line(name='lstst', components=[
+        env.place('q0', at=5.),
+        env.place('l1', anchor='start', at=5. + 1., from_='end@q0'),
+    ])
+
+
+    # Test relative anchor of start 'l1' to end of another element
+    env.new_line(name='lstend', components=[
+        env.place('q0', at=5.),
+        env.place('l1', anchor='start', at=5. - 1., from_='end@q0'),
+    ])
+
+    tt_l1 = env['l1'].get_table()
+    tt_test = tt_l1
+    assert np.all(tt_test.name == np.array(
+        ['q1', 'drift_1', 'q2', 'drift_2', 'q3', 'drift_3', 'q4', 'drift_4',
+        'q5', '_end_point']))
+    xo.assert_allclose(tt_test.s, np.array(
+        [ 0.,  2.,  7.,  9., 14., 16., 21., 23., 28., 30.]),
+        rtol=0., atol=1e-15)
+    xo.assert_allclose(tt_test.s_start, np.array(
+        [ 0.,  2.,  7.,  9., 14., 16., 21., 23., 28., 30.]),
+        rtol=0., atol=1e-15)
+    xo.assert_allclose(tt_test.s_center, np.array(
+        [ 1. ,  4.5,  8. , 11.5, 15. , 18.5, 22. , 25.5, 29. , 30. ]),
+        rtol=0., atol=1e-15)
+    xo.assert_allclose(tt_test.s_end, np.array(
+        [ 2.,  7.,  9., 14., 16., 21., 23., 28., 30., 30.]),
+        rtol=0., atol=1e-15)
+
+    tt_lstart = env['lstart'].get_table()
+    tt_test = tt_lstart
+    assert np.all(tt_test.name == np.array(
+        ['drift_5', 'q1', 'drift_1', 'q2', 'drift_2', 'q3', 'drift_3', 'q4',
+        'drift_4', 'q5', '_end_point']))
+    xo.assert_allclose(tt_test.s, np.array(
+        [ 0., 10., 12., 17., 19., 24., 26., 31., 33., 38., 40.]),
+        rtol=0., atol=1e-15)
+
+    tt_lend = env['lend'].get_table()
+    tt_test = tt_lend
+    assert np.all(tt_test.name == np.array(
+        ['drift_6', 'q1', 'drift_1', 'q2', 'drift_2', 'q3', 'drift_3', 'q4',
+        'drift_4', 'q5', '_end_point']))
+    xo.assert_allclose(tt_test.s, np.array(
+        [ 0., 10., 12., 17., 19., 24., 26., 31., 33., 38., 40.]),
+        rtol=0., atol=1e-15)
+
+    tt_lcenter = env['lcenter'].get_table()
+    tt_test = tt_lcenter
+    assert np.all(tt_test.name == np.array(
+        ['drift_7', 'q1', 'drift_1', 'q2', 'drift_2', 'q3', 'drift_3', 'q4',
+        'drift_4', 'q5', '_end_point']))
+    xo.assert_allclose(tt_test.s, np.array(
+        [ 0., 10., 12., 17., 19., 24., 26., 31., 33., 38., 40.]),
+        rtol=0., atol=1e-15)
+
+    tt_lstcnt = env['lstcnt'].get_table()
+    tt_test = tt_lstcnt
+    assert np.all(tt_test.name == np.array(
+        ['drift_8', 'q0', 'drift_9', 'q1', 'drift_1', 'q2', 'drift_2', 'q3',
+        'drift_3', 'q4', 'drift_4', 'q5', '_end_point']))
+    xo.assert_allclose(tt_test.s, np.array(
+        [ 0.,  4.,  6., 10., 12., 17., 19., 24., 26., 31., 33., 38., 40.]),
+        rtol=0., atol=1e-15)
+
+    tt_lstst = env['lstst'].get_table()
+    tt_test = tt_lstst
+    assert np.all(tt_test.name == np.array(
+        ['drift_10', 'q0', 'drift_11', 'q1', 'drift_1', 'q2', 'drift_2', 'q3',
+        'drift_3', 'q4', 'drift_4', 'q5', '_end_point']))
+
+    tt_lstend = env['lstend'].get_table()
+    tt_test = tt_lstend
+    assert np.all(tt_test.name == np.array(
+        ['drift_12', 'q0', 'drift_13', 'q1', 'drift_1', 'q2', 'drift_2', 'q3',
+        'drift_3', 'q4', 'drift_4', 'q5', '_end_point']))
+
+def test_remove_element_from_env():
+
+    env = xt.Environment()
+    env['a'] = 10
+    env['b'] = 20
+    env.new('q1', 'Quadrupole', length='2.0 + b', knl=[0, '3*a'])
+    env.new('q2', 'q1', length='2.0 + b', knl=[0, '3*a'])
+
+    assert 'q1' in env.element_dict
+    assert len(env.ref['a']._find_dependant_targets()) == 7
+    # is:
+    # [vars['a'],
+    #  element_refs['q2'].knl[1],
+    #  element_refs['q2'],
+    #  element_refs['q2'].knl,
+    #  element_refs['q1'],
+    #  element_refs['q1'].knl[1],
+    #  element_refs['q1'].knl]
+
+    env._remove_element('q1')
+    assert 'q1' not in env.element_dict
+    assert len(env.ref['a']._find_dependant_targets()) == 4
+    # is:
+    # [vars['a'],
+    #  element_refs['q2'].knl[1],
+    #  element_refs['q2'],
+    #  element_refs['q2'].knl]
+
+def test_remove_element_from_line():
+    env = xt.Environment()
+
+    line0 = env.new_line(
+        components=[
+            env.new('q0', 'Quadrupole', length=2.0, at=20.0),
+            env.new('ql', 'Quadrupole', length=2.0, at=-10.0, from_='q0'),
+            env.new('qr', 'Quadrupole', length=2.0, at=10.0, from_='q0'),
+            env.new('mk1', 'Marker', at=40),
+            env.new('mk2', 'Marker'),
+            env.new('mk3', 'Marker'),
+            env.place('q0'),
+            env.new('end', 'Marker', at=50.),
+        ])
+    tt0 = line0.get_table()
+    tt0.show(cols=['name', 's_start', 's_end', 's_center'])
+
+    line1 = line0.copy()
+    line1.remove('q0::1')
+    tt1 = line1.get_table()
+    tt1.show(cols=['name', 's_start', 's_end', 's_center'])
+
+    assert np.all(tt1.name == np.array(
+        ['drift_1', 'ql', 'drift_2', 'q0', 'drift_3', 'qr', 'drift_4',
+        'mk1', 'mk2', 'mk3', 'drift_6', 'drift_5', 'end', '_end_point']))
+    xo.assert_allclose(tt1.s_center, np.array(
+        [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. , 40. , 41. ,
+        46. , 50. , 50. ]), rtol=0., atol=1e-14)
+
+    line2 = line0.copy()
+    line2.remove('q0')
+    tt2 = line2.get_table()
+    tt2.show(cols=['name', 's_start', 's_end', 's_center'])
+
+    assert np.all(tt2.name == np.array(
+        ['drift_1', 'ql', 'drift_2', 'drift_6', 'drift_3', 'qr', 'drift_4',
+        'mk1', 'mk2', 'mk3', 'drift_7', 'drift_5', 'end', '_end_point']))
+    xo.assert_allclose(tt2.s_center, np.array(
+        [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. , 40. , 41. ,
+        46. , 50. , 50. ]), rtol=0., atol=1e-14)
+
+    line3 = line0.copy()
+    line3.remove('q.*')
+    tt3 = line3.get_table()
+    tt3.show(cols=['name', 's_start', 's_end', 's_center'])
+
+    assert np.all(tt3.name == np.array(
+        ['drift_1', 'drift_6', 'drift_2', 'drift_7', 'drift_3', 'drift_8',
+        'drift_4', 'mk1', 'mk2', 'mk3', 'drift_9', 'drift_5', 'end',
+        '_end_point']))
+    xo.assert_allclose(tt3.s_center, np.array(
+        [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. , 40. , 41. ,
+        46. , 50. , 50. ]), rtol=0., atol=1e-14)
+
+    line4 = line0.copy()
+    line4.remove('mk2')
+    tt4 = line4.get_table()
+    tt4.show(cols=['name', 's_start', 's_end', 's_center'])
+
+    assert np.all(tt4.name == np.array(
+        ['drift_1', 'ql', 'drift_2', 'q0::0', 'drift_3', 'qr', 'drift_4',
+        'mk1', 'mk3', 'q0::1', 'drift_5', 'end', '_end_point']))
+    xo.assert_allclose(tt4.s_center, np.array(
+        [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. , 41. , 46. ,
+        50. , 50. ]), rtol=0., atol=1e-14)
+
+    line5 = line0.copy()
+    line5.remove('mk.*')
+    tt5 = line5.get_table()
+    tt5.show(cols=['name', 's_start', 's_end', 's_center'])
+
+    assert np.all(tt5.name == np.array(
+        ['drift_1', 'ql', 'drift_2', 'q0::0', 'drift_3', 'qr', 'drift_4',
+        'q0::1', 'drift_5', 'end', '_end_point']))
+    xo.assert_allclose(tt5.s_center, np.array(
+        [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 41. , 46. , 50. , 50. ]),
+        rtol=0., atol=1e-14)
+
+def test_replace_element():
+
+    env = xt.Environment()
+
+    line0 = env.new_line(
+        components=[
+            env.new('q0', 'Quadrupole', length=2.0, at=20.0),
+            env.new('ql', 'Quadrupole', length=2.0, at=-10.0, from_='q0'),
+            env.new('qr', 'Quadrupole', length=2.0, at=10.0, from_='q0'),
+            env.new('mk1', 'Marker', at=40),
+            env.new('mk2', 'Marker'),
+            env.new('mk3', 'Marker'),
+            env.place('q0'),
+            env.new('end', 'Marker', at=50.),
+        ])
+    env.new('qnew', 'Quadrupole', length=2.0)
+    env.new('mnew', 'Marker')
+    tt0 = line0.get_table()
+    tt0.show(cols=['name', 's_start', 's_end', 's_center'])
+
+    line1 = line0.copy(shallow=True)
+    line1.replace('q0::1', 'qnew')
+    tt1 = line1.get_table()
+    tt1.show(cols=['name', 's_start', 's_end', 's_center'])
+
+    assert np.all(tt1.name == np.array(
+        ['drift_1', 'ql', 'drift_2', 'q0', 'drift_3', 'qr', 'drift_4',
+        'mk1', 'mk2', 'mk3', 'qnew', 'drift_5', 'end', '_end_point']))
+    xo.assert_allclose(tt1.s_center, np.array(
+        [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. , 40. , 41. ,
+        46. , 50. , 50. ]), rtol=0., atol=1e-14)
+
+    line2 = line0.copy(shallow=True)
+    line2.replace('q0', 'qnew')
+    tt2 = line2.get_table()
+    tt2.show(cols=['name', 's_start', 's_end', 's_center'])
+
+    assert np.all(tt2.name == np.array(
+        ['drift_1', 'ql', 'drift_2', 'qnew::0', 'drift_3', 'qr', 'drift_4',
+        'mk1', 'mk2', 'mk3', 'qnew::1', 'drift_5', 'end', '_end_point']))
+    xo.assert_allclose(tt2.s_center, np.array(
+        [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. , 40. , 41. ,
+        46. , 50. , 50. ]), rtol=0., atol=1e-14)
+
+    line3 = line0.copy(shallow=True)
+    line3.replace('q.*', 'qnew')
+    tt3 = line3.get_table()
+    tt3.show(cols=['name', 's_start', 's_end', 's_center'])
+
+    assert np.all(tt3.name == np.array(
+        ['drift_1', 'qnew::0', 'drift_2', 'qnew::1', 'drift_3', 'qnew::2',
+        'drift_4', 'mk1', 'mk2', 'mk3', 'qnew::3', 'drift_5', 'end',
+        '_end_point']))
+    xo.assert_allclose(tt3.s_center, np.array(
+        [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. , 40. , 41. ,
+        46. , 50. , 50. ]), rtol=0., atol=1e-14)
+
+    line4 = line0.copy(shallow=True)
+    line4.replace('mk2', 'mnew')
+    tt4 = line4.get_table()
+    tt4.show(cols=['name', 's_start', 's_end', 's_center'])
+
+    assert np.all(tt4.name == np.array(
+        ['drift_1', 'ql', 'drift_2', 'q0::0', 'drift_3', 'qr', 'drift_4',
+        'mk1', 'mnew', 'mk3', 'q0::1', 'drift_5', 'end', '_end_point']))
+    xo.assert_allclose(tt4.s_center, np.array(
+        [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. , 40., 41. , 46. ,
+        50. , 50. ]), rtol=0., atol=1e-14)
+
+    line5 = line0.copy(shallow=True)
+    line5.replace('mk.*', 'mnew')
+    tt5 = line5.get_table()
+    tt5.show(cols=['name', 's_start', 's_end', 's_center'])
+
+    assert np.all(tt5.name == np.array(
+        ['drift_1', 'ql', 'drift_2', 'q0::0', 'drift_3', 'qr', 'drift_4',
+        'mnew::0', 'mnew::1', 'mnew::2', 'q0::1', 'drift_5', 'end', '_end_point']))
+    xo.assert_allclose(tt5.s_center, np.array(
+        [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. , 40., 41. , 46. ,
+        50. , 50. ]), rtol=0., atol=1e-14)
