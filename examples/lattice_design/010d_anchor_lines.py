@@ -37,14 +37,14 @@ env.new_line(name='lstcnt', components=[
 
 # Test relative anchor of start 'l1' to end of another element
 env.new_line(name='lstst', components=[
-    env.new('q0', 'Quadrupole', length=2.0, at=5.),
+    env.place('q0', at=5.),
     env.place('l1', anchor='start', at=5. + 1., from_='end@q0'),
 ])
 
 
 # Test relative anchor of start 'l1' to end of another element
 env.new_line(name='lstend', components=[
-    env.new('q0', 'Quadrupole', length=2.0, at=5.),
+    env.place('q0', at=5.),
     env.place('l1', anchor='start', at=5. - 1., from_='end@q0'),
 ])
 

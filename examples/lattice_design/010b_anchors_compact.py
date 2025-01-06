@@ -5,8 +5,8 @@ import numpy as np
 
 env = xt.Environment()
 
-env.new('q1', 'Quadrupole', length=2.0)
 components=[
+    env.new('m1', 'Marker', at='start@q1'),
     env.new('q1', 'Quadrupole', length=2.0, anchor='start', at=1.),
     env.new('q2', 'q1', anchor='start', at=10., from_='end@q1'),
     env.new('s2', 'Sextupole', length=0.1, anchor='end', at=-1., from_='start@q2'),
@@ -21,8 +21,6 @@ components=[
     env.new('m2_1', 'Marker', at='end@m2'),
     env.new('m2_1_0', 'Marker', at='start@m2_1'),
     env.new('m2_1_1', 'Marker'),
-
-    env.new('m1', 'Marker', at='start@q1'),
 
     env.new('m4', 'Marker', at='start@q4'),
     env.new('m3', 'Marker', at='end@q3'),
