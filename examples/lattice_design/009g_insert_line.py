@@ -4,8 +4,6 @@ import numpy as np
 
 env = xt.Environment()
 
-env = xt.Environment()
-
 line = env.new_line(
     components=[
         env.new('q0', 'Quadrupole', length=2.0, at=20.0),
