@@ -1703,6 +1703,7 @@ def test_twiss_strength_reverse_vs_madx(test_context):
     twm2 = xt.Table(mad1.table.twisslhcb2)
 
     collider = xt.Environment.from_madx(madx=mad1)
+
     collider.build_trackers(_context=test_context)
     tw = collider.twiss(strengths=True, method='4d')
 
@@ -1720,11 +1721,11 @@ def test_twiss_strength_reverse_vs_madx(test_context):
     assert_allclose(twm1['k3l', 'mo.25l4.b1:1'], tw.lhcb1['k3l', 'mo.25l4.b1'], rtol=0, atol=1e-14)
     assert_allclose(twm2['k3l', 'mo.24l4.b2:1'], tw.lhcb2['k3l', 'mo.24l4.b2'], rtol=0, atol=1e-14)
 
-    assert_allclose(twm1['k4l', 'mcdxf.3r1:1'], tw.lhcb1['k4l', 'mcdxf.3r1'], rtol=0, atol=1e-14)
-    assert_allclose(twm2['k4l', 'mcdxf.3r1:1'], tw.lhcb2['k4l', 'mcdxf.3r1'], rtol=0, atol=1e-14)
+    assert_allclose(twm1['k4l', 'mcdxf.3r1:1'], tw.lhcb1['k4l', 'mcdxf.3r1/lhcb1'], rtol=0, atol=1e-14)
+    assert_allclose(twm2['k4l', 'mcdxf.3r1:1'], tw.lhcb2['k4l', 'mcdxf.3r1/lhcb2'], rtol=0, atol=1e-14)
 
-    assert_allclose(twm1['k5l', 'mctxf.3l1:1'], tw.lhcb1['k5l', 'mctxf.3l1'], rtol=0, atol=1e-14)
-    assert_allclose(twm2['k5l', 'mctxf.3l1:1'], tw.lhcb2['k5l', 'mctxf.3l1'], rtol=0, atol=1e-14)
+    assert_allclose(twm1['k5l', 'mctxf.3l1:1'], tw.lhcb1['k5l', 'mctxf.3l1/lhcb1'], rtol=0, atol=1e-14)
+    assert_allclose(twm2['k5l', 'mctxf.3l1:1'], tw.lhcb2['k5l', 'mctxf.3l1/lhcb2'], rtol=0, atol=1e-14)
 
     # Skew strengths
     assert_allclose(twm1['k1sl', 'mqs.27l3.b1:1'], tw.lhcb1['k1sl', 'mqs.27l3.b1'], rtol=0, atol=1e-14)
@@ -1733,14 +1734,14 @@ def test_twiss_strength_reverse_vs_madx(test_context):
     assert_allclose(twm1['k2sl', 'mss.28l5.b1:1'], tw.lhcb1['k2sl', 'mss.28l5.b1'], rtol=0, atol=1e-14)
     assert_allclose(twm2['k2sl', 'mss.33l5.b2:1'], tw.lhcb2['k2sl', 'mss.33l5.b2'], rtol=0, atol=1e-14)
 
-    assert_allclose(twm1['k3sl', 'mcosx.3l2:1'], tw.lhcb1['k3sl', 'mcosx.3l2'], rtol=0, atol=1e-14)
-    assert_allclose(twm2['k3sl', 'mcosx.3l2:1'], tw.lhcb2['k3sl', 'mcosx.3l2'], rtol=0, atol=1e-14)
+    assert_allclose(twm1['k3sl', 'mcosx.3l2:1'], tw.lhcb1['k3sl', 'mcosx.3l2/lhcb1'], rtol=0, atol=1e-14)
+    assert_allclose(twm2['k3sl', 'mcosx.3l2:1'], tw.lhcb2['k3sl', 'mcosx.3l2/lhcb2'], rtol=0, atol=1e-14)
 
-    assert_allclose(twm1['k4sl', 'mcdsxf.3r1:1'], tw.lhcb1['k4sl', 'mcdsxf.3r1'], rtol=0, atol=1e-14)
-    assert_allclose(twm2['k4sl', 'mcdsxf.3r1:1'], tw.lhcb2['k4sl', 'mcdsxf.3r1'], rtol=0, atol=1e-14)
+    assert_allclose(twm1['k4sl', 'mcdsxf.3r1:1'], tw.lhcb1['k4sl', 'mcdsxf.3r1/lhcb1'], rtol=0, atol=1e-14)
+    assert_allclose(twm2['k4sl', 'mcdsxf.3r1:1'], tw.lhcb2['k4sl', 'mcdsxf.3r1/lhcb2'], rtol=0, atol=1e-14)
 
-    assert_allclose(twm1['k5sl', 'mctsxf.3r1:1'], tw.lhcb1['k5sl', 'mctsxf.3r1'], rtol=0, atol=1e-14)
-    assert_allclose(twm2['k5sl', 'mctsxf.3r1:1'], tw.lhcb2['k5sl', 'mctsxf.3r1'], rtol=0, atol=1e-14)
+    assert_allclose(twm1['k5sl', 'mctsxf.3r1:1'], tw.lhcb1['k5sl', 'mctsxf.3r1/lhcb1'], rtol=0, atol=1e-14)
+    assert_allclose(twm2['k5sl', 'mctsxf.3r1:1'], tw.lhcb2['k5sl', 'mctsxf.3r1/lhcb2'], rtol=0, atol=1e-14)
 
 
 @for_all_test_contexts

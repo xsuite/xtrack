@@ -581,6 +581,27 @@ class Environment:
 
         xt.json.dump(self.to_dict(**kwargs), file, indent=indent)
 
+    @classmethod
+    def from_madx(cls, filename=None, madx=None, stdout=None, return_lines=False, **kwargs):
+        '''
+        Load a multiline from a MAD-X file.
+
+        Parameters
+        ----------
+        file: str
+            The MAD-X file to load from.
+        **kwargs: dict
+            Additional keyword arguments are passed to the `Line.from_madx_sequence`
+            method.
+
+        Returns
+        -------
+        new_multiline: Multiline
+            The multiline object.
+        '''
+        return xt.multiline_legacy._multiline_from_madx(cls, filename=filename, madx=madx, stdout=stdout,
+                             return_lines=return_lines, **kwargs)
+
     @property
     def line_names(self):
         return list(self.lines.keys())
@@ -641,7 +662,6 @@ class Environment:
     build_trackers = MultilineLegacy.build_trackers
     match = MultilineLegacy.match
     match_knob = MultilineLegacy.match_knob
-    from_madx = MultilineLegacy.from_madx
     install_beambeam_interactions = MultilineLegacy.install_beambeam_interactions
     configure_beambeam_interactions =  MultilineLegacy.configure_beambeam_interactions
     apply_filling_pattern = MultilineLegacy.apply_filling_pattern

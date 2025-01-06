@@ -178,31 +178,8 @@ class MultilineLegacy:
         new_multiline: Multiline
             The multiline object.
         '''
-        if madx is None:
-           from cpymad.madx import Madx
-           madx = Madx(stdout=stdout)
-        if filename is not None:
-           madx.call(filename)
-        lines = {}
-        for nn in madx.sequence.keys():
-            lines[nn] = xt.Line.from_madx_sequence(
-                madx.sequence[nn],
-                allow_thick=True,
-                deferred_expressions=True,
-                **kwargs)
-
-            lines[nn].particle_ref = xt.Particles(
-                mass0=madx.sequence[nn].beam.mass*1e9,
-                q0=madx.sequence[nn].beam.charge,
-                gamma0=madx.sequence[nn].beam.gamma)
-
-            if madx.sequence[nn].beam.bv == -1:
-                lines[nn].twiss_default['reverse'] = True
-
-        if return_lines:
-            return lines
-        else:
-            return cls(lines=lines)
+        return _multiline_from_madx(cls, filename=filename, madx=madx, stdout=stdout,
+                             return_lines=return_lines, **kwargs)
 
     def copy(self):
         '''
@@ -659,3 +636,49 @@ def _dispatch_twiss_kwargs(kwargs, lines):
             kwargs_per_twiss[arg_name] = list(kwargs[arg_name])
             kwargs.pop(arg_name)
     return kwargs, kwargs_per_twiss
+
+def _multiline_from_madx(cls, filename=None, madx=None, stdout=None, return_lines=False, **kwargs):
+    '''
+    Load a multiline from a MAD-X file.
+
+    Parameters
+    ----------
+    file: str
+        The MAD-X file to load from.
+    **kwargs: dict
+        Additional keyword arguments are passed to the `Line.from_madx_sequence`
+        method.
+
+    Returns
+    -------
+    new_multiline: Multiline
+        The multiline object.
+    '''
+    if madx is None:
+        from cpymad.madx import Madx
+        madx = Madx(stdout=stdout)
+    if filename is not None:
+        madx.call(filename)
+    lines = {}
+    for nn in madx.sequence.keys():
+        lines[nn] = xt.Line.from_madx_sequence(
+            madx.sequence[nn],
+            allow_thick=True,
+            deferred_expressions=True,
+            **kwargs)
+
+        lines[nn].particle_ref = xt.Particles(
+            mass0=madx.sequence[nn].beam.mass*1e9,
+            q0=madx.sequence[nn].beam.charge,
+            gamma0=madx.sequence[nn].beam.gamma)
+
+        if madx.sequence[nn].beam.bv == -1:
+            lines[nn].twiss_default['reverse'] = True
+
+    if return_lines:
+        return lines
+    else:
+        out = cls(lines=lines)
+        for nn in lines.keys():
+            out.lines[nn].twiss_default.update(lines[nn].twiss_default)
+        return out
