@@ -2013,3 +2013,311 @@ def test_import_line_from_other_env(overwrite_vars, x_value):
     assert env2['b/line'].k0 == 2 * x_value
     assert isinstance(env2['ip'], xt.Marker)
     assert env2['d'].length == 3 * 7
+
+def test_insert_repeated_elements():
+
+    env = xt.Environment()
+
+    line = env.new_line(
+        components=[
+            env.new('q0', 'Quadrupole', length=2.0, at=20.0),
+            env.new('ql', 'Quadrupole', length=2.0, at=-10.0, from_='q0'),
+            env.new('qr', 'Quadrupole', length=2.0, at=10.0, from_='q0'),
+            env.new('mk1', 'Marker', at=40),
+            env.new('mk2', 'Marker', at=42),
+            env.new('end', 'Marker', at=50.),
+        ])
+
+    tt0 = line.get_table()
+    tt0.show(cols=['name', 's_start', 's_end', 's_center'])
+
+    env.new('ss', 'Sextupole', length='0.1')
+    pp_ss = env.place('ss')
+
+    line.insert([
+        env.place('q0', at=5.0),
+        pp_ss,
+        env.place('q0', at=15.0),
+        pp_ss,
+        env.place('q0', at=41.0),
+        pp_ss,
+    ])
+
+    tt = line.get_table()
+    tt.show(cols=['name', 's_start', 's_end', 's_center'])
+
+    assert np.all(tt.name == np.array(
+        ['drift_1..0', 'q0::0', 'ss::0', 'drift_1..3', 'ql', 'drift_2..0',
+        'q0::1', 'ss::1', 'drift_2..3', 'q0::2', 'drift_3', 'qr',
+        'drift_4', 'mk1', 'q0::3', 'mk2', 'ss::2', 'drift_6..1', 'end',
+        '_end_point']))
+    xo.assert_allclose(tt.s_center, np.array(
+        [ 2.  ,  5.  ,  6.05,  7.55, 10.  , 12.5 , 15.  , 16.05, 17.55,
+        20.  , 25.  , 30.  , 35.5 , 40.  , 41.  , 42.  , 42.05, 46.05,
+        50.  , 50.  ]), rtol=0., atol=1e-14)
+
+def test_insert_with_anchors():
+
+    env = xt.Environment()
+
+    line = env.new_line(
+        components=[
+            env.new('q0', 'Quadrupole', length=2.0, at=20.0),
+            env.new('ql', 'Quadrupole', length=2.0, at=-10.0, from_='q0'),
+            env.new('qr', 'Quadrupole', length=2.0, at=10.0, from_='q0'),
+            env.new('mk1', 'Marker', at=40),
+            env.new('mk2', 'Marker', at=42),
+            env.new('end', 'Marker', at=50.),
+        ])
+
+    s_tol = 1e-10
+
+    tt0 = line.get_table()
+    tt0.show(cols=['name', 's_start', 's_end', 's_center'])
+
+    env.new('ss', 'Sextupole', length='0.1')
+    line.insert([
+        env.new('q1', 'q0', at=-5.0, from_='ql'),
+        env.place('ss'),
+        env.new('q2', 'q0', anchor='start', at=15.0 - 1.),
+        env.place('ss'),
+        env.new('q3', 'q0', anchor='start', at=29, from_='end@ql'),
+        env.place('ss'),
+    ])
+
+    tt = line.get_table()
+    tt.show(cols=['name', 's_start', 's_end', 's_center'])
+
+    assert np.all(tt.name == np.array(
+        ['drift_1..0', 'q1', 'ss::0', 'drift_1..3', 'ql', 'drift_2..0',
+        'q2', 'ss::1', 'drift_2..3', 'q0', 'drift_3', 'qr',
+        'drift_4', 'mk1', 'q3', 'mk2', 'ss::2', 'drift_6..1', 'end',
+        '_end_point']))
+    xo.assert_allclose(tt.s_center, np.array(
+        [ 2.  ,  5.  ,  6.05,  7.55, 10.  , 12.5 , 15.  , 16.05, 17.55,
+        20.  , 25.  , 30.  , 35.5 , 40.  , 41.  , 42.  , 42.05, 46.05,
+        50.  , 50.  ]), rtol=0., atol=1e-14)
+
+def test_insert_anchors_special_cases():
+
+    env = xt.Environment()
+
+    line = env.new_line(
+        components=[
+            env.new('q0', 'Quadrupole', length=2.0, at=20.0),
+            env.new('ql', 'Quadrupole', length=2.0, at=10.0),
+            env.new('qr', 'Quadrupole', length=2.0, at=30),
+            env.new('end', 'Marker', at=50.),
+        ])
+
+
+    line.insert([
+        env.new('q4', 'q0', anchor='center', at=0, from_='end@q0'), # will replace half of q0
+        env.new('q5', 'q0', at=0, from_='ql'), # will replace the full ql
+        env.new('m5.0', 'Marker', at='start@q5'),
+        env.new('m5.1', 'Marker', at='start@q5'),
+        env.new('m5.2', 'Marker', at='end@q5'),
+        env.new('m5.3', 'Marker'),
+    ])
+
+    line.insert([
+        env.new('q6', 'q0', at=0, from_='qr'),
+        env.new('mr.0', 'Marker', at='start@qr'),
+        env.new('mr.1', 'Marker', at='start@qr'),
+        env.new('mr.2', 'Marker', at='end@qr'),
+        env.new('mr.3', 'Marker'),
+    ])
+
+    tt = line.get_table()
+    tt.show(cols=['name', 's_start', 's_end', 's_center'])
+
+    assert np.all(tt.name == np.array(
+        ['drift_1', 'm5.0', 'm5.1', 'q5', 'm5.2', 'm5.3', 'drift_2',
+        'q0_entry', 'q0..0', 'q4', 'drift_3..1', 'mr.0', 'mr.1', 'q6',
+        'mr.2', 'mr.3', 'drift_4', 'end', '_end_point']))
+    xo.assert_allclose(tt.s_center, np.array(
+        np.array([ 4.5,  9. ,  9. , 10. , 11. , 11. , 15. , 19. , 19.5, 21. , 25.5,
+        29. , 29. , 30. , 31. , 31. , 40.5, 50. , 50.])),
+        rtol=0., atol=1e-14)
+
+def test_insert_providing_object():
+
+    env = xt.Environment()
+
+    line = env.new_line(
+        components=[
+            env.new('q0', 'Quadrupole', length=2.0, at=20.0),
+            env.new('ql', 'Quadrupole', length=2.0, at=10.0),
+            env.new('qr', 'Quadrupole', length=2.0, at=30),
+            env.new('end', 'Marker', at=50.),
+        ])
+
+    class MyElement:
+        def __init__(self, myparameter):
+            self.myparameter = myparameter
+
+        def track(self, particles):
+            particles.px += self.myparameter
+
+    myelem = MyElement(0.1)
+
+    line.insert(
+        env.place('myname', myelem, at='end@qr'))
+
+    tt = line.get_table()
+    tt.show(cols=['name', 's_start', 's_end', 's_center'])
+
+    assert np.all(tt.name == np.array(
+        ['drift_1', 'ql', 'drift_2', 'q0', 'drift_3', 'qr', 'myname',
+        'drift_4', 'end', '_end_point']))
+    assert np.all(tt.element_type == np.array(
+        ['Drift', 'Quadrupole', 'Drift', 'Quadrupole', 'Drift',
+        'Quadrupole', 'MyElement', 'Drift', 'Marker', '']))
+    xo.assert_allclose(tt.s, np.array(
+        [ 0.,  9., 11., 19., 21., 29., 31., 31., 50., 50.]),
+        rtol=0., atol=1e-14)
+
+def test_individual_insertions():
+
+    env = xt.Environment()
+
+    line = env.new_line(
+        components=[
+            env.new('q0', 'Quadrupole', length=2.0, at=20.0),
+            env.new('ql', 'Quadrupole', length=2.0, at=-10.0, from_='q0'),
+            env.new('qr', 'Quadrupole', length=2.0, at=10.0, from_='q0'),
+            env.new('mk1', 'Marker', at=40),
+            env.new('mk2', 'Marker', at=42),
+            env.new('end', 'Marker', at=50.),
+        ])
+
+    s_tol = 1e-10
+
+    tt0 = line.get_table()
+    tt0.show(cols=['name', 's_start', 's_end', 's_center'])
+
+    env.new('q1', 'q0')
+    env.new('q2', 'q0')
+    env.new('q3', 'q0')
+
+    line.insert('q1', at=5.0)
+    line.insert('q2', at=15.0)
+    line.insert('q3', at=41.0)
+
+    tt = line.get_table()
+    tt.show(cols=['name', 's_start', 's_end', 's_center'])
+
+    assert np.all(tt.name == np.array(
+        ['drift_1..0', 'q1', 'drift_1..2', 'ql', 'drift_2..0', 'q2',
+        'drift_2..2', 'q0', 'drift_3', 'qr', 'drift_4', 'mk1', 'q3', 'mk2',
+        'drift_6', 'end', '_end_point']))
+    xo.assert_allclose(tt.s_center, np.array(
+        [ 2. ,  5. ,  7.5, 10. , 12.5, 15. , 17.5, 20. , 25. , 30. , 35.5,
+        40. , 41. , 42. , 46. , 50. , 50. ]), rtol=0., atol=1e-14)
+
+def test_individual_insertions_anchors():
+
+    env = xt.Environment()
+
+    line = env.new_line(
+        components=[
+            env.new('q0', 'Quadrupole', length=2.0, at=20.0),
+            env.new('ql', 'Quadrupole', length=2.0, at=10.0),
+            env.new('qr', 'Quadrupole', length=2.0, at=30),
+            env.new('end', 'Marker', at=50.),
+        ])
+
+    env.new('q4', 'q0')
+    env.new('q5', 'q0')
+    env.new('m5.0', 'Marker')
+    env.new('m5.1', 'Marker')
+    env.new('m5.2', 'Marker')
+    env.new('m5.3', 'Marker')
+
+    line.insert('q4',anchor='center', at=0, from_='end@q0') # will replace half of q0
+    line.insert('q5', at=0, from_='ql') # will replace the full ql
+    line.insert('m5.0', at='start@q5')
+    line.insert('m5.1', at='start@q5')
+    line.insert('m5.2', at='end@q5')
+    line.insert('m5.3', at='end@m5.2')
+
+    line.insert([
+        env.new('q6', 'q0', at=0, from_='qr'),
+        env.new('mr.0', 'Marker', at='start@qr'),
+        env.new('mr.1', 'Marker', at='start@qr'),
+        env.new('mr.2', 'Marker', at='end@qr'),
+        env.new('mr.3', 'Marker'),
+    ])
+
+    tt = line.get_table()
+    tt.show(cols=['name', 's_start', 's_end', 's_center'])
+
+    assert np.all(tt.name == np.array(
+        ['drift_1', 'm5.0', 'm5.1', 'q5', 'm5.2', 'm5.3', 'drift_2',
+        'q0_entry', 'q0..0', 'q4', 'drift_3..1', 'mr.0', 'mr.1', 'q6',
+        'mr.2', 'mr.3', 'drift_4', 'end', '_end_point']))
+    xo.assert_allclose(tt.s_center, np.array(
+        np.array([ 4.5,  9. ,  9. , 10. , 11. , 11. , 15. , 19. , 19.5, 21. , 25.5,
+        29. , 29. , 30. , 31. , 31. , 40.5, 50. , 50.])),
+        rtol=0., atol=1e-14)
+
+def test_insert_line():
+
+    env = xt.Environment()
+
+    line = env.new_line(
+        components=[
+            env.new('q0', 'Quadrupole', length=2.0, at=20.0),
+            env.new('ql', 'Quadrupole', length=2.0, at=10.0),
+            env.new('qr', 'Quadrupole', length=2.0, at=30),
+            env.new('end', 'Marker', at=50.),
+        ])
+
+    ln_insert = env.new_line(
+        components=[
+            env.new('s1', 'Sextupole', length=0.1),
+            env.new('s2', 's1', anchor='start', at=0.3, from_='end@s1'),
+            env.new('s3', 's1', anchor='start', at=0.3, from_='end@s2')
+        ])
+
+    line.insert(ln_insert, anchor='start', at=1, from_='end@q0')
+
+    tt = line.get_table()
+    tt.show(cols=['name', 's_start', 's_end', 's_center'])
+
+    assert np.all(tt.name == np.array(
+        ['drift_1', 'ql', 'drift_2', 'q0', 'drift_3..0', 's1', 'drift_5',
+        's2', 'drift_6', 's3', 'drift_3..6', 'qr', 'drift_4', 'end',
+        '_end_point']))
+    xo.assert_allclose(tt.s_center, np.array(
+        [ 4.5 , 10.  , 15.  , 20.  , 21.5 , 22.05, 22.25, 22.45, 22.65,
+        22.85, 25.95, 30.  , 40.5 , 50.  , 50.  ]),
+        rtol=0., atol=1e-14)
+
+def test_insert_list():
+    env = xt.Environment()
+
+    line = env.new_line(
+        components=[
+            env.new('q0', 'Quadrupole', length=2.0, at=20.0),
+            env.new('ql', 'Quadrupole', length=2.0, at=10.0),
+            env.new('qr', 'Quadrupole', length=2.0, at=30),
+            env.new('end', 'Marker', at=50.),
+        ])
+
+    env.new('s1', 'Sextupole', length=0.1)
+    env.new('s2', 's1')
+    env.new('s3', 's1')
+
+    line.insert(['s1', 's2', 's3'], anchor='start', at=1, from_='end@q0')
+
+    tt = line.get_table()
+    tt.show(cols=['name', 's_start', 's_end', 's_center'])
+
+    assert np.all(tt.name == np.array(
+        ['drift_1', 'ql', 'drift_2', 'q0', 'drift_3..0', 's1', 's2', 's3',
+        'drift_3..4', 'qr', 'drift_4', 'end', '_end_point']))
+    xo.assert_allclose(tt.s_center, np.array(
+        [ 4.5 , 10.  , 15.  , 20.  , 21.5 , 22.05, 22.15, 22.25, 25.65,
+        30.  , 40.5 , 50.  , 50.  ]),
+        rtol=0., atol=1e-14)

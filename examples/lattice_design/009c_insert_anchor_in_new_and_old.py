@@ -2,19 +2,6 @@ import xtrack as xt
 import xobjects as xo
 import numpy as np
 
-# TODO:
-# - one/multiple thin elements
-# - one/multiple thick elements
-# - absolute s
-# - relative s
-# - at start or at end
-# - specify length of the line by place(xt.END, at=...)
-# - Archors, transform `refer` into `anchor_default`
-# - Check on a sliced line
-# - Sort out center/centre
-# - What happens with repeated elements
-
-
 env = xt.Environment()
 
 line = env.new_line(
