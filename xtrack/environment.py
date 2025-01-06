@@ -814,6 +814,7 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
     while n_resolved != n_resolved_prev:
         n_resolved_prev = n_resolved
         for ii, ss in enumerate(seq_all_places):
+
             if ss in s_start_for_place:  # Already resolved
                 continue
 
@@ -852,8 +853,11 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
                 from_length=None
                 s_start_from=None
                 if ss.from_ is not None:
-                    from_length = tt_lengths['length', ss.from_]
-                    s_start_from=s_start_for_place[place_for_name[ss.from_]]
+                    if ss.from_ not in place_for_name:
+                        continue # Cannot resolve yet
+                    else:
+                        from_length = tt_lengths['length', ss.from_]
+                        s_start_from=s_start_for_place[place_for_name[ss.from_]]
 
                 s_start_for_place[ss] = _compute_one_s(at, anchor=ss.anchor,
                     from_anchor=ss.from_anchor,
