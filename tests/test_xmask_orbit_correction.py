@@ -145,9 +145,8 @@ def test_orbit_correction(test_context):
         expressions_for_element_types=('kicker', 'hkicker', 'vkicker'),
     )
 
-    collider = xt.Environment(
-        lines={'lhcb1': input_line.copy(),
-               'lhcb1_co_ref': input_line_co_ref.copy()})
+    collider = xt.Environment(lines={'lhcb1': input_line.copy()})
+    collider.import_line(line_name='lhcb1_co_ref', line=input_line_co_ref.copy())
     collider['lhcb1_co_ref'].particle_ref = collider['lhcb1'].particle_ref.copy()
     collider.build_trackers(_context=test_context)
 
