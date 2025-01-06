@@ -829,7 +829,7 @@ def test_refer_and_thin_elements():
         cav1: cav, at = 5;
         mb2: mb, at = 8.5;
     endsequence;
-    
+
     seq2: sequence, l = 10, refer = ENTRY;
         mb1: mb, at = 0;
         cav1: cav, at = 3;

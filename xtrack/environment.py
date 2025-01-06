@@ -106,7 +106,7 @@ class Environment:
     def new(self, name, parent, mode=None, at=None, from_=None,
             anchor=None, from_anchor=None,
             extra=None,
-            mirror=False, import_from=None, **kwargs):
+            mirror=False, force=False, import_from=None, **kwargs):
 
         '''
         Create a new element or line.
@@ -141,7 +141,7 @@ class Environment:
             provided.
         '''
 
-        if name in self.element_dict:
+        if name in self.element_dict and not force:
             raise ValueError(f'Element `{name}` already exists')
 
         if from_ is not None or at is not None:
@@ -1166,9 +1166,10 @@ class Builder:
     def __repr__(self):
         return f'Builder({self.name}, components={self.components!r})'
 
-    def new(self, name, cls, at=None, from_=None, extra=None, **kwargs):
+    def new(self, name, cls, at=None, from_=None, extra=None, force=False,
+            **kwargs):
         out = self.env.new(
-            name, cls, at=at, from_=from_, extra=extra, **kwargs)
+            name, cls, at=at, from_=from_, extra=extra, force=force, **kwargs)
         self.components.append(out)
         return out
 
