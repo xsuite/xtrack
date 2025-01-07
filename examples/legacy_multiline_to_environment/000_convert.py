@@ -2,7 +2,9 @@ import xtrack as xt
 import xobjects as xo
 import numpy as np
 
-env = xt.Multiline.from_json('hllhc15_collider_thick.json')
+env = xt.Multiline.from_json(
+    '../../test_data/hllhc15_thick/hllhc15_collider_thick_legacy_multiline.json')
+assert isinstance(env, xt.Environment)
 env.lhcb2.twiss_default['reverse'] = True
 
 assert env.lhcb1.element_dict is env.element_dict
