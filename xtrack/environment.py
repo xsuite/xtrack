@@ -603,6 +603,10 @@ class Environment:
                              return_lines=return_lines, **kwargs)
 
     @property
+    def elements(self):
+        return self.element_dict
+
+    @property
     def line_names(self):
         return list(self.lines.keys())
 
