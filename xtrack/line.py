@@ -3727,7 +3727,9 @@ class Line:
         new_name = new_name or name
         cls = type(source.element_dict[name])
 
-        if cls not in _ALLOWED_ELEMENT_TYPES_IN_NEW:
+        if cls not in _ALLOWED_ELEMENT_TYPES_IN_NEW + [xt.DipoleEdge]: # No issue in copying DipoleEdge
+                                                                       # while creating it requirese handling properties
+                                                                       # which are strings.
             raise ValueError(
                 f'Only {_STR_ALLOWED_ELEMENT_TYPES_IN_NEW} elements are '
                 f'allowed in `copy_from_env` for now.'
