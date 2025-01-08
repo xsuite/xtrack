@@ -2589,9 +2589,9 @@ class ElectronCooler(BeamElement):
     _xofields = {
         'current'       :  xo.Float64,
         'length'        :  xo.Float64,
-        'radius_e_beam'        :  xo.Float64,
-        'temp_perp'        :  xo.Float64,
-        'temp_long'           :  xo.Float64,
+        'radius_e_beam' :  xo.Float64,
+        'temp_perp'     :  xo.Float64,
+        'temp_long'     :  xo.Float64,
         'magnetic_field':  xo.Float64,
                 
         'offset_x'      :  xo.Float64,
@@ -2601,7 +2601,7 @@ class ElectronCooler(BeamElement):
         'offset_energy' :  xo.Float64,
 
         'magnetic_field_ratio' :  xo.Float64,
-        'space_charge_factor'         : xo.Float64
+        'space_charge_factor'  : xo.Float64
         }
 
     _extra_c_sources = [

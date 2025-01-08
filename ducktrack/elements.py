@@ -842,7 +842,6 @@ class FirstOrderTaylorMap(Element):
             raise NotImplementedError('Radiation is not implemented')
 
 class ElectronCooler(Element):
-       
 
     _description =[
         ("current","","",0.0),
@@ -917,7 +916,7 @@ class ElectronCooler(Element):
         # gamma_total = 1 + (energy_e_total / mass_electron_ev)
         # beta_total = np.sqrt(1 - 1 / (gamma_total**2))
                 
-        friction_coefficient =-4*electron_density*me_kg*q0**2*classical_e_radius**2*clight**4 # Coefficient used for computation of friction force 
+        friction_coefficient = -4*electron_density*me_kg*q0**2*classical_e_radius**2*clight**4 # Coefficient used for computation of friction force 
         # compute angular frequency of rotation of e-beam due to space charge
         omega_e_beam = space_charge_factor*1/(2*np.pi*epsilon_0*clight) * current/(radius_e_beam**2*beta0*gamma0*magnetic_field)
                 
@@ -925,53 +924,57 @@ class ElectronCooler(Element):
         Fy = np.zeros_like(y)
         Fl = np.zeros_like(delta)        
         
-        #radial_velocity_dependence due to space charge
-        #equation 100b in Helmut Poth: Electron cooling. page 186        
+        # Radial_velocity_dependence due to space charge
+        #  -> from equation 100b in Helmut Poth: Electron cooling. page 186      
         space_charge_coefficient = space_charge_factor *classical_e_radius / (qe * clight) * (gamma0 + 1) / (gamma0**2);# //used for computation of the space charge energy offset
         dE_E = space_charge_coefficient * current * (radius / radius_e_beam)**2 / (beta0)**3
         E_diff_space_charge = dE_E * energy_e_total        
         
         E_kin_total = energy_e_total + E_diff_space_charge
         gamma_final = 1 + (E_kin_total / mass_electron_ev)
-        beta_final = np.sqrt(1 - 1 / (gamma_final**2))
+        beta_final  = np.sqrt(1 - 1 / (gamma_final**2))
 
         # Velocity differences
         dVz = beta * clight - beta_final* clight                
-        dVx = beta_x*clight
-        dVy = beta_y*clight 
-        dVx -= omega_e_beam *radius* -np.sin(theta) # account for ebeam rotation
-        dVy -= omega_e_beam *radius* +np.cos(theta) # account for ebeam rotation
+        dVx = beta_x * clight
+        dVy = beta_y * clight 
+        dVx -= omega_e_beam * radius * -np.sin(theta) # account for ebeam rotation
+        dVy -= omega_e_beam * radius * +np.cos(theta) # account for ebeam rotation
         dV_abs = np.sqrt(dVx**2+dVy**2+dVz**2)
 
         # Coulomb logarithm        
-        rho_min = q0*classical_e_radius*clight**2/(dV_abs**2 + V_e_long**2)
-        rho_max = np.sqrt(dV_abs**2 + V_e_long**2)/(elec_plasma_frequency + 1/self.tau)
-        log_term = np.log((rho_max+rho_min+rho_larmor)/(rho_min+rho_larmor))
+        #rho_min = q0*classical_e_radius*clight**2/(dV_abs**2 + V_e_long**2)
+        rho_min = (q0*qe**2/me_kg)/(dV_abs**2 + V_e_long**2)
+        rho_max_1 = np.sqrt(dV_abs**2 + V_e_long**2) / elec_plasma_frequency
+        rho_max_2 = np.sqrt(dV_abs**2 + V_e_long**2) * self.tau
+        rho_max = min(rho_max_1, rho_max_2)
+        #rho_max = np.sqrt(dV_abs**2 + V_e_long**2)/(elec_plasma_frequency + 1/self.tau)
+        log_coulomb = np.log((rho_max+rho_min+rho_larmor)/(rho_min+rho_larmor))
 
-        friction_denominator = (dV_abs**2 + V_eff**2)**1.5 #coefficient used for computation of friction force
+        friction_denominator = (dV_abs**2 + V_eff**2)**1.5 # coefficient used for computation of friction force
 
-        Fx = (friction_coefficient * dVx/friction_denominator * log_term)  # Newton
-        Fy = (friction_coefficient * dVy/friction_denominator * log_term)  # Newton
-        Fl = (friction_coefficient *  dVz/friction_denominator * log_term) # Newton
-        # if particle is outside electron beam, set cooling force to zero
+        Fx = (friction_coefficient * dVx/friction_denominator * log_coulomb)  # Newton
+        Fy = (friction_coefficient * dVy/friction_denominator * log_coulomb)  # Newton
+        Fl = (friction_coefficient * dVz/friction_denominator * log_coulomb)  # Newton
+        # If particle is outside electron beam, set cooling force to zero
         outside_beam_indices = radius >= radius_e_beam
         Fx[outside_beam_indices] = 0.0
         Fy[outside_beam_indices] = 0.0
         Fl[outside_beam_indices] = 0.0
               
-        Fx=Fx*1/qe #convert to eV/m 
-        Fy=Fy*1/qe #convert to eV/m 
-        Fl=Fl*1/qe #convert to eV/m 
+        Fx = Fx * 1/qe # convert to eV/m 
+        Fy = Fy * 1/qe # convert to eV/m 
+        Fl = Fl * 1/qe # convert to eV/m 
         return Fx,Fy,Fl
     
     def track(self, p):
         Fx,Fy,Fl=self.force(p)
-        Fx=Fx*clight # convert to eV/c because p0c is also in eV/c
-        Fy=Fy*clight # convert to eV/c because p0c is also in eV/c
-        Fl=Fl*clight # convert to eV/c because p0c is also in eV/c
+        Fx = Fx * clight # convert to eV/c because p0c is also in eV/c
+        Fy = Fy * clight # convert to eV/c because p0c is also in eV/c
+        Fl = Fl * clight # convert to eV/c because p0c is also in eV/c
         p.delta += np.squeeze( Fl*p.gamma0*self.tau/p.p0c)
-        p.px += np.squeeze( Fx*p.gamma0*self.tau/p.p0c)
-        p.py += np.squeeze( Fy*p.gamma0*self.tau/p.p0c)        
+        p.px    += np.squeeze( Fx*p.gamma0*self.tau/p.p0c)
+        p.py    += np.squeeze( Fy*p.gamma0*self.tau/p.p0c)        
 
 __all__ = [
     "BeamBeam4D",

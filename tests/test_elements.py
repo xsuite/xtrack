@@ -1152,7 +1152,7 @@ def test_multipole_tilt_90_deg(test_context):
 
 @for_all_test_contexts
 def test_ecooler(test_context):
-    """Test the electron cooler by comparing the cooling rate and cooling force with Betacool for Leir.
+    """Test the electron cooler by comparing the cooling rate and cooling force with Betacool for LEIR.
     """
     data = np.load('../test_data/electron_cooler/emittance_betacool.npz')
     emittance_betacool = data['emittance']
@@ -1161,7 +1161,7 @@ def test_ecooler(test_context):
     beta_rel = 0.09423258405
     gamma = 1.004469679
     current = 0.6
-    cooler_length = 3  # m cooler length
+    cooler_length = 3  # m 
     radius_e_beam = 25 * 1e-3
     temp_perp = 0.01  # <E> [eV] = kb*T
     temp_long = 0.001  # <E> [eV]
@@ -1194,11 +1194,11 @@ def test_ecooler(test_context):
     sigma_py = np.sqrt(emittance / beta_y)
     sigma_p = 5e-3
 
-    delta = np.random.normal(loc=0.0, scale=sigma_p, size=num_particles)
-    x = np.random.normal(loc=0.0, scale=sigma_x, size=num_particles)
-    px = np.random.normal(loc=0.0, scale=sigma_px, size=num_particles)
-    y = np.random.normal(loc=0.0, scale=sigma_y, size=num_particles)
-    py = np.random.normal(loc=0.0, scale=sigma_py, size=num_particles)
+    delta = np.random.normal(loc=0.0, scale=sigma_p,  size=num_particles)
+    x     = np.random.normal(loc=0.0, scale=sigma_x,  size=num_particles)
+    px    = np.random.normal(loc=0.0, scale=sigma_px, size=num_particles)
+    y     = np.random.normal(loc=0.0, scale=sigma_y,  size=num_particles)
+    py    = np.random.normal(loc=0.0, scale=sigma_py, size=num_particles)
 
     particles = xp.Particles(
         mass0=mass0,
@@ -1220,7 +1220,7 @@ def test_ecooler(test_context):
     emittance_list = []
 
     for i in range(num_turns):
-        x_xs = particles.x.copy()
+        x_xs  = particles.x.copy()
         px_xs = particles.px.copy()
         cov00 = np.cov(x_xs, px_xs)
         det00 = np.sqrt(np.linalg.det(cov00))
@@ -1241,6 +1241,7 @@ def test_ecooler(test_context):
     emittance_diff = emittance_xsuite - emittance_betacool
     mse_emittance = np.mean(emittance_diff**2)
 
+
     data_betacool = np.load('../test_data/electron_cooler/force_betacool.npz')
     v_diff_betacool = data_betacool['v_diff']
     force_betacool = data_betacool['force']
@@ -1249,12 +1250,12 @@ def test_ecooler(test_context):
     dtk_particle = dtk.TestParticles(
         mass0=mass0,
         p0c=p0c,
-        x=np.random.normal(0, 1e-20, num_particles),
-        px=np.random.normal(0, 4*np.sqrt(emittance/beta_x), num_particles),
-        y=np.random.normal(0, 1e-20, num_particles),
-        py=np.random.normal(0, 1e-20, num_particles),
-        delta=np.random.normal(0, 0, num_particles),
-        zeta=np.random.normal(0, 0, num_particles),
+        x  = np.random.normal(0, 1e-20, num_particles),
+        px = np.random.normal(0, 4*np.sqrt(emittance/beta_x), num_particles),
+        y  = np.random.normal(0, 1e-20, num_particles),
+        py = np.random.normal(0, 1e-20, num_particles),
+        delta = np.random.normal(0, 0, num_particles),
+        zeta  = np.random.normal(0, 0, num_particles),
         q0=q0)
 
     dtk_cooler = dtk.elements.ElectronCooler(
@@ -1262,11 +1263,11 @@ def test_ecooler(test_context):
         temp_perp=temp_perp, temp_long=temp_long, magnetic_field=magnetic_field, magnetic_field_ratio=0,
         space_charge_factor=0)
 
-    force, Fy, Fl = dtk_cooler.force(dtk_particle)
+    force, _, _ = dtk_cooler.force(dtk_particle)
 
-    px_tot = p0c*dtk_particle.px
+    px_tot    = p0c*dtk_particle.px
     beta_diff = px_tot/(mass0*gamma)
-    v_diff = beta_diff*clight
+    v_diff    = beta_diff*clight
 
     sorted_indices = np.argsort(v_diff)
     v_diff = v_diff[sorted_indices]
