@@ -1,17 +1,54 @@
 import xtrack as xt
 
+env = xt.Environment()
+
 myline = env.new_line(name='myline', components=[
-    env.new('q10', xt.Quadrupole, length=1.0, k1='kquad',
-            # Place element center at s = 3.0
-            at=3.0),
-    env.new('q20', xt.Quadrupole, length=1.0, k1='-kquad',
-            # Place element start at s = 5.0
-            anchor='start', at=5.0),
-    env.new('q30', xt.Quadrupole, length=1.0, k1='kquad',
-            # Place element start at the end of q2
-            anchor='start', at='end@q20'),
-    env.new('q40', xt.Quadrupole, length=1.0, k1='-kquad',
-            # Place element center at the end of q3
-            anchor='center', at=5.0, from_='start@q30'),
-    env.new('s40', xt.Sextupole, length=0.1) # Placed right after previous
+    env.new('q0', xt.Quadrupole, length=2.0, at=10.),
+    env.new('q1', xt.Quadrupole, length=2.0, at=20.),
+    env.new('m0', xt.Marker, at=40.),
     ])
+
+tt0 = myline.get_table()
+tt0.show(cols=['s_start', 's_center', 's_end'])
+# is:
+# name             s_start      s_center         s_end
+# drift_1                0           4.5             9
+# q0                     9            10            11
+# drift_2               11            15            19
+# q1                    19            20            21
+# drift_3               21          30.5            40
+# m0                    40            40            40
+# _end_point            40            40            40
+
+env.new('s1', xt.Sextupole, length=0.1, k2=0.2)
+env.new('s2', xt.Sextupole, length=0.1, k2=-0.2)
+env.new('m1', xt.Marker)
+env.new('m2', xt.Marker)
+env.new('m3', xt.Marker)
+
+# Different elements can be placed with the same insertion command. Locations 
+# can be specified as absolute positions or relative to other elements. For
+# example:
+myline.insert([
+    env.place('s1', at=5.),
+    env.place('s2', anchor='end', at=-5., from_='start@q1'),
+    env.place(['m1', 'm2'], at='start@m0'),
+    env.place('m3', at='end@m0'),
+    ])
+
+tt = myline.get_table()
+tt.show(cols=['s_start', 's_center', 's_end'])
+# is:
+# name             s_start      s_center         s_end
+# drift_1..0             0         2.475          4.95
+# s1                  4.95             5          5.05
+# drift_1..2          5.05         7.025             9
+# q0                     9            10            11
+# drift_2..0            11         12.45          13.9
+# s2                  13.9         13.95            14
+# drift_2..2            14          16.5            19
+# q1                    19            20            21
+# drift_3               21          30.5            40
+# m1                    40            40            40
+# m0                    40            40            40
+# m3                    40            40            40
