@@ -51,7 +51,6 @@ tt.show(cols=['s_start', 's_center', 's_end'])
 
 # Elements can be appended also when they are created using the class directly.
 # The element name is defined contextually:
-
 myoct = xt.Octupole(length=0.1, k3=0.3)
 line.append('o1', myoct)
 
