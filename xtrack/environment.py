@@ -61,6 +61,52 @@ def _flatten_components(components, refer: ReferType = 'center'):
 class Environment:
     def __init__(self, element_dict=None, particle_ref=None, _var_management=None,
                  lines=None):
+
+        '''
+        Create an environment.
+
+        Parameters
+        ----------
+        element_dict : dict, optional
+            Dictionary with the elements of the environment.
+        particle_ref : ParticleRef, optional
+            Reference particle.
+        lines : dict, optional
+            Dictionary with the lines of the environment.
+
+        Examples
+        --------
+
+        .. code-block:: python
+
+            env = xt.Environment()
+            env['a'] = 3 # Define a variable
+            env.new('mq1', xt.Quadrupole, length=0.3, k1='a')  # Create an element
+            env.new('mq2', xt.Quadrupole, length=0.3, k1='-a')  # Create another element
+
+            ln = env.new_line(name='myline', components=[
+                'mq',  # Add the element 'mq' at the start of the line
+                env.new('mymark', xt.Marker, at=10.0),  # Create a marker at s=10
+                env.new('mq1_clone', 'mq1', k1='2*a'),   # Clone 'mq1' with a different k1
+                env.place('mq2', at=20.0, from_='mymark'),  # Place 'mq2' at s=20
+                ])
+
+        Short description of main attributes of the Environment class:
+         - Environment[...]: accesses variables, elements and lines of the environment.
+         - Environment.ref[...]: provides reference objects to variables and elements.
+         - Environment.vars[...]: container with all variables:
+         - Environment.elements[...]: container with all elements.
+         - Environment.lines[...]: container with all lines.
+
+        Short description of main methods of the Environment class:
+         - Environment.info(...): returns information about a variable or element.
+         - Environment.get(...): returns variable value or element.
+         - Environment.set(...): sets variable or element properties.
+         - Environment.eval(...): evaluates an expression provided as a string (returns a value).
+         - Environment.new_expr(...): creates a new expression from a string.
+         - Environment.get_expr(...): returns the expression for a variable.
+
+        '''
         self._element_dict = element_dict or {}
         self.particle_ref = particle_ref
 

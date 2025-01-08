@@ -124,6 +124,10 @@ class Line:
             and matching.
         energy_program: EnergyProgram
             (optional) Energy program used to update the reference energy during the tracking.
+        env : Environment
+            Environment object to which the line belongs. If not provided, a new
+            environment is created.
+
         """
 
         self.config = xt.tracker.TrackerConfig()
