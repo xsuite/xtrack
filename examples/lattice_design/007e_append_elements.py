@@ -22,16 +22,29 @@ tt0.show(cols=['s_start', 's_center', 's_end'])
 # m0                    40            40            40
 # _end_point            40            40            40
 
-# Remove two elements
-line.remove('q1')
-line.remove('m0')
+# Create a set of new elements to be placed
+env.new('s1', xt.Sextupole, length=0.1, k2=0.2)
+env.new('s2', xt.Sextupole, length=0.1, k2=-0.2)
+env.new('m1', xt.Marker)
+env.new('m2', xt.Marker)
+env.new('m3', xt.Marker)
+
+# Insert the new elements in the line
+line.append(['m1', 's1', 'm2', 's2', 'm3'])
 
 tt = line.get_table()
 tt.show(cols=['s_start', 's_center', 's_end'])
+# is:
 # name             s_start      s_center         s_end
 # drift_1                0           4.5             9
 # q0                     9            10            11
 # drift_2               11            15            19
-# drift_4               19            20            21
+# q1                    19            20            21
 # drift_3               21          30.5            40
-# _end_point            40            40            40
+# m0                    40            40            40
+# m1                    40            40            40
+# s1                    40         40.05          40.1
+# m2                  40.1          40.1          40.1
+# s2                  40.1         40.15          40.2
+# m3                  40.2          40.2          40.2
+# _end_point          40.2          40.2          40.2
