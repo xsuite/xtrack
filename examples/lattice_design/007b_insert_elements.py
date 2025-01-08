@@ -1,7 +1,9 @@
 import xtrack as xt
 
+# Create an environment
 env = xt.Environment()
 
+# Create a line with two quadrupoles and a marker
 myline = env.new_line(name='myline', components=[
     env.new('q0', xt.Quadrupole, length=2.0, at=10.),
     env.new('q1', xt.Quadrupole, length=2.0, at=20.),
@@ -20,15 +22,14 @@ tt0.show(cols=['s_start', 's_center', 's_end'])
 # m0                    40            40            40
 # _end_point            40            40            40
 
+# Create a set of new elements to be placed
 env.new('s1', xt.Sextupole, length=0.1, k2=0.2)
 env.new('s2', xt.Sextupole, length=0.1, k2=-0.2)
 env.new('m1', xt.Marker)
 env.new('m2', xt.Marker)
 env.new('m3', xt.Marker)
 
-# Different elements can be placed with the same insertion command. Locations 
-# can be specified as absolute positions or relative to other elements. For
-# example:
+# Insert the new elements in the line
 myline.insert([
     env.place('s1', at=5.),
     env.place('s2', anchor='end', at=-5., from_='start@q1'),
