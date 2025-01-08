@@ -30,12 +30,10 @@ env.new('m2', xt.Marker)
 env.new('m3', xt.Marker)
 
 # Insert the new elements in the line
-line.insert([
-    env.place('s1', at=5.),
-    env.place('s2', anchor='end', at=-5., from_='start@q1'),
-    env.place(['m1', 'm2'], at='start@m0'),
-    env.place('m3', at='end@m0'),
-    ])
+line.insert('s1', at=5.)
+line.insert('s2', anchor='end', at=-5., from_='start@q1')
+line.insert(['m1', 'm2'], at='start@m0')
+line.insert('m3', at='end@m0')
 
 tt = line.get_table()
 tt.show(cols=['s_start', 's_center', 's_end'])
