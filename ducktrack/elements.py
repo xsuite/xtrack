@@ -943,12 +943,12 @@ class ElectronCooler(Element):
         dV_abs = np.sqrt(dVx**2+dVy**2+dVz**2)
 
         # Coulomb logarithm        
-        #rho_min = q0*classical_e_radius*clight**2/(dV_abs**2 + V_e_long**2)
-        rho_min = (q0*qe**2/me_kg)/(dV_abs**2 + V_e_long**2)
-        rho_max_1 = np.sqrt(dV_abs**2 + V_e_long**2) / elec_plasma_frequency
-        rho_max_2 = np.sqrt(dV_abs**2 + V_e_long**2) * self.tau
-        rho_max = min(rho_max_1, rho_max_2)
-        #rho_max = np.sqrt(dV_abs**2 + V_e_long**2)/(elec_plasma_frequency + 1/self.tau)
+        rho_min = q0*classical_e_radius*clight**2/(dV_abs**2 + V_e_long**2)
+        #rho_min = (q0*qe**2/me_kg)/(dV_abs**2 + V_e_long**2)
+        # rho_max_1 = np.sqrt(dV_abs**2 + V_e_long**2) / elec_plasma_frequency
+        # rho_max_2 = np.sqrt(dV_abs**2 + V_e_long**2) * self.tau
+        #rho_max = min(rho_max_1, rho_max_2)
+        rho_max = np.sqrt(dV_abs**2 + V_e_long**2)/(elec_plasma_frequency + 1/self.tau)
         log_coulomb = np.log((rho_max+rho_min+rho_larmor)/(rho_min+rho_larmor))
 
         friction_denominator = (dV_abs**2 + V_eff**2)**1.5 # coefficient used for computation of friction force
