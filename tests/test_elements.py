@@ -1182,8 +1182,7 @@ def test_ecooler(test_context):
             betx=beta_x,
             bety=beta_y,
             )
-    ###############################
-
+    
     arc_matching = xt.LineSegmentMap(
             qx=qx, qy=qy,
             length=circumference,
@@ -1196,10 +1195,7 @@ def test_ecooler(test_context):
     line_matching.build_tracker()
 
     num_particles=int(1e3)
-
-    #sigma_dp = 2e-3 # Standard LEIR value
-    sigma_dp = 5e-3 # from Schotttky: 5e-3
-    
+    sigma_dp = 5e-3    
     gemitt_x = 14e-6
     gemitt_y = 14e-6
 
@@ -1214,25 +1210,15 @@ def test_ecooler(test_context):
             line=line_matching,        
             )
 
-    # create desired beam
-    bunch_intensity = None
-    sigma_z=-bets0*sigma_dp
-
     particles.delta = np.random.normal(loc=0.0, scale=sigma_dp, size=num_particles)
-    #particles.zeta = 0
     particles.zeta = np.random.uniform(-circumference/2, circumference/2, num_particles)
     particles0=particles.copy()
 
-    # simulation parameters: simulate 1 s of cooling, and take data once every 10 ms
     max_time_s = 1
     int_time_s = 1*1e-3
-
-    # compute length of simulation, as well as sample interval, in turns
     num_turns = int((max_time_s / T_per_turn).item())
     save_interval = int((int_time_s / T_per_turn).item())
 
-
-    # create a monitor object, to reduce holded data
     monitor = xt.ParticlesMonitor(start_at_turn=0, stop_at_turn=1,
                             n_repetitions=int(num_turns/save_interval),
                             repetition_period=save_interval,
@@ -1251,22 +1237,15 @@ def test_ecooler(test_context):
                                     temp_perp=temp_perp, temp_long=temp_long,
                                     magnetic_field=magnetic_field)
 
-    line = xt.Line(elements=[monitor, electron_cooler, arc],element_names=['monitor','electron_cooler','arc'])
-                                    
+    line = xt.Line(elements=[monitor, electron_cooler, arc],element_names=['monitor','electron_cooler','arc'])                                    
     line.particle_ref = particle_ref
     context = xo.ContextCpu(omp_num_threads=4)
     line.build_tracker(_context=context)
 
     particles=particles0.copy()
-    #particles.q0=charge
-    #particles.delta = np.random.normal(loc=0.0, scale=sigma_dp_loop, size=num_particles)
-    # particles_emittance=particles_emittance0.copy()    
-
-    # just track all particles, and keep turn-by-turn data (memory expensive!)
     line.track(particles, num_turns=num_turns,
             turn_by_turn_monitor=False,with_progress=True)
 
-    # extract relevant values
     x = monitor.x[:,:,0]
     px = monitor.px[:,:,0]
     y = monitor.y[:,:,0]
@@ -1275,22 +1254,10 @@ def test_ecooler(test_context):
     zeta = monitor.zeta[:,:,0]
     time = monitor.at_turn[:, 0, 0] * T_per_turn
 
-    # compute actions. for x, remove the dp/p contribution:
     action_x = (x**2/beta_x + beta_x*px**2)
-    # for y, simple compute:
-    action_y = (y**2/beta_y + beta_y*py**2)
-    emittance_x=np.mean(action_x, axis=1)/2
-    norm_emittance_x=np.mean(action_x,axis=1)/2*gamma0*beta0
-    norm_emittance_y=np.mean(action_y,axis=1)/2*gamma0*beta0
-
     geo_emittance_x=np.mean(action_x,axis=1)/2
-    geo_emittance_y=np.mean(action_y,axis=1)/2
-
-    # sigma_x_all_angles = np.array([np.sqrt(beta_x * geo_emittance_x) for angle in angle_list])
-    # sigma_x_95 = np.percentile(sigma_x_all_angles, 95, axis=0)
     p0c = particle_ref.p0c
-    momentum = p0c*delta+p0c                
-
+   
     for i in range(len(time_betacool) - 1, -1, -1):
             if not np.isnan(time_betacool[i]):
                     last_non_nan_index = i
@@ -1302,7 +1269,6 @@ def test_ecooler(test_context):
     emittance_betacool = emittance_betacool[:last_non_nan_index]
     emittance_diff = emittance_xsuite - emittance_betacool
     mse_emittance = np.mean(emittance_diff**2)
-
 
     data_betacool = np.load('../test_data/electron_cooler/force_betacool.npz')
     v_diff_betacool = data_betacool['v_diff']
@@ -1347,7 +1313,6 @@ def test_ecooler(test_context):
             matching_indices.append(index)
 
     force_xsuite = [force[i] for i in matching_indices]
-
     force_betacool = force_betacool[:last_non_nan_index]
 
     force_diff = force_xsuite - force_betacool
