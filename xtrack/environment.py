@@ -93,18 +93,24 @@ class Environment:
 
         Short description of main attributes of the Environment class:
          - Environment[...]: accesses variables, elements and lines of the environment.
-         - Environment.ref[...]: provides reference objects to variables and elements.
-         - Environment.vars[...]: container with all variables:
-         - Environment.elements[...]: container with all elements.
-         - Environment.lines[...]: container with all lines.
+         - ref[...]: provides reference objects to variables and elements.
+         - vars[...]: container with all variables:
+         - elements[...]: container with all elements.
+         - lines[...]: container with all lines.
 
         Short description of main methods of the Environment class:
-         - Environment.info(...): returns information about a variable or element.
-         - Environment.get(...): returns variable value or element.
-         - Environment.set(...): sets variable or element properties.
-         - Environment.eval(...): evaluates an expression provided as a string (returns a value).
-         - Environment.new_expr(...): creates a new expression from a string.
-         - Environment.get_expr(...): returns the expression for a variable.
+         - info(...): displays information about a variable or element.
+         - get(...): returns variable value or element.
+         - set(...): sets variable or element properties.
+         - eval(...): evaluates an expression provided as a string (returns a value).
+         - new_expr(...): creates a new expression from a string.
+         - get_expr(...): returns the expression for a variable.
+         - get_table(...): returns a table with all variables or elements.
+         - new(...): creates a new element.
+         - new_line(...): creates a new line.
+         - new_builder(...): creates a new builder.
+         - place(...): creates a place object, which can be user in new_line(...)
+           or by a Builder object.
 
         '''
         self._element_dict = element_dict or {}
