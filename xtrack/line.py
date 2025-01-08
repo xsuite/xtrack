@@ -2216,10 +2216,11 @@ class Line:
             Location within the element specified by `from_` for which `at` is defined.
             It can be 'start', 'end' or 'center'. Default is 'center'.
 
-        Examples
-        --------
+        Example
+        -------
 
         .. code-block:: python
+
             # Create a set of new elements to be placed
             env.new('s1', xt.Sextupole, length=0.1, k2=0.2)
             env.new('s2', xt.Sextupole, length=0.1, k2=-0.2)
