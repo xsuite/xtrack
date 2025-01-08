@@ -26,7 +26,7 @@ tt0.show(cols=['s_start', 's_center', 's_end'])
 mysext =  xt.Sextupole(length=0.1, k2=0.2)
 myoct =  xt.Octupole(length=0.1, k3=0.3)
 
-# It is possible to insert the element in the line, contextually defining its
+# It is possible to insert the element in the line and, contextually, define its
 # name:
 line.insert('s1', mysext, at=5., from_='q1')
 
