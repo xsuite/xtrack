@@ -2168,6 +2168,45 @@ class Line:
 
     def append(self, what, obj=None):
 
+        """
+        Append elements to the line.
+
+        Parameters
+        ----------
+        what : str, Line or Iterable
+            Element(s) to be appended. Can be a list of `Place` objects specifying
+            the location of each insertion.
+        obj : object (optional)
+            Object to be appended (if not already present in the environment).
+            It can be specified only when `what` is a string.
+
+        Examples
+        --------
+
+        .. code-block:: python
+
+            ## Appending elements from the environment
+
+            # Create a set of new elements to be placed
+            env.new('s1', xt.Sextupole, length=0.1, k2=0.2)
+            env.new('s2', xt.Sextupole, length=0.1, k2=-0.2)
+            env.new('m1', xt.Marker)
+            env.new('m2', xt.Marker)
+            env.new('m3', xt.Marker)
+
+            # Insert the new elements in the line
+            line.append(['m1', 's1', 'm2', 's2', 'm3'])
+
+        .. code-block:: python
+
+            ## Appending elements instantiated by the user using the class
+            ## constructor
+
+            myoct = xt.Octupole(length=0.1, k3=0.3)
+            line.append('o1', myoct)
+
+        """
+
         self._frozen_check()
 
         if not isinstance(what, (str, xt.Line, Iterable)):
