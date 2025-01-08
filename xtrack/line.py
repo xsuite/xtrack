@@ -2193,6 +2193,51 @@ class Line:
     def insert(self, what, obj=None, at=None, from_=None, anchor=None,
                from_anchor=None, s_tol=1e-10):
 
+        """
+        Insert elements in the line.
+
+        Parameters
+        ----------
+        what : str, Line or Iterable
+            Element(s) to be inserted. Can be a list of `Place` objects specifying
+            the location of each insertion.
+        obj : object (optional)
+            Object to be inserted (if not already present in the environment).
+            It can be specified only when `what` is a string.
+        at : str or float (optional)
+            Location of the insertion (s position). It can be absolute or relative
+            to another element (specified by `from_`).
+        from_ : str (optional)
+            Element with respect to which `at` is defined.
+        anchor : str (optional)
+            Location within the inserted element for which `at` is defined.
+            It can be 'start', 'end' or 'center'. Default is 'center'.
+        from_anchor : str (optional)
+            Location within the element specified by `from_` for which `at` is defined.
+            It can be 'start', 'end' or 'center'. Default is 'center'.
+
+        Examples
+        --------
+
+        .. code-block:: python
+            # Create a set of new elements to be placed
+            env.new('s1', xt.Sextupole, length=0.1, k2=0.2)
+            env.new('s2', xt.Sextupole, length=0.1, k2=-0.2)
+            env.new('m1', xt.Marker)
+            env.new('m2', xt.Marker)
+            env.new('m3', xt.Marker)
+
+            # Insert the new elements in the line
+            line.insert([
+                env.place('s1', at=5.),
+                env.place('s2', anchor='end', at=-5., from_='start@q1'),
+                env.place(['m1', 'm2'], at='start@m0'),
+                env.place('m3', at='end@m0'),
+                ])
+
+        """
+
+
         self._frozen_check()
         env = self.env
 
