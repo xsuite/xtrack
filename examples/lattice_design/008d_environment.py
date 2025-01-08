@@ -83,7 +83,6 @@ env['mq'].get_info('length')
 
 # It is also possible to add to the environment elements that are instantiated by
 # the user:
-
 mysext = xt.Sextupole(length=1.0, k2=0.1)
 env.elements['ms'] = mysext
 
