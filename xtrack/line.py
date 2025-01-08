@@ -2424,7 +2424,10 @@ class Line:
     def insert_element(self, name, element=None, at=None, index=None, at_s=None,
                        s_tol=1e-6):
 
-        """Insert an element in the line.
+        """
+        NOTE: This method is deprecated. Use `Line.insert` instead.
+
+        Insert an element in the line.
 
         Parameters
         ----------
@@ -2527,7 +2530,10 @@ class Line:
 
     def append_element(self, element, name):
 
-        """Append element to the end of the lattice
+        """
+        NOTE: This method is deprecated. Use `Line.append` instead.
+
+        Append element to the end of the lattice
 
         Parameters
         ----------
