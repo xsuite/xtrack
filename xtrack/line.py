@@ -2402,7 +2402,7 @@ class Line:
         s_tol : float (optional)
             If the element is shorter than `s_tol`, it is removed without creating
             a replacement drift. Default is 1e-10.
-x
+
         """
 
         self._frozen_check()
@@ -2436,6 +2436,23 @@ x
                                 if ii not in idx_remove]
 
     def replace(self, name, new_name, s_tol=1e-10):
+
+        """
+        Replace an element in the line with another element having the same length.
+
+        Parameters
+        ----------
+        name : str
+            Name of the element to be replaced.
+        new_name : str
+            Name of the element to be installed to replace the removed one.
+        s_tol : float (optional)
+            Tolerance for the length of the elements. If the difference in length
+            is larger than `s_tol`, the replacement is not performed and an
+            error is raised.error is raised. Default is 1e-10.
+
+        """
+
         self._frozen_check()
 
         tt_replace = self._name_match(name)
