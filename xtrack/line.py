@@ -2390,6 +2390,21 @@ class Line:
         self.element_names.extend(element_names)
 
     def remove(self, name, s_tol=1e-10):
+
+        """
+        Remove an element from the line. If the element is thick, it is replaced
+        by a drift.
+
+        Parameters
+        ----------
+        name : str
+            Name of the element to be removed.
+        s_tol : float (optional)
+            If the element is shorter than `s_tol`, it is removed without creating
+            a replacement drift. Default is 1e-10.
+x
+        """
+
         self._frozen_check()
 
         tt_remove = self._name_match(name)
