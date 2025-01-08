@@ -24,24 +24,23 @@ tt0.show(cols=['s_start', 's_center', 's_end'])
 
 # Instantiate elements using the class directly
 mysext =  xt.Sextupole(length=0.1, k2=0.2)
-myoct =  xt.Octupole(length=0.1, k3=0.3)
+myaperture =  xt.LimitEllipse(a=0.01, b=0.02)
 
 # Insert the element in the line and, contextually, define its name:
 line.insert('s1', mysext, at=5., from_='q1')
 
 # Alternatively, add the element to the environment and then do the insertion:
-env.elements['oc1'] = myoct
-line.insert('oc1', at=5. , from_='q0')
+env.elements['ap1'] = myaperture
+line.insert('ap1', at='start@q0')
 
 tt = line.get_table()
 tt.show(cols=['s_start', 's_center', 's_end'])
 # is:
 # name             s_start      s_center         s_end
 # drift_1                0           4.5             9
+# ap1                    9             9             9
 # q0                     9            10            11
-# drift_2..0            11        12.975         14.95
-# oc1                14.95            15         15.05
-# drift_2..2         15.05        17.025            19
+# drift_2               11            15            19
 # q1                    19            20            21
 # drift_3..0            21        22.975         24.95
 # s1                 24.95            25         25.05

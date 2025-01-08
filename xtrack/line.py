@@ -2221,6 +2221,8 @@ class Line:
 
         .. code-block:: python
 
+            ## Insertion of elements from the environment
+
             # Create a set of new elements to be placed
             env.new('s1', xt.Sextupole, length=0.1, k2=0.2)
             env.new('s2', xt.Sextupole, length=0.1, k2=-0.2)
@@ -2235,6 +2237,22 @@ class Line:
                 env.place(['m1', 'm2'], at='start@m0'),
                 env.place('m3', at='end@m0'),
                 ])
+
+        .. code-block:: python
+
+            ## Insertion of elements instantiated by the user using the class
+            ## constructor
+
+            # Instantiate elements using the class directly
+            mysext =  xt.Sextupole(length=0.1, k2=0.2)
+            myaperture =  xt.LimitEllipse(a=0.01, b=0.02)
+
+            # Insert the element in the line and, contextually, define its name:
+            line.insert('s1', mysext, at=5., from_='q1')
+
+            # Alternatively, add the element to the environment and then do the insertion:
+            env.elements['ap1'] = myaperture
+            line.insert('ap1', at='start@q0')
 
         """
 
