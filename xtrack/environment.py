@@ -92,9 +92,9 @@ class Environment:
                 ])
 
         Short description of main attributes of the Environment class:
-         - Environment[...]: accesses variables, elements and lines of the environment.
+         - Environment[...]: accesses values of variables, elements and lines.
          - ref[...]: provides reference objects to variables and elements.
-         - vars[...]: container with all variables:
+         - vars[...]: container with all variables, returns variable objects.
          - elements[...]: container with all elements.
          - lines[...]: container with all lines.
 
