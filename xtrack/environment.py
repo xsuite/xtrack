@@ -74,23 +74,6 @@ class Environment:
         lines : dict, optional
             Dictionary with the lines of the environment.
 
-        Examples
-        --------
-
-        .. code-block:: python
-
-            env = xt.Environment()
-            env['a'] = 3 # Define a variable
-            env.new('mq1', xt.Quadrupole, length=0.3, k1='a')  # Create an element
-            env.new('mq2', xt.Quadrupole, length=0.3, k1='-a')  # Create another element
-
-            ln = env.new_line(name='myline', components=[
-                'mq',  # Add the element 'mq' at the start of the line
-                env.new('mymark', xt.Marker, at=10.0),  # Create a marker at s=10
-                env.new('mq1_clone', 'mq1', k1='2*a'),   # Clone 'mq1' with a different k1
-                env.place('mq2', at=20.0, from_='mymark'),  # Place 'mq2' at s=20
-                ])
-
         Short description of main attributes of the Environment class:
          - Environment[...]: accesses values of variables, elements and lines.
          - ref[...]: provides reference objects to variables and elements.
@@ -111,6 +94,25 @@ class Environment:
          - new_builder(...): creates a new builder.
          - place(...): creates a place object, which can be user in new_line(...)
            or by a Builder object.
+
+        Examples
+        --------
+
+        .. code-block:: python
+
+            env = xt.Environment()
+            env['a'] = 3 # Define a variable
+            env.new('mq1', xt.Quadrupole, length=0.3, k1='a')  # Create an element
+            env.new('mq2', xt.Quadrupole, length=0.3, k1='-a')  # Create another element
+
+            ln = env.new_line(name='myline', components=[
+                'mq',  # Add the element 'mq' at the start of the line
+                env.new('mymark', xt.Marker, at=10.0),  # Create a marker at s=10
+                env.new('mq1_clone', 'mq1', k1='2*a'),   # Clone 'mq1' with a different k1
+                env.place('mq2', at=20.0, from_='mymark'),  # Place 'mq2' at s=20
+                ])
+
+
 
         '''
         self._element_dict = element_dict or {}
