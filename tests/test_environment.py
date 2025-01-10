@@ -2083,7 +2083,7 @@ def test_insert_with_anchors():
         env.place('ss'),
         env.new('q2', 'q0', anchor='start', at=15.0 - 1.),
         env.place('ss'),
-        env.new('q3', 'q0', anchor='start', at=29, from_='end@ql'),
+        env.new('q3', 'q0', anchor='start', at=29, from_='ql@end'),
         env.place('ss'),
     ])
 
@@ -2114,19 +2114,19 @@ def test_insert_anchors_special_cases():
 
 
     line.insert([
-        env.new('q4', 'q0', anchor='center', at=0, from_='end@q0'), # will replace half of q0
+        env.new('q4', 'q0', anchor='center', at=0, from_='q0@end'), # will replace half of q0
         env.new('q5', 'q0', at=0, from_='ql'), # will replace the full ql
-        env.new('m5.0', 'Marker', at='start@q5'),
-        env.new('m5.1', 'Marker', at='start@q5'),
-        env.new('m5.2', 'Marker', at='end@q5'),
+        env.new('m5.0', 'Marker', at='q5@start'),
+        env.new('m5.1', 'Marker', at='q5@start'),
+        env.new('m5.2', 'Marker', at='q5@end'),
         env.new('m5.3', 'Marker'),
     ])
 
     line.insert([
         env.new('q6', 'q0', at=0, from_='qr'),
-        env.new('mr.0', 'Marker', at='start@qr'),
-        env.new('mr.1', 'Marker', at='start@qr'),
-        env.new('mr.2', 'Marker', at='end@qr'),
+        env.new('mr.0', 'Marker', at='qr@start'),
+        env.new('mr.1', 'Marker', at='qr@start'),
+        env.new('mr.2', 'Marker', at='qr@end'),
         env.new('mr.3', 'Marker'),
     ])
 
@@ -2164,7 +2164,7 @@ def test_insert_providing_object():
     myelem = MyElement(0.1)
 
     line.insert(
-        env.place('myname', myelem, at='end@qr'))
+        env.place('myname', myelem, at='qr@end'))
 
     tt = line.get_table()
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
@@ -2236,18 +2236,18 @@ def test_individual_insertions_anchors():
     env.new('m5.2', 'Marker')
     env.new('m5.3', 'Marker')
 
-    line.insert('q4',anchor='center', at=0, from_='end@q0') # will replace half of q0
+    line.insert('q4',anchor='center', at=0, from_='q0@end') # will replace half of q0
     line.insert('q5', at=0, from_='ql') # will replace the full ql
-    line.insert('m5.0', at='start@q5')
-    line.insert('m5.1', at='start@q5')
-    line.insert('m5.2', at='end@q5')
-    line.insert('m5.3', at='end@m5.2')
+    line.insert('m5.0', at='q5@start')
+    line.insert('m5.1', at='q5@start')
+    line.insert('m5.2', at='q5@end')
+    line.insert('m5.3', at='m5.2@end')
 
     line.insert([
         env.new('q6', 'q0', at=0, from_='qr'),
-        env.new('mr.0', 'Marker', at='start@qr'),
-        env.new('mr.1', 'Marker', at='start@qr'),
-        env.new('mr.2', 'Marker', at='end@qr'),
+        env.new('mr.0', 'Marker', at='qr@start'),
+        env.new('mr.1', 'Marker', at='qr@start'),
+        env.new('mr.2', 'Marker', at='qr@end'),
         env.new('mr.3', 'Marker'),
     ])
 
@@ -2278,11 +2278,11 @@ def test_insert_line():
     ln_insert = env.new_line(
         components=[
             env.new('s1', 'Sextupole', length=0.1),
-            env.new('s2', 's1', anchor='start', at=0.3, from_='end@s1'),
-            env.new('s3', 's1', anchor='start', at=0.3, from_='end@s2')
+            env.new('s2', 's1', anchor='start', at=0.3, from_='s1@end'),
+            env.new('s3', 's1', anchor='start', at=0.3, from_='s2@end')
         ])
 
-    line.insert(ln_insert, anchor='start', at=1, from_='end@q0')
+    line.insert(ln_insert, anchor='start', at=1, from_='q0@end')
 
     tt = line.get_table()
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
@@ -2311,7 +2311,7 @@ def test_insert_list():
     env.new('s2', 's1')
     env.new('s3', 's1')
 
-    line.insert(['s1', 's2', 's3'], anchor='start', at=1, from_='end@q0')
+    line.insert(['s1', 's2', 's3'], anchor='start', at=1, from_='q0@end')
 
     tt = line.get_table()
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
@@ -2432,10 +2432,10 @@ def test_place_lines_with_anchors():
     # A simple line made of quadrupoles spaced by 5 m
     env.new_line(name='l1', components=[
         env.new('q1', 'Quadrupole', length=2.0, at=0., anchor='start'),
-        env.new('q2', 'Quadrupole', length=2.0, anchor='start', at=5., from_='end@q1'),
-        env.new('q3', 'Quadrupole', length=2.0, anchor='start', at=5., from_='end@q2'),
-        env.new('q4', 'Quadrupole', length=2.0, anchor='start', at=5., from_='end@q3'),
-        env.new('q5', 'Quadrupole', length=2.0, anchor='start', at=5., from_='end@q4'),
+        env.new('q2', 'Quadrupole', length=2.0, anchor='start', at=5., from_='q1@end'),
+        env.new('q3', 'Quadrupole', length=2.0, anchor='start', at=5., from_='q2@end'),
+        env.new('q4', 'Quadrupole', length=2.0, anchor='start', at=5., from_='q3@end'),
+        env.new('q5', 'Quadrupole', length=2.0, anchor='start', at=5., from_='q4@end'),
     ])
 
     # Test absolute anchor of start 'l1'
@@ -2456,20 +2456,20 @@ def test_place_lines_with_anchors():
     # Test relative anchor of start 'l1' to start of another element
     env.new_line(name='lstcnt', components=[
         env.new('q0', 'Quadrupole', length=2.0, at=5.),
-        env.place('l1', anchor='start', at=5., from_='center@q0'),
+        env.place('l1', anchor='start', at=5., from_='q0@center'),
     ])
 
     # Test relative anchor of start 'l1' to end of another element
     env.new_line(name='lstst', components=[
         env.place('q0', at=5.),
-        env.place('l1', anchor='start', at=5. + 1., from_='end@q0'),
+        env.place('l1', anchor='start', at=5. + 1., from_='q0@end'),
     ])
 
 
     # Test relative anchor of start 'l1' to end of another element
     env.new_line(name='lstend', components=[
         env.place('q0', at=5.),
-        env.place('l1', anchor='start', at=5. - 1., from_='end@q0'),
+        env.place('l1', anchor='start', at=5. - 1., from_='q0@end'),
     ])
 
     tt_l1 = env['l1'].get_table()

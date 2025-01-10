@@ -735,16 +735,16 @@ class Place:
             assert from_ is None
             assert from_anchor is None
             at = 0
-            from_ = at_parts[1]
-            from_anchor = at_parts[0]
+            from_ = at_parts[0]
+            from_anchor = at_parts[1]
 
         if from_ is not None:
             assert isinstance(from_, str)
             if '@' in from_:
                 from_parts = from_.split('@')
                 assert len(from_parts) == 2
-                from_ = from_parts[1]
-                from_anchor = from_parts[0]
+                from_ = from_parts[0]
+                from_anchor = from_parts[1]
 
         self.name = name
         self.at = at
