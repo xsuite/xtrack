@@ -32,9 +32,9 @@ env.new('m3', xt.Marker)
 # Insert the new elements in the line
 line.insert([
     env.place('s1', at=5.),
-    env.place('s2', anchor='end', at=-5., from_='start@q1'),
-    env.place(['m1', 'm2'], at='start@m0'),
-    env.place('m3', at='end@m0'),
+    env.place('s2', anchor='end', at=-5., from_='q1@start'),
+    env.place(['m1', 'm2'], at='m0@start'),
+    env.place('m3', at='m0@end'),
     ])
 
 tt = line.get_table()
