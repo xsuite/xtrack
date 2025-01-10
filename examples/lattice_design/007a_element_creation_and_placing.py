@@ -16,9 +16,9 @@ myline = env.new_line(name='myline', components=[
     # Place element start at s = 5.0
     env.place('q2', anchor='start', at=5.0),
     # Place element start at the end of q2
-    env.place('q3', anchor='start', at='end@q2'),
+    env.place('q3', anchor='start', at='q2@end'),
     # Place element center at 5 m from the end of q3
-    env.place('q4', anchor='center', at=5.0, from_='start@q3'),
+    env.place('q4', anchor='center', at=5.0, from_='q3@start'),
     # Placed right after previous element
     env.place('s4')
     ])
@@ -48,10 +48,10 @@ myline = env.new_line(name='myline', components=[
             anchor='start', at=5.0),
     env.new('q30', xt.Quadrupole, length=1.0, k1='kquad',
             # Place element start at the end of q2
-            anchor='start', at='end@q20'),
+            anchor='start', at='q20@end'),
     env.new('q40', xt.Quadrupole, length=1.0, k1='-kquad',
             # Place element center at the end of q3
-            anchor='center', at=5.0, from_='start@q30'),
+            anchor='center', at=5.0, from_='q30@start'),
     env.new('s40', xt.Sextupole, length=0.1) # Placed right after previous
     ])
 
