@@ -747,7 +747,7 @@ class Place:
                 from_anchor = from_parts[1]
 
         assert anchor in [None, 'center', 'centre', 'start', 'end']
-        assert from_anchor in ['center', 'centre', 'start', 'end']
+        assert from_anchor in [None, 'center', 'centre', 'start', 'end']
 
         self.name = name
         self.at = at

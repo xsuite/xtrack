@@ -19,18 +19,18 @@ env.new('m5.1', 'Marker')
 env.new('m5.2', 'Marker')
 env.new('m5.3', 'Marker')
 
-line.insert('q4',anchor='center', at=0, from_='end@q0') # will replace half of q0
+line.insert('q4',anchor='center', at=0, from_='q0@end') # will replace half of q0
 line.insert('q5', at=0, from_='ql') # will replace the full ql
-line.insert('m5.0', at='start@q5')
-line.insert('m5.1', at='start@q5')
-line.insert('m5.2', at='end@q5')
-line.insert('m5.3', at='end@m5.2')
+line.insert('m5.0', at='q5@start')
+line.insert('m5.1', at='q5@start')
+line.insert('m5.2', at='q5@end')
+line.insert('m5.3', at='m5.2@end')
 
 line.insert([
     env.new('q6', 'q0', at=0, from_='qr'),
-    env.new('mr.0', 'Marker', at='start@qr'),
-    env.new('mr.1', 'Marker', at='start@qr'),
-    env.new('mr.2', 'Marker', at='end@qr'),
+    env.new('mr.0', 'Marker', at='qr@start'),
+    env.new('mr.1', 'Marker', at='qr@start'),
+    env.new('mr.2', 'Marker', at='qr@end'),
     env.new('mr.3', 'Marker'),
 ])
 
