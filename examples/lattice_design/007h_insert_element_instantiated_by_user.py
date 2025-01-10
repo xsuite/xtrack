@@ -31,7 +31,7 @@ line.insert('s1', mysext, at=5., from_='q1')
 
 # Alternatively, add the element to the environment and then do the insertion:
 env.elements['ap1'] = myaperture
-line.insert('ap1', at='start@q0')
+line.insert('ap1', at='q0@start')
 
 tt = line.get_table()
 tt.show(cols=['s_start', 's_center', 's_end'])
