@@ -110,7 +110,7 @@ line1 = env.new_line(
 
 line2 = env.new_line(
     name='l2', components=[
-        env.new('dd', xt.Drift, length=10),
+        env.place('dd'), # place already created elements
         env.new('ip', xt.Marker)])
 
 env['l1'] # accesses the first line
