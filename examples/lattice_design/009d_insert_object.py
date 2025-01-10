@@ -22,7 +22,7 @@ class MyElement:
 myelem = MyElement(0.1)
 
 line.insert(
-    env.place('myname', myelem, at='end@qr'))
+    env.place('myname', myelem, at='qr@end'))
 
 tt = line.get_table()
 tt.show(cols=['name', 's_start', 's_end', 's_center'])

@@ -737,6 +737,8 @@ class Place:
             at = 0
             from_ = at_parts[0]
             from_anchor = at_parts[1]
+            assert anchor in [None, 'center', 'centre', 'start', 'end']
+            assert from_anchor in ['center', 'centre', 'start', 'end']
 
         if from_ is not None:
             assert isinstance(from_, str)
