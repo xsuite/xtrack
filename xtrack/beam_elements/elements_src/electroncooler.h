@@ -100,8 +100,8 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
             // Coulomb logarithm    
             double rho_min = q0 *POW2(QELEM)/(4*PI*EPSILON_0*MASS_ELECTRON*POW2(V_real));
             double rho_max_shielding = V_real/elec_plasma_frequency;
-            double rho_max_time = V_real * tau;
-            double rho_max = fmin(rho_max_shielding, rho_max_time);
+            double rho_max_interaction = V_real * tau;
+            double rho_max = fmin(rho_max_shielding, rho_max_interaction);
             double log_coulomb = log((rho_max+rho_min+rho_larmor)/(rho_min+rho_larmor));
 
             double friction_denominator = POW1_5(POW2(dV_abs) + POW2(V_eff)); // coefficient used for computation of friction force

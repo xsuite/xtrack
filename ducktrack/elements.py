@@ -945,8 +945,8 @@ class ElectronCooler(Element):
         # Coulomb logarithm        
         rho_min = q0 *qe**2/(4*np.pi*epsilon_0*me_kg*V_real**2)        
         rho_max_shielding = V_real/(elec_plasma_frequency)
-        rho_max_time = V_real*self.tau
-        rho_max = np.minimum(rho_max_shielding, rho_max_time)
+        rho_max_interaction = V_real*self.tau
+        rho_max = np.minimum(rho_max_shielding, rho_max_interaction)
         log_coulomb = np.log((rho_max+rho_min+rho_larmor)/(rho_min+rho_larmor))
 
         friction_denominator = (dV_abs**2 + V_eff**2)**1.5 # coefficient used for computation of friction force
