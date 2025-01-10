@@ -95,7 +95,7 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
             dVx -= omega_e_beam * radius * -sin(theta); 
             dVy -= omega_e_beam * radius * +cos(theta);    
             double dV_abs = sqrt(POW2(dVx)+POW2(dVy)+POW2(dVz));
-            double V_real = sqrt(POW2(dV_abs) + POW2(V_e_long));
+            double V_real = sqrt(POW2(dV_abs) + POW2(V_eff));
 
             // Coulomb logarithm    
             double rho_min = q0 *POW2(QELEM)/(4*PI*EPSILON_0*MASS_ELECTRON*POW2(V_real));

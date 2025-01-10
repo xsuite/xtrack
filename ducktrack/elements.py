@@ -940,8 +940,8 @@ class ElectronCooler(Element):
         dVx -= omega_e_beam * radius * -np.sin(theta) # account for ebeam rotation
         dVy -= omega_e_beam * radius * +np.cos(theta) # account for ebeam rotation
         dV_abs = np.sqrt(dVx**2+dVy**2+dVz**2)
-        V_real = np.sqrt(dV_abs**2 + V_e_long**2)
-        
+        V_real = np.sqrt(dV_abs**2 + V_eff**2)
+
         # Coulomb logarithm        
         rho_min = q0 *qe**2/(4*np.pi*epsilon_0*me_kg*V_real**2)        
         rho_max_shielding = V_real/(elec_plasma_frequency)
