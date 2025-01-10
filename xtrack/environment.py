@@ -88,7 +88,6 @@ class Environment:
          - eval(...): evaluates an expression provided as a string (returns a value).
          - new_expr(...): creates a new expression from a string.
          - get_expr(...): returns the expression for a variable.
-         - get_table(...): returns a table with all variables or elements.
          - new(...): creates a new element.
          - new_line(...): creates a new line.
          - new_builder(...): creates a new builder.
