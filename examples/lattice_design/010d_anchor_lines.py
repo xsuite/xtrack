@@ -8,10 +8,10 @@ env = xt.Environment()
 # A simple line made of quadrupoles spaced by 5 m
 env.new_line(name='l1', components=[
     env.new('q1', 'Quadrupole', length=2.0, at=0., anchor='start'),
-    env.new('q2', 'Quadrupole', length=2.0, anchor='start', at=5., from_='end@q1'),
-    env.new('q3', 'Quadrupole', length=2.0, anchor='start', at=5., from_='end@q2'),
-    env.new('q4', 'Quadrupole', length=2.0, anchor='start', at=5., from_='end@q3'),
-    env.new('q5', 'Quadrupole', length=2.0, anchor='start', at=5., from_='end@q4'),
+    env.new('q2', 'Quadrupole', length=2.0, anchor='start', at=5., from_='q1@end'),
+    env.new('q3', 'Quadrupole', length=2.0, anchor='start', at=5., from_='q2@end'),
+    env.new('q4', 'Quadrupole', length=2.0, anchor='start', at=5., from_='q3@end'),
+    env.new('q5', 'Quadrupole', length=2.0, anchor='start', at=5., from_='q4@end'),
 ])
 
 # Test absolute anchor of start 'l1'
@@ -32,20 +32,20 @@ env.new_line(name='lcenter', components=[
 # Test relative anchor of start 'l1' to start of another element
 env.new_line(name='lstcnt', components=[
     env.new('q0', 'Quadrupole', length=2.0, at=5.),
-    env.place('l1', anchor='start', at=5., from_='center@q0'),
+    env.place('l1', anchor='start', at=5., from_='q0@center'),
 ])
 
 # Test relative anchor of start 'l1' to end of another element
 env.new_line(name='lstst', components=[
     env.place('q0', at=5.),
-    env.place('l1', anchor='start', at=5. + 1., from_='end@q0'),
+    env.place('l1', anchor='start', at=5. + 1., from_='q0@end'),
 ])
 
 
 # Test relative anchor of start 'l1' to end of another element
 env.new_line(name='lstend', components=[
     env.place('q0', at=5.),
-    env.place('l1', anchor='start', at=5. - 1., from_='end@q0'),
+    env.place('l1', anchor='start', at=5. - 1., from_='q0@end'),
 ])
 
 tt_l1 = env['l1'].get_table()
