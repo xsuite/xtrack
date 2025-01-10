@@ -25,7 +25,7 @@ line.insert([
     env.place('ss'),
     env.new('q2', 'q0', anchor='start', at=15.0 - 1.),
     env.place('ss'),
-    env.new('q3', 'q0', anchor='start', at=29, from_='end@ql'),
+    env.new('q3', 'q0', anchor='start', at=29, from_='ql@end'),
     env.place('ss'),
 ])
 
