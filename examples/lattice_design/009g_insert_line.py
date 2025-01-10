@@ -15,11 +15,11 @@ line = env.new_line(
 ln_insert = env.new_line(
     components=[
         env.new('s1', 'Sextupole', length=0.1),
-        env.new('s2', 's1', anchor='start', at=0.3, from_='end@s1'),
-        env.new('s3', 's1', anchor='start', at=0.3, from_='end@s2')
+        env.new('s2', 's1', anchor='start', at=0.3, from_='s1@end'),
+        env.new('s3', 's1', anchor='start', at=0.3, from_='s2@end')
     ])
 
-line.insert(ln_insert, anchor='start', at=1, from_='end@q0')
+line.insert(ln_insert, anchor='start', at=1, from_='q0@end')
 
 tt = line.get_table()
 tt.show(cols=['name', 's_start', 's_end', 's_center'])
