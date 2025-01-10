@@ -14,19 +14,19 @@ line = env.new_line(
 
 
 line.insert([
-    env.new('q4', 'q0', anchor='center', at=0, from_='end@q0'), # will replace half of q0
+    env.new('q4', 'q0', anchor='center', at=0, from_='q0@end'), # will replace half of q0
     env.new('q5', 'q0', at=0, from_='ql'), # will replace the full ql
-    env.new('m5.0', 'Marker', at='start@q5'),
-    env.new('m5.1', 'Marker', at='start@q5'),
-    env.new('m5.2', 'Marker', at='end@q5'),
+    env.new('m5.0', 'Marker', at='q5@start'),
+    env.new('m5.1', 'Marker', at='q5@start'),
+    env.new('m5.2', 'Marker', at='q5@end'),
     env.new('m5.3', 'Marker'),
 ])
 
 line.insert([
     env.new('q6', 'q0', at=0, from_='qr'),
-    env.new('mr.0', 'Marker', at='start@qr'),
-    env.new('mr.1', 'Marker', at='start@qr'),
-    env.new('mr.2', 'Marker', at='end@qr'),
+    env.new('mr.0', 'Marker', at='qr@start'),
+    env.new('mr.1', 'Marker', at='qr@start'),
+    env.new('mr.2', 'Marker', at='qr@end'),
     env.new('mr.3', 'Marker'),
 ])
 
