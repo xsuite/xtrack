@@ -905,18 +905,17 @@ class ElectronCooler(Element):
         V_e_perp = 1/gamma0*(qe*temp_perp/me_kg)**(1./2) # transverse electron rms velocity
         V_e_long = 1/gamma0*(qe*temp_long/me_kg)**(1./2) # longitudinal electron rms velocity
         rho_larmor = me_kg * V_e_perp / (qe * magnetic_field) # depends on transverse temperature, larmor radius
-        elec_plasma_frequency = clight*np.sqrt(4*np.pi*electron_density*classical_e_radius) # electron plasma frequency
+        elec_plasma_frequency = np.sqrt(electron_density * qe**2 / (me_kg * epsilon_0))
+        
         V_e_magnet = beta0 * gamma0 * clight * magnetic_field_ratio # velocity spread due to magnetic imperfections
         V_eff = np.sqrt(V_e_long**2 + V_e_magnet**2) # effective electron beam velocity spread
 
         mass_electron_ev = me_kg * clight**2 / qe #eV
         energy_electron_initial = (gamma0 - 1) * mass_electron_ev #eV
-        # Updated gamma and beta factors including offset energy
         energy_e_total = energy_electron_initial + self.offset_energy
-        # gamma_total = 1 + (energy_e_total / mass_electron_ev)
-        # beta_total = np.sqrt(1 - 1 / (gamma_total**2))
-                
-        friction_coefficient = -4*electron_density*me_kg*q0**2*classical_e_radius**2*clight**4 # Coefficient used for computation of friction force 
+        
+        friction_coefficient = electron_density*q0**2*qe**4 /(4*me_kg*(np.pi*epsilon_0)**2) # Coefficient used for computation of friction force 
+               
         # compute angular frequency of rotation of e-beam due to space charge
         omega_e_beam = space_charge_factor*1/(2*np.pi*epsilon_0*clight) * current/(radius_e_beam**2*beta0*gamma0*magnetic_field)
                 
@@ -931,31 +930,30 @@ class ElectronCooler(Element):
         E_diff_space_charge = dE_E * energy_e_total        
         
         E_kin_total = energy_e_total + E_diff_space_charge
-        gamma_final = 1 + (E_kin_total / mass_electron_ev)
-        beta_final  = np.sqrt(1 - 1 / (gamma_final**2))
+        gamma_total = 1 + (E_kin_total / mass_electron_ev)
+        beta_total  = np.sqrt(1 - 1 / (gamma_total**2))
 
         # Velocity differences
-        dVz = beta * clight - beta_final* clight                
+        dVz = beta * clight - beta_total* clight                
         dVx = beta_x * clight
         dVy = beta_y * clight 
         dVx -= omega_e_beam * radius * -np.sin(theta) # account for ebeam rotation
         dVy -= omega_e_beam * radius * +np.cos(theta) # account for ebeam rotation
         dV_abs = np.sqrt(dVx**2+dVy**2+dVz**2)
-
+        V_real = np.sqrt(dV_abs**2 + V_e_long**2)
+        
         # Coulomb logarithm        
-        rho_min = q0*classical_e_radius*clight**2/(dV_abs**2 + V_e_long**2)
-        #rho_min = (q0*qe**2/me_kg)/(dV_abs**2 + V_e_long**2)
-        # rho_max_1 = np.sqrt(dV_abs**2 + V_e_long**2) / elec_plasma_frequency
-        # rho_max_2 = np.sqrt(dV_abs**2 + V_e_long**2) * self.tau
-        #rho_max = min(rho_max_1, rho_max_2)
-        rho_max = np.sqrt(dV_abs**2 + V_e_long**2)/(elec_plasma_frequency + 1/self.tau)
+        rho_min = q0 *qe**2/(4*np.pi*epsilon_0*me_kg*V_real**2)        
+        rho_max_shielding = V_real/(elec_plasma_frequency)
+        rho_max_time = V_real*self.tau
+        rho_max = np.minimum(rho_max_shielding, rho_max_time)
         log_coulomb = np.log((rho_max+rho_min+rho_larmor)/(rho_min+rho_larmor))
 
         friction_denominator = (dV_abs**2 + V_eff**2)**1.5 # coefficient used for computation of friction force
 
-        Fx = (friction_coefficient * dVx/friction_denominator * log_coulomb)  # Newton
-        Fy = (friction_coefficient * dVy/friction_denominator * log_coulomb)  # Newton
-        Fl = (friction_coefficient * dVz/friction_denominator * log_coulomb)  # Newton
+        Fx = -friction_coefficient * dVx/friction_denominator * log_coulomb  # Newton
+        Fy = -friction_coefficient * dVy/friction_denominator * log_coulomb  # Newton
+        Fl = -friction_coefficient * dVz/friction_denominator * log_coulomb  # Newton
         # If particle is outside electron beam, set cooling force to zero
         outside_beam_indices = radius >= radius_e_beam
         Fx[outside_beam_indices] = 0.0

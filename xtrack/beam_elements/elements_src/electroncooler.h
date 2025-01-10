@@ -44,9 +44,7 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
     double V_e_perp = 1/gamma0*sqrt(QELEM*temp_perp/MASS_ELECTRON);      // transverse electron temperature
     double V_e_long = 1/gamma0*sqrt(QELEM*temp_long/MASS_ELECTRON);      // longitudinal electron temperature
     double rho_larmor = MASS_ELECTRON*V_e_perp/QELEM/magnetic_field;     // depends on transverse temperature, larmor radius
-    double elec_plasma_frequency = C_LIGHT * sqrt(4 * PI * electron_density * RADIUS_ELECTRON); // electron plasma frequency   
-    //double elec_plasma_frequency = sqrt(electron_density * POW2(QELEM) / (MASS_ELECTRON * EPSILON_0));
-       
+    double elec_plasma_frequency = sqrt(electron_density * POW2(QELEM) / (MASS_ELECTRON * EPSILON_0));
     double V_e_magnet = beta0 * gamma0 * C_LIGHT * magnetic_field_ratio; // velocity spread due to magnetic imperfections
     double V_eff = sqrt(POW2(V_e_long) + POW2(V_e_magnet));              // effective electron beam velocity spread
     double mass_electron_ev = MASS_ELECTRON * POW2(C_LIGHT) / QELEM;     // in eV
@@ -54,7 +52,7 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
     double energy_e_total = energy_electron_initial + offset_energy;     // in eV
     
     // compute constants outside per particle block
-    double friction_coefficient = -4*electron_density*MASS_ELECTRON*POW2(q0)*POW2(RADIUS_ELECTRON)*POW4(C_LIGHT); //coefficient used for computation of friction force
+    double friction_coefficient = electron_density*POW2(q0)*POW4(QELEM) /(4*MASS_ELECTRON*POW2(PI*EPSILON_0)); // Coefficient used for computation of friction force 
     double omega_e_beam = space_charge_factor*1/(2*PI*EPSILON_0*C_LIGHT) * current/(POW2(radius_e_beam)*beta0*gamma0*magnetic_field);
     
     //start_per_particle_block (part0->part)
@@ -87,42 +85,30 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
             double E_diff_space_charge = dE_E * energy_e_total; 
             
             double E_kin_total = energy_electron_initial + offset_energy + E_diff_space_charge;
-            double gamma_final = 1 + (E_kin_total / mass_electron_ev);
-            double beta_final = sqrt(1 - 1 / (gamma_final*gamma_final));    
+            double gamma_total = 1 + (E_kin_total / mass_electron_ev);
+            double beta_total = sqrt(1 - 1 / POW2(gamma_total));    
 
             // Velocity differences
-            double dVz = beta   * C_LIGHT - beta_final * C_LIGHT;                
+            double dVz = beta   * C_LIGHT - beta_total * C_LIGHT;                
             double dVx = beta_x * C_LIGHT;
             double dVy = beta_y * C_LIGHT;   
             dVx -= omega_e_beam * radius * -sin(theta); 
             dVy -= omega_e_beam * radius * +cos(theta);    
             double dV_abs = sqrt(POW2(dVx)+POW2(dVy)+POW2(dVz));
+            double V_real = sqrt(POW2(dV_abs) + POW2(V_e_long));
 
             // Coulomb logarithm    
-            double rho_min = q0*RADIUS_ELECTRON*C_LIGHT*C_LIGHT/(POW2(dV_abs) + POW2(V_e_long));
-            //double rho_min = (q0*POW2(QELEM)/MASS_ELECTRON)/(POW2(dV_abs) + POW2(V_e_long));
-            double rho_max = sqrt(POW2(dV_abs) + POW2(V_e_long))/(elec_plasma_frequency + 1/tau); 
-
-            // double rho_max_1 = sqrt(POW2(dV_abs) + POW2(V_e_long))/elec_plasma_frequency;
-            // double rho_max_2 = sqrt(POW2(dV_abs) + POW2(V_e_long)) * tau;
-            // double rho_max = fmin(rho_max_1, rho_max_2);
-
-            /* Betacool documentation/code have different implementation.
-            // Betacool code
-            // double rho_max_1 = sqrt(POW2(dV_abs) + POW2(V_e_long))/(elec_plasma_frequency);
-            // double rho_max_2 = sqrt(POW2(dV_abs) + POW2(V_e_long))/(1/tau); 
-            // rho_max = rho_max_1 > rho_max_2 ? rho_max_2 : rho_max_1;
-            // Betacool manual
-            double rho_max = dV_abs/(elec_plasma_frequency + 1/tau);
-            */
-
+            double rho_min = q0 *POW2(QELEM)/(4*PI*EPSILON_0*MASS_ELECTRON*POW2(V_real));
+            double rho_max_shielding = V_real/elec_plasma_frequency;
+            double rho_max_time = V_real * tau;
+            double rho_max = fmin(rho_max_shielding, rho_max_time);
             double log_coulomb = log((rho_max+rho_min+rho_larmor)/(rho_min+rho_larmor));
 
             double friction_denominator = POW1_5(POW2(dV_abs) + POW2(V_eff)); // coefficient used for computation of friction force
                                 
-            Fx = (friction_coefficient * dVx/friction_denominator * log_coulomb); // Newton
-            Fy = (friction_coefficient * dVy/friction_denominator * log_coulomb); // Newton
-            Fl = (friction_coefficient * dVz/friction_denominator * log_coulomb); // Newton   
+            Fx = -friction_coefficient * dVx/friction_denominator * log_coulomb; // Newton
+            Fy = -friction_coefficient * dVy/friction_denominator * log_coulomb; // Newton
+            Fl = -friction_coefficient * dVz/friction_denominator * log_coulomb; // Newton   
 
             Fx = Fx * 1/QELEM * C_LIGHT; // convert to eV/c because p0c is also in eV/c
             Fy = Fy * 1/QELEM * C_LIGHT; // convert to eV/c because p0c is also in eV/c
