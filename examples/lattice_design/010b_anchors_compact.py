@@ -6,24 +6,24 @@ import numpy as np
 env = xt.Environment()
 
 components=[
-    env.new('m1', 'Marker', at='start@q1'),
+    env.new('m1', 'Marker', at='q1@start'),
     env.new('q1', 'Quadrupole', length=2.0, anchor='start', at=1.),
-    env.new('q2', 'q1', anchor='start', at=10., from_='end@q1'),
-    env.new('s2', 'Sextupole', length=0.1, anchor='end', at=-1., from_='start@q2'),
+    env.new('q2', 'q1', anchor='start', at=10., from_='q1@end'),
+    env.new('s2', 'Sextupole', length=0.1, anchor='end', at=-1., from_='q2@start'),
 
     env.new('q3', 'Quadrupole', length=2.0, at=20.),
-    env.new('q4', 'q3', anchor='start', at='end@q3'),
+    env.new('q4', 'q3', anchor='start', at='q3@end'),
     env.new('q5', 'q3'),
 
     # Sandwitch of markers expected [m2.0, m2, m2.1.0, m2.1]
-    env.new('m2', 'Marker', at='start@q2'),
-    env.new('m2_0', 'Marker', at='start@m2'),
-    env.new('m2_1', 'Marker', at='end@m2'),
-    env.new('m2_1_0', 'Marker', at='start@m2_1'),
+    env.new('m2', 'Marker', at='q2@start'),
+    env.new('m2_0', 'Marker', at='m2@start'),
+    env.new('m2_1', 'Marker', at='m2@end'),
+    env.new('m2_1_0', 'Marker', at='m2_1@start'),
     env.new('m2_1_1', 'Marker'),
 
-    env.new('m4', 'Marker', at='start@q4'),
-    env.new('m3', 'Marker', at='end@q3'),
+    env.new('m4', 'Marker', at='q4@start'),
+    env.new('m3', 'Marker', at='q3@end'),
 ]
 line = env.new_line(components=components)
 
