@@ -4,7 +4,7 @@ import numpy as np
 from scipy.constants import c as clight
 from scipy.constants import e as qe
 
-line = xt.Line.from_json('fccee_t_with_sol_corrected.json')
+line = xt.Line.from_json('fccee_z_with_sol_corrected.json')
 tw_no_rad = line.twiss(method='4d')
 line.configure_radiation(model='mean')
 tt = line.get_table(attr=True)
@@ -86,7 +86,8 @@ hh = np.sqrt(np.diff(twe.px, append=0)**2 + np.diff(twe.py, append=0)**2)
 dl = np.diff(twe.s, append=line.get_length())
 gamma0 = line.particle_ref.gamma0[0]
 
-dyprime = twe.dpy*(1 - twe.delta) - twe.py
+# dyprime = twe.dpy*(1 - twe.delta) - twe.py # This is wrong!!!!!
+dyprime = twe.dpy*(1 - twe.delta) - twe.kin_py
 
 cur_H_y = twe.gamy * twe.dy**2 + 2 * twe.alfy * twe.dy * dyprime + twe.bety * dyprime**2
 I5_y  = np.sum(cur_H_y * hh**3 * dl)
