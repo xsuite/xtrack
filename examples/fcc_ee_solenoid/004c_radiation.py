@@ -5,6 +5,13 @@ from scipy.constants import c as clight
 from scipy.constants import e as qe
 
 line = xt.Line.from_json('fccee_z_with_sol_corrected.json')
+n_turns_track_test = 6000
+num_particles_test = 150
+
+# line = xt.Line.from_json('fccee_t_with_sol_corrected.json')
+# n_turns_track_test = 200
+# num_particles_test = 200
+
 tw_no_rad = line.twiss(method='4d')
 line.configure_radiation(model='mean')
 tt = line.get_table(attr=True)
@@ -62,9 +69,6 @@ ez = tw_rad.eq_gemitt_zeta
 beam_sizes = tw_rad.get_beam_covariance(
     gemitt_x=tw_rad.eq_gemitt_x, gemitt_y=tw_rad.eq_gemitt_y,
     gemitt_zeta=tw_rad.eq_gemitt_zeta)
-
-num_particles_test = 200
-n_turns_track_test = 200
 
 line.configure_radiation(model='quantum')
 p = line.build_particles(num_particles=num_particles_test)
