@@ -753,14 +753,14 @@ def twiss_line(line, particle_ref=None, method=None,
         # Equilibrium emittances
         if radiation_method == 'kick_as_co':
             eq_emitts = _compute_equilibrium_emittance_kick_as_co(
-                        twiss_res.px, twiss_res.py, twiss_res.ptau,
+                        twiss_res.kin_px, twiss_res.kin_py, twiss_res.ptau,
                         twiss_res.W_matrix,
                         line, radiation_method,
                         eneloss_damp_res['damping_constants_turns'])
             twiss_res._data.update(eq_emitts)
         elif radiation_method == 'full':
             eq_emitts = _compute_equilibrium_emittance_full(
-                        px_co=twiss_res.px, py_co=twiss_res.py,
+                        kin_px_co=twiss_res.kin_px, kin_py_co=twiss_res.kin_py,
                         ptau_co=twiss_res.ptau, R_matrix_ebe=RR_ebe,
                         line=line, radiation_method=radiation_method)
             twiss_res._data.update(eq_emitts)
@@ -1535,24 +1535,24 @@ def _extract_sr_distribution_properties(line, px_co, py_co, ptau_co):
 
     return res
 
-def _compute_equilibrium_emittance_kick_as_co(px_co, py_co, ptau_co, W_matrix,
+def _compute_equilibrium_emittance_kick_as_co(kin_px_co, kin_py_co, ptau_co, W_matrix,
                                   line, radiation_method,
                                   damping_constants_turns):
 
     assert radiation_method == 'kick_as_co'
 
     sr_distrib_properties = _extract_sr_distribution_properties(
-                                line, px_co, py_co, ptau_co)
+                                line, kin_px_co, kin_py_co, ptau_co)
     beta0 = line.particle_ref._xobject.beta0[0]
     gamma0 = line.particle_ref._xobject.gamma0[0]
 
     n_dot_delta_kick_sq_ave = sr_distrib_properties['n_dot_delta_kick_sq_ave']
     dl = sr_distrib_properties['dl_radiation']
 
-    px_left = px_co[:-1]
-    px_right = px_co[1:]
-    py_left = py_co[:-1]
-    py_right = py_co[1:]
+    px_left = kin_px_co[:-1]
+    px_right = kin_px_co[1:]
+    py_left = kin_py_co[:-1]
+    py_right = kin_py_co[1:]
     one_pl_del_left = (1 + ptau_co[:-1]) # Assuming ultrarelativistic
     one_pl_del_right = (1 + ptau_co[1:]) # Assuming ultrarelativistic
     W_left = W_matrix[:-1, :, :]
@@ -1645,11 +1645,11 @@ def _compute_equilibrium_emittance_kick_as_co(px_co, py_co, ptau_co, W_matrix,
 
     return res
 
-def _compute_equilibrium_emittance_full(px_co, py_co, ptau_co, R_matrix_ebe,
+def _compute_equilibrium_emittance_full(kin_px_co, kin_py_co, ptau_co, R_matrix_ebe,
                                   line, radiation_method):
 
     sr_distrib_properties = _extract_sr_distribution_properties(
-                                line, px_co, py_co, ptau_co)
+                                line, kin_px_co, kin_py_co, ptau_co)
 
     n_dot_delta_kick_sq_ave = sr_distrib_properties['n_dot_delta_kick_sq_ave']
     dl = sr_distrib_properties['dl_radiation']
@@ -1665,10 +1665,10 @@ def _compute_equilibrium_emittance_full(px_co, py_co, ptau_co, R_matrix_ebe,
     TT = RR_ebe * 0.
     TT[:, 0, 0] = 1
     TT[:, 1, 1] = (1 - delta)
-    TT[:, 1, 5] = -px_co
+    TT[:, 1, 5] = -kin_px_co
     TT[:, 2, 2] = 1
     TT[:, 3, 3] = (1 - delta)
-    TT[:, 3, 5] = -py_co
+    TT[:, 3, 5] = -kin_py_co
     TT[:, 4, 4] = 1
     TT[:, 5, 5] = 1
 
