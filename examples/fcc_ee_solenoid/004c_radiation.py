@@ -4,7 +4,7 @@ import numpy as np
 from scipy.constants import c as clight
 from scipy.constants import e as qe
 
-line = xt.Line.from_json('fccee_z_with_sol_corrected.json')
+line = xt.Line.from_json('fccee_t_with_sol_corrected.json')
 tw_no_rad = line.twiss(method='4d')
 line.configure_radiation(model='mean')
 tt = line.get_table(attr=True)
@@ -96,6 +96,10 @@ I4_y = np.sum(twe.dy * hh**3 * dl) # to be generalized for combined function mag
 lam_comp = 2.436e-12 # [m]
 ey_hof = 55 * np.sqrt(3) / 96 * lam_comp / 2 / np.pi * gamma0**2 * I5_y / (I2_y - I4_y)
 
+beam_sizes_hof = tw_rad.get_beam_covariance(
+    gemitt_x=tw_rad.eq_gemitt_x, gemitt_y=ey_hof,
+    gemitt_zeta=tw_rad.eq_gemitt_zeta)
+
 # Plots
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -115,6 +119,7 @@ spx.set_ylim(bottom=0)
 spy = fig. add_subplot(3, 1, 2, sharex=spx)
 spy.plot(1e9 * np.std(mon.y, axis=0), label='track')
 spy.axhline(1e9 * beam_sizes['sigma_y', 'ip.1'], color='red', label='twiss')
+spy.axhline(1e9 * beam_sizes_hof['sigma_y', 'ip.1'], color='red', label='twiss')
 spy.set_ylabel(r'$\sigma_{y}$ [nm]')
 spy.set_ylim(bottom=0)
 

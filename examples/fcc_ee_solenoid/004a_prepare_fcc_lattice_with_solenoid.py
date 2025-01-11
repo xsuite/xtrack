@@ -7,7 +7,7 @@ from scipy.constants import e as qe
 from cpymad.madx import Madx
 
 fname = 'fccee_z'; pc_gev = 45.6
-# fname = 'fccee_t'; pc_gev = 182.5
+fname = 'fccee_t'; pc_gev = 182.5
 
 # Load from MAD-X
 mad = Madx()
@@ -25,8 +25,6 @@ line.build_tracker()
 
 # Get table with the elements
 tt = line.get_table()
-
-
 
 # Save voltage values
 line.vars['voltca1_ref'] = line.vv['voltca1']
