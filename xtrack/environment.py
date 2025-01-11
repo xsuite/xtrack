@@ -760,7 +760,7 @@ class Place:
         if self.at is not None: out += f', at={self.at}'
         if self.from_ is not None: out += f', from_={self.from_}'
         if self.anchor is not None: out += f', anchor={self.anchor}'
-        if self.from_anchor is not None: out += f', anchor={self.from_anchor}'
+        if self.from_anchor is not None: out += f', from_anchor={self.from_anchor}'
 
         if self._before:
             out += ', before=True'
