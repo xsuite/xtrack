@@ -19,7 +19,6 @@ tt = line.get_table(attr=True)
 line.vars['on_corr_ip.1'] = 1
 line.vars['on_sol_ip.1'] = 1
 
-
 # # Radiation only in solenoid
 # ttmult = tt.rows[tt.element_type == 'Multipole']
 # for nn in ttmult.name:
