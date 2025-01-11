@@ -38,10 +38,9 @@ line.discard_tracker()
 
 # Install dummy collective elements
 s_sync = np.linspace(0, tw.circumference, 10)
-line.cut_at_s(s_sync)
 for ii, ss in enumerate(s_sync):
     nn = f'sync_here_{ii}'
-    line.insert_element(element=xt.Marker(), name=nn, at_s=ss)
+    line.insert(nn, obj=xt.Marker(), at=ss)
     line[nn].iscollective = True
 
 import xtrack.synctime as st
