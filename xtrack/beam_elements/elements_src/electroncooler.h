@@ -41,12 +41,12 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
     double electron_density = num_e_per_s * tau / volume_e_beam; // density of electrons
     
     // Electron beam properties
-    double V_e_perp = 1/gamma0*sqrt(QELEM*temp_perp/MASS_ELECTRON);      // transverse electron temperature
-    double V_e_long = 1/gamma0*sqrt(QELEM*temp_long/MASS_ELECTRON);      // longitudinal electron temperature
-    double rho_larmor = MASS_ELECTRON*V_e_perp/QELEM/magnetic_field;     // depends on transverse temperature, larmor radius
+    double v_perp_temp = 1/gamma0*sqrt(QELEM*temp_perp/MASS_ELECTRON);      // transverse electron temperature
+    double v_long_temp = 1/gamma0*sqrt(QELEM*temp_long/MASS_ELECTRON);      // longitudinal electron temperature
+    double rho_larmor = MASS_ELECTRON*v_perp_temp/QELEM/magnetic_field;     // depends on transverse temperature, larmor radius
     double elec_plasma_frequency = sqrt(electron_density * POW2(QELEM) / (MASS_ELECTRON * EPSILON_0));
-    double V_e_magnet = beta0 * gamma0 * C_LIGHT * magnetic_field_ratio; // velocity spread due to magnetic imperfections
-    double V_eff = sqrt(POW2(V_e_long) + POW2(V_e_magnet));              // effective electron beam velocity spread
+    double v_rms_magnet = beta0 * gamma0 * C_LIGHT * magnetic_field_ratio; // velocity spread due to magnetic imperfections
+    double V_eff = sqrt(POW2(v_long_temp) + POW2(v_rms_magnet));              // effective electron beam velocity spread
     double mass_electron_ev = MASS_ELECTRON * POW2(C_LIGHT) / QELEM;     // in eV
     double energy_electron_initial = (gamma0 - 1) * mass_electron_ev;    // in eV 
     double energy_e_total = energy_electron_initial + offset_energy;     // in eV
