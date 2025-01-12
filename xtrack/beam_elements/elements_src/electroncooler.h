@@ -41,8 +41,8 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
     double electron_density = num_e_per_s * tau / volume_e_beam; // density of electrons
     
     // Electron beam properties
-    double v_perp_temp = 1/gamma0*sqrt(QELEM*temp_perp/MASS_ELECTRON);      // transverse electron temperature
-    double v_long_temp = 1/gamma0*sqrt(QELEM*temp_long/MASS_ELECTRON);      // longitudinal electron temperature
+    double v_perp_temp = sqrt(QELEM*temp_perp/MASS_ELECTRON);      // transverse electron temperature
+    double v_long_temp = sqrt(QELEM*temp_long/MASS_ELECTRON);      // longitudinal electron temperature
     double rho_larmor = MASS_ELECTRON*v_perp_temp/QELEM/magnetic_field;     // depends on transverse temperature, larmor radius
     double elec_plasma_frequency = sqrt(electron_density * POW2(QELEM) / (MASS_ELECTRON * EPSILON_0));
     double v_rms_magnet = beta0 * gamma0 * C_LIGHT * magnetic_field_ratio; // velocity spread due to magnetic imperfections

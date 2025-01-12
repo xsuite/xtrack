@@ -902,8 +902,8 @@ class ElectronCooler(Element):
         electron_density = num_e_per_s*self.tau/volume_e_beam # density of electrons     
 
         # Electron beam properties
-        v_perp_temp = 1/gamma0*(qe*temp_perp/me_kg)**(1./2) # transverse electron rms velocity
-        v_long_temp = 1/gamma0*(qe*temp_long/me_kg)**(1./2) # longitudinal electron rms velocity
+        v_perp_temp = (qe*temp_perp/me_kg)**(1./2) # transverse electron rms velocity
+        v_long_temp = (qe*temp_long/me_kg)**(1./2) # longitudinal electron rms velocity
         rho_larmor = me_kg * v_perp_temp / (qe * magnetic_field) # depends on transverse temperature, larmor radius
         elec_plasma_frequency = np.sqrt(electron_density * qe**2 / (me_kg * epsilon_0))
         
