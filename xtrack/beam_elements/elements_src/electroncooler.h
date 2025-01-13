@@ -5,7 +5,6 @@
 #define POW2(X) ((X)*(X))
 #define POW3(X) ((X)*(X)*(X))
 #define POW4(X) ((X)*(X)*(X)*(X))
-#define POW1_5(X) ((X)*sqrt(X))
 #ifndef XTRACK_ELECTRONCOOLER_H
 #define XTRACK_ELECTRONCOOLER_H
 
@@ -46,7 +45,7 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
     double rho_larmor = MASS_ELECTRON*v_perp_temp/QELEM/magnetic_field;     // depends on transverse temperature, larmor radius
     double elec_plasma_frequency = sqrt(electron_density * POW2(QELEM) / (MASS_ELECTRON * EPSILON_0));
     double v_rms_magnet = beta0 * gamma0 * C_LIGHT * magnetic_field_ratio; // velocity spread due to magnetic imperfections
-    double V_eff = sqrt(POW2(v_long_temp) + POW2(v_rms_magnet));              // effective electron beam velocity spread
+    //double V_eff = sqrt(POW2(v_long_temp) + POW2(v_rms_magnet));              // effective electron beam velocity spread
     double mass_electron_ev = MASS_ELECTRON * POW2(C_LIGHT) / QELEM;     // in eV
     double energy_electron_initial = (gamma0 - 1) * mass_electron_ev;    // in eV 
     double energy_e_total = energy_electron_initial + offset_energy;     // in eV
@@ -89,22 +88,22 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
             double beta_total = sqrt(1 - 1 / POW2(gamma_total));    
 
             // Velocity differences
-            double dVz = beta   * C_LIGHT - beta_total * C_LIGHT;                
-            double dVx = beta_x * C_LIGHT;
-            double dVy = beta_y * C_LIGHT;   
-            dVx -= omega_e_beam * radius * -sin(theta); 
-            dVy -= omega_e_beam * radius * +cos(theta);    
-            double dV_abs = sqrt(POW2(dVx)+POW2(dVy)+POW2(dVz));
-            double V_real = sqrt(POW2(dV_abs) + POW2(V_eff));
+            double dVz = beta   * C_LIGHT - beta_total * C_LIGHT; // longitudinal velocity difference               
+            double dVx = beta_x * C_LIGHT;                        // horizontal velocity difference
+            double dVy = beta_y * C_LIGHT;                        // vertical velocity difference
+            dVx -= omega_e_beam * radius * -sin(theta);           // apply x-component of e-beam rotation
+            dVy -= omega_e_beam * radius * +cos(theta);           // apply y-component of e-beam rotation
+            double dV_squared = POW2(dVx)+POW2(dVy)+POW2(dVz);  
+            double V_tot = sqrt(dV_squared + POW2(v_long_temp) + POW2(v_rms_magnet)); // Total velocity difference due to all effects
 
             // Coulomb logarithm    
-            double rho_min = q0 *POW2(QELEM)/(4*PI*EPSILON_0*MASS_ELECTRON*POW2(V_real));
-            double rho_max_shielding = V_real/elec_plasma_frequency;
-            double rho_max_interaction = V_real * tau;
-            double rho_max = fmin(rho_max_shielding, rho_max_interaction);
-            double log_coulomb = log((rho_max+rho_min+rho_larmor)/(rho_min+rho_larmor));
+            double rho_min = q0*POW2(QELEM)/(4*PI*EPSILON_0*MASS_ELECTRON*POW2(V_tot));  // Minimum impact parameter
+            double rho_max_shielding = V_tot/elec_plasma_frequency;                      // Maximum impact parameter based on charge shielding
+            double rho_max_interaction = V_tot * tau;                                    // Maximum impact parameter based on interaction time
+            double rho_max = fmin(rho_max_shielding, rho_max_interaction);               // Take the smaller of the two maximum impact parameters
+            double log_coulomb = log((rho_max+rho_min+rho_larmor)/(rho_min+rho_larmor)); // Coulomb logarithm
 
-            double friction_denominator = POW1_5(POW2(dV_abs) + POW2(V_eff)); // coefficient used for computation of friction force
+            double friction_denominator = POW3(V_tot); // Compute this coefficient once because its going to be used three times
                                 
             Fx = -friction_coefficient * dVx/friction_denominator * log_coulomb; // Newton
             Fy = -friction_coefficient * dVy/friction_denominator * log_coulomb; // Newton

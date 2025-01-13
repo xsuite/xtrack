@@ -897,7 +897,7 @@ class ElectronCooler(Element):
         
         # Compute electron density
         volume_e_beam = np.pi*(radius_e_beam)**2*length #m3
-        num_e_per_s=current/qe # number of electrons per second
+        num_e_per_s = current/qe # number of electrons per second
         self.tau=length/(gamma0*beta0*clight) # time spent in the electron cooler
         electron_density = num_e_per_s*self.tau/volume_e_beam # density of electrons     
 
@@ -906,10 +906,8 @@ class ElectronCooler(Element):
         v_long_temp = (qe*temp_long/me_kg)**(1./2) # longitudinal electron rms velocity
         rho_larmor = me_kg * v_perp_temp / (qe * magnetic_field) # depends on transverse temperature, larmor radius
         elec_plasma_frequency = np.sqrt(electron_density * qe**2 / (me_kg * epsilon_0))
-        
         v_rms_magnet = beta0 * gamma0 * clight * magnetic_field_ratio # velocity spread due to magnetic imperfections
-        V_eff = np.sqrt(v_long_temp**2 + v_rms_magnet**2) # effective electron beam velocity spread
-
+        #V_eff = np.sqrt(v_long_temp**2 + v_rms_magnet**2) # effective electron beam velocity spread
         mass_electron_ev = me_kg * clight**2 / qe #eV
         energy_electron_initial = (gamma0 - 1) * mass_electron_ev #eV
         energy_e_total = energy_electron_initial + self.offset_energy
@@ -934,22 +932,22 @@ class ElectronCooler(Element):
         beta_total  = np.sqrt(1 - 1 / (gamma_total**2))
 
         # Velocity differences
-        dVz = beta * clight - beta_total* clight                
-        dVx = beta_x * clight
-        dVy = beta_y * clight 
-        dVx -= omega_e_beam * radius * -np.sin(theta) # account for ebeam rotation
-        dVy -= omega_e_beam * radius * +np.cos(theta) # account for ebeam rotation
-        dV_abs = np.sqrt(dVx**2+dVy**2+dVz**2)
-        V_real = np.sqrt(dV_abs**2 + V_eff**2)
-
+        dVz = beta * clight - beta_total* clight      # Longitudinal velocity difference              
+        dVx = beta_x * clight                         # Horizontal velocity difference            
+        dVy = beta_y * clight                         # Vertical velocity difference
+        dVx -= omega_e_beam * radius * -np.sin(theta) # Apply x-component of e-beam rotation
+        dVy -= omega_e_beam * radius * +np.cos(theta) # Apply y-component of e-beam rotation
+        dV_squared = dVx**2+dVy**2+dVz**2
+        V_tot = np.sqrt(dV_squared + v_long_temp**2 + v_rms_magnet**2) # Total velocity difference due to all effects
+       
         # Coulomb logarithm        
-        rho_min = q0 *qe**2/(4*np.pi*epsilon_0*me_kg*V_real**2)        
-        rho_max_shielding = V_real/(elec_plasma_frequency)
-        rho_max_interaction = V_real*self.tau
-        rho_max = np.minimum(rho_max_shielding, rho_max_interaction)
-        log_coulomb = np.log((rho_max+rho_min+rho_larmor)/(rho_min+rho_larmor))
+        rho_min = q0 *qe**2/(4*np.pi*epsilon_0*me_kg*V_tot**2)       # Minimum impact parameter
+        rho_max_shielding = V_tot/(elec_plasma_frequency)            # Maximum impact parameter based on charge shielding
+        rho_max_interaction = V_tot*self.tau                         # Maximum impact parameter based on interaction time
+        rho_max = np.minimum(rho_max_shielding, rho_max_interaction) # Take the smaller of the two maximum impact parameters
+        log_coulomb = np.log((rho_max+rho_min+rho_larmor)/(rho_min+rho_larmor)) # Coulomb logarithm
 
-        friction_denominator = (dV_abs**2 + V_eff**2)**1.5 # coefficient used for computation of friction force
+        friction_denominator = V_tot**3 # Compute this coefficient once because its going to be used three times
 
         Fx = -friction_coefficient * dVx/friction_denominator * log_coulomb  # Newton
         Fy = -friction_coefficient * dVy/friction_denominator * log_coulomb  # Newton
