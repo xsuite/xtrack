@@ -368,8 +368,8 @@ def test_mad_elements_import():
               )
 
     # Beam
-    mad.input("""
-    beam, particle=proton, gamma=1.05, sequence=testseq;
+    mad.input(f"""
+    beam, particle=ion, gamma=1.05, mass={xt.PROTON_MASS_EV / 1e9}, sequence=testseq;
     """)
 
     mad.use('testseq')

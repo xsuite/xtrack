@@ -1,11 +1,7 @@
-from collections.abc import Iterable
-from functools import partial
-
 import numpy as np
-from scipy.optimize import fsolve, minimize
 
-from .twiss import TwissInit, VARS_FOR_TWISS_INIT_GENERATION, _complete_twiss_init
-from .general import _print, START, END, _LOC
+from .twiss import VARS_FOR_TWISS_INIT_GENERATION
+from .general import _print, _LOC
 import xtrack as xt
 import xdeps as xd
 

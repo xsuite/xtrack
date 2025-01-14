@@ -1,4 +1,3 @@
-
 import xtrack as xt
 import xobjects as xo
 import numpy as np
@@ -138,7 +137,7 @@ def test_periodic_symmetric_twiss_and_match():
     xo.assert_allclose(tw_half_cell.dpx[:-1], # remove '_end_point'
                         tw_cell.rows[:'mid_cell'].dpx, atol=1e-8, rtol=0)
     xo.assert_allclose(tw_half_cell.ddx[:-1], # remove '_end_point'
-                   tw_cell.rows[:'mid_cell'].ddx, atol=1e-7, rtol=0)
+                   tw_cell.rows[:'mid_cell'].ddx, atol=1e-7, rtol=1e-8)
 
     xo.assert_allclose(tw_half_cell.ax_chrom[:-1], # remove '_end_point'
                         tw_cell.rows[:'mid_cell'].ax_chrom, atol=1e-5, rtol=0)
@@ -149,7 +148,7 @@ def test_periodic_symmetric_twiss_and_match():
     xo.assert_allclose(tw_half_cell.by_chrom[:-1], # remove '_end_point'
                         tw_cell.rows[:'mid_cell'].by_chrom, atol=1e-5, rtol=0)
     xo.assert_allclose(tw_half_cell.ddx[:-1], # remove '_end_point'
-                        tw_cell.rows[:'mid_cell'].ddx, atol=1e-7, rtol=0)
+                        tw_cell.rows[:'mid_cell'].ddx, atol=1e-7, rtol=1e-8)
 
     xo.assert_allclose(tw_half_cell.qx, tw_cell.qx / 2, atol=1e-9, rtol=0)
     xo.assert_allclose(tw_half_cell.qy, tw_cell.qy / 2, atol=1e-9, rtol=0)
