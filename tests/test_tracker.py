@@ -12,7 +12,7 @@ from cpymad.madx import Madx
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import for_all_test_contexts, fix_random_seed
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
@@ -596,6 +596,7 @@ def pimms_mad():
 
 
 @for_all_test_contexts
+@fix_random_seed(784239)
 def test_track_log_and_merit_function(pimms_mad, test_context):
     line = xt.Line.from_madx_sequence(
         pimms_mad.sequence.pimms,

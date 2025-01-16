@@ -11,7 +11,7 @@ import ducktrack as dtk
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import for_all_test_contexts, fix_random_seed
 from xtrack.beam_elements.elements import _angle_from_trig
 
 
@@ -1008,6 +1008,7 @@ def test_simplified_accelerator_segment_uncorrelated_damping_equilibrium(test_co
 
 
 @for_all_test_contexts
+@fix_random_seed(3638475)
 def test_simplified_accelerator_segment_correlated_noise(test_context):
     npart = int(1E6)
     scale = 1E-6

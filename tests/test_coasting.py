@@ -4,11 +4,13 @@ import numpy as np
 from scipy.constants import c as clight
 
 import xtrack as xt
+from xobjects.test_helpers import fix_random_seed
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
 
+@fix_random_seed(8837465)
 def test_coasting():
     delta0 = 1e-2
 
