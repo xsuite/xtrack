@@ -755,21 +755,9 @@ class MadLoader:
 
         kwargs = {}
         if mad_el.field_errors is not None and self.enable_field_errors:
-            dkn = mad_el.field_errors.dkn
-            dks = mad_el.field_errors.dks
-            lmax = max(non_zero_len(dkn), non_zero_len(dks))
-            if lmax > 6:
-                raise ValueError(
-                    "Only up to dodecapoles are supported for field errors"
-                    " of thick magnets for now."
-                )
-            if len(dkn) > lmax:
-                dkn = dkn[:lmax]
-            if len(dks) > lmax:
-                dks = dks[:lmax]
+            dkn, dks = _prepare_field_errors_thick_elem(mad_el)
             kwargs["knl"] = dkn
             kwargs["ksl"] = dks
-            breakpoint()
 
         return self.make_composite_element(
             [
@@ -1404,3 +1392,21 @@ class MadLoader:
             cnll=mad_elem.cnll,
         )
         return self.make_composite_element([el], mad_elem)
+
+
+def _prepare_field_errors_thick_elem(mad_el):
+
+    dkn = mad_el.field_errors.dkn
+    dks = mad_el.field_errors.dks
+    lmax = max(non_zero_len(dkn), non_zero_len(dks))
+    if lmax > 6:
+        raise ValueError(
+            "Only up to dodecapoles are supported for field errors"
+            " of thick magnets for now."
+        )
+    if len(dkn) > lmax:
+        dkn = dkn[:lmax]
+    if len(dks) > lmax:
+        dks = dks[:lmax]
+
+    return dkn, dks

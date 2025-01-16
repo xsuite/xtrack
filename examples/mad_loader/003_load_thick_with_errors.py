@@ -6,6 +6,29 @@ mad = Madx()
 mad.input('''
 
     k1=0.2;
+    l = 5.;
+
+    radius = 0.3;
+
+    dkn0=0.01;
+    dkn1=-0.02;
+    dkn2=0.03;
+    dkn3=0.2;
+
+    dks0=0.04;
+    dks1=-0.05;
+    dks2=0.06;
+    dks3=0.3;
+
+    dknr0=0.02;
+    dknr1=-0.04;
+    dknr2=0.06;
+    dkns3=0.2;
+
+    dksr0=0.03;
+    dksr1=-0.05;
+    dksr2=0.07;
+    dksr3=0.3;
 
     elm: quadrupole, k1:=k1, l=5.;
 
@@ -19,17 +42,20 @@ mad.input('''
     use,sequence=seq;
 
     select,pattern=elm,flag=error;
-    efcomp,order=0,radius=0.3,
-    dkn={0.01,-0.02,0.03,0.2},
-    dks={-0.01,0.02,-0.03,0.3,5},
-    dknr={0.02,-0.04,0.06},
-    dksr={-0.03,0.05,-0.07};
+    efcomp, radius=radius,
+        dkn={dkn0,dkn1,dkn2,dkn3},
+        dks={dks0,dks1,dks2,dks3},
+        dknr={dknr0,dknr1,dknr2,dknr3},
+        dksr={dksr0,dksr1,dksr2,dksr3};
 
 ''')
 
 line = xt.Line.from_madx_sequence(mad.sequence.seq,
                                   enable_field_errors=True,
                                   allow_thick=True)
+
+# Remember to set num_multipole_kicks
+
 
 
 
