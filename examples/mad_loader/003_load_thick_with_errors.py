@@ -1,4 +1,5 @@
 from cpymad.madx import Madx
+import xtrack as xt
 
 mad = Madx()
 
@@ -6,16 +7,13 @@ mad.input('''
 
     k1=0.2;
 
-    elm: quadrupole, k1:=k1;
+    elm: quadrupole, k1:=k1, l=5.;
 
-    seq: sequence, l=1;
-    elm1:elm, at=0;
-    mk:marker, at=0.1;
-    mk2:marker, at=0.1,aperture={0.1,0.2,0.11,0.22},apertype="rectellipse";
-    elm2:elm, at=0.5;
-    elm3:elm, at=0.5;
+    seq: sequence, l=50;
+    elm1:elm, at=5;
+    elm2:elm, at=10;
+    elm3:elm, at=20;
     endsequence;
-
 
     beam;
     use,sequence=seq;
@@ -28,4 +26,10 @@ mad.input('''
     dksr={-0.03,0.05,-0.07};
 
 ''')
+
+line = xt.Line.from_madx_sequence(mad.sequence.seq,
+                                  enable_field_errors=True,
+                                  allow_thick=True)
+
+
 

@@ -496,15 +496,7 @@ class MadLoader:
             enable_align_errors = False
 
         if allow_thick is None:
-            if enable_field_errors:
-                allow_thick = False
-            else:
-                allow_thick = True
-
-        if allow_thick and enable_field_errors:
-            raise NotImplementedError(
-                "Field errors are not yet supported for thick elements"
-            )
+            allow_thick = True
 
         if expressions_for_element_types is not None:
             assert enable_expressions, ("Expressions must be enabled if "
@@ -761,6 +753,24 @@ class MadLoader:
 
     def _convert_quadrupole_thick(self, mad_el): # bv done
 
+        kwargs = {}
+        if mad_el.field_errors is not None and self.enable_field_errors:
+            dkn = mad_el.field_errors.dkn
+            dks = mad_el.field_errors.dks
+            lmax = max(non_zero_len(dkn), non_zero_len(dks))
+            if lmax > 6:
+                raise ValueError(
+                    "Only up to dodecapoles are supported for field errors"
+                    " of thick magnets for now."
+                )
+            if len(dkn) > lmax:
+                dkn = dkn[:lmax]
+            if len(dks) > lmax:
+                dks = dks[:lmax]
+            kwargs["knl"] = dkn
+            kwargs["ksl"] = dks
+            breakpoint()
+
         return self.make_composite_element(
             [
                 self.Builder(
@@ -769,6 +779,7 @@ class MadLoader:
                     k1=self.bv * mad_el.k1,
                     k1s=mad_el.k1s,
                     length=mad_el.l,
+                    **kwargs,
                 ),
             ],
             mad_el,
