@@ -10,16 +10,6 @@ mad.input('''
 
     radius = 0.3;
 
-    dkn0=0.01;
-    dkn1=-0.02;
-    dkn2=0.03;
-    dkn3=0.2;
-
-    dks0=0.04;
-    dks1=-0.05;
-    dks2=0.06;
-    dks3=0.3;
-
     dknr0=0.02;
     dknr1=-0.04;
     dknr2=0.06;
@@ -43,10 +33,9 @@ mad.input('''
 
     select,pattern=elm,flag=error;
     efcomp, radius=radius,
-        dkn={dkn0,dkn1,dkn2,dkn3},
-        dks={dks0,dks1,dks2,dks3},
         dknr={dknr0,dknr1,dknr2,dknr3},
-        dksr={dksr0,dksr1,dksr2,dksr3};
+        dksr={dksr0,dksr1,dksr2,dksr3}
+        ;
 
 ''')
 

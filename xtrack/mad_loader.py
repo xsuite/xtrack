@@ -41,6 +41,7 @@ from .progress_indicator import progress
 clight = 299792458
 
 DEFAULT_BEND_N_MULT_KICKS = 5
+DEFAULT_FIELD_ERR_NUM_KICKS = 1
 
 
 def iterable(obj):
@@ -755,9 +756,9 @@ class MadLoader:
 
         kwargs = {}
         if mad_el.field_errors is not None and self.enable_field_errors:
-            dkn, dks = _prepare_field_errors_thick_elem(mad_el)
-            kwargs["knl"] = dkn
-            kwargs["ksl"] = dks
+            kwargs_to_add = _prepare_field_errors_thick_elem(mad_el,
+                                                             DEFAULT_FIELD_ERR_NUM_KICKS)
+            kwargs.update(kwargs_to_add)
 
         return self.make_composite_element(
             [
@@ -1394,7 +1395,7 @@ class MadLoader:
         return self.make_composite_element([el], mad_elem)
 
 
-def _prepare_field_errors_thick_elem(mad_el):
+def _prepare_field_errors_thick_elem(mad_el, n_kick_err):
 
     dkn = mad_el.field_errors.dkn
     dks = mad_el.field_errors.dks
@@ -1409,4 +1410,10 @@ def _prepare_field_errors_thick_elem(mad_el):
     if len(dks) > lmax:
         dks = dks[:lmax]
 
-    return dkn, dks
+    kwargs_to_add = {}
+    if np.any(np.abs(dkn)) or np.any(np.abs(dks)):
+        kwargs_to_add['num_multipole_kicks'] = 1
+        kwargs_to_add['knl'] = dkn
+        kwargs_to_add['ksl'] = dks
+
+    return kwargs_to_add
