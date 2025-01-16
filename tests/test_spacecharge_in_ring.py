@@ -13,8 +13,7 @@ import xfields as xf
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts
-from xpart.test_helpers import flaky_assertions, retry
+from xobjects.test_helpers import for_all_test_contexts, fix_random_seed
 
 
 @for_all_test_contexts
@@ -22,7 +21,7 @@ from xpart.test_helpers import flaky_assertions, retry
     'mode',
     ['frozen', 'quasi-frozen', 'pic', 'pic_average_transverse'],
 )
-@retry()
+@fix_random_seed(746483)
 def test_ring_with_spacecharge(test_context, mode):
 
     test_data_folder = pathlib.Path(
@@ -208,9 +207,8 @@ def test_ring_with_spacecharge(test_context, mode):
     print(f'ex={(qx_probe - qx_target)/1e-3:.6f}e-3 '
           f'ey={(qy_probe - qy_target)/1e-3:.6f}e-3')
 
-    with flaky_assertions():
-        xo.assert_allclose(qx_probe, qx_target, atol=5e-4, rtol=0)
-        xo.assert_allclose(qy_probe, qy_target, atol=5e-4, rtol=0)
+    xo.assert_allclose(qx_probe, qx_target, atol=5e-4, rtol=0)
+    xo.assert_allclose(qy_probe, qy_target, atol=5e-4, rtol=0)
 
     if mode == 'pic_average_transverse':
         sc_test = all_pics[50]

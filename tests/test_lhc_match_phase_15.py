@@ -8,7 +8,7 @@ import xdeps as xd
 import xobjects as xo
 import xtrack as xt
 import xtrack._temp.lhc_match as lm
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import for_all_test_contexts, fix_random_seed
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
@@ -18,6 +18,7 @@ test_data_folder = pathlib.Path(
     ['noshift', 'shift']
 )
 @for_all_test_contexts
+@fix_random_seed(2836475)
 def test_lhc_match_phase_15(test_context, config):
 
     if config == 'noshift':
