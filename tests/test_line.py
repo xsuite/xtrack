@@ -388,7 +388,7 @@ def test_check_aperture():
                        'dr4', 'th2', 'th2_ap_back',
                        'dr5', 'th3_ap_front', 'th3', 'dr6',
                        'th4_ap_entry', 'th4', 'th4_ap_exit'])
-    
+
     df = line.check_aperture()
 
     expected_miss_upstream = [nn in ('m2', 'th2') for nn in df['name'].values]
@@ -421,7 +421,6 @@ def test_to_dict():
 
     assert result['metadata'] == line.metadata
 
-
 def test_from_dict_legacy():
     test_dict = {
         'elements': [
@@ -441,6 +440,27 @@ def test_from_dict_legacy():
     assert result.elements[1].length == 1
 
     assert result.element_names == ['mn1', 'd1']
+
+def test_to_dict_from_dict_config():
+
+    # Step 1: Create a line object
+    line = xt.Line()
+
+    # Step 2: Build the tracker
+    line.build_tracker()
+
+    # Step 3: Configure radiation model
+    line.configure_radiation(model='mean')
+
+    # Step 5: Serialize and deserialize the line
+    line_dict = line.to_dict()
+    l2 = xt.Line.from_dict(line_dict)
+
+    assert np.all(
+        np.sort(list(line.config.keys())) == np.sort(list(l2.config.keys())))
+
+    for key in line.config.keys():
+        assert line.config[key] == l2.config[key]
 
 
 def test_from_dict_current():

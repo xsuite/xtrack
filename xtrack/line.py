@@ -261,6 +261,7 @@ class Line:
             self._init_var_management(dct=dct)
 
         if 'config' in dct.keys():
+            self.config.clear()
             self.config.data.update(dct['config'])
 
         if '_extra_config' in dct.keys():
