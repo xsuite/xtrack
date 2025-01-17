@@ -838,8 +838,11 @@ class Line:
             out._init_var_management(dct=self._var_management_to_dict())
             out._env_if_needed()
 
+        out.config.clear()
         out.config.update(self.config.copy())
         out._extra_config.update(self._extra_config.copy())
+        out.metadata.clear()
+        out.metadata.update(self.metadata)
 
         if out.energy_program is not None:
             out.energy_program.line = out

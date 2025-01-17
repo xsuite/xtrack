@@ -441,26 +441,35 @@ def test_from_dict_legacy():
 
     assert result.element_names == ['mn1', 'd1']
 
-def test_to_dict_from_dict_config():
+@pytest.mark.parametrize('under_test', ['copy', 'from_to_dict'])
+def test_copy_o_dict_from_dict_config(under_test):
 
     # Step 1: Create a line object
     line = xt.Line()
 
     # Step 2: Build the tracker
     line.build_tracker()
+    line.metadata['hello'] = 'world'
 
     # Step 3: Configure radiation model
     line.configure_radiation(model='mean')
 
     # Step 5: Serialize and deserialize the line
-    line_dict = line.to_dict()
-    l2 = xt.Line.from_dict(line_dict)
+    if under_test == 'copy':
+        l2 = line.copy()
+    elif under_test == 'from_to_dict':
+        line_dict = line.to_dict()
+        l2 = xt.Line.from_dict(line_dict)
+    else:
+        raise ValueError(f'Unknown test {under_test}')
 
     assert np.all(
         np.sort(list(line.config.keys())) == np.sort(list(l2.config.keys())))
 
     for key in line.config.keys():
         assert line.config[key] == l2.config[key]
+
+    assert line.metadata['hello'] == l2.metadata['hello']
 
 
 def test_from_dict_current():
