@@ -182,7 +182,7 @@ class SurveyTable(Table):
             z_range = max(self.Z) - min(self.Z)
             element_width = max([x_range, y_range, z_range]) * 0.03
         import xplt
-        xplt.FloorPlot(out_sv_table, self.line, element_width=element_width, **kwargs)
+        xplt.FloorPlot(out_sv_table, element_width=element_width, **kwargs)
         if legend:
             import matplotlib.pyplot as plt
             plt.legend()
@@ -215,7 +215,7 @@ def survey_from_line(line, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
     tt = line.get_table(attr = True)
     angle = tt.angle_rad
     tilt = tt.rot_s_rad
-    drift_length = tt.length
+    drift_length = tt.length.copy()
     drift_length[~tt.isthick] = 0
 
     if type(element0) == str:
@@ -237,9 +237,12 @@ def survey_from_line(line, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
 
     out_columns["name"] = tt.name
     out_columns["s"] = tt.s
+    out_columns["length"] = tt.length
+    out_columns["isthick"] = tt.isthick
     out_columns['drift_length'] = drift_length
     out_columns['angle'] = angle
     out_columns['tilt'] = tilt
+    out_columns['element_type'] = tt.element_type
 
     out_scalars['element0'] = element0
 
