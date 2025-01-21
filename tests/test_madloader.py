@@ -267,28 +267,16 @@ def test_thick_errors():
         allow_thick=True,
     )
 
-    # def delta_kl(dkr, i):
-    #     length = 5
-    #     ref_order = 1
-    #     k_ref = 0.2
-    #     radius = 0.3
-    #     return dkr[i] * length * k_ref * (radius ** (ref_order - i)) * factorial(i) / factorial(ref_order)
-    #
-
     expected_knl_bend = [-1/30, 2/9, -20/9, 0, 0, 0]
     xo.assert_allclose(line['bend1'].knl, expected_knl_bend, atol=0, rtol=1e-15)
     expected_ksl_bend = [-0.05, (2 + 7/9)/10, -2590/999, -1000/9, 0, 0]
     xo.assert_allclose(line['bend1'].ksl, expected_ksl_bend, atol=0, rtol=1e-15)
 
-    # dknr = [0.02, -0.04, 0.06, 0.2]
-    # expected_knl_quad = [delta_kl(dknr, i) for i in range(4)]
     expected_knl_quad = [-6/90, 4/9, -40/9, 0, 0, 0]
     xo.assert_allclose(line['quad1'].knl, expected_knl_quad, atol=0, rtol=1e-15)
     xo.assert_allclose(line['quad2'].knl, expected_knl_quad, atol=0, rtol=1e-15)
     xo.assert_allclose(line['quad3'].knl, expected_knl_quad, atol=0, rtol=1e-15)
 
-    # dksr = [0.03, -0.05, 0.07, 0.3]
-    # expected_ksl_quad = [delta_kl(dksr, i) for i in range(4)]
     expected_ksl_quad = [-0.1, 5/9, -5180/999, -2000/9, 0, 0]
     xo.assert_allclose(line['quad1'].ksl, expected_ksl_quad, atol=0, rtol=1e-15)
     xo.assert_allclose(line['quad2'].ksl, expected_ksl_quad, atol=0, rtol=1e-15)
