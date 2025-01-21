@@ -5,6 +5,7 @@ import pytest
 
 import xobjects as xo
 import xtrack as xt
+from xobjects.test_helpers import fix_random_seed
 
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
@@ -50,6 +51,7 @@ configurations = [
 
 
 @pytest.mark.parametrize('conf', configurations)
+@fix_random_seed(856384)
 def test_eq_emitt(conf):
 
     test_context = xo.context_default # On GPU this is too slow to run routinely

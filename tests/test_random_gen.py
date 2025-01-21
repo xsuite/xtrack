@@ -11,7 +11,7 @@ import numpy as np
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import for_all_test_contexts, fix_random_seed
 
 
 @for_all_test_contexts
@@ -60,6 +60,7 @@ def test_random_generation(test_context, generator):
 
 
 @for_all_test_contexts
+@fix_random_seed(8264012)
 def test_direct_sampling(test_context):
     n_seeds = 3
     n_samples = 3e6
