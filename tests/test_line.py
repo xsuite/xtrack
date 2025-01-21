@@ -442,7 +442,7 @@ def test_from_dict_legacy():
     assert result.element_names == ['mn1', 'd1']
 
 @pytest.mark.parametrize('under_test', ['copy', 'from_to_dict'])
-def test_copy_o_dict_from_dict_config(under_test):
+def test_copy_to_dict_from_dict_config(under_test):
 
     # Step 1: Create a line object
     line = xt.Line()
