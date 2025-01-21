@@ -1,43 +1,36 @@
 from collections import Counter, UserDict
+from collections.abc import Iterable
 from functools import cmp_to_key
 from typing import Literal
 from weakref import WeakSet
+from copy import deepcopy
+import re
 
 import numpy as np
+import pandas as pd
 
 import xobjects as xo
+import xdeps as xd
 import xtrack as xt
 from xdeps.refs import is_ref
+from .multiline_legacy.multiline_legacy import MultilineLegacy
 
-ReferType = Literal['entry', 'centre']
+ReferType = Literal['start', 'center', 'centre', 'end']
 
-
-def _argsort(seq, tol=10e-10):
-    """Argsort, but with a tolerance; `sorted` is stable."""
-    seq_indices = np.arange(len(seq))
-
-    def comparator(i, j):
-        a, b = seq[i], seq[j]
-        if np.abs(a - b) < tol:
-            return 0
-        return -1 if a < b else 1
-
-    return sorted(seq_indices, key=cmp_to_key(comparator))
-
-
-def _flatten_components(components, refer: ReferType = 'centre'):
-    if refer not in {'entry', 'centre', 'exit'}:
+def _flatten_components(components, refer: ReferType = 'center'):
+    if refer not in ['start', 'center', 'centre', 'end']:
         raise ValueError(
-            f'Allowed values for refer are "entry", "centre" and "exit". Got "{refer}".'
+            f'Allowed values for refer are "start", "center" and "end". Got "{refer}".'
         )
 
     flatt_components = []
     for nn in components:
         if isinstance(nn, Place) and isinstance(nn.name, xt.Line):
-            if refer == 'exit':
-                raise NotImplementedError(
-                    'Refer "exit" is not yet implemented for lines.'
-                )
+
+            anchor = nn.anchor
+            if anchor is None:
+                anchor = refer or 'center'
+
             line = nn.name
             if not line.element_names:
                 continue
@@ -47,11 +40,16 @@ def _flatten_components(components, refer: ReferType = 'centre'):
                     at = line._xdeps_eval.eval(nn.at)
                 else:
                     at = nn.at
-                if refer == 'centre':
-                    at_first_element = at - line.get_length() / 2 + line[0].length / 2
+                if anchor=='center' or anchor=='centre':
+                    at_of_start_first_element = at - line.get_length() / 2
+                elif anchor=='end':
+                    at_of_start_first_element = at - line.get_length()
+                elif anchor=='start':
+                    at_of_start_first_element = at
                 else:
-                    at_first_element = at
-                sub_components[0] = Place(sub_components[0], at=at_first_element, from_=nn.from_)
+                    raise ValueError(f'Unknown anchor {anchor}')
+                sub_components[0] = Place(sub_components[0], at=at_of_start_first_element,
+                        anchor='start', from_=nn.from_, from_anchor=nn.from_anchor)
             flatt_components += sub_components
         elif isinstance(nn, xt.Line):
             flatt_components += nn.element_names
@@ -61,7 +59,61 @@ def _flatten_components(components, refer: ReferType = 'centre'):
     return flatt_components
 
 class Environment:
-    def __init__(self, element_dict=None, particle_ref=None, _var_management=None):
+    def __init__(self, element_dict=None, particle_ref=None, _var_management=None,
+                 lines=None):
+
+        '''
+        Create an environment.
+
+        Parameters
+        ----------
+        element_dict : dict, optional
+            Dictionary with the elements of the environment.
+        particle_ref : ParticleRef, optional
+            Reference particle.
+        lines : dict, optional
+            Dictionary with the lines of the environment.
+
+        Short description of main attributes of the Environment class:
+         - Environment[...]: accesses values of variables, elements and lines.
+         - ref[...]: provides reference objects to variables and elements.
+         - vars[...]: container with all variables, returns variable objects.
+         - elements[...]: container with all elements.
+         - lines[...]: container with all lines.
+
+        Short description of main methods of the Environment class:
+         - info(...): displays information about a variable or element.
+         - get(...): returns variable value or element.
+         - set(...): sets variable or element properties.
+         - eval(...): evaluates an expression provided as a string (returns a value).
+         - new_expr(...): creates a new expression from a string.
+         - get_expr(...): returns the expression for a variable.
+         - new(...): creates a new element.
+         - new_line(...): creates a new line.
+         - new_builder(...): creates a new builder.
+         - place(...): creates a place object, which can be user in new_line(...)
+           or by a Builder object.
+
+        Examples
+        --------
+
+        .. code-block:: python
+
+            env = xt.Environment()
+            env['a'] = 3 # Define a variable
+            env.new('mq1', xt.Quadrupole, length=0.3, k1='a')  # Create an element
+            env.new('mq2', xt.Quadrupole, length=0.3, k1='-a')  # Create another element
+
+            ln = env.new_line(name='myline', components=[
+                'mq',  # Add the element 'mq' at the start of the line
+                env.new('mymark', xt.Marker, at=10.0),  # Create a marker at s=10
+                env.new('mq1_clone', 'mq1', k1='2*a'),   # Clone 'mq1' with a different k1
+                env.place('mq2', at=20.0, from_='mymark'),  # Place 'mq2' at s=20
+                ])
+
+
+
+        '''
         self._element_dict = element_dict or {}
         self.particle_ref = particle_ref
 
@@ -75,17 +127,39 @@ class Environment:
         self._drift_counter = 0
         self.ref = EnvRef(self)
 
+        if lines is not None:
+
+            # Identify common elements
+            counts = Counter()
+            for ll in lines.values():
+                # Count if it is not a marker or a drift, which will be handled by
+                # `import_line`
+                for nn in ll.element_names:
+                    if (not (isinstance(ll.element_dict[nn], (xt.Marker))) and
+                        not bool(re.match(r'^drift_\d+$', nn))):
+                        counts[nn] += 1
+            common_elements = [nn for nn, cc in counts.items() if cc>1]
+
+            for nn, ll in lines.items():
+                self.import_line(line=ll, suffix_for_common_elements='/'+nn,
+                    line_name=nn, rename_elements={el: el+'/'+nn for el in common_elements})
+
+        self.metadata = {}
+
     def __getstate__(self):
         out = self.__dict__.copy()
         out.pop('_lines_weakrefs')
+        out.pop('_xdeps_eval_obj', None)
         return out
 
     def __setstate__(self, state):
         self.__dict__.update(state)
         self._lines_weakrefs = WeakSet()
 
-    def new(self, name, parent, mode=None, at=None, from_=None, extra=None,
-            mirror=False, **kwargs):
+    def new(self, name, parent, mode=None, at=None, from_=None,
+            anchor=None, from_anchor=None,
+            extra=None,
+            mirror=False, force=False, import_from=None, **kwargs):
 
         '''
         Create a new element or line.
@@ -101,6 +175,8 @@ class Environment:
                The parent element or line is copied, together with the associated
                expressions.
              - replica: replicate the parent elements or lines are made.
+             - import: clone from a different environment. `import_from` must be
+               provided.
         at : float or str, optional
             Position of the created object.
         from_: str, optional
@@ -109,6 +185,7 @@ class Environment:
         mirror : bool, optional
             Can only be used when cloning lines. If True, the order of the elements
             is reversed.
+        import_from : Environment, optional. Only to be used when mode is 'import'.
 
         Returns
         -------
@@ -117,14 +194,20 @@ class Environment:
             provided.
         '''
 
+        if name in self.element_dict and not force:
+            raise ValueError(f'Element `{name}` already exists')
+
         if from_ is not None or at is not None:
             all_kwargs = locals()
             all_kwargs.pop('self')
             all_kwargs.pop('at')
             all_kwargs.pop('from_')
+            all_kwargs.pop('anchor')
+            all_kwargs.pop('from_anchor')
             all_kwargs.pop('kwargs')
             all_kwargs.update(kwargs)
-            return Place(self.new(**all_kwargs), at=at, from_=from_)
+            return Place(self.new(**all_kwargs), at=at, from_=from_,
+                         anchor=anchor, from_anchor=from_anchor)
 
         _ALLOWED_ELEMENT_TYPES_IN_NEW = xt.line._ALLOWED_ELEMENT_TYPES_IN_NEW
         _ALLOWED_ELEMENT_TYPES_DICT = xt.line._ALLOWED_ELEMENT_TYPES_DICT
@@ -173,6 +256,7 @@ class Environment:
                 # Clone an existing element
                 self.element_dict[name] = xt.Replica(parent_name=parent)
                 xt.Line.replace_replica(self, name)
+
                 parent_element = self.element_dict[name]
                 parent = type(parent_element)
                 needs_instantiation = False
@@ -208,7 +292,7 @@ class Environment:
         self._line_vars = xt.line.LineVars(self)
 
 
-    def new_line(self, components=None, name=None, refer: ReferType = 'centre'):
+    def new_line(self, components=None, name=None, refer: ReferType = 'center'):
 
         '''
         Create a new line.
@@ -243,10 +327,8 @@ class Environment:
                 ])
         '''
 
-        out = xt.Line()
-        out.particle_ref = self.particle_ref
-        out.env = self
-        out._element_dict = self.element_dict # Avoid copying
+        out = xt.Line(env=self)
+
         if components is None:
             components = []
 
@@ -258,8 +340,17 @@ class Environment:
                 components[ii] = self.lines[nn]
 
         flattened_components = _flatten_components(components, refer=refer)
-        out.element_names = handle_s_places(flattened_components, self, refer=refer)
-        out._var_management = self._var_management
+
+        if np.array([isinstance(ss, str) for ss in flattened_components]).all():
+            # All elements provided by name
+            element_names = [str(ss) for ss in flattened_components]
+        else:
+            seq_all_places = _all_places(flattened_components)
+            tab_unsorted = _resolve_s_positions(seq_all_places, self, refer=refer)
+            tab_sorted = _sort_places(tab_unsorted)
+            element_names = _generate_element_names_with_drifts(self, tab_sorted)
+
+        out.element_names = element_names
         out._name = name
         out.builder = Builder(env=self, components=components)
 
@@ -275,7 +366,7 @@ class Environment:
 
         return out
 
-    def place(self, name, at=None, from_=None, anchor=None, from_anchor=None):
+    def place(self, name, obj=None, at=None, from_=None, anchor=None, from_anchor=None):
         '''
         Create a place object.
 
@@ -295,9 +386,19 @@ class Environment:
             The new place object.
         '''
 
+        if obj is not None:
+            assert not isinstance(name, xt.Line)
+            assert name not in self.element_dict
+            self.element_dict[name] = obj
+
+        # if list of strings, create a line
+        if (isinstance(name, Iterable) and not isinstance(name, str)
+            and all(isinstance(item, str) for item in name)):
+            name = self.new_line(components=name)
+
         return Place(name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
 
-    def new_builder(self, components=None, name=None, refer: ReferType = 'centre'):
+    def new_builder(self, components=None, name=None, refer: ReferType = 'center'):
         '''
         Create a new builder.
 
@@ -337,6 +438,67 @@ class Environment:
             raise ee
         xtrack._passed_env = None
 
+    def copy_element_from(self, name, source, new_name=None):
+        return xt.Line.copy_element_from(self, name, source, new_name)
+
+    def import_line(
+            self,
+            line,
+            suffix_for_common_elements=None,
+            rename_elements={},
+            line_name=None,
+            overwrite_vars=False,
+    ):
+        """Import a line into this environment.
+
+        Parameters
+        ----------
+        suffix_for_common_elements : str, optional
+            Suffix to be added to the names of the elements that are common to
+            the imported line and the line in this environment. If None,
+            '_{source_line_name}' is used.
+        line_name : str, optional
+            Name of the new line. If None, the name of the imported line is used.
+        overwrite_vars : bool, optional
+            If True, the variables in the imported line will overwrite the
+            variables with the same name in this environment. Default is False.
+        """
+        line_name = line_name or line.name
+        if suffix_for_common_elements is None:
+            suffix_for_common_elements = f'/{line_name}'
+
+        new_var_values = line.ref_manager.containers['vars']._owner
+        if not overwrite_vars:
+            new_var_values = new_var_values.copy()
+            new_var_values.update(self.ref_manager.containers['vars']._owner)
+        self.ref_manager.containers['vars']._owner.update(new_var_values)
+
+        self.ref_manager.copy_expr_from(line.ref_manager, 'vars', overwrite=overwrite_vars)
+        self.ref_manager.run_tasks()
+
+        components = []
+        for name in line.element_names:
+            new_name = name
+
+            if name in rename_elements:
+                new_name = rename_elements[name]
+            elif (bool(re.match(r'^drift_\d+$', name))
+                and line.ref[name].length._expr is None):
+                new_name = self._get_a_drift_name()
+            elif (name in self.element_dict and not
+                (isinstance(line[name], xt.Marker)
+                and isinstance(self.element_dict.get(name), xt.Marker))):
+                new_name += suffix_for_common_elements
+
+            self.copy_element_from(name, line, new_name=new_name)
+
+            components.append(new_name)
+
+        out = self.new_line(components=components, name=line_name)
+
+        if line.particle_ref is not None:
+            out.particle_ref = line.particle_ref.copy()
+
     def _ensure_tracker_consistency(self, buffer):
         for ln in self._lines_weakrefs:
             if ln._has_valid_tracker() and ln._buffer is not buffer:
@@ -362,6 +524,177 @@ class Environment:
         else:
             xt.Line.__setitem__(self, key, value)
 
+    def to_dict(self, include_var_management=True):
+
+        out = {}
+        out["elements"] = {k: el.to_dict() for k, el in self.element_dict.items()}
+
+        if self.particle_ref is not None:
+            out['particle_ref'] = self.particle_ref.to_dict()
+        if self._var_management is not None and include_var_management:
+            if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+                raise ValueError('The line is part ot a MultiLine object. '
+                    'To save without expressions please use '
+                    '`line.to_dict(include_var_management=False)`.\n'
+                    'To save also the deferred expressions please save the '
+                    'entire multiline.\n ')
+
+            out.update(self._var_management_to_dict())
+
+        if hasattr(self, '_bb_config') and self._bb_config is not None:
+            out['_bb_config'] = {}
+            for nn, vv in self._bb_config.items():
+                if nn == 'dataframes':
+                    out['_bb_config'][nn] = {}
+                    for kk, vv in vv.items():
+                        if vv is not None:
+                            out['_bb_config'][nn][kk] = vv.to_dict()
+                        else:
+                            out['_bb_config'][nn][kk] = None
+                else:
+                    out['_bb_config'][nn] = vv
+
+        out["metadata"] = deepcopy(self.metadata)
+
+        out['xsuite_data_type'] = 'Environment'
+
+        out['lines'] = {}
+
+        for nn, ll in self.lines.items():
+            out['lines'][nn] = ll.to_dict(include_element_dict=False,
+                                        include_var_management=False)
+
+        return out
+
+    @classmethod
+    def from_dict(cls, dct):
+        cls = xt.Environment
+
+        ldummy = xt.Line.from_dict(dct)
+        out = cls(element_dict=ldummy.element_dict, particle_ref=ldummy.particle_ref,
+                _var_management=ldummy._var_management)
+        out._line_vars = xt.line.LineVars(out)
+
+        for nn in dct['lines'].keys():
+            ll = xt.Line.from_dict(dct['lines'][nn], env=out, verbose=False)
+            out[nn] = ll
+
+        if '_bb_config' in dct:
+            out._bb_config = dct['_bb_config']
+            for nn, vv in dct['_bb_config']['dataframes'].items():
+                if vv is not None:
+                    df = pd.DataFrame(vv)
+                else:
+                    df = None
+                out._bb_config[
+                    'dataframes'][nn] = df
+
+        if "metadata" in dct:
+            out.metadata = dct["metadata"]
+
+        return out
+
+    @classmethod
+    def from_json(cls, file, **kwargs):
+
+        """Constructs an environment from a json file.
+
+        Parameters
+        ----------
+        file : str or file-like object
+            Path to the json file or file-like object.
+            If filename ends with '.gz' file is decompressed.
+        **kwargs : dict
+            Additional keyword arguments passed to `Environment.from_dict`.
+
+        Returns
+        -------
+        environment : Environment
+            Environment object.
+
+        """
+
+        dct = xt.json.load(file)
+
+        return cls.from_dict(dct, **kwargs)
+
+
+    def to_json(self, file, indent=1, **kwargs):
+        '''Save the environment to a json file.
+
+        Parameters
+        ----------
+        file: str or file-like object
+            The file to save to. If a string is provided, a file is opened and
+            closed. If a file-like object is provided, it is used directly.
+        **kwargs:
+            Additional keyword arguments are passed to the `Environment.to_dict` method.
+
+        '''
+
+        xt.json.dump(self.to_dict(**kwargs), file, indent=indent)
+
+    @classmethod
+    def from_madx(cls, filename=None, madx=None, stdout=None, return_lines=False, **kwargs):
+        '''
+        Load a multiline from a MAD-X file.
+
+        Parameters
+        ----------
+        file: str
+            The MAD-X file to load from.
+        **kwargs: dict
+            Additional keyword arguments are passed to the `Line.from_madx_sequence`
+            method.
+
+        Returns
+        -------
+        new_multiline: Multiline
+            The multiline object.
+        '''
+        return xt.multiline_legacy._multiline_from_madx(cls, filename=filename, madx=madx, stdout=stdout,
+                             return_lines=return_lines, **kwargs)
+
+    @property
+    def elements(self):
+        return self.element_dict
+
+    @property
+    def line_names(self):
+        return list(self.lines.keys())
+
+    @property
+    def functions(self):
+        return self._xdeps_fref
+
+    def _remove_element(self, name):
+
+        pars_with_expr = list(
+            self._xdeps_manager.tartasks[self.element_refs[name]].keys())
+
+        # Kill all references
+        for rr in pars_with_expr:
+            if isinstance(rr, xd.refs.AttrRef):
+                setattr(self[name], rr._key, 99)
+            elif isinstance(rr, xd.refs.ItemRef):
+                getattr(self[name], rr._owner._key)[rr._key] = 99
+            else:
+                raise ValueError('Only AttrRef and ItemRef are supported for now')
+
+        self.element_dict.pop(name)
+
+    def __getattr__(self, key):
+        if key == 'lines':
+            return object.__getattribute__(self, 'lines')
+        if key in self.lines:
+            return self.lines[key]
+        else:
+            raise AttributeError(f"Environment object has no attribute `{key}`.")
+
+    def __dir__(self):
+        return [nn for nn  in list(self.lines.keys()) if '.' not in nn
+                    ] + object.__dir__(self)
+
     element_dict = xt.Line.element_dict
     _xdeps_vref = xt.Line._xdeps_vref
     _xdeps_fref = xt.Line._xdeps_fref
@@ -379,16 +712,41 @@ class Environment:
     get_expr = xt.Line.get_expr
     new_expr = xt.Line.new_expr
     ref_manager = xt.Line.ref_manager
+    _var_management_to_dict = xt.Line._var_management_to_dict
+
+    twiss = MultilineLegacy.twiss
+    discard_trackers = MultilineLegacy.discard_trackers
+    build_trackers = MultilineLegacy.build_trackers
+    match = MultilineLegacy.match
+    match_knob = MultilineLegacy.match_knob
+    install_beambeam_interactions = MultilineLegacy.install_beambeam_interactions
+    configure_beambeam_interactions =  MultilineLegacy.configure_beambeam_interactions
+    apply_filling_pattern = MultilineLegacy.apply_filling_pattern
 
 
 class Place:
 
     def __init__(self, name, at=None, from_=None, anchor=None, from_anchor=None):
 
-        if anchor is not None:
-            raise ValueError('anchor not implemented')
-        if from_anchor is not None:
-            raise ValueError('from_anchor not implemented')
+        if isinstance(at, str) and '@' in at:
+            at_parts = at.split('@')
+            assert len(at_parts) == 2
+            assert from_ is None
+            assert from_anchor is None
+            at = 0
+            from_ = at_parts[0]
+            from_anchor = at_parts[1]
+
+        if from_ is not None:
+            assert isinstance(from_, str)
+            if '@' in from_:
+                from_parts = from_.split('@')
+                assert len(from_parts) == 2
+                from_ = from_parts[0]
+                from_anchor = from_parts[1]
+
+        assert anchor in [None, 'center', 'centre', 'start', 'end']
+        assert from_anchor in [None, 'center', 'centre', 'start', 'end']
 
         self.name = name
         self.at = at
@@ -398,7 +756,12 @@ class Place:
         self._before = False
 
     def __repr__(self):
-        out = f'Place({self.name}, at={self.at}, from_={self.from_}'
+        out = f'Place({self.name}'
+        if self.at is not None: out += f', at={self.at}'
+        if self.from_ is not None: out += f', from_={self.from_}'
+        if self.anchor is not None: out += f', anchor={self.anchor}'
+        if self.from_anchor is not None: out += f', from_anchor={self.from_anchor}'
+
         if self._before:
             out += ', before=True'
         out += ')'
@@ -447,29 +810,55 @@ def _all_places(seq):
 #     else:
 #         return line[name].length
 
+def _compute_one_s(at, anchor, from_anchor, self_length, from_length, s_start_from,
+                   default_anchor):
 
-def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center'):
+    if is_ref(at):
+        at = at._value
 
-    if len(seq_all_places) != len(set(seq_all_places)):
-        seq_all_places = [ss.copy() for ss in seq_all_places]
+    if anchor is None:
+        anchor = default_anchor
 
+    if from_anchor is None:
+        from_anchor = default_anchor
+
+    s_from = 0
+    if from_length is not None:
+        s_from = s_start_from
+        if from_anchor == 'center' or from_anchor == 'centre':
+            s_from += from_length / 2
+        elif from_anchor == 'end':
+            s_from += from_length
+
+    ds_self = 0
+    if anchor == 'center' or anchor=='centre':
+        ds_self = self_length / 2
+    elif anchor == 'end':
+        ds_self = self_length
+
+    s_start_self = s_from + at - ds_self
+
+    return s_start_self
+
+def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
+                         allow_duplicate_places=True, s_tol=1e-10):
+
+    if not allow_duplicate_places:
+        raise NotImplementedError('allow_duplicate_places=False not yet implemented')
+
+    seq_all_places = [ss.copy() for ss in seq_all_places]
     names_unsorted = [ss.name for ss in seq_all_places]
 
-    # identify duplicates
-    if len(names_unsorted) != len(set(names_unsorted)):
-        counter = Counter(names_unsorted)
-        duplicates = set([name for name, count in counter.items() if count > 1])
-    else:
-        duplicates = set()
-
     aux_line = env.new_line(components=names_unsorted, refer=refer)
-    aux_tt = aux_line.get_table()
-    aux_tt['length'] = np.diff(aux_tt._data['s'], append=0)
-    aux_tt.name = aux_tt.env_name  # I want the repeated names here
 
-    s_center_for_place = {}
-    s_entry_for_place = {}  # entry positions calculated assuming at is also pointing to entry
-    s_exit_for_place = {}  # exit positions calculated assuming at is also pointing to exit
+    # Prepare table for output
+    tt_out = aux_line.get_table()
+    tt_out['length'] = np.diff(tt_out.s, append=tt_out.s[-1])
+    tt_out = tt_out.rows[:-1] # Remove endpoint
+
+    tt_lengths = xt.Table({'name': tt_out.env_name, 'length': tt_out.length})
+
+    s_start_for_place = {}  # start positions
     place_for_name = {}
     n_resolved = 0
     n_resolved_prev = -1
@@ -478,48 +867,42 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center'):
 
     if seq_all_places[0].at is None and not seq_all_places[0]._before:
         # In case we want to allow for the length to be an expression
-        s_center_for_place[seq_all_places[0]] = aux_tt['length', seq_all_places[0].name] / 2
-        s_entry_for_place[seq_all_places[0]] = 0
-        s_exit_for_place[seq_all_places[0]] = aux_tt['length', seq_all_places[0].name]
+        s_start_for_place[seq_all_places[0]] = 0
         place_for_name[seq_all_places[0].name] = seq_all_places[0]
         n_resolved += 1
 
     while n_resolved != n_resolved_prev:
         n_resolved_prev = n_resolved
         for ii, ss in enumerate(seq_all_places):
-            if ss in s_center_for_place:  # Can this ever happen? We assert no duplicates earlier.
+
+            if ss in s_start_for_place:  # Already resolved
                 continue
+
+            if ss.from_ is not None or ss.from_anchor is not None:
+                if ss.at is None:
+                    raise ValueError(
+                        f'Cannot specify `from_ `or `from_anchor` without providing `at`.'
+                        f'Error in place `{ss}`.')
+
             if ss.at is None and not ss._before:
                 ss_prev = seq_all_places[ii-1]
-                if ss_prev in s_center_for_place:
-                    # in case we want to allow for the length to be an expression
-                    # s_center_dct[ss] = (s_center_dct[ss_prev]
-                    #                         + _length_expr_or_val(ss_prev, aux_line) / 2
-                    #                         + _length_expr_or_val(ss, aux_line) / 2)
-                    s_center_for_place[ss] = (s_center_for_place[ss_prev]
-                                              + aux_tt['length', ss_prev.name] / 2
-                                              + aux_tt['length', ss.name] / 2)
-                    s_entry_for_place[ss] = (s_entry_for_place[ss_prev]
-                                             + aux_tt['length', ss_prev.name])
-                    s_exit_for_place[ss] = (s_exit_for_place[ss_prev]
-                                            + aux_tt['length', ss.name])
+                if ss_prev in s_start_for_place:
+                    s_start_for_place[ss] = (s_start_for_place[ss_prev]
+                                             + tt_lengths['length', ss_prev.name])
                     place_for_name[ss.name] = ss
+                    ss.at = 0
+                    ss.from_ = ss_prev.name
+                    ss.from_anchor = 'end'
                     n_resolved += 1
             elif ss.at is None and ss._before:
                 ss_next = seq_all_places[ii+1]
-                if ss_next in s_center_for_place:
-                    # in case we want to allow for the length to be an expression
-                    # s_center_dct[ss] = (s_center_dct[ss_next]
-                    #                         - _length_expr_or_val(ss_next, aux_line) / 2
-                    #                         - _length_expr_or_val(ss, aux_line) / 2)
-                    s_center_for_place[ss] = (s_center_for_place[ss_next]
-                                              - aux_tt['length', ss_next.name] / 2
-                                              - aux_tt['length', ss.name] / 2)
-                    s_entry_for_place[ss] = (s_entry_for_place[ss_next]
-                                            - aux_tt['length', ss.name])
-                    s_exit_for_place[ss] = (s_exit_for_place[ss_next]
-                                            - aux_tt['length', ss_next.name])
+                if ss_next in s_start_for_place:
+                    s_start_for_place[ss] = (s_start_for_place[ss_next]
+                                            - tt_lengths['length', ss.name])
                     place_for_name[ss.name] = ss
+                    ss.at = 0
+                    ss.from_ = ss_next.name
+                    ss.from_anchor = 'start'
                     n_resolved += 1
             else:
                 if isinstance(ss.at, str):
@@ -527,89 +910,140 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center'):
                 else:
                     at = ss.at
 
-                if ss.from_ is None:
-                    s_center_for_place[ss] = at
-                    s_entry_for_place[ss] = at
-                    s_exit_for_place[ss] = at
-                    place_for_name[ss.name] = ss
-                    n_resolved += 1
-                elif ss.from_ in place_for_name:
-                    if ss.from_ in duplicates:
-                        assert ss.name in duplicates, (
-                            f'Cannot resolve from_ for {ss.name} as {ss.from_} is duplicated')
-                    s_center_for_place[ss] = s_center_for_place[place_for_name[ss.from_]] + at
-                    s_entry_for_place[ss] = s_entry_for_place[place_for_name[ss.from_]] + at
-                    s_exit_for_place[ss] = s_exit_for_place[place_for_name[ss.from_]] + at
-                    place_for_name[ss.name] = ss
-                    n_resolved += 1
+                from_length=None
+                s_start_from=None
+                if ss.from_ is not None:
+                    if ss.from_ not in place_for_name:
+                        continue # Cannot resolve yet
+                    else:
+                        from_length = tt_lengths['length', ss.from_]
+                        s_start_from=s_start_for_place[place_for_name[ss.from_]]
+
+                s_start_for_place[ss] = _compute_one_s(at, anchor=ss.anchor,
+                    from_anchor=ss.from_anchor,
+                    self_length=tt_lengths['length', ss.name],
+                    from_length=from_length,
+                    s_start_from=s_start_from,
+                    default_anchor=refer)
+
+                place_for_name[ss.name] = ss
+                n_resolved += 1
 
     if n_resolved != len(seq_all_places):
-        unresolved_pos = set(seq_all_places) - set(s_center_for_place.keys())
+        unresolved_pos = set(seq_all_places) - set(s_start_for_place.keys())
         raise ValueError(f'Could not resolve all s positions: {unresolved_pos}')
 
     if n_resolved != len(seq_all_places):
-        unresolved_pos = set(seq_all_places) - set(s_center_for_place.keys())
+        unresolved_pos = set(seq_all_places) - set(s_start_for_place.keys())
         raise ValueError(f'Could not resolve all s positions: {unresolved_pos}')
 
-    aux_s_center_expr = np.array([s_center_for_place[ss] for ss in seq_all_places])
-    aux_s_entry_expr = np.array([s_entry_for_place[ss] for ss in seq_all_places])
-    aux_s_exit_expr = np.array([s_exit_for_place[ss] for ss in seq_all_places])
-    aux_s_center = [ss._value if is_ref(ss) else ss for ss in aux_s_center_expr]
-    aux_s_entry = [ss._value if is_ref(ss) else ss for ss in aux_s_entry_expr]
-    aux_s_exit = [ss._value if is_ref(ss) else ss for ss in aux_s_exit_expr]
+    aux_s_start = np.array([s_start_for_place[ss] for ss in seq_all_places])
+    aux_s_center = aux_s_start + tt_out['length'] / 2
+    aux_s_end = aux_s_start + tt_out['length']
+    tt_out['s_start'] = aux_s_start
+    tt_out['s_center'] = aux_s_center
+    tt_out['s_end'] = aux_s_end
 
-    if refer == 'centre':
-        aux_tt['s_center'] = np.concatenate([aux_s_center, [0]])
+    tt_out['from_'] = np.array([ss.from_ for ss in seq_all_places])
+    tt_out['from_anchor'] = np.array([ss.from_anchor for ss in seq_all_places])
 
-        i_sorted = _argsort(aux_s_center)
+    return tt_out
 
-        name_sorted = [str(aux_tt.name[ii]) for ii in i_sorted]
+# @profile
+def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
 
-        # Temporary, should be replaced by aux_tt.rows[i_sorted], when table is fixed
-        data_sorted = {kk: aux_tt[kk][i_sorted] for kk in aux_tt._col_names}
-        tt_sorted = xt.Table(data_sorted)
+    tt_unsorted['i_place'] = np.arange(len(tt_unsorted))
 
-        tt_sorted['s_entry'] = tt_sorted['s_center'] - tt_sorted['length'] / 2
-        tt_sorted['s_exit'] = tt_sorted['s_center'] + tt_sorted['length'] / 2
-        anchor_pos_dct = s_center_for_place
-    elif refer == 'entry':
-        aux_tt['s_entry'] = np.concatenate([aux_s_entry, [0]])
+    # Sort by s_center
+    iii = _argsort_s(tt_unsorted.s_center, tol=s_tol)
+    tt_s_sorted = tt_unsorted.rows[iii]
 
-        i_sorted = _argsort(aux_s_entry)
+    group_id = np.zeros(len(tt_s_sorted), dtype=int)
+    group_id[0] = 0
+    for ii in range(1, len(tt_s_sorted)):
+        if abs(tt_s_sorted.s_center[ii] - tt_s_sorted.s_center[ii-1]) > s_tol:
+            group_id[ii] = group_id[ii-1] + 1
+        elif tt_s_sorted.isthick[ii]: # Needed in Line.insert (on the first sorting pass there can be overlapping elements)
+            group_id[ii] = group_id[ii-1] + 1
+        else:
+            group_id[ii] = group_id[ii-1]
 
-        name_sorted = [str(aux_tt.name[ii]) for ii in i_sorted]
+    tt_s_sorted['group_id'] = group_id
+    # tt_s_sorted.show(cols=['group_id', 's_center', 'name', 'from_', 'from_anchor', 'i_place'])
 
-        # Temporary, should be replaced by aux_tt.rows[i_sorted], when table is fixed
-        data_sorted = {kk: aux_tt[kk][i_sorted] for kk in aux_tt._col_names}
-        tt_sorted = xt.Table(data_sorted)
+    # cache indices (indices will change but only within groups, so no need to update in the loop)
+    # This trick gives me x40 speedup compared to using tt_s_sorted.rows.indices
+    # at each iteration.
+    ind_name = {nn: ii for ii, nn in enumerate(tt_s_sorted.name)}
 
-        tt_sorted['s_center'] = tt_sorted['s_entry'] + tt_sorted['length'] / 2
-        tt_sorted['s_exit'] = tt_sorted['s_entry'] + tt_sorted['length']
-        anchor_pos_dct = s_entry_for_place
-    elif refer == 'exit':
-        aux_tt['s_exit'] = np.concatenate([aux_s_exit, [0]])
+    n_places = len(tt_s_sorted)
+    i_start_group = 0
+    i_place_sorted = []
+    while i_start_group < n_places:
+        i_group = tt_s_sorted['group_id', i_start_group]
+        i_end_group = i_start_group + 1
+        while i_end_group < n_places and tt_s_sorted['group_id', i_end_group] == i_group:
+            i_end_group += 1
+        # print(f'Group {i_group}: {tt_s_sorted.name[i_start_group:i_end_group]}')
 
-        i_sorted = _argsort(aux_s_exit)
+        n_group = i_end_group - i_start_group
+        if n_group == 1: # Single element
+            i_place_sorted.append(tt_s_sorted.i_place[i_start_group])
+            i_start_group = i_end_group
+            continue
 
-        name_sorted = [str(aux_tt.name[ii]) for ii in i_sorted]
+        if np.all(tt_s_sorted.from_anchor[i_start_group:i_end_group] == None): # Nothing to do
+            i_place_sorted.extend(list(tt_s_sorted.i_place[i_start_group:i_end_group]))
+            i_start_group = i_end_group
 
-        # Temporary, should be replaced by aux_tt.rows[i_sorted], when table is fixed
-        data_sorted = {kk: aux_tt[kk][i_sorted] for kk in aux_tt._col_names}
-        tt_sorted = xt.Table(data_sorted)
+        tt_group = tt_s_sorted.rows[i_start_group:i_end_group]
+        # tt_group.show(cols=['s_center', 'name', 'from_', 'from_anchor'])
 
-        tt_sorted['s_center'] = tt_sorted['s_exit'] - tt_sorted['length'] / 2
-        tt_sorted['s_entry'] = tt_sorted['s_exit'] - tt_sorted['length']
-        anchor_pos_dct = s_entry_for_place
-    else:
-        raise ValueError(f'Unknown refer value: {refer}')
+        for ff in tt_group.from_:
+            if ff is None:
+                continue
+            if ff not in ind_name:
+                if allow_non_existent_from:
+                    continue
+                else:
+                    raise ValueError(f'Element {ff} not found in the line')
+            i_from_global = ind_name[ff] - i_start_group
+            key_sort = np.zeros(n_group, dtype=int)
 
-    tt_sorted['ds_upstream'] = 0 * tt_sorted['s_entry']
-    tt_sorted['ds_upstream'][1:] = tt_sorted['s_entry'][1:] - tt_sorted['s_exit'][:-1]
-    tt_sorted['ds_upstream'][0] = tt_sorted['s_entry'][0]
-    tt_sorted['s'] = tt_sorted['s_entry']
-    assert np.all(tt_sorted.name == np.array(name_sorted))
+            if i_from_global < 0:
+                key_sort[:] = 2
+            elif i_from_global >= n_group:
+                key_sort[:] = -2
+            else:
+                i_local = tt_group.rows.indices[ff][0] # I need to use this because it might change in the group resortings
+                key_sort[i_local] = 0
+                key_sort[:i_local] = -2
+                key_sort[i_local+1:] = 2
 
-    tt_sorted._data['s_entry_dct'] = anchor_pos_dct
+            from_present = tt_group['from_']
+            from_anchor_present = tt_group['from_anchor']
+
+            mask_pack_before = (from_present == ff) & (from_anchor_present == 'start')
+            mask_pack_after = (from_present == ff) & (from_anchor_present == 'end')
+            key_sort[mask_pack_before] = -1
+            key_sort[mask_pack_after] = 1
+
+            if np.all(np.diff(key_sort) >=0):
+                continue # already sorted
+            tt_group = tt_group.rows[np.argsort(key_sort, kind='stable')]
+
+        i_place_sorted.extend(list(tt_group.i_place))
+        i_start_group = i_end_group
+
+    tt_sorted = tt_unsorted.rows[i_place_sorted]
+
+    tt_sorted['s_center'] = tt_sorted['s_start'] + tt_sorted['length'] / 2
+    tt_sorted['s_end'] = tt_sorted['s_start'] + tt_sorted['length']
+
+    tt_sorted['ds_upstream'] = 0 * tt_sorted['s_start']
+    tt_sorted['ds_upstream'][1:] = tt_sorted['s_start'][1:] - tt_sorted['s_end'][:-1]
+    tt_sorted['ds_upstream'][0] = tt_sorted['s_start'][0]
+    tt_sorted['s'] = tt_sorted['s_start']
 
     return tt_sorted
 
@@ -617,7 +1051,7 @@ def _generate_element_names_with_drifts(env, tt_sorted, s_tol=1e-10):
 
     names_with_drifts = []
     # Create drifts
-    for ii, nn in enumerate(tt_sorted.name):
+    for ii, nn in enumerate(tt_sorted.env_name):
         ds_upstream = tt_sorted['ds_upstream', ii]
         if np.abs(ds_upstream) > s_tol:
             assert ds_upstream > 0, f'Negative drift length: {ds_upstream}, upstream of {nn}'
@@ -627,17 +1061,6 @@ def _generate_element_names_with_drifts(env, tt_sorted, s_tol=1e-10):
         names_with_drifts.append(nn)
 
     return list(map(str, names_with_drifts))
-
-def handle_s_places(seq, env, refer: ReferType = 'centre'):
-
-    if np.array([isinstance(ss, str) for ss in seq]).all():
-        return [str(ss) for ss in seq]
-
-    seq_all_places = _all_places(seq)
-    tab_sorted = _resolve_s_positions(seq_all_places, env, refer=refer)
-    names = _generate_element_names_with_drifts(env, tab_sorted)
-
-    return names
 
 def _parse_kwargs(cls, kwargs, _eval):
     ref_kwargs = {}
@@ -668,7 +1091,7 @@ def _parse_kwargs(cls, kwargs, _eval):
             ref_kwargs[kk] = ref_vv
             value_kwargs[kk] = value_vv
         elif (isinstance(kwargs[kk], str) and hasattr(cls, '_xofields')
-            and kk in cls._xofields and cls._xofields[kk].__name__ != 'String'):
+            and (kk not in cls._xofields or cls._xofields[kk].__name__ != 'String')):
             ref_kwargs[kk] = _eval(kwargs[kk])
             if hasattr(ref_kwargs[kk], '_value'):
                 value_kwargs[kk] = ref_kwargs[kk]._value
@@ -798,7 +1221,7 @@ def _handle_bend_kwargs(kwargs, _eval, env=None, name=None):
 
 
 class Builder:
-    def __init__(self, env, components=None, name=None, refer: ReferType = 'centre'):
+    def __init__(self, env, components=None, name=None, refer: ReferType = 'center'):
         self.env = env
         self.components = components or []
         self.name = name
@@ -807,15 +1230,16 @@ class Builder:
     def __repr__(self):
         return f'Builder({self.name}, components={self.components!r})'
 
-    def new(self, name, cls, at=None, from_=None, extra=None, **kwargs):
+    def new(self, name, cls, at=None, from_=None, extra=None, force=False,
+            **kwargs):
         out = self.env.new(
-            name, cls, at=at, from_=from_, extra=extra, **kwargs)
+            name, cls, at=at, from_=from_, extra=extra, force=force, **kwargs)
         self.components.append(out)
         return out
 
-    def place(self, name, at=None, from_=None, anchor=None, from_anchor=None):
-        out = self.env.place(
-            name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
+    def place(self, name, obj=None, at=None, from_=None, anchor=None, from_anchor=None):
+        out = self.env.place(name=name, obj=obj, at=at, from_=from_,
+                             anchor=anchor, from_anchor=from_anchor)
         self.components.append(out)
         return out
 
@@ -871,3 +1295,15 @@ def get_environment(verbose=False):
         if verbose:
             print('Creating new environment')
         return Environment()
+
+def _argsort_s(seq, tol=10e-10):
+    """Argsort, but with a tolerance; `sorted` is stable."""
+    seq_indices = np.arange(len(seq))
+
+    def comparator(i, j):
+        a, b = seq[i], seq[j]
+        if np.abs(a - b) < tol:
+            return 0
+        return -1 if a < b else 1
+
+    return sorted(seq_indices, key=cmp_to_key(comparator))

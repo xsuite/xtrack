@@ -368,8 +368,8 @@ def test_mad_elements_import():
               )
 
     # Beam
-    mad.input("""
-    beam, particle=proton, gamma=1.05, sequence=testseq;
+    mad.input(f"""
+    beam, particle=ion, gamma=1.05, mass={xt.PROTON_MASS_EV / 1e9}, sequence=testseq;
     """)
 
     mad.use('testseq')
@@ -533,7 +533,7 @@ def test_selective_expr_import_and_replace_in_expr():
 
 
 def test_load_madx_optics_file():
-    collider = xt.Multiline.from_json(
+    collider = xt.Environment.from_json(
         test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers()
 

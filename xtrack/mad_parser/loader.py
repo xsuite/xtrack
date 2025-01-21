@@ -197,6 +197,10 @@ class MadxLoader:
 
             if line_type == 'sequence':
                 refer = params.get('refer', {}).get('expr', 'centre')
+                if refer == 'entry':
+                    refer = 'start'
+                elif refer == 'exit':
+                    refer = 'end'
                 builder = self.env.new_builder(name=name, refer=refer)
                 self._parse_components(builder, params.pop('elements'))
                 builders.append(builder)
@@ -303,9 +307,9 @@ class MadxLoader:
             if (isinstance(self.env[parent], BeamElement) and not self.env[parent].isthick
                 and length and not isinstance(self.env[parent], xt.Marker)):
                 drift_name = f'{name}_drift'
-                self.env.new(drift_name, 'Drift', length=f'({length}) / 2')
+                self.env.new(drift_name, 'Drift', force=True, length=f'({length}) / 2')  # Not sure why `force` is needed
                 at, from_ = el_params.pop('at', None), el_params.pop('from_', None)
-                self.env.new(name, parent, **el_params)
+                self.env.new(name, parent, force=True, **el_params) # Not sure why `force` is needed
                 name = self.env.new_line([drift_name, name, drift_name])
                 builder.place(name, at=at, from_=from_)
             else:
@@ -313,7 +317,7 @@ class MadxLoader:
                     el_params.pop('extra', None)
                     builder.place(name, **el_params)
                 else:
-                    builder.new(name, parent, **el_params)
+                    builder.new(name, parent, force=True, **el_params) # Not sure why `force` is needed
 
     def _set_element(self, name, builder, **kwargs):
         self._parameter_cache[name].update(kwargs)

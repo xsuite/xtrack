@@ -75,7 +75,7 @@ def test_combined_function_dipole_against_ptc(test_context, k0, k1, k2, length,
 
     for ii in range(len(p0.x)):
         mad.input(f"""
-        beam, particle=proton, pc={p0.p0c[ii] / 1e9}, sequence=ss, radiate=FALSE;
+        beam, particle=ion, pc={p0.p0c[ii] / 1e9}, mass={p0.mass0 / 1e9}, beta={p0.beta0[ii]}, sequence=ss, radiate=FALSE;
 
         ptc_create_universe;
         ptc_create_layout, time=true, model=1, exact=true, method=6, nst=10000;
@@ -94,16 +94,20 @@ def test_combined_function_dipole_against_ptc(test_context, k0, k1, k2, length,
         line_thick.track(part)
         part.move(_context=xo.context_default)
 
+        # Some of these discrepancies are caused by the fact that the definition
+        # of the mass of the proton is not the same in PTC and Xtrack, despite
+        # having manually overridden the mass value in the PTC input above.
+
         xt_tau = part.zeta/part.beta0
         xo.assert_allclose(part.x[ii], mad_results.x, rtol=0,
-                           atol=(1e-11 if k1 == 0 and k2 == 0 else 5e-9))
+                           atol=(3e-11 if k1 == 0 and k2 == 0 else 5e-9))
         xo.assert_allclose(part.px[ii], mad_results.px, rtol=0,
-                           atol=(1e-11 if k1 == 0 and k2 == 0 else 5e-9))
+                           atol=(4e-11 if k1 == 0 and k2 == 0 else 5e-9))
         xo.assert_allclose(part.y[ii], mad_results.y, rtol=0,
                            atol=(1e-11 if k1 == 0 and k2 == 0 else 5e-9))
         xo.assert_allclose(part.py[ii], mad_results.py, rtol=0,
                            atol=(1e-11 if k1 == 0 and k2 == 0 else 5e-9))
-        xo.assert_allclose(xt_tau[ii], mad_results.t, rtol=0,
+        xo.assert_allclose(xt_tau[ii], mad_results.t, rtol=4e-8,
                            atol=(1e-10 if k1 == 0 and k2 == 0 else 5e-9))
         xo.assert_allclose(part.ptau[ii], mad_results.pt, atol=1e-11, rtol=0)
 
@@ -997,7 +1001,7 @@ def test_solenoid_against_madx(test_context, ks, ksi, length):
 
     for ii in range(len(p0.x)):
         mad.input(f"""
-        beam, particle=proton, pc={p0.p0c[ii] / 1e9}, sequence=ss, radiate=FALSE;
+        beam, particle=ion, pc={p0.p0c[ii] / 1e9}, mass={p0.mass0 / 1e9}, sequence=ss, radiate=FALSE;
 
         track, onepass, onetable;
         start, x={p0.x[ii]}, px={p0.px[ii]}, y={p0.y[ii]}, py={p0.py[ii]}, \

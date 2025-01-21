@@ -12,10 +12,10 @@ fname = 'fccee_t'; gemitt_y_target = 2e-12; n_turns_track_test = 600
 line = xt.Line.from_json(fname + '_thin.json')
 
 # Add monitor in a dispersion-free place out of crab waist
-monitor_at = 'qrdr2.3_entry'
+monitor_at = 'qrdr2.3_entry@start'
 monitor = xt.ParticlesMonitor(num_particles=num_particles_test,
                               start_at_turn=0, stop_at_turn=n_turns_track_test)
-line.insert_element(element=monitor, name='monitor', index=monitor_at)
+line.insert('monitor', monitor, at='qrdr2.3_entry@start')
 
 line.build_tracker()
 
@@ -58,7 +58,7 @@ line.discard_tracker()
 line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'), use_prebuilt_kernels=False)
 
 line.track(p, num_turns=n_turns_track_test, turn_by_turn_monitor=True, time=True,
-           with_progress=True)
+           with_progress=10)
 mon_at_start = line.record_last_track
 print(f'Tracking time: {line.time_last_track}')
 
@@ -68,7 +68,7 @@ import matplotlib.pyplot as plt
 plt.close('all')
 for ii, (mon, element_mon, label) in enumerate(
                             [(mon_at_start, 0, 'inside crab waist'),
-                             (monitor, monitor_at, 'outside crab waist')
+                             (monitor, 'monitor', 'outside crab waist')
                              ]):
 
     betx = tw_rad['betx', element_mon]

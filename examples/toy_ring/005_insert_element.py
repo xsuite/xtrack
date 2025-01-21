@@ -62,15 +62,15 @@ tab.show()
 my_sext = xt.Sextupole(length=0.1, k2=0.1)
 # Insert copies of the defined sextupole downstream of the quadrupoles
 line.discard_tracker() # needed to modify the line structure
-line.insert_element('msf.1', my_sext.copy(), at_s=tab['s', 'mqf.1'] + 0.4)
-line.insert_element('msd.1', my_sext.copy(), at_s=tab['s', 'mqd.1'] + 0.4)
-line.insert_element('msf.2', my_sext.copy(), at_s=tab['s', 'mqf.2'] + 0.4)
-line.insert_element('msd.2', my_sext.copy(), at_s=tab['s', 'mqd.2'] + 0.4)
+line.insert('msf.1', my_sext.copy(), anchor='start', at='mqf.1@end')
+line.insert('msd.1', my_sext.copy(), anchor='start', at='mqd.1@end')
+line.insert('msf.2', my_sext.copy(), anchor='start', at='mqf.2@end')
+line.insert('msd.2', my_sext.copy(), anchor='start', at='mqd.2@end')
 
 # Define a rectangular aperture
 my_aper = xt.LimitRect(min_x=-0.02, max_x=0.02, min_y=-0.01, max_y=0.01)
 # Insert the aperture upstream of the first bending magnet
-line.insert_element('aper', my_aper, index='mb1.1')
+line.insert('aper', my_aper, at='mb1.1@start')
 
 line.get_table().show()
 # prints:

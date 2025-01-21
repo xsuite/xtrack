@@ -25,13 +25,13 @@ def test_multiline_metadata(test_context):
     )
 
     # Build the collider with the default constructor
-    collider = xt.Multiline(
+    collider = xt.Environment(
         lines={'lhcb1': input_line.copy(), 'lhcb1_co_ref': input_line_co_ref.copy()}
     )
     collider['lhcb1_co_ref'].particle_ref = collider['lhcb1'].particle_ref.copy()
-    
+
     # Test the dump and load into/from dictionnary without metadata
-    collider = xt.Multiline.from_dict(collider.to_dict())
+    collider = xt.Environment.from_dict(collider.to_dict())
 
     # Add metadata
     collider.metadata = {
@@ -45,7 +45,7 @@ def test_multiline_metadata(test_context):
     }
 
     # Test the dump and load into/from dictionnary with metadata
-    collider_copy = xt.Multiline.from_dict(collider.to_dict())
+    collider_copy = xt.Environment.from_dict(collider.to_dict())
     
     # Assert that both metadata are still identical
     assert collider.metadata == collider_copy.metadata

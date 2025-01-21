@@ -351,7 +351,7 @@ def test_to_pandas():
 
     assert tuple(df.columns) == (
         's', 'element_type', 'name', 'isthick', 'isreplica', 'parent_name',
-       'iscollective', 'element')
+       'iscollective', 'element', 's_start', 's_center', 's_end')
     assert len(df) == 4
 
 def test_check_aperture():
@@ -773,10 +773,11 @@ def test_pickle():
 
     line.discard_tracker()
 
-    collider = xt.Multiline(lines={'lhcb1': line})
+    collider = xt.Environment(lines={'lhcb1': line})
     collider.build_trackers()
 
     colliderss = pickle.dumps(collider)
+
     coll = pickle.loads(colliderss)
 
     collider.vars['on_x1'] = 234
@@ -1053,7 +1054,7 @@ def test_multiple_thick_elements():
 
 @for_all_test_contexts
 def test_get_strengths(test_context):
-    collider = xt.Multiline.from_json(
+    collider = xt.Environment.from_json(
         test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers(_context=test_context)
 
@@ -1102,7 +1103,8 @@ def test_line_table_unique_names():
         element_names= ["obm","obm"]
     )
     table = line.get_table()
-    assert np.all(np.unique_counts(table.name).counts == 1), "Not all elements are unique"
+    names, counts = np.unique(table.name, return_counts=True, equal_nan=False)
+    assert np.all(counts == 1), "Not all elements are unique"
     for name, env_name in zip(table.name, table.env_name):
         if name == '_end_point': continue
         assert line[name] == line[env_name]

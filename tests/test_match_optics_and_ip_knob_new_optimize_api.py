@@ -12,7 +12,7 @@ test_data_folder = pathlib.Path(
 @for_all_test_contexts
 def test_ip_knob_matching_new_optimize_api(test_context):
 
-    collider = xt.Multiline.from_json(test_data_folder /
+    collider = xt.Environment.from_json(test_data_folder /
                     'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers(test_context)
 
@@ -57,7 +57,7 @@ def test_ip_knob_matching_new_optimize_api(test_context):
     xo.assert_allclose(collider.vars.vary_default['acbyhs5.r8b2']['limits'][1], limitmcbc, atol=1e-17, rtol=0)
 
     # Check that they are preserved by to_dict/from_dict
-    collider = xt.Multiline.from_dict(collider.to_dict())
+    collider = xt.Environment.from_dict(collider.to_dict())
     collider.build_trackers()
 
     xo.assert_allclose(collider.vars.vary_default['acbxh1.l8']['step'], 1.0e-15, atol=1e-17, rtol=0)
@@ -329,7 +329,7 @@ def test_ip_knob_matching_new_optimize_api(test_context):
 @for_all_test_contexts
 def test_match_ir8_optics_new_optimize_api(test_context):
 
-    collider = xt.Multiline.from_json(test_data_folder /
+    collider = xt.Environment.from_json(test_data_folder /
                     'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers(test_context)
 

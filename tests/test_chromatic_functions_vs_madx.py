@@ -14,7 +14,7 @@ import numpy as np
 @for_all_test_contexts
 def test_chromatic_functions_vs_madx(test_context):
 
-    collider = xt.Multiline.from_json(test_data_folder /
+    collider = xt.Environment.from_json(test_data_folder /
                                 'hllhc15_thick/hllhc15_collider_thick.json')
     collider['lhcb1'].twiss_default['method'] = '4d'
     collider['lhcb2'].twiss_default['method'] = '4d'

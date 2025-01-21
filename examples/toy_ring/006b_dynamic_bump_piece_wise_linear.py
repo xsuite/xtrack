@@ -97,7 +97,7 @@ monitor = xt.ParticlesMonitor(num_particles=num_particles,
                               start_at_turn=0,
                               stop_at_turn =num_turns)
 line.discard_tracker()
-line.insert_element('monitor', monitor, index='bumper_1')
+line.insert('monitor', monitor, at='bumper_1@start')
 line.build_tracker()
 
 # Generate particles

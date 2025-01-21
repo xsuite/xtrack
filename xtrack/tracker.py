@@ -1470,7 +1470,7 @@ class Tracker:
 
             if self.line.energy_program is not None:
                 p0c = self.line.particle_ref._xobject.p0c[0]
-                particles.update_p0c_and_energy_deviations(p0c)
+                particles.update_p0c_and_energy_deviations(p0c, update_pxpy=True)
 
     def _handle_log(self, _session_to_resume, particles, log):
         if _session_to_resume is not None:

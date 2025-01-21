@@ -5,13 +5,19 @@ from scipy.constants import c as clight
 from scipy.constants import e as qe
 
 line = xt.Line.from_json('fccee_z_with_sol_corrected.json')
+n_turns_track_test = 6000
+num_particles_test = 150
+
+# line = xt.Line.from_json('fccee_t_with_sol_corrected.json')
+# n_turns_track_test = 200
+# num_particles_test = 200
+
 tw_no_rad = line.twiss(method='4d')
 line.configure_radiation(model='mean')
 tt = line.get_table(attr=True)
 
 line.vars['on_corr_ip.1'] = 1
 line.vars['on_sol_ip.1'] = 1
-
 
 # # Radiation only in solenoid
 # ttmult = tt.rows[tt.element_type == 'Multipole']
@@ -63,9 +69,6 @@ beam_sizes = tw_rad.get_beam_covariance(
     gemitt_x=tw_rad.eq_gemitt_x, gemitt_y=tw_rad.eq_gemitt_y,
     gemitt_zeta=tw_rad.eq_gemitt_zeta)
 
-num_particles_test = 200
-n_turns_track_test = 200
-
 line.configure_radiation(model='quantum')
 p = line.build_particles(num_particles=num_particles_test)
 
@@ -86,7 +89,8 @@ hh = np.sqrt(np.diff(twe.px, append=0)**2 + np.diff(twe.py, append=0)**2)
 dl = np.diff(twe.s, append=line.get_length())
 gamma0 = line.particle_ref.gamma0[0]
 
-dyprime = twe.dpy*(1 - twe.delta) - twe.py
+# dyprime = twe.dpy*(1 - twe.delta) - twe.py # This is wrong!!!!!
+dyprime = twe.dpy*(1 - twe.delta) - twe.kin_py
 
 cur_H_y = twe.gamy * twe.dy**2 + 2 * twe.alfy * twe.dy * dyprime + twe.bety * dyprime**2
 I5_y  = np.sum(cur_H_y * hh**3 * dl)
@@ -95,6 +99,10 @@ I4_y = np.sum(twe.dy * hh**3 * dl) # to be generalized for combined function mag
 
 lam_comp = 2.436e-12 # [m]
 ey_hof = 55 * np.sqrt(3) / 96 * lam_comp / 2 / np.pi * gamma0**2 * I5_y / (I2_y - I4_y)
+
+beam_sizes_hof = tw_rad.get_beam_covariance(
+    gemitt_x=tw_rad.eq_gemitt_x, gemitt_y=ey_hof,
+    gemitt_zeta=tw_rad.eq_gemitt_zeta)
 
 # Plots
 import matplotlib.pyplot as plt
@@ -115,6 +123,7 @@ spx.set_ylim(bottom=0)
 spy = fig. add_subplot(3, 1, 2, sharex=spx)
 spy.plot(1e9 * np.std(mon.y, axis=0), label='track')
 spy.axhline(1e9 * beam_sizes['sigma_y', 'ip.1'], color='red', label='twiss')
+spy.axhline(1e9 * beam_sizes_hof['sigma_y', 'ip.1'], color='red', label='twiss')
 spy.set_ylabel(r'$\sigma_{y}$ [nm]')
 spy.set_ylim(bottom=0)
 

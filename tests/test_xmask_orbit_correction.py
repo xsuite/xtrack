@@ -145,16 +145,15 @@ def test_orbit_correction(test_context):
         expressions_for_element_types=('kicker', 'hkicker', 'vkicker'),
     )
 
-    collider = xt.Multiline(
-        lines={'lhcb1': input_line.copy(),
-               'lhcb1_co_ref': input_line_co_ref.copy()})
+    collider = xt.Environment(lines={'lhcb1': input_line.copy()})
+    collider.import_line(line_name='lhcb1_co_ref', line=input_line_co_ref.copy())
     collider['lhcb1_co_ref'].particle_ref = collider['lhcb1'].particle_ref.copy()
     collider.build_trackers(_context=test_context)
 
     # Wipe out orbit correction from pymask
-    for kk in collider._var_sharing.data['var_values']:
-        if kk.startswith('corr_acb'):
-            collider.vars[kk] = 0
+    tt_corr = collider.vars.get_table().rows['corr_acb.*']
+    for kk in tt_corr.name:
+        collider.vars[kk] = 0
 
     collider.vars['on_x1'] = 0
     collider.vars['on_x2'] = 0

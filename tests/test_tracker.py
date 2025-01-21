@@ -436,7 +436,7 @@ def test_tracker_config(test_context):
 def test_optimize_for_tracking(test_context, multiline):
 
     if multiline:
-        mline = xt.Multiline.from_json(test_data_folder /
+        mline = xt.Environment.from_json(test_data_folder /
                          "hllhc15_collider/collider_00_from_mad.json")
         line = mline['lhcb1']
         line.particle_ref = xp.Particles(p0c=7000e9)

@@ -8,11 +8,17 @@ tt = line.get_table()
 
 tt_entry_quads = tt.rows['q.*\.\.0']
 
+insertions = []
+line.env.new('corrector', xt.Multipole, knl=[0])
 for ii, name_quad in enumerate(tt_entry_quads.name):
     if ii%20 == 0:
         print(f'Processing {ii}/{len(tt_entry_quads)}')
-    line.insert_element(f'bpm_{ii}', xt.Marker(), at=name_quad)
-    line.insert_element(f'corrector_{ii}', xt.Multipole(knl=[0]), at=name_quad)
+    insertions.append(line.env.new(f'bpm_{ii}', xt.Marker, at=name_quad+'@start'))
+    insertions.append(line.env.new(f'corrector_{ii}', 'corrector')) # after bpm
+t1 = time.time()
+line.insert(insertions)
+t2 = time.time()
+print(f't_insert = {t2-t1:.2f} s')
 
 tt = line.get_table()
 tt_bpm = tt.rows['bpm.*']

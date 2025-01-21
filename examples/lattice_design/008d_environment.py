@@ -81,6 +81,24 @@ env['mq'].get_info('length')
 #
 #  element_refs['mq'].length does not influence any target
 
+# It is also possible to add to the environment elements that are instantiated by
+# the user:
+mysext = xt.Sextupole(length=1.0, k2=0.1)
+env.elements['ms'] = mysext
+
+env['ms'] # accesses the sextupole
+env.info('ms')
+
+# prints:
+# Element of type:  Sextupole
+# k2                  0.1                                     None
+# k2s                 0.0                                     None
+# length              1.0                                     None
+# order               5                                       None
+# inv_factorial_order 0.008333333333333333                    None
+# knl                 [0. 0. 0. 0. 0. 0.]                     None
+# ...
+
 #########
 # Lines #
 #########
@@ -92,7 +110,7 @@ line1 = env.new_line(
 
 line2 = env.new_line(
     name='l2', components=[
-        env.new('dd', xt.Drift, length=10),
+        env.place('dd'), # place already created elements
         env.new('ip', xt.Marker)])
 
 env['l1'] # accesses the first line

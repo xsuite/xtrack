@@ -8,6 +8,7 @@ import json
 import logging
 from collections import defaultdict
 from weakref import WeakSet
+from collections.abc import Iterable
 
 from contextlib import contextmanager
 from copy import deepcopy
@@ -60,7 +61,8 @@ _ALLOWED_ELEMENT_TYPES_IN_NEW = [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole,
                                  xt.Octupole, xt.Cavity, xt.Multipole, xt.Solenoid,
                                  xt.Marker, xt.Replica, xt.XYShift, xt.XRotation,
                                  xt.YRotation, xt.SRotation, xt.LimitRacetrack,
-                                 xt.LimitRectEllipse, xt.LimitRect, xt.LimitEllipse]
+                                 xt.LimitRectEllipse, xt.LimitRect, xt.LimitEllipse,
+                                 xt.RFMultipole]
 
 _ALLOWED_ELEMENT_TYPES_DICT = {'Drift': xt.Drift, 'Bend': xt.Bend,
                                'Quadrupole': xt.Quadrupole, 'Sextupole': xt.Sextupole,
@@ -71,7 +73,8 @@ _ALLOWED_ELEMENT_TYPES_DICT = {'Drift': xt.Drift, 'Bend': xt.Bend,
                                'LimitRectEllipse': xt.LimitRectEllipse,
                                'LimitRect': xt.LimitRect, 'LimitEllipse': xt.LimitEllipse,
                                'XYShift': xt.XYShift, 'XRotation': xt.XRotation,
-                               'YRotation': xt.YRotation, 'SRotation': xt.SRotation}
+                               'YRotation': xt.YRotation, 'SRotation': xt.SRotation,
+                               'RFMultipole': xt.RFMultipole}
 
 _STR_ALLOWED_ELEMENT_TYPES_IN_NEW = ', '.join([tt.__name__ for tt in _ALLOWED_ELEMENT_TYPES_IN_NEW])
 
@@ -104,7 +107,7 @@ class Line:
     config = None
 
     def __init__(self, elements=(), element_names=None, particle_ref=None,
-                 energy_program=None):
+                 energy_program=None, env=None):
         """
         Parameters
         ----------
@@ -121,6 +124,10 @@ class Line:
             and matching.
         energy_program: EnergyProgram
             (optional) Energy program used to update the reference energy during the tracking.
+        env : Environment
+            Environment object to which the line belongs. If not provided, a new
+            environment is created.
+
         """
 
         self.config = xt.tracker.TrackerConfig()
@@ -149,6 +156,17 @@ class Line:
         self._extra_config['steering_correctors_x'] = None
         self._extra_config['steering_correctors_y'] = None
 
+        if env is None:
+            env = xt.Environment()
+
+        self.env = env
+        self._element_dict = env.element_dict # Avoid copying (the property setter would do that)
+        self._var_management = env._var_management
+        self.env._lines_weakrefs.add(self)
+
+        if particle_ref is None:
+            particle_ref = env.particle_ref
+
         if isinstance(elements, dict):
             element_dict = elements
             if element_names is None:
@@ -162,7 +180,7 @@ class Line:
             )
             element_dict = dict(zip(element_names, elements))
 
-        self.element_dict = element_dict.copy()  # avoid modifications if user provided
+        self.element_dict.update(element_dict)
         self.element_names = list(element_names).copy()
 
         self.particle_ref = particle_ref
@@ -170,7 +188,6 @@ class Line:
         if energy_program is not None:
             self.energy_program = energy_program # setter will take care of completing
 
-        self._init_var_management()
         self.tracker = None
 
         self.metadata = {}
@@ -180,7 +197,8 @@ class Line:
         self.ref = xt.environment.EnvRef(self)
 
     @classmethod
-    def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
+    def from_dict(cls, dct, _context=None, _buffer=None, classes=(),
+                  env=None, verbose=True):
 
         """
         Create a Line object from a dictionary.
@@ -210,7 +228,9 @@ class Line:
 
         _buffer = xo.get_a_buffer(context=_context, buffer=_buffer,size=8)
 
-        if isinstance(dct['elements'], dict):
+        if env is not None:
+            elements = env.element_dict
+        elif isinstance(dct['elements'], dict):
             elements = {}
             for ii, (kk, ee) in enumerate(
                     progress(dct['elements'].items(), desc='Loading line from dict')):
@@ -223,13 +243,18 @@ class Line:
         else:
             raise ValueError('Field `elements` must be a dict or a list')
 
-        self = cls(elements=elements, element_names=dct['element_names'])
+        element_names = dct.get('element_names', [])
+        self = cls(elements=elements, element_names=element_names)
 
         if 'particle_ref' in dct.keys():
             self.particle_ref = xt.Particles.from_dict(dct['particle_ref'],
                                     _context=_buffer.context)
 
-        if '_var_manager' in dct.keys():
+        if env is not None:
+            self.env = env
+            self._var_management = env._var_management
+            self._element_dict = env.element_dict # __init__ makes a copy of the dict
+        elif '_var_manager' in dct.keys():
             # reinit env and var management
             self.env = None
             self._var_management = None
@@ -251,7 +276,8 @@ class Line:
              and self.element_dict['energy_program'] is not None):
             self.energy_program.line = self
 
-        _print('Done loading line from dict.           ')
+        if verbose:
+            _print('Done loading line from dict.           ')
 
         return self
 
@@ -539,7 +565,7 @@ class Line:
         line = loader.make_line()
         return line
 
-    def to_dict(self, include_var_management=True):
+    def to_dict(self, include_var_management=True, include_element_dict=True):
 
         '''
         Returns a dictionary representation of the line.
@@ -557,7 +583,8 @@ class Line:
         '''
 
         out = {}
-        out["elements"] = {k: el.to_dict() for k, el in self.element_dict.items()}
+        if include_element_dict:
+            out["elements"] = {k: el.to_dict() for k, el in self.element_dict.items()}
         out["element_names"] = self.element_names[:]
         out['config'] = self.config.data.copy()
         out['_extra_config'] = self._extra_config.copy()
@@ -658,6 +685,10 @@ class Line:
 
         elements = list(self.elements)
         s_elements = np.array(list(self.get_s_elements()) + [self.get_length()])
+        length_elements = np.diff(s_elements, append=s_elements[-1]) # only think elements have length here
+        s_start = s_elements
+        s_end = s_elements + length_elements
+        s_center = s_start + 0.5 * length_elements
 
         isthick = []
         iscollective = []
@@ -694,7 +725,10 @@ class Line:
             'isreplica': isreplica,
             'parent_name': parent_name,
             'iscollective': iscollective,
-            'element': elements
+            'element': elements,
+            's_start': s_start,
+            's_center': s_center,
+            's_end': s_end,
         }
 
         return out
@@ -765,12 +799,16 @@ class Line:
             True: 'reverse', False: 'proper'}[reverse]
         return tab
 
-    def copy(self, _context=None, _buffer=None):
+    def copy(self, shallow=False, _context=None, _buffer=None):
         '''
         Return a copy of the line.
 
         Parameters
         ----------
+        shallow : bool, optional
+            If False (default), a deep copy is returned.
+            If True, a shallow copy is returned, i.e. the line is plced in the
+            same environment and shares variables and elements with the original.
         _context: xobjects.Context
             xobjects context to be used for the copy
         _buffer: xobjects.Buffer
@@ -797,6 +835,7 @@ class Line:
             out.env = None
             out._var_management = None
             out._init_var_management(dct=self._var_management_to_dict())
+            out._env_if_needed()
 
         out.config.update(self.config.copy())
         out._extra_config.update(self._extra_config.copy())
@@ -2070,8 +2109,9 @@ class Line:
         """
         cuts_for_element = defaultdict(list)
 
-        all_s_positions = self.get_s_elements()
-        all_s_iter = iter(zip(all_s_positions, self.element_names))
+        tt = self.get_table()
+        all_s_positions = tt.s
+        all_s_iter = iter(zip(all_s_positions, tt.name))
         current_s_iter = iter(sorted(set(s)))
 
         try:
@@ -2110,7 +2150,7 @@ class Line:
 
         return cuts_for_element
 
-    def cut_at_s(self, s: List[float], s_tol=1e-6):
+    def cut_at_s(self, s: List[float], s_tol=1e-6, return_slices=False):
         """Slice the line so that positions in s never fall inside an element."""
 
         if self._has_valid_tracker():
@@ -2125,13 +2165,344 @@ class Line:
             strategies.append(strategy)
 
         slicer = Slicer(self, slicing_strategies=strategies)
-        slicer.slice_in_place()
+        slices = slicer.slice_in_place()
+
+        if return_slices:
+            return slices
+
+    def append(self, what, obj=None):
+
+        """
+        Append elements to the line.
+
+        Parameters
+        ----------
+        what : str, Line or Iterable
+            Element(s) to be appended. Can be a list of `Place` objects specifying
+            the location of each insertion.
+        obj : object (optional)
+            Object to be appended (if not already present in the environment).
+            It can be specified only when `what` is a string.
+
+        Examples
+        --------
+
+        .. code-block:: python
+
+            ## Appending elements from the environment
+
+            # Create a set of new elements to be placed
+            env.new('s1', xt.Sextupole, length=0.1, k2=0.2)
+            env.new('s2', xt.Sextupole, length=0.1, k2=-0.2)
+            env.new('m1', xt.Marker)
+            env.new('m2', xt.Marker)
+            env.new('m3', xt.Marker)
+
+            # Insert the new elements in the line
+            line.append(['m1', 's1', 'm2', 's2', 'm3'])
+
+        .. code-block:: python
+
+            ## Appending elements instantiated by the user using the class
+            ## constructor
+
+            myoct = xt.Octupole(length=0.1, k3=0.3)
+            line.append('o1', myoct)
+
+        """
+
+        self._frozen_check()
+
+        if not isinstance(what, (str, xt.Line, Iterable)):
+            raise ValueError('The appended object must be defined by a string or Line.')
+
+        if obj is not None:
+            assert isinstance(what, str)
+            self.env.element_dict[what] = obj
+
+        if not isinstance(what, Iterable) or isinstance(what, str):
+            what = [what]
+
+        for item in what:
+            if item.__class__.__name__.startswith('Place'):
+                raise ValueError('Cannot append a Place object')
+
+        ln_to_append = self.env.new_line(components = what)
+        ln_extended = self + ln_to_append
+
+        self.element_names.clear()
+        self.element_names.extend(ln_extended.element_names)
+
+    def insert(self, what, obj=None, at=None, from_=None, anchor=None,
+               from_anchor=None, s_tol=1e-10):
+
+        """
+        Insert elements in the line.
+
+        Parameters
+        ----------
+        what : str, Line or Iterable
+            Element(s) to be inserted. Can be a list of `Place` objects specifying
+            the location of each insertion.
+        obj : object (optional)
+            Object to be inserted (if not already present in the environment).
+            It can be specified only when `what` is a string.
+        at : str or float (optional)
+            Location of the insertion (s position). It can be absolute or relative
+            to another element (specified by `from_`).
+        from_ : str (optional)
+            Element with respect to which `at` is defined.
+        anchor : str (optional)
+            Location within the inserted element for which `at` is defined.
+            It can be 'start', 'end' or 'center'. Default is 'center'.
+        from_anchor : str (optional)
+            Location within the element specified by `from_` for which `at` is defined.
+            It can be 'start', 'end' or 'center'. Default is 'center'.
+
+        Example
+        -------
+
+        .. code-block:: python
+
+            ## Insertion of elements from the environment
+
+            # Create a set of new elements to be placed
+            env.new('s1', xt.Sextupole, length=0.1, k2=0.2)
+            env.new('s2', xt.Sextupole, length=0.1, k2=-0.2)
+            env.new('m1', xt.Marker)
+            env.new('m2', xt.Marker)
+            env.new('m3', xt.Marker)
+
+            # Insert the new elements in the line
+            line.insert([
+                env.place('s1', at=5.),
+                env.place('s2', anchor='end', at=-5., from_='start@q1'),
+                env.place(['m1', 'm2'], at='start@m0'),
+                env.place('m3', at='end@m0'),
+                ])
+
+        .. code-block:: python
+
+            ## Insertion of elements instantiated by the user using the class
+            ## constructor
+
+            # Instantiate elements using the class directly
+            mysext =  xt.Sextupole(length=0.1, k2=0.2)
+            myaperture =  xt.LimitEllipse(a=0.01, b=0.02)
+
+            # Insert the element in the line and, contextually, define its name:
+            line.insert('s1', mysext, at=5., from_='q1')
+
+            # Alternatively, add the element to the environment and then do the insertion:
+            env.elements['ap1'] = myaperture
+            line.insert('ap1', at='start@q0')
+
+        """
 
 
+        self._frozen_check()
+        env = self.env
+
+        _all_places = xt.environment._all_places
+        _resolve_s_positions = xt.environment._resolve_s_positions
+        _flatten_components = xt.environment._flatten_components
+        _sort_places = xt.environment._sort_places
+        _generate_element_names_with_drifts = xt.environment._generate_element_names_with_drifts
+
+        need_place_instantiation = False
+        for nn, vv in {'at': at, 'from_': from_, 'anchor': anchor,
+                       'from_anchor': from_anchor}.items():
+            if vv is not None:
+                if (not isinstance(what, (str, xt.Line, Iterable))
+                    and not all(isinstance(item, str) for item in what)):
+                    raise ValueError(f'The inserted object must be defined by a string '
+                                 f'or Line if `{nn}` is provided.')
+                need_place_instantiation = True
+
+        if need_place_instantiation:
+            what = self.env.place(what, obj=obj, at=at, from_=from_, anchor=anchor,
+                                  from_anchor=from_anchor)
+
+        if not isinstance(what, Iterable):
+            what = [what]
+
+        # Resolve s positions of insertions and sort them
+        what = _flatten_components(what)
+        what = _all_places(what)
+        what = [ww.copy() for ww in what]
+
+        tt = self.get_table()
+        line_places = []
+        for nn, enn in zip(tt.name, tt.env_name):
+            if nn == '_end_point':
+                continue
+            line_places.append(env.place(enn, at=tt['s_center', nn]))
+
+        seq_all_places = line_places + what
+        mask_insertions = np.array([pp in what for pp in seq_all_places])
+        tab_all_unsorted = _resolve_s_positions(seq_all_places, env, refer='centre')
+        tab_all_unsorted['is_insertion'] = mask_insertions
+        tab_all_sorted = _sort_places(tab_all_unsorted)
+        tab_insertions = tab_all_sorted.rows[tab_all_sorted.is_insertion]
+
+        # Make cuts
+        s_cuts = list(tab_insertions['s_start']) + list(tab_insertions['s_end'])
+        s_cuts = list(set(s_cuts))
+
+        self.cut_at_s(s_cuts, s_tol=1e-06, return_slices=True)
+
+        tt_after_cut = self.get_table()
+        tt_after_cut['length'] = np.diff(tt_after_cut.s, append=tt_after_cut.s[-1])
+
+        # Identify old elements falling inside the insertions
+        idx_remove = []
+        for ii in range(len(tab_insertions)):
+            s_ins_start = tab_insertions['s_start', ii]
+            s_ins_end = tab_insertions['s_end', ii]
+            entry_is_inside = ((tt_after_cut.s_start >= s_ins_start - s_tol)
+                            & (tt_after_cut.s_start <= s_ins_end - s_tol))
+            exit_is_inside = ((tt_after_cut.s_end >= s_ins_start + s_tol)
+                            & (tt_after_cut.s_end <= s_ins_end + s_tol))
+            thin_at_entry = ((tt_after_cut.s_start >= s_ins_start - s_tol)
+                            & (tt_after_cut.s_end <= s_ins_start + s_tol))
+            thin_at_exit = ((tt_after_cut.s_start >= s_ins_end - s_tol)
+                        & (tt_after_cut.s_end <= s_ins_end + s_tol))
+            remove = (entry_is_inside | exit_is_inside) & (~thin_at_entry) & (~thin_at_exit)
+            idx_remove.extend(list(np.where(remove)[0]))
+
+        mask_keep = np.ones(len(tt_after_cut), dtype=bool)
+        mask_keep[idx_remove] = False
+        tt_keep = tt_after_cut.rows[mask_keep]
+        tt_keep['from_'] = np.array([None] * len(tt_keep))
+        tt_keep['from_anchor'] = np.array([None] * len(tt_keep))
+        assert tt_keep.name[-1] == '_end_point'
+        tt_keep = tt_keep.rows[:-1]
+
+        # Unsorted table with all elements for the new line
+        tab_unsorted_with_insertions = xt.Table.concatenate([tt_keep, tab_insertions])
+
+        # Sort elements
+        tab_sorted = _sort_places(tab_unsorted_with_insertions,
+                                  allow_non_existent_from=True # If from_ is removed s only is conisiderer
+                                                               # (right order comes form previous sorting,
+                                                               # (done before removing elements)
+        )
+        element_names = _generate_element_names_with_drifts(self, tab_sorted)
+
+        # Update line
+        self.element_names.clear()
+        self.element_names.extend(element_names)
+
+    def remove(self, name, s_tol=1e-10):
+
+        """
+        Remove an element from the line. If the element is thick, it is replaced
+        by a drift.
+
+        Parameters
+        ----------
+        name : str
+            Name of the element to be removed.
+        s_tol : float (optional)
+            If the element is shorter than `s_tol`, it is removed without creating
+            a replacement drift. Default is 1e-10.
+
+        """
+
+        self._frozen_check()
+
+        tt_remove = self._name_match(name)
+
+        mask_thick = tt_remove.isthick & (tt_remove.s_end - tt_remove.s_start > s_tol)
+        if mask_thick.any():
+            tt_remove_thick = tt_remove.rows[mask_thick]
+        else:
+            tt_remove_thick = None
+
+        if mask_thick.all():
+            tt_remove_thin = None
+        else:
+            tt_remove_thin = tt_remove.rows[~mask_thick]
+
+        # Replace thick with drifts
+        if tt_remove_thick:
+            for ii in range(len(tt_remove_thick)):
+                ll = tt_remove_thick['s_end', ii] - tt_remove_thick['s_start', ii]
+                idx = tt_remove_thick['idx', ii]
+                new_name = self.env._get_a_drift_name()
+                self.env.new(new_name, 'Drift', length=ll)
+                self.element_names[idx] = new_name
+
+        # Remove thin elements
+        if tt_remove_thin:
+            idx_remove = tt_remove_thin['idx']
+            self.element_names = [nn for ii, nn in enumerate(self.element_names)
+                                if ii not in idx_remove]
+
+    def replace(self, name, new_name, s_tol=1e-10):
+
+        """
+        Replace an element in the line with another element having the same length.
+
+        Parameters
+        ----------
+        name : str
+            Name of the element to be replaced.
+        new_name : str
+            Name of the element to be installed to replace the removed one.
+        s_tol : float (optional)
+            Tolerance for the length of the elements. If the difference in length
+            is larger than `s_tol`, the replacement is not performed and an
+            error is raised.error is raised. Default is 1e-10.
+
+        """
+
+        self._frozen_check()
+
+        tt_replace = self._name_match(name)
+
+        if _is_thick(self.element_dict[new_name], self):
+            l_new = _length(self.element_dict[new_name], self)
+        else:
+            l_new = 0
+
+        for ii in range(len(tt_replace)):
+            l_old = tt_replace['s_end', ii] - tt_replace['s_start', ii]
+            if np.abs(l_old - l_new) > s_tol:
+                raise ValueError(f'Element {name} cannot be replaced by {new_name} '
+                             'because of different lengths.')
+
+        for ii in range(len(tt_replace)):
+            idx = tt_replace['idx', ii]
+            self.element_names[idx] = new_name
+
+    def _name_match(self, name):
+        tt = self.get_table()
+        tt['idx'] = np.arange(len(tt))
+
+        idx_match_name = tt.rows.indices[name]
+        idx_match_env_name = tt.rows.indices[tt.env_name == name]
+        idx_match_rep = list(idx_match_name) + list(idx_match_env_name)
+        idx_match = []
+        for ii in idx_match_rep: # I don't use set to do it in order
+            if ii not in idx_match:
+                idx_match.append(ii)
+
+        if len(idx_match) == 0:
+            raise ValueError(f'Element {name} not found in the line.')
+
+        tt_match = tt.rows[idx_match]
+
+        return tt_match
+
+    # To be deprecated in favor of Line.insert
     def insert_element(self, name, element=None, at=None, index=None, at_s=None,
                        s_tol=1e-6):
 
-        """Insert an element in the line.
+        """
+        NOTE: This method is deprecated. Use `Line.insert` instead.
+
+        Insert an element in the line.
 
         Parameters
         ----------
@@ -2234,7 +2605,10 @@ class Line:
 
     def append_element(self, element, name):
 
-        """Append element to the end of the lattice
+        """
+        NOTE: This method is deprecated. Use `Line.append` instead.
+
+        Append element to the end of the lattice
 
         Parameters
         ----------
@@ -3480,23 +3854,52 @@ class Line:
 
     def replace_replica(self, name):
         name_parent = self.element_dict[name].resolve(self, get_name=True)
-        cls = self.element_dict[name].__class__
-        assert cls in _ALLOWED_ELEMENT_TYPES_IN_NEW, (
-            'Only '
-            + _STR_ALLOWED_ELEMENT_TYPES_IN_NEW
-            + 'elements are allowed in `relace_replica` for now.')
-        self.element_dict[name] = self.element_dict[name_parent].copy()
+        self.copy_element_from(name_parent, self, new_name=name)
+
+    def copy_element_from(self, name, source, new_name=None):
+        """Copy an element from another environment.
+
+        Parameters
+        ----------
+        name: str
+            Name of the element to copy.
+        source: Environment | Line
+            Environment or line where the element is located.
+        new_name: str, optional
+            Rename the element in the new line/environment. If not provided, the
+            element is copied with the same name.
+        """
+        new_name = new_name or name
+        cls = type(source.element_dict[name])
+
+        if cls not in _ALLOWED_ELEMENT_TYPES_IN_NEW + [xt.DipoleEdge]: # No issue in copying DipoleEdge
+                                                                       # while creating it requirese handling properties
+                                                                       # which are strings.
+            raise ValueError(
+                f'Only {_STR_ALLOWED_ELEMENT_TYPES_IN_NEW} elements are '
+                f'allowed in `copy_from_env` for now.'
+            )
+
+        self.element_dict[new_name] = source.element_dict[name].copy()
 
         pars_with_expr = list(
-            self._xdeps_manager.tartasks[self.element_refs[name_parent]].keys())
+            source._xdeps_manager.tartasks[source.element_refs[name]].keys())
+
+        formatter = xd.refs.CompactFormatter(scope=None)
 
         for rr in pars_with_expr:
-            assert isinstance(rr, (xd.refs.AttrRef, xd.refs.ItemRef)), (
-                'Only AttrRef and ItemRef are supported for now')
+            # Assign expressions by string to avoid having to deal with the
+            # fact that they come from a different manager!
+            expr_string = rr._expr._formatted(formatter)
+
             if isinstance(rr, xd.refs.AttrRef):
-                setattr(self.element_refs[name], rr._key, rr._expr)
+                setattr(self[new_name], rr._key, expr_string)
             elif isinstance(rr, xd.refs.ItemRef):
-                getattr(self.element_refs[name], rr._owner._key)[rr._key] = rr._expr
+                getattr(self[new_name], rr._owner._key)[rr._key] = expr_string
+            else:
+                raise ValueError('Only AttrRef and ItemRef are supported for now')
+
+        return new_name
 
     def replace_all_replicas(self):
         for nn in self.element_names:
@@ -5334,7 +5737,8 @@ class EnergyProgram:
     @t_turn_s_line.setter
     def t_turn_s_line(self, value):
         p0c = self.get_p0c_at_t_s(value)
-        self.line.particle_ref.update_p0c_and_energy_deviations(p0c=p0c)
+        self.line.particle_ref.update_p0c_and_energy_deviations(
+                                                    p0c=p0c, update_pxpy=True)
 
     def to_dict(self):
         assert not self.needs_complete, 'EnergyProgram not completed'

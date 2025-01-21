@@ -7,7 +7,7 @@ import xtrack as xt
 # xt._print.suppress = True
 
 # Load the line
-collider = xt.Multiline.from_json(
+collider = xt.Environment.from_json(
     '../../test_data/hllhc15_collider/collider_00_from_mad.json')
 collider.build_trackers()
 

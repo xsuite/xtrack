@@ -7,7 +7,7 @@ from scipy.constants import e as qe
 from cpymad.madx import Madx
 
 fname = 'fccee_z'; pc_gev = 45.6
-# fname = 'fccee_t'; pc_gev = 182.5
+fname = 'fccee_t'; pc_gev = 182.5
 
 # Load from MAD-X
 mad = Madx()
@@ -25,8 +25,6 @@ line.build_tracker()
 
 # Get table with the elements
 tt = line.get_table()
-
-
 
 # Save voltage values
 line.vars['voltca1_ref'] = line.vv['voltca1']
@@ -76,10 +74,8 @@ s_ip = tt['s', ip_sol]
 
 # Install markers at solenoid entry and exit
 line.discard_tracker()
-line.insert_element(name='sol_start_'+ip_sol, element=xt.Marker(),
-                    at_s=s_ip + ds_sol_start)
-line.insert_element(name='sol_end_'+ip_sol, element=xt.Marker(),
-                    at_s=s_ip + ds_sol_end)
+line.insert('sol_start_'+ip_sol, xt.Marker(), at=s_ip + ds_sol_start)
+line.insert('sol_end_'+ip_sol, xt.Marker(), at=s_ip + ds_sol_end)
 
 # Build reference frame transformations at ebtry and exit of solenoid
 sol_start_tilt = xt.YRotation(angle=-theta_tilt * 180 / np.pi)
@@ -120,8 +116,8 @@ line.element_names = element_names
 # re-insert the ip
 line.element_dict.pop(ip_sol)
 tt = line.get_table()
-line.insert_element(name=ip_sol, element=xt.Marker(),
-        at_s = 0.5 * (tt['s', 'sol_start_'+ip_sol] + tt['s', 'sol_end_'+ip_sol]))
+line.insert(ip_sol, xt.Marker(),
+        at = 0.5 * (tt['s', 'sol_start_'+ip_sol] + tt['s', 'sol_end_'+ip_sol]))
 
 line.build_tracker()
 
@@ -211,14 +207,10 @@ line.discard_tracker()
 line.slice_thick_elements(slicing_strategies=slicing_strategies)
 
 # Add dipole correctors
-line.insert_element(name='mcb1.r1', element=xt.Multipole(knl=[0]),
-                    at='qc1r1.1_exit')
-line.insert_element(name='mcb2.r1', element=xt.Multipole(knl=[0]),
-                    at='qc1r2.1_exit')
-line.insert_element(name='mcb1.l1', element=xt.Multipole(knl=[0]),
-                    at='qc1l1.4_entry')
-line.insert_element(name='mcb2.l1', element=xt.Multipole(knl=[0]),
-                    at='qc1l2.4_entry')
+line.insert('mcb1.r1', xt.Multipole(knl=[0]), at='qc1r1.1_exit@start')
+line.insert('mcb2.r1', xt.Multipole(knl=[0]), at='qc1r2.1_exit@start')
+line.insert('mcb1.l1', xt.Multipole(knl=[0]), at='qc1l1.4_entry@start')
+line.insert('mcb2.l1', xt.Multipole(knl=[0]), at='qc1l2.4_entry@start')
 
 line.vars['acb1h.r1'] = 0
 line.vars['acb1v.r1'] = 0
@@ -237,8 +229,6 @@ line.element_refs['mcb1.l1'].knl[0] = line.vars['on_corr_ip.1']*line.vars['acb1h
 line.element_refs['mcb2.l1'].knl[0] = line.vars['on_corr_ip.1']*line.vars['acb2h.l1']
 line.element_refs['mcb1.l1'].ksl[0] = line.vars['on_corr_ip.1']*line.vars['acb1v.l1']
 line.element_refs['mcb2.l1'].ksl[0] = line.vars['on_corr_ip.1']*line.vars['acb2v.l1']
-
-
 
 assert line.element_names[-1] == 'ip.4.l'
 assert line.element_names[0] == 'ip.4'
