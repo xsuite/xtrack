@@ -134,6 +134,9 @@ class SurveyTable(Table):
         out_angle = list(-self.angle[:-1][::-1])
         out_tilt = list(-self.tilt[:-1][::-1])
         out_name = list(self.name[:-1][::-1])
+        out_element_type = list(self.element_type[:-1][::-1])
+        out_isthick = list(self.isthick[:-1][::-1])
+        out_length = list(self.length[:-1][::-1])
 
         if type(element0) is str:
             element0 = out_name.index(element0)
@@ -158,6 +161,9 @@ class SurveyTable(Table):
         out_columns['drift_length'] = np.array(out_drift_length + [0.])
         out_columns['angle'] = np.array(out_angle + [0.])
         out_columns['tilt'] = np.array(out_tilt + [0.])
+        out_columns['element_type'] = np.array(out_element_type + [""])
+        out_columns['isthick'] = np.array(out_isthick + [False])
+        out_columns['length'] = np.array(out_length + [0.])
 
         out_scalars = {}
         out_scalars["element0"] = element0
@@ -189,7 +195,6 @@ class SurveyTable(Table):
 
 
 # ==================================================
-
 # Main function
 # ==================================================
 def survey_from_line(line, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
