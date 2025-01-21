@@ -267,30 +267,27 @@ def test_thick_errors():
         allow_thick=True,
     )
 
-    expected_knl_bend = [-1/30, 2/9, -20/9, 0, 0, 0]
-    xo.assert_allclose(line['bend1'].knl, expected_knl_bend, atol=0, rtol=1e-15)
-    expected_ksl_bend = [-0.05, (2 + 7/9)/10, -2590/999, -1000/9, 0, 0]
-    xo.assert_allclose(line['bend1'].ksl, expected_ksl_bend, atol=0, rtol=1e-15)
+    def error(name, which):
+        field_errors = mad.sequence.seq.expanded_elements[name].field_errors
+        dk = getattr(field_errors, which)
+        return dk[:6]
 
-    expected_knl_quad = [-6/90, 4/9, -40/9, 0, 0, 0]
-    xo.assert_allclose(line['quad1'].knl, expected_knl_quad, atol=0, rtol=1e-15)
-    xo.assert_allclose(line['quad2'].knl, expected_knl_quad, atol=0, rtol=1e-15)
-    xo.assert_allclose(line['quad3'].knl, expected_knl_quad, atol=0, rtol=1e-15)
+    xo.assert_allclose(line['bend1'].knl, error('bend1', 'dkn'), atol=0, rtol=1e-15)
+    xo.assert_allclose(line['bend1'].ksl, error('bend1', 'dks'), atol=0, rtol=1e-15)
 
-    expected_ksl_quad = [-0.1, 5/9, -5180/999, -2000/9, 0, 0]
-    xo.assert_allclose(line['quad1'].ksl, expected_ksl_quad, atol=0, rtol=1e-15)
-    xo.assert_allclose(line['quad2'].ksl, expected_ksl_quad, atol=0, rtol=1e-15)
-    xo.assert_allclose(line['quad3'].ksl, expected_ksl_quad, atol=0, rtol=1e-15)
+    xo.assert_allclose(line['quad1'].knl, error('quad1', 'dkn'), atol=0, rtol=1e-15)
+    xo.assert_allclose(line['quad2'].knl, error('quad2', 'dkn'), atol=0, rtol=1e-15)
+    xo.assert_allclose(line['quad3'].knl, error('quad3', 'dkn'), atol=0, rtol=1e-15)
 
-    expected_knl_sext = [-0.1, 6/9, -60/9, 0, 0, 0]
-    xo.assert_allclose(line['sext1'].knl, expected_knl_sext, atol=0, rtol=1e-15)
-    expected_ksl_sext = [-0.15, (8 + 1/3)/10, -70/9, -1000/3, 0, 0]
-    xo.assert_allclose(line['sext1'].ksl, expected_ksl_sext, atol=0, rtol=1e-15)
+    xo.assert_allclose(line['quad1'].ksl, error('quad1', 'dks'), atol=0, rtol=1e-15)
+    xo.assert_allclose(line['quad2'].ksl, error('quad2', 'dks'), atol=0, rtol=1e-15)
+    xo.assert_allclose(line['quad3'].ksl, error('quad3', 'dks'), atol=0, rtol=1e-15)
 
-    expected_knl_octu = [-1/3 + 0.2,  8/9, -80/9, 0, 0, 0]
-    xo.assert_allclose(line['octu1'].knl, expected_knl_octu, atol=0, rtol=1e-15)
-    expected_ksl_octu = [-0.2,  10/9, -10 - 370/999, -4000/9, 0, 0]
-    xo.assert_allclose(line['octu1'].ksl, expected_ksl_octu, atol=0, rtol=1e-15)
+    xo.assert_allclose(line['sext1'].knl, error('sext1', 'dkn'), atol=0, rtol=1e-15)
+    xo.assert_allclose(line['sext1'].ksl, error('sext1', 'dks'), atol=0, rtol=1e-15)
+
+    xo.assert_allclose(line['octu1'].knl, error('octu1', 'dkn'), atol=0, rtol=1e-15)
+    xo.assert_allclose(line['octu1'].ksl, error('octu1', 'dks'), atol=0, rtol=1e-15)
 
 
 def test_matrix():
