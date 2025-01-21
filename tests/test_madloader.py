@@ -4,6 +4,7 @@ import pathlib
 import numpy as np
 from cpymad.madx import Madx
 from scipy.constants import c as clight
+from scipy.special import factorial
 
 import xobjects as xo
 import xpart as xp
@@ -211,6 +212,97 @@ def test_tilt_shift_and_errors():
     for opt in gen_options(opt2):
         ml = MadLoader(mad.sequence.seq, **opt)
         line = list(ml.iter_elements())
+
+
+def test_thick_errors():
+    mad = Madx()
+
+    mad.input('''
+        k0 = 0.1;
+        k1 = 0.2;
+        k2 = 0.3;
+        k3 = 0.4;
+        l = 5.;
+        radius = 0.3;
+
+        dknr0 = 0.02;
+        dknr1 = -0.04;
+        dknr2 = 0.06;
+        dkns3 = 0.2;
+        dksr0 = 0.03;
+        dksr1 = -0.05;
+        dksr2 = 0.07;
+        dksr3 = 0.3;
+
+        bend: sbend, k0 := k0, l = 5;
+        quad: quadrupole, k1 := k1, l = 5.;
+        sext: sextupole, k2 := k2, l = 5.;
+        octu: octupole, k3 := k3, l = 5.;
+
+        seq: sequence, l = 50;
+            quad1: quad, at = 5;
+            quad2: quad, at = 10;
+            quad3: quad, at = 20;
+            bend1: bend, at = 25;
+            sext1: sext, at = 30;
+            octu1: octu, at = 35;
+        endsequence;
+
+        beam;
+
+        use, sequence = seq;
+
+        select, pattern = quad, flag = error;
+        select, pattern = bend, flag = error;
+        select, pattern = sext, flag = error;
+        select, pattern = octu, flag = error;
+        efcomp, radius = radius,
+            dknr = {dknr0, dknr1, dknr2, dknr3},
+            dksr = {dksr0, dksr1, dksr2, dksr3};
+    ''')
+
+    line = xt.Line.from_madx_sequence(
+        sequence=mad.sequence.seq,
+        enable_field_errors=True,
+        allow_thick=True,
+    )
+
+    # def delta_kl(dkr, i):
+    #     length = 5
+    #     ref_order = 1
+    #     k_ref = 0.2
+    #     radius = 0.3
+    #     return dkr[i] * length * k_ref * (radius ** (ref_order - i)) * factorial(i) / factorial(ref_order)
+    #
+
+    expected_knl_bend = [-1/30, 2/9, -20/9, 0, 0, 0]
+    xo.assert_allclose(line['bend1'].knl, expected_knl_bend, atol=0, rtol=1e-15)
+    expected_ksl_bend = [-0.05, (2 + 7/9)/10, -2590/999, -1000/9, 0, 0]
+    xo.assert_allclose(line['bend1'].ksl, expected_ksl_bend, atol=0, rtol=1e-15)
+
+    # dknr = [0.02, -0.04, 0.06, 0.2]
+    # expected_knl_quad = [delta_kl(dknr, i) for i in range(4)]
+    expected_knl_quad = [-6/90, 4/9, -40/9, 0, 0, 0]
+    xo.assert_allclose(line['quad1'].knl, expected_knl_quad, atol=0, rtol=1e-15)
+    xo.assert_allclose(line['quad2'].knl, expected_knl_quad, atol=0, rtol=1e-15)
+    xo.assert_allclose(line['quad3'].knl, expected_knl_quad, atol=0, rtol=1e-15)
+
+    # dksr = [0.03, -0.05, 0.07, 0.3]
+    # expected_ksl_quad = [delta_kl(dksr, i) for i in range(4)]
+    expected_ksl_quad = [-0.1, 5/9, -5180/999, -2000/9, 0, 0]
+    xo.assert_allclose(line['quad1'].ksl, expected_ksl_quad, atol=0, rtol=1e-15)
+    xo.assert_allclose(line['quad2'].ksl, expected_ksl_quad, atol=0, rtol=1e-15)
+    xo.assert_allclose(line['quad3'].ksl, expected_ksl_quad, atol=0, rtol=1e-15)
+
+    expected_knl_sext = [-0.1, 6/9, -60/9, 0, 0, 0]
+    xo.assert_allclose(line['sext1'].knl, expected_knl_sext, atol=0, rtol=1e-15)
+    expected_ksl_sext = [-0.15, (8 + 1/3)/10, -70/9, -1000/3, 0, 0]
+    xo.assert_allclose(line['sext1'].ksl, expected_ksl_sext, atol=0, rtol=1e-15)
+
+    expected_knl_octu = [-1/3 + 0.2,  8/9, -80/9, 0, 0, 0]
+    xo.assert_allclose(line['octu1'].knl, expected_knl_octu, atol=0, rtol=1e-15)
+    expected_ksl_octu = [-0.2,  10/9, -10 - 370/999, -4000/9, 0, 0]
+    xo.assert_allclose(line['octu1'].ksl, expected_ksl_octu, atol=0, rtol=1e-15)
 
 
 def test_matrix():
