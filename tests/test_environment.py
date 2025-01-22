@@ -2841,3 +2841,17 @@ def test_append_to_line():
         [ 2.5,  5.5,  7.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. ,
         40. , 41. , 42.5, 46.5, 50. , 51. , 53. , 55. , 57. , 58. ]),
         rtol=0., atol=1e-14)
+
+def test_nested_lists():
+
+    env = xt.Environment()
+
+    env.new('q1', 'Quadrupole', length=2.0)
+    env.new('q2', 'Quadrupole', length=2.0)
+
+    line = env.new_line(components=[2*['q1'], 'q2'])
+
+    tt = line.get_table()
+    tt.show(cols=['name', 's_start', 's_end', 's_center'])
+    assert np.all(tt.name == np.array(
+        ['q1::0', 'q1::1', 'q2', '_end_point']))
