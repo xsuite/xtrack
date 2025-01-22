@@ -753,7 +753,6 @@ class Place:
         self.from_ = from_
         self.anchor = anchor
         self.from_anchor = from_anchor
-        self._before = False
 
     def __repr__(self):
         out = f'Place({self.name}'
@@ -762,8 +761,6 @@ class Place:
         if self.anchor is not None: out += f', anchor={self.anchor}'
         if self.from_anchor is not None: out += f', from_anchor={self.from_anchor}'
 
-        if self._before:
-            out += ', before=True'
         out += ')'
         return out
 
@@ -787,9 +784,6 @@ def _all_places(seq):
                 assert isinstance(sss, str) or isinstance(sss, xt.Line), (
                     'Only places, elements, strings or Lines are allowed in sequences')
             ss_aux = _all_places(ss)
-            if i_first is not None:
-                for ii in range(i_first):
-                    ss_aux[ii]._before = True
             seq_all_places.extend(ss_aux)
         else:
             assert isinstance(ss, str) or isinstance(ss, xt.Line), (
@@ -865,7 +859,7 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
 
     assert len(seq_all_places) == len(set(seq_all_places)), 'Duplicate places detected'
 
-    if seq_all_places[0].at is None and not seq_all_places[0]._before:
+    if seq_all_places[0].at is None:
         # In case we want to allow for the length to be an expression
         s_start_for_place[seq_all_places[0]] = 0
         place_for_name[seq_all_places[0].name] = seq_all_places[0]
@@ -884,7 +878,7 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
                         f'Cannot specify `from_ `or `from_anchor` without providing `at`.'
                         f'Error in place `{ss}`.')
 
-            if ss.at is None and not ss._before:
+            if ss.at is None:
                 ss_prev = seq_all_places[ii-1]
                 if ss_prev in s_start_for_place:
                     s_start_for_place[ss] = (s_start_for_place[ss_prev]
@@ -893,16 +887,6 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
                     ss.at = 0
                     ss.from_ = ss_prev.name
                     ss.from_anchor = 'end'
-                    n_resolved += 1
-            elif ss.at is None and ss._before:
-                ss_next = seq_all_places[ii+1]
-                if ss_next in s_start_for_place:
-                    s_start_for_place[ss] = (s_start_for_place[ss_next]
-                                            - tt_lengths['length', ss.name])
-                    place_for_name[ss.name] = ss
-                    ss.at = 0
-                    ss.from_ = ss_next.name
-                    ss.from_anchor = 'start'
                     n_resolved += 1
             else:
                 if isinstance(ss.at, str):

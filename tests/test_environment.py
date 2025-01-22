@@ -183,13 +183,11 @@ def test_element_placing_at_s():
         env.new('b1', xt.Bend, length='l.b1'),
         env.new('q1', xt.Quadrupole, length='l.q1'),
         env.new('ip', xt.Marker, at='s.ip'),
-        (
-            env.new('before_before_right', xt.Marker),
-            env.new('before_right', xt.Sextupole, length=1),
-            env.new('right',xt.Quadrupole, length=0.8, at='s.right', from_='ip'),
-            env.new('after_right', xt.Marker),
-            env.new('after_right2', xt.Marker),
-        ),
+        env.new('before_before_right', xt.Marker, at='before_right@start'),
+        env.new('before_right', xt.Sextupole, length=1, anchor='end', at='right@start'),
+        env.new('right',xt.Quadrupole, length=0.8, at='s.right', from_='ip'),
+        env.new('after_right', xt.Marker),
+        env.new('after_right2', xt.Marker),
         env.new('left', xt.Quadrupole, length=1, at='s.left', from_='ip'),
         env.new('after_left', xt.Marker),
         env.new('after_left2', xt.Bend, length='l.after_left2'),
@@ -1716,11 +1714,9 @@ def test_repeated_elements():
         env.new('ip1', 'Marker', at=10),
         'mb',
         pp,
-        (
-            'mb',
-            env.new('ip2', 'Marker', at=20),
-            'mb',
-        ),
+        env.place('mb', anchor='end', at='ip2@start'),
+        env.new('ip2', 'Marker', at=20),
+        'mb',
         pp
     ])
 
