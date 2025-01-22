@@ -4473,7 +4473,7 @@ class Line:
             return self
 
         elif not self.iscollective and not self.tracker._skip_noncollective_elements_in_twiss:
-            # Can use the regular tracker
+            # Can use the regular line
             return self
 
         else:
@@ -4481,7 +4481,7 @@ class Line:
                 log.warning(
                     "The tracker has non-collective elements marked by "
                     "'skip_in_twiss=True'.\nIn the twiss computation these "
-                    "elements are replaced by drifts")
+                    "elements are replaced by drifts.")
             if self.tracker._enable_collective_elements_in_twiss and _print:
                 log.warning(
                     "The tracker has collective elements.\n"
@@ -4527,7 +4527,10 @@ class Line:
                 particles_monitor_class = self.tracker.particles_monitor_class
                 extra_headers = self.tracker.extra_headers
                 local_particle_src = self.tracker.local_particle_src
-                out.discard_tracker()
+                # Discard the tracker; cannot do out.discard_tracker() as it points to
+                # the same object and would invalidate the existing tracker on the line
+                out._element_names = list(out._element_names)
+                out.tracker = None
                 out.build_tracker(_buffer=_buffer, io_buffer=io_buffer,
                     extra_headers=extra_headers, local_particle_src=local_particle_src,
                     use_prebuilt_kernels=use_prebuilt_kernels,
