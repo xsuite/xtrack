@@ -2546,6 +2546,25 @@ class SecondOrderTaylorMap(BeamElement):
 class ThinSliceNotNeededError(Exception):
     pass
 
+
+# class ElectronCoolerRecord(xo.HybridClass):
+#     _xofields = {
+#         '_index': RecordIndex,
+#         'Fx': xo.Float64[:],
+#         'at_element': xo.Int64[:],
+#         'at_turn': xo.Int64[:],
+#         'particle_id': xo.Int64[:],
+#         'particle_delta': xo.Float64[:]
+#         }
+    
+class ElectronCoolerRecord(xo.HybridClass):
+    _xofields = {
+        '_index': RecordIndex,
+        'Fx': xo.Float64[:],
+        'Fy': xo.Float64[:],
+        'Fl': xo.Float64[:],
+        }    
+
 class ElectronCooler(BeamElement):
     """
     Beam element modeling an electron cooler. In particular, this beam element uses the Parkhomchuk model for electron cooling.
@@ -2603,10 +2622,12 @@ class ElectronCooler(BeamElement):
         'magnetic_field_ratio' :  xo.Float64,
         'space_charge_factor'  : xo.Float64
         }
-
+    
     _extra_c_sources = [
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/electroncooler.h')]
+    
+    _internal_record_class = ElectronCoolerRecord
 
     def __init__(self,  current        = 0,
                         length         = 0,

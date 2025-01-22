@@ -11,6 +11,14 @@
 /*gpufun*/
 void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* part0){
 
+    // Check if record flag is enabled
+    ElectronCoolerRecordData record = ElectronCoolerData_getp_internal_record(el, part0);
+    RecordIndex record_index = NULL;
+    if (record){
+        record_index = ElectronCoolerRecordData_getp__index(record);
+    }
+    
+
     double current        = ElectronCoolerData_get_current(el);
     double length         = ElectronCoolerData_get_length(el);
     double radius_e_beam  = ElectronCoolerData_get_radius_e_beam(el);
@@ -114,10 +122,24 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
             Fl = Fl * 1/QELEM * C_LIGHT; // convert to eV/c because p0c is also in eV/c
         }
         double delta_new = delta + Fl * gamma0 * tau/p0c;
-        
+
         LocalParticle_update_delta(part,delta_new);
         LocalParticle_add_to_px(part,Fx * gamma0 * tau/p0c);
         LocalParticle_add_to_py(part,Fy * gamma0 * tau/p0c);
+
+        // Handles cases where force is record
+        if (record){
+                int64_t i_slot = RecordIndex_get_slot(record_index);
+                if (i_slot>=0){
+                    ElectronCoolerRecordData_set_Fx(record, i_slot, Fx/C_LIGHT); // Convert to eV/m
+                    ElectronCoolerRecordData_set_Fy(record, i_slot, Fy/C_LIGHT); // Convert to eV/m
+                    ElectronCoolerRecordData_set_Fl(record, i_slot, Fl/C_LIGHT); // Convert to eV/m
+                }
+            }
+
+        
+
+
     //end_per_particle_block
 }
 

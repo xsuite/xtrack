@@ -1156,8 +1156,8 @@ def test_multipole_tilt_90_deg(test_context):
 
 
 @for_all_test_contexts
-def test_ecooler(test_context):
-    """Test the electron cooler by comparing the cooling rate and cooling force with Betacool for LEIR.
+def test_ecooler_emittance(test_context):
+    """Test the electron cooler by comparing the cooling rate with Betacool for LEIR.
     """
     data = np.load(test_data_folder/'electron_cooler/emittance_betacool.npz')
     emittance_betacool = data['emittance']
@@ -1187,7 +1187,7 @@ def test_ecooler(test_context):
             betx=beta_x,
             bety=beta_y,
             )
-    
+
     arc_matching = xt.LineSegmentMap(
             qx=qx, qy=qy,
             length=circumference,
@@ -1199,7 +1199,7 @@ def test_ecooler(test_context):
     line_matching=xt.Line([arc_matching])
     line_matching.build_tracker()
 
-    num_particles=int(1e3)
+    num_particles=int(1e2)
     sigma_dp = 5e-3    
     gemitt_x = 14e-6
     gemitt_y = 14e-6
@@ -1209,7 +1209,6 @@ def test_ecooler(test_context):
 
     particles = xp.generate_matched_gaussian_bunch(
             num_particles=num_particles,
-            # total_intensity_particles=bunch_intensity,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=4.2,
             particle_ref=particle_ref,
             line=line_matching,        
@@ -1217,7 +1216,6 @@ def test_ecooler(test_context):
 
     particles.delta = np.random.normal(loc=0.0, scale=sigma_dp, size=num_particles)
     particles.zeta = np.random.uniform(-circumference/2, circumference/2, num_particles)
-    particles0=particles.copy()
 
     max_time_s = 1
     int_time_s = 1*1e-3
@@ -1244,84 +1242,101 @@ def test_ecooler(test_context):
 
     line = xt.Line(elements=[monitor, electron_cooler, arc],element_names=['monitor','electron_cooler','arc'])                                    
     line.particle_ref = particle_ref
-    context = xo.ContextCpu(omp_num_threads=4)
-    line.build_tracker(_context=context)
+    line.build_tracker()
 
-    particles=particles0.copy()
     line.track(particles, num_turns=num_turns,
             turn_by_turn_monitor=False,with_progress=True)
 
     x = monitor.x[:,:,0]
     px = monitor.px[:,:,0]
-    y = monitor.y[:,:,0]
-    py = monitor.py[:,:,0]
-    delta = monitor.delta[:,:,0]
-    zeta = monitor.zeta[:,:,0]
     time = monitor.at_turn[:, 0, 0] * T_per_turn
 
     action_x = (x**2/beta_x + beta_x*px**2)
     geo_emittance_x=np.mean(action_x,axis=1)/2
-    p0c = particle_ref.p0c
+
+    # Match Betacool and Xsuite indices to compare emittance
+    valid_indices = ~np.isnan(time_betacool)
+    time_betacool = time_betacool[valid_indices]
+    matched_indices = [np.abs(time - tb).argmin() for tb in time_betacool]
+    emittance_xsuite = geo_emittance_x[matched_indices]
+    emittance_betacool = emittance_betacool[:len(emittance_xsuite)]
+    
+    xo.assert_allclose(emittance_xsuite, emittance_betacool, rtol=0, atol=1e-5)
    
-    for i in range(len(time_betacool) - 1, -1, -1):
-            if not np.isnan(time_betacool[i]):
-                    last_non_nan_index = i
-                    break
-
-    time_betacool = time_betacool[:last_non_nan_index]
-    matched_indices = [np.abs(time - time_value).argmin() for time_value in time_betacool]
-    emittance_xsuite = [geo_emittance_x[index] for index in matched_indices]
-    emittance_betacool = emittance_betacool[:last_non_nan_index]
-    emittance_diff = emittance_xsuite - emittance_betacool
-    mse_emittance = np.mean(emittance_diff**2)
-
+@for_all_test_contexts
+def test_ecooler_force(test_context):
+    """Test the electron cooler by comparing the cooling force with Betacool for LEIR.
+    """
+    # Load Betacool force data
     data_betacool = np.load(test_data_folder/'electron_cooler/force_betacool.npz')
     v_diff_betacool = data_betacool['v_diff']
     force_betacool = data_betacool['force']
-    num_particles = int(1e3)
 
-    dtk_particle = dtk.TestParticles(
-    mass0=mass0,
-    p0c=p0c,
-    x  = np.random.normal(0, 1e-20, num_particles),
-    px = np.random.normal(0, 4*np.sqrt(gemitt_x/beta_x), num_particles),
-    y  = np.random.normal(0, 1e-20, num_particles),
-    py = np.random.normal(0, 1e-20, num_particles),
-    delta = np.random.normal(0, 0, num_particles),
-    zeta  = np.random.normal(0, 0, num_particles),
-    q0=q0)
+    beta_rel = 0.09423258405
+    gamma = 1.004469679
+    current = 0.6  # Amperes
+    cooler_length = 2.5  # m
+    radius_e_beam = 25 * 1e-3  # m
+    temp_perp = 100e-3  # eV
+    temp_long = 1e-3  # eV
+    magnetic_field = 0.075  # T for LEIR
+    mass0 = 193729.0248722061 * 1e6  # eV/c^2
+    clight = 299792458.0  # m/s
+    p0c = mass0 * beta_rel * gamma  # eV/c
+    q0 = 54  # Charge
+    beta_x = 5  # m
+    emittance = 14 * 1e-6  # Initial geometric emittance (m·rad)
 
-    dtk_cooler = dtk.elements.ElectronCooler(
-    current=current, length=cooler_length, radius_e_beam=radius_e_beam,
-    temp_perp=temp_perp, temp_long=temp_long, magnetic_field=magnetic_field, magnetic_field_ratio=0,
-    space_charge_factor=0)
+    # Reference particle
+    particle_ref = xp.Particles(p0c=p0c, mass0=mass0, q0=q0)
 
-    force, _, _ = dtk_cooler.force(dtk_particle)
+    # Electron cooler
+    cooler = xt.ElectronCooler(
+        current=current,
+        length=cooler_length,
+        radius_e_beam=radius_e_beam,
+        temp_perp=temp_perp,
+        temp_long=temp_long,
+        magnetic_field=magnetic_field
+    )  
+    
+    num_particles = int(1e4)
+    particles = xp.Particles(
+        mass0=mass0,
+        p0c=p0c,
+        q0=q0,
+        x=np.random.normal(0, 1e-20, num_particles),
+        px=np.random.normal(0, 4 * np.sqrt(emittance / beta_x), num_particles),
+        y=np.random.normal(0, 1e-20, num_particles),
+        py=np.random.normal(0, 1e-20, num_particles),
+        delta=np.zeros(num_particles),
+        zeta=np.zeros(num_particles)
+    )
+   
+    line = xt.Line(elements=[cooler])
+    line.particle_ref = particle_ref
+    line.build_tracker()
 
-    px_tot    = p0c*dtk_particle.px
-    beta_diff = px_tot/(mass0*gamma0)
-    v_diff    = beta_diff*clight
+    # Start internal logging for the electron cooler
+    record = line.start_internal_logging_for_elements_of_type(
+        xt.ElectronCooler, capacity=10000)
 
+    line.track(particles)
+    force = record.Fx
+    
+    px_tot = p0c * particles.px
+    beta_diff = px_tot / (mass0 * gamma)
+    v_diff = beta_diff * clight
+    
     sorted_indices = np.argsort(v_diff)
     v_diff = v_diff[sorted_indices]
     force = force[sorted_indices]
-    for i in range(len(v_diff_betacool) - 1, -1, -1):
-            if not np.isnan(v_diff_betacool[i]):
-                    last_non_nan_index = i
-                    break
 
-    v_diff_betacool = v_diff_betacool[:last_non_nan_index]
+    # Match Betacool and Xsuite indices to compare forces
+    v_diff_betacool = v_diff_betacool[~np.isnan(v_diff_betacool)]
+    matching_indices = [np.abs(v_diff - vb).argmin() for vb in v_diff_betacool]
 
-    matching_indices = []
-    for time_value in v_diff_betacool:
-            index = np.abs(v_diff - time_value).argmin()
-            matching_indices.append(index)
+    force_xsuite = np.array([force[i] for i in matching_indices])
+    force_betacool = force_betacool[:len(v_diff_betacool)]
 
-    force_xsuite = [force[i] for i in matching_indices]
-    force_betacool = force_betacool[:last_non_nan_index]
-
-    force_diff = force_xsuite - force_betacool
-    mse_force = np.mean(force_diff**2)
-
-    assert mse_emittance <1e-9
-    assert mse_force < 10
+    xo.assert_allclose(force_xsuite, force_betacool, rtol=0, atol=10)
