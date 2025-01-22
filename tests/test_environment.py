@@ -1592,6 +1592,12 @@ def test_env_new():
     assert isinstance(env['e1.ll4'], xt.Bend)
     assert isinstance(env['e2.ll4'], xt.Bend)
 
+    ret = env.new('aper', xt.LimitEllipse, a='2*a', b='a')
+    assert ret == 'aper'
+    assert env[ret].a == 6
+    assert env[ret].b == 3
+
+
 def test_builder_new():
 
     env = xt.Environment()
@@ -1684,6 +1690,7 @@ def test_builder_new():
     assert isinstance(bdr['e2.ll4'], xt.Bend)
     assert len(bdr.components) == 11
     assert bdr.components[-1] is ret
+
 
 def test_neg_line():
 
@@ -2011,6 +2018,23 @@ def test_import_line_from_other_env(overwrite_vars, x_value):
     assert env2['b/line'].k0 == 2 * x_value
     assert isinstance(env2['ip'], xt.Marker)
     assert env2['d'].length == 3 * 7
+
+
+def test_copy_element_from_other_env():
+    env1 = xt.Environment()
+    env1['var'] = 3
+    env1['var2'] = '2 * var'
+    env1.new('quad', xt.Quadrupole, length='var', knl=[0, 'var2'])
+
+    env2 = xt.Environment()
+    env2['var'] = 4
+    env2['var2'] = '2 * var'
+    env2.copy_element_from('quad', env1, 'quad/env2')
+
+    assert env2['quad/env2'].length == 4
+    assert env2['quad/env2'].knl[0] == 0
+    assert env2['quad/env2'].knl[1] == 8
+
 
 def test_insert_repeated_elements():
 

@@ -3100,7 +3100,7 @@ class Line:
         # Unfreeze the line
         self.discard_tracker()
 
-        if verbose: _print("Replance slices with equivalent elements")
+        if verbose: _print("Replace slices with equivalent elements")
         self._replace_with_equivalent_elements()
 
         if keep_markers is True:
@@ -3877,7 +3877,7 @@ class Line:
         cls = type(source.element_dict[name])
 
         if cls not in _ALLOWED_ELEMENT_TYPES_IN_NEW + [xt.DipoleEdge]: # No issue in copying DipoleEdge
-                                                                       # while creating it requirese handling properties
+                                                                       # while creating it requires handling properties
                                                                        # which are strings.
             raise ValueError(
                 f'Only {_STR_ALLOWED_ELEMENT_TYPES_IN_NEW} elements are '

@@ -146,7 +146,7 @@ def example_sequence(temp_context_default_mod):
     se: sextupole, L=1, K2=2, K2S=3, TILT=2;  ! ignore ktap
     oc: octupole, L=2, K3=3, K3S=2, TILT=2;
     ma: marker;
-    rf: rfcavity, L=2, VOLT=1, LAG=2, FREQ=3, HARMON=2;  ! ignore N_BESSEL, NO_CAVITY_TOTALPATH
+    rf: rfcavity, L=2, VOLT=1, LAG=2, FREQ=3, HARMON=2, NO_CAVITY_TOTALPATH;  ! ignore N_BESSEL
     mu: multipole, LRAD=1, TILT=2, KNL={3, 4, 5, 6}, KSL={1, 2, 3, 4};
     so: solenoid, l=2, ks=3;  ! ignore ksi
     

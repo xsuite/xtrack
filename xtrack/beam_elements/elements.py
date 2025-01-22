@@ -16,7 +16,7 @@ from ..random import RandomUniformAccurate, RandomExponential, RandomNormal
 from ..general import _pkg_root, _print
 from ..internal_record import RecordIndex, RecordIdentifier
 
-ALLOCATED_MULTIPOLE_ORDER = 5
+DEFAULT_MULTIPOLE_ORDER = 5
 
 class ReferenceEnergyIncrease(BeamElement):
 
@@ -612,8 +612,8 @@ class Multipole(BeamElement):
             self.xoinitialize(**kwargs)
             return
 
-        if order is None:
-            order = 0
+        multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
+        kwargs.update(multipolar_kwargs)
 
         if "bal" in kwargs.keys():
             if not "knl" in kwargs.keys() or not "ksl" in kwargs.keys():
@@ -625,33 +625,8 @@ class Multipole(BeamElement):
         if 'hyl' in kwargs.keys():
             assert kwargs['hyl'] == 0.0, 'hyl is not supported anymore'
 
-        len_knl = len(knl) if knl is not None else 0
-        len_ksl = len(ksl) if ksl is not None else 0
-        n = max((order + 1), max(len_knl, len_ksl))
-        assert n > 0
-
-        nknl = np.zeros(n, dtype=np.float64)
-        nksl = np.zeros(n, dtype=np.float64)
-
-        if knl is not None:
-            if hasattr(knl, 'get'):
-                knl = knl.get()
-            nknl[: len(knl)] = np.array(knl)
-
-        if ksl is not None:
-            if hasattr(ksl, 'get'):
-                ksl = ksl.get()
-            nksl[: len(ksl)] = np.array(ksl)
-
         if 'delta_taper' not in kwargs.keys():
             kwargs['delta_taper'] = 0.0
-
-        order = n - 1
-
-        kwargs["knl"] = nknl
-        kwargs["ksl"] = nksl
-        kwargs["order"] = order
-        kwargs["inv_factorial_order"] = 1.0 / factorial(order, exact=True)
 
         self.xoinitialize(**kwargs)
 
@@ -801,8 +776,8 @@ class Bend(BeamElement):
         'num_multipole_kicks': xo.Int64,
         'order': xo.Int64,
         'inv_factorial_order': xo.Float64,
-        'knl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
-        'ksl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
+        'knl': xo.Float64[:],
+        'ksl': xo.Float64[:],
     }
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
@@ -828,7 +803,7 @@ class Bend(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/bend.h'),
     ]
 
-    def __init__(self, **kwargs):
+    def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
 
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
@@ -836,15 +811,9 @@ class Bend(BeamElement):
 
         model = kwargs.pop('model', None)
 
-        knl = kwargs.get('knl', np.array([]))
-        ksl = kwargs.get('ksl', np.array([]))
-        order_from_kl = max(len(knl), len(ksl)) - 1
-        order = kwargs.get('order', max(ALLOCATED_MULTIPOLE_ORDER, order_from_kl))
-
-        kwargs['knl'] = np.pad(knl,
-                        (0, ALLOCATED_MULTIPOLE_ORDER + 1 - len(knl)), 'constant')
-        kwargs['ksl'] = np.pad(ksl,
-                        (0, ALLOCATED_MULTIPOLE_ORDER + 1 - len(ksl)), 'constant')
+        order = order or DEFAULT_MULTIPOLE_ORDER
+        multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
+        kwargs.update(multipolar_kwargs)
 
         self.xoinitialize(**kwargs)
 
@@ -994,8 +963,8 @@ class Sextupole(BeamElement):
         'length': xo.Float64,
         'order': xo.Int64,
         'inv_factorial_order': xo.Float64,
-        'knl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
-        'ksl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
+        'knl': xo.Float64[:],
+        'ksl': xo.Float64[:],
         'edge_entry_active': xo.Field(xo.UInt64, default=False),
         'edge_exit_active': xo.Field(xo.UInt64, default=False),
     }
@@ -1018,17 +987,11 @@ class Sextupole(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/sextupole.h'),
     ]
 
-    def __init__(self, **kwargs):
+    def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
 
-        knl = kwargs.get('knl', np.array([]))
-        ksl = kwargs.get('ksl', np.array([]))
-        order_from_kl = max(len(knl), len(ksl)) - 1
-        order = kwargs.get('order', max(ALLOCATED_MULTIPOLE_ORDER, order_from_kl))
-
-        kwargs['knl'] = np.pad(knl,
-                        (0, ALLOCATED_MULTIPOLE_ORDER + 1 - len(knl)), 'constant')
-        kwargs['ksl'] = np.pad(ksl,
-                        (0, ALLOCATED_MULTIPOLE_ORDER + 1 - len(ksl)), 'constant')
+        order = order or DEFAULT_MULTIPOLE_ORDER
+        multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
+        kwargs.update(multipolar_kwargs)
 
         self.xoinitialize(**kwargs)
 
@@ -1095,8 +1058,8 @@ class Octupole(BeamElement):
         'length': xo.Float64,
         'order': xo.Int64,
         'inv_factorial_order': xo.Float64,
-        'knl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
-        'ksl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
+        'knl': xo.Float64[:],
+        'ksl': xo.Float64[:],
         'edge_entry_active': xo.Field(xo.UInt64, default=False),
         'edge_exit_active': xo.Field(xo.UInt64, default=False),
     }
@@ -1119,17 +1082,10 @@ class Octupole(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/octupole.h'),
     ]
 
-    def __init__(self, **kwargs):
-
-        knl = kwargs.get('knl', np.array([]))
-        ksl = kwargs.get('ksl', np.array([]))
-        order_from_kl = max(len(knl), len(ksl)) - 1
-        order = kwargs.get('order', max(ALLOCATED_MULTIPOLE_ORDER, order_from_kl))
-
-        kwargs['knl'] = np.pad(knl,
-                        (0, ALLOCATED_MULTIPOLE_ORDER + 1 - len(knl)), 'constant')
-        kwargs['ksl'] = np.pad(ksl,
-                        (0, ALLOCATED_MULTIPOLE_ORDER + 1 - len(ksl)), 'constant')
+    def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
+        order = order or DEFAULT_MULTIPOLE_ORDER
+        multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
+        kwargs.update(multipolar_kwargs)
 
         self.xoinitialize(**kwargs)
 
@@ -1195,8 +1151,8 @@ class Quadrupole(BeamElement):
         'num_multipole_kicks': xo.Int64,
         'order': xo.Int64,
         'inv_factorial_order': xo.Float64,
-        'knl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
-        'ksl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
+        'knl': xo.Float64[:],
+        'ksl': xo.Float64[:],
         'edge_entry_active': xo.Field(xo.UInt64, default=False),
         'edge_exit_active': xo.Field(xo.UInt64, default=False),
     }
@@ -1217,17 +1173,10 @@ class Quadrupole(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/quadrupole.h'),
     ]
 
-    def __init__(self, **kwargs):
-
-        knl = kwargs.get('knl', np.array([]))
-        ksl = kwargs.get('ksl', np.array([]))
-        order_from_kl = max(len(knl), len(ksl)) - 1
-        order = kwargs.get('order', max(ALLOCATED_MULTIPOLE_ORDER, order_from_kl))
-
-        kwargs['knl'] = np.pad(knl,
-                        (0, ALLOCATED_MULTIPOLE_ORDER + 1 - len(knl)), 'constant')
-        kwargs['ksl'] = np.pad(ksl,
-                        (0, ALLOCATED_MULTIPOLE_ORDER + 1 - len(ksl)), 'constant')
+    def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
+        order = order or DEFAULT_MULTIPOLE_ORDER
+        multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
+        kwargs.update(multipolar_kwargs)
 
         self.xoinitialize(**kwargs)
 
@@ -1297,8 +1246,8 @@ class Solenoid(BeamElement):
         'num_multipole_kicks': xo.Int64,
         'order': xo.Int64,
         'inv_factorial_order': xo.Float64,
-        'knl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
-        'ksl': xo.Float64[ALLOCATED_MULTIPOLE_ORDER + 1],
+        'knl': xo.Float64[:],
+        'ksl': xo.Float64[:],
         'mult_rot_x_rad': xo.Float64,
         'mult_rot_y_rad': xo.Float64,
         'mult_shift_x': xo.Float64,
@@ -1327,7 +1276,7 @@ class Solenoid(BeamElement):
 
     _internal_record_class = SynchrotronRadiationRecord
 
-    def __init__(self, **kwargs):
+    def __init__(self, order=None, knl: List[float] = None, ksl: List[float] = None, **kwargs):
         """Solenoid element.
 
         Parameters
@@ -1361,15 +1310,9 @@ class Solenoid(BeamElement):
                 "The parameter `ksi` can only be specified when `length` == 0."
             )
 
-        knl = kwargs.get('knl', np.array([]))
-        ksl = kwargs.get('ksl', np.array([]))
-        order_from_kl = max(len(knl), len(ksl)) - 1
-        order = kwargs.get('order', max(ALLOCATED_MULTIPOLE_ORDER, order_from_kl))
-
-        kwargs['knl'] = np.pad(knl,
-                        (0, ALLOCATED_MULTIPOLE_ORDER + 1 - len(knl)), 'constant')
-        kwargs['ksl'] = np.pad(ksl,
-                        (0, ALLOCATED_MULTIPOLE_ORDER + 1 - len(ksl)), 'constant')
+        order = order or DEFAULT_MULTIPOLE_ORDER
+        multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
+        kwargs.update(multipolar_kwargs)
 
         self.xoinitialize(**kwargs)
 
@@ -2380,11 +2323,40 @@ def _nonzero(val_or_expr):
     return val_or_expr._expr
 
 
-def _get_order(array):
-    nonzero_indices = np.where(array)
-    if not np.any(nonzero_indices):
-        return 0
-    return np.max(nonzero_indices)
+def _prepare_multipolar_params(
+        knl: List[float] = None,
+        ksl: List[float] = None,
+        order = None,
+):
+    order = order or 0
+
+    len_knl = len(knl) if knl is not None else 0
+    len_ksl = len(ksl) if ksl is not None else 0
+
+    target_len = max((order + 1), max(len_knl, len_ksl))
+    assert target_len > 0
+
+    new_knl = np.zeros(target_len, dtype=np.float64)
+    new_ksl = np.zeros(target_len, dtype=np.float64)
+
+    if knl is not None:
+        if hasattr(knl, 'get'):
+            knl = knl.get()
+        new_knl[: len(knl)] = np.array(knl)
+
+    if ksl is not None:
+        if hasattr(ksl, 'get'):
+            ksl = ksl.get()
+        new_ksl[: len(ksl)] = np.array(ksl)
+
+    order = target_len - 1
+
+    return {
+        'knl': new_knl,
+        'ksl': new_ksl,
+        'order': order,
+        'inv_factorial_order': 1.0 / factorial(order, exact=True),
+    }
 
 
 class SecondOrderTaylorMap(BeamElement):

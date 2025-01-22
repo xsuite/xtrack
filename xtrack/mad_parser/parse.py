@@ -131,10 +131,16 @@ class MadxTransformer(Transformer):
         return args
 
     def set_flag(self, name_token):
-        return name_token.value.lower(), True
+        return name_token.value.lower(), {
+            'expr': True,
+            'deferred': False,
+        }
 
     def reset_flag(self, name_token):
-        return name_token.value.lower(), False
+        return name_token.value.lower(), {
+            'expr': False,
+            'deferred': False,
+        }
 
     def sequence(self, name_token, arglist, *clones) -> Tuple[str, LineType]:
         return name_token.value.lower(), {
