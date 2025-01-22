@@ -222,6 +222,7 @@ def test_thick_errors():
         k1 = 0.2;
         k2 = 0.3;
         k3 = 0.4;
+        ks = 0.5;
         l = 5.;
         radius = 0.3;
 
@@ -238,6 +239,7 @@ def test_thick_errors():
         quad: quadrupole, k1 := k1, l = 5.;
         sext: sextupole, k2 := k2, l = 5.;
         octu: octupole, k3 := k3, l = 5.;
+        sole: solenoid, ks := ks, l = 5.;
 
         seq: sequence, l = 50;
             quad1: quad, at = 5;
@@ -246,6 +248,7 @@ def test_thick_errors():
             bend1: bend, at = 25;
             sext1: sext, at = 30;
             octu1: octu, at = 35;
+            sole1: sole, at = 40;
         endsequence;
 
         beam;
@@ -256,6 +259,7 @@ def test_thick_errors():
         select, pattern = bend, flag = error;
         select, pattern = sext, flag = error;
         select, pattern = octu, flag = error;
+        select, pattern = sole, flag = error;
         efcomp, radius = radius,
             dknr = {dknr0, dknr1, dknr2, dknr3},
             dksr = {dksr0, dksr1, dksr2, dksr3};
@@ -288,6 +292,9 @@ def test_thick_errors():
 
     xo.assert_allclose(line['octu1'].knl, error('octu1', 'dkn'), atol=0, rtol=1e-15)
     xo.assert_allclose(line['octu1'].ksl, error('octu1', 'dks'), atol=0, rtol=1e-15)
+
+    xo.assert_allclose(line['sole1'].knl, error('sole1', 'dkn'), atol=0, rtol=1e-15)
+    xo.assert_allclose(line['sole1'].ksl, error('sole1', 'dks'), atol=0, rtol=1e-15)
 
 
 def test_matrix():

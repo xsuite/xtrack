@@ -997,12 +997,18 @@ class MadLoader:
                    f'reverting to importing `{mad_elem.name}` as a drift.')
             return self.convert_drift_like(mad_elem)
 
+        kwargs = {}
+
+        if self.enable_field_errors:
+            kwargs = _prepare_field_errors_thick_elem(mad_elem)
+
         el = self.Builder(
             mad_elem.name,
             self.classes.Solenoid,
             length=mad_elem.l,
             ks=self.bv * mad_elem.ks,
             ksi=self.bv * mad_elem.ksi,
+            **kwargs,
         )
         return self.make_composite_element([el], mad_elem)
 
