@@ -53,6 +53,8 @@ def _flatten_components(components, refer: ReferType = 'center'):
             flatt_components += sub_components
         elif isinstance(nn, xt.Line):
             flatt_components += nn.element_names
+        elif isinstance(nn, Iterable) and not isinstance(nn, str):
+            flatt_components += _flatten_components(nn, refer=refer)
         else:
             flatt_components.append(nn)
 
