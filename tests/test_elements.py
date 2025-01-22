@@ -5,6 +5,7 @@
 
 import numpy as np
 import pytest
+import pathlib
 from cpymad.madx import Madx
 
 import ducktrack as dtk
@@ -13,6 +14,9 @@ import xpart as xp
 import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts, fix_random_seed
 from xtrack.beam_elements.elements import _angle_from_trig
+
+test_data_folder = pathlib.Path(
+    __file__).parent.joinpath('../test_data').absolute()
 
 
 @for_all_test_contexts
@@ -1155,7 +1159,7 @@ def test_multipole_tilt_90_deg(test_context):
 def test_ecooler(test_context):
     """Test the electron cooler by comparing the cooling rate and cooling force with Betacool for LEIR.
     """
-    data = np.load('../test_data/electron_cooler/emittance_betacool.npz')
+    data = np.load(test_data_folder/'electron_cooler/emittance_betacool.npz')
     emittance_betacool = data['emittance']
     time_betacool = data['time']
 
@@ -1271,7 +1275,7 @@ def test_ecooler(test_context):
     emittance_diff = emittance_xsuite - emittance_betacool
     mse_emittance = np.mean(emittance_diff**2)
 
-    data_betacool = np.load('../test_data/electron_cooler/force_betacool.npz')
+    data_betacool = np.load(test_data_folder/'electron_cooler/force_betacool.npz')
     v_diff_betacool = data_betacool['v_diff']
     force_betacool = data_betacool['force']
     num_particles = int(1e3)
