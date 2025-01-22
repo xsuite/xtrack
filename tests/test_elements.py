@@ -1143,12 +1143,12 @@ def test_multipole_tilt_90_deg(test_context):
     pf.move(_context=xo.context_default)
     pfy.move(_context=xo.context_default)
 
-    assert np.allclose(pf.x, pfy.x, rtol=0, atol=1e-14)
-    assert np.allclose(pf.y, pfy.y, rtol=0, atol=1e-14)
-    assert np.allclose(pf.px, pfy.px, rtol=0, atol=1e-14)
-    assert np.allclose(pf.py, pfy.py, rtol=0, atol=1e-14)
-    assert np.allclose(pf.zeta, pfy.zeta, rtol=0, atol=1e-14)
-    assert np.allclose(pf.ptau, pfy.ptau, rtol=0, atol=1e-14)
+    xo.assert_allclose(pf.x, pfy.x, rtol=0, atol=1e-14)
+    xo.assert_allclose(pf.y, pfy.y, rtol=0, atol=1e-14)
+    xo.assert_allclose(pf.px, pfy.px, rtol=0, atol=1e-14)
+    xo.assert_allclose(pf.py, pfy.py, rtol=0, atol=1e-14)
+    xo.assert_allclose(pf.zeta, pfy.zeta, rtol=0, atol=1e-14)
+    xo.assert_allclose(pf.ptau, pfy.ptau, rtol=0, atol=1e-14)
 
 
 @for_all_test_contexts
