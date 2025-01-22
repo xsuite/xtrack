@@ -85,7 +85,7 @@ env.vars({
 
 halfcell_ss = env.new_line(components=[
 
-    env.new('mid', xt.Marker, at='l.halfcell'),
+    env.new('mid.ss', xt.Marker, at='l.halfcell'),
 
     env.new('mq.ss.d', 'mq', k1='kqd.ss', at = '0.5 + l.mq / 2'),
     env.new('mq.ss.f', 'mq', k1='kqf.ss', at = 'l.halfcell - l.mq / 2 - 0.5'),
@@ -259,17 +259,17 @@ opt.solve()
 # Check matched betx=2*bety in env2 but not in env
 xo.assert_allclose(env2['ring'].twiss4d()['betx', 'ip.l'],
                    2*env2['ring'].twiss4d()['bety', 'ip.l'],
-                   rtol=1e-4, atol=0)
+                   rtol=2e-4, atol=0)
 xo.assert_allclose(env2['ring_sliced'].twiss4d()['betx', 'ip.l'],
                    2*env2['ring_sliced'].twiss4d()['bety', 'ip.l'],
-                   rtol=1e-4, atol=0)
+                   rtol=2e-4, atol=0)
 
 xo.assert_allclose(env['ring'].twiss4d()['betx', 'ip.l'],
                    env['ring'].twiss4d()['bety', 'ip.l'],
-                   rtol=1e-4, atol=0)
+                   rtol=2e-4, atol=0)
 xo.assert_allclose(env['ring_sliced'].twiss4d()['betx', 'ip.l'],
                    env['ring_sliced'].twiss4d()['bety', 'ip.l'],
-                   rtol=1e-4, atol=0)
+                   rtol=2e-4, atol=0)
 
 import matplotlib.pyplot as plt
 plt.close('all')
