@@ -65,12 +65,8 @@ class LossLocationRefinement:
         if backtrack_line is not None:
             raise ValueError('Backtracking line not supported anymore!')
 
-        if line.iscollective:
-            self._original_line = line
-            self.line = line._get_non_collective_line()
-        else:
-            self._original_line = line
-            self.line = line
+        self._original_line = line
+        self.line = line._get_non_collective_line()
 
         self._context = self.line._context
         assert isinstance(self._context, xo.ContextCpu), (

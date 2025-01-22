@@ -138,8 +138,7 @@ class MultiSetter(xo.HybridClass):
         else:
             tracker = line.tracker
 
-        if tracker.iscollective:
-            tracker = tracker.line._get_non_collective_line().tracker
+        tracker = tracker.line._get_non_collective_line(_print=False).tracker
 
         context = tracker._context
 

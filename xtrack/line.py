@@ -1721,14 +1721,7 @@ class Line:
         if particle_ref is None and co_guess is None:
             particle_ref = self.particle_ref
 
-        if self.iscollective:
-            log.warning(
-                'The tracker has collective elements.\n'
-                'In the twiss computation collective elements are'
-                ' replaced by drifts')
-            line = self._get_non_collective_line()
-        else:
-            line = self
+        line = self._get_non_collective_line()
 
         return find_closed_orbit_line(line, co_guess=co_guess,
                                  particle_ref=particle_ref, delta0=delta0, zeta0=zeta0,
@@ -1972,14 +1965,7 @@ class Line:
 
         self._check_valid_tracker()
 
-        if self.iscollective:
-            log.warning(
-                'The tracker has collective elements.\n'
-                'In the twiss computation collective elements are'
-                ' replaced by drifts')
-            line = self._get_non_collective_line()
-        else:
-            line = self
+        line = self._get_non_collective_line()
 
         return compute_one_turn_matrix_finite_differences(line, particle_on_co,
                         steps_r_matrix, start=start, end=end,
@@ -4175,21 +4161,21 @@ class Line:
     def iscollective(self):
         if not self._has_valid_tracker():
             raise RuntimeError(
-                '`Line.iscollective` con only be called after `Line.build_tracker`')
+                '`Line.iscollective` can only be called after `Line.build_tracker`')
         return self.tracker.iscollective
 
     @property
     def _buffer(self):
         if not self._has_valid_tracker():
             raise RuntimeError(
-                '`Line._buffer` con only be called after `Line.build_tracker`')
+                '`Line._buffer` can only be called after `Line.build_tracker`')
         return self.tracker._buffer
 
     @property
     def _context(self):
         if not self._has_valid_tracker():
             raise RuntimeError(
-                '`Line._context` con only be called after `Line.build_tracker`')
+                '`Line._context` can only be called after `Line.build_tracker`')
         return self.tracker._context
 
     def _init_var_management(self, dct=None):
@@ -4481,24 +4467,74 @@ class Line:
         else:
             raise ValueError('Only scalars or references are allowed')
 
-    def _get_non_collective_line(self):
-        if not self.iscollective:
+    def _get_non_collective_line(self, _print=True):
+        if self.tracker._specialised_for_twiss:
+            # Already specialised for twiss
             return self
+
+        elif not self.iscollective and not self.tracker._skip_noncollective_elements_in_twiss:
+            # Can use the regular tracker
+            return self
+
         else:
+            if self.tracker._skip_noncollective_elements_in_twiss and _print:
+                log.warning(
+                    "The tracker has non-collective elements marked by "
+                    "'skip_in_twiss=True'.\nIn the twiss computation these "
+                    "elements are replaced by drifts")
+            if self.tracker._enable_collective_elements_in_twiss and _print:
+                log.warning(
+                    "The tracker has collective elements.\n"
+                    "In the twiss computation collective elements are"
+                    " replaced by drifts (except those marked by "
+                    "'skip_in_twiss=False').")
+            elif self.iscollective and _print:
+                log.warning(
+                    'The tracker has collective elements.\n'
+                    'In the twiss computation collective elements are'
+                    ' replaced by drifts.')
+
             # Shallow copy of the line
             out = Line.__new__(Line)
             out.__dict__.update(self.__dict__)
 
             # Change the element dict (beware of the element_dict property)
-            out._element_dict = self.tracker._element_dict_non_collective
+            if not self.tracker._enable_collective_elements_in_twiss \
+            and not self.tracker._skip_noncollective_elements_in_twiss:
+                # Default behavior
+                out._element_dict = self.tracker._element_dict_non_collective
+            else:
+                # Specialised element dict
+                out._element_dict = self.tracker._element_dict_for_twiss
 
-            # Shallow copy of the tracker
-            out.tracker = self.tracker.__new__(self.tracker.__class__)
-            out.tracker.__dict__.update(self.tracker.__dict__)
-            out.tracker.iscollective = False
-            out.tracker.line = out
+            if not self.tracker._enable_collective_elements_in_twiss:
+                # Shallow copy of the tracker
+                out.tracker = self.tracker.__new__(self.tracker.__class__)
+                out.tracker.__dict__.update(self.tracker.__dict__)
+                out.tracker.iscollective = False
+                out.tracker._specialised_for_twiss = True
+                out.tracker._enable_collective_elements_in_twiss = False
+                out.tracker._skip_noncollective_elements_in_twiss = False
+                out.tracker.line = out
+                return out
 
-            return out
+            else:
+                # Some collective elements were re-added; need to rebuild the tracker
+                _buffer = self.tracker._buffer
+                io_buffer = self.tracker.io_buffer
+                use_prebuilt_kernels = self.tracker.use_prebuilt_kernels
+                enable_pipeline_hold = self.tracker._enable_pipeline_hold
+                particles_monitor_class = self.tracker.particles_monitor_class
+                extra_headers = self.tracker.extra_headers
+                local_particle_src = self.tracker.local_particle_src
+                out.discard_tracker()
+                out.build_tracker(_buffer=_buffer, io_buffer=io_buffer,
+                    extra_headers=extra_headers, local_particle_src=local_particle_src,
+                    use_prebuilt_kernels=use_prebuilt_kernels,
+                    enable_pipeline_hold=enable_pipeline_hold,
+                    particles_monitor_class=particles_monitor_class)
+                out.tracker._specialised_for_twiss = True
+                return out
 
     def _get_attr_cache(self):
         cache = LineAttr(
@@ -4817,7 +4853,7 @@ class Line:
     def _element_names_unique(self):
         if not self._has_valid_tracker():
             raise RuntimeError(
-                '`Line._element_names_unique` con only be called after `Line.build_tracker`')
+                '`Line._element_names_unique` can only be called after `Line.build_tracker`')
         return self.tracker._tracker_data_base._element_names_unique
 
 def frac(x):
@@ -5001,6 +5037,16 @@ def _is_collective(element, line):
         element = element.resolve(line)
     iscoll = not hasattr(element, 'iscollective') or element.iscollective
     return iscoll
+
+def _skip_in_twiss(element, line):
+    if isinstance(element, xt.Replica):
+        element = element.resolve(line)
+    if hasattr(element, 'skip_in_twiss'):
+        skiptwiss = element.skip_in_twiss
+    else:
+        # Default behavior: skip in twiss if collective
+        skiptwiss = _is_collective(element, line)
+    return skiptwiss
 
 # whether backtrack in loss location refinement is allowed
 def _allow_loss_refinement(element, line):

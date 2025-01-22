@@ -18,7 +18,7 @@ from .base_element import _handle_per_particle_blocks
 from .beam_elements import Drift
 from .general import _pkg_root
 from .internal_record import new_io_buffer
-from .line import Line, _is_thick, _is_collective
+from .line import Line, _is_thick, _is_collective, _skip_in_twiss
 from .line import freeze_longitudinal as _freeze_longitudinal
 from .pipeline import PipelineStatus
 from .progress_indicator import progress
@@ -101,6 +101,23 @@ class Tracker:
                 ele_dict_non_collective[nn] = ee
         else:
             ele_dict_non_collective = line.element_dict
+
+        # Deal with special cases for twiss
+        self._skip_noncollective_elements_in_twiss = False
+        for ee in line.elements:
+            if not _is_collective(ee, line) and _skip_in_twiss(ee, line):
+                self._skip_noncollective_elements_in_twiss = True
+                break
+
+        self._enable_collective_elements_in_twiss = False
+        for ee in line.elements:
+            if _is_collective(ee, line) and not _skip_in_twiss(ee, line):
+                self._enable_collective_elements_in_twiss = True
+                break
+
+        ele_dict_for_twiss = self._make_ele_dict_for_twiss(ele_dict_non_collective)
+        self._element_dict_for_twiss = ele_dict_for_twiss
+        self._specialised_for_twiss = False
 
         if _prebuilding_kernels:
             element_s_locations = np.zeros(len(line.element_names))
@@ -233,6 +250,26 @@ class Tracker:
 
         return (parts, part_names, _element_part, _element_index_in_part,
                 _part_element_index, noncollective_xelements)
+
+    def _make_ele_dict_for_twiss(self, ele_dict_non_collective):
+        line = self.line
+        if self._skip_noncollective_elements_in_twiss \
+        or self._enable_collective_elements_in_twiss:
+            ele_dict_for_twiss = ele_dict_non_collective.copy() # need to keep the parents
+            for nn in line.element_names:
+                ee = line[nn]
+                if not _is_collective(ee, line) and _skip_in_twiss(ee, line):
+                    ldrift = ee.length if _is_thick(ee, line) else 0.
+                    if hasattr(ele_dict_non_collective[nn], '_buffer'):
+                        ee_buffer = ele_dict_non_collective[nn]._buffer
+                    else:
+                        ee_buffer = None
+                    ele_dict_for_twiss[nn] = Drift(_buffer=ee_buffer, length=ldrift)
+                elif _is_collective(ee, line) and not _skip_in_twiss(ee, line):
+                    ele_dict_for_twiss[nn] = ee
+            return ele_dict_for_twiss
+        else:
+            return ele_dict_non_collective
 
     @property
     def track_kernel(self):

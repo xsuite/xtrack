@@ -589,12 +589,7 @@ def twiss_line(line, particle_ref=None, method=None,
         elif co_guess is None and hasattr(line, 'particle_ref'):
             particle_ref = line.particle_ref
 
-    if line.iscollective:
-        _print(
-            'The line has collective elements.\n'
-            'In the twiss computation collective elements are'
-            ' replaced by drifts')
-        line = line._get_non_collective_line()
+    line = line._get_non_collective_line()
 
     if particle_ref is None and co_guess is None:
         raise ValueError(
