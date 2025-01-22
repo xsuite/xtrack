@@ -457,6 +457,9 @@ class Environment:
             Suffix to be added to the names of the elements that are common to
             the imported line and the line in this environment. If None,
             '_{source_line_name}' is used.
+        rename_elements : dict, optional
+            Dictionary with the elements to be renamed. The keys are the names
+            of the elements in `line`, and the values are the new names.
         line_name : str, optional
             Name of the new line. If None, the name of the imported line is used.
         overwrite_vars : bool, optional
@@ -485,9 +488,9 @@ class Environment:
             elif (bool(re.match(r'^drift_\d+$', name))
                 and line.ref[name].length._expr is None):
                 new_name = self._get_a_drift_name()
-            elif (name in self.element_dict and not
-                (isinstance(line[name], xt.Marker)
-                and isinstance(self.element_dict.get(name), xt.Marker))):
+            elif (name in self.element_dict and
+                    not (isinstance(line[name], xt.Marker) and
+                        isinstance(self.element_dict.get(name), xt.Marker))):
                 new_name += suffix_for_common_elements
 
             self.copy_element_from(name, line, new_name=new_name)
