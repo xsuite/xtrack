@@ -4477,67 +4477,82 @@ class Line:
             return self
 
         else:
-            if self.tracker._skip_noncollective_elements_in_twiss and _print:
-                log.warning(
-                    "The tracker has non-collective elements marked by "
-                    "'skip_in_twiss=True'.\nIn the twiss computation these "
-                    "elements are replaced by drifts.")
-            if self.tracker._enable_collective_elements_in_twiss and _print:
-                log.warning(
-                    "The tracker has collective elements.\n"
-                    "In the twiss computation collective elements are"
-                    " replaced by drifts (except those marked by "
-                    "'skip_in_twiss=False').")
-            elif self.iscollective and _print:
-                log.warning(
-                    'The tracker has collective elements.\n'
-                    'In the twiss computation collective elements are'
-                    ' replaced by drifts.')
+            # Return a specialised line for twiss (collective elements are replaced
+            # by drifts unless specified, and some non-collective elements as well)
+            if not hasattr(self, '_line_for_twiss') \
+            or id(self.tracker) != self._line_for_twiss._tracker_id:
+                # Rebuild the specialised line if the tracker was rebuilt
+                self._specialise_for_twiss()
+            return self._line_for_twiss
 
-            # Shallow copy of the line
-            out = Line.__new__(Line)
-            out.__dict__.update(self.__dict__)
+    def _specialise_for_twiss(self):
+        assert self._has_valid_tracker()
+        if self.tracker._skip_noncollective_elements_in_twiss:
+            log.warning(
+                "The tracker has non-collective elements marked by "
+                "'skip_in_twiss=True'.\nIn the twiss computation these "
+                "elements are replaced by drifts.")
+        if self.tracker._enable_collective_elements_in_twiss:
+            log.warning(
+                "The tracker has collective elements.\n"
+                "In the twiss computation collective elements are"
+                " replaced by drifts (except those marked by "
+                "'skip_in_twiss=False').")
+        elif self.iscollective:
+            log.warning(
+                'The tracker has collective elements.\n'
+                'In the twiss computation collective elements are'
+                ' replaced by drifts.')
 
-            # Change the element dict (beware of the element_dict property)
-            if not self.tracker._enable_collective_elements_in_twiss \
-            and not self.tracker._skip_noncollective_elements_in_twiss:
-                # Default behavior
-                out._element_dict = self.tracker._element_dict_non_collective
-            else:
-                # Specialised element dict
-                out._element_dict = self.tracker._element_dict_for_twiss
+        # Shallow copy of the line
+        out = Line.__new__(Line)
+        out.__dict__.update(self.__dict__)
 
-            if not self.tracker._enable_collective_elements_in_twiss:
-                # Shallow copy of the tracker
-                out.tracker = self.tracker.__new__(self.tracker.__class__)
-                out.tracker.__dict__.update(self.tracker.__dict__)
-                out.tracker.iscollective = False
-                out.tracker._specialised_for_twiss = True
-                out.tracker._enable_collective_elements_in_twiss = False
-                out.tracker._skip_noncollective_elements_in_twiss = False
-                out.tracker.line = out
-                return out
+        # Change the element dict (beware of the element_dict property)
+        if not self.tracker._enable_collective_elements_in_twiss \
+        and not self.tracker._skip_noncollective_elements_in_twiss:
+            # Default behaviour
+            out._element_dict = self.tracker._element_dict_non_collective
+        else:
+            # Specialised element dict
+            out._element_dict = self.tracker._element_dict_for_twiss
 
-            else:
-                # Some collective elements were re-added; need to rebuild the tracker
-                _buffer = self.tracker._buffer
-                io_buffer = self.tracker.io_buffer
-                use_prebuilt_kernels = self.tracker.use_prebuilt_kernels
-                enable_pipeline_hold = self.tracker._enable_pipeline_hold
-                particles_monitor_class = self.tracker.particles_monitor_class
-                extra_headers = self.tracker.extra_headers
-                local_particle_src = self.tracker.local_particle_src
-                # Discard the tracker; cannot do out.discard_tracker() as it points to
-                # the same object and would invalidate the existing tracker on the line
-                out._element_names = list(out._element_names)
-                out.tracker = None
-                out.build_tracker(_buffer=_buffer, io_buffer=io_buffer,
-                    extra_headers=extra_headers, local_particle_src=local_particle_src,
-                    use_prebuilt_kernels=use_prebuilt_kernels,
-                    enable_pipeline_hold=enable_pipeline_hold,
-                    particles_monitor_class=particles_monitor_class)
-                out.tracker._specialised_for_twiss = True
-                return out
+        if not self.tracker._enable_collective_elements_in_twiss:
+            # Default behaviour: shallow copy of the tracker
+            out.tracker = self.tracker.__new__(self.tracker.__class__)
+            out.tracker.__dict__.update(self.tracker.__dict__)
+            out.tracker.iscollective = False
+            out.tracker._specialised_for_twiss = True
+            out.tracker._enable_collective_elements_in_twiss = False
+            out.tracker._skip_noncollective_elements_in_twiss = False
+            out.tracker.line = out
+            out.tracker._specialised_for_twiss = True
+            # Log the tracker id this line is specialised for
+            out._tracker_id = id(self.tracker)
+            self._line_for_twiss = out
+
+        else:
+            # Some collective elements were re-added; need to rebuild the tracker
+            _buffer = self.tracker._buffer
+            io_buffer = self.tracker.io_buffer
+            use_prebuilt_kernels = self.tracker.use_prebuilt_kernels
+            enable_pipeline_hold = self.tracker._enable_pipeline_hold
+            particles_monitor_class = self.tracker.particles_monitor_class
+            extra_headers = self.tracker.extra_headers
+            local_particle_src = self.tracker.local_particle_src
+            # Discard the tracker; cannot do out.discard_tracker() as it points to
+            # the same object and would invalidate the existing tracker on the line
+            out._element_names = list(out._element_names)
+            out.tracker = None
+            out.build_tracker(_buffer=_buffer, io_buffer=io_buffer,
+                extra_headers=extra_headers, local_particle_src=local_particle_src,
+                use_prebuilt_kernels=use_prebuilt_kernels,
+                enable_pipeline_hold=enable_pipeline_hold,
+                particles_monitor_class=particles_monitor_class)
+            out.tracker._specialised_for_twiss = True
+            # Log the tracker id this line is specialised for
+            out._tracker_id = id(self.tracker)
+            self._line_for_twiss = out
 
     def _get_attr_cache(self):
         cache = LineAttr(
