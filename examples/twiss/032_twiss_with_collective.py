@@ -1,4 +1,5 @@
 import xtrack as xt
+import xobjects as xo
 
 env = xt.Environment()
 env.particle_ref = xt.Particles(p0c=7e12)
@@ -12,9 +13,9 @@ class MyKicker:
         p.px += self.kickx
         p.py += self.kicky
 
-kick1 = MyKicker(kickx=1e-4)
-kick2 = MyKicker(kickx=-2e-4)
-kick3 = MyKicker(kickx=1e-4)
+kick1 = MyKicker(kickx=1e-3)
+kick2 = MyKicker(kickx=-2e-3)
+kick3 = MyKicker(kickx=1e-3)
 
 line = env.new_line(components=[
     env.place('k1', kick1, at=0),
@@ -23,6 +24,10 @@ line = env.new_line(components=[
     ])
 
 tw = line.twiss(betx=1, bety=1, include_collective=True)
+xo.assert_allclose(tw['x', 'k2'], 2e-3, atol=1e-8, rtol=0)
+
+tw_nocoll = line.twiss(betx=1, bety=1)
+xo.assert_allclose(tw_nocoll['x', 'k2'], 0, atol=1e-8, rtol=0)
 
 
 class MyQuad:
@@ -53,7 +58,6 @@ lfodo_ref = env.new_line(components=[
 
 twfodo_ref = lfodo_ref.twiss4d(include_collective=True)
 
-import xobjects as xo
 xo.assert_allclose(twfodo.qx, twfodo_ref.qx, atol=1e-8, rtol=0)
 xo.assert_allclose(twfodo.qy, twfodo_ref.qy, atol=1e-8, rtol=0)
 xo.assert_allclose(twfodo.dqx, twfodo_ref.dqx, atol=1e-8, rtol=0)
