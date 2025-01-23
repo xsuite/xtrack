@@ -1064,6 +1064,10 @@ class Tracker:
                     particles._num_active_particles = -1
                     particles._num_lost_particles = -1
 
+            if monitor is not None and monitor.ebe_mode == 1 and (
+                ele_stop is None or ele_stop == self.num_elements):
+                monitor.track(particles)
+
             # Increment at_turn and reset at_element
             # (use the non-collective track method to perform only end-turn actions)
             self._track_no_collective(particles,
