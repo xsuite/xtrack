@@ -231,7 +231,7 @@ def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False):
                     f'{nn_ng}.dx = 0\n'
                     f'{nn_ng}.dy = 0\n'
                     f'{nn_ng}.misalign'
-                    ' =\ {'
+                    r' =\ {'
                     # f'dx={line[nn].shift_x},'
                     # f'dy={line[nn].shift_y}'
                     + (f'dx={dx},' if not isinstance(dx, str) else f'dx={dx},')
