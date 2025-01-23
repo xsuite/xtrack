@@ -44,3 +44,17 @@ lfodo = env.new_line(components=[
 ])
 
 twfodo = lfodo.twiss4d(include_collective=True)
+
+lfodo_ref = env.new_line(components=[
+    env.new('mqf', 'Multipole', knl=[0, kq], at=0),
+    env.new('mqd', 'Multipole', knl=[0, -kq], at=10),
+    env.new('mend', 'Marker', at=20),
+])
+
+twfodo_ref = lfodo_ref.twiss4d(include_collective=True)
+
+import xobjects as xo
+xo.assert_allclose(twfodo.qx, twfodo_ref.qx, atol=1e-8, rtol=0)
+xo.assert_allclose(twfodo.qy, twfodo_ref.qy, atol=1e-8, rtol=0)
+xo.assert_allclose(twfodo.dqx, twfodo_ref.dqx, atol=1e-8, rtol=0)
+xo.assert_allclose(twfodo.dqy, twfodo_ref.dqy, atol=1e-8, rtol=0)
