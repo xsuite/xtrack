@@ -1076,7 +1076,6 @@ class Tracker:
 
         self.record_last_track = monitor
 
-
     def _track_no_collective(
         self,
         particles,
