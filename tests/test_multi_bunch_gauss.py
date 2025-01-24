@@ -3,18 +3,13 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-import json
-
 import numpy as np
+from scipy import constants
 
-import xobjects as xo
 import xpart as xp
 import xtrack as xt
-
 from xobjects.test_helpers import for_all_test_contexts
 
-from scipy import constants
-from matplotlib import pyplot as plt
 
 def do_checks(test_context,part,n_part_per_bunch,sigma_z,sigma_delta,
         filled_slots,bunch_numbers,bunch_spacing):
@@ -139,5 +134,3 @@ def test_multi_bunch_gaussian_generation(test_context):
             line.track(part,num_turns=100)
             do_checks(test_context,part,n_part_per_bunch,sigma_z,sigma_delta,
                 filled_slots,bunche_numbers_per_rank[rank],bunch_spacing)
-
-
