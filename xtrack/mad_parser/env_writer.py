@@ -61,16 +61,20 @@ class EnvWriterProxy:
 
         return line
 
-    def new_builder(self, *args, **kwargs):
-        name = kwargs.get('name')
-        printed_components = kwargs.get('components') or args[0]
+    def new_builder(self, components=(), name=None, *args, **kwargs):
+        printed_components = components
         for idx, component in enumerate(printed_components):
             if isinstance(component, xt.Line):
                 inline_new_line = _Code(self._temp_lines[component])
                 printed_components[idx] = inline_new_line
-        call = self._format_call('new_builder', *args, **kwargs)
+        call = self._format_call(
+            'new_builder',
+            components=components,
+            name=name,
+            *args, **kwargs,
+        )
         self._lines.append(f'{name} = {call}')
-        builder = self.env.new_builder(*args, **kwargs)
+        builder = self.env.new_builder(components, name, *args, **kwargs)
         return EnvWriterProxy(builder, name, parent_proxy=self)
 
     def place(self, *args, **kwargs):
