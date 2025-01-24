@@ -102,6 +102,7 @@ def twiss_line(line, particle_ref=None, method=None,
         ddx=None, ddpx=None, ddy=None, ddpy=None,
         zero_at=None,
         co_search_at=None,
+        include_collective=False,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,
@@ -589,7 +590,7 @@ def twiss_line(line, particle_ref=None, method=None,
         elif co_guess is None and hasattr(line, 'particle_ref'):
             particle_ref = line.particle_ref
 
-    if line.iscollective:
+    if line.iscollective and not include_collective:
         _print(
             'The line has collective elements.\n'
             'In the twiss computation collective elements are'
@@ -636,7 +637,8 @@ def twiss_line(line, particle_ref=None, method=None,
             compute_R_element_by_element=compute_R_element_by_element,
             only_markers=only_markers,
             only_orbit=only_orbit,
-            periodic_mode=periodic_mode
+            periodic_mode=periodic_mode,
+            include_collective=include_collective,
             )
     else:
         # force
@@ -710,7 +712,9 @@ def twiss_line(line, particle_ref=None, method=None,
             hide_thin_groups=hide_thin_groups,
             only_markers=only_markers,
             periodic=periodic,
-            periodic_mode=periodic_mode)
+            periodic_mode=periodic_mode,
+            include_collective=include_collective,
+        )
         twiss_res._data.update(cols_chrom)
         twiss_res._data.update(scalars_chrom)
         twiss_res._col_names += list(cols_chrom.keys())
@@ -903,6 +907,7 @@ def _twiss_open(line, init,
         import xpart
         part_for_twiss = xpart.build_particles(_context=context,
             particle_ref=particle_on_co, mode='shift',
+            include_collective=True,
             x     = [0] + list(W_matrix[0, :] * -scale_eigen) + list(W_matrix[0, :] * scale_eigen),
             px    = [0] + list(W_matrix[1, :] * -scale_eigen) + list(W_matrix[1, :] * scale_eigen),
             y     = [0] + list(W_matrix[2, :] * -scale_eigen) + list(W_matrix[2, :] * scale_eigen),
@@ -1298,7 +1303,8 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                     hide_thin_groups=False,
                     only_markers=False,
                     periodic=False,
-                    periodic_mode=None):
+                    periodic_mode=None,
+                    include_collective=False):
 
     if only_markers:
         raise NotImplementedError('only_markers not supported anymore')
@@ -1316,16 +1322,20 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                 delta=tw_init_chrom.delta+ dd,
                 particle_on_co=on_momentum_twiss_res.particle_on_co.copy(),
                 nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                W_matrix=tw_init_chrom.W_matrix)
+                W_matrix=tw_init_chrom.W_matrix,
+                include_collective=include_collective)
             part_chrom = line.find_closed_orbit(delta0=dd, co_guess=part_guess,
                                     start=start, end=end, num_turns=num_turns,
-                                    symmetrize=(periodic_mode == 'periodic_symmetric'))
+                                    symmetrize=(periodic_mode == 'periodic_symmetric'),
+                                    include_collective=include_collective,
+                                    )
             tw_init_chrom.particle_on_co = part_chrom
             RR_chrom = line.compute_one_turn_matrix_finite_differences(
                                         particle_on_co=tw_init_chrom.particle_on_co.copy(),
                                         start=start, end=end, num_turns=num_turns,
                                         steps_r_matrix=steps_r_matrix,
-                                        symmetrize=(periodic_mode == 'periodic_symmetric')
+                                        symmetrize=(periodic_mode == 'periodic_symmetric'),
+                                        include_collective=include_collective,
                                         )['R_matrix']
 
             (WW_chrom, _, _, _) = lnf.compute_linear_normal_form(RR_chrom,
@@ -1800,7 +1810,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             compute_R_element_by_element=False,
                             only_markers=False,
                             only_orbit=False,
-                            periodic_mode='periodic'):
+                            periodic_mode='periodic',
+                            include_collective=False):
 
     eigenvalues = None
     Rot = None
@@ -1841,6 +1852,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                 search_for_t_rev=search_for_t_rev,
                                 num_turns_search_t_rev=num_turns_search_t_rev,
                                 symmetrize=(periodic_mode == 'periodic_symmetric'),
+                                include_collective=include_collective
                                 )
     if only_orbit:
         W_matrix = np.eye(6)
@@ -1871,6 +1883,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                     element_by_element=compute_R_element_by_element,
                     only_markers=only_markers,
                     symmetrize=(periodic_mode == 'periodic_symmetric'),
+                    include_collective=include_collective
                     )
                 RR = RR_out['R_matrix']
                 RR_ebe = RR_out['R_matrix_ebe']
@@ -2150,7 +2163,7 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
         end = line._element_names_unique.index(end)
 
     if isinstance(co_guess, dict):
-        co_guess = line.build_particles(**co_guess)
+        co_guess = line.build_particles(**co_guess, include_collective=True)
 
     if co_guess is None:
         if particle_ref is None:
@@ -2685,7 +2698,9 @@ class TwissInit:
                 x=self._temp_co_data['x'], px=self._temp_co_data['px'],
                 y=self._temp_co_data['y'], py=self._temp_co_data['py'],
                 delta=self._temp_co_data['delta'], zeta=self._temp_co_data['zeta'],
-                line=line)
+                line=line,
+                include_collective=True, # In fact it does not matter
+            )
             particle_on_co.s = s_ele_twiss
             self.__dict__['particle_on_co'] = particle_on_co
             self._temp_co_data = None

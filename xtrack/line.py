@@ -1110,6 +1110,7 @@ class Line:
         W_matrix=None,
         method=None,
         scale_with_transverse_norm_emitt=None,
+        include_collective=True,
         _context=None, _buffer=None, _offset=None,
         _capacity=None,
         mode=None,
@@ -1233,6 +1234,7 @@ class Line:
             _context=_context, _buffer=_buffer, _offset=_offset,
             _capacity=_capacity,
             mode=mode,
+            include_collective=include_collective,
             **kwargs)
 
     def twiss(self, particle_ref=None, method=None,
@@ -1275,6 +1277,7 @@ class Line:
         ddx=None, ddpx=None, ddy=None, ddpy=None,
         zero_at=None,
         co_search_at=None,
+        include_collective=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,
@@ -1666,7 +1669,8 @@ class Line:
                           co_search_at=None,
                           search_for_t_rev=False,
                           num_turns_search_t_rev=None,
-                          symmetrize=False):
+                          symmetrize=False,
+                          include_collective=False):
 
         """
         Find the closed orbit of the beamline.
@@ -1725,7 +1729,7 @@ class Line:
         if particle_ref is None and co_guess is None:
             particle_ref = self.particle_ref
 
-        if self.iscollective:
+        if self.iscollective and not include_collective:
             log.warning(
                 'The tracker has collective elements.\n'
                 'In the twiss computation collective elements are'
@@ -1949,7 +1953,8 @@ class Line:
             start=None, end=None,
             num_turns=1,
             element_by_element=False, only_markers=False,
-            symmetrize=False):
+            symmetrize=False,
+            include_collective=False):
 
         '''Compute the one turn matrix using finite differences.
 
@@ -1976,7 +1981,7 @@ class Line:
 
         self._check_valid_tracker()
 
-        if self.iscollective:
+        if self.iscollective and not include_collective:
             log.warning(
                 'The tracker has collective elements.\n'
                 'In the twiss computation collective elements are'
