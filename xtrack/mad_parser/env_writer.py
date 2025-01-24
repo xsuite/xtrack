@@ -118,6 +118,15 @@ class EnvWriterProxy:
                 self.env.vars[key] = value
                 self._lines.append(f'{self.prefix}.vars[{key!r}] = {value!r}')
 
+            @property
+            def default_to_zero(_self):
+                return self.env.vars.default_to_zero
+
+            @default_to_zero.setter
+            def default_to_zero(_self, value):
+                self.env.vars.default_to_zero = value
+                self._lines.append(f'{self.prefix}.vars.default_to_zero = {value!r}')
+
         return VarsProxy()
 
     @property
