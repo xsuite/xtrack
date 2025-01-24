@@ -889,9 +889,10 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
                     s_start_for_place[ss] = (s_start_for_place[ss_prev]
                                              + tt_lengths['length', ss_prev.name])
                     place_for_name[ss.name] = ss
-                    ss.at = 0
-                    ss.from_ = ss_prev.name
-                    ss.from_anchor = 'end'
+                    if '::' not in tt_out['name', ii-1]: # previous element is not repeated
+                        ss.at = s_start_for_place[ss]
+                        ss.from_ = ss_prev.name
+                        ss.from_anchor = 'end'
                     n_resolved += 1
             else:
                 if isinstance(ss.at, str):
