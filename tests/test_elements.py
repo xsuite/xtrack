@@ -9,7 +9,6 @@ from cpymad.madx import Madx
 from scipy.stats import linregress
 from scipy import constants as cst
 from xobjects.test_helpers import for_all_test_contexts
-from xpart.particles import Particles, ParticlesPurelyLongitudinal
 
 import ducktrack as dtk
 import xobjects as xo
@@ -153,7 +152,7 @@ def test_backtrack(test_context):
         line_test.build_tracker(_context=test_context)
 
         # track forward and backward
-        new_particles = xp.Particles.from_dict(dtk_particle.to_dict(),
+        new_particles = xt.Particles.from_dict(dtk_particle.to_dict(),
                                                _context=test_context)
         line_test.track(new_particles)
         line_test.track(new_particles, backtrack=True)
@@ -194,7 +193,7 @@ def test_drift(test_context):
             delta=1e-2,
             zeta=1.)
 
-    particles = xp.Particles.from_dict(dtk_particle.to_dict(),
+    particles = xt.Particles.from_dict(dtk_particle.to_dict(),
                                        _context=test_context)
 
     drift = xt.Drift(_context=test_context, length=10.)
@@ -223,7 +222,7 @@ def test_drift_exact(test_context):
             delta=1e-2,
             zeta=1.)
 
-    particles = xp.Particles.from_dict(dtk_particle.to_dict(),
+    particles = xt.Particles.from_dict(dtk_particle.to_dict(),
                                        _context=test_context)
 
     drift = xt.Drift(_context=test_context, length=10.)
@@ -255,7 +254,7 @@ def test_marker(test_context):
         delta=1e-2,
         zeta=1.)
 
-    particles = xp.Particles.from_dict(dtk_particle.to_dict(),
+    particles = xt.Particles.from_dict(dtk_particle.to_dict(),
                                        _context=test_context)
 
     marker = xt.Marker(_context=test_context)
@@ -280,7 +279,7 @@ def test_elens(test_context):
             py   = np.array([0.0]),
             zeta = np.array([0.]))
 
-    particles = xp.Particles.from_dict(dtk_particle.to_dict(),
+    particles = xt.Particles.from_dict(dtk_particle.to_dict(),
                                        _context=test_context)
 
     elens = xt.Elens(_context=test_context,
@@ -331,7 +330,7 @@ def test_elens_measured_radial(test_context):
         return coef
 
 
-    particle_ref = xp.Particles(
+    particle_ref = xt.Particles(
                     p0c=np.array([7000e9]),
                     x=np.array([1e-3]),
                     px=np.array([0.0]),
@@ -375,7 +374,7 @@ def test_wire(test_context):
             py  =np.array([0.0]),
             zeta=np.array([0.]))
 
-    particles = xp.Particles(_context=test_context,
+    particles = xt.Particles(_context=test_context,
                              **dtk_particle.to_dict())
 
 
@@ -415,7 +414,7 @@ def test_linear_transfer_first_order_taylor_map(test_context):
             zeta=2.,
             delta=2E-4)
 
-    particles = xp.Particles.from_dict(dtk_particle.to_dict(),
+    particles = xt.Particles.from_dict(dtk_particle.to_dict(),
                                        _context=test_context)
 
     m0 = np.arange(6,dtype=float)
@@ -446,7 +445,7 @@ def test_linear_transfer_first_order_taylor_map(test_context):
 @for_all_test_contexts
 def test_cavity(test_context):
     cav = xt.Cavity(_context=test_context, frequency=0, lag=90, voltage=30)
-    part = xp.Particles(p0c=1e9, delta=[0, 1e-2], zeta=[0, 0.2], _context=test_context)
+    part = xt.Particles(p0c=1e9, delta=[0, 1e-2], zeta=[0, 0.2], _context=test_context)
     part0 = part.copy(_context=xo.ContextCpu())
 
     cav.track(part)
@@ -482,7 +481,7 @@ def test_exciter(test_context):
     line = xt.Line([exciter])
     line.build_tracker(_context=test_context)
 
-    particles = xp.Particles(p0c=6.5e12, zeta=[0,-1,-2], _context=test_context)
+    particles = xt.Particles(p0c=6.5e12, zeta=[0,-1,-2], _context=test_context)
     num_particles = len(particles.zeta)
 
     line.track(particles, num_turns=1)
@@ -579,7 +578,7 @@ def test_simplified_accelerator_segment(test_context):
             zeta=2.,
             delta=2E-4)
 
-    particles = xp.Particles.from_dict(dtk_particle.to_dict(),
+    particles = xt.Particles.from_dict(dtk_particle.to_dict(),
                                        _context=test_context)
 
     alpha_x_0 = -0.5
@@ -665,7 +664,7 @@ def test_simplified_accelerator_segment_bucket(test_context):
             zeta=2.,
             delta=2E-3)
 
-    particles = xp.Particles.from_dict(dtk_particle.to_dict(),
+    particles = xt.Particles.from_dict(dtk_particle.to_dict(),
                                        _context=test_context)
     Q_x = 0.12
     Q_y = 0.75
@@ -710,7 +709,7 @@ def test_simplified_accelerator_segment_bucket_fixed_rf(test_context):
             zeta=8.,
             delta=2E-3)
 
-    particles = xp.Particles.from_dict(dtk_particle.to_dict(),
+    particles = xt.Particles.from_dict(dtk_particle.to_dict(),
                                        _context=test_context)
     Q_x = 0.12
     Q_y = 0.75
@@ -769,7 +768,7 @@ def test_simplified_accelerator_segment_chroma_detuning(test_context):
             zeta=2.,
             delta=2E-4)
 
-    particles = xp.Particles.from_dict(dtk_particle.to_dict(),
+    particles = xt.Particles.from_dict(dtk_particle.to_dict(),
                                        _context=test_context)
 
     alpha_x_0 = -0.5
@@ -891,7 +890,7 @@ def test_simplified_accelerator_segment_uncorrelated_damping(test_context):
             zeta=2.,
             delta=2E-4)
 
-    particles = xp.Particles.from_dict(dtk_particle.to_dict(),
+    particles = xt.Particles.from_dict(dtk_particle.to_dict(),
                                        _context=test_context)
 
 
@@ -980,7 +979,7 @@ def test_simplified_accelerator_segment_correlated_damping(test_context):
             zeta=2.,
             delta=2E-4)
 
-    particles = xp.Particles.from_dict(dtk_particle.to_dict(),
+    particles = xt.Particles.from_dict(dtk_particle.to_dict(),
                                        _context=test_context)
 
 
@@ -1063,7 +1062,7 @@ def test_simplified_accelerator_segment_uncorrelated_damping_equilibrium(test_co
     gauss_noise_ampl_delta = np.sqrt(2*equ_emit_s*damping_rate_s/beta_s)
     
     npart = int(1E3)
-    particles = xp.Particles(_context=test_context,
+    particles = xt.Particles(_context=test_context,
                 x=np.random.randn(npart)*np.sqrt(equ_emit_x*beta_x_0),
                 px=np.random.randn(npart)*np.sqrt(equ_emit_x/beta_x_0),
                 y=np.random.randn(npart)*np.sqrt(equ_emit_y*beta_y_0),
@@ -1123,7 +1122,7 @@ def test_simplified_accelerator_segment_correlated_noise(test_context):
     data = np.transpose(np.random.multivariate_normal(np.zeros(6),random_matrix,npart))
     covariance_matrix = np.cov(data)
 
-    particles = xp.Particles(_context=test_context,
+    particles = xt.Particles(_context=test_context,
                 x=np.zeros(npart),
                 p0c=45E9)
     particles._init_random_number_generator()
@@ -1173,7 +1172,7 @@ def test_nonlinearlens(test_context):
     px_test = np.linspace(-2e-5, 4e-5, num_p_test)
     py_test = np.linspace(-4e-5, 2e-5, num_p_test)
 
-    p0 = xp.Particles(p0c=2e9, x=x_test, px=px_test, y=y_test, py=py_test,
+    p0 = xt.Particles(p0c=2e9, x=x_test, px=px_test, y=y_test, py=py_test,
                     zeta=.1, ptau=1e-3)
 
     part = p0.copy(_context=test_context)
