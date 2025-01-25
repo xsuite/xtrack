@@ -821,6 +821,11 @@ class Line:
             Copy of the line.
         '''
 
+        if shallow==True:
+            assert _context is None and _buffer is None, (
+                'Shallow copy with _context or _buffer is not supported')
+            return self.select()
+
         elements = {nn: ee.copy(_context=_context, _buffer=_buffer)
                                     for nn, ee in self.element_dict.items()}
         element_names = [nn for nn in self.element_names]
