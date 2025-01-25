@@ -95,7 +95,6 @@ def _tw_ng(line, rdts=[], normal_form=True,
         f'local seq = MADX.{mng._sequence_name}'
         '''
 
-        -- twiss with RDTs
         local mtbl = twiss {sequence=seq, method=4,'''
         f'mapdef={mapdef_twiss}'
         ''', implicit=true, '''
