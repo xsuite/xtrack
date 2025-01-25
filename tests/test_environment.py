@@ -944,6 +944,17 @@ def test_assemble_ring_builders():
     ring2.place(env['ss.3'])
     ring2 = ring2.build()
 
+    select_whole = ring2.select()
+    assert select_whole.env is ring2.env
+    assert select_whole.element_dict is ring2.element_dict
+    assert np.all(np.array(select_whole.element_names)
+                  == np.array(ring2.element_names))
+
+    shallow_copy = ring2.copy(shallow=True)
+    assert shallow_copy.env is ring2.env
+    assert shallow_copy.element_dict is ring2.element_dict
+    assert np.all(np.array(shallow_copy.element_names)
+                    == np.array(ring2.element_names))
 
     # # Check buffer behavior
     ring2_sliced = ring2.select()
