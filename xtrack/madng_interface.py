@@ -194,14 +194,16 @@ class ActionTwissMadng(Action):
     def run(self):
         return self.line.madng_twiss(**self.tw_kwargs)
 
-def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False):
+def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False,
+                  mode='sequence'):
 
     try:
         _ge = xt.elements._get_expr
         if temp_fname is None:
             temp_fname = 'temp_madng_' + str(uuid.uuid4())
 
-        madx_seq = line.to_madx_sequence(sequence_name=sequence_name)
+        madx_seq = line.to_madx_sequence(sequence_name=sequence_name,
+                                         mode=mode)
         with open(f'{temp_fname}.madx', 'w') as fid:
             fid.write(madx_seq)
 

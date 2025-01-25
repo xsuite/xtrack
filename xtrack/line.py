@@ -625,7 +625,8 @@ class Line:
         '''
         return to_madx_sequence(self, sequence_name, mode=mode)
 
-    def to_madng(self, sequence_name='seq', temp_fname=None, keep_files=False):
+    def to_madng(self, sequence_name='seq', temp_fname=None, keep_files=False,
+                 mode='sequence'):
 
         '''
         Build a MAD NG instance from present state of the line.
@@ -644,7 +645,8 @@ class Line:
         '''
 
         return line_to_madng(self, sequence_name=sequence_name,
-                             temp_fname=temp_fname, keep_files=keep_files)
+                             temp_fname=temp_fname, keep_files=keep_files,
+                             mode=mode)
 
 
     build_madng_model = build_madng_model
