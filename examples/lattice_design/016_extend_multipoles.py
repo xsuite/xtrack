@@ -77,3 +77,30 @@ xo.assert_allclose(line['s2'].knl, [3., 2., 1., 0., 0., 0.] , rtol=0, atol=1e-15
 xo.assert_allclose(line['s2'].ksl, [4., 5., 6., 0., 0., 0.] , rtol=0, atol=1e-15)
 xo.assert_allclose(line['m1'].knl, [3., 2., 1.] , rtol=0, atol=1e-15)
 xo.assert_allclose(line['m1'].ksl, [4., 5., 6.] , rtol=0, atol=1e-15)
+
+line.extend_knl_ksl(order=11)
+
+assert line['b1'].order == 11
+assert line['q1'].order == 11
+assert line['s1'].order == 11
+assert line['o1'].order == 11
+assert line['s2'].order == 11
+assert line['m1'].order == 11
+assert line['b1'].inv_factorial_order == 1/math.factorial(11)
+assert line['q1'].inv_factorial_order == 1/math.factorial(11)
+assert line['s1'].inv_factorial_order == 1/math.factorial(11)
+assert line['o1'].inv_factorial_order == 1/math.factorial(11)
+assert line['s2'].inv_factorial_order == 1/math.factorial(11)
+assert line['m1'].inv_factorial_order == 1/math.factorial(11)
+xo.assert_allclose(line['b1'].knl, [3., 2., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+xo.assert_allclose(line['b1'].ksl, [4., 5., 6., 0., 0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+xo.assert_allclose(line['q1'].knl, [3., 2., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+xo.assert_allclose(line['q1'].ksl, [4., 5., 6., 0., 0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+xo.assert_allclose(line['s1'].knl, [3., 2., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.] , rtol=0, atol=1e-15)
+xo.assert_allclose(line['s1'].ksl, [4., 5., 6., 0., 0., 0., 0., 0., 0., 0., 0., 0.] , rtol=0, atol=1e-15)
+xo.assert_allclose(line['o1'].knl, [3., 2., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.] , rtol=0, atol=1e-15)
+xo.assert_allclose(line['o1'].ksl, [4., 5., 6., 0., 0., 0., 0., 0., 0., 0., 0., 0.] , rtol=0, atol=1e-15)
+xo.assert_allclose(line['s2'].knl, [3., 2., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.] , rtol=0, atol=1e-15)
+xo.assert_allclose(line['s2'].ksl, [4., 5., 6., 0., 0., 0., 0., 0., 0., 0., 0., 0.] , rtol=0, atol=1e-15)
+xo.assert_allclose(line['m1'].knl, [3., 2., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.] , rtol=0, atol=1e-15)
+xo.assert_allclose(line['m1'].ksl, [4., 5., 6., 0., 0., 0., 0., 0., 0., 0., 0., 0.] , rtol=0, atol=1e-15)
