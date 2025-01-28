@@ -819,7 +819,6 @@ class Bend(BeamElement):
 
         if model is not None:
             self.model = model
-        self.order = order
 
     def to_dict(self, copy_to_cpu=True):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
@@ -995,8 +994,6 @@ class Sextupole(BeamElement):
 
         self.xoinitialize(**kwargs)
 
-        self.order = order
-
     def to_dict(self, copy_to_cpu=True):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
 
@@ -1089,8 +1086,6 @@ class Octupole(BeamElement):
 
         self.xoinitialize(**kwargs)
 
-        self.order = order
-
     def to_dict(self, copy_to_cpu=True):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
 
@@ -1179,8 +1174,6 @@ class Quadrupole(BeamElement):
         kwargs.update(multipolar_kwargs)
 
         self.xoinitialize(**kwargs)
-
-        self.order = order
 
     def to_dict(self, copy_to_cpu=True):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
@@ -1315,8 +1308,6 @@ class Solenoid(BeamElement):
         kwargs.update(multipolar_kwargs)
 
         self.xoinitialize(**kwargs)
-
-        self.order = order
 
     @property
     def order(self):
