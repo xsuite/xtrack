@@ -284,7 +284,7 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
         elements_str = ""
         for nn in line.element_names:
             el = line[nn]
-            el_str = xsuite_to_mad_conveters[type(el)](nn, line)
+            el_str = xsuite_to_mad_conveters[el.__class__](nn, line)
             elements_str += f"{nn}: {el_str};\n"
         line_str = f'{name}: line=(' + ', '.join(line.element_names) + ');'
         machine_str = elements_str + line_str
@@ -307,7 +307,7 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
 
         for nn in line.element_names:
             el = line.element_dict[nn]
-            el_str = xsuite_to_mad_conveters[type(el)](nn, line)
+            el_str = xsuite_to_mad_conveters[el.__class__](nn, line)
             if nn + '_tilt_entry' in line.element_dict:
                 el_str += ", " + mad_assignment('tilt',
                             _ge(line.element_refs[nn + '_tilt_entry'].angle) / 180. * np.pi)
