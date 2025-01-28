@@ -75,4 +75,3 @@ p.get_table().show(cols=['state', 'at_element'])
 # is:
 # particle_id           state at_element
 # 0                         1          0
-
