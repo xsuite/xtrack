@@ -15,13 +15,39 @@ for cc in classes_to_check:
 
     assert env[nn1].__class__.__name__ == cc
     assert env[nn1].order == 11
+    assert len(env[nn1].knl) == 12
+    assert len(env[nn1].ksl) == 12
     xo.assert_allclose(env[nn1].knl, [1,2,3,4,5,6,7,8,9,10,11,12], rtol=0, atol=1e-15)
     xo.assert_allclose(env[nn1].ksl, [3,2,1,0,0,0,0,0,0,0, 0, 0 ], rtol=0, atol=1e-15)
     xo.assert_allclose(env[nn1].inv_factorial_order, 1/math.factorial(11), rtol=0, atol=1e-15)
 
     assert env[nn2].__class__.__name__ == cc
     assert env[nn2].order == 11
+    assert len(env[nn2].ksl) == 12
+    assert len(env[nn2].knl) == 12
     xo.assert_allclose(env[nn2].ksl, [1,2,3,4,5,6,7,8,9,10,11,12], rtol=0, atol=1e-15)
     xo.assert_allclose(env[nn2].knl, [3,2,1,0,0,0,0,0,0,0, 0, 0 ], rtol=0, atol=1e-15)
     xo.assert_allclose(env[nn2].inv_factorial_order, 1/math.factorial(11), rtol=0, atol=1e-15)
 
+env.vars.default_to_zero = True
+line = env.new_line(components=[
+    env.new('b1', xt.Bend, length=1, knl=['a', 'b', 'c'], ksl=['d', 'e', 'f']),
+    env.new('q1', xt.Quadrupole, length=1, knl=['a', 'b', 'c'], ksl=['d', 'e', 'f']),
+    env.new('s1', xt.Sextupole, length=1, knl=['a', 'b', 'c'], ksl=['d', 'e', 'f']),
+    env.new('o1', xt.Octupole, length=1, knl=['a', 'b', 'c'], ksl=['d', 'e', 'f']),
+    env.new('s2', xt.Solenoid, length=1, knl=['a', 'b', 'c'], ksl=['d', 'e', 'f']),
+    env.new('m1', xt.Multipole, length=1, knl=['a', 'b', 'c'], ksl=['d', 'e', 'f']),
+])
+
+
+element_names = ['b1', 'q1']
+order = 10
+
+line.extend_knl_ksl(order=order, element_names=element_names)
+
+assert line['b1'].order == order
+assert line['q1'].order == order
+assert line['s1'].order == 5
+assert line['o1'].order == 5
+assert line['s2'].order == 5
+assert line['m1'].order == 2

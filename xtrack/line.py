@@ -3203,6 +3203,50 @@ class Line:
         self._check_valid_tracker()
         stop_internal_logging_for_elements_of_type(self.tracker, element_type)
 
+    def extend_knl_ksl(self, order, element_names=None):
+
+        """
+        Extend the order of the knl and ksl attributes of the elements.
+
+        Parameters
+        ----------
+        order: int
+            New order of the knl and ksl attributes.
+        element_names: list of str
+            Names of the elements to extend. If None, all elements having `knl`
+            and `ksl` attributes are extended.
+
+        """
+
+        self.discard_tracker()
+
+        if element_names is None:
+            element_names = []
+            for nn in self.element_names:
+                if hasattr(self.get(nn), 'knl'):
+                    element_names.append(nn)
+
+        for nn in element_names:
+            if self.get(nn).order > order:
+                raise ValueError(f'Order of element {nn} is smaller than {order}')
+
+        for nn in element_names:
+            ee = self.get(nn)
+
+            if ee.order == order:
+                continue
+
+            new_knl = [vv for vv in ee.knl] + [0] * (order - len(ee.knl) + 1)
+            new_ksl = [vv for vv in ee.ksl] + [0] * (order - len(ee.ksl) + 1)
+
+            dct = ee.to_dict()
+            dct.pop('order')
+            dct['knl'] = new_knl
+            dct['ksl'] = new_ksl
+
+            new_ee = ee.__class__.from_dict(dct, _buffer=ee._buffer)
+            self.env.elements[nn] = new_ee
+
     def remove_markers(self, inplace=True, keep=None):
         """
         Remove markers from the line
