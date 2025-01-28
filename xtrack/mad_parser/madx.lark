@@ -96,7 +96,7 @@ _ENDSEQUENCE: "endsequence"i
 _SEQEDIT: "seqedit"i
 _ENDEDIT: "endedit"i
 _LINE: "line"i
-NAME: /[A-z_\\.][A-z0-9_\\.%]*/
+NAME: /[A-Za-z_\\.][A-Za-z0-9_\\.%]*/
 STRING: /"[^"]*"/
 _COMMENT: "!" /[^\n]*/
        | "//" /[^\n]*/

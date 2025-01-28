@@ -19,6 +19,7 @@ def test_simple_parser():
     if (version>=50401){option,-rbarc;};  ! to be ignored
     
     third = 1 / 3;
+    power = 3^4;
     hello := third * twopi;
     mb.l = 1;
     qd.l = 0.5;
@@ -45,6 +46,7 @@ def test_simple_parser():
     expected: MadxOutputType = {
         'vars': {
             'third': {'deferred': False, 'expr': '(1.0 / 3.0)'},
+            'power': {'deferred': False, 'expr': '(3.0 ** 4.0)'},
             'hello': {'deferred': True, 'expr': '(third * twopi)'},
             'mb.l': {'deferred': False, 'expr': 1.0},
             'qd.l': {'deferred': False, 'expr': 0.5},
