@@ -104,3 +104,10 @@ xo.assert_allclose(line['s2'].knl, [3., 2., 1., 0., 0., 0., 0., 0., 0., 0., 0., 
 xo.assert_allclose(line['s2'].ksl, [4., 5., 6., 0., 0., 0., 0., 0., 0., 0., 0., 0.] , rtol=0, atol=1e-15)
 xo.assert_allclose(line['m1'].knl, [3., 2., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.] , rtol=0, atol=1e-15)
 xo.assert_allclose(line['m1'].ksl, [4., 5., 6., 0., 0., 0., 0., 0., 0., 0., 0., 0.] , rtol=0, atol=1e-15)
+
+# test an expression
+line['b'] = 100
+line['f'] = 200
+
+xo.assert_allclose(line['o1'].knl, [3., 100., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+xo.assert_allclose(line['o1'].ksl, [4., 5., 200., 0., 0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
