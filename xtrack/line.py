@@ -3240,7 +3240,7 @@ class Line:
             new_ksl = [vv for vv in ee.ksl] + [0] * (order - len(ee.ksl) + 1)
 
             dct = ee.to_dict()
-            dct.pop('order')
+            dct.pop('order', None)
             dct['knl'] = new_knl
             dct['ksl'] = new_ksl
 
