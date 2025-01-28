@@ -22,10 +22,10 @@ class MadngVars:
         #     MADX:close_env()
         #     ''')
 
-def build_madng_model(line, sequence_name='seq'):
+def build_madng_model(line, sequence_name='seq', mode='sequence'):
     if line.tracker is None:
         line.build_tracker()
-    mng = line.to_madng(sequence_name=sequence_name)
+    mng = line.to_madng(sequence_name=sequence_name, mode=mode)
     mng._sequence_name = sequence_name
     line.tracker._madng = mng
     line.tracker._madng_vars = MadngVars(mng)
