@@ -295,6 +295,85 @@ def test_thick_multipolar_component(test_context, element_type, h):
         )
 
 
+@for_all_test_contexts
+@pytest.mark.parametrize(
+    'param_scenario', ['length', 'length_straight', 'both', 'mismatched'],
+)
+def test_rbend(test_context, param_scenario):
+    k0 = 0.15
+    angle = 0.1
+    radius = 2
+    curvature = 1 / radius
+    length = angle * radius
+    length_straight = 2 * radius * np.sin(angle / 2)
+    e1_rbend = 0.05
+    e2_rbend = -0.02
+
+    r_bend_length_kwargs = {}
+
+    if param_scenario in ('length', 'both', 'mismatched'):
+        r_bend_length_kwargs['length'] = length
+
+    if param_scenario in ('length_straight', 'both', 'mismatched'):
+        r_bend_length_kwargs['length_straight'] = length_straight
+
+    def _make_rbend():
+        return xt.RBend(
+            k0=k0,
+            h=curvature,
+            edge_entry_angle=e1_rbend,
+            edge_entry_active=True,
+            edge_exit_angle=e2_rbend,
+            edge_exit_active=True,
+            **r_bend_length_kwargs
+        )
+
+    if param_scenario == 'mismatched':
+        length_straight += 0.8
+        with pytest.raises(ValueError):
+            r_bend_length_kwargs['length_straight'] += 0.8
+            _make_rbend()
+        return
+    else:
+        rbend = _make_rbend()
+
+    sbend = xt.Bend(
+        k0=k0,
+        h=curvature,
+        length=length,
+        edge_entry_angle=e1_rbend + angle / 2,
+        edge_entry_active=True,
+        edge_exit_angle=e2_rbend + angle / 2,
+        edge_exit_active=True,
+    )
+
+    p0 = xp.Particles(
+        mass0=xp.PROTON_MASS_EV,
+        beta0=0.5,
+        x=0.01,
+        px=0.01,
+        y=-0.005,
+        py=0.001,
+        zeta=0.1,
+        delta=[-0.1, -0.05, 0, 0.05, 0.1],
+        _context=test_context,
+    )
+
+    p_rbend = p0.copy()
+    rbend.track(p_rbend)
+    p_sbend = p0.copy()
+    sbend.track(p_sbend)
+
+    xo.assert_allclose(rbend.length, sbend.length, atol=1e-14, rtol=0)
+
+    xo.assert_allclose(p_rbend.x, p_sbend.x, atol=1e-14, rtol=0)
+    xo.assert_allclose(p_rbend.px, p_sbend.px, atol=1e-14, rtol=0)
+    xo.assert_allclose(p_rbend.y, p_sbend.y, atol=1e-14, rtol=0)
+    xo.assert_allclose(p_rbend.py, p_sbend.py, atol=1e-14, rtol=0)
+    xo.assert_allclose(p_rbend.zeta, p_sbend.zeta, atol=1e-14, rtol=0)
+    xo.assert_allclose(p_rbend.ptau, p_sbend.ptau, atol=1e-14, rtol=0)
+
+
 @pytest.mark.parametrize(
     'with_knobs',
     [True, False],
