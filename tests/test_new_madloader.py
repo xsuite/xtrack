@@ -19,6 +19,7 @@ def test_simple_parser():
     if (version>=50401){option,-rbarc;};  ! to be ignored
     
     third = 1 / 3;
+    power = 3^4;
     hello := third * twopi;
     mb.l = 1;
     qd.l = 0.5;
@@ -45,6 +46,7 @@ def test_simple_parser():
     expected: MadxOutputType = {
         'vars': {
             'third': {'deferred': False, 'expr': '(1.0 / 3.0)'},
+            'power': {'deferred': False, 'expr': '(3.0 ** 4.0)'},
             'hello': {'deferred': True, 'expr': '(third * twopi)'},
             'mb.l': {'deferred': False, 'expr': 1.0},
             'qd.l': {'deferred': False, 'expr': 0.5},
@@ -146,7 +148,7 @@ def example_sequence(temp_context_default_mod):
     se: sextupole, L=1, K2=2, K2S=3, TILT=2;  ! ignore ktap
     oc: octupole, L=2, K3=3, K3S=2, TILT=2;
     ma: marker;
-    rf: rfcavity, L=2, VOLT=1, LAG=2, FREQ=3, HARMON=2;  ! ignore N_BESSEL, NO_CAVITY_TOTALPATH
+    rf: rfcavity, L=2, VOLT=1, LAG=2, FREQ=3, HARMON=2, NO_CAVITY_TOTALPATH;  ! ignore N_BESSEL
     mu: multipole, LRAD=1, TILT=2, KNL={3, 4, 5, 6}, KSL={1, 2, 3, 4};
     so: solenoid, l=2, ks=3;  ! ignore ksi
     

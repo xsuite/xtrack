@@ -770,7 +770,7 @@ class Tracker:
 
         if ele_stop is not None:
             assert ele_stop >= 0
-            assert ele_stop < self.num_elements
+            assert ele_stop <= self.num_elements
 
         assert num_turns >= 1
 
@@ -852,7 +852,7 @@ class Tracker:
                     # Track until end of part
                     ret = pp.track(particles, ele_start=i_start_in_part, turn_by_turn_monitor=monitor)
 
-        elif (ele_stop is not None
+        elif (ele_stop is not None and ele_stop < self.num_elements
                 and tt == num_turns-1 and self._element_part[ele_stop] == ipp):
             # We are in the part that contains the stop element
             i_stop_in_part = self._element_index_in_part[ele_stop]
@@ -1064,6 +1064,10 @@ class Tracker:
                     particles._num_active_particles = -1
                     particles._num_lost_particles = -1
 
+            if monitor is not None and monitor.ebe_mode == 1 and (
+                ele_stop is None or ele_stop == self.num_elements):
+                monitor.track(particles)
+
             # Increment at_turn and reset at_element
             # (use the non-collective track method to perform only end-turn actions)
             self._track_no_collective(particles,
@@ -1071,7 +1075,6 @@ class Tracker:
                                num_elements=0)
 
         self.record_last_track = monitor
-
 
     def _track_no_collective(
         self,

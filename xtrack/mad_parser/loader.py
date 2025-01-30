@@ -298,14 +298,14 @@ class MadxLoader:
 
 
             if (isinstance(self.env[name], BeamElement) and not self.env[name].isthick
-                 and length and not isinstance(self.env[name], xt.Marker)):
+                    and length and not isinstance(self.env[name], xt.Marker)):
                 drift_name = f'drift_{name}'
                 self.env.new(drift_name, 'Drift', length=f'({length}) / 2')
                 name = builder.new_line([drift_name, name, drift_name])
             builder.place(name, **el_params)
         else:
             if (isinstance(self.env[parent], BeamElement) and not self.env[parent].isthick
-                and length and not isinstance(self.env[parent], xt.Marker)):
+                    and length and not isinstance(self.env[parent], xt.Marker)):
                 drift_name = f'{name}_drift'
                 self.env.new(drift_name, 'Drift', force=True, length=f'({length}) / 2')  # Not sure why `force` is needed
                 at, from_ = el_params.pop('at', None), el_params.pop('from_', None)

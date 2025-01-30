@@ -86,7 +86,7 @@ env.vars({
 
 halfcell_ss = env.new_builder()
 
-halfcell_ss.new('mid', xt.Marker, at='l.halfcell')
+halfcell_ss.new('mid.ss', xt.Marker, at='l.halfcell')
 
 halfcell_ss.new('mq.ss.d', 'mq', k1='kqd.ss', at = '0.5 + l.mq / 2'),
 halfcell_ss.new('mq.ss.f', 'mq', k1='kqf.ss', at = 'l.halfcell - l.mq / 2 - 0.5')

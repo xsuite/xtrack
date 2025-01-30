@@ -183,13 +183,11 @@ def test_element_placing_at_s():
         env.new('b1', xt.Bend, length='l.b1'),
         env.new('q1', xt.Quadrupole, length='l.q1'),
         env.new('ip', xt.Marker, at='s.ip'),
-        (
-            env.new('before_before_right', xt.Marker),
-            env.new('before_right', xt.Sextupole, length=1),
-            env.new('right',xt.Quadrupole, length=0.8, at='s.right', from_='ip'),
-            env.new('after_right', xt.Marker),
-            env.new('after_right2', xt.Marker),
-        ),
+        env.new('before_before_right', xt.Marker, at='before_right@start'),
+        env.new('before_right', xt.Sextupole, length=1, anchor='end', at='right@start'),
+        env.new('right',xt.Quadrupole, length=0.8, at='s.right', from_='ip'),
+        env.new('after_right', xt.Marker),
+        env.new('after_right2', xt.Marker),
         env.new('left', xt.Quadrupole, length=1, at='s.left', from_='ip'),
         env.new('after_left', xt.Marker),
         env.new('after_left2', xt.Bend, length='l.after_left2'),
@@ -946,6 +944,17 @@ def test_assemble_ring_builders():
     ring2.place(env['ss.3'])
     ring2 = ring2.build()
 
+    select_whole = ring2.select()
+    assert select_whole.env is ring2.env
+    assert select_whole.element_dict is ring2.element_dict
+    assert np.all(np.array(select_whole.element_names)
+                  == np.array(ring2.element_names))
+
+    shallow_copy = ring2.copy(shallow=True)
+    assert shallow_copy.env is ring2.env
+    assert shallow_copy.element_dict is ring2.element_dict
+    assert np.all(np.array(shallow_copy.element_names)
+                    == np.array(ring2.element_names))
 
     # # Check buffer behavior
     ring2_sliced = ring2.select()
@@ -1594,6 +1603,12 @@ def test_env_new():
     assert isinstance(env['e1.ll4'], xt.Bend)
     assert isinstance(env['e2.ll4'], xt.Bend)
 
+    ret = env.new('aper', xt.LimitEllipse, a='2*a', b='a')
+    assert ret == 'aper'
+    assert env[ret].a == 6
+    assert env[ret].b == 3
+
+
 def test_builder_new():
 
     env = xt.Environment()
@@ -1687,6 +1702,7 @@ def test_builder_new():
     assert len(bdr.components) == 11
     assert bdr.components[-1] is ret
 
+
 def test_neg_line():
 
     line = xt.Line(elements=[xt.Bend(k0=0.5), xt.Quadrupole(k1=0.1)])
@@ -1716,11 +1732,9 @@ def test_repeated_elements():
         env.new('ip1', 'Marker', at=10),
         'mb',
         pp,
-        (
-            'mb',
-            env.new('ip2', 'Marker', at=20),
-            'mb',
-        ),
+        env.place('mb', anchor='end', at='ip2@start'),
+        env.new('ip2', 'Marker', at=20),
+        'mb',
         pp
     ])
 
@@ -2015,6 +2029,23 @@ def test_import_line_from_other_env(overwrite_vars, x_value):
     assert env2['b/line'].k0 == 2 * x_value
     assert isinstance(env2['ip'], xt.Marker)
     assert env2['d'].length == 3 * 7
+
+
+def test_copy_element_from_other_env():
+    env1 = xt.Environment()
+    env1['var'] = 3
+    env1['var2'] = '2 * var'
+    env1.new('quad', xt.Quadrupole, length='var', knl=[0, 'var2'])
+
+    env2 = xt.Environment()
+    env2['var'] = 4
+    env2['var2'] = '2 * var'
+    env2.copy_element_from('quad', env1, 'quad/env2')
+
+    assert env2['quad/env2'].length == 4
+    assert env2['quad/env2'].knl[0] == 0
+    assert env2['quad/env2'].knl[1] == 8
+
 
 def test_insert_repeated_elements():
 
@@ -2845,3 +2876,17 @@ def test_append_to_line():
         [ 2.5,  5.5,  7.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. ,
         40. , 41. , 42.5, 46.5, 50. , 51. , 53. , 55. , 57. , 58. ]),
         rtol=0., atol=1e-14)
+
+def test_nested_lists():
+
+    env = xt.Environment()
+
+    env.new('q1', 'Quadrupole', length=2.0)
+    env.new('q2', 'Quadrupole', length=2.0)
+
+    line = env.new_line(components=[2*['q1'], 'q2'])
+
+    tt = line.get_table()
+    tt.show(cols=['name', 's_start', 's_end', 's_center'])
+    assert np.all(tt.name == np.array(
+        ['q1::0', 'q1::1', 'q2', '_end_point']))

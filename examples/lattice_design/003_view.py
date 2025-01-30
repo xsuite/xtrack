@@ -8,8 +8,10 @@ line = xt.Line()
 
 if container_type == 'env':
     ee = env
+    eenv = env
 elif container_type == 'line':
     ee = line
+    eenv = line.env
 
 ee['a']  = 3.
 ee['b1']  = 3 * ee['a'] # done by value
@@ -36,7 +38,7 @@ assert ee.get('b1') == 9
 assert ee.get('b2') == 9
 assert ee.get('c') == 12
 
-ee.new('mb', 'Bend', extra={'description': 'Hello Riccarco'},
+eenv.new('mb', 'Bend', extra={'description': 'Hello Riccarco'},
         k1='3*a', h=4*ee.ref['a'], knl=[0, '5*a', 6*ee.ref['a']])
 assert isinstance(ee['mb'].k1, float)
 assert isinstance(ee['mb'].h, float)

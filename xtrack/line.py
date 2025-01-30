@@ -261,6 +261,7 @@ class Line:
             self._init_var_management(dct=dct)
 
         if 'config' in dct.keys():
+            self.config.clear()
             self.config.data.update(dct['config'])
 
         if '_extra_config' in dct.keys():
@@ -820,25 +821,32 @@ class Line:
             Copy of the line.
         '''
 
-        elements = {nn: ee.copy(_context=_context, _buffer=_buffer)
-                                    for nn, ee in self.element_dict.items()}
-        element_names = [nn for nn in self.element_names]
+        if shallow==True:
+            assert _context is None and _buffer is None, (
+                'Shallow copy with _context or _buffer is not supported')
+            out = self.select()
+        else:
+            elements = {nn: ee.copy(_context=_context, _buffer=_buffer)
+                                        for nn, ee in self.element_dict.items()}
+            element_names = [nn for nn in self.element_names]
+            out = self.__class__(elements=elements, element_names=element_names)
 
-        out = self.__class__(elements=elements, element_names=element_names)
+            if self._var_management is not None:
+                # reinit env and var management
+                out.env = None
+                out._var_management = None
+                out._init_var_management(dct=self._var_management_to_dict())
+                out._env_if_needed()
 
         if self.particle_ref is not None:
             out.particle_ref = self.particle_ref.copy(
                                         _context=_context, _buffer=_buffer)
 
-        if self._var_management is not None:
-            # reinit env and var management
-            out.env = None
-            out._var_management = None
-            out._init_var_management(dct=self._var_management_to_dict())
-            out._env_if_needed()
-
+        out.config.clear()
         out.config.update(self.config.copy())
         out._extra_config.update(self._extra_config.copy())
+        out.metadata.clear()
+        out.metadata.update(self.metadata)
 
         if out.energy_program is not None:
             out.energy_program.line = out
@@ -1106,6 +1114,7 @@ class Line:
         W_matrix=None,
         method=None,
         scale_with_transverse_norm_emitt=None,
+        include_collective=True,
         _context=None, _buffer=None, _offset=None,
         _capacity=None,
         mode=None,
@@ -1229,6 +1238,7 @@ class Line:
             _context=_context, _buffer=_buffer, _offset=_offset,
             _capacity=_capacity,
             mode=mode,
+            include_collective=include_collective,
             **kwargs)
 
     def twiss(self, particle_ref=None, method=None,
@@ -1271,6 +1281,7 @@ class Line:
         ddx=None, ddpx=None, ddy=None, ddpy=None,
         zero_at=None,
         co_search_at=None,
+        include_collective=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,
@@ -1662,7 +1673,8 @@ class Line:
                           co_search_at=None,
                           search_for_t_rev=False,
                           num_turns_search_t_rev=None,
-                          symmetrize=False):
+                          symmetrize=False,
+                          include_collective=False):
 
         """
         Find the closed orbit of the beamline.
@@ -1721,7 +1733,7 @@ class Line:
         if particle_ref is None and co_guess is None:
             particle_ref = self.particle_ref
 
-        if self.iscollective:
+        if self.iscollective and not include_collective:
             log.warning(
                 'The tracker has collective elements.\n'
                 'In the twiss computation collective elements are'
@@ -1945,7 +1957,8 @@ class Line:
             start=None, end=None,
             num_turns=1,
             element_by_element=False, only_markers=False,
-            symmetrize=False):
+            symmetrize=False,
+            include_collective=False):
 
         '''Compute the one turn matrix using finite differences.
 
@@ -1972,7 +1985,7 @@ class Line:
 
         self._check_valid_tracker()
 
-        if self.iscollective:
+        if self.iscollective and not include_collective:
             log.warning(
                 'The tracker has collective elements.\n'
                 'In the twiss computation collective elements are'
@@ -3096,7 +3109,7 @@ class Line:
         # Unfreeze the line
         self.discard_tracker()
 
-        if verbose: _print("Replance slices with equivalent elements")
+        if verbose: _print("Replace slices with equivalent elements")
         self._replace_with_equivalent_elements()
 
         if keep_markers is True:
@@ -3189,6 +3202,50 @@ class Line:
 
         self._check_valid_tracker()
         stop_internal_logging_for_elements_of_type(self.tracker, element_type)
+
+    def extend_knl_ksl(self, order, element_names=None):
+
+        """
+        Extend the order of the knl and ksl attributes of the elements.
+
+        Parameters
+        ----------
+        order: int
+            New order of the knl and ksl attributes.
+        element_names: list of str
+            Names of the elements to extend. If None, all elements having `knl`
+            and `ksl` attributes are extended.
+
+        """
+
+        self.discard_tracker()
+
+        if element_names is None:
+            element_names = []
+            for nn in self.element_names:
+                if hasattr(self.get(nn), 'knl'):
+                    element_names.append(nn)
+
+        for nn in element_names:
+            if self.get(nn).order > order:
+                raise ValueError(f'Order of element {nn} is smaller than {order}')
+
+        for nn in element_names:
+            ee = self.get(nn)
+
+            if ee.order == order:
+                continue
+
+            new_knl = [vv for vv in ee.knl] + [0] * (order - len(ee.knl) + 1)
+            new_ksl = [vv for vv in ee.ksl] + [0] * (order - len(ee.ksl) + 1)
+
+            dct = ee.to_dict()
+            dct.pop('order', None)
+            dct['knl'] = new_knl
+            dct['ksl'] = new_ksl
+
+            new_ee = ee.__class__.from_dict(dct, _buffer=ee._buffer)
+            self.env.elements[nn] = new_ee
 
     def remove_markers(self, inplace=True, keep=None):
         """
@@ -3873,7 +3930,7 @@ class Line:
         cls = type(source.element_dict[name])
 
         if cls not in _ALLOWED_ELEMENT_TYPES_IN_NEW + [xt.DipoleEdge]: # No issue in copying DipoleEdge
-                                                                       # while creating it requirese handling properties
+                                                                       # while creating it requires handling properties
                                                                        # which are strings.
             raise ValueError(
                 f'Only {_STR_ALLOWED_ELEMENT_TYPES_IN_NEW} elements are '
