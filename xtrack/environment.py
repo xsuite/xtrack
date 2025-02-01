@@ -433,8 +433,6 @@ class Environment:
         filename : str
             Name of the file to be called.
         '''
-        with open(filename) as fid:
-            code = fid.read()
         import xtrack
         xtrack._passed_env = self
         try:
@@ -1325,9 +1323,5 @@ def load_module_from_path(file_path):
 
     # Execute the module in its own namespace.
     spec.loader.exec_module(module)
-
-    # Optionally, add the module to sys.modules. This is not strictly necessary
-    # since the module name is unique and won’t conflict with any existing module.
-    sys.modules[module_name] = module
 
     return module
