@@ -2224,7 +2224,7 @@ class Line:
 
         """
 
-        self._frozen_check()
+        self.discard_tracker()
 
         if not isinstance(what, (str, xt.Line, Iterable)):
             raise ValueError('The appended object must be defined by a string or Line.')
@@ -2313,7 +2313,7 @@ class Line:
         """
 
 
-        self._frozen_check()
+        self.discard_tracker()
         env = self.env
 
         _all_places = xt.environment._all_places
@@ -2422,7 +2422,7 @@ class Line:
 
         """
 
-        self._frozen_check()
+        self.discard_tracker()
 
         tt_remove = self._name_match(name)
 
@@ -2470,7 +2470,7 @@ class Line:
 
         """
 
-        self._frozen_check()
+        self.discard_tracker()
 
         tt_replace = self._name_match(name)
 
@@ -2494,7 +2494,14 @@ class Line:
         tt['idx'] = np.arange(len(tt))
 
         idx_match_name = tt.rows.indices[name]
-        idx_match_env_name = tt.rows.indices[tt.env_name == name]
+
+        env_name_match = name
+        if isinstance(env_name_match, str):
+            env_name_match = [env_name_match]
+        env_name_match = set(env_name_match)
+        mask_env_name = np.array([nn in env_name_match for nn in tt.env_name])
+
+        idx_match_env_name = tt.rows.indices[mask_env_name]
         idx_match_rep = list(idx_match_name) + list(idx_match_env_name)
         idx_match = []
         for ii in idx_match_rep: # I don't use set to do it in order
@@ -2562,7 +2569,7 @@ class Line:
         if isinstance(element, xd.madxutils.View):
             element = element._get_viewed_object()
 
-        self._frozen_check()
+        self.discard_tracker()
 
         assert ((index is not None and at_s is None) or
                 (index is None and at_s is not None)), (
@@ -2634,7 +2641,7 @@ class Line:
         if isinstance(element, xd.madxutils.View):
             element = element._get_viewed_object()
 
-        self._frozen_check()
+        self.discard_tracker()
         if element in self.element_dict and element is not self.element_dict[name]:
             raise ValueError('Element already present in the line')
         self.element_dict[name] = element
