@@ -13,7 +13,7 @@ void RBend_track_local_particle(
 ) {
 
     const double k0 = RBendData_get_k0(el);
-    const double length = RBendData_get_length(el);
+    double length = RBendData_get_length(el);
     const double h = RBendData_get_h(el);
     const double angle = length * h;
 

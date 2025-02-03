@@ -2,7 +2,8 @@
 # This file is part of the Xtrack Package.  #
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
-from typing import List
+from re import error
+from typing import List, Optional
 
 import numpy as np
 from numbers import Number
@@ -13,8 +14,8 @@ import xtrack as xt
 
 from ..base_element import BeamElement
 from ..random import RandomUniformAccurate, RandomExponential, RandomNormal
-from ..general import _pkg_root, _print
-from ..internal_record import RecordIndex, RecordIdentifier
+from ..general import _pkg_root
+from ..internal_record import RecordIndex
 
 DEFAULT_MULTIPOLE_ORDER = 5
 
@@ -639,30 +640,6 @@ class Multipole(BeamElement):
         self._order = value
         self.inv_factorial_order = 1.0 / factorial(value, exact=True)
 
-    def to_dict(self, copy_to_cpu=True):
-        out = super().to_dict(copy_to_cpu=copy_to_cpu)
-
-        # The constructor essentially overrides order if given knl or ksl
-        # imply a higher one to the one given. Otherwise, knl and ksl are
-        # resized, which at this stage means that the information about the
-        # order (by which we understand the desired size of knl/ksl, which can
-        # be different to the actual tracking order, as that can be changed
-        # later) is essentially encoded in knl/ksl.
-        # We should probably come up with a better way of handling this, but
-        # in the meantime let's produce a minimal dict that allows to
-        # reconstruct the xobject according to the rules outlined above.
-
-        if 'knl' in out and np.allclose(out['knl'], 0, atol=1e-16):
-            out.pop('knl', None)
-
-        if 'ksl' in out and np.allclose(out['ksl'], 0, atol=1e-16):
-            out.pop('ksl', None)
-
-        if self.order != 0 and 'knl' not in out and 'ksl' not in out:
-            out['order'] = self.order
-
-        return out
-
     @property
     def hyl(self):
         raise ValueError("hyl is not anymore supported")
@@ -725,7 +702,7 @@ class SimpleThinQuadrupole(BeamElement):
     )
 
 
-class BendInterface:
+class _BendCommon:
     isthick = True
     has_backtrack = True
 
@@ -754,6 +731,7 @@ class BendInterface:
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
+        'k0_from_h': xo.UInt8,
     }
 
     _common_rename = {
@@ -869,7 +847,7 @@ class BendInterface:
                 'edge_exit_hgap', 'shift_x', 'shift_y', 'rot_s_rad']
 
 
-class Bend(BendInterface, BeamElement):
+class Bend(_BendCommon, BeamElement):
     """
     Implementation of combined function magnet (i.e. a bending magnet with
     a quadrupole component).
@@ -881,7 +859,11 @@ class Bend(BendInterface, BeamElement):
     k1 : float
         Strength of the horizontal quadrupolar component in units of m^-2.
     h : float
-        Curvature of the reference trajectory in units of m^-1.
+        Curvature of the reference trajectory in units of m^-1. Can only be
+        given if angle is not given, and will be computed from angle otherwise.
+    angle : float
+        Angle of the bend in radians. Can only be given if h is not given, and
+        will be computed from h otherwise.
     length : float
         Length of the element in units of m.
     knl : array
@@ -893,16 +875,19 @@ class Bend(BendInterface, BeamElement):
     num_multipole_kicks : int
         Number of multipole kicks used to model high order multipolar
         components.
-
+    k0_from_h : bool
+        If True, `k0` will assume the value of `h` and its value will be updated
+        when `h` is changed.
     """
-    _xofields = BendInterface._common_xofields
-    _rename = BendInterface._common_rename
 
-    _extra_c_sources = BendInterface._common_c_sources + [
+    _xofields = _BendCommon._common_xofields
+    _rename = _BendCommon._common_rename
+
+    _extra_c_sources = _BendCommon._common_c_sources + [
         _pkg_root.joinpath('beam_elements/elements_src/bend.h'),
     ]
 
-    def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
+    def __init__(self, angle=None, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
 
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
@@ -914,10 +899,28 @@ class Bend(BendInterface, BeamElement):
         multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
         kwargs.update(multipolar_kwargs)
 
+        if angle is not None and (length := kwargs.get('length')):
+            if kwargs.get('h') is not None:
+                raise ValueError('Cannot specify both `angle` and `h`')
+            kwargs['h'] = angle / length
+
         self.xoinitialize(**kwargs)
+
+        if self.k0_from_h:
+            self.k0 = self.h
 
         if model is not None:
             self.model = model
+
+    @property
+    def angle(self):
+        return self.h * self.length
+
+    @angle.setter
+    def angle(self, value):
+        self.h = value / self.length
+        if self.k0_from_h:
+            self.k0 = self.h
 
     @property
     def _thin_slice_class(self):
@@ -939,8 +942,12 @@ class Bend(BendInterface, BeamElement):
     def _exit_slice_class(self):
         return xt.ThinSliceBendExit
 
+    @property
+    def _repr_fields(self):
+        return super()._repr_fields
 
-class RBend(BendInterface, BeamElement):
+
+class RBend(_BendCommon, BeamElement):
     """
     Implementation of a straight combined function magnet (i.e. a rectangular
     bending magnet with a quadrupole component).
@@ -952,65 +959,203 @@ class RBend(BendInterface, BeamElement):
     k1 : float
         Strength of the horizontal quadrupolar component in units of m^-2.
     h : float
-        Curvature of the reference trajectory in units of m^-1.
+        Curvature of the reference trajectory in units of m^-1. Will be
+        computed from angle and `length_straight` if not given, otherwise will
+        be checked for consistency. Changes to `h` will update `angle` and
+        `length`.
+    angle : float
+        Angle of the bend in radians. Will be computed from `h` and
+        `length_straight` if not given, otherwise will be checked for
+        consistency. Changes to `angle` will update `h` and `length`.
     length : float
         Length of the element in units of m along the reference trajectory.
+        Will be computed from `angle` and `length_straight` if not given.
+        Changes to `length` will update `h` and `length_straight`.
     length_straight : float
-        Length of the element in units of m along the straight line.
+        Length of the element in units of m along a straight line. Changes to
+        `length_straight` will update `length` and `h`.
     knl : array
         Integrated strength of the high-order normal multipolar components
-        (knl[0] and knl[1] should not be used).
+        (`knl[0]` and `knl[1]` should not be used).
     ksl : array
         Integrated strength of the high-order skew multipolar components
-        (ksl[0] and ksl[1] should not be used).
+        (`ksl[0]` and `ksl[1]` should not be used).
     num_multipole_kicks : int
         Number of multipole kicks used to model high order multipolar
         components.
-
     """
-    _xofields = BendInterface._common_xofields
-    _rename = BendInterface._common_rename
 
-    _extra_c_sources = BendInterface._common_c_sources + [
+    _xofields = {
+        **_BendCommon._common_xofields,
+        'angle': xo.Float64,
+        'length_straight': xo.Float64,
+    }
+
+    _rename = {
+        **_BendCommon._common_rename,
+        'length': '_length',
+        'h': '_h',
+        'angle': '_angle',
+        'length_straight': '_length_straight',
+    }
+
+    _extra_c_sources = _BendCommon._common_c_sources + [
         _pkg_root.joinpath('beam_elements/elements_src/rbend.h'),
     ]
 
-    def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
+    def __init__(
+            self,
+            order=None,
+            knl: List[float]=None,
+            ksl: List[float]=None,
+            **kwargs,
+    ):
 
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
             return
 
-        model = kwargs.pop('model', None)
-
         order = order or DEFAULT_MULTIPOLE_ORDER
         multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
         kwargs.update(multipolar_kwargs)
 
-        # Sort out element length
-        length = kwargs.get('length', None)
-        length_straight = kwargs.pop('length_straight', None)
-        h = kwargs.get('h', kwargs.get('k0', 0))
-
-        if length is not None and length_straight is not None:
-            angle_1 = length * h
-            angle_2 = 2 * np.arcsin(0.5 * length_straight * h)
-            if not np.isclose(angle_1, angle_2, atol=1e-14, rtol=1e-14):
-                raise ValueError(
-                    f'The values of `length` and `length_straight` are '
-                    f'inconsistent: one implies the angle {angle_1}, the other '
-                    f'{angle_2}'
-                )
-        elif length is None and length_straight is None:
-            raise ValueError('Either `length` or `length_straight` must be given')
-        elif length_straight is not None:
-            angle = 2 * np.arcsin(0.5 * length_straight * h)
-            kwargs['length'] = angle / h
-
         self.xoinitialize(**kwargs)
 
+        # Calculate length and h in the event length_straight and/or angle given
+        self.set_bend_params(
+            kwargs.get('length'),
+            kwargs.get('length_straight'),
+            kwargs.get('h'),
+            kwargs.get('angle'),
+        )
+
+        if self.k0_from_h:
+            kwargs['k0'] = self.h
+
+        model = kwargs.pop('model', None)
         if model is not None:
             self.model = model
+
+    @property
+    def length(self):
+        return self._length
+
+    @length.setter
+    def length(self, value):
+        self.set_bend_params(length=value, angle=self.angle)
+
+    @property
+    def h(self):
+        return self._h
+
+    @h.setter
+    def h(self, value):
+        self.set_bend_params(h=value, length_straight=self.length_straight)
+
+    @property
+    def angle(self):
+        return self._angle
+
+    @angle.setter
+    def angle(self, value):
+        self.set_bend_params(angle=value, length_straight=self.length_straight)
+
+    @property
+    def length_straight(self):
+        return self._length_straight
+
+    @length_straight.setter
+    def length_straight(self, value):
+        self.set_bend_params(length_straight=value, angle=self.angle)
+
+    def set_bend_params(self, length=None, length_straight=None, h=None, angle=None):
+        (
+            self._length,
+            self._length_straight,
+            self._h,
+            self._angle,
+        ) = self.compute_bend_params(length, length_straight, h, angle)
+
+        if self.k0_from_h:
+            self.k0 = self.h
+
+    @staticmethod
+    def compute_bend_params(length=None, length_straight=None, h=None, angle=None):
+        """Compute the bend parameters (length, h) from the given arguments.
+
+        The arguments are checked for consistency and the missing ones are
+        calculated from the others.
+
+        One of each pair must be given: `length` or `length_straight`, and `h` or
+        `angle`. If both are missing for each pair, zero will be assumed for the
+        length and for `h`.
+        """
+        kwargs = locals()
+        given = {
+            arg_name: arg_value
+            for arg_name in ['length', 'length_straight', 'h', 'angle']
+            if (arg_value := kwargs[arg_name]) is not None
+        }
+
+        # Defaults
+        if 'length' not in given and 'length_straight' not in given:
+            length = 0
+            length_straight = 0
+
+        if 'h' not in given and 'angle' not in given:
+            h = 0
+            angle = 0
+
+        # Compute the remaining quantities for each accepted pair
+        if length == 0 or length_straight == 0:
+            # Special case to avoid division by zero, lengths are zero, h arbitrary
+            # Technically the angle should be zero too, but since oftentimes
+            # people initialise the element first with the angle, only later
+            # setting the length, we allow it to propagate.
+            length = length_straight = 0
+            h = given.get('h', 0)
+        elif angle == 0:
+            # Special case for zero angle: lengths are the same, h arbitrary
+            if length is not None and length_straight is not None:
+                assert length == length_straight
+            else:
+                length = length or length_straight
+                length_straight = length
+        elif 'length' in given and 'h' in given:
+            angle = length * h
+            length_straight = length * np.sinc(0.5 * angle / np.pi)
+        elif 'length' in given and 'angle' in given:
+            h = angle / length
+            length_straight = length * np.sinc(0.5 * angle / np.pi)
+        elif 'length_straight' in given and 'h' in given:
+            angle = 2 * np.arcsin(length_straight * h / 2)
+            length = length_straight / np.sinc(0.5 * angle / np.pi)
+        elif 'length_straight' in given and 'angle' in given:
+            h = 2 * np.sin(angle / 2) / length_straight
+            length = length_straight / np.sinc(0.5 * angle / np.pi)
+
+        # Verify consistency
+        errors = []
+        for param_name in ['length', 'length_straight', 'h', 'angle']:
+            if param_name in given:
+                given_value = given[param_name]
+                computed = locals()[param_name]
+                if not np.isclose(given_value, computed, atol=1e-13, rtol=1e-13):
+                    errors.append(f"{param_name} = {given_value} (given) != "
+                                  f"{computed} (computed)")
+
+        if errors:
+            raise ValueError(
+                "Given bend parameters are inconsistent: " + ", ".join(errors))
+
+        # By this point the given values are proved to be consistent, prefer
+        # the values given by the user, not to accumulate numerical noise.
+        return (
+            length,
+            given.get('length_straight', length_straight),
+            h,
+            given.get('angle', angle),
+        )
 
     @property
     def hxl(self): return self.h * self.length
@@ -1037,6 +1182,10 @@ class RBend(BendInterface, BeamElement):
     @property
     def _exit_slice_class(self):
         return xt.ThinSliceBendExit
+
+    @property
+    def _repr_fields(self):
+        return ['length_straight', 'angle'] + super()._repr_fields
 
 
 class Sextupole(BeamElement):

@@ -299,7 +299,15 @@ def test_thick_multipolar_component(test_context, element_type, h):
 @pytest.mark.parametrize(
     'param_scenario', ['length', 'length_straight', 'both', 'mismatched'],
 )
-def test_rbend(test_context, param_scenario):
+@pytest.mark.parametrize(
+    "use_angle_in_rbend", [True, False],
+    ids=('rbend with angle', 'rbend with h'),
+)
+@pytest.mark.parametrize(
+    "use_angle_in_sbend", [True, False],
+    ids=('sbend with angle', 'sbend with h'),
+)
+def test_rbend(test_context, param_scenario, use_angle_in_rbend, use_angle_in_sbend):
     k0 = 0.15
     angle = 0.1
     radius = 2
@@ -309,42 +317,55 @@ def test_rbend(test_context, param_scenario):
     e1_rbend = 0.05
     e2_rbend = -0.02
 
-    r_bend_length_kwargs = {}
+    # Set up everything for the RBend
+    r_bend_extra_kwargs = {}
 
     if param_scenario in ('length', 'both', 'mismatched'):
-        r_bend_length_kwargs['length'] = length
+        r_bend_extra_kwargs['length'] = length
 
     if param_scenario in ('length_straight', 'both', 'mismatched'):
-        r_bend_length_kwargs['length_straight'] = length_straight
+        r_bend_extra_kwargs['length_straight'] = length_straight
+
+    if use_angle_in_rbend:
+        r_bend_extra_kwargs['angle'] = angle
+    else:
+        r_bend_extra_kwargs['h'] = curvature
 
     def _make_rbend():
         return xt.RBend(
             k0=k0,
-            h=curvature,
             edge_entry_angle=e1_rbend,
             edge_entry_active=True,
             edge_exit_angle=e2_rbend,
             edge_exit_active=True,
-            **r_bend_length_kwargs
+            **r_bend_extra_kwargs
         )
 
     if param_scenario == 'mismatched':
         length_straight += 0.8
         with pytest.raises(ValueError):
-            r_bend_length_kwargs['length_straight'] += 0.8
+            r_bend_extra_kwargs['length_straight'] += 0.8
             _make_rbend()
         return
     else:
         rbend = _make_rbend()
 
+    # Set up everything for the SBend
+    s_bend_extra_kwargs = {}
+
+    if use_angle_in_rbend:
+        s_bend_extra_kwargs['angle'] = angle
+    else:
+        s_bend_extra_kwargs['h'] = curvature
+
     sbend = xt.Bend(
         k0=k0,
-        h=curvature,
         length=length,
         edge_entry_angle=e1_rbend + angle / 2,
         edge_entry_active=True,
         edge_exit_angle=e2_rbend + angle / 2,
         edge_exit_active=True,
+        **s_bend_extra_kwargs,
     )
 
     p0 = xp.Particles(
