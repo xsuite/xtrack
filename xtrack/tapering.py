@@ -39,13 +39,6 @@ def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-12,
         if verbose: _print("  - No compensation needed")
         return
 
-    # create the multisetters if first access
-    _ = line.attr['voltage']
-    _ = line.attr['frequency']
-    _ = line.attr['lag']
-    _ = line.attr['lag_taper']
-    _ = line.attr['delta_taper']
-
     # save voltages
     v_setter = line.attr._cache['voltage'].multisetter
     f_setter = line.attr._cache['frequency'].multisetter
