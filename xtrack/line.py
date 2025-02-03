@@ -5675,11 +5675,16 @@ class LineAttr:
                 index = None
             else:
                 access, index = fa
-            self._cache[fn] = LineAttrItem(name=access, index=index, line=line)
+            self._cache[fn] = (access, index)
 
     def __getitem__(self, key):
         if key in self.derived_fields:
             return self.derived_fields[key](self)
+
+        if not isinstance(self._cache[key], LineAttrItem): # First access
+            self._cache[key] = LineAttrItem(name=self._cache[key][0],
+                                            index=self._cache[key][1],
+                                            line=self.line)
 
         return self._cache[key].get_full_array()
 
