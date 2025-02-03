@@ -1034,6 +1034,9 @@ class Line:
             equals to False and no progress bar is displayed.
         """
 
+        if not self._has_valid_tracker():
+            self.build_tracker()
+
         if hasattr(particles, '_needs_pipeline') and particles._needs_pipeline:
             if '_called_by_pipeline' not in kwargs or not kwargs['_called_by_pipeline']:
                 all_kwargs = locals()
@@ -1219,6 +1222,10 @@ class Line:
             Particles object containing the generated particles.
 
         """
+
+        if not self._has_valid_tracker():
+            self.build_tracker()
+
         import xpart
         return xpart.build_particles(
             line=self,
