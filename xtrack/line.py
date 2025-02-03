@@ -966,6 +966,7 @@ class Line:
 
         return self._collimators
 
+    @profile
     def discard_tracker(self):
 
         """
@@ -973,8 +974,8 @@ class Line:
         (elements can be inserted or removed again).
 
         """
-
-        self._element_names = list(self._element_names)
+        if not isinstance(self._element_names, list):
+            self._element_names = list(self._element_names)
         if hasattr(self, 'tracker') and self.tracker is not None:
             self.tracker._invalidate()
             self.tracker = None
@@ -2630,6 +2631,7 @@ class Line:
 
         return self
 
+    @profile
     def append_element(self, element, name):
 
         """
