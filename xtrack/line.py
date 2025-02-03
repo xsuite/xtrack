@@ -966,7 +966,6 @@ class Line:
 
         return self._collimators
 
-    @profile
     def discard_tracker(self):
 
         """
@@ -2631,7 +2630,6 @@ class Line:
 
         return self
 
-    @profile
     def append_element(self, element, name):
 
         """
@@ -5576,6 +5574,7 @@ class VarValues:
             return default
 
 class LineAttrItem:
+
     def __init__(self, name, index=None, line=None):
         self.name = name
         self.index = index
@@ -5622,7 +5621,6 @@ class LineAttrItem:
         full_array[self.mask] = ctx2np(self.multisetter.get_values())
         return full_array
 
-
 class LineAttr:
     """A class to access a field of all elements in a line.
 
@@ -5641,6 +5639,7 @@ class LineAttr:
         field and the value is a function that takes the LineAttr object
         as argument and returns the value of the derived field.
     """
+
     def __init__(self, line, fields, derived_fields=None):
 
         assert isinstance(fields, dict)

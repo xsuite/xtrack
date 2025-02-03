@@ -33,7 +33,7 @@ class Tracker:
     particles in a given beam line. Methods to match particle distributions
     and to compute twiss parameters are also available.
     '''
-    @profile
+
     def __init__(
         self,
         _context=None,
@@ -161,7 +161,6 @@ class Tracker:
                 io_buffer = io_bufs[0]
         self.io_buffer = io_buffer
 
-    @profile
     def _split_parts_for_collective_mode(self, line, _buffer):
 
         # Split the sequence
