@@ -66,6 +66,7 @@ class Particles(xo.HybridClass):
             (xo.Float64, 'weight'),
             (xo.Float64, 'ax'),
             (xo.Float64, 'ay'),
+            (xo.Float64, 'temp'),
             (xo.Int64, 'pdg_id'),
             (xo.Int64, 'particle_id'),
             (xo.Int64, 'at_element'),

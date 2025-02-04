@@ -9,6 +9,8 @@ from ..random import RandomUniformAccurate, RandomExponential
 from .slice_elements import _slice_copy
 
 _common_xofields = {
+    'radiation_flag': xo.Int64,
+    'delta_taper': xo.Float64,
     'weight': xo.Float64,
 }
 
@@ -58,6 +60,8 @@ class ThickSliceQuadrupole(BeamElement):
     _xofields = {'_parent': xo.Ref(Quadrupole), **_common_xofields}
 
     _extra_c_sources = [
+        _pkg_root.joinpath('headers/constants.h'),
+        _pkg_root.joinpath('headers/synrad_spectrum.h'),
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_srotation.h'),
