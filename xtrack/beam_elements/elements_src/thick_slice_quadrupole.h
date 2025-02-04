@@ -72,11 +72,12 @@ void ThickSliceQuadrupole_track_local_particle(
         double const old_px = LocalParticle_get_px(part);
         double const old_py = LocalParticle_get_py(part);
         double const old_zeta = LocalParticle_get_zeta(part);
+        // I use ax, ay to store initial coordinates
+        // (they must be zero in the absence of a sol. component)
         LocalParticle_set_ax(part, old_px);
         LocalParticle_set_ay(part, old_py);
         LocalParticle_set_temp(part, old_zeta);
     //end_per_particle_block
-
     #endif
 
     Quadrupole_from_params_track_local_particle(
@@ -101,7 +102,12 @@ void ThickSliceQuadrupole_track_local_particle(
             NULL, // dp_record_exit
             NULL, // dpx_record_exit
             NULL  // dpy_record_exit
-     );
+        );
+
+        //Restore
+        LocalParticle_set_ax(part, 0.);
+        LocalParticle_set_ay(part, 0.);
+        LocalParticle_set_temp(part, 0.);
     //end_per_particle_block
     #endif
 
