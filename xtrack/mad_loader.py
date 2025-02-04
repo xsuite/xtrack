@@ -784,33 +784,48 @@ class MadLoader:
     ):
         assert self.allow_thick, "Bends are not supported in thin mode."
 
-        l_curv = mad_el.l
-        h = mad_el.angle / l_curv
+        if mad_el.type == 'sbend':
+            element_type = self.classes.Bend
+        elif mad_el.type == 'rbend':
+            element_type = self.classes.RBend
+        else:
+            raise ValueError(f'Unknown bend type {mad_el.type}.')
+
+        bend_kwargs = {}
 
         if mad_el.type == 'rbend' and self.sequence._madx.options.rbarc and value_if_expr(mad_el.angle):
             R = 0.5 * mad_el.l / self.math.sin(0.5 * mad_el.angle) # l is on the straight line
             l_curv = R * mad_el.angle
-            h = 1 / R
-
-        if not mad_el.k0:
-            k0 = h
+            bend_kwargs['length_straight'] = mad_el.l
         else:
-            k0 = mad_el.k0
+            l_curv = mad_el.l
+            bend_kwargs['length'] = l_curv
+
+
+        if mad_el.type == 'rbend':
+            # Xtrack RBend element will update h from the angle and l...
+            bend_kwargs['angle'] = mad_el.angle
+        else:
+            # ...however, for the Bend element things are a bit more complex.
+            # Since `angle` is a computed parameter, and `h` is the actual
+            # stored value, changing the length (e.g. through expressions)
+            # implicitly changes the angle (since `h` is constant). Therefore,
+            # we need to store the expression for `h` here, to indicate that
+            # the value of the angle is the authoritative one.
+            bend_kwargs['h'] = mad_el.angle / mad_el.l
 
         # Edge angles
-        if mad_el.type == 'sbend':
-            e1 = mad_el.e1
-            e2 = mad_el.e2
-        elif mad_el.type == 'rbend':
-            e1 = mad_el.e1 + mad_el.angle / 2
-            e2 = mad_el.e2 + mad_el.angle / 2
-        else:
-            raise NotImplementedError(
-                f'Unknown bend type {mad_el.type}.'
-            )
-
+        e1 = mad_el.e1
+        e2 = mad_el.e2
         if self.bv == -1:
             e1, e2 = e2, e1
+
+        # Edge angles for field errors
+        if value_if_expr(mad_el.k0):
+            h = mad_el.angle / l_curv
+            angle_fdown = (mad_el.k0 - h) * l_curv / 2
+        else:
+            angle_fdown = 0
 
         if self.enable_field_errors:
             kwargs = _prepare_field_errors_thick_elem(mad_el)
@@ -825,18 +840,16 @@ class MadLoader:
         knl[2] += mad_el.k2 * l_curv
 
         # Convert bend core
-        cls = self.classes.Bend
         bend_core = self.Builder(
             mad_el.name,
-            cls,
-            k0=k0,
-            h=h,
+            element_type,
+            k0=mad_el.k0,
+            k0_from_h=True if not mad_el.k0 else False,
             k1=self.bv * mad_el.k1,
-            length=l_curv,
             edge_entry_angle=e1,
             edge_exit_angle=e2,
-            edge_entry_angle_fdown=(k0 - h) * l_curv / 2,
-            edge_exit_angle_fdown=(k0 - h) * l_curv / 2,
+            edge_entry_angle_fdown=angle_fdown,
+            edge_exit_angle_fdown=angle_fdown,
             edge_entry_fint=mad_el.fint,
             edge_exit_fint=(
                 mad_el.fintx if value_if_expr(mad_el.fintx) >= 0 else mad_el.fint),
@@ -845,6 +858,7 @@ class MadLoader:
             knl=knl,
             ksl=ksl,
             num_multipole_kicks=num_multipole_kicks,
+            **bend_kwargs,
         )
 
         sequence = [bend_core]

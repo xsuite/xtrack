@@ -456,15 +456,11 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
     # Edges:
     xo.assert_allclose(elem.edge_entry_fint, 0.5, atol=1e-16)
     xo.assert_allclose(elem.edge_entry_hgap, 0.6, atol=1e-16)
-    xo.assert_allclose(elem.edge_entry_angle,
-                      {'rbend': 0.7 + 0.1 / 2, 'sbend': 0.7}[bend_type],
-                      atol=1e-16)
+    xo.assert_allclose(elem.edge_entry_angle, 0.7, atol=1e-16)
 
     xo.assert_allclose(elem.edge_exit_fint, 0.5, atol=1e-16)
     xo.assert_allclose(elem.edge_exit_hgap, 0.6, atol=1e-16)
-    xo.assert_allclose(elem.edge_exit_angle,
-                     {'rbend': 0.8 + 0.1 / 2, 'sbend': 0.8}[bend_type],
-                      atol=1e-16)
+    xo.assert_allclose(elem.edge_exit_angle, 0.8, atol=1e-16)
 
     # Finish the test here if we are not using knobs
     if not with_knobs:
@@ -493,16 +489,12 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
     # Edges:
     xo.assert_allclose(elem.edge_entry_fint, 1.0, atol=1e-16)
     xo.assert_allclose(elem.edge_entry_hgap, 1.2, atol=1e-16)
-    xo.assert_allclose(elem.edge_entry_angle,
-        {'rbend': 1.4 + 0.2 / 2, 'sbend': 1.4}[bend_type],
-        atol=1e-16)
+    xo.assert_allclose(elem.edge_entry_angle, 1.4, atol=1e-16)
     xo.assert_allclose(elem.k0, 0.4, atol=1e-16)
 
     xo.assert_allclose(elem.edge_exit_fint, 1.0, atol=1e-16)
     xo.assert_allclose(elem.edge_exit_hgap, 1.2, atol=1e-16)
-    xo.assert_allclose(elem.edge_exit_angle,
-        {'rbend': 1.6 + 0.2 / 2, 'sbend': 1.6}[bend_type],
-        atol=1e-16)
+    xo.assert_allclose(elem.edge_exit_angle, 1.6, atol=1e-16)
 
 
 @pytest.mark.parametrize('with_knobs', [False, True])
