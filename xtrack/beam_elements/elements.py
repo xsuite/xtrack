@@ -739,6 +739,8 @@ class _BendCommon:
         'model': '_model',
         'edge_entry_model': '_edge_entry_model',
         'edge_exit_model': '_edge_exit_model',
+        'k0': '_k0',
+        'k0_from_h': '_k0_from_h',
     }
 
     _common_c_sources = [
@@ -770,6 +772,26 @@ class _BendCommon:
             out['order'] = self.order
 
         return out
+
+    @property
+    def k0(self):
+        return self._k0
+
+    @k0.setter
+    def k0(self, value):
+        if self.k0_from_h and not np.isclose(value, self.h, atol=1e-13):
+            raise ValueError('Cannot change `k0` when `k0_from_h` is set')
+        self._k0 = value
+
+    @property
+    def k0_from_h(self):
+        return bool(self._k0_from_h)
+
+    @k0_from_h.setter
+    def k0_from_h(self, value):
+        if value:
+            self._k0 = self.h
+        self._k0_from_h = value
 
     @property
     def order(self):
@@ -839,12 +861,32 @@ class _BendCommon:
 
     @property
     def _repr_fields(self):
-        return ['length', 'k0', 'k1', 'h', 'model', 'knl', 'ksl',
+        return ['length', 'k0', 'k1', 'h', 'k0_from_h', 'model', 'knl', 'ksl',
                 'edge_entry_active', 'edge_exit_active', 'edge_entry_model',
                 'edge_exit_model', 'edge_entry_angle', 'edge_exit_angle',
                 'edge_entry_angle_fdown', 'edge_exit_angle_fdown',
                 'edge_entry_fint', 'edge_exit_fint', 'edge_entry_hgap',
                 'edge_exit_hgap', 'shift_x', 'shift_y', 'rot_s_rad']
+
+    def to_dict(self, copy_to_cpu=True):
+        out = super().to_dict(copy_to_cpu=copy_to_cpu)
+
+        for kk in {'model', 'k0', 'h', 'length', 'k0_from_h'}:
+            if f'_{kk}' in out:
+                out.pop(f'_{kk}')
+            out[kk] = getattr(self, kk)
+
+        # See the comment in Multiple.to_dict about knl/ksl/order dumping
+        if 'knl' in out and np.allclose(out['knl'], 0, atol=1e-16):
+            out.pop('knl', None)
+
+        if 'ksl' in out and np.allclose(out['ksl'], 0, atol=1e-16):
+            out.pop('ksl', None)
+
+        if self.order != 0 and 'knl' not in out and 'ksl' not in out:
+            out['order'] = self.order
+
+        return out
 
 
 class Bend(_BendCommon, BeamElement):
@@ -1019,6 +1061,8 @@ class RBend(_BendCommon, BeamElement):
         multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
         kwargs.update(multipolar_kwargs)
 
+        model = kwargs.pop('model', None)
+
         self.xoinitialize(**kwargs)
 
         # Calculate length and h in the event length_straight and/or angle given
@@ -1030,9 +1074,8 @@ class RBend(_BendCommon, BeamElement):
         )
 
         if self.k0_from_h:
-            kwargs['k0'] = self.h
+            self.k0 = self.h
 
-        model = kwargs.pop('model', None)
         if model is not None:
             self.model = model
 
@@ -1116,6 +1159,7 @@ class RBend(_BendCommon, BeamElement):
             h = given.get('h', 0)
         elif angle == 0:
             # Special case for zero angle: lengths are the same, h arbitrary
+            h = given.get('h', 0)
             if length is not None and length_straight is not None:
                 assert length == length_straight
             else:
@@ -1165,27 +1209,37 @@ class RBend(_BendCommon, BeamElement):
 
     @property
     def _thin_slice_class(self):
-        return xt.ThinSliceBend
+        return xt.ThinSliceRBend
 
     @property
     def _thick_slice_class(self):
-        return xt.ThickSliceBend
+        return xt.ThickSliceRBend
 
     @property
     def _drift_slice_class(self):
-        return xt.DriftSlicBend
+        return xt.DriftSliceRBend
 
     @property
     def _entry_slice_class(self):
-        return xt.ThinSliceBendEntry
+        return xt.ThinSliceRBendEntry
 
     @property
     def _exit_slice_class(self):
-        return xt.ThinSliceBendExit
+        return xt.ThinSliceRBendExit
 
     @property
     def _repr_fields(self):
         return ['length_straight', 'angle'] + super()._repr_fields
+
+    def to_dict(self, copy_to_cpu=True):
+        out = super().to_dict(copy_to_cpu=copy_to_cpu)
+
+        for kk in {'angle', 'length_straight'}:
+            if f'_{kk}' in out:
+                out.pop(f'_{kk}')
+            out[kk] = getattr(self, kk)
+
+        return out
 
 
 class Sextupole(BeamElement):

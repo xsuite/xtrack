@@ -581,7 +581,11 @@ def test_import_thick_bend_from_madx_and_slice(
 
     # Verify that the slices are correct
     for elem in elems:
-        assert isinstance(elem, xt.ThinSliceBend)
+        slice_class = {
+            'rbend': xt.ThinSliceRBend,
+            'sbend': xt.ThinSliceBend,
+        }[bend_type]
+        assert isinstance(elem, slice_class)
         xo.assert_allclose(elem.weight, 0.5, atol=1e-16)
         xo.assert_allclose(elem._parent.length, 2.0, atol=1e-16)
         xo.assert_allclose(elem._parent.k0, 0.2, atol=1e-16)

@@ -342,9 +342,12 @@ class MadxLoader:
                     params['length_straight'] = params.pop('length')
 
             # Default MAD-X behaviour is to take k0 from h only if k0 is not
-            # given.
-            if 'k0' not in params:
+            # given. We need to replicate this behaviour. Ideally we should
+            # evaluate expressions here, but that's tricky.
+            if cached_params.get('k0', 0) == 0:
                 params['k0_from_h'] = True
+            else:
+                params['k0_from_h'] = False
 
             if (k2 := params.pop('k2', None)) and length:
                 params['knl'] = [0, 0, f'({k2}) * ({length})']

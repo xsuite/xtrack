@@ -4042,11 +4042,6 @@ class Line:
 
             extra = kwargs.pop('extra', None)
 
-            # if self.element_dict[name].__class__ == xt.Bend:
-            #     # Handle angle if needed
-            #     kwargs = xt.environment._handle_bend_kwargs(
-            #         kwargs, _eval, env=self, name=name)
-
             ref_kwargs, value_kwargs = xt.environment._parse_kwargs(
                 type(self.element_dict[name]), kwargs, _eval)
             xt.environment._set_kwargs(

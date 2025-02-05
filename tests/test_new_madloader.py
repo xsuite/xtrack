@@ -766,10 +766,6 @@ def test_load_b2_with_bv_minus_one(tmp_path):
         is_rbend = isinstance(e4, xt.RBend)
 
         for kk in d2.keys():
-            if kk == '__class__' and is_rbend:
-                assert d2[kk] == 'Bend'
-                continue
-
             if kk in ('__class__', 'model', 'side'):
                 assert d2[kk] == d4[kk]
                 continue
@@ -788,20 +784,12 @@ def test_load_b2_with_bv_minus_one(tmp_path):
                 xo.assert_allclose(lhs, rhs, rtol=1e-10, atol=1e-16)
                 continue
 
-            if is_rbend and kk in {'edge_entry_angle', 'edge_exit_angle'}:
-                edge_angle_d4 = d4.get(kk, 0)  # If not specified, it is 0
-                xo.assert_allclose(
-                    d2[kk] - e2.angle / 2, edge_angle_d4,
-                    rtol=1e-10, atol=1e-16,
-                )
+            if is_rbend and kk in ('length', 'length_straight'):
+                xo.assert_allclose(d2[kk], d4[kk], rtol=1e-7, atol=1e-6)
                 continue
 
-            if is_rbend and kk == 'length':
-                xo.assert_allclose(d2[kk], e4.length, rtol=1e-7, atol=1e-6)
-                continue
-
-            if is_rbend and kk == 'h':
-                xo.assert_allclose(d2[kk], e4.h, rtol=1e-7, atol=5e-10)
+            if is_rbend and kk in ('h', 'k0'):
+                xo.assert_allclose(d2[kk], d4[kk], rtol=1e-7, atol=5e-10)
                 continue
 
             xo.assert_allclose(d2[kk], d4[kk], rtol=1e-10, atol=1e-16)

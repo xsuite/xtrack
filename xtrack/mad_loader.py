@@ -655,8 +655,7 @@ class MadLoader:
         if issubclass(self.Builder, ElementBuilderWithExpr):
             return self.line._var_management['fref']
 
-        import math
-        return math
+        return np
 
     def _assert_element_is_thin(self, mad_el):
         if value_if_expr(mad_el.l) != 0:
@@ -793,9 +792,8 @@ class MadLoader:
 
         bend_kwargs = {}
 
-        if mad_el.type == 'rbend' and self.sequence._madx.options.rbarc and value_if_expr(mad_el.angle):
-            R = 0.5 * mad_el.l / self.math.sin(0.5 * mad_el.angle) # l is on the straight line
-            l_curv = R * mad_el.angle
+        if mad_el.type == 'rbend' and self.sequence._madx.options.rbarc:
+            l_curv = mad_el.l / self.math.sinc(0.5 * mad_el.angle)
             bend_kwargs['length_straight'] = mad_el.l
         else:
             l_curv = mad_el.l
@@ -821,7 +819,7 @@ class MadLoader:
             e1, e2 = e2, e1
 
         # Edge angles for field errors
-        if value_if_expr(mad_el.k0):
+        if mad_el.k0:
             h = mad_el.angle / l_curv
             angle_fdown = (mad_el.k0 - h) * l_curv / 2
         else:
@@ -839,12 +837,17 @@ class MadLoader:
 
         knl[2] += mad_el.k2 * l_curv
 
+        if mad_el.k0:
+            k0_from_h = False
+            bend_kwargs['k0'] = mad_el.k0
+        else:
+            k0_from_h = True
+
         # Convert bend core
         bend_core = self.Builder(
             mad_el.name,
             element_type,
-            k0=mad_el.k0,
-            k0_from_h=True if not mad_el.k0 else False,
+            k0_from_h=k0_from_h,
             k1=self.bv * mad_el.k1,
             edge_entry_angle=e1,
             edge_exit_angle=e2,
