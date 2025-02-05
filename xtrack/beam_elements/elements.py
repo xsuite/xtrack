@@ -703,6 +703,7 @@ class SimpleThinQuadrupole(BeamElement):
 
 
 class _BendCommon:
+    """Common properties for Bend and RBend: see their respective docstrings."""
     isthick = True
     has_backtrack = True
 
@@ -896,30 +897,59 @@ class Bend(_BendCommon, BeamElement):
 
     Parameters
     ----------
-    k0 : float
+    k0 : float, optional
         Strength of the horizontal dipolar component in units of m^-1.
-    k1 : float
+    k1 : float, optional
         Strength of the horizontal quadrupolar component in units of m^-2.
-    h : float
+    h : float, optional
         Curvature of the reference trajectory in units of m^-1. Can only be
         given if angle is not given, and will be computed from angle otherwise.
-    angle : float
+    angle : float, optional
         Angle of the bend in radians. Can only be given if h is not given, and
         will be computed from h otherwise.
-    length : float
-        Length of the element in units of m.
-    knl : array
-        Integrated strength of the high-order normal multipolar components
-        (knl[0] and knl[1] should not be used).
-    ksl : array
-        Integrated strength of the high-order skew multipolar components
-        (ksl[0] and ksl[1] should not be used).
-    num_multipole_kicks : int
-        Number of multipole kicks used to model high order multipolar
-        components.
-    k0_from_h : bool
+    k0_from_h : bool, optional
         If True, `k0` will assume the value of `h` and its value will be updated
         when `h` is changed.
+    length : float, optional
+        Length of the element in units of m.
+    knl : array, optional
+        Integrated strength of the high-order normal multipolar components
+        (knl[0] and knl[1] should not be used).
+    ksl : array, optional
+        Integrated strength of the high-order skew multipolar components
+        (ksl[0] and ksl[1] should not be used).
+    num_multipole_kicks : int, optional
+        Number of multipole kicks used to model high order multipolar
+        components. By default switched off.
+    order : int, optional
+        Order of `knl` and `ksl`. If not given, it will be inferred from `knl`
+        and `ksl`, but will be at least `DEFAULT_MULTIPOLE_ORDER` = 5.
+    edge_entry_active : bool, optional
+        Whether to model the entry edge. Disabled by default.
+    edge_exit_active : bool, optional
+        Same as `edge_entry_active`, but for the exit.
+    edge_entry_model : LiteralUnion['linear', 'full', 'suppressed']
+        Type of edge model to use at the entry. Default is 'full'.
+    edge_exit_model : LiteralUnion['linear', 'full', 'suppressed']
+        Same as `edge_entry_model`, but for the exit.
+    edge_entry_angle : float, optional
+        The angle of the entry edge in radians. Default is 0.
+    edge_exit_angle : float, optional
+        Same as `edge_entry_angle`, but for the exit.
+    edge_entry_angle_fdown : float, optional
+        Term added to the entry angle only for the linear mode and only in
+        the vertical plane to account for non-zero angle in the closed orbit
+        when entering the fringe field (feed down effect). Default is 0.
+    edge_exit_angle_fdown : float, optional
+        Same as `edge_entry_angle_fdown`, but for the exit. Default is 0.
+    edge_entry_fint: float, optional
+        Fringe integral value at entry.
+    edge_exit_fint : float, optional
+        Same as `edge_entry_fint`, but for the exit. Default is 0.
+    edge_entry_hgap : float, optional
+        Equivalent gap at entry in meters. Default is 0.
+    edge_exit_hgap : float, optional
+        Same as `edge_entry_hgap`, but for the exit.
     """
 
     _xofields = _BendCommon._common_xofields
@@ -996,35 +1026,67 @@ class RBend(_BendCommon, BeamElement):
 
     Parameters
     ----------
-    k0 : float
+    k0 : float, optional
         Strength of the horizontal dipolar component in units of m^-1.
-    k1 : float
+    k1 : float, optional
         Strength of the horizontal quadrupolar component in units of m^-2.
-    h : float
+    h : float, optional
         Curvature of the reference trajectory in units of m^-1. Will be
         computed from angle and `length_straight` if not given, otherwise will
         be checked for consistency. Changes to `h` will update `angle` and
         `length`.
-    angle : float
+    angle : float, optional
         Angle of the bend in radians. Will be computed from `h` and
         `length_straight` if not given, otherwise will be checked for
         consistency. Changes to `angle` will update `h` and `length`.
-    length : float
+    k0_from_h : bool, optional
+        If True, `k0` will assume the value of `h` and its value will be updated
+        when `h` is changed.
+    length : float, optional
         Length of the element in units of m along the reference trajectory.
         Will be computed from `angle` and `length_straight` if not given.
         Changes to `length` will update `h` and `length_straight`.
-    length_straight : float
+    length_straight : float, optional
         Length of the element in units of m along a straight line. Changes to
         `length_straight` will update `length` and `h`.
-    knl : array
+    knl : array, optional
         Integrated strength of the high-order normal multipolar components
         (`knl[0]` and `knl[1]` should not be used).
-    ksl : array
+    ksl : array, optional
         Integrated strength of the high-order skew multipolar components
         (`ksl[0]` and `ksl[1]` should not be used).
-    num_multipole_kicks : int
+    num_multipole_kicks : int, optional
         Number of multipole kicks used to model high order multipolar
-        components.
+        components. By default switched off.
+    order : int, optional
+        Order of `knl` and `ksl`. If not given, it will be inferred from `knl`
+        and `ksl`, but will be at least `DEFAULT_MULTIPOLE_ORDER` = 5.
+    edge_entry_active : bool, optional
+        Whether to model the entry edge. Disabled by default.
+    edge_exit_active : bool, optional
+        Same as `edge_entry_active`, but for the exit.
+    edge_entry_model : LiteralUnion['linear', 'full', 'suppressed']
+        Type of edge model to use at the entry. Default is 'full'.
+    edge_exit_model : LiteralUnion['linear', 'full', 'suppressed']
+        Same as `edge_entry_model`, but for the exit.
+    edge_entry_angle : float, optional
+        The angle of the entry edge in radians. Default is 0.
+    edge_exit_angle : float, optional
+        Same as `edge_entry_angle`, but for the exit.
+    edge_entry_angle_fdown : float, optional
+        Term added to the entry angle only for the linear mode and only in
+        the vertical plane to account for non-zero angle in the closed orbit
+        when entering the fringe field (feed down effect). Default is 0.
+    edge_exit_angle_fdown : float, optional
+        Same as `edge_entry_angle_fdown`, but for the exit. Default is 0.
+    edge_entry_fint: float, optional
+        Fringe integral value at entry.
+    edge_exit_fint : float, optional
+        Same as `edge_entry_fint`, but for the exit. Default is 0.
+    edge_entry_hgap : float, optional
+        Equivalent gap at entry in meters. Default is 0.
+    edge_exit_hgap : float, optional
+        Same as `edge_entry_hgap`, but for the exit.
     """
 
     _xofields = {
