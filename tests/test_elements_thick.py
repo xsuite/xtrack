@@ -413,10 +413,11 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
     mad.input(f"""
     knob_a := 1.0;
     knob_b := 2.0;
+    knob_c := 0.0;
     ! Make the sequence a bit longer to accommodate rbends
     ss: sequence, l:=2 * knob_b, refer=entry;
         elem: {bend_type}, at=0, angle:=0.1 * knob_a, l:=knob_b,
-            k0:=0.2 * knob_a, k1=0, k2:=0.4 * knob_a,
+            k0:=0.2 * knob_c, k1=0, k2:=0.4 * knob_a,
             fint:=0.5 * knob_a, hgap:=0.6 * knob_a,
             e1:=0.7 * knob_a, e2:=0.8 * knob_a;
     endsequence;
@@ -443,7 +444,11 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
 
     # Element:
     xo.assert_allclose(elem.length, 2.0, atol=1e-16)
-    xo.assert_allclose(elem.k0, 0.2, atol=1e-16)
+    # The below is not strictly compatible with MAD-X, but is a corner case
+    # that hopefully will never be relevant: if k0 is governed by an expression
+    # we assume k0_from_h=False, even if its value evaluates to zero. In MAD-X
+    # k0 = h if k0 is zero, but this is not feasible to implement in Xtrack now.
+    xo.assert_allclose(elem.k0, 0 if with_knobs else 0.05, atol=1e-16)
     xo.assert_allclose(elem.h, 0.05, atol=1e-16)  # h = angle / L
     xo.assert_allclose(elem.ksl, 0.0, atol=1e-16)
 
@@ -472,6 +477,7 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
     # Change the knob values
     line.vars['knob_a'] = 2.0
     line.vars['knob_b'] = 3.0
+    line.vars['knob_c'] = 2.0
 
     # Verify that the line has been adjusted correctly
     # Element:
