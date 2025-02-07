@@ -67,6 +67,9 @@ void ThickSliceQuadrupole_track_local_particle(
 
     #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
     const int radiation_flag = ThickSliceQuadrupoleData_get_radiation_flag(el);
+    double dp_record_exit = 0.;
+    double dpx_record_exit = 0.;
+    double dpy_record_exit = 0.;
     // Store momenta at entrance
     //start_per_particle_block (part0->part)
         double const old_px = LocalParticle_get_px(part);
@@ -80,12 +83,25 @@ void ThickSliceQuadrupole_track_local_particle(
     //end_per_particle_block
     #endif
 
+    // tapering
+    #ifdef XTRACK_MULTIPOLE_NO_SYNRAD
+        const double delta_taper = 0;
+    #else
+        double delta_taper = ThickSliceQuadrupoleData_get_delta_taper(el);
+    #endif
+    // #ifdef XTRACK_MULTIPOLE_TAPER
+    //     // When computing tapering there is only one particles (part0)
+    //     delta_taper = LocalParticle_get_delta(part0);
+    // #endif
+
     Quadrupole_from_params_track_local_particle(
-        length, k1, k1s,
+        length,
+        k1 * (1. + delta_taper),
+        k1s * (1. + delta_taper),
         num_multipole_kicks,
         knl, ksl,
         order, inv_factorial_order,
-        factor_knl_ksl,
+        factor_knl_ksl * (1. + delta_taper),
         0, 0,
         part0);
 
@@ -99,9 +115,9 @@ void ThickSliceQuadrupole_track_local_particle(
             LocalParticle_get_ax(part), // old_px
             LocalParticle_get_ay(part), // old_py
             LocalParticle_get_temp(part), // old_zeta
-            NULL, // dp_record_exit
-            NULL, // dpx_record_exit
-            NULL  // dpy_record_exit
+            &dp_record_exit,
+            &dpx_record_exit,
+            &dpy_record_exit
         );
 
         //Restore
