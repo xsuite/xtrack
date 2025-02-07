@@ -62,7 +62,7 @@ _ALLOWED_ELEMENT_TYPES_IN_NEW = [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole,
                                  xt.Marker, xt.Replica, xt.XYShift, xt.XRotation,
                                  xt.YRotation, xt.SRotation, xt.LimitRacetrack,
                                  xt.LimitRectEllipse, xt.LimitRect, xt.LimitEllipse,
-                                 xt.RFMultipole]
+                                 xt.RFMultipole, xt.RBend]
 
 _ALLOWED_ELEMENT_TYPES_DICT = {'Drift': xt.Drift, 'Bend': xt.Bend,
                                'Quadrupole': xt.Quadrupole, 'Sextupole': xt.Sextupole,
@@ -74,7 +74,7 @@ _ALLOWED_ELEMENT_TYPES_DICT = {'Drift': xt.Drift, 'Bend': xt.Bend,
                                'LimitRect': xt.LimitRect, 'LimitEllipse': xt.LimitEllipse,
                                'XYShift': xt.XYShift, 'XRotation': xt.XRotation,
                                'YRotation': xt.YRotation, 'SRotation': xt.SRotation,
-                               'RFMultipole': xt.RFMultipole}
+                               'RFMultipole': xt.RFMultipole, 'RBend': xt.RBend}
 
 _STR_ALLOWED_ELEMENT_TYPES_IN_NEW = ', '.join([tt.__name__ for tt in _ALLOWED_ELEMENT_TYPES_IN_NEW])
 
@@ -2892,13 +2892,13 @@ class Line:
             raise ValueError(f'Unknown bend edge model {edge}')
 
         for ee in self.element_dict.values():
-            if core is not None and isinstance(ee, xt.Bend):
+            if core is not None and isinstance(ee, (xt.Bend, xt.RBend)):
                 ee.model = core
 
             if edge is not None and isinstance(ee, xt.DipoleEdge):
                 ee.model = edge
 
-            if edge is not None and isinstance(ee, xt.Bend):
+            if edge is not None and isinstance(ee, (xt.Bend, xt.RBend)):
                 ee.edge_entry_model = edge
                 ee.edge_exit_model = edge
 
@@ -4055,11 +4055,6 @@ class Line:
                 raise ValueError(f'Only kwargs are allowed when setting element attributes')
 
             extra = kwargs.pop('extra', None)
-
-            if self.element_dict[name].__class__ == xt.Bend:
-                # Handle angle if needed
-                kwargs = xt.environment._handle_bend_kwargs(
-                    kwargs, _eval, env=self, name=name)
 
             ref_kwargs, value_kwargs = xt.environment._parse_kwargs(
                 type(self.element_dict[name]), kwargs, _eval)

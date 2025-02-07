@@ -129,8 +129,8 @@ class MadxLoader:
         self._new_builtin("hmonitor", "Drift")
         self._new_builtin("vmonitor", "Drift")
         self._new_builtin("placeholder", "Drift")
-        self._new_builtin("sbend", "Bend")  # no rbarc since we don't have an angle
-        self._new_builtin("rbend", "Bend", rbend=True)
+        self._new_builtin("sbend", "Bend")
+        self._new_builtin("rbend", "RBend")
         self._new_builtin("quadrupole", "Quadrupole")
         self._new_builtin("sextupole", "Sextupole")
         self._new_builtin("octupole", "Octupole")
@@ -283,8 +283,6 @@ class MadxLoader:
         if parent is None:
             # If parent is None, we wish to place instead
             if self._mad_base_type(name) == 'rbend':
-                el_params.pop('rbend', None)
-                el_params.pop('rbarc', None)
                 el_params.pop('k0_from_h', None)
 
             if (superfluous := el_params.keys() - {'at', 'from_', 'extra'}):
@@ -330,24 +328,26 @@ class MadxLoader:
         parent_name = self._mad_base_type(name)
 
         if parent_name in {'sbend', 'rbend'}:
-            # Because of the difficulty in handling the angle (it's not part of
-            # the element definition), making an rbend from another rbend is
-            # broken. We give up, and just cache all the parameters from the
-            # hierarchy – that way `_handle_bend_kwargs` always gets the full
-            # picture.
-            params = self._parameter_cache[name]
-
-            params['rbend'] = parent_name == 'rbend'
-
-            # `_handle_bend_kwargs` errors if there is rbarc but no angle
-            params['rbarc'] = self.rbarc if 'angle' in params else False
-
-            # Default MAD-X behaviour is to take k0 from h only if k0 is not
-            # given.
-            if 'k0' not in params:
-                params['k0_from_h'] = True
+            # We need to keep the rbarc parameter from the parent element.
+            # If rbarc = True, then rbend length is the straight length.
+            # If rbarc = False, then the length is the arc length, as for sbend.
+            cached_params = self._parameter_cache[name]
 
             length = params.get('length', 0)
+
+            if parent_name == 'rbend':
+                rbarc = cached_params.get('rbarc', self.rbarc)
+                if rbarc and 'length' in params:
+                    params['length_straight'] = params.pop('length')
+
+            # Default MAD-X behaviour is to take k0 from h only if k0 is not
+            # given. We need to replicate this behaviour. Ideally we should
+            # evaluate expressions here, but that's tricky.
+            if cached_params.get('k0', 0) == 0:
+                params['k0_from_h'] = True
+            else:
+                params['k0_from_h'] = False
+
             if (k2 := params.pop('k2', None)) and length:
                 params['knl'] = [0, 0, f'({k2}) * ({length})']
             if (k1s := params.pop('k1s', None)) and length:

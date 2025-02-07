@@ -295,6 +295,106 @@ def test_thick_multipolar_component(test_context, element_type, h):
         )
 
 
+@for_all_test_contexts
+@pytest.mark.parametrize(
+    'param_scenario', ['length', 'length_straight', 'both', 'mismatched'],
+)
+@pytest.mark.parametrize(
+    "use_angle_in_rbend", [True, False],
+    ids=('rbend with angle', 'rbend with h'),
+)
+@pytest.mark.parametrize(
+    "use_angle_in_sbend", [True, False],
+    ids=('sbend with angle', 'sbend with h'),
+)
+def test_rbend(test_context, param_scenario, use_angle_in_rbend, use_angle_in_sbend):
+    k0 = 0.15
+    angle = 0.1
+    radius = 2
+    curvature = 1 / radius
+    length = angle * radius
+    length_straight = 2 * radius * np.sin(angle / 2)
+    e1_rbend = 0.05
+    e2_rbend = -0.02
+
+    # Set up everything for the RBend
+    r_bend_extra_kwargs = {}
+
+    if param_scenario in ('length', 'both', 'mismatched'):
+        r_bend_extra_kwargs['length'] = length
+
+    if param_scenario in ('length_straight', 'both', 'mismatched'):
+        r_bend_extra_kwargs['length_straight'] = length_straight
+
+    if use_angle_in_rbend:
+        r_bend_extra_kwargs['angle'] = angle
+    else:
+        r_bend_extra_kwargs['h'] = curvature
+
+    def _make_rbend():
+        return xt.RBend(
+            k0=k0,
+            edge_entry_angle=e1_rbend,
+            edge_entry_active=True,
+            edge_exit_angle=e2_rbend,
+            edge_exit_active=True,
+            **r_bend_extra_kwargs
+        )
+
+    if param_scenario == 'mismatched':
+        length_straight += 0.8
+        with pytest.raises(ValueError):
+            r_bend_extra_kwargs['length_straight'] += 0.8
+            _make_rbend()
+        return
+    else:
+        rbend = _make_rbend()
+
+    # Set up everything for the SBend
+    s_bend_extra_kwargs = {}
+
+    if use_angle_in_rbend:
+        s_bend_extra_kwargs['angle'] = angle
+    else:
+        s_bend_extra_kwargs['h'] = curvature
+
+    sbend = xt.Bend(
+        k0=k0,
+        length=length,
+        edge_entry_angle=e1_rbend + angle / 2,
+        edge_entry_active=True,
+        edge_exit_angle=e2_rbend + angle / 2,
+        edge_exit_active=True,
+        **s_bend_extra_kwargs,
+    )
+
+    p0 = xp.Particles(
+        mass0=xp.PROTON_MASS_EV,
+        beta0=0.5,
+        x=0.01,
+        px=0.01,
+        y=-0.005,
+        py=0.001,
+        zeta=0.1,
+        delta=[-0.1, -0.05, 0, 0.05, 0.1],
+        _context=test_context,
+    )
+
+    p_rbend = p0.copy()
+    rbend.track(p_rbend)
+    p_sbend = p0.copy()
+    sbend.track(p_sbend)
+
+    xo.assert_allclose(rbend.length, sbend.length, atol=1e-14, rtol=0)
+
+    xo.assert_allclose(p_rbend.x, p_sbend.x, atol=1e-14, rtol=0)
+    xo.assert_allclose(p_rbend.px, p_sbend.px, atol=1e-14, rtol=0)
+    xo.assert_allclose(p_rbend.y, p_sbend.y, atol=1e-14, rtol=0)
+    xo.assert_allclose(p_rbend.py, p_sbend.py, atol=1e-14, rtol=0)
+    xo.assert_allclose(p_rbend.zeta, p_sbend.zeta, atol=1e-14, rtol=0)
+    xo.assert_allclose(p_rbend.ptau, p_sbend.ptau, atol=1e-14, rtol=0)
+
+
 @pytest.mark.parametrize(
     'with_knobs',
     [True, False],
@@ -313,10 +413,11 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
     mad.input(f"""
     knob_a := 1.0;
     knob_b := 2.0;
+    knob_c := 0.0;
     ! Make the sequence a bit longer to accommodate rbends
     ss: sequence, l:=2 * knob_b, refer=entry;
         elem: {bend_type}, at=0, angle:=0.1 * knob_a, l:=knob_b,
-            k0:=0.2 * knob_a, k1=0, k2:=0.4 * knob_a,
+            k0:=0.2 * knob_c, k1=0, k2:=0.4 * knob_a,
             fint:=0.5 * knob_a, hgap:=0.6 * knob_a,
             e1:=0.7 * knob_a, e2:=0.8 * knob_a;
     endsequence;
@@ -343,7 +444,11 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
 
     # Element:
     xo.assert_allclose(elem.length, 2.0, atol=1e-16)
-    xo.assert_allclose(elem.k0, 0.2, atol=1e-16)
+    # The below is not strictly compatible with MAD-X, but is a corner case
+    # that hopefully will never be relevant: if k0 is governed by an expression
+    # we assume k0_from_h=False, even if its value evaluates to zero. In MAD-X
+    # k0 = h if k0 is zero, but this is not feasible to implement in Xtrack now.
+    xo.assert_allclose(elem.k0, 0 if with_knobs else 0.05, atol=1e-16)
     xo.assert_allclose(elem.h, 0.05, atol=1e-16)  # h = angle / L
     xo.assert_allclose(elem.ksl, 0.0, atol=1e-16)
 
@@ -356,15 +461,11 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
     # Edges:
     xo.assert_allclose(elem.edge_entry_fint, 0.5, atol=1e-16)
     xo.assert_allclose(elem.edge_entry_hgap, 0.6, atol=1e-16)
-    xo.assert_allclose(elem.edge_entry_angle,
-                      {'rbend': 0.7 + 0.1 / 2, 'sbend': 0.7}[bend_type],
-                      atol=1e-16)
+    xo.assert_allclose(elem.edge_entry_angle, 0.7, atol=1e-16)
 
     xo.assert_allclose(elem.edge_exit_fint, 0.5, atol=1e-16)
     xo.assert_allclose(elem.edge_exit_hgap, 0.6, atol=1e-16)
-    xo.assert_allclose(elem.edge_exit_angle,
-                     {'rbend': 0.8 + 0.1 / 2, 'sbend': 0.8}[bend_type],
-                      atol=1e-16)
+    xo.assert_allclose(elem.edge_exit_angle, 0.8, atol=1e-16)
 
     # Finish the test here if we are not using knobs
     if not with_knobs:
@@ -376,6 +477,7 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
     # Change the knob values
     line.vars['knob_a'] = 2.0
     line.vars['knob_b'] = 3.0
+    line.vars['knob_c'] = 2.0
 
     # Verify that the line has been adjusted correctly
     # Element:
@@ -393,16 +495,12 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
     # Edges:
     xo.assert_allclose(elem.edge_entry_fint, 1.0, atol=1e-16)
     xo.assert_allclose(elem.edge_entry_hgap, 1.2, atol=1e-16)
-    xo.assert_allclose(elem.edge_entry_angle,
-        {'rbend': 1.4 + 0.2 / 2, 'sbend': 1.4}[bend_type],
-        atol=1e-16)
+    xo.assert_allclose(elem.edge_entry_angle, 1.4, atol=1e-16)
     xo.assert_allclose(elem.k0, 0.4, atol=1e-16)
 
     xo.assert_allclose(elem.edge_exit_fint, 1.0, atol=1e-16)
     xo.assert_allclose(elem.edge_exit_hgap, 1.2, atol=1e-16)
-    xo.assert_allclose(elem.edge_exit_angle,
-        {'rbend': 1.6 + 0.2 / 2, 'sbend': 1.6}[bend_type],
-        atol=1e-16)
+    xo.assert_allclose(elem.edge_exit_angle, 1.6, atol=1e-16)
 
 
 @pytest.mark.parametrize('with_knobs', [False, True])
@@ -489,7 +587,11 @@ def test_import_thick_bend_from_madx_and_slice(
 
     # Verify that the slices are correct
     for elem in elems:
-        assert isinstance(elem, xt.ThinSliceBend)
+        slice_class = {
+            'rbend': xt.ThinSliceRBend,
+            'sbend': xt.ThinSliceBend,
+        }[bend_type]
+        assert isinstance(elem, slice_class)
         xo.assert_allclose(elem.weight, 0.5, atol=1e-16)
         xo.assert_allclose(elem._parent.length, 2.0, atol=1e-16)
         xo.assert_allclose(elem._parent.k0, 0.2, atol=1e-16)

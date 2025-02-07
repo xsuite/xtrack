@@ -36,15 +36,15 @@ def test_sps_thick(test_context, deferred_expressions):
     # Check a bend
     assert line.element_names[26] == 'mbb.10150'
 
-    assert isinstance(line['mbb.10150'], xt.Bend)
+    assert isinstance(line['mbb.10150'], xt.RBend)
 
     assert line['mbb.10150'].edge_entry_model == 'linear'
     assert line['mbb.10150'].edge_exit_model == 'linear'
     assert line['mbb.10150'].model == 'adaptive'
 
     ang = line['mbb.10150'].k0 * line['mbb.10150'].length
-    xo.assert_allclose(line['mbb.10150'].edge_entry_angle, ang / 2, atol=1e-11, rtol=0)
-    xo.assert_allclose(line['mbb.10150'].edge_exit_angle, ang / 2, atol=1e-11, rtol=0)
+    xo.assert_allclose(line['mbb.10150'].edge_entry_angle, 0, atol=1e-11, rtol=0)
+    xo.assert_allclose(line['mbb.10150'].edge_exit_angle, 0, atol=1e-11, rtol=0)
 
     tw = line.twiss()
     xo.assert_allclose(twmad.s[-1], tw.s[-1], atol=1e-9, rtol=0)
@@ -106,6 +106,7 @@ def test_sps_thick(test_context, deferred_expressions):
     slicing_strategies = [
         Strategy(slicing=Teapot(1)),  # Default
         Strategy(slicing=Teapot(2), element_type=xt.Bend),
+        Strategy(slicing=Teapot(2), element_type=xt.RBend),
         Strategy(slicing=Teapot(8), element_type=xt.Quadrupole),
     ]
 
@@ -124,13 +125,13 @@ def test_sps_thick(test_context, deferred_expressions):
     assert line.element_names[114] == 'mbb.10150_exit'
 
     assert isinstance(line['mbb.10150_entry'], xt.Marker)
-    assert isinstance(line['mbb.10150..entry_map'], xt.ThinSliceBendEntry)
-    assert isinstance(line['drift_mbb.10150..0'], xt.DriftSliceBend)
-    assert isinstance(line['mbb.10150..0'], xt.ThinSliceBend)
-    assert isinstance(line['drift_mbb.10150..1'], xt.DriftSliceBend)
-    assert isinstance(line['mbb.10150..1'], xt.ThinSliceBend)
-    assert isinstance(line['drift_mbb.10150..2'], xt.DriftSliceBend)
-    assert isinstance(line['mbb.10150..exit_map'], xt.ThinSliceBendExit)
+    assert isinstance(line['mbb.10150..entry_map'], xt.ThinSliceRBendEntry)
+    assert isinstance(line['drift_mbb.10150..0'], xt.DriftSliceRBend)
+    assert isinstance(line['mbb.10150..0'], xt.ThinSliceRBend)
+    assert isinstance(line['drift_mbb.10150..1'], xt.DriftSliceRBend)
+    assert isinstance(line['mbb.10150..1'], xt.ThinSliceRBend)
+    assert isinstance(line['drift_mbb.10150..2'], xt.DriftSliceRBend)
+    assert isinstance(line['mbb.10150..exit_map'], xt.ThinSliceRBendExit)
     assert isinstance(line['mbb.10150_exit'], xt.Marker)
 
     # Check a quadrupole
