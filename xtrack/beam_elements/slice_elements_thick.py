@@ -57,7 +57,7 @@ class ThickSliceRBend(BeamElement):
     isthick = True
     _inherit_strengths = True
 
-    _xofields = {'_parent': xo.Ref(Bend), **_common_xofields}
+    _xofields = {'_parent': xo.Ref(RBend), **_common_xofields}
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
