@@ -912,6 +912,17 @@ class Bend(_BendCommon, BeamElement):
         when `h` is changed.
     length : float, optional
         Length of the element in units of m.
+    model : str, optional
+        The bend model to use. Available options are:
+        - "adaptive" - drift-kick-drift model with automatic selection of the
+            number of kicks, using the Yoshida integration scheme. This is the
+            default option.
+        - "full" - same as adaptive (included for backward compatibility)
+        - "bend-kick-bend" - similar to adaptive, but using a thick bend map
+            instead of drifts.
+        - "rot-kick-rot" - same as "adaptive" and "full".
+        - "expanded" - use a combined function magnet with uniform slicing for
+            the kicks.
     knl : array, optional
         Integrated strength of the high-order normal multipolar components
         (knl[0] and knl[1] should not be used).
@@ -920,7 +931,7 @@ class Bend(_BendCommon, BeamElement):
         (ksl[0] and ksl[1] should not be used).
     num_multipole_kicks : int, optional
         Number of multipole kicks used to model high order multipolar
-        components. By default switched off.
+        components. By default, switched off.
     order : int, optional
         Order of `knl` and `ksl`. If not given, it will be inferred from `knl`
         and `ksl`, but will be at least `DEFAULT_MULTIPOLE_ORDER` = 5.
@@ -1046,6 +1057,8 @@ class RBend(_BendCommon, BeamElement):
         Length of the element in units of m along the reference trajectory.
         Will be computed from `angle` and `length_straight` if not given.
         Changes to `length` will update `h` and `length_straight`.
+    model : str, optional
+        See `Bend` for details.
     length_straight : float, optional
         Length of the element in units of m along a straight line. Changes to
         `length_straight` will update `length` and `h`.
@@ -1057,7 +1070,7 @@ class RBend(_BendCommon, BeamElement):
         (`ksl[0]` and `ksl[1]` should not be used).
     num_multipole_kicks : int, optional
         Number of multipole kicks used to model high order multipolar
-        components. By default switched off.
+        components. By default, switched off.
     order : int, optional
         Order of `knl` and `ksl`. If not given, it will be inferred from `knl`
         and `ksl`, but will be at least `DEFAULT_MULTIPOLE_ORDER` = 5.
