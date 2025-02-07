@@ -195,7 +195,6 @@ class Environment:
             Name of the created element or line or a Place object if at or from_ is
             provided.
         '''
-
         if name in self.element_dict and not force:
             raise ValueError(f'Element `{name}` already exists')
 
@@ -268,10 +267,14 @@ class Environment:
             else:
                 raise ValueError(f'Element type {parent} not found')
 
-        if parent == xt.Bend and ('angle' in kwargs or 'rbarc' in kwargs):
-            kwargs = _handle_bend_kwargs(kwargs, _eval, env=self)
-        kwargs.pop('rbarc', None)
-        kwargs.pop('rbend', None)
+        if 'rbend' in kwargs:
+            raise ValueError('Use the `RBend` element directly, instead of '
+                             'specifying the `rbend` flag.')
+
+        if 'rbarc' in kwargs:
+            raise ValueError('Use the `RBend` element with the `length` or '
+                             '`length_straight` parameter set accordingly, '
+                             'instead of specifying the `rbarc` flag.')
 
         ref_kwargs, value_kwargs = _parse_kwargs(parent, kwargs, _eval)
 
@@ -1146,67 +1149,6 @@ class EnvRef:
             if key in self.env.vars:
                 raise ValueError(f'There is already a variable with name {key}')
             self.element_refs[key] = val_ref
-
-def _handle_bend_kwargs(kwargs, _eval, env=None, name=None):
-    kwargs = kwargs.copy()
-    rbarc = kwargs.pop('rbarc', True)
-    rbend = kwargs.pop('rbend', False)
-
-    if rbarc:
-        assert 'angle' in kwargs, 'Angle must be specified for a bend with rbarc'
-
-    if env is not None and name is not None:
-        for kk in 'h length edge_entry_angle edge_exit_angle'.split():
-            if kk not in kwargs:
-                expr = getattr(env.ref[name], kk)._expr
-                if expr is not None:
-                    kwargs[kk] = expr
-                else:
-                    kwargs[kk] = getattr(env.get(name), kk)
-        if 'angle' in kwargs:
-            kwargs.pop('h')
-
-    length = kwargs.get('length', 0)
-    if isinstance(length, str):
-        length = _eval(length)
-
-    if 'angle' in kwargs:
-        assert 'h' not in kwargs, 'Cannot specify both angle and h'
-        assert 'length' in kwargs, 'Length must be specified for a bend'
-
-        angle = kwargs.pop('angle')
-
-        if isinstance(angle, str):
-            angle = _eval(angle)
-
-        kwargs['h'] = angle / length
-
-        if rbend and rbarc:
-            fsin = env._xdeps_fref['sin']
-            fsinc = env._xdeps_fref['sinc']
-            kwargs['h'] = fsin(0.5*angle) / (0.5 * length) # here length is the straight line
-            kwargs['length'] = length / fsinc(0.5*angle)
-    else:
-        angle = kwargs.get('h', 0) * length
-
-    if rbend:
-        edge_entry_angle = kwargs.pop('edge_entry_angle', 0.)
-        if isinstance(edge_entry_angle, str):
-            edge_entry_angle = _eval(edge_entry_angle)
-        edge_exit_angle = kwargs.pop('edge_exit_angle', 0.)
-        if isinstance(edge_exit_angle, str):
-            edge_exit_angle = _eval(edge_exit_angle)
-
-        edge_entry_angle += angle / 2
-        edge_exit_angle += angle / 2
-
-        kwargs['edge_entry_angle'] = edge_entry_angle
-        kwargs['edge_exit_angle'] = edge_exit_angle
-
-    if kwargs.pop('k0_from_h', False):
-        kwargs['k0'] = kwargs.get('h', 0)
-
-    return kwargs
 
 
 class Builder:
