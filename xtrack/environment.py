@@ -5,6 +5,10 @@ from typing import Literal
 from weakref import WeakSet
 from copy import deepcopy
 import re
+import importlib.util
+import sys
+import uuid
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -432,12 +436,10 @@ class Environment:
         filename : str
             Name of the file to be called.
         '''
-        with open(filename) as fid:
-            code = fid.read()
         import xtrack
         xtrack._passed_env = self
         try:
-            exec(code)
+            load_module_from_path(Path(filename))
         except Exception as ee:
             xtrack._passed_env = None
             raise ee
@@ -1238,3 +1240,30 @@ def _argsort_s(seq, tol=10e-10):
         return -1 if a < b else 1
 
     return sorted(seq_indices, key=cmp_to_key(comparator))
+
+
+def load_module_from_path(file_path):
+    """
+    Load a module from the given file path, always generating a unique module name.
+
+    Parameters:
+        file_path (str): The full path to the module file.
+
+    Returns:
+        module: The newly loaded module.
+    """
+    # Generate a unique module name using uuid4.
+    module_name = f"module_{uuid.uuid4().hex}"
+
+    # Create a module spec from the file location.
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
+    if spec is None:
+        raise ImportError(f"Cannot load module from path: {file_path}")
+
+    # Create a new module based on the spec.
+    module = importlib.util.module_from_spec(spec)
+
+    # Execute the module in its own namespace.
+    spec.loader.exec_module(module)
+
+    return module
