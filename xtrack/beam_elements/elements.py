@@ -2162,6 +2162,7 @@ class LineSegmentMap(BeamElement):
         'longitudinal_mode_flag': xo.Int64,
         'qs': xo.Float64,
         'bets': xo.Float64,
+        'bucket_length': xo.Float64,
         'momentum_compaction_factor': xo.Float64,
         'slippage_length': xo.Float64,
         'voltage_rf': xo.Float64[:],
@@ -2188,7 +2189,7 @@ class LineSegmentMap(BeamElement):
             dx=0., dpx=0., dy=0., dpy=0.,
             x_ref=0.0, px_ref=0.0, y_ref=0.0, py_ref=0.0,
             longitudinal_mode=None,
-            qs=None, bets=None,
+            qs=None, bets=None,bucket_length=None,
             momentum_compaction_factor=None,
             slippage_length=None,
             voltage_rf=None, frequency_rf=None, lag_rf=None,
@@ -2269,6 +2270,10 @@ class LineSegmentMap(BeamElement):
             Synchrotron beta function of the segment (positive above transition,
             negative below transition). Only used if ``longitudinal_mode``
             is ``'linear_fixed_qs'``.
+        bucket_length : float
+            The linear RF force becomes a sawtooth with a fixed point every
+            bucket_length [full length in seconds]. Only used if
+            ``longitudinal_mode`` is ``'linear_fixed_qs'``.
         momentum_compaction_factor : float
             Momentum compaction factor of the segment. Only used if
             ``longitudinal_mode`` is ``'nonlinear'`` or ``'linear_fixed_rf'``.
@@ -2415,9 +2420,12 @@ dqx : float or list of float
             assert voltage_rf is None
             assert frequency_rf is None
             assert lag_rf is None
+            if bucket_length == None:
+                bucket_length = -1.0
             nargs['longitudinal_mode_flag'] = 1
             nargs['qs'] = qs
             nargs['bets'] = bets
+            nargs['bucket_length'] = bucket_length
             nargs['voltage_rf'] = [0]
             nargs['frequency_rf'] = [0]
             nargs['lag_rf'] = [0]
@@ -2428,6 +2436,7 @@ dqx : float or list of float
             assert momentum_compaction_factor is not None
             assert qs is None
             assert bets is None
+            assert bucket_length is None
 
             if slippage_length is None:
                 nargs['slippage_length'] = length
@@ -2888,3 +2897,4 @@ class SecondOrderTaylorMap(BeamElement):
 
 class ThinSliceNotNeededError(Exception):
     pass
+
