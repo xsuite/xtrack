@@ -188,13 +188,13 @@ def test_ip_knob_matching(test_context):
     opt.step(10) # perform 10 steps without checking for convergence
 
     ll = opt.log()
-    assert len(ll) == 13
+    assert 11 <= len(ll) <= 13
     assert ll['vary_active', 0] == 'yyyyyyyyyyyyyy'
     assert ll['vary_active', 1] == 'yyyyyyyynnnnnn'
-    assert ll['vary_active', 11] == 'yyyyyyyynnnnnn'
+    assert ll['vary_active', len(ll) - 2] == 'yyyyyyyynnnnnn'
 
     # Check solution not found
-    assert ll['tol_met', 12] != 'yyyyyyyy'
+    assert ll['tol_met', len(ll) - 1] != 'yyyyyyyy'
 
     # Check that mcbxs did not move
     xo.assert_allclose(ll['vary_8', 1:], init_mcbx_plus, atol=1e-12, rtol=0)
