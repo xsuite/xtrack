@@ -338,7 +338,8 @@ def test_rbend(test_context, param_scenario, use_angle_in_rbend, use_angle_in_sb
             edge_entry_active=True,
             edge_exit_angle=e2_rbend,
             edge_exit_active=True,
-            **r_bend_extra_kwargs
+            **r_bend_extra_kwargs,
+            _context=test_context,
         )
 
     if param_scenario == 'mismatched':
@@ -366,6 +367,7 @@ def test_rbend(test_context, param_scenario, use_angle_in_rbend, use_angle_in_sb
         edge_exit_angle=e2_rbend + angle / 2,
         edge_exit_active=True,
         **s_bend_extra_kwargs,
+        _context=test_context,
     )
 
     p0 = xp.Particles(
