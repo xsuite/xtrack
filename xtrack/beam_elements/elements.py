@@ -1006,7 +1006,7 @@ class Bend(_BendCommon, BeamElement):
 
     @length.setter
     def length(self, value):
-        self.set_bend_params(length=value, h=self.h)
+        self.set_bend_params(length=value, angle=self.angle)
 
     @property
     def h(self):

@@ -799,18 +799,7 @@ class MadLoader:
             l_curv = mad_el.l
             bend_kwargs['length'] = l_curv
 
-
-        if mad_el.type == 'rbend':
-            # Xtrack RBend element will update h from the angle and l...
-            bend_kwargs['angle'] = mad_el.angle
-        else:
-            # ...however, for the Bend element things are a bit more complex.
-            # Since `angle` is a computed parameter, and `h` is the actual
-            # stored value, changing the length (e.g. through expressions)
-            # implicitly changes the angle (since `h` is constant). Therefore,
-            # we need to store the expression for `h` here, to indicate that
-            # the value of the angle is the authoritative one.
-            bend_kwargs['h'] = mad_el.angle / mad_el.l
+        bend_kwargs['angle'] = mad_el.angle
 
         # Edge angles
         e1 = mad_el.e1

@@ -7,7 +7,7 @@ assert_allclose = np.testing.assert_allclose
 
 def _make_line_no_expressions():
     bend = xt.Bend(
-        k0=0.4, h=0.3, length=1,
+        k0=0.4, angle=0.3, length=1,
         shift_x=1e-3, shift_y=2e-3, shift_s=2e-3, rot_s_rad=0.2,
         k1=0.1,
         knl=[0.7, 0.8, 0.9, 1.0], ksl=[0.1, 0.2, 0.3, 0.4])
@@ -37,7 +37,7 @@ def _make_line_with_expressions():
     line = xt.Line(elements=[bend, quad, sext, octu, mult, drift, xt.Replica(parent_name='e0')])
 
     line.vars['k0_bend'] = 999.
-    line.vars['h_bend'] = 999.
+    line.vars['angle_bend'] = 999.
     line.vars['length_bend'] = 999.
     line.vars['shift_x_bend'] = 999.
     line.vars['shift_y_bend'] = 999.
@@ -95,7 +95,7 @@ def _make_line_with_expressions():
     line.vars['length_drift'] = 999.
 
     line.element_refs['e0'].k0 = line.vars['k0_bend']
-    line.element_refs['e0'].h = line.vars['h_bend']
+    line.element_refs['e0'].angle = line.vars['angle_bend']
     line.element_refs['e0'].length = line.vars['length_bend']
     line.element_refs['e0'].shift_x = line.vars['shift_x_bend']
     line.element_refs['e0'].shift_y = line.vars['shift_y_bend']
@@ -156,7 +156,7 @@ def _make_line_with_expressions():
 
 def _set_vars(line):
     line.vars['k0_bend'] = 0.4
-    line.vars['h_bend'] = 0.3
+    line.vars['angle_bend'] = 0.3
     line.vars['length_bend'] = 1
     line.vars['shift_x_bend'] = 1e-3
     line.vars['shift_y_bend'] = 2e-3

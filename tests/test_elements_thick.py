@@ -179,31 +179,29 @@ def test_combined_function_dipole_expanded(test_context):
 def test_thick_bend_survey():
     circumference = 10
     rho = circumference / (2 * np.pi)
-    h = 1 / rho
     k = 1 / rho
 
     p0 = xp.Particles(p0c=7e12, mass0=xp.PROTON_MASS_EV, x=0.7, px=-0.4, delta=0.0)
 
-    el = xt.Bend(k0=k, h=h, length=circumference)
+    el = xt.Bend(k0=k, angle=2 * np.pi, length=circumference)
     line = xt.Line(elements=[el])
     line.reset_s_at_end_turn = False
     line.build_tracker()
 
-    s_array = np.linspace(0, circumference, 1000)
+    theta_array = np.linspace(0, 2 * np.pi, 1000)
 
-    X0_array = np.zeros_like(s_array)
-    Z0_array = np.zeros_like(s_array)
+    X0_array = np.zeros_like(theta_array)
+    Z0_array = np.zeros_like(theta_array)
 
-    X_array = np.zeros_like(s_array)
-    Z_array = np.zeros_like(s_array)
+    X_array = np.zeros_like(theta_array)
+    Z_array = np.zeros_like(theta_array)
 
-    for ii, s in enumerate(s_array):
+    for ii, theta in enumerate(theta_array):
         p = p0.copy()
 
-        el.length = s
+        el.angle = theta
+        el.length = rho * theta
         line.track(p)
-
-        theta = s / rho
 
         X0 = -rho * (1 - np.cos(theta))
         Z0 = rho * np.sin(theta)
@@ -353,7 +351,7 @@ def test_bend_param_handling(kwargs, scenario):
         ({'length': 2, 'angle': 0.1, 'h': 0.1}, {'length': 2, 'angle': 0.2, 'h': 0.1}),  # order matters
         ({'length': 2, 'angle': 0.1}, {'length': 2, 'angle': 0.1, 'h': 0.05}),
         ({'length': 2, 'h': 0.05}, {'length': 2, 'angle': 0.1, 'h': 0.05}),
-        ({'length': 2}, {'length': 2, 'angle': 0.04, 'h': 0.02}),  # keeps h
+        ({'length': 2}, {'length': 2, 'angle': 0.2, 'h': 0.1}),  # keeps angle
         ({'h': 0.05, 'angle': 0.1}, {'length': 10, 'angle': 0.1, 'h': 0.01}),  # order matters
     ],
     ids=['none', 'all', 'h_after_angle', 'no_h', 'no_angle', 'only_length', 'angle_after_h'],
