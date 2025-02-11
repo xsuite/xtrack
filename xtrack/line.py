@@ -4031,6 +4031,12 @@ class Line:
         >>> line.set('quad', k1=0.1, k2='3*a')
 
         '''
+
+        if isinstance(name, Iterable) and not isinstance(name, str):
+            for nn in name:
+                self.set(nn, *args, **kwargs)
+            return
+
         _eval = self._xdeps_eval.eval
 
         if hasattr(self, 'lines') and name in self.lines:
