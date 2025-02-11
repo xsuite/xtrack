@@ -14,6 +14,7 @@ import xdeps as xd
 import xtrack as xt
 from xdeps.refs import is_ref
 from .multiline_legacy.multiline_legacy import MultilineLegacy
+from .progress_indicator import progress
 
 ReferType = Literal['start', 'center', 'centre', 'end']
 
@@ -722,7 +723,7 @@ class Environment:
 
     def set_multipolar_errors(env, errors):
 
-        for ele_name in errors:
+        for ele_name in progress(errors.keys(), desc='Setting multipolar errors'):
             err = errors[ele_name]
             rel_knl = err.get('rel_knl', [])
             rel_ksl = err.get('rel_ksl', [])
