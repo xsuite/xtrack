@@ -17,6 +17,13 @@ from .multiline_legacy.multiline_legacy import MultilineLegacy
 
 ReferType = Literal['start', 'center', 'centre', 'end']
 
+DEFAULT_REF_STRENGTH_NAME = {
+    'Bend': 'k0',
+    'Quadrupole': 'k1',
+    'Sextupole': 'k2',
+    'Octupole': 'k3',
+}
+
 def _flatten_components(components, refer: ReferType = 'center'):
     if refer not in ['start', 'center', 'centre', 'end']:
         raise ValueError(
@@ -712,6 +719,38 @@ class Environment:
     def __dir__(self):
         return [nn for nn  in list(self.lines.keys()) if '.' not in nn
                     ] + object.__dir__(self)
+
+    def set_multipolar_errors(env, errors):
+
+        for ele_name in errors:
+            err = errors[ele_name]
+            rel_knl = err.get('rel_knl', [])
+            rel_ksl = err.get('rel_ksl', [])
+            refer = err.get('refer', None)
+            ele_class = env[ele_name].__class__.__name__
+            if refer is not None:
+                reference_strength_name = refer
+            else:
+                reference_strength_name = DEFAULT_REF_STRENGTH_NAME.get(ele_class, None)
+
+            if reference_strength_name is None:
+                raise ValueError(f'Cannot find reference strength for element `{ele_name}`')
+
+            ref_str_ref = getattr(env.ref[ele_name], reference_strength_name)
+
+            for ii, kk in enumerate(rel_knl):
+                err_vname = f'err_{ele_name}_knl{ii}'
+                env[err_vname] = kk
+                if (env.ref[ele_name].knl[ii]._expr is None or env.ref[err_vname] in
+                        env.ref[ele_name].knl[ii]._expr._get_dependencies()):
+                    env[ele_name].knl[ii] += env.ref[err_vname] * ref_str_ref
+
+            for ii, kk in enumerate(rel_ksl):
+                err_vname = f'err_{ele_name}_ksl{ii}'
+                env[err_vname] = kk
+                if (env.ref[ele_name].ksl[ii]._expr is None or env.ref[err_vname] in
+                        env.ref[ele_name].ksl[ii]._expr._get_dependencies()):
+                    env[ele_name].ksl[ii] += env.ref[err_vname] * ref_str_ref
 
     element_dict = xt.Line.element_dict
     _xdeps_vref = xt.Line._xdeps_vref
