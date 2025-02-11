@@ -33,6 +33,9 @@ for ele_name in errors:
     else:
         reference_strength_name = DEFAULT_REF_STRENGTH_NAME.get(ele_class, None)
 
+    if reference_strength_name is None:
+        raise ValueError(f'Cannot find reference strength for element `{ele_name}`')
+
     ref_str_ref = getattr(env.ref[ele_name], reference_strength_name)
 
     for ii, kk in enumerate(rel_knl):
