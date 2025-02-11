@@ -507,6 +507,16 @@ class Environment:
         if line.particle_ref is not None:
             out.particle_ref = line.particle_ref.copy()
 
+        out.config.clear()
+        out.config.update(line.config.copy())
+        out._extra_config.update(line._extra_config.copy())
+        out.metadata.clear()
+        out.metadata.update(line.metadata)
+
+        if out.energy_program is not None:
+            out.energy_program.line = out
+
+
     def _ensure_tracker_consistency(self, buffer):
         for ln in self._lines_weakrefs:
             if ln._has_valid_tracker() and ln._buffer is not buffer:
