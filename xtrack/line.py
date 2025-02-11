@@ -4016,7 +4016,7 @@ class Line:
         Parameters
         ----------
         name : str
-            Name of the variable or element.
+            Name(s) of the variable or element.
         value: float or str
             Value or expression of the variable to set. Can be provided only
             if the name is associated to a variable.
@@ -4029,6 +4029,9 @@ class Line:
         >>> line.set('a', 0.1)
         >>> line.set('k1', '3*a')
         >>> line.set('quad', k1=0.1, k2='3*a')
+        >>> line.set(['quad1', 'quad2'], k1=0.1, k2='3*a')
+        >>> line.set(['c', 'd'], 0.1)
+        >>> line.set(['e', 'f'], '3*a')
 
         '''
 
