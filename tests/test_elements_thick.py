@@ -295,6 +295,188 @@ def test_thick_multipolar_component(test_context, element_type, h):
         )
 
 
+@pytest.mark.parametrize(
+    'kwargs',
+    [
+        {},
+        {'length': 2, 'angle': 0.1, 'h': 0.05},
+        {'length': 2, 'angle': 0.1, 'h': 0.1},
+        {'length': 2, 'angle': 0.1},
+        {'length': 2, 'h': 0.1},
+        {'length': 2},
+        {'angle': 0.1, 'h': 0.05},
+    ],
+    ids=['none', 'all', 'inconsistent', 'no_h', 'no_angle', 'only_length', 'no_length'],
+)
+@pytest.mark.parametrize('scenario', ['vanilla', 'env'])
+def test_bend_param_handling(kwargs, scenario):
+    def make_bend():
+        if scenario == 'vanilla':
+            return xt.Bend(**kwargs)
+
+        if scenario == 'env':
+            env = xt.Environment()
+            env.new('bend', 'Bend', **kwargs)
+            return env['bend']
+
+    input_is_consistent = True
+    if len(kwargs) == 3 and not np.isclose(
+            kwargs['angle'], kwargs['length'] * kwargs['h'], rtol=0, atol=1e-13):
+        input_is_consistent = False
+
+    if not input_is_consistent:
+        with pytest.raises(ValueError):
+            _ = make_bend()
+        return
+    else:
+        bend = make_bend()
+
+    for key, value in kwargs.items():
+        assert getattr(bend, key) == value
+
+    assert bend.length == kwargs.get('length', 0)
+
+    if 'angle' in kwargs:
+        assert bend.angle == kwargs['angle']
+
+    if 'h' in kwargs:
+        assert bend.h == kwargs['h']
+
+    assert bend.angle == bend.length * bend.h or bend.length == 0
+
+
+@pytest.mark.parametrize(
+    'kwargs, expected',
+    [
+        ({}, {'length': 10, 'angle': 0.2, 'h': 0.02}),
+        ({'length': 2, 'angle': 0.1, 'h': 0.05}, {'length': 2, 'angle': 0.1, 'h': 0.05}),
+        ({'length': 2, 'angle': 0.1, 'h': 0.1}, {'length': 2, 'angle': 0.2, 'h': 0.1}),  # order matters
+        ({'length': 2, 'angle': 0.1}, {'length': 2, 'angle': 0.1, 'h': 0.05}),
+        ({'length': 2, 'h': 0.05}, {'length': 2, 'angle': 0.1, 'h': 0.05}),
+        ({'length': 2}, {'length': 2, 'angle': 0.04, 'h': 0.02}),  # keeps h
+        ({'h': 0.05, 'angle': 0.1}, {'length': 10, 'angle': 0.1, 'h': 0.01}),  # order matters
+    ],
+    ids=['none', 'all', 'h_after_angle', 'no_h', 'no_angle', 'only_length', 'angle_after_h'],
+)
+def test_bend_param_handling_set_after(kwargs, expected):
+    bend = xt.Bend(length=10, angle=0.2)
+    assert bend.h == 0.02
+
+    for key, value in kwargs.items():
+        setattr(bend, key, value)
+
+    for key, value in expected.items():
+        assert getattr(bend, key) == value
+
+    assert bend.angle == bend.length * bend.h or bend.length == 0
+
+
+@pytest.mark.parametrize(
+    'kwargs',
+    [
+        {'length': 2, 'angle': 0.4, 'h': 0.2, 'length_straight': 1.986693307950612},
+        {'length': 2, 'angle': 0.4, 'h': 0.2},
+        {'length': 2, 'h': 0.2},
+        {'length': 2, 'angle': 0.4},
+        {'angle': 0.4, 'h': 0.2, 'length_straight': 1.986693307950612},
+        {'h': 0.2, 'length_straight': 1.986693307950612},
+        {'angle': 0.4, 'length_straight': 1.986693307950612},
+        {'length': 2, 'length_straight': 2},
+        {'length': 2},
+        {'length_straight': 2},
+        {'angle': 0.4, 'h': 0.2},
+        {'angle': 0.4},
+        {'h': 0.2},
+        # Inconsistent
+        {'length': 2, 'angle': 0.4, 'h': 0.4, 'length_straight': 2, 'error': True},
+        {'length': 2, 'angle': 0.4, 'h': 0.4, 'error': True},
+        {'angle': 0.4, 'h': 0.4, 'length_straight': 2, 'error': True},
+        {'length': 2, 'angle': 0.4, 'length_straight': 2, 'error': True},
+        {'length': 2, 'h': 0.4, 'length_straight': 2, 'error': True},
+    ],
+    ids=[
+        'all', 'len_ang_h', 'len_h', 'len_ang', 'ls_ang_h', 'ls_h', 'ls_ang',
+        'only_lengths', 'only_len', 'only_ls', 'angle_h', 'only_angle', 'only_h',
+        'bad_all', 'bad_len', 'bad_ls', 'bad_ang', 'bad_h',
+    ],
+)
+@pytest.mark.parametrize('scenario', ['vanilla', 'env'])
+def test_rbend_param_handling(kwargs, scenario):
+    kwargs = kwargs.copy()  # otherwise we change the dict in parametrize
+    should_fail = kwargs.pop('error', False)
+
+    def make_bend():
+        if scenario == 'vanilla':
+            return xt.RBend(**kwargs)
+
+        if scenario == 'env':
+            env = xt.Environment()
+            env.new('bend', 'RBend', **kwargs)
+            return env['bend']
+
+    if should_fail:
+        with pytest.raises(ValueError):
+            _ = make_bend()
+        return
+    else:
+        bend = make_bend()
+
+    def same(a, b):
+        return np.isclose(a, b, rtol=0, atol=1e-13)
+
+    for key, value in kwargs.items():
+        assert same(getattr(bend, key), value)
+
+    assert same(bend.angle, bend.length * bend.h) or (bend.length == 0 and bend.length_straight == 0)
+    assert same(bend.length, bend.length_straight / np.sinc(0.5 * bend.angle / np.pi))
+
+    if 'h' not in kwargs and 'angle' not in kwargs:
+        assert same(bend.length, bend.length_straight)
+
+    if 'length' not in kwargs and 'length_straight' not in kwargs:
+        if 'h' not in kwargs:
+            assert same(bend.h, 0)
+        if 'angle' not in kwargs:
+            assert same(bend.angle, 0)
+
+
+def test_rbend_param_handling_set_after():
+    # This test is a bit less meaningful as there are a lot of combinations
+    # that lead to unintuitive, but valid, results
+
+    def assert_eq(a, b):
+        xo.assert_allclose(a, b, rtol=0, atol=1e-15)
+
+    bend = xt.RBend(length=10, angle=0.2)
+    assert bend.h == 0.02
+    assert_eq(bend.length_straight, 9.983341664682815)
+
+    bend.angle = 0.4
+    assert bend.angle == 0.4
+    assert_eq(bend.length_straight, 9.983341664682815)  # unchanged
+    assert_eq(bend.length, 10.050209184004554)
+    assert_eq(bend.h, 0.039800166611121034)
+    bend.angle = 0.2
+
+    bend.length_straight = 10
+    assert bend.angle == 0.2
+    assert bend.length_straight == 10
+    assert_eq(bend.length, 10.016686131634778)
+    assert_eq(bend.h, 0.01996668332936563)
+
+    bend.length = 10
+    assert bend.angle == 0.2
+    assert bend.length == 10
+    assert bend.h == 0.02
+    assert_eq(bend.length_straight, 9.983341664682815)
+
+    bend.h = 0.01
+    assert bend.h == 0.01
+    assert_eq(bend.length_straight, 9.983341664682815)
+    assert_eq(bend.angle, 0.09987492198591705)
+    assert_eq(bend.length, 9.987492198591704)
+
+
 @for_all_test_contexts
 @pytest.mark.parametrize(
     'param_scenario', ['length', 'length_straight', 'both', 'mismatched'],
