@@ -2,8 +2,7 @@
 # This file is part of the Xtrack Package.  #
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
-from re import error
-from typing import List, Optional
+from typing import List
 
 import numpy as np
 from numbers import Number
@@ -713,6 +712,7 @@ class _BendCommon:
         'k0': xo.Float64,
         'k1': xo.Float64,
         'h': xo.Float64,
+        'angle': xo.Float64,
         'length': xo.Float64,
         'model': xo.Int64,
         'edge_entry_active': xo.Field(xo.Int64, default=1),
@@ -732,7 +732,7 @@ class _BendCommon:
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
-        'k0_from_h': xo.UInt8,
+        'k0_from_h': xo.UInt64,
     }
 
     _common_rename = {
@@ -742,6 +742,9 @@ class _BendCommon:
         'edge_exit_model': '_edge_exit_model',
         'k0': '_k0',
         'k0_from_h': '_k0_from_h',
+        'angle': '_angle',
+        'length': '_length',
+        'h': '_h',
     }
 
     _common_c_sources = [
@@ -970,7 +973,7 @@ class Bend(_BendCommon, BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/bend.h'),
     ]
 
-    def __init__(self, angle=None, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
+    def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
 
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
@@ -982,12 +985,14 @@ class Bend(_BendCommon, BeamElement):
         multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
         kwargs.update(multipolar_kwargs)
 
-        if angle is not None and (length := kwargs.get('length')):
-            if kwargs.get('h') is not None:
-                raise ValueError('Cannot specify both `angle` and `h`')
-            kwargs['h'] = angle / length
-
         self.xoinitialize(**kwargs)
+
+        # Calculate length and h in the event length_straight and/or angle given
+        self.set_bend_params(
+            kwargs.get('length'),
+            kwargs.get('h'),
+            kwargs.get('angle'),
+        )
 
         if self.k0_from_h:
             self.k0 = self.h
@@ -996,14 +1001,72 @@ class Bend(_BendCommon, BeamElement):
             self.model = model
 
     @property
+    def length(self):
+        return self._length
+
+    @length.setter
+    def length(self, value):
+        self.set_bend_params(length=value, angle=self.angle)
+
+    @property
+    def h(self):
+        return self._h
+
+    @h.setter
+    def h(self, value):
+        self.set_bend_params(length=self.length, h=value)
+
+    @property
     def angle(self):
-        return self.h * self.length
+        return self._angle
 
     @angle.setter
     def angle(self, value):
-        self.h = value / self.length
+        self.set_bend_params(length=self.length, angle=value)
+
+    def set_bend_params(self, length=None, h=None, angle=None):
+        length, h, angle = self.compute_bend_params(
+            length, h, angle,
+        )
+
+        # None becomes NaN in numpy buffers
+        if length is not None:
+            self._length = length
+        if h is not None:
+            self._h = h
+        if angle is not None:
+            self._angle = angle
+
         if self.k0_from_h:
-            self.k0 = self.h
+            self._k0 = self.h
+
+    @staticmethod
+    def compute_bend_params(length=None, h=None, angle=None):
+        if not length:
+            # If no length, then we cannot meaningfully calculate anything
+            return length, h, angle
+
+        if angle is not None:
+            computed_h = angle / length
+
+            if h is not None and not np.isclose(h, computed_h, rtol=0, atol=1e-13):
+                raise ValueError('Given `h` and `angle` are inconsistent!')
+
+            h = h or computed_h
+            return length, h, angle
+
+        if h is not None:
+            computed_angle = h * length
+
+            if angle is not None and not np.isclose(angle, computed_angle, rtol=0, atol=1e-13):
+                raise ValueError('Given `h` and `angle` are inconsistent!')
+
+            angle = angle or computed_angle
+            return length, h, angle
+
+        # Both `h` and `angle` are None
+        return length, h, angle
+
 
     @property
     def _thin_slice_class(self):
@@ -1104,15 +1167,11 @@ class RBend(_BendCommon, BeamElement):
 
     _xofields = {
         **_BendCommon._common_xofields,
-        'angle': xo.Float64,
         'length_straight': xo.Float64,
     }
 
     _rename = {
         **_BendCommon._common_rename,
-        'length': '_length',
-        'h': '_h',
-        'angle': '_angle',
         'length_straight': '_length_straight',
     }
 
@@ -1188,14 +1247,21 @@ class RBend(_BendCommon, BeamElement):
 
     def set_bend_params(self, length=None, length_straight=None, h=None, angle=None):
         (
-            self._length,
-            self._length_straight,
-            self._h,
-            self._angle,
+            length, length_straight, h, angle
         ) = self.compute_bend_params(length, length_straight, h, angle)
 
+        # None becomes NaN in numpy buffers
+        if length is not None:
+            self._length = length
+        if length_straight is not None:
+            self._length_straight = length_straight
+        if h is not None:
+            self._h = h
+        if angle is not None:
+            self._angle = angle
+
         if self.k0_from_h:
-            self.k0 = self.h
+            self._k0 = self.h
 
     @staticmethod
     def compute_bend_params(length=None, length_straight=None, h=None, angle=None):
