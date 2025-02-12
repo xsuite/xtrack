@@ -732,7 +732,7 @@ class _BendCommon:
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
-        'k0_from_h': xo.UInt8,
+        'k0_from_h': xo.UInt64,
     }
 
     _common_rename = {
