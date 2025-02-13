@@ -14,10 +14,28 @@ env.set_multipolar_errors({
     'mb': {'rel_knl': [2e-6, 3e-5, 4e-4], 'rel_ksl': [5e-6, 6e-5, 7e-4]},
 })
 
+# Errors respond when variables are changed
 env['kq'] = 0.1
 env['kqs'] = 0.2
 env['ang'] = 0.3
 
+# inspect
+env.ref['mq'].knl[1]._info()
+# is:
+# #  element_refs['mq'].knl[1]._get_value()
+#    element_refs['mq'].knl[1] = 5.000000000000001e-07
+
+# #  element_refs['mq'].knl[1]._expr
+#    element_refs['mq'].knl[1] = (0.0 + ((vars['err_mq_knl1'] *
+#                          element_refs['mq'].k1) * element_refs['mq'].length))
+
+# #  element_refs['mq'].knl[1]._expr._get_dependencies()
+#    element_refs['mq'] = Quadrupole(k1=0.1, k1s=0, ...
+#    vars['err_mq_knl1'] = 1e-05
+#    element_refs['mq'].k1 = 0.1
+#    element_refs['mq'].length = 0.5
+
+#  element_refs['mq'].knl[1] does not influence any target
 
 import xobjects as xo
 import numpy as np
