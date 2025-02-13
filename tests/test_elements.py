@@ -726,6 +726,7 @@ def test_simplified_accelerator_segment_bucket_fixed_rf(test_context):
         momentum_compaction_factor = momentumCompaction)
 
     arc.track(particles)
+    particles.move(_context=xo.ContextCpu())
 
     eta = momentumCompaction - 1.0 / particles.gamma0 ** 2
     h = f_RF * circumference / (particles.beta0*cst.c)

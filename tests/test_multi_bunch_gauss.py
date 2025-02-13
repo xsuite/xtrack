@@ -72,8 +72,9 @@ def test_multi_bunch_gaussian_generation(test_context):
     filling_scheme[n_bunches_tot:int(3*n_bunches_tot/2)] = 1
     filled_slots = filling_scheme.nonzero()[0]
     n_procs = 2
-    bunche_numbers_per_rank = xp.split_scheme(filling_scheme=filling_scheme,
-                                            n_chunk=n_procs)
+    bunch_numbers_per_rank = xp.matched_gaussian.split_scheme(
+        filling_scheme=filling_scheme,
+        n_chunk=n_procs)
 
     arc_linear_fixed_qs = xt.LineSegmentMap(
         betx=beta_x,qx=Q_x,
@@ -111,17 +112,17 @@ def test_multi_bunch_gaussian_generation(test_context):
             part = xp.generate_matched_gaussian_multibunch_beam(
                 _context=test_context,
                 filling_scheme=filling_scheme,
-                num_particles=n_part_per_bunch,
-                total_intensity_particles=bunch_intensity,
+                bunch_num_particles=n_part_per_bunch,
+                bunch_intensity_particles=bunch_intensity,
                 nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
                 line=line, bunch_spacing_buckets=10,
-                bunch_numbers=bunche_numbers_per_rank[rank],
+                bunch_selection=bunch_numbers_per_rank[rank],
                 particle_ref=line.particle_ref,
-                bucket_length = bucket_length
+                bucket_length=bucket_length,
             )
 
             do_checks(test_context,part,n_part_per_bunch,sigma_z,sigma_delta,
-                filled_slots,bunche_numbers_per_rank[rank],bunch_spacing)
+                filled_slots,bunch_numbers_per_rank[rank],bunch_spacing)
             line.track(part,num_turns=100)
             do_checks(test_context,part,n_part_per_bunch,sigma_z,sigma_delta,
-                filled_slots,bunche_numbers_per_rank[rank],bunch_spacing)
+                filled_slots,bunch_numbers_per_rank[rank],bunch_spacing)
