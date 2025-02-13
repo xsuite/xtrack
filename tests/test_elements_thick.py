@@ -1989,3 +1989,59 @@ def test_multipole_fringe(test_context, element, kn_param_name):
     xo.assert_allclose(fringe_effect_madng[3], fringe_effect_xtrack[3], atol=1e-16, rtol=1.01e-2)  # py
     xo.assert_allclose(fringe_effect_madng[4], fringe_effect_xtrack[4], atol=1.01e-15, rtol=1.01e-2)  # t
     xo.assert_allclose(fringe_effect_madng[5], fringe_effect_xtrack[5], atol=0, rtol=0)  # pt
+
+def test_knl_knl_kick_present_with_default_num_kicks():
+    env = xt.Environment()
+    env.particle_ref = xt.Particles(p0c=45.6e9, mass0=xt.ELECTRON_MASS_EV)
+
+    l1 = env.new_line(components=[
+        env.new('b1', 'Bend', length=0.1)])
+    p0 = l1.build_particles(x=3e-3)
+    p = p0.copy()
+    l1.track(p)
+    xo.assert_allclose(p.px, 0, rtol=0, atol=1e-15)
+    env['b1'].knl[2] = 0.1
+    p = p0.copy()
+    l1.track(p)
+    assert np.abs(p.px[0]) > 1e-7
+
+    l2 = env.new_line(components=[
+        env.new('q1', 'Quadrupole', length=0.1)])
+    p = p0.copy()
+    l2.track(p)
+    xo.assert_allclose(p.px, 0, rtol=0, atol=1e-15)
+    env['q1'].knl[2] = 0.1
+    p = p0.copy()
+    l2.track(p)
+    assert np.abs(p.px[0]) > 1e-7
+
+    l3 = env.new_line(components=[
+        env.new('s1', 'Sextupole', length=0.1)])
+    p = p0.copy()
+    l3.track(p)
+    xo.assert_allclose(p.px, 0, rtol=0, atol=1e-15)
+    env['s1'].knl[2] = 0.1
+    p = p0.copy()
+    l3.track(p)
+    assert np.abs(p.px[0]) > 1e-7
+
+    l4 = env.new_line(components=[
+        env.new('o1', 'Octupole', length=0.1)])
+    p = p0.copy()
+    l4.track(p)
+    xo.assert_allclose(p.px, 0, rtol=0, atol=1e-15)
+    env['o1'].knl[2] = 0.1
+    p = p0.copy()
+    l4.track(p)
+    assert np.abs(p.px[0]) > 1e-7
+
+    l5 = env.new_line(components=[
+        env.new('rb1', 'RBend', length=0.1)])
+    p0 = l5.build_particles(x=3e-3)
+    p = p0.copy()
+    l5.track(p)
+    xo.assert_allclose(p.px, 0, rtol=0, atol=1e-15)
+    env['rb1'].knl[2] = 0.1
+    p = p0.copy()
+    l5.track(p)
+    assert np.abs(p.px[0]) > 1e-7
