@@ -735,9 +735,9 @@ class Environment:
              - rel_knl: list of relative errors for the normal multipolar strengths.
              - rel_ksl: list of relative errors for the skew multipolar strengths.
              - refer: name of the strength to be used as reference, which is
-               multiplied by the length. If None, the
-               default reference strength is used (k0 for bends, k1 for quadrupoles,
-               k2 for sextupoles, and k3 for octupoles).
+               multiplied by the length. If None, the default reference strength
+               is used (k0 for bends, k1 for quadrupoles, k2 for sextupoles,
+               and k3 for octupoles).
 
         Examples
         --------
