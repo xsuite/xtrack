@@ -973,8 +973,8 @@ class Line:
         (elements can be inserted or removed again).
 
         """
-
-        self._element_names = list(self._element_names)
+        if not isinstance(self._element_names, list):
+            self._element_names = list(self._element_names)
         if hasattr(self, 'tracker') and self.tracker is not None:
             self.tracker._invalidate()
             self.tracker = None
@@ -1033,6 +1033,9 @@ class Line:
             of the progress bar. If True, 100 is taken by default. By default,
             equals to False and no progress bar is displayed.
         """
+
+        if not self._has_valid_tracker():
+            self.build_tracker()
 
         if hasattr(particles, '_needs_pipeline') and particles._needs_pipeline:
             if '_called_by_pipeline' not in kwargs or not kwargs['_called_by_pipeline']:
@@ -2230,7 +2233,7 @@ class Line:
 
         """
 
-        self._frozen_check()
+        self.discard_tracker()
 
         if not isinstance(what, (str, xt.Line, Iterable)):
             raise ValueError('The appended object must be defined by a string or Line.')
@@ -2319,7 +2322,7 @@ class Line:
         """
 
 
-        self._frozen_check()
+        self.discard_tracker()
         env = self.env
 
         _all_places = xt.environment._all_places
@@ -2406,7 +2409,7 @@ class Line:
                                                                # (right order comes form previous sorting,
                                                                # (done before removing elements)
         )
-        element_names = _generate_element_names_with_drifts(self, tab_sorted)
+        element_names = _generate_element_names_with_drifts(self, tab_sorted, s_tol=s_tol)
 
         # Update line
         self.element_names.clear()
@@ -2428,7 +2431,7 @@ class Line:
 
         """
 
-        self._frozen_check()
+        self.discard_tracker()
 
         tt_remove = self._name_match(name)
 
@@ -2476,7 +2479,7 @@ class Line:
 
         """
 
-        self._frozen_check()
+        self.discard_tracker()
 
         tt_replace = self._name_match(name)
 
@@ -2500,7 +2503,14 @@ class Line:
         tt['idx'] = np.arange(len(tt))
 
         idx_match_name = tt.rows.indices[name]
-        idx_match_env_name = tt.rows.indices[tt.env_name == name]
+
+        env_name_match = name
+        if isinstance(env_name_match, str):
+            env_name_match = [env_name_match]
+        env_name_match = set(env_name_match)
+        mask_env_name = np.array([nn in env_name_match for nn in tt.env_name])
+
+        idx_match_env_name = tt.rows.indices[mask_env_name]
         idx_match_rep = list(idx_match_name) + list(idx_match_env_name)
         idx_match = []
         for ii in idx_match_rep: # I don't use set to do it in order
@@ -2568,7 +2578,7 @@ class Line:
         if isinstance(element, xd.madxutils.View):
             element = element._get_viewed_object()
 
-        self._frozen_check()
+        self.discard_tracker()
 
         assert ((index is not None and at_s is None) or
                 (index is None and at_s is not None)), (
@@ -2640,7 +2650,7 @@ class Line:
         if isinstance(element, xd.madxutils.View):
             element = element._get_viewed_object()
 
-        self._frozen_check()
+        self.discard_tracker()
         if element in self.element_dict and element is not self.element_dict[name]:
             raise ValueError('Element already present in the line')
         self.element_dict[name] = element
@@ -5570,11 +5580,20 @@ class VarValues:
             return default
 
 class LineAttrItem:
+
     def __init__(self, name, index=None, line=None):
         self.name = name
         self.index = index
 
         assert line is not None
+        self.line = line
+        self._multisetter = None
+
+    def _prepare_multisetter(self):
+
+        line = self.line
+        name = self.name
+        index = self.index
 
         all_names = line.element_names
         mask = np.zeros(len(all_names), dtype=bool)
@@ -5607,15 +5626,26 @@ class LineAttrItem:
         multisetter = xt.MultiSetter(line=line, elements=setter_names,
                                      field=name, index=index)
         self.names = setter_names
-        self.multisetter = multisetter
-        self.mask = mask
+        self._multisetter = multisetter
+        self._mask = mask
+
+    @property
+    def multisetter(self):
+        if self._multisetter is None:
+            self._prepare_multisetter()
+        return self._multisetter
+
+    @property
+    def mask(self):
+        if self._multisetter is None:
+            self._prepare_multisetter()
+        return self._mask
 
     def get_full_array(self):
         full_array = np.zeros(len(self.mask), dtype=np.float64)
         ctx2np = self.multisetter._context.nparray_from_context_array
         full_array[self.mask] = ctx2np(self.multisetter.get_values())
         return full_array
-
 
 class LineAttr:
     """A class to access a field of all elements in a line.
@@ -5635,6 +5665,7 @@ class LineAttr:
         field and the value is a function that takes the LineAttr object
         as argument and returns the value of the derived field.
     """
+
     def __init__(self, line, fields, derived_fields=None):
 
         assert isinstance(fields, dict)

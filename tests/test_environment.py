@@ -2694,6 +2694,20 @@ def test_remove_element_from_line():
         [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 41. , 46. , 50. , 50. ]),
         rtol=0., atol=1e-14)
 
+    line6 = line0.copy()
+    tt_remove = line6.get_table().rows['q.*']
+    line6.remove(tt_remove.name)
+    tt6 = line3.get_table()
+    tt6.show(cols=['name', 's_start', 's_end', 's_center'])
+
+    assert np.all(tt6.name == np.array(
+        ['drift_1', 'drift_6', 'drift_2', 'drift_7', 'drift_3', 'drift_8',
+        'drift_4', 'mk1', 'mk2', 'mk3', 'drift_9', 'drift_5', 'end',
+        '_end_point']))
+    xo.assert_allclose(tt6.s_center, np.array(
+        [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. , 40. , 41. ,
+        46. , 50. , 50. ]), rtol=0., atol=1e-14)
+
 def test_replace_element():
 
     env = xt.Environment()
