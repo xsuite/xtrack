@@ -734,7 +734,8 @@ class Environment:
             elements, and the values are dictionaries with the following keys:
              - rel_knl: list of relative errors for the normal multipolar strengths.
              - rel_ksl: list of relative errors for the skew multipolar strengths.
-             - refer: name of the strength to be used as reference. If None, the
+             - refer: name of the strength to be used as reference, which is
+               multiplied by the length. If None, the
                default reference strength is used (k0 for bends, k1 for quadrupoles,
                k2 for sextupoles, and k3 for octupoles).
 
@@ -778,20 +779,21 @@ class Environment:
                 raise ValueError(f'Cannot find reference strength for element `{ele_name}`')
 
             ref_str_ref = getattr(env.ref[ele_name], reference_strength_name)
+            length_ref = env.ref[ele_name].length
 
             for ii, kk in enumerate(rel_knl):
                 err_vname = f'err_{ele_name}_knl{ii}'
                 env[err_vname] = kk
                 if (env.ref[ele_name].knl[ii]._expr is None or env.ref[err_vname] in
                         env.ref[ele_name].knl[ii]._expr._get_dependencies()):
-                    env[ele_name].knl[ii] += env.ref[err_vname] * ref_str_ref
+                    env[ele_name].knl[ii] += env.ref[err_vname] * ref_str_ref * length_ref
 
             for ii, kk in enumerate(rel_ksl):
                 err_vname = f'err_{ele_name}_ksl{ii}'
                 env[err_vname] = kk
                 if (env.ref[ele_name].ksl[ii]._expr is None or env.ref[err_vname] in
                         env.ref[ele_name].ksl[ii]._expr._get_dependencies()):
-                    env[ele_name].ksl[ii] += env.ref[err_vname] * ref_str_ref
+                    env[ele_name].ksl[ii] += env.ref[err_vname] * ref_str_ref * length_ref
 
     element_dict = xt.Line.element_dict
     _xdeps_vref = xt.Line._xdeps_vref

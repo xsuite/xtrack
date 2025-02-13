@@ -22,9 +22,9 @@ env['ang'] = 0.3
 import xobjects as xo
 import numpy as np
 
-xo.assert_allclose(env.get('mq').knl[:3], 0.1 * np.array([1e-6, 1e-5, 1e-4]), rtol=1e-7, atol=0)
-xo.assert_allclose(env.get('mq').ksl[:3], 0.1 * np.array([-1e-6, -1e-5, -1e-4]), rtol=1e-7, atol=0)
-xo.assert_allclose(env.get('mqs').knl[:3], 0.2 * np.array([2e-6, 2e-5, 2e-4]), rtol=1e-7, atol=0)
-xo.assert_allclose(env.get('mqs').ksl[:3], 0.2 * np.array([3e-6, 3e-5, 3e-4]), rtol=1e-7, atol=0)
-xo.assert_allclose(env.get('mb').knl[:3], 0.3/0.5 * np.array([2e-6, 3e-5, 4e-4]), rtol=1e-7, atol=0)
-xo.assert_allclose(env.get('mb').ksl[:3], 0.3/0.5 * np.array([5e-6, 6e-5, 7e-4]), rtol=1e-7, atol=0)
+xo.assert_allclose(env.get('mq').knl[:3], 0.5 * 0.1 * np.array([1e-6, 1e-5, 1e-4]), rtol=1e-7, atol=0)
+xo.assert_allclose(env.get('mq').ksl[:3], 0.5 * 0.1 * np.array([-1e-6, -1e-5, -1e-4]), rtol=1e-7, atol=0)
+xo.assert_allclose(env.get('mqs').knl[:3], 0.5 * 0.2 * np.array([2e-6, 2e-5, 2e-4]), rtol=1e-7, atol=0)
+xo.assert_allclose(env.get('mqs').ksl[:3], 0.5 * 0.2 * np.array([3e-6, 3e-5, 3e-4]), rtol=1e-7, atol=0)
+xo.assert_allclose(env.get('mb').knl[:3], 0.3 * np.array([2e-6, 3e-5, 4e-4]), rtol=1e-7, atol=0)
+xo.assert_allclose(env.get('mb').ksl[:3], 0.3 * np.array([5e-6, 6e-5, 7e-4]), rtol=1e-7, atol=0)
