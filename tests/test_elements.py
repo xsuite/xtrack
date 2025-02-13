@@ -707,14 +707,13 @@ def test_simplified_accelerator_segment_bucket_fixed_rf(test_context):
             zeta=8.,
             delta=2E-3)
 
-    particles = xp.Particles.from_dict(dtk_particle.to_dict(),
-                                       _context=test_context)
+    particles = xp.Particles.from_dict(dtk_particle.to_dict()).copy(_context=test_context)
     Q_x = 0.12
     Q_y = 0.75
     voltage = 10E6
     f_RF = 100E6
     circumference = 2E3
-    momentumCompaction = 1E-2
+    momentum_compaction = 1E-2
 
     arc = xt.LineSegmentMap(_context=test_context,
         qx=Q_x, betx = 1.0, qy=Q_y, bety = 1.0,
@@ -723,16 +722,16 @@ def test_simplified_accelerator_segment_bucket_fixed_rf(test_context):
         frequency_rf = f_RF,
         lag_rf = 180.0,
         slippage_length = circumference,
-        momentum_compaction_factor = momentumCompaction)
+        momentum_compaction_factor = momentum_compaction)
 
     arc.track(particles)
-    particles.move(_context=xo.ContextCpu())
 
-    eta = momentumCompaction - 1.0 / particles.gamma0 ** 2
+    particles.move(_context=xo.ContextCpu())
+    eta = (momentum_compaction - 1.0 / particles.gamma0 ** 2)
     h = f_RF * circumference / (particles.beta0*cst.c)
     p0 = particles.mass0 * cst.e * particles.beta0  * particles.gamma0 / cst.c
     Q_s = np.sqrt(cst.e * voltage * eta * h / (2 * np.pi * particles.beta0 * cst.c * p0))
-    beta_s = eta * circumference / (2 * np.pi * Q_s);
+    beta_s = eta * circumference / (2 * np.pi * Q_s)
     Qx = 0.31
     Qy = 0.32
 
@@ -743,18 +742,13 @@ def test_simplified_accelerator_segment_bucket_fixed_rf(test_context):
 
     dtk_arc.track(dtk_particle)
 
-    assert np.isclose(test_context.nparray_from_context_array(particles.x)[0],
-                      dtk_particle.x, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.px)[0],
-                      dtk_particle.px, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.y)[0],
-                      dtk_particle.y, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.py)[0],
-                      dtk_particle.py, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.zeta)[0],
-                      dtk_particle.zeta, rtol=1e-14, atol=1e-14)
-    assert np.isclose(test_context.nparray_from_context_array(particles.delta)[0],
-                      dtk_particle.delta, rtol=1e-14, atol=1e-14)
+    assert np.isclose(particles.x[0], dtk_particle.x, rtol=1e-14, atol=1e-14)
+    assert np.isclose(particles.px[0], dtk_particle.px, rtol=1e-14, atol=1e-14)
+    assert np.isclose(particles.y[0], dtk_particle.y, rtol=1e-14, atol=1e-14)
+    assert np.isclose(particles.py[0], dtk_particle.py, rtol=1e-14, atol=1e-14)
+    assert np.isclose(particles.zeta[0], dtk_particle.zeta, rtol=1e-14, atol=1e-14)
+    assert np.isclose(particles.delta[0], dtk_particle.delta, rtol=1e-14, atol=1e-14)
+
 
 @for_all_test_contexts
 def test_simplified_accelerator_segment_chroma_detuning(test_context):
