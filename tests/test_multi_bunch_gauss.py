@@ -3,18 +3,13 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-import json
-
 import numpy as np
+from scipy import constants
 
-import xobjects as xo
 import xpart as xp
 import xtrack as xt
-
 from xobjects.test_helpers import for_all_test_contexts
 
-from scipy import constants
-from matplotlib import pyplot as plt
 
 def do_checks(test_context,part,n_part_per_bunch,sigma_z,sigma_delta,
         filled_slots,bunch_numbers,bunch_spacing):
@@ -28,14 +23,6 @@ def do_checks(test_context,part,n_part_per_bunch,sigma_z,sigma_delta,
         test_context.nparray_from_context_array(
             part.delta[i_bunch*n_part_per_bunch:
                    (i_bunch+1)*n_part_per_bunch]))
-        y_rms = np.std(
-            test_context.nparray_from_context_array(
-                part.y[i_bunch*n_part_per_bunch:
-                       (i_bunch+1)*n_part_per_bunch]))
-        x_rms = np.std(
-            test_context.nparray_from_context_array(
-                part.x[i_bunch*n_part_per_bunch:
-                       (i_bunch+1)*n_part_per_bunch]))
         delta_rms = np.std(
             test_context.nparray_from_context_array(
                 part.delta[i_bunch*n_part_per_bunch:
@@ -49,7 +36,8 @@ def do_checks(test_context,part,n_part_per_bunch,sigma_z,sigma_delta,
         assert np.isclose(delta_avg/sigma_delta, 0.0, atol=1e-2)
         assert np.isclose(zeta_rms, sigma_z, rtol=1e-2, atol=1e-15)
         assert np.isclose(delta_rms, sigma_delta, rtol=0.2, atol=1e-15)
-        
+
+
 @for_all_test_contexts
 def test_multi_bunch_gaussian_generation(test_context):
     bunch_intensity = 1e11
@@ -60,8 +48,6 @@ def test_multi_bunch_gaussian_generation(test_context):
     beta_y = 1.0
     p0c = 7e12
     gamma = p0c/xp.PROTON_MASS_EV
-    physemit_x = nemitt_x/gamma
-    physemit_y = nemitt_y/gamma
     Q_x = 0.31
     Q_y = 0.32
     sigma_z = 0.08
@@ -139,5 +125,3 @@ def test_multi_bunch_gaussian_generation(test_context):
             line.track(part,num_turns=100)
             do_checks(test_context,part,n_part_per_bunch,sigma_z,sigma_delta,
                 filled_slots,bunche_numbers_per_rank[rank],bunch_spacing)
-
-
