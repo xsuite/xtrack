@@ -1048,7 +1048,9 @@ class Line:
         if '_called_by_pipeline' in kwargs: # Used only above
             kwargs.pop('_called_by_pipeline')
 
-        self._check_valid_tracker()
+        if not self._has_valid_tracker():
+            self.build_tracker()
+
         return self.tracker._track(
             particles,
             ele_start=ele_start,
@@ -1219,6 +1221,10 @@ class Line:
             Particles object containing the generated particles.
 
         """
+
+        if not self._has_valid_tracker():
+            self.build_tracker()
+
         import xpart
         return xpart.build_particles(
             line=self,
