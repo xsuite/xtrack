@@ -1325,6 +1325,8 @@ class RBend(_BendCommon, BeamElement):
             if param_name in given:
                 given_value = given[param_name]
                 computed = locals()[param_name]
+                if np.isnan(given_value) and np.isnan(computed):
+                    continue
                 if not np.isclose(given_value, computed, atol=1e-13, rtol=1e-13):
                     errors.append(f"{param_name} = {given_value} (given) != "
                                   f"{computed} (computed)")
