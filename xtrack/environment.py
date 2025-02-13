@@ -765,11 +765,17 @@ class Environment:
         '''
 
         for ele_name in progress(errors.keys(), desc='Setting multipolar errors'):
+
             err = errors[ele_name]
             rel_knl = err.get('rel_knl', [])
             rel_ksl = err.get('rel_ksl', [])
             refer = err.get('refer', None)
             ele_class = env[ele_name].__class__.__name__
+
+            if 'Replica' in ele_class or 'Slice' in ele_class:
+                raise ValueError(f'Cannot set multipolar errors for element `{ele_name}`'
+                                 f' of type `{ele_class}`')
+
             if refer is not None:
                 reference_strength_name = refer
             else:
