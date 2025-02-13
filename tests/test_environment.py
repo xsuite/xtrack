@@ -164,6 +164,25 @@ def test_vars_and_element_access_modes(container_type):
 
     assert env.elements is env.element_dict
 
+    # Check set with multiple targets
+    env['x0'] = 0
+    env.set(['x1', 'x2', 'x3'], '3*x0')
+    env['x0'] = 3.
+    ttv = env.vars.get_table()
+    for nn in ['x1', 'x2', 'x3']:
+        assert ttv['value', nn] == 3 * 3
+        assert ttv['expr', nn] == '(3.0 * x0)'
+
+    env.new('qx1', xt.Quadrupole, length=1)
+    env.new('qx2', xt.Quadrupole, length=1)
+    env.new('qx3', xt.Quadrupole, length=1)
+
+    env.set(['qx1', 'qx2', 'qx3'], k1='3*x0')
+    for nn in ['qx1', 'qx2', 'qx3']:
+        assert env[nn].k1 == 3 * 3
+        assert str(env.ref[nn].k1._expr) == "(3.0 * vars['x0'])"
+
+
 def test_element_placing_at_s():
 
     env = xt.Environment()
@@ -1952,14 +1971,14 @@ def test_call(tmpdir):
     elements = _trim("""
     env.new('sbend', 'Bend')
     env.new('drift', 'Drift')
-    
+
     env.new('mb2', 'sbend', length=2)
     env.new('drx', 'drift', length='var1 + var2')
     """)
 
     lattice = _trim("""
     env.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV, energy0=45.6e9)
-    
+
     env.new_line(
         name='seq',
         components=['mb2', 'drx', 'mb2', 'drx'],
