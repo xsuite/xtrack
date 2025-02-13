@@ -62,7 +62,7 @@ _ALLOWED_ELEMENT_TYPES_IN_NEW = [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole,
                                  xt.Marker, xt.Replica, xt.XYShift, xt.XRotation,
                                  xt.YRotation, xt.SRotation, xt.LimitRacetrack,
                                  xt.LimitRectEllipse, xt.LimitRect, xt.LimitEllipse,
-                                 xt.RFMultipole]
+                                 xt.RFMultipole, xt.RBend]
 
 _ALLOWED_ELEMENT_TYPES_DICT = {'Drift': xt.Drift, 'Bend': xt.Bend,
                                'Quadrupole': xt.Quadrupole, 'Sextupole': xt.Sextupole,
@@ -74,7 +74,7 @@ _ALLOWED_ELEMENT_TYPES_DICT = {'Drift': xt.Drift, 'Bend': xt.Bend,
                                'LimitRect': xt.LimitRect, 'LimitEllipse': xt.LimitEllipse,
                                'XYShift': xt.XYShift, 'XRotation': xt.XRotation,
                                'YRotation': xt.YRotation, 'SRotation': xt.SRotation,
-                               'RFMultipole': xt.RFMultipole}
+                               'RFMultipole': xt.RFMultipole, 'RBend': xt.RBend}
 
 _STR_ALLOWED_ELEMENT_TYPES_IN_NEW = ', '.join([tt.__name__ for tt in _ALLOWED_ELEMENT_TYPES_IN_NEW])
 
@@ -821,22 +821,26 @@ class Line:
             Copy of the line.
         '''
 
-        elements = {nn: ee.copy(_context=_context, _buffer=_buffer)
-                                    for nn, ee in self.element_dict.items()}
-        element_names = [nn for nn in self.element_names]
+        if shallow==True:
+            assert _context is None and _buffer is None, (
+                'Shallow copy with _context or _buffer is not supported')
+            out = self.select()
+        else:
+            elements = {nn: ee.copy(_context=_context, _buffer=_buffer)
+                                        for nn, ee in self.element_dict.items()}
+            element_names = [nn for nn in self.element_names]
+            out = self.__class__(elements=elements, element_names=element_names)
 
-        out = self.__class__(elements=elements, element_names=element_names)
+            if self._var_management is not None:
+                # reinit env and var management
+                out.env = None
+                out._var_management = None
+                out._init_var_management(dct=self._var_management_to_dict())
+                out._env_if_needed()
 
         if self.particle_ref is not None:
             out.particle_ref = self.particle_ref.copy(
                                         _context=_context, _buffer=_buffer)
-
-        if self._var_management is not None:
-            # reinit env and var management
-            out.env = None
-            out._var_management = None
-            out._init_var_management(dct=self._var_management_to_dict())
-            out._env_if_needed()
 
         out.config.clear()
         out.config.update(self.config.copy())
@@ -2874,13 +2878,13 @@ class Line:
             raise ValueError(f'Unknown bend edge model {edge}')
 
         for ee in self.element_dict.values():
-            if core is not None and isinstance(ee, xt.Bend):
+            if core is not None and isinstance(ee, (xt.Bend, xt.RBend)):
                 ee.model = core
 
             if edge is not None and isinstance(ee, xt.DipoleEdge):
                 ee.model = edge
 
-            if edge is not None and isinstance(ee, xt.Bend):
+            if edge is not None and isinstance(ee, (xt.Bend, xt.RBend)):
                 ee.edge_entry_model = edge
                 ee.edge_exit_model = edge
 
@@ -3198,6 +3202,50 @@ class Line:
 
         self._check_valid_tracker()
         stop_internal_logging_for_elements_of_type(self.tracker, element_type)
+
+    def extend_knl_ksl(self, order, element_names=None):
+
+        """
+        Extend the order of the knl and ksl attributes of the elements.
+
+        Parameters
+        ----------
+        order: int
+            New order of the knl and ksl attributes.
+        element_names: list of str
+            Names of the elements to extend. If None, all elements having `knl`
+            and `ksl` attributes are extended.
+
+        """
+
+        self.discard_tracker()
+
+        if element_names is None:
+            element_names = []
+            for nn in self.element_names:
+                if hasattr(self.get(nn), 'knl'):
+                    element_names.append(nn)
+
+        for nn in element_names:
+            if self.get(nn).order > order:
+                raise ValueError(f'Order of element {nn} is smaller than {order}')
+
+        for nn in element_names:
+            ee = self.get(nn)
+
+            if ee.order == order:
+                continue
+
+            new_knl = [vv for vv in ee.knl] + [0] * (order - len(ee.knl) + 1)
+            new_ksl = [vv for vv in ee.ksl] + [0] * (order - len(ee.ksl) + 1)
+
+            dct = ee.to_dict()
+            dct.pop('order', None)
+            dct['knl'] = new_knl
+            dct['ksl'] = new_ksl
+
+            new_ee = ee.__class__.from_dict(dct, _buffer=ee._buffer)
+            self.env.elements[nn] = new_ee
 
     def remove_markers(self, inplace=True, keep=None):
         """
@@ -3993,11 +4041,6 @@ class Line:
                 raise ValueError(f'Only kwargs are allowed when setting element attributes')
 
             extra = kwargs.pop('extra', None)
-
-            if self.element_dict[name].__class__ == xt.Bend:
-                # Handle angle if needed
-                kwargs = xt.environment._handle_bend_kwargs(
-                    kwargs, _eval, env=self, name=name)
 
             ref_kwargs, value_kwargs = xt.environment._parse_kwargs(
                 type(self.element_dict[name]), kwargs, _eval)

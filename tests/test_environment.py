@@ -89,15 +89,15 @@ def test_vars_and_element_access_modes(container_type):
     })
 
     env.new('bb', xt.Bend, k0='2 * b', length=3+env.vars['a'] + env.vars['b'],
-            h=5.)
+            angle=5.)
     assert env['bb'].k0 == 2 * (2 * 4 + 5)
     assert env['bb'].length == 3 + 4 + 2 * 4 + 5
-    assert env['bb'].h == 5.
+    assert env['bb'].angle == 5.
 
     env.vars['a'] = 2.
     assert env['bb'].k0 == 2 * (2 * 2 + 5)
     assert env['bb'].length == 3 + 2 + 2 * 2 + 5
-    assert env['bb'].h == 5.
+    assert env['bb'].angle == 5.
 
     line = env.new_line([
         env.new('bb1', 'bb', length=3*env.vars['a'], at='2*a'),
@@ -120,11 +120,11 @@ def test_vars_and_element_access_modes(container_type):
     a = env.vv['a']
     assert line['bb1'].length == 3 * a
     assert line['bb1'].k0 == 2 * (2 * a + 5)
-    assert line['bb1'].h == 5.
+    assert line['bb1'].angle == 5.
 
     assert line['bb'].k0 == 2 * (2 * a + 5)
     assert line['bb'].length == 3 + a + 2 * a + 5
-    assert line['bb'].h == 5.
+    assert line['bb'].angle == 5.
 
     tt = line.get_table(attr=True)
     tt['s_center'] = tt['s'] + tt['length']/2
@@ -139,11 +139,11 @@ def test_vars_and_element_access_modes(container_type):
     a = line.vv['a']
     assert line['bb1'].length == 3 * a
     assert line['bb1'].k0 == 2 * (2 * a + 5)
-    assert line['bb1'].h == 5.
+    assert line['bb1'].angle == 5.
 
     assert line['bb'].k0 == 2 * (2 * a + 5)
     assert line['bb'].length == 3 + a + 2 * a + 5
-    assert line['bb'].h == 5.
+    assert line['bb'].angle == 5.
 
     tt_new = line.get_table(attr=True)
 
@@ -944,6 +944,17 @@ def test_assemble_ring_builders():
     ring2.place(env['ss.3'])
     ring2 = ring2.build()
 
+    select_whole = ring2.select()
+    assert select_whole.env is ring2.env
+    assert select_whole.element_dict is ring2.element_dict
+    assert np.all(np.array(select_whole.element_names)
+                  == np.array(ring2.element_names))
+
+    shallow_copy = ring2.copy(shallow=True)
+    assert shallow_copy.env is ring2.env
+    assert shallow_copy.element_dict is ring2.element_dict
+    assert np.all(np.array(shallow_copy.element_names)
+                    == np.array(ring2.element_names))
 
     # # Check buffer behavior
     ring2_sliced = ring2.select()

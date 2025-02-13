@@ -27,38 +27,37 @@ def test_rbend_rbarc():
     env = xt.Environment()
     env['lb'] = 0.5
     env['ang'] = 0.6
-    env.new('rb_rbarc', xt.Bend)
-    env.set('rb_rbarc', length='lb', angle='ang', rbend=True, rbarc=True, k0_from_h=True)
+    env.new('rb_rbarc', xt.RBend)
+    env.set('rb_rbarc', length_straight='lb', angle='ang', k0_from_h=True)
 
     xo.assert_allclose(env['rb_rbarc'].length, ds_madx, atol=0, rtol=1e-12)
     xo.assert_allclose(env['rb_rbarc'].h * env['rb_rbarc'].length, 0.6, atol=0, rtol=1e-12)
-    xo.assert_allclose(env['rb_rbarc'].edge_entry_angle, 0.3, atol=0, rtol=1e-12)
-    xo.assert_allclose(env['rb_rbarc'].edge_exit_angle, 0.3, atol=0, rtol=1e-12)
+    xo.assert_allclose(env['rb_rbarc'].edge_entry_angle, 0, atol=0, rtol=1e-12)
+    xo.assert_allclose(env['rb_rbarc'].edge_exit_angle, 0, atol=0, rtol=1e-12)
+    xo.assert_allclose(env['rb_rbarc'].k0, env['rb_rbarc'].h, atol=0, rtol=1e-12)
 
-    assert env['rb_rbarc'].get_expr('length') == "(vars['lb'] / f['sinc']((0.5 * vars['ang'])))"
-    assert env['rb_rbarc'].get_expr('h') == "(f['sin']((0.5 * vars['ang'])) / (0.5 * vars['lb']))"
-    assert env['rb_rbarc'].get_expr('k0') == env['rb_rbarc'].get_expr('h')
-    assert env['rb_rbarc'].get_expr('edge_entry_angle') == "(0.0 + (vars['ang'] / 2))"
-    assert env['rb_rbarc'].get_expr('edge_exit_angle') == "(0.0 + (vars['ang'] / 2))"
+    assert env['rb_rbarc'].get_expr('length_straight') == "vars['lb']"
+    assert env['rb_rbarc'].get_expr('angle') == "vars['ang']"
+    assert env['rb_rbarc'].get_expr('edge_entry_angle') == None
+    assert env['rb_rbarc'].get_expr('edge_exit_angle') == None
 
     env.new('rb_norbarc', xt.Bend)
-    env.set('rb_norbarc', length='lb', angle='ang', rbend=True, rbarc=False, k0_from_h=True)
+    env.set('rb_norbarc', length='lb', angle='ang', k0_from_h=True)
 
     xo.assert_allclose(env['rb_norbarc'].length, 0.5, atol=0, rtol=1e-12)
     xo.assert_allclose(env['rb_norbarc'].h * env['rb_norbarc'].length, 0.6, atol=0, rtol=1e-12)
     xo.assert_allclose(env['rb_norbarc'].k0, env['rb_norbarc'].h, atol=0, rtol=1e-12)
-    xo.assert_allclose(env['rb_norbarc'].edge_entry_angle, 0.3, atol=0, rtol=1e-12)
-    xo.assert_allclose(env['rb_norbarc'].edge_exit_angle, 0.3, atol=0, rtol=1e-12)
+    xo.assert_allclose(env['rb_norbarc'].edge_entry_angle, 0, atol=0, rtol=1e-12)
+    xo.assert_allclose(env['rb_norbarc'].edge_exit_angle, 0, atol=0, rtol=1e-12)
 
     assert env['rb_norbarc'].get_expr('length') == "vars['lb']"
-    assert env['rb_norbarc'].get_expr('h') == "(vars['ang'] / vars['lb'])"
-    assert env['rb_norbarc'].get_expr('k0') == env['rb_norbarc'].get_expr('h')
-    assert env['rb_norbarc'].get_expr('edge_entry_angle') == "(0.0 + (vars['ang'] / 2))"
-    assert env['rb_norbarc'].get_expr('edge_exit_angle') == "(0.0 + (vars['ang'] / 2))"
+    assert env['rb_norbarc'].get_expr('angle') == "vars['ang']"
+    assert env['rb_norbarc'].get_expr('edge_entry_angle') == None
+    assert env['rb_norbarc'].get_expr('edge_exit_angle') == None
 
     # Check an sbend
     env.new('sb', xt.Bend)
-    env.set('sb', length='lb', angle='ang', rbend=False, rbarc=True, k0_from_h=True)
+    env.set('sb', length='lb', angle='ang', k0_from_h=True)
 
     xo.assert_allclose(env['sb'].length, 0.5, atol=0, rtol=1e-12)
     xo.assert_allclose(env['sb'].h * env['sb'].length, 0.6, atol=0, rtol=1e-12)
@@ -66,7 +65,7 @@ def test_rbend_rbarc():
     xo.assert_allclose(env['sb'].edge_exit_angle, 0, atol=1e-12, rtol=0)
 
     assert env['sb'].get_expr('length') == "vars['lb']"
-    assert env['sb'].get_expr('h') == "(vars['ang'] / vars['lb'])"
+    assert env['sb'].get_expr('angle') == "vars['ang']"
     assert env['sb'].get_expr('k0') == env['sb'].get_expr('h')
     assert env['sb'].get_expr('edge_entry_angle') == None
     assert env['sb'].get_expr('edge_exit_angle') == None

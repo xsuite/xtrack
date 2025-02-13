@@ -19,6 +19,7 @@ def test_simple_parser():
     if (version>=50401){option,-rbarc;};  ! to be ignored
     
     third = 1 / 3;
+    power = 3^4;
     hello := third * twopi;
     mb.l = 1;
     qd.l = 0.5;
@@ -45,6 +46,7 @@ def test_simple_parser():
     expected: MadxOutputType = {
         'vars': {
             'third': {'deferred': False, 'expr': '(1.0 / 3.0)'},
+            'power': {'deferred': False, 'expr': '(3.0 ** 4.0)'},
             'hello': {'deferred': True, 'expr': '(third * twopi)'},
             'mb.l': {'deferred': False, 'expr': 1.0},
             'qd.l': {'deferred': False, 'expr': 0.5},
@@ -327,7 +329,7 @@ def test_rbend(example_sequence):
     #   fint=3, fintx=2, hgap=1, h1=3, h2=2;  ! ditto
     rb1 = env['rb1']
     xo.assert_allclose(positions['rb1'], 17)
-    assert isinstance(rb1, xt.Bend)
+    assert isinstance(rb1, xt.RBend)
 
     angle = 2
     l = 1.5
@@ -344,8 +346,8 @@ def test_rbend(example_sequence):
     assert rb1.knl[2] == 2 * l  # k2 * l
     assert rb1.ksl[0] == 0
     assert rb1.ksl[1] == 3 * l  # k1s * l
-    assert rb1.edge_entry_angle == 2 + angle / 2
-    assert rb1.edge_exit_angle == 1 + angle / 2
+    assert rb1.edge_entry_angle == 2
+    assert rb1.edge_exit_angle == 1
     assert rb1.edge_entry_fint == 3
     assert rb1.edge_exit_fint == 2
     assert rb1.edge_entry_hgap == 1
@@ -356,7 +358,7 @@ def test_rbend_two_step(example_sequence):
     env, positions = example_sequence
     rb1 = env['rx1']
     xo.assert_allclose(positions['rx1'], 33)
-    assert isinstance(rb1, xt.Bend)
+    assert isinstance(rb1, xt.RBend)
 
     angle = 2
     l = 1
@@ -366,17 +368,16 @@ def test_rbend_two_step(example_sequence):
 
     assert rb1.length == l_curv
     assert rb1.h == h
-    assert rb1.edge_entry_angle == angle / 2
-    assert rb1.edge_exit_angle == angle / 2
+    assert rb1.edge_entry_angle == 0
+    assert rb1.edge_exit_angle == 0
     assert rb1.k0 == h
 
 
-@pytest.mark.xfail(message='Known bug, not trivial to fix yet')
 def test_rbend_set_params_after_lattice(example_sequence):
     env, positions = example_sequence
     rb1 = env['rx2']
     xo.assert_allclose(positions['rx2'], 35)
-    assert isinstance(rb1, xt.Bend)
+    assert isinstance(rb1, xt.RBend)
 
     angle = 1.5
     l = 1
@@ -386,8 +387,8 @@ def test_rbend_set_params_after_lattice(example_sequence):
 
     assert rb1.length == l_curv
     assert rb1.h == h
-    assert rb1.edge_entry_angle == angle / 2
-    assert rb1.edge_exit_angle == angle / 2
+    assert rb1.edge_entry_angle == 0
+    assert rb1.edge_exit_angle == 0
     assert rb1.k0 == h
 
 
@@ -572,7 +573,7 @@ def test_reversed_rbend(example_sequence):
     #   fint=3, fintx=2, hgap=1, h1=3, h2=2;  ! ditto
     rb1 = env['rb1_reversed']
     xo.assert_allclose(positions['rb1_reversed'], 36 - 17)
-    assert isinstance(rb1, xt.Bend)
+    assert isinstance(rb1, xt.RBend)
 
     angle = 2
     l = 1.5
@@ -589,8 +590,8 @@ def test_reversed_rbend(example_sequence):
     assert rb1.knl[2] == 2 * l  # k2 * l
     assert rb1.ksl[0] == 0
     assert rb1.ksl[1] == 3 * l  # k1s * l
-    assert rb1.edge_entry_angle == 1 + angle / 2
-    assert rb1.edge_exit_angle == 2 + angle / 2
+    assert rb1.edge_entry_angle == 1
+    assert rb1.edge_exit_angle == 2
     assert rb1.edge_entry_fint == 2
     assert rb1.edge_exit_fint == 3
     assert rb1.edge_entry_hgap == 1
@@ -723,7 +724,7 @@ def test_load_b2_with_bv_minus_one(tmp_path):
     line2_ref.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7000e9)
 
     loader = MadxLoader(reverse_lines=['lhcb2'])
-    loader.rbarc = False
+    loader.rbarc = True
     loader.load_file(tmp_seq_path)
     line2 = loader.env['lhcb2']
 
@@ -748,7 +749,11 @@ def test_load_b2_with_bv_minus_one(tmp_path):
 
     assert l2names == [nn[:-len('_reversed')] if nn.endswith('_reversed') else nn for nn in l4names]
 
-    xo.assert_allclose(tt2nodr.rows[l2names].s, tt4nodr.rows[l4names].s, rtol=0, atol=1e-8)
+    # The tolerance is higher than usual, due to the difference in handling
+    # rbend lengths between MAD-X and Xtrack (RBends' straight length is
+    # the invariant in Xtrack when changing the angle, which is not the case
+    # for MAD-X with `rbarc` == False).
+    xo.assert_allclose(tt2nodr.rows[l2names].s, tt4nodr.rows[l4names].s, rtol=0, atol=1.5e-6)
 
     for nn in l4names:
         if nn == '_end_point':
@@ -758,22 +763,35 @@ def test_load_b2_with_bv_minus_one(tmp_path):
         e4 = line2[nn]
         d2 = e2.to_dict()
         d4 = e4.to_dict()
+        is_rbend = isinstance(e4, xt.RBend)
+
         for kk in d2.keys():
             if kk in ('__class__', 'model', 'side'):
                 assert d2[kk] == d4[kk]
                 continue
+
             if kk in {
                 'order',  # Always assumed to be 5, not always the same
                 'frequency',  # If not specified, depends on the beam,
                               # so for now we ignore it
             }:
                 continue
+
             if kk in {'knl', 'ksl'}:
                 maxlen = max(len(d2[kk]), len(d4[kk]))
                 lhs = np.pad(d2[kk], (0, maxlen - len(d2[kk])), mode='constant')
                 rhs = np.pad(d4[kk], (0, maxlen - len(d4[kk])), mode='constant')
                 xo.assert_allclose(lhs, rhs, rtol=1e-10, atol=1e-16)
                 continue
+
+            if is_rbend and kk in ('length', 'length_straight'):
+                xo.assert_allclose(d2[kk], d4[kk], rtol=1e-7, atol=1e-6)
+                continue
+
+            if is_rbend and kk in ('h', 'k0'):
+                xo.assert_allclose(d2[kk], d4[kk], rtol=1e-7, atol=5e-10)
+                continue
+
             xo.assert_allclose(d2[kk], d4[kk], rtol=1e-10, atol=1e-16)
 
 
