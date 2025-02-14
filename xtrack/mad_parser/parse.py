@@ -83,6 +83,10 @@ class MadxTransformer(Transformer):
             statement = ' '.join(str(token) for token in tokens.children)
         else:
             statement = ''
+        if statement.startswith('return'):
+            return
+        if statement == '':
+            return
         warn(f'Ignoring statement: `{statement}`')
 
     def assign_defer(self, name, value) -> Tuple[str, VarType]:

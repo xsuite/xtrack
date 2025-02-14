@@ -282,7 +282,7 @@ class MadxLoader:
 
         if parent is None:
             # If parent is None, we wish to place instead
-            if self._mad_base_type(name) == 'rbend':
+            if self._mad_base_type(name) in ['rbend', 'sbend']:
                 el_params.pop('k0_from_h', None)
 
             if (superfluous := el_params.keys() - {'at', 'from_', 'extra'}):
