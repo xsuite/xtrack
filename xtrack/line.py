@@ -4334,7 +4334,8 @@ class Line:
         except AttributeError:
             eva_obj = xd.madxutils.MadxEval(variables=self._xdeps_vref,
                                             functions=self._xdeps_fref,
-                                            elements=self.element_dict)
+                                            elements=self.element_dict,
+                                            get='attr')
             self._xdeps_eval_obj = eva_obj
 
         return eva_obj

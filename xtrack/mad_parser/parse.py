@@ -260,7 +260,12 @@ class MadxTransformer(Transformer):
             'parameters': self.parameters,
         }
 
-    op_arrow = make_op_handler('->')
+    def op_arrow(self, a, b):
+        a, b = a.lower(), b.lower()
+        if b == 'l':
+            b = 'length'
+        return f'{a}->{b}'
+
     op_lt = make_op_handler('<')
     op_gt = make_op_handler('>')
     op_le = make_op_handler('<=')
