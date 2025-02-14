@@ -11,8 +11,8 @@ for nn in reverse_lines:
     ll = env.lines[nn]
     llr = ll.copy()
 
-    for nn in llr.element_names:
-        _reverse_element(llr, nn)
+    for enn in llr.element_names:
+        _reverse_element(llr, enn)
 
     llr.discard_tracker()
     llr.element_names = llr.element_names[::-1]
@@ -27,3 +27,9 @@ for nn in env.lines.keys():
         all_lines[nn] = env.lines[nn]
 
 new_env = xt.Environment(lines=all_lines)
+
+new_env.lhcb1.particle_ref = xt.Particles(p0c=7e12)
+new_env.lhcb2.particle_ref = xt.Particles(p0c=7e12)
+
+new_env.lhcb1.twiss4d().plot()
+new_env.lhcb2.twiss4d(reverse=True).plot()
