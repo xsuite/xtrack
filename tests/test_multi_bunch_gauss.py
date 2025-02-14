@@ -2,13 +2,13 @@
 # This file is part of the Xpart Package.   #
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
-
+import pytest
 import numpy as np
 from scipy import constants
 
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import fix_random_seed, for_all_test_contexts
 
 
 def do_checks(test_context,part,n_part_per_bunch,sigma_z,sigma_delta,
@@ -39,7 +39,11 @@ def do_checks(test_context,part,n_part_per_bunch,sigma_z,sigma_delta,
 
 
 @for_all_test_contexts
-def test_multi_bunch_gaussian_generation(test_context):
+@fix_random_seed(64237673)
+@pytest.mark.parametrize(
+    'arc_type', ['arc_linear_fixed_qs', 'arc_linear_fixed_rf', 'arc_nonlinear']
+)
+def test_multi_bunch_gaussian_generation(test_context, arc_type):
     bunch_intensity = 1e11
     n_part_per_bunch = int(1e5)
     nemitt_x = 2e-6
@@ -76,53 +80,57 @@ def test_multi_bunch_gaussian_generation(test_context):
         filling_scheme=filling_scheme,
         n_chunk=n_procs)
 
-    arc_linear_fixed_qs = xt.LineSegmentMap(
-        betx=beta_x,qx=Q_x,
-        bety=beta_y,qy=Q_y,
-        bets=-beta_s,qs=Qs,bucket_length=bucket_length/constants.c,length=circumference)
-    arc_linear_fixed_rf = xt.LineSegmentMap(_context=test_context,
-        betx=beta_x,qx=Q_x,
-        bety=beta_y,qy=Q_y,
-        voltage_rf = voltage,
-        longitudinal_mode = 'linear_fixed_rf',
-        frequency_rf = f_RF,
-        lag_rf = 180.0,
-        slippage_length = circumference,
-        momentum_compaction_factor = momentumCompaction,length=circumference)
-    arc_nonlinear = xt.LineSegmentMap(_context=test_context,
-        betx=beta_x,qx=Q_x,
-        bety=beta_y,qy=Q_y,
-        voltage_rf = voltage,
-        longitudinal_mode = 'nonlinear',
-        frequency_rf = f_RF,
-        lag_rf = 180.0,
-        slippage_length = circumference,
-        momentum_compaction_factor = momentumCompaction,
-        length=circumference)
+    if arc_type == 'arc_linear_fixed_qs':
+        arc = xt.LineSegmentMap(
+            betx=beta_x,qx=Q_x,
+            bety=beta_y,qy=Q_y,
+            bets=-beta_s,qs=Qs,bucket_length=bucket_length/constants.c,length=circumference)
+    elif arc_type == 'arc_linear_fixed_rf':
+        arc = xt.LineSegmentMap(_context=test_context,
+            betx=beta_x,qx=Q_x,
+            bety=beta_y,qy=Q_y,
+            voltage_rf = voltage,
+            longitudinal_mode = 'linear_fixed_rf',
+            frequency_rf = f_RF,
+            lag_rf = 180.0,
+            slippage_length = circumference,
+            momentum_compaction_factor = momentumCompaction,length=circumference)
+    elif arc_type == 'arc_nonlinear':
+        arc = xt.LineSegmentMap(_context=test_context,
+            betx=beta_x,qx=Q_x,
+            bety=beta_y,qy=Q_y,
+            voltage_rf = voltage,
+            longitudinal_mode = 'nonlinear',
+            frequency_rf = f_RF,
+            lag_rf = 180.0,
+            slippage_length = circumference,
+            momentum_compaction_factor = momentumCompaction,
+            length=circumference)
+    else:
+        raise ValueError(f'Undefined test parameter for arc type {arc_type}')
 
-    for arc in [arc_linear_fixed_qs,arc_linear_fixed_rf,arc_nonlinear]:
-        line = xt.Line([arc])
-        line.particle_ref = xp.Particles(
-            p0c=p0c,
-            _context=test_context  # for testing purposes
+    line = xt.Line([arc])
+    line.particle_ref = xp.Particles(
+        p0c=p0c,
+        _context=test_context  # for testing purposes
+    )
+    line.build_tracker(_context=test_context)
+
+    for rank in range(n_procs):
+        part = xp.generate_matched_gaussian_multibunch_beam(
+            _context=test_context,
+            filling_scheme=filling_scheme,
+            bunch_num_particles=n_part_per_bunch,
+            bunch_intensity_particles=bunch_intensity,
+            nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
+            line=line, bunch_spacing_buckets=10,
+            bunch_selection=bunch_numbers_per_rank[rank],
+            particle_ref=line.particle_ref,
+            bucket_length=bucket_length,
         )
-        line.build_tracker(_context=test_context)
 
-        for rank in range(n_procs):
-            part = xp.generate_matched_gaussian_multibunch_beam(
-                _context=test_context,
-                filling_scheme=filling_scheme,
-                bunch_num_particles=n_part_per_bunch,
-                bunch_intensity_particles=bunch_intensity,
-                nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
-                line=line, bunch_spacing_buckets=10,
-                bunch_selection=bunch_numbers_per_rank[rank],
-                particle_ref=line.particle_ref,
-                bucket_length=bucket_length,
-            )
-
-            do_checks(test_context,part,n_part_per_bunch,sigma_z,sigma_delta,
-                filled_slots,bunch_numbers_per_rank[rank],bunch_spacing)
-            line.track(part,num_turns=100)
-            do_checks(test_context,part,n_part_per_bunch,sigma_z,sigma_delta,
-                filled_slots,bunch_numbers_per_rank[rank],bunch_spacing)
+        do_checks(test_context,part,n_part_per_bunch,sigma_z,sigma_delta,
+            filled_slots,bunch_numbers_per_rank[rank],bunch_spacing)
+        line.track(part,num_turns=100)
+        do_checks(test_context,part,n_part_per_bunch,sigma_z,sigma_delta,
+            filled_slots,bunch_numbers_per_rank[rank],bunch_spacing)
