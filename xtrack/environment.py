@@ -155,8 +155,10 @@ class Environment:
             common_elements = [nn for nn, cc in counts.items() if cc>1]
 
             for nn, ll in lines.items():
+                rename_elements = {el: el+'/'+nn for el in common_elements}
                 self.import_line(line=ll, suffix_for_common_elements='/'+nn,
-                    line_name=nn, rename_elements={el: el+'/'+nn for el in common_elements})
+                    line_name=nn, rename_elements=rename_elements)
+                self.lines[nn]._renamed_elements = rename_elements
 
         self.metadata = {}
 
