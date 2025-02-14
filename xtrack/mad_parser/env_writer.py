@@ -63,7 +63,12 @@ class EnvWriterProxy:
 
     def new_builder(self, *args, **kwargs):
         name = kwargs.get('name')
-        printed_components = kwargs.get('components') or args[0]
+        if 'components' in kwargs:
+            printed_components = kwargs.pop('components')
+        elif args:
+            printed_components = args[0]
+        else:
+            printed_components = []
         for idx, component in enumerate(printed_components):
             if isinstance(component, xt.Line):
                 inline_new_line = _Code(self._temp_lines[component])
@@ -113,6 +118,15 @@ class EnvWriterProxy:
             def __setitem__(_self, key, value):
                 self.env.vars[key] = value
                 self._lines.append(f'{self.prefix}.vars[{key!r}] = {value!r}')
+
+            @property
+            def default_to_zero(_self):
+                return self.env.vars.default_to_zero
+
+            @default_to_zero.setter
+            def default_to_zero(_self, value):
+                self.env.vars.default_to_zero = value
+                self._lines.append(f'{self.prefix}.vars.default_to_zero = {value!r}')
 
         return VarsProxy()
 
