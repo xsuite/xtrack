@@ -120,7 +120,7 @@ class MadxTransformer(Transformer):
         return string.value[1:-1]
 
     def call(self, function, *args):
-        return f'{function}({", ".join(args)})'
+        return f'{function}({", ".join(map(str, args))})'
 
     def function(self, name_token):
         return name_token.value.lower()
