@@ -784,7 +784,7 @@ class _BendCommon:
     @k0.setter
     def k0(self, value):
         if self.k0_from_h and not np.isclose(value, self.h, atol=1e-13):
-            raise ValueError('Cannot change `k0` when `k0_from_h` is set')
+            self.k0_from_h = False
         self._k0 = value
 
     @property
