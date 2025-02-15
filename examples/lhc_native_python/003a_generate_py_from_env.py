@@ -76,9 +76,20 @@ elem_tokens = {}
 for nn in all_elems:
     elem_tokens[nn] = _elem_to_tokens(env, nn, formatter)
 
+while True:
+    added = False
+    for nn in list(elem_tokens.keys()):
+        if elem_tokens[nn]['clone_parent'] is not None:
+            parent_name = elem_tokens[nn]['clone_parent']
+            if parent_name not in elem_tokens:
+                elem_tokens[parent_name] = _elem_to_tokens(env, parent_name, formatter)
+                added = True
+    if not added:
+        break
+
 # populate diff params
 for nn in elem_tokens:
-    diff_params = {}
+    diff_params = []
     if elem_tokens[nn]['clone_parent'] is not None:
         parent_name = elem_tokens[nn]['clone_parent']
         parent_params = elem_tokens[parent_name]['params']
@@ -89,5 +100,3 @@ for nn in elem_tokens:
     else:
         diff_params = elem_tokens[nn]['params']
     elem_tokens[nn]['diff_params'] = diff_params
-
-# I miss the parents, and the parents of the parents...
