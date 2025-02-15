@@ -1,5 +1,6 @@
 import xtrack as xt
 import xdeps as xd
+import numpy as np
 
 from xtrack.mad_parser.loader import CONSTANTS
 
@@ -133,10 +134,55 @@ def _add_elem(nn):
 for nn in elem_tokens:
     _add_elem(nn)
 
-# Build elem def part
+tt_edefs = xt.Table({
+    'name': np.array(sorted_elems),
+    'element_type': np.array([elem_tokens[nn]['element_type'] for nn in sorted_elems]),
+    'clone_parent': np.array([elem_tokens[nn]['clone_parent'] for nn in sorted_elems]),
+    'def_instruction': np.array([elem_tokens[nn]['def_instruction'] for nn in sorted_elems]),
+})
+
+tt_gen0 = tt_edefs.rows[tt_edefs['clone_parent'] == None]
+tt_gen0.gen_name = 'Xsuite types'
+
+generation_tree = [{'Xsuite types': tt_gen0}]
+while True:
+    print(f'Generation {len(generation_tree)}')
+    last_gen = generation_tree[-1]
+    names_last_gen = []
+    for nn in last_gen.keys():
+        names_last_gen += list(last_gen[nn]['name'])
+    this_gen = {}
+    added = False
+    for nn in names_last_gen:
+        tt_gen = tt_edefs.rows[tt_edefs['clone_parent'] == nn]
+        if len(tt_gen) > 0:
+            tt_gen.gen_name = nn
+            this_gen[nn] = tt_gen
+            added = True
+    if added:
+        generation_tree.append(this_gen)
+    else:
+        break
+
+# Flatten generations
+generations = []
+for gg in generation_tree:
+    for nn in gg.keys():
+        generations.append(gg[nn])
+
+# Build elem def part (with generations)
 elem_def_lines = []
-for nn in sorted_elems:
-    elem_def_lines.append(elem_tokens[nn]['def_instruction'])
+for tt_gen in generations:
+    elem_def_lines.append(f'\n# Elements of type: {tt_gen.gen_name}')
+    for nn in tt_gen.name:
+        elem_def_lines.append(elem_tokens[nn]['def_instruction'])
+
+
+# # Build elem def part (no generations)
+# elem_def_lines = []
+# for nn in sorted_elems:
+#     elem_def_lines.append(elem_tokens[nn]['def_instruction'])
+
 elem_def_part = '\n'.join(elem_def_lines)
 
 ###################
