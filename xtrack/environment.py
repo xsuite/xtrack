@@ -1435,7 +1435,6 @@ def _reverse_element(env, name):
 
     if hasattr(ee, 'lag'):
         ee_ref.lag = 180 - (ee_ref.lag._expr or ee_ref.lag._value)
-        element['lag']['expr'] = f'180 - ({element["lag"]["expr"]})'
 
     if hasattr(ee, 'knl'):
         for i in range(1, len(ee.knl), 2):

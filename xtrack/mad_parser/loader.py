@@ -462,9 +462,22 @@ class MadxLoader:
 
         return element_name
 
-def load_madx_lattice(file, reverse_lines=None):
+def load_madx_lattice(file=None, string=None, reverse_lines=None):
+
+    if file is not None and string is not None:
+        raise ValueError('Only one of `file` or `string` can be provided!')
+
+    if file is None and string is None:
+        raise ValueError('Either `file` or `string` must be provided!')
+
     loader = MadxLoader()
-    loader.load_file(file)
+    if file is not None:
+        loader.load_file(file)
+    elif string is not None:
+        loader.load_string(string)
+    else:
+        raise ValueError('Something went wrong!')
+
     env = loader.env
 
     if reverse_lines:
@@ -507,11 +520,11 @@ def load_madx_lattice(file, reverse_lines=None):
                 bb.components = bb.components[::-1]
                 for cc in bb.components:
                     if cc.at is not None:
-                        assert isinstance(cc.at, str) # Float still to be handled
-                        if cc.from_ is not None:
-                            cc.at = f'-({cc.at})'
-                        else:
-                            cc.at = f'({length} - {cc.at})'
+                        if isinstance(cc.at, str) or isinstance(cc.at, float):
+                            if cc.from_ is not None:
+                                cc.at = f'-({cc.at})'
+                            else:
+                                cc.at = f'({length} - {cc.at})'
             new_env.lines[nn].builder = bb
 
         # Add to new environment elements that were not in any line
