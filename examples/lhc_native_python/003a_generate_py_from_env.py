@@ -48,7 +48,6 @@ def _elem_to_tokens(env, nn, formatter):
 ####################
 
 env = xt.load_madx_lattice('../../test_data/lhc_2024/lhc.seq', reverse_lines=['lhcb2'])
-env.vars.load_madx('../../test_data/lhc_2024/injection_optics.madx')
 
 # Test a few
 out_bend = _elem_to_tokens(env, 'mb.b30l2.b1', formatter)

@@ -605,6 +605,15 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         instance.name_associated_aperture = name_associated_aperture
         return instance
 
+    def copy(self, **kwargs):
+        out = super().copy(**kwargs)
+        if hasattr(self, 'extra'):
+            try:
+                out.extra = self.extra.copy()
+            except AttributeError:
+                out.extra = self.extra
+        return out
+
     @property
     def _add_to_repr(self):
         out = []

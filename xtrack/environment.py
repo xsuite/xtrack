@@ -209,6 +209,7 @@ class Environment:
             Name of the created element or line or a Place object if at or from_ is
             provided.
         '''
+
         if name in self.element_dict and not force:
             raise ValueError(f'Element `{name}` already exists')
 
