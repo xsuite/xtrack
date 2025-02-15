@@ -87,6 +87,9 @@ while True:
     if not added:
         break
 
+# Some customizations
+elem_tokens['multipole']['params'].append('knl=[0,0,0,0,0,0]')
+
 # populate diff params
 for nn in elem_tokens:
     diff_params = []
@@ -101,6 +104,17 @@ for nn in elem_tokens:
         diff_params = elem_tokens[nn]['params']
     elem_tokens[nn]['diff_params'] = diff_params
 
+# Build def instruction
+for nn in elem_tokens:
+    out_parts = []
+    out_parts.append(f'env.new("{nn}"')
+    if elem_tokens[nn]['clone_parent'] is not None:
+        out_parts.append(f'"{elem_tokens[nn]["clone_parent"]}"')
+    else:
+        out_parts.append(f'"{elem_tokens[nn]["element_type"]}"')
+    out_parts += elem_tokens[nn]['diff_params']
+    elem_tokens[nn]['def_instruction'] = ', '.join(out_parts) + ')'
+
 # Sort based on hierarchy
 sorted_elems = []
 def _add_elem(nn):
@@ -110,3 +124,21 @@ def _add_elem(nn):
         sorted_elems.append(nn)
 for nn in elem_tokens:
     _add_elem(nn)
+
+elem_def_lines = []
+for nn in sorted_elems:
+    elem_def_lines.append(elem_tokens[nn]['def_instruction'])
+
+elem_def_part = '\n'.join(elem_def_lines)
+
+preamble = '''import xtrack as xt
+env = xt.get_environment()
+env.vars.default_to_zero=True
+'''
+
+postamble = '''
+env.vars.default_to_zero=False
+'''
+
+with open('test.py', 'w') as ff:
+    ff.write(preamble + elem_def_part + postamble)
