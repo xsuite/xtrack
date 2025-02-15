@@ -18,7 +18,7 @@ def _repr_arr_ref(arr_ref, formatter):
             out.append(f'{arr_ref[ii]._value:g}')
 
     # Trim trailing zeros
-    while out and out[-1] == '0':
+    while out and (out[-1] == '0' or out[-1] == '-0'):
         out.pop()
 
     return f'[{", ".join(out)}]'

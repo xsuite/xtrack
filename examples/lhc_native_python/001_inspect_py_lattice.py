@@ -1,7 +1,7 @@
 import xtrack as xt
 
 env = xt.Environment()
-env.call('test.py')
+env.call('lhc_seq.py')
 
 env.lhcb1.particle_ref = xt.Particles(p0c=0.45e12)
 env.lhcb2.particle_ref = xt.Particles(p0c=0.45e12)
