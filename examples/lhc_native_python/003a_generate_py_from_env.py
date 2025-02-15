@@ -20,11 +20,11 @@ def _repr_arr_ref(arr_ref, formatter):
 env = xt.load_madx_lattice('../../test_data/lhc_2024/lhc.seq', reverse_lines=['lhcb2'])
 env.vars.load_madx('../../test_data/lhc_2024/injection_optics.madx')
 
+SKIP_PARAMS = ['order']
 
 nn = 'mb.b30l2.b1'
 nn = 'mq.30l2.b1'
-
-nn = 'mcd.b29l2.b1'
+# nn = 'mcd.b29l2.b1'
 
 ee = env.get(nn)
 ee_ref = env.ref[nn]
@@ -36,6 +36,8 @@ dd = ee.to_dict()
 params = []
 for kk in dd:
     if kk == '__class__':
+        continue
+    if kk in SKIP_PARAMS:
         continue
     if kk == 'knl' or kk == 'ksl':
         arr_ref = getattr(ee_ref, kk)
