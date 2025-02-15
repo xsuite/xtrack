@@ -125,20 +125,42 @@ def _add_elem(nn):
 for nn in elem_tokens:
     _add_elem(nn)
 
+# Build elem def part
 elem_def_lines = []
 for nn in sorted_elems:
     elem_def_lines.append(elem_tokens[nn]['def_instruction'])
-
 elem_def_part = '\n'.join(elem_def_lines)
+
+# builders
+builder_lines = []
+for lname in env.lines.keys():
+    builder_lines.append(f'# Builder for line {lname}')
+    bb = env.lines[lname].builder
+    builder_lines.append(f'{lname} = env.new_builder(name="{lname}")')
+    for cc in bb.components:
+        cc_tokens=[]
+        for kk, vv in cc.__dict__.items():
+            if vv is None or kk == 'name':
+                continue
+            cc_tokens.append(f'{kk}="{vv}"')
+        builder_lines.append(f'{lname}.place("{cc.name}", ' + ', '.join(cc_tokens) + ')')
+    builder_lines.append(f'{lname}.build()')
+    builder_lines.append('')
+
+builder_part = '\n'.join(builder_lines)
+
 
 preamble = '''import xtrack as xt
 env = xt.get_environment()
 env.vars.default_to_zero=True
+
 '''
 
 postamble = '''
+
 env.vars.default_to_zero=False
+
 '''
 
 with open('test.py', 'w') as ff:
-    ff.write(preamble + elem_def_part + postamble)
+    ff.write(preamble + elem_def_part + '\n\n' + builder_part + postamble)
