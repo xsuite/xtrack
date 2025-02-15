@@ -24,10 +24,21 @@ def _elem_to_tokens(env, nn, formatter):
     ee = env.get(nn)
     ee_ref = env.ref[nn]
 
-    dd = ee.to_dict()
+    # The fileds to consider are those in the dictionary, plus knl and ksl, plus 
+    # anything that has an expression
+    fields = list(ee.to_dict().keys())
+    if hasattr(ee, 'knl'):
+        fields += ['knl']
+    if hasattr(ee, 'ksl'):
+        fields += ['ksl']
+
+    tt = env[nn].get_table()
+    for kk in tt.name:
+        if tt['expr', kk] is not None and tt['expr', kk] != 'None':
+            fields.append(kk)
 
     params = []
-    for kk in dd:
+    for kk in fields:
         if kk == '__class__':
             continue
         if kk in SKIP_PARAMS:
