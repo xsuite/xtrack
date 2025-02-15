@@ -1,9 +1,12 @@
 import xtrack as xt
 import xdeps as xd
 
+from xtrack.mad_parser.loader import CONSTANTS
+
 formatter = xd.refs.CompactFormatter(scope=None)
 SKIP_PARAMS = ['order', 'model', 'edge_entry_model', 'edge_exit_model',
                'k0_from_h', 'h']
+
 
 def _repr_arr_ref(arr_ref, formatter):
     out = []
@@ -151,24 +154,8 @@ builder_part = '\n'.join(builder_lines)
 
 # Variables
 ttvars = env.vars.get_table()
-lattice_parameters = []
-for nn in ttvars.name:
-    if 'element_refs' in str(env.ref[nn]._find_dependant_targets()):
-        lattice_parameters.append(nn)
-# Add also parameters used in the builders
-pars_builder = set()
-for lname in env.lines.keys():
-    bb = env.lines[lname].builder
-    for cc in bb.components:
-        if cc.at is None:
-            continue
-        env.ref['__temp__'] = env.new_expr(cc.at)
-        if env.ref['__temp__']._expr is None:
-            continue
-        vv_list = list(env.ref['__temp__']._expr._get_dependencies())
-        for vv in vv_list:
-            pars_builder.add(vv._formatted(formatter))
-lattice_parameters += list(pars_builder)
+const = set(CONSTANTS.keys())
+lattice_parameters = [nn for nn in ttvars.name if nn not in const]
 
 tt_lattice_pars_all = ttvars.rows[lattice_parameters]
 mask_keep = (tt_lattice_pars_all['expr'] != None) | (tt_lattice_pars_all['value'] != 0)

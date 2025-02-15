@@ -33,6 +33,24 @@ TRANSLATE_PARAMS = {
     "fintx": "edge_exit_fint",
 }
 
+CONSTANTS = {
+    "pi": np.pi,
+    "twopi": np.pi * 2,
+    "degrad": 180 / np.pi,  # deg/rad
+    "raddeg": np.pi / 180,  # rad/deg
+    "e": np.e,
+    "emass": 0.51099895000e-3,  # GeV
+    "pmass": 0.93827208816,  # GeV
+    "nmass": 0.93956542052,  # GeV
+    "umass": 0.93149410242,  # GeV
+    "mumass": 0.1056583715,  # GeV
+    "clight": 299792458.0,  # m/s
+    "qelect": 1.602176634e-19,  # A * s
+    "hbar": 6.582119569e-25,  # MeV * s
+    "erad": 2.8179403262e-15,  # m
+    "prad": 'erad / emass * pmass',
+    }
+
 def _warn(msg):
     print(f'Warning: {msg}')
 
@@ -60,7 +78,6 @@ def get_params(params, parent):
     return main_params, extras
 
 
-
 class MadxLoader:
     def __init__(
             self,
@@ -81,23 +98,7 @@ class MadxLoader:
         self.env.vars.default_to_zero = True
 
         # Define the builtin MAD-X variables
-        self.env.vars.update({
-            "pi": np.pi,
-            "twopi": np.pi * 2,
-            "degrad": 180 / np.pi,  # deg/rad
-            "raddeg": np.pi / 180,  # rad/deg
-            "e": np.e,
-            "emass": 0.51099895000e-3,  # GeV
-            "pmass": 0.93827208816,  # GeV
-            "nmass": 0.93956542052,  # GeV
-            "umass": 0.93149410242,  # GeV
-            "mumass": 0.1056583715,  # GeV
-            "clight": 299792458.0,  # m/s
-            "qelect": 1.602176634e-19,  # A * s
-            "hbar": 6.582119569e-25,  # MeV * s
-            "erad": 2.8179403262e-15,  # m
-            "prad": 'erad / emass * pmass',
-        })
+        self.env.vars.update(CONSTANTS)
 
         # Define the built-in MAD-X elements
         self._new_builtin("vkicker", "Multipole")
