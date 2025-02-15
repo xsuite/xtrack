@@ -96,6 +96,11 @@ while True:
 # Some customizations
 elem_tokens['multipole']['params'].append('knl=[0,0,0,0,0,0]')
 
+# remove length when length_straight is present
+for nn in elem_tokens:
+    if 'length_straight' in elem_tokens[nn]['params']:
+        elem_tokens[nn]['params'] = [pp for pp in elem_tokens[nn]['params'] if pp != 'length']
+
 # populate diff params
 for nn in elem_tokens:
     diff_params = []
