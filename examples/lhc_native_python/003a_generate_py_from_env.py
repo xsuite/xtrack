@@ -24,7 +24,7 @@ def _elem_to_tokens(env, nn, formatter):
     ee = env.get(nn)
     ee_ref = env.ref[nn]
 
-    # The fileds to consider are those in the dictionary, plus knl and ksl, plus 
+    # The fields to consider are those in the dictionary, plus knl and ksl, plus
     # anything that has an expression
     fields = list(ee.to_dict().keys())
     if hasattr(ee, 'knl'):
@@ -149,6 +149,25 @@ for lname in env.lines.keys():
 
 builder_part = '\n'.join(builder_lines)
 
+# Variables
+ttvars = env.vars.get_table()
+lattice_parameters = []
+for nn in ttvars.name:
+    if 'element_refs' in str(env.ref[nn]._find_dependant_targets()):
+        lattice_parameters.append(nn)
+tt_lattice_pars_all = ttvars.rows[lattice_parameters]
+mask_keep = (tt_lattice_pars_all['expr'] != None) | (tt_lattice_pars_all['value'] != 0)
+tt_lattice_pars = tt_lattice_pars_all.rows[mask_keep]
+
+lines_vars = []
+for nn in tt_lattice_pars.name:
+    if tt_lattice_pars['expr', nn] is not None:
+        lines_vars.append(f'env["{nn}"] = "{tt_lattice_pars["expr", nn]}"')
+    else:
+        lines_vars.append(f'env["{nn}"] = {tt_lattice_pars["value", nn]}')
+lines_vars.append('')
+vars_part = '\n'.join(lines_vars)
+
 
 preamble = '''import xtrack as xt
 env = xt.get_environment()
@@ -163,4 +182,4 @@ env.vars.default_to_zero=False
 '''
 
 with open('test.py', 'w') as ff:
-    ff.write(preamble + elem_def_part + '\n\n' + builder_part + postamble)
+    ff.write(preamble + vars_part + elem_def_part + '\n\n' + builder_part + postamble)

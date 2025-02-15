@@ -356,13 +356,7 @@ class Environment:
         if components is None:
             components = []
 
-        for ii, nn in enumerate(components):
-            if (isinstance(nn, Place) and isinstance(nn.name, str)
-                    and nn.name in self.lines):
-                nn.name = self.lines[nn.name]
-            if isinstance(nn, str) and nn in self.lines:
-                components[ii] = self.lines[nn]
-
+        components = _resolve_lines_in_components(components, self)
         flattened_components = _flatten_components(components, refer=refer)
 
         if np.array([isinstance(ss, str) for ss in flattened_components]).all():
@@ -1297,6 +1291,20 @@ class Builder:
     def get(self, *args, **kwargs):
         return self.env.get(*args, **kwargs)
 
+
+    def resolve_s_positions(self):
+        components = self.components
+        if components is None:
+            components = []
+
+        components = _resolve_lines_in_components(components, self.env)
+        flattened_components = _flatten_components(components, refer=self.refer)
+
+        seq_all_places = _all_places(flattened_components)
+        tab_unsorted = _resolve_s_positions(seq_all_places, self.env, refer=self.refer)
+        tab_sorted = _sort_places(tab_unsorted)
+        return tab_sorted
+
     @property
     def element_dict(self):
         return self.env.element_dict
@@ -1444,3 +1452,16 @@ def _reverse_element(env, name):
     _exchange_fields('edge_entry_angle_fdown', 'edge_exit_angle_fdown')
     _exchange_fields('edge_entry_fint', 'edge_exit_fint')
     _exchange_fields('edge_entry_hgap', 'edge_exit_hgap')
+
+def _resolve_lines_in_components(components, env):
+
+    components = list(components) # Make a copy
+
+    for ii, nn in enumerate(components):
+        if (isinstance(nn, Place) and isinstance(nn.name, str)
+                and nn.name in env.lines):
+            nn.name = env.lines[nn.name]
+        if isinstance(nn, str) and nn in env.lines:
+            components[ii] = env.lines[nn]
+
+    return components
