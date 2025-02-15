@@ -42,7 +42,8 @@ def _elem_to_tokens(env, nn, formatter):
         else:
             params.append(f'{kk}={getattr(ee_ref, kk)._value:g}')
 
-    out = {'name': nn, 'element_type': ee.__class__.__name__, 'params': params}
+    out = {'name': nn, 'element_type': ee.__class__.__name__, 'params': params,
+           'clone_parent': getattr(ee, 'clone_parent', None)}
     return out
 
 ####################
@@ -60,6 +61,7 @@ for lname in env.lines.keys():
     bb = ll.builder
     all_elems += [cc.name for cc in bb.components]
 
-elem_tokens = []
+elem_tokens = {}
 for nn in all_elems:
-    elem_tokens.append(_elem_to_tokens(env, nn, formatter))
+    elem_tokens[nn] = _elem_to_tokens(env, nn, formatter)
+
