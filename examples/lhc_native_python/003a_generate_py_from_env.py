@@ -57,17 +57,19 @@ def _elem_to_tokens(env, nn, formatter):
             params.append(f'{kk}={getattr(ee_ref, kk)._value:g}')
 
     out = {'name': nn, 'element_type': ee.__class__.__name__, 'params': params,
-           'clone_parent': getattr(ee, 'clone_parent', None)}
+           'clone_parent': getattr(ee, 'clone_parent', None),
+           'extra': getattr(ee, 'extra', None)}
     return out
 
+####################
+# Load the lattice #
 ####################
 
 env = xt.load_madx_lattice('../../test_data/lhc_2024/lhc.seq', reverse_lines=['lhcb2'])
 
-# Test a few
-out_bend = _elem_to_tokens(env, 'mb.b30l2.b1', formatter)
-out_quad = _elem_to_tokens(env, 'mq.30l2.b1', formatter)
-out_dec_corr = _elem_to_tokens(env, 'mcd.b29l2.b1', formatter)
+###################
+# Handle elements #
+###################
 
 all_elems = []
 for lname in env.lines.keys():
@@ -115,7 +117,10 @@ for nn in elem_tokens:
         out_parts.append(f'"{elem_tokens[nn]["clone_parent"]}"')
     else:
         out_parts.append(f'"{elem_tokens[nn]["element_type"]}"')
-    out_parts += elem_tokens[nn]['diff_params']
+    if len(elem_tokens[nn]['diff_params']) > 0:
+        out_parts += elem_tokens[nn]['diff_params']
+    if elem_tokens[nn]['extra'] is not None:
+        out_parts.append(f'extra={elem_tokens[nn]["extra"]}')
     elem_tokens[nn]['def_instruction'] = ', '.join(out_parts) + ')'
 
 # Sort based on hierarchy
@@ -134,7 +139,10 @@ for nn in sorted_elems:
     elem_def_lines.append(elem_tokens[nn]['def_instruction'])
 elem_def_part = '\n'.join(elem_def_lines)
 
-# builders
+###################
+# Handle builders #
+###################
+
 builder_lines = []
 for lname in env.lines.keys():
     builder_lines.append(f'# Builder for line {lname}')
@@ -152,7 +160,10 @@ for lname in env.lines.keys():
 
 builder_part = '\n'.join(builder_lines)
 
-# Variables
+####################
+# Handle variables #
+####################
+
 ttvars = env.vars.get_table()
 const = set(CONSTANTS.keys())
 lattice_parameters = [nn for nn in ttvars.name if nn not in const]
@@ -170,6 +181,9 @@ for nn in tt_lattice_pars.name:
 lines_vars.append('')
 vars_part = '\n'.join(lines_vars)
 
+#####################
+# Assemble the file #
+#####################
 
 preamble = '''import xtrack as xt
 env = xt.get_environment()

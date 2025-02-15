@@ -125,8 +125,6 @@ class Environment:
                 env.place('mq2', at=20.0, from_='mymark'),  # Place 'mq2' at s=20
                 ])
 
-
-
         '''
         self._element_dict = element_dict or {}
         self.particle_ref = particle_ref
