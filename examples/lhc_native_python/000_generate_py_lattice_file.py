@@ -191,7 +191,7 @@ elem_def_part = '\n'.join(elem_def_lines)
 
 builder_lines = []
 for lname in env.lines.keys():
-    builder_lines.append(f'# Builder for line {lname}')
+    builder_lines.append(f'# Builder for line: {lname}')
     bb = env.lines[lname].builder
     builder_lines.append(f'{lname} = env.new_builder(name="{lname}")')
     for cc in bb.components:
@@ -234,7 +234,6 @@ vars_part = '\n'.join(lines_vars)
 preamble = '''import xtrack as xt
 env = xt.get_environment()
 env.vars.default_to_zero=True
-
 '''
 
 postamble = '''
@@ -243,5 +242,24 @@ env.vars.default_to_zero=False
 
 '''
 
-with open('test.py', 'w') as ff:
-    ff.write(preamble + vars_part + elem_def_part + '\n\n' + builder_part + postamble)
+file_content = '\n'.join([
+    preamble,
+   '#############',
+   '# Variables #',
+   '#############',
+   '',
+   vars_part,
+   '############',
+   '# Elements #',
+   '############',
+   elem_def_part,
+   '',
+   '##############',
+   '# Beam lines #',
+   '##############',
+   '',
+   builder_part,
+   postamble])
+
+with open('lhc_seq.py', 'w') as ff:
+    ff.write(file_content)
