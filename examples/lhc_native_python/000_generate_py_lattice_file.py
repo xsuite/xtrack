@@ -5,7 +5,7 @@ import numpy as np
 from xtrack.mad_parser.loader import CONSTANTS
 
 formatter = xd.refs.CompactFormatter(scope=None)
-SKIP_PARAMS = ['order', 'model', 'edge_entry_model', 'edge_exit_model',
+SKIP_PARAMS = ['order', 'model', '_edge_entry_model', '_edge_exit_model',
                'k0_from_h', 'h']
 
 

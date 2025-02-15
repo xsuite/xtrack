@@ -876,7 +876,7 @@ class _BendCommon:
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
 
         for kk in {'model', 'k0', 'h', 'length', 'k0_from_h', 'angle',
-                   'edge_entry_model', 'edge_exit_model'}:
+                   }:
             if f'_{kk}' in out:
                 out.pop(f'_{kk}')
             out[kk] = getattr(self, kk)
