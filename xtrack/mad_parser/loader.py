@@ -513,6 +513,14 @@ def load_madx_lattice(file, reverse_lines=None):
                             cc.at = f'({length} - {cc.at})'
             new_env.lines[nn].builder = bb
 
+        # Add to new environment elements that were not in any line
+        elems_not_in_lines = set(env.elements.keys())
+        for nn in env.lines.keys():
+            elems_not_in_lines -= set(env.lines[nn].element_names)
+        dummy_line = env.new_line(components=list(elems_not_in_lines))
+        new_env.import_line(line=dummy_line, line_name='__DUMMY__')
+        del new_env.lines['__DUMMY__'] # keep the elements but not the line
+
         env = new_env
         print('Done reversing lines')
 

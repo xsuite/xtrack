@@ -50,8 +50,17 @@ def _elem_to_tokens(env, nn, formatter):
 env = xt.load_madx_lattice('../../test_data/lhc_2024/lhc.seq', reverse_lines=['lhcb2'])
 env.vars.load_madx('../../test_data/lhc_2024/injection_optics.madx')
 
-
+# Test a few
 out_bend = _elem_to_tokens(env, 'mb.b30l2.b1', formatter)
 out_quad = _elem_to_tokens(env, 'mq.30l2.b1', formatter)
 out_dec_corr = _elem_to_tokens(env, 'mcd.b29l2.b1', formatter)
 
+all_elems = []
+for lname in env.lines.keys():
+    ll = env.lines[lname]
+    bb = ll.builder
+    all_elems += [cc.name for cc in bb.components]
+
+elem_tokens = []
+for nn in all_elems:
+    elem_tokens.append(_elem_to_tokens(env, nn, formatter))
