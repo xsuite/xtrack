@@ -100,3 +100,13 @@ for nn in elem_tokens:
     else:
         diff_params = elem_tokens[nn]['params']
     elem_tokens[nn]['diff_params'] = diff_params
+
+# Sort based on hierarchy
+sorted_elems = []
+def _add_elem(nn):
+    if elem_tokens[nn]['clone_parent'] is not None:
+        _add_elem(elem_tokens[nn]['clone_parent'])
+    if nn not in sorted_elems:
+        sorted_elems.append(nn)
+for nn in elem_tokens:
+    _add_elem(nn)
