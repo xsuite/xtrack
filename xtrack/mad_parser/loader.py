@@ -33,9 +33,6 @@ TRANSLATE_PARAMS = {
     "fintx": "edge_exit_fint",
 }
 
-REVERSED_SUFFIX = '_reversed'
-
-
 def _warn(msg):
     print(f'Warning: {msg}')
 
@@ -63,26 +60,13 @@ def get_params(params, parent):
     return main_params, extras
 
 
-def _reversed_name(name: str):
-    return f'{name}{REVERSED_SUFFIX}'
-
-
-def _invert(value: Union[str, int, float]):
-    if isinstance(value, str):
-        return f'-({value})'
-    return -value
-
 
 class MadxLoader:
     def __init__(
             self,
-            reverse_lines: Optional[List[str]] = None,
             env: Union[xt.Environment, EnvWriterProxy] = None,
     ):
-        self.reverse_lines = reverse_lines or []
-
         self._madx_elem_hierarchy: Dict[str, List[str]] = {}
-        self._reversed_elements: Set[str] = set()
         self._both_direction_elements: Set[str] = set()
         self._builtin_types = set()
         self._parameter_cache = {}
@@ -160,13 +144,6 @@ class MadxLoader:
         hierarchy = self._collect_hierarchy(parsed_dict)
         self._madx_elem_hierarchy.update(hierarchy)
 
-        if self.reverse_lines:
-            collected_names = self._collect_reversed_elements(parsed_dict)
-            straight_names, reversed_names = collected_names
-            self._reversed_elements.update(reversed_names)
-            self._both_direction_elements.update(straight_names & reversed_names)
-            self._reverse_lines(parsed_dict)
-
         self._parse_vars(parsed_dict["vars"])
         self._parse_elements(parsed_dict["elements"])
         builders = self._parse_lines(parsed_dict["lines"], build=build)
@@ -239,21 +216,16 @@ class MadxLoader:
             # by name, otherwise we expect a line nested in the current one.
             parent = body.get('parent', None)
             repeat = body.get('_repeat', 1)
-            invert = body.get('_invert', False)
             instance = self.env[name] if name else None
 
             if parent is None and isinstance(instance, xt.Line):
                 # If it's a line, we use __mul__ and __neg__ directly
                 element = instance
-                if invert:
-                    element = -element
                 element = repeat * element
                 components.append(element)
             elif parent == 'line':
                 # If it's a nested line, we parse it recursively
                 element = self._parse_line_components(body['elements'])
-                if invert:
-                    element = list(reversed(element))
                 element = repeat * element
                 components += element
             elif parent is None:
@@ -451,78 +423,6 @@ class MadxLoader:
 
         return params
 
-    def _reverse_lines(self, parsed_dict: MadxOutputType):
-        """Reverse a line in place, by adding reversed elements where necessary."""
-        # Deal with element definitions
-        elements_dict = parsed_dict['elements']
-        defined_names = list(elements_dict.keys())  # especially here order matters!
-        for name in defined_names:
-            if name not in self._reversed_elements:
-                continue
-
-            element = parsed_dict['elements'][name]
-            reversed_element = self._reverse_element(name, element)
-            elements_dict[_reversed_name(name)] = reversed_element
-
-            if name not in self._both_direction_elements:
-                # We can remove the original element if it's not needed
-                del elements_dict[name]
-
-        # Deal with line definitions
-        for line_name, line_params in parsed_dict['lines'].items():
-            if line_name not in self.reverse_lines:
-                continue
-
-            new_elements = []
-            line_elements = line_params['elements']
-            for name, elem_params in reversed(line_elements):
-                assert elem_params.get('parent', None) != 'sequence', 'Nesting not yet supported!'
-                el = self._reverse_element(name, elem_params, line_params.get('l'))
-                new_elements.append((_reversed_name(name), el))
-
-            line_params['elements'] = new_elements
-
-        # Deal with the parameters
-        parametrised_names = list(parsed_dict['parameters'].keys())  # ordered again
-        for name in parametrised_names:
-            if name not in self._reversed_elements:
-                continue
-
-            params = parsed_dict['parameters'][name]
-            reversed_params = self._reverse_element(name, params)
-            parsed_dict['parameters'][_reversed_name(name)] = reversed_params
-
-            if name not in self._both_direction_elements:
-                # We can remove the original parameter setting if it's not needed
-                del parsed_dict['parameters'][name]
-
-
-    def _collect_reversed_elements(self, parsed_dict: MadxOutputType) -> Tuple[Set[str], Set[str]]:
-        """Collect elements that are shared between non- and reversed lines."""
-        straight: Set[str] = set()
-        reversed_: Set[str] = set()
-
-        def _descend_into_line(line_params, correct_set):
-            if line_params['parent'] == 'line':
-                return
-
-            for name, elem_params in line_params['elements']:
-                parent = elem_params.get('parent', name)
-                correct_set.add(name)
-                # Also add the chain of parent types, as they will also need to
-                # be reversed. We skip the last element, as it's the base madx
-                # type and so it's empty (nothing to reverse).
-                for parent_name in self._madx_elem_hierarchy[name][:-1]:
-                    correct_set.add(parent_name)
-                if parent == 'sequence':
-                    _descend_into_line(elem_params, correct_set)
-
-        for line_name, line_params in parsed_dict["lines"].items():
-            correct_set = reversed_ if line_name in self.reverse_lines else straight
-            _descend_into_line(line_params, correct_set)
-
-        return straight, reversed_
-
     def _collect_hierarchy(self, parsed_dict: MadxOutputType):
         """Collect the base Madx types of all defined elements."""
         hierarchy = {}
@@ -547,89 +447,8 @@ class MadxLoader:
 
         return hierarchy
 
-    def _reverse_element(self, name: str, element: ElementType, line_length: Optional[VarType] = None) -> ElementType:
-        """Return a reversed element without modifying the original."""
-        element = deepcopy(element)
-
-        UNSUPPORTED = {
-            'dipedge', 'wire', 'crabcavity', 'rfmultipole', 'beambeam',
-            'matrix', 'srotation', 'xrotation', 'yrotation', 'translation',
-            'nllens',
-        }
-
-        if (type_ := self._mad_base_type(name)) in UNSUPPORTED:
-            raise NotImplementedError(
-                f'Cannot reverse the element `{name}`, as reversing elements '
-                f'of type `{type_}` is not supported!'
-            )
-
-        def _reverse_field(key):
-            if key in element:
-                element[key]['expr'] = _invert(element[key]["expr"])
-
-        def _exchange_fields(key1, key2):
-            value1 = element.pop(key1, None)
-            value2 = element.pop(key2, None)
-
-            if value1 is not None:
-                element[key2] = value1
-
-            if value2 is not None:
-                element[key1] = value2
-
-
-        _reverse_field('k0s')
-        _reverse_field('k1')
-        _reverse_field('k2s')
-        _reverse_field('k3')
-        _reverse_field('ks')
-        _reverse_field('ksi')
-        _reverse_field('vkick')
-        _reverse_field('tilt')
-
-        if self._mad_base_type(name) == 'vkicker':
-            _reverse_field('kick')
-
-        if 'lag' in element:
-            element['lag']['expr'] = f'0.5 - ({element["lag"]["expr"]})'
-
-        if 'at' in element:
-            if 'from' in element:
-                element['at']['expr'] = _invert(element["at"]["expr"])
-                element['from']['expr'] = _reversed_name(element['from']['expr'])
-            else:
-                if not line_length:
-                    raise ValueError(
-                        f'Line length must be specified when reversing, however '
-                        f'got no length for `{name}`!'
-                    )
-                element['at']['expr'] = f'({line_length["expr"]}) - ({element["at"]["expr"]})'
-
-        if 'knl' in element:
-            knl = element['knl']['expr']
-            for i in range(1, len(knl), 2):
-                knl[i] = _invert(knl[i])
-
-        if 'ksl' in element:
-            ksl = element['ksl']['expr']
-            for i in range(0, len(ksl), 2):
-                ksl[i] = _invert(ksl[i])
-
-        parent_name = element.get('parent')
-        if parent_name and parent_name != self._mad_base_type(parent_name):
-            element['parent'] = _reversed_name(parent_name)
-
-        _exchange_fields('e1', 'e2')
-        _exchange_fields('h1', 'h2')
-
-        if not ('fint' in element and 'fintx' not in element):
-            _exchange_fields('fint', 'fintx')
-
-        return element
 
     def _mad_base_type(self, element_name: str):
-        if element_name.endswith(REVERSED_SUFFIX):
-            element_name = element_name[:-len(REVERSED_SUFFIX)]
 
         if element_name in self._madx_elem_hierarchy:
             return self._madx_elem_hierarchy[element_name][-1]
@@ -643,7 +462,7 @@ class MadxLoader:
         return element_name
 
 def load_madx_lattice(file, reverse_lines=None):
-    loader = MadxLoader(reverse_lines=reverse_lines)
+    loader = MadxLoader()
     loader.load_file(file)
     env = loader.env
     return env
