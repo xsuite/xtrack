@@ -1395,7 +1395,7 @@ def _reverse_element(env, name):
     if ee.__class__.__name__ not in SUPPORTED:
         raise NotImplementedError(
             f'Cannot reverse the element `{name}`, as reversing elements '
-            f'of type `{element.__class__.__name__}` is not supported!'
+            f'of type `{ee.__class__.__name__}` is not supported!'
         )
 
     def _reverse_field(key):
