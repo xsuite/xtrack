@@ -768,8 +768,8 @@ MBW : RBEND, L := l.MBW, Kmax := Kmax_MBW, Kmin := Kmin_MBW, Calib := Kmax_MBW /
 MBX : RBEND, L := l.MBX, Kmax := Kmax_MBX, Kmin := Kmin_MBX, Calib := Kmax_MBX / Imax_MBX;                                        ! Single Aperture Separation Dipole. D1
 MBXW : RBEND, L := l.MBXW, Kmax := Kmax_MBXW, Kmin := Kmin_MBXW, Calib := Kmax_MBXW / Imax_MBXW;                                  ! Single Aperture Warm Dipole Module D1 in IR1 and IR5
 //---------------------- RFCAVITY       ---------------------------------------------
-! ACSCA : RFCAVITY, L := l.ACSCA, HARMON := HRF400;                                                                                 ! Superconducting Bare Cavity
-ACSCA : QUADRUPOLE, L := l.ACSCA; // PATCH !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ACSCA : RFCAVITY, L := l.ACSCA, HARMON := HRF400;                                                                                 ! Superconducting Bare Cavity
+! ACSCA : QUADRUPOLE, L := l.ACSCA; // PATCH !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 //---------------------- SBEND          ---------------------------------------------
 MB : SBEND, L := l.MB, Kmax := Kmax_MB, Kmin := Kmin_MB, Calib := Kmax_MB / Imax_MB;                                              ! Magnet coil for Main Dipole Coldmass
 //---------------------- SEXTUPOLE      ---------------------------------------------

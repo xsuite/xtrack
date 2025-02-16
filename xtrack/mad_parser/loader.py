@@ -249,7 +249,8 @@ class MadxLoader:
 
         el_params = self._pre_process_element_params(name, kwargs)
         length = el_params.get('length', self._parameter_cache[name].get('length', 0))
-        if self._mad_base_type(name) in {'vkicker', 'hkicker', 'kicker', 'tkicker', 'multipole'}:
+        if self._mad_base_type(name) in {'vkicker', 'hkicker', 'kicker', 'tkicker',
+                                         'multipole', 'rfcavity'}:
             # Workaround for the fact that Multipole.length does not make an element thick
             length = 0
 
