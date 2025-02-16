@@ -1430,8 +1430,7 @@ def _reverse_element(env, name):
     _reverse_field('k3')
     _reverse_field('ks')
     _reverse_field('ksi')
-    _reverse_field('vkick')
-    _reverse_field('tilt')
+    _reverse_field('rot_s_rad')
 
     if hasattr(ee, 'lag'):
         ee_ref.lag = 180 - (ee_ref.lag._expr or ee_ref.lag._value)

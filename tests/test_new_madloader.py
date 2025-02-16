@@ -199,6 +199,8 @@ def example_sequence(temp_context_default_mod):
         mu1: mu, at = 29;
         so1: so, at = 31;
 
+        eee: marker, at = 36; ! patch for xsuite bug
+
         ! rx1: rb_stage2, at = 32;
     endsequence;
 
@@ -216,17 +218,17 @@ def example_sequence(temp_context_default_mod):
     positions = make_positions(env['line'])
     positions_reversed = make_positions(env['line_reversed'])
 
-    return env, {**positions, **positions_reversed}
+    return env, positions, positions_reversed
 
 
 def test_parsed_lines(example_sequence):
-    env, _ = example_sequence
+    env, _, _ = example_sequence
     assert env['line'].name == 'line'
     assert env['line_reversed'].name == 'line_reversed'
 
 
 def test_vkick(example_sequence):
-    env, positions = example_sequence
+    env, positions, _ = example_sequence
     vk1 = env['vk1/line']
     xo.assert_allclose(positions['vk1/line'], 1)
     assert isinstance(vk1, xt.Multipole)
@@ -237,7 +239,7 @@ def test_vkick(example_sequence):
 
 
 def test_hkick(example_sequence):
-    env, positions = example_sequence
+    env, positions, _ = example_sequence
     hk1 = env['hk1/line']
     xo.assert_allclose(positions['hk1/line'], 3)
     assert isinstance(hk1, xt.Multipole)
@@ -248,7 +250,7 @@ def test_hkick(example_sequence):
 
 
 def test_kick(example_sequence):
-    env, positions = example_sequence
+    env, positions, _ = example_sequence
     ki1 = env['ki1/line']
     xo.assert_allclose(positions['ki1/line'], 5)
     assert isinstance(ki1, xt.Multipole)
@@ -259,7 +261,7 @@ def test_kick(example_sequence):
 
 
 def test_tkick(example_sequence):
-    env, positions = example_sequence
+    env, positions, _ = example_sequence
     tk1 = env['tk1/line']
     xo.assert_allclose(positions['tk1/line'], 7)
     assert isinstance(tk1, xt.Multipole)
@@ -270,7 +272,7 @@ def test_tkick(example_sequence):
 
 
 def test_instrument(example_sequence):
-    env, positions = example_sequence
+    env, positions, _ = example_sequence
     in1 = env['in1/line']
     xo.assert_allclose(positions['in1/line'], 9)
     assert isinstance(in1, xt.Drift)
@@ -278,7 +280,7 @@ def test_instrument(example_sequence):
 
 
 def test_monitor(example_sequence):
-    env, positions = example_sequence
+    env, positions, _ = example_sequence
     mo1 = env['mo1/line']
     xo.assert_allclose(positions['mo1/line'], 11)
     assert isinstance(mo1, xt.Drift)
@@ -286,7 +288,7 @@ def test_monitor(example_sequence):
 
 
 def test_placeholder(example_sequence):
-    env, positions = example_sequence
+    env, positions, _ = example_sequence
     pl1 = env['pl1/line']
     xo.assert_allclose(positions['pl1/line'], 13)
     assert isinstance(pl1, xt.Drift)
@@ -294,7 +296,7 @@ def test_placeholder(example_sequence):
 
 
 def test_sbend(example_sequence):
-    env, positions = example_sequence
+    env, positions, _ = example_sequence
     # sb: sbend, l=2, angle=2, tilt=-2, k0=3, k1=1, k2=2, k1s=3, e1=2, e2=1,
     #   fint=3, fintx=2, hgap=1;  ! thick, ktap, h1, h2 we ignore
     sb1 = env['sb1/line']
@@ -318,7 +320,7 @@ def test_sbend(example_sequence):
 
 
 def test_rbend(example_sequence):
-    env, positions = example_sequence
+    env, positions, _ = example_sequence
     # rb: rbend, l=2, angle=1.5, tilt=-2, k0=3, k1=1, k2=2, k1s=3, e1=2, e2=1,
     #   fint=3, fintx=2, hgap=1, h1=3, h2=2;  ! ditto
     rb1 = env['rb1/line']
@@ -349,7 +351,7 @@ def test_rbend(example_sequence):
 
 @pytest.mark.xfail(reason="To be investigated")
 def test_rbend_two_step(example_sequence):
-    env, positions = example_sequence
+    env, positions, _ = example_sequence
     rb1 = env['rx1/line']
     xo.assert_allclose(positions['rx1/line'], 33)
     assert isinstance(rb1, xt.RBend)
@@ -368,7 +370,7 @@ def test_rbend_two_step(example_sequence):
 
 @pytest.mark.xfail(reason="To be investigated")
 def test_rbend_set_params_after_lattice(example_sequence):
-    env, positions = example_sequence
+    env, positions, _ = example_sequence
     rb1 = env['rx2']
     xo.assert_allclose(positions['rx2'], 35)
     assert isinstance(rb1, xt.RBend)
@@ -387,7 +389,7 @@ def test_rbend_set_params_after_lattice(example_sequence):
 
 
 def test_quadrupole(example_sequence):
-    env, positions = example_sequence
+    env, positions, _ = example_sequence
     # qu: quadrupole, l=2, k1=3, k1s=4, tilt=2;  ! ignore thick and ktap
     qu1 = env['qu1/line']
     xo.assert_allclose(positions['qu1/line'], 19)
@@ -399,7 +401,7 @@ def test_quadrupole(example_sequence):
 
 
 def test_sextupole(example_sequence):
-    env, positions = example_sequence
+    env, positions, _ = example_sequence
     # se: sextupole, L=1, K2=2, K2S=3, TILT=2;  ! ignore ktap
     se1 = env['se1/line']
     xo.assert_allclose(positions['se1/line'], 21)
@@ -411,7 +413,7 @@ def test_sextupole(example_sequence):
 
 
 def test_octupole(example_sequence):
-    env, positions = example_sequence
+    env, positions, _ = example_sequence
     # oc: octupole, L=2, K3=3, K3S=2, TILT=2;
     oc1 = env['oc1/line']
     xo.assert_allclose(positions['oc1/line'], 23)
@@ -423,15 +425,15 @@ def test_octupole(example_sequence):
 
 
 def test_marker(example_sequence):
-    env, positions = example_sequence
+    env, positions, _ = example_sequence
     # ma: marker;
-    ma1 = env['ma1/line']
-    xo.assert_allclose(positions['ma1/line'], 25)
+    ma1 = env['ma1']
+    xo.assert_allclose(positions['ma1'], 25)
     assert isinstance(ma1, xt.Marker)
 
 
 def test_rfcavity(example_sequence):
-    env, positions = example_sequence
+    env, positions, _ = example_sequence
     # rf: rfcavity, L=2, VOLT=1, LAG=2, FREQ=3, HARMON=2;  ! ignore N_BESSEL, NO_CAVITY_TOTALPATH
     rf1 = env['rf1/line']
     xo.assert_allclose(positions['rf1/line'], 27)
@@ -442,7 +444,7 @@ def test_rfcavity(example_sequence):
 
 
 def test_multipole(example_sequence):
-    env, positions = example_sequence
+    env, positions, _ = example_sequence
     # mu: multipole, LRAD=1, TILT=2, KNL={3, 4, 5}, KSL={1, 2, 3};
     mu1 = env['mu1/line']
     xo.assert_allclose(positions['mu1/line'], 29)
@@ -460,7 +462,7 @@ def test_multipole(example_sequence):
 
 
 def test_solenoid(example_sequence):
-    env, positions = example_sequence
+    env, positions, _ = example_sequence
     # so: solenoid, l=2, ks=3;  ! ignore ksi
     so1 = env['so1/line']
     xo.assert_allclose(positions['so1/line'], 31)
@@ -470,9 +472,9 @@ def test_solenoid(example_sequence):
 
 
 def test_reversed_vkick(example_sequence):
-    env, positions = example_sequence
+    env, _, positions_reversed = example_sequence
     ivk1 = env['vk1/line_reversed']
-    xo.assert_allclose(positions['vk1/line_reversed'], 36 - 1)
+    xo.assert_allclose(positions_reversed['vk1/line_reversed'], 36 - 1)
     assert isinstance(ivk1, xt.Multipole)
     assert ivk1.length == 2
     assert ivk1.knl[0] == 0
@@ -481,9 +483,9 @@ def test_reversed_vkick(example_sequence):
 
 
 def test_reversed_hkick(example_sequence):
-    env, positions = example_sequence
-    hk1 = env['hk1_reversed']
-    xo.assert_allclose(positions['hk1_reversed'], 36 - 3)
+    env, _, positions_reversed = example_sequence
+    hk1 = env['hk1/line_reversed']
+    xo.assert_allclose(positions_reversed['hk1/line_reversed'], 36 - 3)
     assert isinstance(hk1, xt.Multipole)
     assert hk1.length == 1
     assert hk1.knl[0] == -6
@@ -492,9 +494,9 @@ def test_reversed_hkick(example_sequence):
 
 
 def test_reversed_kick(example_sequence):
-    env, positions = example_sequence
-    ki1 = env['ki1_reversed']
-    xo.assert_allclose(positions['ki1_reversed'], 36 - 5)
+    env, _, positions_reversed = example_sequence
+    ki1 = env['ki1/line_reversed']
+    xo.assert_allclose(positions_reversed['ki1/line_reversed'], 36 - 5)
     assert isinstance(ki1, xt.Multipole)
     assert ki1.length == 2
     assert ki1.knl[0] == -4
@@ -503,9 +505,9 @@ def test_reversed_kick(example_sequence):
 
 
 def test_reversed_tkick(example_sequence):
-    env, positions = example_sequence
-    tk1 = env['tk1_reversed']
-    xo.assert_allclose(positions['tk1_reversed'], 36 - 7)
+    env, _, positions_reversed = example_sequence
+    tk1 = env['tk1/line_reversed']
+    xo.assert_allclose(positions_reversed['tk1/line_reversed'], 36 - 7)
     assert isinstance(tk1, xt.Multipole)
     assert tk1.length == 1
     assert tk1.knl[0] == -4
@@ -514,35 +516,35 @@ def test_reversed_tkick(example_sequence):
 
 
 def test_reversed_instrument(example_sequence):
-    env, positions = example_sequence
-    in1 = env['in1_reversed']
-    xo.assert_allclose(positions['in1_reversed'], 36 - 9)
+    env, _, positions_reversed = example_sequence
+    in1 = env['in1/line_reversed']
+    xo.assert_allclose(positions_reversed['in1/line_reversed'], 36 - 9)
     assert isinstance(in1, xt.Drift)
     assert in1.length == 2
 
 
 def test_reversed_monitor(example_sequence):
-    env, positions = example_sequence
-    mo1 = env['mo1_reversed']
-    xo.assert_allclose(positions['mo1_reversed'], 36 - 11)
+    env, _, positions_reversed = example_sequence
+    mo1 = env['mo1/line_reversed']
+    xo.assert_allclose(positions_reversed['mo1/line_reversed'], 36 - 11)
     assert isinstance(mo1, xt.Drift)
     assert mo1.length == 1
 
 
 def test_reversed_placeholder(example_sequence):
-    env, positions = example_sequence
-    pl1 = env['pl1_reversed']
-    xo.assert_allclose(positions['pl1_reversed'], 36 - 13)
+    env, _, positions_reversed = example_sequence
+    pl1 = env['pl1/line_reversed']
+    xo.assert_allclose(positions_reversed['pl1/line_reversed'], 36 - 13)
     assert isinstance(pl1, xt.Drift)
     assert pl1.length == 1
 
 
 def test_reversed_sbend(example_sequence):
-    env, positions = example_sequence
+    env, _, positions_reversed = example_sequence
     # sb: sbend, l=2, angle=2, tilt=-2, k0=3, k1=1, k2=2, k1s=3, e1=2, e2=1,
     #   fint=3, fintx=2, hgap=1;  ! thick, ktap, h1, h2 we ignore
-    sb1 = env['sb1_reversed']
-    xo.assert_allclose(positions['sb1_reversed'], 36 - 15)
+    sb1 = env['sb1/line_reversed']
+    xo.assert_allclose(positions_reversed['sb1/line_reversed'], 36 - 15)
     assert isinstance(sb1, xt.Bend)
     assert sb1.length == 2
     assert sb1.k0 == 3
@@ -562,11 +564,10 @@ def test_reversed_sbend(example_sequence):
 
 
 def test_reversed_rbend(example_sequence):
-    env, positions = example_sequence
-    # rb: rbend, l=2, angle=1.5, tilt=-2, k0=3, k1=1, k2=2, k1s=3, e1=2, e2=1,
+    env, _, positions_reversed = example_sequence    # rb: rbend, l=2, angle=1.5, tilt=-2, k0=3, k1=1, k2=2, k1s=3, e1=2, e2=1,
     #   fint=3, fintx=2, hgap=1, h1=3, h2=2;  ! ditto
-    rb1 = env['rb1_reversed']
-    xo.assert_allclose(positions['rb1_reversed'], 36 - 17)
+    rb1 = env['rb1/line_reversed']
+    xo.assert_allclose(positions_reversed['rb1/line_reversed'], 36 - 17)
     assert isinstance(rb1, xt.RBend)
 
     angle = 2
@@ -593,10 +594,10 @@ def test_reversed_rbend(example_sequence):
 
 
 def test_reversed_quadrupole(example_sequence):
-    env, positions = example_sequence
+    env, _, positions_reversed = example_sequence
     # qu: quadrupole, l=2, k1=3, k1s=4, tilt=2;  ! ignore thick and ktap
-    qu1 = env['qu1_reversed']
-    xo.assert_allclose(positions['qu1_reversed'], 36 - 19)
+    qu1 = env['qu1/line_reversed']
+    xo.assert_allclose(positions_reversed['qu1/line_reversed'], 36 - 19)
     assert isinstance(qu1, xt.Quadrupole)
     assert qu1.length == 2
     assert qu1.k1 == -3
@@ -605,10 +606,10 @@ def test_reversed_quadrupole(example_sequence):
 
 
 def test_reversed_sextupole(example_sequence):
-    env, positions = example_sequence
+    env, _, positions_reversed = example_sequence
     # se: sextupole, L=1, K2=2, K2S=3, TILT=2;  ! ignore ktap
-    se1 = env['se1_reversed']
-    xo.assert_allclose(positions['se1_reversed'], 36 - 21)
+    se1 = env['se1/line_reversed']
+    xo.assert_allclose(positions_reversed['se1/line_reversed'], 36 - 21)
     assert isinstance(se1, xt.Sextupole)
     assert se1.length == 1
     assert se1.k2 == 2
@@ -617,10 +618,10 @@ def test_reversed_sextupole(example_sequence):
 
 
 def test_reversed_octupole(example_sequence):
-    env, positions = example_sequence
+    env, _, positions_reversed = example_sequence
     # oc: octupole, L=2, K3=3, K3S=2, TILT=2;
-    oc1 = env['oc1_reversed']
-    xo.assert_allclose(positions['oc1_reversed'], 36 - 23)
+    oc1 = env['oc1/line_reversed']
+    xo.assert_allclose(positions_reversed['oc1/line_reversed'], 36 - 23)
     assert isinstance(oc1, xt.Octupole)
     assert oc1.length == 2
     assert oc1.k3 == -3
@@ -629,18 +630,16 @@ def test_reversed_octupole(example_sequence):
 
 
 def test_reversed_marker(example_sequence):
-    env, positions = example_sequence
-    # ma: marker;
-    ma1 = env['ma1_reversed']
-    xo.assert_allclose(positions['ma1_reversed'], 36 - 25)
+    env, _, positions_reversed = example_sequence    # ma: marker;
+    ma1 = env['ma1']
+    xo.assert_allclose(positions_reversed['ma1'], 36 - 25)
     assert isinstance(ma1, xt.Marker)
 
 
 def test_reversed_rfcavity(example_sequence):
-    env, positions = example_sequence
-    # rf: rfcavity, L=2, VOLT=1, LAG=2, FREQ=3, HARMON=2;  ! ignore N_BESSEL, NO_CAVITY_TOTALPATH
-    rf1 = env['rf1_reversed']
-    xo.assert_allclose(positions['rf1_reversed'], 36 - 27)
+    env, _, positions_reversed = example_sequence    # ma: marker;    # rf: rfcavity, L=2, VOLT=1, LAG=2, FREQ=3, HARMON=2;  ! ignore N_BESSEL, NO_CAVITY_TOTALPATH
+    rf1 = env['rf1/line_reversed']
+    xo.assert_allclose(positions_reversed['rf1/line_reversed'], 36 - 27)
     assert isinstance(rf1, xt.Cavity)
     assert rf1.voltage == 1e6
     assert rf1.lag == 180 - 2 * 360
@@ -648,10 +647,10 @@ def test_reversed_rfcavity(example_sequence):
 
 
 def test_reversed_multipole(example_sequence):
-    env, positions = example_sequence
+    env, _, positions_reversed = example_sequence
     # mu: multipole, LRAD=1, TILT=2, KNL={3, 4, 5}, KSL={1, 2, 3};
-    mu1 = env['mu1_reversed']
-    xo.assert_allclose(positions['mu1_reversed'], 36 - 29)
+    mu1 = env['mu1/line_reversed']
+    xo.assert_allclose(positions_reversed['mu1/line_reversed'], 36 - 29)
     assert isinstance(mu1, xt.Multipole)
     assert mu1.length == 1
     assert mu1.knl[0] == 3
@@ -666,10 +665,10 @@ def test_reversed_multipole(example_sequence):
 
 
 def test_reversed_solenoid(example_sequence):
-    env, positions = example_sequence
+    env, _, positions_reversed = example_sequence
     # so: solenoid, l=2, ks=3;  ! ignore ksi
-    so1 = env['so1_reversed']
-    xo.assert_allclose(positions['so1_reversed'], 36 - 31)
+    so1 = env['so1/line_reversed']
+    xo.assert_allclose(positions_reversed['so1/line_reversed'], 36 - 31)
     assert isinstance(so1, xt.Solenoid)
     assert so1.length == 2
     assert so1.ks == -3
@@ -717,16 +716,14 @@ def test_load_b2_with_bv_minus_one(tmp_path):
                                        replace_in_expr={'bv_aux': 'bvaux_b2'})
     line2_ref.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7000e9)
 
-    loader = MadxLoader(reverse_lines=['lhcb2'])
-    loader.rbarc = True
-    loader.load_file(tmp_seq_path)
-    line2 = loader.env['lhcb2']
+    env = xt.load_madx_lattice(tmp_seq_path, reverse_lines=['lhcb2'])
+    line2 = env['lhcb2']
 
     # Bend done
 
     # Quadrupole
-    xo.assert_allclose(line2_ref['mq.27l2.b2'].k1, line2['mq.27l2.b2_reversed'].k1, rtol=0, atol=1e-12)
-    xo.assert_allclose(line2_ref['mqs.27l3.b2'].k1s, line2['mqs.27l3.b2_reversed'].k1s, rtol=0, atol=1e-12)
+    xo.assert_allclose(line2_ref['mq.27l2.b2'].k1, line2['mq.27l2.b2'].k1, rtol=0, atol=1e-12)
+    xo.assert_allclose(line2_ref['mqs.27l3.b2'].k1s, line2['mqs.27l3.b2'].k1s, rtol=0, atol=1e-12)
 
     tt2 = line2_ref.get_table()
     tt4 = line2.get_table()
@@ -741,7 +738,7 @@ def test_load_b2_with_bv_minus_one(tmp_path):
     l2names.remove('lhcb2$start')
     l2names.remove('lhcb2$end')
 
-    assert l2names == [nn[:-len('_reversed')] if nn.endswith('_reversed') else nn for nn in l4names]
+    assert l2names == [nn[:-len('/lhcb2')] if nn.endswith('/lhcb2') else nn for nn in l4names]
 
     # The tolerance is higher than usual, due to the difference in handling
     # rbend lengths between MAD-X and Xtrack (RBends' straight length is
@@ -752,7 +749,7 @@ def test_load_b2_with_bv_minus_one(tmp_path):
     for nn in l4names:
         if nn == '_end_point':
             continue
-        nn_straight = nn[:-len('_reversed')] if nn.endswith('_reversed') else nn
+        nn_straight = nn[:-len('/lhcb2')] if nn.endswith('/lhcb2') else nn
         e2 = line2_ref[nn_straight]
         e4 = line2[nn]
         d2 = e2.to_dict()

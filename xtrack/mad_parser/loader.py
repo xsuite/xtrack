@@ -217,16 +217,21 @@ class MadxLoader:
             # by name, otherwise we expect a line nested in the current one.
             parent = body.get('parent', None)
             repeat = body.get('_repeat', 1)
+            invert = body.get('_invert', False)
             instance = self.env[name] if name else None
 
             if parent is None and isinstance(instance, xt.Line):
                 # If it's a line, we use __mul__ and __neg__ directly
                 element = instance
+                if invert:
+                    element = -element
                 element = repeat * element
                 components.append(element)
             elif parent == 'line':
                 # If it's a nested line, we parse it recursively
                 element = self._parse_line_components(body['elements'])
+                if invert:
+                    element = list(reversed(element))
                 element = repeat * element
                 components += element
             elif parent is None:
