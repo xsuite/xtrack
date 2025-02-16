@@ -354,6 +354,9 @@ class Environment:
         if components is None:
             components = []
 
+        if isinstance(length, str):
+            length = self.eval(length)
+
         components = _resolve_lines_in_components(components, self)
         flattened_components = _flatten_components(components, refer=refer)
 

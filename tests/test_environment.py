@@ -2953,3 +2953,21 @@ def test_relative_error_definition():
     xo.assert_allclose(env.get('mqs').ksl[:3], 0.5 * 0.2 * np.array([3e-6, 3e-5, 3e-4]), rtol=1e-7, atol=0)
     xo.assert_allclose(env.get('mb').knl[:3], 0.3 * np.array([2e-6, 3e-5, 4e-4]), rtol=1e-7, atol=0)
     xo.assert_allclose(env.get('mb').ksl[:3], 0.3 * np.array([5e-6, 6e-5, 7e-4]), rtol=1e-7, atol=0)
+
+def test_builder_length():
+    env = xt.Environment()
+
+    env.new('mq', 'Quadrupole', length=1)
+
+    env['ll'] = 20.
+
+    env.new_line(name='l1', length='ll', components=[
+        env.place('mq', at=10)])
+
+    env['l1'].get_table().cols['s_start s_center s_end']
+
+    tt = env['l1'].get_table()
+
+    assert np.all(tt.name == np.array(['drift_1', 'mq', 'drift_2', '_end_point']))
+    xo.assert_allclose(tt.s_center, np.array([ 4.75, 10.  , 15.25, 20.  ]),
+                    rtol=0, atol=1e-10)
