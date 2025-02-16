@@ -314,7 +314,7 @@ class Environment:
         self._line_vars = xt.line.LineVars(self)
 
 
-    def new_line(self, components=None, name=None, refer: ReferType = 'center'):
+    def new_line(self, components=None, name=None, length=None, refer: ReferType = 'center'):
 
         '''
         Create a new line.
@@ -364,11 +364,13 @@ class Environment:
             seq_all_places = _all_places(flattened_components)
             tab_unsorted = _resolve_s_positions(seq_all_places, self, refer=refer)
             tab_sorted = _sort_places(tab_unsorted)
-            element_names = _generate_element_names_with_drifts(self, tab_sorted)
+            element_names = _generate_element_names_with_drifts(self, tab_sorted,
+                                                                length=length)
 
         out.element_names = element_names
         out._name = name
-        out.builder = Builder(env=self, components=components)
+        out.builder = Builder(env=self, components=components, length=length,
+                              name=name, refer=refer)
 
         # Temporary solution to keep consistency in multiline
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
@@ -1141,7 +1143,7 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
 
     return tt_sorted
 
-def _generate_element_names_with_drifts(env, tt_sorted, s_tol=1e-10):
+def _generate_element_names_with_drifts(env, tt_sorted, length=None, s_tol=1e-10):
 
     names_with_drifts = []
     # Create drifts
@@ -1153,6 +1155,15 @@ def _generate_element_names_with_drifts(env, tt_sorted, s_tol=1e-10):
             env.new(drift_name, xt.Drift, length=ds_upstream)
             names_with_drifts.append(drift_name)
         names_with_drifts.append(nn)
+
+    if length is not None:
+        length_line = tt_sorted['s_end'][-1]
+        if length_line > length + s_tol:
+            raise ValueError(f'Line length {length_line} is greater than the requested length {length}')
+        if length_line < length - s_tol:
+            drift_name = env._get_a_drift_name()
+            env.new(drift_name, xt.Drift, length=length - length_line)
+            names_with_drifts.append(drift_name)
 
     return list(map(str, names_with_drifts))
 
@@ -1254,11 +1265,12 @@ class EnvRef:
 
 
 class Builder:
-    def __init__(self, env, components=None, name=None, refer: ReferType = 'center'):
+    def __init__(self, env, components=None, name=None, length=None, refer: ReferType = 'center'):
         self.env = env
         self.components = components or []
         self.name = name
         self.refer = refer
+        self.length = length
 
     def __repr__(self):
         return f'Builder({self.name}, components={self.components!r})'
@@ -1279,7 +1291,8 @@ class Builder:
     def build(self, name=None):
         if name is None:
             name = self.name
-        out =  self.env.new_line(components=self.components, name=name, refer=self.refer)
+        out =  self.env.new_line(components=self.components, name=name, refer=self.refer,
+                                 length=self.length)
         out.builder = self
         return out
 
