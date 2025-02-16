@@ -176,8 +176,8 @@ def example_sequence(temp_context_default_mod):
         mu1: mu, at = 29;
         so1: so, at = 31;
 
-        ! rx1: rb_stage2, at = 33;
-        !rx2: rb_stage2, at = 35;
+        rx1: rb_stage2, at = 33;
+        rx2: rb_stage2, at = 35;
     endsequence;
     
     ! exactly the same as above, but to be parsed in reverse order
@@ -199,12 +199,12 @@ def example_sequence(temp_context_default_mod):
         mu1: mu, at = 29;
         so1: so, at = 31;
 
+        rx1: rb_stage2, at = 33;
         eee: marker, at = 36; ! patch for xsuite bug
 
-        ! rx1: rb_stage2, at = 32;
     endsequence;
 
-    ! rx2, angle = 1.5;
+    rx2, angle = 1.5;
     """
 
     env = xt.load_madx_lattice(string=sequence, reverse_lines=['line_reversed'])
@@ -349,7 +349,6 @@ def test_rbend(example_sequence):
     assert rb1.edge_entry_hgap == 1
     assert rb1.edge_exit_hgap == 1
 
-@pytest.mark.xfail(reason="To be investigated")
 def test_rbend_two_step(example_sequence):
     env, positions, _ = example_sequence
     rb1 = env['rx1/line']
@@ -368,11 +367,11 @@ def test_rbend_two_step(example_sequence):
     assert rb1.edge_exit_angle == 0
     assert rb1.k0 == h
 
-@pytest.mark.xfail(reason="To be investigated")
 def test_rbend_set_params_after_lattice(example_sequence):
     env, positions, _ = example_sequence
     rb1 = env['rx2']
-    xo.assert_allclose(positions['rx2'], 35)
+    assert positions['rx2'] < 35 # When changing the angle the position changes
+                                 # (the magnet shortens)
     assert isinstance(rb1, xt.RBend)
 
     angle = 1.5
