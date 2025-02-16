@@ -1303,6 +1303,18 @@ class Builder:
         tab_sorted = _sort_places(tab_unsorted)
         return tab_sorted
 
+    def flatten(self, inplace=False):
+
+        assert not inplace, 'Inplace not yet implemented'
+
+        out = self.__class__(self.env)
+        out.__dict__.update(self.__dict__)
+
+        components = _resolve_lines_in_components(self.components, self.env)
+        out.components = _flatten_components(components, refer=self.refer)
+        out.components = _all_places(out.components)
+        return out
+
     @property
     def element_dict(self):
         return self.env.element_dict

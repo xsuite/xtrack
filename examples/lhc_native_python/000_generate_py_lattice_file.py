@@ -75,7 +75,7 @@ env = xt.load_madx_lattice('../../test_data/lhc_2024/lhc.seq', reverse_lines=['l
 all_elems = []
 for lname in env.lines.keys():
     ll = env.lines[lname]
-    bb = ll.builder
+    bb = ll.builder.flatten()
     all_elems += [cc.name for cc in bb.components]
 
 elem_tokens = {}
@@ -197,13 +197,17 @@ elem_def_part = '\n'.join(elem_def_lines)
 builder_lines = []
 for lname in env.lines.keys():
     builder_lines.append(f'# Builder for line: {lname}')
-    bb = env.lines[lname].builder
+    bb = env.lines[lname].builder.flatten()
     builder_lines.append(f'{lname} = env.new_builder(name="{lname}")')
     for cc in bb.components:
         cc_tokens=[]
         for kk, vv in cc.__dict__.items():
             if vv is None or kk == 'name':
                 continue
+            if hasattr(vv, '_expr'): # is expression
+                # Get string representation of expression
+                env['__temp__'] = vv
+                vv = env.ref["__temp__"]._expr._formatted(formatter)
             cc_tokens.append(f'{kk}="{vv}"')
         builder_lines.append(f'{lname}.place("{cc.name}", ' + ', '.join(cc_tokens) + ')')
     builder_lines.append(f'{lname}.build()')

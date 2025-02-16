@@ -255,7 +255,7 @@ class MadxLoader:
         el_params = self._pre_process_element_params(name, kwargs)
         length = el_params.get('length', self._parameter_cache[name].get('length', 0))
         if self._mad_base_type(name) in {'vkicker', 'hkicker', 'kicker', 'tkicker',
-                                         'multipole', 'rfcavity'}:
+                                         'multipole'}:
             # Workaround for the fact that Multipole.length does not make an element thick
             length = 0
 
@@ -284,10 +284,11 @@ class MadxLoader:
             if (isinstance(self.env[parent], BeamElement) and not self.env[parent].isthick
                     and length and not isinstance(self.env[parent], xt.Marker)):
                 drift_name = f'{name}_drift'
-                self.env.new(drift_name, 'Drift', force=True, length=f'({length}) / 2')  # Not sure why `force` is needed
+                self.env.new(drift_name+'_0', 'Drift', force=True, length=f'({length}) / 2')  # Not sure why `force` is needed
+                self.env.new(drift_name+'_1', 'Drift', force=True, length=f'({length}) / 2')  # Not sure why `force` is needed
                 at, from_ = el_params.pop('at', None), el_params.pop('from_', None)
                 self.env.new(name, parent, force=True, **el_params) # Not sure why `force` is needed
-                name = self.env.new_line([drift_name, name, drift_name])
+                name = self.env.new_line([drift_name+'_0', name, drift_name+'_1'])
                 builder.place(name, at=at, from_=from_)
             else:
                 if name == parent:
