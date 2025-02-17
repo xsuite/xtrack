@@ -314,7 +314,7 @@ class Environment:
         self._line_vars = xt.line.LineVars(self)
 
 
-    def new_line(self, components=None, name=None, length=None, refer: ReferType = 'center'):
+    def new_line(self, components=None, name=None, refer: ReferType = 'center', length=None):
 
         '''
         Create a new line.
@@ -326,6 +326,14 @@ class Environment:
             place objects, and lines.
         name : str, optional
             Name of the new line.
+        refer : str, optional
+            Specifies which part of the component the ``at`` position will refer
+            to. Allowed values are ``start``, ``center`` (default; also allowed
+            is ``centre```), and ``end``.
+        length : float | str, optional
+            Length of the line to be built by the builder. Can be an expression.
+            If not specified, the length will be the minimum length that can
+            fit all the components.
 
         Returns
         -------
@@ -431,6 +439,14 @@ class Environment:
             place objects, and lines.
         name : str, optional
             Name of the line that will be built by the builder.
+        refer : str, optional
+            Specifies which part of the component the ``at`` position will refer
+            to. Allowed values are ``start``, ``center`` (default; also allowed
+            is ``centre```), and ``end``.
+        length : float | str, optional
+            Length of the line to be built by the builder. Can be an expression.
+            If not specified, the length will be the minimum length that can
+            fit all the components.
 
         Returns
         -------
@@ -1278,7 +1294,14 @@ class Builder:
         self.length = length
 
     def __repr__(self):
-        return f'Builder({self.name}, components={self.components!r})'
+        parts = [f'name={self.name!r}']
+        if self.length is not None:
+            parts.append(f'length={self.length!r}')
+        if self.refer not in {'center', 'centre'}:
+            parts.append(f'refer={self.refer!r}')
+        parts.append(f'components={self.components!r}')
+        args_str = ', '.join(parts)
+        return f'Builder({args_str})'
 
     def new(self, name, cls, at=None, from_=None, extra=None, force=False,
             **kwargs):

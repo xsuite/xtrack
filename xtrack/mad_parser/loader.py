@@ -1,4 +1,3 @@
-from copy import deepcopy
 from typing import Dict, Optional, List, Set, Tuple, Union
 
 import numpy as np
@@ -6,7 +5,6 @@ import numpy as np
 import xtrack as xt
 from xtrack import BeamElement
 from xtrack.environment import Builder
-from xtrack import Environment
 from xtrack.mad_parser.parse import ElementType, LineType, MadxParser, VarType, MadxOutputType
 from xtrack.environment import _reverse_element
 
@@ -245,7 +243,8 @@ class MadxLoader:
         return components
 
     def _new_builtin(self, name, xt_type, **kwargs):
-        self.env.new(name, xt_type, **kwargs)
+        if name not in self.env.element_dict:
+            self.env.new(name, xt_type, **kwargs)
         self._builtin_types.add(name)
 
     def _new_element(self, name, parent, builder, **kwargs):
