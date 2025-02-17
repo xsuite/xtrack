@@ -18,6 +18,7 @@ from typing import List, Literal, Optional, Dict
 import numpy as np
 from scipy.constants import c as clight
 
+from xdeps.refs import is_ref
 from . import json as json_utils
 
 import xobjects as xo
@@ -49,8 +50,6 @@ from .internal_record import (start_internal_logging_for_elements_of_type,
 from .trajectory_correction import TrajectoryCorrection
 
 from .general import _print
-
-isref = xd.refs.is_ref
 
 log = logging.getLogger(__name__)
 
@@ -5362,7 +5361,10 @@ class LineVars:
         return self.line._xdeps_eval.eval(expr)
 
     def eval(self, expr):
-        return self.new_expr(expr)._get_value()
+        expr_or_value = self.new_expr(expr)
+        if is_ref(expr_or_value):
+            return expr_or_value._get_value()
+        return expr_or_value
 
     def info(self, var, limit=10):
         return self[var]._info(limit=limit)
