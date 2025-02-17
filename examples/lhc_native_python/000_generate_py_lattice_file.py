@@ -58,7 +58,7 @@ def _elem_to_tokens(env, nn, formatter):
             params.append(f'{kk}={getattr(ee_ref, kk)._value:g}')
 
     out = {'name': nn, 'element_type': ee.__class__.__name__, 'params': params,
-           'clone_parent': getattr(ee, 'clone_parent', None),
+           'prototype': getattr(ee, 'prototype', None),
            'extra': getattr(ee, 'extra', None)}
     return out
 
@@ -85,8 +85,8 @@ for nn in all_elems:
 while True:
     added = False
     for nn in list(elem_tokens.keys()):
-        if elem_tokens[nn]['clone_parent'] is not None:
-            parent_name = elem_tokens[nn]['clone_parent']
+        if elem_tokens[nn]['prototype'] is not None:
+            parent_name = elem_tokens[nn]['prototype']
             if parent_name not in elem_tokens:
                 elem_tokens[parent_name] = _elem_to_tokens(env, parent_name, formatter)
                 added = True
@@ -104,8 +104,8 @@ for nn in elem_tokens:
 # populate diff params
 for nn in elem_tokens:
     diff_params = []
-    if elem_tokens[nn]['clone_parent'] is not None:
-        parent_name = elem_tokens[nn]['clone_parent']
+    if elem_tokens[nn]['prototype'] is not None:
+        parent_name = elem_tokens[nn]['prototype']
         parent_params = elem_tokens[parent_name]['params']
         elem_params = set(elem_tokens[nn]['params'])
         for pp in elem_params:
@@ -119,8 +119,8 @@ for nn in elem_tokens:
 for nn in elem_tokens:
     out_parts = []
     out_parts.append(f'env.new("{nn}"')
-    if elem_tokens[nn]['clone_parent'] is not None:
-        out_parts.append(f'"{elem_tokens[nn]["clone_parent"]}"')
+    if elem_tokens[nn]['prototype'] is not None:
+        out_parts.append(f'"{elem_tokens[nn]["prototype"]}"')
     else:
         out_parts.append(f'"{elem_tokens[nn]["element_type"]}"')
     if len(elem_tokens[nn]['diff_params']) > 0:
@@ -132,8 +132,8 @@ for nn in elem_tokens:
 # Sort based on hierarchy
 sorted_elems = []
 def _add_elem(nn):
-    if elem_tokens[nn]['clone_parent'] is not None:
-        _add_elem(elem_tokens[nn]['clone_parent'])
+    if elem_tokens[nn]['prototype'] is not None:
+        _add_elem(elem_tokens[nn]['prototype'])
     if nn not in sorted_elems:
         sorted_elems.append(nn)
 for nn in elem_tokens:
@@ -142,11 +142,11 @@ for nn in elem_tokens:
 tt_edefs = xt.Table({
     'name': np.array(sorted_elems),
     'element_type': np.array([elem_tokens[nn]['element_type'] for nn in sorted_elems]),
-    'clone_parent': np.array([elem_tokens[nn]['clone_parent'] for nn in sorted_elems]),
+    'prototype': np.array([elem_tokens[nn]['prototype'] for nn in sorted_elems]),
     'def_instruction': np.array([elem_tokens[nn]['def_instruction'] for nn in sorted_elems]),
 })
 
-tt_gen0 = tt_edefs.rows[tt_edefs['clone_parent'] == None]
+tt_gen0 = tt_edefs.rows[tt_edefs['prototype'] == None]
 tt_gen0.gen_name = 'Xsuite types'
 
 generation_tree = [{'Xsuite types': tt_gen0}]
@@ -159,7 +159,7 @@ while True:
     this_gen = {}
     added = False
     for nn in names_last_gen:
-        tt_gen = tt_edefs.rows[tt_edefs['clone_parent'] == nn]
+        tt_gen = tt_edefs.rows[tt_edefs['prototype'] == nn]
         if len(tt_gen) > 0:
             tt_gen.gen_name = nn
             this_gen[nn] = tt_gen

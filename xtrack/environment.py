@@ -265,11 +265,11 @@ class Environment:
 
         needs_instantiation = True
         parent_element = None
-        clone_parent = None
+        prototype = None
         if isinstance(parent, str):
             if parent in self.element_dict:
                 # Clone an existing element
-                clone_parent = parent
+                prototype = parent
                 self.element_dict[name] = xt.Replica(parent_name=parent)
                 xt.Line.replace_replica(self, name)
 
@@ -303,7 +303,7 @@ class Environment:
             assert isinstance(extra, dict)
             self.element_dict[name].extra = extra
 
-        self.element_dict[name].clone_parent = clone_parent
+        self.element_dict[name].prototype = prototype
 
         return name
 

@@ -612,8 +612,8 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
                 out.extra = self.extra.copy()
             except AttributeError:
                 out.extra = self.extra
-        if hasattr(self, 'clone_parent'):
-            out.clone_parent = self.clone_parent
+        if hasattr(self, 'prototype'):
+            out.prototype = self.prototype
         return out
 
     @property
