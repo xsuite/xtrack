@@ -229,6 +229,8 @@ tt_lattice_pars = tt_lattice_pars_all.rows[mask_keep]
 
 lines_vars = []
 for nn in tt_lattice_pars.name:
+    if nn == '__temp__':
+        continue
     if tt_lattice_pars['expr', nn] is not None:
         lines_vars.append(f'env["{nn}"] = "{tt_lattice_pars["expr", nn]}"')
     else:
