@@ -33,7 +33,7 @@ tt_selected = tt_quad.rows['qf.*']
 
 # Generate random octupolar errors
 k3l_rel_rms = 1e-3
-k3l_rel = k3l_rel_rms * (2*np.random.rand(len(tt_selected)))
+k3l_rel = k3l_rel_rms * (np.random.rand(len(tt_selected)))
 
 # Generate error dictionary
 errors = {}
