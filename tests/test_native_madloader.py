@@ -130,6 +130,11 @@ def test_simple_parser():
     assert expected == result
 
 
+def test_parse_single_expression():
+    env = xt.load_madx_lattice(string='a = 42;')
+    assert env['a'] == 42
+
+
 @pytest.fixture(scope='module')
 def example_sequence(temp_context_default_mod):
     sequence = """
@@ -704,7 +709,7 @@ def test_load_b2_with_bv_minus_one(tmp_path):
     mad.globals['kctsx3.r1'] = 1e-5  # Check thin skew dodecapole expressions
 
 
-    tmp_seq_path = 'sequence.seq'  # str(tmp_path / 'sequence.seq')
+    tmp_seq_path = str(tmp_path / 'sequence.seq')
     mad.input('set, format=".20g";')
     mad.save(file=tmp_seq_path)
 
