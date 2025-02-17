@@ -1910,8 +1910,6 @@ def test_part_from_full_periodic(test_context, collider_for_test_twiss_range):
             rtol=1e-12, atol=5e-7)
 
 
-
-
 @for_all_test_contexts
 def test_twiss_add_strengths(test_context):
     ## Generate a simple line
