@@ -419,7 +419,8 @@ class Environment:
 
         return Place(name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
 
-    def new_builder(self, components=None, name=None, refer: ReferType = 'center'):
+    def new_builder(self, components=None, name=None, refer: ReferType = 'center',
+                    length=None):
         '''
         Create a new builder.
 
@@ -437,7 +438,8 @@ class Environment:
             The new builder.
         '''
 
-        return Builder(env=self, components=components, name=name, refer=refer)
+        return Builder(env=self, components=components, name=name, refer=refer,
+                       length=length)
 
     def call(self, filename):
         '''

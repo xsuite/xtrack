@@ -200,7 +200,6 @@ def example_sequence(temp_context_default_mod):
         so1: so, at = 31;
 
         rx1: rb_stage2, at = 33;
-        eee: marker, at = 36; ! patch for xsuite bug
 
     endsequence;
 
@@ -859,3 +858,25 @@ def test_refer_and_thin_elements():
 
     assert np.all(tt1['element_type'] == tt2['element_type'])
     assert np.all(tt1['s'] == tt2['s'])
+
+
+def test_import_seq_length():
+    sequence = """
+
+    qu: quadrupole, l=2, k1=3, k1s=4, tilt=2;  ! ignore thick and ktap
+
+    line: sequence, l = ll;
+        qu1: qu, at = 19;
+    endsequence;
+
+    ll := 3 * a;
+    a = 10;
+
+    """
+
+    env = xt.load_madx_lattice(string=sequence)
+
+    tt = env.line.get_table()
+    assert np.all(tt.name == np.array(['drift_1', 'qu1', 'drift_2', '_end_point']))
+    xo.assert_allclose(tt['s'], np.array([ 0., 18., 20., 30.]), rtol=0, atol=1e-15)
+    assert env.line.builder.length == 'll'

@@ -6,7 +6,6 @@ import numpy as np
 import xtrack as xt
 from xtrack import BeamElement
 from xtrack.environment import Builder
-from xtrack.mad_parser.env_writer import EnvWriterProxy
 from xtrack import Environment
 from xtrack.mad_parser.parse import ElementType, LineType, MadxParser, VarType, MadxOutputType
 from xtrack.environment import _reverse_element
@@ -81,7 +80,7 @@ def get_params(params, parent):
 class MadxLoader:
     def __init__(
             self,
-            env: Union[xt.Environment, EnvWriterProxy] = None,
+            env: xt.Environment = None,
     ):
         self._madx_elem_hierarchy: Dict[str, List[str]] = {}
         self._both_direction_elements: Set[str] = set()
@@ -179,7 +178,9 @@ class MadxLoader:
                     refer = 'start'
                 elif refer == 'exit':
                     refer = 'end'
-                builder = self.env.new_builder(name=name, refer=refer)
+                length = params.get('l', {}).get('expr', None)
+                builder = self.env.new_builder(name=name, refer=refer,
+                                               length=length)
                 self._parse_components(builder, params.pop('elements'))
                 builders.append(builder)
             elif line_type == 'line':
