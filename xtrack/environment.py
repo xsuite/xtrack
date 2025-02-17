@@ -496,7 +496,7 @@ class Environment:
         self.ref_manager.containers['vars']._owner.update(new_var_values)
 
         self.ref_manager.copy_expr_from(line.ref_manager, 'vars', overwrite=overwrite_vars)
-        old_default_to_zero = self.vars.default_to_zero
+        old_default_to_zero = self.vars.default_to_zero # Not sure why this is needed
         self.vars.default_to_zero = True
         self.ref_manager.run_tasks()
         self.vars.default_to_zero = old_default_to_zero
