@@ -3204,14 +3204,14 @@ class TwissTable(Table):
         dx_start = self['dx', src]
         dy_start = self['dy', src]
 
-        dbetx = - 2 * R_matrix[0, 0] * R_matrix[0, 1] * betx_start + 2 * R_matrix[0, 1]**2 * alfx_start
+        dbetx = -2 * R_matrix[0, 0] * R_matrix[0, 1] * betx_start + 2 * R_matrix[0, 1]**2 * alfx_start
         dbety = 2 * R_matrix[2, 2] * R_matrix[2, 3] * bety_start - 2 * R_matrix[2, 3]**2 * alfy_start
         dalfx = betx_start * (R_matrix[0, 1] * R_matrix[1, 0] + R_matrix[0, 0] * R_matrix[1, 1])\
                     - 2 * alfx_start * R_matrix[0, 1] * R_matrix[1, 1]
         dalfy = - bety_start * (R_matrix[2, 3] * R_matrix[3, 2] + R_matrix[2, 2] * R_matrix[3, 3])\
                     + 2 * alfy_start * R_matrix[2, 3] * R_matrix[3, 3]
         dmux = R_matrix[0, 1]**2 * betx_start / (R_matrix[0, 1]**2 + (R_matrix[0, 0] * betx_start - R_matrix[0, 1] * alfx_start)**2)
-        dmuy = - R_matrix[2, 3]**2 * bety_start / (R_matrix[2, 3]**2 + (R_matrix[2, 2] * bety_start - R_matrix[2, 3] * alfy_start)**2)
+        dmuy = -R_matrix[2, 3]**2 * bety_start / (R_matrix[2, 3]**2 + (R_matrix[2, 2] * bety_start - R_matrix[2, 3] * alfy_start)**2)
         ddx = -R_matrix[0, 1] * dx_start
         ddpx = -R_matrix[1, 1] * dx_start
         ddy = R_matrix[2, 3] * dy_start
