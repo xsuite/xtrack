@@ -11,17 +11,24 @@ env.new('qfa', xt.Quadrupole, length=2*0.175, k1= 'kqfa')
 env.new('qd',  xt.Quadrupole, length=2*0.175, k1= 'kqd')
 env.new('qfb', xt.Quadrupole, length=2*0.175, k1= 'kqfb')
 
-quarter_ring = env.new_line(name='half_ring', length=75.24/4, components=[
+cell_a = env.new_line(name='cell_a', length=75.24/8, components=[
     env.place('qfa', at=2.3875),
     env.place('mb', at=3.8125),
     env.place('qd', at=5.2925),
     env.place('mb', at=7.0475),
     env.place('qfa', at=8.3275),
-    env.place('qfb', at=10.6775),
-    env.place('mb', at=12.1325),
-    env.place('qd', at=14.2625),
-    env.place('mb', at=15.9175),
-    env.place('qfb', at=17.1975),
+])
+
+cell_b = env.new_line(name='cell_b', length=75.24/8, components=[
+    env.place('qfb', at=10.6775 - 9.405),
+    env.place('mb', at=12.1325 - 9.405),
+    env.place('qd', at=14.2625 - 9.405),
+    env.place('mb', at=15.9175 - 9.405),
+    env.place('qfb', at=17.1975 - 9.405),
+])
+
+quarter_ring = cell_a + cell_b
+
     # env.place('qfb', at=20.2475),
     # env.place('mb', at=21.7025),
     # env.place('qd', at=23.1825),
@@ -52,7 +59,7 @@ quarter_ring = env.new_line(name='half_ring', length=75.24/4, components=[
     # env.place('qd', at=69.7725),
     # env.place('mb', at=71.4275),
     # env.place('qfa', at=72.6775),
-])
+# ])
 
 ring = env.new_line(name='ring', components=[
     quarter_ring, -quarter_ring, quarter_ring, -quarter_ring])
@@ -86,6 +93,7 @@ opt.solve()
 opt = ring.match(
     solve=False,
     method='4d',
+    compute_chromatic_properties=False,
     vary=[
         xt.VaryList(['kqfa', 'kqfb'], limits=(0, 1),  step=1e-3),
         xt.Vary('kqd', limits=(-1, 0), step=1e-3),
@@ -96,7 +104,4 @@ opt = ring.match(
     ]
 )
 
-
-
-
-
+opt.solve()
