@@ -26,7 +26,7 @@ env_native.get_expr('c')
 env_cpymad.get_expr('c')
 # is vars['a^5'] <<<<<<<<<<< WRONG!
 
-env_native.get_expr('c')
-# (vars['a'] ** 5.0) <<<<<<< WRONG!, was assinged by value in madx
-env_cpymad.get_expr('c')
+env_native.get_expr('b')
+# (3.0 * vars['a']) <<<<<<< WRONG!, was assinged by value in madx
+env_cpymad.get_expr('b')
 # None <<<<<<<<<<< CORRECT
