@@ -4,9 +4,16 @@ import numpy as np
 env = xt.Environment()
 env.particle_ref = xt.Particles(kinetic_energy0=200e6)
 
+
+
+n_bends = 16
+env['ang_mb'] = 2*np.pi/n_bends
+env['l_mb'] = 1.65
+env['l_mq'] = 0.35
+
 env.vars.default_to_zero = True
-env.new('mb', xt.RBend,       length=1.661, angle=2*np.pi/16, k0_from_h=True)
-env.new('mq', xt.Quadrupole, length=0.35)
+env.new('mb', xt.RBend,      length='l_mb', angle='ang_mb', k0_from_h=True)
+env.new('mq', xt.Quadrupole, length='l_mq')
 
 
 env.new('qfa', 'mq', k1= 'kqfa')
@@ -14,12 +21,12 @@ env.new('qfb', 'mq', k1= 'kqfb')
 env.new('qd',  'mq', k1= 'kqd')
 
 
-cell_a = env.new_line(name='cell_a', length=75.24/8, components=[
-    env.place('qfa', at=2.3875),
-    env.place('mb', at=3.8125),
-    env.place('qd', at=5.2925),
-    env.place('mb', at=7.0475),
-    env.place('qfa', at=8.3275),
+cell_a = env.new_line(name='cell_a', length=75.24/8 - 2., components=[
+    env.place('qfa', at=0.3875),
+    env.place('mb', at=1.8125),
+    env.place('qd', at=3.2925),
+    env.place('mb', at=5.0475),
+    env.place('qfa', at=6.3275),
 ])
 
 cell_b = env.new_line(name='cell_b', length=75.24/8, components=[
@@ -30,7 +37,11 @@ cell_b = env.new_line(name='cell_b', length=75.24/8, components=[
     env.place('qfb', at=7.7925),
 ])
 
-quarter_ring = cell_a + cell_b
+ss = env.new_line(name='ss', length=2., components=[
+    env.new('mid.ss', xt.Marker, at=1.)
+])
+
+quarter_ring = ss + cell_a + cell_b
 
     # env.place('qfb', at=20.2475),
     # env.place('mb', at=21.7025),
