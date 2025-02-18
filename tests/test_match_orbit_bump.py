@@ -835,7 +835,8 @@ def test_match_bump_common_elements_targets_from_tables(test_context):
             vars.target(lambda vv: vv['acbxv1.l5'] + vv['acbxv1.r5'], xt.LessThan(1e-9)),
             # Targets from line
             line_b1.target(lambda ll: ll['mcbrdv.4r5.b1']._xobject.ksl[0], xt.GreaterThan(1e-6)),
-            line_b1.target(lambda ll: ll['mcbxfbv.a2r5']._xobject.ksl[0] + ll['mcbxfbv.a2l5']._xobject.ksl[0],
+            line_b1.target(lambda ll: ll['mcbxfbv.a2r5/lhcb1']._xobject.ksl[0]
+                                    + ll['mcbxfbv.a2l5/lhcb1']._xobject.ksl[0],
                                     xt.LessThan(1e-9)),
         ])
     opt.solve()

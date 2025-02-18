@@ -1,15 +1,12 @@
-from copy import deepcopy
 from typing import Dict, Optional, List, Set, Tuple, Union
-
 
 import numpy as np
 
 import xtrack as xt
 from xtrack import BeamElement
 from xtrack.environment import Builder
-from xtrack.mad_parser.env_writer import EnvWriterProxy
-from xtrack import Environment
 from xtrack.mad_parser.parse import ElementType, LineType, MadxParser, VarType, MadxOutputType
+from xtrack.environment import _reverse_element
 
 EXTRA_PARAMS = {
     "slot_id",
@@ -33,8 +30,23 @@ TRANSLATE_PARAMS = {
     "fintx": "edge_exit_fint",
 }
 
-REVERSED_SUFFIX = '_reversed'
-
+CONSTANTS = {
+    "pi": np.pi,
+    "twopi": np.pi * 2,
+    "degrad": 180 / np.pi,  # deg/rad
+    "raddeg": np.pi / 180,  # rad/deg
+    "e": np.e,
+    "emass": 0.51099895000e-3,  # GeV
+    "pmass": 0.93827208816,  # GeV
+    "nmass": 0.93956542052,  # GeV
+    "umass": 0.93149410242,  # GeV
+    "mumass": 0.1056583715,  # GeV
+    "clight": 299792458.0,  # m/s
+    "qelect": 1.602176634e-19,  # A * s
+    "hbar": 6.582119569e-25,  # MeV * s
+    "erad": 2.8179403262e-15,  # m
+    "prad": 'erad / emass * pmass',
+    }
 
 def _warn(msg):
     print(f'Warning: {msg}')
@@ -63,26 +75,12 @@ def get_params(params, parent):
     return main_params, extras
 
 
-def _reversed_name(name: str):
-    return f'{name}{REVERSED_SUFFIX}'
-
-
-def _invert(value: Union[str, int, float]):
-    if isinstance(value, str):
-        return f'-({value})'
-    return -value
-
-
 class MadxLoader:
     def __init__(
             self,
-            reverse_lines: Optional[List[str]] = None,
-            env: Union[xt.Environment, EnvWriterProxy] = None,
+            env: xt.Environment = None,
     ):
-        self.reverse_lines = reverse_lines or []
-
         self._madx_elem_hierarchy: Dict[str, List[str]] = {}
-        self._reversed_elements: Set[str] = set()
         self._both_direction_elements: Set[str] = set()
         self._builtin_types = set()
         self._parameter_cache = {}
@@ -97,23 +95,7 @@ class MadxLoader:
         self.env.vars.default_to_zero = True
 
         # Define the builtin MAD-X variables
-        self.env.vars.update({
-            "pi": np.pi,
-            "twopi": np.pi * 2,
-            "degrad": 180 / np.pi,  # deg/rad
-            "raddeg": np.pi / 180,  # rad/deg
-            "e": np.e,
-            "emass": 0.51099895000e-3,  # GeV
-            "pmass": 0.93827208816,  # GeV
-            "nmass": 0.93956542052,  # GeV
-            "umass": 0.93149410242,  # GeV
-            "mumass": 0.1056583715,  # GeV
-            "clight": 299792458.0,  # m/s
-            "qelect": 1.602176634e-19,  # A * s
-            "hbar": 6.582119569e-25,  # MeV * s
-            "erad": 2.8179403262e-15,  # m
-            "prad": 'erad / emass * pmass',
-        })
+        self.env.vars.update(CONSTANTS)
 
         # Define the built-in MAD-X elements
         self._new_builtin("vkicker", "Multipole")
@@ -160,13 +142,6 @@ class MadxLoader:
         hierarchy = self._collect_hierarchy(parsed_dict)
         self._madx_elem_hierarchy.update(hierarchy)
 
-        if self.reverse_lines:
-            collected_names = self._collect_reversed_elements(parsed_dict)
-            straight_names, reversed_names = collected_names
-            self._reversed_elements.update(reversed_names)
-            self._both_direction_elements.update(straight_names & reversed_names)
-            self._reverse_lines(parsed_dict)
-
         self._parse_vars(parsed_dict["vars"])
         self._parse_elements(parsed_dict["elements"])
         builders = self._parse_lines(parsed_dict["lines"], build=build)
@@ -201,7 +176,9 @@ class MadxLoader:
                     refer = 'start'
                 elif refer == 'exit':
                     refer = 'end'
-                builder = self.env.new_builder(name=name, refer=refer)
+                length = params.get('l', {}).get('expr', None)
+                builder = self.env.new_builder(name=name, refer=refer,
+                                               length=length)
                 self._parse_components(builder, params.pop('elements'))
                 builders.append(builder)
             elif line_type == 'line':
@@ -266,7 +243,8 @@ class MadxLoader:
         return components
 
     def _new_builtin(self, name, xt_type, **kwargs):
-        self.env.new(name, xt_type, **kwargs)
+        if name not in self.env.element_dict:
+            self.env.new(name, xt_type, **kwargs)
         self._builtin_types.add(name)
 
     def _new_element(self, name, parent, builder, **kwargs):
@@ -276,13 +254,14 @@ class MadxLoader:
 
         el_params = self._pre_process_element_params(name, kwargs)
         length = el_params.get('length', self._parameter_cache[name].get('length', 0))
-        if self._mad_base_type(name) in {'vkicker', 'hkicker', 'kicker', 'tkicker', 'multipole'}:
+        if self._mad_base_type(name) in {'vkicker', 'hkicker', 'kicker', 'tkicker',
+                                         'multipole'}:
             # Workaround for the fact that Multipole.length does not make an element thick
             length = 0
 
         if parent is None:
             # If parent is None, we wish to place instead
-            if self._mad_base_type(name) == 'rbend':
+            if self._mad_base_type(name) in ['rbend', 'sbend']:
                 el_params.pop('k0_from_h', None)
 
             if (superfluous := el_params.keys() - {'at', 'from_', 'extra'}):
@@ -305,10 +284,11 @@ class MadxLoader:
             if (isinstance(self.env[parent], BeamElement) and not self.env[parent].isthick
                     and length and not isinstance(self.env[parent], xt.Marker)):
                 drift_name = f'{name}_drift'
-                self.env.new(drift_name, 'Drift', force=True, length=f'({length}) / 2')  # Not sure why `force` is needed
+                self.env.new(drift_name+'_0', 'Drift', force=True, length=f'({length}) / 2')  # Not sure why `force` is needed
+                self.env.new(drift_name+'_1', 'Drift', force=True, length=f'({length}) / 2')  # Not sure why `force` is needed
                 at, from_ = el_params.pop('at', None), el_params.pop('from_', None)
                 self.env.new(name, parent, force=True, **el_params) # Not sure why `force` is needed
-                name = self.env.new_line([drift_name, name, drift_name])
+                name = self.env.new_line([drift_name+'_0', name, drift_name+'_1'])
                 builder.place(name, at=at, from_=from_)
             else:
                 if name == parent:
@@ -451,78 +431,6 @@ class MadxLoader:
 
         return params
 
-    def _reverse_lines(self, parsed_dict: MadxOutputType):
-        """Reverse a line in place, by adding reversed elements where necessary."""
-        # Deal with element definitions
-        elements_dict = parsed_dict['elements']
-        defined_names = list(elements_dict.keys())  # especially here order matters!
-        for name in defined_names:
-            if name not in self._reversed_elements:
-                continue
-
-            element = parsed_dict['elements'][name]
-            reversed_element = self._reverse_element(name, element)
-            elements_dict[_reversed_name(name)] = reversed_element
-
-            if name not in self._both_direction_elements:
-                # We can remove the original element if it's not needed
-                del elements_dict[name]
-
-        # Deal with line definitions
-        for line_name, line_params in parsed_dict['lines'].items():
-            if line_name not in self.reverse_lines:
-                continue
-
-            new_elements = []
-            line_elements = line_params['elements']
-            for name, elem_params in reversed(line_elements):
-                assert elem_params.get('parent', None) != 'sequence', 'Nesting not yet supported!'
-                el = self._reverse_element(name, elem_params, line_params.get('l'))
-                new_elements.append((_reversed_name(name), el))
-
-            line_params['elements'] = new_elements
-
-        # Deal with the parameters
-        parametrised_names = list(parsed_dict['parameters'].keys())  # ordered again
-        for name in parametrised_names:
-            if name not in self._reversed_elements:
-                continue
-
-            params = parsed_dict['parameters'][name]
-            reversed_params = self._reverse_element(name, params)
-            parsed_dict['parameters'][_reversed_name(name)] = reversed_params
-
-            if name not in self._both_direction_elements:
-                # We can remove the original parameter setting if it's not needed
-                del parsed_dict['parameters'][name]
-
-
-    def _collect_reversed_elements(self, parsed_dict: MadxOutputType) -> Tuple[Set[str], Set[str]]:
-        """Collect elements that are shared between non- and reversed lines."""
-        straight: Set[str] = set()
-        reversed_: Set[str] = set()
-
-        def _descend_into_line(line_params, correct_set):
-            if line_params['parent'] == 'line':
-                return
-
-            for name, elem_params in line_params['elements']:
-                parent = elem_params.get('parent', name)
-                correct_set.add(name)
-                # Also add the chain of parent types, as they will also need to
-                # be reversed. We skip the last element, as it's the base madx
-                # type and so it's empty (nothing to reverse).
-                for parent_name in self._madx_elem_hierarchy[name][:-1]:
-                    correct_set.add(parent_name)
-                if parent == 'sequence':
-                    _descend_into_line(elem_params, correct_set)
-
-        for line_name, line_params in parsed_dict["lines"].items():
-            correct_set = reversed_ if line_name in self.reverse_lines else straight
-            _descend_into_line(line_params, correct_set)
-
-        return straight, reversed_
-
     def _collect_hierarchy(self, parsed_dict: MadxOutputType):
         """Collect the base Madx types of all defined elements."""
         hierarchy = {}
@@ -547,89 +455,8 @@ class MadxLoader:
 
         return hierarchy
 
-    def _reverse_element(self, name: str, element: ElementType, line_length: Optional[VarType] = None) -> ElementType:
-        """Return a reversed element without modifying the original."""
-        element = deepcopy(element)
-
-        UNSUPPORTED = {
-            'dipedge', 'wire', 'crabcavity', 'rfmultipole', 'beambeam',
-            'matrix', 'srotation', 'xrotation', 'yrotation', 'translation',
-            'nllens',
-        }
-
-        if (type_ := self._mad_base_type(name)) in UNSUPPORTED:
-            raise NotImplementedError(
-                f'Cannot reverse the element `{name}`, as reversing elements '
-                f'of type `{type_}` is not supported!'
-            )
-
-        def _reverse_field(key):
-            if key in element:
-                element[key]['expr'] = _invert(element[key]["expr"])
-
-        def _exchange_fields(key1, key2):
-            value1 = element.pop(key1, None)
-            value2 = element.pop(key2, None)
-
-            if value1 is not None:
-                element[key2] = value1
-
-            if value2 is not None:
-                element[key1] = value2
-
-
-        _reverse_field('k0s')
-        _reverse_field('k1')
-        _reverse_field('k2s')
-        _reverse_field('k3')
-        _reverse_field('ks')
-        _reverse_field('ksi')
-        _reverse_field('vkick')
-        _reverse_field('tilt')
-
-        if self._mad_base_type(name) == 'vkicker':
-            _reverse_field('kick')
-
-        if 'lag' in element:
-            element['lag']['expr'] = f'0.5 - ({element["lag"]["expr"]})'
-
-        if 'at' in element:
-            if 'from' in element:
-                element['at']['expr'] = _invert(element["at"]["expr"])
-                element['from']['expr'] = _reversed_name(element['from']['expr'])
-            else:
-                if not line_length:
-                    raise ValueError(
-                        f'Line length must be specified when reversing, however '
-                        f'got no length for `{name}`!'
-                    )
-                element['at']['expr'] = f'({line_length["expr"]}) - ({element["at"]["expr"]})'
-
-        if 'knl' in element:
-            knl = element['knl']['expr']
-            for i in range(1, len(knl), 2):
-                knl[i] = _invert(knl[i])
-
-        if 'ksl' in element:
-            ksl = element['ksl']['expr']
-            for i in range(0, len(ksl), 2):
-                ksl[i] = _invert(ksl[i])
-
-        parent_name = element.get('parent')
-        if parent_name and parent_name != self._mad_base_type(parent_name):
-            element['parent'] = _reversed_name(parent_name)
-
-        _exchange_fields('e1', 'e2')
-        _exchange_fields('h1', 'h2')
-
-        if not ('fint' in element and 'fintx' not in element):
-            _exchange_fields('fint', 'fintx')
-
-        return element
 
     def _mad_base_type(self, element_name: str):
-        if element_name.endswith(REVERSED_SUFFIX):
-            element_name = element_name[:-len(REVERSED_SUFFIX)]
 
         if element_name in self._madx_elem_hierarchy:
             return self._madx_elem_hierarchy[element_name][-1]
@@ -642,8 +469,80 @@ class MadxLoader:
 
         return element_name
 
-def load_madx_lattice(file, reverse_lines=None):
-    loader = MadxLoader(reverse_lines=reverse_lines)
-    loader.load_file(file)
+def load_madx_lattice(file=None, string=None, reverse_lines=None):
+
+    if file is not None and string is not None:
+        raise ValueError('Only one of `file` or `string` can be provided!')
+
+    if file is None and string is None:
+        raise ValueError('Either `file` or `string` must be provided!')
+
+    loader = MadxLoader()
+    if file is not None:
+        loader.load_file(file)
+    elif string is not None:
+        loader.load_string(string)
+    else:
+        raise ValueError('Something went wrong!')
+
     env = loader.env
+
+    if reverse_lines:
+        print('Reversing lines:', reverse_lines)
+        loaded_env = env
+        rlines = {}
+        for nn in reverse_lines:
+            ll = env.lines[nn]
+            llr = ll.copy()
+
+            for enn in llr.element_names:
+                _reverse_element(llr, enn)
+
+            llr.discard_tracker()
+            llr.element_names = llr.element_names[::-1]
+
+            rlines[nn] = llr
+
+        all_lines = {}
+        for nn in env.lines.keys():
+            if nn in rlines:
+                all_lines[nn] = rlines[nn]
+            else:
+                all_lines[nn] = env.lines[nn]
+
+        new_env = xt.Environment(lines=all_lines)
+
+        # Adapt builders
+        for nn in env.lines.keys():
+            bb = env.lines[nn].builder.__class__(new_env)
+            bb.__dict__.update(env.lines[nn].builder.__dict__)
+            bb.env = new_env
+            this_rename = new_env.lines[nn]._renamed_elements
+            for cc in bb.components:
+                cc.name = this_rename.get(cc.name, cc.name)
+                cc.from_ = this_rename.get(cc.from_, cc.from_)
+
+            if nn in reverse_lines:
+                length = env.lines[nn].get_length()
+                bb.components = bb.components[::-1]
+                for cc in bb.components:
+                    if cc.at is not None:
+                        if isinstance(cc.at, str) or isinstance(cc.at, float):
+                            if cc.from_ is not None:
+                                cc.at = f'-({cc.at})'
+                            else:
+                                cc.at = f'({length} - {cc.at})'
+            new_env.lines[nn].builder = bb
+
+        # Add to new environment elements that were not in any line
+        elems_not_in_lines = set(env.elements.keys())
+        for nn in env.lines.keys():
+            elems_not_in_lines -= set(env.lines[nn].element_names)
+        dummy_line = env.new_line(components=list(elems_not_in_lines))
+        new_env.import_line(line=dummy_line, line_name='__DUMMY__')
+        del new_env.lines['__DUMMY__'] # keep the elements but not the line
+
+        env = new_env
+        print('Done reversing lines')
+
     return env
