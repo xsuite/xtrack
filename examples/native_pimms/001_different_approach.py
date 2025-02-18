@@ -5,11 +5,14 @@ env = xt.Environment()
 env.particle_ref = xt.Particles(kinetic_energy0=200e6)
 
 env.vars.default_to_zero = True
-env.new('mb', xt.RBend,       length=1.661, angle=2*np.pi/16,
-        k0_from_h=True)
-env.new('qfa', xt.Quadrupole, length=2*0.175, k1= 'kqfa')
-env.new('qd',  xt.Quadrupole, length=2*0.175, k1= 'kqd')
-env.new('qfb', xt.Quadrupole, length=2*0.175, k1= 'kqfb')
+env.new('mb', xt.RBend,       length=1.661, angle=2*np.pi/16, k0_from_h=True)
+env.new('mq', xt.Quadrupole, length=0.35)
+
+
+env.new('qfa', 'mq', k1= 'kqfa')
+env.new('qfb', 'mq', k1= 'kqfb')
+env.new('qd',  'mq', k1= 'kqd')
+
 
 cell_a = env.new_line(name='cell_a', length=75.24/8, components=[
     env.place('qfa', at=2.3875),
