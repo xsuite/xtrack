@@ -20,11 +20,11 @@ cell_a = env.new_line(name='cell_a', length=75.24/8, components=[
 ])
 
 cell_b = env.new_line(name='cell_b', length=75.24/8, components=[
-    env.place('qfb', at=10.6775 - 9.405),
-    env.place('mb', at=12.1325 - 9.405),
-    env.place('qd', at=14.2625 - 9.405),
-    env.place('mb', at=15.9175 - 9.405),
-    env.place('qfb', at=17.1975 - 9.405),
+    env.place('qfb', at=1.2725),
+    env.place('mb', at= 2.7275),
+    env.place('qd', at=4.8575),
+    env.place('mb', at=6.5125),
+    env.place('qfb', at=7.7925),
 ])
 
 quarter_ring = cell_a + cell_b
