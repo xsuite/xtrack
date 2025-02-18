@@ -83,6 +83,10 @@ class MadxTransformer(Transformer):
             statement = ' '.join(str(token) for token in tokens.children)
         else:
             statement = ''
+        if statement.startswith('return'):
+            return
+        if statement == '':
+            return
         warn(f'Ignoring statement: `{statement}`')
 
     def assign_defer(self, name, value) -> Tuple[str, VarType]:
@@ -116,7 +120,7 @@ class MadxTransformer(Transformer):
         return string.value[1:-1]
 
     def call(self, function, *args):
-        return f'{function}({", ".join(args)})'
+        return f'{function}({", ".join(map(str, args))})'
 
     def function(self, name_token):
         return name_token.value.lower()
@@ -256,7 +260,12 @@ class MadxTransformer(Transformer):
             'parameters': self.parameters,
         }
 
-    op_arrow = make_op_handler('->')
+    def op_arrow(self, a, b):
+        a, b = a.lower(), b.lower()
+        if b == 'l':
+            b = 'length'
+        return f'{a}->{b}'
+
     op_lt = make_op_handler('<')
     op_gt = make_op_handler('>')
     op_le = make_op_handler('<=')

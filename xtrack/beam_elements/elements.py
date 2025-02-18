@@ -784,7 +784,7 @@ class _BendCommon:
     @k0.setter
     def k0(self, value):
         if self.k0_from_h and not np.isclose(value, self.h, atol=1e-13):
-            raise ValueError('Cannot change `k0` when `k0_from_h` is set')
+            self.k0_from_h = False
         self._k0 = value
 
     @property
@@ -875,7 +875,8 @@ class _BendCommon:
     def to_dict(self, copy_to_cpu=True):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
 
-        for kk in {'model', 'k0', 'h', 'length', 'k0_from_h'}:
+        for kk in {'model', 'k0', 'h', 'length', 'k0_from_h', 'angle',
+                   }:
             if f'_{kk}' in out:
                 out.pop(f'_{kk}')
             out[kk] = getattr(self, kk)

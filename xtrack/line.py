@@ -13,13 +13,12 @@ from collections.abc import Iterable
 from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
-from pathlib import Path
 from typing import List, Literal, Optional, Dict
 
 import numpy as np
 from scipy.constants import c as clight
 
-from . import linear_normal_form as lnf
+from xdeps.refs import is_ref
 from . import json as json_utils
 
 import xobjects as xo
@@ -51,8 +50,6 @@ from .internal_record import (start_internal_logging_for_elements_of_type,
 from .trajectory_correction import TrajectoryCorrection
 
 from .general import _print
-
-isref = xd.refs.is_ref
 
 log = logging.getLogger(__name__)
 
@@ -4334,7 +4331,8 @@ class Line:
         except AttributeError:
             eva_obj = xd.madxutils.MadxEval(variables=self._xdeps_vref,
                                             functions=self._xdeps_fref,
-                                            elements=self.element_dict)
+                                            elements=self.element_dict,
+                                            get='attr')
             self._xdeps_eval_obj = eva_obj
 
         return eva_obj
@@ -5363,7 +5361,10 @@ class LineVars:
         return self.line._xdeps_eval.eval(expr)
 
     def eval(self, expr):
-        return self.new_expr(expr)._get_value()
+        expr_or_value = self.new_expr(expr)
+        if is_ref(expr_or_value):
+            return expr_or_value._get_value()
+        return expr_or_value
 
     def info(self, var, limit=10):
         return self[var]._info(limit=limit)
@@ -5416,7 +5417,7 @@ class LineVars:
         self.__dict__.update(state)
         self.vars_to_update = WeakSet()
 
-    def set_from_madx_file(self, filename, mad_stdout=False):
+    def set_from_madx_file(self, filename):
 
         '''
         Set variables veluas of expression from a MAD-X file.
@@ -5425,58 +5426,12 @@ class LineVars:
         ----------
         filename : str or list of str
             Path to the MAD-X file(s) to load.
-        mad_stdout : bool, optional
-            If True, the MAD-X output is printed to stdout.
-
-        Notes
-        -----
-        The MAD-X file is executed in a temporary MAD-X instance, and the
-        variables are copied to the line after the execution.
         '''
+        loader = xt.mad_parser.MadxLoader(env=self.line)
+        loader.load_file(filename)
 
-        from cpymad.madx import Madx
-        mad = Madx(stdout=mad_stdout)
-        mad.options.echo = False
-        mad.options.info = False
-        mad.options.warn = False
-        if isinstance(filename, (str, Path)):
-            filename = [filename]
-        else:
-            assert isinstance(filename, (list, tuple))
-        for ff in filename:
-            mad.call(str(ff))
-
-        mad.input('''
-        elm: marker; dummy: sequence, l=1; e:elm, at=0.5; endsequence;
-        beam; use,sequence=dummy;''')
-
-        defined_vars = set(mad.globals.keys())
-
-        xt.general._print.suppress = True
-        dummy_line = Line.from_madx_sequence(mad.sequence.dummy,
-                                                deferred_expressions=True)
-        xt.general._print.suppress = False
-
-        self.line._xdeps_vref._owner.update(
-            {kk: dummy_line._xdeps_vref._owner[kk] for kk in defined_vars})
-        self.line._xdeps_manager.copy_expr_from(dummy_line._xdeps_manager, "vars")
-
-        try:
-            self.line._xdeps_vref._owner.default_factory = lambda: 0
-            allnames = list(self.line._xdeps_vref._owner.keys())
-            for nn in allnames:
-                if (self.line._xdeps_vref[nn]._expr is None
-                    and len(self.line._xdeps_vref[nn]._find_dependant_targets()) > 1 # always contain itself
-                    ):
-                    self.line._xdeps_vref[nn] = self.line._xdeps_vref._owner.get(nn, 0)
-        except Exception as ee:
-            self.line._xdeps_vref._owner.default_factory = None
-            raise ee
-
-        self.line._xdeps_vref._owner.default_factory = None
-
-    def load_madx_optics_file(self, filename, mad_stdout=False):
-        self.set_from_madx_file(filename, mad_stdout=mad_stdout)
+    def load_madx_optics_file(self, filename):
+        self.set_from_madx_file(filename)
 
     load_madx = load_madx_optics_file
 

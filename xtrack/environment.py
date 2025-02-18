@@ -125,8 +125,6 @@ class Environment:
                 env.place('mq2', at=20.0, from_='mymark'),  # Place 'mq2' at s=20
                 ])
 
-
-
         '''
         self._element_dict = element_dict or {}
         self.particle_ref = particle_ref
@@ -155,8 +153,10 @@ class Environment:
             common_elements = [nn for nn, cc in counts.items() if cc>1]
 
             for nn, ll in lines.items():
+                rename_elements = {el: el+'/'+nn for el in common_elements}
                 self.import_line(line=ll, suffix_for_common_elements='/'+nn,
-                    line_name=nn, rename_elements={el: el+'/'+nn for el in common_elements})
+                    line_name=nn, rename_elements=rename_elements)
+                self.lines[nn]._renamed_elements = rename_elements
 
         self.metadata = {}
 
@@ -207,6 +207,7 @@ class Environment:
             Name of the created element or line or a Place object if at or from_ is
             provided.
         '''
+
         if name in self.element_dict and not force:
             raise ValueError(f'Element `{name}` already exists')
 
@@ -264,9 +265,11 @@ class Environment:
 
         needs_instantiation = True
         parent_element = None
+        prototype = None
         if isinstance(parent, str):
             if parent in self.element_dict:
                 # Clone an existing element
+                prototype = parent
                 self.element_dict[name] = xt.Replica(parent_name=parent)
                 xt.Line.replace_replica(self, name)
 
@@ -300,6 +303,8 @@ class Environment:
             assert isinstance(extra, dict)
             self.element_dict[name].extra = extra
 
+        self.element_dict[name].prototype = prototype
+
         return name
 
     def _init_var_management(self, dct=None):
@@ -309,7 +314,7 @@ class Environment:
         self._line_vars = xt.line.LineVars(self)
 
 
-    def new_line(self, components=None, name=None, refer: ReferType = 'center'):
+    def new_line(self, components=None, name=None, refer: ReferType = 'center', length=None):
 
         '''
         Create a new line.
@@ -321,6 +326,14 @@ class Environment:
             place objects, and lines.
         name : str, optional
             Name of the new line.
+        refer : str, optional
+            Specifies which part of the component the ``at`` position will refer
+            to. Allowed values are ``start``, ``center`` (default; also allowed
+            is ``centre```), and ``end``.
+        length : float | str, optional
+            Length of the line to be built by the builder. Can be an expression.
+            If not specified, the length will be the minimum length that can
+            fit all the components.
 
         Returns
         -------
@@ -349,13 +362,10 @@ class Environment:
         if components is None:
             components = []
 
-        for ii, nn in enumerate(components):
-            if (isinstance(nn, Place) and isinstance(nn.name, str)
-                    and nn.name in self.lines):
-                nn.name = self.lines[nn.name]
-            if isinstance(nn, str) and nn in self.lines:
-                components[ii] = self.lines[nn]
+        if isinstance(length, str):
+            length = self.eval(length)
 
+        components = _resolve_lines_in_components(components, self)
         flattened_components = _flatten_components(components, refer=refer)
 
         if np.array([isinstance(ss, str) for ss in flattened_components]).all():
@@ -365,11 +375,13 @@ class Environment:
             seq_all_places = _all_places(flattened_components)
             tab_unsorted = _resolve_s_positions(seq_all_places, self, refer=refer)
             tab_sorted = _sort_places(tab_unsorted)
-            element_names = _generate_element_names_with_drifts(self, tab_sorted)
+            element_names = _generate_element_names_with_drifts(self, tab_sorted,
+                                                                length=length)
 
         out.element_names = element_names
         out._name = name
-        out.builder = Builder(env=self, components=components)
+        out.builder = Builder(env=self, components=components, length=length,
+                              name=name, refer=refer)
 
         # Temporary solution to keep consistency in multiline
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
@@ -415,7 +427,8 @@ class Environment:
 
         return Place(name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
 
-    def new_builder(self, components=None, name=None, refer: ReferType = 'center'):
+    def new_builder(self, components=None, name=None, refer: ReferType = 'center',
+                    length=None):
         '''
         Create a new builder.
 
@@ -426,6 +439,14 @@ class Environment:
             place objects, and lines.
         name : str, optional
             Name of the line that will be built by the builder.
+        refer : str, optional
+            Specifies which part of the component the ``at`` position will refer
+            to. Allowed values are ``start``, ``center`` (default; also allowed
+            is ``centre```), and ``end``.
+        length : float | str, optional
+            Length of the line to be built by the builder. Can be an expression.
+            If not specified, the length will be the minimum length that can
+            fit all the components.
 
         Returns
         -------
@@ -433,7 +454,8 @@ class Environment:
             The new builder.
         '''
 
-        return Builder(env=self, components=components, name=name, refer=refer)
+        return Builder(env=self, components=components, name=name, refer=refer,
+                       length=length)
 
     def call(self, filename):
         '''
@@ -492,7 +514,10 @@ class Environment:
         self.ref_manager.containers['vars']._owner.update(new_var_values)
 
         self.ref_manager.copy_expr_from(line.ref_manager, 'vars', overwrite=overwrite_vars)
+        old_default_to_zero = self.vars.default_to_zero # Not sure why this is needed
+        self.vars.default_to_zero = True
         self.ref_manager.run_tasks()
+        self.vars.default_to_zero = old_default_to_zero
 
         components = []
         for name in line.element_names:
@@ -1139,7 +1164,7 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
 
     return tt_sorted
 
-def _generate_element_names_with_drifts(env, tt_sorted, s_tol=1e-10):
+def _generate_element_names_with_drifts(env, tt_sorted, length=None, s_tol=1e-10):
 
     names_with_drifts = []
     # Create drifts
@@ -1151,6 +1176,15 @@ def _generate_element_names_with_drifts(env, tt_sorted, s_tol=1e-10):
             env.new(drift_name, xt.Drift, length=ds_upstream)
             names_with_drifts.append(drift_name)
         names_with_drifts.append(nn)
+
+    if length is not None:
+        length_line = tt_sorted['s_end'][-1]
+        if length_line > length + s_tol:
+            raise ValueError(f'Line length {length_line} is greater than the requested length {length}')
+        if length_line < length - s_tol:
+            drift_name = env._get_a_drift_name()
+            env.new(drift_name, xt.Drift, length=length - length_line)
+            names_with_drifts.append(drift_name)
 
     return list(map(str, names_with_drifts))
 
@@ -1252,14 +1286,22 @@ class EnvRef:
 
 
 class Builder:
-    def __init__(self, env, components=None, name=None, refer: ReferType = 'center'):
+    def __init__(self, env, components=None, name=None, length=None, refer: ReferType = 'center'):
         self.env = env
         self.components = components or []
         self.name = name
         self.refer = refer
+        self.length = length
 
     def __repr__(self):
-        return f'Builder({self.name}, components={self.components!r})'
+        parts = [f'name={self.name!r}']
+        if self.length is not None:
+            parts.append(f'length={self.length!r}')
+        if self.refer not in {'center', 'centre'}:
+            parts.append(f'refer={self.refer!r}')
+        parts.append(f'components={self.components!r}')
+        args_str = ', '.join(parts)
+        return f'Builder({args_str})'
 
     def new(self, name, cls, at=None, from_=None, extra=None, force=False,
             **kwargs):
@@ -1277,7 +1319,8 @@ class Builder:
     def build(self, name=None):
         if name is None:
             name = self.name
-        out =  self.env.new_line(components=self.components, name=name, refer=self.refer)
+        out =  self.env.new_line(components=self.components, name=name, refer=self.refer,
+                                 length=self.length)
         out.builder = self
         return out
 
@@ -1286,6 +1329,32 @@ class Builder:
 
     def get(self, *args, **kwargs):
         return self.env.get(*args, **kwargs)
+
+
+    def resolve_s_positions(self):
+        components = self.components
+        if components is None:
+            components = []
+
+        components = _resolve_lines_in_components(components, self.env)
+        flattened_components = _flatten_components(components, refer=self.refer)
+
+        seq_all_places = _all_places(flattened_components)
+        tab_unsorted = _resolve_s_positions(seq_all_places, self.env, refer=self.refer)
+        tab_sorted = _sort_places(tab_unsorted)
+        return tab_sorted
+
+    def flatten(self, inplace=False):
+
+        assert not inplace, 'Inplace not yet implemented'
+
+        out = self.__class__(self.env)
+        out.__dict__.update(self.__dict__)
+
+        components = _resolve_lines_in_components(self.components, self.env)
+        out.components = _flatten_components(components, refer=self.refer)
+        out.components = _all_places(out.components)
+        return out
 
     @property
     def element_dict(self):
@@ -1365,3 +1434,83 @@ def load_module_from_path(file_path):
     spec.loader.exec_module(module)
 
     return module
+
+def _reverse_element(env, name):
+    """Return a reversed element without modifying the original."""
+
+    SUPPORTED={'RBend', 'Bend', 'Quadrupole', 'Sextupole', 'Octupole',
+                'Multipole', 'Cavity', 'Solenoid', 'RFMultipole',
+                'Marker', 'Drift'}
+
+    ee = env.get(name)
+    ee_ref = env.ref[name]
+
+    if ee.__class__.__name__ not in SUPPORTED:
+        raise NotImplementedError(
+            f'Cannot reverse the element `{name}`, as reversing elements '
+            f'of type `{ee.__class__.__name__}` is not supported!'
+        )
+
+    def _reverse_field(key):
+        if hasattr(ee, key):
+            key_ref = getattr(ee_ref, key)
+            if key_ref._expr is not None:
+                setattr(ee_ref, key,  -(key_ref._expr))
+            else:
+                setattr(ee_ref, key,  -(key_ref._value))
+
+    def _exchange_fields(key1, key2):
+        value1 = None
+        if hasattr(ee, key1):
+            key1_ref = getattr(ee_ref, key1)
+            value1 = key1_ref._expr or key1_ref._value
+
+        value2 = None
+        if hasattr(ee, key2):
+            key2_ref = getattr(ee_ref, key2)
+            value2 = key2_ref._expr or key2_ref._value
+
+
+        if value1 is not None:
+            setattr(ee_ref, key2, value1)
+
+        if value2 is not None:
+            setattr(ee_ref, key1, value2)
+
+    _reverse_field('k0s')
+    _reverse_field('k1')
+    _reverse_field('k2s')
+    _reverse_field('k3')
+    _reverse_field('ks')
+    _reverse_field('ksi')
+    _reverse_field('rot_s_rad')
+
+    if hasattr(ee, 'lag'):
+        ee_ref.lag = 180 - (ee_ref.lag._expr or ee_ref.lag._value)
+
+    if hasattr(ee, 'knl'):
+        for i in range(1, len(ee.knl), 2):
+            ee_ref.knl[i] = -(ee_ref.knl[i]._expr or ee_ref.knl[i]._value)
+
+    if hasattr(ee, 'ksl'):
+        for i in range(0, len(ee.ksl), 2):
+            ee_ref.ksl[i] = -(ee_ref.ksl[i]._expr or ee_ref.ksl[i]._value)
+
+    _exchange_fields('edge_entry_model', 'edge_exit_model')
+    _exchange_fields('edge_entry_angle', 'edge_exit_angle')
+    _exchange_fields('edge_entry_angle_fdown', 'edge_exit_angle_fdown')
+    _exchange_fields('edge_entry_fint', 'edge_exit_fint')
+    _exchange_fields('edge_entry_hgap', 'edge_exit_hgap')
+
+def _resolve_lines_in_components(components, env):
+
+    components = list(components) # Make a copy
+
+    for ii, nn in enumerate(components):
+        if (isinstance(nn, Place) and isinstance(nn.name, str)
+                and nn.name in env.lines):
+            nn.name = env.lines[nn.name]
+        if isinstance(nn, str) and nn in env.lines:
+            components[ii] = env.lines[nn]
+
+    return components
