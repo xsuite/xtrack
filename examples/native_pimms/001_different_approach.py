@@ -1,11 +1,11 @@
 import xtrack as xt
+import numpy as np
 
 env = xt.Environment()
 env.particle_ref = xt.Particles(kinetic_energy0=200e6)
 
 env.vars.default_to_zero = True
-env.new('mb', xt.Bend,       length=1.661, angle=0.3926990817,
-        edge_entry_angle=0.19634954085, edge_exit_angle=0.19634954085,
+env.new('mb', xt.RBend,       length=1.661, angle=2*np.pi/16,
         k0_from_h=True)
 env.new('qfa', xt.Quadrupole, length=2*0.175, k1= 'kqfa')
 env.new('qd',  xt.Quadrupole, length=2*0.175, k1= 'kqd')
