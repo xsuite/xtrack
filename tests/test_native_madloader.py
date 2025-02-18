@@ -7,6 +7,7 @@ import pytest
 import xobjects as xo
 from cpymad.madx import Madx
 
+from xdeps.refs import CompactFormatter
 import xtrack as xt
 from xtrack.mad_parser.loader import MadxLoader
 from xtrack.mad_parser.parse import MadxOutputType, MadxParser
@@ -130,9 +131,20 @@ def test_simple_parser():
     assert expected == result
 
 
-def test_parse_single_expression():
-    env = xt.load_madx_lattice(string='a = 42;')
-    assert env['a'] == 42
+@pytest.mark.parametrize(
+    'input,value,expr',
+    [
+        ('a := 42;', 42, None),
+        ('c := 3; d := 4; a := c^d;', 81, '(c ** d)'),
+    ]
+)
+def test_parse_simple_expression(input, value, expr):
+    env = xt.load_madx_lattice(string=input)
+    assert env['a'] == value
+
+    if expr is not None:
+        formatter = CompactFormatter(None)
+        assert env.get_expr('a')._formatted(formatter) == expr
 
 
 @pytest.fixture(scope='module')
