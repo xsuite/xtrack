@@ -21,7 +21,7 @@ env.new('qfb', 'mq', k1= 'kqfb')
 env.new('qd',  'mq', k1= 'kqd')
 
 
-cell_a = env.new_line(name='cell_a', length=75.24/8 - 2., components=[
+cell_a = env.new_line(name='cell_a', length=75.24/8 - 2.-1, components=[
     env.place('qfa', at=0.3875),
     env.place('mb', at=1.8125),
     env.place('qd', at=3.2925),
