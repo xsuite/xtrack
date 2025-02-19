@@ -136,6 +136,7 @@ def test_simple_parser():
     [
         ('a := 42;', 42, None),
         ('c := 3; d := 4; a := c^d;', 81, '(c ** d)'),
+        ('c := 3; d := 4; a = c^d;', 81, None),
     ]
 )
 def test_parse_simple_expression(input, value, expr):
@@ -145,6 +146,10 @@ def test_parse_simple_expression(input, value, expr):
     if expr is not None:
         formatter = CompactFormatter(None)
         assert env.get_expr('a')._formatted(formatter) == expr
+    else:
+        assert env.get_expr('a') is None
+        env['c'] = 8
+        assert env['a'] == value
 
 
 @pytest.fixture(scope='module')
@@ -882,7 +887,7 @@ def test_import_seq_length():
 
     qu: quadrupole, l=2, k1=3, k1s=4, tilt=2;  ! ignore thick and ktap
 
-    line: sequence, l = ll;
+    line: sequence, l := ll;
         qu1: qu, at = 19;
     endsequence;
 
