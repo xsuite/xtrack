@@ -879,7 +879,6 @@ def test_refer_and_thin_elements():
 
 def test_import_seq_length():
     sequence = """
-
     qu: quadrupole, l=2, k1=3, k1s=4, tilt=2;  ! ignore thick and ktap
 
     line: sequence, l = ll;
@@ -897,3 +896,116 @@ def test_import_seq_length():
     assert np.all(tt.name == np.array(['drift_1', 'qu1', 'drift_2', '_end_point']))
     xo.assert_allclose(tt['s'], np.array([ 0., 18., 20., 30.]), rtol=0, atol=1e-15)
     assert env.line.builder.length == 'll'
+
+
+def test_repeated_element_mad_behaviour():
+    sequence = """
+    mar: marker;
+    ben: sbend, l=1;
+    
+    seq1: sequence, l=10;
+      ee: mar, at=5;
+    endsequence;
+    
+    seq2: sequence, l=10;
+      ee: ben, at=5;  ! in MAD-X this definition will be ignored
+    endsequence;
+    """
+
+    env = xt.load_madx_lattice(string=sequence)
+
+    element = env['ee']
+    assert env.seq1['ee'] == element
+    assert env.seq2['ee'] == element
+
+
+def test_apertures_on_markers():
+    sequence = """
+    m_circle: marker, apertype="circle", aperture={.2};
+    m_ellipse: marker, apertype="ellipse", aperture={.2, .1};
+    m_rectangle: marker, apertype="rectangle", aperture={.07, .05};
+    m_rectellipse: marker, apertype="rectellipse", aperture={.2, .4, .25, .45};
+    m_racetrack: marker, apertype="racetrack", aperture={.6,.4,.2,.1};
+    m_octagon: marker, apertype="octagon", aperture={.4, .5, 0.5, 1.};
+    m_polygon: marker, apertype="polygon", aper_vx={+5.800e-2,+5.800e-2,-8.800e-2}, aper_vy={+3.500e-2,-3.500e-2,+0.000e+0};
+
+    line: sequence,l=1;
+        m_circle, at=0;
+        m_ellipse, at=0.01;
+        m_rectangle, at=0.02;
+        m_rectellipse, at=0.03;
+        m_racetrack, at=0.04;
+        m_octagon, at=0.05;
+        m_polygon, at=0.06;
+    endsequence;
+    """
+
+    env = xt.load_madx_lattice(string=sequence)
+    line = env.line
+
+    apertures = [ee for ee in line.elements if ee.__class__.__name__.startswith('Limit')]
+
+    circ = apertures[0]
+    assert circ.__class__.__name__ == 'LimitEllipse'
+    xo.assert_allclose(circ.a_squ, .2**2, atol=1e-13, rtol=0)
+    xo.assert_allclose(circ.b_squ, .2**2, atol=1e-13, rtol=0)
+
+    ellip = apertures[1]
+    assert ellip.__class__.__name__ == 'LimitEllipse'
+    xo.assert_allclose(ellip.a_squ, .2**2, atol=1e-13, rtol=0)
+    xo.assert_allclose(ellip.b_squ, .1**2, atol=1e-13, rtol=0)
+
+    rect = apertures[2]
+    assert rect.__class__.__name__ == 'LimitRect'
+    assert rect.min_x == -.07
+    assert rect.max_x == +.07
+    assert rect.min_y == -.05
+    assert rect.max_y == +.05
+
+    rectellip = apertures[3]
+    assert rectellip.max_x == .2
+    assert rectellip.max_y == .4
+    xo.assert_allclose(rectellip.a_squ, .25**2, atol=1e-13, rtol=0)
+    xo.assert_allclose(rectellip.b_squ, .45**2, atol=1e-13, rtol=0)
+
+    racetr = apertures[4]
+    assert racetr.__class__.__name__ == 'LimitRacetrack'
+    assert racetr.min_x == -.6
+    assert racetr.max_x == +.6
+    assert racetr.min_y == -.4
+    assert racetr.max_y == +.4
+    assert racetr.a == .2
+    assert racetr.b == .1
+
+    octag = apertures[5]
+    assert octag.__class__.__name__ == 'LimitPolygon'
+    assert octag._xobject.x_vertices[0] == 0.4
+    xo.assert_allclose(octag._xobject.y_vertices[0], 0.4*np.tan(0.5), atol=1e-14, rtol=0)
+    assert octag._xobject.y_vertices[1] == 0.5
+    xo.assert_allclose(octag._xobject.x_vertices[1], 0.5/np.tan(1.), atol=1e-14, rtol=0)
+
+    assert octag._xobject.y_vertices[2] == 0.5
+    xo.assert_allclose(octag._xobject.x_vertices[2], -0.5/np.tan(1.), atol=1e-14, rtol=0)
+    assert octag._xobject.x_vertices[3] == -0.4
+    xo.assert_allclose(octag._xobject.y_vertices[3], 0.4*np.tan(0.5), atol=1e-14, rtol=0)
+
+
+    assert octag._xobject.x_vertices[4] == -0.4
+    xo.assert_allclose(octag._xobject.y_vertices[4], -0.4*np.tan(0.5), atol=1e-14, rtol=0)
+    assert octag._xobject.y_vertices[5] == -0.5
+    xo.assert_allclose(octag._xobject.x_vertices[5], -0.5/np.tan(1.), atol=1e-14, rtol=0)
+
+
+    assert octag._xobject.y_vertices[6] == -0.5
+    xo.assert_allclose(octag._xobject.x_vertices[6], 0.5/np.tan(1.), atol=1e-14, rtol=0)
+    assert octag._xobject.x_vertices[7] == 0.4
+    xo.assert_allclose(octag._xobject.y_vertices[7], -0.4*np.tan(0.5), atol=1e-14, rtol=0)
+
+    polyg = apertures[6]
+    assert polyg.__class__.__name__ == 'LimitPolygon'
+    assert len(polyg._xobject.x_vertices) == 3
+    assert len(polyg._xobject.y_vertices) == 3
+    assert polyg._xobject.x_vertices[0] == -8.8e-2
+    assert polyg._xobject.y_vertices[0] == 0
+    assert polyg._xobject.x_vertices[1] == 5.8e-2
+    assert polyg._xobject.y_vertices[1] == -3.5e-2

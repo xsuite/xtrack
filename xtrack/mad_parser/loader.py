@@ -126,6 +126,11 @@ class MadxLoader:
         self._new_builtin("rectellipse", 'LimitRectEllipse')
         self._new_builtin("racetrack", 'LimitRacetrack')
 
+        x_vertices = [1e10 * np.sin((i + 0.5) / 8 * np.pi / 180) for i in range(8)]
+        y_vertices = [1e10 * np.cos((i + 0.5) / 8 * np.pi / 180) for i in range(8)]
+        self._new_builtin("octagon", 'LimitPolygon', x_vertices=x_vertices, y_vertices=y_vertices)
+        self._new_builtin("polygon", 'Marker')
+
     def load_file(self, file, build=True) -> Optional[List[Builder]]:
         """Load a MAD-X file and generate/update the environment."""
         parser = MadxParser()
@@ -260,7 +265,8 @@ class MadxLoader:
             length = 0
 
         if parent is None:
-            # If parent is None, we wish to place instead
+            # If parent is None, we wish to place instead (element is used
+            # as a command, not a clone)
             if self._mad_base_type(name) in ['rbend', 'sbend']:
                 el_params.pop('k0_from_h', None)
 
@@ -273,29 +279,45 @@ class MadxLoader:
             if (extras := el_params.pop('extra', None)):
                 _warn(f'Ignoring extra parameters {extras} for element `{name}`!')
 
-
-            if (isinstance(self.env[name], BeamElement) and not self.env[name].isthick
-                    and length and not isinstance(self.env[name], xt.Marker)):
-                drift_name = f'drift_{name}'
-                self.env.new(drift_name, 'Drift', length=f'({length}) / 2')
-                name = builder.new_line([drift_name, name, drift_name])
-            builder.place(name, **el_params)
+            element = self.env[name]
+            is_not_thick = isinstance(element, BeamElement) and not element.isthick
+            if is_not_thick and length and not isinstance(element, xt.Marker):
+                line = self._make_thick_sandwich(name, length)
+                builder.place(line, **el_params)
+            else:
+                builder.place(name, **el_params)
         else:
-            if (isinstance(self.env[parent], BeamElement) and not self.env[parent].isthick
-                    and length and not isinstance(self.env[parent], xt.Marker)):
-                drift_name = f'{name}_drift'
-                self.env.new(drift_name+'_0', 'Drift', force=True, length=f'({length}) / 2')  # Not sure why `force` is needed
-                self.env.new(drift_name+'_1', 'Drift', force=True, length=f'({length}) / 2')  # Not sure why `force` is needed
+            element = self.env[parent]
+            is_not_thick = isinstance(element, BeamElement) and not element.isthick
+            if is_not_thick and length and not isinstance(element, xt.Marker):
                 at, from_ = el_params.pop('at', None), el_params.pop('from_', None)
-                self.env.new(name, parent, force=True, **el_params) # Not sure why `force` is needed
-                name = self.env.new_line([drift_name+'_0', name, drift_name+'_1'])
+                if name not in self.env.element_dict:
+                    self.env.new(name, parent, force=True, **el_params)
+                    make_drifts = True
+                else:
+                    _warn(f'Element `{name}` already exists, this definition '
+                          f'will be ignored (for compatibility with MAD-X)')
+                    make_drifts = False
+                name = self._make_thick_sandwich(name, length, make_drifts)
                 builder.place(name, at=at, from_=from_)
             else:
                 if name == parent:
                     el_params.pop('extra', None)
                     builder.place(name, **el_params)
                 else:
+                    if parent == 'polygon':
+                        parent = 'LimitPolygon'
                     builder.new(name, parent, force=True, **el_params) # Not sure why `force` is needed
+
+    def _make_thick_sandwich(self, name, length, make_drifts=True):
+        """Make a sandwich of two drifts around the element."""
+        drift_name = f'{name}_drift'
+        half_len = f'({length}) / 2'
+        if make_drifts:
+            self.env.new(drift_name + '_0', 'Drift', length=half_len)
+            self.env.new(drift_name + '_1', 'Drift', length=half_len)
+        line = self.env.new_line([drift_name + '_0', name, drift_name + '_1'])
+        return line
 
     def _set_element(self, name, builder, **kwargs):
         self._parameter_cache[name].update(kwargs)
@@ -306,6 +328,9 @@ class MadxLoader:
 
     def _pre_process_element_params(self, name, params):
         parent_name = self._mad_base_type(name)
+
+        if 'aper_vx' in params or 'aper_vy' in params:
+            parent_name = 'polygon'
 
         if parent_name in {'sbend', 'rbend'}:
             # We need to keep the rbarc parameter from the parent element.
@@ -412,6 +437,29 @@ class MadxLoader:
                 params['b'] = aperture[3]
                 params['rot_s_rad'] = params.get('aper_tilt', 0)
 
+        elif parent_name == 'octagon':
+            if (aperture := params.pop('aperture', None)):
+                # In MAD the octagon is defined with {w/2, h/2, phi_1, phi_2},
+                # where w and h are respectively the width and height of the
+                # rectangle that circumscribes the octagon, and phi_1 and phi_2
+                # are the two angles sustaining the cut corner in the first
+                # quadrant, given in radians and phi_1 < phi_2.
+                half_w, half_h, phi_1, phi_2 = aperture
+                y_right_corner = f'({half_w}) * tan({phi_1})'
+                x_top_corner = f'({half_h}) / tan({phi_2})'
+                top_x_vertices = [half_w, x_top_corner, f'-{x_top_corner}', f'-{half_w}']
+                x_vertices = top_x_vertices + top_x_vertices[::-1]
+                right_y_vertices = [y_right_corner, half_h, half_h, y_right_corner]
+                y_vertices = right_y_vertices + [f'-{y}' for y in right_y_vertices]
+                params['x_vertices'] = x_vertices
+                params['y_vertices'] = y_vertices
+
+        elif parent_name == 'polygon':
+            if (aper_vx := params.pop('aper_vx', None)):
+                params['x_vertices'] = aper_vx
+            if (aper_vy := params.pop('aper_vy', None)):
+                params['y_vertices'] = aper_vy
+
         if 'edge_entry_fint' in params and 'edge_exit_fint' not in params:
             params['edge_exit_fint'] = params['edge_entry_fint']
             # TODO: Technically MAD-X behaviour is that if edge_exit_fint < 0
@@ -463,8 +511,7 @@ class MadxLoader:
 
         if element_name not in self._builtin_types:
             raise ValueError(
-                f'Something went wrong: cannot identify the MAD-X base type of'
-                f'element `{element_name}`!'
+                f'Cannot identify the MAD-X base type of element `{element_name}`!'
             )
 
         return element_name
