@@ -4,6 +4,7 @@
 # ######################################### #
 
 import logging
+from typing import Literal
 
 import io
 import json
@@ -62,6 +63,7 @@ SIGN_FLIP_FOR_ATTR_REVERSE=['k0l', 'k2l', 'k4l', 'k1sl', 'k3sl', 'k5sl', 'vkick'
 
 
 log = logging.getLogger(__name__)
+
 
 def twiss_line(line, particle_ref=None, method=None,
         particle_on_co=None, R_matrix=None, W_matrix=None,
@@ -843,6 +845,7 @@ def twiss_line(line, particle_ref=None, method=None,
 
     return _add_action_in_res(twiss_res, input_kwargs)
 
+
 def _twiss_open(line, init,
                       start, end,
                       nemitt_x, nemitt_y, r_sigma,
@@ -1293,6 +1296,7 @@ def _compute_global_quantities(line, twiss_res):
             twiss_res['c_phi1'] = c_phi1
             twiss_res['c_phi2'] = c_phi2
 
+
 def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                     matrix_responsiveness_tol, matrix_stability_tol, symplectify,
                     method='6d', use_full_inverse=False,
@@ -1497,6 +1501,7 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
 
     return eneloss_damp_res
 
+
 def _extract_sr_distribution_properties(line, px_co, py_co, ptau_co):
 
 
@@ -1544,6 +1549,7 @@ def _extract_sr_distribution_properties(line, px_co, py_co, ptau_co):
     }
 
     return res
+
 
 def _compute_equilibrium_emittance_kick_as_co(kin_px_co, kin_py_co, ptau_co, W_matrix,
                                   line, radiation_method,
@@ -1654,6 +1660,7 @@ def _compute_equilibrium_emittance_kick_as_co(kin_px_co, kin_py_co, ptau_co, W_m
     }
 
     return res
+
 
 def _compute_equilibrium_emittance_full(kin_px_co, kin_py_co, ptau_co, R_matrix_ebe,
                                   line, radiation_method):
@@ -1793,6 +1800,7 @@ def _compute_equilibrium_emittance_full(kin_px_co, kin_py_co, ptau_co, R_matrix_
 
 class ClosedOrbitSearchError(Exception):
     pass
+
 
 def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             co_search_settings, continue_on_closed_orbit_error,
@@ -1971,6 +1979,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
 
     return init, RR, steps_r_matrix, eigenvalues, Rot, RR_ebe
 
+
 def _handle_loop_around(kwargs):
 
     kwargs = kwargs.copy()
@@ -2061,6 +2070,7 @@ def _handle_loop_around(kwargs):
             tw_res._data[kk] = (tw1[kk], tw2[kk])
 
     return tw_res
+
 
 def _handle_init_inside_range(kwargs):
 
@@ -2262,6 +2272,7 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
 
     return particle_on_co
 
+
 def _one_turn_map(p, particle_ref, line, delta_zeta, start, end, num_turns, symmetrize):
     part = particle_ref.copy()
     part.x = p[0]
@@ -2295,8 +2306,10 @@ def _one_turn_map(p, particle_ref, line, delta_zeta, start, end, num_turns, symm
            part._xobject.delta[0]])
     return p_res
 
+
 def _error_for_co_search_6d(p, co_guess, line, delta_zeta, delta0, zeta0, start, end, num_turns, symmetrize):
     return p - _one_turn_map(p, co_guess, line, delta_zeta, start, end, num_turns, symmetrize)
+
 
 def _error_for_co_search_4d_delta0(p, co_guess, line, delta_zeta, delta0, zeta0, start, end, num_turns, symmetrize):
     one_turn_res = _one_turn_map(p, co_guess, line, delta_zeta, start, end, num_turns, symmetrize)
@@ -2308,6 +2321,7 @@ def _error_for_co_search_4d_delta0(p, co_guess, line, delta_zeta, delta0, zeta0,
         0,
         p[5] - delta0])
 
+
 def _error_for_co_search_4d_zeta0(p, co_guess, line, delta_zeta, delta0, zeta0, start, end, num_turns, symmetrize):
     one_turn_res = _one_turn_map(p, co_guess, line, delta_zeta, start, end, num_turns, symmetrize)
     return np.array([
@@ -2318,6 +2332,7 @@ def _error_for_co_search_4d_zeta0(p, co_guess, line, delta_zeta, delta0, zeta0, 
         p[4] - zeta0,
         0])
 
+
 def _error_for_co_search_4d_delta0_zeta0(p, co_guess, line, delta_zeta, delta0, zeta0, start, end, num_turns, symmetrize):
     one_turn_res = _one_turn_map(p, co_guess, line, delta_zeta, start, end, num_turns, symmetrize)
     return np.array([
@@ -2327,6 +2342,7 @@ def _error_for_co_search_4d_delta0_zeta0(p, co_guess, line, delta_zeta, delta0, 
         p[3] - one_turn_res[3],
         p[4] - zeta0,
         p[5] - delta0])
+
 
 def compute_one_turn_matrix_finite_differences(
         line, particle_on_co,
@@ -3082,16 +3098,13 @@ class TwissTable(Table):
         sigma_delta: float = None,
         bunch_length: float = None,
         bunched: bool = True,
-        particles: xt.Particles = None,
         **kwargs,
     ):
         """
-        Computes IntraBeam Scattering growth rates.
+        Computes IntraBeam Scattering (amplitude) growth rates.
 
         Parameters
         ----------
-        line : xtrack.Line
-            Line in which the IBS kick element will be installed.
         formalism : str
             Which formalism to use for the computation. Can be ``Nagaitsev``
             or ``Bjorken-Mtingwa`` (also accepts ``B&M``), case-insensitively.
@@ -3116,10 +3129,6 @@ class TwissTable(Table):
         bunched : bool, optional
             Whether the beam is bunched or not (coasting). Defaults to `True`.
             Required if `particles` is not provided.
-        particles : xtrack.Particles
-            The particles to circulate in the line. If provided the emittances,
-            momentum spread and bunch length will be computed from the particles.
-            Otherwise explicit values must be provided (see above parameters).
         **kwargs : dict
             Keyword arguments are passed to the growth rates computation method of
             the chosen IBS formalism implementation. See the IBS details from the
@@ -3138,7 +3147,178 @@ class TwissTable(Table):
             self, formalism, total_beam_intensity,
             gemitt_x, nemitt_x, gemitt_y, nemitt_y,
             sigma_delta, bunch_length, bunched,
-            particles, **kwargs,
+            **kwargs,
+        )
+
+    def compute_equilibrium_emittances_from_sr_and_ibs(
+        self,
+        formalism: Literal["Nagaitsev", "Bjorken-Mtingwa", "B&M"],
+        total_beam_intensity: int,
+        gemitt_x: float = None,
+        nemitt_x: float = None,
+        gemitt_y: float = None,
+        nemitt_y: float = None,
+        gemitt_zeta: float = None,
+        nemitt_zeta: float = None,
+        overwrite_sigma_zeta: float = None,
+        overwrite_sigma_delta: float = None,
+        emittance_coupling_factor: float = 0,
+        emittance_constraint: Literal["coupling", "excitation"] = "coupling",
+        rtol: float = 1e-6,
+        tstep: float = None,
+        verbose: bool = True,
+        **kwargs,
+    ) -> Table:
+        """
+        Compute the evolution of emittances due to Synchrotron Radiation
+        and Intra-Beam Scattering until convergence to equilibrium values.
+        The equilibrium state is determined by an iterative process which
+        consists in computing the IBS growth rates and the emittance time
+        derivatives, then computing the emittances at the next time step,
+        potentially including the effect of transverse constraints, and
+        checking for convergence. The convergence criteria can be chosen
+        by the user.
+
+        Transverse emittances can be constrained to follow two scenarios:
+            - An emittance exchange originating from betatron coupling.
+            - A vertical emittance originating from an excitation.
+
+        The impact from the longitudinal impedance (e.g. bunch lengthening
+        or microwave instability) can be accounted for by specifying the RMS
+        bunch length and momentum spread.
+
+        Notes
+        -----
+            It is required that radiation has been configured in the line,
+            and that the `TwissTable` holds information on the equilibrium
+            state from Synchrotron Radiation. This means calling first
+            `line.configure_radiation(model="mean")` and then the `.twiss()`
+            method with `eneloss_and_damping=True`. Please refer to the Twiss
+            user guide in the `xsuite` documentation for more information.
+
+        Warning
+        -------
+            If the user does not provide a starting emittance, the program
+            defaults to using the SR equilibrium value from the `TwissTable`,
+            which is a reasonable defaults for light sources. If an constraint
+            is provided via `emittance_constraint`  the starting emittances are
+            re-computed to respect that constraint (this is logged to the user).
+
+            If the user does provide starting emittances **and** a constraint, it
+            is up to the user to make sure these provided values are consistent
+            with the provided constraint!
+
+        Parameters
+        ----------
+        formalism : str
+            Which formalism to use for the computation of the IBS growth rates.
+            Can be ``Nagaitsev`` or ``Bjorken-Mtingwa`` (also accepts ``B&M``),
+            case-insensitively.
+        total_beam_intensity : int
+            The bunch intensity, in [particles per bunch].
+        gemitt_x : float, optional
+            Starting horizontal geometric emittance, in [m]. If neither this nor
+            the normalized one is provided, the SR equilibrium value from the
+            provided `TwissTable` is used.
+        nemitt_x : float, optional
+            Starting horizontal normalized emittance, in [m]. If neither this nor
+            the geometric one is provided, the SR equilibrium value from the
+            provided `TwissTable` is used.
+        gemitt_y : float, optional
+            Starting vertical geometric emittance, in [m]. If neither this nor
+            the normalized one is provided, the SR equilibrium value from the
+            provided `TwissTable` is used.
+        nemitt_y : float, optional
+            Starting vertical normalized emittance, in [m]. If neither this nor
+            the geometric one is provided, the SR equilibrium value from the
+            provided `TwissTable` is used.
+        gemitt_zeta : float, optional
+            Starting longitudinal geometric emittance, in [m]. If neither this
+            nor the normalized one is provided, the SR equilibrium value from the
+            provided `TwissTable` is used.
+        nemitt_zeta : float, optional
+            Starting longitudinal normalized emittance, in [m]. If neither this
+            nor the geometric one is provided, the SR equilibrium value from the
+            provided `TwissTable` is used.
+        emittance_coupling_factor : float, optional
+            The ratio of perturbed transverse emittances due to betatron coupling.
+            If a value is provided, it is taken into account for the evolution of
+            emittances and induced an emittance sharing between the two planes.
+            See the next parameter for possible scenarios and how this value is
+            used. Defaults to 0.
+        emittance_constraint : str, optional
+            If an accepted value is provided, enforces constraints on the transverse
+            emittances. Can be either "coupling" or "excitation", case-insensitively.
+            Defaults to "coupling".
+            - If `coupling`, vertical emittance is the result of linear coupling. In
+                this case both the vertical and horizontal emittances are altered and
+                determined based on the value of `emittance_coupling_factor` and the
+                damping partition numbers. If the horizontal and vertical partition
+                numbers are equal then the total transverse emittance is preserved.
+            - If `excitation`, vertical emittance is the result of an excitation
+                (e.g. from a feedback system) and is determined from the horizontal
+                emittance based on the value of `emittance_coupling_factor`. In this
+                case the total transverse emittance is NOT preserved.
+            Providing `None` allows one to study a scenario without constraint. Note
+            that as `emittance_coupling_factor` defaults to 0, the constraint has no
+            effect unless a non-zero factor is provided.
+        overwrite_sigma_zeta : float, optional
+            The RMS bunch length. If provided, overwrites the one computed from
+            the longitudinal emittance and forces a recompute of the longitudinal
+            emittance. Defaults to `None`.
+        overwrite_sigma_delta : float, optional
+            The RMS momentum spread of the bunch. If provided, overwrites the one
+            computed from the longitudinal emittance and forces a recompute of the
+            longitudinal emittance. Defaults to `None`.
+        rtol : float, optional
+            Relative tolerance to determine when convergence is reached: if the relative
+            difference between the computed emittances and those at the previous step is
+            below `rtol`, then convergence is considered achieved. Defaults to 1e-6.
+        verbose : bool, optional
+            Whether to print out information on the current iteration step and estimated
+            convergence progress. Defaults to `True`.
+        **kwargs : dict
+            Keyword arguments are passed to the growth rates computation method of
+            the chosen IBS formalism implementation. See the formalism classes in
+            the ``xfields.ibs._analytical`` for more details.
+
+        Returns
+        -------
+        xtrack.Table
+            The convergence calculations results. The table contains the following
+            columns, as time-step by time-step quantities:
+                - time: time values at which quantities are computed, in [s].
+                - gemitt_x: horizontal geometric emittance values, in [m].
+                - gemitt_y: vertical geometric emittance values, in [m].
+                - gemitt_zeta: longitudinal geometric emittance values, in [m].
+                - sigma_zeta: bunch length values, in [m].
+                - sigma_delta: momentum spread values, in [-].
+                - Tx: horizontal IBS growth rate, in [s^-1].
+                - Ty: vertical IBS growth rate, in [s^-1].
+                - Tz: longitudinal IBS growth rate, in [s^-1].
+            The table also contains the following global quantities:
+                - damping_constants_s: radiation damping constants used, in [s^-1].
+                - partition_numbers: damping partition numbers used.
+                - eq_gemitt_x: horizontal equilibrium geometric emittance from synchrotron radiation used, in [m].
+                - eq_gemitt_y: vertical equilibrium geometric emittance from synchrotron radiation used, in [m].
+                - eq_gemitt_zeta: longitudinal equilibrium geometric emittance from synchrotron radiation used, in [m].
+                - eq_sr_ibs_gemitt_x: final horizontal equilibrium geometric emittance converged to, in [m].
+                - eq_sr_ibs_gemitt_y: final vertical equilibrium geometric emittance converged to, in [m].
+                - eq_sr_ibs_gemitt_zeta: final longitudinal equilibrium geometric emittance converged to, in [m].
+        """
+        try:
+            from xfields.ibs import compute_equilibrium_emittances_from_sr_and_ibs
+        except ImportError:
+            raise ImportError("Please install xfields to use this feature.")
+        return compute_equilibrium_emittances_from_sr_and_ibs(
+            self, formalism=formalism, total_beam_intensity=total_beam_intensity,
+            gemitt_x=gemitt_x, nemitt_x=nemitt_x, gemitt_y=gemitt_y, nemitt_y=nemitt_y,
+            gemitt_zeta=gemitt_zeta, nemitt_zeta=nemitt_zeta,
+            overwrite_sigma_zeta=overwrite_sigma_zeta,
+            overwrite_sigma_delta=overwrite_sigma_delta,
+            emittance_coupling_factor=emittance_coupling_factor,
+            emittance_constraint=emittance_constraint,
+            rtol=rtol, tstep=tstep, verbose=verbose, **kwargs,
         )
 
     def get_R_matrix(self, start, end):
@@ -3652,6 +3832,7 @@ def _complete_twiss_init(start, end, init_at, init,
 
     return init
 
+
 def _complete_steps_r_matrix_with_default(steps_r_matrix):
     if steps_r_matrix is not None:
         steps_in = steps_r_matrix.copy()
@@ -3666,6 +3847,7 @@ def _complete_steps_r_matrix_with_default(steps_r_matrix):
         steps_r_matrix = DEFAULT_STEPS_R_MATRIX.copy()
 
     return steps_r_matrix
+
 
 def _renormalize_eigenvectors(Ws):
     # Re normalize eigenvectors
@@ -3750,6 +3932,7 @@ def _extract_twiss_parameters_with_inverse(Ws):
 
     return betx, alfx, gamx, bety, alfy, gamy, bety1, betx2
 
+
 def _str_to_index(line, ele, allow_end_point=True):
     if allow_end_point and ele == '_end_point':
         return len(line._element_names_unique)
@@ -3759,6 +3942,7 @@ def _str_to_index(line, ele, allow_end_point=True):
         return line._element_names_unique.index(ele)
     else:
         return ele
+
 
 def _build_sigma_table(Sigma, s=None, name=None):
 
@@ -3808,6 +3992,7 @@ def _build_sigma_table(Sigma, s=None, name=None):
 
     return Table(res_data)
 
+
 def compute_T_matrix_line(line, start, end, particle_on_co=None,
                             steps_t_matrix=None):
 
@@ -3853,6 +4038,7 @@ def compute_T_matrix_line(line, start, end, particle_on_co=None,
 
     return TT
 
+
 def _multiturn_twiss(tw0, num_turns, kwargs):
     tw_curr = tw0
     twisses_to_merge = []
@@ -3878,6 +4064,7 @@ def _multiturn_twiss(tw0, num_turns, kwargs):
 
     return tw_mt
 
+
 def _add_action_in_res(res, kwargs):
     if isinstance(res, xt.TwissInit):
         return res
@@ -3885,6 +4072,7 @@ def _add_action_in_res(res, kwargs):
     action = xt.match.ActionTwiss(**twiss_kwargs)
     res._data['_action'] = action
     return res
+
 
 def get_non_linear_chromaticity(line, delta0_range, num_delta, fit_order=3, **kwargs):
 
@@ -3937,6 +4125,7 @@ def get_non_linear_chromaticity(line, delta0_range, num_delta, fit_order=3, **kw
 
     return out
 
+
 def _merit_function_co_t_rec(x, line, num_turns):
     p = line.build_particles(x=x[0], px=x[1], y=x[2], py=x[3], zeta=x[4], delta=x[5])
     line.track(p, num_turns=num_turns, turn_by_turn_monitor=True)
@@ -3949,6 +4138,7 @@ def _merit_function_co_t_rec(x, line, num_turns):
 
     out = np.array(list(dx) + list(dpx) + list(dy) + list(dpy) + list(ddelta))
     return out
+
 
 def _find_closed_orbit_search_t_rev(line, num_turns_search_t_rev=None):
 
@@ -3976,6 +4166,7 @@ def _reverse_strengths(out):
         if kk in out:
             val=out[kk]#avoid passing by setitem
             np.negative(val,val)
+
 
 def _W_phys2norm(x, px, y, py, zeta, pzeta, W_matrix, co_dict, nemitt_x=None, nemitt_y=None, nemitt_zeta=None):
 
@@ -4016,6 +4207,7 @@ def _W_phys2norm(x, px, y, py, zeta, pzeta, W_matrix, co_dict, nemitt_x=None, ne
     XX_norm /= np.sqrt(gemitt_values)
 
     return XX_norm
+
 
 def _add_strengths_to_twiss_res(twiss_res, line):
     tt = line.get_table(attr=True).rows[list(twiss_res.name)]
