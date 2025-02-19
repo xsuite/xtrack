@@ -23,11 +23,34 @@ void Elens_track_local_particle(ElensData el, LocalParticle* part0){
     double const residual_kick_y = ElensData_get_residual_kick_y(el);
 
     int const polynomial_order = ElensData_get_polynomial_order(el);
+    int const len_noise = ElensData_get_len_noise(el);
 
     /*gpuglmem*/ double const* coefficients_polynomial =
                                 ElensData_getp1_coefficients_polynomial(el, 0);
 
     //start_per_particle_block (part0->part)
+        int at_turn = LocalParticle_get_at_turn(part);
+        const int noise_mode = ElensData_get_noise_mode(el);
+        double noise;
+        if (noise_mode == 0)
+        {
+            at_turn = (at_turn % len_noise + len_noise) % len_noise; // Handle wrapping for negative values
+            noise = ElensData_get_noise(el, at_turn);
+        }
+        else if (noise_mode == 1 || noise_mode == 2 || noise_mode == 3)
+        {
+            if (at_turn >= len_noise)
+                noise = (noise_mode == 1)   ? ElensData_get_noise(el, len_noise - 1)
+                        : (noise_mode == 2) ? 0.0
+                                            : 1.0; // noise_mode == 3
+            else
+                noise = ElensData_get_noise(el, at_turn);
+        }
+        else
+        {
+            // Error case: default to noise = 1.0
+            noise = 1.0;
+        }
 
         // electron mass
         double const EMASS  = 510998.928;
@@ -120,7 +143,9 @@ void Elens_track_local_particle(ElensData el, LocalParticle* part0){
 
         // # calculate the kick at r2 (maximum kick)
         double theta_max = ((1.0/(4.0*PI*EPSILON_0)));
-        theta_max = theta_max*(2*elens_length*current);
+
+        double actual_current = current*noise;
+        theta_max = theta_max * (2 * elens_length * actual_current);
 
         // for the moment: e-beam in the opposite direction from proton beam
         // generalize later
