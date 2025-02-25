@@ -6,7 +6,7 @@ class SchottkyMonitor():
     def __init__(self, f_rev, schottky_harmonic, n_taylor):
         """
         Tracking element computing Schottky spectra 
-        Equations based on JINST 19 P03017, C.lannoy  and al.
+        Equations based on JINST 19 P03017, C.lannoy et al.
 
         Parameters
         ----------
@@ -165,7 +165,7 @@ class SchottkyMonitor():
         if self.processing_param['z']:
             delta_omega_max = max(self.frequencies['center']) * 2 * np.pi * self.f_rev
             max_error = self.N_macropart_max**0.5 * (delta_omega_max*self.tau_max)**self.n_taylor * \
-                        np.exp(delta_omega_max*self.tau_max) / np.math.factorial(self.n_taylor)
+                        np.exp(delta_omega_max*self.tau_max) / sp.special.factorial(self.n_taylor)
             if np.sqrt(self.PSD_avg['center'][0]) < 100 * max_error:
                 print('Number of Taylor terms too low for the longitudinal band')
             print(f'Maximal Talor truncation error in z plane to be compared against sqrt(PSD): {max_error}')
@@ -174,14 +174,14 @@ class SchottkyMonitor():
         if self.processing_param['x']:
             delta_omega_max = max(self.frequencies['upperH']) * 2 * np.pi * self.f_rev
             max_error = self.N_macropart_max**0.5 * self.x_max * (delta_omega_max*self.tau_max)**self.n_taylor * \
-                        np.exp(delta_omega_max*self.tau_max) / np.math.factorial(self.n_taylor)
+                        np.exp(delta_omega_max*self.tau_max) / sp.special.factorial(self.n_taylor)
             if np.sqrt(self.PSD_avg['upperH'][0]) < 100 * max_error:
                 print('Number of Taylor terms too low for the horizontal bands')
             print(f'Maximal Talor truncation error in x plane to be compared against sqrt(PSD): {max_error}')
         if self.processing_param['y']:
             delta_omega_max = max(self.frequencies['upperV']) * 2 * np.pi * self.f_rev
             max_error = self.N_macropart_max**0.5 * self.y_max * (delta_omega_max*self.tau_max)**self.n_taylor * \
-                        np.exp(delta_omega_max*self.tau_max) / np.math.factorial(self.n_taylor)
+                        np.exp(delta_omega_max*self.tau_max) / sp.special.factorial(self.n_taylor)
             if np.sqrt(self.PSD_avg['upperV'][0]) < 100 * max_error:
                 print('Number of Taylor terms too low for the vertical bands')
             print(f'Maximal Talor truncation error in y plane to be compared against sqrt(PSD): {max_error}')
@@ -191,7 +191,7 @@ class SchottkyMonitor():
         Clear the instantaneous spectra but keep the coefficients L and T.
         Can be use to recompute Schottky spectra for different processing 
         parameters (window, frequency resolution, band widths) without 
-        tracking the particles agan
+        tracking the particles again
         """
         if hasattr(self, 'processing_param'):
             delattr(self, 'processing_param')
