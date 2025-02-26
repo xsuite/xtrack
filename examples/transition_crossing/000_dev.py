@@ -1,4 +1,5 @@
 import xtrack as xt
+import xpart as xp
 from xpart.longitudinal.rf_bucket import RFBucket
 
 import numpy as np
@@ -28,12 +29,18 @@ otm = xt.LineSegmentMap(
     qx=6.3, qy=6.4,
     momentum_compaction_factor=momentum_compaction_factor,
     longitudinal_mode="nonlinear",
-    voltage_rf=v_rf,
+    voltage_rf=0*v_rf,
     frequency_rf=f_rf,
     lag_rf=lag_rf,
     length=100.)
 
-line = xt.Line(elements=[otm], particle_ref=particle_ref)
+cav = xt.Cavity(
+    voltage=v_rf,
+    frequency=f_rf,
+    lag=lag_rf,
+)
+
+line = xt.Line(elements=[otm, cav], particle_ref=particle_ref)
 
 tw = line.twiss()
 
@@ -61,10 +68,18 @@ rfb = RFBucket(
 z_separatrix = np.linspace(-30, 30, 1000)
 delta_separatrix = rfb.separatrix(z_separatrix)
 
+p_gauss = xp.generate_matched_gaussian_bunch(
+    line=line,
+    num_particles=1000,
+    nemitt_x=2.5e-6,
+    nemitt_y=2.5e-6,
+    sigma_z=10)
+
 plt.close('all')
 plt.figure(1)
+plt.plot(p_gauss.zeta, p_gauss.delta, '.', color='k', alpha=0.5)
 plt.plot(mon.zeta.T, mon.delta.T, color='C0')
-plt.plot(z_separatrix, delta_separatrix, color='C1')
+plt.plot(z_separatrix, delta_separatrix/tw.beta0**2, color='C1')
 plt.xlabel('zeta [m]')
 plt.ylabel('delta')
 
