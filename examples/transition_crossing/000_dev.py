@@ -64,7 +64,7 @@ delta_separatrix = rfb.separatrix(z_separatrix)
 plt.close('all')
 plt.figure(1)
 plt.plot(mon.zeta.T, mon.delta.T, color='C0')
-plt.plot(z_separatrix, delta_separatrix/tw.beta0, color='C1')
+plt.plot(z_separatrix, delta_separatrix, color='C1')
 plt.xlabel('zeta [m]')
 plt.ylabel('delta')
 
