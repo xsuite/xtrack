@@ -1,6 +1,9 @@
 import xtrack as xt
+from xpart.longitudinal.rf_bucket import RFBucket
+
 import numpy as np
 from scipy.constants import c as clight
+from scipy.constants import e as qe
 import matplotlib.pyplot as plt
 
 kinetic_energy0 = 200e6 # eV
@@ -18,6 +21,7 @@ h_rf = 20
 
 f_rf = h_rf * f_rev
 v_rf = 1.5e3
+lag_rf = 0.
 
 otm = xt.LineSegmentMap(
     betx=1., bety=1,
@@ -26,7 +30,7 @@ otm = xt.LineSegmentMap(
     longitudinal_mode="nonlinear",
     voltage_rf=v_rf,
     frequency_rf=f_rf,
-    lag_rf=0,
+    lag_rf=lag_rf,
     length=100.)
 
 line = xt.Line(elements=[otm], particle_ref=particle_ref)
@@ -39,9 +43,28 @@ p = line.build_particles(delta=delta_test)
 line.track(p, turn_by_turn_monitor=True, num_turns=5000)
 mon = line.record_last_track
 
+mass0_ev = particle_ref.mass0
+mass0_j = mass0_ev * qe
+mass_kg = mass0_j / clight**2
+rfb = RFBucket(
+    circumference=circumference,
+    gamma=tw.gamma0,
+    mass_kg=mass_kg,
+    charge_coulomb=particle_ref.q0 * qe,
+    alpha_array=[momentum_compaction_factor],
+    p_increment=0,
+    harmonic_list=[h_rf],
+    voltage_list=[v_rf],
+    phi_offset_list=[np.rad2deg(lag_rf)],
+)
+
+z_separatrix = np.linspace(-30, 30, 1000)
+delta_separatrix = rfb.separatrix(z_separatrix)
+
 plt.close('all')
 plt.figure(1)
 plt.plot(mon.zeta.T, mon.delta.T, color='C0')
+plt.plot(z_separatrix, delta_separatrix/tw.beta0, color='C1')
 plt.xlabel('zeta [m]')
 plt.ylabel('delta')
 
