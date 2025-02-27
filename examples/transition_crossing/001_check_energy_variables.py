@@ -43,3 +43,15 @@ xo.assert_allclose(delta, beta * beta0 * pzeta + (beta - beta0)/beta0, rtol=0, a
 # More relations from the physics manual
 xo.assert_allclose(gamma, gamma0 * (1 + beta0 * ptau), rtol=0, atol=1e-14)
 xo.assert_allclose(beta, np.sqrt(1 - (1 - beta0**2)/(1 + beta0 * ptau)**2), rtol=0, atol=1e-14)
+
+# Check relations for small energy deviations
+p_small = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1,
+                       kinetic_energy0=50e6, delta=1e-4)
+delta_small = p_small.delta[0]
+ptau_small = p_small.ptau[0]
+pzeta_small = p_small.pzeta[0]
+beta_small = beta0 * p_small.rvv[0]
+
+xo.assert_allclose(delta_small, ptau_small/beta0, rtol=0, atol=1e-8)
+xo.assert_allclose(delta_small, pzeta_small, rtol=0, atol=1e-8)
+xo.assert_allclose(beta_small, beta0 + (1 - beta0**2) * ptau_small, rtol=0, atol=1e-8)
