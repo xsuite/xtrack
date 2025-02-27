@@ -33,3 +33,7 @@ xo.assert_allclose(delta, (Pc - p0c) / p0c, rtol=0, atol=1e-14)
 xo.assert_allclose(ptau, (energy - energy0) / energy0 / beta0, rtol=0, atol=1e-14)
 xo.assert_allclose(pzeta,(energy - energy0) / energy0 / beta0**2, rtol=0, atol=1e-14)
 xo.assert_allclose(pzeta,(energy - energy0) / p0c / beta0, rtol=0, atol=1e-14)
+
+xo.assert_allclose(delta, beta * ptau + (beta - beta0)/beta0, rtol=0, atol=1e-14)
+xo.assert_allclose(delta, beta * beta0 * pzeta + (beta - beta0)/beta0, rtol=0, atol=1e-14)
+xo.assert_allclose(delta, np.sqrt(ptau**2 + 2*ptau/beta0 + 1) - 1, rtol=0, atol=1e-14)
