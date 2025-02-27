@@ -44,10 +44,10 @@ line = xt.Line(elements=[otm, cav], particle_ref=particle_ref)
 
 tw = line.twiss()
 
-delta_test = np.linspace(0, 5e-3, 20)
+delta_test = np.linspace(0, 1.5e-3, 20)
 p = line.build_particles(delta=delta_test)
 
-line.track(p, turn_by_turn_monitor=True, num_turns=5000)
+line.track(p, turn_by_turn_monitor=True, num_turns=1000)
 mon = line.record_last_track
 
 mass0_ev = particle_ref.mass0
