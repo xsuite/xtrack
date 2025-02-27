@@ -18,14 +18,14 @@ circumference = 1000.
 t_rev = circumference / (particle_ref.beta0[0] * clight)
 f_rev = 1 / t_rev
 
-energy_ref_increment =  0 # 0.001e6 # eV
+energy_ref_increment =  0 #0.001e6 # eV
 
 
 h_rf = 20
 
 f_rf = h_rf * f_rev
 v_rf = 1.5e3
-lag_rf = 20.
+lag_rf = 0
 
 # Compute momentum increment using auxiliary particle
 p_ref_aux = xt.Particles(kinetic_energy0=kinetic_energy0 + energy_ref_increment,
@@ -74,12 +74,12 @@ rfb = RFBucket(
 z_separatrix = np.linspace(-30, 30, 1000)
 delta_separatrix = rfb.separatrix(z_separatrix)
 
-# p_gauss = xp.generate_matched_gaussian_bunch(
-#     line=line,
-#     num_particles=1000,
-#     nemitt_x=2.5e-6,
-#     nemitt_y=2.5e-6,
-#     sigma_z=10)
+p_gauss = xp.generate_matched_gaussian_bunch(
+    line=line,
+    num_particles=1000,
+    nemitt_x=2.5e-6,
+    nemitt_y=2.5e-6,
+    sigma_z=5)
 
 plt.close('all')
 plt.figure(1)
