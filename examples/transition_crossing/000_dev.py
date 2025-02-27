@@ -18,11 +18,21 @@ circumference = 1000.
 t_rev = circumference / (particle_ref.beta0[0] * clight)
 f_rev = 1 / t_rev
 
+energy_ref_increment = 0.001e6 # eV
+
+
 h_rf = 20
 
 f_rf = h_rf * f_rev
 v_rf = 1.5e3
 lag_rf = 0.
+
+# Compute momentum increment using auxiliary particle
+p_ref_aux = xt.Particles(kinetic_energy0=kinetic_energy0 + energy_ref_increment,
+                         mass0=particle_ref.mass0)
+dp0c_eV = p_ref_aux.p0c[0] - particle_ref.p0c[0]
+dp0c_J = dp0c_eV * qe
+dp0_si = dp0c_J / clight
 
 otm = xt.LineSegmentMap(
     betx=1., bety=1,
@@ -32,7 +42,9 @@ otm = xt.LineSegmentMap(
     voltage_rf=v_rf,
     frequency_rf=f_rf,
     lag_rf=lag_rf,
-    length=circumference)
+    length=circumference,
+    energy_ref_increment=energy_ref_increment
+)
 
 line = xt.Line(elements=[otm], particle_ref=particle_ref)
 
@@ -53,7 +65,7 @@ rfb = RFBucket(
     mass_kg=mass_kg,
     charge_coulomb=particle_ref.q0 * qe,
     alpha_array=[momentum_compaction_factor],
-    p_increment=0,
+    p_increment=dp0_si,
     harmonic_list=[h_rf],
     voltage_list=[v_rf],
     phi_offset_list=[np.rad2deg(lag_rf)],
