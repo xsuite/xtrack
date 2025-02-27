@@ -29,18 +29,12 @@ otm = xt.LineSegmentMap(
     qx=6.3, qy=6.4,
     momentum_compaction_factor=momentum_compaction_factor,
     longitudinal_mode="nonlinear",
-    voltage_rf=0*v_rf,
+    voltage_rf=v_rf,
     frequency_rf=f_rf,
     lag_rf=lag_rf,
     length=circumference)
 
-cav = xt.Cavity(
-    voltage=v_rf,
-    frequency=f_rf,
-    lag=lag_rf,
-)
-
-line = xt.Line(elements=[otm, cav], particle_ref=particle_ref)
+line = xt.Line(elements=[otm], particle_ref=particle_ref)
 
 tw = line.twiss()
 
