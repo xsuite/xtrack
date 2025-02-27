@@ -7,7 +7,7 @@ from scipy.constants import c as clight
 from scipy.constants import e as qe
 import matplotlib.pyplot as plt
 
-kinetic_energy0 = 200e6 # eV
+kinetic_energy0 = 100e6 # eV
 gamma_transition = 1.3
 momentum_compaction_factor = 1 / gamma_transition**2
 
@@ -75,11 +75,16 @@ p_gauss = xp.generate_matched_gaussian_bunch(
     nemitt_y=2.5e-6,
     sigma_z=10)
 
+eq_hami_fun = rfb.equihamiltonian(10.)
+z_equi = np.linspace(-10, 10, 1000)
+delta_equi = eq_hami_fun(z_equi)
+
 plt.close('all')
 plt.figure(1)
 plt.plot(p_gauss.zeta, p_gauss.delta, '.', color='k', alpha=0.5)
 plt.plot(mon.zeta.T, mon.delta.T, color='C0')
-plt.plot(z_separatrix, delta_separatrix/tw.beta0**2, color='C1')
+plt.plot(z_separatrix, delta_separatrix, color='C1')
+plt.plot(z_equi, delta_equi, color='C2')
 plt.xlabel('zeta [m]')
 plt.ylabel('delta')
 
