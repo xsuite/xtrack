@@ -1,6 +1,7 @@
 import xtrack as xt
 import xobjects as xo
 import numpy as np
+from scipy.constants import c as clight
 
 p = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1,
                  kinetic_energy0=50e6, delta=0.1)
@@ -10,10 +11,25 @@ gamma0 = p.gamma0[0]
 mass0_ev = p.mass0
 energy0 = p.energy0[0]
 energy = p.energy[0]
+p0c = p.p0c[0]
+
+delta = p.delta[0]
+ptau = p.ptau[0]
+pzeta = p.pzeta[0]
 
 beta = beta0 * p.rvv[0]
 gamma = energy / energy0 * gamma0
 
 xo.assert_allclose(gamma0, 1 / np.sqrt(1 - beta0**2), rtol=0, atol=1e-14)
 xo.assert_allclose(gamma, 1 / np.sqrt(1 - beta**2), rtol=0, atol=1e-14)
+xo.assert_allclose(energy, mass0_ev * gamma, rtol=0, atol=1e-6) # 1e-6 eV
+xo.assert_allclose(energy0, mass0_ev * gamma0, rtol=0, atol=1e-6) # 1e-6 eV
 
+Pc = p0c * (1 + delta)
+xo.assert_allclose(Pc, mass0_ev * gamma * beta, rtol=0, atol=1e-6) # 1e-6 eV
+
+# Definitions delta/ptau/pzeta
+xo.assert_allclose(delta, (Pc - p0c) / p0c, rtol=0, atol=1e-14)
+xo.assert_allclose(ptau, (energy - energy0) / energy0 / beta0, rtol=0, atol=1e-14)
+xo.assert_allclose(pzeta,(energy - energy0) / energy0 / beta0**2, rtol=0, atol=1e-14)
+xo.assert_allclose(pzeta,(energy - energy0) / p0c / beta0, rtol=0, atol=1e-14)
