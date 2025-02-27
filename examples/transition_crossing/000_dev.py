@@ -75,18 +75,12 @@ p_gauss = xp.generate_matched_gaussian_bunch(
     nemitt_y=2.5e-6,
     sigma_z=10)
 
-p_hamil = line.build_particles(zeta=10.)
-line.track(p_hamil, turn_by_turn_monitor=True, num_turns=5000)
-mon_hamil = line.record_last_track
-zeta_hamil= np.squeeze(mon_hamil.zeta)
-delta_hamil = np.squeeze(mon_hamil.delta)
-
 plt.close('all')
 plt.figure(1)
 plt.plot(p_gauss.zeta, p_gauss.delta, '.', color='k', alpha=0.5)
 plt.plot(mon.zeta.T, mon.delta.T, color='C0')
 plt.plot(z_separatrix, delta_separatrix, color='C1')
-# plt.plot(z_equi, delta_equi, color='C2')
+plt.plot(z_separatrix, -delta_separatrix, color='C1')
 plt.xlabel('zeta [m]')
 plt.ylabel('delta')
 
