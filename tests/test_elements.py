@@ -6,12 +6,13 @@
 import numpy as np
 import pytest
 from cpymad.madx import Madx
-
+from scipy.stats import linregress
+from scipy import constants as cst
 import ducktrack as dtk
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import for_all_test_contexts, fix_random_seed
 from xtrack.beam_elements.elements import _angle_from_trig
 
 
@@ -650,6 +651,104 @@ def test_simplified_accelerator_segment(test_context):
     xo.assert_allclose(test_context.nparray_from_context_array(particles.delta)[0],
                       dtk_particle.delta, rtol=1e-14, atol=1e-14)
 
+@for_all_test_contexts
+def test_simplified_accelerator_segment_bucket(test_context):
+    dtk_particle = dtk.TestParticles(
+            p0c=25.92e9,
+            x=2e-3,
+            px=4e-5,
+            y=4e-3,
+            py=-8e-5,
+            zeta=2.,
+            delta=2E-3)
+
+    particles = xp.Particles.from_dict(dtk_particle.to_dict(),
+                                       _context=test_context)
+    Q_x = 0.12
+    Q_y = 0.75
+    beta_s = 214.3
+    Q_s = 0.0042
+    bucket_length = 1E-9
+
+    arc = xt.LineSegmentMap(_context=test_context,
+        qx=Q_x, betx = 1.0, qy=Q_y, bety = 1.0,
+        bets=beta_s, qs=Q_s,bucket_length=bucket_length)
+
+    arc.track(particles)
+
+    dtk_arc = dtk.elements.LinearTransferMatrix(
+        Q_x=Q_x, Q_y=Q_y, beta_x_0 = 1.0, beta_x_1 = 1.0,
+        beta_y_0 = 1.0, beta_y_1 = 1.0,
+        beta_s=beta_s, Q_s=Q_s,bucket_length=bucket_length)
+
+    dtk_arc.track(dtk_particle)
+
+    assert np.isclose(test_context.nparray_from_context_array(particles.x)[0],
+                      dtk_particle.x, rtol=1e-14, atol=1e-14)
+    assert np.isclose(test_context.nparray_from_context_array(particles.px)[0],
+                      dtk_particle.px, rtol=1e-14, atol=1e-14)
+    assert np.isclose(test_context.nparray_from_context_array(particles.y)[0],
+                      dtk_particle.y, rtol=1e-14, atol=1e-14)
+    assert np.isclose(test_context.nparray_from_context_array(particles.py)[0],
+                      dtk_particle.py, rtol=1e-14, atol=1e-14)
+    assert np.isclose(test_context.nparray_from_context_array(particles.zeta)[0],
+                      dtk_particle.zeta, rtol=1e-14, atol=1e-14)
+    assert np.isclose(test_context.nparray_from_context_array(particles.delta)[0],
+                      dtk_particle.delta, rtol=1e-14, atol=1e-14)
+
+@for_all_test_contexts
+def test_simplified_accelerator_segment_bucket_fixed_rf(test_context):
+    dtk_particle = dtk.TestParticles(
+            p0c=25.92e9,
+            x=2e-3,
+            px=4e-5,
+            y=4e-3,
+            py=-8e-5,
+            zeta=8.,
+            delta=2E-3)
+
+    particles = xp.Particles.from_dict(dtk_particle.to_dict()).copy(_context=test_context)
+    Q_x = 0.12
+    Q_y = 0.75
+    voltage = 10E6
+    f_RF = 100E6
+    circumference = 2E3
+    momentum_compaction = 1E-2
+
+    arc = xt.LineSegmentMap(_context=test_context,
+        qx=Q_x, betx = 1.0, qy=Q_y, bety = 1.0,
+        voltage_rf = voltage,
+        longitudinal_mode = 'linear_fixed_rf',
+        frequency_rf = f_RF,
+        lag_rf = 180.0,
+        slippage_length = circumference,
+        momentum_compaction_factor = momentum_compaction)
+
+    arc.track(particles)
+
+    particles.move(_context=xo.ContextCpu())
+    eta = (momentum_compaction - 1.0 / particles.gamma0 ** 2)
+    h = f_RF * circumference / (particles.beta0*cst.c)
+    p0 = particles.mass0 * cst.e * particles.beta0  * particles.gamma0 / cst.c
+    Q_s = np.sqrt(cst.e * voltage * eta * h / (2 * np.pi * particles.beta0 * cst.c * p0))
+    beta_s = eta * circumference / (2 * np.pi * Q_s)
+    Qx = 0.31
+    Qy = 0.32
+
+    dtk_arc = dtk.elements.LinearTransferMatrix(
+        Q_x=Q_x, Q_y=Q_y, beta_x_0 = 1.0, beta_x_1 = 1.0,
+        beta_y_0 = 1.0, beta_y_1 = 1.0,
+        beta_s=beta_s, Q_s=Q_s,bucket_length=1.0/f_RF)
+
+    dtk_arc.track(dtk_particle)
+
+    assert np.isclose(particles.x[0], dtk_particle.x, rtol=1e-14, atol=1e-14)
+    assert np.isclose(particles.px[0], dtk_particle.px, rtol=1e-14, atol=1e-14)
+    assert np.isclose(particles.y[0], dtk_particle.y, rtol=1e-14, atol=1e-14)
+    assert np.isclose(particles.py[0], dtk_particle.py, rtol=1e-14, atol=1e-14)
+    assert np.isclose(particles.zeta[0], dtk_particle.zeta, rtol=1e-14, atol=1e-14)
+    assert np.isclose(particles.delta[0], dtk_particle.delta, rtol=1e-14, atol=1e-14)
+
 
 @for_all_test_contexts
 def test_simplified_accelerator_segment_chroma_detuning(test_context):
@@ -1008,6 +1107,7 @@ def test_simplified_accelerator_segment_uncorrelated_damping_equilibrium(test_co
 
 
 @for_all_test_contexts
+@fix_random_seed(3638475)
 def test_simplified_accelerator_segment_correlated_noise(test_context):
     npart = int(1E6)
     scale = 1E-6

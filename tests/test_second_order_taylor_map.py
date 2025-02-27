@@ -72,7 +72,7 @@ def test_second_order_maps_against_madx(test_context):
 
     # Generate Xsuite maps
 
-    collider = xt.Multiline.from_json(test_data_folder /
+    collider = xt.Environment.from_json(test_data_folder /
                             'hllhc15_thick/hllhc15_collider_thick.json')
     collider.vars.update(orbit_settings)
     collider['lhcb1'].twiss_default['method'] = '4d'

@@ -21,74 +21,55 @@ line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1,
                                  gamma0=mad.sequence.lhcb1.beam.gamma)
 line.build_tracker()
 
-# MAD-X variables can be found in `line.vars` or, equivalently, in   #
-# `line.vars`. They can be used to change properties in the beamline.   #
-# For example, we consider the MAD-X variable `on_x1` that controls     #
-# the beam angle in the interaction point 1 (IP1). It is defined in     #
-# microrad units.                                                       #
+# MAD-X variables can be found in in the imported line. They can be
+# used to change properties in the beamline.
+# For example, we consider the MAD-X variable `on_x1` that controls
+# the beam angle in the interaction point 1 (IP1). It is defined in
+# microrad units.
 
 # Inspect the value of the variable
-print(line.vars['on_x1']._value)
-# ---> returns 1 (as defined in the import)
+line['on_x1']
+# returns 1 (as defined in the import)
 
 # Measure vertical angle at the interaction point 1 (IP1)
-print(line.twiss(at_elements=['ip1'])['px'])
+line.twiss()['px', 'ip1']
 # ---> returns 1e-6
 
+
 # Set crossing angle using the variable
-line.vars['on_x1'] = 300
+line['on_x1'] = 100
 
 # Measure vertical angle at the interaction point 1 (IP1)
 print(line.twiss(at_elements=['ip1'])['px'])
-# ---> returns 0.00030035
+# ---> returns 100e-6
 
 #!end-doc-part
 
 #########################################################################
 # The expressions relating the beam elements properties to the          #
-# variables can be inspected and modified through the data structure    #
-# `line.element_refs` or equivalently `line.element_refs`            #
+# variables can be inspected and modified through line                  #
 #########################################################################
 
-# For example we can che how the dipole corrector 'mcbyv.4r1.b1' is controlled:
-print(line.element_refs['mcbxfah.3r1'].knl[0]._expr)
+# For example we can see how the dipole corrector 'mcbyv.4r1.b1' is controlled,
+# by inspecting the expression of its normal dipole component knl[0]
+line['mcbxfah.3r1'].get_expr('knl', 0)
 # ---> returns "(-vars['acbxh3.r1'])"
 
 # We can see that the variable controlling the corrector is in turn controlled
 # by an expression involving several other variables:
-print(line.vars['acbxh3.r1']._expr)
+line.get_expr('acbxh3.r1')
 # ---> returns
 #         (((((((-3.529000650090648e-07*vars['on_x1hs'])
-#         -(1.349958221397232e-07*vars['on_x1hl']))
+#          -(1.349958221397232e-07*vars['on_x1hl']))
 #          +(1.154711348310621e-05*vars['on_sep1h']))
 #          +(1.535247516521591e-05*vars['on_o1h']))
 #          -(9.919546388675102e-07*vars['on_a1h']))
 #          +(3.769003853335184e-05*vars['on_ccpr1h']))
-#           +(1.197587664190056e-05*vars['on_ccmr1h']))
-
-# The list of variables cotrolling the selected variable can be found by:
-print(line.vars['acbxh3.r1']._expr._get_dependencies())
-# ---> returns {vars['on_ccpr1h'], vars['on_x1hs'], vars['on_x1hl'],
-#               vars['on_ccmr1h'], vars['on_sep1h'], vars['on_o1h'],
-#               vars['on_a1h']}
-
-# It is possible to get the list of all entities controlled by a given
-# variable by using the method `_find_dependant_targets`:
-line.vars['on_x1']._find_dependant_targets()
-# ---> returns
-#         [vars['on_x1'],
-#          vars['on_x1hl'],
-#          vars['on_dx1hl'],
-#          vars['on_x1hs'],
-#          vars['acbxh3.l1'],
-#          element_refs['mcbxfah.3l1'],
-#          element_refs['mcbxfah.3l1'].knl[0],
-#          element_refs['mcbxfah.3l1'].knl,
-#            ...............
+#          +(1.197587664190056e-05*vars['on_ccmr1h']))
 
 # The _info() method can be used to get on overview of the information related
 # to a given variable:
-line.vars['acbxh3.r1']._info()
+line.info('acbxh3.r1')
 # ---> prints:
 #          #  vars['acbxh3.r1']._get_value()
 #             vars['acbxh3.r1'] = 0.00010587001950271944

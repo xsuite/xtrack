@@ -134,6 +134,9 @@ class SurveyTable(Table):
         out_angle = list(-self.angle[:-1][::-1])
         out_tilt = list(-self.tilt[:-1][::-1])
         out_name = list(self.name[:-1][::-1])
+        out_element_type = list(self.element_type[:-1][::-1])
+        out_isthick = list(self.isthick[:-1][::-1])
+        out_length = list(self.length[:-1][::-1])
 
         if type(element0) is str:
             element0 = out_name.index(element0)
@@ -158,6 +161,9 @@ class SurveyTable(Table):
         out_columns['drift_length'] = np.array(out_drift_length + [0.])
         out_columns['angle'] = np.array(out_angle + [0.])
         out_columns['tilt'] = np.array(out_tilt + [0.])
+        out_columns['element_type'] = np.array(out_element_type + [""])
+        out_columns['isthick'] = np.array(out_isthick + [False])
+        out_columns['length'] = np.array(out_length + [0.])
 
         out_scalars = {}
         out_scalars["element0"] = element0
@@ -167,8 +173,28 @@ class SurveyTable(Table):
 
         return out
 
-# ==================================================
+    def plot(self, element_width=None, legend=True, **kwargs):
+        # Shallow copy of self
+        out_sv_table = SurveyTable.__new__(SurveyTable)
+        out_sv_table.__dict__.update(self.__dict__)
+        out_sv_table._data = self._data.copy()
 
+        # Removing the count for repeated elements
+        out_sv_table.name = np.array([nn.split('::')[0] for nn in out_sv_table.name])
+
+        if element_width is None:
+            x_range = max(self.X) - min(self.X)
+            y_range = max(self.Y) - min(self.Y)
+            z_range = max(self.Z) - min(self.Z)
+            element_width = max([x_range, y_range, z_range]) * 0.03
+        import xplt
+        xplt.FloorPlot(out_sv_table, element_width=element_width, **kwargs)
+        if legend:
+            import matplotlib.pyplot as plt
+            plt.legend()
+
+
+# ==================================================
 # Main function
 # ==================================================
 def survey_from_line(line, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
@@ -194,7 +220,7 @@ def survey_from_line(line, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
     tt = line.get_table(attr = True)
     angle = tt.angle_rad
     tilt = tt.rot_s_rad
-    drift_length = tt.length
+    drift_length = tt.length.copy()
     drift_length[~tt.isthick] = 0
 
     if type(element0) == str:
@@ -216,14 +242,18 @@ def survey_from_line(line, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
 
     out_columns["name"] = tt.name
     out_columns["s"] = tt.s
+    out_columns["length"] = tt.length
+    out_columns["isthick"] = tt.isthick
     out_columns['drift_length'] = drift_length
     out_columns['angle'] = angle
     out_columns['tilt'] = tilt
+    out_columns['element_type'] = tt.element_type
 
     out_scalars['element0'] = element0
 
     out = SurveyTable(data={**out_columns, **out_scalars},  # this is a merge
                       col_names=out_columns.keys())
+    out._data['line'] = line
 
     return out
 

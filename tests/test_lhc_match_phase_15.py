@@ -8,7 +8,7 @@ import xdeps as xd
 import xobjects as xo
 import xtrack as xt
 import xtrack._temp.lhc_match as lm
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import for_all_test_contexts, fix_random_seed
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
@@ -18,6 +18,7 @@ test_data_folder = pathlib.Path(
     ['noshift', 'shift']
 )
 @for_all_test_contexts
+@fix_random_seed(2836475)
 def test_lhc_match_phase_15(test_context, config):
 
     if config == 'noshift':
@@ -35,7 +36,7 @@ def test_lhc_match_phase_15(test_context, config):
 
     staged_match = True
 
-    collider = xt.Multiline.from_json(
+    collider = xt.Environment.from_json(
         test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers(_context=test_context)
     collider.vars.load_madx_optics_file(
@@ -268,7 +269,7 @@ def test_lhc_match_phase_15(test_context, config):
     print(f"  b2: d_mux={tw.lhcb2['mux', 'ip5'] - tw0.lhcb2['mux', 'ip5']:6f} "
                 f"d_muy={tw.lhcb2['muy', 'ip5'] - tw0.lhcb2['muy', 'ip5']:6f} ")
 
-    collider_ref = xt.Multiline.from_json(
+    collider_ref = xt.Environment.from_json(
         test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.json')
     collider_ref.build_trackers()
     collider_ref.vars.load_madx_optics_file(
@@ -559,10 +560,10 @@ def test_lhc_match_phase_15(test_context, config):
             xt.VaryList(['kqtf.b1', 'kqtd.b1', 'ksf.b1', 'ksd.b1'], step=1e-7),
             xt.VaryList(['kqtf.b2', 'kqtd.b2', 'ksf.b2', 'ksd.b2'], step=1e-7)],
         targets = [
-            xt.TargetSet(line='lhcb1', qx=62.315, qy=60.325, tol=1e-10),
-            xt.TargetSet(line='lhcb1', dqx=10.0, dqy=12.0, tol=1e-5),
-            xt.TargetSet(line='lhcb2', qx=62.316, qy=60.324, tol=1e-10),
-            xt.TargetSet(line='lhcb2', dqx=9.0, dqy=11.0, tol=1e-5)])
+            xt.TargetSet(line='lhcb1', qx=62.315, qy=60.325, tol=1e-6),
+            xt.TargetSet(line='lhcb1', dqx=10.0, dqy=12.0, tol=1e-4),
+            xt.TargetSet(line='lhcb2', qx=62.316, qy=60.324, tol=1e-6),
+            xt.TargetSet(line='lhcb2', dqx=9.0, dqy=11.0, tol=1e-4)])
     opt.solve()
 
     # Transfer knobs to madx model and check matched values

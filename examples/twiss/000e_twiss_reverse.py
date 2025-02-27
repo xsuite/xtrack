@@ -6,7 +6,7 @@
 import xtrack as xt
 
 # Load collider with two lines
-collider = xt.Multiline.from_json(
+collider = xt.Environment.from_json(
     '../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
 collider.build_trackers()
 collider.lhcb1.twiss_default.clear() # clear twiss default settings

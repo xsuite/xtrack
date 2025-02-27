@@ -115,11 +115,11 @@ void transverse_motion(LocalParticle *part0, LineSegmentMapData el){
     int64_t any_chroma = 0;
 
     for (int i_dqx=0; i_dqx<ndqx; i_dqx++){
-        any_chroma = LineSegmentMapData_get_coeffs_dqx(el, 0) != 0;
+        any_chroma += LineSegmentMapData_get_coeffs_dqx(el, 0) != 0;
     }
 
     for (int i_dqy=0; i_dqy<ndqy; i_dqy++){
-        any_chroma = LineSegmentMapData_get_coeffs_dqy(el, 0) != 0;
+        any_chroma += LineSegmentMapData_get_coeffs_dqy(el, 0) != 0;
     }
 
     if (any_chroma ||
@@ -208,17 +208,22 @@ void longitudinal_motion(LocalParticle *part0,
     if (mode_flag==1){ // linear motion fixed qs
         double const qs = LineSegmentMapData_get_qs(el);
         double const bets = LineSegmentMapData_get_bets(el);
+        double const bucket_length = LineSegmentMapData_get_bucket_length(el)*LocalParticle_get_beta0(part0)*C_LIGHT;
         double const sin_s = sin(2 * PI * qs);
         double const cos_s = cos(2 * PI * qs);
         //start_per_particle_block (part->part)
             // We set cos_s = 999 if long map is to be skipped
+            double shift = 0.0;
+            if (bucket_length > 0.0) {
+                shift = bucket_length*floor(LocalParticle_get_zeta(part)/bucket_length+0.5);
+                LocalParticle_add_to_zeta(part,-shift);
+            }
             double const new_zeta = cos_s * LocalParticle_get_zeta(part) - bets * sin_s * LocalParticle_get_pzeta(part);
             double const new_pzeta = sin_s * LocalParticle_get_zeta(part) / bets + cos_s * LocalParticle_get_pzeta(part);
 
-            LocalParticle_set_zeta(part, new_zeta);
+            LocalParticle_set_zeta(part, new_zeta+shift);
             LocalParticle_update_pzeta(part, new_pzeta);
         //end_per_particle_block
-
     }
     else if (mode_flag==2){ // non-linear motion
 
@@ -263,7 +268,7 @@ void longitudinal_motion(LocalParticle *part0,
                 -0.5 * eta * slippage_length * LocalParticle_get_delta(part));
         //end_per_particle_block
     }
-    else if (mode_flag == 3){
+    else if (mode_flag == 3){ // linear motion fixed RF
 
         double const alfp =
             LineSegmentMapData_get_momentum_compaction_factor(el);
@@ -273,6 +278,8 @@ void longitudinal_motion(LocalParticle *part0,
         // Assume there is only one RF term (checked in the Python code)
         double const v_rf = LineSegmentMapData_get_voltage_rf(el,0);
         double const f_rf = LineSegmentMapData_get_frequency_rf(el,0);
+
+        double const bucket_length = LocalParticle_get_beta0(part0)*C_LIGHT/f_rf;
 
         //start_per_particle_block (part->part)
             double const gamma0 = LocalParticle_get_gamma0(part);
@@ -289,10 +296,13 @@ void longitudinal_motion(LocalParticle *part0,
             double const sin_s = sin(2 * PI * qs);
             double const cos_s = cos(2 * PI * qs);
 
+            double shift = bucket_length*floor(LocalParticle_get_zeta(part)/bucket_length+0.5);
+            LocalParticle_add_to_zeta(part,-shift);
+
             double const new_zeta = cos_s * LocalParticle_get_zeta(part) - bets * sin_s * LocalParticle_get_pzeta(part);
             double const new_pzeta = sin_s * LocalParticle_get_zeta(part) / bets + cos_s * LocalParticle_get_pzeta(part);
 
-            LocalParticle_set_zeta(part, new_zeta);
+            LocalParticle_set_zeta(part, new_zeta+shift);
             LocalParticle_update_pzeta(part, new_pzeta);
 
         //end_per_particle_block

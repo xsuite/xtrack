@@ -24,7 +24,12 @@ line_thick = xt.Line.from_madx_sequence(mad.sequence.fccee_p_ring, allow_thick=T
 
 # Introduce 90 degree tilt for wiggler
 tt = line_thick.get_table()
-wigs = tt.rows['mwi.*', tt.element_type=='Bend'].name
+
+# We seem to have a regression in the table
+# wigs = tt.rows['mwi.*', tt.element_type=='Bend'].name
+
+wigs = tt.rows[tt.rows.mask['mwi.*'] & (tt.element_type=='Bend')].name
+
 for nn in wigs:
     line_thick.element_refs[nn].rot_s_rad = np.pi/2
 

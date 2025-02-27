@@ -1,11 +1,7 @@
-from collections.abc import Iterable
-from functools import partial
-
 import numpy as np
-from scipy.optimize import fsolve, minimize
 
-from .twiss import TwissInit, VARS_FOR_TWISS_INIT_GENERATION, _complete_twiss_init
-from .general import _print, START, END, _LOC
+from .twiss import VARS_FOR_TWISS_INIT_GENERATION
+from .general import _print, _LOC
 import xtrack as xt
 import xdeps as xd
 
@@ -28,6 +24,10 @@ XTRACK_DEFAULT_WEIGHTS = {
     'muy': 10.,
     'qx': 10.,
     'qy': 10.,
+    'dx' : 10.,
+    'dpx': 100.,
+    'dy' : 10.,
+    'dpy': 100.,
 }
 
 ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau',
@@ -43,179 +43,6 @@ ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau',
                         'eq_gemitt_x', 'eq_gemitt_y', 'eq_gemitt_zeta',
                         'eq_nemitt_x', 'eq_nemitt_y', 'eq_nemitt_zeta']
 
-Action = xd.Action
-
-class ActionTwiss(xd.Action):
-
-    def __init__(self, line, allow_twiss_failure=False,
-                 compensate_radiation_energy_loss=False,
-                 **kwargs):
-        self.line = line
-        self.kwargs = kwargs
-        self.allow_twiss_failure = allow_twiss_failure
-        self.compensate_radiation_energy_loss = compensate_radiation_energy_loss
-
-    def prepare(self):
-        line = self.line
-        kwargs = self.kwargs
-
-        ismultiline = isinstance(line, xt.Multiline)
-
-        # Forbit specifying init through kwargs for Multiline
-        if ismultiline:
-            for kk in VARS_FOR_TWISS_INIT_GENERATION:
-                if kk in kwargs:
-                    raise ValueError(
-                        f'`{kk}` cannot be specified for a Multiline match. '
-                        f'Please specify provide a TwissInit object for each line instead.')
-
-        # Handle init from table
-        if ismultiline:
-
-            line_names = kwargs.get('lines', line.line_names)
-            none_list = [None] * len(line_names)
-            twinit_list = kwargs.get('init', none_list)
-            ele_start_list = kwargs.get('start', none_list)
-            ele_stop_list = kwargs.get('end', none_list)
-            ele_init_list = kwargs.get('init_at', none_list)
-            line_list = [line[nn] for nn in line_names]
-
-            assert isinstance(twinit_list, list)
-            assert isinstance(ele_start_list, list)
-            assert isinstance(ele_stop_list, list)
-
-            for ii, twinit in enumerate(twinit_list):
-                if isinstance(twinit, xt.MultiTwiss):
-                    twinit_list[ii] = twinit[line_names[ii]]
-
-        else:
-            twinit_list = [kwargs.get('init', None)]
-            ele_start_list = [kwargs.get('start', None)]
-            ele_stop_list = [kwargs.get('end', None)]
-            ele_init_list = [kwargs.get('init_at', None)]
-            line_list = [line]
-
-            for ii, (twinit, start, end, init_at) in enumerate(
-                    zip(twinit_list, ele_start_list, ele_stop_list, ele_init_list)):
-                if isinstance(twinit, xt.TwissInit):
-                    twinit_list[ii] = twinit.copy()
-                elif isinstance(twinit, str):
-                    assert twinit == 'periodic'
-
-        # Handle init_at as xt.START or xt.END
-        for ii, init_at in enumerate(ele_init_list):
-            if isinstance(init_at, _LOC):
-                if init_at.name == 'START':
-                    ele_init_list[ii] = ele_start_list[ii]
-                elif init_at.name == 'END':
-                    ele_init_list[ii] = ele_stop_list[ii]
-
-        # Handle init from table
-        for ii, (twinit, start, end, init_at) in enumerate(
-                zip(twinit_list, ele_start_list, ele_stop_list, ele_init_list)):
-            if isinstance(twinit, xt.TwissInit):
-                continue
-            elif isinstance(twinit, xt.TwissTable):
-                if init_at is None:
-                    init_at = start
-                init_at = init_at
-                twinit_list[ii] = twinit.get_twiss_init(at_element=init_at)
-                ele_init_list[ii] = None
-            else:
-                assert twinit is None or twinit == 'periodic'
-
-        if not ismultiline:
-            # Handle case in which twiss init is defined through kwargs
-            init = _complete_twiss_init(
-                    start=ele_start_list[0],
-                    end=ele_stop_list[0],
-                    init_at=ele_init_list[0],
-                    init=twinit_list[0],
-                    line=line,
-                    reverse=None, # will be handled by the twiss
-                    x=kwargs.get('x', None),
-                    px=kwargs.get('px', None),
-                    y=kwargs.get('y', None),
-                    py=kwargs.get('py', None),
-                    zeta=kwargs.get('zeta', None),
-                    delta=kwargs.get('delta', None),
-                    alfx=kwargs.get('alfx', None),
-                    alfy=kwargs.get('alfy', None),
-                    betx=kwargs.get('betx', None),
-                    bety=kwargs.get('bety', None),
-                    bets=kwargs.get('bets', None),
-                    dx=kwargs.get('dx', None),
-                    dpx=kwargs.get('dpx', None),
-                    dy=kwargs.get('dy', None),
-                    dpy=kwargs.get('dpy', None),
-                    dzeta=kwargs.get('dzeta', None),
-                    mux=kwargs.get('mux', None),
-                    muy=kwargs.get('muy', None),
-                    muzeta=kwargs.get('muzeta', None),
-                    ax_chrom=kwargs.get('ax_chrom', None),
-                    bx_chrom=kwargs.get('bx_chrom', None),
-                    ay_chrom=kwargs.get('ay_chrom', None),
-                    by_chrom=kwargs.get('by_chrom', None),
-                    ddx=kwargs.get('ddx', None),
-                    ddy=kwargs.get('ddy', None),
-                    ddpx=kwargs.get('ddpx', None),
-                    ddpy=kwargs.get('ddpy', None),
-                    )
-            for kk in VARS_FOR_TWISS_INIT_GENERATION + ['init_at']:
-                if kk in kwargs:
-                    kwargs.pop(kk)
-            twinit_list[0] = init
-
-        _keep_ini_particles_list = []
-        for tt in twinit_list:
-            _keep_ini_particles_list.append(isinstance(tt, xt.TwissInit))
-
-        for ii, tt in enumerate(twinit_list):
-            if isinstance(tt, xt.TwissInit):
-                twinit_list[ii] = tt.copy()
-
-        for twini, ln, eest in zip(twinit_list, line_list, ele_start_list):
-            if isinstance(twini, xt.TwissInit) and twini._needs_complete():
-                assert isinstance(eest, str)
-                twini._complete(line=ln, element_name=eest)
-
-        if ismultiline:
-            kwargs['init'] = twinit_list
-            kwargs['_keep_initial_particles'] = _keep_ini_particles_list
-        else:
-            kwargs['init'] = twinit_list[0]
-            kwargs['_keep_initial_particles'] = _keep_ini_particles_list[0]
-
-        tw0 = line.twiss(**kwargs)
-
-        if ismultiline:
-            kwargs['_initial_particles'] = [
-                tw0[llnn]._data.get('_initial_particles', None) for llnn in line_names]
-        else:
-            kwargs['_initial_particles'] = tw0._data.get(
-                                    '_initial_particles', None)
-
-        self.kwargs = kwargs
-
-    def run(self, allow_failure=True):
-        if self.compensate_radiation_energy_loss:
-            if isinstance(self.line, xt.Multiline):
-                raise NotImplementedError(
-                    'Radiation energy loss compensation is not yet supported'
-                    ' for Multiline')
-            self.line.compensate_radiation_energy_loss(verbose=False)
-        if not self.allow_twiss_failure or not allow_failure:
-            out = self.line.twiss(**self.kwargs)
-        else:
-            try:
-                out = self.line.twiss(**self.kwargs)
-            except Exception as ee:
-                if allow_failure:
-                    return 'failed'
-                else:
-                    raise ee
-        out.line = self.line
-        return out
 
 # Alternative transitions functions
 # def _transition_sigmoid_integral(x):
@@ -262,27 +89,37 @@ class GreaterThan:
                 self.sigma = sigma
             else:
                 assert sigma_rel is not None
-                self.sigma = np.abs(self.lower) * sigma_rel
+                lower_val = self.lower
+                if xd.refs.is_ref(self.lower):
+                    lower_val = self.lower._value
+                self.sigma = np.abs(lower_val) * sigma_rel
 
     def auxtarget(self, res):
         '''Transformation applied to target value to obtain the corresponding
         cost function.
         '''
+        if xd.refs.is_ref(self.lower):
+            lower_val = self.lower._value
+        else:
+            lower_val = self.lower
         if self.mode == 'step':
-            if res < self.lower:
-                return res - self.lower
+            if res < lower_val:
+                return res - lower_val
             else:
                 return 0
         elif self.mode == 'smooth':
-            return self.sigma * self._transition((self.lower - res) / self.sigma)
+            return self.sigma * self._transition((lower_val - res) / self.sigma)
         elif self.mode == 'auxvar':
             raise NotImplementedError # experimental
-            return res - self.lower - self.vary.container[self.vary.name]**2
+            return res - lower_val - self.vary.container[self.vary.name]**2
         else:
             raise ValueError(f'Unknown mode {self.mode}')
 
     def __repr__(self):
-        return f'GreaterThan({self.lower:4g})'
+        val = self.lower
+        if xd.refs.is_ref(self.lower):
+            val = self.lower._value
+        return f'GreaterThan({val:.4g})'
 
     # Part of the `auxvar` experimental code
     # def _set_value(self, val, target):
@@ -313,24 +150,34 @@ class LessThan:
                 self.sigma = sigma
             else:
                 assert sigma_rel is not None
-                self.sigma = np.abs(self.upper) * sigma_rel
+                upper_val = self.upper
+                if xd.refs.is_ref(self.upper):
+                    upper_val = self.upper._value
+                self.sigma = np.abs(upper_val) * sigma_rel
 
     def auxtarget(self, res):
+        if xd.refs.is_ref(self.upper):
+            upper_val = self.upper._value
+        else:
+            upper_val = self.upper
         if self.mode == 'step':
-            if res > self.upper:
-                return self.upper - res
+            if res > upper_val:
+                return upper_val - res
             else:
                 return 0
         elif self.mode == 'smooth':
-            return self.sigma * self._transition((res - self.upper) / self.sigma)
+            return self.sigma * self._transition((res - upper_val) / self.sigma)
         elif self.mode == 'auxvar':
             raise NotImplementedError # experimental
-            return self.upper - res - self.vary.container[self.vary.name]**2
+            return upper_val - res - self.vary.container[self.vary.name]**2
         else:
             raise ValueError(f'Unknown mode {self.mode}')
 
     def __repr__(self):
-        return f'LessThan({self.upper:4g})'
+        val = self.upper
+        if xd.refs.is_ref(self.upper):
+            val = self.upper._value
+        return f'LessThan({val:.4g})'
 
 # part of the `auxvar` experimental code
 # def _gen_vary(container):
@@ -347,7 +194,7 @@ class LessThan:
 class Target(xd.Target):
 
     def __init__(self, tar=None, value=None, at=None, tol=None, weight=None, scale=None,
-                 line=None, action=None, tag='', optimize_log=False,
+                 line=None, action=None, tag=None, optimize_log=False,
                  **kwargs):
 
         """
@@ -414,6 +261,16 @@ class Target(xd.Target):
 
         self._freeze_value = None
 
+        if tag is None:
+            tag_parts = []
+            if line is not None:
+                tag_parts.append(line)
+            if at is not None:
+                tag_parts.append(str(at))
+            if isinstance(tar, str):
+                tag_parts.append(tar)
+            tag = '_'.join(tag_parts)
+
         xd.Target.__init__(self, tar=xdtar, value=value, tol=tol,
                             weight=weight, scale=scale, action=action, tag=tag,
                             optimize_log=optimize_log)
@@ -472,7 +329,7 @@ class Target(xd.Target):
 class TargetSet(xd.TargetList):
 
     def __init__(self, tars=None, value=None, at=None, tol=None, weight=None,
-                 scale=None, line=None, action=None, tag='', optimize_log=False,
+                 scale=None, line=None, action=None, tag=None, optimize_log=False,
                  **kwargs):
 
         """
@@ -737,6 +594,12 @@ class TargetRmatrixTerm(Target):
             'Only terms of the R-matrix in the form "r11", "r12", "r21", "r22", etc'
             ' are supported')
 
+        if self.start is xt.START:
+            self.start = tw.name[0]
+
+        if self.end is xt.END:
+            self.end = '_end_point'
+
         rmat = tw.get_R_matrix(self.start, self.end)
 
         ii = int(self.term[1]) - 1
@@ -763,6 +626,8 @@ class TargetRmatrix(TargetSet):
         if value is not None:
             raise NotImplementedError
 
+        tag = kwargs.pop('tag', None)
+
         r_elems = {
             'r11': r11, 'r12': r12, 'r13': r13, 'r14': r14, 'r15': r15, 'r16': r16,
             'r21': r21, 'r22': r22, 'r23': r23, 'r24': r24, 'r25': r25, 'r26': r26,
@@ -783,8 +648,13 @@ class TargetRmatrix(TargetSet):
                 if kk[2] in ['2', '4']:
                     thistol *= 1e+2
             if vv is not None:
+                if tag is not None:
+                    this_tag = tag
+                else:
+                    this_tag = kk
                 self.targets.append(TargetRmatrixTerm(kk, vv, start=start, end=end,
-                                                      tol=thistol, **kwargs))
+                                                      tol=thistol, tag=this_tag,
+                                                      **kwargs))
 
 
 def match_line(line, vary, targets, solve=True, assert_within_tol=True,
@@ -792,94 +662,312 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
                   solver_options={}, allow_twiss_failure=True,
                   restore_if_fail=True, verbose=False,
                   n_steps_max=20, default_tol=None,
-                  solver=None, check_limits=True, **kwargs):
+                  solver=None, check_limits=True,
+                  name="",
+                  **kwargs):
 
-    if not isinstance(targets, (list, tuple)):
-        targets = [targets]
-
-    targets_flatten = []
-    for tt in targets:
-        if isinstance(tt, xd.TargetList):
-            for tt1 in tt.targets:
-                targets_flatten.append(tt1.copy())
-        else:
-            targets_flatten.append(tt.copy())
-
-    aux_vary = []
-
-    action_twiss = None
-    for tt in targets_flatten:
-
-        # Handle action
-        if tt.action is None:
-            if action_twiss is None:
-                action_twiss = ActionTwiss(
-                    line, allow_twiss_failure=allow_twiss_failure,
-                    compensate_radiation_energy_loss=compensate_radiation_energy_loss,
-                    **kwargs)
-            tt.action = action_twiss
-
-        # Handle at
-        if isinstance(tt.tar, tuple):
-            tt_name = tt.tar[0] # `at` is  present
-            tt_at = tt.tar[1]
-        else:
-            tt_name = tt.tar
-            tt_at = None
-        if tt_at is not None and isinstance(tt_at, _LOC):
-            tt_at = _at_from_placeholder(tt_at, line=tt.action.line,
-                    line_name=tt.line, start=tt.action.kwargs['start'],
-                    end=tt.action.kwargs['end'])
-            tt.tar = (tt_name, tt_at)
-
-        # Handle value
-        if isinstance(tt.value, xt.multiline.MultiTwiss):
-            tt.value=tt.value[tt.line][tt.tar]
-        if isinstance(tt.value, xt.TwissTable):
-            tt.value=tt.value[tt.tar]
-        if isinstance(tt.value, np.ndarray):
-            raise ValueError('Target value must be a scalar')
-
-        # Handle weight
-        if tt.weight is None:
-            tt.weight = XTRACK_DEFAULT_WEIGHTS.get(tt_name, 1.)
-        if tt.tol is None:
-            if default_tol is None:
-                tt.tol = XTRACK_DEFAULT_TOL
-            elif isinstance(default_tol, dict):
-                tt.tol = default_tol.get(tt_name,
-                                    default_tol.get(None, XTRACK_DEFAULT_TOL))
-            else:
-                tt.tol = default_tol
-
-        # part of the `auxvar` experimental code
-        # if isinstance(tt.value, (GreaterThan, LessThan)):
-        #     if tt.value.mode == 'auxvar':
-        #         aux_vary.append(tt.value.gen_vary(aux_vary_container))
-        #         aux_vary_container[aux_vary[-1].name] = 0
-        #         val = tt.runeval()
-        #         if val > 0:
-        #             aux_vary_container[aux_vary[-1].name] = np.sqrt(val)
-
-    if not isinstance(vary, (list, tuple)):
-        vary = [vary]
-
-    vary = list(vary) + aux_vary
-
-    vary_flatten = _flatten_vary(vary)
-    _complete_vary_with_info_from_line(vary_flatten, line)
-
-    opt = xd.Optimize(vary=vary_flatten, targets=targets_flatten, solver=solver,
-                        verbose=verbose, assert_within_tol=assert_within_tol,
+    opt = OptimizeLine(line, vary, targets,
+                        assert_within_tol=assert_within_tol,
+                        compensate_radiation_energy_loss=compensate_radiation_energy_loss,
                         solver_options=solver_options,
-                        n_steps_max=n_steps_max,
-                        restore_if_fail=restore_if_fail,
-                        check_limits=check_limits)
+                        allow_twiss_failure=allow_twiss_failure,
+                        restore_if_fail=restore_if_fail, verbose=verbose,
+                        n_steps_max=n_steps_max, default_tol=default_tol,
+                        solver=solver, check_limits=check_limits,
+                        name=name,
+                        **kwargs)
 
     if solve:
         opt.solve()
 
     return opt
+
+
+class Action(xd.Action):
+
+    _target_class = Target
+
+    def __init__(self, callable, **kwargs):
+        self.callable = callable
+        self.kwargs = kwargs
+
+    def run(self, allow_failure=False):
+        return self.callable(**self.kwargs)
+
+    def __call__(self, **kwargs):
+        return self.run(**kwargs)
+
+class ActionTwiss(xd.Action):
+
+    def __init__(self, line, allow_twiss_failure=False,
+                 compensate_radiation_energy_loss=False,
+                 **kwargs):
+        self.line = line
+        self.kwargs = kwargs
+        self.allow_twiss_failure = allow_twiss_failure
+        self.compensate_radiation_energy_loss = compensate_radiation_energy_loss
+        self._alredy_prepared = False
+
+    def prepare(self, force=False):
+
+        if self._alredy_prepared and not force:
+            return
+
+        line = self.line
+        kwargs = self.kwargs
+
+        ismultiline = isinstance(line, (xt.Multiline, xt.Environment, xt.MultilineLegacy))
+
+        # Forbit specifying init through kwargs for Multiline
+        if ismultiline:
+            for kk in VARS_FOR_TWISS_INIT_GENERATION:
+                if kk in kwargs:
+                    raise ValueError(
+                        f'`{kk}` cannot be specified for a Multiline match. '
+                        f'Please specify provide a TwissInit object for each line instead.')
+
+        # Handle init from table
+        if ismultiline:
+
+            line_names = kwargs.get('lines', line.line_names)
+            none_list = [None] * len(line_names)
+            twinit_list = kwargs.get('init', none_list)
+            ele_start_list = kwargs.get('start', none_list)
+            ele_stop_list = kwargs.get('end', none_list)
+
+            assert isinstance(twinit_list, list)
+            assert isinstance(ele_start_list, list)
+            assert isinstance(ele_stop_list, list)
+
+            for ii, twinit in enumerate(twinit_list):
+                if isinstance(twinit, xt.MultiTwiss):
+                    twinit_list[ii] = twinit[line_names[ii]]
+        else:
+            twinit_list = [kwargs.get('init', None)]
+            ele_start_list = [kwargs.get('start', None)]
+            ele_stop_list = [kwargs.get('end', None)]
+
+            for ii, twinit in enumerate(twinit_list):
+                if isinstance(twinit, xt.TwissInit):
+                    twinit_list[ii] = twinit.copy()
+                elif isinstance(twinit, str):
+                    assert twinit == 'periodic' or twinit == 'periodic_symmetric'
+
+        if ismultiline:
+            kwargs['init'] = twinit_list
+            kwargs['_keep_initial_particles'] = len(line_names) * [True]
+        else:
+            kwargs['init'] = twinit_list[0]
+            kwargs['_keep_initial_particles'] = True
+
+        tw0 = line.twiss(**kwargs)
+        self._tw0 = tw0
+
+        if ismultiline:
+            kwargs['_initial_particles'] = len(line_names) * [None]
+            for ii, llnn in enumerate(line_names):
+                self.kwargs['init'][ii] = tw0[llnn].completed_init
+                if not tw0[llnn].periodic:
+                    kwargs['_initial_particles'][ii] = tw0[llnn]._data.get('_initial_particles', None)
+        else:
+            self.kwargs['init'] = tw0.completed_init
+            for kk in VARS_FOR_TWISS_INIT_GENERATION:
+                kwargs.pop(kk, None)
+            if not(tw0.periodic):
+                kwargs['_initial_particles'] = tw0._data.get(
+                                        '_initial_particles', None)
+
+        self.kwargs = kwargs
+
+    def run(self, allow_failure=True):
+        if self.compensate_radiation_energy_loss:
+            if isinstance(self.line, (xt.Multiline, xt.Environment, xt.MultilineLegacy)):
+                raise NotImplementedError(
+                    'Radiation energy loss compensation is not yet supported'
+                    ' for Multiline')
+            self.line.compensate_radiation_energy_loss(verbose=False)
+        if not self.allow_twiss_failure or not allow_failure:
+            out = self.line.twiss(**self.kwargs)
+        else:
+            try:
+                out = self.line.twiss(**self.kwargs)
+            except Exception as ee:
+                if allow_failure:
+                    return 'failed'
+                else:
+                    raise ee
+        out.line = self.line
+        return out
+
+class OptimizeLine(xd.Optimize):
+
+    def __init__(self, line, vary, targets, assert_within_tol=True,
+                    compensate_radiation_energy_loss=False,
+                    solver_options={}, allow_twiss_failure=True,
+                    restore_if_fail=True, verbose=False,
+                    n_steps_max=20, default_tol=None,
+                    solver=None, check_limits=True,
+                    action_twiss=None,
+                    name="",
+                    **kwargs):
+
+        if hasattr(targets, 'values'): # dict like
+            targets = list(targets.values())
+
+        if not isinstance(targets, (list, tuple)):
+            targets = [targets]
+
+        targets_flatten = []
+        for tt in targets:
+            if isinstance(tt, xd.TargetList):
+                for tt1 in tt.targets:
+                    targets_flatten.append(tt1.copy())
+            else:
+                targets_flatten.append(tt.copy())
+
+        aux_vary = []
+
+        for tt in targets_flatten:
+
+            # Handle action
+            if tt.action is None:
+                if action_twiss is None:
+                    action_twiss = ActionTwiss(
+                        line, allow_twiss_failure=allow_twiss_failure,
+                        compensate_radiation_energy_loss=compensate_radiation_energy_loss,
+                        **kwargs)
+                    action_twiss.prepare()
+                tt.action = action_twiss
+
+            # Handle at
+            if isinstance(tt.tar, tuple):
+                tt_name = tt.tar[0] # `at` is  present
+                tt_at = tt.tar[1]
+            else:
+                tt_name = tt.tar
+                tt_at = None
+            if tt_at is not None and isinstance(tt_at, _LOC):
+                assert isinstance(tt.action, ActionTwiss)
+                tt.action.prepare() # does nothing if already prepared
+                tw0 = tt.action._tw0[tt.line] if tt.line else tt.action._tw0
+                this_line = tt.action.line[tt.line] if tt.line else tt.action.line
+                if isinstance(tt_at, _LOC):
+                    tt_at= tw0['name', {'START':0, 'END':-1}[tt_at.name]]
+                    # If _end_point preceded by a marker, use the marker
+                    if tt_at == '_end_point' and len(tw0.name) > 1:
+                        nn_prev = tw0['name', -2]
+                        nn_env_prev = tw0['name_env', -2]
+                        if isinstance(this_line[nn_env_prev], xt.Marker):
+                            tt_at= nn_prev
+                tt.tar = (tt_name, tt_at)
+
+            # Handle value
+            if isinstance(tt.value, xt.MultiTwiss):
+                tt.value=tt.value[tt.line][tt.tar]
+            if isinstance(tt.value, xt.TwissTable):
+                if isinstance(tt.tar, tuple) and tt.tar[1] == '_end_point':
+                    # '_end_point' of the tar table might be different from the one of the action
+                    raise ValueError('TwissTable target value cannot be used with at=_end_point')
+                tt.value=tt.value[tt.tar]
+            if isinstance(tt.value, np.ndarray):
+                raise ValueError('Target value must be a scalar')
+
+            # Handle weight
+            if tt.weight is None:
+                tt.weight = XTRACK_DEFAULT_WEIGHTS.get(tt_name, 1.)
+            if tt.tol is None:
+                if default_tol is None:
+                    tt.tol = XTRACK_DEFAULT_TOL
+                elif isinstance(default_tol, dict):
+                    tt.tol = default_tol.get(tt_name,
+                                        default_tol.get(None, XTRACK_DEFAULT_TOL))
+                else:
+                    tt.tol = default_tol
+
+            # part of the `auxvar` experimental code
+            # if isinstance(tt.value, (GreaterThan, LessThan)):
+            #     if tt.value.mode == 'auxvar':
+            #         aux_vary.append(tt.value.gen_vary(aux_vary_container))
+            #         aux_vary_container[aux_vary[-1].name] = 0
+            #         val = tt.runeval()
+            #         if val > 0:
+            #             aux_vary_container[aux_vary[-1].name] = np.sqrt(val)
+
+        if not isinstance(vary, (list, tuple)):
+            vary = [vary]
+
+        vary = list(vary) + aux_vary
+
+        vary_flatten = _flatten_vary(vary)
+        _complete_vary_with_info_from_line(vary_flatten, line)
+
+        xd.Optimize.__init__(self,
+                        vary=vary_flatten, targets=targets_flatten, solver=solver,
+                        verbose=verbose, assert_within_tol=assert_within_tol,
+                        solver_options=solver_options,
+                        n_steps_max=n_steps_max,
+                        restore_if_fail=restore_if_fail,
+                        check_limits=check_limits,
+                        name=name)
+        self.line = line
+        self.action_twiss = action_twiss
+        self.default_tol = default_tol
+
+    def clone(self, add_targets=None, add_vary=None,
+              remove_targets=None, remove_vary=None,
+              name=None):
+
+        if hasattr(add_targets, 'copy'):
+            add_targets = add_targets.copy()
+
+        if hasattr(add_vary, 'copy'):
+            add_vary = add_vary.copy()
+
+        if hasattr(add_targets, 'values'): # dict like
+            add_targets = list(add_targets.values())
+
+        if hasattr(add_vary, 'values'): # dict like
+            add_vary = list(add_vary.values())
+
+        if name is None:
+            name = self.name
+
+        assert remove_targets in [None, True, False]
+        assert remove_vary in [None, True, False]
+
+        targets = list(self.targets.copy())
+        if remove_targets:
+            targets = []
+        if add_targets is not None:
+            if not isinstance(add_targets, (list, tuple)):
+                add_targets = [add_targets]
+            targets.extend(add_targets)
+
+        vary = list(self.vary.copy())
+        if remove_vary:
+            vary = []
+        if add_vary is not None:
+            if not isinstance(add_vary, (list, tuple)):
+                add_vary = [add_vary]
+            vary.extend(add_vary)
+
+        out = self.__class__(
+            line = self.line,
+            vary=vary,
+            targets=targets,
+            default_tol=self.default_tol,
+            restore_if_fail=self.restore_if_fail,
+            verbose=self._err.verbose,
+            assert_within_tol=self.assert_within_tol,
+            n_steps_max=self.n_steps_max,
+            check_limits=self.check_limits,
+            action_twiss=self.action_twiss,
+            name=name,
+        )
+        return out
+
+    def plot(self, *args, **kwargs):
+        return self.action_twiss.run().plot(*args, **kwargs)
 
 def _flatten_vary(vary):
     vary_flatten = []
@@ -1007,66 +1095,10 @@ class KnobOptimizer:
 
         _print('Generated knob: ', self.knob_name)
 
-def _at_from_placeholder(tt_at, line, line_name, start, end):
-    assert isinstance(tt_at, _LOC)
-    if isinstance(line, xt.Multiline):
-        assert line is not None, (
-            'For a Multiline, the line must be specified if the target '
-            'is `start`')
-        assert line_name in line.line_names
-        i_line = line.line_names.index(line_name)
-        this_line = line[line_name]
-    else:
-        i_line = None
-        this_line = line
-    if tt_at.name == 'START':
-        if i_line is not None:
-            tt_at = start[i_line]
-        else:
-            tt_at = start
-    elif tt_at.name == 'END':
-        if i_line is not None:
-            tt_at = end[i_line]
-        else:
-            tt_at = end
-    else:
-        raise ValueError(f'Unknown location {tt_at.name}')
-    if not isinstance(tt_at, str):
-        tt_at = this_line.element_names[tt_at]
-
-    return tt_at
-
 def opt_from_callable(function, x0, steps, tar, tols):
 
     '''Optimize a generic callable'''
 
-    x0 = np.array(x0)
-    x = x0.copy()
-    vary = [xt.Vary(ii, container=x, step=steps[ii]) for ii in range(len(x))]
-
-    opt = xd.Optimize(
-        vary=vary,
-        targets=ActionCall(function, vary).get_targets(tar),
-        show_call_counter=False,
-    )
-
-    for ii, tt in enumerate(opt.targets):
-        tt.tol = tols[ii]
-
+    opt = xd.Optimize.from_callable(function, x0, tar, steps=steps, tols=tols,
+                                    show_call_counter=False)
     return opt
-
-class ActionCall(Action):
-    def __init__(self, function, vary):
-        self.vary = vary
-        self.function = function
-
-    def run(self):
-        x = [vv.container[vv.name] for vv in self.vary]
-        return self.function(x)
-
-    def get_targets(self, ftar):
-        tars = []
-        for ii in range(len(ftar)):
-            tars.append(xt.Target(ii, ftar[ii], action=self))
-
-        return tars

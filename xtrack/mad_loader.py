@@ -41,6 +41,7 @@ from .progress_indicator import progress
 clight = 299792458
 
 DEFAULT_BEND_N_MULT_KICKS = 5
+DEFAULT_FIELD_ERR_NUM_KICKS = 1
 
 
 def iterable(obj):
@@ -496,15 +497,7 @@ class MadLoader:
             enable_align_errors = False
 
         if allow_thick is None:
-            if enable_field_errors:
-                allow_thick = False
-            else:
-                allow_thick = True
-
-        if allow_thick and enable_field_errors:
-            raise NotImplementedError(
-                "Field errors are not yet supported for thick elements"
-            )
+            allow_thick = True
 
         if expressions_for_element_types is not None:
             assert enable_expressions, ("Expressions must be enabled if "
@@ -662,8 +655,7 @@ class MadLoader:
         if issubclass(self.Builder, ElementBuilderWithExpr):
             return self.line._var_management['fref']
 
-        import math
-        return math
+        return np
 
     def _assert_element_is_thin(self, mad_el):
         if value_if_expr(mad_el.l) != 0:
@@ -752,7 +744,7 @@ class MadLoader:
         if self.allow_thick:
             if not mad_el.l:
                 raise ValueError(
-                    "Thick quadrupole with legth zero are not supported.")
+                    "Thick quadrupole with length zero are not supported.")
             return self._convert_quadrupole_thick(mad_el)
         else:
             raise NotImplementedError(
@@ -760,6 +752,10 @@ class MadLoader:
             )
 
     def _convert_quadrupole_thick(self, mad_el): # bv done
+        kwargs = {}
+        if self.enable_field_errors:
+            kwargs = _prepare_field_errors_thick_elem(mad_el)
+            kwargs['num_multipole_kicks'] = 1
 
         return self.make_composite_element(
             [
@@ -769,6 +765,7 @@ class MadLoader:
                     k1=self.bv * mad_el.k1,
                     k1s=mad_el.k1s,
                     length=mad_el.l,
+                    **kwargs,
                 ),
             ],
             mad_el,
@@ -784,60 +781,76 @@ class MadLoader:
         self,
         mad_el,
     ):
-
         assert self.allow_thick, "Bends are not supported in thin mode."
 
-        l_curv = mad_el.l
-        h = mad_el.angle / l_curv
-
-        if mad_el.type == 'rbend' and self.sequence._madx.options.rbarc and value_if_expr(mad_el.angle):
-            R = 0.5 * mad_el.l / self.math.sin(0.5 * mad_el.angle) # l is on the straight line
-            l_curv = R * mad_el.angle
-            h = 1 / R
-
-        if not mad_el.k0:
-            k0 = h
+        if mad_el.type == 'sbend':
+            element_type = self.classes.Bend
+        elif mad_el.type == 'rbend':
+            element_type = self.classes.RBend
         else:
-            k0 = mad_el.k0
+            raise ValueError(f'Unknown bend type {mad_el.type}.')
+
+        bend_kwargs = {}
+
+        if mad_el.type == 'rbend' and self.sequence._madx.options.rbarc:
+            l_curv = mad_el.l / self.math.sinc(0.5 * mad_el.angle)
+            bend_kwargs['length_straight'] = mad_el.l
+        else:
+            l_curv = mad_el.l
+            bend_kwargs['length'] = l_curv
+
+        bend_kwargs['angle'] = mad_el.angle
 
         # Edge angles
-        if mad_el.type == 'sbend':
-            e1 = mad_el.e1
-            e2 = mad_el.e2
-        elif mad_el.type == 'rbend':
-            e1 = mad_el.e1 + mad_el.angle / 2
-            e2 = mad_el.e2 + mad_el.angle / 2
-        else:
-            raise NotImplementedError(
-                f'Unknown bend type {mad_el.type}.'
-            )
-
+        e1 = mad_el.e1
+        e2 = mad_el.e2
         if self.bv == -1:
             e1, e2 = e2, e1
 
+        # Edge angles for field errors
+        if mad_el.k0:
+            h = mad_el.angle / l_curv
+            angle_fdown = (mad_el.k0 - h) * l_curv / 2
+        else:
+            angle_fdown = 0
+
+        if self.enable_field_errors:
+            kwargs = _prepare_field_errors_thick_elem(mad_el)
+            knl = kwargs['knl']
+            ksl = kwargs['ksl']
+            num_multipole_kicks = 1
+        else:
+            knl = [0] * 3
+            ksl = []
+            num_multipole_kicks = 0
+
+        knl[2] += mad_el.k2 * l_curv
+
+        if mad_el.k0:
+            k0_from_h = False
+            bend_kwargs['k0'] = mad_el.k0
+        else:
+            k0_from_h = True
+
         # Convert bend core
-        num_multipole_kicks = 0
-        cls = self.classes.Bend
-        kwargs = {}
         bend_core = self.Builder(
             mad_el.name,
-            cls,
-            k0=k0,
-            h=h,
+            element_type,
+            k0_from_h=k0_from_h,
             k1=self.bv * mad_el.k1,
-            length=l_curv,
             edge_entry_angle=e1,
             edge_exit_angle=e2,
-            edge_entry_angle_fdown=(k0 - h) * l_curv / 2,
-            edge_exit_angle_fdown=(k0 - h) * l_curv / 2,
+            edge_entry_angle_fdown=angle_fdown,
+            edge_exit_angle_fdown=angle_fdown,
             edge_entry_fint=mad_el.fint,
             edge_exit_fint=(
                 mad_el.fintx if value_if_expr(mad_el.fintx) >= 0 else mad_el.fint),
             edge_entry_hgap=mad_el.hgap,
             edge_exit_hgap=mad_el.hgap,
-            knl=[0, 0, mad_el.k2 * l_curv],
+            knl=knl,
+            ksl=ksl,
             num_multipole_kicks=num_multipole_kicks,
-            **kwargs,
+            **bend_kwargs,
         )
 
         sequence = [bend_core]
@@ -845,6 +858,11 @@ class MadLoader:
         return self.make_composite_element(sequence, mad_el)
 
     def convert_sextupole(self, mad_el): # bv done
+        kwargs = {}
+
+        if self.enable_field_errors:
+            kwargs = _prepare_field_errors_thick_elem(mad_el)
+
         return self.make_composite_element(
             [
                 self.Builder(
@@ -853,12 +871,18 @@ class MadLoader:
                     k2=mad_el.k2,
                     k2s=self.bv * mad_el.k2s,
                     length=mad_el.l,
+                    **kwargs,
                 ),
             ],
             mad_el,
         )
 
     def convert_octupole(self, mad_el): # bv done
+        kwargs = {}
+
+        if self.enable_field_errors:
+            kwargs = _prepare_field_errors_thick_elem(mad_el)
+
         return self.make_composite_element(
             [
                 self.Builder(
@@ -867,6 +891,7 @@ class MadLoader:
                     k3=self.bv*mad_el.k3,
                     k3s=mad_el.k3s,
                     length=mad_el.l,
+                    **kwargs,
                 ),
             ],
             mad_el,
@@ -978,12 +1003,18 @@ class MadLoader:
                    f'reverting to importing `{mad_elem.name}` as a drift.')
             return self.convert_drift_like(mad_elem)
 
+        kwargs = {}
+
+        if self.enable_field_errors:
+            kwargs = _prepare_field_errors_thick_elem(mad_elem)
+
         el = self.Builder(
             mad_elem.name,
             self.classes.Solenoid,
             length=mad_elem.l,
             ks=self.bv * mad_elem.ks,
             ksi=self.bv * mad_elem.ksi,
+            **kwargs,
         )
         return self.make_composite_element([el], mad_elem)
 
@@ -1206,8 +1237,6 @@ class MadLoader:
             raise ValueError("Multiwire configuration not supported")
 
     def convert_crabcavity(self, ee):
-        if self.bv == -1:
-            raise NotImplementedError("Crab cavity for bv=-1 are not yet supported.")
         self._assert_element_is_thin(ee)
         # This has to be disabled, as it raises an error when l is assigned to an
         # expression:
@@ -1230,8 +1259,8 @@ class MadLoader:
                 ee.name,
                 self.classes.RFMultipole,
                 frequency=ee.freq * 1e6,
-                knl=[ee.volt / self.sequence.beam.pc * 1e-3],
-                pn=[ee.lag * 360 + 90],  # TODO: Changed sign to match sixtrack
+                knl=[ee.volt / self.sequence.beam.pc * 1e-3 * self.bv],
+                pn=[ee.lag * self.bv * 360 + 90],  # TODO: Changed sign to match sixtrack
                 # To be checked!!!!
             )
         return self.make_composite_element([el], ee)
@@ -1395,3 +1424,28 @@ class MadLoader:
             cnll=mad_elem.cnll,
         )
         return self.make_composite_element([el], mad_elem)
+
+
+def _prepare_field_errors_thick_elem(mad_el):
+    if mad_el.field_errors is None:
+        return {}
+
+    dkn = mad_el.field_errors.dkn
+    dks = mad_el.field_errors.dks
+    lmax = max(non_zero_len(dkn), non_zero_len(dks))
+    if lmax > 6:
+        raise ValueError(
+            "Only up to dodecapoles are supported for field errors"
+            " of thick magnets for now."
+        )
+    if len(dkn) > lmax:
+        dkn = dkn[:lmax]
+    if len(dks) > lmax:
+        dks = dks[:lmax]
+
+    kwargs_to_add = {}
+    if np.any(np.abs(dkn)) or np.any(np.abs(dks)):
+        kwargs_to_add['knl'] = dkn
+        kwargs_to_add['ksl'] = dks
+
+    return kwargs_to_add

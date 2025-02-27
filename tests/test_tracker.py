@@ -12,7 +12,7 @@ from cpymad.madx import Madx
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import for_all_test_contexts, fix_random_seed
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
@@ -436,7 +436,7 @@ def test_tracker_config(test_context):
 def test_optimize_for_tracking(test_context, multiline):
 
     if multiline:
-        mline = xt.Multiline.from_json(test_data_folder /
+        mline = xt.Environment.from_json(test_data_folder /
                          "hllhc15_collider/collider_00_from_mad.json")
         line = mline['lhcb1']
         line.particle_ref = xp.Particles(p0c=7000e9)
@@ -596,6 +596,7 @@ def pimms_mad():
 
 
 @for_all_test_contexts
+@fix_random_seed(784239)
 def test_track_log_and_merit_function(pimms_mad, test_context):
     line = xt.Line.from_madx_sequence(
         pimms_mad.sequence.pimms,

@@ -6,14 +6,17 @@ def _compute_correction(x_iter, response_matrix, n_micado=None, rcond=None,
 
     if isinstance(response_matrix, (list, tuple)):
         assert len(response_matrix) == 3 # U, S, Vt
-        U, S, Vt = response_matrix
+        U, S, Vh = response_matrix
         if n_singular_values is not None:
             U = U[:, :n_singular_values]
             S = S[:n_singular_values]
-            Vt = Vt[:n_singular_values, :]
-        response_matrix = U @ np.diag(S) @ Vt
+            Vh = Vh[:n_singular_values, :]
+        response_matrix = U @ np.diag(S) @ Vh
     else:
         assert n_singular_values is None
+        U = None
+        S = None
+        Vh = None
 
     n_hcorrectors = response_matrix.shape[1]
 
@@ -45,8 +48,16 @@ def _compute_correction(x_iter, response_matrix, n_micado=None, rcond=None,
         mask_corr[:] = True
 
     # Compute the correction with least squares
-    correction_masked, residual_x, rank_x, sval_x = np.linalg.lstsq(
-                response_matrix[:, mask_corr], -x_iter, rcond=rcond)
+    if mask_corr.all() and S is not None:
+        # Can reuse the SVD decomposition
+        S_inv = np.zeros_like(S)
+        S_inv[S > 0] = 1 / S[S > 0]
+        if rcond is not None:
+            S_inv[S < rcond * S[0]] = 0
+        correction_masked = Vh.T.conj() @ (np.diag(S_inv) @ (U.T.conj() @ (-x_iter)))
+    else:
+        correction_masked, residual_x, rank_x, sval_x = np.linalg.lstsq(
+                    response_matrix[:, mask_corr], -x_iter, rcond=rcond)
     correction_x = np.zeros(n_hcorrectors)
     correction_x[mask_corr] = correction_masked
 
@@ -60,11 +71,13 @@ def _build_response_matrix(tw, monitor_names, corrector_names,
     assert plane in ['x', 'y']
 
     # Build response matrix
-    bet_monitors = tw.rows[monitor_names]['bet' + plane]
-    bet_correctors = tw.rows[corrector_names]['bet' + plane]
+    indices_monitors = tw.rows.indices[monitor_names]
+    indices_correctors = tw.rows.indices[corrector_names]
+    bet_monitors = tw['bet' + plane][indices_monitors]
+    bet_correctors = tw['bet' + plane][indices_correctors]
 
-    mu_monitor = tw.rows[monitor_names]['mu' + plane]
-    mux_correctors = tw.rows[corrector_names]['mu' + plane]
+    mu_monitor = tw['mu' + plane][indices_monitors]
+    mux_correctors = tw['mu' + plane][indices_correctors]
 
     n_monitors = len(monitor_names)
     n_correctors = len(corrector_names)
@@ -159,13 +172,30 @@ class OrbitCorrectionSinglePlane:
         self.singular_vectors_out = U
         self.singular_vectors_in = Vt
 
-        self.s_correctors = self.twiss_table.rows[self.corrector_names].s
-        self.s_monitors = self.twiss_table.rows[self.monitor_names].s
+        # tw_table_local = self.twiss_table.rows[self.start:self.end]
+        # Parch: avoid issue with regular expression
+        #if self.start is not None:
+        #    start = self.start.replace('$', '\\$')
+        #else:
+        #    start = None
+        #if self.end is not None:
+        #    end = self.end.replace('$', '\\$')
+        #else:
+        #    end = None
+        tw_table_local = self.twiss_table.rows[start:end]
+
+        self._indices_monitor = tw_table_local.rows.indices[self.monitor_names]
+        self._indices_correctors = tw_table_local.rows.indices[self.corrector_names]
+        self.s_correctors = tw_table_local.s[self._indices_correctors]
+        self.s_monitors = tw_table_local.s[self._indices_monitor]
 
         self._add_correction_knobs()
 
     def correct(self, n_iter='auto', n_micado=None, n_singular_values=None,
-                rcond=None, stop_iter_factor=0.1, verbose=True):
+                rcond=None, stop_iter_factor=0.1, verbose=True, _tw_orbit=None):
+
+        if _tw_orbit is not None and n_iter !=1:
+            raise ValueError('`_tw_orbit` can only be used with `n_iter=1`')
 
         assert n_iter == 'auto' or np.isscalar(n_iter)
         if n_iter == 'auto':
@@ -177,7 +207,7 @@ class OrbitCorrectionSinglePlane:
         i_iter = 0
         while True:
             try:
-                position = self._measure_position()
+                position = self._measure_position(tw_orbit=_tw_orbit)
             except xt.twiss.ClosedOrbitSearchError:
                 raise RuntimeError('Closed orbit not found. '
                     'Please use the `thread(...)` method to obtain a first guess, '
@@ -200,13 +230,17 @@ class OrbitCorrectionSinglePlane:
             i_iter += 1
             if n_iter != 'auto' and i_iter >= n_iter:
                 break
-        position = self._measure_position()
-        self._position_after = position
-        if verbose:
-            print(
-                f'Trajectory correction - iter {i_iter}, rms: {position.std()}')
 
-    def _measure_position(self):
+        if _tw_orbit is None:
+            position = self._measure_position()
+            self._position_after = position
+            if verbose:
+                print(
+                    f'Trajectory correction - iter {i_iter}, rms: {position.std()}')
+        else:
+            self._position_after = None
+
+    def _compute_tw_orbit(self):
         if self.mode == 'open':
             # Initialized with betx=1, bety=1 (use W_matrix to avoid compilation)
             twinit = xt.TwissInit(W_matrix=np.eye(6),
@@ -217,8 +251,14 @@ class OrbitCorrectionSinglePlane:
             twinit = None
         tw_orbit = self.line.twiss4d(only_orbit=True, start=self.start, end=self.end,
                                      init=twinit, reverse=False)
+        return tw_orbit
 
-        position = tw_orbit.rows[self.monitor_names][self.plane]
+    def _measure_position(self, tw_orbit=None):
+
+        if tw_orbit is None:
+            tw_orbit = self._compute_tw_orbit()
+
+        position = tw_orbit[self.plane][self._indices_monitor]
 
         return position
 
@@ -387,7 +427,8 @@ class TrajectoryCorrection:
             self.y_correction = None
 
     def correct(self, planes=None, n_micado=None, n_singular_values=None,
-                rcond=None, n_iter='auto', verbose=True, stop_iter_factor=0.1):
+                rcond=None, n_iter='auto', verbose=True, stop_iter_factor=0.1,
+                tol_position_std=1e-10):
 
         '''
         Correct the trajectory in the horizontal and/or vertical plane.
@@ -445,30 +486,58 @@ class TrajectoryCorrection:
         i_iter = 0
         stop_x = self.x_correction is None or 'x' not in planes
         stop_y = self.y_correction is None or 'y' not in planes
+
+        if stop_x and stop_y:
+            return
+
+        if self.x_correction is not None:
+            a_correction = self.x_correction
+        if self.y_correction is not None:
+            a_correction = self.y_correction
+
+        tw_orbit = a_correction._compute_tw_orbit()
+
         while True:
-            if not stop_x:
+
+            if self.x_correction is not None and 'x' in planes:
                 self.x_correction.correct(n_micado=n_micado_x,
                             n_singular_values=n_singular_values_x,
-                            rcond=rcond_x, verbose=False, n_iter=1)
-                if i_iter > 0 and n_iter == 'auto':
-                    stop_x = (self.x_correction._position_after.std()
-                        > (1. - stop_iter_factor) * self.x_correction._position_before.std())
-            if not stop_y:
+                            rcond=rcond_x, verbose=False, n_iter=1,
+                            _tw_orbit=tw_orbit)
+
+            if self.y_correction is not None and 'y' in planes:
                 self.y_correction.correct(n_micado=n_micado_y,
                             n_singular_values=n_singular_values_y,
-                            rcond=rcond_y, verbose=False, n_iter=1)
-                if i_iter > 0 and n_iter == 'auto':
-                    stop_y = (self.y_correction._position_after.std()
-                        > (1. - stop_iter_factor) * self.y_correction._position_before.std())
+                            rcond=rcond_y, verbose=False, n_iter=1,
+                            _tw_orbit=tw_orbit)
+
+            tw_orbit_prev = tw_orbit
+            tw_orbit = a_correction._compute_tw_orbit()
+
+            if n_iter == 'auto' and self.x_correction is not None and 'x' in planes:
+                new_position = self.x_correction._measure_position(tw_orbit)
+                old_position = self.x_correction._measure_position(tw_orbit_prev)
+                stop_x = (new_position.std() < tol_position_std or
+                    new_position.std() > (1. - stop_iter_factor) * old_position.std())
+
+            if n_iter == 'auto' and self.y_correction is not None and 'y' in planes:
+                new_position = self.y_correction._measure_position(tw_orbit)
+                old_position = self.y_correction._measure_position(tw_orbit_prev)
+                stop_y = (new_position.std() < tol_position_std or
+                    new_position.std() > (1. - stop_iter_factor) * old_position.std())
 
             if verbose:
                 str_2print = f'Iteration {i_iter}, '
                 if self.x_correction is not None and 'x' in planes:
-                    str_2print += (f'x_rms: {self.x_correction._position_before.std():.2e}'
-                        f' -> {self.x_correction._position_after.std():.2e}, ')
+                    new_position = self.x_correction._measure_position(tw_orbit)
+                    old_position = self.x_correction._measure_position(tw_orbit_prev)
+                    str_2print += (f'x_rms: {old_position.std():.2e}'
+                        f' -> {new_position.std():.2e}, ')
                 if self.y_correction is not None and 'y' in planes:
-                    str_2print += (f'y_rms: {self.y_correction._position_before.std():.2e}'
-                        f' -> {self.y_correction._position_after.std():.2e}')
+                    new_position = self.y_correction._measure_position(tw_orbit)
+                    old_position = self.y_correction._measure_position(tw_orbit_prev)
+                    str_2print += (f'y_rms: {old_position.std():.2e}'
+                        f' -> {new_position.std():.2e}')
                 print(str_2print)
             if stop_x and stop_y:
                 break
@@ -612,12 +681,15 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
 
         if verbose:
             ocprint = ocorr_only_added_part
+            tw_orbit_print = ocprint.x_correction._compute_tw_orbit()
+            x_meas_print = ocprint.x_correction._measure_position(tw_orbit_print)
+            y_meas_print = ocprint.y_correction._measure_position(tw_orbit_print)
             str_2print = f'Stop at s={s_corr_end}, '
             str_2print += 'local rms  = ['
             str_2print += (f'x: {ocprint.x_correction._position_before.std():.2e}'
-                f' -> {ocprint.x_correction._position_after.std():.2e}, ')
+                f' -> {x_meas_print.std():.2e}, ')
             str_2print += (f'y: {ocprint.y_correction._position_before.std():.2e}'
-                f' -> {ocprint.y_correction._position_after.std():.2e}]')
+                f' -> {y_meas_print.std():.2e}]')
             print(str_2print)
 
         # Correct from start line to end of new added portion
@@ -634,12 +706,15 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
 
         if verbose:
             ocprint = ocorr
+            tw_orbit_print = ocprint.x_correction._compute_tw_orbit()
+            x_meas_print = ocprint.x_correction._measure_position(tw_orbit_print)
+            y_meas_print = ocprint.y_correction._measure_position(tw_orbit_print)
             str_2print = f'Stop at s={s_corr_end}, '
             str_2print += 'global rms = ['
             str_2print += (f'x: {ocprint.x_correction._position_before.std():.2e}'
-                f' -> {ocprint.x_correction._position_after.std():.2e}, ')
+                f' -> {x_meas_print.std():.2e}, ')
             str_2print += (f'y: {ocprint.y_correction._position_before.std():.2e}'
-                f' -> {ocprint.y_correction._position_after.std():.2e}]')
+                f' -> {y_meas_print.std():.2e}]')
             print(str_2print)
 
         s_corr_end += ds_thread

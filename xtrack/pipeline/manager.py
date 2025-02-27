@@ -36,10 +36,10 @@ class PipelineManager:
         self._elements[element_name] = len(self._elements)
 
     #
-    # The tag is a int that identifies messages given the rank of the sender and of the reciever
+    # The tag is a int that identifies messages given the rank of the sender and of the receiver
     #
-    def get_message_tag(self,element_name,sender_name,reciever_name,internal_tag=0):
-        tag = self._elements[element_name] + len(self._elements)*self._IDs[sender_name].number + len(self._elements)*len(self._IDs)*self._IDs[reciever_name].number + len(self._elements)*len(self._IDs)*len(self._IDs)*internal_tag
+    def get_message_tag(self,element_name,sender_name,receiver_name,internal_tag=0):
+        tag = self._elements[element_name] + len(self._elements)*self._IDs[sender_name].number + len(self._elements)*len(self._IDs)*self._IDs[receiver_name].number + len(self._elements)*len(self._IDs)*len(self._IDs)*internal_tag
         #if tag > self._max_tag:
         #    _print(f'PyPLINEDElement WARNING {self.name}: MPI message tag {tag} is larger than max ({self._max_tag})')
         return tag
@@ -47,41 +47,41 @@ class PipelineManager:
     #
     # The key is string that uniquely identifies a message
     #
-    def get_message_key(self,element_name,sender_name,reciever_name,tag=0):
-        return f'{element_name}_{sender_name}_{reciever_name}_{tag}'
+    def get_message_key(self,element_name,sender_name,receiver_name,tag=0):
+        return f'{element_name}_{sender_name}_{receiver_name}_{tag}'
 
-    def is_ready_to_send(self,element_name,sender_name,reciever_name,turn,internal_tag=0):
-        tag = self.get_message_tag(element_name=element_name,sender_name=sender_name,reciever_name=reciever_name,internal_tag=internal_tag)
-        key = self.get_message_key(element_name=element_name,sender_name=sender_name,reciever_name=reciever_name,tag=tag)
+    def is_ready_to_send(self,element_name,sender_name,receiver_name,turn,internal_tag=0):
+        tag = self.get_message_tag(element_name=element_name,sender_name=sender_name,receiver_name=receiver_name,internal_tag=internal_tag)
+        key = self.get_message_key(element_name=element_name,sender_name=sender_name,receiver_name=receiver_name,tag=tag)
         if key not in self._last_request_turn.keys():
             return True
         if turn <= self._last_request_turn[key]:
             if self.verbose:
-                _print(f'Pipeline manager {element_name}: {sender_name} at rank {self.get_particles_rank(sender_name)} has already sent a message to {reciever_name} at rank {self.get_particles_rank(reciever_name)} at turn {turn} with tag {tag}')
+                _print(f'Pipeline manager {element_name}: {sender_name} at rank {self.get_particles_rank(sender_name)} has already sent a message to {receiver_name} at rank {self.get_particles_rank(receiver_name)} at turn {turn} with tag {tag}')
             return False
         if not self._pending_requests[key].Test():
             if self.verbose:
-                _print(f'Pipeline manager {element_name}: {sender_name} at rank {self.get_particles_rank(sender_name)} previous message to {reciever_name} at rank {self.get_particles_rank(reciever_name)} with tag {tag} was not receviced yet')
+                _print(f'Pipeline manager {element_name}: {sender_name} at rank {self.get_particles_rank(sender_name)} previous message to {receiver_name} at rank {self.get_particles_rank(receiver_name)} with tag {tag} was not receviced yet')
             return False
         return True
 
-    def send_message(self,send_buffer,element_name,sender_name,reciever_name,turn,internal_tag=0):
-        tag = self.get_message_tag(element_name=element_name,sender_name=sender_name,reciever_name=reciever_name,internal_tag=internal_tag)
-        key = self.get_message_key(element_name=element_name,sender_name=sender_name,reciever_name=reciever_name,tag=tag)
+    def send_message(self,send_buffer,element_name,sender_name,receiver_name,turn,internal_tag=0):
+        tag = self.get_message_tag(element_name=element_name,sender_name=sender_name,receiver_name=receiver_name,internal_tag=internal_tag)
+        key = self.get_message_key(element_name=element_name,sender_name=sender_name,receiver_name=receiver_name,tag=tag)
         self._last_request_turn[key] = turn
         if self.verbose:
-            _print(f'Pipeline manager {element_name}: {sender_name} at rank {self.get_particles_rank(sender_name)} sending message to {reciever_name} at rank {self.get_particles_rank(reciever_name)} at turn {turn} with tag {tag}')
-        self._pending_requests[key] = self._communicator.Issend(send_buffer,dest=self.get_particles_rank(reciever_name),tag=tag)
+            _print(f'Pipeline manager {element_name}: {sender_name} at rank {self.get_particles_rank(sender_name)} sending message to {receiver_name} at rank {self.get_particles_rank(receiver_name)} at turn {turn} with tag {tag}')
+        self._pending_requests[key] = self._communicator.Issend(send_buffer,dest=self.get_particles_rank(receiver_name),tag=tag)
 
-    def is_ready_to_recieve(self,element_name,sender_name,reciever_name,internal_tag=0):
-        tag = self.get_message_tag(element_name=element_name,sender_name=sender_name,reciever_name=reciever_name,internal_tag=internal_tag)
+    def is_ready_to_receive(self,element_name,sender_name,receiver_name,internal_tag=0):
+        tag = self.get_message_tag(element_name=element_name,sender_name=sender_name,receiver_name=receiver_name,internal_tag=internal_tag)
         is_ready = self._communicator.Iprobe(source=self.get_particles_rank(sender_name), tag=tag)
         if self.verbose and not is_ready:
-            _print(f'Pipeline manager {element_name}: {reciever_name} at rank {self.get_particles_rank(reciever_name)} is not ready to recieve from {sender_name} at rank {self.get_particles_rank(sender_name)} with tag {tag}')
+            _print(f'Pipeline manager {element_name}: {receiver_name} at rank {self.get_particles_rank(receiver_name)} is not ready to receive from {sender_name} at rank {self.get_particles_rank(sender_name)} with tag {tag}')
         return is_ready
 
-    def recieve_message(self,recieve_buffer,element_name,sender_name,reciever_name,internal_tag=0):
-        tag = self.get_message_tag(element_name=element_name,sender_name=sender_name,reciever_name=reciever_name,internal_tag=internal_tag)
+    def receive_message(self,receive_buffer,element_name,sender_name,receiver_name,internal_tag=0):
+        tag = self.get_message_tag(element_name=element_name,sender_name=sender_name,receiver_name=receiver_name,internal_tag=internal_tag)
         if self.verbose:
-            _print(f'Pipeline manager {element_name}: {reciever_name} at rank {self.get_particles_rank(reciever_name)} recieving from {sender_name} at rank {self.get_particles_rank(sender_name)} with tag {tag}')
-        self._communicator.Recv(recieve_buffer,source=self.get_particles_rank(sender_name),tag=tag)
+            _print(f'Pipeline manager {element_name}: {receiver_name} at rank {self.get_particles_rank(receiver_name)} recieving from {sender_name} at rank {self.get_particles_rank(sender_name)} with tag {tag}')
+        self._communicator.Recv(receive_buffer,source=self.get_particles_rank(sender_name),tag=tag)

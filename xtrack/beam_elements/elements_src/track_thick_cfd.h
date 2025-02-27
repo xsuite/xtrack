@@ -6,7 +6,10 @@
 #ifndef XTRACK_TRACK_THICK_CFD_H
 #define XTRACK_TRACK_THICK_CFD_H
 
+#ifndef POW2
 #define POW2(X) ((X)*(X))
+#endif
+
 #define NONZERO(X) ((X) != 0.0)
 
 // From madx: https://github.com/MethodicalAcceleratorDesign/MAD-X/blob/8695bd422dc403a01aa185e9fea16603bbd5b3e1/src/trrun.f90#L4320

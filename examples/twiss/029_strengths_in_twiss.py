@@ -53,7 +53,7 @@ mad1.input('twiss, sequence=lhcb2, table=twisslhcb2;')
 twm1 = xt.Table(mad1.table.twisslhcb1)
 twm2 = xt.Table(mad1.table.twisslhcb2)
 
-collider = xt.Multiline.from_madx(madx=mad1)
+collider = xt.Environment.from_madx(madx=mad1)
 tw = collider.twiss(strengths=True, method='4d')
 
 # Normal strengths

@@ -480,7 +480,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             partial(_handle_per_particle_blocks,
                     local_particle_src=Particles.gen_local_particle_api()))
         context = self._context
-        cls = type(self)
+        cls = self.__class__
 
         if context.allow_prebuilt_kernels:
             # Default config is empty (all flags default to not defined, which
@@ -605,6 +605,17 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         instance.name_associated_aperture = name_associated_aperture
         return instance
 
+    def copy(self, **kwargs):
+        out = super().copy(**kwargs)
+        if hasattr(self, 'extra'):
+            try:
+                out.extra = self.extra.copy()
+            except AttributeError:
+                out.extra = self.extra
+        if hasattr(self, 'prototype'):
+            out.prototype = self.prototype
+        return out
+
     @property
     def _add_to_repr(self):
         out = []
@@ -632,6 +643,8 @@ class Replica:
         return Replica(parent_name=self.parent_name)
 
     def resolve(self, element_container, get_name=False):
+        if hasattr(element_container, 'element_dict'):
+            element_container = element_container.element_dict
         target_name = self.parent_name
         visited = {target_name}
         while isinstance(element := element_container[target_name], Replica):

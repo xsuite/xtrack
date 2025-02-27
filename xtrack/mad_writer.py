@@ -48,9 +48,21 @@ def mad_assignment(lhs, rhs):
     else:
         return f"{lhs} = {rhs}"
 
-
 _ge = xt.elements._get_expr
 _is_ref = xd.refs.is_ref
+
+def _knl_ksl_to_mad(mult):
+    knl_mad = []
+    ksl_mad = []
+    for kl, klmad in zip([mult.knl, mult.ksl], [knl_mad, ksl_mad]):
+        for ii in range(len(kl._value)):
+            item = mad_str_or_value(_ge(kl[ii]))
+            if not isinstance(item, str):
+                item = str(item)
+            klmad.append(item)
+    knl_token = 'knl:={' + ','.join(knl_mad) + '}'
+    ksl_token = 'ksl:={' + ','.join(ksl_mad) + '}'
+    return knl_token, ksl_token
 
 def _get_eref(line, name):
     return line.element_refs[name]
@@ -116,16 +128,9 @@ def multipole_to_madx_str(name, line):
 
     tokens = []
     tokens.append('multipole')
-    knl_mad = []
-    ksl_mad = []
-    for kl, klmad in zip([mult.knl, mult.ksl], [knl_mad, ksl_mad]):
-        for ii in range(len(kl._value)):
-            item = mad_str_or_value(_ge(kl[ii]))
-            if not isinstance(item, str):
-                item = str(item)
-            klmad.append(item)
-    tokens.append('knl:={' + ','.join(knl_mad) + '}')
-    tokens.append('ksl:={' + ','.join(ksl_mad) + '}')
+    knl_token, ksl_token = _knl_ksl_to_mad(mult)
+    tokens.append(knl_token)
+    tokens.append(ksl_token)
     tokens.append(mad_assignment('lrad', _ge(mult.length)))
     tokens.append(mad_assignment('angle', _ge(mult.hxl)))
 
@@ -170,11 +175,14 @@ def rfmultipole_to_madx_str(name, line):
 def dipoleedge_to_madx_str(name, line):
     raise NotImplementedError("isolated dipole edges are not yet supported")
 
-def bend_to_madx_str(name, line):
+def bend_to_madx_str(name, line, bend_type='sbend'):
+
+    assert bend_type in ['sbend', 'rbend']
+
     bend = _get_eref(line, name)
 
     tokens = []
-    tokens.append('sbend')
+    tokens.append(bend_type)
     tokens.append(mad_assignment('l', _ge(bend.length)))
     tokens.append(mad_assignment('angle', _ge(bend.h) * _ge(bend.length)))
     tokens.append(mad_assignment('k0', _ge(bend.k0)))
@@ -183,11 +191,17 @@ def bend_to_madx_str(name, line):
     tokens.append(mad_assignment('fint', _ge(bend.edge_entry_fint)))
     tokens.append(mad_assignment('fintx', _ge(bend.edge_exit_fint)))
     tokens.append(mad_assignment('hgap', _ge(bend.edge_entry_hgap)))
-    # k1, k2, knl, ksl need to be implemented
+    tokens.append(mad_assignment('k1', _ge(bend.k1)))
+    knl_token, ksl_token = _knl_ksl_to_mad(bend)
+    tokens.append(knl_token)
+    tokens.append(ksl_token)
 
     _handle_transforms(tokens, bend)
 
     return ', '.join(tokens)
+
+def rbend_to_madx_str(name, line):
+    return bend_to_madx_str(name, line, bend_type='rbend')
 
 def sextupole_to_madx_str(name, line):
     sext = _get_eref(line, name)
@@ -220,6 +234,9 @@ def quadrupole_to_madx_str(name, line):
     tokens.append(mad_assignment('l', _ge(quad.length)))
     tokens.append(mad_assignment('k1', _ge(quad.k1)))
     tokens.append(mad_assignment('k1s', _ge(quad.k1s)))
+    knl_token, ksl_token = _knl_ksl_to_mad(quad)
+    tokens.append(knl_token)
+    tokens.append(ksl_token)
 
     _handle_transforms(tokens, quad)
 
@@ -253,6 +270,7 @@ xsuite_to_mad_conveters={
     xt.Multipole: multipole_to_madx_str,
     xt.DipoleEdge: dipoleedge_to_madx_str,
     xt.Bend: bend_to_madx_str,
+    xt.RBend: rbend_to_madx_str,
     xt.Sextupole: sextupole_to_madx_str,
     xt.Octupole: octupole_to_madx_str,
     xt.Quadrupole: quadrupole_to_madx_str,
@@ -273,7 +291,7 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
         elements_str = ""
         for nn in line.element_names:
             el = line[nn]
-            el_str = xsuite_to_mad_conveters[type(el)](nn, line)
+            el_str = xsuite_to_mad_conveters[el.__class__](nn, line)
             elements_str += f"{nn}: {el_str};\n"
         line_str = f'{name}: line=(' + ', '.join(line.element_names) + ');'
         machine_str = elements_str + line_str
@@ -295,10 +313,8 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
                 s_dict[nn] = 0.5 * (tt_s[ii] + tt_s[ii+1])
 
         for nn in line.element_names:
-            el = line[nn]
-            if isinstance(el, xt.Drift):
-                continue
-            el_str = xsuite_to_mad_conveters[type(el)](nn, line)
+            el = line.element_dict[nn]
+            el_str = xsuite_to_mad_conveters[el.__class__](nn, line)
             if nn + '_tilt_entry' in line.element_dict:
                 el_str += ", " + mad_assignment('tilt',
                             _ge(line.element_refs[nn + '_tilt_entry'].angle) / 180. * np.pi)
@@ -306,7 +322,8 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
             if el_str is None:
                 continue
 
-            seq_str += f"{nn}: {el_str}, at={s_dict[nn]};\n"
+            nn_mad = nn.replace(':', '__') # : not supported in madx names
+            seq_str += f"{nn_mad}: {el_str}, at={s_dict[nn]};\n"
         seq_str += 'endsequence;'
         machine_str = seq_str
 

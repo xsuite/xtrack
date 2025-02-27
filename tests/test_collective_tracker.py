@@ -38,7 +38,7 @@ def test_get_non_collective_line(test_context):
     )
     line['e3'].iscollective = True
     e3_buffer = line['e3']._buffer
-    e3 = line['e3']
+    e3 = line.get('e3')
 
     try:
         line.iscollective
@@ -61,7 +61,7 @@ def test_get_non_collective_line(test_context):
     assert line['e7']._buffer is line._buffer
     assert line['e3']._buffer is not line._buffer
     assert line['e3']._buffer is e3_buffer
-    assert line['e3'] is e3
+    assert line.get('e3') is e3
     assert line.tracker.line is line
 
     nc_line = line._get_non_collective_line()
@@ -72,7 +72,7 @@ def test_get_non_collective_line(test_context):
     assert line['e7']._buffer is line._buffer
     assert line['e3']._buffer is not line._buffer
     assert line['e3']._buffer is e3_buffer
-    assert line['e3'] is e3
+    assert line.get('e3') is e3
     assert line.tracker.line is line
 
     assert nc_line.iscollective == False
@@ -80,9 +80,9 @@ def test_get_non_collective_line(test_context):
     assert nc_line['e0']._buffer is line._buffer
     assert nc_line['e7']._buffer is line._buffer
     assert nc_line['e3']._buffer is line._buffer
-    assert nc_line['e3'] is not e3
-    assert nc_line['e0'] is line['e0']
-    assert nc_line['e7'] is line['e7']
+    assert nc_line.get('e3') is not e3
+    assert nc_line.get('e0') is line.get('e0')
+    assert nc_line.get('e7') is line.get('e7')
     assert nc_line.tracker.line is nc_line
 
     xo.assert_allclose(nc_line.get_s_elements(), line.get_s_elements(),

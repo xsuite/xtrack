@@ -266,7 +266,7 @@ def test_match_orbit_bump_within_multiline(test_context):
     with open(filename, 'r') as fid:
         dct = json.load(fid)
     line = xt.Line.from_dict(dct)
-    collider = xt.Multiline(
+    collider = xt.Environment(
         lines={'lhcb1': line}
     )
 
@@ -710,7 +710,7 @@ def test_match_bump_sets_init_table(test_context):
 @for_all_test_contexts
 def test_match_bump_common_elements(test_context):
     # Load a line and build a tracker
-    collider = xt.Multiline.from_json(test_data_folder /
+    collider = xt.Environment.from_json(test_data_folder /
                         'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers(test_context)
 
@@ -754,7 +754,7 @@ def test_match_bump_common_elements(test_context):
 @for_all_test_contexts
 def test_match_bump_common_elements_callables_and_inequalities(test_context):
     # Load a line and build a tracker
-    collider = xt.Multiline.from_json(test_data_folder /
+    collider = xt.Environment.from_json(test_data_folder /
                         'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers(test_context)
 
@@ -803,7 +803,7 @@ def test_match_bump_common_elements_callables_and_inequalities(test_context):
 @for_all_test_contexts
 def test_match_bump_common_elements_targets_from_tables(test_context):
     # Load a line and build a tracker
-    collider = xt.Multiline.from_json(test_data_folder /
+    collider = xt.Environment.from_json(test_data_folder /
                         'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers(test_context)
 
@@ -835,7 +835,8 @@ def test_match_bump_common_elements_targets_from_tables(test_context):
             vars.target(lambda vv: vv['acbxv1.l5'] + vv['acbxv1.r5'], xt.LessThan(1e-9)),
             # Targets from line
             line_b1.target(lambda ll: ll['mcbrdv.4r5.b1']._xobject.ksl[0], xt.GreaterThan(1e-6)),
-            line_b1.target(lambda ll: ll['mcbxfbv.a2r5']._xobject.ksl[0] + ll['mcbxfbv.a2l5']._xobject.ksl[0],
+            line_b1.target(lambda ll: ll['mcbxfbv.a2r5/lhcb1']._xobject.ksl[0]
+                                    + ll['mcbxfbv.a2l5/lhcb1']._xobject.ksl[0],
                                     xt.LessThan(1e-9)),
         ])
     opt.solve()
@@ -856,3 +857,188 @@ def test_match_bump_common_elements_targets_from_tables(test_context):
     xo.assert_allclose(tw.lhcb2['py', 'ip5'] + tw.lhcb1['py', 'ip5'], 0, rtol=0, atol=1e-10)
     xo.assert_allclose(tw.lhcb2['y', 's.ds.r5.b2'], 0, rtol=0, atol=1e-9)
     xo.assert_allclose(tw.lhcb2['py', 's.ds.r5.b2'], 0, rtol=0, atol=1e-9)
+
+@for_all_test_contexts
+def test_match_bump_clone_and_ref_in_inequality(test_context):
+
+    line = xt.Line.from_json(test_data_folder /
+                            'hllhc14_no_errors_with_coupling_knobs/line_b1.json')
+    line.build_tracker(test_context)
+
+    GreaterThan = xt.GreaterThan
+    LessThan = xt.LessThan
+
+    tw0 = line.twiss()
+    opt = line.match(
+        name='bump',
+        solve=False,
+        solver='jacobian',
+        # Portion of the beam line to be modified and initial conditions
+        start='mq.33l8.b1',
+        end='mq.17l8.b1',
+        init=tw0, init_at=xt.START,
+        # Dipole corrector strengths to be varied
+        vary=[
+            xt.Vary(name='acbv32.l8b1', step=1e-10, weight=0.7),
+            xt.Vary(name='acbv28.l8b1', step=1e-10, weight=0.3),
+            xt.Vary(name='acbv26.l8b1', step=1e-10),
+            xt.Vary(name='acbv24.l8b1', step=1e-10),
+            xt.Vary(name='acbv22.l8b1', step=1e-10, weight=1000),
+            xt.Vary(name='acbv18.l8b1', step=1e-10),
+        ],
+        targets=[
+            xt.Target('py', at='mb.b26l8.b1', value=0, tol=1e-6, weight=1e3),
+            xt.Target('y', at='mb.b26l8.b1', value=3e-3, tol=1e-4),
+            xt.Target('y', at='mq.17l8.b1', value=tw0, tol=1e-6),
+            xt.Target('py', at='mq.17l8.b1', value=tw0, tol=1e-7, weight=1e3),
+        ]
+    )
+
+    # Check target_mismatch
+    assert opt.name == 'bump'
+    ts = opt.target_status(ret=True)
+    assert len(ts) == 4
+    assert np.all(ts.tol_met == np.array([True, False, True, True]))
+    tm = opt.target_mismatch(ret=True)
+    assert len(tm) == 1
+    assert tm.id[0] == 1
+
+    opt.solve()
+
+    # I want to limit the negative excursion ot the bump
+    opt2 = opt.clone(name='limit',
+        add_targets=[
+            xt.Target('y', GreaterThan(-2e-3), at='mq.30l8.b1', tol=1e-6),
+            xt.Target('y', GreaterThan(-1e-3), at='mq.30l8.b1', tol=1e-6)])
+    opt2.solve()
+
+    assert opt2.name == 'limit'
+    assert len(opt2.targets) == 6
+    tm = opt2.target_mismatch(ret=True)
+    assert(len(tm) == 0)
+
+    tw = line.twiss()
+
+    assert np.isclose(tw['y', 'mq.33l8.b1'], 0, atol=1e-6, rtol=0)
+    assert np.isclose(tw['y', 'mq.17l8.b1'], 0, atol=1e-6, rtol=0)
+    assert np.isclose(tw['py', 'mq.17l8.b1'], 0, atol=1e-8, rtol=0)
+    assert np.isclose(tw['py', 'mq.33l8.b1'], 0, atol=1e-6, rtol=0)
+
+    assert np.isclose(tw['y', 'mb.b26l8.b1'], 3e-3, atol=1e-6, rtol=0)
+    assert np.isclose(tw['py', 'mb.b26l8.b1'], 0, atol=1e-8, rtol=0)
+
+    assert np.isclose(tw['y', 'mq.30l8.b1'], -1e-3, atol=1e-6, rtol=0)
+
+    # Test variable in inequality
+    line['myvar'] = -5e-3
+    line['myvar2'] = 4e-3
+    opt3 = opt2.clone(name='ineq',
+        add_targets=[
+            xt.Target('y', GreaterThan(line.ref['myvar']), at='mq.30l8.b1', tol=1e-6),
+            xt.Target('y', LessThan(line.ref['myvar2']), at='mb.b26l8.b1', tol=1e-6)])
+
+    assert len(opt3.target_mismatch(ret=True)) == 0
+    assert opt3.target_status(ret=True).residue[-1] == 0
+
+    line['myvar'] = -0.5e-3
+    line['myvar2'] = 2e-3
+    opt3.disable(target=1)
+    assert len(opt3.target_mismatch(ret=True)) == 2
+    xo.assert_allclose(opt3.target_mismatch(ret=True).residue[-2], -0.5e-3,
+                    atol=1e-5, rtol=0)
+    xo.assert_allclose(opt3.target_mismatch(ret=True).residue[-1], -1e-3,
+                    atol=1e-5, rtol=0)
+
+    opt3.solve()
+    assert len(opt3.target_mismatch(ret=True)) == 1 # The disabled target
+    assert opt3.target_mismatch(ret=True).id[0] == 1
+
+    tw = line.twiss()
+
+    assert np.isclose(tw['y', 'mq.33l8.b1'], 0, atol=1e-6, rtol=0)
+    assert np.isclose(tw['y', 'mq.17l8.b1'], 0, atol=1e-6, rtol=0)
+    assert np.isclose(tw['py', 'mq.17l8.b1'], 0, atol=1e-8, rtol=0)
+    assert np.isclose(tw['py', 'mq.33l8.b1'], 0, atol=1e-6, rtol=0)
+
+    assert np.isclose(tw['y', 'mb.b26l8.b1'], 2e-3, atol=1e-6, rtol=0)
+    assert np.isclose(tw['py', 'mb.b26l8.b1'], 0, atol=1e-8, rtol=0)
+
+    assert np.isclose(tw['y', 'mq.30l8.b1'], -0.5e-3, atol=1e-6, rtol=0)
+
+
+def test_match_autogen_tags_and_clone_options():
+
+    line = xt.Line.from_json(test_data_folder /
+        "hllhc15_thick/lhc_thick_with_knobs.json")
+
+    opt = line.match(
+        start='mq.30l8.b1', end='mq.23l8.b1',
+        betx=1, bety=1, y=0, py=0,
+        vary=[xt.VaryList(['acbv30.l8b1', 'acbv28.l8b1',],
+                        step=1e-10, limits=[-1e-3, 1e-3]),
+            xt.VaryList(['acbv26.l8b1', 'acbv24.l8b1'],
+                        step=1e-10, limits=[-1e-3, 1e-3], tag='mytag')],
+        targets = [
+            xt.TargetSet(y=3e-3, py=0, at='mb.b28l8.b1'),
+            xt.TargetSet(y=0, py=0, at=xt.END)
+        ])
+
+    # Check autogenerated tags
+    assert opt.targets[0].tag == 'mb.b28l8.b1_y'
+    assert opt.targets[1].tag == 'mb.b28l8.b1_py'
+    assert opt.targets[2].tag == 'END_y'
+    assert opt.targets[3].tag == 'END_py'
+
+    # Check target getitem
+    assert opt.targets[0] == opt.targets['mb.b28l8.b1_y']
+    assert opt.targets[1] == opt.targets['mb.b28l8.b1_py']
+    assert opt.targets[2] == opt.targets['END_y']
+    assert opt.targets[3] == opt.targets['END_py']
+
+    assert opt.targets['END.*'][0] is opt.targets[2]
+    assert opt.targets['END.*'][1] is opt.targets[3]
+
+    assert np.all(
+        opt.targets.status(ret=True).tag == opt.target_status(ret=True).tag)
+
+    assert opt.vary['myt.*'][0] is opt.vary[2]
+    assert opt.vary['myt.*'][1] is opt.vary[3]
+    assert np.all(opt.vary.status(ret=True).tag == np.array(['', '', 'mytag', 'mytag']))
+    assert np.all(opt.vary.status(ret=True).tag == opt.vary_status(ret=True).tag)
+    assert np.all(opt.vary.status(ret=True).name == np.array(
+        ['acbv30.l8b1', 'acbv28.l8b1', 'acbv26.l8b1', 'acbv24.l8b1']))
+
+    opt1 = opt.clone(name='opt1')
+    assert opt1.name == 'opt1'
+    assert str(opt1.targets[0]) == str(opt.targets[0])
+    assert str(opt1.targets[1]) == str(opt.targets[1])
+    assert str(opt1.targets[2]) == str(opt.targets[2])
+    assert str(opt1.targets[3]) == str(opt.targets[3])
+    assert str(opt1.vary[0]) == str(opt.vary[0])
+    assert str(opt1.vary[1]) == str(opt.vary[1])
+    assert str(opt1.vary[2]) == str(opt.vary[2])
+    assert str(opt1.vary[3]) == str(opt.vary[3])
+
+    opt2 = opt.clone(name='opt2', remove_vary=True)
+    assert len(opt2.vary) == 0
+    assert str(opt2.targets[0]) == str(opt.targets[0])
+    assert str(opt2.targets[1]) == str(opt.targets[1])
+    assert str(opt2.targets[2]) == str(opt.targets[2])
+    assert str(opt2.targets[3]) == str(opt.targets[3])
+
+    opt3 = opt.clone(name='opt3', remove_targets=True,
+                    add_targets=[xt.TargetSet(y=3e-3, py=0, at='mb.b28l8.b1')])
+    assert len(opt3.targets) == 2
+    assert opt.targets[0].tag == 'mb.b28l8.b1_y'
+    assert opt.targets[1].tag == 'mb.b28l8.b1_py'
+    assert str(opt3.vary[0]) == str(opt.vary[0])
+    assert str(opt3.vary[1]) == str(opt.vary[1])
+    assert str(opt3.vary[2]) == str(opt.vary[2])
+    assert str(opt3.vary[3]) == str(opt.vary[3])
+
+    opt4 = opt.clone(name='opt4', remove_vary=True, remove_targets=False,
+                        add_vary=xt.VaryList(['acbv30.l8b1', 'acbv28.l8b1']),
+                        )
+    assert len(opt4.vary) == 2
+    assert opt.vary[0].name == 'acbv30.l8b1'
+    assert opt.vary[1].name == 'acbv28.l8b1'

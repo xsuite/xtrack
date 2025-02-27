@@ -3,30 +3,34 @@ import xtrack as xt
 
 pi = np.pi
 lbend = 3
-elements = {
-    'mqf.1': xt.Quadrupole(length=0.3, k1=0.1),
-    'd1.1':  xt.Drift(length=1),
-    'mb1.1': xt.Bend(length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
-    'd2.1':  xt.Drift(length=1),
 
-    'mqd.1': xt.Quadrupole(length=0.3, k1=-0.7),
-    'd3.1':  xt.Drift(length=1),
-    'mb2.1': xt.Bend(length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
-    'd4.1':  xt.Drift(length=1),
+# Create an environment
+env = xt.Environment()
 
-    'mqf.2': xt.Quadrupole(length=0.3, k1=0.1),
-    'd1.2':  xt.Drift(length=1),
-    'mb1.2': xt.Bend(length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
-    'd2.2':  xt.Drift(length=1),
+# Build a simple ring
+line = env.new_line(components=[
+    env.new('mqf.1', xt.Quadrupole, length=0.3, k1=0.1),
+    env.new('d1.1',  xt.Drift, length=1),
+    env.new('mb1.1', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
+    env.new('d2.1',  xt.Drift, length=1),
 
-    'mqd.2': xt.Quadrupole(length=0.3, k1=-0.7),
-    'd3.2':  xt.Drift(length=1),
-    'mb2.2': xt.Bend(length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
-    'd4.2':  xt.Drift(length=1),
-}
+    env.new('mqd.1', xt.Quadrupole, length=0.3, k1=-0.7),
+    env.new('d3.1',  xt.Drift, length=1),
+    env.new('mb2.1', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
+    env.new('d4.1',  xt.Drift, length=1),
+
+    env.new('mqf.2', xt.Quadrupole, length=0.3, k1=0.1),
+    env.new('d1.2',  xt.Drift, length=1),
+    env.new('mb1.2', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
+    env.new('d2.2',  xt.Drift, length=1),
+
+    env.new('mqd.2', xt.Quadrupole, length=0.3, k1=-0.7),
+    env.new('d3.2',  xt.Drift, length=1),
+    env.new('mb2.2', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
+    env.new('d4.2',  xt.Drift, length=1),
+])
 
 # Build the ring
-line = xt.Line(elements=elements, element_names=list(elements.keys()))
 line.particle_ref = xt.Particles(p0c=1.2e9, mass0=xt.PROTON_MASS_EV)
 line.build_tracker()
 
@@ -58,15 +62,15 @@ tab.show()
 my_sext = xt.Sextupole(length=0.1, k2=0.1)
 # Insert copies of the defined sextupole downstream of the quadrupoles
 line.discard_tracker() # needed to modify the line structure
-line.insert_element('msf.1', my_sext.copy(), at_s=tab['s', 'mqf.1'] + 0.4)
-line.insert_element('msd.1', my_sext.copy(), at_s=tab['s', 'mqd.1'] + 0.4)
-line.insert_element('msf.2', my_sext.copy(), at_s=tab['s', 'mqf.2'] + 0.4)
-line.insert_element('msd.2', my_sext.copy(), at_s=tab['s', 'mqd.2'] + 0.4)
+line.insert('msf.1', my_sext.copy(), anchor='start', at='mqf.1@end')
+line.insert('msd.1', my_sext.copy(), anchor='start', at='mqd.1@end')
+line.insert('msf.2', my_sext.copy(), anchor='start', at='mqf.2@end')
+line.insert('msd.2', my_sext.copy(), anchor='start', at='mqd.2@end')
 
 # Define a rectangular aperture
 my_aper = xt.LimitRect(min_x=-0.02, max_x=0.02, min_y=-0.01, max_y=0.01)
 # Insert the aperture upstream of the first bending magnet
-line.insert_element('aper', my_aper, index='mb1.1')
+line.insert('aper', my_aper, at='mb1.1@start')
 
 line.get_table().show()
 # prints:

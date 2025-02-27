@@ -10,13 +10,15 @@ line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1.,
                                  energy0=xt.PROTON_MASS_EV + e_kin_start_eV)
 line.build_tracker()
 
+tw0 = line.twiss4d()
+
 # User-defined energy ramp
 t_s = np.array([0., 0.0006, 0.0008, 0.001 , 0.0012, 0.0014, 0.0016, 0.0018,
-                0.002 , 0.0022, 0.0024, 0.0026, 0.0028, 0.003, 0.01])
+                0.002 , 0.0022, 0.0024, 0.0026, 0.0028, 0.003, 0.01, 0.1])
 E_kin_GeV = np.array([0.16000000,0.16000000,
     0.16000437, 0.16001673, 0.16003748, 0.16006596, 0.16010243, 0.16014637,
     0.16019791, 0.16025666, 0.16032262, 0.16039552, 0.16047524, 0.16056165,
-    0.163586])
+    0.163586, 0.20247050000000014])
 
 # Attach energy program to the line
 line.energy_program = xt.EnergyProgram(t_s=t_s, kinetic_energy0=E_kin_GeV*1e9)
@@ -87,4 +89,73 @@ plt.xlim(-40, 30)
 plt.ylim(-0.0025, 0.0025)
 plt.title('Last 2000 turns')
 plt.subplots_adjust(left=0.08, right=0.95, wspace=0.26)
+
+
+# Check transverse beam size reduction
+line['t_turn_s'] = 0
+line.enable_time_dependent_vars = False
+
+n_part_test = 500
+# Generate Gaussian distribution with fixed rng seed
+rng = np.random.default_rng(seed=123)
+x_norm = rng.normal(loc=0, scale=1, size=n_part_test)
+px_norm = rng.normal(loc=0, scale=1, size=n_part_test)
+y_norm = rng.normal(loc=0, scale=1, size=n_part_test)
+py_norm = rng.normal(loc=0, scale=1, size=n_part_test)
+
+# rescale to have exact std dev.
+x_norm = x_norm / np.std(x_norm)
+px_norm = px_norm / np.std(px_norm)
+y_norm = y_norm / np.std(y_norm)
+py_norm = py_norm / np.std(py_norm)
+
+p_test2 = line.build_particles(x_norm=x_norm, px_norm=px_norm,
+                               y_norm=x_norm, py_norm=px_norm,
+                               nemitt_x=3e-6, nemitt_y=3e-6,
+                               delta=0)
+
+line.enable_time_dependent_vars = True
+line.track(p_test2, num_turns=50_000, turn_by_turn_monitor=True, with_progress=True)
+mon2 = line.record_last_track
+
+std_y = np.std(mon2.y, axis=0)
+std_x = np.std(mon2.x, axis=0)
+
+# Apply moving average filter
+from scipy.signal import savgol_filter
+std_y_smooth = savgol_filter(std_y, 10000, 2)
+std_x_smooth = savgol_filter(std_x, 10000, 2)
+
+i_turn_match = 10000
+std_y_expected = std_y_smooth[i_turn_match] * np.sqrt(
+    mon2.gamma0[0, i_turn_match]* mon2.beta0[0, i_turn_match]
+    / mon2.gamma0[0, :] / mon2.beta0[0, :])
+std_x_expected = std_x_smooth[i_turn_match] * np.sqrt(
+    mon2.gamma0[0, i_turn_match]* mon2.beta0[0, i_turn_match]
+    / mon2.gamma0[0, :] / mon2.beta0[0, :])
+
+d_sigma_x = std_x_expected[0] - std_x_expected[-1]
+d_sigma_y = std_y_expected[0] - std_y_expected[-1]
+
+import xobjects as xo
+xo.assert_allclose(std_y_expected[40000:45000].mean(),
+                   std_y_smooth[40000:45000].mean(),
+                   rtol=0, atol=0.07 * d_sigma_y)
+xo.assert_allclose(std_x_expected[40000:45000].mean(),
+                   std_x_smooth[40000:45000].mean(),
+                   rtol=0, atol=0.07 * d_sigma_x)
+
+plt.figure(2)
+ax1 = plt.subplot(2,1,1)
+plt.plot(std_x, label='raw')
+plt.plot(std_x_smooth, label='smooth')
+plt.plot(std_x_expected, label='expected')
+plt.legend()
+
+ax2 = plt.subplot(2,1,2, sharex=ax1)
+plt.plot(std_y, label='raw')
+plt.plot(std_y_smooth, label='smooth')
+plt.plot(std_y_expected, label='expected')
+
+
 plt.show()

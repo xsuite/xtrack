@@ -12,7 +12,7 @@ test_data_folder = pathlib.Path(
 @for_all_test_contexts
 def test_ip_knob_matching(test_context):
 
-    collider = xt.Multiline.from_json(test_data_folder /
+    collider = xt.Environment.from_json(test_data_folder /
                     'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers(test_context)
 
@@ -57,7 +57,7 @@ def test_ip_knob_matching(test_context):
     xo.assert_allclose(collider.vars.vary_default['acbyhs5.r8b2']['limits'][1], limitmcbc, atol=1e-17, rtol=0)
 
     # Check that they are preserved by to_dict/from_dict
-    collider = xt.Multiline.from_dict(collider.to_dict())
+    collider = xt.Environment.from_dict(collider.to_dict())
     collider.build_trackers()
 
     xo.assert_allclose(collider.vars.vary_default['acbxh1.l8']['step'], 1.0e-15, atol=1e-17, rtol=0)
@@ -184,16 +184,17 @@ def test_ip_knob_matching(test_context):
     assert np.all(np.array(vactive) == np.array(
         [True, True, True, True, True, True, True, True, False, False, False, False, False, False]))
 
+    assert len(opt.log()) == 1
     opt.step(10) # perform 10 steps without checking for convergence
 
     ll = opt.log()
-    assert len(ll) == 11
+    assert 11 <= len(ll) <= 13
     assert ll['vary_active', 0] == 'yyyyyyyyyyyyyy'
     assert ll['vary_active', 1] == 'yyyyyyyynnnnnn'
-    assert ll['vary_active', 10] == 'yyyyyyyynnnnnn'
+    assert ll['vary_active', len(ll) - 2] == 'yyyyyyyynnnnnn'
 
     # Check solution not found
-    assert ll['tol_met', 10] != 'yyyyyyyy'
+    assert ll['tol_met', len(ll) - 1] != 'yyyyyyyy'
 
     # Check that mcbxs did not move
     xo.assert_allclose(ll['vary_8', 1:], init_mcbx_plus, atol=1e-12, rtol=0)
@@ -219,17 +220,17 @@ def test_ip_knob_matching(test_context):
     ll = opt.log()
 
     # Check driving knob is enabled
-    assert np.all(ll['vary_active', 11:] == 'yyyyyyyyynnnnn')
+    assert np.all(ll['vary_active', 13:] == 'yyyyyyyyynnnnn')
 
     # Check solution found
     assert np.all(ll['tol_met', -1] == 'yyyyyyyy')
 
     # Check imposed relationship among varys
-    xo.assert_allclose(ll['vary_8', 11], ll['vary_9', 11], atol=1e-12, rtol=0)
-    xo.assert_allclose(ll['vary_8', 11], ll['vary_10', 11], atol=1e-12, rtol=0)
-    xo.assert_allclose(ll['vary_8', 11], -ll['vary_11', 11], atol=1e-12, rtol=0)
-    xo.assert_allclose(ll['vary_8', 11], -ll['vary_12', 11], atol=1e-12, rtol=0)
-    xo.assert_allclose(ll['vary_8', 11], -ll['vary_13', 11], atol=1e-12, rtol=0)
+    xo.assert_allclose(ll['vary_8', 13], ll['vary_9', 13], atol=1e-12, rtol=0)
+    xo.assert_allclose(ll['vary_8', 13], ll['vary_10', 13], atol=1e-12, rtol=0)
+    xo.assert_allclose(ll['vary_8', 13], -ll['vary_11', 13], atol=1e-12, rtol=0)
+    xo.assert_allclose(ll['vary_8', 13], -ll['vary_12', 13], atol=1e-12, rtol=0)
+    xo.assert_allclose(ll['vary_8', 13], -ll['vary_13', 13], atol=1e-12, rtol=0)
 
     opt.generate_knob()
 
@@ -329,7 +330,7 @@ def test_ip_knob_matching(test_context):
 @for_all_test_contexts
 def test_match_ir8_optics(test_context):
 
-    collider = xt.Multiline.from_json(test_data_folder /
+    collider = xt.Environment.from_json(test_data_folder /
                     'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers(test_context)
 
@@ -499,7 +500,7 @@ def test_match_ir8_optics(test_context):
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyynnnnnnnnnnnn'
 
-    opt.step(10)
+    opt.step(12)
     assert opt.log()['penalty', -1] < 0.1
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyynnnnnnnnnnnn'

@@ -5,6 +5,7 @@
 
 import pathlib
 import pickle
+import math
 
 import numpy as np
 import pytest
@@ -36,9 +37,9 @@ def test_simplification_methods():
     line.merge_consecutive_drifts(inplace=True)
     assert len(line.element_names) == 3
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
-    xo.assert_allclose(line[0].length, 3.3, rtol=0, atol=1e-12)
-    assert isinstance(line[1], xt.Cavity)
-    xo.assert_allclose(line[2].length, 1.7, rtol=0, atol=1e-12)
+    xo.assert_allclose(line[line.element_names[0]].length, 3.3, rtol=0, atol=1e-12)
+    assert isinstance(line[line.element_names[1]], xt.Cavity)
+    xo.assert_allclose(line[line.element_names[2]].length, 1.7, rtol=0, atol=1e-12)
 
     # Test merging of drifts, while keeping one
     line.insert_element(element=xt.Drift(length=1), name='drift1', at_s=1.2)
@@ -85,8 +86,8 @@ def test_simplification_methods():
     line._replace_with_equivalent_elements()
     line.merge_consecutive_multipoles(inplace=True)
     assert len(line.element_names) == 4
-    xo.assert_allclose(line[1].knl, [7,5,11], rtol=0, atol=1e-15)
-    xo.assert_allclose(line[1].ksl, [52,60,17], rtol=0, atol=1e-15)
+    xo.assert_allclose(line[line.element_names[1]].knl, [7,5,11], rtol=0, atol=1e-15)
+    xo.assert_allclose(line[line.element_names[1]].ksl, [52,60,17], rtol=0, atol=1e-15)
 
     # Test removing inactive multipoles
     line.insert_element(element=xt.Multipole(knl=[0, 8, 1], ksl=[0, 20, 30]), name='m5', at_s=3.3)
@@ -351,13 +352,12 @@ def test_to_pandas():
 
     assert tuple(df.columns) == (
         's', 'element_type', 'name', 'isthick', 'isreplica', 'parent_name',
-       'iscollective', 'element')
+       'iscollective', 'element', 's_start', 's_center', 's_end')
     assert len(df) == 4
 
 def test_check_aperture():
 
     class ThickElement:
-
         length = 2.
         isthick = True
 
@@ -380,11 +380,16 @@ def test_check_aperture():
             'th3_ap_front': xt.LimitEllipse(a=1e-2, b=1e-2),
             'th3': ThickElement(),
             'dr6': xt.Drift(length=1),
+            'th4_ap_entry': xt.LimitEllipse(a=1e-2, b=1e-2),
+            'th4': ThickElement(),
+            'th4_ap_exit': xt.LimitEllipse(a=1e-2, b=1e-2),
         },
         element_names=['dr1', 'm1_ap', 'dum', 'm1', 'dr2', 'm2', 'dr3',
                        'th1_ap_front', 'dum', 'th1', 'dum', 'th1_ap_back',
                        'dr4', 'th2', 'th2_ap_back',
-                       'dr5', 'th3_ap_front', 'th3'])
+                       'dr5', 'th3_ap_front', 'th3', 'dr6',
+                       'th4_ap_entry', 'th4', 'th4_ap_exit'])
+
     df = line.check_aperture()
 
     expected_miss_upstream = [nn in ('m2', 'th2') for nn in df['name'].values]
@@ -417,7 +422,6 @@ def test_to_dict():
 
     assert result['metadata'] == line.metadata
 
-
 def test_from_dict_legacy():
     test_dict = {
         'elements': [
@@ -437,6 +441,36 @@ def test_from_dict_legacy():
     assert result.elements[1].length == 1
 
     assert result.element_names == ['mn1', 'd1']
+
+@pytest.mark.parametrize('under_test', ['copy', 'from_to_dict'])
+def test_copy_to_dict_from_dict_config(under_test):
+
+    # Step 1: Create a line object
+    line = xt.Line()
+
+    # Step 2: Build the tracker
+    line.build_tracker()
+    line.metadata['hello'] = 'world'
+
+    # Step 3: Configure radiation model
+    line.configure_radiation(model='mean')
+
+    # Step 5: Serialize and deserialize the line
+    if under_test == 'copy':
+        l2 = line.copy()
+    elif under_test == 'from_to_dict':
+        line_dict = line.to_dict()
+        l2 = xt.Line.from_dict(line_dict)
+    else:
+        raise ValueError(f'Unknown test {under_test}')
+
+    assert np.all(
+        np.sort(list(line.config.keys())) == np.sort(list(l2.config.keys())))
+
+    for key in line.config.keys():
+        assert line.config[key] == l2.config[key]
+
+    assert line.metadata['hello'] == l2.metadata['hello']
 
 
 def test_from_dict_current():
@@ -656,17 +690,25 @@ def test_from_json_to_json(tmp_path):
     }
     line.metadata = example_metadata
 
+    def asserts():
+        assert len(result.element_dict.keys()) == 2
+        assert result.element_names == ['m', 'd', 'm', 'd']
+
+        assert isinstance(result['m'], xt.Multipole)
+        assert (result['m'].knl == [1, 2]).all()
+
+        assert isinstance(result['d'], xt.Drift)
+        assert result['d'].length == 1
+
+        assert result.metadata == example_metadata
+        result.metadata['qx']['lhcb1'] = result.metadata['qx']['lhcb1'] + 1
+        assert result.metadata != example_metadata
+        result.metadata['qx']['lhcb1'] = result.metadata['qx']['lhcb1'] - 1
+
     line.to_json(tmp_path / 'test.json')
     result = xt.Line.from_json(tmp_path / 'test.json')
 
-    assert len(result.element_dict.keys()) == 2
-    assert result.element_names == ['m', 'd', 'm', 'd']
-
-    assert isinstance(result['m'], xt.Multipole)
-    assert (result['m'].knl == [1, 2]).all()
-
-    assert isinstance(result['d'], xt.Drift)
-    assert result['d'].length == 1
+    asserts()
 
     with open(tmp_path / 'test2.json', 'w') as f:
         line.to_json(f)
@@ -674,18 +716,24 @@ def test_from_json_to_json(tmp_path):
     with open(tmp_path / 'test2.json', 'r') as f:
         result = xt.Line.from_json(f)
 
-    assert len(result.element_dict.keys()) == 2
-    assert result.element_names == ['m', 'd', 'm', 'd']
+    asserts()
 
-    assert isinstance(result['m'], xt.Multipole)
-    assert (result['m'].knl == [1, 2]).all()
+    with open(tmp_path / 'test2.json', 'w') as f:
+        line.to_json(f,indent=None)
 
-    assert isinstance(result['d'], xt.Drift)
-    assert result['d'].length == 1
+    with open(tmp_path / 'test2.json', 'r') as f:
+        result = xt.Line.from_json(f)
 
-    assert result.metadata == example_metadata
-    result.metadata['qx']['lhcb1'] = result.metadata['qx']['lhcb1'] + 1
-    assert result.metadata != example_metadata
+    asserts()
+
+    with open(tmp_path / 'test2.json.gz', 'w') as f:
+        line.to_json(f,indent=2)
+
+    with open(tmp_path / 'test2.json.gz', 'r') as f:
+        result = xt.Line.from_json(f)
+
+    asserts()
+
 
 @for_all_test_contexts
 def test_config_propagation(test_context):
@@ -755,10 +803,11 @@ def test_pickle():
 
     line.discard_tracker()
 
-    collider = xt.Multiline(lines={'lhcb1': line})
+    collider = xt.Environment(lines={'lhcb1': line})
     collider.build_trackers()
 
     colliderss = pickle.dumps(collider)
+
     coll = pickle.loads(colliderss)
 
     collider.vars['on_x1'] = 234
@@ -885,18 +934,18 @@ def test_insert_thin_elements_at_s_lhc(test_context):
     xo.assert_allclose(tt['s', 'm1_at_d'], s2, rtol=0, atol=1e-6)
     xo.assert_allclose(tt['s', 'm2_at_d'], s2, rtol=0, atol=1e-6)
 
-    assert np.all(tt.rows['mq.28r3.b1_entry%%-3':'mq.28r3.b1_entry'].name
+    assert np.all(tt.rows['mq.28r3.b1_entry<<3':'mq.28r3.b1_entry'].name
             == np.array(['m0_at_a', 'm1_at_a', 'm2_at_a', 'mq.28r3.b1_entry']))
 
-    assert np.all(tt.rows['m0_at_b%%-2':'m0_at_b%%+4'].name
+    assert np.all(tt.rows['m0_at_b<<2':'m0_at_b>>4'].name
             == np.array(['mb.a29r3.b1..0', 'drift_mb.a29r3.b1..1..0',
                         'm0_at_b', 'm1_at_b', 'm2_at_b',
                         'drift_mb.a29r3.b1..1..1', 'mb.a29r3.b1..1']))
 
-    assert np.all(tt.rows['mq.29r3.b1_exit%%-3':'mq.29r3.b1_exit'].name
+    assert np.all(tt.rows['mq.29r3.b1_exit<<3':'mq.29r3.b1_exit'].name
             == np.array(['m0_at_c', 'm1_at_c', 'm2_at_c', 'mq.29r3.b1_exit']))
 
-    assert np.all(tt.rows['m0_at_d':'m0_at_d%%+4'].name
+    assert np.all(tt.rows['m0_at_d':'m0_at_d>>4'].name
                 == np.array(['m0_at_d', 'm1_at_d', 'm2_at_d',
                             'lhcb1ip7_p_', '_end_point']))
 
@@ -1035,7 +1084,7 @@ def test_multiple_thick_elements():
 
 @for_all_test_contexts
 def test_get_strengths(test_context):
-    collider = xt.Multiline.from_json(
+    collider = xt.Environment.from_json(
         test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers(_context=test_context)
 
@@ -1061,3 +1110,190 @@ def test_get_strengths(test_context):
     xo.assert_allclose(line['mbw.a6l3.b2'].h,
             str_table['angle_rad', 'mbw.a6l3.b2'] / str_table['length', 'mbw.a6l3.b2'],
             rtol=0, atol=1e-14)
+
+
+
+def test_insert_repeated_names():
+
+    line = xt.Line(
+        elements=([xt.Drift(length=0)] # Start line marker
+                    + [xt.Drift(length=1) for _ in range(5)]
+                    + [xt.Drift(length=0)] # End line marker
+            ),
+        element_names=['d']*7
+        )
+    line.insert_element("m1",xt.Marker(),at="d::3")
+    assert line.element_names[3]=="m1"
+    line.insert_element("m2",xt.Marker(),at="d")
+    assert line.element_names[0]=="m2"
+
+def test_line_table_unique_names():
+    line = xt.Line(
+        elements = {"obm": xt.Bend(length=0.5)},
+        element_names= ["obm","obm"]
+    )
+    table = line.get_table()
+    names, counts = np.unique(table.name, return_counts=True, equal_nan=False)
+    assert np.all(counts == 1), "Not all elements are unique"
+    for name, env_name in zip(table.name, table.env_name):
+        if name == '_end_point': continue
+        assert line[name] == line[env_name]
+
+
+def test_extend_knl_ksl():
+
+    classes_to_check = ['Bend', 'Quadrupole', 'Sextupole', 'Octupole', 'Solenoid',
+                        'Multipole']
+
+    for cc in classes_to_check:
+
+        nn1 = 'test1_'+cc.lower()
+        nn2 = 'test2_'+cc.lower()
+        env = xt.Environment()
+        env.new(nn1, cc, length=10, knl=[
+                1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], ksl=[3, 2, 1])
+        env.new(nn2, cc, length=10, ksl=[
+                1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], knl=[3, 2, 1], order=11)
+
+        assert env[nn1].__class__.__name__ == cc
+        assert env[nn1].order == 11
+        assert len(env[nn1].knl) == 12
+        assert len(env[nn1].ksl) == 12
+        xo.assert_allclose(env[nn1].knl, [1, 2, 3, 4, 5,
+                           6, 7, 8, 9, 10, 11, 12], rtol=0, atol=1e-15)
+        xo.assert_allclose(env[nn1].ksl, [3, 2, 1, 0, 0,
+                           0, 0, 0, 0, 0, 0, 0], rtol=0, atol=1e-15)
+        xo.assert_allclose(env[nn1].inv_factorial_order,
+                           1/math.factorial(11), rtol=0, atol=1e-15)
+
+        assert env[nn2].__class__.__name__ == cc
+        assert env[nn2].order == 11
+        assert len(env[nn2].ksl) == 12
+        assert len(env[nn2].knl) == 12
+        xo.assert_allclose(env[nn2].ksl, [1, 2, 3, 4, 5,
+                           6, 7, 8, 9, 10, 11, 12], rtol=0, atol=1e-15)
+        xo.assert_allclose(env[nn2].knl, [3, 2, 1, 0, 0,
+                           0, 0, 0, 0, 0, 0, 0], rtol=0, atol=1e-15)
+        xo.assert_allclose(env[nn2].inv_factorial_order,
+                           1/math.factorial(11), rtol=0, atol=1e-15)
+
+    env.vars.default_to_zero = True
+    line = env.new_line(components=[
+        env.new('b1', xt.Bend, length=1, knl=[
+                'a', 'b', 'c'], ksl=['d', 'e', 'f']),
+        env.new('q1', xt.Quadrupole, length=1, knl=[
+                'a', 'b', 'c'], ksl=['d', 'e', 'f']),
+        env.new('s1', xt.Sextupole, length=1, knl=[
+                'a', 'b', 'c'], ksl=['d', 'e', 'f']),
+        env.new('o1', xt.Octupole, length=1, knl=[
+                'a', 'b', 'c'], ksl=['d', 'e', 'f']),
+        env.new('s2', xt.Solenoid, length=1, knl=[
+                'a', 'b', 'c'], ksl=['d', 'e', 'f']),
+        env.new('m1', xt.Multipole, length=1, knl=[
+                'a', 'b', 'c'], ksl=['d', 'e', 'f']),
+    ])
+
+    env['a'] = 3.
+    env['b'] = 2.
+    env['c'] = 1.
+    env['d'] = 4.
+    env['e'] = 5.
+    env['f'] = 6.
+
+    element_names = ['b1', 'q1']
+    order = 10
+
+    line.extend_knl_ksl(order=order, element_names=element_names)
+
+    assert line['b1'].order == order
+    assert line['q1'].order == order
+    assert line['s1'].order == 5
+    assert line['o1'].order == 5
+    assert line['s2'].order == 5
+    assert line['m1'].order == 2
+
+    xo.assert_allclose(line['b1'].inv_factorial_order,
+                       1/math.factorial(order), rtol=0, atol=1e-15)
+    xo.assert_allclose(line['q1'].inv_factorial_order,
+                       1/math.factorial(order), rtol=0, atol=1e-15)
+    xo.assert_allclose(line['s1'].inv_factorial_order,
+                       1/math.factorial(5), rtol=0, atol=1e-15)
+    xo.assert_allclose(line['o1'].inv_factorial_order,
+                       1/math.factorial(5), rtol=0, atol=1e-15)
+    xo.assert_allclose(line['s2'].inv_factorial_order,
+                       1/math.factorial(5), rtol=0, atol=1e-15)
+    xo.assert_allclose(line['m1'].inv_factorial_order,
+                       1/math.factorial(2), rtol=0, atol=1e-15)
+
+    xo.assert_allclose(line['b1'].knl, [3., 2., 1., 0.,
+                       0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['b1'].ksl, [4., 5., 6., 0.,
+                       0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['q1'].knl, [3., 2., 1., 0.,
+                       0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['q1'].ksl, [4., 5., 6., 0.,
+                       0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['s1'].knl, [3., 2., 1.,
+                       0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['s1'].ksl, [4., 5., 6.,
+                       0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['o1'].knl, [3., 2., 1.,
+                       0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['o1'].ksl, [4., 5., 6.,
+                       0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['s2'].knl, [3., 2., 1.,
+                       0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['s2'].ksl, [4., 5., 6.,
+                       0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['m1'].knl, [3., 2., 1.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['m1'].ksl, [4., 5., 6.], rtol=0, atol=1e-15)
+
+    line.extend_knl_ksl(order=11)
+
+    assert line['b1'].order == 11
+    assert line['q1'].order == 11
+    assert line['s1'].order == 11
+    assert line['o1'].order == 11
+    assert line['s2'].order == 11
+    assert line['m1'].order == 11
+    assert line['b1'].inv_factorial_order == 1/math.factorial(11)
+    assert line['q1'].inv_factorial_order == 1/math.factorial(11)
+    assert line['s1'].inv_factorial_order == 1/math.factorial(11)
+    assert line['o1'].inv_factorial_order == 1/math.factorial(11)
+    assert line['s2'].inv_factorial_order == 1/math.factorial(11)
+    assert line['m1'].inv_factorial_order == 1/math.factorial(11)
+    xo.assert_allclose(line['b1'].knl, [3., 2., 1., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['b1'].ksl, [4., 5., 6., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['q1'].knl, [3., 2., 1., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['q1'].ksl, [4., 5., 6., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['s1'].knl, [3., 2., 1., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['s1'].ksl, [4., 5., 6., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['o1'].knl, [3., 2., 1., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['o1'].ksl, [4., 5., 6., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['s2'].knl, [3., 2., 1., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['s2'].ksl, [4., 5., 6., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['m1'].knl, [3., 2., 1., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['m1'].ksl, [4., 5., 6., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+
+    # test an expression
+    line['b'] = 100
+    line['f'] = 200
+
+    xo.assert_allclose(line['o1'].knl, [3., 100., 1., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['o1'].ksl, [4., 5., 200., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+
+

@@ -7,14 +7,17 @@ import xobjects as xo
 import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
 
-assert_allclose= xo.assert_allclose
 
+assert_allclose = xo.assert_allclose
+
+
+@pytest.mark.parametrize('bend_type', [xt.Bend, xt.RBend])
 @for_all_test_contexts
-def test_thin_slice_bend(test_context):
+def test_thin_slice_bend(test_context, bend_type):
 
-    bend = xt.Bend(k0=0.4, h=0.3, length=1,
-                   edge_entry_angle=0.05, edge_entry_hgap=0.06, edge_entry_fint=0.08,
-                   edge_exit_angle=0.05, edge_exit_hgap=0.06, edge_exit_fint=0.08)
+    bend = bend_type(k0=0.4, h=0.3, length=1,
+                    edge_entry_angle=0.05, edge_entry_hgap=0.06, edge_entry_fint=0.08,
+                    edge_exit_angle=0.05, edge_exit_hgap=0.06, edge_exit_fint=0.08)
 
     line = xt.Line(elements=[bend])
 
@@ -25,13 +28,13 @@ def test_thin_slice_bend(test_context):
     line.build_tracker(_context=test_context)
     line._line_before_slicing.build_tracker(_context=test_context)
     assert line['e0..995'].parent_name == 'e0'
-    assert line['e0..995']._parent is line['e0']
+    assert line['e0..995']._parent is line.element_dict['e0']
     assert line['drift_e0..995'].parent_name == 'e0'
-    assert line['drift_e0..995']._parent is line['e0']
+    assert line['drift_e0..995']._parent is line.element_dict['e0']
     assert line['e0..entry_map'].parent_name == 'e0'
-    assert line['e0..entry_map']._parent is line['e0']
+    assert line['e0..entry_map']._parent is line.element_dict['e0']
     assert line['e0..exit_map'].parent_name == 'e0'
-    assert line['e0..exit_map']._parent is line['e0']
+    assert line['e0..exit_map']._parent is line.element_dict['e0']
 
     p0 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03
                       ,_context=test_context)
@@ -48,9 +51,24 @@ def test_thin_slice_bend(test_context):
     assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-10)
     assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-10)
 
+    thin_slice_cls, drift_slice_type_cls, slice_entry_cls, slice_exit_cls = {
+        xt.Bend: (
+            xt.ThinSliceBend,
+            xt.DriftSliceBend,
+            xt.ThinSliceBendEntry,
+            xt.ThinSliceBendExit,
+        ),
+        xt.RBend: (
+            xt.ThinSliceRBend,
+            xt.DriftSliceRBend,
+            xt.ThinSliceRBendEntry,
+            xt.ThinSliceRBendExit
+        ),
+    }[bend_type]
+
     line.to_json('ttt_thin_bend.json')
     line2 = xt.Line.from_json('ttt_thin_bend.json')
-    assert isinstance(line2['e0..995'], xt.ThinSliceBend)
+    assert isinstance(line2['e0..995'], thin_slice_cls)
     assert line2['e0..995'].parent_name == 'e0'
     assert line2['e0..995']._parent is None
     assert line2['drift_e0..995'].parent_name == 'e0'
@@ -61,18 +79,18 @@ def test_thin_slice_bend(test_context):
     assert line2['e0..exit_map']._parent is None
 
     line2.build_tracker(_context=test_context)
-    assert isinstance(line2['e0..995'], xt.ThinSliceBend)
+    assert isinstance(line2['e0..995'], thin_slice_cls)
     assert line2['e0..995'].parent_name == 'e0'
-    assert line2['e0..995']._parent is line2['e0']
-    assert isinstance(line2['drift_e0..995'], xt.DriftSliceBend)
+    assert line2['e0..995']._parent is line2.element_dict['e0']
+    assert isinstance(line2['drift_e0..995'], drift_slice_type_cls)
     assert line2['drift_e0..995'].parent_name == 'e0'
-    assert line2['drift_e0..995']._parent is line2['e0']
-    assert isinstance(line2['e0..entry_map'], xt.ThinSliceBendEntry)
+    assert line2['drift_e0..995']._parent is line2.element_dict['e0']
+    assert isinstance(line2['e0..entry_map'], slice_entry_cls)
     assert line2['e0..entry_map'].parent_name == 'e0'
-    assert line2['e0..entry_map']._parent is line2['e0']
-    assert isinstance(line2['e0..exit_map'], xt.ThinSliceBendExit)
+    assert line2['e0..entry_map']._parent is line2.element_dict['e0']
+    assert isinstance(line2['e0..exit_map'], slice_exit_cls)
     assert line2['e0..exit_map'].parent_name == 'e0'
-    assert line2['e0..exit_map']._parent is line2['e0']
+    assert line2['e0..exit_map']._parent is line2.element_dict['e0']
 
     line.track(p_slice, backtrack=True)
 
@@ -122,9 +140,9 @@ def test_thin_slice_quadrupole(test_context):
         slicing_strategies=[xt.Strategy(xt.Teapot(10000))])
     line.build_tracker(_context=test_context)
     assert line['e0..995'].parent_name == 'e0'
-    assert line['e0..995']._parent is line['e0']
+    assert line['e0..995']._parent is line.element_dict['e0']
     assert line['drift_e0..995'].parent_name == 'e0'
-    assert line['drift_e0..995']._parent is line['e0']
+    assert line['drift_e0..995']._parent is line.element_dict['e0']
 
     p0 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03,
                         _context=test_context)
@@ -152,10 +170,10 @@ def test_thin_slice_quadrupole(test_context):
     line2.build_tracker(_context=test_context)
     assert isinstance(line2['e0..995'], xt.ThinSliceQuadrupole)
     assert line2['e0..995'].parent_name == 'e0'
-    assert line2['e0..995']._parent is line2['e0']
+    assert line2['e0..995']._parent is line2.element_dict['e0']
     assert isinstance(line2['drift_e0..995'], xt.DriftSliceQuadrupole)
     assert line2['drift_e0..995'].parent_name == 'e0'
-    assert line2['drift_e0..995']._parent is line2['e0']
+    assert line2['drift_e0..995']._parent is line2.element_dict['e0']
 
     line.track(p_slice, backtrack=True)
 
@@ -203,9 +221,9 @@ def test_thin_slice_sextupole(test_context):
         slicing_strategies=[xt.Strategy(xt.Teapot(1))])
     line.build_tracker(_context=test_context)
     assert line['e0..0'].parent_name == 'e0'
-    assert line['e0..0']._parent is line['e0']
+    assert line['e0..0']._parent is line.element_dict['e0']
     assert line['drift_e0..0'].parent_name == 'e0'
-    assert line['drift_e0..0']._parent is line['e0']
+    assert line['drift_e0..0']._parent is line.element_dict['e0']
 
     p0 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03,
                         _context=test_context)
@@ -233,10 +251,10 @@ def test_thin_slice_sextupole(test_context):
     line2.build_tracker(_context=test_context)
     assert isinstance(line2['e0..0'], xt.ThinSliceSextupole)
     assert line2['e0..0'].parent_name == 'e0'
-    assert line2['e0..0']._parent is line2['e0']
+    assert line2['e0..0']._parent is line2.element_dict['e0']
     assert isinstance(line2['drift_e0..0'], xt.DriftSliceSextupole)
     assert line2['drift_e0..0'].parent_name == 'e0'
-    assert line2['drift_e0..0']._parent is line2['e0']
+    assert line2['drift_e0..0']._parent is line2.element_dict['e0']
 
     line.track(p_slice, backtrack=True)
 
@@ -282,9 +300,9 @@ def test_thin_slice_octupole(test_context):
         slicing_strategies=[xt.Strategy(xt.Teapot(1))])
     line.build_tracker(_context=test_context)
     assert line['e0..0'].parent_name == 'e0'
-    assert line['e0..0']._parent is line['e0']
+    assert line['e0..0']._parent is line.element_dict['e0']
     assert line['drift_e0..0'].parent_name == 'e0'
-    assert line['drift_e0..0']._parent is line['e0']
+    assert line['drift_e0..0']._parent is line.element_dict['e0']
 
     p0 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03,
                         _context=test_context)
@@ -312,10 +330,10 @@ def test_thin_slice_octupole(test_context):
     line2.build_tracker(_context=test_context)
     assert isinstance(line2['e0..0'], xt.ThinSliceOctupole)
     assert line2['e0..0'].parent_name == 'e0'
-    assert line2['e0..0']._parent is line2['e0']
+    assert line2['e0..0']._parent is line2.element_dict['e0']
     assert isinstance(line2['drift_e0..0'], xt.DriftSliceOctupole)
     assert line2['drift_e0..0'].parent_name == 'e0'
-    assert line2['drift_e0..0']._parent is line2['e0']
+    assert line2['drift_e0..0']._parent is line2.element_dict['e0']
 
     line.track(p_slice, backtrack=True)
 
@@ -361,7 +379,7 @@ def test_thin_slice_drift(test_context):
         slicing_strategies=[xt.Strategy(xt.Uniform(5), element_type=xt.Drift)])
     line.build_tracker(_context=test_context)
     assert line['drift_e0..0'].parent_name == 'e0'
-    assert line['drift_e0..0']._parent is line['e0']
+    assert line['drift_e0..0']._parent is line.element_dict['e0']
 
     p0 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03,
                       _context=test_context)
@@ -386,7 +404,7 @@ def test_thin_slice_drift(test_context):
     line2.build_tracker(_context=test_context)
     assert isinstance(line2['drift_e0..0'], xt.DriftSlice)
     assert line2['drift_e0..0'].parent_name == 'e0'
-    assert line2['drift_e0..0']._parent is line2['e0']
+    assert line2['drift_e0..0']._parent is line2.element_dict['e0']
 
     line.track(p_slice, backtrack=True)
 
@@ -420,12 +438,14 @@ def test_thin_slice_drift(test_context):
     assert_allclose(p_slice.zeta, p0.zeta, rtol=0, atol=1e-10)
     assert_allclose(p_slice.delta, p0.delta, rtol=0, atol=1e-10)
 
-@for_all_test_contexts
-def test_thick_slice_bend(test_context):
 
-    bend = xt.Bend(k0=0.4, h=0.3, length=1,
-                edge_entry_angle=0.05, edge_entry_hgap=0.06, edge_entry_fint=0.08,
-                edge_exit_angle=0.05, edge_exit_hgap=0.06, edge_exit_fint=0.08)
+@pytest.mark.parametrize('bend_type', [xt.Bend, xt.RBend])
+@for_all_test_contexts
+def test_thick_slice_bend(test_context, bend_type):
+
+    bend = bend_type(k0=0.4, h=0.3, length=1,
+                     edge_entry_angle=0.05, edge_entry_hgap=0.06, edge_entry_fint=0.08,
+                     edge_exit_angle=0.05, edge_exit_hgap=0.06, edge_exit_fint=0.08)
 
     line = xt.Line(elements=[bend])
 
@@ -436,11 +456,11 @@ def test_thick_slice_bend(test_context):
     line.build_tracker(_context=test_context)
     line._line_before_slicing.build_tracker(_context=test_context)
     assert line['e0..3'].parent_name == 'e0'
-    assert line['e0..3']._parent is line['e0']
+    assert line['e0..3']._parent is line.element_dict['e0']
     assert line['e0..entry_map'].parent_name == 'e0'
-    assert line['e0..entry_map']._parent is line['e0']
+    assert line['e0..entry_map']._parent is line.element_dict['e0']
     assert line['e0..exit_map'].parent_name == 'e0'
-    assert line['e0..exit_map']._parent is line['e0']
+    assert line['e0..exit_map']._parent is line.element_dict['e0']
 
     p0 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03,
                         _context=test_context)
@@ -457,9 +477,20 @@ def test_thick_slice_bend(test_context):
     assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-10)
     assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-10)
 
+    thick_slice_cls, thick_slice_bend_cls = {
+        xt.Bend: (
+            xt.ThickSliceBend,
+            xt.ThickSliceBend
+        ),
+        xt.RBend: (
+            xt.ThickSliceRBend,
+            xt.ThickSliceRBend
+        ),
+    }[bend_type]
+
     line.to_json('ttt_thick_bend.json')
     line2 = xt.Line.from_json('ttt_thick_bend.json')
-    assert isinstance(line2['e0..3'], xt.ThickSliceBend)
+    assert isinstance(line2['e0..3'], thick_slice_cls)
     assert line2['e0..3'].parent_name == 'e0'
     assert line2['e0..3']._parent is None
     assert line2['e0..entry_map'].parent_name == 'e0'
@@ -468,13 +499,13 @@ def test_thick_slice_bend(test_context):
     assert line2['e0..exit_map']._parent is None
 
     line2.build_tracker(_context=test_context)
-    assert isinstance(line2['e0..3'], xt.ThickSliceBend)
+    assert isinstance(line2['e0..3'], thick_slice_bend_cls)
     assert line2['e0..3'].parent_name == 'e0'
-    assert line2['e0..3']._parent is line2['e0']
+    assert line2['e0..3']._parent is line2.element_dict['e0']
     assert line2['e0..entry_map'].parent_name == 'e0'
-    assert line2['e0..entry_map']._parent is line2['e0']
+    assert line2['e0..entry_map']._parent is line2.element_dict['e0']
     assert line2['e0..exit_map'].parent_name == 'e0'
-    assert line2['e0..exit_map']._parent is line2['e0']
+    assert line2['e0..exit_map']._parent is line2.element_dict['e0']
 
     line.track(p_slice, backtrack=True)
 
@@ -497,7 +528,7 @@ def test_thick_slice_quadrupole(test_context):
         slicing_strategies=[xt.Strategy(xt.Teapot(5, mode='thick'))])
     line.build_tracker(_context=test_context)
     assert line['e0..3'].parent_name == 'e0'
-    assert line['e0..3']._parent is line['e0']
+    assert line['e0..3']._parent is line.element_dict['e0']
 
     p0 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03,
                         _context=test_context)
@@ -523,7 +554,7 @@ def test_thick_slice_quadrupole(test_context):
     line2.build_tracker(_context=test_context)
     assert isinstance(line2['e0..3'], xt.ThickSliceQuadrupole)
     assert line2['e0..3'].parent_name == 'e0'
-    assert line2['e0..3']._parent is line2['e0']
+    assert line2['e0..3']._parent is line2.element_dict['e0']
 
     line.track(p_slice, backtrack=True)
 
@@ -545,7 +576,7 @@ def test_thick_slice_sextupole(test_context):
         slicing_strategies=[xt.Strategy(xt.Teapot(1, mode='thick'))])
     line.build_tracker(_context=test_context)
     assert line['e0..0'].parent_name == 'e0'
-    assert line['e0..0']._parent is line['e0']
+    assert line['e0..0']._parent is line.element_dict['e0']
 
     p0 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03,
                         _context=test_context)
@@ -571,7 +602,7 @@ def test_thick_slice_sextupole(test_context):
     line2.build_tracker(_context=test_context)
     assert isinstance(line2['e0..0'], xt.ThickSliceSextupole)
     assert line2['e0..0'].parent_name == 'e0'
-    assert line2['e0..0']._parent is line2['e0']
+    assert line2['e0..0']._parent is line2.element_dict['e0']
 
     line.track(p_slice, backtrack=True)
 
@@ -593,7 +624,7 @@ def test_thick_slice_octupole(test_context):
         slicing_strategies=[xt.Strategy(xt.Teapot(1, mode='thick'))])
     line.build_tracker(_context=test_context)
     assert line['e0..0'].parent_name == 'e0'
-    assert line['e0..0']._parent is line['e0']
+    assert line['e0..0']._parent is line.element_dict['e0']
 
     p0 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03,
                         _context=test_context)
@@ -619,7 +650,7 @@ def test_thick_slice_octupole(test_context):
     line2.build_tracker(_context=test_context)
     assert isinstance(line2['e0..0'], xt.ThickSliceOctupole)
     assert line2['e0..0'].parent_name == 'e0'
-    assert line2['e0..0']._parent is line2['e0']
+    assert line2['e0..0']._parent is line2.element_dict['e0']
 
     line.track(p_slice, backtrack=True)
 
@@ -641,7 +672,7 @@ def test_thick_slice_solenoid(test_context):
         slicing_strategies=[xt.Strategy(xt.Teapot(10, mode='thick'))])
     line.build_tracker(_context=test_context)
     assert line['e0..0'].parent_name == 'e0'
-    assert line['e0..0']._parent is line['e0']
+    assert line['e0..0']._parent is line.element_dict['e0']
 
     p0 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03,
                         _context=test_context)
@@ -667,7 +698,7 @@ def test_thick_slice_solenoid(test_context):
     line2.build_tracker(_context=test_context)
     assert isinstance(line2['e0..0'], xt.ThickSliceSolenoid)
     assert line2['e0..0'].parent_name == 'e0'
-    assert line2['e0..0']._parent is line2['e0']
+    assert line2['e0..0']._parent is line2.element_dict['e0']
 
     line.track(p_slice, backtrack=True)
 
@@ -814,13 +845,13 @@ def test_thin_slice_bend_with_multipoles(test_context):
     line.build_tracker(_context=test_context)
     line._line_before_slicing.build_tracker(_context=test_context)
     assert line['e0..995'].parent_name == 'e0'
-    assert line['e0..995']._parent is line['e0']
+    assert line['e0..995']._parent is line.element_dict['e0']
     assert line['drift_e0..995'].parent_name == 'e0'
-    assert line['drift_e0..995']._parent is line['e0']
+    assert line['drift_e0..995']._parent is line.element_dict['e0']
     assert line['e0..entry_map'].parent_name == 'e0'
-    assert line['e0..entry_map']._parent is line['e0']
+    assert line['e0..entry_map']._parent is line.element_dict['e0']
     assert line['e0..exit_map'].parent_name == 'e0'
-    assert line['e0..exit_map']._parent is line['e0']
+    assert line['e0..exit_map']._parent is line.element_dict['e0']
 
     p0 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03
                       ,_context=test_context)
@@ -852,16 +883,16 @@ def test_thin_slice_bend_with_multipoles(test_context):
     line2.build_tracker(_context=test_context)
     assert isinstance(line2['e0..995'], xt.ThinSliceBend)
     assert line2['e0..995'].parent_name == 'e0'
-    assert line2['e0..995']._parent is line2['e0']
+    assert line2['e0..995']._parent is line2.element_dict['e0']
     assert isinstance(line2['drift_e0..995'], xt.DriftSliceBend)
     assert line2['drift_e0..995'].parent_name == 'e0'
-    assert line2['drift_e0..995']._parent is line2['e0']
+    assert line2['drift_e0..995']._parent is line2.element_dict['e0']
     assert isinstance(line2['e0..entry_map'], xt.ThinSliceBendEntry)
     assert line2['e0..entry_map'].parent_name == 'e0'
-    assert line2['e0..entry_map']._parent is line2['e0']
+    assert line2['e0..entry_map']._parent is line2.element_dict['e0']
     assert isinstance(line2['e0..exit_map'], xt.ThinSliceBendExit)
     assert line2['e0..exit_map'].parent_name == 'e0'
-    assert line2['e0..exit_map']._parent is line2['e0']
+    assert line2['e0..exit_map']._parent is line2.element_dict['e0']
 
     line.track(p_slice, backtrack=True)
 
@@ -920,11 +951,11 @@ def test_thick_slice_bend_with_multipoles(test_context):
     line.build_tracker(_context=test_context)
     line._line_before_slicing.build_tracker(_context=test_context)
     assert line['e0..995'].parent_name == 'e0'
-    assert line['e0..995']._parent is line['e0']
+    assert line['e0..995']._parent is line.element_dict['e0']
     assert line['e0..entry_map'].parent_name == 'e0'
-    assert line['e0..entry_map']._parent is line['e0']
+    assert line['e0..entry_map']._parent is line.element_dict['e0']
     assert line['e0..exit_map'].parent_name == 'e0'
-    assert line['e0..exit_map']._parent is line['e0']
+    assert line['e0..exit_map']._parent is line.element_dict['e0']
 
     p0 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03
                       ,_context=test_context)
@@ -954,13 +985,13 @@ def test_thick_slice_bend_with_multipoles(test_context):
     line2.build_tracker(_context=test_context)
     assert isinstance(line2['e0..995'], xt.ThickSliceBend)
     assert line2['e0..995'].parent_name == 'e0'
-    assert line2['e0..995']._parent is line2['e0']
+    assert line2['e0..995']._parent is line2.element_dict['e0']
     assert isinstance(line2['e0..entry_map'], xt.ThinSliceBendEntry)
     assert line2['e0..entry_map'].parent_name == 'e0'
-    assert line2['e0..entry_map']._parent is line2['e0']
+    assert line2['e0..entry_map']._parent is line2.element_dict['e0']
     assert isinstance(line2['e0..exit_map'], xt.ThinSliceBendExit)
     assert line2['e0..exit_map'].parent_name == 'e0'
-    assert line2['e0..exit_map']._parent is line2['e0']
+    assert line2['e0..exit_map']._parent is line2.element_dict['e0']
 
     line.track(p_slice, backtrack=True)
 
@@ -993,13 +1024,13 @@ def test_thin_slice_bend_with_multipoles_bend_off(test_context):
     line.build_tracker(_context=test_context)
     line._line_before_slicing.build_tracker(_context=test_context)
     assert line['e0..5'].parent_name == 'e0'
-    assert line['e0..5']._parent is line['e0']
+    assert line['e0..5']._parent is line.element_dict['e0']
     assert line['drift_e0..5'].parent_name == 'e0'
-    assert line['drift_e0..5']._parent is line['e0']
+    assert line['drift_e0..5']._parent is line.element_dict['e0']
     assert line['e0..entry_map'].parent_name == 'e0'
-    assert line['e0..entry_map']._parent is line['e0']
+    assert line['e0..entry_map']._parent is line.element_dict['e0']
     assert line['e0..exit_map'].parent_name == 'e0'
-    assert line['e0..exit_map']._parent is line['e0']
+    assert line['e0..exit_map']._parent is line.element_dict['e0']
 
     p0 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03
                       ,_context=test_context)
@@ -1031,16 +1062,16 @@ def test_thin_slice_bend_with_multipoles_bend_off(test_context):
     line2.build_tracker(_context=test_context)
     assert isinstance(line2['e0..5'], xt.ThinSliceBend)
     assert line2['e0..5'].parent_name == 'e0'
-    assert line2['e0..5']._parent is line2['e0']
+    assert line2['e0..5']._parent is line2.element_dict['e0']
     assert isinstance(line2['drift_e0..5'], xt.DriftSliceBend)
     assert line2['drift_e0..5'].parent_name == 'e0'
-    assert line2['drift_e0..5']._parent is line2['e0']
+    assert line2['drift_e0..5']._parent is line2.element_dict['e0']
     assert isinstance(line2['e0..entry_map'], xt.ThinSliceBendEntry)
     assert line2['e0..entry_map'].parent_name == 'e0'
-    assert line2['e0..entry_map']._parent is line2['e0']
+    assert line2['e0..entry_map']._parent is line2.element_dict['e0']
     assert isinstance(line2['e0..exit_map'], xt.ThinSliceBendExit)
     assert line2['e0..exit_map'].parent_name == 'e0'
-    assert line2['e0..exit_map']._parent is line2['e0']
+    assert line2['e0..exit_map']._parent is line2.element_dict['e0']
 
     line.track(p_slice, backtrack=True)
 
@@ -1097,7 +1128,7 @@ def test_thick_slice_quad_with_multipoles(test_context):
     line.build_tracker(_context=test_context)
     line._line_before_slicing.build_tracker(_context=test_context)
     assert line['e0..5'].parent_name == 'e0'
-    assert line['e0..5']._parent is line['e0']
+    assert line['e0..5']._parent is line.element_dict['e0']
 
     p0 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03
                       ,_context=test_context)
@@ -1123,7 +1154,7 @@ def test_thick_slice_quad_with_multipoles(test_context):
     line2.build_tracker(_context=test_context)
     assert isinstance(line2['e0..5'], xt.ThickSliceQuadrupole)
     assert line2['e0..5'].parent_name == 'e0'
-    assert line2['e0..5']._parent is line2['e0']
+    assert line2['e0..5']._parent is line2.element_dict['e0']
 
     line.track(p_slice, backtrack=True)
 
@@ -1150,9 +1181,9 @@ def test_thin_slice_quad_with_multipoles(test_context):
     line.build_tracker(_context=test_context)
     line._line_before_slicing.build_tracker(_context=test_context)
     assert line['e0..5'].parent_name == 'e0'
-    assert line['e0..5']._parent is line['e0']
+    assert line['e0..5']._parent is line.element_dict['e0']
     assert line['drift_e0..5'].parent_name == 'e0'
-    assert line['drift_e0..5']._parent is line['e0']
+    assert line['drift_e0..5']._parent is line.element_dict['e0']
 
     p0 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03
                       ,_context=test_context)
@@ -1180,10 +1211,10 @@ def test_thin_slice_quad_with_multipoles(test_context):
     line2.build_tracker(_context=test_context)
     assert isinstance(line2['e0..5'], xt.ThinSliceQuadrupole)
     assert line2['e0..5'].parent_name == 'e0'
-    assert line2['e0..5']._parent is line2['e0']
+    assert line2['e0..5']._parent is line2.element_dict['e0']
     assert isinstance(line2['drift_e0..5'], xt.DriftSliceQuadrupole)
     assert line2['drift_e0..5'].parent_name == 'e0'
-    assert line2['drift_e0..5']._parent is line2['e0']
+    assert line2['drift_e0..5']._parent is line2.element_dict['e0']
 
     line.track(p_slice, backtrack=True)
 
@@ -1236,9 +1267,9 @@ def test_thin_slice_quad_with_multipoles_quad_off(test_context):
     line.build_tracker(_context=test_context)
     line._line_before_slicing.build_tracker(_context=test_context)
     assert line['e0..5'].parent_name == 'e0'
-    assert line['e0..5']._parent is line['e0']
+    assert line['e0..5']._parent is line.element_dict['e0']
     assert line['drift_e0..5'].parent_name == 'e0'
-    assert line['drift_e0..5']._parent is line['e0']
+    assert line['drift_e0..5']._parent is line.element_dict['e0']
 
     p0 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03
                       ,_context=test_context)
@@ -1266,10 +1297,10 @@ def test_thin_slice_quad_with_multipoles_quad_off(test_context):
     line2.build_tracker(_context=test_context)
     assert isinstance(line2['e0..5'], xt.ThinSliceQuadrupole)
     assert line2['e0..5'].parent_name == 'e0'
-    assert line2['e0..5']._parent is line2['e0']
+    assert line2['e0..5']._parent is line2.element_dict['e0']
     assert isinstance(line2['drift_e0..5'], xt.DriftSliceQuadrupole)
     assert line2['drift_e0..5'].parent_name == 'e0'
-    assert line2['drift_e0..5']._parent is line2['e0']
+    assert line2['drift_e0..5']._parent is line2.element_dict['e0']
 
     line.track(p_slice, backtrack=True)
 
@@ -1324,7 +1355,7 @@ def test_thick_slice_sextupole_with_multipoles(test_context):
     line.build_tracker(_context=test_context)
     line._line_before_slicing.build_tracker(_context=test_context)
     assert line['e0..1'].parent_name == 'e0'
-    assert line['e0..1']._parent is line['e0']
+    assert line['e0..1']._parent is line.element_dict['e0']
 
     p0 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03
                       ,_context=test_context)
@@ -1350,7 +1381,7 @@ def test_thick_slice_sextupole_with_multipoles(test_context):
     line2.build_tracker(_context=test_context)
     assert isinstance(line2['e0..0'], xt.ThickSliceSextupole)
     assert line2['e0..1'].parent_name == 'e0'
-    assert line2['e0..1']._parent is line2['e0']
+    assert line2['e0..1']._parent is line2.element_dict['e0']
 
     line.track(p_slice, backtrack=True)
 
@@ -1378,9 +1409,9 @@ def test_thin_slice_sextupole_with_multipoles(test_context):
     line.build_tracker(_context=test_context)
     line._line_before_slicing.build_tracker(_context=test_context)
     assert line['e0..1'].parent_name == 'e0'
-    assert line['e0..1']._parent is line['e0']
+    assert line['e0..1']._parent is line.element_dict['e0']
     assert line['drift_e0..1'].parent_name == 'e0'
-    assert line['drift_e0..1']._parent is line['e0']
+    assert line['drift_e0..1']._parent is line.element_dict['e0']
 
     p0 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03
                       ,_context=test_context)
@@ -1408,10 +1439,10 @@ def test_thin_slice_sextupole_with_multipoles(test_context):
     line2.build_tracker(_context=test_context)
     assert isinstance(line2['e0..1'], xt.ThinSliceSextupole)
     assert line2['e0..1'].parent_name == 'e0'
-    assert line2['e0..1']._parent is line2['e0']
+    assert line2['e0..1']._parent is line2.element_dict['e0']
     assert isinstance(line2['drift_e0..1'], xt.DriftSliceSextupole)
     assert line2['drift_e0..1'].parent_name == 'e0'
-    assert line2['drift_e0..1']._parent is line2['e0']
+    assert line2['drift_e0..1']._parent is line2.element_dict['e0']
 
     line.track(p_slice, backtrack=True)
 
@@ -1465,7 +1496,7 @@ def test_thick_slice_octupole_with_multipoles(test_context):
     line.build_tracker(_context=test_context)
     line._line_before_slicing.build_tracker(_context=test_context)
     assert line['e0..1'].parent_name == 'e0'
-    assert line['e0..1']._parent is line['e0']
+    assert line['e0..1']._parent is line.element_dict['e0']
 
     p0 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03
                       ,_context=test_context)
@@ -1491,7 +1522,7 @@ def test_thick_slice_octupole_with_multipoles(test_context):
     line2.build_tracker(_context=test_context)
     assert isinstance(line2['e0..0'], xt.ThickSliceOctupole)
     assert line2['e0..1'].parent_name == 'e0'
-    assert line2['e0..1']._parent is line2['e0']
+    assert line2['e0..1']._parent is line2.element_dict['e0']
 
     line.track(p_slice, backtrack=True)
 
@@ -1520,9 +1551,9 @@ def test_thin_slice_octupole_with_multipoles(test_context):
     line.build_tracker(_context=test_context)
     line._line_before_slicing.build_tracker(_context=test_context)
     assert line['e0..1'].parent_name == 'e0'
-    assert line['e0..1']._parent is line['e0']
+    assert line['e0..1']._parent is line.element_dict['e0']
     assert line['drift_e0..1'].parent_name == 'e0'
-    assert line['drift_e0..1']._parent is line['e0']
+    assert line['drift_e0..1']._parent is line.element_dict['e0']
 
     p0 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03
                       ,_context=test_context)
@@ -1550,10 +1581,10 @@ def test_thin_slice_octupole_with_multipoles(test_context):
     line2.build_tracker(_context=test_context)
     assert isinstance(line2['e0..1'], xt.ThinSliceOctupole)
     assert line2['e0..1'].parent_name == 'e0'
-    assert line2['e0..1']._parent is line2['e0']
+    assert line2['e0..1']._parent is line2.element_dict['e0']
     assert isinstance(line2['drift_e0..1'], xt.DriftSliceOctupole)
     assert line2['drift_e0..1'].parent_name == 'e0'
-    assert line2['drift_e0..1']._parent is line2['e0']
+    assert line2['drift_e0..1']._parent is line2.element_dict['e0']
 
     line.track(p_slice, backtrack=True)
 

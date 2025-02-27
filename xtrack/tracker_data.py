@@ -131,6 +131,7 @@ class TrackerData:
                 if this_parent._buffer is not self._element_dict[nn]._buffer:
                     this_parent.move(_buffer=self._element_dict[nn]._buffer)
                 self._element_dict[nn]._parent = this_parent
+                this_parent._movable = True
                 assert self._element_dict[nn]._parent._offset == self._element_dict[nn]._xobject._parent._offset
 
     def common_buffer_for_elements(self):
@@ -176,7 +177,9 @@ class TrackerData:
         Move all the elements to the common buffer, if they are not already
         there.
         """
-        for ee in self._elements:
+        for nn, ee in self._element_dict.items():
+            if not hasattr(ee, '_buffer'):
+                continue
             if ee._buffer is not buffer:
                 if allow_move:
                     ee.move(_buffer=buffer)

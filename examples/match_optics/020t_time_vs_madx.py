@@ -8,7 +8,7 @@ from cpymad.madx import Madx
 line = xt.Line.from_json(
     '../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
 line.particle_ref = xt.Particles(p0c=7e12, mass=xt.PROTON_MASS_EV)
-collider = xt.Multiline(lines={'lhcb1': line})
+collider = xt.Environment(lines={'lhcb1': line})
 collider.build_trackers()
 
 # mad model for refence
@@ -55,8 +55,6 @@ qtlimit6 = 1.0*90.0/scale
 
 
 # Break something
-
-collider.vars.cache_active = True
 
 collider.vars['kqt13.l7b1'] = collider.vars['kqt13.l7b1']._value * 1.1
 collider.vars['kqt12.l7b1'] = collider.vars['kqt12.l7b1']._value * 1.1

@@ -10,9 +10,8 @@ from cpymad.madx import Madx
 line = xt.Line.from_json(
     '../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
 line.particle_ref = xt.Particles(p0c=7e12, mass=xt.PROTON_MASS_EV)
-collider = xt.Multiline(lines={'lhcb1': line})
+collider = xt.Environment(lines={'lhcb1': line})
 collider.build_trackers()
-collider.vars.cache_active = True
 
 scale = 23348.89927
 scmin = 0.03*7000./line.vars['nrj']._value

@@ -3,24 +3,23 @@
 # Copyright (c) CERN, 2023.                 #
 # ######################################### #
 
-import io
 import math
-import logging
 import json
-import uuid
-import os
+import logging
 from collections import defaultdict
+from weakref import WeakSet
+from collections.abc import Iterable
 
 from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
-from pathlib import Path
 from typing import List, Literal, Optional, Dict
 
 import numpy as np
 from scipy.constants import c as clight
 
-from . import linear_normal_form as lnf
+from xdeps.refs import is_ref
+from . import json as json_utils
 
 import xobjects as xo
 import xtrack as xt
@@ -28,6 +27,8 @@ import xdeps as xd
 from .progress_indicator import progress
 from .slicing import Custom, Slicer, Strategy
 from .mad_writer import to_madx_sequence
+from .madng_interface import (build_madng_model, discard_madng_model,
+                              regen_madng_model, _tw_ng, line_to_madng)
 
 from .survey import survey_from_line
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
@@ -50,10 +51,46 @@ from .trajectory_correction import TrajectoryCorrection
 
 from .general import _print
 
-isref = xd.refs.is_ref
-
 log = logging.getLogger(__name__)
 
+
+_ALLOWED_ELEMENT_TYPES_IN_NEW = [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole,
+                                 xt.Octupole, xt.Cavity, xt.Multipole, xt.Solenoid,
+                                 xt.Marker, xt.Replica, xt.XYShift, xt.XRotation,
+                                 xt.YRotation, xt.SRotation, xt.LimitRacetrack,
+                                 xt.LimitRectEllipse, xt.LimitRect, xt.LimitEllipse,
+                                 xt.RFMultipole, xt.RBend]
+
+_ALLOWED_ELEMENT_TYPES_DICT = {'Drift': xt.Drift, 'Bend': xt.Bend,
+                               'Quadrupole': xt.Quadrupole, 'Sextupole': xt.Sextupole,
+                               'Octupole': xt.Octupole, 'Cavity': xt.Cavity,
+                               'Multipole': xt.Multipole, 'Solenoid': xt.Solenoid,
+                               'Marker': xt.Marker, 'Replica': xt.Replica,
+                               'LimitRacetrack': xt.LimitRacetrack,
+                               'LimitRectEllipse': xt.LimitRectEllipse,
+                               'LimitRect': xt.LimitRect, 'LimitEllipse': xt.LimitEllipse,
+                               'XYShift': xt.XYShift, 'XRotation': xt.XRotation,
+                               'YRotation': xt.YRotation, 'SRotation': xt.SRotation,
+                               'RFMultipole': xt.RFMultipole, 'RBend': xt.RBend}
+
+_STR_ALLOWED_ELEMENT_TYPES_IN_NEW = ', '.join([tt.__name__ for tt in _ALLOWED_ELEMENT_TYPES_IN_NEW])
+
+
+def find_index_repeated(item, lst,count=0):
+    res=[ii for ii, nn in enumerate(lst) if nn == item]
+    print(item)
+    if count>=len(res):
+        raise ValueError(f'Item {item} not found')
+    return res[count]
+
+def find_index_repeated2(item, lst,count=0):
+    cc=0
+    for ii, nn in enumerate(lst):
+        if nn == item:
+            if cc==count:
+                return ii
+            cc+=1
+    raise ValueError(f'Item {item} not found')
 
 class Line:
 
@@ -67,7 +104,7 @@ class Line:
     config = None
 
     def __init__(self, elements=(), element_names=None, particle_ref=None,
-                 energy_program=None):
+                 energy_program=None, env=None):
         """
         Parameters
         ----------
@@ -84,6 +121,10 @@ class Line:
             and matching.
         energy_program: EnergyProgram
             (optional) Energy program used to update the reference energy during the tracking.
+        env : Environment
+            Environment object to which the line belongs. If not provided, a new
+            environment is created.
+
         """
 
         self.config = xt.tracker.TrackerConfig()
@@ -112,33 +153,31 @@ class Line:
         self._extra_config['steering_correctors_x'] = None
         self._extra_config['steering_correctors_y'] = None
 
+        if env is None:
+            env = xt.Environment()
+
+        self.env = env
+        self._element_dict = env.element_dict # Avoid copying (the property setter would do that)
+        self._var_management = env._var_management
+        self.env._lines_weakrefs.add(self)
+
+        if particle_ref is None:
+            particle_ref = env.particle_ref
+
         if isinstance(elements, dict):
             element_dict = elements
             if element_names is None:
-                raise ValueError('`element_names` must be provided'
-                                 ' if `elements` is a dictionary.')
+                element_names = list(element_dict.keys())
         else:
             if element_names is None:
                 element_names = [f"e{ii}" for ii in range(len(elements))]
-            if len(element_names) > len(set(element_names)):
-                log.warning("Repetition found in `element_names` -> renaming")
-                old_element_names = element_names
-                element_names = []
-                counters = {nn: 0 for nn in old_element_names}
-                for nn in old_element_names:
-                    if counters[nn] > 0:
-                        new_nn = nn + '_' + str(counters[nn])
-                    else:
-                        new_nn = nn
-                    counters[nn] += 1
-                    element_names.append(new_nn)
 
             assert len(element_names) == len(elements), (
                 "`elements` and `element_names` should have the same length"
             )
             element_dict = dict(zip(element_names, elements))
 
-        self.element_dict = element_dict.copy()  # avoid modifications if user provided
+        self.element_dict.update(element_dict)
         self.element_names = list(element_names).copy()
 
         self.particle_ref = particle_ref
@@ -146,16 +185,17 @@ class Line:
         if energy_program is not None:
             self.energy_program = energy_program # setter will take care of completing
 
-        self._init_var_management()
         self.tracker = None
 
         self.metadata = {}
 
         self._line_before_slicing_cache = None
         self._element_names_before_slicing = None
+        self.ref = xt.environment.EnvRef(self)
 
     @classmethod
-    def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
+    def from_dict(cls, dct, _context=None, _buffer=None, classes=(),
+                  env=None, verbose=True):
 
         """
         Create a Line object from a dictionary.
@@ -185,7 +225,9 @@ class Line:
 
         _buffer = xo.get_a_buffer(context=_context, buffer=_buffer,size=8)
 
-        if isinstance(dct['elements'], dict):
+        if env is not None:
+            elements = env.element_dict
+        elif isinstance(dct['elements'], dict):
             elements = {}
             for ii, (kk, ee) in enumerate(
                     progress(dct['elements'].items(), desc='Loading line from dict')):
@@ -198,16 +240,25 @@ class Line:
         else:
             raise ValueError('Field `elements` must be a dict or a list')
 
-        self = cls(elements=elements, element_names=dct['element_names'])
+        element_names = dct.get('element_names', [])
+        self = cls(elements=elements, element_names=element_names)
 
         if 'particle_ref' in dct.keys():
             self.particle_ref = xt.Particles.from_dict(dct['particle_ref'],
                                     _context=_buffer.context)
 
-        if '_var_manager' in dct.keys():
+        if env is not None:
+            self.env = env
+            self._var_management = env._var_management
+            self._element_dict = env.element_dict # __init__ makes a copy of the dict
+        elif '_var_manager' in dct.keys():
+            # reinit env and var management
+            self.env = None
+            self._var_management = None
             self._init_var_management(dct=dct)
 
         if 'config' in dct.keys():
+            self.config.clear()
             self.config.data.update(dct['config'])
 
         if '_extra_config' in dct.keys():
@@ -223,7 +274,8 @@ class Line:
              and self.element_dict['energy_program'] is not None):
             self.energy_program.line = self
 
-        _print('Done loading line from dict.           ')
+        if verbose:
+            _print('Done loading line from dict.           ')
 
         return self
 
@@ -236,6 +288,7 @@ class Line:
         ----------
         file : str or file-like object
             Path to the json file or file-like object.
+            If filename ends with '.gz' file is decompressed.
         **kwargs : dict
             Additional keyword arguments passed to `Line.from_dict`.
 
@@ -246,11 +299,7 @@ class Line:
 
         """
 
-        if isinstance(file, io.IOBase):
-            dct = json.load(file)
-        else:
-            with open(file, 'r') as fid:
-                dct = json.load(fid)
+        dct = json_utils.load(file)
 
         if 'line' in dct.keys():
             dct_line = dct['line']
@@ -514,7 +563,7 @@ class Line:
         line = loader.make_line()
         return line
 
-    def to_dict(self, include_var_management=True):
+    def to_dict(self, include_var_management=True, include_element_dict=True):
 
         '''
         Returns a dictionary representation of the line.
@@ -532,7 +581,8 @@ class Line:
         '''
 
         out = {}
-        out["elements"] = {k: el.to_dict() for k, el in self.element_dict.items()}
+        if include_element_dict:
+            out["elements"] = {k: el.to_dict() for k, el in self.element_dict.items()}
         out["element_names"] = self.element_names[:]
         out['config'] = self.config.data.copy()
         out['_extra_config'] = self._extra_config.copy()
@@ -590,34 +640,21 @@ class Line:
             MAD NG instance.
         '''
 
-        try:
-            if temp_fname is None:
-                temp_fname = 'temp_madng_' + str(uuid.uuid4())
-
-            madx_seq = self.to_madx_sequence(sequence_name=sequence_name)
-            with open(f'{temp_fname}.madx', 'w') as fid:
-                fid.write(madx_seq)
-
-            from pymadng import MAD
-            mng = MAD()
-            mng.MADX.load(f'"{temp_fname}.madx"', f'"{temp_fname}"')
-            mng._init_madx_data = madx_seq
-
-            mng[sequence_name] = mng.MADX[sequence_name] # this ensures that the file has been read
-            mng[sequence_name].beam = mng.beam(particle="'custom'",
-                            mass=self.particle_ref.mass0 * 1e9,
-                            charge=self.particle_ref.q0,
-                            betgam=self.particle_ref.beta0[0] * self.particle_ref.gamma0[0])
-        finally:
-            if not keep_files:
-                for nn in [temp_fname + '.madx', temp_fname + '.mad']:
-                    if os.path.isfile(nn):
-                        os.remove(nn)
-
-        # mng[sequence_name].beam = mng.beam(particle="'proton'", energy=7000)
+        return line_to_madng(self, sequence_name=sequence_name,
+                             temp_fname=temp_fname, keep_files=keep_files)
 
 
-        return mng
+    build_madng_model = build_madng_model
+    discard_madng_model = discard_madng_model
+    regen_madng_model = regen_madng_model
+    madng_twiss = _tw_ng
+
+    def __repr__(self):
+        if hasattr(self, '_name'):
+            name = self._name
+        else:
+            name = ''
+        return f'<{self.__class__.__name__} {name} at {id(self)}>'
 
     def __getstate__(self):
         out = self.__dict__.copy()
@@ -627,7 +664,7 @@ class Line:
         self.__dict__.update(state)
 
 
-    def to_json(self, file, **kwargs):
+    def to_json(self, file, indent=1, **kwargs):
         '''Save the line to a json file.
 
         Parameters
@@ -640,16 +677,16 @@ class Line:
 
         '''
 
-        if isinstance(file, io.IOBase):
-            json.dump(self.to_dict(**kwargs), file, cls=xo.JEncoder)
-        else:
-            with open(file, 'w') as fid:
-                json.dump(self.to_dict(**kwargs), fid, cls=xo.JEncoder)
+        json_utils.dump(self.to_dict(**kwargs), file, indent=indent)
 
     def _to_table_dict(self):
 
         elements = list(self.elements)
         s_elements = np.array(list(self.get_s_elements()) + [self.get_length()])
+        length_elements = np.diff(s_elements, append=s_elements[-1]) # only think elements have length here
+        s_start = s_elements
+        s_end = s_elements + length_elements
+        s_center = s_start + 0.5 * length_elements
 
         isthick = []
         iscollective = []
@@ -686,7 +723,10 @@ class Line:
             'isreplica': isreplica,
             'parent_name': parent_name,
             'iscollective': iscollective,
-            'element': elements
+            'element': elements,
+            's_start': s_start,
+            's_center': s_center,
+            's_end': s_end,
         }
 
         return out
@@ -721,7 +761,12 @@ class Line:
         for kk in data.keys():
             data[kk] = np.array(data[kk])
 
-        return xd.Table(data=data)
+        names_table = xd.Table(data={'name': data['name']})
+        names_unique = names_table.cols.get_index_unique()
+        data['env_name'] = data['name']
+        data['name'] = names_unique
+        out = xd.Table(data=data, sep_count='::::')
+        return out
 
     def get_strengths(self, reverse=None):
 
@@ -746,18 +791,22 @@ class Line:
 
         tab = xt.Table(out)
         if reverse:
-            xt.twiss._reverse_strengths(tab) # Change signs
+            xt.twiss._reverse_strengths(tab._data) # Change signs
 
         tab._data['reference_frame'] = {
             True: 'reverse', False: 'proper'}[reverse]
         return tab
 
-    def copy(self, _context=None, _buffer=None):
+    def copy(self, shallow=False, _context=None, _buffer=None):
         '''
         Return a copy of the line.
 
         Parameters
         ----------
+        shallow : bool, optional
+            If False (default), a deep copy is returned.
+            If True, a shallow copy is returned, i.e. the line is plced in the
+            same environment and shares variables and elements with the original.
         _context: xobjects.Context
             xobjects context to be used for the copy
         _buffer: xobjects.Buffer
@@ -769,21 +818,32 @@ class Line:
             Copy of the line.
         '''
 
-        elements = {nn: ee.copy(_context=_context, _buffer=_buffer)
-                                    for nn, ee in self.element_dict.items()}
-        element_names = [nn for nn in self.element_names]
+        if shallow==True:
+            assert _context is None and _buffer is None, (
+                'Shallow copy with _context or _buffer is not supported')
+            out = self.select()
+        else:
+            elements = {nn: ee.copy(_context=_context, _buffer=_buffer)
+                                        for nn, ee in self.element_dict.items()}
+            element_names = [nn for nn in self.element_names]
+            out = self.__class__(elements=elements, element_names=element_names)
 
-        out = self.__class__(elements=elements, element_names=element_names)
+            if self._var_management is not None:
+                # reinit env and var management
+                out.env = None
+                out._var_management = None
+                out._init_var_management(dct=self._var_management_to_dict())
+                out._env_if_needed()
 
         if self.particle_ref is not None:
             out.particle_ref = self.particle_ref.copy(
                                         _context=_context, _buffer=_buffer)
 
-        if self._var_management is not None:
-            out._init_var_management(dct=self._var_management_to_dict())
-
+        out.config.clear()
         out.config.update(self.config.copy())
         out._extra_config.update(self._extra_config.copy())
+        out.metadata.clear()
+        out.metadata.update(self.metadata)
 
         if out.energy_program is not None:
             out.energy_program.line = out
@@ -832,6 +892,10 @@ class Line:
             _print('The line already has an associated tracker')
             return self.tracker
 
+        if (len(self.element_names) == 0 and hasattr(self, 'builder')
+            and self.builder is not None):
+            self.rebuild()
+
         self.tracker = xt.Tracker(
                                 line=self,
                                 _context=_context,
@@ -842,12 +906,23 @@ class Line:
                                 enable_pipeline_hold=enable_pipeline_hold,
                                 **kwargs)
 
+        if hasattr(self, 'env') and self.env is not None:
+            self.env._ensure_tracker_consistency(buffer=self._buffer)
+
         return self.tracker
+
+    def rebuild(self):
+        if not hasattr(self, 'builder') or self.builder is None:
+            raise ValueError('The line does not have a builder')
+
+        temp = self.builder.build()
+        self.element_names = temp.element_names
 
     @property
     def attr(self):
 
-        self._check_valid_tracker()
+        if not self._has_valid_tracker():
+            self.build_tracker()
 
         if ('attr' not in self.tracker._tracker_data_base.cache.keys()
                 or self.tracker._tracker_data_base.cache['attr'] is None):
@@ -866,6 +941,28 @@ class Line:
             self.particle_ref.t_sim = (
                 self.get_length() / self.particle_ref._xobject.beta0[0] / clight)
 
+    @property
+    def scattering(self):
+        if not hasattr(self, '_scattering') or self._scattering is None:
+            try:
+                from xcoll.line_tools import XcollScatteringAPI
+                self._scattering = XcollScatteringAPI(line=self)
+            except ImportError as error:
+                raise ImportError("Please install Xcoll to use this feature.") from error
+
+        return self._scattering
+
+    @property
+    def collimators(self):
+        if not hasattr(self, '_collimators') or self._collimators is None:
+            try:
+                from xcoll.line_tools import XcollCollimatorAPI
+                self._collimators = XcollCollimatorAPI(line=self)
+            except ImportError as error:
+                raise ImportError("Please install Xcoll to use this feature.") from error
+
+        return self._collimators
+
     def discard_tracker(self):
 
         """
@@ -873,8 +970,8 @@ class Line:
         (elements can be inserted or removed again).
 
         """
-
-        self._element_names = list(self._element_names)
+        if not isinstance(self._element_names, list):
+            self._element_names = list(self._element_names)
         if hasattr(self, 'tracker') and self.tracker is not None:
             self.tracker._invalidate()
             self.tracker = None
@@ -934,7 +1031,26 @@ class Line:
             equals to False and no progress bar is displayed.
         """
 
-        self._check_valid_tracker()
+        if not self._has_valid_tracker():
+            self.build_tracker()
+
+        if hasattr(particles, '_needs_pipeline') and particles._needs_pipeline:
+            if '_called_by_pipeline' not in kwargs or not kwargs['_called_by_pipeline']:
+                all_kwargs = locals()
+                multitracker = xt.PipelineMultiTracker(
+                    branches=[xt.PipelineBranch(line=self, particles=particles)])
+                all_kwargs.pop('self')
+                all_kwargs.pop('particles')
+                all_kwargs.pop('kwargs')
+                all_kwargs.pop('_called_by_pipeline', None)
+                return multitracker.track(**all_kwargs, **kwargs)
+
+        if '_called_by_pipeline' in kwargs: # Used only above
+            kwargs.pop('_called_by_pipeline')
+
+        if not self._has_valid_tracker():
+            self.build_tracker()
+
         return self.tracker._track(
             particles,
             ele_start=ele_start,
@@ -1000,6 +1116,7 @@ class Line:
         W_matrix=None,
         method=None,
         scale_with_transverse_norm_emitt=None,
+        include_collective=True,
         _context=None, _buffer=None, _offset=None,
         _capacity=None,
         mode=None,
@@ -1104,6 +1221,10 @@ class Line:
             Particles object containing the generated particles.
 
         """
+
+        if not self._has_valid_tracker():
+            self.build_tracker()
+
         import xpart
         return xpart.build_particles(
             line=self,
@@ -1123,6 +1244,7 @@ class Line:
             _context=_context, _buffer=_buffer, _offset=_offset,
             _capacity=_capacity,
             mode=mode,
+            include_collective=include_collective,
             **kwargs)
 
     def twiss(self, particle_ref=None, method=None,
@@ -1165,6 +1287,7 @@ class Line:
         ddx=None, ddpx=None, ddy=None, ddpy=None,
         zero_at=None,
         co_search_at=None,
+        include_collective=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,
@@ -1310,6 +1433,9 @@ class Line:
 
         '''
 
+        if not self._has_valid_tracker():
+            self.build_tracker()
+
         for old, new in zip(['ele_start', 'ele_stop', 'ele_init', 'twiss_init'],
                                 ['start', 'end', 'init_at', 'init']):
                 if old in kwargs.keys():
@@ -1351,6 +1477,8 @@ class Line:
             Value of the knob after the matching. Defaults to 1.
 
         '''
+        if not self._has_valid_tracker():
+            self.build_tracker()
 
         opt = match_knob_line(self, vary=vary, targets=targets,
                         knob_name=knob_name, knob_value_start=knob_value_start,
@@ -1387,6 +1515,9 @@ class Line:
         survey : SurveyTable
             Survey table.
         """
+
+        if not self._has_valid_tracker():
+            self.build_tracker()
 
         if reverse is None:
             reverse = self.twiss_default.get('reverse', False)
@@ -1547,7 +1678,9 @@ class Line:
                           num_turns=1,
                           co_search_at=None,
                           search_for_t_rev=False,
-                          num_turns_search_t_rev=None):
+                          num_turns_search_t_rev=None,
+                          symmetrize=False,
+                          include_collective=False):
 
         """
         Find the closed orbit of the beamline.
@@ -1606,7 +1739,7 @@ class Line:
         if particle_ref is None and co_guess is None:
             particle_ref = self.particle_ref
 
-        if self.iscollective:
+        if self.iscollective and not include_collective:
             log.warning(
                 'The tracker has collective elements.\n'
                 'In the twiss computation collective elements are'
@@ -1622,7 +1755,8 @@ class Line:
                                  start=start, end=end, num_turns=num_turns,
                                  co_search_at=co_search_at,
                                  search_for_t_rev=search_for_t_rev,
-                                 num_turns_search_t_rev=num_turns_search_t_rev)
+                                 num_turns_search_t_rev=num_turns_search_t_rev,
+                                 symmetrize=symmetrize)
 
     def compute_T_matrix(self, start=None, end=None,
                          particle_on_co=None, steps_t_matrix=None):
@@ -1828,7 +1962,9 @@ class Line:
             steps_r_matrix=None,
             start=None, end=None,
             num_turns=1,
-            element_by_element=False, only_markers=False):
+            element_by_element=False, only_markers=False,
+            symmetrize=False,
+            include_collective=False):
 
         '''Compute the one turn matrix using finite differences.
 
@@ -1855,7 +1991,7 @@ class Line:
 
         self._check_valid_tracker()
 
-        if self.iscollective:
+        if self.iscollective and not include_collective:
             log.warning(
                 'The tracker has collective elements.\n'
                 'In the twiss computation collective elements are'
@@ -1868,7 +2004,8 @@ class Line:
                         steps_r_matrix, start=start, end=end,
                         num_turns=num_turns,
                         element_by_element=element_by_element,
-                        only_markers=only_markers)
+                        only_markers=only_markers,
+                        symmetrize=symmetrize)
 
     def get_non_linear_chromaticity(self,
                         delta0_range=(-1e-3, 1e-3), num_delta=5, fit_order=3, **kwargs):
@@ -1991,8 +2128,9 @@ class Line:
         """
         cuts_for_element = defaultdict(list)
 
-        all_s_positions = self.get_s_elements()
-        all_s_iter = iter(zip(all_s_positions, self.element_names))
+        tt = self.get_table()
+        all_s_positions = tt.s
+        all_s_iter = iter(zip(all_s_positions, tt.name))
         current_s_iter = iter(sorted(set(s)))
 
         try:
@@ -2031,8 +2169,12 @@ class Line:
 
         return cuts_for_element
 
-    def cut_at_s(self, s: List[float], s_tol=1e-6):
+    def cut_at_s(self, s: List[float], s_tol=1e-6, return_slices=False):
         """Slice the line so that positions in s never fall inside an element."""
+
+        if self._has_valid_tracker():
+            self.discard_tracker()
+
         cuts_for_element = self._elements_intersecting_s(s, s_tol=s_tol)
         strategies = [Strategy(None)]  # catch-all, ignore unaffected elements
 
@@ -2042,13 +2184,351 @@ class Line:
             strategies.append(strategy)
 
         slicer = Slicer(self, slicing_strategies=strategies)
-        slicer.slice_in_place()
+        slices = slicer.slice_in_place()
+
+        if return_slices:
+            return slices
+
+    def append(self, what, obj=None):
+
+        """
+        Append elements to the line.
+
+        Parameters
+        ----------
+        what : str, Line or Iterable
+            Element(s) to be appended. Can be a list of `Place` objects specifying
+            the location of each insertion.
+        obj : object (optional)
+            Object to be appended (if not already present in the environment).
+            It can be specified only when `what` is a string.
+
+        Examples
+        --------
+
+        .. code-block:: python
+
+            ## Appending elements from the environment
+
+            # Create a set of new elements to be placed
+            env.new('s1', xt.Sextupole, length=0.1, k2=0.2)
+            env.new('s2', xt.Sextupole, length=0.1, k2=-0.2)
+            env.new('m1', xt.Marker)
+            env.new('m2', xt.Marker)
+            env.new('m3', xt.Marker)
+
+            # Insert the new elements in the line
+            line.append(['m1', 's1', 'm2', 's2', 'm3'])
+
+        .. code-block:: python
+
+            ## Appending elements instantiated by the user using the class
+            ## constructor
+
+            myoct = xt.Octupole(length=0.1, k3=0.3)
+            line.append('o1', myoct)
+
+        """
+
+        self.discard_tracker()
+
+        if not isinstance(what, (str, xt.Line, Iterable)):
+            raise ValueError('The appended object must be defined by a string or Line.')
+
+        if obj is not None:
+            assert isinstance(what, str)
+            self.env.element_dict[what] = obj
+
+        if not isinstance(what, Iterable) or isinstance(what, str):
+            what = [what]
+
+        for item in what:
+            if item.__class__.__name__.startswith('Place'):
+                raise ValueError('Cannot append a Place object')
+
+        ln_to_append = self.env.new_line(components = what)
+        ln_extended = self + ln_to_append
+
+        self.element_names.clear()
+        self.element_names.extend(ln_extended.element_names)
+
+    def insert(self, what, obj=None, at=None, from_=None, anchor=None,
+               from_anchor=None, s_tol=1e-10):
+
+        """
+        Insert elements in the line.
+
+        Parameters
+        ----------
+        what : str, Line or Iterable
+            Element(s) to be inserted. Can be a list of `Place` objects specifying
+            the location of each insertion.
+        obj : object (optional)
+            Object to be inserted (if not already present in the environment).
+            It can be specified only when `what` is a string.
+        at : str or float (optional)
+            Location of the insertion (s position). It can be absolute or relative
+            to another element (specified by `from_`).
+        from_ : str (optional)
+            Element with respect to which `at` is defined.
+        anchor : str (optional)
+            Location within the inserted element for which `at` is defined.
+            It can be 'start', 'end' or 'center'. Default is 'center'.
+        from_anchor : str (optional)
+            Location within the element specified by `from_` for which `at` is defined.
+            It can be 'start', 'end' or 'center'. Default is 'center'.
+
+        Example
+        -------
+
+        .. code-block:: python
+
+            ## Insertion of elements from the environment
+
+            # Create a set of new elements to be placed
+            env.new('s1', xt.Sextupole, length=0.1, k2=0.2)
+            env.new('s2', xt.Sextupole, length=0.1, k2=-0.2)
+            env.new('m1', xt.Marker)
+            env.new('m2', xt.Marker)
+            env.new('m3', xt.Marker)
+
+            # Insert the new elements in the line
+            line.insert([
+                env.place('s1', at=5.),
+                env.place('s2', anchor='end', at=-5., from_='start@q1'),
+                env.place(['m1', 'm2'], at='start@m0'),
+                env.place('m3', at='end@m0'),
+                ])
+
+        .. code-block:: python
+
+            ## Insertion of elements instantiated by the user using the class
+            ## constructor
+
+            # Instantiate elements using the class directly
+            mysext =  xt.Sextupole(length=0.1, k2=0.2)
+            myaperture =  xt.LimitEllipse(a=0.01, b=0.02)
+
+            # Insert the element in the line and, contextually, define its name:
+            line.insert('s1', mysext, at=5., from_='q1')
+
+            # Alternatively, add the element to the environment and then do the insertion:
+            env.elements['ap1'] = myaperture
+            line.insert('ap1', at='start@q0')
+
+        """
 
 
+        self.discard_tracker()
+        env = self.env
+
+        _all_places = xt.environment._all_places
+        _resolve_s_positions = xt.environment._resolve_s_positions
+        _flatten_components = xt.environment._flatten_components
+        _sort_places = xt.environment._sort_places
+        _generate_element_names_with_drifts = xt.environment._generate_element_names_with_drifts
+
+        need_place_instantiation = False
+        for nn, vv in {'at': at, 'from_': from_, 'anchor': anchor,
+                       'from_anchor': from_anchor}.items():
+            if vv is not None:
+                if (not isinstance(what, (str, xt.Line, Iterable))
+                    and not all(isinstance(item, str) for item in what)):
+                    raise ValueError(f'The inserted object must be defined by a string '
+                                 f'or Line if `{nn}` is provided.')
+                need_place_instantiation = True
+
+        if need_place_instantiation:
+            what = self.env.place(what, obj=obj, at=at, from_=from_, anchor=anchor,
+                                  from_anchor=from_anchor)
+
+        if not isinstance(what, Iterable):
+            what = [what]
+
+        # Resolve s positions of insertions and sort them
+        what = _flatten_components(what)
+        what = _all_places(what)
+        what = [ww.copy() for ww in what]
+
+        tt = self.get_table()
+        line_places = []
+        for nn, enn in zip(tt.name, tt.env_name):
+            if nn == '_end_point':
+                continue
+            line_places.append(env.place(enn, at=tt['s_center', nn]))
+
+        seq_all_places = line_places + what
+        mask_insertions = np.array([pp in what for pp in seq_all_places])
+        tab_all_unsorted = _resolve_s_positions(seq_all_places, env, refer='centre')
+        tab_all_unsorted['is_insertion'] = mask_insertions
+        tab_all_sorted = _sort_places(tab_all_unsorted)
+        tab_insertions = tab_all_sorted.rows[tab_all_sorted.is_insertion]
+
+        # Make cuts
+        s_cuts = list(tab_insertions['s_start']) + list(tab_insertions['s_end'])
+        s_cuts = list(set(s_cuts))
+
+        self.cut_at_s(s_cuts, s_tol=1e-06, return_slices=True)
+
+        tt_after_cut = self.get_table()
+        tt_after_cut['length'] = np.diff(tt_after_cut.s, append=tt_after_cut.s[-1])
+
+        # Identify old elements falling inside the insertions
+        idx_remove = []
+        for ii in range(len(tab_insertions)):
+            s_ins_start = tab_insertions['s_start', ii]
+            s_ins_end = tab_insertions['s_end', ii]
+            entry_is_inside = ((tt_after_cut.s_start >= s_ins_start - s_tol)
+                            & (tt_after_cut.s_start <= s_ins_end - s_tol))
+            exit_is_inside = ((tt_after_cut.s_end >= s_ins_start + s_tol)
+                            & (tt_after_cut.s_end <= s_ins_end + s_tol))
+            thin_at_entry = ((tt_after_cut.s_start >= s_ins_start - s_tol)
+                            & (tt_after_cut.s_end <= s_ins_start + s_tol))
+            thin_at_exit = ((tt_after_cut.s_start >= s_ins_end - s_tol)
+                        & (tt_after_cut.s_end <= s_ins_end + s_tol))
+            remove = (entry_is_inside | exit_is_inside) & (~thin_at_entry) & (~thin_at_exit)
+            idx_remove.extend(list(np.where(remove)[0]))
+
+        mask_keep = np.ones(len(tt_after_cut), dtype=bool)
+        mask_keep[idx_remove] = False
+        tt_keep = tt_after_cut.rows[mask_keep]
+        tt_keep['from_'] = np.array([None] * len(tt_keep))
+        tt_keep['from_anchor'] = np.array([None] * len(tt_keep))
+        assert tt_keep.name[-1] == '_end_point'
+        tt_keep = tt_keep.rows[:-1]
+
+        # Unsorted table with all elements for the new line
+        tab_unsorted_with_insertions = xt.Table.concatenate([tt_keep, tab_insertions])
+
+        # Sort elements
+        tab_sorted = _sort_places(tab_unsorted_with_insertions,
+                                  allow_non_existent_from=True # If from_ is removed s only is conisiderer
+                                                               # (right order comes form previous sorting,
+                                                               # (done before removing elements)
+        )
+        element_names = _generate_element_names_with_drifts(self, tab_sorted, s_tol=s_tol)
+
+        # Update line
+        self.element_names.clear()
+        self.element_names.extend(element_names)
+
+    def remove(self, name, s_tol=1e-10):
+
+        """
+        Remove an element from the line. If the element is thick, it is replaced
+        by a drift.
+
+        Parameters
+        ----------
+        name : str
+            Name of the element to be removed.
+        s_tol : float (optional)
+            If the element is shorter than `s_tol`, it is removed without creating
+            a replacement drift. Default is 1e-10.
+
+        """
+
+        self.discard_tracker()
+
+        tt_remove = self._name_match(name)
+
+        mask_thick = tt_remove.isthick & (tt_remove.s_end - tt_remove.s_start > s_tol)
+        if mask_thick.any():
+            tt_remove_thick = tt_remove.rows[mask_thick]
+        else:
+            tt_remove_thick = None
+
+        if mask_thick.all():
+            tt_remove_thin = None
+        else:
+            tt_remove_thin = tt_remove.rows[~mask_thick]
+
+        # Replace thick with drifts
+        if tt_remove_thick:
+            for ii in range(len(tt_remove_thick)):
+                ll = tt_remove_thick['s_end', ii] - tt_remove_thick['s_start', ii]
+                idx = tt_remove_thick['idx', ii]
+                new_name = self.env._get_a_drift_name()
+                self.env.new(new_name, 'Drift', length=ll)
+                self.element_names[idx] = new_name
+
+        # Remove thin elements
+        if tt_remove_thin:
+            idx_remove = tt_remove_thin['idx']
+            self.element_names = [nn for ii, nn in enumerate(self.element_names)
+                                if ii not in idx_remove]
+
+    def replace(self, name, new_name, s_tol=1e-10):
+
+        """
+        Replace an element in the line with another element having the same length.
+
+        Parameters
+        ----------
+        name : str
+            Name of the element to be replaced.
+        new_name : str
+            Name of the element to be installed to replace the removed one.
+        s_tol : float (optional)
+            Tolerance for the length of the elements. If the difference in length
+            is larger than `s_tol`, the replacement is not performed and an
+            error is raised.error is raised. Default is 1e-10.
+
+        """
+
+        self.discard_tracker()
+
+        tt_replace = self._name_match(name)
+
+        if _is_thick(self.element_dict[new_name], self):
+            l_new = _length(self.element_dict[new_name], self)
+        else:
+            l_new = 0
+
+        for ii in range(len(tt_replace)):
+            l_old = tt_replace['s_end', ii] - tt_replace['s_start', ii]
+            if np.abs(l_old - l_new) > s_tol:
+                raise ValueError(f'Element {name} cannot be replaced by {new_name} '
+                             'because of different lengths.')
+
+        for ii in range(len(tt_replace)):
+            idx = tt_replace['idx', ii]
+            self.element_names[idx] = new_name
+
+    def _name_match(self, name):
+        tt = self.get_table()
+        tt['idx'] = np.arange(len(tt))
+
+        idx_match_name = tt.rows.indices[name]
+
+        env_name_match = name
+        if isinstance(env_name_match, str):
+            env_name_match = [env_name_match]
+        env_name_match = set(env_name_match)
+        mask_env_name = np.array([nn in env_name_match for nn in tt.env_name])
+
+        idx_match_env_name = tt.rows.indices[mask_env_name]
+        idx_match_rep = list(idx_match_name) + list(idx_match_env_name)
+        idx_match = []
+        for ii in idx_match_rep: # I don't use set to do it in order
+            if ii not in idx_match:
+                idx_match.append(ii)
+
+        if len(idx_match) == 0:
+            raise ValueError(f'Element {name} not found in the line.')
+
+        tt_match = tt.rows[idx_match]
+
+        return tt_match
+
+    # To be deprecated in favor of Line.insert
     def insert_element(self, name, element=None, at=None, index=None, at_s=None,
                        s_tol=1e-6):
 
-        """Insert an element in the line.
+        """
+        NOTE: This method is deprecated. Use `Line.insert` instead.
+
+        Insert an element in the line.
 
         Parameters
         ----------
@@ -2057,9 +2537,8 @@ class Line:
         element: xline.Element, optional
             Element to be inserted. If not given, the element of the given name
             already present in the line is used.
-        at: int, optional
-            Index of the element in the line. If `index` is provided, `at_s`
-            must be None.
+        at: int or string, optional
+            Index or name of the element in the line. If `index` is provided, `at_s` must be None. 
         at_s: float, optional
             Position of the element in the line in meters. If `at_s` is provided, `index`
             must be None.
@@ -2072,8 +2551,17 @@ class Line:
             index = at
 
         if isinstance(index, str):
-            assert index in self.element_names
-            index = self.element_names.index(index)
+            if '::' in index:
+               atelem, count= index.split('::')
+               try:
+                   index= find_index_repeated(atelem, self.element_names, int(count))
+               except ValueError:
+                    raise ValueError(f'Element {atelem!r} not found in the line.')
+            else:
+                try:
+                    index = self.element_names.index(index)
+                except ValueError:
+                    raise ValueError(f'Element {index} not found in the line.')
 
         if element is None:
             if name not in self.element_dict.keys():
@@ -2084,7 +2572,10 @@ class Line:
                 )
             element = self.element_dict[name]
 
-        self._frozen_check()
+        if isinstance(element, xd.madxutils.View):
+            element = element._get_viewed_object()
+
+        self.discard_tracker()
 
         assert ((index is not None and at_s is None) or
                 (index is None and at_s is not None)), (
@@ -2140,7 +2631,10 @@ class Line:
 
     def append_element(self, element, name):
 
-        """Append element to the end of the lattice
+        """
+        NOTE: This method is deprecated. Use `Line.append` instead.
+
+        Append element to the end of the lattice
 
         Parameters
         ----------
@@ -2150,7 +2644,10 @@ class Line:
             Name of the element to append
         """
 
-        self._frozen_check()
+        if isinstance(element, xd.madxutils.View):
+            element = element._get_viewed_object()
+
+        self.discard_tracker()
         if element in self.element_dict and element is not self.element_dict[name]:
             raise ValueError('Element already present in the line')
         self.element_dict[name] = element
@@ -2369,7 +2866,6 @@ class Line:
         for name in variable_names:
             self.config[f'FREEZE_VAR_{name}'] = False
 
-
     def configure_bend_model(self, core=None, edge=None, num_multipole_kicks=None):
 
         """
@@ -2378,11 +2874,13 @@ class Line:
         Parameters
         ----------
         core: str
-            Medel to be used for the thick bend cores. Can be 'expanded' or '
+            Model to be used for the thick bend cores. Can be 'expanded' or '
             full'.
         edge: str
             Model to be used for the bend edges. Can be 'linear', 'full'
             or 'suppressed'.
+        num_multipole_kicks: int
+            Number of multipole kicks to consider.
         """
 
         if core not in [None, 'adaptive', 'full', 'bend-kick-bend',
@@ -2393,18 +2891,50 @@ class Line:
             raise ValueError(f'Unknown bend edge model {edge}')
 
         for ee in self.element_dict.values():
-            if core is not None and isinstance(ee, xt.Bend):
+            if core is not None and isinstance(ee, (xt.Bend, xt.RBend)):
                 ee.model = core
 
             if edge is not None and isinstance(ee, xt.DipoleEdge):
                 ee.model = edge
 
-            if edge is not None and isinstance(ee, xt.Bend):
+            if edge is not None and isinstance(ee, (xt.Bend, xt.RBend)):
                 ee.edge_entry_model = edge
                 ee.edge_exit_model = edge
 
             if num_multipole_kicks is not None:
                 ee.num_multipole_kicks = num_multipole_kicks
+
+    def _configure_mult_fringes(
+            self,
+            element_type,
+            edge: Optional[Literal['full']] = 'full',
+    ):
+        """Configure fringes on elements of a given type.
+
+        Parameters
+        ----------
+        edge: str
+            None to disable, 'full' to enable.
+        """
+        if edge not in [None, 'full']:
+            raise ValueError(f'Unknown edge model {edge}: only None or '
+                             f'"full" are supported.')
+
+        enable_fringes = edge == 'full'
+
+        for ee in self.element_dict.values():
+            if isinstance(ee, element_type):
+                ee.edge_entry_active = enable_fringes
+                ee.edge_exit_active = enable_fringes
+
+    def configure_quadrupole_model(self, edge: Optional[Literal['full']] = 'full'):
+        self._configure_mult_fringes(xt.Quadrupole, edge=edge)
+
+    def configure_sextupole_model(self, edge: Optional[Literal['full']] = 'full'):
+        self._configure_mult_fringes(xt.Sextupole, edge=edge)
+
+    def configure_octupole_model(self, edge: Optional[Literal['full']] = 'full'):
+        self._configure_mult_fringes(xt.Octupole, edge=edge)
 
     def configure_radiation(self, model=None, model_beamstrahlung=None,
                             model_bhabha=None, mode='deprecated'):
@@ -2592,7 +3122,7 @@ class Line:
         # Unfreeze the line
         self.discard_tracker()
 
-        if verbose: _print("Replance slices with equivalent elements")
+        if verbose: _print("Replace slices with equivalent elements")
         self._replace_with_equivalent_elements()
 
         if keep_markers is True:
@@ -2685,6 +3215,50 @@ class Line:
 
         self._check_valid_tracker()
         stop_internal_logging_for_elements_of_type(self.tracker, element_type)
+
+    def extend_knl_ksl(self, order, element_names=None):
+
+        """
+        Extend the order of the knl and ksl attributes of the elements.
+
+        Parameters
+        ----------
+        order: int
+            New order of the knl and ksl attributes.
+        element_names: list of str
+            Names of the elements to extend. If None, all elements having `knl`
+            and `ksl` attributes are extended.
+
+        """
+
+        self.discard_tracker()
+
+        if element_names is None:
+            element_names = []
+            for nn in self.element_names:
+                if hasattr(self.get(nn), 'knl'):
+                    element_names.append(nn)
+
+        for nn in element_names:
+            if self.get(nn).order > order:
+                raise ValueError(f'Order of element {nn} is smaller than {order}')
+
+        for nn in element_names:
+            ee = self.get(nn)
+
+            if ee.order == order:
+                continue
+
+            new_knl = [vv for vv in ee.knl] + [0] * (order - len(ee.knl) + 1)
+            new_ksl = [vv for vv in ee.ksl] + [0] * (order - len(ee.ksl) + 1)
+
+            dct = ee.to_dict()
+            dct.pop('order', None)
+            dct['knl'] = new_knl
+            dct['ksl'] = new_ksl
+
+            new_ee = ee.__class__.from_dict(dct, _buffer=ee._buffer)
+            self.env.elements[nn] = new_ee
 
     def remove_markers(self, inplace=True, keep=None):
         """
@@ -3083,11 +3657,11 @@ class Line:
         i_next_aperture = 0
 
         for iee in progress(range(i_prev_aperture, num_elements), desc='Checking aperture'):
-            if dont_need_aperture[elements_df.loc[iee, 'name']]:
-                continue
-
             if elements_df.loc[iee, 'is_aperture']:
                 i_prev_aperture = iee
+                continue
+
+            if dont_need_aperture[elements_df.loc[iee, 'name']]:
                 continue
 
             if i_next_aperture < iee:
@@ -3246,7 +3820,7 @@ class Line:
 
         for ii in range(len(ele_cut_sorted)-1):
             names_map_line.append(ele_cut_sorted[ii])
-            elements_map_line.append(self[ele_cut_sorted[ii]])
+            elements_map_line.append(self.get(ele_cut_sorted[ii]))
 
             smap = xt.SecondOrderTaylorMap.from_line(
                                     self, start=ele_cut_sorted[ii],
@@ -3259,7 +3833,7 @@ class Line:
         names_map_line.append(ele_cut_sorted[-1])
         elements_map_line.append(self[ele_cut_sorted[-1]])
 
-        line_maps = xt.Line(elements=elements_map_line, element_names=names_map_line)
+        line_maps = Line(elements=elements_map_line, element_names=names_map_line)
         line_maps.particle_ref = self.particle_ref.copy()
 
         return line_maps
@@ -3291,6 +3865,342 @@ class Line:
             'For more details, see: '
             'https://xsuite.readthedocs.io/en/latest/line.html#apply-transformations-tilt-shift-to-elements'
         )
+
+    def mirror(self, inplace=True):
+        assert inplace in [True, False]
+        if inplace == False:
+            out = self.select()
+            out.mirror(inplace=True)
+            return out
+        else:
+            self._frozen_check()
+            self.element_names = list(reversed(self.element_names))
+
+    def __neg__(self):
+        return self.mirror(inplace=False)
+
+    def __rmul__(self, other):
+        self._env_if_needed()
+        assert isinstance(other, int), 'Only integer multiplication is supported'
+        assert other > 0, 'Only positive integer multiplication is supported'
+        ele_names = list(self.element_names)
+        out = self.env.new_line()
+        out.element_names = ele_names * other
+        return out
+
+    def __add__(self, other):
+        self._env_if_needed
+        #assert isinstance(other, Line), 'Only Line can be added to Line'
+        assert other.__class__.__name__=="Line", 'Only Line can be added to Line'
+        assert other.env is self.env, 'Lines must be in the same environment'
+        out = self.env.new_line(
+            components=list(self.element_names) + list(other.element_names))
+        return out
+
+    def __sub__(self, other):
+        return self + (-other)
+
+    def replicate(self, name, mirror=False):
+
+        self._env_if_needed()
+
+        new_element_names = []
+        for nn in self.element_names:
+            new_nn = nn + '.' + name
+            self.element_dict[new_nn] = xt.Replica(nn)
+            new_element_names.append(new_nn)
+
+        out = self.env.new_line(components=new_element_names, name=name)
+
+        if mirror:
+            out.mirror()
+
+        return out
+
+    def clone(self, name, mirror=False):
+        out = self.replicate(name=name, mirror=mirror)
+        out.replace_all_replicas()
+        return out
+
+    def replace_replica(self, name):
+        name_parent = self.element_dict[name].resolve(self, get_name=True)
+        self.copy_element_from(name_parent, self, new_name=name)
+
+    def copy_element_from(self, name, source, new_name=None):
+        """Copy an element from another environment.
+
+        Parameters
+        ----------
+        name: str
+            Name of the element to copy.
+        source: Environment | Line
+            Environment or line where the element is located.
+        new_name: str, optional
+            Rename the element in the new line/environment. If not provided, the
+            element is copied with the same name.
+        """
+        new_name = new_name or name
+        cls = type(source.element_dict[name])
+
+        if cls not in _ALLOWED_ELEMENT_TYPES_IN_NEW + [xt.DipoleEdge]: # No issue in copying DipoleEdge
+                                                                       # while creating it requires handling properties
+                                                                       # which are strings.
+            raise ValueError(
+                f'Only {_STR_ALLOWED_ELEMENT_TYPES_IN_NEW} elements are '
+                f'allowed in `copy_from_env` for now.'
+            )
+
+        self.element_dict[new_name] = source.element_dict[name].copy()
+
+        pars_with_expr = list(
+            source._xdeps_manager.tartasks[source.element_refs[name]].keys())
+
+        formatter = xd.refs.CompactFormatter(scope=None)
+
+        for rr in pars_with_expr:
+            # Assign expressions by string to avoid having to deal with the
+            # fact that they come from a different manager!
+            expr_string = rr._expr._formatted(formatter)
+
+            if isinstance(rr, xd.refs.AttrRef):
+                setattr(self[new_name], rr._key, expr_string)
+            elif isinstance(rr, xd.refs.ItemRef):
+                getattr(self[new_name], rr._owner._key)[rr._key] = expr_string
+            else:
+                raise ValueError('Only AttrRef and ItemRef are supported for now')
+
+        return new_name
+
+    def replace_all_replicas(self):
+        for nn in self.element_names:
+            if isinstance(self.element_dict[nn], xt.Replica):
+                self.replace_replica(nn)
+
+    def replace_all_repeated_elements(self, separator='.', mode='clone'):
+
+        self._env_if_needed()
+        env = self.env
+
+        self.discard_tracker()
+        unique_names = list(set(self.element_names))
+        aux_dict = {nn: [] for nn in unique_names}
+        for ii, nn in enumerate(self.element_names):
+            aux_dict[nn].append(ii)
+
+        for nn in unique_names:
+            if len(aux_dict[nn]) > 1:
+                i_rep = 0
+                for ii in aux_dict[nn]:
+                    while (new_name := nn + separator + str(i_rep)) in self.element_dict:
+                        i_rep += 1
+                    env.new(new_name, nn, mode=mode)
+                    self.element_names[ii] = new_name
+
+    def select(self, start=None, end=None, name=None):
+
+        if start is xt.START:
+            start = None
+
+        if end is xt.END:
+            end = None
+
+        tt = self.get_table().rows[start:end]
+        if tt.name[-1] == '_end_point':
+            tt = tt.rows[:-1]
+
+        self._env_if_needed()
+
+        out = self.env.new_line(components=list(tt.env_name), name=name)
+
+        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+            out.env._var_management = None
+            out._var_management = None
+            out.env._in_multiline = self._in_multiline
+            out._in_multiline = self._in_multiline
+            out.env._name_in_multiline = self._name_in_multiline
+            out._name_in_multiline = self._name_in_multiline
+
+        return out
+
+    def set(self, name, *args, **kwargs):
+        '''
+        Set the values or expressions of variables or element properties.
+
+        Parameters
+        ----------
+        name : str
+            Name(s) of the variable or element.
+        value: float or str
+            Value or expression of the variable to set. Can be provided only
+            if the name is associated to a variable.
+        **kwargs, float or str
+            Attributes to set. Can be provided only if the name is associated
+            to an element.
+
+        Examples
+        --------
+        >>> line.set('a', 0.1)
+        >>> line.set('k1', '3*a')
+        >>> line.set('quad', k1=0.1, k2='3*a')
+        >>> line.set(['quad1', 'quad2'], k1=0.1, k2='3*a')
+        >>> line.set(['c', 'd'], 0.1)
+        >>> line.set(['e', 'f'], '3*a')
+
+        '''
+
+        if isinstance(name, Iterable) and not isinstance(name, str):
+            for nn in name:
+                self.set(nn, *args, **kwargs)
+            return
+
+        _eval = self._xdeps_eval.eval
+
+        if hasattr(self, 'lines') and name in self.lines:
+            raise ValueError('Cannot set a line')
+
+        if name in self.element_dict:
+            if len(args) > 0:
+                raise ValueError(f'Only kwargs are allowed when setting element attributes')
+
+            extra = kwargs.pop('extra', None)
+
+            ref_kwargs, value_kwargs = xt.environment._parse_kwargs(
+                type(self.element_dict[name]), kwargs, _eval)
+            xt.environment._set_kwargs(
+                name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
+                element_dict=self.element_dict, element_refs=self.element_refs)
+            if extra is not None:
+                assert isinstance(extra, dict), (
+                    'Description must be a dictionary')
+                if (not hasattr(self.element_dict[name], 'extra')
+                    or not isinstance(self.element_dict[name].extra, dict)):
+                    self.element_dict[name].extra = {}
+                self.element_dict[name].extra.update(extra)
+        else:
+            if len(kwargs) > 0:
+                raise ValueError(f'Only a single value is allowed when setting variable')
+            if len(args) != 1:
+                raise ValueError(f'A value must be provided when setting a variable')
+            value = args[0]
+            if 'extra' in kwargs and kwargs['extra'] is not None:
+                raise ValueError(f'Extra is only allowed for elements')
+            if isinstance(value, str):
+                self.vars[name] = _eval(value)
+            else:
+                self.vars[name] = value
+
+    def get(self, key):
+        '''
+        Get an element or the value of a variable.
+
+        Parameters
+        ----------
+        key : str
+            Name of the element or variable.
+
+        Returns
+        -------
+        element : Element or float
+            Element or value of the variable.
+
+        '''
+
+        if key in self.element_dict:
+            return self.element_dict[key]
+        elif key in self.vars:
+            return self._xdeps_vref._owner[key]
+        else:
+            raise KeyError(f'Element or variable {key} not found')
+
+    def info(self, key, limit=30):
+        """
+            Get information about an element or a variable.
+        """
+
+        if key in self.element_dict:
+            return self[key].get_info()
+        elif key in self.vars:
+            return self.vars.info(key, limit=limit)
+        else:
+            raise KeyError(f'Element or variable {key} not found')
+
+#    def get_value(self, key):
+#        if key in self.element_dict:
+#            return self.element_dict[key].get_value()
+#        elif key in self.vars:
+#            return self.vars.get_value(key)
+#        else:
+#            raise KeyError(f'Element or variable {key} not found')
+
+    @property
+    def ref_manager(self):
+        return self._xdeps_manager
+
+    def eval(self, expr):
+        '''
+        Get the value of an expression
+
+        Parameters
+        ----------
+        expr : str
+            Expression to evaluate.
+
+        Returns
+        -------
+        value : float
+            Value of the expression.
+        '''
+
+        return self.vars.eval(expr)
+
+    def new_expr(self, expr):
+        '''
+        Create a new expression
+
+        Parameters
+        ----------
+        expr : str
+            Expression to create.
+
+        Returns
+        -------
+        expr : Expression
+            New expression.
+        '''
+        return self.vars.new_expr(expr)
+
+    def get_expr(self, var):
+        '''
+        Get expression associated to a variable
+
+        Parameters
+        ----------
+        var: str
+            Name of the variable
+
+        Returns
+        -------
+        expr : Expression
+            Expression associated to the variable
+        '''
+
+        return self.vars.get_expr(var)
+
+    def _env_if_needed(self):
+        if not hasattr(self, 'env') or self.env is None:
+            self.env = xt.Environment(element_dict=self.element_dict,
+                                      particle_ref=self.particle_ref,
+                                      _var_management=self._var_management)
+            self.env._lines_weakrefs.add(self)
+
+            # Temporary solution to keep consistency in multiline
+            if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+                self.env._var_management = None
+                self.env._in_multiline = self._in_multiline
+                self.env._name_in_multiline = self._name_in_multiline
+
+    def extend(self, line):
+        self.element_names.extend(line.element_names)
 
     def __len__(self):
         return len(self.element_names)
@@ -3333,7 +4243,7 @@ class Line:
                 if vv is self:
                     return kk
         else:
-            return None
+            return getattr(self, '_name', None)
 
     @property
     def iscollective(self):
@@ -3358,40 +4268,16 @@ class Line:
 
     def _init_var_management(self, dct=None):
 
-        from collections import defaultdict
+        self._var_management = _make_var_management(element_dict=self.element_dict,
+                                               dct=dct)
 
-        _var_values = defaultdict(lambda: 0)
-        _var_values.default_factory = None
+        if not hasattr(self, 'env') or self.env is None:
+            self._env_if_needed()
+            self.env._line_vars = LineVars(self.env)
 
-        functions = Functions()
-
-        manager = xd.Manager()
-        _vref = manager.ref(_var_values, 'vars')
-        _fref = manager.ref(functions, 'f')
-        _lref = manager.ref(self.element_dict, 'element_refs')
-
-        self._var_management = {}
-        self._var_management['data'] = {}
-        self._var_management['data']['var_values'] = _var_values
-        self._var_management['data']['functions'] = functions
-
-        self._var_management['manager'] = manager
-        self._var_management['lref'] = _lref
-        self._var_management['vref'] = _vref
-        self._var_management['fref'] = _fref
-
-        _vref['t_turn_s'] = 0.0
-
-        if dct is not None:
-            manager = self._var_management['manager']
-            for kk in dct['_var_management_data'].keys():
-                data_item = dct['_var_management_data'][kk]
-                if kk == 'functions':
-                    data_item = Functions.from_dict(data_item)
-                self._var_management['data'][kk].update(data_item)
-            manager.load(dct['_var_manager'])
-
-        self._line_vars = LineVars(self)
+    @property
+    def _line_vars(self):
+        return self.env._line_vars
 
     @property
     def record_last_track(self):
@@ -3437,6 +4323,19 @@ class Line:
             return self._in_multiline._xdeps_manager
         if self._var_management is not None:
             return self._var_management['manager']
+
+    @property
+    def _xdeps_eval(self):
+        try:
+            eva_obj = self._xdeps_eval_obj
+        except AttributeError:
+            eva_obj = xd.madxutils.MadxEval(variables=self._xdeps_vref,
+                                            functions=self._xdeps_fref,
+                                            elements=self.element_dict,
+                                            get='attr')
+            self._xdeps_eval_obj = eva_obj
+
+        return eva_obj
 
     @property
     def element_refs(self):
@@ -3625,19 +4524,37 @@ class Line:
     def steering_correctors_y(self, value):
         self._extra_config['steering_correctors_y'] = value
 
-    def __getitem__(self, ii):
-        if isinstance(ii, str):
-
-            try:
-                return self.element_dict.__getitem__(ii)
-            except KeyError:
-                raise KeyError(f'No installed element with name {ii}')
+    def __getitem__(self, key):
+        if np.issubdtype(key.__class__, np.integer):
+            key = self.element_names[key]
+        assert isinstance(key, str)
+        if key in self.element_dict:
+            if self.element_refs is None:
+                return self.element_dict[key]
+            return xd.madxutils.View(
+                self.element_dict[key], self.element_refs[key],
+                evaluator=self._xdeps_eval.eval)
+        elif key in self.vars:
+            return self.vv[key]
+        elif hasattr(self, 'lines') and key in self.lines: # Want to reuse the method for the env
+            return self.lines[key]
+        elif "::" in key and (env_name := key.split("::")[0]) in self.element_dict:
+            return self[env_name]
         else:
-            names = self.element_names.__getitem__(ii)
-            if isinstance(names, str):
-                return self.element_dict.__getitem__(names)
-            else:
-                return [self.element_dict[nn] for nn in names]
+            raise KeyError(f'Name {key} not found')
+
+    def __setitem__(self, key, value):
+
+        if isinstance(value, Line):
+            raise ValueError('Cannot set a Line, please use Envirnoment.new_line')
+            # Would need to make sure they refer to the same environment
+
+        if np.isscalar(value) or xd.refs.is_ref(value):
+            if key in self.element_dict:
+                raise ValueError(f'There is already an element with name {key}')
+            self.vars[key] = value
+        else:
+            raise ValueError('Only scalars or references are allowed')
 
     def _get_non_collective_line(self):
         if not self.iscollective:
@@ -3844,7 +4761,7 @@ class Line:
         s_cuts = [ee[0] for ee in elements_to_insert]
         s_cuts = np.sort(s_cuts)
 
-        self.cut_at_s(s_cuts)
+        self.cut_at_s(s_cuts, s_tol=s_tol)
 
         tt_after_cut = self.get_table()
 
@@ -3966,13 +4883,23 @@ class Line:
         self._frozen_check()
 
         for nn in self.element_names:
-            ee = self[nn]
+            ee = self.element_dict[nn]
             if hasattr(ee, 'get_equivalent_element'):
                 new_ee = ee.get_equivalent_element()
                 self.element_dict[nn] = new_ee
 
+    @property
+    def _element_names_unique(self):
+        if not self._has_valid_tracker():
+            raise RuntimeError(
+                '`Line._element_names_unique` con only be called after `Line.build_tracker`')
+        return self.tracker._tracker_data_base._element_names_unique
+
 def frac(x):
     return x % 1
+
+def sinc(x):
+    return np.sinc(x / np.pi)
 
 class Functions:
 
@@ -3991,7 +4918,7 @@ class Functions:
         sinh = math.sinh,
         cosh = math.cosh,
         tanh = math.tanh,
-        sinc = np.sinc,
+        sinc = sinc,
         abs = math.fabs,
         erf = math.erf,
         erfc = math.erfc,
@@ -4096,7 +5023,12 @@ def mk_class_namespace(extra_classes):
         all_classes = element_classes + xf.element_classes + extra_classes + (Line,)
     except ImportError:
         all_classes = element_classes + extra_classes
-        log.warning("Xfields not installed correctly")
+        log.warning("Xfields not installed")
+    try:
+        import xcoll as xc
+        all_classes += xc.element_classes
+    except ImportError:
+        log.warning("Xcoll not installed")
 
     all_classes = all_classes + (EnergyProgram, xt.Replica)
 
@@ -4111,14 +5043,14 @@ def _length(element, line):
     if hasattr(element, 'length'):
         return element.length
     assert hasattr(element, 'parent_name')
-    return line[element.parent_name].length * element.weight
+    return line.element_dict[element.parent_name].length * element.weight
 
 def _is_drift(element, line):
     if isinstance(element, xt.Replica):
         element = element.resolve(line)
     if isinstance(element, beam_elements.Drift):
         return True
-    if type(element).__name__.startswith('Drift'):
+    if element.__class__.__name__.startswith('Drift'):
         return True
     return False
 
@@ -4342,16 +5274,21 @@ def _temp_knobs(line_or_trk, knobs: dict):
         for kk, vv in old_values.items():
             line_or_trk.vars[kk] = vv
 
+class _DefaultFactory:
+    def __init__(self, default):
+        self.default = default
+
+    def __call__(self):
+        return self.default
 
 class LineVars:
 
     def __init__(self, line):
         self.line = line
-        self._cache_active = False
-        self._cached_setters = {}
         if '__vary_default' not in self.line._xdeps_vref._owner.keys():
             self.line._xdeps_vref._owner['__vary_default'] = {}
         self.val = VarValues(self)
+        self.vars_to_update = WeakSet()
 
     def keys(self):
         if self.line._xdeps_vref is None:
@@ -4360,12 +5297,32 @@ class LineVars:
         out = list(self.line._xdeps_vref._owner.keys()).copy()
         return out
 
-    def update(self, other):
-        if self.line._xdeps_vref is None:
-            raise RuntimeError(
-                f'Cannot access variables as the line has no xdeps manager')
-        for kk in other.keys():
-            self[kk] = other[kk]
+    def __iter__(self):
+        raise NotImplementedError('Use keys() method') # Untested
+        return self.line._xdeps_vref._owner.__iter__()
+
+    def update(self, *args, **kwargs):
+        default_to_zero = kwargs.pop('default_to_zero', None)
+        old_default_to_zero = self.default_to_zero
+        if default_to_zero is not None:
+            self.default_to_zero = default_to_zero
+        try:
+            if self.line._xdeps_vref is None:
+                raise RuntimeError(
+                    f'Cannot access variables as the line has no xdeps manager')
+            if len(args) > 0:
+                assert len(args) == 1, 'update expected at most 1 positional argument'
+                other = args[0]
+                for kk in other.keys():
+                    self[kk] = other[kk]
+            for kk, vv in kwargs.items():
+                self[kk] = vv
+        except Exception as ee:
+            if default_to_zero is not None:
+                self.default_to_zero = old_default_to_zero
+            raise ee
+        if default_to_zero is not None:
+            self.default_to_zero = old_default_to_zero
 
     @property
     def vary_default(self):
@@ -4374,14 +5331,46 @@ class LineVars:
                 f'Cannot access variables as the line has no xdeps manager')
         return self.line._xdeps_vref._owner['__vary_default']
 
-    def get_table(self):
+    def get_table(self, compact=True):
         if self.line._xdeps_vref is None:
             raise RuntimeError(
                 f'Cannot access variables as the line has no xdeps manager')
-        name = np.array([kk for kk in list(self.keys()) if kk != '__vary_default'])
+        name = np.array([kk for kk in list(self.keys()) if kk != '__vary_default'], dtype=object)
         value = np.array([self.line._xdeps_vref[kk]._value for kk in name])
 
-        return xd.Table({'name': name, 'value': value})
+        if compact:
+            formatter = xd.refs.CompactFormatter(scope=None)
+            expr = []
+            for kk in name:
+                ee = self.line._xdeps_vref[kk]._expr
+                if ee is None:
+                    expr.append(None)
+                else:
+                    expr.append(ee._formatted(formatter))
+        else:
+            expr  = [self.line._xdeps_vref[str(kk)]._expr for kk in name]
+            for ii, ee in enumerate(expr):
+                if ee is not None:
+                    expr[ii] = str(ee)
+
+        expr = np.array(expr)
+
+        return VarsTable({'name': name, 'value': value, 'expr': expr})
+
+    def new_expr(self, expr):
+        return self.line._xdeps_eval.eval(expr)
+
+    def eval(self, expr):
+        expr_or_value = self.new_expr(expr)
+        if is_ref(expr_or_value):
+            return expr_or_value._get_value()
+        return expr_or_value
+
+    def info(self, var, limit=10):
+        return self[var]._info(limit=limit)
+
+    def get_expr(self, var):
+        return self[var]._expr
 
     def __contains__(self, key):
         if self.line._xdeps_vref is None:
@@ -4401,26 +5390,9 @@ class LineVars:
                 out.append(kk)
         return out
 
-    def _setter_from_cache(self, varname):
-        if varname not in self._cached_setters:
-            if self.line._xdeps_manager is None:
-                raise RuntimeError(
-                    f'Cannot access variable {varname} as the line has no '
-                    'xdeps manager')
-            try:
-                self.cache_active = False
-                self._cached_setters[varname] = VarSetter(self.line, varname)
-                self.cache_active = True
-            except Exception as ee:
-                self.cache_active = True
-                raise ee
-        return self._cached_setters[varname]
-
     def __getitem__(self, key):
         if key not in self: # uses __contains__ method
             raise KeyError(f'Variable `{key}` not found')
-        if self.cache_active:
-            return self._setter_from_cache(key)
         return self.line._xdeps_vref[key]
 
     def get(self,key,default=0):
@@ -4430,25 +5402,22 @@ class LineVars:
             return default
 
     def __setitem__(self, key, value):
-        if self.cache_active:
-            if isref(value) or isinstance(value, VarSetter):
-                raise ValueError('Cannot set a variable to a ref when the '
-                                 'cache is active')
-            self._setter_from_cache(key)(value)
-        else:
-            self.line._xdeps_vref[key] = value
+        if isinstance(value, str):
+            value = self.line._xdeps_eval.eval(value)
+        self.line._xdeps_vref[key] = value
+        for cc in self.vars_to_update:
+            cc[key] = value
 
-    @property
-    def cache_active(self):
-        return self._cache_active
+    def __getstate__(self):
+        out = self.__dict__.copy()
+        out['vars_to_update'] = None
+        return out
 
-    @cache_active.setter
-    def cache_active(self, value):
-        assert value in (True, False)
-        self._cache_active = value
-        self.line._xdeps_manager._tree_frozen = value
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.vars_to_update = WeakSet()
 
-    def set_from_madx_file(self, filename, mad_stdout=False):
+    def set_from_madx_file(self, filename):
 
         '''
         Set variables veluas of expression from a MAD-X file.
@@ -4457,65 +5426,80 @@ class LineVars:
         ----------
         filename : str or list of str
             Path to the MAD-X file(s) to load.
-        mad_stdout : bool, optional
-            If True, the MAD-X output is printed to stdout.
-
-        Notes
-        -----
-        The MAD-X file is executed in a temporary MAD-X instance, and the
-        variables are copied to the line after the execution.
         '''
+        loader = xt.mad_parser.MadxLoader(env=self.line)
+        loader.load_file(filename)
 
-        from cpymad.madx import Madx
-        mad = Madx(stdout=mad_stdout)
-        mad.options.echo = False
-        mad.options.info = False
-        mad.options.warn = False
-        if isinstance(filename, (str, Path)):
-            filename = [filename]
-        else:
-            assert isinstance(filename, (list, tuple))
-        for ff in filename:
-            mad.call(str(ff))
+    def load_madx_optics_file(self, filename):
+        self.set_from_madx_file(filename)
 
-        assert self.cache_active is False, (
-            'Cannot load optics file when cache is active')
+    load_madx = load_madx_optics_file
 
-        mad.input('''
-        elm: marker; dummy: sequence, l=1; e:elm, at=0.5; endsequence;
-        beam; use,sequence=dummy;''')
+    def load_json(self, filename):
 
-        defined_vars = set(mad.globals.keys())
+        with open(filename, 'r') as fid:
+            data = json.load(fid)
 
-        xt.general._print.suppress = True
-        dummy_line = xt.Line.from_madx_sequence(mad.sequence.dummy,
-                                                deferred_expressions=True)
-        xt.general._print.suppress = False
-
-        self.line._xdeps_vref._owner.update(
-            {kk: dummy_line._xdeps_vref._owner[kk] for kk in defined_vars})
-        self.line._xdeps_manager.copy_expr_from(dummy_line._xdeps_manager, "vars")
-
-        try:
-            self.line._xdeps_vref._owner.default_factory = lambda: 0
-            allnames = list(self.line._xdeps_vref._owner.keys())
-            for nn in allnames:
-                if (self.line._xdeps_vref[nn]._expr is None
-                    and len(self.line._xdeps_vref[nn]._find_dependant_targets()) > 1 # always contain itself
-                    ):
-                    self.line._xdeps_vref[nn] = self.line._xdeps_vref._owner.get(nn, 0)
-        except Exception as ee:
-            self.line._xdeps_vref._owner.default_factory = None
-            raise ee
-
-        self.line._xdeps_vref._owner.default_factory = None
-
-    def load_madx_optics_file(self, filename, mad_stdout=False):
-        self.set_from_madx_file(filename, mad_stdout=mad_stdout)
+        _old_default_to_zero = self.default_to_zero
+        self.default_to_zero = True
+        self.update(data)
+        self.default_to_zero = _old_default_to_zero
 
     def target(self, tar, value, **kwargs):
         action = ActionVars(self.line)
         return xt.Target(action=action, tar=tar, value=value, **kwargs)
+
+    def __call__(self, *args, **kwargs):
+        _eval = self.line._xdeps_eval.eval
+        if len(args) > 0:
+            assert len(kwargs) == 0
+            assert len(args) == 1
+            if isinstance(args[0], str):
+                return self[args[0]]
+            elif isinstance(args[0], dict):
+                kwargs.update(args[0])
+            else:
+                raise ValueError('Invalid argument')
+        for kk in kwargs:
+            if isinstance(kwargs[kk], str):
+                self[kk] = _eval(kwargs[kk])
+            else:
+                self[kk] = kwargs[kk]
+
+    def set(self, name, value):
+        if isinstance(value, str):
+            self[name] = self.line._xdeps_eval.eval(value)
+        else:
+            self[name] = value
+
+    def get(self, name):
+        return self[name]._value
+
+    @property
+    def default_to_zero(self):
+        default_factory = self.line._xdeps_vref._owner.default_factory
+        if default_factory is None:
+            return False
+        return default_factory.default == 0
+
+    @default_to_zero.setter
+    def default_to_zero(self, value):
+        assert value in (True, False)
+        if value:
+            self.line._xdeps_vref._owner.default_factory = _DefaultFactory(0.)
+        else:
+            self.line._xdeps_vref._owner.default_factory = None
+
+class VarsTable(xd.Table):
+
+    def to_dict(self):
+        out = {}
+        for nn, ee, vv in zip(self['name'], self['expr'], self['value']):
+            if ee is not None:
+                out[nn] = ee
+            else:
+                out[nn] = vv
+        return out
 
 class ActionVars(Action):
 
@@ -4523,8 +5507,6 @@ class ActionVars(Action):
         self.line = line
 
     def run(self, **kwargs):
-        assert not self.line.vars.cache_active, (
-            'Cannot run action when cache is active')
         return self.line._xdeps_vref._owner
 
 class ActionLine(Action):
@@ -4552,51 +5534,21 @@ class VarValues:
         else:
             return default
 
-class VarSetter:
-    def __init__(self, line, varname):
-        self.multiline = line
-        self.varname = varname
-
-        manager = self.multiline._xdeps_manager
-        if manager is None:
-            raise RuntimeError(
-                f'Cannot access variable {varname} as the line has no xdeps manager')
-        # assuming line._xdeps_vref is a direct view of a dictionary
-        self.owner = line._xdeps_vref[varname]._owner._owner
-        self.fstr = manager.mk_fun('setter', **{'val': line._xdeps_vref[varname]})
-        self.gbl = {k: r._owner for k, r in manager.containers.items()}
-        self._build_fun()
-
-    def get_value(self):
-        return self.owner[self.varname]
-
-    @property
-    def _value(self):
-        return self.get_value()
-
-    def _build_fun(self):
-        lcl = {}
-        exec(self.fstr, self.gbl.copy(), lcl)
-        self.fun = lcl['setter']
-
-    def __call__(self, value):
-        self.fun(val=value)
-
-    def __getstate__(self):
-        out = self.__dict__.copy()
-        out.pop('fun')
-        return out
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-        self._build_fun()
-
 class LineAttrItem:
+
     def __init__(self, name, index=None, line=None):
         self.name = name
         self.index = index
 
         assert line is not None
+        self.line = line
+        self._multisetter = None
+
+    def _prepare_multisetter(self):
+
+        line = self.line
+        name = self.name
+        index = self.index
 
         all_names = line.element_names
         mask = np.zeros(len(all_names), dtype=bool)
@@ -4605,7 +5557,7 @@ class LineAttrItem:
             ee = line.element_dict[nn]
             if isinstance(ee, xt.Replica):
                 nn = ee.resolve(line, get_name=True)
-                ee = line[nn]
+                ee = line.element_dict[nn]
             if isinstance(name, (list, tuple)):
                 inner_obj = ee
                 inner_name = name[-1]
@@ -4629,15 +5581,26 @@ class LineAttrItem:
         multisetter = xt.MultiSetter(line=line, elements=setter_names,
                                      field=name, index=index)
         self.names = setter_names
-        self.multisetter = multisetter
-        self.mask = mask
+        self._multisetter = multisetter
+        self._mask = mask
+
+    @property
+    def multisetter(self):
+        if self._multisetter is None:
+            self._prepare_multisetter()
+        return self._multisetter
+
+    @property
+    def mask(self):
+        if self._multisetter is None:
+            self._prepare_multisetter()
+        return self._mask
 
     def get_full_array(self):
         full_array = np.zeros(len(self.mask), dtype=np.float64)
         ctx2np = self.multisetter._context.nparray_from_context_array
         full_array[self.mask] = ctx2np(self.multisetter.get_values())
         return full_array
-
 
 class LineAttr:
     """A class to access a field of all elements in a line.
@@ -4657,6 +5620,7 @@ class LineAttr:
         field and the value is a function that takes the LineAttr object
         as argument and returns the value of the derived field.
     """
+
     def __init__(self, line, fields, derived_fields=None):
 
         assert isinstance(fields, dict)
@@ -4826,7 +5790,8 @@ class EnergyProgram:
     @t_turn_s_line.setter
     def t_turn_s_line(self, value):
         p0c = self.get_p0c_at_t_s(value)
-        self.line.particle_ref.update_p0c_and_energy_deviations(p0c=p0c)
+        self.line.particle_ref.update_p0c_and_energy_deviations(
+                                                    p0c=p0c, update_pxpy=True)
 
     def to_dict(self):
         assert not self.needs_complete, 'EnergyProgram not completed'
@@ -4902,3 +5867,39 @@ def _rot_s_from_attr(attr):
     return rot_s_rad
 
 
+def _make_var_management(element_dict, dct=None):
+
+    from collections import defaultdict
+
+    _var_values = defaultdict(lambda: 0)
+    _var_values.default_factory = None
+
+    functions = Functions()
+
+    manager = xd.Manager()
+    _vref = manager.ref(_var_values, 'vars')
+    _fref = manager.ref(functions, 'f')
+    _lref = manager.ref(element_dict, 'element_refs')
+
+    _var_management = {}
+    _var_management['data'] = {}
+    _var_management['data']['var_values'] = _var_values
+    _var_management['data']['functions'] = functions
+
+    _var_management['manager'] = manager
+    _var_management['lref'] = _lref
+    _var_management['vref'] = _vref
+    _var_management['fref'] = _fref
+
+    _vref['t_turn_s'] = 0.0
+
+    if dct is not None:
+        manager = _var_management['manager']
+        for kk in dct['_var_management_data'].keys():
+            data_item = dct['_var_management_data'][kk]
+            if kk == 'functions':
+                data_item = Functions.from_dict(data_item)
+            _var_management['data'][kk].update(data_item)
+        manager.load(dct['_var_manager'])
+
+    return _var_management

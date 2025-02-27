@@ -1,0 +1,112 @@
+start:  stmt*
+
+?stmt: ignored          -> ignored
+    | new_def
+    | new_val
+    | sequence          -> top_level_sequence
+    | line              -> top_level_line
+    | seqedit           -> top_level_seqedit
+    | command_stmt      -> top_level_command
+    | clone             -> top_level_clone
+
+?new_val: equal_scalar ";"    -> set_var
+
+?new_def: defer_scalar ";"    -> set_var
+
+?sequence: _sequence_body _ENDSEQUENCE ";"
+
+_sequence_body: NAME ":" _SEQUENCE command_arglist ";" (clone | command_stmt)*
+
+?line: NAME ":" _LINE "=" anonymous_line ";"
+
+anonymous_line: "(" line_elements ")"
+
+modifiers: /-/? ( NUMBER "*" )?
+
+?line_elements: line_element ("," line_element)*    -> build_list
+
+?line_element: modifiers (NAME | anonymous_line)
+
+?seqedit: _seqedit_body _ENDEDIT ";"
+
+_seqedit_body: _SEQEDIT command_arglist ";" command_stmt*
+
+?clone: NAME ":" _command
+
+?command_stmt: _command
+
+_command: NAME command_arglist ";"
+
+command_arglist: ( "," ( equal_scalar | defer_scalar | equal_array | defer_array | equal_string | flag ) )*
+
+?flag: NAME             -> set_flag
+    | "-" NAME          -> reset_flag
+
+?defer_scalar: NAME ":=" sum  -> assign_defer
+
+?defer_array: NAME ":=" array -> assign_defer
+
+?equal_scalar: NAME "=" sum   -> assign_value
+
+?equal_array: NAME "=" array  -> assign_value
+
+?equal_string: NAME "=" string_literal -> assign_value
+
+array: "{" sum ( "," sum )* "}"  -> build_list
+
+?cmp: sum "<" sum       -> op_lt
+    | sum ">" sum       -> op_gt
+    | sum "<=" sum      -> op_le
+    | sum ">=" sum      -> op_ge
+    | sum "==" sum      -> op_eq
+    | sum "<>" sum      -> op_ne
+
+?sum: product
+    | sum "+" product   -> op_add
+    | sum "-" product   -> op_sub
+
+?product: power
+    | product "*" power -> op_mul
+    | product "/" power -> op_div
+
+?power: atom
+    | power "^" atom    -> op_pow
+
+?atom: NUMBER           -> number
+    | "-" atom          -> op_neg
+    | "+" atom          -> op_pos
+    | NAME              -> name_atom
+    | NAME "->" NAME    -> op_arrow
+    | function "(" sum ("," sum)* ")" -> call
+    | "(" sum ")"
+
+!function: NAME
+
+string_literal: STRING
+
+ignored: if | return | select | remove
+
+!if: "if"i /[^\n]+/
+!return: "return"i /[^\n]+/
+!select: "select"i /[^\n]+/
+!remove: "remove"i /[^\n]+/
+
+_SEQUENCE: "sequence"i
+_ENDSEQUENCE: "endsequence"i
+_SEQEDIT: "seqedit"i
+_ENDEDIT: "endedit"i
+_LINE: "line"i
+NAME: /[A-Za-z_\\.][A-Za-z0-9_\\.%]*/
+STRING: /"[^"]*"/
+_COMMENT: "!" /[^\n]*/
+       | "//" /[^\n]*/
+       | "/*" /.*?/s "*/"
+_NEWLINE: ( /\r?\n[\t ]*/ )+
+
+%import common.NUMBER
+%import common.WS_INLINE
+%import common.WS
+%ignore WS_INLINE
+%ignore WS
+%ignore _COMMENT
+%ignore _NEWLINE

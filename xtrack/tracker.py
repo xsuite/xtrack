@@ -26,10 +26,6 @@ from .tracker_data import TrackerData
 
 logger = logging.getLogger(__name__)
 
-
-
-
-
 class Tracker:
 
     '''
@@ -124,6 +120,10 @@ class Tracker:
             _context=_context,
             _buffer=_buffer,
             _no_resolve_parents=_prebuilding_kernels)
+        if not _prebuilding_kernels:
+            tracker_data_base._line_table = line.get_table()
+            tracker_data_base._element_names_unique = tuple(
+                    tracker_data_base._line_table.name[:-1]) # remove _endpoint
         line._freeze()
 
         if np.any([hasattr(ee, 'needs_rng') and ee.needs_rng for ee in line.elements]):
@@ -545,19 +545,19 @@ class Tracker:
 
                 int64_t const ele_stop = ele_start + num_ele_track;
 
-                #ifndef XSUITE_BACKTRACK
-                if (flag_monitor==1){
-                    ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
-                }
-                int64_t elem_idx = ele_start;
-                int64_t const increm = 1;
-                #else
+                #if defined(XSUITE_BACKTRACK) || defined(XSUITE_MIRROR)
                 int64_t elem_idx = ele_stop - 1;
                 int64_t const increm = -1;
                 if (flag_end_turn_actions>0){
                     increment_at_turn_backtrack(&lpart, flag_reset_s_at_end_turn,
                                                 line_length, num_ele_line);
                 }
+                #else
+                if (flag_monitor==1){
+                    ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
+                }
+                int64_t elem_idx = ele_start;
+                int64_t const increm = 1;
                 #endif
 
                 for (; ((elem_idx >= ele_start) && (elem_idx < ele_stop)); elem_idx+=increm){
@@ -608,11 +608,11 @@ class Tracker:
                         break;
                     }
 
-                    #ifndef XSUITE_BACKTRACK
-                        increment_at_element(&lpart, 1);
-                    #else
+                    #if defined(XSUITE_BACKTRACK) || defined(XSUITE_MIRROR)
                         increment_at_element(&lpart, -1);
-                    #endif //XSUITE_BACKTRACK
+                    #else
+                        increment_at_element(&lpart, 1);
+                    #endif
 
                     #endif //DANGER_SKIP_ACTIVE_CHECK_AND_SWAPS
 
@@ -623,20 +623,18 @@ class Tracker:
                     ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
                 }
 
-                #ifndef XSUITE_BACKTRACK
+                #if defined(XSUITE_BACKTRACK) || defined(XSUITE_MIRROR)
+                if (flag_monitor==1){
+                    ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
+                }
+                # else
                 if (flag_end_turn_actions>0){
                     if (isactive){
                         increment_at_turn(&lpart, flag_reset_s_at_end_turn);
                     }
                 }
-                #endif //XSUITE_BACKTRACK
+                #endif
 
-
-                #ifdef XSUITE_BACKTRACK
-                if (flag_monitor==1){
-                    ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
-                }
-                #endif //XSUITE_BACKTRACK
             } // for turns
 
             LocalParticle_to_Particles(&lpart, particles, part_id, 1);
@@ -772,7 +770,7 @@ class Tracker:
 
         if ele_stop is not None:
             assert ele_stop >= 0
-            assert ele_stop < self.num_elements
+            assert ele_stop <= self.num_elements
 
         assert num_turns >= 1
 
@@ -854,7 +852,7 @@ class Tracker:
                     # Track until end of part
                     ret = pp.track(particles, ele_start=i_start_in_part, turn_by_turn_monitor=monitor)
 
-        elif (ele_stop is not None
+        elif (ele_stop is not None and ele_stop < self.num_elements
                 and tt == num_turns-1 and self._element_part[ele_stop] == ipp):
             # We are in the part that contains the stop element
             i_stop_in_part = self._element_index_in_part[ele_stop]
@@ -877,7 +875,8 @@ class Tracker:
         """
         Resume a track session that had been placed on hold.
         """
-        return self._track_with_collective(particles=None, _session_to_resume=session)
+        return self._track_with_collective(particles=None, _session_to_resume=session,
+                                           _reset_log=False)
 
     def _track_with_collective(
         self,
@@ -911,12 +910,7 @@ class Tracker:
             elif not isinstance(log, Log):
                 log = Log(log)
         if log is not None and _reset_log:
-            if self.line.enable_time_dependent_vars:
-                self.line.log_last_track = {}
-            else:
-                raise NotImplementedError(
-                    'log can be used only when time-dependent variables are '
-                    'enabled in the line')
+            self.line.log_last_track = {}
 
         self._check_invalidated()
 
@@ -946,6 +940,7 @@ class Tracker:
                                     '_context_needs_clean_active_lost_state']
             tt_resume = _session_to_resume['tt']
             ipp_resume = _session_to_resume['ipp']
+            log = _session_to_resume['log']
             _session_to_resume['resumed'] = True
         else:
             (ele_start, ele_stop, num_turns, flag_monitor, monitor,
@@ -961,64 +956,17 @@ class Tracker:
             if tt_resume is not None and tt < tt_resume:
                 continue
 
-            if (flag_monitor and (ele_start == 0 or tt>0)): # second condition is for delayed start
-                if not(tt_resume is not None and tt == tt_resume):
+            if (flag_monitor and (ele_start == 0 or tt>0) # second condition is for delayed start
+                and not _is_resume_within_turn(tt, tt_resume)):
                     monitor.track(particles)
 
             # Time dependent vars and energy ramping
             if self.line.enable_time_dependent_vars:
-                # Find first active particle
-                state = particles.state
-                if isinstance(particles._context, xo.ContextPyopencl):
-                    state = state.get()
-                ii_first_active = int((state > 0).argmax())
-                if ii_first_active == 0 and particles._xobject.state[0] <= 0:
-                    # No active particles
-                    at_turn = 0 # convenient for multi-turn injection
-                else:
-                    at_turn = particles._xobject.at_turn[ii_first_active]
+                self._handle_time_dependent_vars(particles=particles)
 
-                if self.line.energy_program is not None:
-                    t_turn = self.line.energy_program.get_t_s_at_turn(at_turn)
-                else:
-                    beta0 = particles._xobject.beta0[ii_first_active]
-                    t_turn = (at_turn * self._tracker_data_base.line_length
-                            / (beta0 * clight))
-
-                # Clean leftover from previous trackings
-                if (self.line._t_last_update_time_dependent_vars and
-                   t_turn < self.line._t_last_update_time_dependent_vars):
-                    self.line._t_last_update_time_dependent_vars = None
-
-                if (self.line._t_last_update_time_dependent_vars is None
-                    or self.line.dt_update_time_dependent_vars is None
-                    or t_turn > self.line._t_last_update_time_dependent_vars
-                                + self.line.dt_update_time_dependent_vars):
-                    self.line._t_last_update_time_dependent_vars = t_turn
-                    self.vars['t_turn_s'] = t_turn
-
-                    if self.line.energy_program is not None:
-                        p0c = self.line.particle_ref._xobject.p0c[0]
-                        particles.update_p0c_and_energy_deviations(p0c)
-
-                if log is not None:
-                    for kk in log:
-                        if log[kk] == None:
-                            if kk not in self.line.log_last_track:
-                                self.line.log_last_track[kk] = []
-                            self.line.log_last_track[kk].append(self.line.vv[kk])
-                        else:
-                            ff = log[kk]
-                            val = ff(self.line, particles)
-                            if hasattr(ff, '_store'):
-                                for nn in ff._store:
-                                    if nn not in self.line.log_last_track:
-                                        self.line.log_last_track[nn] = []
-                                    self.line.log_last_track[nn].append(val[nn])
-                            else:
-                                if kk not in self.line.log_last_track:
-                                    self.line.log_last_track[kk] = []
-                                self.line.log_last_track[kk].append(val)
+            if log is not None and not _is_resume_within_turn(tt, tt_resume):
+                self._handle_log(_session_to_resume=_session_to_resume,
+                                 particles=particles, log=log)
 
             moveback_to_buffer = None
             moveback_to_offset = None
@@ -1078,7 +1026,8 @@ class Tracker:
                             'moveback_to_offset': moveback_to_offset,
                             'ipp': ipp,
                             'tt': tt,
-                            'resumed': False
+                            'resumed': False,
+                            'log': log
                         }
                     return PipelineStatus(on_hold=True, data=session_on_hold)
 
@@ -1090,7 +1039,8 @@ class Tracker:
                 if not isinstance(pp, TrackerPartNonCollective) and not stop_tracking:
                     if moveback_to_buffer is not None: # The particles object is temporarily on CPU
                         if not hasattr(self, '_zerodrift_cpu'):
-                            self._zerodrift_cpu = self._zerodrift.copy(particles._buffer.context)
+                            self._zerodrift_cpu = self._zerodrift.copy(
+                                _context=particles._buffer.context)
                         self._zerodrift_cpu.track(particles, increment_at_element=True)
                     else:
                         self._zerodrift.track(particles, increment_at_element=True)
@@ -1115,6 +1065,10 @@ class Tracker:
                     particles._num_active_particles = -1
                     particles._num_lost_particles = -1
 
+            if monitor is not None and monitor.ebe_mode == 1 and (
+                ele_stop is None or ele_stop == self.num_elements):
+                monitor.track(particles)
+
             # Increment at_turn and reset at_element
             # (use the non-collective track method to perform only end-turn actions)
             self._track_no_collective(particles,
@@ -1122,7 +1076,6 @@ class Tracker:
                                num_elements=0)
 
         self.record_last_track = monitor
-
 
     def _track_no_collective(
         self,
@@ -1487,6 +1440,65 @@ class Tracker:
             line_element_classes=self.line_element_classes,
             verbose=True)
 
+    def _handle_time_dependent_vars(self, particles):
+
+        # Find first active particle
+        state = particles.state
+        if isinstance(particles._context, xo.ContextPyopencl):
+            state = state.get()
+        ii_first_active = int((state > 0).argmax())
+        if ii_first_active == 0 and particles._xobject.state[0] <= 0:
+            # No active particles
+            at_turn = 0 # convenient for multi-turn injection
+        else:
+            at_turn = particles._xobject.at_turn[ii_first_active]
+
+        if self.line.energy_program is not None:
+            t_turn = self.line.energy_program.get_t_s_at_turn(at_turn)
+        else:
+            beta0 = particles._xobject.beta0[ii_first_active]
+            t_turn = (at_turn * self._tracker_data_base.line_length
+                    / (beta0 * clight))
+
+        # Clean leftover from previous trackings
+        if (self.line._t_last_update_time_dependent_vars and
+            t_turn < self.line._t_last_update_time_dependent_vars):
+            self.line._t_last_update_time_dependent_vars = None
+
+        if (self.line._t_last_update_time_dependent_vars is None
+            or self.line.dt_update_time_dependent_vars is None
+            or t_turn > self.line._t_last_update_time_dependent_vars
+                        + self.line.dt_update_time_dependent_vars):
+            self.line._t_last_update_time_dependent_vars = t_turn
+            self.vars['t_turn_s'] = t_turn
+
+            if self.line.energy_program is not None:
+                p0c = self.line.particle_ref._xobject.p0c[0]
+                particles.update_p0c_and_energy_deviations(p0c, update_pxpy=True)
+
+    def _handle_log(self, _session_to_resume, particles, log):
+        if _session_to_resume is not None:
+            plog = _session_to_resume['particles']
+        else:
+            plog = particles
+        for kk in log:
+            if log[kk] == None:
+                if kk not in self.line.log_last_track:
+                    self.line.log_last_track[kk] = []
+                self.line.log_last_track[kk].append(self.line.vv[kk])
+            else:
+                ff = log[kk]
+                val = ff(self.line, plog)
+                if hasattr(ff, '_store'):
+                    for nn in ff._store:
+                        if nn not in self.line.log_last_track:
+                            self.line.log_last_track[nn] = []
+                        self.line.log_last_track[nn].append(val[nn])
+                else:
+                    if kk not in self.line.log_last_track:
+                        self.line.log_last_track[kk] = []
+                    self.line.log_last_track[kk].append(val)
+
 
 class TrackerConfig(UserDict):
 
@@ -1593,3 +1605,6 @@ class Log(dict):
             else:
                 self[f'_unnamed_{unnamed_indx}'] = arg
                 unnamed_indx += 1
+
+def _is_resume_within_turn(tt, tt_resume):
+    return tt_resume is not None and tt == tt_resume

@@ -19,7 +19,7 @@ void DipoleEdgeNonLinear_single_particle(LocalParticle* part,
         if (sin_ > -99.){
             YRotation_single_particle(part, sin_, cos_, tan_);
         }
-        Fringe_single_particle(part, fint, hgap, k);
+        DipoleFringe_single_particle(part, fint, hgap, k);
         if (sin_ > -99.){
             Wedge_single_particle(part, -e1, k);
         }
@@ -28,9 +28,9 @@ void DipoleEdgeNonLinear_single_particle(LocalParticle* part,
         if (sin_ > -99.){
             Wedge_single_particle(part, -e1, k);
         }
-        Fringe_single_particle(part, fint, hgap, -k);
+        DipoleFringe_single_particle(part, fint, hgap, -k);
         if (sin_ > -99.){
-        YRotation_single_particle(part, sin_, cos_, tan_);
+            YRotation_single_particle(part, sin_, cos_, tan_);
         }
 
     }

@@ -4,6 +4,7 @@ import pathlib
 import numpy as np
 from cpymad.madx import Madx
 from scipy.constants import c as clight
+from scipy.special import factorial
 
 import xobjects as xo
 import xpart as xp
@@ -213,6 +214,89 @@ def test_tilt_shift_and_errors():
         line = list(ml.iter_elements())
 
 
+def test_thick_errors():
+    mad = Madx()
+
+    mad.input('''
+        k0 = 0.1;
+        k1 = 0.2;
+        k2 = 0.3;
+        k3 = 0.4;
+        ks = 0.5;
+        l = 5.;
+        radius = 0.3;
+
+        dknr0 = 0.02;
+        dknr1 = -0.04;
+        dknr2 = 0.06;
+        dkns3 = 0.2;
+        dksr0 = 0.03;
+        dksr1 = -0.05;
+        dksr2 = 0.07;
+        dksr3 = 0.3;
+
+        bend: sbend, k0 := k0, l = 5;
+        quad: quadrupole, k1 := k1, l = 5.;
+        sext: sextupole, k2 := k2, l = 5.;
+        octu: octupole, k3 := k3, l = 5.;
+        sole: solenoid, ks := ks, l = 5.;
+
+        seq: sequence, l = 50;
+            quad1: quad, at = 5;
+            quad2: quad, at = 10;
+            quad3: quad, at = 20;
+            bend1: bend, at = 25;
+            sext1: sext, at = 30;
+            octu1: octu, at = 35;
+            sole1: sole, at = 40;
+        endsequence;
+
+        beam;
+
+        use, sequence = seq;
+
+        select, pattern = quad, flag = error;
+        select, pattern = bend, flag = error;
+        select, pattern = sext, flag = error;
+        select, pattern = octu, flag = error;
+        select, pattern = sole, flag = error;
+        efcomp, radius = radius,
+            dknr = {dknr0, dknr1, dknr2, dknr3},
+            dksr = {dksr0, dksr1, dksr2, dksr3};
+    ''')
+
+    line = xt.Line.from_madx_sequence(
+        sequence=mad.sequence.seq,
+        enable_field_errors=True,
+        allow_thick=True,
+    )
+
+    def error(name, which):
+        field_errors = mad.sequence.seq.expanded_elements[name].field_errors
+        dk = getattr(field_errors, which)
+        return dk[:6]
+
+    xo.assert_allclose(line['bend1'].knl, error('bend1', 'dkn'), atol=0, rtol=1e-15)
+    xo.assert_allclose(line['bend1'].ksl, error('bend1', 'dks'), atol=0, rtol=1e-15)
+
+    xo.assert_allclose(line['quad1'].knl, error('quad1', 'dkn'), atol=0, rtol=1e-15)
+    xo.assert_allclose(line['quad2'].knl, error('quad2', 'dkn'), atol=0, rtol=1e-15)
+    xo.assert_allclose(line['quad3'].knl, error('quad3', 'dkn'), atol=0, rtol=1e-15)
+
+    xo.assert_allclose(line['quad1'].ksl, error('quad1', 'dks'), atol=0, rtol=1e-15)
+    xo.assert_allclose(line['quad2'].ksl, error('quad2', 'dks'), atol=0, rtol=1e-15)
+    xo.assert_allclose(line['quad3'].ksl, error('quad3', 'dks'), atol=0, rtol=1e-15)
+
+    xo.assert_allclose(line['sext1'].knl, error('sext1', 'dkn'), atol=0, rtol=1e-15)
+    xo.assert_allclose(line['sext1'].ksl, error('sext1', 'dks'), atol=0, rtol=1e-15)
+
+    xo.assert_allclose(line['octu1'].knl, error('octu1', 'dkn'), atol=0, rtol=1e-15)
+    xo.assert_allclose(line['octu1'].ksl, error('octu1', 'dks'), atol=0, rtol=1e-15)
+
+    xo.assert_allclose(line['sole1'].knl, error('sole1', 'dkn'), atol=0, rtol=1e-15)
+    xo.assert_allclose(line['sole1'].ksl, error('sole1', 'dks'), atol=0, rtol=1e-15)
+
+
 def test_matrix():
     mad = Madx(stdout=False)
 
@@ -368,8 +452,8 @@ def test_mad_elements_import():
               )
 
     # Beam
-    mad.input("""
-    beam, particle=proton, gamma=1.05, sequence=testseq;
+    mad.input(f"""
+    beam, particle=ion, gamma=1.05, mass={xt.PROTON_MASS_EV / 1e9}, sequence=testseq;
     """)
 
     mad.use('testseq')
@@ -533,7 +617,7 @@ def test_selective_expr_import_and_replace_in_expr():
 
 
 def test_load_madx_optics_file():
-    collider = xt.Multiline.from_json(
+    collider = xt.Environment.from_json(
         test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers()
 

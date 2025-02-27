@@ -29,7 +29,7 @@ class ActionArcPhaseAdvanceFromCell(xd.Action):
 
     def run(self):
 
-        if isinstance(self.line, xt.Multiline):
+        if isinstance(self.line, xt.Environment):
             line = self.line[self.line_name]
 
         twinit_cell = line.twiss(
@@ -112,7 +112,7 @@ for arc in ['12', '23', '34', '45', '56', '67', '78', '81']:
 if __name__ == '__main__':
 
     # Load the line
-    collider = xt.Multiline.from_json(
+    collider = xt.Environment.from_json(
         '../../test_data/hllhc15_collider/collider_00_from_mad.json')
     collider.build_trackers()
 
@@ -158,9 +158,7 @@ if __name__ == '__main__':
 
     optimizations_to_do = 8 * [optimizations_to_do[0]]
 
-    collider.vars.cache_active = True
     initial_values = {kk: collider.vars[kk]._value for kk in all_knobs} # create setters
-    collider._var_sharing = None
 
     # t1 = time.time()
     # pool = mp.Pool(processes=4)

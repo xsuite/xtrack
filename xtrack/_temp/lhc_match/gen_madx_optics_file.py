@@ -37,9 +37,7 @@ def gen_madx_optics_file_auto(collider, fname):
     dct_val = {}
 
     vtable = collider.vars.get_table()
-    vsave = vtable.rows[
-        vtable.mask[vtable.mask['acb.*'] | vtable.mask['kd.*']
-                    | vtable.mask['kq.*'] | vtable.mask['ks.*']]]
+    vsave = vtable.rows["(acb.*)|(kd.*)|(kq.*)|(ks.*)"]
     for nn in vsave.name:
         nn = str(nn) # to avoid numpy string
         vv = collider.vars[nn]
