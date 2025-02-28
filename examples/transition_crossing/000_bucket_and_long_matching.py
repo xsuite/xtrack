@@ -7,8 +7,8 @@ from scipy.constants import c as clight
 from scipy.constants import e as qe
 import matplotlib.pyplot as plt
 
-gamma0 = 2. # defines the energy of the beam
-gamma_transition = 2.3
+gamma0 = 3.6 # defines the energy of the beam
+gamma_transition = 3.3
 momentum_compaction_factor = 1 / gamma_transition**2
 compensate_phase = True
 
@@ -19,14 +19,14 @@ circumference = 1000.
 t_rev = circumference / (particle_ref.beta0[0] * clight)
 f_rev = 1 / t_rev
 
-energy_ref_increment =  10e3 # eV
+energy_ref_increment =  50e3 # eV
 
 eta = momentum_compaction_factor - 1 / particle_ref.gamma0[0]**2
 
 h_rf = 40
 
 f_rf = h_rf * f_rev
-v_rf = 15e3
+v_rf = 100e3
 lag_rf = 180. if eta > 0. else 0.
 
 # Compute momentum increment using auxiliary particle
@@ -54,7 +54,7 @@ line = xt.Line(elements=[otm], particle_ref=particle_ref)
 
 tw = line.twiss()
 
-delta_test = np.linspace(0, 1.5e-3, 20)
+delta_test = np.linspace(0, 5e-3, 20)
 p = line.build_particles(delta=delta_test)
 
 line.track(p, turn_by_turn_monitor=True, num_turns=1000)
@@ -62,7 +62,7 @@ mon = line.record_last_track
 
 p_gauss, matcher = xp.generate_matched_gaussian_bunch(
     line=line,
-    num_particles=1000,
+    num_particles=10_000,
     nemitt_x=2.5e-6,
     nemitt_y=2.5e-6,
     sigma_z=5,
