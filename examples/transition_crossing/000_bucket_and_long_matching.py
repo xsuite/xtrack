@@ -7,8 +7,8 @@ from scipy.constants import c as clight
 from scipy.constants import e as qe
 import matplotlib.pyplot as plt
 
-gamma0 = 1.1 # defines the energy of the beam
-gamma_transition = 1.3
+gamma0 = 2. # defines the energy of the beam
+gamma_transition = 2.3
 momentum_compaction_factor = 1 / gamma_transition**2
 compensate_phase = True
 
@@ -19,14 +19,14 @@ circumference = 1000.
 t_rev = circumference / (particle_ref.beta0[0] * clight)
 f_rev = 1 / t_rev
 
-energy_ref_increment =  0.001e6 # eV
+energy_ref_increment =  10e3 # eV
 
 eta = momentum_compaction_factor - 1 / particle_ref.gamma0[0]**2
 
-h_rf = 20
+h_rf = 40
 
 f_rf = h_rf * f_rev
-v_rf = 1.5e3
+v_rf = 15e3
 lag_rf = 180. if eta > 0. else 0.
 
 # Compute momentum increment using auxiliary particle
