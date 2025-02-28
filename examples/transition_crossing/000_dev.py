@@ -91,9 +91,9 @@ plt.plot(z_separatrix, -delta_separatrix, color='C1')
 plt.xlabel('zeta [m]')
 plt.ylabel('delta')
 
-# Check the force
+# Check the force and hamiltonian
 z_test = np.linspace(-30, 30, 1000)
-force = matcher.rfbucket.total_force(z_test)
+force = rfb.total_force(z_test)
 hamiltonian = rfb.hamiltonian(z_test, 0)
 
 plt.figure(2)
@@ -101,7 +101,7 @@ ax1 = plt.subplot(2,1,1)
 ax1.plot(z_test, force)
 ax1.set_ylabel(r'F($\zeta$)')
 ax2 = plt.subplot(2,1,2, sharex=ax1)
-ax2.plot(z_test, matcher.rfbucket.hamiltonian(z_test, 0))
+ax2.plot(z_test, hamiltonian)
 ax2.set_xlabel(r'$\zeta$ [m]')
 ax2.set_ylabel(r'$H(\zeta, 0)$')
 
