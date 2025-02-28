@@ -8,7 +8,7 @@ from scipy.constants import e as qe
 import matplotlib.pyplot as plt
 
 kinetic_energy0 = 100e6 # eV
-gamma_transition = 1.3
+gamma_transition = 1.05
 momentum_compaction_factor = 1 / gamma_transition**2
 
 particle_ref = xt.Particles(kinetic_energy0=kinetic_energy0,
@@ -25,7 +25,7 @@ h_rf = 20
 
 f_rf = h_rf * f_rev
 v_rf = 1.5e3
-lag_rf = 50
+lag_rf = 180
 
 # Compute momentum increment using auxiliary particle
 p_ref_aux = xt.Particles(kinetic_energy0=kinetic_energy0 + energy_ref_increment,
