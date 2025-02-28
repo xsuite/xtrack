@@ -7,8 +7,8 @@ from scipy.constants import c as clight
 from scipy.constants import e as qe
 import matplotlib.pyplot as plt
 
-gamma0 = 3.6 # defines the energy of the beam
-gamma_transition = 3.3
+gamma0 = 5 # defines the energy of the beam
+gamma_transition = 4.
 momentum_compaction_factor = 1 / gamma_transition**2
 compensate_phase = True
 
@@ -65,7 +65,7 @@ p_gauss, matcher = xp.generate_matched_gaussian_bunch(
     num_particles=10_000,
     nemitt_x=2.5e-6,
     nemitt_y=2.5e-6,
-    sigma_z=5,
+    sigma_z=2.,
     return_matcher=True)
 
 rfb = line._get_bucket()

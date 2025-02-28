@@ -1,0 +1,114 @@
+import xtrack as xt
+import xpart as xp
+from xpart.longitudinal.rf_bucket import RFBucket
+
+import numpy as np
+from scipy.constants import c as clight
+from scipy.constants import e as qe
+import matplotlib.pyplot as plt
+
+gamma0 = 3. # defines the energy of the beam
+gamma_transition = 4.
+momentum_compaction_factor = 1 / gamma_transition**2
+compensate_phase = True
+
+particle_ref = xt.Particles(gamma0=gamma0,
+                            mass0=xt.PROTON_MASS_EV)
+
+circumference = 1000.
+t_rev = circumference / (particle_ref.beta0[0] * clight)
+f_rev = 1 / t_rev
+
+energy_ref_increment =  50e3
+
+eta = momentum_compaction_factor - 1 / particle_ref.gamma0[0]**2
+
+h_rf = 40
+
+f_rf = h_rf * f_rev
+v_rf = 100e3
+lag_rf = 180. if eta > 0. else 0.
+
+# Compute momentum increment using auxiliary particle
+dp0c_eV = energy_ref_increment / particle_ref.beta0[0]
+
+if compensate_phase:
+    phi = np.arcsin(dp0c_eV * particle_ref.beta0[0] / v_rf)
+    if eta > 0:
+        phi = np.pi - phi
+    lag_rf = np.rad2deg(phi)
+
+otm = xt.LineSegmentMap(
+    betx=1., bety=1,
+    qx=6.3, qy=6.4,
+    momentum_compaction_factor=momentum_compaction_factor,
+    longitudinal_mode="nonlinear",
+    voltage_rf=v_rf,
+    frequency_rf=f_rf,
+    lag_rf=lag_rf,
+    length=circumference,
+    energy_ref_increment=energy_ref_increment
+)
+
+line = xt.Line(elements={'otm': otm}, particle_ref=particle_ref)
+
+tw = line.twiss()
+
+p, matcher = xp.generate_matched_gaussian_bunch(
+    line=line,
+    num_particles=10_000,
+    nemitt_x=2.5e-6,
+    nemitt_y=2.5e-6,
+    sigma_z=5,
+    return_matcher=True)
+
+
+# Logger (log every ten turns)
+num_turns = 50_000
+log_every = 20
+n_log = num_turns // log_every
+mon = xt.ParticlesMonitor(
+    start_at_turn=0,
+    stop_at_turn=1,
+    n_repetitions=n_log,
+    repetition_period=log_every,
+    num_particles=len(p.x))
+
+jumped = False
+while p.at_turn[0] < num_turns:
+    print(f'Turn {p.at_turn[0]}/{num_turns}            ', end='\r', flush=True)
+    line.track(p, num_turns=100, turn_by_turn_monitor=mon)
+    p.reorganize() # (put lost particles at the end)
+
+    if p.gamma0[0] > gamma_transition and not jumped:
+        print(f'Jumped at turn: {p.at_turn[0]}')
+        line['otm'].lag_rf = 180 - line['otm'].lag_rf
+        jumped = True
+
+plt.close('all')
+plt.figure(1)
+plt.plot(mon.at_turn[:, 0, 0], mon.zeta.std(axis=1))
+plt.xlabel('Turn')
+plt.ylabel('Bunch length [m]')
+plt.show()
+
+# Make movie (needed `conda install -c conda-forge ffmpeg``)
+def update_plot(i_log, fig):
+    plt.clf()
+    plt.plot(mon.zeta[i_log, :], mon.delta[i_log, :], '.', markersize=1)
+    plt.xlim(-10, 10)
+    plt.ylim(-10e-3, 10e-3)
+    plt.xlabel('z [m]')
+    plt.ylabel(r'$\Delta p / p_0$')
+    plt.title(f'Turn {mon.at_turn[i_log, 0, 0]}')
+    plt.subplots_adjust(left=0.2)
+    plt.grid(alpha=0.5)
+
+fig = plt.figure()
+from matplotlib.animation import FFMpegFileWriter
+moviewriter = FFMpegFileWriter(fps=15)
+with moviewriter.saving(fig, 'transition.mp4', dpi=100):
+    for j in range(0, len(mon.zeta[:, 0, 0]), 2):
+        print(f'Frame {j}/{len(mon.zeta[:, 0, 0])}            ', end='\r', flush=True)
+        update_plot(j, fig)
+        moviewriter.grab_frame()
