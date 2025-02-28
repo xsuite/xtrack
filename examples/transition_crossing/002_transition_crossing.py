@@ -33,9 +33,12 @@ lag_rf = 180. if eta > 0. else 0.
 dp0c_eV = energy_ref_increment / particle_ref.beta0[0]
 
 if compensate_phase:
-    phi = np.arcsin(dp0c_eV * particle_ref.beta0[0] / v_rf)
+    phi_below = np.arcsin(dp0c_eV * particle_ref.beta0[0] / v_rf)
+    phi_above = np.pi - phi_below
     if eta > 0:
-        phi = np.pi - phi
+        phi = phi_above
+    else:
+        phi = phi_below
     lag_rf = np.rad2deg(phi)
 
 otm = xt.LineSegmentMap(
@@ -75,6 +78,7 @@ mon = xt.ParticlesMonitor(
     num_particles=len(p.x))
 
 jumped = False
+i_jumped = None
 while p.at_turn[0] < num_turns:
     print(f'Turn {p.at_turn[0]}/{num_turns}            ', end='\r', flush=True)
     line.track(p, num_turns=100, turn_by_turn_monitor=mon)
@@ -83,32 +87,41 @@ while p.at_turn[0] < num_turns:
     if p.gamma0[0] > gamma_transition and not jumped:
         print(f'Jumped at turn: {p.at_turn[0]}')
         line['otm'].lag_rf = 180 - line['otm'].lag_rf
+        i_jumped = p.at_turn[0]
         jumped = True
+
+sigma_z_rms = np.squeeze(mon.zeta.std(axis=1))
 
 plt.close('all')
 plt.figure(1)
-plt.plot(mon.at_turn[:, 0, 0], mon.zeta.std(axis=1))
+plt.plot(mon.at_turn[:, 0, 0], sigma_z_rms)
 plt.xlabel('Turn')
 plt.ylabel('Bunch length [m]')
 plt.show()
 
 # Make movie (needed `conda install -c conda-forge ffmpeg``)
 def update_plot(i_log, fig):
+    i_turn = mon.at_turn[i_log, 0, 0]
+    phi_rf_deg = np.rad2deg(phi_above) if i_turn >= i_jumped else np.rad2deg(phi_below)
     plt.clf()
     plt.plot(mon.zeta[i_log, :], mon.delta[i_log, :], '.', markersize=1)
     plt.xlim(-10, 10)
     plt.ylim(-10e-3, 10e-3)
     plt.xlabel('z [m]')
     plt.ylabel(r'$\Delta p / p_0$')
-    plt.title(f'Turn {mon.at_turn[i_log, 0, 0]}')
-    plt.subplots_adjust(left=0.2)
+    plt.title(f'Turn {i_turn} '
+              r'$\sigma_\zeta = $' f'{sigma_z_rms[i_log]:.2f}\n'
+              r'$\gamma_0 = $' f'{mon.gamma0[i_log, 0, 0]:.2f} '
+              r'$\gamma_t = $' f'{gamma_transition:.2f} '
+              r'$\phi_{\mathrm{rf}} = $' f'{phi_rf_deg:.2f}')
+    plt.subplots_adjust(left=0.2, top=0.82)
     plt.grid(alpha=0.5)
 
 fig = plt.figure()
 from matplotlib.animation import FFMpegFileWriter
 moviewriter = FFMpegFileWriter(fps=15)
 with moviewriter.saving(fig, 'transition.mp4', dpi=100):
-    for j in range(0, len(mon.zeta[:, 0, 0]), 2):
+    for j in range(0, len(mon.zeta[:, 0, 0]), 1):
         print(f'Frame {j}/{len(mon.zeta[:, 0, 0])}            ', end='\r', flush=True)
         update_plot(j, fig)
         moviewriter.grab_frame()
