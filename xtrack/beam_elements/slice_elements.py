@@ -68,6 +68,7 @@ class ThinSliceQuadrupole(BeamElement):
 
         out = Multipole(knl=knl, ksl=ksl, length=length,
                         hxl=0,
+                        radiation_flag=self.radiation_flag,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
                         shift_s=self._parent.shift_s,
@@ -116,6 +117,7 @@ class ThinSliceSextupole(BeamElement):
 
         out = Multipole(knl=knl, ksl=ksl, length=length,
                         hxl=0,
+                        radiation_flag=self.radiation_flag,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
                         shift_s=self._parent.shift_s,
@@ -164,6 +166,7 @@ class ThinSliceOctupole(BeamElement):
 
         out = Multipole(knl=knl, ksl=ksl, length=length,
                         hxl=0,
+                        radiation_flag=self.radiation_flag,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
                         shift_s=self._parent.shift_s,
@@ -211,6 +214,7 @@ class ThinSliceBend(BeamElement):
 
         out = Multipole(knl=knl, ksl=ksl, length=length,
                         hxl=self._parent.h * length,
+                        radiation_flag=self.radiation_flag,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
                         shift_s=self._parent.shift_s,
