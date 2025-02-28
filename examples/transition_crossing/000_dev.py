@@ -18,7 +18,7 @@ circumference = 1000.
 t_rev = circumference / (particle_ref.beta0[0] * clight)
 f_rev = 1 / t_rev
 
-energy_ref_increment =  0 #0.001e6 # eV
+energy_ref_increment =  0.001e6 # eV
 
 
 h_rf = 20
