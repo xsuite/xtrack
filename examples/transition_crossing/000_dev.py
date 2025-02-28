@@ -66,7 +66,6 @@ p_gauss, matcher = xp.generate_matched_gaussian_bunch(
     nemitt_x=2.5e-6,
     nemitt_y=2.5e-6,
     sigma_z=5,
-    energy_ref_increment=energy_ref_increment,
     return_matcher=True)
 
 rfb = matcher.rfbucket
