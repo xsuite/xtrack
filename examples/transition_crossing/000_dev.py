@@ -8,8 +8,9 @@ from scipy.constants import e as qe
 import matplotlib.pyplot as plt
 
 kinetic_energy0 = 100e6 # eV
-gamma_transition = 1.05
+gamma_transition = 1.3
 momentum_compaction_factor = 1 / gamma_transition**2
+compensate_phase = True
 
 particle_ref = xt.Particles(kinetic_energy0=kinetic_energy0,
                             mass0=xt.PROTON_MASS_EV)
@@ -20,12 +21,13 @@ f_rev = 1 / t_rev
 
 energy_ref_increment =  0.001e6 # eV
 
+eta = momentum_compaction_factor - 1 / particle_ref.gamma0[0]**2
 
 h_rf = 20
 
 f_rf = h_rf * f_rev
 v_rf = 1.5e3
-lag_rf = 180
+lag_rf = 180. if eta > 0. else 0.
 
 # Compute momentum increment using auxiliary particle
 p_ref_aux = xt.Particles(kinetic_energy0=kinetic_energy0 + energy_ref_increment,
@@ -33,6 +35,12 @@ p_ref_aux = xt.Particles(kinetic_energy0=kinetic_energy0 + energy_ref_increment,
 dp0c_eV = p_ref_aux.p0c[0] - particle_ref.p0c[0]
 dp0c_J = dp0c_eV * qe
 dp0_si = dp0c_J / clight
+
+if compensate_phase:
+    phi = np.arcsin(dp0c_eV * particle_ref.beta0[0] / v_rf)
+    if eta > 0:
+        phi = np.pi - phi
+    lag_rf = np.rad2deg(phi)
 
 otm = xt.LineSegmentMap(
     betx=1., bety=1,
