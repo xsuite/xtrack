@@ -21,11 +21,11 @@ def test_optimize_with_radiation():
         line.build_tracker()
         line.configure_radiation('mean')
         
-        part = xp.Particles(p0c=1e15, x=1.1)
+        part = xp.Particles(p0c=1e15, x=0.11)
         line.track(part)
         
         line.optimize_for_tracking()
-        part_opt = xp.Particles(p0c=1e15, x=1.1)
+        part_opt = xp.Particles(p0c=1e15, x=0.11)
         line.track(part_opt)
         
         assert part.x == part_opt.x
@@ -44,6 +44,9 @@ def test_optimize_with_delta_taper():
     env.new('ms', xt.Sextupole, length=1, k2=1)
     env.new('mo', xt.Octupole, length=1, k3=1)
 
+    thin_classes = [xt.ThinSliceBendEntry, xt.ThinSliceBendExit, xt.ThinSliceBend, 
+                    xt.ThinSliceQuadrupole, xt.ThinSliceSextupole, xt.ThinSliceOctupole]
+
     element_list = ['mb', 'mq', 'ms', 'mo']
 
     for element in element_list:
@@ -54,16 +57,18 @@ def test_optimize_with_delta_taper():
             slicing_strategies=[xt.Strategy(slicing=xt.Teapot(1))])
 
         for el in line.elements:
-            if hasattr(el, 'delta_taper'):
+            if type(el) in thin_classes:
                 el.delta_taper = 0.1
+                print(el)
         
         line.build_tracker()
+        line.configure_radiation('mean')
         
-        part = xp.Particles(p0c=1e15, x=1.1)
+        part = xp.Particles(p0c=1e15, x=0.11)
         line.track(part)
         
         line.optimize_for_tracking()
-        part_opt = xp.Particles(p0c=1e15, x=1.1)
+        part_opt = xp.Particles(p0c=1e15, x=0.11)
         line.track(part_opt)
         
         assert part.x == part_opt.x
