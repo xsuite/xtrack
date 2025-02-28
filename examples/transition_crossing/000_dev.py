@@ -25,7 +25,7 @@ h_rf = 20
 
 f_rf = h_rf * f_rev
 v_rf = 1.5e3
-lag_rf = 0
+lag_rf = 50
 
 # Compute momentum increment using auxiliary particle
 p_ref_aux = xt.Particles(kinetic_energy0=kinetic_energy0 + energy_ref_increment,
@@ -93,11 +93,17 @@ plt.ylabel('delta')
 
 # Check the force
 z_test = np.linspace(-30, 30, 1000)
-force = rfb.total_force(z_test)
+force = matcher.rfbucket.total_force(z_test)
+hamiltonian = rfb.hamiltonian(z_test, 0)
 
 plt.figure(2)
-plt.plot(z_test, force)
-plt.xlabel('zeta [m]')
+ax1 = plt.subplot(2,1,1)
+ax1.plot(z_test, force)
+ax1.set_ylabel(r'F($\zeta$)')
+ax2 = plt.subplot(2,1,2, sharex=ax1)
+ax2.plot(z_test, matcher.rfbucket.hamiltonian(z_test, 0))
+ax2.set_xlabel(r'$\zeta$ [m]')
+ax2.set_ylabel(r'$H(\zeta, 0)$')
 
 # Check hamiltonian on the delta axis
 delta_test = np.linspace(-1e-2, 1e-2, 1000)
@@ -105,5 +111,7 @@ plt.figure(3)
 plt.plot(delta_test, matcher.rfbucket.hamiltonian(0, delta_test))
 plt.plot(delta_test, matcher.psi_object.H(0, delta_test))
 plt.plot(delta_test, matcher.rfbucket.hamiltonian(0, delta_test, make_convex=True), '--')
+plt.xlabel(r'$\delta$')
+plt.ylabel(r'$H(0, \delta)$')
 
 plt.show()
