@@ -77,4 +77,3 @@ def test_optimize_with_delta_taper():
         assert part.py == part_opt.py
         assert part.zeta == part_opt.zeta
         assert part.pzeta == part_opt.pzeta
-#
