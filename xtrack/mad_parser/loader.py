@@ -46,7 +46,17 @@ CONSTANTS = {
     "hbar": 6.582119569e-25,  # MeV * s
     "erad": 2.8179403262e-15,  # m
     "prad": 'erad / emass * pmass',
-    }
+}
+
+_APERTURE_TYPES = {
+    'circle': 'LimitEllipse',
+    'ellipse': 'LimitEllipse',
+    'rectangle': 'LimitRect',
+    'rectellipse': 'LimitRectEllipse',
+    'racetrack': 'LimitRacetrack',
+    'octagon': 'LimitPolygon',
+}
+
 
 def _warn(msg):
     print(f'Warning: {msg}')
@@ -120,16 +130,9 @@ class MadxLoader:
         self._new_builtin("rfcavity", "Cavity")
         self._new_builtin("multipole", "Multipole", knl=6 * [0])
         self._new_builtin("solenoid", "Solenoid")
-        self._new_builtin('circle', 'LimitEllipse')
-        self._new_builtin('ellipse', 'LimitEllipse')
-        self._new_builtin('rectangle', 'LimitRect')
-        self._new_builtin("rectellipse", 'LimitRectEllipse')
-        self._new_builtin("racetrack", 'LimitRacetrack')
 
-        x_vertices = [1e10 * np.sin((i + 0.5) / 8 * np.pi / 180) for i in range(8)]
-        y_vertices = [1e10 * np.cos((i + 0.5) / 8 * np.pi / 180) for i in range(8)]
-        self._new_builtin("octagon", 'LimitPolygon', x_vertices=x_vertices, y_vertices=y_vertices)
-        self._new_builtin("polygon", 'Marker')
+        for mad_apertype in _APERTURE_TYPES:
+            self._new_builtin(mad_apertype, 'Marker')
 
     def load_file(self, file, build=True) -> Optional[List[Builder]]:
         """Load a MAD-X file and generate/update the environment."""
@@ -305,8 +308,11 @@ class MadxLoader:
                     el_params.pop('extra', None)
                     builder.place(name, **el_params)
                 else:
-                    if parent == 'polygon':
-                        parent = 'LimitPolygon'
+                    if parent in _APERTURE_TYPES:
+                        if 'x_vertices' in el_params or 'y_vertices' in el_params:
+                            parent = 'LimitPolygon'
+                        else:
+                            parent = _APERTURE_TYPES[parent]
                     builder.new(name, parent, force=True, **el_params) # Not sure why `force` is needed
 
     def _make_thick_sandwich(self, name, length, make_drifts=True):
@@ -336,19 +342,17 @@ class MadxLoader:
             # We need to keep the rbarc parameter from the parent element.
             # If rbarc = True, then rbend length is the straight length.
             # If rbarc = False, then the length is the arc length, as for sbend.
-            cached_params = self._parameter_cache[name]
-
             length = params.get('length', 0)
 
             if parent_name == 'rbend':
-                rbarc = cached_params.get('rbarc', self.rbarc)
+                rbarc = self._parameter_cache[name].get('rbarc', self.rbarc)
                 if rbarc and 'length' in params:
                     params['length_straight'] = params.pop('length')
 
             # Default MAD-X behaviour is to take k0 from h only if k0 is not
             # given. We need to replicate this behaviour. Ideally we should
             # evaluate expressions here, but that's tricky.
-            if cached_params.get('k0', 0) == 0:
+            if self._parameter_cache[name].get('k0', 0) == 0:
                 params['k0_from_h'] = True
             else:
                 params['k0_from_h'] = False
