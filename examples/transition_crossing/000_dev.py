@@ -7,12 +7,12 @@ from scipy.constants import c as clight
 from scipy.constants import e as qe
 import matplotlib.pyplot as plt
 
-kinetic_energy0 = 100e6 # eV
+gamma0 = 1.1 # defines the energy of the beam
 gamma_transition = 1.3
 momentum_compaction_factor = 1 / gamma_transition**2
 compensate_phase = True
 
-particle_ref = xt.Particles(kinetic_energy0=kinetic_energy0,
+particle_ref = xt.Particles(gamma0=gamma0,
                             mass0=xt.PROTON_MASS_EV)
 
 circumference = 1000.
@@ -30,11 +30,7 @@ v_rf = 1.5e3
 lag_rf = 180. if eta > 0. else 0.
 
 # Compute momentum increment using auxiliary particle
-p_ref_aux = xt.Particles(kinetic_energy0=kinetic_energy0 + energy_ref_increment,
-                         mass0=particle_ref.mass0)
-dp0c_eV = p_ref_aux.p0c[0] - particle_ref.p0c[0]
-dp0c_J = dp0c_eV * qe
-dp0_si = dp0c_J / clight
+dp0c_eV = energy_ref_increment * particle_ref.beta0[0]
 
 if compensate_phase:
     phi = np.arcsin(dp0c_eV * particle_ref.beta0[0] / v_rf)
@@ -64,32 +60,18 @@ p = line.build_particles(delta=delta_test)
 line.track(p, turn_by_turn_monitor=True, num_turns=1000)
 mon = line.record_last_track
 
-mass0_ev = particle_ref.mass0
-mass0_j = mass0_ev * qe
-mass_kg = mass0_j / clight**2
-rfb = RFBucket(
-    circumference=circumference,
-    gamma=tw.gamma0,
-    mass_kg=mass_kg,
-    charge_coulomb=particle_ref.q0 * qe,
-    alpha_array=[momentum_compaction_factor],
-    p_increment=dp0_si,
-    harmonic_list=[h_rf],
-    voltage_list=[v_rf],
-    phi_offset_list=[np.deg2rad(lag_rf)],
-)
-
-z_separatrix = np.linspace(-30, 30, 1000)
-delta_separatrix = rfb.separatrix(z_separatrix)
-
 p_gauss, matcher = xp.generate_matched_gaussian_bunch(
     line=line,
     num_particles=1000,
     nemitt_x=2.5e-6,
     nemitt_y=2.5e-6,
     sigma_z=5,
-    p_increment=dp0_si,
+    energy_ref_increment=energy_ref_increment,
     return_matcher=True)
+
+rfb = matcher.rfbucket
+z_separatrix = np.linspace(-30, 30, 1000)
+delta_separatrix = rfb.separatrix(z_separatrix)
 
 plt.close('all')
 plt.figure(1)
