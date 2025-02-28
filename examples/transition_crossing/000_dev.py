@@ -80,6 +80,7 @@ p_gauss, matcher = xp.generate_matched_gaussian_bunch(
     nemitt_x=2.5e-6,
     nemitt_y=2.5e-6,
     sigma_z=5,
+    p_increment=dp0_si,
     return_matcher=True)
 
 plt.close('all')
