@@ -30,7 +30,7 @@ v_rf = 1.5e3
 lag_rf = 180. if eta > 0. else 0.
 
 # Compute momentum increment using auxiliary particle
-dp0c_eV = energy_ref_increment * particle_ref.beta0[0]
+dp0c_eV = energy_ref_increment / particle_ref.beta0[0]
 
 if compensate_phase:
     phi = np.arcsin(dp0c_eV * particle_ref.beta0[0] / v_rf)
