@@ -25,7 +25,7 @@ h_rf = 20
 
 f_rf = h_rf * f_rev
 v_rf = 1.5e3
-lag_rf = 0
+lag_rf = 30
 
 # Compute momentum increment using auxiliary particle
 p_ref_aux = xt.Particles(kinetic_energy0=kinetic_energy0 + energy_ref_increment,
@@ -74,12 +74,13 @@ rfb = RFBucket(
 z_separatrix = np.linspace(-30, 30, 1000)
 delta_separatrix = rfb.separatrix(z_separatrix)
 
-p_gauss = xp.generate_matched_gaussian_bunch(
+p_gauss, matcher = xp.generate_matched_gaussian_bunch(
     line=line,
     num_particles=1000,
     nemitt_x=2.5e-6,
     nemitt_y=2.5e-6,
-    sigma_z=5)
+    sigma_z=5,
+    return_matcher=True)
 
 plt.close('all')
 plt.figure(1)
@@ -97,5 +98,12 @@ force = rfb.total_force(z_test)
 plt.figure(2)
 plt.plot(z_test, force)
 plt.xlabel('zeta [m]')
+
+# Check hamiltonian on the delta axis
+delta_test = np.linspace(-1e-2, 1e-2, 1000)
+plt.figure(3)
+plt.plot(delta_test, matcher.rfbucket.hamiltonian(0, delta_test))
+plt.plot(delta_test, matcher.psi_object.H(0, delta_test))
+plt.plot(delta_test, matcher.rfbucket.hamiltonian(0, delta_test, make_convex=True), '--')
 
 plt.show()
