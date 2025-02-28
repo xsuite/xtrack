@@ -25,7 +25,7 @@ h_rf = 20
 
 f_rf = h_rf * f_rev
 v_rf = 1.5e3
-lag_rf = 30
+lag_rf = 0
 
 # Compute momentum increment using auxiliary particle
 p_ref_aux = xt.Particles(kinetic_energy0=kinetic_energy0 + energy_ref_increment,
