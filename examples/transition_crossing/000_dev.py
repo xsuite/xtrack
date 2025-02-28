@@ -84,7 +84,7 @@ p_gauss, matcher = xp.generate_matched_gaussian_bunch(
 
 plt.close('all')
 plt.figure(1)
-# plt.plot(p_gauss.zeta, p_gauss.delta, '.', color='k', alpha=0.5)
+plt.plot(p_gauss.zeta, p_gauss.delta, '.', color='k', alpha=0.5)
 plt.plot(mon.zeta.T, mon.delta.T, color='C0')
 plt.plot(z_separatrix, delta_separatrix, color='C1')
 plt.plot(z_separatrix, -delta_separatrix, color='C1')
