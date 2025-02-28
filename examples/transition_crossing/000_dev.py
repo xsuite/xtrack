@@ -68,8 +68,8 @@ p_gauss, matcher = xp.generate_matched_gaussian_bunch(
     sigma_z=5,
     return_matcher=True)
 
-rfb = matcher.rfbucket
-z_separatrix = np.linspace(-30, 30, 1000)
+rfb = line._get_bucket()
+z_separatrix = np.linspace(rfb.z_left, rfb.z_right, 1000)
 delta_separatrix = rfb.separatrix(z_separatrix)
 
 plt.close('all')

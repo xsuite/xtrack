@@ -963,6 +963,10 @@ class Line:
 
         return self._collimators
 
+    def _get_bucket(self):
+        import xpart as xp
+        return xp.longitudinal.get_bucket(self)
+
     def discard_tracker(self):
 
         """
