@@ -36,11 +36,12 @@ dp0c_eV = energy_ref_increment / particle_ref.beta0[0]
 if compensate_phase:
     phi_below = np.arcsin(dp0c_eV * particle_ref.beta0[0] / v_rf)
     phi_above = np.pi - phi_below
+    lag_rf_above = np.rad2deg(phi_above)
+    lag_rf_below = np.rad2deg(phi_below)
     if eta > 0:
-        phi = phi_above
+        lag_rf = lag_rf_above
     else:
-        phi = phi_below
-    lag_rf = np.rad2deg(phi)
+        lag_rf = lag_rf_below
 
 otm = xt.LineSegmentMap(
     betx=1., bety=1,
@@ -78,35 +79,49 @@ mon = xt.ParticlesMonitor(
     repetition_period=log_every,
     num_particles=len(p.x))
 
+#########
+# Track #
+#########
+
 jumped = False
 i_jumped = None
-i_separatrix = []
-z_separatrix = []
-delta_separatrix = []
 while p.at_turn[0] < num_turns:
     print(f'Turn {p.at_turn[0]}/{num_turns}            ', end='\r', flush=True)
 
-    line.particle_ref.gamma0 = p.gamma0[0]
+    # Phase jump
+    if p.gamma0[0] > gamma_transition and not jumped:
+        print(f'Jumped at turn: {p.at_turn[0]}')
+        line['otm'].lag_rf = lag_rf_above
+        i_jumped = p.at_turn[0]
+        jumped = True
+
+    # Track
+    line.track(p, num_turns=100, turn_by_turn_monitor=mon)
+    p.reorganize() # (put lost particles at the end)
+
+############
+# Plotting #
+############
+
+# Generate separatrix for video
+i_separatrix = []
+z_separatrix = []
+delta_separatrix = []
+for i_sep in np.arange(0, num_turns, 100):
+    print(f'Separatrix {i_sep}/{num_turns}            ', end='\r', flush=True)
+    line.particle_ref.gamma0 = mon.gamma0[i_sep//log_every, 0, 0]
+    line['otm'].lag_rf = lag_rf_above if i_sep >= i_jumped else lag_rf_below
     try:
         rfb = line._get_bucket()
-        i_separatrix.append(p.at_turn[0])
+        i_separatrix.append(i_sep)
         z_separatrix.append(np.linspace(rfb.z_left, rfb.z_right, 1000))
         delta_separatrix.append(rfb.separatrix(z_separatrix[-1]))
     except:
-        i_separatrix.append(p.at_turn[0])
+        i_separatrix.append(i_sep)
         z_separatrix.append(np.zeros(1000))
         delta_separatrix.append(np.zeros(1000))
         z_separatrix[-1][:] = -1e20
         delta_separatrix[-1][:] = 0
-
-    if p.gamma0[0] > gamma_transition and not jumped:
-        print(f'Jumped at turn: {p.at_turn[0]}')
-        line['otm'].lag_rf = 180 - line['otm'].lag_rf
-        i_jumped = p.at_turn[0]
-        jumped = True
-
-    line.track(p, num_turns=100, turn_by_turn_monitor=mon)
-    p.reorganize() # (put lost particles at the end)
 
 sigma_z_rms = np.squeeze(mon.zeta.std(axis=1))
 z_separatrix = np.array(z_separatrix)
@@ -114,7 +129,7 @@ delta_separatrix = np.array(delta_separatrix)
 i_separatrix = np.array(i_separatrix)
 
 plt.close('all')
-plt.figure(1)
+fig1 = plt.figure(1)
 plt.plot(mon.at_turn[:, 0, 0], sigma_z_rms)
 plt.xlabel('Turn')
 plt.ylabel('Bunch length [m]')
@@ -130,11 +145,17 @@ def update_plot(i_log, fig):
     i_turn = mon.at_turn[i_log, 0, 0]
     z_sep = f_sep_z(i_turn)
     delta_sep = f_sep_delta(i_turn)
+
+    plot_separatrix = True
+    if np.abs(i_turn - i_jumped) < 100:
+        plot_separatrix = False
+
     phi_rf_deg = np.rad2deg(phi_above) if i_turn >= i_jumped else np.rad2deg(phi_below)
     plt.clf()
     plt.plot(mon.zeta[i_log, :], mon.delta[i_log, :], '.', markersize=1)
-    plt.plot(z_sep, delta_sep, color='C1', linewidth=2)
-    plt.plot(z_sep, -delta_sep, color='C1', linewidth=2)
+    if plot_separatrix:
+        plt.plot(z_sep, delta_sep, color='C1', linewidth=2)
+        plt.plot(z_sep, -delta_sep, color='C1', linewidth=2)
     plt.xlim(-10, 10)
     plt.ylim(-10e-3, 10e-3)
     plt.xlabel('z [m]')
