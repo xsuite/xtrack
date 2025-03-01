@@ -5,6 +5,7 @@ from xpart.longitudinal.rf_bucket import RFBucket
 import numpy as np
 from scipy.constants import c as clight
 from scipy.constants import e as qe
+from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 
 gamma0 = 3. # defines the energy of the beam
@@ -79,10 +80,24 @@ mon = xt.ParticlesMonitor(
 
 jumped = False
 i_jumped = None
+i_separatrix = []
+z_separatrix = []
+delta_separatrix = []
 while p.at_turn[0] < num_turns:
     print(f'Turn {p.at_turn[0]}/{num_turns}            ', end='\r', flush=True)
-    line.track(p, num_turns=100, turn_by_turn_monitor=mon)
-    p.reorganize() # (put lost particles at the end)
+
+    line.particle_ref.gamma0 = p.gamma0[0]
+    try:
+        rfb = line._get_bucket()
+        i_separatrix.append(p.at_turn[0])
+        z_separatrix.append(np.linspace(rfb.z_left, rfb.z_right, 1000))
+        delta_separatrix.append(rfb.separatrix(z_separatrix[-1]))
+    except:
+        i_separatrix.append(p.at_turn[0])
+        z_separatrix.append(np.zeros(1000))
+        delta_separatrix.append(np.zeros(1000))
+        z_separatrix[-1][:] = -1e20
+        delta_separatrix[-1][:] = 0
 
     if p.gamma0[0] > gamma_transition and not jumped:
         print(f'Jumped at turn: {p.at_turn[0]}')
@@ -90,7 +105,13 @@ while p.at_turn[0] < num_turns:
         i_jumped = p.at_turn[0]
         jumped = True
 
+    line.track(p, num_turns=100, turn_by_turn_monitor=mon)
+    p.reorganize() # (put lost particles at the end)
+
 sigma_z_rms = np.squeeze(mon.zeta.std(axis=1))
+z_separatrix = np.array(z_separatrix)
+delta_separatrix = np.array(delta_separatrix)
+i_separatrix = np.array(i_separatrix)
 
 plt.close('all')
 plt.figure(1)
@@ -99,12 +120,21 @@ plt.xlabel('Turn')
 plt.ylabel('Bunch length [m]')
 plt.show()
 
+f_sep_z = interp1d(i_separatrix, z_separatrix, axis=0,
+                   bounds_error=False, fill_value='extrapolate')
+f_sep_delta = interp1d(i_separatrix, delta_separatrix, axis=0,
+                       bounds_error=False, fill_value='extrapolate')
+
 # Make movie (needed `conda install -c conda-forge ffmpeg``)
 def update_plot(i_log, fig):
     i_turn = mon.at_turn[i_log, 0, 0]
+    z_sep = f_sep_z(i_turn)
+    delta_sep = f_sep_delta(i_turn)
     phi_rf_deg = np.rad2deg(phi_above) if i_turn >= i_jumped else np.rad2deg(phi_below)
     plt.clf()
     plt.plot(mon.zeta[i_log, :], mon.delta[i_log, :], '.', markersize=1)
+    plt.plot(z_sep, delta_sep, color='C1', linewidth=2)
+    plt.plot(z_sep, -delta_sep, color='C1', linewidth=2)
     plt.xlim(-10, 10)
     plt.ylim(-10e-3, 10e-3)
     plt.xlabel('z [m]')
