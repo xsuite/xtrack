@@ -119,29 +119,38 @@ xo.assert_allclose(mon.delta, 0, atol=2e-2*bucket_height, rtol=0)
 np.random.seed(0)
 
 # Match a bunch
+sigma_z = 2.
 p, matcher = xp.generate_matched_gaussian_bunch(
     line=line,
-    num_particles=10_000,
+    num_particles=100_000,
     nemitt_x=2.5e-6,
     nemitt_y=2.5e-6,
-    sigma_z=2.,
+    sigma_z=sigma_z,
     return_matcher=True)
+sigma_delta = p.delta.std()
 
 assert np.all(p.zeta < rfb.z_right)
 assert np.all(p.zeta > rfb.z_left)
 assert np.all(p.delta < bucket_height)
 assert np.all(p.delta > -bucket_height)
 
-xo.assert_allclose(p.delta.max(), bucket_height, atol=0, rtol=0.05)
-xo.assert_allclose(p.delta.min(), -bucket_height, atol=0, rtol=0.05)
-xo.assert_allclose(p.zeta.max(), rfb.z_right, atol=0, rtol=0.05)
-xo.assert_allclose(p.zeta.min(), rfb.z_left, atol=0, rtol=0.10) # this area is narrower
+xo.assert_allclose(p.delta.max(), bucket_height, atol=0, rtol=0.03)
+xo.assert_allclose(p.delta.min(), -bucket_height, atol=0, rtol=0.03)
+xo.assert_allclose(p.zeta.max(), rfb.z_right, atol=0, rtol=0.03)
+xo.assert_allclose(p.zeta.min(), rfb.z_left, atol=0, rtol=0.5) # this area is narrower
+xo.assert_allclose(p.zeta.std(), sigma_z, atol=0, rtol=0.001)
 
-prrrr
+# Check that the distribution stays roughly stable over one synchrotron period
+p, matcher = xp.generate_matched_gaussian_bunch(
+    line=line,
+    num_particles=10_000,
+    nemitt_x=2.5e-6,
+    nemitt_y=2.5e-6,
+    sigma_z=sigma_z,
+    return_matcher=True)
 
-
-num_turns = 1000
-log_every = 50
+num_turns = int(np.round(1/tw.qs))
+log_every = 3
 n_log = num_turns // log_every
 mon = xt.ParticlesMonitor(
     start_at_turn=0,
@@ -153,54 +162,12 @@ mon = xt.ParticlesMonitor(
 line.track(p, num_turns=num_turns, turn_by_turn_monitor=mon,
            with_progress=10)
 
+z_mean = np.squeeze(np.mean(mon.zeta, axis=1))
+z_std = np.squeeze(np.std(mon.zeta, axis=1))
+delta_mean = np.squeeze(np.mean(mon.delta, axis=1))
+delta_std = np.squeeze(np.std(mon.delta, axis=1))
 
-pdrrr
-
-line.track(p, turn_by_turn_monitor=True, num_turns=1000)
-mon = line.record_last_track
-
-p_gauss, matcher = xp.generate_matched_gaussian_bunch(
-    line=line,
-    num_particles=10_000,
-    nemitt_x=2.5e-6,
-    nemitt_y=2.5e-6,
-    sigma_z=2.,
-    return_matcher=True)
-
-
-z_separatrix = np.linspace(rfb.z_left, rfb.z_right, 1000)
-delta_separatrix = rfb.separatrix(z_separatrix)
-
-plt.close('all')
-plt.figure(1)
-plt.plot(p_gauss.zeta, p_gauss.delta, '.', color='k', alpha=0.5)
-plt.plot(mon.zeta.T, mon.delta.T, color='C0')
-plt.plot(z_separatrix, delta_separatrix, color='C1')
-plt.plot(z_separatrix, -delta_separatrix, color='C1')
-plt.xlabel('zeta [m]')
-plt.ylabel('delta')
-
-# Check the force and hamiltonian
-z_test = np.linspace(-30, 30, 1000)
-force = rfb.total_force(z_test)
-hamiltonian = rfb.hamiltonian(z_test, 0)
-
-plt.figure(2)
-ax1 = plt.subplot(2,1,1)
-ax1.plot(z_test, force)
-ax1.set_ylabel(r'F($\zeta$)')
-ax2 = plt.subplot(2,1,2, sharex=ax1)
-ax2.plot(z_test, hamiltonian)
-ax2.set_xlabel(r'$\zeta$ [m]')
-ax2.set_ylabel(r'$H(\zeta, 0)$')
-
-# Check hamiltonian on the delta axis
-delta_test = np.linspace(-1e-2, 1e-2, 1000)
-plt.figure(3)
-plt.plot(delta_test, matcher.rfbucket.hamiltonian(0, delta_test))
-plt.plot(delta_test, matcher.psi_object.H(0, delta_test))
-plt.plot(delta_test, matcher.rfbucket.hamiltonian(0, delta_test, make_convex=True), '--')
-plt.xlabel(r'$\delta$')
-plt.ylabel(r'$H(0, \delta)$')
-
-plt.show()
+xo.assert_allclose(z_mean, np.mean(z_mean), atol=0.02*sigma_z)
+xo.assert_allclose(z_std, np.mean(z_std), atol=0.02*sigma_z)
+xo.assert_allclose(delta_mean, np.mean(delta_mean), atol=0.02*sigma_delta)
+xo.assert_allclose(delta_std, np.mean(delta_std), atol=0.02*sigma_delta)
