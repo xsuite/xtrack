@@ -55,8 +55,7 @@ line = xt.Line(elements={'otm': otm}, particle_ref=particle_ref)
 
 tw = line.twiss()
 
-delta_test = np.linspace(0, 5e-3, 20)
-p = line.build_particles(delta=delta_test)
+xo.assert_allclose(tw.qs, 0.0032729, atol=1e-7, rtol=0)
 
 rfb = line._get_bucket()
 
@@ -88,15 +87,74 @@ z_separatrix = np.array(
 delta_separatrix = np.array(
     list(delta_separatrix_up) + list(-delta_separatrix_up[::-1]))
 
+# Hamiltonian is defined to be zero on the separatrix
 xo.assert_allclose(rfb.hamiltonian(z_separatrix, delta_separatrix), 0,
                    atol=1e-3, rtol=0)
 xo.assert_allclose(rfb.hamiltonian(z_separatrix, delta_separatrix, make_convex=True), 0,
                    atol=1e-3, rtol=0)
 
-prrrrr
+# Check that the separatrix behaves as such in tracking
+p = line.build_particles(delta=delta_separatrix[::10]*0.99, zeta=z_separatrix[::10]*0.99)
+line.track(p, turn_by_turn_monitor=True, num_turns=3000)
+mon = line.record_last_track
+assert np.all(mon.zeta < rfb.z_right)
+assert np.all(mon.zeta > rfb.z_left)
+
+p = line.build_particles(delta=delta_separatrix[::10]*1.01, zeta=z_separatrix[::10]*1.01)
+line.track(p, turn_by_turn_monitor=True, num_turns=3000)
+mon = line.record_last_track
+assert not np.all(mon.zeta < rfb.z_right)
+assert not np.all(mon.zeta > rfb.z_left)
+
+# Check the stable fixed point against tracking
+p = line.build_particles(delta=0, zeta=rfb.z_sfp)
+line.track(p, turn_by_turn_monitor=True, num_turns=3000)
+mon = line.record_last_track
+xo.assert_allclose(mon.zeta, rfb.z_sfp, atol=2e-3*(rfb.z_right - rfb.z_left),
+                   rtol=0)
+bucket_height = rfb.separatrix(rfb.z_sfp)[0]
+xo.assert_allclose(mon.delta, 0, atol=2e-2*bucket_height, rtol=0)
+
+# Fix numpy random seed
+np.random.seed(0)
+
+# Match a bunch
+p, matcher = xp.generate_matched_gaussian_bunch(
+    line=line,
+    num_particles=10_000,
+    nemitt_x=2.5e-6,
+    nemitt_y=2.5e-6,
+    sigma_z=2.,
+    return_matcher=True)
+
+assert np.all(p.zeta < rfb.z_right)
+assert np.all(p.zeta > rfb.z_left)
+assert np.all(p.delta < bucket_height)
+assert np.all(p.delta > -bucket_height)
+
+xo.assert_allclose(p.delta.max(), bucket_height, atol=0, rtol=0.05)
+xo.assert_allclose(p.delta.min(), -bucket_height, atol=0, rtol=0.05)
+xo.assert_allclose(p.zeta.max(), rfb.z_right, atol=0, rtol=0.05)
+xo.assert_allclose(p.zeta.min(), rfb.z_left, atol=0, rtol=0.10) # this area is narrower
+
+prrrr
 
 
+num_turns = 1000
+log_every = 50
+n_log = num_turns // log_every
+mon = xt.ParticlesMonitor(
+    start_at_turn=0,
+    stop_at_turn=1,
+    n_repetitions=n_log,
+    repetition_period=log_every,
+    num_particles=len(p.x))
 
+line.track(p, num_turns=num_turns, turn_by_turn_monitor=mon,
+           with_progress=10)
+
+
+pdrrr
 
 line.track(p, turn_by_turn_monitor=True, num_turns=1000)
 mon = line.record_last_track
