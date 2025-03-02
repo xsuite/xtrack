@@ -5781,15 +5781,27 @@ class EnergyProgram:
         return beta0 * clight / circumference
 
     def get_p0c_increse_per_turn_at_t_s(self, t_s):
+
+        ts_scalar = np.isscalar(t_s)
+        if ts_scalar:
+            t_s = np.array([t_s])
+
         beta0 = self.get_beta0_at_t_s(t_s)
         circumference = self.line.get_length()
         T_rev = circumference / (beta0 * clight)
-        if t_s - T_rev < 0: # start of the simulation
-            return (self.get_p0c_at_t_s(t_s + T_rev)
-                    - self.get_p0c_at_t_s(t_s))
-        else:
-            return 0.5 * (self.get_p0c_at_t_s(t_s + T_rev)
-                        - self.get_p0c_at_t_s(t_s - T_rev))
+        out = 0.5 * (self.get_p0c_at_t_s(t_s + T_rev)
+                     - self.get_p0c_at_t_s(t_s - T_rev))
+
+        mask_zero_neg = t_s - T_rev < 0
+        if np.any(mask_zero_neg):
+            out[mask_zero_neg] = (
+                self.get_p0c_at_t_s(t_s[mask_zero_neg] + T_rev[mask_zero_neg])
+                - self.get_p0c_at_t_s(t_s[mask_zero_neg]))
+
+        if ts_scalar:
+            out = out[0]
+
+        return out
 
     @property
     def t_turn_s_line(self):
