@@ -23,6 +23,7 @@ f_rev = 1 / t_rev
 energy_ref_increment =  50e3 # eV
 
 eta = momentum_compaction_factor - 1 / particle_ref.gamma0[0]**2
+assert eta < 0
 
 h_rf = 40
 
@@ -54,7 +55,7 @@ otm = xt.LineSegmentMap(
 line = xt.Line(elements={'otm': otm}, particle_ref=particle_ref)
 
 tw = line.twiss()
-
+xo.assert_allclose(tw.slip_factor, eta, atol=1e-3, rtol=0)
 xo.assert_allclose(tw.qs, 0.0032729, atol=1e-7, rtol=0)
 
 rfb = line._get_bucket()
