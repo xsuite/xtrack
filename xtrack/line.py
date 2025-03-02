@@ -3943,16 +3943,24 @@ class Line:
             Rename the element in the new line/environment. If not provided, the
             element is copied with the same name.
         """
+        new_name_input = new_name if new_name != name else None
         new_name = new_name or name
         cls = type(source.element_dict[name])
 
-        if cls not in _ALLOWED_ELEMENT_TYPES_IN_NEW + [xt.DipoleEdge]: # No issue in copying DipoleEdge
-                                                                       # while creating it requires handling properties
-                                                                       # which are strings.
+        if (cls not in _ALLOWED_ELEMENT_TYPES_IN_NEW + [xt.DipoleEdge] # No issue in copying DipoleEdge while creating it requires handling properties which are strings.
+            and 'ThickSlice' not in cls.__name__ and 'ThinSlice' not in cls.__name__
+            and 'DriftSlice' not in cls.__name__):
             raise ValueError(
                 f'Only {_STR_ALLOWED_ELEMENT_TYPES_IN_NEW} elements are '
                 f'allowed in `copy_from_env` for now.'
             )
+
+        if hasattr(source.element_dict[name], 'parent_name'):
+            if new_name_input is not None:
+                raise NotImplementedError('Not supported yet')
+            parent_name = source.element_dict[name].parent_name
+            self.copy_element_from(
+                parent_name, source=source, new_name=None)
 
         self.element_dict[new_name] = source.element_dict[name].copy()
 
