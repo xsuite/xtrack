@@ -5784,8 +5784,12 @@ class EnergyProgram:
         beta0 = self.get_beta0_at_t_s(t_s)
         circumference = self.line.get_length()
         T_rev = circumference / (beta0 * clight)
-        return 0.5 * (self.get_p0c_at_t_s(t_s + T_rev)
-                      - self.get_p0c_at_t_s(t_s - T_rev))
+        if t_s - T_rev < 0: # start of the simulation
+            return (self.get_p0c_at_t_s(t_s + T_rev)
+                    - self.get_p0c_at_t_s(t_s))
+        else:
+            return 0.5 * (self.get_p0c_at_t_s(t_s + T_rev)
+                        - self.get_p0c_at_t_s(t_s - T_rev))
 
     @property
     def t_turn_s_line(self):
