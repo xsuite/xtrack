@@ -8,7 +8,7 @@ from scipy.constants import c as clight
 from scipy.constants import e as qe
 import matplotlib.pyplot as plt
 
-gamma0 = 3 # defines the energy of the beam
+gamma0 = 10. # defines the energy of the beam
 gamma_transition = 4.
 momentum_compaction_factor = 1 / gamma_transition**2
 compensate_phase = True
@@ -23,7 +23,7 @@ f_rev = 1 / t_rev
 energy_ref_increment =  50e3 # eV
 
 eta = momentum_compaction_factor - 1 / particle_ref.gamma0[0]**2
-assert eta < 0
+assert eta > 0
 
 h_rf = 40
 
@@ -56,25 +56,25 @@ line = xt.Line(elements={'otm': otm}, particle_ref=particle_ref)
 
 tw = line.twiss()
 xo.assert_allclose(tw.slip_factor, eta, atol=1e-3, rtol=0)
-xo.assert_allclose(tw.qs, 0.0032729, atol=1e-7, rtol=0)
+xo.assert_allclose(tw.qs, 0.00176525, atol=1e-7, rtol=0)
 
 rfb = line._get_bucket()
 
 # Mostly checking that they do not change
-xo.assert_allclose(line['otm'].lag_rf[0], 30., # degrees
+xo.assert_allclose(line['otm'].lag_rf[0], 180-30., # degrees
                    atol=1e-4, rtol=0)
 
-xo.assert_allclose(np.rad2deg(rfb.dphi[0]), 30.,
+xo.assert_allclose(np.rad2deg(rfb.dphi[0]), 180-30.,
                    atol=1e-4, rtol=0)
 
 xo.assert_allclose(rfb.z_sfp, 0, atol=1e-4, rtol=0)
-xo.assert_allclose(rfb.z_ufp, -8.33333, atol=1e-4, rtol=0)
-xo.assert_allclose(rfb.z_left, rfb.z_ufp, atol=1e-4, rtol=0)
-xo.assert_allclose(rfb.z_right, 4.7699056, atol=1e-4, rtol=0)
+xo.assert_allclose(rfb.z_ufp, 8.33333, atol=1e-4, rtol=0)
+xo.assert_allclose(rfb.z_left, -4.76990, atol=1e-4, rtol=0)
+xo.assert_allclose(rfb.z_right, rfb.z_ufp, atol=1e-4, rtol=0)
 
-xo.assert_allclose(rfb.h_sfp(), -30.78255, atol=1e-3, rtol=0)
+xo.assert_allclose(rfb.h_sfp(), 8.75048, atol=1e-3, rtol=0)
 xo.assert_allclose(rfb.h_sfp(), rfb.hamiltonian(0, 0), atol=1e-3, rtol=0)
-xo.assert_allclose(rfb.h_sfp(make_convex=True), 30.78255, atol=1e-3, rtol=0)
+xo.assert_allclose(rfb.h_sfp(make_convex=True), 8.75048, atol=1e-3, rtol=0)
 xo.assert_allclose(rfb.h_sfp(make_convex=True),
                    rfb.hamiltonian(rfb.z_sfp, 0, make_convex=True),
                    atol=1e-3, rtol=0)
@@ -95,7 +95,7 @@ xo.assert_allclose(rfb.hamiltonian(z_separatrix, delta_separatrix, make_convex=T
                    atol=1e-3, rtol=0)
 
 # Check that the separatrix behaves as such in tracking
-p = line.build_particles(delta=delta_separatrix[::10]*0.99, zeta=z_separatrix[::10]*0.99)
+p = line.build_particles(delta=delta_separatrix[::10]*0.98, zeta=z_separatrix[::10]*0.98)
 line.track(p, turn_by_turn_monitor=True, num_turns=3000)
 mon = line.record_last_track
 assert np.all(mon.zeta < rfb.z_right)
@@ -137,9 +137,9 @@ assert np.all(p.delta > -bucket_height)
 
 xo.assert_allclose(p.delta.max(), bucket_height, atol=0, rtol=0.03)
 xo.assert_allclose(p.delta.min(), -bucket_height, atol=0, rtol=0.03)
-xo.assert_allclose(p.zeta.max(), rfb.z_right, atol=0, rtol=0.03)
-xo.assert_allclose(p.zeta.min(), rfb.z_left, atol=0, rtol=0.05) # this part of the bucket is poorly populated
-xo.assert_allclose(p.zeta.std(), sigma_z, atol=0, rtol=0.001)
+xo.assert_allclose(p.zeta.max(), rfb.z_right, atol=0, rtol=0.7) # this part of the bucket is poorly populated
+xo.assert_allclose(p.zeta.min(), rfb.z_left, atol=0, rtol=0.03)
+xo.assert_allclose(p.zeta.std(), sigma_z, atol=0, rtol=0.002)
 
 # Check that the distribution stays roughly stable over one synchrotron period
 p, matcher = xp.generate_matched_gaussian_bunch(
