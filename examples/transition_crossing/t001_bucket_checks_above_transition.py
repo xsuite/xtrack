@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 gamma0 = 10. # defines the energy of the beam
 gamma_transition = 4.
 momentum_compaction_factor = 1 / gamma_transition**2
-compensate_phase = True
 
 particle_ref = xt.Particles(gamma0=gamma0,
                             mass0=xt.PROTON_MASS_EV)
@@ -33,12 +32,10 @@ lag_rf = 180. if eta > 0. else 0.
 
 # Compute momentum increment using auxiliary particle
 dp0c_eV = energy_ref_increment / particle_ref.beta0[0]
-
-if compensate_phase:
-    phi = np.arcsin(dp0c_eV * particle_ref.beta0[0] / v_rf)
-    if eta > 0:
-        phi = np.pi - phi
-    lag_rf = np.rad2deg(phi)
+phi = np.arcsin(dp0c_eV * particle_ref.beta0[0] / v_rf)
+if eta > 0:
+    phi = np.pi - phi
+lag_rf = np.rad2deg(phi)
 
 otm = xt.LineSegmentMap(
     betx=1., bety=1,
