@@ -184,11 +184,6 @@ class MadxTransformer(Transformer):
         args = dict(arglist)
         parent = command_token.value.lower()
 
-        if parent == 'marker' and 'apertype' in args:
-            # Collapse aperture markers into actual aperture elements, this
-            # will make loading easier for now.
-            parent = args.pop('apertype')['expr']
-
         return name_token.value.lower(), {
             'parent': parent,
             **args,

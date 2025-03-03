@@ -2,6 +2,7 @@ from typing import Dict, Optional, List, Set, Tuple, Union
 
 import numpy as np
 
+import xobjects as xo
 import xtrack as xt
 from xtrack import BeamElement
 from xtrack.environment import Builder
@@ -55,6 +56,7 @@ _APERTURE_TYPES = {
     'rectellipse': 'LimitRectEllipse',
     'racetrack': 'LimitRacetrack',
     'octagon': 'LimitPolygon',
+    'polygon': 'LimitPolygon',  # not really an explicit option in MAD-X
 }
 
 
@@ -260,12 +262,22 @@ class MadxLoader:
         self._parameter_cache[name].update(self._parameter_cache.get(parent, {}))
         self._parameter_cache[name].update(kwargs)
 
-        el_params = self._pre_process_element_params(name, kwargs)
+        aperture = self._build_aperture(name, kwargs)
+        if not aperture and name in self.env.element_dict:
+            aperture = self.env[name].name_associated_aperture
+        if not aperture and parent:
+            aperture = self.env[parent].name_associated_aperture
+
+        el_params = self._convert_element_params(name, kwargs)
+
         length = el_params.get('length', self._parameter_cache[name].get('length', 0))
         if self._mad_base_type(name) in {'vkicker', 'hkicker', 'kicker', 'tkicker',
                                          'multipole'}:
             # Workaround for the fact that Multipole.length does not make an element thick
             length = 0
+
+        if aperture and 'at' in el_params:  # placing mode
+            builder.place(aperture, at=0, from_=f'{name}@start')
 
         if parent is None:
             # If parent is None, we wish to place instead (element is used
@@ -308,12 +320,10 @@ class MadxLoader:
                     el_params.pop('extra', None)
                     builder.place(name, **el_params)
                 else:
-                    if parent in _APERTURE_TYPES:
-                        if 'x_vertices' in el_params or 'y_vertices' in el_params:
-                            parent = 'LimitPolygon'
-                        else:
-                            parent = _APERTURE_TYPES[parent]
                     builder.new(name, parent, force=True, **el_params) # Not sure why `force` is needed
+
+        if aperture:
+            builder.element_dict[name].name_associated_aperture = aperture
 
     def _make_thick_sandwich(self, name, length, make_drifts=True):
         """Make a sandwich of two drifts around the element."""
@@ -327,16 +337,17 @@ class MadxLoader:
 
     def _set_element(self, name, builder, **kwargs):
         self._parameter_cache[name].update(kwargs)
-        el_params = self._pre_process_element_params(name, kwargs)
+        aperture = self._build_aperture(name, kwargs)
+        el_params = self._convert_element_params(name, kwargs)
+        if aperture:
+            raise ValueError('Setting an aperture for an existing element is '
+                             'not yet supported.')
         el_params.pop('from_', None)
         el_params.pop('at', None)
         builder.set(name, **el_params)
 
-    def _pre_process_element_params(self, name, params):
+    def _convert_element_params(self, name, params):
         parent_name = self._mad_base_type(name)
-
-        if 'aper_vx' in params or 'aper_vy' in params:
-            parent_name = 'polygon'
 
         if parent_name in {'sbend', 'rbend'}:
             # We need to keep the rbarc parameter from the parent element.
@@ -399,71 +410,6 @@ class MadxLoader:
             if (hkick := params.pop('hkick', None)):
                 params['knl'] = [f'-({hkick})']
 
-        elif parent_name == 'circle':
-            if (aperture := params.pop('aperture', None)):
-                params['a'] = params['b'] = aperture[0]
-                params['rot_s_rad'] = params.get('aper_tilt', 0)
-                # aper_offset = params.get('aper_offset', [0, 0])
-                # params['shift_x'] = aper_offset[0]
-                # params['shift_y'] = aper_offset[1]
-
-        elif parent_name == 'ellipse':
-            if (aperture := params.pop('aperture', None)):
-                params['a'] = aperture[0]
-                params['b'] = aperture[1]
-                params['rot_s_rad'] = params.get('aper_tilt', 0)
-
-        elif parent_name == 'rectangle':
-            if (aperture := params.pop('aperture', None)):
-                params['min_x'] = -aperture[0]
-                params['max_x'] = aperture[0]
-                params['min_y'] = -aperture[1]
-                params['max_y'] = aperture[1]
-                params['rot_s_rad'] = params.get('aper_tilt', 0)
-                # params['shift_x'] = params.get('v_pos', 0)
-
-        elif parent_name == 'rectellipse':
-            if (aperture := params.pop('aperture', None)):
-                params['max_x'] = aperture[0]
-                params['max_y'] = aperture[1]
-                params['a'] = aperture[2]
-                params['b'] = aperture[3]
-                params['rot_s_rad'] = params.get('aper_tilt', 0)
-                # params['shift_x'] = params.get('v_pos', 0)
-
-        elif parent_name == 'racetrack':
-            if (aperture := params.pop('aperture', None)):
-                params['min_x'] = -aperture[0]
-                params['max_x'] = aperture[0]
-                params['min_y'] = -aperture[1]
-                params['max_y'] = aperture[1]
-                params['a'] = aperture[2]
-                params['b'] = aperture[3]
-                params['rot_s_rad'] = params.get('aper_tilt', 0)
-
-        elif parent_name == 'octagon':
-            if (aperture := params.pop('aperture', None)):
-                # In MAD the octagon is defined with {w/2, h/2, phi_1, phi_2},
-                # where w and h are respectively the width and height of the
-                # rectangle that circumscribes the octagon, and phi_1 and phi_2
-                # are the two angles sustaining the cut corner in the first
-                # quadrant, given in radians and phi_1 < phi_2.
-                half_w, half_h, phi_1, phi_2 = aperture
-                y_right_corner = f'({half_w}) * tan({phi_1})'
-                x_top_corner = f'({half_h}) / tan({phi_2})'
-                top_x_vertices = [half_w, x_top_corner, f'-{x_top_corner}', f'-{half_w}']
-                x_vertices = top_x_vertices + top_x_vertices[::-1]
-                right_y_vertices = [y_right_corner, half_h, half_h, y_right_corner]
-                y_vertices = right_y_vertices + [f'-{y}' for y in right_y_vertices]
-                params['x_vertices'] = x_vertices
-                params['y_vertices'] = y_vertices
-
-        elif parent_name == 'polygon':
-            if (aper_vx := params.pop('aper_vx', None)):
-                params['x_vertices'] = aper_vx
-            if (aper_vy := params.pop('aper_vy', None)):
-                params['y_vertices'] = aper_vy
-
         if 'edge_entry_fint' in params and 'edge_exit_fint' not in params:
             params['edge_exit_fint'] = params['edge_entry_fint']
             # TODO: Technically MAD-X behaviour is that if edge_exit_fint < 0
@@ -474,14 +420,100 @@ class MadxLoader:
             #  expression... Instead, let's just pretend that edge_exit_fint
             #  should be taken as is, and hope no one relies on it being < 0.
 
-        if params.pop('aperture', None):
-            pass
-            # Avoid flooding the user with warnings
-            # _warn(f'Ignoring aperture parameter for element `{name}` for now. '
-            #       f'Only apertures on markers and standalone aperture elements '
-            #       f'are supported for now.')
-
         return params
+
+    def _build_aperture(self, name, params):
+        """Build a Xtrack aperture for element `name` with  `params`.
+
+        Parameters
+        ----------
+        name : str
+            The name of the element for which to build the aperture.
+        params : dict
+            The parameters of the element, including the aperture parameters.
+
+        Returns
+        -------
+        The name of the generated aperture element in the environment, or None.
+
+        Notes:
+        ------
+        Currently supports all the basic MAD-X aperture types, however when
+        ``aper_vx`` or ``aper_vy`` are given, the aperture is assumed to be
+        simply a polygon, instead of applying the MAD-X logic (testing first for
+        a simple shape and then for a polygon).
+        """
+        if not {'apertype', 'aperture', 'aper_vx', 'aper_vy'} & set(params):
+            # No aperture parameters, nothing to do
+            return
+
+        if 'aper_vx' in params or 'aper_vy' in params:
+            apertype = 'polygon'
+            aperture = None
+        else:
+            apertype = params.pop('apertype', None) or self._mad_base_type(name)
+            aperture = params.pop('aperture', None)
+
+        if apertype not in _APERTURE_TYPES:
+            raise ValueError(
+                f'The aperture type for the element `{name}` (inferred to be '
+                f'`{apertype}`) is not recognised.'
+            )
+
+        aper_params = {'rot_s_rad': params.get('aper_tilt', 0)}
+
+        if apertype == 'circle':
+            aper_params['a'] = aper_params['b'] = aperture[0]
+
+        elif apertype == 'ellipse':
+            aper_params['a'] = aperture[0]
+            aper_params['b'] = aperture[1]
+
+        elif apertype == 'rectangle':
+            aper_params['min_x'] = -aperture[0]
+            aper_params['max_x'] = aperture[0]
+            aper_params['min_y'] = -aperture[1]
+            aper_params['max_y'] = aperture[1]
+            # aper_params['shift_x'] = params.get('v_pos', 0)
+
+        elif apertype == 'rectellipse':
+            aper_params['max_x'] = aperture[0]
+            aper_params['max_y'] = aperture[1]
+            aper_params['a'] = aperture[2]
+            aper_params['b'] = aperture[3]
+            # aper_params['shift_x'] = params.get('v_pos', 0)
+
+        elif apertype == 'racetrack':
+            aper_params['min_x'] = -aperture[0]
+            aper_params['max_x'] = aperture[0]
+            aper_params['min_y'] = -aperture[1]
+            aper_params['max_y'] = aperture[1]
+            aper_params['a'] = aperture[2]
+            aper_params['b'] = aperture[3]
+
+        elif apertype == 'octagon':
+            # In MAD the octagon is defined with {w/2, h/2, phi_1, phi_2},
+            # where w and h are respectively the width and height of the
+            # rectangle that circumscribes the octagon, and phi_1 and phi_2
+            # are the two angles sustaining the cut corner in the first
+            # quadrant, given in radians and with phi_1 < phi_2.
+            half_w, half_h, phi_1, phi_2 = aperture
+            y_right_corner = f'({half_w}) * tan({phi_1})'
+            x_top_corner = f'({half_h}) / tan({phi_2})'
+            top_x_vertices = [half_w, x_top_corner, f'-{x_top_corner}', f'-{half_w}']
+            x_vertices = top_x_vertices + top_x_vertices[::-1]
+            right_y_vertices = [y_right_corner, half_h, half_h, y_right_corner]
+            y_vertices = right_y_vertices + [f'-{y}' for y in right_y_vertices]
+            aper_params['x_vertices'] = x_vertices
+            aper_params['y_vertices'] = y_vertices
+
+        elif apertype == 'polygon':
+            if (aper_vx := params.pop('aper_vx', None)):
+                aper_params['x_vertices'] = aper_vx
+            if (aper_vy := params.pop('aper_vy', None)):
+                aper_params['y_vertices'] = aper_vy
+
+        return self.env.new(f'{name}_aper', _APERTURE_TYPES[apertype], **aper_params)
 
     def _collect_hierarchy(self, parsed_dict: MadxOutputType):
         """Collect the base Madx types of all defined elements."""
@@ -540,7 +572,6 @@ def load_madx_lattice(file=None, string=None, reverse_lines=None):
 
     if reverse_lines:
         print('Reversing lines:', reverse_lines)
-        loaded_env = env
         rlines = {}
         for nn in reverse_lines:
             ll = env.lines[nn]

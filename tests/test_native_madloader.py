@@ -919,26 +919,42 @@ def test_repeated_element_mad_behaviour():
     assert env.seq2['ee'] == element
 
 
-def test_apertures_on_markers():
-    sequence = """
-    m_circle: marker, apertype="circle", aperture={.2};
-    m_ellipse: marker, apertype="ellipse", aperture={.2, .1};
-    m_rectangle: marker, apertype="rectangle", aperture={.07, .05};
-    m_rectellipse: marker, apertype="rectellipse", aperture={.2, .4, .25, .45};
-    m_racetrack: marker, apertype="racetrack", aperture={.6,.4,.2,.1};
-    m_octagon: marker, apertype="octagon", aperture={.4, .5, 0.5, 1.};
-    m_polygon: marker, apertype="circle", aper_vx={+5.800e-2,+5.800e-2,-8.800e-2}, aper_vy={+3.500e-2,-3.500e-2,+0.000e+0};
+@pytest.mark.parametrize('aper_config', ['attached_to_marker', 'standalone'])
+def test_apertures_on_markers(aper_config):
+    if aper_config == 'attached_to_marker':
+        sequence = """
+            ! Attached to a marker
+            m_circle: marker, apertype="circle", aperture={.2};
+            m_ellipse: marker, apertype="ellipse", aperture={.2, .1};
+            m_rectangle: marker, apertype="rectangle", aperture={.07, .05};
+            m_rectellipse: marker, apertype="rectellipse", aperture={.2, .4, .25, .45};
+            m_racetrack: marker, apertype="racetrack", aperture={.6,.4,.2,.1};
+            m_octagon: marker, apertype="octagon", aperture={.4, .5, 0.5, 1.};
+            m_polygon: marker, apertype="circle", aper_vx={+5.800e-2,+5.800e-2,-8.800e-2}, aper_vy={+3.500e-2,-3.500e-2,+0.000e+0};
+            """
+    else:
+        sequence = """
+            ! Standalone
+            m_circle: circle, aperture={.2};
+            m_ellipse: ellipse, aperture={.2, .1};
+            m_rectangle: rectangle, aperture={.07, .05};
+            m_rectellipse: rectellipse, aperture={.2, .4, .25, .45};
+            m_racetrack: racetrack, aperture={.6,.4,.2,.1};
+            m_octagon: octagon, aperture={.4, .5, 0.5, 1.};
+            m_polygon: circle, aper_vx={+5.800e-2,+5.800e-2,-8.800e-2}, aper_vy={+3.500e-2,-3.500e-2,+0.000e+0};
+            """
 
-    line: sequence,l=1;
-        m_circle, at=0;
-        m_ellipse, at=0.01;
-        m_rectangle, at=0.02;
-        m_rectellipse, at=0.03;
-        m_racetrack, at=0.04;
-        m_octagon, at=0.05;
-        m_polygon, at=0.06;
-    endsequence;
-    """
+    sequence += """
+        line: sequence,l=1;
+            m_circle, at=0;
+            m_ellipse, at=0.01;
+            m_rectangle, at=0.02;
+            m_rectellipse, at=0.03;
+            m_racetrack, at=0.04;
+            m_octagon, at=0.05;
+            m_polygon, at=0.06;
+        endsequence;
+        """
 
     env = xt.load_madx_lattice(string=sequence)
     line = env.line
