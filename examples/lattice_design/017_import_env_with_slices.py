@@ -120,6 +120,14 @@ assert np.all(tt1.element_type == np.array([
        'DriftSliceQuadrupole', 'ThinSliceQuadrupole',
        'DriftSliceQuadrupole', 'Marker', '']))
 
+assert np.all(tt1.parent_name == np.array([
+       None, None, 'qq1_thick', 'qq1_thick', None, None, None, 'qq1_thin',
+       'qq1_thin', 'qq1_thin', 'qq1_thin', 'qq1_thin', None, None, None,
+       'qq_shared_thick/line1', 'qq_shared_thick/line1', None, None, None,
+       'qq_shared_thin/line1', 'qq_shared_thin/line1',
+       'qq_shared_thin/line1', 'qq_shared_thin/line1',
+       'qq_shared_thin/line1', None, None]))
+
 assert np.all(tt2.name == np.array([
        'drift_5', 'qq2_thick_entry', 'qq2_thick..0', 'qq2_thick..1',
        'qq2_thick_exit', 'drift_6', 'qq2_thin_entry', 'drift_qq2_thin..0',
@@ -141,3 +149,11 @@ assert np.all(tt2.element_type == np.array([
        'Drift', 'Marker', 'DriftSliceQuadrupole', 'ThinSliceQuadrupole',
        'DriftSliceQuadrupole', 'ThinSliceQuadrupole',
        'DriftSliceQuadrupole', 'Marker', '']))
+
+assert np.all(tt2.parent_name == np.array([
+       None, None, 'qq2_thick', 'qq2_thick', None, None, None, 'qq2_thin',
+       'qq2_thin', 'qq2_thin', 'qq2_thin', 'qq2_thin', None, None, None,
+       'qq_shared_thick/line2', 'qq_shared_thick/line2', None, None, None,
+       'qq_shared_thin/line2', 'qq_shared_thin/line2',
+       'qq_shared_thin/line2', 'qq_shared_thin/line2',
+       'qq_shared_thin/line2', None, None]))
