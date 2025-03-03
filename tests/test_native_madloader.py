@@ -725,14 +725,22 @@ def test_load_b2_with_bv_minus_one(tmp_path):
     mad.input('set, format=".20g";')
     mad.save(file=tmp_seq_path)
 
-    line2_ref = xt.Line.from_madx_sequence(mad.sequence.lhcb2,
-                                       allow_thick=True,
-                                       deferred_expressions=True,
-                                       replace_in_expr={'bv_aux': 'bvaux_b2'})
+    line2_ref = xt.Line.from_madx_sequence(
+        sequence=mad.sequence.lhcb2,
+        allow_thick=True,
+        deferred_expressions=True,
+        replace_in_expr={'bv_aux': 'bvaux_b2'},
+    )
     line2_ref.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7000e9)
 
     env = xt.load_madx_lattice(tmp_seq_path, reverse_lines=['lhcb2'])
     line2 = env['lhcb2']
+
+    # Remove apertures, they are not supported in the cpymadloader
+    line2.element_names = [
+        name for name in line2.element_names
+        if not isinstance(line2[name], xt.LimitRectEllipse)
+    ]
 
     # Bend done
 
@@ -945,7 +953,7 @@ def test_apertures_on_markers(aper_config):
             """
 
     sequence += """
-        line: sequence,l=1;
+        line: sequence, l=1;
             m_circle, at=0;
             m_ellipse, at=0.01;
             m_rectangle, at=0.02;
@@ -1025,3 +1033,27 @@ def test_apertures_on_markers(aper_config):
     # TODO: Figure out what mad_loader.py:971 is doing? It seems wrong
     assert np.all(polyg.x_vertices == [5.8e-2, 5.8e-2, -8.8e-2])
     assert np.all(polyg.y_vertices == [3.5e-2, -3.5e-2, 0.0])
+
+
+def test_aperture_setting():
+    sequence = """
+    m_ellipse: marker, apertype="ellipse", aperture={.2, .1};
+    m_aper: marker, apertype="rectangle", aperture={.3, .4};
+    
+    line: sequence, l=1;
+        m_ellipse, at=0;
+        m_aper, at=0.1;
+    endsequence;
+    
+    m_ellipse, aperture={.3, .2};  ! no apertype
+    m_aper, apertype="ellipse", aperture={.5, .6};  ! change apertype
+    """
+
+    env = xt.load_madx_lattice(string=sequence)
+    line = env.line
+
+    assert line['m_ellipse_aper'].a == .3
+    assert line['m_ellipse_aper'].b == .2
+
+    assert line['m_aper_aper'].a == .5
+    assert line['m_aper_aper'].b == .6

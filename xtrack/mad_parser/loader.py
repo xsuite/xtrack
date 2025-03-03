@@ -196,8 +196,8 @@ class MadxLoader:
                 builder = self.env.new_builder(name=name, components=components)
             else:
                 raise ValueError(
-                    'Only a MAD-X sequence or a line type can be used to build'
-                    'a line, but got: {line_type}!'
+                    f'Only a MAD-X sequence or a line type can be used to build'
+                    f'a line, but got: {line_type}!'
                 )
 
             if build:
@@ -258,8 +258,10 @@ class MadxLoader:
         self._builtin_types.add(name)
 
     def _new_element(self, name, parent, builder, **kwargs):
-        self._parameter_cache[name] = {}
-        self._parameter_cache[name].update(self._parameter_cache.get(parent, {}))
+        if parent is not None:
+            self._parameter_cache[name] = self._parameter_cache.get(parent, {}).copy()
+        else:
+            self._parameter_cache[name] = self._parameter_cache.get(name, {})
         self._parameter_cache[name].update(kwargs)
 
         aperture = self._build_aperture(name, kwargs)
@@ -337,14 +339,14 @@ class MadxLoader:
 
     def _set_element(self, name, builder, **kwargs):
         self._parameter_cache[name].update(kwargs)
-        aperture = self._build_aperture(name, kwargs)
+
+        if 'aperture' in kwargs and 'apertype' not in kwargs:
+            kwargs['apertype'] = self._parameter_cache[name]['apertype']
+        aperture = self._build_aperture(name, kwargs, force=True)
+
         el_params = self._convert_element_params(name, kwargs)
-        if aperture:
-            raise ValueError('Setting an aperture for an existing element is '
-                             'not yet supported.')
-        el_params.pop('from_', None)
-        el_params.pop('at', None)
         builder.set(name, **el_params)
+        builder.element_dict[name].name_associated_aperture = aperture
 
     def _convert_element_params(self, name, params):
         parent_name = self._mad_base_type(name)
@@ -422,7 +424,7 @@ class MadxLoader:
 
         return params
 
-    def _build_aperture(self, name, params):
+    def _build_aperture(self, name, params, force=False):
         """Build a Xtrack aperture for element `name` with  `params`.
 
         Parameters
@@ -431,6 +433,11 @@ class MadxLoader:
             The name of the element for which to build the aperture.
         params : dict
             The parameters of the element, including the aperture parameters.
+        force : bool, optional
+            If True, the ``force`` parameter is passed to the builder when
+            creating the aperture element: this will overwrite any existing
+            aperture element with the same name. If False, an error will be
+            raised if an aperture element with the same name already exists.
 
         Returns
         -------
@@ -496,7 +503,7 @@ class MadxLoader:
             # where w and h are respectively the width and height of the
             # rectangle that circumscribes the octagon, and phi_1 and phi_2
             # are the two angles sustaining the cut corner in the first
-            # quadrant, given in radians and with phi_1 < phi_2.
+            # quadrant, given in radians, and with phi_1 < phi_2.
             half_w, half_h, phi_1, phi_2 = aperture
             y_right_corner = f'({half_w}) * tan({phi_1})'
             x_top_corner = f'({half_h}) / tan({phi_2})'
@@ -513,7 +520,9 @@ class MadxLoader:
             if (aper_vy := params.pop('aper_vy', None)):
                 aper_params['y_vertices'] = aper_vy
 
-        return self.env.new(f'{name}_aper', _APERTURE_TYPES[apertype], **aper_params)
+        aper_name = f'{name}_aper'
+        return self.env.new(aper_name, _APERTURE_TYPES[apertype], force=force,
+                            **aper_params)
 
     def _collect_hierarchy(self, parsed_dict: MadxOutputType):
         """Collect the base Madx types of all defined elements."""
