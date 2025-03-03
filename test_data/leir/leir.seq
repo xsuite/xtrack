@@ -189,7 +189,7 @@
   ER.XFW22  : XFW01; ! Arc 20
   ER.XFW31  : XFW01; ! Arc 30
   ER.XFW32  : XFW02; ! Arc 30
-  ER.XFW41, : XFW02; ! Arc 40
+  ER.XFW41  : XFW02; ! Arc 40
   ER.XFW42  : XFW01; ! Arc 40
 
 ! Injection bumpers. The injection septa: SMH11 & SEH10 are in the middle

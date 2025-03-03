@@ -7,14 +7,17 @@ import xobjects as xo
 import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
 
-assert_allclose= xo.assert_allclose
 
+assert_allclose = xo.assert_allclose
+
+
+@pytest.mark.parametrize('bend_type', [xt.Bend, xt.RBend])
 @for_all_test_contexts
-def test_thin_slice_bend(test_context):
+def test_thin_slice_bend(test_context, bend_type):
 
-    bend = xt.Bend(k0=0.4, h=0.3, length=1,
-                   edge_entry_angle=0.05, edge_entry_hgap=0.06, edge_entry_fint=0.08,
-                   edge_exit_angle=0.05, edge_exit_hgap=0.06, edge_exit_fint=0.08)
+    bend = bend_type(k0=0.4, h=0.3, length=1,
+                    edge_entry_angle=0.05, edge_entry_hgap=0.06, edge_entry_fint=0.08,
+                    edge_exit_angle=0.05, edge_exit_hgap=0.06, edge_exit_fint=0.08)
 
     line = xt.Line(elements=[bend])
 
@@ -48,9 +51,24 @@ def test_thin_slice_bend(test_context):
     assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-10)
     assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-10)
 
+    thin_slice_cls, drift_slice_type_cls, slice_entry_cls, slice_exit_cls = {
+        xt.Bend: (
+            xt.ThinSliceBend,
+            xt.DriftSliceBend,
+            xt.ThinSliceBendEntry,
+            xt.ThinSliceBendExit,
+        ),
+        xt.RBend: (
+            xt.ThinSliceRBend,
+            xt.DriftSliceRBend,
+            xt.ThinSliceRBendEntry,
+            xt.ThinSliceRBendExit
+        ),
+    }[bend_type]
+
     line.to_json('ttt_thin_bend.json')
     line2 = xt.Line.from_json('ttt_thin_bend.json')
-    assert isinstance(line2['e0..995'], xt.ThinSliceBend)
+    assert isinstance(line2['e0..995'], thin_slice_cls)
     assert line2['e0..995'].parent_name == 'e0'
     assert line2['e0..995']._parent is None
     assert line2['drift_e0..995'].parent_name == 'e0'
@@ -61,16 +79,16 @@ def test_thin_slice_bend(test_context):
     assert line2['e0..exit_map']._parent is None
 
     line2.build_tracker(_context=test_context)
-    assert isinstance(line2['e0..995'], xt.ThinSliceBend)
+    assert isinstance(line2['e0..995'], thin_slice_cls)
     assert line2['e0..995'].parent_name == 'e0'
     assert line2['e0..995']._parent is line2.element_dict['e0']
-    assert isinstance(line2['drift_e0..995'], xt.DriftSliceBend)
+    assert isinstance(line2['drift_e0..995'], drift_slice_type_cls)
     assert line2['drift_e0..995'].parent_name == 'e0'
     assert line2['drift_e0..995']._parent is line2.element_dict['e0']
-    assert isinstance(line2['e0..entry_map'], xt.ThinSliceBendEntry)
+    assert isinstance(line2['e0..entry_map'], slice_entry_cls)
     assert line2['e0..entry_map'].parent_name == 'e0'
     assert line2['e0..entry_map']._parent is line2.element_dict['e0']
-    assert isinstance(line2['e0..exit_map'], xt.ThinSliceBendExit)
+    assert isinstance(line2['e0..exit_map'], slice_exit_cls)
     assert line2['e0..exit_map'].parent_name == 'e0'
     assert line2['e0..exit_map']._parent is line2.element_dict['e0']
 
@@ -420,12 +438,14 @@ def test_thin_slice_drift(test_context):
     assert_allclose(p_slice.zeta, p0.zeta, rtol=0, atol=1e-10)
     assert_allclose(p_slice.delta, p0.delta, rtol=0, atol=1e-10)
 
-@for_all_test_contexts
-def test_thick_slice_bend(test_context):
 
-    bend = xt.Bend(k0=0.4, h=0.3, length=1,
-                edge_entry_angle=0.05, edge_entry_hgap=0.06, edge_entry_fint=0.08,
-                edge_exit_angle=0.05, edge_exit_hgap=0.06, edge_exit_fint=0.08)
+@pytest.mark.parametrize('bend_type', [xt.Bend, xt.RBend])
+@for_all_test_contexts
+def test_thick_slice_bend(test_context, bend_type):
+
+    bend = bend_type(k0=0.4, h=0.3, length=1,
+                     edge_entry_angle=0.05, edge_entry_hgap=0.06, edge_entry_fint=0.08,
+                     edge_exit_angle=0.05, edge_exit_hgap=0.06, edge_exit_fint=0.08)
 
     line = xt.Line(elements=[bend])
 
@@ -457,9 +477,20 @@ def test_thick_slice_bend(test_context):
     assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-10)
     assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-10)
 
+    thick_slice_cls, thick_slice_bend_cls = {
+        xt.Bend: (
+            xt.ThickSliceBend,
+            xt.ThickSliceBend
+        ),
+        xt.RBend: (
+            xt.ThickSliceRBend,
+            xt.ThickSliceRBend
+        ),
+    }[bend_type]
+
     line.to_json('ttt_thick_bend.json')
     line2 = xt.Line.from_json('ttt_thick_bend.json')
-    assert isinstance(line2['e0..3'], xt.ThickSliceBend)
+    assert isinstance(line2['e0..3'], thick_slice_cls)
     assert line2['e0..3'].parent_name == 'e0'
     assert line2['e0..3']._parent is None
     assert line2['e0..entry_map'].parent_name == 'e0'
@@ -468,7 +499,7 @@ def test_thick_slice_bend(test_context):
     assert line2['e0..exit_map']._parent is None
 
     line2.build_tracker(_context=test_context)
-    assert isinstance(line2['e0..3'], xt.ThickSliceBend)
+    assert isinstance(line2['e0..3'], thick_slice_bend_cls)
     assert line2['e0..3'].parent_name == 'e0'
     assert line2['e0..3']._parent is line2.element_dict['e0']
     assert line2['e0..entry_map'].parent_name == 'e0'

@@ -238,6 +238,7 @@ def test_psb_chicane(test_context):
     slicing_strategies = [
         Strategy(slicing=Teapot(1)),  # Default
         Strategy(slicing=Teapot(2), element_type=xt.Bend),
+        Strategy(slicing=Teapot(2), element_type=xt.RBend),
         Strategy(slicing=Teapot(8), element_type=xt.Quadrupole),
     ]
 

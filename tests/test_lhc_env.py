@@ -40,9 +40,10 @@ def test_lhc_environment():
                                     deferred_expressions=True,
                                     replace_in_expr={'bv_aux':'bvaux_b2'})
     line4.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, p0c=7000e9)
+    line4.twiss_default['reverse'] = True
 
     env = xt.Environment(lines={'lhcb1': line1, 'lhcb2': line4})
-    env.lhcb2.twiss_default['reverse'] = True
+    assert env.lhcb2.twiss_default['reverse'] == True
 
     env.to_json('lhc.json')
 

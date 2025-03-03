@@ -89,15 +89,15 @@ def test_vars_and_element_access_modes(container_type):
     })
 
     env.new('bb', xt.Bend, k0='2 * b', length=3+env.vars['a'] + env.vars['b'],
-            h=5.)
+            angle=5.)
     assert env['bb'].k0 == 2 * (2 * 4 + 5)
     assert env['bb'].length == 3 + 4 + 2 * 4 + 5
-    assert env['bb'].h == 5.
+    assert env['bb'].angle == 5.
 
     env.vars['a'] = 2.
     assert env['bb'].k0 == 2 * (2 * 2 + 5)
     assert env['bb'].length == 3 + 2 + 2 * 2 + 5
-    assert env['bb'].h == 5.
+    assert env['bb'].angle == 5.
 
     line = env.new_line([
         env.new('bb1', 'bb', length=3*env.vars['a'], at='2*a'),
@@ -120,11 +120,11 @@ def test_vars_and_element_access_modes(container_type):
     a = env.vv['a']
     assert line['bb1'].length == 3 * a
     assert line['bb1'].k0 == 2 * (2 * a + 5)
-    assert line['bb1'].h == 5.
+    assert line['bb1'].angle == 5.
 
     assert line['bb'].k0 == 2 * (2 * a + 5)
     assert line['bb'].length == 3 + a + 2 * a + 5
-    assert line['bb'].h == 5.
+    assert line['bb'].angle == 5.
 
     tt = line.get_table(attr=True)
     tt['s_center'] = tt['s'] + tt['length']/2
@@ -139,11 +139,11 @@ def test_vars_and_element_access_modes(container_type):
     a = line.vv['a']
     assert line['bb1'].length == 3 * a
     assert line['bb1'].k0 == 2 * (2 * a + 5)
-    assert line['bb1'].h == 5.
+    assert line['bb1'].angle == 5.
 
     assert line['bb'].k0 == 2 * (2 * a + 5)
     assert line['bb'].length == 3 + a + 2 * a + 5
-    assert line['bb'].h == 5.
+    assert line['bb'].angle == 5.
 
     tt_new = line.get_table(attr=True)
 
@@ -163,6 +163,25 @@ def test_vars_and_element_access_modes(container_type):
     assert lcp['a'] == 444
 
     assert env.elements is env.element_dict
+
+    # Check set with multiple targets
+    env['x0'] = 0
+    env.set(['x1', 'x2', 'x3'], '3*x0')
+    env['x0'] = 3.
+    ttv = env.vars.get_table()
+    for nn in ['x1', 'x2', 'x3']:
+        assert ttv['value', nn] == 3 * 3
+        assert ttv['expr', nn] == '(3.0 * x0)'
+
+    env.new('qx1', xt.Quadrupole, length=1)
+    env.new('qx2', xt.Quadrupole, length=1)
+    env.new('qx3', xt.Quadrupole, length=1)
+
+    env.set(['qx1', 'qx2', 'qx3'], k1='3*x0')
+    for nn in ['qx1', 'qx2', 'qx3']:
+        assert env[nn].k1 == 3 * 3
+        assert str(env.ref[nn].k1._expr) == "(3.0 * vars['x0'])"
+
 
 def test_element_placing_at_s():
 
@@ -1952,14 +1971,14 @@ def test_call(tmpdir):
     elements = _trim("""
     env.new('sbend', 'Bend')
     env.new('drift', 'Drift')
-    
+
     env.new('mb2', 'sbend', length=2)
     env.new('drx', 'drift', length='var1 + var2')
     """)
 
     lattice = _trim("""
     env.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV, energy0=45.6e9)
-    
+
     env.new_line(
         name='seq',
         components=['mb2', 'drx', 'mb2', 'drx'],
@@ -2675,6 +2694,20 @@ def test_remove_element_from_line():
         [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 41. , 46. , 50. , 50. ]),
         rtol=0., atol=1e-14)
 
+    line6 = line0.copy()
+    tt_remove = line6.get_table().rows['q.*']
+    line6.remove(tt_remove.name)
+    tt6 = line3.get_table()
+    tt6.show(cols=['name', 's_start', 's_end', 's_center'])
+
+    assert np.all(tt6.name == np.array(
+        ['drift_1', 'drift_6', 'drift_2', 'drift_7', 'drift_3', 'drift_8',
+        'drift_4', 'mk1', 'mk2', 'mk3', 'drift_9', 'drift_5', 'end',
+        '_end_point']))
+    xo.assert_allclose(tt6.s_center, np.array(
+        [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. , 40. , 41. ,
+        46. , 50. , 50. ]), rtol=0., atol=1e-14)
+
 def test_replace_element():
 
     env = xt.Environment()
@@ -2890,3 +2923,51 @@ def test_nested_lists():
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
     assert np.all(tt.name == np.array(
         ['q1::0', 'q1::1', 'q2', '_end_point']))
+
+
+def test_relative_error_definition():
+
+    env = xt.Environment()
+    env.vars.default_to_zero = True
+    line = env.new_line(components=[
+        env.new('mq', 'Quadrupole', length=0.5, k1='kq'),
+        env.new('mqs', 'Quadrupole', length=0.5, k1s='kqs'),
+        env.new('mb', 'Bend', length=0.5, angle='ang', k0_from_h=True),
+    ])
+
+    env.set_multipolar_errors({
+        'mq': {'rel_knl': [1e-6, 1e-5, 1e-4], 'rel_ksl': [-1e-6, -1e-5, -1e-4]},
+        'mqs': {'rel_knl': [2e-6, 2e-5, 2e-4], 'rel_ksl': [3e-6, 3e-5, 3e-4], 'refer': 'k1s'},
+        'mb': {'rel_knl': [2e-6, 3e-5, 4e-4], 'rel_ksl': [5e-6, 6e-5, 7e-4]},
+    })
+
+    # Errors respond when variables are changed
+    env['kq'] = 0.1
+    env['kqs'] = 0.2
+    env['ang'] = 0.3
+
+
+    xo.assert_allclose(env.get('mq').knl[:3], 0.5 * 0.1 * np.array([1e-6, 1e-5, 1e-4]), rtol=1e-7, atol=0)
+    xo.assert_allclose(env.get('mq').ksl[:3], 0.5 * 0.1 * np.array([-1e-6, -1e-5, -1e-4]), rtol=1e-7, atol=0)
+    xo.assert_allclose(env.get('mqs').knl[:3], 0.5 * 0.2 * np.array([2e-6, 2e-5, 2e-4]), rtol=1e-7, atol=0)
+    xo.assert_allclose(env.get('mqs').ksl[:3], 0.5 * 0.2 * np.array([3e-6, 3e-5, 3e-4]), rtol=1e-7, atol=0)
+    xo.assert_allclose(env.get('mb').knl[:3], 0.3 * np.array([2e-6, 3e-5, 4e-4]), rtol=1e-7, atol=0)
+    xo.assert_allclose(env.get('mb').ksl[:3], 0.3 * np.array([5e-6, 6e-5, 7e-4]), rtol=1e-7, atol=0)
+
+def test_builder_length():
+    env = xt.Environment()
+
+    env.new('mq', 'Quadrupole', length=1)
+
+    env['ll'] = 20.
+
+    env.new_line(name='l1', length='ll', components=[
+        env.place('mq', at=10)])
+
+    env['l1'].get_table().cols['s_start s_center s_end']
+
+    tt = env['l1'].get_table()
+
+    assert np.all(tt.name == np.array(['drift_1', 'mq', 'drift_2', '_end_point']))
+    xo.assert_allclose(tt.s_center, np.array([ 4.75, 10.  , 15.25, 20.  ]),
+                    rtol=0, atol=1e-10)

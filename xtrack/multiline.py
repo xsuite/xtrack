@@ -60,6 +60,7 @@ class Multiline(Environment):
             lines[line_name] = line
 
         env = xt.Environment(lines=lines)
-        env.metadata.update(dct['metadata'])
+        if 'metadata' in dct:
+            env.metadata.update(dct['metadata'])
 
         return env

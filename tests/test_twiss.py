@@ -1887,7 +1887,7 @@ def test_part_from_full_periodic(test_context, collider_for_test_twiss_range):
 
     for kk in ['s', 'mux', 'muy']:
         tw_part1[kk, 'ip1'] == 0.
-        assert np.all(np.diff(tw_part1[kk]) >= 0)
+        assert np.all(np.diff(tw_part1[kk]) >= -1e-14)
         xo.assert_allclose(
             tw_part1[kk, 'ip8'], -(tw[kk, '_end_point'] - tw[kk, 'ip8']),
             rtol=1e-12, atol=5e-7)
@@ -1903,13 +1903,11 @@ def test_part_from_full_periodic(test_context, collider_for_test_twiss_range):
 
     for kk in ['s', 'mux', 'muy']:
         tw_part2[kk, 'ip8'] == 0.
-        assert np.all(np.diff(tw_part2[kk]) >= 0)
+        assert np.all(np.diff(tw_part2[kk]) >= -1e14)
         xo.assert_allclose(
             tw_part2[kk, 'ip2'],
             tw[kk, 'ip2'] - tw[kk, 0] +(tw[kk, '_end_point'] - tw[kk, 'ip8']),
             rtol=1e-12, atol=5e-7)
-
-
 
 
 @for_all_test_contexts

@@ -1039,7 +1039,8 @@ class Tracker:
                 if not isinstance(pp, TrackerPartNonCollective) and not stop_tracking:
                     if moveback_to_buffer is not None: # The particles object is temporarily on CPU
                         if not hasattr(self, '_zerodrift_cpu'):
-                            self._zerodrift_cpu = self._zerodrift.copy(particles._buffer.context)
+                            self._zerodrift_cpu = self._zerodrift.copy(
+                                _context=particles._buffer.context)
                         self._zerodrift_cpu.track(particles, increment_at_element=True)
                     else:
                         self._zerodrift.track(particles, increment_at_element=True)

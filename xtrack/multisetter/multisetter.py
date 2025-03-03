@@ -126,7 +126,7 @@ class MultiSetter(xo.HybridClass):
         line: xtrack.Line
             Line in which the elements are mutated
         elements: list of int or strings
-            List of indeces or names of the elements to be mutated.
+            List of indices or names of the elements to be mutated.
         field: str
             Name of the field to be mutated.
         index: int or None
