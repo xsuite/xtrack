@@ -3955,13 +3955,6 @@ class Line:
                 f'allowed in `copy_from_env` for now.'
             )
 
-        if hasattr(source.element_dict[name], 'parent_name'):
-            if new_name_input is not None:
-                raise NotImplementedError('Not supported yet')
-            parent_name = source.element_dict[name].parent_name
-            self.copy_element_from(
-                parent_name, source=source, new_name=None)
-
         self.element_dict[new_name] = source.element_dict[name].copy()
 
         pars_with_expr = list(

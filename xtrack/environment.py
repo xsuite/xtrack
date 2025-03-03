@@ -478,6 +478,31 @@ class Environment:
     def copy_element_from(self, name, source, new_name=None):
         return xt.Line.copy_element_from(self, name, source, new_name)
 
+
+    def _import_element(self, line, name, rename_elements, suffix_for_common_elements,
+                        already_imported):
+        new_name = name
+        if name in rename_elements:
+            new_name = rename_elements[name]
+        elif (bool(re.match(r'^drift_\d+$', name))
+            and line.ref[name].length._expr is None):
+            new_name = self._get_a_drift_name()
+        elif (name in self.element_dict and
+                not (isinstance(line[name], xt.Marker) and
+                    isinstance(self.element_dict.get(name), xt.Marker))):
+            new_name += suffix_for_common_elements
+
+        self.copy_element_from(name, line, new_name=new_name)
+        already_imported[name] = new_name
+        if hasattr(line.element_dict[name], 'parent_name'):
+            parent_name = line.element_dict[name].parent_name
+            if parent_name not in already_imported:
+                self._import_element(line, parent_name, rename_elements,
+                                     suffix_for_common_elements, already_imported)
+            self.element_dict[new_name].parent_name = already_imported[parent_name]
+
+        return new_name
+
     def import_line(
             self,
             line,
@@ -520,20 +545,11 @@ class Environment:
         self.vars.default_to_zero = old_default_to_zero
 
         components = []
+        already_imported = {}
         for name in line.element_names:
-            new_name = name
-
-            if name in rename_elements:
-                new_name = rename_elements[name]
-            elif (bool(re.match(r'^drift_\d+$', name))
-                and line.ref[name].length._expr is None):
-                new_name = self._get_a_drift_name()
-            elif (name in self.element_dict and
-                    not (isinstance(line[name], xt.Marker) and
-                        isinstance(self.element_dict.get(name), xt.Marker))):
-                new_name += suffix_for_common_elements
-
-            self.copy_element_from(name, line, new_name=new_name)
+            new_name = self._import_element(
+                line, name, rename_elements, suffix_for_common_elements,
+                already_imported)
 
             components.append(new_name)
 
