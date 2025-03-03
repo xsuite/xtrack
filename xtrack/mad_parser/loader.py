@@ -30,6 +30,8 @@ TRANSLATE_PARAMS = {
     "fintx": "edge_exit_fint",
 }
 
+NON_EXPRESSION_PARAMS = ['from_', 'refer']
+
 CONSTANTS = {
     "pi": np.pi,
     "twopi": np.pi * 2,
@@ -52,25 +54,44 @@ def _warn(msg):
     print(f'Warning: {msg}')
 
 
+def expr_or_value(value_field):
+    expr = value_field['expr']
+
+    if value_field['deferred'] or isinstance(expr, (int, float)):
+        # Return as is if an expression string is expected. If it's a number
+        # there is no point adding `immediate_eval` anyway.
+        return expr
+
+    if isinstance(expr, list) and not value_field['deferred']:
+        # It's a list parameter value that is assigned in a non-deferred way
+        return [(f'immediate_eval({x})' if isinstance(x, str) else x) for x in expr]
+
+    return f'immediate_eval({expr})'
+
+
 def get_params(params, parent):
     params = params.copy()
     if parent in {'placeholder', 'instrument'}:
         _ = params.pop('lrad', None)
 
-    def _normalise_single(param):
-        lower = param.lower()
-        return TRANSLATE_PARAMS.get(lower, lower)
-
-    # TODO: Ignoring value['deferred'] for now.
-    normalised = {_normalise_single(k): v['expr'] for k, v in params.items()}
+    normalised = {}
+    for key, value in params.items():
+        key = TRANSLATE_PARAMS.get(key_lower := key.lower(), key_lower)
+        if key not in NON_EXPRESSION_PARAMS:
+            normalised[key] = expr_or_value(value)
+        else:
+            if value['deferred']:
+                raise ValueError('A deferred value for the parameter `{key}` is '
+                                 'not allowed.')
+            normalised[key] = value['expr']
 
     main_params = {}
     extras = {}
-    for k, v in normalised.items():
-        if k in EXTRA_PARAMS:
-            extras[k] = v
+    for key, value in normalised.items():
+        if key in EXTRA_PARAMS:
+            extras[key] = value
         else:
-            main_params[k] = v
+            main_params[key] = value
 
     return main_params, extras
 
@@ -152,8 +173,7 @@ class MadxLoader:
 
     def _parse_vars(self, vars: Dict[str, VarType]):
         for var_name, var_value in vars.items():
-            # TODO: Ignoring var_value['deferred'] for now.
-            self.env[var_name] = var_value['expr']
+            self.env[var_name] = expr_or_value(var_value)
 
     def _parse_elements(self, elements: Dict[str, ElementType]):
         for name, el_params in elements.items():
@@ -176,7 +196,7 @@ class MadxLoader:
                     refer = 'start'
                 elif refer == 'exit':
                     refer = 'end'
-                length = params.get('l', {}).get('expr', None)
+                length = expr_or_value(params['l']) if 'l' in params else None
                 builder = self.env.new_builder(name=name, refer=refer,
                                                length=length)
                 self._parse_components(builder, params.pop('elements'))
