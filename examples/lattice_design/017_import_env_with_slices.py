@@ -167,3 +167,25 @@ assert 'qq2_thin' in env.element_dict
 assert 'qq_shared_thick/line2' in env.element_dict
 assert 'qq_shared_thin/line2' in env.element_dict
 
+line1['kk'] = 1e-3
+line2['kk'] = 1e-3
+env['kk'] = 1e-3
+
+particle_ref = xt.Particles(p0c=7e12)
+line1.particle_ref = particle_ref
+line2.particle_ref = particle_ref
+env.line1.particle_ref = particle_ref
+env.line2.particle_ref = particle_ref
+
+tw1 = line1.twiss(betx=1, bety=2)
+tw2 = line2.twiss(betx=1, bety=2)
+tw1i = env.line1.twiss(betx=1, bety=2)
+tw2i = env.line2.twiss(betx=1, bety=2)
+
+assert np.allclose(tw1.s, tw1i.s, atol=0, rtol=1e-15)
+assert np.allclose(tw1.betx, tw1i.betx, atol=0, rtol=1e-15)
+assert np.allclose(tw1.bety, tw1i.bety, atol=0, rtol=1e-15)
+
+assert np.allclose(tw2.s, tw2i.s, atol=0, rtol=1e-15)
+assert np.allclose(tw2.betx, tw2i.betx, atol=0, rtol=1e-15)
+assert np.allclose(tw2.bety, tw2i.bety, atol=0, rtol=1e-15)
