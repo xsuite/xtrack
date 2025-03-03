@@ -157,3 +157,13 @@ assert np.all(tt2.parent_name == np.array([
        'qq_shared_thin/line2', 'qq_shared_thin/line2',
        'qq_shared_thin/line2', 'qq_shared_thin/line2',
        'qq_shared_thin/line2', None, None]))
+
+assert 'qq1_thick' in env.element_dict
+assert 'qq1_thin' in env.element_dict
+assert 'qq_shared_thick/line1' in env.element_dict
+assert 'qq_shared_thin/line1' in env.element_dict
+assert 'qq2_thick' in env.element_dict
+assert 'qq2_thin' in env.element_dict
+assert 'qq_shared_thick/line2' in env.element_dict
+assert 'qq_shared_thin/line2' in env.element_dict
+
