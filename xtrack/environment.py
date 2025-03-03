@@ -146,7 +146,7 @@ class Environment:
             for ll in lines.values():
                 # Count if it is not a marker or a drift, which will be handled by
                 # `import_line`
-                for nn in ll.element_names:
+                for nn in ll.element_dict.keys():
                     if (not (isinstance(ll.element_dict[nn], (xt.Marker))) and
                         not bool(re.match(r'^drift_\d+$', nn))):
                         counts[nn] += 1
