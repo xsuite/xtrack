@@ -68,6 +68,8 @@ class ThinSliceQuadrupole(BeamElement):
 
         out = Multipole(knl=knl, ksl=ksl, length=length,
                         hxl=0,
+                        radiation_flag=self.radiation_flag,
+                        delta_taper=self.delta_taper,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
                         shift_s=self._parent.shift_s,
@@ -116,6 +118,8 @@ class ThinSliceSextupole(BeamElement):
 
         out = Multipole(knl=knl, ksl=ksl, length=length,
                         hxl=0,
+                        radiation_flag=self.radiation_flag,
+                        delta_taper=self.delta_taper,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
                         shift_s=self._parent.shift_s,
@@ -164,6 +168,8 @@ class ThinSliceOctupole(BeamElement):
 
         out = Multipole(knl=knl, ksl=ksl, length=length,
                         hxl=0,
+                        radiation_flag=self.radiation_flag,
+                        delta_taper=self.delta_taper,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
                         shift_s=self._parent.shift_s,
@@ -211,6 +217,8 @@ class ThinSliceBend(BeamElement):
 
         out = Multipole(knl=knl, ksl=ksl, length=length,
                         hxl=self._parent.h * length,
+                        radiation_flag=self.radiation_flag,
+                        delta_taper=self.delta_taper,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
                         shift_s=self._parent.shift_s,
@@ -255,6 +263,7 @@ class ThinSliceBendEntry(BeamElement):
             hgap=self._parent.edge_entry_hgap,
             fint=self._parent.edge_entry_fint,
             model=self._parent.edge_entry_model,
+            delta_taper=self.delta_taper,
             side='entry',
             _buffer=self._buffer
         )
@@ -296,6 +305,7 @@ class ThinSliceBendExit(BeamElement):
                 hgap=self._parent.edge_exit_hgap,
                 fint=self._parent.edge_exit_fint,
                 model=self._parent.edge_exit_model,
+                delta_taper=self.delta_taper,
                 side='exit',
                 _buffer=self._buffer
             )
@@ -418,13 +428,13 @@ class ThinSliceRBendExit(BeamElement):
 
     def get_equivalent_element(self):
 
-            return DipoleEdge(
-                k=self._parent.k0,
-                e1=self._parent.edge_exit_angle + self._parent.angle / 2,
-                e1_fd=self._parent.edge_exit_angle_fdown,
-                hgap=self._parent.edge_exit_hgap,
-                fint=self._parent.edge_exit_fint,
-                model=self._parent.edge_exit_model,
-                side='exit',
-                _buffer=self._buffer
-            )
+        return DipoleEdge(
+            k=self._parent.k0,
+            e1=self._parent.edge_exit_angle + self._parent.angle / 2,
+            e1_fd=self._parent.edge_exit_angle_fdown,
+            hgap=self._parent.edge_exit_hgap,
+            fint=self._parent.edge_exit_fint,
+            model=self._parent.edge_exit_model,
+            side='exit',
+            _buffer=self._buffer
+        )
