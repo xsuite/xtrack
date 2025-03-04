@@ -144,9 +144,14 @@ class Environment:
             # Identify common elements
             counts = Counter()
             for ll in lines.values():
+                # Extract names of all elements and parents
+                elems_and_parents = set(ll.element_names)
+                for nn in ll.element_names:
+                    if hasattr(ll.element_dict[nn], 'parent_name'):
+                        elems_and_parents.add(ll.element_dict[nn].parent_name)
                 # Count if it is not a marker or a drift, which will be handled by
                 # `import_line`
-                for nn in ll.element_dict.keys():
+                for nn in elems_and_parents:
                     if (not (isinstance(ll.element_dict[nn], (xt.Marker))) and
                         not bool(re.match(r'^drift_\d+$', nn))):
                         counts[nn] += 1
