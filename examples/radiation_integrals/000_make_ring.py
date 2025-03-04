@@ -17,22 +17,25 @@ line.particle_ref = xt.Particles(energy0=20e9, mass0=xt.ELECTRON_MASS_EV)
 import wiggler as wgl
 
 k0_wig = 1e-3
-lenpole = 0.5
-numpoles = 8
-lenwig = lenpole * numpoles
-numperiods = 2
+lenwig = 10.
+numperiods = 50
+tilt_rad = np.pi/2
+
+
 lambdawig = lenwig / numperiods
 rhowig = 1 / (k0_wig + 1e-9)
-kwig = 2*np.pi / lambdawig
-tilt_rad = np.pi/2
 
 wig = wgl.Wiggler(period=lambdawig, amplitude=k0_wig, num_periods=numperiods,
                   angle_rad=tilt_rad, scheme='121a')
 
 tt = line.get_table()
 s_wig = tt['s', 'actcsg.31780']
+to_place = []
 for name, element in wig.wiggler_dict.items():
-    line.insert(name, obj=element['element'], at=s_wig+element['position'])
+    env.elements[name] = element['element']
+    to_place = env.place(name, at=s_wig+element['position'])
+
+line.insert(to_place)
 
 tt = line.get_table()
 tw4d_thick = line.twiss4d()
