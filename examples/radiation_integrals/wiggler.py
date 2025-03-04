@@ -1,84 +1,115 @@
 import numpy as np
 import xtrack as xt
 
-#NOTE: Put in an option to specify the spacing. Does nothing yet, something for later.
+# NOTE: Put in an option to specify the spacing. Does nothing yet,
+# something for later.
 
-class wiggler:
-    def __init__(self, Period, Amplitude, NumPeriods, Angle_Rad=0, Scheme='121s'):
-        # The SchemeLibrary is a list of all the possible schemes that can be used.
-        # The scheme determines the order of the dipoles in the wiggler.
-        # The 's' and 'a' stand for a symmetric/antisymmetric configuration respectively.
-        self.SchemeLibrary = ['121s', '121a']
+class Wiggler:
+    def __init__(self, period, amplitude, num_periods, angle_rad=0,
+                 scheme='121s'):
+        # The scheme_library is a list of all the possible schemes that can be
+        # used. The scheme determines the order of the dipoles in the wiggler.
+        # The 's' and 'a' stand for a symmetric/antisymmetric configuration
+        # respectively.
+        self.scheme_library = ['121s', '121a']
 
-        self.WigglerPeriod = Period
-        self.WigglerAmplitude = Amplitude
-        self.WigglerNumPeriods = NumPeriods
-        self.Angle_Rad = Angle_Rad
-        self.Scheme = Scheme
-        self.Spacing = 0
-        self.Wiggler = self._build_wiggler_()
-        self.WigglerDict = self._build_dict_()
-
+        self.wiggler_period = period
+        self.wiggler_amplitude = amplitude
+        self.wiggler_num_periods = num_periods
+        self.angle_rad = angle_rad
+        self.scheme = scheme
+        self.spacing = 0
+        self.wiggler = self._build_wiggler_()
+        self.wiggler_dict = self._build_dict_()
 
     def _build_wiggler_(self):
-        Wiggler = []
+        wiggler = []
 
-        if self.Scheme == '121s':
-            for i in range(self.WigglerNumPeriods+1):
-                if i!=0 and i!=self.WigglerNumPeriods:
-                    Wiggler += [xt.Bend(length=self.WigglerPeriod/4, k0=-self.WigglerAmplitude, h=0, rot_s_rad=self.Angle_Rad),
-                                xt.Bend(length=self.WigglerPeriod/4, k0=-self.WigglerAmplitude, h=0, rot_s_rad=self.Angle_Rad),
-                                xt.Bend(length=self.WigglerPeriod/4, k0= self.WigglerAmplitude, h=0, rot_s_rad=self.Angle_Rad),
-                                xt.Bend(length=self.WigglerPeriod/4, k0= self.WigglerAmplitude, h=0, rot_s_rad=self.Angle_Rad)]
+        if self.scheme == '121s':
+            for i in range(self.wiggler_num_periods + 1):
+                if i != 0 and i != self.wiggler_num_periods:
+                    wiggler += [
+                        xt.Bend(length=self.wiggler_period / 4,
+                                k0=-self.wiggler_amplitude, h=0,
+                                rot_s_rad=self.angle_rad),
+                        xt.Bend(length=self.wiggler_period / 4,
+                                k0=-self.wiggler_amplitude, h=0,
+                                rot_s_rad=self.angle_rad),
+                        xt.Bend(length=self.wiggler_period / 4,
+                                k0=self.wiggler_amplitude, h=0,
+                                rot_s_rad=self.angle_rad),
+                        xt.Bend(length=self.wiggler_period / 4,
+                                k0=self.wiggler_amplitude, h=0,
+                                rot_s_rad=self.angle_rad)
+                    ]
 
-                elif i==0:
-                    Wiggler += [xt.Bend(length=self.WigglerPeriod/4, k0= self.WigglerAmplitude, h=0, rot_s_rad=self.Angle_Rad)]
+                elif i == 0:
+                    wiggler += [
+                        xt.Bend(length=self.wiggler_period / 4,
+                                k0=self.wiggler_amplitude, h=0,
+                                rot_s_rad=self.angle_rad)
+                    ]
 
                 else:
-                    Wiggler += [xt.Bend(length=self.WigglerPeriod/4, k0=-self.WigglerAmplitude, h=0, rot_s_rad=self.Angle_Rad),
-                                xt.Bend(length=self.WigglerPeriod/4, k0=-self.WigglerAmplitude, h=0, rot_s_rad=self.Angle_Rad),
-                                xt.Bend(length=self.WigglerPeriod/4, k0= self.WigglerAmplitude, h=0, rot_s_rad=self.Angle_Rad)]
-                    
-        if self.Scheme == '121a':
-            for i in range(self.WigglerNumPeriods):
-                sign = 1 if i%2==0 else -1
-                Wiggler += [xt.Bend(length=self.WigglerPeriod/4, k0=-sign*self.WigglerAmplitude, h=0, rot_s_rad=self.Angle_Rad),
-                            xt.Bend(length=self.WigglerPeriod/4, k0= sign*self.WigglerAmplitude, h=0, rot_s_rad=self.Angle_Rad),
-                            xt.Bend(length=self.WigglerPeriod/4, k0= sign*self.WigglerAmplitude, h=0, rot_s_rad=self.Angle_Rad),
-                            xt.Bend(length=self.WigglerPeriod/4, k0=-sign*self.WigglerAmplitude, h=0, rot_s_rad=self.Angle_Rad)]
+                    wiggler += [
+                        xt.Bend(length=self.wiggler_period / 4,
+                                k0=-self.wiggler_amplitude, h=0,
+                                rot_s_rad=self.angle_rad),
+                        xt.Bend(length=self.wiggler_period / 4,
+                                k0=-self.wiggler_amplitude, h=0,
+                                rot_s_rad=self.angle_rad),
+                        xt.Bend(length=self.wiggler_period / 4,
+                                k0=self.wiggler_amplitude, h=0,
+                                rot_s_rad=self.angle_rad)
+                    ]
 
-        print(f'Wiggler.shape = {Wiggler.__len__()}')
+        if self.scheme == '121a':
+            for i in range(self.wiggler_num_periods):
+                sign = 1 if i % 2 == 0 else -1
+                wiggler += [
+                    xt.Bend(length=self.wiggler_period / 4,
+                            k0=-sign * self.wiggler_amplitude, h=0,
+                            rot_s_rad=self.angle_rad),
+                    xt.Bend(length=self.wiggler_period / 4,
+                            k0=sign * self.wiggler_amplitude, h=0,
+                            rot_s_rad=self.angle_rad),
+                    xt.Bend(length=self.wiggler_period / 4,
+                            k0=sign * self.wiggler_amplitude, h=0,
+                            rot_s_rad=self.angle_rad),
+                    xt.Bend(length=self.wiggler_period / 4,
+                            k0=-sign * self.wiggler_amplitude, h=0,
+                            rot_s_rad=self.angle_rad)
+                ]
 
-        return Wiggler
-        
+        print(f'wiggler.shape = {len(wiggler)}')
 
-    def _get_wiggler_names_(self, Wiggler, WigglerNumber='1'):
-        WigglerNames = []
-        for i in range(len(Wiggler)):
-            WigglerNames += ['mwp' + str(i+1) + '.' + WigglerNumber]
-        
-        print(f'WigglerNames.shape = {WigglerNames.__len__()}')
+        return wiggler
 
+    def _get_wiggler_names_(self, wiggler, wiggler_number='1'):
+        wiggler_names = []
+        for i in range(len(wiggler)):
+            wiggler_names += ['mwp' + str(i + 1) + '.' + wiggler_number]
 
-        return WigglerNames
+        print(f'wiggler_names.shape = {len(wiggler_names)}')
 
+        return wiggler_names
 
-    def _get_element_positions_(self, Wiggler):
-        ElePos = np.zeros(len(Wiggler))
-        for i in range(1, len(Wiggler)):
-            ElePos[i] = ElePos[i-1] + Wiggler[i-1].length + self.Spacing
+    def _get_element_positions_(self, wiggler):
+        ele_pos = np.zeros(len(wiggler))
+        for i in range(1, len(wiggler)):
+            ele_pos[i] = ele_pos[i - 1] + wiggler[i - 1].length + self.spacing
 
-        print(f'ElePos.shape = {ElePos.shape}')
+        print(f'ele_pos.shape = {ele_pos.shape}')
 
-        return ElePos
-
+        return ele_pos
 
     def _build_dict_(self):
-        Wiggler = self._build_wiggler_()
-        WigglerNames = self._get_wiggler_names_(Wiggler)
-        ElePos = self._get_element_positions_(Wiggler)
-        WigglerDict = {
-        name: {'element': obj, 'position': pos}
-        for name, obj, pos in zip(WigglerNames, Wiggler, ElePos)}
+        wiggler = self._build_wiggler_()
+        wiggler_names = self._get_wiggler_names_(wiggler)
+        ele_pos = self._get_element_positions_(wiggler)
+        wiggler_dict = {
+            name: {'element': obj, 'position': pos}
+            for name, obj, pos in zip(wiggler_names, wiggler, ele_pos)
+        }
 
-        return WigglerDict
+        return wiggler_dict
