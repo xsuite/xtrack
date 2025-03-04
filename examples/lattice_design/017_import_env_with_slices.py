@@ -167,9 +167,9 @@ assert 'qq2_thin' in env.element_dict
 assert 'qq_shared_thick/line2' in env.element_dict
 assert 'qq_shared_thin/line2' in env.element_dict
 
-line1['kk'] = 1e-3
-line2['kk'] = 1e-3
-env['kk'] = 1e-3
+line1['kk'] = 1e-1
+line2['kk'] = 1e-1
+env['kk'] = 1e-1
 
 particle_ref = xt.Particles(p0c=7e12)
 line1.particle_ref = particle_ref
