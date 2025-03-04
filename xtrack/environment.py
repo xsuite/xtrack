@@ -1438,9 +1438,10 @@ def load_module_from_path(file_path):
 def _reverse_element(env, name):
     """Return a reversed element without modifying the original."""
 
-    SUPPORTED={'RBend', 'Bend', 'Quadrupole', 'Sextupole', 'Octupole',
+    SUPPORTED = {'RBend', 'Bend', 'Quadrupole', 'Sextupole', 'Octupole',
                 'Multipole', 'Cavity', 'Solenoid', 'RFMultipole',
-                'Marker', 'Drift'}
+                'Marker', 'Drift', 'LimitRect', 'LimitEllipse', 'LimitPolygon',
+                'LimitRectEllipse'}
 
     ee = env.get(name)
     ee_ref = env.ref[name]
