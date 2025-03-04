@@ -9,6 +9,7 @@ from cpymad.madx import Madx
 
 from xdeps.refs import CompactFormatter
 import xtrack as xt
+from xtrack import Strategy, Uniform
 from xtrack.mad_parser.loader import MadxLoader
 from xtrack.mad_parser.parse import MadxOutputType, MadxParser
 
@@ -725,14 +726,22 @@ def test_load_b2_with_bv_minus_one(tmp_path):
     mad.input('set, format=".20g";')
     mad.save(file=tmp_seq_path)
 
-    line2_ref = xt.Line.from_madx_sequence(mad.sequence.lhcb2,
-                                       allow_thick=True,
-                                       deferred_expressions=True,
-                                       replace_in_expr={'bv_aux': 'bvaux_b2'})
+    line2_ref = xt.Line.from_madx_sequence(
+        sequence=mad.sequence.lhcb2,
+        allow_thick=True,
+        deferred_expressions=True,
+        replace_in_expr={'bv_aux': 'bvaux_b2'},
+    )
     line2_ref.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7000e9)
 
     env = xt.load_madx_lattice(tmp_seq_path, reverse_lines=['lhcb2'])
     line2 = env['lhcb2']
+
+    # Remove apertures, they are not supported in the cpymadloader
+    line2.element_names = [
+        name for name in line2.element_names
+        if not isinstance(line2[name], xt.LimitRectEllipse)
+    ]
 
     # Bend done
 
@@ -879,7 +888,6 @@ def test_refer_and_thin_elements():
 
 def test_import_seq_length():
     sequence = """
-
     qu: quadrupole, l=2, k1=3, k1s=4, tilt=2;  ! ignore thick and ktap
 
     line: sequence, l = ll;
@@ -897,3 +905,233 @@ def test_import_seq_length():
     assert np.all(tt.name == np.array(['drift_1', 'qu1', 'drift_2', '_end_point']))
     xo.assert_allclose(tt['s'], np.array([ 0., 18., 20., 30.]), rtol=0, atol=1e-15)
     assert env.line.builder.length == 'll'
+
+
+def test_repeated_element_mad_behaviour():
+    sequence = """
+    mar: marker;
+    ben: sbend, l=1;
+    
+    seq1: sequence, l=10;
+      ee: mar, at=5;
+    endsequence;
+    
+    seq2: sequence, l=10;
+      ee: ben, at=5;  ! in MAD-X this definition will be ignored
+    endsequence;
+    """
+
+    env = xt.load_madx_lattice(string=sequence)
+
+    element = env['ee']
+    assert env.seq1['ee'] == element
+    assert env.seq2['ee'] == element
+
+
+@pytest.mark.parametrize('aper_config', ['attached_to_marker', 'standalone'])
+def test_apertures_on_markers(aper_config):
+    if aper_config == 'attached_to_marker':
+        sequence = """
+            ! Attached to a marker
+            m_circle: marker, apertype="circle", aperture={.2};
+            m_ellipse: marker, apertype="ellipse", aperture={.2, .1};
+            m_rectangle: marker, apertype="rectangle", aperture={.07, .05};
+            m_rectellipse: marker, apertype="rectellipse", aperture={.2, .4, .25, .45};
+            m_racetrack: marker, apertype="racetrack", aperture={.6,.4,.2,.1};
+            m_octagon: marker, apertype="octagon", aperture={.4, .5, 0.5, 1.};
+            m_polygon: marker, apertype="circle", aper_vx={+5.800e-2,+5.800e-2,-8.800e-2}, aper_vy={+3.500e-2,-3.500e-2,+0.000e+0};
+            """
+    else:
+        sequence = """
+            ! Standalone
+            m_circle: circle, aperture={.2};
+            m_ellipse: ellipse, aperture={.2, .1};
+            m_rectangle: rectangle, aperture={.07, .05};
+            m_rectellipse: rectellipse, aperture={.2, .4, .25, .45};
+            m_racetrack: racetrack, aperture={.6,.4,.2,.1};
+            m_octagon: octagon, aperture={.4, .5, 0.5, 1.};
+            m_polygon: circle, aper_vx={+5.800e-2,+5.800e-2,-8.800e-2}, aper_vy={+3.500e-2,-3.500e-2,+0.000e+0};
+            """
+
+    sequence += """
+        line: sequence, l=1;
+            m_circle, at=0;
+            m_ellipse, at=0.01;
+            m_rectangle, at=0.02;
+            m_rectellipse, at=0.03;
+            m_racetrack, at=0.04;
+            m_octagon, at=0.05;
+            m_polygon, at=0.06;
+        endsequence;
+        """
+
+    env = xt.load_madx_lattice(string=sequence)
+    line = env.line
+
+    apertures = [ee for ee in line.elements if ee.__class__.__name__.startswith('Limit')]
+
+    assert isinstance(line[line['m_circle'].name_associated_aperture], xt.LimitEllipse)
+    circ = apertures[0]
+    assert circ.__class__.__name__ == 'LimitEllipse'
+    xo.assert_allclose(circ.a_squ, .2**2, atol=1e-13, rtol=0)
+    xo.assert_allclose(circ.b_squ, .2**2, atol=1e-13, rtol=0)
+
+    assert isinstance(line[line['m_ellipse'].name_associated_aperture], xt.LimitEllipse)
+    ellip = apertures[1]
+    assert ellip.__class__.__name__ == 'LimitEllipse'
+    xo.assert_allclose(ellip.a_squ, .2**2, atol=1e-13, rtol=0)
+    xo.assert_allclose(ellip.b_squ, .1**2, atol=1e-13, rtol=0)
+
+    assert isinstance(line[line['m_rectangle'].name_associated_aperture], xt.LimitRect)
+    rect = apertures[2]
+    assert rect.__class__.__name__ == 'LimitRect'
+    assert rect.min_x == -.07
+    assert rect.max_x == +.07
+    assert rect.min_y == -.05
+    assert rect.max_y == +.05
+
+    assert isinstance(line[line['m_rectellipse'].name_associated_aperture], xt.LimitRectEllipse)
+    rectellip = apertures[3]
+    assert rectellip.max_x == .2
+    assert rectellip.max_y == .4
+    xo.assert_allclose(rectellip.a_squ, .25**2, atol=1e-13, rtol=0)
+    xo.assert_allclose(rectellip.b_squ, .45**2, atol=1e-13, rtol=0)
+
+    assert isinstance(line[line['m_racetrack'].name_associated_aperture], xt.LimitRacetrack)
+    racetr = apertures[4]
+    assert racetr.__class__.__name__ == 'LimitRacetrack'
+    assert racetr.min_x == -.6
+    assert racetr.max_x == +.6
+    assert racetr.min_y == -.4
+    assert racetr.max_y == +.4
+    assert racetr.a == .2
+    assert racetr.b == .1
+
+    assert isinstance(line[line['m_octagon'].name_associated_aperture], xt.LimitPolygon)
+    octag = apertures[5]
+    assert octag.__class__.__name__ == 'LimitPolygon'
+    assert octag._xobject.x_vertices[0] == 0.4
+    xo.assert_allclose(octag._xobject.y_vertices[0], 0.4*np.tan(0.5), atol=1e-14, rtol=0)
+    assert octag._xobject.y_vertices[1] == 0.5
+    xo.assert_allclose(octag._xobject.x_vertices[1], 0.5/np.tan(1.), atol=1e-14, rtol=0)
+
+    assert octag._xobject.y_vertices[2] == 0.5
+    xo.assert_allclose(octag._xobject.x_vertices[2], -0.5/np.tan(1.), atol=1e-14, rtol=0)
+    assert octag._xobject.x_vertices[3] == -0.4
+    xo.assert_allclose(octag._xobject.y_vertices[3], 0.4*np.tan(0.5), atol=1e-14, rtol=0)
+
+
+    assert octag._xobject.x_vertices[4] == -0.4
+    xo.assert_allclose(octag._xobject.y_vertices[4], -0.4*np.tan(0.5), atol=1e-14, rtol=0)
+    assert octag._xobject.y_vertices[5] == -0.5
+    xo.assert_allclose(octag._xobject.x_vertices[5], -0.5/np.tan(1.), atol=1e-14, rtol=0)
+
+
+    assert octag._xobject.y_vertices[6] == -0.5
+    xo.assert_allclose(octag._xobject.x_vertices[6], 0.5/np.tan(1.), atol=1e-14, rtol=0)
+    assert octag._xobject.x_vertices[7] == 0.4
+    xo.assert_allclose(octag._xobject.y_vertices[7], -0.4*np.tan(0.5), atol=1e-14, rtol=0)
+
+    assert isinstance(line[line['m_polygon'].name_associated_aperture], xt.LimitPolygon)
+    polyg = apertures[6]
+    assert polyg.__class__.__name__ == 'LimitPolygon'
+    assert len(polyg._xobject.x_vertices) == 3
+    assert len(polyg._xobject.y_vertices) == 3
+    # The below assertions don't match test_apertures.py::test_mad_import
+    # TODO: Figure out what mad_loader.py:971 is doing? It seems wrong
+    assert np.all(polyg.x_vertices == [5.8e-2, 5.8e-2, -8.8e-2])
+    assert np.all(polyg.y_vertices == [3.5e-2, -3.5e-2, 0.0])
+
+
+def test_aperture_setting():
+    sequence = """
+    m_ellipse: marker, apertype="ellipse", aperture={.2, .1};
+    m_aper: marker, apertype="rectangle", aperture={.3, .4};
+    
+    line: sequence, l=1;
+        m_ellipse, at=0;
+        m_aper, at=0.1;
+    endsequence;
+    
+    m_ellipse, aperture={.3, .2};  ! no apertype
+    m_aper, apertype="ellipse", aperture={.5, .6};  ! change apertype
+    """
+
+    env = xt.load_madx_lattice(string=sequence)
+    line = env.line
+
+    assert line['m_ellipse_aper'].a == .3
+    assert line['m_ellipse_aper'].b == .2
+
+    assert line['m_aper_aper'].a == .5
+    assert line['m_aper_aper'].b == .6
+
+
+def test_import_thick_with_apertures_and_slice():
+    sequence = """
+    k1=0.2;
+    tilt=0.1;
+
+    elm: sbend,
+        k1:=k1,
+        l=1,
+        angle=0.1,
+        tilt=0.2,
+        apertype="rectellipse",
+        aperture={0.1,0.2,0.11,0.22},
+        aper_tol={0.1,0.2,0.3},
+        aper_tilt:=tilt,
+        aper_offset={0.2, 0.3};
+
+    seq: sequence, l=1;
+    elm: elm, at=0.5;
+    endsequence;
+    """
+
+    env = xt.load_madx_lattice(string=sequence)
+    line = env.seq
+
+    def _assert_eq(a, b):
+        xo.assert_allclose(a, b, atol=1e-16)
+
+    _assert_eq(line[f'elm_aper'].rot_s_rad, 0.1)
+    _assert_eq(line[f'elm_aper'].shift_x, 0.2)
+    _assert_eq(line[f'elm_aper'].shift_y, 0.3)
+    _assert_eq(line[f'elm_aper'].max_x, 0.1)
+    _assert_eq(line[f'elm_aper'].max_y, 0.2)
+    _assert_eq(line[f'elm_aper'].a_squ, 0.11 ** 2)
+    _assert_eq(line[f'elm_aper'].b_squ, 0.22 ** 2)
+
+    _assert_eq(line[f'elm'].rot_s_rad, 0.2)
+
+    line.slice_thick_elements(slicing_strategies=[Strategy(Uniform(2))])
+
+    assert np.all(line.get_table().rows['elm_entry':'elm_exit'].name == [
+        'elm_entry',                    # entry marker
+        'elm_aper..0',                  # entry edge aperture
+        'elm..entry_map',               # entry edge (+transform)
+        'drift_elm..0',                 # drift 0
+        'elm_aper..1',                  # slice 1 aperture
+        'elm..0',                       # slice 0 (+transform)
+        'drift_elm..1',                 # drift 1
+        'elm_aper..2',                  # slice 2 aperture
+        'elm..1',                       # slice 2 (+transform)
+        'drift_elm..2',                 # drift 2
+        'elm_aper..3',                  # exit edge aperture
+        'elm..exit_map',                # exit edge (+transform)
+        'elm_exit',                     # exit marker
+    ])
+
+    line.build_tracker(compile=False) # To resolve parents
+
+    for i in range(4):
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).rot_s_rad, 0.1)
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).shift_x, 0.2)
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).shift_y, 0.3)
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).max_x, 0.1)
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).max_y, 0.2)
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).a_squ, 0.11 ** 2)
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).b_squ, 0.22 ** 2)
+
+    for i in range(2):
+        _assert_eq(line[f'elm..{i}']._parent.rot_s_rad, 0.2)
