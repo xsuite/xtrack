@@ -191,10 +191,7 @@ class MadxTransformer(Transformer):
 
     def top_level_clone(self, clone):
         name, body = clone
-        self.elements[name] = {
-            'parent': name,
-            **body,
-        }
+        self.elements[name] = body
 
     def command_stmt(self, command_token, arglist):
         return command_token.value.lower(), dict(arglist)

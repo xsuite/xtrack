@@ -258,13 +258,15 @@ class MadxLoader:
         self._builtin_types.add(name)
 
     def _new_element(self, name, parent, builder, **kwargs):
-        if parent is not None:
+        should_clone = parent is not None
+
+        if should_clone:
             self._parameter_cache[name] = self._parameter_cache.get(parent, {}).copy()
         else:
             self._parameter_cache[name] = self._parameter_cache.get(name, {})
         self._parameter_cache[name].update(kwargs)
 
-        aperture = self._build_aperture(name, kwargs)
+        aperture = self._build_aperture(name, f'{name}_aper', kwargs)
         if not aperture and name in self.env.element_dict:
             aperture = self.env[name].name_associated_aperture
         if not aperture and parent:
@@ -272,60 +274,94 @@ class MadxLoader:
 
         el_params = self._convert_element_params(name, kwargs)
 
-        length = el_params.get('length', self._parameter_cache[name].get('length', 0))
-        if self._mad_base_type(name) in {'vkicker', 'hkicker', 'kicker', 'tkicker',
-                                         'multipole'}:
-            # Workaround for the fact that Multipole.length does not make an element thick
-            length = 0
-
         if aperture and 'at' in el_params:  # placing mode
             builder.place(aperture, at=0, from_=f'{name}@start')
 
-        if parent is None:
-            # If parent is None, we wish to place instead (element is used
-            # as a command, not a clone)
-            if self._mad_base_type(name) in ['rbend', 'sbend']:
-                el_params.pop('k0_from_h', None)
-
-            if (superfluous := el_params.keys() - {'at', 'from_', 'extra'}):
-                raise ValueError(
-                    f'Cannot place the element `{name}` as it overrides the '
-                    f'parameters: {superfluous}!'
-                )
-
-            if (extras := el_params.pop('extra', None)):
-                _warn(f'Ignoring extra parameters {extras} for element `{name}`!')
-
-            element = self.env[name]
-            is_not_thick = isinstance(element, BeamElement) and not element.isthick
-            if is_not_thick and length and not isinstance(element, xt.Marker):
-                line = self._make_thick_sandwich(name, length)
-                builder.place(line, **el_params)
-            else:
-                builder.place(name, **el_params)
+        if should_clone:
+            self._clone_element(name, parent, builder, el_params)
         else:
-            element = self.env[parent]
-            is_not_thick = isinstance(element, BeamElement) and not element.isthick
-            if is_not_thick and length and not isinstance(element, xt.Marker):
-                at, from_ = el_params.pop('at', None), el_params.pop('from_', None)
-                if name not in self.env.element_dict:
-                    self.env.new(name, parent, force=True, **el_params)
-                    make_drifts = True
-                else:
-                    _warn(f'Element `{name}` already exists, this definition '
-                          f'will be ignored (for compatibility with MAD-X)')
-                    make_drifts = False
-                name = self._make_thick_sandwich(name, length, make_drifts)
-                builder.place(name, at=at, from_=from_)
-            else:
-                if name == parent:
-                    el_params.pop('extra', None)
-                    builder.place(name, **el_params)
-                else:
-                    builder.new(name, parent, force=True, **el_params) # Not sure why `force` is needed
+            # If parent is None, we must be in a sequence, and so we are
+            # placing the element: in MAD-X this requires an `at` param, but
+            # we can be a bit more lax, as Xsuite will automatically place the
+            # element after the previous one if there is not `at`.
+            self._place_element(name, el_params, builder)
 
         if aperture:
             builder.element_dict[name].name_associated_aperture = aperture
+
+    def _place_element(self, name, el_params, builder):
+        """Place an element in the sequence.
+
+        This is the case when `parent` is None.
+        """
+        if self._mad_base_type(name) in ['rbend', 'sbend']:
+            el_params.pop('k0_from_h', None)
+
+        if (superfluous := el_params.keys() - {'at', 'from_', 'extra'}):
+            raise ValueError(
+                f'Cannot place the element `{name}` as it overrides the '
+                f'parameters: {superfluous}!'
+            )
+
+        if (extras := el_params.pop('extra', None)):
+            _warn(f'Ignoring extra parameters {extras} for element `{name}`!')
+        element = self.env[name]
+
+        length = self._element_length(name, el_params)
+        is_not_thick = isinstance(element, BeamElement) and not element.isthick
+        if is_not_thick and length and not isinstance(element, xt.Marker):
+            # Handle the thin elements that have a length in MAD-X: sandwich
+            line = self._make_thick_sandwich(name, length)
+            builder.place(line, **el_params)
+        else:
+            builder.place(name, **el_params)
+
+    def _clone_element(self, name, parent, builder, el_params):
+        """Clone an element, and possibly place it if we are in a sequence.
+
+        Here `parent` is not None.
+        """
+        length = self._element_length(name, el_params)
+        element = self.env[parent]
+        is_not_thick = isinstance(element, BeamElement) and not element.isthick
+
+        if is_not_thick and length and not isinstance(element, xt.Marker):
+            # Handle the thin elements that have a length in MAD-X: sandwich
+            at, from_ = el_params.pop('at', None), el_params.pop('from_', None)
+            if name not in self.env.element_dict:
+                make_drifts = True
+                self.env.new(name, parent, **el_params)
+            else:
+                make_drifts = False
+                _warn(f'Element `{name}` already exists, this definition '
+                      f'will be ignored (for compatibility with MAD-X)')
+            name = self._make_thick_sandwich(name, length, make_drifts)
+            builder.place(name, at=at, from_=from_)
+        elif name == parent:
+            # This happens when the element is cloned with the same name, which
+            # is allowed inside MAD-X sequences, e.g.: `el: el, at = 42;`.
+            # We cannot attach extra to a place though, so this is skipped.
+            if dropped_extra := el_params.pop('extra', None):
+                _warn(f'Ignoring extra parameters {dropped_extra} for element '
+                      f'`{name}`: it is a clone of itself overriding `extra`.')
+            el_params.pop('k0_from_h', None)
+            builder.place(name, **el_params)
+        else:
+            # `force=True` is needed to overwrite existing elements. In MAD-X
+            # when an element name is repeated between lines, the first one
+            # is retained: we do not simulate this behaviour here.
+            builder.new(name, parent, force=True, **el_params)
+
+    def _element_length(self, name, el_params):
+        """Given the definition and params of the element, return its length."""
+        length = el_params.get('length', self._parameter_cache[name].get('length', 0))
+        THIN_ELEMENTS = {'vkicker', 'hkicker', 'kicker', 'tkicker', 'multipole'}
+        if self._mad_base_type(name) in THIN_ELEMENTS:
+            # Workaround for the elements that are thin despite having a
+            # ``length`` parameter.
+            length = 0
+
+        return length
 
     def _make_thick_sandwich(self, name, length, make_drifts=True):
         """Make a sandwich of two drifts around the element."""
@@ -342,7 +378,7 @@ class MadxLoader:
 
         if 'aperture' in kwargs and 'apertype' not in kwargs:
             kwargs['apertype'] = self._parameter_cache[name]['apertype']
-        aperture = self._build_aperture(name, kwargs, force=True)
+        aperture = self._build_aperture(name, f'{name}_aper', kwargs, force=True)
 
         el_params = self._convert_element_params(name, kwargs)
         builder.set(name, **el_params)
@@ -424,13 +460,15 @@ class MadxLoader:
 
         return params
 
-    def _build_aperture(self, name, params, force=False):
+    def _build_aperture(self, name, aper_name, params, force=False):
         """Build a Xtrack aperture for element `name` with  `params`.
 
         Parameters
         ----------
         name : str
             The name of the element for which to build the aperture.
+        aper_name : str
+            The name of the aperture element to be created.
         params : dict
             The parameters of the element, including the aperture parameters.
         force : bool, optional
@@ -467,7 +505,14 @@ class MadxLoader:
                 f'`{apertype}`) is not recognised.'
             )
 
-        aper_params = {'rot_s_rad': params.get('aper_tilt', 0)}
+        x_offset, y_offset = params.pop('aper_offset', (0, 0))
+        if params.pop('aper_tol', None):
+            _warn(f'Aperture tolerance (`{name}`) is not supported, ignoring.')
+        aper_params = {
+            'rot_s_rad': params.pop('aper_tilt', 0),
+            'shift_x': x_offset,
+            'shift_y': y_offset,
+        }
 
         if apertype == 'circle':
             aper_params['a'] = aper_params['b'] = aperture[0]
@@ -481,14 +526,12 @@ class MadxLoader:
             aper_params['max_x'] = aperture[0]
             aper_params['min_y'] = -aperture[1]
             aper_params['max_y'] = aperture[1]
-            # aper_params['shift_x'] = params.get('v_pos', 0)
 
         elif apertype == 'rectellipse':
             aper_params['max_x'] = aperture[0]
             aper_params['max_y'] = aperture[1]
             aper_params['a'] = aperture[2]
             aper_params['b'] = aperture[3]
-            # aper_params['shift_x'] = params.get('v_pos', 0)
 
         elif apertype == 'racetrack':
             aper_params['min_x'] = -aperture[0]
@@ -520,7 +563,6 @@ class MadxLoader:
             if (aper_vy := params.pop('aper_vy', None)):
                 aper_params['y_vertices'] = aper_vy
 
-        aper_name = f'{name}_aper'
         return self.env.new(aper_name, _APERTURE_TYPES[apertype], force=force,
                             **aper_params)
 
@@ -560,6 +602,10 @@ class MadxLoader:
             )
 
         return element_name
+
+    def _is_standalone_aperture(self, element_name: str):
+        return self._mad_base_type(element_name) in _APERTURE_TYPES
+
 
 def load_madx_lattice(file=None, string=None, reverse_lines=None):
 
