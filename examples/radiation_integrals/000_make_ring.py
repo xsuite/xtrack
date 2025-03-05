@@ -66,11 +66,11 @@ line.configure_radiation(model='mean')
 
 tw_rad = line.twiss(eneloss_and_damping=True, strengths=True)
 
-import matplotlib.pyplot as plt
-plt.close('all')
-pl = tw_rad.plot(yl='y', yr='dy')
-pl.xlim(tw_rad['s', 's.wig'] - 10, tw_rad['s', 'e.wig'] + 10)
-plt.show()
+# import matplotlib.pyplot as plt
+# plt.close('all')
+# pl = tw_rad.plot(yl='y', yr='dy')
+# pl.xlim(tw_rad['s', 's.wig'] - 10, tw_rad['s', 'e.wig'] + 10)
+# plt.show()
 
 from synchrotron_integrals import SynchrotronIntegral as synint
 integrals = synint(line)
@@ -87,5 +87,4 @@ kappa_y = np.zeros(len(length))
 mask = length != 0
 kappa_x[mask] = angle_rad[mask] * np.cos(rot_s_rad[mask]) / length[mask]
 kappa_y[mask] = angle_rad[mask] * np.sin(rot_s_rad[mask]) / length[mask]
-
 

@@ -87,9 +87,9 @@ class SynchrotronIntegral:
     # Calculate the curvature of the design orbit.
     def _orbit_curvature_(self):
         kappa_xy = np.zeros(shape=(2, len(self.length)))
-        
+
         # TODO: I think the self.tw['k0l'] should be replaced with self.tw['angle_rad'].
-        angle_rad = self.tw['k0l']
+        angle_rad = self.tw['angle_rad']
         rot_s_rad = self.tw['rot_s_rad']
         mask = self.length != 0
 
@@ -99,8 +99,60 @@ class SynchrotronIntegral:
         return kappa_xy
 
 
-   # Calculate the curvature of the design orbit.
+    # Calculate the curvature of the design orbit.
     def _get_curvature_(self):
+        k_xy = np.zeros(shape=(2, len(self.length)))
+
+        x = self.tw['x']
+        y = self.tw['y']
+        kin_px = self.tw['kin_px']
+        kin_py = self.tw['kin_py']
+        delta = self.tw['delta']
+        length = self.tw['length']
+
+        ps = np.sqrt((1 + delta)**2 - kin_px**2 - kin_py**2)
+        xp = kin_px / ps
+        yp = kin_py / ps
+
+        xp_ele = xp * 0
+        yp_ele = yp * 0
+
+        xp_ele[:-1] = (xp[:-1] + xp[1:]) / 2
+        yp_ele[:-1] = (yp[:-1] + yp[1:]) / 2
+
+        mask_length = length != 0
+
+        xpp_ele = xp_ele * 0
+        ypp_ele = yp_ele * 0
+
+        xpp_ele[mask_length] = np.diff(xp, append=0)[mask_length] / length[mask_length]
+        ypp_ele[mask_length] = np.diff(yp, append=0)[mask_length] / length[mask_length]
+
+        # s = self.tw['s']
+        # xprime = self._get_derivative_(x, s)
+        # yprime = self._get_derivative_(y, s)
+        # xdoubleprime = self._get_derivative_(xprime, s)
+        # ydoubleprime = self._get_derivative_(yprime, s)
+
+        # xp_ele = xprime
+        # yp_ele = yprime
+        # xpp_ele = xdoubleprime
+        # ypp_ele = ydoubleprime
+
+        kappa_0xy = self._orbit_curvature_()
+        h = 1 + kappa_0xy[0, :] * x + kappa_0xy[1, :] * y
+        hprime = kappa_0xy[0, :] * xp_ele + kappa_0xy[1, :] * yp_ele
+
+        mask1 = xpp_ele**2 + h**2 != 0
+        mask2 = xpp_ele**2 + h**2 != 0
+
+        k_xy[0, :] = -(h * (xpp_ele - h * kappa_0xy[0, :]) - 2 * hprime * xp_ele)[mask1] / (xp_ele**2 + h**2)[mask1]**(3/2)
+        k_xy[1, :] = -(h * (ypp_ele - h * kappa_0xy[1, :]) - 2 * hprime * yp_ele)[mask2] / (yp_ele**2 + h**2)[mask2]**(3/2)
+
+        return k_xy
+
+   # Calculate the curvature of the design orbit.
+    def _get_curvature2_(self):
         k_xy = np.zeros(shape=(2, len(self.length)))
 
         x = self.tw['x']
