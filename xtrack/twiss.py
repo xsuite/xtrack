@@ -3657,26 +3657,27 @@ class TwissTable(Table):
                 / (xp_ele**2 + hhh**2)[mask1]**(3/2))
         kappa_y = (-(hhh * (ypp_ele - hhh * kappa0_y) - 2 * hprime * yp_ele)[mask2]
                 / (yp_ele**2 + hhh**2)[mask2]**(3/2))
+        kappa = np.sqrt(kappa_x**2 + kappa_y**2)
 
         # Curly H
         Hx_rad = gamx * dx**2 + 2*alfx * dx * dxprime + betx * dxprime**2
         Hy_rad = gamy * dy**2 + 2*alfy * dy * dyprime + bety * dyprime**2
 
         # Integrands
-        i1x_integrand = kappa_x * dx
-        i1y_integrand = kappa_y * dy
+        i1x_integrand = kappa * dx
+        i1y_integrand = kappa * dy
 
-        i2x_integrand = kappa_x * kappa_x
-        i2y_integrand = kappa_y * kappa_y
+        i2x_integrand = kappa * kappa
+        i2y_integrand = kappa * kappa
 
-        i3x_integrand = kappa_x * kappa_x * kappa_x
-        i3y_integrand = kappa_y * kappa_y * kappa_y
+        i3x_integrand = kappa * kappa * kappa
+        i3y_integrand = kappa * kappa * kappa
 
-        i4x_integrand = kappa_x * kappa_x * kappa_x * dx * (1 - 2 * fieldindex)
-        i4y_integrand = kappa_y * kappa_y * kappa_y * dy * (1 - 2 * fieldindex)
+        i4x_integrand = kappa * kappa * kappa * dx * (1 - 2 * fieldindex)
+        i4y_integrand = kappa * kappa * kappa * dy * (1 - 2 * fieldindex)
 
-        i5x_integrand = np.abs(kappa_x*kappa_x*kappa_x) * Hx_rad
-        i5y_integrand = np.abs(kappa_y*kappa_y*kappa_y) * Hy_rad
+        i5x_integrand = np.abs(kappa * kappa * kappa) * Hx_rad
+        i5y_integrand = np.abs(kappa * kappa * kappa) * Hy_rad
 
         # Integrate
         i1x = np.sum(i1x_integrand * length)
@@ -3692,14 +3693,14 @@ class TwissTable(Table):
 
         # Emittances
         eq_gemitt_x = (55/(32 * 3**(1/2)) * hbar / electron_volt * clight
-                    / mass0 * gamma0**2 * i5x / (i2x + i2y - i4x))
+                    / mass0 * gamma0**2 * i5x / (i2x - i4x))
         eq_gemitt_y = (55/(32 * 3**(1/2)) * hbar / electron_volt * clight
-                    / mass0 * gamma0**2 * i5y / (i2x + i2y - i4y))
+                    / mass0 * gamma0**2 * i5y / (i2y - i4y))
 
         # Damping constants
-        damping_constant_x_s = r0/3 * gamma0**3 * clight/self.circumference * (i2x + i2y - i4x)
-        damping_constant_y_s = r0/3 * gamma0**3 * clight/self.circumference * (i2x + i2y - i4y)
-        damping_constant_zeta_s = r0/3 * gamma0**3 * clight/self.circumference * (2 * (i2x + i2y) + i4x + i4y)
+        damping_constant_x_s = r0/3 * gamma0**3 * clight/self.circumference * (i2x - i4x)
+        damping_constant_y_s = r0/3 * gamma0**3 * clight/self.circumference * (i2y - i4y)
+        damping_constant_zeta_s = r0/3 * gamma0**3 * clight/self.circumference * ((i2x + i2y) + i4x + i4y)
 
         cols = {
             'rad_int_kappax': kappa_x,
