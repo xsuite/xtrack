@@ -8,61 +8,26 @@ from scipy.constants import c as clight
 env = xt.load_madx_lattice('b075_2024.09.25.madx')
 line = env.ring
 line.particle_ref = xt.Particles(energy0=2.7e9, mass0=xt.ELECTRON_MASS_EV)
+line.configure_bend_model(num_multipole_kicks=20)
 
-prrrrr
+line['vrf'] = 1.8e6
+line['frf'] = 499.6e6
+line['lagrf'] = 180.
 
-
-line['actcse.31632'].voltage = 4.2e+08
-line['actcse.31632'].frequency = 3e6
-line['actcse.31632'].lag = 180.
-
-tt = line.get_table()
-
-
-line.particle_ref = xt.Particles(energy0=20e9, mass0=xt.ELECTRON_MASS_EV)
-env.particle_ref = line.particle_ref
-
-import wiggler as wgl
-
-# Wiggler parameters
-k0_wig = 5e-3
-tilt_rad = np.pi/2
-
-lenwig = 25
-numperiods = 20
-lambdawig = lenwig / numperiods
-
-wig = wgl.Wiggler(period=lambdawig, amplitude=k0_wig, num_periods=numperiods,
-                  angle_rad=tilt_rad, scheme='121a')
-
-tt = line.get_table()
-wig_elems = []
-for name, element in wig.wiggler_dict.items():
-    env.elements[name] = element['element']
-    wig_elems.append(name)
-
-wig_line = env.new_line(components=[
-                        env.new('s.wig', 'Marker'),
-                        wig_elems,
-                        env.new('e.wig', 'Marker'),
-])
-
-
-line.insert(wig_line, anchor='start', at=1, from_='qd.31710@end')
+line.insert(
+    env.new('cav', 'Cavity', voltage='vrf', frequency='frf', lag='lagrf', at=0))
 
 tt = line.get_table()
 tw4d_thick = line.twiss4d()
 tw6d_thick = line.twiss()
 
-env['sps_thick'] = env.sps.copy(shallow=True)
+env['ring_thick'] = env.ring.copy(shallow=True)
 
 line.discard_tracker()
 slicing_strategies = [
-    xt.Strategy(slicing=xt.Teapot(1)),  # Default
-    xt.Strategy(slicing=xt.Teapot(2), element_type=xt.Bend),
-    xt.Strategy(slicing=xt.Teapot(2), element_type=xt.RBend),
+    xt.Strategy(slicing=None),  # Default
+    xt.Strategy(slicing=xt.Teapot(20), element_type=xt.Bend),
     xt.Strategy(slicing=xt.Teapot(8), element_type=xt.Quadrupole),
-    xt.Strategy(slicing=xt.Teapot(20), name='mwp.*'),
 ]
 line.slice_thick_elements(slicing_strategies)
 
@@ -105,6 +70,7 @@ dpx = tw['dpx']               # Dispersion px
 dpy = tw['dpy']               # Dispersion py
 
 mass0 = line.particle_ref.mass0
+r0 = line.particle_ref.get_classical_particle_radius0()
 gamma0 = tw.gamma0
 
 dxprime = dpx * (1 - delta) - kin_px
@@ -182,6 +148,11 @@ i4y = np.sum(i4y_integrand * length)
 i5x = np.sum(i5x_integrand * length)
 i5y = np.sum(i5y_integrand * length)
 
-eq_gemitt_x = 55/(32 * 3**(1/2)) * hbar / electron_volt * clight / mass0 * gamma0**2 * i5x / (i2x + i2y - i4x)
-eq_gemitt_y = 55/(32 * 3**(1/2)) * hbar / electron_volt * clight / mass0 * gamma0**2 * i5y / (i2x + i2y - i4y)
+eq_gemitt_x = (55/(32 * 3**(1/2)) * hbar / electron_volt * clight
+               / mass0 * gamma0**2 * i5x / (i2x + i2y - i4x))
+eq_gemitt_y = (55/(32 * 3**(1/2)) * hbar / electron_volt * clight
+               / mass0 * gamma0**2 * i5y / (i2x + i2y - i4y))
 
+damping_constant_x_s = r0/3 * gamma0**3 * clight/tw.circumference * (i2x + i2y - i4x)
+damping_constant_y_s = r0/3 * gamma0**3 * clight/tw.circumference * (i2x + i2y - i4y)
+damping_constant_zeta_s = r0/3 * gamma0**3 * clight/tw.circumference * (2 * (i2x + i2y) + i4x + i4y)

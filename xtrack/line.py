@@ -1265,6 +1265,7 @@ class Line:
         values_at_element_exit=None,
         radiation_method=None,
         eneloss_and_damping=None,
+        radiation_integrals=None,
         start=None, end=None, init=None,
         num_turns=None,
         skip_global_quantities=None,

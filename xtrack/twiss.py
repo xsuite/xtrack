@@ -14,6 +14,7 @@ from scipy.constants import hbar
 from scipy.constants import epsilon_0
 from scipy.constants import e as qe
 from scipy.special import factorial
+from scipy.constants import electron_volt
 
 if hasattr(np, 'trapezoid'): # numpy >= 2.0
     trapz = np.trapezoid
@@ -76,6 +77,7 @@ def twiss_line(line, particle_ref=None, method=None,
         values_at_element_exit=None,
         radiation_method=None,
         eneloss_and_damping=None,
+        radiation_integrals=None,
         start=None, end=None, init=None,
         num_turns=None,
         skip_global_quantities=None,
@@ -147,6 +149,8 @@ def twiss_line(line, particle_ref=None, method=None,
         code to analysis" is used. If 'kick_as_co' all particles receive the same
         radiation kicks as the closed orbit. If 'scale_as_co' all particles
         momenta are scaled by radiation as much as the closed orbit.
+    radiation_integrals : bool, optional
+        If True, the radiation integrals are computed.
     eneloss_and_damping : bool, optional
         If True, the energy loss and radiation damping constants are computed.
     strengths : bool, optional
@@ -315,6 +319,7 @@ def twiss_line(line, particle_ref=None, method=None,
     continue_on_closed_orbit_error=(continue_on_closed_orbit_error or False)
     freeze_longitudinal=(freeze_longitudinal or False)
     radiation_method=(radiation_method or None)
+    radiation_integrals=(radiation_integrals or False)
     eneloss_and_damping=(eneloss_and_damping or False)
     symplectify=(symplectify or False)
     reverse=(reverse or False)
@@ -785,8 +790,11 @@ def twiss_line(line, particle_ref=None, method=None,
     else:
         twiss_res._data['values_at'] = 'entry'
 
-    if strengths:
+    if strengths or radiation_integrals:
         _add_strengths_to_twiss_res(twiss_res, line)
+
+    if radiation_integrals:
+        twiss_res._compute_radiation_integrals(add_to_tw=True)
 
     twiss_res._data['method'] = method
     twiss_res._data['radiation_method'] = radiation_method
@@ -3581,6 +3589,162 @@ class TwissTable(Table):
 
         return pl
 
+    def _compute_radiation_integrals(self, add_to_tw=False):
+
+        angle_rad = self['angle_rad']
+        rot_s_rad = self['rot_s_rad']
+        x = self['x']
+        y = self['y']
+        kin_px = self['kin_px']
+        kin_py = self['kin_py']
+        delta = self['delta']
+        length = self['length']
+
+        betx = self['betx']             # Twiss beta function x
+        alfx = self['alfx']             # Twiss alpha x
+        gamx = self['gamx']             # Twiss gamma x
+        bety = self['bety']             # Twiss beta function y
+        alfy = self['alfy']             # Twiss alpha y
+        gamy = self['gamy']             # Twiss gamma y
+        dx = self['dx']                 # Dispersion x
+        dy = self['dy']                 # Dispersion y
+        dpx = self['dpx']               # Dispersion px
+        dpy = self['dpy']               # Dispersion py
+
+        mass0 = self.particle_on_co.mass0
+        r0 = self.particle_on_co.get_classical_particle_radius0()
+        gamma0 = self.gamma0
+
+        dxprime = dpx * (1 - delta) - kin_px
+        dyprime = dpy * (1 - delta) - kin_py
+
+        # Curvature of the reference trajectory
+        mask = length != 0
+        kappa0_x = 0 * angle_rad
+        kappa0_y = 0 * angle_rad
+        kappa0_x[mask] = angle_rad[mask] * np.cos(rot_s_rad[mask]) / length[mask]
+        kappa0_y[mask] = angle_rad[mask] * np.sin(rot_s_rad[mask]) / length[mask]
+        kappa0 = np.sqrt(kappa0_x**2 + kappa0_y**2)
+
+        # Field index
+        fieldindex = 0 * angle_rad
+        k1 = 0 * angle_rad
+        k1[mask] = self.k1l[mask] / length[mask]
+        mask_k0 = kappa0 > 0
+        fieldindex[mask_k0] = -1. / kappa0[mask_k0]**2 * k1[mask_k0]
+
+        # Compute x', y', x'', y''
+        ps = np.sqrt((1 + delta)**2 - kin_px**2 - kin_py**2)
+        xp = kin_px / ps
+        yp = kin_py / ps
+        xp_ele = xp * 0
+        yp_ele = yp * 0
+        xp_ele[:-1] = (xp[:-1] + xp[1:]) / 2
+        yp_ele[:-1] = (yp[:-1] + yp[1:]) / 2
+
+        mask_length = length != 0
+        xpp_ele = xp_ele * 0
+        ypp_ele = yp_ele * 0
+        xpp_ele[mask_length] = np.diff(xp, append=0)[mask_length] / length[mask_length]
+        ypp_ele[mask_length] = np.diff(yp, append=0)[mask_length] / length[mask_length]
+
+        # Curvature of the particle trajectory
+        hhh = 1 + kappa0_x * x + kappa0_y * y
+        hprime = kappa0_x * xp_ele + kappa0_y * yp_ele
+        mask1 = xpp_ele**2 + hhh**2 != 0
+        mask2 = xpp_ele**2 + hhh**2 != 0
+        kappa_x = (-(hhh * (xpp_ele - hhh * kappa0_x) - 2 * hprime * xp_ele)[mask1]
+                / (xp_ele**2 + hhh**2)[mask1]**(3/2))
+        kappa_y = (-(hhh * (ypp_ele - hhh * kappa0_y) - 2 * hprime * yp_ele)[mask2]
+                / (yp_ele**2 + hhh**2)[mask2]**(3/2))
+
+        # Curly H
+        Hx_rad = gamx * dx**2 + 2*alfx * dx * dxprime + betx * dxprime**2
+        Hy_rad = gamy * dy**2 + 2*alfy * dy * dyprime + bety * dyprime**2
+
+        # Integrands
+        i1x_integrand = kappa_x * dx
+        i1y_integrand = kappa_y * dy
+
+        i2x_integrand = kappa_x * kappa_x
+        i2y_integrand = kappa_y * kappa_y
+
+        i3x_integrand = kappa_x * kappa_x * kappa_x
+        i3y_integrand = kappa_y * kappa_y * kappa_y
+
+        i4x_integrand = kappa_x * kappa_x * kappa_x * dx * (1 - 2 * fieldindex)
+        i4y_integrand = kappa_y * kappa_y * kappa_y * dy * (1 - 2 * fieldindex)
+
+        i5x_integrand = np.abs(kappa_x*kappa_x*kappa_x) * Hx_rad
+        i5y_integrand = np.abs(kappa_y*kappa_y*kappa_y) * Hy_rad
+
+        # Integrate
+        i1x = np.sum(i1x_integrand * length)
+        i1y = np.sum(i1y_integrand * length)
+        i2x = np.sum(i2x_integrand * length)
+        i2y = np.sum(i2y_integrand * length)
+        i3x = np.sum(i3x_integrand * length)
+        i3y = np.sum(i3y_integrand * length)
+        i4x = np.sum(i4x_integrand * length)
+        i4y = np.sum(i4y_integrand * length)
+        i5x = np.sum(i5x_integrand * length)
+        i5y = np.sum(i5y_integrand * length)
+
+        # Emittances
+        eq_gemitt_x = (55/(32 * 3**(1/2)) * hbar / electron_volt * clight
+                    / mass0 * gamma0**2 * i5x / (i2x + i2y - i4x))
+        eq_gemitt_y = (55/(32 * 3**(1/2)) * hbar / electron_volt * clight
+                    / mass0 * gamma0**2 * i5y / (i2x + i2y - i4y))
+
+        # Damping constants
+        damping_constant_x_s = r0/3 * gamma0**3 * clight/self.circumference * (i2x + i2y - i4x)
+        damping_constant_y_s = r0/3 * gamma0**3 * clight/self.circumference * (i2x + i2y - i4y)
+        damping_constant_zeta_s = r0/3 * gamma0**3 * clight/self.circumference * (2 * (i2x + i2y) + i4x + i4y)
+
+        cols = {
+            'rad_int_kappax': kappa_x,
+            'rad_int_kappay': kappa_y,
+            'rad_int_hx': Hx_rad,
+            'rad_int_hy': Hy_rad,
+            'rad_int_i1x_integrand': i1x_integrand,
+            'rad_int_i1y_integrand': i1y_integrand,
+            'rad_int_i2x_integrand': i2x_integrand,
+            'rad_int_i2y_integrand': i2y_integrand,
+            'rad_int_i3x_integrand': i3x_integrand,
+            'rad_int_i3y_integrand': i3y_integrand,
+            'rad_int_i4x_integrand': i4x_integrand,
+            'rad_int_i4y_integrand': i4y_integrand,
+            'rad_int_i5x_integrand': i5x_integrand,
+            'rad_int_i5y_integrand': i5y_integrand,
+        }
+
+        scalars = {
+            'rad_int_i1x': i1x,
+            'rad_int_i1y': i1y,
+            'rad_int_i2x': i2x,
+            'rad_int_i2y': i2y,
+            'rad_int_i3x': i3x,
+            'rad_int_i3y': i3y,
+            'rad_int_i4x': i4x,
+            'rad_int_i4y': i4y,
+            'rad_int_i5x': i5x,
+            'rad_int_i5y': i5y,
+            'rad_int_eq_gemitt_x': eq_gemitt_x,
+            'rad_int_eq_gemitt_y': eq_gemitt_y,
+            'rad_int_damping_constant_x_s': damping_constant_x_s,
+            'rad_int_damping_constant_y_s': damping_constant_y_s,
+            'rad_int_damping_constant_zeta_s': damping_constant_zeta_s,
+        }
+
+        out = Table({'name': self.name, 's': self.s, 'length':self.length} | cols)
+        out._data.update(scalars)
+
+        if add_to_tw:
+            for ncc, cc in cols.items():
+                self[ncc] = cc
+            self._data.update(scalars)
+
+        return out
 
 def _complete_twiss_init(start, end, init_at, init,
                         line, reverse,
@@ -4023,3 +4187,5 @@ def _add_strengths_to_twiss_res(twiss_res, line):
                 + OTHER_FIELDS_FROM_ATTR + OTHER_FIELDS_FROM_TABLE):
         twiss_res._col_names.append(kk)
         twiss_res._data[kk] = tt[kk].copy()
+
+
