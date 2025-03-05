@@ -71,3 +71,21 @@ plt.close('all')
 pl = tw_rad.plot(yl='y', yr='dy')
 pl.xlim(tw_rad['s', 's.wig'] - 10, tw_rad['s', 'e.wig'] + 10)
 plt.show()
+
+from synchrotron_integrals import SynchrotronIntegral as synint
+integrals = synint(line)
+
+tw = tw_rad
+
+# Curvature of reference orbit
+length = tw['length']
+rot_s_rad = tw['rot_s_rad']
+angle_rad = tw['angle_rad']
+
+kappa_x = np.zeros(len(length))
+kappa_y = np.zeros(len(length))
+mask = length != 0
+kappa_x[mask] = angle_rad[mask] * np.cos(rot_s_rad[mask]) / length[mask]
+kappa_y[mask] = angle_rad[mask] * np.sin(rot_s_rad[mask]) / length[mask]
+
+
