@@ -16,10 +16,19 @@ line.particle_ref = xt.Particles(energy0=20e9, mass0=xt.ELECTRON_MASS_EV)
 
 import wiggler as wgl
 
-k0_wig = 1e-3
-lenwig = 10.
-numperiods = 50
+# Wiggler parameters
+k0_wig = 0.000001
 tilt_rad = np.pi/2
+
+k0_values = [5e-4]
+
+lenpole = 0.5
+numpoles = 8
+lenwig = lenpole * numpoles
+numperiods = 2
+lambdawig = lenwig / numperiods
+rhowig = 1 / (k0_wig + 1e-9)
+kwig = 2*np.pi / lambdawig
 
 
 lambdawig = lenwig / numperiods
@@ -33,9 +42,11 @@ s_wig = tt['s', 'actcsg.31780']
 to_place = []
 for name, element in wig.wiggler_dict.items():
     env.elements[name] = element['element']
-    to_place = env.place(name, at=s_wig+element['position'])
+    to_place.append(env.place(name, at=s_wig+element['position']))
 
 line.insert(to_place)
+
+prrrr
 
 tt = line.get_table()
 tw4d_thick = line.twiss4d()
