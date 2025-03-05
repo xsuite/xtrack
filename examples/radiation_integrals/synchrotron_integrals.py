@@ -101,7 +101,7 @@ class SynchrotronIntegral:
 
 
    # Calculate the curvature of the design orbit.
-    def _get_curvature_(self, debug=False):
+    def _get_curvature_(self):
 
         angle_rad = self.tw['angle_rad']
         rot_s_rad = self.tw['rot_s_rad']
