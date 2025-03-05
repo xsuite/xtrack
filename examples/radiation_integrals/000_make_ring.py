@@ -13,6 +13,7 @@ tt = line.get_table()
 
 
 line.particle_ref = xt.Particles(energy0=20e9, mass0=xt.ELECTRON_MASS_EV)
+env.particle_ref = line.particle_ref
 
 import wiggler as wgl
 
@@ -20,33 +21,27 @@ import wiggler as wgl
 k0_wig = 0.000001
 tilt_rad = np.pi/2
 
-k0_values = [5e-4]
-
-lenpole = 0.5
-numpoles = 8
-lenwig = lenpole * numpoles
-numperiods = 2
+lenwig = 25
+numperiods = 20
 lambdawig = lenwig / numperiods
-rhowig = 1 / (k0_wig + 1e-9)
-kwig = 2*np.pi / lambdawig
-
-
-lambdawig = lenwig / numperiods
-rhowig = 1 / (k0_wig + 1e-9)
 
 wig = wgl.Wiggler(period=lambdawig, amplitude=k0_wig, num_periods=numperiods,
                   angle_rad=tilt_rad, scheme='121a')
 
 tt = line.get_table()
-s_wig = tt['s', 'actcsg.31780']
-to_place = []
+wig_elems = []
 for name, element in wig.wiggler_dict.items():
     env.elements[name] = element['element']
-    to_place.append(env.place(name, at=s_wig+element['position']))
+    wig_elems.append(name)
 
-line.insert(to_place)
+wig_line = env.new_line(components=[
+                        env.new('s.wig', 'Marker'),
+                        wig_elems,
+                        env.new('e.wig', 'Marker'),
+])
 
-prrrr
+
+line.insert(wig_line, anchor='start', at=1, from_='qd.31710@end')
 
 tt = line.get_table()
 tw4d_thick = line.twiss4d()
@@ -70,3 +65,9 @@ tw6d = line.twiss()
 line.configure_radiation(model='mean')
 
 tw_rad = line.twiss(eneloss_and_damping=True, strengths=True)
+
+import matplotlib.pyplot as plt
+plt.close('all')
+pl = tw_rad.plot(yl='y', yr='dy')
+pl.xlim(tw_rad['s', 's.wig'] - 10, tw_rad['s', 'e.wig'] + 10)
+plt.show()
