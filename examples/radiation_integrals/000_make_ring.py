@@ -18,7 +18,7 @@ env.particle_ref = line.particle_ref
 import wiggler as wgl
 
 # Wiggler parameters
-k0_wig = 0.000001
+k0_wig = 5e-3
 tilt_rad = np.pi/2
 
 lenwig = 25
