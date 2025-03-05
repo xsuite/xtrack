@@ -149,6 +149,8 @@ class SynchrotronIntegral:
         k_xy[0, :] = -(h * (xpp_ele - h * kappa_0xy[0, :]) - 2 * hprime * xp_ele)[mask1] / (xp_ele**2 + h**2)[mask1]**(3/2)
         k_xy[1, :] = -(h * (ypp_ele - h * kappa_0xy[1, :]) - 2 * hprime * yp_ele)[mask2] / (yp_ele**2 + h**2)[mask2]**(3/2)
 
+
+
         return k_xy
 
    # Calculate the curvature of the design orbit.
@@ -174,6 +176,15 @@ class SynchrotronIntegral:
 
         k_xy[0, :] = -(h * (xdoubleprime - h * kappa_0xy[0, :]) - 2 * hprime * xprime)[mask1] / (xprime**2 + h**2)[mask1]**(3/2)
         k_xy[1, :] =  (h * (ydoubleprime - h * kappa_0xy[1, :]) - 2 * hprime * yprime)[mask2] / (yprime**2 + h**2)[mask2]**(3/2)
+
+
+        # Patch
+        angle_rad = self.tw['k0l']
+        rot_s_rad = self.tw['rot_s_rad']
+        mask = self.length != 0
+
+        k_xy[1, :][mask] = angle_rad[mask] * np.sin(rot_s_rad[mask]) / self.length[mask]
+
 
         return k_xy
 
