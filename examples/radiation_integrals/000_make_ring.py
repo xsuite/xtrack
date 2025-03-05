@@ -1,6 +1,10 @@
 import xtrack as xt
 import numpy as np
 
+from scipy.constants import hbar
+from scipy.constants import electron_volt
+from scipy.constants import c as clight
+
 env = xt.load_madx_lattice('../../test_data/sps_thick/sps.seq')
 env.vars.load_madx('../../test_data/sps_thick/lhc_q20.str')
 line = env.sps
@@ -97,14 +101,26 @@ dy = tw['dy']                 # Dispersion y
 dpx = tw['dpx']               # Dispersion px
 dpy = tw['dpy']               # Dispersion py
 
+mass0 = line.particle_ref.mass0
+gamma0 = tw.gamma0
+
 dxprime = dpx * (1 - delta) - kin_px
 dyprime = dpy * (1 - delta) - kin_py
 
 # Curvature of the reference trajectory
-kappa_0xy = np.zeros(shape=(2, len(length)))
 mask = length != 0
-kappa_0xy[0, :][mask] = angle_rad[mask] * np.cos(rot_s_rad[mask]) / length[mask]
-kappa_0xy[1, :][mask] = angle_rad[mask] * np.sin(rot_s_rad[mask]) / length[mask]
+kappa0_x = 0 * angle_rad
+kappa0_y = 0 * angle_rad
+kappa0_x[mask] = angle_rad[mask] * np.cos(rot_s_rad[mask]) / length[mask]
+kappa0_y[mask] = angle_rad[mask] * np.sin(rot_s_rad[mask]) / length[mask]
+kappa0 = np.sqrt(kappa0_x**2 + kappa0_y**2)
+
+# Field index
+fieldindex = 0 * angle_rad
+k1 = 0 * angle_rad
+k1[mask] = tw.k1l[mask] / length[mask]
+mask_k0 = kappa0 > 0
+fieldindex[mask_k0] = -1. / kappa0[mask_k0]**2 * k1[mask_k0]
 
 # Compute x', y', x'', y''
 ps = np.sqrt((1 + delta)**2 - kin_px**2 - kin_py**2)
@@ -122,15 +138,47 @@ xpp_ele[mask_length] = np.diff(xp, append=0)[mask_length] / length[mask_length]
 ypp_ele[mask_length] = np.diff(yp, append=0)[mask_length] / length[mask_length]
 
 # Curvature of the particle trajectory
-h = 1 + kappa_0xy[0, :] * x + kappa_0xy[1, :] * y
-hprime = kappa_0xy[0, :] * xp_ele + kappa_0xy[1, :] * yp_ele
-mask1 = xpp_ele**2 + h**2 != 0
-mask2 = xpp_ele**2 + h**2 != 0
-kappa_x = (-(h * (xpp_ele - h * kappa_0xy[0, :]) - 2 * hprime * xp_ele)[mask1]
-           / (xp_ele**2 + h**2)[mask1]**(3/2))
-kappa_y = (-(h * (ypp_ele - h * kappa_0xy[1, :]) - 2 * hprime * yp_ele)[mask2]
-           / (yp_ele**2 + h**2)[mask2]**(3/2))
+hhh = 1 + kappa0_x * x + kappa0_y * y
+hprime = kappa0_x * xp_ele + kappa0_y * yp_ele
+mask1 = xpp_ele**2 + hhh**2 != 0
+mask2 = xpp_ele**2 + hhh**2 != 0
+kappa_x = (-(hhh * (xpp_ele - hhh * kappa0_x) - 2 * hprime * xp_ele)[mask1]
+           / (xp_ele**2 + hhh**2)[mask1]**(3/2))
+kappa_y = (-(hhh * (ypp_ele - hhh * kappa0_y) - 2 * hprime * yp_ele)[mask2]
+           / (yp_ele**2 + hhh**2)[mask2]**(3/2))
 
 # Curly H
 Hx_rad = gamx * dx**2 + 2*alfx * dx * dxprime + betx * dxprime**2
 Hy_rad = gamy * dy**2 + 2*alfy * dy * dyprime + bety * dyprime**2
+
+# Integrands
+i1x_integrand = kappa_x * dx
+i1y_integrand = kappa_y * dy
+
+i2x_integrand = kappa_x * kappa_x
+i2y_integrand = kappa_y * kappa_y
+
+i3x_integrand = kappa_x * kappa_x * kappa_x
+i3y_integrand = kappa_y * kappa_y * kappa_y
+
+i4x_integrand = kappa_x * kappa_x * kappa_x * dx * (1 - 2 * fieldindex)
+i4y_integrand = kappa_y * kappa_y * kappa_y * dy * (1 - 2 * fieldindex)
+
+i5x_integrand = np.abs(kappa_x*kappa_x*kappa_x) * Hx_rad
+i5y_integrand = np.abs(kappa_y*kappa_y*kappa_y) * Hy_rad
+
+# Integrate
+i1x = np.sum(i1x_integrand * length)
+i1y = np.sum(i1y_integrand * length)
+i2x = np.sum(i2x_integrand * length)
+i2y = np.sum(i2y_integrand * length)
+i3x = np.sum(i3x_integrand * length)
+i3y = np.sum(i3y_integrand * length)
+i4x = np.sum(i4x_integrand * length)
+i4y = np.sum(i4y_integrand * length)
+i5x = np.sum(i5x_integrand * length)
+i5y = np.sum(i5y_integrand * length)
+
+eq_gemitt_x = 55/(32 * 3**(1/2)) * hbar / electron_volt * clight / mass0 * gamma0**2 * i5x / (i2x + i2y - i4x)
+eq_gemitt_y = 55/(32 * 3**(1/2)) * hbar / electron_volt * clight / mass0 * gamma0**2 * i5y / (i2x + i2y - i4y)
+
