@@ -102,6 +102,7 @@ dpx = tw['dpx']               # Dispersion px
 dpy = tw['dpy']               # Dispersion py
 
 mass0 = line.particle_ref.mass0
+r0 = line.particle_ref.get_classical_particle_radius0()
 gamma0 = tw.gamma0
 
 dxprime = dpx * (1 - delta) - kin_px
@@ -182,3 +183,6 @@ i5y = np.sum(i5y_integrand * length)
 eq_gemitt_x = 55/(32 * 3**(1/2)) * hbar / electron_volt * clight / mass0 * gamma0**2 * i5x / (i2x + i2y - i4x)
 eq_gemitt_y = 55/(32 * 3**(1/2)) * hbar / electron_volt * clight / mass0 * gamma0**2 * i5y / (i2x + i2y - i4y)
 
+damping_constant_x_s = r0/3 * gamma0**3 * clight/tw.circumference * (i2x + i2y - i4x)
+damping_constant_y_s = r0/3 * gamma0**3 * clight/tw.circumference * (i2x + i2y - i4y)
+damping_constant_zeta_s = r0/3 * gamma0**3 * clight/tw.circumference * (2 * (i2x + i2y) + i4x + i4y)

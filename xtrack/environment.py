@@ -1185,7 +1185,7 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
 
     return tt_sorted
 
-def _generate_element_names_with_drifts(env, tt_sorted, length=None, s_tol=1e-10):
+def _generate_element_names_with_drifts(env, tt_sorted, length=None, s_tol=1e-6):
 
     names_with_drifts = []
     # Create drifts
