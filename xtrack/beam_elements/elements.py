@@ -1662,6 +1662,14 @@ class Quadrupole(BeamElement):
     def _drift_slice_class(self):
         return xt.DriftSliceQuadrupole
 
+    @property
+    def _entry_slice_class(self):
+        return xt.ThinSliceQuadrupoleEntry
+
+    @property
+    def _exit_slice_class(self):
+        return xt.ThinSliceQuadrupoleExit
+
 
 class Solenoid(BeamElement):
     """Solenoid element.

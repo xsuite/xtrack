@@ -300,6 +300,69 @@ class ThinSliceBendExit(BeamElement):
                 _buffer=self._buffer
             )
 
+class ThinSliceQuadrupoleEntry(BeamElement):
+    allow_rot_and_shift = False
+    rot_and_shift_from_parent = True
+    _skip_in_to_dict = ['_parent']
+    has_backtrack = True
+    _force_moveable = True
+    _inherit_strengths = False
+
+    _xofields = {'_parent': xo.Ref(Quadrupole), **_common_xofields}
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('headers/constants.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/?????')]
+
+    copy = _slice_copy
+
+    def to_dict(self, **kwargs):
+        dct = BeamElement.to_dict(self, **kwargs)
+        dct['parent_name'] = self.parent_name
+        return dct
+
+    @classmethod
+    def from_dict(cls, dct, **kwargs):
+        obj = super().from_dict(dct, **kwargs)
+        obj.parent_name = dct['parent_name']
+        return obj
+
+    def get_equivalent_element(self):
+
+        raise NotImplementedError('Not implemented yet')
+
+
+class ThinSliceQuadrupoleExit(BeamElement):
+    allow_rot_and_shift = False
+    rot_and_shift_from_parent = True
+    _skip_in_to_dict = ['_parent']
+    has_backtrack = True
+    _force_moveable = True
+    _inherit_strengths = False
+
+    _xofields = {'_parent': xo.Ref(Bend), **_common_xofields}
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('headers/constants.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/?????')]
+
+    copy = _slice_copy
+
+    def to_dict(self, **kwargs):
+        dct = BeamElement.to_dict(self, **kwargs)
+        dct['parent_name'] = self.parent_name
+        return dct
+
+    @classmethod
+    def from_dict(cls, dct, **kwargs):
+        obj = super().from_dict(dct, **kwargs)
+        obj.parent_name = dct['parent_name']
+        return obj
+
+    def get_equivalent_element(self):
+
+            raise NotImplementedError('Not implemented yet')
+
 
 class ThinSliceRBend(BeamElement):
     allow_rot_and_shift = False

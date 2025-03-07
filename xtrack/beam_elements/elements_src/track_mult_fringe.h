@@ -66,11 +66,6 @@ void MultFringe_track_single_particle(
         double ksj = ks[ii];
         double u, v, du, dv;
 
-//        printf(
-//            "ii=%d, nj=%.5f, nf=%.5f, rx=%.16e, ix=%.16e, drx=%.16e, "
-//            "dix=%.16e, kj=%.16e, ksj=%.16e\n",
-//            ii, nj, nf, rx, ix, drx, dix, kj, ksj
-//        );
 
         if (ii == 0) {
             u = nj * (-ksj * ix);
