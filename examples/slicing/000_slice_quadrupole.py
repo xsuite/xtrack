@@ -1,4 +1,5 @@
 import xtrack as xt
+import xobjects as xo
 
 env = xt.Environment()
 
@@ -23,3 +24,8 @@ p_slice_fringe = p0.copy()
 
 line_thick.track(p_ref_fringe)
 line.track(p_slice_fringe)
+
+diff_no_fringe_x = p_ref_no_fringe.x - p_slice_no_fringe.x
+diff_fringe_x = p_ref_fringe.x - p_slice_fringe.x
+
+xo.assert_allclose(diff_no_fringe_x, diff_fringe_x, rtol=0, atol=1e-16)

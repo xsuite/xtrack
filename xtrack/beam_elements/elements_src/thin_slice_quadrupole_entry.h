@@ -21,7 +21,6 @@ void ThinSliceQuadrupoleEntry_track_local_particle(
 
         double const kn[2] = {0, k1};
         double const ks[2] = {0, k1s};
-        printf("ThinSliceQuadrupoleEntry_track_local_particle\n");
 
         //start_per_particle_block (part0->part)
         MultFringe_track_single_particle(

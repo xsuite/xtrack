@@ -1478,6 +1478,14 @@ class Sextupole(BeamElement):
     def _drift_slice_class(self):
         return xt.DriftSliceSextupole
 
+    @property
+    def _entry_slice_class(self):
+        return xt.ThinSliceSextupoleEntry
+
+    @property
+    def _exit_slice_class(self):
+        return xt.ThinSliceSextupoleExit
+
 
 class Octupole(BeamElement):
 
@@ -1569,6 +1577,14 @@ class Octupole(BeamElement):
     @property
     def _drift_slice_class(self):
         return xt.DriftSliceOctupole
+
+    @property
+    def _entry_slice_class(self):
+        return xt.ThinSliceOctupoleEntry
+
+    @property
+    def _exit_slice_class(self):
+        return xt.ThinSliceOctupoleExit
 
 
 class Quadrupole(BeamElement):
@@ -2195,6 +2211,58 @@ class DipoleEdge(BeamElement):
             'entry': 0,
             'exit': 1,
         }[value]
+
+
+class MultipoleEdge(BeamElement):
+    """Beam element modelling a mulipole edge.
+
+    Parameters
+    ----------
+    kn: float
+        Normalized integrated strength of the normal component in units of 1/m.
+    ks: float
+        Normalized integrated strength of the skew component in units of 1/m.
+    is_exit: bool
+        Flag to indicate if the edge is at the exit of the element.
+    order: int
+        Order of the multipole, corresponds to the length of ``kn`` and ``ks``.
+    """
+    _xofields = {
+        'kn': xo.Float64[:],
+        'ks': xo.Float64[:],
+        'is_exit': xo.Int64,
+        'order': xo.Int64,
+    }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/multipoleedge.h'),
+    ]
+
+    has_backtrack = True
+
+    def __init__(self, kn: list=None, ks: list=None, is_exit=False, order=None, _xobject=None):
+        if _xobject is not None:
+            self.xoinitialize(_xobject=_xobject)
+            return
+
+        len_kn = len(kn) if kn is not None else None
+        len_ks = len(ks) if ks is not None else None
+        lengths = [ll for ll in [len_kn, len_ks, order] if ll is not None]
+
+        if lengths:
+            if np.all(lengths[0] == lengths):
+                raise ValueError('`kn`, `ks` and `order` must have the same length.')
+
+        order = order or 0
+
+        if len_kn is None:
+            kn = np.zeros(order, dtype=np.float64)
+
+        if len_ks is None:
+            ks = np.zeros(order, dtype=np.float64)
+
+        self.xoinitialize(kn=kn, ks=ks, is_exit=is_exit, order=order)
 
 
 class LineSegmentMap(BeamElement):

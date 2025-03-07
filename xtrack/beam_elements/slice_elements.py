@@ -4,7 +4,7 @@ from ..general import _pkg_root
 from ..random import RandomUniformAccurate, RandomExponential
 from .elements import (
     SynchrotronRadiationRecord, Quadrupole, Sextupole,
-    Octupole, Bend, Multipole, DipoleEdge, RBend,
+    Octupole, Bend, Multipole, DipoleEdge, RBend, MultipoleEdge, Marker
 )
 from ..base_element import BeamElement
 
@@ -300,6 +300,7 @@ class ThinSliceBendExit(BeamElement):
                 _buffer=self._buffer
             )
 
+
 class ThinSliceQuadrupoleEntry(BeamElement):
     allow_rot_and_shift = False
     rot_and_shift_from_parent = True
@@ -328,8 +329,14 @@ class ThinSliceQuadrupoleEntry(BeamElement):
         return obj
 
     def get_equivalent_element(self):
-
-        raise NotImplementedError('Not implemented yet')
+        if self._parent.edge_entry_active:
+            return MultipoleEdge(
+                kn=[0, self._parent.k1],
+                ks=[0, self._parent.k1s],
+                is_exit=False,
+            )
+        else:
+            return Marker()
 
 
 class ThinSliceQuadrupoleExit(BeamElement):
@@ -360,8 +367,166 @@ class ThinSliceQuadrupoleExit(BeamElement):
         return obj
 
     def get_equivalent_element(self):
+        if self._parent.edge_exit_active:
+            return MultipoleEdge(
+                kn=[0, self._parent.k1],
+                ks=[0, self._parent.k1s],
+                is_exit=True,
+            )
+        else:
+            return Marker()
 
-            raise NotImplementedError('Not implemented yet')
+
+class ThinSliceSextupoleEntry(BeamElement):
+    allow_rot_and_shift = False
+    rot_and_shift_from_parent = True
+    _skip_in_to_dict = ['_parent']
+    has_backtrack = True
+    _force_moveable = True
+    _inherit_strengths = False
+
+    _xofields = {'_parent': xo.Ref(Sextupole), **_common_xofields}
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('headers/constants.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_sextupole_entry.h')]
+
+    copy = _slice_copy
+
+    def to_dict(self, **kwargs):
+        dct = BeamElement.to_dict(self, **kwargs)
+        dct['parent_name'] = self.parent_name
+        return dct
+
+    @classmethod
+    def from_dict(cls, dct, **kwargs):
+        obj = super().from_dict(dct, **kwargs)
+        obj.parent_name = dct['parent_name']
+        return obj
+
+    def get_equivalent_element(self):
+        if self._parent.edge_entry_active:
+            return MultipoleEdge(
+                kn=[0, 0, self._parent.k2],
+                ks=[0, 0, self._parent.k2s],
+                is_exit=False,
+            )
+        else:
+            return Marker()
+
+
+class ThinSliceSextupoleExit(BeamElement):
+    allow_rot_and_shift = False
+    rot_and_shift_from_parent = True
+    _skip_in_to_dict = ['_parent']
+    has_backtrack = True
+    _force_moveable = True
+    _inherit_strengths = False
+
+    _xofields = {'_parent': xo.Ref(Sextupole), **_common_xofields}
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('headers/constants.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_sextupole_exit.h')]
+
+    copy = _slice_copy
+
+    def to_dict(self, **kwargs):
+        dct = BeamElement.to_dict(self, **kwargs)
+        dct['parent_name'] = self.parent_name
+        return dct
+
+    @classmethod
+    def from_dict(cls, dct, **kwargs):
+        obj = super().from_dict(dct, **kwargs)
+        obj.parent_name = dct['parent_name']
+        return obj
+
+    def get_equivalent_element(self):
+        if self._parent.edge_exit_active:
+            return MultipoleEdge(
+                kn=[0, 0, self._parent.k2],
+                ks=[0, 0, self._parent.k2s],
+                is_exit=True,
+            )
+        else:
+            return Marker()
+
+
+class ThinSliceOctupoleEntry(BeamElement):
+    allow_rot_and_shift = False
+    rot_and_shift_from_parent = True
+    _skip_in_to_dict = ['_parent']
+    has_backtrack = True
+    _force_moveable = True
+    _inherit_strengths = False
+
+    _xofields = {'_parent': xo.Ref(Octupole), **_common_xofields}
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('headers/constants.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_octupole_entry.h')]
+
+    copy = _slice_copy
+
+    def to_dict(self, **kwargs):
+        dct = BeamElement.to_dict(self, **kwargs)
+        dct['parent_name'] = self.parent_name
+        return dct
+
+    @classmethod
+    def from_dict(cls, dct, **kwargs):
+        obj = super().from_dict(dct, **kwargs)
+        obj.parent_name = dct['parent_name']
+        return obj
+
+    def get_equivalent_element(self):
+        if self._parent.edge_entry_active:
+            return MultipoleEdge(
+                kn=[0, 0, 0, self._parent.k3],
+                ks=[0, 0, 0, self._parent.k3s],
+                is_exit=False,
+            )
+        else:
+            return Marker()
+
+
+class ThinSliceOctupoleExit(BeamElement):
+    allow_rot_and_shift = False
+    rot_and_shift_from_parent = True
+    _skip_in_to_dict = ['_parent']
+    has_backtrack = True
+    _force_moveable = True
+    _inherit_strengths = False
+
+    _xofields = {'_parent': xo.Ref(Octupole), **_common_xofields}
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('headers/constants.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_octupole_exit.h')]
+
+    copy = _slice_copy
+
+    def to_dict(self, **kwargs):
+        dct = BeamElement.to_dict(self, **kwargs)
+        dct['parent_name'] = self.parent_name
+        return dct
+
+    @classmethod
+    def from_dict(cls, dct, **kwargs):
+        obj = super().from_dict(dct, **kwargs)
+        obj.parent_name = dct['parent_name']
+        return obj
+
+    def get_equivalent_element(self):
+        if self._parent.edge_exit_active:
+            return MultipoleEdge(
+                kn=[0, 0, 0, self._parent.k3],
+                ks=[0, 0, 0, self._parent.k3s],
+                is_exit=True,
+            )
+        else:
+            return Marker()
 
 
 class ThinSliceRBend(BeamElement):
