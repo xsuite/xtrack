@@ -14,10 +14,6 @@ void MultipoleEdge_track_local_particle(MultipoleEdgeData el, LocalParticle* par
     const uint32_t order = MultipoleEdgeData_get_order(el);
     uint8_t is_exit = MultipoleEdgeData_get_is_exit(el);
 
-    #ifdef XSUITE_BACKTRACK
-        is_exit = !is_exit;
-    #endif
-
     //start_per_particle_block (part0->part)
         MultFringe_track_single_particle(kn, ks, order, is_exit, part);
     //end_per_particle_block

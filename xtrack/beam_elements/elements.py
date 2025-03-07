@@ -2239,8 +2239,6 @@ class MultipoleEdge(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/multipoleedge.h'),
     ]
 
-    has_backtrack = True
-
     def __init__(self, kn: list=None, ks: list=None, is_exit=False, order=None, _xobject=None):
         if _xobject is not None:
             self.xoinitialize(_xobject=_xobject)
