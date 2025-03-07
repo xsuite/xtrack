@@ -9,9 +9,10 @@ from .apertures import *
 from .beam_interaction import BeamInteraction, ParticlesInjectionSample
 from .slice_elements import (ThinSliceQuadrupole, ThinSliceSextupole,
                              ThinSliceOctupole, ThinSliceBend,
+                             ThinSliceRBend,
                              ThinSliceBendEntry, ThinSliceBendExit,
-                             ThinSliceRBend, ThinSliceRBendEntry,
-                             ThinSliceRBendExit)
+                             ThinSliceRBendEntry, ThinSliceRBendExit,
+                             ThinSliceQuadrupoleEntry, ThinSliceQuadrupoleExit)
 from .slice_elements_thick import (ThickSliceBend, ThickSliceRBend,
                                    ThickSliceQuadrupole, ThickSliceSextupole,
                                    ThickSliceOctupole, ThickSliceSolenoid,

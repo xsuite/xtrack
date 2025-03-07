@@ -312,7 +312,7 @@ class ThinSliceQuadrupoleEntry(BeamElement):
 
     _extra_c_sources = [
         _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/?????')]
+        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_quadrupole_entry.h')]
 
     copy = _slice_copy
 
@@ -340,11 +340,11 @@ class ThinSliceQuadrupoleExit(BeamElement):
     _force_moveable = True
     _inherit_strengths = False
 
-    _xofields = {'_parent': xo.Ref(Bend), **_common_xofields}
+    _xofields = {'_parent': xo.Ref(Quadrupole), **_common_xofields}
 
     _extra_c_sources = [
         _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/?????')]
+        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_quadrupole_exit.h')]
 
     copy = _slice_copy
 

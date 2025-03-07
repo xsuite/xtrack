@@ -19,15 +19,15 @@ void ThinSliceQuadrupoleExit_track_local_particle(
         double const k1 = ThinSliceQuadrupoleExitData_get__parent_k1(el);
         double const k1s = ThinSliceQuadrupoleExitData_get__parent_k1s(el);
 
-        double const kn[1] = {k1};
-        double const ks[1] = {k1s};
+        double const kn[2] = {0, k1};
+        double const ks[2] = {0, k1s};
 
         //start_per_particle_block (part0->part)
         MultFringe_track_single_particle(
             kn,
             ks,
             1, // is_exit
-            1, // order
+            2, // order
             part
         );
         //end_per_particle_block
