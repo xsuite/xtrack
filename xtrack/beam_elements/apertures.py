@@ -266,7 +266,7 @@ class LimitPolygon(BeamElement):
                     **kwargs)
 
             lengths = np.sqrt(np.diff(self.x_closed)**2
-                            + np.diff(self.y_closed)**2)
+                              + np.diff(self.y_closed)**2)
 
             assert np.all(lengths>0)
 

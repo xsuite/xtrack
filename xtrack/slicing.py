@@ -293,11 +293,10 @@ class Slicer:
             slices_to_add = [entry_marker] + slices_to_add + [exit_marker]
 
         # Handle aperture
-        ee_for_aper = element
-        if isinstance(ee_for_aper, xt.Replica):
-            ee_for_aper = ee_for_aper.resolve(self._line)
-        if (hasattr(ee_for_aper, 'name_associated_aperture')
-            and ee_for_aper.name_associated_aperture is not None):
+        if isinstance(element, xt.Replica):
+            element = element.resolve(self._line)
+        if (hasattr(element, 'name_associated_aperture')
+            and element.name_associated_aperture is not None):
             new_slices_to_add = []
             aper_index = 0
             for nn in slices_to_add:
@@ -306,7 +305,7 @@ class Slicer:
                     or type(ee).__name__.startswith('ThickSlice')):
                     aper_name = f'{name}_aper..{aper_index}'
                     self._line.element_dict[aper_name] = xt.Replica(
-                        parent_name=ee_for_aper.name_associated_aperture)
+                        parent_name=element.name_associated_aperture)
                     new_slices_to_add += [aper_name]
                     aper_index += 1
                 new_slices_to_add += [nn]

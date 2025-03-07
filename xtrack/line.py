@@ -59,7 +59,7 @@ _ALLOWED_ELEMENT_TYPES_IN_NEW = [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole,
                                  xt.Marker, xt.Replica, xt.XYShift, xt.XRotation,
                                  xt.YRotation, xt.SRotation, xt.LimitRacetrack,
                                  xt.LimitRectEllipse, xt.LimitRect, xt.LimitEllipse,
-                                 xt.RFMultipole, xt.RBend]
+                                 xt.LimitPolygon, xt.RFMultipole, xt.RBend]
 
 _ALLOWED_ELEMENT_TYPES_DICT = {'Drift': xt.Drift, 'Bend': xt.Bend,
                                'Quadrupole': xt.Quadrupole, 'Sextupole': xt.Sextupole,
@@ -69,6 +69,7 @@ _ALLOWED_ELEMENT_TYPES_DICT = {'Drift': xt.Drift, 'Bend': xt.Bend,
                                'LimitRacetrack': xt.LimitRacetrack,
                                'LimitRectEllipse': xt.LimitRectEllipse,
                                'LimitRect': xt.LimitRect, 'LimitEllipse': xt.LimitEllipse,
+                               'LimitPolygon': xt.LimitPolygon,
                                'XYShift': xt.XYShift, 'XRotation': xt.XRotation,
                                'YRotation': xt.YRotation, 'SRotation': xt.SRotation,
                                'RFMultipole': xt.RFMultipole, 'RBend': xt.RBend}
@@ -3943,12 +3944,13 @@ class Line:
             Rename the element in the new line/environment. If not provided, the
             element is copied with the same name.
         """
+        new_name_input = new_name if new_name != name else None
         new_name = new_name or name
         cls = type(source.element_dict[name])
 
-        if cls not in _ALLOWED_ELEMENT_TYPES_IN_NEW + [xt.DipoleEdge]: # No issue in copying DipoleEdge
-                                                                       # while creating it requires handling properties
-                                                                       # which are strings.
+        if (cls not in _ALLOWED_ELEMENT_TYPES_IN_NEW + [xt.DipoleEdge] # No issue in copying DipoleEdge while creating it requires handling properties which are strings.
+            and 'ThickSlice' not in cls.__name__ and 'ThinSlice' not in cls.__name__
+            and 'DriftSlice' not in cls.__name__):
             raise ValueError(
                 f'Only {_STR_ALLOWED_ELEMENT_TYPES_IN_NEW} elements are '
                 f'allowed in `copy_from_env` for now.'
