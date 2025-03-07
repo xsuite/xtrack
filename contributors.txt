@@ -5,6 +5,7 @@ CERN contributors:
  - B. Abreu Figueiredo
  - H. Bartosik
  - X. Buffat
+ - S. Buijsman
  - R. De Maria
  - L. Deniau
  - C. Droin

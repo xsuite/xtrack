@@ -30,6 +30,8 @@ class TwissPlot(object):
         "sigy": r"$\sigma_y=\sqrt{\beta_y \epsilon}$",
         "sigdx": r"$\sigma_{D_x}=D_x \delta$",
         "n1": r"Aperture [$\sigma$]",
+        "rad_int_hx": r"$\mathcal{H}_{x}$",
+        "rad_int_hy": r"$\mathcal{H}_{y}$",
     }
 
     axlabel = {
@@ -53,6 +55,8 @@ class TwissPlot(object):
         "wx_chrom": "$W$",
         "wy_chrom": "$W$",
         "n1": r"Aperture [$\sigma$]",
+        "rad_int_hx": r"$\mathcal{H}$",
+        "rad_int_hy": r"$\mathcal{H}$",
     }
     autoupdate = []
 

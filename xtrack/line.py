@@ -1265,6 +1265,7 @@ class Line:
         values_at_element_exit=None,
         radiation_method=None,
         eneloss_and_damping=None,
+        radiation_integrals=None,
         start=None, end=None, init=None,
         num_turns=None,
         skip_global_quantities=None,
@@ -2994,7 +2995,7 @@ class Line:
             self._bhabha_model = None
 
         for kk, ee in self.element_dict.items():
-            if isinstance (ee, (xt.Quadrupole, xt.Bend)):
+            if isinstance (ee, (xt.Quadrupole, xt.Bend, xt.RBend)):
                 continue
             if hasattr(ee, 'radiation_flag'):
                 ee.radiation_flag = radiation_flag

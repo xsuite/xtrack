@@ -156,6 +156,17 @@ def test_eq_emitt(conf):
 
     assert checked
 
+    # Check radiation integrals
+    tw_integ = line.twiss(radiation_integrals=True)
+    xo.assert_allclose(tw_integ.rad_int_damping_constant_x_s,
+                       tw_rad.damping_constants_s[0], rtol=0.02, atol=0)
+    xo.assert_allclose(tw_integ.rad_int_damping_constant_y_s,
+                       tw_rad.damping_constants_s[1], rtol=0.02, atol=0)
+    xo.assert_allclose(tw_integ.rad_int_damping_constant_zeta_s,
+                       tw_rad.damping_constants_s[2], rtol=0.02, atol=0)
+    xo.assert_allclose(tw_integ.rad_int_eq_gemitt_x, ex, rtol=0.1, atol=1e-14)
+    xo.assert_allclose(tw_integ.rad_int_eq_gemitt_y, ey, rtol=0.1, atol=1e-14)
+
     tw_rad2 = line.twiss(eneloss_and_damping=True, method='6d',
                      radiation_method='full',
                      compute_lattice_functions=False,
