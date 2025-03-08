@@ -289,6 +289,7 @@ class ThinSliceBendExit(BeamElement):
 
     def get_equivalent_element(self):
 
+        if self._parent.edge_exit_active:
             return DipoleEdge(
                 k=self._parent.k0,
                 e1=self._parent.edge_exit_angle,
@@ -605,16 +606,17 @@ class ThinSliceRBendEntry(BeamElement):
 
     def get_equivalent_element(self):
 
-        return DipoleEdge(
-            k=self._parent.k0,
-            e1=self._parent.edge_entry_angle + self._parent.angle / 2,
-            e1_fd=self._parent.edge_entry_angle_fdown,
-            hgap=self._parent.edge_entry_hgap,
-            fint=self._parent.edge_entry_fint,
-            model=self._parent.edge_entry_model,
-            side='entry',
-            _buffer=self._buffer
-        )
+        if self._parent.edge_entry_active:
+            return DipoleEdge(
+                k=self._parent.k0,
+                e1=self._parent.edge_entry_angle + self._parent.angle / 2,
+                e1_fd=self._parent.edge_entry_angle_fdown,
+                hgap=self._parent.edge_entry_hgap,
+                fint=self._parent.edge_entry_fint,
+                model=self._parent.edge_entry_model,
+                side='entry',
+                _buffer=self._buffer
+            )
 
 
 class ThinSliceRBendExit(BeamElement):
@@ -646,6 +648,7 @@ class ThinSliceRBendExit(BeamElement):
 
     def get_equivalent_element(self):
 
+        if self._parent.edge_exit_active:
             return DipoleEdge(
                 k=self._parent.k0,
                 e1=self._parent.edge_exit_angle + self._parent.angle / 2,
