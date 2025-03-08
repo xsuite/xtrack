@@ -248,16 +248,19 @@ class ThinSliceBendEntry(BeamElement):
 
     def get_equivalent_element(self):
 
-        return DipoleEdge(
-            k=self._parent.k0,
-            e1=self._parent.edge_entry_angle,
-            e1_fd=self._parent.edge_entry_angle_fdown,
-            hgap=self._parent.edge_entry_hgap,
-            fint=self._parent.edge_entry_fint,
-            model=self._parent.edge_entry_model,
-            side='entry',
-            _buffer=self._buffer
-        )
+        if self._parent.edge_entry_active:
+            return DipoleEdge(
+                k=self._parent.k0,
+                e1=self._parent.edge_entry_angle,
+                e1_fd=self._parent.edge_entry_angle_fdown,
+                hgap=self._parent.edge_entry_hgap,
+                fint=self._parent.edge_entry_fint,
+                model=self._parent.edge_entry_model,
+                side='entry',
+                _buffer=self._buffer
+            )
+        else:
+            return Marker(_buffer=self._buffer)
 
 
 class ThinSliceBendExit(BeamElement):
@@ -300,6 +303,8 @@ class ThinSliceBendExit(BeamElement):
                 side='exit',
                 _buffer=self._buffer
             )
+        else:
+            return Marker(_buffer=self._buffer)
 
 
 class ThinSliceQuadrupoleEntry(BeamElement):
@@ -335,9 +340,10 @@ class ThinSliceQuadrupoleEntry(BeamElement):
                 kn=[0, self._parent.k1],
                 ks=[0, self._parent.k1s],
                 is_exit=False,
+                _buffer=self._buffer
             )
         else:
-            return Marker()
+            return Marker(_buffer=self._buffer)
 
 
 class ThinSliceQuadrupoleExit(BeamElement):
@@ -373,9 +379,10 @@ class ThinSliceQuadrupoleExit(BeamElement):
                 kn=[0, self._parent.k1],
                 ks=[0, self._parent.k1s],
                 is_exit=True,
+                _buffer=self._buffer
             )
         else:
-            return Marker()
+            return Marker(_buffer=self._buffer)
 
 
 class ThinSliceSextupoleEntry(BeamElement):
@@ -411,9 +418,10 @@ class ThinSliceSextupoleEntry(BeamElement):
                 kn=[0, 0, self._parent.k2],
                 ks=[0, 0, self._parent.k2s],
                 is_exit=False,
+                _buffer=self._buffer
             )
         else:
-            return Marker()
+            return Marker(_buffer=self._buffer)
 
 
 class ThinSliceSextupoleExit(BeamElement):
@@ -449,9 +457,10 @@ class ThinSliceSextupoleExit(BeamElement):
                 kn=[0, 0, self._parent.k2],
                 ks=[0, 0, self._parent.k2s],
                 is_exit=True,
+                _buffer=self._buffer
             )
         else:
-            return Marker()
+            return Marker(_buffer=self._buffer)
 
 
 class ThinSliceOctupoleEntry(BeamElement):
@@ -487,9 +496,10 @@ class ThinSliceOctupoleEntry(BeamElement):
                 kn=[0, 0, 0, self._parent.k3],
                 ks=[0, 0, 0, self._parent.k3s],
                 is_exit=False,
+                _buffer=self._buffer
             )
         else:
-            return Marker()
+            return Marker(_buffer=self._buffer)
 
 
 class ThinSliceOctupoleExit(BeamElement):
@@ -525,9 +535,10 @@ class ThinSliceOctupoleExit(BeamElement):
                 kn=[0, 0, 0, self._parent.k3],
                 ks=[0, 0, 0, self._parent.k3s],
                 is_exit=True,
+                _buffer=self._buffer
             )
         else:
-            return Marker()
+            return Marker(_buffer=self._buffer)
 
 
 class ThinSliceRBend(BeamElement):
@@ -617,6 +628,8 @@ class ThinSliceRBendEntry(BeamElement):
                 side='entry',
                 _buffer=self._buffer
             )
+        else:
+            return Marker(_buffer=self._buffer)
 
 
 class ThinSliceRBendExit(BeamElement):
@@ -659,3 +672,5 @@ class ThinSliceRBendExit(BeamElement):
                 side='exit',
                 _buffer=self._buffer
             )
+        else:
+            return Marker(_buffer=self._buffer)
