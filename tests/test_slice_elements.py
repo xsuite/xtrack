@@ -1,5 +1,4 @@
 import itertools
-
 import numpy as np
 import pytest
 
@@ -7,9 +6,7 @@ import xobjects as xo
 import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
 
-
 assert_allclose = xo.assert_allclose
-
 
 @pytest.mark.parametrize('bend_type', [xt.Bend, xt.RBend])
 @for_all_test_contexts
