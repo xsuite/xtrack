@@ -243,13 +243,17 @@ def test_slicing_strategy_matching():
         'keep_drifts',
         # Five slices for mb11:
         'mb11_entry',  # Marker
+        'mb11..entry_map',
         'drift_mb11..0', 'mb11..0', 'drift_mb11..1', 'mb11..1', 'drift_mb11..2',
         'mb11..2', 'drift_mb11..3', 'mb11..3', 'drift_mb11..4', 'mb11..4',
         'drift_mb11..5',
+        'mb11..exit_map',
         'mb11_exit',  # Marker
         # One slice for 'mq10':
         'mq10_entry',  # Marker
+        'mq10..entry_map',
         'drift_mq10..0', 'mq10..0', 'drift_mq10..1',
+        'mq10..exit_map',
         'mq10_exit',  # Marker
         # Four slices for 'something':
         'something_entry',  # Marker
@@ -269,8 +273,10 @@ def test_slicing_strategy_matching():
         'keep_thin',
         # Three slices for 'mb21' (it's a Quadrupole!):
         'mb21_entry',  # Marker
+        'mb21..entry_map',
         'drift_mb21..0', 'mb21..0', 'drift_mb21..1', 'mb21..1', 'drift_mb21..2',
         'mb21..2', 'drift_mb21..3',
+        'mb21..exit_map',
         'mb21_exit',  # Marker
     ]
     assert line.element_names == expected_names
@@ -342,14 +348,16 @@ def test_slicing_strategy_matching():
         'mb10..exit_map', 'mb10_exit',
     ])
     assert np.all(tt.rows['mb11_entry':'mb11_exit'].name == [
-        'mb11_entry',
+        'mb11_entry', 'mb11..entry_map',
         'drift_mb11..0', 'mb11..0', 'drift_mb11..1', 'mb11..1',
         'drift_mb11..2', 'mb11..2', 'drift_mb11..3', 'mb11..3', 'drift_mb11..4',
         'mb11..4', 'drift_mb11..5',
-        'mb11_exit',
+        'mb11..exit_map', 'mb11_exit',
     ])
     assert np.all(tt.rows['mq10_entry':'mq10_exit'].name == [
-        'mq10_entry', 'drift_mq10..0', 'mq10..0', 'drift_mq10..1', 'mq10_exit',
+        'mq10_entry', 'mq10..entry_map',
+        'drift_mq10..0', 'mq10..0', 'drift_mq10..1',
+        'mq10..exit_map', 'mq10_exit',
     ])
     assert np.all(tt.rows['something_entry':'something_exit'].name == [
         'something_entry', 'something..entry_map',
@@ -366,8 +374,10 @@ def test_slicing_strategy_matching():
         'mb20..exit_map', 'mb20_exit',
     ])
     assert np.all(tt.rows['mb21_entry':'mb21_exit'].name == [
-        'mb21_entry', 'drift_mb21..0', 'mb21..0', 'drift_mb21..1', 'mb21..1',
-        'drift_mb21..2', 'mb21..2', 'drift_mb21..3', 'mb21_exit',
+        'mb21_entry', 'mb21..entry_map',
+        'drift_mb21..0', 'mb21..0', 'drift_mb21..1', 'mb21..1',
+        'drift_mb21..2', 'mb21..2', 'drift_mb21..3',
+        'mb21..exit_map', 'mb21_exit',
     ])
 
 
