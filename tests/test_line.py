@@ -943,7 +943,8 @@ def test_insert_thin_elements_at_s_lhc(test_context):
                         'drift_mb.a29r3.b1..1..1', 'mb.a29r3.b1..1']))
 
     assert np.all(tt.rows['mq.29r3.b1_exit<<3':'mq.29r3.b1_exit'].name
-            == np.array(['m0_at_c', 'm1_at_c', 'm2_at_c', 'mq.29r3.b1_exit']))
+            == np.array(
+                ['m1_at_c', 'm2_at_c', 'mq.29r3.b1..exit_map', 'mq.29r3.b1_exit']))
 
     assert np.all(tt.rows['m0_at_d':'m0_at_d>>4'].name
                 == np.array(['m0_at_d', 'm1_at_d', 'm2_at_d',
