@@ -257,6 +257,10 @@ class ThinSliceBendEntry(BeamElement):
                 fint=self._parent.edge_entry_fint,
                 model=self._parent.edge_entry_model,
                 side='entry',
+                shift_x=self._parent.shift_x,
+                shift_y=self._parent.shift_y,
+                shift_s=self._parent.shift_s,
+                rot_s_rad=self._parent.rot_s_rad,
                 _buffer=self._buffer
             )
         else:
@@ -301,6 +305,10 @@ class ThinSliceBendExit(BeamElement):
                 fint=self._parent.edge_exit_fint,
                 model=self._parent.edge_exit_model,
                 side='exit',
+                shift_x=self._parent.shift_x,
+                shift_y=self._parent.shift_y,
+                shift_s=self._parent.shift_s,
+                rot_s_rad=self._parent.rot_s_rad,
                 _buffer=self._buffer
             )
         else:
@@ -340,6 +348,10 @@ class ThinSliceQuadrupoleEntry(BeamElement):
                 kn=[0, self._parent.k1],
                 ks=[0, self._parent.k1s],
                 is_exit=False,
+                shift_x=self._parent.shift_x,
+                shift_y=self._parent.shift_y,
+                shift_s=self._parent.shift_s,
+                rot_s_rad=self._parent.rot_s_rad,
                 _buffer=self._buffer
             )
         else:
@@ -379,6 +391,10 @@ class ThinSliceQuadrupoleExit(BeamElement):
                 kn=[0, self._parent.k1],
                 ks=[0, self._parent.k1s],
                 is_exit=True,
+                shift_x=self._parent.shift_x,
+                shift_y=self._parent.shift_y,
+                shift_s=self._parent.shift_s,
+                rot_s_rad=self._parent.rot_s_rad,
                 _buffer=self._buffer
             )
         else:
@@ -418,6 +434,10 @@ class ThinSliceSextupoleEntry(BeamElement):
                 kn=[0, 0, self._parent.k2],
                 ks=[0, 0, self._parent.k2s],
                 is_exit=False,
+                shift_x=self._parent.shift_x,
+                shift_y=self._parent.shift_y,
+                shift_s=self._parent.shift_s,
+                rot_s_rad=self._parent.rot_s_rad,
                 _buffer=self._buffer
             )
         else:
@@ -457,6 +477,10 @@ class ThinSliceSextupoleExit(BeamElement):
                 kn=[0, 0, self._parent.k2],
                 ks=[0, 0, self._parent.k2s],
                 is_exit=True,
+                shift_x=self._parent.shift_x,
+                shift_y=self._parent.shift_y,
+                shift_s=self._parent.shift_s,
+                rot_s_rad=self._parent.rot_s_rad,
                 _buffer=self._buffer
             )
         else:
@@ -496,6 +520,10 @@ class ThinSliceOctupoleEntry(BeamElement):
                 kn=[0, 0, 0, self._parent.k3],
                 ks=[0, 0, 0, self._parent.k3s],
                 is_exit=False,
+                shift_x=self._parent.shift_x,
+                shift_y=self._parent.shift_y,
+                shift_s=self._parent.shift_s,
+                rot_s_rad=self._parent.rot_s_rad,
                 _buffer=self._buffer
             )
         else:
@@ -535,6 +563,10 @@ class ThinSliceOctupoleExit(BeamElement):
                 kn=[0, 0, 0, self._parent.k3],
                 ks=[0, 0, 0, self._parent.k3s],
                 is_exit=True,
+                shift_x=self._parent.shift_x,
+                shift_y=self._parent.shift_y,
+                shift_s=self._parent.shift_s,
+                rot_s_rad=self._parent.rot_s_rad,
                 _buffer=self._buffer
             )
         else:
@@ -626,6 +658,10 @@ class ThinSliceRBendEntry(BeamElement):
                 fint=self._parent.edge_entry_fint,
                 model=self._parent.edge_entry_model,
                 side='entry',
+                shift_x=self._parent.shift_x,
+                shift_y=self._parent.shift_y,
+                shift_s=self._parent.shift_s,
+                rot_s_rad=self._parent.rot_s_rad,
                 _buffer=self._buffer
             )
         else:
@@ -670,6 +706,10 @@ class ThinSliceRBendExit(BeamElement):
                 fint=self._parent.edge_exit_fint,
                 model=self._parent.edge_exit_model,
                 side='exit',
+                shift_x=self._parent.shift_x,
+                shift_y=self._parent.shift_y,
+                shift_s=self._parent.shift_s,
+                rot_s_rad=self._parent.rot_s_rad,
                 _buffer=self._buffer
             )
         else:
