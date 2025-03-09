@@ -19,6 +19,12 @@ void Sextupole_track_local_particle(
         backtrack_sign = -1;
     #endif
 
+    int64_t num_multipole_kicks = SextupoleData_get_num_multipole_kicks(el);
+    if (num_multipole_kicks == 0) { // auto mode
+        num_multipole_kicks = 1;
+    }
+    const double kick_weight = 1. / num_multipole_kicks;
+
     double const k2 = SextupoleData_get_k2(el);
     double const k2s = SextupoleData_get_k2s(el);
 
@@ -47,21 +53,23 @@ void Sextupole_track_local_particle(
             );
         }
 
-        // Drift
-        Drift_single_particle(part, length / 2.);
+        for (int i_kick=0; i_kick<num_multipole_kicks; i_kick++) {
+            // Drift
+            Drift_single_particle(part, length / 2.);
 
-        Multipole_track_single_particle(part,
-            0., length, 1, // weight 1
-            knl, ksl, order, inv_factorial_order,
-            knl_sext, ksl_sext, 2, 0.5,
-            backtrack_sign,
-            0, 0,
-            NULL, NULL, NULL,
-            NULL, NULL, NULL,
-            NULL, NULL);
+            Multipole_track_single_particle(part,
+                0., length, kick_weight,
+                knl, ksl, order, inv_factorial_order,
+                knl_sext, ksl_sext, 2, 0.5,
+                backtrack_sign,
+                0, 0,
+                NULL, NULL, NULL,
+                NULL, NULL, NULL,
+                NULL, NULL);
 
-        // Drift
-        Drift_single_particle(part, length / 2.);
+            // Drift
+            Drift_single_particle(part, length / 2.);
+        }
 
         // Exit fringe
         if (edge_exit_active) {
