@@ -1516,6 +1516,7 @@ class Octupole(BeamElement):
         'ksl': xo.Float64[:],
         'edge_entry_active': xo.Field(xo.UInt64, default=False),
         'edge_exit_active': xo.Field(xo.UInt64, default=False),
+        'num_multipole_kicks': xo.Int64,
     }
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.

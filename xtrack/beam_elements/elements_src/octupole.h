@@ -32,14 +32,14 @@ void Octupole_track_local_particle(
 
     const uint8_t edge_entry_active = OctupoleData_get_edge_entry_active(el);
     const uint8_t edge_exit_active = OctupoleData_get_edge_exit_active(el);
-    const double combined_kn[3] = {0, 0, 0, k3 / 6};
-    const double combined_ks[3] = {0, 0, 0, k3s / 6};
+    const double combined_kn[4] = {0, 0, 0, k3 / 6};
+    const double combined_ks[4] = {0, 0, 0, k3s / 6};
 
     #define OCT_KICK(part, weight) \
         Multipole_track_single_particle(part, \
             0., length * (weight), (weight), \
             knl, ksl, order, inv_factorial_order, \
-            knl_oct, ksl_oct, 2, 0.5, \
+            knl_oct, ksl_oct, 3, 1./6., \
             backtrack_sign, \
             0, 0, \
             NULL, NULL, NULL, \
