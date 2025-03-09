@@ -24,7 +24,9 @@ tw_3slices = line_3slices.twiss(betx=1, bety=1, x=1e-2)
 
 tw_1kick = line.twiss(betx=1, bety=1, x=1e-2)
 
-line['s1'].num_multipole_kicks = 3
+line.configure_sextupole_model(num_multipole_kicks=3)
+
+assert line['s1'].num_multipole_kicks == 3
 tw_3kicks = line.twiss(betx=1, bety=1, x=1e-2)
 
 assert np.abs(tw_1slice.x[-1] - tw_3slices.x[-1]) > 1e-6
