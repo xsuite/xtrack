@@ -61,43 +61,46 @@ void Sextupole_track_local_particle(
             NULL, NULL, NULL, \
             NULL, NULL)
 
+    #define SEXT_DRIFT(pp, ww) \
+        Drift_single_particle(pp, ((length) * (ww)))
+
+    #define SEXT_FRINGE(part, side)\
+        MultFringe_track_single_particle(\
+            combined_kn,\
+            combined_ks,\
+            side,\
+            3,\
+            part\
+        )
+
+    // Entry fringe
+    if (edge_entry_active) {
+        //start_per_particle_block (part0->part)
+            SEXT_FRINGE(part, 0);
+        //end_per_particle_block
+    }
+
+    // TEAPOT body
     //start_per_particle_block (part0->part)
-        // Entry fringe
-        if (edge_entry_active) {
-            MultFringe_track_single_particle(
-                combined_kn,
-                combined_ks,
-                0,
-                3,
-                part
-            );
-        }
-
-        Drift_single_particle(part, length * edge_drift_weight);
-
+        SEXT_DRIFT(part, edge_drift_weight);
         for (int i_kick=0; i_kick<num_multipole_kicks - 1; i_kick++) {
-            // Drift
             SEXT_KICK(part, kick_weight);
-
-            // Drift
-            Drift_single_particle(part, length * inside_drift_weight);
+            SEXT_DRIFT(part, inside_drift_weight);
         }
         SEXT_KICK(part, kick_weight);
-        Drift_single_particle(part, length * edge_drift_weight);
-
-        // Exit fringe
-        if (edge_exit_active) {
-            MultFringe_track_single_particle(
-                combined_kn,
-                combined_ks,
-                1,
-                3,
-                part
-            );
-        }
+        SEXT_DRIFT(part, edge_drift_weight);
     //end_per_particle_block
 
+    // Entry fringe
+    if (edge_exit_active) {
+        //start_per_particle_block (part0->part)
+            SEXT_FRINGE(part, 1);
+        //end_per_particle_block
+    }
+
     #undef SEXT_KICK
+    #undef SEXT_DRIFT
+    #undef SEXT_FRINGE
 }
 
 #endif // XTRACK_SEXTUPOLE_H
