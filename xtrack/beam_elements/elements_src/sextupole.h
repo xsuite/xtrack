@@ -19,21 +19,6 @@ void Sextupole_track_local_particle(
         backtrack_sign = -1;
     #endif
 
-    // TEAPOT weights
-    int64_t num_multipole_kicks = SextupoleData_get_num_multipole_kicks(el);
-    if (num_multipole_kicks == 0) { // auto mode
-        num_multipole_kicks = 1;
-    }
-    const double kick_weight = 1. / num_multipole_kicks;
-    double edge_drift_weight = 0.5;
-    double inside_drift_weight = 0;
-    if (num_multipole_kicks > 1) {
-        edge_drift_weight = 1. / (2 * (1 + num_multipole_kicks));
-        inside_drift_weight = (
-           ((float) num_multipole_kicks)
-             / ((float)(num_multipole_kicks*num_multipole_kicks) - 1));
-    }
-
     double const k2 = SextupoleData_get_k2(el);
     double const k2s = SextupoleData_get_k2s(el);
 
@@ -72,6 +57,23 @@ void Sextupole_track_local_particle(
             3,\
             part\
         )
+
+    // TEAPOT weights
+    int64_t num_multipole_kicks = SextupoleData_get_num_multipole_kicks(el);
+    if (num_multipole_kicks == 0) { // auto mode
+        num_multipole_kicks = 1;
+    }
+    const double kick_weight = 1. / num_multipole_kicks;
+    double edge_drift_weight = 0.5;
+    double inside_drift_weight = 0;
+    if (num_multipole_kicks > 1) {
+        edge_drift_weight = 1. / (2 * (1 + num_multipole_kicks));
+        inside_drift_weight = (
+            ((float) num_multipole_kicks)
+                / ((float)(num_multipole_kicks*num_multipole_kicks) - 1));
+    }
+
+    // TRACKING
 
     // Entry fringe
     if (edge_entry_active) {
