@@ -64,6 +64,11 @@ ex = tw_rad.eq_gemitt_x
 ey = tw_rad.eq_gemitt_y
 ez = tw_rad.eq_gemitt_zeta
 
+tw_integ = line.twiss(radiation_integrals = True)
+
+xo.assert_allclose(tw_integ.rad_int_eq_gemitt_x, ex, rtol=5e-2, atol=0)
+xo.assert_allclose(tw_integ.rad_int_eq_gemitt_y, ey, rtol=5e-2, atol=0)
+
 # Equilibrium beam sizes
 beam_sizes = tw_rad.get_beam_covariance(
     gemitt_x=tw_rad.eq_gemitt_x, gemitt_y=tw_rad.eq_gemitt_y,
