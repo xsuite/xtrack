@@ -2910,10 +2910,11 @@ class Line:
             if num_multipole_kicks is not None:
                 ee.num_multipole_kicks = num_multipole_kicks
 
-    def _configure_mult_fringes(
+    def _configure_mult(
             self,
             element_type,
-            edge: Optional[Literal['full']] = 'full',
+            edge: Optional[Literal['full']] = None,
+            num_multipole_kicks: Optional[int] = None,
     ):
         """Configure fringes on elements of a given type.
 
@@ -2922,25 +2923,35 @@ class Line:
         edge: str
             None to disable, 'full' to enable.
         """
-        if edge not in [None, 'full']:
+        if edge not in [None, 'full', 'suppressed']:
             raise ValueError(f'Unknown edge model {edge}: only None or '
                              f'"full" are supported.')
 
         enable_fringes = edge == 'full'
 
         for ee in self.element_dict.values():
-            if isinstance(ee, element_type):
+            if not isinstance(ee, element_type):
+                continue
+            if edge is not None:
                 ee.edge_entry_active = enable_fringes
                 ee.edge_exit_active = enable_fringes
+            if num_multipole_kicks is not None:
+                ee.num_multipole_kicks = num_multipole_kicks
 
-    def configure_quadrupole_model(self, edge: Optional[Literal['full']] = 'full'):
-        self._configure_mult_fringes(xt.Quadrupole, edge=edge)
+    def configure_quadrupole_model(self, edge: Optional[Literal['full']] = None,
+                                   num_multipole_kicks: Optional[int] = None):
+        self._configure_mult(xt.Quadrupole, edge=edge,
+                             num_multipole_kicks=num_multipole_kicks)
 
-    def configure_sextupole_model(self, edge: Optional[Literal['full']] = 'full'):
-        self._configure_mult_fringes(xt.Sextupole, edge=edge)
+    def configure_sextupole_model(self, edge: Optional[Literal['full']] = None,
+                                  num_multipole_kicks: Optional[int] = None):
+        self._configure_mult(xt.Sextupole, edge=edge,
+                             num_multipole_kicks=num_multipole_kicks)
 
-    def configure_octupole_model(self, edge: Optional[Literal['full']] = 'full'):
-        self._configure_mult_fringes(xt.Octupole, edge=edge)
+    def configure_octupole_model(self, edge: Optional[Literal['full']] = None,
+                                 num_multipole_kicks: Optional[int] = None):
+        self._configure_mult(xt.Octupole, edge=edge,
+                            num_multipole_kicks=num_multipole_kicks)
 
     def configure_radiation(self, model=None, model_beamstrahlung=None,
                             model_bhabha=None, mode='deprecated'):
