@@ -55,10 +55,12 @@ void Sextupole_track_local_particle(
 
         for (int i_kick=0; i_kick<num_multipole_kicks; i_kick++) {
             // Drift
-            Drift_single_particle(part, length / 2.);
+            printf("s0=%e\n", LocalParticle_get_s(part)); 
+            Drift_single_particle(part, length * kick_weight / 2.);
+            printf("s1=%e\n", LocalParticle_get_s(part));
 
             Multipole_track_single_particle(part,
-                0., length, kick_weight,
+                0., length * kick_weight, kick_weight,
                 knl, ksl, order, inv_factorial_order,
                 knl_sext, ksl_sext, 2, 0.5,
                 backtrack_sign,
@@ -68,7 +70,8 @@ void Sextupole_track_local_particle(
                 NULL, NULL);
 
             // Drift
-            Drift_single_particle(part, length / 2.);
+            Drift_single_particle(part, length * kick_weight / 2.);
+            printf("s2=%e\n", LocalParticle_get_s(part));
         }
 
         // Exit fringe

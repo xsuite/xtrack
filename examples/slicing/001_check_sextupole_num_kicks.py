@@ -1,7 +1,7 @@
 import xtrack as xt
 
 line = xt.Line(elements={
-    's1': xt.Sextupole(k2=0.1, length=10.0)
+    's1': xt.Sextupole(k2=0.1, length=9.0)
 })
 
 line_1slice = line.copy(shallow=True)
@@ -23,3 +23,10 @@ p_3slices = p.copy()
 line_1slice.track(p_1slice)
 line_3slices.track(p_3slices)
 
+p_1kick = p.copy()
+p_3kicks = p.copy()
+
+line.track(p_1kick)
+
+line['s1'].num_multipole_kicks = 3
+line.track(p_3kicks)
