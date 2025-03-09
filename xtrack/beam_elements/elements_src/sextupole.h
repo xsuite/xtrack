@@ -50,6 +50,17 @@ void Sextupole_track_local_particle(
     const double combined_kn[3] = {0, 0, k2 / 2};
     const double combined_ks[3] = {0, 0, k2s / 2};
 
+    #define SEXT_KICK(part, weight) \
+        Multipole_track_single_particle(part, \
+            0., length * (weight), (weight), \
+            knl, ksl, order, inv_factorial_order, \
+            knl_sext, ksl_sext, 2, 0.5, \
+            backtrack_sign, \
+            0, 0, \
+            NULL, NULL, NULL, \
+            NULL, NULL, NULL, \
+            NULL, NULL)
+
     //start_per_particle_block (part0->part)
         // Entry fringe
         if (edge_entry_active) {
@@ -66,28 +77,12 @@ void Sextupole_track_local_particle(
 
         for (int i_kick=0; i_kick<num_multipole_kicks - 1; i_kick++) {
             // Drift
-            Multipole_track_single_particle(part,
-                0., length * kick_weight, kick_weight,
-                knl, ksl, order, inv_factorial_order,
-                knl_sext, ksl_sext, 2, 0.5,
-                backtrack_sign,
-                0, 0,
-                NULL, NULL, NULL,
-                NULL, NULL, NULL,
-                NULL, NULL);
+            SEXT_KICK(part, kick_weight);
 
             // Drift
             Drift_single_particle(part, length * inside_drift_weight);
         }
-        Multipole_track_single_particle(part,
-            0., length * kick_weight, kick_weight,
-            knl, ksl, order, inv_factorial_order,
-            knl_sext, ksl_sext, 2, 0.5,
-            backtrack_sign,
-            0, 0,
-            NULL, NULL, NULL,
-            NULL, NULL, NULL,
-            NULL, NULL);
+        SEXT_KICK(part, kick_weight);
         Drift_single_particle(part, length * edge_drift_weight);
 
         // Exit fringe
@@ -101,6 +96,8 @@ void Sextupole_track_local_particle(
             );
         }
     //end_per_particle_block
+
+    #undef SEXT_KICK
 }
 
 #endif // XTRACK_SEXTUPOLE_H
