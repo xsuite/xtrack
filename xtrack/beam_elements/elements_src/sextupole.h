@@ -74,7 +74,6 @@ void Sextupole_track_local_particle(
     }
 
     // TRACKING
-
     // Entry fringe
     if (edge_entry_active) {
         //start_per_particle_block (part0->part)
