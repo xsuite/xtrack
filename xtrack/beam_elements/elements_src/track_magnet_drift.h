@@ -10,7 +10,9 @@
 #define POW2(X) ((X)*(X))
 #endif
 
+#ifndef NONZERO
 #define NONZERO(X) ((X) != 0.0)
+#endif
 
 
 /*gpufun*/
@@ -97,7 +99,7 @@ void track_expanded_combined_dipole_quad_single_particle(
     const double length,  // length of the element
     const double k0_,     // normal dipole strength
     const double k1_,     // normal quadrupole strength
-    const double h,       // curvature
+    const double h        // curvature
 ) {
     // From madx: https://github.com/MethodicalAcceleratorDesign/MAD-X/blob/8695bd422dc403a01aa185e9fea16603bbd5b3e1/src/trrun.f90#L4320
     // Particle coordinates
@@ -239,7 +241,6 @@ void track_curved_exact_bend_single_particle(
     const double y = LocalParticle_get_y(part);
     const double px = LocalParticle_get_px(part);
     const double py = LocalParticle_get_py(part);
-    double const k0_chi = k0 * LocalParticle_get_chi(part);
     const double s = length;
 
     const double one_plus_delta = LocalParticle_get_delta(part) + 1.0;
@@ -276,7 +277,7 @@ void track_curved_exact_bend_single_particle(
 void track_straight_exact_bend_single_particle(
     LocalParticle* part,  // LocalParticle to track
     const double length,  // length of the element
-    const double k0,      // normal dipole strength
+    const double k0       // normal dipole strength
 ) {
 
     // Here we assume that the caller has ensured h != 0
@@ -321,10 +322,6 @@ void track_straight_exact_bend_single_particle(
 }
 
 
-
-
-
-
 /*gpufun*/
 void track_magnet_drift_single_particle(
     LocalParticle* part,  // LocalParticle to track
@@ -332,7 +329,7 @@ void track_magnet_drift_single_particle(
     const double k0,      // normal dipole strength
     const double k1,      // normal quadrupole strength
     const double h,       // curvature
-    int drift_model,      // drift model
+    const int64_t drift_model      // drift model
 ) {
 
     // drift_model = 0 : drift expanded (caller has ensured k0=0, k1=0, h=0)
@@ -347,80 +344,29 @@ void track_magnet_drift_single_particle(
         return;
     }
 
-    double const k0_chi = k0 * LocalParticle_get_chi(part);
-
-    if (fabs(k0_chi) < 1e-8 && fabs(h) < 1e-8) {
-        Drift_single_particle(part, length);
-        return;
+    switch (drift_model) {
+        case 0:
+            track_expanded_drift_single_particle(part, length);
+            break;
+        case 1:
+            track_exact_drift_single_particle(part, length);
+            break;
+        case 2:
+            track_polar_drift_single_particle(part, length, h);
+            break;
+        case 3:
+            track_expanded_combined_dipole_quad_single_particle(part, length, k0, k1, h);
+            break;
+        case 4:
+            track_curved_exact_bend_single_particle(part, length, k0, h);
+            break;
+        case 5:
+            track_straight_exact_bend_single_particle(part, length, k0);
+            break;
+        default:
+            break;
     }
 
-    const double rvv = LocalParticle_get_rvv(part);
-    // Particle coordinates
-    const double x = LocalParticle_get_x(part);
-    const double y = LocalParticle_get_y(part);
-    const double px = LocalParticle_get_px(part);
-    const double py = LocalParticle_get_py(part);
-    const double s = length;
-
-    double new_x, new_px, new_y, delta_ell;
-
-    // Useful constants
-    const double one_plus_delta = LocalParticle_get_delta(part) + 1.0;
-    const double A = 1.0 / sqrt(POW2(one_plus_delta) - POW2(py));
-    const double pz = sqrt(POW2(one_plus_delta) - POW2(px) - POW2(py));
-
-    if (fabs(h) > 1e-8 && fabs(k0_chi) > 1e-8) {
-        // *** CURVED EXACT BEND
-        // The case for non-zero curvature, s is arc length
-        // Useful constants
-        const double C = pz - k0_chi * ((1 / h) + x);
-        new_px = px * cos(s * h) + C * sin(s * h);
-        double const new_pz = sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py));
-        // double const d_new_px_ds = new_px / new_pz;
-
-        const double d_new_px_ds = C * h * cos(h * s) - h * px * sin(h * s);
-
-        // Update particle coordinates
-        new_x = (new_pz * h - d_new_px_ds - k0_chi) / (h * k0_chi);
-        const double D = asin(A * px) - asin(A * new_px);
-        new_y = y + ((py * s) / (k0_chi / h)) + (py / k0_chi) * D;
-
-        delta_ell = ((one_plus_delta * s * h) / k0_chi) + (one_plus_delta / k0_chi) * D;
-    } else if (fabs(h) > 1e-8 && fabs(k0_chi) < 1e-8) {
-        // POLAR DRIFT
-        // Based on SUBROUTINE Sprotr in PTC and curex_drift in MAD-NG
-        // Polar drift
-        double const rho = 1 / h;
-        const double ca = cos(h * s);
-        const double sa = sin(h * s);
-        const double sa2 = sin(0.5 * h * s);
-        const double _pz = 1 / pz;
-        const double pxt = px * _pz;
-        const double _ptt = 1 / (ca - sa * pxt);
-        const double pst = (x + rho) * sa * _pz * _ptt;
-
-        new_x = (x + rho * (2 * sa2 * sa2 + sa * pxt)) * _ptt;
-        new_px = ca * px + sa * pz;
-        new_y = y + pst * py;
-        delta_ell = one_plus_delta * (x + rho) * sa / ca / pz / (1 - px * sa / ca / pz);
-    } else {
-        // STRAIGHT EXACT BEND
-        // The case for zero curvature -- straight bend, s is Cartesian length
-        new_px = px - k0_chi * s;
-        new_x = x + (sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py)) - pz) / k0_chi;
-
-        const double D = asin(A * px) - asin(A * new_px);
-        new_y = y + (py / k0_chi) * D;
-
-        delta_ell = (one_plus_delta / k0_chi) * D;
-    }
-
-    // Update Particles object
-    LocalParticle_set_x(part, new_x);
-    LocalParticle_set_px(part, new_px);
-    LocalParticle_set_y(part, new_y);
-    LocalParticle_add_to_zeta(part, length - delta_ell / rvv);
-    LocalParticle_add_to_s(part, s);
 }
 
 #endif

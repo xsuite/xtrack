@@ -1,0 +1,22 @@
+import xtrack as xt
+import xobjects as xo
+
+from ..base_element import BeamElement
+from ..general import _pkg_root
+
+class MagnetDrift(BeamElement):
+    isthick = True
+    has_backtrack = True
+
+    _xofields = {
+        'length': xo.Float64,
+        'k0': xo.Float64,
+        'k1': xo.Float64,
+        'h': xo.Float64,
+        'drift_model': xo.Int64,
+    }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_drift.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/magnet_drift.h'),
+        ]
