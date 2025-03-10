@@ -20,6 +20,7 @@ void kick_simple_single_particle(
 /*gpufun*/
 void track_magnet_kick_single_particle(
     LocalParticle* part,
+    double length,
     int64_t order,
     double inv_factorial_order,
     /*gpuglmem*/ const double* knl,
@@ -34,8 +35,7 @@ void track_magnet_kick_single_particle(
     double k1s,
     double k2s,
     double k3s,
-    double h,
-    double length
+    double h
 ){
     double const chi = LocalParticle_get_chi(part);
     double const x = LocalParticle_get_x(part);
