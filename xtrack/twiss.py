@@ -2062,7 +2062,6 @@ def _handle_loop_around(kwargs):
 
     return tw_res
 
-
 def _handle_init_inside_range(kwargs):
 
     kwargs = kwargs.copy()
@@ -2318,7 +2317,6 @@ def _error_for_co_search_4d_zeta0(p, co_guess, line, delta_zeta, delta0, zeta0, 
         p[3] - one_turn_res[3],
         p[4] - zeta0,
         0])
-
 
 def _error_for_co_search_4d_delta0_zeta0(p, co_guess, line, delta_zeta, delta0, zeta0, start, end, num_turns, symmetrize):
     one_turn_res = _one_turn_map(p, co_guess, line, delta_zeta, start, end, num_turns, symmetrize)
@@ -3662,7 +3660,6 @@ def _complete_steps_r_matrix_with_default(steps_r_matrix):
 
     return steps_r_matrix
 
-
 def _renormalize_eigenvectors(Ws):
     # Re normalize eigenvectors
     v1 = Ws[:, :, 0] + 1j * Ws[:, :, 1]
@@ -3881,7 +3878,6 @@ def _add_action_in_res(res, kwargs):
     action = xt.match.ActionTwiss(**twiss_kwargs)
     res._data['_action'] = action
     return res
-
 
 def get_non_linear_chromaticity(line, delta0_range, num_delta, fit_order=3, **kwargs):
 
