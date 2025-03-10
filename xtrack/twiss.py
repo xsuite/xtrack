@@ -3708,6 +3708,12 @@ class TwissTable(Table):
             'rad_int_i4y_integrand': i4y_integrand,
             'rad_int_i5x_integrand': i5x_integrand,
             'rad_int_i5y_integrand': i5y_integrand,
+            'rad_int_kappa0_x': kappa0_x,
+            'rad_int_kappa0_y': kappa0_y,
+            'rad_int_kappa0': kappa0,
+            'rad_int_kappa_x': kappa_x,
+            'rad_int_kappa_y': kappa_y,
+            'rad_int_kappa': kappa,
         }
 
         scalars = {
