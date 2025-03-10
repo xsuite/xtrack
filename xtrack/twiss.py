@@ -3090,16 +3090,13 @@ class TwissTable(Table):
         sigma_delta: float = None,
         bunch_length: float = None,
         bunched: bool = True,
-        particles: xt.Particles = None,
         **kwargs,
     ):
         """
-        Computes IntraBeam Scattering growth rates.
+        Computes IntraBeam Scattering (amplitude) growth rates.
 
         Parameters
         ----------
-        line : xtrack.Line
-            Line in which the IBS kick element will be installed.
         formalism : str
             Which formalism to use for the computation. Can be ``Nagaitsev``
             or ``Bjorken-Mtingwa`` (also accepts ``B&M``), case-insensitively.
@@ -3124,10 +3121,6 @@ class TwissTable(Table):
         bunched : bool, optional
             Whether the beam is bunched or not (coasting). Defaults to `True`.
             Required if `particles` is not provided.
-        particles : xtrack.Particles
-            The particles to circulate in the line. If provided the emittances,
-            momentum spread and bunch length will be computed from the particles.
-            Otherwise explicit values must be provided (see above parameters).
         **kwargs : dict
             Keyword arguments are passed to the growth rates computation method of
             the chosen IBS formalism implementation. See the IBS details from the
@@ -3146,7 +3139,7 @@ class TwissTable(Table):
             self, formalism, total_beam_intensity,
             gemitt_x, nemitt_x, gemitt_y, nemitt_y,
             sigma_delta, bunch_length, bunched,
-            particles, **kwargs,
+            **kwargs,
         )
 
     def get_R_matrix(self, start, end):
