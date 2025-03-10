@@ -175,11 +175,14 @@ def rfmultipole_to_madx_str(name, line):
 def dipoleedge_to_madx_str(name, line):
     raise NotImplementedError("isolated dipole edges are not yet supported")
 
-def bend_to_madx_str(name, line):
+def bend_to_madx_str(name, line, bend_type='sbend'):
+
+    assert bend_type in ['sbend', 'rbend']
+
     bend = _get_eref(line, name)
 
     tokens = []
-    tokens.append('sbend')
+    tokens.append(bend_type)
     tokens.append(mad_assignment('l', _ge(bend.length)))
     tokens.append(mad_assignment('angle', _ge(bend.h) * _ge(bend.length)))
     tokens.append(mad_assignment('k0', _ge(bend.k0)))
@@ -196,6 +199,9 @@ def bend_to_madx_str(name, line):
     _handle_transforms(tokens, bend)
 
     return ', '.join(tokens)
+
+def rbend_to_madx_str(name, line):
+    return bend_to_madx_str(name, line, bend_type='rbend')
 
 def sextupole_to_madx_str(name, line):
     sext = _get_eref(line, name)
@@ -264,6 +270,7 @@ xsuite_to_mad_conveters={
     xt.Multipole: multipole_to_madx_str,
     xt.DipoleEdge: dipoleedge_to_madx_str,
     xt.Bend: bend_to_madx_str,
+    xt.RBend: rbend_to_madx_str,
     xt.Sextupole: sextupole_to_madx_str,
     xt.Octupole: octupole_to_madx_str,
     xt.Quadrupole: quadrupole_to_madx_str,

@@ -13,8 +13,8 @@ import xtrack as xt
 
 from ..base_element import BeamElement
 from ..random import RandomUniformAccurate, RandomExponential, RandomNormal
-from ..general import _pkg_root, _print
-from ..internal_record import RecordIndex, RecordIdentifier
+from ..general import _pkg_root
+from ..internal_record import RecordIndex
 
 DEFAULT_MULTIPOLE_ORDER = 5
 
@@ -639,30 +639,6 @@ class Multipole(BeamElement):
         self._order = value
         self.inv_factorial_order = 1.0 / factorial(value, exact=True)
 
-    def to_dict(self, copy_to_cpu=True):
-        out = super().to_dict(copy_to_cpu=copy_to_cpu)
-
-        # The constructor essentially overrides order if given knl or ksl
-        # imply a higher one to the one given. Otherwise, knl and ksl are
-        # resized, which at this stage means that the information about the
-        # order (by which we understand the desired size of knl/ksl, which can
-        # be different to the actual tracking order, as that can be changed
-        # later) is essentially encoded in knl/ksl.
-        # We should probably come up with a better way of handling this, but
-        # in the meantime let's produce a minimal dict that allows to
-        # reconstruct the xobject according to the rules outlined above.
-
-        if 'knl' in out and np.allclose(out['knl'], 0, atol=1e-16):
-            out.pop('knl', None)
-
-        if 'ksl' in out and np.allclose(out['ksl'], 0, atol=1e-16):
-            out.pop('ksl', None)
-
-        if self.order != 0 and 'knl' not in out and 'ksl' not in out:
-            out['order'] = self.order
-
-        return out
-
     @property
     def hyl(self):
         raise ValueError("hyl is not anymore supported")
@@ -725,40 +701,18 @@ class SimpleThinQuadrupole(BeamElement):
     )
 
 
-class Bend(BeamElement):
-    """
-    Implementation of combined function magnet (i.e. a bending magnet with
-    a quadrupole component).
-
-    Parameters
-    ----------
-    k0 : float
-        Strength of the horizontal dipolar component in units of m^-1.
-    k1 : float
-        Strength of the horizontal quadrupolar component in units of m^-2.
-    h : float
-        Curvature of the reference trajectory in units of m^-1.
-    length : float
-        Length of the element in units of m.
-    knl : array
-        Integrated strength of the high-order normal multipolar components
-        (knl[0] and knl[1] should not be used).
-    ksl : array
-        Integrated strength of the high-order skew multipolar components
-        (ksl[0] and ksl[1] should not be used).
-    num_multipole_kicks : int
-        Number of multipole kicks used to model high order multipolar
-        components.
-
-    """
-
+class _BendCommon:
+    """Common properties for Bend and RBend: see their respective docstrings."""
     isthick = True
     has_backtrack = True
 
-    _xofields = {
+    _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
+
+    _common_xofields = {
         'k0': xo.Float64,
         'k1': xo.Float64,
         'h': xo.Float64,
+        'angle': xo.Float64,
         'length': xo.Float64,
         'model': xo.Int64,
         'edge_entry_active': xo.Field(xo.Int64, default=1),
@@ -778,18 +732,22 @@ class Bend(BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
+        'k0_from_h': xo.UInt64,
     }
 
-    _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
-
-    _rename = {
+    _common_rename = {
         'order': '_order',
         'model': '_model',
         'edge_entry_model': '_edge_entry_model',
         'edge_exit_model': '_edge_exit_model',
+        'k0': '_k0',
+        'k0_from_h': '_k0_from_h',
+        'angle': '_angle',
+        'length': '_length',
+        'h': '_h',
     }
 
-    _extra_c_sources = [
+    _common_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_multipolar_components.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_bend.h'),
@@ -800,25 +758,7 @@ class Bend(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_nonlinear.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_bend.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/bend.h'),
     ]
-
-    def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
-
-        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
-            self.xoinitialize(**kwargs)
-            return
-
-        model = kwargs.pop('model', None)
-
-        order = order or DEFAULT_MULTIPOLE_ORDER
-        multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
-        kwargs.update(multipolar_kwargs)
-
-        self.xoinitialize(**kwargs)
-
-        if model is not None:
-            self.model = model
 
     def to_dict(self, copy_to_cpu=True):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
@@ -836,6 +776,26 @@ class Bend(BeamElement):
             out['order'] = self.order
 
         return out
+
+    @property
+    def k0(self):
+        return self._k0
+
+    @k0.setter
+    def k0(self, value):
+        if self.k0_from_h and not np.isclose(value, self.h, atol=1e-13):
+            self.k0_from_h = False
+        self._k0 = value
+
+    @property
+    def k0_from_h(self):
+        return bool(self._k0_from_h)
+
+    @k0_from_h.setter
+    def k0_from_h(self, value):
+        if value:
+            self._k0 = self.h
+        self._k0_from_h = value
 
     @property
     def order(self):
@@ -902,11 +862,212 @@ class Bend(BeamElement):
             'suppressed': -1,
         }[value]
 
-    @property
-    def hxl(self): return self.h * self.length
 
     @property
-    def radiation_flag(self): return 0.0
+    def _repr_fields(self):
+        return ['length', 'k0', 'k1', 'h', 'k0_from_h', 'model', 'knl', 'ksl',
+                'edge_entry_active', 'edge_exit_active', 'edge_entry_model',
+                'edge_exit_model', 'edge_entry_angle', 'edge_exit_angle',
+                'edge_entry_angle_fdown', 'edge_exit_angle_fdown',
+                'edge_entry_fint', 'edge_exit_fint', 'edge_entry_hgap',
+                'edge_exit_hgap', 'shift_x', 'shift_y', 'rot_s_rad']
+
+    def to_dict(self, copy_to_cpu=True):
+        out = super().to_dict(copy_to_cpu=copy_to_cpu)
+
+        for kk in {'model', 'k0', 'h', 'length', 'k0_from_h', 'angle',
+                   }:
+            if f'_{kk}' in out:
+                out.pop(f'_{kk}')
+            out[kk] = getattr(self, kk)
+
+        # See the comment in Multiple.to_dict about knl/ksl/order dumping
+        if 'knl' in out and np.allclose(out['knl'], 0, atol=1e-16):
+            out.pop('knl', None)
+
+        if 'ksl' in out and np.allclose(out['ksl'], 0, atol=1e-16):
+            out.pop('ksl', None)
+
+        if self.order != 0 and 'knl' not in out and 'ksl' not in out:
+            out['order'] = self.order
+
+        return out
+
+
+class Bend(_BendCommon, BeamElement):
+    """
+    Implementation of combined function magnet (i.e. a bending magnet with
+    a quadrupole component).
+
+    Parameters
+    ----------
+    k0 : float, optional
+        Strength of the horizontal dipolar component in units of m^-1.
+    k1 : float, optional
+        Strength of the horizontal quadrupolar component in units of m^-2.
+    h : float, optional
+        Curvature of the reference trajectory in units of m^-1. Can only be
+        given if angle is not given, and will be computed from angle otherwise.
+    angle : float, optional
+        Angle of the bend in radians. Can only be given if h is not given, and
+        will be computed from h otherwise.
+    k0_from_h : bool, optional
+        If True, `k0` will assume the value of `h` and its value will be updated
+        when `h` is changed.
+    length : float, optional
+        Length of the element in units of m.
+    model : str, optional
+        The bend model to use. Available options are:
+        - "adaptive" - drift-kick-drift model with automatic selection of the
+            number of kicks, using the Yoshida integration scheme. This is the
+            default option.
+        - "full" - same as adaptive (included for backward compatibility)
+        - "bend-kick-bend" - similar to adaptive, but using a thick bend map
+            instead of drifts.
+        - "rot-kick-rot" - same as "adaptive" and "full".
+        - "expanded" - use a combined function magnet with uniform slicing for
+            the kicks.
+    knl : array, optional
+        Integrated strength of the high-order normal multipolar components
+        (knl[0] and knl[1] should not be used).
+    ksl : array, optional
+        Integrated strength of the high-order skew multipolar components
+        (ksl[0] and ksl[1] should not be used).
+    num_multipole_kicks : int, optional
+        Number of multipole kicks used to model high order multipolar
+        components. By default, switched off.
+    order : int, optional
+        Order of `knl` and `ksl`. If not given, it will be inferred from `knl`
+        and `ksl`, but will be at least `DEFAULT_MULTIPOLE_ORDER` = 5.
+    edge_entry_active : bool, optional
+        Whether to model the entry edge. Disabled by default.
+    edge_exit_active : bool, optional
+        Same as `edge_entry_active`, but for the exit.
+    edge_entry_model : LiteralUnion['linear', 'full', 'suppressed']
+        Type of edge model to use at the entry. Default is 'full'.
+    edge_exit_model : LiteralUnion['linear', 'full', 'suppressed']
+        Same as `edge_entry_model`, but for the exit.
+    edge_entry_angle : float, optional
+        The angle of the entry edge in radians. Default is 0.
+    edge_exit_angle : float, optional
+        Same as `edge_entry_angle`, but for the exit.
+    edge_entry_angle_fdown : float, optional
+        Term added to the entry angle only for the linear mode and only in
+        the vertical plane to account for non-zero angle in the closed orbit
+        when entering the fringe field (feed down effect). Default is 0.
+    edge_exit_angle_fdown : float, optional
+        Same as `edge_entry_angle_fdown`, but for the exit. Default is 0.
+    edge_entry_fint: float, optional
+        Fringe integral value at entry.
+    edge_exit_fint : float, optional
+        Same as `edge_entry_fint`, but for the exit. Default is 0.
+    edge_entry_hgap : float, optional
+        Equivalent gap at entry in meters. Default is 0.
+    edge_exit_hgap : float, optional
+        Same as `edge_entry_hgap`, but for the exit.
+    """
+
+    _xofields = _BendCommon._common_xofields
+    _rename = _BendCommon._common_rename
+
+    _extra_c_sources = _BendCommon._common_c_sources + [
+        _pkg_root.joinpath('beam_elements/elements_src/bend.h'),
+    ]
+
+    def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
+
+        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
+        model = kwargs.pop('model', None)
+
+        order = order or DEFAULT_MULTIPOLE_ORDER
+        multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
+        kwargs.update(multipolar_kwargs)
+
+        self.xoinitialize(**kwargs)
+
+        # Calculate length and h in the event length_straight and/or angle given
+        self.set_bend_params(
+            kwargs.get('length'),
+            kwargs.get('h'),
+            kwargs.get('angle'),
+        )
+
+        if self.k0_from_h:
+            self.k0 = self.h
+
+        if model is not None:
+            self.model = model
+
+    @property
+    def length(self):
+        return self._length
+
+    @length.setter
+    def length(self, value):
+        self.set_bend_params(length=value, angle=self.angle)
+
+    @property
+    def h(self):
+        return self._h
+
+    @h.setter
+    def h(self, value):
+        self.set_bend_params(length=self.length, h=value)
+
+    @property
+    def angle(self):
+        return self._angle
+
+    @angle.setter
+    def angle(self, value):
+        self.set_bend_params(length=self.length, angle=value)
+
+    def set_bend_params(self, length=None, h=None, angle=None):
+        length, h, angle = self.compute_bend_params(
+            length, h, angle,
+        )
+
+        # None becomes NaN in numpy buffers
+        if length is not None:
+            self._length = length
+        if h is not None:
+            self._h = h
+        if angle is not None:
+            self._angle = angle
+
+        if self.k0_from_h:
+            self._k0 = self.h
+
+    @staticmethod
+    def compute_bend_params(length=None, h=None, angle=None):
+        if not length:
+            # If no length, then we cannot meaningfully calculate anything
+            return length, h, angle
+
+        if angle is not None:
+            computed_h = angle / length
+
+            if h is not None and not np.isclose(h, computed_h, rtol=0, atol=1e-13):
+                raise ValueError('Given `h` and `angle` are inconsistent!')
+
+            h = h or computed_h
+            return length, h, angle
+
+        if h is not None:
+            computed_angle = h * length
+
+            if angle is not None and not np.isclose(angle, computed_angle, rtol=0, atol=1e-13):
+                raise ValueError('Given `h` and `angle` are inconsistent!')
+
+            angle = angle or computed_angle
+            return length, h, angle
+
+        # Both `h` and `angle` are None
+        return length, h, angle
+
 
     @property
     def _thin_slice_class(self):
@@ -930,12 +1091,299 @@ class Bend(BeamElement):
 
     @property
     def _repr_fields(self):
-        return ['length', 'k0', 'k1', 'h', 'model', 'knl', 'ksl',
-                'edge_entry_active', 'edge_exit_active', 'edge_entry_model',
-                'edge_exit_model', 'edge_entry_angle', 'edge_exit_angle',
-                'edge_entry_angle_fdown', 'edge_exit_angle_fdown',
-                'edge_entry_fint', 'edge_exit_fint', 'edge_entry_hgap',
-                'edge_exit_hgap', 'shift_x', 'shift_y', 'rot_s_rad']
+        return super()._repr_fields
+
+
+class RBend(_BendCommon, BeamElement):
+    """
+    Implementation of a straight combined function magnet (i.e. a rectangular
+    bending magnet with a quadrupole component).
+
+    Parameters
+    ----------
+    k0 : float, optional
+        Strength of the horizontal dipolar component in units of m^-1.
+    k1 : float, optional
+        Strength of the horizontal quadrupolar component in units of m^-2.
+    h : float, optional
+        Curvature of the reference trajectory in units of m^-1. Will be
+        computed from angle and `length_straight` if not given, otherwise will
+        be checked for consistency. Changes to `h` will update `angle` and
+        `length`.
+    angle : float, optional
+        Angle of the bend in radians. Will be computed from `h` and
+        `length_straight` if not given, otherwise will be checked for
+        consistency. Changes to `angle` will update `h` and `length`.
+    k0_from_h : bool, optional
+        If True, `k0` will assume the value of `h` and its value will be updated
+        when `h` is changed.
+    length : float, optional
+        Length of the element in units of m along the reference trajectory.
+        Will be computed from `angle` and `length_straight` if not given.
+        Changes to `length` will update `h` and `length_straight`.
+    model : str, optional
+        See `Bend` for details.
+    length_straight : float, optional
+        Length of the element in units of m along a straight line. Changes to
+        `length_straight` will update `length` and `h`.
+    knl : array, optional
+        Integrated strength of the high-order normal multipolar components
+        (`knl[0]` and `knl[1]` should not be used).
+    ksl : array, optional
+        Integrated strength of the high-order skew multipolar components
+        (`ksl[0]` and `ksl[1]` should not be used).
+    num_multipole_kicks : int, optional
+        Number of multipole kicks used to model high order multipolar
+        components. By default, switched off.
+    order : int, optional
+        Order of `knl` and `ksl`. If not given, it will be inferred from `knl`
+        and `ksl`, but will be at least `DEFAULT_MULTIPOLE_ORDER` = 5.
+    edge_entry_active : bool, optional
+        Whether to model the entry edge. Disabled by default.
+    edge_exit_active : bool, optional
+        Same as `edge_entry_active`, but for the exit.
+    edge_entry_model : LiteralUnion['linear', 'full', 'suppressed']
+        Type of edge model to use at the entry. Default is 'full'.
+    edge_exit_model : LiteralUnion['linear', 'full', 'suppressed']
+        Same as `edge_entry_model`, but for the exit.
+    edge_entry_angle : float, optional
+        The angle of the entry edge in radians. Default is 0.
+    edge_exit_angle : float, optional
+        Same as `edge_entry_angle`, but for the exit.
+    edge_entry_angle_fdown : float, optional
+        Term added to the entry angle only for the linear mode and only in
+        the vertical plane to account for non-zero angle in the closed orbit
+        when entering the fringe field (feed down effect). Default is 0.
+    edge_exit_angle_fdown : float, optional
+        Same as `edge_entry_angle_fdown`, but for the exit. Default is 0.
+    edge_entry_fint: float, optional
+        Fringe integral value at entry.
+    edge_exit_fint : float, optional
+        Same as `edge_entry_fint`, but for the exit. Default is 0.
+    edge_entry_hgap : float, optional
+        Equivalent gap at entry in meters. Default is 0.
+    edge_exit_hgap : float, optional
+        Same as `edge_entry_hgap`, but for the exit.
+    """
+
+    _xofields = {
+        **_BendCommon._common_xofields,
+        'length_straight': xo.Float64,
+    }
+
+    _rename = {
+        **_BendCommon._common_rename,
+        'length_straight': '_length_straight',
+    }
+
+    _extra_c_sources = _BendCommon._common_c_sources + [
+        _pkg_root.joinpath('beam_elements/elements_src/rbend.h'),
+    ]
+
+    def __init__(
+            self,
+            order=None,
+            knl: List[float]=None,
+            ksl: List[float]=None,
+            **kwargs,
+    ):
+
+        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
+        order = order or DEFAULT_MULTIPOLE_ORDER
+        multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
+        kwargs.update(multipolar_kwargs)
+
+        model = kwargs.pop('model', None)
+
+        self.xoinitialize(**kwargs)
+
+        # Calculate length and h in the event length_straight and/or angle given
+        self.set_bend_params(
+            kwargs.get('length'),
+            kwargs.get('length_straight'),
+            kwargs.get('h'),
+            kwargs.get('angle'),
+        )
+
+        if self.k0_from_h:
+            self.k0 = self.h
+
+        if model is not None:
+            self.model = model
+
+    @property
+    def length(self):
+        return self._length
+
+    @length.setter
+    def length(self, value):
+        self.set_bend_params(length=value, angle=self.angle)
+
+    @property
+    def h(self):
+        return self._h
+
+    @h.setter
+    def h(self, value):
+        self.set_bend_params(h=value, length_straight=self.length_straight)
+
+    @property
+    def angle(self):
+        return self._angle
+
+    @angle.setter
+    def angle(self, value):
+        self.set_bend_params(angle=value, length_straight=self.length_straight)
+
+    @property
+    def length_straight(self):
+        return self._length_straight
+
+    @length_straight.setter
+    def length_straight(self, value):
+        self.set_bend_params(length_straight=value, angle=self.angle)
+
+    def set_bend_params(self, length=None, length_straight=None, h=None, angle=None):
+        (
+            length, length_straight, h, angle
+        ) = self.compute_bend_params(length, length_straight, h, angle)
+
+        # None becomes NaN in numpy buffers
+        if length is not None:
+            self._length = length
+        if length_straight is not None:
+            self._length_straight = length_straight
+        if h is not None:
+            self._h = h
+        if angle is not None:
+            self._angle = angle
+
+        if self.k0_from_h:
+            self._k0 = self.h
+
+    @staticmethod
+    def compute_bend_params(length=None, length_straight=None, h=None, angle=None):
+        """Compute the bend parameters (length, h) from the given arguments.
+
+        The arguments are checked for consistency and the missing ones are
+        calculated from the others.
+
+        One of each pair must be given: `length` or `length_straight`, and `h` or
+        `angle`. If both are missing for each pair, zero will be assumed for the
+        length and for `h`.
+        """
+        kwargs = locals()
+        given = {
+            arg_name: arg_value
+            for arg_name in ['length', 'length_straight', 'h', 'angle']
+            if (arg_value := kwargs[arg_name]) is not None
+        }
+
+        # Defaults
+        if 'length' not in given and 'length_straight' not in given:
+            length = 0
+            length_straight = 0
+
+        if 'h' not in given and 'angle' not in given:
+            h = 0
+            angle = 0
+
+        # Compute the remaining quantities for each accepted pair
+        if length == 0 or length_straight == 0:
+            # Special case to avoid division by zero, lengths are zero, h arbitrary
+            # Technically the angle should be zero too, but since oftentimes
+            # people initialise the element first with the angle, only later
+            # setting the length, we allow it to propagate.
+            length = length_straight = 0
+            h = given.get('h', 0)
+        elif angle == 0:
+            # Special case for zero angle: lengths are the same, h arbitrary
+            h = given.get('h', 0)
+            if length is not None and length_straight is not None:
+                assert length == length_straight
+            else:
+                length = length or length_straight
+                length_straight = length
+        elif 'length' in given and 'h' in given:
+            angle = length * h
+            length_straight = length * np.sinc(0.5 * angle / np.pi)
+        elif 'length' in given and 'angle' in given:
+            h = angle / length
+            length_straight = length * np.sinc(0.5 * angle / np.pi)
+        elif 'length_straight' in given and 'h' in given:
+            angle = 2 * np.arcsin(length_straight * h / 2)
+            length = length_straight / np.sinc(0.5 * angle / np.pi)
+        elif 'length_straight' in given and 'angle' in given:
+            h = 2 * np.sin(angle / 2) / length_straight
+            length = length_straight / np.sinc(0.5 * angle / np.pi)
+
+        # Verify consistency
+        errors = []
+        for param_name in ['length', 'length_straight', 'h', 'angle']:
+            if param_name in given:
+                given_value = given[param_name]
+                computed = locals()[param_name]
+                if np.isnan(given_value) and np.isnan(computed):
+                    continue
+                if not np.isclose(given_value, computed, atol=1e-13, rtol=1e-13):
+                    errors.append(f"{param_name} = {given_value} (given) != "
+                                  f"{computed} (computed)")
+
+        if errors:
+            raise ValueError(
+                "Given bend parameters are inconsistent: " + ", ".join(errors))
+
+        # By this point the given values are proved to be consistent, prefer
+        # the values given by the user, not to accumulate numerical noise.
+        return (
+            length,
+            given.get('length_straight', length_straight),
+            h,
+            given.get('angle', angle),
+        )
+
+    @property
+    def hxl(self): return self.h * self.length
+
+    @property
+    def radiation_flag(self): return 0.0
+
+    @property
+    def _thin_slice_class(self):
+        return xt.ThinSliceRBend
+
+    @property
+    def _thick_slice_class(self):
+        return xt.ThickSliceRBend
+
+    @property
+    def _drift_slice_class(self):
+        return xt.DriftSliceRBend
+
+    @property
+    def _entry_slice_class(self):
+        return xt.ThinSliceRBendEntry
+
+    @property
+    def _exit_slice_class(self):
+        return xt.ThinSliceRBendExit
+
+    @property
+    def _repr_fields(self):
+        return ['length_straight', 'angle'] + super()._repr_fields
+
+    def to_dict(self, copy_to_cpu=True):
+        out = super().to_dict(copy_to_cpu=copy_to_cpu)
+
+        for kk in {'angle', 'length_straight'}:
+            if f'_{kk}' in out:
+                out.pop(f'_{kk}')
+            out[kk] = getattr(self, kk)
+
+        return out
 
 
 class Sextupole(BeamElement):
@@ -1783,6 +2231,7 @@ class LineSegmentMap(BeamElement):
         'longitudinal_mode_flag': xo.Int64,
         'qs': xo.Float64,
         'bets': xo.Float64,
+        'bucket_length': xo.Float64,
         'momentum_compaction_factor': xo.Float64,
         'slippage_length': xo.Float64,
         'voltage_rf': xo.Float64[:],
@@ -1809,7 +2258,7 @@ class LineSegmentMap(BeamElement):
             dx=0., dpx=0., dy=0., dpy=0.,
             x_ref=0.0, px_ref=0.0, y_ref=0.0, py_ref=0.0,
             longitudinal_mode=None,
-            qs=None, bets=None,
+            qs=None, bets=None,bucket_length=None,
             momentum_compaction_factor=None,
             slippage_length=None,
             voltage_rf=None, frequency_rf=None, lag_rf=None,
@@ -1890,6 +2339,10 @@ class LineSegmentMap(BeamElement):
             Synchrotron beta function of the segment (positive above transition,
             negative below transition). Only used if ``longitudinal_mode``
             is ``'linear_fixed_qs'``.
+        bucket_length : float
+            The linear RF force becomes a sawtooth with a fixed point every
+            bucket_length [full length in seconds]. Only used if
+            ``longitudinal_mode`` is ``'linear_fixed_qs'``.
         momentum_compaction_factor : float
             Momentum compaction factor of the segment. Only used if
             ``longitudinal_mode`` is ``'nonlinear'`` or ``'linear_fixed_rf'``.
@@ -2036,9 +2489,12 @@ dqx : float or list of float
             assert voltage_rf is None
             assert frequency_rf is None
             assert lag_rf is None
+            if bucket_length == None:
+                bucket_length = -1.0
             nargs['longitudinal_mode_flag'] = 1
             nargs['qs'] = qs
             nargs['bets'] = bets
+            nargs['bucket_length'] = bucket_length
             nargs['voltage_rf'] = [0]
             nargs['frequency_rf'] = [0]
             nargs['lag_rf'] = [0]
@@ -2049,6 +2505,7 @@ dqx : float or list of float
             assert momentum_compaction_factor is not None
             assert qs is None
             assert bets is None
+            assert bucket_length is None
 
             if slippage_length is None:
                 nargs['slippage_length'] = length
@@ -2509,3 +2966,4 @@ class SecondOrderTaylorMap(BeamElement):
 
 class ThinSliceNotNeededError(Exception):
     pass
+
