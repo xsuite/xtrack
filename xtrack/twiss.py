@@ -63,7 +63,6 @@ SIGN_FLIP_FOR_ATTR_REVERSE=['k0l', 'k2l', 'k4l', 'k1sl', 'k3sl', 'k5sl', 'vkick'
 
 log = logging.getLogger(__name__)
 
-
 def twiss_line(line, particle_ref=None, method=None,
         particle_on_co=None, R_matrix=None, W_matrix=None,
         delta0=None, zeta0=None,
@@ -844,7 +843,6 @@ def twiss_line(line, particle_ref=None, method=None,
 
     return _add_action_in_res(twiss_res, input_kwargs)
 
-
 def _twiss_open(line, init,
                       start, end,
                       nemitt_x, nemitt_y, r_sigma,
@@ -1295,7 +1293,6 @@ def _compute_global_quantities(line, twiss_res):
             twiss_res['c_phi1'] = c_phi1
             twiss_res['c_phi2'] = c_phi2
 
-
 def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                     matrix_responsiveness_tol, matrix_stability_tol, symplectify,
                     method='6d', use_full_inverse=False,
@@ -1500,7 +1497,6 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
 
     return eneloss_damp_res
 
-
 def _extract_sr_distribution_properties(line, px_co, py_co, ptau_co):
 
 
@@ -1548,7 +1544,6 @@ def _extract_sr_distribution_properties(line, px_co, py_co, ptau_co):
     }
 
     return res
-
 
 def _compute_equilibrium_emittance_kick_as_co(kin_px_co, kin_py_co, ptau_co, W_matrix,
                                   line, radiation_method,
@@ -1659,7 +1654,6 @@ def _compute_equilibrium_emittance_kick_as_co(kin_px_co, kin_py_co, ptau_co, W_m
     }
 
     return res
-
 
 def _compute_equilibrium_emittance_full(kin_px_co, kin_py_co, ptau_co, R_matrix_ebe,
                                   line, radiation_method):
@@ -1799,7 +1793,6 @@ def _compute_equilibrium_emittance_full(kin_px_co, kin_py_co, ptau_co, R_matrix_
 
 class ClosedOrbitSearchError(Exception):
     pass
-
 
 def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             co_search_settings, continue_on_closed_orbit_error,
@@ -1977,7 +1970,6 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                            reference_frame='proper')
 
     return init, RR, steps_r_matrix, eigenvalues, Rot, RR_ebe
-
 
 def _handle_loop_around(kwargs):
 
@@ -2271,7 +2263,6 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
 
     return particle_on_co
 
-
 def _one_turn_map(p, particle_ref, line, delta_zeta, start, end, num_turns, symmetrize):
     part = particle_ref.copy()
     part.x = p[0]
@@ -2305,10 +2296,8 @@ def _one_turn_map(p, particle_ref, line, delta_zeta, start, end, num_turns, symm
            part._xobject.delta[0]])
     return p_res
 
-
 def _error_for_co_search_6d(p, co_guess, line, delta_zeta, delta0, zeta0, start, end, num_turns, symmetrize):
     return p - _one_turn_map(p, co_guess, line, delta_zeta, start, end, num_turns, symmetrize)
-
 
 def _error_for_co_search_4d_delta0(p, co_guess, line, delta_zeta, delta0, zeta0, start, end, num_turns, symmetrize):
     one_turn_res = _one_turn_map(p, co_guess, line, delta_zeta, start, end, num_turns, symmetrize)
@@ -2319,7 +2308,6 @@ def _error_for_co_search_4d_delta0(p, co_guess, line, delta_zeta, delta0, zeta0,
         p[3] - one_turn_res[3],
         0,
         p[5] - delta0])
-
 
 def _error_for_co_search_4d_zeta0(p, co_guess, line, delta_zeta, delta0, zeta0, start, end, num_turns, symmetrize):
     one_turn_res = _one_turn_map(p, co_guess, line, delta_zeta, start, end, num_turns, symmetrize)
@@ -2341,7 +2329,6 @@ def _error_for_co_search_4d_delta0_zeta0(p, co_guess, line, delta_zeta, delta0, 
         p[3] - one_turn_res[3],
         p[4] - zeta0,
         p[5] - delta0])
-
 
 def compute_one_turn_matrix_finite_differences(
         line, particle_on_co,
@@ -3660,7 +3647,6 @@ def _complete_twiss_init(start, end, init_at, init,
 
     return init
 
-
 def _complete_steps_r_matrix_with_default(steps_r_matrix):
     if steps_r_matrix is not None:
         steps_in = steps_r_matrix.copy()
@@ -3760,7 +3746,6 @@ def _extract_twiss_parameters_with_inverse(Ws):
 
     return betx, alfx, gamx, bety, alfy, gamy, bety1, betx2
 
-
 def _str_to_index(line, ele, allow_end_point=True):
     if allow_end_point and ele == '_end_point':
         return len(line._element_names_unique)
@@ -3770,7 +3755,6 @@ def _str_to_index(line, ele, allow_end_point=True):
         return line._element_names_unique.index(ele)
     else:
         return ele
-
 
 def _build_sigma_table(Sigma, s=None, name=None):
 
@@ -3820,7 +3804,6 @@ def _build_sigma_table(Sigma, s=None, name=None):
 
     return Table(res_data)
 
-
 def compute_T_matrix_line(line, start, end, particle_on_co=None,
                             steps_t_matrix=None):
 
@@ -3866,7 +3849,6 @@ def compute_T_matrix_line(line, start, end, particle_on_co=None,
 
     return TT
 
-
 def _multiturn_twiss(tw0, num_turns, kwargs):
     tw_curr = tw0
     twisses_to_merge = []
@@ -3891,7 +3873,6 @@ def _multiturn_twiss(tw0, num_turns, kwargs):
     tw_mt = xt.TwissTable.concatenate(twisses_to_merge)
 
     return tw_mt
-
 
 def _add_action_in_res(res, kwargs):
     if isinstance(res, xt.TwissInit):
@@ -3953,7 +3934,6 @@ def get_non_linear_chromaticity(line, delta0_range, num_delta, fit_order=3, **kw
 
     return out
 
-
 def _merit_function_co_t_rec(x, line, num_turns):
     p = line.build_particles(x=x[0], px=x[1], y=x[2], py=x[3], zeta=x[4], delta=x[5])
     line.track(p, num_turns=num_turns, turn_by_turn_monitor=True)
@@ -3966,7 +3946,6 @@ def _merit_function_co_t_rec(x, line, num_turns):
 
     out = np.array(list(dx) + list(dpx) + list(dy) + list(dpy) + list(ddelta))
     return out
-
 
 def _find_closed_orbit_search_t_rev(line, num_turns_search_t_rev=None):
 
@@ -3994,7 +3973,6 @@ def _reverse_strengths(out):
         if kk in out:
             val=out[kk]#avoid passing by setitem
             np.negative(val,val)
-
 
 def _W_phys2norm(x, px, y, py, zeta, pzeta, W_matrix, co_dict, nemitt_x=None, nemitt_y=None, nemitt_zeta=None):
 
@@ -4035,7 +4013,6 @@ def _W_phys2norm(x, px, y, py, zeta, pzeta, W_matrix, co_dict, nemitt_x=None, ne
     XX_norm /= np.sqrt(gemitt_values)
 
     return XX_norm
-
 
 def _add_strengths_to_twiss_res(twiss_res, line):
     tt = line.get_table(attr=True).rows[list(twiss_res.name)]
