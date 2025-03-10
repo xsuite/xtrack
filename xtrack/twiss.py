@@ -3627,11 +3627,8 @@ class TwissTable(Table):
         kappa0 = np.sqrt(kappa0_x**2 + kappa0_y**2)
 
         # Field index
-        fieldindex = 0 * angle_rad
         k1 = 0 * angle_rad
         k1[mask] = self.k1l[mask] / length[mask]
-        mask_k0 = kappa0 > 0
-        fieldindex[mask_k0] = -1. / kappa0[mask_k0]**2 * k1[mask_k0]
 
         # Compute x', y', x'', y''
         ps = np.sqrt((1 + delta)**2 - kin_px**2 - kin_py**2)
