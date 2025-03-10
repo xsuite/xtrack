@@ -3664,17 +3664,15 @@ class TwissTable(Table):
         Hy_rad = gamy * dy**2 + 2*alfy * dy * dyprime + bety * dyprime**2
 
         # Integrands
-        i1x_integrand = kappa * dx
-        i1y_integrand = kappa * dy
+        i1x_integrand = kappa0_x * dx
+        i1y_integrand = kappa0_y * dy
 
-        i2x_integrand = kappa * kappa
-        i2y_integrand = kappa * kappa
+        i2_integrand = kappa * kappa
 
-        i3x_integrand = kappa * kappa * kappa
-        i3y_integrand = kappa * kappa * kappa
+        i3_integrand = np.abs(kappa * kappa * kappa)
 
-        i4x_integrand = kappa_x * kappa_x * kappa_x * dx * (1 - 2 * fieldindex)
-        i4y_integrand = kappa_y * kappa_y * kappa_y * dy * (1 - 2 * fieldindex)
+        i4x_integrand = (kappa * kappa + 2 * k1) * kappa0_x * dx
+        i4y_integrand = (kappa * kappa - 2 * k1) * kappa0_y * dy
 
         i5x_integrand = np.abs(kappa * kappa * kappa) * Hx_rad
         i5y_integrand = np.abs(kappa * kappa * kappa) * Hy_rad
@@ -3682,10 +3680,8 @@ class TwissTable(Table):
         # Integrate
         i1x = np.sum(i1x_integrand * length)
         i1y = np.sum(i1y_integrand * length)
-        i2x = np.sum(i2x_integrand * length)
-        i2y = np.sum(i2y_integrand * length)
-        i3x = np.sum(i3x_integrand * length)
-        i3y = np.sum(i3y_integrand * length)
+        i2 = np.sum(i2_integrand * length)
+        i3 = np.sum(i3_integrand * length)
         i4x = np.sum(i4x_integrand * length)
         i4y = np.sum(i4y_integrand * length)
         i5x = np.sum(i5x_integrand * length)
@@ -3693,14 +3689,14 @@ class TwissTable(Table):
 
         # Emittances
         eq_gemitt_x = (55/(32 * 3**(1/2)) * hbar / electron_volt * clight
-                    / mass0 * gamma0**2 * i5x / (i2x - i4x))
+                    / mass0 * gamma0**2 * i5x / (i2 - i4x))
         eq_gemitt_y = (55/(32 * 3**(1/2)) * hbar / electron_volt * clight
-                    / mass0 * gamma0**2 * i5y / (i2y - i4y))
+                    / mass0 * gamma0**2 * i5y / (i2 - i4y))
 
         # Damping constants
-        damping_constant_x_s = r0/3 * gamma0**3 * clight/self.circumference * (i2x - i4x)
-        damping_constant_y_s = r0/3 * gamma0**3 * clight/self.circumference * (i2y - i4y)
-        damping_constant_zeta_s = r0/3 * gamma0**3 * clight/self.circumference * (i2x + i2y + i4x + i4y)
+        damping_constant_x_s = r0/3 * gamma0**3 * clight/self.circumference * (i2 - i4x)
+        damping_constant_y_s = r0/3 * gamma0**3 * clight/self.circumference * (i2 - i4y)
+        damping_constant_zeta_s = r0/3 * gamma0**3 * clight/self.circumference * (2*i2 + i4x + i4y)
 
         cols = {
             'rad_int_kappax': kappa_x,
@@ -3709,10 +3705,8 @@ class TwissTable(Table):
             'rad_int_hy': Hy_rad,
             'rad_int_i1x_integrand': i1x_integrand,
             'rad_int_i1y_integrand': i1y_integrand,
-            'rad_int_i2x_integrand': i2x_integrand,
-            'rad_int_i2y_integrand': i2y_integrand,
-            'rad_int_i3x_integrand': i3x_integrand,
-            'rad_int_i3y_integrand': i3y_integrand,
+            'rad_int_i2_integrand': i2_integrand,
+            'rad_int_i3_integrand': i3_integrand,
             'rad_int_i4x_integrand': i4x_integrand,
             'rad_int_i4y_integrand': i4y_integrand,
             'rad_int_i5x_integrand': i5x_integrand,
@@ -3722,10 +3716,8 @@ class TwissTable(Table):
         scalars = {
             'rad_int_i1x': i1x,
             'rad_int_i1y': i1y,
-            'rad_int_i2x': i2x,
-            'rad_int_i2y': i2y,
-            'rad_int_i3x': i3x,
-            'rad_int_i3y': i3y,
+            'rad_int_i2': i2,
+            'rad_int_i3': i3,
             'rad_int_i4x': i4x,
             'rad_int_i4y': i4y,
             'rad_int_i5x': i5x,
