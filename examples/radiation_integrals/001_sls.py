@@ -156,3 +156,21 @@ eq_gemitt_y = (55/(32 * 3**(1/2)) * hbar / electron_volt * clight
 damping_constant_x_s = r0/3 * gamma0**3 * clight/tw.circumference * (i2x + i2y - i4x)
 damping_constant_y_s = r0/3 * gamma0**3 * clight/tw.circumference * (i2x + i2y - i4y)
 damping_constant_zeta_s = r0/3 * gamma0**3 * clight/tw.circumference * (2 * (i2x + i2y) + i4x + i4y)
+
+tw_integrals = line.twiss(radiation_integrals=True)
+
+
+
+tw_rad = line.twiss(eneloss_and_damping=True, strengths=True)
+
+print('ex rad int:', tw_integrals.rad_int_eq_gemitt_x)
+print('ex Chao:   ', tw_rad.eq_gemitt_x)
+print('ey rad int:', tw_integrals.rad_int_eq_gemitt_y)
+print('ey Chao:   ', tw_rad.eq_gemitt_y)
+
+print('damping rate x [s^-1] rad int:   ', tw_integrals.rad_int_damping_constant_x_s)
+print('damping rate x [s^-1] eigenval:  ', tw_rad.damping_constants_s[0])
+print('damping rate y [s^-1] rad int:   ', tw_integrals.rad_int_damping_constant_y_s)
+print('damping rate y [s^-1] eigenval:  ', tw_rad.damping_constants_s[1])
+print('damping rate z [s^-1] rad int:   ', tw_integrals.rad_int_damping_constant_zeta_s)
+print('damping rate z [s^-1] eigenval:  ', tw_rad.damping_constants_s[2])

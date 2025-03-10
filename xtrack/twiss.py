@@ -3673,8 +3673,8 @@ class TwissTable(Table):
         i3x_integrand = kappa * kappa * kappa
         i3y_integrand = kappa * kappa * kappa
 
-        i4x_integrand = kappa * kappa * kappa * dx * (1 - 2 * fieldindex)
-        i4y_integrand = kappa * kappa * kappa * dy * (1 - 2 * fieldindex)
+        i4x_integrand = kappa_x * kappa_x * kappa_x * dx * (1 - 2 * fieldindex)
+        i4y_integrand = kappa_y * kappa_y * kappa_y * dy * (1 - 2 * fieldindex)
 
         i5x_integrand = np.abs(kappa * kappa * kappa) * Hx_rad
         i5y_integrand = np.abs(kappa * kappa * kappa) * Hy_rad
@@ -3700,7 +3700,7 @@ class TwissTable(Table):
         # Damping constants
         damping_constant_x_s = r0/3 * gamma0**3 * clight/self.circumference * (i2x - i4x)
         damping_constant_y_s = r0/3 * gamma0**3 * clight/self.circumference * (i2y - i4y)
-        damping_constant_zeta_s = r0/3 * gamma0**3 * clight/self.circumference * ((i2x + i2y) + i4x + i4y)
+        damping_constant_zeta_s = r0/3 * gamma0**3 * clight/self.circumference * (i2x + i2y + i4x + i4y)
 
         cols = {
             'rad_int_kappax': kappa_x,
