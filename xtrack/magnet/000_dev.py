@@ -41,4 +41,35 @@ xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
 
+# Polar drift
+md.drift_model = 2
+md.h = 0.3
 
+p_test = p0.copy()
+p_ref = p0.copy()
+
+eref = xt.Bend(length=1.0, h=0.3, k0=0)
+
+md.track(p_test)
+eref.track(p_ref)
+
+# Combined function magnet
+md.drift_model = 3
+md.k0 = 0.2
+md.k1 = 0.4
+
+eref = xt.Bend(length=1.0, h=0.3, k0=0.2, k1=0.4)
+eref.model = 'expanded'
+
+p_test = p0.copy()
+p_ref = p0.copy()
+
+md.track(p_test)
+eref.track(p_ref)
+
+xo.assert_allclose(p_test.x, p_ref.x, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.y, p_ref.y, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
