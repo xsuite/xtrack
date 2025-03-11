@@ -193,6 +193,60 @@ void track_magnet_body_single_particle(
 
 }
 
+/*gpufun*/
+void track_magnet_body_particles(
+    LocalParticle* part0,
+    double length,
+    int64_t order,
+    double inv_factorial_order,
+    /*gpuglmem*/ const double* knl,
+    /*gpuglmem*/ const double* ksl,
+    double const factor_knl_ksl,
+    double kick_weight,
+    int64_t num_multipole_kicks,
+    uint8_t model,
+    double h,
+    double k0,
+    double k1,
+    double k2,
+    double k3,
+    double k0s,
+    double k1s,
+    double k2s,
+    double k3s,
+) {
 
+    double k0_drift, k1_drift, h_drift;
+    double k0_kick, k1_kick, h_kick;
+    uint8_t kick_rot_frame;
+    uint8_t drift_model;
+
+    configure_tracking_model(
+        model,
+        k0,
+        k1,
+        h,
+        &k0_drift,
+        &k1_drift,
+        &h_drift,
+        &k0_kick,
+        &k1_kick,
+        &h_kick,
+        &kick_rot_frame,
+        &drift_model
+    );
+
+    //start_per_particle_block (part0->part)
+        track_magnet_body_single_particle(
+            part, length, order, inv_factorial_order,
+            knl, ksl, factor_knl_ksl, kick_weight,
+            num_multipole_kicks, kick_rot_frame, drift_model,
+            k0_drift, k1_drift, h_drift,
+            k0_kick, k1_kick, h_kick,
+            k2, k3, k0s, k1s, k2s, k3s
+        );
+    //end_per_particle_block
+
+}
 
 #endif
