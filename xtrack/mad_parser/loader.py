@@ -2,7 +2,6 @@ from typing import Dict, Optional, List, Set, Tuple, Union
 
 import numpy as np
 
-import xobjects as xo
 import xtrack as xt
 from xtrack import BeamElement
 from xtrack.environment import Builder
@@ -74,7 +73,7 @@ def get_params(params, parent):
         return TRANSLATE_PARAMS.get(lower, lower)
 
     # TODO: Ignoring value['deferred'] for now.
-    normalised = {_normalise_single(k): v['expr'] for k, v in params.items()}
+    normalised = {_normalise_single(k): v for k, v in params.items()}
 
     main_params = {}
     extras = {}
@@ -91,6 +90,7 @@ class MadxLoader:
     def __init__(
             self,
             env: xt.Environment = None,
+            default_to_zero: bool = False,
     ):
         self._madx_elem_hierarchy: Dict[str, List[str]] = {}
         self._both_direction_elements: Set[str] = set()
@@ -100,6 +100,7 @@ class MadxLoader:
         self.rbarc = True
 
         self.env = env or xt.Environment()
+        self.env.default_to_zero = default_to_zero
 
         self._init_environment()
 
@@ -138,13 +139,13 @@ class MadxLoader:
 
     def load_file(self, file, build=True) -> Optional[List[Builder]]:
         """Load a MAD-X file and generate/update the environment."""
-        parser = MadxParser()
+        parser = MadxParser(vars=self.env.vars, functions=self.env.functions)
         parsed_dict = parser.parse_file(file)
         return self.load_parsed_dict(parsed_dict, build=build)
 
     def load_string(self, string, build=True) -> Optional[List[Builder]]:
         """Load a MAD-X string and generate/update the environment."""
-        parser = MadxParser()
+        parser = MadxParser(vars=self.env.vars, functions=self.env.functions)
         parsed_dict = parser.parse_string(string)
         return self.load_parsed_dict(parsed_dict, build=build)
 
@@ -152,18 +153,12 @@ class MadxLoader:
         hierarchy = self._collect_hierarchy(parsed_dict)
         self._madx_elem_hierarchy.update(hierarchy)
 
-        self._parse_vars(parsed_dict["vars"])
         self._parse_elements(parsed_dict["elements"])
         builders = self._parse_lines(parsed_dict["lines"], build=build)
         self._parse_parameters(parsed_dict["parameters"])
 
         if not build:
             return builders
-
-    def _parse_vars(self, vars: Dict[str, VarType]):
-        for var_name, var_value in vars.items():
-            # TODO: Ignoring var_value['deferred'] for now.
-            self.env[var_name] = var_value['expr']
 
     def _parse_elements(self, elements: Dict[str, ElementType]):
         for name, el_params in elements.items():
@@ -181,12 +176,12 @@ class MadxLoader:
             self._madx_elem_hierarchy[name] = [line_type]
 
             if line_type == 'sequence':
-                refer = params.get('refer', {}).get('expr', 'centre')
+                refer = params.get('refer', 'centre')
                 if refer == 'entry':
                     refer = 'start'
                 elif refer == 'exit':
                     refer = 'end'
-                length = params.get('l', {}).get('expr', None)
+                length = params.get('l', None)
                 builder = self.env.new_builder(name=name, refer=refer,
                                                length=length)
                 self._parse_components(builder, params.pop('elements'))
@@ -366,10 +361,9 @@ class MadxLoader:
     def _make_thick_sandwich(self, name, length, make_drifts=True):
         """Make a sandwich of two drifts around the element."""
         drift_name = f'{name}_drift'
-        half_len = f'({length}) / 2'
         if make_drifts:
-            self.env.new(drift_name + '_0', 'Drift', length=half_len)
-            self.env.new(drift_name + '_1', 'Drift', length=half_len)
+            self.env.new(drift_name + '_0', 'Drift', length=length / 2)
+            self.env.new(drift_name + '_1', 'Drift', length=length / 2)
         line = self.env.new_line([drift_name + '_0', name, drift_name + '_1'])
         return line
 
@@ -407,20 +401,20 @@ class MadxLoader:
                 params['k0_from_h'] = False
 
             if (k2 := params.pop('k2', None)) and length:
-                params['knl'] = [0, 0, f'({k2}) * ({length})']
+                params['knl'] = [0, 0, k2 * length]
             if (k1s := params.pop('k1s', None)) and length:
-                params['ksl'] = [0, f'({k1s}) * ({length})']
+                params['ksl'] = [0, k1s * length]
             if (hgap := params.pop('hgap', None)):
                 params['edge_entry_hgap'] = hgap
                 params['edge_exit_hgap'] = hgap
 
         elif parent_name in {'rfcavity', 'rfmultipole'}:
             if (lag := params.pop('lag', None)):
-                params['lag'] = f'({lag}) * 360'
+                params['lag'] = lag * 360
             if (volt := params.pop('volt', None)):
-                params['voltage'] = f'({volt}) * 1e6'
+                params['voltage'] = volt * 1e6
             if (freq := params.pop('freq', None)):
-                params['frequency'] = f'({freq}) * 1e6'
+                params['frequency'] = freq * 1e6
             if 'harmon' in params:
                 # harmon * beam.beta * clight / sequence.length
                 # raise NotImplementedError
@@ -440,13 +434,13 @@ class MadxLoader:
 
         elif parent_name == 'hkicker':
             if (kick := params.pop('kick', None)):
-                params['knl'] = [f'-({kick})']
+                params['knl'] = [-kick]
 
         elif parent_name in {'kicker', 'tkicker'}:
             if (vkick := params.pop('vkick', None)):
                 params['ksl'] = [vkick]
             if (hkick := params.pop('hkick', None)):
-                params['knl'] = [f'-({hkick})']
+                params['knl'] = [-hkick]
 
         if 'edge_entry_fint' in params and 'edge_exit_fint' not in params:
             params['edge_exit_fint'] = params['edge_entry_fint']
@@ -548,12 +542,12 @@ class MadxLoader:
             # are the two angles sustaining the cut corner in the first
             # quadrant, given in radians, and with phi_1 < phi_2.
             half_w, half_h, phi_1, phi_2 = aperture
-            y_right_corner = f'({half_w}) * tan({phi_1})'
-            x_top_corner = f'({half_h}) / tan({phi_2})'
-            top_x_vertices = [half_w, x_top_corner, f'-{x_top_corner}', f'-{half_w}']
+            y_right_corner = half_w * self.env.functions.tan(phi_1)
+            x_top_corner = half_h / self.env.functions.tan(phi_2)
+            top_x_vertices = [half_w, x_top_corner, -x_top_corner, -half_w]
             x_vertices = top_x_vertices + top_x_vertices[::-1]
             right_y_vertices = [y_right_corner, half_h, half_h, y_right_corner]
-            y_vertices = right_y_vertices + [f'-{y}' for y in right_y_vertices]
+            y_vertices = right_y_vertices + [-y for y in right_y_vertices]
             aper_params['x_vertices'] = x_vertices
             aper_params['y_vertices'] = y_vertices
 
@@ -616,6 +610,7 @@ def load_madx_lattice(file=None, string=None, reverse_lines=None):
         raise ValueError('Either `file` or `string` must be provided!')
 
     loader = MadxLoader()
+
     if file is not None:
         loader.load_file(file)
     elif string is not None:
@@ -666,9 +661,9 @@ def load_madx_lattice(file=None, string=None, reverse_lines=None):
                     if cc.at is not None:
                         if isinstance(cc.at, str) or isinstance(cc.at, float):
                             if cc.from_ is not None:
-                                cc.at = f'-({cc.at})'
+                                cc.at = -cc.at
                             else:
-                                cc.at = f'({length} - {cc.at})'
+                                cc.at = length - cc.at
             new_env.lines[nn].builder = bb
 
         # Add to new environment elements that were not in any line
