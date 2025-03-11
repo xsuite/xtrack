@@ -3,7 +3,7 @@ import xobjects as xo
 
 from xtrack.beam_elements.magnets import Magnet
 
-mm = Magnet(length=1.0, k0=0.0, k1=0.0, h=0.0)
+mm = Magnet(length=2.0, k0=0.0, k1=0.0, h=0.0)
 mm.integrator = 'teapot'
 
 p0 = xt.Particles(kinetic_energy0=50e6,
@@ -16,7 +16,7 @@ mm.model = 'drift-kick-drift-expanded'
 p_test = p0.copy()
 p_ref = p0.copy()
 
-eref = xt.Drift(length=1.0)
+eref = xt.Drift(length=2.0)
 mm.track(p_test)
 eref.track(p_ref)
 
@@ -32,7 +32,7 @@ mm.model = 'drift-kick-drift-exact'
 p_test = p0.copy()
 p_ref = p0.copy()
 
-eref = xt.Solenoid(length=1.0) # Solenoid is exact drift when off
+eref = xt.Solenoid(length=2.0) # Solenoid is exact drift when off
 mm.track(p_test)
 eref.track(p_ref)
 
@@ -50,7 +50,7 @@ mm.k2 = 3.
 p_test = p0.copy()
 p_ref = p0.copy()
 
-eref = xt.Sextupole(length=1.0, k2=3.)
+eref = xt.Sextupole(length=2.0, k2=3.)
 mm.track(p_test)
 eref.track(p_ref)
 
@@ -104,7 +104,7 @@ mm.knl = 0.
 mm.ksl = 0.
 mm.num_multipole_kicks = 1
 
-eref = xt.Quadrupole(length=1.0, k1=3.)
+eref = xt.Quadrupole(length=2.0, k1=3.)
 eref.num_multipole_kicks = 1
 
 p_test = p0.copy()
@@ -126,7 +126,7 @@ mm.integrator = 'yoshida4'
 mm.num_multipole_kicks = 15
 mm.h = 0.1
 
-eref = xt.Bend(length=1.0, k1=3., h=0.1)
+eref = xt.Bend(length=2.0, k1=3., h=0.1)
 eref.num_multipole_kicks = 15
 
 p_test = p0.copy()
@@ -172,7 +172,7 @@ mm.num_multipole_kicks = 1
 mm.h = 0.1
 mm.k1 = 0.3
 
-eref = xt.Bend(length=1.0, h=0.1, k1=0.3)
+eref = xt.Bend(length=2.0, h=0.1, k1=0.3)
 eref.num_multipole_kicks = 1
 eref.edge_entry_active = False
 eref.edge_exit_active = False
@@ -198,8 +198,9 @@ mm.num_multipole_kicks = 10
 mm.h = 0.1
 mm.k1 = 0.3
 mm.k0 = 0.2
+mm.knl=[0.01, 0.02, 0.]
 
-eref = xt.Bend(length=1.0, h=0.1, k1=0.3, k0=0.2)
+eref = xt.Bend(length=2.0, h=0.1, k1=0.3, k0=0.2)
 eref.num_multipole_kicks = 10
 eref.edge_entry_active = False
 eref.edge_exit_active = False
