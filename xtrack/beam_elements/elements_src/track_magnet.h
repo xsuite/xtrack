@@ -6,7 +6,7 @@
 #ifndef XTRACK_TRACK_MAGNET_H
 #define XTRACK_TRACK_MAGNET_H
 
-H_TOLERANCE = 1e-8
+#define H_TOLERANCE (1e-8)
 
 /*gpufun*/
 void configure_tracking_model(
@@ -14,16 +14,15 @@ void configure_tracking_model(
     double k0,
     double k1,
     double h,
-    double* out_k0_drift,
-    double* out_k1_drift,
-    double* out_h_drift,
-    double* out_k0_kick,
-    double* out_k1_kick,
-    double* out_h_kick,
-    uint8_t* out_kick_rot_frame,
-    uint8_t* out_drift_model
+    double* k0_drift,
+    double* k1_drift,
+    double* h_drift,
+    double* k0_kick,
+    double* k1_kick,
+    double* h_kick,
+    int8_t* kick_rot_frame,
+    int8_t* out_drift_model
 ){
-
 
     // model = 0 or 1 : adaptive
     // model = 2: bend-kick-bend
@@ -36,7 +35,7 @@ void configure_tracking_model(
         model = 3;
     }
 
-    uint8_t h_is_zero = (fabs(h) < H_TOLERANCE);
+    int8_t h_is_zero = (fabs(h) < H_TOLERANCE);
     int64_t drift_model = 0;
 
     if (model == 2){ // bend-kick-bend
@@ -64,66 +63,57 @@ void configure_tracking_model(
     else if(model == 6){ // drift-kick-drift-expanded
         drift_model = 0; // drift expanded
     }
-
-    double k0_drift, k1_drift, h_drift;
-    double k0_kick, k1_kick, h_kick;
-    uint8_t kick_rot_frame;
+    else {
+        drift_model = -1;
+    }
 
     if (drift_model == 0 || drift_model == 1){ // drift expanded or drift exact
-        k0_drift = 0.0;
-        k1_drift = 0.0;
-        h_drift = 0.0;
-        k0_kick = k0;
-        k1_kick = k1;
-        h_kick = h;
-        kick_rot_frame = 1;
+        *k0_drift = 0.0;
+        *k1_drift = 0.0;
+        *h_drift = 0.0;
+        *k0_kick = k0;
+        *k1_kick = k1;
+        *h_kick = h;
+        *kick_rot_frame = 1;
     }
     else if (drift_model == 2){ // polar drift
-        k0_drift = 0.0;
-        k1_drift = 0.0;
-        h_drift = 0.0;
-        k0_kick = k0;
-        k1_kick = k1;
-        h_kick = h;
-        kick_rot_frame = 0;
+        *k0_drift = 0.0;
+        *k1_drift = 0.0;
+        *h_drift = 0.0;
+        *k0_kick = k0;
+        *k1_kick = k1;
+        *h_kick = h;
+        *kick_rot_frame = 0;
     }
     else if (drift_model == 3){ // expanded dipole-quadrupole
-        k0_drift = k0;
-        k1_drift = k1;
-        h_drift = h;
-        k0_kick = 0.0;
-        k1_kick = 0.0;
-        h_kick = 0.0;
-        kick_rot_frame = 0;
+        *k0_drift = k0;
+        *k1_drift = k1;
+        *h_drift = h;
+        *k0_kick = 0.0;
+        *k1_kick = 0.0;
+        *h_kick = 0.0;
+        *kick_rot_frame = 0;
     }
     else if (drift_model == 4){ // bend with h
-        k0_drift = k0;
-        k1_drift = k1;
-        h_drift = h;
-        k0_kick = 0.0;
-        k1_kick = 0.0;
-        h_kick = 0.0;
-        kick_rot_frame = 0;
+        *k0_drift = k0;
+        *k1_drift = k1;
+        *h_drift = h;
+        *k0_kick = 0.0;
+        *k1_kick = 0.0;
+        *h_kick = 0.0;
+        *kick_rot_frame = 0;
     }
     else if (drift_model == 5){ // bend without h
-        k0_drift = k0;
-        k1_drift = k1;
-        h_drift = 0.0;
-        k0_kick = 0.0;
-        k1_kick = 0.0;
-        h_kick = 0.0;
-        kick_rot_frame = 0;
+        *k0_drift = k0;
+        *k1_drift = k1;
+        *h_drift = 0.0;
+        *k0_kick = 0.0;
+        *k1_kick = 0.0;
+        *h_kick = 0.0;
+        *kick_rot_frame = 0;
     }
 
-    *out_k0_drift = k0_drift;
-    *out_k1_drift = k1_drift;
-    *out_h_drift = h_drift;
-    *out_k0_kick = k0_kick;
-    *out_k1_kick = k1_kick;
-    *out_h_kick = h_kick;
-    *out_kick_rot_frame = kick_rot_frame;
     *out_drift_model = drift_model;
-
 }
 
 
@@ -137,8 +127,8 @@ void track_magnet_body_single_particle(
     /*gpuglmem*/ const double* ksl,
     double const factor_knl_ksl,
     int64_t num_multipole_kicks,
-    uint8_t kick_rot_frame,
-    uint8_t drift_model,
+    int8_t kick_rot_frame,
+    int8_t drift_model,
     double k0_drift,
     double k1_drift,
     double h_drift,
@@ -150,7 +140,7 @@ void track_magnet_body_single_particle(
     double k0s,
     double k1s,
     double k2s,
-    double k3s,
+    double k3s
 ) {
 
     #define MAGNET_KICK(part, weight) \
@@ -202,7 +192,7 @@ void track_magnet_body_particles(
     /*gpuglmem*/ const double* ksl,
     double const factor_knl_ksl,
     int64_t num_multipole_kicks,
-    uint8_t model,
+    int8_t model,
     double h,
     double k0,
     double k1,
@@ -211,13 +201,13 @@ void track_magnet_body_particles(
     double k0s,
     double k1s,
     double k2s,
-    double k3s,
+    double k3s
 ) {
 
     double k0_drift, k1_drift, h_drift;
     double k0_kick, k1_kick, h_kick;
-    uint8_t kick_rot_frame;
-    uint8_t drift_model;
+    int8_t kick_rot_frame;
+    int8_t drift_model;
 
     configure_tracking_model(
         model,

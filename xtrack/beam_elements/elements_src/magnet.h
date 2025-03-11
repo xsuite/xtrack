@@ -48,7 +48,7 @@ void Magnet_track_local_particle(
         k0s,
         k1s,
         k2s,
-        k3s,
+        k3s
     );
 }
 

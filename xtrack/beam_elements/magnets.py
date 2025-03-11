@@ -56,7 +56,7 @@ class MagnetKick(BeamElement):
     ]
 
 
-class Magnet:
+class Magnet(BeamElement):
     isthick = True
     has_backtrack = True
 
