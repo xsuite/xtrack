@@ -107,46 +107,37 @@ void Bend_track_local_particle_from_params(LocalParticle* part0,
                 //end_per_particle_block
             }
             else{
-                printf("num_slices = %ld\n", num_slices);
                 for (int ii = 0; ii < num_slices; ii++) {
                     //start_per_particle_block (part0->part)
                         track_thick_bend(part, slice_length * d_yoshida[0], k0_drift, h);
                         track_multipolar_kick_bend(
                             part, order, inv_factorial_order, knl, ksl, factor_knl_ksl,
                             kick_weight * k_yoshida[0], k0_kick, k1, h, length);
-                        printf("BD: s=%e\n", LocalParticle_get_s(part));
                         track_thick_bend(part, slice_length * d_yoshida[1], k0_drift, h);
                         track_multipolar_kick_bend(
                             part, order, inv_factorial_order, knl, ksl, factor_knl_ksl,
                             kick_weight * k_yoshida[1], k0_kick, k1, h, length);
-                        printf("BD: s=%e\n", LocalParticle_get_s(part));
                         track_thick_bend(part, slice_length * d_yoshida[2], k0_drift, h);
                         track_multipolar_kick_bend(
                             part, order, inv_factorial_order, knl, ksl, factor_knl_ksl,
                             kick_weight * k_yoshida[2], k0_kick, k1, h, length);
-                        printf("BD: s=%e\n", LocalParticle_get_s(part));
                         track_thick_bend(part, slice_length * d_yoshida[3], k0_drift, h);
                         track_multipolar_kick_bend(
                             part, order, inv_factorial_order, knl, ksl, factor_knl_ksl,
                             kick_weight * k_yoshida[3], k0_kick, k1, h, length);
-                        printf("BD: s=%e\n", LocalParticle_get_s(part));
                         track_thick_bend(part, slice_length * d_yoshida[3], k0_drift, h);
                         track_multipolar_kick_bend(
                             part, order, inv_factorial_order, knl, ksl, factor_knl_ksl,
                             kick_weight * k_yoshida[2], k0_kick, k1, h, length);
-                        printf("BD: s=%e\n", LocalParticle_get_s(part));printf("BD: s=%e\n", LocalParticle_get_s(part));
                         track_thick_bend(part, slice_length * d_yoshida[2], k0_drift, h);
                         track_multipolar_kick_bend(
                             part, order, inv_factorial_order, knl, ksl, factor_knl_ksl,
                             kick_weight * k_yoshida[1], k0_kick, k1, h, length);
-                        printf("BD: s=%e\n", LocalParticle_get_s(part));
                         track_thick_bend(part, slice_length * d_yoshida[1], k0_drift, h);
                         track_multipolar_kick_bend(
                             part, order, inv_factorial_order, knl, ksl, factor_knl_ksl,
                             kick_weight * k_yoshida[0], k0_kick, k1, h, length);
-                        printf("BD: s=%e\n", LocalParticle_get_s(part));
                         track_thick_bend(part, slice_length * d_yoshida[0], k0_drift, h);
-                        printf("BD: s=%e\n", LocalParticle_get_s(part));
                     //end_per_particle_block
                 }
             }

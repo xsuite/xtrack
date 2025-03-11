@@ -209,32 +209,22 @@ void track_magnet_body_single_particle(
                     //  -0x1.2d7c6f7933b93p+0, 0x1.50b00cfb7be3ep+0 };
                     //  {1/7.0, 1/7.0, 1/7.0, 1/7.0}; // Uniform, for debugging
 
-        printf("E: x=%e, px=%e\n", LocalParticle_get_x(part), LocalParticle_get_px(part));
-        printf("num_slices = %ld\n", num_slices);
         for (int ii = 0; ii < num_slices; ii++) {
             MAGNET_DRIFT(part, slice_length * d_yoshida[0]);
             MAGNET_KICK(part, kick_weight * k_yoshida[0]);
-            printf("D: s=%e\n", LocalParticle_get_s(part));
             MAGNET_DRIFT(part, slice_length * d_yoshida[1]);
             MAGNET_KICK(part, kick_weight * k_yoshida[1]);
-            printf("D: s=%e\n", LocalParticle_get_s(part));
             MAGNET_DRIFT(part, slice_length * d_yoshida[2]);
             MAGNET_KICK(part, kick_weight * k_yoshida[2]);
-            printf("D: s=%e\n", LocalParticle_get_s(part));
             MAGNET_DRIFT(part, slice_length * d_yoshida[3]);
             MAGNET_KICK(part, kick_weight * k_yoshida[3]);
-            printf("D: s=%e\n", LocalParticle_get_s(part));
             MAGNET_DRIFT(part, slice_length * d_yoshida[3]);
             MAGNET_KICK(part, kick_weight * k_yoshida[2]);
-            printf("D: s=%e\n", LocalParticle_get_s(part));
             MAGNET_DRIFT(part, slice_length * d_yoshida[2]);
             MAGNET_KICK(part, kick_weight * k_yoshida[1]);
-            printf("D: s=%e\n", LocalParticle_get_s(part));
             MAGNET_DRIFT(part, slice_length * d_yoshida[1]);
             MAGNET_KICK(part, kick_weight * k_yoshida[0]);
-            printf("D: s=%e\n", LocalParticle_get_s(part));
             MAGNET_DRIFT(part, slice_length * d_yoshida[0]);
-            printf("D: s=%e\n", LocalParticle_get_s(part));
 
         }
 
