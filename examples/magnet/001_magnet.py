@@ -121,14 +121,13 @@ xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
 
 # Bend
-print('Bend')
 mm.model = 'rot-kick-rot'
 mm.integrator = 'yoshida4'
-mm.num_multipole_kicks = 1
+mm.num_multipole_kicks = 15
 mm.h = 0.1
 
 eref = xt.Bend(length=1.0, k1=3., h=0.1)
-eref.num_multipole_kicks = 1
+eref.num_multipole_kicks = 15
 
 p_test = p0.copy()
 p_ref = p0.copy()
