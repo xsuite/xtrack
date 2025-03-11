@@ -136,7 +136,6 @@ void track_magnet_body_single_particle(
     /*gpuglmem*/ const double* knl,
     /*gpuglmem*/ const double* ksl,
     double const factor_knl_ksl,
-    double kick_weight,
     int64_t num_multipole_kicks,
     uint8_t kick_rot_frame,
     uint8_t drift_model,
@@ -202,7 +201,6 @@ void track_magnet_body_particles(
     /*gpuglmem*/ const double* knl,
     /*gpuglmem*/ const double* ksl,
     double const factor_knl_ksl,
-    double kick_weight,
     int64_t num_multipole_kicks,
     uint8_t model,
     double h,
@@ -239,7 +237,7 @@ void track_magnet_body_particles(
     //start_per_particle_block (part0->part)
         track_magnet_body_single_particle(
             part, length, order, inv_factorial_order,
-            knl, ksl, factor_knl_ksl, kick_weight,
+            knl, ksl, factor_knl_ksl,
             num_multipole_kicks, kick_rot_frame, drift_model,
             k0_drift, k1_drift, h_drift,
             k0_kick, k1_kick, h_kick,
