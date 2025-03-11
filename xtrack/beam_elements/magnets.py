@@ -209,6 +209,30 @@ class Magnet(BeamElement):
         self._k0_from_h = value
 
     @property
+    def length(self):
+        return self._length
+
+    @length.setter
+    def length(self, value):
+        self.set_bend_params(length=value, angle=self.angle)
+
+    @property
+    def h(self):
+        return self._h
+
+    @h.setter
+    def h(self, value):
+        self.set_bend_params(length=self.length, h=value)
+
+    @property
+    def angle(self):
+        return self._angle
+
+    @angle.setter
+    def angle(self, value):
+        self.set_bend_params(length=self.length, angle=value)
+
+    @property
     def order(self):
         return self._order
 
