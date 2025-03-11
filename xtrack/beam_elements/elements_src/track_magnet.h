@@ -102,7 +102,7 @@ void configure_tracking_model(
         *h_drift = h;
         *k0_kick = 0.0;
         *k1_kick = 0.0;
-        *h_kick = 0.0;
+        *h_kick = h;
         *kick_rot_frame = 0;
     }
     else if (drift_model == 5){ // bend without h
@@ -122,28 +122,28 @@ void configure_tracking_model(
 /*gpufun*/
 void track_magnet_body_single_particle(
     LocalParticle* part,
-    double length,
-    int64_t order,
-    double inv_factorial_order,
+    const double length,
+    const int64_t order,
+    const double inv_factorial_order,
     /*gpuglmem*/ const double* knl,
     /*gpuglmem*/ const double* ksl,
-    double const factor_knl_ksl,
-    int64_t num_multipole_kicks,
-    int8_t kick_rot_frame,
-    int8_t drift_model,
-    int8_t integrator,
-    double k0_drift,
-    double k1_drift,
-    double h_drift,
-    double k0_kick,
-    double k1_kick,
-    double h_kick,
-    double k2,
-    double k3,
-    double k0s,
-    double k1s,
-    double k2s,
-    double k3s
+    const double factor_knl_ksl,
+    const int64_t num_multipole_kicks,
+    const int8_t kick_rot_frame,
+    const int8_t drift_model,
+    const int8_t integrator,
+    const double k0_drift,
+    const double k1_drift,
+    const double h_drift,
+    const double k0_kick,
+    const double k1_kick,
+    const double h_kick,
+    const double k2,
+    const double k3,
+    const double k0s,
+    const double k1s,
+    const double k2s,
+    const double k3s
 ) {
 
     #define MAGNET_KICK(part, weight) \
@@ -158,11 +158,11 @@ void track_magnet_body_single_particle(
             part, length * (weight), k0_drift, k1_drift, h_drift, drift_model\
         )
 
-    if (integrator == 1){ // TEAPOT body
+    if (num_multipole_kicks == 0) { //only drift
+        MAGNET_DRIFT(part, 1.0);
+    }
+    else if (integrator == 1){ // TEAPOT
 
-        if (num_multipole_kicks == 0) { // auto mode
-            num_multipole_kicks = 1;
-        }
         const double kick_weight = 1. / num_multipole_kicks;
         double edge_drift_weight = 0.5;
         double inside_drift_weight = 0;
@@ -262,6 +262,20 @@ void track_magnet_body_particles(
     double k0_kick, k1_kick, h_kick;
     int8_t kick_rot_frame;
     int8_t drift_model;
+
+    if (num_multipole_kicks == 0) { // num_multipole_kicks = 0 means auto mode
+        // If there are active kicks the number of kicks is guessed. Otherwise,
+        // only the drift is performed.
+        if (!kick_is_inactive(order, knl, ksl, k0, k1, k2, k3, k0s, k1s, k2s, k3s, h)){
+            if (fabs(h) < 1e-8){
+                num_multipole_kicks = 1; // straight magnet, one multipole kick in the middle
+            }
+            else{
+                double b_circum = 2 * 3.14159 / fabs(h);
+                num_multipole_kicks = fabs(length) / b_circum / 0.5e-3; // 0.5 mrad per kick (on average)
+            }
+        }
+    }
 
     configure_tracking_model(
         model,

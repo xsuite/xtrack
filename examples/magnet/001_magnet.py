@@ -142,3 +142,53 @@ xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
 
+# Bend auto no kicks
+mm.model = 'bend-kick-bend'
+mm.integrator = 'yoshida4'
+mm.num_multipole_kicks = 0
+mm.h = 0.1
+mm.k1 = 0
+
+eref = xt.Bend(length=1.0, h=0.1)
+eref.num_multipole_kicks = 0
+
+p_test = p0.copy()
+p_ref = p0.copy()
+
+mm.track(p_test)
+eref.track(p_ref)
+
+xo.assert_allclose(p_test.x, p_ref.x, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.y, p_ref.y, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
+
+# Bend auto quad kick
+print("Bend auto quad kick")
+mm.model = 'bend-kick-bend'
+mm.integrator = 'yoshida4'
+mm.num_multipole_kicks = 10
+mm.h = 0.1
+mm.k1 = 0.3
+
+eref = xt.Bend(length=1.0, h=0.1, k1=0.3)
+eref.num_multipole_kicks = 10
+eref.edge_entry_active = False
+eref.edge_exit_active = False
+eref.model = 'bend-kick-bend'
+
+p_test = p0.copy()
+p_ref = p0.copy()
+
+mm.track(p_test)
+eref.track(p_ref)
+
+xo.assert_allclose(p_test.x, p_ref.x, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.y, p_ref.y, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
+

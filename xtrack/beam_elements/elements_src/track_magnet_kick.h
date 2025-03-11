@@ -100,6 +100,41 @@ void track_magnet_kick_single_particle(
 
 
 /*gpufun*/
+uint8_t kick_is_inactive(
+    int64_t order,
+    /*gpuglmem*/ const double* knl,
+    /*gpuglmem*/ const double* ksl,
+    double k0,
+    double k1,
+    double k2,
+    double k3,
+    double k0s,
+    double k1s,
+    double k2s,
+    double k3s,
+    double h
+){
+    if (h != 0) return 0;
+    if (k0 != 0) return 0;
+    if (k1 != 0) return 0;
+    if (k2 != 0) return 0;
+    if (k3 != 0) return 0;
+    if (k0s != 0) return 0;
+    if (k1s != 0) return 0;
+    if (k2s != 0) return 0;
+    if (k3s != 0) return 0;
+
+    for (int index = order; index >= 0; index--) {
+        if (knl[index] != 0) return 0;
+        if (ksl[index] != 0) return 0;
+    }
+
+    return 1;
+
+}
+
+
+/*gpufun*/
 void kick_simple_single_particle(
     LocalParticle* part,
     int64_t order,
