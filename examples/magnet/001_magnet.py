@@ -124,9 +124,11 @@ xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
 mm.model = 'rot-kick-rot'
 mm.integrator = 'yoshida4'
 mm.num_multipole_kicks = 15
-mm.h = 0.1
+mm.length=2.0
+mm.h = 0.05
+mm.k1 = -0.3
 
-eref = xt.Bend(length=2.0, k1=3., h=0.1)
+eref = xt.Bend(length=2.0, k1=-0.3, h=0.05)
 eref.num_multipole_kicks = 15
 
 p_test = p0.copy()
@@ -142,14 +144,16 @@ xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
 
+prrrr
+
 # Bend auto no kicks
 mm.model = 'bend-kick-bend'
 mm.integrator = 'yoshida4'
 mm.num_multipole_kicks = 0
-mm.h = 0.1
+mm.h = 0.05
 mm.k1 = 0
 
-eref = xt.Bend(length=1.0, h=0.1)
+eref = xt.Bend(length=1.0, h=0.05)
 eref.num_multipole_kicks = 0
 
 p_test = p0.copy()
@@ -169,10 +173,10 @@ xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
 mm.model = 'bend-kick-bend'
 mm.integrator = 'yoshida4'
 mm.num_multipole_kicks = 1
-mm.h = 0.1
+mm.h = 0.05
 mm.k1 = 0.3
 
-eref = xt.Bend(length=2.0, h=0.1, k1=0.3)
+eref = xt.Bend(length=2.0, h=0.05, k1=0.3)
 eref.num_multipole_kicks = 1
 eref.edge_entry_active = False
 eref.edge_exit_active = False
