@@ -3,9 +3,119 @@ import xobjects as xo
 
 from xtrack.beam_elements.magnets import Magnet
 
-m = Magnet(length=1.0, k0=0.0, k1=0.0, h=0.0)
+mm = Magnet(length=1.0, k0=0.0, k1=0.0, h=0.0)
 
 p0 = xt.Particles(kinetic_energy0=50e6,
                   x=1e-3, y=2e-3, zeta=1e-2, px=10e-3, py=20e-3, delta=1e-2)
 
-m.compile_kernels()
+mm.compile_kernels()
+
+# Expanded drift
+mm.model = 'drift-kick-drift-expanded'
+p_test = p0.copy()
+p_ref = p0.copy()
+
+eref = xt.Drift(length=1.0)
+mm.track(p_test)
+eref.track(p_ref)
+
+xo.assert_allclose(p_test.x, p_ref.x, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.y, p_ref.y, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
+
+# Exact drift
+mm.model = 'drift-kick-drift-exact'
+p_test = p0.copy()
+p_ref = p0.copy()
+
+eref = xt.Solenoid(length=1.0) # Solenoid is exact drift when off
+mm.track(p_test)
+eref.track(p_ref)
+
+xo.assert_allclose(p_test.x, p_ref.x, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.y, p_ref.y, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
+
+# Sextupole
+mm.model = 'drift-kick-drift-expanded'
+mm.k2 = 3.
+
+p_test = p0.copy()
+p_ref = p0.copy()
+
+eref = xt.Sextupole(length=1.0, k2=3.)
+mm.track(p_test)
+eref.track(p_ref)
+
+xo.assert_allclose(p_test.x, p_ref.x, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.y, p_ref.y, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
+
+# Sextupole more kicks
+mm.num_multipole_kicks = 5
+eref.num_multipole_kicks = 5
+
+p_test = p0.copy()
+p_ref = p0.copy()
+
+mm.track(p_test)
+eref.track(p_ref)
+
+xo.assert_allclose(p_test.x, p_ref.x, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.y, p_ref.y, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
+
+# Add skew sextupole component in ksl
+mm.ksl[2] = -2.
+eref.ksl[2] = -2.
+
+p_test = p0.copy()
+p_ref = p0.copy()
+
+mm.track(p_test)
+eref.track(p_ref)
+
+xo.assert_allclose(p_test.x, p_ref.x, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.y, p_ref.y, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
+
+# Quadrupole
+mm.model = 'mat-kick-mat'
+mm.k0 = 0
+mm.k1 = 3.
+mm.k2 = 0.
+mm.knl = 0.
+mm.ksl = 0.
+mm.num_multipole_kicks = 1
+
+eref = xt.Quadrupole(length=1.0, k1=3.)
+eref.num_multipole_kicks = 1
+
+p_test = p0.copy()
+p_ref = p0.copy()
+
+mm.track(p_test)
+eref.track(p_ref)
+
+xo.assert_allclose(p_test.x, p_ref.x, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.y, p_ref.y, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
+

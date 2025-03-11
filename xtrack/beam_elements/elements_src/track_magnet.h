@@ -145,7 +145,7 @@ void track_magnet_body_single_particle(
 
     #define MAGNET_KICK(part, weight) \
         track_magnet_kick_single_particle(\
-            part, length * (weight), order, inv_factorial_order, \
+            part, length, order, inv_factorial_order, \
             knl, ksl, factor_knl_ksl, (weight), \
             k0_kick, k1_kick, k2, k3, k0s, k1s, k2s, k3s, h_kick, kick_rot_frame\
         )
