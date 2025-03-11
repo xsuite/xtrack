@@ -27,6 +27,7 @@ void Magnet_track_local_particle(
     const double k2s = MagnetData_get_k2s(el);
     const double k3s = MagnetData_get_k3s(el);
     const int64_t model = MagnetData_get_model(el);
+    const int64_t integrator = MagnetData_get_integrator(el);
 
     const double factor_knl_ksl = 1.0;
 
@@ -40,6 +41,7 @@ void Magnet_track_local_particle(
         factor_knl_ksl,
         num_multipole_kicks,
         model,
+        integrator,
         h,
         k0,
         k1,

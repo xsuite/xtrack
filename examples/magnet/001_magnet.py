@@ -4,6 +4,7 @@ import xobjects as xo
 from xtrack.beam_elements.magnets import Magnet
 
 mm = Magnet(length=1.0, k0=0.0, k1=0.0, h=0.0)
+mm.integrator = 'teapot'
 
 p0 = xt.Particles(kinetic_energy0=50e6,
                   x=1e-3, y=2e-3, zeta=1e-2, px=10e-3, py=20e-3, delta=1e-2)
@@ -104,6 +105,28 @@ mm.ksl = 0.
 mm.num_multipole_kicks = 1
 
 eref = xt.Quadrupole(length=1.0, k1=3.)
+eref.num_multipole_kicks = 1
+
+p_test = p0.copy()
+p_ref = p0.copy()
+
+mm.track(p_test)
+eref.track(p_ref)
+
+xo.assert_allclose(p_test.x, p_ref.x, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.y, p_ref.y, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
+
+# Bend
+mm.model = 'rot-kick-rot'
+mm.integrator = 'yoshida4'
+mm.num_multipole_kicks = 1
+mm.h = 0.1
+
+eref = xt.Bend(length=1.0, k1=3., h=0.1)
 eref.num_multipole_kicks = 1
 
 p_test = p0.copy()

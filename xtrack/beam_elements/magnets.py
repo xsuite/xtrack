@@ -79,6 +79,7 @@ class Magnet(BeamElement):
         'h': xo.Float64,
         'k0_from_h': xo.UInt64,
         'model': xo.Int64,
+        'integrator': xo.Int64,
     }
 
     _rename = {
@@ -89,6 +90,7 @@ class Magnet(BeamElement):
         'angle': '_angle',
         'length': '_length',
         'h': '_h',
+        'integrator': '_integrator',
     }
 
     _extra_c_sources = [
@@ -107,8 +109,14 @@ class Magnet(BeamElement):
         5: 'drift-kick-drift-exact',
         6: 'drift-kick-drift-expanded',
     }
-
     _MODEL_TO_INDEX = {k: v for v, k in _INDEX_TO_MODEL.items()} | {'expanded': 4}
+
+    _INDEX_TO_INTEGRATOR = {
+        0: 'adaptive',
+        1: 'teapot',
+        2: 'yoshida4',
+    }
+    _INTEGRATOR_TO_INDEX = {k: v for v, k in _INDEX_TO_INTEGRATOR.items()}
 
     def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
 
@@ -219,3 +227,14 @@ class Magnet(BeamElement):
             self._model = self._MODEL_TO_INDEX[value]
         except KeyError:
             raise ValueError(f'Invalid model: {value}')
+
+    @property
+    def integrator(self):
+        return self._INDEX_TO_INTEGRATOR[self._integrator]
+
+    @integrator.setter
+    def integrator(self, value):
+        try:
+            self._integrator = self._INTEGRATOR_TO_INDEX[value]
+        except KeyError:
+            raise ValueError(f'Invalid integrator: {value}')

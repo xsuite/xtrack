@@ -8,6 +8,8 @@
 
 #define H_TOLERANCE (1e-8)
 
+
+
 /*gpufun*/
 void configure_tracking_model(
     int64_t model,
@@ -129,6 +131,7 @@ void track_magnet_body_single_particle(
     int64_t num_multipole_kicks,
     int8_t kick_rot_frame,
     int8_t drift_model,
+    int8_t integrator,
     double k0_drift,
     double k1_drift,
     double h_drift,
@@ -155,27 +158,77 @@ void track_magnet_body_single_particle(
             part, length * (weight), k0_drift, k1_drift, h_drift, drift_model\
         )
 
-    if (num_multipole_kicks == 0) { // auto mode
-        num_multipole_kicks = 1;
+    if (integrator == 1){ // TEAPOT body
+
+        if (num_multipole_kicks == 0) { // auto mode
+            num_multipole_kicks = 1;
+        }
+        const double kick_weight = 1. / num_multipole_kicks;
+        double edge_drift_weight = 0.5;
+        double inside_drift_weight = 0;
+        if (num_multipole_kicks > 1) {
+            edge_drift_weight = 1. / (2 * (1 + num_multipole_kicks));
+            inside_drift_weight = (
+                ((float) num_multipole_kicks)
+                    / ((float)(num_multipole_kicks*num_multipole_kicks) - 1));
+        }
+
+        MAGNET_DRIFT(part, edge_drift_weight);
+        for (int i_kick=0; i_kick<num_multipole_kicks - 1; i_kick++) {
+            MAGNET_KICK(part, kick_weight);
+            MAGNET_DRIFT(part, inside_drift_weight);
+        }
+        MAGNET_KICK(part, kick_weight);
+        MAGNET_DRIFT(part, edge_drift_weight);
+
     }
-    const double kick_weight = 1. / num_multipole_kicks;
-    double edge_drift_weight = 0.5;
-    double inside_drift_weight = 0;
-    if (num_multipole_kicks > 1) {
-        edge_drift_weight = 1. / (2 * (1 + num_multipole_kicks));
-        inside_drift_weight = (
-            ((float) num_multipole_kicks)
-                / ((float)(num_multipole_kicks*num_multipole_kicks) - 1));
+    else if (integrator==0 || integrator==2){ // YOSHIDA 4
+
+        const int64_t n_kicks_yoshida = 7;
+        const int64_t num_slices = (num_multipole_kicks / n_kicks_yoshida
+                                + (num_multipole_kicks % n_kicks_yoshida != 0));
+
+        const double slice_length = length / (num_slices);
+        const double kick_weight = 1. / num_slices;
+        const double d_yoshida[] =
+                     // From MAD-NG
+                     {3.922568052387799819591407413100e-01,
+                      5.100434119184584780271052295575e-01,
+                      -4.710533854097565531482416645304e-01,
+                      6.875316825251809316199569366290e-02};
+                    //  {0x1.91abc4988937bp-2, 0x1.052468fb75c74p-1, // same in hex
+                    //  -0x1.e25bd194051b9p-2, 0x1.199cec1241558p-4 };
+                    //  {1/8.0, 1/8.0, 1/8.0, 1/8.0}; // Uniform, for debugging
+        const double k_yoshida[] =
+                     // From MAD-NG
+                     {7.845136104775599639182814826199e-01,
+                      2.355732133593569921359289764951e-01,
+                      -1.177679984178870098432412305556e+00,
+                      1.315186320683906284756403692882e+00};
+                    //  {0x1.91abc4988937bp-1, 0x1.e2743579895b4p-3, // same in hex
+                    //  -0x1.2d7c6f7933b93p+0, 0x1.50b00cfb7be3ep+0 };
+                    //  {1/7.0, 1/7.0, 1/7.0, 1/7.0}; // Uniform, for debugging
+
+        for (int ii = 0; ii < num_slices; ii++) {
+            MAGNET_DRIFT(part, slice_length * d_yoshida[0]);
+            MAGNET_KICK(part, kick_weight * k_yoshida[0]);
+            MAGNET_DRIFT(part, slice_length * d_yoshida[1]);
+            MAGNET_KICK(part, kick_weight * k_yoshida[1]);
+            MAGNET_DRIFT(part, slice_length * d_yoshida[2]);
+            MAGNET_KICK(part, kick_weight * k_yoshida[2]);
+            MAGNET_DRIFT(part, slice_length * d_yoshida[3]);
+            MAGNET_KICK(part, kick_weight * k_yoshida[3]);
+            MAGNET_DRIFT(part, slice_length * d_yoshida[3]);
+            MAGNET_KICK(part, kick_weight * k_yoshida[2]);
+            MAGNET_DRIFT(part, slice_length * d_yoshida[2]);
+            MAGNET_KICK(part, kick_weight * k_yoshida[1]);
+            MAGNET_DRIFT(part, slice_length * d_yoshida[1]);
+            MAGNET_KICK(part, kick_weight * k_yoshida[0]);
+            MAGNET_DRIFT(part, slice_length * d_yoshida[0]);
+        }
+
     }
 
-    // TEAPOT body
-    MAGNET_DRIFT(part, edge_drift_weight);
-    for (int i_kick=0; i_kick<num_multipole_kicks - 1; i_kick++) {
-        MAGNET_KICK(part, kick_weight);
-        MAGNET_DRIFT(part, inside_drift_weight);
-    }
-    MAGNET_KICK(part, kick_weight);
-    MAGNET_DRIFT(part, edge_drift_weight);
 
     #undef MAGNET_KICK
     #undef MAGNET_DRIFT
@@ -193,6 +246,7 @@ void track_magnet_body_particles(
     double const factor_knl_ksl,
     int64_t num_multipole_kicks,
     int8_t model,
+    int8_t integrator,
     double h,
     double k0,
     double k1,
@@ -228,7 +282,7 @@ void track_magnet_body_particles(
         track_magnet_body_single_particle(
             part, length, order, inv_factorial_order,
             knl, ksl, factor_knl_ksl,
-            num_multipole_kicks, kick_rot_frame, drift_model,
+            num_multipole_kicks, kick_rot_frame, drift_model, integrator,
             k0_drift, k1_drift, h_drift,
             k0_kick, k1_kick, h_kick,
             k2, k3, k0s, k1s, k2s, k3s
