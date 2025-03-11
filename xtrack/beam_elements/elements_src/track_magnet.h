@@ -209,10 +209,6 @@ void track_magnet_body_single_particle(
                     //  -0x1.2d7c6f7933b93p+0, 0x1.50b00cfb7be3ep+0 };
                     //  {1/7.0, 1/7.0, 1/7.0, 1/7.0}; // Uniform, for debugging
 
-        printf("k0_kick = %e k0_drift = %e\n", k0_kick, k0_drift);
-        printf("k1_kick = %e k1_drift = %e\n", k1_kick, k1_drift);
-        printf("h_kick = %e h_drift = %e\n", h_kick, h_drift);
-
         for (int ii = 0; ii < num_slices; ii++) {
             MAGNET_DRIFT(part, slice_length * d_yoshida[0]);
             MAGNET_KICK(part, kick_weight * k_yoshida[0]);

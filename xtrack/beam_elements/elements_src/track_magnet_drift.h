@@ -344,8 +344,6 @@ void track_magnet_drift_single_particle(
         return;
     }
 
-    printf("Before x = %e\n", LocalParticle_get_x(part));
-    printf(("model = %lld k0=%e k1=%e h=%e length=%e\n"), drift_model, k0, k1, h, length);
     switch (drift_model) {
         case 0:
             track_expanded_drift_single_particle(part, length);
@@ -368,7 +366,6 @@ void track_magnet_drift_single_particle(
         default:
             break;
     }
-    printf("After x = %e\n", LocalParticle_get_x(part));
 
 }
 
