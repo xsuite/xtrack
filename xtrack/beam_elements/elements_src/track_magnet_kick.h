@@ -35,7 +35,8 @@ void track_magnet_kick_single_particle(
     double k1s,
     double k2s,
     double k3s,
-    double h
+    double h,
+    uint8_t rot_frame
 ){
     double const chi = LocalParticle_get_chi(part);
     double const x = LocalParticle_get_x(part);
@@ -73,6 +74,10 @@ void track_magnet_kick_single_particle(
     // Correct for the curvature
     double dpx = 0;
     double dpy = 0;
+
+    if (rot_frame) {
+        dpx += h * length * (1. + LocalParticle_get_delta(part));
+    }
 
     // Correct for the curvature
     // k0h correction can be computed from this term in the hamiltonian
