@@ -98,19 +98,19 @@ void configure_tracking_model(
     }
     else if (drift_model == 4){ // bend with h
         *k0_drift = k0;
-        *k1_drift = k1;
+        *k1_drift = 0.0;
         *h_drift = h;
         *k0_kick = 0.0;
-        *k1_kick = 0.0;
+        *k1_kick = k1;
         *h_kick = h;
         *kick_rot_frame = 0;
     }
     else if (drift_model == 5){ // bend without h
         *k0_drift = k0;
-        *k1_drift = k1;
+        *k1_drift = 0.0;
         *h_drift = 0.0;
         *k0_kick = 0.0;
-        *k1_kick = 0.0;
+        *k1_kick = k1;
         *h_kick = 0.0;
         *kick_rot_frame = 0;
     }
