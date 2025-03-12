@@ -255,19 +255,19 @@ mm.k2 = 0.1
 mm.k3 = 0.15
 
 # mm.k0s = 0.02
-# mm.k1s = 0.03
-# mm.k2s = 0.01
-# mm.k3s = 0.02
+# \\mm.k1s = 0.03
+mm.k2s = 0.01
+mm.k3s = 0.02
 
 mm.knl = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
-mm.ksl = [0.6, 0.5, 0.4, 0.3, 0.2, 0.1]
+mm.ksl = [0.6, 0.5, 0.4, 0.15, 0.2, 0.1]
 
 eref = xt.Bend(length=2.0, h=0.1, k1=0.3, k0=0.2)
 eref.num_multipole_kicks = 10
 eref.edge_entry_active = False
 eref.edge_exit_active = False
-eref.knl = [0.1, 0.2, 0.3+0.1*2, 0.4+0.15*2, 0.5, 0.6]
-eref.ksl = [0.6, 0.5, 0.4, 0.3, 0.2, 0.1]
+eref.knl = [0.1, 0.2, 0.3 + 0.1*2, 0.4 + 0.15*2, 0.5, 0.6]
+eref.ksl = [0.6, 0.5, 0.4 + 0.01*2, 0.15 + 0.02*2, 0.2, 0.1]
 
 for model in ['bend-kick-bend', 'rot-kick-rot']:
     mm.model = model
