@@ -334,3 +334,22 @@ xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
 
+# more kicks (needs loser thresholds)
+mm1.num_multipole_kicks = 10
+mm2.num_multipole_kicks = 10
+
+p_test = p0.copy()
+p_ref = p0.copy()
+
+mm1.track(p_test)
+mm2.track(p_ref)
+
+xo.assert_allclose(p_test.s, 2.0, atol=0, rtol=1e-7)
+xo.assert_allclose(p_ref.s, 2.0, atol=0, rtol=1e-7)
+xo.assert_allclose(p_test.x, p_ref.x, atol=0, rtol=5e-3)
+xo.assert_allclose(p_test.y, p_ref.y, atol=0, rtol=5e-3)
+xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=0, rtol=1e-2)
+xo.assert_allclose(p_test.px, p_ref.px, atol=0, rtol=5e-3)
+xo.assert_allclose(p_test.py, p_ref.py, atol=0, rtol=5e-3)
+xo.assert_allclose(p_test.delta, p_ref.delta, atol=0, rtol=5e-3)
+
