@@ -62,7 +62,6 @@ xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
 
-prrrr
 # Sextupole more kicks
 mm.num_multipole_kicks = 5
 eref.num_multipole_kicks = 5
@@ -122,6 +121,7 @@ mm.model = 'mat-kick-mat'
 mm.k0 = 0
 mm.k1 = 3.
 mm.k2 = 0.
+mm.k2s = 0.
 mm.knl = 0.
 mm.ksl = 0.
 mm.num_multipole_kicks = 1
