@@ -1,5 +1,6 @@
 import xtrack as xt
 import xobjects as xo
+import numpy as np
 
 from xtrack.base_element import BeamElement
 from xtrack.beam_elements.elements import DEFAULT_MULTIPOLE_ORDER, _prepare_multipolar_params, SynchrotronRadiationRecord
