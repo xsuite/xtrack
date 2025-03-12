@@ -204,11 +204,23 @@ void track_magnet_body_single_particle(
 
         MAGNET_DRIFT(part, edge_drift_weight*length);
         for (int i_kick=0; i_kick<num_multipole_kicks - 1; i_kick++) {
-            WITH_RADIATION(MAGNET_KICK(part, kick_weight))
+            MAGNET_KICK(part, kick_weight);
             MAGNET_DRIFT(part, inside_drift_weight*length);
         }
-        WITH_RADIATION(MAGNET_KICK(part, kick_weight))
+        MAGNET_KICK(part, kick_weight);
         MAGNET_DRIFT(part, edge_drift_weight*length);
+
+    }
+    else if (integrator==3){ // uniform
+
+        const double kick_weight = 1. / num_multipole_kicks;
+        const double drift_weight = kick_weight;
+
+        for (int i_kick=0; i_kick<num_multipole_kicks; i_kick++) {
+            MAGNET_DRIFT(part, 0.5*drift_weight*length);
+            MAGNET_KICK(part, kick_weight);
+            MAGNET_DRIFT(part, 0.5*drift_weight*length);
+        }
 
     }
     else if (integrator==0 || integrator==2){ // YOSHIDA 4

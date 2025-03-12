@@ -125,6 +125,7 @@ class Magnet(BeamElement):
         0: 'adaptive',
         1: 'teapot',
         2: 'yoshida4',
+        3: 'uniform',
     }
     _INTEGRATOR_TO_INDEX = {k: v for v, k in _INDEX_TO_INTEGRATOR.items()}
 
