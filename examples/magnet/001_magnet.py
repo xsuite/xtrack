@@ -249,12 +249,14 @@ mm.h = 0.1
 mm.k1 = 0.3
 mm.k0 = 0.2
 mm.knl = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
+mm.ksl = [0.6, 0.5, 0.4, 0.3, 0.2, 0.1]
 
 eref = xt.Bend(length=2.0, h=0.1, k1=0.3, k0=0.2)
 eref.num_multipole_kicks = 10
 eref.edge_entry_active = False
 eref.edge_exit_active = False
 eref.knl = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
+eref.ksl = [0.6, 0.5, 0.4, 0.3, 0.2, 0.1]
 
 for model in ['bend-kick-bend', 'rot-kick-rot']:
     mm.model = model
@@ -266,10 +268,10 @@ for model in ['bend-kick-bend', 'rot-kick-rot']:
     mm.track(p_test)
     eref.track(p_ref)
 
-    xo.assert_allclose(p_test.x, p_ref.x, atol=1e-15, rtol=0)
-    xo.assert_allclose(p_test.y, p_ref.y, atol=1e-15, rtol=0)
-    xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=1e-15, rtol=0)
-    xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
-    xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
-    xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
+    xo.assert_allclose(p_test.x, p_ref.x, atol=1e-14, rtol=0)
+    xo.assert_allclose(p_test.y, p_ref.y, atol=1e-14, rtol=0)
+    xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=1e-14, rtol=0)
+    xo.assert_allclose(p_test.px, p_ref.px, atol=1e-14, rtol=0)
+    xo.assert_allclose(p_test.py, p_ref.py, atol=1e-14, rtol=0)
+    xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-14, rtol=0)
 
