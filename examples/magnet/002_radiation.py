@@ -11,7 +11,7 @@ line = env.new_line(components=[
 
 line.slice_thick_elements(
     slicing_strategies=[
-        xt.Strategy(slicing=xt.Teapot(5))
+        xt.Strategy(slicing=xt.Teapot(100))
     ]
 )
 
@@ -23,8 +23,10 @@ line.track(p_ref)
 
 mm = Magnet(angle=0.01, length=10., k0_from_h=True)
 mm.radiation_flag = 1 # 1: mean
-p_test = p_ref.copy()
+mm.num_multipole_kicks = 100
+mm.integrator = 'uniform'
+p_test = line.particle_ref.copy()
 
 mm.track(p_test)
 
-xo.assert_allclose(p_ref.delta, p_test.delta, atol=0, rtol=1e-6)
+xo.assert_allclose(p_ref.delta, p_test.delta, atol=0, rtol=2e-4)
