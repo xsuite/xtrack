@@ -51,11 +51,12 @@ void Octupole_track_local_particle(
 
     #define OCT_FRINGE(part, side)\
         MultFringe_track_single_particle(\
+            part,
             combined_kn,\
             combined_ks,\
             side,\
             4,\
-            part\
+            0\
         )
 
     // TEAPOT weights

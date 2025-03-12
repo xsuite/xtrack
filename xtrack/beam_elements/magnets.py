@@ -1,3 +1,6 @@
+import numpy as np
+from scipy.special import factorial
+
 import xtrack as xt
 import xobjects as xo
 
@@ -119,7 +122,6 @@ class Magnet(BeamElement):
     _INTEGRATOR_TO_INDEX = {k: v for v, k in _INDEX_TO_INTEGRATOR.items()}
 
     def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
-
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
             return
@@ -127,7 +129,7 @@ class Magnet(BeamElement):
         model = kwargs.pop('model', None)
 
         order = order or DEFAULT_MULTIPOLE_ORDER
-        multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
+        multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
         kwargs.update(multipolar_kwargs)
 
         self.xoinitialize(**kwargs)
@@ -262,3 +264,118 @@ class Magnet(BeamElement):
             self._integrator = self._INTEGRATOR_TO_INDEX[value]
         except KeyError:
             raise ValueError(f'Invalid integrator: {value}')
+
+
+class MagnetEdge(BeamElement):
+    """Beam element modeling a magnet edge.
+
+    Parameters
+    ----------
+    model : str
+        Model to be used for the edge. It can be 'linear', 'full' or 'suppress'.
+        Default is 'linear'.
+        account.
+    side : str
+        Side of the bend on which the edge is located. It can be 'entry' or
+        'exit'. Default is 'entry'.
+    k0 : float
+        Dipole edge strength in 1/m.
+    face_angle : float
+        Face angle in rad.
+    half_gap : float
+        Equivalent gap in m.
+    fringe_integral : float
+        Fringe integral.
+    face_angle_feed_down : float
+        Term added to ``face_angle`` only for the linear mode and only in the
+        vertical plane to account for non-zero angle in the closed orbit when
+        entering the fringe field (feed down effect).
+    """
+    isthick = True
+    has_backtrack = True
+
+    _xofields = {
+        'model': xo.Int64,
+        'is_exit': xo.Int64,
+        'half_gap': xo.Float64,
+        'kn': xo.Float64[:],
+        'ks': xo.Float64[:],
+        'order': xo.Int64,
+        'face_angle': xo.Float64,
+        'face_angle_feed_down': xo.Float64,
+        'fringe_integral': xo.Float64,
+        'delta_taper': xo.Float64,
+    }
+
+    _rename = {
+        'model': '_model',
+    }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_edge.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/magnet_edge.h'),
+    ]
+
+    _repr_fields = [
+        'model', 'face_angle', 'kn', 'ks', 'order', 'face_angle_feed_down',
+        'fringe_integral', 'half_gap', 'delta_taper',
+    ]
+
+    _INDEX_TO_MODEL = {
+        -1: 'suppressed',
+        0: 'linear',
+        1: 'full',
+    }
+
+    _MODEL_TO_INDEX = {v: k for k, v in _INDEX_TO_MODEL.items()}
+
+    def __init__(self, order=None, kn: List[float]=None, ks: List[float]=None, **kwargs):
+        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
+        model = kwargs.pop('model', None)
+
+        order = order or DEFAULT_MULTIPOLE_ORDER
+        multipolar_kwargs = _prepare_multipolar_params(order, skip_factorial=True, kn=kn, ks=ks)
+        kwargs.update(multipolar_kwargs)
+
+        self.xoinitialize(**kwargs)
+
+        if model is not None:
+            self.model = model
+
+    @property
+    def model(self):
+        return self._INDEX_TO_MODEL[self._model]
+
+    @model.setter
+    def model(self, value):
+        try:
+            self._model = self._MODEL_TO_INDEX[value]
+        except KeyError:
+            raise ValueError(f'Invalid edge model: {value}')
+
+    def to_dict(self, copy_to_cpu=True):
+        out = super().to_dict(copy_to_cpu=copy_to_cpu)
+
+        if f'_model' in out:
+            out.pop(f'_model')
+        out['model'] = getattr(self, 'model')
+
+        # See the comment in Multiple.to_dict about knl/ksl/order dumping
+        if 'knl' in out and np.allclose(out['knl'], 0, atol=1e-16):
+            out.pop('knl', None)
+
+        if 'ksl' in out and np.allclose(out['ksl'], 0, atol=1e-16):
+            out.pop('ksl', None)
+
+        if self.order != 0 and 'knl' not in out and 'ksl' not in out:
+            out['order'] = self.order
+
+        return out

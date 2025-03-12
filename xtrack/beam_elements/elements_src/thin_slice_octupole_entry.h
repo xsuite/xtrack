@@ -24,11 +24,12 @@ void ThinSliceOctupoleEntry_track_local_particle(
 
         //start_per_particle_block (part0->part)
         MultFringe_track_single_particle(
+            part,
             kn,
             ks,
             0, // is_exit
             4, // order
-            part
+            0  // min_order
         );
         //end_per_particle_block
     }

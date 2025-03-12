@@ -612,7 +612,7 @@ class Multipole(BeamElement):
             self.xoinitialize(**kwargs)
             return
 
-        multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
+        multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
         kwargs.update(multipolar_kwargs)
 
         if "bal" in kwargs.keys():
@@ -875,8 +875,7 @@ class _BendCommon:
     def to_dict(self, copy_to_cpu=True):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
 
-        for kk in {'model', 'k0', 'h', 'length', 'k0_from_h', 'angle',
-                   }:
+        for kk in ('model', 'k0', 'h', 'length', 'k0_from_h', 'angle'):
             if f'_{kk}' in out:
                 out.pop(f'_{kk}')
             out[kk] = getattr(self, kk)
@@ -983,7 +982,7 @@ class Bend(_BendCommon, BeamElement):
         model = kwargs.pop('model', None)
 
         order = order or DEFAULT_MULTIPOLE_ORDER
-        multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
+        multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
         kwargs.update(multipolar_kwargs)
 
         self.xoinitialize(**kwargs)
@@ -1193,7 +1192,7 @@ class RBend(_BendCommon, BeamElement):
             return
 
         order = order or DEFAULT_MULTIPOLE_ORDER
-        multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
+        multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
         kwargs.update(multipolar_kwargs)
 
         model = kwargs.pop('model', None)
@@ -1438,7 +1437,7 @@ class Sextupole(BeamElement):
     def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
 
         order = order or DEFAULT_MULTIPOLE_ORDER
-        multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
+        multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
         kwargs.update(multipolar_kwargs)
 
         self.xoinitialize(**kwargs)
@@ -1539,7 +1538,7 @@ class Octupole(BeamElement):
 
     def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
         order = order or DEFAULT_MULTIPOLE_ORDER
-        multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
+        multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
         kwargs.update(multipolar_kwargs)
 
         self.xoinitialize(**kwargs)
@@ -1636,7 +1635,7 @@ class Quadrupole(BeamElement):
 
     def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
         order = order or DEFAULT_MULTIPOLE_ORDER
-        multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
+        multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
         kwargs.update(multipolar_kwargs)
 
         self.xoinitialize(**kwargs)
@@ -1778,7 +1777,7 @@ class Solenoid(BeamElement):
             )
 
         order = order or DEFAULT_MULTIPOLE_ORDER
-        multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
+        multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
         kwargs.update(multipolar_kwargs)
 
         self.xoinitialize(**kwargs)
@@ -2246,23 +2245,9 @@ class MultipoleEdge(BeamElement):
             self.xoinitialize(_xobject=_xobject)
             return
 
-        len_kn = len(kn) if kn is not None else None
-        len_ks = len(ks) if ks is not None else None
-        lengths = [ll for ll in [len_kn, len_ks, order] if ll is not None]
+        multipole_kwargs = _prepare_multipolar_params(order, True, kn=kn, ks=ks)
 
-        if lengths:
-            if np.all(lengths[0] == lengths):
-                raise ValueError('`kn`, `ks` and `order` must have the same length.')
-
-        order = order or 0
-
-        if len_kn is None:
-            kn = np.zeros(order, dtype=np.float64)
-
-        if len_ks is None:
-            ks = np.zeros(order, dtype=np.float64)
-
-        self.xoinitialize(kn=kn, ks=ks, is_exit=is_exit, order=order)
+        self.xoinitialize(is_exit=is_exit, **multipole_kwargs)
 
 
 class LineSegmentMap(BeamElement):
@@ -2848,39 +2833,35 @@ def _nonzero(val_or_expr):
 
 
 def _prepare_multipolar_params(
-        knl: List[float] = None,
-        ksl: List[float] = None,
-        order = None,
+        order=None,
+        skip_factorial=False,
+        **kwargs,
 ):
     order = order or 0
 
-    len_knl = len(knl) if knl is not None else 0
-    len_ksl = len(ksl) if ksl is not None else 0
+    lengths = [len(kwarg or []) for kwarg in kwargs.values()]
 
-    target_len = max((order + 1), max(len_knl, len_ksl))
+    target_len = max((order + 1), *lengths)
     assert target_len > 0
 
-    new_knl = np.zeros(target_len, dtype=np.float64)
-    new_ksl = np.zeros(target_len, dtype=np.float64)
-
-    if knl is not None:
-        if hasattr(knl, 'get'):
-            knl = knl.get()
-        new_knl[: len(knl)] = np.array(knl)
-
-    if ksl is not None:
-        if hasattr(ksl, 'get'):
-            ksl = ksl.get()
-        new_ksl[: len(ksl)] = np.array(ksl)
+    new_kwargs = {}
+    for kwarg_name, kwarg in kwargs.items():
+        new_kwarg = np.zeros(target_len, dtype=np.float64)
+        new_kwargs[kwarg_name] = new_kwarg
+        if kwarg is None:
+            continue
+        if hasattr(kwarg, 'get'):
+            kwarg = kwarg.get()
+        new_kwarg[: len(kwarg)] = np.array(kwarg)
 
     order = target_len - 1
 
-    return {
-        'knl': new_knl,
-        'ksl': new_ksl,
-        'order': order,
-        'inv_factorial_order': 1.0 / factorial(order, exact=True),
-    }
+    new_kwargs['order'] = order
+
+    if not skip_factorial:
+        new_kwargs['inv_factorial_order'] = 1.0 / factorial(order, exact=True)
+
+    return new_kwargs
 
 
 class SecondOrderTaylorMap(BeamElement):

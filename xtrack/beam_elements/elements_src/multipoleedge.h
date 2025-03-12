@@ -15,7 +15,7 @@ void MultipoleEdge_track_local_particle(MultipoleEdgeData el, LocalParticle* par
     uint8_t is_exit = MultipoleEdgeData_get_is_exit(el);
 
     //start_per_particle_block (part0->part)
-        MultFringe_track_single_particle(kn, ks, order, is_exit, part);
+        MultFringe_track_single_particle(part, kn, ks, is_exit, order, 0);
     //end_per_particle_block
 }
 

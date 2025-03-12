@@ -15,11 +15,12 @@
 
 /*gpufun*/
 void MultFringe_track_single_particle(
+    LocalParticle* part,  // Particle to be tracked
     const double* kn,  // Normal quadrupole component(s); array of length `order`
     const double* ks,  // Skew quadrupole component(s); array of length `order`
     const uint8_t is_exit,  // If truthy it's the exit fringe, otherwise the entry
     uint32_t order,  // Order of the fringe
-    LocalParticle* part  // Particle to be tracked
+    uint32_t min_order  // Minimum order of the fringe, ignore the lower components
 ) {
     if (order == 0) return;
 
@@ -62,8 +63,8 @@ void MultFringe_track_single_particle(
 
         double nj = -q * direction / (4 * (component + 1));
         double nf = (component + 2) / component;
-        double kj = kn[ii];
-        double ksj = ks[ii];
+        double kj = (ii >= min_order) ? kn[ii] : 0;
+        double ksj = (ii >= min_order) ? ks[ii] : 0;
         double u, v, du, dv;
 
 

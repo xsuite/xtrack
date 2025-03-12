@@ -1,0 +1,38 @@
+// copyright ############################### //
+// This file is part of the Xtrack Package.  //
+// Copyright (c) CERN, 2025.                 //
+// ######################################### //
+
+#ifndef XTRACK_MAGNET_EDGE_H
+#define XTRACK_MAGNET_EDGE_H
+
+/*gpufun*/
+void MagnetEdge_track_local_particle(MagnetEdgeData el, LocalParticle* part0)
+{
+    const int8_t model = MagnetEdgeData_get_model(el);
+    const uint8_t is_exit = MagnetEdgeData_get_is_exit(el);
+    const double half_gap = MagnetEdgeData_get_half_gap(el);
+    const double* kn = MagnetEdgeData_getp1_kn(el, 0);
+    const double* ks = MagnetEdgeData_getp1_ks(el, 0);
+    const int64_t order = MagnetEdgeData_get_order(el);
+    const double face_angle = MagnetEdgeData_get_face_angle(el);
+    const double face_angle_feed_down = MagnetEdgeData_get_face_angle_feed_down(el);
+    const double fringe_integral = MagnetEdgeData_get_fringe_integral(el);
+    const double delta_taper = MagnetEdgeData_get_delta_taper(el);
+
+    track_magnet_edge_particles(
+        part0,
+        model,
+        is_exit,
+        half_gap,
+        kn,
+        ks,
+        order,
+        face_angle,
+        face_angle_feed_down,
+        fringe_integral,
+        delta_taper
+    );
+}
+
+#endif // XTRACK_MAGNET_EDGE_H

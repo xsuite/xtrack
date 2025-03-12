@@ -24,11 +24,12 @@ void ThinSliceQuadrupoleExit_track_local_particle(
 
         //start_per_particle_block (part0->part)
         MultFringe_track_single_particle(
+            part,
             kn,
             ks,
             1, // is_exit
+            0, // min_order
             2, // order
-            part
         );
         //end_per_particle_block
     }

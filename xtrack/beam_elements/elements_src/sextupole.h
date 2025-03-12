@@ -51,11 +51,12 @@ void Sextupole_track_local_particle(
 
     #define SEXT_FRINGE(part, side)\
         MultFringe_track_single_particle(\
+            part,\
             combined_kn,\
             combined_ks,\
             side,\
             3,\
-            part\
+            0\
         )
 
     // TEAPOT weights
