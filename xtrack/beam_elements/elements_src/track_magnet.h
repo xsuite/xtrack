@@ -163,6 +163,7 @@ void track_magnet_body_single_particle(
         )
 
     #define WITH_RADIATION(code) \
+    { \
         const double old_px = LocalParticle_get_px(part); \
         const double old_py = LocalParticle_get_py(part); \
         const double old_ax = LocalParticle_get_ax(part); \
@@ -170,16 +171,20 @@ void track_magnet_body_single_particle(
         const double old_zeta = LocalParticle_get_zeta(part); \
         code; \
         if (radiation_flag && length > 0){ \
+            double h_for_rad = h_kick; \
+            if (fabs(h_drift) > 0){ h_for_rad = h_drift; } \
             magnet_apply_radiation_single_particle( \
                 part, \
                 length, \
-                /*hx*/h, \
+                /*hx*/h_for_rad, \
                 /*hy*/0., \
                 radiation_flag, \
                 old_px, old_py, \
                 old_ax, old_ay, \
                 old_zeta, \
-                dp_record_exit, dpx_record_exit, dpy_record_exit);
+                dp_record_exit, dpx_record_exit, dpy_record_exit);\
+        }\
+    }
 
 
     if (num_multipole_kicks == 0) { //only drift
@@ -199,10 +204,10 @@ void track_magnet_body_single_particle(
 
         MAGNET_DRIFT(part, edge_drift_weight*length);
         for (int i_kick=0; i_kick<num_multipole_kicks - 1; i_kick++) {
-            MAGNET_KICK(part, kick_weight);
+            WITH_RADIATION(MAGNET_KICK(part, kick_weight))
             MAGNET_DRIFT(part, inside_drift_weight*length);
         }
-        MAGNET_KICK(part, kick_weight);
+        WITH_RADIATION(MAGNET_KICK(part, kick_weight))
         MAGNET_DRIFT(part, edge_drift_weight*length);
 
     }

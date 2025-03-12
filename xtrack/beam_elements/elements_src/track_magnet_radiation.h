@@ -33,8 +33,8 @@ void magnet_apply_radiation_single_particle(
     double const x_new = LocalParticle_get_x(part);
     double const y_new = LocalParticle_get_y(part);
 
-    double const old_ps = np.sqrt((1 + delta)**2 - old_px_mech**2 - old_py_mech**2);
-    double const new_ps = np.sqrt((1 + delta)**2 - new_px_mech**2 - new_py_mech**2);
+    double const old_ps = sqrt((1 + delta)*(1 + delta) - old_px_mech * old_px_mech - old_py_mech * old_py_mech);
+    double const new_ps = sqrt((1 + delta)*(1 + delta) - new_px_mech * new_px_mech - new_py_mech * new_py_mech);
     double const old_xp = old_px_mech / old_ps;
     double const old_yp = old_py_mech / old_ps;
     double const new_xp = new_px_mech / new_ps;
