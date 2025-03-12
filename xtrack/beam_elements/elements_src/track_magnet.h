@@ -143,7 +143,11 @@ void track_magnet_body_single_particle(
     const double k0s,
     const double k1s,
     const double k2s,
-    const double k3s
+    const double k3s,
+    const int64_t radiation_flag,
+    double* dp_record_exit,
+    double* dpx_record_exit,
+    double* dpy_record_exit
 ) {
 
     #define MAGNET_KICK(part, weight) \
@@ -157,6 +161,26 @@ void track_magnet_body_single_particle(
         track_magnet_drift_single_particle(\
             part, (dlength), k0_drift, k1_drift, h_drift, drift_model\
         )
+
+    #define WITH_RADIATION(code) \
+        const double old_px = LocalParticle_get_px(part); \
+        const double old_py = LocalParticle_get_py(part); \
+        const double old_ax = LocalParticle_get_ax(part); \
+        const double old_ay = LocalParticle_get_ay(part); \
+        const double old_zeta = LocalParticle_get_zeta(part); \
+        code; \
+        if (radiation_flag && length > 0){ \
+            magnet_apply_radiation_single_particle( \
+                part, \
+                length, \
+                /*hx*/h, \
+                /*hy*/0., \
+                radiation_flag, \
+                old_px, old_py, \
+                old_ax, old_ay, \
+                old_zeta, \
+                dp_record_exit, dpx_record_exit, dpy_record_exit);
+
 
     if (num_multipole_kicks == 0) { //only drift
         MAGNET_DRIFT(part, length);
@@ -292,6 +316,8 @@ void track_magnet_body_particles(
         &drift_model
     );
 
+    double dp_record_exit, dpx_record_exit, dpy_record_exit;
+
     //start_per_particle_block (part0->part)
         track_magnet_body_single_particle(
             part, length, order, inv_factorial_order,
@@ -299,7 +325,9 @@ void track_magnet_body_particles(
             num_multipole_kicks, kick_rot_frame, drift_model, integrator,
             k0_drift, k1_drift, h_drift,
             k0_kick, k1_kick, h_kick,
-            k2, k3, k0s, k1s, k2s, k3s
+            k2, k3, k0s, k1s, k2s, k3s,
+            0, // radiation_flag
+            &dp_record_exit, &dpx_record_exit, &dpy_record_exit
         );
     //end_per_particle_block
 
