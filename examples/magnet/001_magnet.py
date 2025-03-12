@@ -78,6 +78,26 @@ xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
 
+# Sextupole done with knl
+mm.k2 = 0.
+mm.knl = [0., 0., 3.*2., 0., 0., 0.]
+mm.num_multipole_kicks = 5
+eref.num_multipole_kicks = 5
+
+p_test = p0.copy()
+p_ref = p0.copy()
+
+mm.track(p_test)
+eref.track(p_ref)
+
+xo.assert_allclose(p_test.x, p_ref.x, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.y, p_ref.y, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
+
+
 # Add skew sextupole component in ksl
 mm.ksl[2] = -2.
 eref.ksl[2] = -2.
@@ -200,14 +220,14 @@ mm.num_multipole_kicks = 10
 mm.h = 0.1
 mm.k1 = 0.3
 mm.k0 = 0.2
-# mm.knl=[0.01, 0.02, 0.03, 0.04, 0.5, 0.6]
+mm.knl=[0., 0., 3., 0., 0., 0.]
 
 eref = xt.Bend(length=2.0, h=0.1, k1=0.3, k0=0.2)
 eref.num_multipole_kicks = 10
 eref.edge_entry_active = False
 eref.edge_exit_active = False
 eref.model = 'bend-kick-bend'
-# eref.knl = [0.01, 0.02, 0.03, 0.04, 0.5, 0.6]
+eref.knl = [0., 0., 3., 0., 0., 0.]
 
 
 for model in ['bend-kick-bend', 'rot-kick-rot', 'expanded']:
