@@ -83,6 +83,7 @@ class Magnet(BeamElement):
         'k0_from_h': xo.UInt64,
         'model': xo.Int64,
         'integrator': xo.Int64,
+        'radiation_flag': xo.Int64,
     }
 
     _rename = {

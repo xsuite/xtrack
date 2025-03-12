@@ -162,7 +162,7 @@ void track_magnet_body_single_particle(
             part, (dlength), k0_drift, k1_drift, h_drift, drift_model\
         )
 
-    #define WITH_RADIATION(code) \
+    #define WITH_RADIATION(ll, code) \
     { \
         const double old_px = LocalParticle_get_px(part); \
         const double old_py = LocalParticle_get_py(part); \
@@ -175,7 +175,7 @@ void track_magnet_body_single_particle(
             if (fabs(h_drift) > 0){ h_for_rad = h_drift; } \
             magnet_apply_radiation_single_particle( \
                 part, \
-                length, \
+                (ll), \
                 /*hx*/h_for_rad, \
                 /*hy*/0., \
                 radiation_flag, \
@@ -217,9 +217,11 @@ void track_magnet_body_single_particle(
         const double drift_weight = kick_weight;
 
         for (int i_kick=0; i_kick<num_multipole_kicks; i_kick++) {
-            MAGNET_DRIFT(part, 0.5*drift_weight*length);
-            MAGNET_KICK(part, kick_weight);
-            MAGNET_DRIFT(part, 0.5*drift_weight*length);
+            WITH_RADIATION(drift_weight*length,
+                MAGNET_DRIFT(part, 0.5*drift_weight*length);
+                MAGNET_KICK(part, kick_weight);
+                MAGNET_DRIFT(part, 0.5*drift_weight*length);
+            )
         }
 
     }
@@ -288,6 +290,7 @@ void track_magnet_body_particles(
     int64_t num_multipole_kicks,
     int8_t model,
     int8_t integrator,
+    int64_t radiation_flag,
     double h,
     double k0,
     double k1,
@@ -343,7 +346,7 @@ void track_magnet_body_particles(
             k0_drift, k1_drift, h_drift,
             k0_kick, k1_kick, h_kick,
             k2, k3, k0s, k1s, k2s, k3s,
-            0, // radiation_flag
+            radiation_flag,
             &dp_record_exit, &dpx_record_exit, &dpy_record_exit
         );
     //end_per_particle_block
