@@ -26,7 +26,7 @@ void track_magnet_edge_particles(
 ) {
     double k0 = 0;
     if (k_order > -1) k0 += kn[0];
-    if (kl_order > -1) k0 += knl[0] / length;
+    if (fabs(length) > 1e-10 && kl_order > -1) k0 += knl[0] / length;
     if (is_exit) k0 = -k0;
 
     if (model == 0) {  // Linear model

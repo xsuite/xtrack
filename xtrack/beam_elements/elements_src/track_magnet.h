@@ -353,8 +353,8 @@ void track_magnet_particles(
 
     if (edge_entry_active){
 
-        double kn[] = {0.0, k1, k2, k3};
-        double ks[] = {0.0, k1s, k2s, k3s};
+        double kn[] = {k0, k1, k2, k3};
+        double ks[] = {k0s, k1s, k2s, k3s};
 
         track_magnet_edge_particles(
             part0,
@@ -389,8 +389,8 @@ void track_magnet_particles(
     //end_per_particle_block
 
     if (edge_exit_active){
-        double kn[] = {0.0, k1, k2, k3};
-        double ks[] = {0.0, k1s, k2s, k3s};
+        double kn[] = {k0, k1, k2, k3};
+        double ks[] = {k0s, k1s, k2s, k3s};
 
         track_magnet_edge_particles(
             part0,
