@@ -9,9 +9,6 @@
 /*gpufun*/
 void FirstOrderTaylorMap_track_local_particle(FirstOrderTaylorMapData el, LocalParticle* part0){
 
-    int64_t const radiation_flag = FirstOrderTaylorMapData_get_radiation_flag(el);
-    double const length = FirstOrderTaylorMapData_get_length(el); // m
-
     double dpx_record, dpy_record, dp_record;
     //start_per_particle_block (part0->part)
 
@@ -69,19 +66,6 @@ void FirstOrderTaylorMap_track_local_particle(FirstOrderTaylorMapData el, LocalP
         LocalParticle_update_ptau(part, ptau);
         LocalParticle_set_zeta(part,tau*beta0);
 
-        // Radiation
-        if (radiation_flag > 0 && length > 0){
-            double dpx = LocalParticle_get_px(part)-px0;
-            double dpy = LocalParticle_get_py(part)-py0;
-            double curv = sqrt(dpx*dpx+dpy*dpy);
-            if (radiation_flag == 1){
-                synrad_average_kick(part, curv, length,
-                    &dp_record, &dpx_record, &dpy_record);
-            }
-            else if (radiation_flag == 2){
-                synrad_emit_photons(part, curv, length, NULL, NULL);
-            }
-        }
 
     //end_per_particle_block
 }

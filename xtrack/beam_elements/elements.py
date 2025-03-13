@@ -715,6 +715,8 @@ class _BendCommon:
         'angle': xo.Float64,
         'length': xo.Float64,
         'model': xo.Int64,
+        'integrator': xo.Int64,
+        'radiation_flag': xo.Int64,
         'edge_entry_active': xo.Field(xo.Int64, default=1),
         'edge_exit_active': xo.Field(xo.Int64, default=1),
         'edge_entry_model': xo.Int64,
@@ -969,7 +971,16 @@ class Bend(_BendCommon, BeamElement):
     _xofields = _BendCommon._common_xofields
     _rename = _BendCommon._common_rename
 
+    _depends_on = [RandomUniformAccurate, RandomExponential]
+
+    _internal_record_class = SynchrotronRadiationRecord
+
     _extra_c_sources = _BendCommon._common_c_sources + [
+        _pkg_root.joinpath('headers/synrad_spectrum.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_drift.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_kick.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_radiation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet.h'),
         _pkg_root.joinpath('beam_elements/elements_src/bend.h'),
     ]
 
@@ -2738,14 +2749,11 @@ class FirstOrderTaylorMap(BeamElement):
         6x1 array of the zero order Taylor map coefficients.
     m1 : array_like
         6x6 array of the first order Taylor map coefficients.
-    radiation_flag : int
-        Flag for synchrotron radiation. 0 - no radiation, 1 - radiation on.
     """
 
     isthick = True
 
     _xofields = {
-        'radiation_flag': xo.Int64,
         'length': xo.Float64,
         'm0': xo.Field(xo.Float64[6], default=np.zeros(6, dtype=np.float64)),
         'm1': xo.Field(xo.Float64[6, 6], default=np.eye(6, dtype=np.float64)),
@@ -2754,8 +2762,6 @@ class FirstOrderTaylorMap(BeamElement):
     _depends_on = [RandomUniformAccurate, RandomExponential]
 
     _extra_c_sources = [
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('headers/synrad_spectrum.h'),
         _pkg_root.joinpath('beam_elements/elements_src/firstordertaylormap.h')]
 
     _internal_record_class = SynchrotronRadiationRecord # not functional,

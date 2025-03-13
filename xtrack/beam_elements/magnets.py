@@ -3,10 +3,14 @@ from scipy.special import factorial
 
 import xtrack as xt
 import xobjects as xo
+import numpy as np
 
 from xtrack.base_element import BeamElement
-from xtrack.beam_elements.elements import DEFAULT_MULTIPOLE_ORDER, _prepare_multipolar_params
+from xtrack.beam_elements.elements import DEFAULT_MULTIPOLE_ORDER, _prepare_multipolar_params, SynchrotronRadiationRecord
 from xtrack.general import _pkg_root
+
+from ..random import RandomUniformAccurate, RandomExponential, RandomNormal
+from ..internal_record import RecordIndex
 
 from typing import List
 
@@ -83,6 +87,7 @@ class Magnet(BeamElement):
         'k0_from_h': xo.UInt64,
         'model': xo.Int64,
         'integrator': xo.Int64,
+        'radiation_flag': xo.Int64,
     }
 
     _rename = {
@@ -97,11 +102,17 @@ class Magnet(BeamElement):
     }
 
     _extra_c_sources = [
+        _pkg_root.joinpath('headers/synrad_spectrum.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_magnet_drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_magnet_kick.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_radiation.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_magnet.h'),
         _pkg_root.joinpath('beam_elements/elements_src/magnet.h'),
     ]
+
+    _depends_on = [RandomUniformAccurate, RandomExponential]
+
+    _internal_record_class = SynchrotronRadiationRecord
 
     _INDEX_TO_MODEL = {
         0: 'adaptive',
@@ -118,8 +129,10 @@ class Magnet(BeamElement):
         0: 'adaptive',
         1: 'teapot',
         2: 'yoshida4',
+        3: 'uniform',
     }
     _INTEGRATOR_TO_INDEX = {k: v for v, k in _INDEX_TO_INTEGRATOR.items()}
+
 
     def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
