@@ -80,3 +80,13 @@ sandwich = [
     xt.Wedge(angle=-0.2, k=3),
 ]
 compare(e_test, sandwich)
+
+# Test the full model with a dipole component and angle, at the exit
+e_test = MagnetEdge(model='full', kn=[3, 4, 5], is_exit=True, face_angle=0.2, face_angle_feed_down=0.0, fringe_integral=0.3, half_gap=0.4, order=2)
+sandwich = [
+    xt.Wedge(angle=-0.2, k=3),
+    xt.MultipoleEdge(kn=[0, 4, 5], is_exit=True, order=2),
+    xt.DipoleEdge(model='full', k=-3, fint=0.3, hgap=0.4),
+    xt.YRotation(angle=np.rad2deg(-0.2)),
+]
+compare(e_test, sandwich)
