@@ -79,41 +79,41 @@ void Bend_track_local_particle(
     const double inv_factorial_order = BendData_get_inv_factorial_order(el);
 
     const int64_t model = BendData_get_model(el);
-    const int64_t integrator = BendData_get_integrator(el);
-    const int64_t radiation_flag = BendData_get_radiation_flag(el);
 
     /*gpuglmem*/ const double *knl = BendData_getp1_knl(el, 0);
     /*gpuglmem*/ const double *ksl = BendData_getp1_ksl(el, 0);
 
-    // Bend_track_local_particle_from_params(part0,
-    //                                 length, k0, k1, h,
-    //                                 num_multipole_kicks, model,
-    //                                 knl, ksl,
-    //                                 order, inv_factorial_order,
-    //                                 factor_knl_ksl);
+    Bend_track_local_particle_from_params(part0,
+                                    length, k0, k1, h,
+                                    num_multipole_kicks, model,
+                                    knl, ksl,
+                                    order, inv_factorial_order,
+                                    factor_knl_ksl);
 
-    track_magnet_body_particles(
-        part0,
-        length,
-        order,
-        inv_factorial_order,
-        knl,
-        ksl,
-        factor_knl_ksl,
-        num_multipole_kicks,
-        model,
-        integrator,
-        radiation_flag,
-        h,
-        k0,
-        k1,
-        0, // k2
-        0, // k3
-        0, // k0s
-        0, // k1s
-        0, // k2s
-        0  // k3s
-    );
+    // const int64_t integrator = BendData_get_integrator(el);
+    // const int64_t radiation_flag = BendData_get_radiation_flag(el);
+    // track_magnet_body_particles(
+    //     part0,
+    //     length,
+    //     order,
+    //     inv_factorial_order,
+    //     knl,
+    //     ksl,
+    //     factor_knl_ksl,
+    //     num_multipole_kicks,
+    //     model,
+    //     integrator,
+    //     radiation_flag,
+    //     h,
+    //     k0,
+    //     k1,
+    //     0, // k2
+    //     0, // k3
+    //     0, // k0s
+    //     0, // k1s
+    //     0, // k2s
+    //     0  // k3s
+    // );
 
     // Edge at exit
     #ifdef XSUITE_BACKTRACK
