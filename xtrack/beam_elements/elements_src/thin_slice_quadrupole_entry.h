@@ -18,6 +18,7 @@ void ThinSliceQuadrupoleEntry_track_local_particle(
 
         double const k1 = ThinSliceQuadrupoleEntryData_get__parent_k1(el);
         double const k1s = ThinSliceQuadrupoleEntryData_get__parent_k1s(el);
+        double const length = ThinSliceQuadrupoleEntryData_get__parent_length(el);
 
         double const kn[2] = {0, k1};
         double const ks[2] = {0, k1s};
@@ -27,9 +28,13 @@ void ThinSliceQuadrupoleEntry_track_local_particle(
             part,
             kn,
             ks,
-            0, // is_exit
-            2, // order
-            0  // min_order
+            /* k_order */ 1,
+            /* knl */ NULL,
+            /* ksl */ NULL,
+            /* kl_order */ -1,
+            length,
+            /* is_exit */ 0,
+            /* min_order */ 0
         );
         //end_per_particle_block
     }

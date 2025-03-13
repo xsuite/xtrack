@@ -13,6 +13,7 @@ void ThinSliceOctupoleEntry_track_local_particle(
 ) {
 
     const int64_t edge_entry_active = ThinSliceOctupoleEntryData_get__parent_edge_entry_active(el);
+    const double length = ThinSliceOctupoleEntryData_get__parent_length(el);
 
     if (edge_entry_active){
 
@@ -27,9 +28,13 @@ void ThinSliceOctupoleEntry_track_local_particle(
             part,
             kn,
             ks,
-            0, // is_exit
-            4, // order
-            0  // min_order
+            /* k_order */ 3,
+            /* knl */ NULL,
+            /* ksl */ NULL,
+            /* kl_order */ -1,
+            length,
+            /* is_exit */ 0,
+            /* min_order */ 0
         );
         //end_per_particle_block
     }

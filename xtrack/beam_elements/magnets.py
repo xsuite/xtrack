@@ -300,21 +300,38 @@ class MagnetEdge(BeamElement):
         Model to be used for the edge. It can be 'linear', 'full' or 'suppress'.
         Default is 'linear'.
         account.
-    side : str
-        Side of the bend on which the edge is located. It can be 'entry' or
-        'exit'. Default is 'entry'.
-    k0 : float
-        Dipole edge strength in 1/m.
-    face_angle : float
-        Face angle in rad.
+    is_exit : bool
+        If False, the edge is a entrance edge. If True, the edge is an exit edge.
+    kn : list of floats
+        List of normal multipolar strengths. If not provided, will be filled
+        with zeros according to ``k_order``.
+    ks : list of floats
+        List of skew multipolar strengths. If not provided, will be filled
+        with zeros according to ``k_order``.
+    k_order : int
+        Order of kn and ks. If not provided, will either be inferred from kn
+        and/or ks or set to -1.
+    knl : list of floats
+        List of integrated normal strengths. If not provided, will be filled
+        with zeros according to ``kl_order``.
+    ksl : list of floats
+        List of integrated skew strengths. If not provided, will be filled
+        with zeros according to ``kl_order``.
+    kl_order : int
+        Order of knl and ksl. If not provided, will either be inferred from
+        knl and/or ksl or set to -1.
+    length : float
+        Length of the magnet. Only necessary if integrated strengths are given.
     half_gap : float
         Equivalent gap in m.
-    fringe_integral : float
-        Fringe integral.
+    face_angle : float
+        Face angle in rad.
     face_angle_feed_down : float
         Term added to ``face_angle`` only for the linear mode and only in the
         vertical plane to account for non-zero angle in the closed orbit when
         entering the fringe field (feed down effect).
+    fringe_integral : float
+        Fringe integral.
     """
     isthick = True
     has_backtrack = True
@@ -322,10 +339,14 @@ class MagnetEdge(BeamElement):
     _xofields = {
         'model': xo.Int64,
         'is_exit': xo.Int64,
-        'half_gap': xo.Float64,
         'kn': xo.Float64[:],
         'ks': xo.Float64[:],
-        'order': xo.Int64,
+        'k_order': xo.Field(xo.Int64, default=-1),
+        'knl': xo.Float64[:],
+        'ksl': xo.Float64[:],
+        'kl_order': xo.Field(xo.Int64, default=-1),
+        'length': xo.Float64,
+        'half_gap': xo.Float64,
         'face_angle': xo.Float64,
         'face_angle_feed_down': xo.Float64,
         'fringe_integral': xo.Float64,
@@ -347,8 +368,9 @@ class MagnetEdge(BeamElement):
     ]
 
     _repr_fields = [
-        'model', 'face_angle', 'kn', 'ks', 'order', 'face_angle_feed_down',
-        'fringe_integral', 'half_gap', 'delta_taper',
+        'model', 'is_exit', 'kn', 'ks', 'k_order', 'knl', 'ksl', 'kl_order',
+        'length', 'half_gap', 'face_angle', 'face_angle_feed_down',
+        'fringe_integral', 'delta_taper',
     ]
 
     _INDEX_TO_MODEL = {
@@ -359,16 +381,24 @@ class MagnetEdge(BeamElement):
 
     _MODEL_TO_INDEX = {v: k for k, v in _INDEX_TO_MODEL.items()}
 
-    def __init__(self, order=None, kn: List[float]=None, ks: List[float]=None, **kwargs):
+    def __init__(self, **kwargs):
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
             return
 
         model = kwargs.pop('model', None)
 
-        order = order or DEFAULT_MULTIPOLE_ORDER
-        multipolar_kwargs = _prepare_multipolar_params(order, skip_factorial=True, kn=kn, ks=ks)
-        kwargs.update(multipolar_kwargs)
+        k_order = kwargs.pop('k_order', -1)
+        kn, ks = kwargs.pop('kn', []), kwargs.pop('ks', [])
+        k_multipolar_kwargs = _prepare_multipolar_params(
+            k_order, skip_factorial=True, order_name='k_order', kn=kn, ks=ks)
+        kwargs.update(k_multipolar_kwargs)
+
+        kl_order = kwargs.pop('kl_order', -1)
+        knl, ksl = kwargs.pop('knl', []), kwargs.pop('ksl', [])
+        kl_multipolar_kwargs = _prepare_multipolar_params(
+            kl_order, skip_factorial=True, order_name='kl_order', knl=knl, ksl=ksl)
+        kwargs.update(kl_multipolar_kwargs)
 
         self.xoinitialize(**kwargs)
 
@@ -394,13 +424,16 @@ class MagnetEdge(BeamElement):
         out['model'] = getattr(self, 'model')
 
         # See the comment in Multiple.to_dict about knl/ksl/order dumping
-        if 'knl' in out and np.allclose(out['knl'], 0, atol=1e-16):
-            out.pop('knl', None)
+        for field in ['knl', 'ksl', 'kn', 'ks']:
+            if field in out and np.allclose(out[field], 0, atol=1e-16):
+                out.pop(field, None)
 
-        if 'ksl' in out and np.allclose(out['ksl'], 0, atol=1e-16):
-            out.pop('ksl', None)
+        if self.kl_order != -1 and 'knl' not in out and 'ksl' not in out:
+            out['kl_order'] = self.order
 
-        if self.order != 0 and 'knl' not in out and 'ksl' not in out:
-            out['order'] = self.order
+        if self.k_order != -1 and 'kn' not in out and 'ks' not in out:
+            out['k_order'] = self.order
+
+        out['is_exit'] = bool(out['is_exit'])
 
         return out

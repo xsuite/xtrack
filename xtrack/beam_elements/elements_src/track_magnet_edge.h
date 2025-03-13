@@ -14,17 +14,26 @@ void track_magnet_edge_particles(
     const double half_gap,
     const double* kn,
     const double* ks,
-    const int64_t order,
+    const int64_t k_order,
+    const double* knl,
+    const double* ksl,
+    const int64_t kl_order,
+    const double length,
     const double face_angle,
     const double face_angle_feed_down,
     const double fringe_integral,
     const double delta_taper
 ) {
+    double k0 = 0;
+    if (k_order > -1) k0 += kn[0];
+    if (kl_order > -1) k0 += knl[0] / length;
+    if (is_exit) k0 = -k0;
+
     if (model == 0) {  // Linear model
         // Calculate coefficients for x and y to compute the px and py kicks
         double r21, r43;
         compute_dipole_edge_linear_coefficients(
-            kn[0], face_angle, face_angle_feed_down, half_gap, fringe_integral,
+            k0, face_angle, face_angle_feed_down, half_gap, fringe_integral,
             &r21, &r43
         );
 
@@ -47,10 +56,21 @@ void track_magnet_edge_particles(
             if (should_rotate) YRotation_single_particle((PART), sin_, cos_, tan_)
 
         #define MAGNET_DIPOLE_FRINGE(PART) \
-            DipoleFringe_single_particle((PART), fringe_integral, half_gap, is_exit ? -kn[0] : kn[0])
+            DipoleFringe_single_particle((PART), fringe_integral, half_gap, k0)
 
         #define MAGNET_MULTIPOLE_FRINGE(PART) \
-            MultFringe_track_single_particle((PART), kn, ks, is_exit, order, /* min_order */ 1);
+            MultFringe_track_single_particle( \
+                (PART), \
+                kn, \
+                ks, \
+                k_order, \
+                knl, \
+                ksl, \
+                kl_order, \
+                length, \
+                is_exit, \
+                /* min_order */ 1 \
+            );
 
         #define MAGNET_WEDGE(PART) \
             if (should_rotate) Wedge_single_particle((PART), -face_angle, kn[0])
