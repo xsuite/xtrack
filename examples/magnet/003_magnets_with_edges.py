@@ -7,7 +7,7 @@ bb = xt.Bend(h=0.1, k0=0.11, length=2.0,
              edge_entry_hgap=0.04, edge_exit_hgap=0.05,
              edge_entry_fint=0.1, edge_exit_fint=0.2)
 
-bb.edge_entry_active = False
+bb.edge_entry_active = 1
 bb.edge_exit_active = False
 bb.model = 'rot-kick-rot'
 bb.num_multipole_kicks = 10
@@ -17,7 +17,7 @@ mm = Magnet(h=0.1, k0=0.11, length=2.0,
              edge_entry_angle=0.02, edge_exit_angle=0.03,
              edge_entry_hgap=0.04, edge_exit_hgap=0.05,
              edge_entry_fint=0.1, edge_exit_fint=0.2)
-mm.edge_entry_active = False
+mm.edge_entry_active = 1
 mm.edge_exit_active = False
 mm.model = 'rot-kick-rot'
 mm.num_multipole_kicks = 10
