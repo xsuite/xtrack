@@ -275,6 +275,7 @@ void track_magnet_body_single_particle(
 
     #undef MAGNET_KICK
     #undef MAGNET_DRIFT
+    #undef WITH_RADIATION
 
 }
 
@@ -299,7 +300,19 @@ void track_magnet_body_particles(
     double k0s,
     double k1s,
     double k2s,
-    double k3s
+    double k3s,
+    int64_t edge_entry_active,
+    int64_t edge_exit_active,
+    int64_t edge_entry_model,
+    int64_t edge_exit_model,
+    double edge_entry_angle,
+    double edge_exit_angle,
+    double edge_entry_angle_fdown,
+    double edge_exit_angle_fdown,
+    double edge_entry_fint,
+    double edge_exit_fint,
+    double edge_entry_hgap,
+    double edge_exit_hgap
 ) {
 
     double k0_drift, k1_drift, h_drift;

@@ -13,6 +13,8 @@
 #define POW3(X) ((X)*(X)*(X))
 #endif
 
+// This functionality is ported from MAD-NG
+
 /*gpufun*/
 void MultFringe_track_single_particle(
     LocalParticle* part,  // Particle to be tracked
