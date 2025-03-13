@@ -107,7 +107,6 @@ class Magnet(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/magnet.h'),
     ]
 
-
     _depends_on = [RandomUniformAccurate, RandomExponential]
 
     _internal_record_class = SynchrotronRadiationRecord

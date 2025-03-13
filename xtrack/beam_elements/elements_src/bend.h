@@ -90,6 +90,29 @@ void Bend_track_local_particle(
                                     order, inv_factorial_order,
                                     factor_knl_ksl);
 
+    // track_magnet_body_particles(
+    //     part0,
+    //     length,
+    //     order,
+    //     inv_factorial_order,
+    //     knl,
+    //     ksl,
+    //     factor_knl_ksl,
+    //     num_multipole_kicks,
+    //     model,
+    //     integrator,
+    //     radiation_flag,
+    //     h,
+    //     k0,
+    //     k1,
+    //     0, // k2
+    //     0, // k3
+    //     0, // k0s
+    //     0, // k1s
+    //     0, // k2s
+    //     0  // k3s
+    // );
+
     // Edge at exit
     #ifdef XSUITE_BACKTRACK
         const int64_t edge_exit_active = BendData_get_edge_entry_active(el);

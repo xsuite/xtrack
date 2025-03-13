@@ -715,6 +715,8 @@ class _BendCommon:
         'angle': xo.Float64,
         'length': xo.Float64,
         'model': xo.Int64,
+        'integrator': xo.Int64,
+        'radiation_flag': xo.Int64,
         'edge_entry_active': xo.Field(xo.Int64, default=1),
         'edge_exit_active': xo.Field(xo.Int64, default=1),
         'edge_entry_model': xo.Int64,
@@ -970,7 +972,16 @@ class Bend(_BendCommon, BeamElement):
     _xofields = _BendCommon._common_xofields
     _rename = _BendCommon._common_rename
 
+    _depends_on = [RandomUniformAccurate, RandomExponential]
+
+    _internal_record_class = SynchrotronRadiationRecord
+
     _extra_c_sources = _BendCommon._common_c_sources + [
+        _pkg_root.joinpath('headers/synrad_spectrum.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_drift.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_kick.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_radiation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet.h'),
         _pkg_root.joinpath('beam_elements/elements_src/bend.h'),
     ]
 
