@@ -2839,7 +2839,7 @@ def _prepare_multipolar_params(
 ):
     order = order or 0
 
-    lengths = [len(kwarg or []) for kwarg in kwargs.values()]
+    lengths = [len(kwarg) if kwarg is not None else 0 for kwarg in kwargs.values()]
 
     target_len = max((order + 1), *lengths)
     assert target_len > 0

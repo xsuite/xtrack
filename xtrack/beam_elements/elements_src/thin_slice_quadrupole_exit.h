@@ -29,7 +29,7 @@ void ThinSliceQuadrupoleExit_track_local_particle(
             ks,
             1, // is_exit
             2, // order
-            0, // min_order
+            0 // min_order
         );
         //end_per_particle_block
     }

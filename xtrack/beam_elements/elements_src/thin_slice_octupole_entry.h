@@ -33,7 +33,6 @@ void ThinSliceOctupoleEntry_track_local_particle(
         );
         //end_per_particle_block
     }
-
 }
 
 #endif

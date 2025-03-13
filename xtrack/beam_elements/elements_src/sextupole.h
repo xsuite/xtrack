@@ -49,14 +49,14 @@ void Sextupole_track_local_particle(
     #define SEXT_DRIFT(pp, ww) \
         Drift_single_particle(pp, ((length) * (ww)))
 
-    #define SEXT_FRINGE(part, side)\
-        MultFringe_track_single_particle(\
-            part,\
-            combined_kn,\
-            combined_ks,\
-            side,\
-            3,\
-            0\
+    #define SEXT_FRINGE(part, side) \
+        MultFringe_track_single_particle( \
+            part, \
+            combined_kn, \
+            combined_ks, \
+            side, \
+            3, \
+            0 \
         )
 
     // TEAPOT weights
