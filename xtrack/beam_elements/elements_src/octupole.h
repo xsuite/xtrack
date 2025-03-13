@@ -54,9 +54,13 @@ void Octupole_track_local_particle(
             part, \
             combined_kn, \
             combined_ks, \
+            /* k_order */ 3, \
+            /* knl */ NULL, \
+            /* ksl */ NULL, \
+            /* kl_order */ -1, \
+            length, \
             side, \
-            4, \
-            0 \
+            /* min_order */ 0 \
         )
 
     // TEAPOT weights

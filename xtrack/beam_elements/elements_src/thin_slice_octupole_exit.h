@@ -13,6 +13,7 @@ void ThinSliceOctupoleExit_track_local_particle(
 ) {
 
     const int64_t edge_exit_active = ThinSliceOctupoleExitData_get__parent_edge_exit_active(el);
+    const double length = ThinSliceOctupoleExitData_get__parent_length(el);
 
     if (edge_exit_active){
 
@@ -26,10 +27,14 @@ void ThinSliceOctupoleExit_track_local_particle(
         MultFringe_track_single_particle(
             part,
             kn,
-            ks,
-            1, // is_exit
-            4, // order
-            0  // min_order
+            ks, \
+            /* k_order */ 3,
+            /* knl */ NULL,
+            /* ksl */ NULL,
+            /* kl_order */ -1,
+            length,
+            /* is_exit */ 1,
+            /* min_order */ 0
         );
         //end_per_particle_block
     }

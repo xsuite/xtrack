@@ -53,10 +53,14 @@ void Quadrupole_from_params_track_local_particle(
         MultFringe_track_single_particle(
             part,
             combined_kn,
-            combined_ks,
-            0, // is_exit
-            2, // order
-            0  // min_order
+            combined_ks, \
+            /* k_order */ 1, \
+            /* knl */ NULL,
+            /* ksl */ NULL,
+            /* kl_order */ -1,
+            length,
+            /* is_exit */ 0, \
+            /* min_order */ 0 \
         );
         //end_per_particle_block
     }
@@ -93,10 +97,14 @@ void Quadrupole_from_params_track_local_particle(
         MultFringe_track_single_particle(
             part,
             combined_kn,
-            combined_ks,
-            1, // is_exit
-            2, // order
-            0  // min_order
+            combined_ks, \
+            /* k_order */ 1, \
+            /* knl */ NULL,
+            /* ksl */ NULL,
+            /* kl_order */ -1,
+            length,
+            /* is_exit */ 1, \
+            /* min_order */ 0 \
         );
         //end_per_particle_block
     }

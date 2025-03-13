@@ -16,13 +16,17 @@
 /*gpufun*/
 void MultFringe_track_single_particle(
     LocalParticle* part,  // Particle to be tracked
-    const double* kn,  // Normal quadrupole component(s); array of length `order`
-    const double* ks,  // Skew quadrupole component(s); array of length `order`
+    const double* kn,  // Normal components; array of length `order`
+    const double* ks,  // Skew components; array of length `order`
+    int64_t k_order,  // Order components
+    const double* knl,  // Second set of normal components; array of length kl_order
+    const double* ksl,  // Second set of skey components; array of length kl_order
+    int64_t kl_order,  // Order of the fringe
+    const double length, // Effective length of the magnet corresponding to knl, ksl
     const uint8_t is_exit,  // If truthy it's the exit fringe, otherwise the entry
-    uint32_t order,  // Order of the fringe
-    uint32_t min_order  // Minimum order of the fringe, ignore the lower components
+    uint64_t min_order  // Minimum order of the fringe, ignore the lower components
 ) {
-    if (order == 0) return;
+    if (k_order == -1 && kl_order == -1) return;
 
      #ifdef XSUITE_BACKTRACK
         LocalParticle_kill_particle(part, -32);
@@ -53,7 +57,9 @@ void MultFringe_track_single_particle(
     double fyx = 0;
     double fyy = 0;
 
-    for (uint32_t ii = 0; ii < order; ii++)
+    uint32_t order = (k_order > kl_order) ? k_order : kl_order;
+
+    for (uint32_t ii = 0; ii <= order; ii++)
     {
         double component = ii + 1;
         double drx = rx;
@@ -61,10 +67,24 @@ void MultFringe_track_single_particle(
         rx = drx * x - dix * y;
         ix = drx * y + dix * x;
 
+        double kn_total = 0;
+        double ks_total = 0;
+
+        if (ii >= min_order) {
+            if (ii <= k_order) {
+                kn_total += kn[ii];
+                ks_total += ks[ii];
+            }
+            if (ii <= kl_order) {
+                kn_total += knl[ii] / length;
+                ks_total += ksl[ii] / length;
+            }
+        }
+
         double nj = -q * direction / (4 * (component + 1));
         double nf = (component + 2) / component;
-        double kj = (ii >= min_order) ? kn[ii] : 0;
-        double ksj = (ii >= min_order) ? ks[ii] : 0;
+        double kj = kn_total;
+        double ksj = ks_total;
         double u, v, du, dv;
 
 

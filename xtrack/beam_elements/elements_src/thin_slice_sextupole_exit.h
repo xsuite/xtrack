@@ -18,6 +18,7 @@ void ThinSliceSextupoleExit_track_local_particle(
 
         double const k2 = ThinSliceSextupoleExitData_get__parent_k2(el);
         double const k2s = ThinSliceSextupoleExitData_get__parent_k2s(el);
+        double const length = ThinSliceSextupoleExitData_get__parent_length(el);
 
         double const kn[3] = {0, 0, k2};
         double const ks[3] = {0, 0, k2s};
@@ -27,9 +28,13 @@ void ThinSliceSextupoleExit_track_local_particle(
             part,
             kn,
             ks,
-            1, // is_exit
-            3, // order
-            0  // min_order
+            /* k_order */ 2,
+            /* knl */ NULL,
+            /* ksl */ NULL,
+            /* kl_order */ -1,
+            length,
+            /* is_exit */ 1,
+            /* min_order */ 0
         );
         //end_per_particle_block
     }

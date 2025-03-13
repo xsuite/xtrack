@@ -2841,6 +2841,7 @@ def _nonzero(val_or_expr):
 def _prepare_multipolar_params(
         order=None,
         skip_factorial=False,
+        order_name='order',
         **kwargs,
 ):
     order = order or 0
@@ -2848,7 +2849,7 @@ def _prepare_multipolar_params(
     lengths = [len(kwarg) if kwarg is not None else 0 for kwarg in kwargs.values()]
 
     target_len = max((order + 1), *lengths)
-    assert target_len > 0
+    assert target_len >= 0
 
     new_kwargs = {}
     for kwarg_name, kwarg in kwargs.items():
@@ -2862,7 +2863,7 @@ def _prepare_multipolar_params(
 
     order = target_len - 1
 
-    new_kwargs['order'] = order
+    new_kwargs[order_name] = order
 
     if not skip_factorial:
         new_kwargs['inv_factorial_order'] = 1.0 / factorial(order, exact=True)
