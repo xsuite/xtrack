@@ -280,7 +280,7 @@ void track_magnet_body_single_particle(
 }
 
 /*gpufun*/
-void track_magnet_body_particles(
+void track_magnet_particles(
     LocalParticle* part0,
     double length,
     int64_t order,
@@ -351,6 +351,30 @@ void track_magnet_body_particles(
 
     double dp_record_exit, dpx_record_exit, dpy_record_exit;
 
+    if (edge_entry_active){
+
+        double kn[] = {0.0, k1, k2, k3};
+        double ks[] = {0.0, k1s, k2s, k3s};
+
+        track_magnet_edge_particles(
+            part0,
+            edge_entry_model,
+            0, // is_exit
+            edge_entry_hgap,
+            kn,
+            ks,
+            3, // k_order,
+            knl,
+            ksl,
+            order,
+            length,
+            edge_entry_angle,
+            edge_entry_angle_fdown,
+            edge_entry_fint,
+            0 // delta_taper
+        );
+    }
+
     //start_per_particle_block (part0->part)
         track_magnet_body_single_particle(
             part, length, order, inv_factorial_order,
@@ -363,6 +387,29 @@ void track_magnet_body_particles(
             &dp_record_exit, &dpx_record_exit, &dpy_record_exit
         );
     //end_per_particle_block
+
+    if (edge_exit_active){
+        double kn[] = {0.0, k1, k2, k3};
+        double ks[] = {0.0, k1s, k2s, k3s};
+
+        track_magnet_edge_particles(
+            part0,
+            edge_exit_model,
+            1, // is_exit
+            edge_exit_hgap,
+            kn,
+            ks,
+            3, // k_order,
+            knl,
+            ksl,
+            order,
+            length,
+            edge_exit_angle,
+            edge_exit_angle_fdown,
+            edge_exit_fint,
+            0 // delta_taper
+        );
+    }
 
 }
 

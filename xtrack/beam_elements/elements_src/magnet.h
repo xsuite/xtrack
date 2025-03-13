@@ -30,9 +30,22 @@ void Magnet_track_local_particle(
     const int64_t integrator = MagnetData_get_integrator(el);
     const int64_t radiation_flag = MagnetData_get_radiation_flag(el);
 
+    int64_t edge_entry_active = MagnetData_get_edge_entry_active(el);
+    int64_t edge_exit_active = MagnetData_get_edge_exit_active(el);
+    int64_t edge_entry_model = MagnetData_get_edge_entry_model(el);
+    int64_t edge_exit_model = MagnetData_get_edge_exit_model(el);
+    double edge_entry_angle = MagnetData_get_edge_entry_angle(el);
+    double edge_exit_angle = MagnetData_get_edge_exit_angle(el);
+    double edge_entry_angle_fdown = MagnetData_get_edge_entry_angle_fdown(el);
+    double edge_exit_angle_fdown = MagnetData_get_edge_exit_angle_fdown(el);
+    double edge_entry_fint = MagnetData_get_edge_entry_fint(el);
+    double edge_exit_fint = MagnetData_get_edge_exit_fint(el);
+    double edge_entry_hgap = MagnetData_get_edge_entry_hgap(el);
+    double edge_exit_hgap = MagnetData_get_edge_exit_hgap(el);
+
     const double factor_knl_ksl = 1.0;
 
-    track_magnet_body_particles(
+    track_magnet_particles(
         part0,
         length,
         order,
@@ -52,7 +65,19 @@ void Magnet_track_local_particle(
         k0s,
         k1s,
         k2s,
-        k3s
+        k3s,
+        edge_entry_active,
+        edge_exit_active,
+        edge_entry_model,
+        edge_exit_model,
+        edge_entry_angle,
+        edge_exit_angle,
+        edge_entry_angle_fdown,
+        edge_exit_angle_fdown,
+        edge_entry_fint,
+        edge_exit_fint,
+        edge_entry_hgap,
+        edge_exit_hgap
     );
 }
 
