@@ -8,6 +8,19 @@ line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, energy0=7e12)
 line.cycle('ip1', inplace=True)
 line.twiss_default['method'] = '4d'
 
+# see Eq. 47 in https://cds.cern.ch/record/522049/files/lhc-project-report-501.pdf
+class ActionCmin(xt.Action):
+    def __init__(self, line):
+        self.line = line
+    def run(self):
+        tw = self.line.twiss()
+        tt = self.line.get_table(attr=True)
+        k1sl = tt['k1sl']
+        c_min = 1 / (2*np.pi) * np.sum(k1sl * np.sqrt(tw.betx * tw.bety)
+                                * np.exp(1j * 2 * np.pi * (tw.mux - tw.muy)))
+        return {'c_min_re': c_min.real, 'c_min_im': c_min.imag}
+
+act_cmin = ActionCmin(line)
 
 # Circuits in non-ATS arcs
 vary=[xt.VaryList(['kqs.a23b1', 'kqs.a67b1'], step=5e-5),
@@ -21,8 +34,8 @@ opt_re = line.match_knob(knob_name='c_minus_re.b1',
     run=False,
     vary=vary,
     targets=[
-        xt.Target('c_minus_re_0', value=c_min_match, tol=1e-8),
-        xt.Target('c_minus_im_0', value=0,           tol=1e-8),
+        act_cmin.target('c_min_re', value=c_min_match, tol=1e-8),
+        act_cmin.target('c_min_im', value=0, tol=1e-8),
     ])
 opt_re.solve()
 opt_re.generate_knob()
@@ -32,8 +45,8 @@ opt_im = line.match_knob(knob_name='c_minus_im.b1',
     run=False,
     vary=vary,
     targets=[
-        xt.Target('c_minus_re_0', value=0,           tol=1e-8),
-        xt.Target('c_minus_im_0', value=c_min_match, tol=1e-8),
+        act_cmin.target('c_min_re', value=0, tol=1e-8),
+        act_cmin.target('c_min_im', value=c_min_match, tol=1e-8),
     ])
 opt_im.solve()
 opt_im.generate_knob()
