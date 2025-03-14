@@ -30,7 +30,7 @@ void MultFringe_track_single_particle(
 ) {
     if (k_order == -1 && kl_order == -1) return;
 
-     #ifdef XSUITE_BACKTRACK
+    #ifdef XSUITE_BACKTRACK
         LocalParticle_kill_particle(part, -32);
         return;
     #endif
@@ -60,9 +60,11 @@ void MultFringe_track_single_particle(
     double fyy = 0;
 
     uint32_t order = (k_order > kl_order) ? k_order : kl_order;
+    double inv_factorial = 1;
 
     for (uint32_t ii = 0; ii <= order; ii++)
     {
+        if (ii > 1) inv_factorial /= ii;
         double component = ii + 1;
         double drx = rx;
         double dix = ix;
@@ -74,12 +76,12 @@ void MultFringe_track_single_particle(
 
         if (ii >= min_order) {
             if (ii <= k_order) {
-                kn_total += kn[ii];
-                ks_total += ks[ii];
+                kn_total += kn[ii] * inv_factorial;
+                ks_total += ks[ii] * inv_factorial;
             }
             if (ii <= kl_order && length != 0.) {
-                kn_total += knl[ii] / length;
-                ks_total += ksl[ii] / length;
+                kn_total += knl[ii] / length * inv_factorial;
+                ks_total += ksl[ii] / length * inv_factorial;
             }
         }
 

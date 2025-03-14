@@ -165,6 +165,9 @@ class Magnet(BeamElement):
         multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
         kwargs.update(multipolar_kwargs)
 
+        edge_entry_model = kwargs.pop('edge_entry_model', None)
+        edge_exit_model = kwargs.pop('edge_exit_model', None)
+
         self.xoinitialize(**kwargs)
 
         # Calculate length and h in the event length_straight and/or angle given
@@ -177,8 +180,15 @@ class Magnet(BeamElement):
         if self.k0_from_h:
             self.k0 = self.h
 
+        # Trigger properties
         if model is not None:
             self.model = model
+
+        if edge_entry_model is not None:
+            self.edge_entry_model = edge_entry_model
+
+        if edge_exit_model is not None:
+            self.edge_exit_model = edge_exit_model
 
     def set_bend_params(self, length=None, h=None, angle=None):
         length, h, angle = self.compute_bend_params(
