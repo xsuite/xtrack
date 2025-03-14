@@ -251,3 +251,34 @@ xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
+
+# ==============================================================================
+# Test a octupole with non-linear fringes
+
+oo = xt.Octupole(k3=0.3 + 0.02/3., k3s=0.4 - 0.07/3, length=3)
+oo.edge_entry_active = 1
+oo.edge_exit_active = 1
+
+mm = Magnet(k0=0, k3=0.3, k3s=0.4, length=3,
+            knl=[0, 0, 0, 0.02], ksl=[0, 0, 0, -0.07],
+            edge_entry_model='full', edge_exit_model='full',
+            edge_entry_fint=0.1, edge_exit_fint=0.2, # should be ignored
+            edge_entry_hgap=0.04, edge_exit_hgap=0.05) # should be ignored
+mm.edge_entry_active = 1
+mm.edge_exit_active = 1
+mm.model = 'drift-kick-drift-expanded'
+mm.num_multipole_kicks = 1
+mm.integrator = 'uniform'
+
+p_test = p0.copy()
+p_ref = p0.copy()
+
+mm.track(p_test)
+oo.track(p_ref)
+
+xo.assert_allclose(p_test.x, p_ref.x, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.y, p_ref.y, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
