@@ -30,8 +30,6 @@ void MultFringe_track_single_particle(
 ) {
     if (k_order == -1 && kl_order == -1) return;
 
-    printf("MultFringe_track_single_particle\n");
-
      #ifdef XSUITE_BACKTRACK
         LocalParticle_kill_particle(part, -32);
         return;
@@ -109,8 +107,6 @@ void MultFringe_track_single_particle(
         double duy = -component * dv;
         double dvy = component * du;
 
-//        printf("u=%.16e, v=%.16e, du=%.16e, dv=%.16e, ", u, v, du, dv);
-
         fx = fx + u * x + nf * v * y;
         fy = fy + u * y - nf * v * x;
         fxx = fxx + dux * x + nf * dvx * y + u;
@@ -118,10 +114,6 @@ void MultFringe_track_single_particle(
         fxy = fxy + duy * x + nf * (dvy * y + v);
         fyx = fyx + dux * y - nf * (dvx * x + v);
 
-//        printf(
-//            "fx=%.16e, fy=%.16e, fxx=%.16e, fyy=%.16e, fxy=%.16e, fyx=%.16e\n",
-//            fx, fy, fxx, fyy, fxy, fyx
-//        );
     }
 
     double a = 1 - fxx / pz;
