@@ -192,6 +192,8 @@ xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
 
+
+# ==============================================================================
 # Test a quadrupole with non-linear fringes
 
 qq = xt.Quadrupole(k1=0.11, length=3)
@@ -219,19 +221,20 @@ xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
 
+# ==============================================================================
 # Test a sextupole with non-linear fringes
 
-ss = xt.Sextupole(k2=0.11, length=3)
+ss = xt.Sextupole(k2=0.11 + 0.03/3., k2s=0.12 -0.04/3, length=3)
 ss.edge_entry_active = 1
-ss.edge_exit_active = 0
+ss.edge_exit_active = 1
 
-
-mm = Magnet(k0=0, k2=0.11, length=3,
+mm = Magnet(k0=0, k2=0.11, k2s=0.12, length=3,
+            knl=[0, 0, 0.03], ksl=[0, 0, -0.04],
             edge_entry_model='full', edge_exit_model='full',
             edge_entry_fint=0.1, edge_exit_fint=0.2, # should be ignored
             edge_entry_hgap=0.04, edge_exit_hgap=0.05) # should be ignored
 mm.edge_entry_active = 1
-mm.edge_exit_active = 0
+mm.edge_exit_active = 1
 mm.model = 'drift-kick-drift-expanded'
 mm.num_multipole_kicks = 1
 mm.integrator = 'uniform'
