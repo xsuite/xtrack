@@ -47,6 +47,16 @@ xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
 
+line = xt.Line(elements=[mm])
+line.track(p_test, backtrack=True)
+xo.assert_allclose(p_test.s, 0.0, atol=0, rtol=1e-7)
+xo.assert_allclose(p_test.x, p0.x, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.y, p0.y, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.zeta, p0.zeta, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.px, p0.px, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.py, p0.py, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.delta, p0.delta, atol=1e-15, rtol=0)
+
 # Sextupole
 mm.model = 'drift-kick-drift-expanded'
 mm.k2 = 3.
