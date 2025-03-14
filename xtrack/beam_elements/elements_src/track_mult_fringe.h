@@ -30,6 +30,8 @@ void MultFringe_track_single_particle(
 ) {
     if (k_order == -1 && kl_order == -1) return;
 
+    printf("MultFringe_track_single_particle\n");
+
      #ifdef XSUITE_BACKTRACK
         LocalParticle_kill_particle(part, -32);
         return;
@@ -77,7 +79,7 @@ void MultFringe_track_single_particle(
                 kn_total += kn[ii];
                 ks_total += ks[ii];
             }
-            if (ii <= kl_order) {
+            if (ii <= kl_order && length != 0.) {
                 kn_total += knl[ii] / length;
                 ks_total += ksl[ii] / length;
             }

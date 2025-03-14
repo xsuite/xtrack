@@ -27,7 +27,6 @@ void track_magnet_edge_particles(
     double k0 = 0;
     if (k_order > -1) k0 += kn[0];
     if (fabs(length) > 1e-10 && kl_order > -1) k0 += knl[0] / length;
-    if (is_exit) k0 = -k0;
 
     if (model == 0) {  // Linear model
         // Calculate coefficients for x and y to compute the px and py kicks
@@ -51,6 +50,8 @@ void track_magnet_edge_particles(
             cos_ = cos(face_angle);
             tan_ = tan(face_angle);
         }
+
+        if (is_exit) k0 = -k0;
 
         #define MAGNET_Y_ROTATE(PART) \
             if (should_rotate) YRotation_single_particle((PART), sin_, cos_, tan_)
