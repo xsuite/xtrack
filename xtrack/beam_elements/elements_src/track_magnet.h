@@ -350,6 +350,14 @@ void track_magnet_particles(
 
     double dp_record_exit, dpx_record_exit, dpy_record_exit;
 
+    #ifdef XSUITE_BACKTRACK
+        const double core_length = -length;
+        const double factor_knl_ksl = -1;
+    #else
+        const double core_length = length;
+        const double factor_knl_ksl = 1;
+    #endif
+
     if (edge_entry_active){
 
         double kn[] = {k0, k1, k2, k3};
@@ -376,9 +384,9 @@ void track_magnet_particles(
 
     //start_per_particle_block (part0->part)
         track_magnet_body_single_particle(
-            part, length, order, inv_factorial_order,
+            part, core_length, order, inv_factorial_order,
             knl, ksl,
-            1.0, // factor_knl_ksl
+            factor_knl_ksl,
             num_multipole_kicks, kick_rot_frame, drift_model, integrator,
             k0_drift, k1_drift, h_drift,
             k0_kick, k1_kick, h_kick,
