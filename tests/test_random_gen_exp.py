@@ -10,10 +10,11 @@ import numpy as np
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import for_all_test_contexts, fix_random_seed
 
 
 @for_all_test_contexts
+@fix_random_seed(46543143)
 def test_random_generation(test_context):
 
     part = xp.Particles(_context=test_context, p0c=6.5e12, x=[1,2,3])
@@ -59,6 +60,7 @@ def test_random_generation(test_context):
 
 
 @for_all_test_contexts
+@fix_random_seed(187542)
 def test_direct_sampling(test_context):
     n_seeds = 3
     n_samples = 3e6
