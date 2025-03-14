@@ -105,6 +105,8 @@ class Magnet(BeamElement):
     _rename = {
         'order': '_order',
         'model': '_model',
+        'edge_entry_model': '_edge_entry_model',
+        'edge_exit_model': '_edge_exit_model',
         'k0': '_k0',
         'k0_from_h': '_k0_from_h',
         'angle': '_angle',
@@ -295,6 +297,40 @@ class Magnet(BeamElement):
             self._integrator = self._INTEGRATOR_TO_INDEX[value]
         except KeyError:
             raise ValueError(f'Invalid integrator: {value}')
+
+    @property
+    def edge_entry_model(self):
+        return {
+            0: 'linear',
+            1: 'full',
+           -1: 'suppressed',
+        }[self._edge_entry_model]
+
+    @edge_entry_model.setter
+    def edge_entry_model(self, value):
+        assert value in ['linear', 'full', 'suppressed']
+        self._edge_entry_model = {
+            'linear': 0,
+            'full': 1,
+            'suppressed': -1,
+        }[value]
+
+    @property
+    def edge_exit_model(self):
+        return {
+            0: 'linear',
+            1: 'full',
+           -1: 'suppressed',
+        }[self._edge_exit_model]
+
+    @edge_exit_model.setter
+    def edge_exit_model(self, value):
+        assert value in ['linear', 'full', 'suppressed']
+        self._edge_exit_model = {
+            'linear': 0,
+            'full': 1,
+            'suppressed': -1,
+        }[value]
 
 
 class MagnetEdge(BeamElement):

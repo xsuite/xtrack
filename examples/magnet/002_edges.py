@@ -89,8 +89,7 @@ sandwich = [
 ]
 compare(e_test, sandwich)
 
-
 print('==> Linear at exit')
 e_test = MagnetEdge(model='linear', is_exit=True, kn=[3], face_angle=0.1, face_angle_feed_down=0.2, fringe_integral=0.3, half_gap=0.4)
-e_ref = xt.DipoleEdge(model='linear', k=-3, e1=0.1, e1_fd=0.2, fint=0.3, hgap=0.4)
+e_ref = xt.DipoleEdge(model='linear', k=3, e1=0.1, e1_fd=0.2, fint=0.3, hgap=0.4)
 compare(e_test, e_ref)
