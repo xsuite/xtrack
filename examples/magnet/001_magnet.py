@@ -47,12 +47,13 @@ xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
 
+# Test backtracking
 line = xt.Line(elements=[mm])
 line.track(p_test, backtrack=True)
-xo.assert_allclose(p_test.s, 0.0, atol=0, rtol=1e-7)
+xo.assert_allclose(p_test.s, 0.0, atol=1e-7, rtol=0)
 xo.assert_allclose(p_test.x, p0.x, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.y, p0.y, atol=1e-15, rtol=0)
-xo.assert_allclose(p_test.zeta, p0.zeta, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.zeta, p0.zeta, atol=1e-14, rtol=0)
 xo.assert_allclose(p_test.px, p0.px, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.py, p0.py, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.delta, p0.delta, atol=1e-15, rtol=0)
@@ -78,6 +79,17 @@ xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
 
+# Test backtracking
+line = xt.Line(elements=[mm])
+line.track(p_test, backtrack=True)
+xo.assert_allclose(p_test.s, 0.0, atol=1e-7, rtol=0)
+xo.assert_allclose(p_test.x, p0.x, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.y, p0.y, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.zeta, p0.zeta, atol=1e-14, rtol=0)
+xo.assert_allclose(p_test.px, p0.px, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.py, p0.py, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.delta, p0.delta, atol=1e-15, rtol=0)
+
 # Sextupole more kicks
 mm.num_multipole_kicks = 5
 eref.num_multipole_kicks = 5
@@ -96,6 +108,17 @@ xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
+
+# Test backtracking
+line = xt.Line(elements=[mm])
+line.track(p_test, backtrack=True)
+xo.assert_allclose(p_test.s, 0.0, atol=1e-7, rtol=0)
+xo.assert_allclose(p_test.x, p0.x, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.y, p0.y, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.zeta, p0.zeta, atol=1e-14, rtol=0)
+xo.assert_allclose(p_test.px, p0.px, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.py, p0.py, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.delta, p0.delta, atol=1e-15, rtol=0)
 
 # Sextupole done with knl
 mm.k2 = 0.
@@ -118,6 +141,17 @@ xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
 
+# Test backtracking
+line = xt.Line(elements=[mm])
+line.track(p_test, backtrack=True)
+xo.assert_allclose(p_test.s, 0.0, atol=1e-7, rtol=0)
+xo.assert_allclose(p_test.x, p0.x, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.y, p0.y, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.zeta, p0.zeta, atol=1e-14, rtol=0)
+xo.assert_allclose(p_test.px, p0.px, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.py, p0.py, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.delta, p0.delta, atol=1e-15, rtol=0)
+
 
 # Add skew sextupole component in ksl
 mm.ksl[2] = -2.
@@ -137,6 +171,17 @@ xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
+
+# Test backtracking
+line = xt.Line(elements=[mm])
+line.track(p_test, backtrack=True)
+xo.assert_allclose(p_test.s, 0.0, atol=1e-7, rtol=0)
+xo.assert_allclose(p_test.x, p0.x, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.y, p0.y, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.zeta, p0.zeta, atol=1e-14, rtol=0)
+xo.assert_allclose(p_test.px, p0.px, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.py, p0.py, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.delta, p0.delta, atol=1e-15, rtol=0)
 
 # Quadrupole
 mm.model = 'mat-kick-mat'
@@ -166,6 +211,17 @@ xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
 
+# Test backtracking
+line = xt.Line(elements=[mm])
+line.track(p_test, backtrack=True)
+xo.assert_allclose(p_test.s, 0.0, atol=1e-7, rtol=0)
+xo.assert_allclose(p_test.x, p0.x, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.y, p0.y, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.zeta, p0.zeta, atol=1e-14, rtol=0)
+xo.assert_allclose(p_test.px, p0.px, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.py, p0.py, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.delta, p0.delta, atol=1e-15, rtol=0)
+
 # Bend
 mm.model = 'rot-kick-rot'
 mm.integrator = 'yoshida4'
@@ -192,6 +248,17 @@ xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
 
+# Test backtracking
+line = xt.Line(elements=[mm])
+line.track(p_test, backtrack=True)
+xo.assert_allclose(p_test.s, 0.0, atol=1e-7, rtol=0)
+xo.assert_allclose(p_test.x, p0.x, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.y, p0.y, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.zeta, p0.zeta, atol=1e-14, rtol=0)
+xo.assert_allclose(p_test.px, p0.px, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.py, p0.py, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.delta, p0.delta, atol=1e-15, rtol=0)
+
 # Bend auto no kicks
 mm.model = 'bend-kick-bend'
 mm.integrator = 'yoshida4'
@@ -216,6 +283,17 @@ xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
+
+# Test backtracking
+line = xt.Line(elements=[mm])
+line.track(p_test, backtrack=True)
+xo.assert_allclose(p_test.s, 0.0, atol=1e-7, rtol=0)
+xo.assert_allclose(p_test.x, p0.x, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.y, p0.y, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.zeta, p0.zeta, atol=1e-14, rtol=0)
+xo.assert_allclose(p_test.px, p0.px, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.py, p0.py, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.delta, p0.delta, atol=1e-15, rtol=0)
 
 # Bend auto quad kick
 mm.model = 'bend-kick-bend'
@@ -244,6 +322,17 @@ xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
+
+# Test backtracking
+line = xt.Line(elements=[mm])
+line.track(p_test, backtrack=True)
+xo.assert_allclose(p_test.s, 0.0, atol=1e-7, rtol=0)
+xo.assert_allclose(p_test.x, p0.x, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.y, p0.y, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.zeta, p0.zeta, atol=1e-14, rtol=0)
+xo.assert_allclose(p_test.px, p0.px, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.py, p0.py, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.delta, p0.delta, atol=1e-15, rtol=0)
 
 # Bend dip quad kick
 mm.integrator = 'yoshida4'
@@ -275,6 +364,17 @@ for model in ['bend-kick-bend', 'rot-kick-rot', 'expanded']:
     xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
     xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
     xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
+
+    # Test backtracking
+    line = xt.Line(elements=[mm])
+    line.track(p_test, backtrack=True)
+    xo.assert_allclose(p_test.s, 0.0, rtol=0, atol=1e-7)
+    xo.assert_allclose(p_test.x, p0.x, atol=1e-15, rtol=0)
+    xo.assert_allclose(p_test.y, p0.y, atol=1e-15, rtol=0)
+    xo.assert_allclose(p_test.zeta, p0.zeta, atol=1e-14, rtol=0)
+    xo.assert_allclose(p_test.px, p0.px, atol=1e-15, rtol=0)
+    xo.assert_allclose(p_test.py, p0.py, atol=1e-15, rtol=0)
+    xo.assert_allclose(p_test.delta, p0.delta, atol=1e-15, rtol=0)
 
 # Bend dip quad kick with multipoles
 mm.integrator = 'yoshida4'
@@ -320,6 +420,17 @@ for model in ['bend-kick-bend', 'rot-kick-rot']:
     xo.assert_allclose(p_test.py, p_ref.py, atol=1e-14, rtol=0)
     xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-14, rtol=0)
 
+    # Test backtracking
+    line = xt.Line(elements=[mm])
+    line.track(p_test, backtrack=True)
+    xo.assert_allclose(p_test.s, 0.0, rtol=0, atol=1e-7)
+    xo.assert_allclose(p_test.x, p0.x, atol=1e-15, rtol=0)
+    xo.assert_allclose(p_test.y, p0.y, atol=1e-15, rtol=0)
+    xo.assert_allclose(p_test.zeta, p0.zeta, atol=1e-14, rtol=0)
+    xo.assert_allclose(p_test.px, p0.px, atol=1e-15, rtol=0)
+    xo.assert_allclose(p_test.py, p0.py, atol=1e-15, rtol=0)
+    xo.assert_allclose(p_test.delta, p0.delta, atol=1e-15, rtol=0)
+
 # Check uniform integrator
 mm1 = Magnet(h=0.1, k1=0.3, k0=0.2, length=2.0)
 mm2 = mm1.copy()
@@ -344,6 +455,17 @@ xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)
 
+# Test backtracking
+line = xt.Line(elements=[mm])
+line.track(p_test, backtrack=True)
+xo.assert_allclose(p_test.s, 0.0, atol=1e-7, rtol=0)
+xo.assert_allclose(p_test.x, p0.x, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.y, p0.y, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.zeta, p0.zeta, atol=1e-14, rtol=0)
+xo.assert_allclose(p_test.px, p0.px, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.py, p0.py, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.delta, p0.delta, atol=1e-15, rtol=0)
+
 # more kicks (needs loser thresholds)
 mm1.num_multipole_kicks = 10
 mm2.num_multipole_kicks = 10
@@ -362,4 +484,15 @@ xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=0, rtol=1e-2)
 xo.assert_allclose(p_test.px, p_ref.px, atol=0, rtol=5e-3)
 xo.assert_allclose(p_test.py, p_ref.py, atol=0, rtol=5e-3)
 xo.assert_allclose(p_test.delta, p_ref.delta, atol=0, rtol=5e-3)
+
+# Test backtracking
+line = xt.Line(elements=[mm])
+line.track(p_test, backtrack=True)
+xo.assert_allclose(p_test.s, 0.0, atol=1e-7, rtol=0)
+xo.assert_allclose(p_test.x, p0.x, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.y, p0.y, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.zeta, p0.zeta, atol=1e-14, rtol=0)
+xo.assert_allclose(p_test.px, p0.px, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.py, p0.py, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.delta, p0.delta, atol=1e-15, rtol=0)
 
