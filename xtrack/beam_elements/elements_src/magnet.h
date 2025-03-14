@@ -43,8 +43,6 @@ void Magnet_track_local_particle(
     double edge_entry_hgap = MagnetData_get_edge_entry_hgap(el);
     double edge_exit_hgap = MagnetData_get_edge_exit_hgap(el);
 
-    const double factor_knl_ksl = 1.0;
-
     track_magnet_particles(
         part0,
         length,
@@ -52,7 +50,6 @@ void Magnet_track_local_particle(
         inv_factorial_order,
         knl,
         ksl,
-        factor_knl_ksl,
         num_multipole_kicks,
         model,
         integrator,
