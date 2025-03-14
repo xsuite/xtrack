@@ -2,6 +2,9 @@ import xtrack as xt
 import xobjects as xo
 from xtrack.beam_elements.magnets import Magnet
 
+p0 = xt.Particles(kinetic_energy0=50e6,
+                  x=[1e-3, -1e-3], y=2e-3, zeta=1e-2, px=10e-3, py=20e-3, delta=1e-2)
+
 
 # Test entry linear edge alone
 bb = xt.Bend(h=0.1, k0=0.11, length=0,
@@ -24,8 +27,6 @@ mm.edge_exit_active = 0
 mm.model = 'rot-kick-rot'
 mm.num_multipole_kicks = 10
 
-p0 = xt.Particles(kinetic_energy0=50e6,
-                  x=1e-3, y=2e-3, zeta=1e-2, px=10e-3, py=20e-3, delta=1e-2)
 
 p_test = p0.copy()
 p_ref = p0.copy()

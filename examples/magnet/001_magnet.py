@@ -7,7 +7,7 @@ mm = Magnet(length=2.0, k0=0.0, k1=0.0, h=0.0)
 mm.integrator = 'teapot'
 
 p0 = xt.Particles(kinetic_energy0=50e6,
-                  x=1e-3, y=2e-3, zeta=1e-2, px=10e-3, py=20e-3, delta=1e-2)
+                  x=[1e-3, -1e-3], y=2e-3, zeta=1e-2, px=10e-3, py=20e-3, delta=1e-2)
 
 mm.compile_kernels()
 
