@@ -294,6 +294,7 @@ void track_magnet_particles(
     int8_t model,
     int8_t integrator,
     int64_t radiation_flag,
+    double delta_taper,
     double h,
     double k0,
     double k1,

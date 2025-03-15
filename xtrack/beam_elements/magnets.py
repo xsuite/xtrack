@@ -100,6 +100,7 @@ class Magnet(BeamElement):
         'model': xo.Int64,
         'integrator': xo.Int64,
         'radiation_flag': xo.Int64,
+        'delta_taper': xo.Float64,
     }
 
     _rename = {

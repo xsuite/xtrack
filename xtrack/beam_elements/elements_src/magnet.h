@@ -29,6 +29,7 @@ void Magnet_track_local_particle(
     const int64_t model = MagnetData_get_model(el);
     const int64_t integrator = MagnetData_get_integrator(el);
     const int64_t radiation_flag = MagnetData_get_radiation_flag(el);
+    const double delta_taper = MagnetData_get_delta_taper(el);
 
     int64_t edge_entry_active = MagnetData_get_edge_entry_active(el);
     int64_t edge_exit_active = MagnetData_get_edge_exit_active(el);
@@ -54,6 +55,7 @@ void Magnet_track_local_particle(
         model,
         integrator,
         radiation_flag,
+        delta_taper,
         h,
         k0,
         k1,
