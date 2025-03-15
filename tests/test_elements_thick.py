@@ -144,7 +144,7 @@ def test_combined_function_dipole_expanded(test_context):
     line_thick.build_tracker(_context=test_context)
 
     line_thick.configure_bend_model(core='expanded', num_multipole_kicks=100)
-    assert line_thick['b'].model == 'expanded'
+    assert line_thick['b'].model == 'mat-kick-mat'
     p_test = p0.copy(_context=test_context)
     line_thick.track(p_test)
     p_test.move(_context=xo.context_default)
@@ -622,7 +622,7 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
     elem = line['elem']
 
     # Check that the line has correct values to start with
-    assert elem.model == {False: 'expanded', True: 'full'}[use_true_thick_bends]
+    assert elem.model == {False: 'mat-kick-mat', True: 'full'}[use_true_thick_bends]
 
     # Element:
     xo.assert_allclose(elem.length, 2.0, atol=1e-16)

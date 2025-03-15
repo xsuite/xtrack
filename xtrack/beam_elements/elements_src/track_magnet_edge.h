@@ -95,14 +95,14 @@ void track_magnet_edge_particles(
             //start_per_particle_block (part0->part)
             MAGNET_Y_ROTATE(part);
             MAGNET_DIPOLE_FRINGE(part);
-            MAGNET_MULTIPOLE_FRINGE(part);
+            // MAGNET_MULTIPOLE_FRINGE(part);
             MAGNET_WEDGE(part);
             //end_per_particle_block
         }
         else { // exit
             //start_per_particle_block (part0->part)
             MAGNET_WEDGE(part);
-            MAGNET_MULTIPOLE_FRINGE(part);
+            // MAGNET_MULTIPOLE_FRINGE(part);
             MAGNET_DIPOLE_FRINGE(part);
             MAGNET_Y_ROTATE(part);
             //end_per_particle_block
@@ -110,7 +110,7 @@ void track_magnet_edge_particles(
 
         #undef MAGNET_Y_ROTATE
         #undef MAGNET_DIPOLE_FRINGE
-        #undef MAGNET_MULTIPOLE_FRINGE
+        // #undef MAGNET_MULTIPOLE_FRINGE
         #undef MAGNET_WEDGE
     }
     // If model is not 0 or 1, do nothing
