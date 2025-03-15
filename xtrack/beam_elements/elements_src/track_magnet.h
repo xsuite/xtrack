@@ -318,11 +318,51 @@ void track_magnet_particles(
     double edge_exit_hgap
 ) {
 
-    double k0_drift, k1_drift, h_drift;
-    double k0_kick, k1_kick, h_kick;
-    int8_t kick_rot_frame;
-    int8_t drift_model;
+    // Backtracking
+    #ifdef XSUITE_BACKTRACK
+        const double core_length = -length;
+        double factor_knl_ksl_body = -1.;
+        double factor_knl_ksl_edge = 1.; // Edge has a specific factor for backtracking
+        const double factor_backtrack_edge = -1.;
+        SWAP(edge_entry_active, edge_exit_active);
+        SWAP(edge_entry_model, edge_exit_model);
+        SWAP(edge_entry_angle, edge_exit_angle);
+        SWAP(edge_entry_angle_fdown, edge_exit_angle_fdown);
+        SWAP(edge_entry_fint, edge_exit_fint);
+        SWAP(edge_entry_hgap, edge_exit_hgap)
+    #else
+        const double core_length = length;
+        double factor_knl_ksl_body = 1.;
+        double factor_knl_ksl_edge = 1.;
+        const double factor_backtrack_edge = 1.;
+    #endif
 
+    // Tapering
+    #ifdef XTRACK_MULTIPOLE_TAPER // Computing the tapering
+        part0->ipart = 0;
+        delta_taper = LocalParticle_get_delta(part0); // I can use part0 because
+                                                      // there is only one particle
+                                                      // when doing the tapering
+    #else
+        #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+            if (radiation_flag){
+                // knl and ksl are scaled by the called functions below using factor_knl_ksl
+                factor_knl_ksl_body *= (1. + delta_taper);
+                factor_knl_ksl_edge *= (1. + delta_taper);
+                // k0, k1, k2, k3, k0s, k1s, k2s, k3s are scaled directly here
+                k0 *= (1 + delta_taper);
+                k1 *= (1 + delta_taper);
+                k2 *= (1 + delta_taper);
+                k3 *= (1 + delta_taper);
+                k0s *= (1 + delta_taper);
+                k1s *= (1 + delta_taper);
+                k2s *= (1 + delta_taper);
+                k3s *= (1 + delta_taper);
+            }
+        #endif
+    #endif
+
+    // Compute the number of kicks for auto mode
     if (num_multipole_kicks == 0) { // num_multipole_kicks = 0 means auto mode
         // If there are active kicks the number of kicks is guessed. Otherwise,
         // only the drift is performed.
@@ -337,6 +377,10 @@ void track_magnet_particles(
         }
     }
 
+    double k0_drift, k1_drift, h_drift;
+    double k0_kick, k1_kick, h_kick;
+    int8_t kick_rot_frame;
+    int8_t drift_model;
     configure_tracking_model(
         model,
         k0,
@@ -354,21 +398,6 @@ void track_magnet_particles(
 
     double dp_record_exit, dpx_record_exit, dpy_record_exit;
 
-    #ifdef XSUITE_BACKTRACK
-        const double core_length = -length;
-        const double factor_knl_ksl_body = -1.;
-        const double factor_backtrack_edge = -1.;
-        SWAP(edge_entry_active, edge_exit_active);
-        SWAP(edge_entry_model, edge_exit_model);
-        SWAP(edge_entry_angle, edge_exit_angle);
-        SWAP(edge_entry_angle_fdown, edge_exit_angle_fdown);
-        SWAP(edge_entry_fint, edge_exit_fint);
-        SWAP(edge_entry_hgap, edge_exit_hgap)
-    #else
-        const double core_length = length;
-        const double factor_knl_ksl_body = 1.;
-        const double factor_backtrack_edge = 1.;
-    #endif
 
     if (edge_entry_active){
 
@@ -385,7 +414,7 @@ void track_magnet_particles(
             3, // k_order,
             knl,
             ksl,
-            1.0, // factor_knl_ksl
+            factor_knl_ksl_edge,
             order,
             length,
             edge_entry_angle,
@@ -423,7 +452,7 @@ void track_magnet_particles(
             3, // k_order,
             knl,
             ksl,
-            1.0, // factor_knl_ksl
+            factor_knl_ksl_edge,
             order,
             length,
             edge_exit_angle,
