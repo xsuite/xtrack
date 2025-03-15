@@ -22,7 +22,8 @@ void track_magnet_edge_particles(
     const double face_angle,
     const double face_angle_feed_down,
     const double fringe_integral,
-    const double delta_taper
+    const double delta_taper,
+    const double factor_for_backtrack // -1 for backtracking, 1 for forward tracking
 ) {
     double k0 = 0;
     if (k_order > -1) k0 += kn[0];
@@ -36,12 +37,22 @@ void track_magnet_edge_particles(
             &r21, &r43
         );
 
+        r21 = r21 * factor_for_backtrack;
+        r43 = r43 * factor_for_backtrack;
+
         //start_per_particle_block (part0->part)
             DipoleEdgeLinear_single_particle(part, r21, r43);
         //end_per_particle_block
         return;
     }
     else if (model == 1) { // Full model
+
+        if (factor_for_backtrack < 0) {
+            //start_per_particle_block (part0->part)
+                LocalParticle_kill_particle(part, -32);
+            //end_per_particle_block
+        }
+
         uint8_t should_rotate = 0;
         double sin_ = 0, cos_ = 1, tan_ = 0;
         if (fabs(face_angle) > 10e-10) {

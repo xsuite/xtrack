@@ -8,6 +8,9 @@
 
 #define H_TOLERANCE (1e-8)
 
+#ifndef SWAP
+    #define SWAP(a, b) { double tmp = a; a = b; b = tmp; }
+#endif
 
 
 /*gpufun*/
@@ -352,10 +355,18 @@ void track_magnet_particles(
 
     #ifdef XSUITE_BACKTRACK
         const double core_length = -length;
-        const double factor_knl_ksl = -1;
+        const double factor_knl_ksl = -1.;
+        const double factor_backtrack_edge = -1.;
+        SWAP(edge_entry_active, edge_exit_active);
+        SWAP(edge_entry_model, edge_exit_model);
+        SWAP(edge_entry_angle, edge_exit_angle);
+        SWAP(edge_entry_angle_fdown, edge_exit_angle_fdown);
+        SWAP(edge_entry_fint, edge_exit_fint);
+        SWAP(edge_entry_hgap, edge_exit_hgap)
     #else
         const double core_length = length;
-        const double factor_knl_ksl = 1;
+        const double factor_knl_ksl = 1.;
+        const double factor_backtrack_edge = 1.;
     #endif
 
     if (edge_entry_active){
@@ -378,7 +389,8 @@ void track_magnet_particles(
             edge_entry_angle,
             edge_entry_angle_fdown,
             edge_entry_fint,
-            0 // delta_taper
+            0, // delta_taper
+            factor_backtrack_edge
         );
     }
 
@@ -415,7 +427,8 @@ void track_magnet_particles(
             edge_exit_angle,
             edge_exit_angle_fdown,
             edge_exit_fint,
-            0 // delta_taper
+            0, // delta_taper
+            factor_backtrack_edge
         );
     }
 
