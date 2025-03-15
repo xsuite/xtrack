@@ -22,7 +22,6 @@ void MagnetEdge_track_local_particle(MagnetEdgeData el, LocalParticle* part0)
     const double face_angle = MagnetEdgeData_get_face_angle(el);
     const double face_angle_feed_down = MagnetEdgeData_get_face_angle_feed_down(el);
     const double fringe_integral = MagnetEdgeData_get_fringe_integral(el);
-    const double delta_taper = MagnetEdgeData_get_delta_taper(el);
 
     track_magnet_edge_particles(
         part0,
@@ -34,12 +33,13 @@ void MagnetEdge_track_local_particle(MagnetEdgeData el, LocalParticle* part0)
         k_order,
         knl,
         ksl,
+        1.0, // factor_knl_ksl
         kl_order,
         length,
         face_angle,
         face_angle_feed_down,
         fringe_integral,
-        delta_taper
+        1.0 // factor_for_backtrack
     );
 }
 
