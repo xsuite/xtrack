@@ -231,6 +231,7 @@ class ThinSliceBendEntry(BeamElement):
 
     _extra_c_sources = [
         _pkg_root.joinpath('headers/constants.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_nonlinear.h'),
         _pkg_root.joinpath('beam_elements/elements_src/thin_slice_bend_entry.h')]
 
     copy = _slice_copy
