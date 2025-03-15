@@ -384,6 +384,9 @@ void track_magnet_particles(
             else{
                 double b_circum = 2 * 3.14159 / fabs(h);
                 num_multipole_kicks = fabs(length) / b_circum / 0.5e-3; // 0.5 mrad per kick (on average)
+                if (num_multipole_kicks < 1){
+                    num_multipole_kicks = 1;
+                }
             }
         }
     }
