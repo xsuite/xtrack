@@ -196,6 +196,9 @@ void track_magnet_body_single_particle(
         }
     #endif
 
+    // print num_multipole_kicks, model and integrator
+    printf("num_multipole_kicks: %d, drift_model: %d, integrator: %d\n",
+            num_multipole_kicks, drift_model, integrator);
 
     if (num_multipole_kicks == 0) { //only drift
         WITH_RADIATION(length,

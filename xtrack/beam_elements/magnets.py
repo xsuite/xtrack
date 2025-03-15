@@ -6,13 +6,14 @@ import xobjects as xo
 import numpy as np
 
 from xtrack.base_element import BeamElement
-from xtrack.beam_elements.elements import DEFAULT_MULTIPOLE_ORDER, _prepare_multipolar_params, SynchrotronRadiationRecord
 from xtrack.general import _pkg_root
 
 from ..random import RandomUniformAccurate, RandomExponential, RandomNormal
 from ..internal_record import RecordIndex
 
 from typing import List
+
+DEFAULT_MULTIPOLE_ORDER = 5
 
 
 _INDEX_TO_MODEL = {
@@ -34,6 +35,15 @@ _INDEX_TO_INTEGRATOR = {
 }
 _INTEGRATOR_TO_INDEX = {k: v for v, k in _INDEX_TO_INTEGRATOR.items()}
 
+class SynchrotronRadiationRecord(xo.HybridClass):
+    _xofields = {
+        '_index': RecordIndex,
+        'photon_energy': xo.Float64[:],
+        'at_element': xo.Int64[:],
+        'at_turn': xo.Int64[:],
+        'particle_id': xo.Int64[:],
+        'particle_delta': xo.Float64[:]
+        }
 
 class MagnetDrift(BeamElement):
     isthick = True
@@ -154,9 +164,6 @@ class Magnet(BeamElement):
     _depends_on = [RandomUniformAccurate, RandomExponential]
 
     _internal_record_class = SynchrotronRadiationRecord
-
-
-
 
     def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
@@ -493,3 +500,4 @@ class MagnetEdge(BeamElement):
         out['is_exit'] = bool(out['is_exit'])
 
         return out
+

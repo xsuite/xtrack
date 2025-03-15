@@ -16,7 +16,13 @@ from ..random import RandomUniformAccurate, RandomExponential, RandomNormal
 from ..general import _pkg_root
 from ..internal_record import RecordIndex
 
-DEFAULT_MULTIPOLE_ORDER = 5
+from xtrack.beam_elements.magnets import _INDEX_TO_INTEGRATOR
+from xtrack.beam_elements.magnets import _INTEGRATOR_TO_INDEX
+from xtrack.beam_elements.magnets import _MODEL_TO_INDEX
+from xtrack.beam_elements.magnets import _INDEX_TO_MODEL
+from xtrack.beam_elements.magnets import DEFAULT_MULTIPOLE_ORDER
+from xtrack.beam_elements.magnets import SynchrotronRadiationRecord
+
 
 class ReferenceEnergyIncrease(BeamElement):
 
@@ -547,15 +553,7 @@ class ZetaShift(BeamElement):
     _store_in_to_dict = ['dzeta']
 
 
-class SynchrotronRadiationRecord(xo.HybridClass):
-    _xofields = {
-        '_index': RecordIndex,
-        'photon_energy': xo.Float64[:],
-        'at_element': xo.Int64[:],
-        'at_turn': xo.Int64[:],
-        'particle_id': xo.Int64[:],
-        'particle_delta': xo.Float64[:]
-        }
+
 
 
 class Multipole(BeamElement):
