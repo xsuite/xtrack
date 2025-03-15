@@ -501,3 +501,35 @@ class MagnetEdge(BeamElement):
 
         return out
 
+
+def _prepare_multipolar_params(
+        order=None,
+        skip_factorial=False,
+        order_name='order',
+        **kwargs,
+):
+    order = order or 0
+
+    lengths = [len(kwarg) if kwarg is not None else 0 for kwarg in kwargs.values()]
+
+    target_len = max((order + 1), *lengths)
+    assert target_len >= 0
+
+    new_kwargs = {}
+    for kwarg_name, kwarg in kwargs.items():
+        new_kwarg = np.zeros(target_len, dtype=np.float64)
+        new_kwargs[kwarg_name] = new_kwarg
+        if kwarg is None:
+            continue
+        if hasattr(kwarg, 'get'):
+            kwarg = kwarg.get()
+        new_kwarg[: len(kwarg)] = np.array(kwarg)
+
+    order = target_len - 1
+
+    new_kwargs[order_name] = order
+
+    if not skip_factorial:
+        new_kwargs['inv_factorial_order'] = 1.0 / factorial(order, exact=True)
+
+    return new_kwargs
