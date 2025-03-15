@@ -14,4 +14,4 @@ line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, energy0=7e12)
 p_test = line.build_particles(x=0)
 line['mbw.a6r7.b1'].track(p_test)
 
-p_test.x, p_test.px
+print(p_test.x, p_test.px)
