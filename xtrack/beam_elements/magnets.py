@@ -15,6 +15,26 @@ from ..internal_record import RecordIndex
 from typing import List
 
 
+_INDEX_TO_MODEL = {
+    0: 'adaptive',
+    1: 'full',
+    2: 'bend-kick-bend',
+    3: 'rot-kick-rot',
+    4: 'mat-kick-mat',
+    5: 'drift-kick-drift-exact',
+    6: 'drift-kick-drift-expanded',
+}
+_MODEL_TO_INDEX = {k: v for v, k in _INDEX_TO_MODEL.items()} | {'expanded': 4}
+
+_INDEX_TO_INTEGRATOR = {
+    0: 'adaptive',
+    1: 'teapot',
+    2: 'yoshida4',
+    3: 'uniform',
+}
+_INTEGRATOR_TO_INDEX = {k: v for v, k in _INDEX_TO_INTEGRATOR.items()}
+
+
 class MagnetDrift(BeamElement):
     isthick = True
     has_backtrack = True
@@ -135,24 +155,7 @@ class Magnet(BeamElement):
 
     _internal_record_class = SynchrotronRadiationRecord
 
-    _INDEX_TO_MODEL = {
-        0: 'adaptive',
-        1: 'full',
-        2: 'bend-kick-bend',
-        3: 'rot-kick-rot',
-        4: 'mat-kick-mat',
-        5: 'drift-kick-drift-exact',
-        6: 'drift-kick-drift-expanded',
-    }
-    _MODEL_TO_INDEX = {k: v for v, k in _INDEX_TO_MODEL.items()} | {'expanded': 4}
 
-    _INDEX_TO_INTEGRATOR = {
-        0: 'adaptive',
-        1: 'teapot',
-        2: 'yoshida4',
-        3: 'uniform',
-    }
-    _INTEGRATOR_TO_INDEX = {k: v for v, k in _INDEX_TO_INTEGRATOR.items()}
 
 
     def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
@@ -289,23 +292,23 @@ class Magnet(BeamElement):
 
     @property
     def model(self):
-        return self._INDEX_TO_MODEL[self._model]
+        return _INDEX_TO_MODEL[self._model]
 
     @model.setter
     def model(self, value):
         try:
-            self._model = self._MODEL_TO_INDEX[value]
+            self._model = _MODEL_TO_INDEX[value]
         except KeyError:
             raise ValueError(f'Invalid model: {value}')
 
     @property
     def integrator(self):
-        return self._INDEX_TO_INTEGRATOR[self._integrator]
+        return _INDEX_TO_INTEGRATOR[self._integrator]
 
     @integrator.setter
     def integrator(self, value):
         try:
-            self._integrator = self._INTEGRATOR_TO_INDEX[value]
+            self._integrator = _INTEGRATOR_TO_INDEX[value]
         except KeyError:
             raise ValueError(f'Invalid integrator: {value}')
 

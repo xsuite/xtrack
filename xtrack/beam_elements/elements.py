@@ -717,6 +717,7 @@ class _BendCommon:
         'model': xo.Int64,
         'integrator': xo.Int64,
         'radiation_flag': xo.Int64,
+        'delta_taper': xo.Float64,
         'edge_entry_active': xo.Field(xo.Int64, default=1),
         'edge_exit_active': xo.Field(xo.Int64, default=1),
         'edge_entry_model': xo.Int64,
@@ -810,25 +811,25 @@ class _BendCommon:
 
     @property
     def model(self):
-        return {
-            0: 'adaptive',
-            1: 'full',  # same as adaptive (for backward compatibility)
-            2: 'bend-kick-bend',
-            3: 'rot-kick-rot',
-            4: 'expanded'
-        }[self._model]
+        return xt.beam_elements.magnets._INDEX_TO_MODEL[self._model]
 
     @model.setter
     def model(self, value):
-        assert value in ['adaptive', 'full', 'bend-kick-bend',
-                            'rot-kick-rot', 'expanded']
-        self._model = {
-            'adaptive': 0,
-            'full': 1,
-            'bend-kick-bend': 2,
-            'rot-kick-rot': 3,
-            'expanded': 4
-        }[value]
+        try:
+            self._model = xt.beam_elements.magnets._MODEL_TO_INDEX[value]
+        except KeyError:
+            raise ValueError(f'Invalid model: {value}')
+
+    @property
+    def integrator(self):
+        return xt.beam_elements.magnets._INDEX_TO_INTEGRATOR[self._integrator]
+
+    @integrator.setter
+    def integrator(self, value):
+        try:
+            self._integrator = xt.beam_elements.magnets._INTEGRATOR_TO_INDEX[value]
+        except KeyError:
+            raise ValueError(f'Invalid integrator: {value}')
 
     @property
     def edge_entry_model(self):
@@ -863,7 +864,6 @@ class _BendCommon:
             'full': 1,
             'suppressed': -1,
         }[value]
-
 
     @property
     def _repr_fields(self):
@@ -975,8 +975,18 @@ class Bend(_BendCommon, BeamElement):
 
     _internal_record_class = SynchrotronRadiationRecord
 
-    _extra_c_sources = _BendCommon._common_c_sources + [
+    _extra_c_sources = [
         _pkg_root.joinpath('headers/synrad_spectrum.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_edge.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_drift.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_kick.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_radiation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet.h'),
         _pkg_root.joinpath('beam_elements/elements_src/bend.h'),
     ]
 
