@@ -356,7 +356,7 @@ void track_magnet_particles(
 
     #ifdef XSUITE_BACKTRACK
         const double core_length = -length;
-        const double factor_knl_ksl = -1.;
+        const double factor_knl_ksl_body = -1.;
         const double factor_backtrack_edge = -1.;
         SWAP(edge_entry_active, edge_exit_active);
         SWAP(edge_entry_model, edge_exit_model);
@@ -366,7 +366,7 @@ void track_magnet_particles(
         SWAP(edge_entry_hgap, edge_exit_hgap)
     #else
         const double core_length = length;
-        const double factor_knl_ksl = 1.;
+        const double factor_knl_ksl_body = 1.;
         const double factor_backtrack_edge = 1.;
     #endif
 
@@ -385,6 +385,7 @@ void track_magnet_particles(
             3, // k_order,
             knl,
             ksl,
+            1.0, // factor_knl_ksl
             order,
             length,
             edge_entry_angle,
@@ -398,7 +399,7 @@ void track_magnet_particles(
         track_magnet_body_single_particle(
             part, core_length, order, inv_factorial_order,
             knl, ksl,
-            factor_knl_ksl,
+            factor_knl_ksl_body,
             num_multipole_kicks, kick_rot_frame, drift_model, integrator,
             k0_drift, k1_drift, h_drift,
             k0_kick, k1_kick, h_kick,
@@ -422,6 +423,7 @@ void track_magnet_particles(
             3, // k_order,
             knl,
             ksl,
+            1.0, // factor_knl_ksl
             order,
             length,
             edge_exit_angle,

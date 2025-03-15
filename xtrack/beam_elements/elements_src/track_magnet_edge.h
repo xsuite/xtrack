@@ -17,6 +17,7 @@ void track_magnet_edge_particles(
     const int64_t k_order,
     const double* knl,
     const double* ksl,
+    const double factor_knl_ksl,
     const int64_t kl_order,
     const double length,
     const double face_angle,
@@ -26,7 +27,7 @@ void track_magnet_edge_particles(
 ) {
     double k0 = 0;
     if (k_order > -1) k0 += kn[0];
-    if (fabs(length) > 1e-10 && kl_order > -1) k0 += knl[0] / length;
+    if (fabs(length) > 1e-10 && kl_order > -1) k0 += factor_knl_ksl * knl[0] / length;
 
     if (model == 0) {  // Linear model
         // Calculate coefficients for x and y to compute the px and py kicks
@@ -78,10 +79,14 @@ void track_magnet_edge_particles(
                 knl, \
                 ksl, \
                 kl_order, \
-                length, \
+                length / factor_knl_ksl, \
                 is_exit, \
                 /* min_order */ 1 \
             );
+        // Above, I use the length to rescale knl and ksl. Here I am relying on
+        // the fact that the length is only used to obtain kn and ks in
+        // MultFringe_track_single_particle. To be remembered if the fringe
+        // model changes!
 
         #define MAGNET_WEDGE(PART) \
             if (should_rotate) Wedge_single_particle((PART), -face_angle, kn[0])
