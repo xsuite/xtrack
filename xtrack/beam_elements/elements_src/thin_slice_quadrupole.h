@@ -48,7 +48,7 @@ void ThinSliceQuadrupole_track_local_particle(
     double dpy_record_exit = 0.;
 
     #ifdef XTRACK_MULTIPOLE_NO_SYNRAD
-    #define delta_taper (0)
+        double const delta_taper = 0.0;
     #else
         double delta_taper = ThinSliceQuadrupoleData_get_delta_taper(el);
     #endif

@@ -36,7 +36,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
     double dpy_record_exit = 0.;
 
     #ifdef XTRACK_MULTIPOLE_NO_SYNRAD
-    #define delta_taper (0)
+        double const delta_taper = 0.0;
     #else
         double delta_taper = MultipoleData_get_delta_taper(el);
     #endif

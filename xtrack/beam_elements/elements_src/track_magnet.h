@@ -8,8 +8,8 @@
 
 #define H_TOLERANCE (1e-8)
 
-#ifndef SWAP
-    #define SWAP(a, b) { double tmp = a; a = b; b = tmp; }
+#ifndef VSWAP
+    #define VSWAP(a, b) { double tmp = a; a = b; b = tmp; }
 #endif
 
 
@@ -335,12 +335,12 @@ void track_magnet_particles(
         double factor_knl_ksl_body = -1.;
         double factor_knl_ksl_edge = 1.; // Edge has a specific factor for backtracking
         const double factor_backtrack_edge = -1.;
-        SWAP(edge_entry_active, edge_exit_active);
-        SWAP(edge_entry_model, edge_exit_model);
-        SWAP(edge_entry_angle, edge_exit_angle);
-        SWAP(edge_entry_angle_fdown, edge_exit_angle_fdown);
-        SWAP(edge_entry_fint, edge_exit_fint);
-        SWAP(edge_entry_hgap, edge_exit_hgap)
+        VSWAP(edge_entry_active, edge_exit_active);
+        VSWAP(edge_entry_model, edge_exit_model);
+        VSWAP(edge_entry_angle, edge_exit_angle);
+        VSWAP(edge_entry_angle_fdown, edge_exit_angle_fdown);
+        VSWAP(edge_entry_fint, edge_exit_fint);
+        VSWAP(edge_entry_hgap, edge_exit_hgap)
     #else
         const double core_length = length;
         double factor_knl_ksl_body = 1.;
