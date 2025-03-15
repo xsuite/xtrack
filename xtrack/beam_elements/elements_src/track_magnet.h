@@ -390,7 +390,6 @@ void track_magnet_particles(
             edge_entry_angle,
             edge_entry_angle_fdown,
             edge_entry_fint,
-            0, // delta_taper
             factor_backtrack_edge
         );
     }
@@ -428,7 +427,6 @@ void track_magnet_particles(
             edge_exit_angle,
             edge_exit_angle_fdown,
             edge_exit_fint,
-            0, // delta_taper
             factor_backtrack_edge
         );
     }

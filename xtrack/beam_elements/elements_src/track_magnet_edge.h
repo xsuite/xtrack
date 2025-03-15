@@ -22,7 +22,6 @@ void track_magnet_edge_particles(
     const double face_angle,
     const double face_angle_feed_down,
     const double fringe_integral,
-    const double delta_taper,
     const double factor_for_backtrack // -1 for backtracking, 1 for forward tracking
 ) {
     double k0 = 0;
