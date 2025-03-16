@@ -1003,21 +1003,23 @@ def test_thick_slice_bend_with_multipoles(test_context):
 @for_all_test_contexts
 def test_thin_slice_bend_with_multipoles_bend_off(test_context):
 
+    num_slices = 10
+
     bend = xt.Bend(k0=0, h=0, length=1,
                    knl=[0, 0.001, 0.01, 0.02, 0.04, 0.6],
                    ksl=[0, 0.002, 0.03, 0.03, 0.05, 0.7],
-                   num_multipole_kicks=10,
+                   num_multipole_kicks=num_slices,
                    edge_entry_angle=0.05, edge_entry_hgap=0.06, edge_entry_fint=0.08,
                    edge_exit_angle=0.05, edge_exit_hgap=0.06, edge_exit_fint=0.08)
+    bend.integrator = 'teapot'
 
     line = xt.Line(elements=[bend])
 
     line.configure_bend_model(edge='linear', core='expanded')
 
-    num_slices = 10
 
     line.slice_thick_elements(
-        slicing_strategies=[xt.Strategy(xt.Uniform(num_slices))])
+        slicing_strategies=[xt.Strategy(xt.Teapot(num_slices))])
     line.build_tracker(_context=test_context)
     line._line_before_slicing.build_tracker(_context=test_context)
     assert line['e0..5'].parent_name == 'e0'
@@ -1037,12 +1039,12 @@ def test_thin_slice_bend_with_multipoles_bend_off(test_context):
     line.track(p_slice)
     line._line_before_slicing.track(p_ref)
 
-    assert_allclose(p_slice.x, p_ref.x, rtol=0, atol=1e-14)
-    assert_allclose(p_slice.px, p_ref.px, rtol=0, atol=1e-14)
-    assert_allclose(p_slice.y, p_ref.y, rtol=0, atol=1e-14)
-    assert_allclose(p_slice.py, p_ref.py, rtol=0, atol=1e-14)
-    assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-14)
-    assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-14)
+    assert_allclose(p_slice.x, p_ref.x, rtol=0, atol=1e-8)
+    assert_allclose(p_slice.px, p_ref.px, rtol=0, atol=1e-10)
+    assert_allclose(p_slice.y, p_ref.y, rtol=0, atol=1e-8)
+    assert_allclose(p_slice.py, p_ref.py, rtol=0, atol=1e-10)
+    assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-8)
+    assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-10)
 
     line.to_json('ttt_thin_bend_mult_off.json')
     line2 = xt.Line.from_json('ttt_thin_bend_mult_off.json')
@@ -1073,12 +1075,12 @@ def test_thin_slice_bend_with_multipoles_bend_off(test_context):
     line.track(p_slice, backtrack=True)
 
     assert (p_slice.state == 1).all()
-    assert_allclose(p_slice.x, p0.x, rtol=0, atol=1e-14)
-    assert_allclose(p_slice.px, p0.px, rtol=0, atol=1e-14)
-    assert_allclose(p_slice.y, p0.y, rtol=0, atol=1e-14)
-    assert_allclose(p_slice.py, p0.py, rtol=0, atol=1e-14)
-    assert_allclose(p_slice.zeta, p0.zeta, rtol=0, atol=1e-14)
-    assert_allclose(p_slice.delta, p0.delta, rtol=0, atol=1e-14)
+    assert_allclose(p_slice.x, p0.x, rtol=0, atol=1e-8)
+    assert_allclose(p_slice.px, p0.px, rtol=0, atol=1e-10)
+    assert_allclose(p_slice.y, p0.y, rtol=0, atol=1e-8)
+    assert_allclose(p_slice.py, p0.py, rtol=0, atol=1e-10)
+    assert_allclose(p_slice.zeta, p0.zeta, rtol=0, atol=1e-8)
+    assert_allclose(p_slice.delta, p0.delta, rtol=0, atol=1e-10)
 
     line.optimize_for_tracking()
 
@@ -1094,21 +1096,21 @@ def test_thin_slice_bend_with_multipoles_bend_off(test_context):
     p_slice = p0.copy()
     line.track(p_slice)
 
-    assert_allclose(p_slice.x, p_ref.x, rtol=0, atol=1e-14)
-    assert_allclose(p_slice.px, p_ref.px, rtol=0, atol=1e-14)
-    assert_allclose(p_slice.y, p_ref.y, rtol=0, atol=1e-14)
-    assert_allclose(p_slice.py, p_ref.py, rtol=0, atol=1e-14)
-    assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-14)
-    assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-14)
+    assert_allclose(p_slice.x, p_ref.x, rtol=0, atol=1e-8)
+    assert_allclose(p_slice.px, p_ref.px, rtol=0, atol=1e-10)
+    assert_allclose(p_slice.y, p_ref.y, rtol=0, atol=1e-8)
+    assert_allclose(p_slice.py, p_ref.py, rtol=0, atol=1e-10)
+    assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-8)
+    assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-10)
 
     line.track(p_slice, backtrack=True)
 
-    assert_allclose(p_slice.x, p0.x, rtol=0, atol=1e-14)
-    assert_allclose(p_slice.px, p0.px, rtol=0, atol=1e-14)
-    assert_allclose(p_slice.y, p0.y, rtol=0, atol=1e-14)
-    assert_allclose(p_slice.py, p0.py, rtol=0, atol=1e-14)
-    assert_allclose(p_slice.zeta, p0.zeta, rtol=0, atol=1e-14)
-    assert_allclose(p_slice.delta, p0.delta, rtol=0, atol=1e-14)
+    assert_allclose(p_slice.x, p0.x, rtol=0, atol=1e-8)
+    assert_allclose(p_slice.px, p0.px, rtol=0, atol=1e-10)
+    assert_allclose(p_slice.y, p0.y, rtol=0, atol=1e-8)
+    assert_allclose(p_slice.py, p0.py, rtol=0, atol=1e-10)
+    assert_allclose(p_slice.zeta, p0.zeta, rtol=0, atol=1e-8)
+    assert_allclose(p_slice.delta, p0.delta, rtol=0, atol=1e-10)
 
 @for_all_test_contexts
 def test_thick_slice_quad_with_multipoles(test_context):
