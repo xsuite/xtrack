@@ -46,8 +46,8 @@ void track_magnet_kick_single_particle(
     double ksl_main[4] = {k0s, k1s, k2s, k3s};
 
     for (int index = 0; index < 4; index++) {
-        knl_main[index] = chi * knl_main[index] * length;
-        ksl_main[index] = chi * ksl_main[index] * length;
+        knl_main[index] = knl_main[index] * length;
+        ksl_main[index] = ksl_main[index] * length;
     }
 
     // multipolar kick
