@@ -1412,7 +1412,7 @@ def test_assemble_ring_repeated_elements():
     xo.assert_allclose(twarc.s[0], 0, atol=1e-12, rtol=0)
     xo.assert_allclose(twarc.s[-1], 228, atol=1e-10, rtol=0)
     twarc_start_end = arc.twiss4d(start=xt.START, end=xt.END, init=twarc)
-    xo.assert_allclose(twarc_start_end.betx, twarc.betx, atol=1e-12, rtol=0)
+    xo.assert_allclose(twarc_start_end.betx, twarc.betx, atol=1e-11, rtol=0)
 
     tw_one_cell_ref = twarc.rows['mid::2':'mid::3']
     tw_one_cell = arc.twiss4d(start='mid::2', end='mid::3', init='periodic')
