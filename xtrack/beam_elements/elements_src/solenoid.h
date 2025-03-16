@@ -24,9 +24,6 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
         double dp_record_entry = 0.;
         double dpx_record_entry = 0.;
         double dpy_record_entry = 0.;
-        double dp_record_exit = 0.;
-        double dpx_record_exit = 0.;
-        double dpy_record_exit = 0.;
     #endif
 
     int64_t num_multipole_kicks = SolenoidData_get_num_multipole_kicks(el);

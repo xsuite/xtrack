@@ -9,7 +9,6 @@
 /*gpufun*/
 void FirstOrderTaylorMap_track_local_particle(FirstOrderTaylorMapData el, LocalParticle* part0){
 
-    double dpx_record, dpy_record, dp_record;
     //start_per_particle_block (part0->part)
 
         double x0 = LocalParticle_get_x(part);
