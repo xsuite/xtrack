@@ -2883,7 +2883,7 @@ class Line:
             Model to be used for the thick bend cores. Can be 'expanded' or '
             full'.
         edge: str
-            Model to be used for the bend edges. Can be 'linear', 'full'
+            Model to be used for the bend edges. Can be 'linear', 'full', 'dipole-only'
             or 'suppressed'.
         num_multipole_kicks: int
             Number of multipole kicks to consider.
@@ -2893,7 +2893,7 @@ class Line:
                               'rot-kick-rot', 'expanded']:
             raise ValueError(f'Unknown bend model {core}')
 
-        if edge not in [None, 'linear', 'full', 'suppressed']:
+        if edge not in [None, 'linear', 'full', 'dipole-only', 'suppressed']:
             raise ValueError(f'Unknown bend edge model {edge}')
 
         for ee in self.element_dict.values():

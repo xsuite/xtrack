@@ -61,7 +61,7 @@ def test_combined_function_dipole_against_ptc(test_context, k0, k1, k2, length,
     line_thick = ml.make_line()
     line_thick.config.XTRACK_USE_EXACT_DRIFTS = True # to be consistent with mad
     line_thick.build_tracker(_context=test_context)
-    line_thick.configure_bend_model(core=model, edge='full')
+    line_thick.configure_bend_model(core=model, edge='dipole-only')
 
     if use_multipole:
         line_thick['b'].knl[1] = k1 * length

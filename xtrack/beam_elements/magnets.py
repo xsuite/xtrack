@@ -324,15 +324,17 @@ class Magnet(BeamElement):
         return {
             0: 'linear',
             1: 'full',
+            2: 'dipole-only',
            -1: 'suppressed',
         }[self._edge_entry_model]
 
     @edge_entry_model.setter
     def edge_entry_model(self, value):
-        assert value in ['linear', 'full', 'suppressed']
+        assert value in ['linear', 'full', 'suppressed', 'dipole-only']
         self._edge_entry_model = {
             'linear': 0,
             'full': 1,
+            'dipole-only': 2,
             'suppressed': -1,
         }[value]
 

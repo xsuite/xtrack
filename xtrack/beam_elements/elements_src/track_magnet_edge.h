@@ -9,7 +9,7 @@
 /*gpufun*/
 void track_magnet_edge_particles(
     LocalParticle* part0,
-    const int8_t model,  // 0: linear, 1: full
+    const int8_t model,  // 0: linear, 1: full, 2: dipole-only
     const uint8_t is_exit,
     const double half_gap,
     const double* kn,
@@ -45,7 +45,7 @@ void track_magnet_edge_particles(
         //end_per_particle_block
         return;
     }
-    else if (model == 1) { // Full model
+    else if (model == 1 || model == 2) { // Full model
 
         if (factor_for_backtrack < 0) {
             //start_per_particle_block (part0->part)
@@ -95,14 +95,18 @@ void track_magnet_edge_particles(
             //start_per_particle_block (part0->part)
             MAGNET_Y_ROTATE(part);
             MAGNET_DIPOLE_FRINGE(part);
-            // MAGNET_MULTIPOLE_FRINGE(part);
+            if (model == 1){
+                MAGNET_MULTIPOLE_FRINGE(part);
+            }
             MAGNET_WEDGE(part);
             //end_per_particle_block
         }
         else { // exit
             //start_per_particle_block (part0->part)
             MAGNET_WEDGE(part);
-            // MAGNET_MULTIPOLE_FRINGE(part);
+            if (model == 1){
+                MAGNET_MULTIPOLE_FRINGE(part);
+            }
             MAGNET_DIPOLE_FRINGE(part);
             MAGNET_Y_ROTATE(part);
             //end_per_particle_block
@@ -110,7 +114,7 @@ void track_magnet_edge_particles(
 
         #undef MAGNET_Y_ROTATE
         #undef MAGNET_DIPOLE_FRINGE
-        // #undef MAGNET_MULTIPOLE_FRINGE
+        #undef MAGNET_MULTIPOLE_FRINGE
         #undef MAGNET_WEDGE
     }
     // If model is not 0 or 1, do nothing
