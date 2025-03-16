@@ -243,12 +243,13 @@ def test_thick_multipolar_component(test_context, element_type, h):
         ksl=ksl,
         num_multipole_kicks=num_kicks,
     )
+    bend_with_mult.integrator = 'uniform'
 
     # Separate bend and a corresponding multipole
     bend_no_mult = element_type(
         k0=k0,
         h=h,
-        length=bend_length / (num_kicks + 1),
+        length=bend_length / num_kicks / 2,
         num_multipole_kicks=0,
     )
     multipole = xt.Multipole(
@@ -264,7 +265,7 @@ def test_thick_multipolar_component(test_context, element_type, h):
     line_no_slices.configure_bend_model(core='expanded')
     line_with_slices = xt.Line(
         elements={'bend_no_mult': bend_no_mult, 'multipole': multipole},
-        element_names=(['bend_no_mult', 'multipole'] * num_kicks) + ['bend_no_mult'],
+        element_names=(['bend_no_mult', 'multipole', 'bend_no_mult'] * num_kicks)
     )
 
     # Track some particles

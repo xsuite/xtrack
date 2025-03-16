@@ -740,6 +740,7 @@ class _BendCommon:
     _common_rename = {
         'order': '_order',
         'model': '_model',
+        'integrator': '_integrator',
         'edge_entry_model': '_edge_entry_model',
         'edge_exit_model': '_edge_exit_model',
         'k0': '_k0',
