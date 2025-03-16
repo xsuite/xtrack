@@ -120,16 +120,11 @@ def test_multispecies_multipole():
 
     xo.assert_allclose(t0_ref1 + dt_ref1, t0_ref2 + dt_ref2, atol=1e-11, rtol=0)
 
-# @pytest.mark.parametrize('model', ['expanded', 'bend-kick-bend', 'rot-kick-rot'])
-# @pytest.mark.parametrize('B_T', [0.4, 0])
-# @pytest.mark.parametrize('hxl', [0.2, 0])
-# @pytest.mark.parametrize('G_Tm', [0.1, 0])
-# @pytest.mark.parametrize('S_Tm2', [0.05, 0])
-@pytest.mark.parametrize('model', ['bend-kick-bend'])
-@pytest.mark.parametrize('B_T', [0])
-@pytest.mark.parametrize('hxl', [0])
-@pytest.mark.parametrize('G_Tm', [0])
-@pytest.mark.parametrize('S_Tm2', [0])
+@pytest.mark.parametrize('model', ['expanded', 'bend-kick-bend', 'rot-kick-rot'])
+@pytest.mark.parametrize('B_T', [0.4, 0])
+@pytest.mark.parametrize('hxl', [0.2, 0])
+@pytest.mark.parametrize('G_Tm', [0.1, 0])
+@pytest.mark.parametrize('S_Tm2', [0.05, 0])
 def test_multispecies_bend(model, B_T, hxl, G_Tm, S_Tm2):
     p_ref1 = xt.Particles(
         mass0=xt.PROTON_MASS_EV,

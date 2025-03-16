@@ -84,15 +84,15 @@ void track_magnet_kick_single_particle(
     // k0h correction can be computed from this term in the hamiltonian
     // H = 1/2 h k0 x^2
     // (see MAD 8 physics manual, eq. 5.15, and apply Hamilton's eq. dp/ds = -dH/dx)
-    double const k0l_mult = chi * knl[0] * factor_knl_ksl;
-    dpx += -(knl_main[0] + k0l_mult) * kick_weight * h * x;
+    double const k0l_mult = knl[0] * factor_knl_ksl;
+    dpx += -chi * (knl_main[0] + k0l_mult) * kick_weight * h * x;
 
     // k1h correction can be computed from this term in the hamiltonian
     // H = 1/3 hk1 x^3 - 1/2 hk1 xy^2
     // (see MAD 8 physics manual, eq. 5.15, and apply Hamilton's eq. dp/ds = -dH/dx)
-    double const k1l_mult = chi * knl[1] * factor_knl_ksl;
-    dpx += h * (knl_main[1] + k1l_mult) * kick_weight * (-x * x + 0.5 * y * y);
-    dpy += h * (knl_main[1] + k1l_mult) * kick_weight * x * y;
+    double const k1l_mult = knl[1] * factor_knl_ksl;
+    dpx += h * chi * (knl_main[1] + k1l_mult) * kick_weight * (-x * x + 0.5 * y * y);
+    dpy += h * chi * (knl_main[1] + k1l_mult) * kick_weight * x * y;
 
     LocalParticle_add_to_px(part, dpx);
     LocalParticle_add_to_py(part, dpy);
