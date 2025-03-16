@@ -73,7 +73,7 @@ def test_sps_thick(test_context, deferred_expressions):
 
     assert line['mbb.10150'].edge_entry_model == 'full'
     assert line['mbb.10150'].edge_exit_model == 'full'
-    assert line['mbb.10150'].model == 'expanded'
+    assert line['mbb.10150'].model == 'mat-kick-mat'
 
     xo.assert_allclose(twmad.s[-1], tw.s[-1], atol=1e-9, rtol=0)
     xo.assert_allclose(twmad.summary.q1, tw.qx, rtol=0, atol=1e-7)
@@ -85,7 +85,7 @@ def test_sps_thick(test_context, deferred_expressions):
 
     assert line['mbb.10150'].edge_entry_model == 'linear'
     assert line['mbb.10150'].edge_exit_model == 'linear'
-    assert line['mbb.10150'].model == 'expanded'
+    assert line['mbb.10150'].model == 'mat-kick-mat'
 
     line.configure_bend_model(core='full')
     line.configure_bend_model(edge='full')
