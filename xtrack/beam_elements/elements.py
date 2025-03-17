@@ -2509,25 +2509,13 @@ class SecondOrderTaylorMap(BeamElement):
 class ThinSliceNotNeededError(Exception):
     pass
 
-
-# class ElectronCoolerRecord(xo.HybridClass):
-#     _xofields = {
-#         '_index': RecordIndex,
-#         'Fx': xo.Float64[:],
-#         'at_element': xo.Int64[:],
-#         'at_turn': xo.Int64[:],
-#         'particle_id': xo.Int64[:],
-#         'particle_delta': xo.Float64[:]
-#         }
-    
 class ElectronCoolerRecord(xo.HybridClass):
     _xofields = {
         '_index': RecordIndex,
         'Fx': xo.Float64[:],
         'Fy': xo.Float64[:],
         'Fl': xo.Float64[:],
-        }    
-
+        'particle_id': xo.Float64[:]}
 class ElectronCooler(BeamElement):
     """
     Beam element modeling an electron cooler. In particular, this beam element uses the Parkhomchuk model for electron cooling.
@@ -2583,7 +2571,8 @@ class ElectronCooler(BeamElement):
         'offset_energy' :  xo.Float64,
 
         'magnetic_field_ratio' :  xo.Float64,
-        'space_charge_factor'  : xo.Float64
+        'space_charge_factor'  : xo.Float64,
+        'record_flag': xo.Int64,
         }
     
     _extra_c_sources = [
@@ -2606,7 +2595,8 @@ class ElectronCooler(BeamElement):
                         offset_energy  = 0,
                                                 
                         magnetic_field_ratio = 0,
-                        space_charge_factor = 0,                      
+                        space_charge_factor  = 0,
+                        record_flag          =0,                      
                         **kwargs):
         
         if "_xobject" in kwargs:
@@ -2629,6 +2619,7 @@ class ElectronCooler(BeamElement):
         
         self.magnetic_field_ratio = magnetic_field_ratio
         self.space_charge_factor  = space_charge_factor
+        self.record_flag          =  record_flag
         
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         raise NotImplementedError

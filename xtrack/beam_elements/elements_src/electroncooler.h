@@ -12,12 +12,9 @@
 void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* part0){
 
     // Check if record flag is enabled
+    int64_t record_flag = ElectronCoolerData_get_record_flag(el);
     ElectronCoolerRecordData record = ElectronCoolerData_getp_internal_record(el, part0);
     RecordIndex record_index = NULL;
-    if (record){
-        record_index = ElectronCoolerRecordData_getp__index(record);
-    }
-    
 
     double current        = ElectronCoolerData_get_current(el);
     double length         = ElectronCoolerData_get_length(el);
@@ -48,15 +45,15 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
     double electron_density = num_e_per_s * tau / volume_e_beam; // density of electrons
     
     // Electron beam properties
-    double v_perp_temp = sqrt(QELEM*temp_perp/MASS_ELECTRON);      // transverse electron temperature
-    double v_long_temp = sqrt(QELEM*temp_long/MASS_ELECTRON);      // longitudinal electron temperature
+    double v_perp_temp = sqrt(QELEM*temp_perp/MASS_ELECTRON);               // transverse electron temperature
+    double v_long_temp = sqrt(QELEM*temp_long/MASS_ELECTRON);               // longitudinal electron temperature
     double rho_larmor = MASS_ELECTRON*v_perp_temp/QELEM/magnetic_field;     // depends on transverse temperature, larmor radius
     double elec_plasma_frequency = sqrt(electron_density * POW2(QELEM) / (MASS_ELECTRON * EPSILON_0));
     double v_rms_magnet = beta0 * gamma0 * C_LIGHT * magnetic_field_ratio; // velocity spread due to magnetic imperfections
-    //double V_eff = sqrt(POW2(v_long_temp) + POW2(v_rms_magnet));              // effective electron beam velocity spread
-    double mass_electron_ev = MASS_ELECTRON * POW2(C_LIGHT) / QELEM;     // in eV
-    double energy_electron_initial = (gamma0 - 1) * mass_electron_ev;    // in eV 
-    double energy_e_total = energy_electron_initial + offset_energy;     // in eV
+    //double V_eff = sqrt(POW2(v_long_temp) + POW2(v_rms_magnet));         // effective electron beam velocity spread
+    double mass_electron_ev = MASS_ELECTRON * POW2(C_LIGHT) / QELEM;       // in eV
+    double energy_electron_initial = (gamma0 - 1) * mass_electron_ev;      // in eV 
+    double energy_e_total = energy_electron_initial + offset_energy;       // in eV
     
     // compute constants outside per particle block
     double friction_coefficient = electron_density*POW2(q0)*POW4(QELEM) /(4*MASS_ELECTRON*POW2(PI*EPSILON_0)); // Coefficient used for computation of friction force 
@@ -68,7 +65,7 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
         double y     = LocalParticle_get_y(part)    - offset_y ;
         double py    = LocalParticle_get_py(part)   - offset_py;
         double delta = LocalParticle_get_delta(part)           ; //offset_energy is implemented when longitudinal velocity is computed
-        
+        double particle_id = LocalParticle_get_particle_id(part);
         // Radial and angular coordinates
         double theta  = atan2(y , x);
         double radius = hypot(x,y);
@@ -128,17 +125,16 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
         LocalParticle_add_to_py(part,Fy * gamma0 * tau/p0c);
 
         // Handles cases where force is record
-        if (record){
+        if (record_flag && record){
+            record_index = ElectronCoolerRecordData_getp__index(record);
                 int64_t i_slot = RecordIndex_get_slot(record_index);
                 if (i_slot>=0){
                     ElectronCoolerRecordData_set_Fx(record, i_slot, Fx/C_LIGHT); // Convert to eV/m
                     ElectronCoolerRecordData_set_Fy(record, i_slot, Fy/C_LIGHT); // Convert to eV/m
                     ElectronCoolerRecordData_set_Fl(record, i_slot, Fl/C_LIGHT); // Convert to eV/m
+                    ElectronCoolerRecordData_set_particle_id(record,i_slot,particle_id);
                 }
-            }
-
-        
-
+           }
 
     //end_per_particle_block
 }
