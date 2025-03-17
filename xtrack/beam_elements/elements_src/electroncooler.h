@@ -12,12 +12,9 @@
 void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* part0){
 
     // Check if record flag is enabled
+    int64_t record_flag = ElectronCoolerData_get_record_flag(el);
     ElectronCoolerRecordData record = ElectronCoolerData_getp_internal_record(el, part0);
     RecordIndex record_index = NULL;
-    if (record){
-        record_index = ElectronCoolerRecordData_getp__index(record);
-    }
-    
 
     double current        = ElectronCoolerData_get_current(el);
     double length         = ElectronCoolerData_get_length(el);
@@ -68,7 +65,7 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
         double y     = LocalParticle_get_y(part)    - offset_y ;
         double py    = LocalParticle_get_py(part)   - offset_py;
         double delta = LocalParticle_get_delta(part)           ; //offset_energy is implemented when longitudinal velocity is computed
-        
+        double particle_id = LocalParticle_get_particle_id(part);
         // Radial and angular coordinates
         double theta  = atan2(y , x);
         double radius = hypot(x,y);
@@ -128,14 +125,16 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
         LocalParticle_add_to_py(part,Fy * gamma0 * tau/p0c);
 
         // Handles cases where force is record
-        if (record){
+        if (record_flag && record){
+            record_index = ElectronCoolerRecordData_getp__index(record);
                 int64_t i_slot = RecordIndex_get_slot(record_index);
                 if (i_slot>=0){
                     ElectronCoolerRecordData_set_Fx(record, i_slot, Fx/C_LIGHT); // Convert to eV/m
                     ElectronCoolerRecordData_set_Fy(record, i_slot, Fy/C_LIGHT); // Convert to eV/m
                     ElectronCoolerRecordData_set_Fl(record, i_slot, Fl/C_LIGHT); // Convert to eV/m
+                    ElectronCoolerRecordData_set_particle_id(record,i_slot,particle_id);
                 }
-            }
+           }
 
     //end_per_particle_block
 }
