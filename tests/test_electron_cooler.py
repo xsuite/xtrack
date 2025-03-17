@@ -10,7 +10,7 @@ import ducktrack as dtk
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import for_all_test_contexts,fix_random_seed
 
 
 test_data_folder = pathlib.Path(
@@ -129,6 +129,7 @@ def test_ecooler_emittance(test_context):
 
 
 @for_all_test_contexts
+@fix_random_seed(8161231)
 def test_ecooler_force(test_context):
     """Test the electron cooler by comparing the cooling force with Betacool for LEIR.
     """
@@ -162,7 +163,8 @@ def test_ecooler_force(test_context):
         radius_e_beam=radius_e_beam,
         temp_perp=temp_perp,
         temp_long=temp_long,
-        magnetic_field=magnetic_field
+        magnetic_field=magnetic_field,
+        record_flag=1
     )
 
     num_particles = int(1e4)
@@ -188,7 +190,10 @@ def test_ecooler_force(test_context):
         xt.ElectronCooler, capacity=10000)
 
     line.track(particles)
-    force = record.Fx
+    force = record.Fx[:num_particles]
+    particle_id=record.particle_id[:num_particles]
+    particle_id_sort=np.argsort(particle_id)
+    force=force[particle_id_sort]
 
     px_tot = p0c * particles.px
     beta_diff = px_tot / (mass0 * gamma)

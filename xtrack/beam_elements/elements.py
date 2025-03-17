@@ -2973,6 +2973,7 @@ class ElectronCoolerRecord(xo.HybridClass):
         'Fy': xo.Float64[:],
         'Fl': xo.Float64[:],
         }    
+    
 class ElectronCooler(BeamElement):
     """
     Beam element modeling an electron cooler. In particular, this beam element uses the Parkhomchuk model for electron cooling.
@@ -3027,7 +3028,7 @@ class ElectronCooler(BeamElement):
         'offset_py'     :  xo.Float64,
         'offset_energy' :  xo.Float64,
 
-        'magnetic_field_ratio' :  xo.Float64,
+        'magnetic_field_ratio' : xo.Float64,
         'space_charge_factor'  : xo.Float64
         }
     

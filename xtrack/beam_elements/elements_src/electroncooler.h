@@ -48,15 +48,15 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
     double electron_density = num_e_per_s * tau / volume_e_beam; // density of electrons
     
     // Electron beam properties
-    double v_perp_temp = sqrt(QELEM*temp_perp/MASS_ELECTRON);      // transverse electron temperature
-    double v_long_temp = sqrt(QELEM*temp_long/MASS_ELECTRON);      // longitudinal electron temperature
+    double v_perp_temp = sqrt(QELEM*temp_perp/MASS_ELECTRON);               // transverse electron temperature
+    double v_long_temp = sqrt(QELEM*temp_long/MASS_ELECTRON);               // longitudinal electron temperature
     double rho_larmor = MASS_ELECTRON*v_perp_temp/QELEM/magnetic_field;     // depends on transverse temperature, larmor radius
     double elec_plasma_frequency = sqrt(electron_density * POW2(QELEM) / (MASS_ELECTRON * EPSILON_0));
     double v_rms_magnet = beta0 * gamma0 * C_LIGHT * magnetic_field_ratio; // velocity spread due to magnetic imperfections
-    //double V_eff = sqrt(POW2(v_long_temp) + POW2(v_rms_magnet));              // effective electron beam velocity spread
-    double mass_electron_ev = MASS_ELECTRON * POW2(C_LIGHT) / QELEM;     // in eV
-    double energy_electron_initial = (gamma0 - 1) * mass_electron_ev;    // in eV 
-    double energy_e_total = energy_electron_initial + offset_energy;     // in eV
+    //double V_eff = sqrt(POW2(v_long_temp) + POW2(v_rms_magnet));         // effective electron beam velocity spread
+    double mass_electron_ev = MASS_ELECTRON * POW2(C_LIGHT) / QELEM;       // in eV
+    double energy_electron_initial = (gamma0 - 1) * mass_electron_ev;      // in eV 
+    double energy_e_total = energy_electron_initial + offset_energy;       // in eV
     
     // compute constants outside per particle block
     double friction_coefficient = electron_density*POW2(q0)*POW4(QELEM) /(4*MASS_ELECTRON*POW2(PI*EPSILON_0)); // Coefficient used for computation of friction force 
@@ -136,9 +136,6 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
                     ElectronCoolerRecordData_set_Fl(record, i_slot, Fl/C_LIGHT); // Convert to eV/m
                 }
             }
-
-        
-
 
     //end_per_particle_block
 }
