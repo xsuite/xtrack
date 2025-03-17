@@ -1,0 +1,940 @@
+[row=1] Beam | Parameters | Emittance
+14= Horizontal emittance, pi*mm*mrad
+14= Vertical emittance, pi*mm*mrad
+0.005= Momentum spread
+10000= Number of particles
+0= coasting(0), bunched(1), barrier bucket (2), non-linear RF (3)
+0= Collider regime (0/1)
+0.1370049566= Mean beam radius, m
+1= Longitudinal form factor
+1982.606795= Longitudinal space charge impendances, Ohm
+1= Transverse space charge impendances, Ohm/m
+3.11184545e-08= Peak current, A
+0= Emittance definition: RMS(0),CS(1),FWHM(2),%(3)
+0= Use for IBS kick
+38= Percents for transverse degrees of freedom
+68= Percents for longitudinal degree of freedom
+0= Mean Longitudinal Invariant
+95= normalised %
+5.991464547= rms
+7.939606194= normilised horizontal emittance
+7.939606194= normilised vertical emittance
+0.09134426654= energy spread
+3; energy spread unit
+
+[row=2] Beam | Parameters | Model Beam
+10000= Number of model particles
+40000= Maximum number of model particles
+1e-06= Impact parametr, m
+78.54370266= Cell size, m
+1.301243349= Linear density
+497210203.9= Initial longitudinal temperature, K
+61127850.59= Initial transverse temperature, K
+3.54756647e-08= Gamma1
+1.223440838e-08; Gamma2
+
+[row=3] Beam | Parameters | Stability
+1= Image force correction factor
+1.366064592e-07= Horizontal tune shift
+1.366064592e-07= Vertical tune shift
+1= Factor of distribution function FI
+1= Longitudinal coupling impendance, Ohm
+1.486628203e-08= Microwavw instaility
+0.0111191061= Tune spread for first mode
+1= Factor of distribution function Ft
+1= Transverse coupling impendance, Ohm/m
+9.435926616e-15; Dipole instability
+
+[row=4] Beam | Parameters | Bunch
+1= Number of bunches
+1= RMS bunch length, cm
+1= Max particle number
+1= Syncrotron tune
+1= Bunching factor
+1; Longitudinal emittance [eV*s]
+
+[row=5] Effects | Stochastic cooling | Horizontal
+1= H use
+4= Horizontal low frequency, GHz
+8= Horizontal upper frequency, GHz
+1= Electronic gain linear(0) logarithm (1)
+1= Horizontal gain
+31622.7766= linear electronic gain
+90= log electronic gain
+1.3= Horizontal electrode length, cm
+1.8= Horizontal PU electrode width, cm
+1.8= Horizontal PU gap height, cm
+128= Number of horizontal pickup loop pairs
+2.944= Horizontal pickup app. length, m
+75= Beta function at horizontal pickup, m
+0.9171523357= Horizontal pickup sensitivity
+4= Reserv (col=15)
+1.8= Horizontal kicker Electrode width, cm
+1.8= Horizontal kicker Gap height, cm
+32= Number of horizontal kicker loop pairs
+0.736= Horizontal kicker app. length, m
+75= Beta function at horizontal kicker, m
+0.9171523357= Horizontal kicker sensitivity
+0.008836277255= Thermal noise power, kW
+1= Schottky power, kW
+1= Equilibrium emittance, pi*m*rad
+1= Cooling rate, s^-1
+1= Total power
+1= Optimum gain
+1; Optimum cooling rate, s^-1
+
+[row=6] Effects | Stochastic cooling | Vertical
+1= V use
+4= Vertical low frequency, GHz
+8= Vertical upper frequency, GHz
+1= Electronic gain linear(0) logarithm (1)
+1= Vertical gain
+31622.7766= linear electronic gain
+90= log electronic gain
+1.3= Vertical electrode length, cm
+1.8= Vertical PU electrode width, cm
+1.8= Vertical PU gap height, cm
+128= Number of vertical pickup loop pairs
+2.944= Vertical pickup app. length, m
+75= Beta function at vertical pickup, m
+0.9171523357= Vertical pickup sensitivity
+4= Reserv (col=15)
+1.8= Vertical kicker Electrode width, cm
+1.8= Vertical kicker Gap height, cm
+32= Number of vertical kicker loop pairs
+0.736= Vertical kicker app. length, m
+75= Beta function at vertical kicker, m
+0.9171523357= Vertical kicker sensitivity
+0.008836277255= Thermal noise power, kW
+1= Schottky power, kW
+1= Equilibrium emittance, pi*m*rad
+1= Cooling rate, s^-1
+1= Total power
+1= Optimum gain
+1; Optimum cooling rate, s^-1
+
+[row=7] Effects | Stochastic cooling | Longitudinal
+1= L use
+4= Longitudinal low frequency, GHz
+8= Longitudinal upper frequency, GHz
+1= Electronic gain linear(0) logarithm (1)
+=0
+316227.766= linear electronic gain
+110= log electronic gain
+1.3= Longitudinal electrode length, cm
+1.8= Reserv (PU electrode width, cm)
+1.8= Reserv (PU gap height, cm)
+128= Number of longitudinal pickup loop pairs
+2.944= Longitudinal pickup app. length, m
+75= Reserv (Beta function at pickup, m)
+0.9171523357= Reserv (pickup sensitivity)
+4= Reserv (col=15)
+1.8= Reserv (kicker Electrode width, cm)
+1.8= Reserv (kicker Gap height, cm)
+32= Number of longitudinal kicker loop pairs
+0.736= Longitudinal kicker app. length, m
+75= Reserv (Beta function at kicker, m)
+0.9171523357= Reserv (kicker sensitivity)
+0.2945425752= Thermal noise power, kW
+1= Schottky power, kW
+1= Equilibrium momentum spread
+1= Cooling rate, s^-1
+1= Total power
+1= Optimum gain
+1= Optimum cooling rate, s^-1
+1; Calculation using RHIC parameters
+
+[row=8] Effects | Stochastic cooling | Common parameters
+1= Total momentum distribution width, sigma
+80= Pickup effective temperature, K
+80= Preamplifier effective temperature, K
+50= Characteristic impedance, OHm
+2= loss in combiner, dB
+10; other losses, dB
+
+[row=9] Effects | Particle Losses
+0= Electron Capture in ECOOL
+0= Scattering on Rest Gas
+0= Internal Target
+0= Collision
+0= Life time (Decay)
+0= Acceptance
+0= Separatrix length
+1=0
+2; Generate on Gaussian(0), Real (1), None (2), Off (3)
+
+[row=10] Effects | Collision Point
+1= Number of crossing points
+6= Cross-section, barn
+0.5= Horizontal beta-function, m
+0.5= Vertical beta-function, m
+0= Enable Hourglass Effect (0/1)
+1= Luminosity calculation model: Local(0), Coordinate (1), Profile (2)
+0= Colliding Beam Parameters (0/1)
+50= Particle / Divisions
+0= from
+200= upto
+20= step
+0= Emittance for beam-beam: RMS (0), FWHM (1), % (2)
+100= Percents, %
+1= Via local density
+0= Include diffusion
+0.01= Noise power, s^-1
+0.4435539932; HourGlass value
+
+[row=11] Ring | Parameters | Ion kind
+2= Reference Energy: Gamma(0), Beta(1), Kinetic(2), Momentum(3)
+1.004469679,0.09423258405,862.68,18.26885331= Reference Energy
+207.2= Atomic number
+54= Charge number
+1= Life time, sec
+6; eV/u(0), keV/u(1), Mev/u(2), GeV/u(3), eV(4), keV(5), MeV(6), GeV(7)
+
+[row=12] Ring | Parameters | Lattice
+78.54370266= Circumference, m
+1.82=0.820040868= Horizontal tunes
+2.72=0.720021064= Vertical tunes
+-0.0005113579791= Horizontal Chromaticity
+-0.0001665178543= Vertical Chromaticity
+6e-05= Horizontal Acceptance
+2.5e-05= Vertical Acceptance
+0= Imagenary (0/1)
+1= Acceptance on momentum deviation
+6; Separatrix length, m
+
+[row=13] Ring | Lattice Structure | Lattice Filename
+2= Lattice File: Output MAD (0), Input MAD (1), No file (2)
+2= Lattice Structure: Reduce (0), Extend (1), No changes (2)
+10= Extend step, cm
+nPca.tfs= Output MAD Filename
+0= Auto skip of points (0/1)
+nPca.mad= Input MAD Filename
+0=0
+none; Reduce Filename
+
+[row=14] Ring | Parameters | Injection
+0= Initial distribution: Gaussian (0), Flatten (1), FromFile (2)
+0= Inject ions with interval (0/1)
+10= injection interval, sec
+16= Number of injection cycles
+0= Momentum spread shift
+0= Horizontal shift
+0= Vertical shift
+nica_5e-4.inj= File with initial distribution
+1= Horizontal acceptance at injection
+1= Vertical acceptance at injection
+0; Longitudinal shift
+
+[row=15] Ring | Lattice Structure | Output MAD format
+18,32= dist
+33,47= beta_x
+63,81= alfa_x
+0,0= mu_x
+0,0= x
+0,0= p_x
+97,111= D_x
+0,0= Dp_x
+48,62= beta_x
+82,96= alfa_y
+0,0= mu_y
+0,0= y
+0,0= p_y
+112,126= D_y
+0,0= Dp_y
+0,0,0=0
+3; columns: 132(0) / 157(1) / user(2)
+
+[row=16] Ring | Parameters | Mean params
+12.50061853= Mean radius, m
+4.595815635= Horizontal beta function, m
+-24445.92446= Veritical beta function, m
+1.689638101= Dispersion, m
+2.780286604e-06= Revolution period, sec
+1.293016126= Off momentum factor
+0= Induction acceleration
+-0.005; Amplitude, V
+
+[row=17] Ring | Parameters | RF system
+24= Harmonic number
+0.65= RF voltage, kV
+3.272654277= Separatrix length, m
+0.009998634352= Synchrotron tune
+100= Separatrix size, %
+0= Initial momentum deviation, dP/p
+-0.006= Final momentum deviation, dP/P
+0; Deviation sweeping time, s
+
+[row=18] Ring | Parameters | Injection point
+2= Lattice functions at injection point: Mean Ring(0) / First Optics (1) / User (2)
+5= Horizontal beta [m]
+5= Vertical beta [m]
+0= Horizontal alpfa
+0= Vertical alfa
+0= Horizontal dispersion [m]
+0= Verticla dispersion [m]
+0= Horizontal derivative
+0; Vertical derivative
+
+[row=19] Ring | Lattice Structure | Matrix
+-0.7191775512,-5.022768624,0,0,0,-0.1173778172=0
+0.09998155862,-0.6922014787,0,0,0,0.02084460211=0
+0,0,-0.5212294515,-14.34212012,0,0=0
+0,0,0.04558132436,-0.6643277156,0,0=0
+0.00325535279,0.1859467121,0,0,1,-22.00092927=0
+0,0,0,0,0,1;0
+
+[row=20] Ring | Optics Structure | Matrix
+1= Matrix: Optics(0) / Ring(1)
+0= Index
+1= Complex value: Real(0) / Imag(1) / Abs(2) / Arg(3)
+-2.187583448e-11= 1 - |Det|
+0= mu_x
+0; mu_y
+
+[row=21] Task | Algorithm
+1= Algorithm: RMS(0) / Model Beam(1) / Tracking(2)
+1= Auto Saving Interval, sec
+70=0
+0= Number of skip points
+4000= Size of curves
+1; Auto skip of points (0/1)
+
+[row=22] Task | Algorithm | RMS Dynamics
+0.001= Initial integration step, sec
+20= Maximum integration step, sec
+2= Step multiplier
+20; Maximum groth, %
+
+[row=23] Task | Algorithm | Model Beam
+0.0002780286604= Integration step, sec
+0= IBS kick model
+100= Integration step, turns
+1= Integration step: time (0), turns (1)
+1= Random synchrotron tune
+2= Core definition [sigma]
+1= Stop time [sec]
+0= Betatron tune: regular (0), random (1), randoms (2)
+2= Invarinats in core [1-3]
+0= Coupling resonance rate (0/1)
+5= Coupling resonance rate [Hz]
+0; Longitudinal space charge (0/1)
+
+[row=24] Task | Algorithm | Monte-Carlo
+1000= Turn step
+1= Enable Monte-Carlo step (0/1)
+0.0001= Maximum step, sec
+10; Min Invariant, %
+
+[row=25] Task | Algorithm | Tracking
+10= Integration step for Forces, cm
+0= Check longitudinal crossing (0/1)
+0= Initial crystalline distribution (0/1)
+0; Equations of motion: Matrixes (0), Forces (1)
+
+[row=26] Ring | Parameters | Barrier Bucket
+50= Voltage amplitude, kV
+0.2= RF duration in T0
+0.1= Gap duration in T0
+0.02202691686= Barrier height
+1= RMS amplitude
+1= Bucket length, m
+1= Synchrotron period in sec
+0= Analytic
+1= Sattionary bucket file
+nica_tk.bar= filename
+0= Moving bucket file
+nica14.mov= filename
+0= 2 barriers
+200= Longitudinal profile divisions
+0.05= Scale of potential integral
+1= IBS normalisation
+0= Show on Injection
+0.8076195162= HourGlass Effect
+0= Vertex cut
+50= Detector size [cm]
+0= Periodical moving BB
+0= 1st harmonic
+4= harmonic number
+0= time start, s
+0.25= time stop, s
+0= amplitude start, v
+2= amplitude finish, v
+1= 2nd harmonic
+8= harmonic number
+0.01= time start, s
+1= time stop, s
+1= amplitude start, v
+1= amplitude finish, v
+0.0001= generate step, s
+0= long space charge;
+0; sin shape
+
+[row=27] Task | Model Beam | Bi-Gauss+Local parameters
+1= Core number definition as in other models
+0= Core definition from FWHM
+100= Number of nearest ions
+0.1= Box dimensions, sigma
+1; Transverse coupling
+
+[row=28] Beam | Real Space | Control
+1= Draw Space-0 (0/1)
+0= x-axis (0..5): X,X',Y,Y,S-So,dP/P
+2= y-axis (0..5): X,X',Y,Y,S-So,dP/P
+=0
+1= Draw Space-1 (0/1)
+0= x-axis (0..5): X,X',Y,Y,S-So,dP/P
+1= y-axis (0..5): X,X',Y,Y,S-So,dP/P
+=0
+1= Draw Space-2 (0/1)
+0= x-axis (0..5): X,X',Y,Y,S-So,dP/P
+5= y-axis (0..5): X,X',Y,Y,S-So,dP/P
+=0
+1= Draw Space-3 (0/1)
+4= x-axis (0..5): X,X',Y,Y,S-So,dP/P
+5= y-axis (0..5): X,X',Y,Y,S-So,dP/P
+;0
+
+[row=29] Beam | Evolution | Control
+0= Emittance: (0) sigma, (1) normalized
+0= Momentum: (0) relative, (1) absolute
+1= Gamma2
+1= Equillibrium
+1= Footprint
+1= Evolution
+1= Gaussian fit
+1=0
+1=0
+1=0
+1=0
+0=0
+0=0
+0;0
+
+[row=30] Beam | Distribution | Control
+1= Draw Evolution (0/1)
+3= Number of Sigma
+400= Divisions
+5= Evolution for: Sx(0),Sy(1),Sp(2),Px(3),Py(4),Pp(5),Ex(6),Ey(7),dP/P(8)
+1= Sigma is normalised on Emittance: current(0) / initial (1)
+100= Number of slices for Evulution
+0.01= Time step for Evolution, sec
+1= Sigma_x (0/1)
+1= Sigma_y (0/1)
+1= Sigma_p (0/1)
+1= Profile_x (0/1)
+0= Profile_y (0/1)
+1= Profile_p (0/1)
+1= Emit_x (0/1)
+1= Emit_y (0/1)
+1= (dP/P)^2 (0/1)
+0= Mean between slices
+0= Show Gaussian fir
+1;0
+
+[row=31] Task | Rates | Active Effects
+1= Electron cooling (0/1)
+0= Rest Gas (0/1)
+0= Internal Target (0/1)
+0= Collision Point (0/1)
+0= Particle Losses (0/1)
+0= Intrabeam Scattering (0/1)
+0= Additional Heating (0/1)
+0= Stochatic Cooling (0/1)
+0= Optical Stochatic Cooling (0/1)
+0; Laser Cooling (0/1)
+
+[row=32] Task | Rates | Rates
+-2.68819536= Horizontal emittance growth rate, Hz
+-2.621215868= Vertical emittance growth rate, Hz
+-1.383277778= Mometum spread growth rate, Hz
+0= Particle number  growth rate, Hz
+0=0
+0=0
+0=0
+1= Draw Evolution of Rates (0/1)
+1; Draw 3D Diagrams (0/1)
+
+[row=33] Task | Rates | 3D Diagrams
+0.01,5= Horizontal emittance, pi*m,rad
+0.01,5= Vertical emittance, pi*m,rad
+30= Division number
+0= Logarithmic scale (0/1)
+1e-05,0.001= Momentum spread
+30= Division number
+0; Logarithmic scale (0/1)
+
+[row=35] Effects | Internal Target | PTarget
+0,0,0,0,0,-60000= X0
+4,0,4,0,2,0= X1
+4,10= L0, L
+1e-05,0.0051,100= Dynamics
+TEK00005.DAT= oscilograph
+8= step, sec
+0; Cutting: (1)- Top, (0)- Centre
+
+[row=36] Effects | Internal Target | Material
+0= Density: gram/cm^3 (0), atom/cm^3 (1)
+=0
+181= Mass number, A
+73= Charge number, Z
+10= Length, mm
+0.085= Density, gram/cm^3
+2.828075263e+20= Density, atom/cm^3
+1= Calculate from material (0/1)
+2.828075263e+20= Density, atom/cm^2
+0.03285113895= Stripping angle
+8568832357= Energy loss, eV
+3968952.198= Stripping energy, eV
+1= Energy loss (0/1)
+2.828075263e+20; Effective density [cm^-2]
+
+[row=37] Effects | Internal Target | Lattice
+1= Horizontal beta function, m
+0= Horizontal alpha
+0= Horizontal dispersion, m
+0= Horozontal dispesion derivative
+1= Vertical beta function, m
+0= Vertical alpha
+0= Vertical dispersion, m
+0; Vertical dispesion derivative
+
+[row=38] Effects | Internal Target | Type
+0= Type: gas cell(0), pellet(1), fibber (2)
+0= Model: Effective density(0), Monte-Carlo(1)
+=0
+10000= Particle Number for Monte-Carlo
+1= Gaussian scattering model
+0= Realistic scattering model
+0.5; Ratio between ionization and excitation events
+
+[row=39] Effects | Internal Target | Losses
+1= Electron capture (0/1)
+1= Single scattering (0/1)
+0= Nuclear reaction (0/1)
+0= Interaction events (0/1)
+40= Cross-section, barn
+1.017188393e+30; Luminosity, cm^-2*s^-1
+
+[row=40] Effects | Internal Target | Pellet
+0= Horizontal shift, mm
+0.025= Horizontal size, mm
+0.025= Vertical size, mm
+60= Vertical velocity, m/s
+6= Interval between pellets, mm
+2.828075263e+20= Effective density, cm^-2
+2; Flux width, mm
+
+[row=41] Effects | Additional Heating
+1= Constant rate (0/1)
+0= Horizontal rate, 1/sec
+0= Vertical rate, 1/sec
+10= Longitudinal rate, 1/sec
+0= Linear deviation (0/1)
+0= Horizontal emittance, pi*mm*mrad/sec
+0= Vertical emittance, pi*mm*mrad/sec
+10= Momentum spread, mrad^2/sec
+0= Diffusion power (0/1)
+1= Horizontal power, 1/sec
+1= Vertical power, 1/sec
+1= Longitudinal power, 1/sec
+0= Diffusion heating (0/1)
+0.1= Horizontal emittance, (pi*mm*mrad)^2/sec
+0.1= Vertical emittance, (pi*mm*mrad)^2/sec
+0= Momentum spread, mrad^4/sec
+0= DifP(0/1)
+0= Momentum spread, mrad^2/sec
+0= "tapering" coefficient
+0= Dependence on particle number for constant
+0= Dependence on particle number for linear
+1= Dependence on particle number for power
+0= Dependence on particle number for diffusional
+0= Coherent
+100= k1
+1= k2
+1= tau
+0= position
+0.1; length
+
+[row=42] Effects | Intrabeam Scattering
+0= IBS models: Piwinski(0), Jie Wei(1), Martini(2), Detalied(3), Gas relaxation (4), Bjorken-Mtingwa(5)
+1= Martini integral over z: Bjorken(0), analytical(1), numerical(2)
+0= Average transverse rates (0/1)
+21= Step over mu
+21= Step over nu
+21= Step over z
+40= Bjorken Coloumb coefficient
+20= Jie Wei Coloumb logarithm
+1= Jie Wei High energy assumption (0/1)
+1= Jie Wei High energy assumption with NO dispersion (0/1)
+0= Dispersion Coefficient for Gas Relax formula (0/1)
+1= Average dispersion, m
+1= Average dispersion derivative, m
+20= Bjorken-Mtingwa Coloumb logarithm
+3= upper limit of integration
+1000= Step over z
+0= Bjorken-Mtingwa High energy assumption (0/1)
+0= Longitudinal slices
+100= Step size
+1000= Step number
+10; Slice number
+
+[row=43] Effects | Rest Gas | Vacuum composition
+4= Mean vacuum chamber radius, cm
+1e-10= Pressure, Torr
+70,10,10,10= %
+1,12,32,12= A
+1,6,16,7= Z
+1= Electron capture (0/1)
+1= Single scattering (0/1)
+1; Nuclear reaction (0/1)
+
+[row=44] Beam | Tune Shift
+0= Tune Shift on/off
+50,50,50= Cell number
+16,16,16= Cell size, sigma
+0= field component
+0= vertical cell shift
+Bring3.bump= bump file
+1= plot tune shift
+0= minimum of horizontal tune shift
+0; minimum of vertical tune shift
+
+[row=50] ECOOL | Models | Cooler
+0= Calculation model: Thin lens(0), Euler(1), Runge-Kutta(2)
+10= Number of integration steps for Euler and Runge-Kutta
+2.5= Cooler length, m
+0.75= Magnetic field, kG
+1= Section number (for Model Beam)
+0= Fringe Field
+1= Number of bunches
+0.1; Distence between bunches, m
+
+[row=51] ECOOL | Models | Ion Beam
+1= Calculation model: Single particle(0), Monte-Carlo(1)
+17= Number of transverse integration step
+17= Number of longitudinal integration step
+1000; Particle number for Monte-Carlo
+
+[row=52] ECOOL | Parameters | Lattice
+5= Horizontal beta function, m
+5= Vertical beta function, m
+0= Horizontal alpha function
+0= Vertical alpha function
+0= Horizontal dispersion, m
+0= Vertical dispersion, m
+0= Horizontal disperion derivative
+0; Vertical dispersion derivative
+
+[row=53] ECOOL | Parameters | Solenoid errors
+0= Enable Ebeam shift (0/1)
+0= use final values (0/1)
+0= Horizontal initial coordinate, m
+0= Horizontal final coordinate, m
+0= Vertical initial coordinate, m
+0= Vertical final coordinate, m
+0= Longitudinal initial coordinate, m
+0= Longitudinal final coordinate, m
+0.0001= Initial momentum spread
+0= Final momentum spread
+0= Use time period (0/1)
+1= Painting time [integration steps]
+0= Read Errors from file (0/1)
+SOLENOID.ERR= Filename with Solenoid Errors
+0= Painting table
+painting.pat= Paiting data filename
+3; scalling factor
+
+[row=54] ECOOL | Electron beam | Array
+0= From file
+1= Gaussian
+dist20k_at54MeV.dat= File name
+1= RMS Horizontal size, cm
+1= RMS Vertical size, cm
+1= RMS horizontal angular spread
+1= RMS horizontal angular spread
+1= RMS bunch length, cm
+1= RMS momentum spread
+0= distance between bunches, cm
+3.125e+10= Number of electrons
+0= Number of particles in array
+200= Number of local particles
+1= Box dimension, sigma
+0= Use longitudinal slice, m
+0= From
+0.02= Up to
+7.16618e+13= local density, 1/m^3
+41747.0434= local horizontal velocity, m/s
+-47872.44712= local vertical velocity, m/s
+-47853.30028= local longitudinal velocity, m/s
+363063.7503= local horizontal velocity spread, m/s
+465081.1838= local vertical velocity spread, m/s
+17904.59994= local longitudinal velocity spread, m/s
+20= number of steps along horizontal axis
+20= number of steps along longitudinal axis
+0= bi-Gaussian distribution
+0.05= part of the particles located inside core
+0.2= ratio between core rms and tail rms
+0; Uniform density distribution
+
+[row=55] ECOOL | Electron beam | Model
+0= Electron beam model:Uniform cylinder(0),Uniform bunch(1),Gaussian cylinder(2),Gaussian bunch(3), Hollow beam (4), Array (5), Parabolic (6)
+2.5= Beam radius, cm
+0.6= Beam current, A
+100= Neutralization factor, 0..100
+0= momentum shift
+0= horizontal shift
+0= Gradient of transverse velocity with radius, 1/sec
+0= Longitudinal pulsed ebeam
+-0.5= from longitudinal position, Circumference
+0.5; up to longitudinal position, Circumference
+
+[row=56] ECOOL | Electron beam | Uniform bunch
+0.1= Horizontal RMS dimensions, cm
+0.1= Vertical RMS dimensions, cm
+30= Longitudinal RMS dimensions, cm
+0= Distance between electron and ion bunch centers, cm
+1e+11= Number of electron
+0.6019001362; Peak current, A
+
+[row=57] ECOOL | Parameters | Gaussian bunch
+0.1= Horizontal RMS dimensions, cm
+0.1= Vertical RMS dimensions, cm
+20= Longitudinal RMS dimensions, cm
+0= Distance between electron and ion bunch centers, cm
+5e+10= Number of electron
+0.004514251021= Peak current, A
+5.507782403e+15= central density
+6e-06= Horizontal rms angle
+6e-06= Vertical rms angle
+0.00027= Momentum spread
+1; Angular spread from tabsheet (0), from model (1)
+
+[row=58] ECOOL | Parameters | Gaussian cylinder
+0.15= Horizontal RMS dimensions, cm
+0.15= Vertical RMS dimensions, cm
+1000000000= Linear electron density, 1/cm
+0.45262197; Beam current, A
+
+[row=59] ECOOL | Electron beam | Hollow beam
+0.3= hole radius, cm
+100000000= hole density,0[cm^-3]
+0.5= beam radius, cm
+100000000= ring density,0[cm^-3]
+0.03554884639= Beam current, A
+1; Space Charge
+
+[row=60] ECOOL | Friction force | Model
+3= Model: Budker(0),Non-magnetized(1),Derbenev(2),Parkhomchuk(3),Toepffer(4),Tabulated(5)
+0= Emittance(0/1)
+1= Beam temperature(0/1)
+5.529656044e-06= Transverse emittance, pi*m*rad
+0.1= Transverse temperature, eV
+0.0004694474719= Longitudinal emittance, dP/P
+0.001= Longitudinal temperature, eV
+0= Rms velocity 90/1)
+132619.9342= transverse velocity
+13261.99342= longitudinal velocity
+0= Smooth ro (0/1)
+1= ro via rel velocity
+0= plus e_rms
+1= magnetized
+0= adiabatic
+0= fast
+1= non logarothmic term
+0= pestrikov's integral
+200= number of integration steps for Pestrikov
+1= Numerical non magnetized force in accordance with Binney
+0= Numerical 3D integral
+0.01= step of Binney's integrals
+5; Upper limit of Binney's integrals
+
+[row=61] ECOOL | Friction force | Parameters
+2= Smoothing coefficient (Derbenev model)
+0= Angular spread (0/1)
+1= Effective temperature (0/1)
+0= Angular spread, rad
+0= Effective temperature, eV
+0= Asimptotic presentation of nonmagnetized force(0/1)
+17= number of integration steps over longitudinal velocity
+17= number of integration steps over transverse velocity
+17= number of integration steps over azimuthal velocity
+0= Asimptotic presentation of magnetized force(0/1)
+1= Numerical presentation of magnetized force(0/1)
+51; number of integration steps for magnetized collisions
+
+[row=62] ECOOL | Friction force | Axises
+0,600000= Transverse velocity (min, max)
+0,100000= Longitudinal velocity (min, max)
+50= Divisions
+1= Show particle in cooler
+1= Draw 3-D (0/1)
+1= Draw line (0/1)
+-600000,600000= velocity (min, max)
+0= angle
+200= divisions
+0= Draw circle
+1000= Velocity
+101; divisions
+
+[row=63] ECOOL | Friction force | Tabulated
+1000,10= 1st point range: velocity(m/s) / steps
+10000000,10= 2nd point range: velocity(m/s) / steps
+100000000,10= 3rd point range: velocity(m/s) / steps
+0= Interpolation: Linear(0)/Bilinear(1)
+table.tvt= Transverse velocity table
+table.lvt= Longitudinal velocity table
+1; Generate velocity tables
+
+[row=64] ECOOL | Friction force | Toepffer
+1= Fast collisions (0/1)
+1= Tight helices (0/1)
+1= Stretched helices (0/1)
+17= number of integration steps over longitudinal velocity
+17= number of integration steps over transverse velocity
+11; number of integration steps over azimuthal velocity
+
+[row=65] Beam | Colliding Beam | Ion kind
+3= Reference Energy: Gamma(0), Beta(1), Kinetic(2), Momentum(3)
+1131.721525,0.9999996096,1053.26891,1054.2= Reference Energy
+1= Atomic number
+1= Charge number
+100000= Life time, sec
+3; eV/u(0), keV/u(1), Mev/u(2), GeV/u(3), eV(4), keV(5), MeV(6), GeV(7)
+
+[row=66] Beam | Colliding Beam | Emittance
+0.12= Horizontal emittance, pi*mm*mrad
+0.12= Vertical emittance, pi*mm*mrad
+30= RMS bunch length, cm
+1e+11= Number of particles
+0; bunched(0), coasting(1)
+
+[row=67] Beam| Colliding Beam | Lattice
+1= Horizontal beta-function, m
+1; Vertical beta-function, m
+
+[row=69] ECOOL | Electron beam | Parabolic / File
+0.5= Beam radius, cm
+0.05= Beam current, A
+100000000= Gradient of transverse velocity with radius, 1/sec
+3.669735529e+11= Central density, m^-3
+recycler.den= density distribution
+0.1044860681= Electron current, A
+0= transverse gradient, 1/s
+2.112534413e+13; Central density, 1/m^3
+
+[row=70] ECOOL | Tabulated | Control
+table.tvt= Transverse velocity table
+table.lvt= Longitudinal velocity table
+1;0=Generate velocity tables
+
+[row=71] ECOOL | Tabulated | Transverse
+10000,1= 1st point range: velocity(m/s) / steps
+800000,3= 2nd point range: velocity(m/s) / steps
+3000000,20= 3rd point range: velocity(m/s) / steps
+100000,4= 1st point range: velocity(m/s) / steps
+400000,5= 2nd point range: velocity(m/s) / steps
+1000000,3;0=3rd point range: velocity(m/s) / steps
+
+[row=72] ECOOL | Tabulated | Longitudinal
+10000,1= 1st point range: velocity(m/s) / steps
+800000,1= 2nd point range: velocity(m/s) / steps
+3000000,5= 3rd point range: velocity(m/s) / steps
+100000,1= 1st point range: velocity(m/s) / steps
+400000,3= 2nd point range: velocity(m/s) / steps
+1000000,3;0=3rd point range: velocity(m/s) / steps
+
+[row=73] ECOOL | Tabulated
+1;0=Interpolation: Linear(0)/Bilinear(1)/Triangle(2)
+
+[row=74] ECOOL | Friction force (Undulator)
+1= Enable Undulator
+8= Period, cm
+5= Magnetic field, G
+502.7473316; Rotation radius, um
+
+[row=75] ECOOL | Friction force | Toepffer, 3D
+15= number of steps over horizontal velocity
+15= number of steps over horizontal velocity
+15= number of steps over horizontal velocity
+1= From array
+0; Gaussian density
+
+[row=80] Effects | Optical Stochastic coolng | Parameters
+0= R51
+0= R52
+0.004= R56
+6e-07= Go
+0= Zo
+7= SigmaZ
+1e-05; lambda
+
+[row=81] Effects | Optical Stochastic coolng | Lattice functions
+10= Horizontal beta [m]
+10= Vertical beta [m]
+0= Horizontal alpfa
+0= Vertical alfa
+0= Horizontal dispersion [m]
+0= Verticla dispersion [m]
+0= Horizontal derivative
+0; Vertical derivative
+
+[row=85] Effects | Laser coolng | Lattice functions
+280= Ion resonance wavelength [nm]
+3521.12= Sweep of wavelength, dP/P
+3= Cooling section length [m]
+285.7= Natural line width [MHz]
+10= Saturation parameter
+1= Laser spot size [mm]
+3241.12; Laser wavelength [nm]
+
+[row=86] Effects | Laser coolng | Lattice functions
+10= Horizontal beta [m]
+10= Vertical beta [m]
+0= Horizontal alpfa
+0= Vertical alfa
+0= Horizontal dispersion [m]
+0= Verticla dispersion [m]
+0= Horizontal derivative
+0; Vertical derivative
+
+[row=87] Effects | Laser coolng | Sweeping
+0= Sweep propogate laser
+-0.002= Start sweeping, dP/P
+-0.0003= Stop sweeping, dP/P
+1= Horizontal shift of propogate laser [mm]
+1= final shift, mm
+1= Sweep contr-propogate laser
+0.0003= Start sweeping, dP/P
+1000= Stop sweeping, dP/P
+0= Horizontal shift of contr-propogate laser [mm]
+0= final shift, mm
+10= Sweeping time, s
+1000; Friction force drawing step number
+
+[row=90] Effects | Stochastic cooling | RHIC
+6000= Coolin coefficient
+3e-15= Difusion coefficient
+5e+13= gain
+0= linear force coefficient
+1= Cubic force coefficient
+5= Lower frequency, GHZ
+8= Upper frequency, GHz
+15= Number of subbands
+1= Number of filters (1 - 1, 0 - 2 in series)
+0.66; Time delay in T_0
+
+[row=91] Effects | Gated Stochastic cooling | Parameters
+1,2,1.16,-0.5,0.5,0,0.1,0,0.01,10= N,type,lower,upper,initial,final,p2k,noise,gain
+0,0,1.16,-0.42,0.42,0,0.01,8,9,10= N,type,lower,upper,initial,final,p2k,noise,gain
+0,0,1,-1,1,0,0.1,8,9,10= N,type,lower,upper,initial,final,p2k,noise,gain
+0,0,2,-1,1,0,0.01,8,9,10= N,type,lower,upper,initial,final,p2k,noise,gain
+0,0; simple, optimal
+
+[row=92] Effects | Gated Stochastic cooling | Linear Approximation
+1= Linear Approximation
+0.0002= Force amplitude [1/s]
+0.005= Force position, d/p
+1e-07= Diffusion amplitude [1/s]
+0.002= Diffusion position, dp/p
+0.001; Initial sigma for diffusion, dp/p
+
