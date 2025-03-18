@@ -3,7 +3,7 @@
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
-from .constants import PROTON_MASS_EV, ELECTRON_MASS_EV, MUON_MASS_EV, Pb208_MASS_EV
+from .masses import PROTON_MASS_EV, ELECTRON_MASS_EV, MUON_MASS_EV, Pb208_MASS_EV
 from .particles import Particles, reference_from_pdg_id, LAST_INVALID_STATE
 
 
