@@ -1039,12 +1039,12 @@ def test_thin_slice_bend_with_multipoles_bend_off(test_context):
     line.track(p_slice)
     line._line_before_slicing.track(p_ref)
 
-    assert_allclose(p_slice.x, p_ref.x, rtol=0, atol=1e-8)
-    assert_allclose(p_slice.px, p_ref.px, rtol=0, atol=1e-10)
-    assert_allclose(p_slice.y, p_ref.y, rtol=0, atol=1e-8)
-    assert_allclose(p_slice.py, p_ref.py, rtol=0, atol=1e-10)
-    assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-8)
-    assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-10)
+    assert_allclose(p_slice.x, p_ref.x, rtol=0, atol=1e-14)
+    assert_allclose(p_slice.px, p_ref.px, rtol=0, atol=1e-14)
+    assert_allclose(p_slice.y, p_ref.y, rtol=0, atol=1e-14)
+    assert_allclose(p_slice.py, p_ref.py, rtol=0, atol=1e-14)
+    assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-14)
+    assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-14)
 
     line.to_json('ttt_thin_bend_mult_off.json')
     line2 = xt.Line.from_json('ttt_thin_bend_mult_off.json')
@@ -1075,12 +1075,12 @@ def test_thin_slice_bend_with_multipoles_bend_off(test_context):
     line.track(p_slice, backtrack=True)
 
     assert (p_slice.state == 1).all()
-    assert_allclose(p_slice.x, p0.x, rtol=0, atol=1e-8)
-    assert_allclose(p_slice.px, p0.px, rtol=0, atol=1e-10)
-    assert_allclose(p_slice.y, p0.y, rtol=0, atol=1e-8)
-    assert_allclose(p_slice.py, p0.py, rtol=0, atol=1e-10)
-    assert_allclose(p_slice.zeta, p0.zeta, rtol=0, atol=1e-8)
-    assert_allclose(p_slice.delta, p0.delta, rtol=0, atol=1e-10)
+    assert_allclose(p_slice.x, p0.x, rtol=0, atol=1e-14)
+    assert_allclose(p_slice.px, p0.px, rtol=0, atol=1e-14)
+    assert_allclose(p_slice.y, p0.y, rtol=0, atol=1e-14)
+    assert_allclose(p_slice.py, p0.py, rtol=0, atol=1e-14)
+    assert_allclose(p_slice.zeta, p0.zeta, rtol=0, atol=1e-14)
+    assert_allclose(p_slice.delta, p0.delta, rtol=0, atol=1e-14)
 
     line.optimize_for_tracking()
 
@@ -1096,21 +1096,21 @@ def test_thin_slice_bend_with_multipoles_bend_off(test_context):
     p_slice = p0.copy()
     line.track(p_slice)
 
-    assert_allclose(p_slice.x, p_ref.x, rtol=0, atol=1e-8)
-    assert_allclose(p_slice.px, p_ref.px, rtol=0, atol=1e-10)
-    assert_allclose(p_slice.y, p_ref.y, rtol=0, atol=1e-8)
-    assert_allclose(p_slice.py, p_ref.py, rtol=0, atol=1e-10)
-    assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-8)
-    assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-10)
+    assert_allclose(p_slice.x, p_ref.x, rtol=0, atol=1e-14)
+    assert_allclose(p_slice.px, p_ref.px, rtol=0, atol=1e-14)
+    assert_allclose(p_slice.y, p_ref.y, rtol=0, atol=1e-14)
+    assert_allclose(p_slice.py, p_ref.py, rtol=0, atol=1e-14)
+    assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-14)
+    assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-14)
 
     line.track(p_slice, backtrack=True)
 
-    assert_allclose(p_slice.x, p0.x, rtol=0, atol=1e-8)
-    assert_allclose(p_slice.px, p0.px, rtol=0, atol=1e-10)
-    assert_allclose(p_slice.y, p0.y, rtol=0, atol=1e-8)
-    assert_allclose(p_slice.py, p0.py, rtol=0, atol=1e-10)
-    assert_allclose(p_slice.zeta, p0.zeta, rtol=0, atol=1e-8)
-    assert_allclose(p_slice.delta, p0.delta, rtol=0, atol=1e-10)
+    assert_allclose(p_slice.x, p0.x, rtol=0, atol=1e-14)
+    assert_allclose(p_slice.px, p0.px, rtol=0, atol=1e-14)
+    assert_allclose(p_slice.y, p0.y, rtol=0, atol=1e-14)
+    assert_allclose(p_slice.py, p0.py, rtol=0, atol=1e-14)
+    assert_allclose(p_slice.zeta, p0.zeta, rtol=0, atol=1e-14)
+    assert_allclose(p_slice.delta, p0.delta, rtol=0, atol=1e-14)
 
 @for_all_test_contexts
 def test_thick_slice_quad_with_multipoles(test_context):
@@ -1118,12 +1118,12 @@ def test_thick_slice_quad_with_multipoles(test_context):
     quad = xt.Quadrupole(k1=1e-3, k1s=2e-3, length=1,
                    knl=[0, 0.001, 0.01, 0.02, 0.04, 0.6],
                    ksl=[0, 0.002, 0.03, 0.03, 0.05, 0.7],
-                   num_multipole_kicks=100000)
+                   num_multipole_kicks=1000)
 
     line = xt.Line(elements=[quad])
 
     line.slice_thick_elements(
-        slicing_strategies=[xt.Strategy(xt.Uniform(100000, mode='thick'))])
+        slicing_strategies=[xt.Strategy(xt.Uniform(1000, mode='thick'))])
     line.build_tracker(_context=test_context)
     line._line_before_slicing.build_tracker(_context=test_context)
     assert line['e0..5'].parent_name == 'e0'
@@ -1171,12 +1171,14 @@ def test_thin_slice_quad_with_multipoles(test_context):
     quad = xt.Quadrupole(k1=1e-3, k1s=2e-3, length=1,
                    knl=[0, 0.001, 0.01, 0.02, 0.04, 0.6],
                    ksl=[0, 0.002, 0.03, 0.03, 0.05, 0.7],
-                   num_multipole_kicks=100000)
+                   num_multipole_kicks=7)
+    quad.integrator = 'teapot'
+    quad.model = 'drift-kick-drift-expanded'
 
     line = xt.Line(elements=[quad])
 
     line.slice_thick_elements(
-        slicing_strategies=[xt.Strategy(xt.Uniform(100000))])
+        slicing_strategies=[xt.Strategy(xt.Teapot(7))])
     line.build_tracker(_context=test_context)
     line._line_before_slicing.build_tracker(_context=test_context)
     assert line['e0..5'].parent_name == 'e0'
