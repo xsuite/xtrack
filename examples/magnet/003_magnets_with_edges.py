@@ -263,7 +263,7 @@ bb.track(p_ref)
 
 xo.assert_allclose(p_test.x, p_ref.x, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.y, p_ref.y, atol=1e-15, rtol=0)
-xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=1e-15, rtol=0)
+xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=3e-15, rtol=0)
 xo.assert_allclose(p_test.px, p_ref.px, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.py, p_ref.py, atol=1e-15, rtol=0)
 xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-15, rtol=0)

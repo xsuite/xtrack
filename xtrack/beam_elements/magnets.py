@@ -170,12 +170,12 @@ class Magnet(BeamElement):
             self.xoinitialize(**kwargs)
             return
 
-        model = kwargs.pop('model', None)
-
         order = order or DEFAULT_MULTIPOLE_ORDER
         multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
         kwargs.update(multipolar_kwargs)
 
+        model = kwargs.pop('model', None)
+        integrator = kwargs.pop('integrator', None)
         edge_entry_model = kwargs.pop('edge_entry_model', None)
         edge_exit_model = kwargs.pop('edge_exit_model', None)
 
@@ -194,6 +194,9 @@ class Magnet(BeamElement):
         # Trigger properties
         if model is not None:
             self.model = model
+
+        if integrator is not None:
+            self.integrator = integrator
 
         if edge_entry_model is not None:
             self.edge_entry_model = edge_entry_model
@@ -415,7 +418,6 @@ class MagnetEdge(BeamElement):
         'face_angle': xo.Float64,
         'face_angle_feed_down': xo.Float64,
         'fringe_integral': xo.Float64,
-        'delta_taper': xo.Float64,
     }
 
     _rename = {

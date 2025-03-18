@@ -23,6 +23,12 @@ void MagnetEdge_track_local_particle(MagnetEdgeData el, LocalParticle* part0)
     const double face_angle_feed_down = MagnetEdgeData_get_face_angle_feed_down(el);
     const double fringe_integral = MagnetEdgeData_get_fringe_integral(el);
 
+    #ifdef XSUITE_BACKTRACK
+    const double factor_for_backtrack = -1;
+    #else
+    const double factor_for_backtrack = 1;
+    #endif
+
     track_magnet_edge_particles(
         part0,
         model,
@@ -33,13 +39,13 @@ void MagnetEdge_track_local_particle(MagnetEdgeData el, LocalParticle* part0)
         k_order,
         knl,
         ksl,
-        1.0, // factor_knl_ksl
+        /* factor_knl_ksl */ 1,
         kl_order,
         length,
         face_angle,
         face_angle_feed_down,
         fringe_integral,
-        1.0 // factor_for_backtrack
+        factor_for_backtrack
     );
 }
 

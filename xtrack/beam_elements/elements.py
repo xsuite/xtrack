@@ -2278,14 +2278,14 @@ class MultipoleEdge(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/multipoleedge.h'),
     ]
 
-    def __init__(self, kn: list=None, ks: list=None, is_exit=False, order=None, _xobject=None):
-        if _xobject is not None:
-            self.xoinitialize(_xobject=_xobject)
+    def __init__(self, kn: list=None, ks: list=None, is_exit=False, order=None, _xobject=None, **kwargs):
+        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
             return
 
         multipole_kwargs = _prepare_multipolar_params(order, True, kn=kn, ks=ks)
 
-        self.xoinitialize(is_exit=is_exit, **multipole_kwargs)
+        self.xoinitialize(is_exit=is_exit, **kwargs, **multipole_kwargs)
 
 
 class LineSegmentMap(BeamElement):
