@@ -1863,6 +1863,7 @@ def test_skew_quadrupole(test_context):
     length = 0.5
 
     quad = xt.Quadrupole(k1=k1, k1s=k1s, length=length, _context=test_context)
+    quad.num_multipole_kicks = 1000
 
     n_slices = 1000
     ele_thin = []
