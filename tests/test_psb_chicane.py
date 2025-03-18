@@ -92,6 +92,8 @@ def test_psb_chicane(test_context):
     xo.assert_allclose(tw.dqy, -8.625637734560598, rtol=0, atol=1e-3)
     xo.assert_allclose(tw.dqx, -3.5604677592626643, rtol=0, atol=1e-3)
 
+    prrrr
+
     line.vars['bsw_k2l'] = bsw_k2l_ref / 3
     xo.assert_allclose(line['bi1.bsw1l1.1']._xobject.knl[2], bsw_k2l_ref / 3, rtol=0, atol=1e-10)
     xo.assert_allclose(line['bi1.bsw1l1.2']._xobject.knl[2], -bsw_k2l_ref / 3, rtol=0, atol=1e-10)

@@ -1201,7 +1201,7 @@ class RBend(_BendCommon, BeamElement):
 
     _internal_record_class = SynchrotronRadiationRecord
 
-    _extra_c_sources = [
+    _extra_c_sources = _BendCommon._common_c_sources + [
         _pkg_root.joinpath('headers/synrad_spectrum.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
