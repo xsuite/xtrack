@@ -343,7 +343,6 @@ void track_magnet_drift_single_particle(
     if (length == 0.0) {
         return;
     }
-
     switch (drift_model) {
         case 0:
             track_expanded_drift_single_particle(part, length);

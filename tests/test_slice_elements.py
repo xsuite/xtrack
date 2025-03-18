@@ -1255,14 +1255,16 @@ def test_thin_slice_quad_with_multipoles_quad_off(test_context):
     quad = xt.Quadrupole(k1=0, k1s=0, length=1,
                    knl=[0, 0.001, 0.01, 0.02, 0.04, 0.6],
                    ksl=[0, 0.002, 0.03, 0.03, 0.05, 0.7],
-                   num_multipole_kicks=10)
+                   num_multipole_kicks=7)
+    quad.model = 'drift-kick-drift-expanded'
+    quad.integrator = 'teapot'
 
     line = xt.Line(elements=[quad])
 
-    num_slices = 10
+    num_slices = 7
 
     line.slice_thick_elements(
-        slicing_strategies=[xt.Strategy(xt.Uniform(num_slices))])
+        slicing_strategies=[xt.Strategy(xt.Teapot(num_slices))])
     line.build_tracker(_context=test_context)
     line._line_before_slicing.build_tracker(_context=test_context)
     assert line['e0..5'].parent_name == 'e0'
@@ -1270,7 +1272,7 @@ def test_thin_slice_quad_with_multipoles_quad_off(test_context):
     assert line['drift_e0..5'].parent_name == 'e0'
     assert line['drift_e0..5']._parent is line.element_dict['e0']
 
-    p0 = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03
+    p0 = xt.Particles(p0c=10e9, x=0.1, px=0.5, y=0.3, py=0.3, delta=0.1
                       ,_context=test_context)
     p_ref = p0.copy()
     p_slice = p0.copy()

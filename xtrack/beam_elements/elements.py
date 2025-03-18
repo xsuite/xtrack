@@ -1744,6 +1744,29 @@ class Quadrupole(BeamElement):
         return xt.ThinSliceQuadrupoleExit
 
 
+    @property
+    def model(self):
+        return _INDEX_TO_MODEL_STRAIGHT[self._model]
+
+    @model.setter
+    def model(self, value):
+        try:
+            self._model = _MODEL_TO_INDEX_STRAIGHT[value]
+        except KeyError:
+            raise ValueError(f'Invalid model: {value}')
+
+    @property
+    def integrator(self):
+        return _INDEX_TO_INTEGRATOR[self._integrator]
+
+    @integrator.setter
+    def integrator(self, value):
+        try:
+            self._integrator = _INTEGRATOR_TO_INDEX[value]
+        except KeyError:
+            raise ValueError(f'Invalid integrator: {value}')
+
+
 class Solenoid(BeamElement):
     """Solenoid element.
 
