@@ -3185,7 +3185,7 @@ class TwissTable(Table):
 
         return R_matrix
 
-    def get_twiss_param_derivative(self, observation, src):
+    def get_twiss_param_derivative(self, src, observation):
         """
         Returns the derivatives of Twiss parameters between two elements
         with respect to the quadrupole strength.
@@ -3203,7 +3203,7 @@ class TwissTable(Table):
             Dictionary containing the derivatives of Twiss parameters.
         """
 
-        R_matrix = self.get_R_matrix(src, observation)
+        R_matrix = self.get_R_matrix(start=src, end=observation)
 
         betx_start = self['betx', src]
         bety_start = self['bety', src]
