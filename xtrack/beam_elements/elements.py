@@ -985,6 +985,7 @@ class Bend(_BendCommon, BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_nonlinear.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_magnet_edge.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_magnet_drift.h'),
@@ -1196,7 +1197,23 @@ class RBend(_BendCommon, BeamElement):
         'length_straight': '_length_straight',
     }
 
-    _extra_c_sources = _BendCommon._common_c_sources + [
+    _depends_on = [RandomUniformAccurate, RandomExponential]
+
+    _internal_record_class = SynchrotronRadiationRecord
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('headers/synrad_spectrum.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_nonlinear.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_edge.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_drift.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_kick.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_radiation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet.h'),
         _pkg_root.joinpath('beam_elements/elements_src/rbend.h'),
     ]
 
