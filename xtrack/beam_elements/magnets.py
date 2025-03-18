@@ -16,7 +16,7 @@ from typing import List
 DEFAULT_MULTIPOLE_ORDER = 5
 
 
-_INDEX_TO_MODEL = {
+_INDEX_TO_MODEL_CURVED = {
     0: 'adaptive',
     1: 'full',
     2: 'bend-kick-bend',
@@ -25,7 +25,7 @@ _INDEX_TO_MODEL = {
     5: 'drift-kick-drift-exact',
     6: 'drift-kick-drift-expanded',
 }
-_MODEL_TO_INDEX = {k: v for v, k in _INDEX_TO_MODEL.items()} | {'expanded': 4}
+_MODEL_TO_INDEX_CURVED = {k: v for v, k in _INDEX_TO_MODEL_CURVED.items()} | {'expanded': 4}
 
 _INDEX_TO_INTEGRATOR = {
     0: 'adaptive',
@@ -34,6 +34,11 @@ _INDEX_TO_INTEGRATOR = {
     3: 'uniform',
 }
 _INTEGRATOR_TO_INDEX = {k: v for v, k in _INDEX_TO_INTEGRATOR.items()}
+
+_INDEX_TO_MODEL_STRAIGHT = _INDEX_TO_MODEL_CURVED.copy()
+_INDEX_TO_MODEL_STRAIGHT.pop(2)
+_INDEX_TO_MODEL_STRAIGHT.pop(3)
+_MODEL_TO_INDEX_STRAIGHT = {k: v for v, k in _INDEX_TO_MODEL_STRAIGHT.items()}
 
 class SynchrotronRadiationRecord(xo.HybridClass):
     _xofields = {
@@ -302,12 +307,12 @@ class Magnet(BeamElement):
 
     @property
     def model(self):
-        return _INDEX_TO_MODEL[self._model]
+        return _INDEX_TO_MODEL_CURVED[self._model]
 
     @model.setter
     def model(self, value):
         try:
-            self._model = _MODEL_TO_INDEX[value]
+            self._model = _MODEL_TO_INDEX_CURVED[value]
         except KeyError:
             raise ValueError(f'Invalid model: {value}')
 

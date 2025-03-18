@@ -18,8 +18,10 @@ from ..internal_record import RecordIndex
 
 from xtrack.beam_elements.magnets import _INDEX_TO_INTEGRATOR
 from xtrack.beam_elements.magnets import _INTEGRATOR_TO_INDEX
-from xtrack.beam_elements.magnets import _MODEL_TO_INDEX
-from xtrack.beam_elements.magnets import _INDEX_TO_MODEL
+from xtrack.beam_elements.magnets import _MODEL_TO_INDEX_CURVED
+from xtrack.beam_elements.magnets import _INDEX_TO_MODEL_CURVED
+from xtrack.beam_elements.magnets import _MODEL_TO_INDEX_STRAIGHT
+from xtrack.beam_elements.magnets import _INDEX_TO_MODEL_STRAIGHT
 from xtrack.beam_elements.magnets import DEFAULT_MULTIPOLE_ORDER
 from xtrack.beam_elements.magnets import SynchrotronRadiationRecord
 from xtrack.beam_elements.magnets import _prepare_multipolar_params
@@ -811,12 +813,12 @@ class _BendCommon:
 
     @property
     def model(self):
-        return xt.beam_elements.magnets._INDEX_TO_MODEL[self._model]
+        return xt.beam_elements.magnets._INDEX_TO_MODEL_CURVED[self._model]
 
     @model.setter
     def model(self, value):
         try:
-            self._model = xt.beam_elements.magnets._MODEL_TO_INDEX[value]
+            self._model = xt.beam_elements.magnets._MODEL_TO_INDEX_CURVED[value]
         except KeyError:
             raise ValueError(f'Invalid model: {value}')
 
@@ -1653,23 +1655,38 @@ class Quadrupole(BeamElement):
         'ksl': xo.Float64[:],
         'edge_entry_active': xo.Field(xo.UInt64, default=False),
         'edge_exit_active': xo.Field(xo.UInt64, default=False),
+        'model': xo.Int64,
+        'integrator': xo.Int64,
+        'radiation_flag': xo.Int64,
+        'delta_taper': xo.Float64,
     }
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
 
     _rename = {
         'order': '_order',
+        'model': '_model',
+        'integrator': '_integrator',
     }
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_multipolar_components.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_srotation.h'),
+        _pkg_root.joinpath('headers/synrad_spectrum.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_quadrupole.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_edge.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_drift.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_kick.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_radiation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet.h'),
         _pkg_root.joinpath('beam_elements/elements_src/quadrupole.h'),
     ]
+
+    _depends_on = [RandomUniformAccurate, RandomExponential]
+
+    _internal_record_class = SynchrotronRadiationRecord
 
     def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
         order = order or DEFAULT_MULTIPOLE_ORDER

@@ -44,7 +44,7 @@ void Bend_track_local_particle(
         /*edge_entry_fint*/       BendData_get_edge_entry_fint(el),
         /*edge_exit_fint*/        BendData_get_edge_exit_fint(el),
         /*edge_entry_hgap*/       BendData_get_edge_entry_hgap(el),
-        /*edge_exit_hga*/         BendData_get_edge_exit_hgap(el)
+        /*edge_exit_hgap*/        BendData_get_edge_exit_hgap(el)
     );
 
 }
