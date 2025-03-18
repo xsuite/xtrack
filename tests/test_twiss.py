@@ -2023,6 +2023,8 @@ def test_analytical_derivatives():
         'dbetx': (tw_plus.betx[-1] - tw_minus.betx[-1]) / (2 * eps),
         'dalfx': (tw_plus.alfx[-1] - tw_minus.alfx[-1]) / (2 * eps),
         'dalfy': (tw_plus.alfy[-1] - tw_minus.alfy[-1]) / (2 * eps),
+        'dmux': (tw_plus.mux[-1] - tw_minus.mux[-1]) / (2 * eps),
+        'dmuy': (tw_plus.muy[-1] - tw_minus.muy[-1]) / (2 * eps),
         'ddx': (tw_plus.dx[-1] - tw_minus.dx[-1]) / (2 * eps),
         'ddpx': (tw_plus.dpx[-1] - tw_minus.dpx[-1]) / (2 * eps),
         'ddy': (tw_plus.dy[-1] - tw_minus.dy[-1]) / (2 * eps),
@@ -2034,6 +2036,8 @@ def test_analytical_derivatives():
     xo.assert_allclose(tw_deriv['dbety'], fd_dict['dbety'], atol=1e-6, rtol=1e-6)
     xo.assert_allclose(tw_deriv['dalfx'], fd_dict['dalfx'], atol=1e-6, rtol=1e-6)
     xo.assert_allclose(tw_deriv['dalfy'], fd_dict['dalfy'], atol=1e-6, rtol=1e-6)
+    xo.assert_allclose(tw_deriv['dmux'], fd_dict['dmux'], atol=1e-6, rtol=1e-6)
+    xo.assert_allclose(tw_deriv['dmuy'], fd_dict['dmuy'], atol=1e-6, rtol=1e-6)
     xo.assert_allclose(tw_deriv['ddx'], fd_dict['ddx'], atol=1e-6, rtol=1e-6)
     xo.assert_allclose(tw_deriv['ddpx'], fd_dict['ddpx'], atol=1e-6, rtol=1e-6)
     xo.assert_allclose(tw_deriv['ddy'], fd_dict['ddy'], atol=1e-6, rtol=1e-6)
