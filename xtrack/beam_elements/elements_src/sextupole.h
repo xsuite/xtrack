@@ -74,8 +74,8 @@ void Sextupole_track_local_particle(
     if (num_multipole_kicks > 1) {
         edge_drift_weight = 1. / (2 * (1 + num_multipole_kicks));
         inside_drift_weight = (
-            ((float) num_multipole_kicks)
-                / ((float)(num_multipole_kicks*num_multipole_kicks) - 1));
+            ((double) num_multipole_kicks)
+                / (num_multipole_kicks*num_multipole_kicks - 1));
     }
 
     // TRACKING
