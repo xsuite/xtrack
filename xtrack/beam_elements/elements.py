@@ -1454,23 +1454,35 @@ class Sextupole(BeamElement):
         'edge_entry_active': xo.Field(xo.UInt64, default=False),
         'edge_exit_active': xo.Field(xo.UInt64, default=False),
         'num_multipole_kicks': xo.Int64,
+        'model': xo.Int64,
+        'integrator': xo.Int64,
+        'radiation_flag': xo.Int64,
+        'delta_taper': xo.Float64,
     }
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
 
     _rename = {
         'order': '_order',
+        'model': '_model',
+        'integrator': '_integrator',
     }
 
     _depends_on = [RandomUniformAccurate, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
-        _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('headers/synrad_spectrum.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_multipole.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_edge.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_drift.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_kick.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_radiation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet.h'),
         _pkg_root.joinpath('beam_elements/elements_src/sextupole.h'),
     ]
 
@@ -1480,7 +1492,17 @@ class Sextupole(BeamElement):
         multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
         kwargs.update(multipolar_kwargs)
 
+        model = kwargs.pop('model', None)
+        integrator = kwargs.pop('integrator', None)
+
         self.xoinitialize(**kwargs)
+
+        # Trigger properties
+        if model is not None:
+            self.model = model
+
+        if integrator is not None:
+            self.integrator = integrator
 
     def to_dict(self, copy_to_cpu=True):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
@@ -1526,6 +1548,28 @@ class Sextupole(BeamElement):
     def _exit_slice_class(self):
         return xt.ThinSliceSextupoleExit
 
+    @property
+    def model(self):
+        return _INDEX_TO_MODEL_STRAIGHT[self._model]
+
+    @model.setter
+    def model(self, value):
+        try:
+            self._model = _MODEL_TO_INDEX_STRAIGHT[value]
+        except KeyError:
+            raise ValueError(f'Invalid model: {value}')
+
+    @property
+    def integrator(self):
+        return _INDEX_TO_INTEGRATOR[self._integrator]
+
+    @integrator.setter
+    def integrator(self, value):
+        try:
+            self._integrator = _INTEGRATOR_TO_INDEX[value]
+        except KeyError:
+            raise ValueError(f'Invalid integrator: {value}')
+
 
 class Octupole(BeamElement):
 
@@ -1556,23 +1600,35 @@ class Octupole(BeamElement):
         'edge_entry_active': xo.Field(xo.UInt64, default=False),
         'edge_exit_active': xo.Field(xo.UInt64, default=False),
         'num_multipole_kicks': xo.Int64,
+        'model': xo.Int64,
+        'integrator': xo.Int64,
+        'radiation_flag': xo.Int64,
+        'delta_taper': xo.Float64,
     }
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
 
     _rename = {
         'order': '_order',
+        'model': '_model',
+        'integrator': '_integrator',
     }
 
     _depends_on = [RandomUniformAccurate, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
-        _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('headers/synrad_spectrum.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_multipole.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_edge.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_drift.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_kick.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_radiation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet.h'),
         _pkg_root.joinpath('beam_elements/elements_src/octupole.h'),
     ]
 
@@ -1581,7 +1637,17 @@ class Octupole(BeamElement):
         multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
         kwargs.update(multipolar_kwargs)
 
+        model = kwargs.pop('model', None)
+        integrator = kwargs.pop('integrator', None)
+
         self.xoinitialize(**kwargs)
+
+        # Trigger properties
+        if model is not None:
+            self.model = model
+
+        if integrator is not None:
+            self.integrator = integrator
 
     def to_dict(self, copy_to_cpu=True):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
@@ -1626,6 +1692,28 @@ class Octupole(BeamElement):
     @property
     def _exit_slice_class(self):
         return xt.ThinSliceOctupoleExit
+
+    @property
+    def model(self):
+        return _INDEX_TO_MODEL_STRAIGHT[self._model]
+
+    @model.setter
+    def model(self, value):
+        try:
+            self._model = _MODEL_TO_INDEX_STRAIGHT[value]
+        except KeyError:
+            raise ValueError(f'Invalid model: {value}')
+
+    @property
+    def integrator(self):
+        return _INDEX_TO_INTEGRATOR[self._integrator]
+
+    @integrator.setter
+    def integrator(self, value):
+        try:
+            self._integrator = _INTEGRATOR_TO_INDEX[value]
+        except KeyError:
+            raise ValueError(f'Invalid integrator: {value}')
 
 
 class Quadrupole(BeamElement):
@@ -1694,7 +1782,17 @@ class Quadrupole(BeamElement):
         multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
         kwargs.update(multipolar_kwargs)
 
+        model = kwargs.pop('model', None)
+        integrator = kwargs.pop('integrator', None)
+
         self.xoinitialize(**kwargs)
+
+        # Trigger properties
+        if model is not None:
+            self.model = model
+
+        if integrator is not None:
+            self.integrator = integrator
 
     def to_dict(self, copy_to_cpu=True):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
@@ -1742,7 +1840,6 @@ class Quadrupole(BeamElement):
     @property
     def _exit_slice_class(self):
         return xt.ThinSliceQuadrupoleExit
-
 
     @property
     def model(self):

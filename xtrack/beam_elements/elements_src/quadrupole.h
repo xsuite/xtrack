@@ -11,15 +11,14 @@ void Quadrupole_track_local_particle(
         QuadrupoleData el,
         LocalParticle* part0
 ) {
-
     int64_t model = QuadrupoleData_get_model(el);
     int64_t integrator = QuadrupoleData_get_integrator(el);
     int64_t num_multipole_kicks = QuadrupoleData_get_num_multipole_kicks(el);
 
-    if (model == 0) {
+    if (model == 0) {  // adaptive
         model = 4; // mat-kick-mat
     }
-    if (integrator == 0) {
+    if (integrator == 0) {  // adaptive
         integrator = 3; // uniform
     }
     if (num_multipole_kicks == 0) {

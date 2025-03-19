@@ -33,6 +33,9 @@ def test_magnet_expanded_drift(test_context):
         _context=test_context,
     )
 
+    assert magnet.model == 'drift-kick-drift-expanded'
+    assert magnet.integrator == 'teapot'
+
     drift = xt.Drift(length=2.0)
 
     p0 = make_particles(test_context)
@@ -63,6 +66,9 @@ def test_magnet_exact_drift(test_context):
         model='drift-kick-drift-exact',
         _context=test_context,
     )
+
+    assert magnet.model == 'drift-kick-drift-exact'
+    assert magnet.integrator == 'teapot'
 
     exact_drift = xt.Solenoid(length=2.0)  # Solenoid is exact drift when off
 
@@ -106,6 +112,8 @@ def test_magnet_sextupole(test_context):
     )
 
     sextupole = xt.Sextupole(length=2.0, k2=3., k2s=5.)
+    assert magnet.integrator == 'teapot'
+    assert magnet.model == 'drift-kick-drift-expanded'
 
     p0 = make_particles(test_context)
     p_test = p0.copy()
@@ -142,7 +150,7 @@ def test_magnet_sextupole_with_kicks_that_do_nothing(test_context):
         k2=3,
         k2s=5,
         num_multipole_kicks=5,
-        integrator='teapot',
+        integrator='uniform',
         model='drift-kick-drift-expanded',
         _context=test_context,
     )
@@ -189,7 +197,15 @@ def test_magnet_sextupole_with_kicks(test_context):
         _context=test_context,
     )
 
-    sextupole = xt.Sextupole(length=2.0, k2=3., k2s=5., num_multipole_kicks=5)
+    sextupole = xt.Sextupole(
+        length=2.0,
+        k2=3.,
+        k2s=5.,
+        num_multipole_kicks=5,
+        integrator='teapot',
+        _context=test_context,
+    )
+    assert sextupole.integrator == 'teapot'
 
     p0 = make_particles(test_context)
     p_test = p0.copy()
@@ -223,7 +239,7 @@ def test_magnet_sextupole_with_kicks(test_context):
 def test_magnet_sextupole_with_skew_kick(test_context):
     magnet = Magnet(
         length=2.0,
-        integrator='teapot',
+        integrator='uniform',
         model='drift-kick-drift-expanded',
         k2=0,
         k2s=5,
@@ -265,7 +281,8 @@ def test_magnet_sextupole_with_skew_kick(test_context):
 
 
 @for_all_test_contexts
-def test_magnet_quadrupole(test_context):
+@pytest.mark.parametrize('integrator', ['adaptive', 'teapot'])
+def test_magnet_quadrupole(test_context, integrator):
     magnet = Magnet(
         length=2.0,
         k1=3,
@@ -275,7 +292,13 @@ def test_magnet_quadrupole(test_context):
         _context=test_context,
     )
 
-    quadrupole = xt.Quadrupole(length=2, k1=3, num_multipole_kicks=1)
+    quadrupole = xt.Quadrupole(
+        length=2,
+        k1=3,
+        num_multipole_kicks=1,
+        integrator=integrator,
+    )
+    assert quadrupole.integrator == integrator
 
     p0 = make_particles(test_context)
     p_test = p0.copy()
