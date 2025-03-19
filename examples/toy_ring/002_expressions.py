@@ -120,17 +120,18 @@ line['a'] = '3 * sqrt(k1lf) + 2 * k1ld'
 line.vars.get_table()
 # returns:
 #
-# Table: 9 rows, 2 cols
-# name     value
-# t_turn_s     0
-# k1l.qf.1   0.2
-# k1l.qd.1  -0.7
-# k1l.qf.2   0.2
-# k1l.qd.2  -0.7
-# k1lf       0.2
-# k1ld      -0.7
-# a            4
-# b            6
+# VarsTable: 9 rows, 3 cols
+# name             value expr
+# t_turn_s             0 None
+# l.quad             0.3 None
+# k1l.qf.1           0.2 k1lf
+# k1l.qf.2           0.2 k1lf
+# k1l.qd.1          -0.7 k1ld
+# k1l.qd.2          -0.7 k1ld
+# k1lf               0.2 None
+# k1ld              -0.7 None
+# a           -0.0583592 ((3.0 * sqrt(k1lf)) + (2.0 * k1ld))
+
 
 # Regular expressions can be used to select variables. For example we can select all
 # the variables containing `qf` using the following:
@@ -138,7 +139,66 @@ var_tab = line.vars.get_table()
 var_tab.rows['.*qf.*']
 # returns:
 #
-# Table: 2 rows, 2 cols
-# name     value
-# k1l.qf.1   0.2
-# k1l.qf.2   0.2
+# VarsTable: 2 rows, 3 cols
+# name             value expr
+# k1l.qf.1           0.2 k1lf
+# k1l.qf.2           0.2 k1lf
+
+# xdeps is the library implementing the expression logic.
+# xdeps has the concept of references and references can also be used to build
+# expressions.
+# References can be created with
+env.ref['mqf.1'].k1 # -> element_refs['mqf.1'].k1
+env.ref['k1lf'] # -> vars['k1lf']
+# Expressions can be built with normal operators
+env.ref['k1lf']*3+1 #-> ((vars['k1lf'] * 3) + 1)
+
+# When assigning an expression to a quantity using the environment, e.g.
+env['mqf.1'].k1 = env.ref['k1lf']*3+1
+# the xdeps Manager that is inside the environment
+env.ref_manager
+# establishes a relation between lhs and rhs if the rhs is an expression or
+# remove old relations and assign the value if the rhs is a value.
+env['mqf.1'].get_info("k1")
+# returns
+# element_refs['mqf.1'].k1 = ((vars['k1lf'] * 3) + 1)
+
+# It is also possible to assign to refs to obtain the same results:
+env.ref['mqf.1'].k1 = env.ref['k1lf']*3+1
+
+# The difference in between the two cases lies in the handling of the "+="
+# operator. In Python
+env['mqf.1'].k1+=1
+# is equivalent to 
+env['mqf.1'].k1=env['mqf.1'].k1+1
+# so the expression is deleted:
+env['mqf.1'].get_info("k1")
+# returns:
+# element_refs['mqf.1'].k1 = 3.6
+# element_refs['mqf.1'].k1._expr is None
+# while
+env.ref['mqf.1'].k1=env.ref['k1lf']*2
+env.ref['mqf.1'].k1+=env.ref['k1ld']*3
+# is equivalent to 
+# env.ref['mqf.1'].k1._expr + env.ref['k1ld']*3
+# resulting in
+# element_refs['mqf.1'].k1 = ((vars['k1lf'] * 2) + (vars['k1ld'] * 3))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
