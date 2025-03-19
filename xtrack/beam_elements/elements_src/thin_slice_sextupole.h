@@ -12,79 +12,36 @@ void ThinSliceSextupole_track_local_particle(
         LocalParticle* part0
 ) {
 
-    double weight = ThinSliceSextupoleData_get_weight(el);
 
-    const double k2 = ThinSliceSextupoleData_get__parent_k2(el);
-    const double k2s = ThinSliceSextupoleData_get__parent_k2s(el);
+    double weight = ThickSliceSextupoleData_get_weight(el);
 
-    const double order = ThinSliceSextupoleData_get__parent_order(el);
-    const double inv_factorial_order = ThinSliceSextupoleData_get__parent_inv_factorial_order(el);
-    const double* knl = ThinSliceSextupoleData_getp1__parent_knl(el, 0);
-    const double* ksl = ThinSliceSextupoleData_getp1__parent_ksl(el, 0);
+    int64_t num_multipole_kicks_parent = ThickSliceSextupoleData_get__parent_num_multipole_kicks(el);
+    int64_t model = ThickSliceSextupoleData_get__parent_model(el);
+    int64_t integrator = ThickSliceSextupoleData_get__parent_integrator(el);
 
-    SynchrotronRadiationRecordData record = NULL;
-    RecordIndex record_index = NULL;
+    int64_t num_multipole_kicks = (int64_t) ceil(num_multipole_kicks_parent * weight);
 
-    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
-    int64_t radiation_flag = ThinSliceSextupoleData_get_radiation_flag(el);
-    if (radiation_flag == 10){ // from parent
-        radiation_flag = ThinSliceSextupoleData_get__parent_radiation_flag(el);
+    if (model == 0) {  // adaptive
+        model = 4; // mat-kick-mat
+    }
+    if (integrator == 0) {  // adaptive
+        integrator = 3; // uniform
+    }
+    if (num_multipole_kicks == 0) {
+        num_multipole_kicks = 1;
     }
 
-    // Extract record and record_index
-    if (radiation_flag==2){
-        record = (SynchrotronRadiationRecordData) ThinSliceSextupoleData_getp_internal_record(el, part0);
-        if (record){
-            record_index = SynchrotronRadiationRecordData_getp__index(record);
-        }
-    }
-
-    #else
     int64_t radiation_flag = 0;
-    #endif
-
-    double dp_record_entry = 0.;
-    double dpx_record_entry = 0.;
-    double dpy_record_entry = 0.;
-    double dp_record_exit = 0.;
-    double dpx_record_exit = 0.;
-    double dpy_record_exit = 0.;
-
-    #ifdef XTRACK_MULTIPOLE_NO_SYNRAD
-        double const delta_taper = 0.0;
-    #else
-        double delta_taper = ThinSliceSextupoleData_get_delta_taper(el);
+    double delta_taper = 0.0;
+    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+        radiation_flag = ThickSliceSextupoleData_get_radiation_flag(el);
+        if (radiation_flag == 10){ // from parent
+            radiation_flag = ThickSliceSextupoleData_get__parent_radiation_flag(el);
+        }
+        delta_taper = ThickSliceSextupoleData_get_delta_taper(el);
     #endif
 
 
-    #ifndef XSUITE_BACKTRACK
-        double const length = weight * ThinSliceSextupoleData_get__parent_length(el); // m
-        double const backtrack_sign = 1;
-    #else
-        double const length = -weight * ThinSliceSextupoleData_get__parent_length(el); // m
-        double const backtrack_sign = -1;
-    #endif
-
-    double const knl_sext[3] = {0., 0., backtrack_sign * k2 * length / weight}; // the length is supposed to be already scaled by the weight
-    double const ksl_sext[3] = {0., 0., backtrack_sign * k2s * length / weight};
-
-    //start_per_particle_block (part0->part)
-
-        #ifdef XTRACK_MULTIPOLE_TAPER
-            delta_taper = LocalParticle_get_delta(part);
-        #endif
-
-        Multipole_track_single_particle(part,
-            0., length, weight, // weight 1
-            knl, ksl, order, inv_factorial_order,
-            knl_sext, ksl_sext, 2, 0.5,
-            backtrack_sign,
-            delta_taper, radiation_flag,
-            &dp_record_entry, &dpx_record_entry, &dpy_record_entry,
-            &dp_record_exit, &dpx_record_exit, &dpy_record_exit,
-            record, record_index);
-
-    //end_per_particle_block
 
 }
 
