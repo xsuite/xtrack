@@ -2051,7 +2051,7 @@ def test_knl_knl_kick_present_with_default_num_kicks():
 def test_sextupole_num_kicks():
 
     line = xt.Line(elements={
-        's1': xt.Sextupole(k2=0.1, length=9.0)
+        's1': xt.Sextupole(k2=0.1, length=9.0, integrator='teapot')
     })
     line.particle_ref = xt.Particles(p0c=7000e9)
 
@@ -2102,7 +2102,7 @@ def test_sextupole_num_kicks():
 def test_octupole_num_kicks():
 
     line = xt.Line(elements={
-        's1': xt.Octupole(k3=100., length=9.0)
+        's1': xt.Octupole(k3=100., length=9.0, integrator='teapot')
     })
     line.particle_ref = xt.Particles(p0c=7000e9)
 
