@@ -17,9 +17,9 @@ tt_quad = tt.rows[tt.element_type == 'Quadrupole']
 tt_sext = tt.rows[tt.element_type == 'Sextupole']
 
 line.set(tt_sext, integrator='yoshida4', num_multipole_kicks=7)
-line.set(tt_bend, integrator='teapot', num_multipole_kicks=1,
-         model='mat-kick-mat')
-line.set(tt_bend.rows['wgl.*'], integrator='teapot', num_multipole_kicks=1)
+line.set(tt_bend, model='mat-kick-mat', integrator='teapot', num_multipole_kicks=1)
+line.set(tt_bend.rows['wgl.*'], model='drift-kick-drift-expanded',
+         integrator='teapot', num_multipole_kicks=1.)
 
 line.configure_radiation(model='mean')
 tw_rad = line.twiss(eneloss_and_damping=True, strengths=True)
