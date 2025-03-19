@@ -6,8 +6,11 @@
 #ifndef XTRACK_TRACK_MAGNET_H
 #define XTRACK_TRACK_MAGNET_H
 
+#include <headers/track.h>
 #include <beam_elements/elements_src/track_magnet_kick.h>
 #include <beam_elements/elements_src/track_magnet_drift.h>
+#include <beam_elements/elements_src/track_magnet_edge.h>
+#include <beam_elements/elements_src/track_magnet_radiation.h>
 
 #define H_TOLERANCE (1e-8)
 
@@ -466,7 +469,7 @@ void track_magnet_particles(
         );
     }
 
-    //start_per_particle_block (part0->part)
+    START_PER_PARTICLE_BLOCK(part0, part)
         track_magnet_body_single_particle(
             part, core_length, order, inv_factorial_order,
             knl, ksl,
@@ -479,7 +482,7 @@ void track_magnet_particles(
             radiation_flag, radiation_record,
             &dp_record_exit, &dpx_record_exit, &dpy_record_exit
         );
-    //end_per_particle_block
+    END_PER_PARTICLE_BLOCK
 
     if (edge_exit_active){
         double kn[] = {k0, k1, k2, k3};
