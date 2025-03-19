@@ -265,26 +265,25 @@ void track_magnet_body_single_particle(
                     //  -0x1.2d7c6f7933b93p+0, 0x1.50b00cfb7be3ep+0 };
                     //  {1/7.0, 1/7.0, 1/7.0, 1/7.0}; // Uniform, for debugging
 
-        WITH_RADIATION(slice_length,
             for (int ii = 0; ii < num_slices; ii++) {
-                MAGNET_DRIFT(part, slice_length * d_yoshida[0]);
-                MAGNET_KICK(part, kick_weight * k_yoshida[0]);
-                MAGNET_DRIFT(part, slice_length * d_yoshida[1]);
-                MAGNET_KICK(part, kick_weight * k_yoshida[1]);
-                MAGNET_DRIFT(part, slice_length * d_yoshida[2]);
-                MAGNET_KICK(part, kick_weight * k_yoshida[2]);
-                MAGNET_DRIFT(part, slice_length * d_yoshida[3]);
-                MAGNET_KICK(part, kick_weight * k_yoshida[3]);
-                MAGNET_DRIFT(part, slice_length * d_yoshida[3]);
-                MAGNET_KICK(part, kick_weight * k_yoshida[2]);
-                MAGNET_DRIFT(part, slice_length * d_yoshida[2]);
-                MAGNET_KICK(part, kick_weight * k_yoshida[1]);
-                MAGNET_DRIFT(part, slice_length * d_yoshida[1]);
-                MAGNET_KICK(part, kick_weight * k_yoshida[0]);
-                MAGNET_DRIFT(part, slice_length * d_yoshida[0]);
-
+                WITH_RADIATION(slice_length,
+                    MAGNET_DRIFT(part, slice_length * d_yoshida[0]);
+                    MAGNET_KICK(part, kick_weight * k_yoshida[0]);
+                    MAGNET_DRIFT(part, slice_length * d_yoshida[1]);
+                    MAGNET_KICK(part, kick_weight * k_yoshida[1]);
+                    MAGNET_DRIFT(part, slice_length * d_yoshida[2]);
+                    MAGNET_KICK(part, kick_weight * k_yoshida[2]);
+                    MAGNET_DRIFT(part, slice_length * d_yoshida[3]);
+                    MAGNET_KICK(part, kick_weight * k_yoshida[3]);
+                    MAGNET_DRIFT(part, slice_length * d_yoshida[3]);
+                    MAGNET_KICK(part, kick_weight * k_yoshida[2]);
+                    MAGNET_DRIFT(part, slice_length * d_yoshida[2]);
+                    MAGNET_KICK(part, kick_weight * k_yoshida[1]);
+                    MAGNET_DRIFT(part, slice_length * d_yoshida[1]);
+                    MAGNET_KICK(part, kick_weight * k_yoshida[0]);
+                    MAGNET_DRIFT(part, slice_length * d_yoshida[0]);
+                ) // WITH_RADIATION
             }
-        ) // WITH_RADIATION
     } // integrator if
 
     #undef MAGNET_KICK

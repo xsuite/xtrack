@@ -17,38 +17,54 @@ line['lagrf'] = 180.
 line.insert(
     env.new('cav', 'Cavity', voltage='vrf', frequency='frf', lag='lagrf', at=0))
 
-line_thick = line.copy(shallow=True)
-
 tt = line.get_table()
 tw4d_thick = line.twiss4d()
 tw6d_thick = line.twiss()
 
-env['ring_thick'] = env.ring.copy(shallow=True)
+line.build_tracker()
+line.configure_radiation(model='mean')
 
-line.discard_tracker()
+tt_bend = tt.rows[tt.element_type == 'Bend']
+tt_quad = tt.rows[tt.element_type == 'Quadrupole']
+for nn in tt_bend.name:
+    line.get(nn).model = 'mat-kick-mat'
+    line.get(nn).integrator = 'yoshida4'
+    line[nn].num_multipole_kicks = 20
+# # for nn in tt_quad.name:
+# #     line[nn].radiation_flag = 0
+
+tw_rad_thick = line.twiss(eneloss_and_damping=True, strengths=True)
+
+print('Done thick')
+
+# Thin ...
+env['ring_thin'] = env.ring.copy(shallow=True)
+line_thin = env['ring_thin']
+
+line_thin.discard_tracker()
 slicing_strategies = [
     xt.Strategy(slicing=None),  # Default
     xt.Strategy(slicing=xt.Teapot(20), element_type=xt.Bend),
     xt.Strategy(slicing=xt.Teapot(8), element_type=xt.Quadrupole),
 ]
-line.slice_thick_elements(slicing_strategies)
+line_thin.slice_thick_elements(slicing_strategies)
 
-tw4d = line.twiss4d()
-tw6d = line.twiss()
+line_thin.build_tracker()
+line_thin.configure_radiation(model='mean')
 
-line.configure_radiation(model='mean')
-tw_rad = line.twiss(eneloss_and_damping=True, strengths=True)
+tw_rad_thin = line_thin.twiss(eneloss_and_damping=True, strengths=True)
 
-line_thick.build_tracker()
-line_thick.configure_radiation(model='mean')
-
-tt_bend = tt.rows[tt.element_type == 'Bend']
-tt_quad = tt.rows[tt.element_type == 'Quadrupole']
-for nn in tt_bend.name:
-    line.get(nn).model = 'bend-kick-bend'
-    line.get(nn).integrator = 'uniform'
-    line[nn].num_multipole_kicks = 5
-# # for nn in tt_quad.name:
-# #     line[nn].radiation_flag = 0
-
-tw_rad_thick = line_thick.twiss(eneloss_and_damping=True, strengths=True)
+# Compare tunes, chromaticities, damping rates, equilibrium emittances
+print('Tune comparison')
+print('Thick: ', tw_rad_thick.qx, tw_rad_thick.qy)
+print('Thin:  ', tw_rad_thin.qx, tw_rad_thin.qy)
+print('Chromaticity comparison')
+print('Thick: ', tw_rad_thick.dqx, tw_rad_thick.dqy)
+print('Thin:  ', tw_rad_thin.dqx, tw_rad_thin.dqy)
+print('Energy loss: ', tw_rad_thick.eneloss_turn, tw_rad_thin.eneloss_turn)
+print('Partition numbers: ', tw_rad_thick.partition_numbers, tw_rad_thin.partition_numbers)
+print('Thick: ', tw_rad_thick.partition_numbers)
+print('Thin:  ', tw_rad_thin.partition_numbers)
+print('Equilibrium emittances')
+print('Thick: ', tw_rad_thick.eq_gemitt_x, tw_rad_thick.eq_gemitt_y, tw_rad_thick.eq_gemitt_zeta)
+print('Thin:  ', tw_rad_thin.eq_gemitt_x, tw_rad_thin.eq_gemitt_y, tw_rad_thin.eq_gemitt_zeta)
