@@ -40,6 +40,8 @@ _INDEX_TO_MODEL_STRAIGHT.pop(2)
 _INDEX_TO_MODEL_STRAIGHT.pop(3)
 _MODEL_TO_INDEX_STRAIGHT = {k: v for v, k in _INDEX_TO_MODEL_STRAIGHT.items()}
 
+_NOEXPR_FIELDS = {'model', 'integrator'}
+
 class SynchrotronRadiationRecord(xo.HybridClass):
     _xofields = {
         '_index': RecordIndex,
@@ -445,6 +447,8 @@ class MagnetEdge(BeamElement):
         'fringe_integral', 'delta_taper',
     ]
 
+    _noexpr_fields = _NOEXPR_FIELDS
+
     _INDEX_TO_MODEL = {
         -1: 'suppressed',
         0: 'linear',
@@ -452,6 +456,8 @@ class MagnetEdge(BeamElement):
     }
 
     _MODEL_TO_INDEX = {v: k for k, v in _INDEX_TO_MODEL.items()}
+
+
 
     def __init__(self, **kwargs):
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:

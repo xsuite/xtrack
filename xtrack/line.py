@@ -4064,6 +4064,8 @@ class Line:
         >>> line.set(['e', 'f'], '3*a')
 
         '''
+        if hasattr(name, 'name'):
+            name = name.name
 
         if isinstance(name, Iterable) and not isinstance(name, str):
             for nn in name:

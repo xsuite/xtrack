@@ -16,15 +16,12 @@ from ..random import RandomUniformAccurate, RandomExponential, RandomNormal
 from ..general import _pkg_root
 from ..internal_record import RecordIndex
 
-from xtrack.beam_elements.magnets import _INDEX_TO_INTEGRATOR
-from xtrack.beam_elements.magnets import _INTEGRATOR_TO_INDEX
-from xtrack.beam_elements.magnets import _MODEL_TO_INDEX_CURVED
-from xtrack.beam_elements.magnets import _INDEX_TO_MODEL_CURVED
-from xtrack.beam_elements.magnets import _MODEL_TO_INDEX_STRAIGHT
-from xtrack.beam_elements.magnets import _INDEX_TO_MODEL_STRAIGHT
-from xtrack.beam_elements.magnets import DEFAULT_MULTIPOLE_ORDER
-from xtrack.beam_elements.magnets import SynchrotronRadiationRecord
-from xtrack.beam_elements.magnets import _prepare_multipolar_params
+from xtrack.beam_elements.magnets import (
+    _INDEX_TO_INTEGRATOR, _INTEGRATOR_TO_INDEX, _MODEL_TO_INDEX_CURVED,
+    _INDEX_TO_MODEL_CURVED, _MODEL_TO_INDEX_STRAIGHT, _INDEX_TO_MODEL_STRAIGHT,
+    DEFAULT_MULTIPOLE_ORDER, SynchrotronRadiationRecord, _prepare_multipolar_params,
+    _NOEXPR_FIELDS
+)
 
 
 class ReferenceEnergyIncrease(BeamElement):
@@ -981,6 +978,8 @@ class Bend(_BendCommon, BeamElement):
 
     _internal_record_class = SynchrotronRadiationRecord
 
+    _noexpr_fields = _NOEXPR_FIELDS
+
     _extra_c_sources = [
         _pkg_root.joinpath('headers/synrad_spectrum.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
@@ -1218,6 +1217,8 @@ class RBend(_BendCommon, BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/track_magnet.h'),
         _pkg_root.joinpath('beam_elements/elements_src/rbend.h'),
     ]
+
+    _noexpr_fields = _NOEXPR_FIELDS
 
     def __init__(
             self,
@@ -1468,6 +1469,8 @@ class Sextupole(BeamElement):
         'integrator': '_integrator',
     }
 
+    _noexpr_fields = _NOEXPR_FIELDS
+
     _depends_on = [RandomUniformAccurate, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord
 
@@ -1614,6 +1617,8 @@ class Octupole(BeamElement):
         'integrator': '_integrator',
     }
 
+    _noexpr_fields = _NOEXPR_FIELDS
+
     _depends_on = [RandomUniformAccurate, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord
 
@@ -1756,6 +1761,8 @@ class Quadrupole(BeamElement):
         'model': '_model',
         'integrator': '_integrator',
     }
+
+    _noexpr_fields = _NOEXPR_FIELDS
 
     _extra_c_sources = [
         _pkg_root.joinpath('headers/synrad_spectrum.h'),
