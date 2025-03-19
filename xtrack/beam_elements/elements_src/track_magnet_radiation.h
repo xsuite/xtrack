@@ -60,12 +60,12 @@ void magnet_apply_radiation_single_particle(
     // Transverse magnetic field
     double const mass0 = LocalParticle_get_mass0(part);
     double const q0 = LocalParticle_get_q0(part);
-    double const beta0 = LocalParticle_get_beta0(part);
     double const gamma0 = LocalParticle_get_gamma0(part);
+    double const gamma = gamma0 * (1 + delta); // Ultra-relativistic approximation
     double const mass0_kg = mass0 * QELEM / C_LIGHT / C_LIGHT;
-    double const P0_J = mass0_kg * beta0 * gamma0 * C_LIGHT;
+    double const P_J = mass0_kg * gamma * C_LIGHT; // Ultra-relativistic approximation
     double const Q0_coulomb = q0 * QELEM;
-    double const B_T = kappa * P0_J / Q0_coulomb;
+    double const B_T = kappa * P_J / Q0_coulomb;
 
     // Path length for radiation
     double const dzeta = LocalParticle_get_zeta(part) - old_zeta;

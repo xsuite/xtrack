@@ -45,9 +45,10 @@ line_thick.configure_radiation(model='mean')
 tt_bend = tt.rows[tt.element_type == 'Bend']
 tt_quad = tt.rows[tt.element_type == 'Quadrupole']
 for nn in tt_bend.name:
+    line.get(nn).model = 'bend-kick-bend'
     line.get(nn).integrator = 'uniform'
-    line[nn].num_multipole_kicks = 10
-for nn in tt_quad.name:
-    line[nn].radiation_flag = 0
+    line[nn].num_multipole_kicks = 5
+# # for nn in tt_quad.name:
+# #     line[nn].radiation_flag = 0
 
 tw_rad_thick = line_thick.twiss(eneloss_and_damping=True, strengths=True)
