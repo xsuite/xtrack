@@ -11,34 +11,14 @@ line.particle_ref = xt.Particles(energy0=6e9, mass0=xt.ELECTRON_MASS_EV)
 tw4d = line.twiss4d()
 tw6d = line.twiss()
 
-tt = line.get_table()
+tt = line.get_table(attr=True)
 tt_bend = tt.rows[tt.element_type == 'Bend']
 tt_quad = tt.rows[tt.element_type == 'Quadrupole']
 tt_sext = tt.rows[tt.element_type == 'Sextupole']
 
-for nn in tt_sext.name:
-    line.get(nn).integrator = 'yoshida4'
-    line.get(nn).num_multipole_kicks = 20
-
-for nn in tt_bend.name:
-    line.get(nn).integrator = 'yoshida4'
-    line.get(nn).model = 'rot-kick-rot'
-    line.get(nn).num_multipole_kicks = 10
-
-tw4d_after = line.twiss4d()
-
-line.build_tracker()
-line.configure_radiation(model='mean')
-
-for nn in tt_bend.name:
-    line.get(nn).integrator = 'yoshida4'
-    line.get(nn).model = 'drift-kick-drift-expanded'
-    line.get(nn).num_multipole_kicks = 1
-
-for nn in tt_bend.name:
-    line.get(nn).integrator = 'teapot'
-    line.get(nn).model = 'mat-kick-mat'
-    line.get(nn).num_multipole_kicks = 1
+line.set(tt_sext, integrator='yoshida4', num_multipole_kicks=7)
+line.set(tt_bend, integrator='yoshida4', num_multipole_kicks=7,
+         model='rot-kick-rot')
 
 tw_rad = line.twiss(eneloss_and_damping=True, strengths=True)
 
