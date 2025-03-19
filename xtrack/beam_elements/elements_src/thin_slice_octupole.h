@@ -27,6 +27,9 @@ void ThinSliceOctupole_track_local_particle(
 
     #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
     int64_t radiation_flag = ThinSliceOctupoleData_get_radiation_flag(el);
+    if (radiation_flag == 10){ // from parent
+        radiation_flag = ThinSliceOctupoleData_get__parent_radiation_flag(el);
+    }
 
     // Extract record and record_index
     if (radiation_flag==2){

@@ -50,7 +50,7 @@ slicing_strategies = [
 line_thin.slice_thick_elements(slicing_strategies)
 
 line_thin.build_tracker()
-line_thin.configure_radiation(model='mean')
+# line_thin.configure_radiation(model='mean')
 
 tw_rad_thin = line_thin.twiss(eneloss_and_damping=True, strengths=True)
 

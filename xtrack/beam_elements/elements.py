@@ -16,15 +16,12 @@ from ..random import RandomUniformAccurate, RandomExponential, RandomNormal
 from ..general import _pkg_root
 from ..internal_record import RecordIndex
 
-from xtrack.beam_elements.magnets import _INDEX_TO_INTEGRATOR
-from xtrack.beam_elements.magnets import _INTEGRATOR_TO_INDEX
-from xtrack.beam_elements.magnets import _MODEL_TO_INDEX_CURVED
-from xtrack.beam_elements.magnets import _INDEX_TO_MODEL_CURVED
-from xtrack.beam_elements.magnets import _MODEL_TO_INDEX_STRAIGHT
-from xtrack.beam_elements.magnets import _INDEX_TO_MODEL_STRAIGHT
-from xtrack.beam_elements.magnets import DEFAULT_MULTIPOLE_ORDER
-from xtrack.beam_elements.magnets import SynchrotronRadiationRecord
-from xtrack.beam_elements.magnets import _prepare_multipolar_params
+from xtrack.beam_elements.magnets import (
+    _INDEX_TO_INTEGRATOR, _INTEGRATOR_TO_INDEX, _MODEL_TO_INDEX_CURVED,
+    _INDEX_TO_MODEL_CURVED, _MODEL_TO_INDEX_STRAIGHT, _INDEX_TO_MODEL_STRAIGHT,
+    DEFAULT_MULTIPOLE_ORDER, SynchrotronRadiationRecord, _prepare_multipolar_params,
+    COMMON_MAGNET_SOURCES
+)
 
 
 class ReferenceEnergyIncrease(BeamElement):
@@ -752,19 +749,6 @@ class _BendCommon:
         'h': '_h',
     }
 
-    _common_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_multipolar_components.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_thick_bend.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_nonlinear.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_bend.h'),
-    ]
-
     def to_dict(self, copy_to_cpu=True):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
         out.pop('_model')
@@ -982,18 +966,7 @@ class Bend(_BendCommon, BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
-        _pkg_root.joinpath('headers/synrad_spectrum.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_nonlinear.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_edge.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_drift.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_kick.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_radiation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet.h'),
+        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/bend.h'),
     ]
 
@@ -1204,18 +1177,7 @@ class RBend(_BendCommon, BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
-        _pkg_root.joinpath('headers/synrad_spectrum.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_nonlinear.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_edge.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_drift.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_kick.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_radiation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet.h'),
+        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/rbend.h'),
     ]
 
@@ -1472,17 +1434,7 @@ class Sextupole(BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
-        _pkg_root.joinpath('headers/synrad_spectrum.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_edge.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_drift.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_kick.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_radiation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet.h'),
+        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/sextupole.h'),
     ]
 
@@ -1618,17 +1570,7 @@ class Octupole(BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
-        _pkg_root.joinpath('headers/synrad_spectrum.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_edge.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_drift.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_kick.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_radiation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet.h'),
+        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/octupole.h'),
     ]
 
@@ -1758,18 +1700,7 @@ class Quadrupole(BeamElement):
     }
 
     _extra_c_sources = [
-        _pkg_root.joinpath('headers/synrad_spectrum.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_multipolar_components.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_edge.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_drift.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_kick.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_radiation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet.h'),
+        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/quadrupole.h'),
     ]
 

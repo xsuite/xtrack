@@ -4,16 +4,18 @@ from ..general import _pkg_root
 from ..base_element import BeamElement
 from .elements import (
     SynchrotronRadiationRecord, Bend, Quadrupole, Sextupole,
-    Octupole, Solenoid, Drift, RBend,
+    Octupole, Solenoid, Drift, RBend, ID_RADIATION_FROM_PARENT,
+    COMMON_MAGNET_SOURCES,
 )
 from ..random import RandomUniformAccurate, RandomExponential
 
 from .slice_elements import _slice_copy
 
 _common_xofields = {
+    'radiation_flag': xo.Field(xo.Int64, default=ID_RADIATION_FROM_PARENT),
+    'delta_taper': xo.Float64,
     'weight': xo.Float64,
 }
-
 
 class ThickSliceBend(BeamElement):
     allow_rot_and_shift = False
@@ -27,11 +29,7 @@ class ThickSliceBend(BeamElement):
     _xofields = {'_parent': xo.Ref(Bend), **_common_xofields}
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_multipolar_components.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_thick_bend.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_bend.h'),
+        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/thick_slice_bend.h')]
 
     copy = _slice_copy
@@ -60,11 +58,7 @@ class ThickSliceRBend(BeamElement):
     _xofields = {'_parent': xo.Ref(RBend), **_common_xofields}
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_multipolar_components.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_thick_bend.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_bend.h'),
+        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/thick_slice_rbend.h')]
 
     copy = _slice_copy
@@ -93,10 +87,7 @@ class ThickSliceQuadrupole(BeamElement):
     _xofields = {'_parent': xo.Ref(Quadrupole), **_common_xofields}
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_srotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_quadrupole.h'),
+        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/thick_slice_quadrupole.h')]
 
     copy = _slice_copy
@@ -128,10 +119,7 @@ class ThickSliceSextupole(BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('headers/synrad_spectrum.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_multipole.h'),
+        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/thick_slice_sextupole.h')]
 
     copy = _slice_copy
@@ -163,10 +151,7 @@ class ThickSliceOctupole(BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('headers/synrad_spectrum.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_multipole.h'),
+        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/thick_slice_octupole.h')]
 
     copy = _slice_copy

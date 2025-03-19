@@ -13,34 +13,15 @@ void ThickSliceBend_track_local_particle(
 ) {
 
     double weight = ThickSliceBendData_get_weight(el);
-
-    const double k0 = ThickSliceBendData_get__parent_k0(el);
-    const double k1 = ThickSliceBendData_get__parent_k1(el);
-    const double h = ThickSliceBendData_get__parent_h(el);
-    const double order = ThickSliceBendData_get__parent_order(el);
-    const double inv_factorial_order = ThickSliceBendData_get__parent_inv_factorial_order(el);
-    /*gpuglmem*/ const double* knl = ThickSliceBendData_getp1__parent_knl(el, 0);
-    /*gpuglmem*/ const double* ksl = ThickSliceBendData_getp1__parent_ksl(el, 0);
-    const int64_t model = ThickSliceBendData_get__parent_model(el);
-
-    const int64_t num_multipole_kicks_parent = ThickSliceBendData_get__parent_num_multipole_kicks(el);
-
-    #ifndef XSUITE_BACKTRACK
-        double const length = weight * ThickSliceBendData_get__parent_length(el); // m
-        double const factor_knl_ksl = weight;
-    #else
-        double const length = -weight * ThickSliceBendData_get__parent_length(el); // m
-        double const factor_knl_ksl = -weight;
+    int64_t radiation_flag = 0;
+    double delta_taper = 0.0;
+    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+        int64_t radiation_flag = ThickSliceBendData_get_radiation_flag(el);
+        if (radiation_flag == 10){ // from parent
+            radiation_flag = ThickSliceBendData_get__parent_radiation_flag(el);
+        }
     #endif
 
-    int64_t const num_multipole_kicks = (int64_t) ceil(num_multipole_kicks_parent * weight);
-
-    Bend_track_local_particle_from_params(part0,
-                                    length, k0, k1, h,
-                                    num_multipole_kicks, model,
-                                    knl, ksl,
-                                    order, inv_factorial_order,
-                                    factor_knl_ksl);
 
 }
 
