@@ -28,6 +28,7 @@ void RBend_track_local_particle(
         /*inv_factorial_order*/   RBendData_get_inv_factorial_order(el),
         /*knl*/                   RBendData_getp1_knl(el, 0),
         /*ksl*/                   RBendData_getp1_ksl(el, 0),
+        /*factor_knl_ksl*/        1.,
         /*num_multipole_kicks*/   RBendData_get_num_multipole_kicks(el),
         /*model*/                 RBendData_get_model(el),
         /*integrator*/            RBendData_get_integrator(el),

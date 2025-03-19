@@ -51,6 +51,7 @@ void Magnet_track_local_particle(
         inv_factorial_order,
         knl,
         ksl,
+        /*factor_knl_ksl*/ 1.,
         num_multipole_kicks,
         model,
         integrator,
