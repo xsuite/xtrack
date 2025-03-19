@@ -38,6 +38,7 @@ void track_magnet_kick_single_particle(
     double h,
     uint8_t rot_frame
 ){
+
     double const chi = LocalParticle_get_chi(part);
     double const x = LocalParticle_get_x(part);
     double const y = LocalParticle_get_y(part);
@@ -75,9 +76,13 @@ void track_magnet_kick_single_particle(
     // Correct for the curvature
     double dpx = 0;
     double dpy = 0;
+    double dzeta = 0;
 
     if (rot_frame) {
-        dpx += h * length * (1. + LocalParticle_get_delta(part));
+        double const hl = h * length * kick_weight;
+        dpx += hl * (1. + LocalParticle_get_delta(part));
+        double const rv0v = 1./LocalParticle_get_rvv(part);
+        dzeta += -rv0v * chi * hl * x;
     }
 
     // Correct for the curvature
@@ -96,6 +101,7 @@ void track_magnet_kick_single_particle(
 
     LocalParticle_add_to_px(part, dpx);
     LocalParticle_add_to_py(part, dpy);
+    LocalParticle_add_to_zeta(part, dzeta);
 
 }
 
