@@ -19,6 +19,7 @@ void Bend_track_local_particle(
         /*inv_factorial_order*/   BendData_get_inv_factorial_order(el),
         /*knl*/                   BendData_getp1_knl(el, 0),
         /*ksl*/                   BendData_getp1_ksl(el, 0),
+        /*factor_knl_ksl*/        1.,
         /*num_multipole_kicks*/   BendData_get_num_multipole_kicks(el),
         /*model*/                 BendData_get_model(el),
         /*integrator*/            BendData_get_integrator(el),

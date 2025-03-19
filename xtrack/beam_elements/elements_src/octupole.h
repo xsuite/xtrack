@@ -32,6 +32,7 @@ void Octupole_track_local_particle(
         /*inv_factorial_order*/   OctupoleData_get_inv_factorial_order(el),
         /*knl*/                   OctupoleData_getp1_knl(el, 0),
         /*ksl*/                   OctupoleData_getp1_ksl(el, 0),
+        /*factor_knl_ksl*/        1.,
         /*num_multipole_kicks*/   num_multipole_kicks,
         /*model*/                 model,
         /*integrator*/            integrator,

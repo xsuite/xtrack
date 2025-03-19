@@ -300,6 +300,7 @@ void track_magnet_particles(
     double inv_factorial_order,
     /*gpuglmem*/ const double* knl,
     /*gpuglmem*/ const double* ksl,
+    double factor_knl_ksl,
     int64_t num_multipole_kicks,
     int8_t model,
     int8_t integrator,
@@ -331,8 +332,8 @@ void track_magnet_particles(
     // Backtracking
     #ifdef XSUITE_BACKTRACK
         const double core_length = -length;
-        double factor_knl_ksl_body = -1.;
-        double factor_knl_ksl_edge = 1.; // Edge has a specific factor for backtracking
+        double factor_knl_ksl_body = -factor_knl_ksl;
+        double factor_knl_ksl_edge = factor_knl_ksl; // Edge has a specific factor for backtracking
         const double factor_backtrack_edge = -1.;
         VSWAP(edge_entry_active, edge_exit_active);
         VSWAP(edge_entry_model, edge_exit_model);
@@ -342,8 +343,8 @@ void track_magnet_particles(
         VSWAP(edge_entry_hgap, edge_exit_hgap)
     #else
         const double core_length = length;
-        double factor_knl_ksl_body = 1.;
-        double factor_knl_ksl_edge = 1.;
+        double factor_knl_ksl_body = factor_knl_ksl;
+        double factor_knl_ksl_edge = factor_knl_ksl;
         const double factor_backtrack_edge = 1.;
     #endif
 
