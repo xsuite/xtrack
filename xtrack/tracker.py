@@ -682,6 +682,7 @@ class Tracker:
             specialize=True,
             compile=compile,
             save_source_as=f'{module_name}.c' if module_name else None,
+            extra_compile_args=(f"-I {xt.__path__[0]}",),
             **kwargs,
         )
         return out_kernels['track_line']

@@ -6,6 +6,9 @@
 #ifndef XTRACK_MAGNET_H
 #define XTRACK_MAGNET_H
 
+#include <beam_elements/elements_src/track_magnet.h>
+
+
 /*gpufun*/
 void Magnet_track_local_particle(
     MagnetData el,

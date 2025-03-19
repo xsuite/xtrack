@@ -90,7 +90,6 @@ class MagnetDrift(BeamElement):
     }
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/magnet_drift.h'),
     ]
 
@@ -123,7 +122,6 @@ class MagnetKick(BeamElement):
     }
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_kick.h'),
         _pkg_root.joinpath('beam_elements/elements_src/magnet_kick.h'),
     ]
 
@@ -299,7 +297,6 @@ class Magnet(BeamElement):
     }
 
     _extra_c_sources = [
-        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/magnet.h'),
     ]
 

@@ -6,6 +6,9 @@
 #ifndef XTRACK_TRACK_MAGNET_H
 #define XTRACK_TRACK_MAGNET_H
 
+#include <beam_elements/elements_src/track_magnet_kick.h>
+#include <beam_elements/elements_src/track_magnet_drift.h>
+
 #define H_TOLERANCE (1e-8)
 
 #ifndef VSWAP
