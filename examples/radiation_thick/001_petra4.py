@@ -30,22 +30,18 @@ tw4d_after = line.twiss4d()
 line.build_tracker()
 line.configure_radiation(model='mean')
 
-tw_rad_rkr = line.twiss(eneloss_and_damping=True, strengths=True)
-
-for nn in tt_bend.name:
-    line.get(nn).integrator = 'yoshida4'
-    line.get(nn).model = 'bend-kick-bend'
-    line.get(nn).num_multipole_kicks = 10
-
-twr_bkb = line.twiss(eneloss_and_damping=True, strengths=True)
-
 for nn in tt_bend.name:
     line.get(nn).integrator = 'yoshida4'
     line.get(nn).model = 'drift-kick-drift-expanded'
-    line.get(nn).num_multipole_kicks = 10
+    line.get(nn).num_multipole_kicks = 1
 
-tw_rad_dkd = line.twiss(eneloss_and_damping=True, strengths=True)
+for nn in tt_bend.name:
+    line.get(nn).integrator = 'teapot'
+    line.get(nn).model = 'mat-kick-mat'
+    line.get(nn).num_multipole_kicks = 1
 
-# p = line.build_particles(x=np.linspace(-1e-3, 1e-3, 1000))
-# line.track(p, num_turns=5, with_progress=1, time=True)
-# line.time_last_track
+tw_rad = line.twiss(eneloss_and_damping=True, strengths=True)
+
+p = line.build_particles(x=np.linspace(-1e-3, 1e-3, 1000))
+line.track(p, num_turns=5, with_progress=1, time=True)
+print('Time for tracking: ', line.time_last_track)
