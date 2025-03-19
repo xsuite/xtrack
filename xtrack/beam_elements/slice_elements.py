@@ -8,10 +8,12 @@ from .elements import (
 )
 from ..base_element import BeamElement
 
+ID_RADIATION_FROM_PARENT = 10
+
 xo.context_default.kernels.clear()
 
 _common_xofields = {
-    'radiation_flag': xo.Int64,
+    'radiation_flag': xo.Field(xo.Int64, default=ID_RADIATION_FROM_PARENT),
     'delta_taper': xo.Float64,
     'weight': xo.Float64,
 }

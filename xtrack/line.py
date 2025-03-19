@@ -43,6 +43,7 @@ from .mad_loader import MadLoader
 from .beam_elements import element_classes
 from . import beam_elements
 from .beam_elements import Drift, BeamElement, Marker, Multipole
+from .beam_elements.slice_elements import ID_RADIATION_FROM_PARENT
 from .footprint import Footprint, _footprint_with_linear_rescale
 from .internal_record import (start_internal_logging_for_elements_of_type,
                               stop_internal_logging_for_elements_of_type,
@@ -4595,7 +4596,7 @@ class Line:
         cache = LineAttr(
             line=self,
             fields={
-                'radiation_flag': None, 'delta_taper': None, 'ks': None,
+                'delta_taper': None, 'ks': None,
                 'voltage': None, 'frequency': None, 'lag': None,
                 'lag_taper': None,
 
@@ -4611,6 +4612,8 @@ class Line:
 
                 '_own_h': 'h',
                 '_own_hxl': 'hxl',
+
+                '_own_radiation_flag': 'radiation_flag',
 
                 '_own_k0': 'k0',
                 '_own_k1': 'k1',
@@ -4649,6 +4652,8 @@ class Line:
 
                 '_parent_h': (('_parent', 'h'), None),
                 '_parent_hxl': (('_parent', 'hxl'), None),
+
+                '_parent_radiation_flag': (('_parent', 'radiation_flag'), None),
 
                 '_parent_k0': (('_parent', 'k0'), None),
                 '_parent_k1': (('_parent', 'k1'), None),
@@ -4693,6 +4698,9 @@ class Line:
                 'shift_s': lambda attr:
                     attr['_own_shift_s'] + attr['_parent_shift_s']
                     * attr._rot_and_shift_from_parent,
+                'radiation_flag': lambda attr:
+                    attr['_own_radiation_flag'] * (attr['_own_radiation_flag'] != ID_RADIATION_FROM_PARENT)
+                  + attr['_parent_radiation_flag'] * (attr['_own_radiation_flag'] == ID_RADIATION_FROM_PARENT),
                 'k0l': lambda attr: (
                     attr['_own_k0l']
                     + attr['_own_k0'] * attr['_own_length']
