@@ -1,17 +1,13 @@
+from typing import List
+
 import numpy as np
 from scipy.special import factorial
 
-import xtrack as xt
 import xobjects as xo
-import numpy as np
-
 from xtrack.base_element import BeamElement
 from xtrack.general import _pkg_root
-
-from ..random import RandomUniformAccurate, RandomExponential, RandomNormal
 from ..internal_record import RecordIndex
-
-from typing import List
+from ..random import RandomUniformAccurate, RandomExponential
 
 DEFAULT_MULTIPOLE_ORDER = 5
 

@@ -11,7 +11,6 @@ void ThickSliceBend_track_local_particle(
         ThickSliceBendData el,
         LocalParticle* part0
 ) {
-
     double weight = ThickSliceBendData_get_weight(el);
     int64_t radiation_flag = 0;
     double delta_taper = 0.0;
@@ -58,9 +57,8 @@ void ThickSliceBend_track_local_particle(
         /*edge_entry_fint*/       0.,
         /*edge_exit_fint*/        0.,
         /*edge_entry_hgap*/       0.,
-        /*edge_exit_hgap*/        0.,
+        /*edge_exit_hgap*/        0.
     );
-
 }
 
 #endif

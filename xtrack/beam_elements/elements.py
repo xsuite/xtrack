@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xtrack Package.  #
-# Copyright (c) CERN, 2021.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 from typing import List
 
@@ -14,7 +14,6 @@ import xtrack as xt
 from ..base_element import BeamElement
 from ..random import RandomUniformAccurate, RandomExponential, RandomNormal
 from ..general import _pkg_root
-from ..internal_record import RecordIndex
 
 from xtrack.beam_elements.magnets import (
     _INDEX_TO_INTEGRATOR, _INTEGRATOR_TO_INDEX, _MODEL_TO_INDEX_CURVED,
@@ -797,12 +796,12 @@ class _BendCommon:
 
     @property
     def model(self):
-        return xt.beam_elements.magnets._INDEX_TO_MODEL_CURVED[self._model]
+        return _INDEX_TO_MODEL_CURVED[self._model]
 
     @model.setter
     def model(self, value):
         try:
-            self._model = xt.beam_elements.magnets._MODEL_TO_INDEX_CURVED[value]
+            self._model = _MODEL_TO_INDEX_CURVED[value]
         except KeyError:
             raise ValueError(f'Invalid model: {value}')
 
@@ -813,7 +812,7 @@ class _BendCommon:
     @integrator.setter
     def integrator(self, value):
         try:
-            self._integrator = xt.beam_elements.magnets._INTEGRATOR_TO_INDEX[value]
+            self._integrator = _INTEGRATOR_TO_INDEX[value]
         except KeyError:
             raise ValueError(f'Invalid integrator: {value}')
 

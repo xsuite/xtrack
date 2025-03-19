@@ -11,7 +11,6 @@ void ThickSliceQuadrupole_track_local_particle(
         ThickSliceQuadrupoleData el,
         LocalParticle* part0
 ) {
-
     double weight = ThickSliceQuadrupoleData_get_weight(el);
 
     int64_t num_multipole_kicks_parent = ThickSliceQuadrupoleData_get__parent_num_multipole_kicks(el);
@@ -75,7 +74,6 @@ void ThickSliceQuadrupole_track_local_particle(
         /*edge_entry_hgap*/       0.,
         /*edge_exit_hgap*/        0.
     );
-
 }
 
 #endif
