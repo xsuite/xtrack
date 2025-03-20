@@ -48,17 +48,17 @@ void track_magnet_edge_particles(
         r21 = r21 * factor_for_backtrack;
         r43 = r43 * factor_for_backtrack;
 
-        START_PER_PARTICLE_BLOCK(part0, part)
+        PER_PARTICLE_BLOCK(part0, part,
             DipoleEdgeLinear_single_particle(part, r21, r43);
-        END_PER_PARTICLE_BLOCK
+        );
         return;
     }
     else if (model == 1 || model == 2) { // Full model
 
         if (factor_for_backtrack < 0) {
-            START_PER_PARTICLE_BLOCK(part0, part)
+            PER_PARTICLE_BLOCK(part0, part, {
                 LocalParticle_kill_particle(part, -32);
-            END_PER_PARTICLE_BLOCK
+            });
         }
 
         uint8_t should_rotate = 0;
@@ -100,24 +100,24 @@ void track_magnet_edge_particles(
             if (should_rotate) Wedge_single_particle((PART), -face_angle, kn[0])
 
         if (is_exit == 0){ // entry
-            START_PER_PARTICLE_BLOCK(part0, part)
+            PER_PARTICLE_BLOCK(part0, part,
                 MAGNET_Y_ROTATE(part);
                 MAGNET_DIPOLE_FRINGE(part);
                 if (model == 1){
                     MAGNET_MULTIPOLE_FRINGE(part);
                 }
                 MAGNET_WEDGE(part);
-            END_PER_PARTICLE_BLOCK
+            );
         }
         else { // exit
-            START_PER_PARTICLE_BLOCK(part0, part)
+            PER_PARTICLE_BLOCK(part0, part,
                 MAGNET_WEDGE(part);
                 if (model == 1){
                     MAGNET_MULTIPOLE_FRINGE(part);
                 }
                 MAGNET_DIPOLE_FRINGE(part);
                 MAGNET_Y_ROTATE(part);
-            END_PER_PARTICLE_BLOCK
+            );
         }
 
         #undef MAGNET_Y_ROTATE
