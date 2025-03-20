@@ -1404,7 +1404,7 @@ class Particles(xo.HybridClass):
         if mode != 'no_local_copy':
             raise NotImplementedError
 
-        src_lines = []
+        src_lines = ['']
         for name, mass in mass__dict__.items():
             if name.endswith('_MASS_EV'):
                 src_lines.append(f'#define {name} {mass}')
