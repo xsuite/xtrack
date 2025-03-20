@@ -363,6 +363,7 @@ void track_magnet_particles(
                                                       // there is only one particle
                                                       // when doing the tapering
     #endif
+    printf("delta_taper = %e\n", delta_taper);
 
     #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
         if (radiation_flag){
@@ -398,6 +399,7 @@ void track_magnet_particles(
             }
         }
     }
+    printf("num_multipole_kicks = %lld\n", num_multipole_kicks);
 
     double k0_drift, k1_drift, h_drift;
     double k0_kick, k1_kick, h_kick;

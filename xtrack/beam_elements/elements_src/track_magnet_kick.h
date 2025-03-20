@@ -63,6 +63,8 @@ void track_magnet_kick_single_particle(
         kick_weight
     );
 
+    printf("1: px = %e\n", LocalParticle_get_px(part));
+
     kick_simple_single_particle(
         part,
         /* order */ 3,
@@ -73,6 +75,7 @@ void track_magnet_kick_single_particle(
         kick_weight
     );
 
+    printf("2: px = %e\n", LocalParticle_get_px(part));
 
     // Correct for the curvature
     double dpx = 0;
@@ -108,6 +111,8 @@ void track_magnet_kick_single_particle(
     LocalParticle_add_to_px(part, dpx);
     LocalParticle_add_to_py(part, dpy);
     LocalParticle_add_to_zeta(part, dzeta);
+
+    printf("3: px = %e\n", LocalParticle_get_px(part));
 
 }
 
