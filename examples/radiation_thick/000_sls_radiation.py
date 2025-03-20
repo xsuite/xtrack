@@ -49,6 +49,8 @@ slicing_strategies = [
 ]
 line_sliced_thick.slice_thick_elements(slicing_strategies)
 
+assert line['ars12_mqua_5940..0'].radiation_flag == 10
+
 tw_rad_sliced_thick = line_sliced_thick.twiss(eneloss_and_damping=True, strengths=True)
 
 # Thin ...
