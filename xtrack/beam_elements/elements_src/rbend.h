@@ -36,7 +36,7 @@ void RBend_track_local_particle(
         /*radiation_record*/      NULL,
         /*delta_taper*/           RBendData_get_delta_taper(el),
         /*h*/                     h,
-        /*hxl_curv_only*/         0.,
+        /*hxl*/                   0.,
         /*k0*/                    RBendData_get_k0(el),
         /*k1*/                    RBendData_get_k1(el),
         /*k2*/                    0.,

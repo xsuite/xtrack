@@ -40,7 +40,7 @@ void Sextupole_track_local_particle(
         /*radiation_record*/      NULL,
         /*delta_taper*/           SextupoleData_get_delta_taper(el),
         /*h*/                     0.,
-        /*hxl_curv_only*/         0.,
+        /*hxl*/                   0.,
         /*k0*/                    0.,
         /*k1*/                    0.,
         /*k2*/                    SextupoleData_get_k2(el),

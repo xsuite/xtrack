@@ -59,7 +59,7 @@ void Magnet_track_local_particle(
         NULL, // radiation_record
         delta_taper,
         h,
-        0., // hxl_curv_only
+        0., // hxl
         k0,
         k1,
         k2,

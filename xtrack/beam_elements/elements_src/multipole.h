@@ -34,7 +34,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         /*radiation_record*/      record,
         /*delta_taper*/           MultipoleData_get_delta_taper(el),
         /*h*/                     0.,
-        /*hxl_curv_only*/         MultipoleData_get_hxl(el),
+        /*hxl*/                   MultipoleData_get_hxl(el),
         /*k0*/                    0.,
         /*k1*/                    0.,
         /*k2*/                    0.,
