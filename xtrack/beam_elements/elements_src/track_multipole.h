@@ -80,8 +80,6 @@ void Multipole_track_single_particle(LocalParticle* part,
             dpy += dpy1 * weight;
         }
 
-        printf("m1: dpx = %e\n", dpx);
-
         if (knl_2){
             double dpx2, dpy2;
             multipole_compute_dpx_dpy_single_particle(part, knl_2, ksl_2,
@@ -91,7 +89,6 @@ void Multipole_track_single_particle(LocalParticle* part,
             dpx += dpx2 * weight;
             dpy += dpy2 * weight;
         }
-        printf("m2: dpx = %e\n", dpx);
 
         #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
         // Radiation at entrance
@@ -154,14 +151,13 @@ void Multipole_track_single_particle(LocalParticle* part,
                 dpx -= b1l * hxlx / length;
 
 
-                // k1h correction can be computed from this term in the hamiltonian
-                // H = 1/3 hk1 x^3 - 1/2 hk1 xy^2
-                // (see MAD 8 physics manual, eq. 5.15, and apply Hamilton's eq. dp/ds = -dH/dx)
-                dpx += hxl/length*weight * chi * knl1* (-x * x + 0.5 * y * y);
-                dpy += hxl/length*weight * chi * knl1* x * y;
+                // // k1h correction can be computed from this term in the hamiltonian
+                // // H = 1/3 hk1 x^3 - 1/2 hk1 xy^2
+                // // (see MAD 8 physics manual, eq. 5.15, and apply Hamilton's eq. dp/ds = -dH/dx)
+                // dpx += hxl/length*weight * chi * knl1* (-x * x + 0.5 * y * y);
+                // dpy += hxl/length*weight * chi * knl1* x * y;
             }
 
-            printf("m3: dpx = %e\n", dpx);
 
             LocalParticle_add_to_zeta(part, -rv0v*chi * hxlx);
         }
