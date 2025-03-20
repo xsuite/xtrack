@@ -184,7 +184,7 @@ void track_magnet_body_single_particle(
             const double old_zeta = LocalParticle_get_zeta(part); \
             code; \
             if (radiation_flag && length > 0){ \
-                double h_for_rad = h_kick; \
+                double h_for_rad = h_kick + hxl_curv_only / length; \
                 if (fabs(h_drift) > 0){ h_for_rad = h_drift; } \
                 magnet_apply_radiation_single_particle( \
                     part, \
