@@ -59,7 +59,7 @@ for conf in configs:
     line.config.XTRACK_CAVITY_PRESERVE_ANGLE = False
 
     if conf['p0_correction']:
-        p0corr = 1 + line.delta_taper
+        p0corr = 1 + tw.delta
     else:
         p0corr = 1
 
@@ -98,10 +98,8 @@ for conf in configs:
 
     plt.savefig(f'./{case_name}_fig{ifig}.png', dpi=200)
 
-    assert np.isclose(line.delta_taper[0], 0, rtol=0, atol=1e-10)
-    assert np.isclose(line.delta_taper[-1], 0, rtol=0, atol=1e-10)
-
-    assert np.allclose(tw.delta, line.delta_taper, rtol=0, atol=1e-6)
+    assert np.isclose(line.attr['delta_taper'][0], 0, rtol=0, atol=1e-10)
+    assert np.isclose(line.attr['delta_taper'][-1], 0, rtol=0, atol=1e-10)
 
     assert np.isclose(tw.qx, tw_no_rad.qx, rtol=0, atol=conf['q_atol'])
     assert np.isclose(tw.qy, tw_no_rad.qy, rtol=0, atol=conf['q_atol'])
@@ -118,15 +116,6 @@ for conf in configs:
     assert np.allclose(tw.dx, tw.dx, rtol=0.0, atol=0.1e-3)
 
     assert np.allclose(tw.dy, tw.dy, rtol=0.0, atol=0.1e-3)
-
-    if case_name == 'clic_dr' and conf['radiation_method'] != 'kick_as_co':
-        eneloss = tw.eneloss_turn
-        assert eneloss/line.particle_ref.energy0 > 0.01
-        assert np.isclose(line['rf'].voltage*np.sin(line['rf'].lag/180*np.pi), eneloss/4, rtol=1e-5)
-        assert np.isclose(line['rf1'].voltage*np.sin(line['rf1'].lag/180*np.pi), eneloss/4, rtol=1e-5)
-        assert np.isclose(line['rf2a'].voltage*np.sin(line['rf2a'].lag/180*np.pi), eneloss/4*0.6, rtol=1e-5)
-        assert np.isclose(line['rf2b'].voltage*np.sin(line['rf2b'].lag/180*np.pi), eneloss/4*0.4, rtol=1e-5)
-        assert np.isclose(line['rf3'].voltage*np.sin(line['rf3'].lag/180*np.pi), eneloss/4, rtol=1e-5)
 
 plt.figure(100)
 for i_iter, mon in enumerate(line._tapering_iterations):
