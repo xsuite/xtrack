@@ -37,6 +37,20 @@ tw_rad_thick = line.twiss(eneloss_and_damping=True, strengths=True)
 
 print('Done thick')
 
+# Sliced thick
+env['ring_sliced_thick'] = env.ring.copy(shallow=True)
+line_sliced_thick = env['ring_sliced_thick']
+
+line_sliced_thick.discard_tracker()
+slicing_strategies = [
+    xt.Strategy(slicing=None),  # Default
+    xt.Strategy(slicing=xt.Teapot(2, mode='thick'), element_type=xt.Bend),
+    xt.Strategy(slicing=xt.Teapot(2, mode='thick'), element_type=xt.Quadrupole),
+]
+line_sliced_thick.slice_thick_elements(slicing_strategies)
+
+tw_rad_sliced_thick = line_sliced_thick.twiss(eneloss_and_damping=True, strengths=True)
+
 # Thin ...
 env['ring_thin'] = env.ring.copy(shallow=True)
 line_thin = env['ring_thin']
@@ -56,15 +70,26 @@ tw_rad_thin = line_thin.twiss(eneloss_and_damping=True, strengths=True)
 
 # Compare tunes, chromaticities, damping rates, equilibrium emittances
 print('Tune comparison')
-print('Thick: ', tw_rad_thick.qx, tw_rad_thick.qy)
-print('Thin:  ', tw_rad_thin.qx, tw_rad_thin.qy)
+print('Thick:        ', tw_rad_thick.qx, tw_rad_thick.qy)
+print('Sliced thick: ', tw_rad_sliced_thick.qx, tw_rad_sliced_thick.qy)
+print('Thin:         ', tw_rad_thin.qx, tw_rad_thin.qy)
+
 print('Chromaticity comparison')
-print('Thick: ', tw_rad_thick.dqx, tw_rad_thick.dqy)
-print('Thin:  ', tw_rad_thin.dqx, tw_rad_thin.dqy)
-print('Energy loss: ', tw_rad_thick.eneloss_turn, tw_rad_thin.eneloss_turn)
-print('Partition numbers: ', tw_rad_thick.partition_numbers, tw_rad_thin.partition_numbers)
-print('Thick: ', tw_rad_thick.partition_numbers)
-print('Thin:  ', tw_rad_thin.partition_numbers)
+print('Thick:        ', tw_rad_thick.dqx, tw_rad_thick.dqy)
+print('Sliced thick: ', tw_rad_sliced_thick.dqx, tw_rad_sliced_thick.dqy)
+print('Thin:         ', tw_rad_thin.dqx, tw_rad_thin.dqy)
+
+print('Energy loss: ')
+print('Thick:        ', tw_rad_thick.eneloss_turn)
+print('Sliced thick: ', tw_rad_sliced_thick.eneloss_turn)
+print('Thin:         ', tw_rad_thin.eneloss_turn)
+
+print('Partition numbers: ')
+print('Thick:        ', tw_rad_thick.partition_numbers)
+print('Sliced thick: ', tw_rad_sliced_thick.partition_numbers)
+print('Thin:         ', tw_rad_thin.partition_numbers)
+
 print('Equilibrium emittances')
-print('Thick: ', tw_rad_thick.eq_gemitt_x, tw_rad_thick.eq_gemitt_y, tw_rad_thick.eq_gemitt_zeta)
-print('Thin:  ', tw_rad_thin.eq_gemitt_x, tw_rad_thin.eq_gemitt_y, tw_rad_thin.eq_gemitt_zeta)
+print('Thick:        ', tw_rad_thick.eq_gemitt_x, tw_rad_thick.eq_gemitt_y, tw_rad_thick.eq_gemitt_zeta)
+print('Sliced thick: ', tw_rad_sliced_thick.eq_gemitt_x, tw_rad_sliced_thick.eq_gemitt_y, tw_rad_sliced_thick.eq_gemitt_zeta)
+print('Thin:         ', tw_rad_thin.eq_gemitt_x, tw_rad_thin.eq_gemitt_y, tw_rad_thin.eq_gemitt_zeta)
