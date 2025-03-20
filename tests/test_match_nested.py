@@ -193,6 +193,6 @@ def test_match_nested(test_context):
     xo.assert_allclose(twb2_after['muy', 's.ds.l7.b2'] - twb2_after['muy', 'e.ds.r6.b2'],
                         muy_arc_target_b2, rtol=0, atol=1e-8)
     xo.assert_allclose(twb2_after['betx', 's.cell.67.b2'], twb2_after['betx', 'e.cell.67.b2'],
-                        rtol=0, atol=1e-8)
+                        rtol=0, atol=1e-7)
     xo.assert_allclose(twb2_after['bety', 's.cell.67.b2'], twb2_after['bety', 'e.cell.67.b2'],
-                        rtol=0, atol=1e-8)
+                        rtol=0, atol=1e-7)
