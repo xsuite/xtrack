@@ -342,6 +342,7 @@ void track_magnet_particles(
         double factor_knl_ksl_body = -factor_knl_ksl;
         double factor_knl_ksl_edge = factor_knl_ksl; // Edge has a specific factor for backtracking
         const double factor_backtrack_edge = -1.;
+        hxl = -hxl;
         VSWAP(edge_entry_active, edge_exit_active);
         VSWAP(edge_entry_model, edge_exit_model);
         VSWAP(edge_entry_angle, edge_exit_angle);
