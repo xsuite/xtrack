@@ -56,6 +56,7 @@ void Magnet_track_local_particle(
         model,
         integrator,
         radiation_flag,
+        NULL, // radiation_record
         delta_taper,
         h,
         k0,

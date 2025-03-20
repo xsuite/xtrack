@@ -24,6 +24,7 @@ void Bend_track_local_particle(
         /*model*/                 BendData_get_model(el),
         /*integrator*/            BendData_get_integrator(el),
         /*radiation_flag*/        BendData_get_radiation_flag(el),
+        /*radiation_record*/      NULL,
         /*delta_taper*/           BendData_get_delta_taper(el),
         /*h*/                     BendData_get_h(el),
         /*k0*/                    BendData_get_k0(el),

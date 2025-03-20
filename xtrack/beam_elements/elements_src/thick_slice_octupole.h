@@ -51,6 +51,7 @@ void ThickSliceOctupole_track_local_particle(
         /*model*/                 model,
         /*integrator*/            integrator,
         /*radiation_flag*/        radiation_flag,
+        /*radiation_record*/      NULL,
         /*delta_taper*/           delta_taper,
         /*h*/                     0.,
         /*k0*/                    0.,

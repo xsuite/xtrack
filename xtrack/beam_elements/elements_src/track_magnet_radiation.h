@@ -12,11 +12,19 @@ void magnet_apply_radiation_single_particle(
     const double old_px, const double old_py,
     const double old_ax, const double old_ay,
     const double old_zeta,
+    SynchrotronRadiationRecordData record,
     double* dp_record_exit, double* dpx_record_exit, double* dpy_record_exit
 ) {
 
     if (length == 0.0) {
         return;
+    }
+
+    RecordIndex record_index = NULL;
+    if (radiation_flag==2){
+        if (record){
+            record_index = SynchrotronRadiationRecordData_getp__index(record);
+        }
     }
 
     double const rvv = LocalParticle_get_rvv(part);
@@ -79,7 +87,7 @@ void magnet_apply_radiation_single_particle(
             dp_record_exit, dpx_record_exit, dpy_record_exit);
     }
     else if (radiation_flag == 2){
-        synrad_emit_photons(part, B_T, l_path, NULL, NULL);
+        synrad_emit_photons(part, B_T, l_path, record_index, record);
     }
 
     LocalParticle_add_to_px(part, new_ax);

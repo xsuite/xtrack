@@ -149,6 +149,7 @@ void track_magnet_body_single_particle(
     const double k2s,
     const double k3s,
     const int64_t radiation_flag,
+    SynchrotronRadiationRecordData radiation_record,
     double* dp_record_exit,
     double* dpx_record_exit,
     double* dpy_record_exit
@@ -192,6 +193,7 @@ void track_magnet_body_single_particle(
                     old_px, old_py, \
                     old_ax, old_ay, \
                     old_zeta, \
+                    radiation_record, \
                     dp_record_exit, dpx_record_exit, dpy_record_exit);\
             }\
         }
@@ -306,6 +308,7 @@ void track_magnet_particles(
     int8_t model,
     int8_t integrator,
     int64_t radiation_flag,
+    SynchrotronRadiationRecordData radiation_record,
     double delta_taper,
     double h,
     double k0,
@@ -448,7 +451,7 @@ void track_magnet_particles(
             k0_drift, k1_drift, h_drift,
             k0_kick, k1_kick, h_kick,
             k2, k3, k0s, k1s, k2s, k3s,
-            radiation_flag,
+            radiation_flag, radiation_record,
             &dp_record_exit, &dpx_record_exit, &dpy_record_exit
         );
     //end_per_particle_block

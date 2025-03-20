@@ -36,6 +36,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         /*model*/                 -1, // kick only
         /*integrator*/            3, // uniform
         /*radiation_flag*/        radiation_flag,
+        /*radiation_record*/      NULL,
         /*delta_taper*/           MultipoleData_get_delta_taper(el),
         /*h*/                     h,
         /*k0*/                    0.,

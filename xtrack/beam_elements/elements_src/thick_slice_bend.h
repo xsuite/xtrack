@@ -36,6 +36,7 @@ void ThickSliceBend_track_local_particle(
         /*model*/                 ThickSliceBendData_get__parent_model(el),
         /*integrator*/            ThickSliceBendData_get__parent_integrator(el),
         /*radiation_flag*/        radiation_flag,
+        /*radiation_record*/      NULL,
         /*delta_taper*/           delta_taper,
         /*h*/                     ThickSliceBendData_get__parent_h(el),
         /*k0*/                    ThickSliceBendData_get__parent_k0(el),
