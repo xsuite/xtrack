@@ -829,16 +829,18 @@ def test_thin_slice_bend_with_multipoles(test_context):
                    k1=0.003,
                    knl=[0, 0.001, 0.01, 0.02, 0.04, 0.6],
                    ksl=[0, 0.002, 0.03, 0.03, 0.05, 0.7],
-                   num_multipole_kicks=100000,
+                   num_multipole_kicks=1000,
                    edge_entry_angle=0.05, edge_entry_hgap=0.06, edge_entry_fint=0.08,
                    edge_exit_angle=0.05, edge_exit_hgap=0.06, edge_exit_fint=0.08)
 
     line = xt.Line(elements=[bend])
+    bend.integrator = 'teapot'
+    bend.model = 'drift-kick-drift-expanded'
 
-    line.configure_bend_model(edge='linear', core='expanded')
+    line.configure_bend_model(edge='linear')
 
     line.slice_thick_elements(
-        slicing_strategies=[xt.Strategy(xt.Teapot(10000))])
+        slicing_strategies=[xt.Strategy(xt.Teapot(1000))])
     line.build_tracker(_context=test_context)
     line._line_before_slicing.build_tracker(_context=test_context)
     assert line['e0..995'].parent_name == 'e0'

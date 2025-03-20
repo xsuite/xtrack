@@ -186,7 +186,7 @@ class ThinSliceBend(BeamElement):
 
     _xofields = {'_parent': xo.Ref(Bend), **_common_xofields}
 
-    _extra_c_sources = _common_c_sources + [
+    _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/thin_slice_bend.h')]
 
     copy = _slice_copy
