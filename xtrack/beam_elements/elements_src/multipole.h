@@ -10,74 +10,56 @@
 /*gpufun*/
 void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 
-    SynchrotronRadiationRecordData record = NULL;
-    RecordIndex record_index = NULL;
-
-    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+    double length = MultipoleData_get_length(el);
     int64_t radiation_flag = MultipoleData_get_radiation_flag(el);
+    double const hxl = MultipoleData_get_hxl(el);
+    double h;
 
-    // Extract record and record_index
-    if (radiation_flag==2){
-        record = (SynchrotronRadiationRecordData) MultipoleData_getp_internal_record(el, part0);
-        if (record){
-            record_index = SynchrotronRadiationRecordData_getp__index(record);
-        }
+    if (length == 0){
+        radiation_flag = 0;
+        h = hxl;
+        length = 1;
+    }
+    else{
+        h = hxl / length;
     }
 
-    #else
-    int64_t radiation_flag = 0;
-    #endif
+    track_magnet_particles(
+        /*part0*/                 part0,
+        /*length*/                length,
+        /*order*/                 MultipoleData_get_order(el),
+        /*inv_factorial_order*/   MultipoleData_get_inv_factorial_order(el),
+        /*knl*/                   MultipoleData_getp1_knl(el, 0),
+        /*ksl*/                   MultipoleData_getp1_ksl(el, 0),
+        /*factor_knl_ksl*/        1.,
+        /*num_multipole_kicks*/   1,
+        /*model*/                 -1, // kick only
+        /*integrator*/            3, // uniform
+        /*radiation_flag*/        radiation_flag,
+        /*delta_taper*/           MultipoleData_get_delta_taper(el),
+        /*h*/                     h,
+        /*k0*/                    0.,
+        /*k1*/                    0.,
+        /*k2*/                    0.,
+        /*k3*/                    0.,
+        /*k0s*/                   0.,
+        /*k1s*/                   0.,
+        /*k2s*/                   0.,
+        /*k3s*/                   0.,
+        /*edge_entry_active*/     0,
+        /*edge_exit_active*/      0,
+        /*edge_entry_model*/      0,
+        /*edge_exit_model*/       0,
+        /*edge_entry_angle*/      0.,
+        /*edge_exit_angle*/       0.,
+        /*edge_entry_angle_fdown*/0.,
+        /*edge_exit_angle_fdown*/ 0.,
+        /*edge_entry_fint*/       0.,
+        /*edge_exit_fint*/        0.,
+        /*edge_entry_hgap*/       0.,
+        /*edge_exit_hgap*/        0.
+    );
 
-    double dp_record_entry = 0.;
-    double dpx_record_entry = 0.;
-    double dpy_record_entry = 0.;
-    double dp_record_exit = 0.;
-    double dpx_record_exit = 0.;
-    double dpy_record_exit = 0.;
-
-    #ifdef XTRACK_MULTIPOLE_NO_SYNRAD
-        double const delta_taper = 0.0;
-    #else
-        double delta_taper = MultipoleData_get_delta_taper(el);
-    #endif
-
-    int64_t const order = MultipoleData_get_order(el);
-    double const inv_factorial_order_0 = MultipoleData_get_inv_factorial_order(el);
-
-    #ifndef XSUITE_BACKTRACK
-        double const hxl = MultipoleData_get_hxl(el);
-    #else
-        double const hxl = -MultipoleData_get_hxl(el);
-    #endif
-
-    /*gpuglmem*/ double const* knl = MultipoleData_getp1_knl(el, 0);
-    /*gpuglmem*/ double const* ksl = MultipoleData_getp1_ksl(el, 0);
-
-    #ifndef XSUITE_BACKTRACK
-        double const length = MultipoleData_get_length(el); // m
-        double const backtrack_sign = 1;
-    #else
-        double const length = -MultipoleData_get_length(el); // m
-        double const backtrack_sign = -1;
-    #endif
-
-    //start_per_particle_block (part0->part)
-
-        #ifdef XTRACK_MULTIPOLE_TAPER
-            delta_taper = LocalParticle_get_delta(part);
-        #endif
-
-        Multipole_track_single_particle(part,
-            hxl, length, 1, //weight 1
-            knl, ksl, order, inv_factorial_order_0,
-            NULL, NULL, -1, -1., // second tap unused
-            backtrack_sign,
-            delta_taper, radiation_flag,
-            &dp_record_entry, &dpx_record_entry, &dpy_record_entry,
-            &dp_record_exit, &dpx_record_exit, &dpy_record_exit,
-            record, record_index);
-
-    //end_per_particle_block
 }
 
 #endif

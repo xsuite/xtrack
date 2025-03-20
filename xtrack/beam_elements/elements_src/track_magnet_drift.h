@@ -338,7 +338,11 @@ void track_magnet_drift_single_particle(
     // drift_model = 3 : k0, k1, h expanded map (this is general for all possible values)
     // drift_model = 4 : bend with h (caller has ensured k1=0, h!=0)
     // drift_model = 5 : bend without h (caller has ensured k1=0, h=0)
+    // drift_model = -1 : no drift
 
+    if (drift_model == -1) {
+        return;
+    }
 
     if (length == 0.0) {
         return;

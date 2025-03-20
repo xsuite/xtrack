@@ -35,6 +35,7 @@ void configure_tracking_model(
     // model = 4: mat-kick-mat (previously called `expanded`)
     // model = 5: drift-kick-drift-exact
     // model = 6: drift-kick-drift-expanded
+    // model = -1: kick only (not exposed in python)
 
     if (model==0 || model==1){
         model = 3;
@@ -72,7 +73,7 @@ void configure_tracking_model(
         drift_model = -1;
     }
 
-    if (drift_model == 0 || drift_model == 1){ // drift expanded or drift exact
+    if (drift_model == -1 || drift_model == 0 || drift_model == 1){ // drift expanded or drift exact
         *k0_drift = 0.0;
         *k1_drift = 0.0;
         *h_drift = 0.0;
