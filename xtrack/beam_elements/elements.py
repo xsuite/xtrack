@@ -22,7 +22,6 @@ from xtrack.beam_elements.magnets import (
     _NOEXPR_FIELDS, COMMON_MAGNET_SOURCES
 )
 
-
 class ReferenceEnergyIncrease(BeamElement):
 
     '''Beam element modeling a change of reference energy (acceleration,

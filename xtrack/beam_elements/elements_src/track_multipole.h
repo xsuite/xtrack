@@ -121,7 +121,6 @@ void Multipole_track_single_particle(LocalParticle* part,
             double const delta  = LocalParticle_get_delta(part);
             double const chi    = LocalParticle_get_chi(part);
             double const x      = LocalParticle_get_x(part);
-            double const y      = LocalParticle_get_y(part);
 
             double const hxlx   = x * hxl;
 
@@ -132,16 +131,13 @@ void Multipole_track_single_particle(LocalParticle* part,
             if( length != 0)
             {
                 double knl0 = 0;
-                double knl1 = 0;
 
                 if (knl){
                     knl0 += knl[0];
-                    knl1 += knl[1];
                 }
 
                 if (knl_2){
                     knl0 += knl_2[0];
-                    knl1 += knl_2[1];
                 }
 
                 double b1l = backtrack_sign * chi * knl0 * weight;
@@ -150,12 +146,6 @@ void Multipole_track_single_particle(LocalParticle* part,
 
                 dpx -= b1l * hxlx / length;
 
-
-                // // k1h correction can be computed from this term in the hamiltonian
-                // // H = 1/3 hk1 x^3 - 1/2 hk1 xy^2
-                // // (see MAD 8 physics manual, eq. 5.15, and apply Hamilton's eq. dp/ds = -dH/dx)
-                // dpx += hxl/length*weight * chi * knl1* (-x * x + 0.5 * y * y);
-                // dpy += hxl/length*weight * chi * knl1* x * y;
             }
 
 
