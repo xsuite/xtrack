@@ -83,6 +83,10 @@ class MadxTransformer(Transformer):
             statement = ' '.join(str(token) for token in tokens.children)
         else:
             statement = ''
+        if statement.startswith('return'):
+            return
+        if statement == '':
+            return
         warn(f'Ignoring statement: `{statement}`')
 
     def assign_defer(self, name, value) -> Tuple[str, VarType]:
@@ -116,7 +120,7 @@ class MadxTransformer(Transformer):
         return string.value[1:-1]
 
     def call(self, function, *args):
-        return f'{function}({", ".join(args)})'
+        return f'{function}({", ".join(map(str, args))})'
 
     def function(self, name_token):
         return name_token.value.lower()
@@ -180,11 +184,6 @@ class MadxTransformer(Transformer):
         args = dict(arglist)
         parent = command_token.value.lower()
 
-        if parent == 'marker' and 'apertype' in args:
-            # Collapse aperture markers into actual aperture elements, this
-            # will make loading easier for now.
-            parent = args.pop('apertype')['expr']
-
         return name_token.value.lower(), {
             'parent': parent,
             **args,
@@ -192,10 +191,7 @@ class MadxTransformer(Transformer):
 
     def top_level_clone(self, clone):
         name, body = clone
-        self.elements[name] = {
-            'parent': name,
-            **body,
-        }
+        self.elements[name] = body
 
     def command_stmt(self, command_token, arglist):
         return command_token.value.lower(), dict(arglist)
@@ -256,7 +252,12 @@ class MadxTransformer(Transformer):
             'parameters': self.parameters,
         }
 
-    op_arrow = make_op_handler('->')
+    def op_arrow(self, a, b):
+        a, b = a.lower(), b.lower()
+        if b == 'l':
+            b = 'length'
+        return f'{a}->{b}'
+
     op_lt = make_op_handler('<')
     op_gt = make_op_handler('>')
     op_le = make_op_handler('<=')

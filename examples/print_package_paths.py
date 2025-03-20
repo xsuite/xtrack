@@ -9,6 +9,8 @@ import xdeps
 import xtrack
 import xfields
 import xmask
+import xcoll
+import xwakes
 
 print("\n-------- Paths: --------")
 
@@ -18,6 +20,8 @@ print('xdeps:    ', xdeps.__path__)
 print('xtrack:   ', xtrack.__path__)
 print('xfields:  ', xfields.__path__)
 print('xmask     ', xmask.__path__)
+print('xcoll     ', xcoll.__path__)
+print('xwakes    ', xwakes.__path__)
 
 
 try:
@@ -31,6 +35,8 @@ try:
     repo_xtrack = Repo(Path(xtrack.__path__[0]).parent)
     repo_xfields = Repo(Path(xfields.__path__[0]).parent)
     repo_xmask = Repo(Path(xmask.__path__[0]).parent)
+    repo_xcoll = Repo(Path(xcoll.__path__[0]).parent)
+    repo_xwakes = Repo(Path(xwakes.__path__[0]).parent)
 
     print('xobjects is on branch: ', repo_xobjects.active_branch)
     print('xpart is on branch:    ', repo_xpart.active_branch)
@@ -38,6 +44,8 @@ try:
     print('xtrack is on branch:   ', repo_xtrack.active_branch)
     print('xfields is on branch:  ', repo_xfields.active_branch)
     print('xmask is on branch:    ', repo_xmask.active_branch)
+    print('xcoll is on branch:    ', repo_xcoll.active_branch)
+    print('xwakes is on branch:   ', repo_xwakes.active_branch)
 
 except Exception as err:
     print('No git info because of the following exception: ', err)

@@ -5,6 +5,10 @@ from typing import Literal
 from weakref import WeakSet
 from copy import deepcopy
 import re
+import importlib.util
+import sys
+import uuid
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -14,8 +18,16 @@ import xdeps as xd
 import xtrack as xt
 from xdeps.refs import is_ref
 from .multiline_legacy.multiline_legacy import MultilineLegacy
+from .progress_indicator import progress
 
 ReferType = Literal['start', 'center', 'centre', 'end']
+
+DEFAULT_REF_STRENGTH_NAME = {
+    'Bend': 'k0',
+    'Quadrupole': 'k1',
+    'Sextupole': 'k2',
+    'Octupole': 'k3',
+}
 
 def _flatten_components(components, refer: ReferType = 'center'):
     if refer not in ['start', 'center', 'centre', 'end']:
@@ -113,8 +125,6 @@ class Environment:
                 env.place('mq2', at=20.0, from_='mymark'),  # Place 'mq2' at s=20
                 ])
 
-
-
         '''
         self._element_dict = element_dict or {}
         self.particle_ref = particle_ref
@@ -134,17 +144,24 @@ class Environment:
             # Identify common elements
             counts = Counter()
             for ll in lines.values():
+                # Extract names of all elements and parents
+                elems_and_parents = set(ll.element_names)
+                for nn in ll.element_names:
+                    if hasattr(ll.element_dict[nn], 'parent_name'):
+                        elems_and_parents.add(ll.element_dict[nn].parent_name)
                 # Count if it is not a marker or a drift, which will be handled by
                 # `import_line`
-                for nn in ll.element_names:
+                for nn in elems_and_parents:
                     if (not (isinstance(ll.element_dict[nn], (xt.Marker))) and
                         not bool(re.match(r'^drift_\d+$', nn))):
                         counts[nn] += 1
             common_elements = [nn for nn, cc in counts.items() if cc>1]
 
             for nn, ll in lines.items():
+                rename_elements = {el: el+'/'+nn for el in common_elements}
                 self.import_line(line=ll, suffix_for_common_elements='/'+nn,
-                    line_name=nn, rename_elements={el: el+'/'+nn for el in common_elements})
+                    line_name=nn, rename_elements=rename_elements)
+                self.lines[nn]._renamed_elements = rename_elements
 
         self.metadata = {}
 
@@ -253,9 +270,11 @@ class Environment:
 
         needs_instantiation = True
         parent_element = None
+        prototype = None
         if isinstance(parent, str):
             if parent in self.element_dict:
                 # Clone an existing element
+                prototype = parent
                 self.element_dict[name] = xt.Replica(parent_name=parent)
                 xt.Line.replace_replica(self, name)
 
@@ -268,10 +287,14 @@ class Environment:
             else:
                 raise ValueError(f'Element type {parent} not found')
 
-        if parent == xt.Bend and ('angle' in kwargs or 'rbarc' in kwargs):
-            kwargs = _handle_bend_kwargs(kwargs, _eval, env=self)
-        kwargs.pop('rbarc', None)
-        kwargs.pop('rbend', None)
+        if 'rbend' in kwargs:
+            raise ValueError('Use the `RBend` element directly, instead of '
+                             'specifying the `rbend` flag.')
+
+        if 'rbarc' in kwargs:
+            raise ValueError('Use the `RBend` element with the `length` or '
+                             '`length_straight` parameter set accordingly, '
+                             'instead of specifying the `rbarc` flag.')
 
         ref_kwargs, value_kwargs = _parse_kwargs(parent, kwargs, _eval)
 
@@ -285,6 +308,8 @@ class Environment:
             assert isinstance(extra, dict)
             self.element_dict[name].extra = extra
 
+        self.element_dict[name].prototype = prototype
+
         return name
 
     def _init_var_management(self, dct=None):
@@ -294,7 +319,7 @@ class Environment:
         self._line_vars = xt.line.LineVars(self)
 
 
-    def new_line(self, components=None, name=None, refer: ReferType = 'center'):
+    def new_line(self, components=None, name=None, refer: ReferType = 'center', length=None):
 
         '''
         Create a new line.
@@ -306,6 +331,14 @@ class Environment:
             place objects, and lines.
         name : str, optional
             Name of the new line.
+        refer : str, optional
+            Specifies which part of the component the ``at`` position will refer
+            to. Allowed values are ``start``, ``center`` (default; also allowed
+            is ``centre```), and ``end``.
+        length : float | str, optional
+            Length of the line to be built by the builder. Can be an expression.
+            If not specified, the length will be the minimum length that can
+            fit all the components.
 
         Returns
         -------
@@ -334,13 +367,10 @@ class Environment:
         if components is None:
             components = []
 
-        for ii, nn in enumerate(components):
-            if (isinstance(nn, Place) and isinstance(nn.name, str)
-                    and nn.name in self.lines):
-                nn.name = self.lines[nn.name]
-            if isinstance(nn, str) and nn in self.lines:
-                components[ii] = self.lines[nn]
+        if isinstance(length, str):
+            length = self.eval(length)
 
+        components = _resolve_lines_in_components(components, self)
         flattened_components = _flatten_components(components, refer=refer)
 
         if np.array([isinstance(ss, str) for ss in flattened_components]).all():
@@ -350,11 +380,13 @@ class Environment:
             seq_all_places = _all_places(flattened_components)
             tab_unsorted = _resolve_s_positions(seq_all_places, self, refer=refer)
             tab_sorted = _sort_places(tab_unsorted)
-            element_names = _generate_element_names_with_drifts(self, tab_sorted)
+            element_names = _generate_element_names_with_drifts(self, tab_sorted,
+                                                                length=length)
 
         out.element_names = element_names
         out._name = name
-        out.builder = Builder(env=self, components=components)
+        out.builder = Builder(env=self, components=components, length=length,
+                              name=name, refer=refer)
 
         # Temporary solution to keep consistency in multiline
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
@@ -400,7 +432,8 @@ class Environment:
 
         return Place(name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
 
-    def new_builder(self, components=None, name=None, refer: ReferType = 'center'):
+    def new_builder(self, components=None, name=None, refer: ReferType = 'center',
+                    length=None):
         '''
         Create a new builder.
 
@@ -411,6 +444,14 @@ class Environment:
             place objects, and lines.
         name : str, optional
             Name of the line that will be built by the builder.
+        refer : str, optional
+            Specifies which part of the component the ``at`` position will refer
+            to. Allowed values are ``start``, ``center`` (default; also allowed
+            is ``centre```), and ``end``.
+        length : float | str, optional
+            Length of the line to be built by the builder. Can be an expression.
+            If not specified, the length will be the minimum length that can
+            fit all the components.
 
         Returns
         -------
@@ -418,7 +459,8 @@ class Environment:
             The new builder.
         '''
 
-        return Builder(env=self, components=components, name=name, refer=refer)
+        return Builder(env=self, components=components, name=name, refer=refer,
+                       length=length)
 
     def call(self, filename):
         '''
@@ -429,12 +471,10 @@ class Environment:
         filename : str
             Name of the file to be called.
         '''
-        with open(filename) as fid:
-            code = fid.read()
         import xtrack
         xtrack._passed_env = self
         try:
-            exec(code)
+            load_module_from_path(Path(filename))
         except Exception as ee:
             xtrack._passed_env = None
             raise ee
@@ -442,6 +482,31 @@ class Environment:
 
     def copy_element_from(self, name, source, new_name=None):
         return xt.Line.copy_element_from(self, name, source, new_name)
+
+
+    def _import_element(self, line, name, rename_elements, suffix_for_common_elements,
+                        already_imported):
+        new_name = name
+        if name in rename_elements:
+            new_name = rename_elements[name]
+        elif (bool(re.match(r'^drift_\d+$', name))
+            and line.ref[name].length._expr is None):
+            new_name = self._get_a_drift_name()
+        elif (name in self.element_dict and
+                not (isinstance(line[name], xt.Marker) and
+                    isinstance(self.element_dict.get(name), xt.Marker))):
+            new_name += suffix_for_common_elements
+
+        self.copy_element_from(name, line, new_name=new_name)
+        already_imported[name] = new_name
+        if hasattr(line.element_dict[name], 'parent_name'):
+            parent_name = line.element_dict[name].parent_name
+            if parent_name not in already_imported:
+                self._import_element(line, parent_name, rename_elements,
+                                     suffix_for_common_elements, already_imported)
+            self.element_dict[new_name].parent_name = already_imported[parent_name]
+
+        return new_name
 
     def import_line(
             self,
@@ -479,23 +544,17 @@ class Environment:
         self.ref_manager.containers['vars']._owner.update(new_var_values)
 
         self.ref_manager.copy_expr_from(line.ref_manager, 'vars', overwrite=overwrite_vars)
+        old_default_to_zero = self.vars.default_to_zero # Not sure why this is needed
+        self.vars.default_to_zero = True
         self.ref_manager.run_tasks()
+        self.vars.default_to_zero = old_default_to_zero
 
         components = []
+        already_imported = {}
         for name in line.element_names:
-            new_name = name
-
-            if name in rename_elements:
-                new_name = rename_elements[name]
-            elif (bool(re.match(r'^drift_\d+$', name))
-                and line.ref[name].length._expr is None):
-                new_name = self._get_a_drift_name()
-            elif (name in self.element_dict and
-                    not (isinstance(line[name], xt.Marker) and
-                        isinstance(self.element_dict.get(name), xt.Marker))):
-                new_name += suffix_for_common_elements
-
-            self.copy_element_from(name, line, new_name=new_name)
+            new_name = self._import_element(
+                line, name, rename_elements, suffix_for_common_elements,
+                already_imported)
 
             components.append(new_name)
 
@@ -503,6 +562,16 @@ class Environment:
 
         if line.particle_ref is not None:
             out.particle_ref = line.particle_ref.copy()
+
+        out.config.clear()
+        out.config.update(line.config.copy())
+        out._extra_config.update(line._extra_config.copy())
+        out.metadata.clear()
+        out.metadata.update(line.metadata)
+
+        if out.energy_program is not None:
+            out.energy_program.line = out
+
 
     def _ensure_tracker_consistency(self, buffer):
         for ln in self._lines_weakrefs:
@@ -699,6 +768,86 @@ class Environment:
     def __dir__(self):
         return [nn for nn  in list(self.lines.keys()) if '.' not in nn
                     ] + object.__dir__(self)
+
+    def set_multipolar_errors(env, errors):
+
+        '''
+        Set multipolar errors for specified elements of the environment.
+
+        Parameters
+        ----------
+
+        errors : dict
+            Dictionary with the errors to be set. The keys are the names of the
+            elements, and the values are dictionaries with the following keys:
+             - rel_knl: list of relative errors for the normal multipolar strengths.
+             - rel_ksl: list of relative errors for the skew multipolar strengths.
+             - refer: name of the strength to be used as reference, which is
+               multiplied by the length. If None, the default reference strength
+               is used (k0 for bends, k1 for quadrupoles, k2 for sextupoles,
+               and k3 for octupoles).
+
+        Examples
+        --------
+
+        .. code-block:: python
+
+            env = xt.Environment()
+            env.vars.default_to_zero = True
+            line = env.new_line(components=[
+                env.new('mq', 'Quadrupole', length=0.5, k1='kq'),
+                env.new('mqs', 'Quadrupole', length=0.5, k1s='kqs'),
+                env.new('mb', 'Bend', length=0.5, angle='ang', k0_from_h=True),
+            ])
+
+            env.set_multipolar_errors({
+                'mq': {'rel_knl': [1e-6, 1e-5, 1e-4],
+                       'rel_ksl': [-1e-6, -1e-5, -1e-4]},
+                'mqs': {'rel_knl': [2e-6, 2e-5, 2e-4],
+                        'rel_ksl': [3e-6, 3e-5, 3e-4],
+                        'refer': 'k1s'},
+                'mb': {'rel_knl': [2e-6, 3e-5, 4e-4],
+                       'rel_ksl': [5e-6, 6e-5, 7e-4]},
+                })
+
+        '''
+
+        for ele_name in progress(errors.keys(), desc='Setting multipolar errors'):
+
+            err = errors[ele_name]
+            rel_knl = err.get('rel_knl', [])
+            rel_ksl = err.get('rel_ksl', [])
+            refer = err.get('refer', None)
+            ele_class = env[ele_name].__class__.__name__
+
+            if 'Replica' in ele_class or 'Slice' in ele_class:
+                raise ValueError(f'Cannot set multipolar errors for element `{ele_name}`'
+                                 f' of type `{ele_class}`')
+
+            if refer is not None:
+                reference_strength_name = refer
+            else:
+                reference_strength_name = DEFAULT_REF_STRENGTH_NAME.get(ele_class, None)
+
+            if reference_strength_name is None:
+                raise ValueError(f'Cannot find reference strength for element `{ele_name}`')
+
+            ref_str_ref = getattr(env.ref[ele_name], reference_strength_name)
+            length_ref = env.ref[ele_name].length
+
+            for ii, kk in enumerate(rel_knl):
+                err_vname = f'err_{ele_name}_knl{ii}'
+                env[err_vname] = kk
+                if (env.ref[ele_name].knl[ii]._expr is None or env.ref[err_vname] in
+                        env.ref[ele_name].knl[ii]._expr._get_dependencies()):
+                    env[ele_name].knl[ii] += env.ref[err_vname] * ref_str_ref * length_ref
+
+            for ii, kk in enumerate(rel_ksl):
+                err_vname = f'err_{ele_name}_ksl{ii}'
+                env[err_vname] = kk
+                if (env.ref[ele_name].ksl[ii]._expr is None or env.ref[err_vname] in
+                        env.ref[ele_name].ksl[ii]._expr._get_dependencies()):
+                    env[ele_name].ksl[ii] += env.ref[err_vname] * ref_str_ref * length_ref
 
     element_dict = xt.Line.element_dict
     _xdeps_vref = xt.Line._xdeps_vref
@@ -1036,7 +1185,7 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
 
     return tt_sorted
 
-def _generate_element_names_with_drifts(env, tt_sorted, s_tol=1e-10):
+def _generate_element_names_with_drifts(env, tt_sorted, length=None, s_tol=1e-6):
 
     names_with_drifts = []
     # Create drifts
@@ -1048,6 +1197,15 @@ def _generate_element_names_with_drifts(env, tt_sorted, s_tol=1e-10):
             env.new(drift_name, xt.Drift, length=ds_upstream)
             names_with_drifts.append(drift_name)
         names_with_drifts.append(nn)
+
+    if length is not None:
+        length_line = tt_sorted['s_end'][-1]
+        if length_line > length + s_tol:
+            raise ValueError(f'Line length {length_line} is greater than the requested length {length}')
+        if length_line < length - s_tol:
+            drift_name = env._get_a_drift_name()
+            env.new(drift_name, xt.Drift, length=length - length_line)
+            names_with_drifts.append(drift_name)
 
     return list(map(str, names_with_drifts))
 
@@ -1147,77 +1305,24 @@ class EnvRef:
                 raise ValueError(f'There is already a variable with name {key}')
             self.element_refs[key] = val_ref
 
-def _handle_bend_kwargs(kwargs, _eval, env=None, name=None):
-    kwargs = kwargs.copy()
-    rbarc = kwargs.pop('rbarc', True)
-    rbend = kwargs.pop('rbend', False)
-
-    if rbarc:
-        assert 'angle' in kwargs, 'Angle must be specified for a bend with rbarc'
-
-    if env is not None and name is not None:
-        for kk in 'h length edge_entry_angle edge_exit_angle'.split():
-            if kk not in kwargs:
-                expr = getattr(env.ref[name], kk)._expr
-                if expr is not None:
-                    kwargs[kk] = expr
-                else:
-                    kwargs[kk] = getattr(env.get(name), kk)
-        if 'angle' in kwargs:
-            kwargs.pop('h')
-
-    length = kwargs.get('length', 0)
-    if isinstance(length, str):
-        length = _eval(length)
-
-    if 'angle' in kwargs:
-        assert 'h' not in kwargs, 'Cannot specify both angle and h'
-        assert 'length' in kwargs, 'Length must be specified for a bend'
-
-        angle = kwargs.pop('angle')
-
-        if isinstance(angle, str):
-            angle = _eval(angle)
-
-        kwargs['h'] = angle / length
-
-        if rbend and rbarc:
-            fsin = env._xdeps_fref['sin']
-            fsinc = env._xdeps_fref['sinc']
-            kwargs['h'] = fsin(0.5*angle) / (0.5 * length) # here length is the straight line
-            kwargs['length'] = length / fsinc(0.5*angle)
-    else:
-        angle = kwargs.get('h', 0) * length
-
-    if rbend:
-        edge_entry_angle = kwargs.pop('edge_entry_angle', 0.)
-        if isinstance(edge_entry_angle, str):
-            edge_entry_angle = _eval(edge_entry_angle)
-        edge_exit_angle = kwargs.pop('edge_exit_angle', 0.)
-        if isinstance(edge_exit_angle, str):
-            edge_exit_angle = _eval(edge_exit_angle)
-
-        edge_entry_angle += angle / 2
-        edge_exit_angle += angle / 2
-
-        kwargs['edge_entry_angle'] = edge_entry_angle
-        kwargs['edge_exit_angle'] = edge_exit_angle
-
-    if kwargs.pop('k0_from_h', False):
-        kwargs['k0'] = kwargs.get('h', 0)
-
-    return kwargs
-
 
 class Builder:
-    def __init__(self, env, components=None, name=None, refer: ReferType = 'center'):
+    def __init__(self, env, components=None, name=None, length=None, refer: ReferType = 'center'):
         self.env = env
         self.components = components or []
         self.name = name
         self.refer = refer
+        self.length = length
 
     def __repr__(self):
-        return f'Builder({self.name}, components={self.components!r})'
+        parts = [f'name={self.name!r}']
+        if self.length is not None:
+            parts.append(f'length={self.length!r}')
+        if self.refer not in {'center', 'centre'}:
+            parts.append(f'refer={self.refer!r}')
+        parts.append(f'components={self.components!r}')
+        args_str = ', '.join(parts)
+        return f'Builder({args_str})'
 
     def new(self, name, cls, at=None, from_=None, extra=None, force=False,
             **kwargs):
@@ -1235,7 +1340,8 @@ class Builder:
     def build(self, name=None):
         if name is None:
             name = self.name
-        out =  self.env.new_line(components=self.components, name=name, refer=self.refer)
+        out =  self.env.new_line(components=self.components, name=name, refer=self.refer,
+                                 length=self.length)
         out.builder = self
         return out
 
@@ -1244,6 +1350,32 @@ class Builder:
 
     def get(self, *args, **kwargs):
         return self.env.get(*args, **kwargs)
+
+
+    def resolve_s_positions(self):
+        components = self.components
+        if components is None:
+            components = []
+
+        components = _resolve_lines_in_components(components, self.env)
+        flattened_components = _flatten_components(components, refer=self.refer)
+
+        seq_all_places = _all_places(flattened_components)
+        tab_unsorted = _resolve_s_positions(seq_all_places, self.env, refer=self.refer)
+        tab_sorted = _sort_places(tab_unsorted)
+        return tab_sorted
+
+    def flatten(self, inplace=False):
+
+        assert not inplace, 'Inplace not yet implemented'
+
+        out = self.__class__(self.env)
+        out.__dict__.update(self.__dict__)
+
+        components = _resolve_lines_in_components(self.components, self.env)
+        out.components = _flatten_components(components, refer=self.refer)
+        out.components = _all_places(out.components)
+        return out
 
     @property
     def element_dict(self):
@@ -1296,3 +1428,111 @@ def _argsort_s(seq, tol=10e-10):
         return -1 if a < b else 1
 
     return sorted(seq_indices, key=cmp_to_key(comparator))
+
+
+def load_module_from_path(file_path):
+    """
+    Load a module from the given file path, always generating a unique module name.
+
+    Parameters:
+        file_path (str): The full path to the module file.
+
+    Returns:
+        module: The newly loaded module.
+    """
+    # Generate a unique module name using uuid4.
+    module_name = f"module_{uuid.uuid4().hex}"
+
+    # Create a module spec from the file location.
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
+    if spec is None:
+        raise ImportError(f"Cannot load module from path: {file_path}")
+
+    # Create a new module based on the spec.
+    module = importlib.util.module_from_spec(spec)
+
+    # Execute the module in its own namespace.
+    spec.loader.exec_module(module)
+
+    return module
+
+def _reverse_element(env, name):
+    """Return a reversed element without modifying the original."""
+
+    SUPPORTED = {'RBend', 'Bend', 'Quadrupole', 'Sextupole', 'Octupole',
+                'Multipole', 'Cavity', 'Solenoid', 'RFMultipole',
+                'Marker', 'Drift', 'LimitRect', 'LimitEllipse', 'LimitPolygon',
+                'LimitRectEllipse'}
+
+    ee = env.get(name)
+    ee_ref = env.ref[name]
+
+    if ee.__class__.__name__ not in SUPPORTED:
+        raise NotImplementedError(
+            f'Cannot reverse the element `{name}`, as reversing elements '
+            f'of type `{ee.__class__.__name__}` is not supported!'
+        )
+
+    def _reverse_field(key):
+        if hasattr(ee, key):
+            key_ref = getattr(ee_ref, key)
+            if key_ref._expr is not None:
+                setattr(ee_ref, key,  -(key_ref._expr))
+            else:
+                setattr(ee_ref, key,  -(key_ref._value))
+
+    def _exchange_fields(key1, key2):
+        value1 = None
+        if hasattr(ee, key1):
+            key1_ref = getattr(ee_ref, key1)
+            value1 = key1_ref._expr or key1_ref._value
+
+        value2 = None
+        if hasattr(ee, key2):
+            key2_ref = getattr(ee_ref, key2)
+            value2 = key2_ref._expr or key2_ref._value
+
+
+        if value1 is not None:
+            setattr(ee_ref, key2, value1)
+
+        if value2 is not None:
+            setattr(ee_ref, key1, value2)
+
+    _reverse_field('k0s')
+    _reverse_field('k1')
+    _reverse_field('k2s')
+    _reverse_field('k3')
+    _reverse_field('ks')
+    _reverse_field('ksi')
+    _reverse_field('rot_s_rad')
+
+    if hasattr(ee, 'lag'):
+        ee_ref.lag = 180 - (ee_ref.lag._expr or ee_ref.lag._value)
+
+    if hasattr(ee, 'knl'):
+        for i in range(1, len(ee.knl), 2):
+            ee_ref.knl[i] = -(ee_ref.knl[i]._expr or ee_ref.knl[i]._value)
+
+    if hasattr(ee, 'ksl'):
+        for i in range(0, len(ee.ksl), 2):
+            ee_ref.ksl[i] = -(ee_ref.ksl[i]._expr or ee_ref.ksl[i]._value)
+
+    _exchange_fields('edge_entry_model', 'edge_exit_model')
+    _exchange_fields('edge_entry_angle', 'edge_exit_angle')
+    _exchange_fields('edge_entry_angle_fdown', 'edge_exit_angle_fdown')
+    _exchange_fields('edge_entry_fint', 'edge_exit_fint')
+    _exchange_fields('edge_entry_hgap', 'edge_exit_hgap')
+
+def _resolve_lines_in_components(components, env):
+
+    components = list(components) # Make a copy
+
+    for ii, nn in enumerate(components):
+        if (isinstance(nn, Place) and isinstance(nn.name, str)
+                and nn.name in env.lines):
+            nn.name = env.lines[nn.name]
+        if isinstance(nn, str) and nn in env.lines:
+            components[ii] = env.lines[nn]
+
+    return components

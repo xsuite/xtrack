@@ -13,13 +13,12 @@ from collections.abc import Iterable
 from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
-from pathlib import Path
 from typing import List, Literal, Optional, Dict
 
 import numpy as np
 from scipy.constants import c as clight
 
-from . import linear_normal_form as lnf
+from xdeps.refs import is_ref
 from . import json as json_utils
 
 import xobjects as xo
@@ -52,8 +51,6 @@ from .trajectory_correction import TrajectoryCorrection
 
 from .general import _print
 
-isref = xd.refs.is_ref
-
 log = logging.getLogger(__name__)
 
 
@@ -62,7 +59,7 @@ _ALLOWED_ELEMENT_TYPES_IN_NEW = [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole,
                                  xt.Marker, xt.Replica, xt.XYShift, xt.XRotation,
                                  xt.YRotation, xt.SRotation, xt.LimitRacetrack,
                                  xt.LimitRectEllipse, xt.LimitRect, xt.LimitEllipse,
-                                 xt.RFMultipole]
+                                 xt.LimitPolygon, xt.RFMultipole, xt.RBend]
 
 _ALLOWED_ELEMENT_TYPES_DICT = {'Drift': xt.Drift, 'Bend': xt.Bend,
                                'Quadrupole': xt.Quadrupole, 'Sextupole': xt.Sextupole,
@@ -72,9 +69,10 @@ _ALLOWED_ELEMENT_TYPES_DICT = {'Drift': xt.Drift, 'Bend': xt.Bend,
                                'LimitRacetrack': xt.LimitRacetrack,
                                'LimitRectEllipse': xt.LimitRectEllipse,
                                'LimitRect': xt.LimitRect, 'LimitEllipse': xt.LimitEllipse,
+                               'LimitPolygon': xt.LimitPolygon,
                                'XYShift': xt.XYShift, 'XRotation': xt.XRotation,
                                'YRotation': xt.YRotation, 'SRotation': xt.SRotation,
-                               'RFMultipole': xt.RFMultipole}
+                               'RFMultipole': xt.RFMultipole, 'RBend': xt.RBend}
 
 _STR_ALLOWED_ELEMENT_TYPES_IN_NEW = ', '.join([tt.__name__ for tt in _ALLOWED_ELEMENT_TYPES_IN_NEW])
 
@@ -966,6 +964,10 @@ class Line:
 
         return self._collimators
 
+    def _get_bucket(self):
+        import xpart as xp
+        return xp.longitudinal.get_bucket(self)
+
     def discard_tracker(self):
 
         """
@@ -973,8 +975,8 @@ class Line:
         (elements can be inserted or removed again).
 
         """
-
-        self._element_names = list(self._element_names)
+        if not isinstance(self._element_names, list):
+            self._element_names = list(self._element_names)
         if hasattr(self, 'tracker') and self.tracker is not None:
             self.tracker._invalidate()
             self.tracker = None
@@ -1034,6 +1036,9 @@ class Line:
             equals to False and no progress bar is displayed.
         """
 
+        if not self._has_valid_tracker():
+            self.build_tracker()
+
         if hasattr(particles, '_needs_pipeline') and particles._needs_pipeline:
             if '_called_by_pipeline' not in kwargs or not kwargs['_called_by_pipeline']:
                 all_kwargs = locals()
@@ -1048,7 +1053,9 @@ class Line:
         if '_called_by_pipeline' in kwargs: # Used only above
             kwargs.pop('_called_by_pipeline')
 
-        self._check_valid_tracker()
+        if not self._has_valid_tracker():
+            self.build_tracker()
+
         return self.tracker._track(
             particles,
             ele_start=ele_start,
@@ -1219,6 +1226,10 @@ class Line:
             Particles object containing the generated particles.
 
         """
+
+        if not self._has_valid_tracker():
+            self.build_tracker()
+
         import xpart
         return xpart.build_particles(
             line=self,
@@ -1254,6 +1265,7 @@ class Line:
         values_at_element_exit=None,
         radiation_method=None,
         eneloss_and_damping=None,
+        radiation_integrals=None,
         start=None, end=None, init=None,
         num_turns=None,
         skip_global_quantities=None,
@@ -2224,7 +2236,7 @@ class Line:
 
         """
 
-        self._frozen_check()
+        self.discard_tracker()
 
         if not isinstance(what, (str, xt.Line, Iterable)):
             raise ValueError('The appended object must be defined by a string or Line.')
@@ -2313,7 +2325,7 @@ class Line:
         """
 
 
-        self._frozen_check()
+        self.discard_tracker()
         env = self.env
 
         _all_places = xt.environment._all_places
@@ -2400,7 +2412,7 @@ class Line:
                                                                # (right order comes form previous sorting,
                                                                # (done before removing elements)
         )
-        element_names = _generate_element_names_with_drifts(self, tab_sorted)
+        element_names = _generate_element_names_with_drifts(self, tab_sorted, s_tol=s_tol)
 
         # Update line
         self.element_names.clear()
@@ -2422,7 +2434,7 @@ class Line:
 
         """
 
-        self._frozen_check()
+        self.discard_tracker()
 
         tt_remove = self._name_match(name)
 
@@ -2470,7 +2482,7 @@ class Line:
 
         """
 
-        self._frozen_check()
+        self.discard_tracker()
 
         tt_replace = self._name_match(name)
 
@@ -2494,7 +2506,14 @@ class Line:
         tt['idx'] = np.arange(len(tt))
 
         idx_match_name = tt.rows.indices[name]
-        idx_match_env_name = tt.rows.indices[tt.env_name == name]
+
+        env_name_match = name
+        if isinstance(env_name_match, str):
+            env_name_match = [env_name_match]
+        env_name_match = set(env_name_match)
+        mask_env_name = np.array([nn in env_name_match for nn in tt.env_name])
+
+        idx_match_env_name = tt.rows.indices[mask_env_name]
         idx_match_rep = list(idx_match_name) + list(idx_match_env_name)
         idx_match = []
         for ii in idx_match_rep: # I don't use set to do it in order
@@ -2562,7 +2581,7 @@ class Line:
         if isinstance(element, xd.madxutils.View):
             element = element._get_viewed_object()
 
-        self._frozen_check()
+        self.discard_tracker()
 
         assert ((index is not None and at_s is None) or
                 (index is None and at_s is not None)), (
@@ -2634,7 +2653,7 @@ class Line:
         if isinstance(element, xd.madxutils.View):
             element = element._get_viewed_object()
 
-        self._frozen_check()
+        self.discard_tracker()
         if element in self.element_dict and element is not self.element_dict[name]:
             raise ValueError('Element already present in the line')
         self.element_dict[name] = element
@@ -2878,13 +2897,13 @@ class Line:
             raise ValueError(f'Unknown bend edge model {edge}')
 
         for ee in self.element_dict.values():
-            if core is not None and isinstance(ee, xt.Bend):
+            if core is not None and isinstance(ee, (xt.Bend, xt.RBend)):
                 ee.model = core
 
             if edge is not None and isinstance(ee, xt.DipoleEdge):
                 ee.model = edge
 
-            if edge is not None and isinstance(ee, xt.Bend):
+            if edge is not None and isinstance(ee, (xt.Bend, xt.RBend)):
                 ee.edge_entry_model = edge
                 ee.edge_exit_model = edge
 
@@ -2976,7 +2995,7 @@ class Line:
             self._bhabha_model = None
 
         for kk, ee in self.element_dict.items():
-            if isinstance (ee, (xt.Quadrupole, xt.Bend)):
+            if isinstance (ee, (xt.Quadrupole, xt.Bend, xt.RBend)):
                 continue
             if hasattr(ee, 'radiation_flag'):
                 ee.radiation_flag = radiation_flag
@@ -3926,12 +3945,13 @@ class Line:
             Rename the element in the new line/environment. If not provided, the
             element is copied with the same name.
         """
+        new_name_input = new_name if new_name != name else None
         new_name = new_name or name
         cls = type(source.element_dict[name])
 
-        if cls not in _ALLOWED_ELEMENT_TYPES_IN_NEW + [xt.DipoleEdge]: # No issue in copying DipoleEdge
-                                                                       # while creating it requires handling properties
-                                                                       # which are strings.
+        if (cls not in _ALLOWED_ELEMENT_TYPES_IN_NEW + [xt.DipoleEdge] # No issue in copying DipoleEdge while creating it requires handling properties which are strings.
+            and 'ThickSlice' not in cls.__name__ and 'ThinSlice' not in cls.__name__
+            and 'DriftSlice' not in cls.__name__):
             raise ValueError(
                 f'Only {_STR_ALLOWED_ELEMENT_TYPES_IN_NEW} elements are '
                 f'allowed in `copy_from_env` for now.'
@@ -4016,7 +4036,7 @@ class Line:
         Parameters
         ----------
         name : str
-            Name of the variable or element.
+            Name(s) of the variable or element.
         value: float or str
             Value or expression of the variable to set. Can be provided only
             if the name is associated to a variable.
@@ -4029,8 +4049,17 @@ class Line:
         >>> line.set('a', 0.1)
         >>> line.set('k1', '3*a')
         >>> line.set('quad', k1=0.1, k2='3*a')
+        >>> line.set(['quad1', 'quad2'], k1=0.1, k2='3*a')
+        >>> line.set(['c', 'd'], 0.1)
+        >>> line.set(['e', 'f'], '3*a')
 
         '''
+
+        if isinstance(name, Iterable) and not isinstance(name, str):
+            for nn in name:
+                self.set(nn, *args, **kwargs)
+            return
+
         _eval = self._xdeps_eval.eval
 
         if hasattr(self, 'lines') and name in self.lines:
@@ -4041,11 +4070,6 @@ class Line:
                 raise ValueError(f'Only kwargs are allowed when setting element attributes')
 
             extra = kwargs.pop('extra', None)
-
-            if self.element_dict[name].__class__ == xt.Bend:
-                # Handle angle if needed
-                kwargs = xt.environment._handle_bend_kwargs(
-                    kwargs, _eval, env=self, name=name)
 
             ref_kwargs, value_kwargs = xt.environment._parse_kwargs(
                 type(self.element_dict[name]), kwargs, _eval)
@@ -4314,7 +4338,8 @@ class Line:
         except AttributeError:
             eva_obj = xd.madxutils.MadxEval(variables=self._xdeps_vref,
                                             functions=self._xdeps_fref,
-                                            elements=self.element_dict)
+                                            elements=self.element_dict,
+                                            get='attr')
             self._xdeps_eval_obj = eva_obj
 
         return eva_obj
@@ -5343,7 +5368,10 @@ class LineVars:
         return self.line._xdeps_eval.eval(expr)
 
     def eval(self, expr):
-        return self.new_expr(expr)._get_value()
+        expr_or_value = self.new_expr(expr)
+        if is_ref(expr_or_value):
+            return expr_or_value._get_value()
+        return expr_or_value
 
     def info(self, var, limit=10):
         return self[var]._info(limit=limit)
@@ -5396,7 +5424,7 @@ class LineVars:
         self.__dict__.update(state)
         self.vars_to_update = WeakSet()
 
-    def set_from_madx_file(self, filename, mad_stdout=False):
+    def set_from_madx_file(self, filename):
 
         '''
         Set variables veluas of expression from a MAD-X file.
@@ -5405,58 +5433,12 @@ class LineVars:
         ----------
         filename : str or list of str
             Path to the MAD-X file(s) to load.
-        mad_stdout : bool, optional
-            If True, the MAD-X output is printed to stdout.
-
-        Notes
-        -----
-        The MAD-X file is executed in a temporary MAD-X instance, and the
-        variables are copied to the line after the execution.
         '''
+        loader = xt.mad_parser.MadxLoader(env=self.line)
+        loader.load_file(filename)
 
-        from cpymad.madx import Madx
-        mad = Madx(stdout=mad_stdout)
-        mad.options.echo = False
-        mad.options.info = False
-        mad.options.warn = False
-        if isinstance(filename, (str, Path)):
-            filename = [filename]
-        else:
-            assert isinstance(filename, (list, tuple))
-        for ff in filename:
-            mad.call(str(ff))
-
-        mad.input('''
-        elm: marker; dummy: sequence, l=1; e:elm, at=0.5; endsequence;
-        beam; use,sequence=dummy;''')
-
-        defined_vars = set(mad.globals.keys())
-
-        xt.general._print.suppress = True
-        dummy_line = Line.from_madx_sequence(mad.sequence.dummy,
-                                                deferred_expressions=True)
-        xt.general._print.suppress = False
-
-        self.line._xdeps_vref._owner.update(
-            {kk: dummy_line._xdeps_vref._owner[kk] for kk in defined_vars})
-        self.line._xdeps_manager.copy_expr_from(dummy_line._xdeps_manager, "vars")
-
-        try:
-            self.line._xdeps_vref._owner.default_factory = lambda: 0
-            allnames = list(self.line._xdeps_vref._owner.keys())
-            for nn in allnames:
-                if (self.line._xdeps_vref[nn]._expr is None
-                    and len(self.line._xdeps_vref[nn]._find_dependant_targets()) > 1 # always contain itself
-                    ):
-                    self.line._xdeps_vref[nn] = self.line._xdeps_vref._owner.get(nn, 0)
-        except Exception as ee:
-            self.line._xdeps_vref._owner.default_factory = None
-            raise ee
-
-        self.line._xdeps_vref._owner.default_factory = None
-
-    def load_madx_optics_file(self, filename, mad_stdout=False):
-        self.set_from_madx_file(filename, mad_stdout=mad_stdout)
+    def load_madx_optics_file(self, filename):
+        self.set_from_madx_file(filename)
 
     load_madx = load_madx_optics_file
 
@@ -5560,11 +5542,20 @@ class VarValues:
             return default
 
 class LineAttrItem:
+
     def __init__(self, name, index=None, line=None):
         self.name = name
         self.index = index
 
         assert line is not None
+        self.line = line
+        self._multisetter = None
+
+    def _prepare_multisetter(self):
+
+        line = self.line
+        name = self.name
+        index = self.index
 
         all_names = line.element_names
         mask = np.zeros(len(all_names), dtype=bool)
@@ -5597,15 +5588,26 @@ class LineAttrItem:
         multisetter = xt.MultiSetter(line=line, elements=setter_names,
                                      field=name, index=index)
         self.names = setter_names
-        self.multisetter = multisetter
-        self.mask = mask
+        self._multisetter = multisetter
+        self._mask = mask
+
+    @property
+    def multisetter(self):
+        if self._multisetter is None:
+            self._prepare_multisetter()
+        return self._multisetter
+
+    @property
+    def mask(self):
+        if self._multisetter is None:
+            self._prepare_multisetter()
+        return self._mask
 
     def get_full_array(self):
         full_array = np.zeros(len(self.mask), dtype=np.float64)
         ctx2np = self.multisetter._context.nparray_from_context_array
         full_array[self.mask] = ctx2np(self.multisetter.get_values())
         return full_array
-
 
 class LineAttr:
     """A class to access a field of all elements in a line.
@@ -5625,6 +5627,7 @@ class LineAttr:
         field and the value is a function that takes the LineAttr object
         as argument and returns the value of the derived field.
     """
+
     def __init__(self, line, fields, derived_fields=None):
 
         assert isinstance(fields, dict)
@@ -5781,11 +5784,27 @@ class EnergyProgram:
         return beta0 * clight / circumference
 
     def get_p0c_increse_per_turn_at_t_s(self, t_s):
+
+        ts_scalar = np.isscalar(t_s)
+        if ts_scalar:
+            t_s = np.array([t_s])
+
         beta0 = self.get_beta0_at_t_s(t_s)
         circumference = self.line.get_length()
         T_rev = circumference / (beta0 * clight)
-        return 0.5 * (self.get_p0c_at_t_s(t_s + T_rev)
-                      - self.get_p0c_at_t_s(t_s - T_rev))
+        out = 0.5 * (self.get_p0c_at_t_s(t_s + T_rev)
+                     - self.get_p0c_at_t_s(t_s - T_rev))
+
+        mask_zero_neg = t_s - T_rev < 0
+        if np.any(mask_zero_neg):
+            out[mask_zero_neg] = (
+                self.get_p0c_at_t_s(t_s[mask_zero_neg] + T_rev[mask_zero_neg])
+                - self.get_p0c_at_t_s(t_s[mask_zero_neg]))
+
+        if ts_scalar:
+            out = out[0]
+
+        return out
 
     @property
     def t_turn_s_line(self):
