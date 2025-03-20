@@ -10,6 +10,15 @@
 /*gpufun*/
 void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 
+    SynchrotronRadiationRecordData record = NULL;
+    int64_t radiation_flag = 0;
+    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+        radiation_flag = MultipoleData_get_radiation_flag(el);
+        if (radiation_flag==2){
+            record = (SynchrotronRadiationRecordData) MultipoleData_getp_internal_record(el, part0);
+        }
+    #endif
+
     track_magnet_particles(
         /*part0*/                 part0,
         /*length*/                MultipoleData_get_length(el),
@@ -21,8 +30,8 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         /*num_multipole_kicks*/   1,
         /*model*/                 -1, // kick only
         /*integrator*/            3, // uniform
-        /*radiation_flag*/        MultipoleData_get_radiation_flag(el),
-        /*radiation_record*/      NULL,
+        /*radiation_flag*/        radiation_flag,
+        /*radiation_record*/      record,
         /*delta_taper*/           MultipoleData_get_delta_taper(el),
         /*h*/                     0.,
         /*hxl_curv_only*/         MultipoleData_get_hxl(el),
