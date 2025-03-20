@@ -362,23 +362,23 @@ void track_magnet_particles(
         delta_taper = LocalParticle_get_delta(part0); // I can use part0 because
                                                       // there is only one particle
                                                       // when doing the tapering
-    #else
-        #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
-            if (radiation_flag){
-                // knl and ksl are scaled by the called functions below using factor_knl_ksl
-                factor_knl_ksl_body *= (1. + delta_taper);
-                factor_knl_ksl_edge *= (1. + delta_taper);
-                // k0, k1, k2, k3, k0s, k1s, k2s, k3s are scaled directly here
-                k0 *= (1 + delta_taper);
-                k1 *= (1 + delta_taper);
-                k2 *= (1 + delta_taper);
-                k3 *= (1 + delta_taper);
-                k0s *= (1 + delta_taper);
-                k1s *= (1 + delta_taper);
-                k2s *= (1 + delta_taper);
-                k3s *= (1 + delta_taper);
-            }
-        #endif
+    #endif
+
+    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+        if (radiation_flag){
+            // knl and ksl are scaled by the called functions below using factor_knl_ksl
+            factor_knl_ksl_body *= (1. + delta_taper);
+            factor_knl_ksl_edge *= (1. + delta_taper);
+            // k0, k1, k2, k3, k0s, k1s, k2s, k3s are scaled directly here
+            k0 *= (1 + delta_taper);
+            k1 *= (1 + delta_taper);
+            k2 *= (1 + delta_taper);
+            k3 *= (1 + delta_taper);
+            k0s *= (1 + delta_taper);
+            k1s *= (1 + delta_taper);
+            k2s *= (1 + delta_taper);
+            k3s *= (1 + delta_taper);
+        }
     #endif
 
     // Compute the number of kicks for auto mode

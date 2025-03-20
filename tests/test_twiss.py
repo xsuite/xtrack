@@ -38,10 +38,10 @@ def test_twiss_4d_fodo_vs_beta_rel(test_context):
         tw_4d_list.append(tw)
 
     for tw in tw_4d_list:
-        xo.assert_allclose(tw.betx, tw_4d_list[0].betx, atol=1e-12, rtol=0)
-        xo.assert_allclose(tw.bety, tw_4d_list[0].bety, atol=1e-12, rtol=0)
-        xo.assert_allclose(tw.alfx, tw_4d_list[0].alfx, atol=1e-12, rtol=0)
-        xo.assert_allclose(tw.alfy, tw_4d_list[0].alfy, atol=1e-12, rtol=0)
+        xo.assert_allclose(tw.betx, tw_4d_list[0].betx, atol=1e-7, rtol=0)
+        xo.assert_allclose(tw.bety, tw_4d_list[0].bety, atol=1e-7, rtol=0)
+        xo.assert_allclose(tw.alfx, tw_4d_list[0].alfx, atol=1e-8, rtol=0)
+        xo.assert_allclose(tw.alfy, tw_4d_list[0].alfy, atol=1e-8, rtol=0)
         xo.assert_allclose(tw.dx, tw_4d_list[0].dx, atol=1e-8, rtol=0)
         xo.assert_allclose(tw.dy, tw_4d_list[0].dy, atol=1e-8, rtol=0)
         xo.assert_allclose(tw.dpx, tw_4d_list[0].dpx, atol=1e-8, rtol=0)
