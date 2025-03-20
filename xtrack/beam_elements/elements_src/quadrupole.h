@@ -40,6 +40,7 @@ void Quadrupole_track_local_particle(
         /*radiation_record*/      NULL,
         /*delta_taper*/           QuadrupoleData_get_delta_taper(el),
         /*h*/                     0.,
+        /*hxl_curv_only*/         0.,
         /*k0*/                    0.,
         /*k1*/                    QuadrupoleData_get_k1(el),
         /*k2*/                    0.,

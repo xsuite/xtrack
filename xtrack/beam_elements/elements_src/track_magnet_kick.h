@@ -36,6 +36,7 @@ void track_magnet_kick_single_particle(
     double k2s,
     double k3s,
     double h,
+    double hxl_curv_only,
     uint8_t rot_frame
 ){
 
@@ -79,7 +80,7 @@ void track_magnet_kick_single_particle(
     double dzeta = 0;
 
     if (rot_frame) {
-        double const hl = h * length * kick_weight;
+        double const hl = h * length * kick_weight + hxl_curv_only * kick_weight;
         dpx += hl * (1. + LocalParticle_get_delta(part));
         double const rv0v = 1./LocalParticle_get_rvv(part);
         dzeta += -rv0v * chi * hl * x;

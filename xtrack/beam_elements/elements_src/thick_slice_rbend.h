@@ -39,6 +39,7 @@ void ThickSliceRBend_track_local_particle(
         /*radiation_record*/      NULL,
         /*delta_taper*/           delta_taper,
         /*h*/                     ThickSliceRBendData_get__parent_h(el),
+        /*hxl_curv_only*/         0.,
         /*k0*/                    ThickSliceRBendData_get__parent_k0(el),
         /*k1*/                    ThickSliceRBendData_get__parent_k1(el),
         /*k2*/                    0.,

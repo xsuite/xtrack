@@ -27,6 +27,7 @@ void Bend_track_local_particle(
         /*radiation_record*/      NULL,
         /*delta_taper*/           BendData_get_delta_taper(el),
         /*h*/                     BendData_get_h(el),
+        /*hxl_curv_only*/         0.,
         /*k0*/                    BendData_get_k0(el),
         /*k1*/                    BendData_get_k1(el),
         /*k2*/                    0.,

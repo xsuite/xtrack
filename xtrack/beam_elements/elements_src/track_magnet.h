@@ -142,6 +142,7 @@ void track_magnet_body_single_particle(
     const double k0_kick,
     const double k1_kick,
     const double h_kick,
+    const double hxl_curv_only,
     const double k2,
     const double k3,
     const double k0s,
@@ -159,7 +160,8 @@ void track_magnet_body_single_particle(
         track_magnet_kick_single_particle(\
             part, length, order, inv_factorial_order, \
             knl, ksl, factor_knl_ksl, (weight), \
-            k0_kick, k1_kick, k2, k3, k0s, k1s, k2s, k3s, h_kick, kick_rot_frame\
+            k0_kick, k1_kick, k2, k3, k0s, k1s, k2s, k3s, h_kick,\
+            hxl_curv_only, kick_rot_frame\
         )
 
     #define MAGNET_DRIFT(part, dlength) \
@@ -311,6 +313,7 @@ void track_magnet_particles(
     SynchrotronRadiationRecordData radiation_record,
     double delta_taper,
     double h,
+    double hxl_curv_only,
     double k0,
     double k1,
     double k2,
@@ -449,7 +452,7 @@ void track_magnet_particles(
             factor_knl_ksl_body,
             num_multipole_kicks, kick_rot_frame, drift_model, integrator,
             k0_drift, k1_drift, h_drift,
-            k0_kick, k1_kick, h_kick,
+            k0_kick, k1_kick, h_kick, hxl_curv_only,
             k2, k3, k0s, k1s, k2s, k3s,
             radiation_flag, radiation_record,
             &dp_record_exit, &dpx_record_exit, &dpy_record_exit

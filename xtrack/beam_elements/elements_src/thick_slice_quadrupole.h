@@ -54,6 +54,7 @@ void ThickSliceQuadrupole_track_local_particle(
         /*radiation_record*/      NULL,
         /*delta_taper*/           delta_taper,
         /*h*/                     0.,
+        /*hxl_curv_only*/         0.,
         /*k0*/                    0.,
         /*k1*/                    ThickSliceQuadrupoleData_get__parent_k1(el),
         /*k2*/                    0.,

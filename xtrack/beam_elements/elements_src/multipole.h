@@ -10,23 +10,9 @@
 /*gpufun*/
 void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 
-    double length = MultipoleData_get_length(el);
-    int64_t radiation_flag = MultipoleData_get_radiation_flag(el);
-    double const hxl = MultipoleData_get_hxl(el);
-    double h;
-
-    if (length == 0){
-        radiation_flag = 0;
-        h = hxl;
-        length = 1;
-    }
-    else{
-        h = hxl / length;
-    }
-
     track_magnet_particles(
         /*part0*/                 part0,
-        /*length*/                length,
+        /*length*/                MultipoleData_get_length(el),
         /*order*/                 MultipoleData_get_order(el),
         /*inv_factorial_order*/   MultipoleData_get_inv_factorial_order(el),
         /*knl*/                   MultipoleData_getp1_knl(el, 0),
@@ -35,10 +21,11 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         /*num_multipole_kicks*/   1,
         /*model*/                 -1, // kick only
         /*integrator*/            3, // uniform
-        /*radiation_flag*/        radiation_flag,
+        /*radiation_flag*/        MultipoleData_get_radiation_flag(el),
         /*radiation_record*/      NULL,
         /*delta_taper*/           MultipoleData_get_delta_taper(el),
-        /*h*/                     h,
+        /*h*/                     0.,
+        /*hxl_curv_only*/         MultipoleData_get_hxl(el),
         /*k0*/                    0.,
         /*k1*/                    0.,
         /*k2*/                    0.,
