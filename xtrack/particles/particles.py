@@ -16,6 +16,7 @@ from xobjects.general import Print
 from xobjects import BypassLinked
 
 from .masses import PROTON_MASS_EV
+from .masses import __dict__ as mass__dict__
 from .pdg import get_pdg_id_from_name, get_properties_from_pdg_id, \
                  get_mass_from_pdg_id
 
@@ -1404,6 +1405,10 @@ class Particles(xo.HybridClass):
             raise NotImplementedError
 
         src_lines = []
+        for name, mass in mass__dict__.items():
+            if name.endswith('_MASS_EV'):
+                src_lines.append(f'#define {name} {mass}')
+
         src_lines.append('typedef struct {')
 
         for tt, vv in cls.size_vars + cls.scalar_vars:
