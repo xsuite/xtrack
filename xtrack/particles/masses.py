@@ -175,6 +175,7 @@ Pb220_MASS_EV    =  204952840000.0      # estimate:      220.02591 ± 4.3e-4 u  
 
 
 # Other particles in xpart.pdg database. Listed here for convenience (very incomplete list).
+PHOTON_MASS_EV   =            0.0
 PION0_MASS_EV    =    134976800.0      # best known value:    134976800 ± 500 eV         PDG (2024)
 KAON0_MASS_EV    =    497611000.0      # best known value:    497611000 ± 13 keV         PDG (2024)
 NEUTRON_MASS_EV  =    939565420.5      # best known value:    939565420.5 ± 0.5 eV       PDG  (2024)
