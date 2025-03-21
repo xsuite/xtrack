@@ -15,6 +15,7 @@ void magnet_apply_radiation_single_particle(
     SynchrotronRadiationRecordData record,
     double* dp_record_exit, double* dpx_record_exit, double* dpy_record_exit
 ) {
+    return;
 
     if (length == 0.0) {
         return;
