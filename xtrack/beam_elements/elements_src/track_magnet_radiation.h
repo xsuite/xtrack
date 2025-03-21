@@ -59,10 +59,13 @@ void magnet_apply_radiation_single_particle(
     // Curvature of the particle trajectory
     double const hhh = 1 + hx * x_mid + hy * y_mid;
     double const hprime = hx * xp_mid + hy * yp_mid;
-    double kappa_x = (-(hhh * (xpp_mid - hhh * hx) - 2 * hprime * xp_mid)
-                      / pow((xp_mid * xp_mid + hhh * hhh), 1.5));
-    double kappa_y = (-(hhh * (ypp_mid - hhh * hy) - 2 * hprime * yp_mid)
-                      / pow((yp_mid * yp_mid + hhh * hhh), 1.5));
+    double const tempx = (xp_mid * xp_mid + hhh * hhh);
+    double const tempy = (yp_mid * yp_mid + hhh * hhh);
+    double const kappa_x = (-(hhh * (xpp_mid - hhh * hx) - 2 * hprime * xp_mid)
+                      / (tempx * sqrt(tempx)));
+    double const kappa_y = (-(hhh * (ypp_mid - hhh * hy) - 2 * hprime * yp_mid)
+                      / (tempy * sqrt(tempy)));
+
     double kappa = sqrt(kappa_x*kappa_x+ kappa_y*kappa_y);
 
     // Transverse magnetic field
