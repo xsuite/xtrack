@@ -25,6 +25,9 @@ void configure_tracking_model(
     double* k0_kick,
     double* k1_kick,
     double* h_kick,
+    double* k0_h_correction,
+    double* k1_h_correction,
+    double* h_correction,
     int8_t* kick_rot_frame,
     int8_t* out_drift_model
 ){
@@ -80,6 +83,9 @@ void configure_tracking_model(
         *k0_kick = k0;
         *k1_kick = k1;
         *h_kick = h;
+        *k0_h_correction = k0;
+        *k1_h_correction = k1;
+        *h_correction = h;
         *kick_rot_frame = 1;
     }
     else if (drift_model == 2){ // polar drift
@@ -89,6 +95,9 @@ void configure_tracking_model(
         *k0_kick = k0;
         *k1_kick = k1;
         *h_kick = h;
+        *k0_h_correction = k0;
+        *k1_h_correction = k1;
+        *h_correction = h;
         *kick_rot_frame = 0;
     }
     else if (drift_model == 3){ // expanded dipole-quadrupole
@@ -98,6 +107,9 @@ void configure_tracking_model(
         *k0_kick = 0.0;
         *k1_kick = 0.0;
         *h_kick = 0.0;
+        *k0_h_correction = 0.;
+        *k1_h_correction = k1;
+        *h_correction = h;
         *kick_rot_frame = 0;
     }
     else if (drift_model == 4){ // bend with h
@@ -116,6 +128,9 @@ void configure_tracking_model(
         *k0_kick = 0.0;
         *k1_kick = k1;
         *h_kick = 0.0;
+        *k0_h_correction = 0.;
+        *k1_h_correction = 0.;
+        *h_correction = 0.;
         *kick_rot_frame = 0;
     }
 
@@ -401,6 +416,7 @@ void track_magnet_particles(
 
     double k0_drift, k1_drift, h_drift;
     double k0_kick, k1_kick, h_kick;
+    double k0_h_correction, k1_h_correction, h_correction;
     int8_t kick_rot_frame;
     int8_t drift_model;
     configure_tracking_model(
@@ -414,6 +430,9 @@ void track_magnet_particles(
         &k0_kick,
         &k1_kick,
         &h_kick,
+        &k0_h_correction,
+        &k1_h_correction,
+        &h_correction,
         &kick_rot_frame,
         &drift_model
     );
