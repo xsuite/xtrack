@@ -548,7 +548,14 @@ def test_magnet_bend_dip_quad_kick(model, test_context):
         _context=test_context,
     )
 
-    bend = xt.Bend(length=2.0, h=0.1, k1=0.3, k0=0.2, num_multipole_kicks=10)
+    bend = xt.Bend(
+        length=2.0,
+        h=0.1,
+        k1=0.3,
+        k0=0.2,
+        num_multipole_kicks=10,
+        _context=test_context,
+    )
     bend.edge_entry_active = False
     bend.edge_exit_active = False
 
@@ -1368,7 +1375,8 @@ def test_magnet_and_edge_nonlinear_both_edges(test_context):
         h=0.1, k0=0.11, length=10,
         edge_entry_angle=0.02, edge_exit_angle=0.03,
         edge_entry_hgap=0.04, edge_exit_hgap=0.05,
-        edge_entry_fint=0.1, edge_exit_fint=0.2
+        edge_entry_fint=0.1, edge_exit_fint=0.2,
+        _context=test_context,
     )
 
     bb.edge_entry_active = 1
@@ -1382,7 +1390,8 @@ def test_magnet_and_edge_nonlinear_both_edges(test_context):
         h=0.1, k0=0.11, length=10,
         edge_entry_angle=0.02, edge_exit_angle=0.03,
         edge_entry_hgap=0.04, edge_exit_hgap=0.05,
-        edge_entry_fint=0.1, edge_exit_fint=0.2
+        edge_entry_fint=0.1, edge_exit_fint=0.2,
+        _context=test_context,
     )
 
     mm.edge_entry_active = 1
@@ -1420,9 +1429,9 @@ def test_magnet_and_edge_quadrupole_nonlinear_fringes(test_context):
         k0=0, k1=0.11, length=3,
         edge_entry_model='full', edge_exit_model='full',
         edge_entry_fint=0.1, edge_exit_fint=0.2,  # should be ignored
-        edge_entry_hgap=0.04, edge_exit_hgap=0.05,
+        edge_entry_hgap=0.04, edge_exit_hgap=0.05,  # should be ignored
         _context=test_context,
-    )  # should be ignored
+    )
     mm.edge_entry_active = 1
     mm.edge_exit_active = 1
     mm.model = 'mat-kick-mat'
@@ -1456,9 +1465,9 @@ def test_magnet_and_edge_sextupole_nonlinear_fringes(test_context):
         knl=[0, 0, 0.03], ksl=[0, 0, -0.04],
         edge_entry_model='full', edge_exit_model='full',
         edge_entry_fint=0.1, edge_exit_fint=0.2,  # should be ignored
-        edge_entry_hgap=0.04, edge_exit_hgap=0.05,
+        edge_entry_hgap=0.04, edge_exit_hgap=0.05,  # should be ignored
         _context=test_context,
-    )  # should be ignored
+    )
     mm.edge_entry_active = 1
     mm.edge_exit_active = 1
     mm.model = 'drift-kick-drift-expanded'
@@ -1496,9 +1505,9 @@ def test_magnet_and_edge_octupole_nonlinear_fringes(test_context):
         knl=[0, 0, 0, 0.02], ksl=[0, 0, 0, -0.07],
         edge_entry_model='full', edge_exit_model='full',
         edge_entry_fint=0.1, edge_exit_fint=0.2,  # should be ignored
-        edge_entry_hgap=0.04, edge_exit_hgap=0.05,
+        edge_entry_hgap=0.04, edge_exit_hgap=0.05,  # should be ignored
         _context=test_context,
-    )  # should be ignored
+    )
     mm.edge_entry_active = 1
     mm.edge_exit_active = 1
     mm.model = 'drift-kick-drift-expanded'
