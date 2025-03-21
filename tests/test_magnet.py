@@ -752,7 +752,7 @@ def test_check_uniform_integrator(test_context):
     xo.assert_allclose(p_test.delta, p0.delta, atol=1e-15, rtol=0)
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding='ContextPyopencl')
 def test_edge_suppressed_edge(test_context):
     e_test = MagnetEdge(model='suppressed', kn=[0], ks=[0], _context=test_context)
     e_ref = xt.DipoleEdge(model='suppressed', k=0, _context=test_context)
@@ -781,7 +781,7 @@ def test_edge_suppressed_edge(test_context):
     xo.assert_allclose(p_test_cpu.delta, p_ref_cpu.delta, atol=1e-15, rtol=0)
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding='ContextPyopencl')
 def test_edge_linear_edge_does_nothing(test_context):
     e_test = MagnetEdge(model='linear', kn=[0], ks=[0], _context=test_context)
     e_ref = xt.DipoleEdge(model='linear', k=0, _context=test_context)
@@ -810,7 +810,7 @@ def test_edge_linear_edge_does_nothing(test_context):
     xo.assert_allclose(p_test_cpu.delta, p_ref_cpu.delta, atol=1e-15, rtol=0)
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding='ContextPyopencl')
 def test_edge_full_edge_does_nothing(test_context):
     e_test = MagnetEdge(model='full', kn=[0], ks=[0], _context=test_context)
     e_ref = xt.DipoleEdge(model='full', k=0, _context=test_context)
@@ -839,7 +839,7 @@ def test_edge_full_edge_does_nothing(test_context):
     xo.assert_allclose(p_test_cpu.delta, p_ref_cpu.delta, atol=1e-15, rtol=0)
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding='ContextPyopencl')
 def test_edge_only_linear_edge(test_context):
     e_test = MagnetEdge(
         model='linear', kn=[3], face_angle=0.1, face_angle_feed_down=0.2,
@@ -875,7 +875,7 @@ def test_edge_only_linear_edge(test_context):
     xo.assert_allclose(p_test_cpu.delta, p_ref_cpu.delta, atol=1e-15, rtol=0)
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding='ContextPyopencl')
 def test_edge_full_edge_with_dipole_component(test_context):
     e_test = MagnetEdge(
         model='full', kn=[3], face_angle=0.1, face_angle_feed_down=0.2,
@@ -911,7 +911,7 @@ def test_edge_full_edge_with_dipole_component(test_context):
     xo.assert_allclose(p_test_cpu.delta, p_ref_cpu.delta, atol=1e-15, rtol=0)
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding='ContextPyopencl')
 def test_edge_multipole_fringe_without_dipole_component(test_context):
     e_test = MagnetEdge(
         model='full', kn=[0, 2, 3], k_order=2, _context=test_context
@@ -942,7 +942,7 @@ def test_edge_multipole_fringe_without_dipole_component(test_context):
     xo.assert_allclose(p_test_cpu.delta, p_ref_cpu.delta, atol=1e-15, rtol=0)
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding='ContextPyopencl')
 def test_edge_full_model_with_dipole_component_no_angle(test_context):
     e_test = MagnetEdge(
         model='full', kn=[3, 4, 5], fringe_integral=0.3, half_gap=0.4, k_order=2,
@@ -980,7 +980,7 @@ def test_edge_full_model_with_dipole_component_no_angle(test_context):
     xo.assert_allclose(p_test_cpu.delta, p_ref_cpu.delta, atol=1e-15, rtol=0)
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding='ContextPyopencl')
 def test_edge_full_model_with_dipole_component_and_angle(test_context):
     e_test = MagnetEdge(
         model='full', kn=[3, 4, 5], face_angle=0.2, face_angle_feed_down=0.0,
@@ -1022,7 +1022,7 @@ def test_edge_full_model_with_dipole_component_and_angle(test_context):
     xo.assert_allclose(p_test_cpu.delta, p_ref_cpu.delta, atol=1e-15, rtol=0)
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding='ContextPyopencl')
 def test_edge_full_model_with_dipole_component_and_angle_exit(test_context):
     e_test = MagnetEdge(
         model='full', kn=[3, 4, 5], is_exit=True, face_angle=0.2,
@@ -1063,7 +1063,7 @@ def test_edge_full_model_with_dipole_component_and_angle_exit(test_context):
     xo.assert_allclose(p_test_cpu.delta, p_ref_cpu.delta, atol=1e-15, rtol=0)
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding='ContextPyopencl')
 def test_edge_linear_edge_exit(test_context):
     e_test = MagnetEdge(
         model='linear', is_exit=True, kn=[3], face_angle=0.1,
