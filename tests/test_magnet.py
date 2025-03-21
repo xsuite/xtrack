@@ -627,10 +627,10 @@ def test_magnet_bend_dip_quad_kick_with_multipoles(model, test_context):
     bend.edge_entry_active = False
     bend.edge_exit_active = False
     bend.knl = test_context.nparray_to_context_array(
-        [0.1, 0.2, 0.3 + 0.1 * 2, 0.4 + 0.15 * 2, 0.5, 0.6]
+        np.array([0.1, 0.2, 0.3 + 0.1 * 2, 0.4 + 0.15 * 2, 0.5, 0.6])
     )
     bend.ksl = test_context.nparray_to_context_array(
-        [0.6 + 0.02 * 2, 0.5 + 0.03 * 2, 0.4 + 0.01 * 2, 0.15 + 0.02 * 2, 0.2, 0.1]
+        np.array([0.6 + 0.02 * 2, 0.5 + 0.03 * 2, 0.4 + 0.01 * 2, 0.15 + 0.02 * 2, 0.2, 0.1])
     )
 
     magnet.model = model
