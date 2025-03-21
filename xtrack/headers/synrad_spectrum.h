@@ -178,7 +178,9 @@ double synrad_gen_photon_energy_normalized(LocalParticle *part)
   double const a2 = 1.770750801624037; // Synrad(xlow)/exp(-xlow);
   double const c1 = 0.; //
   double const ratio = 0.908250405131381;
-  double appr, exact, result;
+  double appr=0;
+  double exact=1000;
+  double result=0;
   do {
     if (RandomUniform_generate(part) < ratio) { // use low energy approximation
       result=c1+(1.-c1)*RandomUniform_generate(part);
