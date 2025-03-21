@@ -4,9 +4,14 @@ import numpy as np
 from scipy.constants import c as clight
 from scipy.constants import e as qe
 
-line = xt.Line.from_json('fccee_z_with_sol_corrected.json')
+line = xt.Line.from_json('fccee_z_thick_with_sol_corrected.json')
 n_turns_track_test = 6000
 num_particles_test = 150
+
+tt = line.get_table()
+tt_bend = tt.rows[tt.element_type == 'RBend']
+line.set(tt_bend, model='drift-kick-drift-expanded', integrator='uniform',
+         num_multipole_kicks=3)
 
 # line = xt.Line.from_json('fccee_t_with_sol_corrected.json')
 # n_turns_track_test = 200

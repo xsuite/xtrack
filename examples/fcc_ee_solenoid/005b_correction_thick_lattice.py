@@ -8,7 +8,7 @@ fname = 'fccee_z'; pc_gev = 45.6
 # fname = 'fccee_t'; pc_gev = 182.5
 
 
-line = xt.Line.from_json(fname + '_with_sol.json')
+line = xt.Line.from_json(fname + '_thick_with_sol.json')
 
 line.vars['on_sol_ip.1'] = 0
 tw_sol_off = line.twiss(method='4d')
@@ -114,7 +114,7 @@ opt_r.solve()
 
 tw_local_corr = line.twiss(start='ip.4', end='_end_point', init_at='ip.1',
                             init=tw_sol_off)
-line.to_json(fname + '_with_sol_corrected.json')
+line.to_json(fname + '_thick_with_sol_corrected.json')
 
 tw_sol_on_corrected = line.twiss(method='4d')
 
@@ -164,12 +164,12 @@ assert_allclose(tw_chk['mux', 'pqc2le.4'], tw_sol_off['mux', 'pqc2le.4'], atol=1
 assert_allclose(tw_chk['muy', 'pqc2le.4'], tw_sol_off['muy', 'pqc2le.4'], atol=1e-5, rtol=5e-5)
 
 assert tw_chk.c_minus < 1e-6
-assert_allclose(tw_chk['betx2', 'ip.1'] / tw_chk['betx', 'ip.1'], 0, atol=1e-10)
-assert_allclose(tw_chk['bety1', 'ip.1'] / tw_chk['bety', 'ip.1'], 0, atol=1e-10)
-assert_allclose(tw_chk['betx2', 'pqc2re.1'] / tw_chk['betx', 'pqc2re.1'], 0, atol=1e-10)
-assert_allclose(tw_chk['bety1', 'pqc2re.1'] / tw_chk['bety', 'pqc2re.1'], 0, atol=1e-10)
-assert_allclose(tw_chk['betx2', 'pqc2le.4'] / tw_chk['betx', 'pqc2le.4'], 0, atol=1e-10)
-assert_allclose(tw_chk['bety1', 'pqc2le.4'] / tw_chk['bety', 'pqc2le.4'], 0, atol=1e-10)
+assert_allclose(tw_chk['betx2', 'ip.1'] / tw_chk['betx', 'ip.1'], 0, atol=1e-9)
+assert_allclose(tw_chk['bety1', 'ip.1'] / tw_chk['bety', 'ip.1'], 0, atol=1e-9)
+assert_allclose(tw_chk['betx2', 'pqc2re.1'] / tw_chk['betx', 'pqc2re.1'], 0, atol=1e-9)
+assert_allclose(tw_chk['bety1', 'pqc2re.1'] / tw_chk['bety', 'pqc2re.1'], 0, atol=1e-9)
+assert_allclose(tw_chk['betx2', 'pqc2le.4'] / tw_chk['betx', 'pqc2le.4'], 0, atol=1e-9)
+assert_allclose(tw_chk['bety1', 'pqc2le.4'] / tw_chk['bety', 'pqc2le.4'], 0, atol=1e-9)
 
 tt = line.get_table(attr=True)
 s_ip = tt['s', 'ip.1']
