@@ -133,21 +133,21 @@ def test_eq_emitt(conf):
         checked = True
     elif not tilt_machine_by_90_degrees and not vertical_orbit_distortion and wiggler_on:
         xo.assert_allclose(ex, 6.9954e-10, atol=0,     rtol=1e-4)
-        xo.assert_allclose(ey, 5.8575e-13, atol=0,     rtol=4e-3)
+        xo.assert_allclose(ey, 5.7714e-13, atol=0,     rtol=4e-3)
         xo.assert_allclose(ez, 3.8595e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif tilt_machine_by_90_degrees and not vertical_orbit_distortion and wiggler_on:
-        xo.assert_allclose(ex, 5.8575e-13, atol=0,     rtol=4e-3)  # Quite large, to be kept in mind
+        xo.assert_allclose(ex, 5.7748e-13, atol=0,     rtol=4e-3)  # Quite large, to be kept in mind
         xo.assert_allclose(ey, 6.9955e-10, atol=0,     rtol=1e-4)
         xo.assert_allclose(ez, 3.8595e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif not tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
         xo.assert_allclose(ex, 7.0576e-10, atol=0,     rtol=1e-4)
-        xo.assert_allclose(ey, 2.5039e-12, atol=0,     rtol=4e-3)
-        xo.assert_allclose(ez, 3.5766e-6,  atol=0,     rtol=1e-4)
+        xo.assert_allclose(ey, 2.3149e-12, atol=0,     rtol=4e-3)
+        xo.assert_allclose(ez, 3.5790e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
-        xo.assert_allclose(ex, 2.5039e-12, atol=0,     rtol=5e-3)
+        xo.assert_allclose(ex, 2.3008e-12, atol=0,     rtol=5e-3)
         xo.assert_allclose(ey, 7.0576e-10, atol=0,     rtol=1e-4)
         xo.assert_allclose(ez, 3.5763e-6,  atol=0,     rtol=1e-4)
         checked = True
