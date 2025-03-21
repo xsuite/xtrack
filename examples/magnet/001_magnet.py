@@ -93,6 +93,10 @@ xo.assert_allclose(p_test.delta, p0.delta, atol=1e-15, rtol=0)
 # Sextupole more kicks
 mm.num_multipole_kicks = 5
 eref.num_multipole_kicks = 5
+mm.edge_entry_active = False
+mm.edge_exit_active = False
+mm.integrator = 'teapot'
+eref.integrator = 'teapot'
 
 p_test = p0.copy()
 p_ref = p0.copy()
