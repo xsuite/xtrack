@@ -626,9 +626,12 @@ def test_magnet_bend_dip_quad_kick_with_multipoles(model, test_context):
     )
     bend.edge_entry_active = False
     bend.edge_exit_active = False
-    bend.knl = [0.1, 0.2, 0.3 + 0.1 * 2, 0.4 + 0.15 * 2, 0.5, 0.6]
-    bend.ksl = [0.6 + 0.02 * 2, 0.5 + 0.03 * 2, 0.4 + 0.01 * 2, 0.15 + 0.02 * 2,
-        0.2, 0.1]
+    bend.knl = test_context.nparray_to_context_array(
+        [0.1, 0.2, 0.3 + 0.1 * 2, 0.4 + 0.15 * 2, 0.5, 0.6]
+    )
+    bend.ksl = test_context.nparray_to_context_array(
+        [0.6 + 0.02 * 2, 0.5 + 0.03 * 2, 0.4 + 0.01 * 2, 0.15 + 0.02 * 2, 0.2, 0.1]
+    )
 
     magnet.model = model
     bend.model = model
@@ -785,7 +788,8 @@ def test_edge_linear_edge_does_nothing(test_context):
 
     p0 = xt.Particles(
         kinetic_energy0=50e6,
-        x=1e-2, y=2e-2, zeta=1e-2, px=10e-2, py=20e-2, delta=1e-2
+        x=1e-2, y=2e-2, zeta=1e-2, px=10e-2, py=20e-2, delta=1e-2,
+        _context=test_context,
     )
 
     # Expanded drift
@@ -993,7 +997,8 @@ def test_edge_full_model_with_dipole_component_and_angle(test_context):
 
     p0 = xt.Particles(
         kinetic_energy0=50e6,
-        x=1e-2, y=2e-2, zeta=1e-2, px=10e-2, py=20e-2, delta=1e-2
+        x=1e-2, y=2e-2, zeta=1e-2, px=10e-2, py=20e-2, delta=1e-2,
+        _context=test_context,
     )
 
     # Expanded drift
@@ -1033,7 +1038,8 @@ def test_edge_full_model_with_dipole_component_and_angle_exit(test_context):
 
     p0 = xt.Particles(
         kinetic_energy0=50e6,
-        x=1e-2, y=2e-2, zeta=1e-2, px=10e-2, py=20e-2, delta=1e-2
+        x=1e-2, y=2e-2, zeta=1e-2, px=10e-2, py=20e-2, delta=1e-2,
+        _context=test_context,
     )
 
     # Expanded drift
