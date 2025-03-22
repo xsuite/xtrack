@@ -1,7 +1,11 @@
 import xtrack as xt
 import numpy as np
 
-magnet = xt.Magnet(k0=0.02, h=0.01, k1=0.01, length=2)
+magnet = xt.Magnet(k0=0.02, h=0.01, k1=0.01, length=2.,
+                   k2=0.005, k3=0.03,
+                   k1s=0.01, k2s=0.005, k3s=0.05,
+                   knl=[0.003, 0.001, 0.01, 0.02, 4., 6e2, 7e6],
+                   ksl=[-0.005, 0.002, -0.02, 0.03, -2, 700., 4e6])
 
 p0 = xt.Particles(x=1e-2, y=2e-2, py=1e-3, delta=3e-2)
 
@@ -12,6 +16,7 @@ p_ref = p0.copy()
 m_ref.track(p_ref)
 
 m_uniform = magnet.copy()
+# m_uniform.knl[-6] = 0
 m_uniform.model = 'drift-kick-drift-expanded'
 m_uniform.integrator='uniform'
 
@@ -23,7 +28,7 @@ m_yoshida = magnet.copy()
 m_yoshida.model = 'drift-kick-drift-expanded'
 m_yoshida.integrator='yoshida4'
 
-num_kicks = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
+num_kicks = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000]
 log_data = {'num_kicks': [], 'x_teapot': [], 'px_teapot': [], 'y_teapot': [], 'py_teapot': [], 'zeta_teapot': [], 'delta_teapot': [],
             'x_uniform': [], 'px_uniform': [], 'y_uniform': [], 'py_uniform': [], 'zeta_uniform': [], 'delta_uniform': [],
             'x_yoshida': [], 'px_yoshida': [], 'y_yoshida': [], 'py_yoshida': [], 'zeta_yoshida': [], 'delta_yoshida': []}
