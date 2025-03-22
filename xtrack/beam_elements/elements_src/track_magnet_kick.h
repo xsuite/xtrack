@@ -37,6 +37,8 @@ void track_magnet_kick_single_particle(
     double k3s,
     double h,
     double hxl,
+    double k0_h_correction,
+    double k1_h_correction,
     uint8_t rot_frame
 ){
 
@@ -94,21 +96,28 @@ void track_magnet_kick_single_particle(
     // k0h correction can be computed from this term in the hamiltonian
     // H = 1/2 h k0 x^2
     // (see MAD 8 physics manual, eq. 5.15, and apply Hamilton's eq. dp/ds = -dH/dx)
-    double const k0l_mult = knl[0] * factor_knl_ksl;
-    dpx += -chi * (knl_main[0] + k0l_mult) * kick_weight * htot * x;
+    double k0l_mult = 0;
+    if (order >= 0) {
+        k0l_mult = knl[0] * factor_knl_ksl;
+    }
+    dpx += -chi * (k0_h_correction  *length + k0l_mult) * kick_weight * htot * x;
 
     // k1h correction can be computed from this term in the hamiltonian
     // H = 1/3 hk1 x^3 - 1/2 hk1 xy^2
     // (see MAD 8 physics manual, eq. 5.15, and apply Hamilton's eq. dp/ds = -dH/dx)
-    double const k1l_mult = knl[1] * factor_knl_ksl;
-    dpx += htot * chi * (knl_main[1] + k1l_mult) * kick_weight * (-x * x + 0.5 * y * y);
-    dpy += htot * chi * (knl_main[1] + k1l_mult) * kick_weight * x * y;
+    double k1l_mult = 0;
+    if (order >= 1) {
+        k1l_mult = knl[1] * factor_knl_ksl;
+    }
+    dpx += htot * chi * (k1_h_correction * length + k1l_mult) * kick_weight * (-x * x + 0.5 * y * y);
+    dpy += htot * chi * (k1_h_correction * length  + k1l_mult) * kick_weight * x * y;
 
     LocalParticle_add_to_px(part, dpx);
     LocalParticle_add_to_py(part, dpy);
     LocalParticle_add_to_zeta(part, dzeta);
 
 }
+
 
 
 /*gpufun*/

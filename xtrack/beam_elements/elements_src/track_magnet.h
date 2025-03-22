@@ -27,7 +27,6 @@ void configure_tracking_model(
     double* h_kick,
     double* k0_h_correction,
     double* k1_h_correction,
-    double* h_correction,
     int8_t* kick_rot_frame,
     int8_t* out_drift_model
 ){
@@ -85,7 +84,6 @@ void configure_tracking_model(
         *h_kick = h;
         *k0_h_correction = k0;
         *k1_h_correction = k1;
-        *h_correction = h;
         *kick_rot_frame = 1;
     }
     else if (drift_model == 2){ // polar drift
@@ -97,7 +95,6 @@ void configure_tracking_model(
         *h_kick = h;
         *k0_h_correction = k0;
         *k1_h_correction = k1;
-        *h_correction = h;
         *kick_rot_frame = 0;
     }
     else if (drift_model == 3){ // expanded dipole-quadrupole
@@ -109,7 +106,6 @@ void configure_tracking_model(
         *h_kick = 0.0;
         *k0_h_correction = 0.;
         *k1_h_correction = k1;
-        *h_correction = h;
         *kick_rot_frame = 0;
     }
     else if (drift_model == 4){ // bend with h
@@ -119,6 +115,8 @@ void configure_tracking_model(
         *k0_kick = 0.0;
         *k1_kick = k1;
         *h_kick = h;
+        *k0_h_correction = 0.;
+        *k1_h_correction = k1;
         *kick_rot_frame = 0;
     }
     else if (drift_model == 5){ // bend without h
@@ -130,7 +128,6 @@ void configure_tracking_model(
         *h_kick = 0.0;
         *k0_h_correction = 0.;
         *k1_h_correction = 0.;
-        *h_correction = 0.;
         *kick_rot_frame = 0;
     }
 
@@ -158,6 +155,8 @@ void track_magnet_body_single_particle(
     const double k1_kick,
     const double h_kick,
     const double hxl,
+    const double k0_h_correction,
+    const double k1_h_correction,
     const double k2,
     const double k3,
     const double k0s,
@@ -176,7 +175,7 @@ void track_magnet_body_single_particle(
             part, length, order, inv_factorial_order, \
             knl, ksl, factor_knl_ksl, (weight), \
             k0_kick, k1_kick, k2, k3, k0s, k1s, k2s, k3s, h_kick,\
-            hxl, kick_rot_frame\
+            hxl, k0_h_correction, k1_h_correction, kick_rot_frame\
         )
 
     #define MAGNET_DRIFT(part, dlength) \
@@ -416,7 +415,7 @@ void track_magnet_particles(
 
     double k0_drift, k1_drift, h_drift;
     double k0_kick, k1_kick, h_kick;
-    double k0_h_correction, k1_h_correction, h_correction;
+    double k0_h_correction, k1_h_correction;
     int8_t kick_rot_frame;
     int8_t drift_model;
     configure_tracking_model(
@@ -432,7 +431,6 @@ void track_magnet_particles(
         &h_kick,
         &k0_h_correction,
         &k1_h_correction,
-        &h_correction,
         &kick_rot_frame,
         &drift_model
     );
@@ -473,6 +471,7 @@ void track_magnet_particles(
             num_multipole_kicks, kick_rot_frame, drift_model, integrator,
             k0_drift, k1_drift, h_drift,
             k0_kick, k1_kick, h_kick, hxl,
+            k0_h_correction, k1_h_correction,
             k2, k3, k0s, k1s, k2s, k3s,
             radiation_flag, radiation_record,
             &dp_record_exit, &dpx_record_exit, &dpy_record_exit
