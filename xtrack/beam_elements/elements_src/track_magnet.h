@@ -103,7 +103,7 @@ void configure_tracking_model(
         *h_drift = h;
         *k0_kick = 0.0;
         *k1_kick = 0.0;
-        *h_kick = 0.0;
+        *h_kick = h;
         *k0_h_correction = 0.;
         *k1_h_correction = k1;
         *kick_rot_frame = 0;
