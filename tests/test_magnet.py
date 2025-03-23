@@ -1542,3 +1542,286 @@ def test_magnet_and_edge_octupole_nonlinear_fringes(test_context):
     line.track(p_test, backtrack=True)
     p_test.move(_context=xo.ContextCpu())
     assert np.all(p_test.state == -32)
+
+def test_bend_convergence_on_axis():
+
+    bb = xt.Bend(k0=0.001, h=0.001, length=2)
+    bb.integrator = 'yoshida4'
+    bb.num_multipole_kicks = 20
+
+    p0 = xt.Particles(x=0.0, y=0.0, delta=[0, 1e-3])
+
+    bb.model = 'bend-kick-bend'
+    assert bb._xobject.model == 2
+    p_bkb = p0.copy()
+    bb.track(p_bkb)
+
+    bb.model = 'rot-kick-rot'
+    assert bb._xobject.model == 3
+    p_rkr = p0.copy()
+    bb.track(p_rkr)
+
+    bb.model = 'mat-kick-mat'
+    assert bb._xobject.model == 4
+    p_mkm = p0.copy()
+    bb.track(p_mkm)
+
+    bb.model = 'drift-kick-drift-exact'
+    assert bb._xobject.model == 5
+    p_dkd1 = p0.copy()
+    bb.track(p_dkd1)
+
+    bb.model = 'drift-kick-drift-expanded'
+    assert bb._xobject.model == 6
+    p_dkd2 = p0.copy()
+    bb.track(p_dkd2)
+
+    xo.assert_allclose(p_bkb.x, p_rkr.x, rtol=0, atol=1e-12)
+    xo.assert_allclose(p_bkb.x, p_mkm.x, rtol=0, atol=1e-12)
+    xo.assert_allclose(p_bkb.x, p_dkd1.x, rtol=0, atol=1e-12)
+    xo.assert_allclose(p_bkb.x, p_dkd2.x, rtol=0, atol=1e-12)
+
+    xo.assert_allclose(p_bkb.px, p_rkr.px, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_bkb.px, p_mkm.px, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_bkb.px, p_dkd1.px, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_bkb.px, p_dkd2.px, rtol=0, atol=1e-14)
+
+    xo.assert_allclose(p_bkb.y, p_rkr.y, rtol=0, atol=1e-12)
+    xo.assert_allclose(p_bkb.y, p_mkm.y, rtol=0, atol=1e-12)
+    xo.assert_allclose(p_bkb.y, p_dkd1.y, rtol=0, atol=1e-12)
+    xo.assert_allclose(p_bkb.y, p_dkd2.y, rtol=0, atol=1e-12)
+
+    xo.assert_allclose(p_bkb.py, p_rkr.py, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_bkb.py, p_mkm.py, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_bkb.py, p_dkd1.py, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_bkb.py, p_dkd2.py, rtol=0, atol=1e-14)
+
+    xo.assert_allclose(p_bkb.zeta, p_rkr.zeta, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_bkb.zeta, p_mkm.zeta, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_bkb.zeta, p_dkd1.zeta, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_bkb.zeta, p_dkd2.zeta, rtol=0, atol=1e-14)
+
+    xo.assert_allclose(p_bkb.delta, p_rkr.delta, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_bkb.delta, p_mkm.delta, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_bkb.delta, p_dkd1.delta, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_bkb.delta, p_dkd2.delta, rtol=0, atol=1e-14)
+
+def test_convergence_mat_kick_mat():
+
+    magnet = xt.Magnet(k0=0.02, h=0.01, k1=0.01, length=2.,
+                    k2=0.005, k3=0.03,
+                    k1s=0.01, k2s=0.005, k3s=0.05,
+                    knl=[0.003, 0.001, 0.01, 0.02, 4., 6e2, 7e6],
+                    ksl=[-0.005, 0.002, -0.02, 0.03, -2, 700., 4e6])
+
+    p0 = xt.Particles(x=1e-2, y=2e-2, py=1e-3, delta=3e-2)
+
+    m_ref = magnet.copy()
+    m_ref.model = 'mat-kick-mat'
+    m_ref.num_multipole_kicks = 1000
+    p_ref = p0.copy()
+    m_ref.track(p_ref)
+
+    m_uniform = magnet.copy()
+    m_uniform.model = 'drift-kick-drift-expanded'
+    m_uniform.integrator='uniform'
+    m_uniform.num_multipole_kicks = 50000
+
+    m_teapot = magnet.copy()
+    m_teapot.model = 'drift-kick-drift-expanded'
+    m_teapot.integrator='teapot'
+    m_teapot.num_multipole_kicks = 50000
+
+    m_yoshida = magnet.copy()
+    m_yoshida.model = 'drift-kick-drift-expanded'
+    m_yoshida.integrator='yoshida4'
+    m_yoshida.num_multipole_kicks = 500
+
+    p_ref = p0.copy()
+    p_uniform = p0.copy()
+    p_teapot = p0.copy()
+    p_yoshida = p0.copy()
+
+    m_ref.track(p_ref)
+    m_uniform.track(p_uniform)
+    m_teapot.track(p_teapot)
+    m_yoshida.track(p_yoshida)
+
+    xo.assert_allclose(p_ref.x, p_uniform.x, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_ref.px, p_uniform.px, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_ref.y, p_uniform.y, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_ref.py, p_uniform.py, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_ref.zeta, p_uniform.zeta, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_ref.delta, p_uniform.delta, rtol=0, atol=1e-13)
+
+    xo.assert_allclose(p_ref.x, p_teapot.x, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_ref.px, p_teapot.px, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_ref.y, p_teapot.y, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_ref.py, p_teapot.py, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_ref.zeta, p_teapot.zeta, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_ref.delta, p_teapot.delta, rtol=0, atol=1e-13)
+
+    xo.assert_allclose(p_ref.x, p_yoshida.x, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_ref.px, p_yoshida.px, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_ref.y, p_yoshida.y, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_ref.py, p_yoshida.py, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_ref.zeta, p_yoshida.zeta, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_ref.delta, p_yoshida.delta, rtol=0, atol=1e-13)
+
+def test_convergence_rot_kick_rot():
+
+    magnet = xt.Magnet(k0=0.02, h=0.01, k1=0.01, length=2.,
+                    k2=0.005, k3=0.03,
+                    k1s=0.01, k2s=0.005, k3s=0.05,
+                    knl=[0.003, 0.001, 0.01, 0.02, 4., 6e2, 7e6],
+                    ksl=[-0.005, 0.002, -0.02, 0.03, -2, 700., 4e6])
+    magnet.integrator = 'yoshida4'
+    magnet.num_multipole_kicks = 50
+
+    p0 = xt.Particles(x=1e-2, y=2e-2, py=1e-3, delta=3e-2)
+
+    model_to_test = 'rot-kick-rot'
+
+    m_ref = magnet.copy()
+    m_ref.model = 'bend-kick-bend'
+    p_ref = p0.copy()
+    m_ref.track(p_ref)
+
+    m_uniform = magnet.copy()
+    m_uniform.model = model_to_test
+    m_uniform.integrator='uniform'
+    m_uniform.num_multipole_kicks = 50000
+
+    m_teapot = magnet.copy()
+    m_teapot.model = model_to_test
+    m_teapot.integrator='teapot'
+    m_teapot.num_multipole_kicks = 50000
+
+    m_yoshida = magnet.copy()
+    m_yoshida.model = model_to_test
+    m_yoshida.integrator='yoshida4'
+    m_yoshida.num_multipole_kicks = 100
+
+    p_ref = p0.copy()
+    p_uniform = p0.copy()
+    p_teapot = p0.copy()
+    p_yoshida = p0.copy()
+
+    m_ref.track(p_ref)
+    m_uniform.track(p_uniform)
+    m_teapot.track(p_teapot)
+    m_yoshida.track(p_yoshida)
+
+    xo.assert_allclose(p_ref.x, p_uniform.x, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.px, p_uniform.px, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.y, p_uniform.y, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.py, p_uniform.py, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.zeta, p_uniform.zeta, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.delta, p_uniform.delta, rtol=0, atol=5e-13)
+
+    xo.assert_allclose(p_ref.x, p_teapot.x, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.px, p_teapot.px, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.y, p_teapot.y, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.py, p_teapot.py, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.zeta, p_teapot.zeta, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.delta, p_teapot.delta, rtol=0, atol=5e-13)
+
+    xo.assert_allclose(p_ref.x, p_yoshida.x, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.px, p_yoshida.px, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.y, p_yoshida.y, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.py, p_yoshida.py, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.zeta, p_yoshida.zeta, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.delta, p_yoshida.delta, rtol=0, atol=5e-13)
+
+def test_convergence_drift_kick_drift_exact():
+
+    magnet = xt.Magnet(k0=0.02, h=0., k1=0.01, length=2.,
+                    k2=0.005, k3=0.03,
+                    k1s=0.01, k2s=0.005, k3s=0.05,
+                    knl=[0.003, 0.001, 0.01, 0.02, 4., 6e2, 7e6],
+                    ksl=[-0.005, 0.002, -0.02, 0.03, -2, 700., 4e6])
+    magnet.integrator = 'yoshida4'
+    magnet.num_multipole_kicks = 100
+
+    p0 = xt.Particles(x=1e-2, y=2e-2, py=1e-3, delta=3e-2)
+
+    model_to_test = 'drift-kick-drift-exact'
+
+    m_ref = magnet.copy()
+    m_ref.model = 'bend-kick-bend'
+
+    m_uniform = magnet.copy()
+    m_uniform.model = model_to_test
+    m_uniform.integrator='uniform'
+    m_uniform.num_multipole_kicks = 50000
+
+    m_teapot = magnet.copy()
+    m_teapot.model = model_to_test
+    m_teapot.integrator='teapot'
+    m_teapot.num_multipole_kicks = 50000
+
+    m_yoshida = magnet.copy()
+    m_yoshida.model = model_to_test
+    m_yoshida.integrator='yoshida4'
+    m_yoshida.num_multipole_kicks = 100
+
+
+    p_ref = p0.copy()
+    p_uniform = p0.copy()
+    p_teapot = p0.copy()
+    p_yoshida = p0.copy()
+
+    m_ref.track(p_ref)
+    m_uniform.track(p_uniform)
+    m_teapot.track(p_teapot)
+    m_yoshida.track(p_yoshida)
+
+    xo.assert_allclose(p_ref.x, p_uniform.x, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.px, p_uniform.px, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.y, p_uniform.y, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.py, p_uniform.py, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.zeta, p_uniform.zeta, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.delta, p_uniform.delta, rtol=0, atol=5e-13)
+
+    xo.assert_allclose(p_ref.x, p_teapot.x, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.px, p_teapot.px, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.y, p_teapot.y, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.py, p_teapot.py, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.zeta, p_teapot.zeta, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.delta, p_teapot.delta, rtol=0, atol=5e-13)
+
+    xo.assert_allclose(p_ref.x, p_yoshida.x, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.px, p_yoshida.px, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.y, p_yoshida.y, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.py, p_yoshida.py, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.zeta, p_yoshida.zeta, rtol=0, atol=5e-13)
+    xo.assert_allclose(p_ref.delta, p_yoshida.delta, rtol=0, atol=5e-13)
+
+def test_bend_expanded_exact_small_px():
+
+    magnet = xt.Magnet(k0=0.002, h=0.002, k1=0.02, length=2)
+
+    m_exact = magnet.copy()
+    m_exact.model = 'bend-kick-bend'
+    m_exact.integrator='yoshida4'
+    m_exact.num_multipole_kicks = 1000
+
+    m_expanded = magnet.copy()
+    m_expanded.model = 'mat-kick-mat'
+    m_expanded.integrator='yoshida4'
+    m_expanded.num_multipole_kicks = 1000
+
+    p0 = xt.Particles(x=1e-3, y=2e-3, px=5e-6)
+
+    p_exact = p0.copy()
+    m_exact.track(p_exact)
+
+    p_expanded = p0.copy()
+    m_expanded.track(p_expanded)
+
+    xo.assert_allclose(p_exact.x, p_expanded.x, rtol=0, atol=1e-10)
+    xo.assert_allclose(p_exact.px, p_expanded.px, rtol=0, atol=1e-11)
+    xo.assert_allclose(p_exact.y, p_expanded.y, rtol=0, atol=2e-10)
+    xo.assert_allclose(p_exact.py, p_expanded.py, rtol=0, atol=1e-11)
+    xo.assert_allclose(p_exact.zeta, p_expanded.zeta, rtol=0, atol=1e-12)
+    xo.assert_allclose(p_exact.delta, p_expanded.delta, rtol=0, atol=1e-14)
