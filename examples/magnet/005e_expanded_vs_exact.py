@@ -71,35 +71,41 @@ zeta_out_expanded = np.array(zeta_out_expanded)
 import matplotlib.pyplot as plt
 
 plt.close('all')
-fig, axs = plt.subplots(2, 3, figsize=(12, 8), sharex=True, sharey=True)
+plt.figure(1, figsize=(12, 8))
 
 # Plot for px
-axs[0, 0].loglog(px_list, np.abs(px_out_exact - px_out_expanded), '.-')
-axs[0, 0].set_ylabel('Error in px out')
-axs[0, 0].set_title('Difference between exact and expanded models')
+ax0 = plt.subplot(2, 3, 1)
+plt.loglog(px_list, np.abs(px_out_exact - px_out_expanded), '.-')
+plt.ylabel('Error in px out')
+plt.xlabel('px in')
 
 # Plot for x
-axs[0, 1].loglog(px_list, np.abs(x_out_exact - x_out_expanded), '.-')
-axs[0, 1].set_ylabel('Error in x out')
-axs[0, 1].set_title('')
+plt.subplot(2, 3, 2, sharex=ax0, sharey=ax0)
+plt.loglog(px_list, np.abs(x_out_exact - x_out_expanded), '.-')
+plt.ylabel('Error in x out')
+plt.xlabel('px in')
 
 # Plot for py
-axs[0, 2].loglog(px_list, np.abs(py_out_exact - py_out_expanded), '.-')
-axs[0, 2].set_ylabel('Error in py out')
-axs[0, 2].set_title('')
+plt.subplot(2, 3, 3, sharex=ax0, sharey=ax0)
+plt.loglog(px_list, np.abs(py_out_exact - py_out_expanded), '.-')
+plt.ylabel('Error in py out')
+plt.xlabel('px in')
+
 
 # Plot for y
-axs[1, 0].loglog(px_list, np.abs(y_out_exact - y_out_expanded), '.-')
-axs[1, 0].set_ylabel('Error in y out')
-axs[1, 0].set_xlabel('px in')
+plt.subplot(2, 3, 4, sharex=ax0, sharey=ax0)
+plt.loglog(px_list, np.abs(y_out_exact - y_out_expanded), '.-')
+plt.ylabel('Error in y out')
+plt.xlabel('px in')
 
 # Plot for zeta
-axs[1, 1].loglog(px_list, np.abs(zeta_out_exact - zeta_out_expanded), '.-')
-axs[1, 1].set_ylabel('Error in zeta out')
-axs[1, 1].set_xlabel('px in')
+plt.subplot(2, 3, 5, sharex=ax0, sharey=ax0)
+plt.loglog(px_list, np.abs(zeta_out_exact - zeta_out_expanded), '.-')
+plt.ylabel('Error in zeta out')
+plt.xlabel('px in')
 
-# Hide the last unused subplot
-axs[1, 2].axis('off')
+
+plt.subplots_adjust(wspace=0.3, hspace=0.3)
 
 
 plt.show()

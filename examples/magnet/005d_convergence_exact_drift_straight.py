@@ -9,9 +9,6 @@ magnet = xt.Magnet(k0=0.02, h=0., k1=0.01, length=2.,
 magnet.integrator = 'yoshida4'
 magnet.num_multipole_kicks = 100
 
-# magnet = xt.Magnet(k0=0.02, h=0.01, length=2.)
-# magnet.num_multipole_kicks = 0
-
 p0 = xt.Particles(x=1e-2, y=2e-2, py=1e-3, delta=3e-2)
 
 model_to_test = 'drift-kick-drift-exact'
@@ -84,49 +81,51 @@ for key in log_data.keys():
 
 import matplotlib.pyplot as plt
 
+
+def myplot(x, y, *args, **kwargs):
+    if np.abs(y).max() <=0:
+        plt.seimilogx(x, y, *args, **kwargs)
+    else:
+        plt.loglog(x, y, *args, **kwargs)
+
 plt.close('all')
 plt.figure(1, figsize=(12, 8))
 ax1 = plt.subplot(2, 3, 1)
-plt.loglog(log_data['num_kicks'], np.abs(log_data['x_uniform'] - p_ref.x[0]), '.-', label='uniform')
-plt.loglog(log_data['num_kicks'], np.abs(log_data['x_teapot'] - p_ref.x[0]), '.-', label='teapot')
-plt.loglog(log_data['num_kicks'], np.abs(log_data['x_yoshida'] - p_ref.x[0]), '.-', label='yoshida')
+myplot(log_data['num_kicks'], np.abs(log_data['x_uniform'] - p_ref.x[0]), '.-', label='uniform')
+myplot(log_data['num_kicks'], np.abs(log_data['x_teapot'] - p_ref.x[0]), '.-', label='teapot')
+myplot(log_data['num_kicks'], np.abs(log_data['x_yoshida'] - p_ref.x[0]), '.-', label='yoshida')
 plt.xlabel('num_kicks')
 plt.ylabel('Error in x')
 plt.legend()
 
 ax2 = plt.subplot(2, 3, 2, sharex=ax1)
-plt.loglog(log_data['num_kicks'], np.abs(log_data['y_uniform'] - p_ref.y[0]), '.-', label='uniform')
-plt.loglog(log_data['num_kicks'], np.abs(log_data['y_teapot'] - p_ref.y[0]), '.-', label='teapot')
-plt.loglog(log_data['num_kicks'], np.abs(log_data['y_yoshida'] - p_ref.y[0]), '.-', label='yoshida')
+myplot(log_data['num_kicks'], np.abs(log_data['y_uniform'] - p_ref.y[0]), '.-', label='uniform')
+myplot(log_data['num_kicks'], np.abs(log_data['y_teapot'] - p_ref.y[0]), '.-', label='teapot')
+myplot(log_data['num_kicks'], np.abs(log_data['y_yoshida'] - p_ref.y[0]), '.-', label='yoshida')
 plt.xlabel('num_kicks')
 plt.ylabel('Error in y')
 
 ax3 = plt.subplot(2, 3, 3, sharex=ax1)
-plt.loglog(log_data['num_kicks'], np.abs(log_data['zeta_uniform'] - p_ref.zeta[0]), '.-', label='uniform')
-plt.loglog(log_data['num_kicks'], np.abs(log_data['zeta_teapot'] - p_ref.zeta[0]), '.-', label='teapot')
-plt.loglog(log_data['num_kicks'], np.abs(log_data['zeta_yoshida'] - p_ref.zeta[0]), '.-', label='yoshida')
+myplot(log_data['num_kicks'], np.abs(log_data['zeta_uniform'] - p_ref.zeta[0]), '.-', label='uniform')
+myplot(log_data['num_kicks'], np.abs(log_data['zeta_teapot'] - p_ref.zeta[0]), '.-', label='teapot')
+myplot(log_data['num_kicks'], np.abs(log_data['zeta_yoshida'] - p_ref.zeta[0]), '.-', label='yoshida')
 plt.xlabel('num_kicks')
 plt.ylabel('Error in zeta')
 
 ax4 = plt.subplot(2,3,4, sharex=ax1)
-plt.loglog(log_data['num_kicks'], np.abs(log_data['px_uniform'] - p_ref.px[0]), '.-', label='uniform')
-plt.loglog(log_data['num_kicks'], np.abs(log_data['px_teapot'] - p_ref.px[0]), '.-', label='teapot')
-plt.loglog(log_data['num_kicks'], np.abs(log_data['px_yoshida'] - p_ref.px[0]), '.-', label='yoshida')
+myplot(log_data['num_kicks'], np.abs(log_data['px_uniform'] - p_ref.px[0]), '.-', label='uniform')
+myplot(log_data['num_kicks'], np.abs(log_data['px_teapot'] - p_ref.px[0]), '.-', label='teapot')
+myplot(log_data['num_kicks'], np.abs(log_data['px_yoshida'] - p_ref.px[0]), '.-', label='yoshida')
 plt.xlabel('num_kicks')
 plt.ylabel('Error in px')
 
 ax5 = plt.subplot(2,3, 5, sharex=ax1)
-plt.loglog(log_data['num_kicks'], np.abs(log_data['py_uniform'] - p_ref.py[0]), '.-', label='uniform')
-plt.loglog(log_data['num_kicks'], np.abs(log_data['py_teapot'] - p_ref.py[0]), '.-', label='teapot')
-plt.loglog(log_data['num_kicks'], np.abs(log_data['py_yoshida'] - p_ref.py[0]), '.-', label='yoshida')
+myplot(log_data['num_kicks'], np.abs(log_data['py_uniform'] - p_ref.py[0]), '.-', label='uniform')
+myplot(log_data['num_kicks'], np.abs(log_data['py_teapot'] - p_ref.py[0]), '.-', label='teapot')
+myplot(log_data['num_kicks'], np.abs(log_data['py_yoshida'] - p_ref.py[0]), '.-', label='yoshida')
 plt.xlabel('num_kicks')
 plt.ylabel('Error in py')
 
-ax6 = plt.subplot(2, 3, 6, sharex=ax1)
-# plt.loglog(log_data['num_kicks'], np.abs(log_data['delta_uniform'] - p_ref.delta[0]), '.-', label='uniform')
-# plt.loglog(log_data['num_kicks'], np.abs(log_data['delta_teapot'] - p_ref.delta[0]), '.-', label='teapot')
-# plt.loglog(log_data['num_kicks'], np.abs(log_data['delta_yoshida'] - p_ref.delta[0]), '.-', label='yoshida')
-# plt.xlabel('num_kicks')
 
 plt.subplots_adjust(hspace=0.3, wspace=0.3)
 plt.show()

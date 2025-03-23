@@ -122,11 +122,5 @@ plt.loglog(log_data['num_kicks'], np.abs(log_data['py_yoshida'] - p_ref.py[0]), 
 plt.xlabel('num_kicks')
 plt.ylabel('Error in py')
 
-ax6 = plt.subplot(2, 3, 6, sharex=ax1)
-# plt.loglog(log_data['num_kicks'], np.abs(log_data['delta_uniform'] - p_ref.delta[0]), '.-', label='uniform')
-# plt.loglog(log_data['num_kicks'], np.abs(log_data['delta_teapot'] - p_ref.delta[0]), '.-', label='teapot')
-# plt.loglog(log_data['num_kicks'], np.abs(log_data['delta_yoshida'] - p_ref.delta[0]), '.-', label='yoshida')
-# plt.xlabel('num_kicks')
-
 plt.subplots_adjust(hspace=0.3, wspace=0.3)
 plt.show()
