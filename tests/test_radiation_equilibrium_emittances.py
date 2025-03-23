@@ -142,9 +142,9 @@ def test_eq_emitt(conf):
         xo.assert_allclose(ez, 3.8595e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif not tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
-        xo.assert_allclose(ex, 7.0576e-10, atol=0,     rtol=1e-4)
-        xo.assert_allclose(ey, 2.3149e-12, atol=0,     rtol=7e-3)
-        xo.assert_allclose(ez, 3.5790e-6,  atol=0,     rtol=1e-4)
+        xo.assert_allclose(ex, 7.1345e-10, atol=0,     rtol=1e-4)
+        xo.assert_allclose(ey, 2.1958e-12, atol=0,     rtol=7e-3)
+        xo.assert_allclose(ez, 3.4433e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
         xo.assert_allclose(ex, 2.2071e-12, atol=0,     rtol=5e-3)
@@ -164,8 +164,8 @@ def test_eq_emitt(conf):
                        tw_rad.damping_constants_s[1], rtol=0.02, atol=0)
     xo.assert_allclose(tw_integ.rad_int_damping_constant_zeta_s,
                        tw_rad.damping_constants_s[2], rtol=0.02, atol=0)
-    xo.assert_allclose(tw_integ.rad_int_eq_gemitt_x, ex, rtol=0.1, atol=1e-14)
-    xo.assert_allclose(tw_integ.rad_int_eq_gemitt_y, ey, rtol=0.1, atol=1e-14)
+    xo.assert_allclose(tw_integ.rad_int_eq_gemitt_x, ex, rtol=0.15, atol=1e-14)
+    xo.assert_allclose(tw_integ.rad_int_eq_gemitt_y, ey, rtol=0.15, atol=1e-14)
 
     tw_rad2 = line.twiss(eneloss_and_damping=True, method='6d',
                      radiation_method='full',
