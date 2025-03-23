@@ -11,7 +11,7 @@ p0 = xt.Particles(x=1e-2, y=2e-2, py=1e-3, delta=3e-2)
 
 m_ref = magnet.copy()
 m_ref.model = 'mat-kick-mat'
-m_ref.num_multipole_kicks = 100000
+m_ref.num_multipole_kicks = 1000
 p_ref = p0.copy()
 m_ref.track(p_ref)
 
