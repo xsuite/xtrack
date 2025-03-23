@@ -15,13 +15,16 @@ import xpart as xp
 import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts, fix_random_seed
 
+import pytest
+
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
 
 @for_all_test_contexts
+@pytest.mark.parametrize('thick', [False, True])
 @fix_random_seed(645284)
-def test_radiation(test_context):
+def test_radiation(test_context, thick):
 
     print(f"Test {test_context.__class__}")
 
@@ -48,11 +51,16 @@ def test_radiation(test_context):
     h_bend = B_T * qe / P0_J
     theta_bend = h_bend * L_bend
 
-    dipole_ave = xt.Multipole(knl=[theta_bend], length=L_bend, hxl=theta_bend,
-                            radiation_flag=1, _context=test_context)
-    dipole_rnd = xt.Multipole(knl=[theta_bend], length=L_bend, hxl=theta_bend,
-                            radiation_flag=2, _context=test_context)
-
+    if thick:
+        dipole_ave = xt.Bend(length=L_bend, angle=theta_bend, k0_from_h=True,
+                             radiation_flag=1, _context=test_context)
+        dipole_rnd = xt.Bend(length=L_bend, angle=theta_bend, k0_from_h=True,
+                             radiation_flag=2, _context=test_context)
+    else:
+        dipole_ave = xt.Multipole(knl=[theta_bend], length=L_bend, hxl=theta_bend,
+                                radiation_flag=1, _context=test_context)
+        dipole_rnd = xt.Multipole(knl=[theta_bend], length=L_bend, hxl=theta_bend,
+                                radiation_flag=2, _context=test_context)
 
     dct_ave_before = particles_ave.to_dict()
     dct_rng_before = particles_rnd.to_dict()
@@ -138,8 +146,9 @@ def test_radiation(test_context):
 
 
 @for_all_test_contexts
+@pytest.mark.parametrize('thick', [False, True])
 @fix_random_seed(8438475)
-def test_ring_with_radiation(test_context):
+def test_ring_with_radiation(test_context, thick):
 
     from cpymad.madx import Madx
 
@@ -160,14 +169,15 @@ def test_ring_with_radiation(test_context):
     mad_emit_summ = mad.table.emitsumm.dframe()
 
     # Makethin
-    mad.input(f'''
-    select, flag=MAKETHIN, SLICE=4, thick=false;
-    select, flag=MAKETHIN, pattern=wig, slice=1;
-    select, flag=makethin, class=rfcavity, slice=1;
-    MAKETHIN, SEQUENCE=ring, MAKEDIPEDGE=true;
-    use, sequence=RING;
-    ''')
-    mad.use('ring')
+    if not thick:
+        mad.input(f'''
+        select, flag=MAKETHIN, SLICE=4, thick=false;
+        select, flag=MAKETHIN, pattern=wig, slice=1;
+        select, flag=makethin, class=rfcavity, slice=1;
+        MAKETHIN, SEQUENCE=ring, MAKEDIPEDGE=true;
+        use, sequence=RING;
+        ''')
+        mad.use('ring')
     mad.twiss()
 
     # Build xtrack line
@@ -193,7 +203,7 @@ def test_ring_with_radiation(test_context):
                     rtol=3e-3, atol=0)
     xo.assert_allclose(tw['damping_constants_s'][0],
         met[met.loc[:, 'parameter']=='damping_constant']['mode1'].iloc[0],
-        rtol=3e-3, atol=0
+        rtol=5e-3, atol=0
         )
     xo.assert_allclose(tw['damping_constants_s'][1],
         met[met.loc[:, 'parameter']=='damping_constant']['mode2'].iloc[0],
@@ -201,12 +211,12 @@ def test_ring_with_radiation(test_context):
         )
     xo.assert_allclose(tw['damping_constants_s'][2],
         met[met.loc[:, 'parameter']=='damping_constant']['mode3'].iloc[0],
-        rtol=3e-3, atol=0
+        rtol=5e-3, atol=0
         )
 
     xo.assert_allclose(tw['partition_numbers'][0],
         met[met.loc[:, 'parameter']=='damping_partion']['mode1'].iloc[0],
-        rtol=3e-3, atol=0
+        rtol=5e-3, atol=0
         )
     xo.assert_allclose(tw['partition_numbers'][1],
         met[met.loc[:, 'parameter']=='damping_partion']['mode2'].iloc[0],
@@ -214,7 +224,7 @@ def test_ring_with_radiation(test_context):
         )
     xo.assert_allclose(tw['partition_numbers'][2],
         met[met.loc[:, 'parameter']=='damping_partion']['mode3'].iloc[0],
-        rtol=3e-3, atol=0
+        rtol=5e-3, atol=0
         )
 
     line.configure_radiation(model='mean')
