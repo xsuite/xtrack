@@ -410,7 +410,7 @@ def get_pdg_id_from_mass_charge(m, q, rtol=1e-3):
                        + f"mass table in Xtrack, try increasing the tolerance.")
 
 
-def get_mass_from_pdg_id(pdg_id, allow_approximation=True, expected_mass=None):
+def get_mass_from_pdg_id(pdg_id, allow_approximation=True, expected_mass=None, verbose=True):
     """Get the particle mass for a given PDG ID, if in the internal database. If not, it can be extrapolated for ions."""
     if hasattr(pdg_id, '__len__') and not isinstance(pdg_id, str):
         return np.array([get_mass_from_pdg_id(pdg,
@@ -426,7 +426,8 @@ def get_mass_from_pdg_id(pdg_id, allow_approximation=True, expected_mass=None):
         return _mass_table[-pdg_id]
     elif pdg_id > 1000000000 and allow_approximation:
         _, A, _, _ = get_properties_from_pdg_id(pdg_id)
-        print(f"Warning: approximating the mass as {A}u!")
+        if verbose:
+            print(f"Warning: approximating the mass as {A}u!")
         return A*U_MASS_EV
     elif expected_mass is not None and _mass_consistent(pdg_id, expected_mass):
         # This is a workaround in case an exact mass is given
