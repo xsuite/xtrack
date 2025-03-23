@@ -28,7 +28,8 @@ m_yoshida = magnet.copy()
 m_yoshida.model = 'drift-kick-drift-expanded'
 m_yoshida.integrator='yoshida4'
 
-num_kicks = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000]
+num_kicks = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000,
+             100000, 200000, 500000]
 log_data = {'num_kicks': [], 'x_teapot': [], 'px_teapot': [], 'y_teapot': [], 'py_teapot': [], 'zeta_teapot': [], 'delta_teapot': [],
             'x_uniform': [], 'px_uniform': [], 'y_uniform': [], 'py_uniform': [], 'zeta_uniform': [], 'delta_uniform': [],
             'x_yoshida': [], 'px_yoshida': [], 'y_yoshida': [], 'py_yoshida': [], 'zeta_yoshida': [], 'delta_yoshida': []}
