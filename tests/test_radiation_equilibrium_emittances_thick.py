@@ -67,6 +67,13 @@ def test_eq_emitt(conf):
     line = xt.Line.from_json(test_data_folder / 'fcc_ee/fccee_h_thick.json')
     line.build_tracker()
 
+    # Wiggler is very strong --> needs more twiss points for accurate eq emittances
+    line.slice_thick_elements(slicing_strategies=[
+        xt.Strategy(slicing=None), # Default
+        xt.Strategy(slicing=xt.Teapot(20, mode='thick'), name=r'^mwi.*'),
+    ])
+    line.build_tracker()
+
     print('Done building tracker')
 
     if wiggler_on:
@@ -132,13 +139,13 @@ def test_eq_emitt(conf):
         xo.assert_allclose(ez, 3.6000e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif not tilt_machine_by_90_degrees and not vertical_orbit_distortion and wiggler_on:
-        xo.assert_allclose(ex, 6.9954e-10, atol=0,     rtol=1e-4)
-        xo.assert_allclose(ey, 5.7714e-13, atol=0,     rtol=4e-3)
+        xo.assert_allclose(ex, 7.0714e-10, atol=0,     rtol=1e-4)
+        xo.assert_allclose(ey, 5.6804e-13, atol=0,     rtol=4e-3)
         xo.assert_allclose(ez, 3.8595e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif tilt_machine_by_90_degrees and not vertical_orbit_distortion and wiggler_on:
-        xo.assert_allclose(ex, 5.7748e-13, atol=0,     rtol=4e-3)  # Quite large, to be kept in mind
-        xo.assert_allclose(ey, 6.9955e-10, atol=0,     rtol=1e-4)
+        xo.assert_allclose(ex, 5.7068e-13, atol=0,     rtol=4e-3)  # Quite large, to be kept in mind
+        xo.assert_allclose(ey, 7.0714e-10, atol=0,     rtol=1e-4)
         xo.assert_allclose(ez, 3.8595e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif not tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
