@@ -22,7 +22,6 @@ p_ref = p0.copy()
 m_ref.track(p_ref)
 
 m_uniform = magnet.copy()
-# m_uniform.knl[-6] = 0
 m_uniform.model = model_to_test
 m_uniform.integrator='uniform'
 
