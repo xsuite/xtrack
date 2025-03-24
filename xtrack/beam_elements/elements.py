@@ -882,8 +882,7 @@ class _BendCommon:
 
 
 class Bend(_BendCommon, BeamElement):
-    """
-    Implementation of combined function magnet (i.e. a bending magnet with
+    """Implementation of combined function magnet (i.e. a bending magnet with
     a quadrupole component).
 
     Parameters
@@ -902,56 +901,90 @@ class Bend(_BendCommon, BeamElement):
         If True, `k0` will assume the value of `h` and its value will be updated
         when `h` is changed.
     length : float, optional
-        Length of the element in units of m.
-    model : str, optional
-        The bend model to use. Available options are:
-        - "adaptive" - drift-kick-drift model with automatic selection of the
-            number of kicks, using the Yoshida integration scheme. This is the
-            default option.
-        - "full" - same as adaptive (included for backward compatibility)
-        - "bend-kick-bend" - similar to adaptive, but using a thick bend map
-            instead of drifts.
-        - "rot-kick-rot" - same as "adaptive" and "full".
-        - "expanded" - use a combined function magnet with uniform slicing for
-            the kicks.
+        Length of the element in meters along the reference trajectory.
     knl : array, optional
         Integrated strength of the high-order normal multipolar components
         (knl[0] and knl[1] should not be used).
     ksl : array, optional
         Integrated strength of the high-order skew multipolar components
         (ksl[0] and ksl[1] should not be used).
-    num_multipole_kicks : int, optional
-        Number of multipole kicks used to model high order multipolar
-        components. By default, switched off.
     order : int, optional
-        Order of `knl` and `ksl`. If not given, it will be inferred from `knl`
-        and `ksl`, but will be at least `DEFAULT_MULTIPOLE_ORDER` = 5.
+        Maximum order of multipole expansion for this magnet. Defaults to 5.
+    model : str, optional
+        Drift model to be used in the kick-splitting scheme. The options are:
+
+            - ``adaptive``: default option, same as ``rot-kick-rot``.
+            - ``full``: kept for backward compatibility, same as ``rot-kick-rot``.
+            - ``bend-kick-bend``: use a thick (curved, if ``h`` non-zero) exact
+                bend map for ``k0``, ``h``, and handle the other strengths in
+                the kicks.
+            - ``rot-kick-rot``: use an exact drift map (polar, if ``h`` non-zero)
+                and handle all strengths in the kicks.
+            - ``mat-kick-mat``: use an expanded combined-function magnet map
+                for ``k0``, ``k1``, ``h``, and handle the other strengths in
+                the kicks.
+            - ``drift-kick-drift-exact``: use an exact drift map with no curvature,
+                and handle all strengths in the kicks.
+            - ``drift-kick-drift-expanded``: use an expanded drift map with no
+                curvature, and handle all strengths in the kicks.
+
+        These will not be applied if the length is zero.
+    integrator : str, optional
+        Integration scheme to be used. The options are:
+
+            - ``adaptive``: default option, same as ``yoshida4``.
+            - ``teapot``: use the Teapot integration scheme.
+            - ``yoshida4``: use the Yoshida 4 integration scheme. The number of
+                kicks will be implicitly rounded up to the nearest multiple of 7,
+                as required by the scheme.
+            - ``uniform``: slice uniformly.
+
+        The integration scheme setting will be ignored if the length is zero, or
+        if the strength and the curvature settings imply no need for applying
+        thin kicks.
+    num_multipole_kicks : int, optional
+        The number of kicks to be used in thin kick splitting. If zero, and if
+        the model selection implies that there are kicks that need to be
+        performed, the value will be guessed according to a heuristic: one kick
+        in the middle for straight magnets, or ~2 kicks/mrad otherwise.
     edge_entry_active : bool, optional
-        Whether to model the entry edge. Disabled by default.
+        Whether to include the edge effect at entry. Enabled by default.
     edge_exit_active : bool, optional
-        Same as `edge_entry_active`, but for the exit.
-    edge_entry_model : LiteralUnion['linear', 'full', 'suppressed']
-        Type of edge model to use at the entry. Default is 'full'.
-    edge_exit_model : LiteralUnion['linear', 'full', 'suppressed']
-        Same as `edge_entry_model`, but for the exit.
+        Whether to include the edge effect at exit. Enabled by default.
+    edge_entry_model : str, optional
+        Edge model at magnet entry. The options are:
+
+            - ``linear``: use a linear model for the edge.
+            - ``full``: include all multipolar terms.
+            - ``dipole-only``: ``full`` but includes only the dipolar terms.
+            - ``suppressed``: ignore the edge effect.
+    edge_exit_model : str, optional
+        Edge model at magnet exit. See ``edge_entry_model`` for the options.
     edge_entry_angle : float, optional
         The angle of the entry edge in radians. Default is 0.
     edge_exit_angle : float, optional
         Same as `edge_entry_angle`, but for the exit.
     edge_entry_angle_fdown : float, optional
-        Term added to the entry angle only for the linear mode and only in
+        Term added to the entry angle only for the ``linear`` mode and only in
         the vertical plane to account for non-zero angle in the closed orbit
         when entering the fringe field (feed down effect). Default is 0.
     edge_exit_angle_fdown : float, optional
-        Same as `edge_entry_angle_fdown`, but for the exit. Default is 0.
+        Same as ``edge_entry_angle_fdown``, but for the exit. Default is 0.
     edge_entry_fint: float, optional
-        Fringe integral value at entry.
+        Fringe integral value at entry. Default is 0.
     edge_exit_fint : float, optional
-        Same as `edge_entry_fint`, but for the exit. Default is 0.
+        Same as ``edge_entry_fint``, but for the exit. Default is 0.
     edge_entry_hgap : float, optional
         Equivalent gap at entry in meters. Default is 0.
     edge_exit_hgap : float, optional
-        Same as `edge_entry_hgap`, but for the exit.
+        Same as ``edge_entry_hgap``, but for the exit.
+    radiation_flag : int, optional
+        Flag indicating if synchrotron radiation effects are enabled.
+        If zero, no radiation effects are simulated; if 1, the ``mean``
+        model is used; if 2, the ``quantum`` model is used and the
+        emitted photons are stored in the internal radiation record.
+    delta_taper : float, optional
+        A value added to delta for the purposes of tapering. Default is 0.
     """
 
     _xofields = _BendCommon._common_xofields
@@ -1115,8 +1148,6 @@ class RBend(_BendCommon, BeamElement):
         Length of the element in units of m along the reference trajectory.
         Will be computed from `angle` and `length_straight` if not given.
         Changes to `length` will update `h` and `length_straight`.
-    model : str, optional
-        See `Bend` for details.
     length_straight : float, optional
         Length of the element in units of m along a straight line. Changes to
         `length_straight` will update `length` and `h`.
@@ -1126,6 +1157,10 @@ class RBend(_BendCommon, BeamElement):
     ksl : array, optional
         Integrated strength of the high-order skew multipolar components
         (`ksl[0]` and `ksl[1]` should not be used).
+    model : str, optional
+        Drift model to be used in kick-splitting. See `Bend` for details.
+    integrator : str, optional
+        Integration scheme to be used. See `Bend` for details.
     num_multipole_kicks : int, optional
         Number of multipole kicks used to model high order multipolar
         components. By default, switched off.
@@ -1388,9 +1423,7 @@ class RBend(_BendCommon, BeamElement):
 
 
 class Sextupole(BeamElement):
-
-    """
-    Sextupole element.
+    """Sextupole element.
 
     Parameters
     ----------
@@ -1399,7 +1432,28 @@ class Sextupole(BeamElement):
     k2s : float
         Strength of the skew sextupole component in m^-3.
     length : float
-        Length of the element in meters.
+        Length of the element in meters along the reference trajectory.
+    order : int, optional
+        Maximum order of multipole expansion for this magnet. Defaults to 5.
+    knl : list of floats, optional
+        Normal multipole integrated strengths. If not provided, defaults to zeroes.
+    ksl : list of floats, optional
+        Skew multipole integrated strengths. If not provided, defaults to zeroes.
+    model : str, optional
+        Drift model to be used in kick-splitting. See ``Magnet`` for details.
+    integrator : str, optional
+        Integration scheme to be used. See ``Magnet`` for details.
+    num_multipole_kicks : int, optional
+        The number of kicks to be used in thin kick splitting. The default value
+        of zero implies a single kick in the middle of the element.
+    edge_entry_active : bool, optional
+        Whether to include the edge effect at entry. Enabled by default.
+    edge_exit_active : bool, optional
+        Whether to include the edge effect at exit. Enabled by default.
+    radiation_flag : int, optional
+        Whether to enable radiation. See ``Magnet`` for details.
+    delta_taper : float, optional
+        A value added to delta for the purposes of tapering. Default is 0.
     """
 
     isthick = True
@@ -1537,7 +1591,28 @@ class Octupole(BeamElement):
     k3s : float
         Strength of the skew octupole component in m^-3.
     length : float
-        Length of the element in meters.
+        Length of the element in meters along the reference trajectory.
+    order : int, optional
+        Maximum order of multipole expansion for this magnet. Defaults to 5.
+    knl : list of floats, optional
+        Normal multipole integrated strengths. If not provided, defaults to zeroes.
+    ksl : list of floats, optional
+        Skew multipole integrated strengths. If not provided, defaults to zeroes.
+    model : str, optional
+        Drift model to be used in kick-splitting. See ``Magnet`` for details.
+    integrator : str, optional
+        Integration scheme to be used. See ``Magnet`` for details.
+    num_multipole_kicks : int, optional
+        The number of kicks to be used in thin kick splitting. The default value
+        of zero implies a single kick in the middle of the element.
+    edge_entry_active : bool, optional
+        Whether to include the edge effect at entry. Enabled by default.
+    edge_exit_active : bool, optional
+        Whether to include the edge effect at exit. Enabled by default.
+    radiation_flag : int, optional
+        Whether to enable radiation. See ``Magnet`` for details.
+    delta_taper : float, optional
+        A value added to delta for the purposes of tapering. Default is 0.
     """
 
     isthick = True
@@ -1673,7 +1748,28 @@ class Quadrupole(BeamElement):
     k1s : float
         Strength of the skew quadrupole component in m^-2.
     length : float
-        Length of the element in meters.
+        Length of the element in meters along the reference trajectory.
+    order : int, optional
+        Maximum order of multipole expansion for this magnet. Defaults to 5.
+    knl : list of floats, optional
+        Normal multipole integrated strengths. If not provided, defaults to zeroes.
+    ksl : list of floats, optional
+        Skew multipole integrated strengths. If not provided, defaults to zeroes.
+    model : str, optional
+        Drift model to be used in kick-splitting. See ``Magnet`` for details.
+    integrator : str, optional
+        Integration scheme to be used. See ``Magnet`` for details.
+    num_multipole_kicks : int, optional
+        The number of kicks to be used in thin kick splitting. The default value
+        of zero implies a single kick in the middle of the element.
+    edge_entry_active : bool, optional
+        Whether to include the edge effect at entry. Enabled by default.
+    edge_exit_active : bool, optional
+        Whether to include the edge effect at exit. Enabled by default.
+    radiation_flag : int, optional
+        Whether to enable radiation. See ``Magnet`` for details.
+    delta_taper : float, optional
+        A value added to delta for the purposes of tapering. Default is 0.
     """
     isthick = True
     has_backtrack = True
@@ -1813,6 +1909,27 @@ class Solenoid(BeamElement):
     ksi : float
         Integrated strength of the solenoid component in rad. Only to be
         specified when the element is thin, i.e. when `length` is 0.
+    order : int, optional
+        Maximum order of multipole expansion for this magnet. Defaults to 5.
+    knl : list of floats, optional
+        Normal multipole integrated strengths. If not provided, defaults to zeroes.
+    ksl : list of floats, optional
+        Skew multipole integrated strengths. If not provided, defaults to zeroes.
+    num_multipole_kicks : int, optional
+        The number of kicks to be used in thin kick splitting. The default value
+        of zero implies a single kick in the middle of the element.
+    radiation_flag : int, optional
+        Whether to enable radiation. See ``Magnet`` for details.
+    mult_rot_x_rad : float, optional
+        Rotation around the x-axis of the embedded multipolar field, in radians.
+    mult_rot_y_rad : float, optional
+        Rotation around the y-axis of the embedded multipolar field, in radians.
+    mult_shift_x : float, optional
+        Offset of the embedded multipolar field along the x-axis, in metres.
+    mult_shift_y : float, optional
+        Offset of the embedded multipolar field along the y-axis, in metres.
+    mult_shift_s : float, optional
+        Offset of the embedded multipolar field along s, in metres.
     """
     isthick = True
     has_backtrack = True
@@ -1856,24 +1973,6 @@ class Solenoid(BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     def __init__(self, order=None, knl: List[float] = None, ksl: List[float] = None, **kwargs):
-        """Solenoid element.
-
-        Parameters
-        ----------
-        length : float
-            Length of the element in meters.
-        ks : float
-            Strength of the solenoid component in rad / m. Only to be specified
-            when the element is thin, i.e. when `length` is 0.
-        ksi : float
-            Integrated strength of the solenoid component in rad.
-        knl : array
-            Integrated strength of the high-order normal multipolar components.
-        ksl : array
-            Integrated strength of the high-order skew multipolar components.
-        order : int
-            Order of the multipole expansion.
-        """
         if kwargs.get('_xobject') is not None:
             super().__init__(**kwargs)
             return

@@ -31,6 +31,14 @@ _INDEX_TO_INTEGRATOR = {
 }
 _INTEGRATOR_TO_INDEX = {k: v for v, k in _INDEX_TO_INTEGRATOR.items()}
 
+_INDEX_TO_EDGE_MODEL = {
+   -1: 'suppressed',
+    0: 'linear',
+    1: 'full',
+    2: 'dipole-only',
+}
+_EDGE_MODEL_TO_INDEX = {k: v for v, k in _INDEX_TO_EDGE_MODEL.items()}
+
 _INDEX_TO_MODEL_STRAIGHT = _INDEX_TO_MODEL_CURVED.copy()
 _INDEX_TO_MODEL_STRAIGHT.pop(2)
 _INDEX_TO_MODEL_STRAIGHT.pop(3)
@@ -52,6 +60,7 @@ COMMON_MAGNET_SOURCES = [
     _pkg_root.joinpath('beam_elements/elements_src/track_magnet.h'),
 ]
 
+
 class SynchrotronRadiationRecord(xo.HybridClass):
     _xofields = {
         '_index': RecordIndex,
@@ -60,9 +69,14 @@ class SynchrotronRadiationRecord(xo.HybridClass):
         'at_turn': xo.Int64[:],
         'particle_id': xo.Int64[:],
         'particle_delta': xo.Float64[:]
-        }
+    }
+
 
 class MagnetDrift(BeamElement):
+    """A drift slice in a magnet kick splitting. Mostly used for testing purposes.
+
+    See ``Magnet`` for the description of the parameters.
+    """
     isthick = True
     has_backtrack = True
 
@@ -81,6 +95,10 @@ class MagnetDrift(BeamElement):
 
 
 class MagnetKick(BeamElement):
+    """A thin kick in a magnet kick splitting. Mostly used for testing purposes.
+
+    See ``Magnet`` for the description of the parameters.
+    """
     isthick = False
     has_backtrack = False
 
@@ -92,7 +110,6 @@ class MagnetKick(BeamElement):
         'ksl': xo.Float64[:],
         'factor_knl_ksl': xo.Float64,
         'kick_weight': xo.Float64,
-        'angle': xo.Float64,
         'k0': xo.Float64,
         'k1': xo.Float64,
         'k2': xo.Float64,
@@ -111,6 +128,123 @@ class MagnetKick(BeamElement):
 
 
 class Magnet(BeamElement):
+    """General transverse field magnet with curvature and fringe fields.
+
+    A beam element representing a magnet with transverse fields, curvature, and
+    edge and fringe-field effects. Optional ``integrator`` and ``model``
+    parameters can be used to specify the integration scheme and drift model to
+    be used in the kick-splitting scheme. Default value is ``adaptive`` for
+    both, which aims to provide best results in the general case (``rot-kick-rot``
+    using the polar/exact, drift depending on h, for the model, and ``yoshida4``
+    for the integration scheme).
+
+    Parameters
+    ----------
+    length : float, optional
+        Length of the element in meters along the reference trajectory.
+    k0 : float, optional
+        Strength of the horizontal dipolar component in units of m^-1.
+    k1 : float, optional
+        Strength of the horizontal quadrupolar component in units of m^-2.
+    k2 : float, optional
+        Strength of the horizontal sextupolar component in units of m^-3.
+    k3 : float, optional
+        Strength of the horizontal octupolar component in units of m^-4.
+    k0s : float, optional
+        Strength of the skew dipolar component in units of m^-1.
+    k1s : float, optional
+        Strength of the skew quadrupolar component in units of m^-2.
+    k2s : float, optional
+        Strength of the skew sextupolar component in units of m^-3.
+    k3s : float, optional
+        Strength of the skew octupolar component in units of m^-4.
+    h : float, optional
+        Curvature of the reference trajectory in units of m^-1 (= 1 / radius).
+        Will imply the value of ``k0`` if ``k0_from_h`` is set.
+    k0_from_h : bool, optional
+        If true, the value of ``k0`` will be pinned to the value of ``h``.
+    order : int, optional
+        Maximum order of multipole expansion for this magnet. Defaults to 5.
+    knl : list of floats, optional
+        Normal multipole integrated strengths. If not provided, defaults to zeroes.
+    ksl : list of floats, optional
+        Skew multipole integrated strengths. If not provided, defaults to zeroes.
+    model : str, optional
+        Drift model to be used in the kick-splitting scheme. The options are:
+
+            - ``adaptive``: default option, same as ``rot-kick-rot``.
+            - ``full``: kept for backward compatibility, same as ``rot-kick-rot``.
+            - ``bend-kick-bend``: use a thick (curved, if ``h`` non-zero) exact
+                bend map for ``k0``, ``h``, and handle the other strengths in
+                the kicks.
+            - ``rot-kick-rot``: use an exact drift map (polar, if ``h`` non-zero)
+                and handle all strengths in the kicks.
+            - ``mat-kick-mat``: use an expanded combined-function magnet map
+                for ``k0``, ``k1``, ``h``, and handle the other strengths in
+                the kicks.
+            - ``drift-kick-drift-exact``: use an exact drift map with no curvature,
+                and handle all strengths in the kicks.
+            - ``drift-kick-drift-expanded``: use an expanded drift map with no
+                curvature, and handle all strengths in the kicks.
+
+        These will not be applied if the length is zero.
+    integrator : str, optional
+        Integration scheme to be used. The options are:
+
+            - ``adaptive``: default option, same as ``yoshida4``.
+            - ``teapot``: use the Teapot integration scheme.
+            - ``yoshida4``: use the Yoshida 4 integration scheme. The number of
+                kicks will be implicitly rounded up to the nearest multiple of 7,
+                as required by the scheme.
+            - ``uniform``: slice uniformly.
+
+        The integration scheme setting will be ignored if the length is zero, or
+        if the strength and the curvature settings imply no need for applying
+        thin kicks.
+    num_multipole_kicks : int, optional
+        The number of kicks to be used in thin kick splitting. If zero, and if
+        the model selection implies that there are kicks that need to be
+        performed, the value will be guessed according to a heuristic: one kick
+        in the middle for straight magnets, or ~2 kicks/mrad otherwise.
+    edge_entry_active : bool, optional
+        Whether to include the edge effect at entry. Enabled by default.
+    edge_exit_active : bool, optional
+        Whether to include the edge effect at exit. Enabled by default.
+    edge_entry_model : str, optional
+        Edge model at magnet entry. The options are:
+
+            - ``linear``: use a linear model for the edge.
+            - ``full``: include all multipolar terms.
+            - ``dipole-only``: ``full`` but includes only the dipolar terms.
+            - ``suppressed``: ignore the edge effect.
+    edge_exit_model : str, optional
+        Edge model at magnet exit. See ``edge_entry_model`` for the options.
+    edge_entry_angle : float, optional
+        The angle of the entry edge in radians. Default is 0.
+    edge_exit_angle : float, optional
+        Same as `edge_entry_angle`, but for the exit.
+    edge_entry_angle_fdown : float, optional
+        Term added to the entry angle only for the ``linear`` mode and only in
+        the vertical plane to account for non-zero angle in the closed orbit
+        when entering the fringe field (feed down effect). Default is 0.
+    edge_exit_angle_fdown : float, optional
+        Same as ``edge_entry_angle_fdown``, but for the exit. Default is 0.
+    edge_entry_fint: float, optional
+        Fringe integral value at entry. Default is 0.
+    edge_exit_fint : float, optional
+        Same as ``edge_entry_fint``, but for the exit. Default is 0.
+    edge_entry_hgap : float, optional
+        Equivalent gap at entry in meters. Default is 0.
+    edge_exit_hgap : float, optional
+        Same as ``edge_entry_hgap``, but for the exit.
+    radiation_flag : int, optional
+        Flag indicating if synchrotron radiation effects are enabled.
+        If zero, no radiation effects are simulated; if 1, the ``mean``
+        model is used; if 2, the ``quantum`` model is used and the
+        emitted photons are stored in the internal radiation record.
+    delta_taper : float, optional
+        A value added to delta for the purposes of tapering. Default is 0.
+    """
     isthick = True
     has_backtrack = True
 
@@ -331,52 +465,37 @@ class Magnet(BeamElement):
 
     @property
     def edge_entry_model(self):
-        return {
-            0: 'linear',
-            1: 'full',
-            2: 'dipole-only',
-           -1: 'suppressed',
-        }[self._edge_entry_model]
+        return _INDEX_TO_EDGE_MODEL[self._edge_entry_model]
 
     @edge_entry_model.setter
     def edge_entry_model(self, value):
-        assert value in ['linear', 'full', 'suppressed', 'dipole-only']
-        self._edge_entry_model = {
-            'linear': 0,
-            'full': 1,
-            'dipole-only': 2,
-            'suppressed': -1,
-        }[value]
+        try:
+            self._edge_entry_model = _EDGE_MODEL_TO_INDEX[value]
+        except KeyError:
+            raise ValueError(f'Invalid edge model: {value}')
 
     @property
     def edge_exit_model(self):
-        return {
-            0: 'linear',
-            1: 'full',
-           -1: 'suppressed',
-        }[self._edge_exit_model]
+        return _INDEX_TO_EDGE_MODEL[self._edge_exit_model]
 
     @edge_exit_model.setter
     def edge_exit_model(self, value):
-        assert value in ['linear', 'full', 'suppressed']
-        self._edge_exit_model = {
-            'linear': 0,
-            'full': 1,
-            'suppressed': -1,
-        }[value]
+        try:
+            self._edge_exit_model = _EDGE_MODEL_TO_INDEX[value]
+        except KeyError:
+            raise ValueError(f'Invalid edge model: {value}')
 
 
 class MagnetEdge(BeamElement):
-    """Beam element modeling a magnet edge.
+    """Beam element modeling a magnet edge. Mostly used for testing purposes.
 
     Parameters
     ----------
     model : str
-        Model to be used for the edge. It can be 'linear', 'full' or 'suppress'.
-        Default is 'linear'.
-        account.
+        Model to be used for the edge. See ``Magnet.edge_entry_model`` and
+        ``Magnet.edge_exit_model`` for the options.
     is_exit : bool
-        If False, the edge is a entrance edge. If True, the edge is an exit edge.
+        If False, the edge is the entrance edge. If True, the edge is an exit edge.
     kn : list of floats
         List of normal multipolar strengths. If not provided, will be filled
         with zeros according to ``k_order``.
@@ -449,16 +568,6 @@ class MagnetEdge(BeamElement):
 
     _noexpr_fields = _NOEXPR_FIELDS
 
-    _INDEX_TO_MODEL = {
-        -1: 'suppressed',
-        0: 'linear',
-        1: 'full',
-    }
-
-    _MODEL_TO_INDEX = {v: k for k, v in _INDEX_TO_MODEL.items()}
-
-
-
     def __init__(self, **kwargs):
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
@@ -485,12 +594,12 @@ class MagnetEdge(BeamElement):
 
     @property
     def model(self):
-        return self._INDEX_TO_MODEL[self._model]
+        return _INDEX_TO_EDGE_MODEL[self._model]
 
     @model.setter
     def model(self, value):
         try:
-            self._model = self._MODEL_TO_INDEX[value]
+            self._model = _EDGE_MODEL_TO_INDEX[value]
         except KeyError:
             raise ValueError(f'Invalid edge model: {value}')
 
@@ -523,6 +632,34 @@ def _prepare_multipolar_params(
         order_name='order',
         **kwargs,
 ):
+    """Prepare the multipolar parameters for an element with kicks.
+
+    This function takes the multipolar coefficients and the order, and extends/
+    computes new arrays of compatible order, padding them with zeros if needed.
+
+    Parameters
+    ----------
+    order : int, optional
+        The multipolar order. If not provided, will be inferred from the other
+        parameters.
+    order_name : str, optional
+        The name of the field in ``kwargs`` that stores the order.
+    skip_factorial : bool, optional
+        Whether to calculate ``inv_factorial_order``. Skipped by default.
+    kwargs : dict
+        A dictionary with values that are either array-type fields that contain
+        multipolar coefficients, or None.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the order field named appropriately and the
+        arrays given in ``kwargs``. The arrays will be extended with zeros (and
+        None will spawn zeroed arrays) compatible with the given order. If
+        ``order`` is not given, its value will be inferred from the given
+        arrays. If ``skip_factorial`` is False, the returned dictionary will
+        also contain ``inv_factorial_order``.
+    """
     order = order or 0
 
     lengths = [len(kwarg) if kwarg is not None else 0 for kwarg in kwargs.values()]
