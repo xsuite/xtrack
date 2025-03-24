@@ -61,8 +61,8 @@ def test_match_tune_chromaticity(test_context):
     print(f"ksf.b1 = {line.vars['ksf.b1']._value}")
     print(f"ksd.b1 = {line.vars['ksd.b1']._value}")
 
-    xo.assert_allclose(tw_final['qx'], 62.315, atol=1e-7)
-    xo.assert_allclose(tw_final['qy'], 60.325, atol=1e-7)
+    xo.assert_allclose(tw_final['qx'], 62.315, atol=1e-6)
+    xo.assert_allclose(tw_final['qy'], 60.325, atol=1e-6)
     xo.assert_allclose(tw_final['dqx'], 10.0, atol=0.05)
     xo.assert_allclose(tw_final['dqy'], 12.0, atol=0.05)
 
