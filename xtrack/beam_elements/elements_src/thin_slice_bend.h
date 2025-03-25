@@ -11,81 +11,58 @@ void ThinSliceBend_track_local_particle(
         ThinSliceBendData el,
         LocalParticle* part0
 ) {
-
     double weight = ThinSliceBendData_get_weight(el);
-
-    const double k0 = ThinSliceBendData_get__parent_k0(el);
-    const double k1 = ThinSliceBendData_get__parent_k1(el);
-    const double h = ThinSliceBendData_get__parent_h(el);
-    const double order = ThinSliceBendData_get__parent_order(el);
-    const double inv_factorial_order = ThinSliceBendData_get__parent_inv_factorial_order(el);
-    const double* knl = ThinSliceBendData_getp1__parent_knl(el, 0);
-    const double* ksl = ThinSliceBendData_getp1__parent_ksl(el, 0);
-
-    SynchrotronRadiationRecordData record = NULL;
-    RecordIndex record_index = NULL;
-
-    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
-    int64_t radiation_flag = ThinSliceBendData_get_radiation_flag(el);
-
-    // Extract record and record_index
-    if (radiation_flag==2){
-        record = (SynchrotronRadiationRecordData) ThinSliceBendData_getp_internal_record(el, part0);
-        if (record){
-            record_index = SynchrotronRadiationRecordData_getp__index(record);
-        }
-    }
-
-    #else
     int64_t radiation_flag = 0;
+    double delta_taper = 0.0;
+    SynchrotronRadiationRecordData record = NULL;
+    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+        radiation_flag = ThinSliceBendData_get_radiation_flag(el);
+        if (radiation_flag == 10){ // from parent
+            radiation_flag = ThinSliceBendData_get__parent_radiation_flag(el);
+        }
+        delta_taper = ThinSliceBendData_get_delta_taper(el);
+        if (radiation_flag==2){
+            record = (SynchrotronRadiationRecordData) ThinSliceBendData_getp_internal_record(el, part0);
+        }
     #endif
 
-    double dp_record_entry = 0.;
-    double dpx_record_entry = 0.;
-    double dpy_record_entry = 0.;
-    double dp_record_exit = 0.;
-    double dpx_record_exit = 0.;
-    double dpy_record_exit = 0.;
-
-    #ifdef XTRACK_MULTIPOLE_NO_SYNRAD
-    #define delta_taper (0)
-    #else
-        double delta_taper = ThinSliceBendData_get_delta_taper(el);
-    #endif
-
-
-    #ifndef XSUITE_BACKTRACK
-        double const length = weight * ThinSliceBendData_get__parent_length(el); // m
-        double const backtrack_sign = 1;
-    #else
-        double const length = -weight * ThinSliceBendData_get__parent_length(el); // m
-        double const backtrack_sign = -1;
-    #endif
-
-    double const knl_bend[2] = {backtrack_sign * k0 * length / weight,
-                                backtrack_sign * k1 * length / weight}; // the length is supposed to be already scaled by the weight
-    double const ksl_bend[2] = {0., 0.};
-    double const hxl_bend = h * length;
-
-    //start_per_particle_block (part0->part)
-
-        #ifdef XTRACK_MULTIPOLE_TAPER
-            delta_taper = LocalParticle_get_delta(part);
-        #endif
-
-        Multipole_track_single_particle(part,
-            hxl_bend, length, weight, // weight 1
-            knl, ksl, order, inv_factorial_order,
-            knl_bend, ksl_bend, 1, 1,
-            backtrack_sign,
-            delta_taper, radiation_flag,
-            &dp_record_entry, &dpx_record_entry, &dpy_record_entry,
-            &dp_record_exit, &dpx_record_exit, &dpy_record_exit,
-            record, record_index);
-
-    //end_per_particle_block
-
+    track_magnet_particles(
+        /*part0*/                 part0,
+        /*length*/                ThinSliceBendData_get__parent_length(el) * weight,
+        /*order*/                 ThinSliceBendData_get__parent_order(el),
+        /*inv_factorial_order*/   ThinSliceBendData_get__parent_inv_factorial_order(el),
+        /*knl*/                   ThinSliceBendData_getp1__parent_knl(el, 0),
+        /*ksl*/                   ThinSliceBendData_getp1__parent_ksl(el, 0),
+        /*factor_knl_ksl*/        weight,
+        /*num_multipole_kicks*/   1,
+        /*model*/                 -1, // kick only
+        /*integrator*/            3, // uniform
+        /*radiation_flag*/        radiation_flag,
+        /*radiation_record*/      record,
+        /*delta_taper*/           delta_taper,
+        /*h*/                     ThinSliceBendData_get__parent_h(el),
+        /*hxl*/                   0.,
+        /*k0*/                    ThinSliceBendData_get__parent_k0(el),
+        /*k1*/                    ThinSliceBendData_get__parent_k1(el),
+        /*k2*/                    0.,
+        /*k3*/                    0.,
+        /*k0s*/                   0.,
+        /*k1s*/                   0.,
+        /*k2s*/                   0.,
+        /*k3s*/                   0.,
+        /*edge_entry_active*/     0,
+        /*edge_exit_active*/      0,
+        /*edge_entry_model*/      0,
+        /*edge_exit_model*/       0,
+        /*edge_entry_angle*/      0.,
+        /*edge_exit_angle*/       0.,
+        /*edge_entry_angle_fdown*/0.,
+        /*edge_exit_angle_fdown*/ 0.,
+        /*edge_entry_fint*/       0.,
+        /*edge_exit_fint*/        0.,
+        /*edge_entry_hgap*/       0.,
+        /*edge_exit_hgap*/        0.
+    );
 }
-
 
 #endif

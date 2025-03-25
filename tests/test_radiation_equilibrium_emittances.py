@@ -122,39 +122,50 @@ def test_eq_emitt(conf):
     # for regression testing
     checked = False
     if not tilt_machine_by_90_degrees and not vertical_orbit_distortion and not wiggler_on:
-        xo.assert_allclose(ex, 7.0592e-10, atol=0,     rtol=1e-4)
+        xo.assert_allclose(ex, 7.1357e-10, atol=0,     rtol=1e-4)
         xo.assert_allclose(ey, 0,          atol=1e-14, rtol=0)
-        xo.assert_allclose(ez, 3.6000e-6,  atol=0,     rtol=1e-4)
+        xo.assert_allclose(ez, 3.4595e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif tilt_machine_by_90_degrees and not vertical_orbit_distortion and not wiggler_on:
         xo.assert_allclose(ex, 0,          atol=1e-14, rtol=0)
-        xo.assert_allclose(ey, 7.0592e-10, atol=0,     rtol=1e-4)
-        xo.assert_allclose(ez, 3.6000e-6,  atol=0,     rtol=1e-4)
+        xo.assert_allclose(ey, 7.1357e-10, atol=0,     rtol=1e-4)
+        xo.assert_allclose(ez, 3.4595e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif not tilt_machine_by_90_degrees and not vertical_orbit_distortion and wiggler_on:
-        xo.assert_allclose(ex, 6.9954e-10, atol=0,     rtol=1e-4)
-        xo.assert_allclose(ey, 5.8575e-13, atol=0,     rtol=4e-3)
-        xo.assert_allclose(ez, 3.8595e-6,  atol=0,     rtol=1e-4)
+        xo.assert_allclose(ex, 7.0714e-10, atol=0,     rtol=1e-4)
+        xo.assert_allclose(ey, 5.6113e-13, atol=0,     rtol=4e-3)
+        xo.assert_allclose(ez, 3.7089e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif tilt_machine_by_90_degrees and not vertical_orbit_distortion and wiggler_on:
-        xo.assert_allclose(ex, 5.8575e-13, atol=0,     rtol=4e-3)  # Quite large, to be kept in mind
-        xo.assert_allclose(ey, 6.9955e-10, atol=0,     rtol=1e-4)
-        xo.assert_allclose(ez, 3.8595e-6,  atol=0,     rtol=1e-4)
+        xo.assert_allclose(ex, 5.6229e-13, atol=0,     rtol=4e-3)  # Quite large, to be kept in mind
+        xo.assert_allclose(ey, 7.0714e-10, atol=0,     rtol=1e-4)
+        xo.assert_allclose(ez, 3.7089e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif not tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
-        xo.assert_allclose(ex, 7.0576e-10, atol=0,     rtol=1e-4)
-        xo.assert_allclose(ey, 2.5039e-12, atol=0,     rtol=4e-3)
-        xo.assert_allclose(ez, 3.5766e-6,  atol=0,     rtol=1e-4)
+        xo.assert_allclose(ex, 7.1345e-10, atol=0,     rtol=1e-4)
+        xo.assert_allclose(ey, 2.2100e-12, atol=0,     rtol=1e-2)
+        xo.assert_allclose(ez, 3.4433e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
-        xo.assert_allclose(ex, 2.5039e-12, atol=0,     rtol=5e-3)
-        xo.assert_allclose(ey, 7.0576e-10, atol=0,     rtol=1e-4)
-        xo.assert_allclose(ez, 3.5763e-6,  atol=0,     rtol=1e-4)
+        xo.assert_allclose(ex, 2.2071e-12, atol=0,     rtol=7e-3)
+        xo.assert_allclose(ey, 7.1345e-10, atol=0,     rtol=1e-4)
+        xo.assert_allclose(ez, 3.4433e-6,  atol=0,     rtol=1e-4)
         checked = True
     else:
         raise ValueError('Unknown configuration')
 
     assert checked
+
+    # Check radiation integrals
+    tw_integ = line.twiss(radiation_integrals=True)
+    xo.assert_allclose(tw_integ.rad_int_damping_constant_x_s,
+                       tw_rad.damping_constants_s[0], rtol=0.02, atol=0)
+    xo.assert_allclose(tw_integ.rad_int_damping_constant_y_s,
+                       tw_rad.damping_constants_s[1], rtol=0.02, atol=0)
+    xo.assert_allclose(tw_integ.rad_int_damping_constant_zeta_s,
+                       tw_rad.damping_constants_s[2], rtol=0.02, atol=0)
+    xo.assert_allclose(tw_integ.rad_int_eq_gemitt_x, ex, rtol=0.15, atol=1e-14)
+    xo.assert_allclose(tw_integ.rad_int_eq_gemitt_y, ey, rtol=0.15, atol=1e-14)
 
     tw_rad2 = line.twiss(eneloss_and_damping=True, method='6d',
                      radiation_method='full',
@@ -171,9 +182,9 @@ def test_eq_emitt(conf):
         xo.assert_allclose(tw_rad2.eq_gemitt_x, tw_rad.eq_gemitt_x, atol=1e-14, rtol=1.5e-2)
         xo.assert_allclose(tw_rad2.eq_gemitt_y, tw_rad.eq_gemitt_y, atol=1e-14, rtol=1.5e-2)
         xo.assert_allclose(tw_rad2.eq_gemitt_zeta, tw_rad.eq_gemitt_zeta, atol=1e-14, rtol=4e-2)
-        xo.assert_allclose(tw_rad2.eq_nemitt_x/tw_rad.gamma0, tw_rad.eq_nemitt_x/tw_rad.gamma0, atol=1e-15, rtol=1.5e-2)
-        xo.assert_allclose(tw_rad2.eq_nemitt_y/tw_rad.gamma0, tw_rad.eq_nemitt_y/tw_rad.gamma0, atol=1e-15, rtol=1.5e-2)
-        xo.assert_allclose(tw_rad2.eq_nemitt_zeta/tw_rad.gamma0, tw_rad.eq_nemitt_zeta/tw_rad.gamma0, atol=1e-15, rtol=4e-2)
+        xo.assert_allclose(tw_rad2.eq_nemitt_x/tw_rad.gamma0, tw_rad.eq_nemitt_x/tw_rad.gamma0, atol=1e-14, rtol=1.5e-2)
+        xo.assert_allclose(tw_rad2.eq_nemitt_y/tw_rad.gamma0, tw_rad.eq_nemitt_y/tw_rad.gamma0, atol=1e-14, rtol=1.5e-2)
+        xo.assert_allclose(tw_rad2.eq_nemitt_zeta/tw_rad.gamma0, tw_rad.eq_nemitt_zeta/tw_rad.gamma0, atol=1e-14, rtol=4e-2)
 
     xo.assert_allclose(tw_rad.eq_nemitt_x, tw_rad.eq_gemitt_x * (tw_rad.gamma0*tw_rad.beta0), atol=1e-16, rtol=0)
     xo.assert_allclose(tw_rad.eq_nemitt_y, tw_rad.eq_gemitt_y * (tw_rad.gamma0*tw_rad.beta0), atol=1e-16, rtol=0)

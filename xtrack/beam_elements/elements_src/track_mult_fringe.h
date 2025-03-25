@@ -13,17 +13,24 @@
 #define POW3(X) ((X)*(X)*(X))
 #endif
 
+// This functionality is ported from MAD-NG
+
 /*gpufun*/
 void MultFringe_track_single_particle(
-    const double* kn,  // Normal quadrupole component(s); array of length `order`
-    const double* ks,  // Skew quadrupole component(s); array of length `order`
+    LocalParticle* part,  // Particle to be tracked
+    const double* kn,  // Normal components; array of length `order`
+    const double* ks,  // Skew components; array of length `order`
+    int64_t k_order,  // Order components
+    const double* knl,  // Second set of normal components; array of length kl_order
+    const double* ksl,  // Second set of skey components; array of length kl_order
+    int64_t kl_order,  // Order of the fringe
+    const double length, // Effective length of the magnet corresponding to knl, ksl
     const uint8_t is_exit,  // If truthy it's the exit fringe, otherwise the entry
-    uint32_t order,  // Order of the fringe
-    LocalParticle* part  // Particle to be tracked
+    uint64_t min_order  // Minimum order of the fringe, ignore the lower components
 ) {
-    if (order == 0) return;
+    if (k_order == -1 && kl_order == -1) return;
 
-     #ifdef XSUITE_BACKTRACK
+    #ifdef XSUITE_BACKTRACK
         LocalParticle_kill_particle(part, -32);
         return;
     #endif
@@ -52,25 +59,38 @@ void MultFringe_track_single_particle(
     double fyx = 0;
     double fyy = 0;
 
-    for (uint32_t ii = 0; ii < order; ii++)
+    uint32_t order = (k_order > kl_order) ? k_order : kl_order;
+    double inv_factorial = 1;
+
+    for (uint32_t ii = 0; ii <= order; ii++)
     {
+        if (ii > 1) inv_factorial /= ii;
         double component = ii + 1;
         double drx = rx;
         double dix = ix;
         rx = drx * x - dix * y;
         ix = drx * y + dix * x;
 
+        double kn_total = 0;
+        double ks_total = 0;
+
+        if (ii >= min_order) {
+            if (ii <= k_order) {
+                kn_total += kn[ii] * inv_factorial;
+                ks_total += ks[ii] * inv_factorial;
+            }
+            if (ii <= kl_order && length != 0.) {
+                kn_total += knl[ii] / length * inv_factorial;
+                ks_total += ksl[ii] / length * inv_factorial;
+            }
+        }
+
         double nj = -q * direction / (4 * (component + 1));
         double nf = (component + 2) / component;
-        double kj = kn[ii];
-        double ksj = ks[ii];
+        double kj = kn_total;
+        double ksj = ks_total;
         double u, v, du, dv;
 
-//        printf(
-//            "ii=%d, nj=%.5f, nf=%.5f, rx=%.16e, ix=%.16e, drx=%.16e, "
-//            "dix=%.16e, kj=%.16e, ksj=%.16e\n",
-//            ii, nj, nf, rx, ix, drx, dix, kj, ksj
-//        );
 
         if (ii == 0) {
             u = nj * (-ksj * ix);
@@ -89,8 +109,6 @@ void MultFringe_track_single_particle(
         double duy = -component * dv;
         double dvy = component * du;
 
-//        printf("u=%.16e, v=%.16e, du=%.16e, dv=%.16e, ", u, v, du, dv);
-
         fx = fx + u * x + nf * v * y;
         fy = fy + u * y - nf * v * x;
         fxx = fxx + dux * x + nf * dvx * y + u;
@@ -98,10 +116,6 @@ void MultFringe_track_single_particle(
         fxy = fxy + duy * x + nf * (dvy * y + v);
         fyx = fyx + dux * y - nf * (dvx * x + v);
 
-//        printf(
-//            "fx=%.16e, fy=%.16e, fxx=%.16e, fyy=%.16e, fxy=%.16e, fyx=%.16e\n",
-//            fx, fy, fxx, fyy, fxy, fyx
-//        );
     }
 
     double a = 1 - fxx / pz;

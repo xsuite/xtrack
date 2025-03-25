@@ -43,6 +43,7 @@ from .mad_loader import MadLoader
 from .beam_elements import element_classes
 from . import beam_elements
 from .beam_elements import Drift, BeamElement, Marker, Multipole
+from .beam_elements.slice_elements import ID_RADIATION_FROM_PARENT
 from .footprint import Footprint, _footprint_with_linear_rescale
 from .internal_record import (start_internal_logging_for_elements_of_type,
                               stop_internal_logging_for_elements_of_type,
@@ -59,7 +60,7 @@ _ALLOWED_ELEMENT_TYPES_IN_NEW = [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole,
                                  xt.Marker, xt.Replica, xt.XYShift, xt.XRotation,
                                  xt.YRotation, xt.SRotation, xt.LimitRacetrack,
                                  xt.LimitRectEllipse, xt.LimitRect, xt.LimitEllipse,
-                                 xt.RFMultipole, xt.RBend]
+                                 xt.LimitPolygon, xt.RFMultipole, xt.RBend]
 
 _ALLOWED_ELEMENT_TYPES_DICT = {'Drift': xt.Drift, 'Bend': xt.Bend,
                                'Quadrupole': xt.Quadrupole, 'Sextupole': xt.Sextupole,
@@ -69,6 +70,7 @@ _ALLOWED_ELEMENT_TYPES_DICT = {'Drift': xt.Drift, 'Bend': xt.Bend,
                                'LimitRacetrack': xt.LimitRacetrack,
                                'LimitRectEllipse': xt.LimitRectEllipse,
                                'LimitRect': xt.LimitRect, 'LimitEllipse': xt.LimitEllipse,
+                               'LimitPolygon': xt.LimitPolygon,
                                'XYShift': xt.XYShift, 'XRotation': xt.XRotation,
                                'YRotation': xt.YRotation, 'SRotation': xt.SRotation,
                                'RFMultipole': xt.RFMultipole, 'RBend': xt.RBend}
@@ -963,6 +965,10 @@ class Line:
 
         return self._collimators
 
+    def _get_bucket(self):
+        import xpart as xp
+        return xp.longitudinal.get_bucket(self)
+
     def discard_tracker(self):
 
         """
@@ -1260,6 +1266,7 @@ class Line:
         values_at_element_exit=None,
         radiation_method=None,
         eneloss_and_damping=None,
+        radiation_integrals=None,
         start=None, end=None, init=None,
         num_turns=None,
         skip_global_quantities=None,
@@ -2877,7 +2884,7 @@ class Line:
             Model to be used for the thick bend cores. Can be 'expanded' or '
             full'.
         edge: str
-            Model to be used for the bend edges. Can be 'linear', 'full'
+            Model to be used for the bend edges. Can be 'linear', 'full', 'dipole-only'
             or 'suppressed'.
         num_multipole_kicks: int
             Number of multipole kicks to consider.
@@ -2887,7 +2894,7 @@ class Line:
                               'rot-kick-rot', 'expanded']:
             raise ValueError(f'Unknown bend model {core}')
 
-        if edge not in [None, 'linear', 'full', 'suppressed']:
+        if edge not in [None, 'linear', 'full', 'dipole-only', 'suppressed']:
             raise ValueError(f'Unknown bend edge model {edge}')
 
         for ee in self.element_dict.values():
@@ -2904,10 +2911,11 @@ class Line:
             if num_multipole_kicks is not None:
                 ee.num_multipole_kicks = num_multipole_kicks
 
-    def _configure_mult_fringes(
+    def _configure_mult(
             self,
             element_type,
-            edge: Optional[Literal['full']] = 'full',
+            edge: Optional[Literal['full']] = None,
+            num_multipole_kicks: Optional[int] = None,
     ):
         """Configure fringes on elements of a given type.
 
@@ -2916,25 +2924,35 @@ class Line:
         edge: str
             None to disable, 'full' to enable.
         """
-        if edge not in [None, 'full']:
+        if edge not in [None, 'full', 'suppressed']:
             raise ValueError(f'Unknown edge model {edge}: only None or '
                              f'"full" are supported.')
 
         enable_fringes = edge == 'full'
 
         for ee in self.element_dict.values():
-            if isinstance(ee, element_type):
+            if not isinstance(ee, element_type):
+                continue
+            if edge is not None:
                 ee.edge_entry_active = enable_fringes
                 ee.edge_exit_active = enable_fringes
+            if num_multipole_kicks is not None:
+                ee.num_multipole_kicks = num_multipole_kicks
 
-    def configure_quadrupole_model(self, edge: Optional[Literal['full']] = 'full'):
-        self._configure_mult_fringes(xt.Quadrupole, edge=edge)
+    def configure_quadrupole_model(self, edge: Optional[Literal['full']] = None,
+                                   num_multipole_kicks: Optional[int] = None):
+        self._configure_mult(xt.Quadrupole, edge=edge,
+                             num_multipole_kicks=num_multipole_kicks)
 
-    def configure_sextupole_model(self, edge: Optional[Literal['full']] = 'full'):
-        self._configure_mult_fringes(xt.Sextupole, edge=edge)
+    def configure_sextupole_model(self, edge: Optional[Literal['full']] = None,
+                                  num_multipole_kicks: Optional[int] = None):
+        self._configure_mult(xt.Sextupole, edge=edge,
+                             num_multipole_kicks=num_multipole_kicks)
 
-    def configure_octupole_model(self, edge: Optional[Literal['full']] = 'full'):
-        self._configure_mult_fringes(xt.Octupole, edge=edge)
+    def configure_octupole_model(self, edge: Optional[Literal['full']] = None,
+                                 num_multipole_kicks: Optional[int] = None):
+        self._configure_mult(xt.Octupole, edge=edge,
+                            num_multipole_kicks=num_multipole_kicks)
 
     def configure_radiation(self, model=None, model_beamstrahlung=None,
                             model_bhabha=None, mode='deprecated'):
@@ -2989,8 +3007,6 @@ class Line:
             self._bhabha_model = None
 
         for kk, ee in self.element_dict.items():
-            if isinstance (ee, (xt.Quadrupole, xt.Bend)):
-                continue
             if hasattr(ee, 'radiation_flag'):
                 ee.radiation_flag = radiation_flag
 
@@ -3939,12 +3955,13 @@ class Line:
             Rename the element in the new line/environment. If not provided, the
             element is copied with the same name.
         """
+        new_name_input = new_name if new_name != name else None
         new_name = new_name or name
         cls = type(source.element_dict[name])
 
-        if cls not in _ALLOWED_ELEMENT_TYPES_IN_NEW + [xt.DipoleEdge]: # No issue in copying DipoleEdge
-                                                                       # while creating it requires handling properties
-                                                                       # which are strings.
+        if (cls not in _ALLOWED_ELEMENT_TYPES_IN_NEW + [xt.DipoleEdge] # No issue in copying DipoleEdge while creating it requires handling properties which are strings.
+            and 'ThickSlice' not in cls.__name__ and 'ThinSlice' not in cls.__name__
+            and 'DriftSlice' not in cls.__name__):
             raise ValueError(
                 f'Only {_STR_ALLOWED_ELEMENT_TYPES_IN_NEW} elements are '
                 f'allowed in `copy_from_env` for now.'
@@ -4047,6 +4064,8 @@ class Line:
         >>> line.set(['e', 'f'], '3*a')
 
         '''
+        if hasattr(name, 'name'):
+            name = name.name
 
         if isinstance(name, Iterable) and not isinstance(name, str):
             for nn in name:
@@ -4579,7 +4598,7 @@ class Line:
         cache = LineAttr(
             line=self,
             fields={
-                'radiation_flag': None, 'delta_taper': None, 'ks': None,
+                'delta_taper': None, 'ks': None,
                 'voltage': None, 'frequency': None, 'lag': None,
                 'lag_taper': None,
 
@@ -4595,6 +4614,8 @@ class Line:
 
                 '_own_h': 'h',
                 '_own_hxl': 'hxl',
+
+                '_own_radiation_flag': 'radiation_flag',
 
                 '_own_k0': 'k0',
                 '_own_k1': 'k1',
@@ -4633,6 +4654,8 @@ class Line:
 
                 '_parent_h': (('_parent', 'h'), None),
                 '_parent_hxl': (('_parent', 'hxl'), None),
+
+                '_parent_radiation_flag': (('_parent', 'radiation_flag'), None),
 
                 '_parent_k0': (('_parent', 'k0'), None),
                 '_parent_k1': (('_parent', 'k1'), None),
@@ -4677,6 +4700,9 @@ class Line:
                 'shift_s': lambda attr:
                     attr['_own_shift_s'] + attr['_parent_shift_s']
                     * attr._rot_and_shift_from_parent,
+                'radiation_flag': lambda attr:
+                    attr['_own_radiation_flag'] * (attr['_own_radiation_flag'] != ID_RADIATION_FROM_PARENT)
+                  + attr['_parent_radiation_flag'] * (attr['_own_radiation_flag'] == ID_RADIATION_FROM_PARENT),
                 'k0l': lambda attr: (
                     attr['_own_k0l']
                     + attr['_own_k0'] * attr['_own_length']
@@ -5777,11 +5803,27 @@ class EnergyProgram:
         return beta0 * clight / circumference
 
     def get_p0c_increse_per_turn_at_t_s(self, t_s):
+
+        ts_scalar = np.isscalar(t_s)
+        if ts_scalar:
+            t_s = np.array([t_s])
+
         beta0 = self.get_beta0_at_t_s(t_s)
         circumference = self.line.get_length()
         T_rev = circumference / (beta0 * clight)
-        return 0.5 * (self.get_p0c_at_t_s(t_s + T_rev)
-                      - self.get_p0c_at_t_s(t_s - T_rev))
+        out = 0.5 * (self.get_p0c_at_t_s(t_s + T_rev)
+                     - self.get_p0c_at_t_s(t_s - T_rev))
+
+        mask_zero_neg = t_s - T_rev < 0
+        if np.any(mask_zero_neg):
+            out[mask_zero_neg] = (
+                self.get_p0c_at_t_s(t_s[mask_zero_neg] + T_rev[mask_zero_neg])
+                - self.get_p0c_at_t_s(t_s[mask_zero_neg]))
+
+        if ts_scalar:
+            out = out[0]
+
+        return out
 
     @property
     def t_turn_s_line(self):
