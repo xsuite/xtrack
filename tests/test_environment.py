@@ -89,15 +89,19 @@ def test_vars_and_element_access_modes(container_type):
     })
 
     env.new('bb', xt.Bend, k0='2 * b', length=3+env.vars['a'] + env.vars['b'],
-            angle=5.)
+            angle=5., model='full')
     assert env['bb'].k0 == 2 * (2 * 4 + 5)
     assert env['bb'].length == 3 + 4 + 2 * 4 + 5
     assert env['bb'].angle == 5.
+    assert env['bb'].model == 'full'
 
     env.vars['a'] = 2.
     assert env['bb'].k0 == 2 * (2 * 2 + 5)
     assert env['bb'].length == 3 + 2 + 2 * 2 + 5
     assert env['bb'].angle == 5.
+
+    env['bb'].model = 'adaptive'
+    assert env['bb'].model == 'adaptive'
 
     line = env.new_line([
         env.new('bb1', 'bb', length=3*env.vars['a'], at='2*a'),
