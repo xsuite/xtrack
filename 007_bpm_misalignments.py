@@ -47,9 +47,11 @@ line.steering_correctors_y = ['corrector2', 'corrector4']
 
 
 correction = line.correct_trajectory(twiss_table=tw0,
+                                     x_init=1e-3, y_init=2e-3,
                                      start='line.start', end='line.end',
                                      run=False)
 
 correction.correct(n_iter=1)
 
+# Data from previous step can be found in:
 correction.x_correction._position_before

@@ -1537,7 +1537,8 @@ class Line:
                  twiss_table=None, planes=None,
                  monitor_names_x=None, corrector_names_x=None,
                  monitor_names_y=None, corrector_names_y=None,
-                 n_micado=None, n_singular_values=None, rcond=None):
+                 n_micado=None, n_singular_values=None, rcond=None,
+                 x_init=0, px_init=0, y_init=0, py_init=0, zeta_init=0, delta_init=0):
 
         '''
         Correct the beam trajectory using linearized response matrix from optics
@@ -1603,7 +1604,10 @@ class Line:
                  monitor_names_y=monitor_names_y,
                  corrector_names_y=corrector_names_y,
                  n_micado=n_micado, n_singular_values=n_singular_values,
-                 rcond=rcond)
+                 rcond=rcond,
+                 x_init=x_init, px_init=px_init,
+                 y_init=y_init, py_init=py_init,
+                 zeta_init=zeta_init, delta_init=delta_init)
 
         if run:
             correction.correct(planes=planes, n_iter=n_iter)
