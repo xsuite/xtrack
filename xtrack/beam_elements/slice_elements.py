@@ -65,6 +65,8 @@ class ThinSliceQuadrupole(BeamElement):
 
         out = Multipole(knl=knl, ksl=ksl, length=length,
                         hxl=0,
+                        radiation_flag=self.radiation_flag,
+                        delta_taper=self.delta_taper,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
                         shift_s=self._parent.shift_s,
@@ -113,6 +115,8 @@ class ThinSliceSextupole(BeamElement):
 
         out = Multipole(knl=knl, ksl=ksl, length=length,
                         hxl=0,
+                        radiation_flag=self.radiation_flag,
+                        delta_taper=self.delta_taper,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
                         shift_s=self._parent.shift_s,
@@ -161,6 +165,8 @@ class ThinSliceOctupole(BeamElement):
 
         out = Multipole(knl=knl, ksl=ksl, length=length,
                         hxl=0,
+                        radiation_flag=self.radiation_flag,
+                        delta_taper=self.delta_taper,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
                         shift_s=self._parent.shift_s,
@@ -208,6 +214,8 @@ class ThinSliceBend(BeamElement):
 
         out = Multipole(knl=knl, ksl=ksl, length=length,
                         hxl=self._parent.h * length,
+                        radiation_flag=self.radiation_flag,
+                        delta_taper=self.delta_taper,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
                         shift_s=self._parent.shift_s,
@@ -303,6 +311,7 @@ class ThinSliceBendExit(BeamElement):
                 hgap=self._parent.edge_exit_hgap,
                 fint=self._parent.edge_exit_fint,
                 model=self._parent.edge_exit_model,
+                delta_taper=self.delta_taper,
                 side='exit',
                 shift_x=self._parent.shift_x,
                 shift_y=self._parent.shift_y,
@@ -715,3 +724,4 @@ class ThinSliceRBendExit(BeamElement):
             )
         else:
             return Marker(_buffer=self._buffer)
+
