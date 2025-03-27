@@ -37,7 +37,9 @@ class MyHamiltonian(bpmeth.Hamiltonian):
 H_magnet = MyHamiltonian(length=length, curv=float(h), vectp=A_magnet)
 
 # This guy is able to track an Xsuite particle!
-p0 = xt.Particles(x=np.linspace(-1e-3, 1e-3, 10), energy0=10e9, mass0=xt.ELECTRON_MASS_EV)
+p0 = xt.Particles(x=np.linspace(-1e-3, 1e-3, 10),
+                  y=np.linspace(-2e-3, 2e-3, 10),
+                   energy0=10e9, mass0=xt.ELECTRON_MASS_EV)
 
 p_silke = p0.copy()
 sol = H_magnet.track(p_silke, return_sol=True,
