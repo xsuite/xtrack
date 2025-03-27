@@ -15,8 +15,10 @@ import xobjects as xo
 from xobjects.general import Print
 from xobjects import BypassLinked
 
-from .constants import PROTON_MASS_EV
-
+from .masses import PROTON_MASS_EV
+from .masses import __dict__ as mass__dict__
+from .pdg import get_pdg_id_from_name, get_properties_from_pdg_id, \
+                 get_mass_from_pdg_id
 
 LAST_INVALID_STATE = -999999999
 
@@ -1402,7 +1404,11 @@ class Particles(xo.HybridClass):
         if mode != 'no_local_copy':
             raise NotImplementedError
 
-        src_lines = []
+        src_lines = ['']
+        for name, mass in mass__dict__.items():
+            if name.endswith('_MASS_EV'):
+                src_lines.append(f'#define {name} {mass}')
+
         src_lines.append('typedef struct {')
 
         for tt, vv in cls.size_vars + cls.scalar_vars:
@@ -1939,7 +1945,6 @@ class Particles(xo.HybridClass):
 
         pdg_id = kwargs.get('pdg_id')
         try:
-            from xpart.pdg import get_pdg_id_from_name
             pdg_id = get_pdg_id_from_name(pdg_id)
             if not np.isscalar(pdg_id):
                 pdg_id = self._context.nparray_to_context_array(pdg_id)
@@ -1953,9 +1958,6 @@ class Particles(xo.HybridClass):
 
     @classmethod
     def reference_from_pdg_id(cls, pdg_id, **kwargs):
-        from xpart.pdg import (
-            get_pdg_id_from_name, get_properties_from_pdg_id, get_mass_from_pdg_id
-        )
         pdg_id = get_pdg_id_from_name(pdg_id)
         kwargs['pdg_id'] = pdg_id
         q0 = kwargs.get('q0')
