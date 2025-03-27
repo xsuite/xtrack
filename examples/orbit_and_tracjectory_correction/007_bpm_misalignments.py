@@ -1,4 +1,5 @@
 import xtrack as xt
+import xobjects as xo
 
 env = xt.Environment()
 env.particle_ref = xt.Particles(p0c=450e9, mass0=xt.PROTON_MASS_EV, q0=1)
@@ -35,16 +36,17 @@ env['kq3'] = 0.02
 env['kq4'] = -0.02
 
 bpm_alignment ={
-    'bpm1': {'x': 1e-3, 'y': 2e-3},
-    'bpm2': {'x': 1e-3, 'y': 2e-3},
-    'bpm3': {'x': 1e-3, 'y': 2e-3},
-    'bpm4': {'x': 1e-3, 'y': 2e-3},
+    'bpm1': {'shift_x': 1e-3, 'shift_y': 2e-3},
+    'bpm2': {'shift_x': 1e-3, 'shift_y': 2e-3},
+    'bpm3': {'shift_x': 1e-3, 'shift_y': 2e-3},
+    'bpm4': {'shift_x': 1e-3, 'shift_y': 2e-3},
 }
 
 tw0 = line.twiss(betx=100, bety=80)
 
 env.set(['mq1', 'mq2', 'mq3', 'mq4'], shift_x=1e-3, shift_y=2e-3)
 
+# Going through the center of all quads
 tw = line.twiss(betx=100, bety=80, x=1e-3, y=2e-3)
 
 line.steering_monitors_x = ['bpm1', 'bpm2', 'bpm3', 'bpm4']
@@ -56,9 +58,16 @@ line.steering_correctors_y = ['corrector2', 'corrector4']
 correction = line.correct_trajectory(twiss_table=tw0,
                                      x_init=1e-3, y_init=2e-3,
                                      start='line.start', end='line.end',
+                                     monitor_alignment=bpm_alignment,
                                      run=False)
 
 correction.correct(n_iter=1)
 
+xo.assert_allclose(correction.x_correction.shift_x_monitors, 1e-3, rtol=0, atol=1e-14)
+xo.assert_allclose(correction.x_correction.shift_y_monitors, 2e-3, rtol=0, atol=1e-14)
+xo.assert_allclose(correction.y_correction.shift_x_monitors, 1e-3, rtol=0, atol=1e-14)
+xo.assert_allclose(correction.y_correction.shift_y_monitors, 2e-3, rtol=0, atol=1e-14)
+
 # Data from previous step can be found in:
-correction.x_correction._position_before
+xo.assert_allclose(correction.x_correction._position_before,0, rtol=0, atol=1e-14)
+xo.assert_allclose(correction.y_correction._position_before,0, rtol=0, atol=1e-14)

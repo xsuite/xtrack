@@ -1538,6 +1538,7 @@ class Line:
                  monitor_names_x=None, corrector_names_x=None,
                  monitor_names_y=None, corrector_names_y=None,
                  n_micado=None, n_singular_values=None, rcond=None,
+                 monitor_alignment=None,
                  x_init=0, px_init=0, y_init=0, py_init=0, zeta_init=0, delta_init=0):
 
         '''
@@ -1605,6 +1606,7 @@ class Line:
                  corrector_names_y=corrector_names_y,
                  n_micado=n_micado, n_singular_values=n_singular_values,
                  rcond=rcond,
+                 monitor_alignmemnt=monitor_alignment,
                  x_init=x_init, px_init=px_init,
                  y_init=y_init, py_init=py_init,
                  zeta_init=zeta_init, delta_init=delta_init)

@@ -195,8 +195,11 @@ class OrbitCorrectionSinglePlane:
         self.shift_y_monitors = 0*self.s_monitors
         self.rot_s_rad_monitors = 0*self.s_monitors
 
+        self.monitor_alignment = monitor_alignment
         if monitor_alignment is not None:
             for nn, alignment in monitor_alignment.items():
+                for kk in alignment.keys():
+                    assert kk in ['shift_x', 'shift_y', 'rot_s_rad']
                 if nn in self.monitor_names:
                     i_monitor = self.monitor_names.index(nn)
                     self.shift_x_monitors[i_monitor] = alignment.get('shift_x', 0)
@@ -369,6 +372,7 @@ class TrajectoryCorrection:
                  start=None, end=None, twiss_table=None,
                  monitor_names_x=None, corrector_names_x=None,
                  monitor_names_y=None, corrector_names_y=None,
+                 monitor_alignmemnt=None,
                  x_init=0, px_init=0, y_init=0, py_init=0, zeta_init=0, delta_init=0,
                  n_micado=None, n_singular_values=None, rcond=None):
 
@@ -438,6 +442,7 @@ class TrajectoryCorrection:
                 corrector_names=corrector_names_x, start=start, end=end,
                 twiss_table=twiss_table, n_micado=n_micado_x,
                 n_singular_values=n_singular_values_x, rcond=rcond_x,
+                monitor_alignment=monitor_alignmemnt,
                 x_init=x_init, px_init=px_init, y_init=y_init, py_init=py_init,
                 delta_init=delta_init, zeta_init=zeta_init)
         else:
@@ -451,6 +456,7 @@ class TrajectoryCorrection:
                 corrector_names=corrector_names_y, start=start, end=end,
                 twiss_table=twiss_table, n_micado=n_micado_y,
                 n_singular_values=n_singular_values_y, rcond=rcond_y,
+                monitor_alignment=monitor_alignmemnt,
                 x_init=x_init, px_init=px_init, y_init=y_init, py_init=py_init,
                 delta_init=delta_init, zeta_init=zeta_init)
         else:
