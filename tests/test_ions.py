@@ -11,6 +11,50 @@ test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
 
+
+
+@for_all_test_contexts
+def test_chi(test_context):
+    ''' Tests if particles are deflected in quadrupoles according to their chi value.'''
+
+    quad1 = xt.Quadrupole(knl=[0,-0.005])
+    ql    = xt.Line(
+                elements      = [xt.Drift(length=10), quad1,    xt.Drift(length=100)],
+                element_names = ['drift_0', 'quad_0', 'drift_1'])
+    
+
+    ql.build_tracker(_context = test_context)
+
+    print(f"Test {test_context.__class__}")
+
+    z0              = 82
+    z               = 82
+    m               = 192755492342.6663   # pb207
+    m0              = 193687690162.6481
+    ql.particle_ref = xp.Particles(p0c=6.8e12*z0 , q0=z0, mass0=m0)
+
+    # reference species with effective rigidity
+    part1           = ql.particle_ref.copy()
+    delta           = 0
+    chi             = (z0/z)*(m/m0)
+    part1.delta     = (1 + delta)/(chi) - 1
+
+    # pb207
+    part2              = ql.particle_ref.copy()
+    part2.chi          = (z0/z)*(m/m0)
+    part2.charge_ratio = (z/z0)
+
+    # 
+    x0        = 0.0001
+    part1.x   = x0
+    part2.x   = x0
+
+    ql.track(part1)
+    ql.track(part2)
+
+    assert np.isclose(part1.x[0], part2.x[0], atol=1e-6) 
+
+
 @for_all_test_contexts
 def test_ions(test_context):
 
