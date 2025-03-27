@@ -34,6 +34,13 @@ env['kq2'] = -0.02
 env['kq3'] = 0.02
 env['kq4'] = -0.02
 
+bpm_alignment ={
+    'bpm1': {'x': 1e-3, 'y': 2e-3},
+    'bpm2': {'x': 1e-3, 'y': 2e-3},
+    'bpm3': {'x': 1e-3, 'y': 2e-3},
+    'bpm4': {'x': 1e-3, 'y': 2e-3},
+}
+
 tw0 = line.twiss(betx=100, bety=80)
 
 env.set(['mq1', 'mq2', 'mq3', 'mq4'], shift_x=1e-3, shift_y=2e-3)

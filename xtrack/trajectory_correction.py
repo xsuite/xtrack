@@ -105,6 +105,7 @@ class OrbitCorrectionSinglePlane:
     def __init__(self, line, plane, monitor_names, corrector_names,
                  start=None, end=None, twiss_table=None, n_micado=None,
                  n_singular_values=None, rcond=None,
+                 monitor_alignment=None,
                  x_init=0., px_init=0.,
                  y_init=0., py_init=0.,
                  zeta_init=0., delta_init=0.):
@@ -183,22 +184,24 @@ class OrbitCorrectionSinglePlane:
         self.singular_vectors_out = U
         self.singular_vectors_in = Vt
 
-        # tw_table_local = self.twiss_table.rows[self.start:self.end]
-        # Parch: avoid issue with regular expression
-        #if self.start is not None:
-        #    start = self.start.replace('$', '\\$')
-        #else:
-        #    start = None
-        #if self.end is not None:
-        #    end = self.end.replace('$', '\\$')
-        #else:
-        #    end = None
         tw_table_local = self.twiss_table.rows[start:end]
 
         self._indices_monitor = tw_table_local.rows.indices[self.monitor_names]
         self._indices_correctors = tw_table_local.rows.indices[self.corrector_names]
         self.s_correctors = tw_table_local.s[self._indices_correctors]
         self.s_monitors = tw_table_local.s[self._indices_monitor]
+
+        self.shift_x_monitors = 0*self.s_monitors
+        self.shift_y_monitors = 0*self.s_monitors
+        self.rot_s_rad_monitors = 0*self.s_monitors
+
+        if monitor_alignment is not None:
+            for nn, alignment in monitor_alignment.items():
+                if nn in self.monitor_names:
+                    i_monitor = self.monitor_names.index(nn)
+                    self.shift_x_monitors[i_monitor] = alignment.get('shift_x', 0)
+                    self.shift_y_monitors[i_monitor] = alignment.get('shift_y', 0)
+                    self.rot_s_rad_monitors[i_monitor] = alignment.get('rot_s_rad', 0)
 
         self._add_correction_knobs()
 
@@ -271,7 +274,16 @@ class OrbitCorrectionSinglePlane:
         if tw_orbit is None:
             tw_orbit = self._compute_tw_orbit()
 
-        position = tw_orbit[self.plane][self._indices_monitor]
+        x_twiss_at_monitor = tw_orbit['x'][self._indices_monitor]
+        y_twiss_at_monitor = tw_orbit['y'][self._indices_monitor]
+
+        x_shifted = x_twiss_at_monitor - self.shift_x_monitors
+        y_shifted = y_twiss_at_monitor - self.shift_y_monitors
+
+        x_local = x_shifted * np.cos(self.rot_s_rad_monitors) + y_shifted * np.sin(self.rot_s_rad_monitors)
+        y_local = -x_shifted * np.sin(self.rot_s_rad_monitors) + y_shifted * np.cos(self.rot_s_rad_monitors)
+
+        position = {'x': x_local, 'y': y_local}[self.plane]
 
         return position
 
