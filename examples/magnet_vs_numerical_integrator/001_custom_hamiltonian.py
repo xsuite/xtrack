@@ -6,7 +6,7 @@ import numpy as np
 
 b1 = "0.2"
 b2 = "0.1"
-h = "0."
+h = "0.1"
 length = 0.5
 
 s = sympy.symbols('s')
@@ -21,10 +21,16 @@ class MyHamiltonian(bpmeth.Hamiltonian):
         px, py, ptau = coords.px, coords.py, coords.ptau
         beta0 = coords.beta0
         h = self.curv
-        A = self.vectp.get_Aval(coords)
+        one_plus_delta_allsq = 1+2*ptau/beta0+ptau**2
         sqrt = coords._m.sqrt
-        tmp1 = sqrt(1+2*ptau/beta0+ptau**2-(px-A[0])**2-(py-A[1])**2)
-        H = ptau/beta0 - (1+h*x)*(tmp1 + A[2])
+        term1 = ptau / beta0
+        term2 = 0.5 * (px**2 + py**2) / sqrt(one_plus_delta_allsq)
+        term3 = (float(b1) - h) * x + float(b1) * h * x**2 / 2
+        term4 = float(b2) * (x**2 - y**2) / 2
+
+        term_correction = float(b2) * h * (2*x**3 - 3*x*y**2) / 6
+
+        H = term1 + term2 + term3 + term4 + term_correction
         return H
 
 # Make Hamiltonian for a defined length
@@ -46,7 +52,7 @@ bb.num_multipole_kicks = 100
 bb.integrator = 'yoshida4'
 
 bb.model =  'bend-kick-bend'
-# bb.model =  'drift-kick-drift-expanded'
+bb.model =  'mat-kick-mat'
 
 bb.track(p_xsuite)
 
