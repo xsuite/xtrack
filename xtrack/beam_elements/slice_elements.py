@@ -63,9 +63,14 @@ class ThinSliceQuadrupole(BeamElement):
 
         length = self._parent.length * self.weight
 
+        if self.radiation_flag == ID_RADIATION_FROM_PARENT:
+            radiation_flag = self._parent.radiation_flag
+        else:
+            radiation_flag = self.radiation_flag
+
         out = Multipole(knl=knl, ksl=ksl, length=length,
                         hxl=0,
-                        radiation_flag=self.radiation_flag,
+                        radiation_flag=radiation_flag,
                         delta_taper=self.delta_taper,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
@@ -113,9 +118,14 @@ class ThinSliceSextupole(BeamElement):
 
         length = self._parent.length * self.weight
 
+        if self.radiation_flag == ID_RADIATION_FROM_PARENT:
+            radiation_flag = self._parent.radiation_flag
+        else:
+            radiation_flag = self.radiation_flag
+
         out = Multipole(knl=knl, ksl=ksl, length=length,
                         hxl=0,
-                        radiation_flag=self.radiation_flag,
+                        radiation_flag=radiation_flag,
                         delta_taper=self.delta_taper,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
@@ -163,9 +173,14 @@ class ThinSliceOctupole(BeamElement):
 
         length = self._parent.length * self.weight
 
+        if self.radiation_flag == ID_RADIATION_FROM_PARENT:
+            radiation_flag = self._parent.radiation_flag
+        else:
+            radiation_flag = self.radiation_flag
+
         out = Multipole(knl=knl, ksl=ksl, length=length,
                         hxl=0,
-                        radiation_flag=self.radiation_flag,
+                        radiation_flag=radiation_flag,
                         delta_taper=self.delta_taper,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,
@@ -212,9 +227,14 @@ class ThinSliceBend(BeamElement):
 
         length = self._parent.length * self.weight
 
+        if self.radiation_flag == ID_RADIATION_FROM_PARENT:
+            radiation_flag = self._parent.radiation_flag
+        else:
+            radiation_flag = self.radiation_flag
+
         out = Multipole(knl=knl, ksl=ksl, length=length,
                         hxl=self._parent.h * length,
-                        radiation_flag=self.radiation_flag,
+                        radiation_flag=radiation_flag,
                         delta_taper=self.delta_taper,
                         shift_x=self._parent.shift_x,
                         shift_y=self._parent.shift_y,

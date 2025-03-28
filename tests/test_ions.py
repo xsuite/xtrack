@@ -52,7 +52,7 @@ def test_chi(test_context):
     ql.track(part1)
     ql.track(part2)
 
-    assert np.isclose(part1.x[0], part2.x[0], atol=1e-6) 
+    xo.assert_allclose(part1.x[0], part2.x[0], rtol=0, atol=1e-6)
 
 
 @for_all_test_contexts
