@@ -28,7 +28,20 @@ line = env.new_line(components=[
     env.new('corrector2', 'corrector', at='mq2@start'),
     env.new('corrector3', 'corrector', at='mq3@start'),
     env.new('corrector4', 'corrector', at='mq4@start'),
+
+    env.new('bumper1', 'corrector', at=1., knl=['k0l_bumper1'], ksl=['k0sl_bumper1']),
+    env.new('bumper2', 'corrector', at=2., knl=['k0l_bumper2'], ksl=['k0sl_bumper2']),
 ])
+
+env.set(['mq1', 'mq2', 'mq3', 'mq4'], shift_x=1e-3, shift_y=2e-3)
+
+# Steer to enter at the center of the first quad
+line.match(
+    betx=1., bety=1.,
+    vary=xt.VaryList(['k0l_bumper1', 'k0l_bumper2', 'k0sl_bumper1', 'k0sl_bumper2'],
+                     step=1e-6),
+    targets=xt.TargetSet(x=1e-3, px=0, y=2e-3, py=0, at='bpm1'),
+)
 
 env['kq1'] = 0.02
 env['kq2'] = -0.02
@@ -44,7 +57,7 @@ bpm_alignment ={
 
 tw0 = line.twiss(betx=100, bety=80)
 
-env.set(['mq1', 'mq2', 'mq3', 'mq4'], shift_x=1e-3, shift_y=2e-3)
+
 
 # Going through the center of all quads
 tw = line.twiss(betx=100, bety=80, x=1e-3, y=2e-3)
@@ -56,7 +69,6 @@ line.steering_correctors_y = ['corrector2', 'corrector4']
 
 
 correction = line.correct_trajectory(twiss_table=tw0,
-                                     x_init=1e-3, y_init=2e-3,
                                      start='line.start', end='line.end',
                                      monitor_alignment=bpm_alignment,
                                      run=False)
