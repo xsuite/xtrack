@@ -13,7 +13,7 @@ env.new('corrector', 'Multipole', knl=[0])
 line = env.new_line(components=[
 
     env.new('line.start', 'Marker'),
-    env.new('line.end', 'Marker', at=10.),
+    env.new('line.end', 'Marker', at=12.),
 
     env.new('mq1', 'mq', k1='kq1', at=3.),
     env.new('mq2', 'mq', k1='kq2', at=5.),
