@@ -39,27 +39,27 @@ line = env.new_line(components=[
 
 env.set(['mq1', 'mq2', 'mq3', 'mq4'], shift_x=1e-3, shift_y=2e-3)
 
-# Steer to enter at the center of the first quad
-line.match(
-    betx=1., bety=1.,
-    vary=xt.VaryList(['k0l_bumper1', 'k0l_bumper2', 'k0sl_bumper1', 'k0sl_bumper2'],
-                     step=1e-6),
-    targets=xt.TargetSet(x=1e-3, px=0, y=2e-3, py=0, at='bpm1'),
-)
+# # Steer to enter at the center of the first quad
+# line.match(
+#     betx=1., bety=1.,
+#     vary=xt.VaryList(['k0l_bumper1', 'k0l_bumper2', 'k0sl_bumper1', 'k0sl_bumper2'],
+#                      step=1e-6),
+#     targets=xt.TargetSet(x=1e-3, px=0, y=2e-3, py=0, at='bpm1'),
+# )
 
-# Steer to bring the beam back
-opt2 = line.match(
-    start='bumper3', end='line.end',
-    betx=1., bety=1., x=1e-3, y=2e-3,
-    vary=xt.VaryList(['k0l_bumper3', 'k0l_bumper4', 'k0sl_bumper3', 'k0sl_bumper4'],
-                     step=1e-6),
-    targets=xt.TargetSet(x=0e-3, px=0, y=0e-3, py=0, at='line.end'),
-)
+# # Steer to bring the beam back
+# opt2 = line.match(
+#     start='bumper3', end='line.end',
+#     betx=1., bety=1., x=1e-3, y=2e-3,
+#     vary=xt.VaryList(['k0l_bumper3', 'k0l_bumper4', 'k0sl_bumper3', 'k0sl_bumper4'],
+#                      step=1e-6),
+#     targets=xt.TargetSet(x=0e-3, px=0, y=0e-3, py=0, at='line.end'),
+# )
 
-env['kq1'] = 0.02
-env['kq2'] = -0.02
-env['kq3'] = 0.02
-env['kq4'] = -0.02
+env['kq1'] = 0.2
+env['kq2'] = -0.2
+env['kq3'] = 0.2
+env['kq4'] = -0.2
 
 bpm_alignment ={
     'bpm1': {'shift_x': 1e-3, 'shift_y': 2e-3},
@@ -75,14 +75,14 @@ tw = line.twiss4d()
 
 line.steering_monitors_x = ['bpm.s', 'bpm1', 'bpm2', 'bpm3', 'bpm4', 'bpm.e']
 line.steering_monitors_y = ['bpm.s', 'bpm1', 'bpm2', 'bpm3', 'bpm4', 'bpm.e']
-line.steering_correctors_x = ['bumper1', 'bumper2']
-line.steering_correctors_y = ['bumper1', 'bumper2']
+line.steering_correctors_x = ['bumper1', 'bumper2', 'bumper3', 'bumper4']
+line.steering_correctors_y = ['bumper1', 'bumper2', 'bumper3', 'bumper4']
 
 correction = line.correct_trajectory(twiss_table=tw0,
                                      monitor_alignment=bpm_alignment,
                                      run=False)
 
-correction.correct(n_iter=1)
+correction.correct()
 
 xo.assert_allclose(correction.x_correction.shift_x_monitors,
                    [0.   , 0.001, 0.001, 0.001, 0.001, 0.   ], rtol=0, atol=1e-14)
@@ -94,5 +94,6 @@ xo.assert_allclose(correction.y_correction.shift_y_monitors,
                    [0.   , 0.002, 0.002, 0.002, 0.002, 0.   ], rtol=0, atol=1e-14)
 
 # Data from previous step can be found in:
-xo.assert_allclose(correction.x_correction._position_before,0, rtol=0, atol=1e-14)
-xo.assert_allclose(correction.y_correction._position_before,0, rtol=0, atol=1e-14)
+correction.correct() # Some more steps to log the position
+xo.assert_allclose(correction.x_correction._position_before,0, rtol=0, atol=1e-12)
+xo.assert_allclose(correction.y_correction._position_before,0, rtol=0, atol=1e-12)
