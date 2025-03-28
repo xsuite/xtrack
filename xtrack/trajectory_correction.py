@@ -105,19 +105,16 @@ class OrbitCorrectionSinglePlane:
     def __init__(self, line, plane, monitor_names, corrector_names,
                  start=None, end=None, twiss_table=None, n_micado=None,
                  n_singular_values=None, rcond=None,
-                 monitor_alignment=None,
-                 x_init=0., px_init=0.,
-                 y_init=0., py_init=0.,
-                 zeta_init=0., delta_init=0.):
+                 monitor_alignment=None):
 
         assert plane in ['x', 'y']
 
-        self.x_init = x_init
-        self.px_init = px_init
-        self.y_init = y_init
-        self.py_init = py_init
-        self.zeta_init = zeta_init
-        self.delta_init = delta_init
+        self.x_init = 0
+        self.px_init = 0
+        self.y_init = 0
+        self.py_init = 0
+        self.zeta_init = 0
+        self.delta_init = 0
 
         self.twiss_table = twiss_table
         if twiss_table is not None:
@@ -137,8 +134,9 @@ class OrbitCorrectionSinglePlane:
                 self.twiss_table = line.twiss4d(start=start, end=end,
                     init=xt.TwissInit(W_matrix=np.eye(6),
                                       particle_on_co=line.build_particles(
-                                          x=x_init, y=y_init, px=px_init, py=py_init,
-                                          zeta=zeta_init, delta=delta_init),
+                                          x=self.x_init, y=self.y_init,
+                                          px=self.px_init, py=self.py_init,
+                                          zeta=self.zeta_init, delta=self.delta_init),
                                       element_name=start),
                                       reverse=False)
 
@@ -373,7 +371,6 @@ class TrajectoryCorrection:
                  monitor_names_x=None, corrector_names_x=None,
                  monitor_names_y=None, corrector_names_y=None,
                  monitor_alignmemnt=None,
-                 x_init=0, px_init=0, y_init=0, py_init=0, zeta_init=0, delta_init=0,
                  n_micado=None, n_singular_values=None, rcond=None):
 
         '''
@@ -444,9 +441,7 @@ class TrajectoryCorrection:
                 corrector_names=corrector_names_x, start=start, end=end,
                 twiss_table=twiss_table, n_micado=n_micado_x,
                 n_singular_values=n_singular_values_x, rcond=rcond_x,
-                monitor_alignment=monitor_alignmemnt,
-                x_init=x_init, px_init=px_init, y_init=y_init, py_init=py_init,
-                delta_init=delta_init, zeta_init=zeta_init)
+                monitor_alignment=monitor_alignmemnt)
         else:
             self.x_correction = None
 
@@ -458,9 +453,7 @@ class TrajectoryCorrection:
                 corrector_names=corrector_names_y, start=start, end=end,
                 twiss_table=twiss_table, n_micado=n_micado_y,
                 n_singular_values=n_singular_values_y, rcond=rcond_y,
-                monitor_alignment=monitor_alignmemnt,
-                x_init=x_init, px_init=px_init, y_init=y_init, py_init=py_init,
-                delta_init=delta_init, zeta_init=zeta_init)
+                monitor_alignment=monitor_alignmemnt)
         else:
             self.y_correction = None
 

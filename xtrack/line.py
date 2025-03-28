@@ -1606,10 +1606,7 @@ class Line:
                  corrector_names_y=corrector_names_y,
                  n_micado=n_micado, n_singular_values=n_singular_values,
                  rcond=rcond,
-                 monitor_alignmemnt=monitor_alignment,
-                 x_init=x_init, px_init=px_init,
-                 y_init=y_init, py_init=py_init,
-                 zeta_init=zeta_init, delta_init=delta_init)
+                 monitor_alignmemnt=monitor_alignment)
 
         if run:
             correction.correct(planes=planes, n_iter=n_iter)
