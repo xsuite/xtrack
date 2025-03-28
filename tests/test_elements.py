@@ -5,6 +5,7 @@
 
 import numpy as np
 import pytest
+import pathlib
 from cpymad.madx import Madx
 from scipy.stats import linregress
 from scipy import constants as cst
@@ -14,6 +15,9 @@ import xpart as xp
 import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts, fix_random_seed
 from xtrack.beam_elements.elements import _angle_from_trig
+
+test_data_folder = pathlib.Path(
+    __file__).parent.joinpath('../test_data').absolute()
 
 
 @for_all_test_contexts
@@ -43,6 +47,8 @@ def test_constructor(test_context):
                    sampling_frequency=1e3),
         xt.Bend(_context=test_context, length=1.),
         xt.Quadrupole(_context=test_context, length=1.),
+        xt.ElectronCooler(_context=test_context,current=2.4,length=1.5,radius_e_beam=25*1e-3,
+                                temp_perp=0.01,temp_long=0.001,magnetic_field=0.060) 
     ]
 
     # test to_dict / from_dict
@@ -1246,3 +1252,5 @@ def test_multipole_tilt_90_deg(test_context):
     xo.assert_allclose(pf.py, pfy.py, rtol=0, atol=1e-14)
     xo.assert_allclose(pf.zeta, pfy.zeta, rtol=0, atol=1e-14)
     xo.assert_allclose(pf.ptau, pfy.ptau, rtol=0, atol=1e-14)
+
+
