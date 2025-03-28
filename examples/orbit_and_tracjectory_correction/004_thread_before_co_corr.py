@@ -30,24 +30,13 @@ line.steering_monitors_y = monitor_names
 orbit_correction = line.correct_trajectory(run=False)
 
 # Introduce some orbit perturbation
-
-# h_kicks = {'mcbh.14r2.b1': 1e-5, 'mcbh.26l3.b1':-3e-5}
-# v_kicks = {'mcbv.11r2.b1': -2e-5, 'mcbv.29l3.b1':-4e-5}
-
-# for nn_kick, kick in h_kicks.items():
-#     line.element_refs[nn_kick].knl[0] -= kick
-
-# for nn_kick, kick in v_kicks.items():
-#     line.element_refs[nn_kick].ksl[0] += kick
-
 tt = line.get_table()
 tt_quad = tt.rows[tt.element_type == 'Quadrupole']
-# tt_quad = tt.rows['mq\..*']
 shift_x = np.random.randn(len(tt_quad)) * 1e-3 # 1 mm rms shift on all quads
 shift_y = np.random.randn(len(tt_quad)) * 1e-3 # 1 mm rms shift on all quads
 for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
-    line.element_refs[nn_quad].shift_x = sx
-    line.element_refs[nn_quad].shift_y = sy
+    line[nn_quad].shift_x = sx
+    line[nn_quad].shift_y = sy
 
 
 threader = orbit_correction.thread(ds_thread=500., rcond_short=1e-4, rcond_long=1e-4)

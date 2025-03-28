@@ -28,8 +28,8 @@ rgen = np.random.RandomState(2) # fix seed for random number generator
 shift_x = rgen.randn(len(tt_quad)) * 1e-3 # 1. mm rms shift on all quads
 shift_y = rgen.randn(len(tt_quad)) * 1e-3 # 1. mm rms shift on all quads
 for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
-    line.element_refs[nn_quad].shift_x = sx
-    line.element_refs[nn_quad].shift_y = sy
+    line[nn_quad].shift_x = sx
+    line[nn_quad].shift_y = sy
 
 # Closed twiss fails (closed orbit is not found)
 # line.twiss4d()

@@ -28,8 +28,8 @@ rgen = np.random.RandomState(1) # fix seed for random number generator
 shift_x = rgen.randn(len(tt_quad)) * 0.01e-3 # 0.01 mm rms shift on all quads
 shift_y = rgen.randn(len(tt_quad)) * 0.01e-3 # 0.01 mm rms shift on all quads
 for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
-    line.element_refs[nn_quad].shift_x = sx
-    line.element_refs[nn_quad].shift_y = sy
+    line[nn_quad].shift_x = sx
+    line[nn_quad].shift_y = sy
 
 # Create orbit correction object without running the correction
 orbit_correction = line.correct_trajectory(twiss_table=tw_ref, run=False)

@@ -434,6 +434,8 @@ class TrajectoryCorrection:
         else:
             n_micado_x, n_micado_y = n_micado, n_micado
 
+        self.monitor_alignment = monitor_alignmemnt
+
         if (monitor_names_x is not None or corrector_names_x is not None
             or line.steering_correctors_x is not None
             or line.steering_monitors_x is not None):
@@ -610,7 +612,8 @@ class TrajectoryCorrection:
                 monitor_names_x=self.x_correction.monitor_names,
                 monitor_names_y=self.y_correction.monitor_names,
                 corrector_names_x=self.x_correction.corrector_names,
-                corrector_names_y=self.y_correction.corrector_names)
+                corrector_names_y=self.y_correction.corrector_names,
+                monitor_alignment=self.monitor_alignment)
         return threader
 
     def clear_correction_knobs(self):
@@ -677,7 +680,9 @@ class TrajectoryCorrection:
 
 def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = None,
             monitor_names_x=None, monitor_names_y=None,
-            corrector_names_x=None, corrector_names_y=None, verbose=True):
+            corrector_names_x=None, corrector_names_y=None,
+            monitor_alignment=None,
+            verbose=True):
 
     tt = line.get_table()
     line_length = tt.s[-1]
@@ -712,6 +717,7 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
             monitor_names_y=[nn for nn in corrector_names_y if nn in tt_new_part.name],
             corrector_names_x=[nn for nn in corrector_names_x if nn in tt_new_part.name],
             corrector_names_y=[nn for nn in corrector_names_y if nn in tt_new_part.name],
+            monitor_alignmemnt=monitor_alignment
         )
         ocorr_only_added_part.correct(rcond=rcond_short, n_iter=1, verbose=False)
 
