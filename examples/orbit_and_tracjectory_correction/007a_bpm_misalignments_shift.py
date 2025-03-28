@@ -97,3 +97,5 @@ xo.assert_allclose(correction.y_correction.shift_y_monitors,
 correction.correct() # Some more steps to log the position
 xo.assert_allclose(correction.x_correction._position_before,0, rtol=0, atol=1e-12)
 xo.assert_allclose(correction.y_correction._position_before,0, rtol=0, atol=1e-12)
+
+correction.clear_correction_knobs()
