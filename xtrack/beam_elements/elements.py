@@ -21,6 +21,8 @@ from xtrack.beam_elements.magnets import (
     DEFAULT_MULTIPOLE_ORDER, SynchrotronRadiationRecord, _prepare_multipolar_params,
     _NOEXPR_FIELDS, COMMON_MAGNET_SOURCES
 )
+from xtrack.internal_record import RecordIndex
+
 
 class ReferenceEnergyIncrease(BeamElement):
 
