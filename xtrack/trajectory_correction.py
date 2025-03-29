@@ -105,16 +105,17 @@ class OrbitCorrectionSinglePlane:
     def __init__(self, line, plane, monitor_names, corrector_names,
                  start=None, end=None, twiss_table=None, n_micado=None,
                  n_singular_values=None, rcond=None,
+                 x_init=0, px_init=0, y_init=0, py_init=0, zeta_init=0, delta_init=0,
                  monitor_alignment=None):
 
         assert plane in ['x', 'y']
 
-        self.x_init = 0
-        self.px_init = 0
-        self.y_init = 0
-        self.py_init = 0
-        self.zeta_init = 0
-        self.delta_init = 0
+        self.x_init = x_init
+        self.px_init = px_init
+        self.y_init = y_init
+        self.py_init = py_init
+        self.zeta_init = zeta_init
+        self.delta_init = delta_init
 
         self.twiss_table = twiss_table
         if twiss_table is not None:
@@ -370,7 +371,8 @@ class TrajectoryCorrection:
                  start=None, end=None, twiss_table=None,
                  monitor_names_x=None, corrector_names_x=None,
                  monitor_names_y=None, corrector_names_y=None,
-                 monitor_alignmemnt=None,
+                 monitor_alignment=None,
+                 x_init=0, px_init=0, y_init=0, py_init=0, zeta_init=0, delta_init=0,
                  n_micado=None, n_singular_values=None, rcond=None):
 
         '''
@@ -431,7 +433,14 @@ class TrajectoryCorrection:
         else:
             n_micado_x, n_micado_y = n_micado, n_micado
 
-        self.monitor_alignment = monitor_alignmemnt
+        self.x_init = x_init
+        self.px_init = px_init
+        self.y_init = y_init
+        self.py_init = py_init
+        self.zeta_init = zeta_init
+        self.delta_init = delta_init
+
+        self.monitor_alignment = monitor_alignment
 
         if (monitor_names_x is not None or corrector_names_x is not None
             or line.steering_correctors_x is not None
@@ -441,7 +450,9 @@ class TrajectoryCorrection:
                 corrector_names=corrector_names_x, start=start, end=end,
                 twiss_table=twiss_table, n_micado=n_micado_x,
                 n_singular_values=n_singular_values_x, rcond=rcond_x,
-                monitor_alignment=monitor_alignmemnt)
+                x_init=x_init, px_init=px_init, y_init=y_init, py_init=py_init,
+                zeta_init=zeta_init, delta_init=delta_init,
+                monitor_alignment=monitor_alignment)
         else:
             self.x_correction = None
 
@@ -453,7 +464,9 @@ class TrajectoryCorrection:
                 corrector_names=corrector_names_y, start=start, end=end,
                 twiss_table=twiss_table, n_micado=n_micado_y,
                 n_singular_values=n_singular_values_y, rcond=rcond_y,
-                monitor_alignment=monitor_alignmemnt)
+                x_init=x_init, px_init=px_init, y_init=y_init, py_init=py_init,
+                zeta_init=zeta_init, delta_init=delta_init,
+                monitor_alignment=monitor_alignment)
         else:
             self.y_correction = None
 
@@ -674,6 +687,7 @@ class TrajectoryCorrection:
 def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = None,
             monitor_names_x=None, monitor_names_y=None,
             corrector_names_x=None, corrector_names_y=None,
+            x_init=0, px_init=0, y_init=0, py_init=0, zeta_init=0, delta_init=0,
             monitor_alignment=None,
             verbose=True):
 
@@ -703,14 +717,47 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
 
         # Correct only the new added portion
         tt_new_part = tt.rows[s_corr_end-ds_thread:s_corr_end:'s']
+
+        # Get initial conditions for the new added portion
+
+        if i_win == 0:
+            this_x_init = x_init
+            this_y_init = y_init
+            this_px_init = px_init
+            this_py_init = py_init
+            this_zeta_init = zeta_init
+            this_delta_init = delta_init
+        else:
+            # Initialized with betx=1, bety=1 (use W_matrix to avoid compilation)
+            name_start = tt_new_part.name[0]
+            tw_to_start = line.twiss4d(
+                start=line.element_names[0], end=tt_new_part.name[0],
+                    init=xt.TwissInit(W_matrix=np.eye(6),
+                                        particle_on_co=line.build_particles(
+                                            x=x_init, y=y_init,
+                                            px=px_init, py=py_init,
+                                            zeta=zeta_init, delta=delta_init),
+                                        element_name=line.element_names[0]),
+                                        reverse=False)
+
+            this_x_init = tw_to_start['x', name_start]
+            this_y_init = tw_to_start['y', name_start]
+            this_px_init = tw_to_start['px', name_start]
+            this_py_init = tw_to_start['py', name_start]
+            this_zeta_init = tw_to_start['zeta', name_start]
+            this_delta_init = tw_to_start['delta', name_start]
+
         ocorr_only_added_part = TrajectoryCorrection(
             line=line, start=tt_new_part.name[0], end=tt_new_part.name[-1],
             twiss_table=twiss_table,
-            monitor_names_x=[nn for nn in corrector_names_x if nn in tt_new_part.name],
-            monitor_names_y=[nn for nn in corrector_names_y if nn in tt_new_part.name],
+            monitor_names_x=[nn for nn in monitor_names_x if nn in tt_new_part.name],
+            monitor_names_y=[nn for nn in monitor_names_y if nn in tt_new_part.name],
             corrector_names_x=[nn for nn in corrector_names_x if nn in tt_new_part.name],
             corrector_names_y=[nn for nn in corrector_names_y if nn in tt_new_part.name],
-            monitor_alignmemnt=monitor_alignment
+            x_init=this_x_init, px_init=this_px_init,
+            y_init=this_y_init, py_init=this_py_init,
+            zeta_init=this_zeta_init, delta_init=this_delta_init,
+            monitor_alignment=monitor_alignment
         )
         ocorr_only_added_part.correct(rcond=rcond_short, n_iter=1, verbose=False)
 
@@ -732,16 +779,20 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
         ocorr = TrajectoryCorrection(
             twiss_table=twiss_table,
             line=line, start=tt_part.name[0], end=tt_part.name[-1],
-            monitor_names_x=[nn for nn in corrector_names_x if nn in tt_part.name],
-            monitor_names_y=[nn for nn in corrector_names_y if nn in tt_part.name],
+            monitor_names_x=[nn for nn in monitor_names_x if nn in tt_part.name],
+            monitor_names_y=[nn for nn in monitor_names_y if nn in tt_part.name],
             corrector_names_x=[nn for nn in corrector_names_x if nn in tt_part.name],
             corrector_names_y=[nn for nn in corrector_names_y if nn in tt_part.name],
+            x_init=x_init, px_init=px_init, y_init=y_init, py_init=py_init,
+            zeta_init=zeta_init, delta_init=delta_init,
+            monitor_alignment=monitor_alignment
         )
         ocorr.correct(rcond=rcond_long, n_iter=1, verbose=False)
 
         if verbose:
             ocprint = ocorr
             tw_orbit_print = ocprint.x_correction._compute_tw_orbit()
+            breakpoint()
             x_meas_print = ocprint.x_correction._measure_position(tw_orbit_print)
             y_meas_print = ocprint.y_correction._measure_position(tw_orbit_print)
             str_2print = f'Stop at s={s_corr_end}, '

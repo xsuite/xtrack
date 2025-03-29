@@ -1606,7 +1606,7 @@ class Line:
                  corrector_names_y=corrector_names_y,
                  n_micado=n_micado, n_singular_values=n_singular_values,
                  rcond=rcond,
-                 monitor_alignmemnt=monitor_alignment)
+                 monitor_alignment=monitor_alignment)
 
         if run:
             correction.correct(planes=planes, n_iter=n_iter)
