@@ -603,9 +603,6 @@ class TrajectoryCorrection:
         ----------
         ds_thread : float
             Length of the portion added at each iteration.
-        rcond_short : float or tuple of float
-            Cutoff for small singular values (relative to the largest singular
-            value) used for the correction of the new added part.
         rcond_long : float or tuple of float
             Cutoff for small singular values (relative to the largest singular
             value) used for the correction of the whole portion up to the end
@@ -693,6 +690,8 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
             monitor_alignment=None,
             verbose=True):
 
+    # r_cond_short is not used anymore, see commented code below
+
     tt = line.get_table()
     line_length = tt.s[-1]
 
@@ -717,37 +716,39 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
             s_corr_end = line_length
             end_loop = True
 
+        # ----- The following was used to correct only the newly added part
+        # ----- It us not used anymore, as it was observed not to help
+        # ----- We keep it in case it is needed in the futures
         # Correct only the new added portion
-        tt_new_part = tt.rows[s_corr_end-ds_thread:s_corr_end:'s']
-
+        # tt_new_part = tt.rows[s_corr_end-ds_thread:s_corr_end:'s']
+        #
         # Get initial conditions for the new added portion
+        # if i_win == 0:
+        #     this_x_init = x_init
+        #     this_y_init = y_init
+        #     this_px_init = px_init
+        #     this_py_init = py_init
+        #     this_zeta_init = zeta_init
+        #     this_delta_init = delta_init
+        # else:
+        #     # Initialized with betx=1, bety=1 (use W_matrix to avoid compilation)
+        #     name_start = tt_new_part.name[0]
+        #     tw_to_start = line.twiss4d(
+        #         start=line.element_names[0], end=tt_new_part.name[0],
+        #             init=xt.TwissInit(W_matrix=np.eye(6),
+        #                                 particle_on_co=line.build_particles(
+        #                                     x=x_init, y=y_init,
+        #                                     px=px_init, py=py_init,
+        #                                     zeta=zeta_init, delta=delta_init),
+        #                                 element_name=line.element_names[0]),
+        #                                 reverse=False)
 
-        if i_win == 0:
-            this_x_init = x_init
-            this_y_init = y_init
-            this_px_init = px_init
-            this_py_init = py_init
-            this_zeta_init = zeta_init
-            this_delta_init = delta_init
-        else:
-            # Initialized with betx=1, bety=1 (use W_matrix to avoid compilation)
-            name_start = tt_new_part.name[0]
-            tw_to_start = line.twiss4d(
-                start=line.element_names[0], end=tt_new_part.name[0],
-                    init=xt.TwissInit(W_matrix=np.eye(6),
-                                        particle_on_co=line.build_particles(
-                                            x=x_init, y=y_init,
-                                            px=px_init, py=py_init,
-                                            zeta=zeta_init, delta=delta_init),
-                                        element_name=line.element_names[0]),
-                                        reverse=False)
-
-            this_x_init = tw_to_start['x', name_start]
-            this_y_init = tw_to_start['y', name_start]
-            this_px_init = tw_to_start['px', name_start]
-            this_py_init = tw_to_start['py', name_start]
-            this_zeta_init = tw_to_start['zeta', name_start]
-            this_delta_init = tw_to_start['delta', name_start]
+        #     this_x_init = tw_to_start['x', name_start]
+        #     this_y_init = tw_to_start['y', name_start]
+        #     this_px_init = tw_to_start['px', name_start]
+        #     this_py_init = tw_to_start['py', name_start]
+        #     this_zeta_init = tw_to_start['zeta', name_start]
+        #     this_delta_init = tw_to_start['delta', name_start]
 
         # ocorr_only_added_part = TrajectoryCorrection(
         #     line=line, start=tt_new_part.name[0], end=tt_new_part.name[-1],
