@@ -128,15 +128,25 @@ correction.correct() # Some more steps to log the position
 xo.assert_allclose(correction.x_correction._position_before,0, rtol=0, atol=1e-12)
 xo.assert_allclose(correction.y_correction._position_before,0, rtol=0, atol=1e-12)
 
+xo.assert_allclose(tw_corr.rows['mq1':'bumper3'].x, 1e-3, rtol=0, atol=1e-9)
+xo.assert_allclose(tw_corr.rows['mq1':'bumper3'].y, 2e-3, rtol=0, atol=1e-9)
+xo.assert_allclose(tw_thread.rows['mq1':'bumper3'].x, 1e-3, rtol=0, atol=1e-9)
+xo.assert_allclose(tw_thread.rows['mq1':'bumper3'].y, 2e-3, rtol=0, atol=1e-9)
+
+xo.assert_allclose(tw_corr.x[0], 0, rtol=0, atol=1e-9)
+xo.assert_allclose(tw_corr.y[0], 0, rtol=0, atol=1e-9)
+xo.assert_allclose(tw_thread.x[0], 0, rtol=0, atol=1e-9)
+xo.assert_allclose(tw_thread.y[0], 0, rtol=0, atol=1e-9)
+
 import matplotlib.pyplot as plt
 plt.close('all')
 
 fig1 = plt.figure(1)
-tw_corr.plot('x y', figure=fig1)
+tw_corr.plot('x y', figure=fig1, grid=False)
 plt.suptitle('After correction')
 
 fig2 = plt.figure(2)
-tw_thread.plot('x y', figure=fig2)
+tw_thread.plot('x y', figure=fig2, grid=False)
 plt.suptitle('After threading')
 
 plt.show()

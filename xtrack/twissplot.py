@@ -88,6 +88,7 @@ class TwissPlot(object):
         axright=None,
         axlattice=None,
         hover=False,
+        grid = True,
         figsize=(6.4*1.2, 4.8)
     ):
 
@@ -100,6 +101,7 @@ class TwissPlot(object):
         self.right = None
         self.lattice = None
         self.pre = None
+        self.grid = grid
         self.table, self.x, self.yl, self.yr, self.idx, self.clist = (
             table,
             x,
@@ -240,7 +242,7 @@ class TwissPlot(object):
         self.ax.legend(
             self.lines, self.legends, loc="upper right", bbox_to_anchor=(1.35, 1.)
         )
-        self.ax.grid(True)
+        self.ax.grid(self.grid)
         self.figure.canvas.draw()
         if hasattr(self, "on_run"):
             self.on_run(self)
