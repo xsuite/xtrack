@@ -792,7 +792,6 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
         if verbose:
             ocprint = ocorr
             tw_orbit_print = ocprint.x_correction._compute_tw_orbit()
-            breakpoint()
             x_meas_print = ocprint.x_correction._measure_position(tw_orbit_print)
             y_meas_print = ocprint.y_correction._measure_position(tw_orbit_print)
             str_2print = f'Stop at s={s_corr_end}, '

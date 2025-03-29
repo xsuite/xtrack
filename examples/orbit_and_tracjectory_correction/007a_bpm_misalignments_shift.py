@@ -19,12 +19,14 @@ line = env.new_line(components=[
     env.new('mq3', 'mq', k1='kq3', at=7.),
     env.new('mq4', 'mq', k1='kq4', at=9.),
 
-    env.new('bpm.s', 'bpm', at=0.5),
-    env.new('bpm1', 'bpm', at='mq1@start'),
-    env.new('bpm2', 'bpm', at='mq2@start'),
-    env.new('bpm3', 'bpm', at='mq3@start'),
-    env.new('bpm4', 'bpm', at='mq4@start'),
-    env.new('bpm.e', 'bpm', at=11.5),
+    env.new('bpm.s.1', 'bpm', at=0.1),
+    env.new('bpm.s.2', 'bpm', at=0.5),
+    env.new('bpm.q.1', 'bpm', at='mq1@start'),
+    env.new('bpm.q.2', 'bpm', at='mq2@start'),
+    env.new('bpm.q.3', 'bpm', at='mq3@start'),
+    env.new('bpm.q.4', 'bpm', at='mq4@start'),
+    env.new('bpm.e.1', 'bpm', at=11.5),
+    env.new('bpm.e.2', 'bpm', at=11.9),
 
     env.new('corrector1', 'corrector', at='mq1@start'),
     env.new('corrector2', 'corrector', at='mq2@start'),
@@ -62,10 +64,10 @@ env['kq3'] = 0.2
 env['kq4'] = -0.2
 
 bpm_alignment ={
-    'bpm1': {'shift_x': 1e-3, 'shift_y': 2e-3},
-    'bpm2': {'shift_x': 1e-3, 'shift_y': 2e-3},
-    'bpm3': {'shift_x': 1e-3, 'shift_y': 2e-3},
-    'bpm4': {'shift_x': 1e-3, 'shift_y': 2e-3},
+    'bpm.q.1': {'shift_x': 1e-3, 'shift_y': 2e-3},
+    'bpm.q.2': {'shift_x': 1e-3, 'shift_y': 2e-3},
+    'bpm.q.3': {'shift_x': 1e-3, 'shift_y': 2e-3},
+    'bpm.q.4': {'shift_x': 1e-3, 'shift_y': 2e-3},
 }
 
 tw0 = line.twiss4d()
@@ -73,8 +75,10 @@ tw0 = line.twiss4d()
 # Going through the center of all quads
 tw = line.twiss4d()
 
-line.steering_monitors_x = ['bpm.s', 'bpm1', 'bpm2', 'bpm3', 'bpm4', 'bpm.e']
-line.steering_monitors_y = ['bpm.s', 'bpm1', 'bpm2', 'bpm3', 'bpm4', 'bpm.e']
+line.steering_monitors_x = ['bpm.s.1', 'bpm.s.2',
+                            'bpm.q.1', 'bpm.q.2', 'bpm.q.3', 'bpm.q.4',
+                            'bpm.e.1', 'bpm.e.2']
+line.steering_monitors_y = line.steering_monitors_x
 line.steering_correctors_x = ['bumper1', 'bumper2', 'bumper3', 'bumper4']
 line.steering_correctors_y = ['bumper1', 'bumper2', 'bumper3', 'bumper4']
 
@@ -85,13 +89,13 @@ correction = line.correct_trajectory(twiss_table=tw0,
 correction.correct()
 
 xo.assert_allclose(correction.x_correction.shift_x_monitors,
-                   [0.   , 0.001, 0.001, 0.001, 0.001, 0.   ], rtol=0, atol=1e-14)
+                   [0., 0., 0.001, 0.001, 0.001, 0.001, 0., 0.], rtol=0, atol=1e-14)
 xo.assert_allclose(correction.x_correction.shift_y_monitors,
-                   [0.   , 0.002, 0.002, 0.002, 0.002, 0.   ], rtol=0, atol=1e-14)
+                   [0., 0., 0.002, 0.002, 0.002, 0.002, 0., 0.], rtol=0, atol=1e-14)
 xo.assert_allclose(correction.y_correction.shift_x_monitors,
-                   [0.   , 0.001, 0.001, 0.001, 0.001, 0.   ], rtol=0, atol=1e-14)
+                   [0., 0., 0.001, 0.001, 0.001, 0.001, 0., 0.], rtol=0, atol=1e-14)
 xo.assert_allclose(correction.y_correction.shift_y_monitors,
-                   [0.   , 0.002, 0.002, 0.002, 0.002, 0.   ], rtol=0, atol=1e-14)
+                   [0., 0., 0.002, 0.002, 0.002, 0.002, 0., 0.], rtol=0, atol=1e-14)
 
 # Data from previous step can be found in:
 correction.correct() # Some more steps to log the position
