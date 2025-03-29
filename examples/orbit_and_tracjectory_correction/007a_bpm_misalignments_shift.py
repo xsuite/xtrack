@@ -28,35 +28,13 @@ line = env.new_line(components=[
     env.new('bpm.e.1', 'bpm', at=11.5),
     env.new('bpm.e.2', 'bpm', at=11.9),
 
-    env.new('corrector1', 'corrector', at='mq1@start'),
-    env.new('corrector2', 'corrector', at='mq2@start'),
-    env.new('corrector3', 'corrector', at='mq3@start'),
-    env.new('corrector4', 'corrector', at='mq4@start'),
-
-    env.new('bumper1', 'corrector', at=1., knl=['k0l_bumper1'], ksl=['k0sl_bumper1']),
-    env.new('bumper2', 'corrector', at=2., knl=['k0l_bumper2'], ksl=['k0sl_bumper2']),
-    env.new('bumper3', 'corrector', at=10., knl=['k0l_bumper3'], ksl=['k0sl_bumper3']),
-    env.new('bumper4', 'corrector', at=11., knl=['k0l_bumper4'], ksl=['k0sl_bumper4']),
+    env.new('corr1', 'corrector', at=1., knl=['k0l_corr1'], ksl=['k0sl_corr1']),
+    env.new('corr2', 'corrector', at=2., knl=['k0l_corr2'], ksl=['k0sl_corr2']),
+    env.new('corr3', 'corrector', at=10., knl=['k0l_corr3'], ksl=['k0sl_corr3']),
+    env.new('corr4', 'corrector', at=11., knl=['k0l_corr4'], ksl=['k0sl_corr4']),
 ])
 
 env.set(['mq1', 'mq2', 'mq3', 'mq4'], shift_x=1e-3, shift_y=2e-3)
-
-# # Steer to enter at the center of the first quad
-# line.match(
-#     betx=1., bety=1.,
-#     vary=xt.VaryList(['k0l_bumper1', 'k0l_bumper2', 'k0sl_bumper1', 'k0sl_bumper2'],
-#                      step=1e-6),
-#     targets=xt.TargetSet(x=1e-3, px=0, y=2e-3, py=0, at='bpm1'),
-# )
-
-# # Steer to bring the beam back
-# opt2 = line.match(
-#     start='bumper3', end='line.end',
-#     betx=1., bety=1., x=1e-3, y=2e-3,
-#     vary=xt.VaryList(['k0l_bumper3', 'k0l_bumper4', 'k0sl_bumper3', 'k0sl_bumper4'],
-#                      step=1e-6),
-#     targets=xt.TargetSet(x=0e-3, px=0, y=0e-3, py=0, at='line.end'),
-# )
 
 env['kq1'] = 0.2
 env['kq2'] = -0.2
@@ -79,8 +57,8 @@ line.steering_monitors_x = ['bpm.s.1', 'bpm.s.2',
                             'bpm.q.1', 'bpm.q.2', 'bpm.q.3', 'bpm.q.4',
                             'bpm.e.1', 'bpm.e.2']
 line.steering_monitors_y = line.steering_monitors_x
-line.steering_correctors_x = ['bumper1', 'bumper2', 'bumper3', 'bumper4']
-line.steering_correctors_y = ['bumper1', 'bumper2', 'bumper3', 'bumper4']
+line.steering_correctors_x = ['corr1', 'corr2', 'corr3', 'corr4']
+line.steering_correctors_y = ['corr1', 'corr2', 'corr3', 'corr4']
 
 correction = line.correct_trajectory(twiss_table=tw0,
                                      monitor_alignment=bpm_alignment,
@@ -108,7 +86,7 @@ xo.assert_allclose(correction.y_correction._position_before,0, rtol=0, atol=1e-1
 
 correction.clear_correction_knobs()
 
-for nn in ['bumper1', 'bumper2', 'bumper3', 'bumper4']:
+for nn in ['corr1', 'corr2', 'corr3', 'corr4']:
     assert line[nn].knl[0] == 0
 
 correction.thread(ds_thread = 10)
@@ -128,10 +106,10 @@ correction.correct() # Some more steps to log the position
 xo.assert_allclose(correction.x_correction._position_before,0, rtol=0, atol=1e-12)
 xo.assert_allclose(correction.y_correction._position_before,0, rtol=0, atol=1e-12)
 
-xo.assert_allclose(tw_corr.rows['mq1':'bumper3'].x, 1e-3, rtol=0, atol=1e-9)
-xo.assert_allclose(tw_corr.rows['mq1':'bumper3'].y, 2e-3, rtol=0, atol=1e-9)
-xo.assert_allclose(tw_thread.rows['mq1':'bumper3'].x, 1e-3, rtol=0, atol=1e-9)
-xo.assert_allclose(tw_thread.rows['mq1':'bumper3'].y, 2e-3, rtol=0, atol=1e-9)
+xo.assert_allclose(tw_corr.rows['mq1':'corr3'].x, 1e-3, rtol=0, atol=1e-9)
+xo.assert_allclose(tw_corr.rows['mq1':'corr3'].y, 2e-3, rtol=0, atol=1e-9)
+xo.assert_allclose(tw_thread.rows['mq1':'corr3'].x, 1e-3, rtol=0, atol=1e-9)
+xo.assert_allclose(tw_thread.rows['mq1':'corr3'].y, 2e-3, rtol=0, atol=1e-9)
 
 xo.assert_allclose(tw_corr.x[0], 0, rtol=0, atol=1e-9)
 xo.assert_allclose(tw_corr.y[0], 0, rtol=0, atol=1e-9)
