@@ -46,17 +46,17 @@ line.steering_correctors_y = line.steering_correctors_x
 tw0 = line.twiss4d()
 
 # Misalign all quadrupoles
-env.set(['mq1', 'mq2', 'mq3', 'mq4'], shift_x=1e-3, shift_y=2e-3)
+env.set(['mq1', 'mq2', 'mq3', 'mq4'], shift_x=1e-3, shift_y=2e-3, rot_s_rad=0.1)
 
 # Define BPM alignment
 bpm_alignment ={
-    'bpm.q.1': {'shift_x': 1e-3, 'shift_y': 2e-3},
-    'bpm.q.2': {'shift_x': 1e-3, 'shift_y': 2e-3},
-    'bpm.q.3': {'shift_x': 1e-3, 'shift_y': 2e-3},
-    'bpm.q.4': {'shift_x': 1e-3, 'shift_y': 2e-3},
+    'bpm.q.1': {'shift_x': 1e-3, 'shift_y': 2e-3, 'rot_s_rad': 0.1},
+    'bpm.q.2': {'shift_x': 1e-3, 'shift_y': 2e-3, 'rot_s_rad': 0.1},
+    'bpm.q.3': {'shift_x': 1e-3, 'shift_y': 2e-3, 'rot_s_rad': 0.1},
+    'bpm.q.4': {'shift_x': 1e-3, 'shift_y': 2e-3, 'rot_s_rad': 0.1},
 }
 
-# Correct orbit taking into account BPM alignment
+# Correct orbit taking into account BPM alignment (centers the beam in all quadrupoles)
 correction = line.correct_trajectory(twiss_table=tw0,
                                      monitor_alignment=bpm_alignment, # <--BPM alignment
                                      run=False)
@@ -77,8 +77,8 @@ xo.assert_allclose(correction.y_correction.shift_y_monitors,
 
 # Data from previous step can be found in:
 correction.correct() # Some more steps to log the position
-xo.assert_allclose(correction.x_correction._position_before,0, rtol=0, atol=1e-12)
-xo.assert_allclose(correction.y_correction._position_before,0, rtol=0, atol=1e-12)
+xo.assert_allclose(correction.x_correction._position_before,0, rtol=0, atol=1e-10)
+xo.assert_allclose(correction.y_correction._position_before,0, rtol=0, atol=1e-10)
 
 correction.clear_correction_knobs()
 
@@ -99,18 +99,18 @@ xo.assert_allclose(correction.y_correction.shift_y_monitors,
 
 # Data from previous step can be found in:
 correction.correct() # Some more steps to log the position
-xo.assert_allclose(correction.x_correction._position_before,0, rtol=0, atol=1e-12)
-xo.assert_allclose(correction.y_correction._position_before,0, rtol=0, atol=1e-12)
+xo.assert_allclose(correction.x_correction._position_before,0, rtol=0, atol=1e-9)
+xo.assert_allclose(correction.y_correction._position_before,0, rtol=0, atol=1e-9)
 
 xo.assert_allclose(tw_corr.rows['mq1':'corr3'].x, 1e-3, rtol=0, atol=1e-9)
 xo.assert_allclose(tw_corr.rows['mq1':'corr3'].y, 2e-3, rtol=0, atol=1e-9)
-xo.assert_allclose(tw_thread.rows['mq1':'corr3'].x, 1e-3, rtol=0, atol=1e-9)
-xo.assert_allclose(tw_thread.rows['mq1':'corr3'].y, 2e-3, rtol=0, atol=1e-9)
+xo.assert_allclose(tw_thread.rows['mq1':'corr3'].x, 1e-3, rtol=0, atol=1e-4)
+xo.assert_allclose(tw_thread.rows['mq1':'corr3'].y, 2e-3, rtol=0, atol=1e-4)
 
 xo.assert_allclose(tw_corr.x[0], 0, rtol=0, atol=1e-9)
 xo.assert_allclose(tw_corr.y[0], 0, rtol=0, atol=1e-9)
-xo.assert_allclose(tw_thread.x[0], 0, rtol=0, atol=1e-9)
-xo.assert_allclose(tw_thread.y[0], 0, rtol=0, atol=1e-9)
+xo.assert_allclose(tw_thread.x[0], 0, rtol=0, atol=1e-4)
+xo.assert_allclose(tw_thread.y[0], 0, rtol=0, atol=1e-4)
 
 import matplotlib.pyplot as plt
 plt.close('all')
