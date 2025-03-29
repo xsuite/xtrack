@@ -39,7 +39,8 @@ orbit_correction = line.correct_trajectory(twiss_table=tw_ref, run=False)
 
 # Thread
 threader = orbit_correction.thread(ds_thread=500., # correct in sections of 500 m
-                                   rcond_short=1e-4, rcond_long=1e-4)
+                                   rcond_short=1e-2, rcond_long=1e-4)
+
 # prints:
 #
 # Stop at s=500.0, local rms  = [x: 1.44e-03 -> 3.04e-05, y: 3.47e-03 -> 6.91e-08]
@@ -55,6 +56,9 @@ threader = orbit_correction.thread(ds_thread=500., # correct in sections of 500 
 # Stop at s=26500.0, global rms = [x: 3.19e-04 -> 5.09e-06, y: 4.06e-04 -> 2.81e-06]
 # Stop at s=26658.88, local rms  = [x: 8.09e-04 -> 3.74e-05, y: 1.11e-03 -> 2.86e-04]
 # Stop at s=26658.88, global rms = [x: 3.07e-05 -> 5.07e-06, y: 5.45e-05 -> 3.52e-09]
+
+kicks_x_thread = orbit_correction.x_correction.get_kick_values()
+kicks_y_thread = orbit_correction.y_correction.get_kick_values()
 
 # Closed twiss after threading (closed orbit is found)
 tw_after_thread = line.twiss4d()

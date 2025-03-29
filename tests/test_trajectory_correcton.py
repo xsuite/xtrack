@@ -241,7 +241,10 @@ def test_orbit_correction_thread(test_context):
 
     # Thread
     threader = orbit_correction.thread(ds_thread=500., # correct in sections of 500 m
-                                    rcond_short=1e-4, rcond_long=1e-4)
+                                    rcond_short=1e-3, rcond_long=1e-3)
+
+    kicks_x_thread = orbit_correction.x_correction.get_kick_values()
+    kicks_x_thread = orbit_correction.x_correction.get_kick_values()
 
     # Closed twiss after threading (closed orbit is found)
     tw_after_thread = line.twiss4d()
