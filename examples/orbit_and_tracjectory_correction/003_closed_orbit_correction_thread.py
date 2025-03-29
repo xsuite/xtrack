@@ -39,7 +39,7 @@ orbit_correction = line.correct_trajectory(twiss_table=tw_ref, run=False)
 
 # Thread
 threader = orbit_correction.thread(ds_thread=500., # correct in sections of 500 m
-                                   rcond_short=1e-2, rcond_long=1e-4)
+                                   rcond_long=1e-3)
 
 # prints:
 #
