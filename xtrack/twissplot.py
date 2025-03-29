@@ -110,23 +110,32 @@ class TwissPlot(object):
         )
         self.ax = ax
         self.used_ax = False
+
+        if figure is not None:
+            self.figure = figure
+
         if ax is not None:
             self.figure = ax.figure
-        elif figure is None:
+        elif self.figure is None:
             self.figure = plt.figure(num=figlabel, figsize=figsize)
+
         if figlabel is not None:
             self.figure.clf()
+
         for i in self.yl + self.yr:
             self.color[i] = self.clist.pop(0)
             self.clist.append(self.color[i])
+
         if lattice and x == "s":
             self.lattice = self._new_axis(axlattice)
             # self.lattice.set_frame_on(False)
             #      self.lattice.set_autoscale_on(False)
             self.lattice.yaxis.set_visible(False)
+
         if yl:
             self.left = self._new_axis(axleft)
             #      self.left.set_autoscale_on(False)
+
         if yr:
             self.right = self._new_axis(axright)
             #      self.right.set_autoscale_on(False)
@@ -137,14 +146,17 @@ class TwissPlot(object):
         self.run()
         if lattice and x == "s":
             self.lattice.set_autoscale_on(False)
+
         if yl:
             self.left.set_autoscale_on(False)
             self.left.yaxis.set_label_position("left")
             self.left.yaxis.set_ticks_position("left")
+
         if yr:
             self.right.set_autoscale_on(False)
             self.right.yaxis.set_label_position("right")
             self.right.yaxis.set_ticks_position("right")
+
         if hover:
             self.set_hover()
 

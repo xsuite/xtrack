@@ -111,7 +111,7 @@ correction.clear_correction_knobs()
 for nn in ['bumper1', 'bumper2', 'bumper3', 'bumper4']:
     assert line[nn].knl[0] == 0
 
-correction.thread()
+correction.thread(ds_thread = 10)
 tw_thread = line.twiss4d()
 
 xo.assert_allclose(correction.x_correction.shift_x_monitors,

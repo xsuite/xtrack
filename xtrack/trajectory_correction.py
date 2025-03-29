@@ -690,6 +690,8 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
             monitor_alignment=None,
             verbose=True):
 
+    assert ds_thread is not None
+
     # r_cond_short is not used anymore, see commented code below
 
     tt = line.get_table()
