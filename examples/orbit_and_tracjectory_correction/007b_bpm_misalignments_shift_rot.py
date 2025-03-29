@@ -81,5 +81,5 @@ correction = line.correct_trajectory(twiss_table=tw0,
 
 correction.correct(n_iter=1)
 
-# Check that there is no vertical reading in the aligned BPMs
+# Check that there is no vertical reading in the tilted bpm BPMs
 xo.assert_allclose(correction.y_correction._position_before, 0, atol=1e-15, rtol=0)
