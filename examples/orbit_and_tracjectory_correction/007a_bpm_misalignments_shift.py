@@ -88,6 +88,10 @@ correction = line.correct_trajectory(twiss_table=tw0,
 
 correction.correct()
 
+#!end-doc-part
+
+tw_corr = line.twiss4d()
+
 xo.assert_allclose(correction.x_correction.shift_x_monitors,
                    [0., 0., 0.001, 0.001, 0.001, 0.001, 0., 0.], rtol=0, atol=1e-14)
 xo.assert_allclose(correction.x_correction.shift_y_monitors,
@@ -103,3 +107,37 @@ xo.assert_allclose(correction.x_correction._position_before,0, rtol=0, atol=1e-1
 xo.assert_allclose(correction.y_correction._position_before,0, rtol=0, atol=1e-12)
 
 correction.clear_correction_knobs()
+
+for nn in ['bumper1', 'bumper2', 'bumper3', 'bumper4']:
+    assert line[nn].knl[0] == 0
+
+correction.thread()
+tw_thread = line.twiss4d()
+
+xo.assert_allclose(correction.x_correction.shift_x_monitors,
+                   [0., 0., 0.001, 0.001, 0.001, 0.001, 0., 0.], rtol=0, atol=1e-14)
+xo.assert_allclose(correction.x_correction.shift_y_monitors,
+                   [0., 0., 0.002, 0.002, 0.002, 0.002, 0., 0.], rtol=0, atol=1e-14)
+xo.assert_allclose(correction.y_correction.shift_x_monitors,
+                   [0., 0., 0.001, 0.001, 0.001, 0.001, 0., 0.], rtol=0, atol=1e-14)
+xo.assert_allclose(correction.y_correction.shift_y_monitors,
+                   [0., 0., 0.002, 0.002, 0.002, 0.002, 0., 0.], rtol=0, atol=1e-14)
+
+# Data from previous step can be found in:
+correction.correct() # Some more steps to log the position
+xo.assert_allclose(correction.x_correction._position_before,0, rtol=0, atol=1e-12)
+xo.assert_allclose(correction.y_correction._position_before,0, rtol=0, atol=1e-12)
+
+import matplotlib.pyplot as plt
+plt.close('all')
+
+fig1 = plt.figure(1)
+tw_corr.plot('x y', figure=fig1)
+plt.suptitle('After correction')
+
+fig2 = plt.figure(2)
+tw_thread.plot('x y', figure=fig2)
+plt.suptitle('After threading')
+
+plt.show()
+
