@@ -14,10 +14,10 @@ line = env.new_line(components=[
     env.new('line.start', 'Marker'),
     env.new('line.end', 'Marker', at=12.),
 
-    env.new('mq1', 'mq', k1='kq1', at=3.),
-    env.new('mq2', 'mq', k1='kq2', at=5.),
-    env.new('mq3', 'mq', k1='kq3', at=7.),
-    env.new('mq4', 'mq', k1='kq4', at=9.),
+    env.new('mq1', 'mq', k1=0.2, at=3.),
+    env.new('mq2', 'mq', k1=-0.2, at=5.),
+    env.new('mq3', 'mq', k1=0.2, at=7.),
+    env.new('mq4', 'mq', k1=-0.2, at=9.),
 
     env.new('bpm.s.1', 'bpm', at=0.1),
     env.new('bpm.s.2', 'bpm', at=0.5),
@@ -34,13 +34,21 @@ line = env.new_line(components=[
     env.new('corr4', 'corrector', at=11., knl=['k0l_corr4'], ksl=['k0sl_corr4']),
 ])
 
+# Define monitors and correctors for orbit steering
+line.steering_monitors_x = ['bpm.s.1', 'bpm.s.2',
+                            'bpm.q.1', 'bpm.q.2', 'bpm.q.3', 'bpm.q.4',
+                            'bpm.e.1', 'bpm.e.2']
+line.steering_correctors_x = ['corr1', 'corr2', 'corr3', 'corr4']
+line.steering_monitors_y = line.steering_monitors_x
+line.steering_correctors_y = line.steering_correctors_x
+
+# Twiss without misalignments
+tw0 = line.twiss4d()
+
+# Misalign all quadrupoles
 env.set(['mq1', 'mq2', 'mq3', 'mq4'], shift_x=1e-3, shift_y=2e-3)
 
-env['kq1'] = 0.2
-env['kq2'] = -0.2
-env['kq3'] = 0.2
-env['kq4'] = -0.2
-
+# Define BPM alignment
 bpm_alignment ={
     'bpm.q.1': {'shift_x': 1e-3, 'shift_y': 2e-3},
     'bpm.q.2': {'shift_x': 1e-3, 'shift_y': 2e-3},
@@ -48,22 +56,10 @@ bpm_alignment ={
     'bpm.q.4': {'shift_x': 1e-3, 'shift_y': 2e-3},
 }
 
-tw0 = line.twiss4d()
-
-# Going through the center of all quads
-tw = line.twiss4d()
-
-line.steering_monitors_x = ['bpm.s.1', 'bpm.s.2',
-                            'bpm.q.1', 'bpm.q.2', 'bpm.q.3', 'bpm.q.4',
-                            'bpm.e.1', 'bpm.e.2']
-line.steering_monitors_y = line.steering_monitors_x
-line.steering_correctors_x = ['corr1', 'corr2', 'corr3', 'corr4']
-line.steering_correctors_y = ['corr1', 'corr2', 'corr3', 'corr4']
-
+# Correct orbit taking into account BPM alignment
 correction = line.correct_trajectory(twiss_table=tw0,
-                                     monitor_alignment=bpm_alignment,
+                                     monitor_alignment=bpm_alignment, # <--BPM alignment
                                      run=False)
-
 correction.correct()
 
 #!end-doc-part
