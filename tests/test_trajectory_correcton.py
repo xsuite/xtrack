@@ -523,8 +523,6 @@ def test_orbit_correction_tilt_monitors():
 
 
     correction = line.correct_trajectory(twiss_table=tw0,
-                                        x_init=dx * np.cos(np.deg2rad(30)),
-                                        y_init=dx * np.sin(np.deg2rad(30)),
                                         start='line.start', end='line.end',
                                         monitor_alignment=bpm_alignment,
                                         run=False)
