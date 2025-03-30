@@ -118,7 +118,7 @@ class TwissPlot(object):
 
         if ax is not None:
             self.figure = ax.figure
-        elif self.figure is None:
+        elif figure is None:
             self.figure = plt.figure(num=figlabel, figsize=figsize)
 
         if figlabel is not None:
