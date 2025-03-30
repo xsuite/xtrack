@@ -1539,7 +1539,7 @@ class Line:
                  monitor_names_y=None, corrector_names_y=None,
                  n_micado=None, n_singular_values=None, rcond=None,
                  monitor_alignment=None,
-                 x_init=0, px_init=0, y_init=0, py_init=0, zeta_init=0, delta_init=0):
+                 ):
 
         '''
         Correct the beam trajectory using linearized response matrix from optics
