@@ -45,9 +45,10 @@ class RFT_Element:
         self.pz = np.sqrt(self.p**2 - p.px**2 - p.py**2)
         self.arr_for_rft.resize((len(p.x), 10))
         self.arr_for_rft[:,0] = p.x * 1e3 # mm
-        self.arr_for_rft[:,1] = p.px * 1e3 / self.pz # mrad
+        self.arr_for_rft[:,1] = p.px * 1e3 / self.pz # mrad, xp
         self.arr_for_rft[:,2] = p.y * 1e3 # mm
-        self.arr_for_rft[:,3] = p.py * 1e3 / self.pz # mrad
+        self.arr_for_rft[:,3] = p.py * 1e3 / self.pz # mrad, yp
+        self.arr_for_rft[:,4] = -p.zeta * 1e3 / p.beta0 # mm/c, t
         self.arr_for_rft[:,5] = p.p0c * self.p / 1e6 # MeV
         self.arr_for_rft[:,6] = p.mass0 / 1e6 # MeV
         self.arr_for_rft[:,7] = p.q0
