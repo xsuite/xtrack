@@ -34,13 +34,13 @@ def test_chi(test_context):
     ql.particle_ref = xp.Particles(p0c=6.8e12*z0 , q0=z0, mass0=m0)
 
     # reference species with effective rigidity
-    part1           = ql.particle_ref.copy()
+    part1           = ql.particle_ref.copy(_context=test_context)
     delta           = 0
     chi             = (z0/z)*(m/m0)
     part1.delta     = (1 + delta)/(chi) - 1
 
     # pb207
-    part2              = ql.particle_ref.copy()
+    part2              = ql.particle_ref.copy(_context=test_context)
     part2.chi          = (z0/z)*(m/m0)
     part2.charge_ratio = (z/z0)
 
