@@ -45,81 +45,74 @@ def test_simple_parser():
     return;  ! should also be ignored
     """
 
-    expected: MadxOutputType = {
-        'vars': {
-            'third': {'deferred': False, 'expr': '(1.0 / 3.0)'},
-            'power': {'deferred': False, 'expr': '(3.0 ** 4.0)'},
-            'hello': {'deferred': True, 'expr': '(third * twopi)'},
-            'mb.l': {'deferred': False, 'expr': 1.0},
-            'qd.l': {'deferred': False, 'expr': 0.5},
-            'offset': {'deferred': True, 'expr': 0.1},
-        },
+    env = xt.Environment()
+    env['twopi'] = 2 * math.pi
+    parser = MadxParser(vars=env.vars, functions=env.functions)
+    result = parser.parse_string(sequence)
+
+    expected = {
         'elements': {
             'mb': {
-                'angle': {'deferred': True, 'expr': 'hello'},
-                'l': {'deferred': True, 'expr': 'mb.l'},
+                'angle': env.vars['hello'],
+                'l': env.vars['mb.l'],
                 'parent': 'sbend',
             },
             'qf': {
-                'k1': {'deferred': True, 'expr': 1.0},
-                'l': {'deferred': True, 'expr': 1.0},
+                'k1': 1.0,
+                'l': 1.0,
                 'parent': 'quadrupole',
             },
             'qd': {
-                'k1': {'deferred': True, 'expr': -1.0},
-                'l': {'deferred': True, 'expr': 1.0},
+                'k1': -1.0,
+                'l': 1.0,
                 'parent': 'quadrupole',
             },
         },
         'lines': {
             'line': {
-                'l': {'deferred': False, 'expr': 12.0},
+                'l': 12.0,
                 'parent': 'sequence',
                 'elements': {
                     'ip1': {
-                        'at': {'deferred': False, 'expr': 0.0},
+                        'at': 0.0,
                         'parent': 'marker',
                     },
                     'qf1': {
-                        'at': {'deferred': True, 'expr': '(1.0 + offset)'},
-                        'from': {'deferred': False, 'expr': 'ip1'},
+                        'at': 1.0 + env.vars['offset'],
+                        'from': 'ip1',
                         'parent': 'qf',
-                        'slot_id': {'deferred': False, 'expr': 1.0},
+                        'slot_id': 1.0,
                     },
                     'mb1': {
-                        'at': {'deferred': True, 'expr': '(2.0 + offset)'},
-                        'from': {'deferred': False, 'expr': 'ip1'},
+                        'at': 2.0 + env.vars['offset'],
+                        'from': 'ip1',
                         'parent': 'mb',
-                        'slot_id': {'deferred': False, 'expr': 2.0},
+                        'slot_id': 2.0,
                     },
                     'qd1': {
-                        'at': {'deferred': True, 'expr': '(3.0 + offset)'},
-                        'from': {'deferred': False, 'expr': 'ip1'},
+                        'at': 3.0 + env.vars['offset'],
+                        'from': 'ip1',
                         'parent': 'qd',
-                        'slot_id': {'deferred': False, 'expr': 3.0},
+                        'slot_id': 3.0,
                     },
                 },
             },
         },
         'parameters': {
             'mb1': {
-                'k0': {'deferred': True, 'expr': 'hello'},
-                'polarity': {'deferred': False, 'expr': 1.0},
+                'k0': env.vars['hello'],
+                'polarity': 1.0,
             },
             'qf1': {
-                'knl': {'deferred': True, 'expr': [0.0, 0.0, 0.0, 0.01, 0.0]},
+                'knl': [0.0, 0.0, 0.0, 0.01, 0.0],
             },
             'qd1': {
-                'knl': {'deferred': True, 'expr': [0.0, 0.0, 0.0, -0.01, 0.0]},
+                'knl': [0.0, 0.0, 0.0, -0.01, 0.0],
             },
         },
     }
 
-    parser = MadxParser()
-    result = parser.parse_string(sequence)
-
     def _order_madx_output(item):
-        item['vars'] = OrderedDict(item['vars'])
         item['elements'] = OrderedDict(item['elements'])
         item['lines'] = OrderedDict(item['lines'])
         for line in item['lines'].values():
@@ -137,6 +130,7 @@ def test_simple_parser():
     [
         ('a := 42;', 42, None),
         ('c := 3; d := 4; a := c^d;', 81, '(c ** d)'),
+        ('c := 3; d := 4; a = c^d;', 81, None),
     ]
 )
 def test_parse_simple_expression(input, value, expr):
@@ -146,6 +140,10 @@ def test_parse_simple_expression(input, value, expr):
     if expr is not None:
         formatter = CompactFormatter(None)
         assert env.get_expr('a')._formatted(formatter) == expr
+    else:
+        assert env.get_expr('a') is None
+        env['c'] = 8
+        assert env['a'] == value
 
 
 @pytest.fixture(scope='module')
@@ -890,13 +888,12 @@ def test_import_seq_length():
     sequence = """
     qu: quadrupole, l=2, k1=3, k1s=4, tilt=2;  ! ignore thick and ktap
 
-    line: sequence, l = ll;
-        qu1: qu, at = 19;
-    endsequence;
-
     ll := 3 * a;
     a = 10;
 
+    line: sequence, l = ll;
+        qu1: qu, at = 19;
+    endsequence;
     """
 
     env = xt.load_madx_lattice(string=sequence)
@@ -904,7 +901,7 @@ def test_import_seq_length():
     tt = env.line.get_table()
     assert np.all(tt.name == np.array(['drift_1', 'qu1', 'drift_2', '_end_point']))
     xo.assert_allclose(tt['s'], np.array([ 0., 18., 20., 30.]), rtol=0, atol=1e-15)
-    assert env.line.builder.length == 'll'
+    assert env.line.builder.length == 30
 
 
 def test_repeated_element_mad_behaviour():
