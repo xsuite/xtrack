@@ -1338,7 +1338,7 @@ class Line:
     def match(self, vary, targets, solve=True, assert_within_tol=True,
                   compensate_radiation_energy_loss=False,
                   solver_options={}, allow_twiss_failure=True,
-                  restore_if_fail=True, verbose=False,
+                  restore_if_fail=True, verbose=None,
                   n_steps_max=20, default_tol=None,
                   solver=None, check_limits=True, **kwargs):
         '''
