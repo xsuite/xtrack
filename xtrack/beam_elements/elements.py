@@ -19,7 +19,7 @@ from xtrack.beam_elements.magnets import (
     _INDEX_TO_INTEGRATOR, _INTEGRATOR_TO_INDEX, _MODEL_TO_INDEX_CURVED,
     _INDEX_TO_MODEL_CURVED, _MODEL_TO_INDEX_STRAIGHT, _INDEX_TO_MODEL_STRAIGHT,
     DEFAULT_MULTIPOLE_ORDER, SynchrotronRadiationRecord, _prepare_multipolar_params,
-    _NOEXPR_FIELDS, COMMON_MAGNET_SOURCES
+    _NOEXPR_FIELDS
 )
 from xtrack.internal_record import RecordIndex
 
@@ -595,7 +595,6 @@ class Multipole(BeamElement):
     _depends_on = [RandomUniformAccurate, RandomExponential]
 
     _extra_c_sources = [
-        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/multipole.h')]
 
     _internal_record_class = SynchrotronRadiationRecord
@@ -999,7 +998,6 @@ class Bend(_BendCommon, BeamElement):
     _noexpr_fields = _NOEXPR_FIELDS
 
     _extra_c_sources = [
-        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/bend.h'),
     ]
 
@@ -1212,7 +1210,6 @@ class RBend(_BendCommon, BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
-        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/rbend.h'),
     ]
 
@@ -1492,7 +1489,6 @@ class Sextupole(BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
-        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/sextupole.h'),
     ]
 
@@ -1651,7 +1647,6 @@ class Octupole(BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
-        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/octupole.h'),
     ]
 
@@ -1804,7 +1799,6 @@ class Quadrupole(BeamElement):
     _noexpr_fields = _NOEXPR_FIELDS
 
     _extra_c_sources = [
-        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/quadrupole.h'),
     ]
 

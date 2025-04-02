@@ -6,6 +6,8 @@
 #ifndef XTRACK_BEND_H
 #define XTRACK_BEND_H
 
+#include <beam_elements/elements_src/track_magnet.h>
+
 /*gpufun*/
 void Bend_track_local_particle(
         BendData el,

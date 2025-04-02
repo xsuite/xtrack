@@ -3,6 +3,8 @@
 // Copyright (c) CERN, 2023.                 //
 // ######################################### //
 
+#include <beam_elements/elements_src/track_magnet.h>
+
 #ifndef XTRACK_THIN_SLICE_QUADRUPOLE_H
 #define XTRACK_THIN_SLICE_QUADRUPOLE_H
 

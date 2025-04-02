@@ -6,6 +6,8 @@
 #ifndef XTRACK_MULTIPOLE_H
 #define XTRACK_MULTIPOLE_H
 
+#include <beam_elements/elements_src/track_magnet.h>
+
 
 /*gpufun*/
 void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){

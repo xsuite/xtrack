@@ -6,6 +6,8 @@
 #ifndef XTRACK_SEXTUPOLE_H
 #define XTRACK_SEXTUPOLE_H
 
+#include <beam_elements/elements_src/track_magnet.h>
+
 /*gpufun*/
 void Sextupole_track_local_particle(
         SextupoleData el,

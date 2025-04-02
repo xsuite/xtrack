@@ -21,7 +21,6 @@
         }
 #endif  // XO_CONTEXT_CPU_SERIAL
 
-
 #ifdef XO_CONTEXT_CPU_OPENMP
     // We are on CPU with the OpenMP context switched on
 
@@ -51,5 +50,9 @@
                 CODE \
             }
 #endif  // XO_CONTEXT_CUDA || XO_CONTEXT_CL
+
+#ifndef PER_PARTICLE_BLOCK
+#error "Unknown context, or the expected context (XO_CONTEXT_*) flag undefined. Try updating xobjects?"
+#endif
 
 #endif  // XTRACK_TRACK_H

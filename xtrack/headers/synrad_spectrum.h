@@ -11,6 +11,10 @@
 #define SQRT3 1.732050807568877
 #define ALPHA_EM 0.0072973525693
 
+#if defined(XTRACK_SYNRAD_SCALE_SAME_AS_FIRST) && !defined(XO_CONTEXT_CPU_SERIAL)
+#error "XTRACK_SYNRAD_SCALE_SAME_AS_FIRST not supported when multithreading"
+#endif
+
 /*gpufun*/
 void synrad_average_kick(LocalParticle* part, double B_T, double lpath,
                          double* dp_record, double* dpx_record, double* dpy_record
@@ -33,7 +37,6 @@ void synrad_average_kick(LocalParticle* part, double B_T, double lpath,
 
     #ifdef XTRACK_SYNRAD_SCALE_SAME_AS_FIRST
     if (part -> ipart == 0){
-    #error "XTRACK_SYNRAD_SCALE_SAME_AS_FIRST not supported when multithreading"  //only_for_context cpu_openmp cuda opencl
       *dp_record = f_t;
     }
     else{
@@ -42,7 +45,6 @@ void synrad_average_kick(LocalParticle* part, double B_T, double lpath,
     #endif
 
     #ifdef XTRACK_SYNRAD_KICK_SAME_AS_FIRST
-    #error "XTRACK_SYNRAD_KICK_SAME_AS_FIRST not supported when multithreading"  //only_for_context cpu_openmp cuda opencl
     if (part -> ipart == 0){
       *dp_record = LocalParticle_get_delta(part);
       *dpx_record = LocalParticle_get_px(part);

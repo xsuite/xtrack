@@ -4,7 +4,7 @@ from ..general import _pkg_root
 from ..base_element import BeamElement
 from .elements import (
     SynchrotronRadiationRecord, Bend, Quadrupole, Sextupole,
-    Octupole, Solenoid, Drift, RBend, COMMON_MAGNET_SOURCES,
+    Octupole, Solenoid, Drift, RBend,
 )
 from ..random import RandomUniformAccurate, RandomExponential
 
@@ -30,7 +30,6 @@ class ThickSliceBend(BeamElement):
     _xofields = {'_parent': xo.Ref(Bend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/thick_slice_bend.h')]
 
     copy = _slice_copy
@@ -59,7 +58,6 @@ class ThickSliceRBend(BeamElement):
     _xofields = {'_parent': xo.Ref(RBend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/thick_slice_rbend.h')]
 
     copy = _slice_copy
@@ -88,7 +86,6 @@ class ThickSliceQuadrupole(BeamElement):
     _xofields = {'_parent': xo.Ref(Quadrupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/thick_slice_quadrupole.h')]
 
     copy = _slice_copy
@@ -120,7 +117,6 @@ class ThickSliceSextupole(BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
-        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/thick_slice_sextupole.h')]
 
     copy = _slice_copy
@@ -152,7 +148,6 @@ class ThickSliceOctupole(BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
-        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/thick_slice_octupole.h')]
 
     copy = _slice_copy
