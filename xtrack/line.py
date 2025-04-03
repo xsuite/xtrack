@@ -4067,7 +4067,9 @@ class Line:
         >>> line.set(['e', 'f'], '3*a')
 
         '''
-        if hasattr(name, 'name'):
+        if hasattr(name, 'env_name'):
+            name = name.env_name
+        elif hasattr(name, 'name'):
             name = name.name
 
         if isinstance(name, Iterable) and not isinstance(name, str):
