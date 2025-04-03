@@ -1345,9 +1345,8 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                                         symmetrize=(periodic_mode == 'periodic_symmetric'),
                                         include_collective=include_collective,
                                         )['R_matrix']
-
             (WW_chrom, _, _, _) = lnf.compute_linear_normal_form(RR_chrom,
-                                    only_4d_block=method=='4d',
+                                    only_4d_block=True,
                                     responsiveness_tol=matrix_responsiveness_tol,
                                     stability_tol=matrix_stability_tol,
                                     symplectify=symplectify)
