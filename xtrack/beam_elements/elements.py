@@ -2243,12 +2243,8 @@ class DipoleEdge(BeamElement):
     }
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_nonlinear.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/dipoleedge.h')]
+        _pkg_root.joinpath('beam_elements/elements_src/dipoleedge.h'),
+    ]
 
     has_backtrack = True
 

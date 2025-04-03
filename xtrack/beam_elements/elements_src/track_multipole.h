@@ -6,6 +6,8 @@
 #ifndef XTRACK_TRACK_MULTIPOLE_H
 #define XTRACK_TRACK_MULTIPOLE_H
 
+#include <headers/synrad_spectrum.h>
+
 
 /*gpufun*/
 void multipole_compute_dpx_dpy_single_particle(LocalParticle* part,

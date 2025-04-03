@@ -9,8 +9,10 @@
 #ifndef XTRACK_EI_H
 #define XTRACK_EI_H
 
-#include <math.h> // required for fabs(), exp() and log() //only_for_context cpu_serial cpu_openmp
-#include <float.h> // required for DBL_EPSILON, DBL_MAX //only_for_context cpu_serial cpu_openmp
+#ifdef XO_CONTEXT_CPU
+#include <math.h>  // required for fabs(), exp() and log()
+#include <float.h>  // required for DBL_EPSILON, DBL_MAX
+#endif  // XO_CONTEXT_CPU
 
 //                         Internally Defined Routines                        //
 /*gpufun*/ double Exponential_Integral_Ei( double x );

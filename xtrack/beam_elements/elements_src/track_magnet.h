@@ -10,7 +10,10 @@
 #include <beam_elements/elements_src/track_magnet_kick.h>
 #include <beam_elements/elements_src/track_magnet_drift.h>
 #include <beam_elements/elements_src/track_magnet_edge.h>
+
+#ifndef XTRACK_MULTIPOLE_NO_SYNRAD
 #include <beam_elements/elements_src/track_magnet_radiation.h>
+#endif
 
 #define H_TOLERANCE (1e-8)
 

@@ -1,6 +1,7 @@
 #ifndef XTRACK_TRACK_MAGNET_RADIATION_H
 #define XTRACK_TRACK_MAGNET_RADIATION_H
 
+#include <headers/synrad_spectrum.h>
 
 /*gpufun*/
 void magnet_apply_radiation_single_particle(

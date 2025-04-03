@@ -16,7 +16,7 @@
                 LocalParticle lpart = *(SRC_PART); \
                 LocalParticle* DEST_PART = &lpart; \
                 part->ipart = XT_part_block_ii; \
-                CODE \
+                { CODE; } \
             } \
         }
 #endif  // XO_CONTEXT_CPU_SERIAL
@@ -27,7 +27,6 @@
     #define PER_PARTICLE_BLOCK(SRC_PART, DEST_PART, CODE) { \
             const int64_t XT_part_block_start_idx = (SRC_PART)->ipart; \
             const int64_t XT_part_block_end_idx = (SRC_PART)->endpart; \
-            \ // #pragma omp simd // TODO: currently does not work, needs investigating
             for (int64_t XT_part_block_ii = XT_part_block_start_idx; XT_part_block_ii<XT_part_block_end_idx; XT_part_block_ii++) \
             { \
                 LocalParticle lpart = *(SRC_PART); \
@@ -35,7 +34,7 @@
                 part->ipart = XT_part_block_ii; \
                 \
                 if (LocalParticle_get_state(DEST_PART) > 0) { \
-                    CODE \
+                    CODE ; \
                 } \
             } \
         }
@@ -52,7 +51,7 @@
 #endif  // XO_CONTEXT_CUDA || XO_CONTEXT_CL
 
 #ifndef PER_PARTICLE_BLOCK
-#error "Unknown context, or the expected context (XO_CONTEXT_*) flag undefined. Try updating xobjects?"
+#error "Unknown context, or the expected context (XO_CONTEXT_*) flag undefined. Try updating Xobjects?"
 #endif
 
 #endif  // XTRACK_TRACK_H

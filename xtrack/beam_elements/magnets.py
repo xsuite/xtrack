@@ -538,6 +538,8 @@ class MagnetEdge(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/magnet_edge.h'),
     ]
 
+    _depends_on = [RandomUniformAccurate, RandomExponential]
+
     _repr_fields = [
         'model', 'is_exit', 'kn', 'ks', 'k_order', 'knl', 'ksl', 'kl_order',
         'length', 'half_gap', 'face_angle', 'face_angle_feed_down',

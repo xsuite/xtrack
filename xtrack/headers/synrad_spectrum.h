@@ -6,6 +6,7 @@
 #ifndef XTRACK_SYNRAD_SPECTRUM_H
 #define XTRACK_SYNRAD_SPECTRUM_H
 
+#include <random/random_src/uniform_accurate.h>
 
 
 #define SQRT3 1.732050807568877

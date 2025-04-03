@@ -7,7 +7,6 @@
 #define XTRACK_TRACK_MAGNET_EDGE_H
 
 #include <headers/track.h>
-#include <headers/synrad_spectrum.h>
 #include <beam_elements/elements_src/track_dipole_edge_linear.h>
 #include <beam_elements/elements_src/track_yrotation.h>
 #include <beam_elements/elements_src/track_wedge.h>
@@ -48,9 +47,7 @@ void track_magnet_edge_particles(
         r21 = r21 * factor_for_backtrack;
         r43 = r43 * factor_for_backtrack;
 
-        PER_PARTICLE_BLOCK(part0, part,
-            DipoleEdgeLinear_single_particle(part, r21, r43);
-        );
+        PER_PARTICLE_BLOCK(part0, part, DipoleEdgeLinear_single_particle(part, r21, r43));
         return;
     }
     else if (model == 1 || model == 2) { // Full model
@@ -100,24 +97,24 @@ void track_magnet_edge_particles(
             if (should_rotate) Wedge_single_particle((PART), -face_angle, kn[0])
 
         if (is_exit == 0){ // entry
-            PER_PARTICLE_BLOCK(part0, part,
+            PER_PARTICLE_BLOCK(part0, part, {
                 MAGNET_Y_ROTATE(part);
                 MAGNET_DIPOLE_FRINGE(part);
                 if (model == 1){
                     MAGNET_MULTIPOLE_FRINGE(part);
                 }
                 MAGNET_WEDGE(part);
-            );
+            });
         }
         else { // exit
-            PER_PARTICLE_BLOCK(part0, part,
+            PER_PARTICLE_BLOCK(part0, part, {
                 MAGNET_WEDGE(part);
                 if (model == 1){
                     MAGNET_MULTIPOLE_FRINGE(part);
                 }
                 MAGNET_DIPOLE_FRINGE(part);
                 MAGNET_Y_ROTATE(part);
-            );
+            });
         }
 
         #undef MAGNET_Y_ROTATE
