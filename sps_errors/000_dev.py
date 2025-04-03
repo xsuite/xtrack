@@ -1,6 +1,9 @@
 import xtrack as xt
 import numpy as np
 
+# TODO:
+# - Actually b3 is not b3 but k2l :-)
+
 env = xt.load_madx_lattice('SPS_LS2_2025-03-05.seq')
 env.vars.load_madx('lhc_q20.str')
 
@@ -29,7 +32,7 @@ env.vars.update(dict(
 line = env.sps
 line.particle_ref = xt.Particles(p0c=26e9, mass0=xt.PROTON_MASS_EV)
 
-tw = line.twiss4d()
+tw0 = line.twiss4d()
 
 tt = line.get_table()
 tt_bend = tt.rows[(tt.element_type=='Bend') | (tt.element_type=='RBend')]
@@ -38,17 +41,20 @@ tt_mbb = tt_bend.rows['mbb.*']
 
 # Generate random normal variables
 np.random.seed(0)
-rand_norm1_b3_mba = np.random.normal(0, 1, size=len(tt_mba))
-rand_norm1_b5_mba = np.random.normal(0, 1, size=len(tt_mba))
-rand_norm1_b7_mba = np.random.normal(0, 1, size=len(tt_mba))
-
-rand_norm1_b3_mbb = np.random.normal(0, 1, size=len(tt_mbb))
-rand_norm1_b5_mbb = np.random.normal(0, 1, size=len(tt_mbb))
-rand_norm1_b7_mbb = np.random.normal(0, 1, size=len(tt_mbb))
 
 env['on_error'] = 0
 
-for ii, nn in enumerate(tt_mba.name):
-    new_expr = env.new_expr(f'(b3a + b3ar*{rand_norm1_b3_mba[ii]}) * on_error')
-    env[nn].knl[2] += new_expr
+line.extend_knl_ksl(order=7, element_names=list(tt_mba.name) + list(tt_mbb.name))
 
+for tt, family in zip([tt_mba, tt_mbb], ['a', 'b']):
+    for order in [3, 5, 7]:
+        rand_values = np.random.normal(0, 1, size=len(tt))
+        for ii, nn in enumerate(tt_mba.name):
+            new_expr = env.new_expr(
+                f'(b{order}{family} + b{order}{family}r*{rand_values[ii]}) * on_error')
+            env[nn].knl[order - 1] += new_expr
+
+env['on_error'] = 0
+tw_err_off = line.twiss4d()
+env['on_error'] = 1
+tw_err_on = line.twiss4d()
