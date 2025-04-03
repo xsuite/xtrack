@@ -675,6 +675,7 @@ def load_madx_lattice(file=None, string=None, reverse_lines=None):
         del new_env.lines['__DUMMY__'] # keep the elements but not the line
 
         env = new_env
-        print('Done reversing lines')
+
+    env.vars.default_to_zero = False
 
     return env
