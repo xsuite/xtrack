@@ -1749,6 +1749,12 @@ class Particles(xo.HybridClass):
         int64_t check_is_active(LocalParticle* part) {
             int64_t ipart=0;
             while (ipart < part->_num_active_particles){
+                #ifdef XSUITE_RESTORE_LOSS
+                if (part->state[ipart]<1){
+                    part->state[ipart] = 100;
+                }
+                ipart++;
+                #else
                 if (part->state[ipart]<1){
                     LocalParticle_exchange(
                         part, ipart, part->_num_active_particles-1);
@@ -1758,6 +1764,7 @@ class Particles(xo.HybridClass):
                 else{
                     ipart++;
                 }
+                #endif
             }
 
             if (part->_num_active_particles==0){

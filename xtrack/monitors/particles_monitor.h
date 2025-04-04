@@ -65,10 +65,14 @@ void ParticlesMonitor_track_local_particle(ParticlesMonitorData el,
         }
     }
 
-
+    #ifdef XSUITE_RESTORE_LOSS
+    LocalParticle_set_state(part, 1);
+    #endif
 
     //end_per_particle_block
 
 }
 
 #endif
+
+
