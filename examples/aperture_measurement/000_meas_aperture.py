@@ -1,9 +1,16 @@
 import xtrack as xt
 import numpy as np
+import time
 
 # line = xt.Line.from_json('../../test_data/sps_w_spacecharge/line_no_spacecharge.json')
 
 env = xt.load_madx_lattice('EYETS 2024-2025.seq')
+env.vars.load_madx('lhc_q20.str')
+line = env.sps
+line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, p0c=26e9)
+
+tw0 = line.twiss4d()
+
 
 from cpymad.madx import Madx
 mad = Madx()
@@ -27,9 +34,7 @@ for nn in tt_aper.name:
 line = env.sps
 line.insert(insertions)
 
-line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, p0c=26e9)
-
-# tw0 = line.twiss4d()
+tw1 = line.twiss4d()
 
 # x_grid = np.arange(-0.1, 0.1, 1e-3)
 # y_grid = np.arange(-0.05, 0.05, 1e-3)
@@ -37,6 +42,7 @@ line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, p0c=26e9)
 # x_probe = XX.flatten()
 # y_probe = YY.flatten()
 
+t1 = time.time()
 x_probe = np.linspace(-0.1, 0.1, 100)
 y_probe = 0
 
@@ -53,23 +59,24 @@ diff_loss = np.diff(mon.state, axis=0)
 mean_x = 0.5*(mon.x[:-1, :] + mon.x[1:, :])
 zeros = mean_x == 0
 x_aper_low_mat = np.where(diff_loss>0, mean_x, zeros)
-x_aper_low = x_aper_low_mat.sum(axis=0)
+x_aper_low_discrete = x_aper_low_mat.sum(axis=0)
 x_aper_high_mat = np.where(diff_loss<0, mean_x, zeros)
-x_aper_high = x_aper_high_mat.sum(axis=0)
+x_aper_high_discrete = x_aper_high_mat.sum(axis=0)
 
 s_aper = mon.s[0, :]
 
-mask_interp_low = x_aper_low != 0
-x_aper_low_interp = np.interp(s_aper,
-                        s_aper[mask_interp_low], x_aper_low[mask_interp_low])
-mask_interp_high = x_aper_high != 0
-x_aper_high_interp = np.interp(s_aper,
-                        s_aper[mask_interp_high], x_aper_high[mask_interp_high])
+mask_interp_low = x_aper_low_discrete != 0
+x_aper_low = np.interp(s_aper,
+                        s_aper[mask_interp_low], x_aper_low_discrete[mask_interp_low])
+mask_interp_high = x_aper_high_discrete != 0
+x_aper_high = np.interp(s_aper,
+                        s_aper[mask_interp_high], x_aper_high_discrete[mask_interp_high])
+t2 = time.time()
 
 import matplotlib.pyplot as plt
 plt.close('all')
-plt.figure()
-plt.plot(s_aper, x_aper_low_interp)
-plt.plot(s_aper, x_aper_high_interp)
-plt.show()
+tw1.plot(lattice_only=True)
+plt.plot(s_aper, x_aper_low, 'k-')
+plt.plot(s_aper, x_aper_high, 'k-')
 
+plt.show()
