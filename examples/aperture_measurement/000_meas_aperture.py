@@ -1,9 +1,35 @@
 import xtrack as xt
 import numpy as np
 
-line = xt.Line.from_json('../../test_data/sps_w_spacecharge/line_no_spacecharge.json')
+# line = xt.Line.from_json('../../test_data/sps_w_spacecharge/line_no_spacecharge.json')
 
-tw0 = line.twiss4d()
+env = xt.load_madx_lattice('EYETS 2024-2025.seq')
+
+from cpymad.madx import Madx
+mad = Madx()
+mad.input('''
+SPS : SEQUENCE, refer = centre,    L = 7000;
+a: marker, at = 20;
+endsequence;
+''')
+mad.call('APERTURE_EYETS 2024-2025.seq')
+mad.beam()
+mad.use('SPS')
+line_aper = xt.Line.from_madx_sequence(mad.sequence.SPS, install_apertures=True)
+
+tt_aper = line_aper.get_table().rows['.*_aper']
+
+insertions = []
+for nn in tt_aper.name:
+    env.elements[nn] = line_aper.get(nn).copy()
+    insertions.append(env.place(nn, at=tt_aper['s', nn]))
+
+line = env.sps
+line.insert(insertions)
+
+line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, p0c=26e9)
+
+# tw0 = line.twiss4d()
 
 # x_grid = np.arange(-0.1, 0.1, 1e-3)
 # y_grid = np.arange(-0.05, 0.05, 1e-3)
