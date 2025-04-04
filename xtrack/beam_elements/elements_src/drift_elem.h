@@ -6,7 +6,9 @@
 #ifndef XTRACK_DRIFT_ELEM_H
 #define XTRACK_DRIFT_ELEM_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+GPUFUN
 void Drift_track_local_particle(DriftData el, LocalParticle* part0){
 
     double length = DriftData_get_length(el);

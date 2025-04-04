@@ -6,9 +6,10 @@
 #ifndef XTRACK_QUADRUPOLE_H
 #define XTRACK_QUADRUPOLE_H
 
+#include <headers/track.h>
 #include <beam_elements/elements_src/track_magnet.h>
 
-/*gpufun*/
+GPUFUN
 void Quadrupole_track_local_particle(
         QuadrupoleData el,
         LocalParticle* part0

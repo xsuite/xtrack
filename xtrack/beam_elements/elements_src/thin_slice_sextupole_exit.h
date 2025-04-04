@@ -6,7 +6,10 @@
 #ifndef XTRACK_THIN_SLICE_SEXTUPOLE_EXIT_H
 #define XTRACK_THIN_SLICE_SEXTUPOLE_EXIT_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void ThinSliceSextupoleExit_track_local_particle(
         ThinSliceSextupoleExitData el,
         LocalParticle* part0

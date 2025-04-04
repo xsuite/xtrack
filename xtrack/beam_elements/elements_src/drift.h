@@ -6,8 +6,10 @@
 #ifndef XTRACK_DRIFT_H
 #define XTRACK_DRIFT_H
 
+#include <headers/track.h>
 
-/*gpufun*/
+
+GPUFUN
 void Drift_single_particle_expanded(LocalParticle* part, double length){
     double const rpp    = LocalParticle_get_rpp(part);
     double const rv0v    = 1./LocalParticle_get_rvv(part);
@@ -22,7 +24,7 @@ void Drift_single_particle_expanded(LocalParticle* part, double length){
 }
 
 
-/*gpufun*/
+GPUFUN
 void Drift_single_particle_exact(LocalParticle* part, double length){
     double const px = LocalParticle_get_px(part);
     double const py = LocalParticle_get_py(part);
@@ -40,7 +42,7 @@ void Drift_single_particle_exact(LocalParticle* part, double length){
 }
 
 
-/*gpufun*/
+GPUFUN
 void Drift_single_particle(LocalParticle* part, double length){
     #ifndef XTRACK_USE_EXACT_DRIFTS
         Drift_single_particle_expanded(part, length);

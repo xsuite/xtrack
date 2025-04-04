@@ -6,7 +6,10 @@
 #ifndef XTRACK_MULTIPOLEEDGE_H
 #define XTRACK_MULTIPOLEEDGE_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void MultipoleEdge_track_local_particle(MultipoleEdgeData el, LocalParticle* part0)
 {
     const double* kn = MultipoleEdgeData_getp1_kn(el, 0);

@@ -2,10 +2,10 @@
 // This file is part of the Xtrack Package.  //
 // Copyright (c) CERN, 2023.                 //
 // ######################################### //
-
 #ifndef XTRACK_TRACK_BEND_H
 #define XTRACK_TRACK_BEND_H
 
+#include <headers/track.h>
 
 // model = 0: adaptive
 // model = 1: full (for backward compatibility)
@@ -15,11 +15,11 @@
 
 #define N_KICKS_YOSHIDA 7
 
-/*gpufun*/
+GPUFUN
 void Bend_track_local_particle_from_params(LocalParticle* part0,
                 double length, double k0, double k1, double h,
                 int64_t num_multipole_kicks, int64_t model,
-                /*gpuglmem*/ double const* knl, /*gpuglmem*/ double const* ksl,
+                GPUGLMEM double const* knl, GPUGLMEM double const* ksl,
                 int64_t order, double inv_factorial_order,
                 double factor_knl_ksl){
 

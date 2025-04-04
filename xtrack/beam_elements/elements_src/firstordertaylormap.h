@@ -6,7 +6,10 @@
 #ifndef XTRACK_FIRSTORDERTAYLORMAP_H
 #define XTRACK_FIRSTORDERTAYLORMAP_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void FirstOrderTaylorMap_track_local_particle(FirstOrderTaylorMapData el, LocalParticle* part0){
 
     //start_per_particle_block (part0->part)

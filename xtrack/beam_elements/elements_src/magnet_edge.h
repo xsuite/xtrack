@@ -6,9 +6,10 @@
 #ifndef XTRACK_MAGNET_EDGE_H
 #define XTRACK_MAGNET_EDGE_H
 
+#include <headers/track.h>
 #include <beam_elements/elements_src/track_magnet_edge.h>
 
-/*gpufun*/
+GPUFUN
 void MagnetEdge_track_local_particle(MagnetEdgeData el, LocalParticle* part0)
 {
     const int8_t model = MagnetEdgeData_get_model(el);

@@ -6,9 +6,10 @@
 #ifndef XTRACK_FASTDIPOLE_H
 #define XTRACK_FASTDIPOLE_H
 
+#include <headers/track.h>
 
 
-/*gpufun*/
+GPUFUN
 void SimpleThinBend_track_local_particle(SimpleThinBendData el, LocalParticle* part0){
         // Horizontal bend
 

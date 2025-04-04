@@ -2,7 +2,6 @@
 // This file is part of the Xtrack Package.  //
 // Copyright (c) CERN, 2025.                 //
 // ######################################### //
-
 #ifndef XTRACK_TRACK_MAGNET_EDGE_H
 #define XTRACK_TRACK_MAGNET_EDGE_H
 
@@ -13,7 +12,8 @@
 #include <beam_elements/elements_src/track_mult_fringe.h>
 #include <beam_elements/elements_src/track_dipole_fringe.h>
 
-/*gpufun*/
+
+GPUFUN
 void track_magnet_edge_particles(
     LocalParticle* part0,
     const int8_t model,  // 0: linear, 1: full, 2: dipole-only

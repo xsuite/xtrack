@@ -2,12 +2,13 @@
 // This file is part of the Xtrack Package.  //
 // Copyright (c) CERN, 2021.                 //
 // ######################################### //
-
 #ifndef XTRACK_XYSHIFT_H
 #define XTRACK_XYSHIFT_H
 
+#include <headers/track.h>
 
-/*gpufun*/
+
+GPUFUN
 void XYShift_single_particle(LocalParticle* part, double dx, double dy){
 
     LocalParticle_add_to_x(part, -dx );
@@ -16,7 +17,7 @@ void XYShift_single_particle(LocalParticle* part, double dx, double dy){
 }
 
 
-/*gpufun*/
+GPUFUN
 void XYShift_track_local_particle(XYShiftData el, LocalParticle* part0){
 
     double dx = XYShiftData_get_dx(el);

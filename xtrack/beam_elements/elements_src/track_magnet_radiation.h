@@ -1,9 +1,15 @@
+// copyright ############################### //
+// This file is part of the Xtrack Package.  //
+// Copyright (c) CERN, 2025.                 //
+// ######################################### //
 #ifndef XTRACK_TRACK_MAGNET_RADIATION_H
 #define XTRACK_TRACK_MAGNET_RADIATION_H
 
+#include <headers/track.h>
 #include <headers/synrad_spectrum.h>
 
-/*gpufun*/
+
+GPUFUN
 void magnet_apply_radiation_single_particle(
     LocalParticle* part,
     const double length,

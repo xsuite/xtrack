@@ -13,7 +13,7 @@
 #include <beam_elements/elements_src/track_dipole_edge_linear.h>
 #include <beam_elements/elements_src/track_dipole_edge_nonlinear.h>
 
-/*gpufun*/
+GPUFUN
 void DipoleEdge_track_local_particle(DipoleEdgeData el, LocalParticle* part0){
 
     int64_t const model = DipoleEdgeData_get_model(el);

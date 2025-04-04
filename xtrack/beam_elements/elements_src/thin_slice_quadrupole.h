@@ -2,13 +2,14 @@
 // This file is part of the Xtrack Package.  //
 // Copyright (c) CERN, 2023.                 //
 // ######################################### //
-
-#include <beam_elements/elements_src/track_magnet.h>
-
 #ifndef XTRACK_THIN_SLICE_QUADRUPOLE_H
 #define XTRACK_THIN_SLICE_QUADRUPOLE_H
 
-/*gpufun*/
+#include <headers/track.h>
+#include <beam_elements/elements_src/track_magnet.h>
+
+
+GPUFUN
 void ThinSliceQuadrupole_track_local_particle(
         ThinSliceQuadrupoleData el,
         LocalParticle* part0

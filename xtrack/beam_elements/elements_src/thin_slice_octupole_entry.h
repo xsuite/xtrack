@@ -6,7 +6,10 @@
 #ifndef XTRACK_THIN_SLICE_OCTUPOLE_ENTRY_H
 #define XTRACK_THIN_SLICE_OCTUPOLE_ENTRY_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void ThinSliceOctupoleEntry_track_local_particle(
         ThinSliceOctupoleEntryData el,
         LocalParticle* part0

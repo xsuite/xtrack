@@ -6,10 +6,11 @@
 #ifndef XTRACK_MAGNET_H
 #define XTRACK_MAGNET_H
 
+#include <headers/track.h>
 #include <beam_elements/elements_src/track_magnet.h>
 
 
-/*gpufun*/
+GPUFUN
 void Magnet_track_local_particle(
     MagnetData el,
     LocalParticle* part0
@@ -17,8 +18,8 @@ void Magnet_track_local_particle(
     const double length = MagnetData_get_length(el);
     const int64_t order = MagnetData_get_order(el);
     const double inv_factorial_order = MagnetData_get_inv_factorial_order(el);
-    /*gpuglmem*/ const double* knl = MagnetData_getp1_knl(el, 0);
-    /*gpuglmem*/ const double* ksl = MagnetData_getp1_ksl(el, 0);
+    GPUGLMEM const double* knl = MagnetData_getp1_knl(el, 0);
+    GPUGLMEM const double* ksl = MagnetData_getp1_ksl(el, 0);
     const int64_t num_multipole_kicks = MagnetData_get_num_multipole_kicks(el);
     const double h = MagnetData_get_h(el);
     const double k0 = MagnetData_get_k0(el);

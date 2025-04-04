@@ -2,11 +2,13 @@
 // This file is part of the Xtrack Package.  //
 // Copyright (c) CERN, 2023.                 //
 // ######################################### //
-
 #ifndef XTRACK_WEDGE_H
 #define XTRACK_WEDGE_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void Wedge_track_local_particle(
         WedgeData el,
         LocalParticle* part0

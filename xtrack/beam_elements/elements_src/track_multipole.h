@@ -2,14 +2,14 @@
 // This file is part of the Xtrack Package.  //
 // Copyright (c) CERN, 2021.                 //
 // ######################################### //
-
 #ifndef XTRACK_TRACK_MULTIPOLE_H
 #define XTRACK_TRACK_MULTIPOLE_H
 
+#include <headers/track.h>
 #include <headers/synrad_spectrum.h>
 
 
-/*gpufun*/
+GPUFUN
 void multipole_compute_dpx_dpy_single_particle(LocalParticle* part,
     double const* knl,
     double const* ksl,
@@ -56,7 +56,7 @@ void multipole_compute_dpx_dpy_single_particle(LocalParticle* part,
         *dpy_out = dpy;
 }
 
-/*gpufun*/
+GPUFUN
 void Multipole_track_single_particle(LocalParticle* part,
     double hxl, double length, double weight,
     double const* knl, double const* ksl,

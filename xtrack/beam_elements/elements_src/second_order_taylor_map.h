@@ -6,7 +6,10 @@
 #ifndef XTRACK_SECONDORDERTAYLORMAP_H
 #define XTRACK_SECONDORDERTAYLORMAP_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void SecondOrderTaylorMap_track_local_particle(SecondOrderTaylorMapData el,
                                                LocalParticle* part0){
 

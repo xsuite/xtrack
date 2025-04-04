@@ -6,7 +6,9 @@
 #ifndef XTRACK_CAVITY_H
 #define XTRACK_CAVITY_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+GPUFUN
 void Cavity_track_local_particle(CavityData el, LocalParticle* part0){
 
     #ifndef XSUITE_BACKTRACK

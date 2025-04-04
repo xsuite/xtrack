@@ -2,11 +2,13 @@
 // This file is part of the Xtrack Package.  //
 // Copyright (c) CERN, 2021.                 //
 // ######################################### //
-
 #ifndef XTRACK_XROTATION_H
 #define XTRACK_XROTATION_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void XRotation_track_local_particle(XRotationData el, LocalParticle* part0){
 
     double sin_angle = XRotationData_get_sin_angle(el);

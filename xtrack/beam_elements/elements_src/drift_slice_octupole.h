@@ -6,7 +6,9 @@
 #ifndef XTRACK_DRIFT_SLICE_OCTUPOLE_H
 #define XTRACK_DRIFT_SLICE_OCTUPOLE_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+GPUFUN
 void DriftSliceOctupole_track_local_particle(
         DriftSliceOctupoleData el,
         LocalParticle* part0

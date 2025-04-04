@@ -6,7 +6,10 @@
 #ifndef XTRACK_FASTQUADRUPOLE_H
 #define XTRACK_FASTQUADRUPOLE_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void SimpleThinQuadrupole_track_local_particle(SimpleThinQuadrupoleData el, LocalParticle* part0){
 
     double knl1 = SimpleThinQuadrupoleData_get_knl(el, 1);

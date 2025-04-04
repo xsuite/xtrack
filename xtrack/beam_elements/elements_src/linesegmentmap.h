@@ -6,7 +6,10 @@
 #ifndef XTRACK_LINESEGMENTMAP_H
 #define XTRACK_LINESEGMENTMAP_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void remove_closed_orbit(
     LocalParticle* part0, double const x_ref, double const px_ref,
     double const y_ref, double const py_ref){
@@ -21,7 +24,7 @@ void remove_closed_orbit(
 
 }
 
-/*gpufun*/
+GPUFUN
 void add_closed_orbit(
     LocalParticle* part0, double const x_ref, double const px_ref,
     double const y_ref, double const py_ref){
@@ -36,7 +39,7 @@ void add_closed_orbit(
 
 }
 
-/*gpufun*/
+GPUFUN
 void remove_dispersion(
     LocalParticle* part0, double const dx_0, double const dpx_0,
     double const dy_0, double const dpy_0){
@@ -61,7 +64,7 @@ void remove_dispersion(
 
 }
 
-/*gpufun*/
+GPUFUN
 void add_dispersion(
     LocalParticle* part0, double const dx_1, double const dpx_1,
     double const dy_1, double const dpy_1){
@@ -86,7 +89,7 @@ void add_dispersion(
 
 }
 
-/*gpufun*/
+GPUFUN
 void transverse_motion(LocalParticle *part0, LineSegmentMapData el){
 
     double const qx = LineSegmentMapData_get_qx(el);
@@ -199,7 +202,7 @@ void transverse_motion(LocalParticle *part0, LineSegmentMapData el){
 
 }
 
-/*gpufun*/
+GPUFUN
 void longitudinal_motion(LocalParticle *part0,
                          LineSegmentMapData el){
 
@@ -311,7 +314,7 @@ void longitudinal_motion(LocalParticle *part0,
 
 }
 
-/*gpufun*/
+GPUFUN
 void uncorrelated_radiation_damping(LocalParticle *part0,
             LineSegmentMapData el){
 
@@ -331,7 +334,7 @@ void uncorrelated_radiation_damping(LocalParticle *part0,
     //end_per_particle_block
 }
 
-/*gpufun*/
+GPUFUN
 void correlated_radiation_damping(LocalParticle *part0,
             LineSegmentMapData el){
 
@@ -359,7 +362,7 @@ void correlated_radiation_damping(LocalParticle *part0,
     //end_per_particle_block
 }
 
-/*gpufun*/
+GPUFUN
 void energy_and_reference_increments(LocalParticle *part0,
     double const energy_increment, double const energy_ref_increment){
 
@@ -394,7 +397,7 @@ void energy_and_reference_increments(LocalParticle *part0,
 
 }
 
-/*gpufun*/
+GPUFUN
 void uncorrelated_gaussian_noise(LocalParticle *part0,
                     LineSegmentMapData el){
 
@@ -422,7 +425,7 @@ void uncorrelated_gaussian_noise(LocalParticle *part0,
 
 }
 
-/*gpufun*/
+GPUFUN
 void correlated_gaussian_noise(LocalParticle *part0,
                     LineSegmentMapData el){
 
@@ -448,7 +451,7 @@ void correlated_gaussian_noise(LocalParticle *part0,
         //end_per_particle_block
 }
 
-/*gpufun*/
+GPUFUN
 void LineSegmentMap_track_local_particle(LineSegmentMapData el, LocalParticle* part0){
 
     remove_closed_orbit(part0,

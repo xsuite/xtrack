@@ -6,7 +6,9 @@
 #ifndef XTRACK_ELENS_H
 #define XTRACK_ELENS_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+GPUFUN
 void Elens_track_local_particle(ElensData el, LocalParticle* part0){
 
     double elens_length = ElensData_get_elens_length(el);
@@ -24,7 +26,7 @@ void Elens_track_local_particle(ElensData el, LocalParticle* part0){
 
     int const polynomial_order = ElensData_get_polynomial_order(el);
 
-    /*gpuglmem*/ double const* coefficients_polynomial =
+    GPUGLMEM double const* coefficients_polynomial =
                                 ElensData_getp1_coefficients_polynomial(el, 0);
 
     //start_per_particle_block (part0->part)

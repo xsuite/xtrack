@@ -2,11 +2,13 @@
 // This file is part of the Xtrack Package.  //
 // Copyright (c) CERN, 2023.                 //
 // ######################################### //
-
 #ifndef XTRACK_TRACK_MAGNET_KICK_H
 #define XTRACK_TRACK_MAGNET_KICK_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void kick_simple_single_particle(
     LocalParticle* part,
     int64_t order,
@@ -17,14 +19,15 @@ void kick_simple_single_particle(
     double kick_weight
 );
 
-/*gpufun*/
+
+GPUFUN
 void track_magnet_kick_single_particle(
     LocalParticle* part,
     double length,
     int64_t order,
     double inv_factorial_order,
-    /*gpuglmem*/ const double* knl,
-    /*gpuglmem*/ const double* ksl,
+    GPUGLMEM const double* knl,
+    GPUGLMEM const double* ksl,
     double const factor_knl_ksl,
     double kick_weight,
     double k0,
@@ -120,11 +123,11 @@ void track_magnet_kick_single_particle(
 
 
 
-/*gpufun*/
+GPUFUN
 uint8_t kick_is_inactive(
     int64_t order,
-    /*gpuglmem*/ const double* knl,
-    /*gpuglmem*/ const double* ksl,
+    GPUGLMEM const double* knl,
+    GPUGLMEM const double* ksl,
     double k0,
     double k1,
     double k2,
@@ -155,7 +158,7 @@ uint8_t kick_is_inactive(
 }
 
 
-/*gpufun*/
+GPUFUN
 void kick_simple_single_particle(
     LocalParticle* part,
     int64_t order,

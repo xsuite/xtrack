@@ -6,10 +6,11 @@
 #ifndef XTRACK_MAGNETDRIFT_H
 #define XTRACK_MAGNETDRIFT_H
 
+#include <headers/track.h>
 #include <beam_elements/elements_src/track_magnet_drift.h>
 
 
-/*gpufun*/
+GPUFUN
 void MagnetDrift_track_local_particle(
     MagnetDriftData el,
     LocalParticle* part0

@@ -6,7 +6,10 @@
 #ifndef XTRACK_SROTATION_H
 #define XTRACK_SROTATION_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void SRotation_track_local_particle(SRotationData el, LocalParticle* part0){
 
     double sin_z = SRotationData_get_sin_z(el);

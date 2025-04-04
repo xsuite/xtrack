@@ -2,13 +2,12 @@
 // This file is part of the Xtrack Package.  //
 // Copyright (c) CERN, 2021.                 //
 // ######################################### //
-#define POW2(X) ((X)*(X))
-#define POW3(X) ((X)*(X)*(X))
-#define POW4(X) ((X)*(X)*(X)*(X))
 #ifndef XTRACK_ELECTRONCOOLER_H
 #define XTRACK_ELECTRONCOOLER_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+GPUFUN
 void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* part0){
 
     // Check if record flag is enabled

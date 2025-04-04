@@ -6,7 +6,10 @@
 #ifndef XTRACK_REFERENCEENERGYINCREASE_H
 #define XTRACK_REFERENCEENERGYINCREASE_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void ReferenceEnergyIncrease_track_local_particle(ReferenceEnergyIncreaseData el,
 		                                  LocalParticle* part0){
 

@@ -6,9 +6,11 @@
 #ifndef XTRACK_THIN_SLICE_SEXTUPOLE_H
 #define XTRACK_THIN_SLICE_SEXTUPOLE_H
 
+#include <headers/track.h>
 #include <beam_elements/elements_src/track_magnet.h>
 
-/*gpufun*/
+
+GPUFUN
 void ThinSliceSextupole_track_local_particle(
         ThinSliceSextupoleData el,
         LocalParticle* part0

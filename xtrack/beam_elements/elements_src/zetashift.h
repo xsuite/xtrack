@@ -2,11 +2,13 @@
 // This file is part of the Xtrack Package.  //
 // Copyright (c) CERN, 2021.                 //
 // ######################################### //
-
 #ifndef XTRACK_ZETASHIFT_H
 #define XTRACK_ZETASHIFT_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void ZetaShift_track_local_particle(ZetaShiftData el, LocalParticle* part0){
 
 

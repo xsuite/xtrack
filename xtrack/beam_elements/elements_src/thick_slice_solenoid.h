@@ -6,7 +6,10 @@
 #ifndef XTRACK_THICK_SLICE_SOLENOID_H
 #define XTRACK_THICK_SLICE_SOLENOID_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void ThickSliceSolenoid_track_local_particle(
         ThickSliceSolenoidData el,
         LocalParticle* part0

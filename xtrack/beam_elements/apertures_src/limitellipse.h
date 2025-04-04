@@ -6,7 +6,10 @@
 #ifndef XTRACK_LIMITELLIPSE_H
 #define XTRACK_LIMITELLIPSE_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void LimitEllipse_track_local_particle(LimitEllipseData el, LocalParticle* part0){
 
 

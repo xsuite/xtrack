@@ -6,10 +6,11 @@
 #ifndef XTRACK_MAGNET_KICK_H
 #define XTRACK_MAGNET_KICK_H
 
+#include <headers/track.h>
 #include <beam_elements/elements_src/track_magnet_kick.h>
 
 
-/*gpufun*/
+GPUFUN
 void MagnetKick_track_local_particle(
     MagnetKickData el,
     LocalParticle* part0

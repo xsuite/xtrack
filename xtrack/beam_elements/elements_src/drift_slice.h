@@ -6,7 +6,9 @@
 #ifndef XTRACK_DRIFT_SLICE_H
 #define XTRACK_DRIFT_SLICE_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+GPUFUN
 void DriftSlice_track_local_particle(
         DriftSliceData el,
         LocalParticle* part0

@@ -2,11 +2,13 @@
 // This file is part of the Xtrack Package.  //
 // Copyright (c) CERN, 2023.                 //
 // ######################################### //
-
 #ifndef XTRACK_TRACKQUADRUPOLE_H
 #define XTRACK_TRACKQUADRUPOLE_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void normal_quad_with_rotation_track(
         LocalParticle* part0,
         double const length, double const k_rotated,
@@ -31,11 +33,11 @@ void normal_quad_with_rotation_track(
     }
 }
 
-/*gpufun*/
+GPUFUN
 void Quadrupole_from_params_track_local_particle(
         double length, double k1, double k1s,
         int64_t num_multipole_kicks,
-        /*gpuglmem*/ double const* knl, /*gpuglmem*/ double const* ksl,
+        GPUGLMEM double const* knl, GPUGLMEM double const* ksl,
         int64_t order, double inv_factorial_order,
         double factor_knl_ksl,
         uint8_t edge_entry_active, uint8_t edge_exit_active,

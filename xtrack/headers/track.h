@@ -1,7 +1,7 @@
 #ifndef XTRACK_TRACK_H
 #define XTRACK_TRACK_H
 
-#include <headers/context.h>
+#include <headers/constants.h>
 
 /*
     The particle tracking "decorators" for all the contexts.
@@ -52,6 +52,7 @@
             }
 #endif  // XO_CONTEXT_CUDA || XO_CONTEXT_CL
 
+
 /*
     Qualifier keywords for GPU and optimisation
 */
@@ -78,6 +79,16 @@
     #define GPUGLMEM    __global
     #define RESTRICT
 #endif // XO_CONTEXT_CL
+
+
+/*
+    Common maths-related macros
+*/
+
+#define POW2(X) ((X)*(X))
+#define POW3(X) ((X)*(X)*(X))
+#define POW4(X) ((X)*(X)*(X)*(X))
+#define NONZERO(X) ((X) != 0.0)
 
 
 #ifndef PER_PARTICLE_BLOCK

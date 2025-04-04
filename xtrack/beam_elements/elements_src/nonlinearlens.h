@@ -6,15 +6,13 @@
 #ifndef XTRACK_NONLINEARLENS_H
 #define XTRACK_NONLINEARLENS_H
 
-#ifndef POW2
-#define POW2(X) ((X)*(X))
-#endif
+#include <headers/track.h>
 
 // Implementation of a non-linear lens with elliptic potential
 // (based on the corresponding element in MAD-X, reference: Danilov and Nagaitsev,
 // https://journals.aps.org/prab/abstract/10.1103/PhysRevSTAB.13.084002)
 
-/*gpufun*/
+GPUFUN
 void NonLinearLens_track_local_particle(
         NonLinearLensData el,
         LocalParticle* part0

@@ -6,13 +6,16 @@
 #ifndef XTRACK_RFMULTIPOLE_H
 #define XTRACK_RFMULTIPOLE_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void RFMultipole_track_local_particle(RFMultipoleData el, LocalParticle* part0){
 
-    /*gpuglmem*/ double const* knl = RFMultipoleData_getp1_knl(el, 0);
-    /*gpuglmem*/ double const* ksl = RFMultipoleData_getp1_ksl(el, 0);
-    /*gpuglmem*/ double const* pn = RFMultipoleData_getp1_pn(el, 0);
-    /*gpuglmem*/ double const* ps = RFMultipoleData_getp1_ps(el, 0);
+    GPUGLMEM double const* knl = RFMultipoleData_getp1_knl(el, 0);
+    GPUGLMEM double const* ksl = RFMultipoleData_getp1_ksl(el, 0);
+    GPUGLMEM double const* pn = RFMultipoleData_getp1_pn(el, 0);
+    GPUGLMEM double const* ps = RFMultipoleData_getp1_ps(el, 0);
     int64_t const order = RFMultipoleData_get_order(el);
     double const frequency = RFMultipoleData_get_frequency(el);
     double voltage = RFMultipoleData_get_voltage(el);

@@ -6,7 +6,10 @@
 #ifndef XTRACK_THIN_SLICE_BEND_EXIT_H
 #define XTRACK_THIN_SLICE_BEND_EXIT_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void ThinSliceBendExit_track_local_particle(
         ThinSliceBendExitData el,
         LocalParticle* part0

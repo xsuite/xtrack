@@ -6,8 +6,13 @@
 #ifndef XTRACK_LIMITPOLYGON_H
 #define XTRACK_LIMITPOLYGON_H
 
+#include <headers/track.h>
+
+
 #ifndef NO_LIMITPOLYGON_TRACK_LOCAL_PARTICLE
-/*gpufun*/
+
+
+GPUFUN
 void LimitPolygon_track_local_particle(LimitPolygonData el,
 		LocalParticle* part0){
 
@@ -48,7 +53,7 @@ void LimitPolygon_track_local_particle(LimitPolygonData el,
 }
 #endif
 
-/*gpukern*/
+GPUKERN
 void LimitPolygon_impact_point_and_normal(
 		             LimitPolygonData el,
                 /*gpuglmem*/ const double* x_in,

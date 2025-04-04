@@ -2,11 +2,13 @@
 // This file is part of the Xtrack Package.  //
 // Copyright (c) CERN, 2023.                 //
 // ######################################### //
-
 #ifndef XTRACK_THIN_SLICE_QUADRUPOLE_ENTRY_H
 #define XTRACK_THIN_SLICE_QUADRUPOLE_ENTRY_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void ThinSliceQuadrupoleEntry_track_local_particle(
         ThinSliceQuadrupoleEntryData el,
         LocalParticle* part0

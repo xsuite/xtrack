@@ -6,8 +6,10 @@
 #ifndef XTRACK_SOLENOID_H
 #define XTRACK_SOLENOID_H
 
+#include <headers/track.h>
 
-/*gpufun*/
+
+GPUFUN
 void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
     // Parameters
     double length = SolenoidData_get_length(el);
@@ -29,8 +31,8 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
     int64_t num_multipole_kicks = SolenoidData_get_num_multipole_kicks(el);
     const int64_t order = SolenoidData_get_order(el);
     const double inv_factorial_order = SolenoidData_get_inv_factorial_order(el);
-    /*gpuglmem*/ const double *knl = SolenoidData_getp1_knl(el, 0);
-    /*gpuglmem*/ const double *ksl = SolenoidData_getp1_ksl(el, 0);
+    GPUGLMEM const double *knl = SolenoidData_getp1_knl(el, 0);
+    GPUGLMEM const double *ksl = SolenoidData_getp1_ksl(el, 0);
     const double slice_length = length / (num_multipole_kicks + 1);
     const double kick_weight = 1. / num_multipole_kicks;
 
@@ -116,7 +118,7 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
 }
 
 
-// /*gpufun*/
+// GPUFUN
 // void Solenoid_thin_track_single_particle(
 //     LocalParticle* part,
 //     double length,

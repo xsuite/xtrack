@@ -6,7 +6,9 @@
 #ifndef XTRACK_DRIFT_SLICE_QUADRUPOLE_H
 #define XTRACK_DRIFT_SLICE_QUADRUPOLE_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+GPUFUN
 void DriftSliceQuadrupole_track_local_particle(
         DriftSliceQuadrupoleData el,
         LocalParticle* part0

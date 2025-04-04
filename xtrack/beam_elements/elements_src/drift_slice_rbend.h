@@ -6,7 +6,9 @@
 #ifndef XTRACK_DRIFT_SLICE_RBEND_H
 #define XTRACK_DRIFT_SLICE_RBEND_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+GPUFUN
 void DriftSliceRBend_track_local_particle(
         DriftSliceRBendData el,
         LocalParticle* part0

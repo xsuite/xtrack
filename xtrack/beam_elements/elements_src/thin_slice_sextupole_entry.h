@@ -6,7 +6,10 @@
 #ifndef XTRACK_THIN_SLICE_SEXTUPOLE_ENTRY_H
 #define XTRACK_THIN_SLICE_SEXTUPOLE_ENTRY_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void ThinSliceSextupoleEntry_track_local_particle(
         ThinSliceSextupoleEntryData el,
         LocalParticle* part0

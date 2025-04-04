@@ -6,7 +6,10 @@
 #ifndef XTRACK_THICK_SLICE_DRIFT_H
 #define XTRACK_THICK_SLICE_DRIFT_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void ThickSliceDrift_track_local_particle(
         ThickSliceDriftData el,
         LocalParticle* part0
