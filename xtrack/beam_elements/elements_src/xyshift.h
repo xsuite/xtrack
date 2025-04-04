@@ -28,9 +28,9 @@ void XYShift_track_local_particle(XYShiftData el, LocalParticle* part0){
         dy = -dy;
     #endif
 
-    //start_per_particle_block (part0->part)
+    PER_PARTICLE_BLOCK(part0, part, {
         XYShift_single_particle(part, dx, dy);
-    //end_per_particle_block
+    });
 
 }
 

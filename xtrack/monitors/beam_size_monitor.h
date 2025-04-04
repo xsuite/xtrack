@@ -62,7 +62,7 @@ void BeamSizeMonitor_track_local_particle(BeamSizeMonitorData el, LocalParticle*
                 atomicAdd(y2_sum, y*y);
             }
         }
-	//end_per_particle_block
+	});
 }
 
 #endif

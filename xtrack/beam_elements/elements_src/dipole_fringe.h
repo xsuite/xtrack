@@ -18,9 +18,9 @@ void Fringe_track_local_particle(
     const double hgap = DipoleFringeData_get_hgap(el);
     const double k = DipoleFringeData_get_k(el);
 
-    //start_per_particle_block (part0->part)
+    PER_PARTICLE_BLOCK(part0, part, {
         DipoleFringe_single_particle(part, fint, hgap, k);
-    //end_per_particle_block
+    });
 }
 
 #endif // XTRACK_FRINGE_H

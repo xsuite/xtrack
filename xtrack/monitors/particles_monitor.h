@@ -21,7 +21,7 @@ void ParticlesMonitor_track_local_particle(ParticlesMonitorData el,
 
     int64_t n_turns_record = stop_at_turn - start_at_turn;
 
-    //start_per_particle_block (part0->part)
+    PER_PARTICLE_BLOCK(part0, part, {
     int64_t at_turn;
     if (ebe_mode){
         at_turn = LocalParticle_get_at_element(part);
@@ -69,7 +69,7 @@ void ParticlesMonitor_track_local_particle(ParticlesMonitorData el,
     LocalParticle_set_state(part, 1);
     #endif
 
-    //end_per_particle_block
+    });
 
 }
 

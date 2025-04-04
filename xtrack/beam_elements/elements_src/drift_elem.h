@@ -16,9 +16,9 @@ void Drift_track_local_particle(DriftData el, LocalParticle* part0){
         length = -length;
     #endif
 
-    //start_per_particle_block (part0->part)
+    PER_PARTICLE_BLOCK(part0, part, {
         Drift_single_particle(part, length);
-    //end_per_particle_block
+    });
 
 }
 

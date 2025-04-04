@@ -66,7 +66,7 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
     }
 
 
-    //start_per_particle_block (part0->part)
+    PER_PARTICLE_BLOCK(part0, part, {
     #ifndef XTRACK_SOLENOID_NO_SYNRAD
         double const old_px = LocalParticle_get_px(part);
         double const old_py = LocalParticle_get_py(part);
@@ -114,7 +114,7 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
             );
         }
     #endif
-    //end_per_particle_block
+    });
 }
 
 

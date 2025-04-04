@@ -21,8 +21,8 @@ void Cavity_track_local_particle(CavityData el, LocalParticle* part0){
     double const lag = CavityData_get_lag(el);
     double const lag_taper = CavityData_get_lag_taper(el);
     int64_t const absolute_time = CavityData_get_absolute_time(el);
-    //start_per_particle_block (part0->part)
 
+    PER_PARTICLE_BLOCK(part0, part, {
         double phase = 0;
 
         if (absolute_time == 1) {
@@ -48,7 +48,7 @@ void Cavity_track_local_particle(CavityData el, LocalParticle* part0){
         LocalParticle_add_to_energy(part, energy, 1);
         #endif
 
-    //end_per_particle_block
+    });
 }
 
 #endif

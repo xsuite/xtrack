@@ -26,7 +26,7 @@ void ThinSliceOctupoleExit_track_local_particle(
         double const kn[4] = {0, 0, 0, k3};
         double const ks[4] = {0, 0, 0, k3s};
 
-        //start_per_particle_block (part0->part)
+        PER_PARTICLE_BLOCK(part0, part, {
         MultFringe_track_single_particle(
             part,
             kn,
@@ -39,7 +39,7 @@ void ThinSliceOctupoleExit_track_local_particle(
             /* is_exit */ 1,
             /* min_order */ 0
         );
-        //end_per_particle_block
+        });
     }
 
 }

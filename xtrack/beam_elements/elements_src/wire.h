@@ -22,7 +22,7 @@ void Wire_track_local_particle(WireData el, LocalParticle* part0){
     double const post_subtract_px = WireData_get_post_subtract_px(el);
     double const post_subtract_py = WireData_get_post_subtract_py(el);
 
-    //start_per_particle_block (part0->part)
+    PER_PARTICLE_BLOCK(part0, part, {
 
         // constants : EPSILON_0, MU_0, PI, C_LIGHT,
 
@@ -54,7 +54,7 @@ void Wire_track_local_particle(WireData el, LocalParticle* part0){
         LocalParticle_add_to_py(part, dpy - post_subtract_py);
 
 
-    //end_per_particle_block
+    });
 }
 
 #endif

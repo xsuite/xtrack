@@ -18,7 +18,7 @@ void LimitPolygon_track_local_particle(LimitPolygonData el,
 
     int64_t N_edg = LimitPolygonData_len_x_vertices(el);
 
-    //start_per_particle_block (part0->part)
+    PER_PARTICLE_BLOCK(part0, part, {
 
         double const x = LocalParticle_get_x(part);
         double const y = LocalParticle_get_y(part);
@@ -48,7 +48,7 @@ void LimitPolygon_track_local_particle(LimitPolygonData el,
            LocalParticle_set_state(part, XT_LOST_ON_APERTURE);
 	}
 
-    //end_per_particle_block
+    });
 
 }
 #endif

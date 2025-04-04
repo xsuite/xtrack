@@ -17,7 +17,7 @@ void LimitRacetrack_track_local_particle(LimitRacetrackData el, LocalParticle* p
     double const a = LimitRacetrackData_get_a(el);
     double const b = LimitRacetrackData_get_b(el);
 
-    //start_per_particle_block (part0->part)
+    PER_PARTICLE_BLOCK(part0, part, {
 
         double const x = LocalParticle_get_x(part);
         double const y = LocalParticle_get_y(part);
@@ -76,7 +76,7 @@ void LimitRacetrack_track_local_particle(LimitRacetrackData el, LocalParticle* p
            LocalParticle_set_state(part, XT_LOST_ON_APERTURE);
         }
 
-    //end_per_particle_block
+    });
 }
 
 #endif

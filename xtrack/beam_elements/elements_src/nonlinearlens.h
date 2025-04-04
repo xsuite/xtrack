@@ -21,7 +21,7 @@ void NonLinearLens_track_local_particle(
     double const cnll = NonLinearLensData_get_cnll(el);
     double const knll = NonLinearLensData_get_knll(el) / cnll;
 
-    //start_per_particle_block (part0->part)
+    PER_PARTICLE_BLOCK(part0, part, {
 
         double const x = LocalParticle_get_x(part) / cnll;
         double const y = LocalParticle_get_y(part) / cnll;
@@ -55,7 +55,7 @@ void NonLinearLens_track_local_particle(
         LocalParticle_add_to_px(part, knll * (dUu * dux + dUv * dvx));
         LocalParticle_add_to_py(part, knll * (dUu * duy + dUv * dvy));
 
-    //end_per_particle_block
+    });
 
 }
 

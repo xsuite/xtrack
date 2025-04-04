@@ -80,7 +80,7 @@ void BeamProfileMonitor_track_local_particle(BeamProfileMonitorData el, LocalPar
             }
         }
 
-	//end_per_particle_block
+	});
 
 }
 

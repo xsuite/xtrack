@@ -17,19 +17,19 @@ void normal_quad_with_rotation_track(
 ) {
 
     if (needs_rotation) {
-        //start_per_particle_block (part0->part)
+        PER_PARTICLE_BLOCK(part0, part, {
             SRotation_single_particle(part, sin_rot, cos_rot);
-        //end_per_particle_block
+        });
     }
 
-    //start_per_particle_block (part0->part)
+    PER_PARTICLE_BLOCK(part0, part, {
         track_thick_cfd(part, length, 0, k_rotated, 0);
-    //end_per_particle_block
+    });
 
     if (needs_rotation) {
-        //start_per_particle_block (part0->part)
+        PER_PARTICLE_BLOCK(part0, part, {
             SRotation_single_particle(part, -sin_rot, cos_rot);
-        //end_per_particle_block
+        });
     }
 }
 
@@ -51,7 +51,7 @@ void Quadrupole_from_params_track_local_particle(
     const double combined_ks[2] = { 0, k1s };
 
     if (edge_entry_active) {
-        //start_per_particle_block (part0->part)
+        PER_PARTICLE_BLOCK(part0, part, {
         MultFringe_track_single_particle(
             part,
             combined_kn,
@@ -64,7 +64,7 @@ void Quadrupole_from_params_track_local_particle(
             /* is_exit */ 0, \
             /* min_order */ 0 \
         );
-        //end_per_particle_block
+        });
     }
 
     if (num_multipole_kicks == 0) { // auto mode
@@ -85,17 +85,17 @@ void Quadrupole_from_params_track_local_particle(
                                     sin_rot, cos_rot);
 
     for (int ii = 0; ii < num_multipole_kicks; ii++) {
-        //start_per_particle_block (part0->part)
+        PER_PARTICLE_BLOCK(part0, part, {
             track_multipolar_kick_bend(
                     part, order, inv_factorial_order, knl, ksl, factor_knl_ksl,
                     kick_weight, 0, 0, 0, 0);
-        //end_per_particle_block
+        });
         normal_quad_with_rotation_track(part0, slice_length, k_rotated, needs_rotation,
                                         sin_rot, cos_rot);
     }
 
     if (edge_exit_active) {
-        //start_per_particle_block (part0->part)
+        PER_PARTICLE_BLOCK(part0, part, {
         MultFringe_track_single_particle(
             part,
             combined_kn,
@@ -108,7 +108,7 @@ void Quadrupole_from_params_track_local_particle(
             /* is_exit */ 1, \
             /* min_order */ 0 \
         );
-        //end_per_particle_block
+        });
     }
 }
 

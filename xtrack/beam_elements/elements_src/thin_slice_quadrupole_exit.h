@@ -25,7 +25,7 @@ void ThinSliceQuadrupoleExit_track_local_particle(
         double const kn[2] = {0, k1};
         double const ks[2] = {0, k1s};
 
-        //start_per_particle_block (part0->part)
+        PER_PARTICLE_BLOCK(part0, part, {
         MultFringe_track_single_particle(
             part,
             kn,
@@ -38,7 +38,7 @@ void ThinSliceQuadrupoleExit_track_local_particle(
             /* is_exit */ 1,
             /* min_order */ 0
         );
-        //end_per_particle_block
+        });
     }
 
 }

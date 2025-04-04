@@ -59,7 +59,7 @@ void BeamPositionMonitor_track_local_particle(BeamPositionMonitorData el, LocalP
 
         }
 
-	//end_per_particle_block
+	});
 
 }
 

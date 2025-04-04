@@ -12,7 +12,7 @@
 GPUFUN
 void FirstOrderTaylorMap_track_local_particle(FirstOrderTaylorMapData el, LocalParticle* part0){
 
-    //start_per_particle_block (part0->part)
+    PER_PARTICLE_BLOCK(part0, part, {
 
         double x0 = LocalParticle_get_x(part);
         double px0 = LocalParticle_get_px(part);
@@ -69,7 +69,7 @@ void FirstOrderTaylorMap_track_local_particle(FirstOrderTaylorMapData el, LocalP
         LocalParticle_set_zeta(part,tau*beta0);
 
 
-    //end_per_particle_block
+    });
 }
 
 #endif

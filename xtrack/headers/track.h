@@ -10,7 +10,7 @@
 #ifdef XO_CONTEXT_CPU_SERIAL
     // We are on CPU, without OpenMP
 
-    #define PER_PARTICLE_BLOCK(SRC_PART, DEST_PART, CODE) { \
+    #define PER_PARTICLE_BLOCK(SRC_PART, DEST_PART, ...) { \
             const int64_t XT_part_block_start_idx = 0; \
             const int64_t XT_part_block_end_idx = LocalParticle_get__num_active_particles((SRC_PART)); \
             for (int64_t XT_part_block_ii = XT_part_block_start_idx; XT_part_block_ii<XT_part_block_end_idx; XT_part_block_ii++) \
@@ -18,7 +18,8 @@
                 LocalParticle lpart = *(SRC_PART); \
                 LocalParticle* DEST_PART = &lpart; \
                 part->ipart = XT_part_block_ii; \
-                { CODE; } \
+                __VA_ARGS__ \
+                ; \
             } \
         }
 #endif  // XO_CONTEXT_CPU_SERIAL
@@ -48,7 +49,7 @@
 
         #define PER_PARTICLE_BLOCK(SRC_PART, DEST_PART, CODE) { \
                 LocalParticle* DEST_PART = (SRC_PART); \
-                CODE \
+                CODE ; \
             }
 #endif  // XO_CONTEXT_CUDA || XO_CONTEXT_CL
 

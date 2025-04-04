@@ -35,21 +35,21 @@ void ThinSliceBendExit_track_local_particle(
                 r21 = -r21;
                 r43 = -r43;
             #endif
-            //start_per_particle_block (part0->part)
+            PER_PARTICLE_BLOCK(part0, part, {
                 DipoleEdgeLinear_single_particle(part, r21, r43);
-            //end_per_particle_block
+            });
         }
         else if (edge_exit_model==1){
             #ifdef XSUITE_BACKTRACK
-                //start_per_particle_block (part0->part)
+                PER_PARTICLE_BLOCK(part0, part, {
                     LocalParticle_kill_particle(part, -32);
-                //end_per_particle_block
+                });
                 return;
             #else
-                //start_per_particle_block (part0->part)
+                PER_PARTICLE_BLOCK(part0, part, {
                     DipoleEdgeNonLinear_single_particle(part, k0, edge_exit_angle,
                                         edge_exit_fint, edge_exit_hgap, 1);
-                //end_per_particle_block
+                });
             #endif
         }
     } // end edge exit

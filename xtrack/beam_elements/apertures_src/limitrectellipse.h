@@ -16,7 +16,7 @@ void LimitRectEllipse_track_local_particle(LimitRectEllipseData el, LocalParticl
     double const a_b_squ = LimitRectEllipseData_get_a_b_squ(el);
     
     
-    //start_per_particle_block (part0->part)
+    PER_PARTICLE_BLOCK(part0, part, {
         double const x = LocalParticle_get_x(part);
         double const y = LocalParticle_get_y(part);
 
@@ -34,7 +34,7 @@ void LimitRectEllipse_track_local_particle(LimitRectEllipseData el, LocalParticl
            LocalParticle_set_state(part, XT_LOST_ON_APERTURE);
 	}
 
-    //end_per_particle_block
+    });
 
 }
 

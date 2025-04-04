@@ -58,7 +58,7 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
     double friction_coefficient = electron_density*POW2(q0)*POW4(QELEM) /(4*MASS_ELECTRON*POW2(PI*EPSILON_0)); // Coefficient used for computation of friction force 
     double omega_e_beam = space_charge_factor*1/(2*PI*EPSILON_0*C_LIGHT) * current/(POW2(radius_e_beam)*beta0*gamma0*magnetic_field);
     
-    //start_per_particle_block (part0->part)
+    PER_PARTICLE_BLOCK(part0, part, {
         double x     = LocalParticle_get_x(part)    - offset_x ;
         double px    = LocalParticle_get_px(part)   - offset_px;
         double y     = LocalParticle_get_y(part)    - offset_y ;
@@ -135,7 +135,7 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
                 }
            }
 
-    //end_per_particle_block
+    });
 }
 
 #endif
