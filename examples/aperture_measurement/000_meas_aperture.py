@@ -23,14 +23,27 @@ line.config.XSUITE_RESTORE_LOSS = True
 line.track(p, turn_by_turn_monitor='ONE_TURN_EBE')
 mon = line.record_last_track
 
-mask_lost = p.state < 1
+diff_loss = np.diff(mon.state, axis=0)
+mean_x = 0.5*(mon.x[:-1, :] + mon.x[1:, :])
+zeros = mean_x == 0
+x_aper_low_mat = np.where(diff_loss>0, mean_x, zeros)
+x_aper_low = x_aper_low_mat.sum(axis=0)
+x_aper_high_mat = np.where(diff_loss<0, mean_x, zeros)
+x_aper_high = x_aper_high_mat.sum(axis=0)
+
+s_aper = mon.s[0, :]
+
+mask_interp_low = x_aper_low != 0
+x_aper_low_interp = np.interp(s_aper,
+                        s_aper[mask_interp_low], x_aper_low[mask_interp_low])
+mask_interp_high = x_aper_high != 0
+x_aper_high_interp = np.interp(s_aper,
+                        s_aper[mask_interp_high], x_aper_high[mask_interp_high])
 
 import matplotlib.pyplot as plt
 plt.close('all')
-plt.figure(figsize=(10, 5))
-plt.plot(p.x[mask_lost], p.y[mask_lost], '.' , markersize=1)
-
 plt.figure()
-plt.pcolormesh(mon.state)
-
+plt.plot(s_aper, x_aper_low_interp)
+plt.plot(s_aper, x_aper_high_interp)
 plt.show()
+
