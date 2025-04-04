@@ -6,6 +6,7 @@
 #ifndef XTRACK_SYNRAD_SPECTRUM_H
 #define XTRACK_SYNRAD_SPECTRUM_H
 
+#include <headers/track.h>
 #include <random/random_src/uniform_accurate.h>
 
 
@@ -16,7 +17,7 @@
 #error "XTRACK_SYNRAD_SCALE_SAME_AS_FIRST not supported when multithreading"
 #endif
 
-/*gpufun*/
+GPUFUN
 void synrad_average_kick(LocalParticle* part, double B_T, double lpath,
                          double* dp_record, double* dpx_record, double* dpy_record
                         ){
@@ -74,7 +75,7 @@ void synrad_average_kick(LocalParticle* part, double B_T, double lpath,
     #endif
 }
 
-/*gpufun*/
+GPUFUN
 double SynRad(double x)
 {
   // x :    energy normalized to the critical energy
@@ -172,7 +173,7 @@ double SynRad(double x)
   return synrad;
 }
 
-/*gpufun*/
+GPUFUN
 double synrad_gen_photon_energy_normalized(LocalParticle *part)
 {
   // initialize constants used in the approximate expressions
@@ -204,7 +205,7 @@ double synrad_gen_photon_energy_normalized(LocalParticle *part)
   return result; // result now exact spectrum with unity weight
 }
 
-/*gpufun*/
+GPUFUN
 double synrad_average_number_of_photons(double mass0, double q0,
                           double beta0_gamma0, double B_T, double lpath){
 
@@ -216,7 +217,7 @@ double synrad_average_number_of_photons(double mass0, double q0,
     return 2.5/SQRT3*ALPHA_EM*beta0_gamma0*fabs(kick);
 }
 
-/*gpufun*/
+GPUFUN
 int64_t synrad_emit_photons(LocalParticle *part, double B_T,
                             double lpath /* m */,
                             RecordIndex record_index,

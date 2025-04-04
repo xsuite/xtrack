@@ -15,7 +15,7 @@
 #include <headers/track.h>
 
 
-/*gpufun*/
+GPUFUN
 double RandomNormal_generate(LocalParticle* part){
     double x1 = RandomUniform_generate(part);
     while(x1==0.0){
@@ -29,9 +29,13 @@ double RandomNormal_generate(LocalParticle* part){
 }
 
 
-/*gpufun*/
-void RandomNormal_sample(RandomNormalData rng, LocalParticle* part0,
-                             /*gpuglmem*/ double* samples, int64_t n_samples_per_seed){
+GPUFUN
+void RandomNormal_sample(
+    RandomNormalData rng,
+    LocalParticle* part0,
+    GPUGLMEM double* samples,
+    int64_t n_samples_per_seed
+){
     PER_PARTICLE_BLOCK(part0, part, {
         for (int i = 0; i < n_samples_per_seed; ++i){
             double val = RandomNormal_generate(part);

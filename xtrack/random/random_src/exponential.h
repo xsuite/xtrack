@@ -15,7 +15,7 @@
 #include <headers/track.h>
 
 
-/*gpufun*/
+GPUFUN
 double RandomExponential_generate(LocalParticle* part){
     double x1 = RandomUniform_generate(part);
     while(x1==0.0){
@@ -25,9 +25,13 @@ double RandomExponential_generate(LocalParticle* part){
 }
 
 
-/*gpufun*/
-void RandomExponential_sample(RandomExponentialData rng, LocalParticle* part0,
-                             /*gpuglmem*/ double* samples, int64_t n_samples_per_seed){
+GPUFUN
+void RandomExponential_sample(
+    RandomExponentialData rng,
+    LocalParticle* part0,
+    GPUGLMEM double* samples,
+    int64_t n_samples_per_seed
+){
     PER_PARTICLE_BLOCK(part0, part, {
         for (int i = 0; i < n_samples_per_seed; ++i){
             double val = RandomExponential_generate(part);

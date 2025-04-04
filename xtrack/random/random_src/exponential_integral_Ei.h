@@ -15,10 +15,10 @@
 #endif  // XO_CONTEXT_CPU
 
 //                         Internally Defined Routines                        //
-/*gpufun*/ double Exponential_Integral_Ei( double x );
-/*gpufun*/ double Continued_Fraction_Ei( double x );
-/*gpufun*/ double Power_Series_Ei( double x );
-/*gpufun*/ double Argument_Addition_Series_Ei( double x );
+GPUFUN double Exponential_Integral_Ei( double x );
+GPUFUN double Continued_Fraction_Ei( double x );
+GPUFUN double Power_Series_Ei( double x );
+GPUFUN double Argument_Addition_Series_Ei( double x );
 
 
 //                         Internally Defined Constants                       //
@@ -77,7 +77,7 @@ static const double ei[] = {
 //     y = Exponential_Integral_Ei( x );                                      //
 ////////////////////////////////////////////////////////////////////////////////
 
-/*gpufun*/
+GPUFUN
 double Exponential_Integral_Ei( double x ){
    if ( x < -5.0 ) return Continued_Fraction_Ei(x);
    if ( x == 0.0 ) return -DBL_MAX;
@@ -105,7 +105,7 @@ double Exponential_Integral_Ei( double x ){
 //     The value of the exponential integral Ei evaluated at x.               //
 ////////////////////////////////////////////////////////////////////////////////
 
-/*gpufun*/
+GPUFUN
 double Continued_Fraction_Ei( double x ){
    double Am1 = 1.0;
    double A0 = 0.0;
@@ -162,7 +162,7 @@ double Continued_Fraction_Ei( double x ){
 //     The value of the exponential integral Ei evaluated at x.               //
 ////////////////////////////////////////////////////////////////////////////////
 
-/*gpufun*/
+GPUFUN
 double Power_Series_Ei( double x ){
    double xn = -x;
    double Sn = -x;
@@ -207,7 +207,7 @@ double Power_Series_Ei( double x ){
 //     The value of the exponential integral Ei evaluated at x.               //
 ////////////////////////////////////////////////////////////////////////////////
 
-/*gpufun*/
+GPUFUN
 double Argument_Addition_Series_Ei( double x ){
    int  k = (int) (x + 0.5);
    int  j = 0;

@@ -1,6 +1,8 @@
 #ifndef XTRACK_TRACK_H
 #define XTRACK_TRACK_H
 
+#include <headers/context.h>
+
 /*
     The particle tracking "decorators" for all the contexts.
 */
@@ -49,6 +51,34 @@
                 CODE \
             }
 #endif  // XO_CONTEXT_CUDA || XO_CONTEXT_CL
+
+/*
+    Qualifier keywords for GPU and optimisation
+*/
+
+#ifdef XO_CONTEXT_CPU // for both serial and OpenMP
+    #define GPUKERN
+    #define GPUFUN      static inline
+    #define GPUGLMEM
+    #define RESTRICT    restrict
+#endif
+
+
+#ifdef XO_CONTEXT_CUDA
+    #define GPUKERN     __global__
+    #define GPUFUN      __device__
+    #define GPUGLMEM
+    #define RESTRICT
+#endif // XO_CONTEXT_CUDA
+
+
+#ifdef XO_CONTEXT_CL
+    #define GPUKERN     __kernel
+    #define GPUFUN
+    #define GPUGLMEM    __global
+    #define RESTRICT
+#endif // XO_CONTEXT_CL
+
 
 #ifndef PER_PARTICLE_BLOCK
 #error "Unknown context, or the expected context (XO_CONTEXT_*) flag undefined. Try updating Xobjects?"

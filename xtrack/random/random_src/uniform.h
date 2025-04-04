@@ -13,9 +13,10 @@
 #endif  // XO_CONTEXT_CPU
 
 #include <headers/track.h>
+#include <particles/rng_src/base_rng.h>
 
 
-/*gpufun*/
+GPUFUN
 int8_t assert_rng_set(LocalParticle* part, int64_t kill_state){
     int64_t s1 = LocalParticle_get__rng_s1(part);
     int64_t s2 = LocalParticle_get__rng_s2(part);
@@ -29,7 +30,7 @@ int8_t assert_rng_set(LocalParticle* part, int64_t kill_state){
 }
 
 
-/*gpufun*/
+GPUFUN
 double RandomUniform_generate(LocalParticle* part){
     uint32_t s1 = LocalParticle_get__rng_s1(part);
     uint32_t s2 = LocalParticle_get__rng_s2(part);
@@ -51,7 +52,7 @@ double RandomUniform_generate(LocalParticle* part){
     return r;
 }
 
-/*gpufun*/
+GPUFUN
 uint32_t RandomUniformUInt32_generate(LocalParticle* part){
     uint32_t s1 = LocalParticle_get__rng_s1(part);
     uint32_t s2 = LocalParticle_get__rng_s2(part);
@@ -74,10 +75,13 @@ uint32_t RandomUniformUInt32_generate(LocalParticle* part){
 }
 
 
-/*gpufun*/
-void RandomUniform_sample(RandomUniformData rng, LocalParticle* part0,
-                             /*gpuglmem*/ double* samples, int64_t n_samples_per_seed){
-
+GPUFUN
+void RandomUniform_sample(
+    RandomUniformData rng,
+    LocalParticle* part0,
+    GPUGLMEM double* samples,
+    int64_t n_samples_per_seed
+){
     PER_PARTICLE_BLOCK(part0, part, {
         for (int i=0; i < n_samples_per_seed; ++i) {
             double val = RandomUniform_generate(part);

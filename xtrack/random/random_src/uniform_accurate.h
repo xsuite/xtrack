@@ -17,7 +17,7 @@
 #define TWO_TO_32 4294967296.0
 
 
-/*gpufun*/
+GPUFUN
 double RandomUniformAccurate_generate(LocalParticle* part){
 
     double out = 0;
@@ -37,10 +37,13 @@ double RandomUniformAccurate_generate(LocalParticle* part){
 }
 
 
-/*gpufun*/
-void RandomUniformAccurate_sample(RandomUniformAccurateData rng, LocalParticle* part0,
-                             /*gpuglmem*/ double* samples, int64_t n_samples_per_seed){
-
+GPUFUN
+void RandomUniformAccurate_sample(
+    RandomUniformAccurateData rng,
+    LocalParticle* part0,
+    GPUGLMEM double* samples,
+    int64_t n_samples_per_seed
+){
     PER_PARTICLE_BLOCK(part0, part, {
         for (int i=0; i < n_samples_per_seed; ++i) {
             double val = RandomUniformAccurate_generate(part);

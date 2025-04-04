@@ -12,6 +12,7 @@ from scipy.constants import c as clight
 from scipy.constants import epsilon_0
 
 import xobjects as xo
+import xtrack as xt
 from xobjects.general import Print
 from xobjects import BypassLinked
 
@@ -1067,7 +1068,10 @@ class Particles(xo.HybridClass):
                     kernel_descriptions=self._kernels,
                 )
                 context.kernels.update(kernels)
-        self.compile_kernels(only_if_needed=True)
+        self.compile_kernels(
+            only_if_needed=True,
+            extra_compile_args=(f"-I{xt.__path__[0]}",),
+        )
 
         if seeds is None:
             seeds = np.random.randint(low=1, high=4e9,
