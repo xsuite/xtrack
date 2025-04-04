@@ -2376,15 +2376,15 @@ def compute_one_turn_matrix_finite_differences(
     ddelta = steps_r_matrix["ddelta"]
     part_temp = xpart.build_particles(_context=context,
             particle_ref=particle_on_co, mode='shift',
-            x  =    [dx,  0., 0.,  0.,    0.,     0., -dx,   0.,  0.,   0.,     0.,      0.],
-            px =    [0., dpx, 0.,  0.,    0.,     0.,  0., -dpx,  0.,   0.,     0.,      0.],
-            y  =    [0.,  0., dy,  0.,    0.,     0.,  0.,   0., -dy,   0.,     0.,      0.],
-            py =    [0.,  0., 0., dpy,    0.,     0.,  0.,   0.,  0., -dpy,     0.,      0.],
-            zeta =  [0.,  0., 0.,  0., dzeta,     0.,  0.,   0.,  0.,   0., -dzeta,      0.],
-            delta = [0.,  0., 0.,  0.,    0., ddelta,  0.,   0.,  0.,   0.,     0., -ddelta],
+            x  =    [0., dx,  0., 0.,  0.,    0.,     0., -dx,   0.,  0.,   0.,     0.,      0.],
+            px =    [0., 0., dpx, 0.,  0.,    0.,     0.,  0., -dpx,  0.,   0.,     0.,      0.],
+            y  =    [0., 0.,  0., dy,  0.,    0.,     0.,  0.,   0., -dy,   0.,     0.,      0.],
+            py =    [0., 0.,  0., 0., dpy,    0.,     0.,  0.,   0.,  0., -dpy,     0.,      0.],
+            zeta =  [0., 0.,  0., 0.,  0., dzeta,     0.,  0.,   0.,  0.,   0., -dzeta,      0.],
+            delta = [0., 0.,  0., 0.,  0.,    0., ddelta,  0.,   0.,  0.,   0.,     0., -ddelta],
             )
     dpzeta = float(context.nparray_from_context_array(
-        (part_temp.ptau[5] - part_temp.ptau[11])/2/part_temp.beta0[0]))
+        (part_temp.ptau[6] - part_temp.ptau[12])/2/part_temp.beta0[0]))
     if particle_on_co._xobject.at_element[0]>0:
         part_temp.s[:] = particle_on_co._xobject.s[0]
         part_temp.at_element[:] = particle_on_co._xobject.at_element[0]
@@ -2420,7 +2420,7 @@ def compute_one_turn_matrix_finite_differences(
                 line.config.XSUITE_MIRROR = True
                 line.track(part_temp, num_turns=num_turns)
 
-    temp_mat = np.zeros(shape=(6, 12), dtype=np.float64)
+    temp_mat = np.zeros(shape=(6, 13), dtype=np.float64)
     temp_mat[0, :] = context.nparray_from_context_array(part_temp.x)
     temp_mat[1, :] = context.nparray_from_context_array(part_temp.px)
     temp_mat[2, :] = context.nparray_from_context_array(part_temp.y)
@@ -2432,13 +2432,13 @@ def compute_one_turn_matrix_finite_differences(
     RR = np.zeros(shape=(6, 6), dtype=np.float64)
 
     for jj, dd in enumerate([dx, dpx, dy, dpy, dzeta, dpzeta]):
-        RR[:, jj] = (temp_mat[:, jj] - temp_mat[:, jj+6])/(2*dd)
+        RR[:, jj] = (temp_mat[:, jj+1] - temp_mat[:, jj+1+6])/(2*dd)
 
     out = {'R_matrix': RR}
 
     if element_by_element:
         mon = line.record_last_track
-        temp_mad_ebe = np.zeros(shape=(len(line._element_names_unique) + 1, 6, 12), dtype=np.float64)
+        temp_mad_ebe = np.zeros(shape=(len(line._element_names_unique) + 1, 6, 13), dtype=np.float64)
         temp_mad_ebe[:, 0, :] = mon.x.T
         temp_mad_ebe[:, 1, :] = mon.px.T
         temp_mad_ebe[:, 2, :] = mon.y.T
@@ -2448,7 +2448,7 @@ def compute_one_turn_matrix_finite_differences(
 
         RR_ebe = np.zeros(shape=(len(line._element_names_unique) + 1, 6, 6), dtype=np.float64)
         for jj, dd in enumerate([dx, dpx, dy, dpy, dzeta, dpzeta]):
-            RR_ebe[:, :, jj] = (temp_mad_ebe[:, :, jj] - temp_mad_ebe[:, :, jj+6])/(2*dd)
+            RR_ebe[:, :, jj] = (temp_mad_ebe[:, :, jj+1] - temp_mad_ebe[:, :, jj+1+6])/(2*dd)
 
         if only_markers:
             mask_twiss = line.tracker._get_twiss_mask_markers()
