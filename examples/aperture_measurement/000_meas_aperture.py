@@ -63,12 +63,6 @@ env.vars.load_madx('lhc_q20.str')
 
 tw1 = line.twiss4d()
 
-# x_grid = np.arange(-0.1, 0.1, 1e-3)
-# y_grid = np.arange(-0.05, 0.05, 1e-3)
-# XX, YY = np.meshgrid(x_grid, y_grid)
-# x_probe = XX.flatten()
-# y_probe = YY.flatten()
-
 t1 = time.time()
 dx = 1e-3
 dy = 1e-3
