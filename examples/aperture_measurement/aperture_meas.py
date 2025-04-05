@@ -13,12 +13,13 @@ def measure_aperture(line,
 
     p = line.build_particles(x=x_probe, y=y_probe)
 
-    line.freeze_longitudinal()
-    line.freeze_vars(['x', 'px', 'y', 'py'])
-    line.config.XSUITE_RESTORE_LOSS = True
+    with xt.line._preserve_config(line):
+        line.freeze_longitudinal()
+        line.freeze_vars(['x', 'px', 'y', 'py'])
+        line.config.XSUITE_RESTORE_LOSS = True
 
-    line.track(p, turn_by_turn_monitor='ONE_TURN_EBE')
-    mon = line.record_last_track
+        line.track(p, turn_by_turn_monitor='ONE_TURN_EBE')
+        mon = line.record_last_track
 
     x_h_aper = mon.x[:n_x, :]
     s_h_aper = mon.s[:n_x, :]
