@@ -1750,9 +1750,6 @@ class Particles(xo.HybridClass):
             int64_t ipart=0;
             while (ipart < part->_num_active_particles){
                 #ifdef XSUITE_RESTORE_LOSS
-                if (part->state[ipart]<1){
-                    part->state[ipart] = 100;
-                }
                 ipart++;
                 #else
                 if (part->state[ipart]<1){
