@@ -88,4 +88,8 @@ xo.assert_allclose(aper_check.y_aper_high, np.array(
       [0.0195, 0.0195, 0.0195, 0.0195, 0.0195, 0.0195, 0.0265, 0.0265,
        0.0265, 0.0265, 0.0265]), rtol=0, atol=1e-3)
 
+assert np.all(np.isnan(aper_check.x_aper_low_discrete) == np.array(
+    ))
+
+
 
