@@ -1,0 +1,47 @@
+! Q20 Optics for LHC beams
+
+! Tunes
+qx0                 =                        20.13 ;
+qy0                 =                        20.18 ;
+! Main Dipoles
+kmba                =               0.008445141542 ;
+kmbb                =               0.008445141542 ;
+! Main Quadrupoles
+kqd                := kqd0+(qh_setvalue-qx0)*dkqd_h+(qv_setvalue-qy0)*dkqd_v ;
+kqda               := kqd*9./11.         ;
+kqf                := kqf0+(qh_setvalue-qx0)*dkqf_h+(qv_setvalue-qy0)*dkqf_v ;
+kqfa               := kqf*9./11.         ;
+kqf0                =          0.01157926643000353 ;
+kqd0                =         -0.01158101412515668 ;
+qh_setvalue         =                        20.13 ;
+qv_setvalue         =                        20.18 ;
+dkqf_h              =        0.0003910514166916948 ;
+dkqd_h              =       -0.0001167644785878596 ;
+dkqf_v              =        0.0001171072522694149 ;
+dkqd_v              =       -0.0003918448750990765 ;
+! Main Sextupoles
+klsda              := klsda0+logical.lsdaqph*qph_setvalue+logical.lsdaqpv*qpv_setvalue ;
+klsdb              := klsdb0+logical.lsdbqph*qph_setvalue+logical.lsdbqpv*qpv_setvalue ;
+klsfa              := klsfa0+logical.lsfaqph*qph_setvalue+logical.lsfaqpv*qpv_setvalue ;
+klsfb              := klsfb0+logical.lsfbqph*qph_setvalue+logical.lsfbqpv*qpv_setvalue ;
+klsfc              := klsfc0+logical.lsfcqph*qph_setvalue+logical.lsfcqpv*qpv_setvalue ;
+klsda0              =         -0.08038230681545866 ;
+klsdb0              =         -0.03780512404085105 ;
+klsfa0              =          0.03125797253170887 ;
+klsfb0              =          0.05021892309013845 ;
+klsfc0             := klsfa0             ;
+logical.lsdaqph     =        0.0003652519197294077 ;
+logical.lsdbqph     =          -0.0201425735344012 ;
+logical.lsfaqph     =            0.039524517589292 ;
+logical.lsfbqph     =         0.001786268777066228 ;
+logical.lsfcqph    := logical.lsfaqph    ;
+logical.lsdaqpv     =         -0.05543888759784918 ;
+logical.lsdbqpv     =         -0.02403588437159217 ;
+logical.lsfaqpv     =        -0.002394920526527511 ;
+logical.lsfbqpv     =           0.0270674989641496 ;
+logical.lsfcqpv    := logical.lsfaqpv    ;
+! Extraction Sextupoles
+klse10602           =                            0 ;
+klse22402           =                            0 ;
+klse40602           =                            0 ;
+klse52402           =                            0 ;

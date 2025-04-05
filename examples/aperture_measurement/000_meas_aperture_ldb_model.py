@@ -1,6 +1,6 @@
 import xtrack as xt
 import numpy as np
-import time
+import xobjects as xo
 
 from aperture_meas import measure_aperture
 
@@ -8,8 +8,8 @@ aper_blacklist = [
     'vtaf.51632.b_aper', 'vbrta.51633.a_aper', 'vbrta.51633.b_aper',
        'bgiha.51634.a_aper', 'bgiva.51674.a_aper']
 
-env = xt.load_madx_lattice('EYETS 2024-2025.seq')
-env.vars.load_madx('lhc_q20.str')
+env = xt.load_madx_lattice('../../test_data/sps_with_apertures/EYETS 2024-2025.seq')
+env.vars.load_madx('../../test_data/sps_with_apertures/lhc_q20.str')
 line = env.sps
 line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, p0c=26e9)
 
@@ -22,7 +22,7 @@ SPS : SEQUENCE, refer = centre,    L = 7000;
 a: marker, at = 20;
 endsequence;
 ''')
-mad.call('APERTURE_EYETS 2024-2025.seq')
+mad.call('../../test_data/sps_with_apertures/APERTURE_EYETS 2024-2025.seq')
 mad.beam()
 mad.use('SPS')
 line_aper = xt.Line.from_madx_sequence(mad.sequence.SPS, install_apertures=True)
@@ -63,3 +63,29 @@ plt.plot(aper.s, aper.y_aper_high, 'r-')
 plt.plot(aper.s, aper.y_aper_low_discrete, '.r')
 plt.plot(aper.s, aper.y_aper_high_discrete, '.r')
 plt.show()
+
+###########
+aper_check = aper.rows['veba.20250.a_aper' : 'vebb.20270.b_aper']
+
+assert np.all(aper_check.name == np.array(
+    ['veba.20250.a_aper', 'drift_333..2', 'mba.20250', 'drift_334..0',
+       'veba.20250.b_aper', 'drift_334..1', 'vebb.20270.a_aper',
+       'drift_334..2', 'mbb.20270', 'drift_335..0', 'vebb.20270.b_aper']))
+xo.assert_allclose(aper_check.s, np.array([
+       1225.8247    , 1225.8247    , 1226.02017417, 1232.28019277,
+       1232.4827    , 1232.4827    , 1232.4847    , 1232.4847    ,
+       1232.67019277, 1238.93021138, 1239.1227    ]), rtol=0, atol=1e-6)
+xo.assert_allclose(aper_check.x_aper_low, np.array(
+      [-0.0765, -0.0765, -0.0765, -0.0765, -0.0765, -0.0765, -0.0645,
+       -0.0645, -0.0645, -0.0645, -0.0645]), rtol=0, atol=1e-3)
+xo.assert_allclose(aper_check.x_aper_high, np.array(
+      [0.0755, 0.0755, 0.0755, 0.0755, 0.0755, 0.0755, 0.0645, 0.0645,
+       0.0645, 0.0645, 0.0645]), rtol=0, atol=1e-3)
+xo.assert_allclose(aper_check.y_aper_low, np.array(
+      [-0.0195, -0.0195, -0.0195, -0.0195, -0.0195, -0.0195, -0.0265,
+       -0.0265, -0.0265, -0.0265, -0.0265]), rtol=0, atol=1e-3)
+xo.assert_allclose(aper_check.y_aper_high, np.array(
+      [0.0195, 0.0195, 0.0195, 0.0195, 0.0195, 0.0195, 0.0265, 0.0265,
+       0.0265, 0.0265, 0.0265]), rtol=0, atol=1e-3)
+
+
