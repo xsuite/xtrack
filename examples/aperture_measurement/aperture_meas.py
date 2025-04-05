@@ -24,6 +24,7 @@ def measure_aperture(line,
     x_h_aper = mon.x[:n_x, :]
     s_h_aper = mon.s[:n_x, :]
     state_h_aper = mon.state[:n_x, :]
+    state_h_aper[:, :-1] = state_h_aper[:, 1:] # due to the way they are logged
 
     mean_x = 0.5*(x_h_aper[:-1, :] + x_h_aper[1:, :])
     diff_loss_h = np.diff(state_h_aper, axis=0)
@@ -35,6 +36,7 @@ def measure_aperture(line,
 
     y_v_aper = mon.y[n_x:, :]
     state_v_aper = mon.state[n_x:, :]
+    state_v_aper[:, :-1] = state_v_aper[:, 1:] # due to the way they are logged
 
     mean_y = 0.5*(y_v_aper[:-1, :] + y_v_aper[1:, :])
     diff_loss_v = np.diff(state_v_aper, axis=0)

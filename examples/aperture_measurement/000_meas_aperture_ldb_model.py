@@ -52,7 +52,6 @@ aper = measure_aperture(line)
 
 import matplotlib.pyplot as plt
 plt.close('all')
-plt.figure(figsize=(10, 8))
 tw1.plot(lattice_only=True)
 plt.plot(aper.s, aper.x_aper_low, 'k-')
 plt.plot(aper.s, aper.x_aper_high, 'k-')
@@ -89,7 +88,27 @@ xo.assert_allclose(aper_check.y_aper_high, np.array(
        0.0265, 0.0265, 0.0265]), rtol=0, atol=1e-3)
 
 assert np.all(np.isnan(aper_check.x_aper_low_discrete) == np.array(
-    ))
+    [False,  True,  True,  True, False,  True, False,  True,  True,
+        True, False]))
+assert np.all(np.isnan(aper_check.x_aper_high_discrete) == np.array(
+    [False,  True,  True,  True, False,  True, False,  True,  True,
+        True, False]))
+assert np.all(np.isnan(aper_check.y_aper_low_discrete) == np.array(
+    [False,  True,  True,  True, False,  True, False,  True,  True,
+        True, False]))
+assert np.all(np.isnan(aper_check.y_aper_high_discrete) == np.array(
+    [False,  True,  True,  True, False,  True, False,  True,  True,
+        True, False]))
+
+mask_not_none = ~np.isnan(aper_check.x_aper_low_discrete)
+assert np.all(aper_check.x_aper_low_discrete[mask_not_none]
+                == aper_check.x_aper_low[mask_not_none])
+assert np.all(aper_check.x_aper_high_discrete[mask_not_none]
+                == aper_check.x_aper_high[mask_not_none])
+assert np.all(aper_check.y_aper_low_discrete[mask_not_none]
+                == aper_check.y_aper_low[mask_not_none])
+assert np.all(aper_check.y_aper_high_discrete[mask_not_none]
+                == aper_check.y_aper_high[mask_not_none])
 
 
 
