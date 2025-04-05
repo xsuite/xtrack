@@ -44,6 +44,19 @@ mad.use('SPS')
 line = xt.Line.from_madx_sequence(mad.sequence.SPS, install_apertures=True,
                                   deferred_expressions=True)
 line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, p0c=26e9)
+
+line.slice_thick_elements(
+    slicing_strategies=[
+        # Slicing with thin elements
+        xt.Strategy(slicing=None),
+        xt.Strategy(slicing=xt.Uniform(2, mode='thick'), element_type=xt.Bend),
+        xt.Strategy(slicing=xt.Uniform(2, mode='thick'), element_type=xt.RBend),
+        xt.Strategy(slicing=xt.Uniform(2, mode='thick'), element_type=xt.Quadrupole),
+        xt.Strategy(slicing=xt.Uniform(2, mode='thick'), element_type=xt.Sextupole),
+        xt.Strategy(slicing=xt.Uniform(2, mode='thick'), element_type=xt.Octupole),
+    ])
+
+
 env = line.env
 env.vars.load_madx('lhc_q20.str')
 

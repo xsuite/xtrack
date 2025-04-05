@@ -306,9 +306,6 @@ SPS_MPSH, APERTYPE=RECTANGLE, APERTURE={0.076,0.01765};
 SPS_MPSV, APERTYPE=ELLIPSE, APERTURE={0.0415,0.0415};
 
 
-
-
-
 /*
 !!PODH,156,156,circular,0.35,,SPSLNINS0028 - removed during SD 2004-2006
 SPS_!PODH, APERTYPE=ELLIPSE, APERTURE={0.078,0.078};
@@ -363,9 +360,6 @@ SPS_TPST_003, APERTYPE=RECTANGLE, APERTURE={0.08825,0.1365}, APER_OFFSET={-0.048
 !!VVFA,150,150,circular,0.334,,J. Arnold
 SPS_VVFA, APERTYPE=ELLIPSE, APERTURE={0.075,0.075};
 
-!!VVFAB,150,150,circular,0.384,,J. Arnold
-SPS_!VVFAB, APERTYPE=ELLIPSE, APERTURE={0.075,0.075};  (not used any more 2010)
-
 !!VVFB,250,250,circular,0.37,,J. Arnold
 SPS_VVFB, APERTYPE=ELLIPSE, APERTURE={0.125,0.125};
 
@@ -387,189 +381,13 @@ SPS_ZKHA, APERTYPE=RECTANGLE, APERTURE={0.076,0.108};
 !!ZKV,156,55,rectangular?,1.002,,X. Altuna+drawing 8032_14_0063_0+Th. Bohl
 SPS_ZKV, APERTYPE=RECTANGLE, APERTURE={0.078,0.0275};
 
-
-
-
-
-! !! WAMPAC1
-! !!WAMPAC,140,140,circular,1.5,,V. Baglin 8/1/03
-! SPS_ap.WAMPAC1: AP,APERTYPE=ELLIPSE,APERTURE={0.07,0.07};
-! ap.UP.WAMPAC1: ap.WAMPAC1;
-!  ap.DO.WAMPAC1: ap.WAMPAC1;
-
-
-! !! WAMPAC3
-! !! WAMPAC3,67,67,circular,0.36,,J.M. Jimenez + V. Baglin 25/11/03
-! SPS_ ap.WAMPAC3: AP,APERTYPE=ELLIPSE,APERTURE={0.0335,0.0335};
-!  ap.up.WAMPAC3: ap.WAMPAC3;
-!  ap.do.WAMPAC3: ap.WAMPAC3;
-
-
-
-
-
-/*****************************************************************************
- * SECTOR 5
- *****************************************************************************/
-
-
-
-!!SEY51740,129,49.3,rectangular,0.5,J.M. Jimenez
-SPS_!ap.SEY517: AP,APERTYPE=RECTANGLE,APERTURE={0.0645,0.02465};
-!ap.UP.SEY517: ap.SEY517;
-!ap.DO.SEY517: ap.SEY517;
-
-
-!! Pick-up calorimeter + shielded pick-up
-!!CAL51839,152,35.3,rectangular,2.94,J.M. Jimenez
-SPS_!ap.CAL51839: AP,APERTYPE=RECTANGLE,APERTURE={0.076,0.01765};
-!ap.UP.CAL51839: ap.CAL51839;
-!ap.DO.CAL51839: ap.CAL51839;
-
-!! Retarding field detector (J-M Laurent) + pick-up calorimeter + reference pick-up
-!!CAL51854,129,49.3,rectangular,3.196,J.M. Jimenez
-SPS_!ap.CAL51854: AP,APERTYPE=RECTANGLE,APERTURE={0.0645,0.02465};
-!ap.UP.CAL51854: ap.CAL51854;
-!ap.DO.CAL51854: ap.CAL51854;
-
-
-
-
-
-
-
-/********************************* Under investigation O.Berrig
-!! Reference chamber + gas analyzer
-!!VBB51858,129,49.3,rectangular,1.586,J.M. Jimenez
-SPS_!ap.VBB51858: AP,APERTYPE=RECTANGLE,APERTURE={0.0645,0.02465};
-!ap.UP.VBB51858: ap.VBB51858;
- ap.DO.VBB51858: ap.VBB51858;
-
-!! Reference chamber + old retarding field detector (J.M. Laurent)
-!!VBB51871,129,49.3,rectangular,5.88,J.M. Jimenez
-SPS_!ap.VBB51871: AP,APERTYPE=RECTANGLE,APERTURE={0.0645,0.02465};
-!ap.UP.VBB51871: ap.VBB51871;
-!ap.DO.VBB51871: ap.VBB51871;
-
-!!VBB51880,129,49.3,rectangular,6.47,J.M. Jimenez
-SPS_!ap.VBB51880: AP,APERTYPE=RECTANGLE,APERTURE={0.0645,0.02465};
-!ap.UP.VBB51880: ap.VBB51880;
-!ap.DO.VBB51880: ap.VBB51880;
-
-!! NEG
-!!NEG51934,156,156,circular,2.0,J.M. Jimenez
-SPS_!ap.NEG51934: AP,APERTYPE=ELLIPSE,APERTURE={0.078,0.078};
-!ap.UP.NEG51934: ap.NEG51934;
-!ap.DO.NEG51934: ap.NEG51934;
-
-!! NEG
-!!NEG51937,129,49.3,rectangular,2.0,J.M. Jimenez
-SPS_!ap.NEG51937: AP,APERTYPE=RECTANGLE,APERTURE={0.0645,0.02465};
-!ap.UP.NEG51937: ap.NEG51937;
-!ap.DO.NEG51937: ap.NEG51937;
-
-!! NEG
-!!NEG51940,156,156,circular,2.0,J.M. Jimenez
-SPS_!ap.NEG51940: AP,APERTYPE=ELLIPSE,APERTURE={0.078,0.078};
-!ap.UP.NEG51940: ap.NEG51940;
-!ap.DO.NEG51940: ap.NEG51940;
-
-!! Reference chamber not coated
-!!MBBVAC51954,129,49.3,rectangular,6.66,J.M. Jimenez
-SPS_!ap.MBBVAC51954: AP,APERTYPE=RECTANGLE,APERTURE={0.0645,0.02465};
-!ap.UP.MBBVAC51954: ap.MBBVAC51954;
-!ap.DO.MBBVAC51954: ap.MBBVAC51954;
-
-****************************************************************/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
-!!BBLR3WLSS2,102,38,rectangular,0.72,J.P. Koutchouk 29/09/03 - New BBLR with 3 wires
-!! latest data from F. Zimmermann e-mail 27/1/04
-ap.BBLR3WLSS2: AP, e1=102, e2=40 !(aperture for centred beam)
-! ap.BBLR3WLSS2: AP, e1=118, e2=40 !(aperture for bumped beam if horizontal wire installed outwards)
-ap.UP.BBLR3WLSS2: ap.BBLR3WLSS2
-ap.DO.BBLR3WLSS2: ap.BBLR3WLSS2
-
-
-
-
-!!ROMANPOT, 80, 80, circular,0.596 (including all the parts with 80 mm diameter)
-ap.ROMANPOT: AP, e1=80.0, e2=80.0
-ap.UP.ROMANPOT: ap.ROMANPOT
-ap.DO.ROMANPOT: ap.ROMANPOT
-
-
-
-
-=================================================
-
-!!!!!!Missing apertures
-
-VZBA,#N/A,#N/A,#N/A,1.875,J. Arnold
-Positions TPSG west extraction
-
-=============================================
-
-!!!!!!!!!!Requiring ad-hoc definition
-!!! Done
-MKP
-MKPC
-QFA1,213,40.6,elliptical,3.791,,as QMAK
-MKDHA,96,56,rectangular,1.6,,G. Schroeder via C. Arimatea,,,,
-MKDHB,105,60,rectangular,1.6,,G. Schroeder via C. Arimatea,,,,
-MKDVA,75,65,rectangular,2.892,,G. Schroeder via C. Arimatea,,,,
-MKDVB,83,56,rectangular,2.892,,G. Schroeder via C. Arimatea,,,,
-MKE-S
-MKE-L
-
-QED,83,83,circular,0.72,,Ramillon + SPSLGSSSxxxx
-QEF,152,38.3,elliptical,0.698,,Ramillon + SPSLGSSSxxxx
-BPMBH/V  BPMBH is 156 mm diam / BPMBV is 83 mm diam. J. Camas
-vacuum test bench
-!!!Done
-
-
-================================================
-
-*/
-
-return;
-
-
-
-
-
-
-
 !!QD,83,83,circular,3.085,,Ramillon
-SPS_ QD,   APERTYPE=ELLIPSE, APERTURE={0.0415,0.0415};
+SPS_QD,   APERTYPE=ELLIPSE, APERTURE={0.0415,0.0415};
 
-SPS_ QDA,  APERTYPE=ELLIPSE, APERTURE={0.0755,0.0455};
+SPS_QDA,  APERTYPE=ELLIPSE, APERTURE={0.0755,0.0455};
 
 !!QF,152,38.3,elliptical,3.085,,Ramillon
-SPS_ QF,  APERTYPE=ELLIPSE, APERTURE={0.076,0.01915};
+SPS_QF,  APERTYPE=ELLIPSE, APERTURE={0.076,0.01915};
 
 
 return;
