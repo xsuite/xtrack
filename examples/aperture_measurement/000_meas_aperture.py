@@ -70,8 +70,13 @@ tw1 = line.twiss4d()
 # y_probe = YY.flatten()
 
 t1 = time.time()
-x_probe = np.linspace(-0.1, 0.1, 100)
-y_probe = 0
+x_test = np.linspace(-0.1, 0.1, 100)
+y_test = np.linspace(-0.9, 0.9, 100)
+
+n_x = len(x_test)
+
+x_probe = np.concatenate([x_test, 0*y_test])
+y_probe = np.concatenate([0*x_test, y_test])
 
 p = line.build_particles(x=x_probe, y=y_probe)
 
@@ -82,15 +87,20 @@ line.config.XSUITE_RESTORE_LOSS = True
 line.track(p, turn_by_turn_monitor='ONE_TURN_EBE')
 mon = line.record_last_track
 
-diff_loss = np.diff(mon.state, axis=0)
-mean_x = 0.5*(mon.x[:-1, :] + mon.x[1:, :])
-zeros = mean_x == 0
+
+x_h_aper = mon.x[:n_x, :]
+s_h_aper = mon.s[:n_x, :]
+state_h_aper = mon.state[:n_x, :]
+
+mean_x = 0.5*(x_h_aper[:-1, :] + x_h_aper[1:, :])
+diff_loss = np.diff(state_h_aper, axis=0)
+zeros = mean_x * 0
 x_aper_low_mat = np.where(diff_loss>0, mean_x, zeros)
 x_aper_low_discrete = x_aper_low_mat.sum(axis=0)
 x_aper_high_mat = np.where(diff_loss<0, mean_x, zeros)
 x_aper_high_discrete = x_aper_high_mat.sum(axis=0)
 
-s_aper = mon.s[0, :]
+s_aper = s_h_aper[0, :]
 
 mask_interp_low = x_aper_low_discrete != 0
 x_aper_low = np.interp(s_aper,
@@ -98,6 +108,9 @@ x_aper_low = np.interp(s_aper,
 mask_interp_high = x_aper_high_discrete != 0
 x_aper_high = np.interp(s_aper,
                         s_aper[mask_interp_high], x_aper_high_discrete[mask_interp_high])
+x_aper_low_discrete[~mask_interp_low] = np.nan
+x_aper_high_discrete[~mask_interp_high] = np.nan
+
 t2 = time.time()
 
 import matplotlib.pyplot as plt
@@ -105,5 +118,7 @@ plt.close('all')
 tw1.plot(lattice_only=True)
 plt.plot(s_aper, x_aper_low, 'k-')
 plt.plot(s_aper, x_aper_high, 'k-')
+plt.plot(s_aper, x_aper_low_discrete, '.k')
+plt.plot(s_aper, x_aper_high_discrete, '.k')
 
 plt.show()
