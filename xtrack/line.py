@@ -37,6 +37,7 @@ from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
                           get_non_linear_chromaticity,
                           DEFAULT_MATRIX_STABILITY_TOL,
                           DEFAULT_MATRIX_RESPONSIVENESS_TOL)
+from xtrack.aperture_meas import measure_aperture
 from .match import match_line, closed_orbit_correction, match_knob_line, Action
 from .tapering import compensate_radiation_energy_loss
 from .mad_loader import MadLoader
@@ -798,6 +799,42 @@ class Line:
         tab._data['reference_frame'] = {
             True: 'reverse', False: 'proper'}[reverse]
         return tab
+
+    def get_aperture_table(self, dx=1e-3, dy=1e-3, x_range=(-0.1, 0.1),
+                           y_range=(-0.1, 0.1)):
+        '''
+        Return a table with the horizontal and vertical aperture estimated at all
+        elements of the line.
+        The aperture is estimated by tracking a particle through the line and
+        measuring the maximum and minumum horizontal and vertical position
+        at which particles survive. For elements at which no lost particles are
+        detected, the aperture is estimated by interpolating the values
+        of the neighbouring elements.
+
+        Parameters
+        ----------
+        dx : float, optional
+            Required horizontal resolution (in m) for the aperture measurement.
+            Default is 1e-3.
+        dy : float, optional
+            Required vertical resolution (in m) for the aperture measurement.
+            Default is 1e-3.
+        x_range : tuple, optional
+            Horizontal range (in m) for the aperture measurement.
+            Default is (-0.1, 0.1).
+        y_range : tuple, optional
+            Vertical range (in m) for the aperture measurement.
+            Default is (-0.1, 0.1).
+
+        Returns
+        -------
+        aperture_table : xtrack.Table
+            Table with the horizontal and vertical aperture at all elements
+            of the line.
+        '''
+
+        return xt.aperture_meas.measure_aperture(self,
+            dx=1e-3, dy=1e-3, x_range=(-0.1, 0.1), y_range=(-0.1, 0.1))
 
     def copy(self, shallow=False, _context=None, _buffer=None):
         '''

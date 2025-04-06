@@ -2,8 +2,6 @@ import xtrack as xt
 import numpy as np
 import xobjects as xo
 
-from aperture_meas import measure_aperture
-
 aper_blacklist = [
     'vtaf.51632.b_aper', 'vbrta.51633.a_aper', 'vbrta.51633.b_aper',
        'bgiha.51634.a_aper', 'bgiva.51674.a_aper']
@@ -47,7 +45,8 @@ line.insert(insertions)
 
 
 tw1 = line.twiss4d()
-aper = measure_aperture(line)
+aper = line.get_aperture_table(dx=1e-3, dy=1e-3,
+                               x_range=(-0.1, 0.1), y_range=(-0.1, 0.1))
 
 
 import matplotlib.pyplot as plt
