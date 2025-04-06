@@ -22,7 +22,6 @@ plt.plot(aper.s, aper.y_aper_low_discrete, '.r')
 plt.plot(aper.s, aper.y_aper_high_discrete, '.r')
 plt.show()
 
-###########
 aper_check = aper.rows['veba.20250.a_aper' : 'vebb.20270.b_aper']
 
 assert np.all(aper_check.name == np.array(
@@ -68,6 +67,3 @@ assert np.all(aper_check.y_aper_low_discrete[mask_not_none]
                 == aper_check.y_aper_low[mask_not_none])
 assert np.all(aper_check.y_aper_high_discrete[mask_not_none]
                 == aper_check.y_aper_high[mask_not_none])
-
-
-
