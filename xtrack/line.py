@@ -2453,7 +2453,7 @@ class Line:
                                                                # (right order comes form previous sorting,
                                                                # (done before removing elements)
         )
-        element_names = _generate_element_names_with_drifts(self, tab_sorted, s_tol=s_tol)
+        element_names = _generate_element_names_with_drifts(self.env, tab_sorted, s_tol=s_tol)
 
         # Update line
         self.element_names.clear()
