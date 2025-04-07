@@ -92,16 +92,26 @@ void Multipole_track_single_particle(LocalParticle* part,
 
         #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
         // Radiation at entrance
+        double const mass0 = LocalParticle_get_mass0(part);
+        double const q0 = LocalParticle_get_q0(part);
+        double const beta0 = LocalParticle_get_beta0(part);
+        double const gamma0 = LocalParticle_get_gamma0(part);
+
         double const curv = sqrt(dpx*dpx + dpy*dpy) / length;
+        double const mass0_kg = mass0 * QELEM / C_LIGHT / C_LIGHT;
+        double const Q0_coulomb = q0 * QELEM;
+        /*b*/double const P0_J = mass0_kg * beta0 * gamma0 * C_LIGHT;
+        double const B_T = curv * P0_J / Q0_coulomb;
+
         if (radiation_flag > 0 && length > 0){
             double const x      = LocalParticle_get_x(part);
             double const L_path = 0.5 * length * (1 + hxl*x/length);
             if (radiation_flag == 1){
-                synrad_average_kick(part, curv, L_path,
+                synrad_average_kick(part, B_T, L_path,
                         dp_record_entry, dpx_record_entry, dpy_record_entry);
             }
             else if (radiation_flag == 2){
-                synrad_emit_photons(part, curv, L_path, record_index, record);
+                synrad_emit_photons(part, B_T, L_path, record_index, record);
             }
         }
         #endif
@@ -135,7 +145,9 @@ void Multipole_track_single_particle(LocalParticle* part,
                 b1l = b1l * (1 + delta_tap);
 
                 dpx -= b1l * hxlx / length;
+
             }
+
 
             LocalParticle_add_to_zeta(part, -rv0v*chi * hxlx);
         }
@@ -149,12 +161,11 @@ void Multipole_track_single_particle(LocalParticle* part,
             double const x      = LocalParticle_get_x(part);
             double const L_path = 0.5*length * (1 + (hxl*x)/length);
             if (radiation_flag == 1){
-                synrad_average_kick(part, curv, L_path,
+                synrad_average_kick(part, B_T, L_path,
                         dp_record_exit, dpx_record_exit, dpy_record_exit);
             }
             else if (radiation_flag == 2){
-                // printf("L_path = %e curv = %e\n", L_path, curv);
-                synrad_emit_photons(part, curv, L_path, record_index, record);
+                synrad_emit_photons(part, B_T, L_path, record_index, record);
             }
         }
         #endif

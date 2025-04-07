@@ -51,11 +51,16 @@ void Quadrupole_from_params_track_local_particle(
     if (edge_entry_active) {
         //start_per_particle_block (part0->part)
         MultFringe_track_single_particle(
+            part,
             combined_kn,
-            combined_ks,
-            0,
-            2,
-            part
+            combined_ks, \
+            /* k_order */ 1, \
+            /* knl */ NULL,
+            /* ksl */ NULL,
+            /* kl_order */ -1,
+            length,
+            /* is_exit */ 0, \
+            /* min_order */ 0 \
         );
         //end_per_particle_block
     }
@@ -90,11 +95,16 @@ void Quadrupole_from_params_track_local_particle(
     if (edge_exit_active) {
         //start_per_particle_block (part0->part)
         MultFringe_track_single_particle(
+            part,
             combined_kn,
-            combined_ks,
-            1,
-            2,
-            part
+            combined_ks, \
+            /* k_order */ 1, \
+            /* knl */ NULL,
+            /* ksl */ NULL,
+            /* kl_order */ -1,
+            length,
+            /* is_exit */ 1, \
+            /* min_order */ 0 \
         );
         //end_per_particle_block
     }

@@ -38,6 +38,8 @@ line_thick.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV,
 line_thick.build_tracker()
 tw_thick_no_rad = line_thick.twiss(method='4d')
 
+line_thick.to_json(fname + '_thick.json')
+
 line = line_thick.copy()
 Strategy = xt.slicing.Strategy
 Teapot = xt.slicing.Teapot

@@ -169,7 +169,11 @@ env.ref['mqf.1'].k1 = env.ref['k1lf']*3+1
 # The difference in between the two cases lies in the handling of the "+="
 # operator. In Python
 env['mqf.1'].k1+=1
+<<<<<<< HEAD
 # is equivalent to 
+=======
+# is equivalent to
+>>>>>>> 2a426e5dbd78af2ededb546b5a2bf4a30415530f
 env['mqf.1'].k1=env['mqf.1'].k1+1
 # so the expression is deleted:
 env['mqf.1'].get_info("k1")
@@ -179,26 +183,7 @@ env['mqf.1'].get_info("k1")
 # while
 env.ref['mqf.1'].k1=env.ref['k1lf']*2
 env.ref['mqf.1'].k1+=env.ref['k1ld']*3
-# is equivalent to 
+# is equivalent to
 # env.ref['mqf.1'].k1._expr + env.ref['k1ld']*3
 # resulting in
 # element_refs['mqf.1'].k1 = ((vars['k1lf'] * 2) + (vars['k1ld'] * 3))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

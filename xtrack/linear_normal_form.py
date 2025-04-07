@@ -186,11 +186,14 @@ def compute_linear_normal_form(M, symplectify=False, only_4d_block=False,
     n2_inv_sq = np.matmul(np.matmul(a2, S), b2)
     n3_inv_sq = np.matmul(np.matmul(a3, S), b3)
 
+    if only_4d_block:
+        n3_inv_sq = 1.0 # Just to avoid errors
+
     if not n1_inv_sq > 0:
         raise ValueError('Invalid n1')
     if not n2_inv_sq > 0:
         raise ValueError('Invalid n2')
-    if not n3_inv_sq > 0:
+    if not n3_inv_sq > 0 :
         raise ValueError('Invalid n3')
 
     n1 = 1./np.sqrt(n1_inv_sq)

@@ -12,7 +12,7 @@ void DipoleEdge_track_local_particle(DipoleEdgeData el, LocalParticle* part0){
     int64_t const model = DipoleEdgeData_get_model(el);
 
     #ifdef XTRACK_MULTIPOLE_NO_SYNRAD
-    #define delta_taper (0)
+        double const delta_taper = 0.0;
     #else
         #ifndef XTRACK_DIPOLEEDGE_TAPER
         double const delta_taper = DipoleEdgeData_get_delta_taper(el);

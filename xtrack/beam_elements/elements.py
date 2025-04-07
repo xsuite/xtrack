@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xtrack Package.  #
-# Copyright (c) CERN, 2021.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 from typing import List
 
@@ -14,9 +14,15 @@ import xtrack as xt
 from ..base_element import BeamElement
 from ..random import RandomUniformAccurate, RandomExponential, RandomNormal
 from ..general import _pkg_root
-from ..internal_record import RecordIndex
 
-DEFAULT_MULTIPOLE_ORDER = 5
+from xtrack.beam_elements.magnets import (
+    _INDEX_TO_INTEGRATOR, _INTEGRATOR_TO_INDEX, _MODEL_TO_INDEX_CURVED,
+    _INDEX_TO_MODEL_CURVED, _MODEL_TO_INDEX_STRAIGHT, _INDEX_TO_MODEL_STRAIGHT,
+    DEFAULT_MULTIPOLE_ORDER, SynchrotronRadiationRecord, _prepare_multipolar_params,
+    _NOEXPR_FIELDS, COMMON_MAGNET_SOURCES
+)
+from xtrack.internal_record import RecordIndex
+
 
 class ReferenceEnergyIncrease(BeamElement):
 
@@ -547,15 +553,7 @@ class ZetaShift(BeamElement):
     _store_in_to_dict = ['dzeta']
 
 
-class SynchrotronRadiationRecord(xo.HybridClass):
-    _xofields = {
-        '_index': RecordIndex,
-        'photon_energy': xo.Float64[:],
-        'at_element': xo.Int64[:],
-        'at_turn': xo.Int64[:],
-        'particle_id': xo.Int64[:],
-        'particle_delta': xo.Float64[:]
-        }
+
 
 
 class Multipole(BeamElement):
@@ -597,9 +595,7 @@ class Multipole(BeamElement):
     _depends_on = [RandomUniformAccurate, RandomExponential]
 
     _extra_c_sources = [
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('headers/synrad_spectrum.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_multipole.h'),
+        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/multipole.h')]
 
     _internal_record_class = SynchrotronRadiationRecord
@@ -612,7 +608,7 @@ class Multipole(BeamElement):
             self.xoinitialize(**kwargs)
             return
 
-        multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
+        multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
         kwargs.update(multipolar_kwargs)
 
         if "bal" in kwargs.keys():
@@ -715,6 +711,9 @@ class _BendCommon:
         'angle': xo.Float64,
         'length': xo.Float64,
         'model': xo.Int64,
+        'integrator': xo.Int64,
+        'radiation_flag': xo.Int64,
+        'delta_taper': xo.Float64,
         'edge_entry_active': xo.Field(xo.Int64, default=1),
         'edge_exit_active': xo.Field(xo.Int64, default=1),
         'edge_entry_model': xo.Int64,
@@ -738,6 +737,7 @@ class _BendCommon:
     _common_rename = {
         'order': '_order',
         'model': '_model',
+        'integrator': '_integrator',
         'edge_entry_model': '_edge_entry_model',
         'edge_exit_model': '_edge_exit_model',
         'k0': '_k0',
@@ -746,19 +746,6 @@ class _BendCommon:
         'length': '_length',
         'h': '_h',
     }
-
-    _common_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_multipolar_components.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_thick_bend.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_nonlinear.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_bend.h'),
-    ]
 
     def to_dict(self, copy_to_cpu=True):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
@@ -808,40 +795,42 @@ class _BendCommon:
 
     @property
     def model(self):
-        return {
-            0: 'adaptive',
-            1: 'full',  # same as adaptive (for backward compatibility)
-            2: 'bend-kick-bend',
-            3: 'rot-kick-rot',
-            4: 'expanded'
-        }[self._model]
+        return _INDEX_TO_MODEL_CURVED[self._model]
 
     @model.setter
     def model(self, value):
-        assert value in ['adaptive', 'full', 'bend-kick-bend',
-                            'rot-kick-rot', 'expanded']
-        self._model = {
-            'adaptive': 0,
-            'full': 1,
-            'bend-kick-bend': 2,
-            'rot-kick-rot': 3,
-            'expanded': 4
-        }[value]
+        try:
+            self._model = _MODEL_TO_INDEX_CURVED[value]
+        except KeyError:
+            raise ValueError(f'Invalid model: {value}')
+
+    @property
+    def integrator(self):
+        return xt.beam_elements.magnets._INDEX_TO_INTEGRATOR[self._integrator]
+
+    @integrator.setter
+    def integrator(self, value):
+        try:
+            self._integrator = _INTEGRATOR_TO_INDEX[value]
+        except KeyError:
+            raise ValueError(f'Invalid integrator: {value}')
 
     @property
     def edge_entry_model(self):
         return {
             0: 'linear',
             1: 'full',
+            2: 'dypole-only',
            -1: 'suppressed',
         }[self._edge_entry_model]
 
     @edge_entry_model.setter
     def edge_entry_model(self, value):
-        assert value in ['linear', 'full', 'suppressed']
+        assert value in ['linear', 'full', 'suppressed', 'dipole-only']
         self._edge_entry_model = {
             'linear': 0,
             'full': 1,
+            'dipole-only': 2,
             'suppressed': -1,
         }[value]
 
@@ -850,18 +839,19 @@ class _BendCommon:
         return {
             0: 'linear',
             1: 'full',
+            2: 'dipole-only',
            -1: 'suppressed',
         }[self._edge_exit_model]
 
     @edge_exit_model.setter
     def edge_exit_model(self, value):
-        assert value in ['linear', 'full', 'suppressed']
+        assert value in ['linear', 'full', 'suppressed', 'dipole-only']
         self._edge_exit_model = {
             'linear': 0,
             'full': 1,
+            'dipole-only': 2,
             'suppressed': -1,
         }[value]
-
 
     @property
     def _repr_fields(self):
@@ -875,8 +865,7 @@ class _BendCommon:
     def to_dict(self, copy_to_cpu=True):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
 
-        for kk in {'model', 'k0', 'h', 'length', 'k0_from_h', 'angle',
-                   }:
+        for kk in ('model', 'k0', 'h', 'length', 'k0_from_h', 'angle'):
             if f'_{kk}' in out:
                 out.pop(f'_{kk}')
             out[kk] = getattr(self, kk)
@@ -895,8 +884,7 @@ class _BendCommon:
 
 
 class Bend(_BendCommon, BeamElement):
-    """
-    Implementation of combined function magnet (i.e. a bending magnet with
+    """Implementation of combined function magnet (i.e. a bending magnet with
     a quadrupole component).
 
     Parameters
@@ -915,62 +903,103 @@ class Bend(_BendCommon, BeamElement):
         If True, `k0` will assume the value of `h` and its value will be updated
         when `h` is changed.
     length : float, optional
-        Length of the element in units of m.
-    model : str, optional
-        The bend model to use. Available options are:
-        - "adaptive" - drift-kick-drift model with automatic selection of the
-            number of kicks, using the Yoshida integration scheme. This is the
-            default option.
-        - "full" - same as adaptive (included for backward compatibility)
-        - "bend-kick-bend" - similar to adaptive, but using a thick bend map
-            instead of drifts.
-        - "rot-kick-rot" - same as "adaptive" and "full".
-        - "expanded" - use a combined function magnet with uniform slicing for
-            the kicks.
+        Length of the element in meters along the reference trajectory.
     knl : array, optional
         Integrated strength of the high-order normal multipolar components
         (knl[0] and knl[1] should not be used).
     ksl : array, optional
         Integrated strength of the high-order skew multipolar components
         (ksl[0] and ksl[1] should not be used).
-    num_multipole_kicks : int, optional
-        Number of multipole kicks used to model high order multipolar
-        components. By default, switched off.
     order : int, optional
-        Order of `knl` and `ksl`. If not given, it will be inferred from `knl`
-        and `ksl`, but will be at least `DEFAULT_MULTIPOLE_ORDER` = 5.
+        Maximum order of multipole expansion for this magnet. Defaults to 5.
+    model : str, optional
+        Drift model to be used in the kick-splitting scheme. The options are:
+
+            - ``adaptive``: default option, same as ``rot-kick-rot``.
+            - ``full``: kept for backward compatibility, same as ``rot-kick-rot``.
+            - ``bend-kick-bend``: use a thick (curved, if ``h`` non-zero) exact
+                bend map for ``k0``, ``h``, and handle the other strengths in
+                the kicks.
+            - ``rot-kick-rot``: use an exact drift map (polar, if ``h`` non-zero)
+                and handle all strengths in the kicks.
+            - ``mat-kick-mat``: use an expanded combined-function magnet map
+                for ``k0``, ``k1``, ``h``, and handle the other strengths in
+                the kicks.
+            - ``drift-kick-drift-exact``: use an exact drift map with no curvature,
+                and handle all strengths in the kicks.
+            - ``drift-kick-drift-expanded``: use an expanded drift map with no
+                curvature, and handle all strengths in the kicks.
+
+        These will not be applied if the length is zero.
+    integrator : str, optional
+        Integration scheme to be used. The options are:
+
+            - ``adaptive``: default option, same as ``yoshida4``.
+            - ``teapot``: use the Teapot integration scheme.
+            - ``yoshida4``: use the Yoshida 4 integration scheme. The number of
+                kicks will be implicitly rounded up to the nearest multiple of 7,
+                as required by the scheme.
+            - ``uniform``: slice uniformly.
+
+        The integration scheme setting will be ignored if the length is zero, or
+        if the strength and the curvature settings imply no need for applying
+        thin kicks.
+    num_multipole_kicks : int, optional
+        The number of kicks to be used in thin kick splitting. If zero, and if
+        the model selection implies that there are kicks that need to be
+        performed, the value will be guessed according to a heuristic: one kick
+        in the middle for straight magnets, or ~2 kicks/mrad otherwise.
     edge_entry_active : bool, optional
-        Whether to model the entry edge. Disabled by default.
+        Whether to include the edge effect at entry. Enabled by default.
     edge_exit_active : bool, optional
-        Same as `edge_entry_active`, but for the exit.
-    edge_entry_model : LiteralUnion['linear', 'full', 'suppressed']
-        Type of edge model to use at the entry. Default is 'full'.
-    edge_exit_model : LiteralUnion['linear', 'full', 'suppressed']
-        Same as `edge_entry_model`, but for the exit.
+        Whether to include the edge effect at exit. Enabled by default.
+    edge_entry_model : str, optional
+        Edge model at magnet entry. The options are:
+
+            - ``linear``: use a linear model for the edge.
+            - ``full``: include all multipolar terms.
+            - ``dipole-only``: ``full`` but includes only the dipolar terms.
+            - ``suppressed``: ignore the edge effect.
+    edge_exit_model : str, optional
+        Edge model at magnet exit. See ``edge_entry_model`` for the options.
     edge_entry_angle : float, optional
         The angle of the entry edge in radians. Default is 0.
     edge_exit_angle : float, optional
         Same as `edge_entry_angle`, but for the exit.
     edge_entry_angle_fdown : float, optional
-        Term added to the entry angle only for the linear mode and only in
+        Term added to the entry angle only for the ``linear`` mode and only in
         the vertical plane to account for non-zero angle in the closed orbit
         when entering the fringe field (feed down effect). Default is 0.
     edge_exit_angle_fdown : float, optional
-        Same as `edge_entry_angle_fdown`, but for the exit. Default is 0.
+        Same as ``edge_entry_angle_fdown``, but for the exit. Default is 0.
     edge_entry_fint: float, optional
-        Fringe integral value at entry.
+        Fringe integral value at entry. Default is 0.
     edge_exit_fint : float, optional
-        Same as `edge_entry_fint`, but for the exit. Default is 0.
+        Same as ``edge_entry_fint``, but for the exit. Default is 0.
     edge_entry_hgap : float, optional
         Equivalent gap at entry in meters. Default is 0.
     edge_exit_hgap : float, optional
-        Same as `edge_entry_hgap`, but for the exit.
+        Same as ``edge_entry_hgap``, but for the exit.
+    radiation_flag : int, optional
+        Flag indicating if synchrotron radiation effects are enabled.
+        If zero, no radiation effects are simulated; if 1, the ``mean``
+        model is used; if 2, the ``quantum`` model is used and the
+        emitted photons are stored in the internal radiation record.
+    delta_taper : float, optional
+        A value added to delta for the purposes of tapering. Default is 0.
     """
 
     _xofields = _BendCommon._common_xofields
     _rename = _BendCommon._common_rename
 
-    _extra_c_sources = _BendCommon._common_c_sources + [
+    _depends_on = [RandomUniformAccurate, RandomExponential]
+
+    _internal_record_class = SynchrotronRadiationRecord
+
+    _noexpr_fields = _NOEXPR_FIELDS
+
+    _extra_c_sources = [
+        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/bend.h'),
     ]
 
@@ -983,7 +1012,7 @@ class Bend(_BendCommon, BeamElement):
         model = kwargs.pop('model', None)
 
         order = order or DEFAULT_MULTIPOLE_ORDER
-        multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
+        multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
         kwargs.update(multipolar_kwargs)
 
         self.xoinitialize(**kwargs)
@@ -1121,8 +1150,6 @@ class RBend(_BendCommon, BeamElement):
         Length of the element in units of m along the reference trajectory.
         Will be computed from `angle` and `length_straight` if not given.
         Changes to `length` will update `h` and `length_straight`.
-    model : str, optional
-        See `Bend` for details.
     length_straight : float, optional
         Length of the element in units of m along a straight line. Changes to
         `length_straight` will update `length` and `h`.
@@ -1132,6 +1159,10 @@ class RBend(_BendCommon, BeamElement):
     ksl : array, optional
         Integrated strength of the high-order skew multipolar components
         (`ksl[0]` and `ksl[1]` should not be used).
+    model : str, optional
+        Drift model to be used in kick-splitting. See `Bend` for details.
+    integrator : str, optional
+        Integration scheme to be used. See `Bend` for details.
     num_multipole_kicks : int, optional
         Number of multipole kicks used to model high order multipolar
         components. By default, switched off.
@@ -1176,9 +1207,16 @@ class RBend(_BendCommon, BeamElement):
         'length_straight': '_length_straight',
     }
 
-    _extra_c_sources = _BendCommon._common_c_sources + [
+    _depends_on = [RandomUniformAccurate, RandomExponential]
+
+    _internal_record_class = SynchrotronRadiationRecord
+
+    _extra_c_sources = [
+        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/rbend.h'),
     ]
+
+    _noexpr_fields = _NOEXPR_FIELDS
 
     def __init__(
             self,
@@ -1193,7 +1231,7 @@ class RBend(_BendCommon, BeamElement):
             return
 
         order = order or DEFAULT_MULTIPOLE_ORDER
-        multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
+        multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
         kwargs.update(multipolar_kwargs)
 
         model = kwargs.pop('model', None)
@@ -1387,9 +1425,7 @@ class RBend(_BendCommon, BeamElement):
 
 
 class Sextupole(BeamElement):
-
-    """
-    Sextupole element.
+    """Sextupole element.
 
     Parameters
     ----------
@@ -1398,7 +1434,28 @@ class Sextupole(BeamElement):
     k2s : float
         Strength of the skew sextupole component in m^-3.
     length : float
-        Length of the element in meters.
+        Length of the element in meters along the reference trajectory.
+    order : int, optional
+        Maximum order of multipole expansion for this magnet. Defaults to 5.
+    knl : list of floats, optional
+        Normal multipole integrated strengths. If not provided, defaults to zeroes.
+    ksl : list of floats, optional
+        Skew multipole integrated strengths. If not provided, defaults to zeroes.
+    model : str, optional
+        Drift model to be used in kick-splitting. See ``Magnet`` for details.
+    integrator : str, optional
+        Integration scheme to be used. See ``Magnet`` for details.
+    num_multipole_kicks : int, optional
+        The number of kicks to be used in thin kick splitting. The default value
+        of zero implies a single kick in the middle of the element.
+    edge_entry_active : bool, optional
+        Whether to include the edge effect at entry. Enabled by default.
+    edge_exit_active : bool, optional
+        Whether to include the edge effect at exit. Enabled by default.
+    radiation_flag : int, optional
+        Whether to enable radiation. See ``Magnet`` for details.
+    delta_taper : float, optional
+        A value added to delta for the purposes of tapering. Default is 0.
     """
 
     isthick = True
@@ -1414,33 +1471,48 @@ class Sextupole(BeamElement):
         'ksl': xo.Float64[:],
         'edge_entry_active': xo.Field(xo.UInt64, default=False),
         'edge_exit_active': xo.Field(xo.UInt64, default=False),
+        'num_multipole_kicks': xo.Int64,
+        'model': xo.Int64,
+        'integrator': xo.Int64,
+        'radiation_flag': xo.Int64,
+        'delta_taper': xo.Float64,
     }
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
 
     _rename = {
         'order': '_order',
+        'model': '_model',
+        'integrator': '_integrator',
     }
+
+    _noexpr_fields = _NOEXPR_FIELDS
 
     _depends_on = [RandomUniformAccurate, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('headers/synrad_spectrum.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_multipole.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
+        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/sextupole.h'),
     ]
 
     def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
 
         order = order or DEFAULT_MULTIPOLE_ORDER
-        multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
+        multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
         kwargs.update(multipolar_kwargs)
 
+        model = kwargs.pop('model', None)
+        integrator = kwargs.pop('integrator', None)
+
         self.xoinitialize(**kwargs)
+
+        # Trigger properties
+        if model is not None:
+            self.model = model
+
+        if integrator is not None:
+            self.integrator = integrator
 
     def to_dict(self, copy_to_cpu=True):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
@@ -1478,6 +1550,36 @@ class Sextupole(BeamElement):
     def _drift_slice_class(self):
         return xt.DriftSliceSextupole
 
+    @property
+    def _entry_slice_class(self):
+        return xt.ThinSliceSextupoleEntry
+
+    @property
+    def _exit_slice_class(self):
+        return xt.ThinSliceSextupoleExit
+
+    @property
+    def model(self):
+        return _INDEX_TO_MODEL_STRAIGHT[self._model]
+
+    @model.setter
+    def model(self, value):
+        try:
+            self._model = _MODEL_TO_INDEX_STRAIGHT[value]
+        except KeyError:
+            raise ValueError(f'Invalid model: {value}')
+
+    @property
+    def integrator(self):
+        return _INDEX_TO_INTEGRATOR[self._integrator]
+
+    @integrator.setter
+    def integrator(self, value):
+        try:
+            self._integrator = _INTEGRATOR_TO_INDEX[value]
+        except KeyError:
+            raise ValueError(f'Invalid integrator: {value}')
+
 
 class Octupole(BeamElement):
 
@@ -1491,7 +1593,28 @@ class Octupole(BeamElement):
     k3s : float
         Strength of the skew octupole component in m^-3.
     length : float
-        Length of the element in meters.
+        Length of the element in meters along the reference trajectory.
+    order : int, optional
+        Maximum order of multipole expansion for this magnet. Defaults to 5.
+    knl : list of floats, optional
+        Normal multipole integrated strengths. If not provided, defaults to zeroes.
+    ksl : list of floats, optional
+        Skew multipole integrated strengths. If not provided, defaults to zeroes.
+    model : str, optional
+        Drift model to be used in kick-splitting. See ``Magnet`` for details.
+    integrator : str, optional
+        Integration scheme to be used. See ``Magnet`` for details.
+    num_multipole_kicks : int, optional
+        The number of kicks to be used in thin kick splitting. The default value
+        of zero implies a single kick in the middle of the element.
+    edge_entry_active : bool, optional
+        Whether to include the edge effect at entry. Enabled by default.
+    edge_exit_active : bool, optional
+        Whether to include the edge effect at exit. Enabled by default.
+    radiation_flag : int, optional
+        Whether to enable radiation. See ``Magnet`` for details.
+    delta_taper : float, optional
+        A value added to delta for the purposes of tapering. Default is 0.
     """
 
     isthick = True
@@ -1507,32 +1630,47 @@ class Octupole(BeamElement):
         'ksl': xo.Float64[:],
         'edge_entry_active': xo.Field(xo.UInt64, default=False),
         'edge_exit_active': xo.Field(xo.UInt64, default=False),
+        'num_multipole_kicks': xo.Int64,
+        'model': xo.Int64,
+        'integrator': xo.Int64,
+        'radiation_flag': xo.Int64,
+        'delta_taper': xo.Float64,
     }
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
 
     _rename = {
         'order': '_order',
+        'model': '_model',
+        'integrator': '_integrator',
     }
+
+    _noexpr_fields = _NOEXPR_FIELDS
 
     _depends_on = [RandomUniformAccurate, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('headers/synrad_spectrum.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_multipole.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
+        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/octupole.h'),
     ]
 
     def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
         order = order or DEFAULT_MULTIPOLE_ORDER
-        multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
+        multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
         kwargs.update(multipolar_kwargs)
 
+        model = kwargs.pop('model', None)
+        integrator = kwargs.pop('integrator', None)
+
         self.xoinitialize(**kwargs)
+
+        # Trigger properties
+        if model is not None:
+            self.model = model
+
+        if integrator is not None:
+            self.integrator = integrator
 
     def to_dict(self, copy_to_cpu=True):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
@@ -1570,6 +1708,36 @@ class Octupole(BeamElement):
     def _drift_slice_class(self):
         return xt.DriftSliceOctupole
 
+    @property
+    def _entry_slice_class(self):
+        return xt.ThinSliceOctupoleEntry
+
+    @property
+    def _exit_slice_class(self):
+        return xt.ThinSliceOctupoleExit
+
+    @property
+    def model(self):
+        return _INDEX_TO_MODEL_STRAIGHT[self._model]
+
+    @model.setter
+    def model(self, value):
+        try:
+            self._model = _MODEL_TO_INDEX_STRAIGHT[value]
+        except KeyError:
+            raise ValueError(f'Invalid model: {value}')
+
+    @property
+    def integrator(self):
+        return _INDEX_TO_INTEGRATOR[self._integrator]
+
+    @integrator.setter
+    def integrator(self, value):
+        try:
+            self._integrator = _INTEGRATOR_TO_INDEX[value]
+        except KeyError:
+            raise ValueError(f'Invalid integrator: {value}')
+
 
 class Quadrupole(BeamElement):
     """
@@ -1582,7 +1750,28 @@ class Quadrupole(BeamElement):
     k1s : float
         Strength of the skew quadrupole component in m^-2.
     length : float
-        Length of the element in meters.
+        Length of the element in meters along the reference trajectory.
+    order : int, optional
+        Maximum order of multipole expansion for this magnet. Defaults to 5.
+    knl : list of floats, optional
+        Normal multipole integrated strengths. If not provided, defaults to zeroes.
+    ksl : list of floats, optional
+        Skew multipole integrated strengths. If not provided, defaults to zeroes.
+    model : str, optional
+        Drift model to be used in kick-splitting. See ``Magnet`` for details.
+    integrator : str, optional
+        Integration scheme to be used. See ``Magnet`` for details.
+    num_multipole_kicks : int, optional
+        The number of kicks to be used in thin kick splitting. The default value
+        of zero implies a single kick in the middle of the element.
+    edge_entry_active : bool, optional
+        Whether to include the edge effect at entry. Enabled by default.
+    edge_exit_active : bool, optional
+        Whether to include the edge effect at exit. Enabled by default.
+    radiation_flag : int, optional
+        Whether to enable radiation. See ``Magnet`` for details.
+    delta_taper : float, optional
+        A value added to delta for the purposes of tapering. Default is 0.
     """
     isthick = True
     has_backtrack = True
@@ -1598,30 +1787,47 @@ class Quadrupole(BeamElement):
         'ksl': xo.Float64[:],
         'edge_entry_active': xo.Field(xo.UInt64, default=False),
         'edge_exit_active': xo.Field(xo.UInt64, default=False),
+        'model': xo.Int64,
+        'integrator': xo.Int64,
+        'radiation_flag': xo.Int64,
+        'delta_taper': xo.Float64,
     }
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
 
     _rename = {
         'order': '_order',
+        'model': '_model',
+        'integrator': '_integrator',
     }
 
+    _noexpr_fields = _NOEXPR_FIELDS
+
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_multipolar_components.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_srotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_quadrupole.h'),
+        *COMMON_MAGNET_SOURCES,
         _pkg_root.joinpath('beam_elements/elements_src/quadrupole.h'),
     ]
 
+    _depends_on = [RandomUniformAccurate, RandomExponential]
+
+    _internal_record_class = SynchrotronRadiationRecord
+
     def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
         order = order or DEFAULT_MULTIPOLE_ORDER
-        multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
+        multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
         kwargs.update(multipolar_kwargs)
 
+        model = kwargs.pop('model', None)
+        integrator = kwargs.pop('integrator', None)
+
         self.xoinitialize(**kwargs)
+
+        # Trigger properties
+        if model is not None:
+            self.model = model
+
+        if integrator is not None:
+            self.integrator = integrator
 
     def to_dict(self, copy_to_cpu=True):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
@@ -1662,6 +1868,36 @@ class Quadrupole(BeamElement):
     def _drift_slice_class(self):
         return xt.DriftSliceQuadrupole
 
+    @property
+    def _entry_slice_class(self):
+        return xt.ThinSliceQuadrupoleEntry
+
+    @property
+    def _exit_slice_class(self):
+        return xt.ThinSliceQuadrupoleExit
+
+    @property
+    def model(self):
+        return _INDEX_TO_MODEL_STRAIGHT[self._model]
+
+    @model.setter
+    def model(self, value):
+        try:
+            self._model = _MODEL_TO_INDEX_STRAIGHT[value]
+        except KeyError:
+            raise ValueError(f'Invalid model: {value}')
+
+    @property
+    def integrator(self):
+        return _INDEX_TO_INTEGRATOR[self._integrator]
+
+    @integrator.setter
+    def integrator(self, value):
+        try:
+            self._integrator = _INTEGRATOR_TO_INDEX[value]
+        except KeyError:
+            raise ValueError(f'Invalid integrator: {value}')
+
 
 class Solenoid(BeamElement):
     """Solenoid element.
@@ -1675,6 +1911,27 @@ class Solenoid(BeamElement):
     ksi : float
         Integrated strength of the solenoid component in rad. Only to be
         specified when the element is thin, i.e. when `length` is 0.
+    order : int, optional
+        Maximum order of multipole expansion for this magnet. Defaults to 5.
+    knl : list of floats, optional
+        Normal multipole integrated strengths. If not provided, defaults to zeroes.
+    ksl : list of floats, optional
+        Skew multipole integrated strengths. If not provided, defaults to zeroes.
+    num_multipole_kicks : int, optional
+        The number of kicks to be used in thin kick splitting. The default value
+        of zero implies a single kick in the middle of the element.
+    radiation_flag : int, optional
+        Whether to enable radiation. See ``Magnet`` for details.
+    mult_rot_x_rad : float, optional
+        Rotation around the x-axis of the embedded multipolar field, in radians.
+    mult_rot_y_rad : float, optional
+        Rotation around the y-axis of the embedded multipolar field, in radians.
+    mult_shift_x : float, optional
+        Offset of the embedded multipolar field along the x-axis, in metres.
+    mult_shift_y : float, optional
+        Offset of the embedded multipolar field along the y-axis, in metres.
+    mult_shift_s : float, optional
+        Offset of the embedded multipolar field along s, in metres.
     """
     isthick = True
     has_backtrack = True
@@ -1718,24 +1975,6 @@ class Solenoid(BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     def __init__(self, order=None, knl: List[float] = None, ksl: List[float] = None, **kwargs):
-        """Solenoid element.
-
-        Parameters
-        ----------
-        length : float
-            Length of the element in meters.
-        ks : float
-            Strength of the solenoid component in rad / m. Only to be specified
-            when the element is thin, i.e. when `length` is 0.
-        ksi : float
-            Integrated strength of the solenoid component in rad.
-        knl : array
-            Integrated strength of the high-order normal multipolar components.
-        ksl : array
-            Integrated strength of the high-order skew multipolar components.
-        order : int
-            Order of the multipole expansion.
-        """
         if kwargs.get('_xobject') is not None:
             super().__init__(**kwargs)
             return
@@ -1752,7 +1991,7 @@ class Solenoid(BeamElement):
             )
 
         order = order or DEFAULT_MULTIPOLE_ORDER
-        multipolar_kwargs = _prepare_multipolar_params(knl, ksl, order)
+        multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
         kwargs.update(multipolar_kwargs)
 
         self.xoinitialize(**kwargs)
@@ -2187,6 +2426,42 @@ class DipoleEdge(BeamElement):
             'entry': 0,
             'exit': 1,
         }[value]
+
+
+class MultipoleEdge(BeamElement):
+    """Beam element modelling a mulipole edge.
+
+    Parameters
+    ----------
+    kn: float
+        Normalized integrated strength of the normal component in units of 1/m.
+    ks: float
+        Normalized integrated strength of the skew component in units of 1/m.
+    is_exit: bool
+        Flag to indicate if the edge is at the exit of the element.
+    order: int
+        Order of the multipole, corresponds to the length of ``kn`` and ``ks``.
+    """
+    _xofields = {
+        'kn': xo.Float64[:],
+        'ks': xo.Float64[:],
+        'is_exit': xo.Int64,
+        'order': xo.Int64,
+    }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/multipoleedge.h'),
+    ]
+
+    def __init__(self, kn: list=None, ks: list=None, is_exit=False, order=None, _xobject=None, **kwargs):
+        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
+        multipole_kwargs = _prepare_multipolar_params(order, True, kn=kn, ks=ks)
+
+        self.xoinitialize(is_exit=is_exit, **kwargs, **multipole_kwargs)
 
 
 class LineSegmentMap(BeamElement):
@@ -2677,14 +2952,11 @@ class FirstOrderTaylorMap(BeamElement):
         6x1 array of the zero order Taylor map coefficients.
     m1 : array_like
         6x6 array of the first order Taylor map coefficients.
-    radiation_flag : int
-        Flag for synchrotron radiation. 0 - no radiation, 1 - radiation on.
     """
 
     isthick = True
 
     _xofields = {
-        'radiation_flag': xo.Int64,
         'length': xo.Float64,
         'm0': xo.Field(xo.Float64[6], default=np.zeros(6, dtype=np.float64)),
         'm1': xo.Field(xo.Float64[6, 6], default=np.eye(6, dtype=np.float64)),
@@ -2693,8 +2965,6 @@ class FirstOrderTaylorMap(BeamElement):
     _depends_on = [RandomUniformAccurate, RandomExponential]
 
     _extra_c_sources = [
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('headers/synrad_spectrum.h'),
         _pkg_root.joinpath('beam_elements/elements_src/firstordertaylormap.h')]
 
     _internal_record_class = SynchrotronRadiationRecord # not functional,
@@ -2769,43 +3039,6 @@ def _nonzero(val_or_expr):
         return val_or_expr != 0
 
     return val_or_expr._expr
-
-
-def _prepare_multipolar_params(
-        knl: List[float] = None,
-        ksl: List[float] = None,
-        order = None,
-):
-    order = order or 0
-
-    len_knl = len(knl) if knl is not None else 0
-    len_ksl = len(ksl) if ksl is not None else 0
-
-    target_len = max((order + 1), max(len_knl, len_ksl))
-    assert target_len > 0
-
-    new_knl = np.zeros(target_len, dtype=np.float64)
-    new_ksl = np.zeros(target_len, dtype=np.float64)
-
-    if knl is not None:
-        if hasattr(knl, 'get'):
-            knl = knl.get()
-        new_knl[: len(knl)] = np.array(knl)
-
-    if ksl is not None:
-        if hasattr(ksl, 'get'):
-            ksl = ksl.get()
-        new_ksl[: len(ksl)] = np.array(ksl)
-
-    order = target_len - 1
-
-    return {
-        'knl': new_knl,
-        'ksl': new_ksl,
-        'order': order,
-        'inv_factorial_order': 1.0 / factorial(order, exact=True),
-    }
-
 
 class SecondOrderTaylorMap(BeamElement):
 
@@ -2963,6 +3196,121 @@ class SecondOrderTaylorMap(BeamElement):
             out.T[:, :, kk] *= scale_factors[kk]
 
         return out
+
+class ElectronCoolerRecord(xo.HybridClass):
+    _xofields = {
+        '_index': RecordIndex,
+        'Fx': xo.Float64[:],
+        'Fy': xo.Float64[:],
+        'Fl': xo.Float64[:],
+        'particle_id': xo.Float64[:]}
+class ElectronCooler(BeamElement):
+    """
+    Beam element modeling an electron cooler. In particular, this beam element uses the Parkhomchuk model for electron cooling.
+    Every turn each particle receives transverse and longitudinal kicks based on the cooling force provided by the Parkhomchuk model.
+
+
+    Parameters
+        ----------
+        current : float, optional
+            The current in the electron beam, in amperes.
+        length  : float, optional
+            The length of the electron cooler, in meters.
+        radius_e_beam : float, optional
+            The radius of the electron beam, in meters.
+        temp_perp : float, optional
+            The transverse temperature of the electron beam, in electron volts.
+        temp_long : float, optional
+            The longitudinal temperature of the electron beam, in electron volts.
+        magnetic_field : float, optional
+            The magnetic field strength, in tesla.
+        offset_x : float, optional
+            The horizontal offset of the electron cooler, in meters.
+        offset_px : float, optional
+            The horizontal angle of the electron cooler, in rad.
+        offset_y : float, optional
+            The horizontal offset of the electron cooler, in meters.    
+        offset_py : float, optional
+            The vertical angle of the electron cooler, in rad.
+        offset_energy : float, optional
+            The energy offset of the electrons, in eV.
+        magnetic_field_ratio : float, optional
+            The ratio of perpendicular component of magnetic field with the 
+            longitudinal component of the magnetic field. This is a measure
+            of the magnetic field quality. With the ideal magnetic field quality 
+            being 0.
+        space_charge : float, optional
+            Whether space charge of electron beam is enabled. 0 is off and 1 is on.
+        
+    """
+
+    _xofields = {
+        'current'       :  xo.Float64,
+        'length'        :  xo.Float64,
+        'radius_e_beam' :  xo.Float64,
+        'temp_perp'     :  xo.Float64,
+        'temp_long'     :  xo.Float64,
+        'magnetic_field':  xo.Float64,
+                
+        'offset_x'      :  xo.Float64,
+        'offset_px'     :  xo.Float64,
+        'offset_y'      :  xo.Float64,
+        'offset_py'     :  xo.Float64,
+        'offset_energy' :  xo.Float64,
+
+        'magnetic_field_ratio' :  xo.Float64,
+        'space_charge_factor'  : xo.Float64,
+        'record_flag': xo.Int64,
+        }
+    
+    _extra_c_sources = [
+        _pkg_root.joinpath('headers/constants.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/electroncooler.h')]
+    
+    _internal_record_class = ElectronCoolerRecord
+
+    def __init__(self,  current        = 0,
+                        length         = 0,
+                        radius_e_beam  = 0,
+                        temp_perp      = 0,
+                        temp_long      = 0,
+                        magnetic_field = 0,
+
+                        offset_x       = 0,
+                        offset_px      = 0,
+                        offset_y       = 0,
+                        offset_py      = 0,
+                        offset_energy  = 0,
+                                                
+                        magnetic_field_ratio = 0,
+                        space_charge_factor  = 0,
+                        record_flag          =0,                      
+                        **kwargs):
+        
+        if "_xobject" in kwargs:
+            self.xoinitialize(_xobject=kwargs['_xobject'])
+            return
+        
+        super().__init__(**kwargs)
+        self.current        = current
+        self.length         = length
+        self.radius_e_beam  = radius_e_beam
+        self.temp_perp      = temp_perp
+        self.temp_long      = temp_long
+        self.magnetic_field = magnetic_field
+
+        self.offset_x       = offset_x
+        self.offset_px      = offset_px
+        self.offset_y       = offset_y
+        self.offset_py      = offset_py
+        self.offset_energy  = offset_energy
+        
+        self.magnetic_field_ratio = magnetic_field_ratio
+        self.space_charge_factor  = space_charge_factor
+        self.record_flag          =  record_flag
+        
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        raise NotImplementedError
 
 class ThinSliceNotNeededError(Exception):
     pass

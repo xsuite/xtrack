@@ -83,14 +83,14 @@ def test_psb_chicane(test_context):
     xo.assert_allclose(line['bi1.bsw1l1.4'].k0, bsw_k0l_ref / line['bi1.bsw1l1.4'].length, rtol=0, atol=1e-10)
 
     tw = line.twiss()
-    xo.assert_allclose(tw['x', 'bi1.tstr1l1'], -0.045716, rtol=0, atol=1e-5)
+    xo.assert_allclose(tw['x', 'bi1.tstr1l1'], -0.045739596, rtol=0, atol=1e-5)
     xo.assert_allclose(tw['y', 'bi1.tstr1l1'], 0.0000000, rtol=0, atol=1e-5)
-    xo.assert_allclose(tw['betx', 'bi1.tstr1l1'], 5.203667, rtol=0, atol=1e-4)
-    xo.assert_allclose(tw['bety', 'bi1.tstr1l1'], 6.902887, rtol=0, atol=1e-4)
-    xo.assert_allclose(tw.qy, 4.474414126093382, rtol=0, atol=1e-6) # verify that it does not change from one version to the other
-    xo.assert_allclose(tw.qx, 4.396717774779403, rtol=0, atol=1e-6)
-    xo.assert_allclose(tw.dqy, -8.625637734560598, rtol=0, atol=1e-3)
-    xo.assert_allclose(tw.dqx, -3.5604677592626643, rtol=0, atol=1e-3)
+    xo.assert_allclose(tw['betx', 'bi1.tstr1l1'], 5.201734, rtol=0, atol=1e-4)
+    xo.assert_allclose(tw['bety', 'bi1.tstr1l1'], 6.900674, rtol=0, atol=1e-4)
+    xo.assert_allclose(tw.qy, 4.474426935973243, rtol=0, atol=1e-6) # verify that it does not change from one version to the other
+    xo.assert_allclose(tw.qx, 4.396759378318215, rtol=0, atol=1e-6)
+    xo.assert_allclose(tw.dqy, -8.624431, rtol=0, atol=1e-3)
+    xo.assert_allclose(tw.dqx, -3.560640, rtol=0, atol=1e-3)
 
     line.vars['bsw_k2l'] = bsw_k2l_ref / 3
     xo.assert_allclose(line['bi1.bsw1l1.1']._xobject.knl[2], bsw_k2l_ref / 3, rtol=0, atol=1e-10)
@@ -103,14 +103,14 @@ def test_psb_chicane(test_context):
     xo.assert_allclose(line['bi1.bsw1l1.4'].k0, bsw_k0l_ref / line['bi1.bsw1l1.4'].length, rtol=0, atol=1e-10)
 
     tw = line.twiss()
-    xo.assert_allclose(tw['x', 'bi1.tstr1l1'], -0.0458633, rtol=0, atol=1e-5)
+    xo.assert_allclose(tw['x', 'bi1.tstr1l1'], -0.045887, rtol=0, atol=1e-5)
     xo.assert_allclose(tw['y', 'bi1.tstr1l1'], 0.0000000, rtol=0, atol=1e-5)
-    xo.assert_allclose(tw['betx', 'bi1.tstr1l1'], 5.266456, rtol=0, atol=1e-4)
-    xo.assert_allclose(tw['bety', 'bi1.tstr1l1'], 6.320286, rtol=0, atol=1e-4)
-    xo.assert_allclose(tw.qy, 4.471766776419623, rtol=0, atol=1e-6)
-    xo.assert_allclose(tw.qx, 4.398899960718224, rtol=0, atol=1e-6)
-    xo.assert_allclose(tw.dqy, -8.2058757683523, rtol=0, atol=1e-3)
-    xo.assert_allclose(tw.dqx, -3.563488925077962, rtol=0, atol=1e-3)
+    xo.assert_allclose(tw['betx', 'bi1.tstr1l1'], 5.264522, rtol=0, atol=1e-4)
+    xo.assert_allclose(tw['bety', 'bi1.tstr1l1'], 6.317935, rtol=0, atol=1e-4)
+    xo.assert_allclose(tw.qy, 4.4717791778, rtol=0, atol=1e-6)
+    xo.assert_allclose(tw.qx, 4.3989420079, rtol=0, atol=1e-6)
+    xo.assert_allclose(tw.dqy, -8.2045492725, rtol=0, atol=1e-3)
+    xo.assert_allclose(tw.dqx, -3.5636322837, rtol=0, atol=1e-3)
 
     # Switch off bsws
     line.vars['bsw_k0l'] = 0
@@ -131,8 +131,8 @@ def test_psb_chicane(test_context):
     xo.assert_allclose(tw['bety', 'bi1.tstr1l1'], 3.838857, rtol=0, atol=1e-4)
     xo.assert_allclose(tw.qy, 4.45, rtol=0, atol=1e-6)
     xo.assert_allclose(tw.qx, 4.4, rtol=0, atol=1e-6)
-    xo.assert_allclose(tw.dqy, -7.149781341846406, rtol=0, atol=1e-3)
-    xo.assert_allclose(tw.dqx, -3.5655757511587893, rtol=0, atol=1e-3)
+    xo.assert_allclose(tw.dqy, -7.14978134184, rtol=0, atol=1e-3)
+    xo.assert_allclose(tw.dqx, -3.56557575115, rtol=0, atol=1e-3)
 
 
     # Setup time-dependent functions

@@ -64,6 +64,11 @@ ex = tw_rad.eq_gemitt_x
 ey = tw_rad.eq_gemitt_y
 ez = tw_rad.eq_gemitt_zeta
 
+tw_integ = line.twiss(radiation_integrals = True)
+
+# xo.assert_allclose(tw_integ.rad_int_eq_gemitt_x, ex, rtol=5e-2, atol=0)
+# xo.assert_allclose(tw_integ.rad_int_eq_gemitt_y, ey, rtol=5e-2, atol=0)
+
 # Equilibrium beam sizes
 beam_sizes = tw_rad.get_beam_covariance(
     gemitt_x=tw_rad.eq_gemitt_x, gemitt_y=tw_rad.eq_gemitt_y,
@@ -123,7 +128,7 @@ spx.set_ylim(bottom=0)
 spy = fig. add_subplot(3, 1, 2, sharex=spx)
 spy.plot(1e9 * np.std(mon.y, axis=0), label='track')
 spy.axhline(1e9 * beam_sizes['sigma_y', 'ip.1'], color='red', label='twiss')
-spy.axhline(1e9 * beam_sizes_hof['sigma_y', 'ip.1'], color='red', label='twiss')
+# spy.axhline(1e9 * beam_sizes_hof['sigma_y', 'ip.1'], color='red', label='twiss')
 spy.set_ylabel(r'$\sigma_{y}$ [nm]')
 spy.set_ylim(bottom=0)
 

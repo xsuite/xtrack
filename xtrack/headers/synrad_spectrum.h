@@ -10,7 +10,7 @@
 #define ALPHA_EM 0.0072973525693
 
 /*gpufun*/
-void synrad_average_kick(LocalParticle* part, double curv, double lpath,
+void synrad_average_kick(LocalParticle* part, double B_T, double lpath,
                          double* dp_record, double* dpx_record, double* dpy_record
                         ){
     double const gamma0  = LocalParticle_get_gamma0(part);
@@ -23,8 +23,6 @@ void synrad_average_kick(LocalParticle* part, double curv, double lpath,
     double const delta  = LocalParticle_get_delta(part);
     double const gamma = gamma0 * (1 + delta); // Ultra-relativistic approximation
 
-    double const P0_J = LocalParticle_get_p0c(part) / C_LIGHT * QELEM;
-    double const B_T = curv * P0_J / (Q0_coulomb);
     double const r0_m = Q0_coulomb * Q0_coulomb/  (4 * PI * EPSILON_0 * mass0_kg * C_LIGHT * C_LIGHT);
 
     double const Ps_W = 2 * r0_m * C_LIGHT * Q0_coulomb * Q0_coulomb * gamma * gamma * B_T * B_T / (3 * mass0_kg);
@@ -180,7 +178,9 @@ double synrad_gen_photon_energy_normalized(LocalParticle *part)
   double const a2 = 1.770750801624037; // Synrad(xlow)/exp(-xlow);
   double const c1 = 0.; //
   double const ratio = 0.908250405131381;
-  double appr, exact, result;
+  double appr=0;
+  double exact=1000;
+  double result=0;
   do {
     if (RandomUniform_generate(part) < ratio) { // use low energy approximation
       result=c1+(1.-c1)*RandomUniform_generate(part);
@@ -200,38 +200,49 @@ double synrad_gen_photon_energy_normalized(LocalParticle *part)
 }
 
 /*gpufun*/
-double synrad_average_number_of_photons(
-                          double beta0_gamma0, double curv, double lpath){
+double synrad_average_number_of_photons(double mass0, double q0,
+                          double beta0_gamma0, double B_T, double lpath){
+
+    double const mass0_kg = mass0 * QELEM / C_LIGHT / C_LIGHT;
+    /*a*/ double const P0_J = mass0_kg * beta0_gamma0 * C_LIGHT;
+    double const Q0_coulomb = q0 * QELEM;
+    double const curv = B_T / P0_J * Q0_coulomb;
     double const kick = curv * lpath;
     return 2.5/SQRT3*ALPHA_EM*beta0_gamma0*fabs(kick);
 }
 
 /*gpufun*/
-int64_t synrad_emit_photons(LocalParticle *part, double curv /* 1/m */,
+int64_t synrad_emit_photons(LocalParticle *part, double B_T,
                             double lpath /* m */,
                             RecordIndex record_index,
                             SynchrotronRadiationRecordData record
                             ){
 
-    if (fabs(curv) < 1e-15)
+    if (fabs(B_T) < 1e-4)
         return 0;
 
     int64_t nphot = 0;
 
     // TODO Introduce effect of chi and mass_ratio!!!
-    double const m0 = LocalParticle_get_mass0(part); // eV
+    double const mass0 = LocalParticle_get_mass0(part); // eV
+    double const q0 = LocalParticle_get_q0(part); // e
     double const gamma0  = LocalParticle_get_gamma0(part);
     double const beta0  = LocalParticle_get_beta0(part);
 
+    double const Q0_coulomb = q0 * QELEM;
+
+    double const mass0_kg = mass0 * QELEM / C_LIGHT / C_LIGHT;
+    double const P0_J = mass0_kg * beta0 * gamma0 * C_LIGHT;
+    double const curv = B_T / P0_J * Q0_coulomb;
+
+    double const delta  = LocalParticle_get_delta(part);
+    double gamma = gamma0 * (1 + delta); // Ultra-relativistic approximation
+
     double const initial_energy = LocalParticle_get_energy0(part)
 	                          + LocalParticle_get_ptau(part)*LocalParticle_get_p0c(part); // eV
-    double energy = initial_energy;
-    double gamma = energy / m0; //
-    //double beta_gamma = sqrt(gamma*gamma-1); //
+    double energy = initial_energy; // eV
     double n = RandomExponential_generate(part); // path_length / mean_free_path;
-    // printf("curv = %e\n gamma0 = %e\n lpath = %e\n", curv, gamma0, lpath);
-    // printf("Average_number_of_photons = %e\n", synrad_average_number_of_photons(beta0 * gamma0, curv, lpath));
-    while (n < synrad_average_number_of_photons(beta0 * gamma0, curv, lpath)) {
+    while (n < synrad_average_number_of_photons(mass0, q0, beta0 * gamma0, B_T, lpath)) {
         nphot++;
         double const c1 = 1.5 * 1.973269804593025e-07; // hbar * c = 1.973269804593025e-07 eV * m
         double const energy_critical = c1 * (gamma*gamma*gamma0) * curv; // eV
@@ -241,7 +252,6 @@ int64_t synrad_emit_photons(LocalParticle *part, double curv /* 1/m */,
             break;
         }
         energy -= energy_loss; // eV
-        gamma = energy / m0; //
         // beta_gamma = sqrt(gamma*gamma-1); // that's how beta gamma is
         n += RandomExponential_generate(part);
         if (record){

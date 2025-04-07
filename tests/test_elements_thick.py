@@ -61,7 +61,7 @@ def test_combined_function_dipole_against_ptc(test_context, k0, k1, k2, length,
     line_thick = ml.make_line()
     line_thick.config.XTRACK_USE_EXACT_DRIFTS = True # to be consistent with mad
     line_thick.build_tracker(_context=test_context)
-    line_thick.configure_bend_model(core=model, edge='full')
+    line_thick.configure_bend_model(core=model, edge='dipole-only')
 
     if use_multipole:
         line_thick['b'].knl[1] = k1 * length
@@ -144,7 +144,7 @@ def test_combined_function_dipole_expanded(test_context):
     line_thick.build_tracker(_context=test_context)
 
     line_thick.configure_bend_model(core='expanded', num_multipole_kicks=100)
-    assert line_thick['b'].model == 'expanded'
+    assert line_thick['b'].model == 'mat-kick-mat'
     p_test = p0.copy(_context=test_context)
     line_thick.track(p_test)
     p_test.move(_context=xo.context_default)
@@ -230,7 +230,8 @@ def test_thick_bend_survey():
 def test_thick_multipolar_component(test_context, element_type, h):
     bend_length = 1.0
     k0 = h
-    knl = np.array([0.0, 0.01, -0.02, 0.03])
+    knl = np.array([0.0, 0.0, -0.02, 0.03]) # I need to keep knl[1] = 0 because
+                                            # the bend with hxl = 0 would not apply the corretion h*k1
     ksl = np.array([0.0, -0.03, 0.02, -0.01])
     num_kicks = 2
 
@@ -243,12 +244,13 @@ def test_thick_multipolar_component(test_context, element_type, h):
         ksl=ksl,
         num_multipole_kicks=num_kicks,
     )
+    bend_with_mult.integrator = 'uniform'
 
     # Separate bend and a corresponding multipole
     bend_no_mult = element_type(
         k0=k0,
         h=h,
-        length=bend_length / (num_kicks + 1),
+        length=bend_length / num_kicks / 2,
         num_multipole_kicks=0,
     )
     multipole = xt.Multipole(
@@ -264,7 +266,7 @@ def test_thick_multipolar_component(test_context, element_type, h):
     line_no_slices.configure_bend_model(core='expanded')
     line_with_slices = xt.Line(
         elements={'bend_no_mult': bend_no_mult, 'multipole': multipole},
-        element_names=(['bend_no_mult', 'multipole'] * num_kicks) + ['bend_no_mult'],
+        element_names=(['bend_no_mult', 'multipole', 'bend_no_mult'] * num_kicks)
     )
 
     # Track some particles
@@ -622,7 +624,7 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
     elem = line['elem']
 
     # Check that the line has correct values to start with
-    assert elem.model == {False: 'expanded', True: 'full'}[use_true_thick_bends]
+    assert elem.model == {False: 'mat-kick-mat', True: 'full'}[use_true_thick_bends]
 
     # Element:
     xo.assert_allclose(elem.length, 2.0, atol=1e-16)
@@ -1862,6 +1864,7 @@ def test_skew_quadrupole(test_context):
     length = 0.5
 
     quad = xt.Quadrupole(k1=k1, k1s=k1s, length=length, _context=test_context)
+    quad.num_multipole_kicks = 1000
 
     n_slices = 1000
     ele_thin = []
@@ -2045,3 +2048,105 @@ def test_knl_knl_kick_present_with_default_num_kicks():
     p = p0.copy()
     l5.track(p)
     assert np.abs(p.px[0]) > 1e-7
+
+def test_sextupole_num_kicks():
+
+    line = xt.Line(elements={
+        's1': xt.Sextupole(k2=0.1, length=9.0, integrator='teapot')
+    })
+    line.particle_ref = xt.Particles(p0c=7000e9)
+
+    line_1slice = line.copy(shallow=True)
+    line_1slice.slice_thick_elements(
+        slicing_strategies=[
+            xt.Strategy(slicing=xt.Teapot(1), element_type=xt.Sextupole),
+        ])
+
+    line_3slices = line.copy(shallow=True)
+    line_3slices.slice_thick_elements(
+        slicing_strategies=[
+            xt.Strategy(slicing=xt.Teapot(3), element_type=xt.Sextupole),
+        ])
+
+    tw_1slice = line_1slice.twiss(betx=1, bety=1, x=1e-2)
+    tw_3slices = line_3slices.twiss(betx=1, bety=1, x=1e-2)
+
+    tw_1kick = line.twiss(betx=1, bety=1, x=1e-2)
+
+    line.configure_sextupole_model(num_multipole_kicks=3)
+
+    assert line['s1'].num_multipole_kicks == 3
+    tw_3kicks = line.twiss(betx=1, bety=1, x=1e-2)
+
+    assert np.abs(tw_1slice.x[-1] - tw_3slices.x[-1]) > 1e-6
+
+    xo.assert_allclose(tw_1slice.s[-1], tw_1kick.s[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_1slice.x[-1], tw_1kick.x[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_1slice.px[-1], tw_1kick.px[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_1slice.y[-1], tw_1kick.y[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_1slice.py[-1], tw_1kick.py[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_1slice.zeta[-1], tw_1kick.zeta[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_1slice.ptau[-1], tw_1kick.ptau[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_1slice.betx[-1], tw_1kick.betx[-1], atol=1e-10, rtol=0)
+    xo.assert_allclose(tw_1slice.bety[-1], tw_1kick.bety[-1], atol=1e-10, rtol=0)
+
+    xo.assert_allclose(tw_3slices.s[-1], tw_3kicks.s[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_3slices.x[-1], tw_3kicks.x[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_3slices.px[-1], tw_3kicks.px[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_3slices.y[-1], tw_3kicks.y[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_3slices.py[-1], tw_3kicks.py[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_3slices.zeta[-1], tw_3kicks.zeta[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_3slices.ptau[-1], tw_3kicks.ptau[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_3slices.betx[-1], tw_3kicks.betx[-1], atol=1e-10, rtol=0)
+    xo.assert_allclose(tw_3slices.bety[-1], tw_3kicks.bety[-1], atol=1e-10, rtol=0)
+
+def test_octupole_num_kicks():
+
+    line = xt.Line(elements={
+        's1': xt.Octupole(k3=100., length=9.0, integrator='teapot')
+    })
+    line.particle_ref = xt.Particles(p0c=7000e9)
+
+    line_1slice = line.copy(shallow=True)
+    line_1slice.slice_thick_elements(
+        slicing_strategies=[
+            xt.Strategy(slicing=xt.Teapot(1), element_type=xt.Octupole),
+        ])
+
+    line_3slices = line.copy(shallow=True)
+    line_3slices.slice_thick_elements(
+        slicing_strategies=[
+            xt.Strategy(slicing=xt.Teapot(3), element_type=xt.Octupole),
+        ])
+
+    tw_1slice = line_1slice.twiss(betx=1, bety=1, x=1e-2)
+    tw_3slices = line_3slices.twiss(betx=1, bety=1, x=1e-2)
+
+    tw_1kick = line.twiss(betx=1, bety=1, x=1e-2)
+
+    line.configure_octupole_model(num_multipole_kicks=3)
+    tw_3kicks = line.twiss(betx=1, bety=1, x=1e-2)
+
+    assert line['s1'].num_multipole_kicks == 3
+
+    assert np.abs(tw_1slice.x[-1] - tw_3slices.x[-1]) > 1e-6
+
+    xo.assert_allclose(tw_1slice.s[-1], tw_1kick.s[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_1slice.x[-1], tw_1kick.x[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_1slice.px[-1], tw_1kick.px[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_1slice.y[-1], tw_1kick.y[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_1slice.py[-1], tw_1kick.py[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_1slice.zeta[-1], tw_1kick.zeta[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_1slice.ptau[-1], tw_1kick.ptau[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_1slice.betx[-1], tw_1kick.betx[-1], atol=1e-10, rtol=0)
+    xo.assert_allclose(tw_1slice.bety[-1], tw_1kick.bety[-1], atol=1e-10, rtol=0)
+
+    xo.assert_allclose(tw_3slices.s[-1], tw_3kicks.s[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_3slices.x[-1], tw_3kicks.x[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_3slices.px[-1], tw_3kicks.px[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_3slices.y[-1], tw_3kicks.y[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_3slices.py[-1], tw_3kicks.py[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_3slices.zeta[-1], tw_3kicks.zeta[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_3slices.ptau[-1], tw_3kicks.ptau[-1], atol=1e-15, rtol=0)
+    xo.assert_allclose(tw_3slices.betx[-1], tw_3kicks.betx[-1], atol=1e-10, rtol=0)
+    xo.assert_allclose(tw_3slices.bety[-1], tw_3kicks.bety[-1], atol=1e-10, rtol=0)

@@ -37,12 +37,14 @@ from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
                           get_non_linear_chromaticity,
                           DEFAULT_MATRIX_STABILITY_TOL,
                           DEFAULT_MATRIX_RESPONSIVENESS_TOL)
+from xtrack.aperture_meas import measure_aperture
 from .match import match_line, closed_orbit_correction, match_knob_line, Action
 from .tapering import compensate_radiation_energy_loss
 from .mad_loader import MadLoader
 from .beam_elements import element_classes
 from . import beam_elements
 from .beam_elements import Drift, BeamElement, Marker, Multipole
+from .beam_elements.slice_elements import ID_RADIATION_FROM_PARENT
 from .footprint import Footprint, _footprint_with_linear_rescale
 from .internal_record import (start_internal_logging_for_elements_of_type,
                               stop_internal_logging_for_elements_of_type,
@@ -798,6 +800,42 @@ class Line:
             True: 'reverse', False: 'proper'}[reverse]
         return tab
 
+    def get_aperture_table(self, dx=1e-3, dy=1e-3, x_range=(-0.1, 0.1),
+                           y_range=(-0.1, 0.1)):
+        '''
+        Return a table with the horizontal and vertical aperture estimated at all
+        elements of the line.
+        The aperture is estimated by tracking a particle through the line and
+        measuring the maximum and minumum horizontal and vertical position
+        at which particles survive. For elements at which no lost particles are
+        detected, the aperture is estimated by interpolating the values
+        of the neighbouring elements.
+
+        Parameters
+        ----------
+        dx : float, optional
+            Required horizontal resolution (in m) for the aperture measurement.
+            Default is 1e-3.
+        dy : float, optional
+            Required vertical resolution (in m) for the aperture measurement.
+            Default is 1e-3.
+        x_range : tuple, optional
+            Horizontal range (in m) for the aperture measurement.
+            Default is (-0.1, 0.1).
+        y_range : tuple, optional
+            Vertical range (in m) for the aperture measurement.
+            Default is (-0.1, 0.1).
+
+        Returns
+        -------
+        aperture_table : xtrack.Table
+            Table with the horizontal and vertical aperture at all elements
+            of the line.
+        '''
+
+        return xt.aperture_meas.measure_aperture(self,
+            dx=1e-3, dy=1e-3, x_range=(-0.1, 0.1), y_range=(-0.1, 0.1))
+
     def copy(self, shallow=False, _context=None, _buffer=None):
         '''
         Return a copy of the line.
@@ -1337,7 +1375,7 @@ class Line:
     def match(self, vary, targets, solve=True, assert_within_tol=True,
                   compensate_radiation_energy_loss=False,
                   solver_options={}, allow_twiss_failure=True,
-                  restore_if_fail=True, verbose=False,
+                  restore_if_fail=True, verbose=None,
                   n_steps_max=20, default_tol=None,
                   solver=None, check_limits=True, **kwargs):
         '''
@@ -1536,7 +1574,9 @@ class Line:
                  twiss_table=None, planes=None,
                  monitor_names_x=None, corrector_names_x=None,
                  monitor_names_y=None, corrector_names_y=None,
-                 n_micado=None, n_singular_values=None, rcond=None):
+                 n_micado=None, n_singular_values=None, rcond=None,
+                 monitor_alignment=None,
+                 ):
 
         '''
         Correct the beam trajectory using linearized response matrix from optics
@@ -1602,7 +1642,8 @@ class Line:
                  monitor_names_y=monitor_names_y,
                  corrector_names_y=corrector_names_y,
                  n_micado=n_micado, n_singular_values=n_singular_values,
-                 rcond=rcond)
+                 rcond=rcond,
+                 monitor_alignment=monitor_alignment)
 
         if run:
             correction.correct(planes=planes, n_iter=n_iter)
@@ -2883,7 +2924,7 @@ class Line:
             Model to be used for the thick bend cores. Can be 'expanded' or '
             full'.
         edge: str
-            Model to be used for the bend edges. Can be 'linear', 'full'
+            Model to be used for the bend edges. Can be 'linear', 'full', 'dipole-only'
             or 'suppressed'.
         num_multipole_kicks: int
             Number of multipole kicks to consider.
@@ -2893,7 +2934,7 @@ class Line:
                               'rot-kick-rot', 'expanded']:
             raise ValueError(f'Unknown bend model {core}')
 
-        if edge not in [None, 'linear', 'full', 'suppressed']:
+        if edge not in [None, 'linear', 'full', 'dipole-only', 'suppressed']:
             raise ValueError(f'Unknown bend edge model {edge}')
 
         for ee in self.element_dict.values():
@@ -2910,10 +2951,11 @@ class Line:
             if num_multipole_kicks is not None:
                 ee.num_multipole_kicks = num_multipole_kicks
 
-    def _configure_mult_fringes(
+    def _configure_mult(
             self,
             element_type,
-            edge: Optional[Literal['full']] = 'full',
+            edge: Optional[Literal['full']] = None,
+            num_multipole_kicks: Optional[int] = None,
     ):
         """Configure fringes on elements of a given type.
 
@@ -2922,25 +2964,35 @@ class Line:
         edge: str
             None to disable, 'full' to enable.
         """
-        if edge not in [None, 'full']:
+        if edge not in [None, 'full', 'suppressed']:
             raise ValueError(f'Unknown edge model {edge}: only None or '
                              f'"full" are supported.')
 
         enable_fringes = edge == 'full'
 
         for ee in self.element_dict.values():
-            if isinstance(ee, element_type):
+            if not isinstance(ee, element_type):
+                continue
+            if edge is not None:
                 ee.edge_entry_active = enable_fringes
                 ee.edge_exit_active = enable_fringes
+            if num_multipole_kicks is not None:
+                ee.num_multipole_kicks = num_multipole_kicks
 
-    def configure_quadrupole_model(self, edge: Optional[Literal['full']] = 'full'):
-        self._configure_mult_fringes(xt.Quadrupole, edge=edge)
+    def configure_quadrupole_model(self, edge: Optional[Literal['full']] = None,
+                                   num_multipole_kicks: Optional[int] = None):
+        self._configure_mult(xt.Quadrupole, edge=edge,
+                             num_multipole_kicks=num_multipole_kicks)
 
-    def configure_sextupole_model(self, edge: Optional[Literal['full']] = 'full'):
-        self._configure_mult_fringes(xt.Sextupole, edge=edge)
+    def configure_sextupole_model(self, edge: Optional[Literal['full']] = None,
+                                  num_multipole_kicks: Optional[int] = None):
+        self._configure_mult(xt.Sextupole, edge=edge,
+                             num_multipole_kicks=num_multipole_kicks)
 
-    def configure_octupole_model(self, edge: Optional[Literal['full']] = 'full'):
-        self._configure_mult_fringes(xt.Octupole, edge=edge)
+    def configure_octupole_model(self, edge: Optional[Literal['full']] = None,
+                                 num_multipole_kicks: Optional[int] = None):
+        self._configure_mult(xt.Octupole, edge=edge,
+                            num_multipole_kicks=num_multipole_kicks)
 
     def configure_radiation(self, model=None, model_beamstrahlung=None,
                             model_bhabha=None, mode='deprecated'):
@@ -2995,8 +3047,6 @@ class Line:
             self._bhabha_model = None
 
         for kk, ee in self.element_dict.items():
-            if isinstance (ee, (xt.Quadrupole, xt.Bend, xt.RBend)):
-                continue
             if hasattr(ee, 'radiation_flag'):
                 ee.radiation_flag = radiation_flag
 
@@ -4054,6 +4104,10 @@ class Line:
         >>> line.set(['e', 'f'], '3*a')
 
         '''
+        if hasattr(name, 'env_name'):
+            name = name.env_name
+        elif hasattr(name, 'name'):
+            name = name.name
 
         if isinstance(name, Iterable) and not isinstance(name, str):
             for nn in name:
@@ -4586,7 +4640,7 @@ class Line:
         cache = LineAttr(
             line=self,
             fields={
-                'radiation_flag': None, 'delta_taper': None, 'ks': None,
+                'delta_taper': None, 'ks': None,
                 'voltage': None, 'frequency': None, 'lag': None,
                 'lag_taper': None,
 
@@ -4602,6 +4656,8 @@ class Line:
 
                 '_own_h': 'h',
                 '_own_hxl': 'hxl',
+
+                '_own_radiation_flag': 'radiation_flag',
 
                 '_own_k0': 'k0',
                 '_own_k1': 'k1',
@@ -4640,6 +4696,8 @@ class Line:
 
                 '_parent_h': (('_parent', 'h'), None),
                 '_parent_hxl': (('_parent', 'hxl'), None),
+
+                '_parent_radiation_flag': (('_parent', 'radiation_flag'), None),
 
                 '_parent_k0': (('_parent', 'k0'), None),
                 '_parent_k1': (('_parent', 'k1'), None),
@@ -4684,6 +4742,9 @@ class Line:
                 'shift_s': lambda attr:
                     attr['_own_shift_s'] + attr['_parent_shift_s']
                     * attr._rot_and_shift_from_parent,
+                'radiation_flag': lambda attr:
+                    attr['_own_radiation_flag'] * (attr['_own_radiation_flag'] != ID_RADIATION_FROM_PARENT)
+                  + attr['_parent_radiation_flag'] * (attr['_own_radiation_flag'] == ID_RADIATION_FROM_PARENT),
                 'k0l': lambda attr: (
                     attr['_own_k0l']
                     + attr['_own_k0'] * attr['_own_length']

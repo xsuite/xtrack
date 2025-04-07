@@ -1345,9 +1345,8 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                                         symmetrize=(periodic_mode == 'periodic_symmetric'),
                                         include_collective=include_collective,
                                         )['R_matrix']
-
             (WW_chrom, _, _, _) = lnf.compute_linear_normal_form(RR_chrom,
-                                    only_4d_block=method=='4d',
+                                    only_4d_block=True,
                                     responsiveness_tol=matrix_responsiveness_tol,
                                     stability_tol=matrix_stability_tol,
                                     symplectify=symplectify)
@@ -2377,15 +2376,15 @@ def compute_one_turn_matrix_finite_differences(
     ddelta = steps_r_matrix["ddelta"]
     part_temp = xpart.build_particles(_context=context,
             particle_ref=particle_on_co, mode='shift',
-            x  =    [dx,  0., 0.,  0.,    0.,     0., -dx,   0.,  0.,   0.,     0.,      0.],
-            px =    [0., dpx, 0.,  0.,    0.,     0.,  0., -dpx,  0.,   0.,     0.,      0.],
-            y  =    [0.,  0., dy,  0.,    0.,     0.,  0.,   0., -dy,   0.,     0.,      0.],
-            py =    [0.,  0., 0., dpy,    0.,     0.,  0.,   0.,  0., -dpy,     0.,      0.],
-            zeta =  [0.,  0., 0.,  0., dzeta,     0.,  0.,   0.,  0.,   0., -dzeta,      0.],
-            delta = [0.,  0., 0.,  0.,    0., ddelta,  0.,   0.,  0.,   0.,     0., -ddelta],
+            x  =    [0., dx,  0., 0.,  0.,    0.,     0., -dx,   0.,  0.,   0.,     0.,      0.],
+            px =    [0., 0., dpx, 0.,  0.,    0.,     0.,  0., -dpx,  0.,   0.,     0.,      0.],
+            y  =    [0., 0.,  0., dy,  0.,    0.,     0.,  0.,   0., -dy,   0.,     0.,      0.],
+            py =    [0., 0.,  0., 0., dpy,    0.,     0.,  0.,   0.,  0., -dpy,     0.,      0.],
+            zeta =  [0., 0.,  0., 0.,  0., dzeta,     0.,  0.,   0.,  0.,   0., -dzeta,      0.],
+            delta = [0., 0.,  0., 0.,  0.,    0., ddelta,  0.,   0.,  0.,   0.,     0., -ddelta],
             )
     dpzeta = float(context.nparray_from_context_array(
-        (part_temp.ptau[5] - part_temp.ptau[11])/2/part_temp.beta0[0]))
+        (part_temp.ptau[6] - part_temp.ptau[12])/2/part_temp.beta0[0]))
     if particle_on_co._xobject.at_element[0]>0:
         part_temp.s[:] = particle_on_co._xobject.s[0]
         part_temp.at_element[:] = particle_on_co._xobject.at_element[0]
@@ -2421,7 +2420,7 @@ def compute_one_turn_matrix_finite_differences(
                 line.config.XSUITE_MIRROR = True
                 line.track(part_temp, num_turns=num_turns)
 
-    temp_mat = np.zeros(shape=(6, 12), dtype=np.float64)
+    temp_mat = np.zeros(shape=(6, 13), dtype=np.float64)
     temp_mat[0, :] = context.nparray_from_context_array(part_temp.x)
     temp_mat[1, :] = context.nparray_from_context_array(part_temp.px)
     temp_mat[2, :] = context.nparray_from_context_array(part_temp.y)
@@ -2433,13 +2432,13 @@ def compute_one_turn_matrix_finite_differences(
     RR = np.zeros(shape=(6, 6), dtype=np.float64)
 
     for jj, dd in enumerate([dx, dpx, dy, dpy, dzeta, dpzeta]):
-        RR[:, jj] = (temp_mat[:, jj] - temp_mat[:, jj+6])/(2*dd)
+        RR[:, jj] = (temp_mat[:, jj+1] - temp_mat[:, jj+1+6])/(2*dd)
 
     out = {'R_matrix': RR}
 
     if element_by_element:
         mon = line.record_last_track
-        temp_mad_ebe = np.zeros(shape=(len(line._element_names_unique) + 1, 6, 12), dtype=np.float64)
+        temp_mad_ebe = np.zeros(shape=(len(line._element_names_unique) + 1, 6, 13), dtype=np.float64)
         temp_mad_ebe[:, 0, :] = mon.x.T
         temp_mad_ebe[:, 1, :] = mon.px.T
         temp_mad_ebe[:, 2, :] = mon.y.T
@@ -2449,7 +2448,7 @@ def compute_one_turn_matrix_finite_differences(
 
         RR_ebe = np.zeros(shape=(len(line._element_names_unique) + 1, 6, 6), dtype=np.float64)
         for jj, dd in enumerate([dx, dpx, dy, dpy, dzeta, dpzeta]):
-            RR_ebe[:, :, jj] = (temp_mad_ebe[:, :, jj] - temp_mad_ebe[:, :, jj+6])/(2*dd)
+            RR_ebe[:, :, jj] = (temp_mad_ebe[:, :, jj+1] - temp_mad_ebe[:, :, jj+1+6])/(2*dd)
 
         if only_markers:
             mask_twiss = line.tracker._get_twiss_mask_markers()
@@ -3090,16 +3089,13 @@ class TwissTable(Table):
         sigma_delta: float = None,
         bunch_length: float = None,
         bunched: bool = True,
-        particles: xt.Particles = None,
         **kwargs,
     ):
         """
-        Computes IntraBeam Scattering growth rates.
+        Computes IntraBeam Scattering (amplitude) growth rates.
 
         Parameters
         ----------
-        line : xtrack.Line
-            Line in which the IBS kick element will be installed.
         formalism : str
             Which formalism to use for the computation. Can be ``Nagaitsev``
             or ``Bjorken-Mtingwa`` (also accepts ``B&M``), case-insensitively.
@@ -3124,10 +3120,6 @@ class TwissTable(Table):
         bunched : bool, optional
             Whether the beam is bunched or not (coasting). Defaults to `True`.
             Required if `particles` is not provided.
-        particles : xtrack.Particles
-            The particles to circulate in the line. If provided the emittances,
-            momentum spread and bunch length will be computed from the particles.
-            Otherwise explicit values must be provided (see above parameters).
         **kwargs : dict
             Keyword arguments are passed to the growth rates computation method of
             the chosen IBS formalism implementation. See the IBS details from the
@@ -3146,7 +3138,7 @@ class TwissTable(Table):
             self, formalism, total_beam_intensity,
             gemitt_x, nemitt_x, gemitt_y, nemitt_y,
             sigma_delta, bunch_length, bunched,
-            particles, **kwargs,
+            **kwargs,
         )
 
     def get_R_matrix(self, start, end):
@@ -3502,6 +3494,7 @@ class TwissTable(Table):
             axright=None,
             axlattice=None,
             hover=False,
+            grid=True,
             figsize=(6.4*1.2, 4.8),
             lattice_only=False
             ):
@@ -3572,6 +3565,7 @@ class TwissTable(Table):
                 axlattice=axlattice,
                 hover=hover,
                 figsize=figsize,
+                grid=grid,
                 )
 
         if labels is not None:
@@ -3627,11 +3621,8 @@ class TwissTable(Table):
         kappa0 = np.sqrt(kappa0_x**2 + kappa0_y**2)
 
         # Field index
-        fieldindex = 0 * angle_rad
         k1 = 0 * angle_rad
         k1[mask] = self.k1l[mask] / length[mask]
-        mask_k0 = kappa0 > 0
-        fieldindex[mask_k0] = -1. / kappa0[mask_k0]**2 * k1[mask_k0]
 
         # Compute x', y', x'', y''
         ps = np.sqrt((1 + delta)**2 - kin_px**2 - kin_py**2)
@@ -3664,17 +3655,15 @@ class TwissTable(Table):
         Hy_rad = gamy * dy**2 + 2*alfy * dy * dyprime + bety * dyprime**2
 
         # Integrands
-        i1x_integrand = kappa * dx
-        i1y_integrand = kappa * dy
+        i1x_integrand = kappa0_x * dx
+        i1y_integrand = kappa0_y * dy
 
-        i2x_integrand = kappa * kappa
-        i2y_integrand = kappa * kappa
+        i2_integrand = kappa * kappa
 
-        i3x_integrand = kappa * kappa * kappa
-        i3y_integrand = kappa * kappa * kappa
+        i3_integrand = np.abs(kappa * kappa * kappa)
 
-        i4x_integrand = kappa * kappa * kappa * dx * (1 - 2 * fieldindex)
-        i4y_integrand = kappa * kappa * kappa * dy * (1 - 2 * fieldindex)
+        i4x_integrand = (kappa * kappa + 2 * k1) * kappa0_x * dx
+        i4y_integrand = (kappa * kappa - 2 * k1) * kappa0_y * dy
 
         i5x_integrand = np.abs(kappa * kappa * kappa) * Hx_rad
         i5y_integrand = np.abs(kappa * kappa * kappa) * Hy_rad
@@ -3682,10 +3671,8 @@ class TwissTable(Table):
         # Integrate
         i1x = np.sum(i1x_integrand * length)
         i1y = np.sum(i1y_integrand * length)
-        i2x = np.sum(i2x_integrand * length)
-        i2y = np.sum(i2y_integrand * length)
-        i3x = np.sum(i3x_integrand * length)
-        i3y = np.sum(i3y_integrand * length)
+        i2 = np.sum(i2_integrand * length)
+        i3 = np.sum(i3_integrand * length)
         i4x = np.sum(i4x_integrand * length)
         i4y = np.sum(i4y_integrand * length)
         i5x = np.sum(i5x_integrand * length)
@@ -3693,14 +3680,14 @@ class TwissTable(Table):
 
         # Emittances
         eq_gemitt_x = (55/(32 * 3**(1/2)) * hbar / electron_volt * clight
-                    / mass0 * gamma0**2 * i5x / (i2x - i4x))
+                    / mass0 * gamma0**2 * i5x / (i2 - i4x))
         eq_gemitt_y = (55/(32 * 3**(1/2)) * hbar / electron_volt * clight
-                    / mass0 * gamma0**2 * i5y / (i2y - i4y))
+                    / mass0 * gamma0**2 * i5y / (i2 - i4y))
 
         # Damping constants
-        damping_constant_x_s = r0/3 * gamma0**3 * clight/self.circumference * (i2x - i4x)
-        damping_constant_y_s = r0/3 * gamma0**3 * clight/self.circumference * (i2y - i4y)
-        damping_constant_zeta_s = r0/3 * gamma0**3 * clight/self.circumference * ((i2x + i2y) + i4x + i4y)
+        damping_constant_x_s = r0/3 * gamma0**3 * clight/self.circumference * (i2 - i4x)
+        damping_constant_y_s = r0/3 * gamma0**3 * clight/self.circumference * (i2 - i4y)
+        damping_constant_zeta_s = r0/3 * gamma0**3 * clight/self.circumference * (2*i2 + i4x + i4y)
 
         cols = {
             'rad_int_kappax': kappa_x,
@@ -3709,23 +3696,25 @@ class TwissTable(Table):
             'rad_int_hy': Hy_rad,
             'rad_int_i1x_integrand': i1x_integrand,
             'rad_int_i1y_integrand': i1y_integrand,
-            'rad_int_i2x_integrand': i2x_integrand,
-            'rad_int_i2y_integrand': i2y_integrand,
-            'rad_int_i3x_integrand': i3x_integrand,
-            'rad_int_i3y_integrand': i3y_integrand,
+            'rad_int_i2_integrand': i2_integrand,
+            'rad_int_i3_integrand': i3_integrand,
             'rad_int_i4x_integrand': i4x_integrand,
             'rad_int_i4y_integrand': i4y_integrand,
             'rad_int_i5x_integrand': i5x_integrand,
             'rad_int_i5y_integrand': i5y_integrand,
+            'rad_int_kappa0_x': kappa0_x,
+            'rad_int_kappa0_y': kappa0_y,
+            'rad_int_kappa0': kappa0,
+            'rad_int_kappa_x': kappa_x,
+            'rad_int_kappa_y': kappa_y,
+            'rad_int_kappa': kappa,
         }
 
         scalars = {
             'rad_int_i1x': i1x,
             'rad_int_i1y': i1y,
-            'rad_int_i2x': i2x,
-            'rad_int_i2y': i2y,
-            'rad_int_i3x': i3x,
-            'rad_int_i3y': i3y,
+            'rad_int_i2': i2,
+            'rad_int_i3': i3,
             'rad_int_i4x': i4x,
             'rad_int_i4y': i4y,
             'rad_int_i5x': i5x,

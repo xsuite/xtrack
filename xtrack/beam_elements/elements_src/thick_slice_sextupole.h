@@ -11,44 +11,71 @@ void ThickSliceSextupole_track_local_particle(
         ThickSliceSextupoleData el,
         LocalParticle* part0
 ) {
-
     double weight = ThickSliceSextupoleData_get_weight(el);
 
-    const double k2 = ThickSliceSextupoleData_get__parent_k2(el);
-    const double k2s = ThickSliceSextupoleData_get__parent_k2s(el);
+    int64_t num_multipole_kicks_parent = ThickSliceSextupoleData_get__parent_num_multipole_kicks(el);
+    int64_t model = ThickSliceSextupoleData_get__parent_model(el);
+    int64_t integrator = ThickSliceSextupoleData_get__parent_integrator(el);
 
-    const double order = ThickSliceSextupoleData_get__parent_order(el);
-    const double inv_factorial_order = ThickSliceSextupoleData_get__parent_inv_factorial_order(el);
-    const double* knl = ThickSliceSextupoleData_getp1__parent_knl(el, 0);
-    const double* ksl = ThickSliceSextupoleData_getp1__parent_ksl(el, 0);
+    int64_t num_multipole_kicks = (int64_t) ceil(num_multipole_kicks_parent * weight);
 
-    #ifndef XSUITE_BACKTRACK
-        double const length = weight * ThickSliceSextupoleData_get__parent_length(el); // m
-        double const backtrack_sign = 1;
-    #else
-        double const length = -weight * ThickSliceSextupoleData_get__parent_length(el); // m
-        double const backtrack_sign = -1;
+    if (model == 0) {  // adaptive
+        model = 4; // mat-kick-mat
+    }
+    if (integrator == 0) {  // adaptive
+        integrator = 3; // uniform
+    }
+    if (num_multipole_kicks == 0) {
+        num_multipole_kicks = 1;
+    }
+
+    int64_t radiation_flag = 0;
+    double delta_taper = 0.0;
+    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+        radiation_flag = ThickSliceSextupoleData_get_radiation_flag(el);
+        if (radiation_flag == 10){ // from parent
+            radiation_flag = ThickSliceSextupoleData_get__parent_radiation_flag(el);
+        }
+        delta_taper = ThickSliceSextupoleData_get_delta_taper(el);
     #endif
 
-    double const knl_sext[3] = {0., 0., backtrack_sign * k2 * length / weight}; // the length is supposed to be already scaled by the weight
-    double const ksl_sext[3] = {0., 0., backtrack_sign * k2s * length / weight};
-
-    //start_per_particle_block (part0->part)
-        Drift_single_particle(part, length / 2.);
-
-        Multipole_track_single_particle(part,
-            0., length, weight,
-            knl, ksl, order, inv_factorial_order,
-            knl_sext, ksl_sext, 2, 0.5,
-            backtrack_sign,
-            0, 0,
-            NULL, NULL, NULL,
-            NULL, NULL, NULL,
-            NULL, NULL);
-
-        Drift_single_particle(part, length / 2.);
-    //end_per_particle_block
-
+    track_magnet_particles(
+        /*part0*/                 part0,
+        /*length*/                ThickSliceSextupoleData_get__parent_length(el) * weight,
+        /*order*/                 ThickSliceSextupoleData_get__parent_order(el),
+        /*inv_factorial_order*/   ThickSliceSextupoleData_get__parent_inv_factorial_order(el),
+        /*knl*/                   ThickSliceSextupoleData_getp1__parent_knl(el, 0),
+        /*ksl*/                   ThickSliceSextupoleData_getp1__parent_ksl(el, 0),
+        /*factor_knl_ksl*/        weight,
+        /*num_multipole_kicks*/   num_multipole_kicks,
+        /*model*/                 model,
+        /*integrator*/            integrator,
+        /*radiation_flag*/        radiation_flag,
+        /*radiation_record*/      NULL,
+        /*delta_taper*/           delta_taper,
+        /*h*/                     0.,
+        /*hxl*/                   0.,
+        /*k0*/                    0.,
+        /*k1*/                    0.,
+        /*k2*/                    ThickSliceSextupoleData_get__parent_k2(el),
+        /*k3*/                    0.,
+        /*k0s*/                   0.,
+        /*k1s*/                   0.,
+        /*k2s*/                   ThickSliceSextupoleData_get__parent_k2s(el),
+        /*k3s*/                   0.,
+        /*edge_entry_active*/     0,
+        /*edge_exit_active*/      0,
+        /*edge_entry_model*/      0,
+        /*edge_exit_model*/       0,
+        /*edge_entry_angle*/      0.,
+        /*edge_exit_angle*/       0.,
+        /*edge_entry_angle_fdown*/0.,
+        /*edge_exit_angle_fdown*/ 0.,
+        /*edge_entry_fint*/       0.,
+        /*edge_exit_fint*/        0.,
+        /*edge_entry_hgap*/       0.,
+        /*edge_exit_hgap*/        0.
+    );
 }
 
 #endif
