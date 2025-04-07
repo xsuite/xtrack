@@ -9,6 +9,7 @@ import xobjects as xo
 
 from ..base_element import BeamElement
 from ..general import _pkg_root
+from ..svgutils import svg_to_points
 
 
 UNLIMITED = 1e10  # could use np.inf but better safe than sorry
@@ -243,12 +244,24 @@ class LimitPolygon(BeamElement):
                   xo.Arg(xo.Int64,   pointer=True, name='i_found')],
             n_threads='n_impacts')}
 
-    def __init__(self, x_vertices=None, y_vertices=None, **kwargs):
+    def __init__(self,
+                 x_vertices=None,
+                 y_vertices=None,
+                 svg_path=None,
+                 scale=0.001,
+                 curved_steps=10,
+                 line_steps=2, **kwargs):
 
 
         if '_xobject' in kwargs.keys():
             super().__init__(**kwargs)
         else:
+            if svg_path is not None:
+                assert x_vertices is None and y_vertices is None
+                x_vertices, y_vertices = svg_to_points(svg_path,
+                                                       scale=scale,
+                                                       curved_steps=curved_steps,
+                                                       line_steps=2)
             assert len(x_vertices) == len(y_vertices)
 
             if 'x_normal' not in kwargs.keys():
