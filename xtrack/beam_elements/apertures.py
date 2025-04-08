@@ -335,11 +335,11 @@ class LimitPolygon(BeamElement):
         return out
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d, **kwargs):
         if 'svg' in d.keys() and d['svg'] is not None:
             d.pop('x_vertices')
             d.pop('y_vertices')
-        out = super().from_dict(d)
+        out = super().from_dict(d, **kwargs)
         out.svg=d["svg"]
         return out
 
