@@ -2,7 +2,7 @@
 
 from typing import Generator, Tuple, Union
 import re
-from svg.path import path
+from . import path
 
 COMMANDS = set("MmZzLlHhVvCcSsQqTtAa")
 UPPERCASE = set("MZLHVCSQTA")
