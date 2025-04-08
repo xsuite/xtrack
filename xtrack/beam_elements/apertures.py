@@ -324,7 +324,9 @@ class LimitPolygon(BeamElement):
     def copy(self, **kwargs):
         """Copy the object."""
         out = super().copy(**kwargs)
-        out.svg=self.svg.copy()
+        out.svg=None
+        if self.svg is not None:
+            self.svg.copy()
         return out
 
     def to_dict(self, **kwargs):
