@@ -295,9 +295,9 @@ def test_aperture_svg_path(test_context):
     np2ctx = test_context.nparray_to_context_array
     ctx2np = test_context.nparray_from_context_array
 
-    svg_path = """M4 8 10 1 13 0 12 3 5 9C6 10 6 11 7 10 7 11 8 12 7 12A1.42 1.42 0 016 13 5 5 0 004 10Q3.5 9.9 3.5 10.5T2 11.8 1.2 11 2.5 9.5 3 9A5 5 90 000 7 1.42 1.42 0 011 6C1 5 2 6 3 6 2 7 3 7 4 8"""
+    svg= {"path": """M4 8 10 1 13 0 12 3 5 9C6 10 6 11 7 10 7 11 8 12 7 12A1.42 1.42 0 016 13 5 5 0 004 10Q3.5 9.9 3.5 10.5T2 11.8 1.2 11 2.5 9.5 3 9A5 5 90 000 7 1.42 1.42 0 011 6C1 5 2 6 3 6 2 7 3 7 4 8"""}
 
     aper = xt.LimitPolygon(
                     _context=test_context,
-                    svg_path=svg_path)
+                    svg=svg)
 
