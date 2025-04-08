@@ -5463,12 +5463,6 @@ class LineVars:
             raise KeyError(f'Variable `{key}` not found')
         return self.line._xdeps_vref[key]
 
-    def get(self,key,default=0):
-        if key in self:
-            return self[key]
-        else:
-            return default
-
     def __setitem__(self, key, value):
         if isinstance(value, str):
             value = self.line._xdeps_eval.eval(value)
