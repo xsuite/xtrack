@@ -73,6 +73,12 @@ def measure_aperture(line,
     y_aper_low[mask_interp_high_h] = y_aper_low_discrete[mask_interp_high_h]
     y_aper_high[mask_interp_high_h] = y_aper_high_discrete[mask_interp_high_h]
 
+    # Force nan at end_point
+    x_aper_low_discrete[-1] = np.nan
+    x_aper_high_discrete[-1] = np.nan
+    y_aper_low_discrete[-1] = np.nan
+    y_aper_high_discrete[-1] = np.nan
+
     out = xt.Table({
         'name': np.array(list(line.element_names) + ['_end_point']),
         's': s_aper,
