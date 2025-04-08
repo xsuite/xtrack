@@ -44,7 +44,8 @@ _INDEX_TO_MODEL_STRAIGHT.pop(2)
 _INDEX_TO_MODEL_STRAIGHT.pop(3)
 _MODEL_TO_INDEX_STRAIGHT = {k: v for v, k in _INDEX_TO_MODEL_STRAIGHT.items()}
 
-_NOEXPR_FIELDS = {'model', 'integrator', 'edge_entry_model', 'edge_exit_model'}
+_NOEXPR_FIELDS = {'model', 'integrator', 'edge_entry_model', 'edge_exit_model',
+                  'name_associated_aperture'}
 
 COMMON_MAGNET_SOURCES = [
     _pkg_root.joinpath('headers/synrad_spectrum.h'),
