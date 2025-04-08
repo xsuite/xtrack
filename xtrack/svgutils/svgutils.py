@@ -29,7 +29,6 @@ def svg_to_points(svgpath, scale=0.001, curved_steps=10, line_steps=2):
     points = []
     for seg in curve:
         name=seg.__class__.__name__
-        print(name)
         if name in ["Line","Close"]:
             for ii in range(0, line_steps - 1):
                 points.append(seg.point(ii / line_steps))

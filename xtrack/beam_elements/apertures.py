@@ -272,6 +272,8 @@ class LimitPolygon(BeamElement):
 
     def __init__(self, x_vertices=None, y_vertices=None, svg=None, **kwargs):
 
+        self.svg=svg
+
         if "_xobject" in kwargs.keys():
             super().__init__(**kwargs)
         else:
@@ -318,6 +320,23 @@ class LimitPolygon(BeamElement):
             ctx = self._buffer.context
             self.x_normal = ctx.nparray_to_context_array(Nx)
             self.y_normal = ctx.nparray_to_context_array(Ny)
+
+    def copy(self, **kwargs):
+        """Copy the object."""
+        out = super().copy(**kwargs)
+        out.svg=self.svg.copy()
+        return out
+
+    def to_dict(self, **kwargs):
+        out= super().to_dict(**kwargs)
+        out["svg"]=self.svg
+        return out
+
+    @classmethod
+    def from_dict(cls, d):
+        out = super().from_dict(d)
+        out.svg=d["svg"]
+        return out
 
     @property
     def x_closed(self):

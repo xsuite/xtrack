@@ -301,3 +301,7 @@ def test_aperture_svg_path(test_context):
                     _context=test_context,
                     svg=svg)
 
+    assert aper.copy().svg==aper.svg
+    aper2=LimitPolygon.from_dict(aper.to_dict())
+    assert aper2.svg==aper.svg
+
