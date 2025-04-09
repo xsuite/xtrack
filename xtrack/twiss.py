@@ -680,6 +680,43 @@ def twiss_line(line, particle_ref=None, method=None,
         _initial_particles=_initial_particles,
         _ebe_monitor=_ebe_monitor)
 
+
+
+    if (not only_orbit and (
+        (compute_chromatic_properties is True)
+        or (compute_chromatic_properties is None and periodic))):
+
+        with xt.line._preserve_config(line):
+            line.freeze_energy(force=True)
+            cols_chrom, scalars_chrom = _compute_chromatic_functions(
+                line=line,
+                init=init,
+                delta_chrom=delta_chrom,
+                steps_r_matrix=steps_r_matrix,
+                matrix_responsiveness_tol=matrix_responsiveness_tol,
+                matrix_stability_tol=matrix_stability_tol,
+                symplectify=symplectify,
+                method=method,
+                use_full_inverse=use_full_inverse,
+                nemitt_x=nemitt_x,
+                nemitt_y=nemitt_y,
+                on_momentum_twiss_res=twiss_res,
+                r_sigma=r_sigma,
+                delta_disp=delta_disp,
+                zeta_disp=zeta_disp,
+                start=start,
+                end=end,
+                num_turns=num_turns,
+                hide_thin_groups=hide_thin_groups,
+                only_markers=only_markers,
+                periodic=periodic,
+                periodic_mode=periodic_mode,
+                include_collective=include_collective,
+            )
+        twiss_res._data.update(cols_chrom)
+        twiss_res._data.update(scalars_chrom)
+        twiss_res._col_names += list(cols_chrom.keys())
+
     if not skip_global_quantities and not only_orbit:
         twiss_res._data['R_matrix'] = R_matrix
         twiss_res._data['steps_r_matrix'] = steps_r_matrix
@@ -690,39 +727,6 @@ def twiss_line(line, particle_ref=None, method=None,
 
         twiss_res._data['eigenvalues'] = eigenvalues.copy()
         twiss_res._data['rotation_matrix'] = Rot.copy()
-
-    if (not only_orbit and (
-        (compute_chromatic_properties is True)
-        or (compute_chromatic_properties is None and periodic))):
-
-        cols_chrom, scalars_chrom = _compute_chromatic_functions(
-            line=line,
-            init=init,
-            delta_chrom=delta_chrom,
-            steps_r_matrix=steps_r_matrix,
-            matrix_responsiveness_tol=matrix_responsiveness_tol,
-            matrix_stability_tol=matrix_stability_tol,
-            symplectify=symplectify,
-            method=method,
-            use_full_inverse=use_full_inverse,
-            nemitt_x=nemitt_x,
-            nemitt_y=nemitt_y,
-            on_momentum_twiss_res=twiss_res,
-            r_sigma=r_sigma,
-            delta_disp=delta_disp,
-            zeta_disp=zeta_disp,
-            start=start,
-            end=end,
-            num_turns=num_turns,
-            hide_thin_groups=hide_thin_groups,
-            only_markers=only_markers,
-            periodic=periodic,
-            periodic_mode=periodic_mode,
-            include_collective=include_collective,
-        )
-        twiss_res._data.update(cols_chrom)
-        twiss_res._data.update(scalars_chrom)
-        twiss_res._col_names += list(cols_chrom.keys())
 
     if eneloss_and_damping and not only_orbit:
         assert 'R_matrix' in twiss_res._data
@@ -1228,20 +1232,14 @@ def _compute_global_quantities(line, twiss_res):
         part_on_co = twiss_res['particle_on_co']
         W_matrix = twiss_res['W_matrix']
 
-        dzeta = twiss_res['dzeta']
-        eta = -dzeta[-1]/circumference
-        alpha = eta + 1/part_on_co._xobject.gamma0[0]**2
-
         beta0 = part_on_co._xobject.beta0[0]
         T_rev0 = circumference/clight/beta0
         bets0 = W_matrix[0, 4, 4]**2 + W_matrix[0, 4, 5]**2
-        if eta < 0: # below transition
+        if twiss_res['slip_factor'] < 0: # below transition
             bets0 = -bets0
-        ptau_co = twiss_res['ptau']
-
 
         twiss_res._data.update({
-            'slip_factor': eta, 'momentum_compaction_factor': alpha, 'bets0': bets0,
+            'bets0': bets0,
             'circumference': circumference, 'T_rev0': T_rev0,
             'particle_on_co':part_on_co.copy(_context=xo.context_default),
             'gamma0': part_on_co._xobject.gamma0[0],
@@ -1293,7 +1291,7 @@ def _compute_global_quantities(line, twiss_res):
                 'c_minus_re_0': c_minus_re[0], 'c_minus_im_0': c_minus_im[0],
             })
 
-            # Coupling columns
+            # Coupling column_compute_chromatic_functionss
             twiss_res['c_minus_re'] = c_minus_re
             twiss_res['c_minus_im'] = c_minus_im
             twiss_res['c_r1'] = c_r1
@@ -1439,12 +1437,19 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
     dqx = dmux[-1]
     dqy = dmuy[-1]
 
-    cols_chrom = {'dmux': dmux, 'dmuy': dmuy,
+    dzeta = (tw_chrom_res[1].zeta - tw_chrom_res[0].zeta)/(2*delta_chrom)
+    slip_factor = -dzeta[-1] / tw_chrom_res[0].circumference
+    momentum_compaction_factor = (slip_factor
+                        + 1/tw_chrom_res[0].particle_on_co._xobject.gamma0[0]**2)
+
+    cols_chrom = {'dmux': dmux, 'dmuy': dmuy, 'dzeta': dzeta,
                   'bx_chrom': bx_chrom, 'by_chrom': by_chrom,
                   'ax_chrom': ax_chrom, 'ay_chrom': ay_chrom,
                   'wx_chrom': wx_chrom, 'wy_chrom': wy_chrom,
                   }
-    scalars_chrom = {'dqx': dqx, 'dqy': dqy}
+    scalars_chrom = {'dqx': dqx, 'dqy': dqy, 'slip_factor': slip_factor,
+                     'momentum_compaction_factor': momentum_compaction_factor,
+                     }
 
     if on_momentum_twiss_res is not None:
         mux = on_momentum_twiss_res.mux
