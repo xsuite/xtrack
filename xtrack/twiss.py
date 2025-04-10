@@ -1286,7 +1286,7 @@ def _compute_global_quantities(line, twiss_res):
                 'c_minus_re_0': c_minus_re[0], 'c_minus_im_0': c_minus_im[0],
             })
 
-            # Coupling column_compute_chromatic_functionss
+            # Coupling columns
             twiss_res['c_minus_re'] = c_minus_re
             twiss_res['c_minus_im'] = c_minus_im
             twiss_res['c_r1'] = c_r1
