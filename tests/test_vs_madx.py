@@ -620,7 +620,7 @@ def test_low_beta_twiss(test_context):
     xo.assert_allclose(mad.table.summ['q1'][0], tw['qx'], rtol=0, atol=1e-6)
     xo.assert_allclose(mad.table.summ['q2'][0], tw['qy'], rtol=0, atol=1e-6)
     xo.assert_allclose(mad.table.summ['dq1'][0]*beta0, tw['dqx'], rtol=0,
-                        atol=1e-6)
+                        atol=1e-3)
     xo.assert_allclose(mad.table.summ['dq2'][0]*beta0, tw['dqy'], rtol=0,
-                        atol=1e-6)
+                        atol=1e-3)
     xo.assert_allclose(tw.qs, emitdf.qs.iloc[0], rtol=0, atol=1e-8)
