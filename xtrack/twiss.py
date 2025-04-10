@@ -1235,8 +1235,11 @@ def _compute_global_quantities(line, twiss_res):
         beta0 = part_on_co._xobject.beta0[0]
         T_rev0 = circumference/clight/beta0
         bets0 = W_matrix[0, 4, 4]**2 + W_matrix[0, 4, 5]**2
-        if twiss_res['slip_factor'] < 0: # below transition
-            bets0 = -bets0
+        if 'slip_factor' in twiss_res:
+            if twiss_res['slip_factor'] < 0: # below transition
+                bets0 = -bets0
+        else:
+            bets0 = 0
 
         twiss_res._data.update({
             'bets0': bets0,
