@@ -818,14 +818,16 @@ def twiss_line(line, particle_ref=None, method=None,
         if ((twiss_res.orientation == 'forward' and not reverse)
                 or (twiss_res.orientation == 'backward' and reverse)):
             twiss_res.muzeta += init.muzeta - twiss_res.muzeta[0]
-            twiss_res.dzeta += init.dzeta - twiss_res.dzeta[0]
+            if 'dzeta' in twiss_res._data:
+                twiss_res.dzeta += init.dzeta - twiss_res.dzeta[0]
             if 'mux' in twiss_res._data:
                 twiss_res.mux += init.mux - twiss_res.mux[0]
                 twiss_res.muy += init.muy - twiss_res.muy[0]
         elif ((twiss_res.orientation == 'forward' and reverse)
             or (twiss_res.orientation == 'backward' and not reverse)):
             twiss_res.muzeta += init.muzeta - twiss_res.muzeta[-1]
-            twiss_res.dzeta += init.dzeta - twiss_res.dzeta[-1]
+            if 'dzeta' in twiss_res._data:
+                twiss_res.dzeta += init.dzeta - twiss_res.dzeta[-1]
             if 'mux' in twiss_res._data:
                 twiss_res.mux += init.mux - twiss_res.mux[-1]
                 twiss_res.muy += init.muy - twiss_res.muy[-1]
@@ -1017,14 +1019,6 @@ def _twiss_open(line, init,
     Ws[:, 4, :] -= 0.5 * (line.record_last_track.zeta[7:13, i_start:i_stop+1] - zeta_co).T / scale_eigen
     Ws[:, 5, :] -= 0.5 * (line.record_last_track.ptau[7:13, i_start:i_stop+1] - ptau_co).T / particle_on_co._xobject.beta0[0] / scale_eigen
 
-    dzeta = (((line.record_last_track.zeta[6, i_start:i_stop+1] - zeta_co).T
-            - (line.record_last_track.zeta[12, i_start:i_stop+1] - zeta_co).T )
-            / ((line.record_last_track.delta[6, i_start:i_stop+1] - delta_co).T
-            - (line.record_last_track.delta[12, i_start:i_stop+1] - delta_co).T))
-
-    dzeta -= dzeta[0]
-    dzeta = np.array(dzeta)
-
     name_co = np.array(line._element_names_unique[i_start:i_stop] + ('_end_point',))
     name_co_env = np.array(line.element_names[i_start:i_stop] + ('_end_point',))
 
@@ -1056,8 +1050,6 @@ def _twiss_open(line, init,
         lattice_functions, i_replace = _compute_lattice_functions(Ws, use_full_inverse, s_co)
         twiss_res_element_by_element.update(lattice_functions)
 
-    twiss_res_element_by_element['dzeta'] = dzeta
-
     extra_data = {}
     extra_data['only_markers'] = only_markers
     if _keep_tracking_data:
@@ -1071,7 +1063,7 @@ def _twiss_open(line, init,
         'x', 'px', 'y', 'py', 'zeta', 'delta', 'ptau',
         'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy',
         'betx1', 'bety1', 'betx2', 'bety2',
-        'dx', 'dpx', 'dy', 'dzeta', 'dpy',
+        'dx', 'dpx', 'dy', 'dpy',
         ]
 
         for key in _vars_hide_changes:
@@ -1441,6 +1433,9 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
     dqy = dmuy[-1]
 
     dzeta = (tw_chrom_res[1].zeta - tw_chrom_res[0].zeta)/(2*delta_chrom)
+    dzeta -= dzeta[0]
+    dzeta = np.array(dzeta)
+
     slip_factor = -dzeta[-1] / tw_chrom_res[0].circumference
     momentum_compaction_factor = (slip_factor
                         + 1/tw_chrom_res[0].particle_on_co._xobject.gamma0[0]**2)
@@ -2057,6 +2052,8 @@ def _handle_loop_around(kwargs):
         tw_res.mux -= tw_res['mux', ele_name_init] - init.mux
         tw_res.muy -= tw_res['muy', ele_name_init] - init.muy
         tw_res.muzeta -= tw_res['muzeta', ele_name_init] - init.muzeta
+
+    if 'dzeta' in tw_res.keys():
         tw_res.dzeta -= tw_res['dzeta', ele_name_init] - init.dzeta
 
     # Not yet supported
@@ -2106,7 +2103,9 @@ def _handle_init_inside_range(kwargs):
     tw_res.mux -= tw_res['mux', ele_name_init] - init.mux
     tw_res.muy -= tw_res['muy', ele_name_init] - init.muy
     tw_res.muzeta -= tw_res['muzeta', ele_name_init] - init.muzeta
-    tw_res.dzeta -= tw_res['dzeta', ele_name_init] - init.dzeta
+
+    if 'dzeta' in tw_res:
+        tw_res.dzeta -= tw_res['dzeta', ele_name_init] - init.dzeta
 
     # Not correctly handled yet
     if 'dmux' in tw_res.keys():
@@ -3017,11 +3016,14 @@ class TwissTable(Table):
             mux = self.mux[at_element]
             muy = self.muy[at_element]
             muzeta = self.muzeta[at_element]
-            dzeta = self.dzeta[at_element]
         else:
             mux = 0
             muy = 0
             muzeta = 0
+
+        if 'dzeta' in self.keys():
+            dzeta = self.dzeta[at_element]
+        else:
             dzeta = 0
 
         return TwissInit(particle_on_co=part, W_matrix=W,
@@ -3350,7 +3352,8 @@ class TwissTable(Table):
             out.dpx = out.dpx
             out.dy = out.dy
             out.dpy = -out.dpy
-            out.dzeta = -out.dzeta
+            if 'dzeta' in out:
+                out.dzeta = -out.dzeta
 
             if 'dx_zeta' in out._col_names:
                 out.dx_zeta = out.dx_zeta
@@ -3373,9 +3376,11 @@ class TwissTable(Table):
             out.mux = out.mux[0] - out.mux
             out.muy = out.muy[0] - out.muy
             out.muzeta = out.muzeta[0] - out.muzeta
-            out.dzeta = out.dzeta[0] - out.dzeta
             out.phix = -out.phix
             out.phiy = -out.phiy
+
+            if 'dzeta' in out:
+                out.dzeta = out.dzeta[0] - out.dzeta
 
         if 'ax_chrom' in out._col_names:
             out.ax_chrom = -out.ax_chrom
