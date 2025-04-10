@@ -3484,7 +3484,8 @@ class TwissTable(Table):
 
     def zero_at(self, name):
         for kk in CYCLICAL_QUANTITIES:
-            self[kk] -= self[kk, name]
+            if kk in self:
+                self[kk] -= self[kk, name]
 
     def target(self, tars=None, value=None, at=None, **kwargs):
         if value is None:
