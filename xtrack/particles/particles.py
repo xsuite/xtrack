@@ -349,6 +349,14 @@ class Particles(xo.HybridClass):
             mask=input_mask,
         )
 
+        # Init chi and charge ratio
+        self._update_chi_charge_ratio(
+            chi=kwargs.get('chi'),
+            charge_ratio=kwargs.get('charge_ratio'),
+            mass_ratio=kwargs.get('mass_ratio'),
+            mask=input_mask,
+        )
+
         # Init energy deviations
         self._update_energy_deviations(
             delta=kwargs.get('delta'),
@@ -363,14 +371,6 @@ class Particles(xo.HybridClass):
         self._update_zeta(
             zeta=kwargs.get('zeta'),
             tau=kwargs.get('tau'),
-            mask=input_mask,
-        )
-
-        # Init chi and charge ratio
-        self._update_chi_charge_ratio(
-            chi=kwargs.get('chi'),
-            charge_ratio=kwargs.get('charge_ratio'),
-            mass_ratio=kwargs.get('mass_ratio'),
             mask=input_mask,
         )
 
@@ -2083,6 +2083,9 @@ class Particles(xo.HybridClass):
             if _rpp is not None or _rvv is not None:
                 raise ValueError('Setting `delta` and `ptau` by only giving '
                                  '`_rpp` and `_rvv` is not supported.')
+            if any(self.mass_ratio != 1.0):
+                raise ValueError('Need to provide `delta` or `ptau` with '
+                                 'non-default mass ratios.')
             self._delta = 0.0
             delta = self._delta  # Cupy complains if we later assign LinkedArray
 
