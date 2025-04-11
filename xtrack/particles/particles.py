@@ -1394,7 +1394,7 @@ class Particles(xo.HybridClass):
         Add `delta_energy` to the `energy` of the particles object. `delta`,
         'ptau', `rvv` and `rpp` are updated accordingly.
         """
-        self.ptau += delta_energy / self.p0c * self.mass_ratio
+        self.ptau += delta_energy / self.p0c / self.mass_ratio
 
     def set_particle(self, index, set_scalar_vars=False, **kwargs):
         raise NotImplementedError('This functionality has been removed')
