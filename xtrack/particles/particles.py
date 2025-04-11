@@ -349,6 +349,14 @@ class Particles(xo.HybridClass):
             mask=input_mask,
         )
 
+        # Init chi and charge ratio
+        self._update_chi_charge_ratio(
+            chi=kwargs.get('chi'),
+            charge_ratio=kwargs.get('charge_ratio'),
+            mass_ratio=kwargs.get('mass_ratio'),
+            mask=input_mask,
+        )
+
         # Init energy deviations
         self._update_energy_deviations(
             delta=kwargs.get('delta'),
@@ -363,14 +371,6 @@ class Particles(xo.HybridClass):
         self._update_zeta(
             zeta=kwargs.get('zeta'),
             tau=kwargs.get('tau'),
-            mask=input_mask,
-        )
-
-        # Init chi and charge ratio
-        self._update_chi_charge_ratio(
-            chi=kwargs.get('chi'),
-            charge_ratio=kwargs.get('charge_ratio'),
-            mass_ratio=kwargs.get('mass_ratio'),
             mask=input_mask,
         )
 
@@ -1394,7 +1394,7 @@ class Particles(xo.HybridClass):
         Add `delta_energy` to the `energy` of the particles object. `delta`,
         'ptau', `rvv` and `rpp` are updated accordingly.
         """
-        self.ptau += delta_energy / self.p0c * self.mass_ratio
+        self.ptau += delta_energy / self.p0c / self.mass_ratio
 
     def set_particle(self, index, set_scalar_vars=False, **kwargs):
         raise NotImplementedError('This functionality has been removed')
@@ -1873,9 +1873,9 @@ class Particles(xo.HybridClass):
                         double const p0c = LocalParticle_get_p0c(part);
                         double const charge_ratio = LocalParticle_get_charge_ratio(part);
                         double const chi = LocalParticle_get_chi(part);
-                        double const mass_ratio = chi / charge_ratio;
-                        
-                        ptau += delta_energy/p0c * mass_ratio;
+                        double const mass_ratio = charge_ratio / chi;
+
+                        ptau += delta_energy/p0c / mass_ratio;
 
                         double const old_rpp = LocalParticle_get_rpp(part);
 
@@ -2083,6 +2083,9 @@ class Particles(xo.HybridClass):
             if _rpp is not None or _rvv is not None:
                 raise ValueError('Setting `delta` and `ptau` by only giving '
                                  '`_rpp` and `_rvv` is not supported.')
+            if any(self.mass_ratio != 1.0):
+                raise ValueError('Need to provide `delta` or `ptau` with '
+                                 'non-default mass ratios.')
             self._delta = 0.0
             delta = self._delta  # Cupy complains if we later assign LinkedArray
 

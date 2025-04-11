@@ -32,22 +32,21 @@ def _check_consistency_energy_variables(particles):
 
     beta = particles.beta0 * particles.rvv
     gamma = 1/np.sqrt(1 - beta**2)
-    pc = particles.mass0 * gamma * beta
+    pc = particles.mass * gamma * beta
 
     # Check consistency of delta with rvv
-    xo.assert_allclose(particles.delta, (pc-particles.p0c)/(particles.p0c),
+    xo.assert_allclose(particles.delta, (pc/particles.mass_ratio - particles.p0c)/(particles.p0c),
                        rtol=1e-14, atol=1e-14)
 
     # Check consistency of ptau with rvv
-    energy = particles.mass0 * gamma
-    xo.assert_allclose(particles.ptau, (energy - particles.energy0)/particles.p0c,
+    energy = particles.mass * gamma
+    xo.assert_allclose(particles.ptau, (energy/particles.mass_ratio - particles.energy0)/particles.p0c,
                        rtol=1e-14, atol=1e-14)
 
     # Check consistency of pzeta
-    energy = particles.mass0 * gamma
-    xo.assert_allclose(particles.pzeta, (energy - particles.energy0)/(particles.beta0 * particles.p0c),
+    energy = particles.mass * gamma
+    xo.assert_allclose(particles.pzeta, (energy/particles.mass_ratio  - particles.energy0)/(particles.beta0 * particles.p0c),
                        rtol=1e-14, atol=1e-14)
-
 
     # Check energy property
     xo.assert_allclose(particles.energy, energy, rtol=1e-14, atol=1e-14)
@@ -279,6 +278,25 @@ def test_python_add_to_energy(test_context):
                              q0=1, p0c=1.4e9, x=[1e-3, 0], px=[1e-6, -1e-6],
                              y=[0, 1e-3], py=[2e-6, 0], zeta=[1e-2, 2e-2],
                              delta=[0, 1e-4])
+
+    energy_before = particles.copy(_context=xo.ContextCpu()).energy
+    zeta_before = particles.copy(_context=xo.ContextCpu()).zeta
+
+    particles.add_to_energy(3e6)
+
+    expected_energy = energy_before + 3e6
+    particles.move(_context=xo.ContextCpu())
+    xo.assert_allclose(particles.energy, expected_energy,
+                       atol=1e-14, rtol=1e-14)
+
+    _check_consistency_energy_variables(particles)
+
+    assert np.all(particles.zeta == zeta_before)
+
+    particles = xp.Particles(_context=test_context, mass0=xp.PROTON_MASS_EV,
+                             q0=1, p0c=1.4e9, x=[1e-3, 0], px=[1e-6, -1e-6],
+                             y=[0, 1e-3], py=[2e-6, 0], zeta=[1e-2, 2e-2],
+                             delta=[0, 1e-4], mass_ratio=[0.2, 1.7], charge_ratio=[0.5, 2])
 
     energy_before = particles.copy(_context=xo.ContextCpu()).energy
     zeta_before = particles.copy(_context=xo.ContextCpu()).zeta
