@@ -209,3 +209,185 @@ def test_pulsed_laser(test_context):
    
     xo.assert_allclose(tau, 7, rtol=0, atol=1)
    
+
+@for_all_test_contexts
+def test_cw_laser(test_context):
+    """Test phase space acumulation for Lanzhou experiment
+    https://www.sciencedirect.com/science/article/pii/S0168900222011445?ref=pdf_download&fr=RR-2&rr=80ca25af8a5ace93
+    """
+        # Ion properties:
+    m_u = 931.49410242e6 # eV/c^2 -- atomic mass unit
+    A = 16 # Weight of O
+   
+    m_p = 938.272088e6 # eV/c^2 -- proton mass
+    clight = 299792458.0 # m/s
+
+    q0=5
+
+    mass0 = A*m_u #+ Ne*m_e # eV/c^2
+
+    beta_rel = 0.64
+    gamma_rel = 1.30
+
+    p0c = mass0*beta_rel*gamma_rel #eV/c
+
+   
+    circumference =  128.80 #m
+    T = circumference/(clight*beta_rel)
+    s_per_turn = T
+    
+    beta_x = 6
+    beta_y = 2
+
+    disp_x = 0
+    Q_x = 2.2
+    Q_y = 2.4
+    
+    arc = xt.LineSegmentMap(
+                qx=Q_x, qy=Q_y,
+                length=circumference,
+                betx=beta_x,
+                bety=beta_y
+                )
+
+    emittance_x=10*1e-6 #inital emittance
+    emittance_y=15*1e-6 #inital emittance
+    num_particles = int(1e4)
+
+    sigma_x = np.sqrt(beta_x*emittance_x)
+    sigma_px = np.sqrt(emittance_x*1/beta_x)
+    sigma_y = np.sqrt(beta_y*emittance_y)
+    sigma_py = np.sqrt(emittance_y*1/beta_y)
+    
+    
+    delta = np.linspace(0, 1e-5, num_particles)
+
+    # delta = np.random.normal(loc=0, scale=sigma_p, size=num_particles)
+    x = np.random.normal(loc=0.0, scale=sigma_x, size=num_particles) + disp_x * delta
+    px = np.random.normal(loc=0.0, scale=sigma_px, size=num_particles)
+    y = np.random.normal(loc=0.0, scale=sigma_y, size=num_particles)
+    py = np.random.normal(loc=0.0, scale=sigma_py, size=num_particles)
+
+    particles = xp.Particles(
+        mass0=mass0,
+        p0c=p0c,
+        q0=q0,
+        x=x*0,
+        px=px*0,
+        y=y*0,
+        py=py*0,
+        delta=delta,
+        zeta=0
+        )
+    particles._init_random_number_generator()
+
+    ##################
+    # Laser Cooler #
+    ##################
+
+    theta_l = 0
+    nx = 0; ny = -np.sin(theta_l); nz = -np.cos(theta_l)
+
+    # Ion excitation energy:
+    # hw0 = 230.823 # eV
+    hc=cst.hbar*clight/cst.e # eV*m (ħc)
+    lambda_0 = 103.76*1e-9 # m -- ion excitation wavelength
+    hw0 = 2*np.pi*hc/lambda_0 # eV -- ion excitation energy
+    ion_excited_lifetime=2.44e-9
+
+
+    lambda_l = 2.2130563056305633e-07 
+    #lambda_l = lambda_l*(1+1*sigma_p) # m
+
+    laser_frequency = clight/lambda_l # Hz
+    
+    laser_power=40*1e-3 #W
+    laser_waist_radius = 5*1e-3
+    laser_area=np.pi*(laser_waist_radius*laser_waist_radius)
+
+    laser_intensity=laser_power/laser_area
+
+    cooling_section_length=25
+    CW_laser = xt.CWLaser(
+                        laser_x=0,
+                        laser_y=0,
+                        laser_z=0,
+                        
+                        laser_direction_nx = 0,
+                        laser_direction_ny = 0,
+                        laser_direction_nz = -1,
+                        laser_wavelength = lambda_l, # m
+                        laser_waist_radius = laser_waist_radius, # m
+                        laser_intensity=laser_intensity,
+                        ion_excitation_energy = hw0, # eV
+                        ion_excited_lifetime  = ion_excited_lifetime, # sec
+                        cooling_section_length=cooling_section_length
+                                
+        )
+
+     # ##################
+     # # Tracking #
+     # ##################
+
+     # simulation parameters: simulate 10 s of cooling, and take data once every 100 ms
+    T_per_turn = circumference/(clight*beta_rel)
+
+
+    num_turns = int(1e5) # 0 emittance
+    save_interval=num_turns/100
+
+    # create a monitor object, to reduce holded data
+    monitor = xt.ParticlesMonitor(start_at_turn=0, stop_at_turn=1,
+                                n_repetitions=int(num_turns/save_interval),
+                                repetition_period=save_interval,
+                                num_particles=num_particles)
+
+    line = xt.Line(
+                elements=[monitor,CW_laser, arc])
+
+    particle_ref = xp.Particles(mass0=mass0, q0=q0, p0c=p0c)
+
+    line.particle_ref = particle_ref
+    line.build_tracker(_context=test_context)
+
+    line.track(particles, num_turns=num_turns,
+                turn_by_turn_monitor=False,with_progress=True)
+
+    # extract relevant values
+    x = monitor.x[:,:,0]
+    px = monitor.px[:,:,0]
+    y = monitor.y[:,:,0]
+    py = monitor.py[:,:,0]
+    delta = monitor.delta[:,:,0]
+    zeta = monitor.zeta[:,:,0]
+    accumulated_length=monitor.s[:,:,0]
+    state = monitor.state[:,:,0]
+    time = monitor.at_turn[:, 0, 0] * T_per_turn
+
+    excited=particles.state==2
+    excited = excited.astype(int)
+    fraction_excitation = sum(excited)/len(excited)
+    time = np.arange(0, num_turns, save_interval) * s_per_turn
+
+    delta_first_turn = delta[0, :]
+    delta_final_turn = delta[-1, :]
+
+    bins = np.linspace(0, 1e-5, 51)  # 50 bins between 0 and 1e-5
+
+    hist_before, bin_edges = np.histogram(delta_first_turn, bins=bins)
+    hist_after, _ = np.histogram(delta_final_turn, bins=bins)
+
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+    max_bin_height_before = np.max(hist_before)
+    max_bin_height_after = np.max(hist_after)
+    
+    min_index_after = np.argmin(hist_after)
+    min_bin_center_after = bin_centers[min_index_after]
+    min_bin_count_after = hist_after[min_index_after]
+
+
+    assert max_bin_height_after > 1.5* max_bin_height_before
+
+    xo.assert_allclose(min_bin_center_after, 4.10e-06, rtol=0.1, atol=0)
+        
