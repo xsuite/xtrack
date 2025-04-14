@@ -60,9 +60,11 @@ for dd in delta_vect:
     beginning[eta_x] =  0
     beginning[etap_x] =0
 
-    b1: sbend, l={length}, g={k0},  spin_fringe_on = T, fringe_at = no_end! g is h in xtrack
-    ! b1: kicker, l={length}, hkick={k0 * length}, spin_fringe_on = F
+    ! b1: sbend, l={length}, g={k0}! g is h in xtrack
+    b1: kicker, l={length}, hkick={-k0 * length}
     dend: drift, l=10.0
+
+    b1[spin_tracking_method] = Symp_Lie_PTC
 
     myline: line = (b1, dend)
 
@@ -79,8 +81,6 @@ for dd in delta_vect:
     out = tao.orbit_at_s(s_offset=5)
     delta_bmad.append(out['pz'])
 
-
-
     # gyromagnetic anomaly
     G_spin = 1.15965218128e-3
 
@@ -95,7 +95,13 @@ for dd in delta_vect:
         omega=[0,0,0]
     B_0=np.add(Bperp,Bpar)
     # phi=-((G_spin*gamma*B_0[0]+G_spin*gamma*B_0[1]+(1.+G_spin)*B_0[2])*length/brho)
-    phi=-((G_spin*gamma*B_0[1])*length/brho) # SPECIFIC FOR VERTICAL FIELD
+
+    # This works on momentum for the corrector
+    phi=-(((G_spin*gamma + 1)*B_0[1])*length/brho) # SPECIFIC FOR VERTICAL FIELD
+
+    # This works on momentum for the bend
+    # phi=-(((G_spin*gamma)*B_0[1])*length/brho) # SPECIFIC FOR VERTICAL FIELD
+
     sig_x=np.asarray([[0,1],
                     [1,0]])
     sig_s=np.asarray([[0,complex(-1)],
@@ -107,8 +113,8 @@ for dd in delta_vect:
     ty=omega[1]*np.sin(phi/2)
     ts=omega[2]*np.sin(phi/2)
     #    omega0=np.asarray([])
-    T=np.asarray([[complex(t0,ty),complex(ts,tx)],
-                [complex(-ts,tx),complex(t0,-ty)]])
+    # T=np.asarray([[complex(t0,ty),complex(ts,tx)],
+    #             [complex(-ts,tx),complex(t0,-ty)]])
     M=np.asarray([[(t0**2+tx**2)-(ts**2+ty**2),2*(tx*ty+t0*ts)            ,2*(tx*ts+t0*ty)],
                 [2*(tx*ty-t0*ts)            ,(t0**2+ty**2)-(tx**2+ts**2),2*(ts*ty+t0*tx)],
                 [ 2*(tx*ts-t0*ty)           ,2*(ts*ty-t0*tx)            ,(t0**2+ts**2)-(tx**2+ty**2)]])
