@@ -109,6 +109,7 @@ def bmad_kicker(Bx_T, By_T, p0c, delta, length, spin_test, px=0, py=0):
     dend: drift, l=10.0
 
     b1[spin_tracking_method] = Symp_Lie_PTC
+    b1[tracking_method] = Symp_Lie_PTC
 
     myline: line = (b1, dend)
 
