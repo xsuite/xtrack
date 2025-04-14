@@ -12,6 +12,39 @@ import time
 from scipy.constants import c as clight
 from scipy.constants import e as qe
 
+def spin_rotation_matrix(Bx_T, By_T, Bz_T, length, p, G_spin):
+
+    gamma = p.energy[0] / p.energy0[0] * p.gamma0[0]
+    brho_ref = p.p0c[0] / clight / p.q0
+    brho_part = brho_ref * p.rvv[0] * p.energy[0] / p.energy0[0]
+
+    B = np.array([Bx_T, By_T, Bz_T, 0])
+
+    dyds=B[3]
+    Bpar=np.asarray([0,0,(B[2]+dyds*B[1])])
+    Bperp=np.asarray([B[0],B[1],-dyds*B[1]])
+    if np.sum(Bperp+Bpar)!=0:
+        omega=(Bperp+Bpar)/np.sum(Bperp+Bpar)
+    else:
+        omega=[0,0,0]
+    B_0=np.add(Bperp,Bpar)
+
+    # This works for the corrector
+    phi=-(((G_spin*gamma + 1)*B_0[1])*length/brho_part) # SPECIFIC FOR VERTICAL FIELD
+
+    # This works on momentum for the bend
+    # phi=-(((G_spin*gamma)*B_0[1])*length/brho) # SPECIFIC FOR VERTICAL FIELD
+
+    t0=np.cos(phi/2)
+    tx=omega[0]*np.sin(phi/2)
+    ty=omega[1]*np.sin(phi/2)
+    ts=omega[2]*np.sin(phi/2)
+    M=np.asarray([[(t0**2+tx**2)-(ts**2+ty**2),2*(tx*ty+t0*ts)            ,2*(tx*ts+t0*ty)],
+                [2*(tx*ty-t0*ts)            ,(t0**2+ty**2)-(tx**2+ts**2),2*(ts*ty+t0*tx)],
+                [ 2*(tx*ts-t0*ty)           ,2*(ts*ty-t0*tx)            ,(t0**2+ts**2)-(tx**2+ty**2)]])
+
+    return M
+
 
 def bmad_kicker(By_T, p0c, delta, length, spin_test):
 
@@ -63,40 +96,10 @@ def bmad_kicker(By_T, p0c, delta, length, spin_test):
     out = tao.orbit_at_s(s_offset=5)
 
     # ---------
-
     p = p_ref.copy()
     p.delta = delta
-    gamma = p.energy[0] / p.energy0[0] * p_ref.gamma0[0]
-    brho_part = brho_ref * p.rvv[0] * p.energy[0] / p_ref.energy0[0]
-
-    # gyromagnetic anomaly
-    G_spin = 1.15965218128e-3
-
-    B = np.array([0, By_T, 0, 0])
-
-    dyds=B[3]
-    Bpar=np.asarray([0,0,(B[2]+dyds*B[1])])
-    Bperp=np.asarray([B[0],B[1],-dyds*B[1]])
-    if np.sum(Bperp+Bpar)!=0:
-        omega=(Bperp+Bpar)/np.sum(Bperp+Bpar)
-    else:
-        omega=[0,0,0]
-    B_0=np.add(Bperp,Bpar)
-    # phi=-((G_spin*gamma*B_0[0]+G_spin*gamma*B_0[1]+(1.+G_spin)*B_0[2])*length/brho)
-
-    # This works on momentum for the corrector
-    phi=-(((G_spin*gamma + 1)*B_0[1])*length/brho_part) # SPECIFIC FOR VERTICAL FIELD
-
-    # This works on momentum for the bend
-    # phi=-(((G_spin*gamma)*B_0[1])*length/brho) # SPECIFIC FOR VERTICAL FIELD
-
-    t0=np.cos(phi/2)
-    tx=omega[0]*np.sin(phi/2)
-    ty=omega[1]*np.sin(phi/2)
-    ts=omega[2]*np.sin(phi/2)
-    M=np.asarray([[(t0**2+tx**2)-(ts**2+ty**2),2*(tx*ty+t0*ts)            ,2*(tx*ts+t0*ty)],
-                [2*(tx*ty-t0*ts)            ,(t0**2+ty**2)-(tx**2+ts**2),2*(ts*ty+t0*tx)],
-                [ 2*(tx*ts-t0*ty)           ,2*(ts*ty-t0*tx)            ,(t0**2+ts**2)-(tx**2+ty**2)]])
+    M = spin_rotation_matrix(Bx_T=0, By_T=By_T, Bz_T=0, length=length,
+                            p=p, G_spin=0.00115965218128)
 
     spin_test = M @ np.array(spin_test)
 
