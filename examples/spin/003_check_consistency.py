@@ -58,13 +58,14 @@ def spin_rotation_matrix(Bx_T, By_T, Bz_T, length, p, G_spin,
     # This works on momentum for the bend
     # phi=-(((G_spin*gamma)*B_0[1])*length/brho) # SPECIFIC FOR VERTICAL FIELD
 
+    # From BMAD manual Eq. 24.21
     t0=np.cos(phi/2)
     tx=omega[0]*np.sin(phi/2)
     ty=omega[1]*np.sin(phi/2)
     ts=omega[2]*np.sin(phi/2)
-    M=np.asarray([[(t0**2+tx**2)-(ts**2+ty**2),2*(tx*ty+t0*ts)            ,2*(tx*ts+t0*ty)],
-                [2*(tx*ty-t0*ts)            ,(t0**2+ty**2)-(tx**2+ts**2),2*(ts*ty+t0*tx)],
-                [ 2*(tx*ts-t0*ty)           ,2*(ts*ty-t0*tx)            ,(t0**2+ts**2)-(tx**2+ty**2)]])
+    M=np.asarray([[(t0**2+tx**2)-(ts**2+ty**2),2*(tx*ty-t0*ts)            ,2*(tx*ts+t0*ty)],
+                [2*(tx*ty+t0*ts)            ,(t0**2+ty**2)-(tx**2+ts**2),2*(ts*ty-t0*tx)],
+                [ 2*(tx*ts-t0*ty)           ,2*(ts*ty+t0*tx)            ,(t0**2+ts**2)-(tx**2+ty**2)]])
 
     return M
 
@@ -100,7 +101,7 @@ def bmad_kicker(Bx_T, By_T, p0c, delta, length, spin_test):
     beginning[etap_x] =0
 
     ! b1: sbend, l={length}, g={k0}! g is h in xtrack
-    b1: kicker, l={length}, hkick={-k0 * length}, vkick={-k0s * length}
+    b1: kicker, l={length}, hkick={-k0 * length}, vkick={k0s * length}
     dend: drift, l=10.0
 
     b1[spin_tracking_method] = Symp_Lie_PTC
