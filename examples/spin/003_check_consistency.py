@@ -12,8 +12,7 @@ import time
 from scipy.constants import c as clight
 from scipy.constants import e as qe
 
-def spin_rotation_matrix(Bx_T, By_T, Bz_T, length, p, G_spin,
-                         kin_px=0, kin_py=0):
+def spin_rotation_matrix(Bx_T, By_T, Bz_T, length, p, G_spin):
 
     gamma = p.energy[0] / p.energy0[0] * p.gamma0[0]
     brho_ref = p.p0c[0] / clight / p.q0
@@ -23,6 +22,8 @@ def spin_rotation_matrix(Bx_T, By_T, Bz_T, length, p, G_spin,
 
     delta_plus_1 = 1 + p.delta[0]
     beta = p.rvv[0] * p.beta0[0]
+    kin_px = p.kin_px[0]
+    kin_py = p.kin_py[0]
     beta_x = beta * kin_px / delta_plus_1
     beta_y = beta * kin_py / delta_plus_1
     beta_z = np.sqrt(1 - beta_x**2 - beta_y**2)
@@ -70,7 +71,7 @@ def spin_rotation_matrix(Bx_T, By_T, Bz_T, length, p, G_spin,
     return M
 
 
-def bmad_kicker(Bx_T, By_T, p0c, delta, length, spin_test):
+def bmad_kicker(Bx_T, By_T, p0c, delta, length, spin_test, px=0, py=0):
 
     p_ref = xt.Particles(p0c=p0c, delta=0, mass0=xt.ELECTRON_MASS_EV)
     brho_ref = p_ref.p0c[0] / clight / p_ref.q0
@@ -87,6 +88,9 @@ def bmad_kicker(Bx_T, By_T, p0c, delta, length, spin_test):
     parameter[p0c] = {p0c} ! eV
 
     particle_start[x] = 0
+    particle_start[y] = 0
+    particle_start[px] = {px} ! this is px
+    particle_start[py] = {py} ! this is py
     particle_start[pz] = {delta} ! this is delta
 
     particle_start[spin_x] = {spin_test[0]}
@@ -123,9 +127,10 @@ def bmad_kicker(Bx_T, By_T, p0c, delta, length, spin_test):
     # ---------
     p = p_ref.copy()
     p.delta = delta
+    p.px = px
+    p.py = py
     M = spin_rotation_matrix(Bx_T=Bx_T, By_T=By_T, Bz_T=0, length=length,
                             p=p, G_spin=0.00115965218128)
-
     spin_test = M @ np.array(spin_test)
 
     out['spin_test'] = spin_test
