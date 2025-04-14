@@ -12,14 +12,18 @@ from scipy.constants import e as qe
 
 p0c =  700e6# eV
 p_ref = xt.Particles(p0c=p0c, delta=0, mass0=xt.ELECTRON_MASS_EV)
+
+delta = 0.
+p = p_ref.copy()
+p.delta = delta
+
+gamma = p.energy[0] / p.energy0[0] * p_ref.gamma0[0]
+
 brho = p_ref.p0c[0] / clight / p_ref.q0
 length = 4.0
 
 By_T = 0.023349486663870645
 k0 = By_T / brho
-
-gamma = p_ref.gamma0[0]
-
 
 spin_test = [1, 0, 0] # spin vector
 
@@ -33,7 +37,7 @@ parameter[particle] = positron
 parameter[p0c] = {p0c} ! eV
 
 particle_start[x] = 0
-particle_start[pz] = 0 ! this is delta
+particle_start[pz] = {delta} ! this is delta
 
 particle_start[spin_x] = {spin_test[0]}
 particle_start[spin_y] = {spin_test[1]}
@@ -46,7 +50,8 @@ beginning[alpha_b] =   0
 beginning[eta_x] =  0
 beginning[etap_x] =0
 
-b1: sbend, l={length}, g={k0},  spin_fringe_on = T, fringe_a = no_end! g is h in xtrack
+b1: sbend, l={length}, g={k0},  spin_fringe_on = T, fringe_at = no_end! g is h in xtrack
+!b1: kicker, l={length}, hkick={k0 * length}
 dend: drift, l=10.0
 
 myline: line = (b1, dend)
@@ -91,8 +96,6 @@ ts=omega[2]*np.sin(phi/2)
 #    omega0=np.asarray([])
 T=np.asarray([[complex(t0,ty),complex(ts,tx)],
               [complex(-ts,tx),complex(t0,-ty)]])
-phi2=(2*np.arccos(np.trace(T)/2))
-omega2=np.asarray([np.trace(np.dot(T,sig_x)),np.trace(np.dot(T,sig_y)),np.trace(np.dot(T,sig_s))])
 M=np.asarray([[(t0**2+tx**2)-(ts**2+ty**2),2*(tx*ty+t0*ts)            ,2*(tx*ts+t0*ty)],
               [2*(tx*ty-t0*ts)            ,(t0**2+ty**2)-(tx**2+ts**2),2*(ts*ty+t0*tx)],
               [ 2*(tx*ts-t0*ty)           ,2*(ts*ty-t0*tx)            ,(t0**2+ts**2)-(tx**2+ty**2)]])
