@@ -100,7 +100,7 @@ def bmad_kicker(Bx_T, By_T, p0c, delta, length, spin_test):
     beginning[etap_x] =0
 
     ! b1: sbend, l={length}, g={k0}! g is h in xtrack
-    b1: kicker, l={length}, hkick={-k0 * length}, vkick={k0s * length}
+    b1: kicker, l={length}, hkick={-k0 * length}, vkick={-k0s * length}
     dend: drift, l=10.0
 
     b1[spin_tracking_method] = Symp_Lie_PTC
@@ -147,6 +147,10 @@ out_off_mom_delta = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c, delta=delta,
 
 delta_vect = np.linspace(-0.01, 0.01, 11)
 
+spin_x_bmad = []
+spin_x_test = []
+spin_y_bmad = []
+spin_y_test = []
 spin_z_bmad = []
 spin_z_test = []
 for dd in delta_vect:
@@ -154,6 +158,11 @@ for dd in delta_vect:
     out = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c, delta=dd, length=length, spin_test=spin_test)
     spin_z_bmad.append(out['spin'][2])
     spin_z_test.append(out['spin_test'][2])
+    spin_x_bmad.append(out['spin'][0])
+    spin_x_test.append(out['spin_test'][0])
+    spin_y_bmad.append(out['spin'][1])
+    spin_y_test.append(out['spin_test'][1])
+
     print('spin_bmad', np.array(out['spin']))
     print('spin_test', np.array(out['spin_test']))
 
@@ -169,4 +178,19 @@ plt.plot(delta_vect, spin_z_test, 'x-', label='xtrack')
 plt.xlabel('delta')
 plt.ylabel('spin z')
 plt.legend()
+
+plt.figure(2)
+plt.plot(delta_vect, spin_x_bmad, '.-', label='bmad')
+plt.plot(delta_vect, spin_x_test, 'x-', label='xtrack')
+plt.xlabel('delta')
+plt.ylabel('spin x')
+plt.legend()
+
+plt.figure(3)
+plt.plot(delta_vect, spin_y_bmad, '.-', label='bmad')
+plt.plot(delta_vect, spin_y_test, 'x-', label='xtrack')
+plt.xlabel('delta')
+plt.ylabel('spin y')
+plt.legend()
+
 plt.show()
