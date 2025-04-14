@@ -69,12 +69,13 @@ def spin_rotation_matrix(Bx_T, By_T, Bz_T, length, p, G_spin,
     return M
 
 
-def bmad_kicker(By_T, p0c, delta, length, spin_test):
+def bmad_kicker(Bx_T, By_T, p0c, delta, length, spin_test):
 
     p_ref = xt.Particles(p0c=p0c, delta=0, mass0=xt.ELECTRON_MASS_EV)
     brho_ref = p_ref.p0c[0] / clight / p_ref.q0
 
     k0 = By_T / brho_ref
+    k0s = Bx_T / brho_ref
 
     input = f"""
 
@@ -99,7 +100,7 @@ def bmad_kicker(By_T, p0c, delta, length, spin_test):
     beginning[etap_x] =0
 
     ! b1: sbend, l={length}, g={k0}! g is h in xtrack
-    b1: kicker, l={length}, hkick={-k0 * length}
+    b1: kicker, l={length}, hkick={-k0 * length}, vkick={k0s * length}
     dend: drift, l=10.0
 
     b1[spin_tracking_method] = Symp_Lie_PTC
@@ -121,7 +122,7 @@ def bmad_kicker(By_T, p0c, delta, length, spin_test):
     # ---------
     p = p_ref.copy()
     p.delta = delta
-    M = spin_rotation_matrix(Bx_T=0, By_T=By_T, Bz_T=0, length=length,
+    M = spin_rotation_matrix(Bx_T=Bx_T, By_T=By_T, Bz_T=0, length=length,
                             p=p, G_spin=0.00115965218128)
 
     spin_test = M @ np.array(spin_test)
@@ -131,16 +132,18 @@ def bmad_kicker(By_T, p0c, delta, length, spin_test):
     return out
 
 By_T = 0.023349486663870645
+Bx_T =0.01
 p0c = 700e6
-spin_test = [1, 0, 0] # spin vector
+spin_test = [0, 0, 1] # spin vector
 length = 0.2
 delta = 1e-3
 
-out_on_mom = bmad_kicker(By_T=By_T, p0c=p0c, delta=0, length=length, spin_test=spin_test)
-out_off_mom_p0c = bmad_kicker(By_T=By_T, p0c=p0c*(1 + delta), delta=0, length=length,
-                              spin_test=spin_test)
-out_off_mom_delta = bmad_kicker(By_T=By_T, p0c=p0c, delta=delta, length=length,
-                                spin_test=spin_test)
+out_on_mom = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c, delta=0,
+                         length=length, spin_test=spin_test)
+out_off_mom_p0c = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c*(1 + delta), delta=0,
+                              length=length, spin_test=spin_test)
+out_off_mom_delta = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c, delta=delta,
+                                length=length, spin_test=spin_test)
 
 delta_vect = np.linspace(-0.01, 0.01, 11)
 
@@ -148,7 +151,7 @@ spin_z_bmad = []
 spin_z_test = []
 for dd in delta_vect:
     print('dd', dd)
-    out = bmad_kicker(By_T=By_T, p0c=p0c, delta=dd, length=length, spin_test=spin_test)
+    out = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c, delta=dd, length=length, spin_test=spin_test)
     spin_z_bmad.append(out['spin'][2])
     spin_z_test.append(out['spin_test'][2])
     print('spin_bmad', np.array(out['spin']))
