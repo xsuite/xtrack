@@ -16,9 +16,9 @@ from scipy.constants import e as qe
 def bmad_kicker(By_T, p0c, delta, length, spin_test):
 
     p_ref = xt.Particles(p0c=p0c, delta=0, mass0=xt.ELECTRON_MASS_EV)
-    brho = p_ref.p0c[0] / clight / p_ref.q0
+    brho_ref = p_ref.p0c[0] / clight / p_ref.q0
 
-    k0 = By_T / brho
+    k0 = By_T / brho_ref
 
     input = f"""
 
@@ -62,6 +62,46 @@ def bmad_kicker(By_T, p0c, delta, length, spin_test):
 
     out = tao.orbit_at_s(s_offset=5)
 
+    # ---------
+
+    p = p_ref.copy()
+    p.delta = delta
+    gamma = p.energy[0] / p.energy0[0] * p_ref.gamma0[0]
+    brho_part = brho_ref * p.rvv[0] * p.energy[0] / p_ref.energy0[0]
+
+    # gyromagnetic anomaly
+    G_spin = 1.15965218128e-3
+
+    B = np.array([0, By_T, 0, 0])
+
+    dyds=B[3]
+    Bpar=np.asarray([0,0,(B[2]+dyds*B[1])])
+    Bperp=np.asarray([B[0],B[1],-dyds*B[1]])
+    if np.sum(Bperp+Bpar)!=0:
+        omega=(Bperp+Bpar)/np.sum(Bperp+Bpar)
+    else:
+        omega=[0,0,0]
+    B_0=np.add(Bperp,Bpar)
+    # phi=-((G_spin*gamma*B_0[0]+G_spin*gamma*B_0[1]+(1.+G_spin)*B_0[2])*length/brho)
+
+    # This works on momentum for the corrector
+    phi=-(((G_spin*gamma + 1)*B_0[1])*length/brho_part) # SPECIFIC FOR VERTICAL FIELD
+
+    # This works on momentum for the bend
+    # phi=-(((G_spin*gamma)*B_0[1])*length/brho) # SPECIFIC FOR VERTICAL FIELD
+
+    t0=np.cos(phi/2)
+    tx=omega[0]*np.sin(phi/2)
+    ty=omega[1]*np.sin(phi/2)
+    ts=omega[2]*np.sin(phi/2)
+    M=np.asarray([[(t0**2+tx**2)-(ts**2+ty**2),2*(tx*ty+t0*ts)            ,2*(tx*ts+t0*ty)],
+                [2*(tx*ty-t0*ts)            ,(t0**2+ty**2)-(tx**2+ts**2),2*(ts*ty+t0*tx)],
+                [ 2*(tx*ts-t0*ty)           ,2*(ts*ty-t0*tx)            ,(t0**2+ts**2)-(tx**2+ty**2)]])
+
+    spin_test = M @ np.array(spin_test)
+
+    out['spin_test'] = spin_test
+
     return out
 
 By_T = 0.023349486663870645
@@ -75,3 +115,29 @@ out_off_mom_p0c = bmad_kicker(By_T=By_T, p0c=p0c*(1 + delta), delta=0, length=le
                               spin_test=spin_test)
 out_off_mom_delta = bmad_kicker(By_T=By_T, p0c=p0c, delta=delta, length=length,
                                 spin_test=spin_test)
+
+delta_vect = np.linspace(-0.01, 0.01, 11)
+
+spin_z_bmad = []
+spin_z_test = []
+for dd in delta_vect:
+    print('dd', dd)
+    out = bmad_kicker(By_T=By_T, p0c=p0c, delta=dd, length=length, spin_test=spin_test)
+    spin_z_bmad.append(out['spin'][2])
+    spin_z_test.append(out['spin_test'][2])
+    print('spin_bmad', np.array(out['spin']))
+    print('spin_test', np.array(out['spin_test']))
+
+spin_z_bmad = np.array(spin_z_bmad)
+spin_z_test = np.array(spin_z_test)
+
+import matplotlib.pyplot as plt
+plt.close('all')
+
+plt.figure(1)
+plt.plot(delta_vect, spin_z_bmad, '.-', label='bmad')
+plt.plot(delta_vect, spin_z_test, 'x-', label='xtrack')
+plt.xlabel('delta')
+plt.ylabel('spin z')
+plt.legend()
+plt.show()
