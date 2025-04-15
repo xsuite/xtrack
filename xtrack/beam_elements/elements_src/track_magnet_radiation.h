@@ -9,6 +9,7 @@ void magnet_apply_radiation_single_particle(
     const double hx,
     const double hy,
     const int64_t radiation_flag,
+    const int64_t spin_flag,
     const double old_px, const double old_py,
     const double old_ax, const double old_ay,
     const double old_zeta,
