@@ -143,7 +143,7 @@ By_T = 0.023349486663870645
 Bx_T =0.01
 p0c = 700e6
 spin_test = [0, 0, 1] # spin vector
-length = 0.2
+length = 0.02
 delta = 1e-3
 
 out_on_mom = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c, delta=0,
@@ -184,7 +184,7 @@ spin_y_test = np.array(spin_y_test)
 
 # Check vs px py
 px_vect = np.linspace(-0.03, 0.03, 11)
-py_vect = 0 *np.linspace(-0.02, 0.02, 11)
+py_vect = np.linspace(-0.02, 0.02, 11)
 
 spin_x_angle_bmad = []
 spin_x_angle_test = []
