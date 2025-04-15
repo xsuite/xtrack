@@ -17,7 +17,7 @@ void synrad_average_kick(LocalParticle* part, double B_T, double lpath,
     double const mass0 = LocalParticle_get_mass0(part);
     double const q0 = LocalParticle_get_q0(part);
 
-    double const Q0_coulomb = q0 * QELEM;
+    double const Q0_coulomb = fabs(q0) * QELEM;
     double const mass0_kg = mass0 / C_LIGHT / C_LIGHT * QELEM;
 
     double const delta  = LocalParticle_get_delta(part);
@@ -205,7 +205,7 @@ double synrad_average_number_of_photons(double mass0, double q0,
 
     double const mass0_kg = mass0 * QELEM / C_LIGHT / C_LIGHT;
     /*a*/ double const P0_J = mass0_kg * beta0_gamma0 * C_LIGHT;
-    double const Q0_coulomb = q0 * QELEM;
+    double const Q0_coulomb = fabs(q0) * QELEM;
     double const curv = B_T / P0_J * Q0_coulomb;
     double const kick = curv * lpath;
     return 2.5/SQRT3*ALPHA_EM*beta0_gamma0*fabs(kick);
@@ -229,7 +229,7 @@ int64_t synrad_emit_photons(LocalParticle *part, double B_T,
     double const gamma0  = LocalParticle_get_gamma0(part);
     double const beta0  = LocalParticle_get_beta0(part);
 
-    double const Q0_coulomb = q0 * QELEM;
+    double const Q0_coulomb = fabs(q0) * QELEM;
 
     double const mass0_kg = mass0 * QELEM / C_LIGHT / C_LIGHT;
     double const P0_J = mass0_kg * beta0 * gamma0 * C_LIGHT;
