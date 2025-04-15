@@ -32,7 +32,7 @@ def spin_rotation_matrix(Bx_T, By_T, Bz_T, length, p, G_spin):
 
     i_v = beta_v / beta
     B_par = np.dot(B_vec, i_v) * i_v
-    B_perp = B_vec - B_par * i_v
+    B_perp = B_vec - B_par
 
     # BMAD manual Eq. 24.2
     Omega_BMT = -1/brho_part * (
