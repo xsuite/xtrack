@@ -10,7 +10,6 @@ import xtrack as xt
 import time
 
 from scipy.constants import c as clight
-from scipy.constants import e as qe
 
 from spin import spin_rotation_matrix
 
