@@ -30,8 +30,8 @@ def spin_rotation_matrix(Bx_T, By_T, Bz_T, length, p, G_spin, hx=0):
 
     omega = Omega_BMT / Omega_BMT_mod
 
-    l_path = beta / beta_z
-    phi = Omega_BMT_mod * length * l_path
+    l_path = length * beta / beta_z
+    phi = Omega_BMT_mod * l_path
 
     # From BMAD manual Eq. 24.21
     t0=np.cos(phi/2)

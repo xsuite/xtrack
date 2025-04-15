@@ -164,6 +164,7 @@ void track_magnet_body_single_particle(
     const double k2s,
     const double k3s,
     const int64_t radiation_flag,
+    const int64_t spin_flag,
     SynchrotronRadiationRecordData radiation_record,
     double* dp_record_exit,
     double* dpx_record_exit,
@@ -197,7 +198,7 @@ void track_magnet_body_single_particle(
             const double old_ay = LocalParticle_get_ay(part); \
             const double old_zeta = LocalParticle_get_zeta(part); \
             code; \
-            if (radiation_flag && length > 0){ \
+            if ((radiation_flag || spin_flag) && length > 0){ \
                 double h_for_rad = h_kick + hxl / length; \
                 if (fabs(h_drift) > 0){ h_for_rad = h_drift; } \
                 magnet_apply_radiation_single_particle( \
@@ -206,6 +207,7 @@ void track_magnet_body_single_particle(
                     /*hx*/h_for_rad, \
                     /*hy*/0., \
                     radiation_flag, \
+                    spin_flag, \
                     old_px, old_py, \
                     old_ax, old_ay, \
                     old_zeta, \
@@ -473,7 +475,9 @@ void track_magnet_particles(
             k0_kick, k1_kick, h_kick, hxl,
             k0_h_correction, k1_h_correction,
             k2, k3, k0s, k1s, k2s, k3s,
-            radiation_flag, radiation_record,
+            radiation_flag,
+            1, // spin_flag
+            radiation_record,
             &dp_record_exit, &dpx_record_exit, &dpy_record_exit
         );
     //end_per_particle_block
