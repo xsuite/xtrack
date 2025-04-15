@@ -42,7 +42,7 @@ def spin_rotation_matrix(Bx_T, By_T, Bz_T, length, p, G_spin):
     omega = Omega_BMT / Omega_BMT_mod
     # omega = B_vec / np.linalg.norm(B_vec)
 
-    phi = Omega_BMT_mod * length
+    phi = Omega_BMT_mod * length * beta / beta_z
 
     # B = np.array([Bx_T, By_T, Bz_T, 0])
     # dyds=B[3]
@@ -153,7 +153,7 @@ out_off_mom_p0c = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c*(1 + delta), delta=0
 out_off_mom_delta = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c, delta=delta,
                                 length=length, spin_test=spin_test)
 
-delta_vect = np.linspace(-0.01, 0.01, 11)
+delta_vect = np.linspace(-0.01, 0.01, 5)
 
 spin_x_bmad = []
 spin_x_test = []
@@ -183,8 +183,8 @@ spin_y_test = np.array(spin_y_test)
 
 
 # Check vs px py
-px_vect = np.linspace(-0.01, 0.01, 11)
-py_vect = np.linspace(-0.02, 0.02, 11)
+px_vect = np.linspace(-0.03, 0.03, 11)
+py_vect = 0 *np.linspace(-0.02, 0.02, 11)
 
 spin_x_angle_bmad = []
 spin_x_angle_test = []
@@ -238,8 +238,8 @@ plt.ylabel('spin x')
 plt.legend()
 
 plt.figure(12)
-plt.plot(py_vect, spin_y_angle_bmad, '.-', label='bmad')
-plt.plot(py_vect, spin_y_angle_test, 'x-', label='xtrack')
+plt.plot(px_vect, spin_y_angle_bmad, '.-', label='bmad')
+plt.plot(px_vect, spin_y_angle_test, 'x-', label='xtrack')
 plt.xlabel('py')
 plt.ylabel('spin y')
 plt.legend()
