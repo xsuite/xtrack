@@ -179,6 +179,29 @@ spin_x_test = np.array(spin_x_test)
 spin_y_bmad = np.array(spin_y_bmad)
 spin_y_test = np.array(spin_y_test)
 
+# Check vs px py
+px_vect = np.linspace(-0.001, 0.001, 11)
+py_vect = np.linspace(-0.002, 0.003, 11)
+
+spin_x_angle_bmad = []
+spin_x_angle_test = []
+spin_y_angle_bmad = []
+spin_y_angle_test = []
+spin_z_angle_bmad = []
+spin_z_angle_test = []
+for px, py in zip(px_vect, py_vect):
+    print('px', px)
+    out = bmad_solenoid(Bz_T=Bz_T, p0c=p0c, delta=0, length=length, spin_test=spin_test,
+                        px=px, py=py)
+    spin_z_angle_bmad.append(out['spin'][2])
+    spin_z_angle_test.append(out['spin_test'][2])
+    spin_x_angle_bmad.append(out['spin'][0])
+    spin_x_angle_test.append(out['spin_test'][0])
+    spin_y_angle_bmad.append(out['spin'][1])
+    spin_y_angle_test.append(out['spin_test'][1])
+    print('spin_bmad', np.array(out['spin']))
+    print('spin_test', np.array(out['spin_test']))
+
 import matplotlib.pyplot as plt
 plt.close('all')
 
@@ -201,6 +224,27 @@ plt.plot(delta_vect, spin_y_bmad, '.-', label='bmad')
 plt.plot(delta_vect, spin_y_test, 'x-', label='xtrack')
 plt.xlabel('delta')
 plt.ylabel('spin y')
+plt.legend()
+
+plt.figure(11)
+plt.plot(px_vect, spin_x_angle_bmad, '.-', label='bmad')
+plt.plot(px_vect, spin_x_angle_test, 'x-', label='xtrack')
+plt.xlabel('px')
+plt.ylabel('spin x')
+plt.legend()
+
+plt.figure(12)
+plt.plot(py_vect, spin_y_angle_bmad, '.-', label='bmad')
+plt.plot(py_vect, spin_y_angle_test, 'x-', label='xtrack')
+plt.xlabel('py')
+plt.ylabel('spin y')
+plt.legend()
+
+plt.figure(13)
+plt.plot(px_vect, spin_z_angle_bmad, '.-', label='bmad')
+plt.plot(px_vect, spin_z_angle_test, 'x-', label='xtrack')
+plt.xlabel('px')
+plt.ylabel('spin z')
 plt.legend()
 
 plt.show()
