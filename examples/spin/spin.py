@@ -23,15 +23,26 @@ def spin_rotation_matrix(Bx_T, By_T, Bz_T, length, p, G_spin, hx=0):
     B_par = np.dot(B_vec, i_v) * i_v
     B_perp = B_vec - B_par
 
+    print('gamma', gamma)
+    print('B_perp', B_perp)
+    print('B_par', B_par)
+    print('brho_part', brho_part)
+    print('G_spin', G_spin)
+
     # BMAD manual Eq. 24.2
     Omega_BMT = -1/brho_part * (
         (1 + G_spin*gamma) * B_perp + (1 + G_spin) * B_par)
     Omega_BMT_mod = np.sqrt(np.dot(Omega_BMT, Omega_BMT))
 
+    print('Omega_BMT', Omega_BMT)
+    print('Omega_BMT_mod', Omega_BMT_mod)
+
     omega = Omega_BMT / Omega_BMT_mod
 
     l_path = length * beta / beta_z
     phi = Omega_BMT_mod * l_path
+
+    print('phi', phi)
 
     # From BMAD manual Eq. 24.21
     t0=np.cos(phi/2)

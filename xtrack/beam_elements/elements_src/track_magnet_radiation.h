@@ -113,10 +113,21 @@ void magnet_apply_radiation_single_particle(
     double const B_perp_spin_y = By_T - B_par_spin;
     double const B_perp_spin_z = Bz_T - B_par_spin;
 
+    printf("gamma = %e\n", gamma);
+    printf("B_perp_spin_x = %e\n", B_perp_spin_x);
+    printf("B_perp_spin_y = %e\n", B_perp_spin_y);
+    printf("B_perp_spin_z = %e\n", B_perp_spin_z);
+    printf("B_par_spin_x = %e\n", B_par_spin_x);
+    printf("B_par_spin_y = %e\n", B_par_spin_y);
+    printf("B_par_spin_z = %e\n", B_par_spin_z);
+
     double const brho_part = P_J / (q0 * QELEM);
 
-    double const G_spin = LocalParticle_get_magnetic_moment_anomaly(part);
+    printf("brho_part = %e\n", brho_part);
 
+    double const G_spin = LocalParticle_get_anomalous_magnetic_moment(part);
+
+    printf("G_spin = %e\n", G_spin);
     double const Omega_BMT_x = -1/brho_part * (
         (1 + G_spin*gamma) * B_perp_spin_x + (1 + G_spin) * B_par_spin_x);
     double const Omega_BMT_y = -1/brho_part * (
@@ -124,8 +135,14 @@ void magnet_apply_radiation_single_particle(
     double const Omega_BMT_z = -1/brho_part * (
         (1 + G_spin*gamma) * B_perp_spin_z + (1 + G_spin) * B_par_spin_z);
 
+    printf("Omega_BMT_x = %e\n", Omega_BMT_x);
+    printf("Omega_BMT_y = %e\n", Omega_BMT_y);
+    printf("Omega_BMT_z = %e\n", Omega_BMT_z);
+
     double Omega_BMT_mod = sqrt(Omega_BMT_x * Omega_BMT_x +
         Omega_BMT_y * Omega_BMT_y + Omega_BMT_z * Omega_BMT_z);
+
+    printf("Omega_BMT_mod = %e\n", Omega_BMT_mod);
 
     double const omega_x = Omega_BMT_x / Omega_BMT_mod;
     double const omega_y = Omega_BMT_y / Omega_BMT_mod;
@@ -137,9 +154,9 @@ void magnet_apply_radiation_single_particle(
 
     // Quaternion rotation
     double const t0 = cos_phi_2;
-    tx = omega_x * sin_phi_2;
-    ty = omega_y * sin_phi_2;
-    tz = omega_z * sin_phi_2;
+    double const tx = omega_x * sin_phi_2;
+    double const ty = omega_y * sin_phi_2;
+    double const tz = omega_z * sin_phi_2;
 
     // Rotation matrix
     double const M11 = t0 * t0 + tx * tx - ty * ty - tz * tz;
@@ -157,12 +174,12 @@ void magnet_apply_radiation_single_particle(
     double const spin_y_0 = LocalParticle_get_spin_y(part);
     double const spin_z_0 = LocalParticle_get_spin_z(part);
 
-    double sin_hxl2, cos_hxl2;
+    double sin_hxl2 = 0.;
+    double cos_hxl2 = 1.;
     if (hx != 0.){
         sin_hxl2 = sin(hx * length / 2);
         cos_hxl2 = cos(hx * length / 2);
     }
-
     // Entry rotation (bend frame)
     double const spin_x_1 = spin_x_0 * cos_hxl2 - spin_z_0 * sin_hxl2;
     double const spin_y_1 = spin_y_0;
