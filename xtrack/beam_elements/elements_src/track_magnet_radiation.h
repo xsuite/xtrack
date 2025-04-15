@@ -152,7 +152,37 @@ void magnet_apply_radiation_single_particle(
     double const M32 = 2 * (ty * tz + t0 * tx);
     double const M33 = t0 * t0 - tx * tx - ty * ty + tz * tz;
 
+    // track spin
+    double const spin_x_0 = LocalParticle_get_spin_x(part);
+    double const spin_y_0 = LocalParticle_get_spin_y(part);
+    double const spin_z_0 = LocalParticle_get_spin_z(part);
 
+    double sin_hxl2, cos_hxl2;
+    if (hx != 0.){
+        sin_hxl2 = sin(hx * length / 2);
+        cos_hxl2 = cos(hx * length / 2);
+    }
+
+    // Entry rotation (bend frame)
+    double const spin_x_1 = spin_x_0 * cos_hxl2 - spin_z_0 * sin_hxl2;
+    double const spin_y_1 = spin_y_0;
+    double const spin_z_1 = spin_x_0 * sin_hxl2 + spin_z_0 * cos_hxl2;
+
+    // BMT rotation
+    double const spin_x_2 = M11 * spin_x_1 + M12 * spin_y_1 + M13 * spin_z_1;
+    double const spin_y_2 = M21 * spin_x_1 + M22 * spin_y_1 + M23 * spin_z_1;
+    double const spin_z_2 = M31 * spin_x_1 + M32 * spin_y_1 + M33 * spin_z_1;
+
+    // Exit rotation (bend frame)
+    double const spin_x_3 = spin_x_2 * cos_hxl2 - spin_z_2 * sin_hxl2;
+    double const spin_y_3 = spin_y_2;
+    double const spin_z_3 = spin_x_2 * sin_hxl2 + spin_z_2 * cos_hxl2;
+
+    LocalParticle_set_spin_x(part, spin_x_3);
+    LocalParticle_set_spin_y(part, spin_y_3);
+    LocalParticle_set_spin_z(part, spin_z_3);
+
+    // Synchrotron radiation
     LocalParticle_add_to_px(part, -new_ax);
     LocalParticle_add_to_py(part, -new_ay);
 
