@@ -93,7 +93,7 @@ def _build_response_matrix(tw, monitor_names, corrector_names,
     elif mode == 'closed':
         # Slide 28
         # https://indico.cern.ch/event/1328128/contributions/5589794/attachments/2786478/4858384/linearimperfections_2024.pdf
-        tune = tw.qx
+        tune = tw['q' + plane]
         response_matrix = (np.sqrt(bet_prod) / 2 / np.sin(np.pi * tune)
                              * np.cos(np.pi * tune - 2*np.pi*np.abs(mu_diff)))
 
