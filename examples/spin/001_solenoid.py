@@ -133,7 +133,7 @@ spin_z_angle_bmad = []
 spin_z_angle_test = []
 for px, py in zip(px_vect, py_vect):
     print('px', px)
-    out = bmad_solenoid(Bz_T=Bz_T, p0c=p0c, delta=0, length=length, spin_test=spin_test,
+    out = bmad_solenoid(Bz_T=Bz_T, p0c=p0c, delta=2e-3, length=length, spin_test=spin_test,
                         px=px, py=py)
     spin_z_angle_bmad.append(out['spin'][2])
     spin_z_angle_test.append(out['spin_test'][2])
