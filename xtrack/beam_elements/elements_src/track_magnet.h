@@ -207,11 +207,11 @@ void track_magnet_body_single_particle(
                     /*hx*/h_for_rad, \
                     /*hy*/0., \
                     radiation_flag, \
+                    spin_flag, \
                     old_px, old_py, \
                     old_ax, old_ay, \
                     old_zeta, \
                     radiation_record, \
-                    spin_flag, \
                     dp_record_exit, dpx_record_exit, dpy_record_exit);\
             }\
         }
