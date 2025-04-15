@@ -31,7 +31,7 @@ def spin_rotation_matrix(Bx_T, By_T, Bz_T, length, p, G_spin):
     beta_v = np.array([beta_x, beta_y, beta_z])
 
     i_v = beta_v / beta
-    B_par = np.dot(B_vec, i_v)
+    B_par = np.dot(B_vec, i_v) * i_v
     B_perp = B_vec - B_par * i_v
 
     # BMAD manual Eq. 24.2
@@ -40,6 +40,7 @@ def spin_rotation_matrix(Bx_T, By_T, Bz_T, length, p, G_spin):
     Omega_BMT_mod = np.sqrt(np.dot(Omega_BMT, Omega_BMT))
 
     omega = Omega_BMT / Omega_BMT_mod
+    # omega = B_vec / np.linalg.norm(B_vec)
 
     phi = Omega_BMT_mod * length
 
@@ -64,20 +65,19 @@ def spin_rotation_matrix(Bx_T, By_T, Bz_T, length, p, G_spin):
     tx=omega[0]*np.sin(phi/2)
     ty=omega[1]*np.sin(phi/2)
     ts=omega[2]*np.sin(phi/2)
-    M=np.asarray([[(t0**2+tx**2)-(ts**2+ty**2),2*(tx*ty-t0*ts)            ,2*(tx*ts+t0*ty)],
+    M=np.asarray([[(t0**2+tx**2)-(ts**2+ty**2),2*(tx*ty-t0*ts)          ,2*(tx*ts+t0*ty)],
                 [2*(tx*ty+t0*ts)            ,(t0**2+ty**2)-(tx**2+ts**2),2*(ts*ty-t0*tx)],
-                [ 2*(tx*ts-t0*ty)           ,2*(ts*ty+t0*tx)            ,(t0**2+ts**2)-(tx**2+ty**2)]])
+                [2*(tx*ts-t0*ty)            ,2*(ts*ty+t0*tx)            ,(t0**2+ts**2)-(tx**2+ty**2)]])
 
     return M
 
 
-def bmad_kicker(Bx_T, By_T, p0c, delta, length, spin_test, px=0, py=0):
+def bmad_solenoid(Bz_T, p0c, delta, length, spin_test, px=0, py=0):
 
     p_ref = xt.Particles(p0c=p0c, delta=0, mass0=xt.ELECTRON_MASS_EV)
     brho_ref = p_ref.p0c[0] / clight / p_ref.q0
 
-    k0 = By_T / brho_ref
-    k0s = Bx_T / brho_ref
+    ks = Bz_T / brho_ref
 
     input = f"""
 
@@ -104,12 +104,12 @@ def bmad_kicker(Bx_T, By_T, p0c, delta, length, spin_test, px=0, py=0):
     beginning[eta_x] =  0
     beginning[etap_x] =0
 
-    ! b1: sbend, l={length}, g={k0}! g is h in xtrack
-    b1: kicker, l={length}, hkick={-k0 * length}, vkick={k0s * length}
+    b1: solenoid, l={length}, ks={ks}
     dend: drift, l=10.0
 
     b1[spin_tracking_method] = Symp_Lie_PTC
     b1[tracking_method] = Symp_Lie_PTC
+    b1[SPIN_FRINGE_ON] = F
 
     myline: line = (b1, dend)
 
@@ -130,7 +130,7 @@ def bmad_kicker(Bx_T, By_T, p0c, delta, length, spin_test, px=0, py=0):
     p.delta = delta
     p.px = px
     p.py = py
-    M = spin_rotation_matrix(Bx_T=Bx_T, By_T=By_T, Bz_T=0, length=length,
+    M = spin_rotation_matrix(Bx_T=0, By_T=0, Bz_T=Bz_T, length=length,
                             p=p, G_spin=0.00115965218128)
     spin_test = M @ np.array(spin_test)
 
@@ -138,18 +138,17 @@ def bmad_kicker(Bx_T, By_T, p0c, delta, length, spin_test, px=0, py=0):
 
     return out
 
-By_T = 0.023349486663870645
-Bx_T =0.01
+Bz_T = 0.05
 p0c = 700e6
-spin_test = [0, 0, 1] # spin vector
+spin_test = [1, 0, 0] # spin vector
 length = 0.2
 delta = 1e-3
 
-out_on_mom = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c, delta=0,
+out_on_mom = bmad_solenoid(Bz_T=Bz_T, p0c=p0c, delta=0,
                          length=length, spin_test=spin_test)
-out_off_mom_p0c = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c*(1 + delta), delta=0,
+out_off_mom_p0c = bmad_solenoid(Bz_T=Bz_T, p0c=p0c*(1 + delta), delta=0,
                               length=length, spin_test=spin_test)
-out_off_mom_delta = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c, delta=delta,
+out_off_mom_delta = bmad_solenoid(Bz_T=Bz_T, p0c=p0c, delta=delta,
                                 length=length, spin_test=spin_test)
 
 delta_vect = np.linspace(-0.01, 0.01, 11)
@@ -162,7 +161,7 @@ spin_z_bmad = []
 spin_z_test = []
 for dd in delta_vect:
     print('dd', dd)
-    out = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c, delta=dd, length=length, spin_test=spin_test)
+    out = bmad_solenoid(Bz_T=Bz_T, p0c=p0c, delta=dd, length=length, spin_test=spin_test)
     spin_z_bmad.append(out['spin'][2])
     spin_z_test.append(out['spin_test'][2])
     spin_x_bmad.append(out['spin'][0])
@@ -175,6 +174,10 @@ for dd in delta_vect:
 
 spin_z_bmad = np.array(spin_z_bmad)
 spin_z_test = np.array(spin_z_test)
+spin_x_bmad = np.array(spin_x_bmad)
+spin_x_test = np.array(spin_x_test)
+spin_y_bmad = np.array(spin_y_bmad)
+spin_y_test = np.array(spin_y_test)
 
 import matplotlib.pyplot as plt
 plt.close('all')
