@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.constants import c as clight
 
-def spin_rotation_matrix(Bx_T, By_T, Bz_T, length, p, G_spin):
+def spin_rotation_matrix(Bx_T, By_T, Bz_T, length, p, G_spin, hx=0):
 
     gamma = p.energy[0] / p.energy0[0] * p.gamma0[0]
     brho_ref = p.p0c[0] / clight / p.q0
@@ -42,4 +42,13 @@ def spin_rotation_matrix(Bx_T, By_T, Bz_T, length, p, G_spin):
                 [2*(tx*ty+t0*ts)            ,(t0**2+ty**2)-(tx**2+ts**2),2*(ts*ty-t0*tx)],
                 [2*(tx*ts-t0*ty)            ,2*(ts*ty+t0*tx)            ,(t0**2+ts**2)-(tx**2+ty**2)]])
 
+    if hx:
+        theta = hx * length / 2
+        # Rotation matrix around y axis by theta
+        R = np.array([[np.cos(theta), 0, np.sin(theta)],
+                      [0, 1, 0],
+                      [-np.sin(theta), 0, np.cos(theta)]])
+
+        # Apply the rotation matrix to the spin vector
+        M = R @ M @ R
     return M
