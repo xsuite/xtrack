@@ -27,6 +27,7 @@ void ThickSliceSolenoid_track_local_particle(
         Solenoid_thick_with_radiation_track_single_particle(
                 part, length, ks,
                 0, // radiation flag, not supported for now
+                0, // spin flag, not supported for now
                 NULL, NULL, NULL);
     //end_per_particle_block
 
