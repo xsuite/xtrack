@@ -88,6 +88,7 @@ void Solenoid_thick_with_radiation_track_single_particle(
     double length,
     double ks,
     int64_t radiation_flag,
+    int64_t spin_flag,
     double* dp_record_exit, double* dpx_record_exit, double* dpy_record_exit
 ) {
     #ifndef XTRACK_SOLENOID_NO_SYNRAD
@@ -101,7 +102,7 @@ void Solenoid_thick_with_radiation_track_single_particle(
     Solenoid_thick_track_single_particle(part, length, ks, radiation_flag);
 
     #ifndef XTRACK_SOLENOID_NO_SYNRAD
-        if (radiation_flag > 0 && length > 0){
+        if ((radiation_flag > 0 || spin_flag > 0) && length > 0){
             // Solenoid_apply_radiation_single_particle(part, length, radiation_flag,
             //     old_px, old_py, old_ax, old_ay, old_zeta,
             //     dp_record_exit, dpx_record_exit, dpy_record_exit);
@@ -111,7 +112,7 @@ void Solenoid_thick_with_radiation_track_single_particle(
                 0, // hx
                 0, // hy,
                 radiation_flag,
-                0, // spin_flag
+                spin_flag,
                 old_px,
                 old_py,
                 old_ax,
