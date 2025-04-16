@@ -69,16 +69,29 @@ def bmad_kicker(Bx_T, By_T, p0c, delta, length, spin_test, px=0, py=0):
 
     out = tao.orbit_at_s(s_offset=5)
 
-    # ---------
-    p = p_ref.copy()
-    p.delta = delta
-    p.px = px
-    p.py = py
-    M = spin_rotation_matrix(Bx_T=Bx_T, By_T=By_T, Bz_T=0, length=length,
-                            p=p, G_spin=0.00115965218128)
-    spin_test = M @ np.array(spin_test)
+    p0 = p_ref.copy()
+    p0.delta = delta
+    p0.px = px
+    p0.py = py
+    p0.spin_x = spin_test[0]
+    p0.spin_y = spin_test[1]
+    p0.spin_z = spin_test[2]
+    p0.anomalous_magnetic_moment = 0.00115965218128
 
-    out['spin_test'] = spin_test
+    p = p0.copy()
+    magnet = xt.Magnet(h=0, k0=k0, k0s=k0s, length=length)
+    magnet.track(p)
+    spin_out = [p.spin_x[0], p.spin_y[0], p.spin_z[0]]
+
+    print('      ---')
+
+    p_python = p0.copy()
+    M = spin_rotation_matrix(Bx_T=Bx_T, By_T=By_T, Bz_T=0, length=length,
+                            p=p_python, G_spin=0.00115965218128)
+    spin_out_python = M @ np.array(spin_test)
+
+    out['spin_test'] = spin_out
+    out['spin_test_python'] = spin_out_python
 
     return out
 
@@ -95,6 +108,9 @@ out_off_mom_p0c = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c*(1 + delta), delta=0
                               length=length, spin_test=spin_test)
 out_off_mom_delta = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c, delta=delta,
                                 length=length, spin_test=spin_test)
+out_off_mom_pxpy = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c, delta=0,
+                                length=length, spin_test=spin_test,
+                                px=1e-2, py=2e-3)
 
 delta_vect = np.linspace(-0.01, 0.01, 5)
 

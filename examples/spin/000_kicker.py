@@ -108,7 +108,6 @@ out_off_mom_p0c = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c*(1 + delta), delta=0
                               length=length, spin_test=spin_test)
 out_off_mom_delta = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c, delta=delta,
                                 length=length, spin_test=spin_test)
-print(" ------------------- ")
 out_off_mom_pxpy = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c, delta=0,
                                 length=length, spin_test=spin_test,
                                 px=1e-2, py=2e-3)
