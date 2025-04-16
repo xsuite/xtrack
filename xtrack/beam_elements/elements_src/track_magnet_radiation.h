@@ -112,8 +112,6 @@ void magnet_apply_radiation_single_particle(
     double const beta_y = beta * (kin_py_mean / kin_pz_mean);
     double const beta_z = sqrt(beta*beta - beta_x * beta_x - beta_y * beta_y);
 
-    // TEST!!!!!!
-    l_path = length * beta / beta_z;
     printf("length = %e\n", length);
     printf("beta = %e\n", beta);
     printf("beta_z = %e\n", beta_z);
