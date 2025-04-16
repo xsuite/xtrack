@@ -82,8 +82,6 @@ def bmad_solenoid(Bz_T, p0c, delta, length, spin_test, px=0, py=0):
     magnet.track(p)
     spin_out = [p.spin_x[0], p.spin_y[0], p.spin_z[0]]
 
-    print('      ---')
-
     p_python = p0.copy()
     M = spin_rotation_matrix(Bx_T=0, By_T=0, Bz_T=Bz_T, length=length,
                             p=p_python, G_spin=0.00115965218128)

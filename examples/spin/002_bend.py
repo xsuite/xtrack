@@ -83,8 +83,6 @@ def bmad_kicker(Bx_T, By_T, p0c, delta, length, spin_test, px=0, py=0):
     magnet.track(p)
     spin_out = [p.spin_x[0], p.spin_y[0], p.spin_z[0]]
 
-    print('      ---')
-
     p_python = p0.copy()
     M = spin_rotation_matrix(Bx_T=Bx_T, By_T=By_T, Bz_T=0, length=length,
                             p=p_python, G_spin=0.00115965218128)

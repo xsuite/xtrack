@@ -90,14 +90,6 @@ void magnet_apply_radiation_single_particle(
     double const Bz_T = ks * brho0;
     double const B_perp_T = sqrt(Bx_T * Bx_T + By_T * By_T);
 
-    printf("Bx_T = %e\n", Bx_T);
-    printf("By_T = %e\n", By_T);
-    printf("Bz_T = %e\n", Bz_T);
-
-    // //FORCE FIELD
-    // Bx_T = 0.01;
-    // By_T = 0.023349486663870645;
-
     // Path length for radiation
     double const dzeta = LocalParticle_get_zeta(part) - old_zeta;
     double l_path = rvv * (length - dzeta);
@@ -106,27 +98,15 @@ void magnet_apply_radiation_single_particle(
     double const kin_px_mean = (old_px + new_ax);
     double const kin_py_mean = (old_py + new_ay);
 
-    printf("kin_px_mean = %e\n", kin_px_mean);
-    printf("kin_py_mean = %e\n", kin_py_mean);
-
     double const kin_pz_mean = sqrt((1 + delta)*(1 + delta) - kin_px_mean * kin_px_mean - kin_py_mean * kin_py_mean);
 
     double const beta_x = beta * (kin_px_mean / kin_pz_mean);
     double const beta_y = beta * (kin_py_mean / kin_pz_mean);
     double const beta_z = sqrt(beta*beta - beta_x * beta_x - beta_y * beta_y);
 
-    printf("length = %e\n", length);
-    printf("beta = %e\n", beta);
-    printf("beta_z = %e\n", beta_z);
-    printf("lpath = %e\n", l_path);
-
     double const iv_x = beta_x / beta;
     double const iv_y = beta_y / beta;
     double const iv_z = beta_z / beta;
-
-    printf("iv_x = %e\n", iv_x);
-    printf("iv_y = %e\n", iv_y);
-    printf("iv_z = %e\n", iv_z);
 
     double B_par_spin = Bx_T * iv_x + By_T * iv_y + Bz_T * iv_z;
     double const B_par_spin_x = B_par_spin * iv_x;
@@ -137,21 +117,10 @@ void magnet_apply_radiation_single_particle(
     double const B_perp_spin_y = By_T - B_par_spin_y;
     double const B_perp_spin_z = Bz_T - B_par_spin_z;
 
-    printf("gamma = %e\n", gamma);
-    printf("B_perp_spin_x = %e\n", B_perp_spin_x);
-    printf("B_perp_spin_y = %e\n", B_perp_spin_y);
-    printf("B_perp_spin_z = %e\n", B_perp_spin_z);
-    printf("B_par_spin_x = %e\n", B_par_spin_x);
-    printf("B_par_spin_y = %e\n", B_par_spin_y);
-    printf("B_par_spin_z = %e\n", B_par_spin_z);
-
     double const brho_part = P_J / (q0 * QELEM);
-
-    printf("brho_part = %e\n", brho_part);
 
     double const G_spin = LocalParticle_get_anomalous_magnetic_moment(part);
 
-    printf("G_spin = %e\n", G_spin);
     double const Omega_BMT_x = -1/brho_part * (
         (1 + G_spin*gamma) * B_perp_spin_x + (1 + G_spin) * B_par_spin_x);
     double const Omega_BMT_y = -1/brho_part * (
@@ -159,22 +128,14 @@ void magnet_apply_radiation_single_particle(
     double const Omega_BMT_z = -1/brho_part * (
         (1 + G_spin*gamma) * B_perp_spin_z + (1 + G_spin) * B_par_spin_z);
 
-    printf("Omega_BMT_x = %e\n", Omega_BMT_x);
-    printf("Omega_BMT_y = %e\n", Omega_BMT_y);
-    printf("Omega_BMT_z = %e\n", Omega_BMT_z);
-
     double Omega_BMT_mod = sqrt(Omega_BMT_x * Omega_BMT_x +
         Omega_BMT_y * Omega_BMT_y + Omega_BMT_z * Omega_BMT_z);
-
-    printf("Omega_BMT_mod = %e\n", Omega_BMT_mod);
 
     double const omega_x = Omega_BMT_x / Omega_BMT_mod;
     double const omega_y = Omega_BMT_y / Omega_BMT_mod;
     double const omega_z = Omega_BMT_z / Omega_BMT_mod;
 
     double const phi = Omega_BMT_mod * l_path;
-
-    printf("phi = %e\n", phi);
 
     double const sin_phi_2 = sin(phi/2);
     double const cos_phi_2 = cos(phi/2);
