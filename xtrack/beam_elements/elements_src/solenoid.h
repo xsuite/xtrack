@@ -105,10 +105,22 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
 
     #ifndef XTRACK_SOLENOID_NO_SYNRAD
         if (radiation_flag > 0 && length > 0){
-            Solenoid_apply_radiation_single_particle(
-                part, length, radiation_flag,
-                old_px, old_py, old_ax, old_ay, old_zeta,
-                &dp_record_entry, &dpx_record_entry, &dpy_record_entry
+            magnet_apply_radiation_single_particle(
+                part,
+                length,
+                0, // hx
+                0, // hy,
+                radiation_flag,
+                0, // spin_flag
+                old_px,
+                old_py,
+                old_ax,
+                old_ay,
+                old_zeta,
+                NULL, //SynchrotronRadiationRecordData record
+                &dp_record_entry,
+                &dp_record_entry,
+                &dp_record_entry
             );
         }
     #endif

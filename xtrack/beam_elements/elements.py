@@ -1966,6 +1966,7 @@ class Solenoid(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/track_xrotation.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_srotation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_radiation.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_solenoid.h'),
         _pkg_root.joinpath('beam_elements/elements_src/solenoid.h'),
     ]

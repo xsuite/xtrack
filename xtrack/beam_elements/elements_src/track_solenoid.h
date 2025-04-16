@@ -83,59 +83,6 @@ void Solenoid_thick_track_single_particle(
 }
 
 /*gpufun*/
-void Solenoid_apply_radiation_single_particle(
-    LocalParticle* part,
-    const double length,
-    const int64_t radiation_flag,
-    const double old_px, const double old_py,
-    const double old_ax, const double old_ay,
-    const double old_zeta,
-    double* dp_record_exit, double* dpx_record_exit, double* dpy_record_exit
-) {
-    double const rvv = LocalParticle_get_rvv(part);
-    double const new_ax = LocalParticle_get_ax(part);
-    double const new_ay = LocalParticle_get_ay(part);
-
-    double const old_px_mech = old_px - old_ax;
-    double const old_py_mech = old_py - old_ay;
-
-    double const new_px_mech = LocalParticle_get_px(part) - new_ax;
-    double const new_py_mech = LocalParticle_get_py(part) - new_ay;
-
-    double const dpx = new_px_mech - old_px_mech;
-    double const dpy = new_py_mech - old_py_mech;
-
-    double const curv = sqrt(dpx * dpx + dpy * dpy) / length;
-
-    double const mass0 = LocalParticle_get_mass0(part);
-    double const q0 = LocalParticle_get_q0(part);
-    double const beta0 = LocalParticle_get_beta0(part);
-    double const gamma0 = LocalParticle_get_gamma0(part);
-    double const mass0_kg = mass0 * QELEM / C_LIGHT / C_LIGHT;
-    double const P0_J = mass0_kg * beta0 * gamma0 * C_LIGHT;
-    double const Q0_coulomb = q0 * QELEM;
-    double const B_T = curv * P0_J / Q0_coulomb;
-
-    // Path length for radiation
-    double const dzeta = LocalParticle_get_zeta(part) - old_zeta;
-    double const l_path = rvv * (length - dzeta);
-
-    LocalParticle_add_to_px(part, -new_ax);
-    LocalParticle_add_to_py(part, -new_ay);
-
-    if (radiation_flag == 1){
-        synrad_average_kick(part, B_T, l_path,
-            dp_record_exit, dpx_record_exit, dpy_record_exit);
-    }
-    else if (radiation_flag == 2){
-        synrad_emit_photons(part, B_T, l_path, NULL, NULL);
-    }
-
-    LocalParticle_add_to_px(part, new_ax);
-    LocalParticle_add_to_py(part, new_ay);
-}
-
-/*gpufun*/
 void Solenoid_thick_with_radiation_track_single_particle(
     LocalParticle* part,
     double length,
@@ -155,9 +102,26 @@ void Solenoid_thick_with_radiation_track_single_particle(
 
     #ifndef XTRACK_SOLENOID_NO_SYNRAD
         if (radiation_flag > 0 && length > 0){
-            Solenoid_apply_radiation_single_particle(part, length, radiation_flag,
-                old_px, old_py, old_ax, old_ay, old_zeta,
-                dp_record_exit, dpx_record_exit, dpy_record_exit);
+            // Solenoid_apply_radiation_single_particle(part, length, radiation_flag,
+            //     old_px, old_py, old_ax, old_ay, old_zeta,
+            //     dp_record_exit, dpx_record_exit, dpy_record_exit);
+            magnet_apply_radiation_single_particle(
+                part,
+                length,
+                0, // hx
+                0, // hy,
+                radiation_flag,
+                0, // spin_flag
+                old_px,
+                old_py,
+                old_ax,
+                old_ay,
+                old_zeta,
+                NULL, //SynchrotronRadiationRecordData record
+                dp_record_exit,
+                dpx_record_exit,
+                dpy_record_exit
+            );
         }
     #endif
 }
