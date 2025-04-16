@@ -89,7 +89,7 @@ void magnet_apply_radiation_single_particle(
 
     // Path length for radiation
     double const dzeta = LocalParticle_get_zeta(part) - old_zeta;
-    double const l_path = rvv * (length - dzeta);
+    double l_path = rvv * (length - dzeta);
 
     // spin
     double const kin_px_mean = 0.5 * (old_px + new_ax);
@@ -98,7 +98,14 @@ void magnet_apply_radiation_single_particle(
 
     double const beta_x = beta * (kin_px_mean / kin_pz_mean);
     double const beta_y = beta * (kin_py_mean / kin_pz_mean);
-    double const beta_z = beta * (1 + delta) / sqrt(1 + delta * delta - kin_px_mean * kin_px_mean - kin_py_mean * kin_py_mean);
+    double const beta_z = sqrt(beta*beta - beta_x * beta_x - beta_y * beta_y);
+
+    // TEST!!!!!!
+    l_path = length * beta / beta_z;
+    printf("length = %e\n", length);
+    printf("beta = %e\n", beta);
+    printf("beta_z = %e\n", beta_z);
+    printf("lpath = %e\n", l_path);
 
     double const iv_x = beta_x / beta;
     double const iv_y = beta_y / beta;
@@ -149,6 +156,9 @@ void magnet_apply_radiation_single_particle(
     double const omega_z = Omega_BMT_z / Omega_BMT_mod;
 
     double const phi = Omega_BMT_mod * l_path;
+
+    printf("phi = %e\n", phi);
+
     double const sin_phi_2 = sin(phi/2);
     double const cos_phi_2 = cos(phi/2);
 

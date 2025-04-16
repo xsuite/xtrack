@@ -87,7 +87,7 @@ def bmad_kicker(Bx_T, By_T, p0c, delta, length, spin_test, px=0, py=0):
     spin_out_python = M @ np.array(spin_test)
 
     out['spin_test'] = spin_out
-    out['spin_out_python'] = spin_out_python
+    out['spin_test_python'] = spin_out_python
 
     return out
 
@@ -102,6 +102,7 @@ out_on_mom = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c, delta=0,
                          length=length, spin_test=spin_test)
 out_off_mom_p0c = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c*(1 + delta), delta=0,
                               length=length, spin_test=spin_test)
+print('---------------------------')
 out_off_mom_delta = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c, delta=delta,
                                 length=length, spin_test=spin_test)
 
@@ -109,22 +110,29 @@ delta_vect = np.linspace(-0.01, 0.01, 5)
 
 spin_x_bmad = []
 spin_x_test = []
+spin_x_test_python = []
 spin_y_bmad = []
 spin_y_test = []
+spin_y_test_python = []
 spin_z_bmad = []
 spin_z_test = []
+spin_z_test_python = []
 for dd in delta_vect:
     print('dd', dd)
     out = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c, delta=dd, length=length, spin_test=spin_test)
     spin_z_bmad.append(out['spin'][2])
     spin_z_test.append(out['spin_test'][2])
+    spin_z_test_python.append(out['spin_test_python'][2])
     spin_x_bmad.append(out['spin'][0])
     spin_x_test.append(out['spin_test'][0])
+    spin_x_test_python.append(out['spin_test_python'][0])
     spin_y_bmad.append(out['spin'][1])
     spin_y_test.append(out['spin_test'][1])
+    spin_y_test_python.append(out['spin_test_python'][1])
 
     print('spin_bmad', np.array(out['spin']))
     print('spin_test', np.array(out['spin_test']))
+    print('spin_test_python', np.array(out['spin_test_python']))
 
 spin_z_bmad = np.array(spin_z_bmad)
 spin_z_test = np.array(spin_z_test)
@@ -132,6 +140,9 @@ spin_x_bmad = np.array(spin_x_bmad)
 spin_x_test = np.array(spin_x_test)
 spin_y_bmad = np.array(spin_y_bmad)
 spin_y_test = np.array(spin_y_test)
+spin_z_test_python = np.array(spin_z_test_python)
+spin_x_test_python = np.array(spin_x_test_python)
+spin_y_test_python = np.array(spin_y_test_python)
 
 
 # Check vs px py
@@ -163,6 +174,7 @@ plt.close('all')
 plt.figure(1)
 plt.plot(delta_vect, spin_z_bmad, '.-', label='bmad')
 plt.plot(delta_vect, spin_z_test, 'x-', label='xtrack')
+plt.plot(delta_vect, spin_z_test_python, 'o-', label='xtrack python')
 plt.xlabel('delta')
 plt.ylabel('spin z')
 plt.legend()
@@ -170,14 +182,14 @@ plt.legend()
 plt.figure(2)
 plt.plot(delta_vect, spin_x_bmad, '.-', label='bmad')
 plt.plot(delta_vect, spin_x_test, 'x-', label='xtrack')
-plt.xlabel('delta')
+plt.plot(delta_vect, spin_x_test_python, 'o-', label='xtrack python')
 plt.ylabel('spin x')
 plt.legend()
 
 plt.figure(3)
 plt.plot(delta_vect, spin_y_bmad, '.-', label='bmad')
 plt.plot(delta_vect, spin_y_test, 'x-', label='xtrack')
-plt.xlabel('delta')
+plt.plot(delta_vect, spin_y_test_python, 'o-', label='xtrack python')
 plt.ylabel('spin y')
 plt.legend()
 

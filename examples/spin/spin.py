@@ -15,7 +15,7 @@ def spin_rotation_matrix(Bx_T, By_T, Bz_T, length, p, G_spin, hx=0):
     kin_py = p.kin_py[0]
     beta_x = beta * kin_px / delta_plus_1
     beta_y = beta * kin_py / delta_plus_1
-    beta_z = np.sqrt(1 - beta_x**2 - beta_y**2)
+    beta_z = np.sqrt(beta**2 - beta_x**2 - beta_y**2)
 
     beta_v = np.array([beta_x, beta_y, beta_z])
 
@@ -42,6 +42,9 @@ def spin_rotation_matrix(Bx_T, By_T, Bz_T, length, p, G_spin, hx=0):
     l_path = length * beta / beta_z
     phi = Omega_BMT_mod * l_path
 
+    print('beta', beta)
+    print('beta_z', beta_z)
+    print('l_path', l_path)
     print('phi', phi)
 
     # From BMAD manual Eq. 24.21
