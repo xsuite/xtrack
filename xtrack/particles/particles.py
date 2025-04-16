@@ -1950,6 +1950,10 @@ class Particles(xo.HybridClass):
         self.py = kwargs.get('py', 0)
         self.ax = kwargs.get('ax', 0)
         self.ay = kwargs.get('ay', 0)
+        self.anomalous_magnetic_moment = kwargs.get('anomalous_magnetic_moment', 0)
+        self.spin_x = kwargs.get('spin_x', 0)
+        self.spin_y = kwargs.get('spin_y', 0)
+        self.spin_z = kwargs.get('spin_z', 0)
 
         pdg_id = kwargs.get('pdg_id')
         try:
