@@ -9,11 +9,10 @@
 #ifndef XTRACK_BEAM_POSITION_MONITOR_H
 #define XTRACK_BEAM_POSITION_MONITOR_H
 
-#if !defined( C_LIGHT )
-    #define   C_LIGHT ( 299792458.0 )
-#endif /* !defined( C_LIGHT ) */
+#include <headers/track.h>
 
-/*gpufun*/
+
+GPUFUN
 void BeamPositionMonitor_track_local_particle(BeamPositionMonitorData el, LocalParticle* part0){
 
     // get parameters
@@ -27,11 +26,10 @@ void BeamPositionMonitor_track_local_particle(BeamPositionMonitorData el, LocalP
 
     int64_t max_slot = BeamPositionMonitorRecord_len_count(record);
 
-    //start_per_particle_block(part0->part)
-
+    PER_PARTICLE_BLOCK(part0, part, {
         int64_t particle_id = LocalParticle_get_particle_id(part);
-        if (particle_id_stop < 0 || (particle_id_start <= particle_id && particle_id < particle_id_stop)){
-
+        if (particle_id_stop < 0 || (particle_id_start <= particle_id && particle_id < particle_id_stop))
+        {
             // zeta is the absolute path length deviation from the reference particle: zeta = (s - beta0*c*t)
             // but without limits, i.e. it can exceed the circumference (for coasting beams)
             // as the particle falls behind or overtakes the reference particle
@@ -46,19 +44,16 @@ void BeamPositionMonitor_track_local_particle(BeamPositionMonitorData el, LocalP
                 double x = LocalParticle_get_x(part);
                 double y = LocalParticle_get_y(part);
 
-                /*gpuglmem*/ double * count = BeamPositionMonitorRecord_getp1_count(record, slot);
+                GPUGLMEM double * count = BeamPositionMonitorRecord_getp1_count(record, slot);
                 atomicAdd(count, 1.0);
 
-                /*gpuglmem*/ double * x_sum = BeamPositionMonitorRecord_getp1_x_sum(record, slot);
+                GPUGLMEM double * x_sum = BeamPositionMonitorRecord_getp1_x_sum(record, slot);
                 atomicAdd(x_sum, x);
 
-                /*gpuglmem*/ double * y_sum = BeamPositionMonitorRecord_getp1_y_sum(record, slot);
+                GPUGLMEM double * y_sum = BeamPositionMonitorRecord_getp1_y_sum(record, slot);
                 atomicAdd(y_sum, y);
-
             }
-
         }
-
 	});
 
 }

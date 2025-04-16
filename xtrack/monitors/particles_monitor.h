@@ -6,7 +6,10 @@
 #ifndef XTRACK_MONITORS_H
 #define XTRACK_MONITORS_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void ParticlesMonitor_track_local_particle(ParticlesMonitorData el,
                        LocalParticle* part0){
 

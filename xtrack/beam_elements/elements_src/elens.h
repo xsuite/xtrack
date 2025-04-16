@@ -35,18 +35,6 @@ void Elens_track_local_particle(ElensData el, LocalParticle* part0){
         double const EMASS  = 510998.928;
         // speed of light
 
-        #if !defined( C_LIGHT )
-            #define   C_LIGHT ( 299792458.0 )
-        #endif /* !defined( C_LIGHT ) */
-
-        #if !defined( EPSILON_0 )
-            #define   EPSILON_0 (8.854187817620e-12)
-        #endif /* !defined( EPSILON_0 ) */
-
-        #if !defined( PI )
-            #define PI (3.1415926535897932384626433832795028841971693993751)
-        #endif /* !defined( PI ) */
-
         double x      = LocalParticle_get_x(part);
         double y      = LocalParticle_get_y(part);
 
