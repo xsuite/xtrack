@@ -68,15 +68,29 @@ def bmad_solenoid(Bz_T, p0c, delta, length, spin_test, px=0, py=0):
     out = tao.orbit_at_s(s_offset=5)
 
     # ---------
-    p = p_ref.copy()
-    p.delta = delta
-    p.px = px
-    p.py = py
-    M = spin_rotation_matrix(Bx_T=0, By_T=0, Bz_T=Bz_T, length=length,
-                            p=p, G_spin=0.00115965218128)
-    spin_test = M @ np.array(spin_test)
+    p0 = p_ref.copy()
+    p0.delta = delta
+    p0.px = px
+    p0.py = py
+    p0.spin_x = spin_test[0]
+    p0.spin_y = spin_test[1]
+    p0.spin_z = spin_test[2]
+    p0.anomalous_magnetic_moment = 0.00115965218128
 
-    out['spin_test'] = spin_test
+    p = p0.copy()
+    magnet = xt.Solenoid(ks=ks, length=length)
+    magnet.track(p)
+    spin_out = [p.spin_x[0], p.spin_y[0], p.spin_z[0]]
+
+    print('      ---')
+
+    p_python = p0.copy()
+    M = spin_rotation_matrix(Bx_T=0, By_T=0, Bz_T=Bz_T, length=length,
+                            p=p_python, G_spin=0.00115965218128)
+    spin_out_python = M @ np.array(spin_test)
+
+    out['spin_test'] = spin_out
+    out['spin_test_python'] = spin_out_python
 
     return out
 

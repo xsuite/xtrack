@@ -118,6 +118,7 @@ void Solenoid_thick_with_radiation_track_single_particle(
                 old_ax,
                 old_ay,
                 old_zeta,
+                ks,
                 NULL, //SynchrotronRadiationRecordData record
                 dp_record_exit,
                 dpx_record_exit,

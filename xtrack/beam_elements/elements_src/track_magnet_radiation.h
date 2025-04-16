@@ -13,6 +13,7 @@ void magnet_apply_radiation_single_particle(
     const double old_px, const double old_py,
     const double old_ax, const double old_ay,
     const double old_zeta,
+    const double ks,
     SynchrotronRadiationRecordData record,
     double* dp_record_exit, double* dpx_record_exit, double* dpy_record_exit
 ) {
@@ -73,6 +74,7 @@ void magnet_apply_radiation_single_particle(
     // Transverse magnetic field
     double const mass0 = LocalParticle_get_mass0(part);
     double const q0 = LocalParticle_get_q0(part);
+    double const p0c = LocalParticle_get_p0c(part);
     double const gamma0 = LocalParticle_get_gamma0(part);
     double const beta0 = LocalParticle_get_beta0(part);
     double const gamma = gamma0 * (1 + beta0 * ptau);
@@ -80,11 +82,12 @@ void magnet_apply_radiation_single_particle(
     double const mass0_kg = mass0 * QELEM / C_LIGHT / C_LIGHT;
     double const P_J = mass0_kg * beta * gamma * C_LIGHT;
     double const Q0_coulomb = q0 * QELEM;
+    double const brho0 = p0c / C_LIGHT / q0;
 
     // Estimate magnetic field
     double Bx_T = -kappa_y * P_J / Q0_coulomb;
     double By_T = kappa_x * P_J / Q0_coulomb;
-    double const Bz_T = 0.0;
+    double const Bz_T = ks * brho0;
     double const B_perp_T = sqrt(Bx_T * Bx_T + By_T * By_T);
 
     printf("Bx_T = %e\n", Bx_T);

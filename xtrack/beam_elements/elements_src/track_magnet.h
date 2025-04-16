@@ -211,6 +211,7 @@ void track_magnet_body_single_particle(
                     old_px, old_py, \
                     old_ax, old_ay, \
                     old_zeta, \
+                    /*ks*/0., \
                     radiation_record, \
                     dp_record_exit, dpx_record_exit, dpy_record_exit);\
             }\

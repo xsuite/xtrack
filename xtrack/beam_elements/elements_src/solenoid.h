@@ -119,6 +119,7 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
                 old_ax,
                 old_ay,
                 old_zeta,
+                ks,
                 NULL, //SynchrotronRadiationRecordData record
                 &dp_record_entry,
                 &dp_record_entry,
