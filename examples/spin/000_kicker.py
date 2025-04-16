@@ -69,21 +69,25 @@ def bmad_kicker(Bx_T, By_T, p0c, delta, length, spin_test, px=0, py=0):
     out = tao.orbit_at_s(s_offset=5)
 
     # ---------
-    p = p_ref.copy()
-    p.delta = delta
-    p.px = px
-    p.py = py
-    p.spin_x = spin_test[0]
-    p.spin_y = spin_test[1]
-    p.spin_z = spin_test[2]
-    p.anomalous_magnetic_moment = 0.00115965218128
+    p0 = p_ref.copy()
+    p0.delta = delta
+    p0.px = px
+    p0.py = py
+    p0.spin_x = spin_test[0]
+    p0.spin_y = spin_test[1]
+    p0.spin_z = spin_test[2]
+    p0.anomalous_magnetic_moment = 0.00115965218128
 
+    p = p0.copy()
     magnet = xt.Magnet(h=0, k0=k0, k0s=k0s, length=length)
     magnet.track(p)
     spin_out = [p.spin_x[0], p.spin_y[0], p.spin_z[0]]
 
+    print('      ---')
+
+    p_python = p0.copy()
     M = spin_rotation_matrix(Bx_T=Bx_T, By_T=By_T, Bz_T=0, length=length,
-                            p=p, G_spin=0.00115965218128)
+                            p=p_python, G_spin=0.00115965218128)
     spin_out_python = M @ np.array(spin_test)
 
     out['spin_test'] = spin_out
@@ -102,9 +106,12 @@ out_on_mom = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c, delta=0,
                          length=length, spin_test=spin_test)
 out_off_mom_p0c = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c*(1 + delta), delta=0,
                               length=length, spin_test=spin_test)
-print('---------------------------')
 out_off_mom_delta = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c, delta=delta,
                                 length=length, spin_test=spin_test)
+print(" ------------------- ")
+out_off_mom_pxpy = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c, delta=0,
+                                length=length, spin_test=spin_test,
+                                px=1e-2, py=2e-3)
 
 delta_vect = np.linspace(-0.01, 0.01, 5)
 
@@ -146,8 +153,8 @@ spin_y_test_python = np.array(spin_y_test_python)
 
 
 # Check vs px py
-px_vect = np.linspace(-0.03, 0.03, 11)
-py_vect = np.linspace(-0.02, 0.02, 11)
+px_vect = np.linspace(-0.03, 0.03, 5)
+py_vect = np.linspace(-0.02, 0.02, 5)
 
 spin_x_angle_bmad = []
 spin_x_angle_test = []
@@ -155,8 +162,11 @@ spin_y_angle_bmad = []
 spin_y_angle_test = []
 spin_z_angle_bmad = []
 spin_z_angle_test = []
+spin_z_angle_test_python = []
+spin_x_angle_test_python = []
+spin_y_angle_test_python = []
 for px, py in zip(px_vect, py_vect):
-    print('px', px)
+    print('------ px', px)
     out = bmad_kicker(Bx_T=Bx_T, By_T=By_T, p0c=p0c, delta=1e-3, length=length, spin_test=spin_test,
                         px=px, py=py)
     spin_z_angle_bmad.append(out['spin'][2])
@@ -165,6 +175,9 @@ for px, py in zip(px_vect, py_vect):
     spin_x_angle_test.append(out['spin_test'][0])
     spin_y_angle_bmad.append(out['spin'][1])
     spin_y_angle_test.append(out['spin_test'][1])
+    spin_z_angle_test_python.append(out['spin_test_python'][2])
+    spin_x_angle_test_python.append(out['spin_test_python'][0])
+    spin_y_angle_test_python.append(out['spin_test_python'][1])
     print('spin_bmad', np.array(out['spin']))
     print('spin_test', np.array(out['spin_test']))
 
@@ -197,6 +210,7 @@ plt.legend()
 plt.figure(11)
 plt.plot(px_vect, spin_x_angle_bmad, '.-', label='bmad')
 plt.plot(px_vect, spin_x_angle_test, 'x-', label='xtrack')
+plt.plot(px_vect, spin_x_angle_test_python, '--', label='xtrack python')
 plt.xlabel('px')
 plt.ylabel('spin x')
 plt.legend()
@@ -204,6 +218,7 @@ plt.legend()
 plt.figure(12)
 plt.plot(px_vect, spin_y_angle_bmad, '.-', label='bmad')
 plt.plot(px_vect, spin_y_angle_test, 'x-', label='xtrack')
+plt.plot(px_vect, spin_y_angle_test_python, '--', label='xtrack python')
 plt.xlabel('py')
 plt.ylabel('spin y')
 plt.legend()
@@ -211,6 +226,7 @@ plt.legend()
 plt.figure(13)
 plt.plot(px_vect, spin_z_angle_bmad, '.-', label='bmad')
 plt.plot(px_vect, spin_z_angle_test, 'x-', label='xtrack')
+plt.plot(px_vect, spin_z_angle_test_python, '--', label='xtrack python')
 plt.xlabel('px')
 plt.ylabel('spin z')
 plt.legend()

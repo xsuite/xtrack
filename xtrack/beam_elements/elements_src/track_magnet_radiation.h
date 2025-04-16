@@ -82,18 +82,40 @@ void magnet_apply_radiation_single_particle(
     double const Q0_coulomb = q0 * QELEM;
 
     // Estimate magnetic field
-    double const Bx_T = -kappa_y * P_J / Q0_coulomb;
-    double const By_T = kappa_x * P_J / Q0_coulomb;
+    // double const Bx_T = -kappa_y * P_J / Q0_coulomb;
+    // double const By_T = kappa_x * P_J / Q0_coulomb;
+
+
+
+    // TEST!!!!!!
+    double const Bx_T = 0.01;
+    double const By_T = 0.023349486663870645;
+
+
+
+
+
+
     double const Bz_T = 0.0;
     double const B_perp_T = sqrt(Bx_T * Bx_T + By_T * By_T);
+
+
+
+    printf("Bx_T = %e\n", Bx_T);
+    printf("By_T = %e\n", By_T);
+    printf("Bz_T = %e\n", Bz_T);
 
     // Path length for radiation
     double const dzeta = LocalParticle_get_zeta(part) - old_zeta;
     double l_path = rvv * (length - dzeta);
 
     // spin
-    double const kin_px_mean = 0.5 * (old_px + new_ax);
-    double const kin_py_mean = 0.5 * (old_py + new_ay);
+    double const kin_px_mean = (old_px + new_ax);
+    double const kin_py_mean = (old_py + new_ay);
+
+    printf("kin_px_mean = %e\n", kin_px_mean);
+    printf("kin_py_mean = %e\n", kin_py_mean);
+
     double const kin_pz_mean = sqrt((1 + delta)*(1 + delta) - kin_px_mean * kin_px_mean - kin_py_mean * kin_py_mean);
 
     double const beta_x = beta * (kin_px_mean / kin_pz_mean);
@@ -111,14 +133,18 @@ void magnet_apply_radiation_single_particle(
     double const iv_y = beta_y / beta;
     double const iv_z = beta_z / beta;
 
+    printf("iv_x = %e\n", iv_x);
+    printf("iv_y = %e\n", iv_y);
+    printf("iv_z = %e\n", iv_z);
+
     double B_par_spin = Bx_T * iv_x + By_T * iv_y + Bz_T * iv_z;
     double const B_par_spin_x = B_par_spin * iv_x;
     double const B_par_spin_y = B_par_spin * iv_y;
     double const B_par_spin_z = B_par_spin * iv_z;
 
-    double const B_perp_spin_x = Bx_T - B_par_spin;
-    double const B_perp_spin_y = By_T - B_par_spin;
-    double const B_perp_spin_z = Bz_T - B_par_spin;
+    double const B_perp_spin_x = Bx_T - B_par_spin_x;
+    double const B_perp_spin_y = By_T - B_par_spin_y;
+    double const B_perp_spin_z = Bz_T - B_par_spin_z;
 
     printf("gamma = %e\n", gamma);
     printf("B_perp_spin_x = %e\n", B_perp_spin_x);
