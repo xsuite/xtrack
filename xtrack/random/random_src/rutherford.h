@@ -43,7 +43,7 @@ double ruth_CDF(double t, double A, double B, double t0){
         - A*B*Exponential_Integral_Ei(-B*t)  - t*ruth_PDF(t, A, B);
 }
 
-/*gpukern*/
+GPUKERN
 void RandomRutherford_set(RandomRutherfordData rng, double A, double B, double lower_val, double upper_val){
     // Normalise PDF
     double N = ruth_CDF(upper_val, A, B, lower_val);
