@@ -21,7 +21,8 @@ void LimitRacetrack_track_local_particle(LimitRacetrackData el, LocalParticle* p
 
         double const x = LocalParticle_get_x(part);
         double const y = LocalParticle_get_y(part);
-        double dx, dy;
+        double dx;
+        double dy;
         int refine;
 
         int64_t is_alive = (int64_t)(

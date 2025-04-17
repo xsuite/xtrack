@@ -45,15 +45,26 @@
 #endif  // XO_CONTEXT_CPU_OPENMP
 
 
-#if defined(XO_CONTEXT_CUDA) || defined(XO_CONTEXT_CL)
-    // We are on GPU
+#ifdef XO_CONTEXT_CUDA
+    // We are on a CUDA GPU
 
         #define PER_PARTICLE_BLOCK(SRC_PART, DEST_PART, ...) { \
                 LocalParticle* DEST_PART = (SRC_PART); \
                 __VA_ARGS__ \
                 ; \
             }
-#endif  // XO_CONTEXT_CUDA || XO_CONTEXT_CL
+#endif  // XO_CONTEXT_CUDA
+
+
+#ifdef XO_CONTEXT_CL
+    // We are on an OpenCL GPU
+
+        #define PER_PARTICLE_BLOCK(SRC_PART, DEST_PART, CODE) { \
+                LocalParticle* DEST_PART = (SRC_PART); \
+                CODE \
+                ; \
+            }
+#endif  // XO_CONTEXT_CL
 
 
 /*
