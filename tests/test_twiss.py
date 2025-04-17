@@ -160,6 +160,14 @@ def test_get_normalized_coordinates(test_context):
     xo.assert_allclose(norm_coord['px_norm'], [0.1, 0.2, 0.3], atol=1e-10, rtol=0)
     xo.assert_allclose(norm_coord['py_norm'], [0.5, 0.6, 0.8], atol=1e-10, rtol=0)
 
+    norm_coord = tw.get_normalized_coordinates(
+        particles, nemitt_x=2.5e-6, nemitt_y=1e-6, _evaluate_in_context=True
+    )
+
+    xo.assert_allclose(norm_coord["x_norm"], [-1, 0, 0.5], atol=1e-10, rtol=0)
+    xo.assert_allclose(norm_coord["y_norm"], [0.3, -0.2, 0.2], atol=1e-10, rtol=0)
+    xo.assert_allclose(norm_coord["px_norm"], [0.1, 0.2, 0.3], atol=1e-10, rtol=0)
+    xo.assert_allclose(norm_coord["py_norm"], [0.5, 0.6, 0.8], atol=1e-10, rtol=0)
 
     # Introduce a non-zero closed orbit
     line['mqwa.a4r3.b1..1'].knl[0] = 10e-6
@@ -179,6 +187,15 @@ def test_get_normalized_coordinates(test_context):
     xo.assert_allclose(norm_coord1['y_norm'], [0.3, -0.2, 0.2], atol=1e-10, rtol=0)
     xo.assert_allclose(norm_coord1['px_norm'], [0.1, 0.2, 0.3], atol=1e-10, rtol=0)
     xo.assert_allclose(norm_coord1['py_norm'], [0.5, 0.6, 0.8], atol=1e-10, rtol=0)
+
+    norm_coord1 = tw1.get_normalized_coordinates(
+        particles1, nemitt_x=2.5e-6, nemitt_y=1e-6, _evaluate_in_context=True
+    )
+
+    xo.assert_allclose(norm_coord1["x_norm"], [-1, 0, 0.5], atol=1e-10, rtol=0)
+    xo.assert_allclose(norm_coord1["y_norm"], [0.3, -0.2, 0.2], atol=1e-10, rtol=0)
+    xo.assert_allclose(norm_coord1["px_norm"], [0.1, 0.2, 0.3], atol=1e-10, rtol=0)
+    xo.assert_allclose(norm_coord1["py_norm"], [0.5, 0.6, 0.8], atol=1e-10, rtol=0)
 
     # Check computation at different locations
 
@@ -215,10 +232,323 @@ def test_get_normalized_coordinates(test_context):
     xo.assert_allclose(norm_coord23['py_norm'][3:6], [0.5, 0.6, 0.8], atol=1e-10, rtol=0)
     xo.assert_allclose(norm_coord23['py_norm'][6:], xt.particles.LAST_INVALID_STATE)
 
+    norm_coord23 = tw1.get_normalized_coordinates(
+        particles23, nemitt_x=2.5e-6, nemitt_y=1e-6, _evaluate_in_context=True
+    )
+
+    assert particles23._capacity == 20
+    xo.assert_allclose(norm_coord23["x_norm"][:3], [-1, 0, 0.5], atol=1e-10, rtol=0)
+    xo.assert_allclose(norm_coord23["x_norm"][3:6], [-1, 0, 0.5], atol=1e-10, rtol=0)
+    xo.assert_allclose(norm_coord23["x_norm"][6:], xt.particles.LAST_INVALID_STATE)
+    xo.assert_allclose(norm_coord23["y_norm"][:3], [0.3, -0.2, 0.2], atol=1e-10, rtol=0)
+    xo.assert_allclose(
+        norm_coord23["y_norm"][3:6], [0.3, -0.2, 0.2], atol=1e-10, rtol=0
+    )
+    xo.assert_allclose(norm_coord23["y_norm"][6:], xt.particles.LAST_INVALID_STATE)
+    xo.assert_allclose(norm_coord23["px_norm"][:3], [0.1, 0.2, 0.3], atol=1e-10, rtol=0)
+    xo.assert_allclose(
+        norm_coord23["px_norm"][3:6], [0.1, 0.2, 0.3], atol=1e-10, rtol=0
+    )
+    xo.assert_allclose(norm_coord23["px_norm"][6:], xt.particles.LAST_INVALID_STATE)
+    xo.assert_allclose(norm_coord23["py_norm"][:3], [0.5, 0.6, 0.8], atol=1e-10, rtol=0)
+    xo.assert_allclose(
+        norm_coord23["py_norm"][3:6], [0.5, 0.6, 0.8], atol=1e-10, rtol=0
+    )
+    xo.assert_allclose(norm_coord23["py_norm"][6:], xt.particles.LAST_INVALID_STATE)
+
     particles23.move(_context=xo.context_default)
     assert np.all(particles23.at_element[:3] == line.element_names.index('s.ds.r3.b1'))
     assert np.all(particles23.at_element[3:6] == line.element_names.index('s.ds.r7.b1'))
     assert np.all(particles23.at_element[6:] == xt.particles.LAST_INVALID_STATE)
+
+
+@for_all_test_contexts
+def test_normalized_particles_get_coordinates(test_context):
+
+    path_line_particles = (
+        test_data_folder / "hllhc15_noerrors_nobb/line_and_particle.json"
+    )
+
+    with open(path_line_particles, "r") as fid:
+        input_data = json.load(fid)
+    line = xt.Line.from_dict(input_data["line"])
+    line.particle_ref = xp.Particles.from_dict(input_data["particle"])
+
+    line.build_tracker(_context=test_context)
+
+    particles = line.build_particles(
+        nemitt_x=2.5e-6,
+        nemitt_y=1e-6,
+        x_norm=[-1, 0, 0.5],
+        y_norm=[0.3, -0.2, 0.2],
+        px_norm=[0.1, 0.2, 0.3],
+        py_norm=[0.5, 0.6, 0.8],
+        zeta=[0, 0.1, -0.1],
+        delta=[1e-4, 0.0, -1e-4],
+    )
+
+    tw = line.twiss()
+
+    norm_coord = xt.NormalizedParticles(
+        tw, particles, nemitt_x=2.5e-6, nemitt_y=1e-6
+    ).get_normalized_coordinates()
+
+    xo.assert_allclose(norm_coord["x_norm"], [-1, 0, 0.5], atol=1e-10, rtol=0)
+    xo.assert_allclose(norm_coord["y_norm"], [0.3, -0.2, 0.2], atol=1e-10, rtol=0)
+    xo.assert_allclose(norm_coord["px_norm"], [0.1, 0.2, 0.3], atol=1e-10, rtol=0)
+    xo.assert_allclose(norm_coord["py_norm"], [0.5, 0.6, 0.8], atol=1e-10, rtol=0)
+
+    # Introduce a non-zero closed orbit
+    line["mqwa.a4r3.b1..1"].knl[0] = 10e-6
+    line["mqwa.a4r3.b1..1"].ksl[0] = 5e-6
+
+    particles1 = line.build_particles(
+        nemitt_x=2.5e-6,
+        nemitt_y=1e-6,
+        x_norm=[-1, 0, 0.5],
+        y_norm=[0.3, -0.2, 0.2],
+        px_norm=[0.1, 0.2, 0.3],
+        py_norm=[0.5, 0.6, 0.8],
+        zeta=[0, 0.1, -0.1],
+        delta=[1e-4, 0.0, -1e-4],
+    )
+
+    tw1 = line.twiss()
+    norm_coord1 = xt.NormalizedParticles(
+        tw1, particles1, nemitt_x=2.5e-6, nemitt_y=1e-6
+    ).get_normalized_coordinates()
+
+    xo.assert_allclose(norm_coord1["x_norm"], [-1, 0, 0.5], atol=1e-10, rtol=0)
+    xo.assert_allclose(norm_coord1["y_norm"], [0.3, -0.2, 0.2], atol=1e-10, rtol=0)
+    xo.assert_allclose(norm_coord1["px_norm"], [0.1, 0.2, 0.3], atol=1e-10, rtol=0)
+    xo.assert_allclose(norm_coord1["py_norm"], [0.5, 0.6, 0.8], atol=1e-10, rtol=0)
+
+    # Check computation at different locations
+
+    particles2 = line.build_particles(
+        at_element="s.ds.r3.b1",
+        _capacity=10,
+        nemitt_x=2.5e-6,
+        nemitt_y=1e-6,
+        x_norm=[-1, 0, 0.5],
+        y_norm=[0.3, -0.2, 0.2],
+        px_norm=[0.1, 0.2, 0.3],
+        py_norm=[0.5, 0.6, 0.8],
+        zeta=[0, 0.1, -0.1],
+        delta=[1e-4, 0.0, -1e-4],
+    )
+
+    particles3 = line.build_particles(
+        at_element="s.ds.r7.b1",
+        _capacity=10,
+        nemitt_x=2.5e-6,
+        nemitt_y=1e-6,
+        x_norm=[-1, 0, 0.5],
+        y_norm=[0.3, -0.2, 0.2],
+        px_norm=[0.1, 0.2, 0.3],
+        py_norm=[0.5, 0.6, 0.8],
+        zeta=[0, 0.1, -0.1],
+        delta=[1e-4, 0.0, -1e-4],
+    )
+
+    particles23 = xp.Particles.merge([particles2, particles3])
+
+    norm_coord23 = xt.NormalizedParticles(
+        tw1, particles23, nemitt_x=2.5e-6, nemitt_y=1e-6
+    ).get_normalized_coordinates()
+
+    assert particles23._capacity == 20
+    xo.assert_allclose(norm_coord23["x_norm"][:3], [-1, 0, 0.5], atol=1e-10, rtol=0)
+    xo.assert_allclose(norm_coord23["x_norm"][3:6], [-1, 0, 0.5], atol=1e-10, rtol=0)
+    xo.assert_allclose(norm_coord23["x_norm"][6:], xt.particles.LAST_INVALID_STATE)
+    xo.assert_allclose(norm_coord23["y_norm"][:3], [0.3, -0.2, 0.2], atol=1e-10, rtol=0)
+    xo.assert_allclose(
+        norm_coord23["y_norm"][3:6], [0.3, -0.2, 0.2], atol=1e-10, rtol=0
+    )
+    xo.assert_allclose(norm_coord23["y_norm"][6:], xt.particles.LAST_INVALID_STATE)
+    xo.assert_allclose(norm_coord23["px_norm"][:3], [0.1, 0.2, 0.3], atol=1e-10, rtol=0)
+    xo.assert_allclose(
+        norm_coord23["px_norm"][3:6], [0.1, 0.2, 0.3], atol=1e-10, rtol=0
+    )
+    xo.assert_allclose(norm_coord23["px_norm"][6:], xt.particles.LAST_INVALID_STATE)
+    xo.assert_allclose(norm_coord23["py_norm"][:3], [0.5, 0.6, 0.8], atol=1e-10, rtol=0)
+    xo.assert_allclose(
+        norm_coord23["py_norm"][3:6], [0.5, 0.6, 0.8], atol=1e-10, rtol=0
+    )
+    xo.assert_allclose(norm_coord23["py_norm"][6:], xt.particles.LAST_INVALID_STATE)
+
+    particles23.move(_context=xo.context_default)
+    assert np.all(particles23.at_element[:3] == line.element_names.index("s.ds.r3.b1"))
+    assert np.all(particles23.at_element[3:6] == line.element_names.index("s.ds.r7.b1"))
+    assert np.all(particles23.at_element[6:] == xt.particles.LAST_INVALID_STATE)
+
+
+@for_all_test_contexts
+def test_normalized_particles_conversion(test_context):
+
+    path_line_particles = (
+        test_data_folder / "hllhc15_noerrors_nobb/line_and_particle.json"
+    )
+
+    with open(path_line_particles, "r") as fid:
+        input_data = json.load(fid)
+    line = xt.Line.from_dict(input_data["line"])
+    line.particle_ref = xp.Particles.from_dict(input_data["particle"])
+
+    line.build_tracker(_context=test_context)
+
+    particles = line.build_particles(
+        nemitt_x=2.5e-6,
+        nemitt_y=1e-6,
+        x_norm=[-1, 0, 0.5],
+        y_norm=[0.3, -0.2, 0.2],
+        px_norm=[0.1, 0.2, 0.3],
+        py_norm=[0.5, 0.6, 0.8],
+        zeta=[0, 0.1, -0.1],
+        delta=[1e-4, 0.0, -1e-4],
+    )
+
+    particles_bis = particles.copy()
+    particles_bis.x = 0.0
+    particles_bis.y = 0.0
+    particles_bis.px = 0.0
+    particles_bis.py = 0.0
+    particles_bis.zeta = 0.0
+    particles_bis.delta = 0.0
+    particles_bis.ptau = 0.0
+
+    tw = line.twiss()
+
+    norm_coord = xt.NormalizedParticles(tw, particles, nemitt_x=2.5e-6, nemitt_y=1e-6)
+
+    particles_bis = norm_coord.norm_to_phys(
+        particles_bis, nemitt_x=2.5e-6, nemitt_y=1e-6
+    )
+
+    xo.assert_allclose(particles_bis.x, particles.x, atol=1e-10, rtol=0)
+    xo.assert_allclose(particles_bis.y, particles.y, atol=1e-10, rtol=0)
+    xo.assert_allclose(particles_bis.px, particles.px, atol=1e-10, rtol=0)
+    xo.assert_allclose(particles_bis.py, particles.py, atol=1e-10, rtol=0)
+    xo.assert_allclose(particles_bis.zeta, particles.zeta, atol=1e-10, rtol=0)
+    xo.assert_allclose(particles_bis.delta, particles.delta, atol=1e-10, rtol=0)
+    xo.assert_allclose(particles_bis.ptau, particles.ptau, atol=1e-10, rtol=0)
+    xo.assert_allclose(particles_bis.rpp, particles.rpp, atol=1e-10, rtol=0)
+    xo.assert_allclose(particles_bis.rvv, particles.rvv, atol=1e-10, rtol=0)
+
+    # Let's do a couple more times...
+    for i in range(42):
+        norm_coord.phys_to_norm(particles_bis, nemitt_x=2.5e-6, nemitt_y=1e-6)
+        particles_bis = norm_coord.norm_to_phys(
+            particles_bis, nemitt_x=2.5e-6, nemitt_y=1e-6
+        )
+
+    xo.assert_allclose(particles_bis.x, particles.x, atol=1e-10, rtol=0)
+    xo.assert_allclose(particles_bis.y, particles.y, atol=1e-10, rtol=0)
+    xo.assert_allclose(particles_bis.px, particles.px, atol=1e-10, rtol=0)
+    xo.assert_allclose(particles_bis.py, particles.py, atol=1e-10, rtol=0)
+    xo.assert_allclose(particles_bis.zeta, particles.zeta, atol=1e-10, rtol=0)
+    xo.assert_allclose(particles_bis.delta, particles.delta, atol=1e-10, rtol=0)
+    xo.assert_allclose(particles_bis.ptau, particles.ptau, atol=1e-10, rtol=0)
+    xo.assert_allclose(particles_bis.rpp, particles.rpp, atol=1e-10, rtol=0)
+    xo.assert_allclose(particles_bis.rvv, particles.rvv, atol=1e-10, rtol=0)
+
+    # Introduce a non-zero closed orbit
+    line["mqwa.a4r3.b1..1"].knl[0] = 10e-6
+    line["mqwa.a4r3.b1..1"].ksl[0] = 5e-6
+
+    particles1 = line.build_particles(
+        nemitt_x=2.5e-6,
+        nemitt_y=1e-6,
+        x_norm=[-1, 0, 0.5],
+        y_norm=[0.3, -0.2, 0.2],
+        px_norm=[0.1, 0.2, 0.3],
+        py_norm=[0.5, 0.6, 0.8],
+        zeta=[0, 0.1, -0.1],
+        delta=[1e-4, 0.0, -1e-4],
+    )
+
+    tw1 = line.twiss()
+    norm_coord1 = xt.NormalizedParticles(
+        tw1, particles1, nemitt_x=2.5e-6, nemitt_y=1e-6
+    )
+
+    particles_bis = norm_coord1.norm_to_phys(
+        particles_bis, nemitt_x=2.5e-6, nemitt_y=1e-6
+    )
+    xo.assert_allclose(particles_bis.x, particles1.x, atol=1e-10, rtol=0)
+    xo.assert_allclose(particles_bis.y, particles1.y, atol=1e-10, rtol=0)
+    xo.assert_allclose(particles_bis.px, particles1.px, atol=1e-10, rtol=0)
+    xo.assert_allclose(particles_bis.py, particles1.py, atol=1e-10, rtol=0)
+    xo.assert_allclose(particles_bis.zeta, particles.zeta, atol=1e-10, rtol=0)
+    xo.assert_allclose(particles_bis.delta, particles.delta, atol=1e-10, rtol=0)
+    xo.assert_allclose(particles_bis.ptau, particles.ptau, atol=1e-10, rtol=0)
+    xo.assert_allclose(particles_bis.rpp, particles.rpp, atol=1e-10, rtol=0)
+    xo.assert_allclose(particles_bis.rvv, particles.rvv, atol=1e-10, rtol=0)
+
+    # Check computation at different locations
+
+    particles2 = line.build_particles(
+        at_element="s.ds.r3.b1",
+        _capacity=10,
+        nemitt_x=2.5e-6,
+        nemitt_y=1e-6,
+        x_norm=[-1, 0, 0.5],
+        y_norm=[0.3, -0.2, 0.2],
+        px_norm=[0.1, 0.2, 0.3],
+        py_norm=[0.5, 0.6, 0.8],
+        zeta=[0, 0.1, -0.1],
+        delta=[1e-4, 0.0, -1e-4],
+    )
+
+    particles3 = line.build_particles(
+        at_element="s.ds.r7.b1",
+        _capacity=10,
+        nemitt_x=2.5e-6,
+        nemitt_y=1e-6,
+        x_norm=[-1, 0, 0.5],
+        y_norm=[0.3, -0.2, 0.2],
+        px_norm=[0.1, 0.2, 0.3],
+        py_norm=[0.5, 0.6, 0.8],
+        zeta=[0, 0.1, -0.1],
+        delta=[1e-4, 0.0, -1e-4],
+    )
+
+    particles23 = xp.Particles.merge([particles2, particles3])
+    particles23_copy = particles23.copy()
+    particles23_copy.x = 0.0
+    particles23_copy.y = 0.0
+    particles23_copy.px = 0.0
+    particles23_copy.py = 0.0
+    particles23_copy.zeta = 0.0
+    particles23_copy.delta = 0.0
+    particles23_copy.ptau = 0.0
+
+    norm_coord23 = xt.NormalizedParticles(
+        tw1, particles23, nemitt_x=2.5e-6, nemitt_y=1e-6
+    )
+    particles23_copy = norm_coord23.norm_to_phys(
+        particles23_copy, nemitt_x=2.5e-6, nemitt_y=1e-6
+    )
+    xo.assert_allclose(particles23_copy.x[:6], particles23.x[:6], atol=1e-10, rtol=0)
+    xo.assert_allclose(particles23_copy.y[:6], particles23.y[:6], atol=1e-10, rtol=0)
+    xo.assert_allclose(particles23_copy.px[:6], particles23.px[:6], atol=1e-10, rtol=0)
+    xo.assert_allclose(particles23_copy.py[:6], particles23.py[:6], atol=1e-10, rtol=0)
+    xo.assert_allclose(
+        particles23_copy.zeta[:6], particles23.zeta[:6], atol=1e-10, rtol=0
+    )
+    xo.assert_allclose(
+        particles23_copy.delta[:6], particles23.delta[:6], atol=1e-10, rtol=0
+    )
+    xo.assert_allclose(
+        particles23_copy.ptau[:6], particles23.ptau[:6], atol=1e-10, rtol=0
+    )
+    xo.assert_allclose(
+        particles23_copy.rpp[:6], particles23.rpp[:6], atol=1e-10, rtol=0
+    )
+    xo.assert_allclose(
+        particles23_copy.rvv[:6], particles23.rvv[:6], atol=1e-10, rtol=0
+    )
+
 
 @for_all_test_contexts
 def test_get_normalized_coordinates_twiss_init(test_context):
@@ -583,7 +913,6 @@ def collider_for_test_twiss_range():
     collider.lhcb1.particle_ref.move(_buffer=xo.ContextCpu().new_buffer())
     collider.lhcb2.particle_ref.move(_buffer=xo.ContextCpu().new_buffer())
     return collider
-
 
 
 @for_all_test_contexts

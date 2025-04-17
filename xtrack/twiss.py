@@ -4,6 +4,9 @@
 # ######################################### #
 
 import logging
+from pathlib import Path
+from typing import Optional
+from warnings import warn
 
 import io
 import json
@@ -15,6 +18,7 @@ from scipy.constants import epsilon_0
 from scipy.constants import e as qe
 from scipy.special import factorial
 from scipy.constants import electron_volt
+import xobjects as xo
 
 if hasattr(np, 'trapezoid'): # numpy >= 2.0
     trapz = np.trapezoid
@@ -3225,66 +3229,71 @@ class TwissTable(Table):
         return Table(out_dct)
 
     def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None,
-                                   nemitt_zeta=None, _force_at_element=None):
-
+                                   nemitt_zeta=None, _force_at_element=None,
+                                  _evaluate_in_context=False):
         # TODO: check consistency of gamma0
+        if not _evaluate_in_context:
+            ctx2np = particles._context.nparray_from_context_array
+            at_element_particles = ctx2np(particles.at_element)
 
-        ctx2np = particles._context.nparray_from_context_array
-        at_element_particles = ctx2np(particles.at_element)
+            part_id = ctx2np(particles.particle_id).copy()
+            at_element = part_id.copy() * 0 + xt.particles.LAST_INVALID_STATE
+            x_norm = ctx2np(particles.x).copy() * 0 + xt.particles.LAST_INVALID_STATE
+            px_norm = x_norm.copy()
+            y_norm = x_norm.copy()
+            py_norm = x_norm.copy()
+            zeta_norm = x_norm.copy()
+            pzeta_norm = x_norm.copy()
 
-        part_id = ctx2np(particles.particle_id).copy()
-        at_element = part_id.copy() * 0 + xt.particles.LAST_INVALID_STATE
-        x_norm = ctx2np(particles.x).copy() * 0 + xt.particles.LAST_INVALID_STATE
-        px_norm = x_norm.copy()
-        y_norm = x_norm.copy()
-        py_norm = x_norm.copy()
-        zeta_norm = x_norm.copy()
-        pzeta_norm = x_norm.copy()
+            at_element_no_rep = list(set(
+                at_element_particles[part_id > xt.particles.LAST_INVALID_STATE]))
 
-        at_element_no_rep = list(set(
-            at_element_particles[part_id > xt.particles.LAST_INVALID_STATE]))
+            for at_ele in at_element_no_rep:
 
-        for at_ele in at_element_no_rep:
+                if _force_at_element is not None:
+                    at_ele = _force_at_element
 
-            if _force_at_element is not None:
-                at_ele = _force_at_element
+                W = self.W_matrix[at_ele]
 
-            W = self.W_matrix[at_ele]
+                mask_at_ele = at_element_particles == at_ele
 
-            mask_at_ele = at_element_particles == at_ele
-
-            if _force_at_element is not None:
-                mask_at_ele = ctx2np(particles.state) > xt.particles.LAST_INVALID_STATE
+                if _force_at_element is not None:
+                    mask_at_ele = ctx2np(particles.state) > xt.particles.LAST_INVALID_STATE
 
 
-            XX_norm  = _W_phys2norm(x = ctx2np(particles.x)[mask_at_ele],
-                                    px = ctx2np(particles.px)[mask_at_ele],
-                                    y = ctx2np(particles.y)[mask_at_ele],
-                                    py = ctx2np(particles.py)[mask_at_ele],
-                                    zeta = ctx2np(particles.zeta)[mask_at_ele],
-                                    pzeta = ctx2np(particles.ptau)[mask_at_ele]/ctx2np(particles.beta0)[mask_at_ele],
-                                    W_matrix = W,
-                                    co_dict = {'x': self.x[at_ele], 'px': self.px[at_ele],
-                                               'y': self.y[at_ele], 'py': self.py[at_ele],
-                                               'zeta': self.zeta[at_ele], 'ptau': self.ptau[at_ele],
-                                               'beta0': self.particle_on_co._xobject.beta0[0],
-                                               'gamma0': self.particle_on_co._xobject.gamma0[0]},
-                                    nemitt_x = nemitt_x,
-                                    nemitt_y = nemitt_y,
-                                    nemitt_zeta = nemitt_zeta)
+                XX_norm  = _W_phys2norm(x = ctx2np(particles.x)[mask_at_ele],
+                                        px = ctx2np(particles.px)[mask_at_ele],
+                                        y = ctx2np(particles.y)[mask_at_ele],
+                                        py = ctx2np(particles.py)[mask_at_ele],
+                                        zeta = ctx2np(particles.zeta)[mask_at_ele],
+                                        pzeta = ctx2np(particles.ptau)[mask_at_ele]/ctx2np(particles.beta0)[mask_at_ele],
+                                        W_matrix = W,
+                                        co_dict = {'x': self.x[at_ele], 'px': self.px[at_ele],
+                                                'y': self.y[at_ele], 'py': self.py[at_ele],
+                                                'zeta': self.zeta[at_ele], 'ptau': self.ptau[at_ele],
+                                                'beta0': self.particle_on_co._xobject.beta0[0],
+                                                'gamma0': self.particle_on_co._xobject.gamma0[0]},
+                                        nemitt_x = nemitt_x,
+                                        nemitt_y = nemitt_y,
+                                        nemitt_zeta = nemitt_zeta)
 
-            x_norm[mask_at_ele] = XX_norm[0, :]
-            px_norm[mask_at_ele] = XX_norm[1, :]
-            y_norm[mask_at_ele] = XX_norm[2, :]
-            py_norm[mask_at_ele] = XX_norm[3, :]
-            zeta_norm[mask_at_ele] = XX_norm[4, :]
-            pzeta_norm[mask_at_ele] = XX_norm[5, :]
-            at_element[mask_at_ele] = at_ele
+                x_norm[mask_at_ele] = XX_norm[0, :]
+                px_norm[mask_at_ele] = XX_norm[1, :]
+                y_norm[mask_at_ele] = XX_norm[2, :]
+                py_norm[mask_at_ele] = XX_norm[3, :]
+                zeta_norm[mask_at_ele] = XX_norm[4, :]
+                pzeta_norm[mask_at_ele] = XX_norm[5, :]
+                at_element[mask_at_ele] = at_ele
 
-        return Table({'particle_id': part_id, 'at_element': at_element,
-                      'x_norm': x_norm, 'px_norm': px_norm, 'y_norm': y_norm,
-                      'py_norm': py_norm, 'zeta_norm': zeta_norm,
-                      'pzeta_norm': pzeta_norm}, index='particle_id')
+            return Table({'particle_id': part_id, 'at_element': at_element,
+                        'x_norm': x_norm, 'px_norm': px_norm, 'y_norm': y_norm,
+                        'py_norm': py_norm, 'zeta_norm': zeta_norm,
+                        'pzeta_norm': pzeta_norm}, index='particle_id')
+        else:
+            return NormalizedParticles._get_normalized_coordinates(
+                self, part=particles, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                nemitt_zeta=nemitt_zeta, _force_at_element=_force_at_element)
+            
 
     def reverse(self):
 
@@ -4195,3 +4204,433 @@ def _add_strengths_to_twiss_res(twiss_res, line):
         twiss_res._data[kk] = tt[kk].copy()
 
 
+class NormalizedParticles(xo.HybridClass):
+    """Class to store particles in normalized coordinates, with the possibility
+    of transforming to and from physical coordinates without the need of breaking
+    GPU parallelism. Can be used in collective elements and other HybridClass
+    elements to perform normalizations and de-normalizations in parallel.
+    """
+
+    _cname = "NormalizedParticlesData"
+
+    size_vars = (
+        (xo.Int64, "_len"),
+        (xo.Int64, "_capacity"),
+        (xo.Int64, "_start_tracking_at_element"),
+    )
+
+    twiss_vars = (
+        (xo.Float64[:, 6], "closed_orbit_data"),
+        (xo.Float64[:, 6, 6], "w"),
+        (xo.Float64[:, 6, 6], "w_inv"),
+        (xo.Float64, "nemitt_x"),
+        (xo.Float64, "nemitt_y"),
+        (xo.Float64, "nemitt_zeta"),
+        (xo.Int64, "force_at_element"),
+        (xo.Int64, "num_elements"),
+    )
+
+    per_particle_vars = (
+        (xo.Float64, "zeta_norm"),
+        (xo.Float64, "pzeta_norm"),
+        (xo.Float64, "x_norm"),
+        (xo.Float64, "y_norm"),
+        (xo.Float64, "px_norm"),
+        (xo.Float64, "py_norm"),
+        (xo.Int64, "particle_id"),
+        (xo.Int64, "state"),
+        (xo.Int64, "at_element"),
+        (xo.Int64, "at_turn"),
+    )
+
+    _xofields = {
+        **{nn: tt for tt, nn in size_vars},
+        **{nn: tt for tt, nn in twiss_vars},
+        **{nn: tt[:] for tt, nn in per_particle_vars},
+    }
+
+    _extra_c_sources = [
+        Path(__file__).parent.joinpath(
+            "particles", "normalized_particles_src", "norm_to_phys.h"
+        ),
+        Path(__file__).parent.joinpath(
+            "particles", "normalized_particles_src", "phys_to_norm.h"
+        ),
+    ]
+
+    _kernels = {
+        "norm_to_phys": xo.Kernel(
+            args=[
+                xo.Arg(xt.Particles._XoStruct, name="part"),
+                xo.Arg(xo.ThisClass, name="norm_part"),
+                xo.Arg(xo.Int64, name="nelem"),
+            ],
+            n_threads="nelem",
+        ),
+        "phys_to_norm": xo.Kernel(
+            args=[
+                xo.Arg(xt.Particles._XoStruct, name="part"),
+                xo.Arg(xo.ThisClass, name="norm_part"),
+                xo.Arg(xo.Int64, name="nelem"),
+            ],
+            n_threads="nelem",
+        ),
+    }
+
+    _depends_on = [xt.Particles]
+
+    def __len__(self):
+        return self._capacity
+
+    def __init__(
+        self,
+        twiss: TwissTable,
+        part: Optional[xt.Particles] = None,
+        nemitt_x: Optional[float] = None,
+        nemitt_y: Optional[float] = None,
+        nemitt_zeta: Optional[float] = None,
+        _force_at_element: Optional[int] = None,
+        _capacity: Optional[int] = None,
+        _context=None,
+        **kwargs,
+    ):
+        """Initialize the NormedParticles object.
+
+        Parameters
+        ----------
+        twiss : xtrack.TwissTable
+            Twiss table of the line to be used for the normalization.
+        part : _type_, optional
+            Particle object to be used as base, by default None
+        nemitt_x : float
+            Normalized emittance in the horizontal plane.
+        nemitt_y : float
+            Normalized emittance in the vertical plane.
+        nemitt_zeta : float, optional
+            Normalized emittance in the longitudinal plane, by default None.
+            If None, a unitary emittance is assumed.
+        _force_at_element : int, optional
+            Index to the fixed element wanted for the normalization, by default None.
+            If None, all the twiss data is used and normalization is done at the
+            "_force_at_element" position of each particle.
+        _capacity : int, optional
+            If no part is given, a storage of size _capacity is allocated.
+        _context : xo.Context, optional
+            xobjects context to be used.
+
+        Raises
+        ------
+        ValueError
+            If neither part nor _capacity is given.
+        """
+        if "_xobject" in kwargs.keys():
+            # Initialize xobject
+            self.xoinitialize(**kwargs)
+            return
+
+        # validate _capacity, is it given or is it to be taken from part?
+        if part is not None:
+            _capacity = part._capacity
+            if _context is not None:
+                if _context != part._context:
+                    raise ValueError(
+                        "The context of the part and the context of the "
+                        "NormalizedParticles object must be the same"
+                    )
+            else:
+                _context = part._context
+        else:
+            if _capacity is None:
+                raise ValueError("Either part or _capacity must be given")
+            if _context is None:
+                raise ValueError("The context must be given if no part is given")
+
+        twiss_data_len = twiss.x.shape[0] if _force_at_element is None else 1
+
+        # Allocate the xobject of the right size
+        self.xoinitialize(
+            _context=_context,
+            _buffer=kwargs.pop("_buffer", None),
+            _offset=kwargs.pop("_offset", None),
+            **{field: _capacity for _, field in self.per_particle_vars},
+            **{
+                "closed_orbit_data": twiss_data_len,
+                "w": twiss_data_len,
+                "w_inv": twiss_data_len,
+            },
+        )
+
+        self._capacity = _capacity
+        self.num_elements = twiss_data_len
+
+        # Get the twiss data for the given twiss object and the given
+        # normalized emittance values
+        self.closed_orbit_data = self._context.nparray_to_context_array(
+            np.array(
+                [
+                    twiss.x,
+                    twiss.px,
+                    twiss.y,
+                    twiss.py,
+                    twiss.zeta,
+                    twiss.ptau,
+                ]
+            ).T
+        )
+
+        self.nemitt_x = np.nan if nemitt_y is None else nemitt_x
+        self.nemitt_y = np.nan if nemitt_x is None else nemitt_y
+        self.nemitt_zeta = np.nan if nemitt_zeta is None else nemitt_zeta
+
+        self.force_at_element = -1 if _force_at_element is None else _force_at_element
+
+        if _force_at_element is not None:
+            self.w = self._context.nparray_to_context_array(
+                np.array(twiss.W_matrix[_force_at_element])
+            )
+            self.w_inv = self._context.nparray_to_context_array(
+                np.linalg.inv(twiss.W_matrix[_force_at_element])
+            )
+        else:
+            self.w = self._context.nparray_to_context_array(
+                [www for www in twiss.W_matrix]
+            )
+            self.w_inv = self._context.nparray_to_context_array(
+                [np.linalg.inv(www) for www in twiss.W_matrix]
+            )
+
+        self.compile_kernels(only_if_needed=True)
+
+        if part is not None:
+            self.phys_to_norm(part=part)
+
+    def phys_to_norm(
+        self,
+        part: xt.Particles,
+        nemitt_x: Optional[float] = None,
+        nemitt_y: Optional[float] = None,
+        nemitt_zeta: Optional[float] = None,
+    ):
+        """Transform the physical coordinates to normalized coordinates.
+        Updates the normed_part attribute.
+
+        Parameters
+        ----------
+        part : xtrack.Particles
+            Particles object to be normalized.
+        nemitt_x : float, optional
+            Normalized emittance in the horizontal plane, by default None.
+            If None, the value in the object is used. If provided, it will
+            override the value in the object.
+        nemitt_y : float, optional
+            Normalized emittance in the vertical plane, by default None.
+            If None, the value in the object is used. If provided, it will
+            override the value in the object.
+        nemitt_zeta : float, optional
+            Normalized emittance in the longitudinal plane, by default None.
+            If None, the value in the object is used. If provided, it will
+            override the value in the object.
+
+        """
+        if nemitt_x is not None:
+            self.nemitt_x = nemitt_x
+        if nemitt_y is not None:
+            self.nemitt_y = nemitt_y
+        if nemitt_zeta is not None:
+            self.nemitt_zeta = nemitt_zeta
+
+        if self._capacity != part._capacity:
+            raise NotImplementedError(
+                "Dynamically resizing the xobject is not implemented yet, consider "
+                "recreating the NormalizedParticles object with the new size"
+            )
+        self._context.kernels.phys_to_norm(
+            part=part,
+            norm_part=self,
+            nelem=self._capacity,
+        )
+
+    def norm_to_phys(
+        self,
+        part: xt.Particles,
+        nemitt_x: Optional[float] = None,
+        nemitt_y: Optional[float] = None,
+        nemitt_zeta: Optional[float] = None,
+    ):
+        """Transform the normalized coordinates to physical coordinates.
+        Updates the given Particles object.
+
+        Parameters
+        ----------
+        part : xtrack.Particles
+            Target particles object to receive the physical coordinates.
+        nemitt_x : float, optional
+            Normalized emittance in the horizontal plane, by default None.
+            If None, the value in the object is used. If provided, it will
+            override the value in the object.
+        nemitt_y : float, optional
+            Normalized emittance in the vertical plane, by default None.
+            If None, the value in the object is used. If provided, it will
+            override the value in the object.
+        nemitt_zeta : float, optional
+            Normalized emittance in the longitudinal plane, by default None.
+            If None, the value in the object is used. If provided, it will
+            override the value in the object.
+
+        Returns
+        -------
+        xtrack.Particles
+            The given particle object with physical coordinates updated.
+        """
+
+        if nemitt_x is not None:
+            self.nemitt_x = nemitt_x
+        if nemitt_y is not None:
+            self.nemitt_y = nemitt_y
+        if nemitt_zeta is not None:
+            self.nemitt_zeta = nemitt_zeta
+
+        self._context.kernels.norm_to_phys(
+            part=part,
+            norm_part=self,
+            nelem=self._capacity,
+        )
+
+        return part
+
+    def get_normalized_coordinates(
+        self,
+        part: Optional[xt.Particles] = None,
+        nemitt_x: Optional[float] = None,
+        nemitt_y: Optional[float] = None,
+        nemitt_zeta: Optional[float] = None,
+    ):
+        """Get the normalized coordinates of the particles in a Table.
+
+        Parameters
+        ----------
+        update : bool, optional
+            If True, the normalized coordinates are updated, by default True.
+        part : xtrack.Particles, optional
+            Particles object to be used, by default None.
+        nemitt_x : float, optional
+            Normalized emittance in the horizontal plane, by default None.
+            If None, the value in the object is used. If provided, it will
+            override the value in the object.
+        nemitt_y : float, optional
+            Normalized emittance in the vertical plane, by default None.
+            If None, the value in the object is used. If provided, it will
+            override the value in the object.
+        nemitt_zeta : float, optional
+            Normalized emittance in the longitudinal plane, by default None.
+            If None, the value in the object is used. If provided, it will
+            override the value in the object.
+
+        Returns
+        -------
+        Table
+            Table object with the normalized coordinates.
+        """
+        if part is not None:
+            if part._capacity != self._capacity:
+                raise NotImplementedError(
+                    "Dynamically resizing the xobject is not implemented yet"
+                )
+            if nemitt_x is not None:
+                self.nemitt_x = nemitt_x
+            if nemitt_y is not None:
+                self.nemitt_y = nemitt_y
+            if nemitt_zeta is not None:
+                self.nemitt_zeta = nemitt_zeta
+
+            self.phys_to_norm(part=part)
+        else:
+            if any([
+                nemitt_x is not None,
+                nemitt_y is not None,
+                nemitt_zeta is not None,
+            ]):
+                raise ValueError(
+                    "If no part is given, nemitt_x, nemitt_y and nemitt_zeta "
+                    "must be None"
+                )
+
+        ctx2np = self._context.nparray_from_context_array
+
+        return Table(
+            {
+                "particle_id": ctx2np(self.particle_id),
+                "at_element": ctx2np(self.at_element),
+                "at_turn": ctx2np(self.at_turn),
+                "x_norm": ctx2np(self.x_norm),
+                "px_norm": ctx2np(self.px_norm),
+                "y_norm": ctx2np(self.y_norm),
+                "py_norm": ctx2np(self.py_norm),
+                "zeta_norm": ctx2np(self.zeta_norm),
+                "pzeta_norm": ctx2np(self.pzeta_norm),
+            },
+            index="particle_id",
+        )
+
+    @classmethod
+    def _get_normalized_coordinates(
+        cls,
+        twiss: TwissTable,
+        part: xt.Particles,
+        nemitt_x: Optional[float] = None,
+        nemitt_y: Optional[float] = None,
+        nemitt_zeta: Optional[float] = None,
+        _force_at_element: Optional[int] = None,
+    ) -> Table:
+        """Helper classmethod to get normalized coordinates in a Table.
+
+        Parameters
+        ----------
+        twiss : xtrack.TwissTable
+            Twiss table of the line to be used for the normalization.
+        part : xtrack.Particles
+            Particles object to be used as base.
+        nemitt_x : float, optional
+            Normalized emittance in the horizontal plane. By default None.
+            If None, a unitary emittance is assumed.
+        nemitt_y : float, optional
+            Normalized emittance in the vertical plane. By default None.
+            If None, a unitary emittance is assumed.
+        nemitt_zeta : float, optional
+            Normalized emittance in the longitudinal plane, by default None.
+            If None, a unitary emittance is assumed.
+        _force_at_element : int, optional
+            Index to the fixed element wanted for the normalization, by default None.
+            If None, all the twiss data is used and normalization is done at the
+            "_force_at_element" position of each particle.
+
+        Returns
+        -------
+        Table
+            Table object with the normalized coordinates.
+        """
+        norm_part = cls(
+            twiss=twiss,
+            part=part,
+            nemitt_x=nemitt_x,
+            nemitt_y=nemitt_y,
+            nemitt_zeta=nemitt_zeta,
+            _force_at_element=_force_at_element,
+        )
+
+        ctx2np = norm_part._context.nparray_from_context_array
+
+        return Table(
+            {
+                "particle_id": ctx2np(norm_part.particle_id),
+                "at_element": ctx2np(norm_part.at_element),
+                "at_turn": ctx2np(norm_part.at_turn),
+                "x_norm": ctx2np(norm_part.x_norm),
+                "px_norm": ctx2np(norm_part.px_norm),
+                "y_norm": ctx2np(norm_part.y_norm),
+                "py_norm": ctx2np(norm_part.py_norm),
+                "zeta_norm": ctx2np(norm_part.zeta_norm),
+                "pzeta_norm": ctx2np(norm_part.pzeta_norm),
+            },
+            index="particle_id",
+        )
