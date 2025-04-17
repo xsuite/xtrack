@@ -174,9 +174,9 @@ void magnet_apply_radiation_single_particle(
                 cos_hxl2 = cos(hx * length / 2);
             }
             // Entry rotation (bend frame)
-            double const spin_x_1 = spin_x_0 * cos_hxl2 - spin_z_0 * sin_hxl2;
+            double const spin_x_1 = spin_x_0 * cos_hxl2 + spin_z_0 * sin_hxl2;
             double const spin_y_1 = spin_y_0;
-            double const spin_z_1 = spin_x_0 * sin_hxl2 + spin_z_0 * cos_hxl2;
+            double const spin_z_1 = -spin_x_0 * sin_hxl2 + spin_z_0 * cos_hxl2;
 
             // BMT rotation
             double const spin_x_2 = M11 * spin_x_1 + M12 * spin_y_1 + M13 * spin_z_1;
@@ -184,9 +184,9 @@ void magnet_apply_radiation_single_particle(
             double const spin_z_2 = M31 * spin_x_1 + M32 * spin_y_1 + M33 * spin_z_1;
 
             // Exit rotation (bend frame)
-            double const spin_x_3 = spin_x_2 * cos_hxl2 - spin_z_2 * sin_hxl2;
+            double const spin_x_3 = spin_x_2 * cos_hxl2 + spin_z_2 * sin_hxl2;
             double const spin_y_3 = spin_y_2;
-            double const spin_z_3 = spin_x_2 * sin_hxl2 + spin_z_2 * cos_hxl2;
+            double const spin_z_3 = -spin_x_2 * sin_hxl2 + spin_z_2 * cos_hxl2;
 
             LocalParticle_set_spin_x(part, spin_x_3);
             LocalParticle_set_spin_y(part, spin_y_3);
