@@ -96,8 +96,6 @@ p_n0b.spin_z = np.sin(phi)
 line.track(p_n0b, turn_by_turn_monitor='ONE_TURN_EBE')
 mon0b = line.record_last_track
 
-prrrr
-
 
 import matplotlib.pyplot as plt
 plt.close('all')
