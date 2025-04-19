@@ -934,6 +934,10 @@ def _twiss_open(line, init,
             zeta  = [0] + list(W_matrix[4, :] * -scale_eigen) + list(W_matrix[4, :] * scale_eigen),
             pzeta = [0] + list(W_matrix[5, :] * -scale_eigen) + list(W_matrix[5, :] * scale_eigen),
             )
+        if spin:
+            part_for_twiss.spin_x = particle_on_co.spin_x[0]
+            part_for_twiss.spin_y = particle_on_co.spin_y[0]
+            part_for_twiss.spin_z = particle_on_co.spin_z[0]
 
         if twiss_orientation == 'forward':
             part_for_twiss.at_element = start
