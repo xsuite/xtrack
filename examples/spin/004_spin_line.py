@@ -76,6 +76,15 @@ opt = xd.Optimize.from_callable(spin_fixed_point, x0=(0., 0.),
                                 show_call_counter=False)
 opt.solve(verbose=False)
 
+tw_spin = line.twiss(
+    spin=True,
+    betx=1., bety=1.,
+    x=tw.x[0], px=tw.px[0], y=tw.y[0], py=tw.py[0],
+    zeta=tw.zeta[0], delta=tw.delta[0],
+    spin_x=opt.get_knob_values()[0],
+    spin_z=opt.get_knob_values()[1],
+    spin_y=np.sqrt(1 - opt.get_knob_values()[0]**2 - opt.get_knob_values()[1]**2))
+
 p_n0 = tw.particle_on_co.copy()
 p_n0.spin_x = opt.get_knob_values()[0]
 p_n0.spin_z = opt.get_knob_values()[1]

@@ -78,6 +78,7 @@ def twiss_line(line, particle_ref=None, method=None,
         radiation_method=None,
         eneloss_and_damping=None,
         radiation_integrals=None,
+        spin=None,
         start=None, end=None, init=None,
         num_turns=None,
         skip_global_quantities=None,
@@ -102,6 +103,7 @@ def twiss_line(line, particle_ref=None, method=None,
         mux=None, muy=None, muzeta=None,
         ax_chrom=None, bx_chrom=None, ay_chrom=None, by_chrom=None,
         ddx=None, ddpx=None, ddy=None, ddpy=None,
+        spin_x=None, spin_y=None, spin_z=None,
         zero_at=None,
         co_search_at=None,
         include_collective=False,
@@ -319,6 +321,7 @@ def twiss_line(line, particle_ref=None, method=None,
     continue_on_closed_orbit_error=(continue_on_closed_orbit_error or False)
     freeze_longitudinal=(freeze_longitudinal or False)
     radiation_method=(radiation_method or None)
+    spin=(spin or False)
     radiation_integrals=(radiation_integrals or False)
     eneloss_and_damping=(eneloss_and_damping or False)
     symplectify=(symplectify or False)
@@ -532,6 +535,7 @@ def twiss_line(line, particle_ref=None, method=None,
         mux=mux, muy=muy, muzeta=muzeta,
         ax_chrom=ax_chrom, bx_chrom=bx_chrom, ay_chrom=ay_chrom, by_chrom=by_chrom,
         ddx=ddx, ddpx=ddpx, ddy=ddy, ddpy=ddpy,
+        spin_x=spin_x, spin_y=spin_y, spin_z=spin_z
         )
     completed_init = (init.copy() if hasattr(init, 'copy') else init)
 
@@ -543,6 +547,7 @@ def twiss_line(line, particle_ref=None, method=None,
     mux=None; muy=None; muzeta=None
     ax_chrom=None; bx_chrom=None; ay_chrom=None; by_chrom=None
     ddx=None; ddpx=None; ddy=None; ddpy=None
+    spin_x=None; spin_y=None; spin_z=None
 
     # Twiss goes through the start of the line
     rv = (-1 if reverse else 1)
@@ -673,14 +678,13 @@ def twiss_line(line, particle_ref=None, method=None,
         hide_thin_groups=hide_thin_groups,
         only_markers=only_markers,
         only_orbit=only_orbit,
+        spin=spin,
         compute_lattice_functions=compute_lattice_functions,
         _continue_if_lost=_continue_if_lost,
         _keep_tracking_data=_keep_tracking_data,
         _keep_initial_particles=_keep_initial_particles,
         _initial_particles=_initial_particles,
         _ebe_monitor=_ebe_monitor)
-
-
 
     if (not only_orbit and (
         (compute_chromatic_properties is True)
@@ -865,6 +869,7 @@ def _twiss_open(line, init,
                       hide_thin_groups=False,
                       only_markers=False,
                       only_orbit=False,
+                      spin=False,
                       compute_lattice_functions=True,
                       _continue_if_lost=False,
                       _keep_tracking_data=False,
@@ -956,10 +961,14 @@ def _twiss_open(line, init,
     else:
         ele_stop_track = end + 1 # to include the last element
 
-    line.track(part_for_twiss, turn_by_turn_monitor=_monitor,
-                ele_start=start,
-                ele_stop=ele_stop_track,
-                backtrack=(twiss_orientation == 'backward'))
+    with xt.line._preserve_config(line):
+        if spin:
+            # Spin is behind the same compile flag as synchrotron radiation
+            line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
+        line.track(part_for_twiss, turn_by_turn_monitor=_monitor,
+                    ele_start=start,
+                    ele_stop=ele_stop_track,
+                    backtrack=(twiss_orientation == 'backward'))
 
     # We keep the monitor to speed up future calls (attached to tracker data
     # so that it is trashed if number of elements changes)
@@ -1003,6 +1012,10 @@ def _twiss_open(line, init,
     kin_ps_co = line.record_last_track.kin_ps[0, i_start:i_stop+1].copy()
     kin_xprime_co = line.record_last_track.kin_xprime[0, i_start:i_stop+1].copy()
     kin_yprime_co = line.record_last_track.kin_yprime[0, i_start:i_stop+1].copy()
+    if spin:
+        spin_x_co = line.record_last_track.spin_x[0, i_start:i_stop+1].copy()
+        spin_y_co = line.record_last_track.spin_y[0, i_start:i_stop+1].copy()
+        spin_z_co = line.record_last_track.spin_z[0, i_start:i_stop+1].copy()
 
     Ws = np.zeros(shape=(len(s_co), 6, 6), dtype=np.float64)
     Ws[:, 0, :] = 0.5 * (line.record_last_track.x[1:7, i_start:i_stop+1] - x_co).T / scale_eigen
@@ -1045,6 +1058,12 @@ def _twiss_open(line, init,
         'kin_yprime': kin_yprime_co,
         'name_env': name_co_env,
     })
+    if spin:
+        twiss_res_element_by_element.update({
+            'spin_x': spin_x_co,
+            'spin_y': spin_y_co,
+            'spin_z': spin_z_co,
+        })
 
     if not only_orbit and compute_lattice_functions:
         lattice_functions, i_replace = _compute_lattice_functions(Ws, use_full_inverse, s_co)
@@ -1215,7 +1234,6 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
         'phizeta': phizeta,
     }
     return res, i_replace
-
 
 def _compute_global_quantities(line, twiss_res):
 
@@ -2529,6 +2547,7 @@ class TwissInit:
                 dx=None, dpx=None, dy=None, dpy=None, dzeta=None,
                 mux=None, muy=None, muzeta=None,
                 ddx=None, ddpx=None, ddy=None, ddpy=None, ddzeta=None,
+                spin_x=None, spin_y=None, spin_z=None,
                 ax_chrom=None, bx_chrom=None, ay_chrom=None, by_chrom=None,
                 reference_frame=None):
 
@@ -2545,6 +2564,9 @@ class TwissInit:
                 py=(py or 0.),
                 zeta=(zeta or 0.),
                 delta=(delta or 0.),
+                spin_x=(spin_x or 0.),
+                spin_y=(spin_y or 0,),
+                spin_z=(spin_z or 0.)
             )
         else:
             assert x is None, "`x` must be None if `particle_on_co` is provided"
@@ -2553,6 +2575,9 @@ class TwissInit:
             assert py is None, "`py` must be None if `particle_on_co` is provided"
             assert zeta is None, "`zeta` must be None if `particle_on_co` is provided"
             assert delta is None, "`delta` must be None if `particle_on_co` is provided"
+            assert spin_x is None, "`spin_x` must be None if `particle_on_co` is provided"
+            assert spin_y is None, "`spin_y` must be None if `particle_on_co` is provided"
+            assert spin_z is None, "`spin_z` must be None if `particle_on_co` is provided"
             assert particle_ref is None, (
                 "`particle_ref` must be None if `particle_on_co` is provided")
             self.__dict__['particle_on_co'] = particle_on_co
@@ -2711,6 +2736,9 @@ class TwissInit:
             particle_on_co = xpart.build_particles(
                 x=self._temp_co_data['x'], px=self._temp_co_data['px'],
                 y=self._temp_co_data['y'], py=self._temp_co_data['py'],
+                spin_x=self._temp_co_data.get('spin_x', 0),
+                spin_y=self._temp_co_data.get('spin_y', 0),
+                spin_z=self._temp_co_data.get('spin_z', 0),
                 delta=self._temp_co_data['delta'], zeta=self._temp_co_data['zeta'],
                 line=line,
                 include_collective=True, # In fact it does not matter
@@ -2814,6 +2842,8 @@ class TwissInit:
         out.particle_on_co.x = -out.particle_on_co.x
         out.particle_on_co.py = -out.particle_on_co.py
         out.particle_on_co.zeta = -out.particle_on_co.zeta
+        out.particle_on_co.spin_x *= -1
+        out.particle_on_co.spin_z *= -1
 
         out.W_matrix[0, :] = -out.W_matrix[0, :]
         out.W_matrix[1, :] = out.W_matrix[1, :]
@@ -3025,6 +3055,11 @@ class TwissTable(Table):
             dzeta = self.dzeta[at_element]
         else:
             dzeta = 0
+
+        if hasattr(self, 'spin_x'):
+            part.spin_x[:] = self.spin_x[at_element]
+            part.spin_y[:] = self.spin_y[at_element]
+            part.spin_z[:] = self.spin_z[at_element]
 
         return TwissInit(particle_on_co=part, W_matrix=W,
                         element_name=str(self.name[at_element]),
@@ -3400,6 +3435,10 @@ class TwissTable(Table):
             out.qs = 0
             out.muzeta[:] = 0
 
+        if 'spin_x' in self.keys():
+            out.spin_x *= -1
+            out.spin_z *= -1
+
         _reverse_strengths(out._data)
 
         out._data['reference_frame'] = {
@@ -3757,7 +3796,8 @@ def _complete_twiss_init(start, end, init_at, init,
                         dx, dpx, dy, dpy, dzeta,
                         mux, muy, muzeta,
                         ax_chrom, bx_chrom, ay_chrom, by_chrom,
-                        ddx, ddpx, ddy, ddpy
+                        ddx, ddpx, ddy, ddpy,
+                        spin_x, spin_y, spin_z
                         ):
 
     if isinstance(init, TwissInit) and init_at is not None:
@@ -3781,6 +3821,7 @@ def _complete_twiss_init(start, end, init_at, init,
                 ax_chrom=ax_chrom, bx_chrom=bx_chrom,
                 ay_chrom=ay_chrom, by_chrom=by_chrom,
                 ddpx=ddpx, ddx=ddx, ddpy=ddpy, ddy=ddy,
+                spin_x=spin_x, spin_y=spin_y, spin_z=spin_z
                 )
         elif isinstance(init, TwissTable):
             init = init.get_twiss_init(at_element=init_at)
