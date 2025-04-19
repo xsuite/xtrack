@@ -23,8 +23,6 @@ line['sol_r_ip6'].ks *= -1
 line['sol_l_ip8'].ks *= -1
 line['sol_r_ip8'].ks *= -1
 
-line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False # To enable spin tracking
-
 tw = line.twiss4d(spin=True)
 tw_ir4 = tw.rows[9997:11200:'s']
 

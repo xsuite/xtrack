@@ -4250,15 +4250,18 @@ def _add_strengths_to_twiss_res(twiss_res, line):
 
 def _find_spin_fixed_point(line, particle_on_co):
 
-    opt = xd.Optimize.from_callable(
-        partial(_errfun_spin, particle_on_co=particle_on_co, line=line),
-        x0=(0., 0.),
-        steps=[1e-4, 1e-4],
-        tar=[0., 0.],
-        limits=[(-1, 1), (-1, 1)],
-        tols=[1e-12, 1e-12],
-        show_call_counter=False)
-    opt.solve(verbose=False)
+    with xt.line._preserve_config(line):
+        # Spin is behind the same compile flag as synchrotron radiation
+        line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
+        opt = xd.Optimize.from_callable(
+            partial(_errfun_spin, particle_on_co=particle_on_co, line=line),
+            x0=(0., 0.),
+            steps=[1e-4, 1e-4],
+            tar=[0., 0.],
+            limits=[(-1, 1), (-1, 1)],
+            tols=[1e-12, 1e-12],
+            show_call_counter=False)
+        opt.solve(verbose=False)
 
     sx_opt = opt.get_knob_values()[0]
     sz_opt = opt.get_knob_values()[1]
