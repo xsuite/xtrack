@@ -76,7 +76,6 @@ opt = xd.Optimize.from_callable(spin_fixed_point, x0=(0., 0.),
                                 show_call_counter=False)
 opt.solve(verbose=False)
 
-breakpoint()
 tw_spin = line.twiss(
     spin=True,
     betx=1., bety=1.,

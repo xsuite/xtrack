@@ -4150,7 +4150,7 @@ def get_non_linear_chromaticity(line, delta0_range, num_delta, fit_order=3, **kw
 
     return out
 
-def _merit_function_co_t_rec(x, line, num_turns):
+def _merit_function_co_t_rev(x, line, num_turns):
     p = line.build_particles(x=x[0], px=x[1], y=x[2], py=x[3], zeta=x[4], delta=x[5])
     line.track(p, num_turns=num_turns, turn_by_turn_monitor=True)
     rec = line.record_last_track
@@ -4168,7 +4168,7 @@ def _find_closed_orbit_search_t_rev(line, num_turns_search_t_rev=None):
     if num_turns_search_t_rev is None:
         num_turns_search_t_rev = DEFAULT_NUM_TURNS_SEARCH_T_REV
 
-    opt = xt.match.opt_from_callable(partial(_merit_function_co_t_rec,
+    opt = xt.match.opt_from_callable(partial(_merit_function_co_t_rev,
                         line=line, num_turns=num_turns_search_t_rev),
                         x0=np.array(6*[0.]),
                         steps=[1e-9, 1e-10, 1e-9, 1e-10, 1e-4, 1e-7],
