@@ -95,8 +95,8 @@ mon0 = line.record_last_track
 
 mask = (mon0.s[0, :] > 9997) & (mon0.s[0, :] < 11200)
 
-
-
+tw_spin = line.twiss4d(spin=True)
+tw_spin_ir4 = tw_spin.rows[9997:11200:'s']
 
 import matplotlib.pyplot as plt
 plt.close('all')

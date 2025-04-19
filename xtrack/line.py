@@ -1727,6 +1727,7 @@ class Line:
                           num_turns=1,
                           co_search_at=None,
                           search_for_t_rev=False,
+                          spin=None,
                           num_turns_search_t_rev=None,
                           symmetrize=False,
                           include_collective=False):
@@ -1804,6 +1805,7 @@ class Line:
                                  start=start, end=end, num_turns=num_turns,
                                  co_search_at=co_search_at,
                                  search_for_t_rev=search_for_t_rev,
+                                 spin=spin,
                                  num_turns_search_t_rev=num_turns_search_t_rev,
                                  symmetrize=symmetrize)
 

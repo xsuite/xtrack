@@ -22,6 +22,7 @@ else:
     trapz = np.trapz
 
 import xobjects as xo
+import xdeps as xd
 from xdeps import Table
 
 from . import linear_normal_form as lnf
@@ -642,6 +643,7 @@ def twiss_line(line, particle_ref=None, method=None,
             num_turns=num_turns,
             co_search_at=co_search_at,
             search_for_t_rev=search_for_t_rev,
+            spin=spin,
             num_turns_search_t_rev=num_turns_search_t_rev,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y, r_sigma=r_sigma,
             compute_R_element_by_element=compute_R_element_by_element,
@@ -1838,6 +1840,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             num_turns=1,
                             co_search_at=None,
                             search_for_t_rev=False,
+                            spin=None,
                             num_turns_search_t_rev=1,
                             compute_R_element_by_element=False,
                             only_markers=False,
@@ -1882,6 +1885,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                 num_turns=num_turns,
                                 co_search_at=co_search_at,
                                 search_for_t_rev=search_for_t_rev,
+                                spin=spin,
                                 num_turns_search_t_rev=num_turns_search_t_rev,
                                 symmetrize=(periodic_mode == 'periodic_symmetric'),
                                 include_collective=include_collective
@@ -2154,7 +2158,8 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
                       search_for_t_rev=False,
                       continue_on_closed_orbit_error=False,
                       num_turns_search_t_rev=None,
-                      symmetrize=False):
+                      symmetrize=False,
+                      spin=True):
 
     if search_for_t_rev:
         assert line.particle_ref is not None
@@ -2295,6 +2300,12 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
     particle_on_co.delta = res[5]
 
     particle_on_co._fsolve_info = fsolve_info
+
+    if spin:
+        spin_x, spin_y, spin_z = _find_spin_fixed_point(line, particle_on_co)
+        particle_on_co.spin_x = spin_x
+        particle_on_co.spin_y = spin_y
+        particle_on_co.spin_z = spin_z
 
     return particle_on_co
 
@@ -4237,4 +4248,35 @@ def _add_strengths_to_twiss_res(twiss_res, line):
         twiss_res._col_names.append(kk)
         twiss_res._data[kk] = tt[kk].copy()
 
+def _find_spin_fixed_point(line, particle_on_co):
 
+    pp = particle_on_co.copy()
+    def _errfun_spin(s):
+
+        sx = s[0]
+        sz = s[1]
+        sy = np.sqrt(1 - sx**2 - sz**2)
+
+        pp.spin_x = sx
+        pp.spin_z = sz
+        pp.spin_y = sy
+
+        line.track(pp)
+
+        return np.array([pp.spin_x[0] - sx,
+                         pp.spin_y[0] - sy,
+                         pp.spin_z[0] - sz])
+
+    opt = xd.Optimize.from_callable(_errfun_spin, x0=(0., 0.),
+                                steps=[1e-4, 1e-4],
+                                tar=[0., 0.],
+                                limits=[(-1, 1), (-1, 1)],
+                                tols=[1e-12, 1e-12],
+                                show_call_counter=False)
+    opt.solve(verbose=False)
+
+    sx_opt = opt.get_knob_values()[0]
+    sz_opt = opt.get_knob_values()[1]
+    sy_opt = np.sqrt(1 - sx_opt**2 - sz_opt**2)
+
+    return (sz_opt, sy_opt, sx_opt)
