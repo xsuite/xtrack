@@ -22,6 +22,18 @@ void YRotation_track_local_particle(YRotationData el, LocalParticle* part0){
         YRotation_single_particle(part, sin_angle, cos_angle, tan_angle);
     //end_per_particle_block
 
+    // Rotate spin
+    //start_per_particle_block (part0->part)
+        double const spin_x_0 = LocalParticle_get_spin_x(part);
+        double const spin_z_0 = LocalParticle_get_spin_z(part);
+        if ((spin_x_0 != 0) || (spin_z_0 != 0)){
+            double const spin_x_1 = cos_angle*spin_x_0 + sin_angle*spin_z_0;
+            double const spin_z_1 = -sin_angle*spin_x_0 + cos_angle*spin_z_0;
+            LocalParticle_set_spin_x(part, spin_x_1);
+            LocalParticle_set_spin_z(part, spin_z_1);
+        }
+    //end_per_particle_block
+
 }
 
 #endif /* XTRACK_YROTATION_H */
