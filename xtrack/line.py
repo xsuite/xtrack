@@ -2130,7 +2130,7 @@ class Line:
         '''
 
         assert mode in ["upstream", "downstream"]
-        s_prev = 0
+        s_prev = 0.
         s = []
         for ee in self.elements:
             if mode == "upstream":
