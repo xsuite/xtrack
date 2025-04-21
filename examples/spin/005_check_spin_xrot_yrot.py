@@ -37,3 +37,15 @@ tw = line.twiss(spin=True,
 xo.assert_allclose(tw.spin_y, 1., rtol=0, atol=1e-9)
 xo.assert_allclose(tw.spin_x, 0., rtol=0, atol=1e-9)
 xo.assert_allclose(tw.spin_z, 0., rtol=0, atol=1e-9)
+
+tw = line.twiss(spin=True,
+              betx=10,
+              bety=10,
+              spin_x=1.)
+
+xo.assert_allclose(tw.spin_z,
+                   np.array([ 0.,  0., 2.07911691e-01, 2.07911691e-01, 0.,  0.]),
+                   rtol=0, atol=1e-9)
+xo.assert_allclose(tw.spin_y, 0, rtol=0, atol=1e-9)
+xo.assert_allclose(tw.spin_x**2 + tw.spin_y**2 + tw.spin_z**2, 1.,
+    rtol=0, atol=1e-9)
