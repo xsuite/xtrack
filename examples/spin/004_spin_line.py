@@ -15,17 +15,9 @@ line = xt.Line.from_json('lep_corrected_sol.json')
 line.particle_ref.anomalous_magnetic_moment=0.00115965218128
 spin_tune = line.particle_ref.anomalous_magnetic_moment[0]*line.particle_ref.gamma0[0]
 
-# line['sol_l_ip2'].ks *= -1
-# line['sol_r_ip2'].ks *= -1
-# line['sol_l_ip4'].ks *= -1
-# line['sol_r_ip4'].ks *= -1
-# line['sol_l_ip6'].ks *= -1
-# line['sol_r_ip6'].ks *= -1
-# line['sol_l_ip8'].ks *= -1
-# line['sol_r_ip8'].ks *= -1
-
 line['on_spin_bumps'] = 1.
 
+# I flip the bumps (Jorg had probably opposite solenoids)
 line.vars['kcv32.l2'] = ' 3.14467e-05 * on_spin_bumps * (-1)'
 line.vars['kcv26.l2'] = ' 6.28933e-05 * on_spin_bumps * (-1)'
 line.vars['kcv20.l2'] = ' 3.14467e-05 * on_spin_bumps * (-1)'
@@ -69,30 +61,13 @@ tw_rad_off = line.twiss(spin=True, eneloss_and_damping=True)
 line['on_spin_bumps'] = 1.
 tw_rad_on = line.twiss(spin=True, eneloss_and_damping=True)
 
-
-# p_off = line.build_particles(particle_on_co=tw_rad_off.particle_on_co,
-#                      W_matrix=tw_rad_off.W_matrix[0],
-#                      x_norm=np.zeros(100),
-#                      y_norm=0,
-#                      spin_x=tw_rad_off.spin_x[0],
-#                      spin_y=tw_rad_off.spin_y[0],
-#                      spin_z=tw_rad_off.spin_z[0])
-
-# p_on = line.build_particles(particle_on_co=tw_rad_on.particle_on_co,
-#                         W_matrix=tw_rad_on.W_matrix[0],
-#                         x_norm=np.zeros(100),
-#                         y_norm=0,
-#                         spin_x=tw_rad_on.spin_x[0],
-#                         spin_y=tw_rad_on.spin_y[0],
-#                         spin_z=tw_rad_on.spin_z[0])
-
 line['on_spin_bumps'] = 0.
 p_off = xp.generate_matched_gaussian_bunch(
     line=line,
     nemitt_x=tw_rad_off.eq_nemitt_x,
     nemitt_y=tw_rad_off.eq_nemitt_y,
     sigma_z=np.sqrt(tw_rad_off.eq_gemitt_zeta * tw_rad_off.bets0),
-    num_particles=100,
+    num_particles=1000,
     engine='linear')
 # Need to patch the longitudinal plane
 p_off.zeta += tw_rad_off.zeta[0]
@@ -108,7 +83,7 @@ p_on = xp.generate_matched_gaussian_bunch(
     nemitt_x=tw_rad_on.eq_nemitt_x,
     nemitt_y=tw_rad_on.eq_nemitt_y,
     sigma_z=np.sqrt(tw_rad_on.eq_gemitt_zeta * tw_rad_on.bets0),
-    num_particles=100,
+    num_particles=1000,
     engine='linear')
 # Need to patch the longitudinal plane
 p_on.zeta += tw_rad_on.zeta[0]
@@ -142,7 +117,6 @@ pol_x_on = mon_on.spin_x.mean(axis=0)
 pol_y_on = mon_on.spin_y.mean(axis=0)
 pol_z_on = mon_on.spin_z.mean(axis=0)
 pol_on = np.sqrt(pol_x_on**2 + pol_y_on**2 + pol_z_on**2)
-
 
 import matplotlib.pyplot as plt
 plt.close('all')
