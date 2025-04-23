@@ -23,7 +23,7 @@ void SimpleThinBend_track_local_particle(SimpleThinBendData el, LocalParticle* p
             length = -length;
         #endif
 
-        PER_PARTICLE_BLOCK(part0, part, {
+        START_PER_PARTICLE_BLOCK(part0, part);
             double const chi = LocalParticle_get_chi(part);
 
             double dpx = - chi * knl0;
@@ -49,7 +49,7 @@ void SimpleThinBend_track_local_particle(SimpleThinBendData el, LocalParticle* p
             }
 
             LocalParticle_add_to_px(part, dpx);
-        });
+        END_PER_PARTICLE_BLOCK;
 }
 
 #endif

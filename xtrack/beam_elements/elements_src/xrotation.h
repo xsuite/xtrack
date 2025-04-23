@@ -20,10 +20,9 @@ void XRotation_track_local_particle(XRotationData el, LocalParticle* part0){
         tan_angle = -tan_angle;
     #endif
 
-    PER_PARTICLE_BLOCK(part0, part, {
+    START_PER_PARTICLE_BLOCK(part0, part);
         XRotation_single_particle(part, sin_angle, cos_angle, tan_angle);
-    });
-
+    END_PER_PARTICLE_BLOCK;
 }
 
 #endif /* XTRACK_XROTATION_H */

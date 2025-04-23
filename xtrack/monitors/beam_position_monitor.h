@@ -26,7 +26,7 @@ void BeamPositionMonitor_track_local_particle(BeamPositionMonitorData el, LocalP
 
     int64_t max_slot = BeamPositionMonitorRecord_len_count(record);
 
-    PER_PARTICLE_BLOCK(part0, part, {
+    START_PER_PARTICLE_BLOCK(part0, part);
         int64_t particle_id = LocalParticle_get_particle_id(part);
         if (particle_id_stop < 0 || (particle_id_start <= particle_id && particle_id < particle_id_stop))
         {
@@ -54,8 +54,7 @@ void BeamPositionMonitor_track_local_particle(BeamPositionMonitorData el, LocalP
                 atomicAdd(y_sum, y);
             }
         }
-	});
-
+    END_PER_PARTICLE_BLOCK;
 }
 
 #endif

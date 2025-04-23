@@ -17,12 +17,9 @@ void ZetaShift_track_local_particle(ZetaShiftData el, LocalParticle* part0){
         dzeta = -dzeta;
     #endif
 
-    PER_PARTICLE_BLOCK(part0, part, {
-
+    START_PER_PARTICLE_BLOCK(part0, part);
         LocalParticle_add_to_zeta(part, -dzeta);
-
-    });
-
+    END_PER_PARTICLE_BLOCK;
 }
 
 #endif

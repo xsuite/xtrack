@@ -471,7 +471,7 @@ void track_magnet_particles(
         );
     }
 
-    PER_PARTICLE_BLOCK(part0, part, {
+    START_PER_PARTICLE_BLOCK(part0, part);
         track_magnet_body_single_particle(
             part, core_length, order, inv_factorial_order,
             knl, ksl,
@@ -484,7 +484,7 @@ void track_magnet_particles(
             radiation_flag, radiation_record,
             &dp_record_exit, &dpx_record_exit, &dpy_record_exit
         );
-    });
+    END_PER_PARTICLE_BLOCK;
 
     if (edge_exit_active){
         double kn[] = {k0, k1, k2, k3};

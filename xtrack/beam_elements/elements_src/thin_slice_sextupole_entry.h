@@ -26,7 +26,7 @@ void ThinSliceSextupoleEntry_track_local_particle(
         double const kn[3] = {0, 0, k2};
         double const ks[3] = {0, 0, k2s};
 
-        PER_PARTICLE_BLOCK(part0, part, {
+        START_PER_PARTICLE_BLOCK(part0, part);
         MultFringe_track_single_particle(
             part,
             kn,
@@ -39,7 +39,7 @@ void ThinSliceSextupoleEntry_track_local_particle(
             /* is_exit */ 0,
             /* min_order */ 0
         );
-        });
+        END_PER_PARTICLE_BLOCK;
     }
 
 }

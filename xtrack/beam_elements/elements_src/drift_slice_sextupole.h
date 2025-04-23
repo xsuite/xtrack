@@ -22,10 +22,9 @@ void DriftSliceSextupole_track_local_particle(
         double const length = -weight * DriftSliceSextupoleData_get__parent_length(el); // m
     #endif
 
-    PER_PARTICLE_BLOCK(part0, part, {
+    START_PER_PARTICLE_BLOCK(part0, part);
         Drift_single_particle(part, length);
-    });
-
+    END_PER_PARTICLE_BLOCK;
 }
 
 #endif

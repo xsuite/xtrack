@@ -35,21 +35,21 @@ void ThinSliceRBendEntry_track_local_particle(
                 r21 = -r21;
                 r43 = -r43;
             #endif
-            PER_PARTICLE_BLOCK(part0, part, {
+            START_PER_PARTICLE_BLOCK(part0, part);
                 DipoleEdgeLinear_single_particle(part, r21, r43);
-            });
+            END_PER_PARTICLE_BLOCK;
         }
         else if (edge_entry_model==1){
             #ifdef XSUITE_BACKTRACK
-                PER_PARTICLE_BLOCK(part0, part, {
+                START_PER_PARTICLE_BLOCK(part0, part);
                     LocalParticle_kill_particle(part, -32);
-                });
+                END_PER_PARTICLE_BLOCK;
                 return;
             #else
-                PER_PARTICLE_BLOCK(part0, part, {
+                START_PER_PARTICLE_BLOCK(part0, part);
                     DipoleEdgeNonLinear_single_particle(part, k0, edge_entry_angle,
                                         edge_entry_fint, edge_entry_hgap, 0);
-                });
+                END_PER_PARTICLE_BLOCK;
             #endif
         }
     } // end edge entry

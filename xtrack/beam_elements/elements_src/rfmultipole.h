@@ -25,7 +25,7 @@ void RFMultipole_track_local_particle(RFMultipoleData el, LocalParticle* part0){
         voltage = -voltage;
     #endif
 
-    PER_PARTICLE_BLOCK(part0, part, {
+    START_PER_PARTICLE_BLOCK(part0, part);
         double const k = frequency * ( 2.0 * PI / C_LIGHT);
 
         double const x = LocalParticle_get_x(part);
@@ -89,9 +89,7 @@ void RFMultipole_track_local_particle(RFMultipoleData el, LocalParticle* part0){
         LocalParticle_add_to_px(part, px_kick);
         LocalParticle_add_to_py(part, py_kick);
         LocalParticle_add_to_energy(part, energy_kick, 1);
-
-    });
-
+    END_PER_PARTICLE_BLOCK;
 }
 
 #endif

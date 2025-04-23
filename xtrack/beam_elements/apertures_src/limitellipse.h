@@ -17,21 +17,21 @@ void LimitEllipse_track_local_particle(LimitEllipseData el, LocalParticle* part0
     double const b_squ = LimitEllipseData_get_b_squ(el);
     double const a_b_squ = LimitEllipseData_get_a_b_squ(el);
 
-    PER_PARTICLE_BLOCK(part0, part, {
+    START_PER_PARTICLE_BLOCK(part0, part);
+
         double const x = LocalParticle_get_x(part);
         double const y = LocalParticle_get_y(part);
 
-	double const temp = x*x*b_squ + y*y*a_squ;
+        double const temp = x*x*b_squ + y*y*a_squ;
 
-	int64_t const is_alive = (int64_t)( temp <= a_b_squ );
+        int64_t const is_alive = (int64_t)( temp <= a_b_squ );
 
-	// I assume that if I am in the function is because
-    	if (!is_alive){
-           LocalParticle_set_state(part, XT_LOST_ON_APERTURE);
-	}
+        // I assume that if I am in the function is because
+            if (!is_alive){
+               LocalParticle_set_state(part, XT_LOST_ON_APERTURE);
+        }
 
-    });
-
+    END_PER_PARTICLE_BLOCK;
 }
 
 #endif

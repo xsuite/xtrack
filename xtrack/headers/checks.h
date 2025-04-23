@@ -11,9 +11,9 @@
 
 GPUFUN
 void kill_all_particles(LocalParticle* part0, int64_t kill_state) {
-    PER_PARTICLE_BLOCK(part0, part, {
+    START_PER_PARTICLE_BLOCK(part0, part);
         LocalParticle_kill_particle(part, kill_state);
-    });
+    END_PER_PARTICLE_BLOCK;
 }
 
 

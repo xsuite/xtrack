@@ -102,13 +102,13 @@ void Bend_track_local_particle_from_params(LocalParticle* part0,
 
             if (no_slice_needed){
                 // printf("No slicing needed\n");
-                PER_PARTICLE_BLOCK(part0, part, {
+                START_PER_PARTICLE_BLOCK(part0, part);
                     track_thick_bend(part, length, k0_drift, h);
-                });
+                END_PER_PARTICLE_BLOCK;
             }
             else{
                 for (int ii = 0; ii < num_slices; ii++) {
-                    PER_PARTICLE_BLOCK(part0, part, {
+                    START_PER_PARTICLE_BLOCK(part0, part);
                         track_thick_bend(part, slice_length * d_yoshida[0], k0_drift, h);
                         track_multipolar_kick_bend(
                             part, order, inv_factorial_order, knl, ksl, factor_knl_ksl,
@@ -138,7 +138,7 @@ void Bend_track_local_particle_from_params(LocalParticle* part0,
                             part, order, inv_factorial_order, knl, ksl, factor_knl_ksl,
                             kick_weight * k_yoshida[0], k0_kick, k1, h, length);
                         track_thick_bend(part, slice_length * d_yoshida[0], k0_drift, h);
-                    });
+                    END_PER_PARTICLE_BLOCK;
                 }
             }
 
@@ -146,7 +146,7 @@ void Bend_track_local_particle_from_params(LocalParticle* part0,
     if (model==4){
         const double slice_length = length / (num_multipole_kicks + 1);
         const double kick_weight = 1. / num_multipole_kicks;
-        PER_PARTICLE_BLOCK(part0, part, {
+        START_PER_PARTICLE_BLOCK(part0, part);
             track_thick_cfd(part, slice_length, k0, k1, h);
 
             for (int ii = 0; ii < num_multipole_kicks; ii++) {
@@ -155,7 +155,7 @@ void Bend_track_local_particle_from_params(LocalParticle* part0,
                             kick_weight, 0, 0, 0, 0);
                 track_thick_cfd(part, slice_length, k0, k1, h);
             }
-        });
+        END_PER_PARTICLE_BLOCK;
     }
 }
 

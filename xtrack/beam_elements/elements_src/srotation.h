@@ -19,10 +19,9 @@ void SRotation_track_local_particle(SRotationData el, LocalParticle* part0){
         sin_z = -sin_z;
     #endif
 
-    PER_PARTICLE_BLOCK(part0, part, {
+    START_PER_PARTICLE_BLOCK(part0, part);
         SRotation_single_particle(part, sin_z, cos_z);
-    });
-
+    END_PER_PARTICLE_BLOCK;
 }
 
 #endif /* XTRACK_SROTATION_H */

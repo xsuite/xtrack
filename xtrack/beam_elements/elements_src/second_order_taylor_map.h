@@ -15,7 +15,7 @@ void SecondOrderTaylorMap_track_local_particle(SecondOrderTaylorMapData el,
 
     double const length = SecondOrderTaylorMapData_get_length(el);
 
-    PER_PARTICLE_BLOCK(part0, part, {
+    START_PER_PARTICLE_BLOCK(part0, part);
 
         double z_in[6];
         double z_out[6];
@@ -55,10 +55,7 @@ void SecondOrderTaylorMap_track_local_particle(SecondOrderTaylorMapData el,
 
         LocalParticle_add_to_s(part, length);
 
-
-    });
-
-
-    }
+    END_PER_PARTICLE_BLOCK;
+}
 
 #endif

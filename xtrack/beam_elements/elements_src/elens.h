@@ -29,8 +29,7 @@ void Elens_track_local_particle(ElensData el, LocalParticle* part0){
     GPUGLMEM double const* coefficients_polynomial =
                                 ElensData_getp1_coefficients_polynomial(el, 0);
 
-    PER_PARTICLE_BLOCK(part0, part, {
-
+    START_PER_PARTICLE_BLOCK(part0, part);
         // electron mass
         double const EMASS  = 510998.928;
         // speed of light
@@ -153,7 +152,7 @@ void Elens_track_local_particle(ElensData el, LocalParticle* part0){
         // LocalParticle_add_to_py(part, dpy);
 
         // LocalParticle_set_py(part, py_hat);
-    });
+    END_PER_PARTICLE_BLOCK;
 }
 
 #endif

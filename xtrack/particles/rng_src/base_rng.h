@@ -9,7 +9,7 @@
 #include <headers/track.h>
 
 // Only include if compiled standalone, outside of Xsuite
-#ifndef PER_PARTICLE_BLOCK
+#ifndef START_PER_PARTICLE_BLOCK
 #include <stdint.h>
 #endif
 

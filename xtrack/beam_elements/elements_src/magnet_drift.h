@@ -21,11 +21,11 @@ void MagnetDrift_track_local_particle(
     const double h = MagnetDriftData_get_h(el);
     const int64_t drift_model = MagnetDriftData_get_drift_model(el);
 
-    PER_PARTICLE_BLOCK(part0, part, {
+    START_PER_PARTICLE_BLOCK(part0, part);
         track_magnet_drift_single_particle(
             part, length, k0, k1, h, drift_model
         );
-    });
+    END_PER_PARTICLE_BLOCK;
 }
 
 #endif

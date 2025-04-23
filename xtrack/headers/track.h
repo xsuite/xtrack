@@ -10,16 +10,16 @@
 #ifdef XO_CONTEXT_CPU_SERIAL
     // We are on CPU, without OpenMP
 
-    #define PER_PARTICLE_BLOCK(SRC_PART, DEST_PART, ...) { \
+    #define START_PER_PARTICLE_BLOCK(SRC_PART, DEST_PART) { \
             const int64_t XT_part_block_start_idx = 0; \
             const int64_t XT_part_block_end_idx = LocalParticle_get__num_active_particles((SRC_PART)); \
             for (int64_t XT_part_block_ii = XT_part_block_start_idx; XT_part_block_ii<XT_part_block_end_idx; XT_part_block_ii++) \
             { \
                 LocalParticle lpart = *(SRC_PART); \
                 LocalParticle* DEST_PART = &lpart; \
-                part->ipart = XT_part_block_ii; \
-                __VA_ARGS__ \
-                ; \
+                part->ipart = XT_part_block_ii;
+
+    #define END_PER_PARTICLE_BLOCK \
             } \
         }
 #endif  // XO_CONTEXT_CPU_SERIAL
@@ -27,7 +27,7 @@
 #ifdef XO_CONTEXT_CPU_OPENMP
     // We are on CPU with the OpenMP context switched on
 
-    #define PER_PARTICLE_BLOCK(SRC_PART, DEST_PART, ...) { \
+    #define START_PER_PARTICLE_BLOCK(SRC_PART, DEST_PART) { \
             const int64_t _part_block_start_idx = (SRC_PART)->ipart; \
             const int64_t _part_block_end_idx = (SRC_PART)->endpart; \
             for (int64_t _part_block_idx = _part_block_start_idx; _part_block_idx < _part_block_end_idx; _part_block_idx++) \
@@ -36,9 +36,9 @@
                 LocalParticle* DEST_PART = &lpart; \
                 part->ipart = _part_block_idx; \
                 \
-                if (LocalParticle_get_state(DEST_PART) > 0) { \
-                    __VA_ARGS__ \
-                    ; \
+                if (LocalParticle_get_state(DEST_PART) > 0) {
+
+    #define END_PER_PARTICLE_BLOCK \
                 } \
             } \
         }
@@ -48,10 +48,10 @@
 #ifdef XO_CONTEXT_CUDA
     // We are on a CUDA GPU
 
-        #define PER_PARTICLE_BLOCK(SRC_PART, DEST_PART, ...) { \
-                LocalParticle* DEST_PART = (SRC_PART); \
-                __VA_ARGS__ \
-                ; \
+    #define START_PER_PARTICLE_BLOCK(SRC_PART, DEST_PART) { \
+            LocalParticle* DEST_PART = (SRC_PART);
+
+    #define END_PER_PARTICLE_BLOCK \
             }
 #endif  // XO_CONTEXT_CUDA
 
@@ -59,10 +59,10 @@
 #ifdef XO_CONTEXT_CL
     // We are on an OpenCL GPU
 
-        #define PER_PARTICLE_BLOCK(SRC_PART, DEST_PART, CODE) { \
-                LocalParticle* DEST_PART = (SRC_PART); \
-                CODE \
-                ; \
+    #define START_PER_PARTICLE_BLOCK(SRC_PART, DEST_PART) { \
+            LocalParticle* DEST_PART = (SRC_PART);
+
+    #define END_PER_PARTICLE_BLOCK \
             }
 #endif  // XO_CONTEXT_CL
 
@@ -105,7 +105,7 @@
 #define NONZERO(X) ((X) != 0.0)
 
 
-#ifndef PER_PARTICLE_BLOCK
+#ifndef START_PER_PARTICLE_BLOCK
 #error "Unknown context, or the expected context (XO_CONTEXT_*) flag undefined. Try updating Xobjects?"
 #endif
 

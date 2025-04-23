@@ -17,9 +17,9 @@ void Wedge_track_local_particle(
     const double angle = WedgeData_get_angle(el);
     const double k = WedgeData_get_k(el);
 
-    PER_PARTICLE_BLOCK(part0, part, {
+    START_PER_PARTICLE_BLOCK(part0, part);
         Wedge_single_particle(part, angle, k);
-    });
+    END_PER_PARTICLE_BLOCK;
 }
 
 #endif // XTRACK_WEDGE_H

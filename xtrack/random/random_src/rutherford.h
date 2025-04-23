@@ -112,12 +112,12 @@ double RandomRutherford_generate(RandomRutherfordData rng, LocalParticle* part){
 GPUFUN
 void RandomRutherford_sample(RandomRutherfordData rng, LocalParticle* part0,
                              GPUGLMEM double* samples, int64_t n_samples_per_seed){
-    PER_PARTICLE_BLOCK(part0, part, {
+    START_PER_PARTICLE_BLOCK(part0, part);
         for (int i = 0; i < n_samples_per_seed; ++i){
             double val = RandomRutherford_generate(rng, part);
             samples[n_samples_per_seed*LocalParticle_get_particle_id(part) + i] = val;
         }
-    });
+    END_PER_PARTICLE_BLOCK;
 }
 
 

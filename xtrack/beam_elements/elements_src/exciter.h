@@ -31,8 +31,7 @@ void Exciter_track_local_particle(ExciterData el, LocalParticle* part0){
         #define XTRACK_EXCITER_SIGN (+1)
     #endif
 
-    PER_PARTICLE_BLOCK(part0, part, {
-
+    START_PER_PARTICLE_BLOCK(part0, part);
         // zeta is the absolute path length deviation from the reference particle: zeta = (s - beta0*c*t)
         // but without limits, i.e. it can exceed the circumference (for coasting beams)
         // as the particle falls behind or overtakes the reference particle
@@ -79,10 +78,7 @@ void Exciter_track_local_particle(ExciterData el, LocalParticle* part0){
             LocalParticle_add_to_py(part, + chi * dpy);
 
         }
- 
-
-    });
-
+    END_PER_PARTICLE_BLOCK;
 }
 
 #endif

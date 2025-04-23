@@ -40,8 +40,7 @@ void DipoleEdge_track_local_particle(DipoleEdgeData el, LocalParticle* part0){
             r43 = -r43;
         #endif
 
-        PER_PARTICLE_BLOCK(part0, part, {
-
+        START_PER_PARTICLE_BLOCK(part0, part);
             #ifdef XTRACK_DIPOLEEDGE_TAPER
                 double const delta_taper = LocalParticle_get_delta(part);
                 r21 = r21 * (1 + delta_taper);
@@ -49,16 +48,15 @@ void DipoleEdge_track_local_particle(DipoleEdgeData el, LocalParticle* part0){
             #endif
 
             DipoleEdgeLinear_single_particle(part, r21, r43);
-
-        });
+        END_PER_PARTICLE_BLOCK;
 
     }
     else if (model == 1){
 
         #ifdef XSUITE_BACKTRACK
-            PER_PARTICLE_BLOCK(part0, part, {
+            START_PER_PARTICLE_BLOCK(part0, part);
                 LocalParticle_kill_particle(part, -32);
-            });
+            END_PER_PARTICLE_BLOCK;
             return;
         #else
 
@@ -68,9 +66,9 @@ void DipoleEdge_track_local_particle(DipoleEdgeData el, LocalParticle* part0){
         double const k = DipoleEdgeData_get_k(el);
         int64_t const side = DipoleEdgeData_get_side(el);
 
-        PER_PARTICLE_BLOCK(part0, part, {
+        START_PER_PARTICLE_BLOCK(part0, part);
             DipoleEdgeNonLinear_single_particle(part, k, e1, fint, hgap, side);
-        });
+        END_PER_PARTICLE_BLOCK;
 
         #endif
     }

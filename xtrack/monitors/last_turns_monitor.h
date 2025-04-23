@@ -20,7 +20,7 @@ void LastTurnsMonitor_track_local_particle(LastTurnsMonitorData el, LocalParticl
     int64_t every_n_turns = LastTurnsMonitorData_get_every_n_turns(el);
     LastTurnsData data = LastTurnsMonitorData_getp_data(el);
 
-    PER_PARTICLE_BLOCK(part0, part, {
+    START_PER_PARTICLE_BLOCK(part0, part);
         int64_t particle_id = LocalParticle_get_particle_id(part);
         int64_t at_turn = LocalParticle_get_at_turn(part);
 
@@ -50,7 +50,7 @@ void LastTurnsMonitor_track_local_particle(LastTurnsMonitorData el, LocalParticl
             LastTurnsData_set_delta(data, slot, LocalParticle_get_delta(part));
             LastTurnsData_set_zeta(data, slot, LocalParticle_get_zeta(part));
         }
-    });
+    END_PER_PARTICLE_BLOCK;
 
 }
 

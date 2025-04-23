@@ -24,56 +24,54 @@ void ParticlesMonitor_track_local_particle(ParticlesMonitorData el,
 
     int64_t n_turns_record = stop_at_turn - start_at_turn;
 
-    PER_PARTICLE_BLOCK(part0, part, {
-    int64_t at_turn;
-    if (ebe_mode){
-        at_turn = LocalParticle_get_at_element(part);
-    }
-    else{
-        #ifdef XSUITE_BACKTRACK
-        return; // do not log (only ebe monitor supported for now in backtrack)
-        #else
-        at_turn = LocalParticle_get_at_turn(part);
+    START_PER_PARTICLE_BLOCK(part0, part);
+        int64_t at_turn;
+        if (ebe_mode){
+            at_turn = LocalParticle_get_at_element(part);
+        }
+        else{
+            #ifdef XSUITE_BACKTRACK
+            return; // do not log (only ebe monitor supported for now in backtrack)
+            #else
+            at_turn = LocalParticle_get_at_turn(part);
+            #endif
+        }
+        if (n_repetitions == 1){
+            if (at_turn>=start_at_turn && at_turn<stop_at_turn){
+                int64_t const particle_id = LocalParticle_get_particle_id(part);
+                if (particle_id<part_id_end && particle_id>=part_id_start){
+                    int64_t const store_at =
+                        n_turns_record * (particle_id - part_id_start)
+                        + at_turn - start_at_turn;
+                    LocalParticle_to_Particles(part, data, store_at, 0);
+                }
+            }
+        }
+        else if (n_repetitions > 1){
+            if (at_turn < start_at_turn){
+                return; //only_for_context cuda opencl
+                break; //only_for_context cpu_serial cpu_openmp
+            }
+            int64_t const i_frame = (at_turn - start_at_turn) / repetition_period;
+            if (i_frame < n_repetitions
+                     && at_turn >= start_at_turn + i_frame*repetition_period
+                     && at_turn < stop_at_turn + i_frame*repetition_period
+                 ){
+                int64_t const particle_id = LocalParticle_get_particle_id(part);
+                if (particle_id<part_id_end && particle_id>=part_id_start){
+                    int64_t const store_at =
+                        n_turns_record * (part_id_end  - part_id_start) * i_frame
+                        + n_turns_record * (particle_id - part_id_start)
+                        + (at_turn - i_frame * repetition_period) - start_at_turn;
+                    LocalParticle_to_Particles(part, data, store_at, 0);
+                }
+            }
+        }
+
+        #ifdef XSUITE_RESTORE_LOSS
+        LocalParticle_set_state(part, 1);
         #endif
-    }
-    if (n_repetitions == 1){
-        if (at_turn>=start_at_turn && at_turn<stop_at_turn){
-            int64_t const particle_id = LocalParticle_get_particle_id(part);
-            if (particle_id<part_id_end && particle_id>=part_id_start){
-                int64_t const store_at =
-                    n_turns_record * (particle_id - part_id_start)
-                    + at_turn - start_at_turn;
-                LocalParticle_to_Particles(part, data, store_at, 0);
-            }
-        }
-    }
-    else if (n_repetitions > 1){
-        if (at_turn < start_at_turn){
-            return; //only_for_context cuda opencl
-            break; //only_for_context cpu_serial cpu_openmp
-        }
-        int64_t const i_frame = (at_turn - start_at_turn) / repetition_period;
-        if (i_frame < n_repetitions
-                 && at_turn >= start_at_turn + i_frame*repetition_period
-                 && at_turn < stop_at_turn + i_frame*repetition_period
-             ){
-            int64_t const particle_id = LocalParticle_get_particle_id(part);
-            if (particle_id<part_id_end && particle_id>=part_id_start){
-                int64_t const store_at =
-                    n_turns_record * (part_id_end  - part_id_start) * i_frame
-                    + n_turns_record * (particle_id - part_id_start)
-                    + (at_turn - i_frame * repetition_period) - start_at_turn;
-                LocalParticle_to_Particles(part, data, store_at, 0);
-            }
-        }
-    }
-
-    #ifdef XSUITE_RESTORE_LOSS
-    LocalParticle_set_state(part, 1);
-    #endif
-
-    });
-
+    END_PER_PARTICLE_BLOCK;
 }
 
 #endif
