@@ -65,27 +65,58 @@ line['vrfc231'] = 15
 
 line.configure_radiation(model='mean')
 line['on_spin_bumps'] = 0.
-tw_rad_off = line.twiss(spin=True)
+tw_rad_off = line.twiss(spin=True, eneloss_and_damping=True)
 line['on_spin_bumps'] = 1.
-tw_rad_on = line.twiss(spin=True)
+tw_rad_on = line.twiss(spin=True, eneloss_and_damping=True)
 
 
-p_off = line.build_particles(particle_on_co=tw_rad_off.particle_on_co,
-                     W_matrix=tw_rad_off.W_matrix[0],
-                     x_norm=np.zeros(100),
-                     y_norm=0,
-                     spin_x=tw_rad_off.spin_x[0],
-                     spin_y=tw_rad_off.spin_y[0],
-                     spin_z=tw_rad_off.spin_z[0])
+# p_off = line.build_particles(particle_on_co=tw_rad_off.particle_on_co,
+#                      W_matrix=tw_rad_off.W_matrix[0],
+#                      x_norm=np.zeros(100),
+#                      y_norm=0,
+#                      spin_x=tw_rad_off.spin_x[0],
+#                      spin_y=tw_rad_off.spin_y[0],
+#                      spin_z=tw_rad_off.spin_z[0])
 
-p_on = line.build_particles(particle_on_co=tw_rad_on.particle_on_co,
-                        W_matrix=tw_rad_on.W_matrix[0],
-                        x_norm=np.zeros(100),
-                        y_norm=0,
-                        spin_x=tw_rad_on.spin_x[0],
-                        spin_y=tw_rad_on.spin_y[0],
-                        spin_z=tw_rad_on.spin_z[0])
+# p_on = line.build_particles(particle_on_co=tw_rad_on.particle_on_co,
+#                         W_matrix=tw_rad_on.W_matrix[0],
+#                         x_norm=np.zeros(100),
+#                         y_norm=0,
+#                         spin_x=tw_rad_on.spin_x[0],
+#                         spin_y=tw_rad_on.spin_y[0],
+#                         spin_z=tw_rad_on.spin_z[0])
 
+line['on_spin_bumps'] = 0.
+p_off = xp.generate_matched_gaussian_bunch(
+    line=line,
+    nemitt_x=tw_rad_off.eq_nemitt_x,
+    nemitt_y=tw_rad_off.eq_nemitt_y,
+    sigma_z=np.sqrt(tw_rad_off.eq_gemitt_zeta * tw_rad_off.bets0),
+    num_particles=100,
+    engine='linear')
+# Need to patch the longitudinal plane
+p_off.zeta += tw_rad_off.zeta[0]
+p_off.delta += tw_rad_off.delta[0]
+
+p_off.spin_x = tw_rad_off.spin_x[0]
+p_off.spin_y = tw_rad_off.spin_y[0]
+p_off.spin_z = tw_rad_off.spin_z[0]
+
+line['on_spin_bumps'] = 1.
+p_on = xp.generate_matched_gaussian_bunch(
+    line=line,
+    nemitt_x=tw_rad_on.eq_nemitt_x,
+    nemitt_y=tw_rad_on.eq_nemitt_y,
+    sigma_z=np.sqrt(tw_rad_on.eq_gemitt_zeta * tw_rad_on.bets0),
+    num_particles=100,
+    engine='linear')
+# Need to patch the longitudinal plane
+p_on.zeta += tw_rad_on.zeta[0]
+p_on.delta += tw_rad_on.delta[0]
+
+p_on.spin_x = tw_rad_on.spin_x[0]
+p_on.spin_y = tw_rad_on.spin_y[0]
+p_on.spin_z = tw_rad_on.spin_z[0]
 
 line.configure_radiation(model='quantum')
 
