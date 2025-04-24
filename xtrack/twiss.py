@@ -3757,6 +3757,12 @@ class TwissTable(Table):
         damping_constant_y_s = r0/3 * gamma0**3 * clight/self.circumference * (i2 - i4y)
         damping_constant_zeta_s = r0/3 * gamma0**3 * clight/self.circumference * (2*i2 + i4x + i4y)
 
+        # Velocity direction (for spin)
+        tempv = np.sqrt(xp**2 + yp**2 + 1)
+        iv_x = xp / tempv
+        iv_y = yp / tempv
+        iv_z = 1 / tempv
+
         cols = {
             'rad_int_kappax': kappa_x,
             'rad_int_kappay': kappa_y,
@@ -3776,6 +3782,9 @@ class TwissTable(Table):
             'rad_int_kappa_x': kappa_x,
             'rad_int_kappa_y': kappa_y,
             'rad_int_kappa': kappa,
+            'rad_int_iv_x': iv_x,
+            'rad_int_iv_y': iv_y,
+            'rad_int_iv_z': iv_z,
         }
 
         scalars = {

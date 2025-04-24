@@ -3,6 +3,9 @@ import xdeps as xd
 import numpy as np
 import xobjects as xo
 import xpart as xp
+from scipy.constants import e as qe
+from scipy.constants import c as clight
+from scipy.constants import hbar
 
 # env = xt.load_madx_lattice('../../test_data/sps_thick/sps.seq')
 # env.vars.load_madx('../../test_data/sps_thick/lhc_q20.str')
@@ -43,15 +46,40 @@ line.vars['kcv20.r8'] = '-4.67179e-05 * on_spin_bumps * (-1)'
 line.vars['kcv26.r8'] = '-9.34358e-05 * on_spin_bumps * (-1)'
 line.vars['kcv32.r8'] = '-4.67179e-05 * on_spin_bumps * (-1)'
 
-tw = line.twiss4d(spin=True)
+line['on_spin_bumps'] = 0
+tw_off = line.twiss4d(spin=True, radiation_integrals=True)
+line['on_spin_bumps'] = 1
+
+tw = line.twiss4d(spin=True, radiation_integrals=True)
 tw_ir4 = tw.rows[9997:11200:'s']
 
+ttww = tw_off
+
+kappa = ttww.rad_int_kappa
+iv_x = ttww.rad_int_iv_x
+iv_y = ttww.rad_int_iv_y
+iv_z = ttww.rad_int_iv_z
+
+n0_iv = ttww.spin_x * iv_x + ttww.spin_y * iv_y + ttww.spin_z * iv_z
+r0 = ttww.particle_on_co.get_classical_particle_radius0()
+m0_J = ttww.particle_on_co.mass0 * qe
+m0_kg = m0_J / clight**2
+tp_inv = (5 * np.sqrt(3) / 8 * r0 * hbar * ttww.gamma0**5 / (m0_kg * ttww.circumference)
+    * np.sum(kappa**3 * (1 - 2./9. * n0_iv**2) * ttww.length))
+
+tp_s = 1 / tp_inv
+tp_turn = tp_s / ttww.T_rev0
+
+
+
+prrrr
+
+# Check normalization and closure of spin vector
 xo.assert_allclose(tw.spin_x**2 + tw.spin_y**2 + tw.spin_z**2,
                    1, atol=1e-12, rtol=0)
 xo.assert_allclose(tw.spin_x[0], tw.spin_x[-1], atol=1e-10, rtol=0)
 xo.assert_allclose(tw.spin_y[0], tw.spin_y[-1], atol=1e-10, rtol=0)
 xo.assert_allclose(tw.spin_z[0], tw.spin_z[-1], atol=1e-10, rtol=0)
-
 
 line['vrfc231'] = 15
 
