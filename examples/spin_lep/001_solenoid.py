@@ -32,32 +32,39 @@ line['ksol.8'] = '0.0118735050 * on_sol.8'
 line.vars.default_to_zero = False
 
 # # March spin bump ip 2
-spin_tol = 1e-4
-line['on_sol.2'] = 1
-opt = line.match_knob(
-    run=False,
-    spin=True,
-    default_tol=1e-10,
-    knob_name='on_spin_corr_2.l',
-    start = 'ip1', end='ip3',
-    betx=1, bety=1, spin_y=1,
-    vary=xt.VaryList(['kcv32.l2',
-                      'kcv26.l2',
-                      'kcv20.l2',
-                      'kcv20.r2',
-                      'kcv26.r2',
-                      'kcv32.r2',
-                      ], step=1e-6),
-    targets=[
-        xt.TargetSet(spin_x=xt.LessThan(spin_tol), at='ip2'),
-        xt.TargetSet(spin_x=xt.GreaterThan(-spin_tol), at='ip2'),
-        xt.TargetSet(spin_x=xt.LessThan(spin_tol), spin_z=xt.LessThan(spin_tol), at='sf.qf33.r2'),
-        xt.TargetSet(spin_x=xt.GreaterThan(-spin_tol), spin_z=xt.GreaterThan(-spin_tol), at='sf.qf33.r2'),
-        xt.TargetSet(y=0,    py=0, at='sd.qd20.l2', weight=100),
-        xt.TargetSet(y=0,    py=0, at='sf.qf33.r2', weight=100),
-    ])
-opt.run_jacobian(10)
+line.vars.default_to_zero = True
+line.vars['kcv32.l2'] = ' 3.14467e-05 * on_spin_bumps * (-1)'
+line.vars['kcv26.l2'] = ' 6.28933e-05 * on_spin_bumps * (-1)'
+line.vars['kcv20.l2'] = ' 3.14467e-05 * on_spin_bumps * (-1)'
+line.vars['kcv20.r2'] = '-3.14467e-05 * on_spin_bumps * (-1)'
+line.vars['kcv26.r2'] = '-6.28933e-05 * on_spin_bumps * (-1)'
+line.vars['kcv32.r2'] = '-3.14467e-05 * on_spin_bumps * (-1)'
+line.vars['kcv32.l4'] = ' 5.21432e-05 * on_spin_bumps * (-1)'
+line.vars['kcv26.l4'] = ' 0.000104286 * on_spin_bumps * (-1)'
+line.vars['kcv20.l4'] = ' 5.21432e-05 * on_spin_bumps * (-1)'
+line.vars['kcv20.r4'] = '-5.21432e-05 * on_spin_bumps * (-1)'
+line.vars['kcv26.r4'] = '-0.000104286 * on_spin_bumps * (-1)'
+line.vars['kcv32.r4'] = '-5.21432e-05 * on_spin_bumps * (-1)'
+line.vars['kcv32.l6'] = '  1.3513e-05 * on_spin_bumps * (-1)'
+line.vars['kcv26.l6'] = '  2.7026e-05 * on_spin_bumps * (-1)'
+line.vars['kcv20.l6'] = '  1.3513e-05 * on_spin_bumps * (-1)'
+line.vars['kcv20.r6'] = ' -1.3513e-05 * on_spin_bumps * (-1)'
+line.vars['kcv26.r6'] = ' -2.7026e-05 * on_spin_bumps * (-1)'
+line.vars['kcv32.r6'] = ' -1.3513e-05 * on_spin_bumps * (-1)'
+line.vars['kcv32.l8'] = ' 4.67179e-05 * on_spin_bumps * (-1)'
+line.vars['kcv26.l8'] = ' 9.34358e-05 * on_spin_bumps * (-1)'
+line.vars['kcv20.l8'] = ' 4.67179e-05 * on_spin_bumps * (-1)'
+line.vars['kcv20.r8'] = '-4.67179e-05 * on_spin_bumps * (-1)'
+line.vars['kcv26.r8'] = '-9.34358e-05 * on_spin_bumps * (-1)'
+line.vars['kcv32.r8'] = '-4.67179e-05 * on_spin_bumps * (-1)'
 
+line['on_sol.2'] = 1
+line['on_sol.4'] = 1
+line['on_sol.6'] = 1
+line['on_sol.8'] = 1
+line['on_spin_bumps'] = 1
+
+tw = line.twiss4d(spin=True, radiation_integrals=True)
 
 
 
