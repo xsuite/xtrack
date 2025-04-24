@@ -9,6 +9,15 @@ line = xt.Line.from_json('lep_sol.json')
 line.particle_ref.anomalous_magnetic_moment=0.00115965218128
 spin_tune = line.particle_ref.anomalous_magnetic_moment[0]*line.particle_ref.gamma0[0]
 
+# Match tunes
+opt = line.match(
+    method='4d',
+    solve=False,
+    vary=xt.VaryList(['kqf', 'kqd'], step=1e-4),
+    targets=xt.TargetSet(qx=65.34, qy=71.1, tol=1e-4)
+)
+opt.solve()
+
 tw = line.twiss4d(spin=True, radiation_integrals=True)
 
 # All off
@@ -232,6 +241,7 @@ plt.plot(pol_sol_bump, label=r'sol & bump - $P_{eq}$ = ' f'{tw_sol_bump["pol"]:.
 
 plt.xlabel('turns')
 plt.ylabel('polarization')
+plt.suptitle(f'qx = {tw_sol_bump_rad.qx:.2f}, qy = {tw_sol_bump_rad.qy:.2f}, qs = {tw_sol_bump_rad.qs:.2f}')
 plt.legend()
 
 plt.show()
