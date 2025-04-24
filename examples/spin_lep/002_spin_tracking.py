@@ -14,7 +14,7 @@ opt = line.match(
     method='4d',
     solve=False,
     vary=xt.VaryList(['kqf', 'kqd'], step=1e-4),
-    targets=xt.TargetSet(qx=65.34, qy=71.1, tol=1e-4)
+    targets=xt.TargetSet(qx=65.28, qy=71.1, tol=1e-4)
 )
 opt.solve()
 
