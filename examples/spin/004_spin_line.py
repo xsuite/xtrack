@@ -32,7 +32,7 @@ line['sol_r_ip8'].ks *= line.ref['on_sol']
 for nn in line.vars.get_table().rows['kqt.*'].name:
     line[nn] = 0
 
-line['on_sol'] = 0.
+line['on_sol'] = 1.
 
 # I flip the bumps (Jorg had probably opposite solenoids)
 line['on_spin_bumps'] = 1.
@@ -61,11 +61,13 @@ line.vars['kcv20.r8'] = '-4.67179e-05 * on_spin_bumps * (-1)'
 line.vars['kcv26.r8'] = '-9.34358e-05 * on_spin_bumps * (-1)'
 line.vars['kcv32.r8'] = '-4.67179e-05 * on_spin_bumps * (-1)'
 
-line['on_spin_bumps'] = 0; line['on_sol'] = 0
+line['on_spin_bumps'] = 1; line['on_sol'] = 0
 tw_off = line.twiss4d(spin=True, radiation_integrals=True)
-line['on_spin_bumps'] = 0; line['on_sol'] = 1
+line['on_spin_bumps'] = 1; line['on_sol'] = 1
 tw = line.twiss4d(spin=True, radiation_integrals=True)
 tw_ir4 = tw.rows[9997:11200:'s']
+
+prrrr
 
 for ttww in [tw_off, tw]:
 
