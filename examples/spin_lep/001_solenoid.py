@@ -59,11 +59,11 @@ line['kcv26.r8'] = '+9.34358e-05 * on_spin_bump.8'
 line['kcv32.r8'] = '+4.67179e-05 * on_spin_bump.8'
 line.vars.default_to_zero = False
 
-line['on_sol.2'] = 1
+line['on_sol.2'] = 0
 line['on_sol.4'] = 0
 line['on_sol.6'] = 0
 line['on_sol.8'] = 0
-line['on_spin_bump.2'] = 1
+line['on_spin_bump.2'] = 0
 line['on_spin_bump.4'] = 0
 line['on_spin_bump.6'] = 0
 line['on_spin_bump.8'] = 0
@@ -72,4 +72,36 @@ tw = line.twiss4d(spin=True, radiation_integrals=True)
 
 tw.plot('spin_z spin_x')
 
+# Correct coupling ip2 sol alone
+line['on_sol.2'] = 1
+
+opt = line.match_knob(
+    'on_coupl_sol.2',
+    run=False,
+    method='4d',
+    vary=xt.VaryList(['kqt4.2', 'kqt3.2', 'kqt2.2', 'kqt1.l2']),
+    targets=xt.TargetList(c_minus_re_0=0, c_minus_im_0=0, tol=1e-4),
+)
+opt.run_jacobian(40)
+opt.generate_knob()
+
+# Correct coupling ip2 sol and spin bump
+line['on_sol.2'] = 1
+line['on_spin_bump.2'] = 1
+line['on_coupl_sol.2'] = 1
+opt = line.match_knob(
+    'on_coupl_sol_bump.2',
+    run=False,
+    method='4d',
+    vary=xt.VaryList(['kqt4.2', 'kqt3.2', 'kqt2.2', 'kqt1.l2']),
+    targets=xt.TargetList(c_minus_re_0=0, c_minus_im_0=0, tol=5e-4),
+)
+opt.run_jacobian(40)
+opt.generate_knob()
+
+line['on_sol.2'] = 1
+line['on_spin_bump.2'] = 1
+line['on_coupl_sol.2'] = 1
+line['on_coupl_sol_bump.2'] = 1
+tw = line.twiss4d(spin=True, radiation_integrals=True)
 
