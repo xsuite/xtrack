@@ -2475,6 +2475,8 @@ def compute_one_turn_matrix_finite_differences(
         RR[:, jj] = (temp_mat[:, jj+1] - temp_mat[:, jj+1+6])/(2*dd)
 
     out = {'R_matrix': RR}
+    out['steps_r_matrix'] = steps_r_matrix
+    out['part_temp'] = part_temp
 
     if element_by_element:
         mon = line.record_last_track
@@ -2495,6 +2497,8 @@ def compute_one_turn_matrix_finite_differences(
             mask_twiss[-1] = True # to include the "_end_point"
 
         out['R_matrix_ebe'] = RR_ebe
+        out['mon_ebe'] = mon
+
     else:
         out['R_matrix_ebe'] = None
 

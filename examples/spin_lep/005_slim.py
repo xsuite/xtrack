@@ -8,6 +8,7 @@ line.particle_ref.anomalous_magnetic_moment=0.00115965218128
 line.particle_ref.gamma0 = 89207.78287659843 # to have a spin tune of 103.45
 spin_tune = line.particle_ref.anomalous_magnetic_moment[0]*line.particle_ref.gamma0[0]
 
+line['vrfc231'] = 12.65 # qs=0.6
 
 # All off
 line['on_sol.2'] = 1
@@ -65,3 +66,19 @@ mm[0, :] = mon0.spin_x[2, :]
 mm[1, :] = mon0.spin_y[2, :]
 mm[2, :] = mon0.spin_z[2, :]
 
+out = line.compute_one_turn_matrix_finite_differences(particle_on_co=tw.particle_on_co,
+                                                      element_by_element=True)
+mon_r_ebe = out['mon_ebe']
+
+mon_alpha = mon_r_ebe.spin_x * 0
+mon_beta = mon_r_ebe.spin_x * 0
+
+for ipart in range(mon_alpha.shape[0]):
+
+    spin_part = np.zeros((3, mon_alpha.shape[1]))
+    spin_part[0, :] = mon_r_ebe.spin_x[ipart, :]
+    spin_part[1, :] = mon_r_ebe.spin_y[ipart, :]
+    spin_part[2, :] = mon_r_ebe.spin_z[ipart, :]
+
+    mon_alpha[ipart, :] = np.sum(spin_part * ll, axis=0)
+    mon_beta[ipart, :] = np.sum(spin_part * mm, axis=0)
