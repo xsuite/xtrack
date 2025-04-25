@@ -179,13 +179,28 @@ class OrbitCorrectionSinglePlane:
             else:
                 monitor_names = monitor_names
 
-        if corrector_bounds is None:
-            corrector_bounds = getattr(line, f'corrector_bounds_{plane}')
-
         assert len(monitor_names) > 0
         assert len(corrector_names) > 0
 
+        if corrector_bounds is None:
+            corrector_bounds = getattr(line, f'corrector_bounds_{plane}')
+
         if corrector_bounds is not None:
+            assert isinstance(corrector_bounds, tuple)
+            assert len(corrector_bounds) == 2
+
+            if isinstance(corrector_bounds[0], (int, float)):
+                corrector_bounds = (
+                    np.ones(len(corrector_names)) * corrector_bounds[0],
+                    np.ones(len(corrector_names)) * corrector_bounds[1]
+                )
+
+            elif isinstance(corrector_bounds[0], (list, tuple)):
+                corrector_bounds = (
+                    np.array(corrector_bounds[0]),
+                    np.array(corrector_bounds[1])
+                )
+            
             assert len(corrector_bounds) == 2
             assert len(corrector_bounds[0]) == len(corrector_bounds[1])
             assert len(corrector_bounds[0]) == len(corrector_names)

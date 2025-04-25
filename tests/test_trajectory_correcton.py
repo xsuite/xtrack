@@ -531,3 +531,104 @@ def test_orbit_correction_tilt_monitors():
 
     # Check that there is no vertical reading in the tilted bpm BPMs
     xo.assert_allclose(correction.y_correction._position_before, 0, atol=1e-15, rtol=0)
+
+def test_orbit_correction_with_bounds():
+
+    line = xt.Line.from_json(test_data_folder
+                             / 'hllhc15_thick/lhc_thick_with_knobs.json')
+    line.build_tracker()
+    tt = line.get_table()
+
+    # Define elements to be used as monitors for orbit correction
+    tt_monitors = tt.rows['bpm.*','.*(?<!_entry)$','.*(?<!_exit)$']
+    line.steering_monitors_x = tt_monitors.name
+    line.steering_monitors_y = tt_monitors.name
+
+    # Define elements to be used as correctors for orbit correction
+    tt_h_correctors = tt.rows['mcb.*'].rows[r'.*h\..*']
+    line.steering_correctors_x = tt_h_correctors.name
+    tt_v_correctors = tt.rows['mcb.*'].rows[r'.*v\..*']
+    line.steering_correctors_y = tt_v_correctors.name
+
+    # Reference twiss (no misalignments)
+    tw_ref = line.twiss4d()
+
+    # Introduce misalignments on all quadrupoles
+    tt = line.get_table()
+    tt_quad = tt.rows[tt.element_type == 'Quadrupole']
+    rgen = np.random.RandomState(1) # fix seed for random number generator
+    shift_x = rgen.randn(len(tt_quad)) * 0.01e-3 # 0.01 mm rms shift on all quads
+    shift_y = rgen.randn(len(tt_quad)) * 0.01e-3 # 0.01 mm rms shift on all quads
+    for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
+        line.element_refs[nn_quad].shift_x = sx
+        line.element_refs[nn_quad].shift_y = sy
+
+    # Twiss before correction
+    tw_before = line.twiss4d()
+
+    # Define bounds for correctors (in radians)
+    bounds_x = (-5e-6, 5e-6)  # ±5 µrad
+    bounds_y = (-2e-6, 2e-6)  # ±2 µrad
+
+    # Set bounds on the line
+    line.corrector_bounds_x = bounds_x
+    line.corrector_bounds_y = bounds_y
+
+    # First test: Basic method with bounds
+    orbit_correction_basic = line.correct_trajectory(twiss_table=tw_ref)
+
+    # Twiss after basic correction
+    tw_after_basic = line.twiss4d()
+
+    # Extract correction strength from basic method
+    kicks_x_basic = orbit_correction_basic.x_correction.get_kick_values()
+    kicks_y_basic = orbit_correction_basic.y_correction.get_kick_values()
+
+    # Verify that the basic correction stays within bounds
+    assert np.all(kicks_x_basic >= bounds_x[0])
+    assert np.all(kicks_x_basic <= bounds_x[1])
+    assert np.all(kicks_y_basic >= bounds_y[0])
+    assert np.all(kicks_y_basic <= bounds_y[1])
+
+    # Verify that the orbit is corrected with basic method
+    assert tw_before.x.std() > 1e-3
+    assert tw_before.y.std() > 1e-3
+    assert tw_after_basic.y.std() < 1e-4
+    assert tw_after_basic.x.std() < 1e-4
+
+    # Clear correction
+    orbit_correction_basic.clear_correction_knobs()
+
+    # Second test: Micado method with bounds
+    n_micado = 5
+    orbit_correction_micado = line.correct_trajectory(twiss_table=tw_ref, n_micado=n_micado, n_iter=1)
+
+    # Twiss after micado correction
+    tw_after_micado = line.twiss4d()
+
+    # Extract correction strength from micado method
+    kicks_x_micado = orbit_correction_micado.x_correction.get_kick_values()
+    kicks_y_micado = orbit_correction_micado.y_correction.get_kick_values()
+
+    print(kicks_x_micado)
+    print(kicks_y_micado)
+
+    # Verify that the micado correction stays within bounds
+    assert np.all(kicks_x_micado >= bounds_x[0])
+    assert np.all(kicks_x_micado <= bounds_x[1])
+    assert np.all(kicks_y_micado >= bounds_y[0])
+    assert np.all(kicks_y_micado <= bounds_y[1])
+
+    # Verify that the orbit is corrected with micado method
+    assert tw_after_micado.y.std() < 1e-4
+    assert tw_after_micado.x.std() < 1e-4
+
+    # Verify that micado uses at most the specified number of correctors
+    assert np.sum(np.abs(kicks_x_micado) > 1e-10) <= n_micado
+    assert np.sum(np.abs(kicks_y_micado) > 1e-10) <= n_micado
+
+    # Compare the two methods
+    # Basic method should use more correctors
+    assert np.sum(np.abs(kicks_x_basic) > 1e-10) > n_micado
+    assert np.sum(np.abs(kicks_y_basic) > 1e-10) > n_micado
+
