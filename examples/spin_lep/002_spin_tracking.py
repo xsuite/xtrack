@@ -66,10 +66,10 @@ line.build_tracker(_context=xo.ContextCpu(omp_num_threads=10))
 line.track(p_bare, num_turns=num_turns, turn_by_turn_monitor=True,
            with_progress=10)
 mon_bare = line.record_last_track
-
-pol_x_bare = mon_bare.spin_x.sum(axis=0)/mon_bare.state.sum(axis=0)
-pol_y_bare = mon_bare.spin_y.sum(axis=0)/mon_bare.state.sum(axis=0)
-pol_z_bare = mon_bare.spin_z.sum(axis=0)/mon_bare.state.sum(axis=0)
+mask_alive = mon_bare.state > 0
+pol_x_bare = mon_bare.spin_x.sum(axis=0)/mask_alive.sum(axis=0)
+pol_y_bare = mon_bare.spin_y.sum(axis=0)/mask_alive.sum(axis=0)
+pol_z_bare = mon_bare.spin_z.sum(axis=0)/mask_alive.sum(axis=0)
 pol_bare = np.sqrt(pol_x_bare**2 + pol_y_bare**2 + pol_z_bare**2)
 
 line.configure_radiation(model=None)
@@ -108,9 +108,10 @@ line.build_tracker(_context=xo.ContextCpu(omp_num_threads=10))
 line.track(p_sol, num_turns=num_turns, turn_by_turn_monitor=True,
            with_progress=10)
 mon_sol = line.record_last_track
-pol_x_sol = mon_sol.spin_x.sum(axis=0)/mon_sol.state.sum(axis=0)
-pol_y_sol = mon_sol.spin_y.sum(axis=0)/mon_sol.state.sum(axis=0)
-pol_z_sol = mon_sol.spin_z.sum(axis=0)/mon_sol.state.sum(axis=0)
+mask_alive = mon_sol.state > 0
+pol_x_sol = mon_sol.spin_x.sum(axis=0)/mask_alive.sum(axis=0)
+pol_y_sol = mon_sol.spin_y.sum(axis=0)/mask_alive.sum(axis=0)
+pol_z_sol = mon_sol.spin_z.sum(axis=0)/mask_alive.sum(axis=0)
 pol_sol = np.sqrt(pol_x_sol**2 + pol_y_sol**2 + pol_z_sol**2)
 
 line.configure_radiation(model=None)
@@ -148,9 +149,10 @@ line.build_tracker(_context=xo.ContextCpu(omp_num_threads=10))
 line.track(p_sol_bump, num_turns=num_turns, turn_by_turn_monitor=True,
            with_progress=10)
 mon_sol_bump = line.record_last_track
-pol_x_sol_bump = mon_sol_bump.spin_x.sum(axis=0)/mon_sol_bump.state.sum(axis=0)
-pol_y_sol_bump = mon_sol_bump.spin_y.sum(axis=0)/mon_sol_bump.state.sum(axis=0)
-pol_z_sol_bump = mon_sol_bump.spin_z.sum(axis=0)/mon_sol_bump.state.sum(axis=0)
+mask_alive = mon_sol_bump.state > 0
+pol_x_sol_bump = mon_sol_bump.spin_x.sum(axis=0)/mask_alive.sum(axis=0)
+pol_y_sol_bump = mon_sol_bump.spin_y.sum(axis=0)/mask_alive.sum(axis=0)
+pol_z_sol_bump = mon_sol_bump.spin_z.sum(axis=0)/mask_alive.sum(axis=0)
 pol_sol_bump = np.sqrt(pol_x_sol_bump**2 + pol_y_sol_bump**2 + pol_z_sol_bump**2)
 line.configure_radiation(model=None)
 line.discard_tracker()
