@@ -18,8 +18,9 @@ from ..general import _pkg_root
 from xtrack.beam_elements.magnets import (
     _INDEX_TO_INTEGRATOR, _INTEGRATOR_TO_INDEX, _MODEL_TO_INDEX_CURVED,
     _INDEX_TO_MODEL_CURVED, _MODEL_TO_INDEX_STRAIGHT, _INDEX_TO_MODEL_STRAIGHT,
-    DEFAULT_MULTIPOLE_ORDER, SynchrotronRadiationRecord, _prepare_multipolar_params,
-    _NOEXPR_FIELDS
+    DEFAULT_MULTIPOLE_ORDER, SynchrotronRadiationRecord,
+    _prepare_multipolar_params,
+    _NOEXPR_FIELDS, _INDEX_TO_EDGE_MODEL, _EDGE_MODEL_TO_INDEX,
 )
 from xtrack.internal_record import RecordIndex
 
@@ -816,41 +817,25 @@ class _BendCommon:
 
     @property
     def edge_entry_model(self):
-        return {
-            0: 'linear',
-            1: 'full',
-            2: 'dypole-only',
-           -1: 'suppressed',
-        }[self._edge_entry_model]
+        return _INDEX_TO_EDGE_MODEL[self._edge_entry_model]
 
     @edge_entry_model.setter
     def edge_entry_model(self, value):
-        assert value in ['linear', 'full', 'suppressed', 'dipole-only']
-        self._edge_entry_model = {
-            'linear': 0,
-            'full': 1,
-            'dipole-only': 2,
-            'suppressed': -1,
-        }[value]
+        try:
+            self._edge_entry_model = _EDGE_MODEL_TO_INDEX[value]
+        except KeyError:
+            raise ValueError(f'Invalid model: {value}')
 
     @property
     def edge_exit_model(self):
-        return {
-            0: 'linear',
-            1: 'full',
-            2: 'dipole-only',
-           -1: 'suppressed',
-        }[self._edge_exit_model]
+        return _INDEX_TO_EDGE_MODEL[self._edge_exit_model]
 
     @edge_exit_model.setter
     def edge_exit_model(self, value):
-        assert value in ['linear', 'full', 'suppressed', 'dipole-only']
-        self._edge_exit_model = {
-            'linear': 0,
-            'full': 1,
-            'dipole-only': 2,
-            'suppressed': -1,
-        }[value]
+        try:
+            self._edge_exit_model = _EDGE_MODEL_TO_INDEX[value]
+        except KeyError:
+            raise ValueError(f'Invalid model: {value}')
 
     @property
     def _repr_fields(self):

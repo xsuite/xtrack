@@ -2150,3 +2150,50 @@ def test_octupole_num_kicks():
     xo.assert_allclose(tw_3slices.ptau[-1], tw_3kicks.ptau[-1], atol=1e-15, rtol=0)
     xo.assert_allclose(tw_3slices.betx[-1], tw_3kicks.betx[-1], atol=1e-10, rtol=0)
     xo.assert_allclose(tw_3slices.bety[-1], tw_3kicks.bety[-1], atol=1e-10, rtol=0)
+
+
+def test_configure_model():
+    line = xt.Line(elements={
+        'b1': xt.Bend(k0=10, length=4, knl=[1, 2, 3]),
+        'r1': xt.RBend(k0=7, length=3, knl=[4, 5, 6]),
+        'q1': xt.Quadrupole(k1=20, length=4),
+        's1': xt.Sextupole(k2=50, length=8),
+        'o1': xt.Octupole(k3=100, length=9),
+    })
+
+    line.configure_bend_model(core='drift-kick-drift-exact', edge='dipole-only', integrator='teapot', num_multipole_kicks=4)
+    line.configure_quadrupole_model(model='drift-kick-drift-expanded', edge='full', integrator='uniform', num_multipole_kicks=5)
+    line.configure_sextupole_model(model='drift-kick-drift-exact', edge='full', integrator='yoshida4', num_multipole_kicks=6)
+    line.configure_octupole_model(model='mat-kick-mat', edge=None, integrator='uniform', num_multipole_kicks=7)
+
+    assert line['b1'].model == 'drift-kick-drift-exact'
+    assert line['b1'].edge_entry_active == True
+    assert line['b1'].edge_exit_active == True
+    assert line['b1'].edge_entry_model == 'dipole-only'
+    assert line['b1'].edge_exit_model == 'dipole-only'
+    assert line['b1'].integrator == 'teapot'
+    assert line['b1'].num_multipole_kicks == 4
+
+    assert line['r1'].model == 'drift-kick-drift-exact'
+    assert line['r1'].edge_entry_model == 'dipole-only'
+    assert line['r1'].edge_exit_model == 'dipole-only'
+    assert line['r1'].integrator == 'teapot'
+    assert line['r1'].num_multipole_kicks == 4
+
+    assert line['q1'].model == 'drift-kick-drift-expanded'
+    assert line['q1'].edge_entry_active == True
+    assert line['q1'].edge_exit_active == True
+    assert line['q1'].integrator == 'uniform'
+    assert line['q1'].num_multipole_kicks == 5
+
+    assert line['s1'].model == 'drift-kick-drift-exact'
+    assert line['s1'].edge_entry_active == True
+    assert line['s1'].edge_exit_active == True
+    assert line['s1'].integrator == 'yoshida4'
+    assert line['s1'].num_multipole_kicks == 6
+
+    assert line['o1'].model == 'mat-kick-mat'
+    assert line['o1'].edge_entry_active == False
+    assert line['o1'].edge_exit_active == False
+    assert line['o1'].integrator == 'uniform'
+    assert line['o1'].num_multipole_kicks == 7
