@@ -155,6 +155,8 @@ class Line:
         self._extra_config['steering_monitors_y'] = None
         self._extra_config['steering_correctors_x'] = None
         self._extra_config['steering_correctors_y'] = None
+        self._extra_config['corrector_bounds_x'] = None
+        self._extra_config['corrector_bounds_y'] = None
 
         if env is None:
             env = xt.Environment()
@@ -1575,8 +1577,8 @@ class Line:
                  monitor_names_x=None, corrector_names_x=None,
                  monitor_names_y=None, corrector_names_y=None,
                  n_micado=None, n_singular_values=None, rcond=None,
-                 monitor_alignment=None,
-                 ):
+                 monitor_alignment=None, corrector_bounds_x=None,
+                 corrector_bounds_y=None):
 
         '''
         Correct the beam trajectory using linearized response matrix from optics
@@ -1627,6 +1629,14 @@ class Line:
         rcond : float
             Cutoff for small singular values (relative to the largest singular
             value). Singular values smaller than `rcond` are considered zero.
+        corrector_bounds_x : tuple of array-like or None
+            Bounds for the horizontal corrector strengths. If not None, it should be a tuple
+            of two arrays (lower_bounds, upper_bounds) with the same length as
+            the number of horizontal correctors. If None, no bounds are applied.
+        corrector_bounds_y : tuple of array-like or None
+            Bounds for the vertical corrector strengths. If not None, it should be a tuple
+            of two arrays (lower_bounds, upper_bounds) with the same length as
+            the number of vertical correctors. If None, no bounds are applied.
 
         Returns
         -------
@@ -1643,7 +1653,9 @@ class Line:
                  corrector_names_y=corrector_names_y,
                  n_micado=n_micado, n_singular_values=n_singular_values,
                  rcond=rcond,
-                 monitor_alignment=monitor_alignment)
+                 monitor_alignment=monitor_alignment,
+                 corrector_bounds_x=corrector_bounds_x,
+                 corrector_bounds_y=corrector_bounds_y)
 
         if run:
             correction.correct(planes=planes, n_iter=n_iter)
@@ -4584,6 +4596,22 @@ class Line:
     @steering_correctors_y.setter
     def steering_correctors_y(self, value):
         self._extra_config['steering_correctors_y'] = value
+
+    @property
+    def corrector_bounds_x(self):
+        return self._extra_config.get('corrector_bounds_x', None)
+
+    @corrector_bounds_x.setter
+    def corrector_bounds_x(self, value):
+        self._extra_config['corrector_bounds_x'] = value
+
+    @property
+    def corrector_bounds_y(self):
+        return self._extra_config.get('corrector_bounds_y', None)
+
+    @corrector_bounds_y.setter
+    def corrector_bounds_y(self, value):
+        self._extra_config['corrector_bounds_y'] = value
 
     def __getitem__(self, key):
         if np.issubdtype(key.__class__, np.integer):
