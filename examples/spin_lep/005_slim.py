@@ -107,15 +107,72 @@ RR = np.eye(8)
 RR[:6, :6] = out['R_matrix']
 RR[6:, :6] = DD
 
-def symplectic_matrix(n):
+eival, eivec = np.linalg.eig(RR)
 
-    assert n%2 == 0, "n must be even"
-    n = int(n)
-    M = np.zeros((n, n))
-    for i in range(n//2):
-        M[2*i, 2*i+1] = 1
-        M[2*i+1, 2*i] = -1
+##### Sort modes in pairs of conjugate modes #####
+w0 = eival
+v0 = eivec
+index_list = [0,7,5,1,2,6,3,4] # we mix them up to check the algorithm
+conj_modes = np.zeros([4,2], dtype=np.int64)
+for j in [0,1,2]:
+    conj_modes[j,0] = index_list[0]
+    del index_list[0]
 
-    return M
+    min_index = 0
+    min_diff = abs(np.imag(w0[conj_modes[j,0]] + w0[index_list[min_index]]))
+    for i in range(1,len(index_list)):
+        diff = abs(np.imag(w0[conj_modes[j,0]] + w0[index_list[i]]))
+        if min_diff > diff:
+            min_diff = diff
+            min_index = i
 
-S = symplectic_matrix(8)
+    conj_modes[j,1] = index_list[min_index]
+    del index_list[min_index]
+
+conj_modes[3,0] = index_list[0]
+conj_modes[3,1] = index_list[1]
+
+modes = np.empty(4, dtype=np.int64)
+modes[0] = conj_modes[0, 0]
+modes[1] = conj_modes[1, 0]
+modes[2] = conj_modes[2, 0]
+modes[3] = conj_modes[3, 0]
+
+# Sort modes such that (1,2,3) is close to (x,y,zeta,spin)
+# Identify the spin mode
+for i in [0,1,2]:
+    if abs(v0[:,modes[3]])[6] < abs(v0[:,modes[i]])[6]:
+        modes[3], modes[i] = modes[i], modes[3]
+# Identify the longitudinal mode
+for i in [0,1]:
+    if abs(v0[:,modes[2]])[5] < abs(v0[:,modes[i]])[5]:
+        modes[2], modes[i] = modes[i], modes[2]
+# Identify the vertical mode
+if abs(v0[:,modes[1]])[2] < abs(v0[:,modes[0]])[2]:
+    modes[0], modes[1] = modes[1], modes[0]
+
+a1 = v0[:6, modes[0]].real
+a2 = v0[:6, modes[1]].real
+a3 = v0[:6, modes[2]].real
+b1 = v0[:6, modes[0]].imag
+b2 = v0[:6, modes[1]].imag
+b3 = v0[:6, modes[2]].imag
+
+S = np.array([[0., 1., 0., 0., 0., 0.],
+              [-1., 0., 0., 0., 0., 0.],
+              [ 0., 0., 0., 1., 0., 0.],
+              [ 0., 0.,-1., 0., 0., 0.],
+              [ 0., 0., 0., 0., 0., 1.],
+              [ 0., 0., 0., 0.,-1., 0.]])
+
+n1_inv_sq = np.abs(np.matmul(np.matmul(a1, S), b1))
+n2_inv_sq = np.abs(np.matmul(np.matmul(a2, S), b2))
+n3_inv_sq = np.abs(np.matmul(np.matmul(a3, S), b3))
+
+n1 = 1./np.sqrt(n1_inv_sq)
+n2 = 1./np.sqrt(n2_inv_sq)
+n3 = 1./np.sqrt(n3_inv_sq)
+
+e1 = eivec[:, modes[0]] / n1
+e2 = eivec[:, modes[1]] / n2
+e3 = eivec[:, modes[2]] / n3
