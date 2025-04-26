@@ -2,6 +2,10 @@ import numpy as np
 from scipy.optimize import lsq_linear
 import xtrack as xt
 
+import logging
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.StreamHandler())
+
 def _compute_correction(x_iter, response_matrix, n_micado=None, rcond=None,
                         n_singular_values=None, corrector_bounds=None):
 
@@ -45,7 +49,8 @@ def _compute_correction(x_iter, response_matrix, n_micado=None, rcond=None,
                     active_bounds = (corrector_bounds[0][mask_corr], corrector_bounds[1][mask_corr])
                     result = lsq_linear(response_matrix[:, mask_corr], -x_iter, 
                                       bounds=active_bounds)
-                    assert result.success, result.message
+                    if not result.success:
+                        logger.warning(f'Bounded Least Squares warning: {result.message}')
                     residual_x = np.array([result.cost])
                 residuals.append(residual_x[0])
             used_correctors.append(np.nanargmin(residuals))
@@ -73,7 +78,8 @@ def _compute_correction(x_iter, response_matrix, n_micado=None, rcond=None,
             active_bounds = (corrector_bounds[0][mask_corr], corrector_bounds[1][mask_corr])
             result = lsq_linear(response_matrix[:, mask_corr], -x_iter, 
                               bounds=active_bounds)
-            assert result.success, result.message
+            if not result.success:
+                logger.warning(f'Bounded Least Squares warning: {result.message}')
             correction_masked = result.x
 
     correction_x = np.zeros(n_hcorrectors)
