@@ -190,3 +190,69 @@ scale_e2 = np.max([np.abs(e2[2])/dy, np.abs(e2[3])/dpy])
 e2_scaled = e2 / scale_e2
 scale_e3 = np.max([np.abs(e3[4])/dzeta, np.abs(e3[5])/dpzeta])
 e3_scaled = e3 / scale_e3
+
+e1_trk_re = e1_scaled.real
+e1_trk_im = e1_scaled.imag
+e2_trk_re = e2_scaled.real
+e2_trk_im = e2_scaled.imag
+e3_trk_re = e3_scaled.real
+e3_trk_im = e3_scaled.imag
+
+e1_spin_re = e1_trk_re[6] * l0 + e1_trk_re[7] * m0
+e1_spin_im = e1_trk_im[6] * l0 + e1_trk_im[7] * m0
+e2_spin_re = e2_trk_re[6] * l0 + e2_trk_re[7] * m0
+e2_spin_im = e2_trk_im[6] * l0 + e2_trk_im[7] * m0
+e3_spin_re = e3_trk_re[6] * l0 + e3_trk_re[7] * m0
+e3_spin_im = e3_trk_im[6] * l0 + e3_trk_im[7] * m0
+
+x = tw.x[0] + np.array([
+    e1_trk_re[0], e1_trk_im[0],
+    e2_trk_re[0], e2_trk_im[0],
+    e3_trk_re[0], e3_trk_im[0],
+])
+px = tw.px[0] + np.array([
+    e1_trk_re[1], e1_trk_im[1],
+    e2_trk_re[1], e2_trk_im[1],
+    e3_trk_re[1], e3_trk_im[1],
+])
+y = tw.y[0] + np.array([
+    e1_trk_re[2], e1_trk_im[2],
+    e2_trk_re[2], e2_trk_im[2],
+    e3_trk_re[2], e3_trk_im[2],
+])
+py = tw.py[0] + np.array([
+    e1_trk_re[3], e1_trk_im[3],
+    e2_trk_re[3], e2_trk_im[3],
+    e3_trk_re[3], e3_trk_im[3],
+])
+zeta = tw.zeta[0] + np.array([
+    e1_trk_re[4], e1_trk_im[4],
+    e2_trk_re[4], e2_trk_im[4],
+    e3_trk_re[4], e3_trk_im[4],
+])
+ptau = tw.ptau[0] + 1/tw.beta0 * np.array([ # in the eigenvector there is pzeta
+    e1_trk_re[5], e1_trk_im[5],
+    e2_trk_re[5], e2_trk_im[5],
+    e3_trk_re[5], e3_trk_im[5],
+])
+spin_x = np.array([
+    e1_spin_re[0], e1_spin_im[0],
+    e2_spin_re[0], e2_spin_im[0],
+    e3_spin_re[0], e3_spin_im[0],
+])
+spin_y = np.array([
+    e1_spin_re[1], e1_spin_im[1],
+    e2_spin_re[1], e2_spin_im[1],
+    e3_spin_re[1], e3_spin_im[1],
+])
+spin_z = np.array([
+    e1_spin_re[2], e1_spin_im[2],
+    e2_spin_re[2], e2_spin_im[2],
+    e3_spin_re[2], e3_spin_im[2],
+])
+
+par_track = xp.build_particles(
+    particle_ref=tw.particle_on_co, mode='set',
+    x=x, px=px, y=y, py=py, zeta=zeta, ptau=ptau,
+    spin_x=spin_x, spin_y=spin_y, spin_z=spin_z,
+)
