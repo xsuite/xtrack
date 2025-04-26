@@ -567,8 +567,8 @@ def test_orbit_correction_with_bounds():
     tw_before = line.twiss4d()
 
     # Define bounds for correctors (in radians)
-    bounds_x = (-1e-6, 1e-6)  # 200 nrad
-    bounds_y = (-1e-6, 1e-6)  # 200 nrad
+    bounds_x = (-1e-6, 1e-6)  # 1 urad
+    bounds_y = (-1e-6, 1e-6)  # 1 urad
 
     # Orbit correction without bounds as reference
     orbit_correction_basic_no_bounds = line.correct_trajectory(twiss_table=tw_ref)
