@@ -344,3 +344,18 @@ e2_ebe[6, :] = np.sum(e2_spin * ll, axis=0)
 e2_ebe[7, :] = np.sum(e2_spin * mm, axis=0)
 e3_ebe[6, :] = np.sum(e3_spin * ll, axis=0)
 e3_ebe[7, :] = np.sum(e3_spin * mm, axis=0)
+
+gamma_dn_dgamma = np.zeros((3, len(tw)))
+
+# Note that here alpha is the l component and beta the m component
+# (opposite on the paper by Chao)
+l_component = (np.imag(np.conj(e1_ebe[4, :]) * e1_ebe[6, :])
+             + np.imag(np.conj(e2_ebe[4, :]) * e2_ebe[6, :])
+             + np.imag(np.conj(e3_ebe[4, :]) * e3_ebe[6, :]))
+m_component = (np.imag(np.conj(e1_ebe[4, :]) * e1_ebe[7, :])
+             + np.imag(np.conj(e2_ebe[4, :]) * e2_ebe[7, :])
+             + np.imag(np.conj(e3_ebe[4, :]) * e3_ebe[7, :]))
+
+gamma_dn_dgamma[0, :] = -2 * (l_component * ll[0, :] + m_component * mm[0, :])
+gamma_dn_dgamma[1, :] = -2 * (l_component * ll[1, :] + m_component * mm[1, :])
+gamma_dn_dgamma[2, :] = -2 * (l_component * ll[2, :] + m_component * mm[2, :])
