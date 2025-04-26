@@ -2,6 +2,9 @@ import xtrack as xt
 import xpart as xp
 import xobjects as xo
 import numpy as np
+from scipy.constants import c as clight
+from scipy.constants import e as qe
+from scipy.constants import hbar
 
 line = xt.Line.from_json('lep_sol.json')
 line.particle_ref.anomalous_magnetic_moment=0.00115965218128
@@ -359,3 +362,62 @@ m_component = (np.imag(np.conj(e1_ebe[4, :]) * e1_ebe[7, :])
 gamma_dn_dgamma[0, :] = -2 * (l_component * ll[0, :] + m_component * mm[0, :])
 gamma_dn_dgamma[1, :] = -2 * (l_component * ll[1, :] + m_component * mm[1, :])
 gamma_dn_dgamma[2, :] = -2 * (l_component * ll[2, :] + m_component * mm[2, :])
+
+gamma_dn_dgamma_mod = np.sqrt(gamma_dn_dgamma[0, :]**2
+                            + gamma_dn_dgamma[1, :]**2
+                            + gamma_dn_dgamma[2, :]**2)
+
+kappa_x = tw.rad_int_kappa_x
+kappa_y = tw.rad_int_kappa_y
+kappa = tw.rad_int_kappa
+iv_x = tw.rad_int_iv_x
+iv_y = tw.rad_int_iv_y
+iv_z = tw.rad_int_iv_z
+
+n0_iv = tw.spin_x * iv_x + tw.spin_y * iv_y + tw.spin_z * iv_z
+r0 = tw.particle_on_co.get_classical_particle_radius0()
+m0_J = tw.particle_on_co.mass0 * qe
+m0_kg = m0_J / clight**2
+
+# reference https://lib-extopc.kek.jp/preprints/PDF/1980/8011/8011060.pdf
+
+alpha_plus_co = 1. / tw.circumference * np.sum(
+    kappa**3 * (1 - 2./9. * n0_iv**2) * tw.length)
+alpha_plus = 1. / tw.circumference * np.sum(
+    kappa**3 * (1 - 2./9. * n0_iv**2 + 11/18 * gamma_dn_dgamma_mod**2) * tw.length)
+
+tp_inv = 5 * np.sqrt(3) / 8 * r0 * hbar * tw.gamma0**5 / m0_kg * alpha_plus_co
+tp_s = 1 / tp_inv
+tp_turn = tp_s / tw.T_rev0
+
+brho_ref = tw.particle_on_co.p0c[0] / clight / tw.particle_on_co.q0
+brho_part = (brho_ref * tw.particle_on_co.rvv[0] * tw.particle_on_co.energy[0]
+            / tw.particle_on_co.energy0[0])
+
+By = kappa_x * brho_part
+Bx = -kappa_y * brho_part
+Bz = tw.ks * brho_ref
+B_mod = np.sqrt(Bx**2 + By**2 + Bz**2)
+B_mod[B_mod == 0] = 999. # avoid division by zero
+
+ib_x = Bx / B_mod
+ib_y = By / B_mod
+ib_z = Bz / B_mod
+
+n0_ib = tw.spin_x * ib_x + tw.spin_y * ib_y + tw.spin_z * ib_z
+gamma_dn_dgamma_ib = (gamma_dn_dgamma[0, :] * ib_x
+                    + gamma_dn_dgamma[1, :] * ib_y
+                    + gamma_dn_dgamma[2, :] * ib_z)
+
+alpha_minus_co = 1. / tw.circumference * np.sum(kappa**3 * n0_ib *  tw.length)
+alpha_minus = 1. / tw.circumference * np.sum(
+    kappa**3 * (n0_ib - gamma_dn_dgamma_ib) * tw.length)
+
+pol_inf = 8 / 5 / np.sqrt(3) * alpha_minus_co / alpha_plus_co
+pol_eq = 8 / 5 / np.sqrt(3) * alpha_minus / alpha_plus
+
+tw._data['alpha_plus_co'] = alpha_plus_co
+tw._data['alpha_minus_co'] = alpha_minus_co
+tw._data['pol_inf'] = pol_inf
+tw['n0_ib'] = n0_ib
+tw['t_pol_turn'] = tp_turn
