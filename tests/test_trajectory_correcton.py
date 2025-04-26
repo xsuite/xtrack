@@ -532,7 +532,7 @@ def test_orbit_correction_tilt_monitors():
     # Check that there is no vertical reading in the tilted bpm BPMs
     xo.assert_allclose(correction.y_correction._position_before, 0, atol=1e-15, rtol=0)
 
-def test_orbit_correction_with_bounds():
+def test_orbit_correction_with_limits():
 
     line = xt.Line.from_json(test_data_folder
                              / 'hllhc15_thick/lhc_thick_with_knobs.json')
@@ -566,26 +566,26 @@ def test_orbit_correction_with_bounds():
     # Twiss before correction
     tw_before = line.twiss4d()
 
-    # Define bounds for correctors (in radians)
-    bounds_x = (-1e-6, 1e-6)  # 1 urad
-    bounds_y = (-1e-6, 1e-6)  # 1 urad
+    # Define limits for correctors (in radians)
+    limits_x = (-1e-6, 1e-6)  # 1 urad
+    limits_y = (-1e-6, 1e-6)  # 1 urad
 
-    # Orbit correction without bounds as reference
-    orbit_correction_basic_no_bounds = line.correct_trajectory(twiss_table=tw_ref)
+    # Orbit correction without limits as reference
+    orbit_correction_basic_no_limits = line.correct_trajectory(twiss_table=tw_ref)
+    
+    #print(np.max(np.abs(orbit_correction_basic_no_limits.x_correction.get_kick_values())))
+    #print(np.max(np.abs(orbit_correction_basic_no_limits.y_correction.get_kick_values())))
 
-    print(np.max(np.abs(orbit_correction_basic_no_bounds.x_correction.get_kick_values())))
-    print(np.max(np.abs(orbit_correction_basic_no_bounds.y_correction.get_kick_values())))
+    #Assert that at least one corrector is beyond each of the limits
+    assert np.any(np.abs(orbit_correction_basic_no_limits.x_correction.get_kick_values()) > limits_x[1])
+    assert np.any(np.abs(orbit_correction_basic_no_limits.y_correction.get_kick_values()) > limits_y[1])
+    orbit_correction_basic_no_limits.clear_correction_knobs()
 
-    #Assert that at least one corrector is beyond each of the bounds
-    assert np.any(np.abs(orbit_correction_basic_no_bounds.x_correction.get_kick_values()) > bounds_x[1])
-    assert np.any(np.abs(orbit_correction_basic_no_bounds.y_correction.get_kick_values()) > bounds_y[1])
-    orbit_correction_basic_no_bounds.clear_correction_knobs()
+    # Set limits on the line
+    line.corrector_limits_x = limits_x
+    line.corrector_limits_y = limits_y
 
-    # Set bounds on the line
-    line.corrector_bounds_x = bounds_x
-    line.corrector_bounds_y = bounds_y
-
-    # First test: Basic method with bounds
+    # First test: Basic method with limits
     orbit_correction_basic = line.correct_trajectory(twiss_table=tw_ref)
 
     # Twiss after basic correction
@@ -595,11 +595,11 @@ def test_orbit_correction_with_bounds():
     kicks_x_basic = orbit_correction_basic.x_correction.get_kick_values()
     kicks_y_basic = orbit_correction_basic.y_correction.get_kick_values()
 
-    # Verify that the basic correction stays within bounds
-    assert np.all(kicks_x_basic >= bounds_x[0])
-    assert np.all(kicks_x_basic <= bounds_x[1])
-    assert np.all(kicks_y_basic >= bounds_y[0])
-    assert np.all(kicks_y_basic <= bounds_y[1])
+    # Verify that the basic correction stays within limits
+    assert np.all(kicks_x_basic >= limits_x[0])
+    assert np.all(kicks_x_basic <= limits_x[1])
+    assert np.all(kicks_y_basic >= limits_y[0])
+    assert np.all(kicks_y_basic <= limits_y[1])
 
     # Verify that the orbit is corrected in the correct direction with basic method
     assert tw_before.x.std() > tw_after_basic.x.std()
@@ -608,7 +608,7 @@ def test_orbit_correction_with_bounds():
     # Clear correction
     orbit_correction_basic.clear_correction_knobs()
 
-    # Second test: Micado method with bounds
+    # Second test: Micado method with limits
     n_micado = 5
     orbit_correction_micado = line.correct_trajectory(twiss_table=tw_ref, n_micado=n_micado, n_iter=1)
 
@@ -619,11 +619,11 @@ def test_orbit_correction_with_bounds():
     kicks_x_micado = orbit_correction_micado.x_correction.get_kick_values()
     kicks_y_micado = orbit_correction_micado.y_correction.get_kick_values()
 
-    # Verify that the micado correction stays within bounds
-    assert np.all(kicks_x_micado >= bounds_x[0])
-    assert np.all(kicks_x_micado <= bounds_x[1])
-    assert np.all(kicks_y_micado >= bounds_y[0])
-    assert np.all(kicks_y_micado <= bounds_y[1])
+    # Verify that the micado correction stays within limits
+    assert np.all(kicks_x_micado >= limits_x[0])
+    assert np.all(kicks_x_micado <= limits_x[1])
+    assert np.all(kicks_y_micado >= limits_y[0])
+    assert np.all(kicks_y_micado <= limits_y[1])
 
     # Verify that the orbit is corrected with micado method
     assert tw_after_micado.y.std() < tw_before.y.std()
@@ -637,4 +637,3 @@ def test_orbit_correction_with_bounds():
     # Basic method should use more correctors
     assert np.sum(np.abs(kicks_x_basic) > 1e-10) > n_micado
     assert np.sum(np.abs(kicks_y_basic) > 1e-10) > n_micado
-
