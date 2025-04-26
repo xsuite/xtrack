@@ -256,3 +256,6 @@ par_track = xp.build_particles(
     x=x, px=px, y=y, py=py, zeta=zeta, ptau=ptau,
     spin_x=spin_x, spin_y=spin_y, spin_z=spin_z,
 )
+
+line.track(par_track, turn_by_turn_monitor='ONE_TURN_EBE')
+mon_ebe = line.record_last_track
