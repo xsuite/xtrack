@@ -28,8 +28,8 @@ line['on_coupl_sol_bump.4'] = 1
 line['on_coupl_sol_bump.6'] = 1
 line['on_coupl_sol_bump.8'] = 1
 
-tw = line.twiss4d(spin=True, radiation_integrals=True)
-line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
+tw = line.twiss(spin=True, radiation_integrals=True)
+line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False # For spin
 
 # Based on:
 # A. Chao, valuation of Radiative Spin Polarization in an Electron Storage Ring
@@ -56,19 +56,19 @@ p0.spin_z = np.array([l0[2], n0[2], m0[2]])
 line.track(p0, num_turns=1, turn_by_turn_monitor='ONE_TURN_EBE')
 mon0 = line.record_last_track
 
-# ll = np.zeros((3, len(tw)))
-# mm = np.zeros((3, len(tw)))
-# nn = np.zeros((3, len(tw)))
+ll = np.zeros((3, len(tw)))
+mm = np.zeros((3, len(tw)))
+nn = np.zeros((3, len(tw)))
 
-# ll[0, :] = mon0.spin_x[0, :]
-# ll[1, :] = mon0.spin_y[0, :]
-# ll[2, :] = mon0.spin_z[0, :]
-# nn[0, :] = mon0.spin_x[1, :]
-# nn[1, :] = mon0.spin_y[1, :]
-# nn[2, :] = mon0.spin_z[1, :]
-# mm[0, :] = mon0.spin_x[2, :]
-# mm[1, :] = mon0.spin_y[2, :]
-# mm[2, :] = mon0.spin_z[2, :]
+ll[0, :] = mon0.spin_x[0, :]
+ll[1, :] = mon0.spin_y[0, :]
+ll[2, :] = mon0.spin_z[0, :]
+nn[0, :] = mon0.spin_x[1, :]
+nn[1, :] = mon0.spin_y[1, :]
+nn[2, :] = mon0.spin_z[1, :]
+mm[0, :] = mon0.spin_x[2, :]
+mm[1, :] = mon0.spin_y[2, :]
+mm[2, :] = mon0.spin_z[2, :]
 
 steps_r_matrix = tw.steps_r_matrix
 
@@ -110,11 +110,30 @@ DD = np.zeros((2, 6))
 for jj, dd in enumerate([dx, dpx, dy, dpy, dzeta, dpzeta]):
     DD[:, jj] = (temp_mat[:, jj+1] - temp_mat[:, jj+1+6])/(2*dd)
 
+# DD *= 0 # TEEEEEEEEST!!!!!
+
 RR = np.eye(8)
 RR[:6, :6] = out['R_matrix']
 RR[6:, :6] = DD
 
-eival, eivec = np.linalg.eig(RR)
+# Build matrix for alpha/beta discontinuity at end ring
+A_entry = np.zeros((3, 3))
+A_exit = np.zeros((3, 3))
+
+A_entry[:, 0] = ll[:, 0]
+A_entry[:, 1] = mm[:, 0]
+A_entry[:, 2] = nn[:, 0]
+A_exit[:, 0] = ll[:, -1]
+A_exit[:, 1] = mm[:, -1]
+A_exit[:, 2] = nn[:, -1]
+
+A_discont = np.linalg.inv(A_entry) @ A_exit
+R_discont = np.eye(8)
+R_discont[6:, 6:] = A_discont[:2, :2]
+
+R_one_turn = RR @ R_discont
+
+eival, eivec = np.linalg.eig(R_one_turn)
 
 ##### Sort modes in pairs of conjugate modes #####
 w0 = eival
@@ -145,10 +164,10 @@ modes[1] = conj_modes[1, 0]
 modes[2] = conj_modes[2, 0]
 modes[3] = conj_modes[3, 0]
 
-# Sort modes such that (1,2,3) is close to (x,y,zeta,spin)
-# Identify the spin mode
+# Sort modes such that (1,2,3,4) is close to (x,y,zeta,spin)
+# Identify the spin mode (the one with no xyz part)
 for i in [0,1,2]:
-    if abs(v0[:,modes[3]])[6] < abs(v0[:,modes[i]])[6]:
+    if np.linalg.norm(v0[:,modes[3]][:6]) > np.linalg.norm(v0[:,modes[i]][:6]):
         modes[3], modes[i] = modes[i], modes[3]
 # Identify the longitudinal mode
 for i in [0,1]:
@@ -230,7 +249,7 @@ zeta = tw.zeta[0] + np.array([
     e2_trk_re[4], e2_trk_im[4],
     e3_trk_re[4], e3_trk_im[4],
 ])
-ptau = tw.ptau[0] + 1/tw.beta0 * np.array([ # in the eigenvector there is pzeta
+ptau = tw.ptau[0] + tw.beta0 * np.array([ # in the eigenvector there is pzeta
     e1_trk_re[5], e1_trk_im[5],
     e2_trk_re[5], e2_trk_im[5],
     e3_trk_re[5], e3_trk_im[5],
@@ -259,3 +278,20 @@ par_track = xp.build_particles(
 
 line.track(par_track, turn_by_turn_monitor='ONE_TURN_EBE')
 mon_ebe = line.record_last_track
+
+e1_ebe = np.zeros((8, len(tw)), dtype=complex)
+e2_ebe = np.zeros((8, len(tw)), dtype=complex)
+e3_ebe = np.zeros((8, len(tw)), dtype=complex)
+
+e1_ebe[0, :] = ((mon_ebe.x[0, :] - tw.x[0])
+                + 1j * (mon_ebe.x[1, :] - tw.x[1])) * scale_e1
+e1_ebe[1, :] = ((mon_ebe.px[0, :] - tw.px[0])
+                + 1j * (mon_ebe.px[1, :] - tw.px[1])) * scale_e1
+e1_ebe[2, :] = ((mon_ebe.y[0, :] - tw.y[0])
+                + 1j * (mon_ebe.y[1, :] - tw.y[1])) * scale_e1
+e1_ebe[3, :] = ((mon_ebe.py[0, :] - tw.py[0])
+                + 1j * (mon_ebe.py[1, :] - tw.py[1])) * scale_e1
+e1_ebe[4, :] = ((mon_ebe.zeta[0, :] - tw.zeta[0])
+                + 1j * (mon_ebe.zeta[1, :] - tw.zeta[1])) * scale_e1
+e1_ebe[5, :] = ((mon_ebe.ptau[0, :] - tw.ptau[0])
+                + 1j * (mon_ebe.ptau[1, :] - tw.ptau[1])) / tw.beta0 * scale_e1
