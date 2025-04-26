@@ -31,6 +31,10 @@ line['on_coupl_sol_bump.8'] = 1
 tw = line.twiss4d(spin=True, radiation_integrals=True)
 line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
 
+# Based on:
+# A. Chao, valuation of Radiative Spin Polarization in an Electron Storage Ring
+# https://inspirehep.net/literature/154360
+
 n0 = np.array([tw.spin_x[0], tw.spin_y[0], tw.spin_z[0]])
 
 n0 = n0 / np.linalg.norm(n0)
@@ -66,8 +70,11 @@ mon0 = line.record_last_track
 # mm[1, :] = mon0.spin_y[2, :]
 # mm[2, :] = mon0.spin_z[2, :]
 
+steps_r_matrix = tw.steps_r_matrix
+
 out = line.compute_one_turn_matrix_finite_differences(particle_on_co=tw.particle_on_co,
-                                                      element_by_element=True)
+                                                      element_by_element=True,
+                                                      steps_r_matrix=steps_r_matrix)
 mon_r_ebe = out['mon_ebe']
 part = out['part_temp']
 
@@ -176,3 +183,10 @@ n3 = 1./np.sqrt(n3_inv_sq)
 e1 = eivec[:, modes[0]] / n1
 e2 = eivec[:, modes[1]] / n2
 e3 = eivec[:, modes[2]] / n3
+
+scale_e1 = np.max([np.abs(e1[0])/dx, np.abs(e1[1])/dpx])
+e1_scaled = e1 / scale_e1
+scale_e2 = np.max([np.abs(e2[2])/dy, np.abs(e2[3])/dpy])
+e2_scaled = e2 / scale_e2
+scale_e3 = np.max([np.abs(e3[4])/dzeta, np.abs(e3[5])/dpzeta])
+e3_scaled = e3 / scale_e3
