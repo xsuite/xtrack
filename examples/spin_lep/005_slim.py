@@ -18,18 +18,18 @@ line['on_sol.2'] = 1
 line['on_sol.4'] = 1
 line['on_sol.6'] = 1
 line['on_sol.8'] = 1
-line['on_spin_bump.2'] = 1
-line['on_spin_bump.4'] = 1
-line['on_spin_bump.6'] = 1
-line['on_spin_bump.8'] = 1
+line['on_spin_bump.2'] = 0
+line['on_spin_bump.4'] = 0
+line['on_spin_bump.6'] = 0
+line['on_spin_bump.8'] = 0
 line['on_coupl_sol.2'] = 1
 line['on_coupl_sol.4'] = 1
 line['on_coupl_sol.6'] = 1
 line['on_coupl_sol.8'] = 1
-line['on_coupl_sol_bump.2'] = 1
-line['on_coupl_sol_bump.4'] = 1
-line['on_coupl_sol_bump.6'] = 1
-line['on_coupl_sol_bump.8'] = 1
+line['on_coupl_sol_bump.2'] = 0
+line['on_coupl_sol_bump.4'] = 0
+line['on_coupl_sol_bump.6'] = 0
+line['on_coupl_sol_bump.8'] = 0
 
 tw = line.twiss(spin=True, radiation_integrals=True)
 line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False # For spin
@@ -220,12 +220,12 @@ e2_trk_im = e2_scaled.imag
 e3_trk_re = e3_scaled.real
 e3_trk_im = e3_scaled.imag
 
-e1_spin_re = e1_trk_re[6] * l0 + e1_trk_re[7] * m0
-e1_spin_im = e1_trk_im[6] * l0 + e1_trk_im[7] * m0
-e2_spin_re = e2_trk_re[6] * l0 + e2_trk_re[7] * m0
-e2_spin_im = e2_trk_im[6] * l0 + e2_trk_im[7] * m0
-e3_spin_re = e3_trk_re[6] * l0 + e3_trk_re[7] * m0
-e3_spin_im = e3_trk_im[6] * l0 + e3_trk_im[7] * m0
+e1_spin_re = e1_trk_re[6] * l0 + e1_trk_re[7] * m0 + np.sqrt(1 - e1_trk_re[6]**2 - e1_trk_re[7]**2) * n0
+e1_spin_im = e1_trk_im[6] * l0 + e1_trk_im[7] * m0 + np.sqrt(1 - e1_trk_im[6]**2 - e1_trk_im[7]**2) * n0
+e2_spin_re = e2_trk_re[6] * l0 + e2_trk_re[7] * m0 + np.sqrt(1 - e2_trk_re[6]**2 - e2_trk_re[7]**2) * n0
+e2_spin_im = e2_trk_im[6] * l0 + e2_trk_im[7] * m0 + np.sqrt(1 - e2_trk_im[6]**2 - e2_trk_im[7]**2) * n0
+e3_spin_re = e3_trk_re[6] * l0 + e3_trk_re[7] * m0 + np.sqrt(1 - e3_trk_re[6]**2 - e3_trk_re[7]**2) * n0
+e3_spin_im = e3_trk_im[6] * l0 + e3_trk_im[7] * m0 + np.sqrt(1 - e3_trk_im[6]**2 - e3_trk_im[7]**2) * n0
 
 x = tw.x[0] + np.array([
     e1_trk_re[0], e1_trk_im[0],
