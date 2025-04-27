@@ -12,6 +12,23 @@ spin_tune = line.particle_ref.anomalous_magnetic_moment[0]*line.particle_ref.gam
 
 line['vrfc231'] = 12.65 # qs=0.6
 
+line['on_sol.2'] = 0
+line['on_sol.4'] = 0
+line['on_sol.6'] = 0
+line['on_sol.8'] = 0
+line['on_spin_bump.2'] = 0
+line['on_spin_bump.4'] = 0
+line['on_spin_bump.6'] = 0
+line['on_spin_bump.8'] = 0
+line['on_coupl_sol.2'] = 0
+line['on_coupl_sol.4'] = 0
+line['on_coupl_sol.6'] = 0
+line['on_coupl_sol.8'] = 0
+line['on_coupl_sol_bump.2'] = 0
+line['on_coupl_sol_bump.4'] = 0
+line['on_coupl_sol_bump.6'] = 0
+line['on_coupl_sol_bump.8'] = 0
+
 tt = line.get_table(attr=True)
 
 out_lines = []
@@ -43,27 +60,30 @@ for nn in line.element_names:
             out_lines.append(f'{nn}: quadrupole, l = {ee.length}, k1 = {ee.k1s}, tilt')
     elif clssname == 'Multipole':
         assert np.linalg.norm(ee.hxl) == 0
-        if np.linalg.norm(ee.knl) == 0 and np.linalg.norm(ee.ksl) == 0:
-            out_lines.append(f'{nn}: marker') # Temporary
-        else:
-            assert len(ee.knl) == 1
-            assert len(ee.ksl) == 1
-            out_lines.append(f'{nn}: kicker, l = {ee.length},'
-                             f'hkick = {-ee.knl[0]}, vkick = {ee.ksl[0]}')
+        out_lines.append(f'{nn}: marker') # Temporary
+        # if np.linalg.norm(ee.knl) == 0 and np.linalg.norm(ee.ksl) == 0:
+        #     out_lines.append(f'{nn}: marker') # Temporary
+        # else:
+        #     assert len(ee.knl) == 1
+        #     assert len(ee.ksl) == 1
+        #     out_lines.append(f'{nn}: ab_multipole, l = {ee.length},'
+        #                      f'a0 = {ee.ksl[0]}, b0 = {ee.knl[0]}')
     elif clssname == 'Sextupole':
         out_lines.append(f'{nn}: sextupole, l = {ee.length}, k2 = {ee.k2}')
     elif clssname == 'RBend':
-        out_lines.append(f'{nn}: rbend, l = {ee.length_straight}, angle = {ee.angle}')
+        out_lines.append(f'{nn}: sbend, l = {ee.length_straight}, angle = {ee.angle}')
     elif clssname == 'Cavity':
-        out_lines.append(f'{nn}: rfcavity, voltage = {ee.voltage},'
-                         f'rf_frequency = {ee.frequency}, lag = 0') # Lag hardcoded for now!
+        out_lines.append(f'{nn}: marker')
+        # out_lines.append(f'{nn}: rfcavity, voltage = {ee.voltage},'
+        #                  f'rf_frequency = {ee.frequency}, lag = 0') # Lag hardcoded for now!
     elif clssname == 'Octupole':
         out_lines.append(f'{nn}: octupole, l = {ee.length}, k3 = {ee.k3}')
     elif clssname == 'DriftSlice':
         ll = tt['length', nn]
         out_lines.append(f'{nn}: drift, l = {ll}')
     elif clssname == 'Solenoid':
-        out_lines.append(f'{nn}: solenoid, l = {ee.length}, ks = {ee.ks}')
+        # out_lines.append(f'{nn}: solenoid, l = {ee.length}, ks = {ee.ks}')
+        out_lines.append(f'{nn}: drift, l = {ee.length}')
     else:
         raise ValueError(f'Unknown element type {clssname} for {nn}')
 
@@ -88,4 +108,5 @@ with open('lep.bmad', 'w') as fid:
 
 from pytao import Tao
 tao = Tao(' -lat lep.bmad -noplot ')
+tao.cmd('show -write spin.txt spin')
 tao.cmd('show -write orbit.txt lat * -att orbit.x@f20.14 -att orbit.y@f20.14 -att beta.a@f20.14 -att beta.b@f20.14')
