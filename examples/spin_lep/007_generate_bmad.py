@@ -10,6 +10,7 @@ line.particle_ref.anomalous_magnetic_moment=0.00115965218128
 line.particle_ref.gamma0 = 89207.78287659843 # to have a spin tune of 103.45
 spin_tune = line.particle_ref.anomalous_magnetic_moment[0]*line.particle_ref.gamma0[0]
 
+line['vrfc231'] = 12.65 # qs=0.6
 
 tt = line.get_table(attr=True)
 
@@ -25,6 +26,8 @@ out_lines += [
 ]
 
 for nn in line.element_names:
+    if '$' in nn:
+        continue
     ee = line[nn]
     clssname = ee.__class__.__name__
 
@@ -45,11 +48,8 @@ for nn in line.element_names:
         else:
             assert len(ee.knl) == 1
             assert len(ee.ksl) == 1
-            if ee.ksl[0] == 0:
-                out_lines.append(f'{nn}: multipole, l = {ee.length}, k0l = {ee.knl[0]}')
-            else:
-                assert ee.knl[0] == 0
-                out_lines.append(f'{nn}: multipole, l = {ee.length}, k0l = {ee.ksl[0]}, tilt={np.pi/2}')
+            out_lines.append(f'{nn}: kicker, l = {ee.length},'
+                             f'hkick = {-ee.knl[0]}, vkick = {ee.ksl[0]}')
     elif clssname == 'Sextupole':
         out_lines.append(f'{nn}: sextupole, l = {ee.length}, k2 = {ee.k2}')
     elif clssname == 'RBend':
@@ -66,3 +66,26 @@ for nn in line.element_names:
         out_lines.append(f'{nn}: solenoid, l = {ee.length}, ks = {ee.ks}')
     else:
         raise ValueError(f'Unknown element type {clssname} for {nn}')
+
+out_lines += [
+    '',
+    'ring: line = ('
+]
+
+for nn in line.element_names:
+    if '$' in nn:
+        continue
+    out_lines.append(f'    {nn},')
+# Strip last comma
+out_lines[-1] = out_lines[-1][:-1]
+out_lines += [
+    ')',
+    'use, ring',
+]
+
+with open('lep.bmad', 'w') as fid:
+    fid.write('\n'.join(out_lines))
+
+from pytao import Tao
+tao = Tao(' -lat lep.bmad -noplot ')
+tao.cmd('show -write orbit.txt lat * -att orbit.x@f20.14 -att orbit.y@f20.14 -att beta.a@f20.14 -att beta.b@f20.14')
