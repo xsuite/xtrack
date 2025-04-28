@@ -12,10 +12,10 @@ spin_tune = line.particle_ref.anomalous_magnetic_moment[0]*line.particle_ref.gam
 
 line['vrfc231'] = 12.65 # qs=0.6
 
-line['on_sol.2'] = 1
-line['on_sol.4'] = 1
+line['on_sol.2'] = 0
+line['on_sol.4'] = 0
 line['on_sol.6'] = 1
-line['on_sol.8'] = 1
+line['on_sol.8'] = 0
 line['on_spin_bump.2'] = 0
 line['on_spin_bump.4'] = 0
 line['on_spin_bump.6'] = 0
@@ -117,17 +117,17 @@ def parse_spin_file_pandas(filename):
     # Read the whole file first
     with open(filename, 'r') as f:
         lines = f.readlines()
-    
+
     # Filter out comment lines
     data_lines = [line for line in lines if not line.strip().startswith('#') and line.strip()]
-    
+
     # Join the data into a single string
     data_str = ''.join(data_lines)
-    
+
     # Now read into pandas
     df = pd.read_csv(
         io.StringIO(data_str),
-        delim_whitespace=True,
+        sep='\s+',
         header=None,
         names=[
             'index', 'name', 'key', 's',
@@ -142,6 +142,21 @@ df = parse_spin_file_pandas('vvv.txt')
 line['vrfc231'] = 12.65 # qs=0.6
 tw = line.twiss(spin=True, radiation_integrals=True)
 
+spin_summary_bmad = {}
+with open('spin.txt', 'r') as fid:
+    spsumm_lines = fid.readlines()
+for ll in spsumm_lines:
+    if ':' in ll:
+        key, val = ll.split(':')
+        val = val.strip()
+        if ' ' in val:
+            val = [float(v) for v in val.split(' ') if v]
+        else:
+            val = float(val.strip())
+        spin_summary_bmad[key.strip()] = val
 
 import polarization as pol
 pol._add_polarization_to_tw(tw, line)
+
+print('Xsuite polarization: ', tw.pol_eq)
+print('Bmad polarization:   ', spin_summary_bmad['Polarization Limit DK'])

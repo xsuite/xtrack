@@ -336,24 +336,35 @@ def _add_polarization_to_tw(tw, line):
             e2_ebe[:, ii] *= np.exp(-1j * phiy[ii])
             e3_ebe[:, ii] *= np.exp(-1j * phizeta[ii])
 
-
-        gamma_dn_dgamma = np.zeros((3, len(tw)))
-
         # Note that here alpha is the l component and beta the m component
         # (opposite on the paper by Chao)
-        l_component = (np.imag(np.conj(e1_ebe[4, :]) * e1_ebe[6, :])
-                    + np.imag(np.conj(e2_ebe[4, :]) * e2_ebe[6, :])
-                    + np.imag(np.conj(e3_ebe[4, :]) * e3_ebe[6, :]))
-        m_component = (np.imag(np.conj(e1_ebe[4, :]) * e1_ebe[7, :])
-                    + np.imag(np.conj(e2_ebe[4, :]) * e2_ebe[7, :])
-                    + np.imag(np.conj(e3_ebe[4, :]) * e3_ebe[7, :]))
+        l_component_e1 = np.real(np.conj(e1_ebe[0, :]) * e1_ebe[6, :])
+        l_component_e2 = np.real(np.conj(e2_ebe[0, :]) * e2_ebe[6, :])
+        l_component_e3 = np.real(np.conj(e3_ebe[0, :]) * e3_ebe[6, :])
+        m_component_e1 = np.real(np.conj(e1_ebe[0, :]) * e1_ebe[7, :])
+        m_component_e2 = np.real(np.conj(e2_ebe[0, :]) * e2_ebe[7, :])
+        m_component_e3 = np.real(np.conj(e3_ebe[0, :]) * e3_ebe[7, :])
 
-        gamma_dn_dgamma[0, :] = -2 * (l_component * ll[0, :] + m_component * mm[0, :])
-        gamma_dn_dgamma[1, :] = -2 * (l_component * ll[1, :] + m_component * mm[1, :])
-        gamma_dn_dgamma[2, :] = -2 * (l_component * ll[2, :] + m_component * mm[2, :])
+        gamma_dn_dgamma_e1 = np.zeros((3, len(tw)))
+        gamma_dn_dgamma_e2 = np.zeros((3, len(tw)))
+        gamma_dn_dgamma_e3 = np.zeros((3, len(tw)))
+
+        gamma_dn_dgamma_e1[0, :] = -2 * (l_component_e1 * ll[0, :] + m_component_e1 * mm[0, :])
+        gamma_dn_dgamma_e1[1, :] = -2 * (l_component_e1 * ll[1, :] + m_component_e1 * mm[1, :])
+        gamma_dn_dgamma_e1[2, :] = -2 * (l_component_e1 * ll[2, :] + m_component_e1 * mm[2, :])
+        gamma_dn_dgamma_e2[0, :] = -2 * (l_component_e2 * ll[0, :] + m_component_e2 * mm[0, :])
+        gamma_dn_dgamma_e2[1, :] = -2 * (l_component_e2 * ll[1, :] + m_component_e2 * mm[1, :])
+        gamma_dn_dgamma_e2[2, :] = -2 * (l_component_e2 * ll[2, :] + m_component_e2 * mm[2, :])
+        gamma_dn_dgamma_e3[0, :] = -2 * (l_component_e3 * ll[0, :] + m_component_e3 * mm[0, :])
+        gamma_dn_dgamma_e3[1, :] = -2 * (l_component_e3 * ll[1, :] + m_component_e3 * mm[1, :])
+        gamma_dn_dgamma_e3[2, :] = -2 * (l_component_e3 * ll[2, :] + m_component_e3 * mm[2, :])
 
         # PATCH BASED ON BMAD COMPARISON, TO BE UNDERSTOOD!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        gamma_dn_dgamma *= 0.5
+        gamma_dn_dgamma_e1 *= 0.5
+        gamma_dn_dgamma_e2 *= 0.5
+        gamma_dn_dgamma_e3 *= 0.5
+
+        gamma_dn_dgamma = gamma_dn_dgamma_e1 + gamma_dn_dgamma_e2 + gamma_dn_dgamma_e3
 
         gamma_dn_dgamma_mod = np.sqrt(gamma_dn_dgamma[0, :]**2
                                     + gamma_dn_dgamma[1, :]**2
@@ -393,14 +404,14 @@ def _add_polarization_to_tw(tw, line):
 
         int_kappa3_n0_ib = np.sum(kappa**3 * n0_ib * tw.length)
         int_kappa3_gamma_dn_dgamma_ib = np.sum(kappa**3 * gamma_dn_dgamma_ib * tw.length)
-        int_kappa3_11_9_gamma_dn_dgamma_sq = 11./9. * np.sum(kappa**3 * gamma_dn_dgamma_mod**2 * tw.length)
+        int_kappa3_11_18_gamma_dn_dgamma_sq = 11./18. * np.sum(kappa**3 * gamma_dn_dgamma_mod**2 * tw.length)
 
         alpha_minus_co = 1. / tw.circumference * np.sum(kappa**3 * n0_ib *  tw.length)
 
         alpha_plus_co = 1. / tw.circumference * np.sum(
             kappa**3 * (1 - 2./9. * n0_iv**2) * tw.length)
 
-        alpha_plus = alpha_plus_co + 0.5 *int_kappa3_11_9_gamma_dn_dgamma_sq / tw.circumference
+        alpha_plus = alpha_plus_co + int_kappa3_11_18_gamma_dn_dgamma_sq / tw.circumference
         alpha_minus = alpha_minus_co - int_kappa3_gamma_dn_dgamma_ib / tw.circumference
 
         pol_inf = 8 / 5 / np.sqrt(3) * alpha_minus_co / alpha_plus_co
@@ -420,7 +431,7 @@ def _add_polarization_to_tw(tw, line):
         tw['gamma_dn_dgamma_mod'] = gamma_dn_dgamma_mod
         tw._data['int_kappa3_n0_ib'] = int_kappa3_n0_ib
         tw._data['int_kappa3_gamma_dn_dgamma_ib'] = int_kappa3_gamma_dn_dgamma_ib
-        tw._data['int_kappa3_11_9_gamma_dn_dgamma_sq'] = int_kappa3_11_9_gamma_dn_dgamma_sq
+        tw._data['int_kappa3_11_18_gamma_dn_dgamma_sq'] = int_kappa3_11_18_gamma_dn_dgamma_sq
         tw._data['pol_inf'] = pol_inf
         tw._data['pol_eq'] = pol_eq
         tw['n0_ib'] = n0_ib
