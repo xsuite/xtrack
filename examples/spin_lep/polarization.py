@@ -91,8 +91,6 @@ def _add_polarization_to_tw(tw, line):
         for jj, dd in enumerate([dx, dpx, dy, dpy, dzeta, dpzeta]):
             DD[:, jj] = (temp_mat[:, jj+1] - temp_mat[:, jj+1+6])/(2*dd)
 
-        # DD *= 0 # TEEEEEEEEST!!!!!
-
         RR = np.eye(8)
         RR[:6, :6] = out['R_matrix']
         RR[6:, :6] = DD
@@ -338,12 +336,12 @@ def _add_polarization_to_tw(tw, line):
 
         # Note that here alpha is the l component and beta the m component
         # (opposite on the paper by Chao)
-        l_component_e1 = np.real(np.conj(e1_ebe[0, :]) * e1_ebe[6, :])
-        l_component_e2 = np.real(np.conj(e2_ebe[0, :]) * e2_ebe[6, :])
-        l_component_e3 = np.real(np.conj(e3_ebe[0, :]) * e3_ebe[6, :])
-        m_component_e1 = np.real(np.conj(e1_ebe[0, :]) * e1_ebe[7, :])
-        m_component_e2 = np.real(np.conj(e2_ebe[0, :]) * e2_ebe[7, :])
-        m_component_e3 = np.real(np.conj(e3_ebe[0, :]) * e3_ebe[7, :])
+        l_component_e1 = np.imag(np.conj(e1_ebe[4, :]) * e1_ebe[6, :])
+        l_component_e2 = np.imag(np.conj(e2_ebe[4, :]) * e2_ebe[6, :])
+        l_component_e3 = np.imag(np.conj(e3_ebe[4, :]) * e3_ebe[6, :])
+        m_component_e1 = np.imag(np.conj(e1_ebe[4, :]) * e1_ebe[7, :])
+        m_component_e2 = np.imag(np.conj(e2_ebe[4, :]) * e2_ebe[7, :])
+        m_component_e3 = np.imag(np.conj(e3_ebe[4, :]) * e3_ebe[7, :])
 
         gamma_dn_dgamma_e1 = np.zeros((3, len(tw)))
         gamma_dn_dgamma_e2 = np.zeros((3, len(tw)))
@@ -428,6 +426,9 @@ def _add_polarization_to_tw(tw, line):
         tw['gamma_dn_dgamma_x'] = gamma_dn_dgamma[0, :]
         tw['gamma_dn_dgamma_y'] = gamma_dn_dgamma[1, :]
         tw['gamma_dn_dgamma_z'] = gamma_dn_dgamma[2, :]
+        tw['gamma_dn_dgamma_e1'] = gamma_dn_dgamma_e1
+        tw['gamma_dn_dgamma_e2'] = gamma_dn_dgamma_e2
+        tw['gamma_dn_dgamma_e3'] = gamma_dn_dgamma_e3
         tw['gamma_dn_dgamma_mod'] = gamma_dn_dgamma_mod
         tw._data['int_kappa3_n0_ib'] = int_kappa3_n0_ib
         tw._data['int_kappa3_gamma_dn_dgamma_ib'] = int_kappa3_gamma_dn_dgamma_ib
