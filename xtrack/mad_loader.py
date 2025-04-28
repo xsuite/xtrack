@@ -1075,7 +1075,6 @@ class MadLoader:
             knl=hkick,
             ksl=vkick,
             length=length,
-            hxl=0,
         )
 
         if is_thick and not self.allow_thick:
