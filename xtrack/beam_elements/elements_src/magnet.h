@@ -18,6 +18,7 @@ void Magnet_track_local_particle(
     /*gpuglmem*/ const double* ksl = MagnetData_getp1_ksl(el, 0);
     const int64_t num_multipole_kicks = MagnetData_get_num_multipole_kicks(el);
     const double h = MagnetData_get_h(el);
+    const double hxl = MagnetData_get_hxl(el);
     const double k0 = MagnetData_get_k0(el);
     const double k1 = MagnetData_get_k1(el);
     const double k2 = MagnetData_get_k2(el);
@@ -59,7 +60,7 @@ void Magnet_track_local_particle(
         NULL, // radiation_record
         delta_taper,
         h,
-        0., // hxl
+        hxl,
         k0,
         k1,
         k2,

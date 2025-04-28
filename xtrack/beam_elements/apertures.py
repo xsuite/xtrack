@@ -340,7 +340,7 @@ class LimitPolygon(BeamElement):
             d.pop('x_vertices')
             d.pop('y_vertices')
         out = super().from_dict(d, **kwargs)
-        out.svg=d["svg"]
+        out.svg=d.get("svg", None)
         return out
 
     @property
