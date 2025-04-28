@@ -266,7 +266,6 @@ class Magnet(BeamElement):
         'k3s': xo.Float64,
         'angle': xo.Float64,
         'h': xo.Float64,
-        'hxl': xo.Float64,
         'k0_from_h': xo.UInt64,
         'edge_entry_active': xo.Field(xo.Int64, default=1),
         'edge_exit_active': xo.Field(xo.Int64, default=1),
