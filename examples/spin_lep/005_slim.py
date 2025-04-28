@@ -395,14 +395,9 @@ m0_kg = m0_J / clight**2
 
 # reference https://lib-extopc.kek.jp/preprints/PDF/1980/8011/8011060.pdf
 
-alpha_plus_co = 1. / tw.circumference * np.sum(
-    kappa**3 * (1 - 2./9. * n0_iv**2) * tw.length)
-alpha_plus = 1. / tw.circumference * np.sum(
-    kappa**3 * (1 - 2./9. * n0_iv**2 + 11/18 * gamma_dn_dgamma_mod**2) * tw.length)
 
-tp_inv = 5 * np.sqrt(3) / 8 * r0 * hbar * tw.gamma0**5 / m0_kg * alpha_plus_co
-tp_s = 1 / tp_inv
-tp_turn = tp_s / tw.T_rev0
+
+
 
 brho_ref = tw.particle_on_co.p0c[0] / clight / tw.particle_on_co.q0
 brho_part = (brho_ref * tw.particle_on_co.rvv[0] * tw.particle_on_co.energy[0]
@@ -423,12 +418,29 @@ gamma_dn_dgamma_ib = (gamma_dn_dgamma[0, :] * ib_x
                     + gamma_dn_dgamma[1, :] * ib_y
                     + gamma_dn_dgamma[2, :] * ib_z)
 
+int_kappa3_n0_ib = np.sum(kappa**3 * n0_ib * tw.length)
+int_kappa3_gamma_dn_dgamma_ib = np.sum(kappa**3 * gamma_dn_dgamma_ib * tw.length)
+int_kappa3_11_9_gamma_dn_dgamma_sq = 11./9. * np.sum(kappa**3 * gamma_dn_dgamma_mod**2 * tw.length)
+
 alpha_minus_co = 1. / tw.circumference * np.sum(kappa**3 * n0_ib *  tw.length)
+
+alpha_plus_co = 1. / tw.circumference * np.sum(
+    kappa**3 * (1 - 2./9. * n0_iv**2) * tw.length)
+
+alpha_plus = 1. / tw.circumference * np.sum(
+    kappa**3 * (1 - 2./9. * n0_iv**2 + 11/18 * gamma_dn_dgamma_mod**2) * tw.length)
 alpha_minus = 1. / tw.circumference * np.sum(
     kappa**3 * (n0_ib - gamma_dn_dgamma_ib) * tw.length)
 
+alpha_plus_2 = alpha_plus_co + 0.5 *int_kappa3_11_9_gamma_dn_dgamma_sq
+alpha_minus_2 = alpha_minus_co - int_kappa3_gamma_dn_dgamma_ib
+
 pol_inf = 8 / 5 / np.sqrt(3) * alpha_minus_co / alpha_plus_co
 pol_eq = 8 / 5 / np.sqrt(3) * alpha_minus / alpha_plus
+
+tp_inv = 5 * np.sqrt(3) / 8 * r0 * hbar * tw.gamma0**5 / m0_kg * alpha_plus_co
+tp_s = 1 / tp_inv
+tp_turn = tp_s / tw.T_rev0
 
 tw._data['alpha_plus_co'] = alpha_plus_co
 tw._data['alpha_minus_co'] = alpha_minus_co
