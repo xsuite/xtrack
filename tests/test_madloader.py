@@ -21,19 +21,21 @@ def test_non_zero_index():
     assert xtrack.mad_loader.non_zero_len(lst) == 3
 
 
-def test_add_lists():
+def test_add_lists_same_lengths():
     a = [1, 2, 3, 1, 1, 1]
     b = [1, 1, 1, 4, 5, 6]
     c = xtrack.mad_loader.add_lists(a, b, 8)
     assert c == [2, 3, 4, 5, 6, 7, 0, 0]
 
 
-def test_add_lists():
+def test_add_lists_different_lengths_pick_longer():
     a = [1, 2, 3, 1, 1, 1]
     b = [1, 1, 1, 4, 5, 6, 7, 8]
     c = xtrack.mad_loader.add_lists(a, b, 8)
     assert c == [2, 3, 4, 5, 6, 7, 7, 8]
 
+
+def test_add_lists_manually_extend():
     a = [1, 2, 3, 1, 1, 1]
     b = [1, 1, 1, 4, 5, 6, 7, 8]
     c = xtrack.mad_loader.add_lists(a, b, 10)
@@ -334,6 +336,69 @@ def test_srotation():
     assert isinstance(line[1], xt.SRotation)
     line.vars['angle'] = 2.0
     assert line[1].angle == line.vars['angle']._value * 180 / np.pi
+
+
+def test_thick_kicker_option():
+    mad = Madx(stdout=False)
+
+    mad.input("""
+    vk: vkicker, l=2, kick=2;
+    hk: hkicker, l=2, kick=3;
+    ki: kicker, l=2, vkick=4, hkick=5;
+    vk_thin: vkicker, lrad=2, kick=6;
+    hk_thin: hkicker, lrad=2, kick=7;
+    ki_thin: kicker, lrad=2, vkick=8, hkick=9;
+
+    ss: sequence, l = 6;
+        vk: vk, at = 1;
+        hk: hk, at = 3;
+        ki: ki, at = 5;
+        vk_thin: vk_thin, at = 6;
+        hk_thin: hk_thin, at = 6;
+        ki_thin: ki_thin, at = 6;
+    endsequence;
+
+    beam; use, sequence=ss;
+    """)
+    line = MadLoader(mad.sequence.ss, enable_expressions=True, allow_thick=True, enable_thick_kickers=True).make_line()
+
+    _, vk, hk, ki, vk_thin, hk_thin, ki_thin, _ = line.elements
+
+    assert isinstance(vk, xt.Magnet)
+    assert isinstance(hk, xt.Magnet)
+    assert isinstance(ki, xt.Magnet)
+    assert isinstance(vk_thin, xt.Multipole)
+    assert isinstance(hk_thin, xt.Multipole)
+    assert isinstance(ki_thin, xt.Multipole)
+
+    def assert_integrated_strength_eq(value, expected):
+        padded_expected = np.zeros_like(value)
+        padded_expected[:len(expected)] = expected
+        assert np.all(value == padded_expected)
+
+    assert_integrated_strength_eq(vk.knl, [0])
+    assert_integrated_strength_eq(vk.ksl, [2])
+    assert vk.length == 2
+
+    assert_integrated_strength_eq(hk.knl, [-3])
+    assert_integrated_strength_eq(hk.ksl, [0])
+    assert hk.length == 2
+
+    assert_integrated_strength_eq(ki.knl, [-5])
+    assert_integrated_strength_eq(ki.ksl, [4])
+    assert ki.length == 2
+
+    assert_integrated_strength_eq(vk_thin.knl, [0])
+    assert_integrated_strength_eq(vk_thin.ksl, [6])
+    assert vk_thin.length == 2
+
+    assert_integrated_strength_eq(hk_thin.knl, [-7])
+    assert_integrated_strength_eq(hk_thin.ksl, [0])
+    assert hk_thin.length == 2
+
+    assert_integrated_strength_eq(ki_thin.knl, [-9])
+    assert_integrated_strength_eq(ki_thin.ksl, [8])
+    assert ki_thin.length == 2
 
 
 def test_xrotation():
