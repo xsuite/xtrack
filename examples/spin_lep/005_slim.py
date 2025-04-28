@@ -202,9 +202,9 @@ n1 = 1./np.sqrt(n1_inv_sq)
 n2 = 1./np.sqrt(n2_inv_sq)
 n3 = 1./np.sqrt(n3_inv_sq)
 
-e1 = eivec[:, modes[0]] / n1
-e2 = eivec[:, modes[1]] / n2
-e3 = eivec[:, modes[2]] / n3
+e1 = eivec[:, modes[0]] * n1
+e2 = eivec[:, modes[1]] * n2
+e3 = eivec[:, modes[2]] * n3
 
 scale_e1 = np.max([np.abs(e1[0])/dx, np.abs(e1[1])/dpx])
 e1_scaled = e1 / scale_e1
@@ -347,6 +347,17 @@ e2_ebe[6, :] = np.sum(e2_spin * ll, axis=0)
 e2_ebe[7, :] = np.sum(e2_spin * mm, axis=0)
 e3_ebe[6, :] = np.sum(e3_spin * ll, axis=0)
 e3_ebe[7, :] = np.sum(e3_spin * mm, axis=0)
+
+# Rephase
+phix = np.angle(e1_ebe[0, :])
+phiy = np.angle(e2_ebe[2, :])
+phizeta = np.angle(e3_ebe[4, :])
+
+for ii in range(len(tw)):
+    e1_ebe[:, ii] *= np.exp(-1j * phix[ii])
+    e2_ebe[:, ii] *= np.exp(-1j * phiy[ii])
+    e3_ebe[:, ii] *= np.exp(-1j * phizeta[ii])
+
 
 gamma_dn_dgamma = np.zeros((3, len(tw)))
 
