@@ -13,9 +13,9 @@ spin_tune = line.particle_ref.anomalous_magnetic_moment[0]*line.particle_ref.gam
 line['vrfc231'] = 12.65 # qs=0.6
 
 line['on_sol.2'] = 1
-line['on_sol.4'] = 0
-line['on_sol.6'] = 0
-line['on_sol.8'] = 0
+line['on_sol.4'] = 1
+line['on_sol.6'] = 1
+line['on_sol.8'] = 1
 line['on_spin_bump.2'] = 0
 line['on_spin_bump.4'] = 0
 line['on_spin_bump.6'] = 0

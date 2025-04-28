@@ -352,8 +352,8 @@ def _add_polarization_to_tw(tw, line):
         gamma_dn_dgamma[1, :] = -2 * (l_component * ll[1, :] + m_component * mm[1, :])
         gamma_dn_dgamma[2, :] = -2 * (l_component * ll[2, :] + m_component * mm[2, :])
 
-        # # PATCH BASED ON BMAD COMPARISON, TO BE UNDERSTOOD!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        # gamma_dn_dgamma *= 0.5
+        # PATCH BASED ON BMAD COMPARISON, TO BE UNDERSTOOD!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        gamma_dn_dgamma *= 0.5
 
         gamma_dn_dgamma_mod = np.sqrt(gamma_dn_dgamma[0, :]**2
                                     + gamma_dn_dgamma[1, :]**2
@@ -372,11 +372,6 @@ def _add_polarization_to_tw(tw, line):
         m0_kg = m0_J / clight**2
 
         # reference https://lib-extopc.kek.jp/preprints/PDF/1980/8011/8011060.pdf
-
-
-
-
-
         brho_ref = tw.particle_on_co.p0c[0] / clight / tw.particle_on_co.q0
         brho_part = (brho_ref * tw.particle_on_co.rvv[0] * tw.particle_on_co.energy[0]
                     / tw.particle_on_co.energy0[0])
