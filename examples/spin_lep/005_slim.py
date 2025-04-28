@@ -374,6 +374,9 @@ gamma_dn_dgamma[0, :] = -2 * (l_component * ll[0, :] + m_component * mm[0, :])
 gamma_dn_dgamma[1, :] = -2 * (l_component * ll[1, :] + m_component * mm[1, :])
 gamma_dn_dgamma[2, :] = -2 * (l_component * ll[2, :] + m_component * mm[2, :])
 
+# # PATCH BASED ON BMAD COMPARISON, TO BE UNDERSTOOD!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# gamma_dn_dgamma *= 0.5
+
 gamma_dn_dgamma_mod = np.sqrt(gamma_dn_dgamma[0, :]**2
                             + gamma_dn_dgamma[1, :]**2
                             + gamma_dn_dgamma[2, :]**2)

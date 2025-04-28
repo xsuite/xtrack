@@ -13,9 +13,9 @@ spin_tune = line.particle_ref.anomalous_magnetic_moment[0]*line.particle_ref.gam
 line['vrfc231'] = 12.65 # qs=0.6
 
 line['on_sol.2'] = 1
-line['on_sol.4'] = 0
-line['on_sol.6'] = 0
-line['on_sol.8'] = 0
+line['on_sol.4'] = 1
+line['on_sol.6'] = 1
+line['on_sol.8'] = 1
 line['on_spin_bump.2'] = 0
 line['on_spin_bump.4'] = 0
 line['on_spin_bump.6'] = 0
@@ -110,3 +110,32 @@ tao = Tao(' -lat lep.bmad -noplot ')
 tao.cmd('show -write spin.txt spin')
 tao.cmd('show -write orbit.txt lat -all') #* -att orbit.x@f20.14 -att orbit.y@f20.14 -att beta.a@f20.14 -att beta.b@f20.14')
 tao.cmd('show -write vvv.txt lat -spin -all')
+
+import pandas as pd
+import io
+def parse_spin_file_pandas(filename):
+    # Read the whole file first
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+    
+    # Filter out comment lines
+    data_lines = [line for line in lines if not line.strip().startswith('#') and line.strip()]
+    
+    # Join the data into a single string
+    data_str = ''.join(data_lines)
+    
+    # Now read into pandas
+    df = pd.read_csv(
+        io.StringIO(data_str),
+        delim_whitespace=True,
+        header=None,
+        names=[
+            'index', 'name', 'key', 's',
+            'spin_x', 'spin_y', 'spin_z',
+            'spin_dn_dpz_x', 'spin_dn_dpz_y', 'spin_dn_dpz_z', 'spin_dn_dpz_amp'
+        ]
+    )
+    
+    return df
+
+df = parse_spin_file_pandas('vvv.txt')
