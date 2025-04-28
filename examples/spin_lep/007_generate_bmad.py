@@ -18,7 +18,7 @@ line['on_sol.6'] = 1
 line['on_sol.8'] = 0
 line['on_spin_bump.2'] = 0
 line['on_spin_bump.4'] = 0
-line['on_spin_bump.6'] = 0
+line['on_spin_bump.6'] = 1
 line['on_spin_bump.8'] = 0
 line['on_coupl_sol.2'] = 0
 line['on_coupl_sol.4'] = 0
@@ -59,8 +59,10 @@ for nn in line.element_names:
             assert ee.k1 == 0
             out_lines.append(f'{nn}: quadrupole, l = {ee.length}, k1 = {ee.k1s}, tilt')
     elif clssname == 'Multipole':
-        assert np.linalg.norm(ee.hxl) == 0
-        out_lines.append(f'{nn}: marker') # Temporary
+        raise ValueError('Multipole not supported')
+    elif clssname == 'Magnet':
+        out_lines.append(f'{nn}: kicker, l = {ee.length}, hkick={-ee.knl[0]},'
+                         f' vkick={ee.ksl[0]}')
         # if np.linalg.norm(ee.knl) == 0 and np.linalg.norm(ee.ksl) == 0:
         #     out_lines.append(f'{nn}: marker') # Temporary
         # else:
