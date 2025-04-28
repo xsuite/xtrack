@@ -12,10 +12,10 @@ spin_tune = line.particle_ref.anomalous_magnetic_moment[0]*line.particle_ref.gam
 
 line['vrfc231'] = 12.65 # qs=0.6
 
-line['on_sol.2'] = 0
-line['on_sol.4'] = 0
-line['on_sol.6'] = 0
-line['on_sol.8'] = 0
+line['on_sol.2'] = 1
+line['on_sol.4'] = 1
+line['on_sol.6'] = 1
+line['on_sol.8'] = 1
 line['on_spin_bump.2'] = 0
 line['on_spin_bump.4'] = 0
 line['on_spin_bump.6'] = 0
@@ -71,19 +71,18 @@ for nn in line.element_names:
     elif clssname == 'Sextupole':
         out_lines.append(f'{nn}: sextupole, l = {ee.length}, k2 = {ee.k2}')
     elif clssname == 'RBend':
-        out_lines.append(f'{nn}: sbend, l = {ee.length_straight}, angle = {ee.angle}')
+        out_lines.append(f'{nn}: rbend, l = {ee.length_straight}, angle = {ee.angle}')
     elif clssname == 'Cavity':
-        out_lines.append(f'{nn}: marker')
+        out_lines.append(f'{nn}: marker') # Patch!!!!
         # out_lines.append(f'{nn}: rfcavity, voltage = {ee.voltage},'
-        #                  f'rf_frequency = {ee.frequency}, lag = 0') # Lag hardcoded for now!
+        #                  f'rf_frequency = {ee.frequency}, phi0 = 0.') # Lag hardcoded for now!
     elif clssname == 'Octupole':
         out_lines.append(f'{nn}: octupole, l = {ee.length}, k3 = {ee.k3}')
     elif clssname == 'DriftSlice':
         ll = tt['length', nn]
         out_lines.append(f'{nn}: drift, l = {ll}')
     elif clssname == 'Solenoid':
-        # out_lines.append(f'{nn}: solenoid, l = {ee.length}, ks = {ee.ks}')
-        out_lines.append(f'{nn}: drift, l = {ee.length}')
+        out_lines.append(f'{nn}: solenoid, l = {ee.length}, ks = {ee.ks}')
     else:
         raise ValueError(f'Unknown element type {clssname} for {nn}')
 
