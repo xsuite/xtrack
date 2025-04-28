@@ -13,9 +13,9 @@ spin_tune = line.particle_ref.anomalous_magnetic_moment[0]*line.particle_ref.gam
 line['vrfc231'] = 12.65 # qs=0.6
 
 line['on_sol.2'] = 1
-line['on_sol.4'] = 1
-line['on_sol.6'] = 1
-line['on_sol.8'] = 1
+line['on_sol.4'] = 0
+line['on_sol.6'] = 0
+line['on_sol.8'] = 0
 line['on_spin_bump.2'] = 0
 line['on_spin_bump.4'] = 0
 line['on_spin_bump.6'] = 0
@@ -108,4 +108,5 @@ with open('lep.bmad', 'w') as fid:
 from pytao import Tao
 tao = Tao(' -lat lep.bmad -noplot ')
 tao.cmd('show -write spin.txt spin')
-tao.cmd('show -write orbit.txt lat * -att orbit.x@f20.14 -att orbit.y@f20.14 -att beta.a@f20.14 -att beta.b@f20.14')
+tao.cmd('show -write orbit.txt lat -all') #* -att orbit.x@f20.14 -att orbit.y@f20.14 -att beta.a@f20.14 -att beta.b@f20.14')
+tao.cmd('show -write vvv.txt lat -spin -all')
