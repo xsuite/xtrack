@@ -13,9 +13,9 @@ spin_tune = line.particle_ref.anomalous_magnetic_moment[0]*line.particle_ref.gam
 line['vrfc231'] = 12.65 # qs=0.6
 
 line['on_sol.2'] = 1
-line['on_sol.4'] = 1
-line['on_sol.6'] = 1
-line['on_sol.8'] = 1
+line['on_sol.4'] = 0
+line['on_sol.6'] = 0
+line['on_sol.8'] = 0
 line['on_spin_bump.2'] = 0
 line['on_spin_bump.4'] = 0
 line['on_spin_bump.6'] = 0
@@ -135,7 +135,13 @@ def parse_spin_file_pandas(filename):
             'spin_dn_dpz_x', 'spin_dn_dpz_y', 'spin_dn_dpz_z', 'spin_dn_dpz_amp'
         ]
     )
-    
+
     return df
 
 df = parse_spin_file_pandas('vvv.txt')
+line['vrfc231'] = 12.65 # qs=0.6
+tw = line.twiss(spin=True, radiation_integrals=True)
+
+
+import polarization as pol
+pol._add_polarization_to_tw(tw, line)
