@@ -334,6 +334,33 @@ def _add_polarization_to_tw(tw, line):
             e2_ebe[:, ii] *= np.exp(-1j * phiy[ii])
             e3_ebe[:, ii] *= np.exp(-1j * phizeta[ii])
 
+        EE = np.zeros((len(tw), 8, 6), complex)
+        EE[:, :, 0] = e1_ebe.T
+        EE[:, :, 1] = np.conj(e1_ebe.T)
+        EE[:, :, 2] = e2_ebe.T
+        EE[:, :, 3] = np.conj(e2_ebe.T)
+        EE[:, :, 4] = e3_ebe.T
+        EE[:, :, 5] = np.conj(e3_ebe.T)
+
+        EE_orb  = EE[:, :6, :]
+        EE_spin = EE[:, 6:, :]
+        LL = np.real(EE_spin @ np.linalg.inv(EE_orb))
+
+        kin_px = tw.kin_px
+        kin_py = tw.kin_py
+        delta = tw.delta
+
+        # gamma_dn_dgamma_2 = LL[:, 0, 5] * ll + LL[:, 1, 5] * mm
+        gamma_dn_dgamma = -(
+            ll * (LL[:, 0, 5]
+            # + kin_px / (1 + delta) * LL[:, 0, 1]
+            # + kin_py / (1 + delta) * LL[:, 0, 3]
+            )
+            + mm * (LL[:, 1, 5]
+            # + kin_px / (1 + delta) * LL[:, 1, 1]
+            # + kin_py / (1 + delta) * LL[:, 1, 3]
+            ))
+
         # Note that here alpha is the l component and beta the m component
         # (opposite on the paper by Chao)
         l_component_e1 = np.imag(np.conj(e1_ebe[4, :]) * e1_ebe[6, :])
@@ -362,7 +389,7 @@ def _add_polarization_to_tw(tw, line):
         gamma_dn_dgamma_e2 *= 0.5
         gamma_dn_dgamma_e3 *= 0.5
 
-        gamma_dn_dgamma = gamma_dn_dgamma_e1 + gamma_dn_dgamma_e2 + gamma_dn_dgamma_e3
+        gamma_dn_dgamma_2 = gamma_dn_dgamma_e1 + gamma_dn_dgamma_e2 + gamma_dn_dgamma_e3
 
         gamma_dn_dgamma_mod = np.sqrt(gamma_dn_dgamma[0, :]**2
                                     + gamma_dn_dgamma[1, :]**2
@@ -430,10 +457,13 @@ def _add_polarization_to_tw(tw, line):
         tw['gamma_dn_dgamma_e2'] = gamma_dn_dgamma_e2
         tw['gamma_dn_dgamma_e3'] = gamma_dn_dgamma_e3
         tw['gamma_dn_dgamma_mod'] = gamma_dn_dgamma_mod
+        tw['gamma_dn_dgamma'] = gamma_dn_dgamma
+        tw['gamma_dn_dgamma_2'] = gamma_dn_dgamma_2
         tw._data['int_kappa3_n0_ib'] = int_kappa3_n0_ib
         tw._data['int_kappa3_gamma_dn_dgamma_ib'] = int_kappa3_gamma_dn_dgamma_ib
         tw._data['int_kappa3_11_18_gamma_dn_dgamma_sq'] = int_kappa3_11_18_gamma_dn_dgamma_sq
         tw._data['pol_inf'] = pol_inf
         tw._data['pol_eq'] = pol_eq
+        tw._data['EE'] = EE
         tw['n0_ib'] = n0_ib
         tw['t_pol_turn'] = tp_turn

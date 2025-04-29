@@ -158,6 +158,7 @@ for ll in spsumm_lines:
         spin_summary_bmad[key.strip()] = val
 
 import polarization as pol
+tw = line.twiss(spin=True, radiation_integrals=True)
 pol._add_polarization_to_tw(tw, line)
 
 print('Xsuite polarization: ', tw.pol_eq)
