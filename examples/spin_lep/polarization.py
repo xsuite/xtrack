@@ -349,6 +349,10 @@ def _add_polarization_to_tw(tw, line):
             e3_ebe[7, :] = (np.sum(e3_spin_re_ebe * mm, axis=0) * scale_e3 * side
                      + 1j * np.sum(e3_spin_im_ebe * mm, axis=0) * scale_e3 * side)
 
+            e1_ebe[6:, -1] = A_discont[:2, :2] @ e1_ebe[6:, -1]
+            e2_ebe[6:, -1] = A_discont[:2, :2] @ e2_ebe[6:, -1]
+            e3_ebe[6:, -1] = A_discont[:2, :2] @ e3_ebe[6:, -1]
+
             # # Rephase
             # phix = np.angle(e1_ebe[0, :])
             # phiy = np.angle(e2_ebe[2, :])
