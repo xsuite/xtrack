@@ -3681,7 +3681,7 @@ class TwissTable(Table):
 
         mass0 = self.particle_on_co.mass0
         r0 = self.particle_on_co.get_classical_particle_radius0()
-        gamma0 = self.gamma0
+        gamma0 = self.particle_on_co.gamma0[0]
 
         dxprime = dpx * (1 - delta) - kin_px
         dyprime = dpy * (1 - delta) - kin_py

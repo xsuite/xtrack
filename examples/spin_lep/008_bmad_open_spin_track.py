@@ -5,6 +5,8 @@ import numpy as np
 
 num_turns = 500
 
+delta=1e-4
+
 line = xt.Line.from_json('lep_sol.json')
 line.particle_ref.anomalous_magnetic_moment=0.00115965218128
 line.particle_ref.gamma0 = 89207.78287659843 # to have a spin tune of 103.45
@@ -34,12 +36,23 @@ tt = line.get_table(attr=True)
 out_lines = []
 out_lines += [
     f'beam, energy  = {line.particle_ref.energy0[0]/1e9}',
-    'parameter[particle] = electron',
-    'parameter[geometry] = closed',
+    'parameter[particle] = positron',
+    'parameter[geometry] = open',
     'bmad_com[spin_tracking_on]=T',
     'bmad_com[radiation_damping_on]=F',
     'bmad_com[radiation_fluctuations_on]=F',
     ''
+    'particle_start[spin_x] = 0.0',
+    'particle_start[spin_y] = 1.0',
+    'particle_start[spin_z] = 0.0',
+    f'particle_start[pz] = {delta}',
+    ''
+    'beginning[beta_a]  =  1',
+    'beginning[alpha_a]=  0',
+    'beginning[beta_b] =   1',
+    'beginning[alpha_b] =   0',
+    'beginning[eta_x] =  0',
+    'beginning[etap_x] =0',
 ]
 
 for nn in line.element_names:
@@ -109,13 +122,13 @@ with open('lep.bmad', 'w') as fid:
 
 from pytao import Tao
 tao = Tao(' -lat lep.bmad -noplot ')
-tao.cmd('show -write spin.txt spin')
+# tao.cmd('show -write spin.txt spin')
 tao.cmd('show -write orbit.txt lat -all') #* -att orbit.x@f20.14 -att orbit.y@f20.14 -att beta.a@f20.14 -att beta.b@f20.14')
 tao.cmd('show -write vvv.txt lat -spin -all')
 
 import pandas as pd
 import io
-def parse_spin_file_pandas(filename):
+def parse_file_pandas(filename, ftype='spin'):
     # Read the whole file first
     with open(filename, 'r') as f:
         lines = f.readlines()
@@ -126,20 +139,27 @@ def parse_spin_file_pandas(filename):
     # Join the data into a single string
     data_str = ''.join(data_lines)
 
+    if ftype == 'spin':
+        col_names = [
+            'index', 'name', 'key', 's',
+            'spin_x', 'spin_y', 'spin_z',
+            'spin_dn_dpz_x', 'spin_dn_dpz_y', 'spin_dn_dpz_z', 'spin_dn_dpz_amp'
+        ]
+    elif ftype == 'orbit':
+        col_names = [
+            'name', 's', 'l', 'betx', 'phix', 'dx', 'x'
+            'bety', 'phiy', 'dy', 'y', 'state'
+        ]
+
     # Now read into pandas
     df = pd.read_csv(
         io.StringIO(data_str),
         sep='\s+',
         header=None,
-        names=[
-            'index', 'name', 'key', 's',
-            'spin_x', 'spin_y', 'spin_z',
-            'spin_dn_dpz_x', 'spin_dn_dpz_y', 'spin_dn_dpz_z', 'spin_dn_dpz_amp'
-        ]
+        names=col_names
     )
 
     return df
-
 
 def parse_twiss_file_pandas(filename):
     with open(filename, 'r') as f:
@@ -173,7 +193,8 @@ def parse_twiss_file_pandas(filename):
 
     return df
 
-df = parse_spin_file_pandas('vvv.txt')
+
+df = parse_file_pandas('vvv.txt')
 df_orb = parse_twiss_file_pandas('orbit.txt')
 line['vrfc231'] = 12.65 # qs=0.6
 tw = line.twiss(spin=True, radiation_integrals=True)
@@ -192,8 +213,9 @@ for ll in spsumm_lines:
         spin_summary_bmad[key.strip()] = val
 
 import polarization as pol
-tw = line.twiss(spin=True, radiation_integrals=True)
-pol._add_polarization_to_tw(tw, line)
+tw = line.twiss(spin=True, radiation_integrals=True,
+                betx=1, bety=1, spin_y=1, delta=delta)
+# pol._add_polarization_to_tw(tw, line)
 
-print('Xsuite polarization: ', tw.pol_eq)
-print('Bmad polarization:   ', spin_summary_bmad['Polarization Limit DK'])
+# print('Xsuite polarization: ', tw.pol_eq)
+# print('Bmad polarization:   ', spin_summary_bmad['Polarization Limit DK'])
