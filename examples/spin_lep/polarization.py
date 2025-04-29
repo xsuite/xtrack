@@ -381,12 +381,12 @@ def _add_polarization_to_tw(tw, line):
         # gamma_dn_dgamma_2 = LL[:, 0, 5] * ll + LL[:, 1, 5] * mm
         gamma_dn_dgamma = -(
             ll * (LL[:, 0, 5]
-            + kin_px / (1 + delta) * LL[:, 0, 1]
-            + kin_py / (1 + delta) * LL[:, 0, 3]
+            # + kin_px / (1 + delta) * LL[:, 0, 1]
+            # + kin_py / (1 + delta) * LL[:, 0, 3]
             )
             + mm * (LL[:, 1, 5]
-            + kin_px / (1 + delta) * LL[:, 1, 1]
-            + kin_py / (1 + delta) * LL[:, 1, 3]
+            # + kin_px / (1 + delta) * LL[:, 1, 1]
+            # + kin_py / (1 + delta) * LL[:, 1, 3]
             ))
 
         # Note that here alpha is the l component and beta the m component
