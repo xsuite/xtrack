@@ -10,6 +10,13 @@ line.particle_ref.anomalous_magnetic_moment=0.00115965218128
 line.particle_ref.gamma0 = 89207.78287659843 # to have a spin tune of 103.45
 spin_tune = line.particle_ref.anomalous_magnetic_moment[0]*line.particle_ref.gamma0[0]
 
+tt = line.get_table(attr=True)
+tt_bend = tt.rows[(tt.element_type == 'RBend') | (tt.element_type == 'Bend')]
+tt_quad = tt.rows[tt.element_type == 'Quadrupole']
+
+line.set(tt_bend, model='mat-kick-mat', integrator='uniform', num_multipole_kicks=5)
+line.set(tt_quad, model='mat-kick-mat', integrator='uniform', num_multipole_kicks=5)
+
 line['vrfc231'] = 12.65 # qs=0.6
 
 line['on_sol.2'] = 0
@@ -18,7 +25,7 @@ line['on_sol.6'] = 1
 line['on_sol.8'] = 0
 line['on_spin_bump.2'] = 0
 line['on_spin_bump.4'] = 0
-line['on_spin_bump.6'] = 1
+line['on_spin_bump.6'] = 0
 line['on_spin_bump.8'] = 0
 line['on_coupl_sol.2'] = 0
 line['on_coupl_sol.4'] = 0
@@ -37,8 +44,8 @@ out_lines += [
     'parameter[particle] = electron',
     'parameter[geometry] = closed',
     'bmad_com[spin_tracking_on]=T',
-    'bmad_com[radiation_damping_on]=T',
-    'bmad_com[radiation_fluctuations_on]=T',
+    'bmad_com[radiation_damping_on]=F',
+    'bmad_com[radiation_fluctuations_on]=F',
     ''
 ]
 

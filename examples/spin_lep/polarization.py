@@ -53,6 +53,9 @@ def _add_polarization_to_tw(tw, line):
 
         steps_r_matrix = tw.steps_r_matrix
 
+        for kk in steps_r_matrix:
+            steps_r_matrix[kk] *= 10
+
         out = line.compute_one_turn_matrix_finite_differences(particle_on_co=tw.particle_on_co,
                                                             element_by_element=True,
                                                             steps_r_matrix=steps_r_matrix)
@@ -189,159 +192,184 @@ def _add_polarization_to_tw(tw, line):
         scale_e3 = np.max([np.abs(e3[4])/dzeta, np.abs(e3[5])/dpzeta])
         e3_scaled = e3 / scale_e3
 
-        e1_trk_re = e1_scaled.real
-        e1_trk_im = e1_scaled.imag
-        e2_trk_re = e2_scaled.real
-        e2_trk_im = e2_scaled.imag
-        e3_trk_re = e3_scaled.real
-        e3_trk_im = e3_scaled.imag
+        EE_side = {}
 
-        e1_spin_re = e1_trk_re[6] * l0 + e1_trk_re[7] * m0 + np.sqrt(1 - e1_trk_re[6]**2 - e1_trk_re[7]**2) * n0
-        e1_spin_im = e1_trk_im[6] * l0 + e1_trk_im[7] * m0 + np.sqrt(1 - e1_trk_im[6]**2 - e1_trk_im[7]**2) * n0
-        e2_spin_re = e2_trk_re[6] * l0 + e2_trk_re[7] * m0 + np.sqrt(1 - e2_trk_re[6]**2 - e2_trk_re[7]**2) * n0
-        e2_spin_im = e2_trk_im[6] * l0 + e2_trk_im[7] * m0 + np.sqrt(1 - e2_trk_im[6]**2 - e2_trk_im[7]**2) * n0
-        e3_spin_re = e3_trk_re[6] * l0 + e3_trk_re[7] * m0 + np.sqrt(1 - e3_trk_re[6]**2 - e3_trk_re[7]**2) * n0
-        e3_spin_im = e3_trk_im[6] * l0 + e3_trk_im[7] * m0 + np.sqrt(1 - e3_trk_im[6]**2 - e3_trk_im[7]**2) * n0
+        for side in [1, -1]:
 
-        x = tw.x[0] + np.array([
-            e1_trk_re[0], e1_trk_im[0],
-            e2_trk_re[0], e2_trk_im[0],
-            e3_trk_re[0], e3_trk_im[0],
-        ])
-        px = tw.px[0] + np.array([
-            e1_trk_re[1], e1_trk_im[1],
-            e2_trk_re[1], e2_trk_im[1],
-            e3_trk_re[1], e3_trk_im[1],
-        ])
-        y = tw.y[0] + np.array([
-            e1_trk_re[2], e1_trk_im[2],
-            e2_trk_re[2], e2_trk_im[2],
-            e3_trk_re[2], e3_trk_im[2],
-        ])
-        py = tw.py[0] + np.array([
-            e1_trk_re[3], e1_trk_im[3],
-            e2_trk_re[3], e2_trk_im[3],
-            e3_trk_re[3], e3_trk_im[3],
-        ])
-        zeta = tw.zeta[0] + np.array([
-            e1_trk_re[4], e1_trk_im[4],
-            e2_trk_re[4], e2_trk_im[4],
-            e3_trk_re[4], e3_trk_im[4],
-        ])
-        ptau = tw.ptau[0] + tw.beta0 * np.array([ # in the eigenvector there is pzeta
-            e1_trk_re[5], e1_trk_im[5],
-            e2_trk_re[5], e2_trk_im[5],
-            e3_trk_re[5], e3_trk_im[5],
-        ])
-        spin_x = np.array([
-            e1_spin_re[0], e1_spin_im[0],
-            e2_spin_re[0], e2_spin_im[0],
-            e3_spin_re[0], e3_spin_im[0],
-        ])
-        spin_y = np.array([
-            e1_spin_re[1], e1_spin_im[1],
-            e2_spin_re[1], e2_spin_im[1],
-            e3_spin_re[1], e3_spin_im[1],
-        ])
-        spin_z = np.array([
-            e1_spin_re[2], e1_spin_im[2],
-            e2_spin_re[2], e2_spin_im[2],
-            e3_spin_re[2], e3_spin_im[2],
-        ])
+            e1_ebe = np.zeros((8, len(tw)), dtype=complex)
+            e2_ebe = np.zeros((8, len(tw)), dtype=complex)
+            e3_ebe = np.zeros((8, len(tw)), dtype=complex)
 
-        par_track = xp.build_particles(
-            particle_ref=tw.particle_on_co, mode='set',
-            x=x, px=px, y=y, py=py, zeta=zeta, ptau=ptau,
-            spin_x=spin_x, spin_y=spin_y, spin_z=spin_z,
-        )
+            e1_trk_re = side * e1_scaled.real
+            e1_trk_im = side * e1_scaled.imag
+            e2_trk_re = side * e2_scaled.real
+            e2_trk_im = side * e2_scaled.imag
+            e3_trk_re = side * e3_scaled.real
+            e3_trk_im = side * e3_scaled.imag
 
-        line.track(par_track, turn_by_turn_monitor='ONE_TURN_EBE')
-        mon_ebe = line.record_last_track
+            e1_spin_re = e1_trk_re[6] * l0 + e1_trk_re[7] * m0 + np.sqrt(1 - e1_trk_re[6]**2 - e1_trk_re[7]**2) * n0
+            e1_spin_im = e1_trk_im[6] * l0 + e1_trk_im[7] * m0 + np.sqrt(1 - e1_trk_im[6]**2 - e1_trk_im[7]**2) * n0
+            e2_spin_re = e2_trk_re[6] * l0 + e2_trk_re[7] * m0 + np.sqrt(1 - e2_trk_re[6]**2 - e2_trk_re[7]**2) * n0
+            e2_spin_im = e2_trk_im[6] * l0 + e2_trk_im[7] * m0 + np.sqrt(1 - e2_trk_im[6]**2 - e2_trk_im[7]**2) * n0
+            e3_spin_re = e3_trk_re[6] * l0 + e3_trk_re[7] * m0 + np.sqrt(1 - e3_trk_re[6]**2 - e3_trk_re[7]**2) * n0
+            e3_spin_im = e3_trk_im[6] * l0 + e3_trk_im[7] * m0 + np.sqrt(1 - e3_trk_im[6]**2 - e3_trk_im[7]**2) * n0
 
-        e1_ebe = np.zeros((8, len(tw)), dtype=complex)
-        e2_ebe = np.zeros((8, len(tw)), dtype=complex)
-        e3_ebe = np.zeros((8, len(tw)), dtype=complex)
+            x = tw.x[0] + np.array([
+                e1_trk_re[0], e1_trk_im[0],
+                e2_trk_re[0], e2_trk_im[0],
+                e3_trk_re[0], e3_trk_im[0],
+            ])
+            px = tw.px[0] + np.array([
+                e1_trk_re[1], e1_trk_im[1],
+                e2_trk_re[1], e2_trk_im[1],
+                e3_trk_re[1], e3_trk_im[1],
+            ])
+            y = tw.y[0] + np.array([
+                e1_trk_re[2], e1_trk_im[2],
+                e2_trk_re[2], e2_trk_im[2],
+                e3_trk_re[2], e3_trk_im[2],
+            ])
+            py = tw.py[0] + np.array([
+                e1_trk_re[3], e1_trk_im[3],
+                e2_trk_re[3], e2_trk_im[3],
+                e3_trk_re[3], e3_trk_im[3],
+            ])
+            zeta = tw.zeta[0] + np.array([
+                e1_trk_re[4], e1_trk_im[4],
+                e2_trk_re[4], e2_trk_im[4],
+                e3_trk_re[4], e3_trk_im[4],
+            ])
+            ptau = tw.ptau[0] + tw.beta0 * np.array([ # in the eigenvector there is pzeta
+                e1_trk_re[5], e1_trk_im[5],
+                e2_trk_re[5], e2_trk_im[5],
+                e3_trk_re[5], e3_trk_im[5],
+            ])
+            spin_x = np.array([
+                e1_spin_re[0], e1_spin_im[0],
+                e2_spin_re[0], e2_spin_im[0],
+                e3_spin_re[0], e3_spin_im[0],
+            ])
+            spin_y = np.array([
+                e1_spin_re[1], e1_spin_im[1],
+                e2_spin_re[1], e2_spin_im[1],
+                e3_spin_re[1], e3_spin_im[1],
+            ])
+            spin_z = np.array([
+                e1_spin_re[2], e1_spin_im[2],
+                e2_spin_re[2], e2_spin_im[2],
+                e3_spin_re[2], e3_spin_im[2],
+            ])
 
-        e1_ebe[0, :] = ((mon_ebe.x[0, :] - tw.x)
-                        + 1j * (mon_ebe.x[1, :] - tw.x)) * scale_e1
-        e2_ebe[0, :] = ((mon_ebe.x[2, :] - tw.x)
-                        + 1j * (mon_ebe.x[3, :] - tw.x)) * scale_e2
-        e3_ebe[0, :] = ((mon_ebe.x[4, :] - tw.x)
-                        + 1j * (mon_ebe.x[5, :] - tw.x)) * scale_e3
+            par_track = xp.build_particles(
+                particle_ref=tw.particle_on_co, mode='set',
+                x=x, px=px, y=y, py=py, zeta=zeta, ptau=ptau,
+                spin_x=spin_x, spin_y=spin_y, spin_z=spin_z,
+            )
 
-        e1_ebe[1, :] = ((mon_ebe.px[0, :] - tw.px)
-                        + 1j * (mon_ebe.px[1, :] - tw.px)) * scale_e1
-        e2_ebe[1, :] = ((mon_ebe.px[2, :] - tw.px)
-                        + 1j * (mon_ebe.px[3, :] - tw.px)) * scale_e2
-        e3_ebe[1, :] = ((mon_ebe.px[4, :] - tw.px)
-                        + 1j * (mon_ebe.px[5, :] - tw.px)) * scale_e3
+            line.track(par_track, turn_by_turn_monitor='ONE_TURN_EBE')
+            mon_ebe = line.record_last_track
 
-        e1_ebe[2, :] = ((mon_ebe.y[0, :] - tw.y)
-                        + 1j * (mon_ebe.y[1, :] - tw.y)) * scale_e1
-        e2_ebe[2, :] = ((mon_ebe.y[2, :] - tw.y)
-                        + 1j * (mon_ebe.y[3, :] - tw.y)) * scale_e2
-        e3_ebe[2, :] = ((mon_ebe.y[4, :] - tw.y)
-                        + 1j * (mon_ebe.y[5, :] - tw.y)) * scale_e3
+            e1_ebe[0, :] = side *((mon_ebe.x[0, :] - tw.x)
+                            + 1j * (mon_ebe.x[1, :] - tw.x)) * scale_e1
+            e2_ebe[0, :] = side *((mon_ebe.x[2, :] - tw.x)
+                            + 1j * (mon_ebe.x[3, :] - tw.x)) * scale_e2
+            e3_ebe[0, :] = side *((mon_ebe.x[4, :] - tw.x)
+                            + 1j * (mon_ebe.x[5, :] - tw.x)) * scale_e3
 
-        e1_ebe[3, :] = ((mon_ebe.py[0, :] - tw.py)
-                        + 1j * (mon_ebe.py[1, :] - tw.py)) * scale_e1
-        e2_ebe[3, :] = ((mon_ebe.py[2, :] - tw.py)
-                        + 1j * (mon_ebe.py[3, :] - tw.py)) * scale_e2
-        e3_ebe[3, :] = ((mon_ebe.py[4, :] - tw.py)
-                        + 1j * (mon_ebe.py[5, :] - tw.py)) * scale_e3
+            e1_ebe[1, :] = side *((mon_ebe.px[0, :] - tw.px)
+                            + 1j * (mon_ebe.px[1, :] - tw.px)) * scale_e1
+            e2_ebe[1, :] = side *((mon_ebe.px[2, :] - tw.px)
+                            + 1j * (mon_ebe.px[3, :] - tw.px)) * scale_e2
+            e3_ebe[1, :] = side *((mon_ebe.px[4, :] - tw.px)
+                            + 1j * (mon_ebe.px[5, :] - tw.px)) * scale_e3
 
-        e1_ebe[4, :] = ((mon_ebe.zeta[0, :] - tw.zeta)
-                        + 1j * (mon_ebe.zeta[1, :] - tw.zeta)) * scale_e1
-        e2_ebe[4, :] = ((mon_ebe.zeta[2, :] - tw.zeta)
-                        + 1j * (mon_ebe.zeta[3, :] - tw.zeta)) * scale_e2
-        e3_ebe[4, :] = ((mon_ebe.zeta[4, :] - tw.zeta)
-                        + 1j * (mon_ebe.zeta[5, :] - tw.zeta)) * scale_e3
+            e1_ebe[2, :] = side *((mon_ebe.y[0, :] - tw.y)
+                            + 1j * (mon_ebe.y[1, :] - tw.y)) * scale_e1
+            e2_ebe[2, :] = side *((mon_ebe.y[2, :] - tw.y)
+                            + 1j * (mon_ebe.y[3, :] - tw.y)) * scale_e2
+            e3_ebe[2, :] = side *((mon_ebe.y[4, :] - tw.y)
+                            + 1j * (mon_ebe.y[5, :] - tw.y)) * scale_e3
 
-        e1_ebe[5, :] = ((mon_ebe.ptau[0, :] - tw.ptau)
-                        + 1j * (mon_ebe.ptau[1, :] - tw.ptau)) / tw.beta0 * scale_e1
-        e2_ebe[5, :] = ((mon_ebe.ptau[2, :] - tw.ptau)
-                        + 1j * (mon_ebe.ptau[3, :] - tw.ptau)) / tw.beta0 * scale_e2
-        e3_ebe[5, :] = ((mon_ebe.ptau[4, :] - tw.ptau)
-                        + 1j * (mon_ebe.ptau[5, :] - tw.ptau)) / tw.beta0 * scale_e3
+            e1_ebe[3, :] = side *((mon_ebe.py[0, :] - tw.py)
+                            + 1j * (mon_ebe.py[1, :] - tw.py)) * scale_e1
+            e2_ebe[3, :] = side *((mon_ebe.py[2, :] - tw.py)
+                            + 1j * (mon_ebe.py[3, :] - tw.py)) * scale_e2
+            e3_ebe[3, :] = side *((mon_ebe.py[4, :] - tw.py)
+                            + 1j * (mon_ebe.py[5, :] - tw.py)) * scale_e3
 
-        e1_spin = np.zeros((3, len(tw)), dtype=complex)
-        e1_spin[0, :] = (mon_ebe.spin_x[0, :] + 1j * mon_ebe.spin_x[1, :]) * scale_e1
-        e1_spin[1, :] = (mon_ebe.spin_y[0, :] + 1j * mon_ebe.spin_y[1, :]) * scale_e1
-        e1_spin[2, :] = (mon_ebe.spin_z[0, :] + 1j * mon_ebe.spin_z[1, :]) * scale_e1
-        e2_spin = np.zeros((3, len(tw)), dtype=complex)
-        e2_spin[0, :] = (mon_ebe.spin_x[2, :] + 1j * mon_ebe.spin_x[3, :]) * scale_e2
-        e2_spin[1, :] = (mon_ebe.spin_y[2, :] + 1j * mon_ebe.spin_y[3, :]) * scale_e2
-        e2_spin[2, :] = (mon_ebe.spin_z[2, :] + 1j * mon_ebe.spin_z[3, :]) * scale_e2
-        e3_spin = np.zeros((3, len(tw)), dtype=complex)
-        e3_spin[0, :] = (mon_ebe.spin_x[4, :] + 1j * mon_ebe.spin_x[5, :]) * scale_e3
-        e3_spin[1, :] = (mon_ebe.spin_y[4, :] + 1j * mon_ebe.spin_y[5, :]) * scale_e3
-        e3_spin[2, :] = (mon_ebe.spin_z[4, :] + 1j * mon_ebe.spin_z[5, :]) * scale_e3
+            e1_ebe[4, :] = side *((mon_ebe.zeta[0, :] - tw.zeta)
+                            + 1j * (mon_ebe.zeta[1, :] - tw.zeta)) * scale_e1
+            e2_ebe[4, :] = side *((mon_ebe.zeta[2, :] - tw.zeta)
+                            + 1j * (mon_ebe.zeta[3, :] - tw.zeta)) * scale_e2
+            e3_ebe[4, :] = side *((mon_ebe.zeta[4, :] - tw.zeta)
+                            + 1j * (mon_ebe.zeta[5, :] - tw.zeta)) * scale_e3
 
-        e1_ebe[6, :] = np.sum(e1_spin * ll, axis=0)
-        e1_ebe[7, :] = np.sum(e1_spin * mm, axis=0)
-        e2_ebe[6, :] = np.sum(e2_spin * ll, axis=0)
-        e2_ebe[7, :] = np.sum(e2_spin * mm, axis=0)
-        e3_ebe[6, :] = np.sum(e3_spin * ll, axis=0)
-        e3_ebe[7, :] = np.sum(e3_spin * mm, axis=0)
+            e1_ebe[5, :] = side *((mon_ebe.ptau[0, :] - tw.ptau)
+                            + 1j * (mon_ebe.ptau[1, :] - tw.ptau)) / tw.beta0 * scale_e1
+            e2_ebe[5, :] = side *((mon_ebe.ptau[2, :] - tw.ptau)
+                            + 1j * (mon_ebe.ptau[3, :] - tw.ptau)) / tw.beta0 * scale_e2
+            e3_ebe[5, :] = side *((mon_ebe.ptau[4, :] - tw.ptau)
+                            + 1j * (mon_ebe.ptau[5, :] - tw.ptau)) / tw.beta0 * scale_e3
 
-        # Rephase
-        phix = np.angle(e1_ebe[0, :])
-        phiy = np.angle(e2_ebe[2, :])
-        phizeta = np.angle(e3_ebe[4, :])
+            e1_spin_re_ebe = np.zeros((3, len(tw)), dtype=complex)
+            e1_spin_re_ebe[0, :] = mon_ebe.spin_x[0, :]
+            e1_spin_re_ebe[1, :] = mon_ebe.spin_y[0, :]
+            e1_spin_re_ebe[2, :] = mon_ebe.spin_z[0, :]
+            e1_spin_im_ebe = np.zeros((3, len(tw)), dtype=complex)
+            e1_spin_im_ebe[0, :] = mon_ebe.spin_x[1, :]
+            e1_spin_im_ebe[1, :] = mon_ebe.spin_y[1, :]
+            e1_spin_im_ebe[2, :] = mon_ebe.spin_z[1, :]
+            e2_spin_re_ebe = np.zeros((3, len(tw)), dtype=complex)
+            e2_spin_re_ebe[0, :] = mon_ebe.spin_x[2, :]
+            e2_spin_re_ebe[1, :] = mon_ebe.spin_y[2, :]
+            e2_spin_re_ebe[2, :] = mon_ebe.spin_z[2, :]
+            e2_spin_im_ebe = np.zeros((3, len(tw)), dtype=complex)
+            e2_spin_im_ebe[0, :] = mon_ebe.spin_x[3, :]
+            e2_spin_im_ebe[1, :] = mon_ebe.spin_y[3, :]
+            e2_spin_im_ebe[2, :] = mon_ebe.spin_z[3, :]
+            e3_spin_re_ebe = np.zeros((3, len(tw)), dtype=complex)
+            e3_spin_re_ebe[0, :] = mon_ebe.spin_x[4, :]
+            e3_spin_re_ebe[1, :] = mon_ebe.spin_y[4, :]
+            e3_spin_re_ebe[2, :] = mon_ebe.spin_z[4, :]
+            e3_spin_im_ebe = np.zeros((3, len(tw)), dtype=complex)
+            e3_spin_im_ebe[0, :] = mon_ebe.spin_x[5, :]
+            e3_spin_im_ebe[1, :] = mon_ebe.spin_y[5, :]
+            e3_spin_im_ebe[2, :] = mon_ebe.spin_z[5, :]
 
-        for ii in range(len(tw)):
-            e1_ebe[:, ii] *= np.exp(-1j * phix[ii])
-            e2_ebe[:, ii] *= np.exp(-1j * phiy[ii])
-            e3_ebe[:, ii] *= np.exp(-1j * phizeta[ii])
+            e1_ebe[6, :] = (np.sum(e1_spin_re_ebe * ll, axis=0) * scale_e1 * side
+                     + 1j * np.sum(e1_spin_im_ebe * ll, axis=0) * scale_e1 * side)
+            e2_ebe[6, :] = (np.sum(e2_spin_re_ebe * ll, axis=0) * scale_e2 * side
+                     + 1j * np.sum(e2_spin_im_ebe * ll, axis=0) * scale_e2 * side)
+            e3_ebe[6, :] = (np.sum(e3_spin_re_ebe * ll, axis=0) * scale_e3 * side
+                     + 1j * np.sum(e3_spin_im_ebe * ll, axis=0) * scale_e3 * side)
+            e1_ebe[7, :] = (np.sum(e1_spin_re_ebe * mm, axis=0) * scale_e1 * side
+                     + 1j * np.sum(e1_spin_im_ebe * mm, axis=0) * scale_e1 * side)
+            e2_ebe[7, :] = (np.sum(e2_spin_re_ebe * mm, axis=0) * scale_e2 * side
+                     + 1j * np.sum(e2_spin_im_ebe * mm, axis=0) * scale_e2 * side)
+            e3_ebe[7, :] = (np.sum(e3_spin_re_ebe * mm, axis=0) * scale_e3 * side
+                     + 1j * np.sum(e3_spin_im_ebe * mm, axis=0) * scale_e3 * side)
 
-        EE = np.zeros((len(tw), 8, 6), complex)
-        EE[:, :, 0] = e1_ebe.T
-        EE[:, :, 1] = np.conj(e1_ebe.T)
-        EE[:, :, 2] = e2_ebe.T
-        EE[:, :, 3] = np.conj(e2_ebe.T)
-        EE[:, :, 4] = e3_ebe.T
-        EE[:, :, 5] = np.conj(e3_ebe.T)
+            # # Rephase
+            # phix = np.angle(e1_ebe[0, :])
+            # phiy = np.angle(e2_ebe[2, :])
+            # phizeta = np.angle(e3_ebe[4, :])
 
+            # for ii in range(len(tw)):
+            #     e1_ebe[:, ii] *= np.exp(-1j * phix[ii])
+            #     e2_ebe[:, ii] *= np.exp(-1j * phiy[ii])
+            #     e3_ebe[:, ii] *= np.exp(-1j * phizeta[ii])
+
+            EE = np.zeros((len(tw), 8, 6), complex)
+            EE[:, :, 0] = e1_ebe.T
+            EE[:, :, 1] = np.conj(e1_ebe.T)
+            EE[:, :, 2] = e2_ebe.T
+            EE[:, :, 3] = np.conj(e2_ebe.T)
+            EE[:, :, 4] = e3_ebe.T
+            EE[:, :, 5] = np.conj(e3_ebe.T)
+
+            EE_side[side] = EE
+
+        EE = 0.5 * (EE_side[1] + EE_side[-1])
         EE_orb  = EE[:, :6, :]
         EE_spin = EE[:, 6:, :]
         LL = np.real(EE_spin @ np.linalg.inv(EE_orb))
@@ -351,14 +379,14 @@ def _add_polarization_to_tw(tw, line):
         delta = tw.delta
 
         # gamma_dn_dgamma_2 = LL[:, 0, 5] * ll + LL[:, 1, 5] * mm
-        gamma_dn_dgamma_2 = -(
+        gamma_dn_dgamma = -(
             ll * (LL[:, 0, 5]
-            # + kin_px / (1 + delta) * LL[:, 0, 1]
-            # + kin_py / (1 + delta) * LL[:, 0, 3]
+            + kin_px / (1 + delta) * LL[:, 0, 1]
+            + kin_py / (1 + delta) * LL[:, 0, 3]
             )
             + mm * (LL[:, 1, 5]
-            # + kin_px / (1 + delta) * LL[:, 1, 1]
-            # + kin_py / (1 + delta) * LL[:, 1, 3]
+            + kin_px / (1 + delta) * LL[:, 1, 1]
+            + kin_py / (1 + delta) * LL[:, 1, 3]
             ))
 
         # Note that here alpha is the l component and beta the m component
@@ -389,7 +417,7 @@ def _add_polarization_to_tw(tw, line):
         gamma_dn_dgamma_e2 *= 0.5
         gamma_dn_dgamma_e3 *= 0.5
 
-        gamma_dn_dgamma = gamma_dn_dgamma_e1 + gamma_dn_dgamma_e2 + gamma_dn_dgamma_e3
+        gamma_dn_dgamma_2 = gamma_dn_dgamma_e1 + gamma_dn_dgamma_e2 + gamma_dn_dgamma_e3
 
         gamma_dn_dgamma_mod = np.sqrt(gamma_dn_dgamma[0, :]**2
                                     + gamma_dn_dgamma[1, :]**2
@@ -465,5 +493,6 @@ def _add_polarization_to_tw(tw, line):
         tw._data['pol_inf'] = pol_inf
         tw._data['pol_eq'] = pol_eq
         tw._data['EE'] = EE
+        tw._data['EE_side'] = EE_side
         tw['n0_ib'] = n0_ib
         tw['t_pol_turn'] = tp_turn
