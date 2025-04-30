@@ -53,9 +53,6 @@ def _add_polarization_to_tw(tw, line):
 
         steps_r_matrix = tw.steps_r_matrix
 
-        for kk in steps_r_matrix:
-            steps_r_matrix[kk] *= 10
-
         out = line.compute_one_turn_matrix_finite_differences(particle_on_co=tw.particle_on_co,
                                                             element_by_element=True,
                                                             steps_r_matrix=steps_r_matrix)
@@ -70,8 +67,8 @@ def _add_polarization_to_tw(tw, line):
         alpha = np.zeros(len(part.spin_x))
         beta = np.zeros(len(part.spin_x))
         for ii in range(len(part.spin_x)):
-            alpha[ii] = np.dot(spin[:, ii], l0)
-            beta[ii] = np.dot(spin[:, ii], m0)
+            alpha[ii] = np.dot(spin[:, ii], ll[:, -1])
+            beta[ii] = np.dot(spin[:, ii], mm[:, -1])
 
 
         steps_r_matrix = out['steps_r_matrix']
@@ -113,7 +110,7 @@ def _add_polarization_to_tw(tw, line):
         R_discont = np.eye(8)
         R_discont[6:, 6:] = A_discont[:2, :2]
 
-        R_one_turn = RR @ R_discont
+        R_one_turn = R_discont @ RR
 
         eival, eivec = np.linalg.eig(R_one_turn)
 
@@ -353,15 +350,15 @@ def _add_polarization_to_tw(tw, line):
             e2_ebe[6:, -1] = A_discont[:2, :2] @ e2_ebe[6:, -1]
             e3_ebe[6:, -1] = A_discont[:2, :2] @ e3_ebe[6:, -1]
 
-            # # Rephase
-            # phix = np.angle(e1_ebe[0, :])
-            # phiy = np.angle(e2_ebe[2, :])
-            # phizeta = np.angle(e3_ebe[4, :])
+            # Rephase
+            phix = np.angle(e1_ebe[0, :])
+            phiy = np.angle(e2_ebe[2, :])
+            phizeta = np.angle(e3_ebe[4, :])
 
-            # for ii in range(len(tw)):
-            #     e1_ebe[:, ii] *= np.exp(-1j * phix[ii])
-            #     e2_ebe[:, ii] *= np.exp(-1j * phiy[ii])
-            #     e3_ebe[:, ii] *= np.exp(-1j * phizeta[ii])
+            for ii in range(len(tw)):
+                e1_ebe[:, ii] *= np.exp(-1j * phix[ii])
+                e2_ebe[:, ii] *= np.exp(-1j * phiy[ii])
+                e3_ebe[:, ii] *= np.exp(-1j * phizeta[ii])
 
             EE = np.zeros((len(tw), 8, 6), complex)
             EE[:, :, 0] = e1_ebe.T
