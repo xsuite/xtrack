@@ -53,6 +53,9 @@ def _add_polarization_to_tw(tw, line):
 
         steps_r_matrix = tw.steps_r_matrix
 
+        # for kk in steps_r_matrix:
+        #     steps_r_matrix[kk] *= 0.1
+
         out = line.compute_one_turn_matrix_finite_differences(particle_on_co=tw.particle_on_co,
                                                             element_by_element=True,
                                                             steps_r_matrix=steps_r_matrix)
@@ -389,6 +392,10 @@ def _add_polarization_to_tw(tw, line):
             # + kin_px / (1 + delta) * LL[:, 1, 1]
             # + kin_py / (1 + delta) * LL[:, 1, 3]
             ))
+
+        # For better accuracy?
+        gamma_dn_dgamma[1, :] = 1. / (2. * np.sqrt(1 - tw.spin_x**2 - tw.spin_z**2)) * (
+            -2 * tw.spin_x * gamma_dn_dgamma[0, :] - 2 * tw.spin_z * gamma_dn_dgamma[2, :])
 
         # Note that here alpha is the l component and beta the m component
         # (opposite on the paper by Chao)
