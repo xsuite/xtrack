@@ -329,7 +329,7 @@ class MetaBeamElement(xo.MetaHybridClass):
             _pkg_root.joinpath('headers','checks.h'),
             _pkg_root.joinpath('headers','particle_states.h'),
             _pkg_root.joinpath('beam_elements', 'elements_src', 'track_srotation.h'),
-            _pkg_root.joinpath('beam_elements', 'elements_src', 'drift.h'),
+            _pkg_root.joinpath('beam_elements', 'elements_src', 'track_drift.h'),
         ]
         kernels = {}
 

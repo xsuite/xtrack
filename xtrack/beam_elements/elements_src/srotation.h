@@ -7,6 +7,7 @@
 #define XTRACK_SROTATION_H
 
 #include <headers/track.h>
+#include <beam_elements/elements_src/track_srotation.h>
 
 
 GPUFUN

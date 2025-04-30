@@ -7,6 +7,7 @@
 #define XTRACK_THICK_SLICE_SOLENOID_H
 
 #include <headers/track.h>
+#include <beam_elements/elements_src/track_solenoid.h>
 
 
 GPUFUN

@@ -6,6 +6,7 @@
 #define XTRACK_YROTATION_H
 
 #include <headers/track.h>
+#include <beam_elements/elements_src/track_yrotation.h>
 
 
 GPUFUN

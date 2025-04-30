@@ -7,6 +7,8 @@
 #define XTRACK_FRINGE_H
 
 #include <headers/track.h>
+#include <beam_elements/elements_src/track_dipole_fringe.h>
+
 
 GPUFUN
 void Fringe_track_local_particle(

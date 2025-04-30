@@ -7,6 +7,8 @@
 #define XTRACK_DRIFT_SLICE_QUADRUPOLE_H
 
 #include <headers/track.h>
+#include <beam_elements/elements_src/track_drift.h>
+
 
 GPUFUN
 void DriftSliceQuadrupole_track_local_particle(

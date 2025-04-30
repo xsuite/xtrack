@@ -7,6 +7,8 @@
 #define XTRACK_DRIFT_SLICE_OCTUPOLE_H
 
 #include <headers/track.h>
+#include <beam_elements/elements_src/track_drift.h>
+
 
 GPUFUN
 void DriftSliceOctupole_track_local_particle(

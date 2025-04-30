@@ -7,6 +7,12 @@
 #define XTRACK_SOLENOID_H
 
 #include <headers/track.h>
+#include <headers/synrad_spectrum.h>
+#include <beam_elements/elements_src/track_multipolar_components.h>
+#include <beam_elements/elements_src/track_xrotation.h>
+#include <beam_elements/elements_src/track_yrotation.h>
+#include <beam_elements/elements_src/track_srotation.h>
+#include <beam_elements/elements_src/track_solenoid.h>
 
 
 GPUFUN

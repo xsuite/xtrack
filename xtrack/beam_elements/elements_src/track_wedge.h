@@ -7,6 +7,7 @@
 #define XTRACK_TRACK_WEDGE_H
 
 #include <headers/track.h>
+#include <beam_elements/elements_src/track_yrotation.h>
 
 
 GPUFUN
