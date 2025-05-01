@@ -29,7 +29,7 @@ line['on_sol.6'] = 1
 line['on_sol.8'] = 0
 line['on_spin_bump.2'] = 0
 line['on_spin_bump.4'] = 0
-line['on_spin_bump.6'] = 1
+line['on_spin_bump.6'] = 0
 line['on_spin_bump.8'] = 0
 line['on_coupl_sol.2'] = 0
 line['on_coupl_sol.4'] = 0
@@ -241,15 +241,17 @@ RR_orb = np.delete(RR_orb, 4, axis=0)
 RR_orb = np.delete(RR_orb, 4, axis=1)
 
 eival, EE_orb = np.linalg.eig(RR_orb)
-
-breakpoint()
+n_eigen = EE_orb.shape[1]
 
 # Add a dummy row 4 in eivec
 EE_orb = np.insert(EE_orb, 4, 0, axis=0)
 
-EE_spin = DD @ EE_orb
+EE_spin = np.zeros((3, n_eigen), dtype=complex)
+for ii in range(n_eigen):
+    # EE_spin[:, ii] = DD @ EE_orb[:, ii]
+    EE_spin[:, ii] = np.linalg.inv(eival[ii] * np.eye(3) - A) @ DD @ EE_orb[:, ii]
 
-n_eigen = EE_orb.shape[1]
+
 eee = np.zeros((9, n_eigen), dtype=complex)
 eee[:6, :] = EE_orb
 eee[6:, :] = EE_spin
@@ -263,8 +265,9 @@ def get_scale(e):
 scales = [get_scale(eee[:, ii]) for ii in range(n_eigen)]
 
 eee_scaled = np.zeros((9, n_eigen), dtype=complex)
+breakpoint()
 for ii in range(n_eigen):
-    eee_scaled[:, ii] = eee[:, ii] * scales[ii]
+    eee_scaled[:, ii] = eee[:, ii] / scales[ii]
 
 EE_side = {}
 
