@@ -296,8 +296,8 @@ for side in [1, -1]:
                               'spin_x', 'spin_y', 'spin_z']):
         mon_vv = getattr(mon_ebe, key)
         for iee in range(n_eigen):
-            ee_ebe[:, ii, iee] = side *((mon_vv[0 + 2*iee, :] - tw[key])
-                            + 1j * (mon_vv[1 + 2*iee, :] - tw[key])) * scales[iee]
+            ee_ebe[:, ii, iee] = side *((mon_vv[iee, :] - tw[key])
+                            + 1j * (mon_vv[n_eigen + iee, :] - tw[key])) * scales[iee]
 
     # # Rephase
     # for ii in range(n_eigen):
