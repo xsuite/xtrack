@@ -246,6 +246,8 @@ eival, eivec = np.linalg.eig(R_one_turn)
 # Add a dummy row 4 in eivec
 eivec = np.insert(eivec, 4, 0, axis=0)
 
+breakpoint()
+
 # Identify spin modes and remove them
 norm_orbital_part = []
 for ii in range(R_one_turn.shape[1]):
@@ -253,7 +255,6 @@ for ii in range(R_one_turn.shape[1]):
 i_sorted = np.argsort(norm_orbital_part)
 v0 = eivec[:, i_sorted[3:]]
 w0 = eival[i_sorted[3:]]
-
 
 # Scale and track eigenvectors
 eee = v0.copy()
@@ -268,8 +269,7 @@ scales = [get_scale(eee[:, ii]) for ii in range(n_eigen)]
 
 eee_scaled = np.zeros((9, n_eigen), dtype=complex)
 for ii in range(n_eigen):
-    ss = get_scale(eee[:, ii])
-    eee_scaled[:, ii] = eee[:, ii] / ss
+    eee_scaled[:, ii] = eee[:, ii] * scales[ii]
 
 EE_side = {}
 
@@ -299,14 +299,14 @@ for side in [1, -1]:
         mon_vv = getattr(mon_ebe, key)
         for iee in range(n_eigen):
             ee_ebe[:, ii, iee] = side *((mon_vv[0 + 2*iee, :] - tw[key])
-                            + 1j * (mon_vv[1 + 2*iee, :] - tw[key])) * scales[0]
+                            + 1j * (mon_vv[1 + 2*iee, :] - tw[key])) * scales[iee]
 
-    # Rephase
-    for ii in range(n_eigen):
-        i_max = np.argmax(np.abs(ee_ebe[0, :, ii])) # Strongest component at start ring
-        this_phi = np.angle(ee_ebe[:, i_max, ii])
-        for jj in range(ee_ebe.shape[1]):
-            ee_ebe[:, jj, ii] *= np.exp(-1j * this_phi)
+    # # Rephase
+    # for ii in range(n_eigen):
+    #     i_max = np.argmax(np.abs(ee_ebe[0, :, ii])) # Strongest component at start ring
+    #     this_phi = np.angle(ee_ebe[:, i_max, ii])
+    #     for jj in range(ee_ebe.shape[1]):
+    #         ee_ebe[:, jj, ii] *= np.exp(-1j * this_phi)
 
     EE = ee_ebe.copy()
 
@@ -465,13 +465,14 @@ plt.plot(tw.s, tw.EE_side[-1][:, 7, 4].real, label='- re')
 plt.plot(tw.s, tw.EE_side[1][:, 7, 4].imag, label='+ im')
 plt.plot(tw.s, tw.EE_side[-1][:, 7, 4].imag, label='- im')
 plt.ylabel('e5_ebe')
-plt.subplot(3, 2, 6)
-plt.plot(tw.s, tw.EE_side[1][:, 7, 5].real, label='+ re')
-plt.plot(tw.s, tw.EE_side[-1][:, 7, 5].real, label='- re')
-plt.plot(tw.s, tw.EE_side[1][:, 7, 5].imag, label='+ im')
-plt.plot(tw.s, tw.EE_side[-1][:, 7, 5].imag, label='- im')
-plt.ylabel('e6_ebe')
-plt.xlabel('s [m]')
+if n_eigen > 5:
+    plt.subplot(3, 2, 6)
+    plt.plot(tw.s, tw.EE_side[1][:, 7, 5].real, label='+ re')
+    plt.plot(tw.s, tw.EE_side[-1][:, 7, 5].real, label='- re')
+    plt.plot(tw.s, tw.EE_side[1][:, 7, 5].imag, label='+ im')
+    plt.plot(tw.s, tw.EE_side[-1][:, 7, 5].imag, label='- im')
+    plt.ylabel('e6_ebe')
+    plt.xlabel('s [m]')
 
 
 plt.legend()

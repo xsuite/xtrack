@@ -324,7 +324,7 @@ for side in [1, -1]:
         mon_vv = getattr(mon_ebe, key)
         for iee in range(n_eigen):
             ee_ebe[:, ii, iee] = side *((mon_vv[0 + 2*iee, :] - tw[key])
-                            + 1j * (mon_vv[1 + 2*iee, :] - tw[key])) * scales[0]
+                            + 1j * (mon_vv[1 + 2*iee, :] - tw[key])) * scales[iee]
 
     # Rephase
     for ii in range(n_eigen):
