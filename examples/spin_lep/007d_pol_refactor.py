@@ -9,7 +9,7 @@ from scipy.constants import m_e
 from scipy.constants import hbar
 
 num_turns = 500
-bmad = True
+bmad = False
 
 line = xt.Line.from_json('lep_sol.json')
 line.particle_ref.anomalous_magnetic_moment=0.00115965218128
@@ -385,107 +385,81 @@ for side in [1, -1]:
     eee_trk_re = side * eee_scaled.real
     eee_trk_im = side * eee_scaled.imag
 
-    x = tw.x[0] + np.array(
-        list(eee_trk_re[0, :]) + list(eee_trk_im[0, :]),
-    )
-    px = tw.px[0] + np.array(
-        list(eee_trk_re[1, :]) + list(eee_trk_im[1, :]),
-    )
-    y = tw.y[0] + np.array(
-        list(eee_trk_re[2, :]) + list(eee_trk_im[2, :]),
-    )
-    py = tw.py[0] + np.array(
-        list(eee_trk_re[3, :]) + list(eee_trk_im[3, :]),
-    )
-    zeta = tw.zeta[0] + np.array(
-        list(eee_trk_re[4, :]) + list(eee_trk_im[4, :]),
-    )
-    ptau = tw.ptau[0] + tw.beta0 * np.array( # in the eigenvector there is pzeta
-        list(eee_trk_re[5, :]) + list(eee_trk_im[5, :]),
-    )
-    spin_x = tw.spin_x[0] + np.array(
-        list(eee_trk_re[6, :]) + list(eee_trk_im[6, :]),
-    )
-
-    spin_y = tw.spin_y[0] + np.array(
-        list(eee_trk_re[7, :]) + list(eee_trk_im[7, :]),
-    )
-
-    spin_z = tw.spin_z[0] + np.array(
-        list(eee_trk_re[8, :]) + list(eee_trk_im[8, :]),
-    )
+    particle_data = {}
+    for ii, key in enumerate(['x', 'px', 'y', 'py', 'zeta', 'ptau', 'spin_x', 'spin_y', 'spin_z']):
+        particle_data[key] = tw[key][0] + np.array(
+            list(eee_trk_re[ii, :]) + list(eee_trk_im[ii, :])
+        )
 
     par_track = xp.build_particles(
-        particle_ref=tw.particle_on_co, mode='set',
-        x=x, px=px, y=y, py=py, zeta=zeta, ptau=ptau,
-        spin_x=spin_x, spin_y=spin_y, spin_z=spin_z,
+        particle_ref=tw.particle_on_co, mode='set', **particle_data
     )
 
     line.track(par_track, turn_by_turn_monitor='ONE_TURN_EBE')
     mon_ebe = line.record_last_track
 
-    e1_ebe[0, :] = side *((mon_ebe.x[0, :] - tw.x)
-                    + 1j * (mon_ebe.x[1, :] - tw.x)) * scales[0]
-    e2_ebe[0, :] = side *((mon_ebe.x[2, :] - tw.x)
-                    + 1j * (mon_ebe.x[3, :] - tw.x)) * scales[1]
-    e3_ebe[0, :] = side *((mon_ebe.x[4, :] - tw.x)
-                    + 1j * (mon_ebe.x[5, :] - tw.x)) * scales[2]
+    e1_ebe[0, :] = side *((mon_ebe.x[0, :] - tw['x'])
+                    + 1j * (mon_ebe.x[1, :] - tw['x'])) * scales[0]
+    e2_ebe[0, :] = side *((mon_ebe.x[2, :] - tw['x'])
+                    + 1j * (mon_ebe.x[3, :] - tw['x'])) * scales[1]
+    e3_ebe[0, :] = side *((mon_ebe.x[4, :] - tw['x'])
+                    + 1j * (mon_ebe.x[5, :] - tw['x'])) * scales[2]
 
-    e1_ebe[1, :] = side *((mon_ebe.px[0, :] - tw.px)
-                    + 1j * (mon_ebe.px[1, :] - tw.px)) * scales[0]
-    e2_ebe[1, :] = side *((mon_ebe.px[2, :] - tw.px)
-                    + 1j * (mon_ebe.px[3, :] - tw.px)) * scales[1]
-    e3_ebe[1, :] = side *((mon_ebe.px[4, :] - tw.px)
-                    + 1j * (mon_ebe.px[5, :] - tw.px)) * scales[2]
+    e1_ebe[1, :] = side *((mon_ebe.px[0, :] - tw['px'])
+                    + 1j * (mon_ebe.px[1, :] - tw['px'])) * scales[0]
+    e2_ebe[1, :] = side *((mon_ebe.px[2, :] - tw['px'])
+                    + 1j * (mon_ebe.px[3, :] - tw['px'])) * scales[1]
+    e3_ebe[1, :] = side *((mon_ebe.px[4, :] - tw['px'])
+                    + 1j * (mon_ebe.px[5, :] - tw['px'])) * scales[2]
 
-    e1_ebe[2, :] = side *((mon_ebe.y[0, :] - tw.y)
-                    + 1j * (mon_ebe.y[1, :] - tw.y)) * scales[0]
-    e2_ebe[2, :] = side *((mon_ebe.y[2, :] - tw.y)
-                    + 1j * (mon_ebe.y[3, :] - tw.y)) * scales[1]
-    e3_ebe[2, :] = side *((mon_ebe.y[4, :] - tw.y)
-                    + 1j * (mon_ebe.y[5, :] - tw.y)) * scales[2]
+    e1_ebe[2, :] = side *((mon_ebe.y[0, :] - tw['y'])
+                    + 1j * (mon_ebe.y[1, :] - tw['y'])) * scales[0]
+    e2_ebe[2, :] = side *((mon_ebe.y[2, :] - tw['y'])
+                    + 1j * (mon_ebe.y[3, :] - tw['y'])) * scales[1]
+    e3_ebe[2, :] = side *((mon_ebe.y[4, :] - tw['y'])
+                    + 1j * (mon_ebe.y[5, :] - tw['y'])) * scales[2]
 
-    e1_ebe[3, :] = side *((mon_ebe.py[0, :] - tw.py)
-                    + 1j * (mon_ebe.py[1, :] - tw.py)) * scales[0]
-    e2_ebe[3, :] = side *((mon_ebe.py[2, :] - tw.py)
-                    + 1j * (mon_ebe.py[3, :] - tw.py)) * scales[1]
-    e3_ebe[3, :] = side *((mon_ebe.py[4, :] - tw.py)
-                    + 1j * (mon_ebe.py[5, :] - tw.py)) * scales[2]
+    e1_ebe[3, :] = side *((mon_ebe.py[0, :] - tw['py'])
+                    + 1j * (mon_ebe.py[1, :] - tw['py'])) * scales[0]
+    e2_ebe[3, :] = side *((mon_ebe.py[2, :] - tw['py'])
+                    + 1j * (mon_ebe.py[3, :] - tw['py'])) * scales[1]
+    e3_ebe[3, :] = side *((mon_ebe.py[4, :] - tw['py'])
+                    + 1j * (mon_ebe.py[5, :] - tw['py'])) * scales[2]
 
-    e1_ebe[4, :] = side *((mon_ebe.zeta[0, :] - tw.zeta)
-                    + 1j * (mon_ebe.zeta[1, :] - tw.zeta)) * scales[0]
-    e2_ebe[4, :] = side *((mon_ebe.zeta[2, :] - tw.zeta)
-                    + 1j * (mon_ebe.zeta[3, :] - tw.zeta)) * scales[1]
-    e3_ebe[4, :] = side *((mon_ebe.zeta[4, :] - tw.zeta)
-                    + 1j * (mon_ebe.zeta[5, :] - tw.zeta)) * scales[2]
+    e1_ebe[4, :] = side *((mon_ebe.zeta[0, :] - tw['zeta'])
+                    + 1j * (mon_ebe.zeta[1, :] - tw['zeta'])) * scales[0]
+    e2_ebe[4, :] = side *((mon_ebe.zeta[2, :] - tw['zeta'])
+                    + 1j * (mon_ebe.zeta[3, :] - tw['zeta'])) * scales[1]
+    e3_ebe[4, :] = side *((mon_ebe.zeta[4, :] - tw['zeta'])
+                    + 1j * (mon_ebe.zeta[5, :] - tw['zeta'])) * scales[2]
 
-    e1_ebe[5, :] = side *((mon_ebe.ptau[0, :] - tw.ptau)
-                    + 1j * (mon_ebe.ptau[1, :] - tw.ptau)) / tw.beta0 * scales[0]
-    e2_ebe[5, :] = side *((mon_ebe.ptau[2, :] - tw.ptau)
-                    + 1j * (mon_ebe.ptau[3, :] - tw.ptau)) / tw.beta0 * scales[1]
-    e3_ebe[5, :] = side *((mon_ebe.ptau[4, :] - tw.ptau)
-                    + 1j * (mon_ebe.ptau[5, :] - tw.ptau)) / tw.beta0 * scales[2]
+    e1_ebe[5, :] = side *((mon_ebe.delta[0, :] - tw['delta'])
+                    + 1j * (mon_ebe.delta[1, :] - tw['delta'])) * scales[0]
+    e2_ebe[5, :] = side *((mon_ebe.delta[2, :] - tw['delta'])
+                    + 1j * (mon_ebe.delta[3, :] - tw['delta'])) * scales[1]
+    e3_ebe[5, :] = side *((mon_ebe.delta[4, :] - tw['delta'])
+                    + 1j * (mon_ebe.delta[5, :] - tw['delta'])) * scales[2]
 
-    e1_ebe[6, :] = side *((mon_ebe.spin_x[0, :] - tw.spin_x)
-                    + 1j * (mon_ebe.spin_x[1, :] - tw.spin_x)) * scales[0]
-    e2_ebe[6, :] = side *((mon_ebe.spin_x[2, :] - tw.spin_x)
-                    + 1j * (mon_ebe.spin_x[3, :] - tw.spin_x)) * scales[1]
-    e3_ebe[6, :] = side *((mon_ebe.spin_x[4, :] - tw.spin_x)
-                    + 1j * (mon_ebe.spin_x[5, :] - tw.spin_x)) * scales[2]
+    e1_ebe[6, :] = side *((mon_ebe.spin_x[0, :] - tw['spin_x'])
+                    + 1j * (mon_ebe.spin_x[1, :] - tw['spin_x'])) * scales[0]
+    e2_ebe[6, :] = side *((mon_ebe.spin_x[2, :] - tw['spin_x'])
+                    + 1j * (mon_ebe.spin_x[3, :] - tw['spin_x'])) * scales[1]
+    e3_ebe[6, :] = side *((mon_ebe.spin_x[4, :] - tw['spin_x'])
+                    + 1j * (mon_ebe.spin_x[5, :] - tw['spin_x'])) * scales[2]
 
-    e1_ebe[7, :] = side *((mon_ebe.spin_y[0, :] - tw.spin_y)
-                    + 1j * (mon_ebe.spin_y[1, :] - tw.spin_y)) * scales[0]
-    e2_ebe[7, :] = side *((mon_ebe.spin_y[2, :] - tw.spin_y)
-                    + 1j * (mon_ebe.spin_y[3, :] - tw.spin_y)) * scales[1]
-    e3_ebe[7, :] = side *((mon_ebe.spin_y[4, :] - tw.spin_y)
-                    + 1j * (mon_ebe.spin_y[5, :] - tw.spin_y)) * scales[2]
+    e1_ebe[7, :] = side *((mon_ebe.spin_y[0, :] - tw['spin_y'])
+                    + 1j * (mon_ebe.spin_y[1, :] - tw['spin_y'])) * scales[0]
+    e2_ebe[7, :] = side *((mon_ebe.spin_y[2, :] - tw['spin_y'])
+                    + 1j * (mon_ebe.spin_y[3, :] - tw['spin_y'])) * scales[1]
+    e3_ebe[7, :] = side *((mon_ebe.spin_y[4, :] - tw['spin_y'])
+                    + 1j * (mon_ebe.spin_y[5, :] - tw['spin_y'])) * scales[2]
 
-    e1_ebe[8, :] = side *((mon_ebe.spin_z[0, :] - tw.spin_z)
-                    + 1j * (mon_ebe.spin_z[1, :] - tw.spin_z)) * scales[0]
-    e2_ebe[8, :] = side *((mon_ebe.spin_z[2, :] - tw.spin_z)
-                    + 1j * (mon_ebe.spin_z[3, :] - tw.spin_z)) * scales[1]
-    e3_ebe[8, :] = side *((mon_ebe.spin_z[4, :] - tw.spin_z)
-                    + 1j * (mon_ebe.spin_z[5, :] - tw.spin_z)) * scales[2]
+    e1_ebe[8, :] = side *((mon_ebe.spin_z[0, :] - tw['spin_z'])
+                    + 1j * (mon_ebe.spin_z[1, :] - tw['spin_z'])) * scales[0]
+    e2_ebe[8, :] = side *((mon_ebe.spin_z[2, :] - tw['spin_z'])
+                    + 1j * (mon_ebe.spin_z[3, :] - tw['spin_z'])) * scales[1]
+    e3_ebe[8, :] = side *((mon_ebe.spin_z[4, :] - tw['spin_z'])
+                    + 1j * (mon_ebe.spin_z[5, :] - tw['spin_z'])) * scales[2]
 
     # Rephase
     phix = np.angle(e1_ebe[0, :])
