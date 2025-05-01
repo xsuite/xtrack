@@ -238,10 +238,11 @@ A[2, 2] = (p_test.spin_z[2] - p_test.spin_z[5])/(2*ds)
 
 RR[6:, 6:] = A
 
-R_one_turn = RR
-
+R_one_turn = RR.copy()
 
 eival, eivec = np.linalg.eig(R_one_turn)
+eival_all = eival.copy()
+eivec_all = eivec.copy()
 
 dx = 1e-8
 dy = -2e-8

@@ -235,23 +235,26 @@ A[2, 2] = (p_test.spin_z[2] - p_test.spin_z[5])/(2*ds)
 
 RR[6:, 6:] = A
 
-R_one_turn = RR
+R_one_turn = RR.copy()
 
 # kill row 4 and column 4
 R_one_turn = np.delete(R_one_turn, 4, axis=0)
 R_one_turn = np.delete(R_one_turn, 4, axis=1)
 
 eival, eivec = np.linalg.eig(R_one_turn)
+eival_all = eival.copy()
+eivec_all = eivec.copy()
 
 # Add a dummy row 4 in eivec
 eivec = np.insert(eivec, 4, 0, axis=0)
 
-breakpoint()
-
 # Identify spin modes and remove them
 norm_orbital_part = []
+norm_spin_part = []
 for ii in range(R_one_turn.shape[1]):
-    norm_orbital_part.append(np.linalg.norm(eivec[:6, ii]))
+    norm_orbital_part.append(np.linalg.norm(eivec[:6, ii])/np.linalg.norm(eivec[:, ii]))
+    norm_spin_part.append(np.linalg.norm(eivec[6:, ii])/np.linalg.norm(eivec[:, ii]))
+breakpoint()
 i_sorted = np.argsort(norm_orbital_part)
 v0 = eivec[:, i_sorted[3:]]
 w0 = eival[i_sorted[3:]]
