@@ -241,7 +241,7 @@ def _assert_matrix_responsiveness(M,
         mask_non_zero = np.abs(M[:, ii]) > responsiveness_tol
         mask_non_zero[ii] = False
         if np.sum(mask_non_zero)<1:
-            raise ValueError(
+4            raise ValueError(
                 'Invalid one-turn map: No coordinates respond to variations of '
                 + 'x px y py zeta delta'.split()[ii])
 
