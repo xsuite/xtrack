@@ -396,22 +396,19 @@ for side in [1, -1]:
     line.track(par_track, turn_by_turn_monitor='ONE_TURN_EBE')
     mon_ebe = line.record_last_track
 
-    e1_ebe = np.zeros((9, len(tw)), dtype=complex)
-    e2_ebe = np.zeros((9, len(tw)), dtype=complex)
-    e3_ebe = np.zeros((9, len(tw)), dtype=complex)
-
-    ee_ebe = np.zeros((len(tw), 9, 3), dtype=complex)
+    n_eigen = 3
+    ee_ebe = np.zeros((len(tw), 9, n_eigen), dtype=complex)
 
     for ii, key in enumerate(['x', 'px', 'y', 'py', 'zeta', 'ptau',
                               'spin_x', 'spin_y', 'spin_z']):
         mon_vv = getattr(mon_ebe, key)
-        ee_ebe[:, ii, 0] = side *((mon_vv[0, :] - tw[key])
-                        + 1j * (mon_vv[1, :] - tw[key])) * scales[0]
-        ee_ebe[:, ii, 1] = side *((mon_vv[2, :] - tw[key])
-                        + 1j * (mon_vv[3, :] - tw[key])) * scales[1]
-        ee_ebe[:, ii, 2] = side *((mon_vv[4, :] - tw[key])
-                        + 1j * (mon_vv[5, :] - tw[key])) * scales[2]
+        for iee in range(n_eigen):
+            ee_ebe[:, ii, iee] = side *((mon_vv[0 + 2*iee, :] - tw[key])
+                            + 1j * (mon_vv[1 + 2*iee, :] - tw[key])) * scales[0]
 
+    e1_ebe = np.zeros((9, len(tw)), dtype=complex)
+    e2_ebe = np.zeros((9, len(tw)), dtype=complex)
+    e3_ebe = np.zeros((9, len(tw)), dtype=complex)
     e1_ebe[:, :] = ee_ebe[:, :, 0].T
     e2_ebe[:, :] = ee_ebe[:, :, 1].T
     e3_ebe[:, :] = ee_ebe[:, :, 2].T
