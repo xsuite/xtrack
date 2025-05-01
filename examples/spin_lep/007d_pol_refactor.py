@@ -172,13 +172,6 @@ for ll in spsumm_lines:
 
 tw = line.twiss4d(spin=True, radiation_integrals=True)
 
-S = np.array([[0., 1., 0., 0., 0., 0.],
-            [-1., 0., 0., 0., 0., 0.],
-            [ 0., 0., 0., 1., 0., 0.],
-            [ 0., 0.,-1., 0., 0., 0.],
-            [ 0., 0., 0., 0., 0., 1.],
-            [ 0., 0., 0., 0.,-1., 0.]])
-
 line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False # For spin
 
 # Based on:

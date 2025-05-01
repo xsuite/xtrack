@@ -154,9 +154,6 @@ if bmad:
 
     df = parse_spin_file_pandas('vvv.txt')
 
-line['vrfc231'] = 12.65*0.000001 # qs=0.6
-tw = line.twiss(spin=True, radiation_integrals=True)
-
 spin_summary_bmad = {}
 with open('spin.txt', 'r') as fid:
     spsumm_lines = fid.readlines()
@@ -172,13 +169,6 @@ for ll in spsumm_lines:
 
 tw = line.twiss4d(spin=True, radiation_integrals=True)
 
-S = np.array([[0., 1., 0., 0., 0., 0.],
-            [-1., 0., 0., 0., 0., 0.],
-            [ 0., 0., 0., 1., 0., 0.],
-            [ 0., 0.,-1., 0., 0., 0.],
-            [ 0., 0., 0., 0., 0., 1.],
-            [ 0., 0., 0., 0.,-1., 0.]])
-
 line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False # For spin
 
 # Based on:
@@ -188,7 +178,7 @@ line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False # For spin
 steps_r_matrix = tw.steps_r_matrix
 
 for kk in steps_r_matrix:
-    steps_r_matrix[kk] *= 0.01
+    steps_r_matrix[kk] *= 0.1
 
 out = line.compute_one_turn_matrix_finite_differences(particle_on_co=tw.particle_on_co,
                                                     element_by_element=True,
@@ -247,212 +237,92 @@ RR[6:, 6:] = A
 
 R_one_turn = RR
 
+# kill row 4 and column 4
+R_one_turn = np.delete(R_one_turn, 4, axis=0)
+R_one_turn = np.delete(R_one_turn, 4, axis=1)
 
 eival, eivec = np.linalg.eig(R_one_turn)
 
-dx = 1e-8
-dy = -2e-8
-ddelta = 1e-8
-
-scale = 1e-6
-
-XX = np.zeros(9)
-XX[0] = dx
-XX[2] = dy
-XX[5] = ddelta
-
-YY = R_one_turn @ XX
-
-p = tw.particle_on_co.copy()
-p.x += dx
-p.y += dy
-p.delta += ddelta
-line.track(p)
-
-print('From matrix   YY[6]:', YY[6])
-print('From tracking YY[6]:', p.spin_x[0] - tw.spin_x[0])
-print('From matrix   YY[7]:', YY[7])
-print('From tracking YY[7]:', p.spin_y[0] - tw.spin_y[0])
-print('From matrix   YY[8]:', YY[8])
-print('From tracking YY[8]:', p.spin_z[0] - tw.spin_z[0])
-
-
+# Add a dummy row 4 in eivec
+eivec = np.insert(eivec, 4, 0, axis=0)
 
 # Identify spin modes and remove them
 norm_orbital_part = []
-for ii in range(9):
+for ii in range(R_one_turn.shape[1]):
     norm_orbital_part.append(np.linalg.norm(eivec[:6, ii]))
 i_sorted = np.argsort(norm_orbital_part)
 v0 = eivec[:, i_sorted[3:]]
 w0 = eival[i_sorted[3:]]
 
 
-scale_e1 = np.max([np.abs(e1[0])/dx, np.abs(e1[1])/dpx])
-e1_scaled = e1 / scale_e1
-scale_e2 = np.max([np.abs(e2[2])/dy, np.abs(e2[3])/dpy])
-e2_scaled = e2 / scale_e2
-scale_e3 = np.max([np.abs(e3[4])/dzeta, np.abs(e3[5])/dpzeta])
-e3_scaled = e3 / scale_e3
+# Scale and track eigenvectors
+eee = v0.copy()
+n_eigen = eee.shape[1]
+
+def get_scale(e):
+    return np.max([np.abs(e[0])/dx, np.abs(e[1])/dpx,
+                   np.abs(e[2])/dy, np.abs(e[3])/dpy,
+                   np.abs(e[4])/dzeta, np.abs(e[5])/dpzeta])
+
+scales = [get_scale(eee[:, ii]) for ii in range(n_eigen)]
+
+eee_scaled = np.zeros((9, n_eigen), dtype=complex)
+for ii in range(n_eigen):
+    ss = get_scale(eee[:, ii])
+    eee_scaled[:, ii] = eee[:, ii] / ss
 
 EE_side = {}
 
 for side in [1, -1]:
 
-    e1_ebe = np.zeros((9, len(tw)), dtype=complex)
-    e2_ebe = np.zeros((9, len(tw)), dtype=complex)
-    e3_ebe = np.zeros((9, len(tw)), dtype=complex)
+    eee_trk_re = side * eee_scaled.real
+    eee_trk_im = side * eee_scaled.imag
 
-    e1_trk_re = side * e1_scaled.real
-    e1_trk_im = side * e1_scaled.imag
-    e2_trk_re = side * e2_scaled.real
-    e2_trk_im = side * e2_scaled.imag
-    e3_trk_re = side * e3_scaled.real
-    e3_trk_im = side * e3_scaled.imag
-
-    x = tw.x[0] + np.array([
-        e1_trk_re[0], e1_trk_im[0],
-        e2_trk_re[0], e2_trk_im[0],
-        e3_trk_re[0], e3_trk_im[0],
-    ])
-    px = tw.px[0] + np.array([
-        e1_trk_re[1], e1_trk_im[1],
-        e2_trk_re[1], e2_trk_im[1],
-        e3_trk_re[1], e3_trk_im[1],
-    ])
-    y = tw.y[0] + np.array([
-        e1_trk_re[2], e1_trk_im[2],
-        e2_trk_re[2], e2_trk_im[2],
-        e3_trk_re[2], e3_trk_im[2],
-    ])
-    py = tw.py[0] + np.array([
-        e1_trk_re[3], e1_trk_im[3],
-        e2_trk_re[3], e2_trk_im[3],
-        e3_trk_re[3], e3_trk_im[3],
-    ])
-    zeta = tw.zeta[0] + np.array([
-        e1_trk_re[4], e1_trk_im[4],
-        e2_trk_re[4], e2_trk_im[4],
-        e3_trk_re[4], e3_trk_im[4],
-    ])
-    ptau = tw.ptau[0] + tw.beta0 * np.array([ # in the eigenvector there is pzeta
-        e1_trk_re[5], e1_trk_im[5],
-        e2_trk_re[5], e2_trk_im[5],
-        e3_trk_re[5], e3_trk_im[5],
-    ])
-    spin_x = tw.spin_x[0] + np.array([
-        e1_trk_re[6], e1_trk_im[6],
-        e2_trk_re[6], e2_trk_im[6],
-        e3_trk_re[6], e3_trk_im[6],
-    ])
-
-    spin_y = tw.spin_y[0] + np.array([
-        e1_trk_re[7], e1_trk_im[7],
-        e2_trk_re[7], e2_trk_im[7],
-        e3_trk_re[7], e3_trk_im[7],
-    ])
-
-    spin_z = tw.spin_z[0] + np.array([
-        e1_trk_re[8], e1_trk_im[8],
-        e2_trk_re[8], e2_trk_im[8],
-        e3_trk_re[8], e3_trk_im[8],
-    ])
+    particle_data = {}
+    for ii, key in enumerate(['x', 'px', 'y', 'py', 'zeta', 'ptau',
+                              'spin_x', 'spin_y', 'spin_z']):
+        particle_data[key] = tw[key][0] + np.array(
+            list(eee_trk_re[ii, :]) + list(eee_trk_im[ii, :])
+        )
 
     par_track = xp.build_particles(
-        particle_ref=tw.particle_on_co, mode='set',
-        x=x, px=px, y=y, py=py, zeta=zeta, ptau=ptau,
-        spin_x=spin_x, spin_y=spin_y, spin_z=spin_z,
+        particle_ref=tw.particle_on_co, mode='set', **particle_data
     )
 
     line.track(par_track, turn_by_turn_monitor='ONE_TURN_EBE')
     mon_ebe = line.record_last_track
 
-    e1_ebe[0, :] = side *((mon_ebe.x[0, :] - tw.x)
-                    + 1j * (mon_ebe.x[1, :] - tw.x)) * scale_e1
-    e2_ebe[0, :] = side *((mon_ebe.x[2, :] - tw.x)
-                    + 1j * (mon_ebe.x[3, :] - tw.x)) * scale_e2
-    e3_ebe[0, :] = side *((mon_ebe.x[4, :] - tw.x)
-                    + 1j * (mon_ebe.x[5, :] - tw.x)) * scale_e3
+    ee_ebe = np.zeros((len(tw), 9, n_eigen), dtype=complex)
 
-    e1_ebe[1, :] = side *((mon_ebe.px[0, :] - tw.px)
-                    + 1j * (mon_ebe.px[1, :] - tw.px)) * scale_e1
-    e2_ebe[1, :] = side *((mon_ebe.px[2, :] - tw.px)
-                    + 1j * (mon_ebe.px[3, :] - tw.px)) * scale_e2
-    e3_ebe[1, :] = side *((mon_ebe.px[4, :] - tw.px)
-                    + 1j * (mon_ebe.px[5, :] - tw.px)) * scale_e3
-
-    e1_ebe[2, :] = side *((mon_ebe.y[0, :] - tw.y)
-                    + 1j * (mon_ebe.y[1, :] - tw.y)) * scale_e1
-    e2_ebe[2, :] = side *((mon_ebe.y[2, :] - tw.y)
-                    + 1j * (mon_ebe.y[3, :] - tw.y)) * scale_e2
-    e3_ebe[2, :] = side *((mon_ebe.y[4, :] - tw.y)
-                    + 1j * (mon_ebe.y[5, :] - tw.y)) * scale_e3
-
-    e1_ebe[3, :] = side *((mon_ebe.py[0, :] - tw.py)
-                    + 1j * (mon_ebe.py[1, :] - tw.py)) * scale_e1
-    e2_ebe[3, :] = side *((mon_ebe.py[2, :] - tw.py)
-                    + 1j * (mon_ebe.py[3, :] - tw.py)) * scale_e2
-    e3_ebe[3, :] = side *((mon_ebe.py[4, :] - tw.py)
-                    + 1j * (mon_ebe.py[5, :] - tw.py)) * scale_e3
-
-    e1_ebe[4, :] = side *((mon_ebe.zeta[0, :] - tw.zeta)
-                    + 1j * (mon_ebe.zeta[1, :] - tw.zeta)) * scale_e1
-    e2_ebe[4, :] = side *((mon_ebe.zeta[2, :] - tw.zeta)
-                    + 1j * (mon_ebe.zeta[3, :] - tw.zeta)) * scale_e2
-    e3_ebe[4, :] = side *((mon_ebe.zeta[4, :] - tw.zeta)
-                    + 1j * (mon_ebe.zeta[5, :] - tw.zeta)) * scale_e3
-
-    e1_ebe[5, :] = side *((mon_ebe.ptau[0, :] - tw.ptau)
-                    + 1j * (mon_ebe.ptau[1, :] - tw.ptau)) / tw.beta0 * scale_e1
-    e2_ebe[5, :] = side *((mon_ebe.ptau[2, :] - tw.ptau)
-                    + 1j * (mon_ebe.ptau[3, :] - tw.ptau)) / tw.beta0 * scale_e2
-    e3_ebe[5, :] = side *((mon_ebe.ptau[4, :] - tw.ptau)
-                    + 1j * (mon_ebe.ptau[5, :] - tw.ptau)) / tw.beta0 * scale_e3
-
-    e1_ebe[6, :] = side *((mon_ebe.spin_x[0, :] - tw.spin_x)
-                    + 1j * (mon_ebe.spin_x[1, :] - tw.spin_x)) * scale_e1
-    e2_ebe[6, :] = side *((mon_ebe.spin_x[2, :] - tw.spin_x)
-                    + 1j * (mon_ebe.spin_x[3, :] - tw.spin_x)) * scale_e2
-    e3_ebe[6, :] = side *((mon_ebe.spin_x[4, :] - tw.spin_x)
-                    + 1j * (mon_ebe.spin_x[5, :] - tw.spin_x)) * scale_e3
-
-    e1_ebe[7, :] = side *((mon_ebe.spin_y[0, :] - tw.spin_y)
-                    + 1j * (mon_ebe.spin_y[1, :] - tw.spin_y)) * scale_e1
-    e2_ebe[7, :] = side *((mon_ebe.spin_y[2, :] - tw.spin_y)
-                    + 1j * (mon_ebe.spin_y[3, :] - tw.spin_y)) * scale_e2
-    e3_ebe[7, :] = side *((mon_ebe.spin_y[4, :] - tw.spin_y)
-                    + 1j * (mon_ebe.spin_y[5, :] - tw.spin_y)) * scale_e3
-
-    e1_ebe[8, :] = side *((mon_ebe.spin_z[0, :] - tw.spin_z)
-                    + 1j * (mon_ebe.spin_z[1, :] - tw.spin_z)) * scale_e1
-    e2_ebe[8, :] = side *((mon_ebe.spin_z[2, :] - tw.spin_z)
-                    + 1j * (mon_ebe.spin_z[3, :] - tw.spin_z)) * scale_e2
-    e3_ebe[8, :] = side *((mon_ebe.spin_z[4, :] - tw.spin_z)
-                    + 1j * (mon_ebe.spin_z[5, :] - tw.spin_z)) * scale_e3
+    for ii, key in enumerate(['x', 'px', 'y', 'py', 'zeta', 'ptau',
+                              'spin_x', 'spin_y', 'spin_z']):
+        mon_vv = getattr(mon_ebe, key)
+        for iee in range(n_eigen):
+            ee_ebe[:, ii, iee] = side *((mon_vv[0 + 2*iee, :] - tw[key])
+                            + 1j * (mon_vv[1 + 2*iee, :] - tw[key])) * scales[0]
 
     # Rephase
-    phix = np.angle(e1_ebe[0, :])
-    phiy = np.angle(e2_ebe[2, :])
-    phizeta = np.angle(e3_ebe[4, :])
+    for ii in range(n_eigen):
+        i_max = np.argmax(np.abs(ee_ebe[0, :, ii])) # Strongest component at start ring
+        this_phi = np.angle(ee_ebe[:, i_max, ii])
+        for jj in range(ee_ebe.shape[1]):
+            ee_ebe[:, jj, ii] *= np.exp(-1j * this_phi)
 
-    for ii in range(len(tw)):
-        e1_ebe[:, ii] *= np.exp(-1j * phix[ii])
-        e2_ebe[:, ii] *= np.exp(-1j * phiy[ii])
-        e3_ebe[:, ii] *= np.exp(-1j * phizeta[ii])
-
-    EE = np.zeros((len(tw), 9, 6), complex)
-    EE[:, :, 0] = e1_ebe.T
-    EE[:, :, 1] = np.conj(e1_ebe.T)
-    EE[:, :, 2] = e2_ebe.T
-    EE[:, :, 3] = np.conj(e2_ebe.T)
-    EE[:, :, 4] = e3_ebe.T
-    EE[:, :, 5] = np.conj(e3_ebe.T)
+    EE = ee_ebe.copy()
 
     EE_side[side] = EE
 
 EE = 0.5 * (EE_side[1] + EE_side[-1])
 EE_orb  = EE[:, :6, :]
 EE_spin = EE[:, 6:, :]
+
+# Remove the 4th row
+EE_orb = np.delete(EE_orb, 4, axis=1)
+
 LL = np.real(EE_spin @ np.linalg.inv(EE_orb))
+
+# Add a dummy col 4 in LL
+LL = np.insert(LL, 4, 0, axis=2)
 
 kin_px = tw.kin_px
 kin_py = tw.kin_py
@@ -552,37 +422,58 @@ plt.ylabel('spin_x')
 plt.legend()
 ax2 = plt.subplot(3, 1, 2, sharex=ax1)
 plt.plot(tw.s, tw.spin_y, label='y')
-if bmad: pplt.plot(df.s, df.spin_y, label='y Bmad')
+if bmad: plt.plot(df.s, df.spin_y, label='y Bmad')
 plt.ylabel('spin_y')
 plt.legend()
 ax3 = plt.subplot(3, 1, 3, sharex=ax1)
 plt.xlabel('s [m]')
 plt.plot(tw.s, tw.spin_z, label='z')
-if bmad: pplt.plot(df.s, df.spin_z, label='z Bmad')
+if bmad: plt.plot(df.s, df.spin_z, label='z Bmad')
 plt.ylabel('spin_z')
 plt.legend()
 
-plt.figure(2)
-plt.subplot(3, 1, 1)
+plt.figure(2, figsize=(25, 6))
+plt.subplot(3, 2, 1)
 plt.plot(tw.s, tw.EE_side[1][:, 7, 0].real, label='+ re')
 plt.plot(tw.s, tw.EE_side[-1][:, 7, 0].real, label='- re')
 plt.plot(tw.s, tw.EE_side[1][:, 7, 0].imag, label='+ im')
 plt.plot(tw.s, tw.EE_side[-1][:, 7, 0].imag, label='- im')
 plt.ylabel('e1_ebe')
 plt.legend()
-plt.subplot(3, 1, 2)
+plt.subplot(3, 2, 2)
+plt.plot(tw.s, tw.EE_side[1][:, 7, 1].real, label='+ re')
+plt.plot(tw.s, tw.EE_side[-1][:, 7, 1].real, label='- re')
+plt.plot(tw.s, tw.EE_side[1][:, 7, 1].imag, label='+ im')
+plt.plot(tw.s, tw.EE_side[-1][:, 7, 1].imag, label='- im')
+plt.ylabel('e2_ebe')
+plt.legend()
+plt.subplot(3, 2, 3)
 plt.plot(tw.s, tw.EE_side[1][:, 7, 2].real, label='+ re')
 plt.plot(tw.s, tw.EE_side[-1][:, 7, 2].real, label='- re')
 plt.plot(tw.s, tw.EE_side[1][:, 7, 2].imag, label='+ im')
 plt.plot(tw.s, tw.EE_side[-1][:, 7, 2].imag, label='- im')
-plt.ylabel('e1_ebe')
-plt.legend()
-plt.subplot(3, 1, 3)
+plt.ylabel('e3_ebe')
+plt.subplot(3, 2, 4)
+plt.plot(tw.s, tw.EE_side[1][:, 7, 3].real, label='+ re')
+plt.plot(tw.s, tw.EE_side[-1][:, 7, 3].real, label='- re')
+plt.plot(tw.s, tw.EE_side[1][:, 7, 3].imag, label='+ im')
+plt.plot(tw.s, tw.EE_side[-1][:, 7, 3].imag, label='- im')
+plt.ylabel('e4_ebe')
+plt.subplot(3, 2, 5)
 plt.plot(tw.s, tw.EE_side[1][:, 7, 4].real, label='+ re')
 plt.plot(tw.s, tw.EE_side[-1][:, 7, 4].real, label='- re')
 plt.plot(tw.s, tw.EE_side[1][:, 7, 4].imag, label='+ im')
 plt.plot(tw.s, tw.EE_side[-1][:, 7, 4].imag, label='- im')
-plt.ylabel('e1_ebe')
+plt.ylabel('e5_ebe')
+plt.subplot(3, 2, 6)
+plt.plot(tw.s, tw.EE_side[1][:, 7, 5].real, label='+ re')
+plt.plot(tw.s, tw.EE_side[-1][:, 7, 5].real, label='- re')
+plt.plot(tw.s, tw.EE_side[1][:, 7, 5].imag, label='+ im')
+plt.plot(tw.s, tw.EE_side[-1][:, 7, 5].imag, label='- im')
+plt.ylabel('e6_ebe')
+plt.xlabel('s [m]')
+
+
 plt.legend()
 
 
