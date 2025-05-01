@@ -16,41 +16,6 @@ def _add_polarization_to_tw(tw, line):
         # A. Chao, valuation of Radiative Spin Polarization in an Electron Storage Ring
         # https://inspirehep.net/literature/154360
 
-        n0 = np.array([tw.spin_x[0], tw.spin_y[0], tw.spin_z[0]])
-
-        n0 = n0 / np.linalg.norm(n0)
-
-        # Build two orthogonal vectors
-        tmp = np.array([0, 0, 1]) # Needs generalization
-        l0 = np.cross(n0, tmp)
-        l0 = l0 / np.linalg.norm(l0)
-        m0 = np.cross(l0, n0)
-        m0 = m0 / np.linalg.norm(m0)
-
-        # Build a particle with the three and track them
-        p0 = line.build_particles(particle_ref=tw.particle_on_co,
-                                mode='shift', x=np.zeros(3))
-        p0.spin_x = np.array([l0[0], n0[0], m0[0]])
-        p0.spin_y = np.array([l0[1], n0[1], m0[1]])
-        p0.spin_z = np.array([l0[2], n0[2], m0[2]])
-
-        line.track(p0, num_turns=1, turn_by_turn_monitor='ONE_TURN_EBE')
-        mon0 = line.record_last_track
-
-        ll = np.zeros((3, len(tw)))
-        mm = np.zeros((3, len(tw)))
-        nn = np.zeros((3, len(tw)))
-
-        ll[0, :] = mon0.spin_x[0, :]
-        ll[1, :] = mon0.spin_y[0, :]
-        ll[2, :] = mon0.spin_z[0, :]
-        nn[0, :] = mon0.spin_x[1, :]
-        nn[1, :] = mon0.spin_y[1, :]
-        nn[2, :] = mon0.spin_z[1, :]
-        mm[0, :] = mon0.spin_x[2, :]
-        mm[1, :] = mon0.spin_y[2, :]
-        mm[2, :] = mon0.spin_z[2, :]
-
         steps_r_matrix = tw.steps_r_matrix
 
         # for kk in steps_r_matrix:
@@ -67,13 +32,6 @@ def _add_polarization_to_tw(tw, line):
         spin[1, :] = part.spin_y
         spin[2, :] = part.spin_z
 
-        alpha = np.zeros(len(part.spin_x))
-        beta = np.zeros(len(part.spin_x))
-        for ii in range(len(part.spin_x)):
-            alpha[ii] = np.dot(spin[:, ii], ll[:, -1])
-            beta[ii] = np.dot(spin[:, ii], mm[:, -1])
-
-
         steps_r_matrix = out['steps_r_matrix']
 
         dx = steps_r_matrix["dx"]
@@ -85,72 +43,56 @@ def _add_polarization_to_tw(tw, line):
 
         dpzeta = float(part.ptau[6] - part.ptau[12])/2/part.beta0[0]
 
-        temp_mat = np.zeros((2, len(part.spin_x)))
-        temp_mat[0, :] = alpha
-        temp_mat[1, :] = beta
+        temp_mat = np.zeros((3, len(part.spin_x)))
+        temp_mat[0, :] = part.spin_x
+        temp_mat[1, :] = part.spin_y
+        temp_mat[2, :] = part.spin_z
 
-        DD = np.zeros((2, 6))
+        DD = np.zeros((3, 6))
 
         for jj, dd in enumerate([dx, dpx, dy, dpy, dzeta, dpzeta]):
             DD[:, jj] = (temp_mat[:, jj+1] - temp_mat[:, jj+1+6])/(2*dd)
 
-        RR = np.eye(8)
+        RR = np.eye(9)
         RR[:6, :6] = out['R_matrix']
         RR[6:, :6] = DD
 
-        # Build matrix for alpha/beta discontinuity at end ring
-        A_entry = np.zeros((3, 3))
-        A_exit = np.zeros((3, 3))
-
-        A_entry[:, 0] = ll[:, 0]
-        A_entry[:, 1] = mm[:, 0]
-        A_entry[:, 2] = nn[:, 0]
-        A_exit[:, 0] = ll[:, -1]
-        A_exit[:, 1] = mm[:, -1]
-        A_exit[:, 2] = nn[:, -1]
-
-        A_discont = np.linalg.inv(A_entry) @ A_exit
-        R_discont = np.eye(8)
-        R_discont[6:, 6:] = A_discont[:2, :2]
-
-        R_one_turn = R_discont @ RR
+        R_one_turn = RR
 
         eival, eivec = np.linalg.eig(R_one_turn)
 
-        ##### Sort modes in pairs of conjugate modes #####
-        w0 = eival
-        v0 = eivec
-        index_list = [0,7,5,1,2,6,3,4] # we mix them up to check the algorithm
-        conj_modes = np.zeros([4,2], dtype=np.int64)
-        for j in [0,1,2]:
-            conj_modes[j,0] = index_list[0]
-            del index_list[0]
+        # Identify spin modes and remove them
+        norm_orbital_part = []
+        for ii in range(9):
+            norm_orbital_part.append(np.linalg.norm(eivec[:6, ii]))
+        i_sorted = np.argsort(norm_orbital_part)
+        w0 = eivec[:, i_sorted[3:]]
+        v0 = eival[i_sorted[3:]]
 
-            min_index = 0
-            min_diff = abs(np.imag(w0[conj_modes[j,0]] + w0[index_list[min_index]]))
-            for i in range(1,len(index_list)):
-                diff = abs(np.imag(w0[conj_modes[j,0]] + w0[index_list[i]]))
-                if min_diff > diff:
-                    min_diff = diff
-                    min_index = i
+        # remove modes from conjugate pairs
+        w_temp = w0.copy()
+        v_temp = v0.copy()
+        w_keep = []
+        v_keep = []
+        for ii in range(3):
+            this_w = w_temp[:, 0]
+            this_v = v_temp[0]
+            w_keep.append(this_w)
+            v_keep.append(this_v)
 
-            conj_modes[j,1] = index_list[min_index]
-            del index_list[min_index]
+            w_temp = np.delete(w_temp, 0, axis=1)
+            v_temp = np.delete(v_temp, 0, axis=0)
+            norm_diff = [
+                np.linalg.norm(np.conj(this_w) - w_temp[:, jj], axis=0)
+                for jj in range(w_temp.shape[1])]
+            index = np.argmin(norm_diff)
 
-        conj_modes[3,0] = index_list[0]
-        conj_modes[3,1] = index_list[1]
+            w_temp = np.delete(w_temp, index, axis=1)
+            v_temp = np.delete(v_temp, index, axis=0)
 
-        modes = np.empty(4, dtype=np.int64)
-        modes[0] = conj_modes[0, 0]
-        modes[1] = conj_modes[1, 0]
-        modes[2] = conj_modes[2, 0]
-        modes[3] = conj_modes[3, 0]
+        w0 = np.array(w_keep).T
+        v0 = np.array(v_keep)
 
-        # Sort modes such that (1,2,3,4) is close to (x,y,zeta,spin)
-        # Identify the spin mode (the one with no xyz part)
-        for i in [0,1,2]:
-            if np.linalg.norm(v0[:,modes[3]][:6]) > np.linalg.norm(v0[:,modes[i]][:6]):
-                modes[3], modes[i] = modes[i], modes[3]
         # Identify the longitudinal mode
         for i in [0,1]:
             if abs(v0[:,modes[2]])[5] < abs(v0[:,modes[i]])[5]:
@@ -207,13 +149,6 @@ def _add_polarization_to_tw(tw, line):
             e3_trk_re = side * e3_scaled.real
             e3_trk_im = side * e3_scaled.imag
 
-            e1_spin_re = e1_trk_re[6] * l0 + e1_trk_re[7] * m0 + np.sqrt(1 - e1_trk_re[6]**2 - e1_trk_re[7]**2) * n0
-            e1_spin_im = e1_trk_im[6] * l0 + e1_trk_im[7] * m0 + np.sqrt(1 - e1_trk_im[6]**2 - e1_trk_im[7]**2) * n0
-            e2_spin_re = e2_trk_re[6] * l0 + e2_trk_re[7] * m0 + np.sqrt(1 - e2_trk_re[6]**2 - e2_trk_re[7]**2) * n0
-            e2_spin_im = e2_trk_im[6] * l0 + e2_trk_im[7] * m0 + np.sqrt(1 - e2_trk_im[6]**2 - e2_trk_im[7]**2) * n0
-            e3_spin_re = e3_trk_re[6] * l0 + e3_trk_re[7] * m0 + np.sqrt(1 - e3_trk_re[6]**2 - e3_trk_re[7]**2) * n0
-            e3_spin_im = e3_trk_im[6] * l0 + e3_trk_im[7] * m0 + np.sqrt(1 - e3_trk_im[6]**2 - e3_trk_im[7]**2) * n0
-
             x = tw.x[0] + np.array([
                 e1_trk_re[0], e1_trk_im[0],
                 e2_trk_re[0], e2_trk_im[0],
@@ -244,20 +179,22 @@ def _add_polarization_to_tw(tw, line):
                 e2_trk_re[5], e2_trk_im[5],
                 e3_trk_re[5], e3_trk_im[5],
             ])
-            spin_x = np.array([
-                e1_spin_re[0], e1_spin_im[0],
-                e2_spin_re[0], e2_spin_im[0],
-                e3_spin_re[0], e3_spin_im[0],
+            spin_x = tw.spin_x[0] + np.array([
+                e1_trk_re[6], e1_trk_im[6],
+                e2_trk_re[6], e2_trk_im[6],
+                e3_trk_re[6], e3_trk_im[6],
             ])
-            spin_y = np.array([
-                e1_spin_re[1], e1_spin_im[1],
-                e2_spin_re[1], e2_spin_im[1],
-                e3_spin_re[1], e3_spin_im[1],
+
+            spin_y = tw.spin_y[0] + np.array([
+                e1_trk_re[7], e1_trk_im[7],
+                e2_trk_re[7], e2_trk_im[7],
+                e3_trk_re[7], e3_trk_im[7],
             ])
-            spin_z = np.array([
-                e1_spin_re[2], e1_spin_im[2],
-                e2_spin_re[2], e2_spin_im[2],
-                e3_spin_re[2], e3_spin_im[2],
+
+            spin_z = tw.spin_z[0] + np.array([
+                e1_trk_re[8], e1_trk_im[8],
+                e2_trk_re[8], e2_trk_im[8],
+                e3_trk_re[8], e3_trk_im[8],
             ])
 
             par_track = xp.build_particles(
@@ -311,47 +248,26 @@ def _add_polarization_to_tw(tw, line):
             e3_ebe[5, :] = side *((mon_ebe.ptau[4, :] - tw.ptau)
                             + 1j * (mon_ebe.ptau[5, :] - tw.ptau)) / tw.beta0 * scale_e3
 
-            e1_spin_re_ebe = np.zeros((3, len(tw)), dtype=complex)
-            e1_spin_re_ebe[0, :] = mon_ebe.spin_x[0, :]
-            e1_spin_re_ebe[1, :] = mon_ebe.spin_y[0, :]
-            e1_spin_re_ebe[2, :] = mon_ebe.spin_z[0, :]
-            e1_spin_im_ebe = np.zeros((3, len(tw)), dtype=complex)
-            e1_spin_im_ebe[0, :] = mon_ebe.spin_x[1, :]
-            e1_spin_im_ebe[1, :] = mon_ebe.spin_y[1, :]
-            e1_spin_im_ebe[2, :] = mon_ebe.spin_z[1, :]
-            e2_spin_re_ebe = np.zeros((3, len(tw)), dtype=complex)
-            e2_spin_re_ebe[0, :] = mon_ebe.spin_x[2, :]
-            e2_spin_re_ebe[1, :] = mon_ebe.spin_y[2, :]
-            e2_spin_re_ebe[2, :] = mon_ebe.spin_z[2, :]
-            e2_spin_im_ebe = np.zeros((3, len(tw)), dtype=complex)
-            e2_spin_im_ebe[0, :] = mon_ebe.spin_x[3, :]
-            e2_spin_im_ebe[1, :] = mon_ebe.spin_y[3, :]
-            e2_spin_im_ebe[2, :] = mon_ebe.spin_z[3, :]
-            e3_spin_re_ebe = np.zeros((3, len(tw)), dtype=complex)
-            e3_spin_re_ebe[0, :] = mon_ebe.spin_x[4, :]
-            e3_spin_re_ebe[1, :] = mon_ebe.spin_y[4, :]
-            e3_spin_re_ebe[2, :] = mon_ebe.spin_z[4, :]
-            e3_spin_im_ebe = np.zeros((3, len(tw)), dtype=complex)
-            e3_spin_im_ebe[0, :] = mon_ebe.spin_x[5, :]
-            e3_spin_im_ebe[1, :] = mon_ebe.spin_y[5, :]
-            e3_spin_im_ebe[2, :] = mon_ebe.spin_z[5, :]
+            e1_ebe[6, :] = side *((mon_ebe.spin_x[0, :] - tw.spin_x)
+                            + 1j * (mon_ebe.spin_x[1, :] - tw.spin_x)) * scale_e1
+            e2_ebe[6, :] = side *((mon_ebe.spin_x[2, :] - tw.spin_x)
+                            + 1j * (mon_ebe.spin_x[3, :] - tw.spin_x)) * scale_e2
+            e3_ebe[6, :] = side *((mon_ebe.spin_x[4, :] - tw.spin_x)
+                            + 1j * (mon_ebe.spin_x[5, :] - tw.spin_x)) * scale_e3
 
-            e1_ebe[6, :] = (np.sum(e1_spin_re_ebe * ll, axis=0) * scale_e1 * side
-                     + 1j * np.sum(e1_spin_im_ebe * ll, axis=0) * scale_e1 * side)
-            e2_ebe[6, :] = (np.sum(e2_spin_re_ebe * ll, axis=0) * scale_e2 * side
-                     + 1j * np.sum(e2_spin_im_ebe * ll, axis=0) * scale_e2 * side)
-            e3_ebe[6, :] = (np.sum(e3_spin_re_ebe * ll, axis=0) * scale_e3 * side
-                     + 1j * np.sum(e3_spin_im_ebe * ll, axis=0) * scale_e3 * side)
-            e1_ebe[7, :] = (np.sum(e1_spin_re_ebe * mm, axis=0) * scale_e1 * side
-                     + 1j * np.sum(e1_spin_im_ebe * mm, axis=0) * scale_e1 * side)
-            e2_ebe[7, :] = (np.sum(e2_spin_re_ebe * mm, axis=0) * scale_e2 * side
-                     + 1j * np.sum(e2_spin_im_ebe * mm, axis=0) * scale_e2 * side)
-            e3_ebe[7, :] = (np.sum(e3_spin_re_ebe * mm, axis=0) * scale_e3 * side
-                     + 1j * np.sum(e3_spin_im_ebe * mm, axis=0) * scale_e3 * side)
+            e1_ebe[7, :] = side *((mon_ebe.spin_y[0, :] - tw.spin_y)
+                            + 1j * (mon_ebe.spin_y[1, :] - tw.spin_y)) * scale_e1
+            e2_ebe[7, :] = side *((mon_ebe.spin_y[2, :] - tw.spin_y)
+                            + 1j * (mon_ebe.spin_y[3, :] - tw.spin_y)) * scale_e2
+            e3_ebe[7, :] = side *((mon_ebe.spin_y[4, :] - tw.spin_y)
+                            + 1j * (mon_ebe.spin_y[5, :] - tw.spin_y)) * scale_e3
 
-            e1_ebe[6:, -1] = A_discont[:2, :2] @ e1_ebe[6:, -1]
-            e2_ebe[6:, -1] = A_discont[:2, :2] @ e2_ebe[6:, -1]
-            e3_ebe[6:, -1] = A_discont[:2, :2] @ e3_ebe[6:, -1]
+            e1_ebe[8, :] = side *((mon_ebe.spin_z[0, :] - tw.spin_z)
+                            + 1j * (mon_ebe.spin_z[1, :] - tw.spin_z)) * scale_e1
+            e2_ebe[8, :] = side *((mon_ebe.spin_z[2, :] - tw.spin_z)
+                            + 1j * (mon_ebe.spin_z[3, :] - tw.spin_z)) * scale_e2
+            e3_ebe[8, :] = side *((mon_ebe.spin_z[4, :] - tw.spin_z)
+                            + 1j * (mon_ebe.spin_z[5, :] - tw.spin_z)) * scale_e3
 
             # Rephase
             phix = np.angle(e1_ebe[0, :])
@@ -382,50 +298,7 @@ def _add_polarization_to_tw(tw, line):
         kin_py = tw.kin_py
         delta = tw.delta
 
-        # gamma_dn_dgamma_2 = LL[:, 0, 5] * ll + LL[:, 1, 5] * mm
-        gamma_dn_dgamma = -(
-            ll * (LL[:, 0, 5]
-            # + kin_px / (1 + delta) * LL[:, 0, 1]
-            # + kin_py / (1 + delta) * LL[:, 0, 3]
-            )
-            + mm * (LL[:, 1, 5]
-            # + kin_px / (1 + delta) * LL[:, 1, 1]
-            # + kin_py / (1 + delta) * LL[:, 1, 3]
-            ))
-
-        # For better accuracy?
-        gamma_dn_dgamma[1, :] = 1. / (2. * np.sqrt(1 - tw.spin_x**2 - tw.spin_z**2)) * (
-            -2 * tw.spin_x * gamma_dn_dgamma[0, :] - 2 * tw.spin_z * gamma_dn_dgamma[2, :])
-
-        # Note that here alpha is the l component and beta the m component
-        # (opposite on the paper by Chao)
-        l_component_e1 = np.imag(np.conj(e1_ebe[4, :]) * e1_ebe[6, :])
-        l_component_e2 = np.imag(np.conj(e2_ebe[4, :]) * e2_ebe[6, :])
-        l_component_e3 = np.imag(np.conj(e3_ebe[4, :]) * e3_ebe[6, :])
-        m_component_e1 = np.imag(np.conj(e1_ebe[4, :]) * e1_ebe[7, :])
-        m_component_e2 = np.imag(np.conj(e2_ebe[4, :]) * e2_ebe[7, :])
-        m_component_e3 = np.imag(np.conj(e3_ebe[4, :]) * e3_ebe[7, :])
-
-        gamma_dn_dgamma_e1 = np.zeros((3, len(tw)))
-        gamma_dn_dgamma_e2 = np.zeros((3, len(tw)))
-        gamma_dn_dgamma_e3 = np.zeros((3, len(tw)))
-
-        gamma_dn_dgamma_e1[0, :] = -2 * (l_component_e1 * ll[0, :] + m_component_e1 * mm[0, :])
-        gamma_dn_dgamma_e1[1, :] = -2 * (l_component_e1 * ll[1, :] + m_component_e1 * mm[1, :])
-        gamma_dn_dgamma_e1[2, :] = -2 * (l_component_e1 * ll[2, :] + m_component_e1 * mm[2, :])
-        gamma_dn_dgamma_e2[0, :] = -2 * (l_component_e2 * ll[0, :] + m_component_e2 * mm[0, :])
-        gamma_dn_dgamma_e2[1, :] = -2 * (l_component_e2 * ll[1, :] + m_component_e2 * mm[1, :])
-        gamma_dn_dgamma_e2[2, :] = -2 * (l_component_e2 * ll[2, :] + m_component_e2 * mm[2, :])
-        gamma_dn_dgamma_e3[0, :] = -2 * (l_component_e3 * ll[0, :] + m_component_e3 * mm[0, :])
-        gamma_dn_dgamma_e3[1, :] = -2 * (l_component_e3 * ll[1, :] + m_component_e3 * mm[1, :])
-        gamma_dn_dgamma_e3[2, :] = -2 * (l_component_e3 * ll[2, :] + m_component_e3 * mm[2, :])
-
-        # PATCH BASED ON BMAD COMPARISON, TO BE UNDERSTOOD!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        gamma_dn_dgamma_e1 *= 0.5
-        gamma_dn_dgamma_e2 *= 0.5
-        gamma_dn_dgamma_e3 *= 0.5
-
-        gamma_dn_dgamma_2 = gamma_dn_dgamma_e1 + gamma_dn_dgamma_e2 + gamma_dn_dgamma_e3
+        gamma_dn_dgamma = LL[:, :, 5]
 
         gamma_dn_dgamma_mod = np.sqrt(gamma_dn_dgamma[0, :]**2
                                     + gamma_dn_dgamma[1, :]**2
@@ -486,15 +359,8 @@ def _add_polarization_to_tw(tw, line):
         tw._data['alpha_minus_co'] = alpha_minus_co
         tw._data['alpha_plus'] = alpha_plus
         tw._data['alpha_minus'] = alpha_minus
-        tw['gamma_dn_dgamma_x'] = gamma_dn_dgamma[0, :]
-        tw['gamma_dn_dgamma_y'] = gamma_dn_dgamma[1, :]
-        tw['gamma_dn_dgamma_z'] = gamma_dn_dgamma[2, :]
-        tw['gamma_dn_dgamma_e1'] = gamma_dn_dgamma_e1
-        tw['gamma_dn_dgamma_e2'] = gamma_dn_dgamma_e2
-        tw['gamma_dn_dgamma_e3'] = gamma_dn_dgamma_e3
         tw['gamma_dn_dgamma_mod'] = gamma_dn_dgamma_mod
         tw['gamma_dn_dgamma'] = gamma_dn_dgamma
-        tw['gamma_dn_dgamma_2'] = gamma_dn_dgamma_2
         tw._data['int_kappa3_n0_ib'] = int_kappa3_n0_ib
         tw._data['int_kappa3_gamma_dn_dgamma_ib'] = int_kappa3_gamma_dn_dgamma_ib
         tw._data['int_kappa3_11_18_gamma_dn_dgamma_sq'] = int_kappa3_11_18_gamma_dn_dgamma_sq
