@@ -398,68 +398,14 @@ for side in [1, -1]:
     line.track(par_track, turn_by_turn_monitor='ONE_TURN_EBE')
     mon_ebe = line.record_last_track
 
-    e1_ebe[0, :] = side *((mon_ebe.x[0, :] - tw['x'])
-                    + 1j * (mon_ebe.x[1, :] - tw['x'])) * scales[0]
-    e2_ebe[0, :] = side *((mon_ebe.x[2, :] - tw['x'])
-                    + 1j * (mon_ebe.x[3, :] - tw['x'])) * scales[1]
-    e3_ebe[0, :] = side *((mon_ebe.x[4, :] - tw['x'])
-                    + 1j * (mon_ebe.x[5, :] - tw['x'])) * scales[2]
-
-    e1_ebe[1, :] = side *((mon_ebe.px[0, :] - tw['px'])
-                    + 1j * (mon_ebe.px[1, :] - tw['px'])) * scales[0]
-    e2_ebe[1, :] = side *((mon_ebe.px[2, :] - tw['px'])
-                    + 1j * (mon_ebe.px[3, :] - tw['px'])) * scales[1]
-    e3_ebe[1, :] = side *((mon_ebe.px[4, :] - tw['px'])
-                    + 1j * (mon_ebe.px[5, :] - tw['px'])) * scales[2]
-
-    e1_ebe[2, :] = side *((mon_ebe.y[0, :] - tw['y'])
-                    + 1j * (mon_ebe.y[1, :] - tw['y'])) * scales[0]
-    e2_ebe[2, :] = side *((mon_ebe.y[2, :] - tw['y'])
-                    + 1j * (mon_ebe.y[3, :] - tw['y'])) * scales[1]
-    e3_ebe[2, :] = side *((mon_ebe.y[4, :] - tw['y'])
-                    + 1j * (mon_ebe.y[5, :] - tw['y'])) * scales[2]
-
-    e1_ebe[3, :] = side *((mon_ebe.py[0, :] - tw['py'])
-                    + 1j * (mon_ebe.py[1, :] - tw['py'])) * scales[0]
-    e2_ebe[3, :] = side *((mon_ebe.py[2, :] - tw['py'])
-                    + 1j * (mon_ebe.py[3, :] - tw['py'])) * scales[1]
-    e3_ebe[3, :] = side *((mon_ebe.py[4, :] - tw['py'])
-                    + 1j * (mon_ebe.py[5, :] - tw['py'])) * scales[2]
-
-    e1_ebe[4, :] = side *((mon_ebe.zeta[0, :] - tw['zeta'])
-                    + 1j * (mon_ebe.zeta[1, :] - tw['zeta'])) * scales[0]
-    e2_ebe[4, :] = side *((mon_ebe.zeta[2, :] - tw['zeta'])
-                    + 1j * (mon_ebe.zeta[3, :] - tw['zeta'])) * scales[1]
-    e3_ebe[4, :] = side *((mon_ebe.zeta[4, :] - tw['zeta'])
-                    + 1j * (mon_ebe.zeta[5, :] - tw['zeta'])) * scales[2]
-
-    e1_ebe[5, :] = side *((mon_ebe.delta[0, :] - tw['delta'])
-                    + 1j * (mon_ebe.delta[1, :] - tw['delta'])) * scales[0]
-    e2_ebe[5, :] = side *((mon_ebe.delta[2, :] - tw['delta'])
-                    + 1j * (mon_ebe.delta[3, :] - tw['delta'])) * scales[1]
-    e3_ebe[5, :] = side *((mon_ebe.delta[4, :] - tw['delta'])
-                    + 1j * (mon_ebe.delta[5, :] - tw['delta'])) * scales[2]
-
-    e1_ebe[6, :] = side *((mon_ebe.spin_x[0, :] - tw['spin_x'])
-                    + 1j * (mon_ebe.spin_x[1, :] - tw['spin_x'])) * scales[0]
-    e2_ebe[6, :] = side *((mon_ebe.spin_x[2, :] - tw['spin_x'])
-                    + 1j * (mon_ebe.spin_x[3, :] - tw['spin_x'])) * scales[1]
-    e3_ebe[6, :] = side *((mon_ebe.spin_x[4, :] - tw['spin_x'])
-                    + 1j * (mon_ebe.spin_x[5, :] - tw['spin_x'])) * scales[2]
-
-    e1_ebe[7, :] = side *((mon_ebe.spin_y[0, :] - tw['spin_y'])
-                    + 1j * (mon_ebe.spin_y[1, :] - tw['spin_y'])) * scales[0]
-    e2_ebe[7, :] = side *((mon_ebe.spin_y[2, :] - tw['spin_y'])
-                    + 1j * (mon_ebe.spin_y[3, :] - tw['spin_y'])) * scales[1]
-    e3_ebe[7, :] = side *((mon_ebe.spin_y[4, :] - tw['spin_y'])
-                    + 1j * (mon_ebe.spin_y[5, :] - tw['spin_y'])) * scales[2]
-
-    e1_ebe[8, :] = side *((mon_ebe.spin_z[0, :] - tw['spin_z'])
-                    + 1j * (mon_ebe.spin_z[1, :] - tw['spin_z'])) * scales[0]
-    e2_ebe[8, :] = side *((mon_ebe.spin_z[2, :] - tw['spin_z'])
-                    + 1j * (mon_ebe.spin_z[3, :] - tw['spin_z'])) * scales[1]
-    e3_ebe[8, :] = side *((mon_ebe.spin_z[4, :] - tw['spin_z'])
-                    + 1j * (mon_ebe.spin_z[5, :] - tw['spin_z'])) * scales[2]
+    for ii, key in enumerate(['x', 'px', 'y', 'py', 'zeta', 'ptau', 'spin_x', 'spin_y', 'spin_z']):
+        mon_vv = getattr(mon_ebe, key)
+        e1_ebe[ii, :] = side *((mon_vv[0, :] - tw[key])
+                        + 1j * (mon_vv[1, :] - tw[key])) * scales[0]
+        e2_ebe[ii, :] = side *((mon_vv[2, :] - tw[key])
+                        + 1j * (mon_vv[3, :] - tw[key])) * scales[1]
+        e3_ebe[ii, :] = side *((mon_vv[4, :] - tw[key])
+                        + 1j * (mon_vv[5, :] - tw[key])) * scales[2]
 
     # Rephase
     phix = np.angle(e1_ebe[0, :])
