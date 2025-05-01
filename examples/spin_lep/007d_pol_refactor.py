@@ -406,22 +406,20 @@ for side in [1, -1]:
             ee_ebe[:, ii, iee] = side *((mon_vv[0 + 2*iee, :] - tw[key])
                             + 1j * (mon_vv[1 + 2*iee, :] - tw[key])) * scales[0]
 
+    # Rephase
+    for ii in range(n_eigen):
+        i_max = np.argmax(np.abs(ee_ebe[0, :, ii])) # Strongest component at start ring
+        this_phi = np.angle(ee_ebe[:, i_max, ii])
+        for jj in range(ee_ebe.shape[1]):
+            ee_ebe[:, jj, ii] *= np.exp(-1j * this_phi)
+
+
     e1_ebe = np.zeros((9, len(tw)), dtype=complex)
     e2_ebe = np.zeros((9, len(tw)), dtype=complex)
     e3_ebe = np.zeros((9, len(tw)), dtype=complex)
     e1_ebe[:, :] = ee_ebe[:, :, 0].T
     e2_ebe[:, :] = ee_ebe[:, :, 1].T
     e3_ebe[:, :] = ee_ebe[:, :, 2].T
-
-    # Rephase
-    phix = np.angle(e1_ebe[0, :])
-    phiy = np.angle(e2_ebe[2, :])
-    phizeta = np.angle(e3_ebe[4, :])
-
-    for ii in range(len(tw)):
-        e1_ebe[:, ii] *= np.exp(-1j * phix[ii])
-        e2_ebe[:, ii] *= np.exp(-1j * phiy[ii])
-        e3_ebe[:, ii] *= np.exp(-1j * phizeta[ii])
 
     EE = np.zeros((len(tw), 9, 6), complex)
     EE[:, :, 0] = e1_ebe.T
