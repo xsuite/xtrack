@@ -208,6 +208,7 @@ for jj, dd in enumerate([dx, dpx, dy, dpy, dzeta, dpzeta]):
     DD[:, jj] = (temp_mat[:, jj+1] - temp_mat[:, jj+1+6])/(2*dd)
 
 RR = np.eye(9)
+RR_orb = out['R_matrix'].copy()
 RR[:6, :6] = out['R_matrix']
 RR[6:, :6] = DD
 
@@ -235,34 +236,25 @@ A[2, 2] = (p_test.spin_z[2] - p_test.spin_z[5])/(2*ds)
 
 RR[6:, 6:] = A
 
-R_one_turn = RR.copy()
+# Suppress the 4th row and col
+RR_orb = np.delete(RR_orb, 4, axis=0)
+RR_orb = np.delete(RR_orb, 4, axis=1)
 
-# kill row 4 and column 4
-R_one_turn = np.delete(R_one_turn, 4, axis=0)
-R_one_turn = np.delete(R_one_turn, 4, axis=1)
+eival, EE_orb = np.linalg.eig(RR_orb)
 
-eival, eivec = np.linalg.eig(R_one_turn)
-eival_all = eival.copy()
-eivec_all = eivec.copy()
+breakpoint()
 
 # Add a dummy row 4 in eivec
-eivec = np.insert(eivec, 4, 0, axis=0)
+EE_orb = np.insert(EE_orb, 4, 0, axis=0)
 
-# Identify spin modes and remove them
-norm_orbital_part = []
-norm_spin_part = []
-for ii in range(R_one_turn.shape[1]):
-    norm_orbital_part.append(np.linalg.norm(eivec[:6, ii])/np.linalg.norm(eivec[:, ii]))
-    norm_spin_part.append(np.linalg.norm(eivec[6:, ii])/np.linalg.norm(eivec[:, ii]))
-breakpoint()
-i_sorted = np.argsort(norm_orbital_part)
-v0 = eivec[:, i_sorted[3:]]
-w0 = eival[i_sorted[3:]]
+EE_spin = DD @ EE_orb
+
+n_eigen = EE_orb.shape[1]
+eee = np.zeros((9, n_eigen), dtype=complex)
+eee[:6, :] = EE_orb
+eee[6:, :] = EE_spin
 
 # Scale and track eigenvectors
-eee = v0.copy()
-n_eigen = eee.shape[1]
-
 def get_scale(e):
     return np.max([np.abs(e[0])/dx, np.abs(e[1])/dpx,
                    np.abs(e[2])/dy, np.abs(e[3])/dpy,
