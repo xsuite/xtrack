@@ -211,6 +211,7 @@ for jj, dd in enumerate([dx, dpx, dy, dpy, dzeta, dpzeta]):
     DD[:, jj] = (temp_mat[:, jj+1] - temp_mat[:, jj+1+6])/(2*dd)
 
 RR = np.eye(9)
+RR_orb = out['R_matrix'].copy()
 RR[:6, :6] = out['R_matrix']
 RR[6:, :6] = DD
 
@@ -238,51 +239,15 @@ A[2, 2] = (p_test.spin_z[2] - p_test.spin_z[5])/(2*ds)
 
 RR[6:, 6:] = A
 
-R_one_turn = RR.copy()
+eival, EE_orb = np.linalg.eig(RR_orb)
 
-eival, eivec = np.linalg.eig(R_one_turn)
-eival_all = eival.copy()
-eivec_all = eivec.copy()
+EE_spin = DD @ EE_orb
 
-dx = 1e-8
-dy = -2e-8
-ddelta = 1e-8
-
-scale = 1e-6
-
-XX = np.zeros(9)
-XX[0] = dx
-XX[2] = dy
-XX[5] = ddelta
-
-YY = R_one_turn @ XX
-
-p = tw.particle_on_co.copy()
-p.x += dx
-p.y += dy
-p.delta += ddelta
-line.track(p)
-
-print('From matrix   YY[6]:', YY[6])
-print('From tracking YY[6]:', p.spin_x[0] - tw.spin_x[0])
-print('From matrix   YY[7]:', YY[7])
-print('From tracking YY[7]:', p.spin_y[0] - tw.spin_y[0])
-print('From matrix   YY[8]:', YY[8])
-print('From tracking YY[8]:', p.spin_z[0] - tw.spin_z[0])
-
-
-
-# Identify spin modes and remove them
-norm_orbital_part = []
-for ii in range(9):
-    norm_orbital_part.append(np.linalg.norm(eivec[:6, ii]))
-i_sorted = np.argsort(norm_orbital_part)
-v0 = eivec[:, i_sorted[3:]]
-w0 = eival[i_sorted[3:]]
-
+eee = np.zeros((9, 6), dtype=complex)
+eee[:6, :] = EE_orb
+eee[6:, :] = EE_spin
 
 # Scale and track eigenvectors
-eee = v0.copy()
 n_eigen = eee.shape[1]
 
 def get_scale(e):
