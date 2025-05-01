@@ -349,28 +349,27 @@ modes = [conj_modes[0,0], conj_modes[1,0], conj_modes[2,0]]
 # n2 = 1./np.sqrt(n2_inv_sq)
 # n3 = 1./np.sqrt(n3_inv_sq)
 
-n1 = 1
-n2 = 1
-n3 = 1
+# n1 = 1
+# n2 = 1
+# n3 = 1
 
-e1 = v0[:, modes[0]] * n1
-e2 = v0[:, modes[1]] * n2
-e3 = v0[:, modes[2]] * n3
+# e1 = v0[:, modes[0]] * n1
+# e2 = v0[:, modes[1]] * n2
+# e3 = v0[:, modes[2]] * n3
 
-eee = np.zeros((9, 3), dtype=complex)
-eee[:, 0] = e1
-eee[:, 1] = e2
-eee[:, 2] = e3
+
+eee = v0.copy()
+n_eigen = eee.shape[1]
 
 def get_scale(e):
     return np.max([np.abs(e[0])/dx, np.abs(e[1])/dpx,
                    np.abs(e[2])/dy, np.abs(e[3])/dpy,
                    np.abs(e[4])/dzeta, np.abs(e[5])/dpzeta])
 
-scales = [get_scale(eee[:, ii]) for ii in range(3)]
+scales = [get_scale(eee[:, ii]) for ii in range(n_eigen)]
 
-eee_scaled = np.zeros((9, 3), dtype=complex)
-for ii in range(3):
+eee_scaled = np.zeros((9, n_eigen), dtype=complex)
+for ii in range(n_eigen):
     ss = get_scale(eee[:, ii])
     eee_scaled[:, ii] = eee[:, ii] / ss
 
@@ -378,13 +377,12 @@ EE_side = {}
 
 for side in [1, -1]:
 
-
-
     eee_trk_re = side * eee_scaled.real
     eee_trk_im = side * eee_scaled.imag
 
     particle_data = {}
-    for ii, key in enumerate(['x', 'px', 'y', 'py', 'zeta', 'ptau', 'spin_x', 'spin_y', 'spin_z']):
+    for ii, key in enumerate(['x', 'px', 'y', 'py', 'zeta', 'ptau',
+                              'spin_x', 'spin_y', 'spin_z']):
         particle_data[key] = tw[key][0] + np.array(
             list(eee_trk_re[ii, :]) + list(eee_trk_im[ii, :])
         )
@@ -396,7 +394,6 @@ for side in [1, -1]:
     line.track(par_track, turn_by_turn_monitor='ONE_TURN_EBE')
     mon_ebe = line.record_last_track
 
-    n_eigen = 3
     ee_ebe = np.zeros((len(tw), 9, n_eigen), dtype=complex)
 
     for ii, key in enumerate(['x', 'px', 'y', 'py', 'zeta', 'ptau',
@@ -413,21 +410,7 @@ for side in [1, -1]:
         for jj in range(ee_ebe.shape[1]):
             ee_ebe[:, jj, ii] *= np.exp(-1j * this_phi)
 
-
-    e1_ebe = np.zeros((9, len(tw)), dtype=complex)
-    e2_ebe = np.zeros((9, len(tw)), dtype=complex)
-    e3_ebe = np.zeros((9, len(tw)), dtype=complex)
-    e1_ebe[:, :] = ee_ebe[:, :, 0].T
-    e2_ebe[:, :] = ee_ebe[:, :, 1].T
-    e3_ebe[:, :] = ee_ebe[:, :, 2].T
-
-    EE = np.zeros((len(tw), 9, 6), complex)
-    EE[:, :, 0] = e1_ebe.T
-    EE[:, :, 1] = np.conj(e1_ebe.T)
-    EE[:, :, 2] = e2_ebe.T
-    EE[:, :, 3] = np.conj(e2_ebe.T)
-    EE[:, :, 4] = e3_ebe.T
-    EE[:, :, 5] = np.conj(e3_ebe.T)
+    EE = ee_ebe.copy()
 
     EE_side[side] = EE
 
@@ -544,27 +527,48 @@ if bmad: plt.plot(df.s, df.spin_z, label='z Bmad')
 plt.ylabel('spin_z')
 plt.legend()
 
-plt.figure(2)
-plt.subplot(3, 1, 1)
+plt.figure(2, figsize=(25, 6))
+plt.subplot(3, 2, 1)
 plt.plot(tw.s, tw.EE_side[1][:, 7, 0].real, label='+ re')
 plt.plot(tw.s, tw.EE_side[-1][:, 7, 0].real, label='- re')
 plt.plot(tw.s, tw.EE_side[1][:, 7, 0].imag, label='+ im')
 plt.plot(tw.s, tw.EE_side[-1][:, 7, 0].imag, label='- im')
 plt.ylabel('e1_ebe')
 plt.legend()
-plt.subplot(3, 1, 2)
+plt.subplot(3, 2, 2)
+plt.plot(tw.s, tw.EE_side[1][:, 7, 1].real, label='+ re')
+plt.plot(tw.s, tw.EE_side[-1][:, 7, 1].real, label='- re')
+plt.plot(tw.s, tw.EE_side[1][:, 7, 1].imag, label='+ im')
+plt.plot(tw.s, tw.EE_side[-1][:, 7, 1].imag, label='- im')
+plt.ylabel('e2_ebe')
+plt.legend()
+plt.subplot(3, 2, 3)
 plt.plot(tw.s, tw.EE_side[1][:, 7, 2].real, label='+ re')
 plt.plot(tw.s, tw.EE_side[-1][:, 7, 2].real, label='- re')
 plt.plot(tw.s, tw.EE_side[1][:, 7, 2].imag, label='+ im')
 plt.plot(tw.s, tw.EE_side[-1][:, 7, 2].imag, label='- im')
-plt.ylabel('e2_ebe')
-plt.legend()
-plt.subplot(3, 1, 3)
+plt.ylabel('e3_ebe')
+plt.subplot(3, 2, 4)
+plt.plot(tw.s, tw.EE_side[1][:, 7, 3].real, label='+ re')
+plt.plot(tw.s, tw.EE_side[-1][:, 7, 3].real, label='- re')
+plt.plot(tw.s, tw.EE_side[1][:, 7, 3].imag, label='+ im')
+plt.plot(tw.s, tw.EE_side[-1][:, 7, 3].imag, label='- im')
+plt.ylabel('e4_ebe')
+plt.subplot(3, 2, 5)
 plt.plot(tw.s, tw.EE_side[1][:, 7, 4].real, label='+ re')
 plt.plot(tw.s, tw.EE_side[-1][:, 7, 4].real, label='- re')
 plt.plot(tw.s, tw.EE_side[1][:, 7, 4].imag, label='+ im')
 plt.plot(tw.s, tw.EE_side[-1][:, 7, 4].imag, label='- im')
-plt.ylabel('e3_ebe')
+plt.ylabel('e5_ebe')
+plt.subplot(3, 2, 6)
+plt.plot(tw.s, tw.EE_side[1][:, 7, 5].real, label='+ re')
+plt.plot(tw.s, tw.EE_side[-1][:, 7, 5].real, label='- re')
+plt.plot(tw.s, tw.EE_side[1][:, 7, 5].imag, label='+ im')
+plt.plot(tw.s, tw.EE_side[-1][:, 7, 5].imag, label='- im')
+plt.ylabel('e6_ebe')
+plt.xlabel('s [m]')
+
+
 plt.legend()
 
 
