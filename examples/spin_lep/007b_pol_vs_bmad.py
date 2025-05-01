@@ -119,55 +119,55 @@ out_lines += [
 with open('lep.bmad', 'w') as fid:
     fid.write('\n'.join(out_lines))
 
-# from pytao import Tao
-# tao = Tao(' -lat lep.bmad -noplot ')
-# tao.cmd('show -write spin.txt spin')
-# tao.cmd('show -write orbit.txt lat -all') #* -att orbit.x@f20.14 -att orbit.y@f20.14 -att beta.a@f20.14 -att beta.b@f20.14')
-# tao.cmd('show -write vvv.txt lat -spin -all')
+from pytao import Tao
+tao = Tao(' -lat lep.bmad -noplot ')
+tao.cmd('show -write spin.txt spin')
+tao.cmd('show -write orbit.txt lat -all') #* -att orbit.x@f20.14 -att orbit.y@f20.14 -att beta.a@f20.14 -att beta.b@f20.14')
+tao.cmd('show -write vvv.txt lat -spin -all')
 
-# import pandas as pd
-# import io
-# def parse_spin_file_pandas(filename):
-#     # Read the whole file first
-#     with open(filename, 'r') as f:
-#         lines = f.readlines()
+import pandas as pd
+import io
+def parse_spin_file_pandas(filename):
+    # Read the whole file first
+    with open(filename, 'r') as f:
+        lines = f.readlines()
 
-#     # Filter out comment lines
-#     data_lines = [line for line in lines if not line.strip().startswith('#') and line.strip()]
+    # Filter out comment lines
+    data_lines = [line for line in lines if not line.strip().startswith('#') and line.strip()]
 
-#     # Join the data into a single string
-#     data_str = ''.join(data_lines)
+    # Join the data into a single string
+    data_str = ''.join(data_lines)
 
-#     # Now read into pandas
-#     df = pd.read_csv(
-#         io.StringIO(data_str),
-#         sep='\s+',
-#         header=None,
-#         names=[
-#             'index', 'name', 'key', 's',
-#             'spin_x', 'spin_y', 'spin_z',
-#             'spin_dn_dpz_x', 'spin_dn_dpz_y', 'spin_dn_dpz_z', 'spin_dn_dpz_amp'
-#         ]
-#     )
+    # Now read into pandas
+    df = pd.read_csv(
+        io.StringIO(data_str),
+        sep='\s+',
+        header=None,
+        names=[
+            'index', 'name', 'key', 's',
+            'spin_x', 'spin_y', 'spin_z',
+            'spin_dn_dpz_x', 'spin_dn_dpz_y', 'spin_dn_dpz_z', 'spin_dn_dpz_amp'
+        ]
+    )
 
-#     return df
+    return df
 
-# df = parse_spin_file_pandas('vvv.txt')
-# line['vrfc231'] = 12.65 # qs=0.6
-# tw = line.twiss(spin=True, radiation_integrals=True)
+df = parse_spin_file_pandas('vvv.txt')
+line['vrfc231'] = 12.65 # qs=0.6
+tw = line.twiss(spin=True, radiation_integrals=True)
 
-# spin_summary_bmad = {}
-# with open('spin.txt', 'r') as fid:
-#     spsumm_lines = fid.readlines()
-# for ll in spsumm_lines:
-#     if ':' in ll:
-#         key, val = ll.split(':')
-#         val = val.strip()
-#         if ' ' in val:
-#             val = [float(v) for v in val.split(' ') if v]
-#         else:
-#             val = float(val.strip())
-#         spin_summary_bmad[key.strip()] = val
+spin_summary_bmad = {}
+with open('spin.txt', 'r') as fid:
+    spsumm_lines = fid.readlines()
+for ll in spsumm_lines:
+    if ':' in ll:
+        key, val = ll.split(':')
+        val = val.strip()
+        if ' ' in val:
+            val = [float(v) for v in val.split(' ') if v]
+        else:
+            val = float(val.strip())
+        spin_summary_bmad[key.strip()] = val
 
 tw = line.twiss(spin=True, radiation_integrals=True)
 
@@ -515,9 +515,7 @@ for side in [1, -1]:
 EE = 0.5 * (EE_side[1] + EE_side[-1])
 EE_orb  = EE[:, :6, :]
 EE_spin = EE[:, 6:, :]
-LL = np.zeros([len(tw), 3, 6], dtype=float)
-
-# np.real(EE_spin @ np.linalg.inv(EE_orb))
+LL = np.real(EE_spin @ np.linalg.inv(EE_orb))
 
 kin_px = tw.kin_px
 kin_py = tw.kin_py
