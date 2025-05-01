@@ -260,7 +260,10 @@ eee[6:, :] = EE_spin
 def get_scale(e):
     return np.max([np.abs(e[0])/dx, np.abs(e[1])/dpx,
                    np.abs(e[2])/dy, np.abs(e[3])/dpy,
-                   np.abs(e[4])/dzeta, np.abs(e[5])/dpzeta])
+                   np.abs(e[4])/dzeta, np.abs(e[5])/dpzeta,
+                   np.abs(e[6])/ds, np.abs(e[7])/ds,
+                   np.abs(e[8])/ds,
+                   ])
 
 scales = [get_scale(eee[:, ii]) for ii in range(n_eigen)]
 
