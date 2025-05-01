@@ -6,6 +6,13 @@ from scipy.constants import c as clight
 from scipy.constants import e as qe
 from scipy.constants import hbar
 
+S = np.array([[0., 1., 0., 0., 0., 0.],
+            [-1., 0., 0., 0., 0., 0.],
+            [ 0., 0., 0., 1., 0., 0.],
+            [ 0., 0.,-1., 0., 0., 0.],
+            [ 0., 0., 0., 0., 0., 1.],
+            [ 0., 0., 0., 0.,-1., 0.]])
+
 def _add_polarization_to_tw(tw, line):
 
     with xt.line._preserve_config(line):
@@ -66,37 +73,53 @@ def _add_polarization_to_tw(tw, line):
         for ii in range(9):
             norm_orbital_part.append(np.linalg.norm(eivec[:6, ii]))
         i_sorted = np.argsort(norm_orbital_part)
-        w0 = eivec[:, i_sorted[3:]]
-        v0 = eival[i_sorted[3:]]
+        v0 = eivec[:, i_sorted[3:]]
+        w0 = eival[i_sorted[3:]]
 
-        # remove modes from conjugate pairs
-        w_temp = w0.copy()
-        v_temp = v0.copy()
-        w_keep = []
-        v_keep = []
-        for ii in range(3):
-            this_w = w_temp[:, 0]
-            this_v = v_temp[0]
-            w_keep.append(this_w)
-            v_keep.append(this_v)
+        breakpoint()
 
-            w_temp = np.delete(w_temp, 0, axis=1)
-            v_temp = np.delete(v_temp, 0, axis=0)
-            norm_diff = [
-                np.linalg.norm(np.conj(this_w) - w_temp[:, jj], axis=0)
-                for jj in range(w_temp.shape[1])]
-            index = np.argmin(norm_diff)
+        a0 = np.real(v0)
+        b0 = np.imag(v0)
 
-            w_temp = np.delete(w_temp, index, axis=1)
-            v_temp = np.delete(v_temp, index, axis=0)
+        index_list = [0,5,1,2,3,4] # we mix them up to check the algorithm
 
-        w0 = np.array(w_keep).T
-        v0 = np.array(v_keep)
+        ##### Sort modes in pairs of conjugate modes #####
+        conj_modes = np.zeros([3,2], dtype=np.int64)
+        for j in [0,1]:
+            conj_modes[j,0] = index_list[0]
+            del index_list[0]
 
+            min_index = 0
+            min_diff = abs(np.imag(w0[conj_modes[j,0]] + w0[index_list[min_index]]))
+            for i in range(1,len(index_list)):
+                diff = abs(np.imag(w0[conj_modes[j,0]] + w0[index_list[i]]))
+                if min_diff > diff:
+                    min_diff = diff
+                    min_index = i
+
+            conj_modes[j,1] = index_list[min_index]
+            del index_list[min_index]
+
+        conj_modes[2,0] = index_list[0]
+        conj_modes[2,1] = index_list[1]
+
+        ##################################################
+        #### Select mode from pairs with positive (real @ S @ imag) #####
+
+        modes = np.empty(3, dtype=np.int64)
+        for ii,ind in enumerate(conj_modes):
+            if np.matmul(np.matmul(a0[:6,ind[0]], S), b0[:6,ind[0]]) > 0:
+                modes[ii] = ind[0]
+            else:
+                modes[ii] = ind[1]
+
+        ##################################################
+        #### Sort modes such that (1,2,3) is close to (x,y,zeta) ####
         # Identify the longitudinal mode
         for i in [0,1]:
             if abs(v0[:,modes[2]])[5] < abs(v0[:,modes[i]])[5]:
                 modes[2], modes[i] = modes[i], modes[2]
+
         # Identify the vertical mode
         if abs(v0[:,modes[1]])[2] < abs(v0[:,modes[0]])[2]:
             modes[0], modes[1] = modes[1], modes[0]
@@ -108,13 +131,6 @@ def _add_polarization_to_tw(tw, line):
         b2 = v0[:6, modes[1]].imag
         b3 = v0[:6, modes[2]].imag
 
-        S = np.array([[0., 1., 0., 0., 0., 0.],
-                    [-1., 0., 0., 0., 0., 0.],
-                    [ 0., 0., 0., 1., 0., 0.],
-                    [ 0., 0.,-1., 0., 0., 0.],
-                    [ 0., 0., 0., 0., 0., 1.],
-                    [ 0., 0., 0., 0.,-1., 0.]])
-
         n1_inv_sq = np.abs(np.matmul(np.matmul(a1, S), b1))
         n2_inv_sq = np.abs(np.matmul(np.matmul(a2, S), b2))
         n3_inv_sq = np.abs(np.matmul(np.matmul(a3, S), b3))
@@ -123,9 +139,9 @@ def _add_polarization_to_tw(tw, line):
         n2 = 1./np.sqrt(n2_inv_sq)
         n3 = 1./np.sqrt(n3_inv_sq)
 
-        e1 = eivec[:, modes[0]] * n1
-        e2 = eivec[:, modes[1]] * n2
-        e3 = eivec[:, modes[2]] * n3
+        e1 = v0[:, modes[0]] * n1
+        e2 = v0[:, modes[1]] * n2
+        e3 = v0[:, modes[2]] * n3
 
         scale_e1 = np.max([np.abs(e1[0])/dx, np.abs(e1[1])/dpx])
         e1_scaled = e1 / scale_e1
@@ -134,13 +150,15 @@ def _add_polarization_to_tw(tw, line):
         scale_e3 = np.max([np.abs(e3[4])/dzeta, np.abs(e3[5])/dpzeta])
         e3_scaled = e3 / scale_e3
 
+        breakpoint()
+
         EE_side = {}
 
         for side in [1, -1]:
 
-            e1_ebe = np.zeros((8, len(tw)), dtype=complex)
-            e2_ebe = np.zeros((8, len(tw)), dtype=complex)
-            e3_ebe = np.zeros((8, len(tw)), dtype=complex)
+            e1_ebe = np.zeros((9, len(tw)), dtype=complex)
+            e2_ebe = np.zeros((9, len(tw)), dtype=complex)
+            e3_ebe = np.zeros((9, len(tw)), dtype=complex)
 
             e1_trk_re = side * e1_scaled.real
             e1_trk_im = side * e1_scaled.imag
@@ -279,7 +297,7 @@ def _add_polarization_to_tw(tw, line):
                 e2_ebe[:, ii] *= np.exp(-1j * phiy[ii])
                 e3_ebe[:, ii] *= np.exp(-1j * phizeta[ii])
 
-            EE = np.zeros((len(tw), 8, 6), complex)
+            EE = np.zeros((len(tw), 9, 6), complex)
             EE[:, :, 0] = e1_ebe.T
             EE[:, :, 1] = np.conj(e1_ebe.T)
             EE[:, :, 2] = e2_ebe.T
@@ -292,7 +310,9 @@ def _add_polarization_to_tw(tw, line):
         EE = 0.5 * (EE_side[1] + EE_side[-1])
         EE_orb  = EE[:, :6, :]
         EE_spin = EE[:, 6:, :]
-        LL = np.real(EE_spin @ np.linalg.inv(EE_orb))
+        LL = np.zeros([len(tw), 3, 6], dtype=float)
+
+        # np.real(EE_spin @ np.linalg.inv(EE_orb))
 
         kin_px = tw.kin_px
         kin_py = tw.kin_py
@@ -300,9 +320,9 @@ def _add_polarization_to_tw(tw, line):
 
         gamma_dn_dgamma = LL[:, :, 5]
 
-        gamma_dn_dgamma_mod = np.sqrt(gamma_dn_dgamma[0, :]**2
-                                    + gamma_dn_dgamma[1, :]**2
-                                    + gamma_dn_dgamma[2, :]**2)
+        gamma_dn_dgamma_mod = np.sqrt(gamma_dn_dgamma[:, 0]**2
+                                    + gamma_dn_dgamma[:, 1]**2
+                                    + gamma_dn_dgamma[:, 2]**2)
 
         kappa_x = tw.rad_int_kappa_x
         kappa_y = tw.rad_int_kappa_y
@@ -332,9 +352,9 @@ def _add_polarization_to_tw(tw, line):
         ib_z = Bz / B_mod
 
         n0_ib = tw.spin_x * ib_x + tw.spin_y * ib_y + tw.spin_z * ib_z
-        gamma_dn_dgamma_ib = (gamma_dn_dgamma[0, :] * ib_x
-                            + gamma_dn_dgamma[1, :] * ib_y
-                            + gamma_dn_dgamma[2, :] * ib_z)
+        gamma_dn_dgamma_ib = (gamma_dn_dgamma[:, 0] * ib_x
+                            + gamma_dn_dgamma[:, 1] * ib_y
+                            + gamma_dn_dgamma[:, 2] * ib_z)
 
         int_kappa3_n0_ib = np.sum(kappa**3 * n0_ib * tw.length)
         int_kappa3_gamma_dn_dgamma_ib = np.sum(kappa**3 * gamma_dn_dgamma_ib * tw.length)
