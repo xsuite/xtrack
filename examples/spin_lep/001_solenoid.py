@@ -4,23 +4,31 @@ line = xt.Line.from_json('lep.json')
 
 env = line.env
 
-env.new('half_sol', xt.Solenoid, length=2.5)
+
+l_half_sol = 2.5
+n_half_slices_sol = 10
 
 env['ksol.2'] = 0
 env['ksol.4'] = 0
 env['ksol.6'] = 0
 env['ksol.8'] = 0
 
+for ipn in [2, 4, 6, 8]:
+    for ii in range(n_half_slices_sol):
+        env.new(
+            f'sol_l_ip{ipn}..{ii}', xt.Solenoid, ks=f'ksol.{ipn}',
+            length=l_half_sol/n_half_slices_sol)
+        env.new(
+            f'sol_r_ip{ipn}..{ii}', xt.Solenoid, ks=f'ksol.{ipn}',
+            length=l_half_sol/n_half_slices_sol)
+
 insertions = []
 for ipn in [2, 4, 6, 8]:
     insertions += [
-        env.new(
-            f'sol_l_ip{ipn}', 'half_sol', ks=f'ksol.{ipn}',
-            anchor='end', at=-1e-12, from_=f'ip{ipn}'), # PATCH!!!!
-        env.new(
-            f'sol_r_ip{ipn}', 'half_sol', ks=f'ksol.{ipn}',
-            anchor='start', at=1e-12, from_=f'ip{ipn}'), # PATCH!!!!
-        ]
+        env.place([f'sol_l_ip{ipn}..{ii}' for ii in range(n_half_slices_sol)],
+                  anchor='end', at=-1e-12, from_=f'ip{ipn}'),
+        env.place([f'sol_r_ip{ipn}..{ii}' for ii in range(n_half_slices_sol)],
+                  anchor='start', at=1e-12, from_=f'ip{ipn}')]
 
 line.insert(insertions)
 

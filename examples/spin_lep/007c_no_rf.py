@@ -9,7 +9,7 @@ from scipy.constants import m_e
 from scipy.constants import hbar
 
 num_turns = 500
-bmad = False
+bmad = True
 
 line = xt.Line.from_json('lep_sol.json')
 line.particle_ref.anomalous_magnetic_moment=0.00115965218128
@@ -23,22 +23,22 @@ tt_quad = tt.rows[tt.element_type == 'Quadrupole']
 line.set(tt_bend, model='mat-kick-mat', integrator='uniform', num_multipole_kicks=5)
 line.set(tt_quad, model='mat-kick-mat', integrator='uniform', num_multipole_kicks=5)
 
-line['on_sol.2'] = 0
-line['on_sol.4'] = 0
+line['on_sol.2'] = 1
+line['on_sol.4'] = 1
 line['on_sol.6'] = 1
-line['on_sol.8'] = 0
-line['on_spin_bump.2'] = 0
-line['on_spin_bump.4'] = 0
-line['on_spin_bump.6'] = 0
-line['on_spin_bump.8'] = 0
-line['on_coupl_sol.2'] = 0
-line['on_coupl_sol.4'] = 0
-line['on_coupl_sol.6'] = 0
-line['on_coupl_sol.8'] = 0
-line['on_coupl_sol_bump.2'] = 0
-line['on_coupl_sol_bump.4'] = 0
-line['on_coupl_sol_bump.6'] = 0
-line['on_coupl_sol_bump.8'] = 0
+line['on_sol.8'] = 1
+line['on_spin_bump.2'] = 1
+line['on_spin_bump.4'] = 1
+line['on_spin_bump.6'] = 1
+line['on_spin_bump.8'] = 1
+line['on_coupl_sol.2'] = 1
+line['on_coupl_sol.4'] = 1
+line['on_coupl_sol.6'] = 1
+line['on_coupl_sol.8'] = 1
+line['on_coupl_sol_bump.2'] = 1
+line['on_coupl_sol_bump.4'] = 1
+line['on_coupl_sol_bump.6'] = 1
+line['on_coupl_sol_bump.8'] = 1
 
 tt = line.get_table(attr=True)
 
