@@ -96,7 +96,7 @@ class Exciter(BeamElement):
 
     has_backtrack = True
 
-    _extra_c_sources = [_pkg_root.joinpath('beam_elements/elements_src/exciter.h')]
+    _extra_c_sources = ['#include <beam_elements/elements_src/exciter.h>']
 
 
     def __init__(self, *, samples=None, nsamples=None, sampling_frequency=0, frev=0, knl=None, ksl=None, start_turn=0, duration=None, _xobject=None, **kwargs):

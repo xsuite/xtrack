@@ -7,6 +7,7 @@
 #define XTRACK_THIN_SLICE_BEND_ENTRY_H
 
 #include <headers/track.h>
+#include <beam_elements/elements_src/track_dipole_edge_nonlinear.h>
 
 
 GPUFUN

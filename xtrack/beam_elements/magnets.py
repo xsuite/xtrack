@@ -76,7 +76,7 @@ class MagnetDrift(BeamElement):
     }
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/magnet_drift.h'),
+        '#include <beam_elements/elements_src/magnet_drift.h>',
     ]
 
 
@@ -108,7 +108,7 @@ class MagnetKick(BeamElement):
     }
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/magnet_kick.h'),
+        '#include <beam_elements/elements_src/magnet_kick.h>',
     ]
 
 
@@ -283,7 +283,7 @@ class Magnet(BeamElement):
     }
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/magnet.h'),
+        '#include <beam_elements/elements_src/magnet.h>',
     ]
 
     _depends_on = [RandomUniformAccurate, RandomExponential]
@@ -535,7 +535,7 @@ class MagnetEdge(BeamElement):
     }
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/magnet_edge.h'),
+        '#include <beam_elements/elements_src/magnet_edge.h>',
     ]
 
     _depends_on = [RandomUniformAccurate, RandomExponential]

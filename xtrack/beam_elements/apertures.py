@@ -41,7 +41,7 @@ class LimitRect(BeamElement):
 
     has_backtrack = True
 
-    _extra_c_sources = [_pkg_root.joinpath("beam_elements/apertures_src/limitrect.h")]
+    _extra_c_sources = ['#include <beam_elements/apertures_src/limitrect.h>']
 
     def __init__(
         self,
@@ -88,7 +88,7 @@ class LimitRacetrack(BeamElement):
     has_backtrack = True
 
     _extra_c_sources = [
-        _pkg_root.joinpath("beam_elements/apertures_src/limitracetrack.h")
+        '#include <beam_elements/apertures_src/limitracetrack.h>'
     ]
 
     def __init__(
@@ -144,7 +144,7 @@ class LimitEllipse(BeamElement):
     has_backtrack = True
 
     _extra_c_sources = [
-        _pkg_root.joinpath("beam_elements/apertures_src/limitellipse.h")
+        '#include <beam_elements/apertures_src/limitellipse.h>'
     ]
 
     def to_dict(self):
@@ -244,7 +244,7 @@ class LimitPolygon(BeamElement):
     has_backtrack = True
 
     _extra_c_sources = [
-        _pkg_root.joinpath("beam_elements/apertures_src/limitpolygon.h")
+        '#include <beam_elements/apertures_src/limitpolygon.h>'
     ]
 
     _kernels = {
@@ -513,7 +513,7 @@ class LimitRectEllipse(BeamElement):
         return ["max_x", "max_y", "a", "b"]
 
     _extra_c_sources = [
-        _pkg_root.joinpath("beam_elements/apertures_src/limitrectellipse.h")
+        '#include <beam_elements/apertures_src/limitrectellipse.h>'
     ]
 
 
@@ -542,7 +542,7 @@ class LongitudinalLimitRect(BeamElement):
     has_backtrack = True
 
     _extra_c_sources = [
-        _pkg_root.joinpath("beam_elements/apertures_src/longitudinallimitrect.h")
+        '#include <beam_elements/apertures_src/longitudinallimitrect.h>'
     ]
 
     def __init__(

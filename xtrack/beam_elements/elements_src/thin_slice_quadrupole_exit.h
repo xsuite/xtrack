@@ -6,6 +6,7 @@
 #define XTRACK_THIN_SLICE_QUADRUPOLE_EXIT_H
 
 #include <headers/track.h>
+#include <beam_elements/elements_src/track_mult_fringe.h>
 
 
 GPUFUN
