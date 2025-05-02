@@ -236,6 +236,9 @@ A[2, 2] = (p_test.spin_z[2] - p_test.spin_z[5])/(2*ds)
 
 RR[6:, 6:] = A
 
+RR_reduced = np.delete(np.delete(RR, 4, axis=0), 4, axis=1)
+eival_all, eivec_all = np.linalg.eig(RR_reduced)
+
 # Suppress the 4th row and col
 RR_orb = np.delete(RR_orb, 4, axis=0)
 RR_orb = np.delete(RR_orb, 4, axis=1)
@@ -255,6 +258,11 @@ for ii in range(n_eigen):
 eee = np.zeros((9, n_eigen), dtype=complex)
 eee[:6, :] = EE_orb
 eee[6:, :] = EE_spin
+
+# Identify eigenvector with eigenvalue 1 and remove n0 component
+i_eigen_one = np.argmin(np.abs(eival - 1))
+n0 = np.array([tw.spin_x[0], tw.spin_y[0], tw.spin_z[0]])
+eee[6:, i_eigen_one] -= np.dot(eee[6:, i_eigen_one], n0) * n0
 
 # Scale and track eigenvectors
 def get_scale(e):
@@ -300,7 +308,7 @@ for side in [1, -1]:
         mon_vv = getattr(mon_ebe, key)
         for iee in range(n_eigen):
             ee_ebe[:, ii, iee] = side *((mon_vv[iee, :] - tw[key])
-                            + 1j * (mon_vv[n_eigen + iee, :] - tw[key])) * scales[iee]
+                            + 1j * (mon_vv[n_eigen + iee, :] - tw[key]))
 
     # # Rephase
     # for ii in range(n_eigen):
