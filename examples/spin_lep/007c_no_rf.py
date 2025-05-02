@@ -276,7 +276,6 @@ def get_scale(e):
 scales = [get_scale(eee[:, ii]) for ii in range(n_eigen)]
 
 eee_scaled = np.zeros((9, n_eigen), dtype=complex)
-breakpoint()
 for ii in range(n_eigen):
     eee_scaled[:, ii] = eee[:, ii] / scales[ii]
 
@@ -441,7 +440,7 @@ if bmad: plt.plot(df.s, df.spin_z, label='z Bmad')
 plt.ylabel('spin_z')
 plt.legend()
 
-plt.figure(2, figsize=(25, 6))
+plt.figure(2, figsize=(12, 6))
 plt.subplot(3, 2, 1)
 plt.plot(tw.s, tw.EE_side[1][:, 7, 0].real, label='+ re')
 plt.plot(tw.s, tw.EE_side[-1][:, 7, 0].real, label='- re')
@@ -482,6 +481,26 @@ if n_eigen > 5:
     plt.plot(tw.s, tw.EE_side[-1][:, 7, 5].imag, label='- im')
     plt.ylabel('e6_ebe')
     plt.xlabel('s [m]')
+
+
+plt.figure(3, figsize=(8, 6))
+ax1 = plt.subplot(3, 1, 1)
+tw.plot(lattice_only=True, ax=ax1)
+plt.plot(tw.s, tw.gamma_dn_dgamma[:, 0])
+plt.plot(df.s, df.spin_dn_dpz_x)
+plt.ylabel('gamma_dn_dgamma_x')
+ax2 = plt.subplot(3, 1, 2, sharex=ax1)
+tw.plot(lattice_only=True, ax=ax2)
+plt.plot(tw.s, tw.gamma_dn_dgamma[:, 1])
+plt.plot(df.s, df.spin_dn_dpz_y)
+plt.ylabel('gamma_dn_dgamma_y')
+ax3 = plt.subplot(3, 1, 3, sharex=ax1)
+tw.plot(lattice_only=True, ax=ax3)
+plt.plot(tw.s, tw.gamma_dn_dgamma[:, 2])
+plt.plot(df.s, df.spin_dn_dpz_z)
+plt.ylabel('gamma_dn_dgamma_z')
+plt.xlabel('s [m]')
+
 
 
 plt.legend()
