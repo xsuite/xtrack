@@ -23,22 +23,22 @@ tt_quad = tt.rows[tt.element_type == 'Quadrupole']
 line.set(tt_bend, model='mat-kick-mat', integrator='uniform', num_multipole_kicks=5)
 line.set(tt_quad, model='mat-kick-mat', integrator='uniform', num_multipole_kicks=5)
 
-line['on_sol.2'] = 1
+line['on_sol.2'] = 0
 line['on_sol.4'] = 1
 line['on_sol.6'] = 1
-line['on_sol.8'] = 1
-line['on_spin_bump.2'] = 1
+line['on_sol.8'] = 0
+line['on_spin_bump.2'] = 0
 line['on_spin_bump.4'] = 1
 line['on_spin_bump.6'] = 1
-line['on_spin_bump.8'] = 1
-line['on_coupl_sol.2'] = 1
+line['on_spin_bump.8'] = 0
+line['on_coupl_sol.2'] = 0
 line['on_coupl_sol.4'] = 1
 line['on_coupl_sol.6'] = 1
-line['on_coupl_sol.8'] = 1
-line['on_coupl_sol_bump.2'] = 1
+line['on_coupl_sol.8'] = 0
+line['on_coupl_sol_bump.2'] = 0
 line['on_coupl_sol_bump.4'] = 1
 line['on_coupl_sol_bump.6'] = 1
-line['on_coupl_sol_bump.8'] = 1
+line['on_coupl_sol_bump.8'] = 0
 
 tt = line.get_table(attr=True)
 
@@ -309,20 +309,36 @@ for side in [1, -1]:
             ee_ebe[:, ii, iee] = side *((mon_vv[iee, :] - tw[key])
                             + 1j * (mon_vv[n_eigen + iee, :] - tw[key]))
 
-    # # Rephase
-    # for ii in range(n_eigen):
-    #     i_max = np.argmax(np.abs(ee_ebe[0, :, ii])) # Strongest component at start ring
-    #     this_phi = np.angle(ee_ebe[:, i_max, ii])
-    #     for jj in range(ee_ebe.shape[1]):
-    #         ee_ebe[:, jj, ii] *= np.exp(-1j * this_phi)
+    # Rephase
+    for ii in range(n_eigen):
+        i_max = np.argmax(np.abs(ee_ebe[0, :, ii])) # Strongest component at start ring
+        this_phi = np.angle(ee_ebe[:, i_max, ii])
+        for jj in range(ee_ebe.shape[1]):
+            ee_ebe[:, jj, ii] *= np.exp(-1j * this_phi)
 
     EE = ee_ebe.copy()
 
     EE_side[side] = EE
 
+# Average the two sides
 EE = 0.5 * (EE_side[1] + EE_side[-1])
 EE_orb  = EE[:, :6, :]
 EE_spin = EE[:, 6:, :]
+
+# # Transform to x', y'
+# kin_px_co = tw.kin_px
+# kin_py_co = tw.kin_py
+# delta = tw.delta
+# TT = np.zeros((len(tw), 6, 6))
+# TT[:, 0, 0] = 1
+# TT[:, 1, 1] = (1 - delta)
+# TT[:, 1, 5] = -kin_px_co
+# TT[:, 2, 2] = 1
+# TT[:, 3, 3] = (1 - delta)
+# TT[:, 3, 5] = -kin_py_co
+# TT[:, 4, 4] = 1
+# TT[:, 5, 5] = 1
+# EE_orb = TT @ EE_orb
 
 # Remove the 4th row
 EE_orb = np.delete(EE_orb, 4, axis=1)
