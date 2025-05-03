@@ -20,24 +20,31 @@ tt = line.get_table(attr=True)
 tt_bend = tt.rows[(tt.element_type == 'RBend') | (tt.element_type == 'Bend')]
 tt_quad = tt.rows[tt.element_type == 'Quadrupole']
 
+# simplifly the line to facilitate bmad comparison
+for nn in tt_bend.name:
+    line[nn].k1 = 0
+    line[nn].knl[2] = 0
+    line[nn].edge_entry_angle = 0
+    line[nn].edge_exit_angle = 0
+
 line.set(tt_bend, model='mat-kick-mat', integrator='uniform', num_multipole_kicks=5)
 line.set(tt_quad, model='mat-kick-mat', integrator='uniform', num_multipole_kicks=5)
 
 line['on_sol.2'] = 0
-line['on_sol.4'] = 1
+line['on_sol.4'] = 0
 line['on_sol.6'] = 1
 line['on_sol.8'] = 0
 line['on_spin_bump.2'] = 0
-line['on_spin_bump.4'] = 1
-line['on_spin_bump.6'] = 1
+line['on_spin_bump.4'] = 0
+line['on_spin_bump.6'] = 0
 line['on_spin_bump.8'] = 0
 line['on_coupl_sol.2'] = 0
-line['on_coupl_sol.4'] = 1
+line['on_coupl_sol.4'] = 0
 line['on_coupl_sol.6'] = 1
 line['on_coupl_sol.8'] = 0
 line['on_coupl_sol_bump.2'] = 0
-line['on_coupl_sol_bump.4'] = 1
-line['on_coupl_sol_bump.6'] = 1
+line['on_coupl_sol_bump.4'] = 0
+line['on_coupl_sol_bump.6'] = 0
 line['on_coupl_sol_bump.8'] = 0
 
 tt = line.get_table(attr=True)
