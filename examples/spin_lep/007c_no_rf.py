@@ -16,6 +16,8 @@ line.particle_ref.anomalous_magnetic_moment=0.00115965218128
 line.particle_ref.gamma0 = 89207.78287659843 # to have a spin tune of 103.45
 spin_tune = line.particle_ref.anomalous_magnetic_moment[0]*line.particle_ref.gamma0[0]
 
+# line.cycle('b2m.qf45.l6', inplace=True)
+
 tt = line.get_table(attr=True)
 tt_bend = tt.rows[(tt.element_type == 'RBend') | (tt.element_type == 'Bend')]
 tt_quad = tt.rows[tt.element_type == 'Quadrupole']
@@ -353,13 +355,14 @@ EE_spin = EE[:, 6:, :]
 
 # Remove the 4th row
 EE_orb = np.delete(EE_orb, 4, axis=1)
-LL = np.real(EE_spin @ np.linalg.inv(EE_orb))
+filter = np.diag([1, 1, 1, 1, 1])
+LL = np.real(EE_spin @ filter @ np.linalg.inv(EE_orb))
 # Add a dummy col 4 in LL
 LL = np.insert(LL, 4, 0, axis=2)
 gamma_dn_dgamma = LL[:, :, 5]
 
 # Should be equivalent...
-# # # Remove the 4th row
+# # Remove the 4th row
 # EE_orb = np.delete(EE_orb, 4, axis=1)
 # ene_one = np.zeros((len(tw), 5), dtype=complex)
 # ene_one[:, 4] = 1.
