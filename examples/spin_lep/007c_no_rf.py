@@ -19,33 +19,37 @@ spin_tune = line.particle_ref.anomalous_magnetic_moment[0]*line.particle_ref.gam
 tt = line.get_table(attr=True)
 tt_bend = tt.rows[(tt.element_type == 'RBend') | (tt.element_type == 'Bend')]
 tt_quad = tt.rows[tt.element_type == 'Quadrupole']
+tt_sext = tt.rows[tt.element_type == 'Sextupole']
 
-# simplifly the line to facilitate bmad comparison
+# simplify the line to facilitate bmad comparison
 for nn in tt_bend.name:
     line[nn].k1 = 0
     line[nn].knl[2] = 0
     line[nn].edge_entry_angle = 0
     line[nn].edge_exit_angle = 0
 
+for nn in tt_sext.name:
+    line[nn].k2 = 0
+
 line.set(tt_bend, model='mat-kick-mat', integrator='uniform', num_multipole_kicks=5)
 line.set(tt_quad, model='mat-kick-mat', integrator='uniform', num_multipole_kicks=5)
 
-line['on_sol.2'] = 0
-line['on_sol.4'] = 0
+line['on_sol.2'] = 1
+line['on_sol.4'] = 1
 line['on_sol.6'] = 1
-line['on_sol.8'] = 0
-line['on_spin_bump.2'] = 0
-line['on_spin_bump.4'] = 0
-line['on_spin_bump.6'] = 0
-line['on_spin_bump.8'] = 0
-line['on_coupl_sol.2'] = 0
-line['on_coupl_sol.4'] = 0
+line['on_sol.8'] = 1
+line['on_spin_bump.2'] = 1
+line['on_spin_bump.4'] = 1
+line['on_spin_bump.6'] = 1
+line['on_spin_bump.8'] = 1
+line['on_coupl_sol.2'] = 1
+line['on_coupl_sol.4'] = 1
 line['on_coupl_sol.6'] = 1
-line['on_coupl_sol.8'] = 0
-line['on_coupl_sol_bump.2'] = 0
-line['on_coupl_sol_bump.4'] = 0
-line['on_coupl_sol_bump.6'] = 0
-line['on_coupl_sol_bump.8'] = 0
+line['on_coupl_sol.8'] = 1
+line['on_coupl_sol_bump.2'] = 1
+line['on_coupl_sol_bump.4'] = 1
+line['on_coupl_sol_bump.6'] = 1
+line['on_coupl_sol_bump.8'] = 1
 
 tt = line.get_table(attr=True)
 
@@ -349,17 +353,21 @@ EE_spin = EE[:, 6:, :]
 
 # Remove the 4th row
 EE_orb = np.delete(EE_orb, 4, axis=1)
-
 LL = np.real(EE_spin @ np.linalg.inv(EE_orb))
-
 # Add a dummy col 4 in LL
 LL = np.insert(LL, 4, 0, axis=2)
-
-kin_px = tw.kin_px
-kin_py = tw.kin_py
-delta = tw.delta
-
 gamma_dn_dgamma = LL[:, :, 5]
+
+# Should be equivalent...
+# # # Remove the 4th row
+# EE_orb = np.delete(EE_orb, 4, axis=1)
+# ene_one = np.zeros((len(tw), 5), dtype=complex)
+# ene_one[:, 4] = 1.
+# a_coeff = 0 * ene_one
+# gamma_dn_dgamma = np.zeros((len(tw), 3), dtype=complex)
+# for ii in range(len(tw)):
+#     a_coeff[ii, :] = np.linalg.solve(EE_orb[ii, :, :], ene_one[ii, :])
+#     gamma_dn_dgamma[ii, :] = EE_spin[ii, :, :] @ a_coeff[ii, :]
 
 gamma_dn_dgamma_mod = np.sqrt(gamma_dn_dgamma[:, 0]**2
                             + gamma_dn_dgamma[:, 1]**2
@@ -432,6 +440,9 @@ tw._data['EE_side'] = EE_side
 tw['n0_ib'] = n0_ib
 tw['t_pol_turn'] = tp_turn
 
+dny_ref = 1 / (np.sqrt(1 - tw.spin_x**2 - tw.spin_z**2)) * (
+    -tw.spin_x * tw.gamma_dn_dgamma[:, 0] - tw.spin_z * tw.gamma_dn_dgamma[:, 2])
+
 print('Xsuite polarization: ', tw.pol_eq)
 
 if bmad:
@@ -444,6 +455,9 @@ if bmad and df.spin_y[0] < 0:
     for kk in ['spin_x', 'spin_y', 'spin_z',
                 'spin_dn_dpz_x', 'spin_dn_dpz_y', 'spin_dn_dpz_z']:
           df[kk] *= -1
+
+dn_dy_ref_bmad = 1 / np.sqrt(1 - df.spin_x**2 - df.spin_z**2) * (
+    -df.spin_x * df.spin_dn_dpz_x - df.spin_z * df.spin_dn_dpz_z)
 
 plt.figure(1)
 ax1 = plt.subplot(3, 1, 1)
@@ -516,6 +530,8 @@ ax2 = plt.subplot(3, 1, 2, sharex=ax1)
 tw.plot(lattice_only=True, ax=ax2)
 plt.plot(tw.s, tw.gamma_dn_dgamma[:, 1])
 plt.plot(df.s, df.spin_dn_dpz_y)
+plt.plot(tw.s, dny_ref, label='dn_y_ref')
+plt.plot(df.s, dn_dy_ref_bmad, label='dn_y_ref_bmad')
 plt.ylabel('gamma_dn_dgamma_y')
 ax3 = plt.subplot(3, 1, 3, sharex=ax1)
 tw.plot(lattice_only=True, ax=ax3)
@@ -523,11 +539,6 @@ plt.plot(tw.s, tw.gamma_dn_dgamma[:, 2])
 plt.plot(df.s, df.spin_dn_dpz_z)
 plt.ylabel('gamma_dn_dgamma_z')
 plt.xlabel('s [m]')
-
-
-
-plt.legend()
-
 
 
 plt.show()
