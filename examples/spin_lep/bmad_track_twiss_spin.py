@@ -63,7 +63,7 @@ def bmad_run(line, track=None):
                 out_lines.append(f'{nn}: quadrupole, l = {ee.length}, k1 = {ee.k1}')
             else:
                 assert ee.k1 == 0
-                out_lines.append(f'{nn}: quadrupole, l = {ee.length}, k1 = {ee.k1s}, tilt')
+                out_lines.append(f'{nn}: quadrupole, l = {ee.length}, k1 = {-ee.k1s}, tilt')
         elif clssname == 'Multipole':
             raise ValueError('Multipole not supported')
         elif clssname == 'Magnet':

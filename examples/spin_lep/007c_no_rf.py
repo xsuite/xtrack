@@ -30,8 +30,8 @@ for nn in tt_bend.name:
     line[nn].edge_entry_angle = 0
     line[nn].edge_exit_angle = 0
 
-for nn in tt_sext.name:
-    line[nn].k2 = 0
+# for nn in tt_sext.name:
+#     line[nn].k2 = 0
 
 line.set(tt_bend, model='mat-kick-mat', integrator='uniform', num_multipole_kicks=5)
 line.set(tt_quad, model='mat-kick-mat', integrator='uniform', num_multipole_kicks=5)
@@ -44,14 +44,14 @@ line['on_spin_bump.2'] = 1
 line['on_spin_bump.4'] = 1
 line['on_spin_bump.6'] = 1
 line['on_spin_bump.8'] = 1
-line['on_coupl_sol.2'] = 0
-line['on_coupl_sol.4'] = 0
-line['on_coupl_sol.6'] = 0
-line['on_coupl_sol.8'] = 0
-line['on_coupl_sol_bump.2'] = 0
-line['on_coupl_sol_bump.4'] = 0
-line['on_coupl_sol_bump.6'] = 0
-line['on_coupl_sol_bump.8'] = 0
+line['on_coupl_sol.2'] = 1
+line['on_coupl_sol.4'] = 1
+line['on_coupl_sol.6'] = 1
+line['on_coupl_sol.8'] = 1
+line['on_coupl_sol_bump.2'] = 1
+line['on_coupl_sol_bump.4'] = 1
+line['on_coupl_sol_bump.6'] = 1
+line['on_coupl_sol_bump.8'] = 1
 
 if bmad:
     from bmad_track_twiss_spin import bmad_run
@@ -389,6 +389,7 @@ outbmad_minus = bmad_run(line, track=dict(
 
 plt.figure(100, figsize=(6.4, 4.8*1.5))
 ax = plt.subplot(5, 1, 1)
+tw.plot(lattice_only=True, ax=ax)
 plt.plot(df.s, outbmad_plus['optics']['x'] - outbmad_minus['optics']['x'])
 plt.plot(two_plus.s, two_plus.x - two_minus.x)
 plt.ylabel('x')
