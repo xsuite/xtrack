@@ -88,7 +88,13 @@ void magnet_apply_radiation_single_particle(
     double Bx_T = -kappa_y * P_J / Q0_coulomb;
     double By_T = kappa_x * P_J / Q0_coulomb;
     double const Bz_T = ks * brho0;
-    double const B_perp_T = sqrt(Bx_T * Bx_T + By_T * By_T);
+    double const B_perp_T = sqrt(Bx_T * Bx_T + By_T * By_T); //this one is used for radiation
+
+    // I kill Bx and By if there is ks (for spin)
+    if (ks != 0.){
+        Bx_T = 0.;
+        By_T = 0.;
+    }
 
     // Path length for radiation
     double const dzeta = LocalParticle_get_zeta(part) - old_zeta;
