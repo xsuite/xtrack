@@ -299,30 +299,39 @@ alpha_minus = alpha_minus_co - int_kappa3_dn_ddelta_ib / tw.circumference
 pol_inf = 8 / 5 / np.sqrt(3) * alpha_minus_co / alpha_plus_co
 pol_eq = 8 / 5 / np.sqrt(3) * alpha_minus / alpha_plus
 
-tp_inv = 5 * np.sqrt(3) / 8 * r0 * hbar * tw.gamma0**5 / m0_kg * alpha_plus_co
-tp_s = 1 / tp_inv
-tp_turn = tp_s / tw.T_rev0
+t_pol_inf_s = 1/(5 * np.sqrt(3) / 8 * r0 * hbar * tw.gamma0**5 / m0_kg * alpha_plus_co)
+t_pol_s = 1/(5 * np.sqrt(3) / 8 * r0 * hbar * tw.gamma0**5 / m0_kg * alpha_plus)
 
-tw._data['alpha_plus_co'] = alpha_plus_co
-tw._data['alpha_minus_co'] = alpha_minus_co
-tw._data['alpha_plus'] = alpha_plus
-tw._data['alpha_minus'] = alpha_minus
-tw['dn_ddelta_mod'] = dn_ddelta_mod
-tw['dn_ddelta'] = dn_ddelta
-tw._data['int_kappa3_n0_ib'] = int_kappa3_n0_ib
-tw._data['int_kappa3_dn_ddelta_ib'] = int_kappa3_dn_ddelta_ib
-tw._data['int_kappa3_11_18_dn_ddelta_sq'] = int_kappa3_11_18_dn_ddelta_sq
-tw._data['pol_inf'] = pol_inf
-tw._data['pol_eq'] = pol_eq
-tw._data['EE'] = EE
-tw._data['EE_side'] = EE_side
-tw['n0_ib'] = n0_ib
-tw['t_pol_turn'] = tp_turn
 
-dny_ref = 1 / (np.sqrt(1 - tw.spin_x**2 - tw.spin_z**2)) * (
-    -tw.spin_x * tw.dn_ddelta[:, 0] - tw.spin_z * tw.dn_ddelta[:, 2])
+cols = {
+    'spin_dn_ddelta_x': dn_ddelta[:, 0],
+    'spin_dn_ddelta_y': dn_ddelta[:, 1],
+    'spin_dn_ddelta_z': dn_ddelta[:, 2],
+    'spin_eigenvectors': EE,
+    'spin_n_matrix': NN,
+}
 
-print('Xsuite polarization: ', tw.pol_eq)
+other_data = {
+    'spin_polarization_eq': pol_eq,
+    'spin_polarization_limit_no_rad': pol_inf,
+    'spin_alpha_plus_co': alpha_plus_co,
+    'spin_alpha_minus_co': alpha_minus_co,
+    'spin_alpha_plus': alpha_plus,
+    'spin_alpha_minus': alpha_minus,
+    'spin_int_kappa3_n0_ib': int_kappa3_n0_ib,
+    'spin_int_kappa3_dn_ddelta_ib': int_kappa3_dn_ddelta_ib,
+    'spin_int_kappa3_11_18_dn_ddelta_sq': int_kappa3_11_18_dn_ddelta_sq,
+    'spin_t_pol_no_rad_s': t_pol_inf_s,
+    'spin_t_pol_s': t_pol_s,
+    '_spin_ee_side': EE_side,
+}
+
+for nn in cols:
+    tw[nn] = cols[nn]
+for nn in other_data:
+    tw._data[nn] = other_data[nn]
+
+print('Xsuite polarization: ', tw.spin_polarization_eq)
 
 if bmad:
     print('Bmad polarization:   ', spin_summary_bmad['Polarization Limit DK'])
