@@ -116,12 +116,14 @@ def bmad_run(line, track=None):
     from pytao import Tao
     if track is not None:
         tao = Tao(' -lat lep.bmad -noplot ')
-        tao.cmd('show -write orbit.txt lat -all')
+        tao.cmd('show -write orbit.txt lat -all -att orbit.x@es20.10 '
+                '-att orbit.y@es20.10 -att beta.a@es20.10 -att beta.b@es20.10')
         tao.cmd('show -write vvv.txt lat -spin -all')
     else:
         tao = Tao(' -lat lep.bmad -noplot ')
         tao.cmd('show -write spin.txt spin')
-        tao.cmd('show -write orbit.txt lat -all') #* -att orbit.x@f20.14 -att orbit.y@f20.14 -att beta.a@f20.14 -att beta.b@f20.14')
+        tao.cmd('show -write orbit.txt lat -all -att orbit.x@es20.10 '
+                '-att orbit.y@es20.10 -att beta.a@es20.10 -att beta.b@es20.10')
         tao.cmd('show -write vvv.txt lat -spin -all')
 
 
@@ -146,8 +148,7 @@ def bmad_run(line, track=None):
             ]
         elif ftype == 'orbit':
             col_names = [
-                'name', 's', 'l', 'betx', 'phix', 'dx', 'x'
-                'bety', 'phiy', 'dy', 'y', 'state'
+                'name', 's', 'l', 'x', 'y', 'betx', 'bety'
             ]
 
         # Now read into pandas
@@ -171,12 +172,9 @@ def bmad_run(line, track=None):
         data_str = ''.join(data_lines)
 
         # Define column names manually based on the comment headers
-        column_names = [
-            'index', 'name', 'key', 's', 'l',
-            'beta_a', 'phi_a', 'eta_x', 'orbit_x_mm',
-            'beta_b', 'phi_b', 'eta_y', 'orbit_y_mm',
-            'track_state'
-        ]
+        column_names = col_names = [
+                'name', 's', 'l', 'x', 'y', 'betx', 'bety'
+            ]
 
         # Read into pandas
         df = pd.read_csv(

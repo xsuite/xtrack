@@ -389,8 +389,8 @@ outbmad_minus = bmad_run(line, track=dict(
 
 plt.figure(100)
 ax = plt.subplot(2, 1, 1)
-plot(df.s, outbmad_plus['optics']['orbit_x_mm'] - outbmad_minus['optics']['orbit_x_mm'])
-plot(two_plus.s, two_plus.x - two_minus.x)
+plt.plot(df.s, outbmad_plus['optics']['x'] - outbmad_minus['optics']['x'])
+plt.plot(two_plus.s, two_plus.x - two_minus.x)
 plt.ylabel('x')
 ax = plt.subplot(2, 1, 2, sharex=ax)
 plt.plot(df.s, outbmad_plus['spin']['spin_x'] - outbmad_minus['spin']['spin_x'])
