@@ -4412,15 +4412,15 @@ def _compute_spin_polarization(tw, line, method):
         for ii in range(n_eigen):
             EE_spin[:, ii] = np.linalg.inv(eival[ii] * np.eye(3) - A) @ DD @ EE_orb[:, ii]
 
-
         eee = np.zeros((9, n_eigen), dtype=complex)
         eee[:6, :] = EE_orb
         eee[6:, :] = EE_spin
 
         # Identify eigenvector with eigenvalue 1 and remove n0 component
-        i_eigen_one = np.argmin(np.abs(eival - 1))
-        n0 = np.array([tw.spin_x[0], tw.spin_y[0], tw.spin_z[0]])
-        eee[6:, i_eigen_one] -= np.dot(eee[6:, i_eigen_one], n0) * n0
+        if method == '4d':
+            i_eigen_one = np.argmin(np.abs(eival - 1))
+            n0 = np.array([tw.spin_x[0], tw.spin_y[0], tw.spin_z[0]])
+            eee[6:, i_eigen_one] -= np.dot(eee[6:, i_eigen_one], n0) * n0
 
         # Scale and track eigenvectors
         def get_scale(e):
