@@ -103,7 +103,8 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
 
     Solenoid_thick_track_single_particle(part, slice_length, ks, radiation_flag);
 
-    int64_t spin_flag = 1; // Needs to be exposed in the API
+    // int64_t spin_flag = 1; // Needs to be exposed in the API
+    int64_t spin_flag = ks != 0 ? 1 : 0; // TEMPORARY - issue with field computation
 
     #ifndef XTRACK_SOLENOID_NO_SYNRAD
         if ((radiation_flag > 0 || spin_flag > 0) && length > 0){
