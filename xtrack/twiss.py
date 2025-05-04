@@ -4572,7 +4572,11 @@ def _compute_spin_polarization(tw, line, method):
             'spin_int_kappa3_11_18_dn_ddelta_sq': int_kappa3_11_18_dn_ddelta_sq,
             'spin_t_pol_no_rad_s': t_pol_inf_s,
             'spin_t_pol_s': t_pol_s,
+            # For diagnostics
             '_spin_ee_side': EE_side,
+            '_spin_scale_factors': scales,
+            '_spin_eee_trk_re': eee_trk_re,
+            '_spin_eee_trk_im': eee_trk_im,
         }
 
         for nn in cols:
