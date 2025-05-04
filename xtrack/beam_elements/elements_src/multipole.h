@@ -6,8 +6,11 @@
 #ifndef XTRACK_MULTIPOLE_H
 #define XTRACK_MULTIPOLE_H
 
+#include <headers/track.h>
+#include <beam_elements/elements_src/track_magnet.h>
 
-/*gpufun*/
+
+GPUFUN
 void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 
     SynchrotronRadiationRecordData record = NULL;

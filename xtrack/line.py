@@ -24,6 +24,10 @@ from . import json as json_utils
 import xobjects as xo
 import xtrack as xt
 import xdeps as xd
+from .beam_elements.magnets import (
+    MagnetEdge, _MODEL_TO_INDEX_CURVED,
+    _EDGE_MODEL_TO_INDEX,
+)
 from .progress_indicator import progress
 from .slicing import Custom, Slicer, Strategy
 from .mad_writer import to_madx_sequence
@@ -2913,28 +2917,40 @@ class Line:
         for name in variable_names:
             self.config[f'FREEZE_VAR_{name}'] = False
 
-    def configure_bend_model(self, core=None, edge=None, num_multipole_kicks=None):
+    def configure_bend_model(
+            self,
+            core=None,
+            edge=None,
+            num_multipole_kicks=None,
+            integrator=None,
+    ):
 
         """
         Configure the method used to track bends.
 
+        See documentation of ``xt.Bend`` for more details on the values of the
+        models and schemes used below.
+
         Parameters
         ----------
         core: str
-            Model to be used for the thick bend cores. Can be 'expanded' or '
-            full'.
+            Model to be used for the thick bend cores. Can be 'adaptive',
+            'full', 'bend-kick-bend', 'rot-kick-rot', 'mat-kick-mat',
+            'drift-kick-drift-exact', or 'drift-kick-drift-expanded'.
         edge: str
-            Model to be used for the bend edges. Can be 'linear', 'full', 'dipole-only'
-            or 'suppressed'.
+            Model to be used for the bend edges. Can be 'linear', 'full',
+            'dipole-only' or 'suppressed'.
         num_multipole_kicks: int
             Number of multipole kicks to consider.
+        integrator: str
+            Integration scheme to be used. Can be 'adaptive', 'teapot',
+            'yoshida4', or 'uniform'.
         """
 
-        if core not in [None, 'adaptive', 'full', 'bend-kick-bend',
-                              'rot-kick-rot', 'expanded']:
+        if core is not None and core not in _MODEL_TO_INDEX_CURVED:
             raise ValueError(f'Unknown bend model {core}')
 
-        if edge not in [None, 'linear', 'full', 'dipole-only', 'suppressed']:
+        if edge is not None and edge not in _EDGE_MODEL_TO_INDEX:
             raise ValueError(f'Unknown bend edge model {edge}')
 
         for ee in self.element_dict.values():
@@ -2942,7 +2958,7 @@ class Line:
                 ee.model = core
 
             if edge is not None and isinstance(ee, xt.DipoleEdge):
-                ee.model = edge
+                ee.model = edge if not edge == 'dipole-only' else 'full'
 
             if edge is not None and isinstance(ee, (xt.Bend, xt.RBend)):
                 ee.edge_entry_model = edge
@@ -2951,11 +2967,16 @@ class Line:
             if num_multipole_kicks is not None:
                 ee.num_multipole_kicks = num_multipole_kicks
 
+            if integrator is not None:
+                ee.integrator = integrator
+
     def _configure_mult(
             self,
             element_type,
+            model=None,
             edge: Optional[Literal['full']] = None,
             num_multipole_kicks: Optional[int] = None,
+            integrator: Optional[str] = None,
     ):
         """Configure fringes on elements of a given type.
 
@@ -2963,6 +2984,11 @@ class Line:
         ----------
         edge: str
             None to disable, 'full' to enable.
+        num_multipole_kicks: int
+            Number of multipole kicks to consider.
+        integrator: str
+            Integration scheme to be used. Can be 'adaptive', 'teapot',
+            'yoshida4', or 'uniform'.
         """
         if edge not in [None, 'full', 'suppressed']:
             raise ValueError(f'Unknown edge model {edge}: only None or '
@@ -2978,21 +3004,54 @@ class Line:
                 ee.edge_exit_active = enable_fringes
             if num_multipole_kicks is not None:
                 ee.num_multipole_kicks = num_multipole_kicks
+            if integrator is not None:
+                ee.integrator = integrator
+            if model is not None:
+                ee.model = model
 
-    def configure_quadrupole_model(self, edge: Optional[Literal['full']] = None,
-                                   num_multipole_kicks: Optional[int] = None):
-        self._configure_mult(xt.Quadrupole, edge=edge,
-                             num_multipole_kicks=num_multipole_kicks)
+    def configure_quadrupole_model(self,
+            model: Optional[str] = None,
+            edge: Optional[Literal['full']] = None,
+            num_multipole_kicks: Optional[int] = None,
+            integrator: Optional[str] = None,
+    ):
+        self._configure_mult(
+            xt.Quadrupole,
+            model=model,
+            edge=edge,
+            num_multipole_kicks=num_multipole_kicks,
+            integrator=integrator,
+        )
 
-    def configure_sextupole_model(self, edge: Optional[Literal['full']] = None,
-                                  num_multipole_kicks: Optional[int] = None):
-        self._configure_mult(xt.Sextupole, edge=edge,
-                             num_multipole_kicks=num_multipole_kicks)
+    def configure_sextupole_model(
+            self,
+            model: Optional[str] = None,
+            edge: Optional[Literal['full']] = None,
+            num_multipole_kicks: Optional[int] = None,
+            integrator: Optional[str] = None,
+    ):
+        self._configure_mult(
+            xt.Sextupole,
+            model=model,
+            edge=edge,
+            num_multipole_kicks=num_multipole_kicks,
+            integrator=integrator,
+        )
 
-    def configure_octupole_model(self, edge: Optional[Literal['full']] = None,
-                                 num_multipole_kicks: Optional[int] = None):
-        self._configure_mult(xt.Octupole, edge=edge,
-                            num_multipole_kicks=num_multipole_kicks)
+    def configure_octupole_model(
+            self,
+            model: Optional[str] = None,
+            edge: Optional[Literal['full']] = None,
+            num_multipole_kicks: Optional[int] = None,
+            integrator: Optional[str] = None,
+    ):
+        self._configure_mult(
+            xt.Octupole,
+            model=model,
+            edge=edge,
+            num_multipole_kicks=num_multipole_kicks,
+            integrator=integrator,
+        )
 
     def configure_radiation(self, model=None, model_beamstrahlung=None,
                             model_bhabha=None, mode='deprecated'):

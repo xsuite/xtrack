@@ -6,10 +6,18 @@
 #ifndef XTRACK_SYNRAD_SPECTRUM_H
 #define XTRACK_SYNRAD_SPECTRUM_H
 
+#include <headers/track.h>
+#include <random/random_src/uniform_accurate.h>
+
+
 #define SQRT3 1.732050807568877
 #define ALPHA_EM 0.0072973525693
 
-/*gpufun*/
+#if defined(XTRACK_SYNRAD_SCALE_SAME_AS_FIRST) && !defined(XO_CONTEXT_CPU_SERIAL)
+#error "XTRACK_SYNRAD_SCALE_SAME_AS_FIRST not supported when multithreading"
+#endif
+
+GPUFUN
 void synrad_average_kick(LocalParticle* part, double B_T, double lpath,
                          double* dp_record, double* dpx_record, double* dpy_record
                         ){
@@ -31,7 +39,6 @@ void synrad_average_kick(LocalParticle* part, double B_T, double lpath,
 
     #ifdef XTRACK_SYNRAD_SCALE_SAME_AS_FIRST
     if (part -> ipart == 0){
-    #error "XTRACK_SYNRAD_SCALE_SAME_AS_FIRST not supported when multithreading"  //only_for_context cpu_openmp cuda opencl
       *dp_record = f_t;
     }
     else{
@@ -40,7 +47,6 @@ void synrad_average_kick(LocalParticle* part, double B_T, double lpath,
     #endif
 
     #ifdef XTRACK_SYNRAD_KICK_SAME_AS_FIRST
-    #error "XTRACK_SYNRAD_KICK_SAME_AS_FIRST not supported when multithreading"  //only_for_context cpu_openmp cuda opencl
     if (part -> ipart == 0){
       *dp_record = LocalParticle_get_delta(part);
       *dpx_record = LocalParticle_get_px(part);
@@ -69,7 +75,7 @@ void synrad_average_kick(LocalParticle* part, double B_T, double lpath,
     #endif
 }
 
-/*gpufun*/
+GPUFUN
 double SynRad(double x)
 {
   // x :    energy normalized to the critical energy
@@ -167,7 +173,7 @@ double SynRad(double x)
   return synrad;
 }
 
-/*gpufun*/
+GPUFUN
 double synrad_gen_photon_energy_normalized(LocalParticle *part)
 {
   // initialize constants used in the approximate expressions
@@ -199,7 +205,7 @@ double synrad_gen_photon_energy_normalized(LocalParticle *part)
   return result; // result now exact spectrum with unity weight
 }
 
-/*gpufun*/
+GPUFUN
 double synrad_average_number_of_photons(double mass0, double q0,
                           double beta0_gamma0, double B_T, double lpath){
 
@@ -211,7 +217,7 @@ double synrad_average_number_of_photons(double mass0, double q0,
     return 2.5/SQRT3*ALPHA_EM*beta0_gamma0*fabs(kick);
 }
 
-/*gpufun*/
+GPUFUN
 int64_t synrad_emit_photons(LocalParticle *part, double B_T,
                             double lpath /* m */,
                             RecordIndex record_index,

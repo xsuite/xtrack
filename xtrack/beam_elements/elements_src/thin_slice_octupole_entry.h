@@ -6,7 +6,11 @@
 #ifndef XTRACK_THIN_SLICE_OCTUPOLE_ENTRY_H
 #define XTRACK_THIN_SLICE_OCTUPOLE_ENTRY_H
 
-/*gpufun*/
+#include <headers/track.h>
+#include <beam_elements/elements_src/track_mult_fringe.h>
+
+
+GPUFUN
 void ThinSliceOctupoleEntry_track_local_particle(
         ThinSliceOctupoleEntryData el,
         LocalParticle* part0
@@ -23,7 +27,7 @@ void ThinSliceOctupoleEntry_track_local_particle(
         double const kn[4] = {0, 0, 0, k3};
         double const ks[4] = {0, 0, 0, k3s};
 
-        //start_per_particle_block (part0->part)
+        START_PER_PARTICLE_BLOCK(part0, part);
         MultFringe_track_single_particle(
             part,
             kn,
@@ -36,7 +40,7 @@ void ThinSliceOctupoleEntry_track_local_particle(
             /* is_exit */ 0,
             /* min_order */ 0
         );
-        //end_per_particle_block
+        END_PER_PARTICLE_BLOCK;
     }
 }
 

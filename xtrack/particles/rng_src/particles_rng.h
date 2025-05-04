@@ -6,9 +6,11 @@
 #ifndef XTRACK_PARTICLES_RNG_H
 #define XTRACK_PARTICLES_RNG_H
 
-/*gpukern*/
+#include <headers/track.h>
+
+GPUKERN
 void Particles_initialize_rand_gen(ParticlesData particles,
-    /*gpuglmem*/ uint32_t* seeds, int n_init){
+    GPUGLMEM uint32_t* seeds, int n_init){
 
     for (int ii=0; ii<n_init; ii++){//vectorize_over ii n_init
 

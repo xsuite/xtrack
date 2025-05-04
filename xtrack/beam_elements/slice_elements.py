@@ -38,7 +38,8 @@ class ThinSliceQuadrupole(BeamElement):
     _xofields = {'_parent': xo.Ref(Quadrupole), **_common_xofields}
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_quadrupole.h')]
+        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_quadrupole.h'),
+    ]
 
     copy = _slice_copy
 
@@ -93,7 +94,8 @@ class ThinSliceSextupole(BeamElement):
     _xofields = {'_parent': xo.Ref(Sextupole), **_common_xofields}
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_sextupole.h')]
+        '#include <beam_elements/elements_src/thin_slice_sextupole.h>'
+    ]
 
     copy = _slice_copy
 
@@ -148,7 +150,8 @@ class ThinSliceOctupole(BeamElement):
     _xofields = {'_parent': xo.Ref(Octupole), **_common_xofields}
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_octupole.h')]
+        '#include <beam_elements/elements_src/thin_slice_octupole.h>'
+    ]
 
     copy = _slice_copy
 
@@ -203,7 +206,8 @@ class ThinSliceBend(BeamElement):
     _xofields = {'_parent': xo.Ref(Bend), **_common_xofields}
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_bend.h')]
+        '#include <beam_elements/elements_src/thin_slice_bend.h>'
+    ]
 
     copy = _slice_copy
 
@@ -257,7 +261,8 @@ class ThinSliceBendEntry(BeamElement):
     _extra_c_sources = [
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_nonlinear.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_bend_entry.h')]
+        '#include <beam_elements/elements_src/thin_slice_bend_entry.h>'
+    ]
 
     copy = _slice_copy
 
@@ -304,9 +309,8 @@ class ThinSliceBendExit(BeamElement):
     _xofields = {'_parent': xo.Ref(Bend), **_common_xofields}
 
     _extra_c_sources = [
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_nonlinear.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_bend_exit.h')]
+        '#include <beam_elements/elements_src/thin_slice_bend_exit.h>'
+    ]
 
     copy = _slice_copy
 
@@ -354,8 +358,8 @@ class ThinSliceQuadrupoleEntry(BeamElement):
     _xofields = {'_parent': xo.Ref(Quadrupole), **_common_xofields}
 
     _extra_c_sources = [
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_quadrupole_entry.h')]
+        '#include <beam_elements/elements_src/thin_slice_quadrupole_entry.h>'
+    ]
 
     copy = _slice_copy
 
@@ -397,8 +401,8 @@ class ThinSliceQuadrupoleExit(BeamElement):
     _xofields = {'_parent': xo.Ref(Quadrupole), **_common_xofields}
 
     _extra_c_sources = [
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_quadrupole_exit.h')]
+        '#include <beam_elements/elements_src/thin_slice_quadrupole_exit.h>'
+    ]
 
     copy = _slice_copy
 
@@ -440,8 +444,8 @@ class ThinSliceSextupoleEntry(BeamElement):
     _xofields = {'_parent': xo.Ref(Sextupole), **_common_xofields}
 
     _extra_c_sources = [
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_sextupole_entry.h')]
+        '#include <beam_elements/elements_src/thin_slice_sextupole_entry.h>'
+    ]
 
     copy = _slice_copy
 
@@ -483,8 +487,8 @@ class ThinSliceSextupoleExit(BeamElement):
     _xofields = {'_parent': xo.Ref(Sextupole), **_common_xofields}
 
     _extra_c_sources = [
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_sextupole_exit.h')]
+        '#include <beam_elements/elements_src/thin_slice_sextupole_exit.h>'
+    ]
 
     copy = _slice_copy
 
@@ -526,8 +530,8 @@ class ThinSliceOctupoleEntry(BeamElement):
     _xofields = {'_parent': xo.Ref(Octupole), **_common_xofields}
 
     _extra_c_sources = [
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_octupole_entry.h')]
+        '#include <beam_elements/elements_src/thin_slice_octupole_entry.h>'
+    ]
 
     copy = _slice_copy
 
@@ -569,8 +573,8 @@ class ThinSliceOctupoleExit(BeamElement):
     _xofields = {'_parent': xo.Ref(Octupole), **_common_xofields}
 
     _extra_c_sources = [
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_octupole_exit.h')]
+        '#include <beam_elements/elements_src/thin_slice_octupole_exit.h>'
+    ]
 
     copy = _slice_copy
 
@@ -614,7 +618,8 @@ class ThinSliceRBend(BeamElement):
     _xofields = {'_parent': xo.Ref(RBend), **_common_xofields}
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_rbend.h')]
+        '#include <beam_elements/elements_src/thin_slice_rbend.h>'
+    ]
 
     copy = _slice_copy
 
@@ -659,9 +664,8 @@ class ThinSliceRBendEntry(BeamElement):
     _xofields = {'_parent': xo.Ref(RBend), **_common_xofields}
 
     _extra_c_sources = [
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_nonlinear.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_rbend_entry.h')]
+        '#include <beam_elements/elements_src/thin_slice_rbend_entry.h>'
+    ]
 
     copy = _slice_copy
 
@@ -708,9 +712,8 @@ class ThinSliceRBendExit(BeamElement):
     _xofields = {'_parent': xo.Ref(RBend), **_common_xofields}
 
     _extra_c_sources = [
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_nonlinear.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_rbend_exit.h')]
+        '#include <beam_elements/elements_src/thin_slice_rbend_exit.h>'
+    ]
 
     copy = _slice_copy
 

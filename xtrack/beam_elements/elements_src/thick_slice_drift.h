@@ -6,7 +6,10 @@
 #ifndef XTRACK_THICK_SLICE_DRIFT_H
 #define XTRACK_THICK_SLICE_DRIFT_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void ThickSliceDrift_track_local_particle(
         ThickSliceDriftData el,
         LocalParticle* part0
@@ -20,10 +23,9 @@ void ThickSliceDrift_track_local_particle(
         double const length = -weight * ThickSliceDriftData_get__parent_length(el); // m
     #endif
 
-    //start_per_particle_block (part0->part)
+    START_PER_PARTICLE_BLOCK(part0, part);
         Drift_single_particle(part, length);
-    //end_per_particle_block
-
+    END_PER_PARTICLE_BLOCK;
 }
 
 #endif

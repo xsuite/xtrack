@@ -2,20 +2,14 @@
 // This file is part of the Xtrack Package.  //
 // Copyright (c) CERN, 2024.                 //
 // ######################################### //
-
 #ifndef XTRACK_TRACK_MULT_FRINGE_H
 #define XTRACK_TRACK_MULT_FRINGE_H
 
-#ifndef POW2
-#define POW2(X) ((X)*(X))
-#endif
-#ifndef POW3
-#define POW3(X) ((X)*(X)*(X))
-#endif
+#include <headers/track.h>
 
 // This functionality is ported from MAD-NG
 
-/*gpufun*/
+GPUFUN
 void MultFringe_track_single_particle(
     LocalParticle* part,  // Particle to be tracked
     const double* kn,  // Normal components; array of length `order`

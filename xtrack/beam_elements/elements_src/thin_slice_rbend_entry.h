@@ -2,11 +2,14 @@
 // This file is part of the Xtrack Package.  //
 // Copyright (c) CERN, 2023.                 //
 // ######################################### //
-
 #ifndef XTRACK_THIN_SLICE_RBEND_ENTRY_H
 #define XTRACK_THIN_SLICE_RBEND_ENTRY_H
 
-/*gpufun*/
+#include <headers/track.h>
+#include <beam_elements/elements_src/track_dipole_edge_nonlinear.h>
+
+
+GPUFUN
 void ThinSliceRBendEntry_track_local_particle(
         ThinSliceRBendEntryData el,
         LocalParticle* part0
@@ -33,21 +36,21 @@ void ThinSliceRBendEntry_track_local_particle(
                 r21 = -r21;
                 r43 = -r43;
             #endif
-            //start_per_particle_block (part0->part)
+            START_PER_PARTICLE_BLOCK(part0, part);
                 DipoleEdgeLinear_single_particle(part, r21, r43);
-            //end_per_particle_block
+            END_PER_PARTICLE_BLOCK;
         }
         else if (edge_entry_model==1){
             #ifdef XSUITE_BACKTRACK
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     LocalParticle_kill_particle(part, -32);
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
                 return;
             #else
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     DipoleEdgeNonLinear_single_particle(part, k0, edge_entry_angle,
                                         edge_entry_fint, edge_entry_hgap, 0);
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             #endif
         }
     } // end edge entry

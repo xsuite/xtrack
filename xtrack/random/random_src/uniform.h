@@ -5,12 +5,18 @@
 
 #ifndef XTRACK_UNIFORM_RNG_H
 #define XTRACK_UNIFORM_RNG_H
-#include <stdlib.h> //only_for_context cpu_serial cpu_openmp
-#include <math.h> //only_for_context cpu_serial cpu_openmp
-#include <time.h> //only_for_context cpu_serial cpu_openmp
+
+#ifdef XO_CONTEXT_CPU
+#include <stdlib.h>
+#include <math.h>
+#include <time.h>
+#endif  // XO_CONTEXT_CPU
+
+#include <headers/track.h>
+#include <particles/rng_src/base_rng.h>
 
 
-/*gpufun*/
+GPUFUN
 int8_t assert_rng_set(LocalParticle* part, int64_t kill_state){
     int64_t s1 = LocalParticle_get__rng_s1(part);
     int64_t s2 = LocalParticle_get__rng_s2(part);
@@ -24,7 +30,7 @@ int8_t assert_rng_set(LocalParticle* part, int64_t kill_state){
 }
 
 
-/*gpufun*/
+GPUFUN
 double RandomUniform_generate(LocalParticle* part){
     uint32_t s1 = LocalParticle_get__rng_s1(part);
     uint32_t s2 = LocalParticle_get__rng_s2(part);
@@ -46,7 +52,7 @@ double RandomUniform_generate(LocalParticle* part){
     return r;
 }
 
-/*gpufun*/
+GPUFUN
 uint32_t RandomUniformUInt32_generate(LocalParticle* part){
     uint32_t s1 = LocalParticle_get__rng_s1(part);
     uint32_t s2 = LocalParticle_get__rng_s2(part);
@@ -69,16 +75,19 @@ uint32_t RandomUniformUInt32_generate(LocalParticle* part){
 }
 
 
-/*gpufun*/
-void RandomUniform_sample(RandomUniformData rng, LocalParticle* part0,
-                             /*gpuglmem*/ double* samples, int64_t n_samples_per_seed){
-    //start_per_particle_block (part0->part)
-    int i;
-    for (i=0; i<n_samples_per_seed; ++i){
-        double val = RandomUniform_generate(part);
-        samples[n_samples_per_seed*LocalParticle_get_particle_id(part) + i] = val;
-    }
-    //end_per_particle_block
+GPUFUN
+void RandomUniform_sample(
+    RandomUniformData rng,
+    LocalParticle* part0,
+    GPUGLMEM double* samples,
+    int64_t n_samples_per_seed
+){
+    START_PER_PARTICLE_BLOCK(part0, part);
+        for (int i=0; i < n_samples_per_seed; ++i) {
+            double val = RandomUniform_generate(part);
+            samples[n_samples_per_seed*LocalParticle_get_particle_id(part) + i] = val;
+        }
+    END_PER_PARTICLE_BLOCK;
 }
 
 

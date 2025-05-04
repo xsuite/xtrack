@@ -1,16 +1,18 @@
 // copyright ############################### //
 // This file is part of the Xtrack Package.  //
-// Copyright (c) CERN, 2023.                 //
+// Copyright (c) CERN, 2025.                 //
 // ######################################### //
-
 #ifndef XTRACK_TRACK_MULTIPOLAR_COMPONENTS_H
 #define XTRACK_TRACK_MULTIPOLAR_COMPONENTS_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void track_multipolar_kick_bend(
     LocalParticle* part, int64_t order, double inv_factorial_order,
-    /*gpuglmem*/ const double* knl,
-    /*gpuglmem*/ const double* ksl,
+    GPUGLMEM const double* knl,
+    GPUGLMEM const double* ksl,
     double const factor_knl_ksl,
     double kick_weight, double k0, double k1, double h, double length){
 

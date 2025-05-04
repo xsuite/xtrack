@@ -1,8 +1,14 @@
+// copyright ############################### //
+// This file is part of the Xtrack Package.  //
+// Copyright (c) CERN, 2025.                 //
+// ######################################### //
 #ifndef XTRACK_TRACK_DIPOLEEDGE_LINEAR_H
 #define XTRACK_TRACK_DIPOLEEDGE_LINEAR_H
 
+#include <headers/track.h>
 
-/*gpufun*/
+
+GPUFUN
 void compute_dipole_edge_linear_coefficients(double const k, double const e1,
                     double const e1_fd, double const hgap, double const fint,
                     double* r21, double* r43){
@@ -20,7 +26,7 @@ void compute_dipole_edge_linear_coefficients(double const k, double const e1,
 
 }
 
-/*gpufun*/
+GPUFUN
 void DipoleEdgeLinear_single_particle(LocalParticle* part, double r21, double r43){
 
     double const x = LocalParticle_get_x(part);

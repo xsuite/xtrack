@@ -9,12 +9,10 @@
 #ifndef XTRACK_BEAM_PROFILE_MONITOR_H
 #define XTRACK_BEAM_PROFILE_MONITOR_H
 
-#if !defined( C_LIGHT )
-    #define   C_LIGHT ( 299792458.0 )
-#endif /* !defined( C_LIGHT ) */
+#include <headers/track.h>
 
 
-/*gpufun*/
+GPUFUN
 void BeamProfileMonitor_track_local_particle(BeamProfileMonitorData el, LocalParticle* part0){
 
     // get parameters
@@ -37,11 +35,10 @@ void BeamProfileMonitor_track_local_particle(BeamProfileMonitorData el, LocalPar
     double dy = BeamProfileMonitorData_get_dy(el);
 
 
-    //start_per_particle_block(part0->part)
-
+    START_PER_PARTICLE_BLOCK(part0, part);
         int64_t particle_id = LocalParticle_get_particle_id(part);
-        if (particle_id_stop < 0 || (particle_id_start <= particle_id && particle_id < particle_id_stop)){
-
+        if (particle_id_stop < 0 || (particle_id_start <= particle_id && particle_id < particle_id_stop))
+        {
             // zeta is the absolute path length deviation from the reference particle: zeta = (s - beta0*c*t)
             // but without limits, i.e. it can exceed the circumference (for coasting beams)
             // as the particle falls behind or overtakes the reference particle
@@ -64,7 +61,7 @@ void BeamProfileMonitor_track_local_particle(BeamProfileMonitorData el, LocalPar
                     int64_t slot_x = sample * nx + bin_x;
 
                     if (slot_x >= 0 && slot_x < max_slot_x){
-                        /*gpuglmem*/ double* counts_x = BeamProfileMonitorRecord_getp1_counts_x(record, slot_x);
+                        GPUGLMEM double* counts_x = BeamProfileMonitorRecord_getp1_counts_x(record, slot_x);
                         atomicAdd(counts_x, 1.);
                     }
                 }
@@ -73,15 +70,13 @@ void BeamProfileMonitor_track_local_particle(BeamProfileMonitorData el, LocalPar
                     int64_t slot_y = sample * ny + bin_y;
 
                     if (slot_y >= 0 && slot_y < max_slot_y){
-                        /*gpuglmem*/ double* counts_y = BeamProfileMonitorRecord_getp1_counts_y(record, slot_y);
+                        GPUGLMEM double* counts_y = BeamProfileMonitorRecord_getp1_counts_y(record, slot_y);
                         atomicAdd(counts_y, 1);
                     }
                 }
             }
         }
-
-	//end_per_particle_block
-
+    END_PER_PARTICLE_BLOCK;
 }
 
 #endif

@@ -6,7 +6,12 @@
 #ifndef XTRACK_BASE_RNG_H
 #define XTRACK_BASE_RNG_H
 
-#include <stdint.h> //only_for_context none
+#include <headers/track.h>
+
+// Only include if compiled standalone, outside of Xsuite
+#ifndef START_PER_PARTICLE_BLOCK
+#include <stdint.h>
+#endif
 
 // Combined LCG-Thausworthe generator from (example 37-4):
 // https://developer.nvidia.com/gpugems/gpugems3/part-vi-gpu-computing/chapter-37-efficient-random-number-generation-and-application
@@ -14,7 +19,7 @@
 #define TAUSWORTHE(s,a,b,c,d) ((((s) &c) <<d) &MASK) ^ (((((s) <<a) &MASK)^(s)) >>b)
 #define LCG(s,A,C) ((((A*(s)) &MASK) + C) &MASK)
 
-/*gpufun*/
+GPUFUN
 uint32_t rng_get_int32 (uint32_t *s1, uint32_t *s2, uint32_t *s3, uint32_t *s4 ){
   *s1 = TAUSWORTHE (*s1, 13, 19, 4294967294UL, 12);  // p1=2^31-1
   *s2 = TAUSWORTHE (*s2, 2, 25, 4294967288UL, 4);    // p2=2^30-1
@@ -29,14 +34,14 @@ uint32_t rng_get_int32 (uint32_t *s1, uint32_t *s2, uint32_t *s3, uint32_t *s4 )
 #define TWO_TO_32 4294967296.0
 #endif
 
-/*gpufun*/
+GPUFUN
 double rng_get (uint32_t *s1, uint32_t *s2, uint32_t *s3, uint32_t *s4 ){
 
   return rng_get_int32(s1, s2, s3, s4) / TWO_TO_32; // uniform in [0, 1) 1e10 resolution
 
 }
 
-/*gpufun*/
+GPUFUN
 void rng_set (uint32_t *s1, uint32_t *s2, uint32_t *s3, uint32_t *s4, uint32_t s ){
   *s1 = LCG (s, 69069, 0);
   if (*s1 < 2) *s1 += 2UL;

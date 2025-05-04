@@ -9,11 +9,10 @@
 #ifndef XTRACK_BEAM_SIZE_MONITOR_H
 #define XTRACK_BEAM_SIZE_MONITOR_H
 
-#if !defined( C_LIGHT )
-    #define   C_LIGHT ( 299792458.0 )
-#endif /* !defined( C_LIGHT ) */
+#include <headers/track.h>
 
-/*gpufun*/
+
+GPUFUN
 void BeamSizeMonitor_track_local_particle(BeamSizeMonitorData el, LocalParticle* part0){
 
     // get parameters
@@ -27,11 +26,10 @@ void BeamSizeMonitor_track_local_particle(BeamSizeMonitorData el, LocalParticle*
 
     int64_t max_slot = BeamSizeMonitorRecord_len_count(record);
 
-    //start_per_particle_block(part0->part)
-
+    START_PER_PARTICLE_BLOCK(part0, part);
         int64_t particle_id = LocalParticle_get_particle_id(part);
-        if (particle_id_stop < 0 || (particle_id_start <= particle_id && particle_id < particle_id_stop)){
-
+        if (particle_id_stop < 0 || (particle_id_start <= particle_id && particle_id < particle_id_stop))
+        {
             // zeta is the absolute path length deviation from the reference particle: zeta = (s - beta0*c*t)
             // but without limits, i.e. it can exceed the circumference (for coasting beams)
             // as the particle falls behind or overtakes the reference particle
@@ -62,7 +60,7 @@ void BeamSizeMonitor_track_local_particle(BeamSizeMonitorData el, LocalParticle*
                 atomicAdd(y2_sum, y*y);
             }
         }
-	//end_per_particle_block
+    END_PER_PARTICLE_BLOCK;
 }
 
 #endif

@@ -6,7 +6,10 @@
 #ifndef XTRACK_RBEND_H
 #define XTRACK_RBEND_H
 
-/*gpufun*/
+#include <headers/track.h>
+#include <beam_elements/elements_src/track_magnet.h>
+
+GPUFUN
 void RBend_track_local_particle(
     RBendData el,
     LocalParticle* part0

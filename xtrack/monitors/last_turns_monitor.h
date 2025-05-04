@@ -9,7 +9,10 @@
 #ifndef XTRACK_LAST_TURNS_MONITOR_H
 #define XTRACK_LAST_TURNS_MONITOR_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void LastTurnsMonitor_track_local_particle(LastTurnsMonitorData el, LocalParticle* part0){
     int64_t n_last_turns = LastTurnsMonitorData_get_n_last_turns(el);
     int64_t particle_id_start = LastTurnsMonitorData_get_particle_id_start(el);
@@ -17,8 +20,7 @@ void LastTurnsMonitor_track_local_particle(LastTurnsMonitorData el, LocalParticl
     int64_t every_n_turns = LastTurnsMonitorData_get_every_n_turns(el);
     LastTurnsData data = LastTurnsMonitorData_getp_data(el);
 
-    //start_per_particle_block (part0->part)
-    
+    START_PER_PARTICLE_BLOCK(part0, part);
         int64_t particle_id = LocalParticle_get_particle_id(part);
         int64_t at_turn = LocalParticle_get_at_turn(part);
 
@@ -28,8 +30,8 @@ void LastTurnsMonitor_track_local_particle(LastTurnsMonitorData el, LocalParticl
         // as long as the particle is still alive, since it could be the last
         // time we see it.
     
-        if (at_turn >= 0 && at_turn%every_n_turns == 0 && particle_id_start <= particle_id && particle_id < particle_id_stop){
-
+        if (at_turn >= 0 && at_turn%every_n_turns == 0 && particle_id_start <= particle_id && particle_id < particle_id_stop)
+        {
             // determine slot in rolling buffer
             int64_t offset = (at_turn / every_n_turns) % n_last_turns;
             int64_t ip = particle_id - particle_id_start;
@@ -47,10 +49,8 @@ void LastTurnsMonitor_track_local_particle(LastTurnsMonitorData el, LocalParticl
             LastTurnsData_set_py(data, slot, LocalParticle_get_py(part));
             LastTurnsData_set_delta(data, slot, LocalParticle_get_delta(part));
             LastTurnsData_set_zeta(data, slot, LocalParticle_get_zeta(part));
-            
         }
-
-    //end_per_particle_block
+    END_PER_PARTICLE_BLOCK;
 
 }
 

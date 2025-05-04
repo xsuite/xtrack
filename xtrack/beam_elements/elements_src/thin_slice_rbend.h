@@ -2,11 +2,14 @@
 // This file is part of the Xtrack Package.  //
 // Copyright (c) CERN, 2023.                 //
 // ######################################### //
-
 #ifndef XTRACK_THIN_SLICE_RBEND_H
 #define XTRACK_THIN_SLICE_RBEND_H
 
-/*gpufun*/
+#include <headers/track.h>
+#include <beam_elements/elements_src/track_magnet.h>
+
+
+GPUFUN
 void ThinSliceRBend_track_local_particle(
         ThinSliceRBendData el,
         LocalParticle* part0

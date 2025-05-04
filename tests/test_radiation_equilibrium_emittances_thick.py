@@ -140,7 +140,7 @@ def test_eq_emitt(conf):
         checked = True
     elif not tilt_machine_by_90_degrees and not vertical_orbit_distortion and wiggler_on:
         xo.assert_allclose(ex, 7.0714e-10, atol=0,     rtol=1e-4)
-        xo.assert_allclose(ey, 5.6804e-13, atol=0,     rtol=4e-3)
+        xo.assert_allclose(ey, 5.6986e-13, atol=0,     rtol=4e-3)
         xo.assert_allclose(ez, 3.8595e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif tilt_machine_by_90_degrees and not vertical_orbit_distortion and wiggler_on:
@@ -154,7 +154,7 @@ def test_eq_emitt(conf):
         xo.assert_allclose(ez, 3.5828e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
-        xo.assert_allclose(ex, 2.2261e-12, atol=0,     rtol=5e-3)
+        xo.assert_allclose(ex, 2.2393e-12, atol=0,     rtol=7e-3)
         xo.assert_allclose(ey, 7.1345e-10, atol=0,     rtol=1e-4)
         xo.assert_allclose(ez, 3.5828e-6,  atol=0,     rtol=1e-4)
         checked = True

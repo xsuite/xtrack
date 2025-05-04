@@ -2,20 +2,13 @@
 // This file is part of the Xtrack Package.  //
 // Copyright (c) CERN, 2023.                 //
 // ######################################### //
-
 #ifndef XTRACK_TRACK_MAGNET_DRIFT_H
 #define XTRACK_TRACK_MAGNET_DRIFT_H
 
-#ifndef POW2
-#define POW2(X) ((X)*(X))
-#endif
-
-#ifndef NONZERO
-#define NONZERO(X) ((X) != 0.0)
-#endif
+#include <headers/track.h>
 
 
-/*gpufun*/
+GPUFUN
 void track_expanded_drift_single_particle(LocalParticle* part, double length){
     double const rpp    = LocalParticle_get_rpp(part);
     double const rv0v    = 1./LocalParticle_get_rvv(part);
@@ -30,7 +23,7 @@ void track_expanded_drift_single_particle(LocalParticle* part, double length){
 }
 
 
-/*gpufun*/
+GPUFUN
 void track_exact_drift_single_particle(LocalParticle* part, double length){
     double const px = LocalParticle_get_px(part);
     double const py = LocalParticle_get_py(part);
@@ -47,7 +40,7 @@ void track_exact_drift_single_particle(LocalParticle* part, double length){
     LocalParticle_add_to_s(part, length);
 }
 
-/*gpufun*/
+GPUFUN
 void track_polar_drift_single_particle(
     LocalParticle* part,  // LocalParticle to track
     const double length,  // length of the element
@@ -93,7 +86,7 @@ void track_polar_drift_single_particle(
 }
 
 
-/*gpufun*/
+GPUFUN
 void track_expanded_combined_dipole_quad_single_particle(
     LocalParticle* part,  // LocalParticle to track
     const double length,  // length of the element
@@ -218,7 +211,7 @@ void track_expanded_combined_dipole_quad_single_particle(
 
 }
 
-/*gpufun*/
+GPUFUN
 void track_curved_exact_bend_single_particle(
     LocalParticle* part,  // LocalParticle to track
     const double length,  // length of the element
@@ -273,7 +266,7 @@ void track_curved_exact_bend_single_particle(
     LocalParticle_add_to_s(part, s);
 }
 
-/*gpufun*/
+GPUFUN
 void track_straight_exact_bend_single_particle(
     LocalParticle* part,  // LocalParticle to track
     const double length,  // length of the element
@@ -322,7 +315,7 @@ void track_straight_exact_bend_single_particle(
 }
 
 
-/*gpufun*/
+GPUFUN
 void track_magnet_drift_single_particle(
     LocalParticle* part,  // LocalParticle to track
     const double length,  // length of the element
