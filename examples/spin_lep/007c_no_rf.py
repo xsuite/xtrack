@@ -10,6 +10,7 @@ from scipy.constants import hbar
 
 num_turns = 500
 bmad = True
+method = '4d'
 
 line = xt.Line.from_json('lep_sol.json')
 line.particle_ref.anomalous_magnetic_moment=0.00115965218128
@@ -129,22 +130,31 @@ A[2, 2] = (p_test.spin_z[2] - p_test.spin_z[5])/(2*ds)
 
 RR[6:, 6:] = A
 
-RR_reduced = np.delete(np.delete(RR, 4, axis=0), 4, axis=1)
-eival_all, eivec_all = np.linalg.eig(RR_reduced)
+# Detect no RF
+if np.abs(RR[5, 4]) < 1e-12:
+    assert method == '4d'
+
+if method == '4d':
+    RR_for_eig = np.delete(np.delete(RR, 4, axis=0), 4, axis=1)
+else:
+    RR_for_eig = RR
+
+eival_all, eivec_all = np.linalg.eig(RR_for_eig)
 
 # Suppress the 4th row and col
-RR_orb = np.delete(RR_orb, 4, axis=0)
-RR_orb = np.delete(RR_orb, 4, axis=1)
+if method == '4d':
+    RR_orb = np.delete(RR_orb, 4, axis=0)
+    RR_orb = np.delete(RR_orb, 4, axis=1)
 
 eival, EE_orb = np.linalg.eig(RR_orb)
 n_eigen = EE_orb.shape[1]
 
 # Add a dummy row 4 in eivec
-EE_orb = np.insert(EE_orb, 4, 0, axis=0)
+if method == '4d':
+    EE_orb = np.insert(EE_orb, 4, 0, axis=0)
 
 EE_spin = np.zeros((3, n_eigen), dtype=complex)
 for ii in range(n_eigen):
-    # EE_spin[:, ii] = DD @ EE_orb[:, ii]
     EE_spin[:, ii] = np.linalg.inv(eival[ii] * np.eye(3) - A) @ DD @ EE_orb[:, ii]
 
 
@@ -233,12 +243,14 @@ EE_spin = EE[:, 6:, :]
 # TT[:, 5, 5] = 1
 # EE_orb = TT @ EE_orb
 
-# Remove the 4th row
-EE_orb = np.delete(EE_orb, 4, axis=1)
-filter = np.diag([1, 1, 1, 1, 1])
-LL = np.real(EE_spin @ filter @ np.linalg.inv(EE_orb))
-# Add a dummy col 4 in LL
-LL = np.insert(LL, 4, 0, axis=2)
+if method == '4d':
+    # Remove the 4th row
+    EE_orb = np.delete(EE_orb, 4, axis=1)
+fltr = np.diag([1, 1, 1, 1, 1]) # to select only certain modes
+LL = np.real(EE_spin @ fltr @ np.linalg.inv(EE_orb))
+if method == '4d':
+    # Add a dummy col 4 in LL
+    LL = np.insert(LL, 4, 0, axis=2)
 gamma_dn_dgamma = LL[:, :, 5]
 
 # Should be equivalent...
