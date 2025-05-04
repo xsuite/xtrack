@@ -234,48 +234,23 @@ EE = 0.5 * (EE_side[1] + EE_side[-1])
 EE_orb  = EE[:, :6, :]
 EE_spin = EE[:, 6:, :]
 
-# # Transform to x', y'
-# kin_px_co = tw.kin_px
-# kin_py_co = tw.kin_py
-# delta = tw.delta
-# TT = np.zeros((len(tw), 6, 6))
-# TT[:, 0, 0] = 1
-# TT[:, 1, 1] = (1 - delta)
-# TT[:, 1, 5] = -kin_px_co
-# TT[:, 2, 2] = 1
-# TT[:, 3, 3] = (1 - delta)
-# TT[:, 3, 5] = -kin_py_co
-# TT[:, 4, 4] = 1
-# TT[:, 5, 5] = 1
-# EE_orb = TT @ EE_orb
-
 if method == '4d':
     # Remove the 4th row
     EE_orb = np.delete(EE_orb, 4, axis=1)
 
+# In the future we could add a filter to select certain modes
 # fltr = np.diag([1, 1, 1, 1, 1]) # to select only certain modes
-fltr = np.eye(EE_orb.shape[1])
+fltr = np.eye(EE_orb.shape[1]) # for now
 
-LL = np.real(EE_spin @ fltr @ np.linalg.inv(EE_orb))
+NN = np.real(EE_spin @ fltr @ np.linalg.inv(EE_orb))
 if method == '4d':
-    # Add a dummy col 4 in LL
-    LL = np.insert(LL, 4, 0, axis=2)
-gamma_dn_dgamma = LL[:, :, 5]
+    # Add a dummy col 4 in NN
+    NN = np.insert(NN, 4, 0, axis=2)
+dn_ddelta = NN[:, :, 5]
 
-# Should be equivalent...
-# # Remove the 4th row
-# EE_orb = np.delete(EE_orb, 4, axis=1)
-# ene_one = np.zeros((len(tw), 5), dtype=complex)
-# ene_one[:, 4] = 1.
-# a_coeff = 0 * ene_one
-# gamma_dn_dgamma = np.zeros((len(tw), 3), dtype=complex)
-# for ii in range(len(tw)):
-#     a_coeff[ii, :] = np.linalg.solve(EE_orb[ii, :, :], ene_one[ii, :])
-#     gamma_dn_dgamma[ii, :] = EE_spin[ii, :, :] @ a_coeff[ii, :]
-
-gamma_dn_dgamma_mod = np.sqrt(gamma_dn_dgamma[:, 0]**2
-                            + gamma_dn_dgamma[:, 1]**2
-                            + gamma_dn_dgamma[:, 2]**2)
+dn_ddelta_mod = np.sqrt(dn_ddelta[:, 0]**2
+                            + dn_ddelta[:, 1]**2
+                            + dn_ddelta[:, 2]**2)
 
 kappa_x = tw.rad_int_kappa_x
 kappa_y = tw.rad_int_kappa_y
@@ -305,21 +280,21 @@ ib_y = By / B_mod
 ib_z = Bz / B_mod
 
 n0_ib = tw.spin_x * ib_x + tw.spin_y * ib_y + tw.spin_z * ib_z
-gamma_dn_dgamma_ib = (gamma_dn_dgamma[:, 0] * ib_x
-                    + gamma_dn_dgamma[:, 1] * ib_y
-                    + gamma_dn_dgamma[:, 2] * ib_z)
+dn_ddelta_ib = (dn_ddelta[:, 0] * ib_x
+                    + dn_ddelta[:, 1] * ib_y
+                    + dn_ddelta[:, 2] * ib_z)
 
 int_kappa3_n0_ib = np.sum(kappa**3 * n0_ib * tw.length)
-int_kappa3_gamma_dn_dgamma_ib = np.sum(kappa**3 * gamma_dn_dgamma_ib * tw.length)
-int_kappa3_11_18_gamma_dn_dgamma_sq = 11./18. * np.sum(kappa**3 * gamma_dn_dgamma_mod**2 * tw.length)
+int_kappa3_dn_ddelta_ib = np.sum(kappa**3 * dn_ddelta_ib * tw.length)
+int_kappa3_11_18_dn_ddelta_sq = 11./18. * np.sum(kappa**3 * dn_ddelta_mod**2 * tw.length)
 
 alpha_minus_co = 1. / tw.circumference * np.sum(kappa**3 * n0_ib *  tw.length)
 
 alpha_plus_co = 1. / tw.circumference * np.sum(
     kappa**3 * (1 - 2./9. * n0_iv**2) * tw.length)
 
-alpha_plus = alpha_plus_co + int_kappa3_11_18_gamma_dn_dgamma_sq / tw.circumference
-alpha_minus = alpha_minus_co - int_kappa3_gamma_dn_dgamma_ib / tw.circumference
+alpha_plus = alpha_plus_co + int_kappa3_11_18_dn_ddelta_sq / tw.circumference
+alpha_minus = alpha_minus_co - int_kappa3_dn_ddelta_ib / tw.circumference
 
 pol_inf = 8 / 5 / np.sqrt(3) * alpha_minus_co / alpha_plus_co
 pol_eq = 8 / 5 / np.sqrt(3) * alpha_minus / alpha_plus
@@ -332,11 +307,11 @@ tw._data['alpha_plus_co'] = alpha_plus_co
 tw._data['alpha_minus_co'] = alpha_minus_co
 tw._data['alpha_plus'] = alpha_plus
 tw._data['alpha_minus'] = alpha_minus
-tw['gamma_dn_dgamma_mod'] = gamma_dn_dgamma_mod
-tw['gamma_dn_dgamma'] = gamma_dn_dgamma
+tw['dn_ddelta_mod'] = dn_ddelta_mod
+tw['dn_ddelta'] = dn_ddelta
 tw._data['int_kappa3_n0_ib'] = int_kappa3_n0_ib
-tw._data['int_kappa3_gamma_dn_dgamma_ib'] = int_kappa3_gamma_dn_dgamma_ib
-tw._data['int_kappa3_11_18_gamma_dn_dgamma_sq'] = int_kappa3_11_18_gamma_dn_dgamma_sq
+tw._data['int_kappa3_dn_ddelta_ib'] = int_kappa3_dn_ddelta_ib
+tw._data['int_kappa3_11_18_dn_ddelta_sq'] = int_kappa3_11_18_dn_ddelta_sq
 tw._data['pol_inf'] = pol_inf
 tw._data['pol_eq'] = pol_eq
 tw._data['EE'] = EE
@@ -345,7 +320,7 @@ tw['n0_ib'] = n0_ib
 tw['t_pol_turn'] = tp_turn
 
 dny_ref = 1 / (np.sqrt(1 - tw.spin_x**2 - tw.spin_z**2)) * (
-    -tw.spin_x * tw.gamma_dn_dgamma[:, 0] - tw.spin_z * tw.gamma_dn_dgamma[:, 2])
+    -tw.spin_x * tw.dn_ddelta[:, 0] - tw.spin_z * tw.dn_ddelta[:, 2])
 
 print('Xsuite polarization: ', tw.pol_eq)
 
@@ -496,21 +471,21 @@ if n_eigen > 5:
 plt.figure(3, figsize=(8, 6))
 ax1 = plt.subplot(3, 1, 1)
 tw.plot(lattice_only=True, ax=ax1)
-plt.plot(tw.s, tw.gamma_dn_dgamma[:, 0])
+plt.plot(tw.s, tw.dn_ddelta[:, 0])
 plt.plot(df.s, df.spin_dn_dpz_x)
-plt.ylabel('gamma_dn_dgamma_x')
+plt.ylabel('dn_ddelta_x')
 ax2 = plt.subplot(3, 1, 2, sharex=ax1)
 tw.plot(lattice_only=True, ax=ax2)
-plt.plot(tw.s, tw.gamma_dn_dgamma[:, 1])
+plt.plot(tw.s, tw.dn_ddelta[:, 1])
 plt.plot(df.s, df.spin_dn_dpz_y)
 plt.plot(tw.s, dny_ref, label='dn_y_ref')
 plt.plot(df.s, dn_dy_ref_bmad, label='dn_y_ref_bmad')
-plt.ylabel('gamma_dn_dgamma_y')
+plt.ylabel('dn_ddelta_y')
 ax3 = plt.subplot(3, 1, 3, sharex=ax1)
 tw.plot(lattice_only=True, ax=ax3)
-plt.plot(tw.s, tw.gamma_dn_dgamma[:, 2])
+plt.plot(tw.s, tw.dn_ddelta[:, 2])
 plt.plot(df.s, df.spin_dn_dpz_z)
-plt.ylabel('gamma_dn_dgamma_z')
+plt.ylabel('dn_ddelta_z')
 plt.xlabel('s [m]')
 
 
