@@ -1324,6 +1324,7 @@ class Line:
         only_markers=None,
         only_orbit=None,
         spin=None,
+        polarization=None,
         compute_R_element_by_element=None,
         compute_lattice_functions=None,
         compute_chromatic_properties=None,

@@ -80,6 +80,7 @@ def twiss_line(line, particle_ref=None, method=None,
         eneloss_and_damping=None,
         radiation_integrals=None,
         spin=None,
+        polarization=None,
         start=None, end=None, init=None,
         num_turns=None,
         skip_global_quantities=None,
@@ -323,6 +324,7 @@ def twiss_line(line, particle_ref=None, method=None,
     freeze_longitudinal=(freeze_longitudinal or False)
     radiation_method=(radiation_method or None)
     spin=(spin or False)
+    polarization=(polarization or False)
     radiation_integrals=(radiation_integrals or False)
     eneloss_and_damping=(eneloss_and_damping or False)
     symplectify=(symplectify or False)
@@ -343,6 +345,13 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if only_markers:
         raise NotImplementedError('`only_markers` not supported anymore')
+
+    if polarization:
+        spin = True
+        radiation_integrals = True # some quantities are needed for polarization
+                                   # could be decoupled in the future
+    if spin:
+        assert reverse is False
 
     if isinstance(init, TwissInit):
         init = init.copy()
@@ -807,6 +816,9 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if radiation_integrals:
         twiss_res._compute_radiation_integrals(add_to_tw=True)
+
+    if polarization:
+        _compute_spin_polarization(twiss_res, line, method)
 
     twiss_res._data['method'] = method
     twiss_res._data['radiation_method'] = radiation_method
@@ -4300,3 +4312,271 @@ def _errfun_spin(s, line, particle_on_co):
     return np.array([pp.spin_x[0] - sx,
                         pp.spin_y[0] - sy,
                         pp.spin_z[0] - sz])
+
+def _compute_spin_polarization(tw, line, method):
+
+    with xt.line._preserve_config(line):
+
+        line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False # For spin
+
+        # Based on:
+        # A. Chao, valuation of Radiative Spin Polarization in an Electron Storage Ring
+        # https://inspirehep.net/literature/154360
+
+        steps_r_matrix = tw.steps_r_matrix
+
+        for kk in steps_r_matrix:
+            steps_r_matrix[kk] *= 0.1
+
+        out = line.compute_one_turn_matrix_finite_differences(particle_on_co=tw.particle_on_co,
+                                                            element_by_element=True,
+                                                            steps_r_matrix=steps_r_matrix)
+        mon_r_ebe = out['mon_ebe']
+        part = out['part_temp']
+
+        steps_r_matrix = out['steps_r_matrix']
+
+        dx = steps_r_matrix["dx"]
+        dpx = steps_r_matrix["dpx"]
+        dy = steps_r_matrix["dy"]
+        dpy = steps_r_matrix["dpy"]
+        dzeta = steps_r_matrix["dzeta"]
+        ddelta = steps_r_matrix["ddelta"]
+
+        dpzeta = float(part.ptau[6] - part.ptau[12])/2/part.beta0[0]
+
+        temp_mat = np.zeros((3, len(part.spin_x)))
+        temp_mat[0, :] = part.spin_x
+        temp_mat[1, :] = part.spin_y
+        temp_mat[2, :] = part.spin_z
+
+        DD = np.zeros((3, 6))
+
+        for jj, dd in enumerate([dx, dpx, dy, dpy, dzeta, dpzeta]):
+            DD[:, jj] = (temp_mat[:, jj+1] - temp_mat[:, jj+1+6])/(2*dd)
+
+        RR = np.eye(9)
+        RR_orb = out['R_matrix'].copy()
+        RR[:6, :6] = out['R_matrix']
+        RR[6:, :6] = DD
+
+        # Spin response matrix
+        ds = 1e-5
+
+        import xpart as xp
+        p_test = xp.build_particles(particle_ref=tw.particle_on_co, mode='shift',
+                                    x=[0,0,0,0,0,0])
+        p_test.spin_x = [ds, 0, 0, -ds, 0, 0]
+        p_test.spin_y = [0, ds, 0, 0, -ds, 0]
+        p_test.spin_z = [0, 0, ds, 0, 0, -ds]
+
+        line.track(p_test)
+
+        A = np.zeros((3, 3))
+        A[0, 0] = (p_test.spin_x[0] - p_test.spin_x[3])/(2*ds)
+        A[0, 1] = (p_test.spin_x[1] - p_test.spin_x[4])/(2*ds)
+        A[0, 2] = (p_test.spin_x[2] - p_test.spin_x[5])/(2*ds)
+        A[1, 0] = (p_test.spin_y[0] - p_test.spin_y[3])/(2*ds)
+        A[1, 1] = (p_test.spin_y[1] - p_test.spin_y[4])/(2*ds)
+        A[1, 2] = (p_test.spin_y[2] - p_test.spin_y[5])/(2*ds)
+        A[2, 0] = (p_test.spin_z[0] - p_test.spin_z[3])/(2*ds)
+        A[2, 1] = (p_test.spin_z[1] - p_test.spin_z[4])/(2*ds)
+        A[2, 2] = (p_test.spin_z[2] - p_test.spin_z[5])/(2*ds)
+
+        RR[6:, 6:] = A
+
+        # Detect no RF
+        if np.abs(RR[5, 4]) < 1e-12:
+            assert method == '4d'
+
+        if method == '4d':
+            RR_for_eig = np.delete(np.delete(RR, 4, axis=0), 4, axis=1)
+        else:
+            RR_for_eig = RR
+
+        eival_all, eivec_all = np.linalg.eig(RR_for_eig)
+
+        # Suppress the 4th row and col
+        if method == '4d':
+            RR_orb = np.delete(RR_orb, 4, axis=0)
+            RR_orb = np.delete(RR_orb, 4, axis=1)
+
+        eival, EE_orb = np.linalg.eig(RR_orb)
+        n_eigen = EE_orb.shape[1]
+
+        # Add a dummy row 4 in eivec
+        if method == '4d':
+            EE_orb = np.insert(EE_orb, 4, 0, axis=0)
+
+        EE_spin = np.zeros((3, n_eigen), dtype=complex)
+        for ii in range(n_eigen):
+            EE_spin[:, ii] = np.linalg.inv(eival[ii] * np.eye(3) - A) @ DD @ EE_orb[:, ii]
+
+
+        eee = np.zeros((9, n_eigen), dtype=complex)
+        eee[:6, :] = EE_orb
+        eee[6:, :] = EE_spin
+
+        # Identify eigenvector with eigenvalue 1 and remove n0 component
+        i_eigen_one = np.argmin(np.abs(eival - 1))
+        n0 = np.array([tw.spin_x[0], tw.spin_y[0], tw.spin_z[0]])
+        eee[6:, i_eigen_one] -= np.dot(eee[6:, i_eigen_one], n0) * n0
+
+        # Scale and track eigenvectors
+        def get_scale(e):
+            return np.max([np.abs(e[0])/dx, np.abs(e[1])/dpx,
+                        np.abs(e[2])/dy, np.abs(e[3])/dpy,
+                        np.abs(e[4])/dzeta, np.abs(e[5])/dpzeta,
+                        np.abs(e[6])/ds, np.abs(e[7])/ds,
+                        np.abs(e[8])/ds,
+                        ])
+
+        scales = [get_scale(eee[:, ii]) for ii in range(n_eigen)]
+
+        eee_scaled = np.zeros((9, n_eigen), dtype=complex)
+        for ii in range(n_eigen):
+            eee_scaled[:, ii] = eee[:, ii] / scales[ii]
+
+        EE_side = {}
+
+        for side in [1, -1]:
+
+            eee_trk_re = side * eee_scaled.real
+            eee_trk_im = side * eee_scaled.imag
+
+            particle_data = {}
+            for ii, key in enumerate(['x', 'px', 'y', 'py', 'zeta', 'ptau',
+                                    'spin_x', 'spin_y', 'spin_z']):
+                particle_data[key] = tw[key][0] + np.array(
+                    list(eee_trk_re[ii, :]) + list(eee_trk_im[ii, :])
+                )
+
+            par_track = xp.build_particles(
+                particle_ref=tw.particle_on_co, mode='set', **particle_data
+            )
+
+            line.track(par_track, turn_by_turn_monitor='ONE_TURN_EBE')
+            mon_ebe = line.record_last_track
+
+            ee_ebe = np.zeros((len(tw), 9, n_eigen), dtype=complex)
+
+            for ii, key in enumerate(['x', 'px', 'y', 'py', 'zeta', 'ptau',
+                                    'spin_x', 'spin_y', 'spin_z']):
+                mon_vv = getattr(mon_ebe, key)
+                for iee in range(n_eigen):
+                    ee_ebe[:, ii, iee] = side *((mon_vv[iee, :] - tw[key])
+                                    + 1j * (mon_vv[n_eigen + iee, :] - tw[key]))
+
+            # Rephase
+            for ii in range(n_eigen):
+                i_max = np.argmax(np.abs(ee_ebe[0, :, ii])) # Strongest component at start ring
+                this_phi = np.angle(ee_ebe[:, i_max, ii])
+                for jj in range(ee_ebe.shape[1]):
+                    ee_ebe[:, jj, ii] *= np.exp(-1j * this_phi)
+
+            EE = ee_ebe.copy()
+
+            EE_side[side] = EE
+
+        # Average the two sides
+        EE = 0.5 * (EE_side[1] + EE_side[-1])
+        EE_orb  = EE[:, :6, :]
+        EE_spin = EE[:, 6:, :]
+
+        if method == '4d':
+            # Remove the 4th row
+            EE_orb = np.delete(EE_orb, 4, axis=1)
+
+        # In the future we could add a filter to select certain modes
+        # fltr = np.diag([1, 1, 1, 1, 1]) # to select only certain modes
+        fltr = np.eye(EE_orb.shape[1]) # for now
+
+        NN = np.real(EE_spin @ fltr @ np.linalg.inv(EE_orb))
+        if method == '4d':
+            # Add a dummy col 4 in NN
+            NN = np.insert(NN, 4, 0, axis=2)
+        dn_ddelta = NN[:, :, 5]
+
+        dn_ddelta_mod = np.sqrt(dn_ddelta[:, 0]**2
+                                    + dn_ddelta[:, 1]**2
+                                    + dn_ddelta[:, 2]**2)
+
+        kappa_x = tw.rad_int_kappa_x
+        kappa_y = tw.rad_int_kappa_y
+        kappa = tw.rad_int_kappa
+        iv_x = tw.rad_int_iv_x
+        iv_y = tw.rad_int_iv_y
+        iv_z = tw.rad_int_iv_z
+
+        n0_iv = tw.spin_x * iv_x + tw.spin_y * iv_y + tw.spin_z * iv_z
+        r0 = tw.particle_on_co.get_classical_particle_radius0()
+        m0_J = tw.particle_on_co.mass0 * qe
+        m0_kg = m0_J / clight**2
+
+        # reference https://lib-extopc.kek.jp/preprints/PDF/1980/8011/8011060.pdf
+        brho_ref = tw.particle_on_co.p0c[0] / clight / tw.particle_on_co.q0
+        brho_part = (brho_ref * tw.particle_on_co.rvv[0] * tw.particle_on_co.energy[0]
+                    / tw.particle_on_co.energy0[0])
+
+        By = kappa_x * brho_part
+        Bx = -kappa_y * brho_part
+        Bz = tw.ks * brho_ref
+        B_mod = np.sqrt(Bx**2 + By**2 + Bz**2)
+        B_mod[B_mod == 0] = 999. # avoid division by zero
+
+        ib_x = Bx / B_mod
+        ib_y = By / B_mod
+        ib_z = Bz / B_mod
+
+        n0_ib = tw.spin_x * ib_x + tw.spin_y * ib_y + tw.spin_z * ib_z
+        dn_ddelta_ib = (dn_ddelta[:, 0] * ib_x
+                            + dn_ddelta[:, 1] * ib_y
+                            + dn_ddelta[:, 2] * ib_z)
+
+        int_kappa3_n0_ib = np.sum(kappa**3 * n0_ib * tw.length)
+        int_kappa3_dn_ddelta_ib = np.sum(kappa**3 * dn_ddelta_ib * tw.length)
+        int_kappa3_11_18_dn_ddelta_sq = 11./18. * np.sum(kappa**3 * dn_ddelta_mod**2 * tw.length)
+
+        alpha_minus_co = 1. / tw.circumference * np.sum(kappa**3 * n0_ib *  tw.length)
+
+        alpha_plus_co = 1. / tw.circumference * np.sum(
+            kappa**3 * (1 - 2./9. * n0_iv**2) * tw.length)
+
+        alpha_plus = alpha_plus_co + int_kappa3_11_18_dn_ddelta_sq / tw.circumference
+        alpha_minus = alpha_minus_co - int_kappa3_dn_ddelta_ib / tw.circumference
+
+        pol_inf = 8 / 5 / np.sqrt(3) * alpha_minus_co / alpha_plus_co
+        pol_eq = 8 / 5 / np.sqrt(3) * alpha_minus / alpha_plus
+
+        t_pol_inf_s = 1/(5 * np.sqrt(3) / 8 * r0 * hbar * tw.gamma0**5 / m0_kg * alpha_plus_co)
+        t_pol_s = 1/(5 * np.sqrt(3) / 8 * r0 * hbar * tw.gamma0**5 / m0_kg * alpha_plus)
+
+
+        cols = {
+            'spin_dn_ddelta_x': dn_ddelta[:, 0],
+            'spin_dn_ddelta_y': dn_ddelta[:, 1],
+            'spin_dn_ddelta_z': dn_ddelta[:, 2],
+            'spin_eigenvectors': EE,
+            'spin_n_matrix': NN,
+        }
+
+        other_data = {
+            'spin_polarization_eq': pol_eq,
+            'spin_polarization_limit_no_rad': pol_inf,
+            'spin_alpha_plus_co': alpha_plus_co,
+            'spin_alpha_minus_co': alpha_minus_co,
+            'spin_alpha_plus': alpha_plus,
+            'spin_alpha_minus': alpha_minus,
+            'spin_int_kappa3_n0_ib': int_kappa3_n0_ib,
+            'spin_int_kappa3_dn_ddelta_ib': int_kappa3_dn_ddelta_ib,
+            'spin_int_kappa3_11_18_dn_ddelta_sq': int_kappa3_11_18_dn_ddelta_sq,
+            'spin_t_pol_no_rad_s': t_pol_inf_s,
+            'spin_t_pol_s': t_pol_s,
+            '_spin_ee_side': EE_side,
+        }
+
+        for nn in cols:
+            tw[nn] = cols[nn]
+
+        for nn in other_data:
+            tw._data[nn] = other_data[nn]
