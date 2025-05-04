@@ -10,12 +10,18 @@ from scipy.constants import hbar
 
 num_turns = 500
 bmad = True
-method = '4d'
+
+# vrfc231 = 0.
+# method = '4d'
+
+vrfc231 = 12.65 # qs=0.6
+method = '6d'
 
 line = xt.Line.from_json('lep_sol.json')
 line.particle_ref.anomalous_magnetic_moment=0.00115965218128
 line.particle_ref.gamma0 = 89207.78287659843 # to have a spin tune of 103.45
 spin_tune = line.particle_ref.anomalous_magnetic_moment[0]*line.particle_ref.gamma0[0]
+line['vrfc231'] = vrfc231
 
 # line.cycle('b2m.qf45.l6', inplace=True)
 
@@ -246,7 +252,10 @@ EE_spin = EE[:, 6:, :]
 if method == '4d':
     # Remove the 4th row
     EE_orb = np.delete(EE_orb, 4, axis=1)
-fltr = np.diag([1, 1, 1, 1, 1]) # to select only certain modes
+
+# fltr = np.diag([1, 1, 1, 1, 1]) # to select only certain modes
+fltr = np.eye(EE_orb.shape[1])
+
 LL = np.real(EE_spin @ fltr @ np.linalg.inv(EE_orb))
 if method == '4d':
     # Add a dummy col 4 in LL
