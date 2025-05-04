@@ -99,7 +99,7 @@ import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
 
-for iii in range(50):
+for iii in range(5):
     num_turns = 20000
     q_start_excitation = 0.445 + iii * dq_excitation
     # dq_excitation = 0.
