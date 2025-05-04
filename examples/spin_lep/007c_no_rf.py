@@ -342,6 +342,62 @@ if bmad and df.spin_y[0] < 0:
 dn_dy_ref_bmad = 1 / np.sqrt(1 - df.spin_x**2 - df.spin_z**2) * (
     -df.spin_x * df.spin_dn_dpz_x - df.spin_z * df.spin_dn_dpz_z)
 
+i_eig = 0
+two_plus = line.twiss(spin=True,
+                 betx=0, bety=0,
+                 x=eee_trk_re[0, i_eig] + tw.x[0],
+                 px=eee_trk_re[1, i_eig] + tw.px[0],
+                 y=eee_trk_re[2, i_eig] + tw.y[0],
+                 py=eee_trk_re[3, i_eig] + tw.py[0],
+                 zeta=eee_trk_re[4, i_eig] + tw.zeta[0],
+                 delta=eee_trk_re[5, i_eig] + tw.delta[0],
+                 spin_x=eee_trk_re[6, i_eig] + tw.spin_x[0],
+                 spin_y=eee_trk_re[7, i_eig] + tw.spin_y[0],
+                 spin_z=eee_trk_re[8, i_eig] + tw.spin_z[0])
+outbmad_plus = bmad_run(line, track=dict(
+    x=two_plus.x[0],
+    px=two_plus.px[0],
+    y=two_plus.y[0],
+    py=two_plus.py[0],
+    zeta=two_plus.zeta[0],
+    delta=two_plus.delta[0],
+    spin_x=two_plus.spin_x[0],
+    spin_y=two_plus.spin_y[0],
+    spin_z=two_plus.spin_z[0]))
+
+two_minus = line.twiss(spin=True,
+                 betx=0, bety=0,
+                 x=-eee_trk_re[0, i_eig] + tw.x[0],
+                 px=-eee_trk_re[1, i_eig] + tw.px[0],
+                 y=-eee_trk_re[2, i_eig] + tw.y[0],
+                 py=-eee_trk_re[3, i_eig] + tw.py[0],
+                 zeta=-eee_trk_re[4, i_eig] + tw.zeta[0],
+                 delta=-eee_trk_re[5, i_eig] + tw.delta[0],
+                 spin_x=-eee_trk_re[6, i_eig] + tw.spin_x[0],
+                 spin_y=-eee_trk_re[7, i_eig] + tw.spin_y[0],
+                 spin_z=-eee_trk_re[8, i_eig] + tw.spin_z[0])
+outbmad_minus = bmad_run(line, track=dict(
+    x=two_minus.x[0],
+    px=two_minus.px[0],
+    y=two_minus.y[0],
+    py=two_minus.py[0],
+    zeta=two_minus.zeta[0],
+    delta=two_minus.delta[0],
+    spin_x=two_minus.spin_x[0],
+    spin_y=two_minus.spin_y[0],
+    spin_z=two_minus.spin_z[0]))
+
+plt.figure(100)
+ax = plt.subplot(2, 1, 1)
+plot(df.s, outbmad_plus['optics']['orbit_x_mm'] - outbmad_minus['optics']['orbit_x_mm'])
+plot(two_plus.s, two_plus.x - two_minus.x)
+plt.ylabel('x')
+ax = plt.subplot(2, 1, 2, sharex=ax)
+plt.plot(df.s, outbmad_plus['spin']['spin_x'] - outbmad_minus['spin']['spin_x'])
+plt.plot(two_plus.s, two_plus.spin_x - two_minus.spin_x)
+plt.ylabel('spin_x')
+
+
 plt.figure(1)
 ax1 = plt.subplot(3, 1, 1)
 plt.plot(tw.s, tw.spin_x, label='Xsuite')
