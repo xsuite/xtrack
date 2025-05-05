@@ -4631,15 +4631,15 @@ class Line:
                 '_own_k4sl': ('ksl', 4),
                 '_own_k5sl': ('ksl', 5),
 
-                '_own_dx': 'dx',
-                '_own_dy': 'dy',
-
-                '_own_sin_angle': 'sin_angle',
-                '_own_cos_angle': 'cos_angle',
-
-                # TODO: This should be corrected at the element level
-                '_own_sin_z': 'sin_z',
-                '_own_cos_z': 'cos_z',
+                # Handling of reference frame transformations
+                # (XYShift, XRotation, YRotation, SRotation)
+                '_own_ref_shift_x':         'ref_shift_x',
+                '_own_ref_shift_y':         'ref_shift_y',
+                '_own_ref_rot_sin_angle':   'ref_rot_sin_angle',
+                '_own_ref_rot_cos_angle':   'ref_rot_cos_angle',
+                # TODO: This is labelled differently at the element level
+                '_own_ref_rot_sin_z':       'ref_rot_sin_z',
+                '_own_ref_rot_cos_z':       'ref_rot_cos_z',
 
                 '_parent_length': (('_parent', 'length'), None),
                 '_parent_sin_rot_s': (('_parent', '_sin_rot_s'), None),
@@ -4679,15 +4679,15 @@ class Line:
                 '_parent_k4sl': (('_parent', 'ksl'), 4),
                 '_parent_k5sl': (('_parent', 'ksl'), 5),
 
-                '_parent_dx': (('_parent', 'dx'), None),
-                '_parent_dy': (('_parent', 'dy'), None),
-
-                '_parent_sin_angle': (('_parent', 'sin_angle'), None),
-                '_parent_cos_angle': (('_parent', 'cos_angle'), None),
-
-                # TODO: This should be corrected at the element level
-                '_parent_sin_z': (('_parent', 'sin_z'), None),
-                '_parent_cos_z': (('_parent', 'cos_z'), None),
+                # Handling of reference frame transformations
+                # (XYShift, XRotation, YRotation, SRotation)
+                '_parent_ref_shift_x': (('_parent', 'ref_shift_x'), None),
+                '_parent_ref_shift_y': (('_parent', 'ref_shift_y'), None),
+                '_parent_ref_rot_sin_angle': (('_parent', 'ref_rot_sin_angle'), None),
+                '_parent_ref_rot_cos_angle': (('_parent', 'ref_rot_cos_angle'), None),
+                # TODO: This is labelled differently at the element level
+                '_parent_ref_rot_sin_z': (('_parent', 'ref_rot_sin_z'), None),
+                '_parent_ref_rot_cos_z': (('_parent', 'ref_rot_cos_z'), None),
 
             },
             derived_fields={
@@ -4766,13 +4766,13 @@ class Line:
                     + attr['_parent_k5s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
                 'hkick': lambda attr: attr["angle_rad"] - attr["k0l"],
                 'vkick': lambda attr: attr["k0sl"],
-                'dx': lambda attr: attr['_own_dx'] + attr['_parent_dx'],
-                'dy': lambda attr: attr['_own_dy'] + attr['_parent_dy'],
-                'transform_angle_rad': lambda attr: np.arctan2(
-                    attr['_own_sin_angle'] + attr['_parent_sin_angle'] +\
-                    attr['_own_sin_z'] + attr['_parent_sin_z'],
-                    attr['_own_cos_angle'] + attr['_parent_cos_angle'] +\
-                    attr['_own_cos_z'] + attr['_parent_cos_z']),
+                'ref_shift_x': lambda attr: attr['_own_ref_shift_x'] + attr['_parent_ref_shift_x'],
+                'ref_shift_y': lambda attr: attr['_own_ref_shift_y'] + attr['_parent_ref_shift_y'],
+                'ref_rot_angle_rad': lambda attr: np.arctan2(
+                    attr['_own_ref_rot_sin_angle'] + attr['_parent_ref_rot_sin_angle'] +\
+                    attr['_own_ref_rot_sin_z'] + attr['_parent_ref_rot_sin_z'],
+                    attr['_own_ref_rot_cos_angle'] + attr['_parent_ref_rot_cos_angle'] +\
+                    attr['_own_ref_rot_cos_z'] + attr['_parent_ref_rot_cos_z']),
             }
         )
         return cache
