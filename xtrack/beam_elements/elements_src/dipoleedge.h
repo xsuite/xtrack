@@ -6,7 +6,14 @@
 #ifndef XTRACK_DIPOLEEDGE_H
 #define XTRACK_DIPOLEEDGE_H
 
-/*gpufun*/
+#include <headers/track.h>
+#include <beam_elements/elements_src/track_yrotation.h>
+#include <beam_elements/elements_src/track_wedge.h>
+#include <beam_elements/elements_src/track_dipole_fringe.h>
+#include <beam_elements/elements_src/track_dipole_edge_linear.h>
+#include <beam_elements/elements_src/track_dipole_edge_nonlinear.h>
+
+GPUFUN
 void DipoleEdge_track_local_particle(DipoleEdgeData el, LocalParticle* part0){
 
     int64_t const model = DipoleEdgeData_get_model(el);
@@ -33,8 +40,7 @@ void DipoleEdge_track_local_particle(DipoleEdgeData el, LocalParticle* part0){
             r43 = -r43;
         #endif
 
-        //start_per_particle_block (part0->part)
-
+        START_PER_PARTICLE_BLOCK(part0, part);
             #ifdef XTRACK_DIPOLEEDGE_TAPER
                 double const delta_taper = LocalParticle_get_delta(part);
                 r21 = r21 * (1 + delta_taper);
@@ -42,16 +48,15 @@ void DipoleEdge_track_local_particle(DipoleEdgeData el, LocalParticle* part0){
             #endif
 
             DipoleEdgeLinear_single_particle(part, r21, r43);
-
-        //end_per_particle_block
+        END_PER_PARTICLE_BLOCK;
 
     }
     else if (model == 1){
 
         #ifdef XSUITE_BACKTRACK
-            //start_per_particle_block (part0->part)
+            START_PER_PARTICLE_BLOCK(part0, part);
                 LocalParticle_kill_particle(part, -32);
-            //end_per_particle_block
+            END_PER_PARTICLE_BLOCK;
             return;
         #else
 
@@ -61,9 +66,9 @@ void DipoleEdge_track_local_particle(DipoleEdgeData el, LocalParticle* part0){
         double const k = DipoleEdgeData_get_k(el);
         int64_t const side = DipoleEdgeData_get_side(el);
 
-        //start_per_particle_block (part0->part)
+        START_PER_PARTICLE_BLOCK(part0, part);
             DipoleEdgeNonLinear_single_particle(part, k, e1, fint, hgap, side);
-        //end_per_particle_block
+        END_PER_PARTICLE_BLOCK;
 
         #endif
     }

@@ -6,7 +6,11 @@
 #ifndef XTRACK_SROTATION_H
 #define XTRACK_SROTATION_H
 
-/*gpufun*/
+#include <headers/track.h>
+#include <beam_elements/elements_src/track_srotation.h>
+
+
+GPUFUN
 void SRotation_track_local_particle(SRotationData el, LocalParticle* part0){
 
     double sin_z = SRotationData_get_sin_z(el);
@@ -16,14 +20,12 @@ void SRotation_track_local_particle(SRotationData el, LocalParticle* part0){
         sin_z = -sin_z;
     #endif
 
-    //start_per_particle_block (part0->part)
+    START_PER_PARTICLE_BLOCK(part0, part);
         SRotation_single_particle(part, sin_z, cos_z);
-    //end_per_particle_block
 
-    /* Spin tracking is disabled by the synrad compile flag */
-    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
-        // Rotate spin
-        //start_per_particle_block (part0->part)
+        /* Spin tracking is disabled by the synrad compile flag */
+        #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+            // Rotate spin
             double const spin_x_0 = LocalParticle_get_spin_x(part);
             double const spin_y_0 = LocalParticle_get_spin_y(part);
             if ((spin_x_0 != 0) || (spin_y_0 != 0)){
@@ -32,9 +34,8 @@ void SRotation_track_local_particle(SRotationData el, LocalParticle* part0){
                 LocalParticle_set_spin_x(part, spin_x_1);
                 LocalParticle_set_spin_y(part, spin_y_1);
             }
-        //end_per_particle_block
-    #endif
-
+        #endif
+    END_PER_PARTICLE_BLOCK;
 }
 
 #endif /* XTRACK_SROTATION_H */

@@ -13,13 +13,13 @@ import xtrack as xt
 
 from ..base_element import BeamElement
 from ..random import RandomUniformAccurate, RandomExponential, RandomNormal
-from ..general import _pkg_root
 
 from xtrack.beam_elements.magnets import (
     _INDEX_TO_INTEGRATOR, _INTEGRATOR_TO_INDEX, _MODEL_TO_INDEX_CURVED,
     _INDEX_TO_MODEL_CURVED, _MODEL_TO_INDEX_STRAIGHT, _INDEX_TO_MODEL_STRAIGHT,
-    DEFAULT_MULTIPOLE_ORDER, SynchrotronRadiationRecord, _prepare_multipolar_params,
-    _NOEXPR_FIELDS, COMMON_MAGNET_SOURCES
+    DEFAULT_MULTIPOLE_ORDER, SynchrotronRadiationRecord,
+    _prepare_multipolar_params,
+    _NOEXPR_FIELDS, _INDEX_TO_EDGE_MODEL, _EDGE_MODEL_TO_INDEX,
 )
 from xtrack.internal_record import RecordIndex
 
@@ -40,7 +40,8 @@ class ReferenceEnergyIncrease(BeamElement):
         'Delta_p0c': xo.Float64}
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/referenceenergyincrease.h')]
+        '#include <beam_elements/elements_src/referenceenergyincrease.h>',
+    ]
 
     has_backtrack = True
     allow_rot_and_shift = False
@@ -60,8 +61,7 @@ class Marker(BeamElement):
     _skip_in_repr = ['_dummy']
 
     _extra_c_sources = [
-        "/*gpufun*/\n"
-        "void Marker_track_local_particle(MarkerData el, LocalParticle* part0){}"
+        "#include <beam_elements/elements_src/marker.h>",
     ]
 
 
@@ -86,9 +86,8 @@ class Drift(BeamElement):
     allow_rot_and_shift = False
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/drift_elem.h'),
-        ]
+        '#include <beam_elements/elements_src/drift.h>',
+    ]
 
     def __init__(self, length=None, **kwargs):
         if length:  # otherwise length cannot be set as a positional argument
@@ -128,11 +127,11 @@ class Cavity(BeamElement):
         'lag': xo.Float64,
         'lag_taper': xo.Float64,
         'absolute_time': xo.Int64,
-        }
+    }
 
     _extra_c_sources = [
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/cavity.h')]
+        '#include <beam_elements/elements_src/cavity.h>',
+    ]
 
     has_backtrack = True
 
@@ -158,7 +157,8 @@ class XYShift(BeamElement):
     allow_rot_and_shift = False
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/xyshift.h')]
+        '#include <beam_elements/elements_src/xyshift.h>',
+    ]
 
 
 class Elens(BeamElement):
@@ -202,7 +202,8 @@ class Elens(BeamElement):
     has_backtrack = True
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/elens.h')]
+        '#include <beam_elements/elements_src/elens.h>',
+    ]
 
     def __init__(self, _xobject=None, **kwargs):
         super().__init__(_xobject=_xobject, **kwargs)
@@ -233,8 +234,7 @@ class NonLinearLens(BeamElement):
     }
 
     _extra_c_sources = [
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/nonlinearlens.h'),
+        '#include <beam_elements/elements_src/nonlinearlens.h>',
     ]
 
 
@@ -273,8 +273,7 @@ class Wire(BeamElement):
               }
 
     _extra_c_sources = [
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/wire.h'),
+        '#include <beam_elements/elements_src/wire.h>',
     ]
 
 
@@ -299,8 +298,8 @@ class SRotation(BeamElement):
     allow_rot_and_shift = False
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/track_srotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/srotation.h')]
+        '#include <beam_elements/elements_src/srotation.h>',
+    ]
 
     _store_in_to_dict = ['angle']
     _skip_in_to_dict = ['sin_z', 'cos_s']
@@ -368,8 +367,8 @@ class XRotation(BeamElement):
     allow_rot_and_shift = False
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/track_xrotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/xrotation.h')]
+        '#include <beam_elements/elements_src/xrotation.h>',
+    ]
 
     _store_in_to_dict = ['angle']
     _skip_in_to_dict = ['sin_angle', 'cos_angle', 'tan_angle']
@@ -457,8 +456,7 @@ class YRotation(BeamElement):
         }
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/yrotation.h')
+        '#include <beam_elements/elements_src/yrotation.h>',
     ]
 
     _store_in_to_dict = ['angle']
@@ -548,7 +546,8 @@ class ZetaShift(BeamElement):
     allow_rot_and_shift = False
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/zetashift.h')]
+        '#include <beam_elements/elements_src/zetashift.h>',
+    ]
 
     _store_in_to_dict = ['dzeta']
 
@@ -595,8 +594,8 @@ class Multipole(BeamElement):
     _depends_on = [RandomUniformAccurate, RandomExponential]
 
     _extra_c_sources = [
-        *COMMON_MAGNET_SOURCES,
-        _pkg_root.joinpath('beam_elements/elements_src/multipole.h')]
+        '#include <beam_elements/elements_src/multipole.h>',
+    ]
 
     _internal_record_class = SynchrotronRadiationRecord
 
@@ -664,7 +663,8 @@ class SimpleThinQuadrupole(BeamElement):
     allow_rot_and_shift = False
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/simplethinquadrupole.h')]
+        '#include <beam_elements/elements_src/simplethinquadrupole.h>',
+    ]
 
     def __init__(self, **kwargs):
         knl = kwargs.get('knl')
@@ -817,41 +817,25 @@ class _BendCommon:
 
     @property
     def edge_entry_model(self):
-        return {
-            0: 'linear',
-            1: 'full',
-            2: 'dypole-only',
-           -1: 'suppressed',
-        }[self._edge_entry_model]
+        return _INDEX_TO_EDGE_MODEL[self._edge_entry_model]
 
     @edge_entry_model.setter
     def edge_entry_model(self, value):
-        assert value in ['linear', 'full', 'suppressed', 'dipole-only']
-        self._edge_entry_model = {
-            'linear': 0,
-            'full': 1,
-            'dipole-only': 2,
-            'suppressed': -1,
-        }[value]
+        try:
+            self._edge_entry_model = _EDGE_MODEL_TO_INDEX[value]
+        except KeyError:
+            raise ValueError(f'Invalid model: {value}')
 
     @property
     def edge_exit_model(self):
-        return {
-            0: 'linear',
-            1: 'full',
-            2: 'dipole-only',
-           -1: 'suppressed',
-        }[self._edge_exit_model]
+        return _INDEX_TO_EDGE_MODEL[self._edge_exit_model]
 
     @edge_exit_model.setter
     def edge_exit_model(self, value):
-        assert value in ['linear', 'full', 'suppressed', 'dipole-only']
-        self._edge_exit_model = {
-            'linear': 0,
-            'full': 1,
-            'dipole-only': 2,
-            'suppressed': -1,
-        }[value]
+        try:
+            self._edge_exit_model = _EDGE_MODEL_TO_INDEX[value]
+        except KeyError:
+            raise ValueError(f'Invalid model: {value}')
 
     @property
     def _repr_fields(self):
@@ -999,8 +983,7 @@ class Bend(_BendCommon, BeamElement):
     _noexpr_fields = _NOEXPR_FIELDS
 
     _extra_c_sources = [
-        *COMMON_MAGNET_SOURCES,
-        _pkg_root.joinpath('beam_elements/elements_src/bend.h'),
+        '#include <beam_elements/elements_src/bend.h>',
     ]
 
     def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
@@ -1212,8 +1195,7 @@ class RBend(_BendCommon, BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
-        *COMMON_MAGNET_SOURCES,
-        _pkg_root.joinpath('beam_elements/elements_src/rbend.h'),
+        '#include <beam_elements/elements_src/rbend.h>',
     ]
 
     _noexpr_fields = _NOEXPR_FIELDS
@@ -1492,8 +1474,7 @@ class Sextupole(BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
-        *COMMON_MAGNET_SOURCES,
-        _pkg_root.joinpath('beam_elements/elements_src/sextupole.h'),
+        '#include <beam_elements/elements_src/sextupole.h>',
     ]
 
     def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
@@ -1651,8 +1632,7 @@ class Octupole(BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
-        *COMMON_MAGNET_SOURCES,
-        _pkg_root.joinpath('beam_elements/elements_src/octupole.h'),
+        '#include <beam_elements/elements_src/octupole.h>',
     ]
 
     def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
@@ -1804,8 +1784,7 @@ class Quadrupole(BeamElement):
     _noexpr_fields = _NOEXPR_FIELDS
 
     _extra_c_sources = [
-        *COMMON_MAGNET_SOURCES,
-        _pkg_root.joinpath('beam_elements/elements_src/quadrupole.h'),
+        '#include <beam_elements/elements_src/quadrupole.h>',
     ]
 
     _depends_on = [RandomUniformAccurate, RandomExponential]
@@ -1960,15 +1939,7 @@ class Solenoid(BeamElement):
     }
 
     _extra_c_sources = [
-        _pkg_root.joinpath('headers/synrad_spectrum.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_multipolar_components.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_xrotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_srotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_radiation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_solenoid.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/solenoid.h'),
+        '#include <beam_elements/elements_src/solenoid.h>',
     ]
 
     _depends_on = [RandomUniformAccurate, RandomExponential]
@@ -2042,8 +2013,7 @@ class DipoleFringe(BeamElement):
     }
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/dipole_fringe.h'),
+        '#include <beam_elements/elements_src/dipole_fringe.h>',
     ]
 
     def __init__(self, **kwargs):
@@ -2067,9 +2037,7 @@ class Wedge(BeamElement):
     }
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/wedge.h'),
+        '#include <beam_elements/elements_src/wedge.h>',
     ]
 
 
@@ -2099,7 +2067,8 @@ class SimpleThinBend(BeamElement):
     allow_rot_and_shift = False
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/simplethinbend.h')]
+        '#include <beam_elements/elements_src/simplethinbend.h>',
+    ]
 
     def __init__(self, **kwargs):
         knl = kwargs.get('knl')
@@ -2166,8 +2135,8 @@ class RFMultipole(BeamElement):
     has_backtrack = True
 
     _extra_c_sources = [
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/rfmultipole.h')]
+        '#include <beam_elements/elements_src/rfmultipole.h>',
+    ]
 
     def __init__(self, **kwargs):
         if 'p' in kwargs:
@@ -2250,12 +2219,8 @@ class DipoleEdge(BeamElement):
     }
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_nonlinear.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/dipoleedge.h')]
+        '#include <beam_elements/elements_src/dipoleedge.h>',
+    ]
 
     has_backtrack = True
 
@@ -2451,8 +2416,7 @@ class MultipoleEdge(BeamElement):
     }
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/multipoleedge.h'),
+        '#include <beam_elements/elements_src/multipoleedge.h>',
     ]
 
     def __init__(self, kn: list=None, ks: list=None, is_exit=False, order=None, _xobject=None, **kwargs):
@@ -2526,8 +2490,8 @@ class LineSegmentMap(BeamElement):
     # }
 
     _extra_c_sources = [
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/linesegmentmap.h')]
+        '#include <beam_elements/elements_src/linesegmentmap.h>',
+    ]
 
     def __init__(self, length=0., qx=0, qy=0,
             betx=1., bety=1., alfx=0., alfy=0.,
@@ -2966,7 +2930,8 @@ class FirstOrderTaylorMap(BeamElement):
     _depends_on = [RandomUniformAccurate, RandomExponential]
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/firstordertaylormap.h')]
+        '#include <beam_elements/elements_src/firstordertaylormap.h>',
+    ]
 
     _internal_record_class = SynchrotronRadiationRecord # not functional,
     # included for compatibility with Multipole
@@ -3066,7 +3031,8 @@ class SecondOrderTaylorMap(BeamElement):
     isthick = True
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/second_order_taylor_map.h')]
+        '#include <beam_elements/elements_src/second_order_taylor_map.h>',
+    ]
 
     _xofields={
         'k': xo.Float64[6],
@@ -3265,8 +3231,8 @@ class ElectronCooler(BeamElement):
         }
     
     _extra_c_sources = [
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/electroncooler.h')]
+        '#include <beam_elements/elements_src/electroncooler.h>',
+    ]
     
     _internal_record_class = ElectronCoolerRecord
 

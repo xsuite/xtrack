@@ -6,15 +6,18 @@
 #ifndef XTRACK_FUNCTIONS_H
 #define XTRACK_FUNCTIONS_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void kill_all_particles(LocalParticle* part0, int64_t kill_state) {
-    //start_per_particle_block (part0->part)
+    START_PER_PARTICLE_BLOCK(part0, part);
         LocalParticle_kill_particle(part, kill_state);
-    //end_per_particle_block
+    END_PER_PARTICLE_BLOCK;
 }
 
 
-/*gpufun*/
+GPUFUN
 int8_t assert_tracking(LocalParticle* part, int64_t kill_state){
     // Whenever we are not tracking, e.g. in a twiss, the particle will be at_turn < 0.
     // We test this to distinguish genuine tracking from twiss.

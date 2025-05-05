@@ -6,7 +6,11 @@
 #ifndef XTRACK_THICK_SLICE_QUADRUPOLE_H
 #define XTRACK_THICK_SLICE_QUADRUPOLE_H
 
-/*gpufun*/
+#include <headers/track.h>
+#include <beam_elements/elements_src/track_magnet.h>
+
+
+GPUFUN
 void ThickSliceQuadrupole_track_local_particle(
         ThickSliceQuadrupoleData el,
         LocalParticle* part0

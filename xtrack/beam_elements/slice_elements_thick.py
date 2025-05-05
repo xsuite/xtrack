@@ -4,7 +4,7 @@ from ..general import _pkg_root
 from ..base_element import BeamElement
 from .elements import (
     SynchrotronRadiationRecord, Bend, Quadrupole, Sextupole,
-    Octupole, Solenoid, Drift, RBend, COMMON_MAGNET_SOURCES,
+    Octupole, Solenoid, Drift, RBend,
 )
 from ..random import RandomUniformAccurate, RandomExponential
 
@@ -30,8 +30,8 @@ class ThickSliceBend(BeamElement):
     _xofields = {'_parent': xo.Ref(Bend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        *COMMON_MAGNET_SOURCES,
-        _pkg_root.joinpath('beam_elements/elements_src/thick_slice_bend.h')]
+        '#include <beam_elements/elements_src/thick_slice_bend.h>'
+    ]
 
     copy = _slice_copy
 
@@ -59,8 +59,8 @@ class ThickSliceRBend(BeamElement):
     _xofields = {'_parent': xo.Ref(RBend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        *COMMON_MAGNET_SOURCES,
-        _pkg_root.joinpath('beam_elements/elements_src/thick_slice_rbend.h')]
+        '#include <beam_elements/elements_src/thick_slice_rbend.h>'
+    ]
 
     copy = _slice_copy
 
@@ -88,8 +88,8 @@ class ThickSliceQuadrupole(BeamElement):
     _xofields = {'_parent': xo.Ref(Quadrupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        *COMMON_MAGNET_SOURCES,
-        _pkg_root.joinpath('beam_elements/elements_src/thick_slice_quadrupole.h')]
+        '#include <beam_elements/elements_src/thick_slice_quadrupole.h>'
+    ]
 
     copy = _slice_copy
 
@@ -120,8 +120,8 @@ class ThickSliceSextupole(BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
-        *COMMON_MAGNET_SOURCES,
-        _pkg_root.joinpath('beam_elements/elements_src/thick_slice_sextupole.h')]
+        '#include <beam_elements/elements_src/thick_slice_sextupole.h>'
+    ]
 
     copy = _slice_copy
 
@@ -152,8 +152,8 @@ class ThickSliceOctupole(BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
-        *COMMON_MAGNET_SOURCES,
-        _pkg_root.joinpath('beam_elements/elements_src/thick_slice_octupole.h')]
+        '#include <beam_elements/elements_src/thick_slice_octupole.h>'
+    ]
 
     copy = _slice_copy
 
@@ -184,10 +184,8 @@ class ThickSliceSolenoid(BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('headers/synrad_spectrum.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/thick_slice_solenoid.h')]
+        '#include <beam_elements/elements_src/thick_slice_solenoid.h>'
+    ]
 
     copy = _slice_copy
 
@@ -216,8 +214,8 @@ class DriftSliceBend(BeamElement):
     _xofields = {'_parent': xo.Ref(Bend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/drift_slice_bend.h')]
+        '#include <beam_elements/elements_src/drift_slice_bend.h>'
+    ]
 
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
@@ -251,8 +249,8 @@ class DriftSliceRBend(BeamElement):
     _xofields = {'_parent': xo.Ref(RBend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/drift_slice_rbend.h')]
+        '#include <beam_elements/elements_src/drift_slice_rbend.h>'
+    ]
 
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
@@ -286,8 +284,8 @@ class DriftSliceQuadrupole(BeamElement):
     _xofields = {'_parent': xo.Ref(Quadrupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/drift_slice_quadrupole.h')]
+        '#include <beam_elements/elements_src/drift_slice_quadrupole.h>'
+    ]
 
     copy = _slice_copy
 
@@ -321,8 +319,8 @@ class DriftSliceSextupole(BeamElement):
     _xofields = {'_parent': xo.Ref(Sextupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/drift_slice_sextupole.h')]
+        '#include <beam_elements/elements_src/drift_slice_sextupole.h>'
+    ]
 
     copy = _slice_copy
 
@@ -356,8 +354,8 @@ class DriftSliceOctupole(BeamElement):
     _xofields = {'_parent': xo.Ref(Octupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/drift_slice_octupole.h')]
+        '#include <beam_elements/elements_src/drift_slice_octupole.h>'
+    ]
 
     copy = _slice_copy
 
@@ -391,8 +389,8 @@ class DriftSlice(BeamElement):
     _xofields = {'_parent': xo.Ref(Drift), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/drift_slice.h')]
+        '#include <beam_elements/elements_src/drift_slice.h>'
+    ]
 
     copy = _slice_copy
 

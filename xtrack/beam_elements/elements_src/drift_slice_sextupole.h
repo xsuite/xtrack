@@ -6,7 +6,11 @@
 #ifndef XTRACK_DRIFT_SLICE_SEXTUPOLE_H
 #define XTRACK_DRIFT_SLICE_SEXTUPOLE_H
 
-/*gpufun*/
+#include <headers/track.h>
+#include <beam_elements/elements_src/track_drift.h>
+
+
+GPUFUN
 void DriftSliceSextupole_track_local_particle(
         DriftSliceSextupoleData el,
         LocalParticle* part0
@@ -20,10 +24,9 @@ void DriftSliceSextupole_track_local_particle(
         double const length = -weight * DriftSliceSextupoleData_get__parent_length(el); // m
     #endif
 
-    //start_per_particle_block (part0->part)
+    START_PER_PARTICLE_BLOCK(part0, part);
         Drift_single_particle(part, length);
-    //end_per_particle_block
-
+    END_PER_PARTICLE_BLOCK;
 }
 
 #endif
