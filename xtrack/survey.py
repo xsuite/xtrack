@@ -80,54 +80,54 @@ def advance_drift(v, w, R):
 
 def advance_element(
         v, w, length = 0, angle = 0, tilt = 0,
-        dx = 0, dy = 0, transf_x_rad = 0, transf_y_rad = 0, transf_s_rad = 0):
+        ref_shift_x = 0, ref_shift_y = 0, ref_rot_x_rad = 0, ref_rot_y_rad = 0, ref_rot_s_rad = 0):
     """Computing the advance element-by-element.
     See MAD-X manual for generation of R and S"""
     # XYShift Handling
-    if dx != 0 or dy != 0:
-        assert angle == 0,  "dx and dy are only supported for angle = 0"
-        assert tilt == 0,   "dx and dy are only supported for tilt = 0"
-        assert length == 0, "dx and dy are only supported for length = 0"
+    if ref_shift_x != 0 or ref_shift_y != 0:
+        assert angle == 0,  "ref_shift_x and ref_shift_y are only supported for angle = 0"
+        assert tilt == 0,   "ref_shift_x and ref_shift_y are only supported for tilt = 0"
+        assert length == 0, "ref_shift_x and ref_shift_y are only supported for length = 0"
 
-        R = np.array([dx, dy, 0])
+        R = np.array([ref_shift_x, ref_shift_y, 0])
         # XYShift tarnsforms as a drift
         return advance_drift(v, w, R)
 
     # XRotation Handling
-    if transf_x_rad != 0:
+    if ref_rot_x_rad != 0:
         assert angle == 0,  "rot_x_rad is only supported for angle = 0"
         assert tilt == 0,   "rot_x_rad is only supported for tilt = 0"
         assert length == 0, "rot_x_rad is only supported for length = 0"
 
         # Rotation sine/cosine
-        cr = np.cos(-transf_x_rad)
-        sr = np.sin(-transf_x_rad)
+        cr = np.cos(-ref_rot_x_rad)
+        sr = np.sin(-ref_rot_x_rad)
         # ------
         S = np.array([[1, 0, 0], [0, cr, sr], [0, -sr, cr]]) # x rotation matrix
         return advance_rotation(v, w, S)
 
     # YRotation Handling
-    if transf_y_rad != 0:
+    if ref_rot_y_rad != 0:
         assert angle == 0,  "rot_y_rad is only supported for angle = 0"
         assert tilt == 0,   "rot_y_rad is only supported for tilt = 0"
         assert length == 0, "rot_y_rad is only supported for length = 0"
 
         # Rotation sine/cosine
-        cr = np.cos(transf_y_rad)
-        sr = np.sin(transf_y_rad)
+        cr = np.cos(ref_rot_y_rad)
+        sr = np.sin(ref_rot_y_rad)
         # ------
         S = np.array([[cr, 0, -sr], [0, 1, 0], [sr, 0, cr]]) # y rotation matrix
         return advance_rotation(v, w, S)
 
     # SRotation Handling
-    if transf_s_rad != 0:
+    if ref_rot_s_rad != 0:
         assert angle == 0,  "rot_s_rad is only supported for angle = 0"
         assert tilt == 0,   "rot_s_rad is only supported for tilt = 0"
         assert length == 0, "rot_s_rad is only supported for length = 0"
 
         # Rotation sine/cosine
-        cr = np.cos(transf_s_rad)
-        sr = np.sin(transf_s_rad)
+        cr = np.cos(ref_rot_s_rad)
+        sr = np.sin(ref_rot_s_rad)
         # ------
         S = np.array([[cr, sr, 0], [-sr, cr, 0], [0, 0, 1]]) # z rotation matrix
         return advance_rotation(v, w, S)
@@ -194,22 +194,22 @@ class SurveyTable(Table):
             "X0, Y0, Z0, theta0, phi0, psi0 must be all None or all not None")
 
         if X0 is None:
-            X0 = self.X[self.element0]
-            Y0 = self.Y[self.element0]
-            Z0 = self.Z[self.element0]
-            theta0 = self.theta[self.element0]
-            phi0 = self.phi[self.element0]
-            psi0 = self.psi[self.element0]
+            X0      = self.X[self.element0]
+            Y0      = self.Y[self.element0]
+            Z0      = self.Z[self.element0]
+            theta0  = self.theta[self.element0]
+            phi0    = self.phi[self.element0]
+            psi0    = self.psi[self.element0]
 
         # We cut away the last marker (added by survey) and reverse the order
         out_drift_length    = list(self.drift_length[:-1][::-1])
         out_angle           = list(-self.angle[:-1][::-1])
         out_tilt            = list(-self.tilt[:-1][::-1])
-        out_dx              = list(-self.dx[:-1][::-1])
-        out_dy              = list(-self.dy[:-1][::-1])
-        out_transf_x_rad    = list(-self.transf_x_rad[:-1][::-1])
-        out_transf_y_rad    = list(-self.transf_y_rad[:-1][::-1])
-        out_transf_s_rad    = list(-self.transf_s_rad[:-1][::-1])
+        out_ref_shift_x     = list(-self.ref_shift_x[:-1][::-1])
+        out_ref_shift_y     = list(-self.ref_shift_y[:-1][::-1])
+        out_ref_rot_x_rad   = list(-self.ref_rot_x_rad[:-1][::-1])
+        out_ref_rot_y_rad   = list(-self.ref_rot_y_rad[:-1][::-1])
+        out_ref_rot_s_rad   = list(-self.ref_rot_s_rad[:-1][::-1])
         out_name            = list(self.name[:-1][::-1])
 
         if isinstance(element0, str):
@@ -225,11 +225,11 @@ class SurveyTable(Table):
             drift_length    = out_drift_length,
             angle           = out_angle,
             tilt            = out_tilt,
-            dx              = out_dx,
-            dy              = out_dy,
-            transf_x_rad    = out_transf_x_rad,
-            transf_y_rad    = out_transf_y_rad,
-            transf_s_rad    = out_transf_s_rad,
+            ref_shift_x     = out_ref_shift_x,
+            ref_shift_y     = out_ref_shift_y,
+            ref_rot_x_rad   = out_ref_rot_x_rad,
+            ref_rot_y_rad   = out_ref_rot_y_rad,
+            ref_rot_s_rad   = out_ref_rot_s_rad,
             element0        = element0,
             reverse_xs      = False)
 
@@ -238,28 +238,28 @@ class SurveyTable(Table):
         out_scalars = {}
 
         # Fill survey data
-        out_columns["X"]            = np.array(X)
-        out_columns["Y"]            = np.array(Y)
-        out_columns["Z"]            = np.array(Z)
-        out_columns["theta"]        = np.unwrap(theta)
-        out_columns["phi"]          = np.unwrap(phi)
-        out_columns["psi"]          = np.unwrap(psi)
-        out_columns["name"]         = np.array(list(out_name) + ["_end_point"])
-        out_columns["s"]            = self.s[-1] - self.s[::-1]
-        out_columns['drift_length'] = np.array(out_drift_length + [0.])
-        out_columns['angle']        = np.array(out_angle + [0.])
-        out_columns['tilt']         = np.array(out_tilt + [0.])
-        out_columns["dx"]           = np.array(out_dx + [0.])
-        out_columns["dy"]           = np.array(out_dy + [0.])
-        out_columns["transf_x_rad"] = np.array(out_transf_x_rad + [0.])
-        out_columns["transf_y_rad"] = np.array(out_transf_y_rad + [0.])
-        out_columns["transf_s_rad"] = np.array(out_transf_s_rad + [0.])
+        out_columns["X"]                = np.array(X)
+        out_columns["Y"]                = np.array(Y)
+        out_columns["Z"]                = np.array(Z)
+        out_columns["theta"]            = np.unwrap(theta)
+        out_columns["phi"]              = np.unwrap(phi)
+        out_columns["psi"]              = np.unwrap(psi)
+        out_columns["name"]             = np.array(list(out_name) + ["_end_point"])
+        out_columns["s"]                = self.s[-1] - self.s[::-1]
+        out_columns['drift_length']     = np.array(out_drift_length + [0.])
+        out_columns['angle']            = np.array(out_angle + [0.])
+        out_columns['tilt']             = np.array(out_tilt + [0.])
+        out_columns["ref_shift_x"]      = np.array(out_ref_shift_x + [0.])
+        out_columns["ref_shift_y"]      = np.array(out_ref_shift_y + [0.])
+        out_columns["ref_rot_x_rad"]    = np.array(out_ref_rot_x_rad + [0.])
+        out_columns["ref_rot_y_rad"]    = np.array(out_ref_rot_y_rad + [0.])
+        out_columns["ref_rot_s_rad"]    = np.array(out_ref_rot_s_rad + [0.])
 
         out_scalars["element0"] = element0
 
         out = SurveyTable(
-            data=(out_columns | out_scalars),
-            col_names=out_columns.keys())
+            data        = (out_columns | out_scalars),
+            col_names   = out_columns.keys())
 
         return out
 
@@ -305,7 +305,7 @@ def survey_from_line(
         line,
         X0 = 0, Y0 = 0, Z0 = 0, theta0 = 0, phi0 = 0, psi0 = 0,
         element0 = 0, values_at_element_exit = False, reverse = True):
-    """Execute SURVEY command. Based on MADX equivalent.
+    """Execute SURVEY command. Based on MAref_shift_x equivalent.
     Attributes, must be given in this order in the dictionary:
     X0        (float)    Initial X position in meters.
     Y0        (float)    Initial Y position in meters.
@@ -332,14 +332,14 @@ def survey_from_line(
     drift_length[~tt.isthick] = 0
 
     # Extract xy shifts from elements
-    dx = tt.dx
-    dy = tt.dy
+    ref_shift_x = tt.ref_shift_x
+    ref_shift_y = tt.ref_shift_y
 
-    # Handling of XYSRotation elements
-    transf_angle_rad    = tt.transform_angle_rad
-    transf_x_rad    = transf_angle_rad * np.array(tt.element_type == 'XRotation')
-    transf_y_rad    = transf_angle_rad * np.array(tt.element_type == 'YRotation')
-    transf_s_rad    = transf_angle_rad * np.array(tt.element_type == 'SRotation')
+    # Handling of XRotation, YRotation and SRotation elements
+    ref_rot_angle_rad   = tt.ref_rot_angle_rad
+    ref_rot_x_rad    = ref_rot_angle_rad * np.array(tt.element_type == 'XRotation')
+    ref_rot_y_rad    = ref_rot_angle_rad * np.array(tt.element_type == 'YRotation')
+    ref_rot_s_rad    = ref_rot_angle_rad * np.array(tt.element_type == 'SRotation')
 
     if isinstance(element0, str):
         element0 = line.element_names.index(element0)
@@ -354,11 +354,11 @@ def survey_from_line(
         drift_length    = drift_length[:-1],
         angle           = angle[:-1],
         tilt            = tilt[:-1],
-        dx              = dx[:-1],
-        dy              = dy[:-1],
-        transf_x_rad    = transf_x_rad[:-1],
-        transf_y_rad    = transf_y_rad[:-1],
-        transf_s_rad    = transf_s_rad[:-1],
+        ref_shift_x     = ref_shift_x[:-1],
+        ref_shift_y     = ref_shift_y[:-1],
+        ref_rot_x_rad   = ref_rot_x_rad[:-1],
+        ref_rot_y_rad   = ref_rot_y_rad[:-1],
+        ref_rot_s_rad   = ref_rot_s_rad[:-1],
         element0        = element0,
         reverse_xs      = False)
 
@@ -367,22 +367,22 @@ def survey_from_line(
     out_scalars = {}
 
     # Fill survey data
-    out_columns["X"]            = np.array(X)
-    out_columns["Y"]            = np.array(Y)
-    out_columns["Z"]            = np.array(Z)
-    out_columns["theta"]        = np.unwrap(theta)
-    out_columns["phi"]          = np.unwrap(phi)
-    out_columns["psi"]          = np.unwrap(psi)
-    out_columns["name"]         = tt.name
-    out_columns["s"]            = tt.s
-    out_columns['drift_length'] = drift_length
-    out_columns['angle']        = angle
-    out_columns['tilt']         = tilt
-    out_columns['dx']           = dx
-    out_columns['dy']           = dy
-    out_columns['transf_x_rad'] = transf_x_rad
-    out_columns['transf_y_rad'] = transf_y_rad
-    out_columns['transf_s_rad'] = transf_s_rad
+    out_columns["X"]                = np.array(X)
+    out_columns["Y"]                = np.array(Y)
+    out_columns["Z"]                = np.array(Z)
+    out_columns["theta"]            = np.unwrap(theta)
+    out_columns["phi"]              = np.unwrap(phi)
+    out_columns["psi"]              = np.unwrap(psi)
+    out_columns["name"]             = tt.name
+    out_columns["s"]                = tt.s
+    out_columns['drift_length']     = drift_length
+    out_columns['angle']            = angle
+    out_columns['tilt']             = tilt
+    out_columns['ref_shift_x']      = ref_shift_x
+    out_columns['ref_shift_y']      = ref_shift_y
+    out_columns['ref_rot_x_rad']    = ref_rot_x_rad
+    out_columns['ref_rot_y_rad']    = ref_rot_y_rad
+    out_columns['ref_rot_s_rad']    = ref_rot_s_rad
 
     out_scalars['element0']     = element0
 
@@ -397,7 +397,7 @@ def survey_from_line(
 def compute_survey(
         X0, Y0, Z0, theta0, phi0, psi0,
         drift_length, angle, tilt,
-        dx, dy, transf_x_rad, transf_y_rad, transf_s_rad,
+        ref_shift_x, ref_shift_y, ref_rot_x_rad, ref_rot_y_rad, ref_rot_s_rad,
         element0 = 0, reverse_xs = False):
     """
     Compute survey from initial position and orientation.
@@ -412,11 +412,11 @@ def compute_survey(
         drift_forward           = drift_length[element0:]
         angle_forward           = angle[element0:]
         tilt_forward            = tilt[element0:]
-        dx_forward              = dx[element0:]
-        dy_forward              = dy[element0:]
-        transf_x_rad_forward    = transf_x_rad[element0:]
-        transf_y_rad_forward    = transf_y_rad[element0:]
-        transf_s_rad_forward    = transf_s_rad[element0:]
+        ref_shift_x_forward     = ref_shift_x[element0:]
+        ref_shift_y_forward     = ref_shift_y[element0:]
+        ref_rot_x_rad_forward   = ref_rot_x_rad[element0:]
+        ref_rot_y_rad_forward   = ref_rot_y_rad[element0:]
+        ref_rot_s_rad_forward   = ref_rot_s_rad[element0:]
 
         # Evaluate forward survey
         (X_forward, Y_forward, Z_forward, theta_forward, phi_forward,
@@ -430,11 +430,11 @@ def compute_survey(
             drift_length    = drift_forward,
             angle           = angle_forward,
             tilt            = tilt_forward,
-            dx              = dx_forward,
-            dy              = dy_forward,
-            transf_x_rad    = transf_x_rad_forward,
-            transf_y_rad    = transf_y_rad_forward,
-            transf_s_rad    = transf_s_rad_forward,
+            ref_shift_x     = ref_shift_x_forward,
+            ref_shift_y     = ref_shift_y_forward,
+            ref_rot_x_rad   = ref_rot_x_rad_forward,
+            ref_rot_y_rad   = ref_rot_y_rad_forward,
+            ref_rot_s_rad   = ref_rot_s_rad_forward,
             element0        = 0,
             reverse_xs      = False)
 
@@ -442,11 +442,11 @@ def compute_survey(
         drift_backward          = drift_length[:element0][::-1]
         angle_backward          = -np.array(angle[:element0][::-1])
         tilt_backward           = -np.array(tilt[:element0][::-1])
-        dx_backward             = -np.array(dx[:element0][::-1])
-        dy_backward             = -np.array(dy[:element0][::-1])
-        transf_x_rad_backward   = -np.array(transf_x_rad[:element0][::-1])
-        transf_y_rad_backward   = -np.array(transf_y_rad[:element0][::-1])
-        transf_s_rad_backward   = -np.array(transf_s_rad[:element0][::-1])
+        ref_shift_x_backward    = -np.array(ref_shift_x[:element0][::-1])
+        ref_shift_y_backward    = -np.array(ref_shift_y[:element0][::-1])
+        ref_rot_x_rad_backward  = -np.array(ref_rot_x_rad[:element0][::-1])
+        ref_rot_y_rad_backward  = -np.array(ref_rot_y_rad[:element0][::-1])
+        ref_rot_s_rad_backward  = -np.array(ref_rot_s_rad[:element0][::-1])
 
         # Evaluate backward survey
         (X_backward, Y_backward, Z_backward, theta_backward, phi_backward,
@@ -460,11 +460,11 @@ def compute_survey(
             drift_length    = drift_backward,
             angle           = angle_backward,
             tilt            = tilt_backward,
-            dx              = dx_backward,
-            dy              = dy_backward,
-            transf_x_rad    = transf_x_rad_backward,
-            transf_y_rad    = transf_y_rad_backward,
-            transf_s_rad    = transf_s_rad_backward,
+            ref_shift_x     = ref_shift_x_backward,
+            ref_shift_y     = ref_shift_y_backward,
+            ref_rot_x_rad   = ref_rot_x_rad_backward,
+            ref_rot_y_rad   = ref_rot_y_rad_backward,
+            ref_rot_s_rad   = ref_rot_s_rad_backward,
             element0        = 0,
             reverse_xs      = True)
 
@@ -494,8 +494,10 @@ def compute_survey(
         reverse_xs  = reverse_xs)
 
     # Advancing element by element
-    for ll, aa, tt, xx, yy, tx, ty, ts, in zip(
-        drift_length, angle, tilt, dx, dy, transf_x_rad, transf_y_rad, transf_s_rad):
+    for ll, aa, tt, xx, yy, rx, ry, rs, in zip(
+        drift_length, angle, tilt,
+        ref_shift_x, ref_shift_y,
+        ref_rot_x_rad, ref_rot_y_rad, ref_rot_s_rad):
 
         # Get angles from w matrix after previous element
         th, ph, ps = get_angles_from_w(w, reverse_xs = reverse_xs)
@@ -515,11 +517,11 @@ def compute_survey(
             length          = ll,
             angle           = aa,
             tilt            = tt,
-            dx              = xx,
-            dy              = yy,
-            transf_x_rad    = tx,
-            transf_y_rad    = ty,
-            transf_s_rad    = ts)
+            ref_shift_x     = xx,
+            ref_shift_y     = yy,
+            ref_rot_x_rad   = rx,
+            ref_rot_y_rad   = ry,
+            ref_rot_s_rad   = rs)
 
     # Last marker
     th, ph, ps = get_angles_from_w(w, reverse_xs = reverse_xs)

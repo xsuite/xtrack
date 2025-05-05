@@ -4633,13 +4633,13 @@ class Line:
 
                 # Handling of reference frame transformations
                 # (XYShift, XRotation, YRotation, SRotation)
-                '_own_ref_shift_x':         'ref_shift_x',
-                '_own_ref_shift_y':         'ref_shift_y',
-                '_own_ref_rot_sin_angle':   'ref_rot_sin_angle',
-                '_own_ref_rot_cos_angle':   'ref_rot_cos_angle',
-                # TODO: This is labelled differently at the element level
-                '_own_ref_rot_sin_z':       'ref_rot_sin_z',
-                '_own_ref_rot_cos_z':       'ref_rot_cos_z',
+                # TODO: The dx, dy, etc labels come from the element level and should possibly be changed
+                '_own_ref_shift_x':         'dx',
+                '_own_ref_shift_y':         'dy',
+                '_own_ref_rot_sin_angle':   'sin_angle',
+                '_own_ref_rot_cos_angle':   'cos_angle',
+                '_own_ref_rot_sin_z':       'sin_z',
+                '_own_ref_rot_cos_z':       'cos_z',
 
                 '_parent_length': (('_parent', 'length'), None),
                 '_parent_sin_rot_s': (('_parent', '_sin_rot_s'), None),
@@ -4681,13 +4681,13 @@ class Line:
 
                 # Handling of reference frame transformations
                 # (XYShift, XRotation, YRotation, SRotation)
-                '_parent_ref_shift_x': (('_parent', 'ref_shift_x'), None),
-                '_parent_ref_shift_y': (('_parent', 'ref_shift_y'), None),
-                '_parent_ref_rot_sin_angle': (('_parent', 'ref_rot_sin_angle'), None),
-                '_parent_ref_rot_cos_angle': (('_parent', 'ref_rot_cos_angle'), None),
-                # TODO: This is labelled differently at the element level
-                '_parent_ref_rot_sin_z': (('_parent', 'ref_rot_sin_z'), None),
-                '_parent_ref_rot_cos_z': (('_parent', 'ref_rot_cos_z'), None),
+                # TODO: The dx, dy, etc labels come from the element level and should possibly be changed
+                '_parent_ref_shift_x': (('_parent', 'dx'), None),
+                '_parent_ref_shift_y': (('_parent', 'dy'), None),
+                '_parent_ref_rot_sin_angle': (('_parent', 'sin_angle'), None),
+                '_parent_ref_rot_cos_angle': (('_parent', 'cos_angle'), None),
+                '_parent_ref_rot_sin_z': (('_parent', 'sin_z'), None),
+                '_parent_ref_rot_cos_z': (('_parent', 'cos_z'), None),
 
             },
             derived_fields={
