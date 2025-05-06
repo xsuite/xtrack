@@ -199,18 +199,19 @@ def bmad_run(line, track=None):
     df = parse_file_pandas('vvv.txt')
     df_orb = parse_twiss_file_pandas('orbit.txt')
 
-    spin_summary_bmad = {}
-    with open('spin.txt', 'r') as fid:
-        spsumm_lines = fid.readlines()
-    for ll in spsumm_lines:
-        if ':' in ll:
-            key, val = ll.split(':')
-            val = val.strip()
-            if ' ' in val:
-                val = [float(v) for v in val.split(' ') if v]
-            else:
-                val = float(val.strip())
-            spin_summary_bmad[key.strip()] = val
+    if track is None:
+        spin_summary_bmad = {}
+        with open('spin.txt', 'r') as fid:
+            spsumm_lines = fid.readlines()
+        for ll in spsumm_lines:
+            if ':' in ll:
+                key, val = ll.split(':')
+                val = val.strip()
+                if ' ' in val:
+                    val = [float(v) for v in val.split(' ') if v]
+                else:
+                    val = float(val.strip())
+                spin_summary_bmad[key.strip()] = val
 
     out= {
         'optics': df_orb,
