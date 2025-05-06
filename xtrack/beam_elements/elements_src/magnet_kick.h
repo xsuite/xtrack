@@ -6,7 +6,11 @@
 #ifndef XTRACK_MAGNET_KICK_H
 #define XTRACK_MAGNET_KICK_H
 
-/*gpufun*/
+#include <headers/track.h>
+#include <beam_elements/elements_src/track_magnet_kick.h>
+
+
+GPUFUN
 void MagnetKick_track_local_particle(
     MagnetKickData el,
     LocalParticle* part0
@@ -28,12 +32,12 @@ void MagnetKick_track_local_particle(
     const double k3s = MagnetKickData_get_k3s(el);
     const double h = MagnetKickData_get_h(el);
 
-    //start_per_particle_block (part0->part)
+    START_PER_PARTICLE_BLOCK(part0, part);
         track_magnet_kick_single_particle(
             part, length, order, inv_factorial_order, knl, ksl, factor_knl_ksl,
             kick_weight, k0, k1, k2, k3, k0s, k1s, k2s, k3s, h
         );
-    //end_per_particle_block
+    END_PER_PARTICLE_BLOCK;
 }
 
 #endif

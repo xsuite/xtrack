@@ -2,27 +2,17 @@
 // This file is part of the Xtrack Package.  //
 // Copyright (c) CERN, 2023.                 //
 // ######################################### //
-
 #ifndef XTRACK_TRACK_DIPOLE_FRINGE_H
 #define XTRACK_TRACK_DIPOLE_FRINGE_H
 
-#ifndef POW2
-#define POW2(X) ((X)*(X))
-#endif
-#ifndef POW3
-#define POW3(X) ((X)*(X)*(X))
-#endif
-#ifndef POW4
-#define POW4(X) ((X)*(X)*(X)*(X))
-#endif
-
+#include <headers/track.h>
 
 #ifndef XTRACK_FRINGE_FROM_PTC
 
 // MAD-NG implementation
 // https://github.com/MethodicalAcceleratorDesign/MAD/blob/d3cabd9cdebde62ebedb51bab61ac033b9159489/src/madl_dynmap.mad#L1864
 
-/*gpufun*/
+GPUFUN
 void DipoleFringe_single_particle(
         LocalParticle* part,  // LocalParticle to track
         const double fint,    // Fringe field integral
@@ -100,7 +90,7 @@ void DipoleFringe_single_particle(
 // The following is ported from PTC:
 //https://github.com/MethodicalAcceleratorDesign/MAD-X/blob/master/libs/ptc/src/Sh_def_kind.f90#L4936
 
-/*gpufun*/
+GPUFUN
 void DipoleFringe_single_particle(
         LocalParticle* part,  // LocalParticle to track
         const double fint,    // Fringe field integral
@@ -189,7 +179,7 @@ void DipoleFringe_single_particle(
 // The following is derived from https://cds.cern.ch/record/2857004
 // still to be checked
 
-// /*gpufun*/
+// GPUFUN
 // void DipoleFringe_single_particle(
 //         LocalParticle* part,  // LocalParticle to track
 //         const double fint,    // Fringe field integral

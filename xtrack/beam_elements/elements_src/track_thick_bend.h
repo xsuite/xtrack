@@ -2,17 +2,13 @@
 // This file is part of the Xtrack Package.  //
 // Copyright (c) CERN, 2023.                 //
 // ######################################### //
-
 #ifndef XTRACK_TRACK_THICK_BEND_H
 #define XTRACK_TRACK_THICK_BEND_H
 
-#ifndef POW2
-#define POW2(X) ((X)*(X))
-#endif
+#include <headers/track.h>
 
-#define NONZERO(X) ((X) != 0.0)
 
-/*gpufun*/
+GPUFUN
 void track_thick_bend(
         LocalParticle* part,  // LocalParticle to track
         const double length,  // length of the element

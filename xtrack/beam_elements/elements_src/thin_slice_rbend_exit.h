@@ -6,7 +6,11 @@
 #ifndef XTRACK_THIN_SLICE_RBEND_EXIT_H
 #define XTRACK_THIN_SLICE_RBEND_EXIT_H
 
-/*gpufun*/
+#include <headers/track.h>
+#include <beam_elements/elements_src/track_dipole_edge_nonlinear.h>
+
+
+GPUFUN
 void ThinSliceRBendExit_track_local_particle(
         ThinSliceRBendExitData el,
         LocalParticle* part0
@@ -33,21 +37,21 @@ void ThinSliceRBendExit_track_local_particle(
                 r21 = -r21;
                 r43 = -r43;
             #endif
-            //start_per_particle_block (part0->part)
+            START_PER_PARTICLE_BLOCK(part0, part);
                 DipoleEdgeLinear_single_particle(part, r21, r43);
-            //end_per_particle_block
+            END_PER_PARTICLE_BLOCK;
         }
         else if (edge_exit_model==1){
             #ifdef XSUITE_BACKTRACK
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     LocalParticle_kill_particle(part, -32);
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
                 return;
             #else
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     DipoleEdgeNonLinear_single_particle(part, k0, edge_exit_angle,
                                         edge_exit_fint, edge_exit_hgap, 1);
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             #endif
         }
     } // end edge exit

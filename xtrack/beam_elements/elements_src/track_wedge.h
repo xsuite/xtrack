@@ -6,11 +6,11 @@
 #ifndef XTRACK_TRACK_WEDGE_H
 #define XTRACK_TRACK_WEDGE_H
 
-#ifndef POW2
-#define POW2(X) ((X)*(X))
-#endif
+#include <headers/track.h>
+#include <beam_elements/elements_src/track_yrotation.h>
 
-/*gpufun*/
+
+GPUFUN
 void Wedge_single_particle(
         LocalParticle* part,  // LocalParticle to track
         const double theta,   // Angle of the wedge

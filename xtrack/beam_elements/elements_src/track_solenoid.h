@@ -2,13 +2,15 @@
 // This file is part of the Xtrack Package.  //
 // Copyright (c) CERN, 2023.                 //
 // ######################################### //
-
 #ifndef XTRACK_TRACK_SOLENOID_H
 #define XTRACK_TRACK_SOLENOID_H
 
+#include <headers/track.h>
+
 #define IS_ZERO(X) (fabs(X) < 1e-9)
 
-/*gpufun*/
+
+GPUFUN
 void Solenoid_thick_track_single_particle(
     LocalParticle* part,
     double length,
@@ -82,7 +84,8 @@ void Solenoid_thick_track_single_particle(
     LocalParticle_set_ay(part, new_ay);
 }
 
-/*gpufun*/
+
+GPUFUN
 void Solenoid_thick_with_radiation_track_single_particle(
     LocalParticle* part,
     double length,
@@ -103,9 +106,6 @@ void Solenoid_thick_with_radiation_track_single_particle(
 
     #ifndef XTRACK_SOLENOID_NO_SYNRAD
         if ((radiation_flag > 0 || spin_flag > 0) && length > 0){
-            // Solenoid_apply_radiation_single_particle(part, length, radiation_flag,
-            //     old_px, old_py, old_ax, old_ay, old_zeta,
-            //     dp_record_exit, dpx_record_exit, dpy_record_exit);
             magnet_apply_radiation_single_particle(
                 part,
                 length,

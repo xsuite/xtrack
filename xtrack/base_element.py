@@ -3,15 +3,15 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-from pathlib import Path
-import numpy as np
 from functools import partial
+from pathlib import Path
+
+import numpy as np
 
 import xobjects as xo
+import xtrack as xt
 from xobjects.general import Print
-
 from xobjects.hybrid_class import _build_xofields_dict
-
 from .general import _pkg_root
 from .internal_record import RecordIdentifier, RecordIndex, generate_get_record
 from .particles import Particles
@@ -59,8 +59,7 @@ def _handle_per_particle_blocks(sources, local_particle_src):
             strss = ss
 
         strss = strss.replace('/*placeholder_for_local_particle_src*/',
-                                local_particle_src,
-                                )
+                                local_particle_src)
         if '//start_per_particle_block' in strss:
 
             lines = strss.splitlines()
@@ -361,7 +360,7 @@ class MetaBeamElement(xo.MetaHybridClass):
             _pkg_root.joinpath('headers','checks.h'),
             _pkg_root.joinpath('headers','particle_states.h'),
             _pkg_root.joinpath('beam_elements', 'elements_src', 'track_srotation.h'),
-            _pkg_root.joinpath('beam_elements', 'elements_src', 'drift.h'),
+            _pkg_root.joinpath('beam_elements', 'elements_src', 'track_drift.h'),
         ]
         kernels = {}
 
@@ -546,6 +545,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         xo.HybridClass.compile_kernels(
             self,
             extra_classes=[Particles._XoStruct],
+            extra_compile_args=(f"-I{xt.__path__[0]}",),
             *args,
             **kwargs,
         )

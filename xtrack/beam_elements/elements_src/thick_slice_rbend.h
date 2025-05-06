@@ -6,7 +6,11 @@
 #ifndef XTRACK_THICK_SLICE_RBEND_H
 #define XTRACK_THICK_SLICE_RBEND_H
 
-/*gpufun*/
+#include <headers/track.h>
+#include <beam_elements/elements_src/track_magnet.h>
+
+
+GPUFUN
 void ThickSliceRBend_track_local_particle(
         ThickSliceRBendData el,
         LocalParticle* part0

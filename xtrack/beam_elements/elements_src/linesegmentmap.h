@@ -6,43 +6,43 @@
 #ifndef XTRACK_LINESEGMENTMAP_H
 #define XTRACK_LINESEGMENTMAP_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void remove_closed_orbit(
     LocalParticle* part0, double const x_ref, double const px_ref,
     double const y_ref, double const py_ref){
 
-    //start_per_particle_block (part0->part)
+    START_PER_PARTICLE_BLOCK(part0, part);
         // Remove closed orbit
         LocalParticle_add_to_x(part, -x_ref);
         LocalParticle_add_to_px(part, -px_ref);
         LocalParticle_add_to_y(part, -y_ref);
         LocalParticle_add_to_py(part, -py_ref);
-    //end_per_particle_block
-
+    END_PER_PARTICLE_BLOCK;
 }
 
-/*gpufun*/
+GPUFUN
 void add_closed_orbit(
     LocalParticle* part0, double const x_ref, double const px_ref,
     double const y_ref, double const py_ref){
 
-    //start_per_particle_block (part0->part)
+    START_PER_PARTICLE_BLOCK(part0, part);
         // Add closed orbit
         LocalParticle_add_to_x(part, x_ref);
         LocalParticle_add_to_px(part, px_ref);
         LocalParticle_add_to_y(part, y_ref);
         LocalParticle_add_to_py(part, py_ref);
-    //end_per_particle_block
-
+    END_PER_PARTICLE_BLOCK;
 }
 
-/*gpufun*/
+GPUFUN
 void remove_dispersion(
     LocalParticle* part0, double const dx_0, double const dpx_0,
     double const dy_0, double const dpy_0){
 
-    //start_per_particle_block (part0->part)
-
+    START_PER_PARTICLE_BLOCK(part0, part);
         // Remove dispersion
         // Symplecticity correction (not working, to be investigated)
         // LocalParticle_add_to_zeta(part, (
@@ -56,18 +56,15 @@ void remove_dispersion(
         LocalParticle_add_to_px(part, -dpx_0 * delta);
         LocalParticle_add_to_y(part, -dy_0 * delta);
         LocalParticle_add_to_py(part, -dpy_0 * delta);
-
-    //end_per_particle_block
-
+    END_PER_PARTICLE_BLOCK;
 }
 
-/*gpufun*/
+GPUFUN
 void add_dispersion(
     LocalParticle* part0, double const dx_1, double const dpx_1,
     double const dy_1, double const dpy_1){
 
-    //start_per_particle_block (part0->part)
-
+    START_PER_PARTICLE_BLOCK(part0, part);
         // Add dispersion
         // Symplecticity correction (not working, to be investigated)
         // LocalParticle_add_to_zeta(part, (
@@ -81,12 +78,10 @@ void add_dispersion(
         LocalParticle_add_to_px(part, dpx_1 * delta);
         LocalParticle_add_to_y(part, dy_1 * delta);
         LocalParticle_add_to_py(part, dpy_1 * delta);
-
-    //end_per_particle_block
-
+    END_PER_PARTICLE_BLOCK;
 }
 
-/*gpufun*/
+GPUFUN
 void transverse_motion(LocalParticle *part0, LineSegmentMapData el){
 
     double const qx = LineSegmentMapData_get_qx(el);
@@ -140,8 +135,7 @@ void transverse_motion(LocalParticle *part0, LineSegmentMapData el){
     double const sqrt_betratio_x = sqrt(betx_1 / betx_0);
     double const sqrt_betratio_y = sqrt(bety_1 / bety_0);
 
-    //start_per_particle_block (part0->part)
-
+    START_PER_PARTICLE_BLOCK(part0, part);
         if (detuning){
             double const J_x = 0.5 * (
                 (1.0 + alfx_0 * alfx_0) / betx_0
@@ -195,11 +189,10 @@ void transverse_motion(LocalParticle *part0, LineSegmentMapData el){
         LocalParticle_set_px(part, px_out);
         LocalParticle_set_y(part, y_out);
         LocalParticle_set_py(part, py_out);
-    //end_per_particle_block
-
+    END_PER_PARTICLE_BLOCK;
 }
 
-/*gpufun*/
+GPUFUN
 void longitudinal_motion(LocalParticle *part0,
                          LineSegmentMapData el){
 
@@ -211,7 +204,7 @@ void longitudinal_motion(LocalParticle *part0,
         double const bucket_length = LineSegmentMapData_get_bucket_length(el)*LocalParticle_get_beta0(part0)*C_LIGHT;
         double const sin_s = sin(2 * PI * qs);
         double const cos_s = cos(2 * PI * qs);
-        //start_per_particle_block (part->part)
+        START_PER_PARTICLE_BLOCK(part0, part);
             // We set cos_s = 999 if long map is to be skipped
             double shift = 0.0;
             if (bucket_length > 0.0) {
@@ -223,7 +216,7 @@ void longitudinal_motion(LocalParticle *part0,
 
             LocalParticle_set_zeta(part, new_zeta+shift);
             LocalParticle_update_pzeta(part, new_pzeta);
-        //end_per_particle_block
+        END_PER_PARTICLE_BLOCK;
     }
     else if (mode_flag==2){ // non-linear motion
 
@@ -232,12 +225,12 @@ void longitudinal_motion(LocalParticle *part0,
         double const slippage_length =
             LineSegmentMapData_get_slippage_length(el);
 
-        //start_per_particle_block (part->part)
+        START_PER_PARTICLE_BLOCK(part0, part);
             double const gamma0 = LocalParticle_get_gamma0(part);
             double const eta = alfp - 1.0 / (gamma0 * gamma0);
             LocalParticle_add_to_zeta(part,
                 -0.5 * eta * slippage_length * LocalParticle_get_delta(part));
-        //end_per_particle_block
+        END_PER_PARTICLE_BLOCK;
 
         int64_t const n_rf = LineSegmentMapData_len_voltage_rf(el);
         for (int i_rf=0; i_rf<n_rf; i_rf++){
@@ -248,7 +241,7 @@ void longitudinal_motion(LocalParticle *part0,
 
             if (f_rf == 0) continue;
 
-            //start_per_particle_block (part0->part)
+            START_PER_PARTICLE_BLOCK(part0, part);
                 double const K_FACTOR = ( ( double )2.0 *PI ) / C_LIGHT;
                 double const   beta0  = LocalParticle_get_beta0(part);
                 double const   zeta   = LocalParticle_get_zeta(part);
@@ -258,15 +251,15 @@ void longitudinal_motion(LocalParticle *part0,
                 double const   phase  = DEG2RAD  * lag_rf - K_FACTOR * f_rf * tau;
                 double const energy   = q * v_rf * sin(phase);
                 LocalParticle_add_to_energy(part, energy, 1);
-            //end_per_particle_block
+            END_PER_PARTICLE_BLOCK;
         }
 
-        //start_per_particle_block (part->part)
+        START_PER_PARTICLE_BLOCK(part0, part);
             double const gamma0 = LocalParticle_get_gamma0(part);
             double const eta = alfp - 1.0 / (gamma0 * gamma0);
             LocalParticle_add_to_zeta(part,
                 -0.5 * eta * slippage_length * LocalParticle_get_delta(part));
-        //end_per_particle_block
+        END_PER_PARTICLE_BLOCK;
     }
     else if (mode_flag == 3){ // linear motion fixed RF
 
@@ -281,7 +274,7 @@ void longitudinal_motion(LocalParticle *part0,
 
         double const bucket_length = LocalParticle_get_beta0(part0)*C_LIGHT/f_rf;
 
-        //start_per_particle_block (part->part)
+        START_PER_PARTICLE_BLOCK(part0, part);
             double const gamma0 = LocalParticle_get_gamma0(part);
             double const beta0 = LocalParticle_get_beta0(part);
             double const q0 = LocalParticle_get_q0(part);
@@ -304,18 +297,15 @@ void longitudinal_motion(LocalParticle *part0,
 
             LocalParticle_set_zeta(part, new_zeta+shift);
             LocalParticle_update_pzeta(part, new_pzeta);
-
-        //end_per_particle_block
-
+        END_PER_PARTICLE_BLOCK;
     }
-
 }
 
-/*gpufun*/
+GPUFUN
 void uncorrelated_radiation_damping(LocalParticle *part0,
             LineSegmentMapData el){
 
-    //start_per_particle_block (part0->part)
+    START_PER_PARTICLE_BLOCK(part0, part);
         LocalParticle_set_x(part,
             LineSegmentMapData_get_damping_factors(el,0,0)*LocalParticle_get_x(part));
         LocalParticle_set_px(part,
@@ -328,14 +318,14 @@ void uncorrelated_radiation_damping(LocalParticle *part0,
             LineSegmentMapData_get_damping_factors(el,4,4)*LocalParticle_get_zeta(part));
         LocalParticle_update_pzeta(part,
             LineSegmentMapData_get_damping_factors(el,5,5)*LocalParticle_get_pzeta(part));
-    //end_per_particle_block
+    END_PER_PARTICLE_BLOCK;
 }
 
-/*gpufun*/
+GPUFUN
 void correlated_radiation_damping(LocalParticle *part0,
             LineSegmentMapData el){
 
-    //start_per_particle_block (part0->part)
+    START_PER_PARTICLE_BLOCK(part0, part);
         double in[6];
         in[0] = LocalParticle_get_x(part);
         in[1] = LocalParticle_get_px(part);
@@ -356,14 +346,14 @@ void correlated_radiation_damping(LocalParticle *part0,
         LocalParticle_set_py(part, out[3]);
         LocalParticle_set_zeta(part, out[4]);
         LocalParticle_update_pzeta(part,out[5]);
-    //end_per_particle_block
+    END_PER_PARTICLE_BLOCK;
 }
 
-/*gpufun*/
+GPUFUN
 void energy_and_reference_increments(LocalParticle *part0,
     double const energy_increment, double const energy_ref_increment){
 
-    //start_per_particle_block (part0->part)
+    START_PER_PARTICLE_BLOCK(part0, part);
         // Change energy without change of reference momentum
         if (energy_increment !=0){
         LocalParticle_add_to_energy(part, energy_increment, 1);
@@ -390,15 +380,14 @@ void energy_and_reference_increments(LocalParticle *part0,
             LocalParticle_scale_x(part, geo_emit_factor);
             LocalParticle_scale_y(part, geo_emit_factor);
         }
-    //end_per_particle_block
-
+    END_PER_PARTICLE_BLOCK;
 }
 
-/*gpufun*/
+GPUFUN
 void uncorrelated_gaussian_noise(LocalParticle *part0,
                     LineSegmentMapData el){
 
-        //start_per_particle_block (part0->part)
+        START_PER_PARTICLE_BLOCK(part0, part);
             double r = RandomNormal_generate(part);
             LocalParticle_add_to_x(part,
                 r*LineSegmentMapData_get_gauss_noise_matrix(el,0,0));
@@ -418,37 +407,36 @@ void uncorrelated_gaussian_noise(LocalParticle *part0,
             double pzeta = LocalParticle_get_pzeta(part);
             pzeta += r*LineSegmentMapData_get_gauss_noise_matrix(el,5,5);
             LocalParticle_update_pzeta(part,pzeta);
-        //end_per_particle_block
-
+        END_PER_PARTICLE_BLOCK;
 }
 
-/*gpufun*/
+GPUFUN
 void correlated_gaussian_noise(LocalParticle *part0,
                     LineSegmentMapData el){
 
-        //start_per_particle_block (part0->part)
-            double x[6];
-            double r[6];
-            for(unsigned int i=0;i<6;++i){
-                x[i] = RandomNormal_generate(part);
-                r[i] = 0.0;
+    START_PER_PARTICLE_BLOCK(part0, part);
+        double x[6];
+        double r[6];
+        for(unsigned int i=0;i<6;++i){
+            x[i] = RandomNormal_generate(part);
+            r[i] = 0.0;
+        }
+        for(unsigned int i=0;i<6;++i){
+            for(unsigned int j=0;j<6;++j){
+                r[i] += LineSegmentMapData_get_gauss_noise_matrix(el,i,j)*x[j];
             }
-            for(unsigned int i=0;i<6;++i){
-                for(unsigned int j=0;j<6;++j){
-                    r[i] += LineSegmentMapData_get_gauss_noise_matrix(el,i,j)*x[j];
-                }
-            }
-            LocalParticle_add_to_x(part,r[0]);
-            LocalParticle_add_to_px(part,r[1]);
-            LocalParticle_add_to_y(part,r[2]);
-            LocalParticle_add_to_py(part,r[3]);
-            LocalParticle_add_to_zeta(part,r[4]);
-            double pzeta = LocalParticle_get_pzeta(part);
-            LocalParticle_update_pzeta(part,pzeta+r[5]);
-        //end_per_particle_block
+        }
+        LocalParticle_add_to_x(part,r[0]);
+        LocalParticle_add_to_px(part,r[1]);
+        LocalParticle_add_to_y(part,r[2]);
+        LocalParticle_add_to_py(part,r[3]);
+        LocalParticle_add_to_zeta(part,r[4]);
+        double pzeta = LocalParticle_get_pzeta(part);
+        LocalParticle_update_pzeta(part,pzeta+r[5]);
+    END_PER_PARTICLE_BLOCK;
 }
 
-/*gpufun*/
+GPUFUN
 void LineSegmentMap_track_local_particle(LineSegmentMapData el, LocalParticle* part0){
 
     remove_closed_orbit(part0,
@@ -501,9 +489,9 @@ void LineSegmentMap_track_local_particle(LineSegmentMapData el, LocalParticle* p
         LineSegmentMapData_get_py_ref(el, 1));
 
     double const length = LineSegmentMapData_get_length(el);
-    //start_per_particle_block (part0->part)
+    START_PER_PARTICLE_BLOCK(part0, part);
         LocalParticle_add_to_s(part, length);
-    //end_per_particle_block
+    END_PER_PARTICLE_BLOCK;
 }
 
 #endif

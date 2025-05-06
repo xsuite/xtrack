@@ -6,7 +6,11 @@
 #ifndef XTRACK_DRIFT_SLICE_QUADRUPOLE_H
 #define XTRACK_DRIFT_SLICE_QUADRUPOLE_H
 
-/*gpufun*/
+#include <headers/track.h>
+#include <beam_elements/elements_src/track_drift.h>
+
+
+GPUFUN
 void DriftSliceQuadrupole_track_local_particle(
         DriftSliceQuadrupoleData el,
         LocalParticle* part0
@@ -20,10 +24,9 @@ void DriftSliceQuadrupole_track_local_particle(
         double const length = -weight * DriftSliceQuadrupoleData_get__parent_length(el); // m
     #endif
 
-    //start_per_particle_block (part0->part)
+    START_PER_PARTICLE_BLOCK(part0, part);
         Drift_single_particle(part, length);
-    //end_per_particle_block
-
+    END_PER_PARTICLE_BLOCK;
 }
 
 #endif

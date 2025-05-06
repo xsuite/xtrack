@@ -47,20 +47,6 @@ _MODEL_TO_INDEX_STRAIGHT = {k: v for v, k in _INDEX_TO_MODEL_STRAIGHT.items()}
 _NOEXPR_FIELDS = {'model', 'integrator', 'edge_entry_model', 'edge_exit_model',
                   'name_associated_aperture'}
 
-COMMON_MAGNET_SOURCES = [
-    _pkg_root.joinpath('headers/synrad_spectrum.h'),
-    _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
-    _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
-    _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
-    _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
-    _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
-    _pkg_root.joinpath('beam_elements/elements_src/track_magnet_edge.h'),
-    _pkg_root.joinpath('beam_elements/elements_src/track_magnet_drift.h'),
-    _pkg_root.joinpath('beam_elements/elements_src/track_magnet_kick.h'),
-    _pkg_root.joinpath('beam_elements/elements_src/track_magnet_radiation.h'),
-    _pkg_root.joinpath('beam_elements/elements_src/track_magnet.h'),
-]
-
 
 class SynchrotronRadiationRecord(xo.HybridClass):
     _xofields = {
@@ -90,8 +76,7 @@ class MagnetDrift(BeamElement):
     }
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_drift.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/magnet_drift.h'),
+        '#include <beam_elements/elements_src/magnet_drift.h>',
     ]
 
 
@@ -123,8 +108,7 @@ class MagnetKick(BeamElement):
     }
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_kick.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/magnet_kick.h'),
+        '#include <beam_elements/elements_src/magnet_kick.h>',
     ]
 
 
@@ -299,8 +283,7 @@ class Magnet(BeamElement):
     }
 
     _extra_c_sources = [
-        *COMMON_MAGNET_SOURCES,
-        _pkg_root.joinpath('beam_elements/elements_src/magnet.h'),
+        '#include <beam_elements/elements_src/magnet.h>',
     ]
 
     _depends_on = [RandomUniformAccurate, RandomExponential]
@@ -552,14 +535,10 @@ class MagnetEdge(BeamElement):
     }
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_wedge.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_fringe.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_linear.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_mult_fringe.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/track_magnet_edge.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/magnet_edge.h'),
+        '#include <beam_elements/elements_src/magnet_edge.h>',
     ]
+
+    _depends_on = [RandomUniformAccurate, RandomExponential]
 
     _repr_fields = [
         'model', 'is_exit', 'kn', 'ks', 'k_order', 'knl', 'ksl', 'kl_order',

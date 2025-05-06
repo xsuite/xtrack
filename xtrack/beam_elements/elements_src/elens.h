@@ -6,7 +6,9 @@
 #ifndef XTRACK_ELENS_H
 #define XTRACK_ELENS_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+GPUFUN
 void Elens_track_local_particle(ElensData el, LocalParticle* part0){
 
     double elens_length = ElensData_get_elens_length(el);
@@ -24,26 +26,13 @@ void Elens_track_local_particle(ElensData el, LocalParticle* part0){
 
     int const polynomial_order = ElensData_get_polynomial_order(el);
 
-    /*gpuglmem*/ double const* coefficients_polynomial =
+    GPUGLMEM double const* coefficients_polynomial =
                                 ElensData_getp1_coefficients_polynomial(el, 0);
 
-    //start_per_particle_block (part0->part)
-
+    START_PER_PARTICLE_BLOCK(part0, part);
         // electron mass
         double const EMASS  = 510998.928;
         // speed of light
-
-        #if !defined( C_LIGHT )
-            #define   C_LIGHT ( 299792458.0 )
-        #endif /* !defined( C_LIGHT ) */
-
-        #if !defined( EPSILON_0 )
-            #define   EPSILON_0 (8.854187817620e-12)
-        #endif /* !defined( EPSILON_0 ) */
-
-        #if !defined( PI )
-            #define PI (3.1415926535897932384626433832795028841971693993751)
-        #endif /* !defined( PI ) */
 
         double x      = LocalParticle_get_x(part);
         double y      = LocalParticle_get_y(part);
@@ -163,7 +152,7 @@ void Elens_track_local_particle(ElensData el, LocalParticle* part0){
         // LocalParticle_add_to_py(part, dpy);
 
         // LocalParticle_set_py(part, py_hat);
-    //end_per_particle_block
+    END_PER_PARTICLE_BLOCK;
 }
 
 #endif
