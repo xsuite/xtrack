@@ -43,10 +43,10 @@ for nn in tt_bend.name:
 line.set(tt_bend, model='mat-kick-mat', integrator='uniform', num_multipole_kicks=5)
 line.set(tt_quad, model='mat-kick-mat', integrator='uniform', num_multipole_kicks=5)
 
-line['on_sol.2'] = 0
-line['on_sol.4'] = 0
-line['on_sol.6'] = 0
-line['on_sol.8'] = 0
+line['on_sol.2'] = 1
+line['on_sol.4'] = 1
+line['on_sol.6'] = 1
+line['on_sol.8'] = 1
 line['on_spin_bump.2'] = 0
 line['on_spin_bump.4'] = 0
 line['on_spin_bump.6'] = 0
