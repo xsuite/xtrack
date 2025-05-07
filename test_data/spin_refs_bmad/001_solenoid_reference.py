@@ -1,43 +1,49 @@
 from typing import Literal
 
 import numpy as np
+from scipy.constants import c as clight
 
 import xobjects as xo
 import xtrack as xt
 from bmad_track_twiss_spin import bmad_run
 
-mode: Literal['generate', 'verify'] = 'verify'
-file_name = 'kicker_bmad.json'
+mode: Literal['generate', 'verify'] = 'generate'
+file_name = 'solenoid_bmad.json'
 
-env = xt.Environment()
-line = env.new_line(components=[
-    env.new('mykicker', xt.Magnet, length=2.0, knl=[1e-3], ksl=[2e-3]),
-    env.new('mymarker', xt.Marker),
-])
-
-test_cases = [
-    {'x': 1e-3, 'px': 1e-5, 'y': 2e-3, 'py': 2e-5, 'delta': 1e-3, 'spin_x': 0.1, 'spin_z': 0.2, 'atol': 4e-6},
-    # Vary delta in np.linspace(-0.01, 0.01, 5)
-    {'x': 1e-3, 'px': 1e-5, 'y': 2e-3, 'py': 2e-5, 'delta': -0.01, 'spin_x': 0.1, 'spin_z': 0.2, 'atol': 4e-5},
-    {'x': 1e-3, 'px': 1e-5, 'y': 2e-3, 'py': 2e-5, 'delta': -0.005, 'spin_x': 0.1, 'spin_z': 0.2, 'atol': 3e-5},
-    {'x': 1e-3, 'px': 1e-5, 'y': 2e-3, 'py': 2e-5, 'delta': 0, 'spin_x': 0.1, 'spin_z': 0.2, 'atol': 2e-5},
-    {'x': 1e-3, 'px': 1e-5, 'y': 2e-3, 'py': 2e-5, 'delta': 0.005, 'spin_x': 0.1, 'spin_z': 0.2, 'atol': 3e-5},
-    {'x': 1e-3, 'px': 1e-5, 'y': 2e-3, 'py': 2e-5, 'delta': 0.01, 'spin_x': 0.1, 'spin_z': 0.2, 'atol': 4e-5},
-    # Vary px, py in np.linspace(-0.03, 0.03, 5), np.linspace(-0.02, 0.02, 5)
-    {'x': 1e-3, 'px': -0.03, 'y': 2e-3, 'py': -0.02, 'delta': 1e-3, 'spin_x': 0.1, 'spin_z': 0.2, 'atol': 0.04},
-    {'x': 1e-3, 'px': -0.015, 'y': 2e-3, 'py': -0.01, 'delta': 1e-3, 'spin_x': 0.1, 'spin_z': 0.2, 'atol': 0.02},
-    {'x': 1e-3, 'px': 0, 'y': 2e-3, 'py': 0, 'delta': 1e-3, 'spin_x': 0.1, 'spin_z': 0.2, 'atol': 3e-5},
-    {'x': 1e-3, 'px': 0.015, 'y': 2e-3, 'py': 0.01, 'delta': 1e-3, 'spin_x': 0.1, 'spin_z': 0.2, 'atol': 0.02},
-    {'x': 1e-3, 'px': 0.03, 'y': 2e-3, 'py': 0.02, 'delta': 1e-3, 'spin_x': 0.1, 'spin_z': 0.2, 'atol': 0.04},
-]
 
 p0 = xt.Particles(p0c=700e9, mass0=xt.ELECTRON_MASS_EV,
                   anomalous_magnetic_moment=0.00115965218128)
 
+Bz_T = 0.05
+ks = Bz_T / (p0.p0c[0] / clight / p0.q0)
+env = xt.Environment()
+line = env.new_line(components=[
+    env.new('mykicker', xt.Solenoid, length=0.02, ks=ks),
+    env.new('mymarker', xt.Marker),
+])
+
+test_cases = [
+    {'x': 1e-3, 'px': 1e-5, 'y': 2e-3, 'py': 2e-5, 'delta': 1e-3, 'spin_x': 0.1, 'spin_z': 0.2, 'atol': 3e-8},
+    # Vary delta in np.linspace(-0.01, 0.01, 5)
+    {'x': 1e-3, 'px': 1e-5, 'y': 2e-3, 'py': 2e-5, 'delta': -0.01, 'spin_x': 0.1, 'spin_z': 0.2, 'atol': 3e-8},
+    {'x': 1e-3, 'px': 1e-5, 'y': 2e-3, 'py': 2e-5, 'delta': -0.005, 'spin_x': 0.1, 'spin_z': 0.2, 'atol': 3e-8},
+    {'x': 1e-3, 'px': 1e-5, 'y': 2e-3, 'py': 2e-5, 'delta': 0, 'spin_x': 0.1, 'spin_z': 0.2, 'atol': 3e-8},
+    {'x': 1e-3, 'px': 1e-5, 'y': 2e-3, 'py': 2e-5, 'delta': 0.005, 'spin_x': 0.1, 'spin_z': 0.2, 'atol': 3e-8},
+    {'x': 1e-3, 'px': 1e-5, 'y': 2e-3, 'py': 2e-5, 'delta': 0.01, 'spin_x': 0.1, 'spin_z': 0.2, 'atol': 3e-8},
+    # Vary px, py in np.linspace(-0.03, 0.03, 5), np.linspace(-0.02, 0.02, 5)
+    {'x': 1e-3, 'px': -0.03, 'y': 2e-3, 'py': -0.02, 'delta': 1e-3, 'spin_x': 0.1, 'spin_z': 0.2, 'atol': 2e-5},
+    {'x': 1e-3, 'px': -0.015, 'y': 2e-3, 'py': -0.01, 'delta': 1e-3, 'spin_x': 0.1, 'spin_z': 0.2, 'atol': 1e-5},
+    {'x': 1e-3, 'px': 0, 'y': 2e-3, 'py': 0, 'delta': 1e-3, 'spin_x': 0.1, 'spin_z': 0.2, 'atol': 2e-8},
+    {'x': 1e-3, 'px': 0.015, 'y': 2e-3, 'py': 0.01, 'delta': 1e-3, 'spin_x': 0.1, 'spin_z': 0.2, 'atol': 1e-5},
+    {'x': 1e-3, 'px': 0.03, 'y': 2e-3, 'py': 0.02, 'delta': 1e-3, 'spin_x': 0.1, 'spin_z': 0.2, 'atol': 2e-5},
+]
+
+print(f'atols = {repr([case["atol"] for case in test_cases])}')
+
 out = []
 
 if mode == 'verify':
-    with open('kicker_bmad.json', 'r') as f:
+    with open(file_name, 'r') as f:
         out = xt.json.load(f)
 
 for case in test_cases:

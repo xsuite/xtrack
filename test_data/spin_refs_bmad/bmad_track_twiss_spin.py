@@ -83,6 +83,8 @@ def bmad_run(line, track=None):
             #                      f'a0 = {ee.ksl[0]}, b0 = {ee.knl[0]}')
         elif clssname == 'Sextupole':
             out_lines.append(f'{nn}: sextupole, l = {ee.length}, k2 = {ee.k2}')
+        elif clssname == 'Bend':
+            out_lines.append(f'{nn}: sbend, l = {ee.length}, angle = {ee.angle}')
         elif clssname == 'RBend':
             out_lines.append(f'{nn}: rbend, l = {ee.length_straight}, angle = {ee.angle}')
         elif clssname == 'Cavity':
@@ -159,7 +161,7 @@ def bmad_run(line, track=None):
         # Now read into pandas
         df = pd.read_csv(
             io.StringIO(data_str),
-            sep='\s+',
+            sep=r'\s+',
             header=None,
             names=col_names
         )
