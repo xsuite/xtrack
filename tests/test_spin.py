@@ -340,7 +340,7 @@ def test_quadrupole(case, atol):
     xo.assert_allclose(p.spin_z[0], ref['spin_z'], atol=atol, rtol=0)
 
 
-def test_polarization_lep():
+def test_polarization_lep_base():
     line = xt.Line.from_json(BMAD_REF_FILES / 'lep_lattice_to_bmad.json')
 
     line['on_sol.2'] = 1
@@ -365,7 +365,7 @@ def test_polarization_lep():
             data={k: np.array(v) for k, v in data.items()}, index='name'
         )
 
-    bmad_data = xt.json.load(BMAD_REF_FILES / 'lep_bmad.json')
+    bmad_data = xt.json.load(BMAD_REF_FILES / 'lep_bmad_base.json')
     spin_bmad = make_table(data=bmad_data['spin'])
     spin_summary_bmad = bmad_data['spin_summary']
 
@@ -405,4 +405,140 @@ def test_polarization_lep():
     spin_dn_dpz_z_interp = interp1d(spin_bmad.s, spin_bmad.spin_dn_dpz_z)(tw.s)
     xo.assert_allclose(
         tw.spin_dn_ddelta_z, spin_dn_dpz_z_interp, atol=0.15, rtol=0
+    )
+
+
+def test_polarization_lep_spin_bump():
+    line = xt.Line.from_json(BMAD_REF_FILES / 'lep_lattice_to_bmad.json')
+
+    line['on_sol.2'] = 1
+    line['on_sol.4'] = 1
+    line['on_sol.6'] = 1
+    line['on_sol.8'] = 1
+    line['on_spin_bump.2'] = 1
+    line['on_spin_bump.4'] = 1
+    line['on_spin_bump.6'] = 1
+    line['on_spin_bump.8'] = 1
+    line['on_coupl_sol.2'] = 0
+    line['on_coupl_sol.4'] = 0
+    line['on_coupl_sol.6'] = 0
+    line['on_coupl_sol.8'] = 0
+    line['on_coupl_sol_bump.2'] = 0
+    line['on_coupl_sol_bump.4'] = 0
+    line['on_coupl_sol_bump.6'] = 0
+    line['on_coupl_sol_bump.8'] = 0
+
+    def make_table(data):
+        return xt.Table(
+            data={k: np.array(v) for k, v in data.items()}, index='name'
+        )
+
+    bmad_data = xt.json.load(BMAD_REF_FILES / 'lep_bmad_spin_bump.json')
+    spin_bmad = make_table(data=bmad_data['spin'])
+    spin_summary_bmad = bmad_data['spin_summary']
+
+    # Make the tables the same length
+    start, end = 'ip1', 'bemi.ql1a.l1'
+    spin_bmad = spin_bmad.rows[start.upper():end.upper()]
+    tw = line.twiss4d(polarization=True).rows[start:end]
+
+    bmad_polarization_eq = spin_summary_bmad['Polarization Limit DK']
+    xo.assert_allclose(
+        tw.spin_polarization_eq, bmad_polarization_eq, atol=3e-2, rtol=0,
+    )
+
+    for kk in ['spin_x', 'spin_y', 'spin_z',
+        'spin_dn_dpz_x', 'spin_dn_dpz_y', 'spin_dn_dpz_z']:
+        spin_bmad[kk] *= -1
+
+    spin_x_interp = interp1d(spin_bmad.s, spin_bmad.spin_x)(tw.s)
+    xo.assert_allclose(tw.spin_x, spin_x_interp, atol=1e-5, rtol=0)
+
+    spin_y_interp = interp1d(spin_bmad.s, spin_bmad.spin_y)(tw.s)
+    xo.assert_allclose(tw.spin_y, spin_y_interp, atol=3e-7, rtol=0)
+
+    spin_z_interp = interp1d(spin_bmad.s, spin_bmad.spin_z)(tw.s)
+    xo.assert_allclose(tw.spin_z, spin_z_interp, atol=8e-6, rtol=0)
+
+    spin_dn_dpz_x_interp = interp1d(spin_bmad.s, spin_bmad.spin_dn_dpz_x)(tw.s)
+    xo.assert_allclose(
+        tw.spin_dn_ddelta_x, spin_dn_dpz_x_interp, atol=0.1, rtol=0
+    )
+
+    spin_dn_dpz_y_interp = interp1d(spin_bmad.s, spin_bmad.spin_dn_dpz_y)(tw.s)
+    xo.assert_allclose(
+        tw.spin_dn_ddelta_y, spin_dn_dpz_y_interp, atol=0.003, rtol=0
+    )
+
+    spin_dn_dpz_z_interp = interp1d(spin_bmad.s, spin_bmad.spin_dn_dpz_z)(tw.s)
+    xo.assert_allclose(
+        tw.spin_dn_ddelta_z, spin_dn_dpz_z_interp, atol=0.1, rtol=0
+    )
+
+
+def test_polarization_lep_sext_corr():
+    line = xt.Line.from_json(BMAD_REF_FILES / 'lep_lattice_to_bmad.json')
+
+    line['on_sol.2'] = 1
+    line['on_sol.4'] = 1
+    line['on_sol.6'] = 1
+    line['on_sol.8'] = 1
+    line['on_spin_bump.2'] = 1
+    line['on_spin_bump.4'] = 1
+    line['on_spin_bump.6'] = 1
+    line['on_spin_bump.8'] = 1
+    line['on_coupl_sol.2'] = 1
+    line['on_coupl_sol.4'] = 1
+    line['on_coupl_sol.6'] = 1
+    line['on_coupl_sol.8'] = 1
+    line['on_coupl_sol_bump.2'] = 1
+    line['on_coupl_sol_bump.4'] = 1
+    line['on_coupl_sol_bump.6'] = 1
+    line['on_coupl_sol_bump.8'] = 1
+
+    def make_table(data):
+        return xt.Table(
+            data={k: np.array(v) for k, v in data.items()}, index='name'
+        )
+
+    bmad_data = xt.json.load(BMAD_REF_FILES / 'lep_bmad_sext_corr.json')
+    spin_bmad = make_table(data=bmad_data['spin'])
+    spin_summary_bmad = bmad_data['spin_summary']
+
+    # Make the tables the same length
+    start, end = 'ip1', 'bemi.ql1a.l1'
+    spin_bmad = spin_bmad.rows[start.upper():end.upper()]
+    tw = line.twiss4d(polarization=True).rows[start:end]
+
+    bmad_polarization_eq = spin_summary_bmad['Polarization Limit DK']
+    xo.assert_allclose(
+        tw.spin_polarization_eq, bmad_polarization_eq, atol=3e-3, rtol=0,
+    )
+
+    for kk in ['spin_x', 'spin_y', 'spin_z',
+        'spin_dn_dpz_x', 'spin_dn_dpz_y', 'spin_dn_dpz_z']:
+        spin_bmad[kk] *= -1
+
+    spin_x_interp = interp1d(spin_bmad.s, spin_bmad.spin_x)(tw.s)
+    xo.assert_allclose(tw.spin_x, spin_x_interp, atol=1e-5, rtol=0)
+
+    spin_y_interp = interp1d(spin_bmad.s, spin_bmad.spin_y)(tw.s)
+    xo.assert_allclose(tw.spin_y, spin_y_interp, atol=3e-7, rtol=0)
+
+    spin_z_interp = interp1d(spin_bmad.s, spin_bmad.spin_z)(tw.s)
+    xo.assert_allclose(tw.spin_z, spin_z_interp, atol=8e-6, rtol=0)
+
+    spin_dn_dpz_x_interp = interp1d(spin_bmad.s, spin_bmad.spin_dn_dpz_x)(tw.s)
+    xo.assert_allclose(
+        tw.spin_dn_ddelta_x, spin_dn_dpz_x_interp, atol=0.1, rtol=0
+    )
+
+    spin_dn_dpz_y_interp = interp1d(spin_bmad.s, spin_bmad.spin_dn_dpz_y)(tw.s)
+    xo.assert_allclose(
+        tw.spin_dn_ddelta_y, spin_dn_dpz_y_interp, atol=0.002, rtol=0
+    )
+
+    spin_dn_dpz_z_interp = interp1d(spin_bmad.s, spin_bmad.spin_dn_dpz_z)(tw.s)
+    xo.assert_allclose(
+        tw.spin_dn_ddelta_z, spin_dn_dpz_z_interp, atol=0.1, rtol=0
     )

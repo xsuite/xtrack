@@ -6,8 +6,8 @@ from scipy.interpolate import interp1d
 
 num_turns = 500
 
-mode: Literal['generate', 'verify'] = 'generate'
-file_name = 'lep_bmad.json'
+mode: Literal['generate', 'verify'] = 'verify'
+file_name = 'lep_bmad_spin_bump.json'
 
 vrfc231 = 12.65 # qs=0.6
 method = '6d'
@@ -37,22 +37,29 @@ line.set(tt_quad, model='mat-kick-mat', integrator='uniform', num_multipole_kick
 
 line.to_json('lep_lattice_to_bmad.json')
 
-line['on_sol.2'] = 1
-line['on_sol.4'] = 1
-line['on_sol.6'] = 1
-line['on_sol.8'] = 1
-line['on_spin_bump.2'] = 0
-line['on_spin_bump.4'] = 0
-line['on_spin_bump.6'] = 0
-line['on_spin_bump.8'] = 0
-line['on_coupl_sol.2'] = 0
-line['on_coupl_sol.4'] = 0
-line['on_coupl_sol.6'] = 0
-line['on_coupl_sol.8'] = 0
-line['on_coupl_sol_bump.2'] = 0
-line['on_coupl_sol_bump.4'] = 0
-line['on_coupl_sol_bump.6'] = 0
-line['on_coupl_sol_bump.8'] = 0
+
+on_sol = 1
+on_spin_bump = 1
+on_coupl_sol = 0
+on_coupl_sol_bump = 0
+
+
+line['on_sol.2'] = on_sol
+line['on_sol.4'] = on_sol
+line['on_sol.6'] = on_sol
+line['on_sol.8'] = on_sol
+line['on_spin_bump.2'] = on_spin_bump
+line['on_spin_bump.4'] = on_spin_bump
+line['on_spin_bump.6'] = on_spin_bump
+line['on_spin_bump.8'] = on_spin_bump
+line['on_coupl_sol.2'] = on_coupl_sol
+line['on_coupl_sol.4'] = on_coupl_sol
+line['on_coupl_sol.6'] = on_coupl_sol
+line['on_coupl_sol.8'] = on_coupl_sol
+line['on_coupl_sol_bump.2'] = on_coupl_sol_bump
+line['on_coupl_sol_bump.4'] = on_coupl_sol_bump
+line['on_coupl_sol_bump.6'] = on_coupl_sol_bump
+line['on_coupl_sol_bump.8'] = on_coupl_sol_bump
 
 
 def make_table(data):
@@ -87,7 +94,7 @@ tw = line.twiss4d(polarization=True).rows[start:end]
 
 print('Xsuite polarization: ', tw.spin_polarization_eq)
 print('Bmad polarization:   ', spin_summary_bmad['Polarization Limit DK'])
-xo.assert_allclose(tw.spin_polarization_eq, spin_summary_bmad['Polarization Limit DK'], atol=6e-4, rtol=0)
+xo.assert_allclose(tw.spin_polarization_eq, spin_summary_bmad['Polarization Limit DK'], atol=3e-2, rtol=0)
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -118,13 +125,13 @@ plt.ylabel('spin_z')
 plt.legend()
 
 spin_x_interp = interp1d(spin_bmad.s, spin_bmad.spin_x)(tw.s)
-xo.assert_allclose(tw.spin_x, spin_x_interp, atol=6e-9, rtol=0)
+xo.assert_allclose(tw.spin_x, spin_x_interp, atol=1e-5, rtol=0)
 
 spin_y_interp = interp1d(spin_bmad.s, spin_bmad.spin_y)(tw.s)
-xo.assert_allclose(tw.spin_y, spin_y_interp, atol=5e-8, rtol=0)
+xo.assert_allclose(tw.spin_y, spin_y_interp, atol=3e-7, rtol=0)
 
 spin_z_interp = interp1d(spin_bmad.s, spin_bmad.spin_z)(tw.s)
-xo.assert_allclose(tw.spin_z, spin_z_interp, atol=6e-9, rtol=0)
+xo.assert_allclose(tw.spin_z, spin_z_interp, atol=8e-6, rtol=0)
 
 
 plt.figure(3, figsize=(8, 6))
@@ -150,12 +157,12 @@ plt.xlabel('s [m]')
 plt.legend()
 
 spin_dn_dpz_x_interp = interp1d(spin_bmad.s, spin_bmad.spin_dn_dpz_x)(tw.s)
-xo.assert_allclose(tw.spin_dn_ddelta_x, spin_dn_dpz_x_interp, atol=0.15, rtol=0)
+xo.assert_allclose(tw.spin_dn_ddelta_x, spin_dn_dpz_x_interp, atol=0.1, rtol=0)
 
 spin_dn_dpz_y_interp = interp1d(spin_bmad.s, spin_bmad.spin_dn_dpz_y)(tw.s)
-xo.assert_allclose(tw.spin_dn_ddelta_y, spin_dn_dpz_y_interp, atol=0.02, rtol=0)
+xo.assert_allclose(tw.spin_dn_ddelta_y, spin_dn_dpz_y_interp, atol=0.003, rtol=0)
 
 spin_dn_dpz_z_interp = interp1d(spin_bmad.s, spin_bmad.spin_dn_dpz_z)(tw.s)
-xo.assert_allclose(tw.spin_dn_ddelta_z, spin_dn_dpz_z_interp, atol=0.15, rtol=0)
+xo.assert_allclose(tw.spin_dn_ddelta_z, spin_dn_dpz_z_interp, atol=0.1, rtol=0)
 
 plt.show()
