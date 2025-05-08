@@ -6,7 +6,7 @@
 #ifndef XTRACK_LIMITRECT_H
 #define XTRACK_LIMITRECT_H
 
-/*gpufun*/
+GPUFUN
 void LimitRect_track_local_particle(LimitRectData el, LocalParticle* part0){
 
     double const min_x = LimitRectData_get_min_x(el);

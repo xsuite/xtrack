@@ -6,7 +6,10 @@
 #ifndef XTRACK_LIMITRECTELLIPSE_H
 #define XTRACK_LIMITRECTELLIPSE_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void LimitRectEllipse_track_local_particle(LimitRectEllipseData el, LocalParticle* part0){
 
     double const max_x = LimitRectEllipseData_get_max_x(el);

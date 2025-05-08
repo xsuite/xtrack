@@ -6,7 +6,10 @@
 #ifndef XTRACK_LONGITUDINALLIMITRECT_H
 #define XTRACK_LONGITUDINALLIMITRECT_H
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void LongitudinalLimitRect_track_local_particle(LongitudinalLimitRectData el, LocalParticle* part0){
 
     double const min_zeta = LongitudinalLimitRectData_get_min_zeta(el);

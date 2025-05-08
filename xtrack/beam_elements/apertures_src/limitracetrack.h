@@ -6,8 +6,10 @@
 #ifndef XTRACK_LIMITRACETRACK_H
 #define XTRACK_LIMITRACETRACK_H
 
+#include <headers/track.h>
 
-/*gpufun*/
+
+GPUFUN
 void LimitRacetrack_track_local_particle(LimitRacetrackData el, LocalParticle* part0){
 
     double const min_x = LimitRacetrackData_get_min_x(el);
