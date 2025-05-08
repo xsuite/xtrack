@@ -2598,7 +2598,7 @@ class TwissInit:
                 zeta=(zeta or 0.),
                 delta=(delta or 0.),
                 spin_x=(spin_x or 0.),
-                spin_y=(spin_y or 0,),
+                spin_y=(spin_y or 0.),
                 spin_z=(spin_z or 0.)
             )
         else:
