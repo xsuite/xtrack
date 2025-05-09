@@ -116,51 +116,9 @@ def compute_linear_normal_form(M, symplectify=False, only_4d_block=False,
     if stability_tol is not None:
         _assert_matrix_stability(w0, stability_tol)
 
-    a0 = np.real(v0)
-    b0 = np.imag(v0)
 
-    index_list = [0,5,1,2,3,4] # we mix them up to check the algorithm
 
-    ##### Sort modes in pairs of conjugate modes #####
-    conj_modes = np.zeros([3,2], dtype=np.int64)
-    for j in [0,1]:
-        conj_modes[j,0] = index_list[0]
-        del index_list[0]
-
-        min_index = 0
-        min_diff = abs(np.imag(w0[conj_modes[j,0]] + w0[index_list[min_index]]))
-        for i in range(1,len(index_list)):
-            diff = abs(np.imag(w0[conj_modes[j,0]] + w0[index_list[i]]))
-            if min_diff > diff:
-                min_diff = diff
-                min_index = i
-
-        conj_modes[j,1] = index_list[min_index]
-        del index_list[min_index]
-
-    conj_modes[2,0] = index_list[0]
-    conj_modes[2,1] = index_list[1]
-
-    ##################################################
-    #### Select mode from pairs with positive (real @ S @ imag) #####
-
-    modes = np.empty(3, dtype=np.int64)
-    for ii,ind in enumerate(conj_modes):
-        if np.matmul(np.matmul(a0[:,ind[0]], S), b0[:,ind[0]]) > 0:
-            modes[ii] = ind[0]
-        else:
-            modes[ii] = ind[1]
-
-    ##################################################
-    #### Sort modes such that (1,2,3) is close to (x,y,zeta) ####
-    # Identify the longitudinal mode
-    for i in [0,1]:
-        if abs(v0[:,modes[2]])[5] < abs(v0[:,modes[i]])[5]:
-            modes[2], modes[i] = modes[i], modes[2]
-
-    # Identify the vertical mode
-    if abs(v0[:,modes[1]])[2] < abs(v0[:,modes[0]])[2]:
-        modes[0], modes[1] = modes[1], modes[0]
+    modes = sort_modes(v0, w0)
 
     ##################################################
     #### Rotate eigenvectors to the Courant-Snyder parameterization ####
@@ -255,3 +213,54 @@ def _assert_matrix_stability(eigenvals, tol=1e-3):
     if np.any(np.abs(eigenvals) > 1. + tol):
         raise ValueError('One-turn matrix is unstable. '
                          f'Magnitudes of eigenvalues are:\n{repr(np.abs(eigenvals))}')
+
+
+def sort_modes(v0, w0):
+
+    a0 = np.real(v0)
+    b0 = np.imag(v0)
+
+    index_list = [0,5,1,2,3,4] # we mix them up to check the algorithm
+
+    ##### Sort modes in pairs of conjugate modes #####
+    conj_modes = np.zeros([3,2], dtype=np.int64)
+    for j in [0,1]:
+        conj_modes[j,0] = index_list[0]
+        del index_list[0]
+
+        min_index = 0
+        min_diff = abs(np.imag(w0[conj_modes[j,0]] + w0[index_list[min_index]]))
+        for i in range(1,len(index_list)):
+            diff = abs(np.imag(w0[conj_modes[j,0]] + w0[index_list[i]]))
+            if min_diff > diff:
+                min_diff = diff
+                min_index = i
+
+        conj_modes[j,1] = index_list[min_index]
+        del index_list[min_index]
+
+    conj_modes[2,0] = index_list[0]
+    conj_modes[2,1] = index_list[1]
+
+    ##################################################
+    #### Select mode from pairs with positive (real @ S @ imag) #####
+
+    modes = np.empty(3, dtype=np.int64)
+    for ii,ind in enumerate(conj_modes):
+        if np.matmul(np.matmul(a0[:,ind[0]], S), b0[:,ind[0]]) > 0:
+            modes[ii] = ind[0]
+        else:
+            modes[ii] = ind[1]
+
+    ##################################################
+    #### Sort modes such that (1,2,3) is close to (x,y,zeta) ####
+    # Identify the longitudinal mode
+    for i in [0,1]:
+        if abs(v0[:,modes[2]])[5] < abs(v0[:,modes[i]])[5]:
+            modes[2], modes[i] = modes[i], modes[2]
+
+    # Identify the vertical mode
+    if abs(v0[:,modes[1]])[2] < abs(v0[:,modes[0]])[2]:
+        modes[0], modes[1] = modes[1], modes[0]
+
+    return modes

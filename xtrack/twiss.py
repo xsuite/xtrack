@@ -1521,9 +1521,8 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
     w0, v0 = np.linalg.eig(R_matrix)
 
     # Sort eigenvalues
-    indx = [
-        int(np.floor(np.argmax(np.abs(v0[:, 2*ii]))/2)) for ii in range(3)]
-    eigenvals = np.array([w0[ii*2] for ii in indx])
+    modes = lnf.sort_modes(v0, w0)
+    eigenvals = np.array([w0[ii] for ii in modes])
 
     # Damping constants and partition numbers
     energy0 = particle_on_co.mass0 * particle_on_co._xobject.gamma0[0]
