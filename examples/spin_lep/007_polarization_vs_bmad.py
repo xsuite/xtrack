@@ -1,3 +1,9 @@
+"""
+To intall bmad:
+  conda install -c conda-forge bmad
+  pip install pytao
+"""
+
 import xtrack as xt
 import xpart as xp
 import xobjects as xo
@@ -43,22 +49,26 @@ for nn in tt_bend.name:
 line.set(tt_bend, model='mat-kick-mat', integrator='uniform', num_multipole_kicks=5)
 line.set(tt_quad, model='mat-kick-mat', integrator='uniform', num_multipole_kicks=5)
 
-line['on_sol.2'] = 0
-line['on_sol.4'] = 0
-line['on_sol.6'] = 0
-line['on_sol.8'] = 0
-line['on_spin_bump.2'] = 0
-line['on_spin_bump.4'] = 0
-line['on_spin_bump.6'] = 0
-line['on_spin_bump.8'] = 0
-line['on_coupl_sol.2'] = 0
-line['on_coupl_sol.4'] = 0
-line['on_coupl_sol.6'] = 0
-line['on_coupl_sol.8'] = 0
-line['on_coupl_sol_bump.2'] = 0
-line['on_coupl_sol_bump.4'] = 0
-line['on_coupl_sol_bump.6'] = 0
-line['on_coupl_sol_bump.8'] = 0
+line['on_solenoids'] = 0
+line['on_spin_bumps'] = 0
+line['on_coupling_corrections'] = 1
+
+line['on_sol.2'] = 'on_solenoids'
+line['on_sol.4'] = 'on_solenoids'
+line['on_sol.6'] = 'on_solenoids'
+line['on_sol.8'] = 'on_solenoids'
+line['on_spin_bump.2'] = 'on_spin_bumps'
+line['on_spin_bump.4'] = 'on_spin_bumps'
+line['on_spin_bump.6'] = 'on_spin_bumps'
+line['on_spin_bump.8'] = 'on_spin_bumps'
+line['on_coupl_sol.2'] = 'on_coupling_corrections * on_solenoids'
+line['on_coupl_sol.4'] = 'on_coupling_corrections * on_solenoids'
+line['on_coupl_sol.6'] = 'on_coupling_corrections * on_solenoids'
+line['on_coupl_sol.8'] = 'on_coupling_corrections * on_solenoids'
+line['on_coupl_sol_bump.2'] = 'on_coupling_corrections * on_spin_bumps'
+line['on_coupl_sol_bump.4'] = 'on_coupling_corrections * on_spin_bumps'
+line['on_coupl_sol_bump.6'] = 'on_coupling_corrections * on_spin_bumps'
+line['on_coupl_sol_bump.8'] = 'on_coupling_corrections * on_spin_bumps'
 
 if bmad:
     from bmad_track_twiss_spin import bmad_run
