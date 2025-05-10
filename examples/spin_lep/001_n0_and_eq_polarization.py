@@ -95,5 +95,13 @@ plt.plot(tw.s, tw.spin_dn_ddelta_z)
 plt.ylabel('dn_ddelta_z')
 plt.xlabel('s [m]')
 
+tw_ir4_right = tw.rows['ip4':'ip5']
+plt.figure(4)
+plt.axis('equal')
+plt.plot(tw_ir4_right.spin_z*1e3, tw_ir4_right.spin_x*1e3)
+plt.ylabel('spin_x [mrad]')
+plt.xlabel('spin_z [mrad]')
+plt.title('Spin precession in between IP4 and IP5')
+plt.grid(alpha=0.5)
 
 plt.show()
