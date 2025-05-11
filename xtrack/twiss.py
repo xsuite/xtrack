@@ -4549,9 +4549,16 @@ def _compute_spin_polarization(tw, line, method):
         pol_inf = 8 / 5 / np.sqrt(3) * alpha_minus_co / alpha_plus_co
         pol_eq = 8 / 5 / np.sqrt(3) * alpha_minus / alpha_plus
 
-        t_pol_inf_s = 1/(5 * np.sqrt(3) / 8 * r0 * hbar * tw.gamma0**5 / m0_kg * alpha_plus_co)
-        t_pol_s = 1/(5 * np.sqrt(3) / 8 * r0 * hbar * tw.gamma0**5 / m0_kg * alpha_plus)
+        one_over_t_pol_component_s = (
+            5 * np.sqrt(3) / 8 * r0 * hbar * tw.gamma0**5 / m0_kg * alpha_plus_co)
+        one_over_t_pol_buildup_s = (
+            5 * np.sqrt(3) / 8 * r0 * hbar * tw.gamma0**5 / m0_kg * alpha_plus)
 
+        one_over_t_depol_component_s = one_over_t_pol_buildup_s - one_over_t_pol_component_s
+
+        t_pol_component_s = 1 / one_over_t_pol_component_s
+        t_pol_buildup_s = 1 / one_over_t_pol_buildup_s
+        t_depol_component_s = 1 / one_over_t_depol_component_s
 
         cols = {
             'spin_dn_ddelta_x': dn_ddelta[:, 0],
@@ -4563,7 +4570,8 @@ def _compute_spin_polarization(tw, line, method):
 
         other_data = {
             'spin_polarization_eq': pol_eq,
-            'spin_polarization_limit_no_rad': pol_inf,
+            'spin_t_pol_buildup_s': t_pol_buildup_s,
+            'spin_polarization_inf_no_depol': pol_inf,
             'spin_alpha_plus_co': alpha_plus_co,
             'spin_alpha_minus_co': alpha_minus_co,
             'spin_alpha_plus': alpha_plus,
@@ -4571,8 +4579,9 @@ def _compute_spin_polarization(tw, line, method):
             'spin_int_kappa3_n0_ib': int_kappa3_n0_ib,
             'spin_int_kappa3_dn_ddelta_ib': int_kappa3_dn_ddelta_ib,
             'spin_int_kappa3_11_18_dn_ddelta_sq': int_kappa3_11_18_dn_ddelta_sq,
-            'spin_t_pol_no_rad_s': t_pol_inf_s,
-            'spin_t_pol_s': t_pol_s,
+            'spin_t_pol_component_s': t_pol_component_s,
+            'spin_t_depol_component_s': t_depol_component_s,
+
             # For diagnostics
             '_spin_ee_side': EE_side,
             '_spin_scale_factors': scales,

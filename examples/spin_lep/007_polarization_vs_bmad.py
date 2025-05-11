@@ -17,11 +17,11 @@ from scipy.constants import hbar
 num_turns = 500
 bmad = True
 
-# vrfc231 = 0.
-# method = '4d'
+vrfc231 = 0.
+method = '4d'
 
-vrfc231 = 12.65 # qs=0.6
-method = '6d'
+# vrfc231 = 12.65 # qs=0.6
+# method = '6d'
 
 line = xt.Line.from_json('lep_sol.json')
 line.particle_ref.anomalous_magnetic_moment=0.00115965218128
@@ -49,8 +49,8 @@ for nn in tt_bend.name:
 line.set(tt_bend, model='mat-kick-mat', integrator='uniform', num_multipole_kicks=5)
 line.set(tt_quad, model='mat-kick-mat', integrator='uniform', num_multipole_kicks=5)
 
-line['on_solenoids'] = 0
-line['on_spin_bumps'] = 0
+line['on_solenoids'] = 1
+line['on_spin_bumps'] = 1
 line['on_coupling_corrections'] = 1
 
 line['on_sol.2'] = 'on_solenoids'
