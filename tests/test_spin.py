@@ -381,6 +381,11 @@ def test_polarization_lep_base():
     xo.assert_allclose(tw.spin_t_pol_component_s, bmad_pol_time_s, atol=0, rtol=1e-2)
     xo.assert_allclose(tw.spin_t_depol_component_s, bmad_depol_time_s, atol=0, rtol=3e-2)
 
+    xo.assert_allclose(tw.spin_t_pol_buildup_s,
+        (1/tw.spin_t_pol_component_s + 1/tw.spin_t_depol_component_s)**-1,
+        atol=0, rtol=1e-5)
+
+
     for kk in ['spin_x', 'spin_y', 'spin_z',
         'spin_dn_dpz_x', 'spin_dn_dpz_y', 'spin_dn_dpz_z']:
         spin_bmad[kk] *= -1
@@ -450,6 +455,11 @@ def test_polarization_lep_spin_bump():
     xo.assert_allclose(tw.spin_polarization_eq, bmad_polarization_eq, atol=0, rtol=3e-2)
     xo.assert_allclose(tw.spin_t_pol_component_s, bmad_pol_time_s, atol=0, rtol=1e-2)
     xo.assert_allclose(tw.spin_t_depol_component_s, bmad_depol_time_s, atol=0, rtol=12e-2)
+
+    xo.assert_allclose(tw.spin_t_pol_buildup_s,
+        (1/tw.spin_t_pol_component_s + 1/tw.spin_t_depol_component_s)**-1,
+        atol=0, rtol=1e-5)
+
 
     for kk in ['spin_x', 'spin_y', 'spin_z',
         'spin_dn_dpz_x', 'spin_dn_dpz_y', 'spin_dn_dpz_z']:
