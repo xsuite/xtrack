@@ -91,18 +91,20 @@ chirper = Chirper(
 )
 line.insert('chirper', obj=chirper, at='bfkv1.qs18.r2@start')
 
-dq_excitation =  20e-4
+dq_sweep = 0.01
+
+q_start_tests = np.linspace(0.425, 0.455, 5)
+
 
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
 
-for iii in range(5):
+for iii, qqq in enumerate(q_start_tests):
     num_turns = 20000
-    q_start_excitation = 0.445 + iii * dq_excitation
-    # dq_excitation = 0.
-    q_end_excitation = 0.455 + iii * dq_excitation
-    k0sl_peak = 2e-6
+    q_start_excitation = qqq
+    q_end_excitation = q_start_excitation + dq_sweep
+    k0sl_peak = 5e-6
 
     chirper.k0sl = k0sl_peak
     chirper.q_start = q_start_excitation
