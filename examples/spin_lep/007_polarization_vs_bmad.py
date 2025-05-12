@@ -53,23 +53,6 @@ line['on_solenoids'] = 1
 line['on_spin_bumps'] = 1
 line['on_coupling_corrections'] = 1
 
-line['on_sol.2'] = 'on_solenoids'
-line['on_sol.4'] = 'on_solenoids'
-line['on_sol.6'] = 'on_solenoids'
-line['on_sol.8'] = 'on_solenoids'
-line['on_spin_bump.2'] = 'on_spin_bumps'
-line['on_spin_bump.4'] = 'on_spin_bumps'
-line['on_spin_bump.6'] = 'on_spin_bumps'
-line['on_spin_bump.8'] = 'on_spin_bumps'
-line['on_coupl_sol.2'] = 'on_coupling_corrections * on_solenoids'
-line['on_coupl_sol.4'] = 'on_coupling_corrections * on_solenoids'
-line['on_coupl_sol.6'] = 'on_coupling_corrections * on_solenoids'
-line['on_coupl_sol.8'] = 'on_coupling_corrections * on_solenoids'
-line['on_coupl_sol_bump.2'] = 'on_coupling_corrections * on_spin_bumps'
-line['on_coupl_sol_bump.4'] = 'on_coupling_corrections * on_spin_bumps'
-line['on_coupl_sol_bump.6'] = 'on_coupling_corrections * on_spin_bumps'
-line['on_coupl_sol_bump.8'] = 'on_coupling_corrections * on_spin_bumps'
-
 if bmad:
     from bmad_track_twiss_spin import bmad_run
     bmad_data = bmad_run(line)

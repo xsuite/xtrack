@@ -21,22 +21,8 @@ opt.solve()
 tw = line.twiss4d(spin=True, radiation_integrals=True, polarization=True)
 
 # All off
-line['on_sol.2'] = 0
-line['on_sol.4'] = 0
-line['on_sol.6'] = 0
-line['on_sol.8'] = 0
-line['on_spin_bump.2'] = 0
-line['on_spin_bump.4'] = 0
-line['on_spin_bump.6'] = 0
-line['on_spin_bump.8'] = 0
-line['on_coupl_sol.2'] = 0
-line['on_coupl_sol.4'] = 0
-line['on_coupl_sol.6'] = 0
-line['on_coupl_sol.8'] = 0
-line['on_coupl_sol_bump.2'] = 0
-line['on_coupl_sol_bump.4'] = 0
-line['on_coupl_sol_bump.6'] = 0
-line['on_coupl_sol_bump.8'] = 0
+line['on_solenoids'] = 0
+line['on_spin_bumps'] = 0
 
 # RF
 line['vrfc231'] = 12.65 # qs=0.6
@@ -77,14 +63,8 @@ line.discard_tracker()
 line.build_tracker(_context=xo.ContextCpu(omp_num_threads=0))
 
 # Solenoids without bumps
-line['on_sol.2'] = 1
-line['on_sol.4'] = 1
-line['on_sol.6'] = 1
-line['on_sol.8'] = 1
-line['on_coupl_sol.2'] = 1
-line['on_coupl_sol.4'] = 1
-line['on_coupl_sol.6'] = 1
-line['on_coupl_sol.8'] = 1
+line['on_solenoids'] = 1
+line['on_spin_bumps'] = 0
 
 tw_sol = line.twiss(spin=True, radiation_integrals=True, polarization=True)
 line.configure_radiation(model='mean')
@@ -119,14 +99,8 @@ line.discard_tracker()
 line.build_tracker(_context=xo.ContextCpu(omp_num_threads=0))
 
 # Solenoids with bumps
-line['on_spin_bump.2'] = 1
-line['on_spin_bump.4'] = 1
-line['on_spin_bump.6'] = 1
-line['on_spin_bump.8'] = 1
-line['on_coupl_sol_bump.2'] = 1
-line['on_coupl_sol_bump.4'] = 1
-line['on_coupl_sol_bump.6'] = 1
-line['on_coupl_sol_bump.8'] = 1
+line['on_solenoids'] = 1
+line['on_spin_bumps'] = 1
 
 tw_sol_bump = line.twiss(spin=True, radiation_integrals=True, polarization=True)
 line.configure_radiation(model='mean')

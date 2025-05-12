@@ -220,22 +220,37 @@ line['on_coupl_sol.8'] = 0
 line['on_coupl_sol_bump.8'] = 0
 
 # All on
-line['on_sol.2'] = 1
-line['on_sol.4'] = 1
-line['on_sol.6'] = 1
-line['on_sol.8'] = 1
-line['on_spin_bump.2'] = 1
-line['on_spin_bump.4'] = 1
-line['on_spin_bump.6'] = 1
-line['on_spin_bump.8'] = 1
-line['on_coupl_sol.2'] = 1
-line['on_coupl_sol.4'] = 1
-line['on_coupl_sol.6'] = 1
-line['on_coupl_sol.8'] = 1
-line['on_coupl_sol_bump.2'] = 1
-line['on_coupl_sol_bump.4'] = 1
-line['on_coupl_sol_bump.6'] = 1
-line['on_coupl_sol_bump.8'] = 1
+line['on_solenoids'] = 1
+line['on_spin_bumps'] = 1
+line['on_coupling_corrections'] = 1
+
+# Set solenoids, spin bumps and coupling corrections
+line['on_sol.2'] = 'on_solenoids'
+line['on_sol.4'] = 'on_solenoids'
+line['on_sol.6'] = 'on_solenoids'
+line['on_sol.8'] = 'on_solenoids'
+line['on_spin_bump.2'] = 'on_spin_bumps'
+line['on_spin_bump.4'] = 'on_spin_bumps'
+line['on_spin_bump.6'] = 'on_spin_bumps'
+line['on_spin_bump.8'] = 'on_spin_bumps'
+line['on_coupl_sol.2'] = 'on_coupling_corrections * on_solenoids'
+line['on_coupl_sol.4'] = 'on_coupling_corrections * on_solenoids'
+line['on_coupl_sol.6'] = 'on_coupling_corrections * on_solenoids'
+line['on_coupl_sol.8'] = 'on_coupling_corrections * on_solenoids'
+line['on_coupl_sol_bump.2'] = 'on_coupling_corrections * on_spin_bumps'
+line['on_coupl_sol_bump.4'] = 'on_coupling_corrections * on_spin_bumps'
+line['on_coupl_sol_bump.6'] = 'on_coupling_corrections * on_spin_bumps'
+line['on_coupl_sol_bump.8'] = 'on_coupling_corrections * on_spin_bumps'
+
+tt = line.get_table(attr=True)
+tt_bend = tt.rows[(tt.element_type == 'RBend') | (tt.element_type == 'Bend')]
+tt_quad = tt.rows[tt.element_type == 'Quadrupole']
+tt_sext = tt.rows[tt.element_type == 'Sextupole']
+
+# Set interators and multipole kicks
+line.set(tt_bend, model='mat-kick-mat', integrator='uniform', num_multipole_kicks=5)
+line.set(tt_quad, model='mat-kick-mat', integrator='uniform', num_multipole_kicks=5)
+
 tw = line.twiss4d(spin=True, radiation_integrals=True)
 
 line.to_json('lep_sol.json')

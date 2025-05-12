@@ -20,22 +20,9 @@ opt.solve()
 
 tw = line.twiss4d(spin=True, radiation_integrals=True, polarization=True)
 
-line['on_sol.2'] = 1
-line['on_sol.4'] = 1
-line['on_sol.6'] = 1
-line['on_sol.8'] = 1
-line['on_spin_bump.2'] = 1
-line['on_spin_bump.4'] = 1
-line['on_spin_bump.6'] = 1
-line['on_spin_bump.8'] = 1
-line['on_coupl_sol.2'] = 1
-line['on_coupl_sol.4'] = 1
-line['on_coupl_sol.6'] = 1
-line['on_coupl_sol.8'] = 1
-line['on_coupl_sol_bump.2'] = 1
-line['on_coupl_sol_bump.4'] = 1
-line['on_coupl_sol_bump.6'] = 1
-line['on_coupl_sol_bump.8'] = 1
+line['on_solenoids'] = 1
+line['on_spin_bumps'] = 1
+line['on_coupling_corrections'] = 1
 
 # RF
 line['vrfc231'] = 12.65 # qs=0.6
