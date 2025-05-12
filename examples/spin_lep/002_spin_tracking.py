@@ -18,7 +18,7 @@ opt = line.match(
 )
 opt.solve()
 
-tw = line.twiss4d(spin=True, radiation_integrals=True)
+tw = line.twiss4d(spin=True, radiation_integrals=True, polarization=True)
 
 # All off
 line['on_sol.2'] = 0
@@ -42,10 +42,10 @@ line['on_coupl_sol_bump.8'] = 0
 line['vrfc231'] = 12.65 # qs=0.6
 
 # Bare machine
-tw_bare = line.twiss(spin=True, radiation_integrals=True)
+tw_bare = line.twiss(spin=True, radiation_integrals=True, polarization=True)
 
 line.configure_radiation('mean')
-tw_bare_rad = line.twiss(spin=True, eneloss_and_damping=True)
+tw_bare_rad = line.twiss(spin=True, eneloss_and_damping=True, polarization=True)
 
 p_bare = xp.generate_matched_gaussian_bunch(
     line=line,
@@ -86,9 +86,9 @@ line['on_coupl_sol.4'] = 1
 line['on_coupl_sol.6'] = 1
 line['on_coupl_sol.8'] = 1
 
-tw_sol = line.twiss(spin=True, radiation_integrals=True)
+tw_sol = line.twiss(spin=True, radiation_integrals=True, polarization=True)
 line.configure_radiation(model='mean')
-tw_sol_rad = line.twiss(spin=True, eneloss_and_damping=True)
+tw_sol_rad = line.twiss(spin=True, eneloss_and_damping=True, polarization=True)
 p_sol = xp.generate_matched_gaussian_bunch(
     line=line,
     nemitt_x=tw_sol_rad.eq_nemitt_x,
@@ -128,9 +128,9 @@ line['on_coupl_sol_bump.4'] = 1
 line['on_coupl_sol_bump.6'] = 1
 line['on_coupl_sol_bump.8'] = 1
 
-tw_sol_bump = line.twiss(spin=True, radiation_integrals=True)
+tw_sol_bump = line.twiss(spin=True, radiation_integrals=True, polarization=True)
 line.configure_radiation(model='mean')
-tw_sol_bump_rad = line.twiss(spin=True, eneloss_and_damping=True)
+tw_sol_bump_rad = line.twiss(spin=True, eneloss_and_damping=True, polarization=True)
 p_sol_bump = xp.generate_matched_gaussian_bunch(
     line=line,
     nemitt_x=tw_sol_bump_rad.eq_nemitt_x,
@@ -158,59 +158,6 @@ line.configure_radiation(model=None)
 line.discard_tracker()
 line.build_tracker(_context=xo.ContextCpu(omp_num_threads=0))
 
-from scipy.constants import e as qe
-from scipy.constants import c as clight
-from scipy.constants import hbar
-
-for ttww in [tw_bare, tw_sol, tw_sol_bump]:
-
-    kappa_x = ttww.rad_int_kappa_x
-    kappa_y = ttww.rad_int_kappa_y
-    kappa = ttww.rad_int_kappa
-    iv_x = ttww.rad_int_iv_x
-    iv_y = ttww.rad_int_iv_y
-    iv_z = ttww.rad_int_iv_z
-
-    n0_iv = ttww.spin_x * iv_x + ttww.spin_y * iv_y + ttww.spin_z * iv_z
-    r0 = ttww.particle_on_co.get_classical_particle_radius0()
-    m0_J = ttww.particle_on_co.mass0 * qe
-    m0_kg = m0_J / clight**2
-
-    # reference https://lib-extopc.kek.jp/preprints/PDF/1980/8011/8011060.pdf
-
-    alpha_plus_co = 1. / ttww.circumference * np.sum(
-        kappa**3 * (1 - 2./9. * n0_iv**2) * ttww.length)
-
-    tp_inv = 5 * np.sqrt(3) / 8 * r0 * hbar * ttww.gamma0**5 / m0_kg * alpha_plus_co
-    tp_s = 1 / tp_inv
-    tp_turn = tp_s / ttww.T_rev0
-
-    brho_ref = ttww.particle_on_co.p0c[0] / clight / ttww.particle_on_co.q0
-    brho_part = (brho_ref * ttww.particle_on_co.rvv[0] * ttww.particle_on_co.energy[0]
-                / ttww.particle_on_co.energy0[0])
-
-    By = kappa_x * brho_part
-    Bx = -kappa_y * brho_part
-    Bz = ttww.ks * brho_ref
-    B_mod = np.sqrt(Bx**2 + By**2 + Bz**2)
-    B_mod[B_mod == 0] = 999. # avoid division by zero
-
-    ib_x = Bx / B_mod
-    ib_y = By / B_mod
-    ib_z = Bz / B_mod
-
-    n0_ib = ttww.spin_x * ib_x + ttww.spin_y * ib_y + ttww.spin_z * ib_z
-
-    alpha_minus_co = 1. / ttww.circumference * np.sum(kappa**3 * n0_ib *  ttww.length)
-
-    pol_inf = 8 / 5 / np.sqrt(3) * alpha_minus_co / alpha_plus_co
-
-    ttww._data['alpha_plus_co'] = alpha_plus_co
-    ttww._data['alpha_minus_co'] = alpha_minus_co
-    ttww._data['pol_inf'] = pol_inf
-    ttww['n0_ib'] = n0_ib
-    ttww['t_pol_turn'] = tp_turn
-
 # Fit depolarization time (linear fit)
 from scipy.stats import linregress
 def fit_depolarization_time(turns, pol):
@@ -232,7 +179,7 @@ tw_sol._data['t_dep_turn'] = fit_depolarization_time(np.arange(num_turns), pol_s
 tw_sol_bump._data['t_dep_turn']= fit_depolarization_time(np.arange(num_turns), pol_sol_bump)
 
 for ttww in [tw_bare, tw_sol, tw_sol_bump]:
-    ttww._data['pol'] = ttww['pol_inf'] * (1 / (1 + ttww['t_pol_turn'] / ttww['t_dep_turn']))
+    ttww._data['pol'] = ttww['spin_polarization_inf_no_depol'] * (1 / (1 + ttww['spin_t_pol_component_s']/ttww.T_rev0 / ttww['t_dep_turn']))
 
 import matplotlib.pyplot as plt
 plt.close('all')
