@@ -92,8 +92,8 @@ def fit_depolarization_time(turns, pol):
 
     return depolarization_time
 
-tw._data['t_dep_turn'] = fit_depolarization_time(np.arange(num_turns), pol_bare)
-tw._data['pol'] = tw['spin_polarization_inf_no_depol'] * (1 / (1 + tw['spin_t_pol_component_s']/tw.T_rev0 / tw['t_dep_turn']))
+t_dep_turns = fit_depolarization_time(np.arange(num_turns), pol_bare)
+tw._data['pol'] = tw['spin_polarization_inf_no_depol'] * (1 / (1 + tw['spin_t_pol_component_s']/tw.T_rev0 / t_dep_turns))
 
 import matplotlib.pyplot as plt
 plt.close('all')
