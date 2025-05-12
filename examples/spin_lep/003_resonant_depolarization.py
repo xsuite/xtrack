@@ -40,7 +40,7 @@ opt.solve()
 
 tw = line.twiss4d(spin=True, radiation_integrals=True)
 
-line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
+line.configure_spin(spin_model='auto')
 
 p0 = tw.particle_on_co.copy()
 p0.spin_x = 1e-4
@@ -54,8 +54,6 @@ tt_quad = tt.rows[(tt.element_type == 'Quadrupole')]
 
 line.set(tt_bend, model='drift-kick-drift-expanded', integrator='uniform',
         num_multipole_kicks=3)
-
-line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
 
 class Chirper(xt.BeamElement):
 
