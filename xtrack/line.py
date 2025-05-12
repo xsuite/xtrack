@@ -157,6 +157,7 @@ class Line:
         self._extra_config['_radiation_model'] = None
         self._extra_config['_beamstrahlung_model'] = None
         self._extra_config['_bhabha_model'] = None
+        self._extra_config['_spin_model'] = None
         self._extra_config['_needs_rng'] = False
         self._extra_config['enable_time_dependent_vars'] = False
         self._extra_config['twiss_default'] = {}
@@ -3130,9 +3131,38 @@ class Line:
         if radiation_flag == 2 or beamstrahlung_flag == 2 or bhabha_flag == 1:
             self._needs_rng = True
 
-        self.config.XTRACK_MULTIPOLE_NO_SYNRAD = (radiation_flag == 0)
         self.config.XFIELDS_BB3D_NO_BEAMSTR = (beamstrahlung_flag == 0)
         self.config.XFIELDS_BB3D_NO_BHABHA = (bhabha_flag == 0)
+
+        self._update_synrad_compile_flag()
+
+    def _update_synrad_compile_flag(self):
+
+        if self._radiation_model or self._spin_model:
+            self.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
+        else:
+            self.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
+
+    def configure_spin(self, spin_model=None):
+
+        """
+        Configure the spin model for the line.
+
+        Parameters
+        ----------
+        spin_model: str
+            Spin model to use. Can be None, 'auto', 'True', 'False'
+        """
+
+        assert spin_model in [None, 'auto', 'True', 'False']
+        if spin_model is False:
+            spin_model = None
+        if spin_model is True:
+            spin_model = 'auto'
+
+        self._spin_model = spin_model
+
+        self._update_synrad_compile_flag()
 
     def configure_intrabeam_scattering(
         self, element = None,
@@ -4543,6 +4573,14 @@ class Line:
     @_radiation_model.setter
     def _radiation_model(self, value):
         self._extra_config['_radiation_model'] = value
+
+    @property
+    def _spin_model(self):
+        return self._extra_config['_spin_model']
+
+    @_spin_model.setter
+    def _spin_model(self, value):
+        self._extra_config['_spin_model'] = value
 
     @property
     def _beamstrahlung_model(self):
