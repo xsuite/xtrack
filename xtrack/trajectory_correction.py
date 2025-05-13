@@ -1,8 +1,13 @@
 import numpy as np
+from scipy.optimize import lsq_linear
 import xtrack as xt
 
+import logging
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.StreamHandler())
+
 def _compute_correction(x_iter, response_matrix, n_micado=None, rcond=None,
-                        n_singular_values=None):
+                        n_singular_values=None, corrector_limits=None):
 
     if isinstance(response_matrix, (list, tuple)):
         assert len(response_matrix) == 3 # U, S, Vt
@@ -36,8 +41,17 @@ def _compute_correction(x_iter, response_matrix, n_micado=None, rcond=None,
                     mask_corr[i_used] = True
 
                 # Compute the correction with least squares
-                _, residual_x, rank_x, sval_x = np.linalg.lstsq(
-                            response_matrix[:, mask_corr], -x_iter, rcond=rcond)
+                if corrector_limits is None:
+                    _, residual_x, rank_x, sval_x = np.linalg.lstsq(
+                                response_matrix[:, mask_corr], -x_iter, rcond=rcond)
+                else:
+                    # Apply limits only to the active correctors
+                    active_limits = (corrector_limits[0][mask_corr], corrector_limits[1][mask_corr])
+                    result = lsq_linear(response_matrix[:, mask_corr], -x_iter, 
+                                      bounds=active_limits)
+                    if not result.success:
+                        logger.warning(f'Bounded Least Squares warning: {result.message}')
+                    residual_x = np.array([result.cost])
                 residuals.append(residual_x[0])
             used_correctors.append(np.nanargmin(residuals))
 
@@ -48,16 +62,26 @@ def _compute_correction(x_iter, response_matrix, n_micado=None, rcond=None,
         mask_corr[:] = True
 
     # Compute the correction with least squares
-    if mask_corr.all() and S is not None:
-        # Can reuse the SVD decomposition
+    if mask_corr.all() and S is not None and corrector_limits is None:
+        # Can reuse the SVD decomposition only for unbounded case
         S_inv = np.zeros_like(S)
         S_inv[S > 0] = 1 / S[S > 0]
         if rcond is not None:
             S_inv[S < rcond * S[0]] = 0
         correction_masked = Vh.T.conj() @ (np.diag(S_inv) @ (U.T.conj() @ (-x_iter)))
     else:
-        correction_masked, residual_x, rank_x, sval_x = np.linalg.lstsq(
-                    response_matrix[:, mask_corr], -x_iter, rcond=rcond)
+        if corrector_limits is None:
+            correction_masked, residual_x, rank_x, sval_x = np.linalg.lstsq(
+                        response_matrix[:, mask_corr], -x_iter, rcond=rcond)
+        else:
+            # Apply limits only to the active correctors
+            active_limits = (corrector_limits[0][mask_corr], corrector_limits[1][mask_corr])
+            result = lsq_linear(response_matrix[:, mask_corr], -x_iter, 
+                              bounds=active_limits)
+            if not result.success:
+                logger.warning(f'Bounded Least Squares warning: {result.message}')
+            correction_masked = result.x
+
     correction_x = np.zeros(n_hcorrectors)
     correction_x[mask_corr] = correction_masked
 
@@ -104,7 +128,7 @@ class OrbitCorrectionSinglePlane:
 
     def __init__(self, line, plane, monitor_names, corrector_names,
                  start=None, end=None, twiss_table=None, n_micado=None,
-                 n_singular_values=None, rcond=None,
+                 n_singular_values=None, rcond=None, corrector_limits=None,
                  x_init=0, px_init=0, y_init=0, py_init=0, zeta_init=0, delta_init=0,
                  monitor_alignment=None):
 
@@ -164,6 +188,29 @@ class OrbitCorrectionSinglePlane:
         assert len(monitor_names) > 0
         assert len(corrector_names) > 0
 
+        if corrector_limits is None:
+            corrector_limits = getattr(line, f'corrector_limits_{plane}')
+
+        if corrector_limits is not None:
+            assert isinstance(corrector_limits, tuple)
+            assert len(corrector_limits) == 2
+
+            if isinstance(corrector_limits[0], (int, float)):
+                corrector_limits = (
+                    np.ones(len(corrector_names)) * corrector_limits[0],
+                    np.ones(len(corrector_names)) * corrector_limits[1]
+                )
+
+            elif isinstance(corrector_limits[0], (list, tuple)):
+                corrector_limits = (
+                    np.array(corrector_limits[0]),
+                    np.array(corrector_limits[1])
+                )
+            
+            assert len(corrector_limits) == 2
+            assert len(corrector_limits[0]) == len(corrector_limits[1])
+            assert len(corrector_limits[0]) == len(corrector_names)
+
         self.line = line
         self.plane = plane
         self.monitor_names = monitor_names
@@ -173,6 +220,7 @@ class OrbitCorrectionSinglePlane:
         self.n_micado = n_micado
         self.rcond = rcond
         self.n_singular_values = n_singular_values
+        self.corrector_limits = corrector_limits
 
         self.response_matrix = _build_response_matrix(plane=self.plane,
             tw=self.twiss_table, monitor_names=self.monitor_names,
@@ -208,7 +256,8 @@ class OrbitCorrectionSinglePlane:
         self._add_correction_knobs()
 
     def correct(self, n_iter='auto', n_micado=None, n_singular_values=None,
-                rcond=None, stop_iter_factor=0.1, verbose=True, _tw_orbit=None):
+                rcond=None, stop_iter_factor=0.1, verbose=True, _tw_orbit=None,
+                corrector_limits=None):
 
         if _tw_orbit is not None and n_iter !=1:
             raise ValueError('`_tw_orbit` can only be used with `n_iter=1`')
@@ -219,6 +268,7 @@ class OrbitCorrectionSinglePlane:
             assert stop_iter_factor < 1
 
         pos_rms_prev = 0
+        relative_limits = corrector_limits
 
         i_iter = 0
         while True:
@@ -242,12 +292,18 @@ class OrbitCorrectionSinglePlane:
 
             correction = self._compute_correction(position=position,
                                     n_micado=n_micado, rcond=rcond,
-                                    n_singular_values=n_singular_values)
+                                    n_singular_values=n_singular_values,
+                                    corrector_limits=relative_limits)
             self._apply_correction(correction)
 
             i_iter += 1
             if n_iter != 'auto' and i_iter >= n_iter:
                 break
+
+            if corrector_limits is not None:
+                current_correction = self.get_kick_values()
+                relative_limits = (corrector_limits[0] - current_correction,
+                                         corrector_limits[1] - current_correction)
 
         if _tw_orbit is None:
             position = self._measure_position()
@@ -292,7 +348,7 @@ class OrbitCorrectionSinglePlane:
         return position
 
     def _compute_correction(self, position, n_micado=None,
-                            n_singular_values=None, rcond=None):
+                            n_singular_values=None, rcond=None, corrector_limits=None):
 
         if rcond is None:
             rcond = self.rcond
@@ -303,10 +359,11 @@ class OrbitCorrectionSinglePlane:
         if n_micado is None:
             n_micado = self.n_micado
 
+
         correction = _compute_correction(position,
             response_matrix=(self.singular_vectors_out, self.singular_values, self.singular_vectors_in),
             n_micado=n_micado,
-            rcond=rcond, n_singular_values=n_singular_values)
+            rcond=rcond, n_singular_values=n_singular_values, corrector_limits=corrector_limits)
 
         return correction
 
@@ -375,7 +432,8 @@ class TrajectoryCorrection:
                  monitor_names_y=None, corrector_names_y=None,
                  monitor_alignment=None,
                  x_init=0, px_init=0, y_init=0, py_init=0, zeta_init=0, delta_init=0,
-                 n_micado=None, n_singular_values=None, rcond=None):
+                 n_micado=None, n_singular_values=None, rcond=None,
+                 corrector_limits_x=None, corrector_limits_y=None):
 
         '''
         Trajectory correction using linearized response matrix from optics
@@ -418,6 +476,14 @@ class TrajectoryCorrection:
         rcond : float
             Cutoff for small singular values (relative to the largest singular
             value). Singular values smaller than `rcond` are considered zero.
+        corrector_limits_x : tuple of array-like or None
+            Limits for the horizontal corrector strengths. If not None, it should be a tuple
+            of two arrays (lower_limits, upper_limits) with the same length as
+            the number of horizontal correctors. If None, no limits are applied.
+        corrector_limits_y : tuple of array-like or None
+            Limits for the vertical corrector strengths. If not None, it should be a tuple
+            of two arrays (lower_limits, upper_limits) with the same length as
+            the number of vertical correctors. If None, no limits are applied.
         '''
 
         if isinstance(rcond, (tuple, list)):
@@ -452,6 +518,7 @@ class TrajectoryCorrection:
                 corrector_names=corrector_names_x, start=start, end=end,
                 twiss_table=twiss_table, n_micado=n_micado_x,
                 n_singular_values=n_singular_values_x, rcond=rcond_x,
+                corrector_limits=corrector_limits_x,
                 x_init=x_init, px_init=px_init, y_init=y_init, py_init=py_init,
                 zeta_init=zeta_init, delta_init=delta_init,
                 monitor_alignment=monitor_alignment)
@@ -466,6 +533,7 @@ class TrajectoryCorrection:
                 corrector_names=corrector_names_y, start=start, end=end,
                 twiss_table=twiss_table, n_micado=n_micado_y,
                 n_singular_values=n_singular_values_y, rcond=rcond_y,
+                corrector_limits=corrector_limits_y,
                 x_init=x_init, px_init=px_init, y_init=y_init, py_init=py_init,
                 zeta_init=zeta_init, delta_init=delta_init,
                 monitor_alignment=monitor_alignment)
@@ -543,19 +611,26 @@ class TrajectoryCorrection:
 
         tw_orbit = a_correction._compute_tw_orbit()
 
+        if self.x_correction is not None:
+            relative_limits_x = self.x_correction.corrector_limits
+        if self.y_correction is not None:
+            relative_limits_y = self.y_correction.corrector_limits
+
         while True:
 
             if self.x_correction is not None and 'x' in planes:
                 self.x_correction.correct(n_micado=n_micado_x,
                             n_singular_values=n_singular_values_x,
                             rcond=rcond_x, verbose=False, n_iter=1,
-                            _tw_orbit=tw_orbit)
+                            _tw_orbit=tw_orbit,
+                            corrector_limits=relative_limits_x)
 
             if self.y_correction is not None and 'y' in planes:
                 self.y_correction.correct(n_micado=n_micado_y,
                             n_singular_values=n_singular_values_y,
                             rcond=rcond_y, verbose=False, n_iter=1,
-                            _tw_orbit=tw_orbit)
+                            _tw_orbit=tw_orbit,
+                            corrector_limits=relative_limits_y)
 
             tw_orbit_prev = tw_orbit
             tw_orbit = a_correction._compute_tw_orbit()
@@ -579,11 +654,19 @@ class TrajectoryCorrection:
                     old_position = self.x_correction._measure_position(tw_orbit_prev)
                     str_2print += (f'x_rms: {old_position.std():.2e}'
                         f' -> {new_position.std():.2e}, ')
+                    if self.x_correction.corrector_limits is not None:
+                        correction_kicks_x = self.x_correction.get_kick_values()
+                        relative_limits_x = (self.x_correction.corrector_limits[0] - correction_kicks_x,
+                                             self.x_correction.corrector_limits[1] - correction_kicks_x)
                 if self.y_correction is not None and 'y' in planes:
                     new_position = self.y_correction._measure_position(tw_orbit)
                     old_position = self.y_correction._measure_position(tw_orbit_prev)
                     str_2print += (f'y_rms: {old_position.std():.2e}'
                         f' -> {new_position.std():.2e}')
+                    if self.y_correction.corrector_limits is not None:
+                        correction_kicks_y = self.y_correction.get_kick_values()
+                        relative_limits_y = (self.y_correction.corrector_limits[0] - correction_kicks_y,
+                                             self.y_correction.corrector_limits[1] - correction_kicks_y)
                 print(str_2print)
             if stop_x and stop_y:
                 break
