@@ -5,8 +5,6 @@ import numpy as np
 
 num_turns = 200
 
-
-
 line = xt.Line.from_json('lep_sol.json')
 line.particle_ref.anomalous_magnetic_moment=0.00115965218128
 spin_tune = line.particle_ref.anomalous_magnetic_moment[0]*line.particle_ref.gamma0[0]
@@ -29,7 +27,6 @@ line['on_coupling_corrections'] = 1
 # RF
 line['vrfc231'] = 12.65 # qs=0.6
 
-# Bare machine
 tw = line.twiss(spin=True, radiation_integrals=True, polarization=True)
 
 line.configure_radiation('mean')
@@ -53,17 +50,12 @@ line.discard_tracker()
 line.build_tracker(_context=xo.ContextCpu(omp_num_threads=10))
 line.track(particles, num_turns=num_turns, turn_by_turn_monitor=True,
            with_progress=10)
-mon_bare = line.record_last_track
-mask_alive = mon_bare.state > 0
-pol_x_bare = mon_bare.spin_x.sum(axis=0)/mask_alive.sum(axis=0)
-pol_y_bare = mon_bare.spin_y.sum(axis=0)/mask_alive.sum(axis=0)
-pol_z_bare = mon_bare.spin_z.sum(axis=0)/mask_alive.sum(axis=0)
-pol_bare = np.sqrt(pol_x_bare**2 + pol_y_bare**2 + pol_z_bare**2)
-
-line.configure_radiation(model=None)
-line.discard_tracker()
-line.build_tracker(_context=xo.ContextCpu(omp_num_threads=0))
-
+mon = line.record_last_track
+mask_alive = mon.state > 0
+pol_x = mon.spin_x.sum(axis=0)/mask_alive.sum(axis=0)
+pol_y = mon.spin_y.sum(axis=0)/mask_alive.sum(axis=0)
+pol_z = mon.spin_z.sum(axis=0)/mask_alive.sum(axis=0)
+pol = np.sqrt(pol_x**2 + pol_y**2 + pol_z**2)
 
 # Fit depolarization time (linear fit)
 from scipy.stats import linregress
@@ -83,7 +75,7 @@ def fit_depolarization_time(turns, pol):
 
 i_start = 3
 
-pol_to_fit = pol_bare[i_start:]/pol_bare[i_start]
+pol_to_fit = pol[i_start:]/pol[i_start]
 
 t_dep_turns, intercept = fit_depolarization_time(np.arange(len(pol_to_fit)), pol_to_fit)
 tw._data['pol'] = tw['spin_polarization_inf_no_depol'] * (1 / (1 + tw['spin_t_pol_component_s']/tw.T_rev0 / t_dep_turns))
