@@ -3,7 +3,9 @@ import xpart as xp
 import xobjects as xo
 import numpy as np
 
-num_turns = 500
+num_turns = 200
+
+
 
 line = xt.Line.from_json('lep_sol.json')
 line.particle_ref.anomalous_magnetic_moment=0.00115965218128
@@ -14,7 +16,7 @@ opt = line.match(
     method='4d',
     solve=False,
     vary=xt.VaryList(['kqf', 'kqd'], step=1e-4),
-    targets=xt.TargetSet(qx=65.28, qy=71.1, tol=1e-4)
+    targets=xt.TargetSet(qx=65.10, qy=71.20, tol=1e-4)
 )
 opt.solve()
 
@@ -38,7 +40,7 @@ particles = xp.generate_matched_gaussian_bunch(
     nemitt_x=tw_rad.eq_nemitt_x,
     nemitt_y=tw_rad.eq_nemitt_y,
     sigma_z=np.sqrt(tw_rad.eq_gemitt_zeta * tw_rad.bets0),
-    num_particles=100,
+    num_particles=300,
     engine='linear')
 particles.zeta += tw_rad.zeta[0]
 particles.delta += tw_rad.delta[0]
@@ -72,20 +74,29 @@ def fit_depolarization_time(turns, pol):
     pol = pol[mask]
 
     # Perform linear regression
-    slope, intercept, r_value, p_value, std_err = linregress(turns, np.log(pol))
+    slope, intercept, r_value, p_value, std_err = linregress(turns, pol)
 
     # Calculate depolarization time
     depolarization_time = -1 / slope
 
-    return depolarization_time
+    return depolarization_time, intercept
 
-t_dep_turns = fit_depolarization_time(np.arange(num_turns), pol_bare)
+i_start = 3
+
+pol_to_fit = pol_bare[i_start:]/pol_bare[i_start]
+
+t_dep_turns, intercept = fit_depolarization_time(np.arange(len(pol_to_fit)), pol_to_fit)
 tw._data['pol'] = tw['spin_polarization_inf_no_depol'] * (1 / (1 + tw['spin_t_pol_component_s']/tw.T_rev0 / t_dep_turns))
+
 
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
-plt.plot(pol_bare, label=r'bare - $P_{eq}$ = ' f'{tw["pol"]:.2f}')
+plt.plot(pol_to_fit, label=r'$P_{eq}$ = ' f'{tw["pol"]:.2f}')
+
+i_turn = np.arange(num_turns)
+plt.plot(intercept*np.exp(-i_turn/t_dep_turns), label='exp(-t/t_dep)')
+
 
 plt.xlabel('turns')
 plt.ylabel('polarization')
