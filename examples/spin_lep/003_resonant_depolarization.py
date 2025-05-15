@@ -62,9 +62,11 @@ class Chirper(xt.BeamElement):
 
             //start_per_particle_block (part0->part)
                 double const at_turn = LocalParticle_get_at_turn(part);
-                double const qq = q_start + (q_end - q_start) * ((double) at_turn) / ((double) num_turns);
-                double const dpy = k0sl * sin(2 * PI * qq * at_turn);
-                LocalParticle_add_to_py(part, dpy);
+                if (at_turn < num_turns){
+                    double const qq = q_start + (q_end - q_start) * ((double) at_turn) / ((double) num_turns);
+                    double const dpy = k0sl * sin(2 * PI * qq * at_turn);
+                    LocalParticle_add_to_py(part, dpy);
+                }
             //end_per_particle_block
         }
         ''']
@@ -77,9 +79,11 @@ chirper = Chirper(
 )
 line.insert('chirper', obj=chirper, at='bfkv1.qs18.r2@start')
 
-dq_sweep = 0.005
+dq_sweep = 0.003
 
-q_start_tests = np.linspace(0.425, 0.455, 5)
+q_start_tests = np.linspace(0.425, 0.455, 5)[1:]
+
+q_start_tests = [0.44, 0.448, 0.453]
 
 
 import matplotlib.pyplot as plt
@@ -87,7 +91,7 @@ plt.close('all')
 plt.figure(1)
 
 for iii, qqq in enumerate(q_start_tests):
-    num_turns = 40000
+    num_turns = 15000
     q_start_excitation = qqq
     q_end_excitation = q_start_excitation + dq_sweep
     k0sl_peak = 5e-6
