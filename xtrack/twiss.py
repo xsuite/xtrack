@@ -8,6 +8,8 @@ import logging
 import io
 import json
 from functools import partial
+from typing import Literal
+
 import numpy as np
 from scipy.constants import c as clight
 from scipy.constants import hbar
@@ -3216,6 +3218,183 @@ class TwissTable(Table):
             gemitt_x, nemitt_x, gemitt_y, nemitt_y,
             sigma_delta, bunch_length, bunched,
             **kwargs,
+        )
+
+    def compute_equilibrium_emittances_from_sr_and_ibs(
+        self,
+        formalism: Literal["Nagaitsev", "Bjorken-Mtingwa", "B&M"],
+        total_beam_intensity: int,
+        gemitt_x: float = None,
+        nemitt_x: float = None,
+        gemitt_y: float = None,
+        nemitt_y: float = None,
+        gemitt_zeta: float = None,
+        nemitt_zeta: float = None,
+        overwrite_sigma_zeta: float = None,
+        overwrite_sigma_delta: float = None,
+        emittance_coupling_factor: float = 0,
+        emittance_constraint: Literal["coupling", "excitation"] | None = "coupling",
+        rtol: float = 1e-6,
+        tstep: float = None,
+        verbose: bool = True,
+        **kwargs,
+    ) -> Table:
+        """
+        Compute the evolution of emittances due to Synchrotron Radiation
+        and Intra-Beam Scattering until convergence to equilibrium values.
+        The equilibrium state is determined by an iterative process which
+        consists in computing the IBS growth rates and the emittance time
+        derivatives, then computing the emittances at the next time step,
+        potentially including the effect of transverse constraints, and
+        checking for convergence. The convergence criteria can be chosen
+        by the user.
+
+        Transverse emittances can be constrained to follow two scenarios:
+            - An emittance exchange originating from betatron coupling.
+            - A vertical emittance originating from an excitation.
+
+        The impact from the longitudinal impedance (e.g. bunch lengthening
+        or microwave instability) can be accounted for by specifying the RMS
+        bunch length and momentum spread.
+
+        Notes
+        -----
+            It is required that radiation has been configured in the line,
+            and that this `TwissTable` holds information on the equilibrium
+            state from Synchrotron Radiation. This means calling first
+            `line.configure_radiation(model="mean")` and then the `.twiss()`
+            method with `eneloss_and_damping=True`.
+
+        Warning
+        -------
+            If the user does not provide a starting emittance, the program
+            defaults to using the SR equilibrium value from this `TwissTable`,
+            which is a reasonable defaults for light sources. If a constraint
+            is provided via `emittance_constraint`  the starting emittances are
+            re-computed to respect that constraint (this is logged to the user).
+
+            If the user does provide starting emittances **and** a constraint, it
+            is up to the user to make sure these provided values are consistent
+            with the provided constraint!
+
+        Parameters
+        ----------
+        formalism : str
+            Which formalism to use for the computation of the IBS growth rates.
+            Can be ``Nagaitsev`` or ``Bjorken-Mtingwa`` (also accepts ``B&M``),
+            case-insensitively.
+        total_beam_intensity : int
+            The bunch intensity, in [particles per bunch].
+        gemitt_x : float, optional
+            Starting horizontal geometric emittance, in [m]. If neither this nor
+            the normalized one is provided, the SR equilibrium value from this
+            `TwissTable` is used.
+        nemitt_x : float, optional
+            Starting horizontal normalized emittance, in [m]. If neither this nor
+            the geometric one is provided, the SR equilibrium value from this
+            `TwissTable` is used.
+        gemitt_y : float, optional
+            Starting vertical geometric emittance, in [m]. If neither this nor
+            the normalized one is provided, the SR equilibrium value from this
+            `TwissTable` is used.
+        nemitt_y : float, optional
+            Starting vertical normalized emittance, in [m]. If neither this nor
+            the geometric one is provided, the SR equilibrium value from this
+            `TwissTable` is used.
+        gemitt_zeta : float, optional
+            Starting longitudinal geometric emittance, in [m]. If neither this
+            nor the normalized one is provided, the SR equilibrium value from
+            this `TwissTable` is used.
+        nemitt_zeta : float, optional
+            Starting longitudinal normalized emittance, in [m]. If neither this
+            nor the geometric one is provided, the SR equilibrium value from this
+            `TwissTable` is used.
+        emittance_coupling_factor : float, optional
+            The ratio of perturbed transverse emittances due to betatron coupling.
+            If a value is provided, it is taken into account for the evolution of
+            emittances and induces an emittance sharing between the two planes.
+            See the next parameter for possible scenarios and how this value is
+            used. Defaults to 0.
+        emittance_constraint : str, optional
+            If an accepted value is provided, enforces constraints on the transverse
+            emittances. Can be either "coupling" or "excitation", case-insensitively.
+            Defaults to "coupling".
+            - If `coupling`, vertical emittance is the result of linear coupling. In
+                this case both the vertical and horizontal emittances are altered and
+                determined based on the value of `emittance_coupling_factor` and the
+                damping partition numbers. If the horizontal and vertical partition
+                numbers are equal then the total transverse emittance is preserved.
+            - If `excitation`, vertical emittance is the result of an excitation
+                (e.g. from a feedback system) and is determined from the horizontal
+                emittance based on the value of `emittance_coupling_factor`. In this
+                case the total transverse emittance is NOT preserved.
+            Providing `None` allows one to study a scenario without constraint. Note
+            that as `emittance_coupling_factor` defaults to 0, the constraint has no
+            effect unless a non-zero factor is provided.
+        overwrite_sigma_zeta : float, optional
+            The RMS bunch length, in [m]. If provided, overwrites the one computed from
+            the longitudinal emittance and forces a recompute of the longitudinal
+            emittance. Defaults to `None`.
+        overwrite_sigma_delta : float, optional
+            The RMS momentum spread of the bunch. If provided, overwrites the one
+            computed from the longitudinal emittance and forces a recompute of the
+            longitudinal emittance. Defaults to `None`.
+        rtol : float, optional
+            Relative tolerance to determine when convergence is reached: if the relative
+            difference between the computed emittances and those at the previous step is
+            below `rtol`, then convergence is considered achieved. Defaults to 1e-6.
+        tstep : float, optional
+            Time step to use for each iteration, in [s]. If not provided, an
+            adaptive time step is computed based on the IBS growth rates and
+            the damping constants. Defaults to `None`.
+        verbose : bool, optional
+            Whether to print out information on the current iteration step and estimated
+            convergence progress. Defaults to `True`.
+        **kwargs : dict
+            Keyword arguments are passed to the growth rates computation method of
+            the chosen IBS formalism implementation. See the formalism classes in
+            the ``xfields.ibs._analytical`` for more details.
+
+        Returns
+        -------
+        xtrack.Table
+            The convergence calculations results. The table contains the following
+            columns, as time-step by time-step quantities:
+                - time: time values at which quantities are computed, in [s].
+                - gemitt_x: horizontal geometric emittances, in [m].
+                - nemitt_x: horizontal normalized emittances, in [m].
+                - gemitt_y: vertical geometric emittances, in [m].
+                - nemitt_y: vertical normalized emittances, in [m].
+                - gemitt_zeta: longitudinal geometric emittances, in [m].
+                - nemitt_zeta: longitudinal normalized emittances, in [m].
+                - sigma_zeta: bunch lengths, in [m].
+                - sigma_delta: momentum spreads, in [-].
+                - Kx: horizontal IBS amplitude growth rates, in [s^-1].
+                - Ky: vertical IBS amplitude growth rates, in [s^-1].
+                - Kz: longitudinal IBS amplitude growth rates, in [s^-1].
+            The table also contains the following global quantities:
+                - damping_constants_s: radiation damping constants used, in [s].
+                - partition_numbers: damping partition numbers used.
+                - eq_gemitt_x: horizontal equilibrium geometric emittance from synchrotron radiation used, in [m].
+                - eq_gemitt_y: vertical equilibrium geometric emittance from synchrotron radiation used, in [m].
+                - eq_gemitt_zeta: longitudinal equilibrium geometric emittance from synchrotron radiation used, in [m].
+                - eq_sr_ibs_gemitt_x: final horizontal equilibrium geometric emittance converged to, in [m].
+                - eq_sr_ibs_gemitt_y: final vertical equilibrium geometric emittance converged to, in [m].
+                - eq_sr_ibs_gemitt_zeta: final longitudinal equilibrium geometric emittance converged to, in [m].
+        """
+        try:
+            from xfields.ibs import compute_equilibrium_emittances_from_sr_and_ibs
+        except ImportError:
+            raise ImportError("Please install xfields to use this feature.")
+        return compute_equilibrium_emittances_from_sr_and_ibs(
+            self, formalism=formalism, total_beam_intensity=total_beam_intensity,
+            gemitt_x=gemitt_x, nemitt_x=nemitt_x, gemitt_y=gemitt_y, nemitt_y=nemitt_y,
+            gemitt_zeta=gemitt_zeta, nemitt_zeta=nemitt_zeta,
+            overwrite_sigma_zeta=overwrite_sigma_zeta,
+            overwrite_sigma_delta=overwrite_sigma_delta,
+            emittance_coupling_factor=emittance_coupling_factor,
+            emittance_constraint=emittance_constraint,
+            rtol=rtol, tstep=tstep, verbose=verbose, **kwargs,
         )
 
     def get_R_matrix(self, start, end):
