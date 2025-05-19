@@ -63,7 +63,7 @@ def _tw_ng(line, rdts=[], normal_form=True,
                 'dx', 'dy', 'dpx', 'dpy', 'mu1', 'mu2',
                 'beta12', 'beta21', 'alfa12', 'alfa21',
                 'wx', 'wy', 'phix', 'phiy', 'dmu1', 'dmu2',
-                'f1001'
+                'f1001', 'f1010'
     ]
 
     columns = tw_columns + rdts
