@@ -67,6 +67,7 @@ class RFT_Element:
 
         # Update particles
         self.arr_for_xt = self.arr_for_xt[self.arr_for_xt[:,7].argsort()] # sort by particle id
+        p.p0c = pref1[0].Pc * 1e6
         p.x  = self.arr_for_xt[:,0] / 1e3 # m
         p.px = self.arr_for_xt[:,1] * 1e6 / p.p0c # rad
         p.y  = self.arr_for_xt[:,2] / 1e3 # m
