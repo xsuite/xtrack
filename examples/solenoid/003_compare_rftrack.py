@@ -77,6 +77,7 @@ line.build_tracker(_context=context)
 particle0 = xp.Particles(
     _context=context,
     x=0.01,
+    delta=-0.1,
     p0c=P0c, mass0=xt.ELECTRON_MASS_EV, q0=q0)
 p_rft = particle0.copy()
 
