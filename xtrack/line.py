@@ -3085,7 +3085,8 @@ class Line:
         if mode != 'deprecated':
             raise NameError('mode is deprecated, use model instead')
 
-        self._check_valid_tracker()
+        if not self._has_valid_tracker():
+            self.build_tracker()
 
         assert model in [None, 'mean', 'quantum']
         assert model_beamstrahlung in [None, 'mean', 'quantum']

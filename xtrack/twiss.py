@@ -2778,6 +2778,8 @@ class TwissInit:
             particle_on_co.s = s_ele_twiss
             self.__dict__['particle_on_co'] = particle_on_co
             self._temp_co_data = None
+        else:
+            particle_on_co = self.particle_on_co
 
         if self._temp_optics_data is not None:
 

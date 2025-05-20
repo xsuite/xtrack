@@ -44,8 +44,9 @@ Vsol.odeint_algorithm = 'rk2' # integration algorithm, e.g., 'rk2', 'rkf45', 'le
 Vsol.add(Sol, 0, 0, 0, 'center'); # add the solenoid
 
 # Set boundaries
-Vsol.set_s0(-0.75) # m, longitudinal start point
-Vsol.set_s1( 0.75) # m, longitudinal end point
+vol_length = 3
+Vsol.set_s0(-vol_length/2) # m, longitudinal start point
+Vsol.set_s1( vol_length/2) # m, longitudinal end point
 
 # Add collective effects
 Vsol.add_collective_effect (ISR)
@@ -77,14 +78,14 @@ particle0 = xp.Particles(
     _context=context,
     x=0.001,
     p0c=P0c, mass0=xt.ELECTRON_MASS_EV, q0=q0)
-particles = particle0.copy()
+p_rft = particle0.copy()
 
 #############################################
 #########   Xsuite tracking    ##############
 #############################################
 
 print('tracking starts')
-line.track(particles)
+line.track(p_rft)
 print('tracking ends')
 
 #############################################
@@ -107,7 +108,7 @@ etraj = table[:,5]
 [E,B] = Vsol.get_field(xtraj, ytraj, ztraj, 0.0)
 
 # Field on axis
-z_axis = np.linspace(-1, 1, 1000)
+z_axis = np.linspace(-2, 2, 1001)
 z_axis_mm = z_axis * 1000
 [E_axis,B_axis] = Vsol.get_field(0, 0, z_axis_mm, 0.0)
 
@@ -117,7 +118,7 @@ z_axis_mm = z_axis * 1000
 
 particle_ref = xt.Particles(q0=q0, mass0=xt.ELECTRON_MASS_EV, p0c=P0c)
 
-B_slice_center = 0.5 * (z_axis[:-1] + z_axis[1:])
+B_slice_center = 0.5 * (B_axis[:-1, 2] + B_axis[1:, 2])
 l_slice = (z_axis[1:] - z_axis[:-1])
 
 brho = particle_ref.p0c[0] / clight / particle_ref.q0
@@ -131,7 +132,15 @@ for ii, bb in enumerate(B_slice_center):
     slices.append(env.new(f'sol_{ii}', xt.Solenoid, ks=bb/brho, length=l_slice[ii]))
 slices.append(env.new('sol_exit', xt.Solenoid, ks=0, length=0))
 
+
 line_sol_xs = env.new_line(components=slices)
+line_sol_xs.insert('mid_sol', xt.Marker(), line_sol_xs.get_length()/2)
+
+
+p_xs = particle0.copy()
+line_sol_xs.configure_radiation('mean')
+tw = line_sol_xs.twiss(init=xt.TwissInit(betx=1, bety=1, particle_on_co=p_xs),
+                       strengths=True, zero_at='mid_sol')
 
 #############################################
 #################   Plots    ################
@@ -147,4 +156,19 @@ plt.plot(ztraj, B[:,2], label='B_z')
 plt.xlabel("$Z$ [mm]")
 plt.ylabel("$B$ [T]")
 plt.legend()
+plt.show()
+
+plt.figure(2)
+ax1 = plt.subplot(311)
+plt.plot(tw.s, tw.y, label='xsuite')
+plt.plot(ztraj*1e-3, ytraj*1e-3, label='RF-Track')
+plt.ylabel("$y$ [m]")
+plt.legend()
+plt.subplot(312, sharex=ax1)
+plt.plot(tw.s, tw.x, label='xsuite')
+plt.plot(ztraj*1e-3, xtraj*1e-3, label='RF-Track')
+plt.ylabel("$x$ [m]")
+plt.subplot(313, sharex=ax1)
+plt.plot(tw.s, tw.delta, label='xsuite')
+
 plt.show()
