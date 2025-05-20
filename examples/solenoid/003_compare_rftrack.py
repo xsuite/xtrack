@@ -15,10 +15,10 @@ import RF_Track as RFT
 
 # Bunch parameters
 q0 = -1 # electrons
-P0c = 50e6 # reference momentum, eV/c
+P0c = 200e9 # reference momentum, eV/c
 
 # Solenoid parameters
-B0 = 0.5 # T, on-axis field
+B0 = 2 # T, on-axis field
 R = 0.1 # m, aperture radius
 Lsol = 1 # m, length
 
@@ -37,7 +37,7 @@ ISR = RFT.IncoherentSynchrotronRadiation(quantum=False)
 Vsol = RFT.Volume()
 Vsol.dt_mm = 1 # mm/c, integration step
 Vsol.tt_dt_mm = 10; # mm/c tabulate average quantities every tt_dt_mm
-Vsol.cfx_dt_mm = 100; # mm/c apply a kick of collective effects (ISR) every cfx_dt_mm
+Vsol.cfx_dt_mm = 1; # mm/c apply a kick of collective effects (ISR) every cfx_dt_mm
 Vsol.odeint_algorithm = 'rk2' # integration algorithm, e.g., 'rk2', 'rkf45', 'leapfrog' 
 
 # Add the solenoid
@@ -76,7 +76,7 @@ line.build_tracker(_context=context)
 
 particle0 = xp.Particles(
     _context=context,
-    x=0.001,
+    x=0.01,
     p0c=P0c, mass0=xt.ELECTRON_MASS_EV, q0=q0)
 p_rft = particle0.copy()
 
@@ -158,7 +158,7 @@ plt.ylabel("$B$ [T]")
 plt.legend()
 plt.show()
 
-plt.figure(2)
+plt.figure(2, figsize=(8, 6*1.5))
 ax1 = plt.subplot(311)
 plt.plot(tw.s, tw.y, label='xsuite')
 plt.plot(ztraj*1e-3, ytraj*1e-3, label='RF-Track')
@@ -170,5 +170,8 @@ plt.plot(ztraj*1e-3, xtraj*1e-3, label='RF-Track')
 plt.ylabel("$x$ [m]")
 plt.subplot(313, sharex=ax1)
 plt.plot(tw.s, tw.delta, label='xsuite')
-
+energy_0_mev = tw.particle_on_co.energy0[0] / 1e6
+plt.plot(ztraj*1e-3, (etraj - energy_0_mev) / energy_0_mev, label='RF-Track')
+plt.ylabel("$\delta$")
+plt.xlabel("$s$ [m]")
 plt.show()
