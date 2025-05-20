@@ -34,6 +34,7 @@ tw = line.twiss(spin=True)
 # Install a kicker to have a sinusoidal excitation with changing frequency
 from chirp_kicker import VerticalChirpKicker
 kicker = VerticalChirpKicker(
+    length=1.61, # length of the kicker
     k0sl=5e-6, # peak value
     q_start=0.44,
     q_span=0.003,
