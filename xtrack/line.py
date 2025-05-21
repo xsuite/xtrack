@@ -4182,6 +4182,7 @@ class Line:
         self._env_if_needed()
 
         out = self.env.new_line(components=list(tt.env_name), name=name)
+        out.particle_ref = self.particle_ref.copy() if self.particle_ref else None
 
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
             out.env._var_management = None

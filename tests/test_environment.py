@@ -618,6 +618,7 @@ def test_assemble_ring():
     cell3_select = ring2.select(start='start.cell.3.arc.2', end='end.cell.3.arc.2',
                                 name='cell3_copy')
     assert 'cell3_copy' in env.lines
+    assert cell3_select.particle_ref is not None
     assert env.lines['cell3_copy'] is cell3_select
     assert cell3_select._element_dict is env.element_dict
     assert cell3_select.element_names[0] == 'start.cell.3.arc.2'
