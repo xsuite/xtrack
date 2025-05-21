@@ -747,6 +747,8 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if eneloss_and_damping and not only_orbit:
         assert 'R_matrix' in twiss_res._data
+        if method == '4d':
+            raise ValueError('method="4d" not supported for eneloss_and_damping=True')
         if radiation_method != 'full' or twiss_res._data['R_matrix_ebe'] is None:
             with xt.line._preserve_config(line):
                 line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = False
