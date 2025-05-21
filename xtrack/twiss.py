@@ -449,6 +449,12 @@ def twiss_line(line, particle_ref=None, method=None,
     else:
         periodic = True
         periodic_mode = init or 'periodic'
+        assert x is None, '`x` not supported for periodic twiss'
+        assert px is None, '`px` not supported for periodic twiss'
+        assert y is None, '`y` not supported for periodic twiss'
+        assert py is None, '`py` not supported for periodic twiss'
+        assert zeta is None, '`zeta` not supported for periodic twiss'
+        assert delta is None, '`delta` not supported for periodic twiss'
 
     if freeze_longitudinal:
         kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
@@ -630,6 +636,11 @@ def twiss_line(line, particle_ref=None, method=None,
         if init in ['preserve', 'preserve_start', 'preserve_end']:
             raise ValueError(f'init={init} not anymore supported')
         assert init == 'periodic' or 'full_periodic'
+
+    if not periodic:
+        if delta0 is not None or zeta0 is not None:
+            raise ValueError(
+                'delta0 and zeta0 cannot be provided for open twiss')
 
     if periodic:
 
