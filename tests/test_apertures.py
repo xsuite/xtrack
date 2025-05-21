@@ -362,3 +362,20 @@ def test_aperture_svg_path():
     xo.assert_allclose(aper.y_vertices, y_expected, atol=1e-6, rtol=0)
     xo.assert_allclose(aper2.x_vertices, x_expected, atol=1e-6, rtol=0)
     xo.assert_allclose(aper2.y_vertices, y_expected, atol=1e-6, rtol=0)
+
+def test_limitrect_to_dict():
+
+    lrect = xt.LimitRect(min_x=-0.03, max_x=0.03, min_y=0.0, max_y=0.09)
+    lrect2 = xt.LimitRect.from_dict(lrect.to_dict())
+
+    assert lrect2.min_x == lrect.min_x
+    assert lrect2.max_x == lrect.max_x
+    assert lrect2.min_y == lrect.min_y
+    assert lrect2.max_y == lrect.max_y
+
+    lrectdef  = xt.LimitRect()
+
+    assert lrectdef.min_x == -1e10
+    assert lrectdef.max_x == 1e10
+    assert lrectdef.min_y == -1e10
+    assert lrectdef.max_y == 1e10
