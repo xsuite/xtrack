@@ -40,8 +40,10 @@ class VerticalChirpKicker(xt.BeamElement):
                 double const at_turn = LocalParticle_get_at_turn(part);
                 if (at_turn < num_turns){
                     double const old_py = LocalParticle_get_py(part);
-                    double const qq = q_start + (q_end - q_start) * ((double) at_turn) / ((double) num_turns);
-                    double const dpy = k0sl * sin(2 * PI * qq * at_turn);
+                    // integrating to get the instantaneous phase
+                    double const phi = 2 * PI * q_start * at_turn
+                       + PI * (q_end - q_start) / ((double) num_turns) * ((double) at_turn * at_turn);
+                    double const dpy = k0sl * sin(phi);
                     LocalParticle_add_to_py(part, dpy);
 
                     #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
