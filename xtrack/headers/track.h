@@ -22,6 +22,12 @@
     #define END_PER_PARTICLE_BLOCK \
             } \
         }
+
+    #define VECTORIZE_OVER(INDEX_NAME, COUNT) \
+        for (int INDEX_NAME = 0; INDEX_NAME < (COUNT); INDEX_NAME++) {
+
+    #define END_VECTORIZE \
+        }
 #endif  // XO_CONTEXT_CPU_SERIAL
 
 #ifdef XO_CONTEXT_CPU_OPENMP
@@ -42,6 +48,14 @@
                 } \
             } \
         }
+
+    #define VECTORIZE_OVER(INDEX_NAME, COUNT) \
+        _Pragma("omp parallel for") \
+        for (int INDEX_NAME = 0; INDEX_NAME < (COUNT); INDEX_NAME++) {
+
+    #define END_VECTORIZE \
+        }
+
 #endif  // XO_CONTEXT_CPU_OPENMP
 
 
@@ -53,6 +67,13 @@
 
     #define END_PER_PARTICLE_BLOCK \
             }
+
+    #define VECTORIZE_OVER(INDEX_NAME, COUNT) \
+        { \
+            int INDEX_NAME = blockDim.x * blockIdx.x + threadIdx.x;
+
+    #define END_VECTORIZE \
+        }
 #endif  // XO_CONTEXT_CUDA
 
 
@@ -64,6 +85,13 @@
 
     #define END_PER_PARTICLE_BLOCK \
             }
+
+    #define VECTORIZE_OVER(INDEX_NAME, COUNT) \
+        { \
+            int INDEX_NAME = get_global_id(0);
+
+    #define END_VECTORIZE \
+        }
 #endif  // XO_CONTEXT_CL
 
 
