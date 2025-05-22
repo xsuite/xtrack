@@ -56,27 +56,27 @@ void LimitPolygon_track_local_particle(LimitPolygonData el,
 GPUKERN
 void LimitPolygon_impact_point_and_normal(
 		             LimitPolygonData el,
-                /*gpuglmem*/ const double* x_in,
-                /*gpuglmem*/ const double* y_in, 
-                /*gpuglmem*/ const double* z_in,
-                /*gpuglmem*/ const double* x_out,
-                /*gpuglmem*/ const double* y_out, 
-                /*gpuglmem*/ const double* z_out,
-                             const int64_t n_impacts,
-                /*gpuglmem*/       double* x_inters,
-                /*gpuglmem*/       double* y_inters, 
-                /*gpuglmem*/       double* z_inters,
-                /*gpuglmem*/       double* Nx_inters,
-                /*gpuglmem*/       double* Ny_inters,
-                /*gpuglmem*/       int64_t* i_found){ 
-			           
+                GPUGLMEM const double* x_in,
+                GPUGLMEM const double* y_in,
+                GPUGLMEM const double* z_in,
+                GPUGLMEM const double* x_out,
+                GPUGLMEM const double* y_out,
+                GPUGLMEM const double* z_out,
+                         const int64_t n_impacts,
+                GPUGLMEM double* x_inters,
+                GPUGLMEM double* y_inters,
+                GPUGLMEM double* z_inters,
+                GPUGLMEM double* Nx_inters,
+                GPUGLMEM double* Ny_inters,
+                GPUGLMEM int64_t* i_found){
+
     double const tol = 1e-13;
 
     int64_t N_edg = LimitPolygonData_len_x_vertices(el);
-    /*gpuglmem*/ const double* Vx = LimitPolygonData_getp1_x_vertices(el, 0);
-    /*gpuglmem*/ const double* Vy = LimitPolygonData_getp1_y_vertices(el, 0);
-    /*gpuglmem*/ const double* Nx = LimitPolygonData_getp1_x_normal(el, 0);
-    /*gpuglmem*/ const double* Ny = LimitPolygonData_getp1_y_normal(el, 0);
+    GPUGLMEM const double* Vx = LimitPolygonData_getp1_x_vertices(el, 0);
+    GPUGLMEM const double* Vy = LimitPolygonData_getp1_y_vertices(el, 0);
+    GPUGLMEM const double* Nx = LimitPolygonData_getp1_x_normal(el, 0);
+    GPUGLMEM const double* Ny = LimitPolygonData_getp1_y_normal(el, 0);
     double resc_fac = LimitPolygonData_get_resc_fac(el);
 
     for (int64_t i_imp=0; i_imp<n_impacts; i_imp++){ //vectorize_over i_imp n_impacts
