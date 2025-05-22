@@ -2136,6 +2136,14 @@ def _handle_init_inside_range(kwargs):
     reverse = kwargs.pop('reverse')
 
     ele_name_init =  init.element_name
+    ele_init = line.get(ele_name_init)
+    if isinstance(ele_init, xt.Replica):
+        ele_init = ele_init.resolve()
+    if not isinstance(ele_init, xt.Marker):
+        raise ValueError(
+            'The element at the initial position is not a Marker. '
+            'This is not yet supported')
+
     if reverse:
         assert _str_to_index(line, ele_name_init) <= _str_to_index(line, start)
         assert _str_to_index(line, ele_name_init) >= _str_to_index(line, end)
