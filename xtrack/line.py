@@ -3584,6 +3584,7 @@ class Line:
         assert inplace is True, 'Only inplace is supported for now'
 
         self._frozen_check()
+        self.replace_all_repeated_elements()
 
         if keep is None:
             keep = []
@@ -3906,6 +3907,7 @@ class Line:
                                       ' used')
 
         self._frozen_check()
+        self.replace_all_repeated_elements()
 
         if keep is None:
             keep = []
