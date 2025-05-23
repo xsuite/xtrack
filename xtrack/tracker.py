@@ -61,10 +61,6 @@ class Tracker:
             raise ValueError("`enable_pipeline_hold` is not implemented in "
                              "non-collective mode")
 
-        if not compile and self.iscollective:
-            raise NotImplementedError("Skip compilation is not implemented in "
-                                      "collective mode")
-
         if local_particle_src is None:
             local_particle_src = xt.Particles.gen_local_particle_api()
 
