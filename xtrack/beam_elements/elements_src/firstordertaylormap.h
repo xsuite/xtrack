@@ -13,7 +13,6 @@ GPUFUN
 void FirstOrderTaylorMap_track_local_particle(FirstOrderTaylorMapData el, LocalParticle* part0){
 
     double const length = FirstOrderTaylorMapData_get_length(el);
-    printf("---------- length=%e\n", length);
 
     START_PER_PARTICLE_BLOCK(part0, part);
         double x0 = LocalParticle_get_x(part);
