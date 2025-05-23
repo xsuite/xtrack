@@ -2249,7 +2249,7 @@ class Line:
         """Slice the line so that positions in s never fall inside an element."""
 
         if not self._has_valid_tracker():
-            self.build_tracker() # To resolve replicase and slices
+            self.build_tracker(compile=False) # To resolve replicas and slices
 
         self.discard_tracker()
 
@@ -3100,7 +3100,7 @@ class Line:
             raise NameError('mode is deprecated, use model instead')
 
         if not self._has_valid_tracker():
-            self.build_tracker()
+            self.build_tracker(compile=False)
 
         assert model in [None, 'mean', 'quantum']
         assert model_beamstrahlung in [None, 'mean', 'quantum']

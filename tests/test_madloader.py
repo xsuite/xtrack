@@ -304,11 +304,11 @@ def test_matrix():
 
     mad.input("""
     a11=1;
-    m1: matrix,
+    mat: matrix,l=0.4,
           rm11:=a11,rm12=2,rm21=3,rm22=4,
           kick1=0.1,kick2=0.2,kick3=0.3;
 
-    ss: sequence, l=1; m1: m1, at=0; endsequence;
+    ss: sequence, l=1; mm: mat, at=0.3; endsequence;
 
     beam; use, sequence=ss;
     """)
@@ -316,7 +316,13 @@ def test_matrix():
     line = MadLoader(mad.sequence.ss).make_line()
     line = MadLoader(mad.sequence.ss, enable_expressions=True).make_line()
     line.vars['a11'] = 2.0
-    assert line[1].m1[0, 0] == line.vars['a11']._value
+    assert line['mm'].m1[0, 0] == line.vars['a11']._value
+
+    line.reset_s_at_end_turn
+
+    part = xt.Particles()
+    line['mm'].track(part)
+    xo.assert_allclose(part.s, 0.4, atol=1e-12, rtol=0)
 
 
 def test_srotation():
