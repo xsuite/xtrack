@@ -3379,8 +3379,11 @@ class TwissTable(Table):
                 - eq_gemitt_y: vertical equilibrium geometric emittance from synchrotron radiation used, in [m].
                 - eq_gemitt_zeta: longitudinal equilibrium geometric emittance from synchrotron radiation used, in [m].
                 - eq_sr_ibs_gemitt_x: final horizontal equilibrium geometric emittance converged to, in [m].
+                - eq_sr_ibs_nemitt_x: final horizontal equilibrium normalized emittance converged to, in [m].
                 - eq_sr_ibs_gemitt_y: final vertical equilibrium geometric emittance converged to, in [m].
+                - eq_sr_ibs_gemitt_y: final vertical equilibrium normalized emittance converged to, in [m].
                 - eq_sr_ibs_gemitt_zeta: final longitudinal equilibrium geometric emittance converged to, in [m].
+                - eq_sr_ibs_gemitt_zeta: final longitudinal equilibrium normalized emittance converged to, in [m].
         """
         try:
             from xfields.ibs import compute_equilibrium_emittances_from_sr_and_ibs
