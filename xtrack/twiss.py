@@ -3236,6 +3236,7 @@ class TwissTable(Table):
         emittance_constraint: Literal["coupling", "excitation"] | None = "coupling",
         rtol: float = 1e-6,
         tstep: float | None = None,
+        max_steps: float | None = None,
         verbose: bool = True,
         **kwargs,
     ) -> Table:
@@ -3347,6 +3348,10 @@ class TwissTable(Table):
             Time step to use for each iteration, in [s]. If not provided, an
             adaptive time step is computed based on the IBS growth rates and
             the damping constants. Defaults to `None`.
+        max_steps : float, optional
+            The maximum number of iterations to perform before stopping the iterative
+            process. If not provided, the process continues until it reaches convergence
+            (according to the provided `rtol`). Defaults to `None`.
         verbose : bool, optional
             Whether to print out information on the current iteration step and estimated
             convergence progress. Defaults to `True`.
@@ -3397,7 +3402,7 @@ class TwissTable(Table):
             overwrite_sigma_delta=overwrite_sigma_delta,
             emittance_coupling_factor=emittance_coupling_factor,
             emittance_constraint=emittance_constraint,
-            rtol=rtol, tstep=tstep, verbose=verbose, **kwargs,
+            rtol=rtol, tstep=tstep, max_steps=max_steps, verbose=verbose, **kwargs,
         )
 
     def get_R_matrix(self, start, end):
