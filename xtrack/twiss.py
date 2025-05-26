@@ -3220,7 +3220,7 @@ class TwissTable(Table):
             **kwargs,
         )
 
-    def compute_equilibrium_emittances_from_sr_and_ibs(
+    def get_ibs_and_synrad_emittance_evolution(
         self,
         formalism: Literal["Nagaitsev", "Bjorken-Mtingwa", "B&M"],
         total_beam_intensity: int,
@@ -3386,10 +3386,10 @@ class TwissTable(Table):
                 - eq_sr_ibs_gemitt_zeta: final longitudinal equilibrium normalized emittance converged to, in [m].
         """
         try:
-            from xfields.ibs import compute_equilibrium_emittances_from_sr_and_ibs
+            from xfields.ibs import get_ibs_and_synrad_emittance_evolution
         except ImportError:
             raise ImportError("Please install xfields to use this feature.")
-        return compute_equilibrium_emittances_from_sr_and_ibs(
+        return get_ibs_and_synrad_emittance_evolution(
             self, formalism=formalism, total_beam_intensity=total_beam_intensity,
             gemitt_x=gemitt_x, nemitt_x=nemitt_x, gemitt_y=gemitt_y, nemitt_y=nemitt_y,
             gemitt_zeta=gemitt_zeta, nemitt_zeta=nemitt_zeta,
