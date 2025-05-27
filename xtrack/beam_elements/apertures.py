@@ -33,26 +33,15 @@ class LimitRect(BeamElement):
     """
 
     _xofields = {
-        "min_x": xo.Float64,
-        "max_x": xo.Float64,
-        "min_y": xo.Float64,
-        "max_y": xo.Float64,
+        "min_x": xo.Field(xo.Float64, default=-UNLIMITED),
+        "max_x": xo.Field(xo.Float64, default=UNLIMITED),
+        "min_y": xo.Field(xo.Float64, default=-UNLIMITED),
+        "max_y": xo.Field(xo.Float64, default=UNLIMITED),
     }
 
     has_backtrack = True
 
     _extra_c_sources = ['#include <beam_elements/apertures_src/limitrect.h>']
-
-    def __init__(
-        self,
-        min_x=-UNLIMITED,
-        max_x=UNLIMITED,
-        min_y=-UNLIMITED,
-        max_y=UNLIMITED,
-        **kwargs,
-    ):
-
-        super().__init__(min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y, **kwargs)
 
 
 class LimitRacetrack(BeamElement):
@@ -77,10 +66,10 @@ class LimitRacetrack(BeamElement):
     """
 
     _xofields = {
-        "min_x": xo.Float64,
-        "max_x": xo.Float64,
-        "min_y": xo.Float64,
-        "max_y": xo.Float64,
+        "min_x": xo.Field(xo.Float64, default=-UNLIMITED),
+        "max_x": xo.Field(xo.Float64, default=UNLIMITED),
+        "min_y": xo.Field(xo.Float64, default=-UNLIMITED),
+        "max_y": xo.Field(xo.Float64, default=UNLIMITED),
         "a": xo.Float64,
         "b": xo.Float64,
     }
@@ -435,8 +424,8 @@ class LimitRectEllipse(BeamElement):
     """
 
     _xofields = {
-        "max_x": xo.Float64,
-        "max_y": xo.Float64,
+        "max_x": xo.Field(xo.Float64, default=UNLIMITED),
+        "max_y": xo.Field(xo.Float64, default=UNLIMITED),
         "a_squ": xo.Float64,
         "b_squ": xo.Float64,
         "a_b_squ": xo.Float64,
@@ -533,10 +522,10 @@ class LongitudinalLimitRect(BeamElement):
     """
 
     _xofields = {
-        "min_zeta": xo.Float64,
-        "max_zeta": xo.Float64,
-        "min_pzeta": xo.Float64,
-        "max_pzeta": xo.Float64,
+        "min_zeta": xo.Field(xo.Float64, default=-UNLIMITED),
+        "max_zeta": xo.Field(xo.Float64, default=UNLIMITED),
+        "min_pzeta": xo.Field(xo.Float64, default=-UNLIMITED),
+        "max_pzeta": xo.Field(xo.Float64, default=UNLIMITED),
     }
 
     has_backtrack = True

@@ -223,7 +223,7 @@ class TwissPlot(object):
 
         if self.lattice:
             self.lattice.clear()
-            self._lattice(["k0l", "kn0l", "angle"], "#a0ffa0", "Bend h")
+            self._lattice(["angle_rad"], "#a0ffa0", "Bend h")
             self._lattice(["ks0l"], "#ffa0a0", "Bend v")
             self._lattice(["kn1l", "k1l"], "#a0a0ff", "Quad")
             self._lattice(["hkick"], "#e0a0e0", "Kick h")

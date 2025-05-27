@@ -221,7 +221,7 @@ class Particles(xo.HybridClass):
 
         accepted_args = set(self._xofields.keys()) | {
             'energy0', 'tau', 'pzeta', 'mass_ratio', 'mass', 'kinetic_energy0',
-            '_context', '_buffer', '_offset', 'p0',
+            '_context', '_buffer', '_offset', 'p0', 'name',
         }
         if set(kwargs.keys()) - accepted_args:
             raise NameError(f'Invalid argument(s) provided: '
@@ -383,6 +383,8 @@ class Particles(xo.HybridClass):
         if isinstance(self._context, xo.ContextCpu) and not _no_reorganize:
             self.reorganize()
 
+        if 'name' in kwargs.keys():
+            self.name = kwargs['name']
 
     @classmethod
     def from_dict(cls, dct, load_rng_state=True, **kwargs):
