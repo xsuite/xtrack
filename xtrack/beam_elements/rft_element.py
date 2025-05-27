@@ -72,6 +72,6 @@ class RFT_Element:
         p.px = self.arr_for_xt[:,1] * 1e6 / p.p0c # rad
         p.y  = self.arr_for_xt[:,2] / 1e3 # m
         p.py = self.arr_for_xt[:,3] * 1e6 / p.p0c # rad
-        p.zeta += self.length - self.arr_for_xt[:,4] * p.beta0 / 1e3 # m
+        p.zeta = self.length - self.arr_for_xt[:,4] * p.beta0 / 1e3 # m
         p.delta = (self.arr_for_xt[:,5] * 1e6 - p.p0c) / p.p0c #
         p.state[np.isnan(self.arr_for_xt[:,6])!=np.isnan(self.arr_for_rft[:,9])] = -400 # lost in RF-Track
