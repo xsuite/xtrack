@@ -23,7 +23,7 @@ class RFT_Element:
     iscollective = True # <-- To state that the element uses a python track method
     isthick = True
 
-    def __init__(self, element):
+    def __init__(self, element, update_ref=False):
 
         import RF_Track as rft
         self.length = element.get_length()
@@ -33,6 +33,7 @@ class RFT_Element:
         self.bunch_out = rft.Bunch6d()
         self.arr_for_rft = np.empty(0)
         self.arr_for_xt = np.empty(0)
+        self.update_ref = update_ref
 
     def track(self, particles, increment_at_element=False):
 
@@ -67,7 +68,9 @@ class RFT_Element:
 
         # Update particles
         self.arr_for_xt = self.arr_for_xt[self.arr_for_xt[:,7].argsort()] # sort by particle id
-        p.p0c = pref1[0].Pc * 1e6
+        if self.update_ref:
+            p.p0c = pref1[0].Pc * 1e6
+        p.s += self.length
         p.x  = self.arr_for_xt[:,0] / 1e3 # m
         p.px = self.arr_for_xt[:,1] * 1e6 / p.p0c # rad
         p.y  = self.arr_for_xt[:,2] / 1e3 # m
