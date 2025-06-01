@@ -864,6 +864,11 @@ class Tracker:
             if isinstance(pp, TrackerPartNonCollective):
                 ret = pp.track(particles, turn_by_turn_monitor=monitor)
             else:
+                if monitor.ebe_mode == 1:
+                    assert monitor._context is particles._context, (
+                        'Element-by-element monitor not supported in multi-context'
+                        ' mode')
+                    monitor.track(particles)
                 ret = pp.track(particles)
 
         return stop_tracking, skip, ret
