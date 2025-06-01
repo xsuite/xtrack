@@ -3957,8 +3957,14 @@ class TwissTable(Table):
 
         i3_integrand = np.abs(kappa * kappa * kappa)
 
-        i4x_integrand = (kappa * kappa * kappa0_x + 2 * k1 * kappa_x) * dx
-        i4y_integrand = (kappa * kappa * kappa0_y - 2 * k1 * kappa_y) * dy
+        i4_integrand = (kappa * kappa * kappa0_x
+                        + 2 * kappa_x * k1 * dx
+                        - 2 * kappa_y * k1 * dy)
+        i4x_integrand = (kappa * kappa * kappa0_x
+                        + 2 * kappa_x * k1 * dx)
+        i4y_integrand = (kappa * kappa * kappa0_y
+                        - 2 * kappa_y * k1 * dy)
+
 
         i5x_integrand = np.abs(kappa * kappa * kappa) * Hx_rad
         i5y_integrand = np.abs(kappa * kappa * kappa) * Hy_rad
@@ -3968,6 +3974,7 @@ class TwissTable(Table):
         i1y = np.sum(i1y_integrand * length)
         i2 = np.sum(i2_integrand * length)
         i3 = np.sum(i3_integrand * length)
+        i4 = np.sum(i4_integrand * length)
         i4x = np.sum(i4x_integrand * length)
         i4y = np.sum(i4y_integrand * length)
         i5x = np.sum(i5x_integrand * length)
@@ -3982,7 +3989,7 @@ class TwissTable(Table):
         # Damping constants
         damping_constant_x_s = r0/3 * gamma0**3 * clight/self.circumference * (i2 - i4x)
         damping_constant_y_s = r0/3 * gamma0**3 * clight/self.circumference * (i2 - i4y)
-        damping_constant_zeta_s = r0/3 * gamma0**3 * clight/self.circumference * (2*i2 + i4x + i4y)
+        damping_constant_zeta_s = r0/3 * gamma0**3 * clight/self.circumference * (2*i2 + i4)
 
         # Velocity direction (for spin)
         tempv = np.sqrt(xp**2 + yp**2 + 1)
@@ -3999,6 +4006,7 @@ class TwissTable(Table):
             'rad_int_i1y_integrand': i1y_integrand,
             'rad_int_i2_integrand': i2_integrand,
             'rad_int_i3_integrand': i3_integrand,
+            'rad_int_i4_integrand': i4_integrand,
             'rad_int_i4x_integrand': i4x_integrand,
             'rad_int_i4y_integrand': i4y_integrand,
             'rad_int_i5x_integrand': i5x_integrand,
@@ -4019,6 +4027,7 @@ class TwissTable(Table):
             'rad_int_i1y': i1y,
             'rad_int_i2': i2,
             'rad_int_i3': i3,
+            'rad_int_i4': i4,
             'rad_int_i4x': i4x,
             'rad_int_i4y': i4y,
             'rad_int_i5x': i5x,

@@ -48,6 +48,8 @@ eq_gemitt_x = []
 eq_gemitt_y = []
 eq_gemitt_zeta = []
 rad_int_dconst_x_s =[]
+rad_int_dconst_y_s = []
+rad_int_dconst_zeta_s = []
 delta_ave = []
 for dff in dfrev:
     print(f'dfrev: {dff}')
@@ -67,6 +69,8 @@ for dff in dfrev:
     demp_const_y_s.append(tw.damping_constants_s[1])
 
     rad_int_dconst_x_s.append(tw.rad_int_damping_constant_x_s)
+    rad_int_dconst_y_s.append(tw.rad_int_damping_constant_y_s)
+    rad_int_dconst_zeta_s.append(tw.rad_int_damping_constant_zeta_s)
 
 # Cast to numpy arrays
 part_x = np.array(part_x)
@@ -107,9 +111,25 @@ plt.legend()
 plt.grid(True)
 
 plt.figure(2, figsize=(6.4, 4.8*1.8))
-plt.subplot(3, 1, 1)
-plt.plot(dfrev, damp_cons_x_s)
-plt.plot(dfrev, rad_int_dconst_x_s)
+axd = plt.subplot(3, 1, 1, sharex=ax1)
+plt.plot(dfrev, damp_cons_x_s, label='Chao')
+plt.plot(dfrev, rad_int_dconst_x_s, label='Rad. Int.')
+plt.ylabel(r'$d_x$ [s$^{-1}$]')
+plt.legend()
+plt.grid(True)
+
+plt.subplot(3, 1, 2, sharex=ax1, sharey=axd)
+plt.plot(dfrev, demp_const_y_s)
+plt.plot(dfrev, rad_int_dconst_y_s)
+plt.ylabel(r'$d_y$ [s$^{-1}$]')
+plt.grid(True)
+
+plt.subplot(3, 1, 3, sharex=ax1, sharey=axd)
+plt.plot(dfrev, damp_const_zeta_s)
+plt.plot(dfrev, rad_int_dconst_zeta_s)
+plt.ylabel(r'$d_\zeta$ [s$^{-1}$]')
+plt.xlabel(r'$\Delta f_\text{rev}$ [Hz]')
+plt.grid(True)
 
 plt.show()
 
