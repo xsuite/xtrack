@@ -106,6 +106,11 @@ plt.ylim(1e-10, 1e-1)
 plt.legend()
 plt.grid(True)
 
+plt.figure(2, figsize=(6.4, 4.8*1.8))
+plt.subplot(3, 1, 1)
+plt.plot(dfrev, damp_cons_x_s)
+plt.plot(dfrev, rad_int_dconst_x_s)
+
 plt.show()
 
 
