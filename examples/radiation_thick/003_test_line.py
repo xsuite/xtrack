@@ -3,23 +3,29 @@ import numpy as np
 
 env = xt.load_madx_lattice('../../test_data/sps_thick/sps.seq')
 env.vars.load_madx('../../test_data/sps_thick/lhc_q20.str')
+line = env.sps
+
+line.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV, energy0=10e9)
+
+line.insert('zeta_shift', obj=xt.ZetaShift(), at=0)
 
 # RF set tp stay in the linear region
 env['actcse.31632'].voltage = 2500e6
 env['actcse.31632'].frequency = 3e6
 env['actcse.31632'].lag = 180.
 
-line = env.sps
+
 tt = line.get_table()
-tt_mbb = tt.rows['mbb.*']
+tt_mb = tt.rows['mb.*']
+tt_lsf = tt.rows['lsf.*']
+tt_lsd = tt.rows['lsd.*']
 
-for nn in tt_mbb.name:
-    line[nn].rot_s_rad = np.deg2rad(20)
+for nn in tt_mb.name:
+    line[nn].rot_s_rad = np.deg2rad(90)
 
+for nn in list(tt_lsf.name) + list(tt_lsd.name):
+    line[nn].rot_s_rad = np.deg2rad(-30)
 
-line.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV, energy0=10e9)
-
-line.insert('zeta_shift', obj=xt.ZetaShift(), at=0)
 
 tt = line.get_table()
 
@@ -28,6 +34,19 @@ tt = line.get_table()
 #     xt.slicing.Strategy(slicing=xt.Teapot(2, mode='thick'), element_type=xt.RBend),
 #     xt.slicing.Strategy(slicing=xt.Teapot(8, mode='thick'), element_type=xt.Quadrupole),
 # ])
+
+opt_q = line.match(
+    solve=False,
+    vary=xt.VaryList(['kqf', 'kqd'], step=1e-4),
+    targets=xt.TargetSet(qx=20.18, qy=20.13, tol=1e-4))
+opt_q.solve()
+
+opt_chrom = line.match(
+    solve=False,
+    vary=xt.VaryList(['klsfb', 'klsfa', 'klsdb', 'klsda'], step=1e-4),
+    targets=xt.TargetSet(dqx=1., dqy=1, tol=1e-4))
+opt_chrom.solve()
+
 
 tw4d = line.twiss4d()
 tw6d = line.twiss()
@@ -44,7 +63,7 @@ env['frev_trim'] = 0.
 
 env['zeta_shift'].dzeta = 'circum * frev_trim / frev0'
 
-dfrev = np.linspace(-1, 0.9, 100)
+dfrev = np.linspace(-0.7, 0.7, 100)
 part_x = []
 part_y = []
 part_zeta = []
@@ -57,6 +76,8 @@ eq_gemitt_zeta = []
 rad_int_dconst_x_s =[]
 rad_int_dconst_y_s = []
 rad_int_dconst_zeta_s = []
+rad_int_ex = []
+rad_int_ey = []
 delta_ave = []
 for dff in dfrev:
     print(f'dfrev: {dff}')
@@ -78,6 +99,9 @@ for dff in dfrev:
     rad_int_dconst_x_s.append(tw.rad_int_damping_constant_x_s)
     rad_int_dconst_y_s.append(tw.rad_int_damping_constant_y_s)
     rad_int_dconst_zeta_s.append(tw.rad_int_damping_constant_zeta_s)
+
+    rad_int_ex.append(tw.rad_int_eq_gemitt_x)
+    rad_int_ey.append(tw.rad_int_eq_gemitt_y)
 
 # Cast to numpy arrays
 part_x = np.array(part_x)
@@ -137,6 +161,22 @@ plt.plot(dfrev, rad_int_dconst_zeta_s)
 plt.ylabel(r'$d_\zeta$ [s$^{-1}$]')
 plt.xlabel(r'$\Delta f_\text{rev}$ [Hz]')
 plt.grid(True)
+
+plt.figure(3, figsize=(6.4, 4.8*1.8))
+
+plt.subplot(2, 1, 1)
+plt.plot(dfrev, eq_gemitt_x, label='Chao')
+plt.plot(dfrev, rad_int_ex, label='Rad. Int.')
+plt.ylabel(r'$\epsilon_x$ [m]')
+plt.legend()
+
+plt.subplot(2, 1, 2, sharex=ax1)
+plt.plot(dfrev, eq_gemitt_y, label='Chao')
+plt.plot(dfrev, rad_int_ey, label='Rad. Int.')
+plt.ylabel(r'$\epsilon_y$ [m]')
+plt.xlabel(r'$\Delta f_\text{rev}$ [Hz]')
+
+
 
 plt.show()
 
