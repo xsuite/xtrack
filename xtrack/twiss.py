@@ -3902,7 +3902,7 @@ class TwissTable(Table):
 
         mass0 = self.particle_on_co.mass0
         r0 = self.particle_on_co.get_classical_particle_radius0()
-        gamma0 = self.gamma0
+        gamma0 = self.particle_on_co.gamma0[0]
 
         dxprime = dpx * (1 - delta) - kin_px
         dyprime = dpy * (1 - delta) - kin_py
@@ -3998,8 +3998,6 @@ class TwissTable(Table):
         iv_z = 1 / tempv
 
         cols = {
-            'rad_int_kappax': kappa_x,
-            'rad_int_kappay': kappa_y,
             'rad_int_hx': Hx_rad,
             'rad_int_hy': Hy_rad,
             'rad_int_i1x_integrand': i1x_integrand,
