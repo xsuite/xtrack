@@ -23,17 +23,13 @@ tt_lsd = tt.rows['lsd.*']
 for nn in tt_mb.name:
     line[nn].rot_s_rad = np.deg2rad(90)
 
+# I need skew sextupoles to correct the chromaticity when the dispersion is vertical
 for nn in list(tt_lsf.name) + list(tt_lsd.name):
     line[nn].rot_s_rad = np.deg2rad(-30)
 
 
 tt = line.get_table()
 
-# line.slice_thick_elements(slicing_strategies=[
-#     xt.slicing.Strategy(slicing=None), # Default
-#     xt.slicing.Strategy(slicing=xt.Teapot(2, mode='thick'), element_type=xt.RBend),
-#     xt.slicing.Strategy(slicing=xt.Teapot(8, mode='thick'), element_type=xt.Quadrupole),
-# ])
 
 opt_q = line.match(
     solve=False,
