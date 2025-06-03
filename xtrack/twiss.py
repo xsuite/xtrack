@@ -3957,13 +3957,9 @@ class TwissTable(Table):
 
         i3_integrand = np.abs(kappa * kappa * kappa)
 
-        i4_integrand = (kappa * kappa * kappa0_x
-                        + 2 * kappa_x * k1 * dx
-                        - 2 * kappa_y * k1 * dy)
-        i4x_integrand = (kappa * kappa * kappa0_x
-                        + 2 * kappa_x * k1 * dx)
-        i4y_integrand = (kappa * kappa * kappa0_y
-                        - 2 * kappa_y * k1 * dy)
+        i4x_integrand = dx * (kappa0_x * kappa**2 + 2 * k1 * kappa_x)
+        i4y_integrand = dy * (kappa0_y * kappa**2 - 2 * k1 * kappa_y)
+        i4_integrand = i4x_integrand + i4y_integrand
 
 
         i5x_integrand = np.abs(kappa * kappa * kappa) * Hx_rad
