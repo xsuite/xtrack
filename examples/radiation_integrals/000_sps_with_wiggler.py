@@ -1,9 +1,7 @@
 import xtrack as xt
 import numpy as np
 
-from scipy.constants import hbar
-from scipy.constants import electron_volt
-from scipy.constants import c as clight
+import xobjects as xo
 
 env = xt.load_madx_lattice('../../test_data/sps_thick/sps.seq')
 env.vars.load_madx('../../test_data/sps_thick/lhc_q20.str')
@@ -81,3 +79,17 @@ print('damping rate y [s^-1] rad int:   ', tw4d.rad_int_damping_constant_y_s)
 print('damping rate y [s^-1] eigenval:  ', tw_rad.damping_constants_s[1])
 print('damping rate z [s^-1] rad int:   ', tw4d.rad_int_damping_constant_zeta_s)
 print('damping rate z [s^-1] eigenval:  ', tw_rad.damping_constants_s[2])
+
+xo.assert_allclose(
+    tw4d.rad_int_eq_gemitt_x, tw_rad.eq_gemitt_x, rtol=1e-3, atol=0)
+xo.assert_allclose(
+    tw4d.rad_int_eq_gemitt_y, tw_rad.eq_gemitt_y, rtol=5e-3, atol=0)
+xo.assert_allclose(
+    tw4d.rad_int_damping_constant_x_s, tw_rad.damping_constants_s[0],
+    rtol=1e-3, atol=0)
+xo.assert_allclose(
+    tw4d.rad_int_damping_constant_y_s, tw_rad.damping_constants_s[1],
+    rtol=5e-3, atol=0)
+xo.assert_allclose(
+    tw4d.rad_int_damping_constant_zeta_s, tw_rad.damping_constants_s[2],
+    rtol=1e-3, atol=0)
