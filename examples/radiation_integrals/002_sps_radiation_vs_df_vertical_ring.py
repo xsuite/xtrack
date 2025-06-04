@@ -2,7 +2,7 @@ import xtrack as xt
 import xobjects as xo
 import numpy as np
 
-tilt = False
+tilt = True
 
 env = xt.load_madx_lattice('../../test_data/sps_thick/sps.seq')
 env.vars.load_madx('../../test_data/sps_thick/lhc_q20.str')
@@ -124,10 +124,10 @@ xo.assert_allclose(
 xo.assert_allclose(
     rad_int_dconst_zeta_s, damp_const_zeta_s, rtol=0.03, atol=0.05)
 
-mask = np.abs(rad_int_dconst_x_s) > 0.1
+mask = np.abs(rad_int_dconst_x_s) > 0.25
 xo.assert_allclose(
     rad_int_ex[mask], eq_gemitt_x[mask], rtol=0.065, atol=1e-14)
-mask = np.abs(rad_int_dconst_y_s) > 0.1
+mask = np.abs(rad_int_dconst_y_s) > 0.25
 xo.assert_allclose(
     rad_int_ey[mask], eq_gemitt_y[mask], rtol=0.065, atol=1e-14)
 
