@@ -2021,6 +2021,10 @@ class Line:
         qx = np.zeros(4)
         qy = np.zeros(4)
 
+        # remove average in case there is a closed orbit
+        mon.x-=mon.x.mean(axis=1,keepdims=True)
+        mon.y-=mon.y.mean(axis=1,keepdims=True)
+
         for ii in range(len(qx)):
             qx[ii] = np.abs(nl.get_tune(mon.x[ii, :]))
             qy[ii] = np.abs(nl.get_tune(mon.y[ii, :]))
