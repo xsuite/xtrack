@@ -60,7 +60,7 @@ env['frev_trim'] = 0.
 
 env['zeta_shift'].dzeta = 'circum * frev_trim / frev0'
 
-dfrev = np.linspace(-0.7, 0.7, 20)
+dfrev = np.linspace(-0.7, 0.7, 21)
 part_x = []
 part_y = []
 part_zeta = []
@@ -114,6 +114,8 @@ damp_const_zeta_s = np.array(damp_const_zeta_s)
 rad_int_dconst_x_s = np.array(rad_int_dconst_x_s)
 rad_int_dconst_y_s = np.array(rad_int_dconst_y_s)
 rad_int_dconst_zeta_s = np.array(rad_int_dconst_zeta_s)
+rad_int_ex = np.array(rad_int_ex)
+rad_int_ey = np.array(rad_int_ey)
 
 xo.assert_allclose(
     rad_int_dconst_x_s, damp_cons_x_s, rtol=0.03, atol=0.05)
@@ -122,6 +124,19 @@ xo.assert_allclose(
 xo.assert_allclose(
     rad_int_dconst_zeta_s, damp_const_zeta_s, rtol=0.03, atol=0.05)
 
+mask = np.abs(rad_int_dconst_x_s) > 0.1
+xo.assert_allclose(
+    rad_int_ex[mask], eq_gemitt_x[mask], rtol=0.065, atol=1e-14)
+mask = np.abs(rad_int_dconst_y_s) > 0.1
+xo.assert_allclose(
+    rad_int_ey[mask], eq_gemitt_y[mask], rtol=0.065, atol=1e-14)
+
+if tilt:
+    xo.assert_allclose(
+        rad_int_ex, 0, rtol=0, atol=1e-14)
+else:
+    xo.assert_allclose(
+        rad_int_ey, 0, rtol=1e-14, atol=1e-14)
 
 
 import matplotlib.pyplot as plt
@@ -172,19 +187,21 @@ plt.grid(True)
 
 plt.figure(3, figsize=(6.4, 4.8*1.8))
 
-plt.subplot(2, 1, 1)
+axemi = plt.subplot(2, 1, 1, sharex=ax1)
 plt.plot(dfrev, eq_gemitt_x, label='Chao')
 plt.plot(dfrev, rad_int_ex, label='Rad. Int.')
 plt.ylabel(r'$\epsilon_x$ [m]')
+plt.ylim(-5e-7, 5e-7)
 plt.legend()
+plt.grid(True)
 
-plt.subplot(2, 1, 2, sharex=ax1)
+plt.subplot(2, 1, 2, sharex=ax1, sharey=axemi)
 plt.plot(dfrev, eq_gemitt_y, label='Chao')
 plt.plot(dfrev, rad_int_ey, label='Rad. Int.')
 plt.ylabel(r'$\epsilon_y$ [m]')
 plt.xlabel(r'$\Delta f_\text{rev}$ [Hz]')
-
-
+plt.legend()
+plt.grid(True)
 
 plt.show()
 
