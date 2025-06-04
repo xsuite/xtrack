@@ -1,26 +1,49 @@
 import xtrack as xt
+import xobjects as xo
 import numpy as np
+
+tilt = False
 
 env = xt.load_madx_lattice('../../test_data/sps_thick/sps.seq')
 env.vars.load_madx('../../test_data/sps_thick/lhc_q20.str')
+line = env.sps
+
+line.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV, energy0=10e9)
+
+line.insert('zeta_shift', obj=xt.ZetaShift(), at=0)
 
 # RF set tp stay in the linear region
 env['actcse.31632'].voltage = 2500e6
 env['actcse.31632'].frequency = 3e6
 env['actcse.31632'].lag = 180.
 
-line = env.sps
-line.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV, energy0=10e9)
 
-line.insert('zeta_shift', obj=xt.ZetaShift(), at=0)
+if tilt:
 
-tt = line.get_table()
+    tt = line.get_table()
+    tt_mb = tt.rows['mb.*']
+    tt_lsf = tt.rows['lsf.*']
+    tt_lsd = tt.rows['lsd.*']
 
-# line.slice_thick_elements(slicing_strategies=[
-#     xt.slicing.Strategy(slicing=None), # Default
-#     xt.slicing.Strategy(slicing=xt.Teapot(2, mode='thick'), element_type=xt.RBend),
-#     xt.slicing.Strategy(slicing=xt.Teapot(8, mode='thick'), element_type=xt.Quadrupole),
-# ])
+    for nn in tt_mb.name:
+        line[nn].rot_s_rad = np.deg2rad(90)
+
+    # I need skew sextupoles to correct the chromaticity when the dispersion is vertical
+    for nn in list(tt_lsf.name) + list(tt_lsd.name):
+        line[nn].rot_s_rad = np.deg2rad(-30)
+
+    opt_q = line.match(
+        solve=False,
+        vary=xt.VaryList(['kqf', 'kqd'], step=1e-4),
+        targets=xt.TargetSet(qx=20.18, qy=20.13, tol=1e-4))
+    opt_q.solve()
+
+    opt_chrom = line.match(
+        solve=False,
+        vary=xt.VaryList(['klsfb', 'klsfa', 'klsdb', 'klsda'], step=1e-4),
+        targets=xt.TargetSet(dqx=1., dqy=1, tol=1e-4))
+    opt_chrom.solve()
+
 
 tw4d = line.twiss4d()
 tw6d = line.twiss()
@@ -37,7 +60,7 @@ env['frev_trim'] = 0.
 
 env['zeta_shift'].dzeta = 'circum * frev_trim / frev0'
 
-dfrev = np.linspace(-1, 0.9, 20)
+dfrev = np.linspace(-0.7, 0.7, 20)
 part_x = []
 part_y = []
 part_zeta = []
@@ -50,6 +73,8 @@ eq_gemitt_zeta = []
 rad_int_dconst_x_s =[]
 rad_int_dconst_y_s = []
 rad_int_dconst_zeta_s = []
+rad_int_ex = []
+rad_int_ey = []
 delta_ave = []
 for dff in dfrev:
     print(f'dfrev: {dff}')
@@ -72,6 +97,9 @@ for dff in dfrev:
     rad_int_dconst_y_s.append(tw.rad_int_damping_constant_y_s)
     rad_int_dconst_zeta_s.append(tw.rad_int_damping_constant_zeta_s)
 
+    rad_int_ex.append(tw.rad_int_eq_gemitt_x)
+    rad_int_ey.append(tw.rad_int_eq_gemitt_y)
+
 # Cast to numpy arrays
 part_x = np.array(part_x)
 part_y = np.array(part_y)
@@ -84,6 +112,17 @@ damp_cons_x_s = np.array(damp_cons_x_s)
 demp_const_y_s = np.array(demp_const_y_s)
 damp_const_zeta_s = np.array(damp_const_zeta_s)
 rad_int_dconst_x_s = np.array(rad_int_dconst_x_s)
+rad_int_dconst_y_s = np.array(rad_int_dconst_y_s)
+rad_int_dconst_zeta_s = np.array(rad_int_dconst_zeta_s)
+
+xo.assert_allclose(
+    rad_int_dconst_x_s, damp_cons_x_s, rtol=0.03, atol=0.05)
+xo.assert_allclose(
+    rad_int_dconst_y_s, demp_const_y_s, rtol=0.03, atol=0.05)
+xo.assert_allclose(
+    rad_int_dconst_zeta_s, damp_const_zeta_s, rtol=0.03, atol=0.05)
+
+
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -130,6 +169,22 @@ plt.plot(dfrev, rad_int_dconst_zeta_s)
 plt.ylabel(r'$d_\zeta$ [s$^{-1}$]')
 plt.xlabel(r'$\Delta f_\text{rev}$ [Hz]')
 plt.grid(True)
+
+plt.figure(3, figsize=(6.4, 4.8*1.8))
+
+plt.subplot(2, 1, 1)
+plt.plot(dfrev, eq_gemitt_x, label='Chao')
+plt.plot(dfrev, rad_int_ex, label='Rad. Int.')
+plt.ylabel(r'$\epsilon_x$ [m]')
+plt.legend()
+
+plt.subplot(2, 1, 2, sharex=ax1)
+plt.plot(dfrev, eq_gemitt_y, label='Chao')
+plt.plot(dfrev, rad_int_ey, label='Rad. Int.')
+plt.ylabel(r'$\epsilon_y$ [m]')
+plt.xlabel(r'$\Delta f_\text{rev}$ [Hz]')
+
+
 
 plt.show()
 
