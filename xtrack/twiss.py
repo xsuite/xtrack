@@ -4597,6 +4597,10 @@ def _compute_spin_polarization(tw, line, method):
 
         RR[6:, 6:] = A
 
+        # For the spin tune I take the eigenvalue with the largest imaginary part
+        # (there are the eigenvalues, one is 1.0 + 0j, the others are complex conjugates)
+        spin_tune_fractional = np.max(np.angle(np.linalg.eigvals(A))) / (2 * np.pi)
+
         # Detect no RF
         if np.abs(RR[5, 4]) < 1e-12:
             assert method == '4d'
@@ -4782,6 +4786,7 @@ def _compute_spin_polarization(tw, line, method):
         }
 
         other_data = {
+            'spin_tune_fractional': spin_tune_fractional,
             'spin_polarization_eq': pol_eq,
             'spin_t_pol_buildup_s': t_pol_buildup_s,
             'spin_polarization_inf_no_depol': pol_inf,

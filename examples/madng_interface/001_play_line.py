@@ -18,18 +18,27 @@ mad.MADX.myseq.kind # is 'sequence'
 mad.MADX.myseq.dumpseq(
     True # Show sequence misalignment
     )
-# In [3]: mad.MADX.myseq.dumpseq()
-# Out[3]: <mad_high_level_last_ref(Name: _last[2], Parent: _last, Process: <pymadng.madp_pymad.mad_process object at 0x107029310>, Type: mad_high_level_last_ref)>
+# In [5]: mad.MADX.myseq.dumpseq(
+#    ...:     True # Show sequence misalignment
+#    ...:     )
+# Out[5]: <mad_high_level_last_ref(Name: _last[4], Parent: _last, Process: <pymadng.madp_pymad.mad_process object at 0x107029310>, Type: mad_high_level_last_ref)>
 
 # sequence: NAME_OF_MY_SEQUENCE, l=60
-# idx  kind           flg name                    l           dl      spos       upos    uds
-# 0001 marker         0   $start                  0.000        0      0.000      0.000   0.000
-# 0002 multipole      0   QF                      0.000        0      0.000      0.000   0.000
-# 0003 drift          0   DF                     10.000        0      0.000      5.000   5.000
-# 0004 multipole      0   QD                      0.000        0     10.000     10.000   0.000
-# 0005 drift          0   DF                     10.000        0     10.000     15.000   5.000
-# 0006 multipole      0   QF                      0.000        0     20.000     20.000   0.000
-# 0007 drift          0   DF                     10.000        0     20.000     25.000   5.000
+# idx  kind           flg name                    l           dl      spos       upos    uds       dx         dy         ds         dtheta     dphi       dpsi
+# 0001 marker         0   $start                  0.000        0      0.000      0.000   0.000     0.0000     0.0000     0.0000     0.0000     0.0000     0.0000
+# 0002 multipole      0   QF                      0.000        0      0.000      0.000   0.000     0.0000     0.0000     0.0000     0.0000     0.0000     0.0000
+# 0003 drift          0   DF                     10.000        0      0.000      5.000   5.000     0.0000     0.0000     0.0000     0.0000     0.0000     0.0000
+# 0004 multipole      0   QD                      0.000        0     10.000     10.000   0.000     0.0000     0.0000     0.0000     0.0000     0.0000     0.0000
+# 0005 drift          0   DF                     10.000        0     10.000     15.000   5.000     0.0000     0.0000     0.0000     0.0000     0.0000     0.0000
+# 0006 multipole      0   QF                      0.000        0     20.000     20.000   0.000     0.0000     0.0000     0.0000     0.0000     0.0000     0.0000
+# 0007 drift          0   DF                     10.000        0     20.000     25.000   5.000     0.0000     0.0000     0.0000     0.0000     0.0000     0.0000
+# 0008 multipole      0   QD                      0.000        0     30.000     30.000   0.000     0.0000     0.0000     0.0000     0.0000     0.0000     0.0000
+# 0009 drift          0   DF                     10.000        0     30.000     35.000   5.000     0.0000     0.0000     0.0000     0.0000     0.0000     0.0000
+# 0010 multipole      0   QF                      0.000        0     40.000     40.000   0.000     0.0000     0.0000     0.0000     0.0000     0.0000     0.0000
+# 0011 drift          0   DF                     10.000        0     40.000     45.000   5.000     0.0000     0.0000     0.0000     0.0000     0.0000     0.0000
+# 0012 multipole      0   QD                      0.000        0     50.000     50.000   0.000     0.0000     0.0000     0.0000     0.0000     0.0000     0.0000
+# 0013 drift          0   DF                     10.000        0     50.000     55.000   5.000     0.0000     0.0000     0.0000     0.0000     0.0000     0.0000
+# 0014 marker         4   $end                    0.000        0     60.000     60.000   0.000     0.0000     0.0000     0.0000     0.0000     0.0000     0.0000
 
 mad.MADX.myseq.beam = mad.beam()  # set the beam parameters
 mad['tws'] = mad.twiss(sequence=mad.MADX.myseq, method=4, save="'atentry'")[0]
