@@ -2,6 +2,32 @@ import numpy as np
 import xtrack as xt
 import xdeps as xd
 
+LUA_VARS_PER_CHUNK = 200
+
+MADNG_ATTR_DICT = {
+    "length": "l",
+    "frequency": "freq",
+    "voltage": "volt",
+    "hxl": "angle",
+    "edge_entry_angle": "e1",
+    "edge_exit_angle": "e2",
+    "edge_entry_fint": "fint",
+    "edge_exit_fint": "fintx",
+    "edge_entry_hgap": "hgap",
+    "rot_s_rad": "tilt",
+}
+
+MADNG_ATTR_IGNORE_LIST = [
+    "radiation_flag", "delta_taper", "edge_entry_model", "edge_exit_model",
+    "edge_entry_angle_fdown", "edge_exit_angle_fdown", "shift_x", "shift_y", "model",
+    "integrator"
+]
+
+CNDICT = {
+    'cavity': 'rfcavity',
+    'bend': 'sbend'
+}
+
 def expr_to_mad_str(expr):
 
     expr_str = str(expr)
@@ -9,6 +35,7 @@ def expr_to_mad_str(expr):
     fff = xt.line.Functions()
     for nn in fff._mathfunctions:
         expr_str = expr_str.replace(f'f.{nn}(', f'{nn}(')
+        expr_str = expr_str.replace(f'f[\'{nn}\'](', f'{nn}(')
 
     expr_str = expr_str.replace("'", "")
     expr_str = expr_str.replace('"', "")
@@ -45,6 +72,17 @@ def mad_assignment(lhs, rhs):
         rhs = mad_str_or_value(rhs)
     if isinstance(rhs, str):
         return f"{lhs} := {rhs}"
+    else:
+        return f"{lhs} = {rhs}"
+
+def madng_assignment(lhs, rhs):
+    if _is_ref(rhs):
+        rhs = mad_str_or_value(rhs)
+    if isinstance(rhs, str):
+        return f"{lhs} =\\ {rhs}"
+    elif isinstance(rhs, np.ndarray):
+        rhs = f"{{ {np.array2string(rhs, separator=', ')[1:-1]} }}"
+        return f"{lhs} = {rhs}"
     else:
         return f"{lhs} = {rhs}"
 
@@ -329,3 +367,123 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
 
     mad_input = vars_str + '\n' + machine_str + '\n'
     return mad_input
+
+def to_madng_sequence(line, name='seq', mode='sequence'):
+    code_str = ""
+    chunk_start = "do\t -- Begin chunk\n"
+    chunk_end = "end\t -- End chunk\n"
+    var_lines = []
+    substituted_vars = []
+    # Create variables
+    for vv in line.vars.keys():
+        if vv == '__vary_default':
+            continue
+        rhs = _ge(line.vars[vv])
+        vv_rep = vv.replace('.', '_')
+        if vv_rep != vv:
+            substituted_vars.append(vv)
+        if _is_ref(rhs):
+            rhs = mad_str_or_value(rhs)
+        if isinstance(rhs, str):
+            for vv_sub in substituted_vars:
+                rhs = rhs.replace(vv_sub, vv_sub.replace('.', '_'))
+        if isinstance(rhs, str):
+            vars_str = f"{vv_rep} =\\ {rhs};\n"
+        else:
+            vars_str = f"{vv_rep} = {rhs};\n"
+        var_lines.append(vars_str)
+
+    # Chunking variables
+    for ii in range(len(var_lines)):
+        if ii % LUA_VARS_PER_CHUNK == 0:
+            if ii > 0:
+                code_str += chunk_end
+            code_str += chunk_start
+        code_str += var_lines[ii]
+    code_str += chunk_end
+
+    # Create sequence elements
+    tt = line.get_table()
+
+    s_dict = {}
+    el_strs = []
+
+    for ii, nn in enumerate(tt.name[1:-2]): # ignore "lhcb1$start", "lhcb1$end" and "_end_point"
+        if not(tt.isthick[ii]):
+            s_dict[nn] = tt.s[ii]
+        else:
+            s_dict[nn] = 0.5 * (tt.s[ii] + tt.s[ii+1])
+
+        el = line.element_dict[nn]
+        if isinstance(el, xt.Drift):
+            continue
+        class_name = el.__class__.__name__.lower()
+        # class dict:
+        if class_name in CNDICT.keys():
+            class_name = CNDICT[class_name]
+        elif class_name == 'multipole':
+            continue
+        nn_mad = nn.replace(':', '__') # : not supported in MADX names
+        nn_mad = nn.replace('$', '_')  # replace $ with _ for MAD-NG compatibility
+        nn_mad = nn.replace('.', '_')  # replace . with _ for MAD-NG compatibility
+        el_str = f"{class_name} '{nn_mad}' {{"
+
+        for key in el._xofields.keys():
+            if key in MADNG_ATTR_IGNORE_LIST or key.startswith('_'):
+                continue
+            if key in MADNG_ATTR_DICT:
+                mad_key = MADNG_ATTR_DICT[key]
+            else:
+                mad_key = key
+
+            value = _ge(getattr(el, key))
+            if value is None:
+                continue
+            el_str += f"{madng_assignment(mad_key, value)}, "
+
+        # el_str = xsuite_to_mad_conveters[el.__class__](nn, line)
+        # if nn + '_tilt_entry' in line.element_dict:
+        #     el_str += ", " + mad_assignment('tilt',
+        #                 _ge(line.element_refs[nn + '_tilt_entry'].angle) / 180. * np.pi)
+
+        # Misalignments
+        if hasattr(el, 'shift_x') and hasattr(el, 'shift_y'):
+            el_str += f"misalign =\\ {{dx={mad_str_or_value(_ge(line.ref[nn].shift_x))}, dy={mad_str_or_value(_ge(line.ref[nn].shift_y))}}}"
+        else:
+            el_str += "misalign =\\ {}"
+        el_strs.append(el_str)
+
+    # Chunking sequence
+    seq_end = "}\n"
+    chunk_count = 0
+    for ii in range(len(el_strs)):
+        if ii % LUA_VARS_PER_CHUNK == 0:
+            if ii > 0:
+                code_str += seq_end + chunk_end
+            code_str += chunk_start
+            code_str += f"seq_chunk_{chunk_count} = bline 'seq_chunk_{chunk_count}' {{\n"
+            chunk_count += 1
+        code_str += el_strs[ii]
+        if ii == len(el_strs) - 1 or (ii + 1) % LUA_VARS_PER_CHUNK == 0:
+            code_str += "}\n"
+        else:
+            code_str += "},\n"
+
+    code_str += seq_end + chunk_end
+    # create seq out of chunks
+
+    code_str += chunk_start + f"{name} = sequence '{name}' {{ refer=centre,"
+
+    for i in range(chunk_count):
+        if i == chunk_count - 1:
+            code_str += f" seq_chunk_{i} }}\n"
+        else:
+            code_str += f" seq_chunk_{i},"
+
+    for i in range(chunk_count):
+        code_str += f"seq_chunk_{i} = nil\n"
+    code_str += chunk_end
+    return code_str
+
+    #seq_str += f"{nn_mad}: {el_str}, at={s_dict[nn]};\n"
+
