@@ -3897,8 +3897,8 @@ class TwissTable(Table):
         gamy = self['gamy']             # Twiss gamma y
         dx = self['dx']                 # Dispersion x
         dy = self['dy']                 # Dispersion y
-        dpx = self['kin_dpx']               # Dispersion px
-        dpy = self['kin_dpy']               # Dispersion py
+        dpx = self['dpx']               # Dispersion px
+        dpy = self['dpy']               # Dispersion py
 
         mass0 = self.particle_on_co.mass0
         r0 = self.particle_on_co.get_classical_particle_radius0()
