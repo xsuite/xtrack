@@ -73,7 +73,6 @@ ax1=plt.subplot(2, 1, 1)
 tw_wig.plot('x y', ax=ax1)
 ax2=plt.subplot(2, 1, 2, sharex=ax1)
 tw_wig.plot('dx dy', ax=ax2)
-
 plt.subplots_adjust(right=.76, left=0.15)
 
 print('ex rad int:', tw4d.rad_int_eq_gemitt_x)
