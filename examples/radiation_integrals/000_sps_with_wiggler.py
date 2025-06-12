@@ -13,18 +13,15 @@ line['actcse.31632'].lag = 180.
 
 tt = line.get_table()
 
-
-line.particle_ref = xt.Particles(energy0=20e9, mass0=xt.ELECTRON_MASS_EV)
-env.particle_ref = line.particle_ref
+# 20 GeV electrons (like in LEP times)
+env.particle_ref = xt.Particles(energy0=20e9, mass0=xt.ELECTRON_MASS_EV)
+line.particle_ref = env.particle_ref
 
 #####################
 # Build the wiggler #
 #####################
 
 # Wiggler parameters
-k0_wig = 5e-3
-tilt_rad = np.pi/2
-
 env['wig_length'] = 25
 env['wig_num_periods'] = 20
 env['wig_period_length'] = 'wig_length / wig_num_periods'
