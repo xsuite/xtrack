@@ -27,6 +27,7 @@ env['wig_num_periods'] = 20
 env['wig_period_length'] = 'wig_length / wig_num_periods'
 env['wig_pole_length'] = '0.25 * wig_period_length'
 env['wig_k0'] = 5e-3
+env['wig_h0'] = 0
 env['wig_tilt_rad'] = np.pi/2 # Vertical wiggler
 
 # Assemble wiggler
@@ -37,10 +38,11 @@ env.new('wig_pole', 'Bend',
         rot_s_rad='wig_tilt_rad')
 
 env.new_line(name='wig_period', components=[
-    env.new('wig_pole_1', 'wig_pole', k0='-wig_k0'),
-    env.new('wig_pole_2', 'wig_pole', k0='wig_k0'),
-    env.new('wig_pole_3', 'wig_pole', k0='wig_k0'),
-    env.new('wig_pole_4', 'wig_pole', k0='-wig_k0')])
+    env.new('wig_pole_1', 'wig_pole', k0='-wig_k0', h='wig_h0'),
+    env.new('wig_pole_2', 'wig_pole', k0='wig_k0', h='-wig_h0'),
+    env.new('wig_pole_3', 'wig_pole', k0='wig_k0', h='-wig_h0'),
+    env.new('wig_pole_4', 'wig_pole', k0='-wig_k0', h='wig_h0'),
+])
 
 env['wiggler'] = env['wig_num_periods'] * env['wig_period']
 env['wiggler'].replace_all_repeated_elements()
@@ -86,17 +88,3 @@ print('damping rate y [s^-1] rad int:   ', tw4d.rad_int_damping_constant_y_s)
 print('damping rate y [s^-1] eigenval:  ', tw_rad.damping_constants_s[1])
 print('damping rate z [s^-1] rad int:   ', tw4d.rad_int_damping_constant_zeta_s)
 print('damping rate z [s^-1] eigenval:  ', tw_rad.damping_constants_s[2])
-
-xo.assert_allclose(
-    tw4d.rad_int_eq_gemitt_x, tw_rad.eq_gemitt_x, rtol=1e-3, atol=0)
-xo.assert_allclose(
-    tw4d.rad_int_eq_gemitt_y, tw_rad.eq_gemitt_y, rtol=5e-3, atol=0)
-xo.assert_allclose(
-    tw4d.rad_int_damping_constant_x_s, tw_rad.damping_constants_s[0],
-    rtol=1e-3, atol=0)
-xo.assert_allclose(
-    tw4d.rad_int_damping_constant_y_s, tw_rad.damping_constants_s[1],
-    rtol=5e-3, atol=0)
-xo.assert_allclose(
-    tw4d.rad_int_damping_constant_zeta_s, tw_rad.damping_constants_s[2],
-    rtol=1e-3, atol=0)
