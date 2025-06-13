@@ -797,7 +797,8 @@ def twiss_line(line, particle_ref=None, method=None,
 
         for kk in ['angle_rad', 'rot_s_rad', 'length', 'radiation_flag']:
             if kk not in twiss_res._data:
-                twiss_res[kk] = line.attr[kk]
+                aa = line.attr[kk]
+                twiss_res[kk] = np.concatenate([aa, [aa[0]*0]])
 
         # Equilibrium emittances
         if radiation_method == 'kick_as_co':
@@ -1567,20 +1568,11 @@ def _extract_sr_distribution_properties(twiss_res):
     if np.any(radiation_flag > 1):
         raise ValueError('Incompatible radiation flag')
 
-    hxl = twiss_res['angle_rad'] * np.cos(twiss_res['rot_s_rad'])
-    hyl = twiss_res['angle_rad'] * np.sin(twiss_res['rot_s_rad'])
-    dl = twiss_res['length'] * (radiation_flag == 1)
-    px_co = twiss_res['kin_px']
-    py_co = twiss_res['kin_py']
-    ptau_co = twiss_res['ptau']
-
-    mask = (dl != 0)
-    hx = np.zeros(shape=(len(dl),), dtype=np.float64)
-    hy = np.zeros(shape=(len(dl),), dtype=np.float64)
-    hx[mask] = (np.diff(px_co)[mask] + hxl[mask] * (1 + ptau_co[:-1][mask])) / dl[mask]
-    hy[mask] = (np.diff(py_co)[mask] + hyl[mask] * (1 + ptau_co[:-1][mask])) / dl[mask]
-    # TODO: remove also term due to weak focusing
+    hx, hy, kappa0_x, kappa0_y = _compute_trajectory_curvatures(twiss_res)
     hh = np.sqrt(hx**2 + hy**2)
+
+    ptau_co = twiss_res['ptau']
+    dl = twiss_res['length'] * (twiss_res['radiation_flag'] > 0)
 
     pco = twiss_res['particle_on_co']
     mass0 = pco.mass0
@@ -1588,7 +1580,7 @@ def _extract_sr_distribution_properties(twiss_res):
     gamma0 = pco._xobject.gamma0[0]
     beta0 = pco._xobject.beta0[0]
 
-    gamma = gamma0 * (1 + beta0 * ptau_co)[:-1]
+    gamma = gamma0 * (1 + beta0 * ptau_co)
 
     mass0_kg = mass0 / clight**2 * qe
     q_coul = q0 * qe
@@ -1629,8 +1621,8 @@ def _compute_equilibrium_emittance_kick_as_co(twiss_res,
     ptau_co = twiss_res['ptau']
     W_matrix = twiss_res['W_matrix']
 
-    n_dot_delta_kick_sq_ave = sr_distrib_properties['n_dot_delta_kick_sq_ave']
-    dl = sr_distrib_properties['dl_radiation']
+    n_dot_delta_kick_sq_ave = sr_distrib_properties['n_dot_delta_kick_sq_ave'][:-1]
+    dl = sr_distrib_properties['dl_radiation'][:-1]
 
     px_left = kin_px_co[:-1]
     px_right = kin_px_co[1:]
@@ -1737,8 +1729,8 @@ def _compute_equilibrium_emittance_full(twiss_res, R_matrix_ebe,
 
     sr_distrib_properties = _extract_sr_distribution_properties(twiss_res)
 
-    n_dot_delta_kick_sq_ave = sr_distrib_properties['n_dot_delta_kick_sq_ave']
-    dl = sr_distrib_properties['dl_radiation']
+    n_dot_delta_kick_sq_ave = sr_distrib_properties['n_dot_delta_kick_sq_ave'][:-1]
+    dl = sr_distrib_properties['dl_radiation'][:-1]
 
     assert radiation_method == 'full'
 
