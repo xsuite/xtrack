@@ -795,13 +795,16 @@ def twiss_line(line, particle_ref=None, method=None,
                 line=line, radiation_method=radiation_method)
         twiss_res._data.update(eneloss_damp_res)
 
+        for kk in ['angle_rad', 'rot_s_rad', 'length', 'radiation_flag']:
+            if kk not in twiss_res._data:
+                twiss_res[kk] = line.attr[kk]
+
         # Equilibrium emittances
         if radiation_method == 'kick_as_co':
             eq_emitts = _compute_equilibrium_emittance_kick_as_co(
-                        twiss_res.kin_px, twiss_res.kin_py, twiss_res.ptau,
-                        twiss_res.W_matrix,
-                        line, radiation_method,
-                        eneloss_damp_res['damping_constants_turns'])
+                twiss_res=twiss_res,
+                damping_constants_turns=eneloss_damp_res['damping_constants_turns'],
+                radiation_method=radiation_method)
             twiss_res._data.update(eq_emitts)
         elif radiation_method == 'full':
             eq_emitts = _compute_equilibrium_emittance_full(
@@ -1559,16 +1562,18 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
 
     return eneloss_damp_res
 
-def _extract_sr_distribution_properties(line, px_co, py_co, ptau_co):
+def _extract_sr_distribution_properties(twiss_res):
 
-
-    radiation_flag = line.attr['radiation_flag']
+    radiation_flag = twiss_res['radiation_flag']
     if np.any(radiation_flag > 1):
         raise ValueError('Incompatible radiation flag')
 
-    hxl = line.attr['angle_rad'] * np.cos(line.attr['rot_s_rad'])
-    hyl = line.attr['angle_rad'] * np.sin(line.attr['rot_s_rad'])
-    dl = line.attr['length'] * (radiation_flag == 1)
+    hxl = twiss_res['angle_rad'] * np.cos(twiss_res['rot_s_rad'])
+    hyl = twiss_res['angle_rad'] * np.sin(twiss_res['rot_s_rad'])
+    dl = twiss_res['length'] * (radiation_flag == 1)
+    px_co = twiss_res['kin_px']
+    py_co = twiss_res['kin_py']
+    ptau_co = twiss_res['ptau']
 
     mask = (dl != 0)
     hx = np.zeros(shape=(len(dl),), dtype=np.float64)
@@ -1578,10 +1583,11 @@ def _extract_sr_distribution_properties(line, px_co, py_co, ptau_co):
     # TODO: remove also term due to weak focusing
     hh = np.sqrt(hx**2 + hy**2)
 
-    mass0 = line.particle_ref.mass0
-    q0 = line.particle_ref.q0
-    gamma0 = line.particle_ref._xobject.gamma0[0]
-    beta0 = line.particle_ref._xobject.beta0[0]
+    pco = twiss_res['particle_on_co']
+    mass0 = pco.mass0
+    q0 = pco.q0
+    gamma0 = pco._xobject.gamma0[0]
+    beta0 = pco._xobject.beta0[0]
 
     gamma = gamma0 * (1 + beta0 * ptau_co)[:-1]
 
@@ -1607,16 +1613,22 @@ def _extract_sr_distribution_properties(line, px_co, py_co, ptau_co):
 
     return res
 
-def _compute_equilibrium_emittance_kick_as_co(kin_px_co, kin_py_co, ptau_co, W_matrix,
-                                  line, radiation_method,
-                                  damping_constants_turns):
+def _compute_equilibrium_emittance_kick_as_co(twiss_res,
+                                  damping_constants_turns,
+                                  radiation_method):
 
     assert radiation_method == 'kick_as_co'
 
-    sr_distrib_properties = _extract_sr_distribution_properties(
-                                line, kin_px_co, kin_py_co, ptau_co)
-    beta0 = line.particle_ref._xobject.beta0[0]
-    gamma0 = line.particle_ref._xobject.gamma0[0]
+    sr_distrib_properties = _extract_sr_distribution_properties(twiss_res)
+
+    pco = twiss_res['particle_on_co']
+    beta0 = pco._xobject.beta0[0]
+    gamma0 = pco._xobject.gamma0[0]
+
+    kin_px_co = twiss_res['kin_px']
+    kin_py_co = twiss_res['kin_py']
+    ptau_co = twiss_res['ptau']
+    W_matrix = twiss_res['W_matrix']
 
     n_dot_delta_kick_sq_ave = sr_distrib_properties['n_dot_delta_kick_sq_ave']
     dl = sr_distrib_properties['dl_radiation']
