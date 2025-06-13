@@ -807,10 +807,9 @@ def twiss_line(line, particle_ref=None, method=None,
                 radiation_method=radiation_method)
             twiss_res._data.update(eq_emitts)
         elif radiation_method == 'full':
-            eq_emitts = _compute_equilibrium_emittance_full(
-                        kin_px_co=twiss_res.kin_px, kin_py_co=twiss_res.kin_py,
-                        ptau_co=twiss_res.ptau, R_matrix_ebe=RR_ebe,
-                        line=line, radiation_method=radiation_method)
+            eq_emitts = _compute_equilibrium_emittance_full(twiss_res=twiss_res,
+                        R_matrix_ebe=RR_ebe,
+                        radiation_method=radiation_method)
             twiss_res._data.update(eq_emitts)
 
     if method == '4d' and 'muzeta' in twiss_res._data:
@@ -1729,11 +1728,14 @@ def _compute_equilibrium_emittance_kick_as_co(twiss_res,
 
     return res
 
-def _compute_equilibrium_emittance_full(kin_px_co, kin_py_co, ptau_co, R_matrix_ebe,
-                                  line, radiation_method):
+def _compute_equilibrium_emittance_full(twiss_res, R_matrix_ebe,
+                                        radiation_method):
 
-    sr_distrib_properties = _extract_sr_distribution_properties(
-                                line, kin_px_co, kin_py_co, ptau_co)
+    kin_px_co = twiss_res['kin_px']
+    kin_py_co = twiss_res['kin_py']
+    ptau_co = twiss_res['ptau']
+
+    sr_distrib_properties = _extract_sr_distribution_properties(twiss_res)
 
     n_dot_delta_kick_sq_ave = sr_distrib_properties['n_dot_delta_kick_sq_ave']
     dl = sr_distrib_properties['dl_radiation']
@@ -1831,8 +1833,8 @@ def _compute_equilibrium_emittance_full(kin_px_co, kin_py_co, ptau_co, R_matrix_
     eq_gemitt_y = EE_norm[2, 3]/(1 - np.abs(lam_eig[1])**2)
     eq_gemitt_zeta = EE_norm[4, 5]/(1 - np.abs(lam_eig[2])**2)
 
-    beta0 = line.particle_ref._xobject.beta0[0]
-    gamma0 = line.particle_ref._xobject.gamma0[0]
+    beta0 = twiss_res.particle_on_co._xobject.beta0[0]
+    gamma0 = twiss_res.particle_on_co._xobject.gamma0[0]
 
     eq_nemitt_x = float(eq_gemitt_x * (beta0 * gamma0))
     eq_nemitt_y = float(eq_gemitt_y * (beta0 * gamma0))
@@ -1847,8 +1849,7 @@ def _compute_equilibrium_emittance_full(kin_px_co, kin_py_co, ptau_co, R_matrix_
 
     Sigma = RR_ebe @ Sigma_at_start @ np.transpose(RR_ebe, axes=(0,2,1))
 
-    eq_sigma_tab = _build_sigma_table(Sigma=Sigma, s=None,
-        name=np.array(tuple(line._element_names_unique) + ('_end_point',)))
+    eq_sigma_tab = _build_sigma_table(Sigma=Sigma, s=None, name=twiss_res['name'],)
 
     res = {
         'eq_gemitt_x': eq_gemitt_x,
