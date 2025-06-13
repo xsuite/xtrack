@@ -3893,10 +3893,6 @@ class TwissTable(Table):
 
     def _compute_radiation_integrals(self, add_to_tw=False):
 
-        angle_rad = self['angle_rad']
-        rot_s_rad = self['rot_s_rad']
-        x = self['x']
-        y = self['y']
         kin_px = self['kin_px']
         kin_py = self['kin_py']
         delta = self['delta']
@@ -3920,43 +3916,14 @@ class TwissTable(Table):
         dxprime = dpx * (1 - delta) - kin_px
         dyprime = dpy * (1 - delta) - kin_py
 
-        # Curvature of the reference trajectory
-        mask = length != 0
-        kappa0_x = 0 * angle_rad
-        kappa0_y = 0 * angle_rad
-        kappa0_x[mask] = angle_rad[mask] * np.cos(rot_s_rad[mask]) / length[mask]
-        kappa0_y[mask] = angle_rad[mask] * np.sin(rot_s_rad[mask]) / length[mask]
+        kappa_x, kappa_y, kappa0_x, kappa0_y = _compute_trajectory_curvatures(self)
+        kappa = np.sqrt(kappa_x**2 + kappa_y**2)
         kappa0 = np.sqrt(kappa0_x**2 + kappa0_y**2)
 
-        # Field index
-        k1 = 0 * angle_rad
+        # quadrupole gradient
+        mask = length != 0
+        k1 = 0 * length
         k1[mask] = self.k1l[mask] / length[mask]
-
-        # Compute x', y', x'', y''
-        ps = np.sqrt((1 + delta)**2 - kin_px**2 - kin_py**2)
-        xp = kin_px / ps
-        yp = kin_py / ps
-        xp_ele = xp * 0
-        yp_ele = yp * 0
-        xp_ele[:-1] = (xp[:-1] + xp[1:]) / 2
-        yp_ele[:-1] = (yp[:-1] + yp[1:]) / 2
-
-        mask_length = length != 0
-        xpp_ele = xp_ele * 0
-        ypp_ele = yp_ele * 0
-        xpp_ele[mask_length] = np.diff(xp, append=0)[mask_length] / length[mask_length]
-        ypp_ele[mask_length] = np.diff(yp, append=0)[mask_length] / length[mask_length]
-
-        # Curvature of the particle trajectory
-        hhh = 1 + kappa0_x * x + kappa0_y * y
-        hprime = kappa0_x * xp_ele + kappa0_y * yp_ele
-        mask1 = xpp_ele**2 + hhh**2 != 0
-        mask2 = xpp_ele**2 + hhh**2 != 0
-        kappa_x = (-(hhh * (xpp_ele - hhh * kappa0_x) - 2 * hprime * xp_ele)[mask1]
-                / (xp_ele**2 + hhh**2)[mask1]**(3/2))
-        kappa_y = (-(hhh * (ypp_ele - hhh * kappa0_y) - 2 * hprime * yp_ele)[mask2]
-                / (yp_ele**2 + hhh**2)[mask2]**(3/2))
-        kappa = np.sqrt(kappa_x**2 + kappa_y**2)
 
         # Curly H
         Hx_rad = gamx * dx**2 + 2*alfx * dx * dxprime + betx * dxprime**2
@@ -4001,6 +3968,9 @@ class TwissTable(Table):
         damping_constant_zeta_s = r0/3 * gamma0**3 * clight/self.circumference * (2*i2 + i4)
 
         # Velocity direction (for spin)
+        ps = np.sqrt((1 + delta)**2 - kin_px**2 - kin_py**2)
+        xp = kin_px / ps
+        yp = kin_py / ps
         tempv = np.sqrt(xp**2 + yp**2 + 1)
         iv_x = xp / tempv
         iv_y = yp / tempv
@@ -4825,3 +4795,49 @@ def _compute_spin_polarization(tw, line, method):
 
         for nn in other_data:
             tw._data[nn] = other_data[nn]
+
+
+def _compute_trajectory_curvatures(twiss_res):
+
+    angle_rad = twiss_res['angle_rad']
+    rot_s_rad = twiss_res['rot_s_rad']
+    x = twiss_res['x']
+    y = twiss_res['y']
+    kin_px = twiss_res['kin_px']
+    kin_py = twiss_res['kin_py']
+    delta = twiss_res['delta']
+    length = twiss_res['length']
+
+    # Curvature of the reference trajectory
+    mask = length != 0
+    kappa0_x = 0 * angle_rad
+    kappa0_y = 0 * angle_rad
+    kappa0_x[mask] = angle_rad[mask] * np.cos(rot_s_rad[mask]) / length[mask]
+    kappa0_y[mask] = angle_rad[mask] * np.sin(rot_s_rad[mask]) / length[mask]
+
+    # Compute x', y', x'', y''
+    ps = np.sqrt((1 + delta)**2 - kin_px**2 - kin_py**2)
+    xp = kin_px / ps
+    yp = kin_py / ps
+    xp_ele = xp * 0
+    yp_ele = yp * 0
+    xp_ele[:-1] = (xp[:-1] + xp[1:]) / 2
+    yp_ele[:-1] = (yp[:-1] + yp[1:]) / 2
+
+    mask_length = length != 0
+    xpp_ele = xp_ele * 0
+    ypp_ele = yp_ele * 0
+    xpp_ele[mask_length] = np.diff(xp, append=0)[mask_length] / length[mask_length]
+    ypp_ele[mask_length] = np.diff(yp, append=0)[mask_length] / length[mask_length]
+
+    # Curvature of the particle trajectory
+    hhh = 1 + kappa0_x * x + kappa0_y * y
+    hprime = kappa0_x * xp_ele + kappa0_y * yp_ele
+    mask1 = xpp_ele**2 + hhh**2 != 0
+    mask2 = xpp_ele**2 + hhh**2 != 0
+    kappa_x = (-(hhh * (xpp_ele - hhh * kappa0_x) - 2 * hprime * xp_ele)[mask1]
+            / (xp_ele**2 + hhh**2)[mask1]**(3/2))
+    kappa_y = (-(hhh * (ypp_ele - hhh * kappa0_y) - 2 * hprime * yp_ele)[mask2]
+            / (yp_ele**2 + hhh**2)[mask2]**(3/2))
+
+    return kappa_x, kappa_y, kappa0_x, kappa0_y
