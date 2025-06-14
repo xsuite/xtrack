@@ -27,21 +27,22 @@ env['wig_num_periods'] = 20
 env['wig_period_length'] = 'wig_length / wig_num_periods'
 env['wig_pole_length'] = '0.25 * wig_period_length'
 env['wig_k0'] = 5e-3
-env['wig_h0'] = 0
+env['wig_h0'] = 5e-3
 env['wig_tilt_rad'] = np.pi/2 # Vertical wiggler
 
 # Assemble wiggler
 env.new('wig_pole', 'Bend',
         length='wig_pole_length',
         k0='wig_k0',
-        h=0, # Straight magnet (no reference frame curvature)a
+        h=0, # Straight magnet (no reference frame curvature)
+        k0_from_h=False, # Control k0 and h independently
         rot_s_rad='wig_tilt_rad')
 
 env.new_line(name='wig_period', components=[
-    env.new('wig_pole_1', 'wig_pole', k0='-wig_k0', h='wig_h0'),
-    env.new('wig_pole_2', 'wig_pole', k0='wig_k0', h='-wig_h0'),
-    env.new('wig_pole_3', 'wig_pole', k0='wig_k0', h='-wig_h0'),
-    env.new('wig_pole_4', 'wig_pole', k0='-wig_k0', h='wig_h0'),
+    env.new('wig_pole_1', 'wig_pole', k0='-wig_k0', h='-wig_h0'),
+    env.new('wig_pole_2', 'wig_pole', k0='wig_k0', h='wig_h0'),
+    env.new('wig_pole_3', 'wig_pole', k0='wig_k0', h='wig_h0'),
+    env.new('wig_pole_4', 'wig_pole', k0='-wig_k0', h='-wig_h0'),
 ])
 
 env['wiggler'] = env['wig_num_periods'] * env['wig_period']
