@@ -1596,6 +1596,8 @@ def _extract_sr_distribution_properties(twiss_res):
 
     res = {
         'B_T': B_T,
+        'hx': hx, 'hy': hy,
+        'h0x': kappa0_x, 'h0y': kappa0_y,
         'E_crit_J': E_crit_J, 'n_dot': n_dot,
         'E_sq_ave_J': E_sq_ave_J, 'E_ave_J': E_ave_J,
         'n_dot_delta_kick_sq_ave': n_dot_delta_kick_sq_ave,
@@ -1853,6 +1855,10 @@ def _compute_equilibrium_emittance_full(twiss_res, R_matrix_ebe,
         'eq_beam_covariance_matrix': eq_sigma_tab,
         'dl_radiation': dl,
         'n_dot_delta_kick_sq_ave': n_dot_delta_kick_sq_ave,
+        'hx_rad': sr_distrib_properties['hx'],
+        'hy_rad': sr_distrib_properties['hy'],
+        'h0x_rad': sr_distrib_properties['h0x'],
+        'h0y_rad': sr_distrib_properties['h0y'],
     }
 
     return res
@@ -3969,11 +3975,11 @@ class TwissTable(Table):
         iv_z = 1 / tempv
 
         cols = {
-            'rad_int_hx': Hx_rad,
-            'rad_int_hy': Hy_rad,
+            'rad_int_curly_hx': Hx_rad,
+            'rad_int_curly_hy': Hy_rad,
             'rad_int_i1x_integrand': i1x_integrand,
             'rad_int_i1y_integrand': i1y_integrand,
-            'rad_int_i2_integrand': i2_integrand,
+            'rad_int_l2_integrand': i2_integrand,
             'rad_int_i3_integrand': i3_integrand,
             'rad_int_i4_integrand': i4_integrand,
             'rad_int_i4x_integrand': i4x_integrand,

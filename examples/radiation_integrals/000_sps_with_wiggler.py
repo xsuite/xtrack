@@ -27,8 +27,8 @@ env['wig_num_periods'] = 20
 env['wig_period_length'] = 'wig_length / wig_num_periods'
 env['wig_pole_length'] = '0.25 * wig_period_length'
 env['wig_k0'] = 5e-3
-env['wig_h0'] = 5e-3
-env['wig_tilt_rad'] = np.pi/2 # Vertical wiggler
+env['wig_h0'] = 0
+env['wig_tilt_rad'] = np.pi/2
 
 # Assemble wiggler
 env.new('wig_pole', 'Bend',
@@ -54,7 +54,6 @@ env['wiggler_sliced'].slice_thick_elements(
         xt.Strategy(slicing=xt.Teapot(10, mode='thick'))
     ])
 
-
 tw_wig = env['wiggler_sliced'].twiss(betx=1, bety=1, strengths=True)
 
 line = env['sps']
@@ -74,6 +73,7 @@ plt.close('all')
 plt.figure(1, figsize=(6.4, 4.8))
 ax1=plt.subplot(2, 1, 1)
 tw_wig.plot('x y', ax=ax1)
+plt.ylim(-1e-3, 1e-3)
 ax2=plt.subplot(2, 1, 2, sharex=ax1)
 tw_wig.plot('dx dy', ax=ax2)
 plt.subplots_adjust(right=.76, left=0.15)
