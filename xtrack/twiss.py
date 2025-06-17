@@ -4831,11 +4831,10 @@ def _compute_trajectory_curvatures(twiss_res):
     # Curvature of the particle trajectory
     hhh = 1 + kappa0_x * x + kappa0_y * y
     hprime = kappa0_x * xp_ele + kappa0_y * yp_ele
-    mask1 = xpp_ele**2 + hhh**2 != 0
-    mask2 = xpp_ele**2 + hhh**2 != 0
-    kappa_x = (-(hhh * (xpp_ele - hhh * kappa0_x) - 2 * hprime * xp_ele)[mask1]
-            / (xp_ele**2 + hhh**2)[mask1]**(3/2))
-    kappa_y = (-(hhh * (ypp_ele - hhh * kappa0_y) - 2 * hprime * yp_ele)[mask2]
-            / (yp_ele**2 + hhh**2)[mask2]**(3/2))
+    mask = hhh**2 != 0
+    kappa_x = (-(hhh * (xpp_ele - hhh * kappa0_x) - 2 * hprime * xp_ele)[mask]
+            / (xp_ele**2 + hhh**2)[mask]**(3/2))
+    kappa_y = (-(hhh * (ypp_ele - hhh * kappa0_y) - 2 * hprime * yp_ele)[mask]
+            / (yp_ele**2 + hhh**2)[mask]**(3/2))
 
     return kappa_x, kappa_y, kappa0_x, kappa0_y
