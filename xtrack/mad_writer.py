@@ -408,38 +408,94 @@ def to_madng_sequence(line, name='seq', mode='sequence'):
     s_dict = {}
     el_strs = []
 
-    for ii, nn in enumerate(tt.name[1:-2]): # ignore "lhcb1$start", "lhcb1$end" and "_end_point"
+    for ii, nn in enumerate(tt.name[:-1]): # ignore "_end_point"
         if not(tt.isthick[ii]):
             s_dict[nn] = tt.s[ii]
         else:
             s_dict[nn] = 0.5 * (tt.s[ii] + tt.s[ii+1])
 
         el = line.element_dict[nn]
-        if isinstance(el, xt.Drift):
-            continue
+
         class_name = el.__class__.__name__.lower()
         # class dict:
         if class_name in CNDICT.keys():
             class_name = CNDICT[class_name]
-        elif class_name == 'multipole':
-            continue
+
         nn_mad = nn.replace(':', '__') # : not supported in MADX names
-        nn_mad = nn.replace('$', '_')  # replace $ with _ for MAD-NG compatibility
-        nn_mad = nn.replace('.', '_')  # replace . with _ for MAD-NG compatibility
+        #nn_mad = nn.replace('$', '_')  # replace $ with _ for MAD-NG compatibility
+        #nn_mad = nn.replace('.', '_')  # not needed
         el_str = f"{class_name} '{nn_mad}' {{"
 
-        for key in el._xofields.keys():
-            if key in MADNG_ATTR_IGNORE_LIST or key.startswith('_'):
-                continue
-            if key in MADNG_ATTR_DICT:
-                mad_key = MADNG_ATTR_DICT[key]
-            else:
-                mad_key = key
+        if isinstance(el, xt.Multipole):
+            mult = line.element_refs[nn]
 
-            value = _ge(getattr(el, key))
-            if value is None:
-                continue
-            el_str += f"{madng_assignment(mad_key, value)}, "
+            if (len(mult.knl._value) == 1 and len(mult.ksl._value) == 1
+                and mult.hxl._value == 0):
+                # It is a dipole corrector
+                class_name = 'kicker'
+                el_str = f"{class_name} '{nn_mad}' {{"
+                tokens = []
+                knl_ge = _ge(mult.knl[0])
+                ksl_ge = _ge(mult.ksl[0])
+                len_ge = _ge(mult.length)
+
+                tokens.append(madng_assignment('hkick', -1 * knl_ge))
+                tokens.append(madng_assignment('vkick', ksl_ge))
+                tokens.append(madng_assignment('lrad', len_ge))
+
+                _handle_transforms(tokens, mult)
+
+                for i, t in enumerate(tokens):
+                    for vv_sub in substituted_vars:
+                        tokens[i] = tokens[i].replace(vv_sub, vv_sub.replace('.', '_'))
+
+                el_str += ", ".join(tokens) + ", "
+
+            # correctors are not handled correctly!!!!
+            # https://github.com/MethodicalAcceleratorDesign/MAD-X/issues/911
+            # assert mult.hyl._value == 0
+
+            else:
+
+                tokens = []
+                el_str = f"{class_name} '{nn_mad}' {{"
+                knl_token, ksl_token = _knl_ksl_to_mad(mult)
+                tokens.append(knl_token)
+                tokens.append(ksl_token)
+                lrad_ge = _ge(mult.length)
+                hxl_ge = _ge(mult.hxl)
+                if isinstance(lrad_ge, str):
+                    for vv_sub in substituted_vars:
+                        lrad_ge = lrad_ge.replace(vv_sub, vv_sub.replace('.', '_'))
+                tokens.append(madng_assignment('lrad', lrad_ge))
+                if isinstance(hxl_ge, str):
+                    for vv_sub in substituted_vars:
+                        hxl_ge = hxl_ge.replace(vv_sub, vv_sub.replace('.', '_'))
+                tokens.append(mad_assignment('lrad', len_ge))
+                tokens.append(mad_assignment('angle', hxl_ge))
+
+                _handle_transforms(tokens, mult)
+
+                for i, t in enumerate(tokens):
+                    for vv_sub in substituted_vars:
+                        tokens[i] = tokens[i].replace(vv_sub, vv_sub.replace('.', '_'))
+
+                el_str += ", ".join(tokens) + ", "
+
+        else:
+
+            for key in el._xofields.keys():
+                if key in MADNG_ATTR_IGNORE_LIST or key.startswith('_'):
+                    continue
+                if key in MADNG_ATTR_DICT:
+                    mad_key = MADNG_ATTR_DICT[key]
+                else:
+                    mad_key = key
+
+                value = _ge(getattr(el, key))
+                if value is None:
+                    continue
+                el_str += f"{madng_assignment(mad_key, value)}, "
 
         # el_str = xsuite_to_mad_conveters[el.__class__](nn, line)
         # if nn + '_tilt_entry' in line.element_dict:

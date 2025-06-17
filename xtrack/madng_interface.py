@@ -68,27 +68,31 @@ def _tw_ng(line, rdts=[], normal_form=True,
 
     columns = tw_columns + rdts
     rdt_cmd = 'local rdts = {"' + '", "'.join(rdts) + '"}'
-    send_cmd = f'py:send({{mtbl.{", mtbl.".join(columns)}}})'
+    mng_columns_to_send = ["mtbl." + col for col in columns]
+    send_cmd = f'''
+        columns = {{{", ".join(mng_columns_to_send)}}}
+        py:send(columns)
+    '''
 
     if len(rdts) > 0:
-        mng_script = ('''
-        local damap in MAD
-        '''
-        f'local seq = MADX.{mng._sequence_name}'
-        '''
-        -- list of RDTs
-        '''
-        + rdt_cmd +
-        '''
-        -- create phase-space damap at 4th order
-        local X0 = damap {nv=6, mo=4}
+        mng_script = (
+            f'''
+            local damap in MAD
+            local seq = MADX.{mng._sequence_name}
+            -- list of RDTs
+            '''
+            + rdt_cmd +
+            '''
+            -- create phase-space damap at 4th order
+            local X0 = damap {nv=6, mo=4}
 
-        -- twiss with RDTs
-        local mtbl = twiss {sequence=seq, X0=X0, trkrdt=rdts, info=2, saverdt=true, coupling=true, chrom=true}
+            -- twiss with RDTs
+            local mtbl = twiss {sequence=seq, X0=X0, trkrdt=rdts, info=2, saverdt=true, coupling=true, chrom=true}
 
-        -- send columns to Python
-        '''
-        + send_cmd)
+            -- send columns to Python
+            '''
+            + send_cmd
+        )
     else:
         mng_script = ('''
         local damap in MAD
@@ -109,7 +113,7 @@ def _tw_ng(line, rdts=[], normal_form=True,
 
     mng.send(mng_script)
 
-    out = mng.recv()
+    out = mng.recv('columns').eval()
     out_dct = {k: v for k, v in zip(columns, out)}
 
     # Add to table
@@ -142,7 +146,7 @@ def _tw_ng(line, rdts=[], normal_form=True,
 
             local nf = my_norm_for
             last_nf = my_norm_for
-            py:send({
+            normal_forms_to_send = {
                     nf:q1{1}, -- qx from the normal form (fractional part)
                     nf:q2{1}, -- qy
                     nf:dq1{1}, -- dqx / d delta
@@ -159,10 +163,11 @@ def _tw_ng(line, rdts=[], normal_form=True,
                     nf:anhy{0, 1}, -- dqy / d(2 jy)
                     nf:anhx{0, 1}, -- dqx / d(2 jy)
                     nf:anhy{1, 0}, -- dqy / d(2 jx)
-                    })
+                    }
+            py:send(normal_forms_to_send)
         ''')
         mng.send(mng_script_nf)
-        out_nf = mng.recv()
+        out_nf = mng.recv('normal_forms_to_send')
 
         dct_nf = dict(
             q1 =   out_nf[0],
@@ -202,13 +207,67 @@ def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False):
         if temp_fname is None:
             temp_fname = 'temp_madng_' + str(uuid.uuid4())
 
+        madx_seq = line.to_madx_sequence(sequence_name=sequence_name)
+        with open(f'{temp_fname}.madx', 'w') as fid:
+            fid.write(madx_seq)
+
+        from pymadng import MAD
+        mng = MAD(debug=True, stdout="out.txt", redirect_stderr=True)
+        mng.MADX.load(f'"{temp_fname}.madx"', f'"{temp_fname}"')
+        mng._init_madx_data = madx_seq
+
+        mng[sequence_name] = mng.MADX[sequence_name] # this ensures that the file has been read
+        mng[sequence_name].beam = mng.beam(particle="'custom'",
+                        mass=line.particle_ref.mass0 * 1e9,
+                        charge=line.particle_ref.q0,
+                        betgam=line.particle_ref.beta0[0] * line.particle_ref.gamma0[0])
+
+        # Patch shifts (MAD-NG ignores dx, dy from MAD-X, need to set them through misalign)
+        commands = []
+        commands.append('MADX:open_env()')
+        for nn in line.element_names:
+            if not hasattr(line[nn], 'shift_x'):
+                continue
+            nn_ng = nn.replace('.', '_')
+            dx = mad_str_or_value(_ge(line.ref[nn].shift_x))
+            dy = mad_str_or_value(_ge(line.ref[nn].shift_y))
+            if dx == 0 and dy == 0:
+                continue
+            commands.append(
+                f'{nn_ng}.dx = 0\n'
+                f'{nn_ng}.dy = 0\n'
+                f'{nn_ng}.misalign'
+                ' =\\ {'
+                f'dx={dx},'
+                f'dy={dy}'
+                '}'
+            )
+        commands.append('MADX:close_env()')
+        mng.send('\n'.join(commands))
+
+    finally:
+        if not keep_files:
+            for nn in [temp_fname + '.madx', temp_fname + '.mad']:
+                if os.path.isfile(nn):
+                    os.remove(nn)
+
+    # mng[sequence_name].beam = mng.beam(particle="'proton'", energy=7000)
+    return mng
+
+def line_to_madng_new(line, sequence_name='seq', temp_fname=None, keep_files=False):
+
+    try:
+        _ge = xt.elements._get_expr
+        if temp_fname is None:
+            temp_fname = 'temp_madng_' + str(uuid.uuid4())
+
         from .mad_writer import to_madng_sequence
         madx_seq = to_madng_sequence(line, name=sequence_name)#line.to_madx_sequence(sequence_name=sequence_name)
         with open(f'{temp_fname}.mad', 'w') as fid:
             fid.write(madx_seq)
 
         from pymadng import MAD
-        mng = MAD(stdout="out.txt", redirect_stderr=True)
+        mng = MAD(debug=True, stdout="out_new.txt", redirect_stderr=True)
         mng.send(f"""
                  mad_func = loadfile('{temp_fname}.mad', nil, MADX)
                  assert(mad_func)
@@ -247,6 +306,7 @@ def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False):
         # mng.send('\n'.join(commands))
 
     finally:
+        return mng
         if not keep_files:
             for nn in [temp_fname + '.madx', temp_fname + '.mad']:
                 if os.path.isfile(nn):
