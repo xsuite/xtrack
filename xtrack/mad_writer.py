@@ -374,14 +374,17 @@ def to_madng_sequence(line, name='seq', mode='sequence'):
     chunk_end = "end\t -- End chunk\n"
     var_lines = []
     substituted_vars = []
+    for vv in line.vars.keys():
+        vv_rep = vv.replace('.', '_')
+        if vv_rep != vv:
+            substituted_vars.append(vv)
+
     # Create variables
     for vv in line.vars.keys():
         if vv == '__vary_default':
             continue
         rhs = _ge(line.vars[vv])
         vv_rep = vv.replace('.', '_')
-        if vv_rep != vv:
-            substituted_vars.append(vv)
         if _is_ref(rhs):
             rhs = mad_str_or_value(rhs)
         if isinstance(rhs, str):
@@ -392,6 +395,12 @@ def to_madng_sequence(line, name='seq', mode='sequence'):
         else:
             vars_str = f"{vv_rep} = {rhs};\n"
         var_lines.append(vars_str)
+
+    def _expr_to_madng_vars(expr, substituted_var_list):
+        if isinstance(expr, str):
+            for vv in substituted_var_list:
+                expr = expr.replace(vv, vv.replace('.', '_'))
+        return expr
 
     # Chunking variables
     for ii in range(len(var_lines)):
@@ -471,7 +480,6 @@ def to_madng_sequence(line, name='seq', mode='sequence'):
                 if isinstance(hxl_ge, str):
                     for vv_sub in substituted_vars:
                         hxl_ge = hxl_ge.replace(vv_sub, vv_sub.replace('.', '_'))
-                tokens.append(mad_assignment('lrad', len_ge))
                 tokens.append(mad_assignment('angle', hxl_ge))
 
                 _handle_transforms(tokens, mult)
@@ -492,10 +500,20 @@ def to_madng_sequence(line, name='seq', mode='sequence'):
                 else:
                     mad_key = key
 
+                #elem = _get_eref(line, nn)
+
                 value = _ge(getattr(el, key))
+                # if isinstance(_ge(getattr(el, key)), np.ndarray):
+                #     value = _ge(getattr(el, key))
+                # else:
+                #     value = _ge(getattr(elem, key))
                 if value is None:
                     continue
-                el_str += f"{madng_assignment(mad_key, value)}, "
+                value = madng_assignment(mad_key, value)
+                if isinstance(value, str):
+                    for vv_sub in substituted_vars:
+                        value = value.replace(vv_sub, vv_sub.replace('.', '_'))
+                el_str += f"{value}, "
 
         # el_str = xsuite_to_mad_conveters[el.__class__](nn, line)
         # if nn + '_tilt_entry' in line.element_dict:
