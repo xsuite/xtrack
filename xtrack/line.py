@@ -32,7 +32,7 @@ from .progress_indicator import progress
 from .slicing import Custom, Slicer, Strategy
 from .mad_writer import to_madx_sequence
 from .madng_interface import (build_madng_model, discard_madng_model,
-                              regen_madng_model, _tw_ng, line_to_madng)
+                              regen_madng_model, _tw_ng, line_to_madng, line_to_madng_new)
 
 from .survey import survey_from_line
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
@@ -658,6 +658,27 @@ class Line:
         '''
 
         return line_to_madng(self, sequence_name=sequence_name,
+                             temp_fname=temp_fname, keep_files=keep_files)
+
+    def to_madng_new(self, sequence_name='seq', temp_fname=None, keep_files=False):
+
+        '''
+        Build a MAD NG instance from present state of the line.
+
+        Parameters
+        ----------
+        sequence_name : str
+            Name of the sequence.
+        temp_fname : str
+            Name of the temporary file to be used for the MAD NG instance.
+
+        Returns
+        -------
+        mng : MAD
+            MAD NG instance.
+        '''
+
+        return line_to_madng_new(self, sequence_name=sequence_name,
                              temp_fname=temp_fname, keep_files=keep_files)
 
 
@@ -2620,7 +2641,7 @@ class Line:
             Element to be inserted. If not given, the element of the given name
             already present in the line is used.
         at: int or string, optional
-            Index or name of the element in the line. If `index` is provided, `at_s` must be None. 
+            Index or name of the element in the line. If `index` is provided, `at_s` must be None.
         at_s: float, optional
             Position of the element in the line in meters. If `at_s` is provided, `index`
             must be None.
