@@ -839,7 +839,7 @@ class Tracker:
                 ret = pp.track(particles)
             else:
                 # The start part is a non-collective tracker
-                if (ele_stop is not None
+                if (ele_stop is not None and ele_stop < self.num_elements
                     and tt == num_turns - 1 and self._element_part[ele_stop] == ipp):
                     # The stop element is also in this part, so track until ele_stop
                     i_stop_in_part = self._element_index_in_part[ele_stop]
