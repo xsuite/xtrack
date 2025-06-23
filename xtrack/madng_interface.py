@@ -200,7 +200,7 @@ class ActionTwissMadng(Action):
     def run(self):
         return self.line.madng_twiss(**self.tw_kwargs)
 
-@DeprecationWarning("Deprecated: use line.to_madng() instead.")
+# Deprecated: use line.to_madng() instead.
 def line_to_madng_old(line, sequence_name='seq', temp_fname=None, keep_files=False):
 
     try:
