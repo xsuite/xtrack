@@ -352,6 +352,10 @@ def bend_to_mad_str(name, line, bend_type='sbend', mad_type=MadType.MADX, substi
     tokens.append(mad_assignment('fint', _ge(bend.edge_entry_fint), mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('fintx', _ge(bend.edge_exit_fint), mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('hgap', _ge(bend.edge_entry_hgap), mad_type, substituted_vars=substituted_vars))
+    edge_entry_active_val = "false" if _ge(bend.edge_entry_active) == 1 else "true"
+    edge_exit_active_val = "false" if _ge(bend.edge_exit_active) == 1 else "true"
+    tokens.append(mad_assignment('kill_ent_fringe', edge_entry_active_val, mad_type, substituted_vars=substituted_vars))
+    tokens.append(mad_assignment('kill_exi_fringe', edge_exit_active_val, mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('k1', _ge(bend.k1), mad_type, substituted_vars=substituted_vars))
     knl_token, ksl_token = _knl_ksl_to_mad(bend)
     tokens.append(knl_token)
@@ -634,7 +638,7 @@ def to_madng_sequence(line, name='seq', mode='sequence'):
     code_str += seq_end + chunk_end
     # create seq out of chunks
 
-    code_str += chunk_start + f"{name} = sequence '{name}' {{ refer=centre,"
+    code_str += chunk_start + f"{name} = sequence '{name}' {{ refer='centre',"
 
     for i in range(chunk_count):
         if i == chunk_count - 1:
