@@ -157,20 +157,21 @@ uint8_t kick_is_inactive(
 
 }
 
-
 GPUFUN
-void kick_simple_single_particle(
-    LocalParticle* part,
+void kick_simple_single_coordinates(
+    double const x,
+    double const y,
+    double const chi,
     int64_t order,
     double inv_factorial,
     const double* knl,
     const double* ksl,
     double factor,
-    double kick_weight
+    double kick_weight,
+    double *dpx,
+    double *dpy
 ) {
-    double const chi = LocalParticle_get_chi(part);
-    double const x = LocalParticle_get_x(part);
-    double const y = LocalParticle_get_y(part);
+
     int64_t index = order;
 
     double dpx_mul = chi * knl[index] * factor * inv_factorial;
@@ -193,8 +194,42 @@ void kick_simple_single_particle(
 
     dpx_mul = -dpx_mul; // rad
 
-    LocalParticle_add_to_px(part, kick_weight * dpx_mul);
-    LocalParticle_add_to_py(part, kick_weight * dpy_mul);
+    *dpx = kick_weight * dpx_mul;
+    *dpy = kick_weight * dpy_mul;
+}
+
+
+GPUFUN
+void kick_simple_single_particle(
+    LocalParticle* part,
+    int64_t order,
+    double inv_factorial,
+    const double* knl,
+    const double* ksl,
+    double factor,
+    double kick_weight
+) {
+    double const chi = LocalParticle_get_chi(part);
+    double const x = LocalParticle_get_x(part);
+    double const y = LocalParticle_get_y(part);
+
+    double dpx, dpy;
+
+    kick_simple_single_coordinates(
+    x,
+    y,
+    chi,
+    order,
+    inv_factorial,
+    knl,
+    ksl,
+    factor,
+    kick_weight,
+    &dpx,
+    &dpy);
+
+    LocalParticle_add_to_px(part, dpx);
+    LocalParticle_add_to_py(part, dpy);
 }
 
 #endif
