@@ -139,7 +139,7 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
                 length, l_path,
                 radiation_flag, spin_flag,
                 NULL, // radiation_record
-                dp_record_exit, dpx_record_exit, dpy_record_exit);
+                &dp_record_entry, &dpx_record_entry, &dpy_record_entry);
         }
     #endif
     END_PER_PARTICLE_BLOCK;
