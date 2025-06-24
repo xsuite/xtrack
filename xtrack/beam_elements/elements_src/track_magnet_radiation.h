@@ -26,8 +26,6 @@ void magnet_radiation_and_spin(
     double const new_ax = LocalParticle_get_ax(part);
     double const new_ay = LocalParticle_get_ay(part);
 
-
-
     // track spin
     double const spin_x_0 = LocalParticle_get_spin_x(part);
     double const spin_y_0 = LocalParticle_get_spin_y(part);
@@ -244,11 +242,7 @@ void magnet_apply_radiation_single_particle(
     double By_T = kappa_x * P_J / Q0_coulomb;
     double const Bz_T = ks * brho0;
 
-    // I kill Bx and By if there is ks (for spin), need to find a better solution
-    if (ks != 0.){
-        Bx_T = 0.;
-        By_T = 0.;
-    }
+
 
     // Path length for radiation
     double const dzeta = LocalParticle_get_zeta(part) - old_zeta;
