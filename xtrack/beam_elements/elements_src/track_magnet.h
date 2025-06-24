@@ -212,7 +212,7 @@ void track_magnet_body_single_particle(
                     double Bx_T, By_T, Bz_T; \
                     magnet_estimate_field( \
                         part, \
-                        length, \
+                        ll, \
                         /*hx*/h_for_rad, \
                         /*hy*/0., \
                         old_px, old_py, \
@@ -223,11 +223,11 @@ void track_magnet_body_single_particle(
                     ); \
                     double const dzeta = LocalParticle_get_zeta(part) - old_zeta; \
                     double const rvv = LocalParticle_get_rvv(part); \
-                    double l_path = rvv * (length - dzeta); \
+                    double l_path = rvv * (ll - dzeta); \
                     magnet_radiation_and_spin( \
                         part, \
                         Bx_T, By_T, Bz_T, h_for_rad, \
-                        length, l_path, \
+                        ll, l_path, \
                         radiation_flag, spin_flag, \
                         radiation_record, \
                         dp_record_exit, dpx_record_exit, dpy_record_exit); \
