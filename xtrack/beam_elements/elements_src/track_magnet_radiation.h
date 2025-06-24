@@ -63,14 +63,23 @@ void magnet_radiation_and_spin(
             double const iv_y = beta_y / beta;
             double const iv_z = beta_z / beta;
 
-            double B_par_spin = Bx_T * iv_x + By_T * iv_y + Bz_T * iv_z;
+            double Bx_T_spin = Bx_T;
+            double By_T_spin = By_T;
+            double Bz_T_spin = Bz_T;
+
+            if (Bz_T_spin !=0){
+                Bx_T_spin = 0.;
+                By_T_spin = 0.;
+            }
+
+            double B_par_spin = Bx_T_spin * iv_x + By_T_spin * iv_y + Bz_T_spin * iv_z;
             double const B_par_spin_x = B_par_spin * iv_x;
             double const B_par_spin_y = B_par_spin * iv_y;
             double const B_par_spin_z = B_par_spin * iv_z;
 
-            double const B_perp_spin_x = Bx_T - B_par_spin_x;
-            double const B_perp_spin_y = By_T - B_par_spin_y;
-            double const B_perp_spin_z = Bz_T - B_par_spin_z;
+            double const B_perp_spin_x = Bx_T_spin - B_par_spin_x;
+            double const B_perp_spin_y = By_T_spin - B_par_spin_y;
+            double const B_perp_spin_z = Bz_T_spin - B_par_spin_z;
 
             double const G_spin = LocalParticle_get_anomalous_magnetic_moment(part);
 
