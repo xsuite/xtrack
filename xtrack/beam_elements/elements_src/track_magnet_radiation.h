@@ -246,53 +246,5 @@ void magnet_estimate_field(
     *Bz_T = ks * brho0;
 }
 
-GPUFUN
-void magnet_apply_radiation_single_particle(
-    LocalParticle* part,
-    const double length,
-    const double hx,
-    const double hy,
-    const int64_t radiation_flag,
-    const int64_t spin_flag,
-    const double old_px, const double old_py,
-    const double old_ax, const double old_ay,
-    const double old_zeta,
-    const double ks,
-    SynchrotronRadiationRecordData record,
-    double* dp_record_exit, double* dpx_record_exit, double* dpy_record_exit
-) {
-
-    if (length == 0.0) {
-        return;
-    }
-
-    double Bx_T, By_T, Bz_T;
-
-    magnet_estimate_field(
-        part,
-        length,
-        hx,
-        hy,
-        old_px, old_py,
-        old_ax, old_ay,
-        old_zeta,
-        ks,
-        &Bx_T, &By_T, &Bz_T
-    );
-
-    // Path length for radiation
-    double const dzeta = LocalParticle_get_zeta(part) - old_zeta;
-    double const rvv = LocalParticle_get_rvv(part);
-    double l_path = rvv * (length - dzeta);
-
-    magnet_radiation_and_spin(
-        part,
-        Bx_T, By_T, Bz_T, hx,
-        length, l_path,
-        radiation_flag, spin_flag,
-        record,
-        dp_record_exit, dpx_record_exit, dpy_record_exit);
-
-}
 
 #endif
