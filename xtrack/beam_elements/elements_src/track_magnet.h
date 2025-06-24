@@ -209,19 +209,28 @@ void track_magnet_body_single_particle(
             if ((radiation_flag || spin_flag) && length > 0){ \
                 double h_for_rad = h_kick + hxl / length; \
                 if (fabs(h_drift) > 0){ h_for_rad = h_drift; } \
-                magnet_apply_radiation_single_particle( \
-                    part, \
-                    (ll), \
-                    /*hx*/h_for_rad, \
-                    /*hy*/0., \
-                    radiation_flag, \
-                    spin_flag, \
-                    old_px, old_py, \
-                    old_ax, old_ay, \
-                    old_zeta, \
-                    /*ks*/0., \
-                    radiation_record, \
-                    dp_record_exit, dpx_record_exit, dpy_record_exit);\
+                    double Bx_T, By_T, Bz_T; \
+                    magnet_estimate_field( \
+                        part, \
+                        length, \
+                        /*hx*/h_for_rad, \
+                        /*hy*/0., \
+                        old_px, old_py, \
+                        old_ax, old_ay, \
+                        old_zeta, \
+                        /*ks*/0., \
+                        &Bx_T, &By_T, &Bz_T \
+                    ); \
+                    double const dzeta = LocalParticle_get_zeta(part) - old_zeta; \
+                    double const rvv = LocalParticle_get_rvv(part); \
+                    double l_path = rvv * (length - dzeta); \
+                    magnet_radiation_and_spin( \
+                        part, \
+                        Bx_T, By_T, Bz_T, h_for_rad, \
+                        length, l_path, \
+                        radiation_flag, spin_flag, \
+                        radiation_record, \
+                        dp_record_exit, dpx_record_exit, dpy_record_exit); \
             }\
         }
     #endif
