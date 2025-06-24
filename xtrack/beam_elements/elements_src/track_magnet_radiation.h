@@ -26,20 +26,7 @@ void magnet_radiation_and_spin(
     double const new_ax = LocalParticle_get_ax(part);
     double const new_ay = LocalParticle_get_ay(part);
 
-    double const ptau = LocalParticle_get_ptau(part);
-    double const delta = LocalParticle_get_delta(part);
-    double const rvv = LocalParticle_get_rvv(part);
-    double const mass0 = LocalParticle_get_mass0(part);
-    double const q0 = LocalParticle_get_q0(part);
-    double const p0c = LocalParticle_get_p0c(part);
-    double const gamma0 = LocalParticle_get_gamma0(part);
-    double const beta0 = LocalParticle_get_beta0(part);
-    double const gamma = gamma0 * (1 + beta0 * ptau);
-    double const beta = beta0 * rvv;
-    double const mass0_kg = mass0 * QELEM / C_LIGHT / C_LIGHT;
-    double const P_J = mass0_kg * beta * gamma * C_LIGHT;
-    double const Q0_coulomb = q0 * QELEM;
-    double const brho0 = p0c / C_LIGHT / q0;
+
 
     // track spin
     double const spin_x_0 = LocalParticle_get_spin_x(part);
@@ -51,6 +38,20 @@ void magnet_radiation_and_spin(
         #ifdef XSUITE_BACKTRACK
             LocalParticle_set_state(part, -33);
         #else
+
+            double const ptau = LocalParticle_get_ptau(part);
+            double const delta = LocalParticle_get_delta(part);
+            double const rvv = LocalParticle_get_rvv(part);
+            double const mass0 = LocalParticle_get_mass0(part);
+            double const q0 = LocalParticle_get_q0(part);
+            double const gamma0 = LocalParticle_get_gamma0(part);
+            double const beta0 = LocalParticle_get_beta0(part);
+            double const gamma = gamma0 * (1 + beta0 * ptau);
+            double const beta = beta0 * rvv;
+            double const mass0_kg = mass0 * QELEM / C_LIGHT / C_LIGHT;
+            double const P_J = mass0_kg * beta * gamma * C_LIGHT;
+            double const brho_part = P_J / (q0 * QELEM);
+
             double const kin_px_mean = LocalParticle_get_px(part) + new_ax;
             double const kin_py_mean = LocalParticle_get_py(part) + new_ay;
 
@@ -72,8 +73,6 @@ void magnet_radiation_and_spin(
             double const B_perp_spin_x = Bx_T - B_par_spin_x;
             double const B_perp_spin_y = By_T - B_par_spin_y;
             double const B_perp_spin_z = Bz_T - B_par_spin_z;
-
-            double const brho_part = P_J / (q0 * QELEM);
 
             double const G_spin = LocalParticle_get_anomalous_magnetic_moment(part);
 
