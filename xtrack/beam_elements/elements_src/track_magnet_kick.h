@@ -216,17 +216,17 @@ void kick_simple_single_particle(
     double dpx, dpy;
 
     kick_simple_single_coordinates(
-    x,
-    y,
-    chi,
-    order,
-    inv_factorial,
-    knl,
-    ksl,
-    factor,
-    kick_weight,
-    &dpx,
-    &dpy);
+        x,
+        y,
+        chi,
+        order,
+        inv_factorial,
+        knl,
+        ksl,
+        factor,
+        kick_weight,
+        &dpx,
+        &dpy);
 
     LocalParticle_add_to_px(part, dpx);
     LocalParticle_add_to_py(part, dpy);
