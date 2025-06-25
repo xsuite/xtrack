@@ -56,6 +56,8 @@ void ThinSliceSextupole_track_local_particle(
         /*k1s*/                   0.,
         /*k2s*/                   ThinSliceSextupoleData_get__parent_k2s(el),
         /*k3s*/                   0.,
+        /*ks*/                    0.,
+        /*dks_ds*/                0.,
         /*edge_entry_active*/     0,
         /*edge_exit_active*/      0,
         /*edge_entry_model*/      0,

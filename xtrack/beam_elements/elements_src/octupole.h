@@ -52,6 +52,8 @@ void Octupole_track_local_particle(
         /*k1s*/                   0.,
         /*k2s*/                   0.,
         /*k3s*/                   OctupoleData_get_k3s(el),
+        /*ks*/                    0.,
+        /*dks_ds*/                0.,
         /*edge_entry_active*/     OctupoleData_get_edge_entry_active(el),
         /*edge_exit_active*/      OctupoleData_get_edge_exit_active(el),
         /*edge_entry_model*/      1,

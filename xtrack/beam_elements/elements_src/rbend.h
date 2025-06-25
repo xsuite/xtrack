@@ -48,6 +48,8 @@ void RBend_track_local_particle(
         /*k1s*/                   0.,
         /*k2s*/                   0.,
         /*k3s*/                   0.,
+        /*ks*/                    0.,
+        /*dks_ds*/                0.,
         /*edge_entry_active*/     RBendData_get_edge_entry_active(el),
         /*edge_exit_active*/      RBendData_get_edge_exit_active(el),
         /*edge_entry_model*/      RBendData_get_edge_entry_model(el),

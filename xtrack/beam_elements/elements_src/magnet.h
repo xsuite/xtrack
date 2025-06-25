@@ -72,6 +72,8 @@ void Magnet_track_local_particle(
         k1s,
         k2s,
         k3s,
+        0., /*ks*/
+        0., /*dks_ds*/
         edge_entry_active,
         edge_exit_active,
         edge_entry_model,

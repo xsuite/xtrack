@@ -371,6 +371,8 @@ void track_magnet_particles(
     double k1s,
     double k2s,
     double k3s,
+    double ks,
+    double dks_ds,
     int64_t edge_entry_active,
     int64_t edge_exit_active,
     int64_t edge_entry_model,

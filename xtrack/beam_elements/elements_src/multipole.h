@@ -46,6 +46,8 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         /*k1s*/                   0.,
         /*k2s*/                   0.,
         /*k3s*/                   0.,
+        /*ks*/                    0.,
+        /*dks_ds*/                0.,
         /*edge_entry_active*/     0,
         /*edge_exit_active*/      0,
         /*edge_entry_model*/      0,
