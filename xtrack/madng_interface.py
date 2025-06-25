@@ -192,6 +192,49 @@ def _tw_ng(line, rdts=[], normal_form=True,
 
     return tw
 
+def _survey_ng(line):
+    if not hasattr(line.tracker, '_madng'):
+        line.build_madng_model()
+    mng = line.tracker._madng
+    mng['srv'] = mng.survey(sequence=mng._sequence_name)
+
+    survey_tab_keys = {
+        "x": "X",
+        "y": "Y",
+        "z": "Z",
+        "l": "length",
+        "kind": "element_type"
+    }
+
+    element_types = {
+        "drift": "Drift",
+        "sbend": "Bend",
+        "rbend": "RBend",
+        "quadrupole": "Quadrupole",
+        "sextupole": "Sextupole",
+        "octupole": "Octupole",
+        "multipole": "Multipole",
+        "kicker": "Kicker", # no coloring in survey plot
+        "rfcavity": "Cavity",
+        "marker": "Marker"
+    }
+
+    # create SurveyTable from DataFrame
+    survey_df = mng['srv'][0].to_df()
+    survey_dict = survey_df.to_dict(orient='list')
+    survey_dict = {k: np.array(v) for k, v in survey_dict.items()}
+    for k in survey_tab_keys.keys():
+        if k in survey_dict:
+            # Rename keys to match SurveyTable
+            survey_dict[survey_tab_keys[k]] = survey_dict[k]
+            del survey_dict[k]
+
+    survey_dict['element_type'] = np.array([element_types.get(et, et) for et in survey_dict['element_type']])
+
+    survey_tab = xt.survey.SurveyTable(survey_dict)
+    return survey_tab
+
+
 class ActionTwissMadng(Action):
     def __init__(self, line, tw_kwargs):
         self.line = line

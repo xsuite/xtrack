@@ -32,7 +32,8 @@ from .progress_indicator import progress
 from .slicing import Custom, Slicer, Strategy
 from .mad_writer import to_madx_sequence
 from .madng_interface import (build_madng_model, discard_madng_model,
-                              regen_madng_model, _tw_ng, line_to_madng)
+                              regen_madng_model, _tw_ng, line_to_madng,
+                              _survey_ng)
 
 from .survey import survey_from_line
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
@@ -665,6 +666,7 @@ class Line:
     discard_madng_model = discard_madng_model
     regen_madng_model = regen_madng_model
     madng_twiss = _tw_ng
+    madng_survey = _survey_ng
 
     def __repr__(self):
         if hasattr(self, '_name'):
