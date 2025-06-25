@@ -27,9 +27,11 @@ void configure_tracking_model(
     double k0,
     double k1,
     double h,
+    double ks,
     double* k0_drift,
     double* k1_drift,
     double* h_drift,
+    double* ks_drift,
     double* k0_kick,
     double* k1_kick,
     double* h_kick,
@@ -46,6 +48,7 @@ void configure_tracking_model(
     // model = 5: drift-kick-drift-exact
     // model = 6: drift-kick-drift-expanded
     // model = -1: kick only (not exposed in python)
+    // model = -2: sol-kick-sol (not exposed in python)
 
     if (model==0 || model==1){
         model = 3;
@@ -79,14 +82,22 @@ void configure_tracking_model(
     else if(model == 6){ // drift-kick-drift-expanded
         drift_model = 0; // drift expanded
     }
-    else {
+    else if(model == -1){ // kick only
         drift_model = -1;
     }
+    else if(model == -2){ // sol-kick-sol
+        drift_model = 6; // solenoid
+    }
+    else{
+        // This should never happen, but just in case
+        drift_model = 99999999;
+    }
 
-    if (drift_model == -1 || drift_model == 0 || drift_model == 1){ // drift expanded or drift exact
+    if (drift_model == -1 || drift_model == 0 || drift_model == 1){ // drift expanded, drift exact, kick only
         *k0_drift = 0.0;
         *k1_drift = 0.0;
         *h_drift = 0.0;
+        *ks_drift = 0.0;
         *k0_kick = k0;
         *k1_kick = k1;
         *h_kick = h;
@@ -98,6 +109,7 @@ void configure_tracking_model(
         *k0_drift = 0.0;
         *k1_drift = 0.0;
         *h_drift = h;
+        *ks_drift = 0.0;
         *k0_kick = k0;
         *k1_kick = k1;
         *h_kick = h;
@@ -109,6 +121,7 @@ void configure_tracking_model(
         *k0_drift = k0;
         *k1_drift = k1;
         *h_drift = h;
+        *ks_drift = 0.0;
         *k0_kick = 0.0;
         *k1_kick = 0.0;
         *h_kick = h;
@@ -120,6 +133,7 @@ void configure_tracking_model(
         *k0_drift = k0;
         *k1_drift = 0.0;
         *h_drift = h;
+        *ks_drift = 0.0;
         *k0_kick = 0.0;
         *k1_kick = k1;
         *h_kick = h;
@@ -131,6 +145,7 @@ void configure_tracking_model(
         *k0_drift = k0;
         *k1_drift = 0.0;
         *h_drift = 0.0;
+        *ks_drift = 0.0;
         *k0_kick = 0.0;
         *k1_kick = k1;
         *h_kick = 0.0;
@@ -138,6 +153,19 @@ void configure_tracking_model(
         *k1_h_correction = 0.;
         *kick_rot_frame = 0;
     }
+    else if (drift_model == 6){ // solenoid
+        *k0_drift = 0.0;
+        *k1_drift = 0.0;
+        *h_drift = 0.0;
+        *ks_drift = ks;
+        *k0_kick = k0;
+        *k1_kick = k1;
+        *h_kick = h;
+        *k0_h_correction = k0;
+        *k1_h_correction = k1;
+        *kick_rot_frame = 1;
+    }
+
 
     *out_drift_model = drift_model;
 }
@@ -450,7 +478,7 @@ void track_magnet_particles(
         }
     }
 
-    double k0_drift, k1_drift, h_drift;
+    double k0_drift, k1_drift, h_drift, ks_drift;
     double k0_kick, k1_kick, h_kick;
     double k0_h_correction, k1_h_correction;
     int8_t kick_rot_frame;
@@ -460,9 +488,11 @@ void track_magnet_particles(
         k0,
         k1,
         h,
+        ks,
         &k0_drift,
         &k1_drift,
         &h_drift,
+        &ks_drift,
         &k0_kick,
         &k1_kick,
         &h_kick,
