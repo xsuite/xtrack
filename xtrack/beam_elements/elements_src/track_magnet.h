@@ -224,13 +224,28 @@ void track_magnet_body_single_particle(
                     double const dzeta = LocalParticle_get_zeta(part) - old_zeta; \
                     double const rvv = LocalParticle_get_rvv(part); \
                     double l_path = rvv * (ll - dzeta); \
-                    magnet_radiation_and_spin( \
-                        part, \
-                        Bx_T, By_T, Bz_T, h_for_rad, \
-                        ll, l_path, \
-                        radiation_flag, spin_flag, \
-                        radiation_record, \
-                        dp_record_exit, dpx_record_exit, dpy_record_exit); \
+                    if (spin_flag){ \
+                        magnet_spin( \
+                            part, \
+                            Bx_T, \
+                            By_T, \
+                            Bz_T, \
+                            h_for_rad, \
+                            ll, \
+                            l_path); \
+                    } \
+                    if (radiation_flag){ \
+                        double const B_perp_T = sqrt(Bx_T * Bx_T + By_T * By_T); \
+                        magnet_radiation( \
+                            part, \
+                            B_perp_T, \
+                            ll, \
+                            l_path, \
+                            radiation_flag, \
+                            radiation_record, \
+                            dp_record_exit, dpx_record_exit, dpy_record_exit \
+                        ); \
+                    } \
             }\
         }
     #endif
