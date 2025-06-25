@@ -1,5 +1,10 @@
 import xtrack as xt
 
+# TODO:
+# - Handle edges (ax, ay)
+# - Handle radiation
+# - Handle spin
+
 length = 3.
 ks = 2.
 
