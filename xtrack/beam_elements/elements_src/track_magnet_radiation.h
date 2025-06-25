@@ -180,48 +180,6 @@ void magnet_radiation(
     LocalParticle_add_to_py(part, new_ay);
 }
 
-
-GPUFUN
-void magnet_radiation_and_spin(
-    LocalParticle* part,
-    double const Bx_T,
-    double const By_T,
-    double const Bz_T,
-    double const hx,
-    double const length,
-    double const l_path,
-    const int64_t radiation_flag,
-    const int64_t spin_flag,
-    SynchrotronRadiationRecordData record,
-    double* dp_record_exit, double* dpx_record_exit, double* dpy_record_exit
-) {
-
-    if (spin_flag){
-        magnet_spin(
-            part,
-            Bx_T,
-            By_T,
-            Bz_T,
-            hx,
-            length,
-            l_path);
-    }
-
-    if (radiation_flag){
-        double const B_perp_T = sqrt(Bx_T * Bx_T + By_T * By_T); //this one is used for radiation
-        magnet_radiation(
-            part,
-            B_perp_T,
-            length,
-            l_path,
-            radiation_flag,
-            record,
-            dp_record_exit, dpx_record_exit, dpy_record_exit
-        );
-    }
-
-}
-
 GPUFUN
 void magnet_estimate_field(
     LocalParticle* part,

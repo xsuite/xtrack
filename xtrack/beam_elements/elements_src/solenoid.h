@@ -132,14 +132,28 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
             double const dzeta = LocalParticle_get_zeta(part) - old_zeta;
             double const rvv = LocalParticle_get_rvv(part);
             double l_path = rvv * (length) - dzeta;
-            magnet_radiation_and_spin(
-                part,
-                Bx_T, By_T, Bz_T,
-                0, // hx
-                length, l_path,
-                radiation_flag, spin_flag,
-                NULL, // radiation_record
-                &dp_record_entry, &dpx_record_entry, &dpy_record_entry);
+            if (spin_flag){
+                magnet_spin(
+                    part,
+                    0, // Bx_T - killed for now
+                    0, // By_T - killed for now
+                    Bz_T,
+                    0., // hx
+                    length,
+                    l_path);
+            }
+            if (radiation_flag){
+                double const B_perp_T = sqrt(Bx_T * Bx_T + By_T * By_T); //this one is used for radiation
+                magnet_radiation(
+                    part,
+                    B_perp_T,
+                    length,
+                    l_path,
+                    radiation_flag,
+                    NULL, // radiation_record
+                    &dp_record_entry, &dpx_record_entry, &dpy_record_entry
+                );
+            }
         }
     #endif
     END_PER_PARTICLE_BLOCK;
