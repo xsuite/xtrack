@@ -182,7 +182,7 @@ def marker_to_mad_str(name, line, mad_type=MadType.MADX, substituted_vars=None):
             return None
     if mad_type == MadType.MADX:
         return 'marker'
- 
+
     tokens = []
     tokens.append('marker')
     tokens.append(name.replace(':', '__'))
@@ -227,7 +227,7 @@ def multipole_to_mad_str(name, line, mad_type=MadType.MADX, substituted_vars=Non
     - A string representation of the multipole in MADX/MAD-NG format.
     """
     mult = _get_eref(line, name)
-    
+
     if (len(mult.knl._value) == 1 and len(mult.ksl._value) == 1
         and mult.hxl._value == 0):
         # It is a dipole corrector
@@ -270,7 +270,7 @@ def multipole_to_mad_str(name, line, mad_type=MadType.MADX, substituted_vars=Non
 def rfmultipole_to_mad_str(name, line, mad_type=MadType.MADX, substituted_vars=None):
     """
     Convert an RF multipole element to a MADX/MAD-NG string representation.
-    
+
     Parameters:
     - name: Name of the rfmultipole element.
     - line: The line containing the element.
@@ -286,7 +286,7 @@ def rfmultipole_to_mad_str(name, line, mad_type=MadType.MADX, substituted_vars=N
     tokens.append('rfmultipole')
     if mad_type == MadType.MADNG:
         tokens.append(f"'{name.replace(':', '__')}'")  # replace ':' with '__' for MADNG
-    
+
     knl_mad = []
     ksl_mad = []
     for kl, klmad in zip([rfmult.knl, rfmult.ksl], [knl_mad, ksl_mad]):
@@ -324,7 +324,7 @@ def dipoleedge_to_mad_str(name, line, mad_type=MadType.MADX, substituted_vars=No
 
 def bend_to_mad_str(name, line, bend_type='sbend', mad_type=MadType.MADX, substituted_vars=None):
     """ Convert a bend element to a MADX/MAD-NG string representation.
-    
+
     Parameters:
     - name: Name of the bend element.
     - line: The line containing the element.
@@ -352,10 +352,11 @@ def bend_to_mad_str(name, line, bend_type='sbend', mad_type=MadType.MADX, substi
     tokens.append(mad_assignment('fint', _ge(bend.edge_entry_fint), mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('fintx', _ge(bend.edge_exit_fint), mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('hgap', _ge(bend.edge_entry_hgap), mad_type, substituted_vars=substituted_vars))
-    edge_entry_active_val = "false" if _ge(bend.edge_entry_active) == 1 else "true"
-    edge_exit_active_val = "false" if _ge(bend.edge_exit_active) == 1 else "true"
-    tokens.append(mad_assignment('kill_ent_fringe', edge_entry_active_val, mad_type, substituted_vars=substituted_vars))
-    tokens.append(mad_assignment('kill_exi_fringe', edge_exit_active_val, mad_type, substituted_vars=substituted_vars))
+    if mad_type == MadType.MADNG:
+        edge_entry_active_val = "false" if _ge(bend.edge_entry_active) == 1 else "true"
+        edge_exit_active_val = "false" if _ge(bend.edge_exit_active) == 1 else "true"
+        tokens.append(mad_assignment('kill_ent_fringe', edge_entry_active_val, mad_type, substituted_vars=substituted_vars))
+        tokens.append(mad_assignment('kill_exi_fringe', edge_exit_active_val, mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('k1', _ge(bend.k1), mad_type, substituted_vars=substituted_vars))
     knl_token, ksl_token = _knl_ksl_to_mad(bend)
     tokens.append(knl_token)
@@ -413,7 +414,7 @@ def octupole_to_mad_str(name, line, mad_type=MadType.MADX, substituted_vars=None
     Returns:
     - A string representation of the octupole in MADX/MAD-NG format.
     """
-    
+
     octup = _get_eref(line, name)
     tokens = []
     tokens.append('octupole')
@@ -566,6 +567,8 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
         machine_str = seq_str
 
     mad_input = vars_str + '\n' + machine_str + '\n'
+    with open('temp_feature.madx', 'w') as fid:
+        fid.write(mad_input)
     return mad_input
 
 def to_madng_sequence(line, name='seq', mode='sequence'):
