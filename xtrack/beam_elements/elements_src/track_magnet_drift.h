@@ -321,6 +321,7 @@ void track_magnet_drift_single_particle(
     const double length,  // length of the element
     const double k0,      // normal dipole strength
     const double k1,      // normal quadrupole strength
+    const double ks,      // solenoid strength
     const double h,       // curvature
     const int64_t drift_model      // drift model
 ) {

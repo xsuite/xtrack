@@ -218,7 +218,7 @@ void track_magnet_body_single_particle(
 
     #define MAGNET_DRIFT(part, dlength) \
         track_magnet_drift_single_particle(\
-            part, (dlength), k0_drift, k1_drift, h_drift, drift_model\
+            part, (dlength), k0_drift, k1_drift, ks_drift, h_drift, drift_model\
         )
 
     #ifdef XTRACK_MULTIPOLE_NO_SYNRAD
