@@ -62,12 +62,6 @@ void magnet_spin(
             double By_T_spin = By_T;
             double Bz_T_spin = Bz_T;
 
-            // Patch needed because the field is wrongly calculated in the solenoid
-            if (Bz_T_spin !=0){
-                Bx_T_spin = 0.;
-                By_T_spin = 0.;
-            }
-
             double B_par_spin = Bx_T_spin * iv_x + By_T_spin * iv_y + Bz_T_spin * iv_z;
             double const B_par_spin_x = B_par_spin * iv_x;
             double const B_par_spin_y = B_par_spin * iv_y;
