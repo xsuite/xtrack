@@ -14,13 +14,9 @@ void Slnd_track_local_particle(
         SlndData el,
         LocalParticle* part0
 ) {
-    int64_t model = SlndData_get_model(el);
     int64_t integrator = SlndData_get_integrator(el);
     int64_t num_multipole_kicks = SlndData_get_num_multipole_kicks(el);
 
-    if (model == 0) {  // adaptive
-        model = 6;  // drift-kick-drift-expanded
-    }
     if (integrator == 0) {  // adaptive
         integrator = 3;  // uniform
     }
@@ -37,7 +33,7 @@ void Slnd_track_local_particle(
         /*ksl*/                   SlndData_getp1_ksl(el, 0),
         /*factor_knl_ksl*/        1.,
         /*num_multipole_kicks*/   num_multipole_kicks,
-        /*model*/                 model,
+        /*model*/                 -2, // sol-kick-sol
         /*integrator*/            integrator,
         /*radiation_flag*/        SlndData_get_radiation_flag(el),
         /*radiation_record*/      NULL,
