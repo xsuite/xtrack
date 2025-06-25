@@ -9,29 +9,21 @@
 #include <headers/synrad_spectrum.h>
 
 GPUFUN
-void magnet_radiation_and_spin(
+void magnet_spin(
     LocalParticle* part,
     double const Bx_T,
     double const By_T,
     double const Bz_T,
     double const hx,
     double const length,
-    double const l_path,
-    const int64_t radiation_flag,
-    const int64_t spin_flag,
-    SynchrotronRadiationRecordData record,
-    double* dp_record_exit, double* dpx_record_exit, double* dpy_record_exit
+    double const l_path
 ) {
-
-    double const new_ax = LocalParticle_get_ax(part);
-    double const new_ay = LocalParticle_get_ay(part);
-
     // track spin
     double const spin_x_0 = LocalParticle_get_spin_x(part);
     double const spin_y_0 = LocalParticle_get_spin_y(part);
     double const spin_z_0 = LocalParticle_get_spin_z(part);
 
-    if ((spin_flag != 0) && (spin_x_0 != 0. || spin_y_0 != 0. || spin_z_0 != 0.)){
+    if (spin_x_0 != 0. || spin_y_0 != 0. || spin_z_0 != 0.){
 
         #ifdef XSUITE_BACKTRACK
             LocalParticle_set_state(part, -33);
@@ -49,6 +41,9 @@ void magnet_radiation_and_spin(
             double const mass0_kg = mass0 * QELEM / C_LIGHT / C_LIGHT;
             double const P_J = mass0_kg * beta * gamma * C_LIGHT;
             double const brho_part = P_J / (q0 * QELEM);
+
+            double const new_ax = LocalParticle_get_ax(part);
+            double const new_ay = LocalParticle_get_ay(part);
 
             double const kin_px_mean = LocalParticle_get_px(part) + new_ax;
             double const kin_py_mean = LocalParticle_get_py(part) + new_ay;
@@ -149,6 +144,37 @@ void magnet_radiation_and_spin(
             }
         #endif
     }
+}
+
+
+GPUFUN
+void magnet_radiation_and_spin(
+    LocalParticle* part,
+    double const Bx_T,
+    double const By_T,
+    double const Bz_T,
+    double const hx,
+    double const length,
+    double const l_path,
+    const int64_t radiation_flag,
+    const int64_t spin_flag,
+    SynchrotronRadiationRecordData record,
+    double* dp_record_exit, double* dpx_record_exit, double* dpy_record_exit
+) {
+
+    magnet_spin(
+        part,
+        Bx_T,
+        By_T,
+        Bz_T,
+        hx,
+        length,
+        l_path);
+
+    double const new_ax = LocalParticle_get_ax(part);
+    double const new_ay = LocalParticle_get_ay(part);
+
+
 
     // Synchrotron radiation
     LocalParticle_add_to_px(part, -new_ax);
