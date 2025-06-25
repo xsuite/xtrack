@@ -162,14 +162,16 @@ void magnet_radiation_and_spin(
     double* dp_record_exit, double* dpx_record_exit, double* dpy_record_exit
 ) {
 
-    magnet_spin(
-        part,
-        Bx_T,
-        By_T,
-        Bz_T,
-        hx,
-        length,
-        l_path);
+    if (spin_flag){
+        magnet_spin(
+            part,
+            Bx_T,
+            By_T,
+            Bz_T,
+            hx,
+            length,
+            l_path);
+    }
 
     double const new_ax = LocalParticle_get_ax(part);
     double const new_ay = LocalParticle_get_ay(part);
