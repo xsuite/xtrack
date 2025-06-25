@@ -68,27 +68,31 @@ def _tw_ng(line, rdts=[], normal_form=True,
 
     columns = tw_columns + rdts
     rdt_cmd = 'local rdts = {"' + '", "'.join(rdts) + '"}'
-    send_cmd = f'py:send({{mtbl.{", mtbl.".join(columns)}}})'
+    mng_columns_to_send = ["mtbl." + col for col in columns]
+    send_cmd = f'''
+        columns = {{{", ".join(mng_columns_to_send)}}}
+        py:send(columns, true)
+    '''
 
     if len(rdts) > 0:
-        mng_script = ('''
-        local damap in MAD
-        '''
-        f'local seq = MADX.{mng._sequence_name}'
-        '''
-        -- list of RDTs
-        '''
-        + rdt_cmd +
-        '''
-        -- create phase-space damap at 4th order
-        local X0 = damap {nv=6, mo=4}
-
-        -- twiss with RDTs
-        local mtbl = twiss {sequence=seq, X0=X0, trkrdt=rdts, info=2, saverdt=true, coupling=true, chrom=true}
-
-        -- send columns to Python
-        '''
-        + send_cmd)
+        mng_script = (
+            f'''
+            local damap in MAD
+            local seq = MADX.{mng._sequence_name}
+            -- list of RDTs
+            '''
+            + rdt_cmd +
+            '''
+            -- create phase-space damap at 4th order
+            local X0 = damap {nv=6, mo=4}
+    
+            -- twiss with RDTs
+            local mtbl = twiss {sequence=seq, X0=X0, trkrdt=rdts, info=2, saverdt=true, coupling=true, chrom=true}
+    
+            -- send columns to Python
+            '''
+            + send_cmd
+        )
     else:
         mng_script = ('''
         local damap in MAD
@@ -109,7 +113,7 @@ def _tw_ng(line, rdts=[], normal_form=True,
 
     mng.send(mng_script)
 
-    out = mng.recv()
+    out = mng.recv('columns')
     out_dct = {k: v for k, v in zip(columns, out)}
 
     # Add to table
@@ -142,7 +146,7 @@ def _tw_ng(line, rdts=[], normal_form=True,
 
             local nf = my_norm_for
             last_nf = my_norm_for
-            py:send({
+            normal_forms_to_send = {
                     nf:q1{1}, -- qx from the normal form (fractional part)
                     nf:q2{1}, -- qy
                     nf:dq1{1}, -- dqx / d delta
@@ -159,10 +163,11 @@ def _tw_ng(line, rdts=[], normal_form=True,
                     nf:anhy{0, 1}, -- dqy / d(2 jy)
                     nf:anhx{0, 1}, -- dqx / d(2 jy)
                     nf:anhy{1, 0}, -- dqy / d(2 jx)
-                    })
+                    }
+            py:send(normal_forms_to_send)
         ''')
         mng.send(mng_script_nf)
-        out_nf = mng.recv()
+        out_nf = mng.recv('normal_forms_to_send')
 
         dct_nf = dict(
             q1 =   out_nf[0],
