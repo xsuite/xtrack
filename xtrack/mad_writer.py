@@ -567,8 +567,6 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
         machine_str = seq_str
 
     mad_input = vars_str + '\n' + machine_str + '\n'
-    with open('temp_feature.madx', 'w') as fid:
-        fid.write(mad_input)
     return mad_input
 
 def to_madng_sequence(line, name='seq', mode='sequence'):
