@@ -1877,6 +1877,144 @@ class Quadrupole(BeamElement):
         except KeyError:
             raise ValueError(f'Invalid integrator: {value}')
 
+class Slnd(BeamElement):
+
+    """
+    Slnd element.
+
+    Parameters
+    ----------
+    ks : float
+        Strength of the solenoid component.
+    length : float
+        Length of the element in meters along the reference trajectory.
+    order : int, optional
+        Maximum order of multipole expansion for this magnet. Defaults to 5.
+    knl : list of floats, optional
+        Normal multipole integrated strengths. If not provided, defaults to zeroes.
+    ksl : list of floats, optional
+        Skew multipole integrated strengths. If not provided, defaults to zeroes.
+    integrator : str, optional
+        Integration scheme to be used. See ``Magnet`` for details.
+    num_multipole_kicks : int, optional
+        The number of kicks to be used in thin kick splitting. The default value
+        of zero implies a single kick in the middle of the element.
+    edge_entry_active : bool, optional
+        Whether to include the edge effect at entry. Enabled by default.
+    edge_exit_active : bool, optional
+        Whether to include the edge effect at exit. Enabled by default.
+    radiation_flag : int, optional
+        Whether to enable radiation. See ``Magnet`` for details.
+    delta_taper : float, optional
+        A value added to delta for the purposes of tapering. Default is 0.
+    """
+
+    isthick = True
+    has_backtrack = True
+
+    _xofields={
+        'ks': xo.Float64,
+        'length': xo.Float64,
+        'order': xo.Int64,
+        'inv_factorial_order': xo.Float64,
+        'knl': xo.Float64[:],
+        'ksl': xo.Float64[:],
+        'edge_entry_active': xo.Field(xo.UInt64, default=False),
+        'edge_exit_active': xo.Field(xo.UInt64, default=False),
+        'num_multipole_kicks': xo.Int64,
+        'integrator': xo.Int64,
+        'radiation_flag': xo.Int64,
+        'delta_taper': xo.Float64,
+    }
+
+    _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
+
+    _rename = {
+        'order': '_order',
+        'integrator': '_integrator',
+    }
+
+    _noexpr_fields = _NOEXPR_FIELDS
+
+    _depends_on = [RandomUniformAccurate, RandomExponential]
+    _internal_record_class = SynchrotronRadiationRecord
+
+    _extra_c_sources = [
+        '#include <beam_elements/elements_src/slnd.h>',
+    ]
+
+    def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
+        order = order or DEFAULT_MULTIPOLE_ORDER
+        multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
+        kwargs.update(multipolar_kwargs)
+
+        model = kwargs.pop('model', None)
+        integrator = kwargs.pop('integrator', None)
+
+        self.xoinitialize(**kwargs)
+
+        # Trigger properties
+        if model is not None:
+            self.model = model
+
+        if integrator is not None:
+            self.integrator = integrator
+
+    def to_dict(self, copy_to_cpu=True):
+        out = super().to_dict(copy_to_cpu=copy_to_cpu)
+
+        # See the comment in Multiple.to_dict about knl/ksl/order dumping
+        if 'knl' in out and np.allclose(out['knl'], 0, atol=1e-16):
+            out.pop('knl', None)
+
+        if 'ksl' in out and np.allclose(out['ksl'], 0, atol=1e-16):
+            out.pop('ksl', None)
+
+        if self.order != 0 and 'knl' not in out and 'ksl' not in out:
+            out['order'] = self.order
+
+        return out
+
+    @property
+    def order(self):
+        return self._order
+
+    @order.setter
+    def order(self, value):
+        self._order = value
+        self.inv_factorial_order = 1.0 / factorial(value, exact=True)
+
+    @property
+    def _thin_slice_class(self):
+        return xt.ThinSliceOctupole
+
+    @property
+    def _thick_slice_class(self):
+        return xt.ThickSliceOctupole
+
+    @property
+    def _drift_slice_class(self):
+        return xt.DriftSliceOctupole
+
+    @property
+    def _entry_slice_class(self):
+        return xt.ThinSliceOctupoleEntry
+
+    @property
+    def _exit_slice_class(self):
+        return xt.ThinSliceOctupoleExit
+
+    @property
+    def integrator(self):
+        return _INDEX_TO_INTEGRATOR[self._integrator]
+
+    @integrator.setter
+    def integrator(self, value):
+        try:
+            self._integrator = _INTEGRATOR_TO_INDEX[value]
+        except KeyError:
+            raise ValueError(f'Invalid integrator: {value}')
+
 
 class Solenoid(BeamElement):
     """Solenoid element.
