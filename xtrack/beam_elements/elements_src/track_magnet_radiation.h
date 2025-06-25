@@ -146,6 +146,40 @@ void magnet_spin(
     }
 }
 
+GPUFUN
+void magnet_radiation(
+    LocalParticle* part,
+    double const B_perp_T,
+    double const length,
+    double const l_path,
+    const int64_t radiation_flag,
+    SynchrotronRadiationRecordData record,
+    double* dp_record_exit, double* dpx_record_exit, double* dpy_record_exit
+) {
+
+    double const new_ax = LocalParticle_get_ax(part);
+    double const new_ay = LocalParticle_get_ay(part);
+
+    // Synchrotron radiation
+    LocalParticle_add_to_px(part, -new_ax);
+    LocalParticle_add_to_py(part, -new_ay);
+
+    if (radiation_flag == 1){
+        synrad_average_kick(part, B_perp_T, l_path,
+            dp_record_exit, dpx_record_exit, dpy_record_exit);
+    }
+    else if (radiation_flag == 2){
+        RecordIndex record_index = NULL;
+        if (record){
+            record_index = SynchrotronRadiationRecordData_getp__index(record);
+        }
+        synrad_emit_photons(part, B_perp_T, l_path, record_index, record);
+    }
+
+    LocalParticle_add_to_px(part, new_ax);
+    LocalParticle_add_to_py(part, new_ay);
+}
+
 
 GPUFUN
 void magnet_radiation_and_spin(
@@ -173,31 +207,19 @@ void magnet_radiation_and_spin(
             l_path);
     }
 
-    double const new_ax = LocalParticle_get_ax(part);
-    double const new_ay = LocalParticle_get_ay(part);
-
-
-
-    // Synchrotron radiation
-    LocalParticle_add_to_px(part, -new_ax);
-    LocalParticle_add_to_py(part, -new_ay);
-
-    double const B_perp_T = sqrt(Bx_T * Bx_T + By_T * By_T); //this one is used for radiation
-
-    if (radiation_flag == 1){
-        synrad_average_kick(part, B_perp_T, l_path,
-            dp_record_exit, dpx_record_exit, dpy_record_exit);
-    }
-    else if (radiation_flag == 2){
-        RecordIndex record_index = NULL;
-        if (record){
-            record_index = SynchrotronRadiationRecordData_getp__index(record);
-        }
-        synrad_emit_photons(part, B_perp_T, l_path, record_index, record);
+    if (radiation_flag){
+        double const B_perp_T = sqrt(Bx_T * Bx_T + By_T * By_T); //this one is used for radiation
+        magnet_radiation(
+            part,
+            B_perp_T,
+            length,
+            l_path,
+            radiation_flag,
+            record,
+            dp_record_exit, dpx_record_exit, dpy_record_exit
+        );
     }
 
-    LocalParticle_add_to_px(part, new_ax);
-    LocalParticle_add_to_py(part, new_ay);
 }
 
 GPUFUN
