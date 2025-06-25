@@ -71,7 +71,7 @@ def _tw_ng(line, rdts=[], normal_form=True,
     mng_columns_to_send = ["mtbl." + col for col in columns]
     send_cmd = f'''
         columns = {{{", ".join(mng_columns_to_send)}}}
-        py:send(columns)
+        py:send(columns, true)
     '''
 
     if len(rdts) > 0:
@@ -113,7 +113,7 @@ def _tw_ng(line, rdts=[], normal_form=True,
 
     mng.send(mng_script)
 
-    out = mng.recv('columns').eval()
+    out = mng.recv('columns')
     out_dct = {k: v for k, v in zip(columns, out)}
 
     # Add to table
