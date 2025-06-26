@@ -253,6 +253,7 @@ void evaluate_field_from_strengths(
     double k2s,
     double k3s,
     double ks,
+    double dks_ds,
     double *Bx_T,
     double *By_T,
     double *Bz_T
@@ -310,8 +311,9 @@ void evaluate_field_from_strengths(
 
     double const brho_0 = p0c / C_LIGHT / q0; // [T m]
 
-    *Bx_T = dpy * brho_0 / length; // [T]
-    *By_T = -dpx * brho_0 / length;  // [T]
+
+    *Bx_T = dpy * brho_0 / length - 0.5 * dks_ds * brho_0 * x; // [T]
+    *By_T = -dpx * brho_0 / length - 0.5 * dks_ds * brho_0 * y; // [T]
     *Bz_T = ks * brho_0; // [T]
 
 }

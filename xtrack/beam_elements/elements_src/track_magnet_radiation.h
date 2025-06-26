@@ -9,6 +9,58 @@
 #include <headers/synrad_spectrum.h>
 
 GPUFUN
+void direction_of_motion(
+    double const px,
+    double const py,
+    double const delta,
+    double* iv_x,
+    double* iv_y,
+    double* iv_s){
+
+    double iix = px / (1. + delta);
+    double iiy = py / (1. + delta);
+    double iis = sqrt(1 - iix * iix + iiy * iiy);
+
+    *iv_x = iix;
+    *iv_y = iiy;
+    *iv_s = iis;
+}
+
+GPUFUN
+void separate_par_perp_components(
+    double const Bx,
+    double const By,
+    double const Bz,
+    double const ix,
+    double const iy,
+    double const iz,
+    double* B_par_x,
+    double* B_par_y,
+    double* B_par_z,
+    double* B_perp_x,
+    double* B_perp_y,
+    double* B_perp_z
+){
+
+    double B_par = Bx * ix + By * iy + Bz * iz;
+    double const BB_par_x = B_par * ix;
+    double const BB_par_y = B_par * iy;
+    double const BB_par_z = B_par * iz;
+
+    double const BB_perp_x = Bx - BB_par_x;
+    double const BB_perp_y = By - BB_par_y;
+    double const BB_perp_z = Bz - BB_par_z;
+
+    *B_par_x = BB_par_x;
+    *B_par_y = BB_par_y;
+    *B_par_z = BB_par_z;
+    *B_perp_x = BB_perp_x;
+    *B_perp_y = BB_perp_y;
+    *B_perp_z = BB_perp_z;
+
+}
+
+GPUFUN
 void magnet_spin(
     LocalParticle* part,
     double const Bx_T,
@@ -48,28 +100,27 @@ void magnet_spin(
             double const kin_px_mean = LocalParticle_get_px(part) + new_ax;
             double const kin_py_mean = LocalParticle_get_py(part) + new_ay;
 
-            double const kin_pz_mean = sqrt((1 + delta)*(1 + delta) - kin_px_mean * kin_px_mean - kin_py_mean * kin_py_mean);
+            double iv_x, iv_y, iv_z;
+            direction_of_motion(kin_px_mean, kin_py_mean, delta,
+                                &iv_x, &iv_y, &iv_z);
 
-            double const beta_x = beta * (kin_px_mean / kin_pz_mean);
-            double const beta_y = beta * (kin_py_mean / kin_pz_mean);
-            double const beta_z = sqrt(beta*beta - beta_x * beta_x - beta_y * beta_y);
+            double B_par_spin_x, B_par_spin_y, B_par_spin_z;
+            double B_perp_spin_x, B_perp_spin_y, B_perp_spin_z;
 
-            double const iv_x = beta_x / beta;
-            double const iv_y = beta_y / beta;
-            double const iv_z = beta_z / beta;
+            separate_par_perp_components(
+                Bx_T,
+                By_T,
+                Bz_T,
+                iv_x,
+                iv_y,
+                iv_z,
+                &B_par_spin_x,
+                &B_par_spin_y,
+                &B_par_spin_z,
+                &B_perp_spin_x,
+                &B_perp_spin_y,
+                &B_perp_spin_z);
 
-            double Bx_T_spin = Bx_T;
-            double By_T_spin = By_T;
-            double Bz_T_spin = Bz_T;
-
-            double B_par_spin = Bx_T_spin * iv_x + By_T_spin * iv_y + Bz_T_spin * iv_z;
-            double const B_par_spin_x = B_par_spin * iv_x;
-            double const B_par_spin_y = B_par_spin * iv_y;
-            double const B_par_spin_z = B_par_spin * iv_z;
-
-            double const B_perp_spin_x = Bx_T_spin - B_par_spin_x;
-            double const B_perp_spin_y = By_T_spin - B_par_spin_y;
-            double const B_perp_spin_z = Bz_T_spin - B_par_spin_z;
 
             double const G_spin = LocalParticle_get_anomalous_magnetic_moment(part);
 

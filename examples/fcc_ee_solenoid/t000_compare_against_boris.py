@@ -166,8 +166,10 @@ brho = P0_J / qe / p.q0
 
 #ks = 0.5 * (Bz_axis[:-1] + Bz_axis[1:]) / brho
 ks = Bz_axis[:-1] / brho
+dks_ds = np.diff(Bz_axis) / np.diff(z_axis) / brho
 
-line = xt.Line(elements=[xt.Solenoid(length=z_axis[1]-z_axis[0], ks=ks[ii])
+line = xt.Line(elements=[xt.Solenoid(length=z_axis[1]-z_axis[0],
+                                     ks=ks[ii], dks_ds=dks_ds[ii])
                             for ii in range(len(z_axis)-1)])
 line.build_tracker()
 line.configure_radiation(model='mean')

@@ -1914,6 +1914,7 @@ class Solenoid(BeamElement):
 
     _xofields={
         'ks': xo.Float64,
+        'dks_ds': xo.Float64,
         'length': xo.Float64,
         'order': xo.Int64,
         'inv_factorial_order': xo.Float64,

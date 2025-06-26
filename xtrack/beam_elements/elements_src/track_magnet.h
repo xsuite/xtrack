@@ -200,6 +200,7 @@ void track_magnet_body_single_particle(
     const double k1s,
     const double k2s,
     const double k3s,
+    const double dks_ds,
     const int64_t radiation_flag,
     const int64_t spin_flag,
     SynchrotronRadiationRecordData radiation_record,
@@ -263,6 +264,7 @@ void track_magnet_body_single_particle(
                     k2s, \
                     k3s, \
                     ks_drift, \
+                    dks_ds, \
                     &Bx_T, \
                     &By_T, \
                     &Bz_T \
@@ -558,6 +560,7 @@ void track_magnet_particles(
             k0_kick, k1_kick, h_kick, hxl,
             k0_h_correction, k1_h_correction,
             k2, k3, k0s, k1s, k2s, k3s,
+            dks_ds,
             radiation_flag,
             1, // spin_flag
             radiation_record,

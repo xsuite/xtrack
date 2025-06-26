@@ -49,7 +49,7 @@ void Solenoid_track_local_particle(
         /*k2s*/                   0.,
         /*k3s*/                   0.,
         /*ks*/                    SolenoidData_get_ks(el),
-        /*dks_ds*/                0.,
+        /*dks_ds*/                SolenoidData_get_dks_ds(el),
         /*edge_entry_active*/     0,
         /*edge_exit_active*/      0,
         /*edge_entry_model*/      1,
