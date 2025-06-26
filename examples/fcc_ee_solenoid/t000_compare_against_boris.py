@@ -166,9 +166,11 @@ brho = P0_J / qe / p.q0
 
 #ks = 0.5 * (Bz_axis[:-1] + Bz_axis[1:]) / brho
 ks = Bz_axis[:-1] / brho
-dks_ds = np.diff(Bz_axis) / np.diff(z_axis) / brho
+dks_ds = 0 * ks
+dz = z_axis[1]-z_axis[0]
+dks_ds[1:-1] = (ks[2:] - ks[:-2]) / 2 / dz
 
-line = xt.Line(elements=[xt.Solenoid(length=z_axis[1]-z_axis[0],
+line = xt.Line(elements=[xt.Solenoid(length=dz,
                                      ks=ks[ii], dks_ds=dks_ds[ii])
                             for ii in range(len(z_axis)-1)])
 line.build_tracker()
@@ -238,22 +240,22 @@ for i_part in range(z_log.shape[1]):
     this_dx_ds = dx_ds[i_part, :]
     this_dy_ds = dy_ds[i_part, :]
 
-    assert np.allclose(dx_ds_xsuite_check, dx_ds_boris_check, rtol=0,
+    xo.assert_allclose(dx_ds_xsuite_check, dx_ds_boris_check, rtol=0,
             atol=2.8e-2 * (np.max(dx_ds_boris_check) - np.min(dx_ds_boris_check)))
-    assert np.allclose(dy_ds_xsuite_check, dy_ds_boris_check, rtol=0,
+    xo.assert_allclose(dy_ds_xsuite_check, dy_ds_boris_check, rtol=0,
             atol=2.8e-2 * (np.max(dy_ds_boris_check) - np.min(dy_ds_boris_check)))
-    assert np.allclose(dE_ds_xsuite_check, dE_ds_boris_check, rtol=0,
+    xo.assert_allclose(dE_ds_xsuite_check, dE_ds_boris_check, rtol=0,
             atol=1e-2 * (np.max(dE_ds_boris_check) - np.min(dE_ds_boris_check)))
 
-    assert np.allclose(ax_ref[i_part, :], mon.ax[i_part, :],
+    xo.assert_allclose(ax_ref[i_part, :], mon.ax[i_part, :],
                     rtol=0, atol=np.max(np.abs(ax_ref)*3e-2))
-    assert np.allclose(ay_ref[i_part, :], mon.ay[i_part, :],
+    xo.assert_allclose(ay_ref[i_part, :], mon.ay[i_part, :],
                     rtol=0, atol=np.max(np.abs(ay_ref)*3e-2))
 
-    assert np.allclose(this_emitted_dpx,
+    xo.assert_allclose(this_emitted_dpx,
             this_dE_ds * this_dx_ds * np.diff(mon.s[i_part, :])/p.p0c[0],
             rtol=0, atol=1e-4 * (np.max(this_emitted_dpx) - np.min(this_emitted_dpx)))
-    assert np.allclose(this_emitted_dpy,
+    xo.assert_allclose(this_emitted_dpy,
             this_dE_ds * this_dy_ds * np.diff(mon.s[i_part, :])/p.p0c[0],
             rtol=0, atol=2e-3 * (np.max(this_emitted_dpy) - np.min(this_emitted_dpy)))
 
