@@ -230,9 +230,11 @@ void track_magnet_body_single_particle(
     #else
         #define WITH_RADIATION(ll, code) \
         { \
-            const double old_x = LocalParticle_get_x(part); \
-            const double old_y = LocalParticle_get_y(part); \
-            const double old_zeta = LocalParticle_get_zeta(part); \
+            double const old_x = LocalParticle_get_x(part); \
+            double const old_y = LocalParticle_get_y(part); \
+            double const old_zeta = LocalParticle_get_zeta(part); \
+            double const old_kin_px = LocalParticle_get_px(part) - LocalParticle_get_ax(part);\
+            double const old_kin_py = LocalParticle_get_py(part) - LocalParticle_get_ay(part);\
             code; \
             if ((radiation_flag || spin_flag) && length > 0){ \
                 double h_for_rad = h_kick + hxl / length; \
@@ -242,8 +244,12 @@ void track_magnet_body_single_particle(
                 double const q0 = LocalParticle_get_q0(part); \
                 double const new_x = LocalParticle_get_x(part); \
                 double const new_y = LocalParticle_get_y(part); \
+                double const new_kin_px = LocalParticle_get_px(part) - LocalParticle_get_ax(part);\
+                double const new_kin_py = LocalParticle_get_py(part) - LocalParticle_get_ay(part);\
                 double const mean_x = 0.5 * (old_x + new_x); \
                 double const mean_y = 0.5 * (old_y + new_y); \
+                double const mean_kin_px = 0.5 * (old_kin_px + new_kin_px); \
+                double const mean_kin_py = 0.5 * (old_kin_py + new_kin_py); \
                 evaluate_field_from_strengths( \
                     p0c, \
                     q0, \
@@ -283,7 +289,13 @@ void track_magnet_body_single_particle(
                         l_path); \
                 } \
                 if (radiation_flag){ \
-                    double const B_perp_T = sqrt(Bx_T * Bx_T + By_T * By_T); \
+                    double const B_perp_T = compute_b_perp_mod( \
+                        mean_kin_px, \
+                        mean_kin_py, \
+                        LocalParticle_get_delta(part), \
+                        Bx_T, \
+                        By_T, \
+                        Bz_T); \
                     magnet_radiation( \
                         part, \
                         B_perp_T, \

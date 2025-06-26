@@ -6,6 +6,7 @@ import xtrack as xt
 # - Handle spin
 # - Add field from dks_ds
 # - Make sure radiation is in the direction of the KINETIC momentum (add test)
+# - Slicing (remember to worry about edges)
 
 length = 3.
 ks = 2.

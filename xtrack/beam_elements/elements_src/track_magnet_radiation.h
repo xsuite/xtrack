@@ -61,6 +61,39 @@ void separate_par_perp_components(
 }
 
 GPUFUN
+double compute_b_perp_mod(
+    double const kin_px,
+    double const kin_py,
+    double const delta,
+    double const Bx,
+    double const By,
+    double const Bz){
+
+    double iv_x, iv_y, iv_z;
+    direction_of_motion(kin_px, kin_py, delta,
+                        &iv_x, &iv_y, &iv_z);
+
+    double B_par_x, B_par_y, B_par_z;
+    double B_perp_x, B_perp_y, B_perp_z;
+    separate_par_perp_components(
+        Bx,
+        By,
+        Bz,
+        iv_x,
+        iv_y,
+        iv_z,
+        &B_par_x,
+        &B_par_y,
+        &B_par_z,
+        &B_perp_x,
+        &B_perp_y,
+        &B_perp_z);
+
+    return sqrt(B_perp_x*B_perp_x + B_perp_y*B_perp_y + B_perp_z*B_perp_z);
+
+}
+
+GPUFUN
 void magnet_spin(
     LocalParticle* part,
     double const Bx_T,
