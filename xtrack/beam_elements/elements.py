@@ -1877,10 +1877,10 @@ class Quadrupole(BeamElement):
         except KeyError:
             raise ValueError(f'Invalid integrator: {value}')
 
-class Slnd(BeamElement):
+class Solenoid(BeamElement):
 
     """
-    Slnd element.
+    Solenoid element.
 
     Parameters
     ----------
@@ -2016,8 +2016,8 @@ class Slnd(BeamElement):
             raise ValueError(f'Invalid integrator: {value}')
 
 
-class Solenoid(BeamElement):
-    """Solenoid element.
+class LegacySolenoid(BeamElement):
+    """LegacySolenoid element.
 
     Parameters
     ----------
@@ -2117,7 +2117,7 @@ class Solenoid(BeamElement):
 
     @property
     def _thick_slice_class(self):
-        return xt.ThickSliceSolenoid
+        return xt.ThickSliceLegacySolenoid
 
 
 class CombinedFunctionMagnet:

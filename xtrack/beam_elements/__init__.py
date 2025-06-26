@@ -18,7 +18,8 @@ from .slice_elements import (ThinSliceQuadrupole, ThinSliceSextupole,
                              ThinSliceOctupoleEntry, ThinSliceOctupoleExit)
 from .slice_elements_thick import (ThickSliceBend, ThickSliceRBend,
                                    ThickSliceQuadrupole, ThickSliceSextupole,
-                                   ThickSliceOctupole, ThickSliceSolenoid,
+                                   ThickSliceOctupole,
+                                   #ThickSliceSolenoid,
                                    DriftSliceOctupole, DriftSliceSextupole,
                                    DriftSliceQuadrupole, DriftSliceBend,
                                    DriftSliceRBend, DriftSlice)

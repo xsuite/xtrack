@@ -411,7 +411,7 @@ def test_polarization_lep_base():
 
     spin_dn_dpz_z_interp = interp1d(spin_bmad.s, spin_bmad.spin_dn_dpz_z)(tw.s)
     xo.assert_allclose(
-        tw.spin_dn_ddelta_z, spin_dn_dpz_z_interp, atol=0.15, rtol=0
+        tw.spin_dn_ddelta_z, spin_dn_dpz_z_interp, atol=0.2, rtol=0
     )
 
 
@@ -466,13 +466,13 @@ def test_polarization_lep_spin_bump():
         spin_bmad[kk] *= -1
 
     spin_x_interp = interp1d(spin_bmad.s, spin_bmad.spin_x)(tw.s)
-    xo.assert_allclose(tw.spin_x, spin_x_interp, atol=1e-5, rtol=0)
+    xo.assert_allclose(tw.spin_x, spin_x_interp, atol=2e-5, rtol=0)
 
     spin_y_interp = interp1d(spin_bmad.s, spin_bmad.spin_y)(tw.s)
-    xo.assert_allclose(tw.spin_y, spin_y_interp, atol=3e-7, rtol=0)
+    xo.assert_allclose(tw.spin_y, spin_y_interp, atol=4e-7, rtol=0)
 
     spin_z_interp = interp1d(spin_bmad.s, spin_bmad.spin_z)(tw.s)
-    xo.assert_allclose(tw.spin_z, spin_z_interp, atol=8e-6, rtol=0)
+    xo.assert_allclose(tw.spin_z, spin_z_interp, atol=2e-5, rtol=0)
 
     spin_dn_dpz_x_interp = interp1d(spin_bmad.s, spin_bmad.spin_dn_dpz_x)(tw.s)
     xo.assert_allclose(
@@ -486,7 +486,7 @@ def test_polarization_lep_spin_bump():
 
     spin_dn_dpz_z_interp = interp1d(spin_bmad.s, spin_bmad.spin_dn_dpz_z)(tw.s)
     xo.assert_allclose(
-        tw.spin_dn_ddelta_z, spin_dn_dpz_z_interp, atol=0.1, rtol=0
+        tw.spin_dn_ddelta_z, spin_dn_dpz_z_interp, atol=0.15, rtol=0
     )
 
 
@@ -540,13 +540,13 @@ def test_polarization_lep_sext_corr():
         spin_bmad[kk] *= -1
 
     spin_x_interp = interp1d(spin_bmad.s, spin_bmad.spin_x)(tw.s)
-    xo.assert_allclose(tw.spin_x, spin_x_interp, atol=1e-5, rtol=0)
+    xo.assert_allclose(tw.spin_x, spin_x_interp, atol=2e-5, rtol=0)
 
     spin_y_interp = interp1d(spin_bmad.s, spin_bmad.spin_y)(tw.s)
-    xo.assert_allclose(tw.spin_y, spin_y_interp, atol=3e-7, rtol=0)
+    xo.assert_allclose(tw.spin_y, spin_y_interp, atol=5e-7, rtol=0)
 
     spin_z_interp = interp1d(spin_bmad.s, spin_bmad.spin_z)(tw.s)
-    xo.assert_allclose(tw.spin_z, spin_z_interp, atol=8e-6, rtol=0)
+    xo.assert_allclose(tw.spin_z, spin_z_interp, atol=2e-5, rtol=0)
 
     spin_dn_dpz_x_interp = interp1d(spin_bmad.s, spin_bmad.spin_dn_dpz_x)(tw.s)
     xo.assert_allclose(

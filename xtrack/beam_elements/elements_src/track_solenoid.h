@@ -11,7 +11,7 @@
 
 
 GPUFUN
-void Solenoid_thick_track_single_particle(
+void LegacySolenoid_thick_track_single_particle(
     LocalParticle* part,
     double length,
     double ks,
@@ -86,7 +86,7 @@ void Solenoid_thick_track_single_particle(
 
 
 GPUFUN
-void Solenoid_thick_with_radiation_track_single_particle(
+void LegacySolenoid_thick_with_radiation_track_single_particle(
     LocalParticle* part,
     double length,
     double ks,
@@ -102,7 +102,7 @@ void Solenoid_thick_with_radiation_track_single_particle(
         double const old_zeta = LocalParticle_get_zeta(part);
     #endif
 
-    Solenoid_thick_track_single_particle(part, length, ks, radiation_flag);
+    LegacySolenoid_thick_track_single_particle(part, length, ks, radiation_flag);
 
     #ifndef XTRACK_SOLENOID_NO_SYNRAD
         if ((radiation_flag > 0 || spin_flag > 0) && length > 0){

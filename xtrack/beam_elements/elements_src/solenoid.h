@@ -17,11 +17,11 @@
 
 
 GPUFUN
-void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
+void LegacySolenoid_track_local_particle(LegacySolenoidData el, LocalParticle* part0) {
     // Parameters
-    double length = SolenoidData_get_length(el);
-    double ks = SolenoidData_get_ks(el);
-    int64_t radiation_flag = SolenoidData_get_radiation_flag(el);
+    double length = LegacySolenoidData_get_length(el);
+    double ks = LegacySolenoidData_get_ks(el);
+    int64_t radiation_flag = LegacySolenoidData_get_radiation_flag(el);
     double factor_knl_ksl = 1;
 
     #ifdef XSUITE_BACKTRACK
@@ -35,19 +35,19 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
         double dpy_record_entry = 0.;
     #endif
 
-    int64_t num_multipole_kicks = SolenoidData_get_num_multipole_kicks(el);
-    const int64_t order = SolenoidData_get_order(el);
-    const double inv_factorial_order = SolenoidData_get_inv_factorial_order(el);
-    GPUGLMEM const double *knl = SolenoidData_getp1_knl(el, 0);
-    GPUGLMEM const double *ksl = SolenoidData_getp1_ksl(el, 0);
+    int64_t num_multipole_kicks = LegacySolenoidData_get_num_multipole_kicks(el);
+    const int64_t order = LegacySolenoidData_get_order(el);
+    const double inv_factorial_order = LegacySolenoidData_get_inv_factorial_order(el);
+    GPUGLMEM const double *knl = LegacySolenoidData_getp1_knl(el, 0);
+    GPUGLMEM const double *ksl = LegacySolenoidData_getp1_ksl(el, 0);
     const double slice_length = length / (num_multipole_kicks + 1);
     const double kick_weight = 1. / num_multipole_kicks;
 
-    double mult_rot_x_rad = SolenoidData_get_mult_rot_x_rad(el);
-    double mult_rot_y_rad = SolenoidData_get_mult_rot_y_rad(el);
-    double mult_shift_x = SolenoidData_get_mult_shift_x(el);
-    double mult_shift_y = SolenoidData_get_mult_shift_y(el);
-    double mult_shift_s = SolenoidData_get_mult_shift_s(el);
+    double mult_rot_x_rad = LegacySolenoidData_get_mult_rot_x_rad(el);
+    double mult_rot_y_rad = LegacySolenoidData_get_mult_rot_y_rad(el);
+    double mult_shift_x = LegacySolenoidData_get_mult_shift_x(el);
+    double mult_shift_y = LegacySolenoidData_get_mult_shift_y(el);
+    double mult_shift_s = LegacySolenoidData_get_mult_shift_s(el);
     
     double sin_x_rot, cos_x_rot, tan_x_rot;
     double sin_y_rot, cos_y_rot, tan_y_rot;
@@ -83,7 +83,7 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
     #endif
 
     for (int ii = 0; ii < num_multipole_kicks; ii++) {
-        Solenoid_thick_track_single_particle(part, slice_length, ks, radiation_flag);
+        LegacySolenoid_thick_track_single_particle(part, slice_length, ks, radiation_flag);
 
         LocalParticle_add_to_x(part, -mult_shift_x);
         LocalParticle_add_to_y(part, -mult_shift_y);
@@ -110,7 +110,7 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
         LocalParticle_add_to_x(part, mult_shift_x);
     }
 
-    Solenoid_thick_track_single_particle(part, slice_length, ks, radiation_flag);
+    LegacySolenoid_thick_track_single_particle(part, slice_length, ks, radiation_flag);
 
     // int64_t spin_flag = 1; // Needs to be exposed in the API
     int64_t spin_flag = ks != 0 ? 1 : 0; // TEMPORARY - issue with field computation
@@ -161,7 +161,7 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
 
 
 // GPUFUN
-// void Solenoid_thin_track_single_particle(
+// void LegacySolenoid_thin_track_single_particle(
 //     LocalParticle* part,
 //     double length,
 //     double ks,

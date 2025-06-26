@@ -10,12 +10,12 @@
 #include <beam_elements/elements_src/track_magnet.h>
 
 GPUFUN
-void Slnd_track_local_particle(
-        SlndData el,
+void Solenoid_track_local_particle(
+        SolenoidData el,
         LocalParticle* part0
 ) {
-    int64_t integrator = SlndData_get_integrator(el);
-    int64_t num_multipole_kicks = SlndData_get_num_multipole_kicks(el);
+    int64_t integrator = SolenoidData_get_integrator(el);
+    int64_t num_multipole_kicks = SolenoidData_get_num_multipole_kicks(el);
 
     if (integrator == 0) {  // adaptive
         integrator = 3;  // uniform
@@ -26,18 +26,18 @@ void Slnd_track_local_particle(
 
     track_magnet_particles(
         /*part0*/                 part0,
-        /*length*/                SlndData_get_length(el),
-        /*order*/                 SlndData_get_order(el),
-        /*inv_factorial_order*/   SlndData_get_inv_factorial_order(el),
-        /*knl*/                   SlndData_getp1_knl(el, 0),
-        /*ksl*/                   SlndData_getp1_ksl(el, 0),
+        /*length*/                SolenoidData_get_length(el),
+        /*order*/                 SolenoidData_get_order(el),
+        /*inv_factorial_order*/   SolenoidData_get_inv_factorial_order(el),
+        /*knl*/                   SolenoidData_getp1_knl(el, 0),
+        /*ksl*/                   SolenoidData_getp1_ksl(el, 0),
         /*factor_knl_ksl*/        1.,
         /*num_multipole_kicks*/   num_multipole_kicks,
         /*model*/                 -2, // sol-kick-sol
         /*integrator*/            integrator,
-        /*radiation_flag*/        SlndData_get_radiation_flag(el),
+        /*radiation_flag*/        SolenoidData_get_radiation_flag(el),
         /*radiation_record*/      NULL,
-        /*delta_taper*/           SlndData_get_delta_taper(el),
+        /*delta_taper*/           SolenoidData_get_delta_taper(el),
         /*h*/                     0.,
         /*hxl*/                   0.,
         /*k0*/                    0.,
@@ -48,7 +48,7 @@ void Slnd_track_local_particle(
         /*k1s*/                   0.,
         /*k2s*/                   0.,
         /*k3s*/                   0.,
-        /*ks*/                    SlndData_get_ks(el),
+        /*ks*/                    SolenoidData_get_ks(el),
         /*dks_ds*/                0.,
         /*edge_entry_active*/     0,
         /*edge_exit_active*/      0,
