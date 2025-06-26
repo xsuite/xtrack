@@ -232,4 +232,88 @@ void kick_simple_single_particle(
     LocalParticle_add_to_py(part, dpy);
 }
 
+GPUFUN
+void evaluate_field_from_strengths(
+    double const p0c,
+    double const q0,
+    double const x,
+    double const y,
+    double length,
+    int64_t order,
+    double inv_factorial_order,
+    GPUGLMEM const double* knl,
+    GPUGLMEM const double* ksl,
+    double const factor_knl_ksl,
+    double k0,
+    double k1,
+    double k2,
+    double k3,
+    double k0s,
+    double k1s,
+    double k2s,
+    double k3s,
+    double ks,
+    double *Bx_T,
+    double *By_T,
+    double *Bz_T
+){
+    if (length == 0.0) {
+        *Bx_T = 0.0;
+        *By_T = 0.0;
+        *Bz_T = 0.0;
+        return;
+    }
+
+    double knl_main[4] = {k0, k1, k2, k3};
+    double ksl_main[4] = {k0s, k1s, k2s, k3s};
+
+    for (int index = 0; index < 4; index++) {
+        knl_main[index] = knl_main[index] * length;
+        ksl_main[index] = ksl_main[index] * length;
+    }
+
+    // multipolar kick
+    double dpx_mul = 0.;
+    double dpy_mul = 0.;
+    kick_simple_single_coordinates(
+        x,
+        y,
+        1., // chi
+        order,
+        inv_factorial_order,
+        knl,
+        ksl,
+        factor_knl_ksl,
+        1., // kick_weight
+        &dpx_mul,
+        &dpx_mul);
+
+
+    // main kick
+    double dpx_main=0.;
+    double dpy_main=0.;
+    kick_simple_single_coordinates(
+        x,
+        y,
+        1., // chi
+        3, // order
+        1. / (3 * 2), //inv_factorial_order
+        knl_main,
+        ksl_main,
+        1, // factor_knl_ksl,
+        1., // kick_weight
+        &dpx_main,
+        &dpx_main);
+
+    double const dpx = dpx_mul + dpx_main;
+    double const dpy = dpy_mul + dpy_main;
+
+    double const brho_0 = p0c / C_LIGHT / q0; // [T m]
+
+    *Bx_T = dpy * brho_0 / length; // [T]
+    *By_T = -dpx * brho_0 / length;  // [T]
+    *Bz_T = ks * brho_0; // [T]
+
+}
+
 #endif
