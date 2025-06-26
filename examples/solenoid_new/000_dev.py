@@ -4,6 +4,7 @@ import xtrack as xt
 # - Handle edges (ax, ay)
 # - Handle radiation
 # - Handle spin
+# - Add field from dks_ds
 
 length = 3.
 ks = 2.
