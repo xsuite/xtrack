@@ -231,6 +231,13 @@ def _survey_ng(line):
 
     survey_dict['element_type'] = np.array([element_types.get(et, et) for et in survey_dict['element_type']])
 
+    for i in survey_dict.keys():
+        # Interpretation of survey is shifted by 1 in MAD-NG vs. Xsuite
+        if i in ['name', 'length', 'kind', 'element_type', 'angle', 'tilt']:
+            survey_dict[i] = survey_dict[i][1:]
+        else:
+            survey_dict[i] = survey_dict[i][:-1]
+
     survey_tab = xt.survey.SurveyTable(survey_dict)
     return survey_tab
 
