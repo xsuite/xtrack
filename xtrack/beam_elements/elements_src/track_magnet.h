@@ -229,52 +229,69 @@ void track_magnet_body_single_particle(
     #else
         #define WITH_RADIATION(ll, code) \
         { \
-            const double old_px = LocalParticle_get_px(part); \
-            const double old_py = LocalParticle_get_py(part); \
-            const double old_ax = LocalParticle_get_ax(part); \
-            const double old_ay = LocalParticle_get_ay(part); \
+            const double old_x = LocalParticle_get_x(part); \
+            const double old_y = LocalParticle_get_y(part); \
             const double old_zeta = LocalParticle_get_zeta(part); \
             code; \
             if ((radiation_flag || spin_flag) && length > 0){ \
                 double h_for_rad = h_kick + hxl / length; \
                 if (fabs(h_drift) > 0){ h_for_rad = h_drift; } \
-                    double Bx_T, By_T, Bz_T; \
-                    magnet_estimate_field( \
+                double Bx_T, By_T, Bz_T; \
+                double const p0c = LocalParticle_get_p0c(part); \
+                double const q0 = LocalParticle_get_q0(part); \
+                double const new_x = LocalParticle_get_x(part); \
+                double const new_y = LocalParticle_get_y(part); \
+                double const mean_x = 0.5 * (old_x + new_x); \
+                double const mean_y = 0.5 * (old_y + new_y); \
+                evaluate_field_from_strengths( \
+                    p0c, \
+                    q0, \
+                    mean_x, \
+                    mean_y, \
+                    length, \
+                    order, \
+                    inv_factorial_order, \
+                    knl, \
+                    ksl, \
+                    factor_knl_ksl, \
+                    k0_drift + k0_kick, \
+                    k1_drift + k1_kick, \
+                    k2, \
+                    k3, \
+                    k0s, \
+                    k1s, \
+                    k2s, \
+                    k3s, \
+                    ks_drift, \
+                    &Bx_T, \
+                    &By_T, \
+                    &Bz_T \
+                ); \
+                double const dzeta = LocalParticle_get_zeta(part) - old_zeta; \
+                double const rvv = LocalParticle_get_rvv(part); \
+                double l_path = rvv * (ll - dzeta); \
+                if (spin_flag){ \
+                    magnet_spin( \
                         part, \
+                        Bx_T, \
+                        By_T, \
+                        Bz_T, \
+                        h_for_rad, \
                         ll, \
-                        /*hx*/h_for_rad, \
-                        /*hy*/0., \
-                        old_px, old_py, \
-                        old_ax, old_ay, \
-                        old_zeta, \
-                        /*ks*/0., \
-                        &Bx_T, &By_T, &Bz_T \
+                        l_path); \
+                } \
+                if (radiation_flag){ \
+                    double const B_perp_T = sqrt(Bx_T * Bx_T + By_T * By_T); \
+                    magnet_radiation( \
+                        part, \
+                        B_perp_T, \
+                        ll, \
+                        l_path, \
+                        radiation_flag, \
+                        radiation_record, \
+                        dp_record_exit, dpx_record_exit, dpy_record_exit \
                     ); \
-                    double const dzeta = LocalParticle_get_zeta(part) - old_zeta; \
-                    double const rvv = LocalParticle_get_rvv(part); \
-                    double l_path = rvv * (ll - dzeta); \
-                    if (spin_flag){ \
-                        magnet_spin( \
-                            part, \
-                            Bx_T, \
-                            By_T, \
-                            Bz_T, \
-                            h_for_rad, \
-                            ll, \
-                            l_path); \
-                    } \
-                    if (radiation_flag){ \
-                        double const B_perp_T = sqrt(Bx_T * Bx_T + By_T * By_T); \
-                        magnet_radiation( \
-                            part, \
-                            B_perp_T, \
-                            ll, \
-                            l_path, \
-                            radiation_flag, \
-                            radiation_record, \
-                            dp_record_exit, dpx_record_exit, dpy_record_exit \
-                        ); \
-                    } \
+                } \
             }\
         }
     #endif
