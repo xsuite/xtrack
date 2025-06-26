@@ -1013,7 +1013,6 @@ class MadLoader:
             self.classes.Solenoid,
             length=mad_elem.l,
             ks=self.bv * mad_elem.ks,
-            ksi=self.bv * mad_elem.ksi,
             **kwargs,
         )
         return self.make_composite_element([el], mad_elem)

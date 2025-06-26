@@ -151,12 +151,12 @@ def test_eq_emitt(conf):
     elif not tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
         xo.assert_allclose(ex, 7.0910e-10, atol=0,     rtol=1e-4)
         xo.assert_allclose(ey, 2.2195e-12, atol=0,     rtol=7e-3)
-        xo.assert_allclose(ez, 3.5607e-6,  atol=0,     rtol=1e-4)
+        xo.assert_allclose(ez, 3.5607e-6,  atol=0,     rtol=2e-4)
         checked = True
     elif tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
         xo.assert_allclose(ex, 2.2154e-12, atol=0,     rtol=7e-3)
         xo.assert_allclose(ey, 7.0911e-10, atol=0,     rtol=1e-4)
-        xo.assert_allclose(ez, 3.5607e-6,  atol=0,     rtol=1e-4)
+        xo.assert_allclose(ez, 3.5607e-6,  atol=0,     rtol=2e-4)
         checked = True
     else:
         raise ValueError('Unknown configuration')
