@@ -232,6 +232,10 @@ void track_magnet_body_single_particle(
             const double old_x = LocalParticle_get_x(part); \
             const double old_y = LocalParticle_get_y(part); \
             const double old_zeta = LocalParticle_get_zeta(part); \
+            const double old_px = LocalParticle_get_px(part); \
+            const double old_py = LocalParticle_get_py(part); \
+            const double old_ax = LocalParticle_get_ax(part); \
+            const double old_ay = LocalParticle_get_ay(part); \
             code; \
             if ((radiation_flag || spin_flag) && length > 0){ \
                 double h_for_rad = h_kick + hxl / length; \
@@ -243,6 +247,18 @@ void track_magnet_body_single_particle(
                 double const new_y = LocalParticle_get_y(part); \
                 double const mean_x = 0.5 * (old_x + new_x); \
                 double const mean_y = 0.5 * (old_y + new_y); \
+                magnet_estimate_field( \
+                        part, \
+                        ll, \
+                        /*hx*/h_for_rad, \
+                        /*hy*/0., \
+                        old_px, old_py, \
+                        old_ax, old_ay, \
+                        old_zeta, \
+                        /*ks*/0., \
+                        &Bx_T, &By_T, &Bz_T \
+                    ); \
+                double Bx_T_str, By_T_str, Bz_T_str; \
                 evaluate_field_from_strengths( \
                     p0c, \
                     q0, \
@@ -263,10 +279,13 @@ void track_magnet_body_single_particle(
                     k2s, \
                     k3s, \
                     ks_drift, \
-                    &Bx_T, \
-                    &By_T, \
-                    &Bz_T \
+                    &Bx_T_str, \
+                    &By_T_str, \
+                    &Bz_T_str \
                 ); \
+                printf("Bx_T: %e, Bx_T_str: %e\n", Bx_T, Bx_T_str); \
+                printf("By_T: %e, By_T_str: %e\n", By_T, By_T_str); \
+                printf("Bz_T: %e, Bz_T_str: %e\n", Bz_T, Bz_T_str); \
                 double const dzeta = LocalParticle_get_zeta(part) - old_zeta; \
                 double const rvv = LocalParticle_get_rvv(part); \
                 double l_path = rvv * (ll - dzeta); \

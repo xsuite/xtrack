@@ -286,7 +286,7 @@ void evaluate_field_from_strengths(
         factor_knl_ksl,
         1., // kick_weight
         &dpx_mul,
-        &dpx_mul);
+        &dpy_mul);
 
 
     // main kick
@@ -303,7 +303,7 @@ void evaluate_field_from_strengths(
         1, // factor_knl_ksl,
         1., // kick_weight
         &dpx_main,
-        &dpx_main);
+        &dpy_main);
 
     double const dpx = dpx_mul + dpx_main;
     double const dpy = dpy_mul + dpy_main;
