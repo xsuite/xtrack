@@ -5,19 +5,6 @@ from enum import Enum
 
 LUA_VARS_PER_CHUNK = 200
 
-# MADNG_ATTR_DICT = {
-#     "length": "l",
-#     "frequency": "freq",
-#     "voltage": "volt",
-#     "hxl": "angle",
-#     "edge_entry_angle": "e1",
-#     "edge_exit_angle": "e2",
-#     "edge_entry_fint": "fint",
-#     "edge_exit_fint": "fintx",
-#     "edge_entry_hgap": "hgap",
-#     "rot_s_rad": "tilt",
-# }
-
 class MadType(Enum):
     MADX = 1
     MADNG = 2
