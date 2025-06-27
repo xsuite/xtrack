@@ -62,9 +62,6 @@ z_log = []
 px_log = []
 py_log = []
 pp_log = []
-pow_log = []
-pow_x_log = []
-pow_y_log = []
 beta_x_log = []
 beta_y_log = []
 beta_z_log = []
@@ -133,7 +130,6 @@ for ii in range(n_steps):
     px_log.append(p.px.copy())
     py_log.append(p.py.copy())
     pp_log.append(pp)
-    pow_log.append(pow)
     beta_x_log.append(beta_x_after)
     beta_y_log.append(beta_y_after)
     beta_z_log.append(beta_z_after)
