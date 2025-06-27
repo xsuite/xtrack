@@ -47,7 +47,7 @@ void VariableSolenoid_track_local_particle(
         double const new_ax = -0.5 * ks_entry * LocalParticle_get_y(part);
         double const new_ay = 0.5 * ks_entry * LocalParticle_get_x(part);
         LocalParticle_set_ax(part, new_ax);
-        LocalParticle_set_ay(part, new_ax);
+        LocalParticle_set_ay(part, new_ay);
     END_PER_PARTICLE_BLOCK;
 
     track_magnet_particles(
@@ -95,7 +95,7 @@ void VariableSolenoid_track_local_particle(
         double const new_ax = -0.5 * ks_exit * LocalParticle_get_y(part);
         double const new_ay = 0.5 * ks_exit * LocalParticle_get_x(part);
         LocalParticle_set_ax(part, new_ax);
-        LocalParticle_set_ay(part, new_ax);
+        LocalParticle_set_ay(part, new_ay);
     END_PER_PARTICLE_BLOCK;
 }
 

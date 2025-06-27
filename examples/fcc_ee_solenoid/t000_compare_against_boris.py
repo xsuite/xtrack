@@ -175,7 +175,7 @@ ks_exit[:-1] = ks[1:]
 
 dz = z_axis[1]-z_axis[0]
 
-line = xt.Line(elements=[xt.Solenoid(length=dz,
+line = xt.Line(elements=[xt.VariableSolenoid(length=dz,
                                      ks=[ks_entry[ii], ks_exit[ii]])
                             for ii in range(len(z_axis)-1)])
 line.build_tracker()
