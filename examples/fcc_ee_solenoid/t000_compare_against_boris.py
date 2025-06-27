@@ -65,6 +65,9 @@ pp_log = []
 pow_log = []
 pow_x_log = []
 pow_y_log = []
+beta_x_log = []
+beta_y_log = []
+beta_z_log = []
 
 for ii in range(n_steps):
 
@@ -87,9 +90,6 @@ for ii in range(n_steps):
     vx = Pxc_J / clight / (gamma * mass0_kg) # m/s
     vy = Pyc_J / clight / (gamma * mass0_kg) # m/s
     vz = Pzc_J / clight / (gamma * mass0_kg) # m/s
-
-    vx_before = vx.copy()
-    vy_before = vy.copy()
 
     ctx.kernels.boris(
             N_sub_steps=1,
@@ -122,19 +122,10 @@ for ii in range(n_steps):
     pz = mass0_kg * gamma * vz * clight / p0c_J
     pp = np.sqrt(p.px**2 + p.py**2 + pz**2)
 
-    beta_x_before = vx_before / clight
-    beta_y_before = vy_before / clight
-
     beta_x_after = vx / clight
     beta_y_after = vy / clight
+    beta_z_after = vz / clight
 
-    beta_x_dot = (beta_x_after - beta_x_before) / dt
-    beta_y_dot = (beta_y_after - beta_y_before) / dt
-
-    bet_dot_square = beta_x_dot**2 + beta_y_dot**2
-
-    # From Hofmann, "The physics of synchrontron radiation" Eq 3.7 and below
-    pow = 2 * qe**2 * bet_dot_square * gamma**4 / (12 * np.pi * eps0 * clight)
 
     x_log.append(p.x.copy())
     y_log.append(p.y.copy())
@@ -143,6 +134,9 @@ for ii in range(n_steps):
     py_log.append(p.py.copy())
     pp_log.append(pp)
     pow_log.append(pow)
+    beta_x_log.append(beta_x_after)
+    beta_y_log.append(beta_y_after)
+    beta_z_log.append(beta_z_after)
 
 x_log = np.array(x_log)
 y_log = np.array(y_log)
@@ -150,8 +144,21 @@ z_log = np.array(z_log)
 px_log = np.array(px_log)
 py_log = np.array(py_log)
 pp_log = np.array(pp_log)
+beta_x_log = np.array(beta_x_log)
+beta_y_log = np.array(beta_y_log)
+beta_z_log = np.array(beta_z_log)
 
-pow_log = np.array(pow_log)
+# Compute beta dot
+beta_x_dot = 0 * beta_x_log
+beta_y_dot = 0 * beta_y_log
+beta_z_dot = 0 * beta_z_log
+beta_x_dot[1:-1] = (beta_x_log[2:] - beta_x_log[:-2]) / 2 / dt
+beta_y_dot[1:-1] = (beta_y_log[2:] - beta_y_log[:-2]) / 2 / dt
+beta_z_dot[1:-1] = (beta_z_log[2:] - beta_z_log[:-2]) / 2 / dt
+beta_dot_square = beta_x_dot**2 + beta_y_dot**2 + beta_z_dot**2
+
+# From Hofmann, "The physics of synchrontron radiation" Eq 3.7 and below
+pow_log = 2 * qe**2 * beta_dot_square * gamma**4 / (12 * np.pi * eps0 * clight)
 
 dE_ds_boris_J = 0 * pow_log
 
@@ -164,7 +171,7 @@ Bz_axis = sf.get_field(0 * z_axis, 0 * z_axis, z_axis)[2]
 P0_J = p.p0c[0] * qe / clight
 brho = P0_J / qe / p.q0
 
-#ks = 0.5 * (Bz_axis[:-1] + Bz_axis[1:]) / brho
+# ks = 0.5 * (Bz_axis[:-1] + Bz_axis[1:]) / brho
 ks = Bz_axis[:-1] / brho
 dks_ds = 0 * ks
 dz = z_axis[1]-z_axis[0]
