@@ -24,9 +24,13 @@ void VariableSolenoid_track_local_particle(
         num_multipole_kicks = 1;
     }
 
-    double const ks_entry = VariableSolenoidData_get_ks(el, 0);
-    double const ks_exit = VariableSolenoidData_get_ks(el, 1);
+    double ks_entry = VariableSolenoidData_get_ks(el, 0);
+    double ks_exit = VariableSolenoidData_get_ks(el, 1);
     double const length = VariableSolenoidData_get_length(el);
+
+    #ifdef XSUITE_BACKTRACK
+        VSWAP(ks_entry, ks_exit);
+    #endif
 
     double ks, dks_ds;
     if (length != 0){
@@ -38,6 +42,13 @@ void VariableSolenoid_track_local_particle(
         dks_ds = 0.;
     }
 
+    START_PER_PARTICLE_BLOCK(part0, part);
+        // Update ax and ay (Wolsky Eq. 3.114 and Eq. 2.74)
+        double const new_ax = -0.5 * ks_entry * LocalParticle_get_y(part);
+        double const new_ay = 0.5 * ks_entry * LocalParticle_get_x(part);
+        LocalParticle_set_ax(part, new_ax);
+        LocalParticle_set_ay(part, new_ax);
+    END_PER_PARTICLE_BLOCK;
 
     track_magnet_particles(
         /*part0*/                 part0,
@@ -78,6 +89,14 @@ void VariableSolenoid_track_local_particle(
         /*edge_entry_hgap*/       0.,
         /*edge_exit_hgap*/        0.
     );
+
+    START_PER_PARTICLE_BLOCK(part0, part);
+        // Update ax and ay (Wolsky Eq. 3.114 and Eq. 2.74)
+        double const new_ax = -0.5 * ks_exit * LocalParticle_get_y(part);
+        double const new_ay = 0.5 * ks_exit * LocalParticle_get_x(part);
+        LocalParticle_set_ax(part, new_ax);
+        LocalParticle_set_ay(part, new_ax);
+    END_PER_PARTICLE_BLOCK;
 }
 
-#endif // XTRACK_OCTUPOLE_H
+#endif

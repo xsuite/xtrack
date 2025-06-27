@@ -369,23 +369,12 @@ void track_solenoid_single_particle(
     const double new_py = cosTh * rps[3] - sk * sinTh * rps[2];
     const double add_to_zeta = length * (1 - one_plus_delta / (pz * rvv));
 
-    // Update ax and ay (Wolsky Eq. 3.114 and Eq. 2.74)
-    double const p0c = LocalParticle_get_p0c(part);
-    double const q0 = LocalParticle_get_q0(part);
-    double const P0_J = p0c * QELEM / C_LIGHT;
-    double const brho = P0_J / QELEM / q0;
-    double const Bz = brho * ks;
-    double const new_ax = -0.5 * Bz * new_y * q0 * QELEM / P0_J;
-    double const new_ay = 0.5 * Bz * new_x * q0 * QELEM / P0_J;
-
     LocalParticle_set_x(part, new_x);
     LocalParticle_set_px(part, new_px);
     LocalParticle_set_y(part, new_y);
     LocalParticle_set_py(part, new_py);
     LocalParticle_add_to_zeta(part, add_to_zeta);
     LocalParticle_add_to_s(part, length);
-    LocalParticle_set_ax(part, new_ax);
-    LocalParticle_set_ay(part, new_ay);
 }
 
 
