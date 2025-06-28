@@ -212,7 +212,10 @@ yp = py_mech / pz_mech
 dx_ds = np.diff(mon.x, axis=1) / np.diff(mon.s, axis=1)
 dy_ds = np.diff(mon.y, axis=1) / np.diff(mon.s, axis=1)
 
-dE_ds = -np.diff(mon.ptau, axis=1)/np.diff(mon.s, axis=1) * p_xt.energy0[0]
+dE_ds = 0*mon.ptau
+# Central differences
+dE_ds[:, 1:-1] = -((mon.ptau[:, 2:] - mon.ptau[:, :-2]) / (mon.s[:, 2:] - mon.s[:, :-2])
+                        * p_xt.energy0[0])
 
 emitted_dpx = -(np.diff(mon.px, axis=1) - np.diff(mon_no_rad.px, axis=1))
 emitted_dpy = -(np.diff(mon.py, axis=1) - np.diff(mon_no_rad.py, axis=1))
@@ -233,7 +236,7 @@ for i_part in range(z_log.shape[1]):
 
     dx_ds_xsuite_check = np.interp(z_check, s_xsuite, dx_ds_xsuite)
     dy_ds_xsuite_check = np.interp(z_check, s_xsuite, dy_ds_xsuite)
-    dE_ds_xsuite_check = np.interp(z_check, s_xsuite, dE_ds_xsuite)
+    dE_ds_xsuite_check = np.interp(z_check, mon.s[i_part, :], dE_ds_xsuite)
 
     dx_ds_boris_check = np.interp(z_check, this_s_boris, dx_ds_boris)
     dy_ds_boris_check = np.interp(z_check, this_s_boris, dy_ds_boris)
@@ -313,17 +316,7 @@ plt.plot(mon.s.T, mon.ax.T, label="ax", color='C2', linestyle='--')
 plt.plot(mon.s.T, mon.ay.T, label="ay", color='C3', linestyle='--')
 
 plt.figure(4)
-plt.plot(mon.s[:, :-1].T, dE_ds.T * 1e-2 * 1e-3, '.-', label='dE/ds')
+plt.plot(mon.s.T, dE_ds.T * 1e-2 * 1e-3, '.-', label='dE/ds')
 plt.plot(z_log, dE_ds_boris_eV * 1e-2 * 1e-3, 'x-', label='dE/ds Boris')
-
-plt.figure(5)
-
-ax1 = plt.subplot(2, 1, 1)
-plt.plot(mon.s[:, :-1].T, emitted_dpx.T, '-', label='dpx')
-plt.plot(mon.s[:, :-1].T, dE_ds.T * dx_ds.T*np.diff(mon.s, 1).T/p.p0c[0], '--')
-
-ax2 = plt.subplot(2, 1, 2, sharex=ax1)
-plt.plot(mon.s[:, :-1].T, emitted_dpy.T, '-', label='dpy')
-plt.plot(mon.s[:, :-1].T, dE_ds.T * dy_ds.T*np.diff(mon.s, 1).T/p.p0c[0], '--')
 
 plt.show()
