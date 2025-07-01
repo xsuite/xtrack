@@ -72,7 +72,7 @@ for ii in range(n_steps):
     y = p.y.copy()
     z = p.s.copy()
 
-    Bx, By, Bz = sf.get_field(x, y, z)
+
 
     gamma = p.energy / p.mass0
     mass0_kg = p.mass0 * qe / clight**2
@@ -87,6 +87,10 @@ for ii in range(n_steps):
     vx = Pxc_J / clight / (gamma * mass0_kg) # m/s
     vy = Pyc_J / clight / (gamma * mass0_kg) # m/s
     vz = Pzc_J / clight / (gamma * mass0_kg) # m/s
+
+    Bx, By, Bz = sf.get_field(x + vx * dt / 2,
+                                y + vy * dt / 2,
+                                z + vz * dt / 2)
 
     ctx.kernels.boris(
             N_sub_steps=1,
@@ -168,10 +172,10 @@ P0_J = p.p0c[0] * qe / clight
 brho = P0_J / qe / p.q0
 
 # ks = 0.5 * (Bz_axis[:-1] + Bz_axis[1:]) / brho
-ks = Bz_axis[:-1] / brho
-ks_entry = ks
+ks = Bz_axis / brho
+ks_entry = ks[:-1]
 ks_exit = ks_entry*0
-ks_exit[:-1] = ks[1:]
+ks_exit = ks[1:]
 
 dz = z_axis[1]-z_axis[0]
 
