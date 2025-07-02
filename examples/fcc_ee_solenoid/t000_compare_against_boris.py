@@ -265,11 +265,11 @@ for i_part in range(z_log.shape[1]):
                     rtol=0, atol=np.max(np.abs(ay_ref)*3e-2))
 
     xo.assert_allclose(this_emitted_dpx,
-            this_dE_ds[:-1] * this_dx_ds * np.diff(mon.s[i_part, :])/p.p0c[0],
-            rtol=0, atol=10e-2 * (np.max(this_emitted_dpx) - np.min(this_emitted_dpx)))
+            0.5 * (this_dE_ds[:-1] + this_dE_ds[1:]) * this_dx_ds * np.diff(mon.s[i_part, :])/p.p0c[0],
+            rtol=0, atol=2e-2 * (np.max(this_emitted_dpx) - np.min(this_emitted_dpx)))
     xo.assert_allclose(this_emitted_dpy,
-            this_dE_ds[:-1] * this_dy_ds * np.diff(mon.s[i_part, :])/p.p0c[0],
-            rtol=0, atol=11e-2 * (np.max(this_emitted_dpy) - np.min(this_emitted_dpy)))
+            0.5 * (this_dE_ds[:-1] + this_dE_ds[1:]) * this_dy_ds * np.diff(mon.s[i_part, :])/p.p0c[0],
+            rtol=0, atol=5e-2 * (np.max(this_emitted_dpy) - np.min(this_emitted_dpy)))
 
 import matplotlib.pyplot as plt
 plt.close('all')
