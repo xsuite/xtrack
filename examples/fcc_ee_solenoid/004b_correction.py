@@ -4,8 +4,8 @@ from scipy.constants import e as qe
 
 import numpy as np
 
-fname = 'fccee_z'; pc_gev = 45.6
-# fname = 'fccee_t'; pc_gev = 182.5
+# fname = 'fccee_z'; pc_gev = 45.6
+fname = 'fccee_t'; pc_gev = 182.5
 
 
 line = xt.Line.from_json(fname + '_with_sol.json')
