@@ -24,8 +24,8 @@ void VariableSolenoid_track_local_particle(
         num_multipole_kicks = 1;
     }
 
-    double ks_entry = VariableSolenoidData_get_ks(el, 0);
-    double ks_exit = VariableSolenoidData_get_ks(el, 1);
+    double ks_entry = VariableSolenoidData_get_ks_profile(el, 0);
+    double ks_exit = VariableSolenoidData_get_ks_profile(el, 1);
     double const length = VariableSolenoidData_get_length(el);
 
     #ifdef XSUITE_BACKTRACK

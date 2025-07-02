@@ -2019,7 +2019,7 @@ class VariableSolenoid(BeamElement):
 
     Parameters
     ----------
-    ks : float
+    ks_profile : float
         Strength of the solenoid component.
     length : float
         Length of the element in meters along the reference trajectory.
@@ -2048,7 +2048,7 @@ class VariableSolenoid(BeamElement):
     has_backtrack = True
 
     _xofields={
-        'ks': xo.Float64[2],
+        'ks_profile': xo.Float64[2],
         'length': xo.Float64,
         'order': xo.Int64,
         'inv_factorial_order': xo.Float64,
