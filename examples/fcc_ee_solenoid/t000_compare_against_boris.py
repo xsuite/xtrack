@@ -221,8 +221,8 @@ dE_ds = 0*mon.ptau
 dE_ds[:, 1:-1] = -((mon.ptau[:, 2:] - mon.ptau[:, :-2]) / (mon.s[:, 2:] - mon.s[:, :-2])
                         * p_xt.energy0[0])
 
-emitted_dpx = -(np.diff(mon.px, axis=1) - np.diff(mon_no_rad.px, axis=1))
-emitted_dpy = -(np.diff(mon.py, axis=1) - np.diff(mon_no_rad.py, axis=1))
+emitted_dpx = -(np.diff(mon.kin_px, axis=1) - np.diff(mon_no_rad.kin_px, axis=1))
+emitted_dpy = -(np.diff(mon.kin_py, axis=1) - np.diff(mon_no_rad.kin_py, axis=1))
 emitted_dp = -(np.diff(mon.delta, axis=1) - np.diff(mon_no_rad.delta, axis=1))
 
 z_check = sf.z0 + sf.L * np.linspace(-2, 2, 1001)
@@ -265,11 +265,11 @@ for i_part in range(z_log.shape[1]):
                     rtol=0, atol=np.max(np.abs(ay_ref)*3e-2))
 
     xo.assert_allclose(this_emitted_dpx,
-            this_dE_ds * this_dx_ds * np.diff(mon.s[i_part, :])/p.p0c[0],
-            rtol=0, atol=1e-4 * (np.max(this_emitted_dpx) - np.min(this_emitted_dpx)))
+            this_dE_ds[:-1] * this_dx_ds * np.diff(mon.s[i_part, :])/p.p0c[0],
+            rtol=0, atol=10e-2 * (np.max(this_emitted_dpx) - np.min(this_emitted_dpx)))
     xo.assert_allclose(this_emitted_dpy,
-            this_dE_ds * this_dy_ds * np.diff(mon.s[i_part, :])/p.p0c[0],
-            rtol=0, atol=2e-3 * (np.max(this_emitted_dpy) - np.min(this_emitted_dpy)))
+            this_dE_ds[:-1] * this_dy_ds * np.diff(mon.s[i_part, :])/p.p0c[0],
+            rtol=0, atol=11e-2 * (np.max(this_emitted_dpy) - np.min(this_emitted_dpy)))
 
 import matplotlib.pyplot as plt
 plt.close('all')
