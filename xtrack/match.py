@@ -681,7 +681,7 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
                   restore_if_fail=True, verbose=False,
                   n_steps_max=20, default_tol=None,
                   solver=None, check_limits=True,
-                  name="",
+                  name="", use_ad=False,
                   **kwargs):
 
     opt = OptimizeLine(line, vary, targets,
@@ -692,7 +692,7 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
                         restore_if_fail=restore_if_fail, verbose=verbose,
                         n_steps_max=n_steps_max, default_tol=default_tol,
                         solver=solver, check_limits=check_limits,
-                        name=name,
+                        name=name, use_ad=use_ad,
                         **kwargs)
 
     if solve:
@@ -1023,7 +1023,7 @@ class OptimizeLine(xd.Optimize):
                     n_steps_max=20, default_tol=None,
                     solver=None, check_limits=True,
                     action_twiss=None,
-                    name="",
+                    name="", use_ad=False,
                     **kwargs):
 
         if hasattr(targets, 'values'): # dict like
@@ -1042,8 +1042,6 @@ class OptimizeLine(xd.Optimize):
 
         aux_vary = []
 
-        use_ad = True
-
         for tt in targets_flatten:
 
             # Handle action
@@ -1061,12 +1059,14 @@ class OptimizeLine(xd.Optimize):
             if isinstance(tt.tar, tuple):
                 tt_name = tt.tar[0] # `at` is  present
                 tt_at = tt.tar[1]
-                if tt_name not in ['betx', 'bety', 'alfx', 'alfy', 'mux', 'muy', 'dx', 'dy', 'dpx', 'dpy']:
+                if use_ad == True and tt_name not in ['betx', 'bety', 'alfx', 'alfy', 'mux', 'muy', 'dx', 'dy', 'dpx', 'dpy']:
+                    print("Warning: use_ad is set to True, but the target {} is not supported for automatic differentiation.")
                     use_ad = False
             else:
                 tt_name = tt.tar
                 tt_at = None
-                if not isinstance(tt, TargetRelPhaseAdvance):
+                if use_ad == True and not isinstance(tt, TargetRelPhaseAdvance):
+                    print("Warning: use_ad is set to True, but the target {} is not supported for automatic differentiation.")
                     use_ad = False
 
             if tt_at is not None and isinstance(tt_at, _LOC):
