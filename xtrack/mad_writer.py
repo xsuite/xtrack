@@ -40,7 +40,7 @@ def expr_to_mad_str(expr):
 
     return expr_str
 
-def _expr_to_mng_expr(expr, substituted_vars):
+def _replace_var_dots_with_underscores(expr, substituted_vars):
     if isinstance(expr, str):
         # replace variables with substituted variables
         for vv_sub in substituted_vars:
@@ -61,7 +61,7 @@ def mad_assignment(lhs, rhs, mad_type=MadType.MADX, substituted_vars=None):
         lhs = lhs.replace('.', '_')  # replace '.' with '_' for MADNG compatibility
     if _is_ref(rhs):
         rhs = mad_str_or_value(rhs)
-        rhs = _expr_to_mng_expr(rhs, substituted_vars) if mad_type == MadType.MADNG else rhs
+        rhs = _replace_var_dots_with_underscores(rhs, substituted_vars) if mad_type == MadType.MADNG else rhs
     if isinstance(rhs, str):
         equal_str = ':=' if mad_type == MadType.MADX else '=\\'
         return f"{lhs} {equal_str} {rhs}"
@@ -80,7 +80,7 @@ def _handle_tokens_madng(tokens, substituted_vars):
     Returns:
     - List of processed tokens."""
     for i in range(2, len(tokens)):
-        tokens[i] = _expr_to_mng_expr(tokens[i], substituted_vars)
+        tokens[i] = _replace_var_dots_with_underscores(tokens[i], substituted_vars)
     # Merge first three tokens together in order to not have invalid commas
     if len(tokens) > 2:
         tokens[0] = tokens[0] + ' ' + tokens[1] + ' { ' + tokens[2]
