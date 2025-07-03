@@ -4,7 +4,7 @@ from ..general import _pkg_root
 from ..base_element import BeamElement
 from .elements import (
     SynchrotronRadiationRecord, Bend, Quadrupole, Sextupole,
-    Octupole, LegacySolenoid, Drift, RBend,
+    Octupole, Solenoid, Drift, RBend,
 )
 from ..random import RandomUniformAccurate, RandomExponential
 
@@ -169,7 +169,7 @@ class ThickSliceOctupole(BeamElement):
         return obj
 
 
-class ThickSliceLegacySolenoid(BeamElement):
+class ThickSliceSolenoid(BeamElement):
     allow_rot_and_shift = False
     rot_and_shift_from_parent = True
     _skip_in_to_dict = ['_parent']
@@ -178,7 +178,7 @@ class ThickSliceLegacySolenoid(BeamElement):
     isthick = True
     _inherit_strengths = True
 
-    _xofields = {'_parent': xo.Ref(LegacySolenoid), **COMMON_SLICE_XO_FIELDS}
+    _xofields = {'_parent': xo.Ref(Solenoid), **COMMON_SLICE_XO_FIELDS}
 
     _depends_on = [RandomUniformAccurate, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord

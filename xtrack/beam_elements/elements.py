@@ -2126,8 +2126,8 @@ class VariableSolenoid(BeamElement):
         except KeyError:
             raise ValueError(f'Invalid integrator: {value}')
 
-class LegacySolenoid(BeamElement):
-    """LegacySolenoid element.
+class Solenoid(BeamElement):
+    """Solenoid element.
 
     Parameters
     ----------
@@ -2227,7 +2227,7 @@ class LegacySolenoid(BeamElement):
 
     @property
     def _thick_slice_class(self):
-        return xt.ThickSliceLegacySolenoid
+        return xt.ThickSliceSolenoid
 
 
 class CombinedFunctionMagnet:

@@ -62,7 +62,7 @@ log = logging.getLogger(__name__)
 
 _ALLOWED_ELEMENT_TYPES_IN_NEW = [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole,
                                  xt.Octupole, xt.Cavity, xt.Multipole,
-                                 xt.UniformSolenoid, xt.LegacySolenoid, xt.VariableSolenoid,
+                                 xt.UniformSolenoid, xt.Solenoid, xt.VariableSolenoid,
                                  xt.Marker, xt.Replica, xt.XYShift, xt.XRotation,
                                  xt.YRotation, xt.SRotation, xt.ZetaShift,
                                  xt.LimitRacetrack, xt.LimitRectEllipse,
