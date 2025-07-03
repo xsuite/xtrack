@@ -795,19 +795,22 @@ def twiss_line(line, particle_ref=None, method=None,
                 line=line, radiation_method=radiation_method)
         twiss_res._data.update(eneloss_damp_res)
 
+        for kk in ['angle_rad', 'rot_s_rad', 'length', 'radiation_flag']:
+            if kk not in twiss_res._data:
+                aa = line.attr[kk]
+                twiss_res[kk] = np.concatenate([aa, [aa[0]*0]])
+
         # Equilibrium emittances
         if radiation_method == 'kick_as_co':
             eq_emitts = _compute_equilibrium_emittance_kick_as_co(
-                        twiss_res.kin_px, twiss_res.kin_py, twiss_res.ptau,
-                        twiss_res.W_matrix,
-                        line, radiation_method,
-                        eneloss_damp_res['damping_constants_turns'])
+                twiss_res=twiss_res,
+                damping_constants_turns=eneloss_damp_res['damping_constants_turns'],
+                radiation_method=radiation_method)
             twiss_res._data.update(eq_emitts)
         elif radiation_method == 'full':
-            eq_emitts = _compute_equilibrium_emittance_full(
-                        kin_px_co=twiss_res.kin_px, kin_py_co=twiss_res.kin_py,
-                        ptau_co=twiss_res.ptau, R_matrix_ebe=RR_ebe,
-                        line=line, radiation_method=radiation_method)
+            eq_emitts = _compute_equilibrium_emittance_full(twiss_res=twiss_res,
+                        R_matrix_ebe=RR_ebe,
+                        radiation_method=radiation_method)
             twiss_res._data.update(eq_emitts)
 
     if method == '4d' and 'muzeta' in twiss_res._data:
@@ -1559,31 +1562,25 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
 
     return eneloss_damp_res
 
-def _extract_sr_distribution_properties(line, px_co, py_co, ptau_co):
+def _extract_sr_distribution_properties(twiss_res):
 
-
-    radiation_flag = line.attr['radiation_flag']
+    radiation_flag = twiss_res['radiation_flag']
     if np.any(radiation_flag > 1):
         raise ValueError('Incompatible radiation flag')
 
-    hxl = line.attr['angle_rad'] * np.cos(line.attr['rot_s_rad'])
-    hyl = line.attr['angle_rad'] * np.sin(line.attr['rot_s_rad'])
-    dl = line.attr['length'] * (radiation_flag == 1)
-
-    mask = (dl != 0)
-    hx = np.zeros(shape=(len(dl),), dtype=np.float64)
-    hy = np.zeros(shape=(len(dl),), dtype=np.float64)
-    hx[mask] = (np.diff(px_co)[mask] + hxl[mask] * (1 + ptau_co[:-1][mask])) / dl[mask]
-    hy[mask] = (np.diff(py_co)[mask] + hyl[mask] * (1 + ptau_co[:-1][mask])) / dl[mask]
-    # TODO: remove also term due to weak focusing
+    hx, hy, kappa0_x, kappa0_y = _compute_trajectory_curvatures(twiss_res)
     hh = np.sqrt(hx**2 + hy**2)
 
-    mass0 = line.particle_ref.mass0
-    q0 = line.particle_ref.q0
-    gamma0 = line.particle_ref._xobject.gamma0[0]
-    beta0 = line.particle_ref._xobject.beta0[0]
+    ptau_co = twiss_res['ptau']
+    dl = twiss_res['length'] * (twiss_res['radiation_flag'] > 0)
 
-    gamma = gamma0 * (1 + beta0 * ptau_co)[:-1]
+    pco = twiss_res['particle_on_co']
+    mass0 = pco.mass0
+    q0 = pco.q0
+    gamma0 = pco._xobject.gamma0[0]
+    beta0 = pco._xobject.beta0[0]
+
+    gamma = gamma0 * (1 + beta0 * ptau_co)
 
     mass0_kg = mass0 / clight**2 * qe
     q_coul = q0 * qe
@@ -1599,6 +1596,8 @@ def _extract_sr_distribution_properties(line, px_co, py_co, ptau_co):
 
     res = {
         'B_T': B_T,
+        'hx': hx, 'hy': hy,
+        'h0x': kappa0_x, 'h0y': kappa0_y,
         'E_crit_J': E_crit_J, 'n_dot': n_dot,
         'E_sq_ave_J': E_sq_ave_J, 'E_ave_J': E_ave_J,
         'n_dot_delta_kick_sq_ave': n_dot_delta_kick_sq_ave,
@@ -1607,19 +1606,25 @@ def _extract_sr_distribution_properties(line, px_co, py_co, ptau_co):
 
     return res
 
-def _compute_equilibrium_emittance_kick_as_co(kin_px_co, kin_py_co, ptau_co, W_matrix,
-                                  line, radiation_method,
-                                  damping_constants_turns):
+def _compute_equilibrium_emittance_kick_as_co(twiss_res,
+                                  damping_constants_turns,
+                                  radiation_method):
 
     assert radiation_method == 'kick_as_co'
 
-    sr_distrib_properties = _extract_sr_distribution_properties(
-                                line, kin_px_co, kin_py_co, ptau_co)
-    beta0 = line.particle_ref._xobject.beta0[0]
-    gamma0 = line.particle_ref._xobject.gamma0[0]
+    sr_distrib_properties = _extract_sr_distribution_properties(twiss_res)
 
-    n_dot_delta_kick_sq_ave = sr_distrib_properties['n_dot_delta_kick_sq_ave']
-    dl = sr_distrib_properties['dl_radiation']
+    pco = twiss_res['particle_on_co']
+    beta0 = pco._xobject.beta0[0]
+    gamma0 = pco._xobject.gamma0[0]
+
+    kin_px_co = twiss_res['kin_px']
+    kin_py_co = twiss_res['kin_py']
+    ptau_co = twiss_res['ptau']
+    W_matrix = twiss_res['W_matrix']
+
+    n_dot_delta_kick_sq_ave = sr_distrib_properties['n_dot_delta_kick_sq_ave'][:-1]
+    dl = sr_distrib_properties['dl_radiation'][:-1]
 
     px_left = kin_px_co[:-1]
     px_right = kin_px_co[1:]
@@ -1717,14 +1722,17 @@ def _compute_equilibrium_emittance_kick_as_co(kin_px_co, kin_py_co, ptau_co, W_m
 
     return res
 
-def _compute_equilibrium_emittance_full(kin_px_co, kin_py_co, ptau_co, R_matrix_ebe,
-                                  line, radiation_method):
+def _compute_equilibrium_emittance_full(twiss_res, R_matrix_ebe,
+                                        radiation_method):
 
-    sr_distrib_properties = _extract_sr_distribution_properties(
-                                line, kin_px_co, kin_py_co, ptau_co)
+    kin_px_co = twiss_res['kin_px']
+    kin_py_co = twiss_res['kin_py']
+    ptau_co = twiss_res['ptau']
 
-    n_dot_delta_kick_sq_ave = sr_distrib_properties['n_dot_delta_kick_sq_ave']
-    dl = sr_distrib_properties['dl_radiation']
+    sr_distrib_properties = _extract_sr_distribution_properties(twiss_res)
+
+    n_dot_delta_kick_sq_ave = sr_distrib_properties['n_dot_delta_kick_sq_ave'][:-1]
+    dl = sr_distrib_properties['dl_radiation'][:-1]
 
     assert radiation_method == 'full'
 
@@ -1819,8 +1827,8 @@ def _compute_equilibrium_emittance_full(kin_px_co, kin_py_co, ptau_co, R_matrix_
     eq_gemitt_y = EE_norm[2, 3]/(1 - np.abs(lam_eig[1])**2)
     eq_gemitt_zeta = EE_norm[4, 5]/(1 - np.abs(lam_eig[2])**2)
 
-    beta0 = line.particle_ref._xobject.beta0[0]
-    gamma0 = line.particle_ref._xobject.gamma0[0]
+    beta0 = twiss_res.particle_on_co._xobject.beta0[0]
+    gamma0 = twiss_res.particle_on_co._xobject.gamma0[0]
 
     eq_nemitt_x = float(eq_gemitt_x * (beta0 * gamma0))
     eq_nemitt_y = float(eq_gemitt_y * (beta0 * gamma0))
@@ -1835,8 +1843,7 @@ def _compute_equilibrium_emittance_full(kin_px_co, kin_py_co, ptau_co, R_matrix_
 
     Sigma = RR_ebe @ Sigma_at_start @ np.transpose(RR_ebe, axes=(0,2,1))
 
-    eq_sigma_tab = _build_sigma_table(Sigma=Sigma, s=None,
-        name=np.array(tuple(line._element_names_unique) + ('_end_point',)))
+    eq_sigma_tab = _build_sigma_table(Sigma=Sigma, s=None, name=twiss_res['name'],)
 
     res = {
         'eq_gemitt_x': eq_gemitt_x,
@@ -1848,6 +1855,10 @@ def _compute_equilibrium_emittance_full(kin_px_co, kin_py_co, ptau_co, R_matrix_
         'eq_beam_covariance_matrix': eq_sigma_tab,
         'dl_radiation': dl,
         'n_dot_delta_kick_sq_ave': n_dot_delta_kick_sq_ave,
+        'hx_rad': sr_distrib_properties['hx'],
+        'hy_rad': sr_distrib_properties['hy'],
+        'h0x_rad': sr_distrib_properties['h0x'],
+        'h0y_rad': sr_distrib_properties['h0y'],
     }
 
     return res
@@ -3829,7 +3840,7 @@ class TwissTable(Table):
         if not hasattr(self,"_action"):
             lattice=False
 
-        if lattice and 'length' not in self.keys():
+        if lattice and 'k2l' not in self.keys():
             self.add_strengths()
 
         if mask is not None:
@@ -3880,10 +3891,6 @@ class TwissTable(Table):
 
     def _compute_radiation_integrals(self, add_to_tw=False):
 
-        angle_rad = self['angle_rad']
-        rot_s_rad = self['rot_s_rad']
-        x = self['x']
-        y = self['y']
         kin_px = self['kin_px']
         kin_py = self['kin_py']
         delta = self['delta']
@@ -3907,43 +3914,14 @@ class TwissTable(Table):
         dxprime = dpx * (1 - delta) - kin_px
         dyprime = dpy * (1 - delta) - kin_py
 
-        # Curvature of the reference trajectory
-        mask = length != 0
-        kappa0_x = 0 * angle_rad
-        kappa0_y = 0 * angle_rad
-        kappa0_x[mask] = angle_rad[mask] * np.cos(rot_s_rad[mask]) / length[mask]
-        kappa0_y[mask] = angle_rad[mask] * np.sin(rot_s_rad[mask]) / length[mask]
+        kappa_x, kappa_y, kappa0_x, kappa0_y = _compute_trajectory_curvatures(self)
+        kappa = np.sqrt(kappa_x**2 + kappa_y**2)
         kappa0 = np.sqrt(kappa0_x**2 + kappa0_y**2)
 
-        # Field index
-        k1 = 0 * angle_rad
+        # quadrupole gradient
+        mask = length != 0
+        k1 = 0 * length
         k1[mask] = self.k1l[mask] / length[mask]
-
-        # Compute x', y', x'', y''
-        ps = np.sqrt((1 + delta)**2 - kin_px**2 - kin_py**2)
-        xp = kin_px / ps
-        yp = kin_py / ps
-        xp_ele = xp * 0
-        yp_ele = yp * 0
-        xp_ele[:-1] = (xp[:-1] + xp[1:]) / 2
-        yp_ele[:-1] = (yp[:-1] + yp[1:]) / 2
-
-        mask_length = length != 0
-        xpp_ele = xp_ele * 0
-        ypp_ele = yp_ele * 0
-        xpp_ele[mask_length] = np.diff(xp, append=0)[mask_length] / length[mask_length]
-        ypp_ele[mask_length] = np.diff(yp, append=0)[mask_length] / length[mask_length]
-
-        # Curvature of the particle trajectory
-        hhh = 1 + kappa0_x * x + kappa0_y * y
-        hprime = kappa0_x * xp_ele + kappa0_y * yp_ele
-        mask1 = xpp_ele**2 + hhh**2 != 0
-        mask2 = xpp_ele**2 + hhh**2 != 0
-        kappa_x = (-(hhh * (xpp_ele - hhh * kappa0_x) - 2 * hprime * xp_ele)[mask1]
-                / (xp_ele**2 + hhh**2)[mask1]**(3/2))
-        kappa_y = (-(hhh * (ypp_ele - hhh * kappa0_y) - 2 * hprime * yp_ele)[mask2]
-                / (yp_ele**2 + hhh**2)[mask2]**(3/2))
-        kappa = np.sqrt(kappa_x**2 + kappa_y**2)
 
         # Curly H
         Hx_rad = gamx * dx**2 + 2*alfx * dx * dxprime + betx * dxprime**2
@@ -3988,17 +3966,20 @@ class TwissTable(Table):
         damping_constant_zeta_s = r0/3 * gamma0**3 * clight/self.circumference * (2*i2 + i4)
 
         # Velocity direction (for spin)
+        ps = np.sqrt((1 + delta)**2 - kin_px**2 - kin_py**2)
+        xp = kin_px / ps
+        yp = kin_py / ps
         tempv = np.sqrt(xp**2 + yp**2 + 1)
         iv_x = xp / tempv
         iv_y = yp / tempv
         iv_z = 1 / tempv
 
         cols = {
-            'rad_int_hx': Hx_rad,
-            'rad_int_hy': Hy_rad,
+            'rad_int_curly_hx': Hx_rad,
+            'rad_int_curly_hy': Hy_rad,
             'rad_int_i1x_integrand': i1x_integrand,
             'rad_int_i1y_integrand': i1y_integrand,
-            'rad_int_i2_integrand': i2_integrand,
+            'rad_int_l2_integrand': i2_integrand,
             'rad_int_i3_integrand': i3_integrand,
             'rad_int_i4_integrand': i4_integrand,
             'rad_int_i4x_integrand': i4x_integrand,
@@ -4812,3 +4793,48 @@ def _compute_spin_polarization(tw, line, method):
 
         for nn in other_data:
             tw._data[nn] = other_data[nn]
+
+
+def _compute_trajectory_curvatures(twiss_res):
+
+    angle_rad = twiss_res['angle_rad']
+    rot_s_rad = twiss_res['rot_s_rad']
+    x = twiss_res['x']
+    y = twiss_res['y']
+    kin_px = twiss_res['kin_px']
+    kin_py = twiss_res['kin_py']
+    delta = twiss_res['delta']
+    length = twiss_res['length']
+
+    # Curvature of the reference trajectory
+    mask = length != 0
+    kappa0_x = 0 * angle_rad
+    kappa0_y = 0 * angle_rad
+    kappa0_x[mask] = angle_rad[mask] * np.cos(rot_s_rad[mask]) / length[mask]
+    kappa0_y[mask] = angle_rad[mask] * np.sin(rot_s_rad[mask]) / length[mask]
+
+    # Compute x', y', x'', y''
+    ps = np.sqrt((1 + delta)**2 - kin_px**2 - kin_py**2)
+    xp = kin_px / ps
+    yp = kin_py / ps
+    xp_ele = xp * 0
+    yp_ele = yp * 0
+    xp_ele[:-1] = (xp[:-1] + xp[1:]) / 2
+    yp_ele[:-1] = (yp[:-1] + yp[1:]) / 2
+
+    mask_length = length != 0
+    xpp_ele = xp_ele * 0
+    ypp_ele = yp_ele * 0
+    xpp_ele[mask_length] = np.diff(xp, append=0)[mask_length] / length[mask_length]
+    ypp_ele[mask_length] = np.diff(yp, append=0)[mask_length] / length[mask_length]
+
+    # Curvature of the particle trajectory
+    hhh = 1 + kappa0_x * x + kappa0_y * y
+    hprime = kappa0_x * xp_ele + kappa0_y * yp_ele
+    mask = hhh**2 != 0
+    kappa_x = (-(hhh * (xpp_ele - hhh * kappa0_x) - 2 * hprime * xp_ele)[mask]
+            / (xp_ele**2 + hhh**2)[mask]**(3/2))
+    kappa_y = (-(hhh * (ypp_ele - hhh * kappa0_y) - 2 * hprime * yp_ele)[mask]
+            / (yp_ele**2 + hhh**2)[mask]**(3/2))
+
+    return kappa_x, kappa_y, kappa0_x, kappa0_y

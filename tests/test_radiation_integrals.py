@@ -123,7 +123,8 @@ def test_radiation_integrals_sls_combined_function_magnets():
 
     line.configure_radiation(model='mean')
 
-    tw_rad = line.twiss(eneloss_and_damping=True, strengths=True)
+    tw_rad = line.twiss(eneloss_and_damping=True, strengths=True,
+                        radiation_method='full')
 
     tw_integrals = line.twiss(radiation_integrals=True)
 

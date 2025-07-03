@@ -1976,3 +1976,24 @@ def test_coupling_calculations():
     xo.assert_allclose(np.abs(tw.c_minus_re + 1j*tw.c_minus_im), tw.c_minus, rtol=1e-10, atol=0)
     xo.assert_allclose(tw.c_minus_re_0, tw.c_minus_re[0], rtol=1e-10, atol=0)
     xo.assert_allclose(tw.c_minus_im_0, tw.c_minus_im[0], rtol=1e-10, atol=0)
+
+def test_twiss_collective_end_is_len():
+
+    d1=xt.Drift(length=1)
+    d2=xt.Drift(length=1)
+    d3=xt.Drift(length=1)
+
+    d2.iscollective=True
+
+    line=xt.Line([d1,d2,d3])
+    line.particle_ref = xt.Particles(energy0=10e9, mass0=xt.PROTON_MASS_EV)
+    t = line.twiss4d(betx=1,bety=1,include_collective=True)
+
+    ddd1=xt.Drift(length=1)
+    ddd2=xt.Drift(length=1)
+    ddd3=xt.Drift(length=1)
+    line2=xt.Line([ddd1,ddd2,ddd3])
+    line2.particle_ref = xt.Particles(energy0=10e9, mass0=xt.PROTON_MASS_EV)
+    t2 = line2.twiss4d(betx=1,bety=1,include_collective=True)
+
+    xo.assert_allclose(t.betx, t2.betx, atol=1e-12, rtol=0)
