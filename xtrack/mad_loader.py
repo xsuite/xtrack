@@ -1010,7 +1010,7 @@ class MadLoader:
 
         el = self.Builder(
             mad_elem.name,
-            self.classes.Solenoid,
+            self.classes.UniformSolenoid,
             length=mad_elem.l,
             ks=self.bv * mad_elem.ks,
             **kwargs,

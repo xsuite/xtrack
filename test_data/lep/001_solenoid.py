@@ -16,10 +16,10 @@ env['ksol.8'] = 0
 for ipn in [2, 4, 6, 8]:
     for ii in range(n_half_slices_sol):
         env.new(
-            f'sol_l_ip{ipn}..{ii}', xt.Solenoid, ks=f'ksol.{ipn}',
+            f'sol_l_ip{ipn}..{ii}', xt.UniformSolenoid, ks=f'ksol.{ipn}',
             length=l_half_sol/n_half_slices_sol)
         env.new(
-            f'sol_r_ip{ipn}..{ii}', xt.Solenoid, ks=f'ksol.{ipn}',
+            f'sol_r_ip{ipn}..{ii}', xt.UniformSolenoid, ks=f'ksol.{ipn}',
             length=l_half_sol/n_half_slices_sol)
 
 insertions = []
