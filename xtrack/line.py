@@ -72,7 +72,7 @@ _ALLOWED_ELEMENT_TYPES_IN_NEW = [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole,
 
 
 _ALLOWED_ELEMENT_TYPES_DICT = {
-    cc.__class__.__name__: cc for cc in _ALLOWED_ELEMENT_TYPES_IN_NEW}
+    cc.__name__: cc for cc in _ALLOWED_ELEMENT_TYPES_IN_NEW}
 
 _STR_ALLOWED_ELEMENT_TYPES_IN_NEW = ', '.join([tt.__name__ for tt in _ALLOWED_ELEMENT_TYPES_IN_NEW])
 
