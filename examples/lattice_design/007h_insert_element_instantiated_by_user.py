@@ -47,3 +47,30 @@ tt.show(cols=['s_start', 's_center', 's_end'])
 # drift_3..2         25.05        32.525            40
 # m0                    40            40            40
 # _end_point            40            40            40
+
+# The above is convenient when adding elements of types defined by the user.
+# For example:
+
+class MyElement:
+    def __init__(self, param=1.0):
+        self.param = param
+
+    def track(self, particles):
+        # Custom tracking logic
+        pass
+
+# Create multiple instances of MyElement and store them in the environment
+env.elements['my_element1'] = MyElement(param=2.0)
+env.elements['my_element2'] = MyElement(param=3.0)
+env.elements['my_element3'] = MyElement(param=4.0)
+
+# Insert in the lines
+line.insert([
+    env.place('my_element1', at=12.),
+    env.place('my_element2', at=1, from_='my_element1'),
+    env.place('my_element3', at=2, from_='my_element2')
+]
+)
+
+tt = line.get_table()
+tt.show(cols=['s_start', 's_center', 's_end'])
