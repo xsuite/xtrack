@@ -15,11 +15,13 @@ from .slice_elements import (ThinSliceQuadrupole, ThinSliceSextupole,
                              ThinSliceRBendEntry, ThinSliceRBendExit,
                              ThinSliceQuadrupoleEntry, ThinSliceQuadrupoleExit,
                              ThinSliceSextupoleEntry, ThinSliceSextupoleExit,
-                             ThinSliceOctupoleEntry, ThinSliceOctupoleExit)
+                             ThinSliceOctupoleEntry, ThinSliceOctupoleExit,
+                             ThinSliceUniformSolenoidEntry,
+                             ThinSliceUniformSolenoidExit)
 from .slice_elements_thick import (ThickSliceBend, ThickSliceRBend,
                                    ThickSliceQuadrupole, ThickSliceSextupole,
                                    ThickSliceOctupole,
-                                   #ThickSliceSolenoid,
+                                   ThickSliceUniformSolenoid,
                                    DriftSliceOctupole, DriftSliceSextupole,
                                    DriftSliceQuadrupole, DriftSliceBend,
                                    DriftSliceRBend, DriftSlice)

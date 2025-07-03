@@ -1981,24 +1981,16 @@ class UniformSolenoid(BeamElement):
         self.inv_factorial_order = 1.0 / factorial(value, exact=True)
 
     @property
-    def _thin_slice_class(self):
-        return xt.ThinSliceOctupole
-
-    @property
     def _thick_slice_class(self):
-        return xt.ThickSliceOctupole
-
-    @property
-    def _drift_slice_class(self):
-        return xt.DriftSliceOctupole
+        return xt.ThickSliceUniformSolenoid
 
     @property
     def _entry_slice_class(self):
-        return xt.ThinSliceOctupoleEntry
+        return xt.ThinSliceUniformSolenoidEntry
 
     @property
     def _exit_slice_class(self):
-        return xt.ThinSliceOctupoleExit
+        return xt.ThinSliceUniformSolenoidExit
 
     @property
     def integrator(self):
