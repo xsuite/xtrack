@@ -1318,7 +1318,7 @@ def test_solenoid_against_madx(test_context, ks, ksi, length):
 
 @for_all_test_contexts
 def test_solenoid_thick_drift_like(test_context):
-    solenoid = xt.Solenoid(ks=1.001e-9, length=1, _context=test_context)
+    solenoid = xt.UniformSolenoid(ks=1.001e-9, length=1, _context=test_context)
     l_drift = xt.Line(elements=[xt.Drift(length=1)])
     l_drift.config.XTRACK_USE_EXACT_DRIFTS = True
     l_drift.build_tracker(_context=test_context)
@@ -1353,7 +1353,7 @@ def test_solenoid_thick_drift_like(test_context):
     ],
 )
 def test_solenoid_thick_analytic(test_context, length, expected):
-    solenoid = xt.Solenoid(
+    solenoid = xt.UniformSolenoid(
         ks=1,
         length=length,
         _context=test_context,
@@ -1392,7 +1392,7 @@ def test_solenoid_with_mult_kicks(test_context, backtrack):
     knl = np.array([0.1, 0.4, 0.5])
     ksl = np.array([0.2, 0.3, 0.6])
 
-    solenoid_with_kicks = xt.Solenoid(
+    solenoid_with_kicks = xt.UniformSolenoid(
         length=length,
         ks=ks,
         num_multipole_kicks=num_kicks,
@@ -1402,11 +1402,11 @@ def test_solenoid_with_mult_kicks(test_context, backtrack):
 
     line_ref = xt.Line(
         elements=[
-            xt.Solenoid(length=length / (num_kicks + 1), ks=ks),
+            xt.UniformSolenoid(length=length / (num_kicks + 1), ks=ks),
             xt.Multipole(knl=knl / num_kicks, ksl=ksl / num_kicks),
-            xt.Solenoid(length=length / (num_kicks + 1), ks=ks),
+            xt.UniformSolenoid(length=length / (num_kicks + 1), ks=ks),
             xt.Multipole(knl=knl / num_kicks, ksl=ksl / num_kicks),
-            xt.Solenoid(length=length / (num_kicks + 1), ks=ks),
+            xt.UniformSolenoid(length=length / (num_kicks + 1), ks=ks),
         ],
         element_names=[
             'sol_0', 'kick_0', 'sol_1', 'kick_1', 'sol_2',
@@ -1457,7 +1457,7 @@ def test_solenoid_shifted_and_rotated_multipolar_kick(test_context):
     mult_rot_y_rad = 0.2
     mult_shift_x = 0.3
 
-    solenoid = xt.Solenoid(
+    solenoid = xt.Solenoid( # Need to use legacy one
         ks=ks,
         length=length,
         knl=knl,
@@ -1467,7 +1467,7 @@ def test_solenoid_shifted_and_rotated_multipolar_kick(test_context):
         mult_shift_x=mult_shift_x,
     )
 
-    solenoid_no_kick = xt.Solenoid(ks=0.9, length=0.25)
+    solenoid_no_kick = xt.UniformSolenoid(ks=0.9, length=0.25)
     kick = xt.Multipole(knl=np.array(knl) / 3, ksl=np.array(ksl) / 3)
 
     line_test = xt.Line(elements=[solenoid])
@@ -1527,11 +1527,11 @@ def test_solenoid_multipole_shifts(shift_x, shift_y, test_element_name):
     quad = xt.Quadrupole(length=1, k1=K1)
     sext = xt.Sextupole(length=1, k2=K2)
 
-    bend_sol = xt.Solenoid(length=1 / N_SLICES, ks=KS,
+    bend_sol = xt.UniformSolenoid(length=1 / N_SLICES, ks=KS,
                            knl=[K0 * (1 / N_SLICES), 0, 0], num_multipole_kicks=1)
-    quad_sol = xt.Solenoid(length=1 / N_SLICES, ks=KS,
+    quad_sol = xt.UniformSolenoid(length=1 / N_SLICES, ks=KS,
                            knl=[0, K1 * (1 / N_SLICES), 0], num_multipole_kicks=1)
-    sext_sol = xt.Solenoid(length=1 / N_SLICES, ks=KS,
+    sext_sol = xt.UniformSolenoid(length=1 / N_SLICES, ks=KS,
                            knl=[0, 0, K2 * (1 / N_SLICES)], num_multipole_kicks=1)
 
     ################################################################################
@@ -1613,7 +1613,7 @@ def test_solenoid_multipole_rotations():
     bl_components_out = [env.new('bl_drift1', xt.Drift, length=1)]
 
     bl_components_sol = [
-        env.new(f'bl_sol.{i}', xt.Solenoid,
+        env.new(f'bl_sol.{i}', xt.UniformSolenoid,
                 length=(L_SOL / N_SLICES),
                 ks=0,
                 knl=[K0 * (L_SOL / N_SLICES), 0, 0],
@@ -1637,7 +1637,7 @@ def test_solenoid_multipole_rotations():
         env.new('hrot_drift1', xt.Drift, length=1)]
 
     hrot_components_sol = [
-        env.new(f'hrot_sol.{i}', xt.Solenoid,
+        env.new(f'hrot_sol.{i}', xt.Solenoid, # need legacy
                 length=(L_SOL / N_SLICES) * np.cos(XING_RAD),
                 ks=0,
                 knl=[K0 * (L_SOL / N_SLICES), 0, 0],
@@ -1663,7 +1663,7 @@ def test_solenoid_multipole_rotations():
         env.new('vrot_drift1', xt.Drift, length=1)]
 
     vrot_components_sol = [
-        env.new(f'vrot_sol.{i}', xt.Solenoid,
+        env.new(f'vrot_sol.{i}', xt.Solenoid, # need legacy
                 length=(L_SOL / N_SLICES) * np.cos(XING_RAD),
                 ks=0,
                 knl=[K0 * (L_SOL / N_SLICES), 0, 0],
@@ -1753,7 +1753,7 @@ def test_drift_like_solenoid_with_kicks_radiation(radiation_mode, config):
     ])
 
     line_ref = xt.Line(elements=[
-        xt.Solenoid(ks=0, length=1, knl=knl, ksl=ksl, num_multipole_kicks=1)
+        xt.UniformSolenoid(ks=0, length=1, knl=knl, ksl=ksl, num_multipole_kicks=1)
     ])
 
     coords = np.linspace(-0.05, 0.05, 10)
@@ -1809,9 +1809,9 @@ def test_solenoid_with_kicks_radiation(radiation_mode, config):
     knl = [0.1, 0.4, 0.5]
     ksl = [0.2, 0.3, 0.6]
 
-    sol_ref = xt.Solenoid(ks=ks, length=l)
-    sol_1 = xt.Solenoid(ks=ks, length=l, knl=knl, ksl=ksl, num_multipole_kicks=1)
-    sol_3 = xt.Solenoid(ks=ks, length=l, knl=knl, ksl=ksl, num_multipole_kicks=3)
+    sol_ref = xt.UniformSolenoid(ks=ks, length=l)
+    sol_1 = xt.UniformSolenoid(ks=ks, length=l, knl=knl, ksl=ksl, num_multipole_kicks=1)
+    sol_3 = xt.UniformSolenoid(ks=ks, length=l, knl=knl, ksl=ksl, num_multipole_kicks=3)
 
     line_ref = xt.Line(elements=[sol_ref])
     line_1 = xt.Line(elements=[sol_1])
