@@ -26,7 +26,8 @@ def test_rf_track_lattice():
 
     # Define the RF-Track element
     vol = RFT.Volume()
-    vol.dt_mm = 0.1
+    vol.dt_mm = 1
+    vol.odeint_epsabs = 1e-10
     vol.odeint_algorithm = 'rk2'
     vol.set_static_Bfield(0.0, By, 0.0)
     vol.set_s0(rho, 0.0, 0.0, 0.0, 0.0, 0.0)
@@ -41,29 +42,29 @@ def test_rf_track_lattice():
     pi = np.pi
     elements = {
         'd1.1':  xt.Drift(length=1),
-        'mb1.1': xt.RFT_Element(element=vol),
+        'mb1.1': xt.RFT_Element(element=vol,update_ref=False),
         'd2.1':  xt.Drift(length=1),
 
         'mqd.1': xt.Quadrupole(length=0.3, k1=-0.7),
         'd3.1':  xt.Drift(length=1),
-        'mb2.1': xt.RFT_Element(element=vol),
+        'mb2.1': xt.RFT_Element(element=vol,update_ref=False),
         'd4.1':  xt.Drift(length=1),
 
         'd1.2':  xt.Drift(length=1),
-        'mb1.2': xt.RFT_Element(element=vol),
+        'mb1.2': xt.RFT_Element(element=vol,update_ref=False),
         'd2.2':  xt.Drift(length=1),
 
         'mqd.2': xt.Quadrupole(length=0.3, k1=-0.7),
         'd3.2':  xt.Drift(length=1),
-        'mb2.2': xt.RFT_Element(element=vol),
+        'mb2.2': xt.RFT_Element(element=vol,update_ref=False),
         'd4.2':  xt.Drift(length=1),
-    }
+        }
 
     # Build the ring
     line = xt.Line(elements=elements, element_names=list(elements.keys()))
     line.particle_ref = xt.Particles(p0c=p0c, mass0=xt.PROTON_MASS_EV)
     line.configure_bend_model(core='full', edge=None)
-
+    line.reset_s_at_end_turn = False
 
     ## Transfer lattice on context and compile tracking code=
     line.build_tracker()
@@ -74,13 +75,13 @@ def test_rf_track_lattice():
     rng = np.random.default_rng(2021)
 
     particles0 = xp.Particles(p0c=p0c, #eV
-                            q0=1, mass0=xp.PROTON_MASS_EV,
-                            x=rng.uniform(-1e-3, 1e-3, n_part),
-                            px=rng.uniform(-1e-5, 1e-5, n_part),
-                            y=rng.uniform(-2e-3, 2e-3, n_part),
-                            py=rng.uniform(-3e-5, 3e-5, n_part),
-                            zeta=rng.uniform(-1e-2, 1e-2, n_part),
-                            delta=rng.uniform(-1e-2, 1e-2, n_part))
+                                  q0=1, mass0=xp.PROTON_MASS_EV,
+                                  x=rng.uniform(-1e-3, 1e-3, n_part),
+                                  px=rng.uniform(-1e-5, 1e-5, n_part),
+                                  y=rng.uniform(-2e-3, 2e-3, n_part),
+                                  py=rng.uniform(-3e-5, 3e-5, n_part),
+                                  zeta=rng.uniform(-1e-2, 1e-2, n_part),
+                                  delta=rng.uniform(-1e-2, 1e-2, n_part))
 
     particles_rft = particles0.copy()
 
@@ -96,6 +97,7 @@ def test_rf_track_lattice():
     ele_xt['mb2.2'] = b_xt
 
     line_ref = xt.Line(elements=ele_xt, element_names=line.element_names)
+    line_ref.reset_s_at_end_turn = False
     line_ref.build_tracker()
     particles_ref = particles0.copy()
 
@@ -105,18 +107,19 @@ def test_rf_track_lattice():
 
     assert_allclose = np.testing.assert_allclose
     assert np.all(particles_rft.particle_id == particles_ref.particle_id)
-    assert_allclose(particles_rft.x,  particles_ref.x,  atol=6e-5, rtol=0)
-    assert_allclose(particles_rft.px, particles_ref.px, atol=2e-5, rtol=0)
-    assert_allclose(particles_rft.y,  particles_ref.y,  atol=6e-7, rtol=0)
-    assert_allclose(particles_rft.py, particles_ref.py, atol=2e-6, rtol=0)
-    assert_allclose(particles_rft.rpp, particles_ref.rpp, atol=3e-5, rtol=0)
-    assert_allclose(particles_rft.rvv, particles_ref.rvv, atol=1e-5, rtol=0)
-    assert_allclose(particles_rft.ptau, particles_ref.ptau, atol=2e-5, rtol=0)
-    assert_allclose(particles_rft.delta, particles_ref.delta, atol=4e-5, rtol=0)
+    assert_allclose(particles_rft.x,  particles_ref.x,  atol=1e-10, rtol=0)
+    assert_allclose(particles_rft.px, particles_ref.px, atol=1e-10, rtol=0)
+    assert_allclose(particles_rft.y,  particles_ref.y,  atol=1e-10, rtol=0)
+    assert_allclose(particles_rft.py, particles_ref.py, atol=1e-10, rtol=0)
+    assert_allclose(particles_rft.rpp, particles_ref.rpp, atol=1e-10, rtol=0)
+    assert_allclose(particles_rft.rvv, particles_ref.rvv, atol=1e-10, rtol=0)
+    assert_allclose(particles_rft.ptau, particles_ref.ptau, atol=1e-10, rtol=0)
+    assert_allclose(particles_rft.delta, particles_ref.delta, atol=1e-10, rtol=0)
     assert_allclose(particles_rft.chi, particles_ref.chi, atol=1e-10, rtol=0)
-    assert_allclose(particles_rft.p0c, particles_ref.p0c, atol=4e-5, rtol=0)
-    assert_allclose(particles_rft.energy0, particles_ref.energy0, atol=4e-5, rtol=0)
-    assert_allclose(particles_rft.zeta, particles_ref.zeta, atol=4e-5, rtol=0)
+    assert_allclose(particles_rft.p0c, particles_ref.p0c, atol=1e-10, rtol=0)
+    assert_allclose(particles_rft.energy0, particles_ref.energy0, atol=1e-10, rtol=0)
+    assert_allclose(particles_rft.zeta, particles_ref.zeta, atol=1e-10, rtol=0)
     assert_allclose(particles_rft.beta0, particles_ref.beta0, atol=1e-10, rtol=0)
     assert_allclose(particles_rft.mass0, particles_ref.mass0, atol=1e-10, rtol=0)
     assert_allclose(particles_rft.gamma0, particles_ref.gamma0, atol=1e-10, rtol=0)
+    assert_allclose(particles_rft.s, particles_ref.s, atol=1e-10, rtol=0)

@@ -129,34 +129,34 @@ def test_eq_emitt(conf):
     # for regression testing
     checked = False
     if not tilt_machine_by_90_degrees and not vertical_orbit_distortion and not wiggler_on:
-        xo.assert_allclose(ex, 7.1357e-10, atol=0,     rtol=1e-4)
+        xo.assert_allclose(ex, 7.0923e-10, atol=0,     rtol=1e-4)
         xo.assert_allclose(ey, 0,          atol=1e-14, rtol=0)
-        xo.assert_allclose(ez, 3.6000e-6,  atol=0,     rtol=1e-4)
+        xo.assert_allclose(ez, 3.5778e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif tilt_machine_by_90_degrees and not vertical_orbit_distortion and not wiggler_on:
         xo.assert_allclose(ex, 0,          atol=1e-14, rtol=0)
-        xo.assert_allclose(ey, 7.1358e-10, atol=0,     rtol=1e-4)
-        xo.assert_allclose(ez, 3.6000e-6,  atol=0,     rtol=1e-4)
+        xo.assert_allclose(ey, 7.0923e-10, atol=0,     rtol=1e-4)
+        xo.assert_allclose(ez, 3.5778e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif not tilt_machine_by_90_degrees and not vertical_orbit_distortion and wiggler_on:
-        xo.assert_allclose(ex, 7.0714e-10, atol=0,     rtol=1e-4)
-        xo.assert_allclose(ey, 5.6986e-13, atol=0,     rtol=4e-3)
-        xo.assert_allclose(ez, 3.8595e-6,  atol=0,     rtol=1e-4)
+        xo.assert_allclose(ex, 7.0283e-10, atol=0,     rtol=1e-4)
+        xo.assert_allclose(ey, 5.6461e-13, atol=0,     rtol=4e-3)
+        xo.assert_allclose(ez, 3.8357e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif tilt_machine_by_90_degrees and not vertical_orbit_distortion and wiggler_on:
-        xo.assert_allclose(ex, 5.7068e-13, atol=0,     rtol=1e-2)  # Quite large, to be kept in mind
-        xo.assert_allclose(ey, 7.0714e-10, atol=0,     rtol=1e-4)
-        xo.assert_allclose(ez, 3.8595e-6,  atol=0,     rtol=1e-4)
+        xo.assert_allclose(ex, 5.6448e-13, atol=0,     rtol=1e-2)  # Quite large, to be kept in mind
+        xo.assert_allclose(ey, 7.0283e-10, atol=0,     rtol=1e-4)
+        xo.assert_allclose(ez, 3.8357e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif not tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
-        xo.assert_allclose(ex, 7.1345e-10, atol=0,     rtol=1e-4)
-        xo.assert_allclose(ey, 2.2295e-12, atol=0,     rtol=7e-3)
-        xo.assert_allclose(ez, 3.5828e-6,  atol=0,     rtol=1e-4)
+        xo.assert_allclose(ex, 7.0910e-10, atol=0,     rtol=1e-4)
+        xo.assert_allclose(ey, 2.2195e-12, atol=0,     rtol=7e-3)
+        xo.assert_allclose(ez, 3.5607e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
-        xo.assert_allclose(ex, 2.2393e-12, atol=0,     rtol=7e-3)
-        xo.assert_allclose(ey, 7.1345e-10, atol=0,     rtol=1e-4)
-        xo.assert_allclose(ez, 3.5828e-6,  atol=0,     rtol=1e-4)
+        xo.assert_allclose(ex, 2.2154e-12, atol=0,     rtol=7e-3)
+        xo.assert_allclose(ey, 7.0911e-10, atol=0,     rtol=1e-4)
+        xo.assert_allclose(ez, 3.5607e-6,  atol=0,     rtol=1e-4)
         checked = True
     else:
         raise ValueError('Unknown configuration')

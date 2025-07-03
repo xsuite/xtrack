@@ -68,11 +68,12 @@
     #define END_PER_PARTICLE_BLOCK \
             }
 
-    #define VECTORIZE_OVER(INDEX_NAME, COUNT) \
-        { \
-            int INDEX_NAME = blockDim.x * blockIdx.x + threadIdx.x;
+    #define VECTORIZE_OVER(INDEX_NAME, COUNT) { \
+            int INDEX_NAME = blockDim.x * blockIdx.x + threadIdx.x; \
+            if (INDEX_NAME < (COUNT)) {
 
     #define END_VECTORIZE \
+            } \
         }
 #endif  // XO_CONTEXT_CUDA
 

@@ -562,3 +562,26 @@ def test_polarization_lep_sext_corr():
     xo.assert_allclose(
         tw.spin_dn_ddelta_z, spin_dn_dpz_z_interp, atol=0.1, rtol=0
     )
+
+    line['on_sol.2'] = 0
+    line['on_sol.4'] = 0
+    line['on_sol.6'] = 0
+    line['on_sol.8'] = 0
+    line['on_spin_bump.2'] = 0
+    line['on_spin_bump.4'] = 0
+    line['on_spin_bump.6'] = 0
+    line['on_spin_bump.8'] = 0
+    line['on_coupl_sol.2'] = 0
+    line['on_coupl_sol.4'] = 0
+    line['on_coupl_sol.6'] = 0
+    line['on_coupl_sol.8'] = 0
+    line['on_coupl_sol_bump.2'] = 0
+    line['on_coupl_sol_bump.4'] = 0
+    line['on_coupl_sol_bump.6'] = 0
+    line['on_coupl_sol_bump.8'] = 0
+
+    tw = line.twiss4d(polarization=True)
+    xo.assert_allclose(
+        line.particle_ref.anomalous_magnetic_moment[0]*line.particle_ref.gamma0[0],
+        103.45, rtol=0, atol=1e-9)
+    xo.assert_allclose(tw.spin_tune_fractional, 0.45, rtol=0, atol=1e-6)
