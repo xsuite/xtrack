@@ -4,7 +4,8 @@ from ..general import _pkg_root
 from ..random import RandomUniformAccurate, RandomExponential
 from .elements import (
     SynchrotronRadiationRecord, Quadrupole, Sextupole,
-    Octupole, Bend, Multipole, DipoleEdge, RBend, MultipoleEdge, Marker
+    Octupole, Bend, Multipole, DipoleEdge, RBend, MultipoleEdge, Marker,
+    UniformSolenoid
 )
 from ..base_element import BeamElement
 
@@ -601,6 +602,72 @@ class ThinSliceOctupoleExit(BeamElement):
                 rot_s_rad=self._parent.rot_s_rad,
                 _buffer=self._buffer
             )
+        else:
+            return Marker(_buffer=self._buffer)
+
+class ThinSliceUniformSolenoidEntry(BeamElement):
+    allow_rot_and_shift = False
+    rot_and_shift_from_parent = True
+    _skip_in_to_dict = ['_parent']
+    has_backtrack = True
+    _force_moveable = True
+    _inherit_strengths = False
+
+    _xofields = {'_parent': xo.Ref(UniformSolenoid), **_common_xofields}
+
+    _extra_c_sources = [
+        '#include <beam_elements/elements_src/thin_slice_uniform_solenoid_entry.h>'
+    ]
+
+    copy = _slice_copy
+
+    def to_dict(self, **kwargs):
+        dct = BeamElement.to_dict(self, **kwargs)
+        dct['parent_name'] = self.parent_name
+        return dct
+
+    @classmethod
+    def from_dict(cls, dct, **kwargs):
+        obj = super().from_dict(dct, **kwargs)
+        obj.parent_name = dct['parent_name']
+        return obj
+
+    def get_equivalent_element(self):
+        if self._parent.edge_entry_active:
+            raise NotImplementedError
+        else:
+            return Marker(_buffer=self._buffer)
+
+class ThinSliceUniformSolenoidExit(BeamElement):
+    allow_rot_and_shift = False
+    rot_and_shift_from_parent = True
+    _skip_in_to_dict = ['_parent']
+    has_backtrack = True
+    _force_moveable = True
+    _inherit_strengths = False
+
+    _xofields = {'_parent': xo.Ref(UniformSolenoid), **_common_xofields}
+
+    _extra_c_sources = [
+        '#include <beam_elements/elements_src/thin_slice_uniform_solenoid_exit.h>'
+    ]
+
+    copy = _slice_copy
+
+    def to_dict(self, **kwargs):
+        dct = BeamElement.to_dict(self, **kwargs)
+        dct['parent_name'] = self.parent_name
+        return dct
+
+    @classmethod
+    def from_dict(cls, dct, **kwargs):
+        obj = super().from_dict(dct, **kwargs)
+        obj.parent_name = dct['parent_name']
+        return obj
+
+    def get_equivalent_element(self):
+        if self._parent.edge_entry_active:
+            raise NotImplementedError
         else:
             return Marker(_buffer=self._buffer)
 
