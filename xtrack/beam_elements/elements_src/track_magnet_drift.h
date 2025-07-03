@@ -363,11 +363,13 @@ void track_solenoid_single_particle(
         cosTh * y - sinTh * x,
         cosTh * py - sinTh * px
     };
-    const double new_x = cosTh * rps[0] + si * rps[1];
-    const double new_px = cosTh * rps[1] - sk * sinTh * rps[0];
-    const double new_y = cosTh * rps[2] + si * rps[3];
-    const double new_py = cosTh * rps[3] - sk * sinTh * rps[2];
-    const double add_to_zeta = length * (1 - one_plus_delta / (pz * rvv));
+    double const new_x = cosTh * rps[0] + si * rps[1];
+    double const new_px = cosTh * rps[1] - sk * sinTh * rps[0];
+    double const new_y = cosTh * rps[2] + si * rps[3];
+    double const new_py = cosTh * rps[3] - sk * sinTh * rps[2];
+    double const add_to_zeta = length * (1 - one_plus_delta / (pz * rvv));
+    double const new_ax = -0.5 * ks * new_y;
+    double const new_ay = 0.5 * ks * new_x;
 
     LocalParticle_set_x(part, new_x);
     LocalParticle_set_px(part, new_px);
@@ -375,6 +377,9 @@ void track_solenoid_single_particle(
     LocalParticle_set_py(part, new_py);
     LocalParticle_add_to_zeta(part, add_to_zeta);
     LocalParticle_add_to_s(part, length);
+    LocalParticle_set_ax(part, new_ax);
+    LocalParticle_set_ay(part, new_ay);
+
 }
 
 

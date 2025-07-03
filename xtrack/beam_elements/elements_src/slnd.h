@@ -10,12 +10,12 @@
 #include <beam_elements/elements_src/track_magnet.h>
 
 GPUFUN
-void Solenoid_track_local_particle(
-        SolenoidData el,
+void UniformSolenoid_track_local_particle(
+        UniformSolenoidData el,
         LocalParticle* part0
 ) {
-    int64_t integrator = SolenoidData_get_integrator(el);
-    int64_t num_multipole_kicks = SolenoidData_get_num_multipole_kicks(el);
+    int64_t integrator = UniformSolenoidData_get_integrator(el);
+    int64_t num_multipole_kicks = UniformSolenoidData_get_num_multipole_kicks(el);
 
     if (integrator == 0) {  // adaptive
         integrator = 3;  // uniform
@@ -26,18 +26,18 @@ void Solenoid_track_local_particle(
 
     track_magnet_particles(
         /*part0*/                 part0,
-        /*length*/                SolenoidData_get_length(el),
-        /*order*/                 SolenoidData_get_order(el),
-        /*inv_factorial_order*/   SolenoidData_get_inv_factorial_order(el),
-        /*knl*/                   SolenoidData_getp1_knl(el, 0),
-        /*ksl*/                   SolenoidData_getp1_ksl(el, 0),
+        /*length*/                UniformSolenoidData_get_length(el),
+        /*order*/                 UniformSolenoidData_get_order(el),
+        /*inv_factorial_order*/   UniformSolenoidData_get_inv_factorial_order(el),
+        /*knl*/                   UniformSolenoidData_getp1_knl(el, 0),
+        /*ksl*/                   UniformSolenoidData_getp1_ksl(el, 0),
         /*factor_knl_ksl*/        1.,
         /*num_multipole_kicks*/   num_multipole_kicks,
         /*model*/                 -2, // sol-kick-sol
         /*integrator*/            integrator,
-        /*radiation_flag*/        SolenoidData_get_radiation_flag(el),
+        /*radiation_flag*/        UniformSolenoidData_get_radiation_flag(el),
         /*radiation_record*/      NULL,
-        /*delta_taper*/           SolenoidData_get_delta_taper(el),
+        /*delta_taper*/           UniformSolenoidData_get_delta_taper(el),
         /*h*/                     0.,
         /*hxl*/                   0.,
         /*k0*/                    0.,
@@ -48,12 +48,12 @@ void Solenoid_track_local_particle(
         /*k1s*/                   0.,
         /*k2s*/                   0.,
         /*k3s*/                   0.,
-        /*ks*/                    SolenoidData_get_ks(el),
-        /*dks_ds*/                SolenoidData_get_dks_ds(el),
-        /*edge_entry_active*/     0,
-        /*edge_exit_active*/      0,
-        /*edge_entry_model*/      1,
-        /*edge_exit_model*/       1,
+        /*ks*/                    UniformSolenoidData_get_ks(el),
+        /*dks_ds*/                UniformSolenoidData_get_dks_ds(el),
+        /*edge_entry_active*/     UniformSolenoidData_get_edge_entry_active(el),
+        /*edge_exit_active*/      UniformSolenoidData_get_edge_exit_active(el),
+        /*edge_entry_model*/      3, // only ax ay cancellation
+        /*edge_exit_model*/       3, // only ax ay cancellation
         /*edge_entry_angle*/      0.,
         /*edge_exit_angle*/       0.,
         /*edge_entry_angle_fdown*/0.,

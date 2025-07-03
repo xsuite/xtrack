@@ -61,7 +61,8 @@ log = logging.getLogger(__name__)
 
 
 _ALLOWED_ELEMENT_TYPES_IN_NEW = [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole,
-                                 xt.Octupole, xt.Cavity, xt.Multipole, xt.Solenoid,
+                                 xt.Octupole, xt.Cavity, xt.Multipole,
+                                 xt.UniformSolenoid, xt.LegacySolenoid, xt.VariableSolenoid,
                                  xt.Marker, xt.Replica, xt.XYShift, xt.XRotation,
                                  xt.YRotation, xt.SRotation, xt.ZetaShift,
                                  xt.LimitRacetrack, xt.LimitRectEllipse,
@@ -70,20 +71,8 @@ _ALLOWED_ELEMENT_TYPES_IN_NEW = [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole,
                                  xt.Magnet]
 
 
-_ALLOWED_ELEMENT_TYPES_DICT = {'Drift': xt.Drift, 'Bend': xt.Bend,
-                               'Quadrupole': xt.Quadrupole, 'Sextupole': xt.Sextupole,
-                               'Octupole': xt.Octupole, 'Cavity': xt.Cavity,
-                               'Multipole': xt.Multipole, 'Solenoid': xt.Solenoid,
-                               'Marker': xt.Marker, 'Replica': xt.Replica,
-                               'LimitRacetrack': xt.LimitRacetrack,
-                               'LimitRectEllipse': xt.LimitRectEllipse,
-                               'LimitRect': xt.LimitRect, 'LimitEllipse': xt.LimitEllipse,
-                               'LimitPolygon': xt.LimitPolygon,
-                               'XYShift': xt.XYShift, 'XRotation': xt.XRotation,
-                               'YRotation': xt.YRotation, 'SRotation': xt.SRotation,
-                               'ZetaShift': xt.ZetaShift,
-                               'RFMultipole': xt.RFMultipole, 'RBend': xt.RBend,
-                               'Magnet': xt.Magnet}
+_ALLOWED_ELEMENT_TYPES_DICT = {
+    cc.__class__.__name__: cc for cc in _ALLOWED_ELEMENT_TYPES_IN_NEW}
 
 _STR_ALLOWED_ELEMENT_TYPES_IN_NEW = ', '.join([tt.__name__ for tt in _ALLOWED_ELEMENT_TYPES_IN_NEW])
 

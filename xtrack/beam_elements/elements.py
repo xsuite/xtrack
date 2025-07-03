@@ -1877,7 +1877,7 @@ class Quadrupole(BeamElement):
         except KeyError:
             raise ValueError(f'Invalid integrator: {value}')
 
-class Solenoid(BeamElement):
+class UniformSolenoid(BeamElement):
 
     """
     Solenoid element.
@@ -1920,8 +1920,8 @@ class Solenoid(BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
-        'edge_entry_active': xo.Field(xo.UInt64, default=False),
-        'edge_exit_active': xo.Field(xo.UInt64, default=False),
+        'edge_entry_active': xo.Field(xo.UInt64, default=True),
+        'edge_exit_active': xo.Field(xo.UInt64, default=True),
         'num_multipole_kicks': xo.Int64,
         'integrator': xo.Int64,
         'radiation_flag': xo.Int64,

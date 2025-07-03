@@ -16,7 +16,7 @@
 GPUFUN
 void track_magnet_edge_particles(
     LocalParticle* part0,
-    const int8_t model,  // 0: linear, 1: full, 2: dipole-only
+    const int8_t model,  // 0: linear, 1: full, 2: dipole-only, 3: ax ay cancellation
     const uint8_t is_exit,
     const double half_gap,
     const double* kn,
@@ -35,6 +35,12 @@ void track_magnet_edge_particles(
     double k0 = 0;
     if (k_order > -1) k0 += kn[0];
     if (fabs(length) > 1e-10 && kl_order > -1) k0 += factor_knl_ksl * knl[0] / length;
+
+    // Assume we are coming from or going to a drift
+    START_PER_PARTICLE_BLOCK(part0, part);
+        LocalParticle_set_ax(part, 0.);
+        LocalParticle_set_ay(part, 0.);
+    END_PER_PARTICLE_BLOCK;
 
     if (model == 0) {  // Linear model
         // Calculate coefficients for x and y to compute the px and py kicks
@@ -123,6 +129,9 @@ void track_magnet_edge_particles(
         #undef MAGNET_DIPOLE_FRINGE
         #undef MAGNET_MULTIPOLE_FRINGE
         #undef MAGNET_WEDGE
+    }
+    else if (model == 3) { // only ax ay cancellation (already done above)
+        // do nothing
     }
     // If model is not 0 or 1, do nothing
 }

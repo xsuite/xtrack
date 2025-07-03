@@ -11,8 +11,10 @@ import xtrack as xt
 length = 3.
 ks = 2.
 
-sol = xt.Slnd(length=length, ks=ks)
-ref_sol = xt.Solenoid(length=length, ks=ks)
+sol = xt.UniformSolenoid(length=length, ks=ks)
+# sol.edge_exit_active = False
+# sol.edge_entry_active = False
+ref_sol = xt.LegacySolenoid(length=length, ks=ks)
 
 p0 = xt.Particles(p0c=1e9, x=1e-3, y=2e-3)
 

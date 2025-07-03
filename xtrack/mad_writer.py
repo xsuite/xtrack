@@ -274,7 +274,7 @@ xsuite_to_mad_conveters={
     xt.Sextupole: sextupole_to_madx_str,
     xt.Octupole: octupole_to_madx_str,
     xt.Quadrupole: quadrupole_to_madx_str,
-    xt.Solenoid: solenoid_to_madx_str,
+    xt.UniformSolenoid: solenoid_to_madx_str,
     xt.SRotation: srotation_to_madx_str,
     xt.RFMultipole: rfmultipole_to_madx_str,
 }
