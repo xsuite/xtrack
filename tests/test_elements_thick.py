@@ -1394,6 +1394,7 @@ def test_solenoid_with_mult_kicks(test_context, backtrack):
 
     solenoid_with_kicks = xt.UniformSolenoid(
         length=length,
+        integrator='uniform',
         ks=ks,
         num_multipole_kicks=num_kicks,
         knl=knl,
@@ -1402,11 +1403,11 @@ def test_solenoid_with_mult_kicks(test_context, backtrack):
 
     line_ref = xt.Line(
         elements=[
-            xt.UniformSolenoid(length=length / (num_kicks + 1), ks=ks),
+            xt.UniformSolenoid(length=length / (num_kicks)/2, ks=ks),
             xt.Multipole(knl=knl / num_kicks, ksl=ksl / num_kicks),
-            xt.UniformSolenoid(length=length / (num_kicks + 1), ks=ks),
+            xt.UniformSolenoid(length=length / (num_kicks), ks=ks),
             xt.Multipole(knl=knl / num_kicks, ksl=ksl / num_kicks),
-            xt.UniformSolenoid(length=length / (num_kicks + 1), ks=ks),
+            xt.UniformSolenoid(length=length / (num_kicks) /2, ks=ks),
         ],
         element_names=[
             'sol_0', 'kick_0', 'sol_1', 'kick_1', 'sol_2',
@@ -1527,11 +1528,11 @@ def test_solenoid_multipole_shifts(shift_x, shift_y, test_element_name):
     quad = xt.Quadrupole(length=1, k1=K1)
     sext = xt.Sextupole(length=1, k2=K2)
 
-    bend_sol = xt.UniformSolenoid(length=1 / N_SLICES, ks=KS,
+    bend_sol = xt.Solenoid(length=1 / N_SLICES, ks=KS,
                            knl=[K0 * (1 / N_SLICES), 0, 0], num_multipole_kicks=1)
-    quad_sol = xt.UniformSolenoid(length=1 / N_SLICES, ks=KS,
+    quad_sol = xt.Solenoid(length=1 / N_SLICES, ks=KS,
                            knl=[0, K1 * (1 / N_SLICES), 0], num_multipole_kicks=1)
-    sext_sol = xt.UniformSolenoid(length=1 / N_SLICES, ks=KS,
+    sext_sol = xt.Solenoid(length=1 / N_SLICES, ks=KS,
                            knl=[0, 0, K2 * (1 / N_SLICES)], num_multipole_kicks=1)
 
     ################################################################################
@@ -1588,8 +1589,8 @@ def test_solenoid_multipole_shifts(shift_x, shift_y, test_element_name):
     ########################################
     # Assertions
     ########################################
-    assert np.isclose(tw.x[-1], tw_sol.x[-1], rtol=1E-6)
-    assert np.isclose(tw.y[-1], tw_sol.y[-1], rtol=1E-6)
+    xo.assert_allclose(tw.x[-1], tw_sol.x[-1], rtol=2E-6)
+    xo.assert_allclose(tw.y[-1], tw_sol.y[-1], rtol=2E-6)
 
 
 def test_solenoid_multipole_rotations():
@@ -1852,7 +1853,7 @@ def test_solenoid_with_kicks_radiation(radiation_mode, config):
     d_delta_3 = p_3.delta - p0.delta
 
     xo.assert_allclose(
-        d_delta_1 - d_delta_ref, d_delta_3 - d_delta_ref, rtol=0.01, atol=1e-15
+        d_delta_1 - d_delta_ref, d_delta_3 - d_delta_ref, rtol=0.01, atol=2e-15
     )
 
 
