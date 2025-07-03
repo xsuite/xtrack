@@ -2116,26 +2116,6 @@ class VariableSolenoid(BeamElement):
         self.inv_factorial_order = 1.0 / factorial(value, exact=True)
 
     @property
-    def _thin_slice_class(self):
-        return xt.ThinSliceOctupole
-
-    @property
-    def _thick_slice_class(self):
-        return xt.ThickSliceOctupole
-
-    @property
-    def _drift_slice_class(self):
-        return xt.DriftSliceOctupole
-
-    @property
-    def _entry_slice_class(self):
-        return xt.ThinSliceOctupoleEntry
-
-    @property
-    def _exit_slice_class(self):
-        return xt.ThinSliceOctupoleExit
-
-    @property
     def integrator(self):
         return _INDEX_TO_INTEGRATOR[self._integrator]
 
