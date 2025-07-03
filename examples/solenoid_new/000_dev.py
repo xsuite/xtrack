@@ -28,3 +28,5 @@ ref_sol.track(p_ref)
 # Try slicing
 line = xt.Line(elements=[sol])
 line.cut_at_s(np.linspace(0, length, 10))
+p_sliced = p0.copy()
+line.track(p_sliced)

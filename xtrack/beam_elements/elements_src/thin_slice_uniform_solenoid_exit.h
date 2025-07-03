@@ -10,12 +10,12 @@
 
 
 GPUFUN
-void ThinSliceUniformSolenoidEntry_track_local_particle(
-        ThinSliceUniformSolenoidEntryData el,
+void ThinSliceUniformSolenoidExit_track_local_particle(
+        ThinSliceUniformSolenoidExitData el,
         LocalParticle* part0
 ) {
 
-    const int64_t edge_exit_active = ThinSliceUniformSolenoidEntryData_get__parent_edge_exit_active(el);
+    const int64_t edge_exit_active = ThinSliceUniformSolenoidExitData_get__parent_edge_exit_active(el);
 
     if (edge_exit_active){
 
