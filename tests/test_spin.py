@@ -187,8 +187,7 @@ def test_kicker(case, atol):
         ]
     )
 
-    # line.configure_spin(model=True)
-    line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
+    line.configure_spin(spin_model='auto')
 
     line.track(p)
 
@@ -205,7 +204,7 @@ def test_kicker(case, atol):
     ),
     ids=[case['id'] for case in COMMON_TEST_CASES],
 )
-def test_solenoid(case, atol):
+def test_uniform_solenoid(case, atol):
     case['spin_y'] = np.sqrt(1 - case['spin_x']**2 - case['spin_z']**2)
 
     ref_file = BMAD_REF_FILES / 'solenoid_bmad.json'
@@ -236,8 +235,7 @@ def test_solenoid(case, atol):
         ]
     )
 
-    # line.configure_spin(model=True)
-    line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
+    line.configure_spin(spin_model='auto')
 
     line.track(p)
 
@@ -283,8 +281,7 @@ def test_bend(case, atol):
         ]
     )
 
-    # line.configure_spin(model=True)
-    line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
+    line.configure_spin(spin_model='auto')
 
     line.track(p)
 
@@ -330,8 +327,7 @@ def test_quadrupole(case, atol):
         ]
     )
 
-    # line.configure_spin(model=True)
-    line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
+    line.configure_spin(spin_model='auto')
 
     line.track(p)
 
