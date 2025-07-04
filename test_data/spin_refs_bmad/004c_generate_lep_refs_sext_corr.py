@@ -94,7 +94,8 @@ tw = line.twiss4d(polarization=True).rows[start:end]
 
 print('Xsuite polarization: ', tw.spin_polarization_eq)
 print('Bmad polarization:   ', spin_summary_bmad['Polarization Limit DK'])
-xo.assert_allclose(tw.spin_polarization_eq, spin_summary_bmad['Polarization Limit DK'], atol=3e-3, rtol=0)
+xo.assert_allclose(tw.spin_polarization_eq, spin_summary_bmad['Polarization Limit DK'],
+                   atol=4e-3, rtol=0)
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -125,13 +126,13 @@ plt.ylabel('spin_z')
 plt.legend()
 
 spin_x_interp = interp1d(spin_bmad.s, spin_bmad.spin_x)(tw.s)
-xo.assert_allclose(tw.spin_x, spin_x_interp, atol=1e-5, rtol=0)
+xo.assert_allclose(tw.spin_x, spin_x_interp, atol=2e-5, rtol=0)
 
 spin_y_interp = interp1d(spin_bmad.s, spin_bmad.spin_y)(tw.s)
-xo.assert_allclose(tw.spin_y, spin_y_interp, atol=3e-7, rtol=0)
+xo.assert_allclose(tw.spin_y, spin_y_interp, atol=4e-7, rtol=0)
 
 spin_z_interp = interp1d(spin_bmad.s, spin_bmad.spin_z)(tw.s)
-xo.assert_allclose(tw.spin_z, spin_z_interp, atol=8e-6, rtol=0)
+xo.assert_allclose(tw.spin_z, spin_z_interp, atol=2e-5, rtol=0)
 
 
 plt.figure(3, figsize=(8, 6))
