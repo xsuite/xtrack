@@ -1528,11 +1528,11 @@ def test_solenoid_multipole_shifts(shift_x, shift_y, test_element_name):
     quad = xt.Quadrupole(length=1, k1=K1)
     sext = xt.Sextupole(length=1, k2=K2)
 
-    bend_sol = xt.Solenoid(length=1 / N_SLICES, ks=KS,
+    bend_sol = xt.Solenoid(length=1 / N_SLICES, ks=KS, # need legacy
                            knl=[K0 * (1 / N_SLICES), 0, 0], num_multipole_kicks=1)
-    quad_sol = xt.Solenoid(length=1 / N_SLICES, ks=KS,
+    quad_sol = xt.Solenoid(length=1 / N_SLICES, ks=KS, # need legacy
                            knl=[0, K1 * (1 / N_SLICES), 0], num_multipole_kicks=1)
-    sext_sol = xt.Solenoid(length=1 / N_SLICES, ks=KS,
+    sext_sol = xt.Solenoid(length=1 / N_SLICES, ks=KS, # need legacy
                            knl=[0, 0, K2 * (1 / N_SLICES)], num_multipole_kicks=1)
 
     ################################################################################

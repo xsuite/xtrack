@@ -87,8 +87,8 @@ def test_fcc_ee_solenoid_correction_new_optimizer_api():
     line.element_dict['sol_start_shift_'+ip_sol] = sol_start_shift
     line.element_dict['sol_end_shift_'+ip_sol] = sol_end_shift
 
-    line.element_dict['sol_entry_'+ip_sol] = xt.Solenoid(length=0, ks=0)
-    line.element_dict['sol_exit_'+ip_sol] = xt.Solenoid(length=0, ks=0)
+    line.element_dict['sol_entry_'+ip_sol] = xt.Marker()
+    line.element_dict['sol_exit_'+ip_sol] = xt.Marker()
 
     sol_slice_names = []
     sol_slice_names.append('sol_entry_'+ip_sol)
