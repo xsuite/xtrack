@@ -2,10 +2,11 @@ import xtrack as xt
 
 line = xt.Line.from_json('lep.json')
 
+tt0 = line.get_table()
+
 env = line.env
 
-
-l_half_sol = 2.5
+l_sol = 5.
 n_half_slices_sol = 10
 
 env['ksol.2'] = 0
@@ -13,24 +14,26 @@ env['ksol.4'] = 0
 env['ksol.6'] = 0
 env['ksol.8'] = 0
 
-for ipn in [2, 4, 6, 8]:
-    for ii in range(n_half_slices_sol):
-        env.new(
-            f'sol_l_ip{ipn}..{ii}', xt.UniformSolenoid, ks=f'ksol.{ipn}',
-            length=l_half_sol/n_half_slices_sol)
-        env.new(
-            f'sol_r_ip{ipn}..{ii}', xt.UniformSolenoid, ks=f'ksol.{ipn}',
-            length=l_half_sol/n_half_slices_sol)
+env.new('sol_ip2', xt.UniformSolenoid, ks='ksol.2', length=l_sol)
+env.new('sol_ip4', xt.UniformSolenoid, ks='ksol.4', length=l_sol)
+env.new('sol_ip6', xt.UniformSolenoid, ks='ksol.6', length=l_sol)
+env.new('sol_ip8', xt.UniformSolenoid, ks='ksol.8', length=l_sol)
 
-insertions = []
-for ipn in [2, 4, 6, 8]:
-    insertions += [
-        env.place([f'sol_l_ip{ipn}..{ii}' for ii in range(n_half_slices_sol)],
-                  anchor='end', at=-1e-12, from_=f'ip{ipn}'),
-        env.place([f'sol_r_ip{ipn}..{ii}' for ii in range(n_half_slices_sol)],
-                  anchor='start', at=1e-12, from_=f'ip{ipn}')]
+# insert solenoids
+line.insert([
+    env.place('sol_ip2', anchor='center', at=tt0['s', 'ip2']),
+    env.place('sol_ip4', anchor='center', at=tt0['s', 'ip4']),
+    env.place('sol_ip6', anchor='center', at=tt0['s', 'ip6']),
+    env.place('sol_ip8', anchor='center', at=tt0['s', 'ip8']),
+])
 
-line.insert(insertions)
+# insert back the ips
+line.insert([
+    env.place('ip2', at=tt0['s', 'ip2']),
+    env.place('ip4', at=tt0['s', 'ip4']),
+    env.place('ip6', at=tt0['s', 'ip6']),
+    env.place('ip8', at=tt0['s', 'ip8']),
+])
 
 line.vars.default_to_zero = True
 line['ksol.2'] = '0.0079919339 * on_sol.2'
@@ -220,22 +223,37 @@ line['on_coupl_sol.8'] = 0
 line['on_coupl_sol_bump.8'] = 0
 
 # All on
-line['on_sol.2'] = 1
-line['on_sol.4'] = 1
-line['on_sol.6'] = 1
-line['on_sol.8'] = 1
-line['on_spin_bump.2'] = 1
-line['on_spin_bump.4'] = 1
-line['on_spin_bump.6'] = 1
-line['on_spin_bump.8'] = 1
-line['on_coupl_sol.2'] = 1
-line['on_coupl_sol.4'] = 1
-line['on_coupl_sol.6'] = 1
-line['on_coupl_sol.8'] = 1
-line['on_coupl_sol_bump.2'] = 1
-line['on_coupl_sol_bump.4'] = 1
-line['on_coupl_sol_bump.6'] = 1
-line['on_coupl_sol_bump.8'] = 1
+line['on_solenoids'] = 1
+line['on_spin_bumps'] = 1
+line['on_coupling_corrections'] = 1
+
+# Set solenoids, spin bumps and coupling corrections
+line['on_sol.2'] = 'on_solenoids'
+line['on_sol.4'] = 'on_solenoids'
+line['on_sol.6'] = 'on_solenoids'
+line['on_sol.8'] = 'on_solenoids'
+line['on_spin_bump.2'] = 'on_spin_bumps'
+line['on_spin_bump.4'] = 'on_spin_bumps'
+line['on_spin_bump.6'] = 'on_spin_bumps'
+line['on_spin_bump.8'] = 'on_spin_bumps'
+line['on_coupl_sol.2'] = 'on_coupling_corrections * on_solenoids'
+line['on_coupl_sol.4'] = 'on_coupling_corrections * on_solenoids'
+line['on_coupl_sol.6'] = 'on_coupling_corrections * on_solenoids'
+line['on_coupl_sol.8'] = 'on_coupling_corrections * on_solenoids'
+line['on_coupl_sol_bump.2'] = 'on_coupling_corrections * on_spin_bumps'
+line['on_coupl_sol_bump.4'] = 'on_coupling_corrections * on_spin_bumps'
+line['on_coupl_sol_bump.6'] = 'on_coupling_corrections * on_spin_bumps'
+line['on_coupl_sol_bump.8'] = 'on_coupling_corrections * on_spin_bumps'
+
+tt = line.get_table(attr=True)
+tt_bend = tt.rows[(tt.element_type == 'RBend') | (tt.element_type == 'Bend')]
+tt_quad = tt.rows[tt.element_type == 'Quadrupole']
+tt_sext = tt.rows[tt.element_type == 'Sextupole']
+
+# Set interators and multipole kicks
+line.set(tt_bend, model='mat-kick-mat', integrator='uniform', num_multipole_kicks=5)
+line.set(tt_quad, model='mat-kick-mat', integrator='uniform', num_multipole_kicks=5)
+
 tw = line.twiss4d(spin=True, radiation_integrals=True)
 
 line.to_json('lep_sol.json')
