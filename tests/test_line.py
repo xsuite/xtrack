@@ -1144,7 +1144,7 @@ def test_line_table_unique_names():
 def test_extend_knl_ksl():
 
     classes_to_check = ['Bend', 'Quadrupole', 'Sextupole', 'Octupole', 'UniformSolenoid',
-                        'Multipole']
+                        'VariableSolenoid', 'Multipole']
 
     for cc in classes_to_check:
 
