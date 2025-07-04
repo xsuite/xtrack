@@ -248,7 +248,6 @@ def solenoid_to_madx_str(name, line):
     tokens.append('solenoid')
     tokens.append(mad_assignment('l', _ge(sol.length)))
     tokens.append(mad_assignment('ks', _ge(sol.ks)))
-    tokens.append(mad_assignment('ksi', _ge(sol.ksi)))
 
     _handle_transforms(tokens, sol)
 
