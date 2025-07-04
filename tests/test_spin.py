@@ -231,7 +231,7 @@ def test_solenoid(case, atol):
     env = xt.Environment()
     line = env.new_line(
         components=[
-            env.new('mysolenoid', xt.Solenoid, length=0.02, ks=ks),
+            env.new('mysolenoid', xt.UniformSolenoid, length=0.02, ks=ks),
             env.new('mymarker', xt.Marker),
         ]
     )
