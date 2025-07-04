@@ -2,10 +2,11 @@ import xtrack as xt
 
 line = xt.Line.from_json('lep.json')
 
+tt0 = line.get_table()
+
 env = line.env
 
-
-l_half_sol = 2.5
+l_sol = 5.
 n_half_slices_sol = 10
 
 env['ksol.2'] = 0
@@ -13,24 +14,26 @@ env['ksol.4'] = 0
 env['ksol.6'] = 0
 env['ksol.8'] = 0
 
-for ipn in [2, 4, 6, 8]:
-    for ii in range(n_half_slices_sol):
-        env.new(
-            f'sol_l_ip{ipn}..{ii}', xt.Solenoid, ks=f'ksol.{ipn}',
-            length=l_half_sol/n_half_slices_sol)
-        env.new(
-            f'sol_r_ip{ipn}..{ii}', xt.Solenoid, ks=f'ksol.{ipn}',
-            length=l_half_sol/n_half_slices_sol)
+env.new('sol_ip2', xt.UniformSolenoid, ks='ksol.2', length=l_sol)
+env.new('sol_ip4', xt.UniformSolenoid, ks='ksol.4', length=l_sol)
+env.new('sol_ip6', xt.UniformSolenoid, ks='ksol.6', length=l_sol)
+env.new('sol_ip8', xt.UniformSolenoid, ks='ksol.8', length=l_sol)
 
-insertions = []
-for ipn in [2, 4, 6, 8]:
-    insertions += [
-        env.place([f'sol_l_ip{ipn}..{ii}' for ii in range(n_half_slices_sol)],
-                  anchor='end', at=-1e-12, from_=f'ip{ipn}'),
-        env.place([f'sol_r_ip{ipn}..{ii}' for ii in range(n_half_slices_sol)],
-                  anchor='start', at=1e-12, from_=f'ip{ipn}')]
+# insert solenoids
+line.insert([
+    env.place('sol_ip2', anchor='center', at=tt0['s', 'ip2']),
+    env.place('sol_ip4', anchor='center', at=tt0['s', 'ip4']),
+    env.place('sol_ip6', anchor='center', at=tt0['s', 'ip6']),
+    env.place('sol_ip8', anchor='center', at=tt0['s', 'ip8']),
+])
 
-line.insert(insertions)
+# insert back the ips
+line.insert([
+    env.place('ip2', at=tt0['s', 'ip2']),
+    env.place('ip4', at=tt0['s', 'ip4']),
+    env.place('ip6', at=tt0['s', 'ip6']),
+    env.place('ip8', at=tt0['s', 'ip8']),
+])
 
 line.vars.default_to_zero = True
 line['ksol.2'] = '0.0079919339 * on_sol.2'
