@@ -50,40 +50,25 @@ class VerticalChirpKicker(xt.BeamElement):
                 double ksl[1] = {dpy};
 
                 #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
-                    double Bx_T, By_T, Bz_T;
-                    evaluate_field_from_strengths(
-                        LocalParticle_get_p0c(part),
-                        LocalParticle_get_q0(part),
-                        0., // x, does not matter as the field is uniform in x
-                        0., // y, does not matter as the field is uniform in y
-                        length,
-                        0, // order
-                        1., // inv_factorial_order
-                        knl,
-                        ksl,
-                        1., // factor_knl_ksl
-                        0., // k0
-                        0., // k1,
-                        0., // k2,
-                        0., // k3,
-                        0., // k0s,
-                        0., // k1s,
-                        0., // k2s,
-                        0., // k3s,
-                        0., // ks_drift,
-                        0., // dks_ds,
-                        &Bx_T,
-                        &By_T,
-                        &Bz_T
-                    );
+
+                    // Magnetic rigidity
+                    double const p0c = LocalParticle_get_p0c(part);
+                    double const q0 = LocalParticle_get_q0(part);
+                    double const brho_0 = p0c / C_LIGHT / q0; // [T m]
+
+                    // Magnetic field
+                    double const Bx_T = dpy * brho_0 / length ; // [T]
+
+                    // Track spin
                     magnet_spin(
                         part,
                         Bx_T,
-                        By_T,
-                        Bz_T,
-                        h_for_rad,
-                        ll,
-                        l_path);
+                        0, // By_T
+                        0, // Bz_T
+                        0, // frame curvature
+                        length,
+                        length // lpath - same for a thin element
+                       );
                     #endif
                 }
             //end_per_particle_block
