@@ -19,7 +19,7 @@ test_data_folder = (Path(__file__).parent / '../test_data').absolute()
 def test_simple_parser():
     sequence = """
     if (version>=50401){option,-rbarc;};  ! to be ignored
-    
+
     third = 1 / 3;
     power = 3^4;
     hello := third * twopi;
@@ -30,7 +30,7 @@ def test_simple_parser():
     mb: sbend, l := mb.l, angle := hello;
     qf: quadrupole, l := 1, k1 := 1;
     qd: quadrupole, l := 1, k1 := -1;
-    
+
     line: sequence, l = 12;
         ip1: marker, at = 0;
         qf1: qf, at := 1 + offset, from = ip1, slot_id = 1;
@@ -41,7 +41,7 @@ def test_simple_parser():
     mb1, k0 := hello, polarity = +1;
     qf1, knl := {0, 0, 0, 0.01, 0};
     qd1, knl := {0, 0, 0, -0.01, 0};
-    
+
     return;  ! should also be ignored
     """
 
@@ -480,7 +480,7 @@ def test_solenoid(example_sequence):
     # so: solenoid, l=2, ks=3;  ! ignore ksi
     so1 = env['so1/line']
     xo.assert_allclose(positions['so1/line'], 31)
-    assert isinstance(so1, xt.Solenoid)
+    assert isinstance(so1, xt.UniformSolenoid)
     assert so1.length == 2
     assert so1.ks == 3
 
@@ -683,7 +683,7 @@ def test_reversed_solenoid(example_sequence):
     # so: solenoid, l=2, ks=3;  ! ignore ksi
     so1 = env['so1/line_reversed']
     xo.assert_allclose(positions_reversed['so1/line_reversed'], 36 - 31)
-    assert isinstance(so1, xt.Solenoid)
+    assert isinstance(so1, xt.UniformSolenoid)
     assert so1.length == 2
     assert so1.ks == -3
 

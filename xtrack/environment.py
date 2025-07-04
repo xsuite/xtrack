@@ -1465,7 +1465,7 @@ def _reverse_element(env, name):
     """Return a reversed element without modifying the original."""
 
     SUPPORTED = {'RBend', 'Bend', 'Quadrupole', 'Sextupole', 'Octupole',
-                'Multipole', 'Cavity', 'Solenoid', 'RFMultipole',
+                'Multipole', 'Cavity', 'UniformSolenoid', 'RFMultipole',
                 'Marker', 'Drift', 'LimitRect', 'LimitEllipse', 'LimitPolygon',
                 'LimitRectEllipse'}
 
