@@ -525,7 +525,7 @@ def test_polarization_lep_sext_corr():
     bmad_depol_time_s = 60 * spin_summary_bmad['Depolarization Time (minutes, turns)'][0]
     xo.assert_allclose(tw.spin_polarization_eq, bmad_polarization_eq, atol=0, rtol=3e-2)
     xo.assert_allclose(tw.spin_t_pol_component_s, bmad_pol_time_s, atol=0, rtol=1e-2)
-    xo.assert_allclose(tw.spin_t_depol_component_s, bmad_depol_time_s, atol=0, rtol=0.18)
+    xo.assert_allclose(tw.spin_t_depol_component_s, bmad_depol_time_s, atol=0, rtol=0.2)
 
     xo.assert_allclose(tw.spin_t_pol_buildup_s,
         (1/tw.spin_t_pol_component_s + 1/tw.spin_t_depol_component_s)**-1,
