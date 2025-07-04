@@ -94,8 +94,14 @@ def bmad_run(line, track=None):
         elif clssname == 'DriftSlice':
             ll = tt['length', nn]
             out_lines.append(f'{nn}: drift, l = {ll}')
-        elif clssname == 'Solenoid':
+        elif clssname == 'Solenoid' or clssname == 'UniformSolenoid':
             out_lines.append(f'{nn}: solenoid, l = {ee.length}, ks = {ee.ks}')
+        elif clssname == 'ThickSliceUniformSolenoid':
+            out_lines.append(
+                f'{nn}: solenoid, l = {ee._parent.length * ee.weight}, '
+                f'ks = {ee._parent.ks}')
+        elif clssname == 'ThinSliceUniformSolenoidEntry' or clssname == 'ThinSliceUniformSolenoidExit':
+            out_lines.append(f'{nn}: marker')
         else:
             raise ValueError(f'Unknown element type {clssname} for {nn}')
 
