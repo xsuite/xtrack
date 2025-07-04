@@ -46,24 +46,44 @@ class VerticalChirpKicker(xt.BeamElement):
                     double const dpy = k0sl * sin(phi);
                     LocalParticle_add_to_py(part, dpy);
 
-                    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
-                    magnet_apply_radiation_single_particle(
-                        part,
+                double knl[1] = {0.};
+                double ksl[1] = {dpy};
+
+                #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+                    double Bx_T, By_T, Bz_T;
+                    evaluate_field_from_strengths(
+                        LocalParticle_get_p0c(part),
+                        LocalParticle_get_q0(part),
+                        0., // x, does not matter as the field is uniform in x
+                        0., // y, does not matter as the field is uniform in y
                         length,
-                        0., // hx,
-                        0., // hy,
-                        0, // radiation_flag,
-                        1, // spin_flag,
-                        0., // old_px,
-                        old_py,
-                        0, // old_ax
-                        0, // old_ay,
-                        0, // old_zeta
-                        0., // ks,
-                        NULL, // SynchrotronRadiationRecordData record,
-                        &dp_record,
-                        &dpx_record,
-                        &dpy_record);
+                        0, // order
+                        1., // inv_factorial_order
+                        knl,
+                        ksl,
+                        1., // factor_knl_ksl
+                        0., // k0
+                        0., // k1,
+                        0., // k2,
+                        0., // k3,
+                        0., // k0s,
+                        0., // k1s,
+                        0., // k2s,
+                        0., // k3s,
+                        0., // ks_drift,
+                        0., // dks_ds,
+                        &Bx_T,
+                        &By_T,
+                        &Bz_T
+                    );
+                    magnet_spin(
+                        part,
+                        Bx_T,
+                        By_T,
+                        Bz_T,
+                        h_for_rad,
+                        ll,
+                        l_path);
                     #endif
                 }
             //end_per_particle_block
