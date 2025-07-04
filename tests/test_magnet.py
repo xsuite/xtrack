@@ -73,7 +73,7 @@ def test_magnet_exact_drift(test_context):
     assert magnet.model == 'drift-kick-drift-exact'
     assert magnet.integrator == 'teapot'
 
-    exact_drift = xt.Solenoid(length=2.0, _context=test_context)  # Solenoid is exact drift when off
+    exact_drift = xt.UniformSolenoid(length=2.0, _context=test_context)  # Solenoid is exact drift when off
 
     p0 = make_particles(test_context)
     p_test = p0.copy()
