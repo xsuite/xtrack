@@ -1143,7 +1143,7 @@ def test_line_table_unique_names():
 
 def test_extend_knl_ksl():
 
-    classes_to_check = ['Bend', 'Quadrupole', 'Sextupole', 'Octupole', 'Solenoid',
+    classes_to_check = ['Bend', 'Quadrupole', 'Sextupole', 'Octupole', 'UniformSolenoid',
                         'Multipole']
 
     for cc in classes_to_check:
@@ -1188,7 +1188,7 @@ def test_extend_knl_ksl():
                 'a', 'b', 'c'], ksl=['d', 'e', 'f']),
         env.new('o1', xt.Octupole, length=1, knl=[
                 'a', 'b', 'c'], ksl=['d', 'e', 'f']),
-        env.new('s2', xt.Solenoid, length=1, knl=[
+        env.new('s2', xt.UniformSolenoid, length=1, knl=[
                 'a', 'b', 'c'], ksl=['d', 'e', 'f']),
         env.new('m1', xt.Multipole, length=1, knl=[
                 'a', 'b', 'c'], ksl=['d', 'e', 'f']),
