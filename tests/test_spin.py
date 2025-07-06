@@ -248,6 +248,54 @@ def test_uniform_solenoid(case, atol):
     'case,atol',
     zip(
         [case['case'].copy() for case in COMMON_TEST_CASES],
+        [3e-8, 3e-8, 3e-8, 3e-8, 3e-8, 3e-8, 2e-5, 1e-5, 2e-8, 1e-5, 2e-5],
+    ),
+    ids=[case['id'] for case in COMMON_TEST_CASES],
+)
+def test_legacy_solenoid(case, atol):
+    case['spin_y'] = np.sqrt(1 - case['spin_x']**2 - case['spin_z']**2)
+
+    ref_file = BMAD_REF_FILES / 'solenoid_bmad.json'
+    refs = xt.json.load(ref_file)
+
+    ref = None
+    for ref_case in refs:
+        if ref_case['in'] == case:
+            ref = ref_case['out']
+            break
+    if ref is None:
+        raise ValueError(f'Case {case} not found in file {ref_file}')
+
+
+    p = xt.Particles(
+        p0c=700e9, mass0=xt.ELECTRON_MASS_EV,
+        anomalous_magnetic_moment=0.00115965218128,
+        **case,
+    )
+
+    Bz_T = 0.05
+    ks = Bz_T / (p.p0c[0] / clight / p.q0)
+    env = xt.Environment()
+    line = env.new_line(
+        components=[
+            env.new('mysolenoid', xt.Solenoid, length=0.02, ks=ks),
+            env.new('mymarker', xt.Marker),
+        ]
+    )
+
+    line.configure_spin(spin_model='auto')
+
+    line.track(p)
+
+    xo.assert_allclose(p.spin_x[0], ref['spin_x'], atol=atol, rtol=0)
+    xo.assert_allclose(p.spin_y[0], ref['spin_y'], atol=atol, rtol=0)
+    xo.assert_allclose(p.spin_z[0], ref['spin_z'], atol=atol, rtol=0)
+
+
+@pytest.mark.parametrize(
+    'case,atol',
+    zip(
+        [case['case'].copy() for case in COMMON_TEST_CASES],
         [7e-6, 7e-6, 7e-6, 7e-6, 7e-6, 7e-6, 7e-3, 4e-3, 8e-6, 4e-3, 7e-3],
     ),
     ids=[case['id'] for case in COMMON_TEST_CASES],
