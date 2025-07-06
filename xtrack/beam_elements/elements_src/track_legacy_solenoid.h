@@ -6,6 +6,7 @@
 #define XTRACK_TRACK_SOLENOID_H
 
 #include <headers/track.h>
+#include <beam_elements/elements_src/track_legacy_solenoid_radiation.h>
 
 #define IS_ZERO(X) (fabs(X) < 1e-9)
 
@@ -106,44 +107,24 @@ void Solenoid_thick_with_radiation_track_single_particle(
 
     #ifndef XTRACK_SOLENOID_NO_SYNRAD
         if ((radiation_flag > 0 || spin_flag > 0) && length > 0){
-            double Bx_T, By_T, Bz_T;
-            magnet_estimate_field(
+            legacy_solenoid_apply_radiation_single_particle(
                 part,
                 length,
-                /*hx*/0,
-                /*hy*/0.,
-                old_px, old_py,
-                old_ax, old_ay,
+                0, // hx
+                0, // hy,
+                radiation_flag,
+                spin_flag,
+                old_px,
+                old_py,
+                old_ax,
+                old_ay,
                 old_zeta,
-                /*ks*/ks,
-                &Bx_T, &By_T, &Bz_T
+                ks,
+                NULL, //SynchrotronRadiationRecordData record
+                dp_record_exit,
+                dpx_record_exit,
+                dpy_record_exit
             );
-            double const dzeta = LocalParticle_get_zeta(part) - old_zeta;
-            double const rvv = LocalParticle_get_rvv(part);
-            double l_path = rvv * (length) - dzeta;
-            if (spin_flag){
-                magnet_spin(
-                    part,
-                    0, // Bx_T - killed for now
-                    0, // By_T - killed for now
-                    Bz_T,
-                    0., // hx
-                    length,
-                    l_path);
-            }
-
-            if (radiation_flag){
-                double const B_perp_T = sqrt(Bx_T * Bx_T + By_T * By_T); //this one is used for radiation
-                magnet_radiation(
-                    part,
-                    B_perp_T,
-                    length,
-                    l_path,
-                    radiation_flag,
-                    NULL, // radiation_record
-                    dp_record_exit, dpx_record_exit, dpy_record_exit
-                );
-            }
         }
     #endif
 }

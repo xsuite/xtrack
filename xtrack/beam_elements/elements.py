@@ -2178,7 +2178,7 @@ class Solenoid(BeamElement):
     }
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/solenoid.h>',
+        '#include <beam_elements/elements_src/legacy_solenoid.h>',
     ]
 
     _depends_on = [RandomUniformAccurate, RandomExponential]
@@ -2215,10 +2215,6 @@ class Solenoid(BeamElement):
     def order(self, value):
         self._order = value
         self.inv_factorial_order = 1.0 / factorial(value, exact=True)
-
-    @property
-    def _thick_slice_class(self):
-        return xt.ThickSliceSolenoid
 
 
 class CombinedFunctionMagnet:
