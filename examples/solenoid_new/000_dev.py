@@ -6,8 +6,12 @@ length = 3.
 ks = 2.
 
 sol = xt.UniformSolenoid(length=length, ks=ks)
+
+# Check against legacy solenoid
 ref_sol = xt.Solenoid(length=length, ks=ks) # Old solenoid
 
+# # Check against variable solenoid
+# ref_sol = xt.VariableSolenoid(length=length, ks_profile=[ks, ks])
 
 p0 = xt.Particles(p0c=1e9, x=1e-3, y=2e-3)
 
@@ -147,3 +151,8 @@ sol.edge_entry_active = False
 tw_back = lsol_sliced.twiss(init=tw.get_twiss_init('e0_exit'))
 tw_back['ax'] = tw_back.px - tw_back.kin_px
 tw_back['ay'] = tw_back.py - tw_back.kin_py
+
+xo.assert_allclose(tw_back.rows[:'e0..0'].ax, tw['ax', 'e0..0'],
+                   rtol=0, atol=1e-10)
+xo.assert_allclose(tw_back.rows[:'e0..0'].ay, tw['ay', 'e0..0'],
+                   rtol=0, atol=1e-10)
