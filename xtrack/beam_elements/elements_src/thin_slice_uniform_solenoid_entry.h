@@ -25,7 +25,7 @@ void ThinSliceUniformSolenoidEntry_track_local_particle(
         double const is_exit = 0;
     #endif
 
-    if (!edge_entry_active) {
+    if (edge_entry_active) {
         track_magnet_edge_particles(
             part0,
             3, // model, ax ay cancellation
