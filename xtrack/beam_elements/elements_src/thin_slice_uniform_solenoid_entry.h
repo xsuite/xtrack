@@ -20,9 +20,9 @@ void ThinSliceUniformSolenoidEntry_track_local_particle(
 
     // Backtracking
     #ifdef XSUITE_BACKTRACK
-        double const is_exit = 1;
+        const int64_t is_exit = 1;
     #else
-        double const is_exit = 0;
+        const int64_t is_exit = 0;
     #endif
 
     if (edge_entry_active) {

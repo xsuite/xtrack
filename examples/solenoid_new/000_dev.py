@@ -72,11 +72,13 @@ xo.assert_allclose(p_for_backtrack.ay, ks /2 *p0.x, rtol=0, atol=1e-10)
 xo.assert_allclose(p_for_backtrack.kin_px, p0.px + ks /2 *p0.y, rtol=0, atol=1e-10)
 xo.assert_allclose(p_for_backtrack.kin_py, p0.py - ks /2 *p0.x, rtol=0, atol=1e-10)
 
+
+sol.edge_entry_active = True
+sol.edge_exit_active = True
+
 lsol_sliced = lsol.copy(shallow=True)
 lsol_sliced.cut_at_s([length / 3, 2 * length / 3])
 tt_sliced = lsol_sliced.get_table(attr=True)
-
-
 
 assert np.all(tt_sliced.name == np.array(
     ['e0_entry', 'e0..entry_map', 'e0..0', 'e0..1', 'e0..2',
