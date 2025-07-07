@@ -21,6 +21,7 @@ void MagnetEdge_track_local_particle(MagnetEdgeData el, LocalParticle* part0)
     const double* knl = MagnetEdgeData_getp1_knl(el, 0);
     const double* ksl = MagnetEdgeData_getp1_ksl(el, 0);
     const int64_t kl_order = MagnetEdgeData_get_kl_order(el);
+    const double ks = MagnetEdgeData_get_ks(el);
     const double length = MagnetEdgeData_get_length(el);
     const double face_angle = MagnetEdgeData_get_face_angle(el);
     const double face_angle_feed_down = MagnetEdgeData_get_face_angle_feed_down(el);
@@ -44,6 +45,7 @@ void MagnetEdge_track_local_particle(MagnetEdgeData el, LocalParticle* part0)
         ksl,
         /* factor_knl_ksl */ 1,
         kl_order,
+        ks,
         length,
         face_angle,
         face_angle_feed_down,

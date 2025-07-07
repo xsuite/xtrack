@@ -539,21 +539,22 @@ void track_magnet_particles(
 
     if (edge_entry_active){
 
-        double kn[] = {k0, k1, k2, k3};
-        double ks[] = {k0s, k1s, k2s, k3s};
+        double knorm[] = {k0, k1, k2, k3};
+        double kskew[] = {k0s, k1s, k2s, k3s};
 
         track_magnet_edge_particles(
             part0,
             edge_entry_model,
             0, // is_exit
             edge_entry_hgap,
-            kn,
-            ks,
+            knorm,
+            kskew,
             3, // k_order,
             knl,
             ksl,
             factor_knl_ksl_edge,
             order,
+            ks,
             length,
             edge_entry_angle,
             edge_entry_angle_fdown,
@@ -581,21 +582,22 @@ void track_magnet_particles(
     END_PER_PARTICLE_BLOCK;
 
     if (edge_exit_active){
-        double kn[] = {k0, k1, k2, k3};
-        double ks[] = {k0s, k1s, k2s, k3s};
+        double knorm[] = {k0, k1, k2, k3};
+        double kskew[] = {k0s, k1s, k2s, k3s};
 
         track_magnet_edge_particles(
             part0,
             edge_exit_model,
             1, // is_exit
             edge_exit_hgap,
-            kn,
-            ks,
+            knorm,
+            kskew,
             3, // k_order,
             knl,
             ksl,
             factor_knl_ksl_edge,
             order,
+            ks,
             length,
             edge_exit_angle,
             edge_exit_angle_fdown,

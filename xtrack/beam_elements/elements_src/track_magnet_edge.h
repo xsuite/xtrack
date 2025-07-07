@@ -19,13 +19,14 @@ void track_magnet_edge_particles(
     const int8_t model,  // 0: linear, 1: full, 2: dipole-only, 3: ax ay cancellation
     const uint8_t is_exit,
     const double half_gap,
-    const double* kn,
-    const double* ks,
+    const double* knorm,
+    const double* kskew,
     const int64_t k_order,
     const double* knl,
     const double* ksl,
     const double factor_knl_ksl,
     const int64_t kl_order,
+    const double ksol,
     const double length,
     const double face_angle,
     const double face_angle_feed_down,
@@ -33,14 +34,22 @@ void track_magnet_edge_particles(
     const double factor_for_backtrack // -1 for backtracking, 1 for forward tracking
 ) {
     double k0 = 0;
-    if (k_order > -1) k0 += kn[0];
+    if (k_order > -1) k0 += knorm[0];
     if (fabs(length) > 1e-10 && kl_order > -1) k0 += factor_knl_ksl * knl[0] / length;
 
     // Assume we are coming from or going to a drift
-    START_PER_PARTICLE_BLOCK(part0, part);
-        LocalParticle_set_ax(part, 0.);
-        LocalParticle_set_ay(part, 0.);
-    END_PER_PARTICLE_BLOCK;
+    if (is_exit) {
+        START_PER_PARTICLE_BLOCK(part0, part);
+            LocalParticle_set_ax(part, 0.);
+            LocalParticle_set_ay(part, 0.);
+        END_PER_PARTICLE_BLOCK;
+    }
+    else {
+        START_PER_PARTICLE_BLOCK(part0, part);
+            LocalParticle_set_ax(part, -0.5 * ksol * LocalParticle_get_y(part));
+            LocalParticle_set_ay(part, 0.5 * ksol * LocalParticle_get_x(part));
+        END_PER_PARTICLE_BLOCK;
+    }
 
     if (model == 0) {  // Linear model
         // Calculate coefficients for x and y to compute the px and py kicks
@@ -86,8 +95,8 @@ void track_magnet_edge_particles(
         #define MAGNET_MULTIPOLE_FRINGE(PART) \
             MultFringe_track_single_particle( \
                 (PART), \
-                kn, \
-                ks, \
+                knorm, \
+                kskew, \
                 k_order, \
                 knl, \
                 ksl, \
@@ -102,7 +111,7 @@ void track_magnet_edge_particles(
         // model changes!
 
         #define MAGNET_WEDGE(PART) \
-            if (should_rotate) Wedge_single_particle((PART), -face_angle, kn[0])
+            if (should_rotate) Wedge_single_particle((PART), -face_angle, knorm[0])
 
         if (is_exit == 0){ // entry
             START_PER_PARTICLE_BLOCK(part0, part);

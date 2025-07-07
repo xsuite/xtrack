@@ -45,6 +45,9 @@ p0_for_backtrack = p.copy()
 p_for_backtrack = p0_for_backtrack.copy()
 lsol = xt.Line([sol])
 
+sol.edge_entry_active = True
+sol.edge_exit_active = True
+
 lsol.track(p_for_backtrack, backtrack=True)
 xo.assert_allclose(p_for_backtrack.x, p0.x, rtol=0, atol=1e-10)
 xo.assert_allclose(p_for_backtrack.y, p0.y, rtol=0, atol=1e-10)
@@ -73,8 +76,7 @@ lsol_sliced = lsol.copy(shallow=True)
 lsol_sliced.cut_at_s([length / 3, 2 * length / 3])
 tt_sliced = lsol_sliced.get_table(attr=True)
 
-sol.edge_entry_active = True
-sol.edge_exit_active = True
+
 
 assert np.all(tt_sliced.name == np.array(
     ['e0_entry', 'e0..entry_map', 'e0..0', 'e0..1', 'e0..2',
@@ -103,6 +105,25 @@ xo.assert_allclose(tw.delta[-1], p_ref.delta, rtol=0, atol=1e-10)
 tw['ax'] = tw.px - tw.kin_px
 tw['ay'] = tw.py - tw.kin_py
 
+# tw.cols['ax ay'] should look as follows:
+# TwissTable: 8 rows, 3 cols
+# name                     ax            ay
+# e0_entry                  0             0
+# e0..entry_map             0             0
+# e0..0                -0.002         0.001
+# e0..1          -0.000129201    0.00120122
+# e0..2          -0.000724768  -0.000583627
+# e0..exit_map    -0.00209988   0.000700686
+# e0_exit                   0             0
+# _end_point                0             0
 
-xo.assert_allclose(tw.kin_px[-1], p_ref.kin_px, rtol=0, atol=1e-10)
-xo.assert_allclose(tw.kin_py[-1], p_ref.kin_py, rtol=0, atol=1e-10)
+tw_before = tw.rows[:'e0..entry_map']
+tw_inside = tw.rows['e0..0':'e0..exit_map']
+tw_after = tw.rows['e0_exit':]
+
+xo.assert_allclose(tw_before.ax, 0, rtol=0, atol=1e-20)
+xo.assert_allclose(tw_before.ay, 0, rtol=0, atol=1e-20)
+xo.assert_allclose(tw_inside.ax, -0.5 * ks * tw_inside.y, rtol=0, atol=1e-15)
+xo.assert_allclose(tw_inside.ay, 0.5 * ks * tw_inside.x, rtol=0, atol=1e-15)
+xo.assert_allclose(tw_after.ax, 0, rtol=0, atol=1e-20)
+xo.assert_allclose(tw_after.ay, 0, rtol=0, atol=1e-20)
