@@ -127,3 +127,9 @@ xo.assert_allclose(tw_inside.ax, -0.5 * ks * tw_inside.y, rtol=0, atol=1e-15)
 xo.assert_allclose(tw_inside.ay, 0.5 * ks * tw_inside.x, rtol=0, atol=1e-15)
 xo.assert_allclose(tw_after.ax, 0, rtol=0, atol=1e-20)
 xo.assert_allclose(tw_after.ay, 0, rtol=0, atol=1e-20)
+
+# Twiss backwards
+tw_back = lsol_sliced.twiss(init=tw.get_twiss_init('e0_exit'))
+tw_back['ax'] = tw_back.px - tw_back.kin_px
+tw_back['ay'] = tw_back.py - tw_back.kin_py
+
