@@ -133,3 +133,11 @@ tw_back = lsol_sliced.twiss(init=tw.get_twiss_init('e0_exit'))
 tw_back['ax'] = tw_back.px - tw_back.kin_px
 tw_back['ay'] = tw_back.py - tw_back.kin_py
 
+xo.assert_allclose(tw_back.x, tw.x, rtol=0, atol=1e-10)
+xo.assert_allclose(tw_back.px, tw.px, rtol=0, atol=1e-10)
+xo.assert_allclose(tw_back.y, tw.y, rtol=0, atol=1e-10)
+xo.assert_allclose(tw_back.py, tw.py, rtol=0, atol=1e-10)
+xo.assert_allclose(tw_back.delta, tw.delta, rtol=0, atol=1e-10)
+xo.assert_allclose(tw_back.ax, tw.ax, rtol=0, atol=1e-10)
+xo.assert_allclose(tw_back.ay, tw.ay, rtol=0, atol=1e-10)
+

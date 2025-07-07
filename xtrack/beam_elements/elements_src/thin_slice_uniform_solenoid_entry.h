@@ -20,16 +20,16 @@ void ThinSliceUniformSolenoidEntry_track_local_particle(
 
     // Backtracking
     #ifdef XSUITE_BACKTRACK
-        const double factor_backtrack_edge = -1.;
+        double const is_exit = 1;
     #else
-        const double factor_backtrack_edge = 1.;
+        double const is_exit = 0;
     #endif
 
     if (!edge_entry_active) {
         track_magnet_edge_particles(
             part0,
             3, // model, ax ay cancellation
-            0, // is_exit, entry edge
+            is_exit,
             0, // half_gap,
             NULL, // knorm,
             NULL, // kskew,
@@ -43,7 +43,7 @@ void ThinSliceUniformSolenoidEntry_track_local_particle(
             0, // face_angle,
             0, // face_angle_feed_down,
             0, // fringe_integral,
-            factor_backtrack_edge // -1 for backtracking, 1 for forward tracking
+            0 // factor_for_backtrack, not needed in this case
         );
     }
 }
