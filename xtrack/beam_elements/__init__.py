@@ -3,6 +3,7 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
+from .acdipole import ACDipoleThickHorizontal, ACDipoleThickVertical, ACDipoleThinHorizontal, ACDipoleThinVertical
 from .elements import *
 from .exciter import Exciter
 from .apertures import *
