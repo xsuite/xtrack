@@ -2199,13 +2199,14 @@ def test_configure_model():
     assert line['o1'].integrator == 'uniform'
     assert line['o1'].num_multipole_kicks == 7
 
+@for_all_test_contexts
 @pytest.mark.parametrize('reference', ['legacy', 'variable'])
-def test_uniform_solenoid_with_slices(reference):
+def test_uniform_solenoid_with_slices(test_context, reference):
 
     length = 3.
     ks = 2.
 
-    sol = xt.UniformSolenoid(length=length, ks=ks)
+    sol = xt.UniformSolenoid(length=length, ks=ks, _context=test_context)
 
     if reference == 'legacy':
         # Check against legacy solenoid
@@ -2218,7 +2219,7 @@ def test_uniform_solenoid_with_slices(reference):
 
     p0 = xt.Particles(p0c=1e9, x=1e-3, y=2e-3)
 
-    p = p0.copy()
+    p = p0.copy(_context=test_context)
     p_ref = p0.copy()
 
     sol.track(p)
@@ -2235,7 +2236,7 @@ def test_uniform_solenoid_with_slices(reference):
     xo.assert_allclose(p.kin_py, p_ref.py, rtol=0, atol=1e-10)
 
     sol.edge_exit_active = False
-    p = p0.copy()
+    p = p0.copy(_context=test_context)
     sol.track(p)
 
     xo.assert_allclose(p.x, p_ref.x, rtol=0, atol=1e-10)
@@ -2249,8 +2250,9 @@ def test_uniform_solenoid_with_slices(reference):
     xo.assert_allclose(p.kin_py, p_ref.kin_py, rtol=0, atol=1e-10)
 
     p0_for_backtrack = p.copy()
-    p_for_backtrack = p0_for_backtrack.copy()
+    p_for_backtrack = p0_for_backtrack.copy(_context=test_context)
     lsol = xt.Line([sol])
+    lsol.build_tracker(_context=test_context)
 
     sol.edge_entry_active = True
     sol.edge_exit_active = True
@@ -2267,7 +2269,7 @@ def test_uniform_solenoid_with_slices(reference):
     xo.assert_allclose(p_for_backtrack.kin_py, p0.py, rtol=0, atol=1e-10)
 
     sol.edge_entry_active = False
-    p_for_backtrack = p0_for_backtrack.copy()
+    p_for_backtrack = p0_for_backtrack.copy(_context=test_context)
     lsol.track(p_for_backtrack, backtrack=True)
     xo.assert_allclose(p_for_backtrack.x, p0.x, rtol=0, atol=1e-10)
     xo.assert_allclose(p_for_backtrack.y, p0.y, rtol=0, atol=1e-10)
@@ -2285,6 +2287,7 @@ def test_uniform_solenoid_with_slices(reference):
 
     lsol_sliced = lsol.copy(shallow=True)
     lsol_sliced.cut_at_s([length / 3, 2 * length / 3])
+    lsol_sliced.build_tracker(_context=test_context)
     tt_sliced = lsol_sliced.get_table(attr=True)
 
     assert np.all(tt_sliced.name == np.array(
