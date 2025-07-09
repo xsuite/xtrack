@@ -1,6 +1,6 @@
 import xtrack as xt
 
-def load(file=None, string=None, format=None, timeout=1.):
+def load(file=None, string=None, format=None, timeout=5.):
 
     if format is None and file is not None:
         if file.endswith('.json'):

@@ -5669,7 +5669,7 @@ class LineVars:
             else:
                 self[kk] = kwargs[kk]
 
-    def load(self, file=None, string=None, format=None, timeout=1.):
+    def load(self, file=None, string=None, format=None, timeout=5.):
 
         if format is None and file is not None:
             if file.endswith('.json'):
