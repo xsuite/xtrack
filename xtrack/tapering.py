@@ -15,6 +15,10 @@ def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-12,
     assert line.particle_ref is not None, "Particle reference is not set"
     assert np.abs(line.particle_ref.q0) == 1, "Only |q0| = 1 is supported (for now)"
 
+    if len(set(line.element_names)) != len(line.element_names):
+        raise ValueError("Line must not contain repeated elements to use "
+                         "`compensate_radiation_energy_loss(...)`. ")
+
     if 'record_iterations' in kwargs:
         record_iterations = kwargs['record_iterations']
         kwargs.pop('record_iterations')
