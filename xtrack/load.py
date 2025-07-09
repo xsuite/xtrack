@@ -1,6 +1,24 @@
+# copyright ############################### #
+# This file is part of the Xtrack Package.  #
+# Copyright (c) CERN, 2025.                 #
+# ######################################### #
 import xtrack as xt
+from typing import Literal
 
-def load(file=None, string=None, format=None, timeout=5.):
+
+def load(
+        file=None,
+        string=None,
+        format: Literal['json', 'madx', 'python'] = None,
+        timeout=5.,
+):
+    if (file is None) == (string is None):
+        raise ValueError('Must specify either file or string, but not both')
+
+    FORMATS = {'json', 'madx', 'python'}
+    if string and format not in FORMATS:
+        raise ValueError(f'Format must be specified to be one of {FORMATS} when '
+                         f'using string input')
 
     if format is None and file is not None:
         if file.endswith('.json'):
@@ -10,19 +28,9 @@ def load(file=None, string=None, format=None, timeout=5.):
         elif file.endswith('.py'):
             format = 'python'
 
-    if file.startswith('http://') or file.startswith('https://'):
-        assert string is None, 'Cannot specify both fname and string'
+    if file and (file.startswith('http://') or file.startswith('https://')):
         string = xt.general.read_url(file, timeout=timeout)
         file = None
-
-    if file is not None:
-        assert string is None, 'Cannot specify both fname and string'
-
-    if string is not None:
-        assert file is None, 'Cannot specify both fname and string'
-        assert format is not None, 'Must specify format when using string'
-
-    assert format in ['json', 'madx', 'python'], f'Unknown format {format}'
 
     if format == 'json':
         ddd = xt.json.load(file=file, string=string)
@@ -44,5 +52,3 @@ def load(file=None, string=None, format=None, timeout=5.):
         env = xt.Environment()
         env.call(file)
         return env
-    else:
-        raise ValueError(f'Unknown format {format}')

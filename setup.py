@@ -46,10 +46,10 @@ setup(
         'tqdm',
         'xobjects',
         'xdeps'
-        ],
+    ],
     extras_require={
         'tests': ['cpymad', 'nafflib', 'PyHEADTAIL', 'pytest', 'pytest-mock',
-                  'pymadng'],
+                  'pymadng', 'requests-mock'],
         'notebooks': ['jupyter', 'ipympl', 'xplt'],
     },
-    )
+)
