@@ -13,6 +13,7 @@ def load(fname=None, string=None, format=None, timeout=1.):
     if fname.startswith('http://') or fname.startswith('https://'):
         assert string is None, 'Cannot specify both fname and string'
         string = xt.general.read_url(fname, timeout=timeout)
+        fname = None
 
     if fname is not None:
         assert string is None, 'Cannot specify both fname and string'
