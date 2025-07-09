@@ -278,20 +278,20 @@ class Wire(BeamElement):
 
 
 class SRotation(BeamElement):
-    '''Beam element modeling an rotation of the reference system around the s axis.
+    """Beam element modeling a rotation of the reference system around the s-axis.
+    Positive angle is defined as x to y, i.e. counter-clockwise when looking
+    from the end of the s-axis towards the origin.
 
     Parameters
     ----------
-
     angle : float
-        Rotation angle in degrees. Default is ``0``.
-
-    '''
+        Rotation angle in degrees. Default is 0.
+    """
 
     _xofields = {
         'cos_z': xo.Float64,
         'sin_z': xo.Float64,
-        }
+    }
 
     allow_loss_refinement = True
     has_backtrack = True
@@ -346,15 +346,15 @@ class SRotation(BeamElement):
 
 
 class XRotation(BeamElement):
-    '''Beam element modeling an rotation of the reference system around the x axis.
+    """Beam element modeling a rotation of the reference system around the x-axis.
+    Positive angle is defined as y to s, i.e. counter-clockwise when looking
+    from the end of the x-axis towards the origin.
 
     Parameters
     ----------
-
     angle : float
-        Rotation angle in degrees. Default is ``0``.
-
-    '''
+        Rotation angle in degrees. Default is 0.
+    """
 
     _xofields={
         'sin_angle': xo.Float64,
@@ -435,15 +435,15 @@ class XRotation(BeamElement):
 
 
 class YRotation(BeamElement):
-    '''Beam element modeling an rotation of the reference system around the y axis.
+    """Beam element modeling a rotation of the reference system around the y-axis.
+    Positive angle is defined as s to x, i.e. counter-clockwise when looking
+    from the end of the y-axis towards the origin.
 
     Parameters
     ----------
-
     angle : float
-        Rotation angle in degrees. Default is ``0``.
-
-    '''
+        Rotation angle in degrees. Default is 0.
+    """
 
     has_backtrack = True
     allow_loss_refinement = True
@@ -494,7 +494,6 @@ class YRotation(BeamElement):
             anglerad = angle / 180 * np.pi
         else:
             anglerad = 0.0
-        anglerad = -anglerad
 
         if cos_angle is None:
             cos_angle = np.cos(anglerad)
@@ -517,11 +516,11 @@ class YRotation(BeamElement):
 
     @property
     def angle(self):
-        return -np.arctan2(self.sin_angle, self.cos_angle) * (180.0 / np.pi)
+        return np.arctan2(self.sin_angle, self.cos_angle) * (180.0 / np.pi)
 
     @angle.setter
     def angle(self, value):
-        anglerad = -value / 180 * np.pi
+        anglerad = value / 180 * np.pi
         self.cos_angle = np.cos(anglerad)
         self.sin_angle = np.sin(anglerad)
         self.tan_angle = np.tan(anglerad)
@@ -552,7 +551,52 @@ class ZetaShift(BeamElement):
     _store_in_to_dict = ['dzeta']
 
 
+class Misalignment(BeamElement):
+    """Beam element modeling a misalignment of a strait or curved element.
 
+    Parameters
+    ----------
+    dx : float
+        Misalignment in x.
+    dy : float
+        Misalignment in y.
+    ds : float
+        Misalignment in s.
+    theta : float
+        Rotation around y, yaw, positive s to x.
+    phi : float
+        Rotation around x, pitch, positive s to y.
+    psi : float
+        Rotation around s, roll, positive y to x.
+    location : float
+        Location of the misalignment as a fraction of the length.
+    length : float
+        Length of the misaligned element.
+    angle : float
+        Angle by which the element bends the reference frame.
+    is_exit : bool
+        If False, this element brings the reference frame to the entrance of the
+        misaligned element, if True, it brings the reference frame back to the
+        non-misaligned frame from the exit of the element in the misaligned frame.
+    """
+    _xofields = {
+        'dx': xo.Float64,
+        'dy': xo.Float64,
+        'ds': xo.Float64,
+        'theta': xo.Float64,
+        'phi': xo.Float64,
+        'psi': xo.Float64,
+        'location': xo.Float64,
+        'length': xo.Float64,
+        'angle': xo.Float64,
+        'is_exit': xo.Int64,
+    }
+    has_backtrack = False
+    allow_rot_and_shift = False
+
+    _extra_c_sources = [
+        '#include <beam_elements/elements_src/misalignment.h>',
+    ]
 
 
 class Multipole(BeamElement):
@@ -2834,7 +2878,7 @@ class LineSegmentMap(BeamElement):
         lag_rf : list of float
             List of lag of the RF kicks in the segment. Only used if
             ``longitudinal_mode`` is ``'nonlinear'`` or ``'linear_fixed_rf'``.
-dqx : float or list of float
+        dqx : float or list of float
             Horizontal linear chromaticity of the segment.
         dqy : float or list of float
             Vertical linear chromaticity of the segment.

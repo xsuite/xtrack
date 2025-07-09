@@ -4,6 +4,7 @@
 # ######################################### #
 
 import numpy as np
+import xtrack as xt
 from scipy.constants import c as clight
 from scipy.constants import epsilon_0
 from scipy.constants import mu_0
@@ -45,12 +46,17 @@ _factorial = np.array(
     ]
 )
 
+def _sinc(x):
+    return np.sinc(x / np.pi)  # np.sinc is normalized to pi, so we divide by pi
+
+
 class Marker(Element):
 
     _description = []
 
     def track(self, p):
         pass
+
 
 class Drift(Element):
     """Drift in expanded form"""
@@ -380,6 +386,200 @@ class Elens(Element):
         # update px and py.
         p.px = xp/p.rpp
         p.py = yp/p.rpp
+
+
+class Misalign(Element):
+    _description = [
+        ("dx", "m", "Misalignment in x", 0),
+        ("dy", "m", "Misalignment in y", 0),
+        ("ds", "m", "Misalignment in s", 0),
+        ("theta", "rad", "Rotation around the y axis (positive s to x)", 0),
+        ("phi", "rad", "Rotation around the x axis (positive s to y)", 0),
+        ("psi", "rad", "Rotation around the s axis (positive y to x)", 0),
+        ("location", "", "Reference point, anchor, of the misalignment "
+                         "(0 for entry, 0.5 for middle, 1 for exit, etc.)", 0),
+        ("length", "m", "Length of the element to which the misalignment applies", 0),
+        ("angle", "rad", "Angle of bending if applicable (0 for straight)", 0),
+    ]
+
+    def track(self, particles):
+        if self.angle:
+            self.track_bent(particles)
+        else:
+            self.track_straight(particles)
+
+    def track_bent(self, particles):
+        dx, dy, ds = self.dx, self.dy, self.ds
+        theta, phi, psi = self.theta, self.phi, self.psi
+        f, length, angle = self.location, self.length, self.angle
+
+        s_phi, c_phi = np.sin(phi), np.cos(phi)
+        s_theta, c_theta = np.sin(theta), np.cos(theta)
+        s_psi, c_psi = np.sin(psi), np.cos(psi)
+        misalignment_matrix = np.array([
+            [-s_phi * s_psi * s_theta + c_psi * c_theta, -c_psi * s_phi * s_theta - c_theta * s_psi, c_phi * s_theta, dx],
+            [c_phi * s_psi, c_phi * c_psi, s_phi, dy],
+            [-c_theta * s_phi * s_psi - c_psi * s_theta, -c_psi * c_theta * s_phi + s_psi * s_theta, c_phi * c_theta, ds],
+            [0, 0, 0, 1],
+        ])
+
+        matrix_first_half = np.array([
+            [np.cos(f * angle), 0, -np.sin(f * angle), -f * length * _sinc(f * angle / 2) * np.sin(f * angle / 2)],
+            [0, 1, 0, 0],
+            [np.sin(f * angle), 0, np.cos(f * angle), f * length * _sinc(f * angle)],
+            [0, 0, 0, 1],
+        ])
+
+        inv_matrix_first_half = np.array([
+            [np.cos(f * angle), 0, np.sin(f * angle), -f * length * _sinc(f * angle / 2) * np.sin(f * angle / 2)],
+            [0, 1, 0, 0],
+            [-np.sin(f * angle), 0, np.cos(f * angle), -f * length * _sinc(f * angle)],
+            [0, 0, 0, 1],
+        ])
+
+        temp = matrix_first_half @ misalignment_matrix
+
+        misaligned_entry = temp @ inv_matrix_first_half
+
+        mis_x, mis_y, mis_s = misaligned_entry[:3, 3]
+        rot_theta = np.arctan2(misaligned_entry[0, 2], misaligned_entry[2, 2])
+        rot_phi = np.arctan2(misaligned_entry[1, 2], np.sqrt(misaligned_entry[1, 0] ** 2 + misaligned_entry[1, 1] ** 2))
+        rot_psi = np.arctan2(misaligned_entry[1, 0], misaligned_entry[1, 1])
+
+        line = xt.Line(
+            elements=[
+                xt.XYShift(dx=mis_x, dy=mis_y),
+                xt.Solenoid(length=mis_s),
+                xt.YRotation(angle=np.rad2deg(rot_theta)),
+                xt.XRotation(angle=np.rad2deg(-rot_phi)),  # angle flip, unsure why
+                xt.SRotation(angle=np.rad2deg(rot_psi)),
+            ]
+        )
+
+        line.track(particles)
+
+    def track_straight(self, particles):
+        dx, dy, ds = self.dx, self.dy, self.ds
+        theta, phi, psi = self.theta, self.phi, self.psi
+        f, length, angle = self.location, self.length, self.angle
+
+        mis_x = dx - f * length * np.cos(phi) * np.sin(theta)
+        mis_y = dy - f * length * np.sin(phi)
+        mis_s = ds - f * length * (np.cos(phi) * np.cos(theta) - 1)
+
+        line = xt.Line(
+            elements=[
+                xt.XYShift(dx=mis_x, dy=mis_y),
+                xt.Solenoid(length=mis_s),
+                xt.YRotation(angle=np.rad2deg(theta)),
+                xt.XRotation(angle=np.rad2deg(-phi)),  # angle flip, unsure why
+                xt.SRotation(angle=np.rad2deg(psi)),
+            ]
+        )
+
+        line.track(particles)
+
+
+class Realign(Element):
+    _description = [
+        ("dx", "m", "Misalignment in x", 0),
+        ("dy", "m", "Misalignment in y", 0),
+        ("ds", "m", "Misalignment in s", 0),
+        ("theta", "rad", "Rotation around the y axis (positive s to x)", 0),
+        ("phi", "rad", "Rotation around the x axis (positive s to y)", 0),
+        ("psi", "rad", "Rotation around the s axis (positive y to x)", 0),
+        ("location", "", "Reference point, anchor, of the misalignment "
+                         "(0 for entry, 0.5 for middle, 1 for exit, etc.)", 0),
+        ("length", "m", "Length of the element to which the misalignment applies", 0),
+        ("angle", "rad", "Angle of bending if applicable (0 for straight)", 0),
+    ]
+
+    def track(self, particles):
+        if self.angle:
+            self.track_bent(particles)
+        else:
+            self.track_straight(particles)
+
+    def track_bent(self, particles):
+        dx, dy, ds = self.dx, self.dy, self.ds
+        theta, phi, psi = self.theta, self.phi, self.psi
+        f, length, angle = self.location, self.length, self.angle
+
+        s_phi, c_phi = np.sin(phi), np.cos(phi)
+        s_theta, c_theta = np.sin(theta), np.cos(theta)
+        s_psi, c_psi = np.sin(psi), np.cos(psi)
+        misalignment_matrix = np.array([
+            [-s_phi * s_psi * s_theta + c_psi * c_theta, -c_psi * s_phi * s_theta - c_theta * s_psi, c_phi * s_theta, dx],
+            [c_phi * s_psi, c_phi * c_psi, s_phi, dy],
+            [-c_theta * s_phi * s_psi - c_psi * s_theta, -c_psi * c_theta * s_phi + s_psi * s_theta, c_phi * c_theta, ds],
+            [0, 0, 0, 1],
+        ])
+
+        m00, m01, m02, m03 = misalignment_matrix[0, :]
+        m10, m11, m12, m13 = misalignment_matrix[1, :]
+        m20, m21, m22, m23 = misalignment_matrix[2, :]
+        inv_misalignment_matrix = np.array([
+            [m00, m10, m20, -m00 * m03 - m10 * m13 - m20 * m23],
+            [m01, m11, m21, -m01 * m03 - m11 * m13 - m21 * m23],
+            [m02, m12, m22, -m02 * m03 - m12 * m13 - m22 * m23],
+            [0, 0, 0, 1],
+        ])
+
+        f_compl = 1 - f
+
+        matrix_second_half = np.array([
+            [np.cos(f_compl * angle), 0, -np.sin(f_compl * angle), -f_compl * length * _sinc(f_compl * angle / 2) * np.sin(f_compl * angle / 2)],
+            [0, 1, 0, 0],
+            [np.sin(f_compl * angle), 0, np.cos(f_compl * angle), f_compl * length * _sinc(f_compl * angle)],
+            [0, 0, 0, 1],
+        ])
+
+        inv_matrix_second_half = np.array([
+            [np.cos(-f_compl * angle), 0, np.sin(f_compl * angle), -f_compl * length * _sinc(f_compl * angle / 2) * np.sin(f_compl * angle / 2)],
+            [0, 1, 0, 0],
+            [-np.sin(f_compl * angle), 0, np.cos(-f_compl * angle), -f_compl * length * _sinc(f_compl * angle)],
+            [0, 0, 0, 1],
+        ])
+
+        realign = inv_matrix_second_half @ inv_misalignment_matrix @ matrix_second_half
+
+        mis_x, mis_y, mis_s = realign[:3, 3]
+        rot_theta = np.arctan2(realign[0, 2], realign[2, 2])
+        rot_phi = np.arctan2(realign[1, 2], np.sqrt(realign[1, 0] ** 2 + realign[1, 1] ** 2))
+        rot_psi = np.arctan2(realign[1, 0], realign[1, 1])
+
+        line = xt.Line(
+            elements=[
+                xt.XYShift(dx=mis_x, dy=mis_y),
+                xt.Solenoid(length=mis_s),
+                xt.YRotation(angle=np.rad2deg(rot_theta)),
+                xt.XRotation(angle=np.rad2deg(-rot_phi)),  # angle flip, unsure why
+                xt.SRotation(angle=np.rad2deg(rot_psi)),
+            ]
+        )
+
+        line.track(particles)
+
+    def track_straight(self, particles):
+        dx, dy, ds = self.dx, self.dy, self.ds
+        theta, phi, psi = self.theta, self.phi, self.psi
+        f, length, angle = self.location, self.length, self.angle
+
+        mis_x = (f - 1) * length * np.cos(phi) * np.sin(theta) - dx
+        mis_y = (f - 1) * length * np.sin(phi) - dy
+        mis_s = (f - 1) * length * (np.cos(phi) * np.cos(theta) - 1) - ds
+
+        line = xt.Line(
+            elements=[
+                xt.SRotation(angle=np.rad2deg(-psi)),
+                xt.XRotation(angle=np.rad2deg(phi)),  # angle flip, unsure why
+                xt.YRotation(angle=np.rad2deg(-theta)),
+                xt.Solenoid(length=mis_s),
+                xt.XYShift(dx=mis_x, dy=mis_y),
+            ]
+        )
+
+        line.track(particles)
 
 
 class Wire(Element):

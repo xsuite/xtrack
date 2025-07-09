@@ -161,7 +161,8 @@ class OrbitCorrectionSinglePlane:
                                       particle_on_co=line.build_particles(
                                           x=self.x_init, y=self.y_init,
                                           px=self.px_init, py=self.py_init,
-                                          zeta=self.zeta_init, delta=self.delta_init),
+                                          zeta=self.zeta_init, delta=self.delta_init,
+                                      ),
                                       element_name=start),
                                       reverse=False)
 
