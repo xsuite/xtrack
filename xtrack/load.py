@@ -1,6 +1,18 @@
 import xtrack as xt
 
-def load(fname=None, string=None, format=None):
+def load(fname=None, string=None, format=None, timeout=1.):
+
+    if format is None and fname is not None:
+        if fname.endswith('.json'):
+            format = 'json'
+        elif fname.endswith('.seq') or fname.endswith('.madx') or fname.endswith('.mad'):
+            format = 'madx'
+        elif fname.endswith('.py'):
+            format = 'python'
+
+    if fname.startswith('http://') or fname.startswith('https://'):
+        assert string is None, 'Cannot specify both fname and string'
+        string = xt.general.read_url(fname, timeout=timeout)
 
     if fname is not None:
         assert string is None, 'Cannot specify both fname and string'
@@ -9,18 +21,10 @@ def load(fname=None, string=None, format=None):
         assert fname is None, 'Cannot specify both fname and string'
         assert format is not None, 'Must specify format when using string'
 
-    if format is None:
-        if fname.endswith('.json'):
-            format = 'json'
-        elif fname.endswith('.seq') or fname.endswith('.madx') or fname.endswith('.mad'):
-            format = 'madx'
-        elif fname.endswith('.py'):
-            format = 'python'
-
     assert format in ['json', 'madx', 'python'], f'Unknown format {format}'
 
     if format == 'json':
-        ddd = xt.json.load(fname=fname, string=string)
+        ddd = xt.json.load(file=fname, string=string)
         if '__class__' in ddd:
             cls_name = ddd.pop('__class__')
             cls = getattr(xt, cls_name)

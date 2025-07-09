@@ -6,6 +6,7 @@
 from enum import Enum
 from pathlib import Path
 from xobjects.general import _print  # noqa: F401
+import requests
 
 _pkg_root = Path(__file__).parent.absolute()
 
@@ -20,3 +21,14 @@ class _LOC:
 
 START = _LOC('START')
 END = _LOC('END')
+
+def read_url(url, timeout=0.1):
+    """
+    Read content from a URL.
+    """
+    try:
+        response = requests.get(url, timeout=timeout)
+        response.raise_for_status()  # Raise an error for bad responses
+        return response.text
+    except requests.exceptions.RequestException as e:
+        raise RuntimeError(f"Failed to read from URL {url}: {e}")
