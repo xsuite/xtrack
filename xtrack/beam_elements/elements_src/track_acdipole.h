@@ -13,14 +13,14 @@ void track_ac_dipole_vertical_single_particle(
     double vrf,
     double omega,
     double phirf,
-    int16_t ramp1,
-    int16_t ramp2,
-    int16_t ramp3,
-    int16_t ramp4)
+    uint16_t ramp1,
+    uint16_t ramp2,
+    uint16_t ramp3,
+    uint16_t ramp4)
 {
     double const at_turn = LocalParticle_get_at_turn(part);
     double const p0c = LocalParticle_get_p0c(part) / 1e9; // Convert to GeV/c
-    
+
     double vrf_scaled;
     if (at_turn < ramp1)
     { // voltage stable at zero
@@ -52,10 +52,10 @@ void track_ac_dipole_horizontal_single_particle(
     double vrf,
     double omega,
     double phirf,
-    int16_t ramp1,
-    int16_t ramp2,
-    int16_t ramp3,
-    int16_t ramp4)
+    uint16_t ramp1,
+    uint16_t ramp2,
+    uint16_t ramp3,
+    uint16_t ramp4)
 {
     double const at_turn = LocalParticle_get_at_turn(part);
     double const p0c = LocalParticle_get_p0c(part) / 1e9; // Convert to GeV/c
@@ -105,4 +105,3 @@ void track_thin_ac_dipole_horizontal_single_particle(
 }
 
 #endif
-

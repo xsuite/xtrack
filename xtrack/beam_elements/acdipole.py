@@ -243,6 +243,9 @@ class ACDipoleThinHorizontal(xt.BeamElement):
             if natural_qx is None or driven_qx is None or betx_at_acdipole is None:
                 eff_grad = 0
             else:
+                # Ensure that the tunes are in the range [0, 1)
+                natural_qx = natural_qx % 1
+                driven_qx = driven_qx % 1
                 eff_grad = (
                     2
                     * (np.cos(2 * np.pi * driven_qx) - np.cos(2 * np.pi * natural_qx))

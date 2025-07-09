@@ -17,11 +17,11 @@ GPUFUN void ACDipoleThickVertical_track_local_particle(
     const double vrf = ACDipoleThickVerticalData_get_volt(el) * 300e-3;
     const double omega = ACDipoleThickVerticalData_get_freq(el) * 2 * PI;
     const double phirf = ACDipoleThickVerticalData_get_lag(el) * 2 * PI;
-    const int16_t ramp1 = ACDipoleThickVerticalData_get_ramp(el, 0);
-    const int16_t ramp2 = ACDipoleThickVerticalData_get_ramp(el, 1);
-    const int16_t ramp3 = ACDipoleThickVerticalData_get_ramp(el, 2);
-    const int16_t ramp4 = ACDipoleThickVerticalData_get_ramp(el, 3);
-    
+    const uint16_t ramp1 = ACDipoleThickVerticalData_get_ramp(el, 0);
+    const uint16_t ramp2 = ACDipoleThickVerticalData_get_ramp(el, 1);
+    const uint16_t ramp3 = ACDipoleThickVerticalData_get_ramp(el, 2);
+    const uint16_t ramp4 = ACDipoleThickVerticalData_get_ramp(el, 3);
+
 
     START_PER_PARTICLE_BLOCK(part0, part);
         track_ac_dipole_vertical_single_particle(
