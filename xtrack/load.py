@@ -1,31 +1,31 @@
 import xtrack as xt
 
-def load(fname=None, string=None, format=None, timeout=1.):
+def load(file=None, string=None, format=None, timeout=1.):
 
-    if format is None and fname is not None:
-        if fname.endswith('.json'):
+    if format is None and file is not None:
+        if file.endswith('.json'):
             format = 'json'
-        elif fname.endswith('.seq') or fname.endswith('.madx') or fname.endswith('.mad'):
+        elif file.endswith('.seq') or file.endswith('.madx') or file.endswith('.mad'):
             format = 'madx'
-        elif fname.endswith('.py'):
+        elif file.endswith('.py'):
             format = 'python'
 
-    if fname.startswith('http://') or fname.startswith('https://'):
+    if file.startswith('http://') or file.startswith('https://'):
         assert string is None, 'Cannot specify both fname and string'
-        string = xt.general.read_url(fname, timeout=timeout)
-        fname = None
+        string = xt.general.read_url(file, timeout=timeout)
+        file = None
 
-    if fname is not None:
+    if file is not None:
         assert string is None, 'Cannot specify both fname and string'
 
     if string is not None:
-        assert fname is None, 'Cannot specify both fname and string'
+        assert file is None, 'Cannot specify both fname and string'
         assert format is not None, 'Must specify format when using string'
 
     assert format in ['json', 'madx', 'python'], f'Unknown format {format}'
 
     if format == 'json':
-        ddd = xt.json.load(file=fname, string=string)
+        ddd = xt.json.load(file=file, string=string)
         if '__class__' in ddd:
             cls_name = ddd.pop('__class__')
             cls = getattr(xt, cls_name)
@@ -37,12 +37,12 @@ def load(fname=None, string=None, format=None, timeout=1.):
         else:
             raise ValueError('Cannot determine class from json data')
     elif format == 'madx':
-        return xt.load_madx_lattice(fname=fname, string=string)
+        return xt.load_madx_lattice(file=file, string=string)
     elif format == 'python':
         if string is not None:
             raise NotImplementedError('Loading from string not implemented for python format')
         env = xt.Environment()
-        env.call(fname)
+        env.call(file)
         return env
     else:
         raise ValueError(f'Unknown format {format}')
