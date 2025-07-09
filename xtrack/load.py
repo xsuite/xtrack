@@ -5,7 +5,7 @@ def load(file=None, string=None, format=None, timeout=5.):
     if format is None and file is not None:
         if file.endswith('.json'):
             format = 'json'
-        elif file.endswith('.seq') or file.endswith('.madx') or file.endswith('.mad'):
+        elif file.endswith('.seq') or file.endswith('.madx'):
             format = 'madx'
         elif file.endswith('.py'):
             format = 'python'
@@ -33,7 +33,7 @@ def load(file=None, string=None, format=None, timeout=5.):
         elif 'lines' in ddd: # is environment
             return xt.Environment.from_dict(ddd)
         elif 'element_names' in ddd:
-            return xt.Line.from_dict(ddd).env
+            return xt.Line.from_dict(ddd)
         else:
             raise ValueError('Cannot determine class from json data')
     elif format == 'madx':
