@@ -18,7 +18,7 @@ void Misalignment_track_local_particle(MisalignmentData el, LocalParticle* part0
     const double theta = MisalignmentData_get_theta(el);
     const double phi = MisalignmentData_get_phi(el);
     const double psi = MisalignmentData_get_psi(el);
-    const double location = MisalignmentData_get_location(el);
+    const double anchor = MisalignmentData_get_anchor(el);
     const double length = MisalignmentData_get_length(el);
     const double angle = MisalignmentData_get_angle(el);
     const double is_exit = MisalignmentData_get_is_exit(el);
@@ -29,15 +29,15 @@ void Misalignment_track_local_particle(MisalignmentData el, LocalParticle* part0
 
     if (!is_exit) {
         if (NONZERO(angle)) {
-            track_misalignment_entry_curved(part0, dx, dy, ds, theta, phi, psi, location, length, angle);
+            track_misalignment_entry_curved(part0, dx, dy, ds, theta, phi, psi, anchor, length, angle);
         } else {
-            track_misalignment_entry_straight(part0, dx, dy, ds, theta, phi, psi, location, length);
+            track_misalignment_entry_straight(part0, dx, dy, ds, theta, phi, psi, anchor, length);
         }
     } else {
         if (NONZERO(angle)) {
-            track_misalignment_exit_curved(part0, dx, dy, ds, theta, phi, psi, location, length, angle);
+            track_misalignment_exit_curved(part0, dx, dy, ds, theta, phi, psi, anchor, length, angle);
         } else {
-            track_misalignment_exit_straight(part0, dx, dy, ds, theta, phi, psi, location, length);
+            track_misalignment_exit_straight(part0, dx, dy, ds, theta, phi, psi, anchor, length);
         }
     }
 }

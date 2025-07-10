@@ -154,7 +154,7 @@ def draw_bend_3d(entry, length, angle, plotter, width=10, resolution=100, **kwar
 
 # Element parameters
 length = 20
-angle = 0.3  # rad
+angle = 0.0  # rad
 k0 = 0
 
 # Misalignment parameters
@@ -257,21 +257,21 @@ plot_trajectory(pp1old, pp1, p2, p3, plotter=ax, color='green')
 # Track straight-through without misalignment
 # pp2 = pp0.copy()
 # line2.track(pp2)
-# plot_trajectory(pp0, pp2, p0, p3, plotter=ax, opacity=0.2)
+# plot_trajectory(pp0, pp2, p0, p3, plotter=ax, color='black', opacity=0.7)
 plot_trajectory_drift(pp0, p0, length=50, plotter=ax, color='gray', opacity=0.2)
 
 
 # Test proper Misalignment elements
 pp_element = pp0.copy()
 plot_point(pp_element, p0, plotter=ax, shape='cube', color='black')
-mis_entry = Misalign(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, location=f, angle=angle)
-# mis_entry = xt.beam_elements.elements.Misalignment(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, location=f, angle=angle, is_exit=False)
+mis_entry = Misalign(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle)
+# mis_entry = xt.beam_elements.elements.Misalignment(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle, is_exit=False)
 mis_entry.track(pp_element)
 plot_point(pp_element, p1, plotter=ax, shape='cube', color='red')
 line2.track(pp_element)
 plot_point(pp_element, p2, plotter=ax, shape='cube', color='orange')
-mis_exit = Realign(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, location=f, angle=angle)
-# mis_exit = xt.beam_elements.elements.Misalignment(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, location=f, angle=angle, is_exit=True)
+mis_exit = Realign(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle)
+# mis_exit = xt.beam_elements.elements.Misalignment(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle, is_exit=True)
 mis_exit.track(pp_element)
 plot_point(pp_element, p3, plotter=ax, shape='cube', color='green')
 
@@ -323,7 +323,7 @@ local elem = sbend 'elem' {
         dtheta=theta,
         dphi=phi,
         dpsi=psi
-        -- location not supported yet
+        -- anchor not supported yet
     }
 }
 

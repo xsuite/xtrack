@@ -9,7 +9,7 @@
 #include <beam_elements/elements_src/track_xrotation.h>
 #include <beam_elements/elements_src/track_yrotation.h>
 #include <beam_elements/elements_src/track_srotation.h>
-#include <beam_elements/elements_src/track_solenoid.h>
+#include <beam_elements/elements_src/track_drift.h>
 #include <beam_elements/elements_src/track_xyshift.h>
 
 
@@ -18,7 +18,7 @@
 #define X_ROTATE(PART, PHI) XRotation_single_particle(PART, -sin(PHI), cos(PHI), -tan(PHI))
 #define S_ROTATE(PART, PSI) SRotation_single_particle(PART, sin(PSI), cos(PSI))
 #define XY_SHIFT(PART, DX, DY) XYShift_single_particle(PART, DX, DY)
-#define S_SHIFT(PART, DS) Solenoid_thick_track_single_particle(part, DS, 0, 0)
+#define S_SHIFT(PART, DS) Drift_single_particle_exact(part, DS)
 
 
 double sinc(double);
@@ -34,7 +34,7 @@ void track_misalignment_entry_curved(
     double theta, // rotation around y, yaw, positive s to x
     double phi,  // rotation around x, pitch, positive s to y
     double psi,  // rotation around s, roll, positive y to x
-    double location, // location of the misalignment as a fraction of the length
+    double anchor, // anchor of the misalignment as a fraction of the length
     double length,  // length of the misaligned element
     double angle  // angle by which the element bends the reference frame
 ) {
@@ -51,7 +51,7 @@ void track_misalignment_entry_curved(
        where:
        - misalignment_matrix is the matrix that applies the misalignment
        - matrix_first_part is the matrix that takes us from the entry of the
-         element to the anchor of the misalignment (s-position of location * length)
+         element to the anchor of the misalignment (s-position of anchor * length)
     */
 
     // Misalignment matrix
@@ -64,8 +64,8 @@ void track_misalignment_entry_curved(
 
     // Compute matrix that takes us from the reference point of the misalignment
     // to the entry of the element
-    const double part_angle = angle * location;
-    const double part_length = length * location;
+    const double part_angle = angle * anchor;
+    const double part_length = length * anchor;
     const double delta_x_first_part = -part_length * sinc(part_angle / 2) * sin(part_angle / 2);
     const double delta_s_first_part = part_length * sinc(part_angle);
 
@@ -117,7 +117,7 @@ void track_misalignment_exit_curved(
     double theta, // rotation around y, yaw, positive s to x
     double phi,  // rotation around x, pitch, positive s to y
     double psi,  // rotation around s, roll, positive y to x
-    double location, // location of the misalignment as a fraction of the length
+    double anchor, // anchor of the misalignment as a fraction of the length
     double length,  // length of the misaligned element
     double angle  // angle by which the element bends the reference frame
 ) {
@@ -134,7 +134,7 @@ void track_misalignment_exit_curved(
        where:
        - misalignment_matrix is the matrix that applies the misalignment
        - matrix_second_part is the matrix that takes us from the frame in the
-         middle of the element (location * length) to the end of the element
+         middle of the element (anchor * length) to the end of the element
     */
 
     // Misalignment matrix
@@ -159,9 +159,9 @@ void track_misalignment_exit_curved(
 
     // Compute the inverse of the matrix that takes us from the point of the
     // misalignment to the exit of the element.
-    const double location_compl = 1 - location;
-    const double part_angle = angle * location_compl;
-    const double part_length = length * location_compl;
+    const double anchor_compl = 1 - anchor;
+    const double part_angle = angle * anchor_compl;
+    const double part_length = length * anchor_compl;
     const double delta_x_second_part = -part_length * sinc(part_angle / 2) * sin(part_angle / 2);
     const double delta_s_second_part = part_length * sinc(part_angle);
 
@@ -212,10 +212,10 @@ void track_misalignment_entry_straight(
     double theta, // rotation around y, yaw, positive s to x
     double phi,  // rotation around x, pitch, positive s to y
     double psi,  // rotation around s, roll, positive y to x
-    double location, // location of the misalignment as a fraction of the length
+    double anchor, // anchor of the misalignment as a fraction of the length
     double length  // length of the misaligned element
 ) {
-    const double part_length = location * length;
+    const double part_length = anchor * length;
     const double mis_x = dx - part_length * cos(phi) * sin(theta);
     const double mis_y = dy - part_length * sin(phi);
     const double mis_s = ds - part_length * (cos(phi) * cos(theta) - 1);
@@ -239,13 +239,13 @@ void track_misalignment_exit_straight(
     double theta, // rotation around y, yaw, positive s to x
     double phi,  // rotation around x, pitch, positive s to y
     double psi,  // rotation around s, roll, positive y to x
-    double location, // location of the misalignment as a fraction of the length
+    double anchor, // anchor of the misalignment as a fraction of the length
     double length  // length of the misaligned element
 ) {
-    const double part_length = (location - 1) * length;
-    const double mis_x = part_length * cos(phi) * sin(theta) - dx;
-    const double mis_y = part_length * sin(phi) - dy;
-    const double mis_s = part_length * (cos(phi) * cos(theta) - 1) - ds;
+    const double inv_part_length = (anchor - 1) * length;
+    const double mis_x = inv_part_length * cos(phi) * sin(theta) - dx;
+    const double mis_y = inv_part_length * sin(phi) - dy;
+    const double mis_s = inv_part_length * (cos(phi) * cos(theta) - 1) - ds;
 
     // Apply transformations
     START_PER_PARTICLE_BLOCK(part0, part);

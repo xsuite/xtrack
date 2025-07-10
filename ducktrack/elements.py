@@ -396,8 +396,8 @@ class Misalign(Element):
         ("theta", "rad", "Rotation around the y axis (positive s to x)", 0),
         ("phi", "rad", "Rotation around the x axis (positive s to y)", 0),
         ("psi", "rad", "Rotation around the s axis (positive y to x)", 0),
-        ("location", "", "Reference point, anchor, of the misalignment "
-                         "(0 for entry, 0.5 for middle, 1 for exit, etc.)", 0),
+        ("anchor", "", "Reference point, anchor, of the misalignment "
+                       "(0 for entry, 0.5 for middle, 1 for exit, etc.)", 0),
         ("length", "m", "Length of the element to which the misalignment applies", 0),
         ("angle", "rad", "Angle of bending if applicable (0 for straight)", 0),
     ]
@@ -411,7 +411,7 @@ class Misalign(Element):
     def track_bent(self, particles):
         dx, dy, ds = self.dx, self.dy, self.ds
         theta, phi, psi = self.theta, self.phi, self.psi
-        f, length, angle = self.location, self.length, self.angle
+        f, length, angle = self.anchor, self.length, self.angle
 
         s_phi, c_phi = np.sin(phi), np.cos(phi)
         s_theta, c_theta = np.sin(theta), np.cos(theta)
@@ -461,7 +461,7 @@ class Misalign(Element):
     def track_straight(self, particles):
         dx, dy, ds = self.dx, self.dy, self.ds
         theta, phi, psi = self.theta, self.phi, self.psi
-        f, length, angle = self.location, self.length, self.angle
+        f, length, angle = self.anchor, self.length, self.angle
 
         mis_x = dx - f * length * np.cos(phi) * np.sin(theta)
         mis_y = dy - f * length * np.sin(phi)
@@ -488,8 +488,8 @@ class Realign(Element):
         ("theta", "rad", "Rotation around the y axis (positive s to x)", 0),
         ("phi", "rad", "Rotation around the x axis (positive s to y)", 0),
         ("psi", "rad", "Rotation around the s axis (positive y to x)", 0),
-        ("location", "", "Reference point, anchor, of the misalignment "
-                         "(0 for entry, 0.5 for middle, 1 for exit, etc.)", 0),
+        ("anchor", "", "Reference point, anchor, of the misalignment "
+                       "(0 for entry, 0.5 for middle, 1 for exit, etc.)", 0),
         ("length", "m", "Length of the element to which the misalignment applies", 0),
         ("angle", "rad", "Angle of bending if applicable (0 for straight)", 0),
     ]
@@ -503,7 +503,7 @@ class Realign(Element):
     def track_bent(self, particles):
         dx, dy, ds = self.dx, self.dy, self.ds
         theta, phi, psi = self.theta, self.phi, self.psi
-        f, length, angle = self.location, self.length, self.angle
+        f, length, angle = self.anchor, self.length, self.angle
 
         s_phi, c_phi = np.sin(phi), np.cos(phi)
         s_theta, c_theta = np.sin(theta), np.cos(theta)
@@ -563,7 +563,7 @@ class Realign(Element):
     def track_straight(self, particles):
         dx, dy, ds = self.dx, self.dy, self.ds
         theta, phi, psi = self.theta, self.phi, self.psi
-        f, length, angle = self.location, self.length, self.angle
+        f, length, angle = self.anchor, self.length, self.angle
 
         mis_x = (f - 1) * length * np.cos(phi) * np.sin(theta) - dx
         mis_y = (f - 1) * length * np.sin(phi) - dy

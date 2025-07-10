@@ -568,7 +568,7 @@ class Misalignment(BeamElement):
         Rotation around x, pitch, positive s to y.
     psi : float
         Rotation around s, roll, positive y to x.
-    location : float
+    anchor : float
         Location of the misalignment as a fraction of the length.
     length : float
         Length of the misaligned element.
@@ -586,7 +586,7 @@ class Misalignment(BeamElement):
         'theta': xo.Float64,
         'phi': xo.Float64,
         'psi': xo.Float64,
-        'location': xo.Float64,
+        'anchor': xo.Float64,
         'length': xo.Float64,
         'angle': xo.Float64,
         'is_exit': xo.Int64,
