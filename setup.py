@@ -44,6 +44,7 @@ setup(
         "pandas>=2.0",
         'scipy',
         'tqdm',
+        'requests',
         'xobjects',
         'xdeps'
     ],
