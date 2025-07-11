@@ -5,93 +5,8 @@ import xtrack as xt
 import numpy as np
 import pymadng as ng
 from ducktrack.elements import Misalign, Realign
-
-
-def plot_frame_zyx(madpoint, plotter, scale=1.0):
-    origin = madpoint.xyz
-    dz = madpoint.dz * scale
-    dx = madpoint.dx * scale
-    dy = madpoint.dy * scale
-
-    # Z-direction (blue)
-    plotter.add_arrows(origin, dz, mag=1.0, color='blue')
-    # X-direction (red)
-    plotter.add_arrows(origin, dx, mag=1.0, color='red')
-    # Y-direction (green)
-    plotter.add_arrows(origin, dy, mag=1.0, color='green')
-
-    # Add origin as a sphere or point
-    plotter.add_mesh(pv.Sphere(radius=0.05, center=origin), color='black')
-
-    # Add dashed guideline along dx and dy
-    # line_x = pv.Line(origin - 5 * dx, origin + 20 * dx)
-    # line_y = pv.Line(origin - 5 * dy, origin + 20 * dy)
-    # plotter.add_mesh(line_x, color='black', style='wireframe', opacity=0.4)
-    # plotter.add_mesh(line_y, color='black', style='wireframe', opacity=0.4)
-    plane_center = origin
-    plane_normal = np.cross(dx, dy)
-    plane = pv.Plane(
-        center=plane_center, direction=plane_normal, i_size=40, j_size=40
-    )
-    plotter.add_mesh(plane, color='black', opacity=0.1, style='wireframe')
-
-
-def plot_trajectory(p0, p1, frame0, frame1, plotter, **kwargs):
-    xyz0 = np.array([frame0.xyz + x * frame0.dx + y * frame0.dy for x, y in zip(p0.x, p0.y)])
-    xyz1 = np.array([frame1.xyz + x * frame1.dx + y * frame1.dy for x, y in zip(p1.x, p1.y)])
-
-    for v0, v1 in zip(xyz0, xyz1):
-        line = pv.Line(v0, v1)
-        plotter.add_mesh(line, color=kwargs.get('color', 'blue'), line_width=kwargs.get('linewidth', 4))
-
-
-def plot_trajectory_drift(p0, frame0, length, plotter, **kwargs):
-    for x, px, y, py, delta in zip(p0.x, p0.px, p0.y, p0.py, p0.delta):
-        pz = np.sqrt((1 + delta) ** 2 - px ** 2 - py ** 2)
-        xp = px / pz  # = dpx / ds
-        yp = py / pz  # = dpy / ds
-        dp_ds = xp * frame0.dx + yp * frame0.dy + frame0.dz
-        start = frame0.xyz + x * frame0.dx + y * frame0.dy
-        end = start + length * dp_ds
-
-        line = pv.Line(start, end)
-        plotter.add_mesh(line, color=kwargs.get('color', 'blue'), line_width=kwargs.get('linewidth', 4))
-
-
-
-def plot_point(p0, frame0, plotter, shape='sphere', size=0.1, **kwargs):
-    xyz0 = np.array([frame0.xyz + x * frame0.dx + y * frame0.dy for x, y in zip(p0.x, p0.y)])
-
-    def _plot_single_point(v0):
-        if shape == 'sphere':
-            sphere = pv.Sphere(radius=kwargs.get('radius', size), center=v0)
-            plotter.add_mesh(sphere, color=kwargs.get('color', 'red'))
-        elif shape == 'cube':
-            cube = pv.Cube(
-                center=v0,
-                x_length=kwargs.get('size', 2 * size),
-                y_length=kwargs.get('size', 2 * size),
-                z_length=kwargs.get('size', 2 * size),
-            )
-            plotter.add_mesh(cube, color=kwargs.get('color', 'red'))
-        if shape == 'diamond':
-            def _make_pyramid(direction):
-                return pv.Pyramid([
-                    np.array([-size, -size, 0]),
-                    np.array([size, -size, 0]),
-                    np.array([size, size, 0]),
-                    np.array([-size, size, 0]),
-                    np.array([0, 0, direction * np.sqrt(2) * size]),
-                ]).rotate_z(45).translate(v0)
-            plotter.add_mesh(_make_pyramid(1), color=kwargs.get('color', 'red'))
-            plotter.add_mesh(_make_pyramid(-1), color=kwargs.get('color', 'red'))
-
-    for v0 in xyz0:
-        _plot_single_point(v0)
-
-
-def sinc(x):
-    return np.sinc(x / np.pi)  # np.sinc is normalized to pi, so we divide by pi
+from cpymad.madx import Madx
+from plotting import *
 
 
 def wedge(length, angle):
@@ -102,41 +17,6 @@ def wedge(length, angle):
             MADPoint(x=delta_x, z=delta_s).matrix
             @ MADPoint(theta=delta_theta).matrix
     ))
-
-
-def draw_bend_3d(entry, length, angle, plotter, width=10, resolution=100, **kwargs):
-    """Draw a straight or bent cuboid using extrusion in PyVista."""
-    # Define a square cross-section in YZ plane
-    half = width / 2
-    square = pv.Polygon(
-        normal=[0, 0, 1],
-        n_sides=4,
-        radius=half,
-    )
-    square = square.rotate_z(45, point=square.center)
-    rho = length / angle if angle != 0 else 0
-    square = square.translate(xyz=[rho, 0, 0])
-
-    # Extrude the square along the spline
-    if angle:
-        swept = square.extrude_rotate(
-            resolution=resolution,
-            angle=np.rad2deg(-angle),
-            rotation_axis=np.array([0, 1, 0]),
-            capping=True,
-        )
-    else:
-        swept = square.extrude(
-            vector=[0, 0, length],
-            capping=True,
-        )
-
-    # Transform the swept solid to the global frame
-    swept = swept.translate(xyz=[-rho, 0, 0])
-    swept.transform(entry.matrix, inplace=True)
-
-    # Add to plotter
-    plotter.add_mesh(swept, color=kwargs.pop('c', 'gray'), opacity=kwargs.pop('opacity', 0.2), **kwargs)
 
 
 # # Element parameters
@@ -156,6 +36,7 @@ def draw_bend_3d(entry, length, angle, plotter, width=10, resolution=100, **kwar
 length = 20
 angle = 0.0  # rad
 k0 = 0
+k1 = 0
 
 # Misalignment parameters
 dx = -15
@@ -164,12 +45,13 @@ dz = 23
 theta = -0.1  # rad
 phi = 0.11  # rad
 psi = np.pi / 4  # rad
-f = 0.4  # fraction of the element length for the misalignment
+f = 0.0  # fraction of the element length for the misalignment
 
 element = (
     xt.Bend(length=length, angle=angle, model='rot-kick-rot', k0=k0)
-    if angle else xt.Solenoid(length=length)
+    if angle else xt.DriftExact(length=length)
 )
+# element = xt.Quadrupole(length=length, k1=k1)
 
 ax = pv.Plotter()
 ax.show_axes()
@@ -197,8 +79,8 @@ plot_frame_zyx(p3, ax)
 
 # Draw the elements
 mis_entry = first_half.matrix @ misalign.matrix @ np.linalg.inv(first_half.matrix)
-draw_bend_3d(p0, length, angle, plotter=ax)
-draw_bend_3d(MADPoint(src=mis_entry), length, angle, plotter=ax, c='pink')
+draw_bend_3d(p0, length, angle, 0, plotter=ax)
+draw_bend_3d(MADPoint(src=mis_entry), length, angle, 0, plotter=ax, c='pink')
 
 
 # Track the particles part by part
@@ -207,7 +89,7 @@ theta0, phi0, psi0 = p1.get_theta_phi_psi()
 line = xt.Line(
     elements=[
         xt.XYShift(dx=p1.x, dy=p1.y),
-        xt.Solenoid(length=p1.z),
+        xt.DriftExact(length=p1.z),
         xt.YRotation(angle=np.rad2deg(theta0)),
         xt.XRotation(angle=np.rad2deg(-phi0)),  # angle flip, unsure why
         xt.SRotation(angle=np.rad2deg(psi0)),
@@ -224,7 +106,7 @@ theta1, phi1, psi1 = dr.get_theta_phi_psi()
 line3 = xt.Line(
     elements=[
         xt.XYShift(dx=dr.x, dy=dr.y),
-        xt.Solenoid(length=dr.z),
+        xt.DriftExact(length=dr.z),
         xt.YRotation(angle=np.rad2deg(theta1)),
         xt.XRotation(angle=np.rad2deg(-phi1)),  # angle flip, unsure why
         xt.SRotation(angle=np.rad2deg(psi1)),
@@ -255,8 +137,9 @@ plot_trajectory(pp1old, pp1, p2, p3, plotter=ax, color='green')
 
 
 # Track straight-through without misalignment
-# pp2 = pp0.copy()
-# line2.track(pp2)
+pref = pp0.copy()
+line2.reset_s_at_end_turn = False
+line2.track(pref)
 # plot_trajectory(pp0, pp2, p0, p3, plotter=ax, color='black', opacity=0.7)
 plot_trajectory_drift(pp0, p0, length=50, plotter=ax, color='gray', opacity=0.2)
 
@@ -264,14 +147,16 @@ plot_trajectory_drift(pp0, p0, length=50, plotter=ax, color='gray', opacity=0.2)
 # Test proper Misalignment elements
 pp_element = pp0.copy()
 plot_point(pp_element, p0, plotter=ax, shape='cube', color='black')
-mis_entry = Misalign(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle)
-# mis_entry = xt.beam_elements.elements.Misalignment(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle, is_exit=False)
+# mis_entry = Misalign(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle)
+mis_entry = xt.Misalignment(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle, is_exit=False)
 mis_entry.track(pp_element)
 plot_point(pp_element, p1, plotter=ax, shape='cube', color='red')
+pprec1 = pp_element.copy()
 line2.track(pp_element)
 plot_point(pp_element, p2, plotter=ax, shape='cube', color='orange')
-mis_exit = Realign(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle)
-# mis_exit = xt.beam_elements.elements.Misalignment(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle, is_exit=True)
+# mis_exit = Realign(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle)
+mis_exit = xt.Misalignment(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle, is_exit=True)
+pprec2 = pp_element.copy()
 mis_exit.track(pp_element)
 plot_point(pp_element, p3, plotter=ax, shape='cube', color='green')
 
@@ -296,7 +181,9 @@ X0 = [
 
 mng['length'] = length
 mng['angle'] = angle
+mng['beta'] = pp0.beta0[0]
 mng['k0'] = k0
+mng['k1'] = k1
 mng['dx'] = dx
 mng['dy'] = dy
 mng['dz'] = dz
@@ -309,23 +196,39 @@ mng['X0'] = X0
 mng['beta'] = pp0.beta0[0]
 
 ng_script = """
-local sequence, quadrupole, sbend in MAD.element
+local sequence, quadrupole, sbend, drift in MAD.element
 local track, beam in MAD
 
-local elem = sbend 'elem' {
-    l=length,
-    angle=angle,
-    k0=k0,
-    misalign={
-        dx=dx,
-        dy=dy,
-        ds=dz,
-        dtheta=theta,
-        dphi=phi,
-        dpsi=psi
-        -- anchor not supported yet
-    }
+local elem
+local misalign = {
+    dx=dx,
+    dy=dy,
+    ds=dz,
+    dtheta=theta,
+    dphi=phi,
+    dpsi=psi
+    -- anchor not supported yet
 }
+
+if k0 ~= 0 then
+    elem = sbend 'elem' {
+        l=length,
+        angle=angle,
+        k0=k0,
+        misalign=misalign
+    }
+elseif k1 ~= 0 then
+    elem = quadrupole 'elem' {
+        l=length,
+        k1=k1,
+        misalign=misalign
+    }
+else
+    elem = drift 'elem' {
+        l=length,
+        misalign=misalign
+    }
+end
 
 local seq = sequence 'seq' { refer='entry',
     elem { at=0 }
@@ -357,3 +260,48 @@ plot_point(pp_madng_1, p1, shape='diamond', plotter=ax, color='red')
 plot_point(pp_madng_2, p2, shape='diamond', plotter=ax, color='orange')
 plot_point(pp_madng_3, p3, shape='diamond', plotter=ax, color='green')
 
+
+# MAD-X
+mad = Madx()
+
+madx_particles = '\n'.join([
+    f'start, x={pp0.x[i]}, px={pp0.px[i]}, y={pp0.y[i]}, py={pp0.py[i]};'
+    for i in range(len(pp0.x))
+])
+
+mad.input(
+    f"""
+    beam, particle=proton, beta={pp0.beta0[0]};
+
+    quad: quadrupole,
+        l={length},
+        k1={k1},
+        dx={dx},
+        dy={dy},
+        ds={dz},
+        dtheta={theta},
+        dphi={phi},
+        dpsi={psi};
+
+    seq: sequence, l=10, refer=entry;
+        quad, at=0;
+    endsequence;
+
+    use, sequence=seq;
+
+    track;
+        {madx_particles}
+        run, turns=1;
+    endtrack;
+"""
+)
+
+turn = mad.table.tracksumm.turn
+mask = np.where(turn == 1)
+pp_madx_3 = xt.Particles(
+    x=mad.table.tracksumm.x[mask],
+    px=mad.table.tracksumm.px[mask],
+    y=mad.table.tracksumm.y[mask],
+    py=mad.table.tracksumm.py[mask],
+)
+plot_point(pp_madx_3, p3, shape='sphere', plotter=ax, color='green')
