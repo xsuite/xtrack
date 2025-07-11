@@ -1,10 +1,9 @@
 import xobjects as xo
 
-from ..general import _pkg_root
 from ..base_element import BeamElement
 from .elements import (
     SynchrotronRadiationRecord, Bend, Quadrupole, Sextupole,
-    Octupole, Solenoid, Drift, RBend, UniformSolenoid
+    Octupole, Solenoid, Drift, DriftExact, RBend, UniformSolenoid
 )
 from ..random import RandomUniformAccurate, RandomExponential
 
@@ -440,4 +439,39 @@ class DriftSlice(BeamElement):
     def get_equivalent_element(self):
         out = Drift(length=self._parent.length * self.weight,
                      _buffer=self._buffer)
+        return out
+
+
+class DriftExactSlice(BeamElement):
+    allow_rot_and_shift = False
+    rot_and_shift_from_parent = False
+    _skip_in_to_dict = ['_parent']
+    has_backtrack = True
+    allow_loss_refinement = True
+    _force_moveable = True
+    isthick = True
+    _inherit_strengths = False
+
+    _xofields = {'_parent': xo.Ref(Drift), **COMMON_SLICE_XO_FIELDS}
+
+    _extra_c_sources = [
+        '#include <beam_elements/elements_src/drift_exact_slice.h>'
+    ]
+
+    copy = _slice_copy
+
+    def to_dict(self, **kwargs):
+        dct = BeamElement.to_dict(self, **kwargs)
+        dct['parent_name'] = self.parent_name
+        return dct
+
+    @classmethod
+    def from_dict(cls, dct, **kwargs):
+        obj = super().from_dict(dct, **kwargs)
+        obj.parent_name = dct['parent_name']
+        return obj
+
+    def get_equivalent_element(self):
+        out = DriftExact(length=self._parent.length * self.weight,
+                         _buffer=self._buffer)
         return out
