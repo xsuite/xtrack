@@ -2312,7 +2312,7 @@ class Line:
             assert isinstance(what, str)
             self.env.element_dict[what] = obj
 
-        if what in self.element_dict:
+        if isinstance(what, str) in self.element_dict:
             # Is an element and not a line or an iterable
             self.element_names.append(what)
             return
