@@ -1327,7 +1327,10 @@ def _compute_global_quantities(line, twiss_res):
             cmin_arr = (2 * np.sqrt(c_r1*c_r2) *
                         np.abs(np.mod(mux[-1], 1) - np.mod(muy[-1], 1))
                         /(1 + c_r1 * c_r2))
-            c_minus = trapz(cmin_arr, s_vect)/(circumference)
+            if circumference > 0:
+                c_minus = trapz(cmin_arr, s_vect)/(circumference)
+            else:
+                c_minus = np.mean(cmin_arr)
 
             c_minus_cplx = c_minus * np.exp(1j * c_phi1)
             c_minus_re = np.real(c_minus_cplx)
