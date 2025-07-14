@@ -4764,6 +4764,8 @@ def _compute_spin_polarization(tw, line, method):
             'spin_dn_ddelta_z': dn_ddelta[:, 2],
             'spin_eigenvectors': EE,
             'spin_n_matrix': NN,
+            'spin_n0_iv': n0_iv,
+            'spin_n0_ib': n0_ib,
         }
 
         other_data = {
