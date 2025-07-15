@@ -38,8 +38,6 @@ class LongitudinalExciter(BeamElement):
     Notes:
         - This is similar to an Exciter but applies longitudinal kicks instead of transverse kicks.
         - The voltage is applied as an energy change to the particles, similar to a Cavity.
-        - This allows for arbitrary frequency excitation, unlike RFMultipole which is restricted
-          to harmonics of the revolution frequency.
 
     Parameters:
         - voltage (float): Base voltage in Volts that will be scaled by the waveform.
