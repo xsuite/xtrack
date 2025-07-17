@@ -98,6 +98,9 @@ void track_magnet_edge_particles(
         #define MAGNET_WEDGE(PART) \
             if (should_rotate) Wedge_single_particle((PART), -face_angle, kn[0])
 
+        #define MAGNET_QUAD_WEDGE(PART) \
+            if (should_rotate) Quad_wedge_single_particle((PART), -face_angle, kn[1])
+
         if (is_exit == 0){ // entry
             START_PER_PARTICLE_BLOCK(part0, part);
                 MAGNET_Y_ROTATE(part);
@@ -106,10 +109,16 @@ void track_magnet_edge_particles(
                     MAGNET_MULTIPOLE_FRINGE(part);
                 }
                 MAGNET_WEDGE(part);
+                if (model == 1){
+                    MAGNET_QUAD_WEDGE(part);
+                }
             END_PER_PARTICLE_BLOCK;
         }
         else { // exit
             START_PER_PARTICLE_BLOCK(part0, part);
+                if (model == 1){
+                    MAGNET_QUAD_WEDGE(part);
+                }
                 MAGNET_WEDGE(part);
                 if (model == 1){
                     MAGNET_MULTIPOLE_FRINGE(part);
@@ -123,6 +132,7 @@ void track_magnet_edge_particles(
         #undef MAGNET_DIPOLE_FRINGE
         #undef MAGNET_MULTIPOLE_FRINGE
         #undef MAGNET_WEDGE
+        #undef MAGNET_QUAD_WEDGE
     }
     // If model is not 0 or 1, do nothing
 }
