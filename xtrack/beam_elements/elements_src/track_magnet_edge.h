@@ -116,6 +116,9 @@ void track_magnet_edge_particles(
         #define MAGNET_QUAD_WEDGE(PART) \
             if (should_rotate) Quad_wedge_single_particle((PART), -face_angle, kn[1])
 
+        #define MAGNET_QUAD_WEDGE(PART) \
+            if (should_rotate) Quad_wedge_single_particle((PART), -face_angle, kn[1])
+
         if (is_exit == 0){ // entry
             START_PER_PARTICLE_BLOCK(part0, part);
                 MAGNET_Y_ROTATE(part);
