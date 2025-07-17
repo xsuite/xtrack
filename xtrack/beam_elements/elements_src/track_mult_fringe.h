@@ -122,6 +122,8 @@ void MultFringe_track_single_particle(
     double new_py = (a * py - c * px) / det;
     double delta_t = (1 / beta0 + pt) * (new_px * fx + new_py * fy) / POW3(pz);
 
+    printf("Fringe px=%g py=%g c=%g a=%g new_py=%g \n",px,py,c,a,new_py);
+
     LocalParticle_add_to_x(part, -fx / pz);
     LocalParticle_add_to_y(part, -fy / pz);
     LocalParticle_set_px(part, new_px);
