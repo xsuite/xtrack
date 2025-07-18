@@ -8,14 +8,20 @@ angle = 0.1
 b2 = 5
 b1 = 0
 
-dipole = xt.Bend(length=0, k0=b1, k1=b2, edge_exit_angle=angle, edge_exit_model='2')
-sextupole = xt.Multipole(knl = [0, 0, 3/4 * b2 * angle])
-line = xt.Line(elements=[dipole, sextupole])
-dipole_full = xt.Bend(length=0, k0=b1, k1=b2, edge_exit_angle=angle, edge_exit_model='1')
+# dipole = xt.Bend(length=0, k0=b1, k1=b2, edge_exit_angle=angle, edge_exit_model='2')
+# sextupole = xt.Multipole(knl = [0, 0, -3/2 * b2 * angle])
+# line = xt.Line(elements=[dipole, sextupole])
+# dipole_full = xt.Bend(length=0, k0=b1, k1=b2, edge_exit_angle=angle, edge_exit_model='1')
+# line2= xt.Line(elements=[dipole_full])
+
+dipole = xt.Bend(length=0, k0=b1, k1=b2, edge_entry_angle=angle, edge_entry_model='2')
+sextupole = xt.Multipole(knl = [0, 0, -3/2 * b2 * angle])
+line = xt.Line(elements=[sextupole, dipole])
+dipole_full = xt.Bend(length=0, k0=b1, k1=b2, edge_entry_angle=angle, edge_entry_model='1')
 line2= xt.Line(elements=[dipole_full])
 
 x=0.1
-px=0.00
+px=0
 y=0.1
 
 p0 = xt.Particles(x=x,px=px,y=y)

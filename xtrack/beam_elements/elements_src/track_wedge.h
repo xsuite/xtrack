@@ -63,7 +63,6 @@ void Quad_wedge_single_particle(
         const double theta,   // Angle of the wedge
         const double k1       // Quadrupole strength
 ) {
-    printf("this is silke!\n");
     // Params
     const double b2 = k1 * LocalParticle_get_chi(part);
 
@@ -76,7 +75,6 @@ void Quad_wedge_single_particle(
     // Map
     const double new_px = px - b2 * x*x * theta + b2 * y*y/2 * theta;
     const double new_py = py + b2 * x*y * theta;
-    printf("Wedge py=%g dpy=%g\n",py, b2 * x*y * theta);
 
     // Update particle coordinates
     LocalParticle_set_px(part, new_px);
