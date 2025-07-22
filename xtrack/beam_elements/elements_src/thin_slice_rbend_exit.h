@@ -27,7 +27,7 @@ void ThinSliceRBendExit_track_local_particle(
         double const edge_exit_fint = ThinSliceRBendExitData_get__parent_edge_exit_fint(el);
         double const edge_exit_hgap = ThinSliceRBendExitData_get__parent_edge_exit_hgap(el);
         double const k0 = ThinSliceRBendExitData_get__parent_k0(el);
-        double const k1 = ThinSliceRBendEntryData_get__parent_k1(el);
+        double const k1 = ThinSliceRBendExitData_get__parent_k1(el);
 
         double knorm[] = {k0, k1};
         double kskew[] = {0., 0.};
@@ -43,9 +43,9 @@ void ThinSliceRBendExit_track_local_particle(
 
         track_magnet_edge_particles(
             part0,
-            edge_entry_model, // model
+            edge_exit_model, // model
             is_exit,
-            edge_entry_hgap, // half_gap,
+            edge_exit_hgap, // half_gap,
             knorm, // knorm,
             kskew, // kskew,
             1, // k_order,
@@ -55,9 +55,9 @@ void ThinSliceRBendExit_track_local_particle(
             -1, // kl_order,
             0, //ksol,
             0, // length, - not needed if no knl ksl
-            edge_entry_angle, // face_angle,
-            edge_entry_angle_fdown, // face_angle_feed_down,
-            edge_entry_fint, // fringe_integral,
+            edge_exit_angle, // face_angle,
+            edge_exit_angle_fdown, // face_angle_feed_down,
+            edge_exit_fint, // fringe_integral,
             factor_backtrack_edge // factor_for_backtrack
         );
     } // end edge exit

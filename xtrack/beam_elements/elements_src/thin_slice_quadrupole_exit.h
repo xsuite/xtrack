@@ -21,7 +21,6 @@ void ThinSliceQuadrupoleExit_track_local_particle(
 
         double const k1 = ThinSliceQuadrupoleExitData_get__parent_k1(el);
         double const k1s = ThinSliceQuadrupoleExitData_get__parent_k1s(el);
-        double const length = ThinSliceQuadrupoleExitData_get__parent_length(el);
 
         double const knorm[2] = {0, k1};
         double const kskew[2] = {0, k1s};
@@ -37,7 +36,7 @@ void ThinSliceQuadrupoleExit_track_local_particle(
 
          track_magnet_edge_particles(
             part0,
-            edge_entry_model, // model
+            2, // model
             is_exit,
             0, // half_gap,
             knorm, // knorm,

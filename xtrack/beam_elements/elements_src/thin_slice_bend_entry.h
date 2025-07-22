@@ -26,7 +26,7 @@ void ThinSliceBendEntry_track_local_particle(
         double const edge_entry_fint = ThinSliceBendEntryData_get__parent_edge_entry_fint(el);
         double const edge_entry_hgap = ThinSliceBendEntryData_get__parent_edge_entry_hgap(el);
         double const k0 = ThinSliceBendEntryData_get__parent_k0(el);
-        double const k1 = ThinSliceRBendEntryData_get__parent_k1(el);
+        double const k1 = ThinSliceBendEntryData_get__parent_k1(el);
 
         double knorm[] = {k0, k1};
         double kskew[] = {0., 0.};

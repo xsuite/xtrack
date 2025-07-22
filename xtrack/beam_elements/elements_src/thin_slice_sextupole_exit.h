@@ -22,7 +22,6 @@ void ThinSliceSextupoleExit_track_local_particle(
 
         double const k2 = ThinSliceSextupoleExitData_get__parent_k2(el);
         double const k2s = ThinSliceSextupoleExitData_get__parent_k2s(el);
-        double const length = ThinSliceSextupoleExitData_get__parent_length(el);
 
         double const knorm[3] = {0, 0, k2};
         double const kskew[3] = {0, 0, k2s};
@@ -38,7 +37,7 @@ void ThinSliceSextupoleExit_track_local_particle(
 
         track_magnet_edge_particles(
             part0,
-            edge_entry_model, // model
+            2, // model
             is_exit,
             0, // half_gap,
             knorm, // knorm,

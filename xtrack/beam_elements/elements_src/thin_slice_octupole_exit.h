@@ -17,7 +17,6 @@ void ThinSliceOctupoleExit_track_local_particle(
 ) {
 
     const int64_t edge_exit_active = ThinSliceOctupoleExitData_get__parent_edge_exit_active(el);
-    const double length = ThinSliceOctupoleExitData_get__parent_length(el);
 
     if (edge_exit_active){
 
@@ -38,7 +37,7 @@ void ThinSliceOctupoleExit_track_local_particle(
 
          track_magnet_edge_particles(
             part0,
-            edge_entry_model, // model
+            2, // model
             is_exit,
             0, // half_gap,
             knorm, // knorm,
