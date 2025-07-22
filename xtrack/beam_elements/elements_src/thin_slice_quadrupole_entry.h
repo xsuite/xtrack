@@ -36,7 +36,7 @@ void ThinSliceQuadrupoleEntry_track_local_particle(
 
         track_magnet_edge_particles(
             part0,
-            2, // model
+            1, // model
             is_exit,
             0, // half_gap,
             knorm, // knorm,
