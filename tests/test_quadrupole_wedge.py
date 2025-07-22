@@ -19,16 +19,16 @@ def test_quadrupole_wedge():
     y=np.linspace(-2e-2, 2e-2, 5)
     py=np.linspace(-3e-2, 3e-2, 5)
 
-    p0 = xt.Particles(x=x,px=px,y=y)  # To do: update values and add py
+    p0 = xt.Particles(x=x,px=px,y=y,py=py)  # To do: update values and add py
 
     line.discard_tracker()
     line.build_tracker(use_prebuilt_kernels=False)
     line.track(p0)
 
-    x_expval = np.array([-0.01000545, -0.00500069, 0., 0.00500069, 0.01000558])
-    px_expval = np.array([-5.00811572e-02, -2.50242752e-02, 1.38777878e-17, 2.49676638e-02, 4.98542802e-02])
-    y_expval = np.array([-0.01999418, -0.00999927, 0., 0.00999927, 0.01999413])
-    py_expval = np.array([-1.25035798e-04, -3.44174278e-05, 0.00000000e+00, -4.08274331e-05, -1.76367653e-04])
+    x_expval = np.array([-0.01000546, -0.00500069, 0., 0.00500069, 0.01000559])
+    px_expval = np.array([-5.00959400e-02, -2.50261314e-02, 1.38777878e-17, 2.49695392e-02, 4.98693687e-02])
+    y_expval = np.array([-0.01999424, -0.00999928, 0., 0.00999926, 0.01999407])
+    py_expval = np.array([-0.03014372, -0.01503676, 0., 0.01496153, 0.0298426 ])
 
     assert np.allclose(p0.x, x_expval)
     assert np.allclose(p0.px, px_expval)
