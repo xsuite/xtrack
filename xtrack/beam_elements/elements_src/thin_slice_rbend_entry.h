@@ -26,33 +26,39 @@ void ThinSliceRBendEntry_track_local_particle(
         double const edge_entry_fint = ThinSliceRBendEntryData_get__parent_edge_entry_fint(el);
         double const edge_entry_hgap = ThinSliceRBendEntryData_get__parent_edge_entry_hgap(el);
         double const k0 = ThinSliceRBendEntryData_get__parent_k0(el);
+        double const k1 = ThinSliceRBendEntryData_get__parent_k1(el);
 
-        if (edge_entry_model==0){
-            double r21, r43;
-            compute_dipole_edge_linear_coefficients(k0, edge_entry_angle,
-                    edge_entry_angle_fdown, edge_entry_hgap, edge_entry_fint,
-                    &r21, &r43);
-            #ifdef XSUITE_BACKTRACK
-                r21 = -r21;
-                r43 = -r43;
-            #endif
-            START_PER_PARTICLE_BLOCK(part0, part);
-                DipoleEdgeLinear_single_particle(part, r21, r43);
-            END_PER_PARTICLE_BLOCK;
-        }
-        else if (edge_entry_model==1){
-            #ifdef XSUITE_BACKTRACK
-                START_PER_PARTICLE_BLOCK(part0, part);
-                    LocalParticle_kill_particle(part, -32);
-                END_PER_PARTICLE_BLOCK;
-                return;
-            #else
-                START_PER_PARTICLE_BLOCK(part0, part);
-                    DipoleEdgeNonLinear_single_particle(part, k0, edge_entry_angle,
-                                        edge_entry_fint, edge_entry_hgap, 0);
-                END_PER_PARTICLE_BLOCK;
-            #endif
-        }
+        double knorm[] = {k0, k1};
+        double kskew[] = {0., 0.};
+
+        // Backtracking
+        #ifdef XSUITE_BACKTRACK
+            const int64_t is_exit = 1;
+            const double factor_backtrack_edge = -1.;
+        #else
+            const int64_t is_exit = 0;
+            const double factor_backtrack_edge = 1.;
+        #endif
+
+        track_magnet_edge_particles(
+            part0,
+            edge_entry_model, // model, ax ay cancellation
+            is_exit,
+            edge_entry_hgap, // half_gap,
+            knorm, // knorm,
+            kskew, // kskew,
+            1, // k_order,
+            NULL, // knl - not considered in edge for now!
+            NULL, // ksl - not considered in edge for now!
+            0, // factor_knl_ksl,
+            -1, // kl_order,
+            0, //ksol,
+            0, // length, - not needed if no knl ksl
+            edge_entry_angle, // face_angle,
+            edge_entry_angle_fdown, // face_angle_feed_down,
+            edge_entry_fint, // fringe_integral,
+            factor_backtrack_edge // factor_for_backtrack, not needed in this case
+        );
     } // end edge entry
 
 }
