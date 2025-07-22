@@ -14,45 +14,46 @@ void ThinSliceQuadrupoleExit_track_local_particle(
         LocalParticle* part0
 ) {
 
-    const int64_t edge_exit_active = ThinSliceQuadrupoleExitData_get__parent_edge_exit_active(el);
-
-    if (edge_exit_active){
-
-        double const k1 = ThinSliceQuadrupoleExitData_get__parent_k1(el);
-        double const k1s = ThinSliceQuadrupoleExitData_get__parent_k1s(el);
-
-        double const knorm[2] = {0, k1};
-        double const kskew[2] = {0, k1s};
-
-        // Backtracking
-        #ifdef XSUITE_BACKTRACK
-            const int64_t is_exit = 0;
-            const double factor_backtrack_edge = -1.;
-        #else
-            const int64_t is_exit = 1;
-            const double factor_backtrack_edge = 1.;
-        #endif
-
-         track_magnet_edge_particles(
-            part0,
-            1, // model
-            is_exit,
-            0, // half_gap,
-            knorm, // knorm,
-            kskew, // kskew,
-            1, // k_order,
-            NULL, // knl - not considered in edge for now!
-            NULL, // ksl - not considered in edge for now!
-            0, // factor_knl_ksl,
-            -1, // kl_order,
-            0., //ksol,
-            0., // length, - not needed if no knl ksl
-            0., // face_angle,
-            0., // face_angle_feed_down,
-            0., // fringe_integral,
-            factor_backtrack_edge // factor_for_backtrack
-        );
-    }
+    track_magnet_particles(
+        /*part0*/                 part0,
+        /*length*/                ThinSliceQuadrupoleExitData_get__parent_length(el),
+        /*order*/                 ThinSliceQuadrupoleExitData_get__parent_order(el),
+        /*inv_factorial_order*/   ThinSliceQuadrupoleExitData_get__parent_inv_factorial_order(el),
+        /*knl*/                   ThinSliceQuadrupoleExitData_getp1__parent_knl(el, 0),
+        /*ksl*/                   ThinSliceQuadrupoleExitData_getp1__parent_ksl(el, 0),
+        /*factor_knl_ksl*/        1.,
+        /*num_multipole_kicks*/   0, // unused for edge
+        /*model*/                 0, // unused for edge
+        /*integrator*/            0, // unused for edge
+        /*radiation_flag*/        ThinSliceQuadrupoleExitData_get__parent_radiation_flag(el),
+        /*radiation_record*/      NULL,
+        /*delta_taper*/           ThinSliceQuadrupoleExitData_get__parent_delta_taper(el),
+        /*h*/                     0.,
+        /*hxl*/                   0.,
+        /*k0*/                    0.,
+        /*k1*/                    ThinSliceQuadrupoleExitData_get__parent_k1(el),
+        /*k2*/                    0.,
+        /*k3*/                    0.,
+        /*k0s*/                   0.,
+        /*k1s*/                   ThinSliceQuadrupoleExitData_get__parent_k1s(el),
+        /*k2s*/                   0.,
+        /*k3s*/                   0.,
+        /*ks*/                    0.,
+        /*dks_ds*/                0.,
+        /*body_active*/           0, // force for exit edge
+        /*edge_entry_active*/     0, // force for exit edge
+        /*edge_exit_active*/      ThinSliceQuadrupoleExitData_get__parent_edge_exit_active(el),
+        /*edge_entry_model*/      1,
+        /*edge_exit_model*/       1,
+        /*edge_entry_angle*/      0.,
+        /*edge_exit_angle*/       0.,
+        /*edge_entry_angle_fdown*/0.,
+        /*edge_exit_angle_fdown*/ 0.,
+        /*edge_entry_fint*/       0.,
+        /*edge_exit_fint*/        0.,
+        /*edge_entry_hgap*/       0.,
+        /*edge_exit_hgap*/        0.
+    );
 
 }
 
