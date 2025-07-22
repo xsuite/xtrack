@@ -50,6 +50,7 @@ void UniformSolenoid_track_local_particle(
         /*k3s*/                   0.,
         /*ks*/                    UniformSolenoidData_get_ks(el),
         /*dks_ds*/                0.,
+        /*body_active*/           1,
         /*edge_entry_active*/     UniformSolenoidData_get_edge_entry_active(el),
         /*edge_exit_active*/      UniformSolenoidData_get_edge_exit_active(el),
         /*edge_entry_model*/      3, // only ax ay cancellation

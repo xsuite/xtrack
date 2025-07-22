@@ -54,6 +54,7 @@ void Quadrupole_track_local_particle(
         /*k3s*/                   0.,
         /*ks*/                    0.,
         /*dks_ds*/                0.,
+        /*body_active*/           1,
         /*edge_entry_active*/     QuadrupoleData_get_edge_entry_active(el),
         /*edge_exit_active*/      QuadrupoleData_get_edge_exit_active(el),
         /*edge_entry_model*/      1,
