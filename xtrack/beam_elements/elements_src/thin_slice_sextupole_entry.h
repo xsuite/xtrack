@@ -7,8 +7,7 @@
 #define XTRACK_THIN_SLICE_SEXTUPOLE_ENTRY_H
 
 #include <headers/track.h>
-#include <beam_elements/elements_src/track_mult_fringe.h>
-
+#include <beam_elements/elements_src/track_magnet_edge.h>
 
 GPUFUN
 void ThinSliceSextupoleEntry_track_local_particle(
