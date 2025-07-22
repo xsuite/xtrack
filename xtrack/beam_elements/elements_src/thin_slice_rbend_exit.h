@@ -43,7 +43,7 @@ void ThinSliceRBendExit_track_local_particle(
 
         track_magnet_edge_particles(
             part0,
-            edge_entry_model, // model, ax ay cancellation
+            edge_entry_model, // model
             is_exit,
             edge_entry_hgap, // half_gap,
             knorm, // knorm,
