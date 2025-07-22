@@ -23,23 +23,37 @@ void ThinSliceQuadrupoleExit_track_local_particle(
         double const k1s = ThinSliceQuadrupoleExitData_get__parent_k1s(el);
         double const length = ThinSliceQuadrupoleExitData_get__parent_length(el);
 
-        double const kn[2] = {0, k1};
-        double const ks[2] = {0, k1s};
+        double const knorm[2] = {0, k1};
+        double const kskew[2] = {0, k1s};
 
-        START_PER_PARTICLE_BLOCK(part0, part);
-        MultFringe_track_single_particle(
-            part,
-            kn,
-            ks,
-            /* k_order */ 1,
-            /* knl */ NULL,
-            /* ksl */ NULL,
-            /* kl_order */ -1,
-            length,
-            /* is_exit */ 1,
-            /* min_order */ 0
+        // Backtracking
+        #ifdef XSUITE_BACKTRACK
+            const int64_t is_exit = 0;
+            const double factor_backtrack_edge = -1.;
+        #else
+            const int64_t is_exit = 1;
+            const double factor_backtrack_edge = 1.;
+        #endif
+
+         track_magnet_edge_particles(
+            part0,
+            edge_entry_model, // model
+            is_exit,
+            0, // half_gap,
+            knorm, // knorm,
+            kskew, // kskew,
+            1, // k_order,
+            NULL, // knl - not considered in edge for now!
+            NULL, // ksl - not considered in edge for now!
+            0, // factor_knl_ksl,
+            -1, // kl_order,
+            0., //ksol,
+            0., // length, - not needed if no knl ksl
+            0., // face_angle,
+            0., // face_angle_feed_down,
+            0., // fringe_integral,
+            factor_backtrack_edge // factor_for_backtrack
         );
-        END_PER_PARTICLE_BLOCK;
     }
 
 }

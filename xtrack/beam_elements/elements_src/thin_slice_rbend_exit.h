@@ -58,7 +58,7 @@ void ThinSliceRBendExit_track_local_particle(
             edge_entry_angle, // face_angle,
             edge_entry_angle_fdown, // face_angle_feed_down,
             edge_entry_fint, // fringe_integral,
-            factor_backtrack_edge // factor_for_backtrack, not needed in this case
+            factor_backtrack_edge // factor_for_backtrack
         );
     } // end edge exit
 

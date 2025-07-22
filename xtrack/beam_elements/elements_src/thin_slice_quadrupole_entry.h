@@ -52,7 +52,7 @@ void ThinSliceQuadrupoleEntry_track_local_particle(
             0., // face_angle,
             0., // face_angle_feed_down,
             0., // fringe_integral,
-            factor_backtrack_edge // factor_for_backtrack, not needed in this case
+            factor_backtrack_edge // factor_for_backtrack
         );
     } // end edge entry
     }
