@@ -19,13 +19,6 @@ void Sextupole_track_local_particle(
     int64_t integrator = SextupoleData_get_integrator(el);
     int64_t num_multipole_kicks = SextupoleData_get_num_multipole_kicks(el);
 
-    if (model == 0) {  // adaptive
-        model = 6;  // drift-kick-drift-expanded
-    }
-    if (integrator == 0) {  // adaptive
-        integrator = 3;  // uniform
-    }
-
     track_magnet_particles(
         /*part0*/                 part0,
         /*length*/                SextupoleData_get_length(el),
