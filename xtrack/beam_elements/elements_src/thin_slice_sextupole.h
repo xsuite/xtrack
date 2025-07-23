@@ -42,7 +42,9 @@ void ThinSliceSextupole_track_local_particle(
         /*factor_knl_ksl*/        weight,
         /*num_multipole_kicks*/   1,
         /*model*/                 -1, // kick only
+        /*default_model*/         0, // unused
         /*integrator*/            3, // uniform
+        /*default_integrator*/    0, // unused
         /*radiation_flag*/        radiation_flag,
         /*radiation_record*/      record,
         /*delta_taper*/           delta_taper,

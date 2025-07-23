@@ -23,13 +23,6 @@ void ThickSliceQuadrupole_track_local_particle(
 
     int64_t num_multipole_kicks = (int64_t) ceil(num_multipole_kicks_parent * weight);
 
-    if (model == 0) {  // adaptive
-        model = 4; // mat-kick-mat
-    }
-    if (integrator == 0) {  // adaptive
-        integrator = 3; // uniform
-    }
-
     int64_t radiation_flag = 0;
     double delta_taper = 0.0;
     #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
@@ -50,7 +43,9 @@ void ThickSliceQuadrupole_track_local_particle(
         /*factor_knl_ksl*/        weight,
         /*num_multipole_kicks*/   num_multipole_kicks,
         /*model*/                 model,
+        /*default_model*/         QUADRUPOLE_DEFAULT_MODEL,
         /*integrator*/            integrator,
+        /*default_integrator*/    QUADRUPOLE_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        radiation_flag,
         /*radiation_record*/      NULL,
         /*delta_taper*/           delta_taper,

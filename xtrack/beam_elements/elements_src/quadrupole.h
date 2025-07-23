@@ -18,13 +18,6 @@ void Quadrupole_track_local_particle(
     int64_t integrator = QuadrupoleData_get_integrator(el);
     int64_t num_multipole_kicks = QuadrupoleData_get_num_multipole_kicks(el);
 
-    if (model == 0) {  // adaptive
-        model = 4; // mat-kick-mat
-    }
-    if (integrator == 0) {  // adaptive
-        integrator = 3; // uniform
-    }
-
     track_magnet_particles(
         /*part0*/                 part0,
         /*length*/                QuadrupoleData_get_length(el),
@@ -35,7 +28,9 @@ void Quadrupole_track_local_particle(
         /*factor_knl_ksl*/        1.,
         /*num_multipole_kicks*/   num_multipole_kicks,
         /*model*/                 model,
+        /*default_model*/         QUADRUPOLE_DEFAULT_MODEL,
         /*integrator*/            integrator,
+        /*default_integrator*/    QUADRUPOLE_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        QuadrupoleData_get_radiation_flag(el),
         /*radiation_record*/      NULL,
         /*delta_taper*/           QuadrupoleData_get_delta_taper(el),

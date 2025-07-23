@@ -32,7 +32,9 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         /*factor_knl_ksl*/        1.,
         /*num_multipole_kicks*/   1,
         /*model*/                 -1, // kick only
+        /*default_model*/         0, // unused
         /*integrator*/            3, // uniform
+        /*default_integrator*/    3, // unused
         /*radiation_flag*/        radiation_flag,
         /*radiation_record*/      record,
         /*delta_taper*/           MultipoleData_get_delta_taper(el),

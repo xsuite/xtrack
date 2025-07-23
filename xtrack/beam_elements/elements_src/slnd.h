@@ -17,13 +17,6 @@ void UniformSolenoid_track_local_particle(
     int64_t integrator = UniformSolenoidData_get_integrator(el);
     int64_t num_multipole_kicks = UniformSolenoidData_get_num_multipole_kicks(el);
 
-    if (integrator == 0) {  // adaptive
-        integrator = 3;  // uniform
-    }
-    if (num_multipole_kicks == 0) {
-        num_multipole_kicks = 1;
-    }
-
     track_magnet_particles(
         /*part0*/                 part0,
         /*length*/                UniformSolenoidData_get_length(el),
@@ -34,7 +27,9 @@ void UniformSolenoid_track_local_particle(
         /*factor_knl_ksl*/        1.,
         /*num_multipole_kicks*/   num_multipole_kicks,
         /*model*/                 -2, // sol-kick-sol
+        /*default_model*/         0, // unused
         /*integrator*/            integrator,
+        /*default_integrator*/    SOLENOID_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        UniformSolenoidData_get_radiation_flag(el),
         /*radiation_record*/      NULL,
         /*delta_taper*/           UniformSolenoidData_get_delta_taper(el),

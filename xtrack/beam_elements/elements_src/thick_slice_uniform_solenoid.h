@@ -49,7 +49,9 @@ void ThickSliceUniformSolenoid_track_local_particle(
         /*factor_knl_ksl*/        weight,
         /*num_multipole_kicks*/   num_multipole_kicks,
         /*model*/                 -2, // sol-kick-sol
+        /*default_model*/         0, // unused
         /*integrator*/            integrator,
+        /*default_integrator*/    SOLENOID_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        radiation_flag,
         /*radiation_record*/      NULL,
         /*delta_taper*/           delta_taper,

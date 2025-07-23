@@ -8,6 +8,7 @@
 
 #include <headers/track.h>
 #include <beam_elements/elements_src/track_magnet.h>
+#include <beam_elements/elements_src/default_magnet_config.h>
 
 
 GPUFUN
@@ -58,7 +59,9 @@ void Magnet_track_local_particle(
         /*factor_knl_ksl*/ 1.,
         num_multipole_kicks,
         model,
+        BEND_DEFAULT_MODEL,
         integrator,
+        BEND_DEFAULT_INTEGRATOR,
         radiation_flag,
         NULL, // radiation_record
         delta_taper,

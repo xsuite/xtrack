@@ -18,12 +18,6 @@ void Octupole_track_local_particle(
     int64_t integrator = OctupoleData_get_integrator(el);
     int64_t num_multipole_kicks = OctupoleData_get_num_multipole_kicks(el);
 
-    if (model == 0) {  // adaptive
-        model = 6;  // drift-kick-drift-expanded
-    }
-    if (integrator == 0) {  // adaptive
-        integrator = 3;  // uniform
-    }
 
     track_magnet_particles(
         /*part0*/                 part0,
@@ -35,7 +29,9 @@ void Octupole_track_local_particle(
         /*factor_knl_ksl*/        1.,
         /*num_multipole_kicks*/   num_multipole_kicks,
         /*model*/                 model,
+        /*default_model*/         OCTUPOLE_DEFAULT_MODEL,
         /*integrator*/            integrator,
+        /*default_integrator*/    OCTUPOLE_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        OctupoleData_get_radiation_flag(el),
         /*radiation_record*/      NULL,
         /*delta_taper*/           OctupoleData_get_delta_taper(el),

@@ -50,8 +50,8 @@ void configure_tracking_model(
     // model = -1: kick only (not exposed in python)
     // model = -2: sol-kick-sol (not exposed in python)
 
-    if (model==0 || model==1){
-        model = 3;
+    if (model==1){
+        model = 3; // backward compatibility
     }
 
     int8_t h_is_zero = (fabs(h) < H_TOLERANCE);
@@ -352,7 +352,7 @@ void track_magnet_body_single_particle(
         }
 
     }
-    else if (integrator==0 || integrator==2){ // YOSHIDA 4
+    else if (integrator==2){ // YOSHIDA 4
 
         const int64_t n_kicks_yoshida = 7;
         const int64_t num_slices = (num_multipole_kicks / n_kicks_yoshida
@@ -417,7 +417,9 @@ void track_magnet_particles(
     double factor_knl_ksl,
     int64_t num_multipole_kicks,
     int8_t model,
+    int8_t default_model,
     int8_t integrator,
+    int8_t default_integrator,
     int64_t radiation_flag,
     SynchrotronRadiationRecordData radiation_record,
     double delta_taper,
@@ -520,6 +522,13 @@ void track_magnet_particles(
     }
 
     if (body_active){
+
+        if (integrator == 0){
+            integrator = default_integrator;
+        }
+        if (model == 0){
+            model = default_model;
+        }
 
         // Compute the number of kicks for auto mode
         if (num_multipole_kicks == 0) { // num_multipole_kicks = 0 means auto mode
