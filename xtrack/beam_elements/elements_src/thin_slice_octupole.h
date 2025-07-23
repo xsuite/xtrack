@@ -45,6 +45,7 @@ void ThinSliceOctupole_track_local_particle(
         /*k3s*/                   ThinSliceOctupoleData_get__parent_k3s(el),
         /*ks*/                    0.,
         /*dks_ds*/                0.,
+        /*rbend_model*/           -1, // not rbend
         /*body_active*/           1,
         /*edge_entry_active*/     0,
         /*edge_exit_active*/      0,

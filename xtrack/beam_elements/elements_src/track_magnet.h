@@ -436,6 +436,7 @@ void track_magnet_particles(
     double k3s,
     double ks,
     double dks_ds,
+    int64_t rbend_model, // -1: not used, 0: auto, 1: curved body, 2: straight body
     int64_t body_active,
     int64_t edge_entry_active,
     int64_t edge_exit_active,
@@ -453,6 +454,17 @@ void track_magnet_particles(
 
     double factor_knl_ksl = 1.0;
 
+    if (rbend_model == 0){
+        // auto mode, curved body
+        rbend_model = 1;
+    }
+
+    if (rbend_model == 1){
+        // curved body
+        double const angle = h * length;
+        edge_entry_angle += angle / 2.0;
+        edge_exit_angle += angle / 2.0;
+    }
 
     // Backtracking
     #ifdef XSUITE_BACKTRACK

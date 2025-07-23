@@ -44,6 +44,7 @@ void ThinSliceRBend_track_local_particle(
         /*k3s*/                   0.,
         /*ks*/                    0.,
         /*dks_ds*/                0.,
+        /*rbend_model*/           0, // auto
         /*body_active*/           1,
         /*edge_entry_active*/     0,
         /*edge_exit_active*/      0,

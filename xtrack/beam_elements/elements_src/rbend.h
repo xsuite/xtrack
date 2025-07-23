@@ -16,19 +16,10 @@ void RBend_track_local_particle(
     LocalParticle* part0
 ) {
 
-    double length = RBendData_get_length(el);
-    const double h = RBendData_get_h(el);
-    const double angle = length * h;
-
-    const double edge_entry_angle = RBendData_get_edge_entry_angle(el) + angle / 2;
-    const double edge_entry_angle_fdown = RBendData_get_edge_entry_angle_fdown(el);
-    const double edge_exit_angle = RBendData_get_edge_exit_angle(el) + angle / 2;
-    const double edge_exit_angle_fdown = RBendData_get_edge_exit_angle_fdown(el);
-
     track_magnet_particles(
         /*weight*/                1.,
         /*part0*/                 part0,
-        /*length*/                length,
+        /*length*/                RBendData_get_length(el),
         /*order*/                 RBendData_get_order(el),
         /*inv_factorial_order*/   RBendData_get_inv_factorial_order(el),
         /*knl*/                   RBendData_getp1_knl(el, 0),
@@ -42,7 +33,7 @@ void RBend_track_local_particle(
         /*radiation_flag_parent*/ 0, // not used here
         /*radiation_record*/      NULL,
         /*delta_taper*/           RBendData_get_delta_taper(el),
-        /*h*/                     h,
+        /*h*/                     RBendData_get_h(el),
         /*hxl*/                   0.,
         /*k0*/                    RBendData_get_k0(el),
         /*k1*/                    RBendData_get_k1(el),
@@ -54,15 +45,16 @@ void RBend_track_local_particle(
         /*k3s*/                   0.,
         /*ks*/                    0.,
         /*dks_ds*/                0.,
+        /*rbend_model*/           0, // auto mode, curved body
         /*body_active*/           1,
         /*edge_entry_active*/     RBendData_get_edge_entry_active(el),
         /*edge_exit_active*/      RBendData_get_edge_exit_active(el),
         /*edge_entry_model*/      RBendData_get_edge_entry_model(el),
         /*edge_exit_model*/       RBendData_get_edge_exit_model(el),
-        /*edge_entry_angle*/      edge_entry_angle,
-        /*edge_exit_angle*/       edge_exit_angle,
-        /*edge_entry_angle_fdown*/edge_entry_angle_fdown,
-        /*edge_exit_angle_fdown*/ edge_exit_angle_fdown,
+        /*edge_entry_angle*/      RBendData_get_edge_entry_angle(el),
+        /*edge_exit_angle*/       RBendData_get_edge_exit_angle(el),
+        /*edge_entry_angle_fdown*/RBendData_get_edge_entry_angle_fdown(el),
+        /*edge_exit_angle_fdown*/ RBendData_get_edge_exit_angle_fdown(el),
         /*edge_entry_fint*/       RBendData_get_edge_entry_fint(el),
         /*edge_exit_fint*/        RBendData_get_edge_exit_fint(el),
         /*edge_entry_hgap*/       RBendData_get_edge_entry_hgap(el),

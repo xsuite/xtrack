@@ -43,6 +43,7 @@ void ThinSliceQuadrupoleExit_track_local_particle(
         /*k3s*/                   0.,
         /*ks*/                    0.,
         /*dks_ds*/                0.,
+        /*rbend_model*/           -1, // not rbend
         /*body_active*/           0, // force for exit edge
         /*edge_entry_active*/     0, // force for exit edge
         /*edge_exit_active*/      ThinSliceQuadrupoleExitData_get__parent_edge_exit_active(el),
