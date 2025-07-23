@@ -17,13 +17,6 @@ void ThickSliceRBend_track_local_particle(
         LocalParticle* part0
 ) {
     double weight = ThickSliceRBendData_get_weight(el);
-    int64_t radiation_flag = 0;
-    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
-        radiation_flag = ThickSliceRBendData_get_radiation_flag(el);
-        if (radiation_flag == 10){ // from parent
-            radiation_flag = ThickSliceRBendData_get__parent_radiation_flag(el);
-        }
-    #endif
     int64_t num_multipole_kicks_parent = ThickSliceRBendData_get__parent_num_multipole_kicks(el);
     int64_t const num_multipole_kicks = (int64_t) ceil(num_multipole_kicks_parent * weight);
 
@@ -40,7 +33,8 @@ void ThickSliceRBend_track_local_particle(
         /*default_model*/         BEND_DEFAULT_MODEL,
         /*integrator*/            ThickSliceRBendData_get__parent_integrator(el),
         /*default_integrator*/    BEND_DEFAULT_INTEGRATOR,
-        /*radiation_flag*/        radiation_flag,
+        /*radiation_flag*/        ThickSliceRBendData_get_radiation_flag(el),
+        /*radiation_flag_parent*/ ThickSliceRBendData_get__parent_radiation_flag(el),
         /*radiation_record*/      NULL,
         /*delta_taper*/           ThickSliceRBendData_get_delta_taper(el),
         /*h*/                     ThickSliceRBendData_get__parent_h(el),

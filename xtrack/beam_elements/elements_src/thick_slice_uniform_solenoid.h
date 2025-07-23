@@ -22,23 +22,6 @@ void ThickSliceUniformSolenoid_track_local_particle(
 
     int64_t num_multipole_kicks = (int64_t) ceil(num_multipole_kicks_parent * weight);
 
-    if (integrator == 0) {  // adaptive
-        integrator = 3; // uniform
-    }
-    if (num_multipole_kicks == 0) {
-        num_multipole_kicks = 1;
-    }
-
-    int64_t radiation_flag = 0;
-    double delta_taper = 0.0;
-    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
-        radiation_flag = ThickSliceUniformSolenoidData_get_radiation_flag(el);
-        if (radiation_flag == 10){ // from parent
-            radiation_flag = ThickSliceUniformSolenoidData_get__parent_radiation_flag(el);
-        }
-        delta_taper = ThickSliceUniformSolenoidData_get_delta_taper(el);
-    #endif
-
     track_magnet_particles(
         /*part0*/                 part0,
         /*length*/                ThickSliceUniformSolenoidData_get__parent_length(el) * weight,
@@ -52,9 +35,10 @@ void ThickSliceUniformSolenoid_track_local_particle(
         /*default_model*/         0, // unused
         /*integrator*/            integrator,
         /*default_integrator*/    SOLENOID_DEFAULT_INTEGRATOR,
-        /*radiation_flag*/        radiation_flag,
+        /*radiation_flag*/        ThickSliceUniformSolenoidData_get_radiation_flag(el),
+        /*radiation_flag_parent*/ ThickSliceUniformSolenoidData_get__parent_radiation_flag(el),
         /*radiation_record*/      NULL,
-        /*delta_taper*/           delta_taper,
+        /*delta_taper*/           ThickSliceUniformSolenoidData_get_delta_taper(el),
         /*h*/                     0.,
         /*hxl*/                   0.,
         /*k0*/                    0.,

@@ -33,6 +33,7 @@ void Quadrupole_track_local_particle(
         /*integrator*/            integrator,
         /*default_integrator*/    QUADRUPOLE_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        QuadrupoleData_get_radiation_flag(el),
+        /*radiation_flag_parent*/ 0, // not used here
         /*radiation_record*/      NULL,
         /*delta_taper*/           QuadrupoleData_get_delta_taper(el),
         /*h*/                     0.,

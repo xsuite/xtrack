@@ -30,6 +30,7 @@ void Bend_track_local_particle(
         /*integrator*/            BendData_get_integrator(el),
         /*default_integrator*/    BEND_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        BendData_get_radiation_flag(el),
+        /*radiation_flag_parent*/ 0, // not used here
         /*radiation_record*/      NULL,
         /*delta_taper*/           BendData_get_delta_taper(el),
         /*h*/                     BendData_get_h(el),

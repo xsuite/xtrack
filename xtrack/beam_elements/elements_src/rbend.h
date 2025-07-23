@@ -39,6 +39,7 @@ void RBend_track_local_particle(
         /*integrator*/            RBendData_get_integrator(el),
         /*default_integrator*/    RBEND_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        RBendData_get_radiation_flag(el),
+        /*radiation_flag_parent*/ 0, // not used here
         /*radiation_record*/      NULL,
         /*delta_taper*/           RBendData_get_delta_taper(el),
         /*h*/                     h,

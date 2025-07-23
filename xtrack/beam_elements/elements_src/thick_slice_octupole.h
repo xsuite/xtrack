@@ -24,14 +24,6 @@ void ThickSliceOctupole_track_local_particle(
 
     int64_t num_multipole_kicks = (int64_t) ceil(num_multipole_kicks_parent * weight);
 
-    int64_t radiation_flag = 0;
-    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
-        radiation_flag = ThickSliceOctupoleData_get_radiation_flag(el);
-        if (radiation_flag == 10){ // from parent
-            radiation_flag = ThickSliceOctupoleData_get__parent_radiation_flag(el);
-        }
-    #endif
-
     track_magnet_particles(
         /*part0*/                 part0,
         /*length*/                ThickSliceOctupoleData_get__parent_length(el) * weight,
@@ -45,7 +37,8 @@ void ThickSliceOctupole_track_local_particle(
         /*default_model*/         OCTUPOLE_DEFAULT_MODEL,
         /*integrator*/            integrator,
         /*default_integrator*/    OCTUPOLE_DEFAULT_INTEGRATOR,
-        /*radiation_flag*/        radiation_flag,
+        /*radiation_flag*/        ThickSliceOctupoleData_get_radiation_flag(el),
+        /*radiation_flag_parent*/ ThickSliceOctupoleData_get__parent_radiation_flag(el),
         /*radiation_record*/      NULL,
         /*delta_taper*/           ThickSliceOctupoleData_get_delta_taper(el),
         /*h*/                     0.,

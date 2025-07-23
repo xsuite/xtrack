@@ -421,6 +421,7 @@ void track_magnet_particles(
     int8_t integrator,
     int8_t default_integrator,
     int64_t radiation_flag,
+    int64_t radiation_flag_parent,
     SynchrotronRadiationRecordData radiation_record,
     double delta_taper,
     double h,
@@ -468,6 +469,12 @@ void track_magnet_particles(
         double factor_knl_ksl_body = factor_knl_ksl;
         double factor_knl_ksl_edge = factor_knl_ksl;
         const double factor_backtrack_edge = 1.;
+    #endif
+
+    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+        if (radiation_flag == 10){ // from parent
+            radiation_flag = radiation_flag_parent;
+        }
     #endif
 
     // Tapering

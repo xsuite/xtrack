@@ -63,6 +63,7 @@ void Magnet_track_local_particle(
         integrator,
         BEND_DEFAULT_INTEGRATOR,
         radiation_flag,
+        /*radiation_flag_parent*/ 0, // not used here
         NULL, // radiation_record
         delta_taper,
         h,

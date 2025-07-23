@@ -27,7 +27,8 @@ void ThinSliceQuadrupoleEntry_track_local_particle(
         /*default_model*/         0, // unused for edge
         /*integrator*/            0, // unused for edge
         /*default_integrator*/    0, // unused for edge
-        /*radiation_flag*/        ThinSliceQuadrupoleEntryData_get__parent_radiation_flag(el),
+        /*radiation_flag*/        0, // not used here
+        /*radiation_flag_parent*/ 0, // not used here
         /*radiation_record*/      NULL,
         /*delta_taper*/           ThinSliceQuadrupoleEntryData_get__parent_delta_taper(el),
         /*h*/                     0.,

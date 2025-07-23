@@ -33,6 +33,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         /*integrator*/            3, // uniform
         /*default_integrator*/    3, // unused
         /*radiation_flag*/        radiation_flag,
+        /*radiation_flag_parent*/ 0, // not used here
         /*radiation_record*/      (SynchrotronRadiationRecordData) MultipoleData_getp_internal_record(el, part0),
         /*delta_taper*/           MultipoleData_get_delta_taper(el),
         /*h*/                     0.,

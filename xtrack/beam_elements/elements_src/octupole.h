@@ -34,6 +34,7 @@ void Octupole_track_local_particle(
         /*integrator*/            integrator,
         /*default_integrator*/    OCTUPOLE_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        OctupoleData_get_radiation_flag(el),
+        /*radiation_flag_parent*/ 0, // not used here
         /*radiation_record*/      NULL,
         /*delta_taper*/           OctupoleData_get_delta_taper(el),
         /*h*/                     0.,
