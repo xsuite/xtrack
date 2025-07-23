@@ -15,10 +15,6 @@ void Octupole_track_local_particle(
         OctupoleData el,
         LocalParticle* part0
 ) {
-    int64_t model = OctupoleData_get_model(el);
-    int64_t integrator = OctupoleData_get_integrator(el);
-    int64_t num_multipole_kicks = OctupoleData_get_num_multipole_kicks(el);
-
 
     track_magnet_particles(
         /*weight*/                1.,
@@ -28,10 +24,10 @@ void Octupole_track_local_particle(
         /*inv_factorial_order*/   OctupoleData_get_inv_factorial_order(el),
         /*knl*/                   OctupoleData_getp1_knl(el, 0),
         /*ksl*/                   OctupoleData_getp1_ksl(el, 0),
-        /*num_multipole_kicks*/   num_multipole_kicks,
-        /*model*/                 model,
+        /*num_multipole_kicks*/   OctupoleData_get_num_multipole_kicks(el),
+        /*model*/                 OctupoleData_get_model(el),
         /*default_model*/         OCTUPOLE_DEFAULT_MODEL,
-        /*integrator*/            integrator,
+        /*integrator*/            OctupoleData_get_integrator(el),
         /*default_integrator*/    OCTUPOLE_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        OctupoleData_get_radiation_flag(el),
         /*radiation_flag_parent*/ 0, // not used here

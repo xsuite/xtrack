@@ -15,9 +15,6 @@ void Sextupole_track_local_particle(
         SextupoleData el,
         LocalParticle* part0
 ) {
-    int64_t model = SextupoleData_get_model(el);
-    int64_t integrator = SextupoleData_get_integrator(el);
-    int64_t num_multipole_kicks = SextupoleData_get_num_multipole_kicks(el);
 
     track_magnet_particles(
         /*weight*/                1.,
@@ -27,10 +24,10 @@ void Sextupole_track_local_particle(
         /*inv_factorial_order*/   SextupoleData_get_inv_factorial_order(el),
         /*knl*/                   SextupoleData_getp1_knl(el, 0),
         /*ksl*/                   SextupoleData_getp1_ksl(el, 0),
-        /*num_multipole_kicks*/   num_multipole_kicks,
-        /*model*/                 model,
+        /*num_multipole_kicks*/   SextupoleData_get_num_multipole_kicks(el),
+        /*model*/                 SextupoleData_get_model(el),
         /*default_model*/         SEXTUPOLE_DEFAULT_MODEL,
-        /*integrator*/            integrator,
+        /*integrator*/            SextupoleData_get_integrator(el),
         /*default_integrator*/    SEXTUPOLE_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        SextupoleData_get_radiation_flag(el),
         /*radiation_flag_parent*/ 0, // not used here

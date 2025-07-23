@@ -15,12 +15,6 @@ void ThickSliceUniformSolenoid_track_local_particle(
         ThickSliceUniformSolenoidData el,
         LocalParticle* part0
 ) {
-    double weight = ThickSliceUniformSolenoidData_get_weight(el);
-
-    int64_t num_multipole_kicks_parent = ThickSliceUniformSolenoidData_get__parent_num_multipole_kicks(el);
-    int64_t integrator = ThickSliceUniformSolenoidData_get__parent_integrator(el);
-
-    int64_t num_multipole_kicks = (int64_t) ceil(num_multipole_kicks_parent * weight);
 
     track_magnet_particles(
         /*weight*/                ThickSliceUniformSolenoidData_get_weight(el),
@@ -30,10 +24,10 @@ void ThickSliceUniformSolenoid_track_local_particle(
         /*inv_factorial_order*/   ThickSliceUniformSolenoidData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThickSliceUniformSolenoidData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThickSliceUniformSolenoidData_getp1__parent_ksl(el, 0),
-        /*num_multipole_kicks*/   num_multipole_kicks,
+        /*num_multipole_kicks*/   ThickSliceUniformSolenoidData_get__parent_num_multipole_kicks(el),
         /*model*/                 -2, // sol-kick-sol
         /*default_model*/         0, // unused
-        /*integrator*/            integrator,
+        /*integrator*/            ThickSliceUniformSolenoidData_get__parent_integrator(el),
         /*default_integrator*/    SOLENOID_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        ThickSliceUniformSolenoidData_get_radiation_flag(el),
         /*radiation_flag_parent*/ ThickSliceUniformSolenoidData_get__parent_radiation_flag(el),

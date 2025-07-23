@@ -540,6 +540,11 @@ void track_magnet_particles(
             model = default_model;
         }
 
+        // Adjust the number of multipole kicks based on the weight
+        if (weight != 1.0 && num_multipole_kicks > 0){
+            num_multipole_kicks = (int64_t) ceil(num_multipole_kicks * weight);
+        }
+
         // Compute the number of kicks for auto mode
         if (num_multipole_kicks == 0) { // num_multipole_kicks = 0 means auto mode
             // If there are active kicks the number of kicks is guessed. Otherwise,

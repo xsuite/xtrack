@@ -15,13 +15,6 @@ void ThickSliceQuadrupole_track_local_particle(
         ThickSliceQuadrupoleData el,
         LocalParticle* part0
 ) {
-    double weight = ThickSliceQuadrupoleData_get_weight(el);
-
-    int64_t num_multipole_kicks_parent = ThickSliceQuadrupoleData_get__parent_num_multipole_kicks(el);
-    int64_t model = ThickSliceQuadrupoleData_get__parent_model(el);
-    int64_t integrator = ThickSliceQuadrupoleData_get__parent_integrator(el);
-
-    int64_t num_multipole_kicks = (int64_t) ceil(num_multipole_kicks_parent * weight);
 
     track_magnet_particles(
         /*weight*/                ThickSliceQuadrupoleData_get_weight(el),
@@ -31,10 +24,10 @@ void ThickSliceQuadrupole_track_local_particle(
         /*inv_factorial_order*/   ThickSliceQuadrupoleData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThickSliceQuadrupoleData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThickSliceQuadrupoleData_getp1__parent_ksl(el, 0),
-        /*num_multipole_kicks*/   num_multipole_kicks,
-        /*model*/                 model,
+        /*num_multipole_kicks*/   ThickSliceQuadrupoleData_get__parent_num_multipole_kicks(el),
+        /*model*/                 ThickSliceQuadrupoleData_get__parent_model(el),
         /*default_model*/         QUADRUPOLE_DEFAULT_MODEL,
-        /*integrator*/            integrator,
+        /*integrator*/            ThickSliceQuadrupoleData_get__parent_integrator(el),
         /*default_integrator*/    QUADRUPOLE_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        ThickSliceQuadrupoleData_get_radiation_flag(el),
         /*radiation_flag_parent*/ ThickSliceQuadrupoleData_get__parent_radiation_flag(el),

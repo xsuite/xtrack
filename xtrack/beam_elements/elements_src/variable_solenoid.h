@@ -15,9 +15,6 @@ void VariableSolenoid_track_local_particle(
         VariableSolenoidData el,
         LocalParticle* part0
 ) {
-    int64_t integrator = VariableSolenoidData_get_integrator(el);
-    int64_t num_multipole_kicks = VariableSolenoidData_get_num_multipole_kicks(el);
-
     double ks_entry = VariableSolenoidData_get_ks_profile(el, 0);
     double ks_exit = VariableSolenoidData_get_ks_profile(el, 1);
     double const length = VariableSolenoidData_get_length(el);
@@ -52,10 +49,10 @@ void VariableSolenoid_track_local_particle(
         /*inv_factorial_order*/   VariableSolenoidData_get_inv_factorial_order(el),
         /*knl*/                   VariableSolenoidData_getp1_knl(el, 0),
         /*ksl*/                   VariableSolenoidData_getp1_ksl(el, 0),
-        /*num_multipole_kicks*/   num_multipole_kicks,
+        /*num_multipole_kicks*/   VariableSolenoidData_get_num_multipole_kicks(el),
         /*model*/                 -2, // sol-kick-sol
         /*default_model*/         0, // unused
-        /*integrator*/            integrator,
+        /*integrator*/            VariableSolenoidData_get_integrator(el),
         /*default_integrator*/    SOLENOID_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        VariableSolenoidData_get_radiation_flag(el),
         /*radiation_flag_parent*/ 0, // not used here

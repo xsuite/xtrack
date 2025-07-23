@@ -17,13 +17,6 @@ void ThickSliceOctupole_track_local_particle(
         LocalParticle* part0
 ) {
 
-    double weight = ThickSliceOctupoleData_get_weight(el);
-    int64_t num_multipole_kicks_parent = ThickSliceOctupoleData_get__parent_num_multipole_kicks(el);
-    int64_t model = ThickSliceOctupoleData_get__parent_model(el);
-    int64_t integrator = ThickSliceOctupoleData_get__parent_integrator(el);
-
-    int64_t num_multipole_kicks = (int64_t) ceil(num_multipole_kicks_parent * weight);
-
     track_magnet_particles(
         /*weight*/                ThickSliceOctupoleData_get_weight(el),
         /*part0*/                 part0,
@@ -32,10 +25,10 @@ void ThickSliceOctupole_track_local_particle(
         /*inv_factorial_order*/   ThickSliceOctupoleData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThickSliceOctupoleData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThickSliceOctupoleData_getp1__parent_ksl(el, 0),
-        /*num_multipole_kicks*/   num_multipole_kicks,
-        /*model*/                 model,
+        /*num_multipole_kicks*/   ThickSliceOctupoleData_get__parent_num_multipole_kicks(el),
+        /*model*/                 ThickSliceOctupoleData_get__parent_model(el),
         /*default_model*/         OCTUPOLE_DEFAULT_MODEL,
-        /*integrator*/            integrator,
+        /*integrator*/            ThickSliceOctupoleData_get__parent_integrator(el),
         /*default_integrator*/    OCTUPOLE_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        ThickSliceOctupoleData_get_radiation_flag(el),
         /*radiation_flag_parent*/ ThickSliceOctupoleData_get__parent_radiation_flag(el),

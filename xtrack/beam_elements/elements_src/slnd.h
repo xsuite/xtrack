@@ -15,8 +15,6 @@ void UniformSolenoid_track_local_particle(
         UniformSolenoidData el,
         LocalParticle* part0
 ) {
-    int64_t integrator = UniformSolenoidData_get_integrator(el);
-    int64_t num_multipole_kicks = UniformSolenoidData_get_num_multipole_kicks(el);
 
     track_magnet_particles(
         /*weight*/                1.,
@@ -26,10 +24,10 @@ void UniformSolenoid_track_local_particle(
         /*inv_factorial_order*/   UniformSolenoidData_get_inv_factorial_order(el),
         /*knl*/                   UniformSolenoidData_getp1_knl(el, 0),
         /*ksl*/                   UniformSolenoidData_getp1_ksl(el, 0),
-        /*num_multipole_kicks*/   num_multipole_kicks,
+        /*num_multipole_kicks*/   UniformSolenoidData_get_num_multipole_kicks(el),
         /*model*/                 -2, // sol-kick-sol
         /*default_model*/         0, // unused
-        /*integrator*/            integrator,
+        /*integrator*/            UniformSolenoidData_get_integrator(el),
         /*default_integrator*/    SOLENOID_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        UniformSolenoidData_get_radiation_flag(el),
         /*radiation_flag_parent*/ 0, // not used here

@@ -15,13 +15,6 @@ void ThickSliceSextupole_track_local_particle(
         ThickSliceSextupoleData el,
         LocalParticle* part0
 ) {
-    double weight = ThickSliceSextupoleData_get_weight(el);
-
-    int64_t num_multipole_kicks_parent = ThickSliceSextupoleData_get__parent_num_multipole_kicks(el);
-    int64_t model = ThickSliceSextupoleData_get__parent_model(el);
-    int64_t integrator = ThickSliceSextupoleData_get__parent_integrator(el);
-
-    int64_t num_multipole_kicks = (int64_t) ceil(num_multipole_kicks_parent * weight);
 
     track_magnet_particles(
         /*weight*/                ThickSliceSextupoleData_get_weight(el),
@@ -31,10 +24,10 @@ void ThickSliceSextupole_track_local_particle(
         /*inv_factorial_order*/   ThickSliceSextupoleData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThickSliceSextupoleData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThickSliceSextupoleData_getp1__parent_ksl(el, 0),
-        /*num_multipole_kicks*/   num_multipole_kicks,
-        /*model*/                 model,
+        /*num_multipole_kicks*/   ThickSliceSextupoleData_get__parent_num_multipole_kicks(el),
+        /*model*/                 ThickSliceSextupoleData_get__parent_model(el),
         /*default_model*/         SEXTUPOLE_DEFAULT_MODEL,
-        /*integrator*/            integrator,
+        /*integrator*/            ThickSliceSextupoleData_get__parent_integrator(el),
         /*default_integrator*/    SEXTUPOLE_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        ThickSliceSextupoleData_get_radiation_flag(el),
         /*radiation_flag_parent*/ ThickSliceSextupoleData_get__parent_radiation_flag(el),

@@ -15,9 +15,6 @@ void Quadrupole_track_local_particle(
         QuadrupoleData el,
         LocalParticle* part0
 ) {
-    int64_t model = QuadrupoleData_get_model(el);
-    int64_t integrator = QuadrupoleData_get_integrator(el);
-    int64_t num_multipole_kicks = QuadrupoleData_get_num_multipole_kicks(el);
 
     track_magnet_particles(
         /*weight*/                1.,
@@ -27,10 +24,10 @@ void Quadrupole_track_local_particle(
         /*inv_factorial_order*/   QuadrupoleData_get_inv_factorial_order(el),
         /*knl*/                   QuadrupoleData_getp1_knl(el, 0),
         /*ksl*/                   QuadrupoleData_getp1_ksl(el, 0),
-        /*num_multipole_kicks*/   num_multipole_kicks,
-        /*model*/                 model,
+        /*num_multipole_kicks*/   QuadrupoleData_get_num_multipole_kicks(el),
+        /*model*/                 QuadrupoleData_get_model(el),
         /*default_model*/         QUADRUPOLE_DEFAULT_MODEL,
-        /*integrator*/            integrator,
+        /*integrator*/            QuadrupoleData_get_integrator(el),
         /*default_integrator*/    QUADRUPOLE_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        QuadrupoleData_get_radiation_flag(el),
         /*radiation_flag_parent*/ 0, // not used here
