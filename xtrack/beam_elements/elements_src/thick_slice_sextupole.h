@@ -29,9 +29,6 @@ void ThickSliceSextupole_track_local_particle(
     if (integrator == 0) {  // adaptive
         integrator = 3; // uniform
     }
-    if (num_multipole_kicks == 0) {
-        num_multipole_kicks = 1;
-    }
 
     int64_t radiation_flag = 0;
     double delta_taper = 0.0;

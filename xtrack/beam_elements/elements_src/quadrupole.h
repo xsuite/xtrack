@@ -24,9 +24,6 @@ void Quadrupole_track_local_particle(
     if (integrator == 0) {  // adaptive
         integrator = 3; // uniform
     }
-    if (num_multipole_kicks == 0) {
-        num_multipole_kicks = 1;
-    }
 
     track_magnet_particles(
         /*part0*/                 part0,
