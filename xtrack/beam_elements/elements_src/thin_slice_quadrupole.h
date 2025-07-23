@@ -17,13 +17,11 @@ void ThinSliceQuadrupole_track_local_particle(
     double weight = ThinSliceQuadrupoleData_get_weight(el);
 
     int64_t radiation_flag = 0;
-    double delta_taper = 0.0;
     #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
         radiation_flag = ThinSliceQuadrupoleData_get_radiation_flag(el);
         if (radiation_flag == 10){ // from parent
             radiation_flag = ThinSliceQuadrupoleData_get__parent_radiation_flag(el);
         }
-        delta_taper = ThinSliceQuadrupoleData_get_delta_taper(el);
     #endif
 
     track_magnet_particles(
@@ -41,7 +39,7 @@ void ThinSliceQuadrupole_track_local_particle(
         /*default_integrator*/    0, // unused
         /*radiation_flag*/        radiation_flag,
         /*radiation_record*/      (SynchrotronRadiationRecordData) ThinSliceQuadrupoleData_getp_internal_record(el, part0),
-        /*delta_taper*/           delta_taper,
+        /*delta_taper*/           ThinSliceQuadrupoleData_get_delta_taper(el),
         /*h*/                     0.,
         /*hxl*/                   0.,
         /*k0*/                    0.,

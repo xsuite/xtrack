@@ -18,13 +18,11 @@ void ThinSliceBend_track_local_particle(
     double weight = ThinSliceBendData_get_weight(el);
 
     int64_t radiation_flag = 0;
-    double delta_taper = 0.0;
     #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
         radiation_flag = ThinSliceBendData_get_radiation_flag(el);
         if (radiation_flag == 10){ // from parent
             radiation_flag = ThinSliceBendData_get__parent_radiation_flag(el);
         }
-        delta_taper = ThinSliceBendData_get_delta_taper(el);
     #endif
 
     track_magnet_particles(
@@ -42,7 +40,7 @@ void ThinSliceBend_track_local_particle(
         /*default_integrator*/    0, // unused
         /*radiation_flag*/        radiation_flag,
         /*radiation_record*/      (SynchrotronRadiationRecordData) ThinSliceBendData_getp_internal_record(el, part0),
-        /*delta_taper*/           delta_taper,
+        /*delta_taper*/           ThinSliceBendData_get_delta_taper(el),
         /*h*/                     ThinSliceBendData_get__parent_h(el),
         /*hxl*/                   0.,
         /*k0*/                    ThinSliceBendData_get__parent_k0(el),
