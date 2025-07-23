@@ -5615,7 +5615,7 @@ class LineVars:
         self.__dict__.update(state)
         self.vars_to_update = WeakSet()
 
-    def set_from_madx_file(self, filename):
+    def set_from_madx_file(self, filename=None, string=None):
 
         '''
         Set variables veluas of expression from a MAD-X file.
@@ -5626,7 +5626,12 @@ class LineVars:
             Path to the MAD-X file(s) to load.
         '''
         loader = xt.mad_parser.MadxLoader(env=self.line)
-        loader.load_file(filename)
+        if filename is not None:
+            assert string is None, 'Cannot specify both filename and string'
+            loader.load_file(filename)
+        elif string is not None:
+            assert filename is None, 'Cannot specify both filename and string'
+            loader.load_string(string)
 
     def load_madx_optics_file(self, filename):
         self.set_from_madx_file(filename)
@@ -5663,6 +5668,37 @@ class LineVars:
                 self[kk] = _eval(kwargs[kk])
             else:
                 self[kk] = kwargs[kk]
+
+    def load(self, file=None, string=None, format=None, timeout=5.):
+
+        if format is None and file is not None:
+            if file.endswith('.json'):
+                format = 'json'
+            elif file.endswith('.seq') or file.endswith('.madx') or file.endswith('.mad'):
+                format = 'madx'
+
+        if file.startswith('http://') or file.startswith('https://'):
+            assert string is None, 'Cannot specify both fname and string'
+            string = xt.general.read_url(file, timeout=timeout)
+            file = None
+
+        if file is not None:
+            assert string is None, 'Cannot specify both fname and string'
+
+        if string is not None:
+            assert file is None, 'Cannot specify both fname and string'
+            assert format is not None, 'Must specify format when using string'
+
+        assert format in ['json', 'madx'], f'Unknown format {format}'
+
+        if format == 'json':
+            ddd = xt.json.load(file=file, string=string)
+            self.update(ddd)
+        elif format == 'madx':
+            return self.set_from_madx_file(filename=file, string=string)
+        else:
+            raise ValueError(f'Unknown format {format}')
+
 
     def set(self, name, value):
         if isinstance(value, str):
