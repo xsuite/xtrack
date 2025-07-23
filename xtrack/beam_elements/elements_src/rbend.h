@@ -26,13 +26,13 @@ void RBend_track_local_particle(
     const double edge_exit_angle_fdown = RBendData_get_edge_exit_angle_fdown(el);
 
     track_magnet_particles(
+        /*weight*/                1.,
         /*part0*/                 part0,
         /*length*/                length,
         /*order*/                 RBendData_get_order(el),
         /*inv_factorial_order*/   RBendData_get_inv_factorial_order(el),
         /*knl*/                   RBendData_getp1_knl(el, 0),
         /*ksl*/                   RBendData_getp1_ksl(el, 0),
-        /*factor_knl_ksl*/        1.,
         /*num_multipole_kicks*/   RBendData_get_num_multipole_kicks(el),
         /*model*/                 RBendData_get_model(el),
         /*default_model*/         RBEND_DEFAULT_MODEL,

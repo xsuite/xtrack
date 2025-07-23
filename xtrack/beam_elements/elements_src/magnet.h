@@ -50,13 +50,13 @@ void Magnet_track_local_particle(
     double edge_exit_hgap = MagnetData_get_edge_exit_hgap(el);
 
     track_magnet_particles(
+        1., // weight
         part0,
         length,
         order,
         inv_factorial_order,
         knl,
         ksl,
-        /*factor_knl_ksl*/ 1.,
         num_multipole_kicks,
         model,
         BEND_DEFAULT_MODEL,

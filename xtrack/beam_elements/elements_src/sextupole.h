@@ -20,13 +20,13 @@ void Sextupole_track_local_particle(
     int64_t num_multipole_kicks = SextupoleData_get_num_multipole_kicks(el);
 
     track_magnet_particles(
+        /*weight*/                1.,
         /*part0*/                 part0,
         /*length*/                SextupoleData_get_length(el),
         /*order*/                 SextupoleData_get_order(el),
         /*inv_factorial_order*/   SextupoleData_get_inv_factorial_order(el),
         /*knl*/                   SextupoleData_getp1_knl(el, 0),
         /*ksl*/                   SextupoleData_getp1_ksl(el, 0),
-        /*factor_knl_ksl*/        1.,
         /*num_multipole_kicks*/   num_multipole_kicks,
         /*model*/                 model,
         /*default_model*/         SEXTUPOLE_DEFAULT_MODEL,

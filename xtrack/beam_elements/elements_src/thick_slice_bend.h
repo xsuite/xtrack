@@ -16,18 +16,19 @@ void ThickSliceBend_track_local_particle(
         ThickSliceBendData el,
         LocalParticle* part0
 ) {
+
     double weight = ThickSliceBendData_get_weight(el);
     int64_t num_multipole_kicks_parent = ThickSliceBendData_get__parent_num_multipole_kicks(el);
     int64_t const num_multipole_kicks = (int64_t) ceil(num_multipole_kicks_parent * weight);
 
     track_magnet_particles(
+        /*weight*/                ThickSliceBendData_get_weight(el),
         /*part0*/                 part0,
-        /*length*/                ThickSliceBendData_get__parent_length(el) * weight,
+        /*length*/                ThickSliceBendData_get__parent_length(el),
         /*order*/                 ThickSliceBendData_get__parent_order(el),
         /*inv_factorial_order*/   ThickSliceBendData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThickSliceBendData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThickSliceBendData_getp1__parent_ksl(el, 0),
-        /*factor_knl_ksl*/        weight,
         /*num_multipole_kicks*/   num_multipole_kicks,
         /*model*/                 ThickSliceBendData_get__parent_model(el),
         /*default_model*/         BEND_DEFAULT_MODEL,

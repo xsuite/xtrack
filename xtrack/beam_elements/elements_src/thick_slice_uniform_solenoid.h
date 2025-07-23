@@ -23,13 +23,13 @@ void ThickSliceUniformSolenoid_track_local_particle(
     int64_t num_multipole_kicks = (int64_t) ceil(num_multipole_kicks_parent * weight);
 
     track_magnet_particles(
+        /*weight*/                ThickSliceUniformSolenoidData_get_weight(el),
         /*part0*/                 part0,
-        /*length*/                ThickSliceUniformSolenoidData_get__parent_length(el) * weight,
+        /*length*/                ThickSliceUniformSolenoidData_get__parent_length(el),
         /*order*/                 ThickSliceUniformSolenoidData_get__parent_order(el),
         /*inv_factorial_order*/   ThickSliceUniformSolenoidData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThickSliceUniformSolenoidData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThickSliceUniformSolenoidData_getp1__parent_ksl(el, 0),
-        /*factor_knl_ksl*/        weight,
         /*num_multipole_kicks*/   num_multipole_kicks,
         /*model*/                 -2, // sol-kick-sol
         /*default_model*/         0, // unused

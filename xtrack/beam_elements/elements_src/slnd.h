@@ -19,13 +19,13 @@ void UniformSolenoid_track_local_particle(
     int64_t num_multipole_kicks = UniformSolenoidData_get_num_multipole_kicks(el);
 
     track_magnet_particles(
+        /*weight*/                1.,
         /*part0*/                 part0,
         /*length*/                UniformSolenoidData_get_length(el),
         /*order*/                 UniformSolenoidData_get_order(el),
         /*inv_factorial_order*/   UniformSolenoidData_get_inv_factorial_order(el),
         /*knl*/                   UniformSolenoidData_getp1_knl(el, 0),
         /*ksl*/                   UniformSolenoidData_getp1_ksl(el, 0),
-        /*factor_knl_ksl*/        1.,
         /*num_multipole_kicks*/   num_multipole_kicks,
         /*model*/                 -2, // sol-kick-sol
         /*default_model*/         0, // unused

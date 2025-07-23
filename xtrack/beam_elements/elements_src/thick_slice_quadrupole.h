@@ -24,13 +24,13 @@ void ThickSliceQuadrupole_track_local_particle(
     int64_t num_multipole_kicks = (int64_t) ceil(num_multipole_kicks_parent * weight);
 
     track_magnet_particles(
+        /*weight*/                ThickSliceQuadrupoleData_get_weight(el),
         /*part0*/                 part0,
-        /*length*/                ThickSliceQuadrupoleData_get__parent_length(el) * weight,
+        /*length*/                ThickSliceQuadrupoleData_get__parent_length(el),
         /*order*/                 ThickSliceQuadrupoleData_get__parent_order(el),
         /*inv_factorial_order*/   ThickSliceQuadrupoleData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThickSliceQuadrupoleData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThickSliceQuadrupoleData_getp1__parent_ksl(el, 0),
-        /*factor_knl_ksl*/        weight,
         /*num_multipole_kicks*/   num_multipole_kicks,
         /*model*/                 model,
         /*default_model*/         QUADRUPOLE_DEFAULT_MODEL,

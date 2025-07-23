@@ -16,8 +16,8 @@ void ThickSliceOctupole_track_local_particle(
         ThickSliceOctupoleData el,
         LocalParticle* part0
 ) {
-    double weight = ThickSliceOctupoleData_get_weight(el);
 
+    double weight = ThickSliceOctupoleData_get_weight(el);
     int64_t num_multipole_kicks_parent = ThickSliceOctupoleData_get__parent_num_multipole_kicks(el);
     int64_t model = ThickSliceOctupoleData_get__parent_model(el);
     int64_t integrator = ThickSliceOctupoleData_get__parent_integrator(el);
@@ -25,13 +25,13 @@ void ThickSliceOctupole_track_local_particle(
     int64_t num_multipole_kicks = (int64_t) ceil(num_multipole_kicks_parent * weight);
 
     track_magnet_particles(
+        /*weight*/                ThickSliceOctupoleData_get_weight(el),
         /*part0*/                 part0,
-        /*length*/                ThickSliceOctupoleData_get__parent_length(el) * weight,
+        /*length*/                ThickSliceOctupoleData_get__parent_length(el),
         /*order*/                 ThickSliceOctupoleData_get__parent_order(el),
         /*inv_factorial_order*/   ThickSliceOctupoleData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThickSliceOctupoleData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThickSliceOctupoleData_getp1__parent_ksl(el, 0),
-        /*factor_knl_ksl*/        weight,
         /*num_multipole_kicks*/   num_multipole_kicks,
         /*model*/                 model,
         /*default_model*/         OCTUPOLE_DEFAULT_MODEL,

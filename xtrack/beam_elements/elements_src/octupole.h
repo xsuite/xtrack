@@ -21,13 +21,13 @@ void Octupole_track_local_particle(
 
 
     track_magnet_particles(
+        /*weight*/                1.,
         /*part0*/                 part0,
         /*length*/                OctupoleData_get_length(el),
         /*order*/                 OctupoleData_get_order(el),
         /*inv_factorial_order*/   OctupoleData_get_inv_factorial_order(el),
         /*knl*/                   OctupoleData_getp1_knl(el, 0),
         /*ksl*/                   OctupoleData_getp1_ksl(el, 0),
-        /*factor_knl_ksl*/        1.,
         /*num_multipole_kicks*/   num_multipole_kicks,
         /*model*/                 model,
         /*default_model*/         OCTUPOLE_DEFAULT_MODEL,

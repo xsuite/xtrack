@@ -45,13 +45,13 @@ void VariableSolenoid_track_local_particle(
     END_PER_PARTICLE_BLOCK;
 
     track_magnet_particles(
+        /*weight*/                1.,
         /*part0*/                 part0,
         /*length*/                length,
         /*order*/                 VariableSolenoidData_get_order(el),
         /*inv_factorial_order*/   VariableSolenoidData_get_inv_factorial_order(el),
         /*knl*/                   VariableSolenoidData_getp1_knl(el, 0),
         /*ksl*/                   VariableSolenoidData_getp1_ksl(el, 0),
-        /*factor_knl_ksl*/        1.,
         /*num_multipole_kicks*/   num_multipole_kicks,
         /*model*/                 -2, // sol-kick-sol
         /*default_model*/         0, // unused

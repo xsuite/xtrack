@@ -408,13 +408,13 @@ void track_magnet_body_single_particle(
 
 GPUFUN
 void track_magnet_particles(
+    double const weight,
     LocalParticle* part0,
     double length,
     int64_t order,
     double inv_factorial_order,
     GPUGLMEM const double* knl,
     GPUGLMEM const double* ksl,
-    double factor_knl_ksl,
     int64_t num_multipole_kicks,
     int8_t model,
     int8_t default_model,
@@ -451,10 +451,13 @@ void track_magnet_particles(
     double edge_exit_hgap
 ) {
 
+    double factor_knl_ksl = 1.0;
+
+
     // Backtracking
     #ifdef XSUITE_BACKTRACK
-        const double core_length = -length;
-        double factor_knl_ksl_body = -factor_knl_ksl;
+        const double core_length = -length * weight;
+        double factor_knl_ksl_body = -factor_knl_ksl * weight;
         double factor_knl_ksl_edge = factor_knl_ksl; // Edge has a specific factor for backtracking
         const double factor_backtrack_edge = -1.;
         hxl = -hxl;
@@ -465,8 +468,8 @@ void track_magnet_particles(
         VSWAP(edge_entry_fint, edge_exit_fint);
         VSWAP(edge_entry_hgap, edge_exit_hgap)
     #else
-        const double core_length = length;
-        double factor_knl_ksl_body = factor_knl_ksl;
+        const double core_length = length * weight;
+        double factor_knl_ksl_body = factor_knl_ksl * weight;
         double factor_knl_ksl_edge = factor_knl_ksl;
         const double factor_backtrack_edge = 1.;
     #endif

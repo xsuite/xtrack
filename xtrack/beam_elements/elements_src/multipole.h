@@ -20,13 +20,13 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
     #endif
 
     track_magnet_particles(
+        /*weight*/                1.,
         /*part0*/                 part0,
         /*length*/                MultipoleData_get_length(el),
         /*order*/                 MultipoleData_get_order(el),
         /*inv_factorial_order*/   MultipoleData_get_inv_factorial_order(el),
         /*knl*/                   MultipoleData_getp1_knl(el, 0),
         /*ksl*/                   MultipoleData_getp1_ksl(el, 0),
-        /*factor_knl_ksl*/        1.,
         /*num_multipole_kicks*/   1,
         /*model*/                 -1, // kick only
         /*default_model*/         0, // unused

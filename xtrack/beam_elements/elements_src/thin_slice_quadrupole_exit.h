@@ -15,13 +15,13 @@ void ThinSliceQuadrupoleExit_track_local_particle(
 ) {
 
     track_magnet_particles(
+        /*weight*/                0, // unused for edge
         /*part0*/                 part0,
         /*length*/                ThinSliceQuadrupoleExitData_get__parent_length(el),
         /*order*/                 ThinSliceQuadrupoleExitData_get__parent_order(el),
         /*inv_factorial_order*/   ThinSliceQuadrupoleExitData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThinSliceQuadrupoleExitData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThinSliceQuadrupoleExitData_getp1__parent_ksl(el, 0),
-        /*factor_knl_ksl*/        1.,
         /*num_multipole_kicks*/   0, // unused for edge
         /*model*/                 0, // unused for edge
         /*default_model*/         0, // unused for edge

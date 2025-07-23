@@ -16,16 +16,14 @@ void ThinSliceSextupole_track_local_particle(
         LocalParticle* part0
 ) {
 
-    double weight = ThinSliceSextupoleData_get_weight(el);
-
     track_magnet_particles(
+        /*weight*/                ThinSliceSextupoleData_get_weight(el),
         /*part0*/                 part0,
-        /*length*/                ThinSliceSextupoleData_get__parent_length(el) * weight,
+        /*length*/                ThinSliceSextupoleData_get__parent_length(el),
         /*order*/                 ThinSliceSextupoleData_get__parent_order(el),
         /*inv_factorial_order*/   ThinSliceSextupoleData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThinSliceSextupoleData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThinSliceSextupoleData_getp1__parent_ksl(el, 0),
-        /*factor_knl_ksl*/        weight,
         /*num_multipole_kicks*/   1,
         /*model*/                 -1, // kick only
         /*default_model*/         0, // unused

@@ -14,16 +14,15 @@ void ThinSliceRBend_track_local_particle(
         ThinSliceRBendData el,
         LocalParticle* part0
 ) {
-    double weight = ThinSliceRBendData_get_weight(el);
 
     track_magnet_particles(
+        /*weight*/                ThinSliceRBendData_get_weight(el),
         /*part0*/                 part0,
-        /*length*/                ThinSliceRBendData_get__parent_length(el) * weight,
+        /*length*/                ThinSliceRBendData_get__parent_length(el),
         /*order*/                 ThinSliceRBendData_get__parent_order(el),
         /*inv_factorial_order*/   ThinSliceRBendData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThinSliceRBendData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThinSliceRBendData_getp1__parent_ksl(el, 0),
-        /*factor_knl_ksl*/        weight,
         /*num_multipole_kicks*/   1, // kick only
         /*model*/                 -1, // kick only
         /*default_model*/         0, // unused

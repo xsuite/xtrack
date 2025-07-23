@@ -16,16 +16,14 @@ void ThinSliceOctupole_track_local_particle(
         LocalParticle* part0
 ) {
 
-    double weight = ThinSliceOctupoleData_get_weight(el);
-
     track_magnet_particles(
+        /*weight*/                ThinSliceOctupoleData_get_weight(el),
         /*part0*/                 part0,
-        /*length*/                ThinSliceOctupoleData_get__parent_length(el) * weight,
+        /*length*/                ThinSliceOctupoleData_get__parent_length(el),
         /*order*/                 ThinSliceOctupoleData_get__parent_order(el),
         /*inv_factorial_order*/   ThinSliceOctupoleData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThinSliceOctupoleData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThinSliceOctupoleData_getp1__parent_ksl(el, 0),
-        /*factor_knl_ksl*/        weight,
         /*num_multipole_kicks*/   1,
         /*model*/                 -1, // kick only
         /*default_model*/         0, // unused
