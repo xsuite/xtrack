@@ -548,7 +548,7 @@ void track_magnet_particles(
         if (rbend_model == 2){
             // straight body --> curvature in the edges
             START_PER_PARTICLE_BLOCK(part0, part);
-                YRotation_single_particle(part, -sin_rbha, cos_rbha, -sin_rbha/cos_rbha);
+                YRotation_single_particle(part, sin_rbha, cos_rbha, sin_rbha/cos_rbha);
             END_PER_PARTICLE_BLOCK;
         }
 
