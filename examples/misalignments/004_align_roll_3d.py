@@ -1,3 +1,5 @@
+from typing import Literal
+
 from cernlayoutdb import MADPoint
 import sys
 import xtrack as xt
@@ -26,6 +28,8 @@ def wedge_roll(length, angle, tilt):
         @ MADPoint(psi=-tilt).matrix
     ))
 
+# Use xtrack elements or ducktrack?
+mode: Literal['xt', 'ducktrack'] = 'ducktrack'
 
 # Element parameters
 length = 20
@@ -143,15 +147,22 @@ plot_trajectory_drift(pp0, p0, length=50, plotter=ax, color='gray', opacity=0.2)
 # Test proper Misalignment elements
 pp_element = pp0.copy()
 plot_point(pp_element, p0, plotter=ax, shape='cube', color='black')
-# mis_entry = Misalign(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle)
-mis_entry = xt.Misalignment(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle, is_exit=False)
+
+if mode == 'ducktrack':
+    mis_entry = Misalign(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle, tilt=tilt)  # noqa
+else:
+    mis_entry = xt.Misalignment(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle, tilt=tilt, is_exit=False)
 mis_entry.track(pp_element)
+
 plot_point(pp_element, p1, plotter=ax, shape='cube', color='red')
 pprec1 = pp_element.copy()
 line2.track(pp_element)
 plot_point(pp_element, p2, plotter=ax, shape='cube', color='orange')
-# mis_exit = Realign(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle)
-mis_exit = xt.Misalignment(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle, is_exit=True)
+
+if mode == 'ducktrack':
+    mis_exit = Realign(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle, tilt=tilt)  # noqa
+else:
+    mis_exit = xt.Misalignment(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle, tilt=tilt, is_exit=True)
 pprec2 = pp_element.copy()
 mis_exit.track(pp_element)
 plot_point(pp_element, p3, plotter=ax, shape='cube', color='green')

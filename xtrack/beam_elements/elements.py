@@ -615,7 +615,12 @@ class Misalignment(BeamElement):
     length : float
         Length of the misaligned element.
     angle : float
-        Angle by which the element bends the reference frame.
+        Angle by which the element bends the reference frame in the x-s plane.
+        Direction follows the convention of the bend element, i.e. positive
+        value bends x to s (opposite of phi).
+    tilt : float
+        Angle by which the element body is tilted (rolled) around the s-axis.
+        Direction follows the convention of psi.
     is_exit : bool
         If False, this element brings the reference frame to the entrance of the
         misaligned element, if True, it brings the reference frame back to the
@@ -631,6 +636,7 @@ class Misalignment(BeamElement):
         'anchor': xo.Float64,
         'length': xo.Float64,
         'angle': xo.Float64,
+        'tilt': xo.Float64,
         'is_exit': xo.Int64,
     }
     has_backtrack = False

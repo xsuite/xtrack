@@ -94,16 +94,18 @@ def draw_bend_3d(entry, length, angle, tilt, plotter, width=10, resolution=100, 
     """Draw a straight or bent cuboid using extrusion in PyVista."""
     # Define a square cross-section in YZ plane
     half = width / 2
-    square = pv.Polygon(
+    diamond = pv.Polygon(
         normal=[0, 0, 1],
         n_sides=4,
         radius=half,
     )
-    square = square.rotate_z(45, point=square.center)
+    square = diamond.rotate_z(45, point=diamond.center, inplace=False)
     rho = length / angle if angle != 0 else 0
-    square = square.translate(xyz=[rho, 0, 0])
 
-    # Extrude the square along the spline
+    # Since we rotate around the origin, offset the square by radius of curvature
+    square.translate(xyz=[rho, 0, 0], inplace=True)
+
+    # Extrude the square to make a cuboid or a wedge, depending on the curvature
     if angle:
         swept = square.extrude_rotate(
             resolution=resolution,
@@ -117,10 +119,19 @@ def draw_bend_3d(entry, length, angle, tilt, plotter, width=10, resolution=100, 
             capping=True,
         )
 
-    # Transform the swept solid to the global frame
-    swept = swept.translate(xyz=[-rho, 0, 0])
-    swept.transform(entry.matrix, inplace=True)
+    # Move back to the origin
+    swept.translate(xyz=[-rho, 0, 0], inplace=True)
+
+    # Apply the roll
     swept.rotate_z(np.rad2deg(tilt), inplace=True)
 
+    # Move to the target reference frame
+    swept.transform(entry.matrix, inplace=True)
+
     # Add to plotter
-    plotter.add_mesh(swept, color=kwargs.pop('c', 'gray'), opacity=kwargs.pop('opacity', 0.2), **kwargs)
+    plotter.add_mesh(
+        swept,
+        color=kwargs.pop('c', 'gray'),
+        opacity=kwargs.pop('opacity', 0.2),
+        **kwargs,
+    )

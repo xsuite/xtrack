@@ -44,13 +44,14 @@ def translate_matrix(x, y, z):
     )
 
 
-def curvature_matrix(length, angle):
+def curvature_matrix(length, angle=0.0, tilt=0.0):
     """Change frame of reference by an arc of length `length` and `angle`."""
     sinc = lambda x: np.sinc(x / np.pi)  # np.sinc is normalized to pi, so we divide by pi
     delta_x = -length * sinc(angle / 2) * np.sin(angle / 2)  # rho * (np.cos(angle) - 1)
     delta_theta = -angle
     delta_s = length * sinc(angle)  # rho * np.sin(angle)
-    return translate_matrix(delta_x, 0, delta_s) @ theta_matrix(delta_theta)
+    wedge = translate_matrix(delta_x, 0, delta_s) @ theta_matrix(delta_theta)
+    return psi_matrix(tilt) @ wedge @ psi_matrix(-tilt)
 
 
 def particle_pos_in_frame(part, idx, frame):
@@ -71,12 +72,16 @@ def particles_from_madng(tbl, beta, at='$end', slice_=0):
 
 
 @pytest.mark.parametrize(
-    'angle', (0, 0.3), ids=['straight', 'curved']
+    'angle,tilt',
+    [
+        (0, 0),
+        (0.3, 0),
+    ],
+    ids=['straight', 'curved']
 )
-def test_misalign_drift(angle):
+def test_misalign_drift(angle, tilt):
     # Element parameters
     length = 20
-    angle = angle
 
     # Misalignment parameters
     dx = -15
@@ -97,7 +102,13 @@ def test_misalign_drift(angle):
 
     p_expected = p0.copy()
     if angle:
-        element = xt.Bend(angle=angle, length=length, k0=0, model='rot-kick-rot')
+        element = xt.Bend(
+            angle=angle,
+            length=length,
+            k0=0,
+            rot_s_rad=tilt,
+            model='rot-kick-rot',
+        )
     else:
         element = xt.DriftExact(length=length)
     element.track(p_expected)
@@ -106,7 +117,7 @@ def test_misalign_drift(angle):
     mis_entry = xt.Misalignment(
         dx=dx, dy=dy, ds=ds,
         theta=theta, phi=phi, psi=psi,
-        length=length, angle=angle,
+        length=length, angle=angle, tilt=tilt,
         anchor=anchor, is_exit=False,
     )
     mis_entry.track(p_misaligned_entry)
@@ -118,7 +129,7 @@ def test_misalign_drift(angle):
     mis_exit = xt.Misalignment(
         dx=dx, dy=dy, ds=ds,
         theta=theta, phi=phi, psi=psi,
-        length=length, angle=angle,
+        length=length, angle=angle, tilt=tilt,
         anchor=anchor, is_exit=True,
     )
     mis_exit.track(p_aligned_exit)
@@ -139,20 +150,22 @@ def test_misalign_drift(angle):
 
         coords_at_start = np.array([x, y, 0])
 
+        part_length = anchor * length
+        part_angle = anchor * angle
         to_entry = (
-                curvature_matrix(anchor * length, anchor * angle)
+                curvature_matrix(part_length, part_angle, tilt)
                 @ translate_matrix(dx, dy, ds)
                 @ theta_matrix(theta)
                 @ phi_matrix(phi)
                 @ psi_matrix(psi)
-                @ np.linalg.inv(curvature_matrix(anchor * length, anchor * angle))
+                @ np.linalg.inv(curvature_matrix(part_length, part_angle, tilt))
         )
         coords_misaligned_entry = particle_pos_in_frame(p_misaligned_entry, idx, to_entry)
         calculated_dp_ds_misaligned_entry = coords_misaligned_entry - coords_at_start
         cross_misaligned_entry = np.cross(dp_ds, calculated_dp_ds_misaligned_entry)
         xo.assert_allclose(cross_misaligned_entry, 0, atol=1e-13, rtol=1e-9)
 
-        to_exit = to_entry @ curvature_matrix(length, angle)
+        to_exit = to_entry @ curvature_matrix(length, angle, tilt)
         coords_misaligned_exit = particle_pos_in_frame(p_misaligned_exit, idx, to_exit)
         calculated_dp_ds_misaligned_exit = coords_misaligned_exit - coords_at_start
         cross_misaligned_exit = np.cross(dp_ds, calculated_dp_ds_misaligned_exit)

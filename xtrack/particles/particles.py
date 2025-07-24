@@ -299,6 +299,8 @@ class Particles(xo.HybridClass):
         input_mask = self.state > LAST_INVALID_STATE
 
         particle_ids = kwargs.get('particle_id', np.arange(input_length))
+        if set(particle_ids) != set(range(input_length)):
+            raise ValueError('`particle_ids` must be unique and within [0, num_particles).')
         particle_ids = np.atleast_1d(particle_ids)
         self.particle_id = np_to_ctx(particle_ids)
 
@@ -1467,8 +1469,7 @@ class Particles(xo.HybridClass):
         src_lines = []
         src_lines.append('''
             /*gpufun*/
-            void LocalParticle_to_Particles(
-                                            LocalParticle* source,
+            void LocalParticle_to_Particles(LocalParticle* source,
                                             ParticlesData dest,
                                             int64_t id,
                                             int64_t set_scalar){''')

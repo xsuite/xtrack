@@ -400,6 +400,7 @@ class Misalign(Element):
                        "(0 for entry, 0.5 for middle, 1 for exit, etc.)", 0),
         ("length", "m", "Length of the element to which the misalignment applies", 0),
         ("angle", "rad", "Angle of bending if applicable (0 for straight)", 0),
+        ("tilt", "rad", "Tilt of the element (0 for no tilt, positive for tilt towards x)", 0),
     ]
 
     def track(self, particles):
@@ -451,7 +452,7 @@ class Misalign(Element):
                 xt.XYShift(dx=mis_x, dy=mis_y),
                 xt.Solenoid(length=mis_s),
                 xt.YRotation(angle=np.rad2deg(rot_theta)),
-                xt.XRotation(angle=np.rad2deg(-rot_phi)),  # angle flip, unsure why
+                xt.XRotation(angle=np.rad2deg(-rot_phi)),  # flipped angle convention
                 xt.SRotation(angle=np.rad2deg(rot_psi)),
             ]
         )
@@ -472,7 +473,7 @@ class Misalign(Element):
                 xt.XYShift(dx=mis_x, dy=mis_y),
                 xt.Solenoid(length=mis_s),
                 xt.YRotation(angle=np.rad2deg(theta)),
-                xt.XRotation(angle=np.rad2deg(-phi)),  # angle flip, unsure why
+                xt.XRotation(angle=np.rad2deg(-phi)),  # flipped angle convention
                 xt.SRotation(angle=np.rad2deg(psi)),
             ]
         )
@@ -492,6 +493,7 @@ class Realign(Element):
                        "(0 for entry, 0.5 for middle, 1 for exit, etc.)", 0),
         ("length", "m", "Length of the element to which the misalignment applies", 0),
         ("angle", "rad", "Angle of bending if applicable (0 for straight)", 0),
+        ("tilt", "rad", "Tilt of the element (0 for no tilt, positive for tilt towards x)", 0),
     ]
 
     def track(self, particles):
@@ -553,7 +555,7 @@ class Realign(Element):
                 xt.XYShift(dx=mis_x, dy=mis_y),
                 xt.Solenoid(length=mis_s),
                 xt.YRotation(angle=np.rad2deg(rot_theta)),
-                xt.XRotation(angle=np.rad2deg(-rot_phi)),  # angle flip, unsure why
+                xt.XRotation(angle=np.rad2deg(-rot_phi)),  # flipped angle convention
                 xt.SRotation(angle=np.rad2deg(rot_psi)),
             ]
         )
@@ -572,7 +574,7 @@ class Realign(Element):
         line = xt.Line(
             elements=[
                 xt.SRotation(angle=np.rad2deg(-psi)),
-                xt.XRotation(angle=np.rad2deg(phi)),  # angle flip, unsure why
+                xt.XRotation(angle=np.rad2deg(phi)),  # flipped angle convention
                 xt.YRotation(angle=np.rad2deg(-theta)),
                 xt.Solenoid(length=mis_s),
                 xt.XYShift(dx=mis_x, dy=mis_y),
