@@ -2000,8 +2000,6 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
         else:
             eigenvals = np.linalg.eigvals(RR)
         lnf._assert_matrix_stability(eigenvals, matrix_stability_tol)
-        RR_ebe = None
-
 
     if method == '4d' and W_matrix is None: # the matrix was not provided by the user
 
