@@ -57,4 +57,30 @@ void Wedge_single_particle(
     LocalParticle_add_to_zeta(part, -delta_ell / rvv);
 }
 
+GPUFUN
+void Quad_wedge_single_particle(
+        LocalParticle* part,  // LocalParticle to track
+        const double theta,   // Angle of the wedge
+        const double k1       // Quadrupole strength
+) {
+    // Params
+    const double b2 = k1 * LocalParticle_get_chi(part);
+
+        // Particle coordinates
+    const double x = LocalParticle_get_x(part);
+    const double y = LocalParticle_get_y(part);
+    const double px = LocalParticle_get_px(part);
+    const double py = LocalParticle_get_py(part);
+
+    // Map
+    const double new_px = px - b2 * x*x * theta + b2 * y*y/2 * theta;
+    const double new_py = py + b2 * x*y * theta;
+
+    // Update particle coordinates
+    LocalParticle_set_px(part, new_px);
+    LocalParticle_set_py(part, new_py);
+}
+
+
 #endif // XTRACK_TRACK_WEDGE_H
+
