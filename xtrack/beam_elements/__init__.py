@@ -10,7 +10,8 @@ from .magnets import Magnet
 from .beam_interaction import BeamInteraction, ParticlesInjectionSample
 from .slice_elements_thin import (ThinSliceQuadrupole, ThinSliceSextupole,
                              ThinSliceOctupole, ThinSliceBend,
-                             ThinSliceRBend,
+                             ThinSliceRBend)
+from .slice_elements_edge import (
                              ThinSliceBendEntry, ThinSliceBendExit,
                              ThinSliceRBendEntry, ThinSliceRBendExit,
                              ThinSliceQuadrupoleEntry, ThinSliceQuadrupoleExit,
