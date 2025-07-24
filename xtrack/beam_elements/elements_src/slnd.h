@@ -3,8 +3,8 @@
 // Copyright (c) CERN, 2023.                 //
 // ######################################### //
 
-#ifndef XTRACK_SLND_H
-#define XTRACK_SLND_H
+#ifndef XTRACK_UNIFORM_SOLENOID_H
+#define XTRACK_UNIFORM_SOLENOID_H
 
 #include <headers/track.h>
 #include <beam_elements/elements_src/track_magnet.h>
@@ -62,4 +62,4 @@ void UniformSolenoid_track_local_particle(
     );
 }
 
-#endif // XTRACK_OCTUPOLE_H
+#endif // XTRACK_UNIFORM_SOLENOID_H
