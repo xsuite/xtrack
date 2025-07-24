@@ -19,63 +19,70 @@ parent_source = "rbend.h"
 with open(os.path.join(current_directory, parent_source), 'r') as f:
     parent_content = f.read()
 
-generating = "thin_slice"
+for generating in ['thick_slice', 'thin_slice', 'entry_slice', 'exit_slice']:
 
-out_content = parent_content
+    out_content = parent_content
 
-# Handle guards
-assert f"XTRACK_{parent_class.upper()}_H" in out_content
-out_content = out_content.replace(f"XTRACK_{parent_class.upper()}_H",
-                                  f"XTRACK_{generating.upper()}_{parent_class.upper()}_H")
+    # Handle guards
+    assert f"XTRACK_{parent_class.upper()}_H" in out_content
+    out_content = out_content.replace(f"XTRACK_{parent_class.upper()}_H",
+                                    f"XTRACK_{generating.upper()}_{parent_class.upper()}_H")
 
-if generating == "thick_slice":
-    generated_class = "ThickSlice" + parent_class
-if generating == "thin_slice":
-    generated_class = "ThinSlice" + parent_class
-else:
-    raise ValueError(f"Unknown generating type: {generating}")
+    if generating == "thick_slice":
+        generated_class = "ThickSlice" + parent_class
+    elif generating == "thin_slice":
+        generated_class = "ThinSlice" + parent_class
+    elif generating == "entry_slice":
+        generated_class = "ThinSlice" + parent_class + "Entry"
+    elif generating == "exit_slice":
+        generated_class = "ThinSlice" + parent_class + "Exit"
+    else:
+        raise ValueError(f"Unknown generating type: {generating}")
 
-# Replace class name
-assert parent_class in out_content
-out_content = out_content.replace(parent_class, generated_class)
+    # Replace class name
+    assert parent_class in out_content
+    out_content = out_content.replace(parent_class, generated_class)
 
-generated_data_class = generated_class + "Data"
+    generated_data_class = generated_class + "Data"
 
-assert generated_data_class + '_get_' in out_content
-out_content = out_content.replace(generated_data_class + '_get_', generated_data_class + '_get_parent__')
+    assert generated_data_class + '_get_' in out_content
+    out_content = out_content.replace(generated_data_class + '_get_', generated_data_class + '_get_parent__')
 
-assert generated_data_class + '_getp1_' in out_content
-out_content = out_content.replace(generated_data_class + '_getp1_', generated_data_class + '_getp1_parent__')
+    assert generated_data_class + '_getp1_' in out_content
+    out_content = out_content.replace(generated_data_class + '_getp1_', generated_data_class + '_getp1_parent__')
 
-# delta_taper must come from the slice and not from the parent
-assert "_get_parent__delta_taper" in out_content
-out_content = out_content.replace("_get_parent__delta_taper", "_get_delta_taper")
+    # delta_taper must come from the slice and not from the parent
+    assert "_get_parent__delta_taper" in out_content
+    out_content = out_content.replace("_get_parent__delta_taper", "_get_delta_taper")
 
-# Handle "radiation_flag" and "radiation_flag_parent"
-out_lines = out_content.splitlines()
+    # Handle "radiation_flag" and "radiation_flag_parent"
+    out_lines = out_content.splitlines()
 
-# Identify the line with "/*radiation_flag*/"
-i_radiation_flag_line = None
-for i, line in enumerate(out_lines):
-    if "/*radiation_flag*/" in line:
-        i_radiation_flag_line = i
-        break
-assert i_radiation_flag_line is not None, "Could not find radiation_flag line"
-i_parent_line = i_radiation_flag_line + 1
+    # Identify the line with "/*radiation_flag*/"
+    i_radiation_flag_line = None
+    for i, line in enumerate(out_lines):
+        if "/*radiation_flag*/" in line:
+            i_radiation_flag_line = i
+            break
+    assert i_radiation_flag_line is not None, "Could not find radiation_flag line"
+    i_parent_line = i_radiation_flag_line + 1
 
-assert "get_parent__radiation_flag" in out_lines[i_radiation_flag_line]
-out_lines[i_radiation_flag_line] = out_lines[i_radiation_flag_line].replace(
-    "get_parent__radiation_flag", "get_radiation_flag")
+    assert "get_parent__radiation_flag" in out_lines[i_radiation_flag_line]
+    out_lines[i_radiation_flag_line] = out_lines[i_radiation_flag_line].replace(
+        "get_parent__radiation_flag", "get_radiation_flag")
 
-ln_parent_radiation_flag = out_lines[i_parent_line]
-assert "0" in ln_parent_radiation_flag, "Expected '0' in radiation_flag line"
-ln_parent_radiation_flag = ln_parent_radiation_flag.split('0')[0]
-out_lines[i_parent_line] = ln_parent_radiation_flag + generated_data_class + "_get_parent__radiation_flag(el),"
+    ln_parent_radiation_flag = out_lines[i_parent_line]
+    assert "0" in ln_parent_radiation_flag, "Expected '0' in radiation_flag line"
+    ln_parent_radiation_flag = ln_parent_radiation_flag.split('0')[0]
+    out_lines[i_parent_line] = ln_parent_radiation_flag + generated_data_class + "_get_parent__radiation_flag(el),"
 
-if generating == "thick_slice" or generating == "thin_slice":
-    # Disable edges
+    # Disable edges where needed
     for i, line in enumerate(out_lines):
         if "edge_entry" in line or "edge_exit" in line:
+            if generating == 'entry_slice' and 'edge_entry' in line:
+                continue # leave untouched
+            if generating == 'exit_slice' and 'edge_exit' in line:
+                continue
             if '0' not in line:
                 assert generated_data_class + '_get_' in line
                 ll = line
@@ -90,53 +97,89 @@ if generating == "thick_slice" or generating == "thin_slice":
             assert '1' in line, "Expected '1' in weight line"
             ll = line
             ll = ll.split('1')[0]
-            ll += generated_data_class + "_get_weight(el),"
+            if generating == "thick_slice" or generating == "thin_slice":
+                ll += generated_data_class + "_get_weight(el),"
+            else:
+                ll += '0., // unused'
             out_lines[i] = ll
             done_weight = True
     assert done_weight, "Did not find weight line to modify"
 
-if generating == "thin_slice":
-    # Add edge_exit_hgap
     found_integrator = False
     found_model = False
     found_num_multipole_kicks = False
+    found_enable_body = False
     for i, line in enumerate(out_lines):
         if "/*integrator*/" in line:
             found_integrator = True
             ll = line
             assert generated_data_class + '_get_' in ll
             ll = ll.split(generated_data_class + '_get_')[0]
-            ll += "3, // uniform"
+            if generating == "thick_slice":
+                continue
+            elif generating == "thin_slice":
+                ll += "3, // uniform"
+            elif generating == "entry_slice" or generating == "exit_slice":
+                ll += "0, // unused"
+            else:
+                raise ValueError(f"Unknown generating type: {generating}")
             out_lines[i] = ll
         if "/*model*/" in line:
             found_model = True
             ll = line
             assert generated_data_class + '_get_' in ll
-            ll = ll.split(generated_data_class + '_get_')[0]
-            ll += "-1, // kick only"
+            if generating == "thick_slice":
+                continue
+            elif generating == "thin_slice":
+                ll = ll.split(generated_data_class + '_get_')[0]
+                ll += "-1, // kick only"
+            elif generating == "entry_slice" or generating == "exit_slice":
+                ll = ll.split(generated_data_class + '_get_')[0]
+                ll += "0, // unused"
+            else:
+                raise ValueError(f"Unknown generating type: {generating}")
             out_lines[i] = ll
         if "/*num_multipole_kicks*/" in line:
             found_num_multipole_kicks = True
             ll = line
             assert generated_data_class + '_get_' in ll
-            ll = ll.split(generated_data_class + '_get_')[0]
-            ll += "1, // kick only"
+            if generating == "thick_slice":
+                continue
+            elif generating == "thin_slice":
+                ll = ll.split(generated_data_class + '_get_')[0]
+                ll += "1, // kick only"
+            elif generating == "entry_slice" or generating == "exit_slice":
+                ll = ll.split(generated_data_class + '_get_')[0]
+                ll += "0, // unused"
+            else:
+                raise ValueError(f"Unknown generating type: {generating}")
+            out_lines[i] = ll
+        if "/*body_active*/" in line:
+            found_enable_body = True
+            ll = line
+            assert '1' in ll
+            if generating == "thick_slice" or generating == "thin_slice":
+                continue
+            elif generating == "entry_slice" or generating == "exit_slice":
+                ll = ll.split('1')[0]
+                ll += "0, // disabled"
             out_lines[i] = ll
     assert found_integrator, "Did not find integrator line to modify"
     assert found_model, "Did not find model line to modify"
     assert found_num_multipole_kicks, "Did not find num_multipole_kicks line to modify"
+    assert found_enable_body, "Did not find enable_body line to modify"
 
-# generated_class from camel case to snake case
-generated_class_snake = ''.join(['_' + c.lower() if c.isupper() else c for c in generated_class]).lstrip('_')
+    # generated_class from camel case to snake case
+    generated_class_snake = ''.join(['_' + c.lower() if c.isupper() else c for c in generated_class]).lstrip('_')
 
-# special case
-generated_class_snake = generated_class_snake.replace("_r_bend", "_rbend")
+    # special case
+    generated_class_snake = generated_class_snake.replace("_r_bend", "_rbend")
 
-out_content = "\n".join(out_lines)
+    out_content = "\n".join(out_lines)
 
-# Save
-out_file = os.path.join(current_directory, f"{generated_class_snake}.h")
-with open(out_file, 'w') as f:
-    f.write("// This file is generated by _generate_slice_elements_c_code.py\n")
-    f.write("// Do not edit it directly.\n\n")
-    f.write(out_content)
+    # Save
+    out_file = os.path.join(current_directory, f"{generated_class_snake}.h")
+    with open(out_file, 'w') as f:
+        f.write("// This file is generated by _generate_slice_elements_c_code.py\n")
+        f.write("// Do not edit it directly.\n\n")
+        f.write(out_content)
