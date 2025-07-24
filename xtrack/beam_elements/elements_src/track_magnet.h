@@ -453,6 +453,9 @@ void track_magnet_particles(
 ) {
 
     double factor_knl_ksl = 1.0;
+    double rbend_half_angle = 0.; // Used only for rbend-straight-body
+    double cos_rbha = 0.;
+    double sin_rbha = 0.;
 
     if (rbend_model == 0){
         // auto mode, curved body
@@ -465,6 +468,22 @@ void track_magnet_particles(
         edge_entry_angle += angle / 2.0;
         edge_exit_angle += angle / 2.0;
     }
+    else if (rbend_model == 2){
+        // straight body
+        double sinc_rbha;
+        rbend_half_angle = h * length / 2;
+        if (fabs(rbend_half_angle) > 1e-10){
+            sin_rbha = sin(rbend_half_angle);
+            cos_rbha = cos(rbend_half_angle);
+            sinc_rbha = sin_rbha / rbend_half_angle;
+        }
+        else {
+            sinc_rbha = 1;
+        }
+        length = length * sinc_rbha;
+    }
+
+    printf("length=%e\n", length);
 
     // Backtracking
     #ifdef XSUITE_BACKTRACK
@@ -478,7 +497,10 @@ void track_magnet_particles(
         VSWAP(edge_entry_angle, edge_exit_angle);
         VSWAP(edge_entry_angle_fdown, edge_exit_angle_fdown);
         VSWAP(edge_entry_fint, edge_exit_fint);
-        VSWAP(edge_entry_hgap, edge_exit_hgap)
+        VSWAP(edge_entry_hgap, edge_exit_hgap);
+        rbend_half_angle = -rbend_half_angle;
+        sin_rbha = -sin_rbha;
+
     #else
         const double core_length = length * weight;
         double factor_knl_ksl_body = factor_knl_ksl * weight;
@@ -517,7 +539,18 @@ void track_magnet_particles(
         }
     #endif
 
-     if (edge_entry_active){
+    if (rbend_model == 2){ // straight body
+        h = 0;
+    }
+
+    if (edge_entry_active){
+
+        if (rbend_model == 2){
+            // straight body --> curvature in the edges
+            START_PER_PARTICLE_BLOCK(part0, part);
+                YRotation_single_particle(part, -sin_rbha, cos_rbha, -sin_rbha/cos_rbha);
+            END_PER_PARTICLE_BLOCK;
+        }
 
         double knorm[] = {k0, k1, k2, k3};
         double kskew[] = {k0s, k1s, k2s, k3s};
@@ -643,6 +676,13 @@ void track_magnet_particles(
             edge_exit_fint,
             factor_backtrack_edge
         );
+
+        if (rbend_model == 2){
+            // straight body --> curvature in the edges
+            START_PER_PARTICLE_BLOCK(part0, part);
+                YRotation_single_particle(part, sin_rbha, cos_rbha, sin_rbha/cos_rbha);
+            END_PER_PARTICLE_BLOCK;
+        }
     }
 
 }

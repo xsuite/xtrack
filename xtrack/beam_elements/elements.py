@@ -1183,6 +1183,7 @@ class RBend(_BendCommon, BeamElement):
     _xofields = {
         **_BendCommon._common_xofields,
         'length_straight': xo.Float64,
+        'rbend_model': xo.Int64,
     }
 
     _rename = {
