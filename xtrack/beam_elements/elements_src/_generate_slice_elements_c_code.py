@@ -65,10 +65,34 @@ assert "get_parent__radiation_flag" in out_lines[i_radiation_flag_line]
 out_lines[i_radiation_flag_line] = out_lines[i_radiation_flag_line].replace(
     "get_parent__radiation_flag", "get_radiation_flag")
 
-
 ln_parent_radiation_flag = out_lines[i_parent_line]
 assert "0" in ln_parent_radiation_flag, "Expected '0' in radiation_flag line"
 ln_parent_radiation_flag = ln_parent_radiation_flag.split('0')[0]
 out_lines[i_parent_line] = ln_parent_radiation_flag + generated_data_class + "_get_parent__radiation_flag(el),"
+
+if generating == "thick_slice":
+    # Disable edges
+    for i, line in enumerate(out_lines):
+        if "edge_entry" in line or "edge_exit" in line:
+            if '0' not in line:
+                assert generated_data_class + '_get_' in line
+                ll = line
+                ll = ll.split(generated_data_class + '_get_')[0]
+                ll += '0,'  # Disable edges by setting to 0
+                out_lines[i] = ll
+
+    # pass weight
+    done_weight = False
+    for i, line in enumerate(out_lines):
+        if "weight" in line:
+            assert '1' in line, "Expected '1' in weight line"
+            ll = line
+            ll = ll.split('1')[0]
+            ll += generated_data_class + "_get_weight(el),"
+            out_lines[i] = ll
+            done_weight = True
+    assert done_weight, "Did not find weight line to modify"
+
+
 
 out_content = "\n".join(out_lines)

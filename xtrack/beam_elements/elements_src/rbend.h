@@ -58,7 +58,7 @@ void RBend_track_local_particle(
         /*edge_entry_fint*/       RBendData_get_edge_entry_fint(el),
         /*edge_exit_fint*/        RBendData_get_edge_exit_fint(el),
         /*edge_entry_hgap*/       RBendData_get_edge_entry_hgap(el),
-        /*edge_exit_hga*/         RBendData_get_edge_exit_hgap(el)
+        /*edge_exit_hgap*/        RBendData_get_edge_exit_hgap(el)
     );
 }
 
