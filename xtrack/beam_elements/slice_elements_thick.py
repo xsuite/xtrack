@@ -8,7 +8,7 @@ from .elements import (
 )
 from ..random import RandomUniformAccurate, RandomExponential
 
-from .slice_elements import _slice_copy, ID_RADIATION_FROM_PARENT
+from .slice_elements_thin import _slice_copy, ID_RADIATION_FROM_PARENT
 
 
 COMMON_SLICE_XO_FIELDS = {

@@ -8,7 +8,7 @@ from .exciter import Exciter
 from .apertures import *
 from .magnets import Magnet
 from .beam_interaction import BeamInteraction, ParticlesInjectionSample
-from .slice_elements import (ThinSliceQuadrupole, ThinSliceSextupole,
+from .slice_elements_thin import (ThinSliceQuadrupole, ThinSliceSextupole,
                              ThinSliceOctupole, ThinSliceBend,
                              ThinSliceRBend,
                              ThinSliceBendEntry, ThinSliceBendExit,
