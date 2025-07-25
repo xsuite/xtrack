@@ -94,7 +94,6 @@ void legacy_solenoid_apply_radiation_single_particle(
     // Estimate magnetic field
     double Bx_T = -kappa_y * P_J / Q0_coulomb;
     double By_T = kappa_x * P_J / Q0_coulomb;
-    double const Bz_T = ks * brho0;
     double const B_perp_T = sqrt(Bx_T * Bx_T + By_T * By_T); //this one is used for radiation
 
     // I kill Bx and By if there is ks (for spin), need to find a better solution
@@ -119,6 +118,8 @@ void legacy_solenoid_apply_radiation_single_particle(
         #ifdef XSUITE_BACKTRACK
             LocalParticle_set_state(part, -33);
         #else
+            double const Bz_T = ks * brho0;
+
             double const kin_px_mean = (old_px + new_ax);
             double const kin_py_mean = (old_py + new_ay);
 

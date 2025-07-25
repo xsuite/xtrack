@@ -1997,3 +1997,59 @@ def test_twiss_collective_end_is_len():
     t2 = line2.twiss4d(betx=1,bety=1,include_collective=True)
 
     xo.assert_allclose(t.betx, t2.betx, atol=1e-12, rtol=0)
+
+
+def test_twiss_compute_coupling_elements_edwards_teng():
+    mad = Madx()
+    mad.call(str(test_data_folder / 'lhc_2024/lhc.seq'))
+    mad.call(str(test_data_folder / 'lhc_2024/injection_optics.madx'))
+
+    mad.beam()
+    mad.use('lhcb1')
+
+    mad.globals.on_x1 = 0
+    mad.globals.on_x2h = 0
+    mad.globals.on_x2v = 0
+    mad.globals.on_x5 = 0
+    mad.globals.on_x8h = 0
+    mad.globals.on_x8v = 0
+
+    mad.globals.on_sep1 = 0
+    mad.globals.on_sep2h = 0
+    mad.globals.on_sep2v = 0
+    mad.globals.on_sep5 = 0
+    mad.globals.on_sep8h = 0
+    mad.globals.on_sep8v = 0
+
+    mad.globals.on_a2 = 0
+    mad.globals.on_a8 = 0
+
+    mad.globals['kqs.a67b1'] = 1e-4
+
+    tw_mad = mad.twiss()
+
+    line = xt.Line.from_madx_sequence(
+        mad.sequence.lhcb1, deferred_expressions=True
+    )
+    line.particle_ref = xt.Particles(p0c=450e9)
+    tw = line.twiss4d(compute_coupling_elements_ed_teng=True)
+
+    tw_ng = line.madng_twiss()
+
+    r11_mad, r12_mad, r21_mad, r22_mad = tw_mad.r11, tw_mad.r12, tw_mad.r21, tw_mad.r22
+    s_mad = tw_mad.s
+
+    r11_mad_at_s = np.interp(tw.s, s_mad, r11_mad)
+    r12_mad_at_s = np.interp(tw.s, s_mad, r12_mad)
+    r21_mad_at_s = np.interp(tw.s, s_mad, r21_mad)
+    r22_mad_at_s = np.interp(tw.s, s_mad, r22_mad)
+
+    xo.assert_allclose(tw.r11, r11_mad_at_s, atol=1e-3)
+    xo.assert_allclose(tw.r12, r12_mad_at_s, atol=0.135)
+    xo.assert_allclose(np.mean(tw.r12 - r12_mad_at_s), 0, atol=2e-5)
+    xo.assert_allclose(tw.r21, r21_mad_at_s, atol=1e-4)
+    xo.assert_allclose(tw.r22, r22_mad_at_s, atol=1e-2)
+
+    sgn_ng = np.sign(tw.r11 / tw_ng.r11_ng)
+    xo.assert_allclose(tw.f1010, sgn_ng * tw_ng.f1010_ng, atol=1e-5)
+    xo.assert_allclose(tw.f1001, sgn_ng * tw_ng.f1001_ng, atol=2e-3)
