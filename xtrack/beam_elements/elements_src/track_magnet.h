@@ -453,9 +453,12 @@ void track_magnet_particles(
 ) {
 
     double factor_knl_ksl = 1.0;
-    double rbend_half_angle = 0.; // Used only for rbend-straight-body
+
+    // Used only for rbend-straight-body
+    double rbend_half_angle = 0.;
     double cos_rbha = 0.;
     double sin_rbha = 0.;
+    double length_curved = 0.;
 
     if (rbend_model == 0){
         // auto mode, curved body
@@ -480,14 +483,15 @@ void track_magnet_particles(
         else {
             sinc_rbha = 1;
         }
-        length = length * sinc_rbha;
+        length_curved = length;
+        length = length_curved * sinc_rbha;
+        h = 0;
     }
-
-    printf("length=%e\n", length);
 
     // Backtracking
     #ifdef XSUITE_BACKTRACK
         const double core_length = -length * weight;
+        const double core_length_curved = -length_curved * weight;
         double factor_knl_ksl_body = -factor_knl_ksl * weight;
         double factor_knl_ksl_edge = factor_knl_ksl; // Edge has a specific factor for backtracking
         const double factor_backtrack_edge = -1.;
@@ -503,6 +507,7 @@ void track_magnet_particles(
 
     #else
         const double core_length = length * weight;
+        const double core_length_curved = length_curved * weight;
         double factor_knl_ksl_body = factor_knl_ksl * weight;
         double factor_knl_ksl_edge = factor_knl_ksl;
         const double factor_backtrack_edge = 1.;
@@ -540,7 +545,7 @@ void track_magnet_particles(
     #endif
 
     if (rbend_model == 2){ // straight body
-        h = 0;
+
     }
 
     if (edge_entry_active){
@@ -600,7 +605,7 @@ void track_magnet_particles(
                 }
                 else{
                     double b_circum = 2 * 3.14159 / fabs(h);
-                    num_multipole_kicks = fabs(length) / b_circum / 0.5e-3; // 0.5 mrad per kick (on average)
+                    num_multipole_kicks = fabs(core_length) / b_circum / 0.5e-3; // 0.5 mrad per kick (on average)
                     if (num_multipole_kicks < 1){
                         num_multipole_kicks = 1;
                     }
@@ -651,6 +656,15 @@ void track_magnet_particles(
                 &dp_record_exit, &dpx_record_exit, &dpy_record_exit
             );
         END_PER_PARTICLE_BLOCK;
+
+        if (rbend_model == 2){
+            // straight body --> correct s to match the curved frame
+            double const ds = (core_length_curved - core_length);
+            START_PER_PARTICLE_BLOCK(part0, part);
+                LocalParticle_add_to_s(part, ds);
+                LocalParticle_add_to_zeta(part, ds);
+            END_PER_PARTICLE_BLOCK;
+        }
     }
 
     if (edge_exit_active){
