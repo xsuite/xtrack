@@ -48,7 +48,7 @@ void ThinSliceRBendEntry_track_local_particle(
         /*k3s*/                   0.,
         /*ks*/                    0.,
         /*dks_ds*/                0.,
-        /*rbend_model*/           0, // auto mode, curved body
+        /*rbend_model*/           ThinSliceRBendEntryData_get__parent_rbend_model(el),
         /*body_active*/           0, // disabled
         /*edge_entry_active*/     ThinSliceRBendEntryData_get__parent_edge_entry_active(el),
         /*edge_exit_active*/      0,
