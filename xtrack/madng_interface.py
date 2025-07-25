@@ -42,10 +42,9 @@ def regen_madng_model(line):
     build_madng_model(line)
     return
 
-def _tw_ng(line, rdts=[], normal_form=True,
+def _tw_ng(line, rdts=(), normal_form=True,
            mapdef_twiss=2, mapdef_normal_form=4,
-           nslice=3,
-           ):
+           nslice=3):
 
     tw_kwargs = locals()
     del tw_kwargs['line']
@@ -63,10 +62,10 @@ def _tw_ng(line, rdts=[], normal_form=True,
                 'dx', 'dy', 'dpx', 'dpy', 'mu1', 'mu2',
                 'beta12', 'beta21', 'alfa12', 'alfa21',
                 'wx', 'wy', 'phix', 'phiy', 'dmu1', 'dmu2',
-                'f1001', 'f1010'
+                'f1001', 'f1010', 'r11', 'r12', 'r21', 'r22',
     ]
 
-    columns = tw_columns + rdts
+    columns = tw_columns + list(rdts)
     rdt_cmd = 'local rdts = {"' + '", "'.join(rdts) + '"}'
     mng_columns_to_send = ["mtbl." + col for col in columns]
     send_cmd = f'''

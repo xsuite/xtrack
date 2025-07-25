@@ -100,6 +100,7 @@ def twiss_line(line, particle_ref=None, method=None,
         compute_R_element_by_element=None,
         compute_lattice_functions=None,
         compute_chromatic_properties=None,
+        compute_coupling_elements_ed_teng=False,
         init_at=None,
         x=None, px=None, y=None, py=None, zeta=None, delta=None,
         betx=None, alfx=None, bety=None, alfy=None, bets=None,
@@ -117,8 +118,7 @@ def twiss_line(line, particle_ref=None, method=None,
         _initial_particles=None,
         _ebe_monitor=None,
         only_markers=None,
-        ):
-
+    ):
     """
     Compute the Twiss parameters of the beam line.
 
@@ -554,7 +554,7 @@ def twiss_line(line, particle_ref=None, method=None,
         ax_chrom=ax_chrom, bx_chrom=bx_chrom, ay_chrom=ay_chrom, by_chrom=by_chrom,
         ddx=ddx, ddpx=ddpx, ddy=ddy, ddpy=ddpy,
         spin_x=spin_x, spin_y=spin_y, spin_z=spin_z
-        )
+    )
     completed_init = (init.copy() if hasattr(init, 'copy') else init)
 
     # clean quantities embedded in init
@@ -697,7 +697,6 @@ def twiss_line(line, particle_ref=None, method=None,
         nemitt_y=nemitt_y,
         r_sigma=r_sigma,
         delta_disp=delta_disp,
-        zeta_disp=zeta_disp,
         use_full_inverse=use_full_inverse,
         hide_thin_groups=hide_thin_groups,
         only_markers=only_markers,
@@ -838,6 +837,23 @@ def twiss_line(line, particle_ref=None, method=None,
     if polarization:
         _compute_spin_polarization(twiss_res, line, method)
 
+    if compute_coupling_elements_ed_teng:
+        delta = twiss_res['delta']
+        betx1, betx2 = twiss_res['betx1'], twiss_res['betx2']
+        bety1, bety2 = twiss_res['bety1'], twiss_res['bety2']
+        alfx1, alfx2 = twiss_res['alfx1'], twiss_res['alfx2']
+        alfy1, alfy2 = twiss_res['alfy1'], twiss_res['alfy2']
+        coupling_result = _compute_coupling_elements_edwards_teng(
+            delta, betx1, betx2, bety1, bety2, alfx1, alfx2, alfy1, alfy2
+        )
+        r11, r12, r21, r22, f1010, f1001 = coupling_result
+        twiss_res['r11'] = r11
+        twiss_res['r12'] = r12
+        twiss_res['r21'] = r21
+        twiss_res['r22'] = r22
+        twiss_res['f1010'] = f1010
+        twiss_res['f1001'] = f1001
+
     twiss_res._data['method'] = method
     twiss_res._data['radiation_method'] = radiation_method
     twiss_res._data['reference_frame'] = 'proper'
@@ -895,22 +911,27 @@ def twiss_line(line, particle_ref=None, method=None,
 
     return _add_action_in_res(twiss_res, input_kwargs)
 
-def _twiss_open(line, init,
-                      start, end,
-                      nemitt_x, nemitt_y, r_sigma,
-                      delta_disp, zeta_disp,
-                      use_full_inverse,
-                      hide_thin_groups=False,
-                      only_markers=False,
-                      only_orbit=False,
-                      spin=False,
-                      compute_lattice_functions=True,
-                      _continue_if_lost=False,
-                      _keep_tracking_data=False,
-                      _keep_initial_particles=False,
-                      _initial_particles=None,
-                      _ebe_monitor=None):
-
+def _twiss_open(
+        line,
+        init,
+        start,
+        end,
+        nemitt_x,
+        nemitt_y,
+        r_sigma,
+        delta_disp,
+        use_full_inverse,
+        hide_thin_groups=False,
+        only_markers=False,
+        only_orbit=False,
+        spin=False,
+        compute_lattice_functions=True,
+        _continue_if_lost=False,
+        _keep_tracking_data=False,
+        _keep_initial_particles=False,
+        _initial_particles=None,
+        _ebe_monitor=None,
+):
     if init.reference_frame == 'reverse':
         init = init.reverse()
 
@@ -1198,14 +1219,20 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
         bety1 = Ws[:, 2, 0]**2 + Ws[:, 2, 1]**2
         betx2 = Ws[:, 0, 2]**2 + Ws[:, 0, 3]**2
 
-        # Untested:
-        # alfx2 = -Ws[:, 0, 2] * Ws[:, 1, 2] - Ws[:, 0, 3] * Ws[:, 1, 3]
-        # alfy1 = -Ws[:, 2, 0] * Ws[:, 3, 0] - Ws[:, 2, 1] * Ws[:, 3, 1]
-        # gamx2 = Ws[:, 1, 2]**2 + Ws[:, 1, 3]**2
-        # gamy1 = Ws[:, 3, 0]**2 + Ws[:, 3, 1]**2
+        alfx2 = -Ws[:, 0, 2] * Ws[:, 1, 2] - Ws[:, 0, 3] * Ws[:, 1, 3]
+        alfy1 = -Ws[:, 2, 0] * Ws[:, 3, 0] - Ws[:, 2, 1] * Ws[:, 3, 1]
+
+        gamx2 = Ws[:, 1, 2]**2 + Ws[:, 1, 3]**2
+        gamy1 = Ws[:, 3, 0]**2 + Ws[:, 3, 1]**2
 
     betx1 = betx
     bety2 = bety
+
+    alfx1 = alfx
+    alfy2 = alfy
+
+    gamx1 = gamx
+    gamy2 = gamy
 
 
     temp_phix = phix.copy()
@@ -1260,6 +1287,14 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
         'bety1': bety1,
         'betx2': betx2,
         'bety2': bety2,
+        'alfx1': alfx1,
+        'alfy1': alfy1,
+        'alfx2': alfx2,
+        'alfy2': alfy2,
+        'gamx1': gamx1,
+        'gamy1': gamy1,
+        'gamx2': gamx2,
+        'gamy2': gamy2,
         'mux': mux,
         'muy': muy,
         'muzeta': muzeta,
@@ -1272,6 +1307,163 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
         'phizeta': phizeta,
     }
     return res, i_replace
+
+
+def _compute_coupling_elements_edwards_teng(
+        delta: np.ndarray,
+        betx1: np.ndarray,
+        betx2: np.ndarray,
+        bety1: np.ndarray,
+        bety2: np.ndarray,
+        alfx1: np.ndarray,
+        alfx2: np.ndarray,
+        alfy1: np.ndarray,
+        alfy2: np.ndarray,
+):
+    """Compute coupling matrix elements using the Edwards-Teng method.
+
+    Refer to the paper by Lebedev and Bogacz (2010) and the source code of
+    MAD-NG –- madl_gphys.mad.
+    (https://github.com/MethodicalAcceleratorDesign/MAD-NG/blob/a73ac34f85426f8e6ad15fb99f5ee0a4c6d1636d/src/madl_gphys.mad#L1807)
+
+    Returns
+    -------
+    r11, r12, r21, r22: complex
+        Coupling matrix elements.
+    f1010, f1001: complex
+        Resonance driving terms f1010 and f1001.
+    """
+    matrix_stability_tol = 1e-10
+
+    # Base computations
+    one_plus_delta = 1 + delta
+    betx = betx1 * one_plus_delta
+    bety = bety2 * one_plus_delta
+    alfx = alfx1
+    alfy = alfy2
+
+    # Coupling terms
+    kx2 = betx2 / betx1
+    ky2 = bety1 / bety2
+    kxy = kx2 * ky2
+
+    # Stability mask
+    idx_stable = (
+        (np.abs(kx2 - ky2) >= matrix_stability_tol) &
+        (np.abs(1 - kxy) >= matrix_stability_tol)
+    )
+
+    # Allocate outputs
+    r11 = np.zeros_like(one_plus_delta, dtype=np.complex128)
+    r12 = np.zeros_like(one_plus_delta, dtype=np.complex128)
+    r21 = np.zeros_like(one_plus_delta, dtype=np.complex128)
+    r22 = np.zeros_like(one_plus_delta, dtype=np.complex128)
+    f1010 = np.zeros_like(one_plus_delta, dtype=np.complex128)
+    f1001 = np.zeros_like(one_plus_delta, dtype=np.complex128)
+    ev1angle = np.zeros_like(one_plus_delta, dtype=np.float64)
+    ev2angle = np.zeros_like(one_plus_delta, dtype=np.float64)
+
+    # Only compute where stable, if not stable anywhere return zeros
+    if not np.any(idx_stable):
+        return r11, r12, r21, r22, f1010, f1001, ev1angle, ev2angle
+
+    kx = np.sqrt(kx2[idx_stable])
+    ky = np.sqrt(ky2[idx_stable])
+    ax = alfx1[idx_stable] * kx - alfx2[idx_stable] / kx
+    ay = alfy2[idx_stable] * ky - alfy1[idx_stable] / ky
+    kxy_ = kxy[idx_stable]
+    kx2_ = kx2[idx_stable]
+    ky2_ = ky2[idx_stable]
+
+    ku = kxy_ * (1 + ((ax ** 2 - ay ** 2) / (kx2_ - ky2_)) * (1 - kxy_))
+    u = -kxy_ / (1 - kxy_)
+
+    su = np.sqrt(np.maximum(ku, 0))
+    add_term = np.where(kxy_ <= su, +1, -1) * su / (1 - kxy_)
+    u = np.where(ku >= matrix_stability_tol, u + add_term, u)
+    kpa_ = 1 - u
+
+    betx_ = betx[idx_stable] / kpa_
+    bety_ = bety[idx_stable] / kpa_
+    alfx_ = alfx[idx_stable] / kpa_
+    alfy_ = alfy[idx_stable] / kpa_
+
+    bx = kx * kpa_ + u / kx
+    by = ky * kpa_ + u / ky
+    cx = kx * kpa_ - u / kx
+    cy = ky * kpa_ - u / ky
+
+    evp = (ax + 1j * bx) / (ay - 1j * by)
+    evm = (ax + 1j * cx) / (ay + 1j * cy)
+    ev1sq = evp * evm
+    ev2sq = evp / evm
+
+    ev1_angle = np.angle(ev1sq)
+    ev2_angle = np.angle(ev2sq)
+
+    ev1 = -np.sqrt(np.abs(ev1sq)) * np.exp(1j * np.unwrap(ev1_angle) / 2)
+    ev2 = np.sqrt(np.abs(ev2sq)) * np.exp(1j * np.unwrap(ev2_angle) / 2)
+
+    r11[idx_stable] = (
+            np.sqrt(bety2[idx_stable] / betx2[idx_stable]) *
+            (u * ev2.real + alfx2[idx_stable] * ev2.imag) / kpa_
+    )
+
+    r22[idx_stable] = (
+            -np.sqrt(betx1[idx_stable] / bety1[idx_stable]) *
+            (u * ev1.real + alfy1[idx_stable] * ev1.imag) / kpa_
+    )
+
+    r12[idx_stable] = (
+            np.sqrt(betx1[idx_stable] * bety1[idx_stable]) * ev1.imag / kpa_
+    )
+
+    r21[idx_stable] = (
+        (
+                (ev2.real * (alfx2[idx_stable] * kpa_ - alfy2[idx_stable] * u)) -
+                (ev2.imag * (alfx2[idx_stable] * alfy2[idx_stable] + kpa_ * u))
+        ) / (kpa_ * np.sqrt(betx2[idx_stable] * bety2[idx_stable]))
+    )
+
+    # Compute the RDTs
+    sbetx = np.sqrt(betx_)
+    sbety = np.sqrt(bety_)
+
+    mask_nonzero_sbetxy = (np.abs(betx) > 1e-6) & (np.abs(bety) > 1e-6)
+    # The above mask is computed on arrays whose length has been reduced already
+    # with idx_stable. Therefore, to address the original length of the arrays,
+    # we need to compute a new mask combining both conditions:
+    idx_compute_rdts = np.where(idx_stable)[0][mask_nonzero_sbetxy]
+
+    sbetx_ = sbetx[mask_nonzero_sbetxy]
+    sbety_ = sbety[mask_nonzero_sbetxy]
+
+    ga = np.array([
+        [1 / sbetx_, np.zeros_like(sbetx_)],
+        [alfx_[mask_nonzero_sbetxy] / sbetx_, sbetx_],
+    ]).transpose(2, 0, 1)
+
+    gb_inv = np.array([
+        [sbety_, np.zeros_like(sbety_)],
+        [-alfy_[mask_nonzero_sbetxy] / sbety_, 1 / sbety_],
+    ]).transpose(2, 0, 1)
+
+    r = np.array([
+        [r22[idx_compute_rdts], -r12[idx_compute_rdts]],
+        [-r21[idx_compute_rdts], r11[idx_compute_rdts]],
+    ])
+
+    c = (r / np.sqrt(1 + np.linalg.det(r.T))).transpose(2, 0, 1)
+
+    cbar = (ga @ c @ gb_inv).transpose(1, 2, 0)
+
+    cb = 0.25 / np.sqrt(1 - np.linalg.det(cbar.T)) * cbar
+
+    f1010[idx_compute_rdts] = -cb[0, 1] - cb[1, 0] + 1j * (cb[0, 0] - cb[1, 1])
+    f1001[idx_compute_rdts] = cb[0, 1] - cb[1, 0] + 1j * (cb[0, 0] + cb[1, 1])
+
+    return r11, r12, r21, r22, f1010, f1001
+
 
 def _compute_global_quantities(line, twiss_res):
 
@@ -1450,7 +1642,6 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                 nemitt_y=nemitt_y,
                 r_sigma=r_sigma,
                 delta_disp=delta_disp,
-                zeta_disp=zeta_disp,
                 use_full_inverse=use_full_inverse,
                 hide_thin_groups=hide_thin_groups,
                 only_markers=only_markers,
@@ -1458,7 +1649,9 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                 _keep_tracking_data=False,
                 _keep_initial_particles=False,
                 _initial_particles=None,
-                _ebe_monitor=None))
+                _ebe_monitor=None,
+            )
+        )
 
     dmux = (tw_chrom_res[1].mux - tw_chrom_res[0].mux)/(2*delta_chrom)
     dmuy = (tw_chrom_res[1].muy - tw_chrom_res[0].muy)/(2*delta_chrom)
