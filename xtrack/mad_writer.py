@@ -248,7 +248,6 @@ def solenoid_to_madx_str(name, line):
     tokens.append('solenoid')
     tokens.append(mad_assignment('l', _ge(sol.length)))
     tokens.append(mad_assignment('ks', _ge(sol.ks)))
-    tokens.append(mad_assignment('ksi', _ge(sol.ksi)))
 
     _handle_transforms(tokens, sol)
 
@@ -274,7 +273,7 @@ xsuite_to_mad_conveters={
     xt.Sextupole: sextupole_to_madx_str,
     xt.Octupole: octupole_to_madx_str,
     xt.Quadrupole: quadrupole_to_madx_str,
-    xt.Solenoid: solenoid_to_madx_str,
+    xt.UniformSolenoid: solenoid_to_madx_str,
     xt.SRotation: srotation_to_madx_str,
     xt.RFMultipole: rfmultipole_to_madx_str,
 }

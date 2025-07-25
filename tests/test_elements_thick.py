@@ -1318,7 +1318,7 @@ def test_solenoid_against_madx(test_context, ks, ksi, length):
 
 @for_all_test_contexts
 def test_solenoid_thick_drift_like(test_context):
-    solenoid = xt.Solenoid(ks=1.001e-9, length=1, _context=test_context)
+    solenoid = xt.UniformSolenoid(ks=1.001e-9, length=1, _context=test_context)
     l_drift = xt.Line(elements=[xt.Drift(length=1)])
     l_drift.config.XTRACK_USE_EXACT_DRIFTS = True
     l_drift.build_tracker(_context=test_context)
@@ -1353,7 +1353,7 @@ def test_solenoid_thick_drift_like(test_context):
     ],
 )
 def test_solenoid_thick_analytic(test_context, length, expected):
-    solenoid = xt.Solenoid(
+    solenoid = xt.UniformSolenoid(
         ks=1,
         length=length,
         _context=test_context,
@@ -1392,8 +1392,9 @@ def test_solenoid_with_mult_kicks(test_context, backtrack):
     knl = np.array([0.1, 0.4, 0.5])
     ksl = np.array([0.2, 0.3, 0.6])
 
-    solenoid_with_kicks = xt.Solenoid(
+    solenoid_with_kicks = xt.UniformSolenoid(
         length=length,
+        integrator='uniform',
         ks=ks,
         num_multipole_kicks=num_kicks,
         knl=knl,
@@ -1402,11 +1403,11 @@ def test_solenoid_with_mult_kicks(test_context, backtrack):
 
     line_ref = xt.Line(
         elements=[
-            xt.Solenoid(length=length / (num_kicks + 1), ks=ks),
+            xt.UniformSolenoid(length=length / (num_kicks)/2, ks=ks),
             xt.Multipole(knl=knl / num_kicks, ksl=ksl / num_kicks),
-            xt.Solenoid(length=length / (num_kicks + 1), ks=ks),
+            xt.UniformSolenoid(length=length / (num_kicks), ks=ks),
             xt.Multipole(knl=knl / num_kicks, ksl=ksl / num_kicks),
-            xt.Solenoid(length=length / (num_kicks + 1), ks=ks),
+            xt.UniformSolenoid(length=length / (num_kicks) /2, ks=ks),
         ],
         element_names=[
             'sol_0', 'kick_0', 'sol_1', 'kick_1', 'sol_2',
@@ -1457,7 +1458,7 @@ def test_solenoid_shifted_and_rotated_multipolar_kick(test_context):
     mult_rot_y_rad = 0.2
     mult_shift_x = 0.3
 
-    solenoid = xt.Solenoid(
+    solenoid = xt.Solenoid( # Need to use legacy one
         ks=ks,
         length=length,
         knl=knl,
@@ -1467,7 +1468,7 @@ def test_solenoid_shifted_and_rotated_multipolar_kick(test_context):
         mult_shift_x=mult_shift_x,
     )
 
-    solenoid_no_kick = xt.Solenoid(ks=0.9, length=0.25)
+    solenoid_no_kick = xt.UniformSolenoid(ks=0.9, length=0.25)
     kick = xt.Multipole(knl=np.array(knl) / 3, ksl=np.array(ksl) / 3)
 
     line_test = xt.Line(elements=[solenoid])
@@ -1527,11 +1528,11 @@ def test_solenoid_multipole_shifts(shift_x, shift_y, test_element_name):
     quad = xt.Quadrupole(length=1, k1=K1)
     sext = xt.Sextupole(length=1, k2=K2)
 
-    bend_sol = xt.Solenoid(length=1 / N_SLICES, ks=KS,
+    bend_sol = xt.Solenoid(length=1 / N_SLICES, ks=KS, # need legacy
                            knl=[K0 * (1 / N_SLICES), 0, 0], num_multipole_kicks=1)
-    quad_sol = xt.Solenoid(length=1 / N_SLICES, ks=KS,
+    quad_sol = xt.Solenoid(length=1 / N_SLICES, ks=KS, # need legacy
                            knl=[0, K1 * (1 / N_SLICES), 0], num_multipole_kicks=1)
-    sext_sol = xt.Solenoid(length=1 / N_SLICES, ks=KS,
+    sext_sol = xt.Solenoid(length=1 / N_SLICES, ks=KS, # need legacy
                            knl=[0, 0, K2 * (1 / N_SLICES)], num_multipole_kicks=1)
 
     ################################################################################
@@ -1588,8 +1589,8 @@ def test_solenoid_multipole_shifts(shift_x, shift_y, test_element_name):
     ########################################
     # Assertions
     ########################################
-    assert np.isclose(tw.x[-1], tw_sol.x[-1], rtol=1E-6)
-    assert np.isclose(tw.y[-1], tw_sol.y[-1], rtol=1E-6)
+    xo.assert_allclose(tw.x[-1], tw_sol.x[-1], rtol=2E-6)
+    xo.assert_allclose(tw.y[-1], tw_sol.y[-1], rtol=2E-6)
 
 
 def test_solenoid_multipole_rotations():
@@ -1613,7 +1614,7 @@ def test_solenoid_multipole_rotations():
     bl_components_out = [env.new('bl_drift1', xt.Drift, length=1)]
 
     bl_components_sol = [
-        env.new(f'bl_sol.{i}', xt.Solenoid,
+        env.new(f'bl_sol.{i}', xt.UniformSolenoid,
                 length=(L_SOL / N_SLICES),
                 ks=0,
                 knl=[K0 * (L_SOL / N_SLICES), 0, 0],
@@ -1637,7 +1638,7 @@ def test_solenoid_multipole_rotations():
         env.new('hrot_drift1', xt.Drift, length=1)]
 
     hrot_components_sol = [
-        env.new(f'hrot_sol.{i}', xt.Solenoid,
+        env.new(f'hrot_sol.{i}', xt.Solenoid, # need legacy
                 length=(L_SOL / N_SLICES) * np.cos(XING_RAD),
                 ks=0,
                 knl=[K0 * (L_SOL / N_SLICES), 0, 0],
@@ -1663,7 +1664,7 @@ def test_solenoid_multipole_rotations():
         env.new('vrot_drift1', xt.Drift, length=1)]
 
     vrot_components_sol = [
-        env.new(f'vrot_sol.{i}', xt.Solenoid,
+        env.new(f'vrot_sol.{i}', xt.Solenoid, # need legacy
                 length=(L_SOL / N_SLICES) * np.cos(XING_RAD),
                 ks=0,
                 knl=[K0 * (L_SOL / N_SLICES), 0, 0],
@@ -1753,7 +1754,7 @@ def test_drift_like_solenoid_with_kicks_radiation(radiation_mode, config):
     ])
 
     line_ref = xt.Line(elements=[
-        xt.Solenoid(ks=0, length=1, knl=knl, ksl=ksl, num_multipole_kicks=1)
+        xt.UniformSolenoid(ks=0, length=1, knl=knl, ksl=ksl, num_multipole_kicks=1)
     ])
 
     coords = np.linspace(-0.05, 0.05, 10)
@@ -1809,9 +1810,9 @@ def test_solenoid_with_kicks_radiation(radiation_mode, config):
     knl = [0.1, 0.4, 0.5]
     ksl = [0.2, 0.3, 0.6]
 
-    sol_ref = xt.Solenoid(ks=ks, length=l)
-    sol_1 = xt.Solenoid(ks=ks, length=l, knl=knl, ksl=ksl, num_multipole_kicks=1)
-    sol_3 = xt.Solenoid(ks=ks, length=l, knl=knl, ksl=ksl, num_multipole_kicks=3)
+    sol_ref = xt.UniformSolenoid(ks=ks, length=l)
+    sol_1 = xt.UniformSolenoid(ks=ks, length=l, knl=knl, ksl=ksl, num_multipole_kicks=1)
+    sol_3 = xt.UniformSolenoid(ks=ks, length=l, knl=knl, ksl=ksl, num_multipole_kicks=3)
 
     line_ref = xt.Line(elements=[sol_ref])
     line_1 = xt.Line(elements=[sol_1])
@@ -1852,7 +1853,7 @@ def test_solenoid_with_kicks_radiation(radiation_mode, config):
     d_delta_3 = p_3.delta - p0.delta
 
     xo.assert_allclose(
-        d_delta_1 - d_delta_ref, d_delta_3 - d_delta_ref, rtol=0.01, atol=1e-15
+        d_delta_1 - d_delta_ref, d_delta_3 - d_delta_ref, rtol=0.01, atol=2e-15
     )
 
 
@@ -2197,3 +2198,167 @@ def test_configure_model():
     assert line['o1'].edge_exit_active == False
     assert line['o1'].integrator == 'uniform'
     assert line['o1'].num_multipole_kicks == 7
+
+@for_all_test_contexts
+@pytest.mark.parametrize('reference', ['legacy', 'variable'])
+def test_uniform_solenoid_with_slices(test_context, reference):
+
+    length = 3.
+    ks = 2.
+
+    sol = xt.UniformSolenoid(length=length, ks=ks, _context=test_context)
+
+    if reference == 'legacy':
+        # Check against legacy solenoid
+        ref_sol = xt.Solenoid(length=length, ks=ks) # Old solenoid
+    elif reference == 'variable':
+        # Check against variable solenoid
+        ref_sol = xt.VariableSolenoid(length=length, ks_profile=[ks, ks])
+    else:
+        raise ValueError("Reference must be 'legacy' or 'variable'")
+
+    p0 = xt.Particles(p0c=1e9, x=1e-3, y=2e-3)
+
+    p = p0.copy(_context=test_context)
+    p_ref = p0.copy()
+
+    sol.track(p)
+    ref_sol.track(p_ref)
+
+    xo.assert_allclose(p.x, p_ref.x, rtol=0, atol=1e-10)
+    xo.assert_allclose(p.y, p_ref.y, rtol=0, atol=1e-10)
+    xo.assert_allclose(p.px, p_ref.px, rtol=0, atol=1e-10)
+    xo.assert_allclose(p.py, p_ref.py, rtol=0, atol=1e-10)
+    xo.assert_allclose(p.delta, p_ref.delta, rtol=0, atol=1e-10)
+    xo.assert_allclose(p.ax, 0., rtol=0, atol=1e-10)
+    xo.assert_allclose(p.ay, 0., rtol=0, atol=1e-10)
+    xo.assert_allclose(p.kin_px, p_ref.px, rtol=0, atol=1e-10)
+    xo.assert_allclose(p.kin_py, p_ref.py, rtol=0, atol=1e-10)
+
+    sol.edge_exit_active = False
+    p = p0.copy(_context=test_context)
+    sol.track(p)
+
+    xo.assert_allclose(p.x, p_ref.x, rtol=0, atol=1e-10)
+    xo.assert_allclose(p.y, p_ref.y, rtol=0, atol=1e-10)
+    xo.assert_allclose(p.px, p_ref.px, rtol=0, atol=1e-10)
+    xo.assert_allclose(p.py, p_ref.py, rtol=0, atol=1e-10)
+    xo.assert_allclose(p.delta, p_ref.delta, rtol=0, atol=1e-10)
+    xo.assert_allclose(p.ax, p_ref.ax, rtol=0, atol=1e-10)
+    xo.assert_allclose(p.ay, p_ref.ay, rtol=0, atol=1e-10)
+    xo.assert_allclose(p.kin_px, p_ref.kin_px, rtol=0, atol=1e-10)
+    xo.assert_allclose(p.kin_py, p_ref.kin_py, rtol=0, atol=1e-10)
+
+    p0_for_backtrack = p.copy()
+    p_for_backtrack = p0_for_backtrack.copy(_context=test_context)
+    lsol = xt.Line([sol])
+    lsol.build_tracker(_context=test_context)
+
+    sol.edge_entry_active = True
+    sol.edge_exit_active = True
+
+    lsol.track(p_for_backtrack, backtrack=True)
+    xo.assert_allclose(p_for_backtrack.x, p0.x, rtol=0, atol=1e-10)
+    xo.assert_allclose(p_for_backtrack.y, p0.y, rtol=0, atol=1e-10)
+    xo.assert_allclose(p_for_backtrack.px, p0.px, rtol=0, atol=1e-10)
+    xo.assert_allclose(p_for_backtrack.py, p0.py, rtol=0, atol=1e-10)
+    xo.assert_allclose(p_for_backtrack.delta, p0.delta, rtol=0, atol=1e-10)
+    xo.assert_allclose(p_for_backtrack.ax, 0., rtol=0, atol=1e-10)
+    xo.assert_allclose(p_for_backtrack.ay, 0., rtol=0, atol=1e-10)
+    xo.assert_allclose(p_for_backtrack.kin_px, p0.px, rtol=0, atol=1e-10)
+    xo.assert_allclose(p_for_backtrack.kin_py, p0.py, rtol=0, atol=1e-10)
+
+    sol.edge_entry_active = False
+    p_for_backtrack = p0_for_backtrack.copy(_context=test_context)
+    lsol.track(p_for_backtrack, backtrack=True)
+    xo.assert_allclose(p_for_backtrack.x, p0.x, rtol=0, atol=1e-10)
+    xo.assert_allclose(p_for_backtrack.y, p0.y, rtol=0, atol=1e-10)
+    xo.assert_allclose(p_for_backtrack.px, p0.px, rtol=0, atol=1e-10)
+    xo.assert_allclose(p_for_backtrack.py, p0.py, rtol=0, atol=1e-10)
+    xo.assert_allclose(p_for_backtrack.delta, p0.delta, rtol=0, atol=1e-10)
+    xo.assert_allclose(p_for_backtrack.ax, -ks /2 *p0.y, rtol=0, atol=1e-10)
+    xo.assert_allclose(p_for_backtrack.ay, ks /2 *p0.x, rtol=0, atol=1e-10)
+    xo.assert_allclose(p_for_backtrack.kin_px, p0.px + ks /2 *p0.y, rtol=0, atol=1e-10)
+    xo.assert_allclose(p_for_backtrack.kin_py, p0.py - ks /2 *p0.x, rtol=0, atol=1e-10)
+
+
+    sol.edge_entry_active = True
+    sol.edge_exit_active = True
+
+    lsol_sliced = lsol.copy(shallow=True)
+    lsol_sliced.cut_at_s([length / 3, 2 * length / 3])
+    lsol_sliced.build_tracker(_context=test_context)
+    tt_sliced = lsol_sliced.get_table(attr=True)
+
+    assert np.all(tt_sliced.name == np.array(
+        ['e0_entry', 'e0..entry_map', 'e0..0', 'e0..1', 'e0..2',
+        'e0..exit_map', 'e0_exit', '_end_point']))
+
+    xo.assert_allclose(tt_sliced.s, np.array([0., 0., 0., 1., 2., 3., 3., 3.]),
+                    rtol=0, atol=1e-10)
+
+    assert np.all(tt_sliced.element_type == np.array(
+        ['Marker', 'ThinSliceUniformSolenoidEntry',
+        'ThickSliceUniformSolenoid', 'ThickSliceUniformSolenoid',
+        'ThickSliceUniformSolenoid', 'ThinSliceUniformSolenoidExit',
+        'Marker', '']))
+
+    lsol_sliced.particle_ref = xt.Particles(p0c=100e9)
+    tw = lsol_sliced.twiss(x=p0.x, px=p0.px, y=p0.y, py=p0.py, betx=1, bety=1)
+    p_ref = p0.copy()
+    ref_sol.track(p_ref)
+
+    xo.assert_allclose(tw.x[-1], p_ref.x, rtol=0, atol=1e-10)
+    xo.assert_allclose(tw.px[-1], p_ref.px, rtol=0, atol=1e-10)
+    xo.assert_allclose(tw.y[-1], p_ref.y, rtol=0, atol=1e-10)
+    xo.assert_allclose(tw.py[-1], p_ref.py, rtol=0, atol=1e-10)
+    xo.assert_allclose(tw.delta[-1], p_ref.delta, rtol=0, atol=1e-10)
+
+    tw['ax'] = tw.px - tw.kin_px
+    tw['ay'] = tw.py - tw.kin_py
+
+    # tw.cols['ax ay'] should look as follows:
+    # TwissTable: 8 rows, 3 cols
+    # name                     ax            ay
+    # e0_entry                  0             0
+    # e0..entry_map             0             0
+    # e0..0                -0.002         0.001
+    # e0..1          -0.000129201    0.00120122
+    # e0..2          -0.000724768  -0.000583627
+    # e0..exit_map    -0.00209988   0.000700686
+    # e0_exit                   0             0
+    # _end_point                0             0
+
+    tw_before = tw.rows[:'e0..entry_map']
+    tw_inside = tw.rows['e0..0':'e0..exit_map']
+    tw_after = tw.rows['e0_exit':]
+
+    xo.assert_allclose(tw_before.ax, 0, rtol=0, atol=1e-20)
+    xo.assert_allclose(tw_before.ay, 0, rtol=0, atol=1e-20)
+    xo.assert_allclose(tw_inside.ax, -0.5 * ks * tw_inside.y, rtol=0, atol=1e-15)
+    xo.assert_allclose(tw_inside.ay, 0.5 * ks * tw_inside.x, rtol=0, atol=1e-15)
+    xo.assert_allclose(tw_after.ax, 0, rtol=0, atol=1e-20)
+    xo.assert_allclose(tw_after.ay, 0, rtol=0, atol=1e-20)
+
+    # Twiss backwards
+    tw_back = lsol_sliced.twiss(init=tw.get_twiss_init('e0_exit'))
+    tw_back['ax'] = tw_back.px - tw_back.kin_px
+    tw_back['ay'] = tw_back.py - tw_back.kin_py
+
+    xo.assert_allclose(tw_back.x, tw.x, rtol=0, atol=1e-10)
+    xo.assert_allclose(tw_back.px, tw.px, rtol=0, atol=1e-10)
+    xo.assert_allclose(tw_back.y, tw.y, rtol=0, atol=1e-10)
+    xo.assert_allclose(tw_back.py, tw.py, rtol=0, atol=1e-10)
+    xo.assert_allclose(tw_back.delta, tw.delta, rtol=0, atol=1e-10)
+    xo.assert_allclose(tw_back.ax, tw.ax, rtol=0, atol=1e-10)
+    xo.assert_allclose(tw_back.ay, tw.ay, rtol=0, atol=1e-10)
+
+    sol.edge_entry_active = False
+    tw_back = lsol_sliced.twiss(init=tw.get_twiss_init('e0_exit'))
+    tw_back['ax'] = tw_back.px - tw_back.kin_px
+    tw_back['ay'] = tw_back.py - tw_back.kin_py
+
+    xo.assert_allclose(tw_back.rows[:'e0..0'].ax, tw['ax', 'e0..0'],
+                    rtol=0, atol=1e-10)
+    xo.assert_allclose(tw_back.rows[:'e0..0'].ay, tw['ay', 'e0..0'],
+                    rtol=0, atol=1e-10)

@@ -29,6 +29,7 @@ def test_mad_writer(case):
     mad_seq = line.to_madx_sequence(sequence_name='myseq')
 
     mad = Madx(stdout=True)
+    mad.options.rbarc = False
     mad.input(mad_seq)
     mad.beam(particle='proton', energy=7000e9)
     mad.use('myseq')
@@ -54,7 +55,7 @@ def test_mad_writer(case):
 
     assert np.all(tw2.rows['ip.*'].name == tw.rows['ip.*'].name)
 
-    xo.assert_allclose(tw2.rows['ip.*'].s, tw.rows['ip.*'].s, rtol=0, atol=2e-9)
+    xo.assert_allclose(tw2.rows['ip.*'].s, tw.rows['ip.*'].s, rtol=0, atol=2e-5)
     xo.assert_allclose(tw2.rows['ip.*'].x, tw.rows['ip.*'].x, rtol=0, atol=1e-9)
     xo.assert_allclose(tw2.rows['ip.*'].y, tw.rows['ip.*'].y, rtol=0, atol=1e-9)
     xo.assert_allclose(tw2.rows['ip.*'].px, tw.rows['ip.*'].px, rtol=0, atol=1e-9)

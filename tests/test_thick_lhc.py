@@ -78,6 +78,7 @@ def test_slicing_lhc_thick(test_context):
 
     slicing_strategies = [
         Strategy(slicing=Teapot(1)),  # Default catch-all as in MAD-X
+        Strategy(slicing=None, element_type=xt.UniformSolenoid),
         Strategy(slicing=Teapot(4), element_type=xt.Bend),
         Strategy(slicing=Teapot(20), element_type=xt.Quadrupole),
         Strategy(slicing=Teapot(2), name=r'^mb\..*'),

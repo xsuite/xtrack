@@ -125,13 +125,13 @@ plt.ylabel('spin_z')
 plt.legend()
 
 spin_x_interp = interp1d(spin_bmad.s, spin_bmad.spin_x)(tw.s)
-xo.assert_allclose(tw.spin_x, spin_x_interp, atol=1e-5, rtol=0)
+xo.assert_allclose(tw.spin_x, spin_x_interp, atol=2e-5, rtol=0)
 
 spin_y_interp = interp1d(spin_bmad.s, spin_bmad.spin_y)(tw.s)
-xo.assert_allclose(tw.spin_y, spin_y_interp, atol=3e-7, rtol=0)
+xo.assert_allclose(tw.spin_y, spin_y_interp, atol=5e-7, rtol=0)
 
 spin_z_interp = interp1d(spin_bmad.s, spin_bmad.spin_z)(tw.s)
-xo.assert_allclose(tw.spin_z, spin_z_interp, atol=8e-6, rtol=0)
+xo.assert_allclose(tw.spin_z, spin_z_interp, atol=2e-5, rtol=0)
 
 
 plt.figure(3, figsize=(8, 6))

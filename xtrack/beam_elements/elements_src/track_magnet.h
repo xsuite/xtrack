@@ -27,9 +27,11 @@ void configure_tracking_model(
     double k0,
     double k1,
     double h,
+    double ks,
     double* k0_drift,
     double* k1_drift,
     double* h_drift,
+    double* ks_drift,
     double* k0_kick,
     double* k1_kick,
     double* h_kick,
@@ -46,9 +48,10 @@ void configure_tracking_model(
     // model = 5: drift-kick-drift-exact
     // model = 6: drift-kick-drift-expanded
     // model = -1: kick only (not exposed in python)
+    // model = -2: sol-kick-sol (not exposed in python)
 
-    if (model==0 || model==1){
-        model = 3;
+    if (model==1){
+        model = 3; // backward compatibility
     }
 
     int8_t h_is_zero = (fabs(h) < H_TOLERANCE);
@@ -79,14 +82,22 @@ void configure_tracking_model(
     else if(model == 6){ // drift-kick-drift-expanded
         drift_model = 0; // drift expanded
     }
-    else {
+    else if(model == -1){ // kick only
         drift_model = -1;
     }
+    else if(model == -2){ // sol-kick-sol
+        drift_model = 6; // solenoid
+    }
+    else{
+        // This should never happen, but just in case
+        drift_model = 99999999;
+    }
 
-    if (drift_model == -1 || drift_model == 0 || drift_model == 1){ // drift expanded or drift exact
+    if (drift_model == -1 || drift_model == 0 || drift_model == 1){ // drift expanded, drift exact, kick only
         *k0_drift = 0.0;
         *k1_drift = 0.0;
         *h_drift = 0.0;
+        *ks_drift = 0.0;
         *k0_kick = k0;
         *k1_kick = k1;
         *h_kick = h;
@@ -98,6 +109,7 @@ void configure_tracking_model(
         *k0_drift = 0.0;
         *k1_drift = 0.0;
         *h_drift = h;
+        *ks_drift = 0.0;
         *k0_kick = k0;
         *k1_kick = k1;
         *h_kick = h;
@@ -109,6 +121,7 @@ void configure_tracking_model(
         *k0_drift = k0;
         *k1_drift = k1;
         *h_drift = h;
+        *ks_drift = 0.0;
         *k0_kick = 0.0;
         *k1_kick = 0.0;
         *h_kick = h;
@@ -120,6 +133,7 @@ void configure_tracking_model(
         *k0_drift = k0;
         *k1_drift = 0.0;
         *h_drift = h;
+        *ks_drift = 0.0;
         *k0_kick = 0.0;
         *k1_kick = k1;
         *h_kick = h;
@@ -131,6 +145,7 @@ void configure_tracking_model(
         *k0_drift = k0;
         *k1_drift = 0.0;
         *h_drift = 0.0;
+        *ks_drift = 0.0;
         *k0_kick = 0.0;
         *k1_kick = k1;
         *h_kick = 0.0;
@@ -138,6 +153,19 @@ void configure_tracking_model(
         *k1_h_correction = 0.;
         *kick_rot_frame = 0;
     }
+    else if (drift_model == 6){ // solenoid
+        *k0_drift = 0.0;
+        *k1_drift = 0.0;
+        *h_drift = 0.0;
+        *ks_drift = ks;
+        *k0_kick = k0;
+        *k1_kick = k1;
+        *h_kick = h;
+        *k0_h_correction = k0;
+        *k1_h_correction = k1;
+        *kick_rot_frame = 1;
+    }
+
 
     *out_drift_model = drift_model;
 }
@@ -158,6 +186,7 @@ void track_magnet_body_single_particle(
     const int8_t integrator,
     const double k0_drift,
     const double k1_drift,
+    const double ks_drift,
     const double h_drift,
     const double k0_kick,
     const double k1_kick,
@@ -171,6 +200,7 @@ void track_magnet_body_single_particle(
     const double k1s,
     const double k2s,
     const double k3s,
+    const double dks_ds,
     const int64_t radiation_flag,
     const int64_t spin_flag,
     SynchrotronRadiationRecordData radiation_record,
@@ -189,7 +219,7 @@ void track_magnet_body_single_particle(
 
     #define MAGNET_DRIFT(part, dlength) \
         track_magnet_drift_single_particle(\
-            part, (dlength), k0_drift, k1_drift, h_drift, drift_model\
+            part, (dlength), k0_drift, k1_drift, ks_drift, h_drift, drift_model\
         )
 
     #ifdef XTRACK_MULTIPOLE_NO_SYNRAD
@@ -200,28 +230,82 @@ void track_magnet_body_single_particle(
     #else
         #define WITH_RADIATION(ll, code) \
         { \
-            const double old_px = LocalParticle_get_px(part); \
-            const double old_py = LocalParticle_get_py(part); \
-            const double old_ax = LocalParticle_get_ax(part); \
-            const double old_ay = LocalParticle_get_ay(part); \
-            const double old_zeta = LocalParticle_get_zeta(part); \
+            double const old_x = LocalParticle_get_x(part); \
+            double const old_y = LocalParticle_get_y(part); \
+            double const old_zeta = LocalParticle_get_zeta(part); \
+            double const old_kin_px = LocalParticle_get_px(part) - LocalParticle_get_ax(part);\
+            double const old_kin_py = LocalParticle_get_py(part) - LocalParticle_get_ay(part);\
             code; \
             if ((radiation_flag || spin_flag) && length > 0){ \
                 double h_for_rad = h_kick + hxl / length; \
                 if (fabs(h_drift) > 0){ h_for_rad = h_drift; } \
-                magnet_apply_radiation_single_particle( \
-                    part, \
-                    (ll), \
-                    /*hx*/h_for_rad, \
-                    /*hy*/0., \
-                    radiation_flag, \
-                    spin_flag, \
-                    old_px, old_py, \
-                    old_ax, old_ay, \
-                    old_zeta, \
-                    /*ks*/0., \
-                    radiation_record, \
-                    dp_record_exit, dpx_record_exit, dpy_record_exit);\
+                double Bx_T, By_T, Bz_T; \
+                double const p0c = LocalParticle_get_p0c(part); \
+                double const q0 = LocalParticle_get_q0(part); \
+                double const new_x = LocalParticle_get_x(part); \
+                double const new_y = LocalParticle_get_y(part); \
+                double const new_kin_px = LocalParticle_get_px(part) - LocalParticle_get_ax(part);\
+                double const new_kin_py = LocalParticle_get_py(part) - LocalParticle_get_ay(part);\
+                double const mean_x = 0.5 * (old_x + new_x); \
+                double const mean_y = 0.5 * (old_y + new_y); \
+                double const mean_kin_px = 0.5 * (old_kin_px + new_kin_px); \
+                double const mean_kin_py = 0.5 * (old_kin_py + new_kin_py); \
+                evaluate_field_from_strengths( \
+                    p0c, \
+                    q0, \
+                    mean_x, \
+                    mean_y, \
+                    length, \
+                    order, \
+                    inv_factorial_order, \
+                    knl, \
+                    ksl, \
+                    factor_knl_ksl, \
+                    k0_drift + k0_kick, \
+                    k1_drift + k1_kick, \
+                    k2, \
+                    k3, \
+                    k0s, \
+                    k1s, \
+                    k2s, \
+                    k3s, \
+                    ks_drift, \
+                    dks_ds, \
+                    &Bx_T, \
+                    &By_T, \
+                    &Bz_T \
+                ); \
+                double const dzeta = LocalParticle_get_zeta(part) - old_zeta; \
+                double const rvv = LocalParticle_get_rvv(part); \
+                double l_path = rvv * (ll - dzeta); \
+                if (spin_flag){ \
+                    magnet_spin( \
+                        part, \
+                        Bx_T, \
+                        By_T, \
+                        Bz_T, \
+                        h_for_rad, \
+                        ll, \
+                        l_path); \
+                } \
+                if (radiation_flag){ \
+                    double const B_perp_T = compute_b_perp_mod( \
+                        mean_kin_px, \
+                        mean_kin_py, \
+                        LocalParticle_get_delta(part), \
+                        Bx_T, \
+                        By_T, \
+                        Bz_T); \
+                    magnet_radiation( \
+                        part, \
+                        B_perp_T, \
+                        ll, \
+                        l_path, \
+                        radiation_flag, \
+                        radiation_record, \
+                        dp_record_exit, dpx_record_exit, dpy_record_exit \
+                    ); \
+                } \
             }\
         }
     #endif
@@ -268,7 +352,7 @@ void track_magnet_body_single_particle(
         }
 
     }
-    else if (integrator==0 || integrator==2){ // YOSHIDA 4
+    else if (integrator==2){ // YOSHIDA 4
 
         const int64_t n_kicks_yoshida = 7;
         const int64_t num_slices = (num_multipole_kicks / n_kicks_yoshida
@@ -324,17 +408,20 @@ void track_magnet_body_single_particle(
 
 GPUFUN
 void track_magnet_particles(
+    double const weight,
     LocalParticle* part0,
     double length,
     int64_t order,
     double inv_factorial_order,
     GPUGLMEM const double* knl,
     GPUGLMEM const double* ksl,
-    double factor_knl_ksl,
     int64_t num_multipole_kicks,
     int8_t model,
+    int8_t default_model,
     int8_t integrator,
+    int8_t default_integrator,
     int64_t radiation_flag,
+    int64_t radiation_flag_parent,
     SynchrotronRadiationRecordData radiation_record,
     double delta_taper,
     double h,
@@ -347,6 +434,10 @@ void track_magnet_particles(
     double k1s,
     double k2s,
     double k3s,
+    double ks,
+    double dks_ds,
+    int64_t rbend_model, // -1: not used, 0: auto, 1: curved body, 2: straight body
+    int64_t body_active,
     int64_t edge_entry_active,
     int64_t edge_exit_active,
     int64_t edge_entry_model,
@@ -361,10 +452,24 @@ void track_magnet_particles(
     double edge_exit_hgap
 ) {
 
+    double factor_knl_ksl = 1.0;
+
+    if (rbend_model == 0){
+        // auto mode, curved body
+        rbend_model = 1;
+    }
+
+    if (rbend_model == 1){
+        // curved body
+        double const angle = h * length;
+        edge_entry_angle += angle / 2.0;
+        edge_exit_angle += angle / 2.0;
+    }
+
     // Backtracking
     #ifdef XSUITE_BACKTRACK
-        const double core_length = -length;
-        double factor_knl_ksl_body = -factor_knl_ksl;
+        const double core_length = -length * weight;
+        double factor_knl_ksl_body = -factor_knl_ksl * weight;
         double factor_knl_ksl_edge = factor_knl_ksl; // Edge has a specific factor for backtracking
         const double factor_backtrack_edge = -1.;
         hxl = -hxl;
@@ -375,10 +480,16 @@ void track_magnet_particles(
         VSWAP(edge_entry_fint, edge_exit_fint);
         VSWAP(edge_entry_hgap, edge_exit_hgap)
     #else
-        const double core_length = length;
-        double factor_knl_ksl_body = factor_knl_ksl;
+        const double core_length = length * weight;
+        double factor_knl_ksl_body = factor_knl_ksl * weight;
         double factor_knl_ksl_edge = factor_knl_ksl;
         const double factor_backtrack_edge = 1.;
+    #endif
+
+    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+        if (radiation_flag == 10){ // from parent
+            radiation_flag = radiation_flag_parent;
+        }
     #endif
 
     // Tapering
@@ -406,66 +517,24 @@ void track_magnet_particles(
         }
     #endif
 
-    // Compute the number of kicks for auto mode
-    if (num_multipole_kicks == 0) { // num_multipole_kicks = 0 means auto mode
-        // If there are active kicks the number of kicks is guessed. Otherwise,
-        // only the drift is performed.
-        if (!kick_is_inactive(order, knl, ksl, k0, k1, k2, k3, k0s, k1s, k2s, k3s, h)){
-            if (fabs(h) < 1e-8){
-                num_multipole_kicks = 1; // straight magnet, one multipole kick in the middle
-            }
-            else{
-                double b_circum = 2 * 3.14159 / fabs(h);
-                num_multipole_kicks = fabs(length) / b_circum / 0.5e-3; // 0.5 mrad per kick (on average)
-                if (num_multipole_kicks < 1){
-                    num_multipole_kicks = 1;
-                }
-            }
-        }
-    }
+     if (edge_entry_active){
 
-    double k0_drift, k1_drift, h_drift;
-    double k0_kick, k1_kick, h_kick;
-    double k0_h_correction, k1_h_correction;
-    int8_t kick_rot_frame;
-    int8_t drift_model;
-    configure_tracking_model(
-        model,
-        k0,
-        k1,
-        h,
-        &k0_drift,
-        &k1_drift,
-        &h_drift,
-        &k0_kick,
-        &k1_kick,
-        &h_kick,
-        &k0_h_correction,
-        &k1_h_correction,
-        &kick_rot_frame,
-        &drift_model
-    );
-
-    double dp_record_exit, dpx_record_exit, dpy_record_exit;
-
-
-    if (edge_entry_active){
-
-        double kn[] = {k0, k1, k2, k3};
-        double ks[] = {k0s, k1s, k2s, k3s};
+        double knorm[] = {k0, k1, k2, k3};
+        double kskew[] = {k0s, k1s, k2s, k3s};
 
         track_magnet_edge_particles(
             part0,
             edge_entry_model,
             0, // is_exit
             edge_entry_hgap,
-            kn,
-            ks,
+            knorm,
+            kskew,
             3, // k_order,
             knl,
             ksl,
             factor_knl_ksl_edge,
             order,
+            ks,
             length,
             edge_entry_angle,
             edge_entry_angle_fdown,
@@ -474,39 +543,100 @@ void track_magnet_particles(
         );
     }
 
-    START_PER_PARTICLE_BLOCK(part0, part);
-        track_magnet_body_single_particle(
-            part, core_length, order, inv_factorial_order,
-            knl, ksl,
-            factor_knl_ksl_body,
-            num_multipole_kicks, kick_rot_frame, drift_model, integrator,
-            k0_drift, k1_drift, h_drift,
-            k0_kick, k1_kick, h_kick, hxl,
-            k0_h_correction, k1_h_correction,
-            k2, k3, k0s, k1s, k2s, k3s,
-            radiation_flag,
-            1, // spin_flag
-            radiation_record,
-            &dp_record_exit, &dpx_record_exit, &dpy_record_exit
+    if (body_active){
+
+        if (integrator == 0){
+            integrator = default_integrator;
+        }
+        if (model == 0){
+            model = default_model;
+        }
+
+        // Adjust the number of multipole kicks based on the weight
+        if (weight != 1.0 && num_multipole_kicks > 0){
+            num_multipole_kicks = (int64_t) ceil(num_multipole_kicks * weight);
+        }
+
+        // Compute the number of kicks for auto mode
+        if (num_multipole_kicks == 0) { // num_multipole_kicks = 0 means auto mode
+            // If there are active kicks the number of kicks is guessed. Otherwise,
+            // only the drift is performed.
+            if (!kick_is_inactive(order, knl, ksl, k0, k1, k2, k3, k0s, k1s, k2s, k3s, h)){
+                if (fabs(h) < 1e-8){
+                    num_multipole_kicks = 1; // straight magnet, one multipole kick in the middle
+                }
+                else{
+                    double b_circum = 2 * 3.14159 / fabs(h);
+                    num_multipole_kicks = fabs(length) / b_circum / 0.5e-3; // 0.5 mrad per kick (on average)
+                    if (num_multipole_kicks < 1){
+                        num_multipole_kicks = 1;
+                    }
+                }
+            }
+        }
+
+        double k0_drift, k1_drift, h_drift, ks_drift;
+        double k0_kick, k1_kick, h_kick;
+        double k0_h_correction, k1_h_correction;
+        int8_t kick_rot_frame;
+        int8_t drift_model;
+        configure_tracking_model(
+            model,
+            k0,
+            k1,
+            h,
+            ks,
+            &k0_drift,
+            &k1_drift,
+            &h_drift,
+            &ks_drift,
+            &k0_kick,
+            &k1_kick,
+            &h_kick,
+            &k0_h_correction,
+            &k1_h_correction,
+            &kick_rot_frame,
+            &drift_model
         );
-    END_PER_PARTICLE_BLOCK;
+
+        double dp_record_exit, dpx_record_exit, dpy_record_exit;
+
+        START_PER_PARTICLE_BLOCK(part0, part);
+            track_magnet_body_single_particle(
+                part, core_length, order, inv_factorial_order,
+                knl, ksl,
+                factor_knl_ksl_body,
+                num_multipole_kicks, kick_rot_frame, drift_model, integrator,
+                k0_drift, k1_drift, ks_drift, h_drift,
+                k0_kick, k1_kick, h_kick, hxl,
+                k0_h_correction, k1_h_correction,
+                k2, k3, k0s, k1s, k2s, k3s,
+                dks_ds,
+                radiation_flag,
+                1, // spin_flag
+                radiation_record,
+                &dp_record_exit, &dpx_record_exit, &dpy_record_exit
+            );
+        END_PER_PARTICLE_BLOCK;
+    }
 
     if (edge_exit_active){
-        double kn[] = {k0, k1, k2, k3};
-        double ks[] = {k0s, k1s, k2s, k3s};
+        double knorm[] = {k0, k1, k2, k3};
+        double kskew[] = {k0s, k1s, k2s, k3s};
 
         track_magnet_edge_particles(
             part0,
             edge_exit_model,
             1, // is_exit
             edge_exit_hgap,
-            kn,
-            ks,
+            knorm,
+            kskew,
             3, // k_order,
             knl,
             ksl,
             factor_knl_ksl_edge,
             order,
+            ks,
             length,
             edge_exit_angle,
             edge_exit_angle_fdown,

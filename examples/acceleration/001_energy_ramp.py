@@ -3,7 +3,7 @@ from cpymad.madx import Madx
 import xtrack as xt
 
 # Import a line and build a tracker
-line = xt.Line.from_json(
+line = xt.load(
     '../../test_data/psb_injection/line_and_particle.json')
 e_kin_start_eV = 160e6
 line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1.,

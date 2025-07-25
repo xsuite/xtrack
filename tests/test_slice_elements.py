@@ -661,7 +661,7 @@ def test_thick_slice_octupole(test_context):
 @for_all_test_contexts
 def test_thick_slice_solenoid(test_context):
 
-    sol = xt.Solenoid(ks=0.1, length=1)
+    sol = xt.UniformSolenoid(ks=0.1, length=1)
 
     line = xt.Line(elements=[sol])
 
@@ -688,12 +688,12 @@ def test_thick_slice_solenoid(test_context):
 
     line.to_json('ttt_thick_solenoid.json')
     line2 = xt.Line.from_json('ttt_thick_solenoid.json')
-    assert isinstance(line2['e0..0'], xt.ThickSliceSolenoid)
+    assert isinstance(line2['e0..0'], xt.ThickSliceUniformSolenoid)
     assert line2['e0..0'].parent_name == 'e0'
     assert line2['e0..0']._parent is None
 
     line2.build_tracker(_context=test_context)
-    assert isinstance(line2['e0..0'], xt.ThickSliceSolenoid)
+    assert isinstance(line2['e0..0'], xt.ThickSliceUniformSolenoid)
     assert line2['e0..0'].parent_name == 'e0'
     assert line2['e0..0']._parent is line2.element_dict['e0']
 

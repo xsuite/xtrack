@@ -263,10 +263,15 @@ class Environment:
 
         _eval = self._xdeps_eval.eval
 
-        assert isinstance(parent, str) or parent in _ALLOWED_ELEMENT_TYPES_IN_NEW, (
+        if not (isinstance(parent, str) or parent in _ALLOWED_ELEMENT_TYPES_IN_NEW):
+            raise ValueError(
             'Only '
             + _STR_ALLOWED_ELEMENT_TYPES_IN_NEW
-            + ' elements are allowed in `new` for now.')
+            + ' elements are allowed in `new` for now. In this case it is possible '
+            + 'to create a new element using the class and add it to the environment '
+            + ' using `env.elements`. For example:\n\n'
+            + '`env.elements["myname"] = MyClass(...)`\n'
+            )
 
         needs_instantiation = True
         parent_element = None
@@ -1460,7 +1465,7 @@ def _reverse_element(env, name):
     """Return a reversed element without modifying the original."""
 
     SUPPORTED = {'RBend', 'Bend', 'Quadrupole', 'Sextupole', 'Octupole',
-                'Multipole', 'Cavity', 'Solenoid', 'RFMultipole',
+                'Multipole', 'Cavity', 'UniformSolenoid', 'RFMultipole',
                 'Marker', 'Drift', 'LimitRect', 'LimitEllipse', 'LimitPolygon',
                 'LimitRectEllipse'}
 

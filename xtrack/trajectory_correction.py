@@ -206,15 +206,15 @@ class OrbitCorrectionSinglePlane:
                     np.array(corrector_limits[0]),
                     np.array(corrector_limits[1])
                 )
-            
+
             assert len(corrector_limits) == 2
             assert len(corrector_limits[0]) == len(corrector_limits[1])
             assert len(corrector_limits[0]) == len(corrector_names)
 
         self.line = line
         self.plane = plane
-        self.monitor_names = monitor_names
-        self.corrector_names = corrector_names
+        self.monitor_names = list(monitor_names)
+        self.corrector_names = list(corrector_names)
         self.start = start
         self.end = end
         self.n_micado = n_micado
@@ -248,7 +248,7 @@ class OrbitCorrectionSinglePlane:
                 for kk in alignment.keys():
                     assert kk in ['shift_x', 'shift_y', 'rot_s_rad']
                 if nn in self.monitor_names:
-                    i_monitor = self.monitor_names.index(nn)
+                    i_monitor = self.monitor_names.index(str(nn))
                     self.shift_x_monitors[i_monitor] = alignment.get('shift_x', 0)
                     self.shift_y_monitors[i_monitor] = alignment.get('shift_y', 0)
                     self.rot_s_rad_monitors[i_monitor] = alignment.get('rot_s_rad', 0)
@@ -314,7 +314,7 @@ class OrbitCorrectionSinglePlane:
         else:
             self._position_after = None
 
-    def _compute_tw_orbit(self):
+    def _compute_tw_orbit(self, delta0=None):
         if self.mode == 'open':
             # Initialized with betx=1, bety=1 (use W_matrix to avoid compilation)
             twinit = xt.TwissInit(W_matrix=np.eye(6),
@@ -326,7 +326,7 @@ class OrbitCorrectionSinglePlane:
         else:
             twinit = None
         tw_orbit = self.line.twiss4d(only_orbit=True, start=self.start, end=self.end,
-                                     init=twinit, reverse=False)
+                                     init=twinit, reverse=False, delta0=delta0)
         return tw_orbit
 
     def _measure_position(self, tw_orbit=None):
@@ -542,7 +542,7 @@ class TrajectoryCorrection:
 
     def correct(self, planes=None, n_micado=None, n_singular_values=None,
                 rcond=None, n_iter='auto', verbose=True, stop_iter_factor=0.1,
-                tol_position_std=1e-10):
+                tol_position_std=1e-10, delta0=None):
 
         '''
         Correct the trajectory in the horizontal and/or vertical plane.
@@ -609,7 +609,7 @@ class TrajectoryCorrection:
         if self.y_correction is not None:
             a_correction = self.y_correction
 
-        tw_orbit = a_correction._compute_tw_orbit()
+        tw_orbit = a_correction._compute_tw_orbit(delta0=delta0)
 
         if self.x_correction is not None:
             relative_limits_x = self.x_correction.corrector_limits
@@ -633,7 +633,7 @@ class TrajectoryCorrection:
                             corrector_limits=relative_limits_y)
 
             tw_orbit_prev = tw_orbit
-            tw_orbit = a_correction._compute_tw_orbit()
+            tw_orbit = a_correction._compute_tw_orbit(delta0=delta0)
 
             if n_iter == 'auto' and self.x_correction is not None and 'x' in planes:
                 new_position = self.x_correction._measure_position(tw_orbit)

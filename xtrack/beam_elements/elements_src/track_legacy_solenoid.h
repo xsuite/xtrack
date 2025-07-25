@@ -6,6 +6,7 @@
 #define XTRACK_TRACK_SOLENOID_H
 
 #include <headers/track.h>
+#include <beam_elements/elements_src/track_legacy_solenoid_radiation.h>
 
 #define IS_ZERO(X) (fabs(X) < 1e-9)
 
@@ -106,7 +107,7 @@ void Solenoid_thick_with_radiation_track_single_particle(
 
     #ifndef XTRACK_SOLENOID_NO_SYNRAD
         if ((radiation_flag > 0 || spin_flag > 0) && length > 0){
-            magnet_apply_radiation_single_particle(
+            legacy_solenoid_apply_radiation_single_particle(
                 part,
                 length,
                 0, // hx

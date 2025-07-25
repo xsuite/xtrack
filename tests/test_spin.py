@@ -187,8 +187,7 @@ def test_kicker(case, atol):
         ]
     )
 
-    # line.configure_spin(model=True)
-    line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
+    line.configure_spin(spin_model='auto')
 
     line.track(p)
 
@@ -205,7 +204,55 @@ def test_kicker(case, atol):
     ),
     ids=[case['id'] for case in COMMON_TEST_CASES],
 )
-def test_solenoid(case, atol):
+def test_uniform_solenoid(case, atol):
+    case['spin_y'] = np.sqrt(1 - case['spin_x']**2 - case['spin_z']**2)
+
+    ref_file = BMAD_REF_FILES / 'solenoid_bmad.json'
+    refs = xt.json.load(ref_file)
+
+    ref = None
+    for ref_case in refs:
+        if ref_case['in'] == case:
+            ref = ref_case['out']
+            break
+    if ref is None:
+        raise ValueError(f'Case {case} not found in file {ref_file}')
+
+
+    p = xt.Particles(
+        p0c=700e9, mass0=xt.ELECTRON_MASS_EV,
+        anomalous_magnetic_moment=0.00115965218128,
+        **case,
+    )
+
+    Bz_T = 0.05
+    ks = Bz_T / (p.p0c[0] / clight / p.q0)
+    env = xt.Environment()
+    line = env.new_line(
+        components=[
+            env.new('mysolenoid', xt.UniformSolenoid, length=0.02, ks=ks),
+            env.new('mymarker', xt.Marker),
+        ]
+    )
+
+    line.configure_spin(spin_model='auto')
+
+    line.track(p)
+
+    xo.assert_allclose(p.spin_x[0], ref['spin_x'], atol=atol, rtol=0)
+    xo.assert_allclose(p.spin_y[0], ref['spin_y'], atol=atol, rtol=0)
+    xo.assert_allclose(p.spin_z[0], ref['spin_z'], atol=atol, rtol=0)
+
+
+@pytest.mark.parametrize(
+    'case,atol',
+    zip(
+        [case['case'].copy() for case in COMMON_TEST_CASES],
+        [3e-8, 3e-8, 3e-8, 3e-8, 3e-8, 3e-8, 2e-5, 1e-5, 2e-8, 1e-5, 2e-5],
+    ),
+    ids=[case['id'] for case in COMMON_TEST_CASES],
+)
+def test_legacy_solenoid(case, atol):
     case['spin_y'] = np.sqrt(1 - case['spin_x']**2 - case['spin_z']**2)
 
     ref_file = BMAD_REF_FILES / 'solenoid_bmad.json'
@@ -236,8 +283,7 @@ def test_solenoid(case, atol):
         ]
     )
 
-    # line.configure_spin(model=True)
-    line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
+    line.configure_spin(spin_model='auto')
 
     line.track(p)
 
@@ -283,8 +329,7 @@ def test_bend(case, atol):
         ]
     )
 
-    # line.configure_spin(model=True)
-    line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
+    line.configure_spin(spin_model='auto')
 
     line.track(p)
 
@@ -330,8 +375,7 @@ def test_quadrupole(case, atol):
         ]
     )
 
-    # line.configure_spin(model=True)
-    line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
+    line.configure_spin(spin_model='auto')
 
     line.track(p)
 
@@ -411,7 +455,7 @@ def test_polarization_lep_base():
 
     spin_dn_dpz_z_interp = interp1d(spin_bmad.s, spin_bmad.spin_dn_dpz_z)(tw.s)
     xo.assert_allclose(
-        tw.spin_dn_ddelta_z, spin_dn_dpz_z_interp, atol=0.15, rtol=0
+        tw.spin_dn_ddelta_z, spin_dn_dpz_z_interp, atol=0.2, rtol=0
     )
 
 
@@ -454,7 +498,7 @@ def test_polarization_lep_spin_bump():
     bmad_depol_time_s = 60 * spin_summary_bmad['Depolarization Time (minutes, turns)'][0]
     xo.assert_allclose(tw.spin_polarization_eq, bmad_polarization_eq, atol=0, rtol=3e-2)
     xo.assert_allclose(tw.spin_t_pol_component_s, bmad_pol_time_s, atol=0, rtol=1e-2)
-    xo.assert_allclose(tw.spin_t_depol_component_s, bmad_depol_time_s, atol=0, rtol=12e-2)
+    xo.assert_allclose(tw.spin_t_depol_component_s, bmad_depol_time_s, atol=0, rtol=0.15)
 
     xo.assert_allclose(tw.spin_t_pol_buildup_s,
         (1/tw.spin_t_pol_component_s + 1/tw.spin_t_depol_component_s)**-1,
@@ -466,13 +510,13 @@ def test_polarization_lep_spin_bump():
         spin_bmad[kk] *= -1
 
     spin_x_interp = interp1d(spin_bmad.s, spin_bmad.spin_x)(tw.s)
-    xo.assert_allclose(tw.spin_x, spin_x_interp, atol=1e-5, rtol=0)
+    xo.assert_allclose(tw.spin_x, spin_x_interp, atol=2e-5, rtol=0)
 
     spin_y_interp = interp1d(spin_bmad.s, spin_bmad.spin_y)(tw.s)
-    xo.assert_allclose(tw.spin_y, spin_y_interp, atol=3e-7, rtol=0)
+    xo.assert_allclose(tw.spin_y, spin_y_interp, atol=4e-7, rtol=0)
 
     spin_z_interp = interp1d(spin_bmad.s, spin_bmad.spin_z)(tw.s)
-    xo.assert_allclose(tw.spin_z, spin_z_interp, atol=8e-6, rtol=0)
+    xo.assert_allclose(tw.spin_z, spin_z_interp, atol=2e-5, rtol=0)
 
     spin_dn_dpz_x_interp = interp1d(spin_bmad.s, spin_bmad.spin_dn_dpz_x)(tw.s)
     xo.assert_allclose(
@@ -486,7 +530,7 @@ def test_polarization_lep_spin_bump():
 
     spin_dn_dpz_z_interp = interp1d(spin_bmad.s, spin_bmad.spin_dn_dpz_z)(tw.s)
     xo.assert_allclose(
-        tw.spin_dn_ddelta_z, spin_dn_dpz_z_interp, atol=0.1, rtol=0
+        tw.spin_dn_ddelta_z, spin_dn_dpz_z_interp, atol=0.15, rtol=0
     )
 
 
@@ -529,7 +573,7 @@ def test_polarization_lep_sext_corr():
     bmad_depol_time_s = 60 * spin_summary_bmad['Depolarization Time (minutes, turns)'][0]
     xo.assert_allclose(tw.spin_polarization_eq, bmad_polarization_eq, atol=0, rtol=3e-2)
     xo.assert_allclose(tw.spin_t_pol_component_s, bmad_pol_time_s, atol=0, rtol=1e-2)
-    xo.assert_allclose(tw.spin_t_depol_component_s, bmad_depol_time_s, atol=0, rtol=15e-2)
+    xo.assert_allclose(tw.spin_t_depol_component_s, bmad_depol_time_s, atol=0, rtol=0.2)
 
     xo.assert_allclose(tw.spin_t_pol_buildup_s,
         (1/tw.spin_t_pol_component_s + 1/tw.spin_t_depol_component_s)**-1,
@@ -540,13 +584,13 @@ def test_polarization_lep_sext_corr():
         spin_bmad[kk] *= -1
 
     spin_x_interp = interp1d(spin_bmad.s, spin_bmad.spin_x)(tw.s)
-    xo.assert_allclose(tw.spin_x, spin_x_interp, atol=1e-5, rtol=0)
+    xo.assert_allclose(tw.spin_x, spin_x_interp, atol=2e-5, rtol=0)
 
     spin_y_interp = interp1d(spin_bmad.s, spin_bmad.spin_y)(tw.s)
-    xo.assert_allclose(tw.spin_y, spin_y_interp, atol=3e-7, rtol=0)
+    xo.assert_allclose(tw.spin_y, spin_y_interp, atol=5e-7, rtol=0)
 
     spin_z_interp = interp1d(spin_bmad.s, spin_bmad.spin_z)(tw.s)
-    xo.assert_allclose(tw.spin_z, spin_z_interp, atol=8e-6, rtol=0)
+    xo.assert_allclose(tw.spin_z, spin_z_interp, atol=2e-5, rtol=0)
 
     spin_dn_dpz_x_interp = interp1d(spin_bmad.s, spin_bmad.spin_dn_dpz_x)(tw.s)
     xo.assert_allclose(

@@ -48,7 +48,7 @@ from .mad_loader import MadLoader
 from .beam_elements import element_classes
 from . import beam_elements
 from .beam_elements import Drift, BeamElement, Marker, Multipole
-from .beam_elements.slice_elements import ID_RADIATION_FROM_PARENT
+from .beam_elements.slice_elements_thin import ID_RADIATION_FROM_PARENT
 from .footprint import Footprint, _footprint_with_linear_rescale
 from .internal_record import (start_internal_logging_for_elements_of_type,
                               stop_internal_logging_for_elements_of_type,
@@ -61,7 +61,8 @@ log = logging.getLogger(__name__)
 
 
 _ALLOWED_ELEMENT_TYPES_IN_NEW = [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole,
-                                 xt.Octupole, xt.Cavity, xt.Multipole, xt.Solenoid,
+                                 xt.Octupole, xt.Cavity, xt.Multipole,
+                                 xt.UniformSolenoid, xt.Solenoid, xt.VariableSolenoid,
                                  xt.Marker, xt.Replica, xt.XYShift, xt.XRotation,
                                  xt.YRotation, xt.SRotation, xt.ZetaShift,
                                  xt.LimitRacetrack, xt.LimitRectEllipse,
@@ -70,20 +71,8 @@ _ALLOWED_ELEMENT_TYPES_IN_NEW = [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole,
                                  xt.Magnet]
 
 
-_ALLOWED_ELEMENT_TYPES_DICT = {'Drift': xt.Drift, 'Bend': xt.Bend,
-                               'Quadrupole': xt.Quadrupole, 'Sextupole': xt.Sextupole,
-                               'Octupole': xt.Octupole, 'Cavity': xt.Cavity,
-                               'Multipole': xt.Multipole, 'Solenoid': xt.Solenoid,
-                               'Marker': xt.Marker, 'Replica': xt.Replica,
-                               'LimitRacetrack': xt.LimitRacetrack,
-                               'LimitRectEllipse': xt.LimitRectEllipse,
-                               'LimitRect': xt.LimitRect, 'LimitEllipse': xt.LimitEllipse,
-                               'LimitPolygon': xt.LimitPolygon,
-                               'XYShift': xt.XYShift, 'XRotation': xt.XRotation,
-                               'YRotation': xt.YRotation, 'SRotation': xt.SRotation,
-                               'ZetaShift': xt.ZetaShift,
-                               'RFMultipole': xt.RFMultipole, 'RBend': xt.RBend,
-                               'Magnet': xt.Magnet}
+_ALLOWED_ELEMENT_TYPES_DICT = {
+    cc.__name__: cc for cc in _ALLOWED_ELEMENT_TYPES_IN_NEW}
 
 _STR_ALLOWED_ELEMENT_TYPES_IN_NEW = ', '.join([tt.__name__ for tt in _ALLOWED_ELEMENT_TYPES_IN_NEW])
 
@@ -639,7 +628,8 @@ class Line:
         '''
         return to_madx_sequence(self, sequence_name, mode=mode)
 
-    def to_madng(self, sequence_name='seq', temp_fname=None, keep_files=False):
+    def to_madng(self, sequence_name='seq', temp_fname=None, keep_files=False,
+                 **kwargs):
 
         '''
         Build a MAD NG instance from present state of the line.
@@ -658,7 +648,8 @@ class Line:
         '''
 
         return line_to_madng(self, sequence_name=sequence_name,
-                             temp_fname=temp_fname, keep_files=keep_files)
+                             temp_fname=temp_fname, keep_files=keep_files,
+                             **kwargs)
 
 
     build_madng_model = build_madng_model
@@ -2320,6 +2311,11 @@ class Line:
         if obj is not None:
             assert isinstance(what, str)
             self.env.element_dict[what] = obj
+
+        if isinstance(what, str) in self.element_dict:
+            # Is an element and not a line or an iterable
+            self.element_names.append(what)
+            return
 
         if not isinstance(what, Iterable) or isinstance(what, str):
             what = [what]
@@ -5626,7 +5622,7 @@ class LineVars:
         self.__dict__.update(state)
         self.vars_to_update = WeakSet()
 
-    def set_from_madx_file(self, filename):
+    def set_from_madx_file(self, filename=None, string=None):
 
         '''
         Set variables veluas of expression from a MAD-X file.
@@ -5637,7 +5633,12 @@ class LineVars:
             Path to the MAD-X file(s) to load.
         '''
         loader = xt.mad_parser.MadxLoader(env=self.line)
-        loader.load_file(filename)
+        if filename is not None:
+            assert string is None, 'Cannot specify both filename and string'
+            loader.load_file(filename)
+        elif string is not None:
+            assert filename is None, 'Cannot specify both filename and string'
+            loader.load_string(string)
 
     def load_madx_optics_file(self, filename):
         self.set_from_madx_file(filename)
@@ -5674,6 +5675,37 @@ class LineVars:
                 self[kk] = _eval(kwargs[kk])
             else:
                 self[kk] = kwargs[kk]
+
+    def load(self, file=None, string=None, format=None, timeout=5.):
+
+        if format is None and file is not None:
+            if file.endswith('.json'):
+                format = 'json'
+            elif file.endswith('.seq') or file.endswith('.madx') or file.endswith('.mad'):
+                format = 'madx'
+
+        if file.startswith('http://') or file.startswith('https://'):
+            assert string is None, 'Cannot specify both fname and string'
+            string = xt.general.read_url(file, timeout=timeout)
+            file = None
+
+        if file is not None:
+            assert string is None, 'Cannot specify both fname and string'
+
+        if string is not None:
+            assert file is None, 'Cannot specify both fname and string'
+            assert format is not None, 'Must specify format when using string'
+
+        assert format in ['json', 'madx'], f'Unknown format {format}'
+
+        if format == 'json':
+            ddd = xt.json.load(file=file, string=string)
+            self.update(ddd)
+        elif format == 'madx':
+            return self.set_from_madx_file(filename=file, string=string)
+        else:
+            raise ValueError(f'Unknown format {format}')
+
 
     def set(self, name, value):
         if isinstance(value, str):

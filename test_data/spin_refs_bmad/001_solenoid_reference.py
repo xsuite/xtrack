@@ -18,7 +18,7 @@ Bz_T = 0.05
 ks = Bz_T / (p0.p0c[0] / clight / p0.q0)
 env = xt.Environment()
 line = env.new_line(components=[
-    env.new('mykicker', xt.Solenoid, length=0.02, ks=ks),
+    env.new('mykicker', xt.UniformSolenoid, length=0.02, ks=ks),
     env.new('mymarker', xt.Marker),
 ])
 

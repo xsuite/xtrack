@@ -32,38 +32,35 @@ class VerticalChirpKicker(xt.BeamElement):
             double const num_turns = VerticalChirpKickerData_get_num_turns(el);
             double const length = VerticalChirpKickerData_get_length(el);
 
-            double dp_record = 0.;
-            double dpx_record = 0.;
-            double dpy_record = 0.;
-
             //start_per_particle_block (part0->part)
                 double const at_turn = LocalParticle_get_at_turn(part);
                 if (at_turn < num_turns){
-                    double const old_py = LocalParticle_get_py(part);
                     // integrating to get the instantaneous phase
                     double const phi = 2 * PI * q_start * at_turn
                        + PI * (q_end - q_start) / ((double) num_turns) * ((double) at_turn * at_turn);
                     double const dpy = k0sl * sin(phi);
                     LocalParticle_add_to_py(part, dpy);
 
-                    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
-                    magnet_apply_radiation_single_particle(
+                #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+
+                    // Magnetic rigidity
+                    double const p0c = LocalParticle_get_p0c(part);
+                    double const q0 = LocalParticle_get_q0(part);
+                    double const brho_0 = p0c / C_LIGHT / q0; // [T m]
+
+                    // Magnetic field
+                    double const Bx_T = dpy * brho_0 / length ; // [T]
+
+                    // Track spin
+                    magnet_spin(
                         part,
+                        Bx_T,
+                        0, // By_T
+                        0, // Bz_T
+                        0, // frame curvature
                         length,
-                        0., // hx,
-                        0., // hy,
-                        0, // radiation_flag,
-                        1, // spin_flag,
-                        0., // old_px,
-                        old_py,
-                        0, // old_ax
-                        0, // old_ay,
-                        0, // old_zeta
-                        0., // ks,
-                        NULL, // SynchrotronRadiationRecordData record,
-                        &dp_record,
-                        &dpx_record,
-                        &dpy_record);
+                        length // lpath - same for a thin element
+                       );
                     #endif
                 }
             //end_per_particle_block

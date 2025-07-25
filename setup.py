@@ -44,12 +44,13 @@ setup(
         "pandas>=2.0",
         'scipy',
         'tqdm',
+        'requests',
         'xobjects',
         'xdeps'
-        ],
+    ],
     extras_require={
         'tests': ['cpymad', 'nafflib', 'PyHEADTAIL', 'pytest', 'pytest-mock',
-                  'pymadng'],
+                  'pymadng', 'requests-mock'],
         'notebooks': ['jupyter', 'ipympl', 'xplt'],
     },
-    )
+)

@@ -8,140 +8,152 @@
 #include <headers/track.h>
 #include <headers/synrad_spectrum.h>
 
+GPUFUN
+void direction_of_motion(
+    double const px,
+    double const py,
+    double const delta,
+    double* iv_x,
+    double* iv_y,
+    double* iv_s){
+
+    double iix = px / (1. + delta);
+    double iiy = py / (1. + delta);
+    double iis = sqrt(1 - iix * iix + iiy * iiy);
+
+    *iv_x = iix;
+    *iv_y = iiy;
+    *iv_s = iis;
+}
 
 GPUFUN
-void magnet_apply_radiation_single_particle(
+void separate_par_perp_components(
+    double const Bx,
+    double const By,
+    double const Bz,
+    double const ix,
+    double const iy,
+    double const iz,
+    double* B_par_x,
+    double* B_par_y,
+    double* B_par_z,
+    double* B_perp_x,
+    double* B_perp_y,
+    double* B_perp_z
+){
+
+    double B_par = Bx * ix + By * iy + Bz * iz;
+    double const BB_par_x = B_par * ix;
+    double const BB_par_y = B_par * iy;
+    double const BB_par_z = B_par * iz;
+
+    double const BB_perp_x = Bx - BB_par_x;
+    double const BB_perp_y = By - BB_par_y;
+    double const BB_perp_z = Bz - BB_par_z;
+
+    *B_par_x = BB_par_x;
+    *B_par_y = BB_par_y;
+    *B_par_z = BB_par_z;
+    *B_perp_x = BB_perp_x;
+    *B_perp_y = BB_perp_y;
+    *B_perp_z = BB_perp_z;
+
+}
+
+GPUFUN
+double compute_b_perp_mod(
+    double const kin_px,
+    double const kin_py,
+    double const delta,
+    double const Bx,
+    double const By,
+    double const Bz){
+
+    double iv_x, iv_y, iv_z;
+    direction_of_motion(kin_px, kin_py, delta,
+                        &iv_x, &iv_y, &iv_z);
+
+    double B_par_x, B_par_y, B_par_z;
+    double B_perp_x, B_perp_y, B_perp_z;
+    separate_par_perp_components(
+        Bx,
+        By,
+        Bz,
+        iv_x,
+        iv_y,
+        iv_z,
+        &B_par_x,
+        &B_par_y,
+        &B_par_z,
+        &B_perp_x,
+        &B_perp_y,
+        &B_perp_z);
+
+    return sqrt(B_perp_x*B_perp_x + B_perp_y*B_perp_y + B_perp_z*B_perp_z);
+
+}
+
+GPUFUN
+void magnet_spin(
     LocalParticle* part,
-    const double length,
-    const double hx,
-    const double hy,
-    const int64_t radiation_flag,
-    const int64_t spin_flag,
-    const double old_px, const double old_py,
-    const double old_ax, const double old_ay,
-    const double old_zeta,
-    const double ks,
-    SynchrotronRadiationRecordData record,
-    double* dp_record_exit, double* dpx_record_exit, double* dpy_record_exit
+    double const Bx_T,
+    double const By_T,
+    double const Bz_T,
+    double const hx,
+    double const length,
+    double const l_path
 ) {
-
-    if (length == 0.0) {
-        return;
-    }
-
-    RecordIndex record_index = NULL;
-    if (radiation_flag==2){
-        if (record){
-            record_index = SynchrotronRadiationRecordData_getp__index(record);
-        }
-    }
-
-    // Initial energy variables
-    double const rvv = LocalParticle_get_rvv(part);
-    double const delta = LocalParticle_get_delta(part);
-    double const ptau = LocalParticle_get_ptau(part);
-
-    double const new_ax = LocalParticle_get_ax(part);
-    double const new_ay = LocalParticle_get_ay(part);
-
-    double const old_kin_px = old_px - old_ax;
-    double const old_kin_py = old_py - old_ay;
-
-    double const new_kin_px = LocalParticle_get_px(part) - new_ax;
-    double const new_kin_py = LocalParticle_get_py(part) - new_ay;
-
-    double const x_new = LocalParticle_get_x(part);
-    double const y_new = LocalParticle_get_y(part);
-
-    double const old_ps = sqrt((1 + delta)*(1 + delta) - old_kin_px * old_kin_px - old_kin_py * old_kin_py);
-    double const new_ps = sqrt((1 + delta)*(1 + delta) - new_kin_px * new_kin_px - new_kin_py * new_kin_py);
-    double const old_xp = old_kin_px / old_ps;
-    double const old_yp = old_kin_py / old_ps;
-    double const new_xp = new_kin_px / new_ps;
-    double const new_yp = new_kin_py / new_ps;
-
-    double const xp_mid = 0.5 * (old_xp + new_xp);
-    double const yp_mid = 0.5 * (old_yp + new_yp);
-    double const xpp_mid = (new_xp - old_xp) / length;
-    double const ypp_mid = (new_yp - old_yp) / length;
-
-    double const x_mid = x_new - 0.5 * length * xp_mid;
-    double const y_mid = y_new - 0.5 * length * yp_mid;
-
-    // Curvature of the particle trajectory
-    double const hhh = 1 + hx * x_mid + hy * y_mid;
-    double const hprime = hx * xp_mid + hy * yp_mid;
-    double const tempx = (xp_mid * xp_mid + hhh * hhh);
-    double const tempy = (yp_mid * yp_mid + hhh * hhh);
-    double const kappa_x = (-(hhh * (xpp_mid - hhh * hx) - 2 * hprime * xp_mid)
-                      / (tempx * sqrt(tempx)));
-    double const kappa_y = (-(hhh * (ypp_mid - hhh * hy) - 2 * hprime * yp_mid)
-                      / (tempy * sqrt(tempy)));
-
-    // Transverse magnetic field
-    double const mass0 = LocalParticle_get_mass0(part);
-    double const q0 = LocalParticle_get_q0(part);
-    double const p0c = LocalParticle_get_p0c(part);
-    double const gamma0 = LocalParticle_get_gamma0(part);
-    double const beta0 = LocalParticle_get_beta0(part);
-    double const gamma = gamma0 * (1 + beta0 * ptau);
-    double const beta = beta0 * rvv;
-    double const mass0_kg = mass0 * QELEM / C_LIGHT / C_LIGHT;
-    double const P_J = mass0_kg * beta * gamma * C_LIGHT;
-    double const Q0_coulomb = q0 * QELEM;
-    double const brho0 = p0c / C_LIGHT / q0;
-
-    // Estimate magnetic field
-    double Bx_T = -kappa_y * P_J / Q0_coulomb;
-    double By_T = kappa_x * P_J / Q0_coulomb;
-    double const Bz_T = ks * brho0;
-    double const B_perp_T = sqrt(Bx_T * Bx_T + By_T * By_T); //this one is used for radiation
-
-    // I kill Bx and By if there is ks (for spin), need to find a better solution
-    if (ks != 0.){
-        Bx_T = 0.;
-        By_T = 0.;
-    }
-
-    // Path length for radiation
-    double const dzeta = LocalParticle_get_zeta(part) - old_zeta;
-    double l_path = rvv * (length - dzeta);
-
-    // spin
-
     // track spin
     double const spin_x_0 = LocalParticle_get_spin_x(part);
     double const spin_y_0 = LocalParticle_get_spin_y(part);
     double const spin_z_0 = LocalParticle_get_spin_z(part);
 
-    if ((spin_flag != 0) && (spin_x_0 != 0. || spin_y_0 != 0. || spin_z_0 != 0.)){
+    if (spin_x_0 != 0. || spin_y_0 != 0. || spin_z_0 != 0.){
 
         #ifdef XSUITE_BACKTRACK
             LocalParticle_set_state(part, -33);
         #else
-            double const kin_px_mean = (old_px + new_ax);
-            double const kin_py_mean = (old_py + new_ay);
 
-            double const kin_pz_mean = sqrt((1 + delta)*(1 + delta) - kin_px_mean * kin_px_mean - kin_py_mean * kin_py_mean);
-
-            double const beta_x = beta * (kin_px_mean / kin_pz_mean);
-            double const beta_y = beta * (kin_py_mean / kin_pz_mean);
-            double const beta_z = sqrt(beta*beta - beta_x * beta_x - beta_y * beta_y);
-
-            double const iv_x = beta_x / beta;
-            double const iv_y = beta_y / beta;
-            double const iv_z = beta_z / beta;
-
-            double B_par_spin = Bx_T * iv_x + By_T * iv_y + Bz_T * iv_z;
-            double const B_par_spin_x = B_par_spin * iv_x;
-            double const B_par_spin_y = B_par_spin * iv_y;
-            double const B_par_spin_z = B_par_spin * iv_z;
-
-            double const B_perp_spin_x = Bx_T - B_par_spin_x;
-            double const B_perp_spin_y = By_T - B_par_spin_y;
-            double const B_perp_spin_z = Bz_T - B_par_spin_z;
-
+            double const ptau = LocalParticle_get_ptau(part);
+            double const delta = LocalParticle_get_delta(part);
+            double const rvv = LocalParticle_get_rvv(part);
+            double const mass0 = LocalParticle_get_mass0(part);
+            double const q0 = LocalParticle_get_q0(part);
+            double const gamma0 = LocalParticle_get_gamma0(part);
+            double const beta0 = LocalParticle_get_beta0(part);
+            double const gamma = gamma0 * (1 + beta0 * ptau);
+            double const beta = beta0 * rvv;
+            double const mass0_kg = mass0 * QELEM / C_LIGHT / C_LIGHT;
+            double const P_J = mass0_kg * beta * gamma * C_LIGHT;
             double const brho_part = P_J / (q0 * QELEM);
+
+            double const new_ax = LocalParticle_get_ax(part);
+            double const new_ay = LocalParticle_get_ay(part);
+
+            double const kin_px_mean = LocalParticle_get_px(part) + new_ax;
+            double const kin_py_mean = LocalParticle_get_py(part) + new_ay;
+
+            double iv_x, iv_y, iv_z;
+            direction_of_motion(kin_px_mean, kin_py_mean, delta,
+                                &iv_x, &iv_y, &iv_z);
+
+            double B_par_spin_x, B_par_spin_y, B_par_spin_z;
+            double B_perp_spin_x, B_perp_spin_y, B_perp_spin_z;
+
+            separate_par_perp_components(
+                Bx_T,
+                By_T,
+                Bz_T,
+                iv_x,
+                iv_y,
+                iv_z,
+                &B_par_spin_x,
+                &B_par_spin_y,
+                &B_par_spin_z,
+                &B_perp_spin_x,
+                &B_perp_spin_y,
+                &B_perp_spin_z);
+
 
             double const G_spin = LocalParticle_get_anomalous_magnetic_moment(part);
 
@@ -210,6 +222,21 @@ void magnet_apply_radiation_single_particle(
             }
         #endif
     }
+}
+
+GPUFUN
+void magnet_radiation(
+    LocalParticle* part,
+    double const B_perp_T,
+    double const length,
+    double const l_path,
+    const int64_t radiation_flag,
+    SynchrotronRadiationRecordData record,
+    double* dp_record_exit, double* dpx_record_exit, double* dpy_record_exit
+) {
+
+    double const new_ax = LocalParticle_get_ax(part);
+    double const new_ay = LocalParticle_get_ay(part);
 
     // Synchrotron radiation
     LocalParticle_add_to_px(part, -new_ax);
@@ -220,11 +247,90 @@ void magnet_apply_radiation_single_particle(
             dp_record_exit, dpx_record_exit, dpy_record_exit);
     }
     else if (radiation_flag == 2){
+        RecordIndex record_index = NULL;
+        if (record){
+            record_index = SynchrotronRadiationRecordData_getp__index(record);
+        }
         synrad_emit_photons(part, B_perp_T, l_path, record_index, record);
     }
 
     LocalParticle_add_to_px(part, new_ax);
     LocalParticle_add_to_py(part, new_ay);
 }
+
+GPUFUN
+void magnet_estimate_field(
+    LocalParticle* part,
+    const double length,
+    const double hx,
+    const double hy,
+    const double old_px, const double old_py,
+    const double old_ax, const double old_ay,
+    const double old_zeta,
+    const double ks,
+    double* Bx_T, double* By_T, double* Bz_T
+) {
+
+    // Initial energy variables
+    double const rvv = LocalParticle_get_rvv(part);
+    double const delta = LocalParticle_get_delta(part);
+    double const ptau = LocalParticle_get_ptau(part);
+
+    double const new_ax = LocalParticle_get_ax(part);
+    double const new_ay = LocalParticle_get_ay(part);
+
+    double const old_kin_px = old_px - old_ax;
+    double const old_kin_py = old_py - old_ay;
+
+    double const new_kin_px = LocalParticle_get_px(part) - new_ax;
+    double const new_kin_py = LocalParticle_get_py(part) - new_ay;
+
+    double const x_new = LocalParticle_get_x(part);
+    double const y_new = LocalParticle_get_y(part);
+
+    double const old_ps = sqrt((1 + delta)*(1 + delta) - old_kin_px * old_kin_px - old_kin_py * old_kin_py);
+    double const new_ps = sqrt((1 + delta)*(1 + delta) - new_kin_px * new_kin_px - new_kin_py * new_kin_py);
+    double const old_xp = old_kin_px / old_ps;
+    double const old_yp = old_kin_py / old_ps;
+    double const new_xp = new_kin_px / new_ps;
+    double const new_yp = new_kin_py / new_ps;
+
+    double const xp_mid = 0.5 * (old_xp + new_xp);
+    double const yp_mid = 0.5 * (old_yp + new_yp);
+    double const xpp_mid = (new_xp - old_xp) / length;
+    double const ypp_mid = (new_yp - old_yp) / length;
+
+    double const x_mid = x_new - 0.5 * length * xp_mid;
+    double const y_mid = y_new - 0.5 * length * yp_mid;
+
+    // Curvature of the particle trajectory
+    double const hhh = 1 + hx * x_mid + hy * y_mid;
+    double const hprime = hx * xp_mid + hy * yp_mid;
+    double const tempx = (xp_mid * xp_mid + hhh * hhh);
+    double const tempy = (yp_mid * yp_mid + hhh * hhh);
+    double const kappa_x = (-(hhh * (xpp_mid - hhh * hx) - 2 * hprime * xp_mid)
+                      / (tempx * sqrt(tempx)));
+    double const kappa_y = (-(hhh * (ypp_mid - hhh * hy) - 2 * hprime * yp_mid)
+                      / (tempy * sqrt(tempy)));
+
+    // Transverse magnetic field
+    double const mass0 = LocalParticle_get_mass0(part);
+    double const q0 = LocalParticle_get_q0(part);
+    double const p0c = LocalParticle_get_p0c(part);
+    double const gamma0 = LocalParticle_get_gamma0(part);
+    double const beta0 = LocalParticle_get_beta0(part);
+    double const gamma = gamma0 * (1 + beta0 * ptau);
+    double const beta = beta0 * rvv;
+    double const mass0_kg = mass0 * QELEM / C_LIGHT / C_LIGHT;
+    double const P_J = mass0_kg * beta * gamma * C_LIGHT;
+    double const Q0_coulomb = q0 * QELEM;
+    double const brho0 = p0c / C_LIGHT / q0;
+
+    // Estimate magnetic field
+    *Bx_T = -kappa_y * P_J / Q0_coulomb;
+    *By_T = kappa_x * P_J / Q0_coulomb;
+    *Bz_T = ks * brho0;
+}
+
 
 #endif

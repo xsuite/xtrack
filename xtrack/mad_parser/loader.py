@@ -132,7 +132,7 @@ class MadxLoader:
         self._new_builtin("marker", "Marker")
         self._new_builtin("rfcavity", "Cavity")
         self._new_builtin("multipole", "Multipole", knl=6 * [0])
-        self._new_builtin("solenoid", "Solenoid")
+        self._new_builtin("solenoid", "UniformSolenoid")
 
         for mad_apertype in _APERTURE_TYPES:
             self._new_builtin(mad_apertype, 'Marker')
@@ -427,6 +427,16 @@ class MadxLoader:
                 params['ksl'] = ksl
             if params.pop('lrad', None):
                 _warn(f'Multipole `{name}` was specified with a length, ignoring!')
+            for kk in list(params.keys()):
+                if kk.startswith('k') and kk.endswith('l'):
+                    if kk == 'ksl' or kk == 'knl':
+                        continue
+                    order = int(kk[1:-1])
+                    if knl not in params:
+                        params['knl'] = []
+                    if len(params['knl']) <= order:
+                        params['knl'] += [0] * (order - len(params['knl']) + 1)
+                    params['knl'][order] = params.pop(kk)
 
         elif parent_name == 'vkicker':
             if (kick := params.pop('kick', None)):

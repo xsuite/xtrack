@@ -15,12 +15,13 @@ void MagnetEdge_track_local_particle(MagnetEdgeData el, LocalParticle* part0)
     const int8_t model = MagnetEdgeData_get_model(el);
     const uint8_t is_exit = MagnetEdgeData_get_is_exit(el);
     const double half_gap = MagnetEdgeData_get_half_gap(el);
-    const double* kn = MagnetEdgeData_getp1_kn(el, 0);
-    const double* ks = MagnetEdgeData_getp1_ks(el, 0);
+    const double* knorm = MagnetEdgeData_getp1_kn(el, 0);
+    const double* kskew = MagnetEdgeData_getp1_ks(el, 0);
     const int64_t k_order = MagnetEdgeData_get_k_order(el);
     const double* knl = MagnetEdgeData_getp1_knl(el, 0);
     const double* ksl = MagnetEdgeData_getp1_ksl(el, 0);
     const int64_t kl_order = MagnetEdgeData_get_kl_order(el);
+    const double ks = 0.; // Not supported yet in MagnetEdge
     const double length = MagnetEdgeData_get_length(el);
     const double face_angle = MagnetEdgeData_get_face_angle(el);
     const double face_angle_feed_down = MagnetEdgeData_get_face_angle_feed_down(el);
@@ -37,13 +38,14 @@ void MagnetEdge_track_local_particle(MagnetEdgeData el, LocalParticle* part0)
         model,
         is_exit,
         half_gap,
-        kn,
-        ks,
+        knorm,
+        kskew,
         k_order,
         knl,
         ksl,
         /* factor_knl_ksl */ 1,
         kl_order,
+        ks,
         length,
         face_angle,
         face_angle_feed_down,

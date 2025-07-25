@@ -8,12 +8,12 @@
 
 #include <headers/track.h>
 #include <headers/synrad_spectrum.h>
-#include <beam_elements/elements_src/track_multipolar_components.h>
-#include <beam_elements/elements_src/track_magnet_radiation.h>
+#include <beam_elements/elements_src/track_legacy_solenoid_multipolar_components.h>
+#include <beam_elements/elements_src/track_legacy_solenoid_radiation.h>
 #include <beam_elements/elements_src/track_xrotation.h>
 #include <beam_elements/elements_src/track_yrotation.h>
 #include <beam_elements/elements_src/track_srotation.h>
-#include <beam_elements/elements_src/track_solenoid.h>
+#include <beam_elements/elements_src/track_legacy_solenoid.h>
 
 
 GPUFUN
@@ -117,7 +117,7 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
 
     #ifndef XTRACK_SOLENOID_NO_SYNRAD
         if ((radiation_flag > 0 || spin_flag > 0) && length > 0){
-            magnet_apply_radiation_single_particle(
+            legacy_solenoid_apply_radiation_single_particle(
                 part,
                 length,
                 0, // hx
