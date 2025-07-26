@@ -493,6 +493,8 @@ void track_magnet_particles(
             dx_rb = 0.5 / h * (1 - cos_rbha);
         };
         h = 0; // treat magnet as straight
+        // We are entering the fringe with an angle, the linear fringe
+        // needs to come from the  expansion around the right angle
         edge_entry_angle_fdown += rbend_half_angle;
         edge_exit_angle_fdown += rbend_half_angle;
     }
