@@ -14,6 +14,8 @@ edge_model = 'full'
 b_ref = xt.RBend(angle=0.1, k0_from_h=True, length_straight=3.)
 b_ref.edge_entry_model = edge_model
 b_ref.edge_exit_model = edge_model
+b_ref.model = 'rot-kick-rot'
+b_ref.num_multipole_kicks = 100
 lref = xt.Line([b_ref])
 lref.particle_ref = xt.Particles(p0c=10e9)
 tw_ref0 = lref.twiss(betx=1, bety=1)
@@ -23,6 +25,7 @@ b_test = xt.RBend(
     angle=0.1, k0_from_h=True, length_straight=3)
 b_test.rbend_model = 2
 b_test.model = 'bend-kick-bend'
+b_test.num_multipole_kicks = 100
 b_test.edge_entry_model = edge_model
 b_test.edge_exit_model = edge_model
 l_test = xt.Line([b_test])
@@ -49,7 +52,7 @@ xo.assert_allclose(tw_ref.px,   tw_test.px, rtol=0, atol=1e-12)
 xo.assert_allclose(tw_ref.py,   tw_test.py, rtol=0, atol=1e-12)
 
 l_sliced = l_test.copy(shallow=True)
-l_sliced.cut_at_s(np.linspace(0, l_test.get_length(), 10))
+l_sliced.cut_at_s(np.linspace(0, l_test.get_length(), 100))
 tw_test_sliced0 = l_sliced.twiss(betx=1, bety=1)
 
 xo.assert_allclose(tw_test_sliced0.betx[-1], tw_test0.betx[-1], rtol=1e-9, atol=0.0)
