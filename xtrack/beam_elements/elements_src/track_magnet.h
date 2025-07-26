@@ -461,6 +461,7 @@ void track_magnet_particles(
     double length_curved = 0.;
     double dx_rb = 0.;
 
+
     if (rbend_model == 0){
         // auto mode, curved body
         rbend_model = 1;
@@ -491,7 +492,9 @@ void track_magnet_particles(
             // shift by half the sagitta
             dx_rb = 0.5 / h * (1 - cos_rbha);
         };
-        h = 0;
+        h = 0; // treat magnet as straight
+        edge_entry_angle_fdown += rbend_half_angle;
+        edge_exit_angle_fdown += rbend_half_angle;
     }
 
     // Backtracking
