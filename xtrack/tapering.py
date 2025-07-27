@@ -6,7 +6,7 @@ from .general import _print
 import xtrack as xt
 import xobjects as xo
 
-def compensate_radiation_energy_loss(line, delta0='zeto_mean', rtol_eneloss=1e-12,
+def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-12,
                                      max_iter=100, verbose=True,
                                      co_search_at=None,
                                      **kwargs):
