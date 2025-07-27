@@ -1,6 +1,7 @@
 import json
 import numpy as np
 import xtrack as xt
+import xobjects as xo
 
 #########################################
 # Load line and twiss with no radiation #
@@ -19,7 +20,7 @@ line['rf1'].voltage *= 2
 line['rf2b'].voltage *= 2
 line['rf2a'].voltage *= 2
 
-# line.particle_ref.p0c = 5e9  # eV
+line.particle_ref.p0c = 4e9  # eV
 
 line.configure_radiation(model=None)
 tw_no_rad = line.twiss(method='4d', freeze_longitudinal=True)
@@ -43,6 +44,27 @@ tw = line.twiss(method='6d')
 tw.delta # contains the momentum deviation along the ring
 
 #!end-doc-part
+
+p0corr = 1 + tw.delta
+
+delta_ave = np.trapezoid(tw.delta, tw.s)/tw.s[-1]
+xo.assert_allclose(delta_ave, 0, rtol=0, atol=1e-6)
+
+xo.assert_allclose(tw.qx, tw_no_rad.qx, rtol=0, atol=5e-4)
+xo.assert_allclose(tw.qy, tw_no_rad.qy, rtol=0, atol=5e-4)
+
+xo.assert_allclose(tw.dqx, tw_no_rad.dqx, rtol=0, atol=1.5e-2*tw.qx)
+xo.assert_allclose(tw.dqy, tw_no_rad.dqy, rtol=0, atol=1.5e-2*tw.qy)
+
+xo.assert_allclose(tw.x, tw_no_rad.x, rtol=0, atol=1e-7)
+xo.assert_allclose(tw.y, tw_no_rad.y, rtol=0, atol=1e-7)
+
+xo.assert_allclose(tw.betx*p0corr, tw_no_rad.betx, rtol=2e-2, atol=0)
+xo.assert_allclose(tw.bety*p0corr, tw_no_rad.bety, rtol=2e-2, atol=0)
+
+xo.assert_allclose(tw.dx, tw.dx, rtol=0.0, atol=0.1e-3)
+
+xo.assert_allclose(tw.dy, tw.dy, rtol=0.0, atol=0.1e-3)
 
 import matplotlib.pyplot as plt
 plt.close('all')
