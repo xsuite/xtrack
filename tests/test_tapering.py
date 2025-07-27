@@ -37,7 +37,7 @@ def test_tapering_and_twiss_with_radiation():
     line.configure_radiation(model='mean')
     # - Set cavity lags to compensate energy loss
     # - Taper magnet strengths
-    line.compensate_radiation_energy_loss()
+    line.compensate_radiation_energy_loss(delta0=0)
 
     for conf in configs:
         print(f'Running test with conf: {conf}')
