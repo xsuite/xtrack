@@ -3232,7 +3232,7 @@ class Line:
             self, element=element, update_every=update_every, **kwargs
         )
 
-    def compensate_radiation_energy_loss(self, delta0=0, rtol_eneloss=1e-10,
+    def compensate_radiation_energy_loss(self, delta0='zero_mean', rtol_eneloss=1e-10,
                                     max_iter=100, **kwargs):
 
         """
