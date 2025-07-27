@@ -3242,7 +3242,9 @@ class Line:
         Parameters
         ----------
         delta0: float
-            Initial energy deviation.
+            Initial energy deviation. If `delta0='zero_mean'` is specified, the
+            compensation is done such that the mean energy deviation along the
+            ring is zero.
         rtol_eneloss: float
             Relative tolerance on energy loss.
         max_iter: int
