@@ -314,8 +314,8 @@ def interp_aperture_replicate(context, line,
 
     temp_buf = context.new_buffer()
 
-    i_start_thin_1 = find_adjacent_drift(line, i_aper_1, direction='upstream') + 1
-    i_end_thin_0 = find_adjacent_drift(line, i_aper_0, direction='downstream') - 1
+    i_start_thin_1 = find_adjacent_thick(line, i_aper_1, direction='upstream') + 1
+    i_end_thin_0 = find_adjacent_thick(line, i_aper_0, direction='downstream') - 1
 
     s0, s1, s_vect = generate_interp_aperture_locations(line,
                                                    i_aper_0, i_aper_1, ds)
@@ -441,7 +441,7 @@ def build_interp_line(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
 
     return interp_line
 
-def find_adjacent_drift(line, i_element, direction):
+def find_adjacent_thick(line, i_element, direction):
 
     ii=i_element
     found = False
@@ -458,14 +458,14 @@ def find_adjacent_drift(line, i_element, direction):
         #_print(ccnn)
         if ccnn.startswith('Drift'):
             found = True
-        elif _behaves_like_drift(ee, line):
+        elif _is_thick(ee, line):
             found = True
         else:
             ii += increment
 
     return ii
 
-def find_previous_drift(line, i_aperture):
+def find_previous_thick(line, i_aperture):
 
     ii=i_aperture
     found = False
@@ -476,7 +476,7 @@ def find_previous_drift(line, i_aperture):
         ccnn = ee.__class__.__name__
         if ccnn == 'Drift':
             found = True
-        elif _behaves_like_drift(ee, line):
+        elif _is_thick(ee, line):
             found = True
         else:
             ii -= 1
@@ -495,12 +495,12 @@ def characterize_aperture(line, i_aperture, n_theta, r_max, dr,
 
     # find previous drift
     if coming_from == 'upstream':
-        i_start = find_adjacent_drift(line, i_aperture, 'upstream') + 1
+        i_start = find_adjacent_thick(line, i_aperture, 'upstream') + 1
         i_stop = i_aperture + 1
         backtrack = False
         index_start_thin = i_start
     elif coming_from == 'downstream':
-        i_stop = find_adjacent_drift(line, i_aperture, 'downstream')
+        i_stop = find_adjacent_thick(line, i_aperture, 'downstream')
         i_start = i_aperture
         backtrack = 'force'
         assert np.all([_has_backtrack(ee, line) for ee in
