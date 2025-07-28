@@ -100,7 +100,7 @@ def twiss_line(line, particle_ref=None, method=None,
         compute_R_element_by_element=None,
         compute_lattice_functions=None,
         compute_chromatic_properties=None,
-        compute_coupling_elements_ed_teng=False,
+        coupling_edw_teng=False,
         init_at=None,
         x=None, px=None, y=None, py=None, zeta=None, delta=None,
         betx=None, alfx=None, bety=None, alfy=None, bets=None,
@@ -232,12 +232,18 @@ def twiss_line(line, particle_ref=None, method=None,
             - bety1: computed vertical beta function (Mais-Ripken) in meters
             - betx2: computed horizontal beta function (Mais-Ripken) in meters
             - bety2: computed vertical beta function (Mais-Ripken) in meters
+            - alfx1: computed horizontal alpha function (Mais-Ripken) in meters
+            - alfy1: computed vertical alpha function (Mais-Ripken) in meters
+            - alfx2: computed horizontal alpha function (Mais-Ripken) in meters
+            - alfy2: computed vertical alpha function (Mais-Ripken) in meters
             - c_minus_re: real part of the closest tune approach coefficient
             - c_minus_im: imaginary part of the closest tune approach coefficient
             - c_r1: horizontal r1 coefficient for betatron coupling
             - c_r2: vertical r2 coefficient for betatron coupling
             - c_phi1: phase advance of the closest tune approach coefficient
             - c_phi2: phase advance of the closest tune approach coefficient
+            - r11_edw_teng, r12_edw_teng, r21_edw_teng, r22_edw_teng: the Edwards-Teng
+                coupling matrix elements
         The table also contains the following global quantities:
             - qx: horizontal tune
             - qy: vertical tune
@@ -837,7 +843,12 @@ def twiss_line(line, particle_ref=None, method=None,
     if polarization:
         _compute_spin_polarization(twiss_res, line, method)
 
-    if compute_coupling_elements_ed_teng:
+    if coupling_edw_teng:
+        if reverse:
+            raise NotImplementedError(
+                'Computing Edwards-Teng coupling elements in reverse mode is not '
+                'yet implemented.'
+            )
         delta = twiss_res['delta']
         betx1, betx2 = twiss_res['betx1'], twiss_res['betx2']
         bety1, bety2 = twiss_res['bety1'], twiss_res['bety2']
@@ -847,10 +858,10 @@ def twiss_line(line, particle_ref=None, method=None,
             delta, betx1, betx2, bety1, bety2, alfx1, alfx2, alfy1, alfy2
         )
         r11, r12, r21, r22, f1010, f1001 = coupling_result
-        twiss_res['r11'] = r11
-        twiss_res['r12'] = r12
-        twiss_res['r21'] = r21
-        twiss_res['r22'] = r22
+        twiss_res['r11_edw_teng'] = r11
+        twiss_res['r12_edw_teng'] = r12
+        twiss_res['r21_edw_teng'] = r21
+        twiss_res['r22_edw_teng'] = r22
         twiss_res['f1010'] = f1010
         twiss_res['f1001'] = f1001
 
@@ -1360,12 +1371,10 @@ def _compute_coupling_elements_edwards_teng(
     r22 = np.zeros_like(one_plus_delta, dtype=np.complex128)
     f1010 = np.zeros_like(one_plus_delta, dtype=np.complex128)
     f1001 = np.zeros_like(one_plus_delta, dtype=np.complex128)
-    ev1angle = np.zeros_like(one_plus_delta, dtype=np.float64)
-    ev2angle = np.zeros_like(one_plus_delta, dtype=np.float64)
 
     # Only compute where stable, if not stable anywhere return zeros
     if not np.any(idx_stable):
-        return r11, r12, r21, r22, f1010, f1001, ev1angle, ev2angle
+        return r11.real, r12.real, r21.real, r22.real, f1010, f1001
 
     kx = np.sqrt(kx2[idx_stable])
     ky = np.sqrt(ky2[idx_stable])
@@ -1462,7 +1471,7 @@ def _compute_coupling_elements_edwards_teng(
     f1010[idx_compute_rdts] = -cb[0, 1] - cb[1, 0] + 1j * (cb[0, 0] - cb[1, 1])
     f1001[idx_compute_rdts] = cb[0, 1] - cb[1, 0] + 1j * (cb[0, 0] + cb[1, 1])
 
-    return r11, r12, r21, r22, f1010, f1001
+    return r11.real, r12.real, r21.real, r22.real, f1010, f1001
 
 
 def _compute_global_quantities(line, twiss_res):
@@ -3099,7 +3108,7 @@ class TwissInit:
             ddpx=(self.ddpx if self.ddpx is not None else None),
             ddy=(self.ddy if self.ddy is not None else None),
             ddpy=(-self.ddpy if self.ddpy is not None else None),
-            )
+        )
         out.particle_on_co.x = -out.particle_on_co.x
         out.particle_on_co.py = -out.particle_on_co.py
         out.particle_on_co.zeta = -out.particle_on_co.zeta
@@ -3789,7 +3798,7 @@ class TwissTable(Table):
                     or kk in SKEW_STRENGTHS_FROM_ATTR
                     or kk in OTHER_FIELDS_FROM_ATTR
                     or kk in OTHER_FIELDS_FROM_TABLE
-                    ):
+            ):
                 new_data[kk][:-1] = new_data[kk][:-1][::-1]
                 new_data[kk][-1] = self[kk][-1]
             elif kk == 'W_matrix':
@@ -3843,9 +3852,9 @@ class TwissTable(Table):
                 out.dpy_zeta = out.dpy_zeta
 
             # Untested:
-            # if 'alfx2' in out._col_names:
-            #     out.alfx2 = -out.alfx2
-            #     out.alfy2 = -out.alfy2
+            if 'alfx2' in out._col_names:
+                out.alfx2 = -out.alfx2
+                out.alfy2 = -out.alfy2
 
             out.W_matrix[:, 0, :] = -out.W_matrix[:, 0, :]
             out.W_matrix[:, 1, :] = out.W_matrix[:, 1, :]
@@ -3886,6 +3895,15 @@ class TwissTable(Table):
             out.spin_z *= -1
 
         _reverse_strengths(out._data)
+
+        # Remove Edwards-Teng elements for now
+        if 'r11_edw_teng' in out._col_names:
+            out.pop('r11_edw_teng')
+            out.pop('r12_edw_teng')
+            out.pop('r21_edw_teng')
+            out.pop('r22_edw_teng')
+            out.pop('f1010')
+            out.pop('f1001')
 
         out._data['reference_frame'] = {
             'proper': 'reverse', 'reverse': 'proper'}[self.reference_frame]

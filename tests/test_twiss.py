@@ -2007,6 +2007,7 @@ def test_twiss_compute_coupling_elements_edwards_teng():
     mad.beam()
     mad.use('lhcb1')
 
+    # Clean machine
     mad.globals.on_x1 = 0
     mad.globals.on_x2h = 0
     mad.globals.on_x2v = 0
@@ -2024,6 +2025,7 @@ def test_twiss_compute_coupling_elements_edwards_teng():
     mad.globals.on_a2 = 0
     mad.globals.on_a8 = 0
 
+    # Introduce some coupling by powering up a skew quadrupole
     mad.globals['kqs.a67b1'] = 1e-4
 
     tw_mad = mad.twiss()
@@ -2032,7 +2034,7 @@ def test_twiss_compute_coupling_elements_edwards_teng():
         mad.sequence.lhcb1, deferred_expressions=True
     )
     line.particle_ref = xt.Particles(p0c=450e9)
-    tw = line.twiss4d(compute_coupling_elements_ed_teng=True)
+    tw = line.twiss4d(coupling_edw_teng=True)
 
     tw_ng = line.madng_twiss()
 
@@ -2044,12 +2046,33 @@ def test_twiss_compute_coupling_elements_edwards_teng():
     r21_mad_at_s = np.interp(tw.s, s_mad, r21_mad)
     r22_mad_at_s = np.interp(tw.s, s_mad, r22_mad)
 
-    xo.assert_allclose(tw.r11, r11_mad_at_s, atol=1e-3)
-    xo.assert_allclose(tw.r12, r12_mad_at_s, atol=0.135)
-    xo.assert_allclose(np.mean(tw.r12 - r12_mad_at_s), 0, atol=2e-5)
-    xo.assert_allclose(tw.r21, r21_mad_at_s, atol=1e-4)
-    xo.assert_allclose(tw.r22, r22_mad_at_s, atol=1e-2)
+    # Check against MAD-X
+    xo.assert_allclose(tw.r11_edw_teng, r11_mad_at_s, atol=1e-3)
+    xo.assert_allclose(tw.r12_edw_teng, r12_mad_at_s, atol=0.135)
+    xo.assert_allclose(np.mean(tw.r12_edw_teng - r12_mad_at_s), 0, atol=2e-5)
+    xo.assert_allclose(tw.r21_edw_teng, r21_mad_at_s, atol=1e-4)
+    xo.assert_allclose(tw.r22_edw_teng, r22_mad_at_s, atol=1e-2)
 
-    sgn_ng = np.sign(tw.r11 / tw_ng.r11_ng)
+    sgn_ng = np.sign(tw.r11_edw_teng / tw_ng.r11_ng)
+
+    # Check against MAD-NG
+    xo.assert_allclose(tw.r11_edw_teng, sgn_ng * tw_ng.r11_ng, atol=1e-3)
+    xo.assert_allclose(tw.r12_edw_teng, sgn_ng * tw_ng.r12_ng, atol=0.135)
+    xo.assert_allclose(np.mean(tw.r12_edw_teng - sgn_ng * tw_ng.r12_ng), 0, atol=2e-5)
+    xo.assert_allclose(tw.r21_edw_teng, sgn_ng * tw_ng.r21_ng, atol=1e-4)
+    xo.assert_allclose(tw.r22_edw_teng, sgn_ng * tw_ng.r22_ng, atol=1e-2)
     xo.assert_allclose(tw.f1010, sgn_ng * tw_ng.f1010_ng, atol=1e-5)
     xo.assert_allclose(tw.f1001, sgn_ng * tw_ng.f1001_ng, atol=2e-3)
+
+    # Test that reverse twiss is disabled for now
+    with pytest.raises(NotImplementedError):
+        line.twiss4d(coupling_edw_teng=True, reverse=True)
+
+    # Test that reversal removes the quantities for now
+    tw_rev = tw.reverse()
+    rev_fields = set(dir(tw_rev))
+    fields_shouldnt_be_there = {
+        'r11_edw_teng', 'r12_edw_teng', 'r21_edw_teng', 'r22_edw_teng',
+        'f1010', 'f1001',
+    }
+    assert not (rev_fields & fields_shouldnt_be_there)
