@@ -401,43 +401,56 @@ def generate_interp_aperture_locations(line, i_aper_0, i_aper_1, ds):
 
     return s0, s1, s_vect
 
+class InterpAperNameGenerator:
+    def __init__(self, line):
+        self.counter = 0
+        self.line = line
+
+    def get_name(self):
+        nn_insert = f'_interp_aper_{self.counter}'
+        while nn_insert in self.line.element_names:
+            self.counter += 1
+            nn_insert = f'_interp_aper_{self.counter}'
+        name = nn_insert
+        self.counter += 1
+        return name
+
 def build_interp_line(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
                          line, i_start_thin_0, i_start_thin_1, _ln_gen):
 
-    # Build interp line
-    s_elements = [s0] + list(s_interp) +[s1]
-    elements = [aper_0] + aper_interp + [aper_1]
+    env = line.env
 
-    for i_ele in range(i_start_thin_0+1, i_start_thin_1):
-        ee = line.elements[i_ele]
-        if not _behaves_like_drift(ee, line):
-            assert not _is_thick(ee, line)
-            ss_ee = line.tracker._tracker_data_base.element_s_locations[i_ele]
-            elements.append(ee.copy(_buffer=_buffer))
-            s_elements.append(ss_ee)
-    i_sorted = np.argsort(s_elements)
-    s_sorted = list(np.take(s_elements, i_sorted))
-    ele_sorted = list(np.take(elements, i_sorted))
+    interp_line = env.new_line(
+        components=line.element_names[i_start_thin_0+1 : i_start_thin_1])
 
-    s_all = [s_sorted[0]]
-    ele_all = [ele_sorted[0]]
+    namegen = InterpAperNameGenerator(line=interp_line)
+    nn0 = namegen.get_name()
 
-    for ii in range(1, len(s_sorted)):
-        ss = s_sorted[ii]
+    # Start aperture
+    assert aper_0._buffer is _buffer
+    env.elements[nn0] = aper_0
+    interp_line.element_names.insert(0, nn0)
 
-        if ss-s_all[-1]>1e-14:
-            ele_all.append(Drift(_buffer=_buffer, length=ss-s_all[-1]))
-            s_all.append(ss)
-        ele_all.append(ele_sorted[ii])
-        s_all.append(s_sorted[ii])
+    # Interpolated apertures
+    insertions = []
+    for ss, aa in zip(s_interp, aper_interp):
+        nn_insert = namegen.get_name()
+        assert aa._buffer is _buffer
+        interp_line.env.elements[nn_insert] = aa
+        insertions.append(interp_line.env.place(nn_insert, at=ss-s0))
+    interp_line.insert(insertions)
 
-    interp_line = Line(elements=ele_all)
+    # End aperture
+    nn_1 = namegen.get_name()
+    assert aper_1._buffer is _buffer
+    interp_line.env.elements[nn_1] = aper_1
+    interp_line.element_names.append(nn_1)
 
+    # Build it
     interp_line.build_tracker(_buffer=_buffer,
                               track_kernel=_ln_gen.tracker.track_kernel)
     interp_line.reset_s_at_end_turn = False
     interp_line.config.XTRACK_GLOBAL_XY_LIMIT = _ln_gen.config.XTRACK_GLOBAL_XY_LIMIT
-
 
     return interp_line
 
