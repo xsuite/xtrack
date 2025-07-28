@@ -20,6 +20,7 @@ COMMON_SLICE_XO_FIELDS = {
 
 class ThickSliceBend(BeamElement):
     allow_rot_and_shift = False
+    allow_loss_refinement = True
     rot_and_shift_from_parent = True
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
@@ -49,6 +50,7 @@ class ThickSliceBend(BeamElement):
 
 class ThickSliceRBend(BeamElement):
     allow_rot_and_shift = False
+    allow_loss_refinement = True
     rot_and_shift_from_parent = True
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
@@ -78,6 +80,7 @@ class ThickSliceRBend(BeamElement):
 
 class ThickSliceQuadrupole(BeamElement):
     allow_rot_and_shift = False
+    allow_loss_refinement = True
     rot_and_shift_from_parent = True
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
@@ -107,6 +110,7 @@ class ThickSliceQuadrupole(BeamElement):
 
 class ThickSliceSextupole(BeamElement):
     allow_rot_and_shift = False
+    allow_loss_refinement = True
     rot_and_shift_from_parent = True
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
@@ -139,6 +143,7 @@ class ThickSliceSextupole(BeamElement):
 
 class ThickSliceOctupole(BeamElement):
     allow_rot_and_shift = False
+    allow_loss_refinement = True
     rot_and_shift_from_parent = True
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
@@ -171,6 +176,7 @@ class ThickSliceOctupole(BeamElement):
 
 class ThickSliceUniformSolenoid(BeamElement):
     allow_rot_and_shift = False
+    allow_loss_refinement = True
     rot_and_shift_from_parent = True
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
@@ -203,6 +209,7 @@ class ThickSliceUniformSolenoid(BeamElement):
 
 class ThickSliceSolenoid(BeamElement):
     allow_rot_and_shift = False
+    allow_loss_refinement = True
     rot_and_shift_from_parent = True
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
@@ -235,10 +242,10 @@ class ThickSliceSolenoid(BeamElement):
 
 class DriftSliceBend(BeamElement):
     allow_rot_and_shift = False
+    allow_loss_refinement = True
     rot_and_shift_from_parent = False
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
-    allow_loss_refinement = True
     _force_moveable = True
     isthick = True
     _inherit_strengths = False
@@ -270,10 +277,10 @@ class DriftSliceBend(BeamElement):
 
 class DriftSliceRBend(BeamElement):
     allow_rot_and_shift = False
+    allow_loss_refinement = True
     rot_and_shift_from_parent = False
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
-    allow_loss_refinement = True
     _force_moveable = True
     isthick = True
     _inherit_strengths = False
@@ -305,10 +312,10 @@ class DriftSliceRBend(BeamElement):
 
 class DriftSliceQuadrupole(BeamElement):
     allow_rot_and_shift = False
+    allow_loss_refinement = True
     rot_and_shift_from_parent = False
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
-    allow_loss_refinement = True
     _force_moveable = True
     isthick = True
     _inherit_strengths = False
@@ -340,10 +347,10 @@ class DriftSliceQuadrupole(BeamElement):
 
 class DriftSliceSextupole(BeamElement):
     allow_rot_and_shift = False
+    allow_loss_refinement = True
     rot_and_shift_from_parent = False
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
-    allow_loss_refinement = True
     _force_moveable = True
     isthick = True
     _inherit_strengths = False
@@ -375,10 +382,10 @@ class DriftSliceSextupole(BeamElement):
 
 class DriftSliceOctupole(BeamElement):
     allow_rot_and_shift = False
+    allow_loss_refinement = True
     rot_and_shift_from_parent = False
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
-    allow_loss_refinement = True
     _force_moveable = True
     isthick = True
     _inherit_strengths = False
@@ -410,10 +417,10 @@ class DriftSliceOctupole(BeamElement):
 
 class DriftSlice(BeamElement):
     allow_rot_and_shift = False
+    allow_loss_refinement = True
     rot_and_shift_from_parent = False
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
-    allow_loss_refinement = True
     _force_moveable = True
     isthick = True
     _inherit_strengths = False
