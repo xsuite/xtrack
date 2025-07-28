@@ -9,9 +9,9 @@ from scipy.spatial import ConvexHull
 import xobjects as xo
 import xtrack as xt
 
-from ..beam_elements import LimitPolygon, XYShift, SRotation, Drift, Marker
-from ..line import (Line, _is_thick, _behaves_like_drift, _allow_loss_refinement,
-                    _has_backtrack, _is_aperture)
+from ..beam_elements import LimitPolygon, XYShift, SRotation
+from ..line import (Line, _is_thick, _allow_loss_refinement, _has_backtrack,
+                    _is_aperture)
 
 from ..general import _print
 
@@ -467,11 +467,7 @@ def find_adjacent_thick(line, i_element, direction):
         ee = line.element_dict[line.element_names[ii]]
         if isinstance(ee, xt.Replica):
             ee = ee.resolve(line)
-        ccnn = ee.__class__.__name__
-        #_print(ccnn)
-        if ccnn.startswith('Drift'):
-            found = True
-        elif _is_thick(ee, line):
+        if _is_thick(ee, line):
             found = True
         else:
             ii += increment
@@ -486,10 +482,7 @@ def find_previous_thick(line, i_aperture):
         ee = line.element_dict[line.element_names[ii]]
         if isinstance(ee, xt.Replica):
             ee = ee.resolve(line)
-        ccnn = ee.__class__.__name__
-        if ccnn == 'Drift':
-            found = True
-        elif _is_thick(ee, line):
+        if _is_thick(ee, line):
             found = True
         else:
             ii -= 1
@@ -506,7 +499,7 @@ def characterize_aperture(line, i_aperture, n_theta, r_max, dr,
 
     assert coming_from in ['upstream', 'downstream']
 
-    # find previous drift
+    # find previous thick
     if coming_from == 'upstream':
         i_start = find_adjacent_thick(line, i_aperture, 'upstream') + 1
         i_stop = i_aperture + 1
