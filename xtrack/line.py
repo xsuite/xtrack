@@ -4832,6 +4832,16 @@ class Line:
                 '_own_k4sl': ('ksl', 4),
                 '_own_k5sl': ('ksl', 5),
 
+                # Handling of reference frame transformations
+                # (XYShift, XRotation, YRotation, SRotation)
+                # TODO: The dx, dy, etc labels come from the element level and should possibly be changed
+                '_own_ref_shift_x':         'dx',
+                '_own_ref_shift_y':         'dy',
+                '_own_ref_rot_sin_angle':   'sin_angle',
+                '_own_ref_rot_cos_angle':   'cos_angle',
+                '_own_ref_rot_sin_z':       'sin_z',
+                '_own_ref_rot_cos_z':       'cos_z',
+
                 '_parent_length': (('_parent', 'length'), None),
                 '_parent_sin_rot_s': (('_parent', '_sin_rot_s'), None),
                 '_parent_cos_rot_s': (('_parent', '_cos_rot_s'), None),
@@ -4871,6 +4881,16 @@ class Line:
                 '_parent_k3sl': (('_parent', 'ksl'), 3),
                 '_parent_k4sl': (('_parent', 'ksl'), 4),
                 '_parent_k5sl': (('_parent', 'ksl'), 5),
+
+                # Handling of reference frame transformations
+                # (XYShift, XRotation, YRotation, SRotation)
+                # TODO: The dx, dy, etc labels come from the element level and should possibly be changed
+                '_parent_ref_shift_x': (('_parent', 'dx'), None),
+                '_parent_ref_shift_y': (('_parent', 'dy'), None),
+                '_parent_ref_rot_sin_angle': (('_parent', 'sin_angle'), None),
+                '_parent_ref_rot_cos_angle': (('_parent', 'cos_angle'), None),
+                '_parent_ref_rot_sin_z': (('_parent', 'sin_z'), None),
+                '_parent_ref_rot_cos_z': (('_parent', 'cos_z'), None),
 
             },
             derived_fields={
@@ -4952,6 +4972,13 @@ class Line:
                     + attr['_parent_k5s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
                 'hkick': lambda attr: attr["angle_rad"] - attr["k0l"],
                 'vkick': lambda attr: attr["k0sl"],
+                'ref_shift_x': lambda attr: attr['_own_ref_shift_x'] + attr['_parent_ref_shift_x'],
+                'ref_shift_y': lambda attr: attr['_own_ref_shift_y'] + attr['_parent_ref_shift_y'],
+                'ref_rot_angle_rad': lambda attr: np.arctan2(
+                    attr['_own_ref_rot_sin_angle'] + attr['_parent_ref_rot_sin_angle'] +\
+                    attr['_own_ref_rot_sin_z'] + attr['_parent_ref_rot_sin_z'],
+                    attr['_own_ref_rot_cos_angle'] + attr['_parent_ref_rot_cos_angle'] +\
+                    attr['_own_ref_rot_cos_z'] + attr['_parent_ref_rot_cos_z']),
             }
         )
         return cache
