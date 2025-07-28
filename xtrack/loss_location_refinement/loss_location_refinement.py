@@ -68,6 +68,7 @@ class LossLocationRefinement:
         if line.iscollective:
             self._original_line = line
             self.line = line._get_non_collective_line()
+            self.line.build_tracker(_buffer=line._buffer)
         else:
             self._original_line = line
             self.line = line
@@ -135,6 +136,11 @@ class LossLocationRefinement:
                 i_aper_1 = i_ap
                 i_aper_0 = self.i_apertures[self.i_apertures.index(i_ap) - 1]
                 logger.debug(f'i_aper_1={i_aper_1}, i_aper_0={i_aper_0}')
+
+                for ii in range(i_aper_0, i_aper_1):
+                    ee = self._original_line[ii]
+                    if _skip_in_loss_location_refinement(ee, self._original_line):
+                        return
 
                 s0, s1, _ = generate_interp_aperture_locations(self.line,
                                                    i_aper_0, i_aper_1, self.ds)
@@ -312,8 +318,6 @@ def interp_aperture_replicate(context, line,
                               i_aper_0, i_aper_1,
                               ds, _ln_gen, mode='end',):
 
-    temp_buf = context.new_buffer()
-
     i_start_thin_1 = find_adjacent_thick(line, i_aper_1, direction='upstream') + 1
     i_end_thin_0 = find_adjacent_thick(line, i_aper_0, direction='downstream') - 1
 
@@ -328,13 +332,13 @@ def interp_aperture_replicate(context, line,
         raise ValueError(f'Invalid mode: {mode}')
     interp_apertures = []
     for ss in s_vect:
-        interp_apertures.append(aper_to_copy.copy(_buffer=temp_buf))
+        interp_apertures.append(aper_to_copy.copy(_buffer=line._buffer))
 
     interp_line = build_interp_line(
-            _buffer=temp_buf,
+            _buffer=line._buffer,
             s0=s0, s1=s1, s_interp=s_vect,
-            aper_0=aper_to_copy.copy(_buffer=temp_buf),
-            aper_1=aper_to_copy.copy(_buffer=temp_buf),
+            aper_0=aper_to_copy.copy(_buffer=line._buffer),
+            aper_1=aper_to_copy.copy(_buffer=line._buffer),
             aper_interp=interp_apertures,
             line=line, i_start_thin_0=i_end_thin_0,
             i_start_thin_1=i_start_thin_1,
@@ -346,16 +350,15 @@ def interp_aperture_using_polygons(context, line,
                        i_aper_0, i_aper_1,
                        n_theta, r_max, dr, ds, _ln_gen):
 
-    temp_buf = context.new_buffer()
 
     polygon_1, i_start_thin_1 = characterize_aperture(line,
                                  i_aper_1, n_theta, r_max, dr,
-                                 buffer_for_poly=temp_buf,
+                                 buffer_for_poly=line._buffer,
                                  coming_from='upstream')
 
     polygon_0, i_end_thin_0 = characterize_aperture(line, i_aper_0,
                                  n_theta, r_max, dr,
-                                 buffer_for_poly=temp_buf,
+                                 buffer_for_poly=line._buffer,
                                  coming_from='downstream')
 
     s0, s1, s_vect = generate_interp_aperture_locations(line,
@@ -373,12 +376,12 @@ def interp_aperture_using_polygons(context, line,
         x_hull = x_non_convex[i_hull]
         y_hull = y_non_convex[i_hull]
         interp_polygons.append(LimitPolygon(
-            _buffer=temp_buf,
+            _buffer=line._buffer,
             x_vertices=x_hull,
             y_vertices=y_hull))
 
     interp_line = build_interp_line(
-            _buffer=temp_buf,
+            _buffer=line._buffer,
             s0=s0, s1=s1, s_interp=s_vect,
             aper_0=polygon_0, aper_1=polygon_1,
             aper_interp=interp_polygons,
