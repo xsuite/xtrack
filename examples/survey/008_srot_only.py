@@ -3,12 +3,30 @@ import numpy as np
 
 env = xt.Environment(particle_ref=xt.Particles(p0c = 1E9))
 
-line = env.new_line(length=50, components=[
+# line = env.new_line(length=50, components=[
 
-    env.new('rs1', xt.SRotation, angle=90,  at=24.5),
-    env.new('rs2', xt.SRotation, angle=-90, at=25.5),
+#     env.new('rs1', xt.SRotation, angle=90,  at=24.5),
+#     env.new('rs2', xt.SRotation, angle=-90, at=25.5),
+
+# ])
+
+line = env.new_line(length=5, components=[
+    env.new('r1', xt.YRotation, angle=45,  at=1),
+    env.new('r2', xt.YRotation, angle=-45, at=2),
+    env.new('r3', xt.YRotation, angle=-45, at=3),
+    env.new('r4', xt.YRotation, angle=45,  at=4),
+
+    # env.new('rx1', xt.XRotation, angle=10,  at=22),
+    # env.new('rx2', xt.XRotation, angle=-10, at=24),
+    # env.new('rx3', xt.XRotation, angle=-10, at=26),
+    # env.new('rx4', xt.XRotation, angle=10,  at=28),
+
+    env.new('rs1', xt.SRotation, angle=60.,  at=2.45),
+    env.new('rs2', xt.SRotation, angle=-60, at=2.55),
 
 ])
+
+line.cut_at_s(np.linspace(0, 5, 11000))
 
 from _helpers import madpoint_twiss_survey
 
@@ -53,18 +71,51 @@ def translate_matrix(x, y, z):
         [[1, 0, 0, x], [0, 1, 0, y], [0, 0, 1, z], [0, 0, 0, 1]]
     )
 
-for i in range(len(sv.s)):
-    frame_mat[i, :, :] = (
-        translate_matrix(sv.X[i], sv.Y[i], sv.Z[i])
-        @ theta_matrix(sv.theta[i])
-        @ phi_matrix(sv.phi[i])
-        @ psi_matrix(sv.psi[i])
-    )
+import time
+t1 = time.perf_counter()
+theta = sv.theta
+
+theta_mat = np.zeros((len(sv.s), 4, 4))
+theta_mat[:, 0, 0] = np.cos(theta)
+theta_mat[:, 0, 2] = -np.sin(theta)
+theta_mat[:, 2, 0] = np.sin(theta)
+theta_mat[:, 2, 2] = np.cos(theta)
+theta_mat[:, 1, 1] = 1
+theta_mat[:, 3, 3] = 1
+
+phi_mat = np.zeros((len(sv.s), 4, 4))
+phi_mat[:, 0, 0] = 1
+phi_mat[:, 1, 1] = np.cos(sv.phi)
+phi_mat[:, 1, 2] = np.sin(sv.phi)
+phi_mat[:, 2, 1] = -np.sin(sv.phi)
+phi_mat[:, 2, 2] = np.cos(sv.phi)
+phi_mat[:, 3, 3] = 1
+
+psi_mat = np.zeros((len(sv.s), 4, 4))
+psi_mat[:, 0, 0] = np.cos(sv.psi)
+psi_mat[:, 0, 1] = -np.sin(sv.psi)
+psi_mat[:, 1, 0] = np.sin(sv.psi)
+psi_mat[:, 1, 1] = np.cos(sv.psi)
+psi_mat[:, 2, 2] = 1
+psi_mat[:, 3, 3] = 1
+
+translate_mat = np.zeros((len(sv.s), 4, 4))
+translate_mat[:, 0, 3] = sv.X
+translate_mat[:, 1, 3] = sv.Y
+translate_mat[:, 2, 3] = sv.Z
+translate_mat[:, 0, 0] = 1
+translate_mat[:, 1, 1] = 1
+translate_mat[:, 2, 2] = 1
+translate_mat[:, 3, 3] = 1
+
+frame_mat = translate_mat @ theta_mat @ phi_mat @ psi_mat
 
 ix = frame_mat[:, :3, 0]
 iy = frame_mat[:, :3, 1]
 iz = frame_mat[:, :3, 2]
 p0 = frame_mat[:, :3, 3]
+
+t2 = time.perf_counter()
 
 p = np.zeros((len(sv.s), 3))
 for i in range(len(sv.s)):

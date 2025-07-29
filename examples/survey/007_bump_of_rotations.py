@@ -74,6 +74,26 @@ tw = line.twiss(betx=1, bety=1)
 
 frame_mat = np.zeros((len(sv.s), 4, 4))
 
+theta_mat = np.array((len(sv.s), 3, 3))
+phi_mat = np.zeros((len(sv.s), 3, 3))
+psi_mat = np.zeros((len(sv.s), 3, 3))
+
+theta_mat[:, 0, 0] = np.cos(sv.theta)
+theta_mat[:, 0, 2] = np.sin(sv.theta)
+theta_mat[:, 2, 0] = -np.sin(sv.theta)
+theta_mat[:, 1, 1] = 1.0
+theta_mat[:, 2, 2] = np.cos(sv.theta)
+
+phi_mat[:, 1, 1] = np.cos(sv.phi)
+phi_mat[:, 1, 2] = np.sin(sv.phi)
+phi_mat[:, 2, 1] = -np.sin(sv.phi)
+phi_mat[:, 2, 2] = np.cos(sv.phi)
+
+psi_mat[:, 0, 0] = np.cos(sv.psi)
+psi_mat[:, 0, 1] = -np.sin(sv.psi)
+psi_mat[:, 1, 0] = np.sin(sv.psi)
+psi_mat[:, 1, 1] = np.cos(sv.psi)
+
 for i in range(len(sv.s)):
     frame_mat[i, :, :] = (
         translate_matrix(sv.X[i], sv.Y[i], sv.Z[i])
