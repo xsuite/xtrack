@@ -362,6 +362,47 @@ def survey_from_line(
         element0        = element0,
         reverse_xs      = False)
 
+    # Frame matrix and unit vectors
+    theta_mat = np.zeros((len(theta), 4, 4))
+    theta_mat[:, 0, 0] = np.cos(theta)
+    theta_mat[:, 0, 2] = -np.sin(theta)
+    theta_mat[:, 2, 0] = np.sin(theta)
+    theta_mat[:, 2, 2] = np.cos(theta)
+    theta_mat[:, 1, 1] = 1
+    theta_mat[:, 3, 3] = 1
+
+    phi_mat = np.zeros((len(theta), 4, 4))
+    phi_mat[:, 0, 0] = 1
+    phi_mat[:, 1, 1] = np.cos(phi)
+    phi_mat[:, 1, 2] = np.sin(phi)
+    phi_mat[:, 2, 1] = -np.sin(phi)
+    phi_mat[:, 2, 2] = np.cos(phi)
+    phi_mat[:, 3, 3] = 1
+
+    psi_mat = np.zeros((len(theta), 4, 4))
+    psi_mat[:, 0, 0] = np.cos(psi)
+    psi_mat[:, 0, 1] = -np.sin(psi)
+    psi_mat[:, 1, 0] = np.sin(psi)
+    psi_mat[:, 1, 1] = np.cos(psi)
+    psi_mat[:, 2, 2] = 1
+    psi_mat[:, 3, 3] = 1
+
+    translate_mat = np.zeros((len(theta), 4, 4))
+    translate_mat[:, 0, 3] = X
+    translate_mat[:, 1, 3] = Y
+    translate_mat[:, 2, 3] = Z
+    translate_mat[:, 0, 0] = 1
+    translate_mat[:, 1, 1] = 1
+    translate_mat[:, 2, 2] = 1
+    translate_mat[:, 3, 3] = 1
+
+    frame_mat = translate_mat @ theta_mat @ phi_mat @ psi_mat
+
+    ix = frame_mat[:, :3, 0]
+    iy = frame_mat[:, :3, 1]
+    iz = frame_mat[:, :3, 2]
+    p0 = frame_mat[:, :3, 3]
+
     # Initializing dictionary
     out_columns = {}
     out_scalars = {}
@@ -383,6 +424,11 @@ def survey_from_line(
     out_columns['ref_rot_x_rad']    = ref_rot_x_rad
     out_columns['ref_rot_y_rad']    = ref_rot_y_rad
     out_columns['ref_rot_s_rad']    = ref_rot_s_rad
+    out_columns['ix']               = ix
+    out_columns['iy']               = iy
+    out_columns['iz']               = iz
+    out_columns['p0']               = p0
+    out_columns['frame_matrix']       = frame_mat
 
     out_scalars['element0']     = element0
 
