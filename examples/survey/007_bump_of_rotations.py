@@ -14,8 +14,8 @@ line = env.new_line(length=5, components=[
     # env.new('rx3', xt.XRotation, angle=-10, at=26),
     # env.new('rx4', xt.XRotation, angle=10,  at=28),
 
-    # env.new('rs1', xt.SRotation, angle=np.pi/3,  at=24.5),
-    # env.new('rs2', xt.SRotation, angle=-np.pi/3, at=25.5),
+    env.new('rs1', xt.SRotation, angle=60.,  at=2.45),
+    env.new('rs2', xt.SRotation, angle=-60, at=2.55),
 
 ])
 

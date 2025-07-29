@@ -129,7 +129,7 @@ def advance_element(
         cr = np.cos(ref_rot_s_rad)
         sr = np.sin(ref_rot_s_rad)
         # ------
-        S = np.array([[cr, sr, 0], [-sr, cr, 0], [0, 0, 1]]) # z rotation matrix
+        S = np.array([[cr, -sr, 0], [sr, cr, 0], [0, 0, 1]]) # z rotation matrix
         return advance_rotation(v, w, S)
 
     # Non bending elements
