@@ -20,11 +20,13 @@ line = env.new_line(length=10, components=[
     env.new('sxy1', xt.XYShift, dx=0.1, dy=0.2, at=4.8),
     env.new('sxy2', xt.XYShift, dx=-0.1, dy=-0.2, at=5.2),
 
+    env.new('mid', xt.Marker, at=5.0),
+
 ])
 
 line.config.XTRACK_GLOBAL_XY_LIMIT = None
 line.config.XTRACK_USE_EXACT_DRIFTS = True
-sv = line.survey()
+sv = line.survey(element0='mid')
 tw = line.twiss4d(_continue_if_lost=True, betx=1, bety=1, x=1e-3)
 
 p = tw.x[:, None] * sv.ix + tw.y[:, None] * sv.iy + sv.p0
