@@ -3,19 +3,22 @@ import numpy as np
 
 env = xt.Environment(particle_ref=xt.Particles(p0c = 1E9))
 
-line = env.new_line(length=5, components=[
+line = env.new_line(length=10, components=[
     env.new('r1', xt.YRotation, angle=30,  at=1),
     env.new('r2', xt.YRotation, angle=-30, at=2),
-    env.new('r3', xt.YRotation, angle=-30, at=3),
-    env.new('r4', xt.YRotation, angle=30,  at=4),
+    env.new('r3', xt.YRotation, angle=-30, at=8),
+    env.new('r4', xt.YRotation, angle=30,  at=9),
 
-    env.new('rx1', xt.XRotation, angle=20,  at=2.2),
-    env.new('rx2', xt.XRotation, angle=-20, at=2.4),
-    env.new('rx3', xt.XRotation, angle=-20, at=2.6),
-    env.new('rx4', xt.XRotation, angle=20,  at=2.8),
+    env.new('rx1', xt.XRotation, angle=20,  at=3),
+    env.new('rx2', xt.XRotation, angle=-20, at=4),
+    env.new('rx3', xt.XRotation, angle=-20, at=6),
+    env.new('rx4', xt.XRotation, angle=20,  at=7),
 
-    env.new('rs1', xt.SRotation, angle=60.,  at=2.45),
-    env.new('rs2', xt.SRotation, angle=-60, at=2.55),
+    env.new('rs1', xt.SRotation, angle=60.,  at=4.5),
+    env.new('rs2', xt.SRotation, angle=-60, at=5.5),
+
+    env.new('sxy1', xt.XYShift, dx=0.1, dy=0.2, at=4.8),
+    env.new('sxy2', xt.XYShift, dx=-0.1, dy=-0.2, at=5.2),
 
 ])
 
@@ -43,8 +46,8 @@ plt.legend()
 plt.xlabel('Z [m]')
 plt.ylabel('X [m]')
 plt.subplot(3,1,3)
-plt.plot(sv.Z, sv.Y, label='y')
-plt.plot(Z, Y)
+plt.plot(sv.Z, sv.Y, label='Survey')
+plt.plot(Z, Y, label='Part. trajectory')
 plt.legend()
 plt.xlabel('Z [m]')
 plt.ylabel('Y [m]')
