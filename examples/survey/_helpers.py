@@ -10,12 +10,15 @@ def zero_small_values(arr, tol):
     """
     return np.where(np.abs(arr) < tol, 0, arr)
 
-def madpoint_twiss_survey(line):
+def madpoint_twiss_survey(line=None, twiss=None, survey=None):
     """
     Produce twiss and survey for a line, including MadPoint
     """
-    survey  = line.survey()
-    twiss   = line.twiss4d(_continue_if_lost = True, betx = 1, bety = 1)
+    if survey is None:
+        survey  = line.survey()
+
+    if twiss is None:
+        twiss   = line.twiss4d(_continue_if_lost = True, betx = 1, bety = 1)
 
     madpoints = []
     xx = []
