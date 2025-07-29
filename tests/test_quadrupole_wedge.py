@@ -53,21 +53,22 @@ def test_quadrupole_wedge():
 
 
 def test_quadrupole_wedge_ptc():
-    angle = 2
-    b2 = 5
+    angle = 0
+    b2 = 1 # Large value to simulate hard edge
     b1 = 0
-    length=0.000001
+    length=1e-20
 
-    x0 = 0.01
-    px0 = 0.05
-    y0 = 0.01
-    py0 = 0.0
+    x0 = 0.1
+    px0 = 0.1
+    y0 = 0.1
+    py0 = 0
     t0 = 0.0  # Convert to xsuite if nonzero
     pt0 = 0.0  # Convert to xsuite if nonzero
 
     # XSuite
-    quadrupole = xt.Bend(length=length, k0=b1, k1=b2, edge_entry_angle=angle, edge_entry_model='1', edge_exit_model='1')  # 1 with quadrupole fringe
-    line = xt.Line(elements=[quadrupole])
+    quadrupole = xt.Bend(length=length, k0=b1, k1=b2, edge_entry_angle=angle, edge_entry_model='1', edge_exit_model='1', num_multipole_kicks=50)  # 1 with quadrupole fringe
+    line = xt.Line(elements=[ quadrupole])
+    line.config.XTRACK_USE_EXACT_DRIFTS = True
     
     p0 = xt.Particles(x=x0,px=px0,y=y0,py=py0)
 
@@ -76,11 +77,15 @@ def test_quadrupole_wedge_ptc():
     line.track(p0)
     print(p0.x, p0.px, p0.y, p0.py)
     
+    mat = line.compute_one_turn_matrix_finite_differences(p0)['R_matrix']
+    
     
     # PTC tracking 
-    madx = Madx(stdout=True)
     
     madx_sequence = line.to_madx_sequence('quadrupole_with_wedge')
+    print(madx_sequence)
+
+    madx = Madx(stdout=True)
     madx.beam()
     madx.input(madx_sequence)
     madx.use('quadrupole_with_wedge')
@@ -90,11 +95,13 @@ def test_quadrupole_wedge_ptc():
     # fringe=True to include hard edge fringe
     madx.input(f"""
                ptc_create_universe;
-               ptc_create_layout, EXACT=true;
+               ptc_create_layout, exact=True, model=3, NST=100;
                ptc_setswitch, fringe=true;
                PTC_START, X={x0}, PX={px0}, Y={y0}, PY={py0}, T={t0}, PT={pt0};
                PTC_TRACK, TURNS=1;
+               PTC_TRACK_END;
                PTC_END;
+               stop;
     """)
     
     df = madx.table.tracksumm.dframe()
