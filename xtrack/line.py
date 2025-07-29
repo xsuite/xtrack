@@ -32,7 +32,8 @@ from .progress_indicator import progress
 from .slicing import Custom, Slicer, Strategy
 from .mad_writer import to_madx_sequence
 from .madng_interface import (build_madng_model, discard_madng_model,
-                              regen_madng_model, _tw_ng, line_to_madng)
+                              regen_madng_model, _tw_ng, line_to_madng,
+                              _survey_ng)
 
 from .survey import survey_from_line
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
@@ -654,6 +655,7 @@ class Line:
     discard_madng_model = discard_madng_model
     regen_madng_model = regen_madng_model
     madng_twiss = _tw_ng
+    madng_survey = _survey_ng
 
     def __repr__(self):
         if hasattr(self, '_name'):
@@ -2610,7 +2612,7 @@ class Line:
             Element to be inserted. If not given, the element of the given name
             already present in the line is used.
         at: int or string, optional
-            Index or name of the element in the line. If `index` is provided, `at_s` must be None. 
+            Index or name of the element in the line. If `index` is provided, `at_s` must be None.
         at_s: float, optional
             Position of the element in the line in meters. If `at_s` is provided, `index`
             must be None.

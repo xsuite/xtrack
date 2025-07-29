@@ -84,10 +84,10 @@ def _tw_ng(line, rdts=(), normal_form=True,
             '''
             -- create phase-space damap at 4th order
             local X0 = damap {nv=6, mo=4}
-    
+
             -- twiss with RDTs
             local mtbl = twiss {sequence=seq, X0=X0, trkrdt=rdts, info=2, saverdt=true, coupling=true, chrom=true}
-    
+
             -- send columns to Python
             '''
             + send_cmd
@@ -191,6 +191,56 @@ def _tw_ng(line, rdts=(), normal_form=True,
 
     return tw
 
+def _survey_ng(line):
+    if not hasattr(line.tracker, '_madng'):
+        line.build_madng_model()
+    mng = line.tracker._madng
+    mng['srv'] = mng.survey(sequence=mng._sequence_name)
+
+    survey_tab_keys = {
+        "x": "X",
+        "y": "Y",
+        "z": "Z",
+        "l": "length",
+        "kind": "element_type"
+    }
+
+    element_types = {
+        "drift": "Drift",
+        "sbend": "Bend",
+        "rbend": "RBend",
+        "quadrupole": "Quadrupole",
+        "sextupole": "Sextupole",
+        "octupole": "Octupole",
+        "multipole": "Multipole",
+        "kicker": "Kicker", # no coloring in survey plot
+        "rfcavity": "Cavity",
+        "marker": "Marker"
+    }
+
+    # create SurveyTable from DataFrame
+    survey_df = mng['srv'][0].to_df()
+    survey_dict = survey_df.to_dict(orient='list')
+    survey_dict = {k: np.array(v) for k, v in survey_dict.items()}
+    for k in survey_tab_keys.keys():
+        if k in survey_dict:
+            # Rename keys to match SurveyTable
+            survey_dict[survey_tab_keys[k]] = survey_dict[k]
+            del survey_dict[k]
+
+    survey_dict['element_type'] = np.array([element_types.get(et, et) for et in survey_dict['element_type']])
+
+    for i in survey_dict.keys():
+        # Interpretation of survey is shifted by 1 in MAD-NG vs. Xsuite
+        if i in ['name', 'length', 'kind', 'element_type', 'angle', 'tilt']:
+            survey_dict[i] = survey_dict[i][1:]
+        else:
+            survey_dict[i] = survey_dict[i][:-1]
+
+    survey_tab = xt.survey.SurveyTable(survey_dict)
+    return survey_tab
+
+
 class ActionTwissMadng(Action):
     def __init__(self, line, tw_kwargs):
         self.line = line
@@ -199,13 +249,13 @@ class ActionTwissMadng(Action):
     def run(self):
         return self.line.madng_twiss(**self.tw_kwargs)
 
-def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False):
+# Deprecated: use line.to_madng() instead.
+def line_to_madng_old(line, sequence_name='seq', temp_fname=None, keep_files=False):
 
     try:
         _ge = xt.elements._get_expr
         if temp_fname is None:
             temp_fname = 'temp_madng_' + str(uuid.uuid4())
-
         madx_seq = line.to_madx_sequence(sequence_name=sequence_name)
         with open(f'{temp_fname}.madx', 'w') as fid:
             fid.write(madx_seq)
@@ -243,6 +293,43 @@ def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False):
             )
         commands.append('MADX:close_env()')
         mng.send('\n'.join(commands))
+
+    finally:
+        if not keep_files:
+            for nn in [temp_fname + '.madx', temp_fname + '.mad']:
+                if os.path.isfile(nn):
+                    os.remove(nn)
+
+    # mng[sequence_name].beam = mng.beam(particle="'proton'", energy=7000)
+    return mng
+
+def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False):
+
+    try:
+        _ge = xt.elements._get_expr
+        if temp_fname is None:
+            temp_fname = 'temp_madng_' + str(uuid.uuid4())
+
+        from .mad_writer import to_madng_sequence
+        madx_seq = to_madng_sequence(line, name=sequence_name)
+        with open(f'{temp_fname}.mad', 'w') as fid:
+            fid.write(madx_seq)
+
+        from pymadng import MAD
+        mng = MAD()
+        mng.send(f"""
+                 mad_func = loadfile('{temp_fname}.mad', nil, MADX)
+                 assert(mad_func)
+                 mad_func()
+                 """)
+        #mng.loadfile(f'{temp_fname}.mad', None, "MADX")
+        mng._init_madx_data = madx_seq
+
+        mng[sequence_name] = mng.MADX[sequence_name] # this ensures that the file has been read
+        mng[sequence_name].beam = mng.beam(particle="'custom'",
+                        mass=line.particle_ref.mass0 * 1e9,
+                        charge=line.particle_ref.q0,
+                        betgam=line.particle_ref.beta0[0] * line.particle_ref.gamma0[0])
 
     finally:
         if not keep_files:
