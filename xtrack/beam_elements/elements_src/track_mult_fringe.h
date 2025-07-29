@@ -41,8 +41,7 @@ void MultFringe_track_single_particle(
     const double t = LocalParticle_get_zeta(part) / beta0;
     const double pt = LocalParticle_get_ptau(part);
 
-    const double one_plus_delta = LocalParticle_get_delta(part) + 1.0;
-    const double pz = sqrt(POW2(one_plus_delta) - POW2(px) - POW2(py));
+    const double rpp = LocalParticle_get_rpp(part);
 
     double rx = 1;
     double ix = 0;
@@ -112,18 +111,18 @@ void MultFringe_track_single_particle(
 
     }
 
-    double a = 1 - fxx / pz;
-    double b = -fyx / pz;
-    double c = -fxy / pz;
-    double d = 1 - fyy / pz;
+    double a = 1 - fxx * rpp;
+    double b = -fyx * rpp;
+    double c = -fxy * rpp;
+    double d = 1 - fyy * rpp;
     double det = 1 / (a * d - b * c);
 
     double new_px = (d * px - b * py) / det;
     double new_py = (a * py - c * px) / det;
-    double delta_t = (1 / beta0 + pt) * (new_px * fx + new_py * fy) / POW3(pz);
+    double delta_t = (1 / beta0 + pt) * (new_px * fx + new_py * fy) * POW3(rpp);
 
-    LocalParticle_add_to_x(part, -fx / pz);
-    LocalParticle_add_to_y(part, -fy / pz);
+    LocalParticle_add_to_x(part, -fx * rpp);
+    LocalParticle_add_to_y(part, -fy * rpp);
     LocalParticle_set_px(part, new_px);
     LocalParticle_set_py(part, new_py);
     LocalParticle_set_zeta(part, (t + delta_t) * beta0);
