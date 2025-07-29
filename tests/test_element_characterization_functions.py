@@ -50,9 +50,9 @@ def test_has_backtrack(test_context):
     assert _has_backtrack(line['a1'], line)
     assert _has_backtrack(line['a2'], line)
 
-    assert not _allow_loss_refinement(line['e0'], line)
-    assert not _allow_loss_refinement(line['e1'], line)
-    assert not _allow_loss_refinement(line['e2'], line)
+    assert _allow_loss_refinement(line['e0'], line)
+    assert _allow_loss_refinement(line['e1'], line)
+    assert _allow_loss_refinement(line['e2'], line)
     assert _allow_loss_refinement(line['a0'], line)
     assert _allow_loss_refinement(line['a1'], line)
     assert _allow_loss_refinement(line['a2'], line)

@@ -21,7 +21,7 @@ def load(
                          f'using string input')
 
     if format is None and file is not None:
-        if file.endswith('.json'):
+        if file.endswith('.json') or file.endswith('.json.gz'):
             format = 'json'
         elif file.endswith('.seq') or file.endswith('.madx'):
             format = 'madx'

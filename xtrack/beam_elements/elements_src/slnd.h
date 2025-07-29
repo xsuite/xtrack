@@ -3,39 +3,34 @@
 // Copyright (c) CERN, 2023.                 //
 // ######################################### //
 
-#ifndef XTRACK_SLND_H
-#define XTRACK_SLND_H
+#ifndef XTRACK_UNIFORM_SOLENOID_H
+#define XTRACK_UNIFORM_SOLENOID_H
 
 #include <headers/track.h>
 #include <beam_elements/elements_src/track_magnet.h>
+#include <beam_elements/elements_src/default_magnet_config.h>
 
 GPUFUN
 void UniformSolenoid_track_local_particle(
         UniformSolenoidData el,
         LocalParticle* part0
 ) {
-    int64_t integrator = UniformSolenoidData_get_integrator(el);
-    int64_t num_multipole_kicks = UniformSolenoidData_get_num_multipole_kicks(el);
-
-    if (integrator == 0) {  // adaptive
-        integrator = 3;  // uniform
-    }
-    if (num_multipole_kicks == 0) {
-        num_multipole_kicks = 1;
-    }
 
     track_magnet_particles(
+        /*weight*/                1.,
         /*part0*/                 part0,
         /*length*/                UniformSolenoidData_get_length(el),
         /*order*/                 UniformSolenoidData_get_order(el),
         /*inv_factorial_order*/   UniformSolenoidData_get_inv_factorial_order(el),
         /*knl*/                   UniformSolenoidData_getp1_knl(el, 0),
         /*ksl*/                   UniformSolenoidData_getp1_ksl(el, 0),
-        /*factor_knl_ksl*/        1.,
-        /*num_multipole_kicks*/   num_multipole_kicks,
+        /*num_multipole_kicks*/   UniformSolenoidData_get_num_multipole_kicks(el),
         /*model*/                 -2, // sol-kick-sol
-        /*integrator*/            integrator,
+        /*default_model*/         0, // unused
+        /*integrator*/            UniformSolenoidData_get_integrator(el),
+        /*default_integrator*/    SOLENOID_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        UniformSolenoidData_get_radiation_flag(el),
+        /*radiation_flag_parent*/ 0, // not used here
         /*radiation_record*/      NULL,
         /*delta_taper*/           UniformSolenoidData_get_delta_taper(el),
         /*h*/                     0.,
@@ -50,6 +45,8 @@ void UniformSolenoid_track_local_particle(
         /*k3s*/                   0.,
         /*ks*/                    UniformSolenoidData_get_ks(el),
         /*dks_ds*/                0.,
+        /*rbend_model*/           -1, // not rbend
+        /*body_active*/           1,
         /*edge_entry_active*/     UniformSolenoidData_get_edge_entry_active(el),
         /*edge_exit_active*/      UniformSolenoidData_get_edge_exit_active(el),
         /*edge_entry_model*/      3, // only ax ay cancellation
@@ -65,4 +62,4 @@ void UniformSolenoid_track_local_particle(
     );
 }
 
-#endif // XTRACK_OCTUPOLE_H
+#endif // XTRACK_UNIFORM_SOLENOID_H

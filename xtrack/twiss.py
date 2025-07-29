@@ -1327,7 +1327,10 @@ def _compute_global_quantities(line, twiss_res):
             cmin_arr = (2 * np.sqrt(c_r1*c_r2) *
                         np.abs(np.mod(mux[-1], 1) - np.mod(muy[-1], 1))
                         /(1 + c_r1 * c_r2))
-            c_minus = trapz(cmin_arr, s_vect)/(circumference)
+            if circumference > 0:
+                c_minus = trapz(cmin_arr, s_vect)/(circumference)
+            else:
+                c_minus = np.mean(cmin_arr)
 
             c_minus_cplx = c_minus * np.exp(1j * c_phi1)
             c_minus_re = np.real(c_minus_cplx)
@@ -1997,8 +2000,6 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
         else:
             eigenvals = np.linalg.eigvals(RR)
         lnf._assert_matrix_stability(eigenvals, matrix_stability_tol)
-        RR_ebe = None
-
 
     if method == '4d' and W_matrix is None: # the matrix was not provided by the user
 
@@ -4764,6 +4765,8 @@ def _compute_spin_polarization(tw, line, method):
             'spin_dn_ddelta_z': dn_ddelta[:, 2],
             'spin_eigenvectors': EE,
             'spin_n_matrix': NN,
+            'spin_n0_iv': n0_iv,
+            'spin_n0_ib': n0_ib,
         }
 
         other_data = {

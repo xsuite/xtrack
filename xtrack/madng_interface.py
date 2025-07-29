@@ -22,10 +22,11 @@ class MadngVars:
         #     MADX:close_env()
         #     ''')
 
-def build_madng_model(line, sequence_name='seq'):
+def build_madng_model(line, sequence_name='seq', **kwargs):
+    print('Building MAD-NG model for line', line.name, 'with sequence name', sequence_name)
     if line.tracker is None:
         line.build_tracker()
-    mng = line.to_madng(sequence_name=sequence_name)
+    mng = line.to_madng(sequence_name=sequence_name, **kwargs)
     mng._sequence_name = sequence_name
     line.tracker._madng = mng
     line.tracker._madng_vars = MadngVars(mng)
@@ -200,7 +201,8 @@ class ActionTwissMadng(Action):
     def run(self):
         return self.line.madng_twiss(**self.tw_kwargs)
 
-def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False):
+def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False,
+                  **kwargs):
 
     try:
         _ge = xt.elements._get_expr
@@ -212,7 +214,7 @@ def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False):
             fid.write(madx_seq)
 
         from pymadng import MAD
-        mng = MAD()
+        mng = MAD(**kwargs)
         mng.MADX.load(f'"{temp_fname}.madx"', f'"{temp_fname}"')
         mng._init_madx_data = madx_seq
 

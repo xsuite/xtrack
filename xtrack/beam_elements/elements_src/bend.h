@@ -8,6 +8,7 @@
 
 #include <headers/track.h>
 #include <beam_elements/elements_src/track_magnet.h>
+#include <beam_elements/elements_src/default_magnet_config.h>
 
 GPUFUN
 void Bend_track_local_particle(
@@ -16,17 +17,20 @@ void Bend_track_local_particle(
 ) {
 
     track_magnet_particles(
+        /*weight*/                1.0,
         /*part0*/                 part0,
         /*length*/                BendData_get_length(el),
         /*order*/                 BendData_get_order(el),
         /*inv_factorial_order*/   BendData_get_inv_factorial_order(el),
         /*knl*/                   BendData_getp1_knl(el, 0),
         /*ksl*/                   BendData_getp1_ksl(el, 0),
-        /*factor_knl_ksl*/        1.,
         /*num_multipole_kicks*/   BendData_get_num_multipole_kicks(el),
         /*model*/                 BendData_get_model(el),
+        /*default_model*/         BEND_DEFAULT_MODEL,
         /*integrator*/            BendData_get_integrator(el),
+        /*default_integrator*/    BEND_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        BendData_get_radiation_flag(el),
+        /*radiation_flag_parent*/ 0, // not used here
         /*radiation_record*/      NULL,
         /*delta_taper*/           BendData_get_delta_taper(el),
         /*h*/                     BendData_get_h(el),
@@ -41,6 +45,8 @@ void Bend_track_local_particle(
         /*k3s*/                   0.,
         /*ks*/                    0.,
         /*dks_ds*/                0.,
+        /*rbend_model*/           -1, // not rbend
+        /*body_active*/           1,
         /*edge_entry_active*/     BendData_get_edge_entry_active(el),
         /*edge_exit_active*/      BendData_get_edge_exit_active(el),
         /*edge_entry_model*/      BendData_get_edge_entry_model(el),

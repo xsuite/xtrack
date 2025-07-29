@@ -7,25 +7,25 @@
     // Copyright (c) CERN, 2023.                 //
     // ######################################### //
 
-    #ifndef XTRACK_DRIFT_SLICE_OCTUPOLE_H
-    #define XTRACK_DRIFT_SLICE_OCTUPOLE_H
+    #ifndef XTRACK_DRIFT_SLICE_UNIFORMSOLENOID_H
+    #define XTRACK_DRIFT_SLICE_UNIFORMSOLENOID_H
 
     #include <headers/track.h>
     #include <beam_elements/elements_src/track_drift.h>
 
 
     GPUFUN
-    void DriftSliceOctupole_track_local_particle(
-            DriftSliceOctupoleData el,
+    void DriftSliceUniformSolenoid_track_local_particle(
+            DriftSliceUniformSolenoidData el,
             LocalParticle* part0
     ) {
 
-        double weight = DriftSliceOctupoleData_get_weight(el);
+        double weight = DriftSliceUniformSolenoidData_get_weight(el);
 
         #ifndef XSUITE_BACKTRACK
-            double const length = weight * DriftSliceOctupoleData_get__parent_length(el); // m
+            double const length = weight * DriftSliceUniformSolenoidData_get__parent_length(el); // m
         #else
-            double const length = -weight * DriftSliceOctupoleData_get__parent_length(el); // m
+            double const length = -weight * DriftSliceUniformSolenoidData_get__parent_length(el); // m
         #endif
 
         START_PER_PARTICLE_BLOCK(part0, part);

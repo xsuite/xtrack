@@ -50,8 +50,8 @@ void configure_tracking_model(
     // model = -1: kick only (not exposed in python)
     // model = -2: sol-kick-sol (not exposed in python)
 
-    if (model==0 || model==1){
-        model = 3;
+    if (model==1){
+        model = 3; // backward compatibility
     }
 
     int8_t h_is_zero = (fabs(h) < H_TOLERANCE);
@@ -352,7 +352,7 @@ void track_magnet_body_single_particle(
         }
 
     }
-    else if (integrator==0 || integrator==2){ // YOSHIDA 4
+    else if (integrator==2){ // YOSHIDA 4
 
         const int64_t n_kicks_yoshida = 7;
         const int64_t num_slices = (num_multipole_kicks / n_kicks_yoshida
@@ -408,17 +408,20 @@ void track_magnet_body_single_particle(
 
 GPUFUN
 void track_magnet_particles(
+    double const weight,
     LocalParticle* part0,
     double length,
     int64_t order,
     double inv_factorial_order,
     GPUGLMEM const double* knl,
     GPUGLMEM const double* ksl,
-    double factor_knl_ksl,
     int64_t num_multipole_kicks,
     int8_t model,
+    int8_t default_model,
     int8_t integrator,
+    int8_t default_integrator,
     int64_t radiation_flag,
+    int64_t radiation_flag_parent,
     SynchrotronRadiationRecordData radiation_record,
     double delta_taper,
     double h,
@@ -433,6 +436,8 @@ void track_magnet_particles(
     double k3s,
     double ks,
     double dks_ds,
+    int64_t rbend_model, // -1: not used, 0: auto, 1: curved body, 2: straight body
+    int64_t body_active,
     int64_t edge_entry_active,
     int64_t edge_exit_active,
     int64_t edge_entry_model,
@@ -447,10 +452,24 @@ void track_magnet_particles(
     double edge_exit_hgap
 ) {
 
+    double factor_knl_ksl = 1.0;
+
+    if (rbend_model == 0){
+        // auto mode, curved body
+        rbend_model = 1;
+    }
+
+    if (rbend_model == 1){
+        // curved body
+        double const angle = h * length;
+        edge_entry_angle += angle / 2.0;
+        edge_exit_angle += angle / 2.0;
+    }
+
     // Backtracking
     #ifdef XSUITE_BACKTRACK
-        const double core_length = -length;
-        double factor_knl_ksl_body = -factor_knl_ksl;
+        const double core_length = -length * weight;
+        double factor_knl_ksl_body = -factor_knl_ksl * weight;
         double factor_knl_ksl_edge = factor_knl_ksl; // Edge has a specific factor for backtracking
         const double factor_backtrack_edge = -1.;
         hxl = -hxl;
@@ -461,10 +480,16 @@ void track_magnet_particles(
         VSWAP(edge_entry_fint, edge_exit_fint);
         VSWAP(edge_entry_hgap, edge_exit_hgap)
     #else
-        const double core_length = length;
-        double factor_knl_ksl_body = factor_knl_ksl;
+        const double core_length = length * weight;
+        double factor_knl_ksl_body = factor_knl_ksl * weight;
         double factor_knl_ksl_edge = factor_knl_ksl;
         const double factor_backtrack_edge = 1.;
+    #endif
+
+    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+        if (radiation_flag == 10){ // from parent
+            radiation_flag = radiation_flag_parent;
+        }
     #endif
 
     // Tapering
@@ -492,52 +517,7 @@ void track_magnet_particles(
         }
     #endif
 
-    // Compute the number of kicks for auto mode
-    if (num_multipole_kicks == 0) { // num_multipole_kicks = 0 means auto mode
-        // If there are active kicks the number of kicks is guessed. Otherwise,
-        // only the drift is performed.
-        if (!kick_is_inactive(order, knl, ksl, k0, k1, k2, k3, k0s, k1s, k2s, k3s, h)){
-            if (fabs(h) < 1e-8){
-                num_multipole_kicks = 1; // straight magnet, one multipole kick in the middle
-            }
-            else{
-                double b_circum = 2 * 3.14159 / fabs(h);
-                num_multipole_kicks = fabs(length) / b_circum / 0.5e-3; // 0.5 mrad per kick (on average)
-                if (num_multipole_kicks < 1){
-                    num_multipole_kicks = 1;
-                }
-            }
-        }
-    }
-
-    double k0_drift, k1_drift, h_drift, ks_drift;
-    double k0_kick, k1_kick, h_kick;
-    double k0_h_correction, k1_h_correction;
-    int8_t kick_rot_frame;
-    int8_t drift_model;
-    configure_tracking_model(
-        model,
-        k0,
-        k1,
-        h,
-        ks,
-        &k0_drift,
-        &k1_drift,
-        &h_drift,
-        &ks_drift,
-        &k0_kick,
-        &k1_kick,
-        &h_kick,
-        &k0_h_correction,
-        &k1_h_correction,
-        &kick_rot_frame,
-        &drift_model
-    );
-
-    double dp_record_exit, dpx_record_exit, dpy_record_exit;
-
-
-    if (edge_entry_active){
+     if (edge_entry_active){
 
         double knorm[] = {k0, k1, k2, k3};
         double kskew[] = {k0s, k1s, k2s, k3s};
@@ -563,23 +543,82 @@ void track_magnet_particles(
         );
     }
 
-    START_PER_PARTICLE_BLOCK(part0, part);
-        track_magnet_body_single_particle(
-            part, core_length, order, inv_factorial_order,
-            knl, ksl,
-            factor_knl_ksl_body,
-            num_multipole_kicks, kick_rot_frame, drift_model, integrator,
-            k0_drift, k1_drift, ks_drift, h_drift,
-            k0_kick, k1_kick, h_kick, hxl,
-            k0_h_correction, k1_h_correction,
-            k2, k3, k0s, k1s, k2s, k3s,
-            dks_ds,
-            radiation_flag,
-            1, // spin_flag
-            radiation_record,
-            &dp_record_exit, &dpx_record_exit, &dpy_record_exit
+    if (body_active){
+
+        if (integrator == 0){
+            integrator = default_integrator;
+        }
+        if (model == 0){
+            model = default_model;
+        }
+
+        // Adjust the number of multipole kicks based on the weight
+        if (weight != 1.0 && num_multipole_kicks > 0){
+            num_multipole_kicks = (int64_t) ceil(num_multipole_kicks * weight);
+        }
+
+        // Compute the number of kicks for auto mode
+        if (num_multipole_kicks == 0) { // num_multipole_kicks = 0 means auto mode
+            // If there are active kicks the number of kicks is guessed. Otherwise,
+            // only the drift is performed.
+            if (!kick_is_inactive(order, knl, ksl, k0, k1, k2, k3, k0s, k1s, k2s, k3s, h)){
+                if (fabs(h) < 1e-8){
+                    num_multipole_kicks = 1; // straight magnet, one multipole kick in the middle
+                }
+                else{
+                    double b_circum = 2 * 3.14159 / fabs(h);
+                    num_multipole_kicks = fabs(length) / b_circum / 0.5e-3; // 0.5 mrad per kick (on average)
+                    if (num_multipole_kicks < 1){
+                        num_multipole_kicks = 1;
+                    }
+                }
+            }
+        }
+
+        double k0_drift, k1_drift, h_drift, ks_drift;
+        double k0_kick, k1_kick, h_kick;
+        double k0_h_correction, k1_h_correction;
+        int8_t kick_rot_frame;
+        int8_t drift_model;
+        configure_tracking_model(
+            model,
+            k0,
+            k1,
+            h,
+            ks,
+            &k0_drift,
+            &k1_drift,
+            &h_drift,
+            &ks_drift,
+            &k0_kick,
+            &k1_kick,
+            &h_kick,
+            &k0_h_correction,
+            &k1_h_correction,
+            &kick_rot_frame,
+            &drift_model
         );
-    END_PER_PARTICLE_BLOCK;
+
+        double dp_record_exit, dpx_record_exit, dpy_record_exit;
+
+        START_PER_PARTICLE_BLOCK(part0, part);
+            track_magnet_body_single_particle(
+                part, core_length, order, inv_factorial_order,
+                knl, ksl,
+                factor_knl_ksl_body,
+                num_multipole_kicks, kick_rot_frame, drift_model, integrator,
+                k0_drift, k1_drift, ks_drift, h_drift,
+                k0_kick, k1_kick, h_kick, hxl,
+                k0_h_correction, k1_h_correction,
+                k2, k3, k0s, k1s, k2s, k3s,
+                dks_ds,
+                radiation_flag,
+                1, // spin_flag
+                radiation_record,
+                &dp_record_exit, &dpx_record_exit, &dpy_record_exit
+            );
+        END_PER_PARTICLE_BLOCK;
+    }
 
     if (edge_exit_active){
         double knorm[] = {k0, k1, k2, k3};

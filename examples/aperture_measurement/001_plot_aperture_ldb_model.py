@@ -2,7 +2,7 @@ import xtrack as xt
 import numpy as np
 import xobjects as xo
 
-line = xt.Line.from_json('sps_with_apertures_ldb_model.json.gz')
+line = xt.load('sps_with_apertures_ldb_model.json.gz')
 
 tw1 = line.twiss4d()
 aper = line.get_aperture_table(dx=1e-3, dy=1e-3,

@@ -8,33 +8,33 @@
 
 #include <headers/track.h>
 #include <beam_elements/elements_src/track_magnet.h>
+#include <beam_elements/elements_src/default_magnet_config.h>
 
 
 GPUFUN
 void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 
-    SynchrotronRadiationRecordData record = NULL;
     int64_t radiation_flag = 0;
     #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
         radiation_flag = MultipoleData_get_radiation_flag(el);
-        if (radiation_flag==2){
-            record = (SynchrotronRadiationRecordData) MultipoleData_getp_internal_record(el, part0);
-        }
     #endif
 
     track_magnet_particles(
+        /*weight*/                1.,
         /*part0*/                 part0,
         /*length*/                MultipoleData_get_length(el),
         /*order*/                 MultipoleData_get_order(el),
         /*inv_factorial_order*/   MultipoleData_get_inv_factorial_order(el),
         /*knl*/                   MultipoleData_getp1_knl(el, 0),
         /*ksl*/                   MultipoleData_getp1_ksl(el, 0),
-        /*factor_knl_ksl*/        1.,
         /*num_multipole_kicks*/   1,
         /*model*/                 -1, // kick only
+        /*default_model*/         0, // unused
         /*integrator*/            3, // uniform
+        /*default_integrator*/    3, // unused
         /*radiation_flag*/        radiation_flag,
-        /*radiation_record*/      record,
+        /*radiation_flag_parent*/ 0, // not used here
+        /*radiation_record*/      (SynchrotronRadiationRecordData) MultipoleData_getp_internal_record(el, part0),
         /*delta_taper*/           MultipoleData_get_delta_taper(el),
         /*h*/                     0.,
         /*hxl*/                   MultipoleData_get_hxl(el),
@@ -48,6 +48,8 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         /*k3s*/                   0.,
         /*ks*/                    0.,
         /*dks_ds*/                0.,
+        /*rbend_model*/           -1, // not rbend
+        /*body_active*/           1,
         /*edge_entry_active*/     0,
         /*edge_exit_active*/      0,
         /*edge_entry_model*/      0,

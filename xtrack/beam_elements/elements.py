@@ -701,6 +701,7 @@ class _BendCommon:
     """Common properties for Bend and RBend: see their respective docstrings."""
     isthick = True
     has_backtrack = True
+    allow_loss_refinement = True
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
 
@@ -973,6 +974,8 @@ class Bend(_BendCommon, BeamElement):
         A value added to delta for the purposes of tapering. Default is 0.
     """
 
+    allow_loss_refinement = True
+
     _xofields = _BendCommon._common_xofields
     _rename = _BendCommon._common_rename
 
@@ -1184,6 +1187,8 @@ class RBend(_BendCommon, BeamElement):
         **_BendCommon._common_xofields,
         'length_straight': xo.Float64,
     }
+
+    allow_loss_refinement = True
 
     _rename = {
         **_BendCommon._common_rename,
@@ -1442,6 +1447,7 @@ class Sextupole(BeamElement):
 
     isthick = True
     has_backtrack = True
+    allow_loss_refinement = True
 
     _xofields={
         'k2': xo.Float64,
@@ -1600,6 +1606,7 @@ class Octupole(BeamElement):
 
     isthick = True
     has_backtrack = True
+    allow_loss_refinement = True
 
     _xofields={
         'k3': xo.Float64,
@@ -1755,6 +1762,7 @@ class Quadrupole(BeamElement):
     """
     isthick = True
     has_backtrack = True
+    allow_loss_refinement = True
 
     _xofields = {
         'k1': xo.Float64,
@@ -1911,6 +1919,7 @@ class UniformSolenoid(BeamElement):
 
     isthick = True
     has_backtrack = True
+    allow_loss_refinement = True
 
     _xofields={
         'ks': xo.Float64,
@@ -2153,6 +2162,7 @@ class Solenoid(BeamElement):
     """
     isthick = True
     has_backtrack = True
+    allow_loss_refinement = True
 
     _xofields = {
         'length': xo.Float64,

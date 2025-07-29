@@ -8,38 +8,29 @@
 
 #include <headers/track.h>
 #include <beam_elements/elements_src/track_magnet.h>
+#include <beam_elements/elements_src/default_magnet_config.h>
 
 GPUFUN
 void Quadrupole_track_local_particle(
         QuadrupoleData el,
         LocalParticle* part0
 ) {
-    int64_t model = QuadrupoleData_get_model(el);
-    int64_t integrator = QuadrupoleData_get_integrator(el);
-    int64_t num_multipole_kicks = QuadrupoleData_get_num_multipole_kicks(el);
-
-    if (model == 0) {  // adaptive
-        model = 4; // mat-kick-mat
-    }
-    if (integrator == 0) {  // adaptive
-        integrator = 3; // uniform
-    }
-    if (num_multipole_kicks == 0) {
-        num_multipole_kicks = 1;
-    }
 
     track_magnet_particles(
+        /*weight*/                1.,
         /*part0*/                 part0,
         /*length*/                QuadrupoleData_get_length(el),
         /*order*/                 QuadrupoleData_get_order(el),
         /*inv_factorial_order*/   QuadrupoleData_get_inv_factorial_order(el),
         /*knl*/                   QuadrupoleData_getp1_knl(el, 0),
         /*ksl*/                   QuadrupoleData_getp1_ksl(el, 0),
-        /*factor_knl_ksl*/        1.,
-        /*num_multipole_kicks*/   num_multipole_kicks,
-        /*model*/                 model,
-        /*integrator*/            integrator,
+        /*num_multipole_kicks*/   QuadrupoleData_get_num_multipole_kicks(el),
+        /*model*/                 QuadrupoleData_get_model(el),
+        /*default_model*/         QUADRUPOLE_DEFAULT_MODEL,
+        /*integrator*/            QuadrupoleData_get_integrator(el),
+        /*default_integrator*/    QUADRUPOLE_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        QuadrupoleData_get_radiation_flag(el),
+        /*radiation_flag_parent*/ 0, // not used here
         /*radiation_record*/      NULL,
         /*delta_taper*/           QuadrupoleData_get_delta_taper(el),
         /*h*/                     0.,
@@ -54,6 +45,8 @@ void Quadrupole_track_local_particle(
         /*k3s*/                   0.,
         /*ks*/                    0.,
         /*dks_ds*/                0.,
+        /*rbend_model*/           -1, // not rbend
+        /*body_active*/           1,
         /*edge_entry_active*/     QuadrupoleData_get_edge_entry_active(el),
         /*edge_exit_active*/      QuadrupoleData_get_edge_exit_active(el),
         /*edge_entry_model*/      1,

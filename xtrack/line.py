@@ -48,7 +48,7 @@ from .mad_loader import MadLoader
 from .beam_elements import element_classes
 from . import beam_elements
 from .beam_elements import Drift, BeamElement, Marker, Multipole
-from .beam_elements.slice_elements import ID_RADIATION_FROM_PARENT
+from .beam_elements.slice_elements_thin import ID_RADIATION_FROM_PARENT
 from .footprint import Footprint, _footprint_with_linear_rescale
 from .internal_record import (start_internal_logging_for_elements_of_type,
                               stop_internal_logging_for_elements_of_type,
@@ -628,7 +628,8 @@ class Line:
         '''
         return to_madx_sequence(self, sequence_name, mode=mode)
 
-    def to_madng(self, sequence_name='seq', temp_fname=None, keep_files=False):
+    def to_madng(self, sequence_name='seq', temp_fname=None, keep_files=False,
+                 **kwargs):
 
         '''
         Build a MAD NG instance from present state of the line.
@@ -647,7 +648,8 @@ class Line:
         '''
 
         return line_to_madng(self, sequence_name=sequence_name,
-                             temp_fname=temp_fname, keep_files=keep_files)
+                             temp_fname=temp_fname, keep_files=keep_files,
+                             **kwargs)
 
 
     build_madng_model = build_madng_model
@@ -2310,6 +2312,11 @@ class Line:
             assert isinstance(what, str)
             self.env.element_dict[what] = obj
 
+        if isinstance(what, str) in self.element_dict:
+            # Is an element and not a line or an iterable
+            self.element_names.append(what)
+            return
+
         if not isinstance(what, Iterable) or isinstance(what, str):
             what = [what]
 
@@ -3225,7 +3232,7 @@ class Line:
             self, element=element, update_every=update_every, **kwargs
         )
 
-    def compensate_radiation_energy_loss(self, delta0=0, rtol_eneloss=1e-10,
+    def compensate_radiation_energy_loss(self, delta0='zero_mean', rtol_eneloss=1e-10,
                                     max_iter=100, **kwargs):
 
         """
@@ -3235,7 +3242,9 @@ class Line:
         Parameters
         ----------
         delta0: float
-            Initial energy deviation.
+            Initial energy deviation. If `delta0='zero_mean'` is specified, the
+            compensation is done such that the mean energy deviation along the
+            ring is zero.
         rtol_eneloss: float
             Relative tolerance on energy loss.
         max_iter: int
