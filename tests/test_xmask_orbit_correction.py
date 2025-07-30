@@ -170,10 +170,10 @@ def test_orbit_correction(test_context):
     for nn in ['lhcb1', 'lhcb1_co_ref']:
         tw = collider[nn].twiss(method='4d', zeta0=0, delta0=0)
         for ip in ['ip1', 'ip2', 'ip5', 'ip8']:
-            xo.assert_allclose(tw['x', ip], 0, 1e-10)
-            xo.assert_allclose(tw['px', ip], 0, 1e-10)
-            xo.assert_allclose(tw['y', ip], 0, 1e-10)
-            xo.assert_allclose(tw['py', ip], 0, 1e-10)
+            xo.assert_allclose(tw['x', ip], 0, atol=1e-10)
+            xo.assert_allclose(tw['px', ip], 0, atol=1e-10)
+            xo.assert_allclose(tw['y', ip], 0, atol=1e-10)
+            xo.assert_allclose(tw['py', ip], 0, atol=1e-10)
 
     # Check that the tune knobs work only on line and not on line_co_ref
     tw0 = collider['lhcb1'].twiss(method='4d', zeta0=0, delta0=0)

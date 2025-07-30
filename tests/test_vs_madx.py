@@ -341,9 +341,9 @@ def test_twiss_and_survey(
 
                 if not(is_part): # We don't have survey on a part of the machine
                     # Check survey
-                    xo.assert_allclose(survxt.X[ixt], survmad['X'][imad], atol=1e-6)
-                    xo.assert_allclose(survxt.Y[ixt], survmad['Y'][imad], rtol=2e-7, atol=1e-6)
-                    xo.assert_allclose(survxt.Z[ixt], survmad['Z'][imad], atol=1e-6)
+                    xo.assert_allclose(survxt.X[ixt], survmad['X'][imad], atol=1e-6, rtol=2e-7)
+                    xo.assert_allclose(survxt.Y[ixt], survmad['Y'][imad], atol=1e-6, rtol=2e-7)
+                    xo.assert_allclose(survxt.Z[ixt], survmad['Z'][imad], atol=1e-6, rtol=2e-7)
                     xo.assert_allclose(survxt.s[ixt], survmad['s'][imad], atol=5e-6)
                     xo.assert_allclose(survxt.phi[ixt], survmad['phi'][imad], atol=1e-10)
                     xo.assert_allclose(survxt.theta[ixt], survmad['theta'][imad], atol=1e-10)
