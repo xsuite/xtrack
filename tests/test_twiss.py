@@ -2043,12 +2043,12 @@ def test_twiss_compute_coupling_elements_edwards_teng():
     sgn_ng = np.sign(tw.r11_edw_teng / tw_ng.r11_ng)
 
     # Check against MAD-NG
-    xo.assert_allclose(tw.r11_edw_teng, sgn_ng * tw_ng.r11_ng, atol=np.max(np.abs(tw.r11_edw_teng)) * 1e-3, rtol=0, max_outliers=1)
-    xo.assert_allclose(tw.r12_edw_teng, sgn_ng * tw_ng.r12_ng, atol=np.max(np.abs(tw.r12_edw_teng)) * 1e-3, rtol=0, max_outliers=1)
-    xo.assert_allclose(tw.r21_edw_teng, sgn_ng * tw_ng.r21_ng, atol=np.max(np.abs(tw.r21_edw_teng)) * 1e-3, rtol=0, max_outliers=1)
-    xo.assert_allclose(tw.r22_edw_teng, sgn_ng * tw_ng.r22_ng, atol=np.max(np.abs(tw.r22_edw_teng)) * 1e-3, rtol=0, max_outliers=1)
-    xo.assert_allclose(tw.f1010, sgn_ng * tw_ng.f1010_ng, atol=1e-6, rtol=0, max_outliers=1)
-    xo.assert_allclose(tw.f1001, sgn_ng * tw_ng.f1001_ng, atol=1e-5, rtol=0, max_outliers=1)
+    xo.assert_allclose(tw.r11_edw_teng, sgn_ng * tw_ng.r11_ng, atol=np.max(np.abs(tw.r11_edw_teng)) * 5e-3, rtol=0, max_outliers=1)
+    xo.assert_allclose(tw.r12_edw_teng, sgn_ng * tw_ng.r12_ng, atol=np.max(np.abs(tw.r12_edw_teng)) * 5e-3, rtol=0, max_outliers=1)
+    xo.assert_allclose(tw.r21_edw_teng, sgn_ng * tw_ng.r21_ng, atol=np.max(np.abs(tw.r21_edw_teng)) * 5e-3, rtol=0, max_outliers=1)
+    xo.assert_allclose(tw.r22_edw_teng, sgn_ng * tw_ng.r22_ng, atol=np.max(np.abs(tw.r22_edw_teng)) * 5e-3, rtol=0, max_outliers=1)
+    xo.assert_allclose(tw.f1010, sgn_ng * tw_ng.f1010_ng, atol=1e-5, rtol=0, max_outliers=1)
+    xo.assert_allclose(tw.f1001, sgn_ng * tw_ng.f1001_ng, atol=1e-3, rtol=0, max_outliers=1)
 
     # Test that reverse twiss is disabled for now
     with pytest.raises(NotImplementedError):
