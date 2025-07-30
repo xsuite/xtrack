@@ -286,6 +286,21 @@ class SurveyTable(Table):
             import matplotlib.pyplot as plt
             plt.legend()
 
+    def to_pandas(self, index=None, columns=None):
+        if columns is None:
+            columns = self._col_names
+
+        data = self._data.copy()
+        for cc in columns:
+            if len(data[cc]) > 1:
+                data[cc] = [data[cc][ii] for ii in range(len(data[cc])) if cc in self._col_names]
+
+        import pandas as pd
+        df = pd.DataFrame(data, columns=self._col_names)
+        if index is not None:
+            df.set_index(index, inplace=True)
+        return df
+
 
 # ==================================================
 
