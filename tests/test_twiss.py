@@ -2043,10 +2043,10 @@ def test_twiss_compute_coupling_elements_edwards_teng():
     sgn_ng = np.sign(tw.r11_edw_teng / tw_ng.r11_ng)
 
     # Check against MAD-NG
-    xo.assert_allclose(tw.r11_edw_teng, sgn_ng * tw_ng.r11_ng, atol=np.std(tw.r11_edw_teng) * 0.015, rtol=0)
-    xo.assert_allclose(tw.r12_edw_teng, sgn_ng * tw_ng.r12_ng, atol=np.std(tw.r12_edw_teng) * 0.05, rtol=0)
-    xo.assert_allclose(tw.r21_edw_teng, sgn_ng * tw_ng.r21_ng, atol=np.std(tw.r21_edw_teng) * 0.05, rtol=0)
-    xo.assert_allclose(tw.r22_edw_teng, sgn_ng * tw_ng.r22_ng, atol=np.std(tw.r22_edw_teng) * 0.07, rtol=0)
+    xo.assert_allclose(tw.r11_edw_teng, sgn_ng * tw_ng.r11_ng, atol=np.max(np.abs(tw.r11_edw_teng)) * 0.02, rtol=0)
+    xo.assert_allclose(tw.r12_edw_teng, sgn_ng * tw_ng.r12_ng, atol=np.max(np.abs(tw.r12_edw_teng)) * 0.02, rtol=0)
+    xo.assert_allclose(tw.r21_edw_teng, sgn_ng * tw_ng.r21_ng, atol=np.max(np.abs(tw.r21_edw_teng)) * 0.02, rtol=0)
+    xo.assert_allclose(tw.r22_edw_teng, sgn_ng * tw_ng.r22_ng, atol=np.max(np.abs(tw.r22_edw_teng)) * 0.02, rtol=0)
     xo.assert_allclose(tw.f1010, sgn_ng * tw_ng.f1010_ng, atol=2e-5, rtol=0)
     xo.assert_allclose(tw.f1001, sgn_ng * tw_ng.f1001_ng, atol=3e-3, rtol=0)
 
