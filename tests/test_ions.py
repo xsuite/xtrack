@@ -88,7 +88,7 @@ def test_ions(test_context):
                                     q0=mad.sequence.sps.beam.charge,
                                     gamma0=mad.sequence.sps.beam.gamma)
 
-    xo.assert_allclose(line['actcse.31632'].voltage, V_RF, atol=1e-10)
+    xo.assert_allclose(line['actcse.31632'].voltage, V_RF, atol=1e-10, rtol=1e-15)
 
     line.build_tracker()
 
