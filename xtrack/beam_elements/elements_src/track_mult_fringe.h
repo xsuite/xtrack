@@ -115,7 +115,7 @@ void MultFringe_track_single_particle(
     double b = -fyx * rpp;
     double c = -fxy * rpp;
     double d = 1 - fyy * rpp;
-    double det = 1 / (a * d - b * c);
+    double det = (a * d - b * c);
 
     double new_px = (d * px - b * py) / det;
     double new_py = (a * py - c * px) / det;
