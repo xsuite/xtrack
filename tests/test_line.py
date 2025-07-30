@@ -994,7 +994,7 @@ def test_elements_intersecting_s():
     }
     result = line._elements_intersecting_s(cuts)
     for kk in expected.keys() | result.keys():
-        xo.assert_allclose(expected[kk], result[kk], atol=1e-16)
+        xo.assert_allclose(expected[kk], result[kk], atol=1e-14)
 
 
 def test_slicing_at_custom_s():

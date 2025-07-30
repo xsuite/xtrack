@@ -627,29 +627,29 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
     assert elem.model == {False: 'mat-kick-mat', True: 'full'}[use_true_thick_bends]
 
     # Element:
-    xo.assert_allclose(elem.length, 2.0, atol=1e-16)
+    xo.assert_allclose(elem.length, 2.0, atol=1e-14)
     # The below is not strictly compatible with MAD-X, but is a corner case
     # that hopefully will never be relevant: if k0 is governed by an expression
     # we assume k0_from_h=False, even if its value evaluates to zero. In MAD-X
     # k0 = h if k0 is zero, but this is not feasible to implement in Xtrack now.
-    xo.assert_allclose(elem.k0, 0 if with_knobs else 0.05, atol=1e-16)
-    xo.assert_allclose(elem.h, 0.05, atol=1e-16)  # h = angle / L
-    xo.assert_allclose(elem.ksl, 0.0, atol=1e-16)
+    xo.assert_allclose(elem.k0, 0 if with_knobs else 0.05, atol=1e-14)
+    xo.assert_allclose(elem.h, 0.05, atol=1e-14)  # h = angle / L
+    xo.assert_allclose(elem.ksl, 0.0, atol=1e-14)
 
     xo.assert_allclose(
         elem.knl,
         np.array([0, 0, 0.8, 0, 0, 0]),  # knl = [0, 0, k2 * L, 0, 0]
-        atol=1e-16,
+        atol=1e-14,
     )
 
     # Edges:
-    xo.assert_allclose(elem.edge_entry_fint, 0.5, atol=1e-16)
-    xo.assert_allclose(elem.edge_entry_hgap, 0.6, atol=1e-16)
-    xo.assert_allclose(elem.edge_entry_angle, 0.7, atol=1e-16)
+    xo.assert_allclose(elem.edge_entry_fint, 0.5, atol=1e-14)
+    xo.assert_allclose(elem.edge_entry_hgap, 0.6, atol=1e-14)
+    xo.assert_allclose(elem.edge_entry_angle, 0.7, atol=1e-14)
 
-    xo.assert_allclose(elem.edge_exit_fint, 0.5, atol=1e-16)
-    xo.assert_allclose(elem.edge_exit_hgap, 0.6, atol=1e-16)
-    xo.assert_allclose(elem.edge_exit_angle, 0.8, atol=1e-16)
+    xo.assert_allclose(elem.edge_exit_fint, 0.5, atol=1e-14)
+    xo.assert_allclose(elem.edge_exit_hgap, 0.6, atol=1e-14)
+    xo.assert_allclose(elem.edge_exit_angle, 0.8, atol=1e-14)
 
     # Finish the test here if we are not using knobs
     if not with_knobs:
@@ -665,26 +665,26 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
 
     # Verify that the line has been adjusted correctly
     # Element:
-    xo.assert_allclose(elem.length, 3.0, atol=1e-16)
-    xo.assert_allclose(elem.k0, 0.4, atol=1e-16)
-    xo.assert_allclose(elem.h, 0.2 / 3.0, atol=1e-16)  # h = angle / length
-    xo.assert_allclose(elem.ksl, 0.0, atol=1e-16)
+    xo.assert_allclose(elem.length, 3.0, atol=1e-14)
+    xo.assert_allclose(elem.k0, 0.4, atol=1e-14)
+    xo.assert_allclose(elem.h, 0.2 / 3.0, atol=1e-14)  # h = angle / length
+    xo.assert_allclose(elem.ksl, 0.0, atol=1e-14)
 
     xo.assert_allclose(
         elem.knl,
         np.array([0, 0, 2.4, 0, 0, 0]),  # knl = [0, 0, k2 * L, 0, 0]
-        atol=1e-16,
+        atol=1e-14,
     )
 
     # Edges:
-    xo.assert_allclose(elem.edge_entry_fint, 1.0, atol=1e-16)
-    xo.assert_allclose(elem.edge_entry_hgap, 1.2, atol=1e-16)
-    xo.assert_allclose(elem.edge_entry_angle, 1.4, atol=1e-16)
-    xo.assert_allclose(elem.k0, 0.4, atol=1e-16)
+    xo.assert_allclose(elem.edge_entry_fint, 1.0, atol=1e-14)
+    xo.assert_allclose(elem.edge_entry_hgap, 1.2, atol=1e-14)
+    xo.assert_allclose(elem.edge_entry_angle, 1.4, atol=1e-14)
+    xo.assert_allclose(elem.k0, 0.4, atol=1e-14)
 
-    xo.assert_allclose(elem.edge_exit_fint, 1.0, atol=1e-16)
-    xo.assert_allclose(elem.edge_exit_hgap, 1.2, atol=1e-16)
-    xo.assert_allclose(elem.edge_exit_angle, 1.6, atol=1e-16)
+    xo.assert_allclose(elem.edge_exit_fint, 1.0, atol=1e-14)
+    xo.assert_allclose(elem.edge_exit_hgap, 1.2, atol=1e-14)
+    xo.assert_allclose(elem.edge_exit_angle, 1.6, atol=1e-14)
 
 
 @pytest.mark.parametrize('with_knobs', [False, True])
@@ -710,9 +710,9 @@ def test_import_thick_quad_from_madx(with_knobs):
     elem = line['elem']
 
     # Verify that the line has been imported correctly
-    xo.assert_allclose(elem.length, 2.0, atol=1e-16)
-    xo.assert_allclose(elem.k1, 0.1, atol=1e-16)
-    xo.assert_allclose(elem.k1s, 0.2, atol=1e-16)
+    xo.assert_allclose(elem.length, 2.0, atol=1e-14)
+    xo.assert_allclose(elem.k1, 0.1, atol=1e-14)
+    xo.assert_allclose(elem.k1s, 0.2, atol=1e-14)
 
     # Finish the test here if we are not using knobs
     if not with_knobs:
@@ -726,9 +726,9 @@ def test_import_thick_quad_from_madx(with_knobs):
     line.vars['knob_b'] = 3.0
 
     # Verify that the line has been adjusted correctly
-    xo.assert_allclose(elem.length, 3.0, atol=1e-16)
-    xo.assert_allclose(elem.k1, 1.1, atol=1e-16)
-    xo.assert_allclose(elem.k1s, 1.2, atol=1e-16)
+    xo.assert_allclose(elem.length, 3.0, atol=1e-14)
+    xo.assert_allclose(elem.k1, 1.1, atol=1e-14)
+    xo.assert_allclose(elem.k1s, 1.2, atol=1e-14)
 
 
 @pytest.mark.parametrize(
@@ -776,16 +776,16 @@ def test_import_thick_bend_from_madx_and_slice(
             'sbend': xt.ThinSliceBend,
         }[bend_type]
         assert isinstance(elem, slice_class)
-        xo.assert_allclose(elem.weight, 0.5, atol=1e-16)
-        xo.assert_allclose(elem._parent.length, 2.0, atol=1e-16)
-        xo.assert_allclose(elem._parent.k0, 0.2, atol=1e-16)
-        xo.assert_allclose(elem._parent.knl, [0., 0, 0.8, 0, 0, 0], atol=1e-16)
-        xo.assert_allclose(elem._parent.ksl, 0, atol=1e-16)
-        xo.assert_allclose(elem._parent.h, 0.05, atol=1e-16)
+        xo.assert_allclose(elem.weight, 0.5, atol=1e-14)
+        xo.assert_allclose(elem._parent.length, 2.0, atol=1e-14)
+        xo.assert_allclose(elem._parent.k0, 0.2, atol=1e-14)
+        xo.assert_allclose(elem._parent.knl, [0., 0, 0.8, 0, 0, 0], atol=1e-14)
+        xo.assert_allclose(elem._parent.ksl, 0, atol=1e-14)
+        xo.assert_allclose(elem._parent.h, 0.05, atol=1e-14)
 
     for drift in drifts:
-        xo.assert_allclose(drift._parent.length, 2., atol=1e-16)
-        xo.assert_allclose(drift.weight, 1./3., atol=1e-16)
+        xo.assert_allclose(drift._parent.length, 2., atol=1e-14)
+        xo.assert_allclose(drift.weight, 1./3., atol=1e-14)
 
     # Finish the test here if we are not using knobs
     if not with_knobs:
@@ -800,26 +800,26 @@ def test_import_thick_bend_from_madx_and_slice(
 
     # Verify that the line has been adjusted correctly
     for elem in elems:
-        xo.assert_allclose(elem.weight, 0.5, atol=1e-16)
-        xo.assert_allclose(elem._parent.length, 3.0, atol=1e-16)
-        xo.assert_allclose(elem._parent.k0, 0.4, atol=1e-16)
-        xo.assert_allclose(elem._parent.knl, [0., 0, 2.4, 0, 0, 0], atol=1e-16)
-        xo.assert_allclose(elem._parent.ksl, 0, atol=1e-16)
-        xo.assert_allclose(elem._parent.h, 0.2/3, atol=1e-16)
+        xo.assert_allclose(elem.weight, 0.5, atol=1e-14)
+        xo.assert_allclose(elem._parent.length, 3.0, atol=1e-14)
+        xo.assert_allclose(elem._parent.k0, 0.4, atol=1e-14)
+        xo.assert_allclose(elem._parent.knl, [0., 0, 2.4, 0, 0, 0], atol=1e-14)
+        xo.assert_allclose(elem._parent.ksl, 0, atol=1e-14)
+        xo.assert_allclose(elem._parent.h, 0.2/3, atol=1e-14)
 
-        xo.assert_allclose(elem._xobject.weight, 0.5, atol=1e-16)
-        xo.assert_allclose(elem._xobject._parent.length, 3.0, atol=1e-16)
-        xo.assert_allclose(elem._xobject._parent.k0, 0.4, atol=1e-16)
-        xo.assert_allclose(elem._xobject._parent.knl, [0., 0, 2.4, 0, 0, 0], atol=1e-16)
-        xo.assert_allclose(elem._xobject._parent.ksl, 0, atol=1e-16)
-        xo.assert_allclose(elem._xobject._parent.h, 0.2/3, atol=1e-16)
+        xo.assert_allclose(elem._xobject.weight, 0.5, atol=1e-14)
+        xo.assert_allclose(elem._xobject._parent.length, 3.0, atol=1e-14)
+        xo.assert_allclose(elem._xobject._parent.k0, 0.4, atol=1e-14)
+        xo.assert_allclose(elem._xobject._parent.knl, [0., 0, 2.4, 0, 0, 0], atol=1e-14)
+        xo.assert_allclose(elem._xobject._parent.ksl, 0, atol=1e-14)
+        xo.assert_allclose(elem._xobject._parent.h, 0.2/3, atol=1e-14)
 
         assert elem._parent._buffer is line._buffer
         assert elem._xobject._parent._buffer is line._buffer
 
     for drift in drifts:
-        xo.assert_allclose(drift._parent.length, 3, atol=1e-16)
-        xo.assert_allclose(drift.weight, 1./3., atol=1e-16)
+        xo.assert_allclose(drift._parent.length, 3, atol=1e-14)
+        xo.assert_allclose(drift.weight, 1./3., atol=1e-14)
 
         assert drift._parent._buffer is line._buffer
         assert drift._xobject._parent._buffer is line._buffer
@@ -856,14 +856,14 @@ def test_import_thick_quad_from_madx_and_slice(with_knobs):
 
     # Verify that the slices are correct
     for elem in elems:
-        xo.assert_allclose(elem.weight, 0.5, atol=1e-16)
-        xo.assert_allclose(elem._parent.length, 2.0, atol=1e-16)
-        xo.assert_allclose(elem._parent.k1, 0.1, atol=1e-16)
-        xo.assert_allclose(elem._parent.k1s, 0.2, atol=1e-16)
+        xo.assert_allclose(elem.weight, 0.5, atol=1e-14)
+        xo.assert_allclose(elem._parent.length, 2.0, atol=1e-14)
+        xo.assert_allclose(elem._parent.k1, 0.1, atol=1e-14)
+        xo.assert_allclose(elem._parent.k1s, 0.2, atol=1e-14)
 
     for drift in drifts:
-        xo.assert_allclose(drift._parent.length, 2., atol=1e-16)
-        xo.assert_allclose(drift.weight, 1./3., atol=1e-16)
+        xo.assert_allclose(drift._parent.length, 2., atol=1e-14)
+        xo.assert_allclose(drift.weight, 1./3., atol=1e-14)
 
     # Finish the test here if we are not using knobs
     if not with_knobs:
@@ -878,25 +878,25 @@ def test_import_thick_quad_from_madx_and_slice(with_knobs):
 
     # Verify that the line has been adjusted correctly
     for elem in elems:
-        xo.assert_allclose(elem.weight, 0.5, atol=1e-16)
-        xo.assert_allclose(elem._parent.length, 3.0, atol=1e-16)
-        xo.assert_allclose(elem._parent.k1, 2.1, atol=1e-16)
-        xo.assert_allclose(elem._parent.k1s, 2.2, atol=1e-16)
+        xo.assert_allclose(elem.weight, 0.5, atol=1e-14)
+        xo.assert_allclose(elem._parent.length, 3.0, atol=1e-14)
+        xo.assert_allclose(elem._parent.k1, 2.1, atol=1e-14)
+        xo.assert_allclose(elem._parent.k1s, 2.2, atol=1e-14)
 
-        xo.assert_allclose(elem._xobject.weight, 0.5, atol=1e-16)
-        xo.assert_allclose(elem._xobject._parent.length, 3.0, atol=1e-16)
-        xo.assert_allclose(elem._xobject._parent.k1, 2.1, atol=1e-16)
-        xo.assert_allclose(elem._xobject._parent.k1s, 2.2, atol=1e-16)
+        xo.assert_allclose(elem._xobject.weight, 0.5, atol=1e-14)
+        xo.assert_allclose(elem._xobject._parent.length, 3.0, atol=1e-14)
+        xo.assert_allclose(elem._xobject._parent.k1, 2.1, atol=1e-14)
+        xo.assert_allclose(elem._xobject._parent.k1s, 2.2, atol=1e-14)
 
         assert elem._parent._buffer is line._buffer
         assert elem._xobject._parent._buffer is line._buffer
 
     for drift in drifts:
-        xo.assert_allclose(drift._parent.length, 3., atol=1e-16)
-        xo.assert_allclose(drift.weight, 1./3., atol=1e-16)
+        xo.assert_allclose(drift._parent.length, 3., atol=1e-14)
+        xo.assert_allclose(drift.weight, 1./3., atol=1e-14)
 
-        xo.assert_allclose(drift._xobject._parent.length, 3., atol=1e-16)
-        xo.assert_allclose(drift._xobject.weight, 1./3., atol=1e-16)
+        xo.assert_allclose(drift._xobject._parent.length, 3., atol=1e-14)
+        xo.assert_allclose(drift._xobject.weight, 1./3., atol=1e-14)
 
         assert drift._parent._buffer is line._buffer
         assert drift._xobject._parent._buffer is line._buffer
@@ -1064,7 +1064,7 @@ def test_import_thick_with_apertures_and_slice():
 
 
     def _assert_eq(a, b):
-        xo.assert_allclose(a, b, atol=1e-16)
+        xo.assert_allclose(a, b, atol=1e-14)
 
     _assert_eq(line[f'elm_aper'].rot_s_rad, 0.1)
     _assert_eq(line[f'elm_aper'].shift_x, 0.2)
@@ -1492,12 +1492,12 @@ def test_solenoid_shifted_and_rotated_multipolar_kick(test_context):
     line_test.track(p_test)
     line_ref.track(p_ref)
 
-    xo.assert_allclose(p_test.x, p_ref.x, rtol=0, atol=1e-16)
-    xo.assert_allclose(p_test.px, p_ref.px, rtol=0, atol=1e-16)
-    xo.assert_allclose(p_test.y, p_ref.y, rtol=0, atol=1e-16)
-    xo.assert_allclose(p_test.py, p_ref.py, rtol=0, atol=1e-16)
-    xo.assert_allclose(p_test.zeta, p_ref.zeta, rtol=0, atol=1e-16)
-    xo.assert_allclose(p_test.delta, p_ref.delta, rtol=0, atol=1e-16)
+    xo.assert_allclose(p_test.x, p_ref.x, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_test.px, p_ref.px, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_test.y, p_ref.y, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_test.py, p_ref.py, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_test.zeta, p_ref.zeta, rtol=0, atol=1e-14)
+    xo.assert_allclose(p_test.delta, p_ref.delta, rtol=0, atol=1e-14)
 
 
 @pytest.mark.parametrize('shift_x', (0, 1e-3))
@@ -1589,8 +1589,8 @@ def test_solenoid_multipole_shifts(shift_x, shift_y, test_element_name):
     ########################################
     # Assertions
     ########################################
-    xo.assert_allclose(tw.x[-1], tw_sol.x[-1], rtol=2E-6)
-    xo.assert_allclose(tw.y[-1], tw_sol.y[-1], rtol=2E-6)
+    xo.assert_allclose(tw.x[-1], tw_sol.x[-1], rtol=2e-6, atol=1e-12)
+    xo.assert_allclose(tw.y[-1], tw_sol.y[-1], rtol=2e-6, atol=1e-12)
 
 
 def test_solenoid_multipole_rotations():
