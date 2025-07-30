@@ -369,8 +369,8 @@ def survey_from_line(
     # Frame matrix and unit vectors
     theta_mat = np.zeros((len(theta), 4, 4))
     theta_mat[:, 0, 0] = np.cos(theta)
-    theta_mat[:, 0, 2] = -np.sin(theta)
-    theta_mat[:, 2, 0] = np.sin(theta)
+    theta_mat[:, 0, 2] = np.sin(theta)
+    theta_mat[:, 2, 0] = -np.sin(theta)
     theta_mat[:, 2, 2] = np.cos(theta)
     theta_mat[:, 1, 1] = 1
     theta_mat[:, 3, 3] = 1
