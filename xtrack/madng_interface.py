@@ -249,59 +249,6 @@ class ActionTwissMadng(Action):
     def run(self):
         return self.line.madng_twiss(**self.tw_kwargs)
 
-# Deprecated: use line.to_madng() instead.
-def line_to_madng_old(line, sequence_name='seq', temp_fname=None, keep_files=False):
-
-    try:
-        _ge = xt.elements._get_expr
-        if temp_fname is None:
-            temp_fname = 'temp_madng_' + str(uuid.uuid4())
-        madx_seq = line.to_madx_sequence(sequence_name=sequence_name)
-        with open(f'{temp_fname}.madx', 'w') as fid:
-            fid.write(madx_seq)
-
-        from pymadng import MAD
-        mng = MAD()
-        mng.MADX.load(f'"{temp_fname}.madx"', f'"{temp_fname}"')
-        mng._init_madx_data = madx_seq
-
-        mng[sequence_name] = mng.MADX[sequence_name] # this ensures that the file has been read
-        mng[sequence_name].beam = mng.beam(particle="'custom'",
-                        mass=line.particle_ref.mass0 * 1e9,
-                        charge=line.particle_ref.q0,
-                        betgam=line.particle_ref.beta0[0] * line.particle_ref.gamma0[0])
-
-        # Patch shifts (MAD-NG ignores dx, dy from MAD-X, need to set them through misalign)
-        commands = []
-        commands.append('MADX:open_env()')
-        for nn in line.element_names:
-            if not hasattr(line[nn], 'shift_x'):
-                continue
-            nn_ng = nn.replace('.', '_')
-            dx = mad_str_or_value(_ge(line.ref[nn].shift_x))
-            dy = mad_str_or_value(_ge(line.ref[nn].shift_y))
-            if dx == 0 and dy == 0:
-                continue
-            commands.append(
-                f'{nn_ng}.dx = 0\n'
-                f'{nn_ng}.dy = 0\n'
-                f'{nn_ng}.misalign'
-                ' =\\ {'
-                f'dx={dx},'
-                f'dy={dy}'
-                '}'
-            )
-        commands.append('MADX:close_env()')
-        mng.send('\n'.join(commands))
-
-    finally:
-        if not keep_files:
-            for nn in [temp_fname + '.madx', temp_fname + '.mad']:
-                if os.path.isfile(nn):
-                    os.remove(nn)
-
-    # mng[sequence_name].beam = mng.beam(particle="'proton'", energy=7000)
-    return mng
 
 def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False):
 
