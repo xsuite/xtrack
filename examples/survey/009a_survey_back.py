@@ -9,7 +9,8 @@ line = env.new_line(length=10, components=[
     env.new('b3', 'Bend', angle=-0.1, length=1., at=6),
     env.new('b4', 'Bend', angle=0.1,  length=1., at=8),
 
-    env.new('end', 'Marker', at=10)
+    env.new('end', 'Marker', at=10.0),
+    env.new('mid', 'Marker', at=5.0),
 ])
 
 sv = line.survey()
@@ -17,11 +18,16 @@ svback = line.survey(element0='end', Z0=sv.Z[-1])
 
 sv.cols['s X Y Z'].show()
 svback.cols['s X Y Z'].show()
+svmid=line.survey(element0='mid',
+                  Z0=sv['Z', 'mid'],
+                  X0=sv['X', 'mid'],
+                  Y0=sv['Y', 'mid'])
 
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
 plt.plot(sv.Z, sv.X, '.-')
 plt.plot(svback.Z, svback.X, 'x-')
+plt.plot(svmid.Z, svmid.X, 'o-')
 
 plt.show()
