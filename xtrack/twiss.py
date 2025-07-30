@@ -1337,6 +1337,9 @@ def _compute_coupling_elements_edwards_teng(
     MAD-NG –- madl_gphys.mad.
     (https://github.com/MethodicalAcceleratorDesign/MAD-NG/blob/a73ac34f85426f8e6ad15fb99f5ee0a4c6d1636d/src/madl_gphys.mad#L1807)
 
+    For the RDTs calculation, refer to R. Calaga and R. Tomás, "Betatron coupling:
+    Merging Hamiltonian and matrix approaches", 10.1103/PhysRevSTAB.8.034001.
+
     Returns
     -------
     r11, r12, r21, r22: complex
