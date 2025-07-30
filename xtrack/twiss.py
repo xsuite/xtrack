@@ -1215,8 +1215,8 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
 
     # Computation of twiss parameters
     if use_full_inverse:
-        (betx, alfx, gamx, bety, alfy, gamy, bety1, betx2
-                    )= _extract_twiss_parameters_with_inverse(Ws)
+        (betx, alfx, gamx, bety, alfy, gamy, bety1, betx2, alfy1, alfx2, gamy1,
+        gamx2) = _extract_twiss_parameters_with_inverse(Ws)
     else:
         betx = Ws[:, 0, 0]**2 + Ws[:, 0, 1]**2
         bety = Ws[:, 2, 2]**2 + Ws[:, 2, 3]**2
@@ -4394,6 +4394,12 @@ def _extract_twiss_parameters_with_inverse(Ws):
     bety1 = np.abs(EE[0, :, 2, 2])
     betx2 = np.abs(EE[1, :, 0, 0])
 
+    alfy1 = -EE[0, :, 2, 3]
+    alfx2 = -EE[1, :, 0, 1]
+
+    gamy1 = EE[0, :, 3, 3]
+    gamx2 = EE[1, :, 1, 1]
+
     sign_x = np.sign(betx)
     sign_y = np.sign(bety)
     betx *= sign_x
@@ -4403,7 +4409,7 @@ def _extract_twiss_parameters_with_inverse(Ws):
     alfy *= sign_y
     gamy *= sign_y
 
-    return betx, alfx, gamx, bety, alfy, gamy, bety1, betx2
+    return betx, alfx, gamx, bety, alfy, gamy, bety1, betx2, alfy1, alfx2, gamy1, gamx2
 
 def _str_to_index(line, ele, allow_end_point=True):
     if allow_end_point and ele == '_end_point':

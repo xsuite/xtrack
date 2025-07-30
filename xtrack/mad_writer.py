@@ -470,7 +470,9 @@ def solenoid_to_mad_str(name, line, mad_type=MadType.MADX, substituted_vars=None
         tokens.append(f"'{name.replace(':', '__')}'")  # replace ':' with '__' for MADNG
     tokens.append(mad_assignment('l', _ge(sol.length), mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('ks', _ge(sol.ks), mad_type, substituted_vars=substituted_vars))
-    tokens.append(mad_assignment('ksi', _ge(sol.ksi), mad_type, substituted_vars=substituted_vars))
+
+    if getattr(_ge(sol), 'ksi', 0) != 0:
+        raise ValueError('Thin solenoids are not implemented.')
 
     _handle_transforms(tokens, sol, mad_type=mad_type, substituted_vars=substituted_vars)
 
@@ -501,6 +503,7 @@ xsuite_to_mad_converters = {
     xt.Octupole: octupole_to_mad_str,
     xt.Quadrupole: quadrupole_to_mad_str,
     xt.Solenoid: solenoid_to_mad_str,
+    xt.UniformSolenoid: solenoid_to_mad_str,
     xt.SRotation: srotation_to_mad_str,
     xt.RFMultipole: rfmultipole_to_mad_str,
 }

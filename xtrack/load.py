@@ -4,6 +4,7 @@
 # ######################################### #
 import xtrack as xt
 from typing import Literal
+from pathlib import Path
 
 
 def load(
@@ -12,6 +13,9 @@ def load(
         format: Literal['json', 'madx', 'python'] = None,
         timeout=5.,
 ):
+    if isinstance(file, Path):
+        file = str(file)
+
     if (file is None) == (string is None):
         raise ValueError('Must specify either file or string, but not both')
 

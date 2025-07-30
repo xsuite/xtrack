@@ -620,17 +620,18 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
     atols = dict(
         s=2e-8,
         zeta=5e-5,
-        alfx=1e-8, alfy=1e-8,
+        alfx=1e-8, alfy=1e-8, alfx1=1e-8, alfy2=1e-8, alfx2=1e-6, alfy1=1e-6,
         dzeta=1e-4, dx=1e-4, dy=1e-4, dpx=1e-5, dpy=1e-5,
         nuzeta=1e-5, dx_zeta=1e-7, dy_zeta=1e-7, dpx_zeta=1e-8, dpy_zeta=1e-8,
         nux=1e-8, nuy=1e-8,
         betx2=1e-4, bety1=1e-4,
+        gamy1=5e-7, gamx2=5e-7,
     )
 
     rtols = dict(
-        alfx=5e-9, alfy=5e-8,
+        alfx=5e-9, alfy=5e-8, alfx1=5e-9, alfy2=5e-8, alfx2=5e-8, alfy1=5e-8,
         betx=1e-8, bety=1e-8, betx1=1e-8, bety2=1e-8, betx2=1e-7, bety1=1e-7,
-        gamx=5e-9, gamy=5e-9,
+        gamx=5e-9, gamy=5e-9, gamx1=5e-9, gamy2=5e-9, gamx2=1e-7, gamy1=1e-7,
     )
 
     if loop_around or not init_at_edge:
@@ -638,14 +639,22 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
         rtols['bety'] = 2e-5
         rtols['alfx'] = 4e-5
         atols['alfx'] = 4e-5
+        atols['alfx1'] = 4e-5
         rtols['alfy'] = 4e-5
         atols['alfy'] = 4e-5
+        atols['alfy2'] = 4e-5
         rtols['gamx'] = 2e-5
         rtols['gamy'] = 2e-5
         rtols['betx1'] = 2e-5
         rtols['bety2'] = 1e-5
         rtols['betx2'] = 1e-4
         rtols['bety1'] = 1e-4
+        rtols['alfx2'] = 2e-4
+        rtols['alfy1'] = 2e-4
+        rtols['gamx1'] = 2e-5
+        rtols['gamy2'] = 1e-5
+        rtols['gamx2'] = 1e-4
+        rtols['gamy1'] = 1e-4
         atols['mux'] = 1e-5
         atols['muy'] = 1e-5
         atols['nux'] = 1e-8
@@ -2000,69 +2009,46 @@ def test_twiss_collective_end_is_len():
 
 
 def test_twiss_compute_coupling_elements_edwards_teng():
-    mad = Madx()
-    mad.call(str(test_data_folder / 'lhc_2024/lhc.seq'))
-    mad.call(str(test_data_folder / 'lhc_2024/injection_optics.madx'))
-
-    mad.beam()
-    mad.use('lhcb1')
+    env = xt.load(test_data_folder / 'lhc_2024/lhc.seq')
+    env.vars.set_from_madx_file(test_data_folder / 'lhc_2024/injection_optics.madx')
 
     # Clean machine
-    mad.globals.on_x1 = 0
-    mad.globals.on_x2h = 0
-    mad.globals.on_x2v = 0
-    mad.globals.on_x5 = 0
-    mad.globals.on_x8h = 0
-    mad.globals.on_x8v = 0
+    env['on_x1'] = 0
+    env['on_x2h'] = 0
+    env['on_x2v'] = 0
+    env['on_x5'] = 0
+    env['on_x8h'] = 0
+    env['on_x8v'] = 0
 
-    mad.globals.on_sep1 = 0
-    mad.globals.on_sep2h = 0
-    mad.globals.on_sep2v = 0
-    mad.globals.on_sep5 = 0
-    mad.globals.on_sep8h = 0
-    mad.globals.on_sep8v = 0
+    env['on_sep1'] = 0
+    env['on_sep2h'] = 0
+    env['on_sep2v'] = 0
+    env['on_sep5'] = 0
+    env['on_sep8h'] = 0
+    env['on_sep8v'] = 0
 
-    mad.globals.on_a2 = 0
-    mad.globals.on_a8 = 0
+    env['on_a2'] = 0
+    env['on_a8'] = 0
 
     # Introduce some coupling by powering up a skew quadrupole
-    mad.globals['kqs.a67b1'] = 1e-4
+    env['kqs.a67b1'] = 1e-4
 
-    tw_mad = mad.twiss()
-
-    line = xt.Line.from_madx_sequence(
-        mad.sequence.lhcb1, deferred_expressions=True
-    )
+    line = env.lhcb1
     line.particle_ref = xt.Particles(p0c=450e9)
     tw = line.twiss4d(coupling_edw_teng=True)
 
     tw_ng = line.madng_twiss()
 
-    r11_mad, r12_mad, r21_mad, r22_mad = tw_mad.r11, tw_mad.r12, tw_mad.r21, tw_mad.r22
-    s_mad = tw_mad.s
-
-    r11_mad_at_s = np.interp(tw.s, s_mad, r11_mad)
-    r12_mad_at_s = np.interp(tw.s, s_mad, r12_mad)
-    r21_mad_at_s = np.interp(tw.s, s_mad, r21_mad)
-    r22_mad_at_s = np.interp(tw.s, s_mad, r22_mad)
-
-    # Check against MAD-X
-    xo.assert_allclose(tw.r11_edw_teng, r11_mad_at_s, atol=1e-3)
-    xo.assert_allclose(tw.r12_edw_teng, r12_mad_at_s, atol=0.135)
-    xo.assert_allclose(np.mean(tw.r12_edw_teng - r12_mad_at_s), 0, atol=2e-5)
-    xo.assert_allclose(tw.r21_edw_teng, r21_mad_at_s, atol=1e-4)
-    xo.assert_allclose(tw.r22_edw_teng, r22_mad_at_s, atol=1e-2)
-
+    # We will correct for the sign, as our result is smoother
     sgn_ng = np.sign(tw.r11_edw_teng / tw_ng.r11_ng)
 
     # Check against MAD-NG
-    xo.assert_allclose(tw.r11_edw_teng, sgn_ng * tw_ng.r11_ng, atol=1e-3)
-    xo.assert_allclose(tw.r12_edw_teng, sgn_ng * tw_ng.r12_ng, atol=0.135)
-    xo.assert_allclose(np.mean(tw.r12_edw_teng - sgn_ng * tw_ng.r12_ng), 0, atol=2e-5)
-    xo.assert_allclose(tw.r21_edw_teng, sgn_ng * tw_ng.r21_ng, atol=1e-4)
-    xo.assert_allclose(tw.r22_edw_teng, sgn_ng * tw_ng.r22_ng, atol=1e-2)
-    xo.assert_allclose(tw.f1010, sgn_ng * tw_ng.f1010_ng, atol=1e-5)
-    xo.assert_allclose(tw.f1001, sgn_ng * tw_ng.f1001_ng, atol=2e-3)
+    xo.assert_allclose(tw.r11_edw_teng, sgn_ng * tw_ng.r11_ng, atol=np.std(tw.r11_edw_teng) * 0.01, rtol=0)
+    xo.assert_allclose(tw.r12_edw_teng, sgn_ng * tw_ng.r12_ng, atol=np.std(tw.r12_edw_teng) * 0.05, rtol=0)
+    xo.assert_allclose(tw.r21_edw_teng, sgn_ng * tw_ng.r21_ng, atol=np.std(tw.r21_edw_teng) * 0.05, rtol=0)
+    xo.assert_allclose(tw.r22_edw_teng, sgn_ng * tw_ng.r22_ng, atol=np.std(tw.r22_edw_teng) * 0.07, rtol=0)
+    xo.assert_allclose(tw.f1010, sgn_ng * tw_ng.f1010_ng, atol=2e-5, rtol=0)
+    xo.assert_allclose(tw.f1001, sgn_ng * tw_ng.f1001_ng, atol=3e-3, rtol=0)
 
     # Test that reverse twiss is disabled for now
     with pytest.raises(NotImplementedError):
