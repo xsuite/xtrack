@@ -14,11 +14,11 @@ line = env.new_line(length=10, components=[
     env.new('rx3', xt.XRotation, angle=-20, at=6),
     env.new('rx4', xt.XRotation, angle=20,  at=7),
 
-    # env.new('rs1', xt.SRotation, angle=60.,  at=4.5),
-    # env.new('rs2', xt.SRotation, angle=-60, at=5.5),
+    env.new('rs1', xt.SRotation, angle=60.,  at=4.5),
+    env.new('rs2', xt.SRotation, angle=-60, at=5.5),
 
-    # env.new('sxy1', xt.XYShift, dx=0.1, dy=0.2, at=4.8),
-    # env.new('sxy2', xt.XYShift, dx=-0.1, dy=-0.2, at=5.2),
+    env.new('sxy1', xt.XYShift, dx=0.1, dy=0.2, at=4.8),
+    env.new('sxy2', xt.XYShift, dx=-0.1, dy=-0.2, at=5.2),
 
     env.new('mid', xt.Marker, at=5.0),
     env.new('right', xt.Marker, at=9.5)
