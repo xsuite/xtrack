@@ -14,7 +14,7 @@ import xtrack as xt
 
 # Required functions
 # ==================================================
-def get_w_from_angles(theta, phi, psi, reverse_xs = False):
+def get_w_from_angles(theta, phi, psi):
     """W matrix, see MAD-X manual"""
     costhe = np.cos(theta)
     cosphi = np.cos(phi)
@@ -33,23 +33,14 @@ def get_w_from_angles(theta, phi, psi, reverse_xs = False):
     w[2, 1] = +sinthe * sinpsi - costhe * sinphi * cospsi
     w[2, 2] = costhe * cosphi
 
-    if reverse_xs:
-        w[:, 0] *= -1
-        w[:, 2] *= -1
-
     return w
 
 
-def get_angles_from_w(w, reverse_xs = False):
+def get_angles_from_w(w):
     """Inverse function of get_w_from_angles()"""
     # w[0, 2]/w[2, 2] = (sinthe * cosphi)/(costhe * cosphi)
     # w[1, 0]/w[1, 1] = (cosphi * sinpsi)/(cosphi * cospsi)
     # w[1, 2]/w[1, 1] = (sinphi)/(cosphi * cospsi)
-
-    if reverse_xs:
-        w = w.copy()
-        w[:, 0] *= -1
-        w[:, 2] *= -1
 
     theta = np.arctan2(w[0, 2], w[2, 2])
     psi = np.arctan2(w[1, 0], w[1, 1])
@@ -230,8 +221,7 @@ class SurveyTable(Table):
             ref_rot_x_rad   = out_ref_rot_x_rad,
             ref_rot_y_rad   = out_ref_rot_y_rad,
             ref_rot_s_rad   = out_ref_rot_s_rad,
-            element0        = element0,
-            reverse_xs      = False)
+            element0        = element0)
 
         # Initializing dictionary
         out_columns = {}
@@ -359,8 +349,7 @@ def survey_from_line(
         ref_rot_x_rad   = ref_rot_x_rad[:-1],
         ref_rot_y_rad   = ref_rot_y_rad[:-1],
         ref_rot_s_rad   = ref_rot_s_rad[:-1],
-        element0        = element0,
-        reverse_xs      = False)
+        element0        = element0)
 
     # Frame matrix and unit vectors
     theta_mat = np.zeros((len(theta), 4, 4))
@@ -444,15 +433,13 @@ def compute_survey(
         X0, Y0, Z0, theta0, phi0, psi0,
         drift_length, angle, tilt,
         ref_shift_x, ref_shift_y, ref_rot_x_rad, ref_rot_y_rad, ref_rot_s_rad,
-        element0 = 0, reverse_xs = False):
+        element0 = 0):
     """
     Compute survey from initial position and orientation.
     """
 
     # If element0 is not the first element, split the survey
     if element0 != 0:
-        # Assert that reverse_xs is not implemented yet
-        assert not(reverse_xs), "Not implemented yet"
 
         # Forward section of survey
         drift_forward           = drift_length[element0:]
@@ -481,8 +468,7 @@ def compute_survey(
             ref_rot_x_rad   = ref_rot_x_rad_forward,
             ref_rot_y_rad   = ref_rot_y_rad_forward,
             ref_rot_s_rad   = ref_rot_s_rad_forward,
-            element0        = 0,
-            reverse_xs      = False)
+            element0        = 0)
 
         # Backward section of survey
         drift_backward          = -np.array(drift_length[:element0][::-1])
@@ -511,8 +497,7 @@ def compute_survey(
             ref_rot_x_rad   = ref_rot_x_rad_backward,
             ref_rot_y_rad   = ref_rot_y_rad_backward,
             ref_rot_s_rad   = ref_rot_s_rad_backward,
-            element0        = 0,
-            reverse_xs      = False)
+            element0        = 0)
 
         # Concatenate forward and backward
         X       = np.array(X_backward[::-1][:-1] + X_forward)
@@ -536,8 +521,7 @@ def compute_survey(
     w   = get_w_from_angles(
         theta       = theta0,
         phi         = phi0,
-        psi         = psi0,
-        reverse_xs  = reverse_xs)
+        psi         = psi0)
 
     # Advancing element by element
     for ll, aa, tt, xx, yy, rx, ry, rs, in zip(
@@ -546,7 +530,7 @@ def compute_survey(
         ref_rot_x_rad, ref_rot_y_rad, ref_rot_s_rad):
 
         # Get angles from w matrix after previous element
-        th, ph, ps = get_angles_from_w(w, reverse_xs = reverse_xs)
+        th, ph, ps = get_angles_from_w(w)
 
         # Store position and orientation at element entrance
         X.append(v[0])
@@ -570,7 +554,7 @@ def compute_survey(
             ref_rot_s_rad   = rs)
 
     # Last marker
-    th, ph, ps = get_angles_from_w(w, reverse_xs = reverse_xs)
+    th, ph, ps = get_angles_from_w(w)
     X.append(v[0])
     Y.append(v[1])
     Z.append(v[2])
