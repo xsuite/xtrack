@@ -637,12 +637,8 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
     if loop_around or not init_at_edge:
         rtols['betx'] = 2e-5
         rtols['bety'] = 2e-5
-        rtols['alfx'] = 4e-5
-        atols['alfx'] = 4e-5
-        atols['alfx1'] = 10
-        rtols['alfy'] = 4e-5
-        atols['alfy'] = 4e-5
-        atols['alfy2'] = 10
+        rtols['alfx'] = rtols['alfx1'] = 4e-5
+        rtols['alfy'] = rtols['alfy2'] = 4e-5
         rtols['gamx'] = 2e-5
         rtols['gamy'] = 2e-5
         rtols['betx1'] = 2e-5
@@ -655,6 +651,9 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
         rtols['gamy2'] = 1e-5
         rtols['gamx2'] = 1e-4
         rtols['gamy1'] = 1e-4
+
+        atols['alfy'] = atols['alfy2'] = 4e-5
+        atols['alfx'] = atols['alfx1'] = 4e-5
         atols['mux'] = 1e-5
         atols['muy'] = 1e-5
         atols['nux'] = 1e-8

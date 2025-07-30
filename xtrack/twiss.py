@@ -3855,9 +3855,10 @@ class TwissTable(Table):
                 out.dy_zeta = -out.dy_zeta
                 out.dpy_zeta = out.dpy_zeta
 
-            # Untested:
             if 'alfx2' in out._col_names:
+                out.alfx1 = -out.alfx1
                 out.alfx2 = -out.alfx2
+                out.alfy1 = -out.alfy1
                 out.alfy2 = -out.alfy2
 
             out.W_matrix[:, 0, :] = -out.W_matrix[:, 0, :]
