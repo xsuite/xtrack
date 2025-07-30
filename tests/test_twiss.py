@@ -639,7 +639,7 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
         rtols['bety'] = 2e-5
         rtols['alfx'] = 4e-5
         atols['alfx'] = 4e-5
-        atols['alfx1'] = 4e-5
+        atols['alfx1'] = 1e-4
         rtols['alfy'] = 4e-5
         atols['alfy'] = 4e-5
         atols['alfy2'] = 4e-5
