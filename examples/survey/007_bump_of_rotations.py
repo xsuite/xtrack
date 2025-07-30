@@ -9,16 +9,16 @@ line = env.new_line(length=10, components=[
     env.new('r3', xt.YRotation, angle=-30, at=8),
     env.new('r4', xt.YRotation, angle=30,  at=9),
 
-    env.new('rx1', xt.XRotation, angle=20,  at=3),
-    env.new('rx2', xt.XRotation, angle=-20, at=4),
-    env.new('rx3', xt.XRotation, angle=-20, at=6),
-    env.new('rx4', xt.XRotation, angle=20,  at=7),
+    # env.new('rx1', xt.XRotation, angle=20,  at=3),
+    # env.new('rx2', xt.XRotation, angle=-20, at=4),
+    # env.new('rx3', xt.XRotation, angle=-20, at=6),
+    # env.new('rx4', xt.XRotation, angle=20,  at=7),
 
     env.new('rs1', xt.SRotation, angle=60.,  at=4.5),
     env.new('rs2', xt.SRotation, angle=-60, at=5.5),
 
-    env.new('sxy1', xt.XYShift, dx=0.1, dy=0.2, at=4.8),
-    env.new('sxy2', xt.XYShift, dx=-0.1, dy=-0.2, at=5.2),
+    # env.new('sxy1', xt.XYShift, dx=0.1, dy=0.2, at=4.8),
+    # env.new('sxy2', xt.XYShift, dx=-0.1, dy=-0.2, at=5.2),
 
     env.new('mid', xt.Marker, at=5.0),
     env.new('right', xt.Marker, at=9.5)
@@ -28,7 +28,7 @@ line = env.new_line(length=10, components=[
 line.config.XTRACK_GLOBAL_XY_LIMIT = None
 line.config.XTRACK_USE_EXACT_DRIFTS = True
 # sv = line.survey()
-sv = line.survey(element0='right')
+sv = line.survey(element0='mid')
 tw = line.twiss4d(_continue_if_lost=True, betx=1, bety=1, x=1e-3)
 
 p = tw.x[:, None] * sv.ix + tw.y[:, None] * sv.iy + sv.p0
