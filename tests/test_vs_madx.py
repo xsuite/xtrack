@@ -353,7 +353,7 @@ def test_twiss_and_survey(
                     # For now not checking the sign of the angles, convetion in mad-X to be calrified
                     xo.assert_allclose(np.abs(survxt.angle[ixt-1]),
                             np.abs(survmad['angle'][imad]), atol=1e-10)
-                    xo.assert_allclose(survxt.tilt[ixt-1], survmad['tilt'][imad], atol=1e-10)
+                    xo.assert_allclose(survxt.rot_s_rad[ixt-1], survmad['tilt'][imad], atol=1e-10)
 
         # Check to_pandas (not extensively for now)
         dftw = twtst.to_pandas()
