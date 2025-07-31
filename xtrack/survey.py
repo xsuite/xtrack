@@ -238,7 +238,6 @@ class SurveyTable(Table):
         out_columns["s"]                = self.s[-1] - self.s[::-1]
         out_columns['drift_length']     = np.array(out_drift_length + [0.])
         out_columns['angle']            = np.array(out_angle + [0.])
-        out_columns['tilt']             = np.array(out_tilt + [0.])
         out_columns["ref_shift_x"]      = np.array(out_ref_shift_x + [0.])
         out_columns["ref_shift_y"]      = np.array(out_ref_shift_y + [0.])
         out_columns["ref_rot_x_rad"]    = np.array(out_ref_rot_x_rad + [0.])
@@ -422,7 +421,6 @@ def survey_from_line(
     out_columns["s"]                = tt.s
     out_columns['drift_length']     = drift_length
     out_columns['angle']            = angle
-    out_columns['tilt']             = tilt
     out_columns['ref_shift_x']      = ref_shift_x
     out_columns['ref_shift_y']      = ref_shift_y
     out_columns['ref_rot_x_rad']    = ref_rot_x_rad

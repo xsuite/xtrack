@@ -27,7 +27,6 @@ line = env.new_line(length=10, components=[
 
 line.config.XTRACK_GLOBAL_XY_LIMIT = None
 line.config.XTRACK_USE_EXACT_DRIFTS = True
-# sv = line.survey()
 sv = line.survey(element0='mid')
 tw = line.twiss4d(_continue_if_lost=True, betx=1, bety=1, x=1e-3)
 
@@ -57,3 +56,21 @@ plt.xlabel('Z [m]')
 plt.ylabel('Y [m]')
 plt.subplots_adjust(hspace=0.3)
 plt.show()
+
+# Other checks
+
+sv_no_arg = line.survey()
+sv_mid_init = line.survey(element0='mid',
+                          Z0=sv_no_arg['Z', 'mid'],
+                          X0=sv_no_arg['X', 'mid'],
+                          Y0=sv_no_arg['Y', 'mid'],
+                          phi0=sv_no_arg['phi', 'mid'],
+                          theta0=sv_no_arg['theta', 'mid'],
+                          psi0=sv_no_arg['psi', 'mid'])
+sv_right_init = line.survey(element0='right',
+                            Z0=sv_no_arg['Z', 'right'],
+                            X0=sv_no_arg['X', 'right'],
+                            Y0=sv_no_arg['Y', 'right'],
+                            phi0=sv_no_arg['phi', 'right'],
+                            theta0=sv_no_arg['theta', 'right'],
+                            psi0=sv_no_arg['psi', 'right'])
