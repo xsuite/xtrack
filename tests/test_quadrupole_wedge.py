@@ -2,6 +2,7 @@ import xtrack as xt
 import numpy as np
 from cpymad.madx import Madx
 
+
 def test_quadrupole_wedge():
     """
     Hardcoded test for quadrupole wedge with hard edge fringe.
@@ -19,94 +20,75 @@ def test_quadrupole_wedge():
     y=np.linspace(-2e-2, 2e-2, 5)
     py=np.linspace(-3e-2, 3e-2, 5)
 
-    p0 = xt.Particles(x=x,px=px,y=y,py=py)  # To do: update values and add py
+    p0 = xt.Particles(x=x,px=px,y=y,py=py)
 
     line.discard_tracker()
-    line.build_tracker(use_prebuilt_kernels=False)
+    line.build_tracker()
     line.track(p0)
 
-    x_expval = np.array([-0.01000546, -0.00500069, 0., 0.00500069, 0.01000559])
-    px_expval = np.array([-5.00959400e-02, -2.50261314e-02, 1.38777878e-17, 2.49695392e-02, 4.98693687e-02])
-    y_expval = np.array([-0.01999424, -0.00999928, 0., 0.00999926, 0.01999407])
-    py_expval = np.array([-0.03014372, -0.01503676, 0., 0.01496153, 0.0298426 ])
+    x_expval = np.array([-0.0100055, -0.00500069, 0.,  0.00500069, 0.01000557])
+    px_expval = np.array([-5.00952476e-02, -2.50259834e-02, 1.38777878e-17, 2.49697042e-02, 4.98702638e-02])
+    y_expval = np.array([-0.01999435, -0.00999929, 0., 0.00999928, 0.01999424])
+    py_expval = np.array([-0.0301435, -0.01503677, 0., 0.01496143, 0.02984211])
 
     assert np.allclose(p0.x, x_expval)
     assert np.allclose(p0.px, px_expval)
     assert np.allclose(p0.y, y_expval)
     assert np.allclose(p0.py, py_expval)
-
-
-# # The combined effect of Lee-Whiting quadrupole fringe with a wedge is in small angle approximation 
-# # a sextupole with strength -3/2 b2 theta. The Lee-Whiting map is an approximation of the hard edge in XSuite.
-#
-# quadrupole = xt.Bend(length=0, k0=b1, k1=b2, edge_entry_angle=angle, edge_entry_model='2')  # 2 only dipole fringe
-# sextupole = xt.Multipole(knl = [0, 0, -3/2 * b2 * angle])
-# line_sext = xt.Line(elements=[sextupole, quadrupole])
-#
-# p1 = xt.Particles(x=x,px=px,y=y)
-#
-# line_sext.discard_tracker()
-# line_sext.build_tracker(use_prebuilt_kernels=False)
-# line_sext.track(p1)
-#
-# print(p1.x, p1.px, p1.y, p1.py)
-
+    
 
 def test_quadrupole_wedge_ptc():
-    angle = 0
-    b2 = 1 # Large value to simulate hard edge
+    """ 
+    Test against PTC with MAD8_WEDGE=False.
+    Hardcoded values since the option is not available without recompiling PTC.
+    """
+    
+    angle_in = 0.1
+    angle_out = 0.13
+    b2 = 100
     b1 = 0
     length=1e-20
 
-    x0 = 0.1
-    px0 = 0.1
-    y0 = 0.1
-    py0 = 0
-    t0 = 0.0  # Convert to xsuite if nonzero
-    pt0 = 0.0  # Convert to xsuite if nonzero
+    x0 = 0.07
+    px0 = 0.03
+    y0 = 0.08
+    py0 = 0.06
+    zeta0 = 0.04
+    delta0=0.1
+    beta0=0.1
+
+    p0 = xt.Particles(x=x0,px=px0,y=y0,py=py0,delta=delta0,zeta=zeta0,beta0=beta0)
+
+    ptau0 = float(p0.ptau)
+    tau0 = zeta0/beta0
 
     # XSuite
-    quadrupole = xt.Bend(length=length, k0=b1, k1=b2, edge_entry_angle=angle, edge_entry_model='1', edge_exit_model='1', num_multipole_kicks=50)  # 1 with quadrupole fringe
+    quadrupole = xt.Bend(length=length, k0=b1, k1=b2, edge_entry_angle=angle_in, edge_exit_angle=angle_out, edge_entry_model='1', edge_exit_model='1')  # 1 with quadrupole fringe
     line = xt.Line(elements=[ quadrupole])
-    line.config.XTRACK_USE_EXACT_DRIFTS = True
     
-    p0 = xt.Particles(x=x0,px=px0,y=y0,py=py0)
-
     line.discard_tracker()
-    line.build_tracker(use_prebuilt_kernels=False)
+    line.build_tracker()
     line.track(p0)
-    print(p0.x, p0.px, p0.y, p0.py)
     
     mat = line.compute_one_turn_matrix_finite_differences(p0)['R_matrix']
+    det = np.linalg.det(mat)
     
-    
-    # PTC tracking 
-    
-    madx_sequence = line.to_madx_sequence('quadrupole_with_wedge')
-    print(madx_sequence)
+    assert np.isclose(det, 1.0)
 
-    madx = Madx(stdout=True)
-    madx.beam()
-    madx.input(madx_sequence)
-    madx.use('quadrupole_with_wedge')
+    # PTC values    
+    x_ptc = 0.07043818253
+    px_ptc = 0.1313937438
+    y_ptc = 0.07993855538
+    py_ptc = -0.07321782159
+    tau_ptc = 0.4245507041
+    ptau_ptc = 0.01049449328
     
     
-    # exact=True to include edge angles, 
-    # fringe=True to include hard edge fringe
-    madx.input(f"""
-               ptc_create_universe;
-               ptc_create_layout, exact=True, model=3, NST=100;
-               ptc_setswitch, fringe=true;
-               PTC_START, X={x0}, PX={px0}, Y={y0}, PY={py0}, T={t0}, PT={pt0};
-               PTC_TRACK, TURNS=1;
-               PTC_TRACK_END;
-               PTC_END;
-               stop;
-    """)
-    
-    df = madx.table.tracksumm.dframe()
-    
-    print(p0.x, p0.px, p0.y, p0.py)
-    print(df.x[1], df.px[1], df.y[1], df.py[1])
+    assert np.isclose(p0.x, x_ptc)
+    assert np.isclose(p0.px, px_ptc)
+    assert np.isclose(p0.y, y_ptc)
+    assert np.isclose(p0.py, py_ptc)
+    assert np.isclose(p0.zeta/p0.beta0, tau_ptc)
+    assert np.isclose(p0.ptau, ptau_ptc)
     
     

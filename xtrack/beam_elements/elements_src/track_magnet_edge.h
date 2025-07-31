@@ -123,18 +123,18 @@ void track_magnet_edge_particles(
                 if (model == 1){
                     MAGNET_MULTIPOLE_FRINGE(part);
                 }
-                MAGNET_WEDGE(part);
                 if (model == 1){
                     MAGNET_QUAD_WEDGE(part);
                 }
+                MAGNET_WEDGE(part);
             END_PER_PARTICLE_BLOCK;
         }
         else { // exit
             START_PER_PARTICLE_BLOCK(part0, part);
+                MAGNET_WEDGE(part);
                 if (model == 1){
                     MAGNET_QUAD_WEDGE(part);
                 }
-                MAGNET_WEDGE(part);
                 if (model == 1){
                     MAGNET_MULTIPOLE_FRINGE(part);
                 }
