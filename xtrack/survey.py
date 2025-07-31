@@ -421,6 +421,7 @@ def survey_from_line(
     out_columns["s"]                = tt.s
     out_columns['drift_length']     = drift_length
     out_columns['angle']            = angle
+    out_columns['rot_s_rad']        = tt.rot_s_rad
     out_columns['ref_shift_x']      = ref_shift_x
     out_columns['ref_shift_y']      = ref_shift_y
     out_columns['ref_rot_x_rad']    = ref_rot_x_rad

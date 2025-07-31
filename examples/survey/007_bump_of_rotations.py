@@ -90,6 +90,7 @@ xo.assert_allclose(sv_no_arg.drift_length, np.array([
        0.5, 0. , 0.5, 0. ]), atol=1e-14)
 
 xo.assert_allclose(sv_no_arg.angle, np.zeros(30), atol=1e-14)
+xo.assert_allclose(sv_no_arg.rot_s_rad, np.zeros(30), atol=1e-14)
 
 xo.assert_allclose(
     sv_no_arg.s,
@@ -124,7 +125,7 @@ sv_right_with_init = line.survey(element0='right',
                             psi0=sv_no_arg['psi', 'right'])
 
 cols_to_check = [
-    'X', 'Y', 'Z', 'theta', 'phi', 'psi', 's', 'drift_length', 'angle',
+    'X', 'Y', 'Z', 'theta', 'phi', 'psi', 's', 'drift_length', 'angle', 'rot_s_rad',
     'ref_shift_x', 'ref_shift_y', 'ref_rot_x_rad', 'ref_rot_y_rad', 'ref_rot_s_rad',
     'ex', 'ey', 'ez', 'p0', 'frame_matrix'
 ]

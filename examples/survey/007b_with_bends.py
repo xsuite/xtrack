@@ -84,53 +84,62 @@ xo.assert_allclose(sv_no_arg.angle, np.array(
         0.        ,  0.34906585,  0.        , -0.52359878,  0.        ,
         0.52359878,  0.        ,  0.        ,  0.        ,  0.        ]), atol=1e-8)
 
-# xo.assert_allclose(
-#     sv_no_arg.s,
-#     np.array([ 0. ,  1. ,  1. ,  2. ,  2. ,  3. ,  3. ,  4. ,  4. ,  4.5,  4.5,
-#                4.8,  4.8,  5. ,  5. ,  5.2,  5.2,  5.5,  5.5,  6. ,  6. ,  7. ,
-#                7. ,  8. ,  8. ,  9. ,  9. ,  9.5,  9.5, 10. ]),
-#     atol=1e-14
-# )
+xo.assert_allclose(sv_no_arg.rot_s_rad, np.array([
+    0.        , 0.        , 0.        , 0.        , 0.        ,
+    1.57079633, 0.        , 1.57079633, 0.        , 0.        ,
+    0.        , 0.        , 0.        , 0.        , 0.        ,
+    0.        , 0.        , 0.        , 0.        , 1.57079633,
+    0.        , 1.57079633, 0.        , 0.        , 0.        ,
+    0.        , 0.        , 0.        , 0.        , 0.
+]), atol=1e-8)
 
-# p_no_arg = tw.x[:, None] * sv_no_arg.ex + tw.y[:, None] * sv_no_arg.ey + sv_no_arg.p0
+xo.assert_allclose(
+    sv_no_arg.s,
+    np.array([ 0.  ,  0.95,  1.05,  1.95,  2.05,  2.95,  3.05,  3.95,  4.05,
+         4.5 ,  4.5 ,  4.8 ,  4.8 ,  5.  ,  5.  ,  5.2 ,  5.2 ,  5.5 ,
+         5.5 ,  5.95,  6.05,  6.95,  7.05,  7.95,  8.05,  8.95,  9.05,
+         9.5 ,  9.5 , 10.   ]),   atol=1e-14
+)
 
-# xo.assert_allclose(p_no_arg[:, 0], 1e-3, atol=1e-14)
-# xo.assert_allclose(p_no_arg[:, 1], 2e-3, atol=1e-14)
+p_no_arg = tw.x[:, None] * sv_no_arg.ex + tw.y[:, None] * sv_no_arg.ey + sv_no_arg.p0
 
-# assert sv_no_arg.element0 == 0
+xo.assert_allclose(p_no_arg[:, 0], 1e-3, atol=1e-14)
+xo.assert_allclose(p_no_arg[:, 1], 2e-3, atol=1e-14)
+
+assert sv_no_arg.element0 == 0
 
 
-# sv_mid_with_init = line.survey(element0='mid',
-#                           Z0=sv_no_arg['Z', 'mid'],
-#                           X0=sv_no_arg['X', 'mid'],
-#                           Y0=sv_no_arg['Y', 'mid'],
-#                           phi0=sv_no_arg['phi', 'mid'],
-#                           theta0=sv_no_arg['theta', 'mid'],
-#                           psi0=sv_no_arg['psi', 'mid'])
+sv_mid_with_init = line.survey(element0='mid',
+                          Z0=sv_no_arg['Z', 'mid'],
+                          X0=sv_no_arg['X', 'mid'],
+                          Y0=sv_no_arg['Y', 'mid'],
+                          phi0=sv_no_arg['phi', 'mid'],
+                          theta0=sv_no_arg['theta', 'mid'],
+                          psi0=sv_no_arg['psi', 'mid'])
 
-# sv_right_with_init = line.survey(element0='right',
-#                             Z0=sv_no_arg['Z', 'right'],
-#                             X0=sv_no_arg['X', 'right'],
-#                             Y0=sv_no_arg['Y', 'right'],
-#                             phi0=sv_no_arg['phi', 'right'],
-#                             theta0=sv_no_arg['theta', 'right'],
-#                             psi0=sv_no_arg['psi', 'right'])
+sv_right_with_init = line.survey(element0='right',
+                            Z0=sv_no_arg['Z', 'right'],
+                            X0=sv_no_arg['X', 'right'],
+                            Y0=sv_no_arg['Y', 'right'],
+                            phi0=sv_no_arg['phi', 'right'],
+                            theta0=sv_no_arg['theta', 'right'],
+                            psi0=sv_no_arg['psi', 'right'])
 
-# cols_to_check = [
-#     'X', 'Y', 'Z', 'theta', 'phi', 'psi', 's', 'drift_length', 'angle',
-#     'ref_shift_x', 'ref_shift_y', 'ref_rot_x_rad', 'ref_rot_y_rad', 'ref_rot_s_rad',
-#     'ex', 'ey', 'ez', 'p0', 'frame_matrix'
-# ]
+cols_to_check = [
+    'X', 'Y', 'Z', 'theta', 'phi', 'psi', 's', 'drift_length', 'angle',
+    'ref_shift_x', 'ref_shift_y', 'ref_rot_x_rad', 'ref_rot_y_rad', 'ref_rot_s_rad',
+    'ex', 'ey', 'ez', 'p0', 'frame_matrix'
+]
 
-# assert sv_mid_with_init.element0 == 13
-# assert sv_right_with_init.element0 == 27
+assert sv_mid_with_init.element0 == 13
+assert sv_right_with_init.element0 == 27
 
-# assert np.all(sv_no_arg.name == tw.name)
+assert np.all(sv_no_arg.name == tw.name)
 
-# for sv_test in sv_mid_with_init, sv_right_with_init:
-#     assert np.all(sv_test.name == sv_no_arg.name)
-#     for col in cols_to_check:
-#         xo.assert_allclose(sv_test[col], sv_no_arg[col], atol=1e-14)
+for sv_test in sv_mid_with_init, sv_right_with_init:
+    assert np.all(sv_test.name == sv_no_arg.name)
+    for col in cols_to_check:
+        xo.assert_allclose(sv_test[col], sv_no_arg[col], atol=1e-14)
 
 # Check with no starting from 0 in the middle
 sv_mid_no_init = line.survey(element0='mid')
@@ -140,8 +149,8 @@ tw_init_at_mid = line.twiss4d(betx=1, bety=1, x=1e-3, y=2e-3,
 p_mid_no_init = tw_init_at_mid.x[:, None] * sv_mid_no_init.ex + \
                 tw_init_at_mid.y[:, None] * sv_mid_no_init.ey + sv_mid_no_init.p0
 
-# xo.assert_allclose(p_mid_no_init[:, 0], 1e-3, atol=1e-14)
-# xo.assert_allclose(p_mid_no_init[:, 1], 2e-3, atol=1e-14)
+xo.assert_allclose(p_mid_no_init[:, 0], 1e-3, atol=1e-14)
+xo.assert_allclose(p_mid_no_init[:, 1], 2e-3, atol=1e-14)
 
 import matplotlib.pyplot as plt
 plt.close('all')
