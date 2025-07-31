@@ -7,8 +7,8 @@ mad.input("""
 
     on_srot = 1;
 
-    r3: yrotation, angle=-0.5;
-    r4: yrotation, angle=0.5;
+    r3: yrotation, angle=-0.005;
+    r4: yrotation, angle=0.005;
     rs2: srotation, angle=-1.04*on_srot;
     beam;
     ss: sequence,l=10;
@@ -35,12 +35,12 @@ line.config.XTRACK_USE_EXACT_DRIFTS = True
 sv = line.survey()
 tw = line.twiss(betx=1, bety=1)
 
-p = tw.x[:, None] * sv.ix + tw.y[:, None] * sv.iy + sv.p0
+p = tw.x[:, None] * sv.ex + tw.y[:, None] * sv.ey + sv.p0
 X = p[:, 0]
 Y = p[:, 1]
 Z = p[:, 2]
 
-p_end = tw.x[-1] * sv.ix[-1, :] + tw.y[-1] * sv.iy[-1, :] + sv.p0[-1, :]
+p_end = tw.x[-1] * sv.ex[-1, :] + tw.y[-1] * sv.ey[-1, :] + sv.p0[-1, :]
 
 from _madpoint import MadPoint
 mp = MadPoint(name='end:1', mad=mad, use_twiss=True, use_survey=True)
