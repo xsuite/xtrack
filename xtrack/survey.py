@@ -486,7 +486,7 @@ def compute_survey(
         # Backward section of survey
         drift_backward          = -np.array(drift_length[:element0][::-1])
         angle_backward          = -np.array(angle[:element0][::-1])
-        tilt_backward           = -np.array(tilt[:element0][::-1])
+        tilt_backward           = np.array(tilt[:element0][::-1])
         ref_shift_x_backward    = -np.array(ref_shift_x[:element0][::-1])
         ref_shift_y_backward    = -np.array(ref_shift_y[:element0][::-1])
         ref_rot_x_rad_backward  = -np.array(ref_rot_x_rad[:element0][::-1])
