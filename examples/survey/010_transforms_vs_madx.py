@@ -7,8 +7,8 @@ mad.input("""
 
     on_srot = 1;
 
-    r3: yrotation, angle=-0.005;
-    r4: yrotation, angle=0.005;
+    r3: yrotation, angle=-0.1;
+    r4: yrotation, angle=0.1;
     rs2: srotation, angle=-1.04*on_srot;
     beam;
     ss: sequence,l=10;
@@ -19,8 +19,14 @@ mad.input("""
     endsequence;
 
     use,sequence=ss;
-    twiss,betx=1,bety=1;
+    twiss,betx=1,bety=1,x=1e-3,y=2e-3;
     survey;
+
+    ptc_create_universe;
+    ptc_create_layout, model=1, method=6, exact=True, NST=100;
+    ptc_align;
+    ptc_twiss, icase=56, betx=1., bety=1., betz=1,x=1e-3, y=2e-3;
+
     """)
 
 line = xt.Line.from_madx_sequence(mad.sequence.ss)
@@ -33,7 +39,7 @@ line.config.XTRACK_GLOBAL_XY_LIMIT = None
 line.config.XTRACK_USE_EXACT_DRIFTS = True
 
 sv = line.survey()
-tw = line.twiss(betx=1, bety=1)
+tw = line.twiss(betx=1, bety=1, x=1e-3, y=2e-3)
 
 p = tw.x[:, None] * sv.ex + tw.y[:, None] * sv.ey + sv.p0
 X = p[:, 0]
