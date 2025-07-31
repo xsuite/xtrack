@@ -149,6 +149,11 @@ cols_to_check = [
     'ex', 'ey', 'ez', 'p0', 'frame_matrix'
 ]
 
+assert sv_mid_with_init.element0 == 13
+assert sv_right_with_init.element0 == 27
+
+assert np.all(sv_no_arg.name == tw.name)
+
 for sv_test in sv_mid_with_init, sv_right_with_init:
     assert np.all(sv_test.name == sv_no_arg.name)
     for col in cols_to_check:
