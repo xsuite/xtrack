@@ -5,6 +5,7 @@
 
 from .elements import *
 from .exciter import Exciter
+from .longitudinal_exciter import LongitudinalExciter
 from .apertures import *
 from .magnets import Magnet
 from .beam_interaction import BeamInteraction, ParticlesInjectionSample
