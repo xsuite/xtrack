@@ -195,7 +195,7 @@ class SurveyTable(Table):
         # We cut away the last marker (added by survey) and reverse the order
         out_drift_length    = list(self.drift_length[:-1][::-1])
         out_angle           = list(-self.angle[:-1][::-1])
-        out_tilt            = list(-self.tilt[:-1][::-1])
+        out_rot_s_rad       = list(-self.rot_s_rad[:-1][::-1])
         out_ref_shift_x     = list(-self.ref_shift_x[:-1][::-1])
         out_ref_shift_y     = list(-self.ref_shift_y[:-1][::-1])
         out_ref_rot_x_rad   = list(-self.ref_rot_x_rad[:-1][::-1])
@@ -215,7 +215,7 @@ class SurveyTable(Table):
             psi0            = psi0,
             drift_length    = out_drift_length,
             angle           = out_angle,
-            tilt            = out_tilt,
+            tilt            = out_rot_s_rad,
             ref_shift_x     = out_ref_shift_x,
             ref_shift_y     = out_ref_shift_y,
             ref_rot_x_rad   = out_ref_rot_x_rad,
@@ -238,6 +238,7 @@ class SurveyTable(Table):
         out_columns["s"]                = self.s[-1] - self.s[::-1]
         out_columns['drift_length']     = np.array(out_drift_length + [0.])
         out_columns['angle']            = np.array(out_angle + [0.])
+        out_columns['rot_s_rad']        = np.array(out_rot_s_rad + [0.])
         out_columns["ref_shift_x"]      = np.array(out_ref_shift_x + [0.])
         out_columns["ref_shift_y"]      = np.array(out_ref_shift_y + [0.])
         out_columns["ref_rot_x_rad"]    = np.array(out_ref_rot_x_rad + [0.])
