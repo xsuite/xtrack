@@ -28,7 +28,7 @@ line = env.new_line(length=10, components=[
 
 line.config.XTRACK_GLOBAL_XY_LIMIT = None
 line.config.XTRACK_USE_EXACT_DRIFTS = True
-sv = line.survey(element0='mid')
+sv = line.survey()
 tw = line.twiss4d(_continue_if_lost=True, betx=1, bety=1, x=1e-3, y=2e-3)
 
 p = tw.x[:, None] * sv.ex + tw.y[:, None] * sv.ey + sv.p0
@@ -36,27 +36,7 @@ X = p[:, 0]
 Y = p[:, 1]
 Z = p[:, 2]
 
-import matplotlib.pyplot as plt
-plt.close('all')
-plt.figure(1, figsize=(6.4, 4.8 * 1.5))
-plt.subplot(3,1,1)
-plt.plot(tw.s, tw.x, label='Twiss x')
-plt.plot(sv.s, tw.y, label='Twiss y')
-plt.legend()
-plt.subplot(3,1,2)
-plt.plot(sv.Z, sv.X, label='Survey')
-plt.plot(Z, X, label='Part. trajectory')
-plt.legend()
-plt.xlabel('Z [m]')
-plt.ylabel('X [m]')
-plt.subplot(3,1,3)
-plt.plot(sv.Z, sv.Y, label='Survey')
-plt.plot(Z, Y, label='Part. trajectory')
-plt.legend()
-plt.xlabel('Z [m]')
-plt.ylabel('Y [m]')
-plt.subplots_adjust(hspace=0.3)
-plt.show()
+
 
 # Other checks
 
@@ -158,3 +138,58 @@ for sv_test in sv_mid_with_init, sv_right_with_init:
     assert np.all(sv_test.name == sv_no_arg.name)
     for col in cols_to_check:
         xo.assert_allclose(sv_test[col], sv_no_arg[col], atol=1e-14)
+
+# Check with no starting from 0 in the middle
+sv_mid_no_init = line.survey(element0='mid')
+tw_init_at_mid = line.twiss4d(betx=1, bety=1, x=1e-3, y=2e-3,
+                              init_at='mid')
+
+p_mid_no_init = tw_init_at_mid.x[:, None] * sv_mid_no_init.ex + \
+                tw_init_at_mid.y[:, None] * sv_mid_no_init.ey + sv_mid_no_init.p0
+
+xo.assert_allclose(p_mid_no_init[:, 0], 1e-3, atol=1e-14)
+xo.assert_allclose(p_mid_no_init[:, 1], 2e-3, atol=1e-14)
+
+import matplotlib.pyplot as plt
+plt.close('all')
+plt.figure(1, figsize=(6.4, 4.8 * 1.5))
+plt.subplot(3,1,1)
+plt.plot(tw.s, tw.x, label='Twiss x')
+plt.plot(sv.s, tw.y, label='Twiss y')
+plt.legend()
+plt.subplot(3,1,2)
+plt.plot(sv.Z, sv.X, label='Survey')
+plt.plot(Z, X, label='Part. trajectory')
+plt.legend()
+plt.xlabel('Z [m]')
+plt.ylabel('X [m]')
+plt.subplot(3,1,3)
+plt.plot(sv.Z, sv.Y, label='Survey')
+plt.plot(Z, Y, label='Part. trajectory')
+plt.legend()
+plt.xlabel('Z [m]')
+plt.ylabel('Y [m]')
+plt.subplots_adjust(hspace=0.3)
+plt.suptitle('Init on the left')
+
+
+plt.figure(2, figsize=(6.4, 4.8 * 1.5))
+plt.subplot(3,1,1)
+plt.plot(tw_init_at_mid.s, tw_init_at_mid.x, label='Twiss x')
+plt.plot(sv_mid_no_init.s, tw_init_at_mid.y, label='Twiss y')
+plt.legend()
+plt.subplot(3,1,2)
+plt.plot(sv_mid_no_init.Z, sv_mid_no_init.X, label='Survey')
+plt.plot(p_mid_no_init[:, 2], p_mid_no_init[:, 0], label='Part. trajectory')
+plt.legend()
+plt.xlabel('Z [m]')
+plt.ylabel('X [m]')
+plt.subplot(3,1,3)
+plt.plot(sv_mid_no_init.Z, sv_mid_no_init.Y, label='Survey')
+plt.plot(p_mid_no_init[:, 2], p_mid_no_init[:, 1], label='Part. trajectory')
+plt.legend()
+plt.xlabel('Z [m]')
+plt.ylabel('Y [m]')
+plt.subplots_adjust(hspace=0.3)
+plt.suptitle('Init in the middle')
+plt.show()
