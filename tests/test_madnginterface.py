@@ -124,6 +124,6 @@ def test_madng_survey():
     xo.assert_allclose(survey.psi, xsurvey.psi, atol=1e-5, rtol=0)
     xo.assert_allclose(survey.s, xsurvey.s, atol=1e-5, rtol=0)
     xo.assert_allclose(survey.angle, xsurvey.angle, atol=1e-5, rtol=0)
-    xo.assert_allclose(survey.tilt, xsurvey.tilt, atol=1e-5, rtol=0)
+    xo.assert_allclose(survey.tilt, xsurvey.rot_s_rad, atol=1e-5, rtol=0)
     # Length doesn't work because of multipoles.
     #xo.assert_allclose(survey.length, xsurvey.length, atol=1e-5, rtol=0)
