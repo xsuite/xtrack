@@ -1,4 +1,5 @@
 import xtrack as xt
+import xobjects as xo
 import numpy as np
 
 env = xt.Environment(particle_ref=xt.Particles(p0c = 1E9))
@@ -28,9 +29,9 @@ line = env.new_line(length=10, components=[
 line.config.XTRACK_GLOBAL_XY_LIMIT = None
 line.config.XTRACK_USE_EXACT_DRIFTS = True
 sv = line.survey(element0='mid')
-tw = line.twiss4d(_continue_if_lost=True, betx=1, bety=1, x=1e-3)
+tw = line.twiss4d(_continue_if_lost=True, betx=1, bety=1, x=1e-3, y=2e-3)
 
-p = tw.x[:, None] * sv.ix + tw.y[:, None] * sv.iy + sv.p0
+p = tw.x[:, None] * sv.ex + tw.y[:, None] * sv.ey + sv.p0
 X = p[:, 0]
 Y = p[:, 1]
 Z = p[:, 2]
@@ -60,17 +61,95 @@ plt.show()
 # Other checks
 
 sv_no_arg = line.survey()
-sv_mid_init = line.survey(element0='mid',
+
+
+assert np.all(sv_no_arg.name == np.array([
+       'drift_1', 'r1', 'drift_2', 'r2', 'drift_3', 'rx1', 'drift_4',
+       'rx2', 'drift_5', 'rs1', 'drift_6', 'sxy1', 'drift_7', 'mid',
+       'drift_8', 'sxy2', 'drift_9', 'rs2', 'drift_10', 'rx3', 'drift_11',
+       'rx4', 'drift_12', 'r3', 'drift_13', 'r4', 'drift_14', 'right',
+       'drift_15', '_end_point']))
+
+xo.assert_allclose(sv_no_arg.ref_shift_x, np.array([
+       0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
+       0.1,  0. ,  0. ,  0. , -0.1,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
+       0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ]), atol=1e-14)
+
+xo.assert_allclose(sv_no_arg.ref_shift_y, np.array([
+       0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
+       0.2,  0. ,  0. ,  0. , -0.2,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
+       0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ]), atol=1e-14)
+
+xo.assert_allclose(sv_no_arg.ref_rot_x_rad, np.array([
+    0.        , -0.        ,  0.        ,  0.        ,  0.        ,
+    0.34906585,  0.        , -0.34906585,  0.        ,  0.        ,
+    0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+    0.        ,  0.        , -0.        ,  0.        , -0.34906585,
+    0.        ,  0.34906585,  0.        ,  0.        ,  0.        ,
+   -0.        ,  0.        ,  0.        ,  0.        ,  0.        ]), atol=1e-8)
+
+xo.assert_allclose(sv_no_arg.ref_rot_y_rad, np.array([
+    0.        , -0.52359878,  0.        ,  0.52359878,  0.        ,
+    0.        ,  0.        , -0.        ,  0.        ,  0.        ,
+    0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+    0.        ,  0.        , -0.        ,  0.        , -0.        ,
+    0.        ,  0.        ,  0.        ,  0.52359878,  0.        ,
+   -0.52359878,  0.        ,  0.        ,  0.        ,  0.        ]), atol=1e-8)
+
+xo.assert_allclose(sv_no_arg.ref_rot_s_rad, np.array([
+    0.        , -0.        ,  0.        ,  0.        ,  0.        ,
+    0.        ,  0.        , -0.        ,  0.        ,  1.04719755,
+    0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+    0.        ,  0.        , -1.04719755,  0.        , -0.        ,
+    0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+   -0.        ,  0.        ,  0.        ,  0.        ,  0.        ]), atol=1e-8)
+
+xo.assert_allclose(sv_no_arg.drift_length, np.array([
+       1. , 0. , 1. , 0. , 1. , 0. , 1. , 0. , 0.5, 0. , 0.3, 0. , 0.2,
+       0. , 0.2, 0. , 0.3, 0. , 0.5, 0. , 1. , 0. , 1. , 0. , 1. , 0. ,
+       0.5, 0. , 0.5, 0. ]), atol=1e-14)
+
+xo.assert_allclose(sv_no_arg.angle, np.zeros(30), atol=1e-14)
+
+xo.assert_allclose(
+    sv_no_arg.s,
+    np.array([ 0. ,  1. ,  1. ,  2. ,  2. ,  3. ,  3. ,  4. ,  4. ,  4.5,  4.5,
+               4.8,  4.8,  5. ,  5. ,  5.2,  5.2,  5.5,  5.5,  6. ,  6. ,  7. ,
+               7. ,  8. ,  8. ,  9. ,  9. ,  9.5,  9.5, 10. ]),
+    atol=1e-14
+)
+
+p_no_arg = tw.x[:, None] * sv_no_arg.ex + tw.y[:, None] * sv_no_arg.ey + sv_no_arg.p0
+
+xo.assert_allclose(p_no_arg[:, 0], 1e-3, atol=1e-14)
+xo.assert_allclose(p_no_arg[:, 1], 2e-3, atol=1e-14)
+
+assert sv_no_arg.element0 == 0
+
+
+sv_mid_with_init = line.survey(element0='mid',
                           Z0=sv_no_arg['Z', 'mid'],
                           X0=sv_no_arg['X', 'mid'],
                           Y0=sv_no_arg['Y', 'mid'],
                           phi0=sv_no_arg['phi', 'mid'],
                           theta0=sv_no_arg['theta', 'mid'],
                           psi0=sv_no_arg['psi', 'mid'])
-sv_right_init = line.survey(element0='right',
+
+sv_right_with_init = line.survey(element0='right',
                             Z0=sv_no_arg['Z', 'right'],
                             X0=sv_no_arg['X', 'right'],
                             Y0=sv_no_arg['Y', 'right'],
                             phi0=sv_no_arg['phi', 'right'],
                             theta0=sv_no_arg['theta', 'right'],
                             psi0=sv_no_arg['psi', 'right'])
+
+cols_to_check = [
+    'X', 'Y', 'Z', 'theta', 'phi', 'psi', 's', 'drift_length', 'angle',
+    'ref_shift_x', 'ref_shift_y', 'ref_rot_x_rad', 'ref_rot_y_rad', 'ref_rot_s_rad',
+    'ex', 'ey', 'ez', 'p0', 'frame_matrix'
+]
+
+for sv_test in sv_mid_with_init, sv_right_with_init:
+    assert np.all(sv_test.name == sv_no_arg.name)
+    for col in cols_to_check:
+        xo.assert_allclose(sv_test[col], sv_no_arg[col], atol=1e-14)

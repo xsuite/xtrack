@@ -401,9 +401,9 @@ def survey_from_line(
 
     frame_mat = translate_mat @ theta_mat @ phi_mat @ psi_mat
 
-    ix = frame_mat[:, :3, 0]
-    iy = frame_mat[:, :3, 1]
-    iz = frame_mat[:, :3, 2]
+    ex = frame_mat[:, :3, 0]
+    ey = frame_mat[:, :3, 1]
+    ez = frame_mat[:, :3, 2]
     p0 = frame_mat[:, :3, 3]
 
     # Initializing dictionary
@@ -426,9 +426,9 @@ def survey_from_line(
     out_columns['ref_rot_x_rad']    = ref_rot_x_rad
     out_columns['ref_rot_y_rad']    = ref_rot_y_rad
     out_columns['ref_rot_s_rad']    = ref_rot_s_rad
-    out_columns['ix']               = ix
-    out_columns['iy']               = iy
-    out_columns['iz']               = iz
+    out_columns['ex']               = ex
+    out_columns['ey']               = ey
+    out_columns['ez']               = ez
     out_columns['p0']               = p0
     out_columns['frame_matrix']       = frame_mat
 
