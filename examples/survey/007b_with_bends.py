@@ -38,58 +38,51 @@ Z = p[:, 2]
 
 
 
-# # Other checks
+# Other checks
 
-# sv_no_arg = line.survey()
+sv_no_arg = line.survey()
 
 
-# assert np.all(sv_no_arg.name == np.array([
-#        'drift_1', 'r1', 'drift_2', 'r2', 'drift_3', 'rx1', 'drift_4',
-#        'rx2', 'drift_5', 'rs1', 'drift_6', 'sxy1', 'drift_7', 'mid',
-#        'drift_8', 'sxy2', 'drift_9', 'rs2', 'drift_10', 'rx3', 'drift_11',
-#        'rx4', 'drift_12', 'r3', 'drift_13', 'r4', 'drift_14', 'right',
-#        'drift_15', '_end_point']))
+assert np.all(sv_no_arg.name == np.array([
+       'drift_1', 'r1', 'drift_2', 'r2', 'drift_3', 'rx1', 'drift_4',
+       'rx2', 'drift_5', 'rs1', 'drift_6', 'sxy1', 'drift_7', 'mid',
+       'drift_8', 'sxy2', 'drift_9', 'rs2', 'drift_10', 'rx3', 'drift_11',
+       'rx4', 'drift_12', 'r3', 'drift_13', 'r4', 'drift_14', 'right',
+       'drift_15', '_end_point']))
 
-# xo.assert_allclose(sv_no_arg.ref_shift_x, np.array([
-#        0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
-#        0.1,  0. ,  0. ,  0. , -0.1,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
-#        0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ]), atol=1e-14)
+xo.assert_allclose(sv_no_arg.ref_shift_x, np.array([
+       0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
+       0.1,  0. ,  0. ,  0. , -0.1,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
+       0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ]), atol=1e-14)
 
-# xo.assert_allclose(sv_no_arg.ref_shift_y, np.array([
-#        0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
-#        0.2,  0. ,  0. ,  0. , -0.2,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
-#        0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ]), atol=1e-14)
+xo.assert_allclose(sv_no_arg.ref_shift_y, np.array([
+       0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
+       0.2,  0. ,  0. ,  0. , -0.2,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
+       0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ]), atol=1e-14)
 
-# xo.assert_allclose(sv_no_arg.ref_rot_x_rad, np.array([
-#     0.        , -0.        ,  0.        ,  0.        ,  0.        ,
-#     0.34906585,  0.        , -0.34906585,  0.        ,  0.        ,
-#     0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
-#     0.        ,  0.        , -0.        ,  0.        , -0.34906585,
-#     0.        ,  0.34906585,  0.        ,  0.        ,  0.        ,
-#    -0.        ,  0.        ,  0.        ,  0.        ,  0.        ]), atol=1e-8)
+xo.assert_allclose(sv_no_arg.ref_rot_x_rad, 0, atol=1e-14)
+xo.assert_allclose(sv_no_arg.ref_rot_y_rad, 0, atol=1e-14)
 
-# xo.assert_allclose(sv_no_arg.ref_rot_y_rad, np.array([
-#     0.        , -0.52359878,  0.        ,  0.52359878,  0.        ,
-#     0.        ,  0.        , -0.        ,  0.        ,  0.        ,
-#     0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
-#     0.        ,  0.        , -0.        ,  0.        , -0.        ,
-#     0.        ,  0.        ,  0.        ,  0.52359878,  0.        ,
-#    -0.52359878,  0.        ,  0.        ,  0.        ,  0.        ]), atol=1e-8)
+xo.assert_allclose(sv_no_arg.ref_rot_s_rad, np.array([
+    0.        , -0.        ,  0.        ,  0.        ,  0.        ,
+    0.        ,  0.        , -0.        ,  0.        ,  1.04719755,
+    0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+    0.        ,  0.        , -1.04719755,  0.        , -0.        ,
+    0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+   -0.        ,  0.        ,  0.        ,  0.        ,  0.        ]), atol=1e-8)
 
-# xo.assert_allclose(sv_no_arg.ref_rot_s_rad, np.array([
-#     0.        , -0.        ,  0.        ,  0.        ,  0.        ,
-#     0.        ,  0.        , -0.        ,  0.        ,  1.04719755,
-#     0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
-#     0.        ,  0.        , -1.04719755,  0.        , -0.        ,
-#     0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
-#    -0.        ,  0.        ,  0.        ,  0.        ,  0.        ]), atol=1e-8)
+xo.assert_allclose(sv_no_arg.drift_length, np.array([
+       0.95, 0.1 , 0.9 , 0.1 , 0.9 , 0.1 , 0.9 , 0.1 , 0.45, 0.  , 0.3 ,
+       0.  , 0.2 , 0.  , 0.2 , 0.  , 0.3 , 0.  , 0.45, 0.1 , 0.9 , 0.1 ,
+       0.9 , 0.1 , 0.9 , 0.1 , 0.45, 0.  , 0.5 , 0.   ]), atol=1e-14)
 
-# xo.assert_allclose(sv_no_arg.drift_length, np.array([
-#        1. , 0. , 1. , 0. , 1. , 0. , 1. , 0. , 0.5, 0. , 0.3, 0. , 0.2,
-#        0. , 0.2, 0. , 0.3, 0. , 0.5, 0. , 1. , 0. , 1. , 0. , 1. , 0. ,
-#        0.5, 0. , 0.5, 0. ]), atol=1e-14)
-
-# xo.assert_allclose(sv_no_arg.angle, np.zeros(30), atol=1e-14)
+xo.assert_allclose(sv_no_arg.angle, np.array(
+      [ 0.        ,  0.52359878,  0.        , -0.52359878,  0.        ,
+        0.34906585,  0.        , -0.34906585,  0.        ,  0.        ,
+        0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+        0.        ,  0.        ,  0.        ,  0.        , -0.34906585,
+        0.        ,  0.34906585,  0.        , -0.52359878,  0.        ,
+        0.52359878,  0.        ,  0.        ,  0.        ,  0.        ]), atol=1e-8)
 
 # xo.assert_allclose(
 #     sv_no_arg.s,
