@@ -7,6 +7,13 @@
     The particle tracking "decorators" for all the contexts.
 */
 
+#if defined(__clang__) && (__STDC_VERSION__ < 202301L)
+    // Depends on the compiler and the supported C standard
+    // https://en.cppreference.com/w/c/23.html
+    #define typeof(X) __typeof__(X)
+#endif
+
+
 #ifdef XO_CONTEXT_CPU_SERIAL
     // We are on CPU, without OpenMP
 
@@ -24,7 +31,7 @@
         }
 
     #define VECTORIZE_OVER(INDEX_NAME, COUNT) \
-        for (int INDEX_NAME = 0; INDEX_NAME < (COUNT); INDEX_NAME++) {
+        for (typeof(COUNT) INDEX_NAME = 0; INDEX_NAME < (COUNT); INDEX_NAME++) {
 
     #define END_VECTORIZE \
         }
@@ -51,7 +58,7 @@
 
     #define VECTORIZE_OVER(INDEX_NAME, COUNT) \
         _Pragma("omp parallel for") \
-        for (int INDEX_NAME = 0; INDEX_NAME < (COUNT); INDEX_NAME++) {
+        for (typeof(COUNT) INDEX_NAME = 0; INDEX_NAME < (COUNT); INDEX_NAME++) {
 
     #define END_VECTORIZE \
         }
@@ -89,9 +96,11 @@
 
     #define VECTORIZE_OVER(INDEX_NAME, COUNT) \
         { \
-            int INDEX_NAME = get_global_id(0);
+            typeof(COUNT) INDEX_NAME = get_global_id(0);
+            if (INDEX_NAME < (COUNT)) { \
 
     #define END_VECTORIZE \
+            } \
         }
 #endif  // XO_CONTEXT_CL
 

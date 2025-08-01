@@ -4,3 +4,59 @@ requires = [
     'setuptools >= 43.0.0',
     'numpy',
 ]
+
+[project]
+name = "xtrack"
+dynamic = ["version"]
+description = "Tracking library for particle accelerators"
+readme = ""
+requires-python = ">=3.7"
+license = { text = "Apache-2.0" }
+authors = [
+  { name = "G. Iadarola et al." }
+]
+dependencies = [
+  "numpy>=1.0",
+  "pandas>=2.0",
+  "scipy",
+  "tqdm",
+  "requests",
+  "xobjects",
+  "xdeps"
+]
+
+[project.urls]
+"Homepage" = "https://xsuite.readthedocs.io/"
+"Bug Tracker" = "https://github.com/xsuite/xsuite/issues"
+"Documentation" = "https://xsuite.readthedocs.io/"
+"Source Code" = "https://github.com/xsuite/xtrack"
+"Download" = "https://pypi.python.org/pypi/xtrack"
+
+[project.optional-dependencies]
+tests = [
+  "cpymad",
+  "nafflib",
+  "PyHEADTAIL",
+  "pytest",
+  "pytest-mock",
+  "pymadng",
+  "requests-mock"
+]
+notebooks = [
+  "jupyter",
+  "ipympl",
+  "xplt"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["xtrack*"]
+
+[tool.setuptools.dynamic]
+version = { attr = "xtrack._version.__version__" }
+
+[tool.setuptools]
+include-package-data = true
+
+[project.entry-points.xobjects]
+include = "xtrack"
