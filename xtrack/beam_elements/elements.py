@@ -20,6 +20,7 @@ from xtrack.beam_elements.magnets import (
     DEFAULT_MULTIPOLE_ORDER, SynchrotronRadiationRecord,
     _prepare_multipolar_params,
     _NOEXPR_FIELDS, _INDEX_TO_EDGE_MODEL, _EDGE_MODEL_TO_INDEX,
+    _INDEX_TO_RBEND_MODEL, _RBEND_MODEL_TO_INDEX
 )
 from xtrack.internal_record import RecordIndex
 
@@ -1194,6 +1195,7 @@ class RBend(_BendCommon, BeamElement):
     _rename = {
         **_BendCommon._common_rename,
         'length_straight': '_length_straight',
+        'rbend_model': '_rbend_model'
     }
 
     _depends_on = [RandomUniformAccurate, RandomExponential]
@@ -1271,6 +1273,17 @@ class RBend(_BendCommon, BeamElement):
     @length_straight.setter
     def length_straight(self, value):
         self.set_bend_params(length_straight=value, angle=self.angle)
+
+    @property
+    def rbend_model(self):
+        return _INDEX_TO_RBEND_MODEL[self._rbend_model]
+
+    @rbend_model.setter
+    def rbend_model(self, value):
+        try:
+            self._rbend_model = _RBEND_MODEL_TO_INDEX[value]
+        except KeyError:
+            raise ValueError(f'Invalid rbend_model: {value}')
 
     def set_bend_params(self, length=None, length_straight=None, h=None, angle=None):
         (
