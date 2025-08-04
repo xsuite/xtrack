@@ -5603,7 +5603,7 @@ class LineVars:
             ddd = xt.json.load(file=file, string=string)
             self.update(ddd, default_to_zero=True)
         elif format == 'madx':
-            return xt.load_madx(file, string)
+            return self.load_madx(file, string)
         elif format == 'python':
             if string is not None:
                 raise NotImplementedError('Loading from string not implemented for python format')
@@ -5717,8 +5717,8 @@ class LineVars:
             assert filename is None, 'Cannot specify both filename and string'
             loader.load_string(string)
 
-    def load_madx_optics_file(self, filename):
-        self.set_from_madx_file(filename)
+    def load_madx_optics_file(self, filename=None, string=None):
+        self.set_from_madx_file(filename, string)
 
     load_madx = load_madx_optics_file
 
