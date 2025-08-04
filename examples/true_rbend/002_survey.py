@@ -29,6 +29,55 @@ line['mb'].rbend_model = 'curved-body'
 sv_curved = line.survey(element0='mid')
 tt_curved = line.get_table(attr=True)
 
+tt_straight.cols['s element_type angle_rad ']
+# is:
+# Table: 18 rows, 4 cols
+# name                      s element_type            angle_rad
+# drift_1..0                0 DriftSlice                      0
+# drift_1..1              0.5 DriftSlice                      0
+# mb_entry            0.99436 Marker                          0
+# mb..entry_map       0.99436 ThinSliceRBendEntry          0.15
+# mb..0               0.99436 ThickSliceRBend                 0
+# mb..1                     1 ThickSliceRBend                 0
+# mb..2                   1.5 ThickSliceRBend                 0
+# mb..3                     2 ThickSliceRBend                 0
+# mid                     2.5 Marker                          0
+# mb..4                   2.5 ThickSliceRBend                 0
+# mb..5                     3 ThickSliceRBend                 0
+# mb..6                   3.5 ThickSliceRBend                 0
+# mb..7                     4 ThickSliceRBend                 0
+# mb..exit_map        4.00564 ThinSliceRBendExit           0.15
+# mb_exit             4.00564 Marker                          0
+# drift_2..0          4.00564 DriftSlice                      0
+# drift_2..1              4.5 DriftSlice                      0
+# _end_point                5                                 0
+
+assert np.all(tt_straight['name'] == [
+    'drift_1..0', 'drift_1..1', 'mb_entry', 'mb..entry_map', 'mb..0',
+    'mb..1', 'mb..2', 'mb..3', 'mid', 'mb..4', 'mb..5', 'mb..6', 'mb..7',
+    'mb..exit_map', 'mb_exit', 'drift_2..0', 'drift_2..1', '_end_point'
+])
+
+# Assert entire columns using np.all
+assert np.all(tt_straight['element_type'] == [
+    'DriftSlice', 'DriftSlice', 'Marker', 'ThinSliceRBendEntry', 'ThickSliceRBend',
+    'ThickSliceRBend', 'ThickSliceRBend', 'ThickSliceRBend', 'Marker', 'ThickSliceRBend',
+    'ThickSliceRBend', 'ThickSliceRBend', 'ThickSliceRBend', 'ThinSliceRBendExit',
+    'Marker', 'DriftSlice', 'DriftSlice', ''
+])
+
+xo.assert_allclose(
+    tt_straight['angle_rad'],
+    np.array([0, 0, 0, 0.15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.15, 0, 0, 0, 0]),
+    atol=1e-12
+)
+
+xo.assert_allclose(tt_straight['s'], np.array([
+       0.       , 0.5      , 0.9943602, 0.9943602, 0.9943602, 1.       ,
+       1.5      , 2.       , 2.5      , 2.5      , 3.       , 3.5      ,
+       4.       , 4.0056398, 4.0056398, 4.0056398, 4.5      , 5.       ]
+), atol=1e-5)
+
 import matplotlib.pyplot as plt
 plt.close('all')
 sv_straight.plot()
