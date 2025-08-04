@@ -46,6 +46,18 @@ xo.assert_allclose(tw_ref.zeta, tw_test.zeta, rtol=0, atol=1e-1)
 xo.assert_allclose(tw_ref.px,   tw_test.px, rtol=0, atol=1e-9)
 xo.assert_allclose(tw_ref.py,   tw_test.py, rtol=0, atol=1e-9)
 
+tw_back = l_test.twiss(init=tw_test, init_at='end')
+
+assert tw_back.orientation == 'backward'
+xo.assert_allclose(tw_back.betx, tw_test.betx, rtol=5e-6, atol=0.0)
+xo.assert_allclose(tw_back.bety, tw_test.bety, rtol=5e-6, atol=0.0)
+xo.assert_allclose(tw_back.x,    tw_test.x, rtol=0, atol=1e-8)
+xo.assert_allclose(tw_back.y,    tw_test.y, rtol=0, atol=1e-8)
+xo.assert_allclose(tw_back.s,    tw_test.s, rtol=0, atol=1e-12)
+xo.assert_allclose(tw_back.zeta, tw_test.zeta, rtol=0, atol=1e-1)
+xo.assert_allclose(tw_back.px,   tw_test.px, rtol=0, atol=1e-9)
+xo.assert_allclose(tw_back.py,   tw_test.py, rtol=0, atol=1e-9)
+
 l_sliced = l_test.copy(shallow=True)
 l_sliced.cut_at_s(np.linspace(0, l_test.get_length(), 100))
 tw_test_sliced0 = l_sliced.twiss(betx=1, bety=1)
@@ -58,6 +70,18 @@ xo.assert_allclose(tw_test_sliced0.s[-1],    tw_test0.s[-1], rtol=0, atol=1e-12)
 xo.assert_allclose(tw_test_sliced0.zeta[-1], tw_test0.zeta[-1], rtol=0, atol=1e-11)
 xo.assert_allclose(tw_test_sliced0.px[-1],   tw_test0.px[-1], rtol=0, atol=1e-12)
 xo.assert_allclose(tw_test_sliced0.py[-1],   tw_test0.py[-1], rtol=0, atol=1e-12)
+
+tw_test_sliced_back = l_sliced.twiss(init=tw_test_sliced0, init_at='end')
+
+assert tw_test_sliced_back.orientation == 'backward'
+xo.assert_allclose(tw_test_sliced_back.betx, tw_test_sliced0.betx, rtol=5e-9, atol=0.0)
+xo.assert_allclose(tw_test_sliced_back.bety, tw_test_sliced0.bety, rtol=5e-9, atol=0.0)
+xo.assert_allclose(tw_test_sliced_back.x,    tw_test_sliced0.x, rtol=0, atol=1e-12)
+xo.assert_allclose(tw_test_sliced_back.y,    tw_test_sliced0.y, rtol=0, atol=1e-12)
+xo.assert_allclose(tw_test_sliced_back.s,    tw_test_sliced0.s, rtol=0, atol=1e-12)
+xo.assert_allclose(tw_test_sliced_back.zeta, tw_test_sliced0.zeta, rtol=0, atol=1e-11)
+xo.assert_allclose(tw_test_sliced_back.px,   tw_test_sliced0.px, rtol=0, atol=1e-12)
+xo.assert_allclose(tw_test_sliced_back.py,   tw_test_sliced0.py, rtol=0, atol=1e-12)
 
 import matplotlib.pyplot as plt
 plt.close('all')
