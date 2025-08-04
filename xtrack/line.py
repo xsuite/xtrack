@@ -4901,7 +4901,8 @@ class Line:
             derived_fields={
                 'length': lambda attr:
                     attr['_own_length'] + attr['_parent_length'] * attr['weight'],
-                'angle_rad': _angle_from_attr,
+                '_angle_force_body': _angle_force_body_from_attr,
+                'angle_rad': _angle_rbend_correction_from_attr,
                 'rot_s_rad': _rot_s_from_attr,
                 'shift_x': lambda attr:
                     attr['_own_shift_x'] + attr['_parent_shift_x']
@@ -6126,7 +6127,7 @@ def _vars_unused(line):
         return True
     return False
 
-def _angle_from_attr(attr):
+def _angle_force_body_from_attr(attr):
 
     weight = attr['weight']
 
@@ -6142,6 +6143,12 @@ def _angle_from_attr(attr):
                                 * attr._inherit_strengths)
 
     angle = own_hxl_proper_system + parent_hxl_proper_system
+
+    return angle
+
+def _angle_rbend_correction_from_attr(attr):
+
+    angle = attr['_angle_force_body'].copy()
 
     ## Correction for RBend elements
 
