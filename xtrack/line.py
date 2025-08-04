@@ -6129,6 +6129,10 @@ def _vars_unused(line):
 
 def _angle_force_body_from_attr(attr):
 
+    """This angle has always the curvature in the body, even for RBend elements
+    with rbend_model='straight-body'. It is used mostly for plotting purposes.
+    """
+
     weight = attr['weight']
 
     own_hxl = attr['_own_hxl']
