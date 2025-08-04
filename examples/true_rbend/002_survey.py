@@ -21,3 +21,4 @@ line = env.new_line(length=5, components=[
 line.cut_at_s(np.linspace(0, line.get_length(), 100))
 
 sv = line.survey()
+tt = line.get_table(attr=True)

@@ -6128,10 +6128,6 @@ def _vars_unused(line):
 
 def _angle_from_attr(attr):
 
-    breakpoint()
-    # Retrieve element_type from tracker cache
-    element_type = attr.line.tracker._tracker_data_base._line_table.element_type
-
     weight = attr['weight']
 
     own_hxl = attr['_own_hxl']
@@ -6146,6 +6142,24 @@ def _angle_from_attr(attr):
                                 * attr._inherit_strengths)
 
     angle = own_hxl_proper_system + parent_hxl_proper_system
+
+    ## Correction for RBend elements
+
+    # Retrieve element_type from tracker cache (remove _end_point)
+    element_type = attr.line.tracker._tracker_data_base._line_table.element_type[:-1]
+
+    mask_rbend_edges = ((element_type == 'ThinSliceRBendEntry')
+                        | (element_type == 'ThinSliceRBendExit'))
+    mask_rbend_body_slices = ((element_type == 'ThinSliceRBend')
+                            | (element_type == 'ThickSliceRBend'))
+    mask_parent_is_rbend_straigth_body = (attr['_parent_rbend_model'] == 2)
+    mask_rbend_edges_straight_body = (mask_rbend_edges
+                                      & mask_parent_is_rbend_straigth_body)
+
+    angle[mask_parent_is_rbend_straigth_body & mask_rbend_body_slices] = 0
+    angle[mask_rbend_edges_straight_body] = (
+        attr['_parent_hxl'][mask_rbend_edges_straight_body]
+        * attr['_parent_length'][mask_rbend_edges_straight_body])
 
     return angle
 
