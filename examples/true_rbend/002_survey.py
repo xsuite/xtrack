@@ -18,14 +18,15 @@ line = env.new_line(length=5, components=[
             rbend_model='straight-body', edge_entry_model=edge_model, edge_exit_model=edge_model,
             at=2.5)])
 
-line.cut_at_s(np.linspace(0, line.get_length(), 100))
+line.cut_at_s(np.linspace(0, line.get_length(), 11))
+line.insert('mid', xt.Marker(), at=2.5)
 
 line['mb'].rbend_model = 'straight-body'
-sv_straight = line.survey()
+sv_straight = line.survey(element0='mid')
 tt_straight = line.get_table(attr=True)
 
 line['mb'].rbend_model = 'curved-body'
-sv_curved = line.survey()
+sv_curved = line.survey(element0='mid')
 tt_curved = line.get_table(attr=True)
 
 import matplotlib.pyplot as plt
