@@ -6157,7 +6157,7 @@ def _angle_from_attr(attr):
                                       & mask_parent_is_rbend_straigth_body)
 
     angle[mask_parent_is_rbend_straigth_body & mask_rbend_body_slices] = 0
-    angle[mask_rbend_edges_straight_body] = (
+    angle[mask_rbend_edges_straight_body] = 0.5 * (
         attr['_parent_h'][mask_rbend_edges_straight_body]
         * attr['_parent_length'][mask_rbend_edges_straight_body])
 

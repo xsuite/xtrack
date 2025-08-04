@@ -20,5 +20,20 @@ line = env.new_line(length=5, components=[
 
 line.cut_at_s(np.linspace(0, line.get_length(), 100))
 
-sv = line.survey()
-tt = line.get_table(attr=True)
+line['mb'].rbend_model = 'straight-body'
+sv_straight = line.survey()
+tt_straight = line.get_table(attr=True)
+
+line['mb'].rbend_model = 'curved-body'
+sv_curved = line.survey()
+tt_curved = line.get_table(attr=True)
+
+import matplotlib.pyplot as plt
+plt.close('all')
+sv_straight.plot()
+plt.suptitle('Straight body')
+
+sv_curved.plot()
+plt.suptitle('Curved body')
+
+plt.show()
