@@ -4855,7 +4855,7 @@ class Line:
 
                 '_parent_h': (('_parent', 'h'), None),
                 '_parent_hxl': (('_parent', 'hxl'), None),
-                '_parent_rbend_model': (('_parent', '_rbend_model'), None),
+                '_parent_rbend_model': (('_parent', 'rbend_model'), None),
 
                 '_parent_radiation_flag': (('_parent', 'radiation_flag'), None),
 
