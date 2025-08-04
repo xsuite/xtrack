@@ -44,7 +44,7 @@ xo.assert_allclose(tw_ref0.zeta, tw_test0.zeta, rtol=0, atol=1e-11)
 xo.assert_allclose(tw_ref0.px,   tw_test0.px, rtol=0, atol=1e-12)
 xo.assert_allclose(tw_ref0.py,   tw_test0.py, rtol=0, atol=1e-12)
 
-xo.assert_allclose(tw_ref.betx, tw_test.betx, rtol=5e-6, atol=0.0)
+xo.assert_allclose(tw_ref.betx, tw_test.betx, rtol=5e-9, atol=0.0)
 xo.assert_allclose(tw_ref.bety, tw_test.bety, rtol=5e-9, atol=0.0)
 xo.assert_allclose(tw_ref.x,    tw_test.x, rtol=0, atol=1e-12)
 xo.assert_allclose(tw_ref.y,    tw_test.y, rtol=0, atol=1e-12)
