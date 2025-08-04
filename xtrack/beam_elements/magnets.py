@@ -45,7 +45,7 @@ _INDEX_TO_MODEL_STRAIGHT.pop(3)
 _MODEL_TO_INDEX_STRAIGHT = {k: v for v, k in _INDEX_TO_MODEL_STRAIGHT.items()}
 
 _NOEXPR_FIELDS = {'model', 'integrator', 'edge_entry_model', 'edge_exit_model',
-                  'name_associated_aperture'}
+                  'name_associated_aperture', 'rbend_model'}
 
 _INDEX_TO_RBEND_MODEL = {
     0: 'adaptive',
