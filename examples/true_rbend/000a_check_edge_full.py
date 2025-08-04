@@ -2,14 +2,7 @@ import xtrack as xt
 import numpy as np
 import xobjects as xo
 
-# TODO
-#  - check backtrack
-#  - survey
-#  - properties
-#  - linear edge
-# -  test sps
-
-edge_model = 'full' # Remember to test both!!!!!!
+edge_model = 'full'
 
 b_ref = xt.RBend(angle=0.1, k0_from_h=True, length_straight=3.)
 b_ref.edge_entry_model = edge_model
