@@ -4855,6 +4855,7 @@ class Line:
 
                 '_parent_h': (('_parent', 'h'), None),
                 '_parent_hxl': (('_parent', 'hxl'), None),
+                '_parent_rbend_model': (('_parent', '_rbend_model'), None),
 
                 '_parent_radiation_flag': (('_parent', 'radiation_flag'), None),
 
@@ -6126,6 +6127,10 @@ def _vars_unused(line):
     return False
 
 def _angle_from_attr(attr):
+
+    breakpoint()
+    # Retrieve element_type from tracker cache
+    element_type = attr.line.tracker._tracker_data_base._line_table.element_type
 
     weight = attr['weight']
 
