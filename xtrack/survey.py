@@ -194,6 +194,7 @@ class SurveyTable(Table):
 
         # We cut away the last marker (added by survey) and reverse the order
         out_drift_length    = list(self.drift_length[:-1][::-1])
+        out_length          = list(self.length[:-1][::-1])
         out_angle           = list(-self.angle[:-1][::-1])
         out_rot_s_rad       = list(-self.rot_s_rad[:-1][::-1])
         out_ref_shift_x     = list(-self.ref_shift_x[:-1][::-1])
@@ -202,6 +203,7 @@ class SurveyTable(Table):
         out_ref_rot_y_rad   = list(-self.ref_rot_y_rad[:-1][::-1])
         out_ref_rot_s_rad   = list(-self.ref_rot_s_rad[:-1][::-1])
         out_name            = list(self.name[:-1][::-1])
+        out_element_type    = list(self.element_type[:-1][::-1])
 
         if isinstance(element0, str):
             element0 = out_name.index(element0)
@@ -235,7 +237,9 @@ class SurveyTable(Table):
         out_columns["phi"]              = np.unwrap(phi)
         out_columns["psi"]              = np.unwrap(psi)
         out_columns["name"]             = np.array(list(out_name) + ["_end_point"])
+        out_columns["element_type"]     = np.array(list(out_element_type) + [""])
         out_columns["s"]                = self.s[-1] - self.s[::-1]
+        out_columns['length']           = np.array(out_length + [0.])
         out_columns['drift_length']     = np.array(out_drift_length + [0.])
         out_columns['angle']            = np.array(out_angle + [0.])
         out_columns['rot_s_rad']        = np.array(out_rot_s_rad + [0.])
@@ -419,8 +423,10 @@ def survey_from_line(
     out_columns["phi"]              = np.unwrap(phi)
     out_columns["psi"]              = np.unwrap(psi)
     out_columns["name"]             = tt.name
+    out_columns["element_type"]     = tt.element_type
     out_columns["s"]                = tt.s
     out_columns['drift_length']     = drift_length
+    out_columns['length']           = tt.length
     out_columns['angle']            = angle
     out_columns['rot_s_rad']        = tt.rot_s_rad
     out_columns['ref_shift_x']      = ref_shift_x
