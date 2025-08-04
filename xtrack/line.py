@@ -14,6 +14,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
 from typing import List, Literal, Optional, Dict
+from pathlib import Path
 
 import numpy as np
 from scipy.constants import c as clight
@@ -5567,6 +5568,50 @@ class LineVars:
         if default_to_zero is not None:
             self.default_to_zero = old_default_to_zero
 
+    def load(
+            self,
+            file=None,
+            string=None,
+            format: Literal['json', 'madx', 'python'] = None,
+            timeout=5.,
+        ):
+
+        if isinstance(file, Path):
+            file = str(file)
+
+        if (file is None) == (string is None):
+            raise ValueError('Must specify either file or string, but not both')
+
+        FORMATS = {'json', 'madx', 'python'}
+        if string and format not in FORMATS:
+            raise ValueError(f'Format must be specified to be one of {FORMATS} when '
+                            f'using string input')
+
+        if format is None and file is not None:
+            if file.endswith('.json') or file.endswith('.json.gz'):
+                format = 'json'
+            elif file.endswith('.str') or file.endswith('.madx'):
+                format = 'madx'
+            elif file.endswith('.py'):
+                format = 'python'
+
+        if file and (file.startswith('http://') or file.startswith('https://')):
+            string = xt.general.read_url(file, timeout=timeout)
+            file = None
+
+        if format == 'json':
+            ddd = xt.json.load(file=file, string=string)
+            self.update(ddd, default_to_zero=True)
+        elif format == 'madx':
+            return xt.load_madx(file, string)
+        elif format == 'python':
+            if string is not None:
+                raise NotImplementedError('Loading from string not implemented for python format')
+            env = xt.Environment()
+            env.call(file)
+            self.update(env.vats.to_dict(), default_to_zero=True)
+            return env
+
     @property
     def vary_default(self):
         if self.line._xdeps_vref is None:
@@ -5707,37 +5752,6 @@ class LineVars:
                 self[kk] = _eval(kwargs[kk])
             else:
                 self[kk] = kwargs[kk]
-
-    def load(self, file=None, string=None, format=None, timeout=5.):
-
-        if format is None and file is not None:
-            if file.endswith('.json'):
-                format = 'json'
-            elif file.endswith('.seq') or file.endswith('.madx') or file.endswith('.mad'):
-                format = 'madx'
-
-        if file.startswith('http://') or file.startswith('https://'):
-            assert string is None, 'Cannot specify both fname and string'
-            string = xt.general.read_url(file, timeout=timeout)
-            file = None
-
-        if file is not None:
-            assert string is None, 'Cannot specify both fname and string'
-
-        if string is not None:
-            assert file is None, 'Cannot specify both fname and string'
-            assert format is not None, 'Must specify format when using string'
-
-        assert format in ['json', 'madx'], f'Unknown format {format}'
-
-        if format == 'json':
-            ddd = xt.json.load(file=file, string=string)
-            self.update(ddd)
-        elif format == 'madx':
-            return self.set_from_madx_file(filename=file, string=string)
-        else:
-            raise ValueError(f'Unknown format {format}')
-
 
     def set(self, name, value):
         if isinstance(value, str):
