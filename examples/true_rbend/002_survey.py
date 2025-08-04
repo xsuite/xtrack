@@ -2,15 +2,6 @@ import xtrack as xt
 import numpy as np
 import xobjects as xo
 
-# TODO
-#  - check backtrack
-#  - survey
-#  - properties
-#  - linear edge
-# -  test sps
-
-edge_model = 'full' # Remember to test both!!!!!!
-
 env = xt.Environment(particle_ref=xt.Particles(p0c=10e9))
 
 line = env.new_line(length=5, components=[
