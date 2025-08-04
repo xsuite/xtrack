@@ -40,3 +40,34 @@ xo.assert_allclose(tw_straight.rows['qf.*|qd.*'].bety,
                    atol=0, rtol=1e-8)
 xo.assert_allclose(tw_straight.rows['qf.*|qd.*'].x, 0, atol=1e-10, rtol=0)
 xo.assert_allclose(tw_straight.rows['qf.*|qd.*'].y, 0, atol=1e-10, rtol=0)
+
+# Switch to electrons to check synchrotron radiation features
+
+# 20 GeV electrons (like in LEP times)
+env.particle_ref = xt.Particles(energy0=20e9, mass0=xt.ELECTRON_MASS_EV)
+line.particle_ref = env.particle_ref
+
+line['actcse.31632'].voltage = 4.2e+08
+line['actcse.31632'].frequency = 3e6
+line['actcse.31632'].lag = 180.
+
+line.configure_radiation(model='mean')
+
+line.set(tt_rbend, rbend_model='curved-body')
+tw_rad_curved = line.twiss(eneloss_and_damping=True,
+                             radiation_integrals=True)
+
+line.set(tt_rbend, rbend_model='straight-body')
+tw_rad_straight = line.twiss(eneloss_and_damping=True,
+                               radiation_integrals=True)
+
+xo.assert_allclose(tw_rad_straight.eq_gemitt_x,
+                   tw_rad_curved.eq_gemitt_x, rtol=1e-2)
+xo.assert_allclose(tw_rad_straight.eq_gemitt_zeta,
+                   tw_rad_curved.eq_gemitt_zeta, rtol=1e-2)
+xo.assert_allclose(tw_rad_straight.eq_gemitt_y,
+                   tw_rad_curved.eq_gemitt_y, atol=1e-20)
+xo.assert_allclose(tw_rad_straight.rad_int_eq_gemitt_x,
+                   tw_rad_curved.rad_int_eq_gemitt_x, rtol=1e-2)
+xo.assert_allclose(tw_rad_straight.rad_int_eq_gemitt_y,
+                   tw_rad_curved.rad_int_eq_gemitt_y, atol=1e-20)
