@@ -997,6 +997,8 @@ class Bend(_BendCommon, BeamElement):
             return
 
         model = kwargs.pop('model', None)
+        edge_entry_model = kwargs.pop('edge_entry_model', None)
+        edge_exit_model = kwargs.pop('edge_exit_model', None)
 
         order = order or DEFAULT_MULTIPOLE_ORDER
         multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
@@ -1016,6 +1018,12 @@ class Bend(_BendCommon, BeamElement):
 
         if model is not None:
             self.model = model
+
+        if edge_entry_model is not None:
+            self.edge_entry_model = edge_entry_model
+
+        if edge_exit_model is not None:
+            self.edge_exit_model = edge_exit_model
 
     @property
     def length(self):
@@ -1225,6 +1233,9 @@ class RBend(_BendCommon, BeamElement):
         kwargs.update(multipolar_kwargs)
 
         model = kwargs.pop('model', None)
+        edge_entry_model = kwargs.pop('edge_entry_model', None)
+        edge_exit_model = kwargs.pop('edge_exit_model', None)
+        rbend_model = kwargs.pop('rbend_model', None)
 
         self.xoinitialize(**kwargs)
 
@@ -1239,8 +1250,18 @@ class RBend(_BendCommon, BeamElement):
         if self.k0_from_h:
             self.k0 = self.h
 
+        # Trigger properties
         if model is not None:
             self.model = model
+
+        if edge_entry_model is not None:
+            self.edge_entry_model = edge_entry_model
+
+        if edge_exit_model is not None:
+            self.edge_exit_model = edge_exit_model
+
+        if rbend_model is not None:
+            self.rbend_model = rbend_model
 
     @property
     def length(self):
