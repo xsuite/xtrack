@@ -65,7 +65,7 @@ def test_quadrupole_wedge_ptc():
     # XSuite
     quadrupole = xt.Bend(length=length, k0=b1, k1=b2, edge_entry_angle=angle_in, edge_exit_angle=angle_out, edge_entry_model='1', edge_exit_model='1')  # 1 with quadrupole fringe
     line = xt.Line(elements=[ quadrupole])
-    
+        
     line.discard_tracker()
     line.build_tracker()
     line.track(p0)
@@ -75,7 +75,7 @@ def test_quadrupole_wedge_ptc():
     
     assert np.isclose(det, 1.0)
 
-    # PTC values    
+    # PTC values obtained with recompiled version of PTC, setting MAD8_WEDGE=False 
     x_ptc = 0.07043818253
     px_ptc = 0.1313937438
     y_ptc = 0.07993855538
