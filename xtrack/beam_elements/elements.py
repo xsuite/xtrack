@@ -2314,6 +2314,8 @@ class Wedge(BeamElement):
     _xofields = {
         'angle': xo.Float64,
         'k': xo.Float64,
+        'k1': xo.Float64,
+        'quad_wedge_then_dip_wedge': xo.Int64,
     }
 
     _extra_c_sources = [
