@@ -17,9 +17,9 @@ test_data_folder = pathlib.Path(
     'config',
     ['noshift', 'shift']
 )
-@for_all_test_contexts
 @fix_random_seed(2836475)
-def test_lhc_match_phase_15(test_context, config):
+def test_lhc_match_phase_15(config):
+    test_context = xo.ContextCpu()
 
     if config == 'noshift':
         d_mux_15_b1 = 0

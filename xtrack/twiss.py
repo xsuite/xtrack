@@ -1441,7 +1441,7 @@ def _compute_coupling_elements_edwards_teng(
     sbetx = np.sqrt(betx_)
     sbety = np.sqrt(bety_)
 
-    mask_nonzero_sbetxy = (np.abs(betx) > 1e-6) & (np.abs(bety) > 1e-6)
+    mask_nonzero_sbetxy = (np.abs(sbetx) > 1e-6) & (np.abs(sbety) > 1e-6)
     # The above mask is computed on arrays whose length has been reduced already
     # with idx_stable. Therefore, to address the original length of the arrays,
     # we need to compute a new mask combining both conditions:
