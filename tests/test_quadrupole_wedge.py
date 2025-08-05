@@ -78,7 +78,7 @@ def test_quadrupole_wedge_ptc():
 
     assert np.isclose(det, 1.0)
 
-    # PTC values
+    # # PTC values obtained with recompiled version of PTC, setting MAD8_WEDGE=False
     x_ptc = 0.07043818253
     px_ptc = 0.1313937438
     y_ptc = 0.07993855538
