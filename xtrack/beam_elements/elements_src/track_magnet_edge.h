@@ -111,10 +111,10 @@ void track_magnet_edge_particles(
         // model changes!
 
         #define MAGNET_WEDGE(PART) \
-            if (should_rotate) Wedge_single_particle((PART), -face_angle, knorm[0])
+            if (should_rotate & (k_order >= 0)) Wedge_single_particle((PART), -face_angle, knorm[0])
 
         #define MAGNET_QUAD_WEDGE(PART) \
-            if (should_rotate) Quad_wedge_single_particle((PART), -face_angle, knorm[1])
+            if (should_rotate & (k_order >= 1)) Quad_wedge_single_particle((PART), -face_angle, knorm[1])
 
         if (is_exit == 0){ // entry
             START_PER_PARTICLE_BLOCK(part0, part);
