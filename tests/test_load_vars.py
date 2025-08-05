@@ -91,51 +91,30 @@ def test_load_file(input_fixture, format, suffix, with_format, tmpdir, request):
     assert env['z'] == 0
 
 
-# @pytest.mark.parametrize(
-#     'input_fixture,format,suffix', [
-#         ('madx_sequence', 'madx', 'madx'),
-#         ('json_line', 'json', 'json'),
-#         ('json_environment', 'json', 'json'),
-#     ]
-# )
-# @pytest.mark.parametrize('with_format', [True, False])
-# def test_load_http(input_fixture, format, suffix, with_format, tmpdir, request, requests_mock):
-#     input_data = request.getfixturevalue(input_fixture)
+@pytest.mark.parametrize(
+    'input_fixture,format,suffix', [
+        ('madx_vars', 'madx', 'madx'),
+        ('json_vars', 'json', 'json'),
+    ]
+)
+@pytest.mark.parametrize('with_format', [True, False])
+def test_load_http(input_fixture, format, suffix, with_format, tmpdir, request, requests_mock):
+    input_data = request.getfixturevalue(input_fixture)
 
-#     url = f'http://example.com/test_input.{suffix}'
-#     requests_mock.get(url, text=input_data)
+    url = f'http://example.com/test_input.{suffix}'
+    requests_mock.get(url, text=input_data)
 
-#     kwargs = {'file': url}
-#     if with_format:
-#         kwargs['format'] = format
-#     loaded_entity = xt.load(**kwargs)
+    kwargs = {'file': url}
+    if with_format:
+        kwargs['format'] = format
+    env = xt.Environment()
+    env.vars.load(**kwargs)
 
-#     quad = loaded_entity['quad']
-#     assert quad.length == 1.0 and quad.k1 == 0.5
-
-
-# def test_load_single_element():
-#     string = json.dumps({
-#         '__class__': 'Quadrupole',
-#         'length': 1.0,
-#         'k1': 0.5
-#     })
-#     quad = xt.load(string=string, format='json')
-#     assert quad.length == 1.0 and quad.k1 == 0.5
-
-
-# def test_load_invalid_input():
-#     with pytest.raises(ValueError, match='either file or string'):
-#         xt.load()
-
-#     with pytest.raises(ValueError, match='either file or string'):
-#         xt.load(file='test.madx', string='quad: quadrupole, l=1, k1=0.5;')
-
-#     with pytest.raises(ValueError, match='Format must be specified'):
-#         xt.load(string='{}')
-
-#     with pytest.raises(ValueError, match='one of'):
-#         xt.load(string='{}', format='invalid_format')  # noqa
-
-#     with pytest.raises(ValueError, match='Cannot determine class from json data'):
-#         xt.load(string='{"length": 1.0, "k1": 0.5}', format='json')
+    assert str(env.get_expr('b')) == "(3.0 * vars['a'])"
+    assert env['b'] == 15
+    assert env.get_expr('a') is None
+    assert env['a'] == 5
+    assert str(env.get_expr('c')) == "(4.0 * vars['z'])"
+    assert env['c'] == 0
+    assert env.get_expr('z') is None
+    assert env['z'] == 0
