@@ -5611,7 +5611,7 @@ class LineVars:
                 raise NotImplementedError('Loading from string not implemented for python format')
             env = xt.Environment()
             env.call(file)
-            self.update(env.vats.to_dict(), default_to_zero=True)
+            self.update(env.vars.get_table().to_dict(), default_to_zero=True)
             return env
 
     @property
