@@ -19,20 +19,21 @@ def test_quadrupole_fringe_ptc():
     beta0=0.1
 
     p0 = xt.Particles(x=x0,px=px0,y=y0,py=py0,delta=delta0,zeta=zeta0,beta0=beta0)
-    
+
     ptau0 = float(p0.ptau)
     tau0 = zeta0/beta0
-    
+
     # XSuite
-    quadrupole = xt.Bend(length=length, k0=b1, k1=b2, edge_entry_model='1', edge_exit_model='1')  # 1 with quadrupole fringe
+    quadrupole = xt.Bend(length=length, k0=b1, k1=b2,
+                         edge_entry_model='full', edge_exit_model='full')
     line = xt.Line(elements=[ quadrupole])
     line.discard_tracker()
     line.build_tracker()
     line.track(p0)
-    
+
     mat = line.compute_one_turn_matrix_finite_differences(p0)['R_matrix']
     det = np.linalg.det(mat)
-    
+
     assert np.isclose(det, 1.0)
 
     # PTC
@@ -42,7 +43,7 @@ def test_quadrupole_fringe_ptc():
     madx.beam(particle='proton', beta=beta0)
     madx.input(madx_sequence)
     madx.use('quadrupole_fringes')
-    
+
     madx.input(f"""
                ptc_create_universe;
                ptc_create_layout, exact=true;
@@ -54,10 +55,9 @@ def test_quadrupole_fringe_ptc():
                stop;
                """
                )
-    
+
     df = madx.table.tracksumm.dframe()
-    
-    
+
     assert np.isclose(p0.x, df.x[-1])
     assert np.isclose(p0.px, df.px[-1])
     assert np.isclose(p0.y, df.y[-1])

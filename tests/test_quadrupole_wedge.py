@@ -7,12 +7,13 @@ def test_quadrupole_wedge():
     """
     Hardcoded test for quadrupole wedge with hard edge fringe.
     """
-    
+
     angle = 0.1
     b2 = 5
     b1 = 0
 
-    quadrupole = xt.Bend(length=0, k0=b1, k1=b2, edge_entry_angle=angle, edge_entry_model='1')  # 1 with quadrupole fringe
+    quadrupole = xt.Bend(length=0, k0=b1, k1=b2, edge_entry_angle=angle,
+                         edge_entry_model='full')
     line= xt.Line(elements=[quadrupole])
 
     x=np.linspace(-1e-2, 1e-2, 5)
@@ -35,14 +36,14 @@ def test_quadrupole_wedge():
     assert np.allclose(p0.px, px_expval)
     assert np.allclose(p0.y, y_expval)
     assert np.allclose(p0.py, py_expval)
-    
+
 
 def test_quadrupole_wedge_ptc():
-    """ 
+    """
     Test against PTC with MAD8_WEDGE=False.
     Hardcoded values since the option is not available without recompiling PTC.
     """
-    
+
     angle_in = 0.1
     angle_out = 0.13
     b2 = 100
@@ -63,32 +64,31 @@ def test_quadrupole_wedge_ptc():
     tau0 = zeta0/beta0
 
     # XSuite
-    quadrupole = xt.Bend(length=length, k0=b1, k1=b2, edge_entry_angle=angle_in, edge_exit_angle=angle_out, edge_entry_model='1', edge_exit_model='1')  # 1 with quadrupole fringe
-    line = xt.Line(elements=[ quadrupole])
-    
+    quadrupole = xt.Bend(length=length, k0=b1, k1=b2,
+                         edge_entry_angle=angle_in, edge_exit_angle=angle_out,
+                         edge_entry_model='full', edge_exit_model='full')
+    line = xt.Line(elements=[quadrupole])
+
     line.discard_tracker()
     line.build_tracker()
     line.track(p0)
-    
+
     mat = line.compute_one_turn_matrix_finite_differences(p0)['R_matrix']
     det = np.linalg.det(mat)
-    
+
     assert np.isclose(det, 1.0)
 
-    # PTC values    
+    # PTC values
     x_ptc = 0.07043818253
     px_ptc = 0.1313937438
     y_ptc = 0.07993855538
     py_ptc = -0.07321782159
     tau_ptc = 0.4245507041
     ptau_ptc = 0.01049449328
-    
-    
+
     assert np.isclose(p0.x, x_ptc)
     assert np.isclose(p0.px, px_ptc)
     assert np.isclose(p0.y, y_ptc)
     assert np.isclose(p0.py, py_ptc)
     assert np.isclose(p0.zeta/p0.beta0, tau_ptc)
     assert np.isclose(p0.ptau, ptau_ptc)
-    
-    
