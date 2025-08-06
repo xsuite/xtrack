@@ -67,9 +67,10 @@ def mad_b4_no_errors():
     return mad_b4_no_errors
 
 
-surv_starting_point = {
-    "theta0": -np.pi / 9, "psi0": np.pi / 7, "phi0": np.pi / 11,
-    "X0": -300, "Y0": 150, "Z0": -100}
+# surv_starting_point = {
+#     "theta0": -np.pi / 9, "psi0": np.pi / 7, "phi0": np.pi / 11,
+#     "X0": -300, "Y0": 150, "Z0": -100}
+surv_starting_point = {}
 
 
 b4_b2_mapping = {

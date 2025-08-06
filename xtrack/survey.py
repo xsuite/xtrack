@@ -203,6 +203,10 @@ class SurveyTable(Table):
         new_W[:, 0, :] *= -1
         new_W[:, 2, :] *= -1
 
+        # Reverse ix and iy of the local frame
+        new_W[:, :, 0] *= -1
+        new_W[:, :, 2] *= -1
+
         derived_quantities = _compute_survey_quantities_from_v_w(new_V, new_W)
         new_cols.update(derived_quantities)
 
