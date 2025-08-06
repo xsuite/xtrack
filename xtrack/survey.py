@@ -168,12 +168,44 @@ class SurveyTable(Table):
 
     def reverse(self):
 
+        new_cols = {}
 
+        element_properties = ['name', 'element_type', 's', 'drift_length',
+                                'length', 'angle', 'rot_s_rad',
+                                'ref_shift_x', 'ref_shift_y',
+                                'ref_rot_x_rad', 'ref_rot_y_rad', 'ref_rot_s_rad']
 
+        for kk in element_properties:
+            new_cols[kk] = self[kk].copy()
+            new_cols[kk][:-1] = new_cols[kk][:-1][::-1]
+            new_cols[kk][-1] = self[kk][-1]
+
+        # s vector
+        new_cols['s'][:-1] = new_cols['s'][::-1]
+        new_cols['s'][-1] = self['s'][0]
+
+        out.s = out.s[-1] - out.s
+
+        new_W = self.W.copy()
+        new_W[:-1, :, :] = new_W[:-1, :, :][::-1, :, :]
+        new_W[-1, :, :] = self.W[0, :, :]
+
+        new_V = self.V.copy()
+        new_V[:-1, :] = new_V[:-1, :][::-1, :]
+        new_V[-1, :] = self.V[0, :]
+
+        # Reverse X and Z in the global frame
+        new_V[:, 0] *= -1
+        new_V[:, 2] *= -1
+        new_W[:, 0, :] *= -1
+        new_W[:, 2, :] *= -1
+
+        derived_quantities = _compute_survey_quantities_from_v_w(new_V, new_W)
+        new_cols.update(derived_quantities)
 
         out = SurveyTable(
-            data        = (out_columns | out_scalars),
-            col_names   = out_columns.keys())
+            data        = (new_cols | {'element0': self.element0}),
+            col_names   = new_cols.keys())
 
         return out
 
@@ -294,10 +326,9 @@ def survey_from_line(
     out_columns = derived_quantities
     out_scalars = {}
 
-    # Fill survey data
+    # element properties
     out_columns["name"]             = tt.name
     out_columns["element_type"]     = tt.element_type
-    out_columns["s"]                = tt.s
     out_columns['drift_length']     = drift_length
     out_columns['length']           = tt.length
     out_columns['angle']            = angle
@@ -307,6 +338,8 @@ def survey_from_line(
     out_columns['ref_rot_x_rad']    = ref_rot_x_rad
     out_columns['ref_rot_y_rad']    = ref_rot_y_rad
     out_columns['ref_rot_s_rad']    = ref_rot_s_rad
+
+    out_columns["s"]                = tt.s
 
     out_scalars['element0']     = element0
 
