@@ -67,10 +67,9 @@ def mad_b4_no_errors():
     return mad_b4_no_errors
 
 
-# surv_starting_point = {
-#     "theta0": -np.pi / 9, "psi0": np.pi / 7, "phi0": np.pi / 11,
-#     "X0": -300, "Y0": 150, "Z0": -100}
-surv_starting_point = {}
+surv_starting_point = {
+     "theta0": -np.pi / 9, "psi0": np.pi / 7, "phi0": np.pi / 11,
+     "X0": -300, "Y0": 150, "Z0": -100}
 
 
 b4_b2_mapping = {
@@ -98,6 +97,7 @@ def test_twiss_and_survey(
         reverse = False
         use = False
         range_for_partial_twiss = ('mb.b19r3.b1..1', 'mb.b19l3.b1..1')
+        sv_kwars = surv_starting_point.copy()
     elif configuration == 'b2_no_errors':
         mad_load = mad_b4_no_errors
         mad_ref = mad_b12_no_errors
@@ -106,6 +106,7 @@ def test_twiss_and_survey(
         reverse = True
         use = True
         range_for_partial_twiss = ('mb.b19l3.b2..1', 'mb.b19r3.b2..1')
+        sv_kwars = {}
 
     if use:
         mad_ref.use(sequence=seq_name)
@@ -121,7 +122,7 @@ def test_twiss_and_survey(
     mad_ref.sequence[seq_name].beam.eyn = 3.5e-6
 
     twmad = mad_ref.twiss(chrom=True)
-    survmad = mad_ref.survey(**surv_starting_point)
+    survmad = mad_ref.survey(**sv_kwars)
 
     line_full = xt.Line.from_madx_sequence(
             mad_load.sequence[seq_name], apply_madx_errors=True)
@@ -155,7 +156,7 @@ def test_twiss_and_survey(
 
         twxt = line.twiss()
         twxt4d = line.twiss(method='4d')
-        survxt = line.survey(**surv_starting_point)
+        survxt = line.survey(**sv_kwars)
 
         if reverse:
             twxt = twxt.reverse()
