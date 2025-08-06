@@ -208,7 +208,7 @@ class SurveyTable(Table):
         if isinstance(element0, str):
             element0 = out_name.index(element0)
 
-        X, Y, Z, theta, phi, psi, W = compute_survey(
+        X, Y, Z, W = compute_survey(
             X0              = X0,
             Y0              = Y0,
             Z0              = Z0,
@@ -354,7 +354,7 @@ def survey_from_line(
     if isinstance(element0, str):
         element0 = line.element_names.index(element0)
 
-    X, Y, Z, theta, phi, psi, W = compute_survey(
+    X, Y, Z, W = compute_survey(
         X0              = X0,
         Y0              = Y0,
         Z0              = Z0,
@@ -446,8 +446,7 @@ def compute_survey(
         ref_rot_s_rad_forward   = ref_rot_s_rad[element0:]
 
         # Evaluate forward survey
-        (X_forward, Y_forward, Z_forward, theta_forward, phi_forward,
-            psi_forward, W_forward)    = compute_survey(
+        (X_forward, Y_forward, Z_forward, W_forward)    = compute_survey(
             X0              = X0,
             Y0              = Y0,
             Z0              = Z0,
@@ -475,8 +474,7 @@ def compute_survey(
         ref_rot_s_rad_backward  = -np.array(ref_rot_s_rad[:element0][::-1])
 
         # Evaluate backward survey
-        (X_backward, Y_backward, Z_backward, theta_backward, phi_backward,
-            psi_backward, W_backward)   = compute_survey(
+        (X_backward, Y_backward, Z_backward, W_backward)   = compute_survey(
             X0              = X0,
             Y0              = Y0,
             Z0              = Z0,
@@ -497,19 +495,13 @@ def compute_survey(
         X       = np.array(X_backward[::-1][:-1] + X_forward)
         Y       = np.array(Y_backward[::-1][:-1] + Y_forward)
         Z       = np.array(Z_backward[::-1][:-1] + Z_forward)
-        theta   = np.array(theta_backward[::-1][:-1] + theta_forward)
-        phi     = np.array(phi_backward[::-1][:-1] + phi_forward)
-        psi     = np.array(psi_backward[::-1][:-1]+ psi_forward)
-        W      = np.array(W_backward[::-1][:-1] + W_forward)
-        return X, Y, Z, theta, phi, psi, W
+        W       = np.array(W_backward[::-1][:-1] + W_forward)
+        return X, Y, Z, W
 
     # Initialise lists for storing the survey
     X       = []
     Y       = []
     Z       = []
-    theta   = []
-    phi     = []
-    psi     = []
     W       = []
 
     # Initial position and orientation
@@ -532,9 +524,6 @@ def compute_survey(
         X.append(v[0])
         Y.append(v[1])
         Z.append(v[2])
-        theta.append(th)
-        phi.append(ph)
-        psi.append(ps)
         W.append(w)
 
         # Advancing
@@ -551,14 +540,10 @@ def compute_survey(
             ref_rot_s_rad   = rs)
 
     # Last marker
-    th, ph, ps = get_angles_from_w(w)
     X.append(v[0])
     Y.append(v[1])
     Z.append(v[2])
-    theta.append(th)
-    phi.append(ph)
-    psi.append(ps)
     W.append(w)
 
     # Return data for SurveyTable object
-    return X, Y, Z, theta, phi, psi, W
+    return X, Y, Z, W
