@@ -312,6 +312,7 @@ def survey_from_line(
         element0 = line.element_names.index(element0)
 
     V, W = compute_survey(
+        elements        = line.elements,
         X0              = X0,
         Y0              = Y0,
         Z0              = Z0,
@@ -359,6 +360,7 @@ def survey_from_line(
 
 
 def compute_survey(
+        elements,
         X0, Y0, Z0, theta0, phi0, psi0,
         drift_length, angle, tilt,
         ref_shift_x, ref_shift_y, ref_rot_x_rad, ref_rot_y_rad, ref_rot_s_rad,
@@ -371,6 +373,7 @@ def compute_survey(
     if element0 != 0:
 
         # Forward section of survey
+        elements_forward        = elements[element0:]
         drift_forward           = drift_length[element0:]
         angle_forward           = angle[element0:]
         tilt_forward            = tilt[element0:]
@@ -382,6 +385,7 @@ def compute_survey(
 
         # Evaluate forward survey
         (V_forward, W_forward)    = compute_survey(
+            elements        = elements_forward,
             X0              = X0,
             Y0              = Y0,
             Z0              = Z0,
@@ -400,6 +404,7 @@ def compute_survey(
             backtrack       = backtrack)
 
         # Backward section of survey
+        elements_backward       = elements[:element0][::-1]
         drift_backward          = np.array(drift_length[:element0][::-1])
         angle_backward          = np.array(angle[:element0][::-1])
         tilt_backward           = np.array(tilt[:element0][::-1])
@@ -411,6 +416,7 @@ def compute_survey(
 
         # Evaluate backward survey
         (V_backward, W_backward)   = compute_survey(
+            elements        = elements_backward,
             X0              = X0,
             Y0              = Y0,
             Z0              = Z0,
@@ -445,8 +451,8 @@ def compute_survey(
         psi         = psi0)
 
     # Advancing element by element
-    for ll, aa, tt, xx, yy, rx, ry, rs, in zip(
-        drift_length, angle, tilt,
+    for ee, ll, aa, tt, xx, yy, rx, ry, rs, in zip(
+        elements, drift_length, angle, tilt,
         ref_shift_x, ref_shift_y,
         ref_rot_x_rad, ref_rot_y_rad, ref_rot_s_rad):
 
@@ -454,27 +460,31 @@ def compute_survey(
         W.append(w)
         V.append(v)
 
-        if backtrack:
-            ll = -ll
-            aa = -aa
-            xx = -xx
-            yy = -yy
-            rx = -rx
-            ry = -ry
-            rs = -rs
+        if hasattr(ee, '_propagate_survey'):
+            v, w = ee._propagate_survey(v, w)
+        else:
 
-        # Advancing
-        v, w = advance_element(
-            v               = v,
-            w               = w,
-            length          = ll,
-            angle           = aa,
-            tilt            = tt,
-            ref_shift_x     = xx,
-            ref_shift_y     = yy,
-            ref_rot_x_rad   = rx,
-            ref_rot_y_rad   = ry,
-            ref_rot_s_rad   = rs)
+            if backtrack:
+                ll = -ll
+                aa = -aa
+                xx = -xx
+                yy = -yy
+                rx = -rx
+                ry = -ry
+                rs = -rs
+
+            # Advancing
+            v, w = advance_element(
+                v               = v,
+                w               = w,
+                length          = ll,
+                angle           = aa,
+                tilt            = tt,
+                ref_shift_x     = xx,
+                ref_shift_y     = yy,
+                ref_rot_x_rad   = rx,
+                ref_rot_y_rad   = ry,
+                ref_rot_s_rad   = rs)
 
     # Last marker
     W.append(w)
