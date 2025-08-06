@@ -233,9 +233,6 @@ class SurveyTable(Table):
         out_columns["X"]                = np.array(X)
         out_columns["Y"]                = np.array(Y)
         out_columns["Z"]                = np.array(Z)
-        out_columns["theta"]            = np.unwrap(theta)
-        out_columns["phi"]              = np.unwrap(phi)
-        out_columns["psi"]              = np.unwrap(psi)
         out_columns["name"]             = np.array(list(out_name) + ["_end_point"])
         out_columns["element_type"]     = np.array(list(out_element_type) + [""])
         out_columns["s"]                = self.s[-1] - self.s[::-1]
