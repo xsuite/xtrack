@@ -407,7 +407,7 @@ def survey_from_line(
     out_columns['ey']               = ey
     out_columns['ez']               = ez
     out_columns['p0']               = p0
-    out_columns['W']            = W
+    out_columns['W']                = W
 
     out_scalars['element0']     = element0
 
