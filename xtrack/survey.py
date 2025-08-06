@@ -461,7 +461,7 @@ def compute_survey(
         V.append(v)
 
         if hasattr(ee, '_propagate_survey'):
-            v, w = ee._propagate_survey(v, w)
+            v, w = ee._propagate_survey(v=v, w=w, backtrack=backtrack)
         else:
 
             if backtrack:

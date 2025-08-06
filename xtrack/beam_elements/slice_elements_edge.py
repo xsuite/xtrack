@@ -1,4 +1,5 @@
 import xobjects as xo
+import numpy as np
 
 from ..general import _pkg_root
 from ..base_element import BeamElement
@@ -7,6 +8,7 @@ from .elements import (
     Bend, Quadrupole, Sextupole,
     Octupole, RBend, UniformSolenoid, DipoleEdge, Marker, MultipoleEdge
 )
+from ..survey import advance_element as survey_advance_element
 
 class ThinSliceBendEntry(BeamElement):
 
@@ -479,6 +481,64 @@ class ThinSliceRBendEntry(BeamElement):
         else:
             return Marker(_buffer=self._buffer)
 
+    def _propagate_survey(self, v, w, backtrack):
+        breakpoint()
+        if self._parent.rbend_model == "straight-body":
+            if backtrack:
+                if abs(self._parent.angle) > 1e-10:  # avoid numerical issues
+                    dx_rb = 0.5 / self._parent.h * (1 - np.cos(0.5 * self._parent.angle))
+                    v, w = survey_advance_element(
+                        v               = v,
+                        w               = w,
+                        length          = 0,
+                        angle           = 0,
+                        tilt            = 0,
+                        ref_shift_x     = -dx_rb,
+                        ref_shift_y     = 0,
+                        ref_rot_x_rad   = 0,
+                        ref_rot_y_rad   = 0,
+                        ref_rot_s_rad   = 0,
+                    )
+                v, w = survey_advance_element(
+                    v               = v,
+                    w               = w,
+                    length          = 0,
+                    angle           = -self._parent.angle / 2.,
+                    tilt            = self._parent.rot_s_rad,
+                    ref_shift_x     = 0,
+                    ref_shift_y     = 0,
+                    ref_rot_x_rad   = 0,
+                    ref_rot_y_rad   = 0,
+                    ref_rot_s_rad   = 0,
+                )
+            else:
+                v, w = survey_advance_element(
+                    v               = v,
+                    w               = w,
+                    length          = 0,
+                    angle           = self._parent.angle / 2.,
+                    tilt            = self._parent.rot_s_rad,
+                    ref_shift_x     = 0,
+                    ref_shift_y     = 0,
+                    ref_rot_x_rad   = 0,
+                    ref_rot_y_rad   = 0,
+                    ref_rot_s_rad   = 0,
+                )
+                if abs(self._parent.angle) > 1e-10:  # avoid numerical issues
+                    dx_rb = 0.5 / self._parent.h * (1 - np.cos(0.5 * self._parent.angle))
+                    v, w = survey_advance_element(
+                        v               = v,
+                        w               = w,
+                        length          = 0,
+                        angle           = 0,
+                        tilt            = 0,
+                        ref_shift_x     = dx_rb,
+                        ref_shift_y     = 0,
+                        ref_rot_x_rad   = 0,
+                        ref_rot_y_rad   = 0,
+                        ref_rot_s_rad   = 0,
+                    )
+        return v, w
 
 class ThinSliceRBendExit(BeamElement):
     allow_rot_and_shift = False
@@ -526,4 +586,63 @@ class ThinSliceRBendExit(BeamElement):
             )
         else:
             return Marker(_buffer=self._buffer)
+
+    def _propagate_survey(self, v, w, backtrack):
+        breakpoint()
+        if self._parent.rbend_model == "straight-body":
+            if backtrack:
+                if abs(self._parent.angle) > 1e-10:  # avoid numerical issues
+                    dx_rb = 0.5 / self._parent.h * (1 - np.cos(0.5 * self._parent.angle))
+                    v, w = survey_advance_element(
+                        v               = v,
+                        w               = w,
+                        length          = 0,
+                        angle           = 0,
+                        tilt            = 0,
+                        ref_shift_x     = dx_rb,
+                        ref_shift_y     = 0,
+                        ref_rot_x_rad   = 0,
+                        ref_rot_y_rad   = 0,
+                        ref_rot_s_rad   = 0,
+                    )
+                v, w = survey_advance_element(
+                    v               = v,
+                    w               = w,
+                    length          = 0,
+                    angle           = -self._parent.angle / 2.,
+                    tilt            = self._parent.rot_s_rad,
+                    ref_shift_x     = 0,
+                    ref_shift_y     = 0,
+                    ref_rot_x_rad   = 0,
+                    ref_rot_y_rad   = 0,
+                    ref_rot_s_rad   = 0,
+                )
+            else:
+                v, w = survey_advance_element(
+                    v               = v,
+                    w               = w,
+                    length          = 0,
+                    angle           = self._parent.angle / 2.,
+                    tilt            = self._parent.rot_s_rad,
+                    ref_shift_x     = 0,
+                    ref_shift_y     = 0,
+                    ref_rot_x_rad   = 0,
+                    ref_rot_y_rad   = 0,
+                    ref_rot_s_rad   = 0,
+                )
+                if abs(self._parent.angle) > 1e-10:  # avoid numerical issues
+                    dx_rb = 0.5 / self._parent.h * (1 - np.cos(0.5 * self._parent.angle))
+                    v, w = survey_advance_element(
+                        v               = v,
+                        w               = w,
+                        length          = 0,
+                        angle           = 0,
+                        tilt            = 0,
+                        ref_shift_x     = -dx_rb,
+                        ref_shift_y     = 0,
+                        ref_rot_x_rad   = 0,
+                        ref_rot_y_rad   = 0,
+                        ref_rot_s_rad   = 0,
+                    )
+        return v, w
 

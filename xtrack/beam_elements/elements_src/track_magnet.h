@@ -555,10 +555,6 @@ void track_magnet_particles(
         }
     #endif
 
-    if (rbend_model == 2){ // straight body
-
-    }
-
     if (edge_entry_active){
 
         if (rbend_model == 2){
