@@ -81,7 +81,7 @@ def advance_element(
         assert length == 0, "ref_shift_x and ref_shift_y are only supported for length = 0"
 
         R = np.array([ref_shift_x, ref_shift_y, 0])
-        # XYShift tarnsforms as a drift
+        # XYShift transforms as a drift
         return advance_drift(v, w, R)
 
     # XRotation Handling
