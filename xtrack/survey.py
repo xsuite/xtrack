@@ -170,7 +170,7 @@ class SurveyTable(Table):
 
         new_cols = {}
 
-        element_properties = ['name', 'element_type', 's', 'drift_length',
+        element_properties = ['name', 'element_type', 'drift_length',
                                 'length', 'angle', 'rot_s_rad',
                                 'ref_shift_x', 'ref_shift_y',
                                 'ref_rot_x_rad', 'ref_rot_y_rad', 'ref_rot_s_rad']
@@ -183,10 +183,11 @@ class SurveyTable(Table):
         itake = slice(1, None, None)
 
         # s vector
+        new_cols['s'] = self['s'].copy()
         new_cols['s'][:-1] = new_cols['s'][itake][::-1]
         new_cols['s'][-1] = self['s'][0]
 
-        new_cols['s'] = new_cols['s'][-1] - new_cols['s']
+        new_cols['s'] = self['s'][-1] - new_cols['s']
 
         new_W = self.W.copy()
         new_W[:-1, :, :] = new_W[itake, :, :][::-1, :, :]
