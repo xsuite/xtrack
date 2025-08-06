@@ -127,7 +127,7 @@ sv_right_with_init = line.survey(element0='right',
 cols_to_check = [
     'X', 'Y', 'Z', 'theta', 'phi', 'psi', 's', 'drift_length', 'angle', 'rot_s_rad',
     'ref_shift_x', 'ref_shift_y', 'ref_rot_x_rad', 'ref_rot_y_rad', 'ref_rot_s_rad',
-    'ex', 'ey', 'ez', 'p0', 'frame_matrix'
+    'ex', 'ey', 'ez', 'p0',
 ]
 
 assert sv_mid_with_init.element0 == 13

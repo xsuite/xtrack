@@ -371,46 +371,18 @@ def survey_from_line(
         ref_rot_s_rad   = ref_rot_s_rad[:-1],
         element0        = element0)
 
-    # Frame matrix and unit vectors
-    theta_mat = np.zeros((len(theta), 4, 4))
-    theta_mat[:, 0, 0] = np.cos(theta)
-    theta_mat[:, 0, 2] = np.sin(theta)
-    theta_mat[:, 2, 0] = -np.sin(theta)
-    theta_mat[:, 2, 2] = np.cos(theta)
-    theta_mat[:, 1, 1] = 1
-    theta_mat[:, 3, 3] = 1
+    W = np.array(W)
+    theta = np.arctan2(W[:, 0, 2], W[:, 2, 2])
+    psi = np.arctan2(W[:, 1, 0], W[:, 1, 1])
+    phi = np.arctan2(W[:, 1, 2], W[:, 1, 1] / np.cos(psi))
 
-    phi_mat = np.zeros((len(theta), 4, 4))
-    phi_mat[:, 0, 0] = 1
-    phi_mat[:, 1, 1] = np.cos(phi)
-    phi_mat[:, 1, 2] = np.sin(phi)
-    phi_mat[:, 2, 1] = -np.sin(phi)
-    phi_mat[:, 2, 2] = np.cos(phi)
-    phi_mat[:, 3, 3] = 1
-
-    psi_mat = np.zeros((len(theta), 4, 4))
-    psi_mat[:, 0, 0] = np.cos(psi)
-    psi_mat[:, 0, 1] = -np.sin(psi)
-    psi_mat[:, 1, 0] = np.sin(psi)
-    psi_mat[:, 1, 1] = np.cos(psi)
-    psi_mat[:, 2, 2] = 1
-    psi_mat[:, 3, 3] = 1
-
-    translate_mat = np.zeros((len(theta), 4, 4))
-    translate_mat[:, 0, 3] = X
-    translate_mat[:, 1, 3] = Y
-    translate_mat[:, 2, 3] = Z
-    translate_mat[:, 0, 0] = 1
-    translate_mat[:, 1, 1] = 1
-    translate_mat[:, 2, 2] = 1
-    translate_mat[:, 3, 3] = 1
-
-    frame_mat = translate_mat @ theta_mat @ phi_mat @ psi_mat
-
-    ex = frame_mat[:, :3, 0]
-    ey = frame_mat[:, :3, 1]
-    ez = frame_mat[:, :3, 2]
-    p0 = frame_mat[:, :3, 3]
+    ex = W[:, :, 0]
+    ey = W[:, :, 1]
+    ez = W[:, :, 2]
+    p0 = np.zeros_like(ex)
+    p0[:, 0] = X
+    p0[:, 1] = Y
+    p0[:, 2] = Z
 
     # Initializing dictionary
     out_columns = {}
@@ -439,11 +411,9 @@ def survey_from_line(
     out_columns['ey']               = ey
     out_columns['ez']               = ez
     out_columns['p0']               = p0
-    out_columns['frame_matrix']     = frame_mat
-
+    out_columns['W']            = W
 
     out_scalars['element0']     = element0
-    out_scalars['W']            = W
 
     out = SurveyTable(
         data        = {**out_columns, **out_scalars},  # this is a merge
