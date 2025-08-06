@@ -4,6 +4,8 @@ import xobjects as xo
 
 env = xt.Environment(particle_ref=xt.Particles(p0c=10e9))
 
+edge_model = 'full'
+
 line = env.new_line(length=5, components=[
     env.new('mb', 'RBend', angle=0.3, k0_from_h=True, length_straight=3,
             rbend_model='straight-body', edge_entry_model=edge_model, edge_exit_model=edge_model,
