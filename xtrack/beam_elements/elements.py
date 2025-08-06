@@ -868,6 +868,13 @@ class _BendCommon:
 
         return out
 
+    @property
+    def sagitta(self):
+        if abs(self.angle) < 1e-10:  # avoid numerical issues
+            return 0.0
+        else:
+            return 1. / self.h * (1 - np.cos(0.5 * self.angle))
+
 
 class Bend(_BendCommon, BeamElement):
     """Implementation of combined function magnet (i.e. a bending magnet with
