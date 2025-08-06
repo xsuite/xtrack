@@ -362,7 +362,7 @@ def compute_survey(
         X0, Y0, Z0, theta0, phi0, psi0,
         drift_length, angle, tilt,
         ref_shift_x, ref_shift_y, ref_rot_x_rad, ref_rot_y_rad, ref_rot_s_rad,
-        element0 = 0):
+        element0 = 0, backtrack=False):
     """
     Compute survey from initial position and orientation.
     """
@@ -396,17 +396,18 @@ def compute_survey(
             ref_rot_x_rad   = ref_rot_x_rad_forward,
             ref_rot_y_rad   = ref_rot_y_rad_forward,
             ref_rot_s_rad   = ref_rot_s_rad_forward,
-            element0        = 0)
+            element0        = 0,
+            backtrack       = backtrack)
 
         # Backward section of survey
-        drift_backward          = -np.array(drift_length[:element0][::-1])
-        angle_backward          = -np.array(angle[:element0][::-1])
+        drift_backward          = np.array(drift_length[:element0][::-1])
+        angle_backward          = np.array(angle[:element0][::-1])
         tilt_backward           = np.array(tilt[:element0][::-1])
-        ref_shift_x_backward    = -np.array(ref_shift_x[:element0][::-1])
-        ref_shift_y_backward    = -np.array(ref_shift_y[:element0][::-1])
-        ref_rot_x_rad_backward  = -np.array(ref_rot_x_rad[:element0][::-1])
-        ref_rot_y_rad_backward  = -np.array(ref_rot_y_rad[:element0][::-1])
-        ref_rot_s_rad_backward  = -np.array(ref_rot_s_rad[:element0][::-1])
+        ref_shift_x_backward    = np.array(ref_shift_x[:element0][::-1])
+        ref_shift_y_backward    = np.array(ref_shift_y[:element0][::-1])
+        ref_rot_x_rad_backward  = np.array(ref_rot_x_rad[:element0][::-1])
+        ref_rot_y_rad_backward  = np.array(ref_rot_y_rad[:element0][::-1])
+        ref_rot_s_rad_backward  = np.array(ref_rot_s_rad[:element0][::-1])
 
         # Evaluate backward survey
         (V_backward, W_backward)   = compute_survey(
@@ -424,7 +425,8 @@ def compute_survey(
             ref_rot_x_rad   = ref_rot_x_rad_backward,
             ref_rot_y_rad   = ref_rot_y_rad_backward,
             ref_rot_s_rad   = ref_rot_s_rad_backward,
-            element0        = 0)
+            element0        = 0,
+            backtrack       = not backtrack)
 
         # Concatenate forward and backward
         W       = np.array(W_backward[::-1][:-1] + W_forward)
@@ -451,6 +453,15 @@ def compute_survey(
         # Store position and orientation at element entrance
         W.append(w)
         V.append(v)
+
+        if backtrack:
+            ll = -ll
+            aa = -aa
+            xx = -xx
+            yy = -yy
+            rx = -rx
+            ry = -ry
+            rs = -rs
 
         # Advancing
         v, w = advance_element(
