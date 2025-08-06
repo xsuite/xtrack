@@ -180,19 +180,21 @@ class SurveyTable(Table):
             new_cols[kk][:-1] = new_cols[kk][:-1][::-1]
             new_cols[kk][-1] = self[kk][-1]
 
+        itake = slice(1, None, None)
+
         # s vector
-        new_cols['s'][:-1] = new_cols['s'][::-1]
+        new_cols['s'][:-1] = new_cols['s'][itake][::-1]
         new_cols['s'][-1] = self['s'][0]
 
-        out.s = out.s[-1] - out.s
+        new_cols['s'] = new_cols['s'][-1] - new_cols['s']
 
         new_W = self.W.copy()
-        new_W[:-1, :, :] = new_W[:-1, :, :][::-1, :, :]
+        new_W[:-1, :, :] = new_W[itake, :, :][::-1, :, :]
         new_W[-1, :, :] = self.W[0, :, :]
 
-        new_V = self.V.copy()
-        new_V[:-1, :] = new_V[:-1, :][::-1, :]
-        new_V[-1, :] = self.V[0, :]
+        new_V = self.p0.copy()
+        new_V[:-1, :] = new_V[itake, :][::-1, :]
+        new_V[-1, :] = self.p0[0, :]
 
         # Reverse X and Z in the global frame
         new_V[:, 0] *= -1
