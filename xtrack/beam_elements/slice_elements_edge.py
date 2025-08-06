@@ -492,8 +492,10 @@ class ThinSliceRBendEntry(BeamElement):
                         length          = 0,
                         angle           = 0,
                         tilt            = 0,
-                        ref_shift_x     = -self._parent.sagitta / 2,
-                        ref_shift_y     = 0,
+                        ref_shift_x     = -self._parent.sagitta / 2 * (
+                                            np.cos(self._parent.rot_s_rad)),
+                        ref_shift_y     = -self._parent.sagitta / 2 * (
+                                            np.sin(self._parent.rot_s_rad)),
                         ref_rot_x_rad   = 0,
                         ref_rot_y_rad   = 0,
                         ref_rot_s_rad   = 0,
@@ -530,8 +532,10 @@ class ThinSliceRBendEntry(BeamElement):
                         length          = 0,
                         angle           = 0,
                         tilt            = 0,
-                        ref_shift_x     = self._parent.sagitta / 2,
-                        ref_shift_y     = 0,
+                        ref_shift_x     = self._parent.sagitta / 2 * (
+                                            np.cos(self._parent.rot_s_rad)),
+                        ref_shift_y     = self._parent.sagitta / 2 * (
+                                            np.sin(self._parent.rot_s_rad)),
                         ref_rot_x_rad   = 0,
                         ref_rot_y_rad   = 0,
                         ref_rot_s_rad   = 0,
