@@ -18,7 +18,7 @@ line.cut_at_s(np.linspace(0, line.get_length(), 11))
 line.insert('mid', xt.Marker(), at=2.5)
 
 line['mb'].rbend_model = 'straight-body'
-sv_straight = line.survey(element0='mid')
+sv_straight = line.survey(element0='mid', X0=-line['mb'].sagitta/2)
 tt_straight = line.get_table(attr=True)
 
 line['mb'].rbend_model = 'curved-body'
@@ -127,6 +127,7 @@ xo.assert_allclose(tt_curved['s'], np.array([
 import matplotlib.pyplot as plt
 plt.close('all')
 sv_straight.plot()
+plt.plot(sv_curved.Z, sv_curved.X, color='r', alpha=0.7)
 plt.suptitle('Straight body')
 
 sv_curved.plot()
