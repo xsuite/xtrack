@@ -21,10 +21,12 @@ line.insert('mid', xt.Marker(), at=2.5)
 line['mb'].rbend_model = 'straight-body'
 sv_straight = line.survey(element0='mid', Y0=-line['mb'].sagitta/2)
 tt_straight = line.get_table(attr=True)
+tw_straight = line.twiss(betx=1, bety=1)
 
 line['mb'].rbend_model = 'curved-body'
 sv_curved = line.survey(element0='mid')
 tt_curved = line.get_table(attr=True)
+tw_curved = line.twiss(betx=1, bety=1)
 
 tt_straight.cols['s element_type angle_rad']
 # is:
