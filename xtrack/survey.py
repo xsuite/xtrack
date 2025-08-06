@@ -166,88 +166,10 @@ class SurveyTable(Table):
 
     _error_on_row_not_found = True
 
-    def reverse(
-            self,
-            X0 = None, Y0 = None, Z0 = None,
-            theta0 = None, phi0 = None, psi0 = None, element0 = None):
-        """
-        Reverse the survey.
-        """
+    def reverse(self):
 
-        if element0 is None:
-            element0 = len(self.name) - self.element0 - 1
 
-        if (X0 is not None or Y0 is not None or Z0 is not None
-                or theta0 is not None or phi0 is not None or psi0 is not None):
-            assert (X0 is not None and Y0 is not None and Z0 is not None
-                and theta0 is not None and phi0 is not None and psi0 is not None
-                    ), (
-            "X0, Y0, Z0, theta0, phi0, psi0 must be all None or all not None")
 
-        if X0 is None:
-            X0      = self.X[self.element0]
-            Y0      = self.Y[self.element0]
-            Z0      = self.Z[self.element0]
-            theta0  = self.theta[self.element0]
-            phi0    = self.phi[self.element0]
-            psi0    = self.psi[self.element0]
-
-        # We cut away the last marker (added by survey) and reverse the order
-        out_drift_length    = list(self.drift_length[:-1][::-1])
-        out_length          = list(self.length[:-1][::-1])
-        out_angle           = list(-self.angle[:-1][::-1])
-        out_rot_s_rad       = list(-self.rot_s_rad[:-1][::-1])
-        out_ref_shift_x     = list(-self.ref_shift_x[:-1][::-1])
-        out_ref_shift_y     = list(-self.ref_shift_y[:-1][::-1])
-        out_ref_rot_x_rad   = list(-self.ref_rot_x_rad[:-1][::-1])
-        out_ref_rot_y_rad   = list(-self.ref_rot_y_rad[:-1][::-1])
-        out_ref_rot_s_rad   = list(-self.ref_rot_s_rad[:-1][::-1])
-        out_name            = list(self.name[:-1][::-1])
-        out_element_type    = list(self.element_type[:-1][::-1])
-
-        if isinstance(element0, str):
-            element0 = out_name.index(element0)
-
-        V, W = compute_survey(
-            X0              = X0,
-            Y0              = Y0,
-            Z0              = Z0,
-            theta0          = theta0,
-            phi0            = phi0,
-            psi0            = psi0,
-            drift_length    = out_drift_length,
-            angle           = out_angle,
-            tilt            = out_rot_s_rad,
-            ref_shift_x     = out_ref_shift_x,
-            ref_shift_y     = out_ref_shift_y,
-            ref_rot_x_rad   = out_ref_rot_x_rad,
-            ref_rot_y_rad   = out_ref_rot_y_rad,
-            ref_rot_s_rad   = out_ref_rot_s_rad,
-            element0        = element0)
-
-        # Initializing dictionary
-        out_columns = {}
-        out_scalars = {}
-
-        # Fill survey data
-        out_columns["X"]                = V[:, 0]
-        out_columns["Y"]                = V[:, 1]
-        out_columns["Z"]                = V[:, 2]
-        out_columns["name"]             = np.array(list(out_name) + ["_end_point"])
-        out_columns["element_type"]     = np.array(list(out_element_type) + [""])
-        out_columns["s"]                = self.s[-1] - self.s[::-1]
-        out_columns['length']           = np.array(out_length + [0.])
-        out_columns['drift_length']     = np.array(out_drift_length + [0.])
-        out_columns['angle']            = np.array(out_angle + [0.])
-        out_columns['rot_s_rad']        = np.array(out_rot_s_rad + [0.])
-        out_columns["ref_shift_x"]      = np.array(out_ref_shift_x + [0.])
-        out_columns["ref_shift_y"]      = np.array(out_ref_shift_y + [0.])
-        out_columns["ref_rot_x_rad"]    = np.array(out_ref_rot_x_rad + [0.])
-        out_columns["ref_rot_y_rad"]    = np.array(out_ref_rot_y_rad + [0.])
-        out_columns["ref_rot_s_rad"]    = np.array(out_ref_rot_s_rad + [0.])
-        out_columns["W"]                = np.array(W)
-
-        out_scalars["element0"] = element0
 
         out = SurveyTable(
             data        = (out_columns | out_scalars),
@@ -305,7 +227,6 @@ class SurveyTable(Table):
 
 
 # ==================================================
-
 # Main function
 # ==================================================
 def survey_from_line(
@@ -368,29 +289,12 @@ def survey_from_line(
         ref_rot_s_rad   = ref_rot_s_rad[:-1],
         element0        = element0)
 
-    W = np.array(W)
-    V = np.array(V)
+    derived_quantities = _compute_survey_quantities_from_v_w(V, W)
 
-    theta = np.arctan2(W[:, 0, 2], W[:, 2, 2])
-    psi = np.arctan2(W[:, 1, 0], W[:, 1, 1])
-    phi = np.arctan2(W[:, 1, 2], W[:, 1, 1] / np.cos(psi))
-
-    ex = W[:, :, 0]
-    ey = W[:, :, 1]
-    ez = W[:, :, 2]
-    p0 = V.copy()
-
-    # Initializing dictionary
-    out_columns = {}
+    out_columns = derived_quantities
     out_scalars = {}
 
     # Fill survey data
-    out_columns["X"]                = V[:, 0]
-    out_columns["Y"]                = V[:, 1]
-    out_columns["Z"]                = V[:, 2]
-    out_columns["theta"]            = np.unwrap(theta)
-    out_columns["phi"]              = np.unwrap(phi)
-    out_columns["psi"]              = np.unwrap(psi)
     out_columns["name"]             = tt.name
     out_columns["element_type"]     = tt.element_type
     out_columns["s"]                = tt.s
@@ -403,11 +307,6 @@ def survey_from_line(
     out_columns['ref_rot_x_rad']    = ref_rot_x_rad
     out_columns['ref_rot_y_rad']    = ref_rot_y_rad
     out_columns['ref_rot_s_rad']    = ref_rot_s_rad
-    out_columns['ex']               = ex
-    out_columns['ey']               = ey
-    out_columns['ez']               = ez
-    out_columns['p0']               = p0
-    out_columns['W']                = W
 
     out_scalars['element0']     = element0
 
@@ -532,3 +431,36 @@ def compute_survey(
 
     # Return data for SurveyTable object
     return V, W
+
+
+def _compute_survey_quantities_from_v_w(V, W):
+
+    W = np.array(W)
+    V = np.array(V)
+
+    theta = np.arctan2(W[:, 0, 2], W[:, 2, 2])
+    psi = np.arctan2(W[:, 1, 0], W[:, 1, 1])
+    phi = np.arctan2(W[:, 1, 2], W[:, 1, 1] / np.cos(psi))
+
+    ex = W[:, :, 0]
+    ey = W[:, :, 1]
+    ez = W[:, :, 2]
+    p0 = V.copy()
+    X = V[:, 0]
+    Y = V[:, 1]
+    Z = V[:, 2]
+
+    return {
+        'X': X,
+        'Y': Y,
+        'Z': Z,
+        'theta': np.unwrap(theta),
+        'phi': np.unwrap(phi),
+        'psi': np.unwrap(psi),
+        'ex': ex,
+        'ey': ey,
+        'ez': ez,
+        'p0': p0,
+        'W': W
+    }
+
