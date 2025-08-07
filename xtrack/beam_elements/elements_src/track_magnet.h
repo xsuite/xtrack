@@ -491,7 +491,7 @@ void track_magnet_particles(
         length = length_curved * sinc_rbha;
         if (fabs(rbend_half_angle) > 1e-10){
             // shift by half the sagitta
-            dx_rb = 0.5 / h * (1 - cos_rbha);
+            dx_rb = 0.5 / h * (1 - cos_rbha) + rbend_shift;
         };
         h = 0; // treat magnet as straight
         // We are entering the fringe with an angle, the linear fringe
