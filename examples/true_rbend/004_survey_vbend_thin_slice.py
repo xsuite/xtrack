@@ -110,71 +110,58 @@ sv_no_slice_curved_end = line_no_slice.survey(element0='end',
                                 psi0=sv_curved['psi', 'end'])
 tw_no_slice_curved = line_no_slice.twiss(betx=1, bety=1)
 
-
-sv_straight.cols['s element_type angle']
-# is:
-# Table: 20 rows, 4 cols
-# name                      s element_type            angle
-# start                     0 Marker                          0
-# drift_1..0                0 DriftSlice                      0
-# drift_1..1              0.5 DriftSlice                      0
-# mb_entry            0.99436 Marker                          0
-# mb..entry_map       0.99436 ThinSliceRBendEntry          0.15
-# mb..0               0.99436 ThickSliceRBend                 0
-# mb..1                     1 ThickSliceRBend                 0
-# mb..2                   1.5 ThickSliceRBend                 0
-# mb..3                     2 ThickSliceRBend                 0
-# mid                     2.5 Marker                          0
-# mb..4                   2.5 ThickSliceRBend                 0
-# mb..5                     3 ThickSliceRBend                 0
-# mb..6                   3.5 ThickSliceRBend                 0
-# mb..7                     4 ThickSliceRBend                 0
-# mb..exit_map        4.00564 ThinSliceRBendExit           0.15
-# mb_exit             4.00564 Marker                          0
-# drift_2..0          4.00564 DriftSlice                      0
-# drift_2..1              4.5 DriftSlice                      0
-# end                       5 Marker                          0
-# _end_point                5                                 0
-
 assert np.all(sv_straight['name'] == [
-       'start', 'drift_1..0', 'drift_1..1', 'mb_entry', 'mb..entry_map',
-       'mb..0', 'mb..1', 'mb..2', 'mb..3', 'mid', 'mb..4', 'mb..5',
-       'mb..6', 'mb..7', 'mb..exit_map', 'mb_exit', 'drift_2..0',
-       'drift_2..1', 'end', '_end_point'
-])
+       'start', 'drift_1', 'mb_entry', 'mb..entry_map', 'drift_mb..0',
+       'mb..0', 'drift_mb..1', 'mb..1', 'drift_mb..2', 'mb..2',
+       'drift_mb..3', 'mb..3', 'drift_mb..4', 'mb..4', 'drift_mb..5..0',
+       'mid', 'drift_mb..5..1', 'mb..5', 'drift_mb..6', 'mb..6',
+       'drift_mb..7', 'mb..7', 'drift_mb..8', 'mb..8', 'drift_mb..9',
+       'mb..9', 'drift_mb..10', 'mb..exit_map', 'mb_exit', 'drift_2',
+       'end', '_end_point'])
 
 # Assert entire columns using np.all
-assert np.all(sv_straight['element_type'] == ['Marker', 'DriftSlice', 'DriftSlice', 'Marker',
-       'ThinSliceRBendEntry', 'ThickSliceRBend', 'ThickSliceRBend',
-       'ThickSliceRBend', 'ThickSliceRBend', 'Marker', 'ThickSliceRBend',
-       'ThickSliceRBend', 'ThickSliceRBend', 'ThickSliceRBend',
-       'ThinSliceRBendExit', 'Marker', 'DriftSlice', 'DriftSlice',
+assert np.all(sv_straight['element_type'] == [
+       'Marker', 'Drift', 'Marker', 'ThinSliceRBendEntry',
+       'DriftSliceRBend', 'ThinSliceRBend', 'DriftSliceRBend',
+       'ThinSliceRBend', 'DriftSliceRBend', 'ThinSliceRBend',
+       'DriftSliceRBend', 'ThinSliceRBend', 'DriftSliceRBend',
+       'ThinSliceRBend', 'DriftSliceRBend', 'Marker', 'DriftSliceRBend',
+       'ThinSliceRBend', 'DriftSliceRBend', 'ThinSliceRBend',
+       'DriftSliceRBend', 'ThinSliceRBend', 'DriftSliceRBend',
+       'ThinSliceRBend', 'DriftSliceRBend', 'ThinSliceRBend',
+       'DriftSliceRBend', 'ThinSliceRBendExit', 'Marker', 'Drift',
        'Marker', ''])
 
 xo.assert_allclose(
-    sv_straight['angle'],
-    np.array([
-        0.  , 0.  , 0.  , 0.  , 0.15, 0.  , 0.  , 0.  , 0.  , 0.  , 0.  ,
-        0.  , 0.  , 0.  , 0.15, 0.  , 0.  , 0.  , 0.  , 0.  ]),
+    sv_straight['angle'], np.array([
+       0.  , 0.  , 0.  , 0.15, 0.  , 0.  , 0.  , 0.  , 0.  , 0.  , 0.  ,
+       0.  , 0.  , 0.  , 0.  , 0.  , 0.  , 0.  , 0.  , 0.  , 0.  , 0.  ,
+       0.  , 0.  , 0.  , 0.  , 0.  , 0.15, 0.  , 0.  , 0.  , 0.  ]),
     atol=1e-12
 )
 
 xo.assert_allclose(sv_straight['s'], np.array([
-       0.       , 0.       , 0.5      , 0.9943602, 0.9943602, 0.9943602,
-       1.       , 1.5      , 2.       , 2.5      , 2.5      , 3.       ,
-       3.5      , 4.       , 4.0056398, 4.0056398, 4.0056398, 4.5      ,
-       5.       , 5.       ]
+       0.        , 0.        , 0.9943602 , 0.9943602 , 0.9943602 ,
+       1.13123654, 1.13123654, 1.4354062 , 1.4354062 , 1.73957586,
+       1.73957586, 2.04374551, 2.04374551, 2.34791517, 2.34791517,
+       2.5       , 2.5       , 2.65208483, 2.65208483, 2.95625449,
+       2.95625449, 3.26042414, 3.26042414, 3.5645938 , 3.5645938 ,
+       3.86876346, 3.86876346, 4.0056398 , 4.0056398 , 4.0056398 ,
+       5.        , 5.        ]
 ), atol=1e-5)
 
 xo.assert_allclose(
     sv_straight['rot_s_rad'],
-    np.array([
-        0.        , 0.        , 0.        , 0.        , 1.57079633,
-        1.57079633, 1.57079633, 1.57079633, 1.57079633, 0.        ,
-        1.57079633, 1.57079633, 1.57079633, 1.57079633, 1.57079633,
-        0.        , 0.        , 0.        , 0.        , 0.        ]),
-    atol=1e-8
-)
+    np.array([0.        , 0.        , 0.        , 1.57079633, 0.        ,
+       1.57079633, 0.        , 1.57079633, 0.        , 1.57079633,
+       0.        , 1.57079633, 0.        , 1.57079633, 0.        ,
+       0.        , 0.        , 1.57079633, 0.        , 1.57079633,
+       0.        , 1.57079633, 0.        , 1.57079633, 0.        ,
+       1.57079633, 0.        , 1.57079633, 0.        , 0.        ,
+       0.        , 0.        ]),
+    atol=1e-8)
+
+prrrr
 
 sv_straight.cols['X Y Z']
 # is:
