@@ -12,7 +12,6 @@ import xobjects as xo
 from ..base_element import BeamElement
 from ..beam_elements import Marker
 from ..internal_record import RecordIndex
-from ..general import _pkg_root
 
 class BeamProfileMonitorRecord(xo.Struct):
     counts_x = xo.Float64[:]
@@ -45,8 +44,7 @@ class BeamProfileMonitor(BeamElement):
     properties = [field.name for field in BeamProfileMonitorRecord._fields]
 
     _extra_c_sources = [
-        _pkg_root.joinpath('headers/atomicadd.h'),
-        _pkg_root.joinpath('monitors/beam_profile_monitor.h')
+        '#include "xtrack/monitors/beam_profile_monitor.h"',
     ]
 
 
