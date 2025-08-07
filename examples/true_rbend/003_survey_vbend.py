@@ -14,11 +14,13 @@ line = env.new_line(length=5, components=[
             rot_s_rad=np.pi/2,
             rbend_model='straight-body', edge_entry_model=edge_model, edge_exit_model=edge_model,
             at=2.5)])
+line.insert('start', xt.Marker(), at=0)
+line.append('end', xt.Marker())
+
+line_no_slice = line.copy(shallow=True)
 
 line.cut_at_s(np.linspace(0, line.get_length(), 11))
 line.insert('mid', xt.Marker(), at=2.5)
-line.insert('start', xt.Marker(), at=0)
-line.append('end', xt.Marker())
 
 line['mb'].rbend_model = 'straight-body'
 sv_straight = line.survey(element0='mid', Y0=-line['mb'].sagitta/2)
@@ -45,6 +47,22 @@ sv_straight_end = line.survey(element0='end',
                                 phi0=sv_straight['phi', 'end'],
                                 psi0=sv_straight['psi', 'end'])
 
+sv_no_slice_start = line_no_slice.survey(element0='start',
+                                X0=sv_straight['X', 'start'],
+                                Y0=sv_straight['Y', 'start'],
+                                Z0=sv_straight['Z', 'start'],
+                                theta0=sv_straight['theta', 'start'],
+                                phi0=sv_straight['phi', 'start'],
+                                psi0=sv_straight['psi', 'start'])
+sv_no_slice_end = line_no_slice.survey(element0='end',
+                                X0=sv_straight['X', 'end'],
+                                Y0=sv_straight['Y', 'end'],
+                                Z0=sv_straight['Z', 'end'],
+                                theta0=sv_straight['theta', 'end'],
+                                phi0=sv_straight['phi', 'end'],
+                                psi0=sv_straight['psi', 'end'])
+tw_no_sliced = line_no_slice.twiss(betx=1, bety=1)
+
 line['mb'].rbend_model = 'curved-body'
 sv_curved = line.survey(element0='mid')
 tt_curved = line.get_table(attr=True)
@@ -69,6 +87,22 @@ sv_curved_end = line.survey(element0='end',
                                 theta0=sv_curved['theta', 'end'],
                                 phi0=sv_curved['phi', 'end'],
                                 psi0=sv_curved['psi', 'end'])
+sv_no_slice_curved_start = line_no_slice.survey(element0='start',
+                                X0=sv_curved['X', 'start'],
+                                Y0=sv_curved['Y', 'start'],
+                                Z0=sv_curved['Z', 'start'],
+                                theta0=sv_curved['theta', 'start'],
+                                phi0=sv_curved['phi', 'start'],
+                                psi0=sv_curved['psi', 'start'])
+sv_no_slice_curved_end = line_no_slice.survey(element0='end',
+                                X0=sv_curved['X', 'end'],
+                                Y0=sv_curved['Y', 'end'],
+                                Z0=sv_curved['Z', 'end'],
+                                theta0=sv_curved['theta', 'end'],
+                                phi0=sv_curved['phi', 'end'],
+                                psi0=sv_curved['psi', 'end'])
+tw_no_slice_curved = line_no_slice.twiss(betx=1, bety=1)
+
 
 sv_straight.cols['s element_type angle']
 # is:
@@ -394,6 +428,15 @@ xo.assert_allclose(tw_straight['Z', 'mb_entry'], tw_curved['Z', 'mb_entry'], ato
 xo.assert_allclose(tw_straight['X', 'mb_exit'], tw_curved['X', 'mb_exit'], atol=3e-11)
 xo.assert_allclose(tw_straight['Y', 'mb_exit'], tw_curved['Y', 'mb_exit'], atol=3e-11)
 xo.assert_allclose(tw_straight['Z', 'mb_exit'], tw_curved['Z', 'mb_exit'], atol=3e-11)
+
+xo.assert_allclose(tw_straight['x', 'mb_entry'], 0, atol=1e-14)
+xo.assert_allclose(tw_straight['y', 'mb_entry'], 0, atol=1e-14)
+xo.assert_allclose(tw_straight['x', 'mb_exit'], 0, atol=1e-14)
+xo.assert_allclose(tw_straight['y', 'mb_exit'], 0, atol=5e-13)
+xo.assert_allclose(tw_curved['x', 'mb_entry'], 0, atol=1e-14)
+xo.assert_allclose(tw_curved['y', 'mb_entry'], 0, atol=1e-14)
+xo.assert_allclose(tw_curved['x', 'mb_exit'], 0, atol=1e-14)
+xo.assert_allclose(tw_curved['y', 'mb_exit'], 0, atol=5e-13)
 
 import matplotlib.pyplot as plt
 plt.close('all')
