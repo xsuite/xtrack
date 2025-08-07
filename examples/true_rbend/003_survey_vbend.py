@@ -300,17 +300,25 @@ sv_curved.cols['theta phi psi']
 
 xo.assert_allclose(sv_curved['theta'], 0, atol=1e-14)
 xo.assert_allclose(sv_curved['psi'], 0, atol=1e-14)
-xo.assert_allclose(sv_curved['phi'], np.array([ 
+xo.assert_allclose(sv_curved['phi'], np.array([
         0.15      ,  0.15      ,  0.15      ,  0.15      ,  0.15      ,
         0.15      ,  0.14943813,  0.09962542,  0.04981271,  0.        ,
         0.        , -0.04981271, -0.09962542, -0.14943813, -0.15      ,
        -0.15      , -0.15      , -0.15      , -0.15      , -0.15      ],
     ), atol=1e-8)
 
+# for nn in ['start', 'end']:
+#     xo.assert_allclose(sv_straight['X', nn], sv_curved['X', nn], atol=1e-14)
+#     xo.assert_allclose(sv_straight['Y', nn], sv_curved['Y', nn], atol=1e-14)
+#     xo.assert_allclose(sv_straight['Z', nn], sv_curved['Z', nn], atol=1e-14)
+#     xo.assert_allclose(sv_straight['theta', nn], sv_curved['theta', nn], atol=1e-14)
+#     xo.assert_allclose(sv_straight['phi', nn], sv_curved['phi', nn], atol=1e-14)
+#     xo.assert_allclose(sv_straight['psi', nn], sv_curved['psi', nn], atol=1e-14)
+
 import matplotlib.pyplot as plt
 plt.close('all')
 sv_straight.plot(projection='ZY')
-plt.plot(sv_curved.Z, sv_curved.Y, color='r', alpha=0.7)
+plt.plot(sv_curved.Z, sv_curved.Y, '.-', color='r', alpha=0.7)
 plt.suptitle('Straight body')
 
 sv_curved.plot(projection='ZY')

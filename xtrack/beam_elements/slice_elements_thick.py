@@ -7,6 +7,7 @@ from .elements import (
     Octupole, Solenoid, Drift, RBend, UniformSolenoid
 )
 from ..random import RandomUniformAccurate, RandomExponential
+from ..survey import advance_element as survey_advance_element
 
 from .slice_elements_thin import _slice_copy, ID_RADIATION_FROM_PARENT
 
@@ -76,6 +77,34 @@ class ThickSliceRBend(BeamElement):
         obj = super().from_dict(dct, **kwargs)
         obj.parent_name = dct['parent_name']
         return obj
+
+    def _propagate_survey(self, v, w, backtrack):
+
+        if self._parent.rbend_model == "straight-body":
+            ll = self._parent.length_straight * self.weight
+            aa = 0
+        else:
+            ll = self._parent.length * self.weight
+            aa = self._parent.angle * self.weight
+
+        if backtrack:
+            ll *= -1
+            aa *= -1
+
+        v, w = survey_advance_element(
+            v               = v,
+            w               = w,
+            length          = ll,
+            angle           = aa,
+            tilt            = self._parent.rot_s_rad,
+            ref_shift_x     = 0,
+            ref_shift_y     = 0,
+            ref_rot_x_rad   = 0,
+            ref_rot_y_rad   = 0,
+            ref_rot_s_rad   = 0,
+        )
+
+        return v, w
 
 
 class ThickSliceQuadrupole(BeamElement):
