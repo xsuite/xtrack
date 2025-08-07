@@ -24,11 +24,39 @@ line['mb'].rbend_model = 'straight-body'
 sv_straight = line.survey(element0='mid', Y0=-line['mb'].sagitta/2)
 tt_straight = line.get_table(attr=True)
 tw_straight = line.twiss(betx=1, bety=1)
+sv_straight_start = line.survey(element0='start',
+                                X0=sv_straight['X', 'start'],
+                                Y0=sv_straight['Y', 'start'],
+                                Z0=sv_straight['Z', 'start'],
+                                theta0=sv_straight['theta', 'start'],
+                                phi0=sv_straight['phi', 'start'],
+                                psi0=sv_straight['psi', 'start'])
+sv_straight_end = line.survey(element0='end',
+                                X0=sv_straight['X', 'end'],
+                                Y0=sv_straight['Y', 'end'],
+                                Z0=sv_straight['Z', 'end'],
+                                theta0=sv_straight['theta', 'end'],
+                                phi0=sv_straight['phi', 'end'],
+                                psi0=sv_straight['psi', 'end'])
 
 line['mb'].rbend_model = 'curved-body'
 sv_curved = line.survey(element0='mid')
 tt_curved = line.get_table(attr=True)
 tw_curved = line.twiss(betx=1, bety=1)
+sv_curved_start = line.survey(element0='start',
+                                X0=sv_curved['X', 'start'],
+                                Y0=sv_curved['Y', 'start'],
+                                Z0=sv_curved['Z', 'start'],
+                                theta0=sv_curved['theta', 'start'],
+                                phi0=sv_curved['phi', 'start'],
+                                psi0=sv_curved['psi', 'start'])
+sv_curved_end = line.survey(element0='end',
+                                X0=sv_curved['X', 'end'],
+                                Y0=sv_curved['Y', 'end'],
+                                Z0=sv_curved['Z', 'end'],
+                                theta0=sv_curved['theta', 'end'],
+                                phi0=sv_curved['phi', 'end'],
+                                psi0=sv_curved['psi', 'end'])
 
 sv_straight.cols['s element_type angle']
 # is:
@@ -313,6 +341,34 @@ for nn in ['start', 'end']:
     xo.assert_allclose(sv_straight['theta', nn], sv_curved['theta', nn], atol=1e-14)
     xo.assert_allclose(sv_straight['phi', nn], sv_curved['phi', nn], atol=1e-14)
     xo.assert_allclose(sv_straight['psi', nn], sv_curved['psi', nn], atol=1e-14)
+
+xo.assert_allclose(sv_straight_start['X'], sv_straight['X'], atol=1e-14)
+xo.assert_allclose(sv_straight_start['Y'], sv_straight['Y'], atol=1e-14)
+xo.assert_allclose(sv_straight_start['Z'], sv_straight['Z'], atol=1e-14)
+xo.assert_allclose(sv_straight_start['theta'], sv_straight['theta'], atol=1e-14)
+xo.assert_allclose(sv_straight_start['phi'], sv_straight['phi'], atol=1e-14)
+xo.assert_allclose(sv_straight_start['psi'], sv_straight['psi'], atol=1e-14)
+
+xo.assert_allclose(sv_straight_end['X'], sv_straight['X'], atol=1e-14)
+xo.assert_allclose(sv_straight_end['Y'], sv_straight['Y'], atol=1e-14)
+xo.assert_allclose(sv_straight_end['Z'], sv_straight['Z'], atol=1e-14)
+xo.assert_allclose(sv_straight_end['theta'], sv_straight['theta'], atol=1e-14)
+xo.assert_allclose(sv_straight_end['phi'], sv_straight['phi'], atol=1e-14)
+xo.assert_allclose(sv_straight_end['psi'], sv_straight['psi'], atol=1e-14)
+
+xo.assert_allclose(sv_curved_start['X'], sv_curved['X'], atol=1e-14)
+xo.assert_allclose(sv_curved_start['Y'], sv_curved['Y'], atol=1e-14)
+xo.assert_allclose(sv_curved_start['Z'], sv_curved['Z'], atol=1e-14)
+xo.assert_allclose(sv_curved_start['theta'], sv_curved['theta'], atol=1e-14)
+xo.assert_allclose(sv_curved_start['phi'], sv_curved['phi'], atol=1e-14)
+xo.assert_allclose(sv_curved_start['psi'], sv_curved['psi'], atol=1e-14)
+
+xo.assert_allclose(sv_curved_end['X'], sv_curved['X'], atol=1e-14)
+xo.assert_allclose(sv_curved_end['Y'], sv_curved['Y'], atol=1e-14)
+xo.assert_allclose(sv_curved_end['Z'], sv_curved['Z'], atol=1e-14)
+xo.assert_allclose(sv_curved_end['theta'], sv_curved['theta'], atol=1e-14)
+xo.assert_allclose(sv_curved_end['phi'], sv_curved['phi'], atol=1e-14)
+xo.assert_allclose(sv_curved_end['psi'], sv_curved['psi'], atol=1e-14)
 
 import matplotlib.pyplot as plt
 plt.close('all')
