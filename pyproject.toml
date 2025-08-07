@@ -1,15 +1,14 @@
 [build-system]
 build-backend = 'setuptools.build_meta'
 requires = [
-    'setuptools >= 43.0.0',
-    'numpy',
+    'setuptools >= 61.0.0',
 ]
 
 [project]
 name = "xtrack"
 dynamic = ["version"]
 description = "Tracking library for particle accelerators"
-readme = ""
+readme = "README.md"
 requires-python = ">=3.7"
 license = { text = "Apache-2.0" }
 authors = [
@@ -50,7 +49,7 @@ notebooks = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["xtrack*"]
+include = ["xtrack", "ducktrack"]
 
 [tool.setuptools.dynamic]
 version = { attr = "xtrack._version.__version__" }
