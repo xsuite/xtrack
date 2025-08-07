@@ -338,6 +338,31 @@ class DriftSliceRBend(BeamElement):
                      _buffer=self._buffer)
         return out
 
+    def _propagate_survey(self, v, w, backtrack):
+
+        if self._parent.rbend_model == "straight-body":
+            ll = self._parent.length_straight * self.weight
+        else:
+            ll = self._parent.length * self.weight
+
+        if backtrack:
+            ll *= -1
+
+        v, w = survey_advance_element(
+            v               = v,
+            w               = w,
+            length          = ll,
+            angle           = 0,
+            tilt            = 0,
+            ref_shift_x     = 0,
+            ref_shift_y     = 0,
+            ref_rot_x_rad   = 0,
+            ref_rot_y_rad   = 0,
+            ref_rot_s_rad   = 0,
+        )
+
+        return v, w
+
 
 class DriftSliceQuadrupole(BeamElement):
     allow_rot_and_shift = False
