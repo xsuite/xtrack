@@ -49,7 +49,7 @@ void ThinSliceRBend_track_local_particle(
         /*ks*/                    0.,
         /*dks_ds*/                0.,
         /*rbend_model*/           ThinSliceRBendData_get__parent_rbend_model(el),
-        /*rbend_shift*/           0.,
+        /*rbend_shift*/           ThinSliceRBendData_get__parent_rbend_shift(el),
         /*body_active*/           1,
         /*edge_entry_active*/     0,
         /*edge_exit_active*/      0,

@@ -1203,6 +1203,7 @@ class RBend(_BendCommon, BeamElement):
         **_BendCommon._common_xofields,
         'length_straight': xo.Float64,
         'rbend_model': xo.Int64,
+        'rbend_shift': xo.Float64,
     }
 
     allow_loss_refinement = True
