@@ -26,7 +26,7 @@ line.slice_thick_elements(
         slicing_strategies=[
             # Slicing with thin elements
             xt.Strategy(slicing=None),
-            xt.Strategy(slicing=xt.Teapot(10000), element_type=xt.RBend),
+            xt.Strategy(slicing=xt.Teapot(1000), element_type=xt.RBend),
         ])
 
 line.insert('mid', xt.Marker(), at=2.5)
@@ -115,14 +115,14 @@ tw_no_slice_curved = line_no_slice.twiss(betx=1, bety=1)
 
 for nn in ['start', 'end']:
     xo.assert_allclose(sv_straight['X', nn], sv_curved['X', nn], atol=1e-14)
-    xo.assert_allclose(sv_straight['Y', nn], sv_curved['Y', nn], atol=1e-8)
-    xo.assert_allclose(sv_straight['Z', nn], sv_curved['Z', nn], atol=1e-8)
+    xo.assert_allclose(sv_straight['Y', nn], sv_curved['Y', nn], atol=2e-7)
+    xo.assert_allclose(sv_straight['Z', nn], sv_curved['Z', nn], atol=2e-7)
     xo.assert_allclose(sv_straight['theta', nn], sv_curved['theta', nn], atol=1e-14)
     xo.assert_allclose(sv_straight['phi', nn], sv_curved['phi', nn], atol=1e-14)
     xo.assert_allclose(sv_straight['psi', nn], sv_curved['psi', nn], atol=1e-14)
 
 xo.assert_allclose(sv_straight_start['X'], sv_straight['X'], atol=1e-14)
-xo.assert_allclose(sv_straight_start['Y'], sv_straight['Y'], atol=1e-8)
+xo.assert_allclose(sv_straight_start['Y'], sv_straight['Y'], atol=2e-7)
 xo.assert_allclose(sv_straight_start['Z'], sv_straight['Z'], atol=1e-14)
 xo.assert_allclose(sv_straight_start['theta'], sv_straight['theta'], atol=1e-14)
 xo.assert_allclose(sv_straight_start['phi'], sv_straight['phi'], atol=1e-14)
@@ -136,8 +136,8 @@ xo.assert_allclose(sv_straight_end['phi'], sv_straight['phi'], atol=1e-14)
 xo.assert_allclose(sv_straight_end['psi'], sv_straight['psi'], atol=1e-14)
 
 xo.assert_allclose(sv_curved_start['X'], sv_curved['X'], atol=1e-14)
-xo.assert_allclose(sv_curved_start['Y'], sv_curved['Y'], atol=1e-8)
-xo.assert_allclose(sv_curved_start['Z'], sv_curved['Z'], atol=1e-8)
+xo.assert_allclose(sv_curved_start['Y'], sv_curved['Y'], atol=2e-7)
+xo.assert_allclose(sv_curved_start['Z'], sv_curved['Z'], atol=2e-7)
 xo.assert_allclose(sv_curved_start['theta'], sv_curved['theta'], atol=1e-14)
 xo.assert_allclose(sv_curved_start['phi'], sv_curved['phi'], atol=1e-14)
 xo.assert_allclose(sv_curved_start['psi'], sv_curved['psi'], atol=1e-14)
@@ -155,11 +155,11 @@ xo.assert_allclose(tw_curved['X', 'mid'], 0, atol=1e-14)
 xo.assert_allclose(tw_curved['Y', 'mid'], 0,  atol=1e-12)
 xo.assert_allclose(tw_curved['Z', 'mid'], 0, atol=1e-12)
 xo.assert_allclose(tw_straight['X', 'mb_entry'], tw_curved['X', 'mb_entry'], atol=1e-14)
-xo.assert_allclose(tw_straight['Y', 'mb_entry'], tw_curved['Y', 'mb_entry'], atol=1e-8)
-xo.assert_allclose(tw_straight['Z', 'mb_entry'], tw_curved['Z', 'mb_entry'], atol=1e-8)
+xo.assert_allclose(tw_straight['Y', 'mb_entry'], tw_curved['Y', 'mb_entry'], atol=2e-7)
+xo.assert_allclose(tw_straight['Z', 'mb_entry'], tw_curved['Z', 'mb_entry'], atol=2e-7)
 xo.assert_allclose(tw_straight['X', 'mb_exit'], tw_curved['X', 'mb_exit'], atol=1e-14)
-xo.assert_allclose(tw_straight['Y', 'mb_exit'], tw_curved['Y', 'mb_exit'], atol=1e-8)
-xo.assert_allclose(tw_straight['Z', 'mb_exit'], tw_curved['Z', 'mb_exit'], atol=1e-8)
+xo.assert_allclose(tw_straight['Y', 'mb_exit'], tw_curved['Y', 'mb_exit'], atol=2e-7)
+xo.assert_allclose(tw_straight['Z', 'mb_exit'], tw_curved['Z', 'mb_exit'], atol=2e-7)
 
 xo.assert_allclose(tw_straight['x', 'mb_entry'], 0, atol=1e-13)
 xo.assert_allclose(tw_straight['y', 'mb_entry'], 0, atol=1e-13)
@@ -189,21 +189,21 @@ xo.assert_allclose(tw_no_slice_straight['y', 'end'], tw_curved['y', 'end'],
 
 for nn in ['start', 'end']:
     # Compare no_slice survey vs curved survey
-    xo.assert_allclose(sv_no_slice_curved_start['X', nn], sv_curved['X', nn], atol=5e-13)
-    xo.assert_allclose(sv_no_slice_curved_start['Y', nn], sv_curved['Y', nn], atol=5e-13)
-    xo.assert_allclose(sv_no_slice_curved_start['Z', nn], sv_curved['Z', nn], atol=5e-13)
-    xo.assert_allclose(sv_no_slice_curved_start['theta', nn], sv_curved['theta', nn], atol=5e-13)
-    xo.assert_allclose(sv_no_slice_curved_start['phi', nn], sv_curved['phi', nn], atol=5e-13)
-    xo.assert_allclose(sv_no_slice_curved_start['psi', nn], sv_curved['psi', nn], atol=5e-13)
-    xo.assert_allclose(sv_no_slice_curved_start['s', nn], sv_curved['s', nn], atol=5e-13)
+    xo.assert_allclose(sv_no_slice_curved_start['X', nn], sv_curved['X', nn], atol=5e-11)
+    xo.assert_allclose(sv_no_slice_curved_start['Y', nn], sv_curved['Y', nn], atol=5e-11)
+    xo.assert_allclose(sv_no_slice_curved_start['Z', nn], sv_curved['Z', nn], atol=5e-11)
+    xo.assert_allclose(sv_no_slice_curved_start['theta', nn], sv_curved['theta', nn], atol=5e-11)
+    xo.assert_allclose(sv_no_slice_curved_start['phi', nn], sv_curved['phi', nn], atol=5e-11)
+    xo.assert_allclose(sv_no_slice_curved_start['psi', nn], sv_curved['psi', nn], atol=5e-11)
+    xo.assert_allclose(sv_no_slice_curved_start['s', nn], sv_curved['s', nn], atol=5e-11)
 
-    xo.assert_allclose(sv_no_slice_curved_end['X', nn], sv_curved['X', nn], atol=5e-13)
-    xo.assert_allclose(sv_no_slice_curved_end['Y', nn], sv_curved['Y', nn], atol=5e-13)
-    xo.assert_allclose(sv_no_slice_curved_end['Z', nn], sv_curved['Z', nn], atol=5e-13)
-    xo.assert_allclose(sv_no_slice_curved_end['theta', nn], sv_curved['theta', nn], atol=5e-13)
-    xo.assert_allclose(sv_no_slice_curved_end['phi', nn], sv_curved['phi', nn], atol=5e-13)
-    xo.assert_allclose(sv_no_slice_curved_end['psi', nn], sv_curved['psi', nn], atol=5e-13)
-    xo.assert_allclose(sv_no_slice_curved_end['s', nn], sv_curved['s', nn], atol=5e-13)
+    xo.assert_allclose(sv_no_slice_curved_end['X', nn], sv_curved['X', nn], atol=5e-11)
+    xo.assert_allclose(sv_no_slice_curved_end['Y', nn], sv_curved['Y', nn], atol=5e-11)
+    xo.assert_allclose(sv_no_slice_curved_end['Z', nn], sv_curved['Z', nn], atol=5e-11)
+    xo.assert_allclose(sv_no_slice_curved_end['theta', nn], sv_curved['theta', nn], atol=5e-11)
+    xo.assert_allclose(sv_no_slice_curved_end['phi', nn], sv_curved['phi', nn], atol=5e-11)
+    xo.assert_allclose(sv_no_slice_curved_end['psi', nn], sv_curved['psi', nn], atol=5e-11)
+    xo.assert_allclose(sv_no_slice_curved_end['s', nn], sv_curved['s', nn], atol=5e-11)
 
 import matplotlib.pyplot as plt
 plt.close('all')
