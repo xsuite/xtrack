@@ -2,9 +2,6 @@ import xtrack as xt
 import numpy as np
 import xobjects as xo
 
-# Need to check what happens with rot_s_rad (v bend)
-# Need to check diffrent element0
-
 env = xt.Environment(particle_ref=xt.Particles(p0c=10e9))
 
 edge_model = 'full'
