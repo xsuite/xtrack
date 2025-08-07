@@ -12,6 +12,7 @@ edge_model = 'full'
 line = env.new_line(length=5, components=[
     env.new('mb', 'RBend', angle=0.3, k0_from_h=True, length_straight=3,
             rot_s_rad=np.pi/2,
+            model='bend-kick-bend',
             rbend_model='straight-body', edge_entry_model=edge_model, edge_exit_model=edge_model,
             at=2.5)])
 line.insert('start', xt.Marker(), at=0)
@@ -61,7 +62,7 @@ sv_no_slice_end = line_no_slice.survey(element0='end',
                                 theta0=sv_straight['theta', 'end'],
                                 phi0=sv_straight['phi', 'end'],
                                 psi0=sv_straight['psi', 'end'])
-tw_no_sliced = line_no_slice.twiss(betx=1, bety=1)
+tw_no_slice_straight = line_no_slice.twiss(betx=1, bety=1)
 
 line['mb'].rbend_model = 'curved-body'
 sv_curved = line.survey(element0='mid')
@@ -415,28 +416,62 @@ xo.assert_allclose(sv_curved_end['Z'], sv_curved['Z'], atol=1e-14)
 xo.assert_allclose(sv_curved_end['theta'], sv_curved['theta'], atol=1e-14)
 xo.assert_allclose(sv_curved_end['phi'], sv_curved['phi'], atol=1e-14)
 xo.assert_allclose(sv_curved_end['psi'], sv_curved['psi'], atol=1e-14)
-
-xo.assert_allclose(tw_straight['X', 'mid'], 0, atol=3e-11)
-xo.assert_allclose(tw_straight['Y', 'mid'], 0, atol=3e-11)
-xo.assert_allclose(tw_straight['Z', 'mid'], 0, atol=3e-11)
-xo.assert_allclose(tw_curved['X', 'mid'], 0, atol=3e-11)
-xo.assert_allclose(tw_curved['Y', 'mid'], 0, atol=3e-11)
-xo.assert_allclose(tw_curved['Z', 'mid'], 0, atol=3e-11)
-xo.assert_allclose(tw_straight['X', 'mb_entry'], tw_curved['X', 'mb_entry'], atol=3e-11)
-xo.assert_allclose(tw_straight['Y', 'mb_entry'], tw_curved['Y', 'mb_entry'], atol=3e-11)
-xo.assert_allclose(tw_straight['Z', 'mb_entry'], tw_curved['Z', 'mb_entry'], atol=3e-11)
-xo.assert_allclose(tw_straight['X', 'mb_exit'], tw_curved['X', 'mb_exit'], atol=3e-11)
-xo.assert_allclose(tw_straight['Y', 'mb_exit'], tw_curved['Y', 'mb_exit'], atol=3e-11)
-xo.assert_allclose(tw_straight['Z', 'mb_exit'], tw_curved['Z', 'mb_exit'], atol=3e-11)
+xo.assert_allclose(tw_straight['X', 'mid'], 0, atol=1e-14)
+xo.assert_allclose(tw_straight['Y', 'mid'], 0, atol=1e-14)
+xo.assert_allclose(tw_straight['Z', 'mid'], 0, atol=1e-14)
+xo.assert_allclose(tw_curved['X', 'mid'], 0, atol=1e-14)
+xo.assert_allclose(tw_curved['Y', 'mid'], 0, atol=1e-14)
+xo.assert_allclose(tw_curved['Z', 'mid'], 0, atol=1e-14)
+xo.assert_allclose(tw_straight['X', 'mb_entry'], tw_curved['X', 'mb_entry'], atol=1e-14)
+xo.assert_allclose(tw_straight['Y', 'mb_entry'], tw_curved['Y', 'mb_entry'], atol=1e-14)
+xo.assert_allclose(tw_straight['Z', 'mb_entry'], tw_curved['Z', 'mb_entry'], atol=1e-14)
+xo.assert_allclose(tw_straight['X', 'mb_exit'], tw_curved['X', 'mb_exit'], atol=1e-14)
+xo.assert_allclose(tw_straight['Y', 'mb_exit'], tw_curved['Y', 'mb_exit'], atol=1e-14)
+xo.assert_allclose(tw_straight['Z', 'mb_exit'], tw_curved['Z', 'mb_exit'], atol=1e-14)
 
 xo.assert_allclose(tw_straight['x', 'mb_entry'], 0, atol=1e-14)
 xo.assert_allclose(tw_straight['y', 'mb_entry'], 0, atol=1e-14)
 xo.assert_allclose(tw_straight['x', 'mb_exit'], 0, atol=1e-14)
-xo.assert_allclose(tw_straight['y', 'mb_exit'], 0, atol=5e-13)
+xo.assert_allclose(tw_straight['y', 'mb_exit'], 0, atol=1e-14)
 xo.assert_allclose(tw_curved['x', 'mb_entry'], 0, atol=1e-14)
 xo.assert_allclose(tw_curved['y', 'mb_entry'], 0, atol=1e-14)
 xo.assert_allclose(tw_curved['x', 'mb_exit'], 0, atol=1e-14)
-xo.assert_allclose(tw_curved['y', 'mb_exit'], 0, atol=5e-13)
+xo.assert_allclose(tw_curved['y', 'mb_exit'], 0, atol=1e-14)
+
+xo.assert_allclose(tw_no_slice_curved['x', 'start'], tw_curved['x', 'start'],
+                   atol=1e-14)
+xo.assert_allclose(tw_no_slice_curved['y', 'start'], tw_curved['y', 'start'],
+                   atol=1e-14)
+xo.assert_allclose(tw_no_slice_curved['x', 'end'], tw_curved['x', 'end'],
+                   atol=1e-14)
+xo.assert_allclose(tw_no_slice_curved['y', 'end'], tw_curved['y', 'end'],
+                   atol=1e-14)
+xo.assert_allclose(tw_no_slice_straight['x', 'start'], tw_curved['x', 'start'],
+                     atol=1e-14)
+xo.assert_allclose(tw_no_slice_straight['y', 'start'], tw_curved['y', 'start'],
+                     atol=1e-14)
+xo.assert_allclose(tw_no_slice_straight['x', 'end'], tw_curved['x', 'end'],
+                     atol=1e-14)
+xo.assert_allclose(tw_no_slice_straight['y', 'end'], tw_curved['y', 'end'],
+                     atol=1e-14)
+
+for nn in ['start', 'end']:
+    # Compare no_slice survey vs curved survey
+    xo.assert_allclose(sv_no_slice_curved_start['X', nn], sv_curved['X', nn], atol=1e-14)
+    xo.assert_allclose(sv_no_slice_curved_start['Y', nn], sv_curved['Y', nn], atol=1e-14)
+    xo.assert_allclose(sv_no_slice_curved_start['Z', nn], sv_curved['Z', nn], atol=1e-14)
+    xo.assert_allclose(sv_no_slice_curved_start['theta', nn], sv_curved['theta', nn], atol=1e-14)
+    xo.assert_allclose(sv_no_slice_curved_start['phi', nn], sv_curved['phi', nn], atol=1e-14)
+    xo.assert_allclose(sv_no_slice_curved_start['psi', nn], sv_curved['psi', nn], atol=1e-14)
+    xo.assert_allclose(sv_no_slice_curved_start['s', nn], sv_curved['s', nn], atol=1e-14)
+
+    xo.assert_allclose(sv_no_slice_curved_end['X', nn], sv_curved['X', nn], atol=1e-14)
+    xo.assert_allclose(sv_no_slice_curved_end['Y', nn], sv_curved['Y', nn], atol=1e-14)
+    xo.assert_allclose(sv_no_slice_curved_end['Z', nn], sv_curved['Z', nn], atol=1e-14)
+    xo.assert_allclose(sv_no_slice_curved_end['theta', nn], sv_curved['theta', nn], atol=1e-14)
+    xo.assert_allclose(sv_no_slice_curved_end['phi', nn], sv_curved['phi', nn], atol=1e-14)
+    xo.assert_allclose(sv_no_slice_curved_end['psi', nn], sv_curved['psi', nn], atol=1e-14)
+    xo.assert_allclose(sv_no_slice_curved_end['s', nn], sv_curved['s', nn], atol=1e-14)
 
 import matplotlib.pyplot as plt
 plt.close('all')
