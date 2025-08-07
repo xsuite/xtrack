@@ -30,10 +30,10 @@ sv_curved = line.survey(element0='mid')
 tt_curved = line.get_table(attr=True)
 tw_curved = line.twiss(betx=1, bety=1)
 
-tt_straight.cols['s element_type angle_rad']
+sv_straight.cols['s element_type angle']
 # is:
 # Table: 20 rows, 4 cols
-# name                      s element_type            angle_rad
+# name                      s element_type            angle
 # start                     0 Marker                          0
 # drift_1..0                0 DriftSlice                      0
 # drift_1..1              0.5 DriftSlice                      0
@@ -55,7 +55,7 @@ tt_straight.cols['s element_type angle_rad']
 # end                       5 Marker                          0
 # _end_point                5                                 0
 
-assert np.all(tt_straight['name'] == [
+assert np.all(sv_straight['name'] == [
        'start', 'drift_1..0', 'drift_1..1', 'mb_entry', 'mb..entry_map',
        'mb..0', 'mb..1', 'mb..2', 'mb..3', 'mid', 'mb..4', 'mb..5',
        'mb..6', 'mb..7', 'mb..exit_map', 'mb_exit', 'drift_2..0',
@@ -63,7 +63,7 @@ assert np.all(tt_straight['name'] == [
 ])
 
 # Assert entire columns using np.all
-assert np.all(tt_straight['element_type'] == ['Marker', 'DriftSlice', 'DriftSlice', 'Marker',
+assert np.all(sv_straight['element_type'] == ['Marker', 'DriftSlice', 'DriftSlice', 'Marker',
        'ThinSliceRBendEntry', 'ThickSliceRBend', 'ThickSliceRBend',
        'ThickSliceRBend', 'ThickSliceRBend', 'Marker', 'ThickSliceRBend',
        'ThickSliceRBend', 'ThickSliceRBend', 'ThickSliceRBend',
@@ -71,25 +71,35 @@ assert np.all(tt_straight['element_type'] == ['Marker', 'DriftSlice', 'DriftSlic
        'Marker', ''])
 
 xo.assert_allclose(
-    tt_straight['angle_rad'],
+    sv_straight['angle'],
     np.array([
         0.  , 0.  , 0.  , 0.  , 0.15, 0.  , 0.  , 0.  , 0.  , 0.  , 0.  ,
         0.  , 0.  , 0.  , 0.15, 0.  , 0.  , 0.  , 0.  , 0.  ]),
     atol=1e-12
 )
 
-xo.assert_allclose(tt_straight['s'], np.array([
+xo.assert_allclose(sv_straight['s'], np.array([
        0.       , 0.       , 0.5      , 0.9943602, 0.9943602, 0.9943602,
        1.       , 1.5      , 2.       , 2.5      , 2.5      , 3.       ,
        3.5      , 4.       , 4.0056398, 4.0056398, 4.0056398, 4.5      ,
        5.       , 5.       ]
 ), atol=1e-5)
 
+xo.assert_allclose(
+    sv_straight['rot_s_rad'],
+    np.array([
+        0.        , 0.        , 0.        , 0.        , 1.57079633,
+        1.57079633, 1.57079633, 1.57079633, 1.57079633, 0.        ,
+        1.57079633, 1.57079633, 1.57079633, 1.57079633, 1.57079633,
+        0.        , 0.        , 0.        , 0.        , 0.        ]),
+    atol=1e-8
+)
 
-tt_curved.cols['s element_type angle_rad']
+
+sv_curved.cols['s element_type angle']
 # is:
 # Table: 20 rows, 4 cols
-# name                      s element_type            angle_rad
+# name                      s element_type            angle
 # start                     0 Marker                          0
 # drift_1..0                0 DriftSlice                      0
 # drift_1..1              0.5 DriftSlice                      0
@@ -111,14 +121,14 @@ tt_curved.cols['s element_type angle_rad']
 # end                       5 Marker                          0
 # _end_point                5                                 0
 
-assert np.all(tt_curved['name'] == [
+assert np.all(sv_curved['name'] == [
     'start', 'drift_1..0', 'drift_1..1', 'mb_entry', 'mb..entry_map',
     'mb..0', 'mb..1', 'mb..2', 'mb..3', 'mid', 'mb..4', 'mb..5',
     'mb..6', 'mb..7', 'mb..exit_map', 'mb_exit', 'drift_2..0',
     'drift_2..1', 'end', '_end_point'
 ])
 
-assert np.all(tt_curved['element_type'] == [
+assert np.all(sv_curved['element_type'] == [
     'Marker', 'DriftSlice', 'DriftSlice', 'Marker',
     'ThinSliceRBendEntry', 'ThickSliceRBend', 'ThickSliceRBend',
     'ThickSliceRBend', 'ThickSliceRBend', 'Marker', 'ThickSliceRBend',
@@ -127,7 +137,7 @@ assert np.all(tt_curved['element_type'] == [
     'Marker', ''])
 
 xo.assert_allclose(
-    tt_curved['angle_rad'],
+    sv_curved['angle'],
     np.array([
        0.        , 0.        , 0.        , 0.        , 0.        ,
        0.00056187, 0.04981271, 0.04981271, 0.04981271, 0.        ,
@@ -136,14 +146,22 @@ xo.assert_allclose(
     atol=1e-8
 )
 
-xo.assert_allclose(tt_curved['s'], np.array([
+xo.assert_allclose(sv_curved['s'], np.array([
        0.       , 0.       , 0.5      , 0.9943602, 0.9943602, 0.9943602,
        1.       , 1.5      , 2.       , 2.5      , 2.5      , 3.       ,
        3.5      , 4.       , 4.0056398, 4.0056398, 4.0056398, 4.5      ,
        5.       , 5.       ]
 ), atol=1e-5)
 
-
+xo.assert_allclose(
+    sv_curved['rot_s_rad'],
+    np.array([
+        0.        , 0.        , 0.        , 0.        , 1.57079633,
+        1.57079633, 1.57079633, 1.57079633, 1.57079633, 0.        ,
+        1.57079633, 1.57079633, 1.57079633, 1.57079633, 1.57079633,
+        0.        , 0.        , 0.        , 0.        , 0.        ]),
+    atol=1e-8
+)
 
 import matplotlib.pyplot as plt
 plt.close('all')
