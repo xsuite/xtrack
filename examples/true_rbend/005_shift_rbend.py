@@ -4,7 +4,7 @@ import xobjects as xo
 
 env = xt.Environment(particle_ref=xt.Particles(p0c=10e9))
 
-edge_model = 'full'
+edge_model = 'linear'
 shift = 0.3  # m
 
 line = env.new_line(length=5, components=[
@@ -63,6 +63,22 @@ for sv_test in [sv, sv_init_start, sv_iinit_end]:
     xo.assert_allclose(sv_test.psi, sv.psi, atol=1e-14)
     xo.assert_allclose(sv_test.theta, sv.theta, atol=1e-14)
 
+tw_back = line.twiss(init=tw, init_at='end')
+
+xo.assert_allclose(tw_back.x, tw.x, atol=1e-14)
+xo.assert_allclose(tw_back.y, tw.y, atol=1e-14)
+xo.assert_allclose(tw_back.s, tw.s, atol=1e-14)
+xo.assert_allclose(tw_back.zeta, tw.zeta, atol=1e-14)
+
+line['mb'].rbend_model = 'curved-body'
+tw_curved = line.twiss(betx=1, bety=1)
+sv_curved = line.survey(element0='mid')
+
+xo.assert_allclose(tw_curved.x, 0, atol=1e-14)
+xo.assert_allclose(tw_curved.y, 0, atol=1e-14)
+xo.assert_allclose(sv_curved['X', 'mb_entry'], -line['mb'].sagitta, atol=1e-14)
+xo.assert_allclose(sv_curved['X', 'mid'], 0, atol=1e-14)
+xo.assert_allclose(sv_curved['X', 'mb_exit'], -line['mb'].sagitta, atol=1e-14)
 
 
 import matplotlib.pyplot as plt
