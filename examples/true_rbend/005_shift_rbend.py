@@ -40,6 +40,29 @@ xo.assert_allclose(sv['theta', 'mid'], 0, atol=1e-14)
 xo.assert_allclose(sv.phi, 0, atol=1e-14)
 xo.assert_allclose(sv.psi, 0, atol=1e-14)
 
+sv_init_start = line.survey(element0='start',
+                            X0=sv['X', 'start'],
+                            Y0=sv['Y', 'start'],
+                            Z0=sv['Z', 'start'],
+                            phi0=sv['phi', 'start'],
+                            psi0=sv['psi', 'start'],
+                            theta0=sv['theta', 'start'])
+sv_iinit_end = line.survey(element0='end',
+                          X0=sv['X', 'end'],
+                          Y0=sv['Y', 'end'],
+                          Z0=sv['Z', 'end'],
+                          phi0=sv['phi', 'end'],
+                          psi0=sv['psi', 'end'],
+                          theta0=sv['theta', 'end'])
+
+for sv_test in [sv, sv_init_start, sv_iinit_end]:
+    xo.assert_allclose(sv_test.X, sv.X, atol=1e-14)
+    xo.assert_allclose(sv_test.Y, sv.Y, atol=1e-14)
+    xo.assert_allclose(sv_test.Z, sv.Z, atol=1e-14)
+    xo.assert_allclose(sv_test.phi, sv.phi, atol=1e-14)
+    xo.assert_allclose(sv_test.psi, sv.psi, atol=1e-14)
+    xo.assert_allclose(sv_test.theta, sv.theta, atol=1e-14)
+
 
 
 import matplotlib.pyplot as plt
