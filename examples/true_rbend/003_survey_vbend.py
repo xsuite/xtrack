@@ -24,6 +24,12 @@ line['mb'].rbend_model = 'straight-body'
 sv_straight = line.survey(element0='mid', Y0=-line['mb'].sagitta/2)
 tt_straight = line.get_table(attr=True)
 tw_straight = line.twiss(betx=1, bety=1)
+p_straight = (sv_straight.p0 + tw_straight.x[:, None] * sv_straight['ex']
+                             + tw_straight.y[:, None] * sv_straight['ey'])
+tw_straight['X'] = p_straight[:, 0]
+tw_straight['Y'] = p_straight[:, 1]
+tw_straight['Z'] = p_straight[:, 2]
+
 sv_straight_start = line.survey(element0='start',
                                 X0=sv_straight['X', 'start'],
                                 Y0=sv_straight['Y', 'start'],
@@ -43,6 +49,12 @@ line['mb'].rbend_model = 'curved-body'
 sv_curved = line.survey(element0='mid')
 tt_curved = line.get_table(attr=True)
 tw_curved = line.twiss(betx=1, bety=1)
+p_curved = (sv_curved.p0 + tw_curved.x[:, None] * sv_curved['ex']
+                         + tw_curved.y[:, None] * sv_curved['ey'])
+tw_curved['X'] = p_curved[:, 0]
+tw_curved['Y'] = p_curved[:, 1]
+tw_curved['Z'] = p_curved[:, 2]
+
 sv_curved_start = line.survey(element0='start',
                                 X0=sv_curved['X', 'start'],
                                 Y0=sv_curved['Y', 'start'],
@@ -369,6 +381,19 @@ xo.assert_allclose(sv_curved_end['Z'], sv_curved['Z'], atol=1e-14)
 xo.assert_allclose(sv_curved_end['theta'], sv_curved['theta'], atol=1e-14)
 xo.assert_allclose(sv_curved_end['phi'], sv_curved['phi'], atol=1e-14)
 xo.assert_allclose(sv_curved_end['psi'], sv_curved['psi'], atol=1e-14)
+
+xo.assert_allclose(tw_straight['X', 'mid'], 0, atol=3e-11)
+xo.assert_allclose(tw_straight['Y', 'mid'], 0, atol=3e-11)
+xo.assert_allclose(tw_straight['Z', 'mid'], 0, atol=3e-11)
+xo.assert_allclose(tw_curved['X', 'mid'], 0, atol=3e-11)
+xo.assert_allclose(tw_curved['Y', 'mid'], 0, atol=3e-11)
+xo.assert_allclose(tw_curved['Z', 'mid'], 0, atol=3e-11)
+xo.assert_allclose(tw_straight['X', 'mb_entry'], tw_curved['X', 'mb_entry'], atol=3e-11)
+xo.assert_allclose(tw_straight['Y', 'mb_entry'], tw_curved['Y', 'mb_entry'], atol=3e-11)
+xo.assert_allclose(tw_straight['Z', 'mb_entry'], tw_curved['Z', 'mb_entry'], atol=3e-11)
+xo.assert_allclose(tw_straight['X', 'mb_exit'], tw_curved['X', 'mb_exit'], atol=3e-11)
+xo.assert_allclose(tw_straight['Y', 'mb_exit'], tw_curved['Y', 'mb_exit'], atol=3e-11)
+xo.assert_allclose(tw_straight['Z', 'mb_exit'], tw_curved['Z', 'mb_exit'], atol=3e-11)
 
 import matplotlib.pyplot as plt
 plt.close('all')
