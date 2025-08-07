@@ -109,9 +109,9 @@ import matplotlib.pyplot as plt
 plt.close('all')
 
 plt.figure(1)
-tw.plot('x')
+tw.plot('y')
 
 plt.figure(2)
-sv.plot()
+sv.plot(projection="ZY")
 
 plt.show()
