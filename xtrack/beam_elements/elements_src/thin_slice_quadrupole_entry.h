@@ -49,6 +49,7 @@ void ThinSliceQuadrupoleEntry_track_local_particle(
         /*ks*/                    0.,
         /*dks_ds*/                0.,
         /*rbend_model*/           -1, // not rbend
+        /*rbend_shift*/           0.,
         /*body_active*/           0, // disabled
         /*edge_entry_active*/     ThinSliceQuadrupoleEntryData_get__parent_edge_entry_active(el),
         /*edge_exit_active*/      0,

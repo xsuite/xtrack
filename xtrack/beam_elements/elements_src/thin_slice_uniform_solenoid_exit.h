@@ -49,6 +49,7 @@ void ThinSliceUniformSolenoidExit_track_local_particle(
         /*ks*/                    ThinSliceUniformSolenoidExitData_get__parent_ks(el),
         /*dks_ds*/                0.,
         /*rbend_model*/           -1, // not rbend
+        /*rbend_shift*/           0.,
         /*body_active*/           0, // disabled
         /*edge_entry_active*/     0,
         /*edge_exit_active*/      ThinSliceUniformSolenoidExitData_get__parent_edge_exit_active(el),

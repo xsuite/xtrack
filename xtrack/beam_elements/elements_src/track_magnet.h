@@ -437,6 +437,7 @@ void track_magnet_particles(
     double ks,
     double dks_ds,
     int64_t rbend_model, // -1: not used, 0: auto, 1: curved body, 2: straight body
+    double rbend_shift,
     int64_t body_active,
     int64_t edge_entry_active,
     int64_t edge_exit_active,

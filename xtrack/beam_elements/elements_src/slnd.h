@@ -46,6 +46,7 @@ void UniformSolenoid_track_local_particle(
         /*ks*/                    UniformSolenoidData_get_ks(el),
         /*dks_ds*/                0.,
         /*rbend_model*/           -1, // not rbend
+        /*rbend_shift*/           0.,
         /*body_active*/           1,
         /*edge_entry_active*/     UniformSolenoidData_get_edge_entry_active(el),
         /*edge_exit_active*/      UniformSolenoidData_get_edge_exit_active(el),
