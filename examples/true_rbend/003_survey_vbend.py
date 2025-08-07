@@ -99,40 +99,39 @@ sv_straight.cols['X Y Z']
 # is:
 # SurveyTable: 20 rows, 4 cols
 # name                      X             Y             Z
-# start          -1.25496e-17     -0.261307      -2.48883
-# drift_1..0     -1.25496e-17     -0.261307      -2.48883
-# drift_1..1     -7.97441e-18     -0.186588      -1.99445
-# mb_entry       -3.45079e-18     -0.112711      -1.50564
-# mb..entry_map  -3.45079e-18     -0.112711      -1.50564
-# mb..0                     0    -0.0563557      -1.50564
-# mb..1                     0    -0.0563557          -1.5
-# mb..2                     0    -0.0563557            -1
-# mb..3                     0    -0.0563557          -0.5
+# start          -1.25496e-17     -0.261307      -2.48319
+# drift_1..0     -1.25496e-17     -0.261307      -2.48319
+# drift_1..1     -7.97441e-18     -0.186588      -1.98881
+# mb_entry       -3.45079e-18     -0.112711          -1.5
+# mb..entry_map  -3.45079e-18     -0.112711          -1.5
+# mb..0                     0    -0.0563557          -1.5
+# mb..1                     0    -0.0563557      -1.49438
+# mb..2                     0    -0.0563557     -0.996254
+# mb..3                     0    -0.0563557     -0.498127
 # mid                       0    -0.0563557             0
 # mb..4                     0    -0.0563557             0
-# mb..5                     0    -0.0563557           0.5
-# mb..6                     0    -0.0563557             1
-# mb..7                     0    -0.0563557           1.5
-# mb..exit_map              0    -0.0563557       1.50564
-# mb_exit        -3.45079e-18     -0.112711       1.50564
-# drift_2..0     -3.45079e-18     -0.112711       1.50564
-# drift_2..1     -7.97441e-18     -0.186588       1.99445
-# end            -1.25496e-17     -0.261307       2.48883
-# _end_point     -1.25496e-17     -0.261307       2.48883
+# mb..5                     0    -0.0563557      0.498127
+# mb..6                     0    -0.0563557      0.996254
+# mb..7                     0    -0.0563557       1.49438
+# mb..exit_map              0    -0.0563557           1.5
+# mb_exit        -3.45079e-18     -0.112711           1.5
+# drift_2..0     -3.45079e-18     -0.112711           1.5
+# drift_2..1     -7.97441e-18     -0.186588       1.98881
+# end            -1.25496e-17     -0.261307       2.48319
 
 xo.assert_allclose(sv_straight['X'], 0, atol=1e-14)
 xo.assert_allclose(sv_straight['Z'], np.array([
-       -2.48883441, -2.48883441, -1.99444887, -1.5056398 , -1.5056398 ,
-       -1.5056398 , -1.5       , -1.        , -0.5       ,  0.        ,
-        0.        ,  0.5       ,  1.        ,  1.5       ,  1.5056398 ,
-        1.5056398 ,  1.5056398 ,  1.99444887,  2.48883441,  2.48883441
-]), atol=1e-8)
+       -2.48319461, -2.48319461, -1.98880907, -1.5       , -1.5       ,
+       -1.5       , -1.49438132, -0.99625422, -0.49812711,  0.        ,
+        0.        ,  0.49812711,  0.99625422,  1.49438132,  1.5       ,
+        1.5       ,  1.5       ,  1.98880907,  2.48319461,  2.48319461]),
+        atol=1e-8)
 xo.assert_allclose(sv_straight['Y'], np.array([
        -0.26130674, -0.26130674, -0.18658768, -0.11271141, -0.11271141,
        -0.05635571, -0.05635571, -0.05635571, -0.05635571, -0.05635571,
        -0.05635571, -0.05635571, -0.05635571, -0.05635571, -0.05635571,
-       -0.11271141, -0.11271141, -0.18658768, -0.26130674, -0.26130674
-]), atol=1e-8)
+       -0.11271141, -0.11271141, -0.18658768, -0.26130674, -0.26130674]),
+       atol=1e-8)
 
 
 sv_straight.cols['theta phi psi']
@@ -307,13 +306,13 @@ xo.assert_allclose(sv_curved['phi'], np.array([
        -0.15      , -0.15      , -0.15      , -0.15      , -0.15      ],
     ), atol=1e-8)
 
-# for nn in ['start', 'end']:
-#     xo.assert_allclose(sv_straight['X', nn], sv_curved['X', nn], atol=1e-14)
-#     xo.assert_allclose(sv_straight['Y', nn], sv_curved['Y', nn], atol=1e-14)
-#     xo.assert_allclose(sv_straight['Z', nn], sv_curved['Z', nn], atol=1e-14)
-#     xo.assert_allclose(sv_straight['theta', nn], sv_curved['theta', nn], atol=1e-14)
-#     xo.assert_allclose(sv_straight['phi', nn], sv_curved['phi', nn], atol=1e-14)
-#     xo.assert_allclose(sv_straight['psi', nn], sv_curved['psi', nn], atol=1e-14)
+for nn in ['start', 'end']:
+    xo.assert_allclose(sv_straight['X', nn], sv_curved['X', nn], atol=1e-14)
+    xo.assert_allclose(sv_straight['Y', nn], sv_curved['Y', nn], atol=1e-14)
+    xo.assert_allclose(sv_straight['Z', nn], sv_curved['Z', nn], atol=1e-14)
+    xo.assert_allclose(sv_straight['theta', nn], sv_curved['theta', nn], atol=1e-14)
+    xo.assert_allclose(sv_straight['phi', nn], sv_curved['phi', nn], atol=1e-14)
+    xo.assert_allclose(sv_straight['psi', nn], sv_curved['psi', nn], atol=1e-14)
 
 import matplotlib.pyplot as plt
 plt.close('all')
