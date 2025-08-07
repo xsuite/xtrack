@@ -80,6 +80,29 @@ xo.assert_allclose(sv_curved['X', 'mb_entry'], -line['mb'].sagitta, atol=1e-14)
 xo.assert_allclose(sv_curved['X', 'mid'], 0, atol=1e-14)
 xo.assert_allclose(sv_curved['X', 'mb_exit'], -line['mb'].sagitta, atol=1e-14)
 
+sv_curved_init_start = line.survey(element0='start',
+                                   X0=sv_curved['X', 'start'],
+                                   Y0=sv_curved['Y', 'start'],
+                                   Z0=sv_curved['Z', 'start'],
+                                   phi0=sv_curved['phi', 'start'],
+                                   psi0=sv_curved['psi', 'start'],
+                                   theta0=sv_curved['theta', 'start'])
+sv_curved_init_end = line.survey(element0='end',
+                                   X0=sv_curved['X', 'end'],
+                                   Y0=sv_curved['Y', 'end'],
+                                   Z0=sv_curved['Z', 'end'],
+                                   phi0=sv_curved['phi', 'end'],
+                                   psi0=sv_curved['psi', 'end'],
+                                   theta0=sv_curved['theta', 'end'])
+
+for sv_test in [sv_curved_init_start, sv_curved_init_end]:
+    xo.assert_allclose(sv_test.X, sv_curved.X, atol=1e-14)
+    xo.assert_allclose(sv_test.Y, sv_curved.Y, atol=1e-14)
+    xo.assert_allclose(sv_test.Z, sv_curved.Z, atol=1e-14)
+    xo.assert_allclose(sv_test.phi, sv_curved.phi, atol=1e-14)
+    xo.assert_allclose(sv_test.psi, sv_curved.psi, atol=1e-14)
+    xo.assert_allclose(sv_test.theta, sv_curved.theta, atol=1e-14)
+
 
 import matplotlib.pyplot as plt
 plt.close('all')
