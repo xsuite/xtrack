@@ -7,7 +7,7 @@ wiggler_on = True
 vertical_orbit_distortion = True
 check_against_tracking = True
 
-line = xt.Line.from_json('fccee_h_thin.json')
+line = xt.load('fccee_t_thin.json')
 line.build_tracker()
 
 print('Done building tracker')
