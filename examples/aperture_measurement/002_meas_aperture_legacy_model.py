@@ -25,7 +25,7 @@ line.slice_thick_elements(
 
 
 env = line.env
-env.vars.load_madx('../../test_data/sps_with_apertures/lhc_q20.str')
+env.vars.load('../../test_data/sps_with_apertures/lhc_q20.str')
 
 tw1 = line.twiss4d()
 aper = line.get_aperture_table(dx=1e-3, dy=1e-3,
