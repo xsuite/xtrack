@@ -4,7 +4,7 @@ import numpy as np
 import xtrack as xt
 from xtrack.slicing import Teapot, Strategy
 
-line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
+line = xt.load('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
 line.twiss_default['method'] = '4d'
 line.build_tracker()
 
@@ -13,7 +13,9 @@ line_thick.build_tracker()
 
 slicing_strategies = [
     Strategy(slicing=Teapot(1)),  # Default
+    Strategy(slicing=None, element_type=xt.UniformSolenoid),
     Strategy(slicing=Teapot(4), element_type=xt.Bend),
+    Strategy(slicing=Teapot(4), element_type=xt.RBend),
     Strategy(slicing=Teapot(20), element_type=xt.Quadrupole),
     Strategy(slicing=Teapot(2), name=r'^mb\..*'),
     Strategy(slicing=Teapot(5), name=r'^mq\..*'),

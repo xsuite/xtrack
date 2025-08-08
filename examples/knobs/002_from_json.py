@@ -8,7 +8,7 @@ import numpy as np
 
 import xtrack as xt
 
-line = xt.Line.from_json('status.json')
+line = xt.load('status.json')
 line.build_tracker()
 
 line.vars['on_x1'] = 250
