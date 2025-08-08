@@ -32,7 +32,7 @@ assert_allclose(p_slice.zeta, p_ref.zeta, rtol=0, atol=1e-10)
 assert_allclose(p_slice.delta, p_ref.delta, rtol=0, atol=1e-10)
 
 line.to_json('ttt.json')
-line2 = xt.Line.from_json('ttt.json')
+line2 = xt.load('ttt.json')
 assert isinstance(line2['e0..995'], xt.ThinSliceQuadrupole)
 assert line2['e0..995'].parent_name == 'e0'
 assert line2['e0..995']._parent is None
