@@ -7,7 +7,7 @@ import xdeps as xd
 
 import matplotlib.pyplot as plt
 
-line = xt.Line.from_json('psb_02_with_chicane_time_functions.json')
+line = xt.load('psb_02_with_chicane_time_functions.json')
 line.insert_element(element=xt.Marker(), name='mker_match', at_s=79.874)
 line.build_tracker()
 

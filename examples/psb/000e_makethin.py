@@ -9,7 +9,7 @@ from xtrack.slicing import Teapot, Strategy
 
 import matplotlib.pyplot as plt
 
-line = xt.Line.from_json('psb_03_with_chicane_corrected.json')
+line = xt.load('psb_03_with_chicane_corrected.json')
 line.build_tracker()
 
 line.vars['on_chicane_k0'] = 1
