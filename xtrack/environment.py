@@ -487,6 +487,9 @@ class Environment:
             raise ee
         xtrack._passed_env = None
 
+    def copy(self):
+        return self.__class__.from_dict(self.to_dict())
+
     def copy_element_from(self, name, source, new_name=None):
         return xt.Line.copy_element_from(self, name, source, new_name)
 
