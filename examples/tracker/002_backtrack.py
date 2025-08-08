@@ -1,6 +1,6 @@
 import xtrack as xt
 
-line = xt.Line.from_json(
+line = xt.load(
     '../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
 line.build_tracker()
 
