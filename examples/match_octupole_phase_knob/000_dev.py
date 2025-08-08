@@ -2,7 +2,7 @@ import time
 import numpy as np
 import xtrack as xt
 
-line = xt.Line.from_json(
+line = xt.load(
     'LHCB1_qx62.275_qy60.293_qp10_mo0.0_cmr0.000_phasechange0.0.json')
 line.cycle('ip1', inplace=True)
 
