@@ -714,7 +714,7 @@ def test_from_json_to_json(tmp_path):
         line.to_json(f)
 
     with open(tmp_path / 'test2.json', 'r') as f:
-        result = xt.load(f)
+        result = xt.Line.from_json(f)
 
     asserts()
 
@@ -722,7 +722,7 @@ def test_from_json_to_json(tmp_path):
         line.to_json(f,indent=None)
 
     with open(tmp_path / 'test2.json', 'r') as f:
-        result = xt.load(f)
+        result = xt.Line.from_json(f)
 
     asserts()
 
@@ -730,7 +730,7 @@ def test_from_json_to_json(tmp_path):
         line.to_json(f,indent=2)
 
     with open(tmp_path / 'test2.json.gz', 'r') as f:
-        result = xt.load(f)
+        result = xt.Line.from_json(f)
 
     asserts()
 
