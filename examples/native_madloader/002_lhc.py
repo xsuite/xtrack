@@ -1,7 +1,7 @@
 import xtrack as xt
 
 env = xt.load('../../test_data/lhc_2024/lhc.seq', reverse_lines=['lhcb2'])
-env.vars.load_madx('../../test_data/lhc_2024/injection_optics.madx')
+env.vars.load('../../test_data/lhc_2024/injection_optics.madx')
 
 env.lhcb1.particle_ref = xt.Particles(p0c=7e12)
 env.lhcb2.particle_ref = xt.Particles(p0c=7e12)
