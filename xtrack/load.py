@@ -48,7 +48,9 @@ def load(
             return cls.from_dict(ddd)
         elif 'lines' in ddd: # is environment
             return xt.Environment.from_dict(ddd)
-        elif 'element_names' in ddd:
+        elif 'element_names' in ddd or 'line' in ddd:
+            if 'line' in ddd: # very old format
+                ddd = ddd['line']
             return xt.Line.from_dict(ddd)
         else:
             raise ValueError('Cannot determine class from json data')
