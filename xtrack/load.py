@@ -12,6 +12,7 @@ def load(
         string=None,
         format: Literal['json', 'madx', 'python'] = None,
         timeout=5.,
+        reverse_lines=None,
 ):
     if isinstance(file, Path):
         file = str(file)
@@ -32,6 +33,9 @@ def load(
         elif file.endswith('.py'):
             format = 'python'
 
+    if reverse_lines and format != 'madx':
+        raise ValueError('`reverse_lines` is only supported for madx input.')
+
     if file and (file.startswith('http://') or file.startswith('https://')):
         string = xt.general.read_url(file, timeout=timeout)
         file = None
@@ -49,7 +53,8 @@ def load(
         else:
             raise ValueError('Cannot determine class from json data')
     elif format == 'madx':
-        return xt.load_madx_lattice(file=file, string=string)
+        return xt.load_madx_lattice(file=file, string=string,
+                                    reverse_lines=reverse_lines)
     elif format == 'python':
         if string is not None:
             raise NotImplementedError('Loading from string not implemented for python format')
