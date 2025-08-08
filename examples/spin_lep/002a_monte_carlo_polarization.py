@@ -5,7 +5,7 @@ import numpy as np
 
 num_turns = 200
 
-line = xt.Line.from_json('lep_sol.json')
+line = xt.load('lep_sol.json')
 line.particle_ref.anomalous_magnetic_moment=0.00115965218128
 spin_tune = line.particle_ref.anomalous_magnetic_moment[0]*line.particle_ref.gamma0[0]
 
