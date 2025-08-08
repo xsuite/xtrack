@@ -440,7 +440,7 @@ class Environment:
         return Place(name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
 
     def new_builder(self, components=None, name=None, refer: ReferType = 'center',
-                    length=None, s_tol=None):
+                    length=None, s_tol=1e-6):
         '''
         Create a new builder.
 
@@ -1350,7 +1350,7 @@ class Builder:
         self.components.append(out)
         return out
 
-    def build(self, name=None, s_tol=None):
+    def build(self, name=None, s_tol=1e-6):
 
         if s_tol is None:
             s_tol = self.s_tol
