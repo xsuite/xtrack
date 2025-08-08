@@ -2,9 +2,9 @@ import numpy as np
 import xtrack as xt
 
 # Load a line and build tracker
-# line = xt.Line.from_json(
+# line = xt.load(
 #     '../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
-line = xt.Line.from_json(
+line = xt.load(
     '../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json')
 line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, energy0=7e12)
 line.cycle('ip1', inplace=True)
@@ -85,7 +85,7 @@ line.vars['c_minus_im.b1'] = 1e-3
 assert np.isclose(line.twiss().c_minus/np.sqrt(2), 1e-3, rtol=0, atol=1.5e-5)
 
 # Compare against "legacy" knobs
-line_legacy = xt.Line.from_json(
+line_legacy = xt.load(
     '../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json')
 line_legacy.cycle('ip1', inplace=True)
 
