@@ -6,9 +6,7 @@ import xpart as xp
 import xobjects as xo
 from functools import partial
 
-line = xt.Line.from_json(
-    # '../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json')
-    '../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
+line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
 # line.cycle('ip1')
 line.build_tracker()
 line.vv['vrf400'] = 16
