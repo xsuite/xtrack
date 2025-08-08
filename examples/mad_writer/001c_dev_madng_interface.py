@@ -4,7 +4,7 @@ import xobjects as xo
 
 rdts = ["f4000", "f3100", "f2020", "f1120", 'f1001']
 
-line = xt.Line.from_json(
+line = xt.load(
     '../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
 
 line['test_dk1'] = 0
