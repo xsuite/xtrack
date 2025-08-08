@@ -134,7 +134,7 @@ def test_simple_parser():
     ]
 )
 def test_parse_simple_expression(input, value, expr):
-    env = xt.load_madx_lattice(string=input)
+    env = xt.load(string=input)
     assert env['a'] == value
 
     if expr is not None:
@@ -222,7 +222,7 @@ def example_sequence(temp_context_default_mod):
     rx2, angle = 1.5;
     """
 
-    env = xt.load_madx_lattice(string=sequence, reverse_lines=['line_reversed'])
+    env = xt.load(string=sequence, reverse_lines=['line_reversed'])
 
     def make_positions(line):
         tt = line.get_table()
@@ -732,7 +732,7 @@ def test_load_b2_with_bv_minus_one(tmp_path):
     )
     line2_ref.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7000e9)
 
-    env = xt.load_madx_lattice(tmp_seq_path, reverse_lines=['lhcb2'])
+    env = xt.load(tmp_seq_path, reverse_lines=['lhcb2'])
     line2 = env['lhcb2']
 
     # Remove apertures, they are not supported in the cpymadloader
@@ -896,7 +896,7 @@ def test_import_seq_length():
     endsequence;
     """
 
-    env = xt.load_madx_lattice(string=sequence)
+    env = xt.load(string=sequence)
 
     tt = env.line.get_table()
     assert np.all(tt.name == np.array(['drift_1', 'qu1', 'drift_2', '_end_point']))
@@ -918,7 +918,7 @@ def test_repeated_element_mad_behaviour():
     endsequence;
     """
 
-    env = xt.load_madx_lattice(string=sequence)
+    env = xt.load(string=sequence)
 
     element = env['ee']
     assert env.seq1['ee'] == element
@@ -962,7 +962,7 @@ def test_apertures_on_markers(aper_config):
         endsequence;
         """
 
-    env = xt.load_madx_lattice(string=sequence)
+    env = xt.load(string=sequence)
     line = env.line
 
     apertures = [ee for ee in line.elements if ee.__class__.__name__.startswith('Limit')]
@@ -1054,7 +1054,7 @@ def test_aperture_setting():
     m_aper, apertype="ellipse", aperture={.5, .6};  ! change apertype
     """
 
-    env = xt.load_madx_lattice(string=sequence)
+    env = xt.load(string=sequence)
     line = env.line
 
     assert line['m_ellipse_aper'].a == .3
@@ -1085,7 +1085,7 @@ def test_import_thick_with_apertures_and_slice():
     endsequence;
     """
 
-    env = xt.load_madx_lattice(string=sequence)
+    env = xt.load(string=sequence)
     line = env.seq
 
     def _assert_eq(a, b):

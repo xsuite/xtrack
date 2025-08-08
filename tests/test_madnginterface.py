@@ -10,7 +10,7 @@ test_data_folder = pathlib.Path(
 def test_madng_twiss():
     rdts = ["f4000", "f3100", "f2020", "f1120"]
 
-    line = xt.Line.from_json(test_data_folder /
+    line = xt.load(test_data_folder /
                             'hllhc15_thick/lhc_thick_with_knobs.json')
 
     line['test_dk1'] = 0
@@ -46,7 +46,7 @@ def test_madng_twiss():
     assert np.abs(tw_rdt.f1120).max() > 0
 
 def test_madng_interface_with_multipole_errors_and_misalignments():
-    line = xt.Line.from_json(test_data_folder /
+    line = xt.load(test_data_folder /
                             'hllhc15_thick/lhc_thick_with_knobs.json')
 
     tt = line.get_table()
@@ -99,7 +99,7 @@ def test_madng_interface_with_multipole_errors_and_misalignments():
     xo.assert_allclose(tw.by_chrom, tw.by_ng, atol=5e-3*tw.wy_chrom.max(), rtol=0)
 
 def test_madng_survey():
-    line = xt.Line.from_json(test_data_folder /
+    line = xt.load(test_data_folder /
                             'hllhc15_thick/lhc_thick_with_knobs.json')
     survey = line.madng_survey()
 

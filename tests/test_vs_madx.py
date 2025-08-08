@@ -597,7 +597,7 @@ def test_low_beta_twiss(test_context):
 
     path_line = test_data_folder / 'psb_injection/line_and_particle.json'
 
-    line = xt.Line.from_json(path_line)
+    line = xt.load(path_line)
     line.build_tracker(_context=test_context)
     tw = line.twiss()
 

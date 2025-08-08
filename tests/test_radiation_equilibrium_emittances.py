@@ -64,7 +64,7 @@ def test_eq_emitt(conf):
     wiggler_on = conf['wiggler_on']
     vertical_orbit_distortion = conf['vertical_orbit_distortion']
 
-    line = xt.Line.from_json(test_data_folder / 'fcc_ee/fccee_h_thin.json')
+    line = xt.load(test_data_folder / 'fcc_ee/fccee_h_thin.json')
     line.build_tracker()
 
     print('Done building tracker')

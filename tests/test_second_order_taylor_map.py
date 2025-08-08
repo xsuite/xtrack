@@ -18,7 +18,7 @@ test_data_folder = pathlib.Path(
 @for_all_test_contexts
 def test_line_with_second_order_maps(test_context):
 
-    line = xt.Line.from_json(test_data_folder /
+    line = xt.load(test_data_folder /
                              'hllhc15_thick/lhc_thick_with_knobs.json')
     line.build_tracker(_context=test_context)
     line.vars['vrf400'] = 16
@@ -72,7 +72,7 @@ def test_second_order_maps_against_madx(test_context):
 
     # Generate Xsuite maps
 
-    collider = xt.Environment.from_json(test_data_folder /
+    collider = xt.load(test_data_folder /
                             'hllhc15_thick/hllhc15_collider_thick.json')
     collider.vars.update(orbit_settings)
     collider['lhcb1'].twiss_default['method'] = '4d'

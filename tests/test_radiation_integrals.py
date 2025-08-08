@@ -9,8 +9,8 @@ test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
 def test_radiation_wiggler():
-    env = xt.load_madx_lattice(test_data_folder / 'sps_thick/sps.seq')
-    env.vars.load_madx(test_data_folder / 'sps_thick/lhc_q20.str')
+    env = xt.load(test_data_folder / 'sps_thick/sps.seq')
+    env.vars.load(test_data_folder / 'sps_thick/lhc_q20.str')
     line = env.sps
 
     line['actcse.31632'].voltage = 4.2e+08
@@ -92,7 +92,7 @@ def test_radiation_wiggler():
 
 def test_radiation_integrals_sls_combined_function_magnets():
 
-    env = xt.load_madx_lattice(test_data_folder / 'sls_2.0/b075_2024.09.25.madx')
+    env = xt.load(test_data_folder / 'sls_2.0/b075_2024.09.25.madx')
     line = env.ring
     line.particle_ref = xt.Particles(energy0=2.7e9, mass0=xt.ELECTRON_MASS_EV)
     line.configure_bend_model(num_multipole_kicks=20)
@@ -156,8 +156,8 @@ def test_radiation_integrals_sls_combined_function_magnets():
 
 @pytest.mark.parametrize('tilt', [True, False], ids=['tilt', 'no_tilt'])
 def test_radiation_integrals_sps_vs_df(tilt):
-    env = xt.load_madx_lattice(test_data_folder / 'sps_thick/sps.seq')
-    env.vars.load_madx(test_data_folder / 'sps_thick/lhc_q20.str')
+    env = xt.load(test_data_folder / 'sps_thick/sps.seq')
+    env.vars.load(test_data_folder / 'sps_thick/lhc_q20.str')
     line = env.sps
 
     line.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV, energy0=10e9)

@@ -36,7 +36,7 @@ def test_lhc_match_phase_15(config):
 
     staged_match = True
 
-    collider = xt.Environment.from_json(
+    collider = xt.load(
         test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers(_context=test_context)
     collider.vars.load_madx_optics_file(
@@ -269,7 +269,7 @@ def test_lhc_match_phase_15(config):
     print(f"  b2: d_mux={tw.lhcb2['mux', 'ip5'] - tw0.lhcb2['mux', 'ip5']:6f} "
                 f"d_muy={tw.lhcb2['muy', 'ip5'] - tw0.lhcb2['muy', 'ip5']:6f} ")
 
-    collider_ref = xt.Environment.from_json(
+    collider_ref = xt.load(
         test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.json')
     collider_ref.build_trackers()
     collider_ref.vars.load_madx_optics_file(

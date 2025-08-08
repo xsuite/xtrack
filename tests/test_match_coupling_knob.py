@@ -11,7 +11,7 @@ test_data_folder = pathlib.Path(
 
 @for_all_test_contexts
 def test_match_coupling_knob(test_context):
-    line = xt.Line.from_json(test_data_folder /
+    line = xt.load(test_data_folder /
         'hllhc14_no_errors_with_coupling_knobs/line_b1.json')
     line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, energy0=7e12)
 
@@ -84,7 +84,7 @@ def test_match_coupling_knob(test_context):
     xo.assert_allclose(line.twiss().c_minus/np.sqrt(2), 1e-3, rtol=0, atol=1.5e-5)
 
     # Compare against "legacy" knobs
-    line_legacy = xt.Line.from_json(test_data_folder /
+    line_legacy = xt.load(test_data_folder /
         'hllhc14_no_errors_with_coupling_knobs/line_b1.json')
     line_legacy.cycle('ip1', inplace=True)
 
