@@ -21,6 +21,7 @@ void Misalignment_track_local_particle(MisalignmentData el, LocalParticle* part0
     const double anchor = MisalignmentData_get_anchor(el);
     const double length = MisalignmentData_get_length(el);
     const double angle = MisalignmentData_get_angle(el);
+    const double tilt = MisalignmentData_get_tilt(el);
     const double is_exit = MisalignmentData_get_is_exit(el);
 
     #ifdef XSUITE_BACKTRACK
@@ -29,13 +30,13 @@ void Misalignment_track_local_particle(MisalignmentData el, LocalParticle* part0
 
     if (!is_exit) {
         if (NONZERO(angle)) {
-            track_misalignment_entry_curved(part0, dx, dy, ds, theta, phi, psi, anchor, length, angle);
+            track_misalignment_entry_curved(part0, dx, dy, ds, theta, phi, psi, anchor, length, angle, tilt);
         } else {
             track_misalignment_entry_straight(part0, dx, dy, ds, theta, phi, psi, anchor, length);
         }
     } else {
         if (NONZERO(angle)) {
-            track_misalignment_exit_curved(part0, dx, dy, ds, theta, phi, psi, anchor, length, angle);
+            track_misalignment_exit_curved(part0, dx, dy, ds, theta, phi, psi, anchor, length, angle, tilt);
         } else {
             track_misalignment_exit_straight(part0, dx, dy, ds, theta, phi, psi, anchor, length);
         }

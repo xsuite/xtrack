@@ -76,8 +76,10 @@ def particles_from_madng(tbl, beta, at='$end', slice_=0):
     [
         (0, 0),
         (0.3, 0),
+        (0, 0.1),
+        (0.3, 0.1),
     ],
-    ids=['straight', 'curved']
+    ids=['straight', 'curved', 'straight-tilted', 'curved-tilted']
 )
 def test_misalign_drift(angle, tilt):
     # Element parameters

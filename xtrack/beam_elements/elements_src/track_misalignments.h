@@ -13,7 +13,7 @@
 #include <beam_elements/elements_src/track_xyshift.h>
 
 
-// Flip some signs to as the input expects MAD-X convention
+// Flip some signs so that the input matches the MAD-X survey convention
 #define Y_ROTATE(PART, THETA) YRotation_single_particle(PART, sin(THETA), cos(THETA), tan(THETA))
 #define X_ROTATE(PART, PHI) XRotation_single_particle(PART, -sin(PHI), cos(PHI), -tan(PHI))
 #define S_ROTATE(PART, PSI) SRotation_single_particle(PART, sin(PSI), cos(PSI))
@@ -21,11 +21,11 @@
 #define S_SHIFT(PART, DS) Drift_single_particle_exact(part, DS)
 
 
-double sinc(double);
-void matrix_multiply_4x4(const double[4][4], const double[4][4], double[4][4]);
-void print_matrix_4x4(const char*, const double[4][4]);
+GPUFUN void matrix_multiply_4x4(const double[4][4], const double[4][4], double[4][4]);
+GPUFUN void matrix_rigid_affine_inverse(const double[4][4], double[4][4]);
 
 
+GPUFUN
 void track_misalignment_entry_curved(
     LocalParticle* part0,  // LocalParticle to track
     double dx,  // misalignment in x
@@ -36,7 +36,8 @@ void track_misalignment_entry_curved(
     double psi,  // rotation around s, roll, positive y to x
     double anchor, // anchor of the misalignment as a fraction of the length
     double length,  // length of the misaligned element
-    double angle  // angle by which the element bends the reference frame
+    double angle,  // angle by which the element bends the reference frame
+    double tilt  // tilt of the element, positive s to x
 ) {
     // Precompute trigonometric functions
     const double s_phi = sin(phi), c_phi = cos(phi);
@@ -65,23 +66,35 @@ void track_misalignment_entry_curved(
     // Compute matrix that takes us from the reference point of the misalignment
     // to the entry of the element
     const double part_angle = angle * anchor;
-    const double part_length = length * anchor;
-    const double delta_x_first_part = -part_length * sinc(part_angle / 2) * sin(part_angle / 2);
-    const double delta_s_first_part = part_length * sinc(part_angle);
+    const double rho = length / angle;
+    const double delta_x_first_part = rho * (cos(part_angle) - 1) * cos(tilt);
+    const double delta_y_first_part = rho * (cos(part_angle) - 1) * sin(tilt);
+    const double delta_s_first_part = rho * sin(part_angle);
 
     const double matrix_first_part[4][4] = {
-        {cos(part_angle), 0, -sin(part_angle), delta_x_first_part},
-        {0, 1, 0, 0},
-        {sin(part_angle), 0, cos(part_angle), delta_s_first_part},
-        {0, 0, 0, 1}
-    };
+            {
+                (cos(part_angle) - 1) * POW2(cos(tilt)) + 1,
+                (cos(part_angle) - 1) * cos(tilt) * sin(tilt),
+                -cos(tilt) * sin(part_angle),
+                delta_x_first_part
+            },
+            {
+                (cos(part_angle) - 1) * cos(tilt) * sin(tilt),
+                (cos(part_angle) - 1) * POW2(sin(tilt)) + 1,
+                -sin(part_angle) * sin(tilt),
+                delta_y_first_part
+            },
+            {
+                cos(tilt) * sin(part_angle),
+                sin(part_angle) * sin(tilt),
+                cos(part_angle),
+                delta_s_first_part
+            },
+            {0, 0, 0, 1}
+        };
 
-    const double inv_matrix_first_part[4][4] = {
-        {cos(part_angle), 0, sin(part_angle), delta_x_first_part},
-        {0, 1, 0, 0},
-        {-sin(part_angle), 0, cos(part_angle), -delta_s_first_part},
-        {0, 0, 0, 1}
-    };
+    double inv_matrix_first_part[4][4];
+    matrix_rigid_affine_inverse(matrix_first_part, inv_matrix_first_part);
 
     // Compute the transformation that takes us from the aligned frame to the
     // entry of the element in the misaligned frame
@@ -109,6 +122,7 @@ void track_misalignment_entry_curved(
 }
 
 
+GPUFUN
 void track_misalignment_exit_curved(
     LocalParticle* part0,  // LocalParticle to track
     double dx,  // misalignment in x
@@ -119,7 +133,8 @@ void track_misalignment_exit_curved(
     double psi,  // rotation around s, roll, positive y to x
     double anchor, // anchor of the misalignment as a fraction of the length
     double length,  // length of the misaligned element
-    double angle  // angle by which the element bends the reference frame
+    double angle,  // angle by which the element bends the reference frame
+    double tilt  // tilt of the element, positive s to x
 ) {
     // Precompute trigonometric functions
     double s_phi = sin(phi), c_phi = cos(phi);
@@ -146,38 +161,42 @@ void track_misalignment_exit_curved(
     };
 
     // Compute the inverse of the misalignment matrix
-    const double m00 = misalignment_matrix[0][0], m01 = misalignment_matrix[0][1], m02 = misalignment_matrix[0][2], m03 = misalignment_matrix[0][3];
-    const double m10 = misalignment_matrix[1][0], m11 = misalignment_matrix[1][1], m12 = misalignment_matrix[1][2], m13 = misalignment_matrix[1][3];
-    const double m20 = misalignment_matrix[2][0], m21 = misalignment_matrix[2][1], m22 = misalignment_matrix[2][2], m23 = misalignment_matrix[2][3];
-
-    const double inv_misalignment_matrix[4][4] = {
-        {m00, m10, m20, -m00 * m03 - m10 * m13 - m20 * m23},
-        {m01, m11, m21, -m01 * m03 - m11 * m13 - m21 * m23},
-        {m02, m12, m22, -m02 * m03 - m12 * m13 - m22 * m23},
-        {0, 0, 0, 1}
-    };
+    double inv_misalignment_matrix[4][4];
+    matrix_rigid_affine_inverse(misalignment_matrix, inv_misalignment_matrix);
 
     // Compute the inverse of the matrix that takes us from the point of the
     // misalignment to the exit of the element.
     const double anchor_compl = 1 - anchor;
     const double part_angle = angle * anchor_compl;
-    const double part_length = length * anchor_compl;
-    const double delta_x_second_part = -part_length * sinc(part_angle / 2) * sin(part_angle / 2);
-    const double delta_s_second_part = part_length * sinc(part_angle);
+    const double rho = length / angle;
+    const double delta_x_second_part = rho * (cos(part_angle) - 1) * cos(tilt);
+    const double delta_y_second_part = rho * (cos(part_angle) - 1) * sin(tilt);
+    const double delta_s_second_part = -rho * sin(-part_angle);
 
     const double matrix_second_part[4][4] = {
-        {cos(part_angle), 0, -sin(part_angle), delta_x_second_part},
-        {0, 1, 0, 0},
-        {sin(part_angle), 0, cos(part_angle), delta_s_second_part},
+        {
+            (cos(part_angle) - 1) * POW2(cos(tilt)) + 1,
+            (cos(part_angle) - 1) * cos(tilt) * sin(tilt),
+            cos(tilt) * sin(-part_angle),
+            delta_x_second_part
+        },
+        {
+            (cos(part_angle) - 1) * cos(tilt) * sin(tilt),
+            (cos(part_angle) - 1) * POW2(sin(tilt)) + 1,
+            sin(-part_angle) * sin(tilt),
+            delta_y_second_part
+        },
+        {
+            -cos(tilt) * sin(-part_angle),
+            -sin(-part_angle) * sin(tilt),
+            cos(part_angle),
+            delta_s_second_part
+        },
         {0, 0, 0, 1}
     };
 
-    const double inv_matrix_second_part[4][4] = {
-        {cos(part_angle), 0, sin(part_angle), delta_x_second_part},
-        {0, 1, 0, 0},
-        {-sin(part_angle), 0, cos(part_angle), -delta_s_second_part},
-        {0, 0, 0, 1}
-    };
+    double inv_matrix_second_part[4][4];
+    matrix_rigid_affine_inverse(matrix_second_part, inv_matrix_second_part);
 
     // Compute the realignment matrix
     double realign[4][4], temp[4][4];
@@ -204,6 +223,7 @@ void track_misalignment_exit_curved(
 }
 
 
+GPUFUN
 void track_misalignment_entry_straight(
     LocalParticle* part0,  // LocalParticle to track
     double dx,  // misalignment in x
@@ -231,6 +251,7 @@ void track_misalignment_entry_straight(
 }
 
 
+GPUFUN
 void track_misalignment_exit_straight(
     LocalParticle* part0,  // LocalParticle to track
     double dx,  // misalignment in x
@@ -258,15 +279,7 @@ void track_misalignment_exit_straight(
 }
 
 
-double sinc(double x) {
-    if (fabs(x) < 1e-10) {
-        return 1.0; // sinc(0) = 1
-    } else {
-        return sin(x) / x; // sinc(x) = sin(x)/x
-    }
-}
-
-
+GPUFUN
 void matrix_multiply_4x4(const double a[4][4], const double b[4][4], double result[4][4]) {
     for (int i = 0; i < 4; i++) {
         result[i][0] = a[i][0] * b[0][0] + a[i][1] * b[1][0] + a[i][2] * b[2][0] + a[i][3] * b[3][0];
@@ -274,6 +287,37 @@ void matrix_multiply_4x4(const double a[4][4], const double b[4][4], double resu
         result[i][2] = a[i][0] * b[0][2] + a[i][1] * b[1][2] + a[i][2] * b[2][2] + a[i][3] * b[3][2];
         result[i][3] = a[i][0] * b[0][3] + a[i][1] * b[1][3] + a[i][2] * b[2][3] + a[i][3] * b[3][3];
     }
+}
+
+
+GPUFUN
+void matrix_rigid_affine_inverse(const double m[4][4], double inv_m[4][4]) {
+    // Computes the inverse of a rigid affine transformation matrix
+    const double m00 = m[0][0], m01 = m[0][1], m02 = m[0][2], m03 = m[0][3];
+    const double m10 = m[1][0], m11 = m[1][1], m12 = m[1][2], m13 = m[1][3];
+    const double m20 = m[2][0], m21 = m[2][1], m22 = m[2][2], m23 = m[2][3];
+
+    // Invert the rotation part of `m`: since it's rigid, it's simply transpose
+    inv_m[0][0] = m00;
+    inv_m[0][1] = m10;
+    inv_m[0][2] = m20;
+    inv_m[1][0] = m01;
+    inv_m[1][1] = m11;
+    inv_m[1][2] = m21;
+    inv_m[2][0] = m02;
+    inv_m[2][1] = m12;
+    inv_m[2][2] = m22;
+
+    // Compute the translation part, -m[:3, :3]^{-1} @ m[:3, 3]
+    inv_m[0][3] = -m00 * m03 - m10 * m13 - m20 * m23;
+    inv_m[1][3] = -m01 * m03 - m11 * m13 - m21 * m23;
+    inv_m[2][3] = -m02 * m03 - m12 * m13 - m22 * m23;
+
+    // Fill the last row
+    inv_m[3][0] = 0;
+    inv_m[3][1] = 0;
+    inv_m[3][2] = 0;
+    inv_m[3][3] = 1;
 }
 
 #endif  // XTRACK_TRACK_MISALIGNMENT_H

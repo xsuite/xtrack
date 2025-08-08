@@ -5,7 +5,7 @@ import sys
 import xtrack as xt
 import numpy as np
 import pymadng as ng
-from ducktrack.elements import Misalign, Realign
+from ducktrack.elements import Misalignment
 from cpymad.madx import Madx
 from plotting import *
 
@@ -29,12 +29,12 @@ def wedge_roll(length, angle, tilt):
     ))
 
 # Use xtrack elements or ducktrack?
-mode: Literal['xt', 'ducktrack'] = 'ducktrack'
+mode: Literal['xt', 'ducktrack'] = 'xt'
 
 # Element parameters
 length = 20
 angle = 0.3  # rad
-tilt = np.pi / 2  # rad, should point generally downwards
+tilt = np.pi / 3  # rad, should point generally downwards
 k0 = 0
 k1 = 0
 
@@ -49,7 +49,7 @@ f = 0.4  # fraction of the element length for the misalignment
 
 element = (
     xt.Bend(length=length, angle=angle, model='rot-kick-rot', k0=k0, rot_s_rad=tilt)
-    if angle else xt.DriftExact(length=length, rot_s_rad=tilt)
+    if angle else xt.DriftExact(length=length)
 )
 # element = xt.Quadrupole(length=length, k1=k1, rot_s_rad=tilt)
 
@@ -149,7 +149,7 @@ pp_element = pp0.copy()
 plot_point(pp_element, p0, plotter=ax, shape='cube', color='black')
 
 if mode == 'ducktrack':
-    mis_entry = Misalign(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle, tilt=tilt)  # noqa
+    mis_entry = Misalignment(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle, tilt=tilt, is_exit=False)  # noqa
 else:
     mis_entry = xt.Misalignment(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle, tilt=tilt, is_exit=False)
 mis_entry.track(pp_element)
@@ -160,7 +160,7 @@ line2.track(pp_element)
 plot_point(pp_element, p2, plotter=ax, shape='cube', color='orange')
 
 if mode == 'ducktrack':
-    mis_exit = Realign(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle, tilt=tilt)  # noqa
+    mis_exit = Misalignment(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle, tilt=tilt, is_exit=True)  # noqa
 else:
     mis_exit = xt.Misalignment(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle, tilt=tilt, is_exit=True)
 pprec2 = pp_element.copy()
