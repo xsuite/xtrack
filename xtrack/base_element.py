@@ -339,6 +339,19 @@ class MetaBeamElement(xo.MetaHybridClass):
     def __new__(cls, name, bases, data):
         _XoStruct_name = name+'Data'
 
+        data_in = data.copy()
+        data = {}
+        for bb in bases:
+            if bb.__name__ == 'HybridClass':
+                continue
+            if bb.__name__ == 'BeamElement':
+                continue
+            for kk, vv in bb.__dict__.items():
+                if kk.startswith('__') or kk in data_in.keys():
+                    continue
+                data[kk] = vv
+        data.update(data_in)
+
         # Take xofields from data['_xofields'] or from bases
         xofields = _build_xofields_dict(bases, data)
 
