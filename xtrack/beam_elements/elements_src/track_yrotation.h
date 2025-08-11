@@ -29,8 +29,7 @@ void YRotation_single_particle(LocalParticle* part, double sin_angle, double cos
     LocalParticle_set_x(part, x_hat);
     LocalParticle_set_px(part, px_hat);
     LocalParticle_set_y(part, y_hat);
-    LocalParticle_set_zeta(part,t_hat*beta0);
-
+    LocalParticle_set_zeta(part, t_hat*beta0);
 }
 
 #endif /* XTRACK_TRACK_YROTATION_H */

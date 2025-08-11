@@ -18,7 +18,11 @@
 #define X_ROTATE(PART, PHI) XRotation_single_particle(PART, -sin(PHI), cos(PHI), -tan(PHI))
 #define S_ROTATE(PART, PSI) SRotation_single_particle(PART, sin(PSI), cos(PSI))
 #define XY_SHIFT(PART, DX, DY) XYShift_single_particle(PART, DX, DY)
-#define S_SHIFT(PART, DS) Drift_single_particle_exact(part, DS)
+#define S_SHIFT(PART, DS) { \
+        Drift_single_particle_exact(part, DS); \
+        LocalParticle_add_to_zeta(part, -DS); \
+        LocalParticle_add_to_s(part, -DS); \
+    }
 
 
 GPUFUN void matrix_multiply_4x4(const double[4][4], const double[4][4], double[4][4]);
@@ -57,9 +61,23 @@ void track_misalignment_entry_curved(
 
     // Misalignment matrix
     const double misalignment_matrix[4][4] = {
-        {-s_phi * s_psi * s_theta + c_psi * c_theta, -c_psi * s_phi * s_theta - c_theta * s_psi, c_phi * s_theta, dx},
-        {c_phi * s_psi, c_phi * c_psi, s_phi, dy},
-        {-c_theta * s_phi * s_psi - c_psi * s_theta, -c_psi * c_theta * s_phi + s_psi * s_theta, c_phi * c_theta, ds},
+        {
+            -s_phi * s_psi * s_theta + c_psi * c_theta,
+            -c_psi * s_phi * s_theta - c_theta * s_psi,
+            c_phi * s_theta,
+            dx
+        },
+        {
+            c_phi * s_psi,
+            c_phi * c_psi,
+            s_phi, dy
+        },
+        {
+            -c_theta * s_phi * s_psi - c_psi * s_theta,
+            -c_psi * c_theta * s_phi + s_psi * s_theta,
+            c_phi * c_theta,
+            ds
+        },
         {0, 0, 0, 1}
     };
 
@@ -154,9 +172,24 @@ void track_misalignment_exit_curved(
 
     // Misalignment matrix
     const double misalignment_matrix[4][4] = {
-        {-s_phi * s_psi * s_theta + c_psi * c_theta, -c_psi * s_phi * s_theta - c_theta * s_psi, c_phi * s_theta, dx},
-        {c_phi * s_psi, c_phi * c_psi, s_phi, dy},
-        {-c_theta * s_phi * s_psi - c_psi * s_theta, -c_psi * c_theta * s_phi + s_psi * s_theta, c_phi * c_theta, ds},
+        {
+            -s_phi * s_psi * s_theta + c_psi * c_theta,
+            -c_psi * s_phi * s_theta - c_theta * s_psi,
+            c_phi * s_theta,
+            dx
+        },
+        {
+            c_phi * s_psi,
+            c_phi * c_psi,
+            s_phi,
+            dy
+        },
+        {
+            -c_theta * s_phi * s_psi - c_psi * s_theta,
+            -c_psi * c_theta * s_phi + s_psi * s_theta,
+            c_phi * c_theta,
+            ds
+        },
         {0, 0, 0, 1}
     };
 
@@ -169,27 +202,31 @@ void track_misalignment_exit_curved(
     const double anchor_compl = 1 - anchor;
     const double part_angle = angle * anchor_compl;
     const double rho = length / angle;
-    const double delta_x_second_part = rho * (cos(part_angle) - 1) * cos(tilt);
-    const double delta_y_second_part = rho * (cos(part_angle) - 1) * sin(tilt);
-    const double delta_s_second_part = -rho * sin(-part_angle);
+
+    const double s_part_angle = sin(part_angle), c_part_angle = cos(part_angle);
+    const double s_tilt = sin(tilt), c_tilt = cos(tilt);
+
+    const double delta_x_second_part = rho * (c_part_angle - 1) * c_tilt;
+    const double delta_y_second_part = rho * (c_part_angle - 1) * s_tilt;
+    const double delta_s_second_part = rho * s_part_angle;
 
     const double matrix_second_part[4][4] = {
         {
-            (cos(part_angle) - 1) * POW2(cos(tilt)) + 1,
-            (cos(part_angle) - 1) * cos(tilt) * sin(tilt),
-            cos(tilt) * sin(-part_angle),
+            (c_part_angle - 1) * POW2(c_tilt) + 1,
+            (c_part_angle - 1) * c_tilt * s_tilt,
+            c_tilt * -s_part_angle,
             delta_x_second_part
         },
         {
-            (cos(part_angle) - 1) * cos(tilt) * sin(tilt),
-            (cos(part_angle) - 1) * POW2(sin(tilt)) + 1,
-            sin(-part_angle) * sin(tilt),
+            (c_part_angle - 1) * c_tilt * s_tilt,
+            (c_part_angle - 1) * POW2(s_tilt) + 1,
+            -s_part_angle * s_tilt,
             delta_y_second_part
         },
         {
-            -cos(tilt) * sin(-part_angle),
-            -sin(-part_angle) * sin(tilt),
-            cos(part_angle),
+            c_tilt * s_part_angle,
+            s_part_angle * s_tilt,
+            c_part_angle,
             delta_s_second_part
         },
         {0, 0, 0, 1}
@@ -281,6 +318,7 @@ void track_misalignment_exit_straight(
 
 GPUFUN
 void matrix_multiply_4x4(const double a[4][4], const double b[4][4], double result[4][4]) {
+    // Multiply two 4x4 matrices `a` and `b`, and store the result in `result`.
     for (int i = 0; i < 4; i++) {
         result[i][0] = a[i][0] * b[0][0] + a[i][1] * b[1][0] + a[i][2] * b[2][0] + a[i][3] * b[3][0];
         result[i][1] = a[i][0] * b[0][1] + a[i][1] * b[1][1] + a[i][2] * b[2][1] + a[i][3] * b[3][1];
@@ -292,12 +330,12 @@ void matrix_multiply_4x4(const double a[4][4], const double b[4][4], double resu
 
 GPUFUN
 void matrix_rigid_affine_inverse(const double m[4][4], double inv_m[4][4]) {
-    // Computes the inverse of a rigid affine transformation matrix
+    // Compute the inverse `inv_m` of a rigid affine transformation matrix `m`.
     const double m00 = m[0][0], m01 = m[0][1], m02 = m[0][2], m03 = m[0][3];
     const double m10 = m[1][0], m11 = m[1][1], m12 = m[1][2], m13 = m[1][3];
     const double m20 = m[2][0], m21 = m[2][1], m22 = m[2][2], m23 = m[2][3];
 
-    // Invert the rotation part of `m`: since it's rigid, it's simply transpose
+    // Invert the rotation part of `m`: as it's rigid, it's simply a transpose
     inv_m[0][0] = m00;
     inv_m[0][1] = m10;
     inv_m[0][2] = m20;

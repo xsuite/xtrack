@@ -141,6 +141,8 @@ def test_misalign_drift(angle, tilt):
     xo.assert_allclose(p_expected.px, p_aligned_exit.px, atol=1e-14, rtol=1e-9)
     xo.assert_allclose(p_expected.y, p_aligned_exit.y, atol=1e-14, rtol=1e-9)
     xo.assert_allclose(p_expected.py, p_aligned_exit.py, atol=1e-14, rtol=1e-9)
+    xo.assert_allclose(p_expected.s, p_aligned_exit.s, atol=1e-14, rtol=1e-9)
+    xo.assert_allclose(p_expected.zeta, p_aligned_exit.zeta, atol=1e-14, rtol=1e-9)
 
     # Check that the intermediate points (entry and exit in the misaligned frame)
     # still lie on the straight line
@@ -174,10 +176,13 @@ def test_misalign_drift(angle, tilt):
         xo.assert_allclose(cross_misaligned_exit, 0, atol=1e-13, rtol=1e-9)
 
 
-def test_misalign_vs_madng():
+@pytest.mark.parametrize('angle', [0, 0.3], ids=['straight', 'curved'])
+@pytest.mark.parametrize('tilt', [0, 0.1], ids=['horizontal', 'tilted'])
+def test_misalign_vs_madng_straight(angle, tilt):
     # Element parameters
     length = 5
-    ks = 0.5
+    ks = 0.5  # in the straight case let's put a solenoid
+    k0 = 0.09  # in the curved case let's put an sbend, with strength != h
 
     # Misalignment parameters
     dx = 0.1
@@ -187,20 +192,25 @@ def test_misalign_vs_madng():
     phi = 0.2  # rad
     psi = 0.5  # rad
 
+    if angle:
+        element = xt.Bend(length=length, angle=angle, model='rot-kick-rot', k0=k0, rot_s_rad=tilt)
+    else:
+        element = xt.Solenoid(length=length, ks=ks, rot_s_rad=tilt)
+
     # Track in Xsuite
-    p0 = xt.Particles(x=0.2, y=-0.6, px=-0.01, py=0.02)
+    p0 = xt.Particles(x=0.2, y=-0.6, px=-0.01, py=0.02, zeta=0.5, delta=0.9)
     line = xt.Line(elements=[
         xt.Misalignment(
             dx=dx, dy=dy, ds=ds,
             theta=theta, phi=phi, psi=psi,
-            length=length, angle=0,
+            length=length, angle=angle, tilt=tilt,
             anchor=0, is_exit=False,
         ),
-        xt.Solenoid(length=length, ks=ks),
+        element,
         xt.Misalignment(
             dx=dx, dy=dy, ds=ds,
             theta=theta, phi=phi, psi=psi,
-            length=length, angle=0,
+            length=length, angle=angle, tilt=tilt,
             anchor=0, is_exit=True,
         ),
     ])
@@ -220,7 +230,6 @@ def test_misalign_vs_madng():
         } for i in range(len(p0.x))
     ]
 
-    mng['ks'] = ks
     mng['length'] = length
     mng['dx'] = dx
     mng['dy'] = dy
@@ -228,12 +237,16 @@ def test_misalign_vs_madng():
     mng['theta'] = theta
     mng['phi'] = phi
     mng['psi'] = psi
+    mng['angle'] = angle
+    mng['ks'] = ks
+    mng['k0'] = k0
+    mng['tilt'] = tilt
 
     mng['X0'] = X0
     mng['beta'] = p0.beta0[0]
 
     ng_script = """
-    local sequence, solenoid in MAD.element
+    local sequence, solenoid, sbend in MAD.element
     local track, beam in MAD
 
     local elem
@@ -247,11 +260,24 @@ def test_misalign_vs_madng():
         -- anchor not supported yet
     }
 
-    elem = solenoid 'elem' {
-        l=length,
-        ks=ks,
-        misalign=misalign,
-    }
+    if angle ~= 0 then
+        elem = sbend 'elem' {
+            l=length,
+            angle=angle,
+            k0=k0,
+            misalign=misalign,
+            kill_ent_fringe=true,
+            kill_exi_fringe=true,
+            tilt=tilt,
+        }
+    else
+        elem = solenoid 'elem' {
+            l=length,
+            ks=ks,
+            misalign=misalign,
+            tilt=tilt,
+        }
+    end
 
     local seq = sequence 'seq' { refer='entry',
         elem { at=0 }
@@ -264,14 +290,17 @@ def test_misalign_vs_madng():
         nturn=1,
         beam=mybeam,
         observe=0,
+        save='atall',
         aperture={ kind='square', 100 },
     }
     """
     mng.send(ng_script)
 
-    p_ng = particles_from_madng(mng.tbl, mng.mybeam.beta, at='$end')
+    p_ng = particles_from_madng(mng.tbl, mng.mybeam.beta, at='$end', slice_=0)
+    assert p_ng.x.size > 0
 
     xo.assert_allclose(p_ng.x, p_xt.x, atol=1e-14, rtol=1e-9)
     xo.assert_allclose(p_ng.px, p_xt.px, atol=1e-14, rtol=1e-9)
     xo.assert_allclose(p_ng.y, p_xt.y, atol=1e-14, rtol=1e-9)
     xo.assert_allclose(p_ng.py, p_xt.py, atol=1e-14, rtol=1e-9)
+    xo.assert_allclose(p_ng.zeta, p_xt.zeta, atol=1e-14, rtol=1e-9)

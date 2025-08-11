@@ -475,6 +475,8 @@ class Misalignment(Element):
             ]
         )
 
+        particles.zeta -= mis_s
+        particles.s -= mis_s
         line.track(particles)
 
     def track_straight_entry(self, particles):
@@ -496,6 +498,8 @@ class Misalignment(Element):
             ]
         )
 
+        particles.zeta -= mis_s
+        particles.s -= mis_s
         line.track(particles)
 
     def track_bent_exit(self, particles):
@@ -529,20 +533,20 @@ class Misalignment(Element):
             [
                 (np.cos(f_compl * angle) - 1) * np.cos(tilt) ** 2 + 1,
                 (np.cos(f_compl * angle) - 1) * np.cos(tilt) * np.sin(tilt),
-                np.cos(tilt) * np.sin(-f_compl * angle),
+                np.cos(tilt) * -np.sin(f_compl * angle),
                 rho * (np.cos(f_compl * angle) - 1) * np.cos(tilt),
             ],
             [
                 (np.cos(f_compl * angle) - 1) * np.cos(tilt) * np.sin(tilt),
                 (np.cos(f_compl * angle) - 1) * np.sin(tilt) ** 2 + 1,
-                np.sin(-f_compl * angle) * np.sin(tilt),
+                -np.sin(f_compl * angle) * np.sin(tilt),
                 rho * (np.cos(f_compl * angle) - 1) * np.sin(tilt),
             ],
             [
-                -np.cos(tilt) * np.sin(-f_compl * angle),
-                -np.sin(-f_compl * angle) * np.sin(tilt),
+                -np.cos(tilt) * -np.sin(f_compl * angle),
+                np.sin(f_compl * angle) * np.sin(tilt),
                 np.cos(f_compl * angle),
-                -rho * np.sin(-f_compl * angle),
+                rho * np.sin(f_compl * angle),
             ],
             [0, 0, 0, 1],
         ])
@@ -566,6 +570,8 @@ class Misalignment(Element):
             ]
         )
 
+        particles.zeta -= mis_s
+        particles.s -= mis_s
         line.track(particles)
 
     def track_straight_exit(self, particles):
@@ -587,6 +593,8 @@ class Misalignment(Element):
             ]
         )
 
+        particles.zeta -= mis_s
+        particles.s -= mis_s
         line.track(particles)
 
 

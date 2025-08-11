@@ -2,9 +2,9 @@ from cernlayoutdb import MADPoint
 import sys
 import pyvista as pv
 import xtrack as xt
+import xobjects as xo
 import numpy as np
 import pymadng as ng
-from ducktrack.elements import Misalign, Realign
 from cpymad.madx import Madx
 from plotting import *
 
@@ -19,22 +19,9 @@ def wedge(length, angle):
     ))
 
 
-# # Element parameters
-# length = 20
-# angle = 0.3  # rad
-#
-# # Misalignment parameters
-# dx = -15
-# dy = 7
-# dz = 20
-# theta = -0.1  # rad
-# phi = 0.11  # rad
-# psi = np.pi / 4  # rad
-# f = 0.4  # fraction of the element length for the misalignment
-
 # Element parameters
 length = 20
-angle = 0.0  # rad
+angle = 0.3  # rad
 k0 = 0
 k1 = 0
 
@@ -147,14 +134,12 @@ plot_trajectory_drift(pp0, p0, length=50, plotter=ax, color='gray', opacity=0.2)
 # Test proper Misalignment elements
 pp_element = pp0.copy()
 plot_point(pp_element, p0, plotter=ax, shape='cube', color='black')
-# mis_entry = Misalign(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle)
 mis_entry = xt.Misalignment(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle, is_exit=False)
 mis_entry.track(pp_element)
 plot_point(pp_element, p1, plotter=ax, shape='cube', color='red')
 pprec1 = pp_element.copy()
 line2.track(pp_element)
 plot_point(pp_element, p2, plotter=ax, shape='cube', color='orange')
-# mis_exit = Realign(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle)
 mis_exit = xt.Misalignment(dx=dx, dy=dy, ds=dz, theta=theta, phi=phi, psi=psi, length=length, anchor=f, angle=angle, is_exit=True)
 pprec2 = pp_element.copy()
 mis_exit.track(pp_element)
@@ -210,12 +195,14 @@ local misalign = {
     -- anchor not supported yet
 }
 
-if k0 ~= 0 then
+if angle ~= 0 then
     elem = sbend 'elem' {
         l=length,
         angle=angle,
         k0=k0,
-        misalign=misalign
+        misalign=misalign,
+        kill_ent_fringe=true,
+        kill_exi_fringe=true,
     }
 elseif k1 ~= 0 then
     elem = quadrupole 'elem' {
@@ -305,3 +292,8 @@ pp_madx_3 = xt.Particles(
     py=mad.table.tracksumm.py[mask],
 )
 plot_point(pp_madx_3, p3, shape='sphere', plotter=ax, color='green')
+
+xo.assert_allclose(pp_madng_3.x, pp_element.x, atol=1e-14, rtol=1e-9)
+xo.assert_allclose(pp_madng_3.px, pp_element.px, atol=1e-14, rtol=1e-9)
+xo.assert_allclose(pp_madng_3.y, pp_element.y, atol=1e-14, rtol=1e-9)
+xo.assert_allclose(pp_madng_3.py, pp_element.py, atol=1e-14, rtol=1e-9)
