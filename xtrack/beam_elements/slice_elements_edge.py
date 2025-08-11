@@ -10,7 +10,7 @@ from .elements import (
 )
 from ..survey import advance_element as survey_advance_element
 
-class _ThinSliceBase:
+class _ThinSliceEdgeBase:
 
     allow_rot_and_shift = False
     rot_and_shift_from_parent = True
@@ -32,7 +32,7 @@ class _ThinSliceBase:
         obj.parent_name = dct['parent_name']
         return obj
 
-class ThinSliceBendEntry(_ThinSliceBase, BeamElement):
+class ThinSliceBendEntry(_ThinSliceEdgeBase, BeamElement):
 
     _xofields = {'_parent': xo.Ref(Bend), **_common_xofields}
 
@@ -62,7 +62,7 @@ class ThinSliceBendEntry(_ThinSliceBase, BeamElement):
         else:
             return Marker(_buffer=self._buffer)
 
-class ThinSliceBendExit(_ThinSliceBase, BeamElement):
+class ThinSliceBendExit(_ThinSliceEdgeBase, BeamElement):
 
     _xofields = {'_parent': xo.Ref(Bend), **_common_xofields}
 
@@ -91,7 +91,7 @@ class ThinSliceBendExit(_ThinSliceBase, BeamElement):
         else:
             return Marker(_buffer=self._buffer)
 
-class ThinSliceQuadrupoleEntry(_ThinSliceBase, BeamElement):
+class ThinSliceQuadrupoleEntry(_ThinSliceEdgeBase, BeamElement):
 
     _xofields = {'_parent': xo.Ref(Quadrupole), **_common_xofields}
 
@@ -114,7 +114,7 @@ class ThinSliceQuadrupoleEntry(_ThinSliceBase, BeamElement):
         else:
             return Marker(_buffer=self._buffer)
 
-class ThinSliceQuadrupoleExit(_ThinSliceBase, BeamElement):
+class ThinSliceQuadrupoleExit(_ThinSliceEdgeBase, BeamElement):
 
     _xofields = {'_parent': xo.Ref(Quadrupole), **_common_xofields}
 
@@ -137,7 +137,7 @@ class ThinSliceQuadrupoleExit(_ThinSliceBase, BeamElement):
         else:
             return Marker(_buffer=self._buffer)
 
-class ThinSliceSextupoleEntry(_ThinSliceBase, BeamElement):
+class ThinSliceSextupoleEntry(_ThinSliceEdgeBase, BeamElement):
 
     _xofields = {'_parent': xo.Ref(Sextupole), **_common_xofields}
 
@@ -160,7 +160,7 @@ class ThinSliceSextupoleEntry(_ThinSliceBase, BeamElement):
         else:
             return Marker(_buffer=self._buffer)
 
-class ThinSliceSextupoleExit(_ThinSliceBase, BeamElement):
+class ThinSliceSextupoleExit(_ThinSliceEdgeBase, BeamElement):
 
     _xofields = {'_parent': xo.Ref(Sextupole), **_common_xofields}
 
@@ -183,7 +183,7 @@ class ThinSliceSextupoleExit(_ThinSliceBase, BeamElement):
         else:
             return Marker(_buffer=self._buffer)
 
-class ThinSliceOctupoleEntry(_ThinSliceBase, BeamElement):
+class ThinSliceOctupoleEntry(_ThinSliceEdgeBase, BeamElement):
 
     _xofields = {'_parent': xo.Ref(Octupole), **_common_xofields}
 
@@ -206,7 +206,7 @@ class ThinSliceOctupoleEntry(_ThinSliceBase, BeamElement):
         else:
             return Marker(_buffer=self._buffer)
 
-class ThinSliceOctupoleExit(_ThinSliceBase, BeamElement):
+class ThinSliceOctupoleExit(_ThinSliceEdgeBase, BeamElement):
 
     _xofields = {'_parent': xo.Ref(Octupole), **_common_xofields}
 
@@ -229,7 +229,7 @@ class ThinSliceOctupoleExit(_ThinSliceBase, BeamElement):
         else:
             return Marker(_buffer=self._buffer)
 
-class ThinSliceUniformSolenoidEntry(_ThinSliceBase, BeamElement):
+class ThinSliceUniformSolenoidEntry(_ThinSliceEdgeBase, BeamElement):
 
     _xofields = {'_parent': xo.Ref(UniformSolenoid), **_common_xofields}
 
@@ -243,7 +243,7 @@ class ThinSliceUniformSolenoidEntry(_ThinSliceBase, BeamElement):
         else:
             return Marker(_buffer=self._buffer)
 
-class ThinSliceUniformSolenoidExit(_ThinSliceBase, BeamElement):
+class ThinSliceUniformSolenoidExit(_ThinSliceEdgeBase, BeamElement):
 
     _xofields = {'_parent': xo.Ref(UniformSolenoid), **_common_xofields}
 
@@ -257,7 +257,7 @@ class ThinSliceUniformSolenoidExit(_ThinSliceBase, BeamElement):
         else:
             return Marker(_buffer=self._buffer)
 
-class ThinSliceRBendEntry(_ThinSliceBase, BeamElement):
+class ThinSliceRBendEntry(_ThinSliceEdgeBase, BeamElement):
 
     _xofields = {'_parent': xo.Ref(RBend), **_common_xofields}
 
@@ -343,7 +343,7 @@ class ThinSliceRBendEntry(_ThinSliceBase, BeamElement):
                     )
         return v, w
 
-class ThinSliceRBendExit(_ThinSliceBase, BeamElement):
+class ThinSliceRBendExit(_ThinSliceEdgeBase, BeamElement):
 
     _xofields = {'_parent': xo.Ref(RBend), **_common_xofields}
 
