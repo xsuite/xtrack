@@ -18,21 +18,18 @@ COMMON_SLICE_XO_FIELDS = {
     'weight': xo.Float64,
 }
 
-class _ThickSliceElementBase:
+class _DriftSliceElementBase:
 
     allow_rot_and_shift = False
     allow_loss_refinement = True
-    rot_and_shift_from_parent = True
+    rot_and_shift_from_parent = False
     _skip_in_to_dict = ['_parent']
     has_backtrack = True
     _force_moveable = True
     isthick = True
-    _inherit_strengths = True
+    _inherit_strengths = False
 
     copy = _slice_copy
-
-    _depends_on = [RandomUniformAccurate, RandomExponential]
-    _internal_record_class = SynchrotronRadiationRecord
 
     def to_dict(self, **kwargs):
         dct = BeamElement.to_dict(self, **kwargs)
@@ -46,41 +43,49 @@ class _ThickSliceElementBase:
         return obj
 
 
-class ThickSliceBend(_ThickSliceElementBase, BeamElement):
+class DriftSliceBend(_DriftSliceElementBase, BeamElement):
 
     _xofields = {'_parent': xo.Ref(Bend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thick_slice_bend.h>'
+        '#include <beam_elements/elements_src/drift_slice_bend.h>'
     ]
 
-class ThickSliceRBend(_ThickSliceElementBase, BeamElement):
+    def get_equivalent_element(self):
+        out = Drift(length=self._parent.length * self.weight,
+                     _buffer=self._buffer)
+        return out
+
+
+class DriftSliceRBend(_DriftSliceElementBase, BeamElement):
 
     _xofields = {'_parent': xo.Ref(RBend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thick_slice_rbend.h>'
+        '#include <beam_elements/elements_src/drift_slice_rbend.h>'
     ]
+
+    def get_equivalent_element(self):
+        out = Drift(length=self._parent.length * self.weight,
+                     _buffer=self._buffer)
+        return out
 
     def _propagate_survey(self, v, w, backtrack):
 
         if self._parent.rbend_model == "straight-body":
             ll = self._parent.length_straight * self.weight
-            aa = 0
         else:
             ll = self._parent.length * self.weight
-            aa = self._parent.angle * self.weight
 
         if backtrack:
             ll *= -1
-            aa *= -1
 
         v, w = survey_advance_element(
             v               = v,
             w               = w,
             length          = ll,
-            angle           = aa,
-            tilt            = self._parent.rot_s_rad,
+            angle           = 0,
+            tilt            = 0,
             ref_shift_x     = 0,
             ref_shift_y     = 0,
             ref_rot_x_rad   = 0,
@@ -91,43 +96,56 @@ class ThickSliceRBend(_ThickSliceElementBase, BeamElement):
         return v, w
 
 
-class ThickSliceQuadrupole(_ThickSliceElementBase, BeamElement):
+class DriftSliceQuadrupole(_DriftSliceElementBase, BeamElement):
 
     _xofields = {'_parent': xo.Ref(Quadrupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thick_slice_quadrupole.h>'
+        '#include <beam_elements/elements_src/drift_slice_quadrupole.h>'
     ]
 
+    def get_equivalent_element(self):
+        out = Drift(length=self._parent.length * self.weight,
+                     _buffer=self._buffer)
+        return out
 
-class ThickSliceSextupole(_ThickSliceElementBase, BeamElement):
+
+class DriftSliceSextupole(_DriftSliceElementBase, BeamElement):
 
     _xofields = {'_parent': xo.Ref(Sextupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thick_slice_sextupole.h>'
+        '#include <beam_elements/elements_src/drift_slice_sextupole.h>'
     ]
 
-class ThickSliceOctupole(_ThickSliceElementBase, BeamElement):
+    def get_equivalent_element(self):
+        out = Drift(length=self._parent.length * self.weight,
+                     _buffer=self._buffer)
+        return out
+
+
+class DriftSliceOctupole(_DriftSliceElementBase, BeamElement):
 
     _xofields = {'_parent': xo.Ref(Octupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thick_slice_octupole.h>'
+        '#include <beam_elements/elements_src/drift_slice_octupole.h>'
     ]
 
-class ThickSliceUniformSolenoid(_ThickSliceElementBase, BeamElement):
+    def get_equivalent_element(self):
+        out = Drift(length=self._parent.length * self.weight,
+                     _buffer=self._buffer)
+        return out
 
-    _xofields = {'_parent': xo.Ref(UniformSolenoid), **COMMON_SLICE_XO_FIELDS}
+
+class DriftSlice(_DriftSliceElementBase, BeamElement):
+    _xofields = {'_parent': xo.Ref(Drift), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thick_slice_uniform_solenoid.h>'
+        '#include <beam_elements/elements_src/drift_slice.h>'
     ]
 
-class ThickSliceSolenoid(_ThickSliceElementBase, BeamElement):
-
-    _xofields = {'_parent': xo.Ref(Solenoid), **COMMON_SLICE_XO_FIELDS}
-
-    _extra_c_sources = [
-        '#include <beam_elements/elements_src/thick_slice_solenoid.h>'
-    ]
+    def get_equivalent_element(self):
+        out = Drift(length=self._parent.length * self.weight,
+                     _buffer=self._buffer)
+        return out

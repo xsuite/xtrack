@@ -22,8 +22,8 @@ from .slice_elements_edge import (
 from .slice_elements_thick import (ThickSliceBend, ThickSliceRBend,
                                    ThickSliceQuadrupole, ThickSliceSextupole,
                                    ThickSliceOctupole,
-                                   ThickSliceUniformSolenoid,
-                                   DriftSliceOctupole, DriftSliceSextupole,
+                                   ThickSliceUniformSolenoid)
+from .slice_elements_drift import (DriftSliceOctupole, DriftSliceSextupole,
                                    DriftSliceQuadrupole, DriftSliceBend,
                                    DriftSliceRBend, DriftSlice)
 from .rft_element import RFT_Element
