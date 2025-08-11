@@ -1,50 +1,19 @@
 import xobjects as xo
 
-from ..general import _pkg_root
 from ..base_element import BeamElement
+from .slice_base import _SliceBase, COMMON_SLICE_XO_FIELDS
 from .elements import (
     SynchrotronRadiationRecord, Bend, Quadrupole, Sextupole,
     Octupole, Solenoid, Drift, RBend, UniformSolenoid
 )
-from ..random import RandomUniformAccurate, RandomExponential
 from ..survey import advance_element as survey_advance_element
 
-from .slice_elements_thin import _slice_copy, ID_RADIATION_FROM_PARENT
+class _ThickSliceElementBase(_SliceBase):
 
-
-COMMON_SLICE_XO_FIELDS = {
-    'radiation_flag': xo.Field(xo.Int64, default=ID_RADIATION_FROM_PARENT),
-    'delta_taper': xo.Float64,
-    'weight': xo.Float64,
-}
-
-class _ThickSliceElementBase:
-
-    allow_rot_and_shift = False
-    allow_loss_refinement = True
     rot_and_shift_from_parent = True
-    _skip_in_to_dict = ['_parent']
-    has_backtrack = True
-    _force_moveable = True
+    allow_loss_refinement = True
     isthick = True
     _inherit_strengths = True
-
-    copy = _slice_copy
-
-    _depends_on = [RandomUniformAccurate, RandomExponential]
-    _internal_record_class = SynchrotronRadiationRecord
-
-    def to_dict(self, **kwargs):
-        dct = BeamElement.to_dict(self, **kwargs)
-        dct['parent_name'] = self.parent_name
-        return dct
-
-    @classmethod
-    def from_dict(cls, dct, **kwargs):
-        obj = super().from_dict(dct, **kwargs)
-        obj.parent_name = dct['parent_name']
-        return obj
-
 
 class ThickSliceBend(_ThickSliceElementBase, BeamElement):
 

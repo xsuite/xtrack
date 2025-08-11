@@ -3,38 +3,23 @@ import numpy as np
 
 from ..general import _pkg_root
 from ..base_element import BeamElement
-from .slice_elements_thin import _slice_copy, ID_RADIATION_FROM_PARENT, _common_xofields
+from .slice_base import _SliceBase, COMMON_SLICE_XO_FIELDS
 from .elements import (
     Bend, Quadrupole, Sextupole,
     Octupole, RBend, UniformSolenoid, DipoleEdge, Marker, MultipoleEdge
 )
 from ..survey import advance_element as survey_advance_element
 
-class _ThinSliceEdgeBase:
+class _ThinSliceEdgeBase(_SliceBase):
 
-    allow_rot_and_shift = False
     rot_and_shift_from_parent = True
-    _skip_in_to_dict = ['_parent']
-    has_backtrack = True
-    _force_moveable = True
+    allow_loss_refinement = False
+    isthick=False
     _inherit_strengths = False
-
-    copy = _slice_copy
-
-    def to_dict(self, **kwargs):
-        dct = BeamElement.to_dict(self, **kwargs)
-        dct['parent_name'] = self.parent_name
-        return dct
-
-    @classmethod
-    def from_dict(cls, dct, **kwargs):
-        obj = super().from_dict(dct, **kwargs)
-        obj.parent_name = dct['parent_name']
-        return obj
 
 class ThinSliceBendEntry(_ThinSliceEdgeBase, BeamElement):
 
-    _xofields = {'_parent': xo.Ref(Bend), **_common_xofields}
+    _xofields = {'_parent': xo.Ref(Bend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         _pkg_root.joinpath('headers/constants.h'),
@@ -64,7 +49,7 @@ class ThinSliceBendEntry(_ThinSliceEdgeBase, BeamElement):
 
 class ThinSliceBendExit(_ThinSliceEdgeBase, BeamElement):
 
-    _xofields = {'_parent': xo.Ref(Bend), **_common_xofields}
+    _xofields = {'_parent': xo.Ref(Bend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/thin_slice_bend_exit.h>'
@@ -93,7 +78,7 @@ class ThinSliceBendExit(_ThinSliceEdgeBase, BeamElement):
 
 class ThinSliceQuadrupoleEntry(_ThinSliceEdgeBase, BeamElement):
 
-    _xofields = {'_parent': xo.Ref(Quadrupole), **_common_xofields}
+    _xofields = {'_parent': xo.Ref(Quadrupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/thin_slice_quadrupole_entry.h>'
@@ -116,7 +101,7 @@ class ThinSliceQuadrupoleEntry(_ThinSliceEdgeBase, BeamElement):
 
 class ThinSliceQuadrupoleExit(_ThinSliceEdgeBase, BeamElement):
 
-    _xofields = {'_parent': xo.Ref(Quadrupole), **_common_xofields}
+    _xofields = {'_parent': xo.Ref(Quadrupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/thin_slice_quadrupole_exit.h>'
@@ -139,7 +124,7 @@ class ThinSliceQuadrupoleExit(_ThinSliceEdgeBase, BeamElement):
 
 class ThinSliceSextupoleEntry(_ThinSliceEdgeBase, BeamElement):
 
-    _xofields = {'_parent': xo.Ref(Sextupole), **_common_xofields}
+    _xofields = {'_parent': xo.Ref(Sextupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/thin_slice_sextupole_entry.h>'
@@ -162,7 +147,7 @@ class ThinSliceSextupoleEntry(_ThinSliceEdgeBase, BeamElement):
 
 class ThinSliceSextupoleExit(_ThinSliceEdgeBase, BeamElement):
 
-    _xofields = {'_parent': xo.Ref(Sextupole), **_common_xofields}
+    _xofields = {'_parent': xo.Ref(Sextupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/thin_slice_sextupole_exit.h>'
@@ -185,7 +170,7 @@ class ThinSliceSextupoleExit(_ThinSliceEdgeBase, BeamElement):
 
 class ThinSliceOctupoleEntry(_ThinSliceEdgeBase, BeamElement):
 
-    _xofields = {'_parent': xo.Ref(Octupole), **_common_xofields}
+    _xofields = {'_parent': xo.Ref(Octupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/thin_slice_octupole_entry.h>'
@@ -208,7 +193,7 @@ class ThinSliceOctupoleEntry(_ThinSliceEdgeBase, BeamElement):
 
 class ThinSliceOctupoleExit(_ThinSliceEdgeBase, BeamElement):
 
-    _xofields = {'_parent': xo.Ref(Octupole), **_common_xofields}
+    _xofields = {'_parent': xo.Ref(Octupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/thin_slice_octupole_exit.h>'
@@ -231,7 +216,7 @@ class ThinSliceOctupoleExit(_ThinSliceEdgeBase, BeamElement):
 
 class ThinSliceUniformSolenoidEntry(_ThinSliceEdgeBase, BeamElement):
 
-    _xofields = {'_parent': xo.Ref(UniformSolenoid), **_common_xofields}
+    _xofields = {'_parent': xo.Ref(UniformSolenoid), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/thin_slice_uniform_solenoid_entry.h>'
@@ -245,7 +230,7 @@ class ThinSliceUniformSolenoidEntry(_ThinSliceEdgeBase, BeamElement):
 
 class ThinSliceUniformSolenoidExit(_ThinSliceEdgeBase, BeamElement):
 
-    _xofields = {'_parent': xo.Ref(UniformSolenoid), **_common_xofields}
+    _xofields = {'_parent': xo.Ref(UniformSolenoid), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/thin_slice_uniform_solenoid_exit.h>'
@@ -259,7 +244,7 @@ class ThinSliceUniformSolenoidExit(_ThinSliceEdgeBase, BeamElement):
 
 class ThinSliceRBendEntry(_ThinSliceEdgeBase, BeamElement):
 
-    _xofields = {'_parent': xo.Ref(RBend), **_common_xofields}
+    _xofields = {'_parent': xo.Ref(RBend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/thin_slice_rbend_entry.h>'
@@ -345,7 +330,7 @@ class ThinSliceRBendEntry(_ThinSliceEdgeBase, BeamElement):
 
 class ThinSliceRBendExit(_ThinSliceEdgeBase, BeamElement):
 
-    _xofields = {'_parent': xo.Ref(RBend), **_common_xofields}
+    _xofields = {'_parent': xo.Ref(RBend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/thin_slice_rbend_exit.h>'
