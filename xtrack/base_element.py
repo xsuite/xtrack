@@ -343,10 +343,13 @@ class MetaBeamElement(xo.MetaHybridClass):
         data = {}
         extendable_lists = ['_skip_in_to_dict', '_store_in_to_dict']
         extendable_sets = ['_noexpr_fields']
+        extendable_dicts = ['_xofields']
         for kk in extendable_lists:
             data[kk] = []
         for kk in extendable_sets:
             data[kk] = set()
+        for kk in extendable_dicts:
+            data[kk] = {}
         for bb in bases:
             if bb.__name__ == 'HybridClass':
                 continue
@@ -355,7 +358,7 @@ class MetaBeamElement(xo.MetaHybridClass):
             for kk, vv in bb.__dict__.items():
                 if kk in extendable_lists:
                     data[kk].extend(vv)
-                elif kk in extendable_sets:
+                elif kk in extendable_sets or kk in extendable_dicts:
                     data[kk].update(vv)
                 elif not kk.startswith('__') and kk not in data_in.keys():
                     data[kk] = vv
@@ -377,6 +380,10 @@ class MetaBeamElement(xo.MetaHybridClass):
         for kk in extendable_sets:
             data[kk].update(data_in.pop(kk, set()))
             if data[kk] == set():
+                data.pop(kk, None)
+        for kk in extendable_dicts:
+            data[kk].update(data_in.pop(kk, {}))
+            if data[kk] == {}:
                 data.pop(kk, None)
         data.update(data_in)
 
