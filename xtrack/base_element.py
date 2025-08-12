@@ -341,15 +341,24 @@ class MetaBeamElement(xo.MetaHybridClass):
 
         data_in = data.copy()
         data = {}
+        extendable_lists = ['_skip_in_to_dict', '_store_in_to_dict']
+        extendable_sets = ['_noexpr_fields']
+        for kk in extendable_lists:
+            data[kk] = []
+        for kk in extendable_sets:
+            data[kk] = set()
         for bb in bases:
             if bb.__name__ == 'HybridClass':
                 continue
             if bb.__name__ == 'BeamElement':
                 continue
             for kk, vv in bb.__dict__.items():
-                if kk.startswith('__') or kk in data_in.keys():
-                    continue
-                data[kk] = vv
+                if kk in extendable_lists:
+                    data[kk].extend(vv)
+                elif kk in extendable_sets:
+                    data[kk].update(vv)
+                elif not kk.startswith('__') and kk not in data_in.keys():
+                    data[kk] = vv
 
         # If inheriting _extra_c_sources, remove get_record function
         if '_extra_c_sources' in data:
@@ -361,6 +370,14 @@ class MetaBeamElement(xo.MetaHybridClass):
             if ii_remove is not None:
                 data['_extra_c_sources'].pop(ii_remove)
 
+        for kk in extendable_lists:
+            data[kk].extend(data_in.pop(kk, []))
+            if data[kk] == []:
+                data.pop(kk, None)
+        for kk in extendable_sets:
+            data[kk].update(data_in.pop(kk, set()))
+            if data[kk] == set():
+                data.pop(kk, None)
         data.update(data_in)
 
         # Take xofields from data['_xofields'] or from bases
@@ -378,7 +395,8 @@ class MetaBeamElement(xo.MetaHybridClass):
         data = data.copy()
         data['_xofields'] = xofields
 
-        depends_on = []
+        depends_on = [bb for bb in bases if bb.__name__ != 'HybridClass'
+                                        and bb.__name__ != 'BeamElement']
         extra_c_source = [
             _pkg_root.joinpath('headers','constants.h'),
             _pkg_root.joinpath('headers','checks.h'),
