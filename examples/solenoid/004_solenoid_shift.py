@@ -8,7 +8,7 @@ env = xt.Environment()
 env.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV, p0c=20e9)
 
 line = env.new_line(components=[
-    env.new('sol',xt.UniformSolenoid, length=3, ks=0.2)
+    env.new('sol',xt.UniformSolenoid, length=3, ks=0.2, x0=0.1, y0=0.2),
     ])
 
 line.cut_at_s(np.linspace(0, 3, 5))
