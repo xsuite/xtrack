@@ -47,9 +47,9 @@ void ThickSliceQuadrupole_track_local_particle(
         /*k2s*/                   0.,
         /*k3s*/                   0.,
         /*ks*/                    0.,
+        /*dks_ds*/                0.,
         /*x0_solenoid*/           0.,
         /*y0_solenoid*/           0.,
-        /*dks_ds*/                0.,
         /*rbend_model*/           -1, // not rbend
         /*rbend_shift*/           0.,
         /*body_active*/           1,
