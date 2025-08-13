@@ -2099,6 +2099,8 @@ class VariableSolenoid(BeamElement):
     _xofields={
         'ks_profile': xo.Float64[2],
         'length': xo.Float64,
+        'x0': xo.Float64,
+        'y0': xo.Float64,
         'order': xo.Int64,
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],
