@@ -49,6 +49,8 @@ void ThinSliceBendExit_track_local_particle(
         /*ks*/                    0.,
         /*dks_ds*/                0.,
         /*rbend_model*/           -1, // not rbend
+        /*x0_solenoid*/           0.,
+        /*y0_solenoid*/           0.,
         /*rbend_shift*/           0.,
         /*body_active*/           0, // disabled
         /*edge_entry_active*/     0,

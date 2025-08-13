@@ -70,6 +70,8 @@ void VariableSolenoid_track_local_particle(
         /*k3s*/                   0.,
         /*ks*/                    ks,
         /*dks_ds*/                dks_ds,
+        /*x0_solenoid*/           0.,
+        /*y0_solenoid*/           0.,
         /*rbend_model*/           -1, // not rbend
         /*rbend_shift*/           0.,
         /*body_active*/           1,

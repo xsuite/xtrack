@@ -45,6 +45,8 @@ void RBend_track_local_particle(
         /*k3s*/                   0.,
         /*ks*/                    0.,
         /*dks_ds*/                0.,
+        /*x0_solenoid*/           0.,
+        /*y0_solenoid*/           0.,
         /*rbend_model*/           RBendData_get_rbend_model(el),
         /*rbend_shift*/           RBendData_get_rbend_shift(el),
         /*body_active*/           1,

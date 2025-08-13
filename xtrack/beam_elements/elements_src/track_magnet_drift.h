@@ -319,7 +319,9 @@ GPUFUN
 void track_solenoid_single_particle(
     LocalParticle* part,
     double length,
-    double ks
+    double ks,
+    double x0_solenoid,
+    double y0_solenoid
 ) {
     const double sk = ks / 2;
 
@@ -337,9 +339,9 @@ void track_solenoid_single_particle(
     const double skl = sk * length;
 
     // Particle coordinates
-    const double x = LocalParticle_get_x(part);
+    const double x = LocalParticle_get_x(part) - x0_solenoid;
     const double px = LocalParticle_get_px(part);
-    const double y = LocalParticle_get_y(part);
+    const double y = LocalParticle_get_y(part) - y0_solenoid;
     const double py = LocalParticle_get_py(part);
     const double delta = LocalParticle_get_delta(part);
     const double rvv = LocalParticle_get_rvv(part);
@@ -371,9 +373,9 @@ void track_solenoid_single_particle(
     double const new_ax = -0.5 * ks * new_y;
     double const new_ay = 0.5 * ks * new_x;
 
-    LocalParticle_set_x(part, new_x);
+    LocalParticle_set_x(part, new_x + x0_solenoid);
     LocalParticle_set_px(part, new_px);
-    LocalParticle_set_y(part, new_y);
+    LocalParticle_set_y(part, new_y + y0_solenoid);
     LocalParticle_set_py(part, new_py);
     LocalParticle_add_to_zeta(part, add_to_zeta);
     LocalParticle_add_to_s(part, length);
@@ -392,6 +394,8 @@ void track_magnet_drift_single_particle(
     const double k1,      // normal quadrupole strength
     const double ks,      // solenoid strength
     const double h,       // curvature
+    const double x0_solenoid,
+    const double y0_solenoid,
     const int64_t drift_model      // drift model
 ) {
 
@@ -430,7 +434,7 @@ void track_magnet_drift_single_particle(
             track_straight_exact_bend_single_particle(part, length, k0);
             break;
         case 6:
-            track_solenoid_single_particle(part, length, ks);
+            track_solenoid_single_particle(part, length, ks, x0_solenoid, y0_solenoid);
             break;
         default:
             break;
