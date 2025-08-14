@@ -274,6 +274,8 @@ void track_magnet_body_single_particle(
                     k3s, \
                     ks_drift, \
                     dks_ds, \
+                    x0_solenoid, \
+                    y0_solenoid, \
                     &Bx_T, \
                     &By_T, \
                     &Bz_T \
