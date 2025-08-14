@@ -2363,7 +2363,8 @@ def test_uniform_solenoid_with_slices(test_context, reference):
     xo.assert_allclose(tw_back.rows[:'e0..0'].ay, tw['ay', 'e0..0'],
                     rtol=0, atol=1e-10)
 
-def test_uniform_solienoid_x0y0():
+@for_all_test_contexts
+def test_uniform_solienoid_x0y0(test_context):
 
     env = xt.Environment()
     env.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV, p0c=20e9)
@@ -2384,7 +2385,9 @@ def test_uniform_solienoid_x0y0():
         env.place('end')
         ])
     line_test_thick = line_test.copy(shallow=True)
+    line_test.build_tracker(test_context)
     line_test.cut_at_s(np.linspace(0, 3, 5))
+    line_test_thick.build_tracker(test_context)
     tw_test = line_test.twiss(x=x0 + 0.1, y=y0 + 0.2, betx=1, bety=1)
     tw_test_thick = line_test_thick.twiss(x=x0 + 0.1, y=y0 + 0.2, betx=1, bety=1)
 
@@ -2451,7 +2454,8 @@ def test_uniform_solienoid_x0y0():
     xo.assert_allclose(tw_test_thick_rad.kin_py, tw_ref_thick_rad.kin_py, rtol=0, atol=1e-14)
     xo.assert_allclose(tw_test_thick_rad.delta, tw_ref_thick_rad.delta, rtol=0, atol=1e-14)
 
-def test_variable_solenoid_x0y0():
+@for_all_test_contexts
+def test_variable_solenoid_x0y0(test_context):
 
     env = xt.Environment()
     env.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV, p0c=20e9)
@@ -2472,6 +2476,7 @@ def test_variable_solenoid_x0y0():
         env.new('solt_test2', xt.VariableSolenoid, length=3, ks_profile=[0.3, 0.], x0=x0, y0=y0),
         env.place('end')
         ])
+    line_test.build_tracker(test_context)
     tw_test = line_test.twiss(x=x0 + 0.1, y=y0 + 0.2, betx=1, bety=1)
 
     xo.assert_allclose(tw_test.x, tw_ref.x + x0, rtol=0, atol=1e-14)
