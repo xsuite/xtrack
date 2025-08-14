@@ -2,11 +2,6 @@ import xtrack as xt
 import numpy as np
 import xobjects as xo
 
-# TODO:
-# - field for radiation and spin
-# - check backtrack
-# - check variable solenoid
-
 env = xt.Environment()
 env.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV, p0c=20e9)
 
