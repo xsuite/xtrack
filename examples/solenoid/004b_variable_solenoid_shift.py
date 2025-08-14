@@ -11,7 +11,9 @@ env = xt.Environment()
 env.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV, p0c=20e9)
 
 line_ref = env.new_line(components=[
-    env.new('sol_ref', xt.VariableSolenoid, length=3, ks_profile=[0.1, 0.3]),
+    env.new('sol_ref0', xt.VariableSolenoid, length=3, ks_profile=[0., 0.1]),
+    env.new('sol_ref1', xt.VariableSolenoid, length=3, ks_profile=[0.1, 0.3]),
+    env.new('sol_ref2', xt.VariableSolenoid, length=3, ks_profile=[0.3, 0.]),
     env.new('end', xt.Marker)
     ])
 line_ref_thick = line_ref.copy(shallow=True)
@@ -21,7 +23,9 @@ tw_ref_thick = line_ref_thick.twiss(x=0.1, y=0.2, betx=1, bety=1)
 x0 = 0.05
 y0 = 0.15
 line_test = env.new_line(components=[
-    env.new('solt_test', xt.VariableSolenoid, length=3, ks_profile=[0.1, 0.3], x0=x0, y0=y0),
+    env.new('solt_test0', xt.VariableSolenoid, length=3, ks_profile=[0., 0.1], x0=x0, y0=y0),
+    env.new('solt_test1', xt.VariableSolenoid, length=3, ks_profile=[0.1, 0.3], x0=x0, y0=y0),
+    env.new('solt_test2', xt.VariableSolenoid, length=3, ks_profile=[0.3, 0.], x0=x0, y0=y0),
     env.place('end')
     ])
 line_test_thick = line_test.copy(shallow=True)
