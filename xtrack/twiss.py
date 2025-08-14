@@ -1000,6 +1000,8 @@ def _twiss_open(
             zeta  = [0] + list(W_matrix[4, :] * -scale_eigen) + list(W_matrix[4, :] * scale_eigen),
             pzeta = [0] + list(W_matrix[5, :] * -scale_eigen) + list(W_matrix[5, :] * scale_eigen),
             )
+        part_for_twiss.ax = particle_on_co.ax[0]
+        part_for_twiss.ay = particle_on_co.ay[0]
         if spin:
             part_for_twiss.spin_x = particle_on_co.spin_x[0]
             part_for_twiss.spin_y = particle_on_co.spin_y[0]
@@ -3293,6 +3295,8 @@ class TwissTable(Table):
         part.zeta[:] = self.zeta[at_element]
         part.ptau[:] = self.ptau[at_element]
         part.s[:] = self.s[at_element]
+        part.ax[:] = part.px[:] - self.kin_px[at_element]
+        part.ay[:] = part.py[:] - self.kin_py[at_element]
         part.at_element[:] = -1
 
         W = self.W_matrix[at_element]

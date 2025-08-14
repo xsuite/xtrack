@@ -1939,6 +1939,10 @@ class UniformSolenoid(BeamElement):
         Strength of the solenoid component.
     length : float
         Length of the element in meters along the reference trajectory.
+    x0 : float, optional
+        Horizontal offset of the solenoid center in meters. Defaults to 0.
+    y0 : float, optional
+        Vertical offset of the solenoid center in meters. Defaults to 0.
     order : int, optional
         Maximum order of multipole expansion for this magnet. Defaults to 5.
     knl : list of floats, optional
@@ -1967,6 +1971,8 @@ class UniformSolenoid(BeamElement):
     _xofields={
         'ks': xo.Float64,
         'length': xo.Float64,
+        'x0': xo.Float64,
+        'y0': xo.Float64,
         'order': xo.Int64,
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],
@@ -2093,6 +2099,8 @@ class VariableSolenoid(BeamElement):
     _xofields={
         'ks_profile': xo.Float64[2],
         'length': xo.Float64,
+        'x0': xo.Float64,
+        'y0': xo.Float64,
         'order': xo.Int64,
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],

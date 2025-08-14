@@ -201,6 +201,8 @@ void track_magnet_body_single_particle(
     const double k2s,
     const double k3s,
     const double dks_ds,
+    const double x0_solenoid,
+    const double y0_solenoid,
     const int64_t radiation_flag,
     const int64_t spin_flag,
     SynchrotronRadiationRecordData radiation_record,
@@ -219,7 +221,8 @@ void track_magnet_body_single_particle(
 
     #define MAGNET_DRIFT(part, dlength) \
         track_magnet_drift_single_particle(\
-            part, (dlength), k0_drift, k1_drift, ks_drift, h_drift, drift_model\
+            part, (dlength), k0_drift, k1_drift, ks_drift, h_drift,\
+            x0_solenoid, y0_solenoid, drift_model\
         )
 
     #ifdef XTRACK_MULTIPOLE_NO_SYNRAD
@@ -271,6 +274,8 @@ void track_magnet_body_single_particle(
                     k3s, \
                     ks_drift, \
                     dks_ds, \
+                    x0_solenoid, \
+                    y0_solenoid, \
                     &Bx_T, \
                     &By_T, \
                     &Bz_T \
@@ -436,6 +441,8 @@ void track_magnet_particles(
     double k3s,
     double ks,
     double dks_ds,
+    double x0_solenoid,
+    double y0_solenoid,
     int64_t rbend_model, // -1: not used, 0: auto, 1: curved body, 2: straight body
     double rbend_shift,
     int64_t body_active,
@@ -582,6 +589,8 @@ void track_magnet_particles(
             factor_knl_ksl_edge,
             order,
             ks,
+            x0_solenoid,
+            y0_solenoid,
             length,
             edge_entry_angle,
             edge_entry_angle_fdown,
@@ -659,6 +668,7 @@ void track_magnet_particles(
                 k0_h_correction, k1_h_correction,
                 k2, k3, k0s, k1s, k2s, k3s,
                 dks_ds,
+                x0_solenoid, y0_solenoid,
                 radiation_flag,
                 1, // spin_flag
                 radiation_record,
@@ -693,6 +703,8 @@ void track_magnet_particles(
             factor_knl_ksl_edge,
             order,
             ks,
+            x0_solenoid,
+            y0_solenoid,
             length,
             edge_exit_angle,
             edge_exit_angle_fdown,

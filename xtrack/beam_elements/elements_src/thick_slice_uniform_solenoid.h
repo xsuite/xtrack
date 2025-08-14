@@ -48,6 +48,8 @@ void ThickSliceUniformSolenoid_track_local_particle(
         /*k3s*/                   0.,
         /*ks*/                    ThickSliceUniformSolenoidData_get__parent_ks(el),
         /*dks_ds*/                0.,
+        /*x0_solenoid*/           ThickSliceUniformSolenoidData_get__parent_x0(el),
+        /*y0_solenoid*/           ThickSliceUniformSolenoidData_get__parent_y0(el),
         /*rbend_model*/           -1, // not rbend
         /*rbend_shift*/           0.,
         /*body_active*/           1,
