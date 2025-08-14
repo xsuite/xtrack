@@ -59,3 +59,31 @@ for ttest, tref in zip([tw_ref_back, tw_test_back, tw_ref_thick_back, tw_test_th
     xo.assert_allclose(ttest.py, tref.py, rtol=0, atol=1e-14)
     xo.assert_allclose(ttest.kin_px, tref.kin_px, rtol=0, atol=1e-14)
     xo.assert_allclose(ttest.kin_py, tref.kin_py, rtol=0, atol=1e-14)
+
+
+line_ref.configure_radiation(model='mean')
+line_test.configure_radiation(model='mean')
+line_ref_thick.configure_radiation(model='mean')
+line_test_thick.configure_radiation(model='mean')
+
+tw_ref_rad = line_ref.twiss(x=0.1, y=0.2, betx=1, bety=1)
+tw_test_rad = line_test.twiss(x=x0 + 0.1, y=y0 + 0.2, betx=1, bety=1)
+tw_ref_thick_rad = line_ref_thick.twiss(x=0.1, y=0.2, betx=1, bety=1)
+tw_test_thick_rad = line_test_thick.twiss(x=x0 + 0.1, y=y0 + 0.2, betx=1, bety=1)
+
+assert tw_test_rad.delta[-1] < -5e-6
+xo.assert_allclose(tw_test_rad.x, tw_ref_rad.x + x0, rtol=0, atol=1e-14)
+xo.assert_allclose(tw_test_rad.y, tw_ref_rad.y + y0, rtol=0, atol=1e-14)
+xo.assert_allclose(tw_test_rad.px, tw_ref_rad.px, rtol=0, atol=1e-14)
+xo.assert_allclose(tw_test_rad.py, tw_ref_rad.py, rtol=0, atol=1e-14)
+xo.assert_allclose(tw_test_rad.kin_px, tw_ref_rad.kin_px, rtol=0, atol=1e-14)
+xo.assert_allclose(tw_test_rad.kin_py, tw_ref_rad.kin_py, rtol=0, atol=1e-14)
+xo.assert_allclose(tw_test_rad.delta, tw_ref_rad.delta, rtol=0, atol=1e-14)
+
+xo.assert_allclose(tw_test_thick_rad.x, tw_ref_thick_rad.x + x0, rtol=0, atol=1e-14)
+xo.assert_allclose(tw_test_thick_rad.y, tw_ref_thick_rad.y + y0, rtol=0, atol=1e-14)
+xo.assert_allclose(tw_test_thick_rad.px, tw_ref_thick_rad.px, rtol=0, atol=1e-14)
+xo.assert_allclose(tw_test_thick_rad.py, tw_ref_thick_rad.py, rtol=0, atol=1e-14)
+xo.assert_allclose(tw_test_thick_rad.kin_px, tw_ref_thick_rad.kin_px, rtol=0, atol=1e-14)
+xo.assert_allclose(tw_test_thick_rad.kin_py, tw_ref_thick_rad.kin_py, rtol=0, atol=1e-14)
+xo.assert_allclose(tw_test_thick_rad.delta, tw_ref_thick_rad.delta, rtol=0, atol=1e-14)
