@@ -2364,7 +2364,7 @@ def test_uniform_solenoid_with_slices(test_context, reference):
                     rtol=0, atol=1e-10)
 
 @for_all_test_contexts
-def test_uniform_solienoid_x0y0(test_context):
+def test_uniform_solenoid_x0y0(test_context):
 
     env = xt.Environment()
     env.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV, p0c=20e9)
