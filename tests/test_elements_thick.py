@@ -2426,6 +2426,10 @@ def test_uniform_solienoid_x0y0(test_context):
         xo.assert_allclose(ttest.kin_px, tref.kin_px, rtol=0, atol=1e-14)
         xo.assert_allclose(ttest.kin_py, tref.kin_py, rtol=0, atol=1e-14)
 
+    line_test.discard_tracker()
+    line_test_thick.discard_tracker()
+    line_test.build_tracker(xo.context_default)
+    line_test_thick.build_tracker(xo.context_default)
 
     line_ref.configure_radiation(model='mean')
     line_test.configure_radiation(model='mean')
@@ -2500,6 +2504,9 @@ def test_variable_solenoid_x0y0(test_context):
 
     line_ref.configure_radiation(model='mean')
     line_test.configure_radiation(model='mean')
+
+    line_test.discard_tracker()
+    line_test.build_tracker(xo.context_default)
 
     tw_ref_rad = line_ref.twiss(x=0.1, y=0.2, betx=1, bety=1)
     tw_test_rad = line_test.twiss(x=x0 + 0.1, y=y0 + 0.2, betx=1, bety=1)
