@@ -20,7 +20,8 @@ from xtrack.beam_elements.magnets import (
     DEFAULT_MULTIPOLE_ORDER, SynchrotronRadiationRecord,
     _prepare_multipolar_params,
     _NOEXPR_FIELDS, _INDEX_TO_EDGE_MODEL, _EDGE_MODEL_TO_INDEX,
-    _INDEX_TO_RBEND_MODEL, _RBEND_MODEL_TO_INDEX
+    _INDEX_TO_RBEND_MODEL, _RBEND_MODEL_TO_INDEX,
+    _INDEX_TO_MODEL_RF, _MODEL_TO_INDEX_RF
 )
 from xtrack.internal_record import RecordIndex
 
@@ -2181,17 +2182,50 @@ class VariableSolenoid(BeamElement):
 class TempRF(BeamElement):
 
     isthick = True
+    has_backtrack = True
 
     _xofields = {
         'frequency': xo.Float64,
         'voltage': xo.Float64,
         'lag': xo.Float64,
         'length': xo.Float64,
+        'num_kicks': xo.Int64,
+        'model': xo.Int64,
+        'integrator': xo.Int64,
     }
+
+    _rename = {
+        'model': '_model',
+        'integrator': '_integrator',
+    }
+
+    _noexpr_fields = _NOEXPR_FIELDS
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/temprf.h>',
     ]
+
+    @property
+    def model(self):
+        return _INDEX_TO_MODEL_RF[self._model]
+
+    @model.setter
+    def model(self, value):
+        try:
+            self._model = _MODEL_TO_INDEX_RF[value]
+        except KeyError:
+            raise ValueError(f'Invalid model: {value}')
+
+    @property
+    def integrator(self):
+        return _INDEX_TO_INTEGRATOR[self._integrator]
+
+    @integrator.setter
+    def integrator(self, value):
+        try:
+            self._integrator = _INTEGRATOR_TO_INDEX[value]
+        except KeyError:
+            raise ValueError(f'Invalid integrator: {value}')
 
 class Solenoid(BeamElement):
     """Solenoid element.

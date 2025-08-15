@@ -1,5 +1,10 @@
 import xtrack as xt
 
+# TODO:
+# - Backtrack
+# - Tapering
+
+
 rf = xt.TempRF(frequency=1e9, voltage=1e6, lag=30, length=2)
 cav = xt.Cavity(frequency=1e9, voltage=1e6, lag=30)
 

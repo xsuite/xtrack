@@ -44,6 +44,12 @@ _INDEX_TO_MODEL_STRAIGHT.pop(2)
 _INDEX_TO_MODEL_STRAIGHT.pop(3)
 _MODEL_TO_INDEX_STRAIGHT = {k: v for v, k in _INDEX_TO_MODEL_STRAIGHT.items()}
 
+_INDEX_TO_MODEL_RF = _INDEX_TO_MODEL_STRAIGHT.copy()
+_INDEX_TO_MODEL_RF.pop(1)
+_INDEX_TO_MODEL_RF.pop(4)
+_MODEL_TO_INDEX_RF = {k: v for v, k in _INDEX_TO_MODEL_RF.items()}
+
+
 _NOEXPR_FIELDS = {'model', 'integrator', 'edge_entry_model', 'edge_exit_model',
                   'name_associated_aperture', 'rbend_model'}
 
