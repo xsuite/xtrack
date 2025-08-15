@@ -1,7 +1,7 @@
 import xtrack as xt
 
-rf = xt.TempRF(frequency=1e9, voltage=1e6, lag=90, length=2)
-cav = xt.Cavity(frequency=1e9, voltage=1e6, lag=90)
+rf = xt.TempRF(frequency=1e9, voltage=1e6, lag=30, length=2)
+cav = xt.Cavity(frequency=1e9, voltage=1e6, lag=30)
 
 rf.compile_kernels()
 
