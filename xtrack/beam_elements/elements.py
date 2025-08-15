@@ -2177,6 +2177,20 @@ class VariableSolenoid(BeamElement):
         except KeyError:
             raise ValueError(f'Invalid integrator: {value}')
 
+
+class TempRF(BeamElement):
+
+    _xofields = {
+        'frequency': xo.Float64,
+        'voltage': xo.Float64,
+        'lag': xo.Float64,
+        'length': xo.Float64,
+    }
+
+    _extra_c_sources = [
+        '#include <beam_elements/elements_src/temp_rf.h>',
+    ]
+
 class Solenoid(BeamElement):
     """Solenoid element.
 

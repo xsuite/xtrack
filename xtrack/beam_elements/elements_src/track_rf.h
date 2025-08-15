@@ -163,7 +163,7 @@ void track_rf_body_single_particle(
 GPUFUN
 void track_rf_particles(
     double const weight,
-    LocalParticle* part,
+    LocalParticle* part0,
     double length,
     double voltage,
     double frequency,
