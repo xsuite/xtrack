@@ -6,13 +6,13 @@
 #ifndef XTRACK_TEMPRF_H
 #define XTRACK_TEMPRF_H
 
-#include <beam_elements/elements_src/track_cavity.h>
+#include <beam_elements/elements_src/track_rf.h>
 
 GPUFUN
 void TempRF_track_local_particle(TempRFData el, LocalParticle* part0)
 {
 
-    rack_rf_particles(
+    track_rf_particles(
         /*weight*/                1.,
         /*part0*/                 part0,
         /*length*/                TempRFData_get_length(el);
@@ -32,7 +32,6 @@ void TempRF_track_local_particle(TempRFData el, LocalParticle* part0)
         /*default_integrator*/    0, // unused
         /*radiation_flag*/        0, // not used here
         /*radiation_flag_parent*/ 0, // not used here
-        /*radiation_record*/      NULL, // not used here
         /*delta_taper*/           0., // not used here
         /*body_active*/           1,
         /*edge_entry_active*/     0, // not used here

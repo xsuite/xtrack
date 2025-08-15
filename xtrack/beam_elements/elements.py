@@ -2188,7 +2188,7 @@ class TempRF(BeamElement):
     }
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/temp_rf.h>',
+        '#include <beam_elements/elements_src/temprf.h>',
     ]
 
 class Solenoid(BeamElement):

@@ -91,47 +91,54 @@ integration_code = \
     // END GENERATED INTEGRATION CODE
 '''
 
-fname_in = 'track_magnet.template.h'
-fname_out = 'track_magnet.h'
+fnames = [
+    'track_magnet',
+    'track_rf',
+]
 
-# In the template file search for something like:
-# INTEGRATION_CODE[[
-#   INTEGRATOR=myintegrator,
-#   DRIFT_FUNCTION=mydrift_function,
-#   KICK_FUNCTION=mykick_function,
-#   RADIATION_MACRO=radiation_macro,
-#   PART=mypart,
-#   LENGTH=mylength,
-#   NUM_KICKS=mynum_kicks
-# ]]
-# and replace it with the adapted code above.
-with open(fname_in, 'r') as f:
-    content = f.read()
+for ff in fnames:
 
-# Find INTEGRATION_CODE and replace it
-start = content.find('INTEGRATION_CODE[[')
-end = content.find(']]', start)
+    fname_in = f'{ff}.template.h'
+    fname_out = f'{ff}.h'
 
+    # In the template file search for something like:
+    # INTEGRATION_CODE[[
+    #   INTEGRATOR=myintegrator,
+    #   DRIFT_FUNCTION=mydrift_function,
+    #   KICK_FUNCTION=mykick_function,
+    #   RADIATION_MACRO=radiation_macro,
+    #   PART=mypart,
+    #   LENGTH=mylength,
+    #   NUM_KICKS=mynum_kicks
+    # ]]
+    # and replace it with the adapted code above.
+    with open(fname_in, 'r') as f:
+        content = f.read()
 
-part_before = content[:start]
-part_integration_code = content[start:end + 2]  # include the closing brackets
-part_after = content[end + 2:]
-
-# Build a dictionary for the replacements by parsing the block (strip the spaces and the new lines,
-# split by commas and then split by the equal sign)
-part_replacements = part_integration_code.split('[[')[1].split(']]')[0].strip().split(',')
-replacements = {}
-for line in part_replacements:
-    key, value = line.split('=')
-    replacements[key.strip()] = value.strip()
-
-# Replace the INTEGRATION_CODE block with the new code
-new_integration_code = integration_code
-for key, value in replacements.items():
-    new_integration_code = new_integration_code.replace(key, value)
+    # Find INTEGRATION_CODE and replace it
+    start = content.find('INTEGRATION_CODE[[')
+    end = content.find(']]', start)
 
 
-new_content = part_before + new_integration_code + part_after
+    part_before = content[:start]
+    part_integration_code = content[start:end + 2]  # include the closing brackets
+    part_after = content[end + 2:]
 
-with open(fname_out, 'w') as f:
-    f.write(new_content)
+    # Build a dictionary for the replacements by parsing the block (strip the spaces and the new lines,
+    # split by commas and then split by the equal sign)
+    part_replacements = part_integration_code.split('[[')[1].split(']]')[0].strip().split(',')
+    replacements = {}
+    for line in part_replacements:
+        key, value = line.split('=')
+        replacements[key.strip()] = value.strip()
+
+    # Replace the INTEGRATION_CODE block with the new code
+    new_integration_code = integration_code
+    for key, value in replacements.items():
+        new_integration_code = new_integration_code.replace(key, value)
+
+
+    new_content = part_before + new_integration_code + part_after
+
+    with open(fname_out, 'w') as f:
+        f.write(new_content)
