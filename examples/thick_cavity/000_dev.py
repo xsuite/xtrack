@@ -1,6 +1,7 @@
 import xtrack as xt
 
 # TODO:
+# - Propagate integrator/model to C code
 # - Backtrack
 # - Tapering
 
