@@ -2180,6 +2180,8 @@ class VariableSolenoid(BeamElement):
 
 class TempRF(BeamElement):
 
+    isthick = True
+
     _xofields = {
         'frequency': xo.Float64,
         'voltage': xo.Float64,

@@ -160,10 +160,10 @@ void track_rf_body_single_particle(
 
             RF_DRIFT(part, edge_drift_weight*length);
             for (int i_kick=0; i_kick<num_kicks - 1; i_kick++) {
-                RF_DRIFT(part, kick_weight);
+                RF_KICK(part, kick_weight);
                 RF_DRIFT(part, inside_drift_weight*length);
             }
-            RF_DRIFT(part, kick_weight);
+            RF_KICK(part, kick_weight);
             RF_DRIFT(part, edge_drift_weight*length);
         )
 
@@ -176,7 +176,7 @@ void track_rf_body_single_particle(
         for (int i_kick=0; i_kick<num_kicks; i_kick++) {
             WITH_RF_RADIATION(drift_weight*length,
                 RF_DRIFT(part, 0.5*drift_weight*length);
-                RF_DRIFT(part, kick_weight);
+                RF_KICK(part, kick_weight);
                 RF_DRIFT(part, 0.5*drift_weight*length);
             )
         }
@@ -212,19 +212,19 @@ void track_rf_body_single_particle(
             for (int ii = 0; ii < num_slices; ii++) {
                 WITH_RF_RADIATION(slice_length,
                     RF_DRIFT(part, slice_length * d_yoshida[0]);
-                    RF_DRIFT(part, kick_weight * k_yoshida[0]);
+                    RF_KICK(part, kick_weight * k_yoshida[0]);
                     RF_DRIFT(part, slice_length * d_yoshida[1]);
-                    RF_DRIFT(part, kick_weight * k_yoshida[1]);
+                    RF_KICK(part, kick_weight * k_yoshida[1]);
                     RF_DRIFT(part, slice_length * d_yoshida[2]);
-                    RF_DRIFT(part, kick_weight * k_yoshida[2]);
+                    RF_KICK(part, kick_weight * k_yoshida[2]);
                     RF_DRIFT(part, slice_length * d_yoshida[3]);
-                    RF_DRIFT(part, kick_weight * k_yoshida[3]);
+                    RF_KICK(part, kick_weight * k_yoshida[3]);
                     RF_DRIFT(part, slice_length * d_yoshida[3]);
-                    RF_DRIFT(part, kick_weight * k_yoshida[2]);
+                    RF_KICK(part, kick_weight * k_yoshida[2]);
                     RF_DRIFT(part, slice_length * d_yoshida[2]);
-                    RF_DRIFT(part, kick_weight * k_yoshida[1]);
+                    RF_KICK(part, kick_weight * k_yoshida[1]);
                     RF_DRIFT(part, slice_length * d_yoshida[1]);
-                    RF_DRIFT(part, kick_weight * k_yoshida[0]);
+                    RF_KICK(part, kick_weight * k_yoshida[0]);
                     RF_DRIFT(part, slice_length * d_yoshida[0]);
                 ) // WITH_RF_RADIATION
             }

@@ -145,7 +145,7 @@ void track_rf_body_single_particle(
     INTEGRATION_CODE[[
         INTEGRATOR=integrator,
         DRIFT_FUNCTION=RF_DRIFT,
-        KICK_FUNCTION=RF_DRIFT,
+        KICK_FUNCTION=RF_KICK,
         RADIATION_MACRO=WITH_RF_RADIATION,
         PART=part,
         LENGTH=length,
