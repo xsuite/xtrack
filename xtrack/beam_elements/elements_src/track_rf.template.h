@@ -2,12 +2,12 @@
 // This file is part of the Xtrack Package.  //
 // Copyright (c) CERN, 2023.                 //
 // ######################################### //
-#ifndef XTRACK_TRACK_MAGNET_H
-#define XTRACK_TRACK_MAGNET_H
+#ifndef XTRACK_TRACK_RF_H
+#define XTRACK_TRACK_RF_H
 
 #include <headers/track.h>
 #include <beam_elements/elements_src/track_magnet_drift.h>
-#include <beam_elements/elements_src/track_magnet.h>
+#include <beam_elements/elements_src/track_magnet_configure.h>
 
 GPUFUN
 void track_rf_kick_single_particle(
@@ -17,6 +17,7 @@ void track_rf_kick_single_particle(
     double lag,
     int64_t absolute_time,
     int64_t order,
+    double factor_knl_ksl,
     GPUGLMEM const double* knl,
     GPUGLMEM const double* ksl,
     GPUGLMEM const double* pn,
@@ -65,8 +66,8 @@ void track_rf_kick_single_particle(
             double const pn_kk = phase0 + DEG2RAD * pn[kk] - (2.0 * PI) / C_LIGHT * frequency * tau;
             double const ps_kk = phase0 + DEG2RAD * ps[kk] - (2.0 * PI) / C_LIGHT * frequency * tau;
 
-            double bal_n_kk = knl[kk]/factorial * weight;
-            double bal_s_kk = ksl[kk]/factorial * weight;
+            double bal_n_kk = factor_knl_ksl * knl[kk]/factorial * weight;
+            double bal_s_kk = factor_knl_ksl * ksl[kk]/factorial * weight;
 
             double const cn = cos(pn_kk);
             double const cs = cos(ps_kk);
@@ -113,6 +114,7 @@ void track_rf_body_single_particle(
     double lag,
     int64_t absolute_time,
     int64_t order,
+    double factor_knl_ksl,
     GPUGLMEM const double* knl,
     GPUGLMEM const double* ksl,
     GPUGLMEM const double* pn,
@@ -125,7 +127,7 @@ void track_rf_body_single_particle(
     #define RF_KICK(part, weight) \
         track_rf_kick_single_particle(\
             part, voltage, frequency, lag, absolute_time, order, \
-            knl, ksl, pn, ps, (weight)\
+            factor_knl_ksl, knl, ksl, pn, ps, (weight)\
         )
 
     #define RF_DRIFT(part, dlength) \
@@ -243,23 +245,25 @@ void track_rf_particles(
         START_PER_PARTICLE_BLOCK(part0, part);
             track_rf_body_single_particle(
                 part,
-                length,
+                body_length,
                 voltage,
                 frequency,
                 lag,
                 absolute_time,
                 order,
+                factor_knl_ksl_body,
                 knl,
                 ksl,
                 pn,
                 ps,
                 num_kicks,
                 drift_model,
-                integrator,
+                integrator
             );
         END_PER_PARTICLE_BLOCK;
 
 
+    }
 }
 
 #endif

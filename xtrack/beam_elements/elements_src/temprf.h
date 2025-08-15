@@ -15,7 +15,7 @@ void TempRF_track_local_particle(TempRFData el, LocalParticle* part0)
     track_rf_particles(
         /*weight*/                1.,
         /*part0*/                 part0,
-        /*length*/                TempRFData_get_length(el);
+        /*length*/                TempRFData_get_length(el),
         /*voltage*/               TempRFData_get_voltage(el),
         /*frequency*/             TempRFData_get_frequency(el),
         /*lag*/                   TempRFData_get_lag(el),
@@ -35,7 +35,7 @@ void TempRF_track_local_particle(TempRFData el, LocalParticle* part0)
         /*delta_taper*/           0., // not used here
         /*body_active*/           1,
         /*edge_entry_active*/     0, // not used here
-        /*edge_exit_active*/      0, // not used here
+        /*edge_exit_active*/      0  // not used here
     );
 
 }
