@@ -496,10 +496,12 @@ def twiss_line(line, particle_ref=None, method=None,
         kwargs.pop('at_elements')
         kwargs.pop('matrix_responsiveness_tol')
         kwargs.pop('matrix_stability_tol')
+        kwargs.pop('strengths')
         res = twiss_line(line=auxtracker.line,
                         at_elements=names_inserted_markers,
                         matrix_responsiveness_tol=matrix_responsiveness_tol,
                         matrix_stability_tol=matrix_stability_tol,
+                        strengths=True,
                         **kwargs)
         return _add_action_in_res(res, input_kwargs)
 
