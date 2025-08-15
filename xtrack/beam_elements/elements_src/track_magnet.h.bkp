@@ -320,12 +320,7 @@ void track_magnet_body_single_particle(
             MAGNET_DRIFT(part, length);
         )
     }
-    else{
-
-        
-    // START GENERATED INTEGRATION CODE
-
-    if (integrator == 1){ // TEAPOT
+    else if (integrator == 1){ // TEAPOT
 
         WITH_RADIATION(length,
             const double kick_weight = 1. / num_multipole_kicks;
@@ -409,11 +404,6 @@ void track_magnet_body_single_particle(
                 ) // WITH_RADIATION
             }
     } // integrator if
-
-    // END GENERATED INTEGRATION CODE
-
-
-    }
 
     #undef MAGNET_KICK
     #undef MAGNET_DRIFT
