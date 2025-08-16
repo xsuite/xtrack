@@ -25,6 +25,31 @@ from xtrack.beam_elements.magnets import (
 )
 from xtrack.internal_record import RecordIndex
 
+class _HasKnlKsl:
+
+    @property
+    def order(self):
+        return self._order
+
+    @order.setter
+    def order(self, value):
+        self._order = value
+        self.inv_factorial_order = 1.0 / factorial(value, exact=True)
+
+    def to_dict(self, copy_to_cpu=True):
+        out = super().to_dict(copy_to_cpu=copy_to_cpu)
+
+        if 'knl' in out and np.allclose(out['knl'], 0, atol=1e-16):
+            out.pop('knl', None)
+
+        if 'ksl' in out and np.allclose(out['ksl'], 0, atol=1e-16):
+            out.pop('ksl', None)
+
+        if self.order != 0 and 'knl' not in out and 'ksl' not in out:
+            out['order'] = self.order
+
+        return out
+
 
 class ReferenceEnergyIncrease(BeamElement):
 
@@ -553,11 +578,7 @@ class ZetaShift(BeamElement):
 
     _store_in_to_dict = ['dzeta']
 
-
-
-
-
-class Multipole(BeamElement):
+class Multipole(_HasKnlKsl, BeamElement):
     '''Beam element modeling a thin magnetic multipole.
 
     Parameters
@@ -628,15 +649,6 @@ class Multipole(BeamElement):
         self.xoinitialize(**kwargs)
 
     @property
-    def order(self):
-        return self._order
-
-    @order.setter
-    def order(self, value):
-        self._order = value
-        self.inv_factorial_order = 1.0 / factorial(value, exact=True)
-
-    @property
     def hyl(self):
         raise ValueError("hyl is not anymore supported")
 
@@ -699,7 +711,7 @@ class SimpleThinQuadrupole(BeamElement):
     )
 
 
-class _BendCommon:
+class _BendCommon(_HasKnlKsl):
     """Common properties for Bend and RBend: see their respective docstrings."""
     isthick = True
     has_backtrack = True
@@ -750,23 +762,6 @@ class _BendCommon:
         'h': '_h',
     }
 
-    def to_dict(self, copy_to_cpu=True):
-        out = super().to_dict(copy_to_cpu=copy_to_cpu)
-        out.pop('_model')
-        out['model'] = self.model
-
-        # See the comment in Multiple.to_dict about knl/ksl/order dumping
-        if 'knl' in out and np.allclose(out['knl'], 0, atol=1e-16):
-            out.pop('knl', None)
-
-        if 'ksl' in out and np.allclose(out['ksl'], 0, atol=1e-16):
-            out.pop('ksl', None)
-
-        if self.order != 0 and 'knl' not in out and 'ksl' not in out:
-            out['order'] = self.order
-
-        return out
-
     @property
     def k0(self):
         return self._k0
@@ -786,15 +781,6 @@ class _BendCommon:
         if value:
             self._k0 = self.h
         self._k0_from_h = value
-
-    @property
-    def order(self):
-        return self._order
-
-    @order.setter
-    def order(self, value):
-        self._order = value
-        self.inv_factorial_order = 1.0 / factorial(value, exact=True)
 
     @property
     def model(self):
@@ -1455,7 +1441,7 @@ class RBend(_BendCommon, BeamElement):
         return out
 
 
-class Sextupole(BeamElement):
+class Sextupole(_HasKnlKsl, BeamElement):
     """Sextupole element.
 
     Parameters
@@ -1545,30 +1531,6 @@ class Sextupole(BeamElement):
         if integrator is not None:
             self.integrator = integrator
 
-    def to_dict(self, copy_to_cpu=True):
-        out = super().to_dict(copy_to_cpu=copy_to_cpu)
-
-        # See the comment in Multiple.to_dict about knl/ksl/order dumping
-        if 'knl' in out and np.allclose(out['knl'], 0, atol=1e-16):
-            out.pop('knl', None)
-
-        if 'ksl' in out and np.allclose(out['ksl'], 0, atol=1e-16):
-            out.pop('ksl', None)
-
-        if self.order != 0 and 'knl' not in out and 'ksl' not in out:
-            out['order'] = self.order
-
-        return out
-
-    @property
-    def order(self):
-        return self._order
-
-    @order.setter
-    def order(self, value):
-        self._order = value
-        self.inv_factorial_order = 1.0 / factorial(value, exact=True)
-
     @property
     def _thin_slice_class(self):
         return xt.ThinSliceSextupole
@@ -1612,7 +1574,7 @@ class Sextupole(BeamElement):
             raise ValueError(f'Invalid integrator: {value}')
 
 
-class Octupole(BeamElement):
+class Octupole(_HasKnlKsl, BeamElement):
 
     """
     Octupole element.
@@ -1703,30 +1665,6 @@ class Octupole(BeamElement):
         if integrator is not None:
             self.integrator = integrator
 
-    def to_dict(self, copy_to_cpu=True):
-        out = super().to_dict(copy_to_cpu=copy_to_cpu)
-
-        # See the comment in Multiple.to_dict about knl/ksl/order dumping
-        if 'knl' in out and np.allclose(out['knl'], 0, atol=1e-16):
-            out.pop('knl', None)
-
-        if 'ksl' in out and np.allclose(out['ksl'], 0, atol=1e-16):
-            out.pop('ksl', None)
-
-        if self.order != 0 and 'knl' not in out and 'ksl' not in out:
-            out['order'] = self.order
-
-        return out
-
-    @property
-    def order(self):
-        return self._order
-
-    @order.setter
-    def order(self, value):
-        self._order = value
-        self.inv_factorial_order = 1.0 / factorial(value, exact=True)
-
     @property
     def _thin_slice_class(self):
         return xt.ThinSliceOctupole
@@ -1770,7 +1708,7 @@ class Octupole(BeamElement):
             raise ValueError(f'Invalid integrator: {value}')
 
 
-class Quadrupole(BeamElement):
+class Quadrupole(_HasKnlKsl, BeamElement):
     """
     Quadrupole element.
 
@@ -1860,30 +1798,6 @@ class Quadrupole(BeamElement):
         if integrator is not None:
             self.integrator = integrator
 
-    def to_dict(self, copy_to_cpu=True):
-        out = super().to_dict(copy_to_cpu=copy_to_cpu)
-
-        # See the comment in Multiple.to_dict about knl/ksl/order dumping
-        if 'knl' in out and np.allclose(out['knl'], 0, atol=1e-16):
-            out.pop('knl', None)
-
-        if 'ksl' in out and np.allclose(out['ksl'], 0, atol=1e-16):
-            out.pop('ksl', None)
-
-        if self.order != 0 and 'knl' not in out and 'ksl' not in out:
-            out['order'] = self.order
-
-        return out
-
-    @property
-    def order(self):
-        return self._order
-
-    @order.setter
-    def order(self, value):
-        self._order = value
-        self.inv_factorial_order = 1.0 / factorial(value, exact=True)
-
     @property
     def radiation_flag(self): return 0.0
 
@@ -1929,7 +1843,7 @@ class Quadrupole(BeamElement):
         except KeyError:
             raise ValueError(f'Invalid integrator: {value}')
 
-class UniformSolenoid(BeamElement):
+class UniformSolenoid(_HasKnlKsl, BeamElement):
 
     """
     Solenoid element.
@@ -2015,30 +1929,6 @@ class UniformSolenoid(BeamElement):
         if integrator is not None:
             self.integrator = integrator
 
-    def to_dict(self, copy_to_cpu=True):
-        out = super().to_dict(copy_to_cpu=copy_to_cpu)
-
-        # See the comment in Multiple.to_dict about knl/ksl/order dumping
-        if 'knl' in out and np.allclose(out['knl'], 0, atol=1e-16):
-            out.pop('knl', None)
-
-        if 'ksl' in out and np.allclose(out['ksl'], 0, atol=1e-16):
-            out.pop('ksl', None)
-
-        if self.order != 0 and 'knl' not in out and 'ksl' not in out:
-            out['order'] = self.order
-
-        return out
-
-    @property
-    def order(self):
-        return self._order
-
-    @order.setter
-    def order(self, value):
-        self._order = value
-        self.inv_factorial_order = 1.0 / factorial(value, exact=True)
-
     @property
     def _thick_slice_class(self):
         return xt.ThickSliceUniformSolenoid
@@ -2062,7 +1952,7 @@ class UniformSolenoid(BeamElement):
         except KeyError:
             raise ValueError(f'Invalid integrator: {value}')
 
-class VariableSolenoid(BeamElement):
+class VariableSolenoid(_HasKnlKsl, BeamElement):
 
     """
     Solenoid element.
@@ -2143,30 +2033,6 @@ class VariableSolenoid(BeamElement):
         if integrator is not None:
             self.integrator = integrator
 
-    def to_dict(self, copy_to_cpu=True):
-        out = super().to_dict(copy_to_cpu=copy_to_cpu)
-
-        # See the comment in Multiple.to_dict about knl/ksl/order dumping
-        if 'knl' in out and np.allclose(out['knl'], 0, atol=1e-16):
-            out.pop('knl', None)
-
-        if 'ksl' in out and np.allclose(out['ksl'], 0, atol=1e-16):
-            out.pop('ksl', None)
-
-        if self.order != 0 and 'knl' not in out and 'ksl' not in out:
-            out['order'] = self.order
-
-        return out
-
-    @property
-    def order(self):
-        return self._order
-
-    @order.setter
-    def order(self, value):
-        self._order = value
-        self.inv_factorial_order = 1.0 / factorial(value, exact=True)
-
     @property
     def integrator(self):
         return _INDEX_TO_INTEGRATOR[self._integrator]
@@ -2227,7 +2093,7 @@ class TempRF(BeamElement):
         except KeyError:
             raise ValueError(f'Invalid integrator: {value}')
 
-class Solenoid(BeamElement):
+class Solenoid(_HasKnlKsl, BeamElement):
     """Solenoid element.
 
     Parameters
@@ -2317,15 +2183,6 @@ class Solenoid(BeamElement):
         kwargs.update(multipolar_kwargs)
 
         self.xoinitialize(**kwargs)
-
-    @property
-    def order(self):
-        return self._order
-
-    @order.setter
-    def order(self, value):
-        self._order = value
-        self.inv_factorial_order = 1.0 / factorial(value, exact=True)
 
 
 class CombinedFunctionMagnet:
@@ -3317,42 +3174,6 @@ def _angle_from_trig(cos=None, sin=None, tan=None):
     angle = np.arctan2(sin, cos)
     return angle, cos, sin, tan
 
-
-def _unregister_if_preset(ref):
-    try:
-        ref._manager.unregister(ref)
-    except KeyError:
-        pass
-
-
-def _get_expr(knob):
-    """Return an xdeps expression for `knob`, or, if unavailable, the value."""
-    if knob is None:
-        return 0
-    if hasattr(knob, '_expr'):
-        if knob._expr is not None:
-            return knob._expr
-
-        value = knob._get_value()
-        if hasattr(value, 'get'):  # On cupy, pyopencl gets ndarray
-            value = value.get()
-        if hasattr(value, 'item'):  # Extract the scalar
-            value = value.item()
-        return value
-    if isinstance(knob, Number):
-        return knob
-    if hasattr(knob, 'dtype'):
-        if hasattr(knob, 'get'):
-            return knob.get()
-        return knob
-    raise ValueError(f'Cannot get expression for {knob}.')
-
-
-def _nonzero(val_or_expr):
-    if isinstance(val_or_expr, Number):
-        return val_or_expr != 0
-
-    return val_or_expr._expr
 
 class SecondOrderTaylorMap(BeamElement):
 
