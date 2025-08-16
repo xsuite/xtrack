@@ -25,11 +25,11 @@ void TempRF_track_local_particle(TempRFData el, LocalParticle* part0)
         /*ksl*/                   NULL, // not used here
         /*pn*/                    NULL, // not used here
         /*ps*/                    NULL, // not used here
-        /*num_kicks*/             0, // auto
-        /*model*/                 6, // drift-kick-drift-expanded
-        /*default_model*/         0, // unused
-        /*integrator*/            1, // teapot
-        /*default_integrator*/    0, // unused
+        /*num_kicks*/             TempRFData_get_num_kicks(el),
+        /*model*/                 TempRFData_get_model(el),
+        /*default_model*/         6, // drift-kick-drift-expanded
+        /*integrator*/            TempRFData_get_integrator(el),
+        /*default_integrator*/    3, // Uniform
         /*radiation_flag*/        0, // not used here
         /*radiation_flag_parent*/ 0, // not used here
         /*delta_taper*/           0., // not used here
@@ -40,4 +40,4 @@ void TempRF_track_local_particle(TempRFData el, LocalParticle* part0)
 
 }
 
-#endif  // XTRACK_CAVITY_H
+#endif  // XTRACK_TEMPRF_H
