@@ -25,6 +25,24 @@ from xtrack.beam_elements.magnets import (
 )
 from xtrack.internal_record import RecordIndex
 
+class _HasIntegrator:
+
+    """
+    Mixin class adding properties and methods for beam elements
+    with integrator fields.
+    """
+
+    @property
+    def integrator(self):
+        return _INDEX_TO_INTEGRATOR[self._integrator]
+
+    @integrator.setter
+    def integrator(self, value):
+        try:
+            self._integrator = _INTEGRATOR_TO_INDEX[value]
+        except KeyError:
+            raise ValueError(f'Invalid integrator: {value}')
+
 class _HasKnlKsl:
 
     """
@@ -716,7 +734,7 @@ class SimpleThinQuadrupole(BeamElement):
     )
 
 
-class _BendCommon(_HasKnlKsl):
+class _BendCommon(_HasKnlKsl, _HasIntegrator):
     """Common properties for Bend and RBend: see their respective docstrings."""
     isthick = True
     has_backtrack = True
@@ -797,17 +815,6 @@ class _BendCommon(_HasKnlKsl):
             self._model = _MODEL_TO_INDEX_CURVED[value]
         except KeyError:
             raise ValueError(f'Invalid model: {value}')
-
-    @property
-    def integrator(self):
-        return xt.beam_elements.magnets._INDEX_TO_INTEGRATOR[self._integrator]
-
-    @integrator.setter
-    def integrator(self, value):
-        try:
-            self._integrator = _INTEGRATOR_TO_INDEX[value]
-        except KeyError:
-            raise ValueError(f'Invalid integrator: {value}')
 
     @property
     def edge_entry_model(self):
@@ -1446,7 +1453,7 @@ class RBend(_BendCommon, BeamElement):
         return out
 
 
-class Sextupole(_HasKnlKsl, BeamElement):
+class Sextupole(_HasKnlKsl, _HasIntegrator, BeamElement):
     """Sextupole element.
 
     Parameters
@@ -1567,19 +1574,8 @@ class Sextupole(_HasKnlKsl, BeamElement):
         except KeyError:
             raise ValueError(f'Invalid model: {value}')
 
-    @property
-    def integrator(self):
-        return _INDEX_TO_INTEGRATOR[self._integrator]
 
-    @integrator.setter
-    def integrator(self, value):
-        try:
-            self._integrator = _INTEGRATOR_TO_INDEX[value]
-        except KeyError:
-            raise ValueError(f'Invalid integrator: {value}')
-
-
-class Octupole(_HasKnlKsl, BeamElement):
+class Octupole(_HasKnlKsl, _HasIntegrator, BeamElement):
 
     """
     Octupole element.
@@ -1701,19 +1697,9 @@ class Octupole(_HasKnlKsl, BeamElement):
         except KeyError:
             raise ValueError(f'Invalid model: {value}')
 
-    @property
-    def integrator(self):
-        return _INDEX_TO_INTEGRATOR[self._integrator]
-
-    @integrator.setter
-    def integrator(self, value):
-        try:
-            self._integrator = _INTEGRATOR_TO_INDEX[value]
-        except KeyError:
-            raise ValueError(f'Invalid integrator: {value}')
 
 
-class Quadrupole(_HasKnlKsl, BeamElement):
+class Quadrupole(_HasKnlKsl, _HasIntegrator, BeamElement):
     """
     Quadrupole element.
 
@@ -1837,18 +1823,7 @@ class Quadrupole(_HasKnlKsl, BeamElement):
         except KeyError:
             raise ValueError(f'Invalid model: {value}')
 
-    @property
-    def integrator(self):
-        return _INDEX_TO_INTEGRATOR[self._integrator]
-
-    @integrator.setter
-    def integrator(self, value):
-        try:
-            self._integrator = _INTEGRATOR_TO_INDEX[value]
-        except KeyError:
-            raise ValueError(f'Invalid integrator: {value}')
-
-class UniformSolenoid(_HasKnlKsl, BeamElement):
+class UniformSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
 
     """
     Solenoid element.
@@ -1945,17 +1920,6 @@ class UniformSolenoid(_HasKnlKsl, BeamElement):
     @property
     def _exit_slice_class(self):
         return xt.ThinSliceUniformSolenoidExit
-
-    @property
-    def integrator(self):
-        return _INDEX_TO_INTEGRATOR[self._integrator]
-
-    @integrator.setter
-    def integrator(self, value):
-        try:
-            self._integrator = _INTEGRATOR_TO_INDEX[value]
-        except KeyError:
-            raise ValueError(f'Invalid integrator: {value}')
 
 class VariableSolenoid(_HasKnlKsl, BeamElement):
 
