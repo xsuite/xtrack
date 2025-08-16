@@ -27,6 +27,11 @@ from xtrack.internal_record import RecordIndex
 
 class _HasKnlKsl:
 
+    """
+    Mixin class adding properties and methods for beam elements
+    with knl and ksl fields.
+    """
+
     @property
     def order(self):
         return self._order
