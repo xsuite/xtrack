@@ -43,6 +43,26 @@ class _HasIntegrator:
         except KeyError:
             raise ValueError(f'Invalid integrator: {value}')
 
+class _HasModelStraight:
+
+    """
+    Mixin class adding properties and methods for beam elements
+    with model fields.
+    """
+
+    @property
+    def model(self):
+        return _INDEX_TO_MODEL_STRAIGHT[self._model]
+
+    @model.setter
+    def model(self, value):
+        try:
+            self._model = _MODEL_TO_INDEX_STRAIGHT[value]
+        except KeyError:
+            raise ValueError(f'Invalid model: {value}')
+
+
+
 class _HasKnlKsl:
 
     """
@@ -1453,7 +1473,7 @@ class RBend(_BendCommon, BeamElement):
         return out
 
 
-class Sextupole(_HasKnlKsl, _HasIntegrator, BeamElement):
+class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     """Sextupole element.
 
     Parameters
@@ -1563,19 +1583,8 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, BeamElement):
     def _exit_slice_class(self):
         return xt.ThinSliceSextupoleExit
 
-    @property
-    def model(self):
-        return _INDEX_TO_MODEL_STRAIGHT[self._model]
 
-    @model.setter
-    def model(self, value):
-        try:
-            self._model = _MODEL_TO_INDEX_STRAIGHT[value]
-        except KeyError:
-            raise ValueError(f'Invalid model: {value}')
-
-
-class Octupole(_HasKnlKsl, _HasIntegrator, BeamElement):
+class Octupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
 
     """
     Octupole element.
@@ -1686,20 +1695,8 @@ class Octupole(_HasKnlKsl, _HasIntegrator, BeamElement):
     def _exit_slice_class(self):
         return xt.ThinSliceOctupoleExit
 
-    @property
-    def model(self):
-        return _INDEX_TO_MODEL_STRAIGHT[self._model]
 
-    @model.setter
-    def model(self, value):
-        try:
-            self._model = _MODEL_TO_INDEX_STRAIGHT[value]
-        except KeyError:
-            raise ValueError(f'Invalid model: {value}')
-
-
-
-class Quadrupole(_HasKnlKsl, _HasIntegrator, BeamElement):
+class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     """
     Quadrupole element.
 
@@ -1812,16 +1809,6 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, BeamElement):
     def _exit_slice_class(self):
         return xt.ThinSliceQuadrupoleExit
 
-    @property
-    def model(self):
-        return _INDEX_TO_MODEL_STRAIGHT[self._model]
-
-    @model.setter
-    def model(self, value):
-        try:
-            self._model = _MODEL_TO_INDEX_STRAIGHT[value]
-        except KeyError:
-            raise ValueError(f'Invalid model: {value}')
 
 class UniformSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
 
@@ -3369,19 +3356,19 @@ class ElectronCooler(BeamElement):
         offset_px : float, optional
             The horizontal angle of the electron cooler, in rad.
         offset_y : float, optional
-            The horizontal offset of the electron cooler, in meters.    
+            The horizontal offset of the electron cooler, in meters.
         offset_py : float, optional
             The vertical angle of the electron cooler, in rad.
         offset_energy : float, optional
             The energy offset of the electrons, in eV.
         magnetic_field_ratio : float, optional
-            The ratio of perpendicular component of magnetic field with the 
+            The ratio of perpendicular component of magnetic field with the
             longitudinal component of the magnetic field. This is a measure
             of the magnetic field quality. With the ideal magnetic field quality 
             being 0.
         space_charge : float, optional
             Whether space charge of electron beam is enabled. 0 is off and 1 is on.
-        
+
     """
 
     _xofields = {
@@ -3391,7 +3378,7 @@ class ElectronCooler(BeamElement):
         'temp_perp'     :  xo.Float64,
         'temp_long'     :  xo.Float64,
         'magnetic_field':  xo.Float64,
-                
+
         'offset_x'      :  xo.Float64,
         'offset_px'     :  xo.Float64,
         'offset_y'      :  xo.Float64,
@@ -3402,11 +3389,11 @@ class ElectronCooler(BeamElement):
         'space_charge_factor'  : xo.Float64,
         'record_flag': xo.Int64,
         }
-    
+
     _extra_c_sources = [
         '#include <beam_elements/elements_src/electroncooler.h>',
     ]
-    
+
     _internal_record_class = ElectronCoolerRecord
 
     def __init__(self,  current        = 0,
@@ -3421,16 +3408,16 @@ class ElectronCooler(BeamElement):
                         offset_y       = 0,
                         offset_py      = 0,
                         offset_energy  = 0,
-                                                
+
                         magnetic_field_ratio = 0,
                         space_charge_factor  = 0,
-                        record_flag          =0,                      
+                        record_flag          =0,
                         **kwargs):
-        
+
         if "_xobject" in kwargs:
             self.xoinitialize(_xobject=kwargs['_xobject'])
             return
-        
+
         super().__init__(**kwargs)
         self.current        = current
         self.length         = length
@@ -3444,11 +3431,11 @@ class ElectronCooler(BeamElement):
         self.offset_y       = offset_y
         self.offset_py      = offset_py
         self.offset_energy  = offset_energy
-        
+
         self.magnetic_field_ratio = magnetic_field_ratio
         self.space_charge_factor  = space_charge_factor
         self.record_flag          =  record_flag
-        
+
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         raise NotImplementedError
 
