@@ -1910,7 +1910,6 @@ class VariableSolenoid(_HasKnlKsl, BeamElement):
 
     _rename = {
         'order': '_order',
-        'integrator': '_integrator',
     }
 
     _noexpr_fields = _NOEXPR_FIELDS
