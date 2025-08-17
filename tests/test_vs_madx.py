@@ -529,16 +529,17 @@ def test_line_import_from_madx(test_context, mad_with_errors):
     xo.assert_allclose(line.element_dict['acsca.b5l4.b1'].lag, 270,
                     rtol=0, atol=1e-14)
 
-    assert np.abs(line['acfcav.bl5.b1']._xobject.ksl[0]) > 0
+    assert np.abs(line['acfcav.bl5.b1']._xobject.knl[0]) > 0
+    xo.assert_allclose(line['acfcav.bl5.b1'].rot_s_rad, np.pi/2, atol=1e-14, rtol=0)
     line.vars['on_crab5'] = 0
-    assert np.abs(line['acfcav.bl5.b1']._xobject.ksl[0]) == 0
+    assert np.abs(line['acfcav.bl5.b1']._xobject.knl[0]) == 0
 
     xo.assert_allclose(
-        line['acfcav.bl5.b1']._xobject.ps[0], 90,
+        line['acfcav.bl5.b1']._xobject.pn[0], 90,
         rtol=0, atol=1e-14)
     line.vars['phi_crab_l5b1'] = 0.5
     xo.assert_allclose(
-        line['acfcav.bl5.b1']._xobject.ps[0], 270,
+        line['acfcav.bl5.b1']._xobject.pn[0], 270,
         rtol=0, atol=1e-14)
 
     assert np.abs(

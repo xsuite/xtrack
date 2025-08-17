@@ -1213,19 +1213,8 @@ class MadLoader:
         # for nn in ["l", "harmon", "lagf", "rv1", "rv2", "rph1", "rph2"]:
         #     if getattr(ee, nn):
         #         raise NotImplementedError(f"Invalid value {nn}={getattr(ee, nn)}")
-
         # ee.volt in MV, sequence.beam.pc in GeV
-        if abs(ee.tilt - np.pi / 2) < 1e-9:
-            el = self.Builder(
-                ee.name,
-                self.classes.RFMultipole,
-                frequency=ee.freq * 1e6,
-                ksl=[-ee.volt / self.sequence.beam.pc * 1e-3],
-                ps=[ee.lag * 360 + 90],
-            )
-            ee.tilt = 0
-        else:
-            el = self.Builder(
+        el = self.Builder(
                 ee.name,
                 self.classes.RFMultipole,
                 frequency=ee.freq * 1e6,
