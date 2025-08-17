@@ -876,7 +876,7 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
 
     #isthick can be changed dynamically for this element
     has_backtrack = True
-    allow_loss_refinement = True
+    allow_loss_refinement = False # for compatibility with past behaviour
 
     _xofields={
         'order': xo.Int64,
