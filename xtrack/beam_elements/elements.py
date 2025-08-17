@@ -327,7 +327,7 @@ class Elens(BeamElement):
             self.xoinitialize(**kwargs)
             return
 
-        super().__init__(_xobject=_xobject, **kwargs)
+        super().__init__(**kwargs)
         polynomial_order = len(self.coefficients_polynomial) - 1
         self.polynomial_order = polynomial_order
 
@@ -775,8 +775,7 @@ class SimpleThinQuadrupole(BeamElement):
             return
 
         knl = kwargs.get('knl')
-        if knl is not None:
-            if len(knl) != 2:
+        if knl and len(knl) != 2:
                 raise ValueError("For a quadrupole, len(knl) must be 2.")
 
         super().__init__(**kwargs)
@@ -2213,7 +2212,7 @@ class SimpleThinBend(BeamElement):
             self.xoinitialize(**kwargs)
             return
         knl = kwargs.get('knl')
-        if len(knl) != 1:
+        if knl and len(knl) != 1:
             raise ValueError("For a simple thin bend, len(knl) must be 1.")
 
         super().__init__(**kwargs)
