@@ -917,7 +917,7 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
         # have consistency with other thick elements otherwise)
         return self.isthick and self.length != 0
 
-    def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
+    def __init__(self, **kwargs):
 
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)

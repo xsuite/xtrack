@@ -442,16 +442,34 @@ class MadxLoader:
         elif parent_name == 'vkicker':
             if (kick := params.pop('kick', None)):
                 params['ksl'] = [kick]
+            params['isthick'] = False
+            if params.get('l', None):
+                params['isthick'] = True
+                params['length'] = params.pop('l')
+            else:
+                params['length'] = params.pop('lrad', 0)
 
         elif parent_name == 'hkicker':
             if (kick := params.pop('kick', None)):
                 params['knl'] = [-kick]
+            params['isthick'] = False
+            if params.get('l', None):
+                params['isthick'] = True
+                params['length'] = params.pop('l')
+            else:
+                params['length'] = params.pop('lrad', 0)
 
         elif parent_name in {'kicker', 'tkicker'}:
             if (vkick := params.pop('vkick', None)):
                 params['ksl'] = [vkick]
             if (hkick := params.pop('hkick', None)):
                 params['knl'] = [-hkick]
+            params['isthick'] = False
+            if params.get('l', None):
+                params['isthick'] = True
+                params['length'] = params.pop('l')
+            else:
+                params['length'] = params.pop('lrad', 0)
 
         if 'edge_entry_fint' in params and 'edge_exit_fint' not in params:
             params['edge_exit_fint'] = params['edge_entry_fint']
