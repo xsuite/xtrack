@@ -708,21 +708,23 @@ class Multipole(_HasKnlKsl, BeamElement):
 
     has_backtrack = True
 
-    def __init__(self, **kwargs):
+
+    def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
+
+        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
+        multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
+        kwargs.update(multipolar_kwargs)
 
         if "bal" in kwargs.keys():
-            raise ValueError('bal not supported anymore')
+            raise ValueError("`bal` not supported anymore")
 
         if 'hyl' in kwargs.keys():
             assert kwargs['hyl'] == 0.0, 'hyl is not supported anymore'
 
-        if 'model' in kwargs:
-            raise ValueError('model not supported for Multipole')
-
-        if 'integrator' in kwargs:
-            raise ValueError('integrator not supported for Multipole')
-
-        _HasKnlKsl.__init__(self, **kwargs)
+        self.xoinitialize(**kwargs)
 
 
     @property
