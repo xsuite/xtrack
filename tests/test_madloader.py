@@ -610,40 +610,40 @@ def test_mad_elements_import():
 
         assert isinstance(line['r0'], xt.RFMultipole)
         assert line.get_s_position('r0') == 0.4
-        assert np.all(line['r0'].knl == np.array([2, 3]))
-        assert np.all(line['r0'].ksl == np.array([0, 5]))
-        assert np.all(line['r0'].pn == np.array([0.3 * 360, 0.4 * 360]))
-        assert np.all(line['r0'].ps == np.array([0.5 * 360, 0.6 * 360]))
+        assert np.all(line['r0'].knl == np.array([2, 3, 0, 0, 0, 0]))
+        assert np.all(line['r0'].ksl == np.array([0, 5, 0, 0, 0, 0]))
+        assert np.all(line['r0'].pn == np.array([0.3 * 360, 0.4 * 360, 0, 0, 0, 0]))
+        assert np.all(line['r0'].ps == np.array([0.5 * 360, 0.6 * 360, 0, 0, 0, 0]))
         assert line['r0'].voltage == 2e6
-        assert line['r0'].order == 1
+        assert line['r0'].order == 5
         assert line['r0'].frequency == 100e6
         assert line['r0'].lag == 180
 
         assert isinstance(line['cb0'], xt.RFMultipole)
         assert line.get_s_position('cb0') == 0.41
-        assert len(line['cb0'].knl) == 1
-        assert len(line['cb0'].ksl) == 1
+        assert len(line['cb0'].knl) == 6
+        assert len(line['cb0'].ksl) == 6
         xo.assert_allclose(line['cb0'].knl[0], 2 * 1e6 / line.particle_ref.p0c[0],
                            rtol=0, atol=1e-12)
         assert np.all(line['cb0'].ksl == 0)
-        assert np.all(line['cb0'].pn == np.array([270]))
+        assert np.all(line['cb0'].pn[0] == np.array([270]))
         assert np.all(line['cb0'].ps == 0.)
         assert line['cb0'].voltage == 0
-        assert line['cb0'].order == 0
+        assert line['cb0'].order == 5
         assert line['cb0'].frequency == 100e6
         assert line['cb0'].lag == 0
 
         assert isinstance(line['cb1'], xt.RFMultipole)
         assert line.get_s_position('cb1') == 0.42
-        assert len(line['cb1'].knl) == 1
-        assert len(line['cb1'].ksl) == 1
+        assert len(line['cb1'].knl) == 6
+        assert len(line['cb1'].ksl) == 6
         xo.assert_allclose(line['cb1'].ksl[0], -2 * 1e6 / line.particle_ref.p0c[0],
                            rtol=0, atol=1e-12)
         assert np.all(line['cb1'].knl == 0)
-        assert np.all(line['cb1'].ps == np.array([270]))
+        assert np.all(line['cb1'].ps[0] == np.array([270]))
         assert np.all(line['cb1'].pn == 0.)
         assert line['cb1'].voltage == 0
-        assert line['cb1'].order == 0
+        assert line['cb1'].order == 5
         assert line['cb1'].frequency == 100e6
         assert line['cb1'].lag == 0
 
