@@ -775,7 +775,7 @@ class SimpleThinQuadrupole(BeamElement):
             return
 
         knl = kwargs.get('knl')
-        if knl and len(knl) != 2:
+        if knl is not None and len(knl) != 2:
                 raise ValueError("For a quadrupole, len(knl) must be 2.")
 
         super().__init__(**kwargs)
@@ -2212,7 +2212,7 @@ class SimpleThinBend(BeamElement):
             self.xoinitialize(**kwargs)
             return
         knl = kwargs.get('knl')
-        if knl and len(knl) != 1:
+        if knl is not None and len(knl) != 1:
             raise ValueError("For a simple thin bend, len(knl) must be 1.")
 
         super().__init__(**kwargs)
