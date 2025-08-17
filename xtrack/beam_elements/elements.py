@@ -62,6 +62,24 @@ class _HasModelStraight:
             raise ValueError(f'Invalid model: {value}')
 
 
+class _HasModelRF:
+
+    """
+    Mixin class adding properties and methods for beam elements
+    with RF model fields.
+    """
+
+    @property
+    def rf_model(self):
+        return _INDEX_TO_MODEL_RF[self._rf_model]
+
+    @rf_model.setter
+    def rf_model(self, value):
+        try:
+            self._rf_model = _MODEL_TO_INDEX_RF[value]
+        except KeyError:
+            raise ValueError(f'Invalid RF model: {value}')
+
 
 class _HasKnlKsl:
 
@@ -92,6 +110,29 @@ class _HasKnlKsl:
             out['order'] = self.order
 
         return out
+
+    def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None,
+                 **kwargs):
+
+        if '_xobject' in kwargs and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
+        order = order or DEFAULT_MULTIPOLE_ORDER
+        multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
+        kwargs.update(multipolar_kwargs)
+
+        model = kwargs.pop('model', None)
+        integrator = kwargs.pop('integrator', None)
+
+        self.xoinitialize(**kwargs)
+
+        # Trigger properties
+        if model is not None:
+            self.model = model
+
+        if integrator is not None:
+            self.integrator = integrator
 
 
 class ReferenceEnergyIncrease(BeamElement):
@@ -667,29 +708,22 @@ class Multipole(_HasKnlKsl, BeamElement):
 
     has_backtrack = True
 
-    def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
-
-        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
-            self.xoinitialize(**kwargs)
-            return
-
-        multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
-        kwargs.update(multipolar_kwargs)
+    def __init__(self, **kwargs):
 
         if "bal" in kwargs.keys():
-            if not "knl" in kwargs.keys() or not "ksl" in kwargs.keys():
-                _bal = kwargs['bal']
-                idxes = np.array([ii for ii in range(0, len(_bal), 2)])
-                knl = [_bal[idx] * factorial(idx // 2, exact=True) for idx in idxes]
-                ksl = [_bal[idx + 1] * factorial(idx // 2, exact=True) for idx in idxes]
+            raise ValueError('bal not supported anymore')
 
         if 'hyl' in kwargs.keys():
             assert kwargs['hyl'] == 0.0, 'hyl is not supported anymore'
 
-        if 'delta_taper' not in kwargs.keys():
-            kwargs['delta_taper'] = 0.0
+        if 'model' in kwargs:
+            raise ValueError('model not supported for Multipole')
 
-        self.xoinitialize(**kwargs)
+        if 'integrator' in kwargs:
+            raise ValueError('integrator not supported for Multipole')
+
+        _HasKnlKsl.__init__(self, **kwargs)
+
 
     @property
     def hyl(self):
@@ -1016,21 +1050,12 @@ class Bend(_BendCommon, BeamElement):
         '#include <beam_elements/elements_src/bend.h>',
     ]
 
-    def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
+    def __init__(self, **kwargs):
 
-        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
-            self.xoinitialize(**kwargs)
-            return
-
-        model = kwargs.pop('model', None)
         edge_entry_model = kwargs.pop('edge_entry_model', None)
         edge_exit_model = kwargs.pop('edge_exit_model', None)
 
-        order = order or DEFAULT_MULTIPOLE_ORDER
-        multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
-        kwargs.update(multipolar_kwargs)
-
-        self.xoinitialize(**kwargs)
+        _HasKnlKsl.__init__(self, **kwargs)
 
         # Calculate length and h in the event length_straight and/or angle given
         self.set_bend_params(
@@ -1041,9 +1066,6 @@ class Bend(_BendCommon, BeamElement):
 
         if self.k0_from_h:
             self.k0 = self.h
-
-        if model is not None:
-            self.model = model
 
         if edge_entry_model is not None:
             self.edge_entry_model = edge_entry_model
@@ -1243,28 +1265,14 @@ class RBend(_BendCommon, BeamElement):
 
     _noexpr_fields = _NOEXPR_FIELDS
 
-    def __init__(
-            self,
-            order=None,
-            knl: List[float]=None,
-            ksl: List[float]=None,
-            **kwargs,
-    ):
+    def __init__(self, **kwargs):
 
-        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
-            self.xoinitialize(**kwargs)
-            return
-
-        order = order or DEFAULT_MULTIPOLE_ORDER
-        multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
-        kwargs.update(multipolar_kwargs)
-
-        model = kwargs.pop('model', None)
         edge_entry_model = kwargs.pop('edge_entry_model', None)
         edge_exit_model = kwargs.pop('edge_exit_model', None)
         rbend_model = kwargs.pop('rbend_model', None)
 
-        self.xoinitialize(**kwargs)
+        _HasKnlKsl.__init__(self, **kwargs)
+
 
         # Calculate length and h in the event length_straight and/or angle given
         self.set_bend_params(
@@ -1278,9 +1286,6 @@ class RBend(_BendCommon, BeamElement):
             self.k0 = self.h
 
         # Trigger properties
-        if model is not None:
-            self.model = model
-
         if edge_entry_model is not None:
             self.edge_entry_model = edge_entry_model
 
@@ -1545,24 +1550,6 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         '#include <beam_elements/elements_src/sextupole.h>',
     ]
 
-    def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
-
-        order = order or DEFAULT_MULTIPOLE_ORDER
-        multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
-        kwargs.update(multipolar_kwargs)
-
-        model = kwargs.pop('model', None)
-        integrator = kwargs.pop('integrator', None)
-
-        self.xoinitialize(**kwargs)
-
-        # Trigger properties
-        if model is not None:
-            self.model = model
-
-        if integrator is not None:
-            self.integrator = integrator
-
     @property
     def _thin_slice_class(self):
         return xt.ThinSliceSextupole
@@ -1658,23 +1645,6 @@ class Octupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         '#include <beam_elements/elements_src/octupole.h>',
     ]
 
-    def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
-        order = order or DEFAULT_MULTIPOLE_ORDER
-        multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
-        kwargs.update(multipolar_kwargs)
-
-        model = kwargs.pop('model', None)
-        integrator = kwargs.pop('integrator', None)
-
-        self.xoinitialize(**kwargs)
-
-        # Trigger properties
-        if model is not None:
-            self.model = model
-
-        if integrator is not None:
-            self.integrator = integrator
-
     @property
     def _thin_slice_class(self):
         return xt.ThinSliceOctupole
@@ -1768,23 +1738,6 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     _depends_on = [RandomUniformAccurate, RandomExponential]
 
     _internal_record_class = SynchrotronRadiationRecord
-
-    def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
-        order = order or DEFAULT_MULTIPOLE_ORDER
-        multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
-        kwargs.update(multipolar_kwargs)
-
-        model = kwargs.pop('model', None)
-        integrator = kwargs.pop('integrator', None)
-
-        self.xoinitialize(**kwargs)
-
-        # Trigger properties
-        if model is not None:
-            self.model = model
-
-        if integrator is not None:
-            self.integrator = integrator
 
     @property
     def radiation_flag(self): return 0.0
@@ -1883,18 +1836,12 @@ class UniformSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
         '#include <beam_elements/elements_src/slnd.h>',
     ]
 
-    def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
-        order = order or DEFAULT_MULTIPOLE_ORDER
-        multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
-        kwargs.update(multipolar_kwargs)
+    def __init__(self, **kwargs):
 
-        integrator = kwargs.pop('integrator', None)
+        if 'model' in kwargs:
+            raise ValueError("`model` is not supported for UniformSolenoid.")
 
-        self.xoinitialize(**kwargs)
-
-        # Trigger property
-        if integrator is not None:
-            self.integrator = integrator
+        _HasKnlKsl.__init__(self, **kwargs)
 
     @property
     def _thick_slice_class(self):
@@ -1955,7 +1902,6 @@ class VariableSolenoid(_HasKnlKsl, BeamElement):
         'edge_entry_active': xo.Field(xo.UInt64, default=False),
         'edge_exit_active': xo.Field(xo.UInt64, default=False),
         'num_multipole_kicks': xo.Int64,
-        'integrator': xo.Int64,
         'radiation_flag': xo.Int64,
         'delta_taper': xo.Float64,
     }
@@ -1976,32 +1922,17 @@ class VariableSolenoid(_HasKnlKsl, BeamElement):
         '#include <beam_elements/elements_src/variable_solenoid.h>',
     ]
 
-    def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
-        order = order or DEFAULT_MULTIPOLE_ORDER
-        multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
-        kwargs.update(multipolar_kwargs)
+    def __init__(self, **kwargs):
 
-        integrator = kwargs.pop('integrator', None)
+        if 'model' in kwargs:
+            raise ValueError("`model` is not supported for UniformSolenoid.")
 
-        self.xoinitialize(**kwargs)
+        if 'integrator' in kwargs:
+            raise ValueError("`integrator` is not supported for UniformSolenoid.")
 
-        # Trigger property
-        if integrator is not None:
-            self.integrator = integrator
+        _HasKnlKsl.__init__(self, **kwargs)
 
-    @property
-    def integrator(self):
-        return _INDEX_TO_INTEGRATOR[self._integrator]
-
-    @integrator.setter
-    def integrator(self, value):
-        try:
-            self._integrator = _INTEGRATOR_TO_INDEX[value]
-        except KeyError:
-            raise ValueError(f'Invalid integrator: {value}')
-
-
-class TempRF(BeamElement):
+class TempRF(_HasModelRF, _HasIntegrator, BeamElement):
 
     isthick = True
     has_backtrack = True
@@ -2027,27 +1958,6 @@ class TempRF(BeamElement):
         '#include <beam_elements/elements_src/temprf.h>',
     ]
 
-    @property
-    def model(self):
-        return _INDEX_TO_MODEL_RF[self._model]
-
-    @model.setter
-    def model(self, value):
-        try:
-            self._model = _MODEL_TO_INDEX_RF[value]
-        except KeyError:
-            raise ValueError(f'Invalid model: {value}')
-
-    @property
-    def integrator(self):
-        return _INDEX_TO_INTEGRATOR[self._integrator]
-
-    @integrator.setter
-    def integrator(self, value):
-        try:
-            self._integrator = _INTEGRATOR_TO_INDEX[value]
-        except KeyError:
-            raise ValueError(f'Invalid integrator: {value}')
 
 class Solenoid(_HasKnlKsl, BeamElement):
     """Solenoid element.
@@ -2421,8 +2331,6 @@ class DipoleEdge(BeamElement):
             kwargs['_k'] = kwargs.pop('_h')
 
         self.xoinitialize(**kwargs)
-        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
-            return
 
         if hgap is not None:
             self._hgap = hgap
