@@ -15,7 +15,7 @@ checks = [
     (xt.Solenoid,                dict(isthick=True , allow_rot_and_shift=True , rot_and_shift_from_parent=None , _inherit_strengths=None)),
     (xt.UniformSolenoid,         dict(isthick=True , allow_rot_and_shift=True , rot_and_shift_from_parent=None , _inherit_strengths=None)),
     (xt.VariableSolenoid,        dict(isthick=True , allow_rot_and_shift=True , rot_and_shift_from_parent=None , _inherit_strengths=None)),
-    (xt.RFMultipole,             dict(isthick=False, allow_rot_and_shift=True , rot_and_shift_from_parent=None , _inherit_strengths=None)),
+    (xt.RFMultipole,             dict(isthick=True, allow_rot_and_shift=True , rot_and_shift_from_parent=None , _inherit_strengths=None)),
     (xt.DipoleEdge,              dict(isthick=False, allow_rot_and_shift=True , rot_and_shift_from_parent=None , _inherit_strengths=None)),
     (xt.SimpleThinBend,          dict(isthick=False, allow_rot_and_shift=False, rot_and_shift_from_parent=None , _inherit_strengths=None)),
     (xt.SimpleThinQuadrupole,    dict(isthick=False, allow_rot_and_shift=False, rot_and_shift_from_parent=None , _inherit_strengths=None)),
