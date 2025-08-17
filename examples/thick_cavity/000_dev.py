@@ -4,6 +4,7 @@ import xtrack as xt
 # - Propagate integrator/model to C code
 # - Backtrack
 # - Tapering
+# - Exception tapering for sliced cavities (to be implemented at a later stage)
 # - Absolute time
 # - Slicing
 
@@ -16,7 +17,8 @@ rf.num_kicks = 30
 
 rf.compile_kernels()
 
-p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, p0c=1e9)
+p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, p0c=1e9,
+                  x=1e-3, y=2e-4, zeta=0.1)
 
 p_rf = p0.copy()
 p_cav = p0.copy()
@@ -24,9 +26,17 @@ p_cav = p0.copy()
 rf.track(p_rf)
 cav.track(p_cav)
 
-rf_with_mult = xt.TempRF(frequency=1e9,
-                         knl=[1, 2, 3], ksl=[4, 5, 6])
+rf_with_mult = xt.TempRF(frequency=1e9, length=0.000001,
+                         knl=[1], ksl=[4])
 rfm = xt.RFMultipole(
     frequency=1e9,
-    knl=[1, 2, 3], ksl=[4, 5, 6]
+    knl=[1], ksl=[4]
 )
+rf_with_mult.integrator = 'uniform'
+rf_with_mult.num_kicks = 10
+
+p_rf_mult = p0.copy()
+p_cav_mult = p0.copy()
+
+rf_with_mult.track(p_rf_mult)
+rfm.track(p_cav_mult)
