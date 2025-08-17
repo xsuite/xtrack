@@ -19,6 +19,7 @@ to_do = [
     ("Quadrupole", "quadrupole.h"),
     ("Sextupole", "sextupole.h"),
     ("UniformSolenoid", "slnd.h"),
+    ("Cavity", "cavity.h")
 ]
 
 for td in to_do:
@@ -34,6 +35,12 @@ for td in to_do:
     for generating in ['thick_slice', 'thin_slice', 'entry_slice', 'exit_slice']:
 
         if parent_class == "UniformSolenoid" and generating == "thin_slice":
+            continue # Does not exist
+
+        if parent_class == "Cavity" and generating == "entry_slice":
+            continue # Does not exist
+
+        if parent_class == "Cavity" and generating == "exit_slice":
             continue # Does not exist
 
         out_content = parent_content
@@ -66,33 +73,36 @@ for td in to_do:
         assert generated_data_class + '_get_' in out_content
         out_content = out_content.replace(generated_data_class + '_get_', generated_data_class + '_get__parent_')
 
-        assert generated_data_class + '_getp1_' in out_content
+        if parent_class != 'Cavity':
+            assert generated_data_class + '_getp1_' in out_content
         out_content = out_content.replace(generated_data_class + '_getp1_', generated_data_class + '_getp1__parent_')
 
         # delta_taper must come from the slice and not from the parent
-        assert "_get__parent_delta_taper" in out_content
+        if parent_class != 'Cavity':
+            assert "_get__parent_delta_taper" in out_content
         out_content = out_content.replace("_get__parent_delta_taper", "_get_delta_taper")
 
         # Handle "radiation_flag" and "radiation_flag_parent"
         out_lines = out_content.splitlines()
 
-        # Identify the line with "/*radiation_flag*/"
-        i_radiation_flag_line = None
-        for i, line in enumerate(out_lines):
-            if "/*radiation_flag*/" in line:
-                i_radiation_flag_line = i
-                break
-        assert i_radiation_flag_line is not None, "Could not find radiation_flag line"
-        i_parent_line = i_radiation_flag_line + 1
+        if parent_class != 'Cavity':
+            # Identify the line with "/*radiation_flag*/"
+            i_radiation_flag_line = None
+            for i, line in enumerate(out_lines):
+                if "/*radiation_flag*/" in line:
+                    i_radiation_flag_line = i
+                    break
+            assert i_radiation_flag_line is not None, "Could not find radiation_flag line"
+            i_parent_line = i_radiation_flag_line + 1
 
-        assert "get__parent_radiation_flag" in out_lines[i_radiation_flag_line]
-        out_lines[i_radiation_flag_line] = out_lines[i_radiation_flag_line].replace(
-            "get__parent_radiation_flag", "get_radiation_flag")
+            assert "get__parent_radiation_flag" in out_lines[i_radiation_flag_line]
+            out_lines[i_radiation_flag_line] = out_lines[i_radiation_flag_line].replace(
+                "get__parent_radiation_flag", "get_radiation_flag")
 
-        ln_parent_radiation_flag = out_lines[i_parent_line]
-        assert "0" in ln_parent_radiation_flag, "Expected '0' in radiation_flag line"
-        ln_parent_radiation_flag = ln_parent_radiation_flag.split('0')[0]
-        out_lines[i_parent_line] = ln_parent_radiation_flag + generated_data_class + "_get__parent_radiation_flag(el),"
+            ln_parent_radiation_flag = out_lines[i_parent_line]
+            assert "0" in ln_parent_radiation_flag, "Expected '0' in radiation_flag line"
+            ln_parent_radiation_flag = ln_parent_radiation_flag.split('0')[0]
+            out_lines[i_parent_line] = ln_parent_radiation_flag + generated_data_class + "_get__parent_radiation_flag(el),"
 
         # Disable edges where needed
         for i, line in enumerate(out_lines):
@@ -185,6 +195,21 @@ for td in to_do:
                 else:
                     raise ValueError(f"Unknown generating type: {generating}")
                 out_lines[i] = ll
+            if "/*num_kicks*/" in line:
+                found_num_kicks = True
+                ll = line
+                assert generated_data_class + '_get_' in ll
+                if generating == "thick_slice":
+                    continue
+                elif generating == "thin_slice":
+                    ll = ll.split(generated_data_class + '_get_')[0]
+                    ll += "1, // kick only"
+                elif generating == "entry_slice" or generating == "exit_slice":
+                    ll = ll.split(generated_data_class + '_get_')[0]
+                    ll += "0, // unused"
+                else:
+                    raise ValueError(f"Unknown generating type: {generating}")
+                out_lines[i] = ll
             if "/*body_active*/" in line:
                 found_enable_body = True
                 ll = line
@@ -197,7 +222,10 @@ for td in to_do:
                 out_lines[i] = ll
         assert found_integrator, "Did not find integrator line to modify"
         assert found_model, "Did not find model line to modify"
-        assert found_num_multipole_kicks, "Did not find num_multipole_kicks line to modify"
+        if parent_class == "Cavity":
+            assert found_num_kicks, "Did not find num_kicks line to modify"
+        else:
+            assert found_num_multipole_kicks, "Did not find num_multipole_kicks line to modify"
         assert found_enable_body, "Did not find enable_body line to modify"
 
         # generated_class from camel case to snake case
