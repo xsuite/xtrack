@@ -480,7 +480,6 @@ class MadLoader:
         allow_thick=False,
         name_prefix=None,
         enable_layout_data=False,
-        enable_thick_kickers=False,
     ):
 
 
@@ -518,7 +517,6 @@ class MadLoader:
         self.ignore_madtypes = ignore_madtypes
         self.name_prefix = name_prefix
         self.enable_layout_data = enable_layout_data
-        self.enable_thick_kickers = enable_thick_kickers
 
         self.allow_thick = allow_thick
         self.bv = 1
@@ -1052,39 +1050,28 @@ class MadLoader:
         return self.make_composite_element([el], mad_elem)
 
     def _make_kicker_multipole(self, mad_el, hkick, vkick):
-        make_sandwich = True
-        if value_if_expr(mad_el.l) != 0:
+
+        if mad_el.l:
+            isthick = True
             length = mad_el.l
-            is_thick = True
-            if self.enable_thick_kickers:
-                element_class = self.classes.Magnet
-                make_sandwich = False
-            else:
-                element_class = self.classes.Multipole
         else:
-            is_thick = False
-            element_class = self.classes.Multipole
+            isthick = False
             length = mad_el.lrad
+
 
         kicker = self.Builder(
             mad_el.name,
-            element_class,
+            self.classes.Multipole,
             knl=hkick,
             ksl=vkick,
             length=length,
+            isthick=isthick,
         )
 
-        if is_thick and not self.allow_thick:
+        if isthick and not self.allow_thick:
             self._assert_element_is_thin(mad_el)
 
-        if is_thick and make_sandwich:
-            sequence = [
-                self._make_drift_slice(mad_el, 0.5, "drift_{}..1"),
-                kicker,
-                self._make_drift_slice(mad_el, 0.5, "drift_{}..2"),
-            ]
-        else:
-            sequence = [kicker]
+        sequence = [kicker]
 
         return self.make_composite_element(sequence, mad_el)
 

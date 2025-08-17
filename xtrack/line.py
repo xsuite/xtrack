@@ -496,7 +496,6 @@ class Line:
         allow_thick=None,
         name_prefix=None,
         enable_layout_data=False,
-        enable_thick_kickers=False,
     ):
 
         """
@@ -566,7 +565,6 @@ class Line:
             allow_thick=allow_thick,
             name_prefix=name_prefix,
             enable_layout_data=enable_layout_data,
-            enable_thick_kickers=enable_thick_kickers,
         )
         line = loader.make_line()
         return line
