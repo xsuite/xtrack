@@ -4,7 +4,7 @@ from ..base_element import BeamElement
 from .slice_base import _SliceBase, COMMON_SLICE_XO_FIELDS
 from .elements import (
     SynchrotronRadiationRecord, Bend, Quadrupole, Sextupole,
-    Octupole, Solenoid, Drift, RBend, UniformSolenoid
+    Octupole, Solenoid, Drift, RBend, UniformSolenoid, Cavity
 )
 from ..survey import advance_element as survey_advance_element
 
@@ -83,6 +83,14 @@ class ThickSliceOctupole(_ThickSliceElementBase, BeamElement):
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/thick_slice_octupole.h>'
+    ]
+
+class ThickSliceCavity(_ThickSliceElementBase, BeamElement):
+
+    _xofields = {'_parent': xo.Ref(Cavity), **COMMON_SLICE_XO_FIELDS}
+
+    _extra_c_sources = [
+        '#include <beam_elements/elements_src/thick_slice_cavity.h>'
     ]
 
 class ThickSliceUniformSolenoid(_ThickSliceElementBase, BeamElement):
