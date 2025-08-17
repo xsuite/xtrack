@@ -1,86 +1,84 @@
+"""
+Schottky spectrum monitor
+
+Author: Christophe Lannoy
+Date: 2025-08-17
+"""
+
 import numpy as np
 import scipy as sp
 from scipy.constants import c
 
-class SchottkyMonitor():
+
+class SchottkyMonitor:
     def __init__(self, f_rev, schottky_harmonic, n_taylor):
         """
-        Tracking element computing Schottky spectra 
-        Equations based on JINST 19 P03017, C.lannoy et al.
+        Tracking element computing Schottky spectra.
+        Equations based on JINST 19 P03017, C. Lannoy et al.
 
         Parameters
         ----------
         f_rev : float
-                Revolution frequency.
-
+            Revolution frequency.
         schottky_harmonic : int
-                Harmonic of the Schottky monitor.
-
+            Harmonic of the Schottky monitor.
         n_taylor : int
-                Number of term used for the Taylor expansion (4 is enough for LHC conditions).
+            Number of terms used for the Taylor expansion (4 is enough for LHC conditions).
         """
-        
         self.f_rev = f_rev
         if n_taylor < 1:
             raise ValueError('At least one coefficient for the Taylor expansion is needed')
         self.n_taylor = n_taylor
-        # Taylor expantion around central Schottky frequency omega_c
+        # Taylor expansion around central Schottky frequency omega_c
         self.omega_c = 2 * np.pi * f_rev * schottky_harmonic
         self.x_coeff, self.y_coeff, self.z_coeff = [], [], []
         self.initialised_with_first_tracking = False
 
     def track(self, particles):
         mask_alive = particles.state > 0
-        tau = -particles.zeta[mask_alive]/(c*particles.beta0[mask_alive])
+        tau = -particles.zeta[mask_alive] / (c * particles.beta0[mask_alive])
 
-        # If first time calling the function, store bunch parameters for 
-        # computing the upper bound of the Taylor approximation
+        # First time: store bunch parameters for truncation error estimate
         if not self.initialised_with_first_tracking:
-            self.tau_max = 4* np.std(tau)
-            self.x_max = 4* np.std(particles.x[mask_alive])
-            self.y_max = 4* np.std(particles.y[mask_alive])
+            self.tau_max = 4 * np.std(tau)
+            self.x_max = 4 * np.std(particles.x[mask_alive])
+            self.y_max = 4 * np.std(particles.y[mask_alive])
             self.N_macropart_max = len(tau)
             self.initialised_with_first_tracking = True
 
         # Calculates the longitudinal and transverse coefficients (L and T) as defined in Eqs (2.2) and (2.4)
         z_terms = np.empty((self.n_taylor, len(tau)), dtype=np.csingle)
-        z_terms[0,:] = np.exp(1j*self.omega_c*tau)
-        for l in range(1,self.n_taylor):
-            z_terms[l,:] = z_terms[l-1,:]*tau
+        z_terms[0, :] = np.exp(1j * self.omega_c * tau)
+        for l in range(1, self.n_taylor):
+            z_terms[l, :] = z_terms[l - 1, :] * tau
 
-        self.x_coeff.append(np.sum(z_terms*particles.x[mask_alive], axis=1))
-        self.y_coeff.append(np.sum(z_terms*particles.y[mask_alive], axis=1))
+        self.x_coeff.append(np.sum(z_terms * particles.x[mask_alive], axis=1))
+        self.y_coeff.append(np.sum(z_terms * particles.y[mask_alive], axis=1))
         self.z_coeff.append(np.sum(z_terms, axis=1))
 
-    def process_spectrum(self, inst_spectrum_len, deltaQ, band_width, Qx, Qy, 
+    def process_spectrum(self, inst_spectrum_len, deltaQ, band_width, Qx, Qy,
                          x=True, y=True, z=True, flattop_window=True):
         """
-        Compute Schottky spectra from the stored longitudinal and transverse coefficients
+        Compute Schottky spectra from stored longitudinal and transverse coefficients.
 
         Parameters
         ----------
         inst_spectrum_len : int
-                Number of revolution used to compute a single instataneous spectra.
-                
-        deltaQ : float 
-                Frequency resolution of the spectra (in tune unit).
-
+            Number of turns used to compute one instantaneous spectrum.
+        deltaQ : float
+            Frequency resolution (in tune units).
         band_width : float
-                Range of frequency (in tune unit) where the spectrum will be computed for each band, 
-                should be between 0 and 1.
-
+            Range of frequency (in tune units) where the spectrum will be computed for each band,
+            should be between 0 and 1.
         Qx, Qy : float
-                Transverse tunes used to set the central frequency around which the 
-                transverse side-bands will be computed. 
-
+            Transverse tunes used to set the central frequency around which the 
+            transverse side-bands will be computed. 
         x, y, z: bool
-                Which band are to be computed. x, y, z stand for, respectively, 
-                transverse horizontal, transverse vertical and longitudinal bands.
-
+            Which band are to be computed. x, y, z stand for, respectively, 
+            transverse horizontal, transverse vertical and longitudinal bands.
         flattop_window: bool
-                Multiply time signal by flattop window, else no windowing used (=rectangular window).
+            Multiply time signal by flattop window, else no windowing used (=rectangular window).
         """
-        
         if inst_spectrum_len > len(self.x_coeff):
             raise ValueError(f'Not enough turns tracked to produce a single instataneous spectra \n \
                                Number of turns tracked: {len(self.x_coeff)} \n \
@@ -200,32 +198,24 @@ class SchottkyMonitor():
             delattr(self, 'PSD_avg')
 
     def clear_all(self):
-        """
-        Reinitialise monitor
-        """
+        """Fully reset monitor (coefficients and spectra)."""
         self.clear_spectrum()
         self.x_coeff = []
         self.y_coeff = []
         self.z_coeff = []
 
-    # ------------------------------------------------------------------
-    # Plotting utilities
-    # ------------------------------------------------------------------
+    # Plotting utility -------------------------------------------------
     def plot(self, regions=None, log=False):
-        """Plot Schottky spectra (average PSD only).
+        """
+        Plot average Schottky spectra.
 
         Parameters
         ----------
         regions : list(str) or None
-            Regions to include. If None, automatically select the available
-            standard regions in the order: ['lowerH','center','upperH','lowerV','upperV'].
+            Regions to include (default: all available among
+            ['lowerH','center','upperH','lowerV','upperV']).
         log : bool
-            If True, use logarithmic y-scale.
-
-        Returns
-        -------
-        fig, axes
-            Matplotlib figure and list of axes.
+            If True use logarithmic y-scale.
         """
         import matplotlib.pyplot as plt
         if not hasattr(self, 'PSD_avg'):
@@ -248,15 +238,15 @@ class SchottkyMonitor():
         if len(regions) == 1:
             axes = [axes]
 
-        for aa, region in zip(axes, regions):
+        for ax, region in zip(axes, regions):
             freq = self.frequencies[region]
-            psd_avg = self.PSD_avg[region]
-            aa.plot(freq, psd_avg)
+            psd = self.PSD_avg[region]
+            ax.plot(freq, psd)
             if log:
-                aa.set_yscale('log')
-            aa.set_xlabel('Frequency [$f_0$]')
-            aa.set_ylabel('PSD [arb. units]')
-            aa.set_title(region)
-            aa.grid(True, which='both', ls=':', alpha=0.5)
+                ax.set_yscale('log')
+            ax.set_xlabel('Frequency [$f_0$]')
+            ax.set_ylabel('PSD [arb. units]')
+            ax.set_title(region)
+            ax.grid(True, which='both', ls=':', alpha=0.5)
         fig.tight_layout()
         return fig, axes
