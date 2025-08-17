@@ -6,15 +6,13 @@
 #ifndef XTRACK_NONLINEARLENS_H
 #define XTRACK_NONLINEARLENS_H
 
-#ifndef POW2
-#define POW2(X) ((X)*(X))
-#endif
+#include <headers/track.h>
 
 // Implementation of a non-linear lens with elliptic potential
 // (based on the corresponding element in MAD-X, reference: Danilov and Nagaitsev,
 // https://journals.aps.org/prab/abstract/10.1103/PhysRevSTAB.13.084002)
 
-/*gpufun*/
+GPUFUN
 void NonLinearLens_track_local_particle(
         NonLinearLensData el,
         LocalParticle* part0
@@ -23,7 +21,7 @@ void NonLinearLens_track_local_particle(
     double const cnll = NonLinearLensData_get_cnll(el);
     double const knll = NonLinearLensData_get_knll(el) / cnll;
 
-    //start_per_particle_block (part0->part)
+    START_PER_PARTICLE_BLOCK(part0, part);
 
         double const x = LocalParticle_get_x(part) / cnll;
         double const y = LocalParticle_get_y(part) / cnll;
@@ -57,7 +55,7 @@ void NonLinearLens_track_local_particle(
         LocalParticle_add_to_px(part, knll * (dUu * dux + dUv * dvx));
         LocalParticle_add_to_py(part, knll * (dUu * duy + dUv * dvy));
 
-    //end_per_particle_block
+    END_PER_PARTICLE_BLOCK;
 
 }
 

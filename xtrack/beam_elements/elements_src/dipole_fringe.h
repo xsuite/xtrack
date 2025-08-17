@@ -6,17 +6,11 @@
 #ifndef XTRACK_FRINGE_H
 #define XTRACK_FRINGE_H
 
-#ifndef POW2
-#define POW2(X) ((X)*(X))
-#endif
-#ifndef POW3
-#define POW3(X) ((X)*(X)*(X))
-#endif
-#ifndef POW4
-#define POW4(X) ((X)*(X)*(X)*(X))
-#endif
+#include <headers/track.h>
+#include <beam_elements/elements_src/track_dipole_fringe.h>
 
-/*gpufun*/
+
+GPUFUN
 void Fringe_track_local_particle(
         DipoleFringeData el,
         LocalParticle* part0
@@ -26,9 +20,9 @@ void Fringe_track_local_particle(
     const double hgap = DipoleFringeData_get_hgap(el);
     const double k = DipoleFringeData_get_k(el);
 
-    //start_per_particle_block (part0->part)
+    START_PER_PARTICLE_BLOCK(part0, part);
         DipoleFringe_single_particle(part, fint, hgap, k);
-    //end_per_particle_block
+    END_PER_PARTICLE_BLOCK;
 }
 
 #endif // XTRACK_FRINGE_H

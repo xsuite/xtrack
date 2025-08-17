@@ -13,6 +13,8 @@ checks = [
     (xt.SRotation,               dict(isthick=False, allow_rot_and_shift=False, rot_and_shift_from_parent=None , _inherit_strengths=None)),
     (xt.YRotation,               dict(isthick=False, allow_rot_and_shift=False, rot_and_shift_from_parent=None , _inherit_strengths=None)),
     (xt.Solenoid,                dict(isthick=True , allow_rot_and_shift=True , rot_and_shift_from_parent=None , _inherit_strengths=None)),
+    (xt.UniformSolenoid,         dict(isthick=True , allow_rot_and_shift=True , rot_and_shift_from_parent=None , _inherit_strengths=None)),
+    (xt.VariableSolenoid,        dict(isthick=True , allow_rot_and_shift=True , rot_and_shift_from_parent=None , _inherit_strengths=None)),
     (xt.RFMultipole,             dict(isthick=False, allow_rot_and_shift=True , rot_and_shift_from_parent=None , _inherit_strengths=None)),
     (xt.DipoleEdge,              dict(isthick=False, allow_rot_and_shift=True , rot_and_shift_from_parent=None , _inherit_strengths=None)),
     (xt.SimpleThinBend,          dict(isthick=False, allow_rot_and_shift=False, rot_and_shift_from_parent=None , _inherit_strengths=None)),
@@ -31,6 +33,7 @@ checks = [
     (xt.DriftSliceSextupole,     dict(isthick=True,  allow_rot_and_shift=False, rot_and_shift_from_parent=False, _inherit_strengths=False)),
     (xt.ThickSliceBend,          dict(isthick=True,  allow_rot_and_shift=False, rot_and_shift_from_parent=True , _inherit_strengths=True )),
     (xt.ThickSliceOctupole,      dict(isthick=True,  allow_rot_and_shift=False, rot_and_shift_from_parent=True , _inherit_strengths=True )),
+    (xt.ThickSliceUniformSolenoid,dict(isthick=True,  allow_rot_and_shift=False, rot_and_shift_from_parent=True , _inherit_strengths=True )),
     (xt.ThickSliceQuadrupole,    dict(isthick=True,  allow_rot_and_shift=False, rot_and_shift_from_parent=True , _inherit_strengths=True )),
     (xt.ThickSliceSextupole,     dict(isthick=True,  allow_rot_and_shift=False, rot_and_shift_from_parent=True , _inherit_strengths=True )),
     (xt.ThinSliceBend,           dict(isthick=False, allow_rot_and_shift=False, rot_and_shift_from_parent=True , _inherit_strengths=True )),
@@ -39,6 +42,8 @@ checks = [
     (xt.ThinSliceOctupole,       dict(isthick=False, allow_rot_and_shift=False, rot_and_shift_from_parent=True , _inherit_strengths=True )),
     (xt.ThinSliceQuadrupole,     dict(isthick=False, allow_rot_and_shift=False, rot_and_shift_from_parent=True , _inherit_strengths=True )),
     (xt.ThinSliceSextupole,      dict(isthick=False, allow_rot_and_shift=False, rot_and_shift_from_parent=True , _inherit_strengths=True )),
+    (xt.ThinSliceUniformSolenoidEntry, dict(isthick=False, allow_rot_and_shift=False, rot_and_shift_from_parent=True , _inherit_strengths=False)),
+    (xt.ThinSliceUniformSolenoidExit,  dict(isthick=False, allow_rot_and_shift=False, rot_and_shift_from_parent=True , _inherit_strengths=False)),
 ]
 
 def test_elements_classflags():

@@ -3,15 +3,15 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-from pathlib import Path
-import numpy as np
 from functools import partial
+from pathlib import Path
+
+import numpy as np
 
 import xobjects as xo
+import xtrack as xt
 from xobjects.general import Print
-
 from xobjects.hybrid_class import _build_xofields_dict
-
 from .general import _pkg_root
 from .internal_record import RecordIdentifier, RecordIndex, generate_get_record
 from .particles import Particles
@@ -59,8 +59,7 @@ def _handle_per_particle_blocks(sources, local_particle_src):
             strss = ss
 
         strss = strss.replace('/*placeholder_for_local_particle_src*/',
-                                local_particle_src,
-                                )
+                                local_particle_src)
         if '//start_per_particle_block' in strss:
 
             lines = strss.splitlines()
@@ -124,6 +123,22 @@ def _generate_track_local_particle_with_transformations(
             '     //start_per_particle_block (part0->part)\n'
             '          SRotation_single_particle(part, _sin_rot_s, _cos_rot_s);\n'
             '     //end_per_particle_block\n'
+            '\n'
+            '    /* Spin tracking is disabled by the synrad compile flag */\n'
+            '    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD\n'
+            '       // Rotate spin\n'
+            '       //start_per_particle_block (part0->part)\n'
+            '           double const spin_x_0 = LocalParticle_get_spin_x(part);\n'
+            '           double const spin_y_0 = LocalParticle_get_spin_y(part);\n'
+            '           if ((spin_x_0 != 0) || (spin_y_0 != 0)){\n'
+            '               double const spin_x_1 = _cos_rot_s*spin_x_0 + _sin_rot_s*spin_y_0;\n'
+            '               double const spin_y_1 = -_sin_rot_s*spin_x_0 + _cos_rot_s*spin_y_0;\n'
+            '               LocalParticle_set_spin_x(part, spin_x_1);\n'
+            '               LocalParticle_set_spin_y(part, spin_y_1);\n'
+            '          }\n'
+            '       //end_per_particle_block\n'
+            '    #endif\n'
+            '\n'
             '}\n'
         )
 
@@ -140,6 +155,21 @@ def _generate_track_local_particle_with_transformations(
             f'    double const shift_x = {element_name}Data_get{add_to_call}__shift_x(el);\n'
             f'    double const shift_y = {element_name}Data_get{add_to_call}__shift_y(el);\n'
             f'    double const shift_s = {element_name}Data_get{add_to_call}__shift_s(el);\n'
+            '\n'
+            '    /* Spin tracking is disabled by the synrad compile flag */\n'
+            '    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD\n'
+            '       // Rotate spin\n'
+            '       //start_per_particle_block (part0->part)\n'
+            '           double const spin_x_0 = LocalParticle_get_spin_x(part);\n'
+            '           double const spin_y_0 = LocalParticle_get_spin_y(part);\n'
+            '           if ((spin_x_0 != 0) || (spin_y_0 != 0)){\n'
+            '               double const spin_x_1 = _cos_rot_s*spin_x_0 - _sin_rot_s*spin_y_0;\n'
+            '               double const spin_y_1 = _sin_rot_s*spin_x_0 + _cos_rot_s*spin_y_0;\n'
+            '               LocalParticle_set_spin_x(part, spin_x_1);\n'
+            '               LocalParticle_set_spin_y(part, spin_y_1);\n'
+            '          }\n'
+            '       //end_per_particle_block\n'
+            '    #endif\n'
             '\n'
             '    //start_per_particle_block (part0->part)\n'
             '       SRotation_single_particle(part, -_sin_rot_s, _cos_rot_s);\n'
@@ -309,6 +339,30 @@ class MetaBeamElement(xo.MetaHybridClass):
     def __new__(cls, name, bases, data):
         _XoStruct_name = name+'Data'
 
+        data_in = data.copy()
+        data = {}
+        for bb in bases:
+            if bb.__name__ == 'HybridClass':
+                continue
+            if bb.__name__ == 'BeamElement':
+                continue
+            for kk, vv in bb.__dict__.items():
+                if kk.startswith('__') or kk in data_in.keys():
+                    continue
+                data[kk] = vv
+
+        # If inheriting _extra_c_sources, remove get_record function
+        if '_extra_c_sources' in data:
+            ii_remove = None
+            for ii, ss in enumerate(data['_extra_c_sources']):
+                if isinstance(ss, str) and '/*---GENERATED GET RECORD FUNCTION---*/' in ss:
+                   ii_remove = ii
+                   break
+            if ii_remove is not None:
+                data['_extra_c_sources'].pop(ii_remove)
+
+        data.update(data_in)
+
         # Take xofields from data['_xofields'] or from bases
         xofields = _build_xofields_dict(bases, data)
 
@@ -330,7 +384,7 @@ class MetaBeamElement(xo.MetaHybridClass):
             _pkg_root.joinpath('headers','checks.h'),
             _pkg_root.joinpath('headers','particle_states.h'),
             _pkg_root.joinpath('beam_elements', 'elements_src', 'track_srotation.h'),
-            _pkg_root.joinpath('beam_elements', 'elements_src', 'drift.h'),
+            _pkg_root.joinpath('beam_elements', 'elements_src', 'track_drift.h'),
         ]
         kernels = {}
 
@@ -515,6 +569,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         xo.HybridClass.compile_kernels(
             self,
             extra_classes=[Particles._XoStruct],
+            extra_compile_args=(f"-I{xt.__path__[0]}",),
             *args,
             **kwargs,
         )

@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 # Load a line and build tracker #
 #################################
 
-line = xt.Line.from_json(
+line = xt.load(
     '../../test_data/lhc_no_bb/line_and_particle.json')
 line.particle_ref = xt.Particles(
                     mass0=xt.PROTON_MASS_EV, q0=1, energy0=7e12)

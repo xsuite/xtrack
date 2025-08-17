@@ -569,7 +569,7 @@ def test_bump_step_and_smooth_inequalities(test_context):
 @for_all_test_contexts
 def test_match_bump_sets_implicit_end(test_context):
 
-    line = xt.Line.from_json(test_data_folder /
+    line = xt.load(test_data_folder /
                              'hllhc15_thick/lhc_thick_with_knobs.json')
     line.build_tracker(test_context)
 
@@ -604,7 +604,7 @@ def test_match_bump_sets_implicit_end(test_context):
 @for_all_test_contexts
 def test_match_bump_sets_init_end(test_context):
 
-    line = xt.Line.from_json(test_data_folder /
+    line = xt.load(test_data_folder /
                              'hllhc15_thick/lhc_thick_with_knobs.json')
     line.build_tracker(test_context)
 
@@ -639,13 +639,15 @@ def test_match_bump_sets_init_end(test_context):
 @for_all_test_contexts
 def test_match_bump_sets_init_middle(test_context):
 
-    line = xt.Line.from_json(test_data_folder /
+    line = xt.load(test_data_folder /
                              'hllhc15_thick/lhc_thick_with_knobs.json')
     line.build_tracker(test_context)
 
+    line.insert('mymarker', xt.Marker(), at='mb.c28l8.b1@start')
+
     opt = line.match(
         start='mq.30l8.b1', end='mq.23l8.b1',
-        init_at='mb.b28l8.b1', betx=1, bety=1, y=3e-3, py=0, # <-- conditions at point inside the range
+        init_at='mymarker', betx=1, bety=1, y=3e-3, py=0, # <-- conditions at point inside the range
         vary=xt.VaryList(['acbv30.l8b1', 'acbv28.l8b1', 'acbv26.l8b1', 'acbv24.l8b1'],
                         step=1e-10, limits=[-1e-3, 1e-3]),
         targets = [
@@ -674,7 +676,7 @@ def test_match_bump_sets_init_middle(test_context):
 @for_all_test_contexts
 def test_match_bump_sets_init_table(test_context):
 
-    line = xt.Line.from_json(test_data_folder /
+    line = xt.load(test_data_folder /
                              'hllhc15_thick/lhc_thick_with_knobs.json')
     line.build_tracker(test_context)
 
@@ -710,7 +712,7 @@ def test_match_bump_sets_init_table(test_context):
 @for_all_test_contexts
 def test_match_bump_common_elements(test_context):
     # Load a line and build a tracker
-    collider = xt.Environment.from_json(test_data_folder /
+    collider = xt.load(test_data_folder /
                         'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers(test_context)
 
@@ -754,7 +756,7 @@ def test_match_bump_common_elements(test_context):
 @for_all_test_contexts
 def test_match_bump_common_elements_callables_and_inequalities(test_context):
     # Load a line and build a tracker
-    collider = xt.Environment.from_json(test_data_folder /
+    collider = xt.load(test_data_folder /
                         'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers(test_context)
 
@@ -803,7 +805,7 @@ def test_match_bump_common_elements_callables_and_inequalities(test_context):
 @for_all_test_contexts
 def test_match_bump_common_elements_targets_from_tables(test_context):
     # Load a line and build a tracker
-    collider = xt.Environment.from_json(test_data_folder /
+    collider = xt.load(test_data_folder /
                         'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers(test_context)
 
@@ -861,7 +863,7 @@ def test_match_bump_common_elements_targets_from_tables(test_context):
 @for_all_test_contexts
 def test_match_bump_clone_and_ref_in_inequality(test_context):
 
-    line = xt.Line.from_json(test_data_folder /
+    line = xt.load(test_data_folder /
                             'hllhc14_no_errors_with_coupling_knobs/line_b1.json')
     line.build_tracker(test_context)
 
@@ -968,7 +970,7 @@ def test_match_bump_clone_and_ref_in_inequality(test_context):
 
 def test_match_autogen_tags_and_clone_options():
 
-    line = xt.Line.from_json(test_data_folder /
+    line = xt.load(test_data_folder /
         "hllhc15_thick/lhc_thick_with_knobs.json")
 
     opt = line.match(

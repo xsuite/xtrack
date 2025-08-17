@@ -21,11 +21,9 @@ def second_order_chromaticity(line, ddelta=1e-5, **kwargs):
 
 default_tol = {None: 1e-8, 'betx': 1e-6, 'bety': 1e-6} # to have no rematching w.r.t. madx
 
-collider = xt.Environment.from_json(
-    "../../test_data/hllhc15_thick/hllhc15_collider_thick.json")
+collider = xt.load("../../test_data/hllhc15_thick/hllhc15_collider_thick.json")
+collider.vars.load("../../test_data/hllhc15_thick/opt_round_150_1500.madx")
 collider.build_trackers()
-collider.vars.load_madx_optics_file(
-    "../../test_data/hllhc15_thick/opt_round_150_1500.madx")
 
 c0 = collider.copy()
 

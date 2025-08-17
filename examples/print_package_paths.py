@@ -11,6 +11,7 @@ import xfields
 import xmask
 import xcoll
 import xwakes
+import xsuite
 
 print("\n-------- Paths: --------")
 
@@ -22,6 +23,7 @@ print('xfields:  ', xfields.__path__)
 print('xmask     ', xmask.__path__)
 print('xcoll     ', xcoll.__path__)
 print('xwakes    ', xwakes.__path__)
+print('xsuite:   ', xsuite.__path__)
 
 
 try:
@@ -37,6 +39,7 @@ try:
     repo_xmask = Repo(Path(xmask.__path__[0]).parent)
     repo_xcoll = Repo(Path(xcoll.__path__[0]).parent)
     repo_xwakes = Repo(Path(xwakes.__path__[0]).parent)
+    repo_xsuite = Repo(Path(xsuite.__path__[0]).parent)
 
     print('xobjects is on branch: ', repo_xobjects.active_branch)
     print('xpart is on branch:    ', repo_xpart.active_branch)
@@ -46,6 +49,7 @@ try:
     print('xmask is on branch:    ', repo_xmask.active_branch)
     print('xcoll is on branch:    ', repo_xcoll.active_branch)
     print('xwakes is on branch:   ', repo_xwakes.active_branch)
+    print('xsuite is on branch:   ', repo_xsuite.active_branch)
 
 except Exception as err:
     print('No git info because of the following exception: ', err)

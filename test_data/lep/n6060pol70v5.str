@@ -1,0 +1,239 @@
+!
+!****************************************************************************
+! Revision history: 
+!
+! 5/6/97:  First version, Jan Uythoven.
+!          Private names for the individula solutions:
+!          odd_ips: cor_final_ip3+ip1.set
+!	   ip2: qoff_new.set, with qs0,qs1 and qs2 switched off.
+!          ip4: qs0.set, with qs2 switched off
+!               (also solutions with also qs1 off and both qs1 and qs0 
+!                off available, but not preferred)
+!          ip6: ip6.set
+!          ip8: ip8.set
+!
+! 11/6/97: v2, Total tunes set to Qh = 65.133, Qv = 71.200, by adjusting 
+!              RFL and HIBL in odd points.
+!
+! 13/8/97: v3, Redone IP4 and IP8 with QS0 off, because could not run 
+!              at such low values at injection.
+!              Redone phase RFL and HIBL in odd points.
+!              IP4 setting from ip4_qs0_off.set and ip8 from ip8_qs0_off.set.
+!
+! 15/8/97: v4, in IP4 and IP8 QS1 switched off (below min current), but 
+!              QS2 switched on.
+!
+! Apr 98:  Taken over by Ralph Assmann (with help from Jan Uythoven).
+!
+! 6/5/98:  v5, copied to public.
+!              Rematched for 98 sequence, major changes around IP6.
+!              Redone chromaticity (1 sextupole family), solenoid 
+!              compensation.
+!
+!****************************************************************************
+! for dipoles and quads...
+! first block of values below copied from '97 optics  
+!
+DKQB   := -.074;
+DKSB   :=  1.48;
+IMPKQB := -0.194E-5;
+IMPKQBI2 := -3.7646E-6;
+IMPKQBT := 0.0;
+IMPKQBW := -0.222E-5;
+IMPKSB := -0.2845E-4;
+IMPKSBI2 := 4.3583E-5;
+IMPKSBT := -0.309E-4;
+IMPKSBW := 0.29E-4;
+
+! ARCCELL
+
+KQD := -.016041701676;
+KQF := .016036035159;
+
+! The odd IPs rfl and hibl are very similar to the '97 physics optics,
+! here it are basically the disp. supp. which are adjusted.
+! HIBL identical for all odd IPs : betax= 25.43 m, betay=29.74 m.
+! only disp.supp. slightly different for IP1.
+
+KQL6 := -.030935319949;
+KQL5 := .027304684268;
+KQL4 := -.018821533024;
+KQL2 := .023518743876;
+KQL1 := -.022918088388;
+
+KQL1.1 := KQL1 ; KQL1.3 := KQL1 ; KQL1.5 := KQL1 ; KQL1.7 := KQL1;
+KQL2A.1 := KQL2 ; KQL2A.3 := KQL2 ; KQL2A.5 := KQL2 ; KQL2A.7 := KQL2;
+KQL4A.1 := KQL4 ; KQL4A.3 := KQL4 ; KQL4A.5 := KQL4 ; KQL4A.7 := KQL4;
+KQL5.1 := KQL5 ; KQL5.3 := KQL5 ; KQL5.5 := KQL5 ; KQL5.7 := KQL5;
+KQL6.1 := KQL6 ; KQL6.3 := KQL6 ; KQL6.5 := KQL6 ; KQL6.7 := KQL6;
+
+! RFL
+KDL := -.025998470287;
+KFL := .019468051174;
+
+KFL.1 := KFL ; KDL.3 := KDL ; KDL.5 := KDL ; KDL.7 := KDL;
+KDL.1 := KDL ; KFL.3 := KFL ; KFL.5 := KFL ; KFL.7 := KFL;
+
+! DISL
+
+KQL18 := -.014672344991;
+KQL17 := .016837368514;
+KQL16 := -.018387078567;
+KQL15 := .018589285335;
+KQL14 := -.022636988247;
+KQL13 := .019814539446;
+KQL12 := -.024324966969;
+KQL11 := .01885415897;
+
+KQL11.3 := KQL11 ; KQL11.5 := KQL11 ; KQL11.7 := KQL11;
+KQL12.3 := KQL12 ; KQL12.5 := KQL12 ; KQL12.7 := KQL12;
+KQL13.3 := KQL13 ; KQL13.5 := KQL13 ; KQL13.7 := KQL13;
+KQL14.3 := KQL14 ; KQL14.5 := KQL14 ; KQL14.7 := KQL14;
+KQL15.3 := KQL15 ; KQL15.5 := KQL15 ; KQL15.7 := KQL15;
+KQL16.3 := KQL16 ; KQL16.5 := KQL16 ; KQL16.7 := KQL16;
+KQL17.3 := KQL17 ; KQL17.5 := KQL17 ; KQL17.7 := KQL17;
+KQL18.3 := KQL18 ; KQL18.5 := KQL18 ; KQL18.7 := KQL18;
+
+!but different values for disp.supp. IP1!!!
+
+KQL11.1 := .018590095036;
+KQL12.1 := -.023089093198;
+KQL13.1 := .019357362199;
+KQL14.1 := -.021622168391;
+KQL15.1 := .018289009158;
+KQL16.1 := -.018445455309;
+KQL17.1 := .017033585055;
+KQL18.1 := -.015016884018;
+
+!*******************************************************************************************
+! Even points
+!*******************************************************************************************
+! IP2
+
+KQS0.L2 := 0.0;
+KQS0.R2 := KQS0.L2;
+KQS2.2 := 0.0;
+KQS1.L2 := 0.0;
+KQS1.R2 := KQS1.L2;
+KQS10.2 := -.031470943605;
+KQS11.2 := .029071995669;
+KQS12.2 := -.026058097045;
+KQS13.2 := .022207999958;
+KQS14.2 := -.022418374778;
+KQS15.2 := .018152450365;
+KQS16.2 := -.019808555117;
+KQS17.2 := .017672519166;
+KQS18.2 := -.015510992459;
+KQS3.2 := .025482298931;
+KQS4.2 := -.030918783412;
+KQS5.L2 := .022568005531;
+KQS5.R2 := KQS5.L2;
+KQS6.2 := -.024080345088;
+KQS7.2 := .03475405889;
+KQS8.2 := -.025489206108;
+KQS9.2 := .032576253502;
+
+
+!IP4
+KQS2.4 := .010046398968;
+KQS1.L4 := 0.0;
+KQS1.R4 := KQS1.L4;
+KQS10.4 := -.026891611829;
+KQS11.4 := .023119214167;
+KQS12.4 := -.026058097045;
+KQS13.4 := .022207999958;
+KQS14.4 := -.022418374778;
+KQS15.4 := .018152450365;
+KQS16.4 := -.019808555117;
+KQS17.4 := .017672519166;
+KQS18.4 := -.015510992459;
+KQS3.L4 := -.014493954551;
+KQS3.R4 := KQS3.L4;
+KQS5.L4 := .030029826199;
+KQS5.R4 := KQS5.L4;
+KQS6.4 := -.035009989374;
+KQS7.4 := .030983946052;
+KQS8.4 := -.025033454784;
+KQS9.4 := .028722373495;
+KQS0.L4 := 0.0;
+KQS0.R4 := KQS0.L4;
+KQS3.4 := -.0277673;
+KQS4.4 := -.6737011E-2;
+
+!IP6: different in RFS from IP2
+KQS2.6 := 0.0;
+KQS1.L6 := 0.0;
+KQS1.R6 := KQS1.L6;
+KQS0.L6 := 0.0;
+KQS0.R6 := KQS0.L6;
+KQS10.6 := -.031471234067;
+KQS11.6 := .029071769827;
+KQS12.6 := KQS12.2;
+KQS13.6 := KQS13.2;
+KQS14.6 := KQS14.2;
+KQS15.6 := KQS15.2;
+KQS16.6 := KQS16.2;
+KQS17.6 := KQS17.2;
+KQS18.6 := KQS18.2;
+KQS3.6 := .025483031347;
+KQS4.6 := -.030934911617;
+KQS5.L6 := .02256747129;
+KQS5.R6 := KQS5.L6;
+KQS6.6 := -.024080183562;
+KQS7.6 := .034760963572;
+KQS8.6 := -.025489560233;
+KQS9.6 := .032579148474;
+
+! IP8: different from IP4 because of QS1A position.
+! Different from IP4 in QS0 to QS6. Also asymmetric in QS0 to QS5,
+! but total phase advance L/R of IP is the same.
+KQS2.8 := .010046398968;
+KQS1.L8 := KQS1.L4;
+KQS1.R8 := KQS1.L8;
+KQS10.8 := KQS10.4;
+KQS11.8 := KQS11.4;
+KQS12.8 := KQS12.4;
+KQS13.8 := KQS13.4;
+KQS14.8 := KQS14.4;
+KQS15.8 := KQS15.4;
+KQS16.8 := KQS16.4;
+KQS17.8 := KQS17.4;
+KQS18.8 := KQS18.4;
+KQS3.L8 := -.014493954551;
+KQS3.R8 := -.014493964242;
+KQS5.L8 := .030029826199;
+KQS5.R8 := .030029837033;
+KQS6.8 := -.035009989374;
+KQS7.8 := KQS7.4;
+KQS8.8 := KQS8.4;
+KQS9.8 := KQS9.4;
+KQS0.L8 := KQS0.L4;
+KQS0.R8 := KQS0.L4;
+KQS3.8 := -.027767010002;
+KQS4.8 := -.673744615674E-2;
+
+!return
+!************************************************************************************
+! SEXTUPOLES ( 2 Families )
+! matching for Qx'=Qy'=1 and no constraints
+KSRF := 0.0;
+
+KSSF  := .060375901996;
+KSSF3 := KSSF;
+KSSF2 := KSSF;
+KSSF1 := KSSF;
+
+KSSD  := -.044499352765 ;
+KSSD2 := KSSD;
+KSSD1 := KSSD;
+
+KSSD1.2 := KSSD1 ; KSSD1.4 := KSSD1 ; KSSD1.6 := KSSD1 ; KSSD1.8 := KSSD1;
+KSSD2.2 := KSSD2 ; KSSD2.4 := KSSD2 ; KSSD2.6 := KSSD2 ; KSSD2.8 := KSSD2;
+
+KSSF1.2 := KSSF1 ; KSSF1.4 := KSSF1 ; KSSF1.6 := KSSF1 ; KSSF1.8 := KSSF1;
+KSSF2.2 := KSSF1 ; KSSF2.4 := KSSF1 ; KSSF2.6 := KSSF1 ; KSSF2.8 := KSSF1;
+KSSF3.2 := KSSF1 ; KSSF3.4 := KSSF1 ; KSSF3.6 := KSSF1 ; KSSF3.8 := KSSF1;
+KSSRF.2  := KSRF  ; KSSRF.4  := KSRF  ; KSSRF.6  := KSRF  ; KSSRF.8  := KSRF;
+
+!KSSD := -.044499542588  !KSSD := -.044435187062
+!KSSF := 0.058427724564  !KSSF := .058191257771

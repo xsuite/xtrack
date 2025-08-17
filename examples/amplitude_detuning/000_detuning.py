@@ -3,7 +3,7 @@ import xtrack as xt
 
 
 # Load a line and build a tracker
-# line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
+# line = xt.load('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
 
 line = xt.Line(elements=[xt.LineSegmentMap(qx=62.31, qy=60.32,
                         det_xx=1000, det_xy=10, det_yx=20, det_yy=2000)])

@@ -41,7 +41,10 @@ ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau',
                         'alfx1', 'alfy1', 'alfx2', 'alfy2',
                         'gamx1', 'gamy1', 'gamx2', 'gamy2',
                         'eq_gemitt_x', 'eq_gemitt_y', 'eq_gemitt_zeta',
-                        'eq_nemitt_x', 'eq_nemitt_y', 'eq_nemitt_zeta']
+                        'eq_nemitt_x', 'eq_nemitt_y', 'eq_nemitt_zeta',
+                        'spin_x', 'spin_y', 'spin_z',
+                        'c_minus_re_0', 'c_minus_im_0',
+                        'c_minus_re', 'c_minus_im']
 
 
 # Alternative transitions functions

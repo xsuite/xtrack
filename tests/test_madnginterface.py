@@ -10,7 +10,7 @@ test_data_folder = pathlib.Path(
 def test_madng_twiss():
     rdts = ["f4000", "f3100", "f2020", "f1120"]
 
-    line = xt.Line.from_json(test_data_folder /
+    line = xt.load(test_data_folder /
                             'hllhc15_thick/lhc_thick_with_knobs.json')
 
     line['test_dk1'] = 0
@@ -46,7 +46,7 @@ def test_madng_twiss():
     assert np.abs(tw_rdt.f1120).max() > 0
 
 def test_madng_interface_with_multipole_errors_and_misalignments():
-    line = xt.Line.from_json(test_data_folder /
+    line = xt.load(test_data_folder /
                             'hllhc15_thick/lhc_thick_with_knobs.json')
 
     tt = line.get_table()
@@ -97,3 +97,33 @@ def test_madng_interface_with_multipole_errors_and_misalignments():
     xo.assert_allclose(tw.ay_chrom, tw.ay_ng, atol=5e-3*tw.wy_chrom.max(), rtol=0)
     xo.assert_allclose(tw.bx_chrom, tw.bx_ng, atol=5e-3*tw.wx_chrom.max(), rtol=0)
     xo.assert_allclose(tw.by_chrom, tw.by_ng, atol=5e-3*tw.wy_chrom.max(), rtol=0)
+
+def test_madng_survey():
+    line = xt.load(test_data_folder /
+                            'hllhc15_thick/lhc_thick_with_knobs.json')
+    survey = line.madng_survey()
+
+    # Check that columns exist:
+    SURVEY_COLS = ['X', 'Y', 'Z', 'theta', 'phi', 'psi', 'name', 's', 'length', 'slc',
+                   'turn', 'tdir', 'eidx', 'ename', 'element_type', 'angle', 'tilt']
+    assert isinstance(survey, xt.survey.SurveyTable)
+    assert len(survey.cols) == len(SURVEY_COLS)
+    for col in SURVEY_COLS:
+        assert col in survey.cols, f"Column '{col}' not found in survey"
+
+    # Compare MAD-NG survey with Xsuite survey
+    xsurvey = line.survey()
+
+    assert len(survey) == len(xsurvey), "Length of MAD-NG survey and Xsuite survey do not match"
+
+    xo.assert_allclose(survey.X, xsurvey.X, atol=1e-5, rtol=0)
+    xo.assert_allclose(survey.Y, xsurvey.Y, atol=1e-5, rtol=0)
+    xo.assert_allclose(survey.Z, xsurvey.Z, atol=1e-5, rtol=0)
+    xo.assert_allclose(survey.theta, xsurvey.theta, atol=1e-5, rtol=0)
+    xo.assert_allclose(survey.phi, xsurvey.phi, atol=1e-5, rtol=0)
+    xo.assert_allclose(survey.psi, xsurvey.psi, atol=1e-5, rtol=0)
+    xo.assert_allclose(survey.s, xsurvey.s, atol=1e-5, rtol=0)
+    xo.assert_allclose(survey.angle, xsurvey.angle, atol=1e-5, rtol=0)
+    xo.assert_allclose(survey.tilt, xsurvey.rot_s_rad, atol=1e-5, rtol=0)
+    # Length doesn't work because of multipoles.
+    #xo.assert_allclose(survey.length, xsurvey.length, atol=1e-5, rtol=0)

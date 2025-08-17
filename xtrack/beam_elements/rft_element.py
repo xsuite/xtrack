@@ -23,7 +23,7 @@ class RFT_Element:
     iscollective = True # <-- To state that the element uses a python track method
     isthick = True
 
-    def __init__(self, element):
+    def __init__(self, element, update_ref=False):
 
         import RF_Track as rft
         self.length = element.get_length()
@@ -33,6 +33,7 @@ class RFT_Element:
         self.bunch_out = rft.Bunch6d()
         self.arr_for_rft = np.empty(0)
         self.arr_for_xt = np.empty(0)
+        self.update_ref = update_ref
 
     def track(self, particles, increment_at_element=False):
 
@@ -45,9 +46,10 @@ class RFT_Element:
         self.pz = np.sqrt(self.p**2 - p.px**2 - p.py**2)
         self.arr_for_rft.resize((len(p.x), 10))
         self.arr_for_rft[:,0] = p.x * 1e3 # mm
-        self.arr_for_rft[:,1] = p.px * 1e3 / self.pz # mrad
+        self.arr_for_rft[:,1] = p.px * 1e3 / self.pz # mrad, xp
         self.arr_for_rft[:,2] = p.y * 1e3 # mm
-        self.arr_for_rft[:,3] = p.py * 1e3 / self.pz # mrad
+        self.arr_for_rft[:,3] = p.py * 1e3 / self.pz # mrad, yp
+        self.arr_for_rft[:,4] = -p.zeta * 1e3 / p.beta0 # mm/c, t
         self.arr_for_rft[:,5] = p.p0c * self.p / 1e6 # MeV
         self.arr_for_rft[:,6] = p.mass0 / 1e6 # MeV
         self.arr_for_rft[:,7] = p.q0
@@ -66,10 +68,13 @@ class RFT_Element:
 
         # Update particles
         self.arr_for_xt = self.arr_for_xt[self.arr_for_xt[:,7].argsort()] # sort by particle id
+        if self.update_ref:
+            p.p0c = pref1[0].Pc * 1e6
+        p.s += self.length
         p.x  = self.arr_for_xt[:,0] / 1e3 # m
         p.px = self.arr_for_xt[:,1] * 1e6 / p.p0c # rad
         p.y  = self.arr_for_xt[:,2] / 1e3 # m
         p.py = self.arr_for_xt[:,3] * 1e6 / p.p0c # rad
-        p.zeta += self.length - self.arr_for_xt[:,4] * p.beta0 / 1e3 # m
+        p.zeta = self.length - self.arr_for_xt[:,4] * p.beta0 / 1e3 # m
         p.delta = (self.arr_for_xt[:,5] * 1e6 - p.p0c) / p.p0c #
         p.state[np.isnan(self.arr_for_xt[:,6])!=np.isnan(self.arr_for_rft[:,9])] = -400 # lost in RF-Track

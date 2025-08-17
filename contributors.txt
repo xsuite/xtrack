@@ -3,8 +3,10 @@ The following people contributed to the development of this package:
 CERN contributors:
  - A. Abramov
  - B. Abreu Figueiredo
+ - P. Arrutia
  - H. Bartosik
  - X. Buffat
+ - S. Buijsman
  - R. De Maria
  - L. Deniau
  - C. Droin
@@ -15,11 +17,13 @@ CERN contributors:
  - S. Lopaciuk
  - J. Salvesen
  - G. Sterbini
+ - S. Van Der Schueren
  - F. Van Der Veken
 
 External contributors:
  - P. Balanger (TRIUMF, Canada) - Development of wire beam element and Tracker.survey
  - M. Boucard (EPFL, Switzwerland) - Development of the electron lens beam element
+ - K. Hock (BNL, USA) - Development of spin tracking
  - P. Niedermayer (GSI, Germany) - Improve apertures API and docstrings, implement
    `Line.from_sequence`, implement `LastTurnsMonitor`, implement `Exciter`,
    implement `BeamSizeMonitor`, implement `BeamProfileMonitor`,

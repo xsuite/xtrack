@@ -60,13 +60,14 @@ def test_fcc_ee_solenoid_correction_new_optimizer_api():
 
     P0_J = line.particle_ref.p0c[0] * qe / clight
     brho = P0_J / qe / line.particle_ref.q0
-    ks = 0.5 * (bz_sol_slices[:-1] + bz_sol_slices[1:]) / brho
+    ks_entry = bz_sol_slices[:-1] / brho
+    ks_exit = bz_sol_slices[1:] / brho
     l_sol_slices = np.diff(s_sol_slices)
     s_sol_slices_entry = s_sol_slices[:-1]
 
     sol_slices = []
     for ii in range(len(s_sol_slices_entry)):
-        sol_slices.append(xt.Solenoid(length=l_sol_slices[ii], ks=0)) # Off for now
+        sol_slices.append(xt.VariableSolenoid(length=l_sol_slices[ii], ks_profile=[0, 0])) # Off for now
 
     s_ip = tt['s', ip_sol]
 
@@ -86,8 +87,8 @@ def test_fcc_ee_solenoid_correction_new_optimizer_api():
     line.element_dict['sol_start_shift_'+ip_sol] = sol_start_shift
     line.element_dict['sol_end_shift_'+ip_sol] = sol_end_shift
 
-    line.element_dict['sol_entry_'+ip_sol] = xt.Solenoid(length=0, ks=0)
-    line.element_dict['sol_exit_'+ip_sol] = xt.Solenoid(length=0, ks=0)
+    line.element_dict['sol_entry_'+ip_sol] = xt.Marker()
+    line.element_dict['sol_exit_'+ip_sol] = xt.Marker()
 
     sol_slice_names = []
     sol_slice_names.append('sol_entry_'+ip_sol)
@@ -123,7 +124,9 @@ def test_fcc_ee_solenoid_correction_new_optimizer_api():
     line.vars['on_sol_'+ip_sol] = 0
     for ii in range(len(s_sol_slices_entry)):
         nn = f'sol_slice_{ii}_{ip_sol}'
-        line.element_refs[nn].ks = ks[ii] * line.vars['on_sol_'+ip_sol]
+        line.element_refs[nn].ks_profile[0] = ks_entry[ii] * line.vars['on_sol_'+ip_sol]
+        line.element_refs[nn].ks_profile[1] = ks_exit[ii] * line.vars['on_sol_'+ip_sol]
+
 
     tt = line.get_table()
 

@@ -231,7 +231,7 @@ def test_shift_x(test_context):
     line.build_tracker(_context=test_context)
 
     tt = line.get_table()
-    assert len(tt.rows[r'e0\.\..*']) == 3
+    assert len(tt.rows[r'e0\.\..*']) == 5
 
     p = xt.Particles(x=0, p0c=1e12, _context=test_context)
     line.track(p)
@@ -282,7 +282,7 @@ def test_shift_y(test_context):
     line.build_tracker(_context=test_context)
 
     tt = line.get_table()
-    assert len(tt.rows[r'e0\.\..*']) == 3
+    assert len(tt.rows[r'e0\.\..*']) == 5
 
     p = xt.Particles(y=0, p0c=1e12, _context=test_context)
     line.track(p)

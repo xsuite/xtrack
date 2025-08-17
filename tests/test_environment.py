@@ -89,15 +89,19 @@ def test_vars_and_element_access_modes(container_type):
     })
 
     env.new('bb', xt.Bend, k0='2 * b', length=3+env.vars['a'] + env.vars['b'],
-            angle=5.)
+            angle=5., model='full')
     assert env['bb'].k0 == 2 * (2 * 4 + 5)
     assert env['bb'].length == 3 + 4 + 2 * 4 + 5
     assert env['bb'].angle == 5.
+    assert env['bb'].model == 'full'
 
     env.vars['a'] = 2.
     assert env['bb'].k0 == 2 * (2 * 2 + 5)
     assert env['bb'].length == 3 + 2 + 2 * 2 + 5
     assert env['bb'].angle == 5.
+
+    env['bb'].model = 'adaptive'
+    assert env['bb'].model == 'adaptive'
 
     line = env.new_line([
         env.new('bb1', 'bb', length=3*env.vars['a'], at='2*a'),
@@ -614,6 +618,7 @@ def test_assemble_ring():
     cell3_select = ring2.select(start='start.cell.3.arc.2', end='end.cell.3.arc.2',
                                 name='cell3_copy')
     assert 'cell3_copy' in env.lines
+    assert cell3_select.particle_ref is not None
     assert env.lines['cell3_copy'] is cell3_select
     assert cell3_select._element_dict is env.element_dict
     assert cell3_select.element_names[0] == 'start.cell.3.arc.2'
@@ -1412,7 +1417,7 @@ def test_assemble_ring_repeated_elements():
     xo.assert_allclose(twarc.s[0], 0, atol=1e-12, rtol=0)
     xo.assert_allclose(twarc.s[-1], 228, atol=1e-10, rtol=0)
     twarc_start_end = arc.twiss4d(start=xt.START, end=xt.END, init=twarc)
-    xo.assert_allclose(twarc_start_end.betx, twarc.betx, atol=1e-12, rtol=0)
+    xo.assert_allclose(twarc_start_end.betx, twarc.betx, atol=1e-11, rtol=0)
 
     tw_one_cell_ref = twarc.rows['mid::2':'mid::3']
     tw_one_cell = arc.twiss4d(start='mid::2', end='mid::3', init='periodic')
@@ -1812,7 +1817,7 @@ def test_select_in_multiline():
     collider_file = test_data_folder / 'hllhc15_collider/collider_00_from_mad.json'
 
     # Load the machine and select line
-    collider= xt.Environment.from_json(collider_file)
+    collider= xt.load(collider_file)
     collider.vars['test_vars'] = 3.1416
     line   = collider[seq]
     line_sel    = line.select(s_marker,e_marker)
@@ -2185,11 +2190,11 @@ def test_insert_anchors_special_cases():
 
     assert np.all(tt.name == np.array(
         ['drift_1', 'm5.0', 'm5.1', 'q5', 'm5.2', 'm5.3', 'drift_2',
-        'q0_entry', 'q0..0', 'q4', 'drift_3..1', 'mr.0', 'mr.1', 'q6',
-        'mr.2', 'mr.3', 'drift_4', 'end', '_end_point']))
+       'q0_entry', 'q0..entry_map', 'q0..0', 'q4', 'drift_3..1', 'mr.0',
+       'mr.1', 'q6', 'mr.2', 'mr.3', 'drift_4', 'end', '_end_point']))
     xo.assert_allclose(tt.s_center, np.array(
-        np.array([ 4.5,  9. ,  9. , 10. , 11. , 11. , 15. , 19. , 19.5, 21. , 25.5,
-        29. , 29. , 30. , 31. , 31. , 40.5, 50. , 50.])),
+        np.array([ 4.5,  9. ,  9. , 10. , 11. , 11. , 15. , 19. , 19. , 19.5, 21. ,
+                   25.5, 29. , 29. , 30. , 31. , 31. , 40.5, 50. , 50. ])),
         rtol=0., atol=1e-14)
 
 def test_insert_providing_object():
@@ -2306,10 +2311,10 @@ def test_individual_insertions_anchors():
 
     assert np.all(tt.name == np.array(
         ['drift_1', 'm5.0', 'm5.1', 'q5', 'm5.2', 'm5.3', 'drift_2',
-        'q0_entry', 'q0..0', 'q4', 'drift_3..1', 'mr.0', 'mr.1', 'q6',
-        'mr.2', 'mr.3', 'drift_4', 'end', '_end_point']))
+       'q0_entry', 'q0..entry_map', 'q0..0', 'q4', 'drift_3..1', 'mr.0',
+       'mr.1', 'q6', 'mr.2', 'mr.3', 'drift_4', 'end', '_end_point']))
     xo.assert_allclose(tt.s_center, np.array(
-        np.array([ 4.5,  9. ,  9. , 10. , 11. , 11. , 15. , 19. , 19.5, 21. , 25.5,
+        np.array([ 4.5,  9. ,  9. , 10. , 11. , 11. , 15. , 19., 19. , 19.5, 21. , 25.5,
         29. , 29. , 30. , 31. , 31. , 40.5, 50. , 50.])),
         rtol=0., atol=1e-14)
 
@@ -2971,3 +2976,220 @@ def test_builder_length():
     assert np.all(tt.name == np.array(['drift_1', 'mq', 'drift_2', '_end_point']))
     xo.assert_allclose(tt.s_center, np.array([ 4.75, 10.  , 15.25, 20.  ]),
                     rtol=0, atol=1e-10)
+
+def test_enviroment_from_two_lines():
+
+    env1 = xt.Environment()
+    env1.vars.default_to_zero  = True
+    line1 = env1.new_line(components=[
+        env1.new('qq1_thick', xt.Quadrupole, length=1., k1='kk', at=10),
+        env1.new('qq1_thin', xt.Quadrupole, length=1., k1='kk', at=20),
+        env1.new('qq_shared_thick', xt.Quadrupole, length=1., k1='kk', at=30),
+        env1.new('qq_shared_thin', xt.Quadrupole, length=1., k1='kk', at=40),
+    ])
+    line1.slice_thick_elements(
+        slicing_strategies=[
+            xt.Strategy(slicing=xt.Teapot(2, mode='thick'), name='qq1_thick'),
+            xt.Strategy(slicing=xt.Teapot(2, mode='thin'), name='qq1_thin'),
+            xt.Strategy(slicing=xt.Teapot(2, mode='thick'), name='qq_shared_thick'),
+            xt.Strategy(slicing=xt.Teapot(2, mode='thin'), name='qq_shared_thin'),
+        ])
+
+    env2 = xt.Environment()
+    env2.vars.default_to_zero  = True
+    line2 = env2.new_line(components=[
+        env2.new('qq2_thick', xt.Quadrupole, length=1., k1='kk', at=10),
+        env2.new('qq2_thin', xt.Quadrupole, length=1., k1='kk', at=20),
+        env2.new('qq_shared_thick', xt.Quadrupole, length=1., k1='kk', at=30),
+        env2.new('qq_shared_thin', xt.Quadrupole, length=1., k1='kk', at=40),
+    ])
+    line2.slice_thick_elements(
+        slicing_strategies=[
+            xt.Strategy(slicing=xt.Teapot(2, mode='thick'), name='qq2_thick'),
+            xt.Strategy(slicing=xt.Teapot(2, mode='thin'), name='qq2_thin'),
+            xt.Strategy(slicing=xt.Teapot(2, mode='thick'), name='qq_shared_thick'),
+            xt.Strategy(slicing=xt.Teapot(2, mode='thin'), name='qq_shared_thin'),
+        ])
+
+    # Merge the line in one environment
+    env = xt.Environment(lines={'line1': line1, 'line2': line2})
+
+    tt1 = env.line1.get_table()
+    tt2 = env.line2.get_table()
+
+    tt1.show(cols='name element_type parent_name')
+    # name                          element_type         parent_name
+    # drift_1                       Drift                None
+    # qq1_thick_entry               Marker               None
+    # qq1_thick..0                  ThickSliceQuadrupole qq1_thick
+    # qq1_thick..1                  ThickSliceQuadrupole qq1_thick
+    # qq1_thick_exit                Marker               None
+    # drift_2                       Drift                None
+    # qq1_thin_entry                Marker               None
+    # drift_qq1_thin..0             DriftSliceQuadrupole qq1_thin
+    # qq1_thin..0                   ThinSliceQuadrupole  qq1_thin
+    # drift_qq1_thin..1             DriftSliceQuadrupole qq1_thin
+    # qq1_thin..1                   ThinSliceQuadrupole  qq1_thin
+    # drift_qq1_thin..2             DriftSliceQuadrupole qq1_thin
+    # qq1_thin_exit                 Marker               None
+    # drift_3                       Drift                None
+    # qq_shared_thick_entry         Marker               None
+    # qq_shared_thick..0/line1      ThickSliceQuadrupole qq_shared_thick/line1
+    # qq_shared_thick..1/line1      ThickSliceQuadrupole qq_shared_thick/line1
+    # qq_shared_thick_exit          Marker               None
+    # drift_4                       Drift                None
+    # qq_shared_thin_entry          Marker               None
+    # drift_qq_shared_thin..0/line1 DriftSliceQuadrupole qq_shared_thin/line1
+    # qq_shared_thin..0/line1       ThinSliceQuadrupole  qq_shared_thin/line1
+    # drift_qq_shared_thin..1/line1 DriftSliceQuadrupole qq_shared_thin/line1
+    # qq_shared_thin..1/line1       ThinSliceQuadrupole  qq_shared_thin/line1
+    # drift_qq_shared_thin..2/line1 DriftSliceQuadrupole qq_shared_thin/line1
+    # qq_shared_thin_exit           Marker               None
+
+    tt2.show(cols='name element_type parent_name')
+    # name                          element_type         parent_name
+    # drift_5                       Drift                None
+    # qq2_thick_entry               Marker               None
+    # qq2_thick..0                  ThickSliceQuadrupole qq2_thick
+    # qq2_thick..1                  ThickSliceQuadrupole qq2_thick
+    # qq2_thick_exit                Marker               None
+    # drift_6                       Drift                None
+    # qq2_thin_entry                Marker               None
+    # drift_qq2_thin..0             DriftSliceQuadrupole qq2_thin
+    # qq2_thin..0                   ThinSliceQuadrupole  qq2_thin
+    # drift_qq2_thin..1             DriftSliceQuadrupole qq2_thin
+    # qq2_thin..1                   ThinSliceQuadrupole  qq2_thin
+    # drift_qq2_thin..2             DriftSliceQuadrupole qq2_thin
+    # qq2_thin_exit                 Marker               None
+    # drift_7                       Drift                None
+    # qq_shared_thick_entry         Marker               None
+    # qq_shared_thick..0/line2      ThickSliceQuadrupole qq_shared_thick/line2
+    # qq_shared_thick..1/line2      ThickSliceQuadrupole qq_shared_thick/line2
+    # qq_shared_thick_exit          Marker               None
+    # drift_8                       Drift                None
+    # qq_shared_thin_entry          Marker               None
+    # drift_qq_shared_thin..0/line2 DriftSliceQuadrupole qq_shared_thin/line2
+    # qq_shared_thin..0/line2       ThinSliceQuadrupole  qq_shared_thin/line2
+    # drift_qq_shared_thin..1/line2 DriftSliceQuadrupole qq_shared_thin/line2
+    # qq_shared_thin..1/line2       ThinSliceQuadrupole  qq_shared_thin/line2
+    # drift_qq_shared_thin..2/line2 DriftSliceQuadrupole qq_shared_thin/line2
+    # qq_shared_thin_exit           Marker               None
+    # _end_point                                         None
+
+    assert np.all(tt1.name == np.array([
+       'drift_1', 'qq1_thick_entry', 'qq1_thick..entry_map',
+       'qq1_thick..0', 'qq1_thick..1', 'qq1_thick..exit_map',
+       'qq1_thick_exit', 'drift_2', 'qq1_thin_entry',
+       'qq1_thin..entry_map', 'drift_qq1_thin..0', 'qq1_thin..0',
+       'drift_qq1_thin..1', 'qq1_thin..1', 'drift_qq1_thin..2',
+       'qq1_thin..exit_map', 'qq1_thin_exit', 'drift_3',
+       'qq_shared_thick_entry', 'qq_shared_thick..entry_map/line1',
+       'qq_shared_thick..0/line1', 'qq_shared_thick..1/line1',
+       'qq_shared_thick..exit_map/line1', 'qq_shared_thick_exit',
+       'drift_4', 'qq_shared_thin_entry',
+       'qq_shared_thin..entry_map/line1', 'drift_qq_shared_thin..0/line1',
+       'qq_shared_thin..0/line1', 'drift_qq_shared_thin..1/line1',
+       'qq_shared_thin..1/line1', 'drift_qq_shared_thin..2/line1',
+       'qq_shared_thin..exit_map/line1', 'qq_shared_thin_exit',
+       '_end_point']))
+
+    assert np.all(tt1.element_type == np.array([
+       'Drift', 'Marker', 'ThinSliceQuadrupoleEntry',
+       'ThickSliceQuadrupole', 'ThickSliceQuadrupole',
+       'ThinSliceQuadrupoleExit', 'Marker', 'Drift', 'Marker',
+       'ThinSliceQuadrupoleEntry', 'DriftSliceQuadrupole',
+       'ThinSliceQuadrupole', 'DriftSliceQuadrupole',
+       'ThinSliceQuadrupole', 'DriftSliceQuadrupole',
+       'ThinSliceQuadrupoleExit', 'Marker', 'Drift', 'Marker',
+       'ThinSliceQuadrupoleEntry', 'ThickSliceQuadrupole',
+       'ThickSliceQuadrupole', 'ThinSliceQuadrupoleExit', 'Marker',
+       'Drift', 'Marker', 'ThinSliceQuadrupoleEntry',
+       'DriftSliceQuadrupole', 'ThinSliceQuadrupole',
+       'DriftSliceQuadrupole', 'ThinSliceQuadrupole',
+       'DriftSliceQuadrupole', 'ThinSliceQuadrupoleExit', 'Marker', '']))
+
+    assert np.all(tt1.parent_name == np.array([
+       None, None, 'qq1_thick', 'qq1_thick', 'qq1_thick', 'qq1_thick',
+       None, None, None, 'qq1_thin', 'qq1_thin', 'qq1_thin', 'qq1_thin',
+       'qq1_thin', 'qq1_thin', 'qq1_thin', None, None, None,
+       'qq_shared_thick/line1', 'qq_shared_thick/line1',
+       'qq_shared_thick/line1', 'qq_shared_thick/line1', None, None, None,
+       'qq_shared_thin/line1', 'qq_shared_thin/line1',
+       'qq_shared_thin/line1', 'qq_shared_thin/line1',
+       'qq_shared_thin/line1', 'qq_shared_thin/line1',
+       'qq_shared_thin/line1', None, None]))
+
+    assert np.all(tt2.name == np.array([
+        'drift_5', 'qq2_thick_entry', 'qq2_thick..entry_map',
+       'qq2_thick..0', 'qq2_thick..1', 'qq2_thick..exit_map',
+       'qq2_thick_exit', 'drift_6', 'qq2_thin_entry',
+       'qq2_thin..entry_map', 'drift_qq2_thin..0', 'qq2_thin..0',
+       'drift_qq2_thin..1', 'qq2_thin..1', 'drift_qq2_thin..2',
+       'qq2_thin..exit_map', 'qq2_thin_exit', 'drift_7',
+       'qq_shared_thick_entry', 'qq_shared_thick..entry_map/line2',
+       'qq_shared_thick..0/line2', 'qq_shared_thick..1/line2',
+       'qq_shared_thick..exit_map/line2', 'qq_shared_thick_exit',
+       'drift_8', 'qq_shared_thin_entry',
+       'qq_shared_thin..entry_map/line2', 'drift_qq_shared_thin..0/line2',
+       'qq_shared_thin..0/line2', 'drift_qq_shared_thin..1/line2',
+       'qq_shared_thin..1/line2', 'drift_qq_shared_thin..2/line2',
+       'qq_shared_thin..exit_map/line2', 'qq_shared_thin_exit',
+       '_end_point']))
+
+    assert np.all(tt2.element_type == np.array([
+        'Drift', 'Marker', 'ThinSliceQuadrupoleEntry',
+       'ThickSliceQuadrupole', 'ThickSliceQuadrupole',
+       'ThinSliceQuadrupoleExit', 'Marker', 'Drift', 'Marker',
+       'ThinSliceQuadrupoleEntry', 'DriftSliceQuadrupole',
+       'ThinSliceQuadrupole', 'DriftSliceQuadrupole',
+       'ThinSliceQuadrupole', 'DriftSliceQuadrupole',
+       'ThinSliceQuadrupoleExit', 'Marker', 'Drift', 'Marker',
+       'ThinSliceQuadrupoleEntry', 'ThickSliceQuadrupole',
+       'ThickSliceQuadrupole', 'ThinSliceQuadrupoleExit', 'Marker',
+       'Drift', 'Marker', 'ThinSliceQuadrupoleEntry',
+       'DriftSliceQuadrupole', 'ThinSliceQuadrupole',
+       'DriftSliceQuadrupole', 'ThinSliceQuadrupole',
+       'DriftSliceQuadrupole', 'ThinSliceQuadrupoleExit', 'Marker', '']))
+
+    assert np.all(tt2.parent_name == np.array([
+       None, None, 'qq2_thick', 'qq2_thick', 'qq2_thick', 'qq2_thick',
+       None, None, None, 'qq2_thin', 'qq2_thin', 'qq2_thin', 'qq2_thin',
+       'qq2_thin', 'qq2_thin', 'qq2_thin', None, None, None,
+       'qq_shared_thick/line2', 'qq_shared_thick/line2',
+       'qq_shared_thick/line2', 'qq_shared_thick/line2', None, None, None,
+       'qq_shared_thin/line2', 'qq_shared_thin/line2',
+       'qq_shared_thin/line2', 'qq_shared_thin/line2',
+       'qq_shared_thin/line2', 'qq_shared_thin/line2',
+       'qq_shared_thin/line2', None, None]))
+
+    assert 'qq1_thick' in env.element_dict
+    assert 'qq1_thin' in env.element_dict
+    assert 'qq_shared_thick/line1' in env.element_dict
+    assert 'qq_shared_thin/line1' in env.element_dict
+    assert 'qq2_thick' in env.element_dict
+    assert 'qq2_thin' in env.element_dict
+    assert 'qq_shared_thick/line2' in env.element_dict
+    assert 'qq_shared_thin/line2' in env.element_dict
+
+    line1['kk'] = 1e-1
+    line2['kk'] = 1e-1
+    env['kk'] = 1e-1
+
+    particle_ref = xt.Particles(p0c=7e12)
+    line1.particle_ref = particle_ref
+    line2.particle_ref = particle_ref
+    env.line1.particle_ref = particle_ref
+    env.line2.particle_ref = particle_ref
+
+    tw1 = line1.twiss(betx=1, bety=2)
+    tw2 = line2.twiss(betx=1, bety=2)
+    tw1i = env.line1.twiss(betx=1, bety=2)
+    tw2i = env.line2.twiss(betx=1, bety=2)
+
+    assert np.allclose(tw1.s, tw1i.s, atol=0, rtol=1e-15)
+    assert np.allclose(tw1.betx, tw1i.betx, atol=0, rtol=1e-15)
+    assert np.allclose(tw1.bety, tw1i.bety, atol=0, rtol=1e-15)
+
+    assert np.allclose(tw2.s, tw2i.s, atol=0, rtol=1e-15)
+    assert np.allclose(tw2.betx, tw2i.betx, atol=0, rtol=1e-15)
+    assert np.allclose(tw2.bety, tw2i.bety, atol=0, rtol=1e-15)

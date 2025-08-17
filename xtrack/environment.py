@@ -144,9 +144,14 @@ class Environment:
             # Identify common elements
             counts = Counter()
             for ll in lines.values():
+                # Extract names of all elements and parents
+                elems_and_parents = set(ll.element_names)
+                for nn in ll.element_names:
+                    if hasattr(ll.element_dict[nn], 'parent_name'):
+                        elems_and_parents.add(ll.element_dict[nn].parent_name)
                 # Count if it is not a marker or a drift, which will be handled by
                 # `import_line`
-                for nn in ll.element_names:
+                for nn in elems_and_parents:
                     if (not (isinstance(ll.element_dict[nn], (xt.Marker))) and
                         not bool(re.match(r'^drift_\d+$', nn))):
                         counts[nn] += 1
@@ -258,10 +263,15 @@ class Environment:
 
         _eval = self._xdeps_eval.eval
 
-        assert isinstance(parent, str) or parent in _ALLOWED_ELEMENT_TYPES_IN_NEW, (
+        if not (isinstance(parent, str) or parent in _ALLOWED_ELEMENT_TYPES_IN_NEW):
+            raise ValueError(
             'Only '
             + _STR_ALLOWED_ELEMENT_TYPES_IN_NEW
-            + ' elements are allowed in `new` for now.')
+            + ' elements are allowed in `new` for now. In this case it is possible '
+            + 'to create a new element using the class and add it to the environment '
+            + ' using `env.elements`. For example:\n\n'
+            + '`env.elements["myname"] = MyClass(...)`\n'
+            )
 
         needs_instantiation = True
         parent_element = None
@@ -314,7 +324,8 @@ class Environment:
         self._line_vars = xt.line.LineVars(self)
 
 
-    def new_line(self, components=None, name=None, refer: ReferType = 'center', length=None):
+    def new_line(self, components=None, name=None, refer: ReferType = 'center',
+                 length=None, s_tol=1e-6):
 
         '''
         Create a new line.
@@ -376,12 +387,13 @@ class Environment:
             tab_unsorted = _resolve_s_positions(seq_all_places, self, refer=refer)
             tab_sorted = _sort_places(tab_unsorted)
             element_names = _generate_element_names_with_drifts(self, tab_sorted,
-                                                                length=length)
+                                                                length=length,
+                                                                s_tol=s_tol)
 
         out.element_names = element_names
         out._name = name
         out.builder = Builder(env=self, components=components, length=length,
-                              name=name, refer=refer)
+                              name=name, refer=refer, s_tol=s_tol)
 
         # Temporary solution to keep consistency in multiline
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
@@ -428,7 +440,7 @@ class Environment:
         return Place(name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
 
     def new_builder(self, components=None, name=None, refer: ReferType = 'center',
-                    length=None):
+                    length=None, s_tol=1e-6):
         '''
         Create a new builder.
 
@@ -455,7 +467,7 @@ class Environment:
         '''
 
         return Builder(env=self, components=components, name=name, refer=refer,
-                       length=length)
+                       length=length, s_tol=s_tol)
 
     def call(self, filename):
         '''
@@ -475,8 +487,36 @@ class Environment:
             raise ee
         xtrack._passed_env = None
 
+    def copy(self):
+        return self.__class__.from_dict(self.to_dict())
+
     def copy_element_from(self, name, source, new_name=None):
         return xt.Line.copy_element_from(self, name, source, new_name)
+
+
+    def _import_element(self, line, name, rename_elements, suffix_for_common_elements,
+                        already_imported):
+        new_name = name
+        if name in rename_elements:
+            new_name = rename_elements[name]
+        elif (bool(re.match(r'^drift_\d+$', name))
+            and line.ref[name].length._expr is None):
+            new_name = self._get_a_drift_name()
+        elif (name in self.element_dict and
+                not (isinstance(line[name], xt.Marker) and
+                    isinstance(self.element_dict.get(name), xt.Marker))):
+            new_name += suffix_for_common_elements
+
+        self.copy_element_from(name, line, new_name=new_name)
+        already_imported[name] = new_name
+        if hasattr(line.element_dict[name], 'parent_name'):
+            parent_name = line.element_dict[name].parent_name
+            if parent_name not in already_imported:
+                self._import_element(line, parent_name, rename_elements,
+                                     suffix_for_common_elements, already_imported)
+            self.element_dict[new_name].parent_name = already_imported[parent_name]
+
+        return new_name
 
     def import_line(
             self,
@@ -520,20 +560,11 @@ class Environment:
         self.vars.default_to_zero = old_default_to_zero
 
         components = []
+        already_imported = {}
         for name in line.element_names:
-            new_name = name
-
-            if name in rename_elements:
-                new_name = rename_elements[name]
-            elif (bool(re.match(r'^drift_\d+$', name))
-                and line.ref[name].length._expr is None):
-                new_name = self._get_a_drift_name()
-            elif (name in self.element_dict and
-                    not (isinstance(line[name], xt.Marker) and
-                        isinstance(self.element_dict.get(name), xt.Marker))):
-                new_name += suffix_for_common_elements
-
-            self.copy_element_from(name, line, new_name=new_name)
+            new_name = self._import_element(
+                line, name, rename_elements, suffix_for_common_elements,
+                already_imported)
 
             components.append(new_name)
 
@@ -1164,7 +1195,7 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
 
     return tt_sorted
 
-def _generate_element_names_with_drifts(env, tt_sorted, length=None, s_tol=1e-10):
+def _generate_element_names_with_drifts(env, tt_sorted, length=None, s_tol=1e-6):
 
     names_with_drifts = []
     # Create drifts
@@ -1217,7 +1248,7 @@ def _parse_kwargs(cls, kwargs, _eval):
             ref_kwargs[kk] = ref_vv
             value_kwargs[kk] = value_vv
         elif (isinstance(kwargs[kk], str) and hasattr(cls, '_xofields')
-            and (kk not in cls._xofields or cls._xofields[kk].__name__ != 'String')):
+            and (not hasattr(cls, '_noexpr_fields') or kk not in cls._noexpr_fields)):
             ref_kwargs[kk] = _eval(kwargs[kk])
             if hasattr(ref_kwargs[kk], '_value'):
                 value_kwargs[kk] = ref_kwargs[kk]._value
@@ -1286,12 +1317,15 @@ class EnvRef:
 
 
 class Builder:
-    def __init__(self, env, components=None, name=None, length=None, refer: ReferType = 'center'):
+    def __init__(self, env, components=None, name=None, length=None, 
+                 refer: ReferType = 'center', s_tol=1e-6):
         self.env = env
         self.components = components or []
         self.name = name
         self.refer = refer
         self.length = length
+        self.s_tol = s_tol
+
 
     def __repr__(self):
         parts = [f'name={self.name!r}']
@@ -1316,11 +1350,15 @@ class Builder:
         self.components.append(out)
         return out
 
-    def build(self, name=None):
+    def build(self, name=None, s_tol=1e-6):
+
+        if s_tol is None:
+            s_tol = self.s_tol
+
         if name is None:
             name = self.name
         out =  self.env.new_line(components=self.components, name=name, refer=self.refer,
-                                 length=self.length)
+                                 length=self.length, s_tol=s_tol)
         out.builder = self
         return out
 
@@ -1438,9 +1476,10 @@ def load_module_from_path(file_path):
 def _reverse_element(env, name):
     """Return a reversed element without modifying the original."""
 
-    SUPPORTED={'RBend', 'Bend', 'Quadrupole', 'Sextupole', 'Octupole',
-                'Multipole', 'Cavity', 'Solenoid', 'RFMultipole',
-                'Marker', 'Drift'}
+    SUPPORTED = {'RBend', 'Bend', 'Quadrupole', 'Sextupole', 'Octupole',
+                'Multipole', 'Cavity', 'UniformSolenoid', 'RFMultipole',
+                'Marker', 'Drift', 'LimitRect', 'LimitEllipse', 'LimitPolygon',
+                'LimitRectEllipse'}
 
     ee = env.get(name)
     ee_ref = env.ref[name]

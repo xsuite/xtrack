@@ -20,8 +20,7 @@ num_particles = 100_000
 # num_turns=5000
 # num_particles = 5000
 
-line = xt.Line.from_json(
-    '../../test_data/psb_injection/line_and_particle.json')
+line = xt.load('../../test_data/psb_injection/line_and_particle.json')
 
 # RF off!
 tt = line.get_table()

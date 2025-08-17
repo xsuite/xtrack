@@ -2,7 +2,7 @@ import xtrack as xt
 import numpy as np
 import time
 
-line = xt.Line.from_json('../../test_data/fcc_ee/fccee_h_thin.json')
+line = xt.load('../../test_data/fcc_ee/fccee_h_thin.json')
 
 tt = line.get_table()
 

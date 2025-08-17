@@ -68,7 +68,7 @@ def test_madloader_lhc_thick(test_context):
 
 @for_all_test_contexts
 def test_slicing_lhc_thick(test_context):
-    line = xt.Line.from_json(test_data_folder /
+    line = xt.load(test_data_folder /
             'hllhc15_thick/lhc_thick_with_knobs.json')
     line.twiss_default['method'] = '4d'
     line.build_tracker(_context=test_context)
@@ -78,6 +78,7 @@ def test_slicing_lhc_thick(test_context):
 
     slicing_strategies = [
         Strategy(slicing=Teapot(1)),  # Default catch-all as in MAD-X
+        Strategy(slicing=None, element_type=xt.UniformSolenoid),
         Strategy(slicing=Teapot(4), element_type=xt.Bend),
         Strategy(slicing=Teapot(20), element_type=xt.Quadrupole),
         Strategy(slicing=Teapot(2), name=r'^mb\..*'),

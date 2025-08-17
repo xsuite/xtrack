@@ -179,9 +179,9 @@ def test_match_nested(test_context):
     xo.assert_allclose(twb1_after['muy', 's.ds.l7.b1'] - twb1_after['muy', 'e.ds.r6.b1'],
                         muy_arc_target_b1, rtol=0, atol=1e-8)
     xo.assert_allclose(twb1_after['betx', 's.cell.67.b1'], twb1_after['betx', 'e.cell.67.b1'],
-                        rtol=0, atol=1e-7)
+                        rtol=1e-8, atol=0)
     xo.assert_allclose(twb1_after['bety', 's.cell.67.b1'], twb1_after['bety', 'e.cell.67.b1'],
-                        rtol=0, atol=1e-7)
+                        rtol=1e-8, atol=0)
 
     resb2_after = action_arc_phase_s67_b2.run()
     tw_init_arcb2 = resb2_after['tw_to_start_arc'].get_twiss_init('e.ds.r6.b2')
@@ -193,6 +193,6 @@ def test_match_nested(test_context):
     xo.assert_allclose(twb2_after['muy', 's.ds.l7.b2'] - twb2_after['muy', 'e.ds.r6.b2'],
                         muy_arc_target_b2, rtol=0, atol=1e-8)
     xo.assert_allclose(twb2_after['betx', 's.cell.67.b2'], twb2_after['betx', 'e.cell.67.b2'],
-                        rtol=0, atol=1e-8)
+                        rtol=1e-8, atol=0)
     xo.assert_allclose(twb2_after['bety', 's.cell.67.b2'], twb2_after['bety', 'e.cell.67.b2'],
-                        rtol=0, atol=1e-8)
+                        rtol=1e-8, atol=0)

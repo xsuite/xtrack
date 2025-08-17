@@ -6,39 +6,63 @@
 #ifndef XTRACK_QUADRUPOLE_H
 #define XTRACK_QUADRUPOLE_H
 
-/*gpufun*/
+#include <headers/track.h>
+#include <beam_elements/elements_src/track_magnet.h>
+#include <beam_elements/elements_src/default_magnet_config.h>
+
+GPUFUN
 void Quadrupole_track_local_particle(
         QuadrupoleData el,
         LocalParticle* part0
 ) {
-    double length = QuadrupoleData_get_length(el);
-    const double k1 = QuadrupoleData_get_k1(el);
-    const double k1s = QuadrupoleData_get_k1s(el);
-    double factor_knl_ksl = 1;
 
-    #ifdef XSUITE_BACKTRACK
-        length = -length;
-        factor_knl_ksl = -1;
-    #endif
-
-    int64_t num_multipole_kicks = QuadrupoleData_get_num_multipole_kicks(el);
-    const int64_t order = QuadrupoleData_get_order(el);
-    const double inv_factorial_order = QuadrupoleData_get_inv_factorial_order(el);
-    /*gpuglmem*/ const double *knl = QuadrupoleData_getp1_knl(el, 0);
-    /*gpuglmem*/ const double *ksl = QuadrupoleData_getp1_ksl(el, 0);
-
-    const uint8_t edge_entry_active = QuadrupoleData_get_edge_entry_active(el);
-    const uint8_t edge_exit_active = QuadrupoleData_get_edge_exit_active(el);
-
-    Quadrupole_from_params_track_local_particle(
-        length, k1, k1s,
-        num_multipole_kicks,
-        knl, ksl,
-        order, inv_factorial_order,
-        factor_knl_ksl,
-        edge_entry_active, edge_exit_active,
-        part0);
-
+    track_magnet_particles(
+        /*weight*/                1.,
+        /*part0*/                 part0,
+        /*length*/                QuadrupoleData_get_length(el),
+        /*order*/                 QuadrupoleData_get_order(el),
+        /*inv_factorial_order*/   QuadrupoleData_get_inv_factorial_order(el),
+        /*knl*/                   QuadrupoleData_getp1_knl(el, 0),
+        /*ksl*/                   QuadrupoleData_getp1_ksl(el, 0),
+        /*num_multipole_kicks*/   QuadrupoleData_get_num_multipole_kicks(el),
+        /*model*/                 QuadrupoleData_get_model(el),
+        /*default_model*/         QUADRUPOLE_DEFAULT_MODEL,
+        /*integrator*/            QuadrupoleData_get_integrator(el),
+        /*default_integrator*/    QUADRUPOLE_DEFAULT_INTEGRATOR,
+        /*radiation_flag*/        QuadrupoleData_get_radiation_flag(el),
+        /*radiation_flag_parent*/ 0, // not used here
+        /*radiation_record*/      NULL,
+        /*delta_taper*/           QuadrupoleData_get_delta_taper(el),
+        /*h*/                     0.,
+        /*hxl*/                   0.,
+        /*k0*/                    0.,
+        /*k1*/                    QuadrupoleData_get_k1(el),
+        /*k2*/                    0.,
+        /*k3*/                    0.,
+        /*k0s*/                   0.,
+        /*k1s*/                   QuadrupoleData_get_k1s(el),
+        /*k2s*/                   0.,
+        /*k3s*/                   0.,
+        /*ks*/                    0.,
+        /*dks_ds*/                0.,
+        /*x0_solenoid*/           0.,
+        /*y0_solenoid*/           0.,
+        /*rbend_model*/           -1, // not rbend
+        /*rbend_shift*/           0.,
+        /*body_active*/           1,
+        /*edge_entry_active*/     QuadrupoleData_get_edge_entry_active(el),
+        /*edge_exit_active*/      QuadrupoleData_get_edge_exit_active(el),
+        /*edge_entry_model*/      1,
+        /*edge_exit_model*/       1,
+        /*edge_entry_angle*/      0.,
+        /*edge_exit_angle*/       0.,
+        /*edge_entry_angle_fdown*/0.,
+        /*edge_exit_angle_fdown*/ 0.,
+        /*edge_entry_fint*/       0.,
+        /*edge_exit_fint*/        0.,
+        /*edge_entry_hgap*/       0.,
+        /*edge_exit_hgap*/        0.
+    );
 }
 
 #endif // XTRACK_QUADRUPOLE_H

@@ -46,7 +46,7 @@ line.vars['phi_ir8'] = 0
 
 # Test json roundtrip
 line.to_json('test.json')
-line2 = xt.Line.from_json('test.json')
+line2 = xt.load('test.json')
 line2.build_tracker()
 
 assert np.isclose(line2.twiss()['px', 'ip8'], 100e-6, atol=1e-7, rtol = 0)

@@ -14,6 +14,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
 from typing import List, Literal, Optional, Dict
+from pathlib import Path
 
 import numpy as np
 from scipy.constants import c as clight
@@ -24,11 +25,16 @@ from . import json as json_utils
 import xobjects as xo
 import xtrack as xt
 import xdeps as xd
+from .beam_elements.magnets import (
+    MagnetEdge, _MODEL_TO_INDEX_CURVED,
+    _EDGE_MODEL_TO_INDEX,
+)
 from .progress_indicator import progress
 from .slicing import Custom, Slicer, Strategy
 from .mad_writer import to_madx_sequence
 from .madng_interface import (build_madng_model, discard_madng_model,
-                              regen_madng_model, _tw_ng, line_to_madng)
+                              regen_madng_model, _tw_ng, line_to_madng,
+                              _survey_ng)
 
 from .survey import survey_from_line
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
@@ -37,12 +43,14 @@ from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
                           get_non_linear_chromaticity,
                           DEFAULT_MATRIX_STABILITY_TOL,
                           DEFAULT_MATRIX_RESPONSIVENESS_TOL)
+from xtrack.aperture_meas import measure_aperture
 from .match import match_line, closed_orbit_correction, match_knob_line, Action
 from .tapering import compensate_radiation_energy_loss
 from .mad_loader import MadLoader
 from .beam_elements import element_classes
 from . import beam_elements
 from .beam_elements import Drift, BeamElement, Marker, Multipole
+from .beam_elements.slice_base import ID_RADIATION_FROM_PARENT
 from .footprint import Footprint, _footprint_with_linear_rescale
 from .internal_record import (start_internal_logging_for_elements_of_type,
                               stop_internal_logging_for_elements_of_type,
@@ -55,23 +63,18 @@ log = logging.getLogger(__name__)
 
 
 _ALLOWED_ELEMENT_TYPES_IN_NEW = [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole,
-                                 xt.Octupole, xt.Cavity, xt.Multipole, xt.Solenoid,
+                                 xt.Octupole, xt.Cavity, xt.Multipole,
+                                 xt.UniformSolenoid, xt.Solenoid, xt.VariableSolenoid,
                                  xt.Marker, xt.Replica, xt.XYShift, xt.XRotation,
-                                 xt.YRotation, xt.SRotation, xt.LimitRacetrack,
-                                 xt.LimitRectEllipse, xt.LimitRect, xt.LimitEllipse,
-                                 xt.RFMultipole, xt.RBend]
+                                 xt.YRotation, xt.SRotation, xt.ZetaShift,
+                                 xt.LimitRacetrack, xt.LimitRectEllipse,
+                                 xt.LimitRect, xt.LimitEllipse,
+                                 xt.LimitPolygon, xt.RFMultipole, xt.RBend,
+                                 xt.Magnet]
 
-_ALLOWED_ELEMENT_TYPES_DICT = {'Drift': xt.Drift, 'Bend': xt.Bend,
-                               'Quadrupole': xt.Quadrupole, 'Sextupole': xt.Sextupole,
-                               'Octupole': xt.Octupole, 'Cavity': xt.Cavity,
-                               'Multipole': xt.Multipole, 'Solenoid': xt.Solenoid,
-                               'Marker': xt.Marker, 'Replica': xt.Replica,
-                               'LimitRacetrack': xt.LimitRacetrack,
-                               'LimitRectEllipse': xt.LimitRectEllipse,
-                               'LimitRect': xt.LimitRect, 'LimitEllipse': xt.LimitEllipse,
-                               'XYShift': xt.XYShift, 'XRotation': xt.XRotation,
-                               'YRotation': xt.YRotation, 'SRotation': xt.SRotation,
-                               'RFMultipole': xt.RFMultipole, 'RBend': xt.RBend}
+
+_ALLOWED_ELEMENT_TYPES_DICT = {
+    cc.__name__: cc for cc in _ALLOWED_ELEMENT_TYPES_IN_NEW}
 
 _STR_ALLOWED_ELEMENT_TYPES_IN_NEW = ', '.join([tt.__name__ for tt in _ALLOWED_ELEMENT_TYPES_IN_NEW])
 
@@ -145,6 +148,7 @@ class Line:
         self._extra_config['_radiation_model'] = None
         self._extra_config['_beamstrahlung_model'] = None
         self._extra_config['_bhabha_model'] = None
+        self._extra_config['_spin_model'] = None
         self._extra_config['_needs_rng'] = False
         self._extra_config['enable_time_dependent_vars'] = False
         self._extra_config['twiss_default'] = {}
@@ -152,6 +156,8 @@ class Line:
         self._extra_config['steering_monitors_y'] = None
         self._extra_config['steering_correctors_x'] = None
         self._extra_config['steering_correctors_y'] = None
+        self._extra_config['corrector_limits_x'] = None
+        self._extra_config['corrector_limits_y'] = None
 
         if env is None:
             env = xt.Environment()
@@ -489,7 +495,8 @@ class Line:
         ignored_madtypes=(),
         allow_thick=None,
         name_prefix=None,
-        enable_layout_data=False
+        enable_layout_data=False,
+        enable_thick_kickers=False,
     ):
 
         """
@@ -559,6 +566,7 @@ class Line:
             allow_thick=allow_thick,
             name_prefix=name_prefix,
             enable_layout_data=enable_layout_data,
+            enable_thick_kickers=enable_thick_kickers,
         )
         line = loader.make_line()
         return line
@@ -622,7 +630,8 @@ class Line:
         '''
         return to_madx_sequence(self, sequence_name, mode=mode)
 
-    def to_madng(self, sequence_name='seq', temp_fname=None, keep_files=False):
+    def to_madng(self, sequence_name='seq', temp_fname=None, keep_files=False,
+                 **kwargs):
 
         '''
         Build a MAD NG instance from present state of the line.
@@ -641,13 +650,15 @@ class Line:
         '''
 
         return line_to_madng(self, sequence_name=sequence_name,
-                             temp_fname=temp_fname, keep_files=keep_files)
+                             temp_fname=temp_fname, keep_files=keep_files,
+                             **kwargs)
 
 
     build_madng_model = build_madng_model
     discard_madng_model = discard_madng_model
     regen_madng_model = regen_madng_model
     madng_twiss = _tw_ng
+    madng_survey = _survey_ng
 
     def __repr__(self):
         if hasattr(self, '_name'):
@@ -796,6 +807,42 @@ class Line:
         tab._data['reference_frame'] = {
             True: 'reverse', False: 'proper'}[reverse]
         return tab
+
+    def get_aperture_table(self, dx=1e-3, dy=1e-3, x_range=(-0.1, 0.1),
+                           y_range=(-0.1, 0.1)):
+        '''
+        Return a table with the horizontal and vertical aperture estimated at all
+        elements of the line.
+        The aperture is estimated by tracking a particle through the line and
+        measuring the maximum and minumum horizontal and vertical position
+        at which particles survive. For elements at which no lost particles are
+        detected, the aperture is estimated by interpolating the values
+        of the neighbouring elements.
+
+        Parameters
+        ----------
+        dx : float, optional
+            Required horizontal resolution (in m) for the aperture measurement.
+            Default is 1e-3.
+        dy : float, optional
+            Required vertical resolution (in m) for the aperture measurement.
+            Default is 1e-3.
+        x_range : tuple, optional
+            Horizontal range (in m) for the aperture measurement.
+            Default is (-0.1, 0.1).
+        y_range : tuple, optional
+            Vertical range (in m) for the aperture measurement.
+            Default is (-0.1, 0.1).
+
+        Returns
+        -------
+        aperture_table : xtrack.Table
+            Table with the horizontal and vertical aperture at all elements
+            of the line.
+        '''
+
+        return xt.aperture_meas.measure_aperture(self,
+            dx=1e-3, dy=1e-3, x_range=(-0.1, 0.1), y_range=(-0.1, 0.1))
 
     def copy(self, shallow=False, _context=None, _buffer=None):
         '''
@@ -962,6 +1009,10 @@ class Line:
                 raise ImportError("Please install Xcoll to use this feature.") from error
 
         return self._collimators
+
+    def _get_bucket(self):
+        import xpart as xp
+        return xp.longitudinal.get_bucket(self)
 
     def discard_tracker(self):
 
@@ -1260,6 +1311,7 @@ class Line:
         values_at_element_exit=None,
         radiation_method=None,
         eneloss_and_damping=None,
+        radiation_integrals=None,
         start=None, end=None, init=None,
         num_turns=None,
         skip_global_quantities=None,
@@ -1275,9 +1327,12 @@ class Line:
         only_twiss_init=None,
         only_markers=None,
         only_orbit=None,
+        spin=None,
+        polarization=None,
         compute_R_element_by_element=None,
         compute_lattice_functions=None,
         compute_chromatic_properties=None,
+        coupling_edw_teng=False,
         init_at=None,
         x=None, px=None, y=None, py=None, zeta=None, delta=None,
         betx=None, alfx=None, bety=None, alfy=None, bets=None,
@@ -1285,6 +1340,7 @@ class Line:
         mux=None, muy=None, muzeta=None,
         ax_chrom=None, bx_chrom=None, ay_chrom=None, by_chrom=None,
         ddx=None, ddpx=None, ddy=None, ddpy=None,
+        spin_x=None, spin_y=None, spin_z=None,
         zero_at=None,
         co_search_at=None,
         include_collective=None,
@@ -1331,7 +1387,7 @@ class Line:
     def match(self, vary, targets, solve=True, assert_within_tol=True,
                   compensate_radiation_energy_loss=False,
                   solver_options={}, allow_twiss_failure=True,
-                  restore_if_fail=True, verbose=False,
+                  restore_if_fail=True, verbose=None,
                   n_steps_max=20, default_tol=None,
                   solver=None, check_limits=True, **kwargs):
         '''
@@ -1530,7 +1586,9 @@ class Line:
                  twiss_table=None, planes=None,
                  monitor_names_x=None, corrector_names_x=None,
                  monitor_names_y=None, corrector_names_y=None,
-                 n_micado=None, n_singular_values=None, rcond=None):
+                 n_micado=None, n_singular_values=None, rcond=None,
+                 monitor_alignment=None, corrector_limits_x=None,
+                 corrector_limits_y=None):
 
         '''
         Correct the beam trajectory using linearized response matrix from optics
@@ -1581,6 +1639,14 @@ class Line:
         rcond : float
             Cutoff for small singular values (relative to the largest singular
             value). Singular values smaller than `rcond` are considered zero.
+        corrector_limits_x : tuple of array-like or None
+            Limits for the horizontal corrector strengths. If not None, it should be a tuple
+            of two arrays (lower_limits, upper_limits) with the same length as
+            the number of horizontal correctors. If None, no limits are applied.
+        corrector_limits_y : tuple of array-like or None
+            Limits for the vertical corrector strengths. If not None, it should be a tuple
+            of two arrays (lower_limits, upper_limits) with the same length as
+            the number of vertical correctors. If None, no limits are applied.
 
         Returns
         -------
@@ -1596,7 +1662,10 @@ class Line:
                  monitor_names_y=monitor_names_y,
                  corrector_names_y=corrector_names_y,
                  n_micado=n_micado, n_singular_values=n_singular_values,
-                 rcond=rcond)
+                 rcond=rcond,
+                 monitor_alignment=monitor_alignment,
+                 corrector_limits_x=corrector_limits_x,
+                 corrector_limits_y=corrector_limits_y)
 
         if run:
             correction.correct(planes=planes, n_iter=n_iter)
@@ -1678,6 +1747,7 @@ class Line:
                           num_turns=1,
                           co_search_at=None,
                           search_for_t_rev=False,
+                          spin=None,
                           num_turns_search_t_rev=None,
                           symmetrize=False,
                           include_collective=False):
@@ -1755,6 +1825,7 @@ class Line:
                                  start=start, end=end, num_turns=num_turns,
                                  co_search_at=co_search_at,
                                  search_for_t_rev=search_for_t_rev,
+                                 spin=spin,
                                  num_turns_search_t_rev=num_turns_search_t_rev,
                                  symmetrize=symmetrize)
 
@@ -1945,6 +2016,10 @@ class Line:
         qx = np.zeros(4)
         qy = np.zeros(4)
 
+        # remove average in case there is a closed orbit
+        mon.x-=mon.x.mean(axis=1,keepdims=True)
+        mon.y-=mon.y.mean(axis=1,keepdims=True)
+
         for ii in range(len(qx)):
             qx[ii] = np.abs(nl.get_tune(mon.x[ii, :]))
             qy[ii] = np.abs(nl.get_tune(mon.y[ii, :]))
@@ -2079,7 +2154,7 @@ class Line:
         '''
 
         assert mode in ["upstream", "downstream"]
-        s_prev = 0
+        s_prev = 0.
         s = []
         for ee in self.elements:
             if mode == "upstream":
@@ -2172,8 +2247,10 @@ class Line:
     def cut_at_s(self, s: List[float], s_tol=1e-6, return_slices=False):
         """Slice the line so that positions in s never fall inside an element."""
 
-        if self._has_valid_tracker():
-            self.discard_tracker()
+        if not self._has_valid_tracker():
+            self.build_tracker(compile=False) # To resolve replicas and slices
+
+        self.discard_tracker()
 
         cuts_for_element = self._elements_intersecting_s(s, s_tol=s_tol)
         strategies = [Strategy(None)]  # catch-all, ignore unaffected elements
@@ -2238,6 +2315,11 @@ class Line:
         if obj is not None:
             assert isinstance(what, str)
             self.env.element_dict[what] = obj
+
+        if isinstance(what, str) in self.element_dict:
+            # Is an element and not a line or an iterable
+            self.element_names.append(what)
+            return
 
         if not isinstance(what, Iterable) or isinstance(what, str):
             what = [what]
@@ -2406,7 +2488,7 @@ class Line:
                                                                # (right order comes form previous sorting,
                                                                # (done before removing elements)
         )
-        element_names = _generate_element_names_with_drifts(self, tab_sorted, s_tol=s_tol)
+        element_names = _generate_element_names_with_drifts(self.env, tab_sorted, s_tol=s_tol)
 
         # Update line
         self.element_names.clear()
@@ -2538,7 +2620,7 @@ class Line:
             Element to be inserted. If not given, the element of the given name
             already present in the line is used.
         at: int or string, optional
-            Index or name of the element in the line. If `index` is provided, `at_s` must be None. 
+            Index or name of the element in the line. If `index` is provided, `at_s` must be None.
         at_s: float, optional
             Position of the element in the line in meters. If `at_s` is provided, `index`
             must be None.
@@ -2866,28 +2948,40 @@ class Line:
         for name in variable_names:
             self.config[f'FREEZE_VAR_{name}'] = False
 
-    def configure_bend_model(self, core=None, edge=None, num_multipole_kicks=None):
+    def configure_bend_model(
+            self,
+            core=None,
+            edge=None,
+            num_multipole_kicks=None,
+            integrator=None,
+    ):
 
         """
         Configure the method used to track bends.
 
+        See documentation of ``xt.Bend`` for more details on the values of the
+        models and schemes used below.
+
         Parameters
         ----------
         core: str
-            Model to be used for the thick bend cores. Can be 'expanded' or '
-            full'.
+            Model to be used for the thick bend cores. Can be 'adaptive',
+            'full', 'bend-kick-bend', 'rot-kick-rot', 'mat-kick-mat',
+            'drift-kick-drift-exact', or 'drift-kick-drift-expanded'.
         edge: str
-            Model to be used for the bend edges. Can be 'linear', 'full'
-            or 'suppressed'.
+            Model to be used for the bend edges. Can be 'linear', 'full',
+            'dipole-only' or 'suppressed'.
         num_multipole_kicks: int
             Number of multipole kicks to consider.
+        integrator: str
+            Integration scheme to be used. Can be 'adaptive', 'teapot',
+            'yoshida4', or 'uniform'.
         """
 
-        if core not in [None, 'adaptive', 'full', 'bend-kick-bend',
-                              'rot-kick-rot', 'expanded']:
+        if core is not None and core not in _MODEL_TO_INDEX_CURVED:
             raise ValueError(f'Unknown bend model {core}')
 
-        if edge not in [None, 'linear', 'full', 'suppressed']:
+        if edge is not None and edge not in _EDGE_MODEL_TO_INDEX:
             raise ValueError(f'Unknown bend edge model {edge}')
 
         for ee in self.element_dict.values():
@@ -2895,7 +2989,7 @@ class Line:
                 ee.model = core
 
             if edge is not None and isinstance(ee, xt.DipoleEdge):
-                ee.model = edge
+                ee.model = edge if not edge == 'dipole-only' else 'full'
 
             if edge is not None and isinstance(ee, (xt.Bend, xt.RBend)):
                 ee.edge_entry_model = edge
@@ -2904,10 +2998,16 @@ class Line:
             if num_multipole_kicks is not None:
                 ee.num_multipole_kicks = num_multipole_kicks
 
-    def _configure_mult_fringes(
+            if integrator is not None:
+                ee.integrator = integrator
+
+    def _configure_mult(
             self,
             element_type,
-            edge: Optional[Literal['full']] = 'full',
+            model=None,
+            edge: Optional[Literal['full']] = None,
+            num_multipole_kicks: Optional[int] = None,
+            integrator: Optional[str] = None,
     ):
         """Configure fringes on elements of a given type.
 
@@ -2915,26 +3015,74 @@ class Line:
         ----------
         edge: str
             None to disable, 'full' to enable.
+        num_multipole_kicks: int
+            Number of multipole kicks to consider.
+        integrator: str
+            Integration scheme to be used. Can be 'adaptive', 'teapot',
+            'yoshida4', or 'uniform'.
         """
-        if edge not in [None, 'full']:
+        if edge not in [None, 'full', 'suppressed']:
             raise ValueError(f'Unknown edge model {edge}: only None or '
                              f'"full" are supported.')
 
         enable_fringes = edge == 'full'
 
         for ee in self.element_dict.values():
-            if isinstance(ee, element_type):
+            if not isinstance(ee, element_type):
+                continue
+            if edge is not None:
                 ee.edge_entry_active = enable_fringes
                 ee.edge_exit_active = enable_fringes
+            if num_multipole_kicks is not None:
+                ee.num_multipole_kicks = num_multipole_kicks
+            if integrator is not None:
+                ee.integrator = integrator
+            if model is not None:
+                ee.model = model
 
-    def configure_quadrupole_model(self, edge: Optional[Literal['full']] = 'full'):
-        self._configure_mult_fringes(xt.Quadrupole, edge=edge)
+    def configure_quadrupole_model(self,
+            model: Optional[str] = None,
+            edge: Optional[Literal['full']] = None,
+            num_multipole_kicks: Optional[int] = None,
+            integrator: Optional[str] = None,
+    ):
+        self._configure_mult(
+            xt.Quadrupole,
+            model=model,
+            edge=edge,
+            num_multipole_kicks=num_multipole_kicks,
+            integrator=integrator,
+        )
 
-    def configure_sextupole_model(self, edge: Optional[Literal['full']] = 'full'):
-        self._configure_mult_fringes(xt.Sextupole, edge=edge)
+    def configure_sextupole_model(
+            self,
+            model: Optional[str] = None,
+            edge: Optional[Literal['full']] = None,
+            num_multipole_kicks: Optional[int] = None,
+            integrator: Optional[str] = None,
+    ):
+        self._configure_mult(
+            xt.Sextupole,
+            model=model,
+            edge=edge,
+            num_multipole_kicks=num_multipole_kicks,
+            integrator=integrator,
+        )
 
-    def configure_octupole_model(self, edge: Optional[Literal['full']] = 'full'):
-        self._configure_mult_fringes(xt.Octupole, edge=edge)
+    def configure_octupole_model(
+            self,
+            model: Optional[str] = None,
+            edge: Optional[Literal['full']] = None,
+            num_multipole_kicks: Optional[int] = None,
+            integrator: Optional[str] = None,
+    ):
+        self._configure_mult(
+            xt.Octupole,
+            model=model,
+            edge=edge,
+            num_multipole_kicks=num_multipole_kicks,
+            integrator=integrator,
+        )
 
     def configure_radiation(self, model=None, model_beamstrahlung=None,
                             model_bhabha=None, mode='deprecated'):
@@ -2955,7 +3103,8 @@ class Line:
         if mode != 'deprecated':
             raise NameError('mode is deprecated, use model instead')
 
-        self._check_valid_tracker()
+        if not self._has_valid_tracker():
+            self.build_tracker(compile=False)
 
         assert model in [None, 'mean', 'quantum']
         assert model_beamstrahlung in [None, 'mean', 'quantum']
@@ -2989,8 +3138,6 @@ class Line:
             self._bhabha_model = None
 
         for kk, ee in self.element_dict.items():
-            if isinstance (ee, (xt.Quadrupole, xt.Bend)):
-                continue
             if hasattr(ee, 'radiation_flag'):
                 ee.radiation_flag = radiation_flag
 
@@ -3003,9 +3150,38 @@ class Line:
         if radiation_flag == 2 or beamstrahlung_flag == 2 or bhabha_flag == 1:
             self._needs_rng = True
 
-        self.config.XTRACK_MULTIPOLE_NO_SYNRAD = (radiation_flag == 0)
         self.config.XFIELDS_BB3D_NO_BEAMSTR = (beamstrahlung_flag == 0)
         self.config.XFIELDS_BB3D_NO_BHABHA = (bhabha_flag == 0)
+
+        self._update_synrad_compile_flag()
+
+    def _update_synrad_compile_flag(self):
+
+        if self._radiation_model or self._spin_model:
+            self.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
+        else:
+            self.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
+
+    def configure_spin(self, spin_model=None):
+
+        """
+        Configure the spin model for the line.
+
+        Parameters
+        ----------
+        spin_model: str
+            Spin model to use. Can be None, 'auto', 'True', 'False'
+        """
+
+        assert spin_model in [None, 'auto', 'True', 'False']
+        if spin_model is False:
+            spin_model = None
+        if spin_model is True:
+            spin_model = 'auto'
+
+        self._spin_model = spin_model
+
+        self._update_synrad_compile_flag()
 
     def configure_intrabeam_scattering(
         self, element = None,
@@ -3060,7 +3236,7 @@ class Line:
             self, element=element, update_every=update_every, **kwargs
         )
 
-    def compensate_radiation_energy_loss(self, delta0=0, rtol_eneloss=1e-10,
+    def compensate_radiation_energy_loss(self, delta0='zero_mean', rtol_eneloss=1e-10,
                                     max_iter=100, **kwargs):
 
         """
@@ -3070,7 +3246,9 @@ class Line:
         Parameters
         ----------
         delta0: float
-            Initial energy deviation.
+            Initial energy deviation. If `delta0='zero_mean'` is specified, the
+            compensation is done such that the mean energy deviation along the
+            ring is zero.
         rtol_eneloss: float
             Relative tolerance on energy loss.
         max_iter: int
@@ -3412,6 +3590,7 @@ class Line:
         assert inplace is True, 'Only inplace is supported for now'
 
         self._frozen_check()
+        self.replace_all_repeated_elements()
 
         if keep is None:
             keep = []
@@ -3734,6 +3913,7 @@ class Line:
                                       ' used')
 
         self._frozen_check()
+        self.replace_all_repeated_elements()
 
         if keep is None:
             keep = []
@@ -3939,12 +4119,13 @@ class Line:
             Rename the element in the new line/environment. If not provided, the
             element is copied with the same name.
         """
+        new_name_input = new_name if new_name != name else None
         new_name = new_name or name
         cls = type(source.element_dict[name])
 
-        if cls not in _ALLOWED_ELEMENT_TYPES_IN_NEW + [xt.DipoleEdge]: # No issue in copying DipoleEdge
-                                                                       # while creating it requires handling properties
-                                                                       # which are strings.
+        if (cls not in _ALLOWED_ELEMENT_TYPES_IN_NEW + [xt.DipoleEdge] # No issue in copying DipoleEdge while creating it requires handling properties which are strings.
+            and 'ThickSlice' not in cls.__name__ and 'ThinSlice' not in cls.__name__
+            and 'DriftSlice' not in cls.__name__):
             raise ValueError(
                 f'Only {_STR_ALLOWED_ELEMENT_TYPES_IN_NEW} elements are '
                 f'allowed in `copy_from_env` for now.'
@@ -4011,6 +4192,7 @@ class Line:
         self._env_if_needed()
 
         out = self.env.new_line(components=list(tt.env_name), name=name)
+        out.particle_ref = self.particle_ref.copy() if self.particle_ref else None
 
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
             out.env._var_management = None
@@ -4047,6 +4229,10 @@ class Line:
         >>> line.set(['e', 'f'], '3*a')
 
         '''
+        if hasattr(name, 'env_name'):
+            name = name.env_name
+        elif hasattr(name, 'name'):
+            name = name.name
 
         if isinstance(name, Iterable) and not isinstance(name, str):
             for nn in name:
@@ -4413,6 +4599,14 @@ class Line:
         self._extra_config['_radiation_model'] = value
 
     @property
+    def _spin_model(self):
+        return self._extra_config['_spin_model']
+
+    @_spin_model.setter
+    def _spin_model(self, value):
+        self._extra_config['_spin_model'] = value
+
+    @property
     def _beamstrahlung_model(self):
         return self._extra_config['_beamstrahlung_model']
 
@@ -4524,6 +4718,22 @@ class Line:
     def steering_correctors_y(self, value):
         self._extra_config['steering_correctors_y'] = value
 
+    @property
+    def corrector_limits_x(self):
+        return self._extra_config.get('corrector_limits_x', None)
+
+    @corrector_limits_x.setter
+    def corrector_limits_x(self, value):
+        self._extra_config['corrector_limits_x'] = value
+
+    @property
+    def corrector_limits_y(self):
+        return self._extra_config.get('corrector_limits_y', None)
+
+    @corrector_limits_y.setter
+    def corrector_limits_y(self, value):
+        self._extra_config['corrector_limits_y'] = value
+
     def __getitem__(self, key):
         if np.issubdtype(key.__class__, np.integer):
             key = self.element_names[key]
@@ -4579,7 +4789,7 @@ class Line:
         cache = LineAttr(
             line=self,
             fields={
-                'radiation_flag': None, 'delta_taper': None, 'ks': None,
+                'delta_taper': None, 'ks': None,
                 'voltage': None, 'frequency': None, 'lag': None,
                 'lag_taper': None,
 
@@ -4595,6 +4805,8 @@ class Line:
 
                 '_own_h': 'h',
                 '_own_hxl': 'hxl',
+
+                '_own_radiation_flag': 'radiation_flag',
 
                 '_own_k0': 'k0',
                 '_own_k1': 'k1',
@@ -4624,6 +4836,16 @@ class Line:
                 '_own_k4sl': ('ksl', 4),
                 '_own_k5sl': ('ksl', 5),
 
+                # Handling of reference frame transformations
+                # (XYShift, XRotation, YRotation, SRotation)
+                # TODO: The dx, dy, etc labels come from the element level and should possibly be changed
+                '_own_ref_shift_x':         'dx',
+                '_own_ref_shift_y':         'dy',
+                '_own_ref_rot_sin_angle':   'sin_angle',
+                '_own_ref_rot_cos_angle':   'cos_angle',
+                '_own_ref_rot_sin_z':       'sin_z',
+                '_own_ref_rot_cos_z':       'cos_z',
+
                 '_parent_length': (('_parent', 'length'), None),
                 '_parent_sin_rot_s': (('_parent', '_sin_rot_s'), None),
                 '_parent_cos_rot_s': (('_parent', '_cos_rot_s'), None),
@@ -4633,6 +4855,9 @@ class Line:
 
                 '_parent_h': (('_parent', 'h'), None),
                 '_parent_hxl': (('_parent', 'hxl'), None),
+                '_parent_rbend_model': (('_parent', 'rbend_model'), None),
+
+                '_parent_radiation_flag': (('_parent', 'radiation_flag'), None),
 
                 '_parent_k0': (('_parent', 'k0'), None),
                 '_parent_k1': (('_parent', 'k1'), None),
@@ -4662,11 +4887,22 @@ class Line:
                 '_parent_k4sl': (('_parent', 'ksl'), 4),
                 '_parent_k5sl': (('_parent', 'ksl'), 5),
 
+                # Handling of reference frame transformations
+                # (XYShift, XRotation, YRotation, SRotation)
+                # TODO: The dx, dy, etc labels come from the element level and should possibly be changed
+                '_parent_ref_shift_x': (('_parent', 'dx'), None),
+                '_parent_ref_shift_y': (('_parent', 'dy'), None),
+                '_parent_ref_rot_sin_angle': (('_parent', 'sin_angle'), None),
+                '_parent_ref_rot_cos_angle': (('_parent', 'cos_angle'), None),
+                '_parent_ref_rot_sin_z': (('_parent', 'sin_z'), None),
+                '_parent_ref_rot_cos_z': (('_parent', 'cos_z'), None),
+
             },
             derived_fields={
                 'length': lambda attr:
                     attr['_own_length'] + attr['_parent_length'] * attr['weight'],
-                'angle_rad': _angle_from_attr,
+                '_angle_force_body': _angle_force_body_from_attr,
+                'angle_rad': _angle_rbend_correction_from_attr,
                 'rot_s_rad': _rot_s_from_attr,
                 'shift_x': lambda attr:
                     attr['_own_shift_x'] + attr['_parent_shift_x']
@@ -4677,6 +4913,9 @@ class Line:
                 'shift_s': lambda attr:
                     attr['_own_shift_s'] + attr['_parent_shift_s']
                     * attr._rot_and_shift_from_parent,
+                'radiation_flag': lambda attr:
+                    attr['_own_radiation_flag'] * (attr['_own_radiation_flag'] != ID_RADIATION_FROM_PARENT)
+                  + attr['_parent_radiation_flag'] * (attr['_own_radiation_flag'] == ID_RADIATION_FROM_PARENT),
                 'k0l': lambda attr: (
                     attr['_own_k0l']
                     + attr['_own_k0'] * attr['_own_length']
@@ -4739,6 +4978,13 @@ class Line:
                     + attr['_parent_k5s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
                 'hkick': lambda attr: attr["angle_rad"] - attr["k0l"],
                 'vkick': lambda attr: attr["k0sl"],
+                'ref_shift_x': lambda attr: attr['_own_ref_shift_x'] + attr['_parent_ref_shift_x'],
+                'ref_shift_y': lambda attr: attr['_own_ref_shift_y'] + attr['_parent_ref_shift_y'],
+                'ref_rot_angle_rad': lambda attr: np.arctan2(
+                    attr['_own_ref_rot_sin_angle'] + attr['_parent_ref_rot_sin_angle'] +\
+                    attr['_own_ref_rot_sin_z'] + attr['_parent_ref_rot_sin_z'],
+                    attr['_own_ref_rot_cos_angle'] + attr['_parent_ref_rot_cos_angle'] +\
+                    attr['_own_ref_rot_cos_z'] + attr['_parent_ref_rot_cos_z']),
             }
         )
         return cache
@@ -5324,6 +5570,50 @@ class LineVars:
         if default_to_zero is not None:
             self.default_to_zero = old_default_to_zero
 
+    def load(
+            self,
+            file=None,
+            string=None,
+            format: Literal['json', 'madx', 'python'] = None,
+            timeout=5.,
+        ):
+
+        if isinstance(file, Path):
+            file = str(file)
+
+        if (file is None) == (string is None):
+            raise ValueError('Must specify either file or string, but not both')
+
+        FORMATS = {'json', 'madx', 'python'}
+        if string and format not in FORMATS:
+            raise ValueError(f'Format must be specified to be one of {FORMATS} when '
+                            f'using string input')
+
+        if format is None and file is not None:
+            if file.endswith('.json') or file.endswith('.json.gz'):
+                format = 'json'
+            elif file.endswith('.str') or file.endswith('.madx'):
+                format = 'madx'
+            elif file.endswith('.py'):
+                format = 'python'
+
+        if file and (file.startswith('http://') or file.startswith('https://')):
+            string = xt.general.read_url(file, timeout=timeout)
+            file = None
+
+        if format == 'json':
+            ddd = xt.json.load(file=file, string=string)
+            self.update(ddd, default_to_zero=True)
+        elif format == 'madx':
+            return self.load_madx(file, string)
+        elif format == 'python':
+            if string is not None:
+                raise NotImplementedError('Loading from string not implemented for python format')
+            env = xt.Environment()
+            env.call(file)
+            self.update(env.vars.get_table().to_dict(), default_to_zero=True)
+            return env
+
     @property
     def vary_default(self):
         if self.line._xdeps_vref is None:
@@ -5395,12 +5685,6 @@ class LineVars:
             raise KeyError(f'Variable `{key}` not found')
         return self.line._xdeps_vref[key]
 
-    def get(self,key,default=0):
-        if key in self:
-            return self[key]
-        else:
-            return default
-
     def __setitem__(self, key, value):
         if isinstance(value, str):
             value = self.line._xdeps_eval.eval(value)
@@ -5417,7 +5701,7 @@ class LineVars:
         self.__dict__.update(state)
         self.vars_to_update = WeakSet()
 
-    def set_from_madx_file(self, filename):
+    def set_from_madx_file(self, filename=None, string=None):
 
         '''
         Set variables veluas of expression from a MAD-X file.
@@ -5428,10 +5712,15 @@ class LineVars:
             Path to the MAD-X file(s) to load.
         '''
         loader = xt.mad_parser.MadxLoader(env=self.line)
-        loader.load_file(filename)
+        if filename is not None:
+            assert string is None, 'Cannot specify both filename and string'
+            loader.load_file(filename)
+        elif string is not None:
+            assert filename is None, 'Cannot specify both filename and string'
+            loader.load_string(string)
 
-    def load_madx_optics_file(self, filename):
-        self.set_from_madx_file(filename)
+    def load_madx_optics_file(self, filename=None, string=None):
+        self.set_from_madx_file(filename, string)
 
     load_madx = load_madx_optics_file
 
@@ -5777,11 +6066,27 @@ class EnergyProgram:
         return beta0 * clight / circumference
 
     def get_p0c_increse_per_turn_at_t_s(self, t_s):
+
+        ts_scalar = np.isscalar(t_s)
+        if ts_scalar:
+            t_s = np.array([t_s])
+
         beta0 = self.get_beta0_at_t_s(t_s)
         circumference = self.line.get_length()
         T_rev = circumference / (beta0 * clight)
-        return 0.5 * (self.get_p0c_at_t_s(t_s + T_rev)
-                      - self.get_p0c_at_t_s(t_s - T_rev))
+        out = 0.5 * (self.get_p0c_at_t_s(t_s + T_rev)
+                     - self.get_p0c_at_t_s(t_s - T_rev))
+
+        mask_zero_neg = t_s - T_rev < 0
+        if np.any(mask_zero_neg):
+            out[mask_zero_neg] = (
+                self.get_p0c_at_t_s(t_s[mask_zero_neg] + T_rev[mask_zero_neg])
+                - self.get_p0c_at_t_s(t_s[mask_zero_neg]))
+
+        if ts_scalar:
+            out = out[0]
+
+        return out
 
     @property
     def t_turn_s_line(self):
@@ -5822,7 +6127,11 @@ def _vars_unused(line):
         return True
     return False
 
-def _angle_from_attr(attr):
+def _angle_force_body_from_attr(attr):
+
+    """This angle has always the curvature in the body, even for RBend elements
+    with rbend_model='straight-body'. It is used mostly for plotting purposes.
+    """
 
     weight = attr['weight']
 
@@ -5838,6 +6147,30 @@ def _angle_from_attr(attr):
                                 * attr._inherit_strengths)
 
     angle = own_hxl_proper_system + parent_hxl_proper_system
+
+    return angle
+
+def _angle_rbend_correction_from_attr(attr):
+
+    angle = attr['_angle_force_body'].copy()
+
+    ## Correction for RBend elements
+
+    # Retrieve element_type from tracker cache (remove _end_point)
+    element_type = attr.line.tracker._tracker_data_base._line_table.element_type[:-1]
+
+    mask_rbend_edges = ((element_type == 'ThinSliceRBendEntry')
+                        | (element_type == 'ThinSliceRBendExit'))
+    mask_rbend_body_slices = ((element_type == 'ThinSliceRBend')
+                            | (element_type == 'ThickSliceRBend'))
+    mask_parent_is_rbend_straigth_body = (attr['_parent_rbend_model'] == 2)
+    mask_rbend_edges_straight_body = (mask_rbend_edges
+                                      & mask_parent_is_rbend_straigth_body)
+
+    angle[mask_parent_is_rbend_straigth_body & mask_rbend_body_slices] = 0
+    angle[mask_rbend_edges_straight_body] = 0.5 * (
+        attr['_parent_h'][mask_rbend_edges_straight_body]
+        * attr['_parent_length'][mask_rbend_edges_straight_body])
 
     return angle
 

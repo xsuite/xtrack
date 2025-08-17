@@ -9,8 +9,7 @@ from xobjects.test_helpers import for_all_test_contexts
 from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
 
 
-@for_all_test_contexts
-def test_solenoid_bz_map_vs_boris(test_context):
+def test_solenoid_bz_map_vs_boris():
     ctx = xo.ContextCpu()
 
     boris_knl_description = xo.Kernel(
@@ -63,7 +62,9 @@ def test_solenoid_bz_map_vs_boris(test_context):
     px_log = []
     py_log = []
     pp_log = []
-    pow_log = []
+    beta_x_log = []
+    beta_y_log = []
+    beta_z_log = []
 
     for ii in range(n_steps):
 
@@ -71,7 +72,7 @@ def test_solenoid_bz_map_vs_boris(test_context):
         y = p.y.copy()
         z = p.s.copy()
 
-        Bx, By, Bz = sf.get_field(x, y, z)
+
 
         gamma = p.energy / p.mass0
         mass0_kg = p.mass0 * qe / clight**2
@@ -87,8 +88,9 @@ def test_solenoid_bz_map_vs_boris(test_context):
         vy = Pyc_J / clight / (gamma * mass0_kg) # m/s
         vz = Pzc_J / clight / (gamma * mass0_kg) # m/s
 
-        vx_before = vx.copy()
-        vy_before = vy.copy()
+        Bx, By, Bz = sf.get_field(x + vx * dt / 2,
+                                    y + vy * dt / 2,
+                                    z + vz * dt / 2)
 
         ctx.kernels.boris(
                 N_sub_steps=1,
@@ -121,19 +123,10 @@ def test_solenoid_bz_map_vs_boris(test_context):
         pz = mass0_kg * gamma * vz * clight / p0c_J
         pp = np.sqrt(p.px**2 + p.py**2 + pz**2)
 
-        beta_x_before = vx_before / clight
-        beta_y_before = vy_before / clight
-
         beta_x_after = vx / clight
         beta_y_after = vy / clight
+        beta_z_after = vz / clight
 
-        beta_x_dot = (beta_x_after - beta_x_before) / dt
-        beta_y_dot = (beta_y_after - beta_y_before) / dt
-
-        bet_dot_square = beta_x_dot**2 + beta_y_dot**2
-
-        # From Hofmann, "The physics of synchrontron radiation" Eq 3.7 and below
-        pow = 2 * qe**2 * bet_dot_square * gamma**4 / (12 * np.pi * eps0 * clight)
 
         x_log.append(p.x.copy())
         y_log.append(p.y.copy())
@@ -141,7 +134,9 @@ def test_solenoid_bz_map_vs_boris(test_context):
         px_log.append(p.px.copy())
         py_log.append(p.py.copy())
         pp_log.append(pp)
-        pow_log.append(pow)
+        beta_x_log.append(beta_x_after)
+        beta_y_log.append(beta_y_after)
+        beta_z_log.append(beta_z_after)
 
     x_log = np.array(x_log)
     y_log = np.array(y_log)
@@ -149,8 +144,21 @@ def test_solenoid_bz_map_vs_boris(test_context):
     px_log = np.array(px_log)
     py_log = np.array(py_log)
     pp_log = np.array(pp_log)
+    beta_x_log = np.array(beta_x_log)
+    beta_y_log = np.array(beta_y_log)
+    beta_z_log = np.array(beta_z_log)
 
-    pow_log = np.array(pow_log)
+    # Compute beta dot
+    beta_x_dot = 0 * beta_x_log
+    beta_y_dot = 0 * beta_y_log
+    beta_z_dot = 0 * beta_z_log
+    beta_x_dot[1:-1] = (beta_x_log[2:] - beta_x_log[:-2]) / 2 / dt
+    beta_y_dot[1:-1] = (beta_y_log[2:] - beta_y_log[:-2]) / 2 / dt
+    beta_z_dot[1:-1] = (beta_z_log[2:] - beta_z_log[:-2]) / 2 / dt
+    beta_dot_square = beta_x_dot**2 + beta_y_dot**2 + beta_z_dot**2
+
+    # From Hofmann, "The physics of synchrontron radiation" Eq 3.7 and below
+    pow_log = 2 * qe**2 * beta_dot_square * gamma**4 / (12 * np.pi * eps0 * clight)
 
     dE_ds_boris_J = 0 * pow_log
 
@@ -163,19 +171,25 @@ def test_solenoid_bz_map_vs_boris(test_context):
     P0_J = p.p0c[0] * qe / clight
     brho = P0_J / qe / p.q0
 
-    #ks = 0.5 * (Bz_axis[:-1] + Bz_axis[1:]) / brho
-    ks = Bz_axis[:-1] / brho
+    # ks = 0.5 * (Bz_axis[:-1] + Bz_axis[1:]) / brho
+    ks = Bz_axis / brho
+    ks_entry = ks[:-1]
+    ks_exit = ks_entry*0
+    ks_exit = ks[1:]
 
-    line = xt.Line(elements=[xt.Solenoid(length=z_axis[1]-z_axis[0], ks=ks[ii])
+    dz = z_axis[1]-z_axis[0]
+
+    line = xt.Line(elements=[xt.VariableSolenoid(length=dz,
+                                        ks_profile=[ks_entry[ii], ks_exit[ii]])
                                 for ii in range(len(z_axis)-1)])
-    line.build_tracker(_context=test_context)
+    line.build_tracker()
     line.configure_radiation(model='mean')
 
-    p_xt = p0.copy(_context=test_context)
+    p_xt = p0.copy()
     line.track(p_xt, turn_by_turn_monitor='ONE_TURN_EBE')
     mon = line.record_last_track
 
-    p_xt = p0.copy(_context=test_context)
+    p_xt = p0.copy()
     line.configure_radiation(model=None)
     line.track(p_xt, turn_by_turn_monitor='ONE_TURN_EBE')
     mon_no_rad = line.record_last_track
@@ -196,14 +210,19 @@ def test_solenoid_bz_map_vs_boris(test_context):
     py_mech = mon.py - ay_ref
     pz_mech = np.sqrt((1 + mon.delta)**2 - px_mech**2 - py_mech**2)
 
+    xp = px_mech / pz_mech
+    yp = py_mech / pz_mech
+
     dx_ds = np.diff(mon.x, axis=1) / np.diff(mon.s, axis=1)
     dy_ds = np.diff(mon.y, axis=1) / np.diff(mon.s, axis=1)
 
-    ctx2np = p_xt._context.nparray_from_context_array
-    dE_ds = -np.diff(mon.ptau, axis=1)/np.diff(mon.s, axis=1) * ctx2np(p_xt.energy0)[0]
+    dE_ds = 0*mon.ptau
+    # Central differences
+    dE_ds[:, 1:-1] = -((mon.ptau[:, 2:] - mon.ptau[:, :-2]) / (mon.s[:, 2:] - mon.s[:, :-2])
+                            * p_xt.energy0[0])
 
-    emitted_dpx = -(np.diff(mon.px, axis=1) - np.diff(mon_no_rad.px, axis=1))
-    emitted_dpy = -(np.diff(mon.py, axis=1) - np.diff(mon_no_rad.py, axis=1))
+    emitted_dpx = -(np.diff(mon.kin_px, axis=1) - np.diff(mon_no_rad.kin_px, axis=1))
+    emitted_dpy = -(np.diff(mon.kin_py, axis=1) - np.diff(mon_no_rad.kin_py, axis=1))
     emitted_dp = -(np.diff(mon.delta, axis=1) - np.diff(mon_no_rad.delta, axis=1))
 
     z_check = sf.z0 + sf.L * np.linspace(-2, 2, 1001)
@@ -221,7 +240,7 @@ def test_solenoid_bz_map_vs_boris(test_context):
 
         dx_ds_xsuite_check = np.interp(z_check, s_xsuite, dx_ds_xsuite)
         dy_ds_xsuite_check = np.interp(z_check, s_xsuite, dy_ds_xsuite)
-        dE_ds_xsuite_check = np.interp(z_check, s_xsuite, dE_ds_xsuite)
+        dE_ds_xsuite_check = np.interp(z_check, mon.s[i_part, :], dE_ds_xsuite)
 
         dx_ds_boris_check = np.interp(z_check, this_s_boris, dx_ds_boris)
         dy_ds_boris_check = np.interp(z_check, this_s_boris, dy_ds_boris)
@@ -238,7 +257,7 @@ def test_solenoid_bz_map_vs_boris(test_context):
         xo.assert_allclose(dy_ds_xsuite_check, dy_ds_boris_check, rtol=0,
                 atol=2.8e-2 * (np.max(dy_ds_boris_check) - np.min(dy_ds_boris_check)))
         xo.assert_allclose(dE_ds_xsuite_check, dE_ds_boris_check, rtol=0,
-                atol=1e-2 * (np.max(dE_ds_boris_check) - np.min(dE_ds_boris_check)))
+                atol=1.5e-2 * (np.max(dE_ds_boris_check) - np.min(dE_ds_boris_check)))
 
         xo.assert_allclose(ax_ref[i_part, :], mon.ax[i_part, :],
                         rtol=0, atol=np.max(np.abs(ax_ref)*3e-2))
@@ -246,8 +265,8 @@ def test_solenoid_bz_map_vs_boris(test_context):
                         rtol=0, atol=np.max(np.abs(ay_ref)*3e-2))
 
         xo.assert_allclose(this_emitted_dpx,
-                this_dE_ds * this_dx_ds * np.diff(mon.s[i_part, :])/p.p0c[0],
-                rtol=0, atol=1e-4 * (np.max(this_emitted_dpx) - np.min(this_emitted_dpx)))
+                0.5 * (this_dE_ds[:-1] + this_dE_ds[1:]) * this_dx_ds * np.diff(mon.s[i_part, :])/p.p0c[0],
+                rtol=0, atol=2e-2 * (np.max(this_emitted_dpx) - np.min(this_emitted_dpx)))
         xo.assert_allclose(this_emitted_dpy,
-                this_dE_ds * this_dy_ds * np.diff(mon.s[i_part, :])/p.p0c[0],
-                rtol=0, atol=2e-3 * (np.max(this_emitted_dpy) - np.min(this_emitted_dpy)))
+                0.5 * (this_dE_ds[:-1] + this_dE_ds[1:]) * this_dy_ds * np.diff(mon.s[i_part, :])/p.p0c[0],
+                rtol=0, atol=5e-2 * (np.max(this_emitted_dpy) - np.min(this_emitted_dpy)))

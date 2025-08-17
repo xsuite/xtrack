@@ -6,16 +6,24 @@
 from .elements import *
 from .exciter import Exciter
 from .apertures import *
+from .magnets import Magnet
 from .beam_interaction import BeamInteraction, ParticlesInjectionSample
-from .slice_elements import (ThinSliceQuadrupole, ThinSliceSextupole,
+from .slice_elements_thin import (ThinSliceQuadrupole, ThinSliceSextupole,
                              ThinSliceOctupole, ThinSliceBend,
+                             ThinSliceRBend)
+from .slice_elements_edge import (
                              ThinSliceBendEntry, ThinSliceBendExit,
-                             ThinSliceRBend, ThinSliceRBendEntry,
-                             ThinSliceRBendExit)
+                             ThinSliceRBendEntry, ThinSliceRBendExit,
+                             ThinSliceQuadrupoleEntry, ThinSliceQuadrupoleExit,
+                             ThinSliceSextupoleEntry, ThinSliceSextupoleExit,
+                             ThinSliceOctupoleEntry, ThinSliceOctupoleExit,
+                             ThinSliceUniformSolenoidEntry,
+                             ThinSliceUniformSolenoidExit)
 from .slice_elements_thick import (ThickSliceBend, ThickSliceRBend,
                                    ThickSliceQuadrupole, ThickSliceSextupole,
-                                   ThickSliceOctupole, ThickSliceSolenoid,
-                                   DriftSliceOctupole, DriftSliceSextupole,
+                                   ThickSliceOctupole,
+                                   ThickSliceUniformSolenoid)
+from .slice_elements_drift import (DriftSliceOctupole, DriftSliceSextupole,
                                    DriftSliceQuadrupole, DriftSliceBend,
                                    DriftSliceRBend, DriftSlice)
 from .rft_element import RFT_Element

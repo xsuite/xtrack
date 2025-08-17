@@ -6,74 +6,63 @@
 #ifndef XTRACK_SEXTUPOLE_H
 #define XTRACK_SEXTUPOLE_H
 
-/*gpufun*/
+#include <headers/track.h>
+#include <beam_elements/elements_src/track_magnet.h>
+#include <beam_elements/elements_src/default_magnet_config.h>
+
+GPUFUN
 void Sextupole_track_local_particle(
         SextupoleData el,
         LocalParticle* part0
 ) {
-    double length = SextupoleData_get_length(el);
-    double backtrack_sign = 1;
 
-    #ifdef XSUITE_BACKTRACK
-        length = -length;
-        backtrack_sign = -1;
-    #endif
-
-    double const k2 = SextupoleData_get_k2(el);
-    double const k2s = SextupoleData_get_k2s(el);
-
-    double const knl_sext[3] = {0., 0., backtrack_sign * k2 * length};
-    double const ksl_sext[3] = {0., 0., backtrack_sign * k2s * length};
-
-    const int64_t order = SextupoleData_get_order(el);
-    const double inv_factorial_order = SextupoleData_get_inv_factorial_order(el);
-    /*gpuglmem*/ const double *knl = SextupoleData_getp1_knl(el, 0);
-    /*gpuglmem*/ const double *ksl = SextupoleData_getp1_ksl(el, 0);
-
-    const uint8_t edge_entry_active = SextupoleData_get_edge_entry_active(el);
-    const uint8_t edge_exit_active = SextupoleData_get_edge_exit_active(el);
-    const double combined_kn[3] = {0, 0, k2 / 2};
-    const double combined_ks[3] = {0, 0, k2s / 2};
-
-    //start_per_particle_block (part0->part)
-        // Entry fringe
-        if (edge_entry_active) {
-            MultFringe_track_single_particle(
-                combined_kn,
-                combined_ks,
-                0,
-                3,
-                part
-            );
-        }
-
-        // Drift
-        Drift_single_particle(part, length / 2.);
-
-        Multipole_track_single_particle(part,
-            0., length, 1, // weight 1
-            knl, ksl, order, inv_factorial_order,
-            knl_sext, ksl_sext, 2, 0.5,
-            backtrack_sign,
-            0, 0,
-            NULL, NULL, NULL,
-            NULL, NULL, NULL,
-            NULL, NULL);
-
-        // Drift
-        Drift_single_particle(part, length / 2.);
-
-        // Exit fringe
-        if (edge_exit_active) {
-            MultFringe_track_single_particle(
-                combined_kn,
-                combined_ks,
-                1,
-                3,
-                part
-            );
-        }
-    //end_per_particle_block
+    track_magnet_particles(
+        /*weight*/                1.,
+        /*part0*/                 part0,
+        /*length*/                SextupoleData_get_length(el),
+        /*order*/                 SextupoleData_get_order(el),
+        /*inv_factorial_order*/   SextupoleData_get_inv_factorial_order(el),
+        /*knl*/                   SextupoleData_getp1_knl(el, 0),
+        /*ksl*/                   SextupoleData_getp1_ksl(el, 0),
+        /*num_multipole_kicks*/   SextupoleData_get_num_multipole_kicks(el),
+        /*model*/                 SextupoleData_get_model(el),
+        /*default_model*/         SEXTUPOLE_DEFAULT_MODEL,
+        /*integrator*/            SextupoleData_get_integrator(el),
+        /*default_integrator*/    SEXTUPOLE_DEFAULT_INTEGRATOR,
+        /*radiation_flag*/        SextupoleData_get_radiation_flag(el),
+        /*radiation_flag_parent*/ 0, // not used here
+        /*radiation_record*/      NULL,
+        /*delta_taper*/           SextupoleData_get_delta_taper(el),
+        /*h*/                     0.,
+        /*hxl*/                   0.,
+        /*k0*/                    0.,
+        /*k1*/                    0.,
+        /*k2*/                    SextupoleData_get_k2(el),
+        /*k3*/                    0.,
+        /*k0s*/                   0.,
+        /*k1s*/                   0.,
+        /*k2s*/                   SextupoleData_get_k2s(el),
+        /*k3s*/                   0.,
+        /*ks*/                    0.,
+        /*dks_ds*/                0.,
+        /*x0_solenoid*/           0.,
+        /*y0_solenoid*/           0.,
+        /*rbend_model*/           -1, // not rbend
+        /*rbend_shift*/           0.,
+        /*body_active*/           1,
+        /*edge_entry_active*/     SextupoleData_get_edge_entry_active(el),
+        /*edge_exit_active*/      SextupoleData_get_edge_exit_active(el),
+        /*edge_entry_model*/      1,
+        /*edge_exit_model*/       1,
+        /*edge_entry_angle*/      0.,
+        /*edge_exit_angle*/       0.,
+        /*edge_entry_angle_fdown*/0.,
+        /*edge_exit_angle_fdown*/ 0.,
+        /*edge_entry_fint*/       0.,
+        /*edge_exit_fint*/        0.,
+        /*edge_entry_hgap*/       0.,
+        /*edge_exit_hgap*/        0.
+    );
 }
 
 #endif // XTRACK_SEXTUPOLE_H

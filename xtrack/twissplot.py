@@ -30,6 +30,8 @@ class TwissPlot(object):
         "sigy": r"$\sigma_y=\sqrt{\beta_y \epsilon}$",
         "sigdx": r"$\sigma_{D_x}=D_x \delta$",
         "n1": r"Aperture [$\sigma$]",
+        "rad_int_hx": r"$\mathcal{H}_{x}$",
+        "rad_int_hy": r"$\mathcal{H}_{y}$",
     }
 
     axlabel = {
@@ -53,6 +55,8 @@ class TwissPlot(object):
         "wx_chrom": "$W$",
         "wy_chrom": "$W$",
         "n1": r"Aperture [$\sigma$]",
+        "rad_int_hx": r"$\mathcal{H}$",
+        "rad_int_hy": r"$\mathcal{H}$",
     }
     autoupdate = []
 
@@ -84,6 +88,7 @@ class TwissPlot(object):
         axright=None,
         axlattice=None,
         hover=False,
+        grid = True,
         figsize=(6.4*1.2, 4.8)
     ):
 
@@ -96,6 +101,7 @@ class TwissPlot(object):
         self.right = None
         self.lattice = None
         self.pre = None
+        self.grid = grid
         self.table, self.x, self.yl, self.yr, self.idx, self.clist = (
             table,
             x,
@@ -106,23 +112,32 @@ class TwissPlot(object):
         )
         self.ax = ax
         self.used_ax = False
+
+        if figure is not None:
+            self.figure = figure
+
         if ax is not None:
             self.figure = ax.figure
         elif figure is None:
             self.figure = plt.figure(num=figlabel, figsize=figsize)
+
         if figlabel is not None:
             self.figure.clf()
+
         for i in self.yl + self.yr:
             self.color[i] = self.clist.pop(0)
             self.clist.append(self.color[i])
+
         if lattice and x == "s":
             self.lattice = self._new_axis(axlattice)
             # self.lattice.set_frame_on(False)
             #      self.lattice.set_autoscale_on(False)
             self.lattice.yaxis.set_visible(False)
+
         if yl:
             self.left = self._new_axis(axleft)
             #      self.left.set_autoscale_on(False)
+
         if yr:
             self.right = self._new_axis(axright)
             #      self.right.set_autoscale_on(False)
@@ -133,14 +148,17 @@ class TwissPlot(object):
         self.run()
         if lattice and x == "s":
             self.lattice.set_autoscale_on(False)
+
         if yl:
             self.left.set_autoscale_on(False)
             self.left.yaxis.set_label_position("left")
             self.left.yaxis.set_ticks_position("left")
+
         if yr:
             self.right.set_autoscale_on(False)
             self.right.yaxis.set_label_position("right")
             self.right.yaxis.set_ticks_position("right")
+
         if hover:
             self.set_hover()
 
@@ -205,7 +223,7 @@ class TwissPlot(object):
 
         if self.lattice:
             self.lattice.clear()
-            self._lattice(["k0l", "kn0l", "angle"], "#a0ffa0", "Bend h")
+            self._lattice(["_angle_force_body"], "#a0ffa0", "Bend h")
             self._lattice(["ks0l"], "#ffa0a0", "Bend v")
             self._lattice(["kn1l", "k1l"], "#a0a0ff", "Quad")
             self._lattice(["hkick"], "#e0a0e0", "Kick h")
@@ -224,7 +242,7 @@ class TwissPlot(object):
         self.ax.legend(
             self.lines, self.legends, loc="upper right", bbox_to_anchor=(1.35, 1.)
         )
-        self.ax.grid(True)
+        self.ax.grid(self.grid)
         self.figure.canvas.draw()
         if hasattr(self, "on_run"):
             self.on_run(self)

@@ -12,11 +12,14 @@ from scipy.constants import c as clight
 from scipy.constants import epsilon_0
 
 import xobjects as xo
+import xtrack as xt
 from xobjects.general import Print
 from xobjects import BypassLinked
 
-from .constants import PROTON_MASS_EV
-
+from .masses import PROTON_MASS_EV
+from .masses import __dict__ as mass__dict__
+from .pdg import get_pdg_id_from_name, get_properties_from_pdg_id, \
+                 get_mass_from_pdg_id
 
 LAST_INVALID_STATE = -999999999
 
@@ -66,6 +69,10 @@ class Particles(xo.HybridClass):
             (xo.Float64, 'weight'),
             (xo.Float64, 'ax'),
             (xo.Float64, 'ay'),
+            (xo.Float64, 'spin_x'),
+            (xo.Float64, 'spin_y'),
+            (xo.Float64, 'spin_z'),
+            (xo.Float64, 'anomalous_magnetic_moment'),
             (xo.Int64, 'pdg_id'),
             (xo.Int64, 'particle_id'),
             (xo.Int64, 'at_element'),
@@ -214,7 +221,7 @@ class Particles(xo.HybridClass):
 
         accepted_args = set(self._xofields.keys()) | {
             'energy0', 'tau', 'pzeta', 'mass_ratio', 'mass', 'kinetic_energy0',
-            '_context', '_buffer', '_offset', 'p0',
+            '_context', '_buffer', '_offset', 'p0', 'name',
         }
         if set(kwargs.keys()) - accepted_args:
             raise NameError(f'Invalid argument(s) provided: '
@@ -347,6 +354,14 @@ class Particles(xo.HybridClass):
             mask=input_mask,
         )
 
+        # Init chi and charge ratio
+        self._update_chi_charge_ratio(
+            chi=kwargs.get('chi'),
+            charge_ratio=kwargs.get('charge_ratio'),
+            mass_ratio=kwargs.get('mass_ratio'),
+            mask=input_mask,
+        )
+
         # Init energy deviations
         self._update_energy_deviations(
             delta=kwargs.get('delta'),
@@ -364,18 +379,12 @@ class Particles(xo.HybridClass):
             mask=input_mask,
         )
 
-        # Init chi and charge ratio
-        self._update_chi_charge_ratio(
-            chi=kwargs.get('chi'),
-            charge_ratio=kwargs.get('charge_ratio'),
-            mass_ratio=kwargs.get('mass_ratio'),
-            mask=input_mask,
-        )
-
         self.unhide_first_n_particles()
         if isinstance(self._context, xo.ContextCpu) and not _no_reorganize:
             self.reorganize()
 
+        if 'name' in kwargs.keys():
+            self.name = kwargs['name']
 
     @classmethod
     def from_dict(cls, dct, load_rng_state=True, **kwargs):
@@ -1065,7 +1074,10 @@ class Particles(xo.HybridClass):
                     kernel_descriptions=self._kernels,
                 )
                 context.kernels.update(kernels)
-        self.compile_kernels(only_if_needed=True)
+        self.compile_kernels(
+            only_if_needed=True,
+            extra_compile_args=(f"-I{xt.__path__[0]}",),
+        )
 
         if seeds is None:
             seeds = np.random.randint(low=1, high=4e9,
@@ -1392,7 +1404,7 @@ class Particles(xo.HybridClass):
         Add `delta_energy` to the `energy` of the particles object. `delta`,
         'ptau', `rvv` and `rpp` are updated accordingly.
         """
-        self.ptau += delta_energy / self.p0c * self.mass_ratio
+        self.ptau += delta_energy / self.p0c / self.mass_ratio
 
     def set_particle(self, index, set_scalar_vars=False, **kwargs):
         raise NotImplementedError('This functionality has been removed')
@@ -1402,7 +1414,11 @@ class Particles(xo.HybridClass):
         if mode != 'no_local_copy':
             raise NotImplementedError
 
-        src_lines = []
+        src_lines = ['']
+        for name, mass in mass__dict__.items():
+            if name.endswith('_MASS_EV'):
+                src_lines.append(f'#define {name} {mass}')
+
         src_lines.append('typedef struct {')
 
         for tt, vv in cls.size_vars + cls.scalar_vars:
@@ -1743,6 +1759,9 @@ class Particles(xo.HybridClass):
         int64_t check_is_active(LocalParticle* part) {
             int64_t ipart=0;
             while (ipart < part->_num_active_particles){
+                #ifdef XSUITE_RESTORE_LOSS
+                ipart++;
+                #else
                 if (part->state[ipart]<1){
                     LocalParticle_exchange(
                         part, ipart, part->_num_active_particles-1);
@@ -1752,6 +1771,7 @@ class Particles(xo.HybridClass):
                 else{
                     ipart++;
                 }
+                #endif
             }
 
             if (part->_num_active_particles==0){
@@ -1863,9 +1883,9 @@ class Particles(xo.HybridClass):
                         double const p0c = LocalParticle_get_p0c(part);
                         double const charge_ratio = LocalParticle_get_charge_ratio(part);
                         double const chi = LocalParticle_get_chi(part);
-                        double const mass_ratio = chi / charge_ratio;
-                        
-                        ptau += delta_energy/p0c * mass_ratio;
+                        double const mass_ratio = charge_ratio / chi;
+
+                        ptau += delta_energy/p0c / mass_ratio;
 
                         double const old_rpp = LocalParticle_get_rpp(part);
 
@@ -1936,10 +1956,13 @@ class Particles(xo.HybridClass):
         self.py = kwargs.get('py', 0)
         self.ax = kwargs.get('ax', 0)
         self.ay = kwargs.get('ay', 0)
+        self.anomalous_magnetic_moment = kwargs.get('anomalous_magnetic_moment', 0)
+        self.spin_x = kwargs.get('spin_x', 0)
+        self.spin_y = kwargs.get('spin_y', 0)
+        self.spin_z = kwargs.get('spin_z', 0)
 
         pdg_id = kwargs.get('pdg_id')
         try:
-            from xpart.pdg import get_pdg_id_from_name
             pdg_id = get_pdg_id_from_name(pdg_id)
             if not np.isscalar(pdg_id):
                 pdg_id = self._context.nparray_to_context_array(pdg_id)
@@ -1953,9 +1976,6 @@ class Particles(xo.HybridClass):
 
     @classmethod
     def reference_from_pdg_id(cls, pdg_id, **kwargs):
-        from xpart.pdg import (
-            get_pdg_id_from_name, get_properties_from_pdg_id, get_mass_from_pdg_id
-        )
         pdg_id = get_pdg_id_from_name(pdg_id)
         kwargs['pdg_id'] = pdg_id
         q0 = kwargs.get('q0')
@@ -2077,6 +2097,9 @@ class Particles(xo.HybridClass):
             if _rpp is not None or _rvv is not None:
                 raise ValueError('Setting `delta` and `ptau` by only giving '
                                  '`_rpp` and `_rvv` is not supported.')
+            if any(self.mass_ratio != 1.0):
+                raise ValueError('Need to provide `delta` or `ptau` with '
+                                 'non-default mass ratios.')
             self._delta = 0.0
             delta = self._delta  # Cupy complains if we later assign LinkedArray
 

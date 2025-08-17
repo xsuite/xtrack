@@ -198,6 +198,7 @@ def stop_internal_logging_for_elements_of_type(tracker, element_type):
 
 def generate_get_record(ele_classname, record_classname):
     content = '''
+/*---GENERATED GET RECORD FUNCTION---*/
 /*gpufun*/
 RECORDCLASSNAME ELECLASSNAME_getp_internal_record(ELECLASSNAME el, LocalParticle* part){
     RecordIdentifier record_id = ELECLASSNAME_getp__internal_record_id(el);

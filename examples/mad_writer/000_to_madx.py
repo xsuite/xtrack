@@ -53,11 +53,11 @@ import os
 #     ])
 
 # ----- LHC (thick) -----
-line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
+line = xt.load('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
 line.build_tracker()
 
 # ----- LHC (thin) -----
-# line = xt.Line.from_json('../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
+# line = xt.load('../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
 # line.particle_ref = xt.Particles(mass=xt.PROTON_MASS_EV, p0c=7000e9)
 # line.build_tracker()
 

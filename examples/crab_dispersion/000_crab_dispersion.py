@@ -3,7 +3,7 @@ import xtrack as xt
 
 d_zeta = 1e-3
 
-collider = xt.Environment.from_json(
+collider = xt.load(
     '../../test_data/hllhc15_collider/collider_00_from_mad.json'
 )
 collider.build_trackers()

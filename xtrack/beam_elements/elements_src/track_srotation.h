@@ -1,8 +1,14 @@
+// copyright ############################### //
+// This file is part of the Xtrack Package.  //
+// Copyright (c) CERN, 2025.                 //
+// ######################################### //
 #ifndef XTRACK_TRACK_SROTATION_H
 #define XTRACK_TRACK_SROTATION_H
 
+#include <headers/track.h>
 
-/*gpufun*/
+
+GPUFUN
 void SRotation_single_particle(LocalParticle* part, double sin_z, double cos_z){
 
     double const x  = LocalParticle_get_x(part);

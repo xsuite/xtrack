@@ -8,12 +8,15 @@ import logging
 import io
 import json
 from functools import partial
+from typing import Literal
+
 import numpy as np
 from scipy.constants import c as clight
 from scipy.constants import hbar
 from scipy.constants import epsilon_0
 from scipy.constants import e as qe
 from scipy.special import factorial
+from scipy.constants import electron_volt
 
 if hasattr(np, 'trapezoid'): # numpy >= 2.0
     trapz = np.trapezoid
@@ -21,6 +24,7 @@ else:
     trapz = np.trapz
 
 import xobjects as xo
+import xdeps as xd
 from xdeps import Table
 
 from . import linear_normal_form as lnf
@@ -56,7 +60,7 @@ CYCLICAL_QUANTITIES = ['mux', 'muy', 'dzeta', 's']
 
 NORMAL_STRENGTHS_FROM_ATTR=['k0l', 'k1l', 'k2l', 'k3l', 'k4l', 'k5l']
 SKEW_STRENGTHS_FROM_ATTR=['k0sl', 'k1sl', 'k2sl', 'k3sl', 'k4sl', 'k5sl']
-OTHER_FIELDS_FROM_ATTR=['angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'ks', 'length']
+OTHER_FIELDS_FROM_ATTR=['angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'ks', 'length', '_angle_force_body']
 OTHER_FIELDS_FROM_TABLE=['element_type', 'isthick', 'parent_name']
 SIGN_FLIP_FOR_ATTR_REVERSE=['k0l', 'k2l', 'k4l', 'k1sl', 'k3sl', 'k5sl', 'vkick', 'angle_rad']
 
@@ -76,6 +80,9 @@ def twiss_line(line, particle_ref=None, method=None,
         values_at_element_exit=None,
         radiation_method=None,
         eneloss_and_damping=None,
+        radiation_integrals=None,
+        spin=None,
+        polarization=None,
         start=None, end=None, init=None,
         num_turns=None,
         skip_global_quantities=None,
@@ -93,6 +100,7 @@ def twiss_line(line, particle_ref=None, method=None,
         compute_R_element_by_element=None,
         compute_lattice_functions=None,
         compute_chromatic_properties=None,
+        coupling_edw_teng=False,
         init_at=None,
         x=None, px=None, y=None, py=None, zeta=None, delta=None,
         betx=None, alfx=None, bety=None, alfy=None, bets=None,
@@ -100,6 +108,7 @@ def twiss_line(line, particle_ref=None, method=None,
         mux=None, muy=None, muzeta=None,
         ax_chrom=None, bx_chrom=None, ay_chrom=None, by_chrom=None,
         ddx=None, ddpx=None, ddy=None, ddpy=None,
+        spin_x=None, spin_y=None, spin_z=None,
         zero_at=None,
         co_search_at=None,
         include_collective=False,
@@ -109,8 +118,7 @@ def twiss_line(line, particle_ref=None, method=None,
         _initial_particles=None,
         _ebe_monitor=None,
         only_markers=None,
-        ):
-
+    ):
     """
     Compute the Twiss parameters of the beam line.
 
@@ -147,6 +155,8 @@ def twiss_line(line, particle_ref=None, method=None,
         code to analysis" is used. If 'kick_as_co' all particles receive the same
         radiation kicks as the closed orbit. If 'scale_as_co' all particles
         momenta are scaled by radiation as much as the closed orbit.
+    radiation_integrals : bool, optional
+        If True, the radiation integrals are computed.
     eneloss_and_damping : bool, optional
         If True, the energy loss and radiation damping constants are computed.
     strengths : bool, optional
@@ -222,12 +232,18 @@ def twiss_line(line, particle_ref=None, method=None,
             - bety1: computed vertical beta function (Mais-Ripken) in meters
             - betx2: computed horizontal beta function (Mais-Ripken) in meters
             - bety2: computed vertical beta function (Mais-Ripken) in meters
+            - alfx1: computed horizontal alpha function (Mais-Ripken) in meters
+            - alfy1: computed vertical alpha function (Mais-Ripken) in meters
+            - alfx2: computed horizontal alpha function (Mais-Ripken) in meters
+            - alfy2: computed vertical alpha function (Mais-Ripken) in meters
             - c_minus_re: real part of the closest tune approach coefficient
             - c_minus_im: imaginary part of the closest tune approach coefficient
             - c_r1: horizontal r1 coefficient for betatron coupling
             - c_r2: vertical r2 coefficient for betatron coupling
             - c_phi1: phase advance of the closest tune approach coefficient
             - c_phi2: phase advance of the closest tune approach coefficient
+            - r11_edw_teng, r12_edw_teng, r21_edw_teng, r22_edw_teng: the Edwards-Teng
+                coupling matrix elements
         The table also contains the following global quantities:
             - qx: horizontal tune
             - qy: vertical tune
@@ -315,6 +331,9 @@ def twiss_line(line, particle_ref=None, method=None,
     continue_on_closed_orbit_error=(continue_on_closed_orbit_error or False)
     freeze_longitudinal=(freeze_longitudinal or False)
     radiation_method=(radiation_method or None)
+    spin=(spin or False)
+    polarization=(polarization or False)
+    radiation_integrals=(radiation_integrals or False)
     eneloss_and_damping=(eneloss_and_damping or False)
     symplectify=(symplectify or False)
     reverse=(reverse or False)
@@ -334,6 +353,13 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if only_markers:
         raise NotImplementedError('`only_markers` not supported anymore')
+
+    if polarization:
+        spin = True
+        radiation_integrals = True # some quantities are needed for polarization
+                                   # could be decoupled in the future
+    if spin:
+        assert reverse is False
 
     if isinstance(init, TwissInit):
         init = init.copy()
@@ -431,6 +457,12 @@ def twiss_line(line, particle_ref=None, method=None,
     else:
         periodic = True
         periodic_mode = init or 'periodic'
+        assert x is None, '`x` not supported for periodic twiss'
+        assert px is None, '`px` not supported for periodic twiss'
+        assert y is None, '`y` not supported for periodic twiss'
+        assert py is None, '`py` not supported for periodic twiss'
+        assert zeta is None, '`zeta` not supported for periodic twiss'
+        assert delta is None, '`delta` not supported for periodic twiss'
 
     if freeze_longitudinal:
         kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
@@ -464,10 +496,12 @@ def twiss_line(line, particle_ref=None, method=None,
         kwargs.pop('at_elements')
         kwargs.pop('matrix_responsiveness_tol')
         kwargs.pop('matrix_stability_tol')
+        kwargs.pop('strengths')
         res = twiss_line(line=auxtracker.line,
                         at_elements=names_inserted_markers,
                         matrix_responsiveness_tol=matrix_responsiveness_tol,
                         matrix_stability_tol=matrix_stability_tol,
+                        strengths=True,
                         **kwargs)
         return _add_action_in_res(res, input_kwargs)
 
@@ -527,7 +561,8 @@ def twiss_line(line, particle_ref=None, method=None,
         mux=mux, muy=muy, muzeta=muzeta,
         ax_chrom=ax_chrom, bx_chrom=bx_chrom, ay_chrom=ay_chrom, by_chrom=by_chrom,
         ddx=ddx, ddpx=ddpx, ddy=ddy, ddpy=ddpy,
-        )
+        spin_x=spin_x, spin_y=spin_y, spin_z=spin_z
+    )
     completed_init = (init.copy() if hasattr(init, 'copy') else init)
 
     # clean quantities embedded in init
@@ -538,6 +573,7 @@ def twiss_line(line, particle_ref=None, method=None,
     mux=None; muy=None; muzeta=None
     ax_chrom=None; bx_chrom=None; ay_chrom=None; by_chrom=None
     ddx=None; ddpx=None; ddy=None; ddpy=None
+    spin_x=None; spin_y=None; spin_z=None
 
     # Twiss goes through the start of the line
     rv = (-1 if reverse else 1)
@@ -611,6 +647,11 @@ def twiss_line(line, particle_ref=None, method=None,
             raise ValueError(f'init={init} not anymore supported')
         assert init == 'periodic' or 'full_periodic'
 
+    if not periodic:
+        if delta0 is not None or zeta0 is not None:
+            raise ValueError(
+                'delta0 and zeta0 cannot be provided for open twiss')
+
     if periodic:
 
         assert not _initial_particles
@@ -632,6 +673,7 @@ def twiss_line(line, particle_ref=None, method=None,
             num_turns=num_turns,
             co_search_at=co_search_at,
             search_for_t_rev=search_for_t_rev,
+            spin=spin,
             num_turns_search_t_rev=num_turns_search_t_rev,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y, r_sigma=r_sigma,
             compute_R_element_by_element=compute_R_element_by_element,
@@ -663,17 +705,54 @@ def twiss_line(line, particle_ref=None, method=None,
         nemitt_y=nemitt_y,
         r_sigma=r_sigma,
         delta_disp=delta_disp,
-        zeta_disp=zeta_disp,
         use_full_inverse=use_full_inverse,
         hide_thin_groups=hide_thin_groups,
         only_markers=only_markers,
         only_orbit=only_orbit,
+        spin=spin,
         compute_lattice_functions=compute_lattice_functions,
         _continue_if_lost=_continue_if_lost,
         _keep_tracking_data=_keep_tracking_data,
         _keep_initial_particles=_keep_initial_particles,
         _initial_particles=_initial_particles,
         _ebe_monitor=_ebe_monitor)
+
+    if (not only_orbit and (
+        (compute_chromatic_properties is True)
+        or (compute_chromatic_properties is None and periodic))):
+
+        with xt.line._preserve_config(line):
+            line.freeze_energy(force=True)
+            line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
+            line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = False
+            cols_chrom, scalars_chrom = _compute_chromatic_functions(
+                line=line,
+                init=init,
+                delta_chrom=delta_chrom,
+                steps_r_matrix=steps_r_matrix,
+                matrix_responsiveness_tol=matrix_responsiveness_tol,
+                matrix_stability_tol=matrix_stability_tol,
+                symplectify=symplectify,
+                method=method,
+                use_full_inverse=use_full_inverse,
+                nemitt_x=nemitt_x,
+                nemitt_y=nemitt_y,
+                on_momentum_twiss_res=twiss_res,
+                r_sigma=r_sigma,
+                delta_disp=delta_disp,
+                zeta_disp=zeta_disp,
+                start=start,
+                end=end,
+                num_turns=num_turns,
+                hide_thin_groups=hide_thin_groups,
+                only_markers=only_markers,
+                periodic=periodic,
+                periodic_mode=periodic_mode,
+                include_collective=include_collective,
+            )
+        twiss_res._data.update(cols_chrom)
+        twiss_res._data.update(scalars_chrom)
+        twiss_res._col_names += list(cols_chrom.keys())
 
     if not skip_global_quantities and not only_orbit:
         twiss_res._data['R_matrix'] = R_matrix
@@ -686,41 +765,10 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res._data['eigenvalues'] = eigenvalues.copy()
         twiss_res._data['rotation_matrix'] = Rot.copy()
 
-    if (not only_orbit and (
-        (compute_chromatic_properties is True)
-        or (compute_chromatic_properties is None and periodic))):
-
-        cols_chrom, scalars_chrom = _compute_chromatic_functions(
-            line=line,
-            init=init,
-            delta_chrom=delta_chrom,
-            steps_r_matrix=steps_r_matrix,
-            matrix_responsiveness_tol=matrix_responsiveness_tol,
-            matrix_stability_tol=matrix_stability_tol,
-            symplectify=symplectify,
-            method=method,
-            use_full_inverse=use_full_inverse,
-            nemitt_x=nemitt_x,
-            nemitt_y=nemitt_y,
-            on_momentum_twiss_res=twiss_res,
-            r_sigma=r_sigma,
-            delta_disp=delta_disp,
-            zeta_disp=zeta_disp,
-            start=start,
-            end=end,
-            num_turns=num_turns,
-            hide_thin_groups=hide_thin_groups,
-            only_markers=only_markers,
-            periodic=periodic,
-            periodic_mode=periodic_mode,
-            include_collective=include_collective,
-        )
-        twiss_res._data.update(cols_chrom)
-        twiss_res._data.update(scalars_chrom)
-        twiss_res._col_names += list(cols_chrom.keys())
-
     if eneloss_and_damping and not only_orbit:
         assert 'R_matrix' in twiss_res._data
+        if method == '4d':
+            raise ValueError('method="4d" not supported for eneloss_and_damping=True')
         if radiation_method != 'full' or twiss_res._data['R_matrix_ebe'] is None:
             with xt.line._preserve_config(line):
                 line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = False
@@ -754,19 +802,22 @@ def twiss_line(line, particle_ref=None, method=None,
                 line=line, radiation_method=radiation_method)
         twiss_res._data.update(eneloss_damp_res)
 
+        for kk in ['angle_rad', 'rot_s_rad', 'length', 'radiation_flag']:
+            if kk not in twiss_res._data:
+                aa = line.attr[kk]
+                twiss_res[kk] = np.concatenate([aa, [aa[0]*0]])
+
         # Equilibrium emittances
         if radiation_method == 'kick_as_co':
             eq_emitts = _compute_equilibrium_emittance_kick_as_co(
-                        twiss_res.kin_px, twiss_res.kin_py, twiss_res.ptau,
-                        twiss_res.W_matrix,
-                        line, radiation_method,
-                        eneloss_damp_res['damping_constants_turns'])
+                twiss_res=twiss_res,
+                damping_constants_turns=eneloss_damp_res['damping_constants_turns'],
+                radiation_method=radiation_method)
             twiss_res._data.update(eq_emitts)
         elif radiation_method == 'full':
-            eq_emitts = _compute_equilibrium_emittance_full(
-                        kin_px_co=twiss_res.kin_px, kin_py_co=twiss_res.kin_py,
-                        ptau_co=twiss_res.ptau, R_matrix_ebe=RR_ebe,
-                        line=line, radiation_method=radiation_method)
+            eq_emitts = _compute_equilibrium_emittance_full(twiss_res=twiss_res,
+                        R_matrix_ebe=RR_ebe,
+                        radiation_method=radiation_method)
             twiss_res._data.update(eq_emitts)
 
     if method == '4d' and 'muzeta' in twiss_res._data:
@@ -785,8 +836,36 @@ def twiss_line(line, particle_ref=None, method=None,
     else:
         twiss_res._data['values_at'] = 'entry'
 
-    if strengths:
+    if strengths or radiation_integrals:
         _add_strengths_to_twiss_res(twiss_res, line)
+
+    if radiation_integrals:
+        twiss_res._compute_radiation_integrals(add_to_tw=True)
+
+    if polarization:
+        _compute_spin_polarization(twiss_res, line, method)
+
+    if coupling_edw_teng:
+        if reverse:
+            raise NotImplementedError(
+                'Computing Edwards-Teng coupling elements in reverse mode is not '
+                'yet implemented.'
+            )
+        delta = twiss_res['delta']
+        betx1, betx2 = twiss_res['betx1'], twiss_res['betx2']
+        bety1, bety2 = twiss_res['bety1'], twiss_res['bety2']
+        alfx1, alfx2 = twiss_res['alfx1'], twiss_res['alfx2']
+        alfy1, alfy2 = twiss_res['alfy1'], twiss_res['alfy2']
+        coupling_result = _compute_coupling_elements_edwards_teng(
+            delta, betx1, betx2, bety1, bety2, alfx1, alfx2, alfy1, alfy2
+        )
+        r11, r12, r21, r22, f1010, f1001 = coupling_result
+        twiss_res['r11_edw_teng'] = r11
+        twiss_res['r12_edw_teng'] = r12
+        twiss_res['r21_edw_teng'] = r21
+        twiss_res['r22_edw_teng'] = r22
+        twiss_res['f1010'] = f1010
+        twiss_res['f1001'] = f1001
 
     twiss_res._data['method'] = method
     twiss_res._data['radiation_method'] = radiation_method
@@ -806,14 +885,16 @@ def twiss_line(line, particle_ref=None, method=None,
         if ((twiss_res.orientation == 'forward' and not reverse)
                 or (twiss_res.orientation == 'backward' and reverse)):
             twiss_res.muzeta += init.muzeta - twiss_res.muzeta[0]
-            twiss_res.dzeta += init.dzeta - twiss_res.dzeta[0]
+            if 'dzeta' in twiss_res._data:
+                twiss_res.dzeta += init.dzeta - twiss_res.dzeta[0]
             if 'mux' in twiss_res._data:
                 twiss_res.mux += init.mux - twiss_res.mux[0]
                 twiss_res.muy += init.muy - twiss_res.muy[0]
         elif ((twiss_res.orientation == 'forward' and reverse)
             or (twiss_res.orientation == 'backward' and not reverse)):
             twiss_res.muzeta += init.muzeta - twiss_res.muzeta[-1]
-            twiss_res.dzeta += init.dzeta - twiss_res.dzeta[-1]
+            if 'dzeta' in twiss_res._data:
+                twiss_res.dzeta += init.dzeta - twiss_res.dzeta[-1]
             if 'mux' in twiss_res._data:
                 twiss_res.mux += init.mux - twiss_res.mux[-1]
                 twiss_res.muy += init.muy - twiss_res.muy[-1]
@@ -843,21 +924,27 @@ def twiss_line(line, particle_ref=None, method=None,
 
     return _add_action_in_res(twiss_res, input_kwargs)
 
-def _twiss_open(line, init,
-                      start, end,
-                      nemitt_x, nemitt_y, r_sigma,
-                      delta_disp, zeta_disp,
-                      use_full_inverse,
-                      hide_thin_groups=False,
-                      only_markers=False,
-                      only_orbit=False,
-                      compute_lattice_functions=True,
-                      _continue_if_lost=False,
-                      _keep_tracking_data=False,
-                      _keep_initial_particles=False,
-                      _initial_particles=None,
-                      _ebe_monitor=None):
-
+def _twiss_open(
+        line,
+        init,
+        start,
+        end,
+        nemitt_x,
+        nemitt_y,
+        r_sigma,
+        delta_disp,
+        use_full_inverse,
+        hide_thin_groups=False,
+        only_markers=False,
+        only_orbit=False,
+        spin=False,
+        compute_lattice_functions=True,
+        _continue_if_lost=False,
+        _keep_tracking_data=False,
+        _keep_initial_particles=False,
+        _initial_particles=None,
+        _ebe_monitor=None,
+):
     if init.reference_frame == 'reverse':
         init = init.reverse()
 
@@ -915,6 +1002,12 @@ def _twiss_open(line, init,
             zeta  = [0] + list(W_matrix[4, :] * -scale_eigen) + list(W_matrix[4, :] * scale_eigen),
             pzeta = [0] + list(W_matrix[5, :] * -scale_eigen) + list(W_matrix[5, :] * scale_eigen),
             )
+        part_for_twiss.ax = particle_on_co.ax[0]
+        part_for_twiss.ay = particle_on_co.ay[0]
+        if spin:
+            part_for_twiss.spin_x = particle_on_co.spin_x[0]
+            part_for_twiss.spin_y = particle_on_co.spin_y[0]
+            part_for_twiss.spin_z = particle_on_co.spin_z[0]
 
         if twiss_orientation == 'forward':
             part_for_twiss.at_element = start
@@ -942,10 +1035,14 @@ def _twiss_open(line, init,
     else:
         ele_stop_track = end + 1 # to include the last element
 
-    line.track(part_for_twiss, turn_by_turn_monitor=_monitor,
-                ele_start=start,
-                ele_stop=ele_stop_track,
-                backtrack=(twiss_orientation == 'backward'))
+    with xt.line._preserve_config(line):
+        if spin:
+            # Spin is behind the same compile flag as synchrotron radiation
+            line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
+        line.track(part_for_twiss, turn_by_turn_monitor=_monitor,
+                    ele_start=start,
+                    ele_stop=ele_stop_track,
+                    backtrack=(twiss_orientation == 'backward'))
 
     # We keep the monitor to speed up future calls (attached to tracker data
     # so that it is trashed if number of elements changes)
@@ -989,6 +1086,10 @@ def _twiss_open(line, init,
     kin_ps_co = line.record_last_track.kin_ps[0, i_start:i_stop+1].copy()
     kin_xprime_co = line.record_last_track.kin_xprime[0, i_start:i_stop+1].copy()
     kin_yprime_co = line.record_last_track.kin_yprime[0, i_start:i_stop+1].copy()
+    if spin:
+        spin_x_co = line.record_last_track.spin_x[0, i_start:i_stop+1].copy()
+        spin_y_co = line.record_last_track.spin_y[0, i_start:i_stop+1].copy()
+        spin_z_co = line.record_last_track.spin_z[0, i_start:i_stop+1].copy()
 
     Ws = np.zeros(shape=(len(s_co), 6, 6), dtype=np.float64)
     Ws[:, 0, :] = 0.5 * (line.record_last_track.x[1:7, i_start:i_stop+1] - x_co).T / scale_eigen
@@ -1004,14 +1105,6 @@ def _twiss_open(line, init,
     Ws[:, 3, :] -= 0.5 * (line.record_last_track.py[7:13, i_start:i_stop+1] - py_co).T / scale_eigen
     Ws[:, 4, :] -= 0.5 * (line.record_last_track.zeta[7:13, i_start:i_stop+1] - zeta_co).T / scale_eigen
     Ws[:, 5, :] -= 0.5 * (line.record_last_track.ptau[7:13, i_start:i_stop+1] - ptau_co).T / particle_on_co._xobject.beta0[0] / scale_eigen
-
-    dzeta = (((line.record_last_track.zeta[6, i_start:i_stop+1] - zeta_co).T
-            - (line.record_last_track.zeta[12, i_start:i_stop+1] - zeta_co).T )
-            / ((line.record_last_track.delta[6, i_start:i_stop+1] - delta_co).T
-            - (line.record_last_track.delta[12, i_start:i_stop+1] - delta_co).T))
-
-    dzeta -= dzeta[0]
-    dzeta = np.array(dzeta)
 
     name_co = np.array(line._element_names_unique[i_start:i_stop] + ('_end_point',))
     name_co_env = np.array(line.element_names[i_start:i_stop] + ('_end_point',))
@@ -1039,12 +1132,16 @@ def _twiss_open(line, init,
         'kin_yprime': kin_yprime_co,
         'name_env': name_co_env,
     })
+    if spin:
+        twiss_res_element_by_element.update({
+            'spin_x': spin_x_co,
+            'spin_y': spin_y_co,
+            'spin_z': spin_z_co,
+        })
 
     if not only_orbit and compute_lattice_functions:
         lattice_functions, i_replace = _compute_lattice_functions(Ws, use_full_inverse, s_co)
         twiss_res_element_by_element.update(lattice_functions)
-
-    twiss_res_element_by_element['dzeta'] = dzeta
 
     extra_data = {}
     extra_data['only_markers'] = only_markers
@@ -1059,7 +1156,7 @@ def _twiss_open(line, init,
         'x', 'px', 'y', 'py', 'zeta', 'delta', 'ptau',
         'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy',
         'betx1', 'bety1', 'betx2', 'bety2',
-        'dx', 'dpx', 'dy', 'dzeta', 'dpy',
+        'dx', 'dpx', 'dy', 'dpy',
         ]
 
         for key in _vars_hide_changes:
@@ -1122,8 +1219,8 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
 
     # Computation of twiss parameters
     if use_full_inverse:
-        (betx, alfx, gamx, bety, alfy, gamy, bety1, betx2
-                    )= _extract_twiss_parameters_with_inverse(Ws)
+        (betx, alfx, gamx, bety, alfy, gamy, bety1, betx2, alfy1, alfx2, gamy1,
+        gamx2) = _extract_twiss_parameters_with_inverse(Ws)
     else:
         betx = Ws[:, 0, 0]**2 + Ws[:, 0, 1]**2
         bety = Ws[:, 2, 2]**2 + Ws[:, 2, 3]**2
@@ -1137,14 +1234,20 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
         bety1 = Ws[:, 2, 0]**2 + Ws[:, 2, 1]**2
         betx2 = Ws[:, 0, 2]**2 + Ws[:, 0, 3]**2
 
-        # Untested:
-        # alfx2 = -Ws[:, 0, 2] * Ws[:, 1, 2] - Ws[:, 0, 3] * Ws[:, 1, 3]
-        # alfy1 = -Ws[:, 2, 0] * Ws[:, 3, 0] - Ws[:, 2, 1] * Ws[:, 3, 1]
-        # gamx2 = Ws[:, 1, 2]**2 + Ws[:, 1, 3]**2
-        # gamy1 = Ws[:, 3, 0]**2 + Ws[:, 3, 1]**2
+        alfx2 = -Ws[:, 0, 2] * Ws[:, 1, 2] - Ws[:, 0, 3] * Ws[:, 1, 3]
+        alfy1 = -Ws[:, 2, 0] * Ws[:, 3, 0] - Ws[:, 2, 1] * Ws[:, 3, 1]
+
+        gamx2 = Ws[:, 1, 2]**2 + Ws[:, 1, 3]**2
+        gamy1 = Ws[:, 3, 0]**2 + Ws[:, 3, 1]**2
 
     betx1 = betx
     bety2 = bety
+
+    alfx1 = alfx
+    alfy2 = alfy
+
+    gamx1 = gamx
+    gamy2 = gamy
 
 
     temp_phix = phix.copy()
@@ -1199,6 +1302,14 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
         'bety1': bety1,
         'betx2': betx2,
         'bety2': bety2,
+        'alfx1': alfx1,
+        'alfy1': alfy1,
+        'alfx2': alfx2,
+        'alfy2': alfy2,
+        'gamx1': gamx1,
+        'gamy1': gamy1,
+        'gamx2': gamx2,
+        'gamy2': gamy2,
         'mux': mux,
         'muy': muy,
         'muzeta': muzeta,
@@ -1213,6 +1324,163 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
     return res, i_replace
 
 
+def _compute_coupling_elements_edwards_teng(
+        delta: np.ndarray,
+        betx1: np.ndarray,
+        betx2: np.ndarray,
+        bety1: np.ndarray,
+        bety2: np.ndarray,
+        alfx1: np.ndarray,
+        alfx2: np.ndarray,
+        alfy1: np.ndarray,
+        alfy2: np.ndarray,
+):
+    """Compute coupling matrix elements using the Edwards-Teng method.
+
+    Refer to the paper by Lebedev and Bogacz (2010) and the source code of
+    MAD-NG –- madl_gphys.mad.
+    (https://github.com/MethodicalAcceleratorDesign/MAD-NG/blob/a73ac34f85426f8e6ad15fb99f5ee0a4c6d1636d/src/madl_gphys.mad#L1807)
+
+    For the RDTs calculation, refer to R. Calaga and R. Tomás, "Betatron coupling:
+    Merging Hamiltonian and matrix approaches", 10.1103/PhysRevSTAB.8.034001.
+
+    Returns
+    -------
+    r11, r12, r21, r22: complex
+        Coupling matrix elements.
+    f1010, f1001: complex
+        Resonance driving terms f1010 and f1001.
+    """
+    matrix_stability_tol = 1e-10
+
+    # Base computations
+    one_plus_delta = 1 + delta
+    betx = betx1 * one_plus_delta
+    bety = bety2 * one_plus_delta
+    alfx = alfx1
+    alfy = alfy2
+
+    # Coupling terms
+    kx2 = betx2 / betx1
+    ky2 = bety1 / bety2
+    kxy = kx2 * ky2
+
+    # Stability mask
+    idx_stable = (
+        (np.abs(kx2 - ky2) >= matrix_stability_tol) &
+        (np.abs(1 - kxy) >= matrix_stability_tol)
+    )
+
+    # Allocate outputs
+    r11 = np.zeros_like(one_plus_delta, dtype=np.complex128)
+    r12 = np.zeros_like(one_plus_delta, dtype=np.complex128)
+    r21 = np.zeros_like(one_plus_delta, dtype=np.complex128)
+    r22 = np.zeros_like(one_plus_delta, dtype=np.complex128)
+    f1010 = np.zeros_like(one_plus_delta, dtype=np.complex128)
+    f1001 = np.zeros_like(one_plus_delta, dtype=np.complex128)
+
+    # Only compute where stable, if not stable anywhere return zeros
+    if not np.any(idx_stable):
+        return r11.real, r12.real, r21.real, r22.real, f1010, f1001
+
+    kx = np.sqrt(kx2[idx_stable])
+    ky = np.sqrt(ky2[idx_stable])
+    ax = alfx1[idx_stable] * kx - alfx2[idx_stable] / kx
+    ay = alfy2[idx_stable] * ky - alfy1[idx_stable] / ky
+    kxy_ = kxy[idx_stable]
+    kx2_ = kx2[idx_stable]
+    ky2_ = ky2[idx_stable]
+
+    ku = kxy_ * (1 + ((ax ** 2 - ay ** 2) / (kx2_ - ky2_)) * (1 - kxy_))
+    u = -kxy_ / (1 - kxy_)
+
+    su = np.sqrt(np.maximum(ku, 0))
+    add_term = np.where(kxy_ <= su, +1, -1) * su / (1 - kxy_)
+    u = np.where(ku >= matrix_stability_tol, u + add_term, u)
+    kpa_ = 1 - u
+
+    betx_ = betx[idx_stable] / kpa_
+    bety_ = bety[idx_stable] / kpa_
+    alfx_ = alfx[idx_stable] / kpa_
+    alfy_ = alfy[idx_stable] / kpa_
+
+    bx = kx * kpa_ + u / kx
+    by = ky * kpa_ + u / ky
+    cx = kx * kpa_ - u / kx
+    cy = ky * kpa_ - u / ky
+
+    evp = (ax + 1j * bx) / (ay - 1j * by)
+    evm = (ax + 1j * cx) / (ay + 1j * cy)
+    ev1sq = evp * evm
+    ev2sq = evp / evm
+
+    ev1_angle = np.angle(ev1sq)
+    ev2_angle = np.angle(ev2sq)
+
+    ev1 = -np.sqrt(np.abs(ev1sq)) * np.exp(1j * np.unwrap(ev1_angle) / 2)
+    ev2 = np.sqrt(np.abs(ev2sq)) * np.exp(1j * np.unwrap(ev2_angle) / 2)
+
+    r11[idx_stable] = (
+            np.sqrt(bety2[idx_stable] / betx2[idx_stable]) *
+            (u * ev2.real + alfx2[idx_stable] * ev2.imag) / kpa_
+    )
+
+    r22[idx_stable] = (
+            -np.sqrt(betx1[idx_stable] / bety1[idx_stable]) *
+            (u * ev1.real + alfy1[idx_stable] * ev1.imag) / kpa_
+    )
+
+    r12[idx_stable] = (
+            np.sqrt(betx1[idx_stable] * bety1[idx_stable]) * ev1.imag / kpa_
+    )
+
+    r21[idx_stable] = (
+        (
+                (ev2.real * (alfx2[idx_stable] * kpa_ - alfy2[idx_stable] * u)) -
+                (ev2.imag * (alfx2[idx_stable] * alfy2[idx_stable] + kpa_ * u))
+        ) / (kpa_ * np.sqrt(betx2[idx_stable] * bety2[idx_stable]))
+    )
+
+    # Compute the RDTs
+    sbetx = np.sqrt(betx_)
+    sbety = np.sqrt(bety_)
+
+    mask_nonzero_sbetxy = (np.abs(sbetx) > 1e-6) & (np.abs(sbety) > 1e-6)
+    # The above mask is computed on arrays whose length has been reduced already
+    # with idx_stable. Therefore, to address the original length of the arrays,
+    # we need to compute a new mask combining both conditions:
+    idx_compute_rdts = np.where(idx_stable)[0][mask_nonzero_sbetxy]
+
+    sbetx_ = sbetx[mask_nonzero_sbetxy]
+    sbety_ = sbety[mask_nonzero_sbetxy]
+
+    ga = np.array([
+        [1 / sbetx_, np.zeros_like(sbetx_)],
+        [alfx_[mask_nonzero_sbetxy] / sbetx_, sbetx_],
+    ]).transpose(2, 0, 1)
+
+    gb_inv = np.array([
+        [sbety_, np.zeros_like(sbety_)],
+        [-alfy_[mask_nonzero_sbetxy] / sbety_, 1 / sbety_],
+    ]).transpose(2, 0, 1)
+
+    r = np.array([
+        [r22[idx_compute_rdts], -r12[idx_compute_rdts]],
+        [-r21[idx_compute_rdts], r11[idx_compute_rdts]],
+    ])
+
+    c = (r / np.sqrt(1 + np.linalg.det(r.T))).transpose(2, 0, 1)
+
+    cbar = (ga @ c @ gb_inv).transpose(1, 2, 0)
+
+    cb = 0.25 / np.sqrt(1 - np.linalg.det(cbar.T)) * cbar
+
+    f1010[idx_compute_rdts] = -cb[0, 1] - cb[1, 0] + 1j * (cb[0, 0] - cb[1, 1])
+    f1001[idx_compute_rdts] = cb[0, 1] - cb[1, 0] + 1j * (cb[0, 0] + cb[1, 1])
+
+    return r11.real, r12.real, r21.real, r22.real, f1010, f1001
+
+
 def _compute_global_quantities(line, twiss_res):
 
         s_vect = twiss_res['s']
@@ -1220,20 +1488,17 @@ def _compute_global_quantities(line, twiss_res):
         part_on_co = twiss_res['particle_on_co']
         W_matrix = twiss_res['W_matrix']
 
-        dzeta = twiss_res['dzeta']
-        eta = -dzeta[-1]/circumference
-        alpha = eta + 1/part_on_co._xobject.gamma0[0]**2
-
         beta0 = part_on_co._xobject.beta0[0]
         T_rev0 = circumference/clight/beta0
         bets0 = W_matrix[0, 4, 4]**2 + W_matrix[0, 4, 5]**2
-        if eta < 0: # below transition
-            bets0 = -bets0
-        ptau_co = twiss_res['ptau']
-
+        if 'slip_factor' in twiss_res:
+            if twiss_res['slip_factor'] < 0: # below transition
+                bets0 = -bets0
+        else:
+            bets0 = 0
 
         twiss_res._data.update({
-            'slip_factor': eta, 'momentum_compaction_factor': alpha, 'bets0': bets0,
+            'bets0': bets0,
             'circumference': circumference, 'T_rev0': T_rev0,
             'particle_on_co':part_on_co.copy(_context=xo.context_default),
             'gamma0': part_on_co._xobject.gamma0[0],
@@ -1270,7 +1535,10 @@ def _compute_global_quantities(line, twiss_res):
             cmin_arr = (2 * np.sqrt(c_r1*c_r2) *
                         np.abs(np.mod(mux[-1], 1) - np.mod(muy[-1], 1))
                         /(1 + c_r1 * c_r2))
-            c_minus = trapz(cmin_arr, s_vect)/(circumference)
+            if circumference > 0:
+                c_minus = trapz(cmin_arr, s_vect)/(circumference)
+            else:
+                c_minus = np.mean(cmin_arr)
 
             c_minus_cplx = c_minus * np.exp(1j * c_phi1)
             c_minus_re = np.real(c_minus_cplx)
@@ -1337,9 +1605,8 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                                         symmetrize=(periodic_mode == 'periodic_symmetric'),
                                         include_collective=include_collective,
                                         )['R_matrix']
-
             (WW_chrom, _, _, _) = lnf.compute_linear_normal_form(RR_chrom,
-                                    only_4d_block=method=='4d',
+                                    only_4d_block=True,
                                     responsiveness_tol=matrix_responsiveness_tol,
                                     stability_tol=matrix_stability_tol,
                                     symplectify=symplectify)
@@ -1394,7 +1661,6 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                 nemitt_y=nemitt_y,
                 r_sigma=r_sigma,
                 delta_disp=delta_disp,
-                zeta_disp=zeta_disp,
                 use_full_inverse=use_full_inverse,
                 hide_thin_groups=hide_thin_groups,
                 only_markers=only_markers,
@@ -1402,7 +1668,9 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                 _keep_tracking_data=False,
                 _keep_initial_particles=False,
                 _initial_particles=None,
-                _ebe_monitor=None))
+                _ebe_monitor=None,
+            )
+        )
 
     dmux = (tw_chrom_res[1].mux - tw_chrom_res[0].mux)/(2*delta_chrom)
     dmuy = (tw_chrom_res[1].muy - tw_chrom_res[0].muy)/(2*delta_chrom)
@@ -1432,12 +1700,22 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
     dqx = dmux[-1]
     dqy = dmuy[-1]
 
-    cols_chrom = {'dmux': dmux, 'dmuy': dmuy,
+    dzeta = (tw_chrom_res[1].zeta - tw_chrom_res[0].zeta)/(2*delta_chrom)
+    dzeta -= dzeta[0]
+    dzeta = np.array(dzeta)
+
+    slip_factor = -dzeta[-1] / tw_chrom_res[0].circumference
+    momentum_compaction_factor = (slip_factor
+                        + 1/tw_chrom_res[0].particle_on_co._xobject.gamma0[0]**2)
+
+    cols_chrom = {'dmux': dmux, 'dmuy': dmuy, 'dzeta': dzeta,
                   'bx_chrom': bx_chrom, 'by_chrom': by_chrom,
                   'ax_chrom': ax_chrom, 'ay_chrom': ay_chrom,
                   'wx_chrom': wx_chrom, 'wy_chrom': wy_chrom,
                   }
-    scalars_chrom = {'dqx': dqx, 'dqy': dqy}
+    scalars_chrom = {'dqx': dqx, 'dqy': dqy, 'slip_factor': slip_factor,
+                     'momentum_compaction_factor': momentum_compaction_factor,
+                     }
 
     if on_momentum_twiss_res is not None:
         mux = on_momentum_twiss_res.mux
@@ -1473,9 +1751,8 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
     w0, v0 = np.linalg.eig(R_matrix)
 
     # Sort eigenvalues
-    indx = [
-        int(np.floor(np.argmax(np.abs(v0[:, 2*ii]))/2)) for ii in range(3)]
-    eigenvals = np.array([w0[ii*2] for ii in indx])
+    modes = lnf.sort_modes(v0, w0)
+    eigenvals = np.array([w0[ii] for ii in modes])
 
     # Damping constants and partition numbers
     energy0 = particle_on_co.mass0 * particle_on_co._xobject.gamma0[0]
@@ -1497,31 +1774,25 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
 
     return eneloss_damp_res
 
-def _extract_sr_distribution_properties(line, px_co, py_co, ptau_co):
+def _extract_sr_distribution_properties(twiss_res):
 
-
-    radiation_flag = line.attr['radiation_flag']
+    radiation_flag = twiss_res['radiation_flag']
     if np.any(radiation_flag > 1):
         raise ValueError('Incompatible radiation flag')
 
-    hxl = line.attr['angle_rad'] * np.cos(line.attr['rot_s_rad'])
-    hyl = line.attr['angle_rad'] * np.sin(line.attr['rot_s_rad'])
-    dl = line.attr['length'] * (radiation_flag == 1)
-
-    mask = (dl != 0)
-    hx = np.zeros(shape=(len(dl),), dtype=np.float64)
-    hy = np.zeros(shape=(len(dl),), dtype=np.float64)
-    hx[mask] = (np.diff(px_co)[mask] + hxl[mask] * (1 + ptau_co[:-1][mask])) / dl[mask]
-    hy[mask] = (np.diff(py_co)[mask] + hyl[mask] * (1 + ptau_co[:-1][mask])) / dl[mask]
-    # TODO: remove also term due to weak focusing
+    hx, hy, kappa0_x, kappa0_y = _compute_trajectory_curvatures(twiss_res)
     hh = np.sqrt(hx**2 + hy**2)
 
-    mass0 = line.particle_ref.mass0
-    q0 = line.particle_ref.q0
-    gamma0 = line.particle_ref._xobject.gamma0[0]
-    beta0 = line.particle_ref._xobject.beta0[0]
+    ptau_co = twiss_res['ptau']
+    dl = twiss_res['length'] * (twiss_res['radiation_flag'] > 0)
 
-    gamma = gamma0 * (1 + beta0 * ptau_co)[:-1]
+    pco = twiss_res['particle_on_co']
+    mass0 = pco.mass0
+    q0 = pco.q0
+    gamma0 = pco._xobject.gamma0[0]
+    beta0 = pco._xobject.beta0[0]
+
+    gamma = gamma0 * (1 + beta0 * ptau_co)
 
     mass0_kg = mass0 / clight**2 * qe
     q_coul = q0 * qe
@@ -1537,6 +1808,8 @@ def _extract_sr_distribution_properties(line, px_co, py_co, ptau_co):
 
     res = {
         'B_T': B_T,
+        'hx': hx, 'hy': hy,
+        'h0x': kappa0_x, 'h0y': kappa0_y,
         'E_crit_J': E_crit_J, 'n_dot': n_dot,
         'E_sq_ave_J': E_sq_ave_J, 'E_ave_J': E_ave_J,
         'n_dot_delta_kick_sq_ave': n_dot_delta_kick_sq_ave,
@@ -1545,19 +1818,25 @@ def _extract_sr_distribution_properties(line, px_co, py_co, ptau_co):
 
     return res
 
-def _compute_equilibrium_emittance_kick_as_co(kin_px_co, kin_py_co, ptau_co, W_matrix,
-                                  line, radiation_method,
-                                  damping_constants_turns):
+def _compute_equilibrium_emittance_kick_as_co(twiss_res,
+                                  damping_constants_turns,
+                                  radiation_method):
 
     assert radiation_method == 'kick_as_co'
 
-    sr_distrib_properties = _extract_sr_distribution_properties(
-                                line, kin_px_co, kin_py_co, ptau_co)
-    beta0 = line.particle_ref._xobject.beta0[0]
-    gamma0 = line.particle_ref._xobject.gamma0[0]
+    sr_distrib_properties = _extract_sr_distribution_properties(twiss_res)
 
-    n_dot_delta_kick_sq_ave = sr_distrib_properties['n_dot_delta_kick_sq_ave']
-    dl = sr_distrib_properties['dl_radiation']
+    pco = twiss_res['particle_on_co']
+    beta0 = pco._xobject.beta0[0]
+    gamma0 = pco._xobject.gamma0[0]
+
+    kin_px_co = twiss_res['kin_px']
+    kin_py_co = twiss_res['kin_py']
+    ptau_co = twiss_res['ptau']
+    W_matrix = twiss_res['W_matrix']
+
+    n_dot_delta_kick_sq_ave = sr_distrib_properties['n_dot_delta_kick_sq_ave'][:-1]
+    dl = sr_distrib_properties['dl_radiation'][:-1]
 
     px_left = kin_px_co[:-1]
     px_right = kin_px_co[1:]
@@ -1655,14 +1934,17 @@ def _compute_equilibrium_emittance_kick_as_co(kin_px_co, kin_py_co, ptau_co, W_m
 
     return res
 
-def _compute_equilibrium_emittance_full(kin_px_co, kin_py_co, ptau_co, R_matrix_ebe,
-                                  line, radiation_method):
+def _compute_equilibrium_emittance_full(twiss_res, R_matrix_ebe,
+                                        radiation_method):
 
-    sr_distrib_properties = _extract_sr_distribution_properties(
-                                line, kin_px_co, kin_py_co, ptau_co)
+    kin_px_co = twiss_res['kin_px']
+    kin_py_co = twiss_res['kin_py']
+    ptau_co = twiss_res['ptau']
 
-    n_dot_delta_kick_sq_ave = sr_distrib_properties['n_dot_delta_kick_sq_ave']
-    dl = sr_distrib_properties['dl_radiation']
+    sr_distrib_properties = _extract_sr_distribution_properties(twiss_res)
+
+    n_dot_delta_kick_sq_ave = sr_distrib_properties['n_dot_delta_kick_sq_ave'][:-1]
+    dl = sr_distrib_properties['dl_radiation'][:-1]
 
     assert radiation_method == 'full'
 
@@ -1757,8 +2039,8 @@ def _compute_equilibrium_emittance_full(kin_px_co, kin_py_co, ptau_co, R_matrix_
     eq_gemitt_y = EE_norm[2, 3]/(1 - np.abs(lam_eig[1])**2)
     eq_gemitt_zeta = EE_norm[4, 5]/(1 - np.abs(lam_eig[2])**2)
 
-    beta0 = line.particle_ref._xobject.beta0[0]
-    gamma0 = line.particle_ref._xobject.gamma0[0]
+    beta0 = twiss_res.particle_on_co._xobject.beta0[0]
+    gamma0 = twiss_res.particle_on_co._xobject.gamma0[0]
 
     eq_nemitt_x = float(eq_gemitt_x * (beta0 * gamma0))
     eq_nemitt_y = float(eq_gemitt_y * (beta0 * gamma0))
@@ -1773,8 +2055,7 @@ def _compute_equilibrium_emittance_full(kin_px_co, kin_py_co, ptau_co, R_matrix_
 
     Sigma = RR_ebe @ Sigma_at_start @ np.transpose(RR_ebe, axes=(0,2,1))
 
-    eq_sigma_tab = _build_sigma_table(Sigma=Sigma, s=None,
-        name=np.array(tuple(line._element_names_unique) + ('_end_point',)))
+    eq_sigma_tab = _build_sigma_table(Sigma=Sigma, s=None, name=twiss_res['name'],)
 
     res = {
         'eq_gemitt_x': eq_gemitt_x,
@@ -1786,6 +2067,10 @@ def _compute_equilibrium_emittance_full(kin_px_co, kin_py_co, ptau_co, R_matrix_
         'eq_beam_covariance_matrix': eq_sigma_tab,
         'dl_radiation': dl,
         'n_dot_delta_kick_sq_ave': n_dot_delta_kick_sq_ave,
+        'hx_rad': sr_distrib_properties['hx'],
+        'hy_rad': sr_distrib_properties['hy'],
+        'h0x_rad': sr_distrib_properties['h0x'],
+        'h0y_rad': sr_distrib_properties['h0y'],
     }
 
     return res
@@ -1806,6 +2091,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             num_turns=1,
                             co_search_at=None,
                             search_for_t_rev=False,
+                            spin=None,
                             num_turns_search_t_rev=1,
                             compute_R_element_by_element=False,
                             only_markers=False,
@@ -1850,6 +2136,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                 num_turns=num_turns,
                                 co_search_at=co_search_at,
                                 search_for_t_rev=search_for_t_rev,
+                                spin=spin,
                                 num_turns_search_t_rev=num_turns_search_t_rev,
                                 symmetrize=(periodic_mode == 'periodic_symmetric'),
                                 include_collective=include_collective
@@ -1922,8 +2209,6 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
         else:
             eigenvals = np.linalg.eigvals(RR)
         lnf._assert_matrix_stability(eigenvals, matrix_stability_tol)
-        RR_ebe = None
-
 
     if method == '4d' and W_matrix is None: # the matrix was not provided by the user
 
@@ -2042,6 +2327,8 @@ def _handle_loop_around(kwargs):
         tw_res.mux -= tw_res['mux', ele_name_init] - init.mux
         tw_res.muy -= tw_res['muy', ele_name_init] - init.muy
         tw_res.muzeta -= tw_res['muzeta', ele_name_init] - init.muzeta
+
+    if 'dzeta' in tw_res.keys():
         tw_res.dzeta -= tw_res['dzeta', ele_name_init] - init.dzeta
 
     # Not yet supported
@@ -2072,6 +2359,14 @@ def _handle_init_inside_range(kwargs):
     reverse = kwargs.pop('reverse')
 
     ele_name_init =  init.element_name
+    ele_init = line.get(ele_name_init)
+    if isinstance(ele_init, xt.Replica):
+        ele_init = ele_init.resolve()
+    if not isinstance(ele_init, xt.Marker):
+        raise ValueError(
+            'The element at the initial position is not a Marker. '
+            'This is not yet supported')
+
     if reverse:
         assert _str_to_index(line, ele_name_init) <= _str_to_index(line, start)
         assert _str_to_index(line, ele_name_init) >= _str_to_index(line, end)
@@ -2091,7 +2386,9 @@ def _handle_init_inside_range(kwargs):
     tw_res.mux -= tw_res['mux', ele_name_init] - init.mux
     tw_res.muy -= tw_res['muy', ele_name_init] - init.muy
     tw_res.muzeta -= tw_res['muzeta', ele_name_init] - init.muzeta
-    tw_res.dzeta -= tw_res['dzeta', ele_name_init] - init.dzeta
+
+    if 'dzeta' in tw_res:
+        tw_res.dzeta -= tw_res['dzeta', ele_name_init] - init.dzeta
 
     # Not correctly handled yet
     if 'dmux' in tw_res.keys():
@@ -2118,7 +2415,8 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
                       search_for_t_rev=False,
                       continue_on_closed_orbit_error=False,
                       num_turns_search_t_rev=None,
-                      symmetrize=False):
+                      symmetrize=False,
+                      spin=True):
 
     if search_for_t_rev:
         assert line.particle_ref is not None
@@ -2260,6 +2558,12 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
 
     particle_on_co._fsolve_info = fsolve_info
 
+    if spin:
+        spin_x, spin_y, spin_z = _find_spin_fixed_point(line, particle_on_co)
+        particle_on_co.spin_x = spin_x
+        particle_on_co.spin_y = spin_y
+        particle_on_co.spin_z = spin_z
+
     return particle_on_co
 
 def _one_turn_map(p, particle_ref, line, delta_zeta, start, end, num_turns, symmetrize):
@@ -2369,15 +2673,15 @@ def compute_one_turn_matrix_finite_differences(
     ddelta = steps_r_matrix["ddelta"]
     part_temp = xpart.build_particles(_context=context,
             particle_ref=particle_on_co, mode='shift',
-            x  =    [dx,  0., 0.,  0.,    0.,     0., -dx,   0.,  0.,   0.,     0.,      0.],
-            px =    [0., dpx, 0.,  0.,    0.,     0.,  0., -dpx,  0.,   0.,     0.,      0.],
-            y  =    [0.,  0., dy,  0.,    0.,     0.,  0.,   0., -dy,   0.,     0.,      0.],
-            py =    [0.,  0., 0., dpy,    0.,     0.,  0.,   0.,  0., -dpy,     0.,      0.],
-            zeta =  [0.,  0., 0.,  0., dzeta,     0.,  0.,   0.,  0.,   0., -dzeta,      0.],
-            delta = [0.,  0., 0.,  0.,    0., ddelta,  0.,   0.,  0.,   0.,     0., -ddelta],
+            x  =    [0., dx,  0., 0.,  0.,    0.,     0., -dx,   0.,  0.,   0.,     0.,      0.],
+            px =    [0., 0., dpx, 0.,  0.,    0.,     0.,  0., -dpx,  0.,   0.,     0.,      0.],
+            y  =    [0., 0.,  0., dy,  0.,    0.,     0.,  0.,   0., -dy,   0.,     0.,      0.],
+            py =    [0., 0.,  0., 0., dpy,    0.,     0.,  0.,   0.,  0., -dpy,     0.,      0.],
+            zeta =  [0., 0.,  0., 0.,  0., dzeta,     0.,  0.,   0.,  0.,   0., -dzeta,      0.],
+            delta = [0., 0.,  0., 0.,  0.,    0., ddelta,  0.,   0.,  0.,   0.,     0., -ddelta],
             )
     dpzeta = float(context.nparray_from_context_array(
-        (part_temp.ptau[5] - part_temp.ptau[11])/2/part_temp.beta0[0]))
+        (part_temp.ptau[6] - part_temp.ptau[12])/2/part_temp.beta0[0]))
     if particle_on_co._xobject.at_element[0]>0:
         part_temp.s[:] = particle_on_co._xobject.s[0]
         part_temp.at_element[:] = particle_on_co._xobject.at_element[0]
@@ -2413,7 +2717,7 @@ def compute_one_turn_matrix_finite_differences(
                 line.config.XSUITE_MIRROR = True
                 line.track(part_temp, num_turns=num_turns)
 
-    temp_mat = np.zeros(shape=(6, 12), dtype=np.float64)
+    temp_mat = np.zeros(shape=(6, 13), dtype=np.float64)
     temp_mat[0, :] = context.nparray_from_context_array(part_temp.x)
     temp_mat[1, :] = context.nparray_from_context_array(part_temp.px)
     temp_mat[2, :] = context.nparray_from_context_array(part_temp.y)
@@ -2425,13 +2729,15 @@ def compute_one_turn_matrix_finite_differences(
     RR = np.zeros(shape=(6, 6), dtype=np.float64)
 
     for jj, dd in enumerate([dx, dpx, dy, dpy, dzeta, dpzeta]):
-        RR[:, jj] = (temp_mat[:, jj] - temp_mat[:, jj+6])/(2*dd)
+        RR[:, jj] = (temp_mat[:, jj+1] - temp_mat[:, jj+1+6])/(2*dd)
 
     out = {'R_matrix': RR}
+    out['steps_r_matrix'] = steps_r_matrix
+    out['part_temp'] = part_temp
 
     if element_by_element:
         mon = line.record_last_track
-        temp_mad_ebe = np.zeros(shape=(len(line._element_names_unique) + 1, 6, 12), dtype=np.float64)
+        temp_mad_ebe = np.zeros(shape=(len(line._element_names_unique) + 1, 6, 13), dtype=np.float64)
         temp_mad_ebe[:, 0, :] = mon.x.T
         temp_mad_ebe[:, 1, :] = mon.px.T
         temp_mad_ebe[:, 2, :] = mon.y.T
@@ -2441,13 +2747,15 @@ def compute_one_turn_matrix_finite_differences(
 
         RR_ebe = np.zeros(shape=(len(line._element_names_unique) + 1, 6, 6), dtype=np.float64)
         for jj, dd in enumerate([dx, dpx, dy, dpy, dzeta, dpzeta]):
-            RR_ebe[:, :, jj] = (temp_mad_ebe[:, :, jj] - temp_mad_ebe[:, :, jj+6])/(2*dd)
+            RR_ebe[:, :, jj] = (temp_mad_ebe[:, :, jj+1] - temp_mad_ebe[:, :, jj+1+6])/(2*dd)
 
         if only_markers:
             mask_twiss = line.tracker._get_twiss_mask_markers()
             mask_twiss[-1] = True # to include the "_end_point"
 
         out['R_matrix_ebe'] = RR_ebe
+        out['mon_ebe'] = mon
+
     else:
         out['R_matrix_ebe'] = None
 
@@ -2515,6 +2823,7 @@ class TwissInit:
                 dx=None, dpx=None, dy=None, dpy=None, dzeta=None,
                 mux=None, muy=None, muzeta=None,
                 ddx=None, ddpx=None, ddy=None, ddpy=None, ddzeta=None,
+                spin_x=None, spin_y=None, spin_z=None,
                 ax_chrom=None, bx_chrom=None, ay_chrom=None, by_chrom=None,
                 reference_frame=None):
 
@@ -2531,6 +2840,9 @@ class TwissInit:
                 py=(py or 0.),
                 zeta=(zeta or 0.),
                 delta=(delta or 0.),
+                spin_x=(spin_x or 0.),
+                spin_y=(spin_y or 0.),
+                spin_z=(spin_z or 0.)
             )
         else:
             assert x is None, "`x` must be None if `particle_on_co` is provided"
@@ -2539,6 +2851,9 @@ class TwissInit:
             assert py is None, "`py` must be None if `particle_on_co` is provided"
             assert zeta is None, "`zeta` must be None if `particle_on_co` is provided"
             assert delta is None, "`delta` must be None if `particle_on_co` is provided"
+            assert spin_x is None, "`spin_x` must be None if `particle_on_co` is provided"
+            assert spin_y is None, "`spin_y` must be None if `particle_on_co` is provided"
+            assert spin_z is None, "`spin_z` must be None if `particle_on_co` is provided"
             assert particle_ref is None, (
                 "`particle_ref` must be None if `particle_on_co` is provided")
             self.__dict__['particle_on_co'] = particle_on_co
@@ -2697,6 +3012,9 @@ class TwissInit:
             particle_on_co = xpart.build_particles(
                 x=self._temp_co_data['x'], px=self._temp_co_data['px'],
                 y=self._temp_co_data['y'], py=self._temp_co_data['py'],
+                spin_x=self._temp_co_data.get('spin_x', 0),
+                spin_y=self._temp_co_data.get('spin_y', 0),
+                spin_z=self._temp_co_data.get('spin_z', 0),
                 delta=self._temp_co_data['delta'], zeta=self._temp_co_data['zeta'],
                 line=line,
                 include_collective=True, # In fact it does not matter
@@ -2704,6 +3022,8 @@ class TwissInit:
             particle_on_co.s = s_ele_twiss
             self.__dict__['particle_on_co'] = particle_on_co
             self._temp_co_data = None
+        else:
+            particle_on_co = self.particle_on_co
 
         if self._temp_optics_data is not None:
 
@@ -2796,10 +3116,12 @@ class TwissInit:
             ddpx=(self.ddpx if self.ddpx is not None else None),
             ddy=(self.ddy if self.ddy is not None else None),
             ddpy=(-self.ddpy if self.ddpy is not None else None),
-            )
+        )
         out.particle_on_co.x = -out.particle_on_co.x
         out.particle_on_co.py = -out.particle_on_co.py
         out.particle_on_co.zeta = -out.particle_on_co.zeta
+        out.particle_on_co.spin_x *= -1
+        out.particle_on_co.spin_z *= -1
 
         out.W_matrix[0, :] = -out.W_matrix[0, :]
         out.W_matrix[1, :] = out.W_matrix[1, :]
@@ -2975,6 +3297,8 @@ class TwissTable(Table):
         part.zeta[:] = self.zeta[at_element]
         part.ptau[:] = self.ptau[at_element]
         part.s[:] = self.s[at_element]
+        part.ax[:] = part.px[:] - self.kin_px[at_element]
+        part.ay[:] = part.py[:] - self.kin_py[at_element]
         part.at_element[:] = -1
 
         W = self.W_matrix[at_element]
@@ -3002,12 +3326,20 @@ class TwissTable(Table):
             mux = self.mux[at_element]
             muy = self.muy[at_element]
             muzeta = self.muzeta[at_element]
-            dzeta = self.dzeta[at_element]
         else:
             mux = 0
             muy = 0
             muzeta = 0
+
+        if 'dzeta' in self.keys():
+            dzeta = self.dzeta[at_element]
+        else:
             dzeta = 0
+
+        if hasattr(self, 'spin_x'):
+            part.spin_x[:] = self.spin_x[at_element]
+            part.spin_y[:] = self.spin_y[at_element]
+            part.spin_z[:] = self.spin_z[at_element]
 
         return TwissInit(particle_on_co=part, W_matrix=W,
                         element_name=str(self.name[at_element]),
@@ -3082,16 +3414,13 @@ class TwissTable(Table):
         sigma_delta: float = None,
         bunch_length: float = None,
         bunched: bool = True,
-        particles: xt.Particles = None,
         **kwargs,
     ):
         """
-        Computes IntraBeam Scattering growth rates.
+        Computes IntraBeam Scattering (amplitude) growth rates.
 
         Parameters
         ----------
-        line : xtrack.Line
-            Line in which the IBS kick element will be installed.
         formalism : str
             Which formalism to use for the computation. Can be ``Nagaitsev``
             or ``Bjorken-Mtingwa`` (also accepts ``B&M``), case-insensitively.
@@ -3116,10 +3445,6 @@ class TwissTable(Table):
         bunched : bool, optional
             Whether the beam is bunched or not (coasting). Defaults to `True`.
             Required if `particles` is not provided.
-        particles : xtrack.Particles
-            The particles to circulate in the line. If provided the emittances,
-            momentum spread and bunch length will be computed from the particles.
-            Otherwise explicit values must be provided (see above parameters).
         **kwargs : dict
             Keyword arguments are passed to the growth rates computation method of
             the chosen IBS formalism implementation. See the IBS details from the
@@ -3138,7 +3463,192 @@ class TwissTable(Table):
             self, formalism, total_beam_intensity,
             gemitt_x, nemitt_x, gemitt_y, nemitt_y,
             sigma_delta, bunch_length, bunched,
-            particles, **kwargs,
+            **kwargs,
+        )
+
+    def get_ibs_and_synrad_emittance_evolution(
+        self,
+        formalism: Literal["Nagaitsev", "Bjorken-Mtingwa", "B&M"],
+        total_beam_intensity: int,
+        gemitt_x: float | None = None,
+        nemitt_x: float | None = None,
+        gemitt_y: float | None = None,
+        nemitt_y: float | None = None,
+        gemitt_zeta: float | None = None,
+        nemitt_zeta: float | None = None,
+        overwrite_sigma_zeta: float | None = None,
+        overwrite_sigma_delta: float | None = None,
+        emittance_coupling_factor: float = 0,
+        emittance_constraint: Literal["coupling", "excitation"] | None = "coupling",
+        rtol: float = 1e-6,
+        tstep: float | None = None,
+        max_steps: float | None = None,
+        verbose: bool = True,
+        **kwargs,
+    ) -> Table:
+        """
+        Compute the evolution of emittances due to Synchrotron Radiation
+        and Intra-Beam Scattering until convergence to equilibrium values.
+        The equilibrium state is determined by an iterative process which
+        consists in computing the IBS growth rates and the emittance time
+        derivatives, then computing the emittances at the next time step,
+        potentially including the effect of transverse constraints, and
+        checking for convergence. The convergence criteria can be chosen
+        by the user.
+
+        Transverse emittances can be constrained to follow two scenarios:
+            - An emittance exchange originating from betatron coupling.
+            - A vertical emittance originating from an excitation.
+
+        The impact from the longitudinal impedance (e.g. bunch lengthening
+        or microwave instability) can be accounted for by specifying the RMS
+        bunch length and momentum spread.
+
+        Notes
+        -----
+            It is required that radiation has been configured in the line,
+            and that this `TwissTable` holds information on the equilibrium
+            state from Synchrotron Radiation. This means calling first
+            `line.configure_radiation(model="mean")` and then the `.twiss()`
+            method with `eneloss_and_damping=True`.
+
+        Warning
+        -------
+            If the user does not provide a starting emittance, the program
+            defaults to using the SR equilibrium value from this `TwissTable`,
+            which is a reasonable defaults for light sources. If a constraint
+            is provided via `emittance_constraint`  the starting emittances are
+            re-computed to respect that constraint (this is logged to the user).
+
+            If the user does provide starting emittances **and** a constraint, it
+            is up to the user to make sure these provided values are consistent
+            with the provided constraint!
+
+        Parameters
+        ----------
+        formalism : str
+            Which formalism to use for the computation of the IBS growth rates.
+            Can be ``Nagaitsev`` or ``Bjorken-Mtingwa`` (also accepts ``B&M``),
+            case-insensitively.
+        total_beam_intensity : int
+            The bunch intensity, in [particles per bunch].
+        gemitt_x : float, optional
+            Starting horizontal geometric emittance, in [m]. If neither this nor
+            the normalized one is provided, the SR equilibrium value from this
+            `TwissTable` is used.
+        nemitt_x : float, optional
+            Starting horizontal normalized emittance, in [m]. If neither this nor
+            the geometric one is provided, the SR equilibrium value from this
+            `TwissTable` is used.
+        gemitt_y : float, optional
+            Starting vertical geometric emittance, in [m]. If neither this nor
+            the normalized one is provided, the SR equilibrium value from this
+            `TwissTable` is used.
+        nemitt_y : float, optional
+            Starting vertical normalized emittance, in [m]. If neither this nor
+            the geometric one is provided, the SR equilibrium value from this
+            `TwissTable` is used.
+        gemitt_zeta : float, optional
+            Starting longitudinal geometric emittance, in [m]. If neither this
+            nor the normalized one is provided, the SR equilibrium value from
+            this `TwissTable` is used.
+        nemitt_zeta : float, optional
+            Starting longitudinal normalized emittance, in [m]. If neither this
+            nor the geometric one is provided, the SR equilibrium value from this
+            `TwissTable` is used.
+        emittance_coupling_factor : float, optional
+            The ratio of perturbed transverse emittances due to betatron coupling.
+            If a value is provided, it is taken into account for the evolution of
+            emittances and induces an emittance sharing between the two planes.
+            See the next parameter for possible scenarios and how this value is
+            used. Defaults to 0.
+        emittance_constraint : str, optional
+            If an accepted value is provided, enforces constraints on the transverse
+            emittances. Can be either "coupling" or "excitation", case-insensitively.
+            Defaults to "coupling".
+            - If `coupling`, vertical emittance is the result of linear coupling. In
+                this case both the vertical and horizontal emittances are altered and
+                determined based on the value of `emittance_coupling_factor` and the
+                damping partition numbers. If the horizontal and vertical partition
+                numbers are equal then the total transverse emittance is preserved.
+            - If `excitation`, vertical emittance is the result of an excitation
+                (e.g. from a feedback system) and is determined from the horizontal
+                emittance based on the value of `emittance_coupling_factor`. In this
+                case the total transverse emittance is NOT preserved.
+            Providing `None` allows one to study a scenario without constraint. Note
+            that as `emittance_coupling_factor` defaults to 0, the constraint has no
+            effect unless a non-zero factor is provided.
+        overwrite_sigma_zeta : float, optional
+            The RMS bunch length, in [m]. If provided, overwrites the one computed from
+            the longitudinal emittance and forces a recompute of the longitudinal
+            emittance. Defaults to `None`.
+        overwrite_sigma_delta : float, optional
+            The RMS momentum spread of the bunch. If provided, overwrites the one
+            computed from the longitudinal emittance and forces a recompute of the
+            longitudinal emittance. Defaults to `None`.
+        rtol : float, optional
+            Relative tolerance to determine when convergence is reached: if the relative
+            difference between the computed emittances and those at the previous step is
+            below `rtol`, then convergence is considered achieved. Defaults to 1e-6.
+        tstep : float, optional
+            Time step to use for each iteration, in [s]. If not provided, an
+            adaptive time step is computed based on the IBS growth rates and
+            the damping constants. Defaults to `None`.
+        max_steps : float, optional
+            The maximum number of iterations to perform before stopping the iterative
+            process. If not provided, the process continues until it reaches convergence
+            (according to the provided `rtol`). Defaults to `None`.
+        verbose : bool, optional
+            Whether to print out information on the current iteration step and estimated
+            convergence progress. Defaults to `True`.
+        **kwargs : dict
+            Keyword arguments are passed to the growth rates computation method of
+            the chosen IBS formalism implementation. See the formalism classes in
+            the ``xfields.ibs._analytical`` for more details.
+
+        Returns
+        -------
+        xtrack.Table
+            The convergence calculations results. The table contains the following
+            columns, as time-step by time-step quantities:
+                - time: time values at which quantities are computed, in [s].
+                - gemitt_x: horizontal geometric emittances, in [m].
+                - nemitt_x: horizontal normalized emittances, in [m].
+                - gemitt_y: vertical geometric emittances, in [m].
+                - nemitt_y: vertical normalized emittances, in [m].
+                - gemitt_zeta: longitudinal geometric emittances, in [m].
+                - nemitt_zeta: longitudinal normalized emittances, in [m].
+                - sigma_zeta: bunch lengths, in [m].
+                - sigma_delta: momentum spreads, in [-].
+                - Kx: horizontal IBS amplitude growth rates, in [s^-1].
+                - Ky: vertical IBS amplitude growth rates, in [s^-1].
+                - Kz: longitudinal IBS amplitude growth rates, in [s^-1].
+            The table also contains the following global quantities:
+                - damping_constants_s: radiation damping constants used, in [s].
+                - partition_numbers: damping partition numbers used.
+                - eq_gemitt_x: horizontal equilibrium geometric emittance from synchrotron radiation used, in [m].
+                - eq_gemitt_y: vertical equilibrium geometric emittance from synchrotron radiation used, in [m].
+                - eq_gemitt_zeta: longitudinal equilibrium geometric emittance from synchrotron radiation used, in [m].
+                - eq_sr_ibs_gemitt_x: final horizontal equilibrium geometric emittance converged to, in [m].
+                - eq_sr_ibs_nemitt_x: final horizontal equilibrium normalized emittance converged to, in [m].
+                - eq_sr_ibs_gemitt_y: final vertical equilibrium geometric emittance converged to, in [m].
+                - eq_sr_ibs_gemitt_y: final vertical equilibrium normalized emittance converged to, in [m].
+                - eq_sr_ibs_gemitt_zeta: final longitudinal equilibrium geometric emittance converged to, in [m].
+                - eq_sr_ibs_gemitt_zeta: final longitudinal equilibrium normalized emittance converged to, in [m].
+        """
+        try:
+            from xfields.ibs import get_ibs_and_synrad_emittance_evolution
+        except ImportError:
+            raise ImportError("Please install xfields to use this feature.")
+        return get_ibs_and_synrad_emittance_evolution(
+            self, formalism=formalism, total_beam_intensity=total_beam_intensity,
+            gemitt_x=gemitt_x, nemitt_x=nemitt_x, gemitt_y=gemitt_y, nemitt_y=nemitt_y,
+            gemitt_zeta=gemitt_zeta, nemitt_zeta=nemitt_zeta,
+            overwrite_sigma_zeta=overwrite_sigma_zeta,
+            overwrite_sigma_delta=overwrite_sigma_delta,
+            emittance_coupling_factor=emittance_coupling_factor,
+            emittance_constraint=emittance_constraint,
+            rtol=rtol, tstep=tstep, max_steps=max_steps, verbose=verbose, **kwargs,
         )
 
     def get_R_matrix(self, start, end):
@@ -3298,7 +3808,7 @@ class TwissTable(Table):
                     or kk in SKEW_STRENGTHS_FROM_ATTR
                     or kk in OTHER_FIELDS_FROM_ATTR
                     or kk in OTHER_FIELDS_FROM_TABLE
-                    ):
+            ):
                 new_data[kk][:-1] = new_data[kk][:-1][::-1]
                 new_data[kk][-1] = self[kk][-1]
             elif kk == 'W_matrix':
@@ -3342,7 +3852,8 @@ class TwissTable(Table):
             out.dpx = out.dpx
             out.dy = out.dy
             out.dpy = -out.dpy
-            out.dzeta = -out.dzeta
+            if 'dzeta' in out:
+                out.dzeta = -out.dzeta
 
             if 'dx_zeta' in out._col_names:
                 out.dx_zeta = out.dx_zeta
@@ -3350,10 +3861,11 @@ class TwissTable(Table):
                 out.dy_zeta = -out.dy_zeta
                 out.dpy_zeta = out.dpy_zeta
 
-            # Untested:
-            # if 'alfx2' in out._col_names:
-            #     out.alfx2 = -out.alfx2
-            #     out.alfy2 = -out.alfy2
+            if 'alfx2' in out._col_names:
+                out.alfx1 = -out.alfx1
+                out.alfx2 = -out.alfx2
+                out.alfy1 = -out.alfy1
+                out.alfy2 = -out.alfy2
 
             out.W_matrix[:, 0, :] = -out.W_matrix[:, 0, :]
             out.W_matrix[:, 1, :] = out.W_matrix[:, 1, :]
@@ -3365,9 +3877,11 @@ class TwissTable(Table):
             out.mux = out.mux[0] - out.mux
             out.muy = out.muy[0] - out.muy
             out.muzeta = out.muzeta[0] - out.muzeta
-            out.dzeta = out.dzeta[0] - out.dzeta
             out.phix = -out.phix
             out.phiy = -out.phiy
+
+            if 'dzeta' in out:
+                out.dzeta = out.dzeta[0] - out.dzeta
 
         if 'ax_chrom' in out._col_names:
             out.ax_chrom = -out.ax_chrom
@@ -3387,7 +3901,20 @@ class TwissTable(Table):
             out.qs = 0
             out.muzeta[:] = 0
 
+        if 'spin_x' in self.keys():
+            out.spin_x *= -1
+            out.spin_z *= -1
+
         _reverse_strengths(out._data)
+
+        # Remove Edwards-Teng elements for now
+        if 'r11_edw_teng' in out._col_names:
+            out.pop('r11_edw_teng')
+            out.pop('r12_edw_teng')
+            out.pop('r21_edw_teng')
+            out.pop('r22_edw_teng')
+            out.pop('f1010')
+            out.pop('f1001')
 
         out._data['reference_frame'] = {
             'proper': 'reverse', 'reverse': 'proper'}[self.reference_frame]
@@ -3471,7 +3998,8 @@ class TwissTable(Table):
 
     def zero_at(self, name):
         for kk in CYCLICAL_QUANTITIES:
-            self[kk] -= self[kk, name]
+            if kk in self:
+                self[kk] -= self[kk, name]
 
     def target(self, tars=None, value=None, at=None, **kwargs):
         if value is None:
@@ -3494,6 +4022,7 @@ class TwissTable(Table):
             axright=None,
             axlattice=None,
             hover=False,
+            grid=True,
             figsize=(6.4*1.2, 4.8),
             lattice_only=False
             ):
@@ -3533,7 +4062,7 @@ class TwissTable(Table):
         if not hasattr(self,"_action"):
             lattice=False
 
-        if lattice and 'length' not in self.keys():
+        if lattice and 'k2l' not in self.keys():
             self.add_strengths()
 
         if mask is not None:
@@ -3564,6 +4093,7 @@ class TwissTable(Table):
                 axlattice=axlattice,
                 hover=hover,
                 figsize=figsize,
+                grid=grid,
                 )
 
         if labels is not None:
@@ -3581,6 +4111,140 @@ class TwissTable(Table):
 
         return pl
 
+    def _compute_radiation_integrals(self, add_to_tw=False):
+
+        kin_px = self['kin_px']
+        kin_py = self['kin_py']
+        delta = self['delta']
+        length = self['length']
+
+        betx = self['betx']             # Twiss beta function x
+        alfx = self['alfx']             # Twiss alpha x
+        gamx = self['gamx']             # Twiss gamma x
+        bety = self['bety']             # Twiss beta function y
+        alfy = self['alfy']             # Twiss alpha y
+        gamy = self['gamy']             # Twiss gamma y
+        dx = self['dx']                 # Dispersion x
+        dy = self['dy']                 # Dispersion y
+        dpx = self['dpx']               # Dispersion px
+        dpy = self['dpy']               # Dispersion py
+
+        mass0 = self.particle_on_co.mass0
+        r0 = self.particle_on_co.get_classical_particle_radius0()
+        gamma0 = self.particle_on_co.gamma0[0]
+
+        dxprime = dpx * (1 - delta) - kin_px
+        dyprime = dpy * (1 - delta) - kin_py
+
+        kappa_x, kappa_y, kappa0_x, kappa0_y = _compute_trajectory_curvatures(self)
+        kappa = np.sqrt(kappa_x**2 + kappa_y**2)
+        kappa0 = np.sqrt(kappa0_x**2 + kappa0_y**2)
+
+        # quadrupole gradient
+        mask = length != 0
+        k1 = 0 * length
+        k1[mask] = self.k1l[mask] / length[mask]
+
+        # Curly H
+        Hx_rad = gamx * dx**2 + 2*alfx * dx * dxprime + betx * dxprime**2
+        Hy_rad = gamy * dy**2 + 2*alfy * dy * dyprime + bety * dyprime**2
+
+        # Integrands
+        i1x_integrand = kappa0_x * dx
+        i1y_integrand = kappa0_y * dy
+
+        i2_integrand = kappa * kappa
+
+        i3_integrand = np.abs(kappa * kappa * kappa)
+
+        i4x_integrand = dx * (kappa0_x * kappa**2 + 2 * k1 * kappa_x)
+        i4y_integrand = dy * (kappa0_y * kappa**2 - 2 * k1 * kappa_y)
+        i4_integrand = i4x_integrand + i4y_integrand
+
+
+        i5x_integrand = np.abs(kappa * kappa * kappa) * Hx_rad
+        i5y_integrand = np.abs(kappa * kappa * kappa) * Hy_rad
+
+        # Integrate
+        i1x = np.sum(i1x_integrand * length)
+        i1y = np.sum(i1y_integrand * length)
+        i2 = np.sum(i2_integrand * length)
+        i3 = np.sum(i3_integrand * length)
+        i4 = np.sum(i4_integrand * length)
+        i4x = np.sum(i4x_integrand * length)
+        i4y = np.sum(i4y_integrand * length)
+        i5x = np.sum(i5x_integrand * length)
+        i5y = np.sum(i5y_integrand * length)
+
+        # Emittances
+        eq_gemitt_x = (55/(32 * 3**(1/2)) * hbar / electron_volt * clight
+                    / mass0 * gamma0**2 * i5x / (i2 - i4x))
+        eq_gemitt_y = (55/(32 * 3**(1/2)) * hbar / electron_volt * clight
+                    / mass0 * gamma0**2 * i5y / (i2 - i4y))
+
+        # Damping constants
+        damping_constant_x_s = r0/3 * gamma0**3 * clight/self.circumference * (i2 - i4x)
+        damping_constant_y_s = r0/3 * gamma0**3 * clight/self.circumference * (i2 - i4y)
+        damping_constant_zeta_s = r0/3 * gamma0**3 * clight/self.circumference * (2*i2 + i4)
+
+        # Velocity direction (for spin)
+        ps = np.sqrt((1 + delta)**2 - kin_px**2 - kin_py**2)
+        xp = kin_px / ps
+        yp = kin_py / ps
+        tempv = np.sqrt(xp**2 + yp**2 + 1)
+        iv_x = xp / tempv
+        iv_y = yp / tempv
+        iv_z = 1 / tempv
+
+        cols = {
+            'rad_int_curly_hx': Hx_rad,
+            'rad_int_curly_hy': Hy_rad,
+            'rad_int_i1x_integrand': i1x_integrand,
+            'rad_int_i1y_integrand': i1y_integrand,
+            'rad_int_l2_integrand': i2_integrand,
+            'rad_int_i3_integrand': i3_integrand,
+            'rad_int_i4_integrand': i4_integrand,
+            'rad_int_i4x_integrand': i4x_integrand,
+            'rad_int_i4y_integrand': i4y_integrand,
+            'rad_int_i5x_integrand': i5x_integrand,
+            'rad_int_i5y_integrand': i5y_integrand,
+            'rad_int_kappa0_x': kappa0_x,
+            'rad_int_kappa0_y': kappa0_y,
+            'rad_int_kappa0': kappa0,
+            'rad_int_kappa_x': kappa_x,
+            'rad_int_kappa_y': kappa_y,
+            'rad_int_kappa': kappa,
+            'rad_int_iv_x': iv_x,
+            'rad_int_iv_y': iv_y,
+            'rad_int_iv_z': iv_z,
+        }
+
+        scalars = {
+            'rad_int_i1x': i1x,
+            'rad_int_i1y': i1y,
+            'rad_int_i2': i2,
+            'rad_int_i3': i3,
+            'rad_int_i4': i4,
+            'rad_int_i4x': i4x,
+            'rad_int_i4y': i4y,
+            'rad_int_i5x': i5x,
+            'rad_int_i5y': i5y,
+            'rad_int_eq_gemitt_x': eq_gemitt_x,
+            'rad_int_eq_gemitt_y': eq_gemitt_y,
+            'rad_int_damping_constant_x_s': damping_constant_x_s,
+            'rad_int_damping_constant_y_s': damping_constant_y_s,
+            'rad_int_damping_constant_zeta_s': damping_constant_zeta_s,
+        }
+
+        out = Table({'name': self.name, 's': self.s, 'length':self.length} | cols)
+        out._data.update(scalars)
+
+        if add_to_tw:
+            for ncc, cc in cols.items():
+                self[ncc] = cc
+            self._data.update(scalars)
+
+        return out
 
 def _complete_twiss_init(start, end, init_at, init,
                         line, reverse,
@@ -3589,7 +4253,8 @@ def _complete_twiss_init(start, end, init_at, init,
                         dx, dpx, dy, dpy, dzeta,
                         mux, muy, muzeta,
                         ax_chrom, bx_chrom, ay_chrom, by_chrom,
-                        ddx, ddpx, ddy, ddpy
+                        ddx, ddpx, ddy, ddpy,
+                        spin_x, spin_y, spin_z
                         ):
 
     if isinstance(init, TwissInit) and init_at is not None:
@@ -3613,6 +4278,7 @@ def _complete_twiss_init(start, end, init_at, init,
                 ax_chrom=ax_chrom, bx_chrom=bx_chrom,
                 ay_chrom=ay_chrom, by_chrom=by_chrom,
                 ddpx=ddpx, ddx=ddx, ddpy=ddpy, ddy=ddy,
+                spin_x=spin_x, spin_y=spin_y, spin_z=spin_z
                 )
         elif isinstance(init, TwissTable):
             init = init.get_twiss_init(at_element=init_at)
@@ -3739,6 +4405,12 @@ def _extract_twiss_parameters_with_inverse(Ws):
     bety1 = np.abs(EE[0, :, 2, 2])
     betx2 = np.abs(EE[1, :, 0, 0])
 
+    alfy1 = -EE[0, :, 2, 3]
+    alfx2 = -EE[1, :, 0, 1]
+
+    gamy1 = EE[0, :, 3, 3]
+    gamx2 = EE[1, :, 1, 1]
+
     sign_x = np.sign(betx)
     sign_y = np.sign(bety)
     betx *= sign_x
@@ -3748,7 +4420,7 @@ def _extract_twiss_parameters_with_inverse(Ws):
     alfy *= sign_y
     gamy *= sign_y
 
-    return betx, alfx, gamx, bety, alfy, gamy, bety1, betx2
+    return betx, alfx, gamx, bety, alfy, gamy, bety1, betx2, alfy1, alfx2, gamy1, gamx2
 
 def _str_to_index(line, ele, allow_end_point=True):
     if allow_end_point and ele == '_end_point':
@@ -3937,7 +4609,7 @@ def get_non_linear_chromaticity(line, delta0_range, num_delta, fit_order=3, **kw
 
     return out
 
-def _merit_function_co_t_rec(x, line, num_turns):
+def _merit_function_co_t_rev(x, line, num_turns):
     p = line.build_particles(x=x[0], px=x[1], y=x[2], py=x[3], zeta=x[4], delta=x[5])
     line.track(p, num_turns=num_turns, turn_by_turn_monitor=True)
     rec = line.record_last_track
@@ -3955,7 +4627,7 @@ def _find_closed_orbit_search_t_rev(line, num_turns_search_t_rev=None):
     if num_turns_search_t_rev is None:
         num_turns_search_t_rev = DEFAULT_NUM_TURNS_SEARCH_T_REV
 
-    opt = xt.match.opt_from_callable(partial(_merit_function_co_t_rec,
+    opt = xt.match.opt_from_callable(partial(_merit_function_co_t_rev,
                         line=line, num_turns=num_turns_search_t_rev),
                         x0=np.array(6*[0.]),
                         steps=[1e-9, 1e-10, 1e-9, 1e-10, 1e-4, 1e-7],
@@ -4023,3 +4695,376 @@ def _add_strengths_to_twiss_res(twiss_res, line):
                 + OTHER_FIELDS_FROM_ATTR + OTHER_FIELDS_FROM_TABLE):
         twiss_res._col_names.append(kk)
         twiss_res._data[kk] = tt[kk].copy()
+
+def _find_spin_fixed_point(line, particle_on_co):
+
+    with xt.line._preserve_config(line):
+        # Spin is behind the same compile flag as synchrotron radiation
+        line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
+        opt = xd.Optimize.from_callable(
+            partial(_errfun_spin, particle_on_co=particle_on_co, line=line),
+            x0=(0., 0.),
+            steps=[1e-4, 1e-4],
+            tar=[0., 0.],
+            limits=[(-1, 1), (-1, 1)],
+            tols=[1e-12, 1e-12],
+            show_call_counter=False)
+        opt.solve(verbose=False)
+
+    sx_opt = opt.get_knob_values()[0]
+    sz_opt = opt.get_knob_values()[1]
+    sy_opt = np.sqrt(1 - sx_opt**2 - sz_opt**2)
+
+    return (sx_opt, sy_opt, sz_opt)
+
+def _errfun_spin(s, line, particle_on_co):
+    pp = particle_on_co.copy()
+
+    sx = s[0]
+    sz = s[1]
+    sy = np.sqrt(1 - sx**2 - sz**2)
+
+    pp.spin_x = sx
+    pp.spin_z = sz
+    pp.spin_y = sy
+
+    line.track(pp)
+
+    return np.array([pp.spin_x[0] - sx,
+                        pp.spin_y[0] - sy,
+                        pp.spin_z[0] - sz])
+
+def _compute_spin_polarization(tw, line, method):
+
+    with xt.line._preserve_config(line):
+
+        line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False # For spin
+
+        # Based on:
+        # A. Chao, valuation of Radiative Spin Polarization in an Electron Storage Ring
+        # https://inspirehep.net/literature/154360
+
+        steps_r_matrix = tw.steps_r_matrix
+
+        for kk in steps_r_matrix:
+            steps_r_matrix[kk] *= 0.1
+
+        out = line.compute_one_turn_matrix_finite_differences(particle_on_co=tw.particle_on_co,
+                                                            element_by_element=True,
+                                                            steps_r_matrix=steps_r_matrix)
+        mon_r_ebe = out['mon_ebe']
+        part = out['part_temp']
+
+        steps_r_matrix = out['steps_r_matrix']
+
+        dx = steps_r_matrix["dx"]
+        dpx = steps_r_matrix["dpx"]
+        dy = steps_r_matrix["dy"]
+        dpy = steps_r_matrix["dpy"]
+        dzeta = steps_r_matrix["dzeta"]
+        ddelta = steps_r_matrix["ddelta"]
+
+        dpzeta = float(part.ptau[6] - part.ptau[12])/2/part.beta0[0]
+
+        temp_mat = np.zeros((3, len(part.spin_x)))
+        temp_mat[0, :] = part.spin_x
+        temp_mat[1, :] = part.spin_y
+        temp_mat[2, :] = part.spin_z
+
+        DD = np.zeros((3, 6))
+
+        for jj, dd in enumerate([dx, dpx, dy, dpy, dzeta, dpzeta]):
+            DD[:, jj] = (temp_mat[:, jj+1] - temp_mat[:, jj+1+6])/(2*dd)
+
+        RR = np.eye(9)
+        RR_orb = out['R_matrix'].copy()
+        RR[:6, :6] = out['R_matrix']
+        RR[6:, :6] = DD
+
+        # Spin response matrix
+        ds = 1e-5
+
+        import xpart as xp
+        p_test = xp.build_particles(particle_ref=tw.particle_on_co, mode='shift',
+                                    x=[0,0,0,0,0,0])
+        p_test.spin_x = [ds, 0, 0, -ds, 0, 0]
+        p_test.spin_y = [0, ds, 0, 0, -ds, 0]
+        p_test.spin_z = [0, 0, ds, 0, 0, -ds]
+
+        line.track(p_test)
+
+        A = np.zeros((3, 3))
+        A[0, 0] = (p_test.spin_x[0] - p_test.spin_x[3])/(2*ds)
+        A[0, 1] = (p_test.spin_x[1] - p_test.spin_x[4])/(2*ds)
+        A[0, 2] = (p_test.spin_x[2] - p_test.spin_x[5])/(2*ds)
+        A[1, 0] = (p_test.spin_y[0] - p_test.spin_y[3])/(2*ds)
+        A[1, 1] = (p_test.spin_y[1] - p_test.spin_y[4])/(2*ds)
+        A[1, 2] = (p_test.spin_y[2] - p_test.spin_y[5])/(2*ds)
+        A[2, 0] = (p_test.spin_z[0] - p_test.spin_z[3])/(2*ds)
+        A[2, 1] = (p_test.spin_z[1] - p_test.spin_z[4])/(2*ds)
+        A[2, 2] = (p_test.spin_z[2] - p_test.spin_z[5])/(2*ds)
+
+        RR[6:, 6:] = A
+
+        # For the spin tune I take the eigenvalue with the largest imaginary part
+        # (there are the eigenvalues, one is 1.0 + 0j, the others are complex conjugates)
+        spin_tune_fractional = np.max(np.angle(np.linalg.eigvals(A))) / (2 * np.pi)
+
+        # Detect no RF
+        if np.abs(RR[5, 4]) < 1e-12:
+            assert method == '4d'
+
+        if method == '4d':
+            RR_for_eig = np.delete(np.delete(RR, 4, axis=0), 4, axis=1)
+        else:
+            RR_for_eig = RR
+
+        eival_all, eivec_all = np.linalg.eig(RR_for_eig)
+
+        # Suppress the 4th row and col
+        if method == '4d':
+            RR_orb = np.delete(RR_orb, 4, axis=0)
+            RR_orb = np.delete(RR_orb, 4, axis=1)
+
+        eival, EE_orb = np.linalg.eig(RR_orb)
+        n_eigen = EE_orb.shape[1]
+
+        # Add a dummy row 4 in eivec
+        if method == '4d':
+            EE_orb = np.insert(EE_orb, 4, 0, axis=0)
+
+        EE_spin = np.zeros((3, n_eigen), dtype=complex)
+        for ii in range(n_eigen):
+            EE_spin[:, ii] = np.linalg.inv(eival[ii] * np.eye(3) - A) @ DD @ EE_orb[:, ii]
+
+        eee = np.zeros((9, n_eigen), dtype=complex)
+        eee[:6, :] = EE_orb
+        eee[6:, :] = EE_spin
+
+        # Identify eigenvector with eigenvalue 1 and remove n0 component
+        # This happens because also n0 is an eigenvector asslociated to
+        # the eigenvalue 1
+        if method == '4d':
+            i_eigen_one = np.argmin(np.abs(eival - 1))
+            n0 = np.array([tw.spin_x[0], tw.spin_y[0], tw.spin_z[0]])
+            eee[6:, i_eigen_one] -= np.dot(eee[6:, i_eigen_one], n0) * n0
+
+        # Scale and track eigenvectors
+        def get_scale(e):
+            return np.max([np.abs(e[0])/dx, np.abs(e[1])/dpx,
+                        np.abs(e[2])/dy, np.abs(e[3])/dpy,
+                        np.abs(e[4])/dzeta, np.abs(e[5])/dpzeta,
+                        np.abs(e[6])/ds, np.abs(e[7])/ds,
+                        np.abs(e[8])/ds,
+                        ])
+
+        scales = [get_scale(eee[:, ii]) for ii in range(n_eigen)]
+
+        eee_scaled = np.zeros((9, n_eigen), dtype=complex)
+        for ii in range(n_eigen):
+            eee_scaled[:, ii] = eee[:, ii] / scales[ii]
+
+        EE_side = {}
+
+        for side in [1, -1]:
+
+            eee_trk_re = side * eee_scaled.real
+            eee_trk_im = side * eee_scaled.imag
+
+            particle_data = {}
+            for ii, key in enumerate(['x', 'px', 'y', 'py', 'zeta', 'ptau',
+                                    'spin_x', 'spin_y', 'spin_z']):
+                particle_data[key] = tw[key][0] + np.array(
+                    list(eee_trk_re[ii, :]) + list(eee_trk_im[ii, :])
+                )
+
+            par_track = xp.build_particles(
+                particle_ref=tw.particle_on_co, mode='set', **particle_data
+            )
+
+            line.track(par_track, turn_by_turn_monitor='ONE_TURN_EBE')
+            mon_ebe = line.record_last_track
+
+            ee_ebe = np.zeros((len(tw), 9, n_eigen), dtype=complex)
+
+            for ii, key in enumerate(['x', 'px', 'y', 'py', 'zeta', 'ptau',
+                                    'spin_x', 'spin_y', 'spin_z']):
+                mon_vv = getattr(mon_ebe, key)
+                for iee in range(n_eigen):
+                    ee_ebe[:, ii, iee] = side *((mon_vv[iee, :] - tw[key])
+                                    + 1j * (mon_vv[n_eigen + iee, :] - tw[key]))
+
+            # Rephase
+            for ii in range(n_eigen):
+                i_max = np.argmax(np.abs(ee_ebe[0, :, ii])) # Strongest component at start ring
+                this_phi = np.angle(ee_ebe[:, i_max, ii])
+                for jj in range(ee_ebe.shape[1]):
+                    ee_ebe[:, jj, ii] *= np.exp(-1j * this_phi)
+
+            EE = ee_ebe.copy()
+
+            EE_side[side] = EE
+
+        # Average the two sides
+        EE = 0.5 * (EE_side[1] + EE_side[-1])
+        EE_orb  = EE[:, :6, :]
+        EE_spin = EE[:, 6:, :]
+
+        if method == '4d':
+            # Remove the 4th row
+            EE_orb = np.delete(EE_orb, 4, axis=1)
+
+        # In the future we could add a filter to select certain modes
+        # fltr = np.diag([1, 1, 1, 1, 1]) # to select only certain modes
+        fltr = np.eye(EE_orb.shape[1]) # for now
+
+        NN = np.real(EE_spin @ fltr @ np.linalg.inv(EE_orb))
+        if method == '4d':
+            # Add a dummy col 4 in NN
+            NN = np.insert(NN, 4, 0, axis=2)
+        dn_ddelta = NN[:, :, 5]
+
+        dn_ddelta_mod = np.sqrt(dn_ddelta[:, 0]**2
+                                    + dn_ddelta[:, 1]**2
+                                    + dn_ddelta[:, 2]**2)
+
+        kappa_x = tw.rad_int_kappa_x
+        kappa_y = tw.rad_int_kappa_y
+        kappa = tw.rad_int_kappa
+        iv_x = tw.rad_int_iv_x
+        iv_y = tw.rad_int_iv_y
+        iv_z = tw.rad_int_iv_z
+
+        n0_iv = tw.spin_x * iv_x + tw.spin_y * iv_y + tw.spin_z * iv_z
+        r0 = tw.particle_on_co.get_classical_particle_radius0()
+        m0_J = tw.particle_on_co.mass0 * qe
+        m0_kg = m0_J / clight**2
+
+        # reference https://lib-extopc.kek.jp/preprints/PDF/1980/8011/8011060.pdf
+        brho_ref = tw.particle_on_co.p0c[0] / clight / tw.particle_on_co.q0
+        brho_part = (brho_ref * tw.particle_on_co.rvv[0] * tw.particle_on_co.energy[0]
+                    / tw.particle_on_co.energy0[0])
+
+        By = kappa_x * brho_part
+        Bx = -kappa_y * brho_part
+        Bz = tw.ks * brho_ref
+        B_mod = np.sqrt(Bx**2 + By**2 + Bz**2)
+        B_mod[B_mod == 0] = 999. # avoid division by zero
+
+        ib_x = Bx / B_mod
+        ib_y = By / B_mod
+        ib_z = Bz / B_mod
+
+        n0_ib = tw.spin_x * ib_x + tw.spin_y * ib_y + tw.spin_z * ib_z
+        dn_ddelta_ib = (dn_ddelta[:, 0] * ib_x
+                            + dn_ddelta[:, 1] * ib_y
+                            + dn_ddelta[:, 2] * ib_z)
+
+        int_kappa3_n0_ib = np.sum(kappa**3 * n0_ib * tw.length)
+        int_kappa3_dn_ddelta_ib = np.sum(kappa**3 * dn_ddelta_ib * tw.length)
+        int_kappa3_11_18_dn_ddelta_sq = 11./18. * np.sum(kappa**3 * dn_ddelta_mod**2 * tw.length)
+
+        alpha_minus_co = 1. / tw.circumference * np.sum(kappa**3 * n0_ib *  tw.length)
+
+        alpha_plus_co = 1. / tw.circumference * np.sum(
+            kappa**3 * (1 - 2./9. * n0_iv**2) * tw.length)
+
+        alpha_plus = alpha_plus_co + int_kappa3_11_18_dn_ddelta_sq / tw.circumference
+        alpha_minus = alpha_minus_co - int_kappa3_dn_ddelta_ib / tw.circumference
+
+        pol_inf = 8 / 5 / np.sqrt(3) * alpha_minus_co / alpha_plus_co
+        pol_eq = 8 / 5 / np.sqrt(3) * alpha_minus / alpha_plus
+
+        one_over_t_pol_component_s = (
+            5 * np.sqrt(3) / 8 * r0 * hbar * tw.gamma0**5 / m0_kg * alpha_plus_co)
+        one_over_t_pol_buildup_s = (
+            5 * np.sqrt(3) / 8 * r0 * hbar * tw.gamma0**5 / m0_kg * alpha_plus)
+
+        one_over_t_depol_component_s = one_over_t_pol_buildup_s - one_over_t_pol_component_s
+
+        t_pol_component_s = 1 / one_over_t_pol_component_s
+        t_pol_buildup_s = 1 / one_over_t_pol_buildup_s
+        t_depol_component_s = 1 / one_over_t_depol_component_s
+
+        cols = {
+            'spin_dn_ddelta_x': dn_ddelta[:, 0],
+            'spin_dn_ddelta_y': dn_ddelta[:, 1],
+            'spin_dn_ddelta_z': dn_ddelta[:, 2],
+            'spin_eigenvectors': EE,
+            'spin_n_matrix': NN,
+            'spin_n0_iv': n0_iv,
+            'spin_n0_ib': n0_ib,
+        }
+
+        other_data = {
+            'spin_tune_fractional': spin_tune_fractional,
+            'spin_polarization_eq': pol_eq,
+            'spin_t_pol_buildup_s': t_pol_buildup_s,
+            'spin_polarization_inf_no_depol': pol_inf,
+            'spin_alpha_plus_co': alpha_plus_co,
+            'spin_alpha_minus_co': alpha_minus_co,
+            'spin_alpha_plus': alpha_plus,
+            'spin_alpha_minus': alpha_minus,
+            'spin_int_kappa3_n0_ib': int_kappa3_n0_ib,
+            'spin_int_kappa3_dn_ddelta_ib': int_kappa3_dn_ddelta_ib,
+            'spin_int_kappa3_11_18_dn_ddelta_sq': int_kappa3_11_18_dn_ddelta_sq,
+            'spin_t_pol_component_s': t_pol_component_s,
+            'spin_t_depol_component_s': t_depol_component_s,
+
+            # For diagnostics
+            '_spin_ee_side': EE_side,
+            '_spin_scale_factors': scales,
+            '_spin_eee_trk_re': eee_trk_re,
+            '_spin_eee_trk_im': eee_trk_im,
+        }
+
+        for nn in cols:
+            tw[nn] = cols[nn]
+
+        for nn in other_data:
+            tw._data[nn] = other_data[nn]
+
+
+def _compute_trajectory_curvatures(twiss_res):
+
+    angle_rad = twiss_res['angle_rad']
+    rot_s_rad = twiss_res['rot_s_rad']
+    x = twiss_res['x']
+    y = twiss_res['y']
+    kin_px = twiss_res['kin_px']
+    kin_py = twiss_res['kin_py']
+    delta = twiss_res['delta']
+    length = twiss_res['length']
+
+    # Curvature of the reference trajectory
+    mask = length != 0
+    kappa0_x = 0 * angle_rad
+    kappa0_y = 0 * angle_rad
+    kappa0_x[mask] = angle_rad[mask] * np.cos(rot_s_rad[mask]) / length[mask]
+    kappa0_y[mask] = angle_rad[mask] * np.sin(rot_s_rad[mask]) / length[mask]
+
+    # Compute x', y', x'', y''
+    ps = np.sqrt((1 + delta)**2 - kin_px**2 - kin_py**2)
+    xp = kin_px / ps
+    yp = kin_py / ps
+    xp_ele = xp * 0
+    yp_ele = yp * 0
+    xp_ele[:-1] = (xp[:-1] + xp[1:]) / 2
+    yp_ele[:-1] = (yp[:-1] + yp[1:]) / 2
+
+    mask_length = length != 0
+    xpp_ele = xp_ele * 0
+    ypp_ele = yp_ele * 0
+    xpp_ele[mask_length] = np.diff(xp, append=0)[mask_length] / length[mask_length]
+    ypp_ele[mask_length] = np.diff(yp, append=0)[mask_length] / length[mask_length]
+
+    # Curvature of the particle trajectory
+    hhh = 1 + kappa0_x * x + kappa0_y * y
+    hprime = kappa0_x * xp_ele + kappa0_y * yp_ele
+    mask = hhh**2 != 0
+    kappa_x = (-(hhh * (xpp_ele - hhh * kappa0_x) - 2 * hprime * xp_ele)[mask]
+            / (xp_ele**2 + hhh**2)[mask]**(3/2))
+    kappa_y = (-(hhh * (ypp_ele - hhh * kappa0_y) - 2 * hprime * yp_ele)[mask]
+            / (yp_ele**2 + hhh**2)[mask]**(3/2))
+
+    return kappa_x, kappa_y, kappa0_x, kappa0_y

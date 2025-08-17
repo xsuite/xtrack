@@ -6,12 +6,18 @@ from .general import _print
 import xtrack as xt
 import xobjects as xo
 
-def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-12,
-                                     max_iter=100, verbose=True, **kwargs):
+def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-12,
+                                     max_iter=100, verbose=True,
+                                     co_search_at=None,
+                                     **kwargs):
 
     assert isinstance(line._context, xo.ContextCpu), "Only CPU context is supported"
     assert line.particle_ref is not None, "Particle reference is not set"
     assert np.abs(line.particle_ref.q0) == 1, "Only |q0| = 1 is supported (for now)"
+
+    if len(set(line.element_names)) != len(line.element_names):
+        raise ValueError("Line must not contain repeated elements to use "
+                         "`compensate_radiation_energy_loss(...)`. ")
 
     if 'record_iterations' in kwargs:
         record_iterations = kwargs['record_iterations']
@@ -24,14 +30,14 @@ def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-12,
 
     line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
     with xt.freeze_longitudinal(line):
-        particle_on_co = line.find_closed_orbit()
+        particle_on_co = line.find_closed_orbit(co_search_at=co_search_at)
     line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
 
     beta0 = float(particle_on_co._xobject.beta0[0])
 
     # Check whether compensation is needed
     p_test = particle_on_co.copy()
-    p_test.delta = delta0
+    p_test.delta = line.attr._cache['delta_taper'].multisetter.get_values()[0]
     line.track(p_test, turn_by_turn_monitor='ONE_TURN_EBE')
     mon = line.record_last_track
     eloss = -(mon.ptau[0, -1] - mon.ptau[0, 0]) * p_test.p0c[0]
@@ -61,28 +67,45 @@ def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-12,
         line.config.XTRACK_MULTIPOLE_TAPER = True
         line.config.XTRACK_DIPOLEEDGE_TAPER = True
 
-        i_iter = 0
-        while True:
-            p_test = particle_on_co.copy()
-            p_test.delta = delta0
-            line.track(p_test, turn_by_turn_monitor='ONE_TURN_EBE')
-            mon = line.record_last_track
+        if delta0 == 'zero_mean':
+            num_rounds = 2
+            delta_start = 0
+        else:
+            num_rounds = 1
+            delta_start = delta0
 
-            if record_iterations:
-                line._tapering_iterations.append(mon)
+        for round in range(num_rounds):
+            i_iter = 0
 
-            eloss = -(mon.ptau[0, -1] - mon.ptau[0, 0]) * p_test.p0c[0]
-            if verbose: _print(f"Energy loss: {eloss:.3f} eV             ")#, end='\r', flush=True)
+            while True:
 
-            if eloss < p_test.energy0[0] * rtol_eneloss:
-                break
+                if round == 1 and delta0 == 'zero_mean':
+                    delta_ave = xt.twiss.trapz(delta, ss) / ss[-1]
+                    delta_start -= delta_ave
 
-            v_setter.set_values(v_setter.get_values()
-                                + eloss * eneloss_partitioning)
+                p_test = particle_on_co.copy()
+                p_test.delta = delta_start
+                line.track(p_test, turn_by_turn_monitor='ONE_TURN_EBE')
+                mon = line.record_last_track
 
-            i_iter += 1
-            if i_iter > max_iter:
-                raise RuntimeError("Maximum number of iterations reached")
+                if record_iterations:
+                    line._tapering_iterations.append(mon)
+
+                eloss = -(mon.ptau[0, -1] - mon.ptau[0, 0]) * p_test.p0c[0]
+                if verbose: _print(f"Energy loss: {eloss:_.3f} eV             ")#, end='\r', flush=True)
+
+                if np.abs(eloss) < p_test.energy0[0] * rtol_eneloss:
+                    break
+
+                v_setter.set_values(v_setter.get_values()
+                                    + eloss * eneloss_partitioning)
+
+                delta = mon.delta[0, :-1]
+                ss = mon.s[0, :-1]
+
+                i_iter += 1
+                if i_iter > max_iter:
+                    raise RuntimeError("Maximum number of iterations reached")
     if verbose: _print()
     delta_taper_full = 0.5*(mon.delta[0, :-1] + mon.delta[0, 1:]) # last point is added by the monitor
 

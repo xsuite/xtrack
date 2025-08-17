@@ -9,7 +9,7 @@ import numpy as np
 import xtrack as xt
 
 fname_line_particles = '../../test_data/hllhc15_noerrors_nobb/line_and_particle.json'
-line = xt.Line.from_json(fname_line_particles)
+line = xt.load(fname_line_particles)
 line.particle_ref = xt.Particles(p0c=7e12, mass0=xt.PROTON_MASS_EV)
 line.build_tracker()
 

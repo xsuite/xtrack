@@ -1,9 +1,12 @@
 import io
+import operator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Tuple, TypedDict, Union, Literal
 
 from lark import Lark, Transformer, v_args, Token
+
+from xdeps.refs import BaseRef, is_ref
 
 grammar = Path(__file__).with_name('madx.lark').read_text()
 
@@ -14,9 +17,7 @@ grammar = Path(__file__).with_name('madx.lark').read_text()
 VarValueType = Union[int, float, str, bool]
 
 
-class VarType(TypedDict):
-    expr: Union[VarValueType, List[VarValueType]]
-    deferred: bool
+VarType = Union[VarValueType, BaseRef]
 
 
 class ModifiersType(TypedDict, total=False):
@@ -39,7 +40,6 @@ class LineType(TypedDict, ModifiersType):
 ElementType = Union[TypedDict('ElementType', {'parent': str}), Dict[str, VarType]]
 
 class MadxOutputType(TypedDict):
-    vars: Dict[str, VarType]
     elements: Dict[str, ElementType]
     lines: Dict[str, LineType]
     parameters: Dict[str, ElementType]
@@ -59,9 +59,7 @@ class Modifiers:
         return out
 
 
-def make_op_handler(op):
-    def op_func(a, b):
-        return f'({a} {op} {b})'
+def make_op_handler(op_func):
     return staticmethod(op_func)
 
 
@@ -71,12 +69,13 @@ def warn(warning):
 
 @v_args(inline=True)
 class MadxTransformer(Transformer):
-    def __init__(self):
+    def __init__(self, vars, functions):
         super().__init__()
-        self.vars: Dict[str, VarType] = {}
         self.elements: Dict[str, ElementType] = {}
         self.lines: Dict[str, LineType] = {}
         self.parameters = {}
+        self.vars = vars
+        self.functions = functions
 
     def ignored(self, tokens):
         if tokens:
@@ -90,40 +89,39 @@ class MadxTransformer(Transformer):
         warn(f'Ignoring statement: `{statement}`')
 
     def assign_defer(self, name, value) -> Tuple[str, VarType]:
-        return name.value.lower(), {
-            'expr': value,
-            'deferred': True,
-        }
+        return name.value.lower(), value
 
     def assign_value(self, name, value) -> Tuple[str, VarType]:
-        return name.value.lower(), {
-            'expr': value,
-            'deferred': False,
-        }
+        if is_ref(value):
+            value = value._get_value()
+        return name.value.lower(), value
+
+    def special_token_name(self, token):
+        return token.value.lower()
 
     def set_var(self, assignment: Tuple[str, VarType]):
         name, value = assignment
         self.vars[name] = value
 
     def name_atom(self, name):
-        field = name.value
-        return field.lower()
-
-    def constant(self, const_token):
-        return const_token.value.lower()
+        field = name.value.lower()
+        if self.vars.default_to_zero and field not in self.vars:
+            self.vars[field] = 0
+        return self.vars[field]
 
     def number(self, value):
         float_value = float(value)
         return float_value
 
     def string_literal(self, string):
-        return string.value[1:-1]
+        return string.value[1:-1].lower()
 
     def call(self, function, *args):
-        return f'{function}({", ".join(map(str, args))})'
+        return function(*args)
 
     def function(self, name_token):
-        return name_token.value.lower()
+        field = name_token.value.lower()
+        return self.functions[field]
 
     def command(self, name_token, arglist):
         command = name_token.value
@@ -135,16 +133,10 @@ class MadxTransformer(Transformer):
         return args
 
     def set_flag(self, name_token):
-        return name_token.value.lower(), {
-            'expr': True,
-            'deferred': False,
-        }
+        return name_token.value.lower(), True
 
     def reset_flag(self, name_token):
-        return name_token.value.lower(), {
-            'expr': False,
-            'deferred': False,
-        }
+        return name_token.value.lower(), False
 
     def sequence(self, name_token, arglist, *clones) -> Tuple[str, LineType]:
         return name_token.value.lower(), {
@@ -162,8 +154,6 @@ class MadxTransformer(Transformer):
         if sequence_name['deferred']:
             raise ValueError('Param `sequence` of `seqedit` cannot be deferred.')
 
-        sequence_name = sequence_name['expr']
-
         for command in commands:
             name, params = command
 
@@ -171,7 +161,7 @@ class MadxTransformer(Transformer):
                 raise ValueError(f'Commands in `seqedit` are not supported with deferred params')
 
             if name == 'install':
-                element_name = params.pop('element')['expr']
+                element_name = params.pop('element')
                 self.lines[sequence_name]['elements'].append((element_name, params))
             else:
                 warn(f'Command {name} with params {params} is ignored')
@@ -184,11 +174,6 @@ class MadxTransformer(Transformer):
         args = dict(arglist)
         parent = command_token.value.lower()
 
-        if parent == 'marker' and 'apertype' in args:
-            # Collapse aperture markers into actual aperture elements, this
-            # will make loading easier for now.
-            parent = args.pop('apertype')['expr']
-
         return name_token.value.lower(), {
             'parent': parent,
             **args,
@@ -196,10 +181,7 @@ class MadxTransformer(Transformer):
 
     def top_level_clone(self, clone):
         name, body = clone
-        self.elements[name] = {
-            'parent': name,
-            **body,
-        }
+        self.elements[name] = body
 
     def command_stmt(self, command_token, arglist):
         return command_token.value.lower(), dict(arglist)
@@ -254,7 +236,6 @@ class MadxTransformer(Transformer):
     @v_args(inline=False)
     def start(self, _) -> MadxOutputType:
         return {
-            'vars': self.vars,
             'elements': self.elements,
             'lines': self.lines,
             'parameters': self.parameters,
@@ -266,32 +247,24 @@ class MadxTransformer(Transformer):
             b = 'length'
         return f'{a}->{b}'
 
-    op_lt = make_op_handler('<')
-    op_gt = make_op_handler('>')
-    op_le = make_op_handler('<=')
-    op_ge = make_op_handler('>=')
-    op_eq = make_op_handler('==')
-    op_ne = make_op_handler('!=')
-    op_add = make_op_handler('+')
-    op_sub = make_op_handler('-')
-    op_mul = make_op_handler('*')
-    op_div = make_op_handler('/')
-    op_pow = make_op_handler('**')
-
-    def op_neg(self, a):
-        if isinstance(a, float):
-            return -a
-        return f'-{a}'
-
-    def op_pos(self, a):
-        if isinstance(a, float):
-            return a
-        return f'+{a}'
+    op_lt = staticmethod(operator.lt)
+    op_gt = staticmethod(operator.gt)
+    op_le = staticmethod(operator.le)
+    op_ge = staticmethod(operator.ge)
+    op_eq = staticmethod(operator.eq)
+    op_ne = staticmethod(operator.ne)
+    op_add = staticmethod(operator.add)
+    op_sub = staticmethod(operator.sub)
+    op_mul = staticmethod(operator.mul)
+    op_div = staticmethod(operator.truediv)
+    op_pow = staticmethod(operator.pow)
+    op_neg = staticmethod(operator.neg)
+    op_pos = staticmethod(operator.pos)
 
 
 class MadxParser:
-    def __init__(self):
-        self.transformer = MadxTransformer()
+    def __init__(self, vars, functions):
+        self.transformer = MadxTransformer(vars, functions)
         self.parser = Lark(grammar, parser='lalr', transformer=self.transformer)
 
     def parse_string(self, text: str) -> MadxOutputType:

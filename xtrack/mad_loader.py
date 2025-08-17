@@ -420,8 +420,6 @@ class Alignment:
 class Dummy:
     type = "None"
 
-def _default_factory():
-    return 0.
 
 class MadLoader:
     @staticmethod
@@ -429,11 +427,11 @@ class MadLoader:
         """Enable expressions"""
         if line._var_management is None:
             line._init_var_management()
+        line.vars.default_to_zero = True
 
         from xdeps.madxutils import MadxEval
 
         _var_values = line._var_management["data"]["var_values"]
-        _var_values.default_factory = _default_factory
         for name, par in mad.globals.cmdpar.items():
             if replace_in_expr is not None:
                 for k, v in replace_in_expr.items():
@@ -482,6 +480,7 @@ class MadLoader:
         allow_thick=False,
         name_prefix=None,
         enable_layout_data=False,
+        enable_thick_kickers=False,
     ):
 
 
@@ -519,6 +518,7 @@ class MadLoader:
         self.ignore_madtypes = ignore_madtypes
         self.name_prefix = name_prefix
         self.enable_layout_data = enable_layout_data
+        self.enable_thick_kickers = enable_thick_kickers
 
         self.allow_thick = allow_thick
         self.bv = 1
@@ -1010,10 +1010,9 @@ class MadLoader:
 
         el = self.Builder(
             mad_elem.name,
-            self.classes.Solenoid,
+            self.classes.UniformSolenoid,
             length=mad_elem.l,
             ks=self.bv * mad_elem.ks,
-            ksi=self.bv * mad_elem.ksi,
             **kwargs,
         )
         return self.make_composite_element([el], mad_elem)
@@ -1034,50 +1033,67 @@ class MadLoader:
             lmax = max(lmax, non_zero_len(dkn), non_zero_len(dks))
             knl = add_lists(knl, dkn, lmax)
             ksl = add_lists(ksl, dks, lmax)
-        el = self.Builder(mad_elem.name, self.classes.Multipole, order=lmax - 1)
-        el.knl = knl[:lmax]
-        el.ksl = ksl[:lmax]
 
         if hasattr(mad_elem, 'ksl') and mad_elem.ksl[0]:
             raise NotImplementedError("Multipole with ksl[0] is not supported.")
 
-        if hasattr(el, 'hyl') and el.hyl:
+        if hasattr(mad_elem, 'hyl') and mad_elem.hyl:
             raise NotImplementedError("Multipole with hyl is not supported.")
 
-        if (
-            mad_elem.angle
-        ):  # testing for non-zero (cannot use !=0 as it creates an expression)
+        el = self.Builder(mad_elem.name, self.classes.Multipole, order=lmax - 1)
+        el.knl = knl[:lmax]
+        el.ksl = ksl[:lmax]
+
+        if mad_elem.angle:  # testing for non-zero (!=0 would create an expression)
             el.hxl = mad_elem.angle
         else:
             el.hxl = mad_elem.knl[0]  # in madx angle=0 -> dipole
         el.length = mad_elem.lrad
         return self.make_composite_element([el], mad_elem)
 
-    def convert_kicker(self, mad_el): # bv done
-        hkick = [-mad_el.hkick] if mad_el.hkick else []
-        vkick = [self.bv * mad_el.vkick] if mad_el.vkick else []
-        thin_kicker = self.Builder(
+    def _make_kicker_multipole(self, mad_el, hkick, vkick):
+        make_sandwich = True
+        if value_if_expr(mad_el.l) != 0:
+            length = mad_el.l
+            is_thick = True
+            if self.enable_thick_kickers:
+                element_class = self.classes.Magnet
+                make_sandwich = False
+            else:
+                element_class = self.classes.Multipole
+        else:
+            is_thick = False
+            element_class = self.classes.Multipole
+            length = mad_el.lrad
+
+        kicker = self.Builder(
             mad_el.name,
-            self.classes.Multipole,
+            element_class,
             knl=hkick,
             ksl=vkick,
-            length=(mad_el.l or mad_el.lrad),
-            hxl=0,
+            length=length,
         )
 
-        if value_if_expr(mad_el.l) != 0:
-            if not self.allow_thick:
-                self._assert_element_is_thin(mad_el)
+        if is_thick and not self.allow_thick:
+            self._assert_element_is_thin(mad_el)
 
+        if is_thick and make_sandwich:
             sequence = [
                 self._make_drift_slice(mad_el, 0.5, "drift_{}..1"),
-                thin_kicker,
+                kicker,
                 self._make_drift_slice(mad_el, 0.5, "drift_{}..2"),
             ]
         else:
-            sequence = [thin_kicker]
+            sequence = [kicker]
 
         return self.make_composite_element(sequence, mad_el)
+
+
+    def convert_kicker(self, mad_el): # bv done
+        hkick = [-mad_el.hkick] if mad_el.hkick else []
+        vkick = [self.bv * mad_el.vkick] if mad_el.vkick else []
+
+        return self._make_kicker_multipole(mad_el, hkick, vkick)
 
     convert_tkicker = convert_kicker
 
@@ -1088,28 +1104,8 @@ class MadLoader:
 
         hkick = [-mad_el.kick] if mad_el.kick else []
         vkick = []
-        thin_hkicker = self.Builder(
-            mad_el.name,
-            self.classes.Multipole,
-            knl=hkick,
-            ksl=vkick,
-            length=(mad_el.l or mad_el.lrad),
-            hxl=0,
-        )
 
-        if value_if_expr(mad_el.l) != 0:
-            if not self.allow_thick:
-                self._assert_element_is_thin(mad_el)
-
-            sequence = [
-                self._make_drift_slice(mad_el, 0.5, "drift_{}..1"),
-                thin_hkicker,
-                self._make_drift_slice(mad_el, 0.5, "drift_{}..2"),
-            ]
-        else:
-            sequence = [thin_hkicker]
-
-        return self.make_composite_element(sequence, mad_el)
+        return self._make_kicker_multipole(mad_el, hkick, vkick)
 
     def convert_vkicker(self, mad_el): # bv done
         if mad_el.vkick:
@@ -1118,28 +1114,8 @@ class MadLoader:
 
         hkick = []
         vkick = [self.bv * mad_el.kick] if mad_el.kick else []
-        thin_vkicker = self.Builder(
-            mad_el.name,
-            self.classes.Multipole,
-            knl=hkick,
-            ksl=vkick,
-            length=(mad_el.l or mad_el.lrad),
-            hxl=0,
-        )
 
-        if value_if_expr(mad_el.l) != 0:
-            if not self.allow_thick:
-                self._assert_element_is_thin(mad_el)
-
-            sequence = [
-                self._make_drift_slice(mad_el, 0.5, "drift_{}..1"),
-                thin_vkicker,
-                self._make_drift_slice(mad_el, 0.5, "drift_{}..2"),
-            ]
-        else:
-            sequence = [thin_vkicker]
-
-        return self.make_composite_element(sequence, mad_el)
+        return self._make_kicker_multipole(mad_el, hkick, vkick)
 
     def convert_dipedge(self, mad_elem):
         if self.bv == -1:

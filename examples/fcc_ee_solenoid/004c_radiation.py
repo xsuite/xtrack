@@ -4,13 +4,13 @@ import numpy as np
 from scipy.constants import c as clight
 from scipy.constants import e as qe
 
-line = xt.Line.from_json('fccee_z_with_sol_corrected.json')
-n_turns_track_test = 6000
-num_particles_test = 150
+# line = xt.load('fccee_z_with_sol_corrected.json')
+# n_turns_track_test = 6000
+# num_particles_test = 150
 
-# line = xt.Line.from_json('fccee_t_with_sol_corrected.json')
-# n_turns_track_test = 200
-# num_particles_test = 200
+line = xt.load('fccee_t_with_sol_corrected.json')
+n_turns_track_test = 200
+num_particles_test = 200
 
 tw_no_rad = line.twiss(method='4d')
 line.configure_radiation(model='mean')
@@ -63,6 +63,11 @@ tw_rad = line.twiss(eneloss_and_damping=True, radiation_method='full')
 ex = tw_rad.eq_gemitt_x
 ey = tw_rad.eq_gemitt_y
 ez = tw_rad.eq_gemitt_zeta
+
+tw_integ = line.twiss(radiation_integrals = True)
+
+# xo.assert_allclose(tw_integ.rad_int_eq_gemitt_x, ex, rtol=5e-2, atol=0)
+# xo.assert_allclose(tw_integ.rad_int_eq_gemitt_y, ey, rtol=5e-2, atol=0)
 
 # Equilibrium beam sizes
 beam_sizes = tw_rad.get_beam_covariance(
@@ -123,7 +128,7 @@ spx.set_ylim(bottom=0)
 spy = fig. add_subplot(3, 1, 2, sharex=spx)
 spy.plot(1e9 * np.std(mon.y, axis=0), label='track')
 spy.axhline(1e9 * beam_sizes['sigma_y', 'ip.1'], color='red', label='twiss')
-spy.axhline(1e9 * beam_sizes_hof['sigma_y', 'ip.1'], color='red', label='twiss')
+# spy.axhline(1e9 * beam_sizes_hof['sigma_y', 'ip.1'], color='red', label='twiss')
 spy.set_ylabel(r'$\sigma_{y}$ [nm]')
 spy.set_ylim(bottom=0)
 

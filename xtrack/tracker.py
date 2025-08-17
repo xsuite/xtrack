@@ -61,10 +61,6 @@ class Tracker:
             raise ValueError("`enable_pipeline_hold` is not implemented in "
                              "non-collective mode")
 
-        if not compile and self.iscollective:
-            raise NotImplementedError("Skip compilation is not implemented in "
-                                      "collective mode")
-
         if local_particle_src is None:
             local_particle_src = xt.Particles.gen_local_particle_api()
 
@@ -682,6 +678,7 @@ class Tracker:
             specialize=True,
             compile=compile,
             save_source_as=f'{module_name}.c' if module_name else None,
+            extra_compile_args=(f"-I{xt.__path__[0]}",),
             **kwargs,
         )
         return out_kernels['track_line']
@@ -842,7 +839,7 @@ class Tracker:
                 ret = pp.track(particles)
             else:
                 # The start part is a non-collective tracker
-                if (ele_stop is not None
+                if (ele_stop is not None and ele_stop < self.num_elements
                     and tt == num_turns - 1 and self._element_part[ele_stop] == ipp):
                     # The stop element is also in this part, so track until ele_stop
                     i_stop_in_part = self._element_index_in_part[ele_stop]
@@ -867,6 +864,11 @@ class Tracker:
             if isinstance(pp, TrackerPartNonCollective):
                 ret = pp.track(particles, turn_by_turn_monitor=monitor)
             else:
+                if hasattr(monitor, 'ebe_mode') and monitor.ebe_mode == 1:
+                    assert monitor._context is particles._context, (
+                        'Element-by-element monitor not supported in multi-context'
+                        ' mode')
+                    monitor.track(particles)
                 ret = pp.track(particles)
 
         return stop_tracking, skip, ret

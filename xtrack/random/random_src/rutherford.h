@@ -5,12 +5,18 @@
 
 #ifndef XTRACK_RUTHERFORD_RNG_H
 #define XTRACK_RUTHERFORD_RNG_H
-#include <stdlib.h> //only_for_context cpu_serial cpu_openmp
-#include <math.h> //only_for_context cpu_serial cpu_openmp
-#include <time.h> //only_for_context cpu_serial cpu_openmp
+
+#ifdef XO_CONTEXT_CPU
+#include <stdlib.h>
+#include <math.h>
+#include <time.h>
+#endif  // XO_CONTEXT_CPU
+
+#include <headers/track.h>
+#include <random/random_src/exponential_integral_Ei.h>
 
     
-/*gpufun*/
+GPUFUN
 int8_t assert_rutherford_set(RandomRutherfordData rng, LocalParticle* part, int64_t kill_state){
     double A = RandomRutherfordData_get_A(rng);
     double B = RandomRutherfordData_get_B(rng);
@@ -25,19 +31,19 @@ int8_t assert_rutherford_set(RandomRutherfordData rng, LocalParticle* part, int6
 // TODO: how to optimise Newton's method??
 
 // PDF of Rutherford distribution
-/*gpufun*/
+GPUFUN
 double ruth_PDF(double t, double A, double B){
     return (A/pow(t, 2.))*(exp(-B*t));
 }
 
 // CDF of Rutherford distribution
-/*gpufun*/
+GPUFUN
 double ruth_CDF(double t, double A, double B, double t0){
    return A*B*Exponential_Integral_Ei(-B*t0) + t0*ruth_PDF(t0, A, B)
         - A*B*Exponential_Integral_Ei(-B*t)  - t*ruth_PDF(t, A, B);
 }
 
-/*gpukern*/
+GPUKERN
 void RandomRutherford_set(RandomRutherfordData rng, double A, double B, double lower_val, double upper_val){
     // Normalise PDF
     double N = ruth_CDF(upper_val, A, B, lower_val);
@@ -48,7 +54,7 @@ void RandomRutherford_set(RandomRutherfordData rng, double A, double B, double l
 }
 
 // Generate a random value weighted with a Rutherford distribution
-/*gpufun*/
+GPUFUN
 double RandomRutherford_generate(RandomRutherfordData rng, LocalParticle* part){
 
     // get the parameters
@@ -103,16 +109,15 @@ double RandomRutherford_generate(RandomRutherfordData rng, LocalParticle* part){
 }
 
 
-/*gpufun*/
+GPUFUN
 void RandomRutherford_sample(RandomRutherfordData rng, LocalParticle* part0,
-                             /*gpuglmem*/ double* samples, int64_t n_samples_per_seed){
-    //start_per_particle_block (part0->part)
-    int i;
-    for (i=0; i<n_samples_per_seed; ++i){
-        double val = RandomRutherford_generate(rng, part);
-        samples[n_samples_per_seed*LocalParticle_get_particle_id(part) + i] = val;
-    }
-    //end_per_particle_block
+                             GPUGLMEM double* samples, int64_t n_samples_per_seed){
+    START_PER_PARTICLE_BLOCK(part0, part);
+        for (int i = 0; i < n_samples_per_seed; ++i){
+            double val = RandomRutherford_generate(rng, part);
+            samples[n_samples_per_seed*LocalParticle_get_particle_id(part) + i] = val;
+        }
+    END_PER_PARTICLE_BLOCK;
 }
 
 

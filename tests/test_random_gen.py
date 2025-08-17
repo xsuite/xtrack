@@ -15,6 +15,7 @@ from xobjects.test_helpers import for_all_test_contexts, fix_random_seed
 
 
 @for_all_test_contexts
+@fix_random_seed(1465841)
 @pytest.mark.parametrize('generator', ['RandomUniform', 'RandomUniformAccurate'])
 def test_random_generation(test_context, generator):
 

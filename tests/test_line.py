@@ -706,7 +706,7 @@ def test_from_json_to_json(tmp_path):
         result.metadata['qx']['lhcb1'] = result.metadata['qx']['lhcb1'] - 1
 
     line.to_json(tmp_path / 'test.json')
-    result = xt.Line.from_json(tmp_path / 'test.json')
+    result = xt.load(tmp_path / 'test.json')
 
     asserts()
 
@@ -779,7 +779,7 @@ def test_config_propagation(test_context):
 def test_pickle():
 
     # Load the line
-    line = xt.Line.from_json(test_data_folder /
+    line = xt.load(test_data_folder /
             'hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
     line.particle_ref = xp.Particles(p0c=7e12, mass=xp.PROTON_MASS_EV)
     line.build_tracker()
@@ -870,7 +870,7 @@ def test_insert_thin_elements_at_s_basic(test_context):
 @for_all_test_contexts
 def test_insert_thin_elements_at_s_lhc(test_context):
 
-    line = xt.Line.from_json(test_data_folder /
+    line = xt.load(test_data_folder /
                     'hllhc15_thick/lhc_thick_with_knobs.json')
     line.twiss_default['method'] = '4d'
 
@@ -880,6 +880,7 @@ def test_insert_thin_elements_at_s_lhc(test_context):
     Teapot = xt.Teapot
     slicing_strategies = [
         Strategy(slicing=Teapot(1)),  # Default catch-all as in MAD-X
+        Strategy(slicing=None, element_type=xt.UniformSolenoid),
         Strategy(slicing=Teapot(4), element_type=xt.Bend),
         Strategy(slicing=Teapot(20), element_type=xt.Quadrupole),
         Strategy(slicing=Teapot(2), name=r'^mb\..*'),
@@ -943,7 +944,8 @@ def test_insert_thin_elements_at_s_lhc(test_context):
                         'drift_mb.a29r3.b1..1..1', 'mb.a29r3.b1..1']))
 
     assert np.all(tt.rows['mq.29r3.b1_exit<<3':'mq.29r3.b1_exit'].name
-            == np.array(['m0_at_c', 'm1_at_c', 'm2_at_c', 'mq.29r3.b1_exit']))
+            == np.array(
+                ['m1_at_c', 'm2_at_c', 'mq.29r3.b1..exit_map', 'mq.29r3.b1_exit']))
 
     assert np.all(tt.rows['m0_at_d':'m0_at_d>>4'].name
                 == np.array(['m0_at_d', 'm1_at_d', 'm2_at_d',
@@ -992,7 +994,7 @@ def test_elements_intersecting_s():
     }
     result = line._elements_intersecting_s(cuts)
     for kk in expected.keys() | result.keys():
-        xo.assert_allclose(expected[kk], result[kk], atol=1e-16)
+        xo.assert_allclose(expected[kk], result[kk], atol=1e-14)
 
 
 def test_slicing_at_custom_s():
@@ -1084,7 +1086,7 @@ def test_multiple_thick_elements():
 
 @for_all_test_contexts
 def test_get_strengths(test_context):
-    collider = xt.Environment.from_json(
+    collider = xt.load(
         test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers(_context=test_context)
 
@@ -1142,8 +1144,8 @@ def test_line_table_unique_names():
 
 def test_extend_knl_ksl():
 
-    classes_to_check = ['Bend', 'Quadrupole', 'Sextupole', 'Octupole', 'Solenoid',
-                        'Multipole']
+    classes_to_check = ['Bend', 'Quadrupole', 'Sextupole', 'Octupole', 'UniformSolenoid',
+                        'VariableSolenoid', 'Multipole']
 
     for cc in classes_to_check:
 
@@ -1187,7 +1189,9 @@ def test_extend_knl_ksl():
                 'a', 'b', 'c'], ksl=['d', 'e', 'f']),
         env.new('o1', xt.Octupole, length=1, knl=[
                 'a', 'b', 'c'], ksl=['d', 'e', 'f']),
-        env.new('s2', xt.Solenoid, length=1, knl=[
+        env.new('u1', xt.UniformSolenoid, length=1, knl=[
+                'a', 'b', 'c'], ksl=['d', 'e', 'f']),
+        env.new('v1', xt.VariableSolenoid, length=1, knl=[
                 'a', 'b', 'c'], ksl=['d', 'e', 'f']),
         env.new('m1', xt.Multipole, length=1, knl=[
                 'a', 'b', 'c'], ksl=['d', 'e', 'f']),
@@ -1209,7 +1213,7 @@ def test_extend_knl_ksl():
     assert line['q1'].order == order
     assert line['s1'].order == 5
     assert line['o1'].order == 5
-    assert line['s2'].order == 5
+    assert line['u1'].order == 5
     assert line['m1'].order == 2
 
     xo.assert_allclose(line['b1'].inv_factorial_order,
@@ -1220,7 +1224,9 @@ def test_extend_knl_ksl():
                        1/math.factorial(5), rtol=0, atol=1e-15)
     xo.assert_allclose(line['o1'].inv_factorial_order,
                        1/math.factorial(5), rtol=0, atol=1e-15)
-    xo.assert_allclose(line['s2'].inv_factorial_order,
+    xo.assert_allclose(line['u1'].inv_factorial_order,
+                       1/math.factorial(5), rtol=0, atol=1e-15)
+    xo.assert_allclose(line['v1'].inv_factorial_order,
                        1/math.factorial(5), rtol=0, atol=1e-15)
     xo.assert_allclose(line['m1'].inv_factorial_order,
                        1/math.factorial(2), rtol=0, atol=1e-15)
@@ -1241,9 +1247,13 @@ def test_extend_knl_ksl():
                        0., 0., 0.], rtol=0, atol=1e-15)
     xo.assert_allclose(line['o1'].ksl, [4., 5., 6.,
                        0., 0., 0.], rtol=0, atol=1e-15)
-    xo.assert_allclose(line['s2'].knl, [3., 2., 1.,
+    xo.assert_allclose(line['u1'].knl, [3., 2., 1.,
                        0., 0., 0.], rtol=0, atol=1e-15)
-    xo.assert_allclose(line['s2'].ksl, [4., 5., 6.,
+    xo.assert_allclose(line['u1'].ksl, [4., 5., 6.,
+                       0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['v1'].knl, [3., 2., 1.,
+                       0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['v1'].ksl, [4., 5., 6.,
                        0., 0., 0.], rtol=0, atol=1e-15)
     xo.assert_allclose(line['m1'].knl, [3., 2., 1.], rtol=0, atol=1e-15)
     xo.assert_allclose(line['m1'].ksl, [4., 5., 6.], rtol=0, atol=1e-15)
@@ -1254,13 +1264,15 @@ def test_extend_knl_ksl():
     assert line['q1'].order == 11
     assert line['s1'].order == 11
     assert line['o1'].order == 11
-    assert line['s2'].order == 11
+    assert line['u1'].order == 11
+    assert line['v1'].order == 11
     assert line['m1'].order == 11
     assert line['b1'].inv_factorial_order == 1/math.factorial(11)
     assert line['q1'].inv_factorial_order == 1/math.factorial(11)
     assert line['s1'].inv_factorial_order == 1/math.factorial(11)
     assert line['o1'].inv_factorial_order == 1/math.factorial(11)
-    assert line['s2'].inv_factorial_order == 1/math.factorial(11)
+    assert line['u1'].inv_factorial_order == 1/math.factorial(11)
+    assert line['v1'].inv_factorial_order == 1/math.factorial(11)
     assert line['m1'].inv_factorial_order == 1/math.factorial(11)
     xo.assert_allclose(line['b1'].knl, [3., 2., 1., 0.,
                        0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
@@ -1278,9 +1290,13 @@ def test_extend_knl_ksl():
                        0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
     xo.assert_allclose(line['o1'].ksl, [4., 5., 6., 0.,
                        0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
-    xo.assert_allclose(line['s2'].knl, [3., 2., 1., 0.,
+    xo.assert_allclose(line['u1'].knl, [3., 2., 1., 0.,
                        0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
-    xo.assert_allclose(line['s2'].ksl, [4., 5., 6., 0.,
+    xo.assert_allclose(line['v1'].ksl, [4., 5., 6., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['v1'].knl, [3., 2., 1., 0.,
+                       0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['u1'].ksl, [4., 5., 6., 0.,
                        0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
     xo.assert_allclose(line['m1'].knl, [3., 2., 1., 0.,
                        0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)

@@ -6,7 +6,7 @@ env.call('lhc_seq.py')
 env.lhcb1.particle_ref = xt.Particles(p0c=0.45e12)
 env.lhcb2.particle_ref = xt.Particles(p0c=0.45e12)
 
-env.vars.load_madx('../../test_data/lhc_2024/injection_optics.madx')
+env.vars.load('../../test_data/lhc_2024/injection_optics.madx')
 
 ttvars = env.vars.get_table()
 for nn in ttvars.rows['on_.*'].name:
