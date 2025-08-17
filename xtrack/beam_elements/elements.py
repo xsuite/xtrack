@@ -414,6 +414,18 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
         if integrator is not None:
             self.integrator = integrator
 
+    @property
+    def _thin_slice_class(self):
+        return xt.ThinSliceCavity
+
+    @property
+    def _thick_slice_class(self):
+        return xt.ThickSliceCavity
+
+    @property
+    def _drift_slice_class(self):
+        return xt.DriftSliceCavity
+
 
 class XYShift(BeamElement):
     '''Beam element modeling an transverse shift of the reference system.

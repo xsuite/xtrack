@@ -9,7 +9,7 @@ from .apertures import *
 from .beam_interaction import BeamInteraction, ParticlesInjectionSample
 from .slice_elements_thin import (ThinSliceQuadrupole, ThinSliceSextupole,
                              ThinSliceOctupole, ThinSliceBend,
-                             ThinSliceRBend)
+                             ThinSliceRBend, ThinSliceCavity)
 from .slice_elements_edge import (
                              ThinSliceBendEntry, ThinSliceBendExit,
                              ThinSliceRBendEntry, ThinSliceRBendExit,
@@ -20,11 +20,11 @@ from .slice_elements_edge import (
                              ThinSliceUniformSolenoidExit)
 from .slice_elements_thick import (ThickSliceBend, ThickSliceRBend,
                                    ThickSliceQuadrupole, ThickSliceSextupole,
-                                   ThickSliceOctupole,
-                                   ThickSliceUniformSolenoid)
+                                   ThickSliceOctupole, ThickSliceUniformSolenoid,
+                                   ThickSliceCavity)
 from .slice_elements_drift import (DriftSliceOctupole, DriftSliceSextupole,
                                    DriftSliceQuadrupole, DriftSliceBend,
-                                   DriftSliceRBend, DriftSlice)
+                                   DriftSliceRBend, DriftSlice, DriftSliceCavity)
 from .rft_element import RFT_Element
 from ..base_element import BeamElement
 
