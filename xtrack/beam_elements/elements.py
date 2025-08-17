@@ -377,6 +377,8 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
     '''
 
     isthick = True
+    has_backtrack = True
+    allow_loss_refinement = True
 
     _xofields = {
         'length': xo.Float64,
@@ -394,7 +396,14 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
         '#include <beam_elements/elements_src/cavity.h>',
     ]
 
-    has_backtrack = True
+    _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
+
+    _rename = {
+        'model': '_model',
+        'integrator': '_integrator',
+    }
+
+    _noexpr_fields = _NOEXPR_FIELDS
 
     def __init__(self, **kwargs):
 
@@ -2831,7 +2840,7 @@ class SimpleThinBend(BeamElement):
     )
 
 
-class RFMultipole(BeamElement):
+class RFMultipole(_HasKnlKsl, _HasModelRF, _HasIntegrator, BeamElement):
     """Beam element modeling a thin modulated multipole, with strengths
     dependent on the z coordinate:
 
@@ -2857,68 +2866,40 @@ class RFMultipole(BeamElement):
         Frequency in Hertz. Default is ``0``.
     """
 
+    isthick = True
+
     _xofields={
-        'order': xo.Int64,
+        'length': xo.Float64,
         'voltage': xo.Float64,
         'frequency': xo.Float64,
         'lag': xo.Float64,
+        'order': xo.Int64,
+        'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
         'pn': xo.Float64[:],
         'ps': xo.Float64[:],
+        'absolute_time': xo.Int64,
+        'num_kicks': xo.Int64,
+        'model': xo.Int64,
+        'integrator': xo.Int64,
     }
 
+    isthick = True
     has_backtrack = True
+    allow_loss_refinement = True
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/rfmultipole.h>',
     ]
 
-    def __init__(self, **kwargs):
+    _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
 
-        if '_xobject' in kwargs and kwargs['_xobject'] is not None:
-            self.xoinitialize(**kwargs)
-            return
-
-        if 'p' in kwargs:
-            raise ValueError("`p` in RF Multipole is not supported anymore")
-
-        if 'bal' in kwargs:
-            raise ValueError("`bal` in RF Multipole is not supported anymore")
-
-        order = kwargs.get('order', 0)
-        knl = np.array(kwargs.get('knl', [0]))
-        ksl = np.array(kwargs.get('ksl', [0]))
-        pn = np.array(kwargs.get('pn', [0]))
-        ps = np.array(kwargs.get('ps', [0]))
-        n = max(order + 1, len(knl), len(ksl), len(pn), len(ps))
-
-        nknl = np.zeros(n, dtype=np.float64)
-        nksl = np.zeros(n, dtype=np.float64)
-        npn = np.zeros(n, dtype=np.float64)
-        nps = np.zeros(n, dtype=np.float64)
-
-        if knl is not None:
-            nknl[: len(knl)] = np.array(knl)
-
-        if ksl is not None:
-            nksl[: len(ksl)] = np.array(ksl)
-
-        if pn is not None:
-            npn[: len(pn)] = np.array(pn)
-
-        if ps is not None:
-            nps[: len(ps)] = np.array(ps)
-
-        order = n - 1
-
-        kwargs["knl"] = nknl
-        kwargs["ksl"] = nksl
-        kwargs["pn"] = npn
-        kwargs["ps"] = nps
-        kwargs["order"] = order
-
-        self.xoinitialize(**kwargs)
+    _rename = {
+        'order': '_order',
+        'model': '_model',
+        'integrator': '_integrator',
+    }
 
 
 class DipoleEdge(BeamElement):

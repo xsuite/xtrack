@@ -9,6 +9,7 @@ import xtrack as xt
 # - Slicing
 # - Loaders...
 # - Disable lag_taper when there is no radiation
+# - optimize_for_tracking
 
 
 rf = xt.TempRF(frequency=1e9, voltage=1e6, lag=30, length=2)
