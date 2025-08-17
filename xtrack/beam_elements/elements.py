@@ -876,7 +876,6 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
 
     #isthick can be changed dynamically for this element
     has_backtrack = True
-    allow_loss_refinement = False # for compatibility with past behaviour
 
     _xofields={
         'order': xo.Int64,
@@ -911,6 +910,12 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
     ]
 
     _internal_record_class = SynchrotronRadiationRecord
+
+    @property
+    def allow_loss_refinement(self):
+        # Allow refinement only when thick (to keep old behavior when thin and
+        # have consistency with other thick elements otherwise)
+        return self.isthick and self.length != 0
 
     def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
 
