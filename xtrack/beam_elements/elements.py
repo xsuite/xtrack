@@ -1902,6 +1902,7 @@ class VariableSolenoid(_HasKnlKsl, BeamElement):
         'edge_entry_active': xo.Field(xo.UInt64, default=False),
         'edge_exit_active': xo.Field(xo.UInt64, default=False),
         'num_multipole_kicks': xo.Int64,
+        'integrator': xo.Int64,
         'radiation_flag': xo.Int64,
         'delta_taper': xo.Float64,
     }
@@ -1910,6 +1911,7 @@ class VariableSolenoid(_HasKnlKsl, BeamElement):
 
     _rename = {
         'order': '_order',
+        'integrator': '_integrator',
     }
 
     _noexpr_fields = _NOEXPR_FIELDS
@@ -1925,9 +1927,6 @@ class VariableSolenoid(_HasKnlKsl, BeamElement):
 
         if 'model' in kwargs:
             raise ValueError("`model` is not supported for UniformSolenoid.")
-
-        if 'integrator' in kwargs:
-            raise ValueError("`integrator` is not supported for UniformSolenoid.")
 
         _HasKnlKsl.__init__(self, **kwargs)
 
