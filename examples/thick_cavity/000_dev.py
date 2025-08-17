@@ -10,7 +10,9 @@ import xtrack as xt
 # - Loaders...
 # - Disable lag_taper when there is no radiation
 # - optimize_for_tracking
-
+# - Survey for thick multipoles
+# - Is curvature handled correctly in radiation integrals?
+# - And in spin calculation?
 
 rf = xt.TempRF(frequency=1e9, voltage=1e6, lag=30, length=2)
 cav = xt.Cavity(frequency=1e9, voltage=1e6, lag=30)

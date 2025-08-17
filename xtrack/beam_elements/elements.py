@@ -855,7 +855,7 @@ class ZetaShift(BeamElement):
 
     _store_in_to_dict = ['dzeta']
 
-class Multipole(_HasKnlKsl, BeamElement):
+class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
     '''Beam element modeling a thin magnetic multipole.
 
     Parameters
@@ -874,6 +874,10 @@ class Multipole(_HasKnlKsl, BeamElement):
 
     '''
 
+    #isthick can be changed dynamically for this element
+    has_backtrack = True
+    allow_loss_refinement = True
+
     _xofields={
         'order': xo.Int64,
         'inv_factorial_order': xo.Float64,
@@ -883,11 +887,20 @@ class Multipole(_HasKnlKsl, BeamElement):
         'delta_taper': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
+        'isthick': xo.Int64,
+        'num_multipole_kicks': xo.Int64,
+        'model': xo.Int64,
+        'integrator': xo.Int64,
         }
 
     _rename = {
         'order': '_order',
+        'isthick': '_isthick',
+        'model': '_model',
+        'integrator': '_integrator',
     }
+
+    _noexpr_fields = _NOEXPR_FIELDS
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
 
@@ -898,9 +911,6 @@ class Multipole(_HasKnlKsl, BeamElement):
     ]
 
     _internal_record_class = SynchrotronRadiationRecord
-
-    has_backtrack = True
-
 
     def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
 
@@ -919,7 +929,6 @@ class Multipole(_HasKnlKsl, BeamElement):
 
         self.xoinitialize(**kwargs)
 
-
     @property
     def hyl(self):
         raise ValueError("hyl is not anymore supported")
@@ -928,6 +937,13 @@ class Multipole(_HasKnlKsl, BeamElement):
     def hyl(self, value):
         raise ValueError("hyl is not anymore supported")
 
+    @property
+    def isthick(self):
+        return bool(self._isthick > 0)
+
+    @isthick.setter
+    def isthick(self, value):
+        self._isthick = int(bool(value))
 
 class SimpleThinQuadrupole(BeamElement):
     """An specialized version of Multipole to model a thin quadrupole
