@@ -923,8 +923,16 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
             self.xoinitialize(**kwargs)
             return
 
+        order = kwargs.pop('order', None)
+        knl = kwargs.pop('knl', None)
+        ksl = kwargs.pop('ksl', None)
+
         multipolar_kwargs = self._prepare_multipolar_params(order, knl=knl, ksl=ksl)
         kwargs.update(multipolar_kwargs)
+
+        model = kwargs.pop('model', None)
+        integrator = kwargs.pop('integrator', None)
+        isthick = kwargs.pop('isthick', None)
 
         if "bal" in kwargs.keys():
             raise ValueError("`bal` not supported anymore")
@@ -933,6 +941,16 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
             assert kwargs['hyl'] == 0.0, 'hyl is not supported anymore'
 
         self.xoinitialize(**kwargs)
+
+        # Trigger properties
+        if model is not None:
+            self.model = model
+
+        if integrator is not None:
+            self.integrator = integrator
+
+        if isthick is not None:
+            self.isthick = isthick
 
     @property
     def hyl(self):
