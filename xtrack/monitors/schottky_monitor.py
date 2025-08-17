@@ -207,3 +207,56 @@ class SchottkyMonitor():
         self.x_coeff = []
         self.y_coeff = []
         self.z_coeff = []
+
+    # ------------------------------------------------------------------
+    # Plotting utilities
+    # ------------------------------------------------------------------
+    def plot(self, regions=None, log=False):
+        """Plot Schottky spectra (average PSD only).
+
+        Parameters
+        ----------
+        regions : list(str) or None
+            Regions to include. If None, automatically select the available
+            standard regions in the order: ['lowerH','center','upperH','lowerV','upperV'].
+        log : bool
+            If True, use logarithmic y-scale.
+
+        Returns
+        -------
+        fig, axes
+            Matplotlib figure and list of axes.
+        """
+        import matplotlib.pyplot as plt
+        if not hasattr(self, 'PSD_avg'):
+            raise RuntimeError('No processed spectrum found. Call process_spectrum() first.')
+
+        # Determine regions to plot
+        default_order = ['lowerH', 'center', 'upperH', 'lowerV', 'upperV']
+        available = [r for r in default_order if r in self.PSD_avg and len(self.PSD_avg[r]) > 0]
+        if regions is None:
+            regions = available
+        else:
+            # Keep original order but enforce strict presence
+            missing = [r for r in regions if r not in available]
+            if len(missing) > 0:
+                raise ValueError(f'Requested region(s) not processed: {missing}. Available: {available}. Call process_spectrum() with the appropriate parameters first.')
+        if len(regions) == 0:
+            raise RuntimeError('No spectra available to plot.')
+
+        fig, axes = plt.subplots(1, len(regions), figsize=(4 * len(regions), 4))
+        if len(regions) == 1:
+            axes = [axes]
+
+        for aa, region in zip(axes, regions):
+            freq = self.frequencies[region]
+            psd_avg = self.PSD_avg[region]
+            aa.plot(freq, psd_avg)
+            if log:
+                aa.set_yscale('log')
+            aa.set_xlabel('Frequency [$f_0$]')
+            aa.set_ylabel('PSD [arb. units]')
+            aa.set_title(region)
+            aa.grid(True, which='both', ls=':', alpha=0.5)
+        fig.tight_layout()
+        return fig, axes
