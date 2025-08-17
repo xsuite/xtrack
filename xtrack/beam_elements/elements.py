@@ -181,15 +181,21 @@ class _HasKnlKsl:
 
         return out
 
-    def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None,
-                 **kwargs):
+    def __init__(self, **kwargs):
 
         if '_xobject' in kwargs and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
             return
 
+        order = kwargs.pop('order', None)
+        knl = kwargs.pop('knl', None)
+        ksl = kwargs.pop('ksl', None)
+        pn = kwargs.pop('pn', None) # Phase for RF multipoles
+        ps = kwargs.pop('ps', None) # Phase for RF multipoles
+
         order = order or DEFAULT_MULTIPOLE_ORDER
-        multipolar_kwargs = self._prepare_multipolar_params(order, knl=knl, ksl=ksl)
+        multipolar_kwargs = self._prepare_multipolar_params(order,
+                                            knl=knl, ksl=ksl, pn=pn, ps=ps)
         kwargs.update(multipolar_kwargs)
 
         model = kwargs.pop('model', None)
