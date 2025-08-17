@@ -362,7 +362,7 @@ class Drift(BeamElement):
         return xt.DriftSlice
 
 
-class Cavity(BeamElement):
+class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
     '''Beam element modeling an RF cavity.
 
     Parameters
@@ -376,12 +376,18 @@ class Cavity(BeamElement):
 
     '''
 
+    isthick = True
+
     _xofields = {
+        'length': xo.Float64,
         'voltage': xo.Float64,
         'frequency': xo.Float64,
         'lag': xo.Float64,
         'lag_taper': xo.Float64,
         'absolute_time': xo.Int64,
+        'num_kicks': xo.Int64,
+        'model': xo.Int64,
+        'integrator': xo.Int64,
     }
 
     _extra_c_sources = [
@@ -389,6 +395,24 @@ class Cavity(BeamElement):
     ]
 
     has_backtrack = True
+
+    def __init__(self, **kwargs):
+
+        if '_xobject' in kwargs and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
+        model = kwargs.pop('model', None)
+        integrator = kwargs.pop('integrator', None)
+
+        self.xoinitialize(**kwargs)
+
+        # Trigger properties
+        if model is not None:
+            self.model = model
+
+        if integrator is not None:
+            self.integrator = integrator
 
 
 class XYShift(BeamElement):

@@ -9,6 +9,11 @@
 #include <beam_elements/elements_src/track_magnet_drift.h>
 #include <beam_elements/elements_src/track_magnet_configure.h>
 
+#ifndef VSWAP
+    #define VSWAP(a, b) { double tmp = a; a = b; b = tmp; }
+#endif
+
+
 GPUFUN
 void track_rf_kick_single_particle(
     LocalParticle* part,
@@ -26,7 +31,6 @@ void track_rf_kick_single_particle(
 ){
 
     double phase0 = 0;
-    double lag_taper = 0; // to be introduced later
 
     if (absolute_time == 1) {
         double const t_sim = LocalParticle_get_t_sim(part);
@@ -40,7 +44,7 @@ void track_rf_kick_single_particle(
     double const tau = zeta / beta0;
 
     double const energy_kick = weight * q * voltage
-        * sin(phase0 + DEG2RAD * (lag + lag_taper) - (2.0 * PI) / C_LIGHT * frequency * tau);
+        * sin(phase0 + DEG2RAD * lag - (2.0 * PI) / C_LIGHT * frequency * tau);
 
     double rfmultipole_energy_kick = 0;
     if (order >= 0) {
@@ -261,7 +265,7 @@ void track_rf_particles(
     int8_t default_integrator,
     int64_t radiation_flag,
     int64_t radiation_flag_parent,
-    double delta_taper,
+    double lag_taper,
     int64_t body_active,
     int64_t edge_entry_active,
     int64_t edge_exit_active
@@ -274,6 +278,7 @@ void track_rf_particles(
         const double body_length = -length * weight;
         double factor_knl_ksl_body = -factor_knl_ksl * weight;
         VSWAP(edge_entry_active, edge_exit_active);
+        voltage = -voltage;
     #else
         const double body_length = length * weight;
         double factor_knl_ksl_body = factor_knl_ksl * weight;
@@ -329,7 +334,7 @@ void track_rf_particles(
                 body_length,
                 voltage,
                 frequency,
-                lag,
+                lag + lag_taper,
                 absolute_time,
                 order,
                 factor_knl_ksl_body,

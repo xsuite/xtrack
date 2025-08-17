@@ -7,6 +7,8 @@ import xtrack as xt
 # - Exception tapering for sliced cavities (to be implemented at a later stage)
 # - Absolute time
 # - Slicing
+# - Loaders...
+# - Disable lag_taper when there is no radiation
 
 
 rf = xt.TempRF(frequency=1e9, voltage=1e6, lag=30, length=2)

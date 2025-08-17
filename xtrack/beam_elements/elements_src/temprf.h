@@ -32,7 +32,7 @@ void TempRF_track_local_particle(TempRFData el, LocalParticle* part0)
         /*default_integrator*/    3, // Uniform
         /*radiation_flag*/        0, // not used here
         /*radiation_flag_parent*/ 0, // not used here
-        /*delta_taper*/           0., // not used here
+        /*lag_taper*/             0., // not used here
         /*body_active*/           1,
         /*edge_entry_active*/     0, // not used here
         /*edge_exit_active*/      0  // not used here
