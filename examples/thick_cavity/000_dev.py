@@ -4,6 +4,8 @@ import xtrack as xt
 # - Propagate integrator/model to C code
 # - Backtrack
 # - Tapering
+# - Absolute time
+# - Slicing
 
 
 rf = xt.TempRF(frequency=1e9, voltage=1e6, lag=30, length=2)
@@ -21,3 +23,10 @@ p_cav = p0.copy()
 
 rf.track(p_rf)
 cav.track(p_cav)
+
+rf_with_mult = xt.TempRF(frequency=1e9,
+                         knl=[1, 2, 3], ksl=[4, 5, 6])
+rfm = xt.RFMultipole(
+    frequency=1e9,
+    knl=[1, 2, 3], ksl=[4, 5, 6]
+)

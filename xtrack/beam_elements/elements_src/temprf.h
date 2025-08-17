@@ -19,12 +19,12 @@ void TempRF_track_local_particle(TempRFData el, LocalParticle* part0)
         /*voltage*/               TempRFData_get_voltage(el),
         /*frequency*/             TempRFData_get_frequency(el),
         /*lag*/                   TempRFData_get_lag(el),
-        /*absolute_time*/         0, // not used hereTempRFData_get_order(el),
-        /*order*/                 -1, // not used here
-        /*knl*/                   NULL, // not used here
-        /*ksl*/                   NULL, // not used here
-        /*pn*/                    NULL, // not used here
-        /*ps*/                    NULL, // not used here
+        /*absolute_time*/         0, // not used here
+        /*order*/                 TempRFData_get_order(el),
+        /*knl*/                   TempRFData_get_knl(el),
+        /*ksl*/                   TempRFData_get_ksl(el),
+        /*pn*/                    TempRFData_get_pn(el),
+        /*ps*/                    TempRFData_get_ps(el),
         /*num_kicks*/             TempRFData_get_num_kicks(el),
         /*model*/                 TempRFData_get_model(el),
         /*default_model*/         6, // drift-kick-drift-expanded

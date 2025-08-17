@@ -25,7 +25,7 @@ from . import json as json_utils
 import xobjects as xo
 import xtrack as xt
 import xdeps as xd
-from .beam_elements.magnets import (
+from .beam_elements.elements import (
     MagnetEdge, _MODEL_TO_INDEX_CURVED,
     _EDGE_MODEL_TO_INDEX,
 )
