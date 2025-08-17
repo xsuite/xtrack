@@ -1156,16 +1156,10 @@ class MadLoader:
             voltage=scale_voltage * ee.volt * 1e6,
             frequency=frequency,
             lag=lag_deg,
+            length=ee.l
         )
 
-        if value_if_expr(ee.l) != 0:
-            sequence = [
-                self._make_drift_slice(ee, 0.5, f"drift_{{}}..1"),
-                el,
-                self._make_drift_slice(ee, 0.5, f"drift_{{}}..2"),
-            ]
-        else:
-            sequence = [el]
+        sequence = [el]
 
         return self.make_composite_element(sequence, ee)
 
