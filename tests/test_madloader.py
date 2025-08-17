@@ -637,11 +637,12 @@ def test_mad_elements_import():
         assert line.get_s_position('cb1') == 0.42
         assert len(line['cb1'].knl) == 6
         assert len(line['cb1'].ksl) == 6
-        xo.assert_allclose(line['cb1'].ksl[0], -2 * 1e6 / line.particle_ref.p0c[0],
+        xo.assert_allclose(line['cb1'].knl[0], 2 * 1e6 / line.particle_ref.p0c[0],
                            rtol=0, atol=1e-12)
-        assert np.all(line['cb1'].knl == 0)
-        assert np.all(line['cb1'].ps[0] == np.array([270]))
-        assert np.all(line['cb1'].pn == 0.)
+        xo.assert_allclose(line['cb1'].rot_s_rad, np.pi / 2, rtol=0, atol=1e-12)
+        assert np.all(line['cb1'].ksl == 0)
+        assert np.all(line['cb1'].pn[0] == np.array([270]))
+        assert np.all(line['cb1'].ps == 0.)
         assert line['cb1'].voltage == 0
         assert line['cb1'].order == 5
         assert line['cb1'].frequency == 100e6
