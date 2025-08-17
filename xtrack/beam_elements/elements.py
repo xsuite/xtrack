@@ -201,6 +201,11 @@ class Drift(BeamElement):
     ]
 
     def __init__(self, length=None, **kwargs):
+
+        if '_xobject' in kwargs and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
         if length:  # otherwise length cannot be set as a positional argument
             kwargs['length'] = length
         super().__init__(**kwargs)
@@ -316,11 +321,15 @@ class Elens(BeamElement):
         '#include <beam_elements/elements_src/elens.h>',
     ]
 
-    def __init__(self, _xobject=None, **kwargs):
+    def __init__(self, **kwargs):
+
+        if '_xobject' in kwargs and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
         super().__init__(_xobject=_xobject, **kwargs)
-        if _xobject is None:
-            polynomial_order = len(self.coefficients_polynomial) - 1
-            self.polynomial_order = polynomial_order
+        polynomial_order = len(self.coefficients_polynomial) - 1
+        self.polynomial_order = polynomial_order
 
 
 class NonLinearLens(BeamElement):
@@ -760,8 +769,13 @@ class SimpleThinQuadrupole(BeamElement):
     ]
 
     def __init__(self, **kwargs):
+
+        if '_xobject' in kwargs and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
         knl = kwargs.get('knl')
-        if kwargs.get('_xobject') is None and knl is not None:
+        if knl is not None:
             if len(knl) != 2:
                 raise ValueError("For a quadrupole, len(knl) must be 2.")
 
@@ -1054,6 +1068,10 @@ class Bend(_BendCommon, BeamElement):
 
     def __init__(self, **kwargs):
 
+        if '_xobject' in kwargs and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
         edge_entry_model = kwargs.pop('edge_entry_model', None)
         edge_exit_model = kwargs.pop('edge_exit_model', None)
 
@@ -1269,12 +1287,15 @@ class RBend(_BendCommon, BeamElement):
 
     def __init__(self, **kwargs):
 
+        if '_xobject' in kwargs and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
         edge_entry_model = kwargs.pop('edge_entry_model', None)
         edge_exit_model = kwargs.pop('edge_exit_model', None)
         rbend_model = kwargs.pop('rbend_model', None)
 
         _HasKnlKsl.__init__(self, **kwargs)
-
 
         # Calculate length and h in the event length_straight and/or angle given
         self.set_bend_params(
@@ -1294,6 +1315,51 @@ class RBend(_BendCommon, BeamElement):
         if edge_exit_model is not None:
             self.edge_exit_model = edge_exit_model
 
+        if rbend_model is not None:
+            self.rbend_model = rbend_model
+
+
+    def __init__2(
+            self,
+            order=None,
+            knl: List[float]=None,
+            ksl: List[float]=None,
+            **kwargs,
+    ):
+
+        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
+        order = order or DEFAULT_MULTIPOLE_ORDER
+        multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
+        kwargs.update(multipolar_kwargs)
+
+        model = kwargs.pop('model', None)
+        edge_entry_model = kwargs.pop('edge_entry_model', None)
+        edge_exit_model = kwargs.pop('edge_exit_model', None)
+        rbend_model = kwargs.pop('rbend_model', None)
+
+        self.xoinitialize(**kwargs)
+
+        # Calculate length and h in the event length_straight and/or angle given
+        self.set_bend_params(
+            kwargs.get('length'),
+            kwargs.get('length_straight'),
+            kwargs.get('h'),
+            kwargs.get('angle'),
+        )
+        if self.k0_from_h:
+            self.k0 = self.h
+
+        # Trigger properties
+        if model is not None:
+            self.model = model
+
+        if edge_entry_model is not None:
+            self.edge_entry_model = edge_entry_model
+        if edge_exit_model is not None:
+            self.edge_exit_model = edge_exit_model
         if rbend_model is not None:
             self.rbend_model = rbend_model
 
@@ -2029,8 +2095,8 @@ class Solenoid(_HasKnlKsl, BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     def __init__(self, order=None, knl: List[float] = None, ksl: List[float] = None, **kwargs):
-        if kwargs.get('_xobject') is not None:
-            super().__init__(**kwargs)
+        if '_xobject' in kwargs and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
             return
 
         if kwargs.get('ksi', 0) != 0:
@@ -2142,10 +2208,13 @@ class SimpleThinBend(BeamElement):
     ]
 
     def __init__(self, **kwargs):
+
+        if '_xobject' in kwargs and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
         knl = kwargs.get('knl')
-        if kwargs.get('_xobject') is None and knl is not None:
-            if len(knl) != 1:
-                raise ValueError("For a simple thin bend, len(knl) must be 1.")
+        if len(knl) != 1:
+            raise ValueError("For a simple thin bend, len(knl) must be 1.")
 
         super().__init__(**kwargs)
 
@@ -2210,6 +2279,11 @@ class RFMultipole(BeamElement):
     ]
 
     def __init__(self, **kwargs):
+
+        if '_xobject' in kwargs and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
         if 'p' in kwargs:
             raise ValueError("`p` in RF Multipole is not supported anymore")
 
@@ -3322,8 +3396,8 @@ class ElectronCooler(BeamElement):
                         record_flag          =0,
                         **kwargs):
 
-        if "_xobject" in kwargs:
-            self.xoinitialize(_xobject=kwargs['_xobject'])
+        if '_xobject' in kwargs and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
             return
 
         super().__init__(**kwargs)
