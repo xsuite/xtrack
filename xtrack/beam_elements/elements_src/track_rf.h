@@ -20,6 +20,8 @@ void track_rf_kick_single_particle(
     double voltage,
     double frequency,
     double lag,
+    double transverse_voltage,
+    double transverse_lag,
     int64_t absolute_time,
     int64_t order,
     double factor_knl_ksl,
@@ -60,18 +62,32 @@ void track_rf_kick_single_particle(
         double const y = LocalParticle_get_y(part);
         double const p0c = LocalParticle_get_p0c(part);
 
-        for (int64_t kk = 0; kk <= order; kk++)
+        for (int64_t iter = 0; iter <= order+1; iter++)
         {
 
-            if (kk>0){
-                factorial *= kk;
+            int64_t kk = iter;
+
+            if (iter == order + 1){
+                // last iteration used for transverse_voltage, transverse_lag
+                kk = 0;
+                knl_kk = transverse_voltage / p0c;
+                ksl_kk = 0;
+                pn_kk = transverse_lag;
+                ps_kk = 0;
+            }
+            else
+            {
+                knl_kk = knl[kk];
+                ksl_kk = ksl[kk];
+                pn_kk = pn[kk];
+                ps_kk = ps[kk];
             }
 
-            double const pn_kk = phase0 + DEG2RAD * pn[kk] - (2.0 * PI) / C_LIGHT * frequency * tau;
-            double const ps_kk = phase0 + DEG2RAD * ps[kk] - (2.0 * PI) / C_LIGHT * frequency * tau;
+            double const pn_kk = phase0 + DEG2RAD * pn_kk - (2.0 * PI) / C_LIGHT * frequency * tau;
+            double const ps_kk = phase0 + DEG2RAD * ps_kk - (2.0 * PI) / C_LIGHT * frequency * tau;
 
-            double bal_n_kk = factor_knl_ksl * knl[kk]/factorial * weight;
-            double bal_s_kk = factor_knl_ksl * ksl[kk]/factorial * weight;
+            double bal_n_kk = factor_knl_ksl * knl_kk / factorial * weight;
+            double bal_s_kk = factor_knl_ksl * ksl_kk / factorial * weight;
 
             double const cn = cos(pn_kk);
             double const cs = cos(ps_kk);
@@ -116,6 +132,8 @@ void track_rf_body_single_particle(
     double voltage,
     double frequency,
     double lag,
+    double transverse_voltage,
+    double transverse_lag,
     int64_t absolute_time,
     int64_t order,
     double factor_knl_ksl,
@@ -130,7 +148,9 @@ void track_rf_body_single_particle(
 
     #define RF_KICK(part, weight) \
         track_rf_kick_single_particle(\
-            part, voltage, frequency, lag, absolute_time, order, \
+            part, voltage, frequency, lag,\
+            transverse_voltage, transverse_lag,\
+            absolute_time, order, \
             factor_knl_ksl, knl, ksl, pn, ps, (weight)\
         )
 
