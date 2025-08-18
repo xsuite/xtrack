@@ -83,6 +83,9 @@ def get_params(params, parent):
         else:
             main_params[k] = v
 
+    if 'l' in params:
+        main_params['isthick'] = True
+
     return main_params, extras
 
 
@@ -301,39 +304,41 @@ class MadxLoader:
 
         if (extras := el_params.pop('extra', None)):
             _warn(f'Ignoring extra parameters {extras} for element `{name}`!')
-        element = self.env[name]
+        # element = self.env[name]
 
-        length = self._element_length(name, el_params)
-        is_not_thick = isinstance(element, BeamElement) and not element.isthick
-        if is_not_thick and length and not isinstance(element, xt.Marker):
-            # Handle the thin elements that have a length in MAD-X: sandwich
-            line = self._make_thick_sandwich(name, length)
-            builder.place(line, **el_params)
-        else:
-            builder.place(name, **el_params)
+        # length = self._element_length(name, el_params)
+        # is_not_thick = isinstance(element, BeamElement) and not element.isthick
+        # if is_not_thick and length and not isinstance(element, xt.Marker):
+        #     # Handle the thin elements that have a length in MAD-X: sandwich
+        #     line = self._make_thick_sandwich(name, length)
+        #     builder.place(line, **el_params)
+        # else:
+        #     builder.place(name, **el_params)
+        builder.place(name, **el_params)
 
     def _clone_element(self, name, parent, builder, el_params):
         """Clone an element, and possibly place it if we are in a sequence.
 
         Here `parent` is not None.
         """
-        length = self._element_length(name, el_params)
-        element = self.env[parent]
-        is_not_thick = isinstance(element, BeamElement) and not element.isthick
+        # length = self._element_length(name, el_params)
+        # element = self.env[parent]
+        # is_not_thick = isinstance(element, BeamElement) and not element.isthick
 
-        if is_not_thick and length and not isinstance(element, xt.Marker):
-            # Handle the thin elements that have a length in MAD-X: sandwich
-            at, from_ = el_params.pop('at', None), el_params.pop('from_', None)
-            if name not in self.env.element_dict:
-                make_drifts = True
-                self.env.new(name, parent, **el_params)
-            else:
-                make_drifts = False
-                _warn(f'Element `{name}` already exists, this definition '
-                      f'will be ignored (for compatibility with MAD-X)')
-            name = self._make_thick_sandwich(name, length, make_drifts)
-            builder.place(name, at=at, from_=from_)
-        elif name == parent:
+        # if is_not_thick and length and not isinstance(element, xt.Marker):
+        #     # Handle the thin elements that have a length in MAD-X: sandwich
+        #     at, from_ = el_params.pop('at', None), el_params.pop('from_', None)
+        #     if name not in self.env.element_dict:
+        #         make_drifts = True
+        #         self.env.new(name, parent, **el_params)
+        #     else:
+        #         make_drifts = False
+        #         _warn(f'Element `{name}` already exists, this definition '
+        #               f'will be ignored (for compatibility with MAD-X)')
+        #     name = self._make_thick_sandwich(name, length, make_drifts)
+        #     builder.place(name, at=at, from_=from_)
+        # elif name == parent:
+        if name == parent:
             # This happens when the element is cloned with the same name, which
             # is allowed inside MAD-X sequences, e.g.: `el: el, at = 42;`.
             # We cannot attach extra to a place though, so this is skipped.
