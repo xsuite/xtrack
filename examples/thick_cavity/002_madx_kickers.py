@@ -21,13 +21,16 @@ hk: hkicker, l=0.1, kick=1e-3;
 ss: sequence, l=3;
   hk1: hk, at=1;
 endsequence;
+"""
 
+mad_computation = """
 beam;
 use, sequence=ss;
 twiss, betx=1, bety=1;
 """
 
 madx.input(mad_data)
+madx.input(mad_computation)
 
 tw_mad = xt.Table(madx.table.twiss, _copy_cols=True)
 
