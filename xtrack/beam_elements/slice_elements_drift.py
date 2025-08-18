@@ -5,7 +5,7 @@ from ..base_element import BeamElement
 from .slice_base import _SliceBase, COMMON_SLICE_XO_FIELDS
 from .elements import (
     SynchrotronRadiationRecord, Bend, Quadrupole, Sextupole,
-    Octupole, Solenoid, Drift, RBend, UniformSolenoid, Cavity
+    Octupole, Solenoid, Drift, RBend, UniformSolenoid, Cavity, CrabCavity
 )
 from ..survey import advance_element as survey_advance_element
 
@@ -112,6 +112,19 @@ class DriftSliceCavity(_DriftSliceElementBase, BeamElement):
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/drift_slice_cavity.h>'
+    ]
+
+    def get_equivalent_element(self):
+        out = Drift(length=self._parent.length * self.weight,
+                     _buffer=self._buffer)
+        return out
+
+class DriftSliceCrabCavity(_DriftSliceElementBase, BeamElement):
+
+    _xofields = {'_parent': xo.Ref(CrabCavity), **COMMON_SLICE_XO_FIELDS}
+
+    _extra_c_sources = [
+        '#include <beam_elements/elements_src/drift_slice_crab_cavity.h>'
     ]
 
     def get_equivalent_element(self):
