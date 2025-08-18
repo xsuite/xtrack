@@ -66,25 +66,26 @@ void track_rf_kick_single_particle(
         {
 
             int64_t kk = iter;
+            double knl_kk, ksl_kk, pn0_kk, ps0_kk;
 
             if (iter == order + 1){
                 // last iteration used for transverse_voltage, transverse_lag
                 kk = 0;
                 knl_kk = transverse_voltage / p0c;
                 ksl_kk = 0;
-                pn_kk = transverse_lag;
-                ps_kk = 0;
+                pn0_kk = transverse_lag;
+                ps0_kk = 0;
             }
             else
             {
                 knl_kk = knl[kk];
                 ksl_kk = ksl[kk];
-                pn_kk = pn[kk];
-                ps_kk = ps[kk];
+                pn0_kk = pn[kk];
+                ps0_kk = ps[kk];
             }
 
-            double const pn_kk = phase0 + DEG2RAD * pn_kk - (2.0 * PI) / C_LIGHT * frequency * tau;
-            double const ps_kk = phase0 + DEG2RAD * ps_kk - (2.0 * PI) / C_LIGHT * frequency * tau;
+            double const pn_kk = phase0 + DEG2RAD * pn0_kk - (2.0 * PI) / C_LIGHT * frequency * tau;
+            double const ps_kk = phase0 + DEG2RAD * ps0_kk - (2.0 * PI) / C_LIGHT * frequency * tau;
 
             double bal_n_kk = factor_knl_ksl * knl_kk / factorial * weight;
             double bal_s_kk = factor_knl_ksl * ksl_kk / factorial * weight;
@@ -191,6 +192,8 @@ void track_rf_particles(
     double voltage,
     double frequency,
     double lag,
+    double transverse_voltage,
+    double transverse_lag,
     int64_t absolute_time,
     int64_t order,
     GPUGLMEM const double* knl,
@@ -274,6 +277,8 @@ void track_rf_particles(
                 voltage,
                 frequency,
                 lag + lag_taper,
+                transverse_voltage,
+                transverse_lag,
                 absolute_time,
                 order,
                 factor_knl_ksl_body,
