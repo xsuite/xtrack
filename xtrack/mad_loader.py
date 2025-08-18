@@ -1204,6 +1204,7 @@ class MadLoader:
         el = self.Builder(
                 ee.name,
                 self.classes.RFMultipole,
+                length=ee.l,
                 frequency=ee.freq * 1e6,
                 knl=[ee.volt / self.sequence.beam.pc * 1e-3 * self.bv],
                 pn=[ee.lag * self.bv * 360 + 90],  # TODO: Changed sign to match sixtrack
