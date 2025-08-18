@@ -68,6 +68,10 @@ void track_rf_kick_single_particle(
             int64_t kk = iter;
             double knl_kk, ksl_kk, pn0_kk, ps0_kk;
 
+            if (kk > 0) {
+                factorial *= kk;
+            }
+
             if (iter == order + 1){
                 // last iteration used for transverse_voltage, transverse_lag
                 kk = 0;
