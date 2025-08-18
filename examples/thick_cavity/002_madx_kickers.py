@@ -3,17 +3,6 @@ import xtrack as xt
 
 madx = Madx()
 
-# madx.call("../../test_data/hllhc15_thick/lhc.seq")
-# madx.call("../../test_data/hllhc15_thick/hllhc_sequence.madx")
-# madx.call("../../test_data/hllhc15_thick/opt_round_150_1500.madx")
-
-# madx.beam()
-# madx.use('lhcb1')
-# madx.twiss()
-# tw = xt.Table(madx.table.twiss, _copy_cols=True)
-
-
-    
 mad_data = """
 
 hk: hkicker, l=0.1, kick=1e-3;
