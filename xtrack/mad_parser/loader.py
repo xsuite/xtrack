@@ -364,14 +364,14 @@ class MadxLoader:
 
         return length
 
-    def _make_thick_sandwich(self, name, length, make_drifts=True):
-        """Make a sandwich of two drifts around the element."""
-        drift_name = f'{name}_drift'
-        if make_drifts:
-            self.env.new(drift_name + '_0', 'Drift', length=length / 2)
-            self.env.new(drift_name + '_1', 'Drift', length=length / 2)
-        line = self.env.new_line([drift_name + '_0', name, drift_name + '_1'])
-        return line
+    # def _make_thick_sandwich(self, name, length, make_drifts=True):
+    #     """Make a sandwich of two drifts around the element."""
+    #     drift_name = f'{name}_drift'
+    #     if make_drifts:
+    #         self.env.new(drift_name + '_0', 'Drift', length=length / 2)
+    #         self.env.new(drift_name + '_1', 'Drift', length=length / 2)
+    #     line = self.env.new_line([drift_name + '_0', name, drift_name + '_1'])
+    #     return line
 
     def _set_element(self, name, builder, **kwargs):
         self._parameter_cache[name].update(kwargs)
