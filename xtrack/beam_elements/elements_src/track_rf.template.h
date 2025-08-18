@@ -75,6 +75,7 @@ void track_rf_kick_single_particle(
                 ksl_kk = 0;
                 pn0_kk = transverse_lag;
                 ps0_kk = 0;
+                factorial = 1.0;
             }
             else
             {
