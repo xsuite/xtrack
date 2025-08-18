@@ -15,6 +15,7 @@ import xtrack as xt
 # - And in spin calculation?
 # - What does the slicing do when length=0?
 # - need to prevent setting isthick when not allowed
+# - crab cavity through native loader
 
 rf = xt.TempRF(frequency=1e9, voltage=1e6, lag=30, length=2)
 cav = xt.Cavity(frequency=1e9, voltage=1e6, lag=30)
