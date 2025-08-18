@@ -122,27 +122,7 @@ class ThinSliceOctupole(_ThinSliceElementBase, BeamElement):
         return out
 
 
-class ThinSliceCrabCavity(_ThinSliceElementBase, BeamElement):
-
-    _xofields = {'_parent': xo.Ref(CrabCavity), **COMMON_SLICE_XO_FIELDS}
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_crab_cavity.h'),
-    ]
-
-    def get_equivalent_element(self):
-
-
-        out = CrabCavity(length=0,
-                     voltage=self._parent.voltage * self.weight,
-                     frequency=self._parent.frequency,
-                     lag=self._parent.lag,
-                     lag_taper=self._parent.lag_taper,
-                     absolute_time=self._parent.absolute_time,
-                     _buffer=self._buffer)
-
-        return out
-
+class ThinSliceCavity(_ThinSliceElementBase, BeamElement):
 
     _xofields = {'_parent': xo.Ref(Cavity), **COMMON_SLICE_XO_FIELDS}
 
@@ -162,6 +142,27 @@ class ThinSliceCrabCavity(_ThinSliceElementBase, BeamElement):
                      _buffer=self._buffer)
 
         return out
+
+class ThinSliceCrabCavity(_ThinSliceElementBase, BeamElement):
+
+    _xofields = {'_parent': xo.Ref(CrabCavity), **COMMON_SLICE_XO_FIELDS}
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_crab_cavity.h'),
+    ]
+
+    def get_equivalent_element(self):
+
+        out = CrabCavity(length=0,
+                         voltage=self._parent.voltage * self.weight,
+                         frequency=self._parent.frequency,
+                         lag=self._parent.lag,
+                         lag_taper=self._parent.lag_taper,
+                         absolute_time=self._parent.absolute_time,
+                         _buffer=self._buffer)
+
+        return out
+
 
 class ThinSliceBend(_ThinSliceElementBase, BeamElement):
 

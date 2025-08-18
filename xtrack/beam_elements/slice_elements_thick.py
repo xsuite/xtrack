@@ -93,12 +93,12 @@ class ThickSliceCavity(_ThickSliceElementBase, BeamElement):
         '#include <beam_elements/elements_src/thick_slice_cavity.h>'
     ]
 
-class ThickSliceCavity(_ThickSliceElementBase, BeamElement):
+class ThickSliceCrabCavity(_ThickSliceElementBase, BeamElement):
 
-    _xofields = {'_parent': xo.Ref(Cavity), **COMMON_SLICE_XO_FIELDS}
+    _xofields = {'_parent': xo.Ref(CrabCavity), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thick_slice_cavity.h>'
+        '#include <beam_elements/elements_src/thick_slice_crab_cavity.h>'
     ]
 
 class ThickSliceUniformSolenoid(_ThickSliceElementBase, BeamElement):
