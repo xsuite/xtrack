@@ -1215,7 +1215,7 @@ class MadLoader:
                 length=ee.l,
                 frequency=ee.freq * 1e6,
                 voltage=ee.volt * 1e6 * self.bv,
-                lag=ee.lag * self.bv * 360 + 90,  # TODO: Changed sign to match sixtrack
+                lag=ee.lag * self.bv * 360,  # TODO: Changed sign to match sixtrack
                 # To be checked!!!!
             )
         return self.make_composite_element([el], ee)

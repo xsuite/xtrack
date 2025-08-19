@@ -111,7 +111,7 @@ void track_rf_kick_single_particle(
         double const y = LocalParticle_get_y(part);
         double const p0c = LocalParticle_get_p0c(part);
 
-        double const pn_kk = phase0 + DEG2RAD * transverse_lag - (2.0 * PI) / C_LIGHT * frequency * tau;
+        double const pn_kk = phase0 + DEG2RAD * (transverse_lag + 90.) - (2.0 * PI) / C_LIGHT * frequency * tau;
         double const k0l = transverse_voltage / p0c;
 
         double bal_n_kk = k0l;
