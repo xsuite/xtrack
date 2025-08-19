@@ -1201,12 +1201,21 @@ class MadLoader:
         #     if getattr(ee, nn):
         #         raise NotImplementedError(f"Invalid value {nn}={getattr(ee, nn)}")
         # ee.volt in MV, sequence.beam.pc in GeV
+        # el = self.Builder(
+        #         ee.name,
+        #         self.classes.RFMultipole,
+        #         frequency=ee.freq * 1e6,
+        #         knl=[ee.volt / self.sequence.beam.pc * 1e-3 * self.bv],
+        #         pn=[ee.lag * self.bv * 360 + 90],  # TODO: Changed sign to match sixtrack
+        #         # To be checked!!!!
+        #     )
         el = self.Builder(
                 ee.name,
-                self.classes.RFMultipole,
+                self.classes.CrabCavity,
+                length=ee.l,
                 frequency=ee.freq * 1e6,
-                knl=[ee.volt / self.sequence.beam.pc * 1e-3 * self.bv],
-                pn=[ee.lag * self.bv * 360 + 90],  # TODO: Changed sign to match sixtrack
+                voltage=ee.volt * 1e6 * self.bv,
+                lag=ee.lag * self.bv * 360 + 90,  # TODO: Changed sign to match sixtrack
                 # To be checked!!!!
             )
         return self.make_composite_element([el], ee)

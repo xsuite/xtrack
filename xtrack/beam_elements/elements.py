@@ -436,6 +436,81 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
         return xt.DriftSliceCavity
 
 
+class CrabCavity(_HasModelRF, _HasIntegrator, BeamElement):
+    '''Beam element modeling an RF CrabCavity.
+
+    Parameters
+    ----------
+    voltage : float
+        Voltage of the RF CrabCavity in Volts. Default is ``0``.
+    frequency : float
+        Frequency of the RF CrabCavity in Hertz. Default is ``0``.
+    lag : float
+        Phase seen by the reference particle in degrees. Default is ``0``.
+
+    '''
+
+    isthick = True
+    has_backtrack = True
+    allow_loss_refinement = True
+
+    _xofields = {
+        'length': xo.Float64,
+        'voltage': xo.Float64,
+        'frequency': xo.Float64,
+        'lag': xo.Float64,
+        'lag_taper': xo.Float64,
+        'absolute_time': xo.Int64,
+        'num_kicks': xo.Int64,
+        'model': xo.Int64,
+        'integrator': xo.Int64,
+    }
+
+    _extra_c_sources = [
+        '#include <beam_elements/elements_src/crab_cavity.h>',
+    ]
+
+    _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
+
+    _rename = {
+        'model': '_model',
+        'integrator': '_integrator',
+    }
+
+    _noexpr_fields = _NOEXPR_FIELDS
+
+    def __init__(self, **kwargs):
+
+        if '_xobject' in kwargs and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
+        model = kwargs.pop('model', None)
+        integrator = kwargs.pop('integrator', None)
+
+        self.xoinitialize(**kwargs)
+
+        # Trigger properties
+        if model is not None:
+            self.model = model
+
+        if integrator is not None:
+            self.integrator = integrator
+
+    # @property
+    # def _thin_slice_class(self):
+    #     return xt.ThinSliceCrabCavity
+
+    # @property
+    # def _thick_slice_class(self):
+    #     return xt.ThickSliceCrabCavity
+
+    # @property
+    # def _drift_slice_class(self):
+    #     return xt.DriftSliceCrabCavity
+
+
+
 class XYShift(BeamElement):
     '''Beam element modeling an transverse shift of the reference system.
 
