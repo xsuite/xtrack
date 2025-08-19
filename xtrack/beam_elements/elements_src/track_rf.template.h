@@ -28,8 +28,7 @@ void track_rf_kick_single_particle(
     GPUGLMEM const double* knl,
     GPUGLMEM const double* ksl,
     GPUGLMEM const double* pn,
-    GPUGLMEM const double* ps,
-    double weight
+    GPUGLMEM const double* ps
 ){
 
     double phase0 = 0;
@@ -45,7 +44,7 @@ void track_rf_kick_single_particle(
     double const q = fabs(LocalParticle_get_q0(part)) * LocalParticle_get_charge_ratio(part);
     double const tau = zeta / beta0;
 
-    double const energy_kick = weight * q * voltage
+    double const energy_kick = q * voltage
         * sin(phase0 + DEG2RAD * lag - (2.0 * PI) / C_LIGHT * frequency * tau);
 
     double rfmultipole_energy_kick = 0;
@@ -72,8 +71,8 @@ void track_rf_kick_single_particle(
             double const pn_kk = phase0 + DEG2RAD * pn[kk] - (2.0 * PI) / C_LIGHT * frequency * tau;
             double const ps_kk = phase0 + DEG2RAD * ps[kk] - (2.0 * PI) / C_LIGHT * frequency * tau;
 
-            double bal_n_kk = factor_knl_ksl * knl[kk]/factorial * weight;
-            double bal_s_kk = factor_knl_ksl * ksl[kk]/factorial * weight;
+            double bal_n_kk = factor_knl_ksl * knl[kk]/factorial;
+            double bal_s_kk = factor_knl_ksl * ksl[kk]/factorial;
 
             double const cn = cos(pn_kk);
             double const cs = cos(ps_kk);
@@ -171,12 +170,12 @@ void track_rf_body_single_particle(
     const int8_t integrator
 ) {
 
-    #define RF_KICK(part, weight) \
+    #define RF_KICK(part, kick_weight) \
         track_rf_kick_single_particle(\
-            part, voltage, frequency, lag,\
-            transverse_voltage, transverse_lag,\
+            part, voltage * (kick_weight), frequency, lag,\
+            transverse_voltage * (kick_weight), transverse_lag,\
             absolute_time, order, \
-            factor_knl_ksl, knl, ksl, pn, ps, (weight)\
+            factor_knl_ksl * (kick_weight), knl, ksl, pn, ps\
         )
 
     #define RF_DRIFT(part, dlength) \
@@ -241,13 +240,14 @@ void track_rf_particles(
 
     // Backtracking
     #ifdef XSUITE_BACKTRACK
-        const double body_length = -length * weight;
-        double factor_knl_ksl_body = -factor_knl_ksl * weight;
+        const double body_length = -length;
+        double factor_knl_ksl_body = -factor_knl_ksl;
         VSWAP(edge_entry_active, edge_exit_active);
         voltage = -voltage;
+        transverse_voltage = -transverse_voltage;
     #else
-        const double body_length = length * weight;
-        double factor_knl_ksl_body = factor_knl_ksl * weight;
+        const double body_length = length;
+        double factor_knl_ksl_body = factor_knl_ksl;
     #endif
 
     if (body_active){
@@ -297,15 +297,15 @@ void track_rf_particles(
         START_PER_PARTICLE_BLOCK(part0, part);
             track_rf_body_single_particle(
                 part,
-                body_length,
-                voltage,
+                body_length * weight,
+                voltage * weight,
                 frequency,
                 lag + lag_taper,
-                transverse_voltage,
+                transverse_voltage * weight,
                 transverse_lag,
                 absolute_time,
                 order,
-                factor_knl_ksl_body,
+                factor_knl_ksl_body * weight,
                 knl,
                 ksl,
                 pn,
