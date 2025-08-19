@@ -5,7 +5,7 @@ from .slice_base import _SliceBase, COMMON_SLICE_XO_FIELDS, ID_RADIATION_FROM_PA
 from .elements import (
     SynchrotronRadiationRecord, Quadrupole, Sextupole,
     Octupole, Bend, Multipole, DipoleEdge, RBend, MultipoleEdge, Marker,
-    UniformSolenoid, Cavity
+    UniformSolenoid, Cavity, CrabCavity
 )
 from ..base_element import BeamElement
 
@@ -134,6 +134,27 @@ class ThinSliceCavity(_ThinSliceElementBase, BeamElement):
 
 
         out = Cavity(length=0,
+                     voltage=self._parent.voltage * self.weight,
+                     frequency=self._parent.frequency,
+                     lag=self._parent.lag,
+                     lag_taper=self._parent.lag_taper,
+                     absolute_time=self._parent.absolute_time,
+                     _buffer=self._buffer)
+
+        return out
+
+
+class ThinSliceCrabCavity(_ThinSliceElementBase, BeamElement):
+
+    _xofields = {'_parent': xo.Ref(CrabCavity), **COMMON_SLICE_XO_FIELDS}
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/thin_slice_crab_cavity.h'),
+    ]
+
+    def get_equivalent_element(self):
+
+        out = CrabCavity(length=0,
                      voltage=self._parent.voltage * self.weight,
                      frequency=self._parent.frequency,
                      lag=self._parent.lag,

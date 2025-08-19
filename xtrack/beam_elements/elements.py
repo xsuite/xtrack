@@ -497,17 +497,17 @@ class CrabCavity(_HasModelRF, _HasIntegrator, BeamElement):
         if integrator is not None:
             self.integrator = integrator
 
-    # @property
-    # def _thin_slice_class(self):
-    #     return xt.ThinSliceCrabCavity
+    @property
+    def _thin_slice_class(self):
+        return xt.ThinSliceCrabCavity
 
-    # @property
-    # def _thick_slice_class(self):
-    #     return xt.ThickSliceCrabCavity
+    @property
+    def _thick_slice_class(self):
+        return xt.ThickSliceCrabCavity
 
-    # @property
-    # def _drift_slice_class(self):
-    #     return xt.DriftSliceCrabCavity
+    @property
+    def _drift_slice_class(self):
+        return xt.DriftSliceCrabCavity
 
 
 
