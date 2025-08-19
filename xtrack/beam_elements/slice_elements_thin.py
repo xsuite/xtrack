@@ -223,3 +223,34 @@ class ThinSliceRBend(_ThinSliceElementBase, BeamElement):
                         rot_s_rad=self._parent.rot_s_rad,
                         _buffer=self._buffer)
         return out
+
+
+class ThinSliceMultipole(_ThinSliceElementBase, BeamElement):
+
+    _xofields = {'_parent': xo.Ref(Multipole), **COMMON_SLICE_XO_FIELDS}
+
+    _extra_c_sources = [
+        '#include <beam_elements/elements_src/thin_slice_multipole.h>'
+    ]
+
+    def get_equivalent_element(self):
+        knl = self._parent.knl.copy() * self.weight
+        ksl = self._parent.ksl.copy() * self.weight
+
+        length = self._parent.length * self.weight
+
+        if self.radiation_flag == ID_RADIATION_FROM_PARENT:
+            radiation_flag = self._parent.radiation_flag
+        else:
+            radiation_flag = self.radiation_flag
+
+        out = Multipole(knl=knl, ksl=ksl, length=length,
+                        hxl=self._parent.hxl,
+                        radiation_flag=radiation_flag,
+                        delta_taper=self.delta_taper,
+                        shift_x=self._parent.shift_x,
+                        shift_y=self._parent.shift_y,
+                        shift_s=self._parent.shift_s,
+                        rot_s_rad=self._parent.rot_s_rad,
+                        _buffer=self._buffer)
+        return out

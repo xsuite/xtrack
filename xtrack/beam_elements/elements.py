@@ -1043,6 +1043,18 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
     def isthick(self, value):
         self._isthick = int(bool(value))
 
+    @property
+    def _thin_slice_class(self):
+        return xt.ThinSliceMultipole
+
+    @property
+    def _thick_slice_class(self):
+        return xt.ThickSliceMultipole
+
+    @property
+    def _drift_slice_class(self):
+        return xt.DriftSliceMultipole
+
 class SimpleThinQuadrupole(BeamElement):
     """An specialized version of Multipole to model a thin quadrupole
     (knl[0], ksl, hxl, are all zero).

@@ -20,8 +20,11 @@ to_do = [
     ("Sextupole", "sextupole.h"),
     ("UniformSolenoid", "slnd.h"),
     ("Cavity", "cavity.h"),
-    ("CrabCavity", "crab_cavity.h")
+    ("CrabCavity", "crab_cavity.h"),
+    ("Multipole", "multipole.h")
 ]
+
+no_edge_for = ["Cavity", "CrabCavity", "Multipole"]
 
 for td in to_do:
 
@@ -38,10 +41,10 @@ for td in to_do:
         if parent_class == "UniformSolenoid" and generating == "thin_slice":
             continue # Does not exist
 
-        if parent_class in ["Cavity", "CrabCavity"] and generating == "entry_slice":
+        if parent_class in no_edge_for and generating == "entry_slice":
             continue # Does not exist
 
-        if parent_class in ["Cavity", "CrabCavity"] and generating == "exit_slice":
+        if parent_class in no_edge_for and generating == "exit_slice":
             continue # Does not exist
 
         out_content = parent_content
@@ -73,6 +76,7 @@ for td in to_do:
 
         assert generated_data_class + '_get_' in out_content
         out_content = out_content.replace(generated_data_class + '_get_', generated_data_class + '_get__parent_')
+        out_content = out_content.replace(generated_data_class + '_getp_', generated_data_class + '_getp__parent_')
 
         if parent_class not in ['Cavity', 'CrabCavity']:
             assert generated_data_class + '_getp1_' in out_content
@@ -147,6 +151,7 @@ for td in to_do:
         found_model = False
         found_num_multipole_kicks = False
         found_enable_body = False
+        found_radiation_record = False
         for i, line in enumerate(out_lines):
             if "/*integrator*/" in line:
                 found_integrator = True
@@ -168,7 +173,9 @@ for td in to_do:
                 if generating == "thick_slice":
                     continue
                 assert generated_data_class + '_get_' in ll or '-2' in ll # -2 used for solenoid
-                if generated_data_class + '_get_' in ll:
+                if '((' in ll: #case of multipole that has some logic there
+                    ll = ll.split('((')[0]
+                elif generated_data_class + '_get_' in ll:
                     ll = ll.split(generated_data_class + '_get_')[0]
                 elif '-2' in ll:
                     ll = ll.split('-2')[0]
@@ -221,12 +228,23 @@ for td in to_do:
                     ll = ll.split('1')[0]
                     ll += "0, // disabled"
                 out_lines[i] = ll
+            if "/*radiation_record*/" in line:
+                found_radiation_record = True
+                if generated_data_class == 'ThinSliceMultipoleData':
+                    breakpoint()
+                ll = line
+                if '_getp_' in ll:
+                    assert '(SynchrotronRadiationRecordData)' in ll
+                    ll = ll.split('(SynchrotronRadiationRecordData)')[0]
+                    ll += 'NULL,' # Not yet supported in slices
+                out_lines[i] = ll
         assert found_integrator, "Did not find integrator line to modify"
         assert found_model, "Did not find model line to modify"
         if parent_class in ["Cavity", "CrabCavity"]:
             assert found_num_kicks, "Did not find num_kicks line to modify"
         else:
             assert found_num_multipole_kicks, "Did not find num_multipole_kicks line to modify"
+            assert found_radiation_record, "Did not find radiation_record line to modify"
         assert found_enable_body, "Did not find enable_body line to modify"
 
         # generated_class from camel case to snake case
