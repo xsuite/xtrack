@@ -31,6 +31,8 @@ void track_rf_kick_single_particle(
     GPUGLMEM const double* ps
 ){
 
+    return;
+    
     double phase0 = 0;
 
     if (absolute_time == 1) {
@@ -48,9 +50,8 @@ void track_rf_kick_single_particle(
         * sin(phase0 + DEG2RAD * lag - (2.0 * PI) / C_LIGHT * frequency * tau);
 
 
-    double rfmultipole_energy_kick = 0;
     if (transverse_voltage != 0) {
-
+        double rfmultipole_energy_kick = 0;
         double dpx = 0.0;
         double dpy = 0.0;
         double dptr = 0.0;
@@ -78,7 +79,7 @@ void track_rf_kick_single_particle(
 
         dptr += sn * (bal_n_kk * zre);
 
-        rfmultipole_energy_kick += - q * ( (frequency * ( 2.0 * PI / C_LIGHT) * p0c) * dptr );
+        rfmultipole_energy_kick = - q * ( (frequency * ( 2.0 * PI / C_LIGHT) * p0c) * dptr );
         double const chi    = LocalParticle_get_chi(part);
 
         double const px_kick = - chi * dpx;
@@ -90,6 +91,7 @@ void track_rf_kick_single_particle(
     }
 
     if (order >= 0) {
+        double rfmultipole_energy_kick = 0;
         double dpx = 0.0;
         double dpy = 0.0;
         double dptr = 0.0;
@@ -129,7 +131,7 @@ void track_rf_kick_single_particle(
             dptr += sn * (bal_n_kk * zre) - ss * (bal_s_kk * zim);
         }
 
-        rfmultipole_energy_kick += - q * ( (frequency * ( 2.0 * PI / C_LIGHT) * p0c) * dptr );
+        rfmultipole_energy_kick = - q * ( (frequency * ( 2.0 * PI / C_LIGHT) * p0c) * dptr );
         double const chi    = LocalParticle_get_chi(part);
 
         double const px_kick = - chi * dpx;

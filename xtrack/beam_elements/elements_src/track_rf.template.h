@@ -31,6 +31,8 @@ void track_rf_kick_single_particle(
     GPUGLMEM const double* ps
 ){
 
+    return;
+    
     double phase0 = 0;
 
     if (absolute_time == 1) {

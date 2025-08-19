@@ -24,7 +24,7 @@ void ThinSliceCavity_track_local_particle(ThinSliceCavityData el, LocalParticle*
         /*transverse_voltage*/    0.,
         /*transverse_lag*/        0.,
         /*absolute_time*/         ThinSliceCavityData_get__parent_absolute_time(el),
-        /*order*/                 -1, // not used here
+        /*order*/                 0, // dipolar
         /*knl*/                   NULL,
         /*ksl*/                   NULL,
         /*pn*/                    NULL,
