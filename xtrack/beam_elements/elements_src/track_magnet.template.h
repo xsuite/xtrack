@@ -9,6 +9,7 @@
 #include <beam_elements/elements_src/track_magnet_kick.h>
 #include <beam_elements/elements_src/track_magnet_drift.h>
 #include <beam_elements/elements_src/track_magnet_edge.h>
+#include <beam_elements/elements_src/track_magnet_configure.h>
 
 #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
 #include <beam_elements/elements_src/track_magnet_radiation.h>
