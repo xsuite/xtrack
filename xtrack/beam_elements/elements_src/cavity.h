@@ -18,9 +18,9 @@ void Cavity_track_local_particle(CavityData el, LocalParticle* part0)
         /*voltage*/               CavityData_get_voltage(el),
         /*frequency*/             CavityData_get_frequency(el),
         /*lag*/                   CavityData_get_lag(el),
-        /*absolute_time*/         CavityData_get_absolute_time(el),
         /*transverse_voltage*/    0.,
         /*transverse_lag*/        0.,
+        /*absolute_time*/         CavityData_get_absolute_time(el),
         /*order*/                 -1, // not used here
         /*knl*/                   NULL,
         /*ksl*/                   NULL,
