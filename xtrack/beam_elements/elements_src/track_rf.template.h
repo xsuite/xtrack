@@ -20,6 +20,8 @@ void track_rf_kick_single_particle(
     double voltage,
     double frequency,
     double lag,
+    double transverse_voltage,
+    double transverse_lag,
     int64_t absolute_time,
     int64_t order,
     double factor_knl_ksl,
@@ -99,6 +101,45 @@ void track_rf_kick_single_particle(
 
     }
 
+    if (transverse_voltage != 0) {
+        double dpx = 0.0;
+        double dpy = 0.0;
+        double dptr = 0.0;
+        double zre = 1.0;
+        double zim = 0.0;
+
+        double const x = LocalParticle_get_x(part);
+        double const y = LocalParticle_get_y(part);
+        double const p0c = LocalParticle_get_p0c(part);
+
+        double const pn_kk = phase0 + DEG2RAD * transverse_lag - (2.0 * PI) / C_LIGHT * frequency * tau;
+        double const k0l = transverse_voltage / p0c;
+
+        double bal_n_kk = k0l;
+
+        double const cn = cos(pn_kk);
+        double const sn = sin(pn_kk);
+
+        dpx += cn * (bal_n_kk * zre);
+        dpy += cn * (bal_n_kk * zim);
+
+        double const zret = zre * x - zim * y;
+        zim = zim * x + zre * y;
+        zre = zret;
+
+        dptr += sn * (bal_n_kk * zre);
+
+        rfmultipole_energy_kick += - q * ( (frequency * ( 2.0 * PI / C_LIGHT) * p0c) * dptr );
+        double const chi    = LocalParticle_get_chi(part);
+
+        double const px_kick = - chi * dpx;
+        double const py_kick =   chi * dpy;
+
+        LocalParticle_add_to_px(part, px_kick);
+        LocalParticle_add_to_py(part, py_kick);
+
+    }
+
 
     #ifdef XTRACK_CAVITY_PRESERVE_ANGLE
     LocalParticle_add_to_energy(part, energy_kick + rfmultipole_energy_kick, 0);
@@ -130,7 +171,9 @@ void track_rf_body_single_particle(
 
     #define RF_KICK(part, weight) \
         track_rf_kick_single_particle(\
-            part, voltage, frequency, lag, absolute_time, order, \
+            part, voltage, frequency, lag,\
+            0, 0,\
+            absolute_time, order, \
             factor_knl_ksl, knl, ksl, pn, ps, (weight)\
         )
 
