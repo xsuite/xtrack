@@ -19,7 +19,8 @@ to_do = [
     ("Quadrupole", "quadrupole.h"),
     ("Sextupole", "sextupole.h"),
     ("UniformSolenoid", "slnd.h"),
-    ("Cavity", "cavity.h")
+    ("Cavity", "cavity.h"),
+    ("CrabCavity", "crab_cavity.h")
 ]
 
 for td in to_do:
@@ -37,10 +38,10 @@ for td in to_do:
         if parent_class == "UniformSolenoid" and generating == "thin_slice":
             continue # Does not exist
 
-        if parent_class == "Cavity" and generating == "entry_slice":
+        if parent_class in ["Cavity", "CrabCavity"] and generating == "entry_slice":
             continue # Does not exist
 
-        if parent_class == "Cavity" and generating == "exit_slice":
+        if parent_class in ["Cavity", "CrabCavity"] and generating == "exit_slice":
             continue # Does not exist
 
         out_content = parent_content
@@ -73,19 +74,19 @@ for td in to_do:
         assert generated_data_class + '_get_' in out_content
         out_content = out_content.replace(generated_data_class + '_get_', generated_data_class + '_get__parent_')
 
-        if parent_class != 'Cavity':
+        if parent_class not in ['Cavity', 'CrabCavity']:
             assert generated_data_class + '_getp1_' in out_content
         out_content = out_content.replace(generated_data_class + '_getp1_', generated_data_class + '_getp1__parent_')
 
         # delta_taper must come from the slice and not from the parent
-        if parent_class != 'Cavity':
+        if parent_class not in ['Cavity', 'CrabCavity']:
             assert "_get__parent_delta_taper" in out_content
         out_content = out_content.replace("_get__parent_delta_taper", "_get_delta_taper")
 
         # Handle "radiation_flag" and "radiation_flag_parent"
         out_lines = out_content.splitlines()
 
-        if parent_class != 'Cavity':
+        if parent_class not in ['Cavity', 'CrabCavity']:
             # Identify the line with "/*radiation_flag*/"
             i_radiation_flag_line = None
             for i, line in enumerate(out_lines):
@@ -222,7 +223,7 @@ for td in to_do:
                 out_lines[i] = ll
         assert found_integrator, "Did not find integrator line to modify"
         assert found_model, "Did not find model line to modify"
-        if parent_class == "Cavity":
+        if parent_class in ["Cavity", "CrabCavity"]:
             assert found_num_kicks, "Did not find num_kicks line to modify"
         else:
             assert found_num_multipole_kicks, "Did not find num_multipole_kicks line to modify"
