@@ -88,56 +88,56 @@ void track_rf_kick_single_particle(
 
     }
 
-    if (order >= 0) {
-        double dpx = 0.0;
-        double dpy = 0.0;
-        double dptr = 0.0;
-        double zre = 1.0;
-        double zim = 0.0;
-        double factorial = 1.0;
+    // if (order >= 0) {
+    //     double dpx = 0.0;
+    //     double dpy = 0.0;
+    //     double dptr = 0.0;
+    //     double zre = 1.0;
+    //     double zim = 0.0;
+    //     double factorial = 1.0;
 
-        double const x = LocalParticle_get_x(part);
-        double const y = LocalParticle_get_y(part);
-        double const p0c = LocalParticle_get_p0c(part);
+    //     double const x = LocalParticle_get_x(part);
+    //     double const y = LocalParticle_get_y(part);
+    //     double const p0c = LocalParticle_get_p0c(part);
 
-        for (int64_t kk = 0; kk <= order; kk++)
-        {
+    //     for (int64_t kk = 0; kk <= order; kk++)
+    //     {
 
-            if (kk>0){
-                factorial *= kk;
-            }
+    //         if (kk>0){
+    //             factorial *= kk;
+    //         }
 
-            double const pn_kk = phase0 + DEG2RAD * pn[kk] - (2.0 * PI) / C_LIGHT * frequency * tau;
-            double const ps_kk = phase0 + DEG2RAD * ps[kk] - (2.0 * PI) / C_LIGHT * frequency * tau;
+    //         double const pn_kk = phase0 + DEG2RAD * pn[kk] - (2.0 * PI) / C_LIGHT * frequency * tau;
+    //         double const ps_kk = phase0 + DEG2RAD * ps[kk] - (2.0 * PI) / C_LIGHT * frequency * tau;
 
-            double bal_n_kk = factor_knl_ksl * knl[kk]/factorial;
-            double bal_s_kk = factor_knl_ksl * ksl[kk]/factorial;
+    //         double bal_n_kk = factor_knl_ksl * knl[kk]/factorial;
+    //         double bal_s_kk = factor_knl_ksl * ksl[kk]/factorial;
 
-            double const cn = cos(pn_kk);
-            double const cs = cos(ps_kk);
-            double const sn = sin(pn_kk);
-            double const ss = sin(ps_kk);
+    //         double const cn = cos(pn_kk);
+    //         double const cs = cos(ps_kk);
+    //         double const sn = sin(pn_kk);
+    //         double const ss = sin(ps_kk);
 
-            dpx += cn * (bal_n_kk * zre) - cs * (bal_s_kk * zim);
-            dpy += cs * (bal_s_kk * zre) + cn * (bal_n_kk * zim);
+    //         dpx += cn * (bal_n_kk * zre) - cs * (bal_s_kk * zim);
+    //         dpy += cs * (bal_s_kk * zre) + cn * (bal_n_kk * zim);
 
-            double const zret = zre * x - zim * y;
-            zim = zim * x + zre * y;
-            zre = zret;
+    //         double const zret = zre * x - zim * y;
+    //         zim = zim * x + zre * y;
+    //         zre = zret;
 
-            dptr += sn * (bal_n_kk * zre) - ss * (bal_s_kk * zim);
-        }
+    //         dptr += sn * (bal_n_kk * zre) - ss * (bal_s_kk * zim);
+    //     }
 
-        rfmultipole_energy_kick += - q * ( (frequency * ( 2.0 * PI / C_LIGHT) * p0c) * dptr );
-        double const chi    = LocalParticle_get_chi(part);
+    //     rfmultipole_energy_kick += - q * ( (frequency * ( 2.0 * PI / C_LIGHT) * p0c) * dptr );
+    //     double const chi    = LocalParticle_get_chi(part);
 
-        double const px_kick = - chi * dpx;
-        double const py_kick =   chi * dpy;
+    //     double const px_kick = - chi * dpx;
+    //     double const py_kick =   chi * dpy;
 
-        LocalParticle_add_to_px(part, px_kick);
-        LocalParticle_add_to_py(part, py_kick);
+    //     LocalParticle_add_to_px(part, px_kick);
+    //     LocalParticle_add_to_py(part, py_kick);
 
-    }
+    // }
 
 
     #ifdef XTRACK_CAVITY_PRESERVE_ANGLE
