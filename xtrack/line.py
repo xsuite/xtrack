@@ -70,7 +70,7 @@ _ALLOWED_ELEMENT_TYPES_IN_NEW = [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole,
                                  xt.LimitRacetrack, xt.LimitRectEllipse,
                                  xt.LimitRect, xt.LimitEllipse,
                                  xt.LimitPolygon, xt.RFMultipole, xt.RBend,
-                                 xt.Magnet]
+                                 xt.Magnet, xt.CrabCavity]
 
 
 _ALLOWED_ELEMENT_TYPES_DICT = {
