@@ -22,6 +22,8 @@ void ThickSliceCavity_track_local_particle(ThickSliceCavityData el, LocalParticl
         /*frequency*/             ThickSliceCavityData_get__parent_frequency(el),
         /*lag*/                   ThickSliceCavityData_get__parent_lag(el),
         /*absolute_time*/         ThickSliceCavityData_get__parent_absolute_time(el),
+        /*transverse_voltage*/    0.,
+        /*transverse_lag*/        0.,
         /*order*/                 -1, // not used here
         /*knl*/                   NULL,
         /*ksl*/                   NULL,
