@@ -5,7 +5,7 @@ madx = Madx()
 
 mad_data = """
 
-cc: crabcavity, volt=3, freq=400e6, lag=0.2;
+cc: crabcavity, volt=3, freq=400, lag=0.2;
 
 ss: sequence, l=3;
   cc1: cc, at=1;

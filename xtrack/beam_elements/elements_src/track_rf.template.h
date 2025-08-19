@@ -28,8 +28,7 @@ void track_rf_kick_single_particle(
     GPUGLMEM const double* knl,
     GPUGLMEM const double* ksl,
     GPUGLMEM const double* pn,
-    GPUGLMEM const double* ps,
-    double weight
+    GPUGLMEM const double* ps
 ){
 
     double phase0 = 0;
@@ -45,12 +44,52 @@ void track_rf_kick_single_particle(
     double const q = fabs(LocalParticle_get_q0(part)) * LocalParticle_get_charge_ratio(part);
     double const tau = zeta / beta0;
 
-    double const energy_kick = weight * q * voltage
+    double const energy_kick = q * voltage
         * sin(phase0 + DEG2RAD * lag - (2.0 * PI) / C_LIGHT * frequency * tau);
 
-    double rfmultipole_energy_kick = 0;
-    if (order >= 0) {
 
+    if (transverse_voltage != 0) {
+        double rfmultipole_energy_kick = 0;
+        double dpx = 0.0;
+        double dpy = 0.0;
+        double dptr = 0.0;
+        double zre = 1.0;
+        double zim = 0.0;
+
+        double const x = LocalParticle_get_x(part);
+        double const y = LocalParticle_get_y(part);
+        double const p0c = LocalParticle_get_p0c(part);
+
+        double const pn_kk = phase0 + DEG2RAD * transverse_lag - (2.0 * PI) / C_LIGHT * frequency * tau;
+        double const k0l = transverse_voltage / p0c;
+
+        double bal_n_kk = k0l;
+
+        double const cn = cos(pn_kk);
+        double const sn = sin(pn_kk);
+
+        dpx += cn * (bal_n_kk * zre);
+        dpy += cn * (bal_n_kk * zim);
+
+        double const zret = zre * x - zim * y;
+        zim = zim * x + zre * y;
+        zre = zret;
+
+        dptr += sn * (bal_n_kk * zre);
+
+        rfmultipole_energy_kick = - q * ( (frequency * ( 2.0 * PI / C_LIGHT) * p0c) * dptr );
+        double const chi    = LocalParticle_get_chi(part);
+
+        double const px_kick = - chi * dpx;
+        double const py_kick =   chi * dpy;
+
+        LocalParticle_add_to_px(part, px_kick);
+        LocalParticle_add_to_py(part, py_kick);
+
+    }
+
+    if (order >= 0) {
+        double rfmultipole_energy_kick = 0;
         double dpx = 0.0;
         double dpy = 0.0;
         double dptr = 0.0;
@@ -62,38 +101,18 @@ void track_rf_kick_single_particle(
         double const y = LocalParticle_get_y(part);
         double const p0c = LocalParticle_get_p0c(part);
 
-        for (int64_t iter = 0; iter <= order+1; iter++)
+        for (int64_t kk = 0; kk <= order; kk++)
         {
 
-            int64_t kk = iter;
-            double knl_kk, ksl_kk, pn0_kk, ps0_kk;
-
-            if (kk > 0) {
+            if (kk>0){
                 factorial *= kk;
             }
 
-            if (iter == order + 1){
-                // last iteration used for transverse_voltage, transverse_lag
-                kk = 0;
-                knl_kk = transverse_voltage / p0c;
-                ksl_kk = 0;
-                pn0_kk = transverse_lag;
-                ps0_kk = 0;
-                factorial = 1.0;
-            }
-            else
-            {
-                knl_kk = knl[kk];
-                ksl_kk = ksl[kk];
-                pn0_kk = pn[kk];
-                ps0_kk = ps[kk];
-            }
+            double const pn_kk = phase0 + DEG2RAD * pn[kk] - (2.0 * PI) / C_LIGHT * frequency * tau;
+            double const ps_kk = phase0 + DEG2RAD * ps[kk] - (2.0 * PI) / C_LIGHT * frequency * tau;
 
-            double const pn_kk = phase0 + DEG2RAD * pn0_kk - (2.0 * PI) / C_LIGHT * frequency * tau;
-            double const ps_kk = phase0 + DEG2RAD * ps0_kk - (2.0 * PI) / C_LIGHT * frequency * tau;
-
-            double bal_n_kk = factor_knl_ksl * knl_kk / factorial * weight;
-            double bal_s_kk = factor_knl_ksl * ksl_kk / factorial * weight;
+            double bal_n_kk = factor_knl_ksl * knl[kk]/factorial;
+            double bal_s_kk = factor_knl_ksl * ksl[kk]/factorial;
 
             double const cn = cos(pn_kk);
             double const cs = cos(ps_kk);
@@ -154,10 +173,10 @@ void track_rf_body_single_particle(
 
     #define RF_KICK(part, weight) \
         track_rf_kick_single_particle(\
-            part, voltage, frequency, lag,\
-            transverse_voltage, transverse_lag,\
+            part, (voltage * (weight)), frequency, lag,\
+            (transverse_voltage * (weight)), transverse_lag,\
             absolute_time, order, \
-            factor_knl_ksl, knl, ksl, pn, ps, (weight)\
+            (factor_knl_ksl * (weight)), knl, ksl, pn, ps\
         )
 
     #define RF_DRIFT(part, dlength) \
@@ -222,13 +241,14 @@ void track_rf_particles(
 
     // Backtracking
     #ifdef XSUITE_BACKTRACK
-        const double body_length = -length * weight;
-        double factor_knl_ksl_body = -factor_knl_ksl * weight;
+        const double body_length = -length;
+        double factor_knl_ksl_body = -factor_knl_ksl;
         VSWAP(edge_entry_active, edge_exit_active);
         voltage = -voltage;
+        transverse_voltage = -transverse_voltage;
     #else
-        const double body_length = length * weight;
-        double factor_knl_ksl_body = factor_knl_ksl * weight;
+        const double body_length = length;
+        double factor_knl_ksl_body = factor_knl_ksl;
     #endif
 
     if (body_active){
