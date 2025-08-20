@@ -215,8 +215,9 @@ def multipole_to_mad_str(name, line, mad_type=MadType.MADX, substituted_vars=Non
     """
     mult = _get_eref(line, name)
 
+    # Special case for kicker
     if (len(mult.knl._value) == 1 and len(mult.ksl._value) == 1
-        and mult.hxl._value == 0):
+        and mult.hxl._value == 0 and (not mult.isthick._value or mult.length._value == 0)):
         # It is a dipole corrector
         tokens = []
         tokens.append('kicker')
@@ -237,22 +238,42 @@ def multipole_to_mad_str(name, line, mad_type=MadType.MADX, substituted_vars=Non
     # https://github.com/MethodicalAcceleratorDesign/MAD-X/issues/911
     # assert mult.hyl._value == 0
 
-    tokens = []
-    tokens.append('multipole')
-    if mad_type == MadType.MADNG:
-        tokens.append(f"'{name.replace(':', '__')}'")  # replace ':' with '__' for MADNG
-    knl_token, ksl_token = _knl_ksl_to_mad(mult)
-    tokens.append(knl_token)
-    tokens.append(ksl_token)
-    tokens.append(mad_assignment('lrad', _ge(mult.length), mad_type, substituted_vars=substituted_vars))
-    tokens.append(mad_assignment('angle', _ge(mult.hxl), mad_type, substituted_vars=substituted_vars))
+    if not mult.isthick._value or mult.length._value == 0:
 
-    _handle_transforms(tokens, mult, mad_type=mad_type, substituted_vars=substituted_vars)
+        tokens = []
+        tokens.append('multipole')
+        if mad_type == MadType.MADNG:
+            tokens.append(f"'{name.replace(':', '__')}'")  # replace ':' with '__' for MADNG
+        knl_token, ksl_token = _knl_ksl_to_mad(mult)
+        tokens.append(knl_token)
+        tokens.append(ksl_token)
+        tokens.append(mad_assignment('lrad', _ge(mult.length), mad_type, substituted_vars=substituted_vars))
+        tokens.append(mad_assignment('angle', _ge(mult.hxl), mad_type, substituted_vars=substituted_vars))
 
-    if mad_type == MadType.MADNG:
-        tokens = _handle_tokens_madng(tokens, substituted_vars)
+        _handle_transforms(tokens, mult, mad_type=mad_type, substituted_vars=substituted_vars)
 
-    return ', '.join(tokens)
+        if mad_type == MadType.MADNG:
+            tokens = _handle_tokens_madng(tokens, substituted_vars)
+
+        return ', '.join(tokens)
+
+    else:
+        assert mult.hxl._value == 0, "Thick multipoles with hxl not supported"
+        tokens = []
+        tokens.append('sbend')
+        if mad_type == MadType.MADNG:
+            tokens.append(f"'{name.replace(':', '__')}'")  # replace ':' with '__' for MADNG
+        knl_token, ksl_token = _knl_ksl_to_mad(mult)
+        tokens.append(knl_token)
+        tokens.append(ksl_token)
+        tokens.append(mad_assignment('l', _ge(mult.length), mad_type, substituted_vars=substituted_vars))
+
+        _handle_transforms(tokens, mult, mad_type=mad_type, substituted_vars=substituted_vars)
+
+        if mad_type == MadType.MADNG:
+            tokens = _handle_tokens_madng(tokens, substituted_vars)
+
+        return ', '.join(tokens)
 
 def rfmultipole_to_mad_str(name, line, mad_type=MadType.MADX, substituted_vars=None):
     """
