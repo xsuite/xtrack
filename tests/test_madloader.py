@@ -366,16 +366,23 @@ def test_thick_kicker_option():
 
     beam; use, sequence=ss;
     """)
-    line = MadLoader(mad.sequence.ss, enable_expressions=True, allow_thick=True, enable_thick_kickers=True).make_line()
+    line = xt.Line.from_madx_sequence(mad.sequence.ss, deferred_expressions=True)
 
     _, vk, hk, ki, vk_thin, hk_thin, ki_thin, _ = line.elements
 
-    assert isinstance(vk, xt.Magnet)
-    assert isinstance(hk, xt.Magnet)
-    assert isinstance(ki, xt.Magnet)
+    assert isinstance(vk, xt.Multipole)
+    assert isinstance(hk, xt.Multipole)
+    assert isinstance(ki, xt.Multipole)
     assert isinstance(vk_thin, xt.Multipole)
     assert isinstance(hk_thin, xt.Multipole)
     assert isinstance(ki_thin, xt.Multipole)
+
+    assert vk.isthick
+    assert hk.isthick
+    assert ki.isthick
+    assert not vk_thin.isthick
+    assert not hk_thin.isthick
+    assert not ki_thin.isthick
 
     def assert_integrated_strength_eq(value, expected):
         padded_expected = np.zeros_like(value)
