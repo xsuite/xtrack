@@ -1201,7 +1201,7 @@ class MadLoader:
                 length=ee.l,
                 frequency=ee.freq * 1e6,
                 voltage=ee.volt * 1e6 * self.bv,
-                lag=ee.lag * self.bv * 360,
+                lag=ee.lag * self.bv * 360 - 180 * (self.bv - 1) / 2
             )
         return self.make_composite_element([el], ee)
 
