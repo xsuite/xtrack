@@ -26,7 +26,7 @@ line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, energy0=450e9)
 tw = line.twiss()
 
 # Create and insert Schottky monitor
-schottky_monitor = xt.monitors.SchottkyMonitor(f_rev=1/tw.T_rev0,
+schottky_monitor = xt.monitors.SchottkyMonitor(f_rev=1 / tw.T_rev0,
                                                schottky_harmonic=427_725,
                                                n_taylor=4)
 line.discard_tracker()
@@ -50,7 +50,7 @@ schottky_monitor.process_spectrum(inst_spectrum_len=10_000,
 
 schottky_monitor.plot()
 # Or plot specific regions in log scale
-#schottky_monitor.plot(regions=['lowerH','center','upperH'], log=True)
+# schottky_monitor.plot(regions=['lowerH','center','upperH'], log=True)
 
 
 # (Optional) accumulate additional statistics: uncomment for more averaging
@@ -61,7 +61,7 @@ schottky_monitor.plot()
 #                                   x=True, y=False, z=True)
 # schottky_monitor.plot(regions=['lowerH','center','upperH'], log=True)
 
-# Re-process with different processing parameters (without tracking again)
+# Reprocess with different processing parameters (without tracking again)
 schottky_monitor.clear_spectrum()
 schottky_monitor.process_spectrum(inst_spectrum_len=5000, delta_q=5e-5,
                                   band_width=0.1, qx=0.27, qy=0.295,
