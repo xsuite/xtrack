@@ -80,9 +80,9 @@ class SchottkyMonitor:
             Multiply time signal by flattop window, else no windowing used (=rectangular window).
         """
         if inst_spectrum_len > len(self.x_coeff):
-            raise ValueError(f'Not enough turns tracked to produce a single instataneous spectra \n \
+            raise ValueError(f'Not enough turns tracked to produce one instantaneous spectra \n \
                                Number of turns tracked: {len(self.x_coeff)} \n \
-                               Length of instataneous spectra: {inst_spectrum_len}')
+                               Length of instantaneous spectra: {inst_spectrum_len}')
         if band_width <= 0 or band_width >= 1:
             raise ValueError('band_width must be a normalised frequency f/f_rev with 0 < band_width < 1')
         
@@ -96,14 +96,14 @@ class SchottkyMonitor:
         elif any(self.processing_param[key] != value
                  for key, value in locals().items() if key not in ['x', 'y', 'z']):
             raise ValueError('Different parameters for the processing, ' +
-                             'keep the same parameters (exept x, y and z) or use "clear_spectrum()". \n' +
+                             'keep the same parameters (except x, y and z) or use "clear_spectrum()". \n' +
                              'Existing parameters:' + str(self.processing_param) + '\n New parameters:' + str(locals()))
         if flattop_window:
             window = sp.signal.windows.flattop(inst_spectrum_len)
         else:
             window = np.ones(inst_spectrum_len)
-        window /= np.sum(window) # Normalising window
-        
+        window /= np.sum(window)  # Normalizing window
+
         region_to_process = []
         if x: region_to_process.extend(['lowerH', 'upperH'])
         if y: region_to_process.extend(['lowerV', 'upperV'])
@@ -123,19 +123,31 @@ class SchottkyMonitor:
             # Computing instataneous Schottky spectra as defined in Eqs. (2.2) and (2.4)
             n_freq = len(freq)
             delta_omega = freq * 2 * np.pi * self.f_rev
-            alpha = np.empty((self.n_taylor,n_freq), dtype=np.csingle)
-            alpha[0,:] = np.ones(n_freq)
-            for l in range(1,self.n_taylor):
-                alpha[l,:] = alpha[l-1,:] * 1j * delta_omega / l
-            first_exponential = (np.vander(np.exp(1j*delta_omega/self.f_rev),
-                                           N=inst_spectrum_len, increasing=True) * window).T  
+            alpha = np.empty((self.n_taylor, n_freq), dtype=np.csingle)
+            alpha[0, :] = np.ones(n_freq)
+            for l in range(1, self.n_taylor):
+                alpha[l, :] = alpha[l - 1, :] * 1j * delta_omega / l
+            first_exponential = (
+                np.vander(
+                    np.exp(1j * delta_omega / self.f_rev),
+                    N=inst_spectrum_len,
+                    increasing=True,
+                )
+                * window
+            ).T
             n_inst_spectra = len(coeff) // inst_spectrum_len
             for i in range(len(self.instantaneous_PSDs[region]), n_inst_spectra):
                 print(f'Processing {region} Schottky spectrum {i+1}/{n_inst_spectra}', end='\r')
-                # Seclecting the coefficient (x, y, or z) needed to calculated the i^th instataneous Schottky spectra
-                inst_coeff = np.array(coeff[i*inst_spectrum_len:(i+1)*inst_spectrum_len])
-                spectrum = np.sum(np.dot(inst_coeff,alpha) * first_exponential, axis=0)
-                self.instantaneous_PSDs[region].append(abs(spectrum)**2 / self.N_macropart_max)
+                # Selecting the coefficients (x, y, or z) needed to calculate the i-th instantaneous Schottky spectrum
+                inst_coeff = np.array(
+                    coeff[i * inst_spectrum_len : (i + 1) * inst_spectrum_len]
+                )
+                spectrum = np.sum(
+                    np.dot(inst_coeff, alpha) * first_exponential, axis=0
+                )
+                self.instantaneous_PSDs[region].append(
+                    abs(spectrum) ** 2 / self.N_macropart_max
+                )
             self.PSD_avg[region] = np.mean(self.instantaneous_PSDs[region], axis=0)
             print(f'{region} band of Schottky spectrum processed')
         self._check_Taylor_approx()
@@ -143,51 +155,51 @@ class SchottkyMonitor:
     def _init_processing(self, delta_q, qx, qy, band_width):
         '''
         For each region of the Schottky spectrum, create an array of normalised frequencies 
-        from -band_with/2 to +band_with/2 around the center of the Schottky band. 
+        from -band_width/2 to +band_width/2 around the center of the Schottky band. 
         '''
         n_freq = band_width / delta_q
         center_freq = np.arange(-(n_freq//2), (n_freq)//2) * band_width / n_freq
         self.frequencies = {
-            'lowerH': center_freq - (qx%1),
-            'upperH': center_freq + (qx%1),
-            'lowerV': center_freq - (qy%1),
-            'upperV': center_freq + (qy%1),
-            'center': center_freq
+            'lowerH': center_freq - (qx % 1),
+            'upperH': center_freq + (qx % 1),
+            'lowerV': center_freq - (qy % 1),
+            'upperV': center_freq + (qy % 1),
+            'center': center_freq,
         }
-        # Create dic where the instataneous and averaged PSDs will be stored
+        # Create dict where the instantaneous and averaged PSDs will be stored
         self.instantaneous_PSDs = {i: [] for i in self.frequencies.keys()}
         self.PSD_avg = {i: [] for i in self.frequencies.keys()}
 
     def _check_Taylor_approx(self):
-        #Longitudinal band, Eq. (2.3)
+    # Longitudinal band, Eq. (2.3)
         if self.processing_param['z']:
             delta_omega_max = max(self.frequencies['center']) * 2 * np.pi * self.f_rev
             max_error = self.N_macropart_max**0.5 * (delta_omega_max*self.tau_max)**self.n_taylor * \
                         np.exp(delta_omega_max*self.tau_max) / sp.special.factorial(self.n_taylor)
             if np.sqrt(self.PSD_avg['center'][0]) < 100 * max_error:
                 print('Number of Taylor terms too low for the longitudinal band')
-            print(f'Maximal Talor truncation error in z plane to be compared against sqrt(PSD): {max_error}')
+            print(f'Maximal Taylor truncation error in z plane to be compared against sqrt(PSD): {max_error}')
 
-        #transverse bands
+    # Transverse bands
         if self.processing_param['x']:
             delta_omega_max = max(self.frequencies['upperH']) * 2 * np.pi * self.f_rev
             max_error = self.N_macropart_max**0.5 * self.x_max * (delta_omega_max*self.tau_max)**self.n_taylor * \
                         np.exp(delta_omega_max*self.tau_max) / sp.special.factorial(self.n_taylor)
             if np.sqrt(self.PSD_avg['upperH'][0]) < 100 * max_error:
                 print('Number of Taylor terms too low for the horizontal bands')
-            print(f'Maximal Talor truncation error in x plane to be compared against sqrt(PSD): {max_error}')
+            print(f'Maximal Taylor truncation error in x plane to be compared against sqrt(PSD): {max_error}')
         if self.processing_param['y']:
             delta_omega_max = max(self.frequencies['upperV']) * 2 * np.pi * self.f_rev
             max_error = self.N_macropart_max**0.5 * self.y_max * (delta_omega_max*self.tau_max)**self.n_taylor * \
                         np.exp(delta_omega_max*self.tau_max) / sp.special.factorial(self.n_taylor)
             if np.sqrt(self.PSD_avg['upperV'][0]) < 100 * max_error:
                 print('Number of Taylor terms too low for the vertical bands')
-            print(f'Maximal Talor truncation error in y plane to be compared against sqrt(PSD): {max_error}')
+            print(f'Maximal Taylor truncation error in y plane to be compared against sqrt(PSD): {max_error}')
 
     def clear_spectrum(self):
         """
         Clear the instantaneous spectra but keep the coefficients L and T.
-        Can be use to recompute Schottky spectra for different processing 
+        Can be used to re-compute Schottky spectra for different processing 
         parameters (window, frequency resolution, band widths) without 
         tracking the particles again
         """
