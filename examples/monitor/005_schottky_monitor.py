@@ -44,8 +44,8 @@ bunch = xp.generate_matched_gaussian_bunch(num_particles=num_particles,
 # Track for 10k turns and process a first spectrum
 line.track(bunch, num_turns=10_000, with_progress=True)
 schottky_monitor.process_spectrum(inst_spectrum_len=10_000,
-                                  deltaQ=5e-5, band_width=0.3,
-                                  Qx=0.27, Qy=0.295,
+                                  delta_q=5e-5, band_width=0.3,
+                                  qx=0.27, qy=0.295,
                                   x=True, y=False, z=True)
 
 schottky_monitor.plot()
@@ -56,15 +56,15 @@ schottky_monitor.plot()
 # (Optional) accumulate additional statistics: uncomment for more averaging
 # line.track(bunch, num_turns=200_000, with_progress=True)
 # schottky_monitor.process_spectrum(inst_spectrum_len=10_000,
-#                                   deltaQ=5e-5, band_width=0.3,
-#                                   Qx=0.27, Qy=0.295,
+#                                   delta_q=5e-5, band_width=0.3,
+#                                   qx=0.27, qy=0.295,
 #                                   x=True, y=False, z=True)
 # schottky_monitor.plot(regions=['lowerH','center','upperH'], log=True)
 
 # Re-process with different processing parameters (without tracking again)
 schottky_monitor.clear_spectrum()
-schottky_monitor.process_spectrum(inst_spectrum_len=5000, deltaQ=5e-5,
-                                  band_width=0.1, Qx=0.27, Qy=0.295,
+schottky_monitor.process_spectrum(inst_spectrum_len=5000, delta_q=5e-5,
+                                  band_width=0.1, qx=0.27, qy=0.295,
                                   x=True, y=False, z=True)
 schottky_monitor.plot(regions=['lowerH','center','upperH'])
 

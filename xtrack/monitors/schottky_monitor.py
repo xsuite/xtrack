@@ -56,7 +56,7 @@ class SchottkyMonitor:
         self.y_coeff.append(np.sum(z_terms * particles.y[mask_alive], axis=1))
         self.z_coeff.append(np.sum(z_terms, axis=1))
 
-    def process_spectrum(self, inst_spectrum_len, deltaQ, band_width, Qx, Qy,
+    def process_spectrum(self, inst_spectrum_len, delta_q, band_width, qx, qy,
                          x=True, y=True, z=True, flattop_window=True):
         """
         Compute Schottky spectra from stored longitudinal and transverse coefficients.
@@ -65,12 +65,12 @@ class SchottkyMonitor:
         ----------
         inst_spectrum_len : int
             Number of turns used to compute one instantaneous spectrum.
-        deltaQ : float
-            Frequency resolution (in tune units).
+        delta_q : float
+            Frequency resolution expressed as normalised frequency f/f_rev.
+            Physical spacing of Fourier bins is delta_q * f_rev.
         band_width : float
-            Range of frequency (in tune units) where the spectrum will be computed for each band,
-            should be between 0 and 1.
-        Qx, Qy : float
+            Width of each processed band in normalised frequency f/f_rev (0 < band_width < 1).
+        qx, qy : float
             Transverse tunes used to set the central frequency around which the 
             transverse side-bands will be computed. 
         x, y, z: bool
@@ -83,13 +83,13 @@ class SchottkyMonitor:
             raise ValueError(f'Not enough turns tracked to produce a single instataneous spectra \n \
                                Number of turns tracked: {len(self.x_coeff)} \n \
                                Length of instataneous spectra: {inst_spectrum_len}')
-        if band_width<0 or band_width>1:
-            raise ValueError('Band_width should be expressed in tune unit and between 0 and 1')
+        if band_width <= 0 or band_width >= 1:
+            raise ValueError('band_width must be a normalised frequency f/f_rev with 0 < band_width < 1')
         
         # If it's the first time calling the method we need to initialise it.
         if not hasattr(self, 'processing_param'):
             self.processing_param = locals()
-            self._init_processing(deltaQ, Qx, Qy, band_width)
+            self._init_processing(delta_q, qx, qy, band_width)
         
         # Not the first time calling this method, we will append the new instantaneous Schottky PSDs to the 
         # existing ones. In this case we need to confirm that the processing parameters are identical.
@@ -140,18 +140,18 @@ class SchottkyMonitor:
             print(f'{region} band of Schottky spectrum processed')
         self._check_Taylor_approx()
 
-    def _init_processing(self, deltaQ, Qx, Qy, band_width):
+    def _init_processing(self, delta_q, qx, qy, band_width):
         '''
         For each region of the Schottky spectrum, create an array of normalised frequencies 
         from -band_with/2 to +band_with/2 around the center of the Schottky band. 
         '''
-        n_freq = band_width/deltaQ
+        n_freq = band_width / delta_q
         center_freq = np.arange(-(n_freq//2), (n_freq)//2) * band_width / n_freq
         self.frequencies = {
-            'lowerH': center_freq - (Qx%1),
-            'upperH': center_freq + (Qx%1),
-            'lowerV': center_freq - (Qy%1),
-            'upperV': center_freq + (Qy%1),
+            'lowerH': center_freq - (qx%1),
+            'upperH': center_freq + (qx%1),
+            'lowerV': center_freq - (qy%1),
+            'upperV': center_freq + (qy%1),
             'center': center_freq
         }
         # Create dic where the instataneous and averaged PSDs will be stored
