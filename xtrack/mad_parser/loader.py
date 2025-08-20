@@ -414,7 +414,7 @@ class MadxLoader:
                 params['edge_entry_hgap'] = hgap
                 params['edge_exit_hgap'] = hgap
 
-        elif parent_name in {'rfcavity', 'rfmultipole'}:
+        elif parent_name in {'rfcavity', 'rfmultipole', 'crabcavity'}:
             if (lag := params.pop('lag', None)):
                 params['lag'] = lag * 360
             if (volt := params.pop('volt', None)):

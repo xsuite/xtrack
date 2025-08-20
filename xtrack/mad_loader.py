@@ -1195,28 +1195,13 @@ class MadLoader:
 
     def convert_crabcavity(self, ee):
         self._assert_element_is_thin(ee)
-        # This has to be disabled, as it raises an error when l is assigned to an
-        # expression:
-        # for nn in ["l", "harmon", "lagf", "rv1", "rv2", "rph1", "rph2"]:
-        #     if getattr(ee, nn):
-        #         raise NotImplementedError(f"Invalid value {nn}={getattr(ee, nn)}")
-        # ee.volt in MV, sequence.beam.pc in GeV
-        # el = self.Builder(
-        #         ee.name,
-        #         self.classes.RFMultipole,
-        #         frequency=ee.freq * 1e6,
-        #         knl=[ee.volt / self.sequence.beam.pc * 1e-3 * self.bv],
-        #         pn=[ee.lag * self.bv * 360 + 90],  # TODO: Changed sign to match sixtrack
-        #         # To be checked!!!!
-        #     )
         el = self.Builder(
                 ee.name,
                 self.classes.CrabCavity,
                 length=ee.l,
                 frequency=ee.freq * 1e6,
                 voltage=ee.volt * 1e6 * self.bv,
-                lag=ee.lag * self.bv * 360,  # TODO: Changed sign to match sixtrack
-                # To be checked!!!!
+                lag=ee.lag * self.bv * 360,
             )
         return self.make_composite_element([el], ee)
 
