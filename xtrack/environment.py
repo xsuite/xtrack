@@ -1525,8 +1525,7 @@ def _reverse_element(env, name):
     _reverse_field('rot_s_rad')
 
     if hasattr(ee, 'lag'):
-        # ee_ref.lag = 180 - (ee_ref.lag._expr or ee_ref.lag._value)
-        ee_ref.lag = -(ee_ref.lag._expr or ee_ref.lag._value)
+        ee_ref.lag = 180 - (ee_ref.lag._expr or ee_ref.lag._value)
 
     if hasattr(ee, 'knl'):
         for i in range(1, len(ee.knl), 2):
