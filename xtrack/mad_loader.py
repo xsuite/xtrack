@@ -1199,13 +1199,18 @@ class MadLoader:
 
     def convert_crabcavity(self, ee):
         self._assert_element_is_thin(ee)
+        if self.bv == -1:
+            lll = 180 - ee.lag * 360
+        else:
+            lll = ee.lag * 360
+
         el = self.Builder(
                 ee.name,
                 self.classes.CrabCavity,
                 length=ee.l,
                 frequency=ee.freq * 1e6,
                 voltage=ee.volt * 1e6 * self.bv,
-                lag=ee.lag * self.bv * 360
+                lag=lll,
             )
         return self.make_composite_element([el], ee)
 
