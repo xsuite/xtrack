@@ -320,7 +320,6 @@ def rfmultipole_to_mad_str(name, line, mad_type=MadType.MADX, substituted_vars=N
     tokens.append(mad_assignment('freq', _ge(rfmult.frequency) * 1e-6, mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('volt', _ge(rfmult.voltage) * 1e-6, mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('lag', _ge(rfmult.lag) / 360., mad_type, substituted_vars=substituted_vars))
-    tokens.append(mad_assignment('l', _ge(rfmult.length), mad_type, substituted_vars=substituted_vars))
 
     _handle_transforms(tokens, rfmult, mad_type=mad_type, substituted_vars=substituted_vars)
 
