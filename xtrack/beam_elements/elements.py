@@ -2966,7 +2966,7 @@ class SimpleThinBend(BeamElement):
     )
 
 
-class RFMultipole(_HasKnlKsl, _HasModelRF, _HasIntegrator, BeamElement):
+class RFMultipole(_HasKnlKsl, BeamElement):
     """Beam element modeling a thin modulated multipole, with strengths
     dependent on the z coordinate:
 
@@ -2992,10 +2992,7 @@ class RFMultipole(_HasKnlKsl, _HasModelRF, _HasIntegrator, BeamElement):
         Frequency in Hertz. Default is ``0``.
     """
 
-    isthick = True
-
     _xofields={
-        'length': xo.Float64,
         'voltage': xo.Float64,
         'frequency': xo.Float64,
         'lag': xo.Float64,
@@ -3006,9 +3003,6 @@ class RFMultipole(_HasKnlKsl, _HasModelRF, _HasIntegrator, BeamElement):
         'pn': xo.Float64[:],
         'ps': xo.Float64[:],
         'absolute_time': xo.Int64,
-        'num_kicks': xo.Int64,
-        'model': xo.Int64,
-        'integrator': xo.Int64,
     }
 
     isthick = True

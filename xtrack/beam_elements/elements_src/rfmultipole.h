@@ -14,7 +14,7 @@ void RFMultipole_track_local_particle(RFMultipoleData el, LocalParticle* part0){
     track_rf_particles(
         /*weight*/                1.,
         /*part0*/                 part0,
-        /*length*/                RFMultipoleData_get_length(el),
+        /*length*/                0,
         /*voltage*/               RFMultipoleData_get_voltage(el),
         /*frequency*/             RFMultipoleData_get_frequency(el),
         /*lag*/                   RFMultipoleData_get_lag(el),
@@ -27,10 +27,10 @@ void RFMultipole_track_local_particle(RFMultipoleData el, LocalParticle* part0){
         /*pn*/                    RFMultipoleData_getp1_pn(el, 0),
         /*ps*/                    RFMultipoleData_getp1_ps(el, 0),
         /*num_kicks*/             RFMultipoleData_get_num_kicks(el),
-        /*model*/                 RFMultipoleData_get_model(el),
-        /*default_model*/         6, // drift-kick-drift-expanded
-        /*integrator*/            RFMultipoleData_get_integrator(el),
-        /*default_integrator*/    3, // Uniform
+        /*model*/                 -1, // kick only
+        /*default_model*/         0, // not used here
+        /*integrator*/            0, // not used here
+        /*default_integrator*/    0, // not used here
         /*radiation_flag*/        0, // not used here
         /*radiation_flag_parent*/ 0, // not used here
         /*lag_taper*/             0., // not used here
