@@ -26,7 +26,7 @@ void RFMultipole_track_local_particle(RFMultipoleData el, LocalParticle* part0){
         /*ksl*/                   RFMultipoleData_getp1_ksl(el, 0),
         /*pn*/                    RFMultipoleData_getp1_pn(el, 0),
         /*ps*/                    RFMultipoleData_getp1_ps(el, 0),
-        /*num_kicks*/             RFMultipoleData_get_num_kicks(el),
+        /*num_kicks*/             0, // not used here
         /*model*/                 -1, // kick only
         /*default_model*/         0, // not used here
         /*integrator*/            0, // not used here
