@@ -1151,26 +1151,30 @@ class MadLoader:
         return self.make_composite_element(sequence, ee)
 
     def convert_rfmultipole(self, ee):
-        if self.bv == -1:
-            raise NotImplementedError("RF multipole for bv=-1 are not yet supported.")
-        self._assert_element_is_thin(ee)
-        # TODO LRAD
-        if ee.harmon:
-            raise NotImplementedError
-        if ee.l:
-            raise NotImplementedError
-        el = self.Builder(
-            ee.name,
-            self.classes.RFMultipole,
-            voltage=ee.volt * 1e6,
-            frequency=ee.freq * 1e6,
-            lag=ee.lag * 360,
-            knl=ee.knl,
-            ksl=ee.ksl,
-            pn=[v * 360 for v in ee.pnl],
-            ps=[v * 360 for v in ee.psl],
-        )
-        return self.make_composite_element([el], ee)
+        raise NotImplementedError('Conversion of mad-x rfmultipole not supported')
+
+        # The following is untested, espeically for bv=-1
+
+        # if self.bv == -1:
+        #     raise NotImplementedError("RF multipole for bv=-1 are not yet supported.")
+        # self._assert_element_is_thin(ee)
+        # # TODO LRAD
+        # if ee.harmon:
+        #     raise NotImplementedError
+        # if ee.l:
+        #     raise NotImplementedError
+        # el = self.Builder(
+        #     ee.name,
+        #     self.classes.RFMultipole,
+        #     voltage=ee.volt * 1e6,
+        #     frequency=ee.freq * 1e6,
+        #     lag=ee.lag * 360,
+        #     knl=ee.knl,
+        #     ksl=ee.ksl,
+        #     pn=[v * 360 for v in ee.pnl],
+        #     ps=[v * 360 for v in ee.psl],
+        # )
+        # return self.make_composite_element([el], ee)
 
     def convert_wire(self, ee):
         if self.bv == -1:
