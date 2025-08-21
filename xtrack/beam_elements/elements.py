@@ -3005,7 +3005,6 @@ class RFMultipole(_HasKnlKsl, BeamElement):
         'absolute_time': xo.Int64,
     }
 
-    isthick = True
     has_backtrack = True
     allow_loss_refinement = True
 
