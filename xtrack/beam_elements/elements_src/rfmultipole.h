@@ -29,7 +29,7 @@ void RFMultipole_track_local_particle(RFMultipoleData el, LocalParticle* part0){
         /*num_kicks*/             1, // not used here
         /*model*/                 -1, // kick only
         /*default_model*/         0, // not used here
-        /*integrator*/            3, // uniform
+        /*integrator*/            0, // not used here
         /*default_integrator*/    0, // not used here
         /*radiation_flag*/        0, // not used here
         /*radiation_flag_parent*/ 0, // not used here
