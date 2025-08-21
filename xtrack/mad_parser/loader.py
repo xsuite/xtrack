@@ -136,6 +136,7 @@ class MadxLoader:
         self._new_builtin("rfcavity", "Cavity")
         self._new_builtin("multipole", "Multipole", knl=6 * [0])
         self._new_builtin("solenoid", "UniformSolenoid")
+        self._new_builtin("crabcavity", "CrabCavity")
 
         for mad_apertype in _APERTURE_TYPES:
             self._new_builtin(mad_apertype, 'Marker')

@@ -32,6 +32,8 @@ lagrf400.b2' = 0.;
 use, sequence=lhcb1;
 use, sequence=lhcb2;
 
+save, sequence=lhcb1,lhcb2, file="saved_b1b2.madx";
+
 ''')
 
 mad.use('lhcb1')
@@ -105,6 +107,8 @@ lagrf400.b2' = 0.;
 
 use, sequence=lhcb2;
 
+save, sequence=lhcb2, file="saved_b4.madx";
+
 ''')
 
 line_b4_mad = xt.Line.from_madx_sequence(mad_b4.sequence['lhcb2'], deferred_expressions=True)
@@ -113,16 +117,42 @@ line_b4_mad.particle_ref = xt.Particles(p0c=7e12)
 tw_b4_mad = line_b4_mad.twiss4d()
 tw_b2_mad = tw_b4_mad.reverse()
 
-print('IP1 - Xsuite')
-print(f'B1                - dx_zeta: {tw_xs_b1["dx_zeta", "ip1"]}')
-print(f'B2 (loaded as b2) - dx_zeta: {tw_xs_b2["dx_zeta", "ip1"]}')
-print(f'B4 (loaded as b2) - dx_zeta: {tw_xs_b4["dx_zeta", "ip1"]}')
-print(f'B2 (loaded as b4) - dx_zeta: {tw_b2_mad["dx_zeta", "ip1"]}')
-print(f'B4 (loaded as b4) - dx_zeta: {tw_b4_mad["dx_zeta", "ip1"]}')
+env_b1b2 = xt.load("saved_b1b2.madx")
+env_b1b2.lhcb1.particle_ref = xt.Particles(p0c=7e12)
+env_b1b2.lhcb2.particle_ref = xt.Particles(p0c=7e12)
+tw_b1_b1b2 = env_b1b2.lhcb1.twiss4d()
+tw_b2_b1b2 = env_b1b2.lhcb2.twiss4d()
+tw_b4_b1b2 = tw_b2_b1b2.reverse()
 
-print('IP5 - Xsuite')
-print(f'B1                - dy_zeta: {tw_xs_b1["dy_zeta", "ip5"]}')
-print(f'B2 (loaded as b2) - dy_zeta: {tw_xs_b2["dy_zeta", "ip5"]}')
-print(f'B4 (loaded as b2) - dy_zeta: {tw_xs_b4["dy_zeta", "ip5"]}')
-print(f'B2 (loaded as b4) - dy_zeta: {tw_b2_mad["dy_zeta", "ip5"]}')
-print(f'B4 (loaded as b4) - dy_zeta: {tw_b4_mad["dy_zeta", "ip5"]}')
+env_b4 = xt.load("saved_b4.madx")
+env_b4.lhcb2.particle_ref = xt.Particles(p0c=7e12)
+tw_b4_b4 = env_b4.lhcb2.twiss4d()
+tw_b2_b4 = tw_b4_b4.reverse()
+
+print('------- IP1 - Xsuite -------')
+print(f'B1 (loaded as b1 cpymad) - dx_zeta: {tw_xs_b1["dx_zeta", "ip1"]}')
+print(f'B1 (loaded as b1 parsed) - dx_zeta: {tw_b1_b1b2["dx_zeta", "ip1"]}')
+print()
+print(f'B2 (loaded as b2 cpymad) - dx_zeta: {tw_xs_b2["dx_zeta", "ip1"]}')
+print(f'B2 (loaded as b4 cpymad) - dx_zeta: {tw_b2_mad["dx_zeta", "ip1"]}')
+print(f'B2 (loaded as b2 parsed) - dx_zeta: {tw_b2_b1b2["dx_zeta", "ip1"]}')
+print(f'B2 (loaded as b4 parsed) - dx_zeta: {tw_b2_b4["dx_zeta", "ip1"]}')
+print()
+print(f'B4 (loaded as b2 cpymad) - dx_zeta: {tw_xs_b4["dx_zeta", "ip1"]}')
+print(f'B4 (loaded as b4 cpymad) - dx_zeta: {tw_b4_mad["dx_zeta", "ip1"]}')
+print(f'B4 (loaded as b2 parsed) - dx_zeta: {tw_b4_b1b2["dx_zeta", "ip1"]}')
+print(f'B4 (loaded as b4 parsed) - dx_zeta: {tw_b4_b4["dx_zeta", "ip1"]}')
+print()
+print('------- IP5 - Xsuite -------')
+print(f'B1 (loaded as b1 cpymad) - dy_zeta: {tw_xs_b1["dy_zeta", "ip5"]}')
+print(f'B1 (loaded as b1 parsed) - dy_zeta: {tw_b1_b1b2["dy_zeta", "ip5"]}')
+print()
+print(f'B2 (loaded as b2 cpymad) - dy_zeta: {tw_xs_b2["dy_zeta", "ip5"]}')
+print(f'B2 (loaded as b4 cpymad) - dy_zeta: {tw_b2_mad["dy_zeta", "ip5"]}')
+print(f'B2 (loaded as b2 parsed) - dy_zeta: {tw_b2_b1b2["dy_zeta", "ip5"]}')
+print(f'B2 (loaded as b4 parsed) - dy_zeta: {tw_b2_b4["dy_zeta", "ip5"]}')
+print()
+print(f'B4 (loaded as b2 cpymad) - dy_zeta: {tw_xs_b4["dy_zeta", "ip5"]}')
+print(f'B4 (loaded as b4 cpymad) - dy_zeta: {tw_b4_mad["dy_zeta", "ip5"]}')
+print(f'B4 (loaded as b2 parsed) - dy_zeta: {tw_b4_b1b2["dy_zeta", "ip5"]}')
+print(f'B4 (loaded as b4 parsed) - dy_zeta: {tw_b4_b4["dy_zeta", "ip5"]}')
