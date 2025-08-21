@@ -3017,8 +3017,6 @@ class RFMultipole(_HasKnlKsl, BeamElement):
 
     _rename = {
         'order': '_order',
-        'model': '_model',
-        'integrator': '_integrator',
     }
 
 
