@@ -230,8 +230,6 @@ for td in to_do:
                 out_lines[i] = ll
             if "/*radiation_record*/" in line:
                 found_radiation_record = True
-                if generated_data_class == 'ThinSliceMultipoleData':
-                    breakpoint()
                 ll = line
                 if '_getp_' in ll:
                     assert '(SynchrotronRadiationRecordData)' in ll

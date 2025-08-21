@@ -258,6 +258,10 @@ void track_rf_particles(
         if (model == 0){
             model = default_model;
         }
+        if (model==-1){ // kick only
+            integrator = 3; // uniform
+            num_multipole_kicks = 1;
+        }
 
         // Adjust the number of kicks based on the weight
         if (weight != 1.0 && num_kicks > 0){
