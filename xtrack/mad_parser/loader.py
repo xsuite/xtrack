@@ -458,6 +458,9 @@ class MadxLoader:
                 params['ksl'] = [vkick]
             if (hkick := params.pop('hkick', None)):
                 params['knl'] = [-hkick]
+        elif parent_name == 'marker':
+            params.pop('isthick', None)
+            params.pop('length', None)
 
         if 'edge_entry_fint' in params and 'edge_exit_fint' not in params:
             params['edge_exit_fint'] = params['edge_entry_fint']

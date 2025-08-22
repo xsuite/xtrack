@@ -341,6 +341,10 @@ class MetaBeamElement(xo.MetaHybridClass):
 
         data_in = data.copy()
         data = {}
+
+        if 'isthick' in data_in:
+            data['_isthick'] = data_in['isthick']
+
         for bb in bases:
             if bb.__name__ == 'HybridClass':
                 continue
@@ -509,7 +513,6 @@ class MetaBeamElement(xo.MetaHybridClass):
 class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
     iscollective = False
-    isthick = False
     behaves_like_drift = False
     allow_track = True
     has_backtrack = False
@@ -519,8 +522,19 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     needs_rng = False
     name_associated_aperture = None
 
+    _isthick = False
+
     def __init__(self, *args, **kwargs):
         xo.HybridClass.__init__(self, *args, **kwargs)
+
+    @property
+    def isthick(self):
+        return self._isthick
+
+    @isthick.setter
+    def isthick(self, value):
+        raise AttributeError("The property 'isthick' changed dynamically for "
+                             f"elements of type {self.__class__.__name__}")
 
     def init_pipeline(self, pipeline_manager, name, partners_names=[]):
         self._pipeline_manager = pipeline_manager
