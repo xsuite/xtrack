@@ -1,7 +1,11 @@
 from cpymad.madx import Madx
 import xtrack as xt
 
-madx = Madx()
+loader_mode = 'cpymad' #cpymad/native
+
+
+
+
 
 mad_data = """
 
@@ -18,14 +22,21 @@ use, sequence=ss;
 twiss, betx=1, bety=1;
 """
 
+madx = Madx()
+
 madx.input(mad_data)
 madx.input(mad_computation)
 
 tw_mad = xt.Table(madx.table.twiss, _copy_cols=True)
 
-line = xt.Line.from_madx_sequence(madx.sequence.ss, deferred_expressions=True)
+if loader_mode == 'native':
+    env = xt.load(string=mad_data, format='madx')
+    line = env['ss']
+elif loader_mode == 'cpymad':
+    line = xt.Line.from_madx_sequence(madx.sequence.ss, deferred_expressions=True)
+
 line.particle_ref = xt.Particles(p0c=1e9)
 
 tw = line.twiss(betx=1, bety=1)
 
-env = xt.load(string=mad_data, format='madx')
+
