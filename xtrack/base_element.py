@@ -337,13 +337,11 @@ def _set_shifts_property_setter(self, value):
 class MetaBeamElement(xo.MetaHybridClass):
 
     def __new__(cls, name, bases, data):
+
         _XoStruct_name = name+'Data'
 
         data_in = data.copy()
         data = {}
-
-        if 'isthick' in data_in:
-            data['_isthick'] = data_in['isthick']
 
         for bb in bases:
             if bb.__name__ == 'HybridClass':
@@ -366,6 +364,8 @@ class MetaBeamElement(xo.MetaHybridClass):
                 data['_extra_c_sources'].pop(ii_remove)
 
         data.update(data_in)
+
+        data['_isthick'] = data.pop('isthick', False)
 
         # Take xofields from data['_xofields'] or from bases
         xofields = _build_xofields_dict(bases, data)
@@ -521,8 +521,6 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     skip_in_loss_location_refinement = False
     needs_rng = False
     name_associated_aperture = None
-
-    _isthick = False
 
     def __init__(self, *args, **kwargs):
         xo.HybridClass.__init__(self, *args, **kwargs)
