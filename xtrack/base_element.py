@@ -365,7 +365,11 @@ class MetaBeamElement(xo.MetaHybridClass):
 
         data.update(data_in)
 
-        data['_isthick'] = data.pop('isthick', False)
+        istk = data.pop('isthick', False)
+        if istk in [True, False]:
+            data['_isthick'] = istk
+        else: # is property
+            data['isthick'] = istk
 
         # Take xofields from data['_xofields'] or from bases
         xofields = _build_xofields_dict(bases, data)
@@ -531,7 +535,8 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
     @isthick.setter
     def isthick(self, value):
-        raise AttributeError("The property 'isthick' changed dynamically for "
+        if value != self._isthick:
+            raise AttributeError("The property 'isthick' cannot be changed dynamically for "
                              f"elements of type {self.__class__.__name__}")
 
     def init_pipeline(self, pipeline_manager, name, partners_names=[]):
