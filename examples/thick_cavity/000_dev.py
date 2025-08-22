@@ -1,6 +1,7 @@
 import xtrack as xt
 
 # TODO:
+# - Write tests for imported hkicker, vkicker, tkicker, kicker, rfcavity, crabcavity
 # - Tapering
 # - Exception tapering for sliced cavities (to be implemented at a later stage)
 # - Disable lag_taper when there is no radiation
