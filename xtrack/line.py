@@ -4788,7 +4788,7 @@ class Line:
             line=self,
             fields={
                 'delta_taper': None, 'ks': None,
-                'voltage': None, 'frequency': None, 'lag': None,
+                'frequency': None, 'lag': None,
                 'lag_taper': None,
 
                 'weight': None,
@@ -4803,6 +4803,8 @@ class Line:
 
                 '_own_h': 'h',
                 '_own_hxl': 'hxl',
+
+                '_own_voltage': 'voltage',
 
                 '_own_radiation_flag': 'radiation_flag',
 
@@ -4854,6 +4856,8 @@ class Line:
                 '_parent_h': (('_parent', 'h'), None),
                 '_parent_hxl': (('_parent', 'hxl'), None),
                 '_parent_rbend_model': (('_parent', 'rbend_model'), None),
+
+                '_parent_voltage': (('_parent', 'voltage'), None),
 
                 '_parent_radiation_flag': (('_parent', 'radiation_flag'), None),
 
@@ -4911,6 +4915,8 @@ class Line:
                 'shift_s': lambda attr:
                     attr['_own_shift_s'] + attr['_parent_shift_s']
                     * attr._rot_and_shift_from_parent,
+                'voltage': lambda attr:
+                    attr['_own_voltage'] + attr['_parent_voltage'] * attr['weight'] * attr._inherit_strengths,
                 'radiation_flag': lambda attr:
                     attr['_own_radiation_flag'] * (attr['_own_radiation_flag'] != ID_RADIATION_FROM_PARENT)
                   + attr['_parent_radiation_flag'] * (attr['_own_radiation_flag'] == ID_RADIATION_FROM_PARENT),
