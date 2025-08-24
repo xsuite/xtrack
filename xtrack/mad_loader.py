@@ -1198,7 +1198,6 @@ class MadLoader:
             raise ValueError("Multiwire configuration not supported")
 
     def convert_crabcavity(self, ee):
-        self._assert_element_is_thin(ee)
         if self.bv == -1:
             lll = 180 - ee.lag * 360
         else:
