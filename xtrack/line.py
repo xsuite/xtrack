@@ -4788,8 +4788,6 @@ class Line:
             line=self,
             fields={
                 'delta_taper': None, 'ks': None,
-                'frequency': None, 'lag': None,
-                'lag_taper': None,
 
                 'weight': None,
 
@@ -4805,6 +4803,9 @@ class Line:
                 '_own_hxl': 'hxl',
 
                 '_own_voltage': 'voltage',
+                '_own_lag': 'lag',
+                '_own_lag_taper': 'lag_taper',
+                '_own_frequency': 'frequency',
 
                 '_own_radiation_flag': 'radiation_flag',
 
@@ -4858,6 +4859,9 @@ class Line:
                 '_parent_rbend_model': (('_parent', 'rbend_model'), None),
 
                 '_parent_voltage': (('_parent', 'voltage'), None),
+                '_parent_lag': (('_parent', 'lag'), None),
+                '_parent_lag_taper': (('_parent', 'lag_taper'), None),
+                '_parent_frequency': (('_parent', 'frequency'), None),
 
                 '_parent_radiation_flag': (('_parent', 'radiation_flag'), None),
 
@@ -4917,6 +4921,12 @@ class Line:
                     * attr._rot_and_shift_from_parent,
                 'voltage': lambda attr:
                     attr['_own_voltage'] + attr['_parent_voltage'] * attr['weight'] * attr._inherit_strengths,
+                'lag': lambda attr:
+                    attr['_own_lag'] + attr['_parent_lag'] * attr._inherit_strengths,
+                'lag_taper': lambda attr:
+                    attr['_own_lag_taper'] + attr['_parent_lag_taper'] * attr._inherit_strengths,
+                'frequency': lambda attr:
+                    attr['_own_frequency'] + attr['_parent_frequency'] * attr._inherit_strengths,
                 'radiation_flag': lambda attr:
                     attr['_own_radiation_flag'] * (attr['_own_radiation_flag'] != ID_RADIATION_FROM_PARENT)
                   + attr['_parent_radiation_flag'] * (attr['_own_radiation_flag'] == ID_RADIATION_FROM_PARENT),
