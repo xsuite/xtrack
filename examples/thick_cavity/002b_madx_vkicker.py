@@ -3,9 +3,6 @@ import xtrack as xt
 import xobjects as xo
 import numpy as np
 
-loader_mode = 'cpymad' #cpymad/native
-
-
 mad_data = """
 
 vk: vkicker, l=1, kick=1e-3;
@@ -28,11 +25,7 @@ madx.input(mad_computation)
 
 tw_mad = xt.Table(madx.table.twiss, _copy_cols=True)
 
-if loader_mode == 'native':
-    env = xt.load(string=mad_data, format='madx')
-    line = env['ss']
-elif loader_mode == 'cpymad':
-    line = xt.Line.from_madx_sequence(madx.sequence.ss, deferred_expressions=True)
+line = xt.Line.from_madx_sequence(madx.sequence.ss, deferred_expressions=True)
 
 line.particle_ref = xt.Particles(p0c=1e9)
 
