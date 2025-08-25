@@ -6,20 +6,33 @@
 #ifndef _ATOMICADD_H_
 #define _ATOMICADD_H_
 
+#include <stdint.h>
+
+#if defined XO_CONTEXT_CPU || defined XO_CONTEXT_CL
+#ifdef atomicAdd
+    #warning "Warning: atomicAdd macro already defined, undefining it"
+    #undef atomicAdd
+#endif
+#endif
+
 
 #ifdef XO_CONTEXT_CPU
 #ifdef XO_CONTEXT_CPU_OPENMP
-	/* OpenMP atomic capture gives us read+write atomically */
-	#define OMP_ATOMIC_CAPTURE  _Pragma("omp atomic capture")
+    #ifndef _OPENMP
+    #error "XO_CONTEXT_CPU_OPENMP set, but compiled without -fopenmp"
+    #endif
+    /* OpenMP atomic capture gives us read+write atomically */
+    #define OMP_ATOMIC_CAPTURE  _Pragma("omp atomic capture")
 #else
-	#define OMP_ATOMIC_CAPTURE
+    #define OMP_ATOMIC_CAPTURE  /* no OpenMP: non-atomic fallback */
 #endif // XO_CONTEXT_CPU_OPENMP
 
 #define DEF_ATOMIC_ADD(T, SUF)                                  \
 static inline T atomicAdd_##SUF(T *addr, T val) {               \
-	T old;                                                      \
-    OMP_ATOMIC_CAPTURE                               			\
-    { old = *addr; *addr = *addr + val; }                       \
+    T old;                                                      \
+    const T inc = (T)val;                                       \
+    OMP_ATOMIC_CAPTURE                                          \
+    { old = *addr; *addr = *addr + inc; }                       \
     return old;                                                 \
 }
 
@@ -56,19 +69,19 @@ DEF_ATOMIC_ADD(double  , f64)
 #pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
 inline void atomicAdd(volatile __global double *addr, double val)
 {
-	union {
-		long u64;
-		double f64;
-	} next, expected, current;
-	current.f64 = *addr;
-	do {
-		expected.f64 = current.f64;
-		next.f64 = expected.f64 + val;
-		current.u64 = atom_cmpxchg(
-			(volatile __global long *)addr,
-		        (long) expected.u64,
-			(long) next.u64);
-	} while( current.u64 != expected.u64 );
+    union {
+        long u64;
+        double f64;
+    } next, expected, current;
+    current.f64 = *addr;
+    do {
+        expected.f64 = current.f64;
+        next.f64 = expected.f64 + val;
+        current.u64 = atom_cmpxchg(
+            (volatile __global long *)addr,
+                (long) expected.u64,
+            (long) next.u64);
+    } while( current.u64 != expected.u64 );
 }
 #endif // XO_CONTEXT_CL
 
