@@ -1,24 +1,26 @@
 // copyright ################################# //
-// This file is part of the Xfields Package.   //
-// Copyright (c) CERN, 2021.                   //
+// This file is part of the Xtrack Package.   //
+// Copyright (c) CERN, 2025.                   //
 // ########################################### //
 
 #ifndef _ATOMICADD_H_
 #define _ATOMICADD_H_
 
-#define ATOMICADD_CPU  //only_for_context cpu_serial cpu_openmp
-#define ATOMICADD_OPENCL //only_for_context opencl
-// CUDA provides atomicAdd() natively
 
-#ifdef ATOMICADD_CPU
-inline void atomicAdd(double *addr, double val)
-{
-   #pragma omp atomic //only_for_context cpu_openmp
+#if defined XO_CONTEXT_CPU_SERIAL || defined XO_CONTEXT_CPU_OPENMP
+inline void atomicAdd(double *addr, double val){
+#ifdef XO_CONTEXT_CPU_OPENMP
+   #pragma omp atomic
+#endif
    *addr = *addr + val;
 }
-#endif // ATOMICADD_CPU
+#endif // XO_CONTEXT_CPU_SERIAL || XO_CONTEXT_CPU_OPENMP
 
-#ifdef ATOMICADD_OPENCL
+
+// CUDA provides atomicAdd() natively
+
+
+#ifdef XO_CONTEXT_CL
 #pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
 inline void atomicAdd(volatile __global double *addr, double val)
 {
@@ -36,6 +38,6 @@ inline void atomicAdd(volatile __global double *addr, double val)
 			(long) next.u64);
 	} while( current.u64 != expected.u64 );
 }
-#endif // ATOMICADD_OPENCL
+#endif // XO_CONTEXT_CL
 
-#endif
+#endif //_ATOMICADD_H_
