@@ -31,6 +31,7 @@ _RecordIdentifier_getp_record_source = r'''
 '''
 
 _RecordIndex_get_slot_source = r'''
+#include <headers/atomicadd.h>
 
 /*gpufun*/
 int64_t RecordIndex_get_slot(RecordIndex record_index){
@@ -47,11 +48,7 @@ int64_t RecordIndex_get_slot(RecordIndex record_index){
 
     uint32_t slot;
 
-    slot = atomic_add(num_recorded, 1);   //only_for_context opencl
-    slot = atomicAdd(num_recorded, 1);    //only_for_context cuda
-
-    #pragma omp atomic capture            //only_for_context cpu_openmp
-    slot = (*num_recorded)++;             //only_for_context cpu_serial cpu_openmp
+    slot = atomicAdd(num_recorded, 1);
 
     if (slot >= capacity){
         *num_recorded = capacity;
