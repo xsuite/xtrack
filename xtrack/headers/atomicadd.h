@@ -7,14 +7,46 @@
 #define _ATOMICADD_H_
 
 
-#if defined XO_CONTEXT_CPU_SERIAL || defined XO_CONTEXT_CPU_OPENMP
-inline void atomicAdd(double *addr, double val){
+#ifdef XO_CONTEXT_CPU
 #ifdef XO_CONTEXT_CPU_OPENMP
-   #pragma omp atomic
-#endif
-   *addr = *addr + val;
+	/* OpenMP atomic capture gives us read+write atomically */
+	#define OMP_ATOMIC_CAPTURE  _Pragma("omp atomic capture")
+#else
+	#define OMP_ATOMIC_CAPTURE
+#endif // XO_CONTEXT_CPU_OPENMP
+
+#define DEF_ATOMIC_ADD(T, SUF)                                  \
+static inline T atomicAdd_##SUF(T *addr, T val) {               \
+	T old;                                                      \
+    OMP_ATOMIC_CAPTURE                               			\
+    { old = *addr; *addr = *addr + val; }                       \
+    return old;                                                 \
 }
-#endif // XO_CONTEXT_CPU_SERIAL || XO_CONTEXT_CPU_OPENMP
+
+DEF_ATOMIC_ADD( int8_t ,  i8)
+DEF_ATOMIC_ADD( int16_t, i16)
+DEF_ATOMIC_ADD( int32_t, i32)
+DEF_ATOMIC_ADD( int64_t, i64)
+DEF_ATOMIC_ADD(uint8_t ,  u8)
+DEF_ATOMIC_ADD(uint16_t, u16)
+DEF_ATOMIC_ADD(uint32_t, u32)
+DEF_ATOMIC_ADD(uint64_t, u64)
+DEF_ATOMIC_ADD(float   , f32)
+DEF_ATOMIC_ADD(double  , f64)
+
+#define atomicAdd(addr, val) _Generic((addr),        \
+    int8_t*:   atomicAdd_i8,                         \
+    int16_t*:  atomicAdd_i16,                        \
+    int32_t*:  atomicAdd_i32,                        \
+    int64_t*:  atomicAdd_i64,                        \
+    uint8_t*:  atomicAdd_u8,                         \
+    uint16_t*: atomicAdd_u16,                        \
+    uint32_t*: atomicAdd_u32,                        \
+    uint64_t*: atomicAdd_u64,                        \
+    float*:    atomicAdd_f32,                        \
+    double*:   atomicAdd_f64                         \
+)(addr, (val))
+#endif // XO_CONTEXT_CPU
 
 
 // CUDA provides atomicAdd() natively
