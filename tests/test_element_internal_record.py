@@ -276,7 +276,6 @@ def test_record_with_twiss(test_context):
     line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1, p0c=6.5e12)
     io_buffer = line.tracker.io_buffer
     line.twiss(at_s=np.linspace(0, line.get_length(), 500))
-    
 
 
 @for_all_test_contexts
