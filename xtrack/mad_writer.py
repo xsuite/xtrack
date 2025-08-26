@@ -218,7 +218,7 @@ def multipole_to_mad_str(name, line, mad_type=MadType.MADX, substituted_vars=Non
 
     # Special case for kicker
     if (len(mult.knl._value) == 1 and len(mult.ksl._value) == 1
-        and mult.hxl._value == 0 and (not mult.isthick._value or mult.length._value == 0)):
+        and mult.hxl._value == 0):
         # It is a dipole corrector
         tokens = []
         tokens.append('kicker')
@@ -226,7 +226,11 @@ def multipole_to_mad_str(name, line, mad_type=MadType.MADX, substituted_vars=Non
             tokens.append(f"'{name.replace(':', '__')}'")  # replace ':' with '__' for MADNG
         tokens.append(mad_assignment('hkick', -1 * _ge(mult.knl[0]), mad_type, substituted_vars=substituted_vars))
         tokens.append(mad_assignment('vkick', _ge(mult.ksl[0]), mad_type, substituted_vars=substituted_vars))
-        tokens.append(mad_assignment('lrad', _ge(mult.length), mad_type, substituted_vars=substituted_vars))
+        if not mult.isthick._value or mult.length._value == 0:
+            tokens.append(mad_assignment('lrad', _ge(mult.length), mad_type, substituted_vars=substituted_vars))
+        else:
+            tokens.append(mad_assignment('l', _ge(mult.length), mad_type, substituted_vars=substituted_vars))
+
 
         _handle_transforms(tokens, mult, mad_type=mad_type, substituted_vars=substituted_vars)
 
