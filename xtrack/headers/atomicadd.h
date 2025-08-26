@@ -66,23 +66,71 @@ DEF_ATOMIC_ADD(double  , f64)
 
 
 #ifdef XO_CONTEXT_CL
-#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
-inline void atomicAdd(volatile __global double *addr, double val)
-{
-    union {
-        long u64;
-        double f64;
-    } next, expected, current;
-    current.f64 = *addr;
+// atomic_add_compat.cl (portable)
+#pragma OPENCL EXTENSION cl_khr_fp64                   : enable
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics     : enable
+#pragma OPENCL EXTENSION cl_khr_int64_extended_atomics : enable
+// Map 1.0 "atom_*" names to 1.1+ "atomic_*" if needed.
+#if !defined(__OPENCL_C_VERSION__) || (__OPENCL_C_VERSION__ < 110)
+  #define atomic_add     atom_add
+  #define atomic_cmpxchg atom_cmpxchg
+#endif
+
+#define OCL_OVERLOAD __attribute__((overloadable))
+
+// -------------------- 32-bit integers (core) --------------------
+inline int  OCL_OVERLOAD atomicAdd(volatile __global int  *p, int  v) { return atomic_add(p, v); }
+inline uint OCL_OVERLOAD atomicAdd(volatile __global uint *p, uint v) { return atomic_add(p, v); }
+inline int  OCL_OVERLOAD atomicAdd(volatile __local  int  *p, int  v) { return atomic_add(p, v); }
+inline uint OCL_OVERLOAD atomicAdd(volatile __local  uint *p, uint v) { return atomic_add(p, v); }
+
+// -------------------- 64-bit integers (needs cl_khr_int64_* ) ---
+#ifdef cl_khr_int64_base_atomics
+inline long  OCL_OVERLOAD atomicAdd(volatile __global long  *p, long  v) { return atom_add(p, v); }
+inline ulong OCL_OVERLOAD atomicAdd(volatile __global ulong *p, ulong v) { return atom_add(p, v); }
+inline long  OCL_OVERLOAD atomicAdd(volatile __local  long  *p, long  v) { return atom_add(p, v); }
+inline ulong OCL_OVERLOAD atomicAdd(volatile __local  ulong *p, ulong v) { return atom_add(p, v); }
+#endif // cl_khr_int64_base_atomics
+
+// -------------------- 32-bit float via CAS ----------------------
+inline float OCL_OVERLOAD atomicAdd(volatile __global float *p, float v){
+    uint old_bits, new_bits;
     do {
-        expected.f64 = current.f64;
-        next.f64 = expected.f64 + val;
-        current.u64 = atom_cmpxchg(
-            (volatile __global long *)addr,
-                (long) expected.u64,
-            (long) next.u64);
-    } while( current.u64 != expected.u64 );
+        old_bits = as_uint(*p);
+        new_bits = as_uint(as_float(old_bits) + v);
+    } while (atomic_cmpxchg((volatile __global uint*)p, old_bits, new_bits) != old_bits);
+    return as_float(old_bits);  // return previous value (fetch-add)
 }
+
+inline float OCL_OVERLOAD atomicAdd(volatile __local float *p, float v){
+    uint old_bits, new_bits;
+    do {
+        old_bits = as_uint(*p);
+        new_bits = as_uint(as_float(old_bits) + v);
+    } while (atomic_cmpxchg((volatile __local uint*)p, old_bits, new_bits) != old_bits);
+    return as_float(old_bits);
+}
+
+// -------------------- 64-bit double via CAS ---------------------
+#if defined(cl_khr_fp64) && defined(cl_khr_int64_base_atomics)
+inline double OCL_OVERLOAD atomicAdd(volatile __global double *p, double v){
+    ulong old_bits, new_bits;
+    do {
+        old_bits = as_ulong(*p);
+        new_bits = as_ulong(as_double(old_bits) + v);
+    } while (atom_cmpxchg((volatile __global ulong*)p, old_bits, new_bits) != old_bits);
+    return as_double(old_bits);
+}
+inline double OCL_OVERLOAD atomicAdd(volatile __local double *p, double v){
+    ulong old_bits, new_bits;
+    do {
+        old_bits = as_ulong(*p);
+        new_bits = as_ulong(as_double(old_bits) + v);
+    } while (atom_cmpxchg((volatile __local ulong*)p, old_bits, new_bits) != old_bits);
+    return as_double(old_bits);
+}
+#endif // cl_khr_fp64 && cl_khr_int64_base_atomics
+
 #endif // XO_CONTEXT_CL
 
 #endif //_ATOMICADD_H_
