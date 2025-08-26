@@ -14,7 +14,7 @@ df = pd.read_csv(fname, sep='\t', skiprows=2,
 E_kin_GeV = df.E_kin_GeV.values
 t_s = df.t_s.values
 
-line = xt.Line.from_json('psb_04_with_chicane_corrected_thin.json')
+line = xt.load('psb_04_with_chicane_corrected_thin.json')
 line.build_tracker()
 
 # Attach energy program

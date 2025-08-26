@@ -31,8 +31,8 @@ def test_h6_sps_beamline():
     ''')
     tw_mad = xt.Table(mad.table.twiss)
 
-    env = xt.load_madx_lattice(sequence_path)
-    env.vars.load_madx(lattice_path)
+    env = xt.load(sequence_path)
+    env.vars.load(lattice_path)
     line = env['h6']
     line.particle_ref = xt.Particles(p0c=120e9, mass0=xt.PROTON_MASS_EV)
     tt = line.get_table(attr=True)

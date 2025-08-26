@@ -339,6 +339,30 @@ class MetaBeamElement(xo.MetaHybridClass):
     def __new__(cls, name, bases, data):
         _XoStruct_name = name+'Data'
 
+        data_in = data.copy()
+        data = {}
+        for bb in bases:
+            if bb.__name__ == 'HybridClass':
+                continue
+            if bb.__name__ == 'BeamElement':
+                continue
+            for kk, vv in bb.__dict__.items():
+                if kk.startswith('__') or kk in data_in.keys():
+                    continue
+                data[kk] = vv
+
+        # If inheriting _extra_c_sources, remove get_record function
+        if '_extra_c_sources' in data:
+            ii_remove = None
+            for ii, ss in enumerate(data['_extra_c_sources']):
+                if isinstance(ss, str) and '/*---GENERATED GET RECORD FUNCTION---*/' in ss:
+                   ii_remove = ii
+                   break
+            if ii_remove is not None:
+                data['_extra_c_sources'].pop(ii_remove)
+
+        data.update(data_in)
+
         # Take xofields from data['_xofields'] or from bases
         xofields = _build_xofields_dict(bases, data)
 

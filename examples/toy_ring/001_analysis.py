@@ -2,7 +2,7 @@ import numpy as np
 import xtrack as xt
 
 # Save to json
-line = xt.Line.from_json('toy_ring.json')
+line = xt.load('toy_ring.json')
 tw0 = line.twiss(method='4d')
 
 xtsl = xt.slicing

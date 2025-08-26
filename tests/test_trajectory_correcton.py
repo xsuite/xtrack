@@ -15,7 +15,7 @@ test_data_folder = pathlib.Path(
 @for_all_test_contexts
 def test_orbit_correction_basics(test_context):
 
-    line = xt.Line.from_json(test_data_folder
+    line = xt.load(test_data_folder
                              / 'hllhc15_thick/lhc_thick_with_knobs.json')
     line.build_tracker(_context=test_context)
     tt = line.get_table()
@@ -75,7 +75,7 @@ def test_orbit_correction_basics(test_context):
 @for_all_test_contexts
 def test_orbit_correction_micado(test_context):
 
-    line = xt.Line.from_json(test_data_folder
+    line = xt.load(test_data_folder
         / 'hllhc15_thick/lhc_thick_with_knobs.json')
     line.build_tracker(_context=test_context)
     tt = line.get_table()
@@ -133,7 +133,7 @@ def test_orbit_correction_micado(test_context):
 @for_all_test_contexts
 def test_orbit_correction_customize(test_context):
 
-    line = xt.Line.from_json(test_data_folder
+    line = xt.load(test_data_folder
          / 'hllhc15_thick/lhc_thick_with_knobs.json')
     line.build_tracker(_context=test_context)
     tt = line.get_table()
@@ -202,7 +202,7 @@ def test_orbit_correction_customize(test_context):
 @for_all_test_contexts
 def test_orbit_correction_thread(test_context):
 
-    line = xt.Line.from_json(test_data_folder
+    line = xt.load(test_data_folder
         / 'hllhc15_thick/lhc_thick_with_knobs.json')
     line.build_tracker(_context=test_context)
     tt = line.get_table()
@@ -534,7 +534,7 @@ def test_orbit_correction_tilt_monitors():
 
 def test_orbit_correction_with_limits():
 
-    line = xt.Line.from_json(test_data_folder
+    line = xt.load(test_data_folder
                              / 'hllhc15_thick/lhc_thick_with_knobs.json')
     line.build_tracker()
     tt = line.get_table()
@@ -641,7 +641,7 @@ def test_orbit_correction_with_limits():
 
 def test_orbit_correction_with_delta_zero():
 
-    line = xt.Line.from_json(test_data_folder
+    line = xt.load(test_data_folder
                              / 'hllhc15_thick/lhc_thick_with_knobs.json')
     tt = line.get_table()
 

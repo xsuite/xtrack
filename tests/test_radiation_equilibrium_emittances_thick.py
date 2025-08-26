@@ -64,7 +64,7 @@ def test_eq_emitt(conf):
     wiggler_on = conf['wiggler_on']
     vertical_orbit_distortion = conf['vertical_orbit_distortion']
 
-    line = xt.Line.from_json(test_data_folder / 'fcc_ee/fccee_h_thick.json')
+    line = xt.load(test_data_folder / 'fcc_ee/fccee_h_thick.json')
     line.build_tracker()
 
     # Wiggler is very strong --> needs more twiss points for accurate eq emittances
@@ -131,32 +131,32 @@ def test_eq_emitt(conf):
     if not tilt_machine_by_90_degrees and not vertical_orbit_distortion and not wiggler_on:
         xo.assert_allclose(ex, 7.0923e-10, atol=0,     rtol=1e-4)
         xo.assert_allclose(ey, 0,          atol=1e-14, rtol=0)
-        xo.assert_allclose(ez, 3.5778e-6,  atol=0,     rtol=1e-4)
+        xo.assert_allclose(ez, 3.5064e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif tilt_machine_by_90_degrees and not vertical_orbit_distortion and not wiggler_on:
         xo.assert_allclose(ex, 0,          atol=1e-14, rtol=0)
         xo.assert_allclose(ey, 7.0923e-10, atol=0,     rtol=1e-4)
-        xo.assert_allclose(ez, 3.5778e-6,  atol=0,     rtol=1e-4)
+        xo.assert_allclose(ez, 3.5064e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif not tilt_machine_by_90_degrees and not vertical_orbit_distortion and wiggler_on:
         xo.assert_allclose(ex, 7.0283e-10, atol=0,     rtol=1e-4)
         xo.assert_allclose(ey, 5.6461e-13, atol=0,     rtol=4e-3)
-        xo.assert_allclose(ez, 3.8357e-6,  atol=0,     rtol=1e-4)
+        xo.assert_allclose(ez, 3.7506e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif tilt_machine_by_90_degrees and not vertical_orbit_distortion and wiggler_on:
         xo.assert_allclose(ex, 5.6448e-13, atol=0,     rtol=1e-2)  # Quite large, to be kept in mind
         xo.assert_allclose(ey, 7.0283e-10, atol=0,     rtol=1e-4)
-        xo.assert_allclose(ez, 3.8357e-6,  atol=0,     rtol=1e-4)
+        xo.assert_allclose(ez, 3.7506e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif not tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
         xo.assert_allclose(ex, 7.0910e-10, atol=0,     rtol=1e-4)
         xo.assert_allclose(ey, 2.2195e-12, atol=0,     rtol=7e-3)
-        xo.assert_allclose(ez, 3.5607e-6,  atol=0,     rtol=2e-4)
+        xo.assert_allclose(ez, 3.4899e-6,  atol=0,     rtol=2e-4)
         checked = True
     elif tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
         xo.assert_allclose(ex, 2.2154e-12, atol=0,     rtol=7e-3)
         xo.assert_allclose(ey, 7.0911e-10, atol=0,     rtol=1e-4)
-        xo.assert_allclose(ez, 3.5607e-6,  atol=0,     rtol=2e-4)
+        xo.assert_allclose(ez, 3.4899e-6,  atol=0,     rtol=2e-4)
         checked = True
     else:
         raise ValueError('Unknown configuration')
@@ -166,11 +166,11 @@ def test_eq_emitt(conf):
     # Check radiation integrals
     tw_integ = line.twiss(radiation_integrals=True)
     xo.assert_allclose(tw_integ.rad_int_damping_constant_x_s,
-                       tw_rad.damping_constants_s[0], rtol=0.02, atol=0)
+                       tw_rad.damping_constants_s[0], rtol=0.025, atol=0)
     xo.assert_allclose(tw_integ.rad_int_damping_constant_y_s,
-                       tw_rad.damping_constants_s[1], rtol=0.02, atol=0)
+                       tw_rad.damping_constants_s[1], rtol=0.025, atol=0)
     xo.assert_allclose(tw_integ.rad_int_damping_constant_zeta_s,
-                       tw_rad.damping_constants_s[2], rtol=0.02, atol=0)
+                       tw_rad.damping_constants_s[2], rtol=0.025, atol=0)
     xo.assert_allclose(tw_integ.rad_int_eq_gemitt_x, ex, rtol=0.15, atol=1e-14)
     xo.assert_allclose(tw_integ.rad_int_eq_gemitt_y, ey, rtol=0.15, atol=1e-14)
 

@@ -8,7 +8,7 @@ import numpy as np
 fname = 'fccee_t'; pc_gev = 182.5
 
 
-line = xt.Line.from_json(fname + '_with_sol.json')
+line = xt.load(fname + '_with_sol.json')
 
 line.vars['on_sol_ip.1'] = 0
 tw_sol_off = line.twiss(method='4d')

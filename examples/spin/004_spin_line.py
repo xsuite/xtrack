@@ -7,14 +7,14 @@ from scipy.constants import e as qe
 from scipy.constants import c as clight
 from scipy.constants import hbar
 
-# env = xt.load_madx_lattice('../../test_data/sps_thick/sps.seq')
-# env.vars.load_madx('../../test_data/sps_thick/lhc_q20.str')
+# env = xt.load('../../test_data/sps_thick/sps.seq')
+# env.vars.load('../../test_data/sps_thick/lhc_q20.str')
 # line = env.sps
 # line.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1, p0c=20e9,
 #                                  )
 # line['qf.62410'].shift_y = 1e-3
 
-line = xt.Line.from_json('lep_corrected_sol.json')
+line = xt.load('lep_corrected_sol.json')
 line.particle_ref.anomalous_magnetic_moment=0.00115965218128
 spin_tune = line.particle_ref.anomalous_magnetic_moment[0]*line.particle_ref.gamma0[0]
 

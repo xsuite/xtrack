@@ -163,7 +163,7 @@ class MultiSetter(xo.HybridClass):
         else:
             inner_obj = el
             inner_name = field
-        dd = getattr(inner_obj.copy(_context=xo.context_default), inner_name)
+        dd = getattr(inner_obj.copy(_context=xo.context_default)._xobject, inner_name)
         if index is not None:
             dd = dd[index]
         self.dtype = type(dd)
@@ -257,7 +257,7 @@ def _extract_offset(obj, field_name, index, dtype, xodtype):
         inner_name = field_name
 
     if index is None:
-        assert isinstance(getattr(inner_obj, inner_name), dtype), (
+        assert isinstance(getattr(inner_obj._xobject, inner_name), dtype), (
             "Inconsistent types")
         return inner_obj._xobject._get_offset(inner_name)
     else:

@@ -66,7 +66,7 @@ def _elem_to_tokens(env, nn, formatter):
 # Load the lattice #
 ####################
 
-env = xt.load_madx_lattice('../../test_data/lhc_2024/lhc.seq', reverse_lines=['lhcb2'])
+env = xt.load('../../test_data/lhc_2024/lhc.seq', reverse_lines=['lhcb2'])
 
 ###################
 # Handle elements #

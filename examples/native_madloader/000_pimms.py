@@ -1,6 +1,6 @@
 import xtrack as xt
 
-env = xt.load_madx_lattice('../../test_data/pimms/PIMMS.seq')
+env = xt.load('../../test_data/pimms/PIMMS.seq')
 
 line = env.pimms
 line.particle_ref = xt.Particles(kinetic_energy0=100e6)

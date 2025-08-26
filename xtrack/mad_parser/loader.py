@@ -183,7 +183,8 @@ class MadxLoader:
                     refer = 'end'
                 length = params.get('l', None)
                 builder = self.env.new_builder(name=name, refer=refer,
-                                               length=length)
+                                               length=length,
+                                               s_tol=1e-4) # to accommodate rbend small length changes
                 self._parse_components(builder, params.pop('elements'))
                 builders.append(builder)
             elif line_type == 'line':
@@ -427,6 +428,16 @@ class MadxLoader:
                 params['ksl'] = ksl
             if params.pop('lrad', None):
                 _warn(f'Multipole `{name}` was specified with a length, ignoring!')
+            for kk in list(params.keys()):
+                if kk.startswith('k') and kk.endswith('l'):
+                    if kk == 'ksl' or kk == 'knl':
+                        continue
+                    order = int(kk[1:-1])
+                    if knl not in params:
+                        params['knl'] = []
+                    if len(params['knl']) <= order:
+                        params['knl'] += [0] * (order - len(params['knl']) + 1)
+                    params['knl'][order] = params.pop(kk)
 
         elif parent_name == 'vkicker':
             if (kick := params.pop('kick', None)):

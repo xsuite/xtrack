@@ -27,6 +27,8 @@ void track_magnet_edge_particles(
     const double factor_knl_ksl,
     const int64_t kl_order,
     const double ksol,
+    const double x0_solenoid,
+    const double y0_solenoid,
     const double length,
     const double face_angle,
     const double face_angle_feed_down,
@@ -46,8 +48,8 @@ void track_magnet_edge_particles(
     }
     else {
         START_PER_PARTICLE_BLOCK(part0, part);
-            LocalParticle_set_ax(part, -0.5 * ksol * LocalParticle_get_y(part));
-            LocalParticle_set_ay(part, 0.5 * ksol * LocalParticle_get_x(part));
+            LocalParticle_set_ax(part, -0.5 * ksol * (LocalParticle_get_y(part) - y0_solenoid));
+            LocalParticle_set_ay(part, 0.5 * ksol * (LocalParticle_get_x(part) - x0_solenoid));
         END_PER_PARTICLE_BLOCK;
     }
 
@@ -111,7 +113,10 @@ void track_magnet_edge_particles(
         // model changes!
 
         #define MAGNET_WEDGE(PART) \
-            if (should_rotate) Wedge_single_particle((PART), -face_angle, knorm[0])
+            if (should_rotate & (k_order >= 0)) Wedge_single_particle((PART), -face_angle, knorm[0])
+
+        #define MAGNET_QUAD_WEDGE(PART) \
+            if (should_rotate & (k_order >= 1)) Quad_wedge_single_particle((PART), -face_angle, knorm[1])
 
         if (is_exit == 0){ // entry
             START_PER_PARTICLE_BLOCK(part0, part);
@@ -120,12 +125,18 @@ void track_magnet_edge_particles(
                 if (model == 1){
                     MAGNET_MULTIPOLE_FRINGE(part);
                 }
+                if (model == 1){
+                    MAGNET_QUAD_WEDGE(part);
+                }
                 MAGNET_WEDGE(part);
             END_PER_PARTICLE_BLOCK;
         }
         else { // exit
             START_PER_PARTICLE_BLOCK(part0, part);
                 MAGNET_WEDGE(part);
+                if (model == 1){
+                    MAGNET_QUAD_WEDGE(part);
+                }
                 if (model == 1){
                     MAGNET_MULTIPOLE_FRINGE(part);
                 }
@@ -138,6 +149,7 @@ void track_magnet_edge_particles(
         #undef MAGNET_DIPOLE_FRINGE
         #undef MAGNET_MULTIPOLE_FRINGE
         #undef MAGNET_WEDGE
+        #undef MAGNET_QUAD_WEDGE
     }
     else if (model == 3) { // only ax ay cancellation (already done above)
         // do nothing

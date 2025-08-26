@@ -5,7 +5,7 @@ from scipy.constants import hbar
 from scipy.constants import electron_volt
 from scipy.constants import c as clight
 
-env = xt.load_madx_lattice('b075_2024.09.25.madx')
+env = xt.load('b075_2024.09.25.madx')
 line = env.ring
 line.particle_ref = xt.Particles(energy0=2.7e9, mass0=xt.ELECTRON_MASS_EV)
 line.configure_bend_model(num_multipole_kicks=20)

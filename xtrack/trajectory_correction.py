@@ -207,15 +207,15 @@ class OrbitCorrectionSinglePlane:
                     np.array(corrector_limits[0]),
                     np.array(corrector_limits[1])
                 )
-            
+
             assert len(corrector_limits) == 2
             assert len(corrector_limits[0]) == len(corrector_limits[1])
             assert len(corrector_limits[0]) == len(corrector_names)
 
         self.line = line
         self.plane = plane
-        self.monitor_names = monitor_names
-        self.corrector_names = corrector_names
+        self.monitor_names = list(monitor_names)
+        self.corrector_names = list(corrector_names)
         self.start = start
         self.end = end
         self.n_micado = n_micado
@@ -249,7 +249,7 @@ class OrbitCorrectionSinglePlane:
                 for kk in alignment.keys():
                     assert kk in ['shift_x', 'shift_y', 'rot_s_rad']
                 if nn in self.monitor_names:
-                    i_monitor = self.monitor_names.index(nn)
+                    i_monitor = self.monitor_names.index(str(nn))
                     self.shift_x_monitors[i_monitor] = alignment.get('shift_x', 0)
                     self.shift_y_monitors[i_monitor] = alignment.get('shift_y', 0)
                     self.rot_s_rad_monitors[i_monitor] = alignment.get('rot_s_rad', 0)

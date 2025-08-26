@@ -345,7 +345,7 @@ def test_knl_ksl_in_twiss(test_context):
 
 def test_get_R_matrix():
     fname_line_particles = test_data_folder / 'hllhc15_noerrors_nobb/line_and_particle.json'
-    line = xt.Line.from_json(fname_line_particles)
+    line = xt.load(fname_line_particles)
     line.particle_ref = xp.Particles(p0c=7e12, mass0=xp.PROTON_MASS_EV)
     line.build_tracker()
 
@@ -422,7 +422,7 @@ def test_get_R_matrix():
 
 def test_hide_thin_groups():
 
-    line = xt.Line.from_json(test_data_folder /
+    line = xt.load(test_data_folder /
                                         'lhc_no_bb/line_and_particle.json')
     line.particle_ref = xp.Particles(
                         mass0=xp.PROTON_MASS_EV, q0=1, energy0=7e12)
@@ -448,7 +448,7 @@ def test_hide_thin_groups():
 
 @for_all_test_contexts
 def test_periodic_cell_twiss(test_context):
-    collider = xt.Environment.from_json(test_data_folder /
+    collider = xt.load(test_data_folder /
                     'hllhc15_collider/collider_00_from_mad.json')
     collider.build_trackers(_context=test_context)
 
@@ -574,7 +574,7 @@ def test_periodic_cell_twiss(test_context):
 @pytest.fixture(scope='module')
 def collider_for_test_twiss_range():
 
-    collider = xt.Environment.from_json(test_data_folder /
+    collider = xt.load(test_data_folder /
                     'hllhc15_thick/hllhc15_collider_thick.json')
     collider.lhcb1.twiss_default['method'] = '4d'
     collider.lhcb2.twiss_default['method'] = '4d'
@@ -599,7 +599,7 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
         collider = collider_for_test_twiss_range
     else:
         raise ValueError('This should not happen')
-        collider = xt.Environment.from_json(test_data_folder /
+        collider = xt.load(test_data_folder /
                         'hllhc15_thick/hllhc15_collider_thick.json')
         collider.lhcb1.twiss_default['method'] = '4d'
         collider.lhcb2.twiss_default['method'] = '4d'
@@ -620,32 +620,40 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
     atols = dict(
         s=2e-8,
         zeta=5e-5,
-        alfx=1e-8, alfy=1e-8,
+        alfx=1e-8, alfy=1e-8, alfx1=1e-8, alfy2=1e-8, alfx2=1e-6, alfy1=1e-6,
         dzeta=1e-4, dx=1e-4, dy=1e-4, dpx=1e-5, dpy=1e-5,
         nuzeta=1e-5, dx_zeta=1e-7, dy_zeta=1e-7, dpx_zeta=1e-8, dpy_zeta=1e-8,
         nux=1e-8, nuy=1e-8,
         betx2=1e-4, bety1=1e-4,
+        gamy1=5e-7, gamx2=5e-7,
     )
 
     rtols = dict(
-        alfx=5e-9, alfy=5e-8,
+        alfx=5e-9, alfy=5e-8, alfx1=5e-9, alfy2=5e-8, alfx2=5e-8, alfy1=5e-8,
         betx=1e-8, bety=1e-8, betx1=1e-8, bety2=1e-8, betx2=1e-7, bety1=1e-7,
-        gamx=5e-9, gamy=5e-9,
+        gamx=5e-9, gamy=5e-9, gamx1=5e-9, gamy2=5e-9, gamx2=1e-7, gamy1=1e-7,
     )
 
     if loop_around or not init_at_edge:
         rtols['betx'] = 2e-5
         rtols['bety'] = 2e-5
-        rtols['alfx'] = 4e-5
-        atols['alfx'] = 4e-5
-        rtols['alfy'] = 4e-5
-        atols['alfy'] = 4e-5
+        rtols['alfx'] = rtols['alfx1'] = 4e-5
+        rtols['alfy'] = rtols['alfy2'] = 4e-5
         rtols['gamx'] = 2e-5
         rtols['gamy'] = 2e-5
         rtols['betx1'] = 2e-5
         rtols['bety2'] = 1e-5
         rtols['betx2'] = 1e-4
         rtols['bety1'] = 1e-4
+        rtols['alfx2'] = 2e-4
+        rtols['alfy1'] = 2e-4
+        rtols['gamx1'] = 2e-5
+        rtols['gamy2'] = 1e-5
+        rtols['gamx2'] = 1e-4
+        rtols['gamy1'] = 1e-4
+
+        atols['alfy'] = atols['alfy2'] = 4e-5
+        atols['alfx'] = atols['alfx1'] = 4e-5
         atols['mux'] = 1e-5
         atols['muy'] = 1e-5
         atols['nux'] = 1e-8
@@ -971,7 +979,7 @@ def test_twiss_against_matrix(test_context):
 def test_longitudinal_plane_against_matrix(machine, test_context):
 
     if machine == 'sps':
-        line = xt.Line.from_json(test_data_folder /
+        line = xt.load(test_data_folder /
             'sps_w_spacecharge/line_no_spacecharge_and_particle.json')
         # I put the cavity at the end of the ring to get closer to the kick-drift model
         line.cycle('actb.31739_aper', inplace=True)
@@ -980,7 +988,7 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
         cavity_name = 'acta.31637'
         sigmaz=0.20
     elif machine == 'psb':
-        line = xt.Line.from_json(test_data_folder /
+        line = xt.load(test_data_folder /
             'psb_injection/line_and_particle.json')
         configurations = ['below transition']
         num_turns = 1000
@@ -1146,7 +1154,7 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
 @for_all_test_contexts
 def test_custom_twiss_init(test_context):
 
-    line = xt.Line.from_json(test_data_folder /
+    line = xt.load(test_data_folder /
             'hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
     line.particle_ref = xp.Particles(
                         mass0=xp.PROTON_MASS_EV, q0=1, energy0=7e12)
@@ -1237,7 +1245,7 @@ def test_custom_twiss_init(test_context):
 @for_all_test_contexts
 def test_crab_dispersion(test_context):
 
-    collider = xt.Environment.from_json(test_data_folder /
+    collider = xt.load(test_data_folder /
                         'hllhc15_collider/collider_00_from_mad.json')
     collider.build_trackers(_context=test_context)
 
@@ -1286,7 +1294,7 @@ def test_crab_dispersion(test_context):
 @for_all_test_contexts
 def test_momentum_crab_dispersion(test_context):
 
-    collider = xt.Environment.from_json(test_data_folder /
+    collider = xt.load(test_data_folder /
                         'hllhc15_collider/collider_00_from_mad.json')
     collider.build_trackers(_context=test_context)
 
@@ -1364,7 +1372,7 @@ def test_twiss_init_file(test_context):
 @for_all_test_contexts
 def test_custom_twiss_init(test_context):
 
-    collider = xt.Environment.from_json(
+    collider = xt.load(
         test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.json')
 
     collider.lhcb1.slice_thick_elements(
@@ -1516,7 +1524,7 @@ def test_custom_twiss_init(test_context):
 @for_all_test_contexts
 def test_adaptive_steps_for_rmatrix(test_context):
 
-    collider = xt.Environment.from_json(
+    collider = xt.load(
         test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers(_context=test_context)
     collider.lhcb1.twiss_default['method'] = '4d'
@@ -1556,7 +1564,7 @@ def test_adaptive_steps_for_rmatrix(test_context):
 def test_longitudinal_beam_sizes(test_context):
 
     # Load a line and build tracker
-    line = xt.Line.from_json(test_data_folder /
+    line = xt.load(test_data_folder /
         'hllhc15_noerrors_nobb/line_and_particle.json')
     line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, energy0=7e12)
     line.build_tracker(_context=test_context)
@@ -1579,7 +1587,7 @@ def test_longitudinal_beam_sizes(test_context):
 @for_all_test_contexts
 def test_second_order_chromaticity_and_dispersion(test_context):
 
-    line = xt.Line.from_json(test_data_folder /
+    line = xt.load(test_data_folder /
                              'hllhc15_thick/lhc_thick_with_knobs.json')
     line.vars['on_x5'] = 300
     line.build_tracker(_context=test_context)
@@ -1936,7 +1944,7 @@ def test_twiss_add_strengths(test_context):
 def test_coupling_calculations():
 
     # Load a line and build tracker
-    line = xt.Line.from_json(test_data_folder /
+    line = xt.load(test_data_folder /
         'hllhc14_no_errors_with_coupling_knobs/line_b1.json')
     line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, energy0=7e12)
     line.cycle('ip1', inplace=True)
@@ -1997,3 +2005,59 @@ def test_twiss_collective_end_is_len():
     t2 = line2.twiss4d(betx=1,bety=1,include_collective=True)
 
     xo.assert_allclose(t.betx, t2.betx, atol=1e-12, rtol=0)
+
+
+def test_twiss_compute_coupling_elements_edwards_teng():
+    env = xt.load(test_data_folder / 'lhc_2024/lhc.seq')
+    env.vars.set_from_madx_file(test_data_folder / 'lhc_2024/injection_optics.madx')
+
+    # Clean machine
+    env['on_x1'] = 0
+    env['on_x2h'] = 0
+    env['on_x2v'] = 0
+    env['on_x5'] = 0
+    env['on_x8h'] = 0
+    env['on_x8v'] = 0
+
+    env['on_sep1'] = 0
+    env['on_sep2h'] = 0
+    env['on_sep2v'] = 0
+    env['on_sep5'] = 0
+    env['on_sep8h'] = 0
+    env['on_sep8v'] = 0
+
+    env['on_a2'] = 0
+    env['on_a8'] = 0
+
+    # Introduce some coupling by powering up a skew quadrupole
+    env['kqs.a67b1'] = 1e-4
+
+    line = env.lhcb1
+    line.particle_ref = xt.Particles(p0c=450e9)
+    tw = line.twiss4d(coupling_edw_teng=True)
+
+    tw_ng = line.madng_twiss()
+
+    # We will correct for the sign, as our result is smoother
+    sgn_ng = np.sign(tw.r11_edw_teng / tw_ng.r11_ng)
+
+    # Check against MAD-NG
+    xo.assert_allclose(tw.r11_edw_teng, sgn_ng * tw_ng.r11_ng, atol=np.max(np.abs(tw.r11_edw_teng)) * 5e-3, rtol=0, max_outliers=1)
+    xo.assert_allclose(tw.r12_edw_teng, sgn_ng * tw_ng.r12_ng, atol=np.max(np.abs(tw.r12_edw_teng)) * 5e-3, rtol=0, max_outliers=1)
+    xo.assert_allclose(tw.r21_edw_teng, sgn_ng * tw_ng.r21_ng, atol=np.max(np.abs(tw.r21_edw_teng)) * 5e-3, rtol=0, max_outliers=1)
+    xo.assert_allclose(tw.r22_edw_teng, sgn_ng * tw_ng.r22_ng, atol=np.max(np.abs(tw.r22_edw_teng)) * 5e-3, rtol=0, max_outliers=1)
+    xo.assert_allclose(tw.f1010, sgn_ng * tw_ng.f1010_ng, atol=3e-5, rtol=0, max_outliers=1)
+    xo.assert_allclose(tw.f1001, sgn_ng * tw_ng.f1001_ng, atol=1e-3, rtol=0, max_outliers=1)
+
+    # Test that reverse twiss is disabled for now
+    with pytest.raises(NotImplementedError):
+        line.twiss4d(coupling_edw_teng=True, reverse=True)
+
+    # Test that reversal removes the quantities for now
+    tw_rev = tw.reverse()
+    rev_fields = set(dir(tw_rev))
+    fields_shouldnt_be_there = {
+        'r11_edw_teng', 'r12_edw_teng', 'r21_edw_teng', 'r22_edw_teng',
+        'f1010', 'f1001',
+    }
+    assert not (rev_fields & fields_shouldnt_be_there)

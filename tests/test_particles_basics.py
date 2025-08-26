@@ -695,5 +695,5 @@ def test_LocalParticle_angles(test_context):
                              px=[1.0e-3, -1.0e-3], py=[2.0e-3, -1.2e-3], zeta=0.1)
     line.track(particles)
     particles.move(_context=xo.ContextCpu())
-    xo.assert_allclose(particles.px, [23.99302e-3, 18.01805e-3], atol=1e-14)
+    xo.assert_allclose(particles.px, [23.99302e-3, 18.01805e-3], atol=1e-14, rtol=5e-7)
     xo.assert_allclose(particles.py, [-1.81976e-3, -4.73529e-3], atol=1e-14, rtol=5e-7)

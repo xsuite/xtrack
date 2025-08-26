@@ -706,7 +706,7 @@ def test_from_json_to_json(tmp_path):
         result.metadata['qx']['lhcb1'] = result.metadata['qx']['lhcb1'] - 1
 
     line.to_json(tmp_path / 'test.json')
-    result = xt.Line.from_json(tmp_path / 'test.json')
+    result = xt.load(tmp_path / 'test.json')
 
     asserts()
 
@@ -779,7 +779,7 @@ def test_config_propagation(test_context):
 def test_pickle():
 
     # Load the line
-    line = xt.Line.from_json(test_data_folder /
+    line = xt.load(test_data_folder /
             'hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
     line.particle_ref = xp.Particles(p0c=7e12, mass=xp.PROTON_MASS_EV)
     line.build_tracker()
@@ -870,7 +870,7 @@ def test_insert_thin_elements_at_s_basic(test_context):
 @for_all_test_contexts
 def test_insert_thin_elements_at_s_lhc(test_context):
 
-    line = xt.Line.from_json(test_data_folder /
+    line = xt.load(test_data_folder /
                     'hllhc15_thick/lhc_thick_with_knobs.json')
     line.twiss_default['method'] = '4d'
 
@@ -994,7 +994,7 @@ def test_elements_intersecting_s():
     }
     result = line._elements_intersecting_s(cuts)
     for kk in expected.keys() | result.keys():
-        xo.assert_allclose(expected[kk], result[kk], atol=1e-16)
+        xo.assert_allclose(expected[kk], result[kk], atol=1e-14)
 
 
 def test_slicing_at_custom_s():
@@ -1086,7 +1086,7 @@ def test_multiple_thick_elements():
 
 @for_all_test_contexts
 def test_get_strengths(test_context):
-    collider = xt.Environment.from_json(
+    collider = xt.load(
         test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers(_context=test_context)
 

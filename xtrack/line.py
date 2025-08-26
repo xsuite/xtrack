@@ -14,6 +14,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
 from typing import List, Literal, Optional, Dict
+from pathlib import Path
 
 import numpy as np
 from scipy.constants import c as clight
@@ -32,7 +33,8 @@ from .progress_indicator import progress
 from .slicing import Custom, Slicer, Strategy
 from .mad_writer import to_madx_sequence
 from .madng_interface import (build_madng_model, discard_madng_model,
-                              regen_madng_model, _tw_ng, line_to_madng)
+                              regen_madng_model, _tw_ng, line_to_madng,
+                              _survey_ng)
 
 from .survey import survey_from_line
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
@@ -48,7 +50,7 @@ from .mad_loader import MadLoader
 from .beam_elements import element_classes
 from . import beam_elements
 from .beam_elements import Drift, BeamElement, Marker, Multipole
-from .beam_elements.slice_elements import ID_RADIATION_FROM_PARENT
+from .beam_elements.slice_base import ID_RADIATION_FROM_PARENT
 from .footprint import Footprint, _footprint_with_linear_rescale
 from .internal_record import (start_internal_logging_for_elements_of_type,
                               stop_internal_logging_for_elements_of_type,
@@ -628,7 +630,8 @@ class Line:
         '''
         return to_madx_sequence(self, sequence_name, mode=mode)
 
-    def to_madng(self, sequence_name='seq', temp_fname=None, keep_files=False):
+    def to_madng(self, sequence_name='seq', temp_fname=None, keep_files=False,
+                 **kwargs):
 
         '''
         Build a MAD NG instance from present state of the line.
@@ -647,13 +650,15 @@ class Line:
         '''
 
         return line_to_madng(self, sequence_name=sequence_name,
-                             temp_fname=temp_fname, keep_files=keep_files)
+                             temp_fname=temp_fname, keep_files=keep_files,
+                             **kwargs)
 
 
     build_madng_model = build_madng_model
     discard_madng_model = discard_madng_model
     regen_madng_model = regen_madng_model
     madng_twiss = _tw_ng
+    madng_survey = _survey_ng
 
     def __repr__(self):
         if hasattr(self, '_name'):
@@ -1327,6 +1332,7 @@ class Line:
         compute_R_element_by_element=None,
         compute_lattice_functions=None,
         compute_chromatic_properties=None,
+        coupling_edw_teng=False,
         init_at=None,
         x=None, px=None, y=None, py=None, zeta=None, delta=None,
         betx=None, alfx=None, bety=None, alfy=None, bets=None,
@@ -2310,6 +2316,11 @@ class Line:
             assert isinstance(what, str)
             self.env.element_dict[what] = obj
 
+        if isinstance(what, str) in self.element_dict:
+            # Is an element and not a line or an iterable
+            self.element_names.append(what)
+            return
+
         if not isinstance(what, Iterable) or isinstance(what, str):
             what = [what]
 
@@ -2609,7 +2620,7 @@ class Line:
             Element to be inserted. If not given, the element of the given name
             already present in the line is used.
         at: int or string, optional
-            Index or name of the element in the line. If `index` is provided, `at_s` must be None. 
+            Index or name of the element in the line. If `index` is provided, `at_s` must be None.
         at_s: float, optional
             Position of the element in the line in meters. If `at_s` is provided, `index`
             must be None.
@@ -3225,7 +3236,7 @@ class Line:
             self, element=element, update_every=update_every, **kwargs
         )
 
-    def compensate_radiation_energy_loss(self, delta0=0, rtol_eneloss=1e-10,
+    def compensate_radiation_energy_loss(self, delta0='zero_mean', rtol_eneloss=1e-10,
                                     max_iter=100, **kwargs):
 
         """
@@ -3235,7 +3246,9 @@ class Line:
         Parameters
         ----------
         delta0: float
-            Initial energy deviation.
+            Initial energy deviation. If `delta0='zero_mean'` is specified, the
+            compensation is done such that the mean energy deviation along the
+            ring is zero.
         rtol_eneloss: float
             Relative tolerance on energy loss.
         max_iter: int
@@ -4823,6 +4836,16 @@ class Line:
                 '_own_k4sl': ('ksl', 4),
                 '_own_k5sl': ('ksl', 5),
 
+                # Handling of reference frame transformations
+                # (XYShift, XRotation, YRotation, SRotation)
+                # TODO: The dx, dy, etc labels come from the element level and should possibly be changed
+                '_own_ref_shift_x':         'dx',
+                '_own_ref_shift_y':         'dy',
+                '_own_ref_rot_sin_angle':   'sin_angle',
+                '_own_ref_rot_cos_angle':   'cos_angle',
+                '_own_ref_rot_sin_z':       'sin_z',
+                '_own_ref_rot_cos_z':       'cos_z',
+
                 '_parent_length': (('_parent', 'length'), None),
                 '_parent_sin_rot_s': (('_parent', '_sin_rot_s'), None),
                 '_parent_cos_rot_s': (('_parent', '_cos_rot_s'), None),
@@ -4832,6 +4855,7 @@ class Line:
 
                 '_parent_h': (('_parent', 'h'), None),
                 '_parent_hxl': (('_parent', 'hxl'), None),
+                '_parent_rbend_model': (('_parent', 'rbend_model'), None),
 
                 '_parent_radiation_flag': (('_parent', 'radiation_flag'), None),
 
@@ -4863,11 +4887,22 @@ class Line:
                 '_parent_k4sl': (('_parent', 'ksl'), 4),
                 '_parent_k5sl': (('_parent', 'ksl'), 5),
 
+                # Handling of reference frame transformations
+                # (XYShift, XRotation, YRotation, SRotation)
+                # TODO: The dx, dy, etc labels come from the element level and should possibly be changed
+                '_parent_ref_shift_x': (('_parent', 'dx'), None),
+                '_parent_ref_shift_y': (('_parent', 'dy'), None),
+                '_parent_ref_rot_sin_angle': (('_parent', 'sin_angle'), None),
+                '_parent_ref_rot_cos_angle': (('_parent', 'cos_angle'), None),
+                '_parent_ref_rot_sin_z': (('_parent', 'sin_z'), None),
+                '_parent_ref_rot_cos_z': (('_parent', 'cos_z'), None),
+
             },
             derived_fields={
                 'length': lambda attr:
                     attr['_own_length'] + attr['_parent_length'] * attr['weight'],
-                'angle_rad': _angle_from_attr,
+                '_angle_force_body': _angle_force_body_from_attr,
+                'angle_rad': _angle_rbend_correction_from_attr,
                 'rot_s_rad': _rot_s_from_attr,
                 'shift_x': lambda attr:
                     attr['_own_shift_x'] + attr['_parent_shift_x']
@@ -4943,6 +4978,13 @@ class Line:
                     + attr['_parent_k5s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
                 'hkick': lambda attr: attr["angle_rad"] - attr["k0l"],
                 'vkick': lambda attr: attr["k0sl"],
+                'ref_shift_x': lambda attr: attr['_own_ref_shift_x'] + attr['_parent_ref_shift_x'],
+                'ref_shift_y': lambda attr: attr['_own_ref_shift_y'] + attr['_parent_ref_shift_y'],
+                'ref_rot_angle_rad': lambda attr: np.arctan2(
+                    attr['_own_ref_rot_sin_angle'] + attr['_parent_ref_rot_sin_angle'] +\
+                    attr['_own_ref_rot_sin_z'] + attr['_parent_ref_rot_sin_z'],
+                    attr['_own_ref_rot_cos_angle'] + attr['_parent_ref_rot_cos_angle'] +\
+                    attr['_own_ref_rot_cos_z'] + attr['_parent_ref_rot_cos_z']),
             }
         )
         return cache
@@ -5528,6 +5570,50 @@ class LineVars:
         if default_to_zero is not None:
             self.default_to_zero = old_default_to_zero
 
+    def load(
+            self,
+            file=None,
+            string=None,
+            format: Literal['json', 'madx', 'python'] = None,
+            timeout=5.,
+        ):
+
+        if isinstance(file, Path):
+            file = str(file)
+
+        if (file is None) == (string is None):
+            raise ValueError('Must specify either file or string, but not both')
+
+        FORMATS = {'json', 'madx', 'python'}
+        if string and format not in FORMATS:
+            raise ValueError(f'Format must be specified to be one of {FORMATS} when '
+                            f'using string input')
+
+        if format is None and file is not None:
+            if file.endswith('.json') or file.endswith('.json.gz'):
+                format = 'json'
+            elif file.endswith('.str') or file.endswith('.madx'):
+                format = 'madx'
+            elif file.endswith('.py'):
+                format = 'python'
+
+        if file and (file.startswith('http://') or file.startswith('https://')):
+            string = xt.general.read_url(file, timeout=timeout)
+            file = None
+
+        if format == 'json':
+            ddd = xt.json.load(file=file, string=string)
+            self.update(ddd, default_to_zero=True)
+        elif format == 'madx':
+            return self.load_madx(file, string)
+        elif format == 'python':
+            if string is not None:
+                raise NotImplementedError('Loading from string not implemented for python format')
+            env = xt.Environment()
+            env.call(file)
+            self.update(env.vars.get_table().to_dict(), default_to_zero=True)
+            return env
+
     @property
     def vary_default(self):
         if self.line._xdeps_vref is None:
@@ -5615,7 +5701,7 @@ class LineVars:
         self.__dict__.update(state)
         self.vars_to_update = WeakSet()
 
-    def set_from_madx_file(self, filename):
+    def set_from_madx_file(self, filename=None, string=None):
 
         '''
         Set variables veluas of expression from a MAD-X file.
@@ -5626,10 +5712,15 @@ class LineVars:
             Path to the MAD-X file(s) to load.
         '''
         loader = xt.mad_parser.MadxLoader(env=self.line)
-        loader.load_file(filename)
+        if filename is not None:
+            assert string is None, 'Cannot specify both filename and string'
+            loader.load_file(filename)
+        elif string is not None:
+            assert filename is None, 'Cannot specify both filename and string'
+            loader.load_string(string)
 
-    def load_madx_optics_file(self, filename):
-        self.set_from_madx_file(filename)
+    def load_madx_optics_file(self, filename=None, string=None):
+        self.set_from_madx_file(filename, string)
 
     load_madx = load_madx_optics_file
 
@@ -6036,7 +6127,11 @@ def _vars_unused(line):
         return True
     return False
 
-def _angle_from_attr(attr):
+def _angle_force_body_from_attr(attr):
+
+    """This angle has always the curvature in the body, even for RBend elements
+    with rbend_model='straight-body'. It is used mostly for plotting purposes.
+    """
 
     weight = attr['weight']
 
@@ -6052,6 +6147,30 @@ def _angle_from_attr(attr):
                                 * attr._inherit_strengths)
 
     angle = own_hxl_proper_system + parent_hxl_proper_system
+
+    return angle
+
+def _angle_rbend_correction_from_attr(attr):
+
+    angle = attr['_angle_force_body'].copy()
+
+    ## Correction for RBend elements
+
+    # Retrieve element_type from tracker cache (remove _end_point)
+    element_type = attr.line.tracker._tracker_data_base._line_table.element_type[:-1]
+
+    mask_rbend_edges = ((element_type == 'ThinSliceRBendEntry')
+                        | (element_type == 'ThinSliceRBendExit'))
+    mask_rbend_body_slices = ((element_type == 'ThinSliceRBend')
+                            | (element_type == 'ThickSliceRBend'))
+    mask_parent_is_rbend_straigth_body = (attr['_parent_rbend_model'] == 2)
+    mask_rbend_edges_straight_body = (mask_rbend_edges
+                                      & mask_parent_is_rbend_straigth_body)
+
+    angle[mask_parent_is_rbend_straigth_body & mask_rbend_body_slices] = 0
+    angle[mask_rbend_edges_straight_body] = 0.5 * (
+        attr['_parent_h'][mask_rbend_edges_straight_body]
+        * attr['_parent_length'][mask_rbend_edges_straight_body])
 
     return angle
 

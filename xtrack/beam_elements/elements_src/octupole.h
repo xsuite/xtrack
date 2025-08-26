@@ -8,38 +8,29 @@
 
 #include <headers/track.h>
 #include <beam_elements/elements_src/track_magnet.h>
+#include <beam_elements/elements_src/default_magnet_config.h>
 
 GPUFUN
 void Octupole_track_local_particle(
         OctupoleData el,
         LocalParticle* part0
 ) {
-    int64_t model = OctupoleData_get_model(el);
-    int64_t integrator = OctupoleData_get_integrator(el);
-    int64_t num_multipole_kicks = OctupoleData_get_num_multipole_kicks(el);
-
-    if (model == 0) {  // adaptive
-        model = 6;  // drift-kick-drift-expanded
-    }
-    if (integrator == 0) {  // adaptive
-        integrator = 3;  // uniform
-    }
-    if (num_multipole_kicks == 0) {
-        num_multipole_kicks = 1;
-    }
 
     track_magnet_particles(
+        /*weight*/                1.,
         /*part0*/                 part0,
         /*length*/                OctupoleData_get_length(el),
         /*order*/                 OctupoleData_get_order(el),
         /*inv_factorial_order*/   OctupoleData_get_inv_factorial_order(el),
         /*knl*/                   OctupoleData_getp1_knl(el, 0),
         /*ksl*/                   OctupoleData_getp1_ksl(el, 0),
-        /*factor_knl_ksl*/        1.,
-        /*num_multipole_kicks*/   num_multipole_kicks,
-        /*model*/                 model,
-        /*integrator*/            integrator,
+        /*num_multipole_kicks*/   OctupoleData_get_num_multipole_kicks(el),
+        /*model*/                 OctupoleData_get_model(el),
+        /*default_model*/         OCTUPOLE_DEFAULT_MODEL,
+        /*integrator*/            OctupoleData_get_integrator(el),
+        /*default_integrator*/    OCTUPOLE_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        OctupoleData_get_radiation_flag(el),
+        /*radiation_flag_parent*/ 0, // not used here
         /*radiation_record*/      NULL,
         /*delta_taper*/           OctupoleData_get_delta_taper(el),
         /*h*/                     0.,
@@ -54,6 +45,11 @@ void Octupole_track_local_particle(
         /*k3s*/                   OctupoleData_get_k3s(el),
         /*ks*/                    0.,
         /*dks_ds*/                0.,
+        /*x0_solenoid*/           0.,
+        /*y0_solenoid*/           0.,
+        /*rbend_model*/           -1, // not rbend
+        /*rbend_shift*/           0.,
+        /*body_active*/           1,
         /*edge_entry_active*/     OctupoleData_get_edge_entry_active(el),
         /*edge_exit_active*/      OctupoleData_get_edge_exit_active(el),
         /*edge_entry_model*/      1,

@@ -1,6 +1,6 @@
 import xtrack as xt
 
-collider = xt.Environment.from_json(
+collider = xt.load(
     '../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
 collider['lhcb1'].twiss_default['method'] = '4d'
 collider['lhcb2'].twiss_default['method'] = '4d'

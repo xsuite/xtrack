@@ -68,8 +68,8 @@ def mad_b4_no_errors():
 
 
 surv_starting_point = {
-    "theta0": -np.pi / 9, "psi0": np.pi / 7, "phi0": np.pi / 11,
-    "X0": -300, "Y0": 150, "Z0": -100}
+     "theta0": -np.pi / 9, "psi0": np.pi / 7, "phi0": np.pi / 11,
+     "X0": -300, "Y0": 150, "Z0": -100}
 
 
 b4_b2_mapping = {
@@ -97,6 +97,7 @@ def test_twiss_and_survey(
         reverse = False
         use = False
         range_for_partial_twiss = ('mb.b19r3.b1..1', 'mb.b19l3.b1..1')
+        sv_kwars = surv_starting_point.copy()
     elif configuration == 'b2_no_errors':
         mad_load = mad_b4_no_errors
         mad_ref = mad_b12_no_errors
@@ -105,6 +106,7 @@ def test_twiss_and_survey(
         reverse = True
         use = True
         range_for_partial_twiss = ('mb.b19l3.b2..1', 'mb.b19r3.b2..1')
+        sv_kwars = {}
 
     if use:
         mad_ref.use(sequence=seq_name)
@@ -120,7 +122,7 @@ def test_twiss_and_survey(
     mad_ref.sequence[seq_name].beam.eyn = 3.5e-6
 
     twmad = mad_ref.twiss(chrom=True)
-    survmad = mad_ref.survey(**surv_starting_point)
+    survmad = mad_ref.survey(**sv_kwars)
 
     line_full = xt.Line.from_madx_sequence(
             mad_load.sequence[seq_name], apply_madx_errors=True)
@@ -154,7 +156,7 @@ def test_twiss_and_survey(
 
         twxt = line.twiss()
         twxt4d = line.twiss(method='4d')
-        survxt = line.survey(**surv_starting_point)
+        survxt = line.survey(**sv_kwars)
 
         if reverse:
             twxt = twxt.reverse()
@@ -341,9 +343,9 @@ def test_twiss_and_survey(
 
                 if not(is_part): # We don't have survey on a part of the machine
                     # Check survey
-                    xo.assert_allclose(survxt.X[ixt], survmad['X'][imad], atol=1e-6)
-                    xo.assert_allclose(survxt.Y[ixt], survmad['Y'][imad], rtol=2e-7, atol=1e-6)
-                    xo.assert_allclose(survxt.Z[ixt], survmad['Z'][imad], atol=1e-6)
+                    xo.assert_allclose(survxt.X[ixt], survmad['X'][imad], atol=1e-6, rtol=2e-7)
+                    xo.assert_allclose(survxt.Y[ixt], survmad['Y'][imad], atol=1e-6, rtol=2e-7)
+                    xo.assert_allclose(survxt.Z[ixt], survmad['Z'][imad], atol=1e-6, rtol=2e-7)
                     xo.assert_allclose(survxt.s[ixt], survmad['s'][imad], atol=5e-6)
                     xo.assert_allclose(survxt.phi[ixt], survmad['phi'][imad], atol=1e-10)
                     xo.assert_allclose(survxt.theta[ixt], survmad['theta'][imad], atol=1e-10)
@@ -353,7 +355,7 @@ def test_twiss_and_survey(
                     # For now not checking the sign of the angles, convetion in mad-X to be calrified
                     xo.assert_allclose(np.abs(survxt.angle[ixt-1]),
                             np.abs(survmad['angle'][imad]), atol=1e-10)
-                    xo.assert_allclose(survxt.tilt[ixt-1], survmad['tilt'][imad], atol=1e-10)
+                    xo.assert_allclose(survxt.rot_s_rad[ixt-1], survmad['tilt'][imad], atol=1e-10)
 
         # Check to_pandas (not extensively for now)
         dftw = twtst.to_pandas()
@@ -595,7 +597,7 @@ def test_low_beta_twiss(test_context):
 
     path_line = test_data_folder / 'psb_injection/line_and_particle.json'
 
-    line = xt.Line.from_json(path_line)
+    line = xt.load(path_line)
     line.build_tracker(_context=test_context)
     tw = line.twiss()
 

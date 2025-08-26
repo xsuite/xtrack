@@ -5,7 +5,7 @@ import xtrack as xt
 from cpymad.madx import Madx
 
 # Load the line
-line = xt.Line.from_json(
+line = xt.load(
     '../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
 line.particle_ref = xt.Particles(p0c=7e12, mass=xt.PROTON_MASS_EV)
 collider = xt.Environment(lines={'lhcb1': line})

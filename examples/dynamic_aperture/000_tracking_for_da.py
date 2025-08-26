@@ -4,7 +4,7 @@ import xtrack as xt
 import xpart as xp
 import xobjects as xo
 
-line = xt.Line.from_json(
+line = xt.load(
     '../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json')
 line.build_tracker()
 

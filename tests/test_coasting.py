@@ -14,7 +14,7 @@ test_data_folder = pathlib.Path(
 def test_coasting():
     delta0 = 1e-2
 
-    line = xt.Line.from_json(test_data_folder /
+    line = xt.load(test_data_folder /
                              'psb_injection/line_and_particle.json')
 
     # RF off!

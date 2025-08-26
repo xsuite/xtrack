@@ -8,7 +8,7 @@ from cpymad.madx import Madx
 
 fname = 'fccee_z'; pc_gev = 45.6
 
-env = xt.load_madx_lattice('../../test_data/fcc_ee/' + fname + '.seq')
+env = xt.load('../../test_data/fcc_ee/' + fname + '.seq')
 line = env.fccee_p_ring
 
 line.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV,

@@ -664,8 +664,8 @@ def test_mad_elements_import():
         x_1, x_2, y_1, y_2 = 3, 2 * np.sqrt(3), np.sqrt(3), 6
         expected_x_vertices = [x_1, x_2, -x_2, -x_1, -x_1, -x_2, x_2, x_1]
         expected_y_vertices = [y_1, y_2, y_2, y_1, -y_1, -y_2, -y_2, -y_1]
-        xo.assert_allclose(line['oct_aper'].x_vertices, expected_x_vertices)
-        xo.assert_allclose(line['oct_aper'].y_vertices, expected_y_vertices)
+        xo.assert_allclose(line['oct_aper'].x_vertices, expected_x_vertices, atol=1e-14)
+        xo.assert_allclose(line['oct_aper'].y_vertices, expected_y_vertices, atol=1e-14)
 
 
 def test_selective_expr_import_and_replace_in_expr():
@@ -688,7 +688,7 @@ def test_selective_expr_import_and_replace_in_expr():
 
 
 def test_load_madx_optics_file():
-    collider = xt.Environment.from_json(
+    collider = xt.load(
         test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers()
 

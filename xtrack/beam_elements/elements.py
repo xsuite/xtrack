@@ -20,6 +20,7 @@ from xtrack.beam_elements.magnets import (
     DEFAULT_MULTIPOLE_ORDER, SynchrotronRadiationRecord,
     _prepare_multipolar_params,
     _NOEXPR_FIELDS, _INDEX_TO_EDGE_MODEL, _EDGE_MODEL_TO_INDEX,
+    _INDEX_TO_RBEND_MODEL, _RBEND_MODEL_TO_INDEX
 )
 from xtrack.internal_record import RecordIndex
 
@@ -793,6 +794,7 @@ class _BendCommon:
     """Common properties for Bend and RBend: see their respective docstrings."""
     isthick = True
     has_backtrack = True
+    allow_loss_refinement = True
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
 
@@ -958,6 +960,13 @@ class _BendCommon:
 
         return out
 
+    @property
+    def sagitta(self):
+        if abs(self.angle) < 1e-10:  # avoid numerical issues
+            return 0.0
+        else:
+            return 1. / self.h * (1 - np.cos(0.5 * self.angle))
+
 
 class Bend(_BendCommon, BeamElement):
     """Implementation of combined function magnet (i.e. a bending magnet with
@@ -1065,6 +1074,8 @@ class Bend(_BendCommon, BeamElement):
         A value added to delta for the purposes of tapering. Default is 0.
     """
 
+    allow_loss_refinement = True
+
     _xofields = _BendCommon._common_xofields
     _rename = _BendCommon._common_rename
 
@@ -1085,6 +1096,8 @@ class Bend(_BendCommon, BeamElement):
             return
 
         model = kwargs.pop('model', None)
+        edge_entry_model = kwargs.pop('edge_entry_model', None)
+        edge_exit_model = kwargs.pop('edge_exit_model', None)
 
         order = order or DEFAULT_MULTIPOLE_ORDER
         multipolar_kwargs = _prepare_multipolar_params(order, knl=knl, ksl=ksl)
@@ -1104,6 +1117,12 @@ class Bend(_BendCommon, BeamElement):
 
         if model is not None:
             self.model = model
+
+        if edge_entry_model is not None:
+            self.edge_entry_model = edge_entry_model
+
+        if edge_exit_model is not None:
+            self.edge_exit_model = edge_exit_model
 
     @property
     def length(self):
@@ -1275,11 +1294,16 @@ class RBend(_BendCommon, BeamElement):
     _xofields = {
         **_BendCommon._common_xofields,
         'length_straight': xo.Float64,
+        'rbend_model': xo.Int64,
+        'rbend_shift': xo.Float64,
     }
+
+    allow_loss_refinement = True
 
     _rename = {
         **_BendCommon._common_rename,
         'length_straight': '_length_straight',
+        'rbend_model': '_rbend_model'
     }
 
     _depends_on = [RandomUniformAccurate, RandomExponential]
@@ -1309,6 +1333,9 @@ class RBend(_BendCommon, BeamElement):
         kwargs.update(multipolar_kwargs)
 
         model = kwargs.pop('model', None)
+        edge_entry_model = kwargs.pop('edge_entry_model', None)
+        edge_exit_model = kwargs.pop('edge_exit_model', None)
+        rbend_model = kwargs.pop('rbend_model', None)
 
         self.xoinitialize(**kwargs)
 
@@ -1323,8 +1350,18 @@ class RBend(_BendCommon, BeamElement):
         if self.k0_from_h:
             self.k0 = self.h
 
+        # Trigger properties
         if model is not None:
             self.model = model
+
+        if edge_entry_model is not None:
+            self.edge_entry_model = edge_entry_model
+
+        if edge_exit_model is not None:
+            self.edge_exit_model = edge_exit_model
+
+        if rbend_model is not None:
+            self.rbend_model = rbend_model
 
     @property
     def length(self):
@@ -1357,6 +1394,17 @@ class RBend(_BendCommon, BeamElement):
     @length_straight.setter
     def length_straight(self, value):
         self.set_bend_params(length_straight=value, angle=self.angle)
+
+    @property
+    def rbend_model(self):
+        return _INDEX_TO_RBEND_MODEL[self._rbend_model]
+
+    @rbend_model.setter
+    def rbend_model(self, value):
+        try:
+            self._rbend_model = _RBEND_MODEL_TO_INDEX[value]
+        except KeyError:
+            raise ValueError(f'Invalid rbend_model: {value}')
 
     def set_bend_params(self, length=None, length_straight=None, h=None, angle=None):
         (
@@ -1534,6 +1582,7 @@ class Sextupole(BeamElement):
 
     isthick = True
     has_backtrack = True
+    allow_loss_refinement = True
 
     _xofields={
         'k2': xo.Float64,
@@ -1692,6 +1741,7 @@ class Octupole(BeamElement):
 
     isthick = True
     has_backtrack = True
+    allow_loss_refinement = True
 
     _xofields={
         'k3': xo.Float64,
@@ -1847,6 +1897,7 @@ class Quadrupole(BeamElement):
     """
     isthick = True
     has_backtrack = True
+    allow_loss_refinement = True
 
     _xofields = {
         'k1': xo.Float64,
@@ -1980,6 +2031,10 @@ class UniformSolenoid(BeamElement):
         Strength of the solenoid component.
     length : float
         Length of the element in meters along the reference trajectory.
+    x0 : float, optional
+        Horizontal offset of the solenoid center in meters. Defaults to 0.
+    y0 : float, optional
+        Vertical offset of the solenoid center in meters. Defaults to 0.
     order : int, optional
         Maximum order of multipole expansion for this magnet. Defaults to 5.
     knl : list of floats, optional
@@ -2003,10 +2058,13 @@ class UniformSolenoid(BeamElement):
 
     isthick = True
     has_backtrack = True
+    allow_loss_refinement = True
 
     _xofields={
         'ks': xo.Float64,
         'length': xo.Float64,
+        'x0': xo.Float64,
+        'y0': xo.Float64,
         'order': xo.Int64,
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],
@@ -2133,6 +2191,8 @@ class VariableSolenoid(BeamElement):
     _xofields={
         'ks_profile': xo.Float64[2],
         'length': xo.Float64,
+        'x0': xo.Float64,
+        'y0': xo.Float64,
         'order': xo.Int64,
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],
@@ -2245,6 +2305,7 @@ class Solenoid(BeamElement):
     """
     isthick = True
     has_backtrack = True
+    allow_loss_refinement = True
 
     _xofields = {
         'length': xo.Float64,
@@ -2361,6 +2422,8 @@ class Wedge(BeamElement):
     _xofields = {
         'angle': xo.Float64,
         'k': xo.Float64,
+        'k1': xo.Float64,
+        'quad_wedge_then_dip_wedge': xo.Int64,
     }
 
     _extra_c_sources = [

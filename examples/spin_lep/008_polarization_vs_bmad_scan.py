@@ -30,7 +30,7 @@ pol_bmad = []
 
 for bump_strength in bump_strength_list:
 
-    line = xt.Line.from_json('lep_sol.json')
+    line = xt.load('lep_sol.json')
     line.particle_ref.anomalous_magnetic_moment=0.00115965218128
     line.particle_ref.gamma0 = 89207.78287659843 # to have a spin tune of 103.45
     spin_tune = line.particle_ref.anomalous_magnetic_moment[0]*line.particle_ref.gamma0[0]
