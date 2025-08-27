@@ -307,7 +307,7 @@ def test_thick_hkicker_native_loader():
     # is
     # Table: 8 rows, 130 cols
     # name                     s element_type   isthick isreplica parent_name ...
-    # drift_0                  0 Drift             True     False None
+    # drift_1                  0 Drift             True     False None
     # hk1..3                0.75 SimpleThinBend   False     False None
     # drift_hk1..1          0.75 Drift             True     False None
     # hk1..4                   1 SimpleThinBend   False     False None
@@ -317,7 +317,7 @@ def test_thick_hkicker_native_loader():
     # _end_point               3                  False     False None
 
     assert np.all(tt_opt.name == np.array([
-        'drift_0', 'hk1..3', 'drift_hk1..1', 'hk1..4', 'drift_hk1..2',
+        'drift_1', 'hk1..3', 'drift_hk1..1', 'hk1..4', 'drift_hk1..2',
         'hk1..5', 'drift_hk1..3', '_end_point'
     ]))
     xo.assert_allclose(tt_opt.s, np.array([
