@@ -381,6 +381,9 @@ def test_misalign_dedicated_vs_beam_element(test_context):
     line_test.build_tracker(_context=test_context)
     line_test.track(p_test)
 
+    p_ref.move(_context=xo.ContextCpu())
+    p_test.move(_context=xo.ContextCpu())
+
     xo.assert_allclose(p_ref.x, p_test.x, atol=1e-16, rtol=1e-16)
     xo.assert_allclose(p_ref.px, p_test.px, atol=1e-16, rtol=1e-16)
     xo.assert_allclose(p_ref.y, p_test.y, atol=1e-16, rtol=1e-16)
