@@ -1171,7 +1171,7 @@ def test_thick_tkicker_cpymad_loader():
     xo.assert_allclose(tw_slice_thin.x[-1], tw_mad.x[-1], rtol=0, atol=1e-14)
     xo.assert_allclose(tw_slice_thin.y[-1], tw_mad.y[-1], rtol=0, atol=1e-14)
 
-def test_thin_tkicker_native_loader():
+def test_thick_tkicker_native_loader():
 
     mad_data = """
 
@@ -1316,6 +1316,47 @@ def test_thin_tkicker_native_loader():
     xo.assert_allclose(tw_slice_thin.py[-1], tw_mad.py[-1], rtol=0, atol=1e-14)
     xo.assert_allclose(tw_slice_thin.x[-1], tw_mad.x[-1], rtol=0, atol=1e-14)
     xo.assert_allclose(tw_slice_thin.y[-1], tw_mad.y[-1], rtol=0, atol=1e-14)
+
+    line_opt = line_slice_thin.copy(shallow=True)
+    line_opt.build_tracker()
+    line_opt.optimize_for_tracking()
+    tw_opt = line_opt.twiss(betx=1, bety=1)
+    tt_opt = line_opt.get_table(attr=True)
+    # is:
+    # Table: 8 rows, 130 cols
+    # name                     s element_type isthick isreplica parent_name ...
+    # drift_0                  0 Drift           True     False None
+    # kk1..3                0.75 Multipole      False     False None
+    # drift_kk1..1          0.75 Drift           True     False None
+    # kk1..4                   1 Multipole      False     False None
+    # drift_kk1..2             1 Drift           True     False None
+    # kk1..5                1.25 Multipole      False     False None
+    # drift_kk1..3          1.25 Drift           True     False None
+    # _end_point               3                False     False None
+
+    assert np.all(tt_opt.element_type == np.array([
+        'Drift', 'Multipole', 'Drift', 'Multipole', 'Drift',
+        'Multipole', 'Drift', ''
+    ]))
+    assert np.all(tt_opt.isthick == np.array([
+        True, False, True, False, True, False, True, False
+    ]))
+    assert np.all(tt_opt.isreplica == np.array([
+        False, False, False, False, False, False, False, False
+    ]))
+    assert np.all(tt_opt.parent_name == np.array([
+        None, None, None, None, None, None, None, None
+    ]))
+    xo.assert_allclose(tt_opt.hkick, np.array([
+        0., 0.001/3, 0., 0.001/3, 0., 0.001/3, 0., 0.
+    ]))
+    xo.assert_allclose(tt_opt.vkick, np.array([
+        0., 0.002/3, 0., 0.002/3, 0., 0.002/3, 0., 0.
+    ]))
+    xo.assert_allclose(tw_opt.px[-1], tw_mad.px[-1], rtol=0, atol=1e-14)
+    xo.assert_allclose(tw_opt.py[-1], tw_mad.py[-1], rtol=0, atol=1e-14)
+    xo.assert_allclose(tw_opt.x[-1], tw_mad.x[-1], rtol=0, atol=1e-14)
+    xo.assert_allclose(tw_opt.y[-1], tw_mad.y[-1], rtol=0, atol=1e-14)
 
 def test_thick_cavity_cpymad_loader():
 
