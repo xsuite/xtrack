@@ -89,8 +89,8 @@ def _generate_track_local_particle_with_transformations(
 ):
 
     source = (
-        '#include <xtrack/headers/track.h>\n'
-        '#include <xtrack/beam_elements/elements_src/track_misalignments.h>\n'
+        '#include <headers/track.h>\n'
+        '#include <beam_elements/elements_src/track_misalignments.h>\n'
         f'GPUFUN void {local_particle_function_name}_with_transformations({element_name}Data el, LocalParticle* part0)'
         '{\n'
     )
