@@ -148,6 +148,36 @@ def cavity_to_mad_str(name, line, mad_type=MadType.MADX, substituted_vars=None):
 
     return ', '.join(tokens)
 
+def crabcavity_to_mad_str(name, line, mad_type=MadType.MADX, substituted_vars=None):
+    """
+    Convert a cavity element to a MADX/MAD-NG string representation.
+
+    Parameters:
+    - name: Name of the cavity element.
+    - line: The line containing the element.
+    - mad_type: Type of MAD (MADX or MADNG).
+    - substituted_vars: List of substituted variables for MADNG.
+
+    Returns:
+    - A string representation of the cavity in MADX/MAD-NG format.
+    """
+
+    cav = _get_eref(line, name)
+    tokens = []
+    tokens.append('crabcavity')
+    if mad_type == MadType.MADNG:
+        tokens.append(f"'{name.replace(':', '__')}'")  # replace ':' with '__' for MADNG
+    tokens.append(mad_assignment('freq', _ge(cav.frequency) * 1e-6, mad_type, substituted_vars=substituted_vars))
+    tokens.append(mad_assignment('volt', _ge(cav.voltage) * 1e-6, mad_type, substituted_vars=substituted_vars))
+    tokens.append(mad_assignment('lag', _ge(cav.lag) / 360., mad_type, substituted_vars=substituted_vars))
+    tokens.append(mad_assignment('l', _ge(cav.length), mad_type, substituted_vars=substituted_vars))
+    _handle_transforms(tokens, cav, mad_type=mad_type, substituted_vars=substituted_vars)
+
+    if mad_type == MadType.MADNG:
+        tokens = _handle_tokens_madng(tokens, substituted_vars)
+
+    return ', '.join(tokens)
+
 def marker_to_mad_str(name, line, mad_type=MadType.MADX, substituted_vars=None):
     """Convert a marker element to a MADX/MAD-NG string representation.
 
@@ -532,9 +562,11 @@ xsuite_to_mad_converters = {
     xt.UniformSolenoid: solenoid_to_mad_str,
     xt.SRotation: srotation_to_mad_str,
     xt.RFMultipole: rfmultipole_to_mad_str,
+    xt.CrabCavity: crabcavity_to_mad_str
 }
 
 def to_madx_sequence(line, name='seq', mode='sequence'):
+
     # build variables part
     vars_str = ""
     for vv in line.vars.keys():
@@ -568,6 +600,8 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
                 s_dict[nn] = 0.5 * (tt_s[ii] + tt_s[ii+1])
 
         for nn in line.element_names:
+
+
             el = line.element_dict[nn]
             el_str = xsuite_to_mad_converters[el.__class__](nn, line, mad_type=MadType.MADX)
             if nn + '_tilt_entry' in line.element_dict:
@@ -578,7 +612,8 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
             if el_str is None:
                 continue
 
-            nn_mad = nn.replace(':', '__') # : not supported in madx names
+            nn_mad = nn.replace(':', '__')  # : not supported in madx names
+            nn_mad = nn.replace('/', '__')  # / not supported in madx names
             seq_str += f"{nn_mad}: {el_str}, at={s_dict[nn]};\n"
         seq_str += 'endsequence;'
         machine_str = seq_str
