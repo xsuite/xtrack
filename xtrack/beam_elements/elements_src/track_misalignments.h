@@ -14,19 +14,76 @@
 
 
 // Flip some signs so that the input matches the MAD-X survey convention
-#define Y_ROTATE(PART, THETA) YRotation_single_particle(PART, sin(THETA), cos(THETA), tan(THETA))
-#define X_ROTATE(PART, PHI) XRotation_single_particle(PART, -sin(PHI), cos(PHI), -tan(PHI))
-#define S_ROTATE(PART, PSI) SRotation_single_particle(PART, sin(PSI), cos(PSI))
-#define XY_SHIFT(PART, DX, DY) XYShift_single_particle(PART, DX, DY)
-#define S_SHIFT(PART, DS) { \
+#define IF_NONZERO(VALUE, EXPRESSION) { if (VALUE != 0.0) { EXPRESSION; } }
+#define Y_ROTATE(PART, THETA) IF_NONZERO(THETA, YRotation_single_particle(PART, sin(THETA), cos(THETA), tan(THETA)))
+#define X_ROTATE(PART, PHI) IF_NONZERO(PHI, XRotation_single_particle(PART, -sin(PHI), cos(PHI), -tan(PHI)))
+#define S_ROTATE(PART, PSI) IF_NONZERO(PSI, SRotation_single_particle(PART, sin(PSI), cos(PSI)))
+#define XY_SHIFT(PART, DX, DY) XYShift_single_particle(PART, DX, DY);
+#define S_SHIFT(PART, DS) IF_NONZERO(DS, { \
         Drift_single_particle_exact(part, DS); \
         LocalParticle_add_to_zeta(part, -DS); \
         LocalParticle_add_to_s(part, -DS); \
-    }
+    })
 
 
 GPUFUN void matrix_multiply_4x4(const double[4][4], const double[4][4], double[4][4]);
 GPUFUN void matrix_rigid_affine_inverse(const double[4][4], double[4][4]);
+
+
+GPUFUN
+void track_misalignment_entry_straight(
+    LocalParticle* part0,  // LocalParticle to track
+    double dx,  // misalignment in x
+    double dy,  // misalignment in y
+    double ds,  // misalignment in s
+    double theta, // rotation around y, yaw, positive s to x
+    double phi,  // rotation around x, pitch, positive s to y
+    double psi,  // rotation around s, roll, positive y to x
+    double anchor, // anchor of the misalignment as a fraction of the length
+    double length  // length of the misaligned element
+) {
+    const double part_length = anchor * length;
+    const double mis_x = dx - part_length * cos(phi) * sin(theta);
+    const double mis_y = dy - part_length * sin(phi);
+    const double mis_s = ds - part_length * (cos(phi) * cos(theta) - 1);
+
+    // Apply transformations
+    START_PER_PARTICLE_BLOCK(part0, part);
+        XY_SHIFT(part, mis_x, mis_y);
+        S_SHIFT(part, mis_s);
+        Y_ROTATE(part, theta);
+        X_ROTATE(part, phi);
+        S_ROTATE(part, psi);
+    END_PER_PARTICLE_BLOCK;
+}
+
+
+GPUFUN
+void track_misalignment_exit_straight(
+    LocalParticle* part0,  // LocalParticle to track
+    double dx,  // misalignment in x
+    double dy,  // misalignment in y
+    double ds,  // misalignment in s
+    double theta, // rotation around y, yaw, positive s to x
+    double phi,  // rotation around x, pitch, positive s to y
+    double psi,  // rotation around s, roll, positive y to x
+    double anchor, // anchor of the misalignment as a fraction of the length
+    double length  // length of the misaligned element
+) {
+    const double inv_part_length = (anchor - 1) * length;
+    const double mis_x = inv_part_length * cos(phi) * sin(theta) - dx;
+    const double mis_y = inv_part_length * sin(phi) - dy;
+    const double mis_s = inv_part_length * (cos(phi) * cos(theta) - 1) - ds;
+
+    // Apply transformations
+    START_PER_PARTICLE_BLOCK(part0, part);
+        S_ROTATE(part, -psi);
+        X_ROTATE(part, -phi);
+        Y_ROTATE(part, -theta);
+        S_SHIFT(part, mis_s);
+        XY_SHIFT(part, mis_x, mis_y);
+    END_PER_PARTICLE_BLOCK;
+}
 
 
 GPUFUN
@@ -43,6 +100,11 @@ void track_misalignment_entry_curved(
     double angle,  // angle by which the element bends the reference frame
     double tilt  // tilt of the element, positive s to x
 ) {
+    if (angle == 0.0) {
+        track_misalignment_entry_straight(
+            part0, dx, dy, ds, theta, phi, psi, anchor, length);
+        return;
+    }
     // Precompute trigonometric functions
     const double s_phi = sin(phi), c_phi = cos(phi);
     const double s_theta = sin(theta), c_theta = cos(theta);
@@ -154,6 +216,11 @@ void track_misalignment_exit_curved(
     double angle,  // angle by which the element bends the reference frame
     double tilt  // tilt of the element, positive s to x
 ) {
+    if (angle == 0.0) {
+        track_misalignment_exit_straight(
+            part0, dx, dy, ds, theta, phi, psi, anchor, length);
+        return;
+    }
     // Precompute trigonometric functions
     double s_phi = sin(phi), c_phi = cos(phi);
     double s_theta = sin(theta), c_theta = cos(theta);
@@ -256,62 +323,6 @@ void track_misalignment_exit_curved(
         Y_ROTATE(part, rot_theta);
         X_ROTATE(part, rot_phi);
         S_ROTATE(part, rot_psi);
-    END_PER_PARTICLE_BLOCK;
-}
-
-
-GPUFUN
-void track_misalignment_entry_straight(
-    LocalParticle* part0,  // LocalParticle to track
-    double dx,  // misalignment in x
-    double dy,  // misalignment in y
-    double ds,  // misalignment in s
-    double theta, // rotation around y, yaw, positive s to x
-    double phi,  // rotation around x, pitch, positive s to y
-    double psi,  // rotation around s, roll, positive y to x
-    double anchor, // anchor of the misalignment as a fraction of the length
-    double length  // length of the misaligned element
-) {
-    const double part_length = anchor * length;
-    const double mis_x = dx - part_length * cos(phi) * sin(theta);
-    const double mis_y = dy - part_length * sin(phi);
-    const double mis_s = ds - part_length * (cos(phi) * cos(theta) - 1);
-
-    // Apply transformations
-    START_PER_PARTICLE_BLOCK(part0, part);
-        XY_SHIFT(part, mis_x, mis_y);
-        S_SHIFT(part, mis_s);
-        Y_ROTATE(part, theta);
-        X_ROTATE(part, phi);
-        S_ROTATE(part, psi);
-    END_PER_PARTICLE_BLOCK;
-}
-
-
-GPUFUN
-void track_misalignment_exit_straight(
-    LocalParticle* part0,  // LocalParticle to track
-    double dx,  // misalignment in x
-    double dy,  // misalignment in y
-    double ds,  // misalignment in s
-    double theta, // rotation around y, yaw, positive s to x
-    double phi,  // rotation around x, pitch, positive s to y
-    double psi,  // rotation around s, roll, positive y to x
-    double anchor, // anchor of the misalignment as a fraction of the length
-    double length  // length of the misaligned element
-) {
-    const double inv_part_length = (anchor - 1) * length;
-    const double mis_x = inv_part_length * cos(phi) * sin(theta) - dx;
-    const double mis_y = inv_part_length * sin(phi) - dy;
-    const double mis_s = inv_part_length * (cos(phi) * cos(theta) - 1) - ds;
-
-    // Apply transformations
-    START_PER_PARTICLE_BLOCK(part0, part);
-        S_ROTATE(part, -psi);
-        X_ROTATE(part, -phi);
-        Y_ROTATE(part, -theta);
-        S_SHIFT(part, mis_s);
-        XY_SHIFT(part, mis_x, mis_y);
     END_PER_PARTICLE_BLOCK;
 }
 

@@ -9,8 +9,8 @@
 
 
 GPUFUN
-void XRotation_single_particle(LocalParticle* part, double sin_angle, double cos_angle, double tan_angle){
-
+void XRotation_single_particle(LocalParticle* part, double sin_angle, double cos_angle, double tan_angle)
+{
     double const beta0 = LocalParticle_get_beta0(part);
     double const x  = LocalParticle_get_x(part);
     double const y  = LocalParticle_get_y(part);

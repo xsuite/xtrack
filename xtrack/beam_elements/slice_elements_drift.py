@@ -1,13 +1,12 @@
 import xobjects as xo
-
-from ..general import _pkg_root
-from ..base_element import BeamElement
-from .slice_base import _SliceBase, COMMON_SLICE_XO_FIELDS
 from .elements import (
-    SynchrotronRadiationRecord, Bend, Quadrupole, Sextupole,
-    Octupole, Solenoid, Drift, DriftExact, RBend, UniformSolenoid
+    Bend, Quadrupole, Sextupole,
+    Octupole, Drift, DriftExact, RBend,
 )
+from .slice_base import _SliceBase, COMMON_SLICE_XO_FIELDS
+from ..base_element import BeamElement
 from ..survey import advance_element as survey_advance_element
+
 
 class _DriftSliceElementBase(_SliceBase):
 
@@ -118,8 +117,8 @@ class DriftSlice(_DriftSliceElementBase, BeamElement):
                      _buffer=self._buffer)
         return out
 
-class DriftSlice(_DriftSliceElementBase, BeamElement):
-    _xofields = {'_parent': xo.Ref(Drift), **COMMON_SLICE_XO_FIELDS}
+class DriftExactSlice(_DriftSliceElementBase, BeamElement):
+    _xofields = {'_parent': xo.Ref(DriftExact), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/drift_exact_slice.h>'
@@ -127,5 +126,5 @@ class DriftSlice(_DriftSliceElementBase, BeamElement):
 
     def get_equivalent_element(self):
         out = DriftExact(length=self._parent.length * self.weight,
-                     _buffer=self._buffer)
+                         _buffer=self._buffer)
         return out

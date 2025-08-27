@@ -304,3 +304,70 @@ def test_misalign_vs_madng_straight(angle, tilt):
     xo.assert_allclose(p_ng.y, p_xt.y, atol=1e-14, rtol=1e-9)
     xo.assert_allclose(p_ng.py, p_xt.py, atol=1e-14, rtol=1e-9)
     xo.assert_allclose(p_ng.zeta, p_xt.zeta, atol=1e-14, rtol=1e-9)
+
+
+def test_misalign_dedicated_vs_beam_element():
+    # Element parameters
+    angle = 0.3
+    tilt = 0.1
+    length = 5
+    k0 = 0.09  # in the curved case let's put an sbend, with strength != h
+
+    # Misalignment parameters
+    dx = 0.1
+    dy = 0.2
+    ds = 0.3
+    theta = 0.1  # rad
+    phi = 0.2  # rad
+    psi = 0.5  # rad
+
+    # Track in Xsuite
+    p0 = xt.Particles(x=0.2, y=-0.6, px=-0.01, py=0.02, zeta=0.5, delta=0.9)
+    line_ref = xt.Line(elements=[
+        xt.Misalignment(
+            dx=dx, dy=dy, ds=ds,
+            theta=theta, phi=phi, psi=psi,
+            length=length, angle=angle, tilt=tilt,
+            anchor=0, is_exit=False,
+        ),
+        xt.Bend(
+            length=length,
+            angle=angle,
+            model='rot-kick-rot',
+            k0=k0,
+            rot_s_rad=tilt,
+        ),
+        xt.Misalignment(
+            dx=dx, dy=dy, ds=ds,
+            theta=theta, phi=phi, psi=psi,
+            length=length, angle=angle, tilt=tilt,
+            anchor=0, is_exit=True,
+        ),
+    ])
+    p_ref = p0.copy()
+    line_ref.track(p_ref)
+
+    p_test = p0.copy()
+    transformed_element = xt.Bend(
+        length=length,
+        angle=angle,
+        model='rot-kick-rot',
+        k0=k0,
+        rot_s_rad=tilt,
+        shift_x=dx,
+        shift_y=dy,
+        shift_s=ds,
+        rot_x_rad=phi,
+        rot_y_rad=theta,
+        rot_s_rad_no_frame=psi,
+    )
+    line_test = xt.Line(elements=[transformed_element])
+    line_test.track(p_test)
+
+    xo.assert_allclose(p_ref.x, p_test.x, atol=1e-16, rtol=1e-16)
+    xo.assert_allclose(p_ref.px, p_test.px, atol=1e-16, rtol=1e-16)
+    xo.assert_allclose(p_ref.y, p_test.y, atol=1e-16, rtol=1e-16)
+    xo.assert_allclose(p_ref.py, p_test.py, atol=1e-16, rtol=1e-16)
+    xo.assert_allclose(p_ref.delta, p_test.delta, atol=1e-16, rtol=1e-16)
+    xo.assert_allclose(p_ref.zeta, p_test.zeta, atol=1e-16, rtol=1e-16)
+    xo.assert_allclose(p_ref.s, p_test.s, atol=1e-16, rtol=1e-16)
