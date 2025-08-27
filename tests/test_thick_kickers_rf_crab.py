@@ -1663,6 +1663,49 @@ def test_thick_cavity_native_loader():
     ]))
     xo.assert_allclose(tw_slice_thin.ptau[-1], tw_mad.pt[-1], rtol=0, atol=1e-14)
 
+    line_opt = line_slice_thin.copy(shallow=True)
+    line_opt.build_tracker()
+    line_opt.optimize_for_tracking()
+    tw_opt = line_opt.twiss(betx=1, bety=1)
+    tt_opt = line_opt.get_table(attr=True)
+    # is:
+    # Table: 8 rows, 130 cols
+    # name                      s element_type isthick isreplica parent_name ...
+    # drift_1                   0 Drift           True     False None
+    # cav1..3                0.75 Cavity          True     False None
+    # drift_cav1..1          0.75 Drift           True     False None
+    # cav1..4                   1 Cavity          True     False None
+    # drift_cav1..2             1 Drift           True     False None
+    # cav1..5                1.25 Cavity          True     False None
+    # drift_cav1..3          1.25 Drift           True     False None
+    # _end_point                3                False     False None
+
+    assert np.all(tt_opt.name == np.array([
+        'drift_1', 'cav1..3', 'drift_cav1..1', 'cav1..4', 'drift_cav1..2',
+        'cav1..5', 'drift_cav1..3', '_end_point'
+    ]))
+    assert np.all(tt_opt.s == np.array([
+        0, 0.75, 0.75, 1, 1, 1.25, 1.25, 3
+    ]))
+    assert np.all(tt_opt.element_type == np.array([
+        'Drift', 'Cavity', 'Drift', 'Cavity', 'Drift', 'Cavity', 'Drift', ''
+    ]))
+    assert np.all(tt_opt.isthick == np.array([
+        True, True, True, True, True, True, True, False
+    ]))
+    assert np.all(tt_opt.isreplica == np.array([
+        False, False, False, False, False, False, False, False
+    ]))
+    assert np.all(tt_opt.parent_name == np.array([
+        None, None, None, None, None, None, None, None
+    ]))
+
+    xo.assert_allclose(tw_opt.px[-1], tw_mad.px[-1], rtol=0, atol=1e-14)
+    xo.assert_allclose(tw_opt.py[-1], tw_mad.py[-1], rtol=0, atol=1e-14)
+    xo.assert_allclose(tw_opt.x[-1], tw_mad.x[-1], rtol=0, atol=1e-14)
+    xo.assert_allclose(tw_opt.y[-1], tw_mad.y[-1], rtol=0, atol=1e-14)
+    xo.assert_allclose(tw_opt.ptau[-1], tw_mad.pt[-1], rtol=0, atol=1e-14)
+
 def test_crabcavity_thick_cpymad_loader():
 
     mad_data = """
