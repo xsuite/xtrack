@@ -9,6 +9,8 @@ import xobjects as xo
 import xtrack as xt
 import pymadng as ng
 
+from xobjects.test_helpers import for_all_test_contexts
+
 
 def theta_matrix(angle):
     """Positive angle move z towards x"""
@@ -81,7 +83,8 @@ def particles_from_madng(tbl, beta, at='$end', slice_=0):
     ],
     ids=['straight', 'curved', 'straight-tilted', 'curved-tilted']
 )
-def test_misalign_drift(angle, tilt):
+@for_all_test_contexts
+def test_misalign_drift(angle, tilt, test_context):
     # Element parameters
     length = 20
 
@@ -100,6 +103,7 @@ def test_misalign_drift(angle, tilt):
         y=[0, 0.2, 0.4, -0.6, -0.8],
         px=[0, -0.01, -0.01, 0.01, 0.01],
         py=[0, -0.01, 0.01, -0.01, 0.01],
+        _context=test_context,
     )
 
     p_expected = p0.copy()
@@ -110,9 +114,10 @@ def test_misalign_drift(angle, tilt):
             k0=0,
             rot_s_rad=tilt,
             model='rot-kick-rot',
+            _context=test_context,
         )
     else:
-        element = xt.DriftExact(length=length)
+        element = xt.DriftExact(length=length, _context=test_context)
     element.track(p_expected)
 
     p_misaligned_entry = p0.copy()
@@ -121,6 +126,7 @@ def test_misalign_drift(angle, tilt):
         theta=theta, phi=phi, psi=psi,
         length=length, angle=angle, tilt=tilt,
         anchor=anchor, is_exit=False,
+        _context=test_context,
     )
     mis_entry.track(p_misaligned_entry)
 
@@ -133,8 +139,12 @@ def test_misalign_drift(angle, tilt):
         theta=theta, phi=phi, psi=psi,
         length=length, angle=angle, tilt=tilt,
         anchor=anchor, is_exit=True,
+        _context=test_context,
     )
     mis_exit.track(p_aligned_exit)
+
+    p_expected.move(_context=xo.ContextCpu())
+    p_aligned_exit.move(_context=xo.ContextCpu())
 
     # Compare the trajectory with and without misalignment
     xo.assert_allclose(p_expected.x, p_aligned_exit.x, atol=1e-14, rtol=1e-9)
@@ -306,7 +316,8 @@ def test_misalign_vs_madng(angle, tilt):
     xo.assert_allclose(p_ng.zeta, p_xt.zeta, atol=1e-14, rtol=1e-9)
 
 
-def test_misalign_dedicated_vs_beam_element():
+@for_all_test_contexts
+def test_misalign_dedicated_vs_beam_element(test_context):
     # Element parameters
     angle = 0.3
     tilt = 0.1
@@ -324,6 +335,8 @@ def test_misalign_dedicated_vs_beam_element():
 
     # Track in Xsuite
     p0 = xt.Particles(x=0.2, y=-0.6, px=-0.01, py=0.02, zeta=0.5, delta=0.9)
+    p0.move(_context=test_context)
+
     line_ref = xt.Line(elements=[
         xt.Misalignment(
             dx=dx, dy=dy, ds=ds,
@@ -346,6 +359,7 @@ def test_misalign_dedicated_vs_beam_element():
         ),
     ])
     p_ref = p0.copy()
+    line_ref.build_tracker(_context=test_context)
     line_ref.track(p_ref)
 
     p_test = p0.copy()
@@ -364,6 +378,7 @@ def test_misalign_dedicated_vs_beam_element():
         anchor=anchor,
     )
     line_test = xt.Line(elements=[transformed_element])
+    line_test.build_tracker(_context=test_context)
     line_test.track(p_test)
 
     xo.assert_allclose(p_ref.x, p_test.x, atol=1e-16, rtol=1e-16)
