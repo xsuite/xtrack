@@ -1990,6 +1990,43 @@ def test_crabcavity_thick_native_loader():
     xo.assert_allclose(tw_slice_thin.y[-1], tw_mad.y[-1], rtol=0, atol=1e-10)
     xo.assert_allclose(tw_slice_thin.ptau[-1], tw_mad.pt[-1], rtol=0, atol=1e-5)
 
+    line_opt = line_slice_thin.copy(shallow=True)
+    line_opt.build_tracker()
+    line_opt.optimize_for_tracking()
+    tw_opt = line_opt.twiss(betx=1, bety=1)
+    tt_opt = line_opt.get_table(attr=True)
+    # is:
+    # name                     s element_type isthick isreplica parent_name ...
+    # drift_1                  0 Drift           True     False None
+    # cc1..3                0.75 CrabCavity      True     False None
+    # drift_cc1..1          0.75 Drift           True     False None
+    # cc1..4                   1 CrabCavity      True     False None
+    # drift_cc1..2             1 Drift           True     False None
+    # cc1..5                1.25 CrabCavity      True     False None
+    # drift_cc1..3          1.25 Drift           True     False None
+    # _end_point               3                False     False None
+
+    assert np.all(tt_opt.name == np.array([
+        'drift_1', 'cc1..3', 'drift_cc1..1', 'cc1..4', 'drift_cc1..2',
+        'cc1..5', 'drift_cc1..3', '_end_point'
+    ]))
+    xo.assert_allclose(tt_opt.s, np.array([
+        0, 0.75, 0.75, 1, 1, 1.25, 1.25, 3
+    ]), rtol=0, atol=1e-7)
+    assert np.all(tt_opt.element_type == np.array([
+        'Drift', 'CrabCavity', 'Drift', 'CrabCavity', 'Drift',
+        'CrabCavity', 'Drift', ''
+    ]))
+    assert np.all(tt_opt.isthick == np.array([
+        True, True, True, True, True, True, True, False
+    ]))
+    xo.assert_allclose(tw_opt.px[-1], tw_mad.px[-1], rtol=0, atol=1e-11)
+    xo.assert_allclose(tw_opt.py[-1], tw_mad.py[-1], rtol=0, atol=1e-11)
+    xo.assert_allclose(tw_opt.x[-1], tw_mad.x[-1], rtol=0, atol=1e-10)
+    xo.assert_allclose(tw_opt.y[-1], tw_mad.y[-1], rtol=0, atol=1e-10)
+    xo.assert_allclose(tw_opt.ptau[-1], tw_mad.pt[-1], rtol=0, atol=1e-5)
+
+
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
