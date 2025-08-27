@@ -21,7 +21,7 @@ void ThinSliceCrabCavity_track_local_particle(ThinSliceCrabCavityData el, LocalP
         /*voltage*/               0,
         /*frequency*/             ThinSliceCrabCavityData_get__parent_frequency(el),
         /*lag*/                   0.,
-        /*transverse_voltage*/    ThinSliceCrabCavityData_get__parent_voltage(el),
+        /*transverse_voltage*/    ThinSliceCrabCavityData_get__parent_crab_voltage(el),
         /*transverse_lag*/        ThinSliceCrabCavityData_get__parent_lag(el),
         /*absolute_time*/         ThinSliceCrabCavityData_get__parent_absolute_time(el),
         /*order*/                 -1, // not used here

@@ -168,7 +168,7 @@ def crabcavity_to_mad_str(name, line, mad_type=MadType.MADX, substituted_vars=No
     if mad_type == MadType.MADNG:
         tokens.append(f"'{name.replace(':', '__')}'")  # replace ':' with '__' for MADNG
     tokens.append(mad_assignment('freq', _ge(cav.frequency) * 1e-6, mad_type, substituted_vars=substituted_vars))
-    tokens.append(mad_assignment('volt', _ge(cav.voltage) * 1e-6, mad_type, substituted_vars=substituted_vars))
+    tokens.append(mad_assignment('volt', _ge(cav.crab_voltage) * 1e-6, mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('lag', _ge(cav.lag) / 360., mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('l', _ge(cav.length), mad_type, substituted_vars=substituted_vars))
     _handle_transforms(tokens, cav, mad_type=mad_type, substituted_vars=substituted_vars)

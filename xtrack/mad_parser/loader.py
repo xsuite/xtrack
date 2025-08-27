@@ -419,7 +419,10 @@ class MadxLoader:
             if (lag := params.pop('lag', None)):
                 params['lag'] = lag * 360
             if (volt := params.pop('volt', None)):
-                params['voltage'] = volt * 1e6
+                if parent_name == 'crabcavity':
+                    params['crab_voltage'] = volt * 1e6
+                elif parent_name == 'rfcavity':
+                    params['voltage'] = volt * 1e6
             if (freq := params.pop('freq', None)):
                 params['frequency'] = freq * 1e6
             if 'harmon' in params:

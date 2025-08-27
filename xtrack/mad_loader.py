@@ -1208,7 +1208,7 @@ class MadLoader:
                 self.classes.CrabCavity,
                 length=ee.l,
                 frequency=ee.freq * 1e6,
-                voltage=ee.volt * 1e6 * self.bv,
+                crab_voltage=ee.volt * 1e6 * self.bv,
                 lag=lll,
             )
         return self.make_composite_element([el], ee)

@@ -456,7 +456,7 @@ class CrabCavity(_HasModelRF, _HasIntegrator, BeamElement):
 
     _xofields = {
         'length': xo.Float64,
-        'voltage': xo.Float64,
+        'crab_voltage': xo.Float64,
         'frequency': xo.Float64,
         'lag': xo.Float64,
         'lag_taper': xo.Float64,

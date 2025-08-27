@@ -155,7 +155,7 @@ class ThinSliceCrabCavity(_ThinSliceElementBase, BeamElement):
     def get_equivalent_element(self):
 
         out = CrabCavity(length=0,
-                     voltage=self._parent.voltage * self.weight,
+                     crab_voltage=self._parent.crab_voltage * self.weight,
                      frequency=self._parent.frequency,
                      lag=self._parent.lag,
                      lag_taper=self._parent.lag_taper,
