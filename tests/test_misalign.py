@@ -86,13 +86,13 @@ def test_misalign_drift(angle, tilt):
     length = 20
 
     # Misalignment parameters
-    dx = -15
-    dy = 7
-    ds = 20
+    dx = -15  # m
+    dy = 7  # m
+    ds = 20  # m
     theta = -0.1  # rad
     phi = 0.11  # rad
     psi = 0.7  # rad
-    anchor = 0.4  # fraction of the element length for the misalignment
+    anchor = 8  # m
 
     # Initial particle coordinates
     p0 = xt.Particles(
@@ -154,8 +154,8 @@ def test_misalign_drift(angle, tilt):
 
         coords_at_start = np.array([x, y, 0])
 
-        part_length = anchor * length
-        part_angle = anchor * angle
+        part_length = anchor
+        part_angle = anchor / length * angle
         to_entry = (
                 curvature_matrix(part_length, part_angle, tilt)
                 @ translate_matrix(dx, dy, ds)
@@ -178,7 +178,7 @@ def test_misalign_drift(angle, tilt):
 
 @pytest.mark.parametrize('angle', [0, 0.3], ids=['straight', 'curved'])
 @pytest.mark.parametrize('tilt', [0, 0.1], ids=['horizontal', 'tilted'])
-def test_misalign_vs_madng_straight(angle, tilt):
+def test_misalign_vs_madng(angle, tilt):
     # Element parameters
     length = 5
     ks = 0.5  # in the straight case let's put a solenoid
@@ -246,7 +246,7 @@ def test_misalign_vs_madng_straight(angle, tilt):
     mng['beta'] = p0.beta0[0]
 
     ng_script = """
-    local sequence, solenoid, sbend in MAD.element
+    local sequence, solenoid, quadrupole, sbend in MAD.element
     local track, beam in MAD
 
     local elem
@@ -320,6 +320,7 @@ def test_misalign_dedicated_vs_beam_element():
     theta = 0.1  # rad
     phi = 0.2  # rad
     psi = 0.5  # rad
+    anchor = 4
 
     # Track in Xsuite
     p0 = xt.Particles(x=0.2, y=-0.6, px=-0.01, py=0.02, zeta=0.5, delta=0.9)
@@ -328,7 +329,7 @@ def test_misalign_dedicated_vs_beam_element():
             dx=dx, dy=dy, ds=ds,
             theta=theta, phi=phi, psi=psi,
             length=length, angle=angle, tilt=tilt,
-            anchor=0, is_exit=False,
+            anchor=anchor, is_exit=False,
         ),
         xt.Bend(
             length=length,
@@ -341,7 +342,7 @@ def test_misalign_dedicated_vs_beam_element():
             dx=dx, dy=dy, ds=ds,
             theta=theta, phi=phi, psi=psi,
             length=length, angle=angle, tilt=tilt,
-            anchor=0, is_exit=True,
+            anchor=anchor, is_exit=True,
         ),
     ])
     p_ref = p0.copy()
@@ -360,6 +361,7 @@ def test_misalign_dedicated_vs_beam_element():
         rot_x_rad=phi,
         rot_y_rad=theta,
         rot_s_rad_no_frame=psi,
+        anchor=anchor,
     )
     line_test = xt.Line(elements=[transformed_element])
     line_test.track(p_test)
