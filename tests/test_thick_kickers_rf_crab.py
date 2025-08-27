@@ -632,6 +632,51 @@ def test_thick_vkicker_native_loader():
     xo.assert_allclose(tw_slice_thin.x[-1], tw_mad.x[-1], rtol=0, atol=1e-14)
     xo.assert_allclose(tw_slice_thin.y[-1], tw_mad.y[-1], rtol=0, atol=1e-14)
 
+    line_opt = line_slice_thin.copy(shallow=True)
+    line_opt.build_tracker()
+    line_opt.optimize_for_tracking()
+    tw_opt = line_opt.twiss(betx=1, bety=1)
+    tt_opt = line_opt.get_table(attr=True)
+    # is
+    # Table: 8 rows, 130 cols
+    # name                     s element_type isthick isreplica parent_name ...
+    # drift_1                  0 Drift           True     False None       
+    # vk1..3                0.75 Multipole      False     False None       
+    # drift_vk1..1          0.75 Drift           True     False None       
+    # vk1..4                   1 Multipole      False     False None       
+    # drift_vk1..2             1 Drift           True     False None       
+    # vk1..5                1.25 Multipole      False     False None       
+    # drift_vk1..3          1.25 Drift           True     False None       
+    # _end_point               3                False     False None     
+
+    assert np.all(tt_opt.name == np.array([
+        'drift_1', 'vk1..3', 'drift_vk1..1', 'vk1..4', 'drift_vk1..2',
+        'vk1..5', 'drift_vk1..3', '_end_point'
+    ]))
+    xo.assert_allclose(tt_opt.s, np.array([
+        0, 0.75, 0.75, 1.0, 1.0, 1.25, 1.25, 3
+    ]), rtol=0, atol=1e-7)
+    assert np.all(tt_opt.element_type == np.array([
+        'Drift', 'Multipole', 'Drift', 'Multipole', 'Drift',
+        'Multipole', 'Drift', ''
+    ]))
+    assert np.all(tt_opt.isthick == np.array([
+        True, False, True, False, True, False, True, False
+    ]))
+    assert np.all(tt_opt.isreplica == np.array([
+        False, False, False, False, False, False, False, False
+    ]))
+    assert np.all(tt_opt.parent_name == np.array([
+        None, None, None, None, None, None, None, None
+    ]))
+    xo.assert_allclose(tt_opt.vkick, np.array([
+        0., 0.001/3, 0., 0.001/3, 0., 0.001/3, 0., 0.
+    ]))
+    xo.assert_allclose(tw_opt.px[-1], tw_mad.px[-1], rtol=0, atol=1e-14)
+    xo.assert_allclose(tw_opt.py[-1], tw_mad.py[-1], rtol=0, atol=1e-14)
+    xo.assert_allclose(tw_opt.x[-1], tw_mad.x[-1], rtol=0, atol=1e-14)
+    xo.assert_allclose(tw_opt.y[-1], tw_mad.y[-1], rtol=0, atol=1e-14)
+
 def test_thick_kicker_cpymad_loader():
 
     mad_data = """
