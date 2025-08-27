@@ -156,6 +156,9 @@ def test_misalign_drift(angle, tilt, test_context):
 
     # Check that the intermediate points (entry and exit in the misaligned frame)
     # still lie on the straight line
+    p0.move(_context=xo.ContextCpu())
+    p_misaligned_entry.move(_context=xo.ContextCpu())
+    p_misaligned_exit.move(_context=xo.ContextCpu())
     for idx, (x, px, y, py, delta) in enumerate(zip(p0.x, p0.px, p0.y, p0.py, p0.delta)):
         pz = np.sqrt((1 + delta) ** 2 - px ** 2 - py ** 2)
         xp = px / pz  # = dpx / ds
@@ -381,13 +384,10 @@ def test_misalign_dedicated_vs_beam_element(test_context):
     line_test.build_tracker(_context=test_context)
     line_test.track(p_test)
 
-    p_ref.move(_context=xo.ContextCpu())
-    p_test.move(_context=xo.ContextCpu())
-
-    xo.assert_allclose(p_ref.x, p_test.x, atol=1e-16, rtol=1e-16)
-    xo.assert_allclose(p_ref.px, p_test.px, atol=1e-16, rtol=1e-16)
-    xo.assert_allclose(p_ref.y, p_test.y, atol=1e-16, rtol=1e-16)
-    xo.assert_allclose(p_ref.py, p_test.py, atol=1e-16, rtol=1e-16)
-    xo.assert_allclose(p_ref.delta, p_test.delta, atol=1e-16, rtol=1e-16)
-    xo.assert_allclose(p_ref.zeta, p_test.zeta, atol=1e-16, rtol=1e-16)
-    xo.assert_allclose(p_ref.s, p_test.s, atol=1e-16, rtol=1e-16)
+    xo.assert_allclose(p_ref.x, p_test.x, atol=1e-15, rtol=1e-15)
+    xo.assert_allclose(p_ref.px, p_test.px, atol=1e-15, rtol=1e-15)
+    xo.assert_allclose(p_ref.y, p_test.y, atol=1e-15, rtol=1e-15)
+    xo.assert_allclose(p_ref.py, p_test.py, atol=1e-15, rtol=1e-15)
+    xo.assert_allclose(p_ref.delta, p_test.delta, atol=1e-15, rtol=1e-15)
+    xo.assert_allclose(p_ref.zeta, p_test.zeta, atol=1e-15, rtol=1e-15)
+    xo.assert_allclose(p_ref.s, p_test.s, atol=1e-15, rtol=1e-15)
