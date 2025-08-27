@@ -3925,10 +3925,11 @@ class Line:
                 newline.append_element(ee, nn)
                 continue
 
-            if isinstance(ee, Multipole) and nn not in keep:
+            if isinstance(ee, Multipole) and nn not in keep and not ee.isthick:
                 prev_nn = newline.element_names[-1]
                 prev_ee = newline.element_dict[prev_nn]
                 if (isinstance(prev_ee, Multipole)
+                    and not prev_ee.isthick
                     and prev_ee.hxl==ee.hxl==0
                     and prev_nn not in keep
                     ):
