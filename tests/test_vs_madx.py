@@ -532,18 +532,18 @@ def test_line_import_from_madx(test_context, mad_with_errors):
     xo.assert_allclose(line.element_dict['acsca.b5l4.b1'].lag, 270,
                     rtol=0, atol=1e-14)
 
-    assert np.abs(line['acfcav.bl5.b1'].voltage) > 0
+    assert np.abs(line['acfcav.bl5.b1'].crab_voltage) > 0
     xo.assert_allclose(line['acfcav.bl5.b1'].rot_s_rad, np.pi/2, atol=1e-14, rtol=0)
     line.vars['on_crab5'] = 0
-    assert np.abs(line['acfcav.bl5.b1'].voltage) == 0
+    assert np.abs(line['acfcav.bl5.b1'].crab_voltage) == 0
 
     xo.assert_allclose(line['acfcav.bl5.b1'].lag, 0, rtol=0, atol=1e-14)
     line.vars['phi_crab_l5b1'] = 0.5
     xo.assert_allclose(line['acfcav.bl5.b1'].lag, 180, rtol=0, atol=1e-14)
 
-    assert np.abs(line['acfcah.bl1.b1'].voltage) > 0
+    assert np.abs(line['acfcah.bl1.b1'].crab_voltage) > 0
     line.vars['on_crab1'] = 0
-    assert np.abs(line['acfcah.bl1.b1'].voltage) == 0
+    assert np.abs(line['acfcah.bl1.b1'].crab_voltage) == 0
 
     xo.assert_allclose(line['acfcah.bl1.b1'].lag, 0, rtol=0, atol=1e-14)
     line.vars['phi_crab_l1b1'] = 0.5
