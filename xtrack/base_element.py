@@ -85,6 +85,7 @@ def _generate_track_local_particle_with_transformations(
     allow_rot_and_shift,
     rot_and_shift_from_parent,
     local_particle_function_name,
+    isthick,
     xofields
 ):
     source = (
@@ -117,7 +118,7 @@ def _generate_track_local_particle_with_transformations(
                 f' ? {element_name}Data_get{add_to_call}_length(el)'
                 f' : 0.0'
             )
-        elif 'length' in xofields:
+        elif 'length' in xofields and isthick:
             get_length = f'double const length = {element_name}Data_get{add_to_call}_length(el)'
         else:
             get_length = 'double const length = 0.'
@@ -394,6 +395,7 @@ class MetaBeamElement(xo.MetaHybridClass):
 
         data.update(data_in)
 
+        data['_isthick'] = False
         istk = data.pop('isthick', False)
         if istk in [True, False]:
             data['_isthick'] = istk
@@ -469,6 +471,7 @@ class MetaBeamElement(xo.MetaHybridClass):
                     allow_rot_and_shift=(allow_rot_and_shift or rot_and_shift_from_parent),
                     rot_and_shift_from_parent=rot_and_shift_from_parent,
                     local_particle_function_name=name+'_track_local_particle',
+                    isthick=data['_isthick'],
                     xofields=xofields,
                 )
             )
