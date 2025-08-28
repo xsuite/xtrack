@@ -85,10 +85,8 @@ def _generate_track_local_particle_with_transformations(
     allow_rot_and_shift,
     rot_and_shift_from_parent,
     local_particle_function_name,
-    xofields,
-    isthick,
+    xofields
 ):
-
     source = (
         '#include <headers/track.h>\n'
         '#include <beam_elements/elements_src/track_misalignments.h>\n'
@@ -113,7 +111,13 @@ def _generate_track_local_particle_with_transformations(
             get_angle = ''
             get_rot_s_rad = ''
 
-        if 'length' in xofields and isthick:
+        if 'isthick' in xofields:
+            get_length = (
+                f'double const length = {element_name}Data_get{add_to_call}_isthick(el)'
+                f' ? {element_name}Data_get{add_to_call}_length(el)'
+                f' : 0.0'
+            )
+        elif 'length' in xofields:
             get_length = f'double const length = {element_name}Data_get{add_to_call}_length(el)'
         else:
             get_length = 'double const length = 0.'
@@ -466,7 +470,6 @@ class MetaBeamElement(xo.MetaHybridClass):
                     rot_and_shift_from_parent=rot_and_shift_from_parent,
                     local_particle_function_name=name+'_track_local_particle',
                     xofields=xofields,
-                    isthick=data.get('isthick', False),
                 )
             )
 
