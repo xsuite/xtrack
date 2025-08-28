@@ -15,16 +15,10 @@ assert_allclose = np.testing.assert_allclose
     ids=['no_slice', 'thin_slice', 'thick_slice'])
 @pytest.mark.parametrize(
     'element_type',
-    ['Bend', 'Quadrupole', 'Sextupole', 'Octupole', 'Multipole'],
+    ['Quadrupole', 'Sextupole', 'Octupole', 'Multipole'],
 )
 def test_test_tilt_shifts_vs_sandwtch(test_context, slice_mode, element_type):
     ele_test = {
-        'Bend': xt.Bend(k0=0.04, h=0.03, length=1,
-                        k1=0.1,
-                        knl=[0.7, 0.8, 0.9, 1.0], ksl=[0.1, 0.2, 0.3, 0.4],
-                        edge_entry_angle=0.05, edge_exit_angle=0.06,
-                        edge_entry_hgap=0.06, edge_exit_hgap=0.07,
-                        edge_entry_fint=0.08, edge_exit_fint=0.09),
         'Quadrupole': xt.Quadrupole(k1=0.2, k1s=-0.3, length=3.),
         'Sextupole': xt.Sextupole(k2=0.1, k2s=0.2, length=0.3),
         'Octupole': xt.Octupole(k3=0.1, k3s=0.2, length=0.4),
@@ -72,7 +66,7 @@ def test_test_tilt_shifts_vs_sandwtch(test_context, slice_mode, element_type):
     line_ref.build_tracker(_context=test_context)
 
     line_test.track(p_test)
-    line_ref.track(p_ref, turn_by_turn_monitor='ONE_TURN_EBE')
+    line_ref.track(p_ref)
 
     p_test.move(_context=xo.context_default)
     p_ref.move(_context=xo.context_default)

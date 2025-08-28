@@ -320,12 +320,13 @@ def test_misalign_vs_madng(angle, tilt):
 
 
 @for_all_test_contexts
-def test_misalign_dedicated_vs_beam_element(test_context):
+@pytest.mark.parametrize(
+    'element_type',
+    ['Bend', 'Quadrupole', 'Multipole'],
+)
+def test_misalign_dedicated_vs_beam_element(test_context, element_type):
     # Element parameters
-    angle = 0.3
     tilt = 0.1
-    length = 5
-    k0 = 0.09  # in the curved case let's put an sbend, with strength != h
 
     # Misalignment parameters
     dx = 0.1
@@ -335,6 +336,36 @@ def test_misalign_dedicated_vs_beam_element(test_context):
     phi = 0.2  # rad
     psi = 0.5  # rad
     anchor = 4
+
+    if element_type == 'Bend':
+        angle = 0.3
+        length = 5
+        element = xt.Bend(
+            length=length,
+            angle=angle,
+            model='rot-kick-rot',
+            k0=0.09,
+            rot_s_rad=tilt,
+        )
+    elif element_type == 'Quadrupole':
+        angle = 0
+        length = 5
+        element = xt.Quadrupole(
+            length=length,
+            k1=0.09,
+            rot_s_rad=tilt,
+        )
+    elif element_type == 'Multipole':
+        angle = 0
+        length = 0
+        element = xt.Multipole(
+            length=5,
+            knl=[0.04, 0.09],
+            ksl=[0.02, 0.01],
+            rot_s_rad=tilt,
+        )
+    else:
+        raise ValueError(f"Test not implemented for {element_type}")
 
     # Track in Xsuite
     p0 = xt.Particles(x=0.2, y=-0.6, px=-0.01, py=0.02, zeta=0.5, delta=0.9)
@@ -347,13 +378,7 @@ def test_misalign_dedicated_vs_beam_element(test_context):
             length=length, angle=angle, tilt=tilt,
             anchor=anchor, is_exit=False,
         ),
-        xt.Bend(
-            length=length,
-            angle=angle,
-            model='rot-kick-rot',
-            k0=k0,
-            rot_s_rad=tilt,
-        ),
+        element,
         xt.Misalignment(
             dx=dx, dy=dy, ds=ds,
             theta=theta, phi=phi, psi=psi,
@@ -366,20 +391,15 @@ def test_misalign_dedicated_vs_beam_element(test_context):
     line_ref.track(p_ref)
 
     p_test = p0.copy()
-    transformed_element = xt.Bend(
-        length=length,
-        angle=angle,
-        model='rot-kick-rot',
-        k0=k0,
-        rot_s_rad=tilt,
-        shift_x=dx,
-        shift_y=dy,
-        shift_s=ds,
-        rot_x_rad=phi,
-        rot_y_rad=theta,
-        rot_s_rad_no_frame=psi,
-        anchor=anchor,
-    )
+    transformed_element = element.copy()
+    transformed_element.shift_x = dx
+    transformed_element.shift_y = dy
+    transformed_element.shift_s = ds
+    transformed_element.rot_x_rad = phi
+    transformed_element.rot_y_rad = theta
+    transformed_element.rot_s_rad_no_frame = psi
+    transformed_element.anchor = anchor
+
     line_test = xt.Line(elements=[transformed_element])
     line_test.build_tracker(_context=test_context)
     line_test.track(p_test)
