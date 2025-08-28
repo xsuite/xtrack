@@ -90,6 +90,7 @@ def _generate_track_local_particle_with_transformations(
 ):
     source = (
         '#include <headers/track.h>\n'
+        '#include <headers/particle_states.h>\n'
         '#include <beam_elements/elements_src/track_misalignments.h>\n'
         f'GPUFUN void {local_particle_function_name}_with_transformations({element_name}Data el, LocalParticle* part0)'
         '{\n'
@@ -147,7 +148,7 @@ def _generate_track_local_particle_with_transformations(
             source += (
                 "if (rot_x_rad != 0 || rot_y_rad != 0) {\n"
                 " //start_per_particle_block (part0->part)\n"
-                "    LocalParticle_set_state(part, -40);\n"
+                "    LocalParticle_set_state(part, XT_INVALID_SLICE_TRANSFORM);\n"
                 " //end_per_particle_block\n"
                 "}\n"
             )
@@ -155,7 +156,7 @@ def _generate_track_local_particle_with_transformations(
                 source += (
                     "if (angle != 0) {\n"
                     " //start_per_particle_block (part0->part)\n"
-                    "    LocalParticle_set_state(part, -41);\n"
+                    "    LocalParticle_set_state(part, XT_INVALID_CURVED_SLICE_TRANSFORM);\n"
                     " //end_per_particle_block\n"
                 "}\n"
             )
