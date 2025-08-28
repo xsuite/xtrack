@@ -154,7 +154,8 @@ def _generate_track_local_particle_with_transformations(
             )
             if element_shape == 'curved':
                 source += (
-                    "if (angle != 0) {\n"
+                    "if (angle != 0 && (shift_x != 0 || shift_y != 0 || shift_s != 0"
+                    "                   || rot_x_rad !=0 || rot_y_rad != 0 || rot_s_rad_no_frame != 0)) {\n"
                     " //start_per_particle_block (part0->part)\n"
                     "    LocalParticle_set_state(part, XT_INVALID_CURVED_SLICE_TRANSFORM);\n"
                     " //end_per_particle_block\n"
