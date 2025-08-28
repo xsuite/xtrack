@@ -1467,8 +1467,7 @@ class Particles(xo.HybridClass):
         src_lines = []
         src_lines.append('''
             /*gpufun*/
-            void LocalParticle_to_Particles(
-                                            LocalParticle* source,
+            void LocalParticle_to_Particles(LocalParticle* source,
                                             ParticlesData dest,
                                             int64_t id,
                                             int64_t set_scalar){''')

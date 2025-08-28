@@ -89,7 +89,7 @@ void track_magnet_edge_particles(
         if (is_exit) k0 = -k0;
 
         #define MAGNET_Y_ROTATE(PART) \
-            if (should_rotate) YRotation_single_particle((PART), sin_, cos_, tan_)
+            if (should_rotate) YRotation_single_particle((PART), -sin_, cos_, -tan_)
 
         #define MAGNET_DIPOLE_FRINGE(PART) \
             DipoleFringe_single_particle((PART), fringe_integral, half_gap, k0)

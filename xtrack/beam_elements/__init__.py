@@ -27,7 +27,9 @@ from .slice_elements_thick import (ThickSliceBend, ThickSliceRBend,
 from .slice_elements_drift import (DriftSliceOctupole, DriftSliceSextupole,
                                    DriftSliceQuadrupole, DriftSliceBend,
                                    DriftSliceRBend, DriftSlice, DriftSliceCavity,
-                                   DriftSliceCrabCavity, DriftSliceMultipole)
+                                   DriftSliceCrabCavity, DriftSliceMultipole,
+                                   DriftExactSlice)
+      
 from .rft_element import RFT_Element
 from ..base_element import BeamElement
 

@@ -6,15 +6,7 @@
 #define XTRACK_XYSHIFT_H
 
 #include <headers/track.h>
-
-
-GPUFUN
-void XYShift_single_particle(LocalParticle* part, double dx, double dy){
-
-    LocalParticle_add_to_x(part, -dx );
-    LocalParticle_add_to_y(part, -dy );
- 
-}
+#include <beam_elements/elements_src/track_xyshift.h>
 
 
 GPUFUN
@@ -32,6 +24,5 @@ void XYShift_track_local_particle(XYShiftData el, LocalParticle* part0){
         XYShift_single_particle(part, dx, dy);
     END_PER_PARTICLE_BLOCK;
 }
-
 
 #endif /* XTRACK_XYSHIFT_H */

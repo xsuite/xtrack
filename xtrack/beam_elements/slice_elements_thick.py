@@ -4,7 +4,8 @@ from ..base_element import BeamElement
 from .slice_base import _SliceBase, COMMON_SLICE_XO_FIELDS
 from .elements import (
     Multipole, Bend, Quadrupole, Sextupole,
-    Octupole, Solenoid, Drift, RBend, UniformSolenoid, Cavity, CrabCavity
+    Octupole, Solenoid, Drift, RBend, UniformSolenoid, Cavity, CrabCavity,
+    DriftExact
 )
 from ..survey import advance_element as survey_advance_element
 
