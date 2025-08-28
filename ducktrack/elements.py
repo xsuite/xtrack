@@ -46,9 +46,6 @@ _factorial = np.array(
     ]
 )
 
-def _sinc(x):
-    return np.sinc(x / np.pi)  # np.sinc is normalized to pi, so we divide by pi
-
 
 class Marker(Element):
 
