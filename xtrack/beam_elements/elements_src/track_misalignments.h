@@ -13,17 +13,21 @@
 #include <beam_elements/elements_src/track_xyshift.h>
 
 
-// Flip some signs so that the input matches the MAD-X survey convention
 #define IF_NONZERO(VALUE, EXPRESSION) { if (VALUE != 0.0) { EXPRESSION; } }
-#define Y_ROTATE(PART, THETA) IF_NONZERO(THETA, YRotation_single_particle(PART, sin(THETA), cos(THETA), tan(THETA)))
-#define X_ROTATE(PART, PHI) IF_NONZERO(PHI, XRotation_single_particle(PART, -sin(PHI), cos(PHI), -tan(PHI)))
-#define S_ROTATE(PART, PSI) IF_NONZERO(PSI, SRotation_single_particle(PART, sin(PSI), cos(PSI)))
-#define XY_SHIFT(PART, DX, DY) XYShift_single_particle(PART, DX, DY);
-#define S_SHIFT(PART, DS) IF_NONZERO(DS, { \
+#define LOOP_PARTICLES(PART0, CODE) {\
+    START_PER_PARTICLE_BLOCK(PART0, part) { \
+        CODE ; \
+    } END_PER_PARTICLE_BLOCK; }
+#define Y_ROTATE(PART0, THETA) IF_NONZERO(THETA, LOOP_PARTICLES(PART0, YRotation_single_particle(part, sin(THETA), cos(THETA), tan(THETA))))
+// Flip some signs so that the input matches the MAD-X survey convention
+#define X_ROTATE(PART0, PHI) IF_NONZERO(PHI, LOOP_PARTICLES(PART0, XRotation_single_particle(part, -sin(PHI), cos(PHI), -tan(PHI))))
+#define S_ROTATE(PART0, PSI) IF_NONZERO(PSI, LOOP_PARTICLES(PART0, SRotation_single_particle(part, sin(PSI), cos(PSI))))
+#define XY_SHIFT(PART0, DX, DY) LOOP_PARTICLES(PART0, XYShift_single_particle(part, DX, DY))
+#define S_SHIFT(PART0, DS) IF_NONZERO(DS, LOOP_PARTICLES(PART0, { \
         Drift_single_particle_exact(part, DS); \
         LocalParticle_add_to_zeta(part, -DS); \
         LocalParticle_add_to_s(part, -DS); \
-    })
+    }))
 
 
 GPUFUN void matrix_multiply_4x4(const double[4][4], const double[4][4], double[4][4]);
@@ -50,13 +54,11 @@ void track_misalignment_entry_straight(
     const double mis_s = ds - anchor * (cos(phi) * cos(theta) - 1);
 
     // Apply transformations
-    START_PER_PARTICLE_BLOCK(part0, part);
-        XY_SHIFT(part, mis_x, mis_y);
-        S_SHIFT(part, mis_s);
-        Y_ROTATE(part, theta);
-        X_ROTATE(part, phi);
-        S_ROTATE(part, psi);
-    END_PER_PARTICLE_BLOCK;
+    XY_SHIFT(part0, mis_x, mis_y);
+    S_SHIFT(part0, mis_s);
+    Y_ROTATE(part0, theta);
+    X_ROTATE(part0, phi);
+    S_ROTATE(part0, psi);
 }
 
 
@@ -78,13 +80,11 @@ void track_misalignment_exit_straight(
     const double mis_s = neg_part_length * (cos(phi) * cos(theta) - 1) - ds;
 
     // Apply transformations
-    START_PER_PARTICLE_BLOCK(part0, part);
-        S_ROTATE(part, -psi);
-        X_ROTATE(part, -phi);
-        Y_ROTATE(part, -theta);
-        S_SHIFT(part, mis_s);
-        XY_SHIFT(part, mis_x, mis_y);
-    END_PER_PARTICLE_BLOCK;
+    S_ROTATE(part0, -psi);
+    X_ROTATE(part0, -phi);
+    Y_ROTATE(part0, -theta);
+    S_SHIFT(part0, mis_s);
+    XY_SHIFT(part0, mis_x, mis_y);
 }
 
 
@@ -194,13 +194,11 @@ void track_misalignment_entry_curved(
     const double rot_psi = atan2(misaligned_entry[1][0], misaligned_entry[1][1]);
 
     // Apply transformations
-    START_PER_PARTICLE_BLOCK(part0, part);
-        XY_SHIFT(part, mis_x, mis_y);
-        S_SHIFT(part, mis_s);
-        Y_ROTATE(part, rot_theta);
-        X_ROTATE(part, rot_phi);
-        S_ROTATE(part, rot_psi);
-    END_PER_PARTICLE_BLOCK;
+    XY_SHIFT(part0, mis_x, mis_y);
+    S_SHIFT(part0, mis_s);
+    Y_ROTATE(part0, rot_theta);
+    X_ROTATE(part0, rot_phi);
+    S_ROTATE(part0, rot_psi);
 }
 
 
@@ -320,13 +318,11 @@ void track_misalignment_exit_curved(
     double rot_psi = atan2(realign[1][0], realign[1][1]);
 
     // Apply transformations
-    START_PER_PARTICLE_BLOCK(part0, part);
-        XY_SHIFT(part, mis_x, mis_y);
-        S_SHIFT(part, mis_s);
-        Y_ROTATE(part, rot_theta);
-        X_ROTATE(part, rot_phi);
-        S_ROTATE(part, rot_psi);
-    END_PER_PARTICLE_BLOCK;
+    XY_SHIFT(part0, mis_x, mis_y);
+    S_SHIFT(part0, mis_s);
+    Y_ROTATE(part0, rot_theta);
+    X_ROTATE(part0, rot_phi);
+    S_ROTATE(part0, rot_psi);
 }
 
 
