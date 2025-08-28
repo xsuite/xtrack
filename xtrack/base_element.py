@@ -101,7 +101,10 @@ def _generate_track_local_particle_with_transformations(
         add_to_call = ''
 
     if allow_rot_and_shift:
-        if 'angle' in xofields:
+        if ('angle' in xofields or
+           (('ThickSlice' in element_name) and ('Bend' in element_name)) or
+           (('ThinSlice' in element_name) and ('Bend' in element_name))
+        ):
             element_shape = 'curved'
             misalign_arguments = 'shift_x, shift_y, shift_s, rot_y_rad, rot_x_rad, rot_s_rad_no_frame, anchor, length, angle, rot_s_rad'
             get_angle = f'double const angle = {element_name}Data_get{add_to_call}_angle(el)'
@@ -138,7 +141,26 @@ def _generate_track_local_particle_with_transformations(
             f'    {get_length};\n'
             f'    {get_angle};\n'
             f'    double const anchor = {element_name}Data_get{add_to_call}_rot_shift_anchor(el);\n'
-            '\n'
+            '\n')
+
+        if rot_and_shift_from_parent:
+            source += (
+                "if (rot_x_rad != 0 || rot_y_rad != 0) {\n"
+                " //start_per_particle_block (part0->part)\n"
+                "    LocalParticle_set_state(part, -40);\n"
+                " //end_per_particle_block\n"
+                "}\n"
+            )
+            if element_shape == 'curved':
+                source += (
+                    "if (angle != 0) {\n"
+                    " //start_per_particle_block (part0->part)\n"
+                    "    LocalParticle_set_state(part, -41);\n"
+                    " //end_per_particle_block\n"
+                "}\n"
+            )
+
+        source += (
             f'    track_misalignment_entry_{element_shape}(part0, {misalign_arguments});'
             '\n'
             '     //start_per_particle_block (part0->part)\n'
