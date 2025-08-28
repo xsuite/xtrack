@@ -398,7 +398,7 @@ def test_misalign_dedicated_vs_beam_element(test_context, element_type):
     transformed_element.rot_x_rad = phi
     transformed_element.rot_y_rad = theta
     transformed_element.rot_s_rad_no_frame = psi
-    transformed_element.anchor = anchor
+    transformed_element.rot_shift_anchor = anchor
 
     line_test = xt.Line(elements=[transformed_element])
     line_test.build_tracker(_context=test_context)

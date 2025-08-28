@@ -132,7 +132,7 @@ def _generate_track_local_particle_with_transformations(
             f'    double const rot_s_rad_no_frame = {element_name}Data_get{add_to_call}__rot_s_rad_no_frame(el);\n'
             f'    {get_length};\n'
             f'    {get_angle};\n'
-            f'    double const anchor = {element_name}Data_get{add_to_call}_anchor(el);\n'
+            f'    double const anchor = {element_name}Data_get{add_to_call}_rot_shift_anchor(el);\n'
             '\n'
             f'    track_misalignment_entry_{element_shape}(part0, {misalign_arguments});'
             '\n'
@@ -169,7 +169,7 @@ def _generate_track_local_particle_with_transformations(
             f'    double const rot_s_rad_no_frame = {element_name}Data_get{add_to_call}__rot_s_rad_no_frame(el);\n'
             f'    {get_length};\n'
             f'    {get_angle};\n'
-            f'    double const anchor = {element_name}Data_get{add_to_call}_anchor(el);\n'
+            f'    double const anchor = {element_name}Data_get{add_to_call}_rot_shift_anchor(el);\n'
             '\n'
             '    /* Spin tracking is disabled by the synrad compile flag */\n'
             '    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD\n'
@@ -402,7 +402,7 @@ class MetaBeamElement(xo.MetaHybridClass):
             xofields['_rot_x_rad'] = xo.Field(xo.Float64, 0)
             xofields['_rot_y_rad'] = xo.Field(xo.Float64, 0)
             xofields['_rot_s_rad_no_frame'] = xo.Field(xo.Float64, 0)
-            xofields['anchor'] = xo.Field(xo.Float64, 0)
+            xofields['rot_shift_anchor'] = xo.Field(xo.Float64, 0)
 
         data = data.copy()
         data['_xofields'] = xofields
