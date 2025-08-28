@@ -411,3 +411,40 @@ def test_misalign_dedicated_vs_beam_element(test_context, element_type):
     xo.assert_allclose(p_ref.delta, p_test.delta, atol=1e-15, rtol=1e-15)
     xo.assert_allclose(p_ref.zeta, p_test.zeta, atol=1e-15, rtol=1e-15)
     xo.assert_allclose(p_ref.s, p_test.s, atol=1e-15, rtol=1e-15)
+
+def test_errors_on_slices():
+
+    env = xt.Environment()
+    line = env.new_line(components=[
+        env.new('b', 'Bend', angle=0.1, length=2)
+    ])
+
+    p = xt.Particles(p0c=1e9)
+    line.track(p)
+    assert p.state[0] == 1
+
+    line['b'].shift_x = 0.1
+    line.track(p)
+    assert p.state[0] == 1
+
+    line.cut_at_s([0.5])
+    line.track(p)
+    assert p.state[0] == -41
+
+    p = xt.Particles(p0c=1e9)
+    line['b'].angle = 0
+    line.track(p)
+    assert p.state[0] == 1
+
+    line['b'].angle = 0.1
+    line.track(p)
+    assert p.state[0] == -41
+
+    line['b'].angle = 0
+    p = xt.Particles(p0c=1e9)
+    line.track(p)
+    assert p.state[0] == 1
+
+    line['b'].rot_x_rad = 0.1
+    line.track(p)
+    assert p.state[0] == -40
