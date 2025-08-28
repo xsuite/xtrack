@@ -362,10 +362,12 @@ def _set_rot_s_no_frame_property_setter(self, value):
 class MetaBeamElement(xo.MetaHybridClass):
 
     def __new__(cls, name, bases, data):
+
         _XoStruct_name = name+'Data'
 
         data_in = data.copy()
         data = {}
+
         for bb in bases:
             if bb.__name__ == 'HybridClass':
                 continue
@@ -387,6 +389,12 @@ class MetaBeamElement(xo.MetaHybridClass):
                 data['_extra_c_sources'].pop(ii_remove)
 
         data.update(data_in)
+
+        istk = data.pop('isthick', False)
+        if istk in [True, False]:
+            data['_isthick'] = istk
+        else: # is property
+            data['isthick'] = istk
 
         # Take xofields from data['_xofields'] or from bases
         xofields = _build_xofields_dict(bases, data)
@@ -544,7 +552,6 @@ class MetaBeamElement(xo.MetaHybridClass):
 class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
     iscollective = False
-    isthick = False
     behaves_like_drift = False
     allow_track = True
     has_backtrack = False
@@ -556,6 +563,16 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
     def __init__(self, *args, **kwargs):
         xo.HybridClass.__init__(self, *args, **kwargs)
+
+    @property
+    def isthick(self):
+        return self._isthick
+
+    @isthick.setter
+    def isthick(self, value):
+        if value != self._isthick:
+            raise AttributeError("The property 'isthick' cannot be changed dynamically for "
+                             f"elements of type {self.__class__.__name__}")
 
     def init_pipeline(self, pipeline_manager, name, partners_names=[]):
         self._pipeline_manager = pipeline_manager

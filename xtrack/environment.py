@@ -1477,9 +1477,9 @@ def _reverse_element(env, name):
     """Return a reversed element without modifying the original."""
 
     SUPPORTED = {'RBend', 'Bend', 'Quadrupole', 'Sextupole', 'Octupole',
-                'Multipole', 'Cavity', 'UniformSolenoid', 'RFMultipole',
+                'Multipole', 'Cavity', 'UniformSolenoid',
                 'Marker', 'Drift', 'LimitRect', 'LimitEllipse', 'LimitPolygon',
-                'LimitRectEllipse'}
+                'LimitRectEllipse', 'CrabCavity'}
 
     ee = env.get(name)
     ee_ref = env.ref[name]
@@ -1523,6 +1523,9 @@ def _reverse_element(env, name):
     _reverse_field('ks')
     _reverse_field('ksi')
     _reverse_field('rot_s_rad')
+
+    if ee.__class__.__name__ == 'CrabCavity':
+        ee_ref.voltage = -ee_ref.voltage._expr or ee_ref.voltage._value
 
     if hasattr(ee, 'lag'):
         ee_ref.lag = 180 - (ee_ref.lag._expr or ee_ref.lag._value)

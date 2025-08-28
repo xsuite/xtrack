@@ -732,7 +732,7 @@ def test_load_b2_with_bv_minus_one(tmp_path):
     )
     line2_ref.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7000e9)
 
-    env = xt.load_madx_lattice(tmp_seq_path, reverse_lines=['lhcb2'])
+    env = xt.load(tmp_seq_path, reverse_lines=['lhcb2'])
     line2 = env['lhcb2']
 
     # Remove apertures, they are not supported in the cpymadloader
@@ -783,6 +783,9 @@ def test_load_b2_with_bv_minus_one(tmp_path):
                 assert d2[kk] == d4[kk]
                 continue
 
+            if kk == '_isthick' and e2.length == 0:
+                continue  # Skip the check for zero-length elements
+
             if kk in {
                 'order',  # Always assumed to be 5, not always the same
                 'frequency',  # If not specified, depends on the beam,
@@ -813,7 +816,7 @@ def test_line_syntax():
     el1: drift, l=1;
     el2: drift, l=2;
     el3: drift, l=3;
-    
+
     l1: line = (el1, el2, el3);
     l2: line = (-l1);
     l3: line = (3 * el1, 2 * el2);
@@ -1044,12 +1047,12 @@ def test_aperture_setting():
     sequence = """
     m_ellipse: marker, apertype="ellipse", aperture={.2, .1};
     m_aper: marker, apertype="rectangle", aperture={.3, .4};
-    
+
     line: sequence, l=1;
         m_ellipse, at=0;
         m_aper, at=0.1;
     endsequence;
-    
+
     m_ellipse, aperture={.3, .2};  ! no apertype
     m_aper, apertype="ellipse", aperture={.5, .6};  ! change apertype
     """

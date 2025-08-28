@@ -25,7 +25,7 @@ from . import json as json_utils
 import xobjects as xo
 import xtrack as xt
 import xdeps as xd
-from .beam_elements.magnets import (
+from .beam_elements.elements import (
     MagnetEdge, _MODEL_TO_INDEX_CURVED,
     _EDGE_MODEL_TO_INDEX,
 )
@@ -70,7 +70,7 @@ _ALLOWED_ELEMENT_TYPES_IN_NEW = [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole,
                                  xt.LimitRacetrack, xt.LimitRectEllipse,
                                  xt.LimitRect, xt.LimitEllipse,
                                  xt.LimitPolygon, xt.RFMultipole, xt.RBend,
-                                 xt.Magnet]
+                                 xt.Magnet, xt.CrabCavity]
 
 
 _ALLOWED_ELEMENT_TYPES_DICT = {
@@ -496,7 +496,6 @@ class Line:
         allow_thick=None,
         name_prefix=None,
         enable_layout_data=False,
-        enable_thick_kickers=False,
     ):
 
         """
@@ -566,7 +565,6 @@ class Line:
             allow_thick=allow_thick,
             name_prefix=name_prefix,
             enable_layout_data=enable_layout_data,
-            enable_thick_kickers=enable_thick_kickers,
         )
         line = loader.make_line()
         return line
@@ -3927,10 +3925,11 @@ class Line:
                 newline.append_element(ee, nn)
                 continue
 
-            if isinstance(ee, Multipole) and nn not in keep:
+            if isinstance(ee, Multipole) and nn not in keep and not ee.isthick:
                 prev_nn = newline.element_names[-1]
                 prev_ee = newline.element_dict[prev_nn]
                 if (isinstance(prev_ee, Multipole)
+                    and not prev_ee.isthick
                     and prev_ee.hxl==ee.hxl==0
                     and prev_nn not in keep
                     ):
@@ -4790,8 +4789,6 @@ class Line:
             line=self,
             fields={
                 'delta_taper': None, 'ks': None,
-                'voltage': None, 'frequency': None, 'lag': None,
-                'lag_taper': None,
 
                 'weight': None,
 
@@ -4805,6 +4802,11 @@ class Line:
 
                 '_own_h': 'h',
                 '_own_hxl': 'hxl',
+
+                '_own_voltage': 'voltage',
+                '_own_lag': 'lag',
+                '_own_lag_taper': 'lag_taper',
+                '_own_frequency': 'frequency',
 
                 '_own_radiation_flag': 'radiation_flag',
 
@@ -4856,6 +4858,11 @@ class Line:
                 '_parent_h': (('_parent', 'h'), None),
                 '_parent_hxl': (('_parent', 'hxl'), None),
                 '_parent_rbend_model': (('_parent', 'rbend_model'), None),
+
+                '_parent_voltage': (('_parent', 'voltage'), None),
+                '_parent_lag': (('_parent', 'lag'), None),
+                '_parent_lag_taper': (('_parent', 'lag_taper'), None),
+                '_parent_frequency': (('_parent', 'frequency'), None),
 
                 '_parent_radiation_flag': (('_parent', 'radiation_flag'), None),
 
@@ -4913,6 +4920,14 @@ class Line:
                 'shift_s': lambda attr:
                     attr['_own_shift_s'] + attr['_parent_shift_s']
                     * attr._rot_and_shift_from_parent,
+                'voltage': lambda attr:
+                    attr['_own_voltage'] + attr['_parent_voltage'] * attr['weight'] * attr._inherit_strengths,
+                'lag': lambda attr:
+                    attr['_own_lag'] + attr['_parent_lag'] * attr._inherit_strengths,
+                'lag_taper': lambda attr:
+                    attr['_own_lag_taper'] + attr['_parent_lag_taper'] * attr._inherit_strengths,
+                'frequency': lambda attr:
+                    attr['_own_frequency'] + attr['_parent_frequency'] * attr._inherit_strengths,
                 'radiation_flag': lambda attr:
                     attr['_own_radiation_flag'] * (attr['_own_radiation_flag'] != ID_RADIATION_FROM_PARENT)
                   + attr['_parent_radiation_flag'] * (attr['_own_radiation_flag'] == ID_RADIATION_FROM_PARENT),
