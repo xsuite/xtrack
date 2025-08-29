@@ -1364,7 +1364,7 @@ def _compute_coupling_elements_edwards_teng(
 
         WW = W_matrix[idx, :, :]
 
-        WW_inv = np.linalg.inv(WW)
+        WW_inv = lnf.S.T @ WW.T @ lnf.S
 
         RR = WW @ Rot @ WW_inv
 
@@ -1430,7 +1430,6 @@ def _compute_coupling_rdts(r11, r12, r21, r22, betx, bety, alfx, alfy):
     Ported from:
     https://pypi.org/project/optics-functions/
     https://github.com/pylhc/optics_functions
-
 
     Based on Calaga, Tomas, https://journals.aps.org/prab/pdf/10.1103/PhysRevSTAB.8.034001
     '''
