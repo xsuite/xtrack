@@ -59,10 +59,8 @@ alfy_mad_at_s = np.interp(tw.s, s_mad, twmad.alfy)
 f1001_at_s = np.interp(tw.s, s_mad, rdt_mad['f1001'])
 f1010_at_s = np.interp(tw.s, s_mad, rdt_mad['f1010'])
 
-rdt_test_1 = compute_rdt(r11_mad_at_s, r12_mad_at_s, r21_mad_at_s, r22_mad_at_s,
-                        betx_mad_at_s, bety_mad_at_s, alfx_mad_at_s, alfy_mad_at_s)
-rdt_test_2 = compute_rdt(r11_mad_at_s, r12_mad_at_s, r21_mad_at_s, r22_mad_at_s,
-                         betx_mad_at_s, bety_mad_at_s, alfx_mad_at_s, alfy_mad_at_s)
+rdt_mad_at_s = compute_rdt(r11_mad_at_s, r12_mad_at_s, r21_mad_at_s, r22_mad_at_s,
+                           betx_mad_at_s, bety_mad_at_s, alfx_mad_at_s, alfy_mad_at_s)
 
 sgn_ng = np.sign(tw.r11_edw_teng / r11_ng)
 
@@ -124,3 +122,8 @@ xo.assert_allclose(tw.betx_edw_teng, betx_mad_at_s, atol=0, rtol=5e-8)
 xo.assert_allclose(tw.alfx_edw_teng, alfx_mad_at_s, atol=1e-4, rtol=1e-8)
 xo.assert_allclose(tw.bety_edw_teng, bety_mad_at_s, atol=0, rtol=5e-8)
 xo.assert_allclose(tw.alfy_edw_teng, alfy_mad_at_s, atol=1e-4, rtol=1e-8)
+
+xo.assert_allclose(tw.f1001, rdt_mad_at_s['f1001'],
+                   atol=1e-5 * np.max(np.abs(rdt_mad_at_s['f1001'])))
+xo.assert_allclose(tw.f1010, rdt_mad_at_s['f1010'],
+                   atol=1e-5 * np.max(np.abs(rdt_mad_at_s['f1010'])))
