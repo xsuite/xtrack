@@ -857,7 +857,10 @@ def twiss_line(line, particle_ref=None, method=None,
         alfx1, alfx2 = twiss_res['alfx1'], twiss_res['alfx2']
         alfy1, alfy2 = twiss_res['alfy1'], twiss_res['alfy2']
         coupling_result = _compute_coupling_elements_edwards_teng(
-            delta, betx1, betx2, bety1, bety2, alfx1, alfx2, alfy1, alfy2
+            delta, betx1, betx2, bety1, bety2, alfx1, alfx2, alfy1, alfy2,
+            W_matrix=twiss_res['W_matrix'],
+            qx=twiss_res['qx'],
+            qy=twiss_res['qy']
         )
         r11, r12, r21, r22, f1010, f1001 = coupling_result
         twiss_res['r11_edw_teng'] = r11
@@ -1334,12 +1337,13 @@ def _compute_coupling_elements_edwards_teng(
         alfx2: np.ndarray,
         alfy1: np.ndarray,
         alfy2: np.ndarray,
+        W_matrix: np.ndarray,
+        qx: float = None,
+        qy: float = None,
 ):
     """Compute coupling matrix elements using the Edwards-Teng method.
 
-    Refer to the paper by Lebedev and Bogacz (2010) and the source code of
-    MAD-NG –- madl_gphys.mad.
-    (https://github.com/MethodicalAcceleratorDesign/MAD-NG/blob/a73ac34f85426f8e6ad15fb99f5ee0a4c6d1636d/src/madl_gphys.mad#L1807)
+    Using definition in chapter 7 of MAD8 guide
 
     For the RDTs calculation, refer to R. Calaga and R. Tomás, "Betatron coupling:
     Merging Hamiltonian and matrix approaches", 10.1103/PhysRevSTAB.8.034001.
@@ -1351,122 +1355,76 @@ def _compute_coupling_elements_edwards_teng(
     f1010, f1001: complex
         Resonance driving terms f1010 and f1001.
     """
-    matrix_stability_tol = 1e-10
 
-    # Base computations
-    one_plus_delta = 1 + delta
-    betx = betx1 * one_plus_delta
-    bety = bety2 * one_plus_delta
-    alfx = alfx1
-    alfy = alfy2
+    Rot = np.zeros(shape=(6, 6), dtype=np.float64)
+    lnf = xt.linear_normal_form
 
-    # Coupling terms
-    kx2 = betx2 / betx1
-    ky2 = bety1 / bety2
-    kxy = kx2 * ky2
+    Rot[0:2,0:2] = lnf.Rot2D(qx)
+    Rot[2:4,2:4] = lnf.Rot2D(qy)
 
-    # Stability mask
-    idx_stable = (
-        (np.abs(kx2 - ky2) >= matrix_stability_tol) &
-        (np.abs(1 - kxy) >= matrix_stability_tol)
-    )
+    num_places = W_matrix.shape[0]
+    r11_edw_teng = np.zeros(num_places)
+    r12_edw_teng = np.zeros(num_places)
+    r21_edw_teng = np.zeros(num_places)
+    r22_edw_teng = np.zeros(num_places)
+    for idx in range(num_places):
 
-    # Allocate outputs
-    r11 = np.zeros_like(one_plus_delta, dtype=np.complex128)
-    r12 = np.zeros_like(one_plus_delta, dtype=np.complex128)
-    r21 = np.zeros_like(one_plus_delta, dtype=np.complex128)
-    r22 = np.zeros_like(one_plus_delta, dtype=np.complex128)
-    f1010 = np.zeros_like(one_plus_delta, dtype=np.complex128)
-    f1001 = np.zeros_like(one_plus_delta, dtype=np.complex128)
+        print(f"Place {idx}/{num_places}", end='\r', flush=True)
 
-    # Only compute where stable, if not stable anywhere return zeros
-    if not np.any(idx_stable):
-        return r11.real, r12.real, r21.real, r22.real, f1010, f1001
+        WW = W_matrix[idx, :, :]
 
-    kx = np.sqrt(kx2[idx_stable])
-    ky = np.sqrt(ky2[idx_stable])
-    ax = alfx1[idx_stable] * kx - alfx2[idx_stable] / kx
-    ay = alfy2[idx_stable] * ky - alfy1[idx_stable] / ky
-    kxy_ = kxy[idx_stable]
-    kx2_ = kx2[idx_stable]
-    ky2_ = ky2[idx_stable]
+        WW_inv = np.linalg.inv(WW)
 
-    ku = kxy_ * (1 + ((ax ** 2 - ay ** 2) / (kx2_ - ky2_)) * (1 - kxy_))
-    u = -kxy_ / (1 - kxy_)
+        RR = WW @ Rot @ WW_inv
 
-    su = np.sqrt(np.maximum(ku, 0))
-    add_term = np.where(kxy_ <= su, +1, -1) * su / (1 - kxy_)
-    u = np.where(ku >= matrix_stability_tol, u + add_term, u)
-    kpa_ = 1 - u
+        AA = RR[:2, :2]
+        BB = RR[:2, 2:4]
+        CC = RR[2:4, :2]
+        DD = RR[2:4, 2:4]
 
-    betx_ = betx[idx_stable] / kpa_
-    bety_ = bety[idx_stable] / kpa_
-    alfx_ = alfx[idx_stable] / kpa_
-    alfy_ = alfy[idx_stable] / kpa_
+        tr = np.linalg.trace
+        b_pl_c = BB + _conj_mat(CC)
+        det_bc = np.linalg.det(b_pl_c)
+        tr_a_m_tr_d = tr(AA) - tr(DD)
+        coeff = - (0.5 * tr_a_m_tr_d
+                + np.sign(det_bc) * np.sqrt(det_bc + 0.25 * tr_a_m_tr_d**2))
+        R_edw_teng = _conj_mat(1/coeff * b_pl_c)
 
-    bx = kx * kpa_ + u / kx
-    by = ky * kpa_ + u / ky
-    cx = kx * kpa_ - u / kx
-    cy = ky * kpa_ - u / ky
+        r11_edw_teng[idx] = R_edw_teng[0,0]
+        r12_edw_teng[idx] = R_edw_teng[0,1]
+        r21_edw_teng[idx] = R_edw_teng[1,0]
+        r22_edw_teng[idx] = R_edw_teng[1,1]
 
-    evp = (ax + 1j * bx) / (ay - 1j * by)
-    evm = (ax + 1j * cx) / (ay + 1j * cy)
-    ev1sq = evp * evm
-    ev2sq = evp / evm
-
-    ev1_angle = np.angle(ev1sq)
-    ev2_angle = np.angle(ev2sq)
-
-    ev1 = -np.sqrt(np.abs(ev1sq)) * np.exp(1j * np.unwrap(ev1_angle) / 2)
-    ev2 = np.sqrt(np.abs(ev2sq)) * np.exp(1j * np.unwrap(ev2_angle) / 2)
-
-    r11[idx_stable] = (
-            np.sqrt(bety2[idx_stable] / betx2[idx_stable]) *
-            (u * ev2.real + alfx2[idx_stable] * ev2.imag) / kpa_
-    )
-
-    r22[idx_stable] = (
-            -np.sqrt(betx1[idx_stable] / bety1[idx_stable]) *
-            (u * ev1.real + alfy1[idx_stable] * ev1.imag) / kpa_
-    )
-
-    r12[idx_stable] = (
-            np.sqrt(betx1[idx_stable] * bety1[idx_stable]) * ev1.imag / kpa_
-    )
-
-    r21[idx_stable] = (
-        (
-                (ev2.real * (alfx2[idx_stable] * kpa_ - alfy2[idx_stable] * u)) -
-                (ev2.imag * (alfx2[idx_stable] * alfy2[idx_stable] + kpa_ * u))
-        ) / (kpa_ * np.sqrt(betx2[idx_stable] * bety2[idx_stable]))
-    )
+    r11 = r11_edw_teng
+    r12 = r12_edw_teng
+    r21 = r21_edw_teng
+    r22 = r22_edw_teng
 
     # Compute the RDTs
+    betx_ = betx1 # Note that we are confusing the Mais Ripken betas
+    bety_ = bety2 #  with the Edwards Teng ones (ok for small coupling)
+    alfx_ = alfx1
+    alfy_ = alfy2
+
     sbetx = np.sqrt(betx_)
     sbety = np.sqrt(bety_)
 
-    mask_nonzero_sbetxy = (np.abs(sbetx) > 1e-6) & (np.abs(sbety) > 1e-6)
-    # The above mask is computed on arrays whose length has been reduced already
-    # with idx_stable. Therefore, to address the original length of the arrays,
-    # we need to compute a new mask combining both conditions:
-    idx_compute_rdts = np.where(idx_stable)[0][mask_nonzero_sbetxy]
-
-    sbetx_ = sbetx[mask_nonzero_sbetxy]
-    sbety_ = sbety[mask_nonzero_sbetxy]
+    sbetx_ = sbetx
+    sbety_ = sbety
 
     ga = np.array([
         [1 / sbetx_, np.zeros_like(sbetx_)],
-        [alfx_[mask_nonzero_sbetxy] / sbetx_, sbetx_],
+        [alfx_ / sbetx_, sbetx_],
     ]).transpose(2, 0, 1)
 
     gb_inv = np.array([
         [sbety_, np.zeros_like(sbety_)],
-        [-alfy_[mask_nonzero_sbetxy] / sbety_, 1 / sbety_],
+        [-alfy_ / sbety_, 1 / sbety_],
     ]).transpose(2, 0, 1)
 
     r = np.array([
-        [r22[idx_compute_rdts], -r12[idx_compute_rdts]],
-        [-r21[idx_compute_rdts], r11[idx_compute_rdts]],
+        [r22, -r12],
+        [-r21, r11],
     ])
 
     c = (r / np.sqrt(1 + np.linalg.det(r.T))).transpose(2, 0, 1)
@@ -1475,10 +1433,17 @@ def _compute_coupling_elements_edwards_teng(
 
     cb = 0.25 / np.sqrt(1 - np.linalg.det(cbar.T)) * cbar
 
-    f1010[idx_compute_rdts] = -cb[0, 1] - cb[1, 0] + 1j * (cb[0, 0] - cb[1, 1])
-    f1001[idx_compute_rdts] = cb[0, 1] - cb[1, 0] + 1j * (cb[0, 0] + cb[1, 1])
+    f1010 = -cb[0, 1] - cb[1, 0] + 1j * (cb[0, 0] - cb[1, 1])
+    f1001 = cb[0, 1] - cb[1, 0] + 1j * (cb[0, 0] + cb[1, 1])
 
     return r11.real, r12.real, r21.real, r22.real, f1010, f1001
+
+def _conj_mat(mm):
+    a = mm[0,0]
+    b = mm[0,1]
+    c = mm[1,0]
+    d = mm[1,1]
+    return np.array([[d, -b], [-c, a]])
 
 
 def _compute_global_quantities(line, twiss_res):
