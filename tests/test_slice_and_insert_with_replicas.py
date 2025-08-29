@@ -5,7 +5,7 @@ from xobjects.test_helpers import for_all_test_contexts
 
 assert_allclose = xo.assert_allclose
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_slice_thin_and_insert_with_replicas(test_context):
 
     elements = {

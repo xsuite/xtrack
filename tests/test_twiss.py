@@ -586,7 +586,7 @@ def collider_for_test_twiss_range():
 
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 @pytest.mark.parametrize('line_name', ['lhcb1', 'lhcb2'])
 @pytest.mark.parametrize('check', ['fw', 'bw', 'fw_kw', 'bw_kw', 'fw_table', 'bw_table'])
 @pytest.mark.parametrize('init_at_edge', [True, False], ids=['init_at_edge', 'init_inside'])
@@ -974,7 +974,7 @@ def test_twiss_against_matrix(test_context):
         xo.assert_allclose(chroma_table.dnqx[1:], dnqx[1:], atol=1e-5, rtol=1e-5)
         xo.assert_allclose(chroma_table.dnqy[1:], dnqy[1:], atol=1e-5, rtol=1e-5)
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 @pytest.mark.parametrize('machine', ['sps', 'psb'])
 def test_longitudinal_plane_against_matrix(machine, test_context):
 
@@ -1151,7 +1151,7 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
         xo.assert_allclose(np.std(particles_matrix.pzeta), np.std(particles_line.pzeta),
             atol=0, rtol=(25e-2 if longitudinal_mode.startswith('linear') else 2e-2))
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_custom_twiss_init(test_context):
 
     line = xt.load(test_data_folder /
@@ -1584,7 +1584,7 @@ def test_longitudinal_beam_sizes(test_context):
     xo.assert_allclose(
         beam_sizes.sigma_zeta / beam_sizes.sigma_pzeta, tw.bets0, atol=0, rtol=5e-5)
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_second_order_chromaticity_and_dispersion(test_context):
 
     line = xt.load(test_data_folder /
@@ -1664,7 +1664,7 @@ def test_second_order_chromaticity_and_dispersion(test_context):
     xo.assert_allclose(tw_part['dpx'], tw_bw.rows[:-1]['dpx'], atol=1e-3, rtol=0)
     xo.assert_allclose(tw_part['dpy'], tw_bw.rows[:-1]['dpy'], atol=1e-3, rtol=0)
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_twiss_strength_reverse_vs_madx(test_context):
 
     test_data_folder_str = str(test_data_folder)

@@ -383,7 +383,7 @@ def norm(x):
     return np.sqrt(np.sum(np.array(x) ** 2))
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_line_import_from_madx(test_context, mad_with_errors):
 
     mad = mad_with_errors

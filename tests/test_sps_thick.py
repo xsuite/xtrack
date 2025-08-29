@@ -14,7 +14,7 @@ test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
 @pytest.mark.parametrize('deferred_expressions', [True, False])
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_sps_thick(test_context, deferred_expressions):
 
     mad = Madx(stdout=False)

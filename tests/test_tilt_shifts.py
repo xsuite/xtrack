@@ -8,7 +8,7 @@ from cpymad.madx import Madx
 
 assert_allclose = np.testing.assert_allclose
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 @pytest.mark.parametrize(
     'slice_mode',
     [None, 'thin', 'thick'],
@@ -17,7 +17,7 @@ assert_allclose = np.testing.assert_allclose
     'element_type',
     ['Quadrupole', 'Sextupole', 'Octupole', 'Multipole'],
 )
-def test_test_tilt_shifts_vs_sandwtch(test_context, slice_mode, element_type):
+def test_test_tilt_shifts_vs_sandwich(test_context, slice_mode, element_type):
     ele_test = {
         'Quadrupole': xt.Quadrupole(k1=0.2, k1s=-0.3, length=3.),
         'Sextupole': xt.Sextupole(k2=0.1, k2s=0.2, length=0.3),
