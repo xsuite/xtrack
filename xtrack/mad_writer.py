@@ -232,6 +232,34 @@ def drift_to_mad_str(name, line, mad_type=MadType.MADX, substituted_vars=None):
         tokens = _handle_tokens_madng(tokens, substituted_vars)
     return ', '.join(tokens)
 
+def drift_slice_to_mad_str(name, line, mad_type=MadType.MADX, substituted_vars=None):
+    """
+    Convert a drift element to a MADX/MAD-NG string representation.
+
+    Parameters:
+    - name: Name of the drift element.
+    - line: The line containing the element.
+    - mad_type: Type of MAD (MADX or MADNG).
+    - substituted_vars: List of substituted variables for MADNG.
+
+    Returns:
+    - A string representation of the drift in MADX/MAD-NG format.
+    """
+
+    drift_slice = _get_eref(line, name)
+    tokens = []
+    tokens.append('drift')
+    if mad_type == MadType.MADNG:
+        tokens.append(f"'{name.replace(':', '__')}'")  # replace ':' with '__' for MADNG
+
+    tokens.append(mad_assignment('l', (float(drift_slice._parent.length._value)
+                                     * float(drift_slice.weight._value)),
+                                 mad_type, substituted_vars=substituted_vars))
+
+    if mad_type == MadType.MADNG:
+        tokens = _handle_tokens_madng(tokens, substituted_vars)
+    return ', '.join(tokens)
+
 def multipole_to_mad_str(name, line, mad_type=MadType.MADX, substituted_vars=None):
     """ Convert a multipole element to a MADX/MAD-NG string representation.
 
@@ -562,7 +590,8 @@ xsuite_to_mad_converters = {
     xt.UniformSolenoid: solenoid_to_mad_str,
     xt.SRotation: srotation_to_mad_str,
     xt.RFMultipole: rfmultipole_to_mad_str,
-    xt.CrabCavity: crabcavity_to_mad_str
+    xt.CrabCavity: crabcavity_to_mad_str,
+    xt.DriftSlice: drift_slice_to_mad_str
 }
 
 def to_madx_sequence(line, name='seq', mode='sequence'):
