@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from cpymad.madx import Madx
 import xobjects as xo
 
+from rdt_calculation import compute_rdt
+
 mad = Madx()
 mad.call('../../test_data/lhc_2024/lhc.seq')
 mad.call('../../test_data/lhc_2024/injection_optics.madx')
@@ -39,6 +41,9 @@ tw = line.twiss4d(coupling_edw_teng=True)
 ngtw = line.madng_twiss()
 
 r11_mad, r12_mad, r21_mad, r22_mad = twmad.r11, twmad.r12, twmad.r21, twmad.r22
+rdt_mad = compute_rdt(r11_mad, r12_mad, r21_mad, r22_mad,
+                      twmad.betx, twmad.bety, twmad.alfx, twmad.alfy)
+
 s_mad = twmad.s
 r11_ng, r12_ng, r21_ng, r22_ng = ngtw.r11_ng, ngtw.r12_ng, ngtw.r21_ng, ngtw.r22_ng
 s_ng = ngtw.s
@@ -47,12 +52,23 @@ r11_mad_at_s = np.interp(tw.s, s_mad, r11_mad)
 r12_mad_at_s = np.interp(tw.s, s_mad, r12_mad)
 r21_mad_at_s = np.interp(tw.s, s_mad, r21_mad)
 r22_mad_at_s = np.interp(tw.s, s_mad, r22_mad)
+betx_mad_at_s = np.interp(tw.s, s_mad, twmad.betx)
+bety_mad_at_s = np.interp(tw.s, s_mad, twmad.bety)
+alfx_mad_at_s = np.interp(tw.s, s_mad, twmad.alfx)
+alfy_mad_at_s = np.interp(tw.s, s_mad, twmad.alfy)
+f1001_at_s = np.interp(tw.s, s_mad, rdt_mad['f1001'])
+f1010_at_s = np.interp(tw.s, s_mad, rdt_mad['f1010'])
+
+rdt_test_1 = compute_rdt(r11_mad_at_s, r12_mad_at_s, r21_mad_at_s, r22_mad_at_s,
+                        betx_mad_at_s, bety_mad_at_s, alfx_mad_at_s, alfy_mad_at_s)
+rdt_test_2 = compute_rdt(r11_mad_at_s, r12_mad_at_s, r21_mad_at_s, r22_mad_at_s,
+                         betx_mad_at_s, bety_mad_at_s, alfx_mad_at_s, alfy_mad_at_s)
 
 sgn_ng = np.sign(tw.r11_edw_teng / r11_ng)
 
 # Compare results with MAD-X
 plt.close('all')
-fig, ((ax0, ax1), (ax2, ax3), (ax4, ax5)) = plt.subplots(3, 2, figsize=(10, 12), sharex=True)
+fig, ((ax0, ax1), (ax2, ax3), (ax4, ax5)) = plt.subplots(3, 2, figsize=(6.4*1.3, 4.8*1.8), sharex=True)
 ax0.plot(s_mad, r11_mad, label='MAD-X')
 ax0.plot(s_ng, (r11_ng * sgn_ng), label='MAD-NG', linestyle='--')
 ax0.plot(tw.s, tw.r11_edw_teng, label='Xsuite', linestyle=':')
@@ -77,12 +93,14 @@ ax3.plot(tw.s, tw.r22_edw_teng, label='Xsuite', linestyle=':')
 ax3.plot(tw.s, np.abs(r22_mad_at_s - tw.r22_edw_teng), label='absolute error')
 ax3.legend()
 
-ax4.plot(tw.s, tw.f1001, label='Xsuite')
-ax4.plot(ngtw.s, sgn_ng * ngtw.f1001_ng, label='MAD-NG', linestyle='--')
+ax4.plot(tw.s, tw.f1001.real, label='Xsuite')
+ax4.plot(tw.s, f1001_at_s.real, label='MAD-X', linestyle=':')
+ax4.plot(ngtw.s, sgn_ng * ngtw.f1001_ng.real, label='MAD-NG', linestyle='--')
 ax4.legend()
 
-ax5.plot(tw.s, tw.f1010, label='Xsuite')
-ax5.plot(ngtw.s, sgn_ng * ngtw.f1010_ng, label='MAD-NG', linestyle='--')
+ax5.plot(tw.s, tw.f1010.real, label='Xsuite')
+ax5.plot(tw.s, f1010_at_s.real, label='MAD-X', linestyle=':')
+ax5.plot(ngtw.s, sgn_ng * ngtw.f1010_ng.real, label='MAD-NG', linestyle='--')
 ax5.legend()
 
 

@@ -54,7 +54,15 @@ r11_edw_teng = np.zeros(num_places)
 r12_edw_teng = np.zeros(num_places)
 r21_edw_teng = np.zeros(num_places)
 r22_edw_teng = np.zeros(num_places)
-for idx in range(num_places):
+betx_edw_teng = np.zeros(num_places)
+bety_edw_teng = np.zeros(num_places)
+alfx_edw_teng = np.zeros(num_places)
+alfy_edw_teng = np.zeros(num_places)
+
+idx = tw.rows.indices['ip3'][0]
+
+if True:
+# for idx in range(num_places):
 
     print(f"Place {idx}/{num_places}", end='\r', flush=True)
 
@@ -70,17 +78,31 @@ for idx in range(num_places):
     DD = RR[2:4, 2:4]
 
     tr = np.linalg.trace
-    b_pl_c = BB + conj_mat(CC)
+    b_pl_c = CC + conj_mat(BB)
     det_bc = np.linalg.det(b_pl_c)
     tr_a_m_tr_d = tr(AA) - tr(DD)
     coeff = - (0.5 * tr_a_m_tr_d
             + np.sign(det_bc) * np.sqrt(det_bc + 0.25 * tr_a_m_tr_d**2))
-    R_edw_teng = conj_mat(1/coeff * b_pl_c)
+    R_edw_teng = 1/coeff * b_pl_c
 
     r11_edw_teng[idx] = R_edw_teng[0,0]
     r12_edw_teng[idx] = R_edw_teng[0,1]
     r21_edw_teng[idx] = R_edw_teng[1,0]
     r22_edw_teng[idx] = R_edw_teng[1,1]
 
+    EE = AA - BB@R_edw_teng
+    FF = DD + R_edw_teng@BB
 
+    quarter = 0.25
+    two = 2.0
+
+    sinmu2 = -EE[0,1]*EE[1,0] - quarter*(EE[0,0] - EE[1,1])**2
+    sinmux = np.sign(EE[0,1]) * np.sqrt(abs(sinmu2))
+    betx_et = EE[0,1] / sinmux
+    alfx_et = (EE[0,0] - EE[1,1]) / (two * sinmux)
+
+    sinmu2 = -FF[0,1]*FF[1,0] - quarter*(FF[0,0] - FF[1,1])**2
+    sinmuy = np.sign(FF[0,1]) * np.sqrt(abs(sinmu2))
+    bety_et = FF[0,1] / sinmuy
+    alfy_et = (FF[0,0] - FF[1,1]) / (two * sinmuy)
 

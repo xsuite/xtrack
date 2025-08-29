@@ -846,6 +846,10 @@ def twiss_line(line, particle_ref=None, method=None,
         _compute_spin_polarization(twiss_res, line, method)
 
     if coupling_edw_teng:
+        if not periodic:
+            raise ValueError(
+                'Computing Edwards-Teng coupling elements is only supported for periodic lines.'
+            )
         if reverse:
             raise NotImplementedError(
                 'Computing Edwards-Teng coupling elements in reverse mode is not '
@@ -857,18 +861,12 @@ def twiss_line(line, particle_ref=None, method=None,
         alfx1, alfx2 = twiss_res['alfx1'], twiss_res['alfx2']
         alfy1, alfy2 = twiss_res['alfy1'], twiss_res['alfy2']
         coupling_result = _compute_coupling_elements_edwards_teng(
-            delta, betx1, betx2, bety1, bety2, alfx1, alfx2, alfy1, alfy2,
             W_matrix=twiss_res['W_matrix'],
             qx=twiss_res['qx'],
             qy=twiss_res['qy']
         )
-        r11, r12, r21, r22, f1010, f1001 = coupling_result
-        twiss_res['r11_edw_teng'] = r11
-        twiss_res['r12_edw_teng'] = r12
-        twiss_res['r21_edw_teng'] = r21
-        twiss_res['r22_edw_teng'] = r22
-        twiss_res['f1010'] = f1010
-        twiss_res['f1001'] = f1001
+        for kk in coupling_result:
+            twiss_res[kk] = coupling_result[kk]
 
     twiss_res._data['method'] = method
     twiss_res._data['radiation_method'] = radiation_method
@@ -1328,15 +1326,6 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
 
 
 def _compute_coupling_elements_edwards_teng(
-        delta: np.ndarray,
-        betx1: np.ndarray,
-        betx2: np.ndarray,
-        bety1: np.ndarray,
-        bety2: np.ndarray,
-        alfx1: np.ndarray,
-        alfx2: np.ndarray,
-        alfy1: np.ndarray,
-        alfy2: np.ndarray,
         W_matrix: np.ndarray,
         qx: float = None,
         qy: float = None,
@@ -1363,13 +1352,15 @@ def _compute_coupling_elements_edwards_teng(
     Rot[2:4,2:4] = lnf.Rot2D(qy)
 
     num_places = W_matrix.shape[0]
-    r11_edw_teng = np.zeros(num_places)
-    r12_edw_teng = np.zeros(num_places)
-    r21_edw_teng = np.zeros(num_places)
-    r22_edw_teng = np.zeros(num_places)
+    r11 = np.zeros(num_places)
+    r12 = np.zeros(num_places)
+    r21 = np.zeros(num_places)
+    r22 = np.zeros(num_places)
+    betx_et = np.zeros(num_places)
+    bety_et = np.zeros(num_places)
+    alfx_et = np.zeros(num_places)
+    alfy_et = np.zeros(num_places)
     for idx in range(num_places):
-
-        print(f"Place {idx}/{num_places}", end='\r', flush=True)
 
         WW = W_matrix[idx, :, :]
 
@@ -1383,60 +1374,103 @@ def _compute_coupling_elements_edwards_teng(
         DD = RR[2:4, 2:4]
 
         tr = np.linalg.trace
-        b_pl_c = BB + _conj_mat(CC)
+        b_pl_c = CC + _conj_mat(BB)
         det_bc = np.linalg.det(b_pl_c)
         tr_a_m_tr_d = tr(AA) - tr(DD)
         coeff = - (0.5 * tr_a_m_tr_d
-                + np.sign(det_bc) * np.sqrt(det_bc + 0.25 * tr_a_m_tr_d**2))
-        R_edw_teng = _conj_mat(1/coeff * b_pl_c)
+            + np.sign(det_bc) * np.sqrt(det_bc + 0.25 * tr_a_m_tr_d**2))
+        R_edw_teng = 1/coeff * b_pl_c
 
-        r11_edw_teng[idx] = R_edw_teng[0,0]
-        r12_edw_teng[idx] = R_edw_teng[0,1]
-        r21_edw_teng[idx] = R_edw_teng[1,0]
-        r22_edw_teng[idx] = R_edw_teng[1,1]
+        EE = AA - BB@R_edw_teng
+        FF = DD + R_edw_teng@BB
 
-    r11 = r11_edw_teng
-    r12 = r12_edw_teng
-    r21 = r21_edw_teng
-    r22 = r22_edw_teng
+        quarter = 0.25
+        two = 2.0
 
-    # Compute the RDTs
-    betx_ = betx1 # Note that we are confusing the Mais Ripken betas
-    bety_ = bety2 #  with the Edwards Teng ones (ok for small coupling)
-    alfx_ = alfx1
-    alfy_ = alfy2
+        sinmu2 = -EE[0,1]*EE[1,0] - quarter*(EE[0,0] - EE[1,1])**2
+        sinmux = np.sign(EE[0,1]) * np.sqrt(abs(sinmu2))
+        betx_et_this = EE[0,1] / sinmux
+        alfx_et_this = (EE[0,0] - EE[1,1]) / (two * sinmux)
 
-    sbetx = np.sqrt(betx_)
-    sbety = np.sqrt(bety_)
+        sinmu2 = -FF[0,1]*FF[1,0] - quarter*(FF[0,0] - FF[1,1])**2
+        sinmuy = np.sign(FF[0,1]) * np.sqrt(abs(sinmu2))
+        bety_et_this = FF[0,1] / sinmuy
+        alfy_et_this = (FF[0,0] - FF[1,1]) / (two * sinmuy)
 
-    sbetx_ = sbetx
-    sbety_ = sbety
+        r11[idx] = R_edw_teng[0,0]
+        r12[idx] = R_edw_teng[0,1]
+        r21[idx] = R_edw_teng[1,0]
+        r22[idx] = R_edw_teng[1,1]
+        betx_et[idx] = betx_et_this
+        alfx_et[idx] = alfx_et_this
+        bety_et[idx] = bety_et_this
+        alfy_et[idx] = alfy_et_this
 
-    ga = np.array([
-        [1 / sbetx_, np.zeros_like(sbetx_)],
-        [alfx_ / sbetx_, sbetx_],
-    ]).transpose(2, 0, 1)
+    rdts = _compute_coupling_rdts(r11, r12, r21, r22,
+                                   betx_et, bety_et, alfx_et, alfy_et)
 
-    gb_inv = np.array([
-        [sbety_, np.zeros_like(sbety_)],
-        [-alfy_ / sbety_, 1 / sbety_],
-    ]).transpose(2, 0, 1)
+    out = {
+        'r11_edw_teng': r11,
+        'r12_edw_teng': r12,
+        'r21_edw_teng': r21,
+        'r22_edw_teng': r22,
+        'betx_edw_teng': betx_et,
+        'alfx_edw_teng': alfx_et,
+        'bety_edw_teng': bety_et,
+        'alfy_edw_teng': alfy_et,
+    }
+    out.update(rdts)
 
-    r = np.array([
-        [r22, -r12],
-        [-r21, r11],
-    ])
+    return out
 
-    c = (r / np.sqrt(1 + np.linalg.det(r.T))).transpose(2, 0, 1)
+def _compute_coupling_rdts(r11, r12, r21, r22, betx, bety, alfx, alfy):
 
-    cbar = (ga @ c @ gb_inv).transpose(1, 2, 0)
+    '''
+    Developed by CERN OMC team.
+    Ported from:
+    https://pypi.org/project/optics-functions/
+    https://github.com/pylhc/optics_functions
 
-    cb = 0.25 / np.sqrt(1 - np.linalg.det(cbar.T)) * cbar
 
-    f1010 = -cb[0, 1] - cb[1, 0] + 1j * (cb[0, 0] - cb[1, 1])
-    f1001 = cb[0, 1] - cb[1, 0] + 1j * (cb[0, 0] + cb[1, 1])
+    Based on Calaga, Tomas, https://journals.aps.org/prab/pdf/10.1103/PhysRevSTAB.8.034001
+    '''
 
-    return r11.real, r12.real, r21.real, r22.real, f1010, f1001
+    n = len(r11)
+    assert len(r12) == n
+    assert len(r21) == n
+    assert len(r22) == n
+    gx, r, inv_gy = np.zeros((n, 2, 2)), np.zeros((n, 2, 2)), np.zeros((n, 2, 2))
+
+    # Eq. (16)  C = 1 / (1 + |R|) * -J R J
+    # rs form after -J R^T J
+    r[:, 0, 0] = r22
+    r[:, 0, 1] = -r12
+    r[:, 1, 0] = -r21
+    r[:, 1, 1] = r11
+
+    r *= 1 / np.sqrt(1 + np.linalg.det(r)[:, None, None])
+
+    # Cbar = Gx * C * Gy^-1,   Eq. (5)
+    sqrt_betax = np.sqrt(betx)
+    sqrt_betay = np.sqrt(bety)
+
+    gx[:, 0, 0] = 1 / sqrt_betax
+    gx[:, 1, 0] = alfx * gx[:, 0, 0]
+    gx[:, 1, 1] = sqrt_betax
+
+    inv_gy[:, 1, 1] = 1 / sqrt_betay
+    inv_gy[:, 1, 0] = -alfy * inv_gy[:, 1, 1]
+    inv_gy[:, 0, 0] = sqrt_betay
+
+    c = np.matmul(gx, np.matmul(r, inv_gy))
+    gamma = np.sqrt(1 - np.linalg.det(c))
+
+    # Eq. (9) and Eq. (10)
+    denom = 1 / (4 * gamma)
+    f1001 = denom * (+c[:, 0, 1] - c[:, 1, 0] + (c[:, 0, 0] + c[:, 1, 1]) * 1j)
+    f1010 = denom * (-c[:, 0, 1] - c[:, 1, 0] + (c[:, 0, 0] - c[:, 1, 1]) * 1j)
+
+    return {'f1001': f1001, 'f1010': f1010}
 
 def _conj_mat(mm):
     a = mm[0,0]

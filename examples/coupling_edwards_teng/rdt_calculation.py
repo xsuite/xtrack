@@ -6,6 +6,8 @@ def compute_rdt(r11, r12, r21, r22, betx, bety, alfx, alfy):
     Ported from:
     https://pypi.org/project/optics-functions/
     https://github.com/pylhc/optics_functions
+
+    Based on Calaga, Tomas, https://journals.aps.org/prab/pdf/10.1103/PhysRevSTAB.8.034001
     '''
 
     n = len(r11)
