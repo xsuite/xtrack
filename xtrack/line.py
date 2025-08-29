@@ -496,6 +496,7 @@ class Line:
         allow_thick=None,
         name_prefix=None,
         enable_layout_data=False,
+        enable_thick_kickers=True
     ):
 
         """
@@ -544,6 +545,9 @@ class Line:
             Line object.
 
         """
+
+        if not enable_thick_kickers:
+            raise "On-the-fly kicker slicing not supported anymore"
 
         class_namespace = mk_class_namespace(classes)
 
