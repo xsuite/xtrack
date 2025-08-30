@@ -3030,11 +3030,15 @@ class TwissInit:
                 betx=self._temp_optics_data['betx'],
                 bety=self._temp_optics_data['bety'],
                 alfx=self._temp_optics_data['alfx'] * (-1 if input_reversed else 1),
+                # alfx=self._temp_optics_data['alfx'],
                 alfy=self._temp_optics_data['alfy'] * (-1 if input_reversed else 1),
+                # alfy=self._temp_optics_data['alfy'],
                 dx=self._temp_optics_data['dx'] * (-1 if input_reversed else 1),
+                # dx=self._temp_optics_data['dx'],
                 dy=self._temp_optics_data['dy'],
                 dpx=self._temp_optics_data['dpx'],
                 dpy=self._temp_optics_data['dpy'] * (-1 if input_reversed else 1),
+                # dpy=self._temp_optics_data['dpy'],
             )
 
             # aux_segment = xt.LineSegmentMap(
@@ -3059,15 +3063,23 @@ class TwissInit:
             # aux_line.build_tracker()
             # aux_tw = aux_line.twiss()
             # old_W_matrix = aux_tw.W_matrix[0]
-            # breakpoint()
 
             if input_reversed:
+                # old_W_matrix[0, :] = -old_W_matrix[0, :]
+                # old_W_matrix[1, :] = old_W_matrix[1, :]
+                # old_W_matrix[2, :] = old_W_matrix[2, :]
+                # old_W_matrix[3, :] = -old_W_matrix[3, :]
+                # old_W_matrix[4, :] = -old_W_matrix[4, :]
+                # old_W_matrix[5, :] = old_W_matrix[5, :]
+
                 W_matrix[0, :] = -W_matrix[0, :]
-                W_matrix[1, :] = W_matrix[1, :]
-                W_matrix[2, :] = W_matrix[2, :]
                 W_matrix[3, :] = -W_matrix[3, :]
                 W_matrix[4, :] = -W_matrix[4, :]
-                W_matrix[5, :] = W_matrix[5, :]
+                # W_matrix[:, 0] = -W_matrix[:, 0]
+                # W_matrix[:, 3] = -W_matrix[:, 3]
+                # W_matrix[:, 4] = -W_matrix[:, 4]
+
+            if input_reversed:
                 self.reference_frame = 'reverse'
 
             self.W_matrix = W_matrix
@@ -5083,8 +5095,8 @@ def _compute_trajectory_curvatures(twiss_res):
 def _2d_w_matrix(bet, alf):
     sqrt_bet = np.sqrt(bet)
     return np.array([
-        [sqrt_bet,     0],
-        [alf/sqrt_bet, 1/sqrt_bet]
+        [sqrt_bet,      0.],
+        [-alf/sqrt_bet, 1/sqrt_bet]
     ])
 
 def _6d_w_matrix(betx, bety, alfx, alfy, bets, dx, dpx, dy, dpy):
