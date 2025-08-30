@@ -484,6 +484,7 @@ class Tracker:
                              int flag_monitor,
                              int num_ele_line,
                              double line_length,
+                             int64_t track_flags,
                 /*gpuglmem*/ int8_t* buffer_tbt_monitor,
                              int64_t offset_tbt_monitor,
                 /*gpuglmem*/ int8_t* io_buffer){
@@ -706,6 +707,7 @@ class Tracker:
                     xo.Arg(xo.Int32, name="flag_monitor"),
                     xo.Arg(xo.Int32, name='num_ele_line'),
                     xo.Arg(xo.Float64, name='line_length'),
+                    xo.Arg(xo.Int64, name='track_flags'),
                     xo.Arg(xo.Int8, pointer=True, name="buffer_tbt_monitor"),
                     xo.Arg(xo.Int64, name="offset_tbt_monitor"),
                     xo.Arg(xo.Int8, pointer=True, name="io_buffer"),
