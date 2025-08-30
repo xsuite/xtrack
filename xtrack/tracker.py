@@ -496,7 +496,7 @@ class Tracker:
 
                 #ifndef XT_OMP_SKIP_REORGANIZE
                     const int64_t num_particles_to_track = ParticlesData_get__num_active_particles(particles);
-                    
+
                     {
                         LocalParticle lpart;
                         lpart.io_buffer = io_buffer;
@@ -508,10 +508,10 @@ class Tracker:
                 #else // When we skip reorganize, we cannot just batch active particles
                     const int64_t num_particles_to_track = capacity;
                 #endif
-                
+
                 const int64_t chunk_size = (num_particles_to_track + num_threads - 1)/num_threads; // ceil division
             #endif // CONTEXT_OPENMP
-            
+
             #pragma omp parallel for                                                           //only_for_context cpu_openmp
             for (int chunk = 0; chunk < num_threads; chunk++) {                                //only_for_context cpu_openmp
             int64_t part_id = chunk * chunk_size;                                              //only_for_context cpu_openmp
@@ -525,6 +525,7 @@ class Tracker:
 
             LocalParticle lpart;
             lpart.io_buffer = io_buffer;
+            lpart.track_flags = track_flags;
 
             /*gpuglmem*/ int8_t* tbt_mon_pointer =
                             buffer_tbt_monitor + offset_tbt_monitor;
