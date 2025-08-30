@@ -23,6 +23,7 @@ from .line import freeze_longitudinal as _freeze_longitudinal
 from .pipeline import PipelineStatus
 from .progress_indicator import progress
 from .tracker_data import TrackerData
+from .track_flags import TrackFlags
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +74,7 @@ class Tracker:
         self.local_particle_src = local_particle_src
         self._enable_pipeline_hold = enable_pipeline_hold
         self.use_prebuilt_kernels = use_prebuilt_kernels
+        self.track_flags = TrackFlags()
 
         # Some data for collective mode prepared also for non-collective lines
         # to allow collective actions by the tracker (e.g. time-functions on knobs)
@@ -464,6 +466,7 @@ class Tracker:
 
         headers.extend(self.extra_headers)
         headers.append(_pkg_root.joinpath("headers/constants.h"))
+        headers.append(self.track_flags.c_header_flag_mapping)
 
         src_lines = []
         src_lines.append(
