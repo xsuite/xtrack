@@ -3058,7 +3058,8 @@ class TwissInit:
             # aux_line.particle_ref.reorganize()
             # aux_line.build_tracker()
             # aux_tw = aux_line.twiss()
-            # W_matrix = aux_tw.W_matrix[0]
+            # old_W_matrix = aux_tw.W_matrix[0]
+            # breakpoint()
 
             if input_reversed:
                 W_matrix[0, :] = -W_matrix[0, :]
@@ -5092,8 +5093,8 @@ def _6d_w_matrix(betx, bety, alfx, alfy, bets, dx, dpx, dy, dpy):
     out[0:2, 0:2] = _2d_w_matrix(betx, alfx)
     out[2:4, 2:4] = _2d_w_matrix(bety, alfy)
     out[4:6, 4:6] = _2d_w_matrix(bets, 0)
-    out[0, 4] = dx
-    out[1, 4] = dpx
+    out[0, 5] = dx
+    out[1, 5] = dpx
     out[2, 5] = dy
     out[3, 5] = dpy
     return out
