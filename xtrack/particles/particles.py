@@ -1444,6 +1444,14 @@ class Particles(xo.HybridClass):
 
             ''')
 
+        # Get track flag
+        src_lines.append('''
+            /*gpufun*/
+            uint64_t LocalParticle_check_track_flag(LocalParticle* part, uint8_t index){
+                return (part->track_flags >> index) & 1;
+            }
+        ''')
+
         # Particles_to_LocalParticle
         src_lines.append('''
             /*gpufun*/

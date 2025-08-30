@@ -6,7 +6,6 @@
 #define XTRACK_TRACK_RF_H
 
 #include <headers/track.h>
-#include <headers/getbit.h>
 #include <beam_elements/elements_src/track_magnet_drift.h>
 #include <beam_elements/elements_src/track_magnet_configure.h>
 
@@ -243,7 +242,8 @@ void track_rf_particles(
 
     double factor_knl_ksl = 1.0;
 
-    uint8_t kill_energy_kick = GET_BIT(part0->track_flags, XS_KILL_CAVITY_KICK);
+    uint8_t kill_energy_kick = LocalParticle_check_track_flag(
+                                        part0, XS_KILL_CAVITY_KICK);
 
     // Backtracking
     #ifdef XSUITE_BACKTRACK
