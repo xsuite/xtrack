@@ -1429,6 +1429,7 @@ class Particles(xo.HybridClass):
 
         src_lines.append('                 int64_t ipart;')
         src_lines.append('                 int64_t endpart;')
+        src_lines.append('                 uint64_t track_flags;')
         src_lines.append('    /*gpuglmem*/ int8_t* io_buffer;')
         src_lines.append('} LocalParticle;')
         src_typedef = '\n'.join(src_lines)

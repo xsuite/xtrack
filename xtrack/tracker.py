@@ -496,7 +496,7 @@ class Tracker:
 
                 #ifndef XT_OMP_SKIP_REORGANIZE
                     const int64_t num_particles_to_track = ParticlesData_get__num_active_particles(particles);
-                    
+                    lpart->track_flags = track_flags;
                     {
                         LocalParticle lpart;
                         lpart.io_buffer = io_buffer;
@@ -1147,6 +1147,8 @@ class Tracker:
         if isinstance(ele_start, str):
             ele_start = self.line.element_names.index(ele_start)
 
+        track_flags = self.track_flags.make_flags_register()
+
         if ele_start is None:
             ele_start = 0
 
@@ -1260,6 +1262,7 @@ class Tracker:
             buffer_tbt_monitor=buffer_monitor,
             offset_tbt_monitor=offset_monitor,
             io_buffer=self.io_buffer.buffer,
+            track_flags=track_flags
         )
 
         # Middle turns
@@ -1280,6 +1283,7 @@ class Tracker:
                 buffer_tbt_monitor=buffer_monitor,
                 offset_tbt_monitor=offset_monitor,
                 io_buffer=self.io_buffer.buffer,
+                track_flags=track_flags
             )
 
         # Last turn, only if incomplete
@@ -1300,6 +1304,7 @@ class Tracker:
                 buffer_tbt_monitor=buffer_monitor,
                 offset_tbt_monitor=offset_monitor,
                 io_buffer=self.io_buffer.buffer,
+                track_flags=track_flags
             )
 
         self.record_last_track = monitor

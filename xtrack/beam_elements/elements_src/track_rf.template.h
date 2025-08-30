@@ -6,6 +6,7 @@
 #define XTRACK_TRACK_RF_H
 
 #include <headers/track.h>
+#include <headers/getbit.h>
 #include <beam_elements/elements_src/track_magnet_drift.h>
 #include <beam_elements/elements_src/track_magnet_configure.h>
 
@@ -28,7 +29,8 @@ void track_rf_kick_single_particle(
     GPUGLMEM const double* knl,
     GPUGLMEM const double* ksl,
     GPUGLMEM const double* pn,
-    GPUGLMEM const double* ps
+    GPUGLMEM const double* ps,
+    uint8_t kill_energy_kick
 ){
 
     double phase0 = 0;
@@ -139,12 +141,13 @@ void track_rf_kick_single_particle(
 
     }
 
-
-    #ifdef XTRACK_CAVITY_PRESERVE_ANGLE
-    LocalParticle_add_to_energy(part, energy_kick + rfmultipole_energy_kick, 0);
-    #else
-    LocalParticle_add_to_energy(part, energy_kick + rfmultipole_energy_kick, 1);
-    #endif
+    if (!kill_energy_kick) {
+        #ifdef XTRACK_CAVITY_PRESERVE_ANGLE
+        LocalParticle_add_to_energy(part, energy_kick + rfmultipole_energy_kick, 0);
+        #else
+        LocalParticle_add_to_energy(part, energy_kick + rfmultipole_energy_kick, 1);
+        #endif
+    }
 
 }
 
@@ -167,7 +170,8 @@ void track_rf_body_single_particle(
     GPUGLMEM const double* ps,
     const int64_t num_kicks,
     const int8_t drift_model,
-    const int8_t integrator
+    const int8_t integrator,
+    const uint8_t kill_energy_kick
 ) {
 
     #define RF_KICK(part, kick_weight) \
@@ -175,7 +179,8 @@ void track_rf_body_single_particle(
             part, voltage * (kick_weight), frequency, lag,\
             transverse_voltage * (kick_weight), transverse_lag,\
             absolute_time, order, \
-            factor_knl_ksl * (kick_weight), knl, ksl, pn, ps\
+            factor_knl_ksl * (kick_weight), knl, ksl, pn, ps,\
+            kill_energy_kick\
         )
 
     #define RF_DRIFT(part, dlength) \
@@ -237,6 +242,8 @@ void track_rf_particles(
 ) {
 
     double factor_knl_ksl = 1.0;
+
+    uint8_t kill_energy_kick = GET_BIT(part0->track_flags, XS_KILL_CAVITY_KICK);
 
     // Backtracking
     #ifdef XSUITE_BACKTRACK
