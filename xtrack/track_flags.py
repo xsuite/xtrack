@@ -47,12 +47,16 @@ class TrackFlags:
         return np.uint64(reg)
 
     def __getattr__(self, name):
+        if name == 'flags':
+            return object.__getattribute__(self, 'flags')
         if name in self.flags:
             return self.flags[name]
         raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
 
     def __setattr__(self, name, value):
-        assert value in (True, False)
+        if name == 'flags': # for unpickling
+            object.__setattr__(self, 'flags', value)
+            return
         if name not in self.flags:
             raise KeyError(f"Unknown flag '{name}'")
         self.flags[name] = value
