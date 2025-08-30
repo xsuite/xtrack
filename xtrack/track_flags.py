@@ -3,17 +3,17 @@ import numpy as np
 flag_mapping = {
     'XS_FLAG_BACKTRACK': 0,
     'XS_FLAG_TAPER': 1,
-    'XS_KILL_CAVITY_KICK': 2,
-    'XS_IGNORE_GLOBAL_APERTURE': 3,
-    'XS_IGNORE_LOCAL_APERTURE': 4
+    'XS_FLAG_KILL_CAVITY_KICK': 2,
+    'XS_FLAG_IGNORE_GLOBAL_APERTURE': 3,
+    'XS_FLAG_IGNORE_LOCAL_APERTURE': 4
 }
 
 flag_defaults = {
     'XS_FLAG_BACKTRACK': False,
     'XS_FLAG_TAPER': False,
-    'XS_KILL_CAVITY_KICK': False,
-    'XS_IGNORE_GLOBAL_APERTURE': False,
-    'XS_IGNORE_LOCAL_APERTURE': False
+    'XS_FLAG_KILL_CAVITY_KICK': False,
+    'XS_FLAG_IGNORE_GLOBAL_APERTURE': False,
+    'XS_FLAG_IGNORE_LOCAL_APERTURE': False
 }
 
 c_header_flag_mapping = """

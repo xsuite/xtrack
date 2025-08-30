@@ -466,6 +466,7 @@ class Tracker:
 
         headers.extend(self.extra_headers)
         headers.append(_pkg_root.joinpath("headers/constants.h"))
+        headers.append(self.track_flags.c_header_flag_mapping)
 
         src_lines = []
         src_lines.append(

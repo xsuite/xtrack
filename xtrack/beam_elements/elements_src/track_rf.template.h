@@ -237,6 +237,8 @@ void track_rf_particles(
 ) {
 
     double factor_knl_ksl = 1.0;
+    uint8_t kill_energy_kick = LocalParticle_check_track_flag(
+                    part0, XS_FLAG_KILL_CAVITY_KICK);
 
     // Backtracking
     #ifdef XSUITE_BACKTRACK
