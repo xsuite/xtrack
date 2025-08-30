@@ -141,6 +141,7 @@ void track_rf_kick_single_particle(
 
     }
 
+    printf("kill_energy_kick: %d\n", kill_energy_kick);
     if (!kill_energy_kick) {
         #ifdef XTRACK_CAVITY_PRESERVE_ANGLE
         LocalParticle_add_to_energy(part, energy_kick + rfmultipole_energy_kick, 0);
@@ -324,6 +325,8 @@ void track_rf_particles(
 
     double factor_knl_ksl = 1.0;
 
+    uint64_t track_flags = part0->track_flags;
+    printf("track_flags: %llu\n", (unsigned long long)track_flags);
     uint8_t kill_energy_kick = GET_BIT(part0->track_flags, XS_KILL_CAVITY_KICK);
 
     // Backtracking
