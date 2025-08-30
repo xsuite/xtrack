@@ -1373,13 +1373,16 @@ def _compute_coupling_elements_edwards_teng(
         CC = RR[2:4, :2]
         DD = RR[2:4, 2:4]
 
-        tr = np.linalg.trace
-        b_pl_c = CC + _conj_mat(BB)
-        det_bc = np.linalg.det(b_pl_c)
-        tr_a_m_tr_d = tr(AA) - tr(DD)
-        coeff = - (0.5 * tr_a_m_tr_d
-            + np.sign(det_bc) * np.sqrt(det_bc + 0.25 * tr_a_m_tr_d**2))
-        R_edw_teng = 1/coeff * b_pl_c
+        if np.linalg.norm(BB) < 1e-12 and np.linalg.norm(CC) < 1e-12:
+            R_edw_teng = np.zeros((2, 2))
+        else:
+            tr = np.linalg.trace
+            b_pl_c = CC + _conj_mat(BB)
+            det_bc = np.linalg.det(b_pl_c)
+            tr_a_m_tr_d = tr(AA) - tr(DD)
+            coeff = - (0.5 * tr_a_m_tr_d
+                + np.sign(det_bc) * np.sqrt(det_bc + 0.25 * tr_a_m_tr_d**2))
+            R_edw_teng = 1/coeff * b_pl_c
 
         EE = AA - BB@R_edw_teng
         FF = DD + R_edw_teng@BB
