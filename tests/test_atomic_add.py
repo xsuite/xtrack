@@ -9,14 +9,15 @@ import numpy as np
 import xtrack as xt
 import xobjects as xo
 from xobjects.test_helpers import for_all_test_contexts
-test_context = xo.ContextCupy()
-ctype = xo.UInt64
+
 
 @for_all_test_contexts
 @pytest.mark.parametrize("ctype", [xo.Int8, xo.Int16, xo.Int32, xo.Int64,
                                    xo.UInt8, xo.UInt16, xo.UInt32,
                                    xo.UInt64, xo.Float32, xo.Float64])
 def test_atomic(ctype, test_context):
+    if not isinstance(test_context, xo.ContextCupy):
+        pytest.skip('Only test atomicAdd on CUDA')
     class TestAtomic(xt.BeamElement):
         _xofields = {f'val':  ctype}
         allow_track = False
@@ -29,10 +30,21 @@ def test_atomic(ctype, test_context):
                              GPUGLMEM {ctype._c_type}* retvals, int length) {{
             VECTORIZE_OVER(ii, length);
                 GPUGLMEM {ctype._c_type}* val = TestAtomicData_getp_val(el);
-                {ctype._c_type} ret = atomicAdd(val, increments[ii]);
+                {ctype._c_type} ret = atomicAdd_{ctype.__name__.lower()[0]}{ctype.__name__.split('t')[1]}(val, increments[ii]);
+                //{ctype._c_type} ret = atomicAdd(val, increments[ii]);
                 retvals[ii] = ret;
             END_VECTORIZE;
         }}
+
+//        GPUKERN
+//        void run_atomic_test_overloaded(TestAtomicData el, GPUGLMEM {ctype._c_type}* increments,
+//                                        GPUGLMEM {ctype._c_type}* retvals, int length) {{
+//            VECTORIZE_OVER(ii, length);
+//                GPUGLMEM {ctype._c_type}* val = TestAtomicData_getp_val(el);
+//                {ctype._c_type} ret = atomicAdd(val, increments[ii]);
+//                retvals[ii] = ret;
+//            END_VECTORIZE;
+//        }}
         ''']
 
         _kernels = {

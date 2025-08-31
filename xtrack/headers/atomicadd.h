@@ -74,32 +74,12 @@ DEF_ATOMIC_ADD(double  , f64)
 
 
 // ################################# //
-// ###        CUDA Context       ### //
+// ###        GPU Contexts       ### //
 // ################################# //
 
-#ifdef XO_CONTEXT_CUDA
-// CUDA provides atomicAdd() natively, but only for floats, doubles, 32/64-bit
-// unsigned integers, and 32-bit signed integers. We will add the other integer
-// types (8/16-bit signed/unsigned and 64-bit signed) via CAS using templates.
-
-// CUDA compiler may not have <stdint.h>, so define the types if needed.
-#ifdef __CUDACC_RTC__
-    // NVRTC (CuPy RawModule default) can’t see <stdint.h>, so detect it via __CUDACC_RTC__
-    typedef signed char        int8_t;
-    typedef short              int16_t;
-    typedef int                int32_t;
-    typedef long long          int64_t;
-    typedef unsigned char      uint8_t;
-    typedef unsigned short     uint16_t;
-    typedef unsigned int       uint32_t;
-    typedef unsigned long long uint64_t;
-#else
-    // Alternatively, NVCC path is fine with host headers
-    #include <stdint.h>
-#endif // __CUDACC_RTC__
-
-/* -------------- Design notes ------------------------------------------------
- * We implement 8/16-bit atomic add by atomically CAS'ing the *containing*
+/* -------------- Design notes for GPU atomics ---------------------------------
+* We will go for a unified approach for CUDA and OpenCL, with macros where needed.
+* We implement 8/16-bit atomic add by atomically CAS'ing the *containing*
  * 32-bit word. Only the target byte/halfword lane is modified; the neighbor
  * lane is preserved. This is linearisable: each successful CAS is one atomic
  * RMW on the 32-bit word.
@@ -108,378 +88,371 @@ DEF_ATOMIC_ADD(double  , f64)
  * Return value matches CUDA semantics: the **old** value at *addr* (fetch-add).
  * ---------------------------------------------------------------------------*/
 
-// Helper: compute (base 32-bit word pointer, shift, mask) for a byte in that word.
-GPUFUN void __xt_lane8(const void* addr, uint32_t*& word, uint32_t& shift, uint32_t& mask){
-    uint64_t a = (uint64_t)addr;
-    word  = (uint32_t*)(a & ~3ULL);        // align down to 4-byte boundary
-    shift = (uint32_t)((a & 3ULL) * 8ULL); // 0,8,16,24 depending on byte lane
-    mask  = 0xFFu << shift;
-}
+// Info: a CAS function (Compare-And-Swap) takes three arguments: a pointer to
+// the value to be modified, the expected old value, and the new value. The
+// second argument helps to recognise if another thread has modified the value
+// in the meantime. The function compares the value at the address with the
+// expected values, and if they are the same, it writes the new value at the
+// address. In any case, the function returns the actual old value at the
+// address. If the returned value is different from the expected value, it
+// means that another thread has modified the value in the meantime.
 
-// Helper: same for a halfword (16-bit) in the containing 32-bit word.
-GPUFUN void __xt_lane16(const void* addr, uint32_t*& word, uint32_t& shift, uint32_t& mask){
-    uint64_t a = (uint64_t)addr;
-    word  = (uint32_t*)(a & ~3ULL);            // align down to 4-byte boundary
-    shift = (uint32_t)((a & 2ULL) ? 16U : 0U); // 0 or 16 depending on halfword
-    mask  = 0xFFFFu << shift;
-}
+// Define types and macros for CUDA and OpenCL
+// -------------------------------------------
+#if defined(XO_CONTEXT_CUDA)
+    // CUDA compiler may not have <stdint.h>, so define the types if needed.
+    #ifdef __CUDACC_RTC__
+        // NVRTC (CuPy RawModule default) can’t see <stdint.h>, so detect it via __CUDACC_RTC__
+        typedef signed char        int8_t;
+        typedef short              int16_t;
+        typedef int                int32_t;
+        typedef long long          int64_t;
+        typedef unsigned char      uint8_t;
+        typedef unsigned short     uint16_t;
+        typedef unsigned int       uint32_t;
+        typedef unsigned long long uint64_t;
+    #else
+        // Alternatively, NVCC path is fine with host headers
+        #include <stdint.h>
+    #endif // __CUDACC_RTC__
+    #define GPUVOLATILE    GPUGLMEM
+    #define __XT_CAS_U32(ptr, exp, val) atomicCAS((GPUVOLATILE uint32_t*)(ptr), (uint32_t)(exp), (uint32_t)(val))
+    #define __XT_CAS_U64(ptr, exp, val) atomicCAS((GPUVOLATILE uint64_t*)(ptr), (uint64_t)(exp), (uint64_t)(val))
+    #define __XT_AS_U32_FROM_F32(x) __float_as_uint(x)
+    #define __XT_AS_F32_FROM_U32(x) __uint_as_float(x)
+    #define __XT_AS_U64_FROM_F64(x) __double_as_longlong(x)
+    #define __XT_AS_F64_FROM_U64(x) __longlong_as_double(x)
+#elif defined(XO_CONTEXT_CL)
+    typedef char           int8_t;
+    typedef short          int16_t;
+    typedef int            int32_t;
+    typedef long           int64_t;
+    typedef unsigned char  uint8_t;
+    typedef unsigned short uint16_t;
+    typedef unsigned int   uint32_t;
+    typedef unsigned long  uint64_t;
+    #define GPUVOLATILE    GPUGLMEM volatile
+    #if __OPENCL_C_VERSION__ < 110
+        // Map 1.0 "atom_*" names to 1.1+ "atomic_*"  
+        #pragma OPENCL EXTENSION cl_khr_global_int32_base_atomics : enable
+        #define atomic_add     atom_add
+        #define atomic_cmpxchg atom_cmpxchg
+    #endif
+    #define __XT_CAS_U32(ptr, exp, val) atomic_cmpxchg((GPUVOLATILE uint32_t*)(ptr), (uint32_t)(exp), (uint32_t)(val))
+    #define __XT_CAS_U64(ptr, exp, val) atomic_cmpxchg((GPUVOLATILE uint64_t*)(ptr), (uint64_t)(exp), (uint64_t)(val))
+    #define __XT_AS_U32_FROM_F32(x) as_uint(x)
+    #define __XT_AS_F32_FROM_U32(x) as_float(x)
+    #define __XT_AS_U64_FROM_F64(x) as_ulong(x)
+    #define __XT_AS_F64_FROM_U64(x) as_double(x)
+#endif // XO_CONTEXT_CUDA / XO_CONTEXT_CL
 
-// ---------------- 8-bit: int8_t / uint8_t (CAS on 32-bit word) --------------
-GPUFUN int8_t xt_atomicAdd_i8(int8_t* addr, int8_t val){
-    uint32_t *w, sh, mask;
-    __xt_lane8(addr, w, sh, mask);
-    uint32_t old = *w, assumed, byte, newbyte, nw;
-    do {
-        assumed = old;
-        byte    = (assumed & mask) >> sh;   // Extract current 8-bit lane
-        newbyte = (uint32_t)((uint8_t)byte + (uint8_t)val);  // Add in modulo-256 (two's complement)
-        nw      = (assumed & ~mask) | ((newbyte & 0xFFu) << sh);  // Merge back updated lane; leave neighbor lanes intact
-        // Try to publish; if someone raced us, retry with their value
-        old     = atomicCAS(w, assumed, nw);
-    } while (old != assumed);
-    return (int8_t)((assumed & mask) >> sh);
-}
+// Define atomic functions per type
+// --------------------------------
+#if defined(XO_CONTEXT_CUDA) || defined(XO_CONTEXT_CL)
+    // Helper: compute (base 32-bit word pointer, shift, mask) for a byte in that word.
+    GPUFUN inline void __xt_lane8(const void* addr, GPUVOLATILE uint32_t** w, uint32_t* sh, uint32_t* mask){
+        size_t a = (size_t)addr;
+        *w    = (GPUVOLATILE uint32_t*)(a & ~(size_t)3); // word: align down to 4-byte boundary
+        *sh   = (uint32_t)((a & (size_t)3) * 8U);        // shift 0,8,16,24 depending on byte lane
+        *mask = (uint32_t)(0xFFu << *sh);
+    }
+    // Helper: same for a halfword (16-bit) in the containing 32-bit word.
+    GPUFUN inline void __xt_lane16(const void* addr, GPUVOLATILE uint32_t** w, uint32_t* sh, uint32_t* mask){
+        size_t a = (size_t)addr;
+        *w  = (GPUVOLATILE uint32_t*)(a & ~(size_t)3);  // word: align down to 4-byte boundary
+        *sh = (uint32_t)((a & (size_t)2) ? 16U : 0U);   // shift0 or 16 depending on halfword
+        *mask  = (uint32_t)(0xFFFFU << *sh);
+    }
 
-GPUFUN uint8_t xt_atomicAdd_u8(uint8_t* addr, uint8_t val){
-    uint32_t *w, sh, mask;
-    __xt_lane8(addr, w, sh, mask);
-    uint32_t old = *w, assumed, byte, newbyte, nw;
-    do {
-        assumed = old;
-        byte    = (assumed & mask) >> sh;
-        newbyte = (uint32_t)(byte + val);       // modulo-256
-        nw      = (assumed & ~mask) | ((newbyte & 0xFFu) << sh);
-        old     = atomicCAS(w, assumed, nw);
-    } while (old != assumed);
-    return (uint8_t)((assumed & mask) >> sh);
-}
+    // ---------------- 8-bit: int8_t / uint8_t (CAS on 32-bit word) --------------
+    GPUFUN int8_t atomicAdd_i8(GPUVOLATILE int8_t* addr, int8_t val){
+        GPUVOLATILE uint32_t *w;
+        uint32_t sh, mask;
+        __xt_lane8(addr, &w, &sh, &mask);
+        uint32_t old = *w, assumed, b, nb, nw;  // byte, newbyte, newword
+        do {
+            assumed = old;
+            b  = (assumed & mask) >> sh;                    // Extract current 8-bit lane
+            nb = (uint32_t)((uint8_t)b + (uint8_t)val);     // Add in modulo-256 (two's complement)
+            nw = (assumed & ~mask) | ((nb & 0xFFU) << sh);  // Merge back updated lane; leave neighbor lanes intact
+            // Try to publish; if someone raced us, retry with their value
+            old = __XT_CAS_U32(w, assumed, nw);
+        } while (old != assumed);
+        return (int8_t)((assumed & mask) >> sh);
+    }
+    GPUFUN uint8_t atomicAdd_u8(GPUVOLATILE uint8_t* addr, uint8_t val){
+        GPUVOLATILE uint32_t *w;
+        uint32_t sh, mask;
+        __xt_lane8(addr, &w, &sh, &mask);
+        uint32_t old = *w, assumed, b, nb, nw;
+        do {
+            assumed = old;
+            b  = (assumed & mask) >> sh;
+            nb = (uint32_t)(b + val);                             /* mod 256 */
+            nw = (assumed & ~mask) | ((nb & 0xFFU) << sh);
+            old = __XT_CAS_U32(w, assumed, nw);
+        } while (old != assumed);
+        return (uint8_t)((assumed & mask) >> sh);
+    }
 
-// ---------------- 16-bit: int16_t / uint16_t (CAS on 32-bit word) -----------
-GPUFUN int16_t xt_atomicAdd_i16(int16_t* addr, int16_t val){
-    uint32_t *w, sh, mask;
-    __xt_lane16(addr, w, sh, mask);
-    uint32_t old = *w, assumed, half, newhalf, nw;
-    do {
-        assumed = old;
-        half    = (assumed & mask) >> sh;                     // current 16-bit lane
-        newhalf = (uint32_t)((uint16_t)half + (uint16_t)val); // modulo-65536
-        nw      = (assumed & ~mask) | ((newhalf & 0xFFFFu) << sh);
-        old     = atomicCAS(w, assumed, nw);
-    } while (old != assumed);
-    return (int16_t)((assumed & mask) >> sh);
-}
+    // ---------------- 16-bit: int16_t / uint16_t (CAS on 32-bit word) -----------
+    GPUFUN int16_t atomicAdd_i16(GPUVOLATILE int16_t* addr, int16_t val){
+        GPUVOLATILE uint32_t* w;
+        uint32_t sh, mask;
+        __xt_lane16(addr, &w, &sh, &mask);
+        uint32_t old = *w, assumed, b, nb, nw;
+        do {
+            assumed = old;
+            b  = (assumed & mask) >> sh;
+            nb = (uint32_t)((uint16_t)b + (uint16_t)val);
+            nw = (assumed & ~mask) | ((nb & 0xFFFFU) << sh);
+            old = __XT_CAS_U32(w, assumed, nw);
+        } while (old != assumed);
+        return (int16_t)((assumed & mask) >> sh);
+    }
+    GPUFUN uint16_t atomicAdd_u16(GPUVOLATILE uint16_t* addr, uint16_t val){
+        GPUVOLATILE uint32_t* w;
+        uint32_t sh, mask;
+        __xt_lane16(addr, &w, &sh, &mask);
+        uint32_t old = *w, assumed, b, nb, nw;
+        do {
+            assumed = old;
+            b  = (assumed & mask) >> sh;
+            nb = (uint32_t)(b + val);
+            nw = (assumed & ~mask) | ((nb & 0xFFFFU) << sh);
+            old = __XT_CAS_U32(w, assumed, nw);
+        } while (old != assumed);
+        return (uint16_t)((assumed & mask) >> sh);
+    }
 
-GPUFUN uint16_t xt_atomicAdd_u16(uint16_t* addr, uint16_t val){
-    uint32_t *w, sh, mask;
-    __xt_lane16(addr, w, sh, mask);
-    uint32_t old = *w, assumed, half, newhalf, nw;
-    do {
-        assumed = old;
-        half    = (assumed & mask) >> sh;
-        newhalf = (uint32_t)(half + val);                   // modulo-65536
-        nw      = (assumed & ~mask) | ((newhalf & 0xFFFFu) << sh);
-        old     = atomicCAS(w, assumed, nw);
-    } while (old != assumed);
-    return (uint16_t)((assumed & mask) >> sh);
+    // ---------------- 32-bit: int32_t / uint32_t (built-in) -----------
+    GPUFUN int32_t atomicAdd_i32(GPUVOLATILE int32_t* addr, int32_t val){
+    #ifdef XO_CONTEXT_CUDA
+        return atomicAdd(addr, val);
+    #else // XO_CONTEXT_CL
+        return atomic_add(addr, val);
+    #endif // XO_CONTEXT_CUDA / XO_CONTEXT_CL
+    }
+    GPUFUN uint32_t atomicAdd_u32(GPUVOLATILE uint32_t* addr, uint32_t val){
+    #ifdef XO_CONTEXT_CUDA
+        return atomicAdd(addr, val);
+    #else // XO_CONTEXT_CL
+        return atomic_add(addr, val);
+    #endif // XO_CONTEXT_CUDA / XO_CONTEXT_CL
+    }
 
-// ---------------- 64-bit: double (built-in or CAS on 64-bit word) -----------
-#if not defined(__CUDA_ARCH__) || (__CUDA_ARCH__ < 600)
-// Old hardware does not have the built-in atomicAdd for doubles, so we use
-// a bitwise CAS loop on the 64-bit value.
-GPUFUN  double   xt_atomicAdd_f64(double* p, double v) {
-    uint64_t* w = (uint64_t*)p;
-    uint64_t old = *w, assumed, nw;
-    do {
-        assumed = old;
-        double cur = __longlong_as_double(assumed);
-        double sum = cur + v;
-        nw = __double_as_longlong(sum);
-        old = atomicCAS(w, assumed, nw);
-    } while (old != assumed);
-    return __longlong_as_double(assumed);
-#endif
-}
+    // ---------------- 64-bit: int64_t / uint64_t (built-in or CAS on 64-bit word) -----------
+    GPUFUN uint64_t atomicAdd_u64(GPUVOLATILE uint64_t* addr, uint64_t val){
+        return atomicAdd(addr, val);
+    }
+    GPUFUN int64_t atomicAdd_i64(GPUVOLATILE int64_t* addr, int64_t val){
+        GPUVOLATILE uint64_t* w = (uint64_t*)addr;
+        uint64_t old = *w, assumed, nw;
+        do {
+            assumed = old;
+            nw = assumed + val;
+            old = __XT_CAS_U64(w, assumed, nw);
+        } while (old != assumed);
+        return assumed;
+    }
 
-// NVRTC (CuPy RawModule) usually compiles under extern "C".
-// Overloads are C++ only; force C++ linkage just for this block.
-#ifdef __cplusplus
-extern "C++" {
+    // ---------------- 32-bit: float (built-in or CAS on 32-bit word) -----------
+    GPUFUN float atomicAdd_f32(GPUVOLATILE float* addr, float val){
+    #ifdef XO_CONTEXT_CUDA
+        return atomicAdd(addr, val);
+    #else // XO_CONTEXT_CL
+        uint32_t old, nw;
+        do {
+            old = __XT_AS_U32_FROM_F32(*addr);
+            nw = __XT_AS_U32_FROM_F32(__XT_AS_F32_FROM_U32(old) + val);
+        } while (__XT_CAS_U32((GPUVOLATILE uint32_t*)addr, old, nw) != old);
+        return __XT_AS_F32_FROM_U32(old);
+    #endif // XO_CONTEXT_CUDA / XO_CONTEXT_CL
+    }
 
-GPUFUN int8_t   xt_atomicAdd(int8_t*  p, int8_t  v)  { return xt_atomicAdd_i8 (p, v); }
-GPUFUN uint8_t  xt_atomicAdd(uint8_t* p, uint8_t v)  { return xt_atomicAdd_u8 (p, v); }
-GPUFUN int16_t  xt_atomicAdd(int16_t* p, int16_t v)  { return xt_atomicAdd_i16(p, v); }
-GPUFUN uint16_t xt_atomicAdd(uint16_t*p, uint16_t v) { return xt_atomicAdd_u16(p, v); }
+    // ---------------- 64-bit: float (built-in or CAS on 64-bit word) -----------
+    GPUFUN double atomicAdd_f64(GPUVOLATILE double* addr, double val){
+    #if __CUDA_ARCH__ >= 600
+        return atomicAdd(addr, val);
+    #else // XO_CONTEXT_CL || __CUDA_ARCH__ < 600
+        GPUVOLATILE uint64_t* w = (uint64_t*)addr;
+        uint64_t old = *w, assumed, nw;
+        do {
+            assumed = old;
+            nw = __XT_AS_U64_FROM_F64(__XT_AS_F64_FROM_U64(assumed) + val);
+            old = __XT_CAS_U64((uint64_t*)w, assumed, nw);
+        } while (old != assumed);
+        return __XT_AS_F64_FROM_U64(old);
+    #endif // __CUDA_ARCH__ >= 600 / XO_CONTEXT_CL
+    }
+#endif // defined(XO_CONTEXT_CUDA) || defined(XO_CONTEXT_CL)
 
-// wide types: forward to CUDA built-ins
-GPUFUN int32_t  xt_atomicAdd(int32_t* p, int32_t v)   { return ::atomicAdd(p, v); }
-GPUFUN uint32_t xt_atomicAdd(uint32_t* p, uint32_t v) { return ::atomicAdd(p, v); }
-GPUFUN uint64_t xt_atomicAdd(uint64_t* p, uint64_t v) { return ::atomicAdd(p, v); }
-GPUFUN float    xt_atomicAdd(float* p, float v)       { return ::atomicAdd(p, v); }
-#if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 600)
-GPUFUN double   xt_atomicAdd(double* p, double v)     { return ::atomicAdd(p, v); }
-#else
-GPUFUN double   xt_atomicAdd(double* p, double v)     { return xt_atomicAdd_f64(p, v); }
-#endif
+// Define the overloaded function where possible
+// ---------------------------------------------
+#ifdef XO_CONTEXT_CUDA
+    // NVRTC (CuPy RawModule) usually compiles under extern "C".
+    // In C, function overloading is not possible, but we can cheat by doing it in
+    // C++ (with a different name to avoid clashes with the built-in atomicAdd).
+    // This function will then be remapped to atomicAdd() via a macro in C.
+    #ifdef __cplusplus
+    extern "C++" {
 
-}
-#endif // __cplusplus
+    GPUFUN int8_t   xt_atomicAdd(int8_t*  p, int8_t  v)  { return atomicAdd_i8 (p, v); }
+    GPUFUN uint8_t  xt_atomicAdd(uint8_t* p, uint8_t v)  { return atomicAdd_u8 (p, v); }
+    GPUFUN int16_t  xt_atomicAdd(int16_t* p, int16_t v)  { return atomicAdd_i16(p, v); }
+    GPUFUN uint16_t xt_atomicAdd(uint16_t*p, uint16_t v) { return atomicAdd_u16(p, v); }
+    GPUFUN int64_t  xt_atomicAdd(int64_t*p, int64_t v)   { return atomicAdd_i64(p, v); }
 
-// ---------- Global remap of the public name on device code ----------
-// Define AFTER the wrappers so we don't macro-rewrite our own calls.
-#if defined(__CUDACC__) || defined(__CUDACC_RTC__)
-#  ifdef atomicAdd
-#    undef atomicAdd
-#  endif
-#  define atomicAdd(ptr, val) xt_atomicAdd((ptr), (val))
-#endif
+    // Existing type definitions: forward to CUDA built-ins
+    GPUFUN int32_t  xt_atomicAdd(int32_t* p, int32_t v)   { return ::atomicAdd(p, v); }
+    GPUFUN uint32_t xt_atomicAdd(uint32_t* p, uint32_t v) { return ::atomicAdd(p, v); }
+    GPUFUN uint64_t xt_atomicAdd(uint64_t* p, uint64_t v) { return ::atomicAdd(p, v); }
+    GPUFUN float    xt_atomicAdd(float* p, float v)       { return ::atomicAdd(p, v); }
+    #if __CUDA_ARCH__ >= 600
+    GPUFUN double   xt_atomicAdd(double* p, double v)     { return ::atomicAdd(p, v); }
+    #else
+    GPUFUN double   xt_atomicAdd(double* p, double v)     { return atomicAdd_f64(p, v); }
+    #endif
+
+    }
+    #endif // __cplusplus
+
+    // ---------- Global remap of the public name on device code ----------
+    // Define AFTER the wrappers so we don't macro-rewrite our own calls.
+    #if defined(__CUDACC__) || defined(__CUDACC_RTC__)
+    #ifdef atomicAdd
+    #undef atomicAdd
+    #endif
+    #define atomicAdd(ptr, val) xt_atomicAdd((ptr), (val))
+    #endif
 
 #endif /* XO_CONTEXT_CUDA */
 
 
-// ################################# //
-// ###       OpenCL Context      ### //
-// ################################# //
+// // ################################# //
+// // ###       OpenCL Context      ### //
+// // ################################# //
 
-#ifdef XO_CONTEXT_CL
-// Note that the OpenCL context already has the types from <stdint.h> defined.
+// #ifdef XO_CONTEXT_CL
+// // Note that the OpenCL context already has the types from <stdint.h> defined.
 
-// atomic_add_compat.cl (portable)
-#pragma OPENCL EXTENSION cl_khr_fp64                   : enable
-#pragma OPENCL EXTENSION cl_khr_int64_base_atomics     : enable
-#pragma OPENCL EXTENSION cl_khr_int64_extended_atomics : enable
-// Map 1.0 "atom_*" names to 1.1+ "atomic_*" if needed.
-#if !defined(__OPENCL_C_VERSION__) || (__OPENCL_C_VERSION__ < 110)
-  #define atomic_add     atom_add
-  #define atomic_cmpxchg atom_cmpxchg
-#endif
+// #if __OPENCL_C_VERSION__ < 110
+//     // Map 1.0 "atom_*" names to 1.1+ "atomic_*"  
+//     #pragma OPENCL EXTENSION cl_khr_global_int32_base_atomics : enable
+//     #define atomic_add     atom_add
+//     #define atomic_cmpxchg atom_cmpxchg
+// #endif
 
-// #define OCL_OVERLOAD __attribute__((overloadable))
+// // #define OCL_OVERLOAD __attribute__((overloadable))
 
-// // -------- helpers: shift/mask for subword updates (little-endian) -------- 
-// inline uint _shift8(GPUGLMEM const void* p)  { return (uint)((size_t)p & 3u) * 8u; }
-// inline uint _shift16(GPUGLMEM const void* p) { return (uint)(((size_t)p & 2u) ? 16u : 0u); }
-
-// // -------------------- 8-bit integers --------------------
-// inline char  atomicAdd(volatile GPUGLMEM char  *p, char  v) {
-//     volatile GPUGLMEM uint *w = (volatile GPUGLMEM uint*)((size_t)p & ~3u);
-//     uint sh = _shift8((GPUGLMEM const void*)p), mask = 0xFFu << sh;
-//     uint old = *w, assumed, byte, newbyte, nw;
-//     do {
-//         assumed = old;
-//         byte    = (assumed & mask) >> sh;
-//         newbyte = (uint)((uchar)byte + (uchar)v);
-//         nw      = (assumed & ~mask) | ((newbyte & 0xFFu) << sh);
-//         old     = atomic_cmpxchg(w, assumed, nw);
-//     } while (old != assumed);
-//     return (char)((assumed & mask) >> sh);
-// }
-// inline uchar atomicAdd(volatile GPUGLMEM uchar *p, uchar v) {
-//     volatile GPUGLMEM uint *w = (volatile GPUGLMEM uint*)((size_t)p & ~3u);
-//     uint sh = _shift8((GPUGLMEM const void*)p), mask = 0xFFu << sh;
-//     uint old = *w, assumed, byte, newbyte, nw;
-//     do {
-//         assumed = old;
-//         byte    = (assumed & mask) >> sh;
-//         newbyte = (uint)(byte + v);
-//         nw      = (assumed & ~mask) | ((newbyte & 0xFFu) << sh);
-//         old     = atomic_cmpxchg(w, assumed, nw);
-//     } while (old != assumed);
-//     return (uchar)((assumed & mask) >> sh);
+// // -------- helpers: shift/mask for subword updates (little-endian) --------
+// GPUFUN void xcl_lane8(GPUGLMEM const void* p, GPUGLMEM volatile uint** w, uint *sh, uint *mask){
+//     size_t a = (size_t)p;
+//     *w    = (GPUGLMEM volatile uint*)(a & ~3u);      /* base 32-bit word */
+//     *sh   = (uint)((a & 3u) * 8u);                   /* 0,8,16,24 */
+//     *mask = 0xFFu << *sh;
 // }
 
-// // -------------------- 16-bit integers --------------------
-// inline short  atomicAdd(volatile GPUGLMEM short  *p, short  v) {
-//     volatile GPUGLMEM uint *w = (volatile GPUGLMEM uint*)((size_t)p & ~3u);
-//     uint sh = _shift16((GPUGLMEM const void*)p), mask = 0xFFFFu << sh;
-//     uint old = *w, assumed, half, newhalf, nw;
+// /* requires *natural 2-byte alignment* of p */
+// GPUFUN void xcl_lane16(GPUGLMEM const void* p,
+//                               GPUGLMEM volatile uint** w, uint *sh, uint *mask)
+// {
+//     size_t a = (size_t)p;
+//     *w    = (GPUGLMEM volatile uint*)(a & ~3u);
+//     *sh   = (uint)(((a & 2u) != 0u) ? 16u : 0u);     /* 0 or 16; invalid if (a&1)!=0 */
+//     *mask = 0xFFFFu << *sh;
+// }
+
+// // ---------------- 8-bit: int8_t / uint8_t (CAS on 32-bit word) --------------
+// GPUFUN int8_t atomicAdd_i8(volatile GPUGLMEM int8_t  *p, int8_t  v){
+//     volatile GPUGLMEM uint32_t *w = (volatile GPUGLMEM uint32_t*)((size_t)p & ~3u);
+//     uint32_t sh = _shift8((GPUGLMEM const void*)p), mask = 0xFFu << sh;
+//     uint32_t old = *w, assumed, thisbyte, newbyte, nw;
+//     do {
+//         assumed  = old;
+//         thisbyte = (assumed & mask) >> sh;
+//         newbyte  = (uint32_t)((uchar)thisbyte + (uchar)v);
+//         nw       = (assumed & ~mask) | ((newbyte & 0xFFu) << sh);
+//         old      = atomic_cmpxchg(w, assumed, nw);
+//     } while (old != assumed);
+//     return (int8_t)((assumed & mask) >> sh);
+// }
+// GPUFUN uint8_t atomicAdd_u8(volatile GPUGLMEM uint8_t *p, uint8_t v){
+//     volatile GPUGLMEM uint32_t *w = (volatile GPUGLMEM uint32_t*)((size_t)p & ~3u);
+//     uint32_t sh = _shift8((GPUGLMEM const void*)p), mask = 0xFFu << sh;
+//     uint32_t old = *w, assumed, thisbyte, newbyte, nw;
+//     do {
+//         assumed  = old;
+//         thisbyte = (assumed & mask) >> sh;
+//         newbyte  = (uint32_t)(thisbyte + v);
+//         nw       = (assumed & ~mask) | ((newbyte & 0xFFu) << sh);
+//         old      = atomic_cmpxchg(w, assumed, nw);
+//     } while (old != assumed);
+//     return (uint8_t)((assumed & mask) >> sh);
+// }
+
+// // ---------------- 16-bit: int16_t / uint16_t (CAS on 32-bit word) --------------
+// GPUFUN int16_t atomicAdd_i16(volatile GPUGLMEM int16_t  *p, int16_t  v){
+//     volatile GPUGLMEM uint32_t *w = (volatile GPUGLMEM uint32_t*)((size_t)p & ~3u);
+//     uint32_t sh = _shift16((GPUGLMEM const void*)p), mask = 0xFFFFu << sh;
+//     uint32_t old = *w, assumed, oldhalf, newhalf, nw;
 //     do {
 //         assumed = old;
-//         half    = (assumed & mask) >> sh;
-//         newhalf = (uint)((ushort)half + (ushort)v);
+//         oldhalf = (assumed & mask) >> sh;
+//         newhalf = (uint32_t)((uint16_t)oldhalf + (uint16_t)v);
 //         nw      = (assumed & ~mask) | ((newhalf & 0xFFFFu) << sh);
 //         old     = atomic_cmpxchg(w, assumed, nw);
 //     } while (old != assumed);
-//     return (short)((assumed & mask) >> sh);
+//     return (int16_t)((assumed & mask) >> sh);
 // }
-// inline ushort atomicAdd(volatile GPUGLMEM ushort *p, ushort v) {
-//     volatile GPUGLMEM uint *w = (volatile GPUGLMEM uint*)((size_t)p & ~3u);
-//     uint sh = _shift16((GPUGLMEM const void*)p), mask = 0xFFFFu << sh;
-//     uint old = *w, assumed, half, newhalf, nw;
+// GPUFUN uint16_t atomicAdd_u16(volatile GPUGLMEM uint16_t *p, uint16_t v){
+//     volatile GPUGLMEM uint32_t *w = (volatile GPUGLMEM uint32_t*)((size_t)p & ~3u);
+//     uint32_t sh = _shift16((GPUGLMEM const void*)p), mask = 0xFFFFu << sh;
+//     uint32_t old = *w, assumed, oldhalf, newhalf, nw;
 //     do {
 //         assumed = old;
-//         half    = (assumed & mask) >> sh;
-//         newhalf = (uint)(half + v);
+//         oldhalf = (assumed & mask) >> sh;
+//         newhalf = (uint32_t)(oldhalf + v);
 //         nw      = (assumed & ~mask) | ((newhalf & 0xFFFFu) << sh);
 //         old     = atomic_cmpxchg(w, assumed, nw);
 //     } while (old != assumed);
-//     return (ushort)((assumed & mask) >> sh);
+//     return (uint16_t)((assumed & mask) >> sh);
 // }
 
+// // ---------------- 32-bit: int32_t / uint32_t (built-in) --------------
+// // GPUFUN int32_t  OCL_OVERLOAD atomicAdd_i32(volatile GPUGLMEM int32_t  *p, int32_t  v) { return atomic_add(p, v); }
+// // GPUFUN uint32_t OCL_OVERLOAD atomicAdd_u32(volatile GPUGLMEM uint32_t *p, uint32_t v) { return atomic_add(p, v); }
+// GPUFUN int32_t  atomicAdd_i32(volatile GPUGLMEM int32_t  *p, int32_t  v) { return atomic_add(p, v); }
+// GPUFUN uint32_t atomicAdd_u32(volatile GPUGLMEM uint32_t *p, uint32_t v) { return atomic_add(p, v); }
 
-// // -------------------- 32-bit integers (core) --------------------
-// // inline int  OCL_OVERLOAD atomicAdd(volatile __global int  *p, int  v) { return atomic_add(p, v); }
-// // inline uint OCL_OVERLOAD atomicAdd(volatile __global uint *p, uint v) { return atomic_add(p, v); }
-// GPUFUN int  OCL_OVERLOAD atomicAdd(volatile GPUGLMEM int  *p, int  v) { return atomic_add(p, v); }
-// GPUFUN uint OCL_OVERLOAD atomicAdd(volatile GPUGLMEM uint *p, uint v) { return atomic_add(p, v); }
-// // inline int  OCL_OVERLOAD atomicAdd(volatile __local  int  *p, int  v) { return atomic_add(p, v); }
-// // inline uint OCL_OVERLOAD atomicAdd(volatile __local  uint *p, uint v) { return atomic_add(p, v); }
+// // ---------------- 64-bit: int64_t / uint64_t (needs cl_khr_int64_* ) ---
+// #pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
+// // GPUFUN int64_t  OCL_OVERLOAD atomicAdd_i64(volatile GPUGLMEM int64_t  *p, int64_t  v) { return atom_add(p, v); }
+// // GPUFUN uint64_t OCL_OVERLOAD atomicAdd_u64(volatile GPUGLMEM uint64_t *p, uint64_t v) { return atom_add(p, v); }
+// GPUFUN int64_t  atomicAdd_i64(volatile GPUGLMEM int64_t  *p, int64_t  v) { return atom_add(p, v); }
+// GPUFUN uint64_t atomicAdd_u64(volatile GPUGLMEM uint64_t *p, uint64_t v) { return atom_add(p, v); }
 
-// // -------------------- 64-bit integers (needs cl_khr_int64_* ) ---
-// #ifdef cl_khr_int64_base_atomics
-// // inline long  OCL_OVERLOAD atomicAdd(volatile __global long  *p, long  v) { return atom_add(p, v); }
-// // inline ulong OCL_OVERLOAD atomicAdd(volatile __global ulong *p, ulong v) { return atom_add(p, v); }
-// GPUFUN long  OCL_OVERLOAD atomicAdd(volatile GPUGLMEM long  *p, long  v) { return atom_add(p, v); }
-// GPUFUN ulong OCL_OVERLOAD atomicAdd(volatile GPUGLMEM ulong *p, ulong v) { return atom_add(p, v); }
-// // inline long  OCL_OVERLOAD atomicAdd(volatile __local  long  *p, long  v) { return atom_add(p, v); }
-// // inline ulong OCL_OVERLOAD atomicAdd(volatile __local  ulong *p, ulong v) { return atom_add(p, v); }
-// #endif // cl_khr_int64_base_atomics
-
-// // -------------------- 32-bit float via CAS ----------------------
-// // inline float OCL_OVERLOAD atomicAdd(volatile __global float *p, float v){
-// //     uint old_bits, new_bits;
-// //     do {
-// //         old_bits = as_uint(*p);
-// //         new_bits = as_uint(as_float(old_bits) + v);
-// //     } while (atomic_cmpxchg((volatile __global uint*)p, old_bits, new_bits) != old_bits);
-// //     return as_float(old_bits);  // return previous value (fetch-add)
-// // }
-// GPUFUN float OCL_OVERLOAD atomicAdd(volatile GPUGLMEM float *p, float v){
-//     uint old_bits, new_bits;
+// // ---------------- 32-bit: float (CAS on 32-bit word) --------------
+// GPUFUN float atomicAdd_f32(volatile GPUGLMEM float *p, float v){
+//     uint32_t oldb, newb;
 //     do {
-//         old_bits = as_uint(*p);
-//         new_bits = as_uint(as_float(old_bits) + v);
-//     } while (atomic_cmpxchg((volatile GPUGLMEM uint*)p, old_bits, new_bits) != old_bits);
-//     return as_float(old_bits);  // return previous value (fetch-add)
+//         oldb = as_uint(*p);
+//         newb = as_uint(as_float(oldb) + v);
+//     } while (atomic_cmpxchg((volatile GPUGLMEM uint32_t*)p, oldb, newb) != oldb);
+//     return as_float(oldb);
 // }
 
-// // inline float OCL_OVERLOAD atomicAdd(volatile __local float *p, float v){
-// //     uint old_bits, new_bits;
-// //     do {
-// //         old_bits = as_uint(*p);
-// //         new_bits = as_uint(as_float(old_bits) + v);
-// //     } while (atomic_cmpxchg((volatile __local uint*)p, old_bits, new_bits) != old_bits);
-// //     return as_float(old_bits);
-// // }
-
-// // -------------------- 64-bit double via CAS ---------------------
-// // #if defined(cl_khr_fp64) && defined(cl_khr_int64_base_atomics)
-// // inline double OCL_OVERLOAD atomicAdd(volatile __global double *p, double v){
-// //     ulong old_bits, new_bits;
-// //     do {
-// //         old_bits = as_ulong(*p);
-// //         new_bits = as_ulong(as_double(old_bits) + v);
-// //     } while (atom_cmpxchg((volatile __global ulong*)p, old_bits, new_bits) != old_bits);
-// //     return as_double(old_bits);
-// // }
-// #if defined(cl_khr_fp64) && defined(cl_khr_int64_base_atomics)
-// GPUFUN double OCL_OVERLOAD atomicAdd(volatile GPUGLMEM double *p, double v){
-//     ulong old_bits, new_bits;
+// // ---------------- 64-bit: double (needs cl_khr_fp64 and cl_khr_int64_*) ---
+// #pragma OPENCL EXTENSION cl_khr_fp64 : enable
+// GPUFUN double atomicAdd_f64(volatile GPUGLMEM double *p, double v){
+//     uint64_t oldb, newb;
 //     do {
-//         old_bits = as_ulong(*p);
-//         new_bits = as_ulong(as_double(old_bits) + v);
-//     } while (atom_cmpxchg((volatile GPUGLMEM ulong*)p, old_bits, new_bits) != old_bits);
-//     return as_double(old_bits);
+//         oldb = as_ulong(*p);
+//         newb = as_ulong(as_double(oldb) + v);
+//     } while (atom_cmpxchg((volatile GPUGLMEM uint64_t*)p, oldb, newb) != oldb);
+//     return as_double(oldb);
 // }
-// // inline double OCL_OVERLOAD atomicAdd(volatile __local double *p, double v){
-// //     ulong old_bits, new_bits;
-// //     do {
-// //         old_bits = as_ulong(*p);
-// //         new_bits = as_ulong(as_double(old_bits) + v);
-// //     } while (atom_cmpxchg((volatile __local ulong*)p, old_bits, new_bits) != old_bits);
-// //     return as_double(old_bits);
-// // }
-// #endif // cl_khr_fp64 && cl_khr_int64_base_atomics
 
-
-/* ---------- 32-bit ints (built-in) ---------- */
-static int  atomicAdd(volatile __global int  *p, int  v)  { return atomic_add(p, v); }
-static uint atomicAdd(volatile __global uint *p, uint v)  { return atomic_add(p, v); }
-
-/* ---------- 8/16-bit via 32-bit CAS (little-endian) ---------- */
-static char  atomicAdd(volatile __global char  *p, char  v) {
-    volatile __global uint *w = (volatile __global uint*)((size_t)p & ~3u);
-    uint sh = (uint)((size_t)p & 3u) * 8u, mask = 0xFFu << sh;
-    uint old = *w, assumed, byte, newbyte, nw;
-    do {
-        assumed = old;
-        byte    = (assumed & mask) >> sh;
-        newbyte = (uint)((uchar)byte + (uchar)v);
-        nw      = (assumed & ~mask) | ((newbyte & 0xFFu) << sh);
-        old     = atomic_cmpxchg(w, assumed, nw);
-    } while (old != assumed);
-    return (char)((assumed & mask) >> sh);
-}
-static uchar atomicAdd(volatile __global uchar *p, uchar v) {
-    volatile __global uint *w = (volatile __global uint*)((size_t)p & ~3u);
-    uint sh = (uint)((size_t)p & 3u) * 8u, mask = 0xFFu << sh;
-    uint old = *w, assumed, byte, newbyte, nw;
-    do {
-        assumed = old;
-        byte    = (assumed & mask) >> sh;
-        newbyte = (uint)(byte + v);
-        nw      = (assumed & ~mask) | ((newbyte & 0xFFu) << sh);
-        old     = atomic_cmpxchg(w, assumed, nw);
-    } while (old != assumed);
-    return (uchar)((assumed & mask) >> sh);
-}
-
-static short  atomicAdd(volatile __global short  *p, short  v) {
-    volatile __global uint *w = (volatile __global uint*)((size_t)p & ~3u);
-    uint sh = (uint)(((size_t)p & 2u) ? 16u : 0u), mask = 0xFFFFu << sh;
-    uint old = *w, assumed, half, newhalf, nw;
-    do {
-        assumed = old;
-        half    = (assumed & mask) >> sh;
-        newhalf = (uint)((ushort)half + (ushort)v);
-        nw      = (assumed & ~mask) | ((newhalf & 0xFFFFu) << sh);
-        old     = atomic_cmpxchg(w, assumed, nw);
-    } while (old != assumed);
-    return (short)((assumed & mask) >> sh);
-}
-static ushort atomicAdd(volatile __global ushort *p, ushort v) {
-    volatile __global uint *w = (volatile __global uint*)((size_t)p & ~3u);
-    uint sh = (uint)(((size_t)p & 2u) ? 16u : 0u), mask = 0xFFFFu << sh;
-    uint old = *w, assumed, half, newhalf, nw;
-    do {
-        assumed = old;
-        half    = (assumed & mask) >> sh;
-        newhalf = (uint)(half + v);
-        nw      = (assumed & ~mask) | ((newhalf & 0xFFFFu) << sh);
-        old     = atomic_cmpxchg(w, assumed, nw);
-    } while (old != assumed);
-    return (ushort)((assumed & mask) >> sh);
-}
-
-/* ---------- float via 32-bit CAS ---------- */
-static float atomicAdd(volatile __global float *p, float v) {
-    uint oldb, newb;
-    do {
-        oldb = as_uint(*p);
-        newb = as_uint(as_float(oldb) + v);
-    } while (atomic_cmpxchg((volatile __global uint*)p, oldb, newb) != oldb);
-    return as_float(oldb);
-}
-
-/* ---------- 64-bit (ints/double) need extensions ---------- */
-#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
-#ifdef cl_khr_int64_base_atomics
-static ulong atomicAdd(volatile __global ulong *p, ulong v) { return atom_add(p, v); }
-static long  atomicAdd(volatile __global long  *p, long  v) { return atom_add(p, v); }
-#endif
-
-#pragma OPENCL EXTENSION cl_khr_fp64 : enable
-#if defined(cl_khr_fp64) && defined(cl_khr_int64_base_atomics)
-static double atomicAdd(volatile __global double *p, double v) {
-    ulong oldb, newb;
-    do {
-        oldb = as_ulong(*p);
-        newb = as_ulong(as_double(oldb) + v);
-    } while (atom_cmpxchg((volatile __global ulong*)p, oldb, newb) != oldb);
-    return as_double(oldb);
-}
-#endif
-
-
-#endif // XO_CONTEXT_CL
+// #endif // XO_CONTEXT_CL
 
 #endif //_ATOMICADD_H_
