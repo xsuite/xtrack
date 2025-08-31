@@ -729,7 +729,7 @@ def twiss_line(line, particle_ref=None, method=None,
 
         with xt.line._preserve_config(line):
             with xt.line._preserve_track_flags(line):
-                line.tracker.flags.XS_FLAG_KILL_CAVITY_KICK = True
+                line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK = True
                 line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
                 line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = False
                 cols_chrom, scalars_chrom = _compute_chromatic_functions(
